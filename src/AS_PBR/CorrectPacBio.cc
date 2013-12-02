@@ -452,8 +452,10 @@ main (int argc, char * argv []) {
         } else {
            fprintf(stderr, "Could not update overlap store path, using unfiltered mates");
         }
+
         // remove intermediate files
         sprintf(command, "rm -rf %s*ovb", thread_globals.prefix);
+        system(command);
     }
 
     // filter repeat reads out, currently based on coverage pre-mate filtering, should it be post-mate filtering?
