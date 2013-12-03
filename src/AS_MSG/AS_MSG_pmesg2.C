@@ -79,6 +79,14 @@ Read_LIB_Mesg(FILE *fin) {
     lmesg.values   = (char **)safe_realloc(lmesg.values,   sizeof(char *) * lmesg.num_features);
 
     for (uint32 i=0; i<lmesg.num_features; i++) {
+
+      if (*fb == 0) {
+        fprintf(stderr, "WARNING: ran off the end of the feature list at feature %u out of %u in library '%s'.\n",
+                i, lmesg.num_features, AS_UID_toString(lmesg.eaccession));
+        lmesg.num_features = i;
+        break;
+      }
+
       //  get rid of spaces in the label
       while (isspace(*fb))
         fb++;
