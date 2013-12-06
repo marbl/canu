@@ -105,7 +105,7 @@ largestCovered(OVSoverlap  *ovl,
     uint32  ie = 0;
 
     while (it < DE.numberOfIntervals()) {
-      //fprintf(stderr, "DE - %d - "F_S64" "F_S64" "F_S64"\n", fr.gkFragment_getReadIDE(), DE.lo(it), DE.hi(it), DE.de(it));
+      //fprintf(stderr, "DE - %d - "F_S64" "F_S64" "F_U32"\n", fr.gkFragment_getReadIID(), DE.lo(it), DE.hi(it), DE.de(it));
 
       if (DE.de(it) < minCoverage) {
         //  Dropped below good coverage depth.  If we have an interval, save it.  Reset.
@@ -212,8 +212,13 @@ largestCovered(OVSoverlap  *ovl,
 
   ////////////////////////////////////////
 
-  //for (uint32 it=0; it<IL.numberOfIntervals(); it++)
-  //  fprintf(stderr, "IL - %d - "F_S64" "F_S64" "F_S64"\n", fr.gkFragment_getReadIID(), IL.lo(it), IL.hi(it), IL.ct(it));
+  //  The IL.ct(it) is always 1 if we filter low coverage.  It is no longer reported.
+#if 0
+  if (IL.numberOfIntervals() > 1)
+    for (uint32 it=0; it<IL.numberOfIntervals(); it++)
+      //fprintf(stderr, "IL[%02d] - iid %d - "F_S64" "F_S64" count "F_U32"\n", it, fr.gkFragment_getReadIID(), IL.lo(it), IL.hi(it), IL.ct(it));
+      fprintf(stderr, "IL[%02d] - iid %d - "F_S64" "F_S64"\n", it, fr.gkFragment_getReadIID(), IL.lo(it), IL.hi(it));
+#endif
 
   if (IL.numberOfIntervals() == 0) {
     strcpy(logMsg, "\tno high quality overlaps");

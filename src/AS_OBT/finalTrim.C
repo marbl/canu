@@ -160,6 +160,9 @@ main(int argc, char **argv) {
 
   argc = AS_configure(argc, argv);
 
+  uint32            minEvidenceOverlap  = MIN(500, AS_OVERLAP_MIN_LEN);
+  uint32            minEvidenceCoverage = 1;
+
   int arg=1;
   int err=0;
   while (arg < argc) {
@@ -187,6 +190,12 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-E") == 0) {
       errorLimit = atof(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-ol") == 0) {
+      minEvidenceOverlap = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-oc") == 0) {
+      minEvidenceCoverage = atoi(argv[++arg]);
+
     } else if (strcmp(argv[arg], "-o") == 0) {
       outputPrefix = argv[++arg];
 
@@ -211,13 +220,15 @@ main(int argc, char **argv) {
     fprintf(stderr, "   -e erate       allow 'erate' percent error\n");
     fprintf(stderr, "   -E elimit      allow 'elimit' errors (only used in 'largestCovered')\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "   -n             do not modify\n");
+    fprintf(stderr, "   -ol            for 'largest covered', the minimum evidence overlap length\n");
+    fprintf(stderr, "   -oc            for 'largest covered', the minimum evidence overlap coverage\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "   -n             do not modify reads in gkpStore\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "   -t bgn-end     limit processing to only reads from bgn to end (inclusive)\n");
     fprintf(stderr, "\n");
     exit(1);
   }
-
 
   sprintf(logName, "%s.log",     outputPrefix);
   sprintf(sumName, "%s.summary", outputPrefix);
@@ -226,6 +237,12 @@ main(int argc, char **argv) {
   sumFile = fopen(sumName, "w");
 
   fprintf(logFile, "iid\tinitL\tinitR\tfinalL\tfinalR\tmessage (DEL=deleted NOC=no change MOD=modified)\n");
+
+  fprintf(sumFile, "Overlap error rate     <= %.2f%% error\n", 100.0 * AS_OVS_decodeQuality(errorRate));
+  fprintf(sumFile, "Overlap error limit    <= %.2f errors\n", errorLimit);
+  fprintf(sumFile, "Overlap min overlap    >= %u base%s (for 'largest covered')\n", minEvidenceOverlap,  (minEvidenceOverlap  == 1) ? "" : "s");
+  fprintf(sumFile, "Overlap min coverage   >= %u read%s (for 'largest covered')\n", minEvidenceCoverage, (minEvidenceCoverage == 1) ? "" : "s");
+
 
   uint32      ovlLen       = 0;
   uint32      ovlMax       = 64 * 1024;
@@ -313,8 +330,8 @@ main(int argc, char **argv) {
                               errorRate,
                               errorLimit,
                               lb->doTrim_initialQualityBased,
-                              MIN(500, AS_OVERLAP_MIN_LEN),
-                              1);
+                              minEvidenceOverlap,
+                              minEvidenceCoverage);
       assert(fbgn <= fend);
 
     }
@@ -328,8 +345,8 @@ main(int argc, char **argv) {
                         errorRate,
                         errorLimit,
                         lb->doTrim_initialQualityBased,
-                        MIN(500, AS_OVERLAP_MIN_LEN),
-                        2);
+                        minEvidenceOverlap,
+                        minEvidenceCoverage);
       assert(fbgn <= fend);
 
     }
