@@ -34,14 +34,20 @@ const char *mainid = "$Id$";
 using namespace std;
 
 
-//  We trim each overlap end back by this amount.
+//  When searching for chimer, each overlap end is trimed back by this amount.
 #define OVLTRIM  ((AS_OVERLAP_MIN_LEN / 2) - 1)
+
 
 //  But then use only overlaps larger than this for some of the more questionable overlaps.
 #define MIN_INTERVAL_OVERLAP  60
 
 //  Same orient overlaps closer than this are evidence of PacBio subreads.
-#define SUBREAD_LOOP_MAX_SIZE  100
+#define SUBREAD_LOOP_MAX_SIZE  500
+#define SUBREAD_LOOP_EXT_SIZE  2000
+
+//  Original
+//#define SUBREAD_LOOP_MAX_SIZE  100
+//#define SUBREAD_LOOP_EXT_SIZE  0
 
 
 //  WITH_REPORT_FULL will ALL overlap evidence.
@@ -204,6 +210,14 @@ public:
     assert(Aiid      == Aiid_);
     assert(Biid      == Biid_);
     assert(isCrap    == isCrap_);
+
+    //  We used to filter short overlaps in the adjust() function, but we want to use some of them
+    //  for subread detection.  If we don't filter them out, we get invalid intervals in the chimera
+    //  processing.  We could check for length at the correct time, or just set the ignore flag
+    //  here.
+    if ((Aend - Abeg < AS_OVERLAP_MIN_LEN) ||
+        (Bend - Bbeg < AS_OVERLAP_MIN_LEN))
+      ignore = true;
 
     if (Alhang > 0)  style |= 0x08;
     if (Arhang > 0)  style |= 0x04;
@@ -425,7 +439,15 @@ readClearRanges(gkStore *gkp) {
 
 
 void
-adjust(OVSoverlap *ovl, uint32 ovlLen, const chimeraClear *clear, vector<chimeraOvl> &olist, double errorRate, double errorLimit) {
+adjust(OVSoverlap         *ovl,
+       uint32              ovlLen,
+       const chimeraClear *clear,
+       vector<chimeraOvl> &olist,
+       double              errorRate,
+       double              errorLimit,
+       FILE               *reportFile) {
+
+  int32  minOverlap = MAX(40, AS_OVERLAP_MIN_LEN / 2);
 
   for (uint32 o=0; o<ovlLen; o++) {
     int32 idA    = ovl[o].a_iid;
@@ -506,11 +528,12 @@ adjust(OVSoverlap *ovl, uint32 ovlLen, const chimeraClear *clear, vector<chimera
     int32  trimR = MAX(trimRa, trimRb);
 
 #ifdef REPORT_OVERLAPS
-    fprintf(reportFile, "CLR A %d,%d %d,%d  B %d,%d %d,%d  TRIM %d %d %d %d -- ",
-            initLa, initRa, mergLa, mergRa,
-            initLb, initRb, mergLb, mergRb,
-            trimLa, trimRa,
-            trimLb, trimRb);
+    if (reportFile)
+      fprintf(reportFile, "CLR A %d,%d %d,%d  B %d,%d %d,%d  TRIM %d %d %d %d -- ",
+              initLa, initRa, mergLa, mergRa,
+              initLb, initRb, mergLb, mergRb,
+              trimLa, trimRa,
+              trimLb, trimRb);
 #endif
 
     leftA += trimL;
@@ -520,17 +543,21 @@ adjust(OVSoverlap *ovl, uint32 ovlLen, const chimeraClear *clear, vector<chimera
     righB -= trimR;
 
 #ifdef REPORT_OVERLAPS
-    fprintf(reportFile, F_S32"\t"F_S32"\t%c\t"F_S32"\t"F_S32"\t"F_S32"\t"F_S32"\t"F_S32"\t"F_S32"\t%5.3f\n",
-            idA, idB, ori, leftA, righA, lenA, leftB, righB, lenB, error);
+    if (reportFile)
+      fprintf(reportFile, F_S32"\t"F_S32"\t%c\t"F_S32"\t"F_S32"\t"F_S32"\t"F_S32"\t"F_S32"\t"F_S32"\t%5.3f\n",
+              idA, idB, ori, leftA, righA, lenA, leftB, righB, lenB, error);
 #endif
 
     if ((leftA < 0) ||
         (leftB < 0) ||
         (righA < 0) ||
-        (righB < 0) ||
-        (leftA + AS_OVERLAP_MIN_LEN > righA) ||
-        (leftB + AS_OVERLAP_MIN_LEN > righB))
+        (righB < 0))
       //  Trimmed out.
+      continue;
+
+    if ((leftA + minOverlap > righA) ||
+        (leftB + minOverlap > righB))
+      //  Too small.
       continue;
 
     int32 lhangA = leftA  - mergLa;
@@ -579,14 +606,15 @@ adjust(OVSoverlap *ovl, uint32 ovlLen, const chimeraClear *clear, vector<chimera
                       ((righA - leftA >= minLenLQ) && (error <= maxErrLQ)));
 
 #ifdef DEBUG_FILTER
-    fprintf(reportFile, "OVERLAP "F_IID" %3d %3d-%3d %3d vs "F_IID" %3d %3d-%3d %3d ori %c len/err %d/%f minLen/maxErr HQ:%d/%f MQ:%d/%f LQ:%d/%f%s\n",
-            idA, lhangA, leftA, righA, rhangA,
-            idB, lhangB, leftB, righB, rhangB, ori,
-            righA - leftA, error,
-            minLenHQ, maxErrHQ,
-            minLenMQ, maxErrMQ,
-            minLenLQ, maxErrLQ,
-            (isNotCrap) ? "" : " CRAP");
+    if (reportFile)
+      fprintf(reportFile, "OVERLAP "F_IID" %3d %3d-%3d %3d vs "F_IID" %3d %3d-%3d %3d ori %c len/err %d/%f minLen/maxErr HQ:%d/%f MQ:%d/%f LQ:%d/%f%s\n",
+              idA, lhangA, leftA, righA, rhangA,
+              idB, lhangB, leftB, righB, rhangB, ori,
+              righA - leftA, error,
+              minLenHQ, maxErrHQ,
+              minLenMQ, maxErrMQ,
+              minLenLQ, maxErrLQ,
+              (isNotCrap) ? "" : " CRAP");
 #endif
 
     if (lhangA < 15)  lhangA = 0;
@@ -750,7 +778,8 @@ chimeraRes
 processChimera(const AS_IID           iid,
                const chimeraClear    *clear,
                gkStore               *gkp,
-               vector<chimeraOvl>    &olist) {
+               vector<chimeraOvl>    &olist,
+               FILE                  *reportFile) {
   int32   ola = clear[iid].mergL;
   int32   ora = clear[iid].mergR;
 
@@ -1516,12 +1545,12 @@ processSubRead(const AS_IID           iid,
                gkStore               *gkp,
                vector<chimeraOvl>    &olist,
                vector<chimeraBad>    &blist,
-               FILE                  *subreadFile) {
+               FILE                  *subreadFile,
+               bool                   subreadFileVerbose) {
 
   if (olist.size() == 0)
     //  No overlaps, nothing to do.
     return;
-
 
   if (clear[olist[0].Aiid].doCheckSubRead == false)
     //  Not supposed to be checking this read for subreads, nothing to do.
@@ -1534,8 +1563,10 @@ processSubRead(const AS_IID           iid,
 
   bool                 largePalindrome = false;
   intervalList         BAD;
+  intervalList         BADall;
 
   for (uint32 ii=0; ii<olist.size(); ii++) {
+    //fprintf(stderr, "COUNT OLAPS B %u %u-%u\n", olist[ii].Biid, olist[ii].Bbeg, olist[ii].Bend);
     secondIdx[olist[ii].Biid] = ii;
     numOlaps[olist[ii].Biid]++;
   }
@@ -1547,9 +1578,9 @@ processSubRead(const AS_IID           iid,
 
     if (numOlaps[olist[ii].Biid] == 1) {
       //  Only one overlap, can't indicate sub read!
-      //if (subreadFile)
-      //  fprintf(subreadFile, "oneOverlap                 %u (%lu-%lu) %u (%lu-%lu)\n",
-      //          olist[ii].Aiid, olist[ii].Abeg, olist[ii].Aend, olist[ii].Biid, olist[ii].Bbeg, olist[ii].Bend);
+      if ((subreadFile) && (subreadFileVerbose))
+        fprintf(subreadFile, "oneOverlap                 %u (%lu-%lu) %u (%lu-%lu) -- can't indicate subreads\n",
+                olist[ii].Aiid, olist[ii].Abeg, olist[ii].Aend, olist[ii].Biid, olist[ii].Bbeg, olist[ii].Bend);
       continue;
     }
 
@@ -1565,9 +1596,9 @@ processSubRead(const AS_IID           iid,
 
     if (ii == jj) {
       //  Already did this one!
-      //if (subreadFile)
-      //  fprintf(subreadFile, "sameOverlap                %u (%lu-%lu) %u (%lu-%lu)\n",
-      //          olist[ii].Aiid, olist[ii].Abeg, olist[ii].Aend, olist[ii].Biid, olist[ii].Bbeg, olist[ii].Bend);
+      if ((subreadFile) && (subreadFileVerbose))
+        fprintf(subreadFile, "sameOverlap                %u (%lu-%lu) %u (%lu-%lu)\n",
+                olist[ii].Aiid, olist[ii].Abeg, olist[ii].Aend, olist[ii].Biid, olist[ii].Bbeg, olist[ii].Bend);
       continue;
     }
 
@@ -1615,8 +1646,6 @@ processSubRead(const AS_IID           iid,
                 olist[jj].Aiid, olist[jj].Abeg, olist[jj].Aend, olist[jj].Biid, olist[jj].Bbeg, olist[jj].Bend,
                 (dist > 5) ? " WARNING--FAR-IID--WARNING" : "");
       largePalindrome  = true;
-      //olist[ii].ignore = true;
-      //olist[jj].ignore = true;
     }
 
     //  Otherwise, if the overlaps overlap on both reads by significant chunks, don't believe
@@ -1630,9 +1659,6 @@ processSubRead(const AS_IID           iid,
         fprintf(subreadFile, "BothOv    ignore overlaps  %u (%lu-%lu) %u (%lu-%lu)  %u (%lu-%lu) %u (%lu-%lu)\n",
                 olist[ii].Aiid, olist[ii].Abeg, olist[ii].Aend, olist[ii].Biid, olist[ii].Bbeg, olist[ii].Bend,
                 olist[jj].Aiid, olist[jj].Abeg, olist[jj].Aend, olist[jj].Biid, olist[jj].Bbeg, olist[jj].Bend);
-      //olist[ii].ignore = true;
-      //olist[jj].ignore = true;
-      //continue;
     }
 
     //  Stronger overlap in the A reads.  The B read looks like it has subreads, which is perfectly fine
@@ -1643,9 +1669,6 @@ processSubRead(const AS_IID           iid,
         fprintf(subreadFile, "BcheckSub ignore overlaps  %u (%lu-%lu) %u (%lu-%lu)  %u (%lu-%lu) %u (%lu-%lu)\n",
                 olist[ii].Aiid, olist[ii].Abeg, olist[ii].Aend, olist[ii].Biid, olist[ii].Bbeg, olist[ii].Bend,
                 olist[jj].Aiid, olist[jj].Abeg, olist[jj].Aend, olist[jj].Biid, olist[jj].Bbeg, olist[jj].Bend);
-      //olist[ii].ignore = true;
-      //olist[jj].ignore = true; 
-      //continue;
     }
 
     //  We now want to decide if this pair of overlaps is indicating that the A read contains sub reads.
@@ -1698,16 +1721,20 @@ processSubRead(const AS_IID           iid,
               olist[ii].Aiid, olist[ii].Abeg, olist[ii].Aend, olist[ii].Biid, olist[ii].Bbeg, olist[ii].Bend,
               olist[jj].Aiid, olist[jj].Abeg, olist[jj].Aend, olist[jj].Biid, olist[jj].Bbeg, olist[jj].Bend,
               badbgn, badend, badend - badbgn,
-              (badend - badbgn <= SUBREAD_LOOP_MAX_SIZE) ? "(EVIDENCE)" : "(too far, ignored)");
+              (badend - badbgn <= SUBREAD_LOOP_MAX_SIZE) ? "(EVIDENCE)" : "(too far)");
+
 
     //  A true subread signature will have a small bad interval (10 bases) and largely agree on the
     //  interval.  False signature will have a large size, and not agree.  We only check for size
     //  though.
     //
-    if (badend - badbgn > SUBREAD_LOOP_MAX_SIZE)
-      continue;
+    if (badend - badbgn <= SUBREAD_LOOP_MAX_SIZE)
+      BAD.add(badbgn, badend - badbgn);
 
-    BAD.add(badbgn, badend - badbgn);
+    //  Save all plausible pairs.
+    //
+    if (badend - badbgn <= SUBREAD_LOOP_EXT_SIZE)
+      BADall.add(badbgn, badend - badbgn);
   }
 
   //
@@ -1715,9 +1742,30 @@ processSubRead(const AS_IID           iid,
   //
 
   BAD.merge();
+  BADall.merge();
+
+#if 0
+  if (subreadFile) {
+    for (uint32 bb=0; bb<BAD.numberOfIntervals(); bb++)
+      fprintf(subreadFile, "BAD[%d]  %ld-%ld %d hits\n", bb, BAD.lo(bb), BAD.hi(bb), BAD.ct(bb));
+    for (uint32 bb=0; bb<BADall.numberOfIntervals(); bb++)
+      fprintf(subreadFile, "BADall[%d]  %ld-%ld %d hits\n", bb, BADall.lo(bb), BADall.hi(bb), BADall.ct(bb));
+  }
+#endif
 
   for (uint32 bb=0; bb<BAD.numberOfIntervals(); bb++) {
     uint32  numSpan = 0;
+    uint32  allHits = 0;
+
+    //  Find the BADall interval that corresponds to this one.  This BAD interval must be contained
+    //  in a BADall (because it contains all bad intervals, while BAD is just the close stuff).
+    //  Once we find it, remember the number of reads for later use.
+
+    for (uint32 aa=0; aa<BADall.numberOfIntervals(); aa++)
+      if ((BADall.lo(aa) <= BAD.lo(bb)) && (BAD.hi(bb) <= BADall.hi(aa)))
+        allHits += BADall.ct(aa);
+
+    assert(allHits != 0);
 
     //  Count the number of reads that span this region.  If the spanning read is not from a library
     //  that might contain subreads, give it more weight.
@@ -1727,8 +1775,8 @@ processSubRead(const AS_IID           iid,
         numSpan += (clear[olist[ii].Aiid].doCheckSubRead) ? 1 : 2;
 
     if (subreadFile)
-      fprintf(subreadFile, "AcheckSub region %u ("F_U64"-"F_U64") with %u hits - span %u largePalindrome %s\n",
-              olist[0].Aiid, BAD.lo(bb), BAD.hi(bb), BAD.ct(bb), 
+      fprintf(subreadFile, "AcheckSub region %u ("F_U64"-"F_U64") with %u hits %u bighits - span %u largePalindrome %s\n",
+              olist[0].Aiid, BAD.lo(bb), BAD.hi(bb), BAD.ct(bb), allHits,
               numSpan, largePalindrome ? "true" : "false");
 
     if (numSpan > 9)
@@ -1736,9 +1784,12 @@ processSubRead(const AS_IID           iid,
       //  is plenty of evidence it is true.
       continue;
 
-    if (BAD.ct(bb) + largePalindrome < 3)
+    if (BAD.ct(bb) + allHits / 4 + largePalindrome < 3)
       //  If 2 or fewer reads claim this is a sub read junction, skip it.  Evidence is weak.
       continue;
+
+    if (subreadFile)
+      fprintf(subreadFile, "CONFIRMED BAD REGION %ld-%ld\n", BAD.lo(bb), BAD.hi(bb));
 
     blist.push_back(chimeraBad(olist[0].Aiid, BAD.lo(bb), BAD.hi(bb)));
   }
@@ -1926,11 +1977,11 @@ main(int argc, char **argv) {
 
     //  Otherwise, trim!
 
-    adjust(ovl, ovlLen, clear, olist, errorRate, errorLimit);
+    adjust(ovl, ovlLen, clear, olist, errorRate, errorLimit, reportFile);
 
-    processSubRead(ovl[0].a_iid, clear, gkp, olist, blist, subreadFile);
+    processSubRead(ovl[0].a_iid, clear, gkp, olist, blist, subreadFile, true);
 
-    chimeraRes   res = processChimera(ovl[0].a_iid, clear, gkp, olist);
+    chimeraRes   res = processChimera(ovl[0].a_iid, clear, gkp, olist, reportFile);
 
     //  If after chimer trimming a read had a bad interval in the clear, just delete the read.
     //  Evidence said it was both good and bad.
