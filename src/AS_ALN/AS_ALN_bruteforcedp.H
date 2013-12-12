@@ -24,14 +24,6 @@
 
 static const char *rcsid_AS_ALN_BRUTEFORCEDP = "$Id$";
 
-
-typedef struct {
-  unsigned int  score  : 30;
-  unsigned int  action : 2;
-} dpCell;
-
-
-
 class dpActions {
 public:
   dpActions() {
@@ -109,7 +101,6 @@ alignLinker(char           *alignA,
             char           *alignB,
             char           *stringA,
             char           *stringB,
-            dpCell        (*M)[AS_READ_MAX_NORMAL_LEN + 1],
             alignLinker_s  *a,
             int             endToEnd,
             int             allowNs,

@@ -357,23 +357,13 @@ Optimal_Overlap_AS_forCNS(char *a, char *b,
                           double erate, double thresh, int minlen,
                           CompareOptions what) {
 
-  typedef struct {
-    char     h_alignA[AS_READ_MAX_NORMAL_LEN + AS_READ_MAX_NORMAL_LEN + 2];
-    char     h_alignB[AS_READ_MAX_NORMAL_LEN + AS_READ_MAX_NORMAL_LEN + 2];
-    dpCell   h_matrix[AS_READ_MAX_NORMAL_LEN + 1][AS_READ_MAX_NORMAL_LEN + 1];
-    int      h_trace[AS_READ_MAX_NORMAL_LEN + AS_READ_MAX_NORMAL_LEN + 2];
-  } dpMatrix;
+  char     h_alignA[AS_READ_MAX_NORMAL_LEN + AS_READ_MAX_NORMAL_LEN + 2] = {0};
+  char     h_alignB[AS_READ_MAX_NORMAL_LEN + AS_READ_MAX_NORMAL_LEN + 2] = {0};
+  int      h_trace[AS_READ_MAX_NORMAL_LEN + AS_READ_MAX_NORMAL_LEN + 2]  = {0};
 
   static ALNoverlap   o;
-  static dpMatrix    *m = NULL;
 
   alignLinker_s   al;
-
-  if (m == NULL) {
-    m = (dpMatrix *)safe_malloc(sizeof(dpMatrix));
-    memset(&o, 0, sizeof(ALNoverlap));
-    memset( m, 0, sizeof(dpMatrix));
-  }
 
   if (VERBOSE_MULTIALIGN_OUTPUT >= 3)
     fprintf(stderr, "Optimal_Overlap_AS_forCNS()--  Begins\n");
@@ -392,11 +382,10 @@ Optimal_Overlap_AS_forCNS(char *a, char *b,
     fprintf(stderr, "ALIGN %s\n", b);
   }
 
-  alignLinker(m->h_alignA,
-              m->h_alignB,
+  alignLinker(h_alignA,
+              h_alignB,
               a,
               b,
-              m->h_matrix,
               &al,
               true,   //  Looking for global end-to-end alignments
               false,  //  Count matches to N as matches
@@ -407,15 +396,15 @@ Optimal_Overlap_AS_forCNS(char *a, char *b,
 
    if (VERBOSE_MULTIALIGN_OUTPUT >= 3) {
      fprintf(stderr, "ALIGN %d %d-%d %d-%d opposite=%d\n", al.alignLen, al.begI, al.endI, al.begJ, al.endJ, opposite);
-     fprintf(stderr, "ALIGN '%s'\n", m->h_alignA);
-     fprintf(stderr, "ALIGN '%s'\n", m->h_alignB);
+     fprintf(stderr, "ALIGN '%s'\n", h_alignA);
+     fprintf(stderr, "ALIGN '%s'\n", h_alignB);
    }
 
   if (opposite) {
     reverseComplementSequence(b, strlen(b));
 
-    reverseComplementSequence(m->h_alignA, al.alignLen);
-    reverseComplementSequence(m->h_alignB, al.alignLen);
+    reverseComplementSequence(h_alignA, al.alignLen);
+    reverseComplementSequence(h_alignB, al.alignLen);
 
     int x = al.begJ;
     al.begJ = al.lenB - al.endJ;
@@ -444,7 +433,7 @@ Optimal_Overlap_AS_forCNS(char *a, char *b,
   o.length  = al.alignLen;
   o.diffs   = 0;
   o.comp    = opposite;
-  o.trace   = m->h_trace;
+  o.trace   = h_trace;
 
   {
     int x=0;
@@ -454,12 +443,12 @@ Optimal_Overlap_AS_forCNS(char *a, char *b,
     int bp = al.begJ;
 
     for (x=0; x<al.alignLen; x++) {
-      if (m->h_alignA[x] == '-') {
-        m->h_trace[tp++] = -(ap + 1);
+      if (h_alignA[x] == '-') {
+        h_trace[tp++] = -(ap + 1);
         ap--;
       }
-      if (m->h_alignB[x] == '-') {
-        m->h_trace[tp++] = bp + 1;
+      if (h_alignB[x] == '-') {
+        h_trace[tp++] = bp + 1;
         bp--;
       }
 
@@ -472,14 +461,14 @@ Optimal_Overlap_AS_forCNS(char *a, char *b,
       bool  diff   = false;
       bool  ignore = false;
 
-      if (toupper(m->h_alignA[x]) != toupper(m->h_alignB[x]))
+      if (toupper(h_alignA[x]) != toupper(h_alignB[x]))
         diff = true;
 
-      if ((m->h_alignA[x] == 'N') || (m->h_alignA[x] == 'n') ||
-          (m->h_alignB[x] == 'N') || (m->h_alignB[x] == 'n'))
+      if ((h_alignA[x] == 'N') || (h_alignA[x] == 'n') ||
+          (h_alignB[x] == 'N') || (h_alignB[x] == 'n'))
         ignore = true;
 
-      if (islower(m->h_alignA[x]) && (m->h_alignB[x] == '-'))
+      if (islower(h_alignA[x]) && (h_alignB[x] == '-'))
         ignore = true;
 
       if ((diff == true) && (ignore == false))
@@ -489,15 +478,15 @@ Optimal_Overlap_AS_forCNS(char *a, char *b,
       ap++;
     }
 
-    m->h_trace[tp] = 0;
+    h_trace[tp] = 0;
 
     if (VERBOSE_MULTIALIGN_OUTPUT >= 4) {
       fprintf(stderr, "trace");
       for (x=0; x<tp; x++)
-        fprintf(stderr, " %d", m->h_trace[x]);
+        fprintf(stderr, " %d", h_trace[x]);
       fprintf(stderr, "\n");
-      fprintf(stderr, "A: %4d-%4d %4d %s\n", al.begI, al.endI, al.lenA, m->h_alignA);
-      fprintf(stderr, "B: %4d-%4d %4d %s\n", al.begJ, al.endJ, al.lenB, m->h_alignB);
+      fprintf(stderr, "A: %4d-%4d %4d %s\n", al.begI, al.endI, al.lenA, h_alignA);
+      fprintf(stderr, "B: %4d-%4d %4d %s\n", al.begJ, al.endJ, al.lenB, h_alignB);
     }
   }
 

@@ -62,6 +62,9 @@ uint32 DEBUG_READ_nRead = 0;
 
 char *TRIM_NAMES[4]  = { "none", "soft", "hard", "chop" };
 
+char h_alignA[AS_READ_MAX_NORMAL_LEN + AS_READ_MAX_NORMAL_LEN + 2] = {0};
+char h_alignB[AS_READ_MAX_NORMAL_LEN + AS_READ_MAX_NORMAL_LEN + 2] = {0};
+
 #define AS_LINKER_MAX_SEQS       50
 
 gkStore         *gkpStore    = NULL;
@@ -1170,15 +1173,6 @@ removeDuplicateReads(void) {
 //
 //
 
-typedef struct {
-  char     h_alignA[AS_READ_MAX_NORMAL_LEN + AS_READ_MAX_NORMAL_LEN + 2];
-  char     h_alignB[AS_READ_MAX_NORMAL_LEN + AS_READ_MAX_NORMAL_LEN + 2];
-  dpCell   h_matrix[AS_READ_MAX_NORMAL_LEN + 1][AS_READ_MAX_NORMAL_LEN + 1];
-} dpMatrix;
-
-dpMatrix  *globalMatrix = NULL;
-
-
 static
 int
 processMate(gkFragment *fr,
@@ -1240,11 +1234,10 @@ processMate(gkFragment *fr,
 
     seq[fr->clrEnd] = 0;
 
-    alignLinker(globalMatrix->h_alignA,
-                globalMatrix->h_alignB,
+    alignLinker(h_alignA,
+                h_alignB,
                 linker[linkerID],
                 seq + fr->clrBgn,
-                globalMatrix->h_matrix,
                 &wk,
                 FALSE, FALSE, 0, 0);
 
@@ -1368,8 +1361,8 @@ processMate(gkFragment *fr,
     //  This is a recursive search, and we found a second copy of the linker.  Return true to get this read deleted.
     fprintf(logFile, "%s -- recursive search found linker.\n", AS_UID_toString(fr->gkFragment_getReadUID()));
     fprintf(logFile, "  clr %dm%d alignLen %d matches %d lSize %d rSize %d\n", fr->clrBgn, fr->clrEnd, al.alignLen, al.matches, lSize, rSize);
-    fprintf(logFile, "  I %3d-%3d %s\n", al.begI, al.endI, globalMatrix->h_alignA);
-    fprintf(logFile, "  J %3d-%3d %s\n", al.begJ, al.endJ, globalMatrix->h_alignB);
+    fprintf(logFile, "  I %3d-%3d %s\n", al.begI, al.endI, h_alignA);
+    fprintf(logFile, "  J %3d-%3d %s\n", al.begJ, al.endJ, h_alignB);
     return(true);
   }
 
@@ -1686,8 +1679,6 @@ detectMates(char *linker[AS_LINKER_MAX_SEQS], int search[AS_LINKER_MAX_SEQS]) {
   m1.gkFragment_enableGatekeeperMode(gkpStore);
   m2.gkFragment_enableGatekeeperMode(gkpStore);
 
-  globalMatrix = (dpMatrix *)safe_malloc(sizeof(dpMatrix));
-
   int32  lastElem = gkpStore->gkStore_getNumFragments();
 
   fprintf(stderr, "detectMates()-- from %d to %d\n", 1, lastElem);
@@ -1773,9 +1764,6 @@ detectMates(char *linker[AS_LINKER_MAX_SEQS], int search[AS_LINKER_MAX_SEQS]) {
       exit(1);
     }
   }
-
-  safe_free(globalMatrix);
-  globalMatrix = NULL;
 
   return(0);
 }
