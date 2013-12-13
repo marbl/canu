@@ -110,12 +110,97 @@ sub processLayout($$$$) {
    if ($? != 0) { 
       die "Error: blasr could not run successfully"
    }
-   system("$path/pbdagcon -v -t 0 -m $length -j $threads -c $cov $prefix.m5 >> $output 2>/dev/null");
+   system("$path/pbdagcon -t 0 -m $length -j $threads -c $cov $prefix.m5 >> $output 2>/dev/null");
    if ($? != 0) {
       die "Error: pbdagon could not run successfully"
    }
 }
  
+sub processTig($$$) {
+   my $input = shift @_;
+   my $seq = shift @_;
+   my $output = shift @_;
+
+   my %seqs = {};
+   my $id = 0;
+   my $fastaSeq = "";
+   open(F, "< $seq") or die("Couldn't open '$seq'", undef);
+   while (<F>) {
+      s/^\s+//;
+      s/\s+$//;
+
+      next if (m/^\s*\#/);
+      next if (m/^\s*$/);
+
+      if (m/\>/) {
+         if ($fastaSeq ne "") {
+            $seqs{$id} = $fastaSeq;
+         }
+         $fastaSeq = "";
+         $id = (split '\s+')[0];
+         $id = (split ',', $id)[1]; 
+      } else {
+         $fastaSeq = $fastaSeq . $_;
+      }      
+   }
+   close(F);
+   my $count = (scalar keys %seqs);
+   print STDERR "Loaded " . $count . " sequences\n";
+
+   # first loop to get sizes
+   my %lens = {};
+   my $utgID = 0;
+   my $lastEnd = 0;
+   open(F, "< $input") or die("Couldn't open '$input'", undef);
+   while (<F>) {
+      s/^\s+//;
+      s/\s+$//;
+
+      next if (m/^\s*\#/);
+      next if (m/^\s*$/);
+      my @tokenized =  split '\s+';
+      if ($tokenized[0] eq "unitig") {
+         if ($lastEnd != 0) {
+            $lens{$utgID} = $lastEnd;
+         }
+         $utgID = $tokenized[1];
+      } elsif ($tokenized[0] eq "FRG") {
+         $lastEnd = ($tokenized[13] > $tokenized[14] ? $tokenized[13] : $tokenized[14]);
+      }
+   }
+   if ($lastEnd != 0) {
+      $lens{$utgID} = $lastEnd;
+   }
+   close(F);
+
+   my $counter = 0;
+   open(OUT, "> $output") or die ("Couldn't open '$output'", undef);
+   open(F, "< $input") or die("Couldn't open '$input'", undef);
+   while (<F>) {
+      s/^\s+//;
+      s/\s+$//;
+
+      next if (m/^\s*\#/);
+      next if (m/^\s*$/);
+      my @tokenized =  split '\s+';
+      if ($tokenized[0] eq "unitig") {
+         $lastEnd = $lens{$tokenized[1]};
+         $utgID = $tokenized[1];
+         $counter++;
+      } elsif ($tokenized[0] eq "FRG") {
+           my $min = ($tokenized[13] < $tokenized[14] ? $tokenized[13] : $tokenized[14]);
+           my $max = ($tokenized[13] > $tokenized[14] ? $tokenized[13] : $tokenized[14]);
+           my $fwd = ($tokenized[13] < $tokenized[14] ? "+" : "-");
+           my $seq = $seqs{$tokenized[4]};
+
+           print OUT "$tokenized[4] utg_$utgID $fwd $lastEnd $min $max $seq $seq\n";
+      }
+   }
+   close(F);
+   close(OUT);
+   print STDERR "Converted $counter unitigs\n";
+}
+
 sub processLayouts($$) {
    my $input = shift @_;
    my $output = shift @_;
@@ -165,6 +250,7 @@ setGlobal("coverage", 0);
 setGlobal("threads", 1);
 my $input = undef;
 my $output = undef;
+my $inputSequences = undef;
 
 # finally, command-line parameters take precedence
 while (scalar(@ARGV) > 0) {
@@ -196,6 +282,9 @@ while (scalar(@ARGV) > 0) {
 
     } elsif ($arg eq "-output") {
         $output = shift @ARGV;
+
+    } elsif ($arg eq "-sequence") {
+        $inputSequences = shift @ARGV;
 
     } else {
        print STDERR "Unknown parameter " + $err + "\n";
@@ -237,6 +326,14 @@ if (! -e "$BLASR/blasr" || ! -e "$BLASR/pbdagcon") {
 # clear output file
 open(O, ">", $output);
 close(O);
-processLayouts($input, $output);
+
+# when we were given sequences in a fasta file, assume we are processing a tig store layout, otherwise assume we have a layout already
+if (defined($inputSequences)) {
+   my $out = getGlobal("prefix") . ".layout";
+   processTig($input, $inputSequences, $out);
+   processLayouts($out, $output);
+} else {
+   processLayouts($input, $output);
+}
 # cleanup
 system("rm -f " . getGlobal("prefix") . "*");
