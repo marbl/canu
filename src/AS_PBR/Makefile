@@ -94,7 +94,7 @@ ifdef SAMTOOLS
    CXX_PROGS += convertSamToCA
 endif
 
-SCRIPTS     = pacBioToCA
+SCRIPTS     = pacBioToCA convertToPBCNS
 
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
@@ -142,5 +142,9 @@ correctPacBio:	   CorrectPacBio.o $(LIBS)
 dumpPBRLayoutStore:	AS_PBR_dumpStore.o $(LIBS)
 
 pacBioToCA: pacBioToCA.pl
+	@cp $< $(LOCAL_BIN)/$@
+	@chmod 775 $(LOCAL_BIN)/$@
+
+convertToPBCNS: convertToPBCNS.pl
 	@cp $< $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
