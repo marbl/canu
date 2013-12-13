@@ -1812,10 +1812,12 @@ if (! -e "$wrk/temp$libraryname/runPartition.sh") {
    }
    if (defined($pbcns) && $pbcns == 1) {
    print F "      \$bin/convertToPBCNS -input $wrk/temp$libraryname/$asm.\$jobid.lay -output $wrk/temp$libraryname/\$jobid.fasta -prefix $wrk/temp$libraryname/\$jobid.tmp -length $length -coverage $coverage -threads 1 && touch $wrk/temp$libraryname/\$jobid.success\n";
-   print F "      cat $wrk/temp$libraryname/\$jobid.fasta | awk '{if(\$0~/>/){print;}else{l=length(\$0);q=\"\";while(l--){q=q \" 60\"}printf(\"%s\\n\",q)}}' > $wrk/temp$libraryname/\$jobid.qual\n";
-   print F "      cat $wrk/temp$libraryname/\$jobid.fasta | awk '{if(\$0~/>/){sub(/>/,\"@\",\$0);print;}else{l=length(\$0);q=\"\";while(l--){q=q \"9\"}printf(\"%s\\n+\\n%s\\n\",\$0,q)}}' > $wrk/temp$libraryname/\$jobid.trim.fastq\n";
-   print F "      ln -s $wrk/temp$libraryname/\$jobid.fasta $wrk/temp$libraryname/\$jobid.trim.fasta\n";
-   print F "      ln -s $wrk/temp$libraryname/\$jobid.qual $wrk/temp$libraryname/\$jobid.trim.qual\n";
+   print F "      if test -e $wrk/temp$libraryname/\$jobid.success ; then\n";
+   print F "         cat $wrk/temp$libraryname/\$jobid.fasta | awk '{if(\$0~/>/){print;}else{l=length(\$0);q=\"\";while(l--){q=q \" 60\"}printf(\"%s\\n\",q)}}' > $wrk/temp$libraryname/\$jobid.qual\n";
+   print F "         cat $wrk/temp$libraryname/\$jobid.fasta | awk '{if(\$0~/>/){sub(/>/,\"@\",\$0);print;}else{l=length(\$0);q=\"\";while(l--){q=q \"9\"}printf(\"%s\\n+\\n%s\\n\",\$0,q)}}' > $wrk/temp$libraryname/\$jobid.trim.fastq\n";
+   print F "         ln -s $wrk/temp$libraryname/\$jobid.fasta $wrk/temp$libraryname/\$jobid.trim.fasta\n";
+   print F "         ln -s $wrk/temp$libraryname/\$jobid.qual $wrk/temp$libraryname/\$jobid.trim.qual\n";
+   print F "      fi\n";
    } else {
    print F "      rm -rf \$bankPath/$asm" . ".bnk_partition\$jobid.bnk\n";
    print F "      $AMOS/bank-transact -b \$bankPath/$asm" . ".bnk_partition\$jobid.bnk -m $wrk/temp$libraryname/$asm.\$jobid" . ".lay -c > $wrk/temp$libraryname/bank-transact.\$jobid.err 2>&1\n";
