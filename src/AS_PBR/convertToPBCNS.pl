@@ -133,7 +133,6 @@ sub processLayouts($$) {
       next if (m/^\s*$/);
       my @tokenized =  split '\s+';
       my $hashLen = scalar keys %toAlign;
-      print STDERR "Read in id $_" . $tokenized[1] . " maping " . $tokenized[2] . " positions " . $tokenized[4] . " to " . $tokenized[5] . " and length of consensus is " . length($cns) . " and num aligned $hashLen\n";
 
       if ($lastID eq "" || $lastID ne $tokenized[1]) {
          if ($lastID ne "") { processLayout($output, $lastID, $cns, \%toAlign); } 
