@@ -57,9 +57,7 @@ my $TAB_SIZE = 8;
 
 my %global;
 
-
-
-my @nonCAOptions = ("QV", "maxCorrectionRounds", "genomeSize", "shortReads", "longReads", "pbcns", "libraryname", "specFile", "length", "coverageCutoff", "maxCoverage", "maxGap", "maxUncorrectedGap", "samFOFN", "blasr", "bowtie", "threads", "repeats", "fastqFile", "partitions", "submitToGrid", "sgeCorrection", "consensusConcurrency", "cleanup");
+my @nonCAOptions = ("QV", "maxCorrectionRounds", "genomeSize", "shortReads", "longReads", "pbcns", "bankPath","libraryname", "specFile", "length", "coverageCutoff", "maxCoverage", "maxGap", "maxUncorrectedGap", "samFOFN", "blasr", "bowtie", "threads", "repeats", "fastqFile", "partitions", "submitToGrid", "sgeCorrection", "consensusConcurrency", "cleanup");
 
 my $commandLineOptions = "";
 
@@ -89,11 +87,17 @@ sub setGlobal ($$) {
     if ($var eq "specFile" || $var eq "fastqFile" || $var eq "samFOFN") {
        $val = makeAbsolute($val);
     }
+    if ($var eq "utgErrorRate") {
+       setGlobal("cgwErrorRate", $val);
+       setGlobal("cnsErrorRate", $val);
+       setGlobal("ovlErrorRate", $val);
+    }
+
     $commandLineOptions .= " \"$var=$val\" ";
 }
 
 sub setDefaults() {
-	# grid options, duplicate of runCA
+    # grid options, duplicate of runCA
     $global{"gridSubmitCommand"}		   = "qsub";
     $global{"gridHoldOption"}		       = "-hold_jid \"WAIT_TAG\""; # for lsf it is -w "done("WAIT_TAG")"
     $global{"gridSyncOption"}			   = "-sync y"; # for lsf it is -K
@@ -118,6 +122,8 @@ sub setDefaults() {
     $global{"longReads"} = undef;
     $global{"QV"} = 54.5;
     $global{"libraryname"} = undef;
+    $global{"pbcns"} = undef;
+    $global{"bankPath"} = undef;
     $global{"specFile"} = undef;
     $global{"length"} = 500;
 	
@@ -790,7 +796,7 @@ while (scalar(@ARGV) > 0) {
 my $err = 0;
 if (-e getGlobal("specFile")) {
    @fragFiles = setParametersFromFile(getGlobal("specFile"), @fragFiles);
-} else {
+} elsif (defined(getGlobal("specFile"))) {
 	print STDERR "Error: spec file " . getGlobal("specFile") . " does not exist. Double-check your paths and try again.\n";
    $err++;
 }
@@ -805,6 +811,9 @@ while (scalar(@cmdArgs) > 0) {
 
     } elsif ($arg eq "-longReads") {
         setGlobal("longReads", 1);
+
+    } elsif ($arg eq "-pbCNS") {
+        setGlobal("pbcns", 1);
 
     } elsif ($arg eq "-coverageCutoff") {
         setGlobal("coverageCutoff", shift @cmdArgs);
@@ -860,27 +869,33 @@ if ((scalar(@fragFiles) == 0) && (!defined(getGlobal("longReads")) || getGlobal(
       print STDERR "Warning: no frag files specified, assuming self-correction of pacbio sequences.\n";
       setGlobal("longReads", 1);
 }
-
+  
 if (($err) || (!defined(getGlobal("fastqFile"))) || (!defined(getGlobal("specFile"))) || (!defined(getGlobal("libraryname")))) {
-   print STDERR "No fastq file specified. Please specify a fastq file containing PacBio sequences for correction using the -fastq parameter.\n" if (!defined(getGlobal("fastqFile")));
-   print STDERR "No spec file defined. Please specify a spec file using the -s option.\n" if (!defined(getGlobal("specFile")));
-   print STDERR "No library name provided. Please specify a name using the -library option.\n" if (!defined(getGlobal("libraryname")));  
+    print STDERR "usage: $0 [options] -libraryname <name> -s <specfile> -fastq <fastqfile> [optional frg files]\n";
+    print STDERR "  -length <int>                Minimum length of PacBio sequences to correct/output.\n";
+    print STDERR "  -partitions <int>            Number of partitions for consensus\n";
+    print STDERR "  -sgeCorrection <sge options> Parameters for the correction step for the grid. This should match the threads specified below, for example by using -pe threaded\n";
+    print STDERR "  -libraryname <string>        Name of the library; freeformat text. Must be unique from any library names in the FRG files used for correction\n";
+    print STDERR "  -threads <int>               Number of threads to use for correction.\n";
+    print STDERR "  -shortReads                  Use if the sequences for correction are 100bp or shorter.\n";
 
-    print STDERR "usage: $0 [options] -s spec.file -fastq fastqfile <frg>\n";
-    print STDERR "  -length                  Minimum length of PacBio sequences to correct/output.\n";
-    print STDERR "  -partitions              Number of partitions for consensus\n";
-    print STDERR "  -sge                     Submit consensus jobs to the grid\n";
-    print STDERR "  -sgeCorrection           Parameters for the correction step for the grid. This should match the threads specified below, for example by using -pe threaded\n";
-    print STDERR "  -libraryname libraryname Name of the library; freeformat text.\n";
-    print STDERR "  -threads threads         Number of threads to use for correction.\n";
-    print STDERR "  -shortReads              Use if the sequences for correction are 100bp or shorter.\n";
-
-    print STDERR "  -genomeSize		     Specify the approximate genome size. This overwrites the coverage parameter above and will be used to compute estimated coverage instead of automatically estimating.\n\n";
-    print STDERR "  -maxCoverage		 Maximum coverage of PacBio sequences to correct. Only the longest sequences adding up to this coverage will be corrected. Requires genomeSize or coverage parameter to be specified\n";
+    print STDERR "  -genomeSize	<int>          Specify the approximate genome size. This will be used to compute the maximum number of bases to correct and the number of mappings each sequence can have.\n";
+    print STDERR "  -maxCoverage <int>           Maximum coverage of PacBio sequences to correct. Only the longest sequences adding up to this coverage will be corrected. Requires genomeSize or coverage parameter to be specified\n";
+    print STDERR "  -maxGap <int>                The maximum uncorrected PacBio gap that will be allowed. When there is no short-read coverage for a region, by default the pipeline will split a PacBio sequence. This option will attempt to use other PacBio sequences to patch the gap and avoid splitting the read. Sequences where the gaps have no support will still be broken. For example, specifying 50, will mean any gap 50bp or smaller can have no short-read coverage (but has other PacBio sequence support) without splitting the PacBio sequence. Warning: this can allow more sequences that went through the SMRTbell to not be fixed.\n";
 
     print STDERR "\nAdvanced options (EXPERT):\n";
-    print STDERR "  -coverageCutoff	     Specify the pacBio coverage (integer) used to separate repeat copies instead of automatically estimating.\n";
-    print STDERR "  -maxGap		     The maximum uncorrected PacBio gap that will be allowed. When there is no short-read coverage for a region, by default the pipeline will split a PacBio sequence. This option allows a number of PacBio sequences without short-read coverage to remain. For example, specifying 50, will mean 50bp can have no short-read coverage without splitting the PacBio sequence. Warning: this will allow more sequences that went through the SMRTportal to not be fixed.\n";
+    print STDERR "  -pbCNS                         Use PBDAGCON for consensus instead of AMOS. Requires SMRTportal 2.1+.\n";
+    print STDERR "  -coverageCutoff                Specify the pacBio coverage (integer) used to separate repeat copies instead of automatically estimating.\n";
+    print STDERR "  bankPath=<dir>                 Use a specified location for AMOS make-consensus instead of working directory. Specifying SHARED will use shared-memory (/dev/shm) if available. Using this option requires each concurrently running correction job to have a unique library name to avoid colissions!\n";
+    print STDERR "  \"blasr=<string>\"               Use blasr for overlap computation instead of CA's built-in overlapper. This parameter specifies the blasr parameters to use.\n";
+    print STDERR "  \"bowtie=<string>\"              Use bowtie2 for overlap computation instead of CA's built-in overlapper. This parameter specifies the bowtie 2 parameters to use.\n";
+    print STDERR "  samFOFN=<file>                 Skip overlap computation. Use the provided file of file names of SAM files as the overlaps instead. Any valid sam files should be accepted.\n";
+
+    print STDERR "\nComplete documentation at http://wgs-assembler.sourceforge.net/\n\n";
+
+    print STDERR "No fastq file specified. Please specify a fastq file containing PacBio sequences for correction using the -fastq parameter.\n" if (!defined(getGlobal("fastqFile")));
+    print STDERR "No spec file defined. Please specify a spec file using the -s option.\n" if (!defined(getGlobal("specFile")));
+    print STDERR "No library name provided. Please specify a name using the -library option.\n" if (!defined(getGlobal("libraryname")));
     exit(1);
 }
 
@@ -1035,6 +1050,9 @@ my $sgeCorrection = getGlobal("sgeCorrection");
 my $sgeConsensus = getGlobal("sgeConsensus");
 my $sgeTaskID = getGlobal("gridTaskID");
 
+my $pbcns = getGlobal("pbcns");
+my $bankPath = getGlobal("bankPath");
+
 my $consensusConcurrency = getGlobal("consensusConcurrency");
 
 my $cleanup = getGlobal("cleanup");
@@ -1095,7 +1113,7 @@ if ($libToCorrect <= $minCorrectLib) {
 if (defined(getGlobal("longReads")) && getGlobal("longReads") == 1) {
    $maxCorrectLib = $libToCorrect;
    $minCorrectLib = $libToCorrect if ($minCorrectLib == 0);
-   $ovlErrorRate = 0.30;
+   $ovlErrorRate = 0.35;
    $ovlErrorLimit = 6.5;
 } elsif (($libToCorrect == 0 || ($minCorrectLib == 0 && $maxCorrectLib == 0))) {
    die ("Error: unable to find a library to correct. Please double-check your input files and try again.", undef);
@@ -1189,7 +1207,7 @@ if ($totalCorrectingWith == 0) {
 	runCommand("$wrk", "rm -rf temp$libraryname");
 	die;
 }
-if ($genomeSize != 0 && floor($totalCorrectingWith / $genomeSize) > $MAX_CORRECTION_COVERAGE) {
+if ($genomeSize != 0 && floor($totalCorrectingWith / $genomeSize) > $MAX_CORRECTION_COVERAGE && !(defined(getGlobal("longReads")) || getGlobal("longReads") == 0)) {
 	print STDERR "Warning: input a total of " . floor($totalCorrectingWith / $genomeSize) . " of high-accuracy coverage for correction. For best performance, at most $MAX_CORRECTION_COVERAGE is recommended.\n";
 	# could randomly subsample here
 }
@@ -1197,7 +1215,16 @@ if ($genomeSize != 0 && defined(getGlobal("longReads")) && getGlobal("longReads"
    print STDERR "Warning: performing self-correction with a total of " .floor($totalCorrectingWith / $genomeSize) . ". For best performance, at least $MIN_SELF_CORRECTION is recommended.\n";
 }
 
-if (!defined(getGlobal("bowtie"))) {
+my $cutoffSpecified = 0;
+
+if (defined(getGlobal("blasr"))) {
+   if (getGlobal("blasr") =~ m/bestn/) {
+      $cutoffSpecified = 1;
+      print STDERR "Warning: cutoff manually specified, skip meryl run\n";
+   }
+}
+ 
+if (!defined(getGlobal("bowtie")) && $cutoffSpecified == 0) {
    # run correction up thorough meryl
    if (! -e "$wrk/temp$libraryname/0-mercounts/$asm.nmers.ovl.fasta") {
       $cmd  = "$CA/runCA ";
@@ -1446,7 +1473,7 @@ if (! -d "$wrk/temp$libraryname/$asm.ovlStore") {
          close(F);
 
          runCommand("$wrk/temp$libraryname/1-overlapper", "ln -s long_reads_part1.fasta long_reads.fasta");       
-         if (defined(getGlobal("blasr"))) {
+         if (defined(getGlobal("blasr")) && $cutoffSpecified == 0) {
             # run with best limit set to kmer with a small (0.5-1% of the data)   
             my $ovlThreads = getGlobal("ovlThreads");
             runCommand("$wrk/temp$libraryname/1-overlapper", "ln -s long_part1.sa long.sa");
@@ -1540,7 +1567,10 @@ if (! -d "$wrk/temp$libraryname/$asm.ovlStore") {
          print F "   $BLASR/blasr \\\n";
          print F "          -sa $wrk/temp$libraryname/1-overlapper/long_part\$sa.sa $wrk/temp$libraryname/1-overlapper/correct_reads_part\$oneJobId.fasta \\\n";
          print F "          $wrk/temp$libraryname/1-overlapper/long_reads_part\$sa.fasta \\\n";
-         print F "          -nproc $ovlThreads -bestn $blasrThreshold \\\n";
+         print F "          -nproc $ovlThreads \\\n";
+         if ($cutoffSpecified == 0) {
+         print F "          -bestn $blasrThreshold \\\n";
+         }
          print F "          $blasrOpts \\\n";
          print F "          -sam -out $wrk/temp$libraryname/1-overlapper/\$bat/\$job.sam \\\n";
          print F "          > $wrk/temp$libraryname/1-overlapper/\$jobid.out 2>&1 \\\n";
@@ -1695,6 +1725,18 @@ if (! -e "$wrk/temp$libraryname/$asm.layout.success") {
 }
 
 if (! -e "$wrk/temp$libraryname/runPartition.sh") {
+   # convert QV to coverage for PBCNS
+   # we use an ad-hoc conversion where QV 60 = coverage 8 (max) and QV 50 or below = coverage 1
+   my $coverage = floor($QV - 50);
+   if ($coverage < 1) { $coverage = 1; }
+   if ($coverage > 8) { $coverage = 8; }
+
+   # make sure we have the pb consensus module available if it was requested
+   if (! -e "$BLASR/blasr" || ! -e "$BLASR/pbdagcon") {
+      print STDERR "Warning: requested PBDAGON but either BLASR or pbdagcon executables were not found. Defaulting to AMOS\n";
+      $pbcns = 0;
+   }
+
    open F, "> $wrk/temp$libraryname/runPartition.sh" or die ("can't open '$wrk/temp$libraryname/runPartition.sh'");
    print F "#!" . getGlobal("shell") ."\n";
    print F getBinDirectoryShellCode();
@@ -1724,6 +1766,9 @@ if (! -e "$wrk/temp$libraryname/runPartition.sh") {
    print F "      -p \$jobid \\\n";
    print F "      -l $length \\\n";
    print F "      $repeats \\\n";
+   if (defined($pbcns) && $pbcns == 1) {
+   print F "      -P \\\n";
+   }
    print F "      -G $wrk/temp$libraryname/$asm.gkpStore \\\n";
    print F "      > $wrk/temp$libraryname/\$jobid.lay.err 2>&1 && touch $wrk/temp$libraryname/\$jobid.lay.success\n";
    print F "   if ! test -e $wrk/temp$libraryname/\$jobid.lay.success ; then\n";
@@ -1732,43 +1777,78 @@ if (! -e "$wrk/temp$libraryname/runPartition.sh") {
    print F "   fi\n";
    print F "   fi\n";
    print F "   \n";
+   if (defined($pbcns) && $pbcns == 1) {
+   print F "   numLays=`cat $wrk/temp$libraryname/$asm" . ".\$jobid.lay |wc -l`\n";
+   } else {
    print F "   numLays=`cat $wrk/temp$libraryname/$asm" . ".\$jobid.lay |grep \"{LAY\" |wc -l`\n";
+   }
    print F "   if test \$numLays = 0 ; then\n";
    print F "      touch $wrk/temp$libraryname/\$jobid.fasta\n";
    print F "      touch $wrk/temp$libraryname/\$jobid.qual\n";
    print F "      touch $wrk/temp$libraryname/\$jobid.success\n";
    print F "   else\n";
-   print F "      rm -rf $wrk/temp$libraryname/$asm" . ".bnk_partition\$jobid.bnk\n";
-   print F "      $AMOS/bank-transact -b $wrk/temp$libraryname/$asm" . ".bnk_partition\$jobid.bnk -m $wrk/temp$libraryname/$asm.\$jobid" . ".lay -c > $wrk/temp$libraryname/bank-transact.\$jobid.err 2>&1\n";
-   if (defined($shortReads) && $shortReads == 1) {
-   print F "      $AMOS/make-consensus -e 0.03 -w 5 -x $wrk/temp$libraryname/\$jobid.excluded -B -b $wrk/temp$libraryname/" . $asm . ".bnk_partition\$jobid.bnk > $wrk/temp$libraryname/\$jobid.out 2>&1 && touch $wrk/temp$libraryname/\$jobid.success\n";
-   } elsif (defined($longReads) && $longReads == 1) {
-   print F "      $AMOS/make-consensus -e 0.30 -w 50 -o 5 -x $wrk/temp$libraryname/\$jobid.excluded -B -b $wrk/temp$libraryname/" . $asm . ".bnk_partition\$jobid.bnk > $wrk/temp$libraryname/\$jobid.out 2>&1 && touch $wrk/temp$libraryname/\$jobid.success\n";
+   if (!defined $bankPath) {
+   print F "      bankPath=\"$wrk/temp$libraryname\"\n";
+   } elsif  (uc($bankPath) eq "SHARED") {
+   print F "      bankPath=\"/dev/shm/temp$libraryname\"\n";
+   print F "      laySize=`ls -la $wrk/temp$libraryname/$asm.\$jobid.lay |awk '{print \$5}'`\n";
+   print F "      tmpFSSize=`df |grep /dev/shm |awk '{print \$(NF-2)}'`\n";
+   if ($submitToGrid) {
+   print F "      let requiredSize=\$laySize*2\n";
    } else {
-   print F "      $AMOS/make-consensus -x $wrk/temp$libraryname/\$jobid.excluded -B -b $wrk/temp$libraryname/" . $asm . ".bnk_partition\$jobid.bnk > $wrk/temp$libraryname/\$jobid.out 2>&1 && touch $wrk/temp$libraryname/\$jobid.success\n";
+   print F "      let requiredSize=\$laySize*2*$consensusConcurrency\n";
+   }
+   print F "      if test x\$tmpFSSize = x; then\n";
+   print F "         tmpFSSize=0\n";
+   print F "      fi\n";
+   print F "      if [ \$requiredSize -lt \$tmpFSSize ]; then\n";
+   print F "         mkdir -p /dev/shm/temp$libraryname\n";
+   print F "      else\n";
+   print F "         bankPath=\"$wrk/temp$libraryname\"\n";
+   print F "      fi\n";
+   } else {
+   print F "      bankPath=\"$bankPath/temp$libraryname\"\n";
+   print F "      mkdir -p \"$bankPath/temp$libraryname\"\n";
+   }
+   if (defined($pbcns) && $pbcns == 1) {
+   print F "      \$bin/convertToPBCNS -input $wrk/temp$libraryname/$asm.\$jobid.lay -output $wrk/temp$libraryname/\$jobid.fasta -prefix $wrk/temp$libraryname/\$jobid.tmp -length $length -coverage $coverage -threads 1 && touch $wrk/temp$libraryname/\$jobid.success\n";
+   print F "      cat $wrk/temp$libraryname/\$jobid.fasta | awk '{if(\$0~/>/){print;}else{l=length(\$0);q=\"\";while(l--){q=q \" 60\"}printf(\"%s\\n\",q)}}' > $wrk/temp$libraryname/\$jobid.qual\n";
+   print F "      cat $wrk/temp$libraryname/\$jobid.fasta | awk '{if(\$0~/>/){sub(/>/,\"@\",\$0);print;}else{l=length(\$0);q=\"\";while(l--){q=q \"9\"}printf(\"%s\\n+\\n%s\\n\",\$0,q)}}' > $wrk/temp$libraryname/\$jobid.trim.fastq\n";
+   print F "      ln -s $wrk/temp$libraryname/\$jobid.fasta $wrk/temp$libraryname/\$jobid.trim.fasta\n";
+   print F "      ln -s $wrk/temp$libraryname/\$jobid.qual $wrk/temp$libraryname/\$jobid.trim.qual\n";
+   } else {
+   print F "      rm -rf \$bankPath/$asm" . ".bnk_partition\$jobid.bnk\n";
+   print F "      $AMOS/bank-transact -b \$bankPath/$asm" . ".bnk_partition\$jobid.bnk -m $wrk/temp$libraryname/$asm.\$jobid" . ".lay -c > $wrk/temp$libraryname/bank-transact.\$jobid.err 2>&1\n";
+   if (defined($shortReads) && $shortReads == 1) {
+   print F "      $AMOS/make-consensus -e 0.03 -w 5 -x $wrk/temp$libraryname/\$jobid.excluded -B -b \$bankPath/" . $asm . ".bnk_partition\$jobid.bnk > $wrk/temp$libraryname/\$jobid.out 2>&1 && touch $wrk/temp$libraryname/\$jobid.success\n";
+   } elsif (defined($longReads) && $longReads == 1) {
+   print F "      $AMOS/make-consensus -e 0.30 -w 50 -o 5 -x $wrk/temp$libraryname/\$jobid.excluded -B -b \$bankPath/" . $asm . ".bnk_partition\$jobid.bnk > $wrk/temp$libraryname/\$jobid.out 2>&1 && touch $wrk/temp$libraryname/\$jobid.success\n";
+   } else {
+   print F "      $AMOS/make-consensus -x $wrk/temp$libraryname/\$jobid.excluded -B -b \$bankPath/" . $asm . ".bnk_partition\$jobid.bnk > $wrk/temp$libraryname/\$jobid.out 2>&1 && touch $wrk/temp$libraryname/\$jobid.success\n";
    }
    print F "      if test -e $wrk/temp$libraryname/\$jobid.success ; then\n";
-   print F "         $AMOS/bank2fasta -e -q $wrk/temp$libraryname/\$jobid.qual -b $wrk/temp$libraryname/" . $asm . ".bnk_partition\$jobid.bnk > $wrk/temp$libraryname/\$jobid.fasta\n";
+   print F "         $AMOS/bank2fasta -e -q $wrk/temp$libraryname/\$jobid.qual -b \$bankPath/" . $asm . ".bnk_partition\$jobid.bnk > $wrk/temp$libraryname/\$jobid.fasta\n";
    print F "      else\n";
-   print F "         rm -rf $wrk/temp$libraryname/$asm" . ".bnk_partition\$jobid.bnk\n";
-   print F "         $AMOS/bank-transact -b $wrk/temp$libraryname/$asm" . ".bnk_partition\$jobid.bnk -m $wrk/temp$libraryname/$asm.\$jobid" . ".lay -c > $wrk/temp$libraryname/bank-transact.\$jobid.err 2>&1\n";
+   print F "         rm -rf \$bankPath/$asm" . ".bnk_partition\$jobid.bnk\n";
+   print F "         $AMOS/bank-transact -b \$bankPath/$asm" . ".bnk_partition\$jobid.bnk -m $wrk/temp$libraryname/$asm.\$jobid" . ".lay -c > $wrk/temp$libraryname/bank-transact.\$jobid.err 2>&1\n";
    if (defined($shortReads) && $shortReads == 1) {
-   print F "         $AMOS/make-consensus -e 0.03 -w 5 -B -b $wrk/temp$libraryname/" . $asm . ".bnk_partition\$jobid.bnk > $wrk/temp$libraryname/\$jobid.out 2>&1 && touch $wrk/temp$libraryname/\$jobid.success\n";
+   print F "         $AMOS/make-consensus -e 0.03 -w 5 -B -b \$bankPath/" . $asm . ".bnk_partition\$jobid.bnk > $wrk/temp$libraryname/\$jobid.out 2>&1 && touch $wrk/temp$libraryname/\$jobid.success\n";
    } elsif (defined($longReads) && $longReads == 1) {
-   print F "         $AMOS/make-consensus -e 0.30 -w 50 -o 5 -B -b $wrk/temp$libraryname/" . $asm . ".bnk_partition\$jobid.bnk > $wrk/temp$libraryname/\$jobid.out 2>&1 && touch $wrk/temp$libraryname/\$jobid.success\n";
+   print F "         $AMOS/make-consensus -e 0.30 -w 50 -o 5 -B -b \$bankPath/" . $asm . ".bnk_partition\$jobid.bnk > $wrk/temp$libraryname/\$jobid.out 2>&1 && touch $wrk/temp$libraryname/\$jobid.success\n";
    } else {
-   print F "         $AMOS/make-consensus -B -b $wrk/temp$libraryname/" . $asm . ".bnk_partition\$jobid.bnk > $wrk/temp$libraryname/\$jobid.out 2>&1 && touch $wrk/temp$libraryname/\$jobid.success\n";
+   print F "         $AMOS/make-consensus -B -b \$bankPath/" . $asm . ".bnk_partition\$jobid.bnk > $wrk/temp$libraryname/\$jobid.out 2>&1 && touch $wrk/temp$libraryname/\$jobid.success\n";
    }
-   print F "         $AMOS/bank2fasta -e -q $wrk/temp$libraryname/\$jobid.qual -b $wrk/temp$libraryname/" . $asm . ".bnk_partition\$jobid.bnk > $wrk/temp$libraryname/\$jobid.fasta\n";
+   print F "         $AMOS/bank2fasta -e -q $wrk/temp$libraryname/\$jobid.qual -b \$bankPath/" . $asm . ".bnk_partition\$jobid.bnk > $wrk/temp$libraryname/\$jobid.fasta\n";
    print F "      fi\n";
    print F "      if test -e $wrk/temp$libraryname/\$jobid.success ; then\n";
    print F "         $CA/trimFastqByQVWindow $wrk/temp$libraryname/\$jobid.fasta $wrk/temp$libraryname/\$jobid.qual $wrk/temp$libraryname/\$jobid.trim.fasta $wrk/temp$libraryname/\$jobid.trim.qual $QV $length > $wrk/temp$libraryname/\$jobid.trim.fastq\n";
 
-   print F "         rm -rf $wrk/temp$libraryname/$asm" . ".bnk_partition\$jobid.bnk\n";
+   print F "         rm -rf \$bankPath/$asm" . ".bnk_partition\$jobid.bnk\n";
    print F "         rm $wrk/temp$libraryname/bank-transact.\$jobid.err\n";
    print F "         rm $wrk/temp$libraryname/\$jobid.excluded\n";
    print F "         rm $wrk/temp$libraryname/\$jobid.out\n";
    print F "      fi\n";
+   }
    print F "   fi\n";
    print F "fi\n";
    close(F);
@@ -1901,7 +1981,7 @@ if (($totalSplitBases / $totalBP) > $MAX_SPLIT_PERCENTAGE && defined(getGlobal("
 
 #save output from temporary directory
 runCommand("$wrk/temp$libraryname", "cp $asm.layout.err  $wrk/$libraryname.correction.err");
-if (-e "$wrk/temp$libraryname/$asm.layout.hist") {
+if (-e "$wrk/temp$libraryname/$asm.layout.hist") { 
    runCommand("$wrk/temp$libraryname", "cp $asm.layout.hist  $wrk/$libraryname.correction.hist");
 }
 runCommand("$wrk/temp$libraryname", "cat `ls [0-9]*.fasta |grep trim |sort -T . -rnk1` > $wrk/$libraryname.fasta");

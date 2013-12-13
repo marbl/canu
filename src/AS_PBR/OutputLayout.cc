@@ -76,6 +76,7 @@ main (int argc, char * argv []) {
 
     char      *gkpStorePath           = NULL;
     uint32     part		      = 0;
+    bool       outputAsLay            = true;
 
     // initialize default parameters
     thread_globals.globalRepeats     = TRUE;
@@ -126,6 +127,9 @@ main (int argc, char * argv []) {
 
         } else if (strcmp(argv[arg], "-e") == 0) {
             thread_globals.erate = atof(argv[++arg]);
+
+        } else if (strcmp(argv[arg], "-P") == 0) {
+           outputAsLay = false;
 
         } else {
             err++;
@@ -190,7 +194,7 @@ main (int argc, char * argv []) {
 
     gkStream    *fs = new gkStream(thread_globals.gkp, 1, thread_globals.gkp->gkStore_getNumFragments(), GKFRAGMENT_INF);
     uint32 numFrags = loadFragments(fs, thread_globals.libToInclude, thread_globals.frgToLen);
-    outputResults(&thread_globals, part);
+    outputResults(&thread_globals, part, outputAsLay);
     delete[] thread_globals.libToInclude;
     delete thread_globals.gkp;
 }

@@ -290,11 +290,14 @@ static void getCandidateOverlaps(PBRThreadGlobals *waGlobal, boost::dynamic_bits
 /**
  * Output a single AMOS layout record
  */
-static void closeRecord(PBRThreadGlobals *waGlobal, FILE *outFile, FILE *logFile, stringstream &layout, LayRecord &layRecord, uint32 lastEnd, int32 &offset, uint32 &readIID, uint32 &readSubID) {
+static void closeRecord(PBRThreadGlobals *waGlobal, FILE *outFile, FILE *logFile, stringstream &layout, LayRecord &layRecord, uint32 lastEnd, int32 &offset, uint32 &readIID, uint32 &readSubID, bool outputAsLay) {
     // close the layout and start a new one because we have a coverage gap
-    if (lastEnd - offset >= waGlobal->minLength) {
-        fprintf(outFile, "%s}\n", layout.str().c_str());
-        fprintf(logFile, "%d\t%s_%d_%d\t%d\t%d\t%d\n", layRecord.iid, waGlobal->libName, layRecord.iid, readSubID, readSubID, offset, lastEnd);
+
+    if (outputAsLay) {
+       if (lastEnd - offset >= waGlobal->minLength) {
+           fprintf(outFile, "%s}\n", layout.str().c_str());
+           fprintf(logFile, "%d\t%s_%d_%d\t%d\t%d\t%d\n", layRecord.iid, waGlobal->libName, layRecord.iid, readSubID, readSubID, offset, lastEnd);
+       }
     }
     readIID++;
     readSubID++;
@@ -306,7 +309,7 @@ static void closeRecord(PBRThreadGlobals *waGlobal, FILE *outFile, FILE *logFile
 /**
  *output AMOS-style layout messaged based on our internal structures
  */
-void outputResults(PBRThreadGlobals *waGlobal, uint32 part) {
+void outputResults(PBRThreadGlobals *waGlobal, uint32 part, bool outputAsLAY) {
         assert(part > 0);
         map<AS_IID, uint8> readsToPrint;
         map<AS_IID, uint8> readsWithGaps;
@@ -367,13 +370,22 @@ void outputResults(PBRThreadGlobals *waGlobal, uint32 part) {
         AS_UTL_unlink(inRankName);
 
         uint32 readIID = 0;
-        char seq[AS_READ_MAX_NORMAL_LEN];
-        char qlt[AS_READ_MAX_NORMAL_LEN];
+        uint32 readLen = 0;
+        char seq[AS_READ_MAX_NORMAL_LEN + 1];
+        char rseq[AS_READ_MAX_NORMAL_LEN + 1];
+        char qseq[AS_READ_MAX_NORMAL_LEN + 1];
+        char qlt[AS_READ_MAX_NORMAL_LEN + 1];
         AS_IID gapIID = waGlobal->gkp->gkStore_getNumFragments()+1;
 
+        // we have different flows depending on whether we are outputting layout for AMOS or for PBDAGCON
+        // for AMOS, we dump all the tilings first and then load sequences and dump them
+        // for PBDAGCON, we loop through once to identify sequences and gaps we need to load and then loop again to output now that we have the sequence necessary to finish our output
         LayRecord layRecord;
         while (readLayRecord(inFile, layRecord)) {
             uint32 readSubID = 1;
+            if (!outputAsLAY) {
+               readLen = loadOneSequence(waGlobal->gkp, layRecord.iid, seq);
+            }
 
             stringstream layout (stringstream::in | stringstream::out);
             layout << "{LAY\neid:" << waGlobal->libName << "_" << layRecord.iid << "_" << readSubID << "\niid:" << readIID << "\n";
@@ -441,16 +453,32 @@ void outputResults(PBRThreadGlobals *waGlobal, uint32 part) {
                                                 min -= (MIN_DIST_TO_RECRUIT - (gapStart +gapPatch - tmpoff)) + MIN_FRM_START;
                                             }
                                         }
-                                        layout << "{TLE\nclr:"
-                                                << 0 /*min*/
-                                                << ","
-                                                << (MAX(max, min) - MIN(max, min) + 1)
-                                                << "\noff:" << (gapStart+gapPatch-tmpoff >= (MIN_DIST_TO_RECRUIT) ? gapStart + gapPatch - (MIN_DIST_TO_RECRUIT) - tmpoff: MIN_FRM_START)
-                                                << "\nsrc:" << gapIID
-                                                << "\n}\n";
-                                        readsWithGaps[iid] = 1;
-                                        pair<AS_IID, pair<uint32, uint32> > gapInfo(gapIID++, pair<uint32, uint32>(min, max));
-                                        gaps[iid].push_back(gapInfo);
+                                        uint32 gapOffset = (gapStart+gapPatch-tmpoff >= (MIN_DIST_TO_RECRUIT) ? gapStart + gapPatch - (MIN_DIST_TO_RECRUIT) - tmpoff: MIN_FRM_START);
+                                        if (outputAsLAY) {
+                                           layout << "{TLE\nclr:"
+                                                   << 0 /*min*/
+                                                   << ","
+                                                   << (MAX(max, min) - MIN(max, min) + 1)
+                                                   << "\noff:" << gapOffset
+                                                   << "\nsrc:" << gapIID
+                                                   << "\n}\n";
+                                           readsWithGaps[iid] = 1;
+                                           pair<AS_IID, pair<uint32, uint32> > gapInfo(gapIID++, pair<uint32, uint32>(min, max));
+                                           gaps[iid].push_back(gapInfo);
+                                        } else {
+                                           uint32 qlen = loadOneSequence(waGlobal->gkp, iid, qseq);
+                                           uint32 gaplen = (MAX(max, min) - MIN(max, min));
+                                           if (min < max) {
+                                              fprintf(outFile, "%d %s_%d_%d %s %d %d %d", iid, waGlobal->libName, layRecord.iid, readSubID, "+", readLen, gapOffset, gapOffset + (max - min));
+                                              fprintf(outFile, " %.*s %.*s\n", max - min, qseq+min, gaplen, seq+gapOffset);
+                                            } else {
+                                               memcpy(rseq, qseq, qlen);
+                                               rseq[qlen] = 0;
+                                               reverseComplementSequence(rseq, 0);
+                                               fprintf(outFile, "%d %s_%d_%d %s %d %d %d", iid, waGlobal->libName, layRecord.iid, readSubID, "+", readLen, gapOffset, gapOffset + (min - max));
+                                               fprintf(outFile, " %.*s %.*s\n", min - max, rseq+min, gaplen, seq + gapOffset);
+                                            }
+                                        }
                                         count++;
                                     } else {
                                         if (waGlobal->verboseLevel >= VERBOSE_DEBUG) fprintf(stderr, "Found read %d sequence %d - %d that could help gap %d to %d in %d (but diff %d is too big (vs %d aka %f)\n", iid, matchingSequencePositions[iid].bgn, matchingSequencePositions[iid].end, gapStart, MIN(iter->position.bgn, iter->position.end), layRecord.iid, diff, gapSize, (double)diff/gapSize);
@@ -465,19 +493,24 @@ void outputResults(PBRThreadGlobals *waGlobal, uint32 part) {
                                 uint32 overlappingEnd = MIN(iter->position.bgn, iter->position.end) + (MIN_DIST_TO_RECRUIT / 3) - offset;
                                 // record this gap
                                 if (waGlobal->verboseLevel >= VERBOSE_DEBUG) fprintf(stderr, "For fragment %d with %d supporters had a gap from %d to %d inserting range %d from %d %d with offset %d so in original read positions are %d %d\n", layRecord.iid, count, lastEnd, MIN(iter->position.bgn, iter->position.end),gapIID, overlappingStart, overlappingEnd, offset, overlappingStart+offset, overlappingEnd+offset);
-                                layout << "{TLE\nclr:"
-                                        << 0
-                                        << ","
-                                        << overlappingEnd - overlappingStart
-                                        << "\noff:" << overlappingStart
-                                        << "\nsrc:" << gapIID
-                                        << "\n}\n";
-                                readsWithGaps[layRecord.iid] = 1;
-                                pair<AS_IID, pair<uint32, uint32> > gapInfo(gapIID++, pair<uint32, uint32>(overlappingStart+offset, MIN(waGlobal->frgToLen[layRecord.iid], overlappingEnd+offset)));
-                                gaps[layRecord.iid].push_back(gapInfo);
+                                if (outputAsLAY) {
+                                   layout << "{TLE\nclr:"
+                                           << 0
+                                           << ","
+                                           << overlappingEnd - overlappingStart
+                                           << "\noff:" << overlappingStart
+                                           << "\nsrc:" << gapIID
+                                           << "\n}\n";
+                                   readsWithGaps[layRecord.iid] = 1;
+                                   pair<AS_IID, pair<uint32, uint32> > gapInfo(gapIID++, pair<uint32, uint32>(overlappingStart+offset, MIN(waGlobal->frgToLen[layRecord.iid], overlappingEnd+offset)));
+                                   gaps[layRecord.iid].push_back(gapInfo);
+                                } else {
+                                   fprintf(outFile, "%d %s_%d_%d %s %d %d %d", gapIID++, waGlobal->libName, layRecord.iid, readSubID, "+", readLen, overlappingStart, overlappingEnd);
+                                   fprintf(outFile, " %.*s %.*s\n", overlappingEnd - overlappingStart, seq + overlappingStart, overlappingEnd - overlappingStart, seq + overlappingStart);
+                                }
                             } else {
                                 if (waGlobal->verboseLevel >= VERBOSE_DEBUG) fprintf(stderr, "For fragment %d had a gap from %d to %d but no one had a matching gap size it so breaking it\n", layRecord.iid, lastEnd, MIN(iter->position.bgn, iter->position.end));
-                                closeRecord(waGlobal, outFile, reportFile, layout, layRecord, lastEnd, offset, readIID, readSubID);
+                                closeRecord(waGlobal, outFile, reportFile, layout, layRecord, lastEnd, offset, readIID, readSubID, outputAsLAY);
                             }
                         } else { // no one could agree with this read, break it
                             /*
@@ -503,13 +536,13 @@ void outputResults(PBRThreadGlobals *waGlobal, uint32 part) {
                             } else {
                             */
                             if (waGlobal->verboseLevel >= VERBOSE_DEBUG) fprintf(stderr, "For fragment %d had a gap from %d to %d but no one believed it so breaking it\n", layRecord.iid, lastEnd, MIN(iter->position.bgn, iter->position.end));
-                            closeRecord(waGlobal, outFile, reportFile, layout, layRecord, lastEnd, offset, readIID, readSubID);
+                            closeRecord(waGlobal, outFile, reportFile, layout, layRecord, lastEnd, offset, readIID, readSubID, outputAsLAY);
                             //}
                         }
                     } else {
                         // close the layout and start a new one because we have a coverage gap
                         if (waGlobal->verboseLevel >= VERBOSE_DEBUG) fprintf(stderr, "Gap in sequence %d between positions %d - %d is greater than allowed %d\n", layRecord.iid, lastEnd, MIN(iter->position.bgn, iter->position.end), waGlobal->maxUncorrectedGap);
-                        closeRecord(waGlobal, outFile, reportFile, layout, layRecord, lastEnd, offset, readIID, readSubID);
+                        closeRecord(waGlobal, outFile, reportFile, layout, layRecord, lastEnd, offset, readIID, readSubID, outputAsLAY);
                     }
                 }
                 if (offset < 0) {
@@ -522,58 +555,77 @@ void outputResults(PBRThreadGlobals *waGlobal, uint32 part) {
                 uint32 length = max - min;
 
                 //fprintf(stderr, "Writing layout for frg "F_IID" "F_IID" "F_U32" "F_U32" "F_U32"\n", i, iter->ident, iter->position.bgn, iter->position.end, offset);
-                layout << "{TLE\nclr:"
-                        << (iter->position.bgn < iter->position.end ? bClr.bgn : bClr.end)
-                        << ","
-                        << (iter->position.bgn < iter->position.end ? bClr.end : bClr.bgn)
-                        << "\noff:" <<  MIN(iter->position.bgn, iter->position.end)-offset
-                        << "\nsrc:" << iter->ident
-                        << "\n}\n";
-                readsToPrint[iter->ident]=1;
+                if (!outputAsLAY) {
+                   loadOneSequence(waGlobal->gkp, iter->ident, qseq);
+                   uint32 qlen = bClr.end - bClr.bgn;
+                   if (iter->position.bgn < iter->position.end) {
+                      fprintf(outFile, "%d %s_%d_%d %s %d %d %d", iter->ident, waGlobal->libName, layRecord.iid, readSubID, "+", readLen, iter->position.bgn, iter->position.bgn + qlen);
+                      fprintf(outFile, " %.*s %.*s\n", bClr.end - bClr.bgn, qseq+bClr.bgn, length, seq+iter->position.bgn); 
+                   } else {
+                      memcpy(rseq, qseq, qlen);
+                      rseq[qlen] = 0;
+                      reverseComplementSequence(rseq, 0);
+
+                      fprintf(outFile, "%d %s_%d_%d %s %d %d %d", iter->ident, waGlobal->libName, layRecord.iid, readSubID, "+", readLen, iter->position.end, iter->position.end + qlen);
+                      fprintf(outFile, " %.*s %.*s\n", bClr.end - bClr.bgn, rseq+bClr.bgn, length, seq + iter->position.end);
+                   }
+                } else {
+                   layout << "{TLE\nclr:"
+                           << (iter->position.bgn < iter->position.end ? bClr.bgn : bClr.end)
+                           << ","
+                           << (iter->position.bgn < iter->position.end ? bClr.end : bClr.bgn)
+                           << "\noff:" <<  MIN(iter->position.bgn, iter->position.end)-offset
+                           << "\nsrc:" << iter->ident
+                           << "\n}\n";
+                   readsToPrint[iter->ident]=1;
+                }
                 if (lastEnd < (min + length - 1)) {
                     lastEnd = min + length - 1;
                 }
             }
             if (lastEnd - offset >= waGlobal->minLength) {
-                fprintf(outFile, "%s}\n", layout.str().c_str());
+                if (outputAsLAY) {
+                   fprintf(outFile, "%s}\n", layout.str().c_str());
+                }
                 fprintf(reportFile, "%d\t%s_%d_%d\t%d\t%d\t%d\n", layRecord.iid, waGlobal->libName, layRecord.iid, readSubID, readSubID, offset, lastEnd);
             }
             readIID++;
             if (waGlobal->verboseLevel >= VERBOSE_DEBUG) fprintf(stderr, "Finished processing read %d subsegments %d\n", layRecord.iid, readSubID);
         }
 
-        if (waGlobal->verboseLevel >= VERBOSE_OFF) fprintf(stderr, "Beginning output of "F_SIZE_T" reads\n", readsToPrint.size());
-        loadSequence(waGlobal->gkp, readsToPrint, frgToEnc);
-        map<AS_IID, char*> *theFrgs = &frgToEnc;
-        for (map<AS_IID, uint8>::const_iterator iter = readsToPrint.begin(); iter != readsToPrint.end(); iter++) {
-            if (iter->second == 0) {
-                continue;
-            }
-            if ((*theFrgs)[iter->first] == 0) {
-                fprintf(stderr, "Error no ID for read %d\n",iter->first);
-            }
-            decodeSequenceQuality((*theFrgs)[iter->first], (char*) &seq, (char *) &qlt);
-            assert(iter->first < gapIID);
-            fprintf(outFile, "{RED\nclr:%d,%d\neid:%d\niid:%d\nqlt:\n%s\n.\nseq:\n%s\n.\n}\n", 0, waGlobal->frgToLen[iter->first], iter->first, iter->first, qlt, seq);
+        if (outputAsLAY) {
+           if (waGlobal->verboseLevel >= VERBOSE_OFF) fprintf(stderr, "Beginning output of "F_SIZE_T" reads\n", readsToPrint.size());
+           loadSequence(waGlobal->gkp, readsToPrint, frgToEnc);
+           map<AS_IID, char*> *theFrgs = &frgToEnc;
+           for (map<AS_IID, uint8>::const_iterator iter = readsToPrint.begin(); iter != readsToPrint.end(); iter++) {
+               if (iter->second == 0) {
+                  continue;
+               }
+               if ((*theFrgs)[iter->first] == 0) {
+                  fprintf(stderr, "Error no ID for read %d\n",iter->first);
+               }
+               decodeSequenceQuality((*theFrgs)[iter->first], (char*) &seq, (char *) &qlt);
+               assert(iter->first < gapIID);
+               fprintf(outFile, "{RED\nclr:%d,%d\neid:%d\niid:%d\nqlt:\n%s\n.\nseq:\n%s\n.\n}\n", 0, waGlobal->frgToLen[iter->first], iter->first, iter->first, qlt, seq);
+           }
+           // output uncorrected sequences
+           loadSequence(waGlobal->gkp, readsWithGaps, frgToEnc);
+           for (map<AS_IID, uint8>::const_iterator iter = readsWithGaps.begin(); iter != readsWithGaps.end(); iter++) {
+              if (iter->second == 0) {
+                 continue;
+              }
+              if (frgToEnc[iter->first] == 0) {
+                 fprintf(stderr, "Error no ID for read %d\n",iter->first);
+              }
+              if (gaps.find(iter->first) == gaps.end()) {
+                 fprintf(stderr, "No gap list for read %d\n", iter->first);
+              }
+              decodeSequenceQuality(frgToEnc[iter->first], (char*) &seq, (char *) &qlt);
+              for (vector<pair<AS_IID, pair<uint32, uint32> > >::const_iterator j = gaps[iter->first].begin(); j != gaps[iter->first].end(); j++) {
+                  fprintf(outFile, "{RED\nclr:%d,%d\neid:%d\niid:%d\nqlt:\n%s\n.\nseq:\n%s\n.\n}\n", j->second.first, j->second.second, j->first, j->first, qlt, seq);
+              }
+           }
         }
-        // output uncorrected sequences
-        loadSequence(waGlobal->gkp, readsWithGaps, frgToEnc);
-        for (map<AS_IID, uint8>::const_iterator iter = readsWithGaps.begin(); iter != readsWithGaps.end(); iter++) {
-            if (iter->second == 0) {
-                continue;
-            }
-            if (frgToEnc[iter->first] == 0) {
-                fprintf(stderr, "Error no ID for read %d\n",iter->first);
-            }
-            if (gaps.find(iter->first) == gaps.end()) {
-                fprintf(stderr, "No gap list for read %d\n", iter->first);
-            }
-            decodeSequenceQuality(frgToEnc[iter->first], (char*) &seq, (char *) &qlt);
-            for (vector<pair<AS_IID, pair<uint32, uint32> > >::const_iterator j = gaps[iter->first].begin(); j != gaps[iter->first].end(); j++) {
-                fprintf(outFile, "{RED\nclr:%d,%d\neid:%d\niid:%d\nqlt:\n%s\n.\nseq:\n%s\n.\n}\n", j->second.first, j->second.second, j->first, j->first, qlt, seq);
-            }
-        }
-
         for (map<AS_IID, char*>::iterator iter = frgToEnc.begin(); iter != frgToEnc.end(); iter++) {
             delete[] iter->second;
         }
