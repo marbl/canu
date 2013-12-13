@@ -105,7 +105,6 @@ sub processLayout($$$$) {
       print ALN "$aln\n";
    }
    close(ALN);
-
    system("$path/blasr $prefix.aln.fasta $prefix.cns.fasta -m 5 -nproc $threads > $prefix.m5 2>/dev/null");
    if ($? != 0) { 
       die "Error: blasr could not run successfully"
@@ -192,7 +191,11 @@ sub processTig($$$) {
            my $max = ($tokenized[13] > $tokenized[14] ? $tokenized[13] : $tokenized[14]);
            my $fwd = ($tokenized[13] < $tokenized[14] ? "+" : "-");
            my $seq = $seqs{$tokenized[4]};
-
+           if ($fwd eq "-") {
+              $seq =~ tr/ATGCatgcNn/TACGtacgNn/; 
+              $seq = reverse $seq;
+              $fwd = "+";
+           } 
            print OUT "$tokenized[4] utg_$utgID $fwd $lastEnd $min $max $seq $seq\n";
       }
    }
