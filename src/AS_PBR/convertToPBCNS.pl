@@ -3,6 +3,7 @@
 #   Copyright (C) 2011, Battelle National Biodefense Institute (BNBI);
 #   all rights reserved. Authored by: Sergey Koren
 #   
+
 #   This Software was prepared for the Department of Homeland Security
 #   (DHS) by the Battelle National Biodefense Institute, LLC (BNBI) as
 #   part of contract HSHQDC-07-C-00020 to manage and operate the National
@@ -105,7 +106,7 @@ sub processLayout($$$$) {
       print ALN "$aln\n";
    }
    close(ALN);
-   system("$path/blasr $prefix.aln.fasta $prefix.cns.fasta -m 5 -nproc $threads > $prefix.m5 2>/dev/null");
+   system("$path/blasr $prefix.aln.fasta $prefix.cns.fasta -bestn 1 -m 5 -nproc $threads > $prefix.m5 2>/dev/null");
    if ($? != 0) { 
       die "Error: blasr could not run successfully"
    }
@@ -308,7 +309,6 @@ if ($err > 0 || !defined($input) || !defined($output)) {
    print STDERR "  -length               Minimum sequence length to keep\n";
    exit(1);
 }
-
 # find blasr
 my $BLASR = getGlobal("smrtpath");
 if (!defined($BLASR) || $BLASR eq "") {
