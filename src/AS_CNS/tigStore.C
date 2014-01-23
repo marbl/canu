@@ -281,7 +281,9 @@ dumpCoverage(MultiAlignStore *tigStore,
              int32            tigIsUnitig,
              MultiAlignT     *ma,
              uint32           minCoverage,
-             uint32           maxCoverage) {
+             uint32           maxCoverage,
+             uint64          *coverageHistogram,
+             uint32           coverageHistogramLen) {
   intervalList  allL;
 
   uint32        maxPos = 0;
@@ -304,7 +306,19 @@ dumpCoverage(MultiAlignStore *tigStore,
   intervalList   minL;
   intervalList   maxL;
 
+  uint32  maxDepth = 0;
+
   for (uint32 ii=0; ii<ID.numberOfIntervals(); ii++) {
+    if (ID.de(ii) > maxDepth)
+      maxDepth = ID.de(ii);
+
+    if (ID.de(ii) < coverageHistogramLen) {
+      coverageHistogram[ID.de(ii)] += ID.hi(ii) - ID.lo(ii) + 1;
+    } else {
+      fprintf(stderr, "deep coverage %d\n", ID.de(ii));
+    }
+
+#if 0
     if ((ID.de(ii) < minCoverage) && (ID.lo(ii) != 0) && (ID.hi(ii) != maxPos)) {
       fprintf(stderr, "%s %d low coverage interval %ld %ld max %u coverage %u\n",
               (tigIsUnitig) ? "unitig" : "contig", tigID, ID.lo(ii), ID.hi(ii), maxPos, ID.de(ii));
@@ -316,12 +330,18 @@ dumpCoverage(MultiAlignStore *tigStore,
               (tigIsUnitig) ? "unitig" : "contig", tigID, ID.lo(ii), ID.hi(ii), maxPos, ID.de(ii));
       maxL.add(ID.lo(ii), ID.hi(ii) - ID.lo(ii) + 1);
     }
+#endif
   }
+
+  if (maxDepth > 1000)
+    fprintf(stderr, "DEEP unitig %u of length %u with maxDepth %u\n",
+            tigID, maxPos, maxDepth);
 
   allL.merge();
   minL.merge();
   maxL.merge();
 
+#if 0
   if      ((minL.numberOfIntervals() > 0) && (maxL.numberOfIntervals() > 0))
     fprintf(stderr, "%s %d has %u intervals, %u regions below %u coverage and %u regions at or above %u coverage\n",
             (tigIsUnitig) ? "unitig" : "contig", tigID,
@@ -342,6 +362,7 @@ dumpCoverage(MultiAlignStore *tigStore,
     fprintf(stderr, "%s %d has %u intervals\n",
             (tigIsUnitig) ? "unitig" : "contig", tigID,
             allL.numberOfIntervals());
+#endif
 }
 
 
@@ -676,6 +697,9 @@ main (int argc, char **argv) {
   sizeAnalysis      *siz       = NULL;
   char              *sizPrefix = NULL;
   uint64             sizSize   = 0;
+
+  uint64            *cov       = NULL;
+  uint64             covMax    = 0;
 
   argc = AS_configure(argc, argv);
 
@@ -1028,6 +1052,13 @@ main (int argc, char **argv) {
         sizPrefix = tigName;
     }
 
+    if (dumpFlags == DUMP_COVERAGE) {
+      covMax = 1048576;
+      cov    = new uint64 [covMax];
+
+      memset(cov, 0, sizeof(uint64) * covMax);
+    }
+
     for (uint32 ti=tigIDbgn; ti<=tigIDend; ti++) {
       uint32  Nreads = tigStore->getNumFrags(ti, tigIsUnitig);
   
@@ -1068,7 +1099,7 @@ main (int argc, char **argv) {
         siz->evaluateTig(ma, tigIsUnitig);
 
       if (dumpFlags == DUMP_COVERAGE)
-        dumpCoverage(tigStore, ti, tigIsUnitig, ma, 2, UINT32_MAX);
+        dumpCoverage(tigStore, ti, tigIsUnitig, ma, 2, UINT32_MAX, cov, covMax);
 
       if (dumpFlags == DUMP_THINOVERLAP)
         dumpThinOverlap(tigStore, ti, tigIsUnitig, ma, sizSize);
@@ -1092,6 +1123,27 @@ main (int argc, char **argv) {
     siz->finalize();
     siz->printSummary(stdout);
     delete siz;
+  }
+
+  if (cov) {
+    char  N[FILENAME_MAX];
+    FILE *F;
+
+    sprintf(N, "%s.depthHistogram", tigName);
+
+    errno = 0;
+    F = fopen(N, "w");
+
+    uint32   hMax = covMax;
+    while ((hMax > 0) && (cov[hMax] == 0))
+      hMax--;
+
+    for (uint32 i=0; i<=hMax; i++)
+      fprintf(F, F_U32"\t"F_U64"\n", i, cov[i]);
+
+    fclose(F);
+
+    delete [] cov;
   }
 
   delete gkpStore;
