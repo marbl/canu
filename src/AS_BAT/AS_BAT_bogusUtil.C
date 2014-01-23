@@ -98,26 +98,38 @@ loadNucmer(char                       *nucmerName,
   if (errno)
     fprintf(stderr, "Failed to open '%s' for reading: %s\n", nucmerName, strerror(errno)), exit(1);
 
-  //  First FIVE lines is a header
-  fgets(inLine, 1024, inFile);
-  fgets(inLine, 1024, inFile);
-  fgets(inLine, 1024, inFile);
-  fgets(inLine, 1024, inFile);
-  fgets(inLine, 1024, inFile);
+  fprintf(stderr, "Loading alignments from '%s'\n", nucmerName);
+
+  //  First FOURE lines are header
+  fgets(inLine, 1024, inFile);  //  (file paths)
+  fgets(inLine, 1024, inFile);  //  NUCMER
+  fgets(inLine, 1024, inFile);  //  (blank)
+  fgets(inLine, 1024, inFile);  //  (header)
+
+  //  Scan the header line, counting the number of columns
+  uint32  nCols  = 0;
+  uint32  wIdent = 0;
+
+  for (uint32 xx=0; inLine[xx]; xx++) {
+    if ((wIdent == 0) && (inLine[xx+0] == '[') && (inLine[xx+1] == '%') && (inLine[xx+2] == ' '))
+      wIdent = nCols;
+    if (inLine[xx] == '[')
+      nCols++;
+  }
 
   //  Read the first line.
   fgets(inLine, 1024, inFile);
   chomp(inLine);
 
-  //  If W[2][0] == '|' use the numbers below.
-  //  Otherwise, assume -T tab-delimited output which removes the |'s
-
   while (!feof(inFile)) {
+    for (uint32 xx=0; inLine[xx]; xx++)
+      if (inLine[xx] == '|')
+        inLine[xx] = ' ';
+
     splitToWords     W(inLine);
     genomeAlignment  A;
-    bool             isTab = (W[2][0] != '|');
-    string           fID = W[(isTab) ? 8 : 12];
-    string           gID = W[(isTab) ? 7 : 11];
+    string           gID = W[nCols - 1];  //  TAGS is the last header column,
+    string           fID = W[nCols - 0];  //  but read ID is in column +1 from there.
 
     if (IIDmap.find(fID) == IIDmap.end()) {
       IIDname.push_back(fID);
@@ -127,30 +139,33 @@ loadNucmer(char                       *nucmerName,
     //  Unlike snapper, these are already in base-based coords.
 
     A.frgIID    = IIDmap[fID];
-    A.frgBgn    = W((isTab) ? 2 : 3);
-    A.frgEnd    = W((isTab) ? 3 : 4);
+    A.frgBgn    = W(2);
+    A.frgEnd    = W(3);
     A.genIID    = refMap[gID];
     A.genBgn    = W(0);
     A.genEnd    = W(1);
     A.chnBgn    = refList[A.genIID].rschnBgn + A.genBgn;
     A.chnEnd    = refList[A.genIID].rschnBgn + A.genEnd;
-    A.identity  = atof(W[(isTab) ? 6 : 9]);
+    A.identity  = atof(W[wIdent]);
     A.isReverse = false;
     A.isSpanned = false;
     A.isRepeat  = true;
 
     if (A.frgBgn > A.frgEnd) {
-      A.frgBgn    = W((isTab) ? 3 : 4);
-      A.frgEnd    = W((isTab) ? 2 : 3);
+      A.frgBgn    = W(3);
+      A.frgEnd    = W(2);
       A.isReverse = true;
     }
 
     if ((A.frgBgn >= A.frgEnd) ||
         (A.genBgn >= A.genEnd)) {
       fprintf(stderr, "ERROR: %s\n", inLine);
-      fprintf(stderr, "ERROR: frgBgn,frgEnd %u,%u genBgn,genEnd (%u,%u)\n",
-              A.frgBgn, A.frgEnd,
-              A.genBgn, A.genEnd);
+      if (A.frgBgn >= A.frgEnd)
+        fprintf(stderr, "ERROR: frgBgn,frgEnd = %u,%u\n",
+                A.frgBgn, A.frgEnd);
+      if (A.genBgn >= A.genEnd)
+        fprintf(stderr, "ERROR: genBgn,genEnd = %u,%u\n",
+                A.genBgn, A.genEnd);
     }
     assert(A.frgBgn < A.frgEnd);
     assert(A.genBgn < A.genEnd);
