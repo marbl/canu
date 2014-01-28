@@ -32,48 +32,12 @@ static const char *rcsid = "$Id$";
 uint32  examineOnly = UINT32_MAX;
 
 
-BestOverlapGraph::BestOverlapGraph(double               AS_UTG_ERROR_RATE,
-                                   double               AS_UTG_ERROR_LIMIT,
-                                   const char          *prefix,
-                                   bool                 removeSuspicious,
-                                   bool                 removeSpurs) {
-
-  bool examineOnlyTopN = false;
-  bool removeFalseBest = false;
-
-  setLogFile(prefix, "bestOverlapGraph");
-
-  writeLog("BestOverlapGraph-- allocating best edges ("F_SIZE_T"MB) and containments ("F_SIZE_T"MB)\n",
-           ((2 * sizeof(BestEdgeOverlap) * (FI->numFragments() + 1)) >> 20),
-           ((1 * sizeof(BestContainment) * (FI->numFragments() + 1)) >> 20));
-
-  assert(AS_UTG_ERROR_RATE >= 0.0);
-  assert(AS_UTG_ERROR_RATE <= AS_MAX_ERROR_RATE);
-
-  assert(AS_CNS_ERROR_RATE >= 0.0);
-  assert(AS_CNS_ERROR_RATE <= AS_MAX_ERROR_RATE);
-
-  _bestA = new BestOverlaps [FI->numFragments() + 1];
-  _scorA = new BestScores   [FI->numFragments() + 1];
-
-  memset(_bestA, 0, sizeof(BestOverlaps) * (FI->numFragments() + 1));
-  memset(_scorA, 0, sizeof(BestScores)   * (FI->numFragments() + 1));
-
-  _restrict = NULL;
-
-  mismatchCutoff  = AS_UTG_ERROR_RATE;
-  mismatchLimit   = AS_UTG_ERROR_LIMIT;
-
-  //  Initialize parallelism.
-
+void
+BestOverlapGraph::removeSuspicious(void) {
   uint32  fiLimit    = FI->numFragments();
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
 
-  //  PASS 0:  Find suspicious fragments.  For any found, mark as suspicious and don't allow
-  //  these to be best overlaps.
-
-  if (removeSuspicious) {
     writeLog("BestOverlapGraph()-- removing suspicious reads from graph, with %d threads.\n", numThreads);
 
 #pragma omp parallel for schedule(dynamic, blockSize)
@@ -125,49 +89,15 @@ BestOverlapGraph::BestOverlapGraph(double               AS_UTG_ERROR_RATE,
         _suspicious.insert(fi);
       }
     }
-  }
+}
 
-  //  PASS 1:  Find containments.
 
-  writeLog("BestOverlapGraph()-- analyzing %d fragments for best contains, with %d threads.\n", fiLimit, numThreads);
+void
+BestOverlapGraph::examineOnlyTopN(void) {
+  uint32  fiLimit    = FI->numFragments();
+  uint32  numThreads = omp_get_max_threads();
+  uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
 
-  if (false && AS_UTL_fileExists("best.contains", false, false)) {
-    writeLog("BestOverlapGraph()-- loading best containes from cache.\n");
-    assert(0);  //  Not quite done.
-
-  } else {
-#pragma omp parallel for schedule(dynamic, blockSize)
-    for (AS_IID fi=1; fi <= fiLimit; fi++) {
-      uint32      no  = 0;
-      BAToverlap *ovl = OC->getOverlaps(fi, no);
-
-      for (uint32 ii=0; ii<no; ii++)
-        scoreContainment(ovl[ii]);
-    }
-  }
-
-  //  PASS 2:  Find dovetails.
-
-  if (false && AS_UTL_fileExists("best.edges", false, false)) {
-    writeLog("BestOverlapGraph()-- loading best edges from cache.\n");
-    assert(0);  //  Not quite done.
-
-  } else {
-    writeLog("BestOverlapGraph()-- analyzing %d fragments for best edges, with %d threads.\n", fiLimit, numThreads);
-
-#pragma omp parallel for schedule(dynamic, blockSize)
-    for (AS_IID fi=1; fi <= fiLimit; fi++) {
-      uint32      no  = 0;
-      BAToverlap *ovl = OC->getOverlaps(fi, no);
-
-      for (uint32 ii=0; ii<no; ii++)
-        scoreEdge(ovl[ii]);
-    }
-  }
-
-  //  Find dovetails again, but only look at the highest quality overlaps for each side.
-
-  if (examineOnlyTopN) {
     writeLog("BestOverlapGraph()-- analyzing %d fragments for best edges, with %d threads.\n", fiLimit, numThreads);
     writeLog("BestOverlapGraph()-- scoring highest quality %d overlaps.\n", examineOnly);
 
@@ -203,11 +133,15 @@ BestOverlapGraph::BestOverlapGraph(double               AS_UTG_ERROR_RATE,
         }
       }
     }
-  }
+}
 
-  //  Remove spurs
 
-  if (removeSpurs) {
+void
+BestOverlapGraph::removeSpurs(void) {
+  uint32  fiLimit    = FI->numFragments();
+  uint32  numThreads = omp_get_max_threads();
+  uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
+
     writeLog("BestOverlapGraph()-- detecting spur fragments.\n");
 
     char   *isSpur = new char [fiLimit + 1];
@@ -262,11 +196,15 @@ BestOverlapGraph::BestOverlapGraph(double               AS_UTG_ERROR_RATE,
     }
 
     delete [] isSpur;
-  }
+}
 
-  //  Remove probably false best overlaps based on error rate
 
-  if (removeFalseBest) {
+void
+BestOverlapGraph::removeFalseBest(void) {
+  uint32  fiLimit    = FI->numFragments();
+  uint32  numThreads = omp_get_max_threads();
+  uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
+
     writeLog("BestOverlapGraph()-- detecting false best overlaps.\n");
 
     uint32    *histo5 = new uint32 [AS_BAT_MAX_ERATE + 1];
@@ -485,7 +423,107 @@ BestOverlapGraph::BestOverlapGraph(double               AS_UTG_ERROR_RATE,
 
     delete [] erate5;
     delete [] erate3;
+}
+
+
+
+
+BestOverlapGraph::BestOverlapGraph(double               AS_UTG_ERROR_RATE,
+                                   double               AS_UTG_ERROR_LIMIT,
+                                   const char          *prefix,
+                                   bool                 doRemoveSuspicious,
+                                   bool                 doRemoveSpurs) {
+
+  bool doExamineOnlyTopN = false;
+  bool doRemoveFalseBest = false;
+
+  setLogFile(prefix, "bestOverlapGraph");
+
+  writeLog("BestOverlapGraph-- allocating best edges ("F_SIZE_T"MB) and containments ("F_SIZE_T"MB)\n",
+           ((2 * sizeof(BestEdgeOverlap) * (FI->numFragments() + 1)) >> 20),
+           ((1 * sizeof(BestContainment) * (FI->numFragments() + 1)) >> 20));
+
+  assert(AS_UTG_ERROR_RATE >= 0.0);
+  assert(AS_UTG_ERROR_RATE <= AS_MAX_ERROR_RATE);
+
+  assert(AS_CNS_ERROR_RATE >= 0.0);
+  assert(AS_CNS_ERROR_RATE <= AS_MAX_ERROR_RATE);
+
+  _bestA = new BestOverlaps [FI->numFragments() + 1];
+  _scorA = new BestScores   [FI->numFragments() + 1];
+
+  memset(_bestA, 0, sizeof(BestOverlaps) * (FI->numFragments() + 1));
+  memset(_scorA, 0, sizeof(BestScores)   * (FI->numFragments() + 1));
+
+  _restrict = NULL;
+
+  mismatchCutoff  = AS_UTG_ERROR_RATE;
+  mismatchLimit   = AS_UTG_ERROR_LIMIT;
+
+  //  Initialize parallelism.
+
+  uint32  fiLimit    = FI->numFragments();
+  uint32  numThreads = omp_get_max_threads();
+  uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
+
+  //  PASS 0:  Find suspicious fragments.  For any found, mark as suspicious and don't allow
+  //  these to be best overlaps.
+
+  if (doRemoveSuspicious)
+    removeSuspicious();
+
+  //  PASS 1:  Find containments.
+
+  writeLog("BestOverlapGraph()-- analyzing %d fragments for best contains, with %d threads.\n", fiLimit, numThreads);
+
+  if (false && AS_UTL_fileExists("best.contains", false, false)) {
+    writeLog("BestOverlapGraph()-- loading best containes from cache.\n");
+    assert(0);  //  Not quite done.
+
+  } else {
+#pragma omp parallel for schedule(dynamic, blockSize)
+    for (AS_IID fi=1; fi <= fiLimit; fi++) {
+      uint32      no  = 0;
+      BAToverlap *ovl = OC->getOverlaps(fi, no);
+
+      for (uint32 ii=0; ii<no; ii++)
+        scoreContainment(ovl[ii]);
+    }
   }
+
+  //  PASS 2:  Find dovetails.
+
+  if (false && AS_UTL_fileExists("best.edges", false, false)) {
+    writeLog("BestOverlapGraph()-- loading best edges from cache.\n");
+    assert(0);  //  Not quite done.
+
+  } else {
+    writeLog("BestOverlapGraph()-- analyzing %d fragments for best edges, with %d threads.\n", fiLimit, numThreads);
+
+#pragma omp parallel for schedule(dynamic, blockSize)
+    for (AS_IID fi=1; fi <= fiLimit; fi++) {
+      uint32      no  = 0;
+      BAToverlap *ovl = OC->getOverlaps(fi, no);
+
+      for (uint32 ii=0; ii<no; ii++)
+        scoreEdge(ovl[ii]);
+    }
+  }
+
+  //  Find dovetails again, but only look at the highest quality overlaps for each side.
+
+  if (doExamineOnlyTopN)
+    examineOnlyTopN();
+
+  //  Remove spurs
+
+  if (doRemoveSpurs)
+    removeSpurs();
+
+  //  Remove probably false best overlaps based on error rate
+
+  if (doRemoveFalseBest)
+    removeFalseBest();
 
   //  Remove temporary scoring data
 

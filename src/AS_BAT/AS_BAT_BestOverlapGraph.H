@@ -51,6 +51,12 @@ public:
 
 
 class BestOverlapGraph {
+private:
+  void   removeSuspicious(void);
+  void   examineOnlyTopN(void);
+  void   removeSpurs(void);
+  void   removeFalseBest(void);
+
 public:
   BestOverlapGraph(double      erate,
                    double      elimit,
