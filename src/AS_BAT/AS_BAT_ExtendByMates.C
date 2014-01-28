@@ -72,7 +72,7 @@ extendByMates(UnitigVector &unitigs,
     if (extraMates == 0)
       continue;
 
-    //  Build a set of the fragments in this unitig plus their mates, and a set of just themates.
+    //  Build a set of the fragments in this unitig plus their mates, and a set of just the mates.
 
     set<AS_IID>   frags;
     set<AS_IID>   mates;
