@@ -170,12 +170,16 @@ AS_BAT_overlapBEndIs3prime(const BAToverlap& olap) {
 class BestEdgeOverlap {
 public:
   BestEdgeOverlap() {
+    clear();
+  };
+  ~BestEdgeOverlap() {
+  };
+
+  void    clear(void) {
     _id    = 0;
     _e3p   = 0;
     _ahang = 0;
     _bhang = 0;
-  };
-  ~BestEdgeOverlap() {
   };
 
   void    set(BAToverlap const &olap) {
@@ -219,13 +223,17 @@ private:
 class BestContainment{
 public:
   BestContainment() {
+    clear();
+  };
+  ~BestContainment() {
+  };
+
+  void    clear(void) {
     container       = 0;
     isContained     = false;
     sameOrientation = false;
     a_hang          = 0;
     b_hang          = 0;
-  };
-  ~BestContainment() {
   };
 
   uint32  container;
