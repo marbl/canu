@@ -142,7 +142,8 @@ usage(char *filename, int longhelp) {
   fprintf(stdout, "                             are dumped into a single file. This will create files 'prefix.paired.fastq',\n");
   fprintf(stdout, "                             'prefix.1.fastq', 'prefix.2.fastq' and 'prefix.unmated.fastq' for unmated\n");
   fprintf(stdout, "                             reads. Options -donotfixmates and -clear also apply.\n");
-
+  fprintf(stdout, "  -withlibname               For -dumpfasta, -dumpnewbler and -dumpfastq, embed the libraryname in the\n");
+  fprintf(stdout, "                             created files, e.g., prefix.libname.1.fastq for fastq files.\n");
 
   fprintf(stdout, "\n");
   if (longhelp == 0) {
@@ -511,6 +512,7 @@ main(int argc, char **argv) {
   int			   dumpInvert		 = 0;
   int              dumpFormat        = 2;
   char            *dumpPrefix        = NULL;
+  int              dumpWithLibName   = 0;
   uint32           dumpRandLib       = 0;  //  0 means "from any library"
   uint32           dumpRandMateNum   = 0;
   uint32           dumpRandSingNum   = 0;  //  Not a command line option
@@ -611,6 +613,8 @@ main(int argc, char **argv) {
       dump = DUMP_FRAGMENTS;
     } else if (strcmp(argv[arg], "-withsequence") == 0) {
       dumpWithSequence = 1;
+    } else if (strcmp(argv[arg], "-withlibname") == 0) {
+      dumpWithLibName = 1;
     } else if (strcmp(argv[arg], "-clear") == 0) {
       dumpClear      = gkStore_decodeClearRegionLabel(argv[++arg]);
       if (dumpClear == AS_READ_CLEAR_ERROR) {
@@ -715,7 +719,7 @@ main(int argc, char **argv) {
                                 dumpDoNotUseUIDs);
         break;
       case DUMP_FASTA:
-        dumpGateKeeperAsFasta(gkpStoreName, dumpPrefix, begIID, endIID, iidToDump,
+        dumpGateKeeperAsFasta(gkpStoreName, dumpPrefix, dumpWithLibName, begIID, endIID, iidToDump,
                               doNotFixMates,
                               dumpAllReads, dumpAllBases,
                               dumpClear,
@@ -729,7 +733,7 @@ main(int argc, char **argv) {
                             dumpDoNotUseUIDs);
         break;
       case DUMP_NEWBLER:
-        dumpGateKeeperAsNewbler(gkpStoreName, dumpPrefix, begIID, endIID, iidToDump,
+        dumpGateKeeperAsNewbler(gkpStoreName, dumpPrefix, dumpWithLibName, begIID, endIID, iidToDump,
                                 doNotFixMates,
                                 dumpAllReads, dumpAllBases,
                                 dumpClear,
@@ -743,7 +747,7 @@ main(int argc, char **argv) {
         }
         break;
       case DUMP_FASTQ:
-        dumpGateKeeperAsFastQ(gkpStoreName, dumpPrefix, begIID, endIID, iidToDump,
+        dumpGateKeeperAsFastQ(gkpStoreName, dumpPrefix, dumpWithLibName, begIID, endIID, iidToDump,
                               doNotFixMates,
                               dumpAllReads, dumpAllBases,
                               dumpClear,

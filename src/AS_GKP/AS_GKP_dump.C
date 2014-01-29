@@ -30,6 +30,89 @@ static char const *rcsid = "$Id$";
 #include "AS_UTL_reverseComplement.H"
 #include "AS_PER_gkpStore.H"
 
+#include <vector>
+using namespace std;
+
+
+//  Container for all files of a specific type (fasta, qual, fastq, etc).
+//  Ask for the file for libIID, type.
+//  Special case for 'monolithic' where libIID is ignored.
+
+class dumpFileFile {
+public:
+  dumpFileFile() {
+    memset(_N, 0, sizeof(char)   * 5 * FILENAME_MAX);
+    memset(_F, 0, sizeof(FILE *) * 5);
+  };
+
+  char    _N[5][FILENAME_MAX];
+  FILE   *_F[5];
+};
+
+
+class dumpFile {
+public:
+  dumpFile(gkStore *gkp, char *prefix, char *extension) {
+
+    sprintf(_mono._N[0], "%s.%s",         prefix, extension);
+    sprintf(_mono._N[1], "%s.1.%s",       prefix, extension);
+    sprintf(_mono._N[2], "%s.2.%s",       prefix, extension);
+    sprintf(_mono._N[3], "%s.paired.%s",  prefix, extension);
+    sprintf(_mono._N[4], "%s.unmated.%s", prefix, extension);
+
+    _lib.resize(gkp->gkStore_getNumLibraries() + 1);
+
+    for (uint32 ll=0; ll<=gkp->gkStore_getNumLibraries(); ll++) {
+      sprintf(_lib[ll]._N[0], "%s.%03u.%s.%s",         prefix, ll, gkp->gkStore_getLibrary(ll)->libraryName, extension);
+      sprintf(_lib[ll]._N[1], "%s.%03u.%s.1.%s",       prefix, ll, gkp->gkStore_getLibrary(ll)->libraryName, extension);
+      sprintf(_lib[ll]._N[2], "%s.%03u.%s.2.%s",       prefix, ll, gkp->gkStore_getLibrary(ll)->libraryName, extension);
+      sprintf(_lib[ll]._N[3], "%s.%03u.%s.paired.%s",  prefix, ll, gkp->gkStore_getLibrary(ll)->libraryName, extension);
+      sprintf(_lib[ll]._N[4], "%s.%03u.%s.unmated.%s", prefix, ll, gkp->gkStore_getLibrary(ll)->libraryName, extension);
+    }
+  };
+
+  ~dumpFile() {
+    for (uint32 ii=0; ii<5; ii++)
+      if (_mono._F[ii])  fclose(_mono._F[ii]);
+
+    for (uint32 ll=0; ll<_lib.size(); ll++)
+      for (uint32 ii=0; ii<5; ii++)
+        if (_lib[ll]._F[ii])  fclose(_lib[ll]._F[ii]);
+  };
+
+  FILE   *getFile(bool withLibrary, uint32 libIID, char type) {
+    uint32   tt = 0;
+
+    switch (type) {
+      case 'f': tt=0; break;
+      case '1': tt=1; break;
+      case '2': tt=2; break;
+      case 'p': tt=3; break;
+      case 'u': tt=4; break;
+      default:
+        assert(0);
+        break;
+    }
+
+    dumpFileFile  *FF = (withLibrary == false) ?  &_mono : &_lib[libIID];
+    
+    if (FF->_F[tt] == NULL) {
+      errno = 0;
+      FF->_F[tt] = fopen(FF->_N[tt], "w");
+
+      if (errno)
+        fprintf(stderr, "Failed to open '%s': %s\n", FF->_N[tt], strerror(errno)), exit(1);
+    }
+
+    return(FF->_F[tt]);
+  }
+
+public:
+  dumpFileFile            _mono;
+  vector<dumpFileFile>    _lib;
+};
+
+
 
 void
 dumpGateKeeperInfo(char       *gkpStoreName,
@@ -349,6 +432,7 @@ adjustBeginEndAddMates(gkStore *gkp,
 void
 dumpGateKeeperAsFasta(char       *gkpStoreName,
                       char       *prefix,
+                      int         withLibName,
                       AS_IID      bgnIID,
                       AS_IID      endIID,
                       char       *iidToDump,
@@ -364,22 +448,9 @@ dumpGateKeeperAsFasta(char       *gkpStoreName,
 
   adjustBeginEndAddMates(gkp, bgnIID, endIID, libToDump, iidToDump, frgUID, doNotFixMates, dumpAllReads, withoutUIDs);
 
-  char  fname[FILENAME_MAX];  sprintf(fname, "%s.fasta",      prefix);
-  char  qname[FILENAME_MAX];  sprintf(qname, "%s.fasta.qv",   prefix);
-  char  Qname[FILENAME_MAX];  sprintf(Qname, "%s.fasta.qual", prefix);
-
-  errno = 0;
-  FILE *f = fopen(fname, "w");
-  if (errno)
-    fprintf(stderr, "Failed to open output file '%s': %s\n", fname, strerror(errno)), exit(1);
-
-  FILE *q = fopen(qname, "w");
-  if (errno)
-    fprintf(stderr, "Failed to open output file '%s': %s\n", qname, strerror(errno)), exit(1);
-
-  FILE *Q = fopen(Qname, "w");
-  if (errno)
-    fprintf(stderr, "Failed to open output file '%s': %s\n", Qname, strerror(errno)), exit(1);
+  dumpFile *fasta = new dumpFile(gkp, prefix, "fasta");
+  dumpFile *qvals = new dumpFile(gkp, prefix, "fasta.qv");
+  dumpFile *quals = new dumpFile(gkp, prefix, "fasta.qual");
 
   //  Dump fragments -- as soon as both reads in a mate are defined,
   //  we dump the mate relationship.
@@ -463,7 +534,7 @@ dumpGateKeeperAsFasta(char       *gkpStoreName,
         seq[i] = tolower(seq[i]);
     }
 
-    AS_UTL_writeFastA(f, seq, len, 0,
+    AS_UTL_writeFastA(fasta->getFile(withLibName, libIID, 'f'), seq, len, 0,
                       ">%s,"F_IID" mate=%s,"F_IID" lib=%s,"F_IID" clr=%s,%d,%d deleted=%d\n",
                       AS_UID_toString(fUID), id1,
                       AS_UID_toString(mUID), id2,
@@ -471,7 +542,7 @@ dumpGateKeeperAsFasta(char       *gkpStoreName,
                       AS_READ_CLEAR_NAMES[dumpClear], lclr, rclr,
                       fr.gkFragment_getIsDeleted());
 
-    AS_UTL_writeFastA(q, qlt, len, 0,
+    AS_UTL_writeFastA(qvals->getFile(withLibName, libIID, 'f'), qlt, len, 0,
                       ">%s,"F_IID" mate=%s,"F_IID" lib=%s,"F_IID" clr=%s,%d,%d deleted=%d\n",
                       AS_UID_toString(fUID), id1,
                       AS_UID_toString(mUID), id2,
@@ -479,7 +550,7 @@ dumpGateKeeperAsFasta(char       *gkpStoreName,
                       AS_READ_CLEAR_NAMES[dumpClear], lclr, rclr,
                       fr.gkFragment_getIsDeleted());
 
-    AS_UTL_writeQVFastA(Q, qlt, len, 0,
+    AS_UTL_writeQVFastA(quals->getFile(withLibName, libIID, 'f'), qlt, len, 0,
                         ">%s,"F_IID" mate=%s,"F_IID" lib=%s,"F_IID" clr=%s,%d,%d deleted=%d\n",
                         AS_UID_toString(fUID), id1,
                         AS_UID_toString(mUID), id2,
@@ -487,6 +558,14 @@ dumpGateKeeperAsFasta(char       *gkpStoreName,
                         AS_READ_CLEAR_NAMES[dumpClear], lclr, rclr,
                         fr.gkFragment_getIsDeleted());
   }
+
+  safe_free(iidToDump);
+  safe_free(libToDump);
+  safe_free(frgUID);
+
+  delete fasta;
+  delete qvals;
+  delete quals;
 
   delete fs;
   delete gkp;
@@ -779,6 +858,7 @@ dumpGateKeeperAsFRG(char       *gkpStoreName,
 void
 dumpGateKeeperAsNewbler(char       *gkpStoreName,
                         char       *prefix,
+                        int         withLibName,
                         AS_IID      bgnIID,
                         AS_IID      endIID,
                         char       *iidToDump,
@@ -794,17 +874,8 @@ dumpGateKeeperAsNewbler(char       *gkpStoreName,
 
   adjustBeginEndAddMates(gkp, bgnIID, endIID, libToDump, iidToDump, frgUID, doNotFixMates, dumpAllReads, withoutUIDs);
 
-  char  fname[FILENAME_MAX];  sprintf(fname, "%s.fna",      prefix);
-  char  qname[FILENAME_MAX];  sprintf(qname, "%s.fna.qual", prefix);
-
-  errno = 0;
-  FILE *f = fopen(fname, "w");
-  if (errno)
-    fprintf(stderr, "Failed to open output file '%s': %s\n", fname, strerror(errno)), exit(1);
-
-  FILE *q = fopen(qname, "w");
-  if (errno)
-    fprintf(stderr, "Failed to open output file '%s': %s\n", qname, strerror(errno)), exit(1);
+  dumpFile *fna = new dumpFile(gkp, prefix, "fna");
+  dumpFile *qna = new dumpFile(gkp, prefix, "fna.qual");
 
   //  Dump fragments -- as soon as both reads in a mate are defined,
   //  we dump the mate relationship.
@@ -856,16 +927,23 @@ dumpGateKeeperAsNewbler(char       *gkpStoreName,
               lclr,
               rclr);
 
-    AS_UTL_writeFastA(f,
+    AS_UTL_writeFastA(fna->getFile(withLibName, libIID, 'f'),
                       fr.gkFragment_getSequence(),
                       fr.gkFragment_getSequenceLength(), 0,
                       dl, NULL);
 
-    AS_UTL_writeQVFastA(q,
+    AS_UTL_writeQVFastA(qna->getFile(withLibName, libIID, 'f'),
                         fr.gkFragment_getQuality(),
                         fr.gkFragment_getSequenceLength(), 0,
                         dl, NULL);
   }
+
+  safe_free(iidToDump);
+  safe_free(libToDump);
+  safe_free(frgUID);
+
+  delete fna;
+  delete qna;
 
   delete fs;
   delete gkp;
@@ -876,6 +954,7 @@ dumpGateKeeperAsNewbler(char       *gkpStoreName,
 void
 dumpGateKeeperAsFastQ(char       *gkpStoreName,
                       char       *prefix,
+                      int         withLibName,
                       AS_IID      bgnIID,
                       AS_IID      endIID,
                       char       *iidToDump,
@@ -891,29 +970,7 @@ dumpGateKeeperAsFastQ(char       *gkpStoreName,
 
   adjustBeginEndAddMates(gkp, bgnIID, endIID, libToDump, iidToDump, frgUID, doNotFixMates, dumpAllReads, withoutUIDs);
 
-  char  aname[FILENAME_MAX];  sprintf(aname, "%s.1.fastq",       prefix);
-  char  bname[FILENAME_MAX];  sprintf(bname, "%s.2.fastq",       prefix);
-  char  pname[FILENAME_MAX];  sprintf(pname, "%s.paired.fastq",  prefix);
-  char  uname[FILENAME_MAX];  sprintf(uname, "%s.unmated.fastq", prefix);
-
-  errno = 0;
-  FILE *a = fopen(aname, "w");
-  if (errno)
-    fprintf(stderr, "Failed to open output file '%s': %s\n", aname, strerror(errno)), exit(1);
-
-  errno = 0;
-  FILE *b = fopen(bname, "w");
-  if (errno)
-    fprintf(stderr, "Failed to open output file '%s': %s\n", bname, strerror(errno)), exit(1);
-
-  errno = 0;
-  FILE *p = fopen(pname, "w");
-  if (errno)
-    fprintf(stderr, "Failed to open output file '%s': %s\n", pname, strerror(errno)), exit(1);
-
-  FILE *u = fopen(uname, "w");
-  if (errno)
-    fprintf(stderr, "Failed to open output file '%s': %s\n", uname, strerror(errno)), exit(1);
+  dumpFile *fastq = new dumpFile(gkp, prefix, "fastq");
 
   //  Dump fragments -- as soon as both reads in a mate are defined,
   //  we dump the mate relationship.
@@ -960,7 +1017,7 @@ dumpGateKeeperAsFastQ(char       *gkpStoreName,
 
     if ((id2 != 0) && (id2 < id1))
       //  Mated, and the mate is the first frag.  We've already reported this one.
-      continue;
+     continue;
 
     char *seq = fr.gkFragment_getSequence() + ((dumpAllBases == false) ? fr.gkFragment_getClearRegionBegin(dumpClear) : 0);
     char *qlt = fr.gkFragment_getQuality()  + ((dumpAllBases == false) ? fr.gkFragment_getClearRegionBegin(dumpClear) : 0);
@@ -1046,7 +1103,7 @@ dumpGateKeeperAsFastQ(char       *gkpStoreName,
     if (id2 == 0) {
       //  Unmated read, dump to the unmated reads file.
       //
-      AS_UTL_writeFastQ(u, seq, len, qlt, len,
+      AS_UTL_writeFastQ(fastq->getFile(withLibName, libIID, 'u'), seq, len, qlt, len,
                         "@%s,%u clr="F_U32","F_U32" clv="F_U32","F_U32" max="F_U32","F_U32" tnt="F_U32","F_U32" rnd=%c\n",
                         AS_UID_toString(fr.gkFragment_getReadUID()), fr.gkFragment_getReadIID(),
                         clrBgn, clrEnd, vecBgn, vecEnd, maxBgn, maxEnd, tntBgn, tntEnd,
@@ -1060,13 +1117,13 @@ dumpGateKeeperAsFastQ(char       *gkpStoreName,
 
 
     //  Write the first fragment (twice).
-    AS_UTL_writeFastQ(a, seq, len, qlt, len,
+    AS_UTL_writeFastQ(fastq->getFile(withLibName, libIID, '1'), seq, len, qlt, len,
                       "@%s,%u clr="F_U32","F_U32" clv="F_U32","F_U32" max="F_U32","F_U32" tnt="F_U32","F_U32" rnd=%c\n",
                       AS_UID_toString(fr.gkFragment_getReadUID()), fr.gkFragment_getReadIID(),
                       clrBgn, clrEnd, vecBgn, vecEnd, maxBgn, maxEnd, tntBgn, tntEnd,
                       fr.gkFragment_getIsNonRandom() ? 'f' : 't');
 
-    AS_UTL_writeFastQ(p, seq, len, qlt, len,
+    AS_UTL_writeFastQ(fastq->getFile(withLibName, libIID, 'p'), seq, len, qlt, len,
                       "@%s,%u clr="F_U32","F_U32" clv="F_U32","F_U32" max="F_U32","F_U32" tnt="F_U32","F_U32" rnd=%c\n",
                       AS_UID_toString(fr.gkFragment_getReadUID()), fr.gkFragment_getReadIID(),
                       clrBgn, clrEnd, vecBgn, vecEnd, maxBgn, maxEnd, tntBgn, tntEnd,
@@ -1160,13 +1217,13 @@ dumpGateKeeperAsFastQ(char       *gkpStoreName,
     }
 
     //  Write the second fragment (twice).
-    AS_UTL_writeFastQ(b, seq, len, qlt, len,
+    AS_UTL_writeFastQ(fastq->getFile(withLibName, libIID, '2'), seq, len, qlt, len,
                       "@%s,%u clr="F_U32","F_U32" clv="F_U32","F_U32" max="F_U32","F_U32" tnt="F_U32","F_U32" rnd=%c\n",
                       AS_UID_toString(fr.gkFragment_getReadUID()), fr.gkFragment_getReadIID(),
                       clrBgn, clrEnd, vecBgn, vecEnd, maxBgn, maxEnd, tntBgn, tntEnd,
                       fr.gkFragment_getIsNonRandom() ? 'f' : 't');
 
-    AS_UTL_writeFastQ(p, seq, len, qlt, len,
+    AS_UTL_writeFastQ(fastq->getFile(withLibName, libIID, 'p'), seq, len, qlt, len,
                       "@%s,%u clr="F_U32","F_U32" clv="F_U32","F_U32" max="F_U32","F_U32" tnt="F_U32","F_U32" rnd=%c\n",
                       AS_UID_toString(fr.gkFragment_getReadUID()), fr.gkFragment_getReadIID(),
                       clrBgn, clrEnd, vecBgn, vecEnd, maxBgn, maxEnd, tntBgn, tntEnd,
@@ -1177,6 +1234,12 @@ dumpGateKeeperAsFastQ(char       *gkpStoreName,
     iidToDump[id1] = 0;
     iidToDump[id2] = 0;
   }
+
+  safe_free(iidToDump);
+  safe_free(libToDump);
+  safe_free(frgUID);
+
+  delete fastq;
 
   delete fs;
   delete gkp;
