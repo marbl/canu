@@ -43,6 +43,7 @@ double readInsertRate   = 0.01;  //  Fraction insertion error
 double readDeleteRate   = 0.01;  //  Fraction deletion error
 
 bool   allowGaps     = false;
+bool   allowNs       = false;
 
 const uint32 mpJunctionsNone   = 0;
 const uint32 mpJunctionsNormal = 1;
@@ -166,10 +167,14 @@ makeSequences(char    *frag,
 
     makeSequenceError(s1, q1, p);
 
+    if (s1[p] == '*') {
+      fwrite(frag, sizeof(char), fragLen, stdout);
+      fprintf(stdout, "\n");
+    }
     assert(s1[p] != '*');
 
     if (s1[p] == 0) {
-      fprintf(stderr, "BREAK\n");
+      //fprintf(stderr, "BREAK\n");
       break;
     }
   }
@@ -192,6 +197,10 @@ makeSequences(char    *frag,
 
     makeSequenceError(s2, q2, p);
 
+    if (s2[p] == '*') {
+      fwrite(frag, sizeof(char), fragLen, stdout);
+      fprintf(stdout, "\n");
+    }
     assert(s2[p] != '*');
   }
 
@@ -237,9 +246,10 @@ makeSE(char   *seq,
 
     //  Make sure the read doesn't contain N's (redundant in this particular case)
 
-    for (int32 i=0; i<readLen; i++)
-      if (s1[i] == 'N')
-        goto trySEagain;
+    if (allowNs == false)
+      for (int32 i=0; i<readLen; i++)
+        if (s1[i] == 'N')
+          goto trySEagain;
 
     //  Reverse complement?
 
@@ -252,6 +262,9 @@ makeSE(char   *seq,
     fprintf(outputI, "%s\n", s1);
     fprintf(outputI, "+\n");
     fprintf(outputI, "%s\n", q1);
+
+    if ((nr % 1000) == 0)
+      fprintf(stderr, "%9d / %9d - %5.2f%%\r", nr, numReads, 100.0 * nr / numReads);
   }
 
   delete [] s1;
@@ -301,9 +314,10 @@ makePE(char   *seq,
 
     //  Make sure the reads don't contain N's
 
-    for (int32 i=0; i<readLen; i++)
-      if ((s1[i] == 'N') || (s2[i] == 'N'))
-        goto tryPEagain;
+    if (allowNs == false)
+      for (int32 i=0; i<readLen; i++)
+        if ((s1[i] == 'N') || (s2[i] == 'N'))
+          goto tryPEagain;
 
     //  Output sequences, with a descriptive ID
 
@@ -339,6 +353,9 @@ makePE(char   *seq,
     fprintf(outputC, "%s\n", s2);
     fprintf(outputC, "+\n");
     fprintf(outputC, "%s\n", q2);
+
+    if ((np % 1000) == 0)
+      fprintf(stderr, "%9d / %9d - %5.2f%%\r", np, numPairs, 100.0 * np / numPairs);
   }
 
   delete [] s1;
@@ -407,9 +424,10 @@ makeMP(char   *seq,
 
       //  Make sure the reads don't contain N's
 
-      for (int32 i=0; i<readLen; i++)
-        if ((s1[i] == 'N') || (s2[i] == 'N'))
-          goto tryMPagain;
+      if (allowNs == false)
+        for (int32 i=0; i<readLen; i++)
+          if ((s1[i] == 'N') || (s2[i] == 'N'))
+            goto tryMPagain;
 
       //  Output sequences, with a descriptive ID
 
@@ -514,9 +532,10 @@ makeMP(char   *seq,
 
       //  Make sure the reads don't contain N's
 
-      for (int32 i=0; i<readLen; i++)
-        if ((s1[i] == 'N') || (s2[i] == 'N'))
-          goto tryMPagain;
+      if (allowNs == false)
+        for (int32 i=0; i<readLen; i++)
+          if ((s1[i] == 'N') || (s2[i] == 'N'))
+            goto tryMPagain;
 
       //  Label the type of the read
 
@@ -580,6 +599,9 @@ makeMP(char   *seq,
       fprintf(outputC, "+\n");
       fprintf(outputC, "%s\n", q2);
     }
+
+    if ((np % 1000) == 0)
+      fprintf(stderr, "%9d / %9d - %5.2f%%\r", np, numPairs, 100.0 * np / numPairs);
   }
 }
 
@@ -641,15 +663,17 @@ makeCC(char   *seq,
     if (idxf != idxr)
       goto tryCCagain;
 
-    for (int32 i=bgnf; i<bgnf+lenf; i++)
-      if ((seq[i] == '>') ||
-          ((allowGaps == false) && (seq[i] == 'N')))
-        goto tryCCagain;
+    if (allowNs == false)
+      for (int32 i=bgnf; i<bgnf+lenf; i++)
+        if ((seq[i] == '>') ||
+            ((allowGaps == false) && (seq[i] == 'N')))
+          goto tryCCagain;
 
-    for (int32 i=bgnr; i<bgnr+lenr; i++)
-      if ((seq[i] == '>') ||
-          ((allowGaps == false) && (seq[i] == 'N')))
-        goto tryCCagain;
+    if (allowNs == false)
+      for (int32 i=bgnr; i<bgnr+lenr; i++)
+        if ((seq[i] == '>') ||
+            ((allowGaps == false) && (seq[i] == 'N')))
+          goto tryCCagain;
 
     //  Generate the sequence.
 
@@ -670,9 +694,10 @@ makeCC(char   *seq,
 
     //  Make sure the read doesn't contain N's (redundant in this particular case)
 
-    for (int32 i=0; i<readLen; i++)
-      if (s1[i] == 'N')
-        goto tryCCagain;
+    if (allowNs == false)
+      for (int32 i=0; i<readLen; i++)
+        if (s1[i] == 'N')
+          goto tryCCagain;
 
     //  Output sequence, with a descriptive ID
 
@@ -684,6 +709,9 @@ makeCC(char   *seq,
     fprintf(outputI, "%s\n", s1);
     fprintf(outputI, "+\n");
     fprintf(outputI, "%s\n", q1);
+
+    if ((nr % 1000) == 0)
+      fprintf(stderr, "%9d / %9d - %5.2f%%\r", nr, numReads, 100.0 * nr / numReads);
   }
 
   delete [] s1;
@@ -762,6 +790,10 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-allowgaps") == 0) {
       allowGaps = true;
 
+    } else if (strcmp(argv[arg], "-allowns") == 0) {
+      allowGaps = true;
+      allowNs   = true;
+
     } else if (strcmp(argv[arg], "-nojunction") == 0) {
       mpJunctions = mpJunctionsNone;
 
@@ -835,6 +867,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -allowgaps      Allow pairs to span N regions in the reference.  By default, pairs\n");
     fprintf(stderr, "                  are not allowed to span a gap.  Reads are never allowed to cover N's.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -allowns        Allow reads to contain N regions.  Implies -allowgaps\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -nojunction     For -mp, do not create chimeric junction reads.  Create only fully PE or\n");
     fprintf(stderr, "                  fully MP reads.\n");
@@ -983,6 +1017,7 @@ main(int argc, char **argv) {
 
   memset(seq, '.', sizeof(char) * seqMax);
 
+  uint32  nInvalid = 0;
 
   while (!feof(fastaFile)) {
     fgets(seq + seqLen, seqMax - seqLen, fastaFile);
@@ -995,8 +1030,16 @@ main(int argc, char **argv) {
 
     for (;
          ((seq[seqLen] != '\n') && (seq[seqLen] != '\r') && (seq[seqLen] != 0));
-         seqLen++)
+         seqLen++) {
       seq[seqLen] = toupper(seq[seqLen]);
+
+      if ((seq[seqLen] != 'N') && (validBase[seq[seqLen]] == 0)) {
+        nInvalid++;
+        //fprintf(stderr, "Replace invalid base '%c' at position %u.\n", seq[seqLen], seqLen);
+        seq[seqLen] = insertBase[randomUniform(0, 3)];
+        //q1[p] = (validBase[s1[p]]) ? QV_BASE + 8 : QV_BASE + 2;
+      }
+    }
 
     assert(seqLen < seqMax);
   }
@@ -1005,7 +1048,7 @@ main(int argc, char **argv) {
 
   seq[seqLen] = 0;
 
-  fprintf(stderr, "READ sequence of length %d\n", seqLen);
+  fprintf(stderr, "READ sequence of length %d, with %u invalid bases fixed.\n", seqLen, nInvalid);
 
   //
   //  If requested, compute the number of pairs to get a desired X of coverage
