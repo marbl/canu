@@ -111,6 +111,12 @@ public:
 
   void      reportBestEdges(void);
 
+public:
+  void      rebuildBestContainsWithoutSingletons(UnitigVector  &unitigs,
+                                                 double         erate,
+                                                 double         elimit,
+                                                 const char    *prefix);
+
 private:
   bool     isOverlapBadQuality(const BAToverlap& olap);
   bool     isOverlapRestricted(const BAToverlap &olap);
@@ -122,19 +128,19 @@ private:
 
 private:
   uint64  &bestCscore(AS_IID id) {
-    if (_scorA)
+    if (_restrictEnabled == false)
       return(_scorA[id]._bestCscore);
     return(_scorM[id]._bestCscore);
   };
 
   uint64  &best5score(AS_IID id) {
-    if (_scorA)
+    if (_restrictEnabled == false)
       return(_scorA[id]._best5score);
     return(_scorM[id]._best5score);
   };
 
   uint64  &best3score(AS_IID id) {
-    if (_scorA)
+    if (_restrictEnabled == false)
       return(_scorA[id]._best3score);
     return(_scorM[id]._best3score);
   };
@@ -149,6 +155,7 @@ private:
   map<AS_IID, BestScores>    _scorM;
 
   set<AS_IID>               *_restrict;
+  bool                       _restrictEnabled;
 
 public:
   double                      mismatchCutoff;

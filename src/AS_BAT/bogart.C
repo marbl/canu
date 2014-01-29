@@ -80,7 +80,10 @@ main (int argc, char * argv []) {
 
   bool      removeSpur               = false;
   bool      removeSuspicious         = false;
+  bool      noContainsInSingletons   = false;
   bool      enableJoining            = false;
+
+  bool      placeContainsUsingBest   = true;
 
   bool      enableShatterRepeats     = false;
   bool      enableExtendByMates      = false;
@@ -116,6 +119,9 @@ main (int argc, char * argv []) {
 
     } else if (strcmp(argv[arg], "-NS") == 0) {
       removeSuspicious = true;
+
+    } else if (strcmp(argv[arg], "-CS") == 0) {
+      noContainsInSingletons = true;
 
     } else if (strcmp(argv[arg], "-J") == 0) {
       enableJoining = true;
@@ -267,6 +273,7 @@ main (int argc, char * argv []) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -RS        Remove edges to spur reads from best overlap graph.\n");
     fprintf(stderr, "  -NS        Don't seed promiscuous unitigs with suspicious reads.\n");
+    fprintf(stderr, "  -CS        Don't place contained reads in singleton unitigs.\n");
     fprintf(stderr, "  -J         Join promiscuous unitigs using unused best edges.\n");
     fprintf(stderr, "  -SR        Shatter repeats.  Enabled with -R and -E; if neither are supplied,\n");
     fprintf(stderr, "               repeat fragments are promoted to singleton unitigs (unless -DP).\n");
@@ -431,9 +438,19 @@ main (int argc, char * argv []) {
     evaluateMates(unitigs, output_prefix, "joining");
   }
 
-  placeContainsUsingBestOverlaps(unitigs);
-  //placeContainsUsingAllOverlaps(bool withMatesToNonContained,
-  //                              bool withMatesToUnambiguousContain);
+  if (noContainsInSingletons)
+    OG->rebuildBestContainsWithoutSingletons(unitigs, erateGraph, elimitGraph, output_prefix);
+
+  if (placeContainsUsingBest) {
+    placeContainsUsingBestOverlaps(unitigs);
+
+  } else {
+    bool withMatesToNonContained       = false;  //  Resolve ambiguous contained placements using mates to dovetail reads
+    bool withMatesToUnambiguousContain = false;  //  Resolve ambiguous contained placements using mates
+
+    assert(0);  //  Doesn't work
+    placeContainsUsingAllOverlaps(unitigs, withMatesToNonContained, withMatesToUnambiguousContain);
+  }
 
   setLogFile(output_prefix, "placeZombies");
 
@@ -475,7 +492,17 @@ main (int argc, char * argv []) {
   setLogFile(output_prefix, "cleanup");
 
   splitDiscontinuousUnitigs(unitigs);       //  Clean up splitting problems.
-  placeContainsUsingBestOverlaps(unitigs);
+
+  if (placeContainsUsingBest) {
+    placeContainsUsingBestOverlaps(unitigs);
+
+  } else {
+    bool withMatesToNonContained       = false;  //  Resolve ambiguous contained placements using mates to dovetail reads
+    bool withMatesToUnambiguousContain = false;  //  Resolve ambiguous contained placements using mates
+
+    assert(0);  //  Doesn't work
+    placeContainsUsingAllOverlaps(unitigs, withMatesToNonContained, withMatesToUnambiguousContain);
+  }
 
   promoteToSingleton(unitigs, enablePromoteToSingleton);
 
