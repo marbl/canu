@@ -609,11 +609,8 @@ sub setDefaults () {
     $global{"bogBadMateDepth"}             = 7;
     $synops{"bogBadMateDepth"}             = "EXPERT!";
 
-    $global{"batRebuildRepeats"}           = 0;
-    $synops{"batRebuildRepeats"}           = "Shatter repeats, rebuild more stringently";
-
-    $global{"batMateExtension"}            = 0;
-    $synops{"batMateExtension"}            = "Shatter repeats, extend unique unitigs with mates (leaves repeats shattered)";
+    $global{"batOptions"}                  = undef;
+    $synops{"batOptions"}                  = "Advanced options to bogart";
 
     $global{"batMemory"}                   = undef;
     $synops{"batMemory"}                   = "Approximate maximum memory usage for loading overlaps, in gigabytes, default is unlimited";
@@ -2410,8 +2407,6 @@ sub runMeryl ($$$$$$$$) {
                 }
             }
 
-            my $lastThreshold = 0;
-
             open(F, "< $ofile.histogram") or caFailure("failed to read mer histogram from '$ofile.histogram'", undef);
             while (<F>) {
                 my ($threshold, $num, $distinct, $total) = split '\s+', $_;
@@ -2421,19 +2416,17 @@ sub runMeryl ($$$$$$$$) {
                     last;
                 }
 
-                if ((defined($merDistinct)) && ($merDistinct < $distinct)) {
-                    $merThresh = (($merThresh > 0) && ($merThresh < $threshold)) ? $merThresh : $lastThreshold;
-                    print STDERR "Supplied merDistinct $merDistinct with threshold $lastThreshold is the smallest.\n";
+                if ((defined($merDistinct)) && ($merDistinct <= $distinct)) {
+                    $merThresh = (($merThresh > 0) && ($merThresh < $threshold)) ? $merThresh : $threshold;
+                    print STDERR "Supplied merDistinct $merDistinct with threshold $threshold is the smallest.\n";
                     last;
                 }
 
-                if ((defined($merTotal)) && ($merTotal < $total)) {
-                    $merThresh = (($merThresh > 0) && ($merThresh < $threshold)) ? $merThresh : $lastThreshold;
-                    print STDERR "Supplied merTotal $merTotal with threshold $lastThreshold is the smallest.\n";
+                if ((defined($merTotal)) && ($merTotal <= $total)) {
+                    $merThresh = (($merThresh > 0) && ($merThresh < $threshold)) ? $merThresh : $threshold;
+                    print STDERR "Supplied merTotal $merTotal with threshold $threshold is the smallest.\n";
                     last;
                 }
-
-                $lastThreshold = $threshold;
             }
             close(F);
         }
@@ -4617,13 +4610,12 @@ sub unitigger () {
 
     system("mkdir $wrk/4-unitigger") if (! -e "$wrk/4-unitigger");
 
-    my $e   = getGlobal("utgErrorRate");        #  Unitigger and BOG
-    my $E   = getGlobal("utgErrorLimit");
-    my $eg  = getGlobal("utgGraphErrorRate");   #  BOGART
-    my $Eg  = getGlobal("utgGraphErrorLimit");
-    my $em  = getGlobal("utgMergeErrorRate");
-    my $Em  = getGlobal("utgMergeErrorLimit");
-    my $mem = getGlobal("batMemory");
+    my $e    = getGlobal("utgErrorRate");        #  Unitigger and BOG
+    my $E    = getGlobal("utgErrorLimit");
+    my $eg   = getGlobal("utgGraphErrorRate");   #  BOGART
+    my $Eg   = getGlobal("utgGraphErrorLimit");
+    my $em   = getGlobal("utgMergeErrorRate");
+    my $Em   = getGlobal("utgMergeErrorLimit");
 
     my $B = int($numFrags / getGlobal("cnsPartitions"));
     $B = getGlobal("cnsMinFrags") if ($B < getGlobal("cnsMinFrags"));
@@ -4633,7 +4625,9 @@ sub unitigger () {
     my $unitigger = getUnitigger();
 
     if ($unitigger eq "bogart") {
-        my $th = getGlobal("batThreads");
+        my $th   = getGlobal("batThreads");
+        my $mem  = getGlobal("batMemory");
+        my $opts = getGlobal("batOptions");
 
         $cmd  = "$bin/bogart ";
         $cmd .= " -O $wrk/$asm.ovlStore ";
@@ -4645,9 +4639,8 @@ sub unitigger () {
         $cmd .= " -em $em ";
         $cmd .= " -Em $Em ";
         $cmd .= " -threads $th " if (defined($th));
-        $cmd .= " -R "      if (getGlobal("batRebuildRepeats") == 1);
-        $cmd .= " -E "      if (getGlobal("batMateExtension") == 1);
-        $cmd .= " -M $mem " if (defined($mem));
+        $cmd .= " -M $mem "      if (defined($mem));
+        $cmd .= " $opts "        if (defined($opts));
         $cmd .= " -o $wrk/4-unitigger/$asm ";
         $cmd .= " > $wrk/4-unitigger/unitigger.err 2>&1";
     } elsif ($unitigger eq "bog") {
