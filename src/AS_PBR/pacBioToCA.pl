@@ -92,6 +92,35 @@ sub setGlobal ($$) {
        setGlobal("cnsErrorRate", $val);
        setGlobal("ovlErrorRate", $val);
     }
+    if (($var eq "gridEngine") && ($val eq "SGE")) {
+        setGlobal("gridSubmitCommand",      "qsub");
+        setGlobal("gridHoldOption",         "-hold_jid \"WAIT_TAG\"");
+        setGlobal("gridSyncOption",         "-sync y");
+        setGlobal("gridNameOption",         "-cwd -N");
+        setGlobal("gridArrayOption",        "-t ARRAY_JOBS");
+        setGlobal("gridArrayName",          "ARRAY_NAME");
+        setGlobal("gridOutputOption",       "-j y -o");
+        setGlobal("gridPropagateCommand",   "qalter -hold_jid \"WAIT_TAG\"");
+        setGlobal("gridNameToJobIDCommand", undef);
+        setGlobal("gridTaskID",             "SGE_TASK_ID");
+        setGlobal("gridArraySubmitID",      "\\\$TASK_ID");
+        setGlobal("gridJobID",              "JOB_ID");
+    }
+
+    if (($var eq "gridEngine") && ($val eq "LSF")) {
+        setGlobal("gridSubmitCommand",      "bsub");
+        setGlobal("gridHoldOption",         "-w \"done\(\"WAIT_TAG\"\)\"");
+        setGlobal("gridSyncOption",         "-K");
+        setGlobal("gridNameOption",         "-J");
+        setGlobal("gridArrayOption",        "");
+        setGlobal("gridArrayName",          "ARRAY_NAME\[ARRAY_JOBS\]");
+        setGlobal("gridOutputOption",       "-o");
+        setGlobal("gridPropagateCommand",   "bmodify -w \"done\(\"WAIT_TAG\"\)\"");
+        setGlobal("gridNameToJobIDCommand", "bjobs -J \"WAIT_TAG\" | grep -v JOBID");
+        setGlobal("gridTaskID",             "LSB_JOBINDEX");
+        setGlobal("gridArraySubmitID",      "%I");
+        setGlobal("gridJobID",              "LSB_JOBID");
+    }
 
     $commandLineOptions .= " \"$var=$val\" ";
 }
@@ -108,6 +137,7 @@ sub setDefaults() {
     $global{"gridPropagateCommand"}		   = "qalter -hold_jid \"WAIT_TAG\""; # for lsf it is bmodify -w "done(WAIT_TAG)"
     $global{"gridNameToJobIDCommand"}      = undef;             # for lsf it is bjobs -J "WAIT_TAG" | grep -v JOBID    
     $global{"gridTaskID"}				   = "SGE_TASK_ID";     # for lsf it is LSB_JOBINDEX
+    $global{"gridJobID"}		   = "JOB_ID";
     $global{"gridArraySubmitID"}           = "\$TASK_ID";       # for lsf it is %I
     
     $global{"shell"}                       = "/bin/bash";
@@ -459,7 +489,7 @@ sub schedulerFinish {
 #  Functions for running jobs on grid
 
 sub runningOnGrid () {
-	my $taskID = getGlobal("gridTaskID");
+	my $taskID = getGlobal("gridJobID");
     return(defined($ENV{$taskID}));
 }
 
@@ -592,6 +622,8 @@ sub submit($$$$$) {
               # loop over all jobs and all sge hold commands to modify the jobs. We have no way to know which is the right one unfortunately               
               while (my $prop = <PROPS>) {
                  while (my $hold = <HOLDS>) {
+                  chomp $hold;
+                  chomp $prop;
                   my $hcmd = $holdPropagateCommand;
                   $hcmd =~ s/WAIT_TAG/$hold/g;
                   my $acmd = "$hcmd $prop";

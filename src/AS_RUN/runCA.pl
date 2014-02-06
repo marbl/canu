@@ -193,14 +193,14 @@ sub setGlobal ($$) {
     }
 
     if (($var eq "gridEngine") && ($val eq "LSF")) {
-        setGlobal("gridSubmitCommand",      "qsub");
-        setGlobal("gridHoldOption",         "-w done\(\"WAIT_TAG\"\)");
+        setGlobal("gridSubmitCommand",      "bsub");
+        setGlobal("gridHoldOption",         "-w \"done\(\"WAIT_TAG\"\)\"");
         setGlobal("gridSyncOption",         "-K");
         setGlobal("gridNameOption",         "-J");
         setGlobal("gridArrayOption",        "");
         setGlobal("gridArrayName",          "ARRAY_NAME\[ARRAY_JOBS\]");
         setGlobal("gridOutputOption",       "-o");
-        setGlobal("gridPropagateCommand",   "bmodify -w done\(\"WAIT_TAG\"\)");
+        setGlobal("gridPropagateCommand",   "bmodify -w \"done\(\"WAIT_TAG\"\)\"");
         setGlobal("gridNameToJobIDCommand", "bjobs -J \"WAIT_TAG\" | grep -v JOBID");
         setGlobal("gridTaskID",             "LSB_JOBINDEX");
         setGlobal("gridArraySubmitID",      "%I");
@@ -329,6 +329,7 @@ sub setDefaults () {
 
     #####  Grid Engine configuration, how to submit jobs, etc
 
+    $global{"gridEngine"}		   = "SGE";
     $global{"gridSubmitCommand"}           = "qsub";
     $global{"gridHoldOption"}              = "-hold_jid \"WAIT_TAG\"";         # for lsf: -w "done("WAIT_TAG")"
     $global{"gridSyncOption"}              = "-sync y";                        # for lsf: -K
@@ -1459,6 +1460,8 @@ sub submitScript ($) {
                 # loop over all jobs and all sge hold commands to modify the jobs. We have no way to know which is the right one unfortunately
                 while (my $prop = <PROPS>) {
                     while (my $hold = <HOLDS>) {
+                        chomp $hold;
+                        chomp $prop;
                         my $hcmd = $holdPropagateCommand;
                         $hcmd =~ s/WAIT_TAG/$hold/g;
                         my $acmd = "$hcmd $prop";
@@ -2703,7 +2706,7 @@ sub UMDoverlapper () {
     $cmd .= "awk '{print \$1\"\\t\"\$2\"\\t\"\$3\"\\t\"\$4\"\\t\"\$5\"\\t\"\$6\"\\t\"\$7}' | ";
     $cmd .= "$bin/convertOverlap ";
     $cmd .= "-b -ovldump ";
-    $cmd .= " > $wrk/$outDir/$jobID/$jobID.ovb";
+    $cmd .= " -out $wrk/$outDir/$jobID/$jobID.ovb";
     if (runCommand("$wrk/$outDir", $cmd)) {
         caFailure("failed to create overlaps", undef);
     }
