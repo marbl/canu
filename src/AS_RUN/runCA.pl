@@ -698,11 +698,11 @@ sub setDefaults () {
     $global{"cnsPhasing"}                  = 0;
     $synops{"cnsPhasing"}                  = "Options for consensus phasing of SNPs\n\t0 - Do not phase SNPs to be consistent.\n\t1 - If two SNPs are joined by reads, phase them to be consistent.";
 
-    $global{"cnsReduceUnitigs"}            = undef;
-    $synops{"cnsReduceUnitigs"}            = "Set parameters for when and how to sample down coverage in deep unitigs.";
+    $global{"cnsMaxCoverage"}              = 0;
+    $synops{"cnsMaxCoverage"}              = "Limit unitig consensus to to at most this coverage";
 
     $global{"cnsReuseUnitigs"}             = 0;
-    $synops{"cnsReuseUnitigs"}             = "Do not compute single-unitig contigs again, just reuse the unitig.";
+    $synops{"cnsReuseUnitigs"}             = "Do not compute single-unitig contigs again, just reuse the unitig";
 
     #$global{"cnsRecycleUnitigs"}          = 0;
     #$synops{"cnsRecycleUnitigs"}          = "At some point, we'll come up with something for this.";
@@ -4753,12 +4753,12 @@ sub createPostUnitiggerConsensusJobs (@) {
     print F getBinDirectoryShellCode();
 
     if ($consensusType eq "cns") {
-        my $reduce = getGlobal('cnsReduceUnitigs');
+        my $maxCov = getGlobal('cnsMaxCoverage');
 
         print F "\$bin/utgcns \\\n";
         print F "  -g $wrk/$asm.gkpStore \\\n";
         print F "  -t $wrk/$asm.tigStore 1 \$jobid \\\n";
-        print F "  -reduce $reduce \\\n"  if (defined($reduce));
+        print F "  -maxcoverage $maxCov \\\n";
         print F "> $wrk/5-consensus/${asm}_\$jobid.cns.err 2>&1 \\\n";
         print F "&& \\\n";
         print F "\$bin/utgcnsfix \\\n";
@@ -4852,7 +4852,40 @@ sub postUnitiggerConsensus () {
 
     #  FAILUREHELPME
     #
-    caFailure("$failedJobs unitig consensus jobs failed; remove $wrk/5-consensus/consensus.sh to try again", undef) if ($failedJobs);
+    #caFailure("$failedJobs unitig consensus jobs failed; remove $wrk/5-consensus/consensus.sh to try again", undef) if ($failedJobs);
+
+    #
+    #  Summarize the sampling done by reading logs
+    #
+
+    if (! -e "$wrk/5-consensus/$asm.sampling") {
+        open(O, "> $wrk/5-consensus/$asm.sampling");
+        open(D, "> $wrk/5-consensus/$asm.sampling.dat");
+
+        print D "utgIID\t#_removed\tcov_removed\t#_saved\tcov_saved\t#_kept\tcov_kept\n";
+
+        open(F, "< $wrk/4-unitigger/$asm.partitioningInfo") or caFailure("can't open '$wrk/4-unitigger/$asm.partitioningInfo'", undef);
+        while (<F>) {
+            if (m/Partition\s+(\d+)\s+has\s+(\d+)\s+unitigs\sand\s+(\d+)\s+fragments./) {
+                my $id = substr("000" . $1, -3);
+
+                open(G, "< $wrk/5-consensus/${asm}_$id.cns.err") or warn "Failed to open '$wrk/5-consensus/${asm}_$id.cns.err'\n";
+                while (<G>) {
+                    s/^\s+//;
+                    s/\s+$//;
+
+                    if (m/unitig\s+(\d+)\s+removing\s+(\d+)\s+\((\d+.\d+)x\)\s+contained\s+reads;\s+processing\s+only\s+(\d+)\s+contained\s+\((\d+.\d+)x\)\s+and\s+(\d+)\s+dovetail\s+\((\d+.\d+)x\)\s+reads/) {
+                        print O "$_\n";
+                        print D "$1\t$2\t$3\t$4\t$5\t$6\t$7\n";
+                    }
+                }
+                close(G);
+            }
+        }
+        close(F);
+        close(D);
+        close(O);
+    }
 
     #
     #  Apply the utgcnsfix changes

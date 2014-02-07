@@ -54,20 +54,36 @@ IntMultiPos_PositionCompare(IntMultiPos const &a, IntMultiPos const &b) {
 //  Create a new f_list for the ma that has no contained reads.
 //  The original f_list is returned.
 //
+
+  class readLength {
+  public:
+    AS_IID    idx;
+    int32     len;
+
+    bool operator<(const readLength &that) const {
+      return(len < that.len);
+    };
+  };
+
 VA_TYPE(IntMultiPos) *
 stashContains(MultiAlignT *ma,
-              double       minCov,
-              double       minDove) {
+              double       maxCov) {
   VA_TYPE(IntMultiPos) *fl = ma->f_list;
 
   int32  nOrig     = GetNumIntMultiPoss(fl);
   int32  nDove     = 0;
   int32  nCont     = 0;
+  int32  nSave     = 0;
   int64  nBase     = 0;
   int64  nBaseDove = 0;
   int64  nBaseCont = 0;
+  int64  nBaseSave = 0;
 
-  int32        *isDove  = new int32 [nOrig];
+  if (ma->data.num_frags == 1)
+    return(NULL);
+
+  int32        *isDove  = new int32      [nOrig];
+  readLength   *posLen  = new readLength [nOrig];
   IntMultiPos  *imp     = GetIntMultiPos(fl, 0);
 
   std::sort(imp, imp+nOrig, IntMultiPos_PositionCompare);
@@ -75,10 +91,12 @@ stashContains(MultiAlignT *ma,
   int32         loEnd = MIN(imp->position.bgn, imp->position.end);
   int32         hiEnd = MAX(imp->position.bgn, imp->position.end);
 
-  isDove[0] = 1;
-  nDove     = 1;
-  nBaseDove += hiEnd - loEnd;
-  nBase     += hiEnd - loEnd;
+  isDove[0]      = 1;
+  nDove          = 1;
+  posLen[0].idx  = 0;
+  posLen[0].len  = hiEnd - loEnd;
+  nBaseDove     += posLen[0].len;
+  nBase         += posLen[0].len;
 
   for (uint32 fi=1; fi<nOrig; fi++) {
     imp = GetIntMultiPos(fl, fi);
@@ -86,16 +104,18 @@ stashContains(MultiAlignT *ma,
     int32  lo = MIN(imp->position.bgn, imp->position.end);
     int32  hi = MAX(imp->position.bgn, imp->position.end);
 
-    nBase += hi - lo;
+    posLen[fi].idx  = fi;
+    posLen[fi].len  = hiEnd - loEnd;
+    nBase          += posLen[fi].len;
 
     if (hi <= hiEnd) {
       isDove[fi] = 0;
       nCont++;
-      nBaseCont += hi - lo;
+      nBaseCont += posLen[fi].len;
     } else {
       isDove[fi] = 1;
       nDove++;
-      nBaseDove += hi - lo;
+      nBaseDove += posLen[fi].len;
     }
 
     hiEnd = MAX(hi, hiEnd);
@@ -110,10 +130,28 @@ stashContains(MultiAlignT *ma,
           nCont, (double)nBaseCont / hiEnd, percCont,
           nDove, (double)nBaseDove / hiEnd, percDove);
 
-  if ((totlCov  >= minCov) &&
-      (percDove >= minDove)) {
-    fprintf(stderr, "    unitig %d removing "F_S32" contains; processing only "F_S32" reads\n",
-            ma->maID, nOrig - nDove, nDove);
+  if ((totlCov  >= maxCov) &&
+      (maxCov   > 0)) {
+    std::sort(posLen, posLen + nOrig);
+
+    nBaseSave = 0.0;
+
+    for (uint32 ii=0; ((ii < nOrig) && ((double)(nBaseSave + nBaseDove) / hiEnd < maxCov)); ii++) {
+      if (isDove[posLen[ii].idx])
+        continue;
+
+      isDove[posLen[ii].idx] = 1;
+
+      nSave++;
+      nBaseSave += posLen[ii].len;
+    }
+
+    fprintf(stderr, "    unitig %d removing "F_S32" (%.2fx) contained reads; processing only "F_S32" contained (%.2fx) and "F_S32" dovetail (%.2fx) reads\n",
+            ma->maID,
+            nOrig - nDove - nSave,
+            (double)(nBaseCont - nBaseSave) / hiEnd,
+            nSave, (double)nBaseSave / hiEnd,
+            nDove, (double)nBaseDove / hiEnd);
 
     ma->f_list = CreateVA_IntMultiPos(0);
 
@@ -131,6 +169,7 @@ stashContains(MultiAlignT *ma,
   }
 
   delete [] isDove;
+  delete [] posLen;
 
   return(fl);
 }
@@ -139,7 +178,8 @@ stashContains(MultiAlignT *ma,
 //  Restores the f_list, and updates the position of non-contained reads.
 //
 void
-unstashContains(MultiAlignT *ma, VA_TYPE(IntMultiPos) *fl) {
+unstashContains(MultiAlignT          *ma,
+                VA_TYPE(IntMultiPos) *fl) {
 
   if (fl == NULL)
     return;
@@ -234,9 +274,7 @@ main (int argc, char **argv) {
 
   bool   showResult = false;
 
-  bool   reduceCoverage = true;
-  double reduceCoverageMinCov   = 100.0;   //  100x coverage
-  double reduceCoverageMinDove  =   5.0;   //  5% bases in dovetail reads
+  double maxCov = 0.0;
 
   bool   inplace  = false;
   bool   loadall  = false;
@@ -282,12 +320,8 @@ main (int argc, char **argv) {
     } else if (strcmp(argv[arg], "-V") == 0) {
       VERBOSE_MULTIALIGN_OUTPUT++;
 
-    } else if (strcmp(argv[arg], "-noreduce") == 0) {
-      reduceCoverage = false;
-
-    } else if (strcmp(argv[arg], "-reduce") == 0) {
-      reduceCoverageMinCov   = atof(argv[++arg]);
-      reduceCoverageMinDove  = atof(argv[++arg]);
+    } else if (strcmp(argv[arg], "-maxcoverage") == 0) {
+      maxCov   = atof(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-inplace") == 0) {
       inplace = true;
@@ -326,14 +360,9 @@ main (int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "    -n              Do not update the store after computing consensus.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "    -noreduce       Use all reads for consensus generation.  By default, unitigs with\n");
-    fprintf(stderr, "                    average depth at least 100x and more than 5%% of the read bases in\n");
-    fprintf(stderr, "                    non-contained reads will use only the non-contained reads for consensus.\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "    -reduce c f     Use only non-contained reads for consensus generation if the unitig\n");
-    fprintf(stderr, "                    has more than 'c' coverage and more than 'f' percent of the read bases\n");
-    fprintf(stderr, "                    are in non-contained reads.  The default is 100x (c=100) coverage and\n");
-    fprintf(stderr, "                    5%% (f=5) non-contained bases.\n");
+    fprintf(stderr, "    -maxcoverage c  Use non-contained reads and the longest contained reads, up to\n");
+    fprintf(stderr, "                    C coverage, for consensus generation.  The default is 0, and will\n");
+    fprintf(stderr, "                    use all reads.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "    -inplace        Write the updated unitig to the same version it was read from.\n");
     fprintf(stderr, "\n");
@@ -419,7 +448,6 @@ main (int argc, char **argv) {
 
   for (uint32 i=b; i<e; i++) {
     MultiAlignT              *ma = tigStore->loadMultiAlign(i, true);
-    VA_TYPE(IntMultiPos)     *fl = NULL;
 
     if (ma == NULL) {
       //  Not in our partition, or deleted.
@@ -445,15 +473,13 @@ main (int argc, char **argv) {
     //  Build a new ma if we're ignoring contains.  We'll need to put back the reads we remove
     //  before we add it to the store.
 
-    if ((reduceCoverage) && ((ma->data.num_frags > 1)))
-      fl = stashContains(ma, reduceCoverageMinCov, reduceCoverageMinDove);
+    VA_TYPE(IntMultiPos)     *fl = stashContains(ma, maxCov);
 
     if (MultiAlignUnitig(ma, gkpStore, &options, NULL)) {
       if (showResult)
         PrintMultiAlignT(stdout, ma, gkpStore, false, false, AS_READ_CLEAR_LATEST);
 
-      if (reduceCoverage)
-        unstashContains(ma, fl);
+      unstashContains(ma, fl);
 
       if (doUpdate) {
         tigStore->insertMultiAlign(ma, true, true);
