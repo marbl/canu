@@ -283,7 +283,8 @@ dumpCoverage(MultiAlignStore *tigStore,
              uint32           minCoverage,
              uint32           maxCoverage,
              uint64          *coverageHistogram,
-             uint32           coverageHistogramLen) {
+             uint32           coverageHistogramLen,
+             char            *outPrefix) {
   intervalList  allL;
 
   uint32        maxPos = 0;
@@ -293,7 +294,7 @@ dumpCoverage(MultiAlignStore *tigStore,
 
     int32   bgn = MIN(imp->position.bgn, imp->position.end);
     int32   end = MAX(imp->position.bgn, imp->position.end);
-    int32   len = end - bgn + 1;
+    int32   len = end - bgn;
 
     if (maxPos < end)
       maxPos = end;
@@ -301,24 +302,19 @@ dumpCoverage(MultiAlignStore *tigStore,
     allL.add(bgn, len);
   }
 
+  maxPos++;  //  Now the C-style maxPos.
+
   intervalDepth  ID(allL);
 
   intervalList   minL;
   intervalList   maxL;
 
-  uint32  maxDepth = 0;
-
-  for (uint32 ii=0; ii<ID.numberOfIntervals(); ii++) {
-    if (ID.de(ii) > maxDepth)
-      maxDepth = ID.de(ii);
-
-    if (ID.de(ii) < coverageHistogramLen) {
-      coverageHistogram[ID.de(ii)] += ID.hi(ii) - ID.lo(ii) + 1;
-    } else {
-      fprintf(stderr, "deep coverage %d\n", ID.de(ii));
-    }
+  uint32  maxDepth    = 0;
+  double  aveDepth    = 0;
+  double  sdeDepth    = 0;
 
 #if 0
+  for (uint32 ii=0; ii<ID.numberOfIntervals(); ii++) {
     if ((ID.de(ii) < minCoverage) && (ID.lo(ii) != 0) && (ID.hi(ii) != maxPos)) {
       fprintf(stderr, "%s %d low coverage interval %ld %ld max %u coverage %u\n",
               (tigIsUnitig) ? "unitig" : "contig", tigID, ID.lo(ii), ID.hi(ii), maxPos, ID.de(ii));
@@ -330,8 +326,28 @@ dumpCoverage(MultiAlignStore *tigStore,
               (tigIsUnitig) ? "unitig" : "contig", tigID, ID.lo(ii), ID.hi(ii), maxPos, ID.de(ii));
       maxL.add(ID.lo(ii), ID.hi(ii) - ID.lo(ii) + 1);
     }
-#endif
   }
+#endif
+
+  for (uint32 ii=0; ii<ID.numberOfIntervals(); ii++) {
+    if (ID.de(ii) > maxDepth)
+      maxDepth = ID.de(ii);
+
+    aveDepth += (ID.hi(ii) - ID.lo(ii) + 1) * ID.de(ii);
+
+    if (ID.de(ii) < coverageHistogramLen)
+      coverageHistogram[ID.de(ii)] += ID.hi(ii) - ID.lo(ii) + 1;
+    else
+      fprintf(stderr, "deep coverage %d\n", ID.de(ii));
+  }
+
+  aveDepth /= maxPos;
+
+  for (uint32 ii=0; ii<ID.numberOfIntervals(); ii++) {
+    sdeDepth += (ID.hi(ii) - ID.lo(ii) + 1) * (ID.de(ii) - aveDepth) * (ID.de(ii) - aveDepth);
+  }
+
+  sdeDepth = sqrt(sdeDepth / maxPos);
 
   if (maxDepth > 1000)
     fprintf(stderr, "DEEP unitig %u of length %u with maxDepth %u\n",
@@ -340,6 +356,7 @@ dumpCoverage(MultiAlignStore *tigStore,
   allL.merge();
   minL.merge();
   maxL.merge();
+
 
 #if 0
   if      ((minL.numberOfIntervals() > 0) && (maxL.numberOfIntervals() > 0))
@@ -363,6 +380,43 @@ dumpCoverage(MultiAlignStore *tigStore,
             (tigIsUnitig) ? "unitig" : "contig", tigID,
             allL.numberOfIntervals());
 #endif
+
+  if (outPrefix) {
+    char  outName[FILENAME_MAX];
+
+    sprintf(outName, "%s.%s%08u.depth", outPrefix, (tigIsUnitig) ? "utg" : "ctg", tigID);
+
+    FILE *outFile = fopen(outName, "w");
+    if (errno)
+      fprintf(stderr, "Failed to open '%s': %s\n", outName, strerror(errno)), exit(1);
+
+    for (uint32 ii=0; ii<ID.numberOfIntervals(); ii++) {
+      fprintf(outFile, "%lu\t%u\n", ID.lo(ii), ID.de(ii));
+      fprintf(outFile, "%lu\t%u\n", ID.hi(ii), ID.de(ii));
+    }
+
+    fclose(outFile);
+
+    FILE *gnuPlot = popen("gnuplot > /dev/null 2>&1", "w");
+
+    if (gnuPlot) {
+      fprintf(gnuPlot, "set terminal 'png'\n");
+      fprintf(gnuPlot, "set output '%s.%s%08u.png'\n", outPrefix, (tigIsUnitig) ? "utg" : "ctg", tigID);
+      fprintf(gnuPlot, "set xlabel 'position'\n");
+      fprintf(gnuPlot, "set ylabel 'coverage'\n");
+      fprintf(gnuPlot, "set terminal 'png'\n");
+      fprintf(gnuPlot, "plot '%s.%s%08u.depth' using 1:2 with lines title '%s %u length %u', \\\n",
+              outPrefix,
+              (tigIsUnitig) ? "utg" : "ctg",
+              tigID,
+              (tigIsUnitig) ? "unitig" : "contig", tigID, maxPos);
+      fprintf(gnuPlot, "     %f title 'mean %.2f +- %.2f', \\\n", aveDepth, aveDepth, sdeDepth);
+      fprintf(gnuPlot, "     %f title '' lt 0 lc 2, \\\n", aveDepth - sdeDepth);
+      fprintf(gnuPlot, "     %f title '' lt 0 lc 2\n",     aveDepth + sdeDepth);
+
+      fclose(gnuPlot);
+    }
+  }
 }
 
 
@@ -692,14 +746,14 @@ main (int argc, char **argv) {
   int           showDots       = 1;
 
   matePairAnalysis  *mpa       = NULL;
-  char              *mpaPrefix = NULL;
 
   sizeAnalysis      *siz       = NULL;
-  char              *sizPrefix = NULL;
   uint64             sizSize   = 0;
 
   uint64            *cov       = NULL;
   uint64             covMax    = 0;
+
+  char              *outPrefix = NULL;
 
   argc = AS_configure(argc, argv);
 
@@ -828,7 +882,7 @@ main (int argc, char **argv) {
       sizSize                  = atoll(argv[arg]);
 
     } else if (strcmp(argv[arg], "-o") == 0) {
-      mpaPrefix = argv[++arg];
+      outPrefix = argv[++arg];
 
     } else {
       fprintf(stderr, "%s: Unknown option '%s'\n", argv[0], argv[arg]);
@@ -936,6 +990,9 @@ main (int argc, char **argv) {
   gkpStore = new gkStore(gkpName, FALSE, FALSE);
   tigStore = new MultiAlignStore(tigName, tigVers, tigPartU, tigPartC, FALSE, FALSE, FALSE);
 
+  if (outPrefix == NULL)
+    outPrefix = tigName;
+
 
   if ((opType == OPERATION_EDIT) && (editName != NULL)) {
     delete tigStore;
@@ -1039,18 +1096,11 @@ main (int argc, char **argv) {
     if (nTigs <= tigIDend)
       tigIDend = nTigs - 1;
 
-
-    if (dumpFlags == DUMP_MATEPAIR) {
+    if (dumpFlags == DUMP_MATEPAIR)
       mpa = new matePairAnalysis(gkpName);
-      if (mpaPrefix == NULL)
-        mpaPrefix = tigName;
-    }
 
-    if (dumpFlags == DUMP_SIZES) {
+    if (dumpFlags == DUMP_SIZES)
       siz = new sizeAnalysis(sizSize);
-      if (sizPrefix == NULL)
-        sizPrefix = tigName;
-    }
 
     if (dumpFlags == DUMP_COVERAGE) {
       covMax = 1048576;
@@ -1099,7 +1149,7 @@ main (int argc, char **argv) {
         siz->evaluateTig(ma, tigIsUnitig);
 
       if (dumpFlags == DUMP_COVERAGE)
-        dumpCoverage(tigStore, ti, tigIsUnitig, ma, 2, UINT32_MAX, cov, covMax);
+        dumpCoverage(tigStore, ti, tigIsUnitig, ma, 2, UINT32_MAX, cov, covMax, outPrefix);
 
       if (dumpFlags == DUMP_THINOVERLAP)
         dumpThinOverlap(tigStore, ti, tigIsUnitig, ma, sizSize);
@@ -1114,8 +1164,8 @@ main (int argc, char **argv) {
   if (mpa) {
     mpa->finalize();
     mpa->printSummary(stdout);
-    mpa->writeUpdate(mpaPrefix);
-    mpa->drawPlots(mpaPrefix);
+    mpa->writeUpdate(outPrefix);
+    mpa->drawPlots(outPrefix);
     delete mpa;
   }
 
@@ -1129,7 +1179,7 @@ main (int argc, char **argv) {
     char  N[FILENAME_MAX];
     FILE *F;
 
-    sprintf(N, "%s.depthHistogram", tigName);
+    sprintf(N, "%s.depthHistogram", outPrefix);
 
     errno = 0;
     F = fopen(N, "w");
@@ -1144,6 +1194,20 @@ main (int argc, char **argv) {
     fclose(F);
 
     delete [] cov;
+
+    FILE *gnuPlot = popen("gnuplot > /dev/null 2>&1", "w");
+
+    if (gnuPlot) {
+      fprintf(gnuPlot, "set terminal 'png'\n");
+      fprintf(gnuPlot, "set output '%s.depthHistogram.png'\n", outPrefix);
+      fprintf(gnuPlot, "set xlabel 'depth'\n");
+      fprintf(gnuPlot, "set ylabel 'number of bases'\n");
+      fprintf(gnuPlot, "set terminal 'png'\n");
+      fprintf(gnuPlot, "plot '%s.depthHistogram' using 1:2 with lines title '%s %s %u-%u depthHistogram', \\\n",
+              outPrefix, outPrefix, (tigIsUnitig) ? "unitigs" : "contigs", tigIDbgn, tigIDend);
+
+      fclose(gnuPlot);
+    }
   }
 
   delete gkpStore;
