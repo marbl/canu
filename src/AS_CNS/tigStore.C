@@ -231,18 +231,47 @@ dumpUnitigs(MultiAlignStore *tigStore,
 
 void
 dumpConsensus(MultiAlignStore *tigStore,
-              int32 tigID,
-              int32 tigIsUnitig,
-              MultiAlignT *ma,
-              bool withGaps) {
+              int32            tigID,
+              int32            tigIsUnitig,
+              MultiAlignT     *ma,
+              bool             withGaps,
+              uint32           minCoverage) {
 
   if (ma->consensus == NULL)
     return;
 
-  char *cns = Getchar(ma->consensus, 0);
+  char   *cns    = Getchar(ma->consensus, 0);
 
   if ((cns == NULL) || (cns[0] == 0))
     return;
+
+  //  If a minCoverage is specified, convert the low coverage bases to underscores, which will be
+  //  filtered later.
+
+  if (minCoverage > 0) {
+    intervalList  allL;
+
+    for (uint32 i=0; i<GetNumIntMultiPoss(ma->f_list); i++) {
+      IntMultiPos *imp = GetIntMultiPos(ma->f_list, i);
+
+      int32   bgn = MIN(imp->position.bgn, imp->position.end);
+      int32   end = MAX(imp->position.bgn, imp->position.end);
+
+      allL.add(bgn, end - bgn);
+    }
+
+    intervalDepth  ID(allL);
+
+    for (uint32 ii=0; ii<ID.numberOfIntervals(); ii++) {
+      if (ID.de(ii) >= minCoverage)
+        continue;
+
+      for (uint32 pp=ID.lo(ii); pp<ID.hi(ii); pp++)
+        cns[pp] = '_';
+    }
+  }
+
+  //  Now filter out gaps in the consensus.
 
   if (withGaps == false) {
     char *o = cns;
@@ -257,21 +286,58 @@ dumpConsensus(MultiAlignStore *tigStore,
     *o = 0;
   }
 
-  if (tigIsUnitig)
-    fprintf(stdout, ">utg%d len="F_U64" reads="F_U32" status=%c microHet=%.2f covStat=%.2f\n%s\n",
-            ma->maID, GetNumchars(ma->consensus) - 1, ma->data.num_frags,
-            ma->data.unitig_status,
-            ma->data.unitig_microhet_prob,
-            ma->data.unitig_coverage_stat,
-            cns);
-  else
-    fprintf(stdout, ">ctg%d len="F_U64" reads="F_U32" unitigs="F_U32" status=%c\n%s\n",
-            ma->maID, GetNumchars(ma->consensus) - 1, ma->data.num_frags,
-            ma->data.num_unitigs,
-            ma->data.contig_status,
-            cns);
-}
+  //  If no min coverage, we can just dump the consensus and be done.  Plus we output a few bits of
+  //  useful info with the sequence.
 
+  if (minCoverage == 0) {
+    if (tigIsUnitig)
+      fprintf(stdout, ">utg%d len="F_U64" reads="F_U32" status=%c microHet=%.2f covStat=%.2f\n%s\n",
+              ma->maID, GetNumchars(ma->consensus) - 1, ma->data.num_frags,
+              ma->data.unitig_status,
+              ma->data.unitig_microhet_prob,
+              ma->data.unitig_coverage_stat,
+              cns);
+    else
+      fprintf(stdout, ">ctg%d len="F_U64" reads="F_U32" unitigs="F_U32" status=%c\n%s\n",
+              ma->maID, GetNumchars(ma->consensus) - 1, ma->data.num_frags,
+              ma->data.num_unitigs,
+              ma->data.contig_status,
+              cns);
+    return;
+  }
+
+  //  Otherwise, we need to find subsequences in the consensus.  The useful bits of info aren't
+  //  valid anymore.
+
+  uint32  cnsLen = strlen(cns);
+  uint32  part   = 0;
+
+  for (uint32 bgn=0; bgn<cnsLen; bgn++)
+    if (cns[bgn] == '_')
+      cns[bgn] = 0;
+
+  for (uint32 bgn=0; bgn<cnsLen; bgn++) {
+    while ((cns[bgn] == 0) && (bgn < cnsLen))
+      bgn++;
+
+    if (bgn >= cnsLen)
+      break;
+
+    uint32 end = bgn + 1;
+
+    while ((cns[end] != 0) && (end < cnsLen))
+      end++;
+
+    fprintf(stdout, ">%s%d.%u bgn=%u end=%u len=%u\n%s\n",
+            (tigIsUnitig) ? "utg" : "cns",
+            ma->maID, part, bgn, end, end-bgn,
+            cns + bgn);
+
+    bgn = end + 1;
+
+    part++;
+  }
+}
 
 
 
@@ -741,6 +807,8 @@ main (int argc, char **argv) {
   uint32        minNreads      = 0;
   uint32        maxNreads      = UINT32_MAX;
 
+  uint32        minCoverage    = 0;
+
   MultiAlignT  *ma             = NULL;
   int           showQV         = 0;
   int           showDots       = 1;
@@ -806,8 +874,12 @@ main (int argc, char **argv) {
       else if (strcmp(argv[arg], "unitigs") == 0)
         dumpFlags = DUMP_UNITIGS;
 
-      else if (strcmp(argv[arg], "consensus") == 0)
+      else if (strcmp(argv[arg], "consensus") == 0) {
         dumpFlags = DUMP_CONSENSUS;
+
+        if ((arg+1 < argc) && (isdigit(argv[arg+1][0])))
+          minCoverage = atoi(argv[++arg]);
+      }
 
       else if (strcmp(argv[arg], "consensusgapped") == 0)
         dumpFlags = DUMP_CONSENSUSGAPPED;
@@ -917,7 +989,8 @@ main (int argc, char **argv) {
     fprintf(stderr, "     properties         ...properties\n");
     fprintf(stderr, "     frags              ...a list of fragments\n");
     fprintf(stderr, "     unitigs            ...a list of unitigs\n");
-    fprintf(stderr, "     consensus          ...the consensus sequence\n");
+    fprintf(stderr, "     consensus [C]      ...the consensus sequence\n");
+    fprintf(stderr, "                             if C supplied, only consensus with coverage >= C is output\n");
     fprintf(stderr, "     consensusgapped    ...the consensus sequence, with gaps as indicated in the multialignment\n");
     fprintf(stderr, "     layout             ...the layout\n");
     fprintf(stderr, "     multialign         ...the full multialignment\n");
@@ -1131,10 +1204,10 @@ main (int argc, char **argv) {
         dumpUnitigs(tigStore, ti, tigIsUnitig, ma);
 
       if (dumpFlags == DUMP_CONSENSUS)
-        dumpConsensus(tigStore, ti, tigIsUnitig, ma, false);
+        dumpConsensus(tigStore, ti, tigIsUnitig, ma, false, minCoverage);
 
       if (dumpFlags == DUMP_CONSENSUSGAPPED)
-        dumpConsensus(tigStore, ti, tigIsUnitig, ma, true);
+        dumpConsensus(tigStore, ti, tigIsUnitig, ma, true, minCoverage);
 
       if (dumpFlags == DUMP_LAYOUT)
         DumpMultiAlignForHuman(stdout, ma, tigIsUnitig);
@@ -1184,7 +1257,7 @@ main (int argc, char **argv) {
     errno = 0;
     F = fopen(N, "w");
 
-    uint32   hMax = covMax;
+    uint32   hMax = covMax - 1;
     while ((hMax > 0) && (cov[hMax] == 0))
       hMax--;
 
