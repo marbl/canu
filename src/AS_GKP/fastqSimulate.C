@@ -263,8 +263,8 @@ makeSE(char   *seq,
     fprintf(outputI, "+\n");
     fprintf(outputI, "%s\n", q1);
 
-    if ((nr % 1000) == 0)
-      fprintf(stderr, "%9d / %9d - %5.2f%%\r", nr, numReads, 100.0 * nr / numReads);
+    //if ((nr % 1000) == 0)
+    //  fprintf(stderr, "%9d / %9d - %5.2f%%\r", nr, numReads, 100.0 * nr / numReads);
   }
 
   delete [] s1;
@@ -354,8 +354,8 @@ makePE(char   *seq,
     fprintf(outputC, "+\n");
     fprintf(outputC, "%s\n", q2);
 
-    if ((np % 1000) == 0)
-      fprintf(stderr, "%9d / %9d - %5.2f%%\r", np, numPairs, 100.0 * np / numPairs);
+    //if ((np % 1000) == 0)
+    //  fprintf(stderr, "%9d / %9d - %5.2f%%\r", np, numPairs, 100.0 * np / numPairs);
   }
 
   delete [] s1;
@@ -600,8 +600,8 @@ makeMP(char   *seq,
       fprintf(outputC, "%s\n", q2);
     }
 
-    if ((np % 1000) == 0)
-      fprintf(stderr, "%9d / %9d - %5.2f%%\r", np, numPairs, 100.0 * np / numPairs);
+    //if ((np % 1000) == 0)
+    //  fprintf(stderr, "%9d / %9d - %5.2f%%\r", np, numPairs, 100.0 * np / numPairs);
   }
 }
 
@@ -710,8 +710,8 @@ makeCC(char   *seq,
     fprintf(outputI, "+\n");
     fprintf(outputI, "%s\n", q1);
 
-    if ((nr % 1000) == 0)
-      fprintf(stderr, "%9d / %9d - %5.2f%%\r", nr, numReads, 100.0 * nr / numReads);
+    //if ((nr % 1000) == 0)
+    //  fprintf(stderr, "%9d / %9d - %5.2f%%\r", nr, numReads, 100.0 * nr / numReads);
   }
 
   delete [] s1;
@@ -723,6 +723,8 @@ int
 main(int argc, char **argv) {
   char      *fastaName = NULL;
   FILE      *fastaFile = NULL;
+
+  int32      numSeq = 0;
 
   int32      seqMax = 0;
   int32      seqLen = 0;
@@ -1011,6 +1013,7 @@ main(int argc, char **argv) {
   if (errno)
     fprintf(stderr, "Failed to open fasta file '%s': %s\n", fastaName, strerror(errno)), exit(1);
 
+  numSeq = 0;
   seqMax = AS_UTL_sizeOfFile(fastaName);
   seqLen = 0;
   seq    = new char [seqMax + 1];
@@ -1023,6 +1026,7 @@ main(int argc, char **argv) {
     fgets(seq + seqLen, seqMax - seqLen, fastaFile);
 
     if (seq[seqLen] == '>') {
+      numSeq++;
       seqLen++;
       seqStartPositions.push_back(seqLen);
       continue;
@@ -1048,22 +1052,25 @@ main(int argc, char **argv) {
 
   seq[seqLen] = 0;
 
-  fprintf(stderr, "READ sequence of length %d, with %u invalid bases fixed.\n", seqLen, nInvalid);
+  assert(numSeq == seqStartPositions.size());
+
+  fprintf(stderr, "Loaded %u sequences of length %d, with %u invalid bases fixed.\n",
+          numSeq, seqLen - numSeq, nInvalid);
 
   //
   //  If requested, compute the number of pairs to get a desired X of coverage
   //
 
   if (readCoverage > 0) {
-    numReads = (int32)floor(readCoverage * seqLen / readLen);
+    numReads = (int32)floor(readCoverage * (seqLen - numSeq) / readLen);
     numPairs = numReads / 2;
 
     if (seEnable)
       fprintf(stderr, "For %.2f X coverage of a %dbp genome, generate %d %dbp reads.\n",
-              readCoverage, seqLen, numReads, readLen);
+              readCoverage, seqLen - numSeq, numReads, readLen);
     else
       fprintf(stderr, "For %.2f X coverage of a %dbp genome, generate %d pairs of %dbp reads.\n",
-              readCoverage, seqLen, numPairs, readLen);
+              readCoverage, seqLen - numSeq, numPairs, readLen);
   }
 
   //
@@ -1101,10 +1108,12 @@ main(int argc, char **argv) {
 
   delete [] seq;
 
-fprintf(stderr, "nNoChange = "F_U64"\n", nNoChange);
-fprintf(stderr, "nMismatch = "F_U64"\n", nMismatch);
-fprintf(stderr, "nInsert   = "F_U64"\n", nInsert);
-fprintf(stderr, "nDelete   = "F_U64"\n", nDelete);
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Number of reads with:\n");
+  fprintf(stderr, " nNoChange = "F_U64"\n", nNoChange);
+  fprintf(stderr, " nMismatch = "F_U64"\n", nMismatch);
+  fprintf(stderr, " nInsert   = "F_U64"\n", nInsert);
+  fprintf(stderr, " nDelete   = "F_U64"\n", nDelete);
 
   exit(0);
 }
