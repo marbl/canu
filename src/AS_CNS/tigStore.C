@@ -456,10 +456,8 @@ dumpCoverage(MultiAlignStore *tigStore,
     if (errno)
       fprintf(stderr, "Failed to open '%s': %s\n", outName, strerror(errno)), exit(1);
 
-    for (uint32 ii=0; ii<ID.numberOfIntervals(); ii++) {
-      fprintf(outFile, "%lu\t%u\n", ID.lo(ii), ID.de(ii));
-      fprintf(outFile, "%lu\t%u\n", ID.hi(ii), ID.de(ii));
-    }
+    for (uint32 ii=0; ii<ID.numberOfIntervals(); ii++)
+      fprintf(outFile, "%lu\t%lu\t%u\n", ID.lo(ii), ID.hi(ii), ID.de(ii));
 
     fclose(outFile);
 
