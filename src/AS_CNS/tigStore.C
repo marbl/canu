@@ -1022,7 +1022,7 @@ main (int argc, char **argv) {
     fprintf(stderr, "  -w width              Width of the page.\n");
     fprintf(stderr, "  -s spacing            Spacing between reads on the same line.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  For '-d matepair':\n");
+    fprintf(stderr, "  For '-d matepair' and '-d coverage':\n");
     fprintf(stderr, "  -o prefix             Output files will be written to 'prefix.*' in the current directory.\n");
     fprintf(stderr, "                        (defaults to 'tigStore' (the -t option) if not set.)\n");
     fprintf(stderr, "\n");
