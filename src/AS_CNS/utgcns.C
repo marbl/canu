@@ -275,6 +275,7 @@ main (int argc, char **argv) {
   bool   showResult = false;
 
   double maxCov = 0.0;
+  uint32 maxLen = UINT32_MAX;
 
   bool   inplace  = false;
   bool   loadall  = false;
@@ -323,6 +324,9 @@ main (int argc, char **argv) {
     } else if (strcmp(argv[arg], "-maxcoverage") == 0) {
       maxCov   = atof(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-maxlength") == 0) {
+      maxLen   = atof(argv[++arg]);
+
     } else if (strcmp(argv[arg], "-inplace") == 0) {
       inplace = true;
 
@@ -364,10 +368,12 @@ main (int argc, char **argv) {
     fprintf(stderr, "                    C coverage, for consensus generation.  The default is 0, and will\n");
     fprintf(stderr, "                    use all reads.\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "    -maxlength l    Do not compute consensus for unitigs longer than l bases.\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "    -inplace        Write the updated unitig to the same version it was read from.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "    -t S V P        If 'partition' is '.', use an unpartitioned tigStore/gkpStore.\n");
-    fprintf(stderr, "    -loadall        If not partitioned, load ALL reads into memory.\n");
+    fprintf(stderr, "    -loadall        Load ALL reads into memory.  Ignores partition if it exists.\n");
 
     if (gkpName == NULL)
       fprintf(stderr, "ERROR:  No gkpStore (-g) supplied.\n");
@@ -416,11 +422,9 @@ main (int argc, char **argv) {
 
   tigStore = new MultiAlignStore(tigName, tigVers, tigPart, 0, FALSE, FALSE, FALSE);
 
-  if (tigPart == 0) {
-    if (loadall) {
-      fprintf(stderr, "Loading all reads into memory.\n");
-      gkpStore->gkStore_load(0, 0, GKFRAGMENT_QLT);
-    }
+  if (loadall) {
+    fprintf(stderr, "Loading all reads into memory.\n");
+    gkpStore->gkStore_load(0, 0, GKFRAGMENT_QLT);
   } else {
     gkpStore->gkStore_loadPartition(tigPart);
   }
@@ -459,15 +463,21 @@ main (int argc, char **argv) {
     if ((forceCompute == false) && (exists == true)) {
       //  Already finished unitig consensus.
       if (ma->data.num_frags > 1)
-        fprintf(stderr, "Working on unitig %d (%d unitigs and %d fragments) - already computed, skipped\n",
-                ma->maID, ma->data.num_unitigs, ma->data.num_frags);
+        fprintf(stderr, "Working on unitig %d of length %d (%d unitigs %d fragments) - already computed, skipped\n",
+                ma->maID, GetMultiAlignLength(ma), ma->data.num_unitigs, ma->data.num_frags);
       numSkipped++;
       continue;
     }
 
+    if (GetMultiAlignLength(ma) > maxLen) {
+      fprintf(stderr, "SKIP unitig %d of length %d (%d unitigs %d fragments) - too long, skipped\n",
+              ma->maID, GetMultiAlignLength(ma), ma->data.num_unitigs, ma->data.num_frags);
+      continue;
+    }
+
     if (ma->data.num_frags > 1)
-      fprintf(stderr, "Working on unitig %d (%d unitigs and %d fragments)%s\n",
-              ma->maID, ma->data.num_unitigs, ma->data.num_frags,
+      fprintf(stderr, "Working on unitig %d of length %d (%d unitigs %d fragments)%s\n",
+              ma->maID, GetMultiAlignLength(ma), ma->data.num_unitigs, ma->data.num_frags,
               (exists) ? " - already computed, recomputing" : "");
 
     //  Build a new ma if we're ignoring contains.  We'll need to put back the reads we remove
