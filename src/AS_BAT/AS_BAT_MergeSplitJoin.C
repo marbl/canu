@@ -60,9 +60,10 @@ mergeBubbles_findEnds(UnitigVector &unitigs,
                       ufNode &lFrg,
                       Unitig *target) {
 
-  //  Search for edges.  For a bubble to exist, either the first or last non-contained fragment
-  //  must have an edge to the 'merge' unitig it is a bubble of.  Ideally, both the first and
-  //  last will have edges to the same unitig, but we'll test and allow only a single edge.
+  //  Search for edges.  For a bubble to exist, at least one of the first or last non-contained
+  //  fragment must have an edge to the 'target' unitig (by construction of the inputs to this
+  //  routine).  Ideally, both the first and last will have edges to the same unitig, but we'll test
+  //  and allow only a single edge.
 
   uint32  zIdx = ~(uint32)0;
   uint32  fIdx = zIdx;
@@ -211,7 +212,8 @@ mergeBubbles_checkEnds(UnitigVector &unitigs,
   placeFragUsingOverlaps(unitigs, target, fFrg.ident, placements);
 
 #ifdef LOG_BUBBLE_TESTS
-  writeLog("popBubbles()-- fFrg %u has %u potential placements.\n", fFrg.ident, placements.size());
+  writeLog("popBubbles()-- fFrg %u has %u potential placements in unitig %u.\n",
+           fFrg.ident, placements.size(), target->id());
 #endif
 
   for (uint32 i=0; i<placements.size(); i++) {
@@ -219,35 +221,39 @@ mergeBubbles_checkEnds(UnitigVector &unitigs,
 
     if (placements[i].fCoverage < 0.99) {
 #ifdef LOG_BUBBLE_FAILURE
-      writeLog("popBubbles()-- fFrg %u low coverage %f at %u,%u\n",
-              fFrg.ident,
-              placements[i].fCoverage,
-              placements[i].position.bgn, placements[i].position.end);
+      writeLog("popBubbles()-- fFrg %u low coverage %f at unitig %u %u,%u\n",
+               fFrg.ident,
+               placements[i].fCoverage,
+               placements[i].tigID,
+               placements[i].position.bgn, placements[i].position.end);
 #endif
       continue;
     } else {
 #ifdef LOG_BUBBLE_FAILURE
-      writeLog("popBubbles()-- fFrg %u GOOD coverage %f at %u,%u\n",
-              fFrg.ident,
-              placements[i].fCoverage,
-              placements[i].position.bgn, placements[i].position.end);
+      writeLog("popBubbles()-- fFrg %u GOOD coverage %f at unitig %u %u,%u\n",
+               fFrg.ident,
+               placements[i].fCoverage,
+               placements[i].tigID,
+               placements[i].position.bgn, placements[i].position.end);
 #endif
     }
 
     if (placements[i].errors / placements[i].aligned < fFrgPlacement.errors / fFrgPlacement.aligned) {
 #ifdef LOG_BUBBLE_FAILURE
-      writeLog("popBubbles()-- fFrg %u GOOD identity %f at %u,%u\n",
-              fFrg.ident,
-              placements[i].errors / placements[i].aligned,
-              placements[i].position.bgn, placements[i].position.end);
+      writeLog("popBubbles()-- fFrg %u GOOD identity %f at unitig %u %u,%u\n",
+               fFrg.ident,
+               placements[i].errors / placements[i].aligned,
+               placements[i].tigID,
+               placements[i].position.bgn, placements[i].position.end);
 #endif
       fFrgPlacement = placements[i];
     } else {
 #ifdef LOG_BUBBLE_FAILURE
-      writeLog("popBubbles()-- fFrg %u low identity %f at %u,%u\n",
-              fFrg.ident,
-              placements[i].errors / placements[i].aligned,
-              placements[i].position.bgn, placements[i].position.end);
+      writeLog("popBubbles()-- fFrg %u low identity %f at unitig %u %u,%u\n",
+               fFrg.ident,
+               placements[i].errors / placements[i].aligned,
+               placements[i].tigID,
+               placements[i].position.bgn, placements[i].position.end);
 #endif
     }
   }
@@ -616,12 +622,34 @@ mergeBubbles(UnitigVector &unitigs, Unitig *target, intersectionList *ilist) {
 
       assert(bubble->id() == Unitig::fragIn(isect->invadFrg));
 
+      //  I don't like a number of reads filter - for 50x Illumina, 500 reads is only 1k of unitig,
+      //  but for 10x PacBio, this is over 250k of unitig.
+
+      if ((bubble == NULL) ||
+          (bubble->getLength() > 50000)) {
+        writeLog("popBubbles()-- Skip bubble %u length %u with "F_SIZE_T" frags - edge from %d/%c' to utg %d %d/%c'\n",
+                bubble->id(), bubble->getLength(), bubble->ufpath.size(),
+                isect->invadFrg, isect->invad3p ? '3' : '5',
+                target->id(),
+                isect->isectFrg, isect->isect3p ? '3' : '5');
+        continue;
+      }
+
       if (bubble->id() == target->id())
         //  HEY!  We're not a bubble in ourself!
         continue;
 
       ufNode  fFrg;  //  First fragment in the bubble
       ufNode  lFrg;  //  Last fragment in the bubble
+
+      //  We have no way of deciding if we've tested this bubble unitig already.  Each bubble unitig
+      //  should generate two intersection edges.  If those edges are to the same target unitig, and
+      //  the bubble fails to pop, we'll test the bubble twice.
+      //
+      //  This is kind of by design.  The two intersections could be to two different locations, and
+      //  maybe one will work while the other doesn't.  Though, I think we accept a placement only
+      //  if the two end reads are consistent implying that we'd double test a bubble if the
+      //  placements are different, and that we'd fail both times.
 
       if (mergeBubbles_findEnds(unitigs, bubble, fFrg, lFrg, target) == false)
         continue;
