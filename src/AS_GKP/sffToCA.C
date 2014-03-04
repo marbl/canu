@@ -709,6 +709,21 @@ processRead(sffHeader *h,
   int clf = MAX(MAX(clq, cla), MAX(cln, clp));
   int crf = MIN(MIN(crq, cra), MIN(crn, crp));
 
+  if (clf >= crf) {
+    st.lenTooShort++;
+    st.deletedTooShort++;
+    st.notExaminedForLinker++;  //  because this SFF read isn't even added to the store
+
+    //  Read 'FJTLYIM02PFKBO' of length 651 has bad clear ranges.  clf=MAX(5,5,4,4)  crf=MIN(4,655,655,655)  Read deleted.
+
+    fprintf(logFile, "Read '%s' of length %d has bad clear ranges.  clf=MAX(%d,%d,%d,%d)  crf=MIN(%d,%d,%d,%d)  Read deleted.\n",
+            r->name,
+            r->number_of_bases - h->key_length,
+            clq, cla, cln, clp,
+            crq, cra, crn, crp);
+
+    return(false);
+  }
 
   ////////////////////////////////////////
   //
