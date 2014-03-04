@@ -733,7 +733,8 @@ main(int argc, char **argv) {
   int32      readLen        = 100;  //  Length of read to generate
   int32      numReads       = 0;    //  Number of reads to generate, constant
   int32      numPairs       = 0;    //  Number of pairs to generate, constant (= numReads / 2)
-  double     readCoverage   = 0.0;  //  Number of pairs to generate, based on length of sequence
+  double     readCoverage   = 0.0;  //  Number of pairs to generate, based on length of read
+  double     cloneCoverage  = 0.0;  //  Number of pairs to generate, based on length of clone
 
   bool       seEnable       = false;
 
@@ -779,6 +780,9 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-x") == 0) {
       readCoverage = atof(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-X") == 0) {
+      cloneCoverage = atof(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-em") == 0) {
       readMismatchRate = atof(argv[++arg]);
@@ -855,13 +859,15 @@ main(int argc, char **argv) {
       ((seEnable == false) &&
        (peEnable == false) &&
        (mpEnable == false) &&
-       (ccEnable == false))) {
+       (ccEnable == false)) ||
+      ((seEnable == true) && (cloneCoverage > 0))) {
     fprintf(stderr, "usage: %s -f reference.fasta -o output-prefix -l read-length ....\n", argv[0]);
     fprintf(stderr, "  -f ref.fasta    Use sequences in ref.fasta as the genome.\n");
     fprintf(stderr, "  -o name         Create outputs name.1.fastq and name.2.fastq (and maybe others).\n");
     fprintf(stderr, "  -l len          Create reads of length 'len' bases.\n");
     fprintf(stderr, "  -n n            Create 'n' reads (for -se) or 'n' pairs of reads (for -pe and -mp).\n");
-    fprintf(stderr, "  -x cov          Set 'np' to create reads that sample the genome to 'cov' coverage.\n");
+    fprintf(stderr, "  -x read-cov     Set 'np' to create reads that sample the genome to 'read-cov' read coverage.\n");
+    fprintf(stderr, "  -X clone-cov    Set 'np' to create reads that sample the genome to 'clone-cov' clone coverage.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -em err         Reads will contain fraction mismatch  error 'e' (0.01 == 1%% error).\n");
     fprintf(stderr, "  -ei err         Reads will contain fraction insertion error 'e' (0.01 == 1%% error).\n");
@@ -912,6 +918,8 @@ main(int argc, char **argv) {
       fprintf(stderr, "ERROR:  No output prefix (-o) supplied.\n");
     if ((seEnable == false) && (peEnable == false) && (mpEnable == false) && (ccEnable == false))
       fprintf(stderr, "ERROR:  No type (-se or -pe or -mp) selected.\n");
+    if ((seEnable == true) && (cloneCoverage > 0))
+      fprintf(stderr, "ERROR:  Can't sample clone coverage with single-ended (-se) reads.\n");
 
     exit(1);
   }
@@ -1061,16 +1069,40 @@ main(int argc, char **argv) {
   //  If requested, compute the number of pairs to get a desired X of coverage
   //
 
-  if (readCoverage > 0) {
-    numReads = (int32)floor(readCoverage * (seqLen - numSeq) / readLen);
-    numPairs = numReads / 2;
+  {
+    uint32  cloneSize   = 0;
+    uint32  cloneStdDev = 0;
 
-    if (seEnable)
-      fprintf(stderr, "For %.2f X coverage of a %dbp genome, generate %d %dbp reads.\n",
-              readCoverage, seqLen - numSeq, numReads, readLen);
-    else
-      fprintf(stderr, "For %.2f X coverage of a %dbp genome, generate %d pairs of %dbp reads.\n",
-              readCoverage, seqLen - numSeq, numPairs, readLen);
+    if (peEnable) { cloneSize = peShearSize;  cloneStdDev = peShearStdDev; }
+    if (mpEnable) { cloneSize = mpInsertSize; cloneStdDev = mpInsertStdDev; }
+    if (ccEnable) { cloneSize = ccJunkSize;   cloneStdDev = ccJunkStdDev; }
+
+    if (readCoverage > 0) {
+      numReads = (int32)floor(readCoverage * (seqLen - numSeq) / readLen);
+      numPairs = numReads / 2;
+
+      if (seEnable)
+        fprintf(stderr, "Generate %.2f X read coverage of a %dbp genome with %d %dbp reads.\n",
+                (double)numReads * readLen / seqLen,
+                seqLen - numSeq, numReads, readLen);
+      else
+        fprintf(stderr, "Generate %.2f X read (%.2f X clone) coverage of a %dbp genome with %d pairs of %dbp reads from a clone of %d +- %dbp.\n",
+                (double)numReads * readLen / seqLen,
+                (double)numPairs * cloneSize / seqLen,
+                seqLen - numSeq, numPairs, readLen, cloneSize, cloneStdDev);
+    }
+
+    if (cloneCoverage > 0) {
+      assert(seEnable == false);
+
+      numPairs = (int32)floor(cloneCoverage * (seqLen - numSeq) / cloneSize);
+      numReads = numPairs * 2;
+
+      fprintf(stderr, "Generate %.2f X clone (%.2f X read) coverage of a %dbp genome with %d pairs of %dbp reads from a clone of %d +- %dbp.\n",
+              (double)numPairs * cloneSize / seqLen,
+              (double)numReads * readLen / seqLen,
+              seqLen - numSeq, numPairs, readLen, cloneSize, cloneStdDev);
+    }
   }
 
   //
