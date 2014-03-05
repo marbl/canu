@@ -148,9 +148,9 @@ typedef void* PtrT;
 #define F_F64I      "%*lf"
 
 // Standard typedefs
-#define F_SIZE_T     "%zd"
-#define F_SIZE_TP     "zd"
-#define F_SIZE_TI   "%*zd"
+#define F_SIZE_T     "%zu"
+#define F_SIZE_TP     "zu"
+#define F_SIZE_TI   "%*zu"
 
 #define F_OFF_T     F_S64
 #define F_OFF_TP    F_S64P
