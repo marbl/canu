@@ -3147,6 +3147,7 @@ sub merOverlapper($) {
 
     return if (-d "$wrk/$asm.ovlStore");
     return if (-d "$wrk/$asm.obtStore") && ($isTrim eq "trim");
+    return if (-d "$wrk/$asm.tigStore");
 
     caFailure("mer overlapper detected no fragments", undef) if ($numFrags == 0);
     caFailure("mer overlapper doesn't know if trimming or assembling", undef) if (!defined($isTrim));
@@ -3486,10 +3487,9 @@ sub merOverlapper($) {
 sub createOverlapJobs($) {
     my $isTrim = shift @_;
 
-    if (-d "$wrk/$asm.ovlStore") {
-        stopAfter("meryl");
-    }
-    return if (-d "$wrk/$asm.ovlStore");
+    stopAfter("meryl")  if (-d "$wrk/$asm.ovlStore");
+    return              if (-d "$wrk/$asm.ovlStore");
+    return              if (-d "$wrk/$asm.tigStore");
 
     caFailure("overlapper detected no fragments", undef) if ($numFrags == 0);
     caFailure("overlapper needs to know if trimming or assembling", undef) if (!defined($isTrim));
@@ -3718,13 +3718,11 @@ sub createOverlapJobs($) {
 sub checkOverlapper ($) {
     my $isTrim = shift @_;
 
-    my $outDir = "1-overlapper";
-    my $ovlOpt = "";
+    return  if (-d "$wrk/$asm.tigStore");
+    return  if (($isTrim eq "trim") && (-d "$wrk/0-overlaptrim/$asm.obtStore"));
+    return  if (($isTrim ne "trim") && (-d "$wrk/$asm.ovlStore"));
 
-    if ($isTrim eq "trim") {
-        $outDir = "0-overlaptrim-overlap";
-        $ovlOpt = "-G";
-    }
+    my $outDir = ($isTrim ne "trim") ? "1-overlapper" : "0-overlaptrim-overlap";
 
     my $failedJobs = 0;
     my $failureMessage = "";
@@ -3822,6 +3820,7 @@ sub checkOverlap {
 sub createOverlapStore {
 
     goto alldone if (-d "$wrk/$asm.ovlStore");
+    goto alldone if (-d "$wrk/$asm.tigStore");
 
     if (runCommand($wrk, "find -L $wrk/1-overlapper \\( -name \\*ovb.gz -or -name \\*ovb \\) -print > $wrk/$asm.ovlStore.list")) {
         caFailure("failed to generate a list of all the overlap files", undef);
@@ -3883,6 +3882,7 @@ sub overlapTrim {
     #
     goto alldone if (-e "$wrk/0-overlaptrim/overlaptrim.success");
     goto alldone if (-d "$wrk/$asm.ovlStore");
+    goto alldone if (-d "$wrk/$asm.tigStore");
 
     system("mkdir $wrk/0-overlaptrim")         if (! -d "$wrk/0-overlaptrim");
     system("mkdir $wrk/0-overlaptrim-overlap") if (! -d "$wrk/0-overlaptrim-overlap");
@@ -4134,6 +4134,7 @@ sub overlapCorrection {
 
     return if (-e "$wrk/3-overlapcorrection/$asm.erates.updated");
     return if (-e "$wrk/$asm.ovlStore/corrected");
+    return if (-d "$wrk/$asm.tigStore");
 
     system("mkdir $wrk/3-overlapcorrection") if (! -e "$wrk/3-overlapcorrection");
 
@@ -4821,6 +4822,11 @@ sub postUnitiggerConsensus () {
     my $cmd;
 
     return if (-e "$wrk/5-consensus/consensus.success");
+
+    if (-e "$wrk/$asm.tigStore/seqDB.v005.dat") {
+        print STDERR "Skipping consensus because tigStore version 5 exists at $wrk/$asm.tigStore\n";
+        return;
+    }
 
     system("mkdir $wrk/5-consensus") if (! -d "$wrk/5-consensus");
 
