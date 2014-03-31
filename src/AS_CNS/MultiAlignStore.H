@@ -143,7 +143,12 @@ public:
   int32          getUnitigCoverageStat(int32 maID);
   double         getUnitigMicroHetProb(int32 maID);
   UnitigStatus   getUnitigStatus(int32 maID);
-  UnitigFUR      getUnitigFUR(int32 maID);
+
+  bool           getUnitigSuggestRepeat(int32 maID);
+  bool           getUnitigSuggestUnique(int32 maID);
+  bool           getUnitigForceRepeat(int32 maID);
+  bool           getUnitigForceUnique(int32 maID);
+
   ContigStatus   getContigStatus(int32 maID);
 
   uint32         getNumFrags(int32 maID, bool isUnitig);
@@ -152,7 +157,11 @@ public:
   void           setUnitigCoverageStat(int32 maID, double cs);
   void           setUnitigMicroHetProb(int32 maID, double mp);
   void           setUnitigStatus(int32 maID, UnitigStatus status);
-  void           setUnitigFUR(int32 maID, UnitigFUR fur);
+
+  void           setUnitigSuggestRepeat(int32 maID, bool enable=true);
+  void           setUnitigSuggestUnique(int32 maID, bool enable=true);
+  void           setUnitigForceRepeat(int32 maID, bool enable=true);
+  void           setUnitigForceUnique(int32 maID, bool enable=true);
 
   void           setContigStatus(int32 maID, ContigStatus status);
 
@@ -281,11 +290,35 @@ MultiAlignStore::getUnitigStatus(int32 maID) {
 }
 
 inline
-UnitigFUR
-MultiAlignStore::getUnitigFUR(int32 maID) {
+bool
+MultiAlignStore::getUnitigSuggestRepeat(int32 maID) {
   assert(maID >= 0);
   assert(maID < (int32)utgLen);
-  return(utgRecord[maID].mad.unitig_unique_rept);
+  return(utgRecord[maID].mad.unitig_suggest_repeat);
+}
+
+inline
+bool
+MultiAlignStore::getUnitigSuggestUnique(int32 maID) {
+  assert(maID >= 0);
+  assert(maID < (int32)utgLen);
+  return(utgRecord[maID].mad.unitig_suggest_unique);
+}
+
+inline
+bool
+MultiAlignStore::getUnitigForceRepeat(int32 maID) {
+  assert(maID >= 0);
+  assert(maID < (int32)utgLen);
+  return(utgRecord[maID].mad.unitig_force_repeat);
+}
+
+inline
+bool
+MultiAlignStore::getUnitigForceUnique(int32 maID) {
+  assert(maID >= 0);
+  assert(maID < (int32)utgLen);
+  return(utgRecord[maID].mad.unitig_force_unique);
 }
 
 inline
@@ -342,12 +375,42 @@ MultiAlignStore::setUnitigStatus(int32 maID, UnitigStatus status) {
 
 inline
 void
-MultiAlignStore::setUnitigFUR(int32 maID, UnitigFUR fur) {
+MultiAlignStore::setUnitigSuggestRepeat(int32 maID, bool enable) {
   assert(maID >= 0);
   assert(maID < (int32)utgLen);
-  utgRecord[maID].mad.unitig_unique_rept = fur;
+  utgRecord[maID].mad.unitig_suggest_repeat = enable;
   if (utgCache[maID])
-    utgCache[maID]->data.unitig_unique_rept = fur;
+    utgCache[maID]->data.unitig_suggest_repeat = enable;
+}
+
+inline
+void
+MultiAlignStore::setUnitigSuggestUnique(int32 maID, bool enable) {
+  assert(maID >= 0);
+  assert(maID < (int32)utgLen);
+  utgRecord[maID].mad.unitig_suggest_unique = enable;
+  if (utgCache[maID])
+    utgCache[maID]->data.unitig_suggest_unique = enable;
+}
+
+inline
+void
+MultiAlignStore::setUnitigForceRepeat(int32 maID, bool enable) {
+  assert(maID >= 0);
+  assert(maID < (int32)utgLen);
+  utgRecord[maID].mad.unitig_force_repeat = enable;
+  if (utgCache[maID])
+    utgCache[maID]->data.unitig_force_repeat = enable;
+}
+
+inline
+void
+MultiAlignStore::setUnitigForceUnique(int32 maID, bool enable) {
+  assert(maID >= 0);
+  assert(maID < (int32)utgLen);
+  utgRecord[maID].mad.unitig_force_unique = enable;
+  if (utgCache[maID])
+    utgCache[maID]->data.unitig_force_unique = enable;
 }
 
 inline

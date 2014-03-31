@@ -350,12 +350,6 @@ typedef enum {
   AS_UNASSIGNED = (int)'X'
 } UnitigStatus;
 
-typedef enum {
-  AS_FORCED_NONE    = (int)'X',
-  AS_FORCED_UNIQUE  = (int)'U',
-  AS_FORCED_REPEAT  = (int)'R'
-} UnitigFUR;
-
 /* IMP message */
 
 typedef enum {

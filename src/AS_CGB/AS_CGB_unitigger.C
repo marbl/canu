@@ -132,10 +132,13 @@ output_the_chunks(Tfragment     *frags,
                                                                global_fragment_arrival_rate);
     ma->data.unitig_microhet_prob = 1.0;  //  Default to 100% probability of unique
 
-    ma->data.unitig_status        = AS_UNASSIGNED;
-    ma->data.unitig_unique_rept   = AS_FORCED_NONE;
+    ma->data.unitig_status         = AS_UNASSIGNED;
+    ma->data.unitig_suggest_repeat = false;
+    ma->data.unitig_suggest_unique = false;
+    ma->data.unitig_force_repeat   = false;
+    ma->data.unitig_force_unique   = false;
 
-    ma->data.contig_status        = AS_UNPLACED;
+    ma->data.contig_status         = AS_UNPLACED;
 
     //  Add the fragments
 

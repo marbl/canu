@@ -115,17 +115,49 @@ changeProperties(MultiAlignStore *tigStore,
       }
       tigStore->setUnitigStatus(tid, st);
 
-    } else if (strncmp(op, "unitig_unique_rept", 18) == 0) {
-      UnitigFUR ur = tigStore->getUnitigFUR(tid);
+    } else if (strncmp(op, "unitig_suggest_repeat", 21) == 0) {
+      bool ur = tigStore->getUnitigSuggestRepeat(tid);
       switch (*vp) {
-        case AS_FORCED_NONE:    ur = AS_FORCED_NONE;    break;
-        case AS_FORCED_UNIQUE:  ur = AS_FORCED_UNIQUE;  break;
-        case AS_FORCED_REPEAT:  ur = AS_FORCED_REPEAT;  break;
+        case 'T':  ur = true;    break;
+        case 'F':  ur = false;   break;
         default:
-          fprintf(stderr, "unknown unitig_unique_rept in '%s'\n", editLine);
+          fprintf(stderr, "unknown unitig_suggest_repeat in '%s'\n", editLine);
           break;
       }
-      tigStore->setUnitigFUR(tid, ur);
+      tigStore->setUnitigSuggestRepeat(tid, ur);
+
+    } else if (strncmp(op, "unitig_suggest_unique", 21) == 0) {
+      bool ur = tigStore->getUnitigSuggestUnique(tid);
+      switch (*vp) {
+        case 'T':  ur = true;    break;
+        case 'F':  ur = false;   break;
+        default:
+          fprintf(stderr, "unknown unitig_suggest_unique in '%s'\n", editLine);
+          break;
+      }
+      tigStore->setUnitigSuggestUnique(tid, ur);
+
+    } else if (strncmp(op, "unitig_force_repeat", 21) == 0) {
+      bool ur = tigStore->getUnitigForceRepeat(tid);
+      switch (*vp) {
+        case 'T':  ur = true;    break;
+        case 'F':  ur = false;   break;
+        default:
+          fprintf(stderr, "unknown unitig_force_repeat in '%s'\n", editLine);
+          break;
+      }
+      tigStore->setUnitigForceRepeat(tid, ur);
+
+    } else if (strncmp(op, "unitig_force_unique", 21) == 0) {
+      bool ur = tigStore->getUnitigForceUnique(tid);
+      switch (*vp) {
+        case 'T':  ur = true;    break;
+        case 'F':  ur = false;   break;
+        default:
+          fprintf(stderr, "unknown unitig_force_unique in '%s'\n", editLine);
+          break;
+      }
+      tigStore->setUnitigForceUnique(tid, ur);
 
     } else if (strncmp(op, "contig_status", 13) == 0) {
       ContigStatus  st = tigStore->getContigStatus(tid);
@@ -158,7 +190,10 @@ dumpProperties(MultiAlignStore *tigStore,
   fprintf(stdout, "unitigCoverageStat  %f\n",      ma->data.unitig_coverage_stat);
   fprintf(stdout, "unitigMicrohetProb  %f\n",      ma->data.unitig_microhet_prob);
   fprintf(stdout, "unitigStatus        %c/%d\n",   ma->data.unitig_status, ma->data.unitig_status);
-  fprintf(stdout, "unitigFUR           %c/%d\n",   ma->data.unitig_unique_rept, ma->data.unitig_unique_rept);
+  fprintf(stdout, "unitigSuggestRepeat %c/%d\n",   ma->data.unitig_suggest_repeat, ma->data.unitig_suggest_repeat);
+  fprintf(stdout, "unitigSuggestUnique %c/%d\n",   ma->data.unitig_suggest_unique, ma->data.unitig_suggest_unique);
+  fprintf(stdout, "unitigForceRepeat   %c/%d\n",   ma->data.unitig_force_repeat, ma->data.unitig_force_repeat);
+  fprintf(stdout, "unitigForceUnique   %c/%d\n",   ma->data.unitig_force_unique, ma->data.unitig_force_unique);
   fprintf(stdout, "contigStatus        %c/%d\n",   ma->data.contig_status, ma->data.contig_status);
 
 #if GCCONTENT
@@ -456,8 +491,10 @@ dumpCoverage(MultiAlignStore *tigStore,
     if (errno)
       fprintf(stderr, "Failed to open '%s': %s\n", outName, strerror(errno)), exit(1);
 
-    for (uint32 ii=0; ii<ID.numberOfIntervals(); ii++)
-      fprintf(outFile, "%lu\t%lu\t%u\n", ID.lo(ii), ID.hi(ii), ID.de(ii));
+    for (uint32 ii=0; ii<ID.numberOfIntervals(); ii++) {
+      fprintf(outFile, "%lu\t%u\n", ID.lo(ii),     ID.de(ii));
+      fprintf(outFile, "%lu\t%u\n", ID.hi(ii) - 1, ID.de(ii));
+    }
 
     fclose(outFile);
 
@@ -1128,10 +1165,13 @@ main (int argc, char **argv) {
   if (opType == OPERATION_PROPERTIES) {
     for (uint32 i=0; i<tigStore->numUnitigs(); i++) {
       if (tigStore->isDeleted(i, TRUE) == false) {
-        fprintf(stdout, "unitig_coverage_stat %8u %d\n", i, tigStore->getUnitigCoverageStat(i));
-        fprintf(stdout, "unitig_microhet_prob %8u %f\n", i, tigStore->getUnitigMicroHetProb(i));
-        fprintf(stdout, "unitig_status        %8u %c\n", i, tigStore->getUnitigStatus(i));
-        fprintf(stdout, "unitig_unique_rept   %8u %c\n", i, tigStore->getUnitigFUR(i));
+        fprintf(stdout, "unitig_coverage_stat  %8u %d\n", i, tigStore->getUnitigCoverageStat(i));
+        fprintf(stdout, "unitig_microhet_prob  %8u %f\n", i, tigStore->getUnitigMicroHetProb(i));
+        fprintf(stdout, "unitig_status         %8u %c\n", i, tigStore->getUnitigStatus(i));
+        fprintf(stdout, "unitig_suggest_repeat %8u %c\n", i, tigStore->getUnitigSuggestRepeat(i) ? 'T' : 'F');
+        fprintf(stdout, "unitig_suggest_unique %8u %c\n", i, tigStore->getUnitigSuggestUnique(i) ? 'T' : 'F');
+        fprintf(stdout, "unitig_force_repeat   %8u %c\n", i, tigStore->getUnitigForceRepeat(i)   ? 'T' : 'F');
+        fprintf(stdout, "unitig_force_unique   %8u %c\n", i, tigStore->getUnitigForceUnique(i)   ? 'T' : 'F');
       }
     }
 

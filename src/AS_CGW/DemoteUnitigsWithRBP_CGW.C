@@ -70,13 +70,13 @@ void DemoteUnitigsWithRBP(FILE *stream, GraphCGW_T *graph){
     }
     
     // if the node was force-marked unique and we dont allow demotion, skip it and dont demote 
-    if (ScaffoldGraph->tigStore->getUnitigFUR(node->id) == AS_FORCED_UNIQUE && GlobalData->allowDemoteMarkedUnitigs == FALSE) {
+    if (ScaffoldGraph->tigStore->getUnitigForceUnique(node->id) == true && GlobalData->allowDemoteMarkedUnitigs == FALSE) {
       continue;
     }
     
     /* fprintf(stream, "Unitig %d: branchA %d branchB %d\n", node->id, numAEndConfirmOverlap,
        numBEndConfirmOverlap); */
-    if((ScaffoldGraph->tigStore->getUnitigFUR(node->id) == AS_FORCED_REPEAT) || ((numAEndConfirmOverlap > 1) && (numBEndConfirmOverlap > 1))){
+    if((ScaffoldGraph->tigStore->getUnitigForceRepeat(node->id) == true) || ((numAEndConfirmOverlap > 1) && (numBEndConfirmOverlap > 1))){
       fprintf(stream, "DemoteUnitigsWithRBP(): Demote unitig %d, len=%.0f, #overlaps=(%d,%d)\n", 
 	      node->id,node->bpLength.mean,numAEndConfirmOverlap,numBEndConfirmOverlap);
       node->flags.bits.isUnique = FALSE;

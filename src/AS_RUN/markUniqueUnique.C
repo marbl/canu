@@ -233,8 +233,9 @@ int main (int argc, char *argv[]) {
       }
       
       if (toggled) {
-         tigStore->setUnitigFUR(i, AS_FORCED_UNIQUE);
-         numToggled++;
+        tigStore->setUnitigForceUnique(i, true);
+        tigStore->setUnitigForceRepeat(i, false);
+        numToggled++;
       }      
    }
    

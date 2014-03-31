@@ -261,11 +261,11 @@ typedef struct {
   double          coverage_stat;
   double          microhet_prob;
   UnitigStatus    status;
-  UnitigFUR       unique_rept;
+  char            unique_rept;   //  NOT USED?
   int32           length;
   char            *consensus;
   char            *quality;
-  int32      forced;
+  int32           forced;
   int32           num_frags;
   IntMultiPos    *f_list;
 } IntUnitigMesg;  //  IUM

@@ -709,12 +709,12 @@ int IsDefinitelyUniqueContig(ContigT *contig){
   */
 
   // when the flag says we are unique, we always return true
-  if (ScaffoldGraph->tigStore->getUnitigFUR(ci->id) == AS_FORCED_UNIQUE) {
+  if (ScaffoldGraph->tigStore->getUnitigForceUnique(ci->id) == true) {
     return TRUE;
   }
 
   // when the flag says we are repeat, we always return false
-  if (ScaffoldGraph->tigStore->getUnitigFUR(ci->id) == AS_FORCED_REPEAT) {
+  if (ScaffoldGraph->tigStore->getUnitigForceRepeat(ci->id) == true) {
     return FALSE;
   }
 

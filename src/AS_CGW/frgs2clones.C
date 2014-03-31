@@ -199,14 +199,17 @@ main(int argc, char **argv) {
 
     //  Build the MultiAlign
 
-    ma->maID                      = 1;
-    ma->data.unitig_coverage_stat = 0.0;
-    ma->data.unitig_microhet_prob = 1.0;
+    ma->maID                       = 1;
+    ma->data.unitig_coverage_stat  = 0.0;
+    ma->data.unitig_microhet_prob  = 1.0;
 
-    ma->data.unitig_status        = AS_UNASSIGNED;
-    ma->data.unitig_unique_rept   = AS_FORCED_NONE;
+    ma->data.unitig_status         = AS_UNASSIGNED;
+    ma->data.unitig_suggest_repeat = false;
+    ma->data.unitig_suggest_unique = false;
+    ma->data.unitig_force_repeat   = false;
+    ma->data.unitig_force_unique   = false;
 
-    ma->data.contig_status        = AS_UNPLACED;
+    ma->data.contig_status         = AS_UNPLACED;
 
     //  Add the fragments
 

@@ -1198,12 +1198,12 @@ DemoteSmallSingletonScaffolds(void) {
     numSingletonScaffolds++;
 
     // if we are forced marked unique and we are not allowed to be demoted, continue
-    if (ScaffoldGraph->tigStore->getUnitigFUR(CI->id) == AS_FORCED_UNIQUE &&
+    if (ScaffoldGraph->tigStore->getUnitigForceUnique(CI->id) == true &&
         GlobalData->allowDemoteMarkedUnitigs == FALSE) {
        continue;
     }
 
-    if ((ScaffoldGraph->tigStore->getUnitigFUR(CI->id) != AS_FORCED_REPEAT &&
+    if ((ScaffoldGraph->tigStore->getUnitigForceRepeat(CI->id) == false &&
          ScaffoldGraph->tigStore->getUnitigCoverageStat(CI->id) > GlobalData->cgbDefinitelyUniqueCutoff) ||
          (CI->bpLength.mean > 2000.0))
        continue;

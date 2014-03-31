@@ -40,7 +40,12 @@ typedef struct {
   double                     unitig_microhet_prob;
 
   UnitigStatus               unitig_status;
-  UnitigFUR                  unitig_unique_rept;
+
+  uint32                     unitig_suggest_repeat:1;
+  uint32                     unitig_suggest_unique:1;
+  uint32                     unitig_force_repeat:1;
+  uint32                     unitig_force_unique:1;
+  uint32                     spare:28;
 
   ContigStatus               contig_status;
 

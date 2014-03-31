@@ -367,7 +367,7 @@ outputUnitigs(void) {
       ium.iaccession    = iumId++;
       ium.coverage_stat = 10.0;
       ium.status        = AS_UNIQUE;
-      ium.unique_rept   = AS_FORCED_UNIQUE;
+      ium.unique_rept   = 'U';  //  AS_FORCED_UNIQUE;
       ium.length        = e;
       ium.consensus     = 0L;
       ium.quality       = 0L;

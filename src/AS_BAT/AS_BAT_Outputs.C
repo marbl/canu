@@ -40,14 +40,17 @@ unitigToMA(MultiAlignT *ma,
            uint32       iumiid,
            Unitig      *utg) {
 
-  ma->maID                      = iumiid;
-  ma->data.unitig_coverage_stat = 1.0;  //  Default to just barely unique
-  ma->data.unitig_microhet_prob = 1.0;  //  Default to 100% probability of unique
+  ma->maID                       = iumiid;
+  ma->data.unitig_coverage_stat  = 1.0;  //  Default to just barely unique
+  ma->data.unitig_microhet_prob  = 1.0;  //  Default to 100% probability of unique
 
-  ma->data.unitig_status        = AS_UNASSIGNED;
-  ma->data.unitig_unique_rept   = AS_FORCED_NONE;
+  ma->data.unitig_status         = AS_UNASSIGNED;
+  ma->data.unitig_suggest_repeat = false;
+  ma->data.unitig_suggest_unique = false;
+  ma->data.unitig_force_repeat   = false;
+  ma->data.unitig_force_unique   = false;
 
-  ma->data.contig_status        = AS_UNPLACED;
+  ma->data.contig_status         = AS_UNPLACED;
 
   //  Add the fragments
 

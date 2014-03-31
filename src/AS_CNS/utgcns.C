@@ -105,7 +105,7 @@ stashContains(MultiAlignT *ma,
     int32  hi = MAX(imp->position.bgn, imp->position.end);
 
     posLen[fi].idx  = fi;
-    posLen[fi].len  = hiEnd - loEnd;
+    posLen[fi].len  = hi - lo;
     nBase          += posLen[fi].len;
 
     if (hi <= hiEnd) {

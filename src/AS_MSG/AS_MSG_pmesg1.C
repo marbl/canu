@@ -591,7 +591,7 @@ Read_IUM_Mesg(FILE *fin) {
   mesg.status = (UnitigStatus)GetType("sta:%1[UCNSX]","status", fin);
 
   // flag for handling unitig
-  mesg.unique_rept = (UnitigFUR)GetType("fur:%1[XUR]","unique_rept", fin);
+  mesg.unique_rept = 'X';  //(UnitigFUR)GetType("fur:%1[XUR]","unique_rept", fin);
 
   GET_FIELD(mesg.length,"len:"F_S32,"length field");
   mesg.consensus = GetText("cns:",fin,TRUE);
@@ -1455,7 +1455,7 @@ static void Write_IUM_Mesg(FILE *fout, void *vmesg)
   fprintf(fout,"cov:%.3f\n",mesg->coverage_stat);
   fprintf(fout,"mhp:%.3f\n",mesg->microhet_prob);
   fprintf(fout,"sta:%c\n",mesg->status);
-  fprintf(fout,"fur:%c\n",mesg->unique_rept);
+  fprintf(fout,"fur:%c\n", 'X');  //  mesg->unique_rept
   fprintf(fout,"len:"F_S32"\n",mesg->length);
   PutText(fout,"cns:",mesg->consensus,TRUE);
   PutText(fout,"qlt:",mesg->quality,TRUE);

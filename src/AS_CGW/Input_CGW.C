@@ -40,45 +40,6 @@ static char *rcsid = "$Id$";
 #include "Input_CGW.H"
 
 
-#define CGW_MIN_READS_IN_UNIQUE  2
-
-// Due to the FBAC fragments, we get some pathologically short U-Unitigs
-// Set the following threshhold to eliminate the really short ones
-//
-#define CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH 1000
-
-
-//  For each unitig, write logging on the repeat/unique decision.
-#undef LOG_REPEAT_UNIQUE_LABELING
-
-
-//  Stats on repeat labeling of input unitigs.
-//
-class ruLabelStat {
-public:
-  ruLabelStat() {
-    num = 0;
-    len = 0;
-  };
-
-  void     operator+=(uint64 len_) {
-    num++;
-    len += len_;
-  };
-
-  uint32   num;
-  uint64   len;
-};
-
-ruLabelStat  repeat_LowReads;
-ruLabelStat  repeat_LowCovStat;
-ruLabelStat  repeat_Short;
-ruLabelStat  repeat_MicroHet;
-
-ruLabelStat  repeat_IsUnique;
-ruLabelStat  repeat_IsRepeat;
-
-
 
 static
 void
@@ -121,101 +82,17 @@ ProcessInputUnitig(MultiAlignT *uma) {
   CI.offsetAEnd.variance                 = 0.0;
   CI.offsetBEnd                          = CI.bpLength;
 
-  int  isUnique     = TRUE;
+  //  The unitig is repeat if we 'suggest' it so (and we don't force it unique), or if it is forced
+  //  repeat (regardless of if it is forced unique).
 
-
-  //fprintf(stderr, "unitig %d "F_SIZE_T" reads %d length\n",
-  //        uma->maID, GetNumIntMultiPoss(uma->f_list), length);
-
-
-  if (GetNumIntMultiPoss(uma->f_list) < CGW_MIN_READS_IN_UNIQUE) {
-#ifdef LOG_REPEAT_UNIQUE_LABELING
-    fprintf(stderr, "unitig %d not unique -- "F_SIZE_T" reads, need at least %d\n",
-             uma->maID, GetNumIntMultiPoss(uma->f_list), CGW_MIN_READS_IN_UNIQUE);
-#endif
-    repeat_LowReads += length;
-    isUnique = FALSE;
-  }
-
-  if (ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID) < GlobalData->cgbUniqueCutoff) {
-#ifdef LOG_REPEAT_UNIQUE_LABELING
-    fprintf(stderr, "unitig %d not unique -- coverage stat %d, needs to be at least %d\n",
-            uma->maID, ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID), GlobalData->cgbUniqueCutoff);
-#endif
-    repeat_LowCovStat += length;
-    isUnique = FALSE;
-  }
-
-#ifdef SHORT_HIGH_ASTAT_ARE_UNIQUE
-  //  This is an attempt to not blindly call all short unitigs as non-unique.  It didn't work so
-  //  well in initial limited testing.  The threshold is arbitrary; older versions used
-  //  cgbDefinitelyUniqueCutoff.
-   if ((ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID) < GlobalData->cgbUniqueCutoff * 10) &&
-      (length < CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH)) {
-#ifdef LOG_REPEAT_UNIQUE_LABELING
-    fprintf(stderr, "unitig %d not unique -- length %d too short, need to be at least %d AND coverage stat %d must be larger than %d\n",
-            uma->maID, length, CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH,
-            ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID), GlobalData->cgbUniqueCutoff * 10);
-#endif
-    repeat_Short += length;
-    isUnique = FALSE;
-  }
-#else
-  if (length < CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH) {
-#ifdef LOG_REPEAT_UNIQUE_LABELING
-    fprintf(stderr, "unitig %d not unique -- length %d too short, need to be at least %d\n",
-            uma->maID, length, CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH);
-#endif
-    repeat_Short += length;
-    isUnique = FALSE;
-  }
-#endif
-
-  //  MicroHet probability is actually the probability of the sequence being UNIQUE, based on
-  //  microhet considerations.  Falling below threshhold makes something a repeat.
-  //  Note that this is off by default (see options -e, -i)
-  //  Defaults  cgbMicrohetProb        = 1.0 e-5
-  //            cgbApplyMicrohetCutoff = -1
-  if ((ScaffoldGraph->tigStore->getUnitigMicroHetProb(uma->maID) < GlobalData->cgbMicrohetProb) &&
-      (ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID) < GlobalData->cgbApplyMicrohetCutoff)) {
-#ifdef LOG_REPEAT_UNIQUE_LABELING
-    fprintf(stderr, "unitig %d not unique -- low microhetprob %f (< %f) and low coverage stat %d (< %d)\n",
-            uma->maID,
-            ScaffoldGraph->tigStore->getUnitigMicroHetProb(uma->maID), GlobalData->cgbMicrohetProb,
-            ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID), GlobalData->cgbApplyMicrohetCutoff);
-#endif
-    repeat_MicroHet += length;
-    isUnique = FALSE;
-  }
-
-  // allow flag to overwrite what the default behavior for a chunk and force it to be unique or repeat
-
-  if (ScaffoldGraph->tigStore->getUnitigFUR(CI.id) == AS_FORCED_UNIQUE) {
-#ifdef LOG_REPEAT_UNIQUE_LABELING
-    fprintf(stderr, "unitig %d forced unique\n",
-            uma->maID);
-#endif
-    isUnique = TRUE;
-  }
-
-  if (ScaffoldGraph->tigStore->getUnitigFUR(CI.id) == AS_FORCED_REPEAT) {
-#ifdef LOG_REPEAT_UNIQUE_LABELING
-    fprintf(stderr, "unitig %d forced repeat\n",
-            uma->maID);
-#endif
-    isUnique = FALSE;
-  }
-
-  if (isUnique) {
-    CI.flags.bits.isUnique = 1;
-    CI.type                = DISCRIMINATORUNIQUECHUNK_CGW;
-
-    repeat_IsUnique += length;
-  } else {
+  if (((ScaffoldGraph->tigStore->getUnitigSuggestRepeat(CI.id) == true) &&
+       (ScaffoldGraph->tigStore->getUnitigForceUnique(CI.id) == false)) ||
+      ((ScaffoldGraph->tigStore->getUnitigForceRepeat(CI.id) == true))) {
     CI.flags.bits.isUnique = 0;
     CI.type                = UNRESOLVEDCHUNK_CGW;
-
-    repeat_IsRepeat += length;
+  } else {
+    CI.flags.bits.isUnique = 1;
+    CI.type                = DISCRIMINATORUNIQUECHUNK_CGW;
   }
 
   CI.flags.bits.smoothSeenAlready = FALSE;
@@ -523,7 +400,7 @@ ProcessInput(int optind, int argc, char *argv[]){
 
   fprintf(stderr, "Checking sanity of loaded fragments.\n");
  
-  uint32  numErrors = 0;
+  uint32  numErrors   = 0;
 
   for (int32 i=1, s=GetNumCIFragTs(ScaffoldGraph->CIFrags); i<s; i++) {
     CIFragT     *cifrag = GetCIFragT(ScaffoldGraph->CIFrags, i);
@@ -537,21 +414,16 @@ ProcessInput(int optind, int argc, char *argv[]){
 
     if ((cifrag->cid == NULLINDEX) || (cifrag->CIid == NULLINDEX)) {
       fprintf(stderr, "ERROR:  Frag %d has null cid or CIid.  Fragment is not in an input unitig!\n", i);
+      
+      cifrag->flags.bits.isDeleted = 1;
       numErrors++;
     }
   }
 
-  fprintf(stderr, "Processed %d unitigs with %d fragments.\n", numUTG, numFRG);
-  fprintf(stderr, "  unique:        "F_U32" unitigs with total length "F_U64"\n", repeat_IsUnique.num,   repeat_IsUnique.len);
-  fprintf(stderr, "  repeat:        "F_U32" unitigs with total length "F_U64"\n", repeat_IsRepeat.num,   repeat_IsRepeat.len);
-  fprintf(stderr, "  few reads:     "F_U32" unitigs with total length "F_U64"\n", repeat_LowReads.num,   repeat_LowReads.len);
-  fprintf(stderr, "  low cov stat:  "F_U32" unitigs with total length "F_U64"\n", repeat_LowCovStat.num, repeat_LowCovStat.len);
-  fprintf(stderr, "  too short:     "F_U32" unitigs with total length "F_U64"\n", repeat_Short.num,      repeat_Short.len);
-  fprintf(stderr, "  microhet:      "F_U32" unitigs with total length "F_U64"\n", repeat_MicroHet.num,   repeat_MicroHet.len);
 
   if (numErrors > 0)
     fprintf(stderr, "ERROR:  %u fragments are not in unitigs.\n", numErrors);
-  assert(numErrors == 0);
+  assert(numErrors == 0);  //  Can be safely disabled if you're OK losing these reads.
 
   ScaffoldGraph->numLiveCIs     = GetNumGraphNodes(ScaffoldGraph->CIGraph);
   ScaffoldGraph->numOriginalCIs = GetNumGraphNodes(ScaffoldGraph->CIGraph);

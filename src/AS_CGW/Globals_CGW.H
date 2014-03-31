@@ -58,8 +58,6 @@ public:
 
   int    cgbUniqueCutoff;
   int    cgbDefinitelyUniqueCutoff;
-  int    cgbApplyMicrohetCutoff;
-  double cgbMicrohetProb;
 
   int    allowDemoteMarkedUnitigs;
 

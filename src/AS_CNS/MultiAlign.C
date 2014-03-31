@@ -46,7 +46,11 @@ CreateMultiAlignT(void) {
   ma->data.unitig_microhet_prob  = 1.0;
 
   ma->data.unitig_status         = AS_UNASSIGNED;
-  ma->data.unitig_unique_rept    = AS_FORCED_NONE;
+
+  ma->data.unitig_suggest_repeat = false;
+  ma->data.unitig_suggest_unique = false;
+  ma->data.unitig_force_repeat   = false;
+  ma->data.unitig_force_unique   = false;
 
   ma->data.contig_status         = AS_UNPLACED;
 
@@ -79,7 +83,11 @@ CreateEmptyMultiAlignT(void) {
   ma->data.unitig_microhet_prob  = 1.0;
 
   ma->data.unitig_status         = AS_UNASSIGNED;
-  ma->data.unitig_unique_rept    = AS_FORCED_NONE;
+
+  ma->data.unitig_suggest_repeat = false;
+  ma->data.unitig_suggest_unique = false;
+  ma->data.unitig_force_repeat   = false;
+  ma->data.unitig_force_unique   = false;
 
   ma->data.contig_status         = AS_UNPLACED;
 
@@ -111,7 +119,11 @@ ClearMultiAlignT(MultiAlignT *ma) {
   ma->data.unitig_microhet_prob  = 1.0;
 
   ma->data.unitig_status         = AS_UNASSIGNED;
-  ma->data.unitig_unique_rept    = AS_FORCED_NONE;
+
+  ma->data.unitig_suggest_repeat = false;
+  ma->data.unitig_suggest_unique = false;
+  ma->data.unitig_force_repeat   = false;
+  ma->data.unitig_force_unique   = false;
 
   ma->data.contig_status         = AS_UNPLACED;
 
@@ -687,13 +699,16 @@ DumpMultiAlignForHuman(FILE *out, MultiAlignT *ma, bool isUnitig) {
   fprintf(out, "len %d\n", (cns) ? (int)strlen(cns) : 0);
   fprintf(out, "cns %s\n", (cns) ? cns : "");
   fprintf(out, "qlt %s\n", (qlt) ? qlt : "");
-  fprintf(out, "data.unitig_coverage_stat %f\n", ma->data.unitig_coverage_stat);
-  fprintf(out, "data.unitig_microhet_prob %f\n", ma->data.unitig_microhet_prob);
-  fprintf(out, "data.unitig_status        %c\n", ma->data.unitig_status);
-  fprintf(out, "data.unitig_unique_rept   %c\n", ma->data.unitig_unique_rept);
-  fprintf(out, "data.contig_status        %c\n", ma->data.contig_status);
-  fprintf(out, "data.num_frags            %u\n", ma->data.num_frags);
-  fprintf(out, "data.num_unitigs          %u\n", ma->data.num_unitigs);
+  fprintf(out, "data.unitig_coverage_stat  %f\n", ma->data.unitig_coverage_stat);
+  fprintf(out, "data.unitig_microhet_prob  %f\n", ma->data.unitig_microhet_prob);
+  fprintf(out, "data.unitig_status         %c\n", ma->data.unitig_status);
+  fprintf(out, "data.unitig_suggest_repeat %c\n", ma->data.unitig_suggest_repeat ? 'T' : 'F');
+  fprintf(out, "data.unitig_suggest_unique %c\n", ma->data.unitig_suggest_unique ? 'T' : 'F');
+  fprintf(out, "data.unitig_force_repeat   %c\n", ma->data.unitig_force_repeat   ? 'T' : 'F');
+  fprintf(out, "data.unitig_force_unique   %c\n", ma->data.unitig_force_unique   ? 'T' : 'F');
+  fprintf(out, "data.contig_status         %c\n", ma->data.contig_status);
+  fprintf(out, "data.num_frags             %u\n", ma->data.num_frags);
+  fprintf(out, "data.num_unitigs           %u\n", ma->data.num_unitigs);
 
   for (uint32 i=0; i<GetNumIntMultiPoss(ma->f_list); i++) {
     IntMultiPos *imp = GetIntMultiPos(ma->f_list, i);
@@ -872,29 +887,77 @@ LoadMultiAlignFromHuman(MultiAlignT *ma, bool &isUnitig, FILE *in) {
     exit(1);
   }
 
-  if (LoadMultiAlignFromHumanGetLine(in, LINElen, LINEmax, LINE, W) == 0)
-    fprintf(stderr, "MultiAlign %d not loaded:  Expecting 'data.unitig_unique_rept' line, got empty line.\n", ma->maID), exit(1);
 
-  if (strcmp(W[0], "data.unitig_unique_rept") == 0) {
+
+  if (LoadMultiAlignFromHumanGetLine(in, LINElen, LINEmax, LINE, W) == 0)
+    fprintf(stderr, "MultiAlign %d not loaded:  Expecting 'data.unitig_suggest_repeat' line, got empty line.\n", ma->maID), exit(1);
+
+  if (strcmp(W[0], "data.unitig_suggest_repeat") == 0) {
     switch (W[1][0]) {
-      case AS_FORCED_NONE:
-        ma->data.unitig_unique_rept = AS_FORCED_NONE;
-        break;
-      case AS_FORCED_UNIQUE:
-        ma->data.unitig_unique_rept = AS_FORCED_UNIQUE;
-        break;
-      case AS_FORCED_REPEAT:
-        ma->data.unitig_unique_rept = AS_FORCED_REPEAT;
-        break;
+      case 'T': ma->data.unitig_suggest_repeat = true; break;
+      case 'F': ma->data.unitig_suggest_repeat = false; break;
       default:
-        fprintf(stderr, "MultiAlign %d not loaded:  Unknown data.unitig_unique_rept in '%s'\n", ma->maID, LINE);
+        fprintf(stderr, "MultiAlign %d not loaded:  Unknown data.unitig_suggest_repeat in '%s'\n", ma->maID, LINE);
         exit(1);
         break;
     }
   } else {
-    fprintf(stderr, "MultiAlign %d not loaded:  Unknown data.unitig_unique_rept in '%s'\n", ma->maID, LINE);
+    fprintf(stderr, "MultiAlign %d not loaded:  Unknown data.unitig_suggest_repeat in '%s'\n", ma->maID, LINE);
     exit(1);
   }
+
+  if (LoadMultiAlignFromHumanGetLine(in, LINElen, LINEmax, LINE, W) == 0)
+    fprintf(stderr, "MultiAlign %d not loaded:  Expecting 'data.unitig_suggest_unique' line, got empty line.\n", ma->maID), exit(1);
+
+  if (strcmp(W[0], "data.unitig_suggest_unique") == 0) {
+    switch (W[1][0]) {
+      case 'T': ma->data.unitig_suggest_unique = true; break;
+      case 'F': ma->data.unitig_suggest_unique = false; break;
+      default:
+        fprintf(stderr, "MultiAlign %d not loaded:  Unknown data.unitig_suggest_unique in '%s'\n", ma->maID, LINE);
+        exit(1);
+        break;
+    }
+  } else {
+    fprintf(stderr, "MultiAlign %d not loaded:  Unknown data.unitig_suggest_unique in '%s'\n", ma->maID, LINE);
+    exit(1);
+  }
+
+  if (LoadMultiAlignFromHumanGetLine(in, LINElen, LINEmax, LINE, W) == 0)
+    fprintf(stderr, "MultiAlign %d not loaded:  Expecting 'data.unitig_force_repeat' line, got empty line.\n", ma->maID), exit(1);
+
+  if (strcmp(W[0], "data.unitig_force_repeat") == 0) {
+    switch (W[1][0]) {
+      case 'T': ma->data.unitig_force_repeat = true; break;
+      case 'F': ma->data.unitig_force_repeat = false; break;
+      default:
+        fprintf(stderr, "MultiAlign %d not loaded:  Unknown data.unitig_force_repeat in '%s'\n", ma->maID, LINE);
+        exit(1);
+        break;
+    }
+  } else {
+    fprintf(stderr, "MultiAlign %d not loaded:  Unknown data.unitig_force_repeat in '%s'\n", ma->maID, LINE);
+    exit(1);
+  }
+
+  if (LoadMultiAlignFromHumanGetLine(in, LINElen, LINEmax, LINE, W) == 0)
+    fprintf(stderr, "MultiAlign %d not loaded:  Expecting 'data.unitig_force_unique' line, got empty line.\n", ma->maID), exit(1);
+
+  if (strcmp(W[0], "data.unitig_force_unique") == 0) {
+    switch (W[1][0]) {
+      case 'T': ma->data.unitig_force_unique = true; break;
+      case 'F': ma->data.unitig_force_unique = false; break;
+      default:
+        fprintf(stderr, "MultiAlign %d not loaded:  Unknown data.unitig_force_unique in '%s'\n", ma->maID, LINE);
+        exit(1);
+        break;
+    }
+  } else {
+    fprintf(stderr, "MultiAlign %d not loaded:  Unknown data.unitig_force_unique in '%s'\n", ma->maID, LINE);
+    exit(1);
+  }
+
+
 
   if (LoadMultiAlignFromHumanGetLine(in, LINElen, LINEmax, LINE, W) == 0)
     fprintf(stderr, "MultiAlign %d not loaded:  Expecting 'data.contig_status' line, got empty line.\n", ma->maID), exit(1);

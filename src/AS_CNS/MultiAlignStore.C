@@ -358,7 +358,6 @@ void
 MultiAlignStore::insertMultiAlign(MultiAlignT *ma, bool isUnitig, bool keepInCache) {
 
   assert(ma->data.unitig_status      != 0);
-  assert(ma->data.unitig_unique_rept != 0);
   assert(ma->data.contig_status      != 0);
 
   //  Check that the components do not exceed the bound.  This is an inlined version of a singe test

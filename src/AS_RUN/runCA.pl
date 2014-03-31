@@ -622,6 +622,29 @@ sub setDefaults () {
     $global{"doUnitigSplitting"}           = 1;
     $synops{"doUnitigSplitting"}           = "Split unitigs based on low coverage and high bad mate evidence";
 
+    #####  Unitig Repeat/Unique Options (formerly in scaffolder)
+
+    $global{"astatLowBound"}               = 1;
+    $synops{"astatLowBound"}               = "EXPERT!";
+
+    $global{"astatHighBound"}              = 5;
+    $synops{"astatHighBound"}              = "EXPERT!";
+
+    $global{"maxSingleReadSpan"}           = undef;
+    $synops{"maxSingleReadSpan"}           = "Unitigs with a single read spanning more than this fraction of the unitig are never labeled unique";
+
+    $global{"lowCoverageDepth"}            = undef;
+    $synops{"lowCoverageDepth"}            = "See lowCoverageAllowed";
+
+    $global{"lowCoverageAllowed"}          = undef;
+    $synops{"lowCoverageAllowed"}          = "Unitigs with more than this fraction lowCoverageDepth bases are never labeled unique";
+
+    $global{"minReadsUnique"}              = undef;
+    $synops{"minReadsUnique"}              = "Unitigs with fewer reads that this are never labeled unique";
+
+    $global{"maxRepeatLength"}             = undef;
+    $synops{"maxRepeatLength"}             = "Unitigs longer than this are always labeled unique";
+
     #####  Scaffolder Options
 
     $global{"cgwPurgeCheckpoints"}         = 1;
@@ -638,12 +661,6 @@ sub setDefaults () {
 
     $global{"cgwReloadMates"}              = 0;
     $synops{"cgwReloadMates"}              = "Load new mate pairs from gkpStore after ckp is loaded (EXPERIMENTAL)";
-
-    $global{"astatLowBound"}               = 1;
-    $synops{"astatLowBound"}               = "EXPERT!";
-
-    $global{"astatHighBound"}              = 5;
-    $synops{"astatHighBound"}              = "EXPERT!";
 
     $global{"stoneLevel"}                  = 2;
     $synops{"stoneLevel"}                  = "EXPERT!";
@@ -5027,6 +5044,40 @@ sub postUnitiggerConsensus () {
 
         if (-d "$wrk/7-0-CGW") {
             caFailure("Unitig coverage stat updated, but there is a scaffolding already started.  Remove old scaffold directories to proceed.", "");
+        }
+    }
+
+    if (! -e "$wrk/5-consensus-coverage-stat/markRepeatUnique.err") {
+        my $astatLow       = getGlobal("astatLowBound");
+        my $astatHigh      = getGlobal("astatHighBound");
+
+        my $maxSingleSpan  = getGlobal("maxSingleReadSpan");
+        my $lowCovDepth    = getGlobal("lowCoverageDepth");
+        my $lowCovAllowed  = getGlobal("lowCoverageAllowed");
+        my $minReadsUnique = getGlobal("minReadsUnique");
+        my $maxRepeatLen   = getGlobal("maxRepeatLength");
+
+        system("mkdir $wrk/5-consensus-coverage-stat") if (! -d "$wrk/5-consensus-coverage-stat");
+
+        $cmd  = "$bin/markRepeatUnique \\\n";
+        $cmd .= " -g $wrk/$asm.gkpStore \\\n";
+        $cmd .= " -t $wrk/$asm.tigStore 5 \\\n";
+        $cmd .= " -j $astatLow \\\n";
+        $cmd .= " -k $astatHigh \\\n";
+        $cmd .= " -span   $maxSingleSpan \\\n"              if (defined($maxSingleSpan));
+        $cmd .= " -lowcov $lowCovDepth $lowCovAllowed \\\n" if (defined($lowCovAllowed));
+        $cmd .= " -reads  $minReadsUnique \\\n"             if (defined($minReadsUnique));
+        $cmd .= " -length $maxRepeatLen \\\n"               if (defined($maxRepeatLen));
+        $cmd .= " -o $wrk/5-consensus-coverage-stat/$asm.markRepeatUnique \\\n";
+        $cmd .= "> $wrk/5-consensus-coverage-stat/markRepeatUnique.err 2>&1";
+
+        if (runCommand("$wrk/5-consensus-coverage-stat", $cmd)) {
+            rename "$wrk/5-consensus-coverage-stat/markRepeatUnique.err", "$wrk/5-consensus-coverage-stat/markRepeatUnique.err.FAILED";
+            caFailure("Unitig repeat/unique marking failed", "$wrk/5-consensus-coverage-stat/markRepeatUnique.err.FAILED");
+        }
+
+        if (-d "$wrk/7-0-CGW") {
+            caFailure("Unitig repeat/unique markings updated, but there is a scaffolding already started.  Remove old scaffold directories to proceed.", "");
         }
     }
 

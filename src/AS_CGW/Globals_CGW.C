@@ -51,8 +51,6 @@ Globals_CGW::Globals_CGW() {
 
   cgbUniqueCutoff                         = CGB_UNIQUE_CUTOFF;
   cgbDefinitelyUniqueCutoff               = CGB_UNIQUE_CUTOFF;
-  cgbApplyMicrohetCutoff                  = -1;         // This basically turns it off, unless enabled
-  cgbMicrohetProb                         = 1.e-05;     // scores less than this are considered repeats
 
   allowDemoteMarkedUnitigs                = TRUE;       // allow toggled unitigs to be demoted to be repeat if they were marked unique
 

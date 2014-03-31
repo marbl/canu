@@ -189,9 +189,6 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-E") == 0) {
       GlobalData->outputOverlapOnlyContigEdges = 1;
 
-    } else if (strcmp(argv[arg], "-e") == 0) {
-      GlobalData->cgbMicrohetProb = atof(argv[++arg]);
-
     } else if (strcmp(argv[arg], "-F") == 0) {
       GlobalData->allowDemoteMarkedUnitigs = FALSE;
 
@@ -209,9 +206,6 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-I") == 0) {
       GlobalData->ignoreChaffUnitigs = 1;
-
-    } else if (strcmp(argv[arg], "-i") == 0) {
-      GlobalData->cgbApplyMicrohetCutoff = atof(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-j") == 0) {
       GlobalData->cgbUniqueCutoff = atof(argv[++arg]);

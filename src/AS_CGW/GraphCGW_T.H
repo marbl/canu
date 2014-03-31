@@ -267,8 +267,6 @@ typedef enum {
   SCRATCH_SCAFFOLD    // a temporary scaffold
 } ChunkInstanceType;
 
-typedef UnitigFUR ChunkFUR;
-
 
 /* This enum is used to encode the presence/absence of tandem repeat overlaps
    on the end of the ChunkInstance (only meaningful if isCI = TRUE)
