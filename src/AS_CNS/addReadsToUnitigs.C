@@ -86,10 +86,6 @@ main(int argc, char **argv) {
 
   bool   showResult = false;
 
-  bool   ignoreContains = false;
-  double ignoreContainT = 0.75;
-
-  bool   inplace = false;
   bool   loadall = false;
 
   CNS_Options options = { CNS_OPTIONS_SPLIT_ALLELES_DEFAULT,
@@ -120,7 +116,8 @@ main(int argc, char **argv) {
         fprintf(stderr, "invalid tigStore version (-t store version) '-t %s %s'.\n", argv[arg-1], argv[arg]), exit(1);
 
     } else if (strcmp(argv[arg], "-m") == 0) {
-      alignMapNames.push_back(argv[++arg]);
+      while (AS_UTL_fileExists(argv[arg+1], false, false) == true)
+        alignMapNames.push_back(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-r") == 0) {
       doConsensus = true;
@@ -133,13 +130,6 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-n") == 0) {
       doModify = false;
-
-    } else if (strcmp(argv[arg], "-nocontains") == 0) {
-      ignoreContains = true;
-      ignoreContainT = atof(argv[++arg]);
-
-    } else if (strcmp(argv[arg], "-inplace") == 0) {
-      inplace = true;
 
     } else if (strcmp(argv[arg], "-loadall") == 0) {
       loadall = true;
@@ -157,6 +147,16 @@ main(int argc, char **argv) {
   if (alignMapNames.size() == 0)
     err++;
   if (err) {
+    fprintf(stderr, "usage: %s -g gkpStore -t tigStore version -m coords\n", argv[0]);
+    fprintf(stderr, "  -g gkpStore           gatekeeper store\n");
+    fprintf(stderr, "  -t tigStore version   tigStore and version to modify\n");
+    fprintf(stderr, "  -m map-file           input map coords\n");
+    fprintf(stderr, "  -r                    rebuild consensus, including the new reads\n");
+    fprintf(stderr, "  -v                    consensus: show result\n");
+    fprintf(stderr, "  -V                    consensus: verbose\n");
+    fprintf(stderr, "  -n                    do all the work, but discard the result\n");
+    fprintf(stderr, "  -loadall              load all reads in gkpStore into memory (faster consensus)\n");
+
     exit(1);
   }
 
@@ -165,6 +165,7 @@ main(int argc, char **argv) {
   //  into correct IIDs.  We assume that:
   //    Reads were dumped with -dumpfasta and have names ">UID,IID"
   //    Unitigs were dumped with tigStore -d consensus and have names "utgIID"
+  //    Alignments are in the convertToExtent -extended format
   //
 
   uint32  totAligns = 0;
@@ -189,20 +190,26 @@ main(int argc, char **argv) {
     while (!feof(M)) {
       numAligns++;
 
+      uint32  cF = 1;
+
       for (uint32 xx=0; !isspace(L[xx]); xx++)
-        if (L[xx] == ',')
+        if (L[xx] == ',') {
           L[xx] = ' ';
+          cF = 0;
+        }
 
       splitToWords S(L);
       readMap      rm;
 
       rm.rIID = S(1);
-      rm.rFWD = (S(5) < S(6));
+      rm.rFWD = (S(5-cF) < S(6-cF));
       rm.rCNT = 1;
 
-      rm.tIID = atoi(S[7] + 3);
-      rm.tBGN = S(9);
-      rm.tEND = S(10);
+      rm.tIID = atoi(S[7-cF] + 3);
+      rm.tBGN = S(9-cF);
+      rm.tEND = S(10-cF);
+
+      //fprintf(stderr, "%d %d %d -- %d %d %d\n", rm.rIID, rm.rFWD, rm.rCNT, rm.tIID, rm.tBGN, rm.tEND);
 
       if (RM.size() < rm.rIID)
         RM.resize(2 * rm.rIID);
@@ -237,6 +244,8 @@ main(int argc, char **argv) {
 
   fprintf(stderr, "Processing mate pairs, updating gkpStore.\n");
 
+  uint32   unpaired    = 0;
+  uint32   multiple    = 0;
   uint32   pairsToSame = 0;
   uint32   pairsToDiff = 0;
 
@@ -258,11 +267,24 @@ main(int argc, char **argv) {
       //  No mate, pacbio read?
       continue;
 
+    if (mm < ff)
+      continue;
+
     gkpStore->gkStore_getFragment(mm, &mate, GKFRAGMENT_INF);
 
-    if ((RM[ff].rCNT != 1) ||
-        (RM[mm].rCNT != 1)) {
-      //  One or both reads has too few or too many mappings.  Don't use the pair.
+    if ((RM[ff].rCNT == 0) ||
+        (RM[mm].rCNT == 0)) {
+      //  One or both reads has too few mappings.
+      unpaired++;
+      RM[ff].good = false;
+      RM[mm].good = false;
+      continue;
+    }
+
+    if ((RM[ff].rCNT > 1) ||
+        (RM[mm].rCNT > 1)) {
+      //  One or both reads has too many mappings.
+      multiple++;
       RM[ff].good = false;
       RM[mm].good = false;
       continue;
@@ -285,11 +307,13 @@ main(int argc, char **argv) {
 
   delete gkpStore;
 
+  fprintf(stderr, "Will NOT add %u pairs - one read failed to map.\n", unpaired);
+  fprintf(stderr, "Will NOT add %u pairs - multiple mappings.\n", multiple);
   fprintf(stderr, "Will add %u pairs in the same unitig\n", pairsToSame);
   fprintf(stderr, "Will add %u pairs in different unitigs\n", pairsToDiff);
 
   //
-  //  Open stores.  gkpStore cannot be opened fr writing, because then we can't loadall.
+  //  Open stores.  gkpStore cannot be opened for writing, because then we can't loadall.
   //
 
   gkpStore = new gkStore(gkpName, FALSE, FALSE);  //  last arg - FALSE - not writable
@@ -322,7 +346,7 @@ main(int argc, char **argv) {
 
     GetMultiAlignUngapToGap(ma, ungapToGap);
 
-    fprintf(stderr, "Loaded UTG %u offset size %lu\n", ma->maID, ungapToGap.size());
+    //fprintf(stderr, "Loaded UTG %u offset size %lu\n", ma->maID, ungapToGap.size());
 
     //for (uint32 xx=0; xx<ungapToGap.size(); xx++)
     //  fprintf(stderr, "ungap %u -> gap %u\n", xx, ungapToGap[xx]);
@@ -339,7 +363,7 @@ main(int argc, char **argv) {
 
       readsAdded++;
 
-      fprintf(stderr, "bb=%u ee=%u ADD frag %u to unitig %u at %u,%u (from %u,%u)\n",
+      fprintf(stderr, "bb=%u ee=%u ADD frag %u to unitig %u at %u,%u (from ungapped %u,%u)\n",
               bb, ee,
               RM[ee].rIID, RM[ee].tIID, bgn, end, RM[ee].tBGN, RM[ee].tEND);
 
