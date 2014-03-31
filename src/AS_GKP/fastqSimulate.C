@@ -256,9 +256,10 @@ makeSE(char   *seq,
     if (drand48() < pRevComp)
       reverseComplement(s1, q1, readLen);
 
-    //  Output sequence, with a descriptive ID
+    //  Output sequence, with a descriptive ID.  Because bowtie2 removes /1 and /2 when the
+    //  mate maps concordantly, we no longer use that form.
 
-    fprintf(outputI, "@SE_%d_%d@%d-%d/1\n", nr, idx, bgn-zer, bgn+len-zer);
+    fprintf(outputI, "@SE_%d_%d@%d-%d#1\n", nr, idx, bgn-zer, bgn+len-zer);
     fprintf(outputI, "%s\n", s1);
     fprintf(outputI, "+\n");
     fprintf(outputI, "%s\n", q1);
@@ -319,24 +320,25 @@ makePE(char   *seq,
         if ((s1[i] == 'N') || (s2[i] == 'N'))
           goto tryPEagain;
 
-    //  Output sequences, with a descriptive ID
+    //  Output sequences, with a descriptive ID.  Because bowtie2 removes /1 and /2 when the
+    //  mate maps concordantly, we no longer use that form.
 
-    fprintf(outputI, "@PE%s_%d_%d@%d-%d/1\n", (makeNormal) ? "normal" : "", np, idx, bgn-zer, bgn+len-zer);
+    fprintf(outputI, "@PE%s_%d_%d@%d-%d#1\n", (makeNormal) ? "normal" : "", np, idx, bgn-zer, bgn+len-zer);
     fprintf(outputI, "%s\n", s1);
     fprintf(outputI, "+\n");
     fprintf(outputI, "%s\n", q1);
 
-    fprintf(outputI, "@PE%s_%d_%d@%d-%d/2\n", (makeNormal) ? "normal" : "", np, idx, bgn-zer, bgn+len-zer);
+    fprintf(outputI, "@PE%s_%d_%d@%d-%d#2\n", (makeNormal) ? "normal" : "", np, idx, bgn-zer, bgn+len-zer);
     fprintf(outputI, "%s\n", s2);
     fprintf(outputI, "+\n");
     fprintf(outputI, "%s\n", q2);
 
-    fprintf(output1, "@PE%s_%d_%d@%d-%d/1\n", (makeNormal) ? "normal" : "", np, idx, bgn-zer, bgn+len-zer);
+    fprintf(output1, "@PE%s_%d_%d@%d-%d#1\n", (makeNormal) ? "normal" : "", np, idx, bgn-zer, bgn+len-zer);
     fprintf(output1, "%s\n", s1);
     fprintf(output1, "+\n");
     fprintf(output1, "%s\n", q1);
 
-    fprintf(output2, "@PE%s_%d_%d@%d-%d/2\n", (makeNormal) ? "normal" : "", np, idx, bgn-zer, bgn+len-zer);
+    fprintf(output2, "@PE%s_%d_%d@%d-%d#2\n", (makeNormal) ? "normal" : "", np, idx, bgn-zer, bgn+len-zer);
     fprintf(output2, "%s\n", s2);
     fprintf(output2, "+\n");
     fprintf(output2, "%s\n", q2);
@@ -344,12 +346,12 @@ makePE(char   *seq,
     reverseComplement(s1, q1, readLen);
     reverseComplement(s2, q2, readLen);
 
-    fprintf(outputC, "@PE%s_%d_%d@%d-%d/1\n", (makeNormal) ? "normal" : "", np, idx, bgn+len-zer, bgn-zer);
+    fprintf(outputC, "@PE%s_%d_%d@%d-%d#1\n", (makeNormal) ? "normal" : "", np, idx, bgn+len-zer, bgn-zer);
     fprintf(outputC, "%s\n", s1);
     fprintf(outputC, "+\n");
     fprintf(outputC, "%s\n", q1);
 
-    fprintf(outputC, "@PE%s_%d_%d@%d-%d/2\n", (makeNormal) ? "normal" : "", np, idx, bgn+len-zer, bgn-zer);
+    fprintf(outputC, "@PE%s_%d_%d@%d-%d#2\n", (makeNormal) ? "normal" : "", np, idx, bgn+len-zer, bgn-zer);
     fprintf(outputC, "%s\n", s2);
     fprintf(outputC, "+\n");
     fprintf(outputC, "%s\n", q2);
@@ -429,24 +431,25 @@ makeMP(char   *seq,
           if ((s1[i] == 'N') || (s2[i] == 'N'))
             goto tryMPagain;
 
-      //  Output sequences, with a descriptive ID
+      //  Output sequences, with a descriptive ID.  Because bowtie2 removes /1 and /2 when the
+      //  mate maps concordantly, we no longer use that form.
 
-      fprintf(outputI, "@fPE%s_%d_%d@%d-%d/1\n", (makeNormal) ? "normal" : "", np, idx, sbgn-zer, sbgn+slen-zer);
+      fprintf(outputI, "@fPE%s_%d_%d@%d-%d#1\n", (makeNormal) ? "normal" : "", np, idx, sbgn-zer, sbgn+slen-zer);
       fprintf(outputI, "%s\n", s1);
       fprintf(outputI, "+\n");
       fprintf(outputI, "%s\n", q1);
 
-      fprintf(outputI, "@fPE%s_%d_%d@%d-%d/2\n", (makeNormal) ? "normal" : "", np, idx, sbgn-zer, sbgn+slen-zer);
+      fprintf(outputI, "@fPE%s_%d_%d@%d-%d#2\n", (makeNormal) ? "normal" : "", np, idx, sbgn-zer, sbgn+slen-zer);
       fprintf(outputI, "%s\n", s2);
       fprintf(outputI, "+\n");
       fprintf(outputI, "%s\n", q2);
 
-      fprintf(output1, "@fPE%s_%d_%d@%d-%d/1\n", (makeNormal) ? "normal" : "", np, idx, sbgn-zer, sbgn+slen-zer);
+      fprintf(output1, "@fPE%s_%d_%d@%d-%d#1\n", (makeNormal) ? "normal" : "", np, idx, sbgn-zer, sbgn+slen-zer);
       fprintf(output1, "%s\n", s1);
       fprintf(output1, "+\n");
       fprintf(output1, "%s\n", q1);
 
-      fprintf(output2, "@fPE%s_%d_%d@%d-%d/2\n", (makeNormal) ? "normal" : "", np, idx, sbgn-zer, sbgn+slen-zer);
+      fprintf(output2, "@fPE%s_%d_%d@%d-%d#2\n", (makeNormal) ? "normal" : "", np, idx, sbgn-zer, sbgn+slen-zer);
       fprintf(output2, "%s\n", s2);
       fprintf(output2, "+\n");
       fprintf(output2, "%s\n", q2);
@@ -454,12 +457,12 @@ makeMP(char   *seq,
       reverseComplement(s1, q1, readLen);
       reverseComplement(s2, q2, readLen);
 
-      fprintf(outputC, "@fPE%s_%d_%d@%d-%d/1\n", (makeNormal) ? "normal" : "", np, idx, sbgn+slen-zer, sbgn-zer);
+      fprintf(outputC, "@fPE%s_%d_%d@%d-%d#1\n", (makeNormal) ? "normal" : "", np, idx, sbgn+slen-zer, sbgn-zer);
       fprintf(outputC, "%s\n", s1);
       fprintf(outputC, "+\n");
       fprintf(outputC, "%s\n", q1);
 
-      fprintf(outputC, "@fPE%s_%d_%d@%d-%d/2\n", (makeNormal) ? "normal" : "", np, idx, sbgn+slen-zer, sbgn-zer);
+      fprintf(outputC, "@fPE%s_%d_%d@%d-%d#2\n", (makeNormal) ? "normal" : "", np, idx, sbgn+slen-zer, sbgn-zer);
       fprintf(outputC, "%s\n", s2);
       fprintf(outputC, "+\n");
       fprintf(outputC, "%s\n", q2);
@@ -566,22 +569,25 @@ makeMP(char   *seq,
         q2[shift - 0] = QV_BASE + 10;
       }
 
-      fprintf(outputI, "@%cMP%s_%d_%d@%d-%d_%d/%d/%d/1\n", type, (makeNormal) ? "normal" : "", np, idx, bgn, bgn+len, shift, slen, bgn+len-shift);
+      //  Output sequences, with a descriptive ID.  Because bowtie2 removes /1 and /2 when the
+      //  mate maps concordantly, we no longer use that form.
+
+      fprintf(outputI, "@%cMP%s_%d_%d@%d-%d_%d/%d/%d#1\n", type, (makeNormal) ? "normal" : "", np, idx, bgn, bgn+len, shift, slen, bgn+len-shift);
       fprintf(outputI, "%s\n", s1);
       fprintf(outputI, "+\n");
       fprintf(outputI, "%s\n", q1);
 
-      fprintf(outputI, "@%cMP%s_%d_%d@%d-%d_%d/%d/%d/2\n", type, (makeNormal) ? "normal" : "", np, idx, bgn, bgn+len, shift, slen, bgn+len-shift);
+      fprintf(outputI, "@%cMP%s_%d_%d@%d-%d_%d/%d/%d#2\n", type, (makeNormal) ? "normal" : "", np, idx, bgn, bgn+len, shift, slen, bgn+len-shift);
       fprintf(outputI, "%s\n", s2);
       fprintf(outputI, "+\n");
       fprintf(outputI, "%s\n", q2);
 
-      fprintf(output1, "@%cMP%s_%d_%d@%d-%d_%d/%d/%d/1\n", type, (makeNormal) ? "normal" : "", np, idx, bgn, bgn+len, shift, slen, bgn+len-shift);
+      fprintf(output1, "@%cMP%s_%d_%d@%d-%d_%d/%d/%d#1\n", type, (makeNormal) ? "normal" : "", np, idx, bgn, bgn+len, shift, slen, bgn+len-shift);
       fprintf(output1, "%s\n", s1);
       fprintf(output1, "+\n");
       fprintf(output1, "%s\n", q1);
 
-      fprintf(output2, "@%cMP%s_%d_%d@%d-%d_%d/%d/%d/2\n", type, (makeNormal) ? "normal" : "", np, idx, bgn, bgn+len, shift, slen, bgn+len-shift);
+      fprintf(output2, "@%cMP%s_%d_%d@%d-%d_%d/%d/%d#2\n", type, (makeNormal) ? "normal" : "", np, idx, bgn, bgn+len, shift, slen, bgn+len-shift);
       fprintf(output2, "%s\n", s2);
       fprintf(output2, "+\n");
       fprintf(output2, "%s\n", q2);
@@ -589,12 +595,12 @@ makeMP(char   *seq,
       reverseComplement(s1, q1, readLen);
       reverseComplement(s2, q2, readLen);
 
-      fprintf(outputC, "@%cMP%s_%d_%d@%d-%d_%d/%d/%d/1\n", type, (makeNormal) ? "normal" : "", np, idx, bgn+len, bgn, shift, slen, bgn+len-shift);
+      fprintf(outputC, "@%cMP%s_%d_%d@%d-%d_%d/%d/%d#1\n", type, (makeNormal) ? "normal" : "", np, idx, bgn+len, bgn, shift, slen, bgn+len-shift);
       fprintf(outputC, "%s\n", s1);
       fprintf(outputC, "+\n");
       fprintf(outputC, "%s\n", q1);
 
-      fprintf(outputC, "@%cMP%s_%d_%d@%d-%d_%d/%d/%d/2\n", type, (makeNormal) ? "normal" : "", np, idx, bgn+len, bgn, shift, slen, bgn+len-shift);
+      fprintf(outputC, "@%cMP%s_%d_%d@%d-%d_%d/%d/%d#2\n", type, (makeNormal) ? "normal" : "", np, idx, bgn+len, bgn, shift, slen, bgn+len-shift);
       fprintf(outputC, "%s\n", s2);
       fprintf(outputC, "+\n");
       fprintf(outputC, "%s\n", q2);
@@ -699,9 +705,10 @@ makeCC(char   *seq,
         if (s1[i] == 'N')
           goto tryCCagain;
 
-    //  Output sequence, with a descriptive ID
+    //  Output sequences, with a descriptive ID.  Because bowtie2 removes /1 and /2 when the
+    //  mate maps concordantly, we no longer use that form.
 
-    fprintf(outputI, "@CC%c_%d_%d@%d-%d--%d@%d-%d/1\n",
+    fprintf(outputI, "@CC%c_%d_%d@%d-%d--%d@%d-%d#1\n",
             (isFalse) ? 'f' : 't',
             nr,
             idxf, bgnf-zerf, bgnf+lenf-zerf,
@@ -1070,39 +1077,41 @@ main(int argc, char **argv) {
   //
 
   {
-    uint32  cloneSize   = 0;
-    uint32  cloneStdDev = 0;
+    uint32  cloneSize      = 0;
+    uint32  cloneStdDev    = 0;
 
+    uint32  readNumReads   = 0;
+    uint32  readNumPairs   = 0;
+
+    uint32  cloneNumReads  = 0;
+    uint32  cloneNumPairs  = 0;
+      
     if (peEnable) { cloneSize = peShearSize;  cloneStdDev = peShearStdDev; }
     if (mpEnable) { cloneSize = mpInsertSize; cloneStdDev = mpInsertStdDev; }
     if (ccEnable) { cloneSize = ccJunkSize;   cloneStdDev = ccJunkStdDev; }
 
     if (readCoverage > 0) {
-      numReads = (int32)floor(readCoverage * (seqLen - numSeq) / readLen);
-      numPairs = numReads / 2;
-
-      if (seEnable)
-        fprintf(stderr, "Generate %.2f X read coverage of a %dbp genome with %d %dbp reads.\n",
-                (double)numReads * readLen / seqLen,
-                seqLen - numSeq, numReads, readLen);
-      else
-        fprintf(stderr, "Generate %.2f X read (%.2f X clone) coverage of a %dbp genome with %d pairs of %dbp reads from a clone of %d +- %dbp.\n",
-                (double)numReads * readLen / seqLen,
-                (double)numPairs * cloneSize / seqLen,
-                seqLen - numSeq, numPairs, readLen, cloneSize, cloneStdDev);
+      readNumReads = (uint32)floor(readCoverage * (seqLen - numSeq) / readLen);
+      readNumPairs = readNumReads / 2;
     }
 
-    if (cloneCoverage > 0) {
-      assert(seEnable == false);
+    if ((cloneCoverage > 0) && (seEnable == false)) {
+      cloneNumPairs = (uint32)floor(cloneCoverage * (seqLen - numSeq) / cloneSize);
+      cloneNumReads = cloneNumPairs * 2;
+    }
 
-      numPairs = (int32)floor(cloneCoverage * (seqLen - numSeq) / cloneSize);
-      numReads = numPairs * 2;
+    numReads = MIN(readNumReads, cloneNumReads);
+    numPairs = MIN(readNumPairs, cloneNumPairs);
 
-      fprintf(stderr, "Generate %.2f X clone (%.2f X read) coverage of a %dbp genome with %d pairs of %dbp reads from a clone of %d +- %dbp.\n",
-              (double)numPairs * cloneSize / seqLen,
+    if (seEnable)
+      fprintf(stderr, "Generate %.2f X read coverage of a %dbp genome with %u %dbp reads.\n",
               (double)numReads * readLen / seqLen,
+              seqLen - numSeq, numReads, readLen);
+    else
+      fprintf(stderr, "Generate %.2f X read (%.2f X clone) coverage of a %dbp genome with %u pairs of %dbp reads from a clone of %d +- %dbp.\n",
+              (double)numReads * readLen / seqLen,
+              (double)numPairs * cloneSize / seqLen,
               seqLen - numSeq, numPairs, readLen, cloneSize, cloneStdDev);
-    }
   }
 
   //
