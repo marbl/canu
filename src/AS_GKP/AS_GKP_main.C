@@ -454,6 +454,7 @@ constructIIDdumpLongest(char  *gkpStoreName,
        lenFrag += iter->first;
        
        if (lenFrag >= dumpLongestLength) {
+          fprintf(stderr, "Longest picked cutoff: "F_U32"\n", iter->first);
           break;
        } 
     }
