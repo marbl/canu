@@ -26,14 +26,14 @@
 
 class span_t {
 public:
-  u32bit  _iid;
-  u32bit  _beg;
-  u32bit  _end;
-  u32bit  _matchesLen;
-  u32bit  _matchesMax;
-  u32bit *_matches;
+  uint32  _iid;
+  uint32  _beg;
+  uint32  _end;
+  uint32  _matchesLen;
+  uint32  _matchesMax;
+  uint32 *_matches;
 
-  span_t(u32bit iid, u32bit beg, u32bit end) {
+  span_t(uint32 iid, uint32 beg, uint32 end) {
     _iid = iid;
     _beg = beg;
     _end = end;
@@ -50,13 +50,13 @@ public:
   //  does cut down the number of matches we can store.  Human-Human
   //  is ~1 million matches.
 
-  void   addMatch(u32bit matchiid, u32bit color) {
+  void   addMatch(uint32 matchiid, uint32 color) {
     if (_matchesLen >= _matchesMax) {
       if (_matchesMax == 0)
         _matchesMax = 2;
       _matchesMax *= 2;
-      u32bit *X = new u32bit [_matchesMax];
-      memcpy(X, _matches, sizeof(u32bit) * _matchesLen);
+      uint32 *X = new uint32 [_matchesMax];
+      memcpy(X, _matches, sizeof(uint32) * _matchesLen);
       delete [] _matches;
       _matches = X;
     }
@@ -69,10 +69,10 @@ public:
 
   //  Split this span at position, return two new spans
   //
-  void   split(u32bit position, span_t* &l, span_t* &r) {
+  void   split(uint32 position, span_t* &l, span_t* &r) {
 
     if ((position < _beg) || (_end < position)) {
-      fprintf(stderr, "span_t::split()-- _beg="u32bitFMT" _end="u32bitFMT" postition="u32bitFMT"?\n", _beg, _end, position);
+      fprintf(stderr, "span_t::split()-- _beg="uint32FMT" _end="uint32FMT" postition="uint32FMT"?\n", _beg, _end, position);
       exit(1);
     }
 
@@ -81,13 +81,13 @@ public:
 
     l->_matchesLen = _matchesLen;
     l->_matchesMax = _matchesMax;
-    l->_matches    = new u32bit [_matchesMax];
-    memcpy(l->_matches, _matches, sizeof(u32bit) * _matchesLen);
+    l->_matches    = new uint32 [_matchesMax];
+    memcpy(l->_matches, _matches, sizeof(uint32) * _matchesLen);
 
     r->_matchesLen = _matchesLen;
     r->_matchesMax = _matchesMax;
-    r->_matches    = new u32bit [_matchesMax];
-    memcpy(r->_matches, _matches, sizeof(u32bit) * _matchesLen);
+    r->_matches    = new uint32 [_matchesMax];
+    memcpy(r->_matches, _matches, sizeof(uint32) * _matchesLen);
   };
 };
 

@@ -83,27 +83,27 @@ configuration::read(int argc, char **argv) {
   int err = 0;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-mersize") == 0) {
-      _KBmerSize = strtou32bit(argv[++arg], 0L);
+      _KBmerSize = strtouint32(argv[++arg], 0L);
     } else if (strcmp(argv[arg], "-merskip") == 0) {
-      _merSkip = strtou32bit(argv[++arg], 0L);
+      _merSkip = strtouint32(argv[++arg], 0L);
     } else if (strcmp(argv[arg], "-compression") == 0) {
-      _KBcompression = strtou32bit(argv[++arg], 0L);
+      _KBcompression = strtouint32(argv[++arg], 0L);
     } else if (strcmp(argv[arg], "-template") == 0) {
       _KBspacingTemplate = argv[++arg];
     } else if (strcmp(argv[arg], "-numthreads") == 0) {
-      _numSearchThreads = strtou32bit(argv[++arg], 0L);
+      _numSearchThreads = strtouint32(argv[++arg], 0L);
     } else if (strcmp(argv[arg], "-ignore") == 0) {
-      _ignoreThreshold = strtou32bit(argv[++arg], 0L);
+      _ignoreThreshold = strtouint32(argv[++arg], 0L);
     } else if (strcmp(argv[arg], "-mask") == 0) {
       _maskFileName = argv[++arg];
     } else if (strcmp(argv[arg], "-only") == 0) {
       _onlyFileName = argv[++arg];
     } else if (strcmp(argv[arg], "-maskn") == 0) {
       _maskPrefix    = argv[++arg];
-      _maskThreshold = strtou32bit(argv[++arg], 0L);
+      _maskThreshold = strtouint32(argv[++arg], 0L);
     } else if (strcmp(argv[arg], "-onlyn") == 0) {
       _onlyPrefix    = argv[++arg];
-      _onlyThreshold = strtou32bit(argv[++arg], 0L);
+      _onlyThreshold = strtouint32(argv[++arg], 0L);
     } else if (strcmp(argv[arg], "-queries") == 0) {
       _qsFileName = argv[++arg];
     } else if (strcmp(argv[arg], "-genomic") == 0) {
@@ -142,15 +142,15 @@ configuration::read(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-dp") == 0) {
       _polishOptimally = true;
     } else if (strcmp(argv[arg], "-maxdiagonal") == 0) {
-      _maxDiagonal = strtou32bit(argv[++arg], 0L);
+      _maxDiagonal = strtouint32(argv[++arg], 0L);
     } else if (strcmp(argv[arg], "-minhitlength") == 0) {
-      _minHitLength = strtou32bit(argv[++arg], 0L);
+      _minHitLength = strtouint32(argv[++arg], 0L);
     } else if (strcmp(argv[arg], "-minhitcoverage") == 0) {
       _minHitCoverage = atof(argv[++arg]);
     } else if (strcmp(argv[arg], "-minmatchidentity") == 0) {
-      _minMatchIdentity = strtou32bit(argv[++arg], 0L);
+      _minMatchIdentity = strtouint32(argv[++arg], 0L);
     } else if (strcmp(argv[arg], "-minmatchcoverage") == 0) {
-      _minMatchCoverage = strtou32bit(argv[++arg], 0L);
+      _minMatchCoverage = strtouint32(argv[++arg], 0L);
 
     } else if (strcmp(argv[arg], "-af") == 0) {
       _afEnabled   = true;
@@ -158,24 +158,24 @@ configuration::read(int argc, char **argv) {
       _afThreshold = atof(argv[++arg]);
       _afEnabled   = true;
     } else if (strcmp(argv[arg], "-aflength") == 0) {
-      _afLength    = strtou32bit(argv[++arg], 0L);
+      _afLength    = strtouint32(argv[++arg], 0L);
       _afEnabled   = true;
     } else if (strcmp(argv[arg], "-afinit") == 0) {
-      _afInit      = strtou32bit(argv[++arg], 0L);
+      _afInit      = strtouint32(argv[++arg], 0L);
       _afEnabled   = true;
 
     } else if (strcmp(argv[arg], "-discardexonlength") == 0) {
-      _discardExonLength = strtou32bit(argv[++arg], 0L);
+      _discardExonLength = strtouint32(argv[++arg], 0L);
     } else if (strcmp(argv[arg], "-discardexonquality") == 0) {
-      _discardExonQuality = strtou32bit(argv[++arg], 0L);
+      _discardExonQuality = strtouint32(argv[++arg], 0L);
     } else if (strncmp(argv[arg], "-extendweight", 8) == 0) {
       _extendWeight = atof(argv[++arg]);
     } else if (strncmp(argv[arg], "-extendminimum", 8) == 0) {
-      _extendMinimum = strtou32bit(argv[++arg], 0L);
+      _extendMinimum = strtouint32(argv[++arg], 0L);
     } else if (strncmp(argv[arg], "-extendmaximum", 8) == 0) {
-      _extendMaximum = strtou32bit(argv[++arg], 0L);
+      _extendMaximum = strtouint32(argv[++arg], 0L);
     } else if (strncmp(argv[arg], "-repeatthreshold", 8) == 0) {
-      _repeatThreshold = strtou32bit(argv[++arg], 0L);
+      _repeatThreshold = strtouint32(argv[++arg], 0L);
 
     } else {
       fprintf(stderr, "Unknown option '%s'\n", argv[arg]);
@@ -202,7 +202,7 @@ configuration::read(int argc, char **argv) {
     fprintf(stderr, "ERROR: Invalid afThreshold %f, should be 0.0 <= t <= 1.0\n", _afThreshold), err++;
 
   if (64 < _afLength)
-    fprintf(stderr, "ERROR: Invalid afLength "u32bitFMT", should be < 64.\n", _afLength), err++;
+    fprintf(stderr, "ERROR: Invalid afLength "uint32FMT", should be < 64.\n", _afLength), err++;
 
   if ((_qsFileName == 0L) && (_buildOnly == false))
     fprintf(stderr, "ERROR: No query file supplied.\n"), err++;

@@ -11,7 +11,7 @@
 //  If bufferMax is zero, then the file is accessed using memory
 //  mapped I/O.  Otherwise, a small buffer is used.
 //
-readBuffer::readBuffer(const char *filename, u64bit bufferMax) {
+readBuffer::readBuffer(const char *filename, uint64 bufferMax) {
 
   _filename    = 0L;
   _file        = 0;
@@ -61,7 +61,7 @@ readBuffer::readBuffer(const char *filename, u64bit bufferMax) {
 }
 
 
-readBuffer::readBuffer(FILE *file, u64bit bufferMax) {
+readBuffer::readBuffer(FILE *file, uint64 bufferMax) {
 
   if (bufferMax == 0)
     fprintf(stderr, "readBuffer()-- WARNING: mmap() not supported in readBuffer(FILE *)\n");
@@ -125,11 +125,11 @@ readBuffer::fillBuffer(void) {
 
  again:
   errno = 0;
-  _bufferLen = (u64bit)::read(_file, _buffer, _bufferMax);
+  _bufferLen = (uint64)::read(_file, _buffer, _bufferMax);
   if (errno == EAGAIN)
     goto again;
   if (errno)
-    fprintf(stderr, "readBuffer::fillBuffer()-- only read "u64bitFMT" bytes, couldn't read "u64bitFMT" bytes from '%s': %s\n",
+    fprintf(stderr, "readBuffer::fillBuffer()-- only read "uint64FMT" bytes, couldn't read "uint64FMT" bytes from '%s': %s\n",
             _bufferLen, _bufferMax, _filename, strerror(errno)), exit(1);
 
   if (_bufferLen == 0)
@@ -138,7 +138,7 @@ readBuffer::fillBuffer(void) {
 
 
 void
-readBuffer::seek(u64bit pos) {
+readBuffer::seek(uint64 pos) {
 
   if (_stdin == true) {
     if (_filePos < _bufferLen) {
@@ -162,7 +162,7 @@ readBuffer::seek(u64bit pos) {
     errno = 0;
     lseek(_file, pos, SEEK_SET);
     if (errno)
-      fprintf(stderr, "readBuffer()-- '%s' couldn't seek to position "s64bitFMT": %s\n",
+      fprintf(stderr, "readBuffer()-- '%s' couldn't seek to position "int64FMT": %s\n",
               _filename, pos, strerror(errno)), exit(1);
 
     _bufferLen = 0;
@@ -176,14 +176,14 @@ readBuffer::seek(u64bit pos) {
 }
 
 
-u64bit
-readBuffer::read(void *buf, u64bit len) {
+uint64
+readBuffer::read(void *buf, uint64 len) {
   char  *bufchar = (char *)buf;
 
   //  Handle the mmap'd file first.
 
   if (_mmap) {
-    u64bit c = 0;
+    uint64 c = 0;
 
     while ((_bufferPos < _bufferLen) && (c < len)) {
       bufchar[c++] = _buffer[_bufferPos++];
@@ -213,9 +213,9 @@ readBuffer::read(void *buf, u64bit len) {
   //  Existing buffer not big enough.  Copy what's there, then finish
   //  with a read.
 
-  u64bit   bCopied = 0;   //  Number of bytes copied into the buffer
-  u64bit   bRead   = 0;   //  Number of bytes read into the buffer
-  u64bit   bAct    = 0;   //  Number of bytes actually read from disk
+  uint64   bCopied = 0;   //  Number of bytes copied into the buffer
+  uint64   bRead   = 0;   //  Number of bytes read into the buffer
+  uint64   bAct    = 0;   //  Number of bytes actually read from disk
 
   memcpy(bufchar, _buffer + _bufferPos, _bufferLen - _bufferPos);
   bCopied    = _bufferLen - _bufferPos;
@@ -223,9 +223,9 @@ readBuffer::read(void *buf, u64bit len) {
 
   while (bCopied + bRead < len) {
     errno = 0;
-    bAct = (u64bit)::read(_file, bufchar + bCopied + bRead, len - bCopied - bRead);
+    bAct = (uint64)::read(_file, bufchar + bCopied + bRead, len - bCopied - bRead);
     if (errno)
-      fprintf(stderr, "readBuffer()-- couldn't read "u64bitFMT" bytes from '%s': n%s\n",
+      fprintf(stderr, "readBuffer()-- couldn't read "uint64FMT" bytes from '%s': n%s\n",
               len, _filename, strerror(errno)), exit(1);
 
     //  If we hit EOF, return a short read
@@ -243,10 +243,10 @@ readBuffer::read(void *buf, u64bit len) {
 }
 
 
-u64bit
-readBuffer::read(void *buf, u64bit maxlen, char stop) {
+uint64
+readBuffer::read(void *buf, uint64 maxlen, char stop) {
   char  *bufchar = (char *)buf;
-  u64bit c = 0;
+  uint64 c = 0;
 
   //  We will copy up to 'maxlen'-1 bytes into 'buf', or stop at the first occurrence of 'stop'.
   //  This will reserve space at the end of any string for a zero-terminating byte.

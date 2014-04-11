@@ -12,9 +12,9 @@
 //  Returns position in posn, resizing it if needed.  Space is
 //  allocated if none supplied.  The following is valid:
 //
-//    u64bit  *posn    = 0L;
-//    u64bit   posnMax = 0;
-//    u64bit   posnLen = 0;
+//    uint64  *posn    = 0L;
+//    uint64   posnMax = 0;
+//    uint64   posnLen = 0;
 //    if (get(somemer, posn, posnMax, posnLen)) {
 //      do something with the positions
 //    }
@@ -41,21 +41,21 @@ class merylStreamReader;
 class positionDB {
 public:
   positionDB(char const        *filename,
-             u32bit             merSize,
-             u32bit             merSkip,
-             u32bit             maxMismatch,
+             uint32             merSize,
+             uint32             merSkip,
+             uint32             maxMismatch,
              bool               loadData=true);
 
   positionDB(merStream         *MS,
-             u32bit             merSize,
-             u32bit             merSkip,
+             uint32             merSize,
+             uint32             merSkip,
              existDB           *mask,
              existDB           *only,
              merylStreamReader *counts,
-             u32bit             minCount,
-             u32bit             maxCount,
-             u32bit             maxMismatch,
-             u32bit             maxMemory,
+             uint32             minCount,
+             uint32             maxCount,
+             uint32             maxMismatch,
+             uint32             maxMemory,
              bool               beVerbose);
 
   ~positionDB();
@@ -65,44 +65,44 @@ private:
               existDB           *mask,
               existDB           *only,
               merylStreamReader *counts,
-              u32bit             minCount,
-              u32bit             maxCount,
+              uint32             minCount,
+              uint32             maxCount,
               bool               beVerbose);
 
 private:
-  void        reallocateSpace(u64bit*&    posn,
-                              u64bit&     posnMax,
-                              u64bit&     posnLen,
-                              u64bit      len);
+  void        reallocateSpace(uint64*&    posn,
+                              uint64&     posnMax,
+                              uint64&     posnLen,
+                              uint64      len);
 
-  void        loadPositions(u64bit      v,
-                            u64bit*&    posn,
-                            u64bit&     posnMax,
-                            u64bit&     posnLen,
-                            u64bit&     count);
-
-public:
-  bool        getExact(u64bit      mer,
-                       u64bit*&    posn,
-                       u64bit&     posnMax,
-                       u64bit&     posnLen,
-                       u64bit&     count);
-  bool        existsExact(u64bit   mer);
-  u64bit      countExact(u64bit    mer);
+  void        loadPositions(uint64      v,
+                            uint64*&    posn,
+                            uint64&     posnMax,
+                            uint64&     posnLen,
+                            uint64&     count);
 
 public:
-  void        filter(u64bit lo, u64bit hi);
+  bool        getExact(uint64      mer,
+                       uint64*&    posn,
+                       uint64&     posnMax,
+                       uint64&     posnLen,
+                       uint64&     count);
+  bool        existsExact(uint64   mer);
+  uint64      countExact(uint64    mer);
+
+public:
+  void        filter(uint64 lo, uint64 hi);
 
 private:
-  double      setUpMismatchMatcher(u32bit nErrorsAllowed, u64bit approxMers);
+  double      setUpMismatchMatcher(uint32 nErrorsAllowed, uint64 approxMers);
 public:
-  bool        getUpToNMismatches(u64bit      mer,
-                                 u32bit      maxMismatches,
-                                 u64bit*&    posn,
-                                 u64bit&     posnMax,
-                                 u64bit&     posnLen);
+  bool        getUpToNMismatches(uint64      mer,
+                                 uint32      maxMismatches,
+                                 uint64*&    posn,
+                                 uint64&     posnMax,
+                                 uint64&     posnLen);
 private:
-  u64bit      setCount(u64bit mer, u64bit count);
+  uint64      setCount(uint64 mer, uint64 count);
 
   //  Save or load a built table
   //
@@ -117,19 +117,19 @@ public:
   void        dump(char *name);
 
 
-  bool         checkREBUILD(u64bit m) {
+  bool         checkREBUILD(uint64 m) {
 #define DEBUGREBUILD
 #ifdef DEBUGREBUILD
-    u64bit h = HASH(m);
-    u64bit c = CHECK(m);
-    u64bit r = REBUILD(h, c);
+    uint64 h = HASH(m);
+    uint64 c = CHECK(m);
+    uint64 r = REBUILD(h, c);
     if (r != m) {
-      fprintf(stderr, "shift1 = "u32bitFMT"\n", _shift1);
-      fprintf(stderr, "shift2 = "u32bitFMT"\n", _shift2);
-      fprintf(stderr, "M = "u64bitHEX"\n", m);
-      fprintf(stderr, "H = "u64bitHEX"\n", h);
-      fprintf(stderr, "C = "u64bitHEX"\n", c);
-      fprintf(stderr, "R = "u64bitHEX"\n", r);
+      fprintf(stderr, "shift1 = "uint32FMT"\n", _shift1);
+      fprintf(stderr, "shift2 = "uint32FMT"\n", _shift2);
+      fprintf(stderr, "M = "uint64HEX"\n", m);
+      fprintf(stderr, "H = "uint64HEX"\n", h);
+      fprintf(stderr, "C = "uint64HEX"\n", c);
+      fprintf(stderr, "R = "uint64HEX"\n", r);
       return(false);
     }
     return(true);
@@ -140,102 +140,102 @@ public:
 
 private:
 
-  u64bit       HASH(u64bit k) {
+  uint64       HASH(uint64 k) {
     return(((k >> _shift1) ^ (k >> _shift2) ^ k) & _mask1);
   };
 
-  u64bit       CHECK(u64bit k) {
+  uint64       CHECK(uint64 k) {
     return(k & _mask2);
   };
 
-  u64bit       REBUILD(u64bit h, u64bit c) {
+  uint64       REBUILD(uint64 h, uint64 c) {
     //  Decode a HASH and a CHECK to get back the mer.  You'd better
     //  bloody PRAY you don't break this (test/test-rebuild.C).  It
     //  was a headache++ to write.
 
-    u64bit sha = _shift1 - _shift2;
-    u64bit msk = u64bitMASK(sha);
+    uint64 sha = _shift1 - _shift2;
+    uint64 msk = uint64MASK(sha);
 
     //  The check is exactly the mer....just not all there.
-    u64bit mer = c;
+    uint64 mer = c;
 
-    u64bit shf = sha - (_tableSizeInBits % 2);
-    u64bit shg = 0;
-    u64bit shh = _shift1;
+    uint64 shf = sha - (_tableSizeInBits % 2);
+    uint64 shg = 0;
+    uint64 shh = _shift1;
 
     //  Unrolling this is troublesome - we still need the tests,
     //  bizarre merSize, tblSize combinations use lots of iterations
     //  (when the merSize and tblSize are about the same, the CHECK is
     //  small, and so we need to do lots of iterations).
 
-    //fprintf(stderr, "shf="u64bitFMTW(2)" shg="u64bitFMTW(2)" shh="u64bitFMTW(2)" mer="u64bitHEX"\n", shf, shg, shh, mer);
+    //fprintf(stderr, "shf="uint64FMTW(2)" shg="uint64FMTW(2)" shh="uint64FMTW(2)" mer="uint64HEX"\n", shf, shg, shh, mer);
 
     do {
       mer |= (((h >> shg) ^ (mer >> shg) ^ (mer >> shf)) & msk) << shh;
-      //fprintf(stderr, "shf="u64bitFMTW(2)" shg="u64bitFMTW(2)" shh="u64bitFMTW(2)" mer="u64bitHEX"\n", shf, shg, shh, mer);
+      //fprintf(stderr, "shf="uint64FMTW(2)" shg="uint64FMTW(2)" shh="uint64FMTW(2)" mer="uint64HEX"\n", shf, shg, shh, mer);
 
       shf += sha;
       shg += sha;
       shh += sha;
     } while ((shf < _merSizeInBits) && (shh < 64));
 
-    mer &= u64bitMASK(_merSizeInBits);
+    mer &= uint64MASK(_merSizeInBits);
 
     return(mer);
   };
 
-  void         sortAndRepackBucket(u64bit b);
+  void         sortAndRepackBucket(uint64 b);
 
-  u32bit     *_bucketSizes;
-  u64bit     *_countingBuckets;
-  u64bit     *_hashTable_BP;  //  Bit packed
-  u32bit     *_hashTable_FW;  //  Full width
-  u64bit     *_buckets;
+  uint32     *_bucketSizes;
+  uint64     *_countingBuckets;
+  uint64     *_hashTable_BP;  //  Bit packed
+  uint32     *_hashTable_FW;  //  Full width
+  uint64     *_buckets;
 
-  u64bit     *_positions;
+  uint64     *_positions;
 
-  u32bit      _merSizeInBases;
-  u32bit      _merSizeInBits;
+  uint32      _merSizeInBases;
+  uint32      _merSizeInBits;
 
-  u32bit      _merSkipInBases;
+  uint32      _merSkipInBases;
 
-  u64bit      _tableSizeInEntries;
-  u32bit      _tableSizeInBits;
+  uint64      _tableSizeInEntries;
+  uint32      _tableSizeInBits;
 
-  u32bit      _hashWidth;  // Hash bith
-  u32bit      _chckWidth;  // Check bits
-  u32bit      _posnWidth;  // Positions in the sequence
-  u32bit      _pptrWidth;  // Pointers to positions
-  u32bit      _sizeWidth;  // Extra number in the table
+  uint32      _hashWidth;  // Hash bith
+  uint32      _chckWidth;  // Check bits
+  uint32      _posnWidth;  // Positions in the sequence
+  uint32      _pptrWidth;  // Pointers to positions
+  uint32      _sizeWidth;  // Extra number in the table
 
-  u64bit      _hashMask;
+  uint64      _hashMask;
 
-  u32bit      _wCnt;
-  u32bit      _wFin;
+  uint32      _wCnt;
+  uint32      _wFin;
 
-  u32bit      _shift1;
-  u32bit      _shift2;
-  u64bit      _mask1;
-  u64bit      _mask2;
+  uint32      _shift1;
+  uint32      _shift2;
+  uint64      _mask1;
+  uint64      _mask2;
 
-  u64bit      _numberOfMers;
-  u64bit      _numberOfPositions;
-  u64bit      _numberOfDistinct;
-  u64bit      _numberOfUnique;
-  u64bit      _numberOfEntries;
-  u64bit      _maximumEntries;
+  uint64      _numberOfMers;
+  uint64      _numberOfPositions;
+  uint64      _numberOfDistinct;
+  uint64      _numberOfUnique;
+  uint64      _numberOfEntries;
+  uint64      _maximumEntries;
 
   //  For sorting the mers
   //
-  u32bit      _sortedMax;
-  u64bit     *_sortedChck;
-  u64bit     *_sortedPosn;
+  uint32      _sortedMax;
+  uint64     *_sortedChck;
+  uint64     *_sortedPosn;
 
   //  For the mismatch matcher
-  u32bit      _nErrorsAllowed;
-  u32bit      _hashedErrorsLen;
-  u32bit      _hashedErrorsMax;
-  u64bit     *_hashedErrors;
+  uint32      _nErrorsAllowed;
+  uint32      _hashedErrorsLen;
+  uint32      _hashedErrorsMax;
+  uint64     *_hashedErrors;
 };
 
 #endif  //  POSITIONDB_H

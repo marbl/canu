@@ -8,11 +8,11 @@
 #define OLAP_IS_SHORT
 
 #ifdef OLAP_IS_SHORT
-typedef  u16bit    olap_t;
-#define  OLAPTFMT  u16bitFMT
+typedef  uint16    olap_t;
+#define  OLAPTFMT  uint16FMT
 #else
-typedef  u32bit    olap_t;
-#define  OLAPTFMT  u32bitFMT
+typedef  uint32    olap_t;
+#define  OLAPTFMT  uint32FMT
 #endif
 
 olap_t   findOverlap(sim4polish *A, sim4polish *B);

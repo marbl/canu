@@ -4,14 +4,14 @@
 
 #include "util++.H"
 
-u32bit wordSize = 41;
-u32bit testSize =  1 * 1024 * 1024;
-u32bit arrySize =  1 * 1024 * 1024;
+uint32 wordSize = 41;
+uint32 testSize =  1 * 1024 * 1024;
+uint32 arrySize =  1 * 1024 * 1024;
 
 int
-u64bitcompare(const void *a, const void *b) {
-  const u64bit   A = *(const u64bit *)a;
-  const u64bit   B = *(const u64bit *)b;
+uint64compare(const void *a, const void *b) {
+  const uint64   A = *(const uint64 *)a;
+  const uint64   B = *(const uint64 *)b;
   if (A<B) return(-1);
   if (A>B) return(1);
   return(0);
@@ -25,12 +25,12 @@ main(int argc, char **argv) {
   //  Test the bitPackedArray by writing a bunch of random gibberish
   //  to it, and see if it's the same.
 
-  u32bit  *pos = new u32bit [testSize];
-  u64bit  *val = new u64bit [testSize];
-  u64bit  *ans = new u64bit [arrySize];
+  uint32  *pos = new uint32 [testSize];
+  uint64  *val = new uint64 [testSize];
+  uint64  *ans = new uint64 [arrySize];
 
   bitPackedArray *ARR  = new bitPackedArray(wordSize, 16);
-  u32bit          fail = u32bitZERO;
+  uint32          fail = uint32ZERO;
 
 #if 1
   fprintf(stderr, "Touching the end of the array and clearing.\n");
@@ -40,31 +40,31 @@ main(int argc, char **argv) {
   fprintf(stderr, "Generating random test data.\n");
 
   //  Hit every element first, just to do it
-  for (u32bit i=0; i<arrySize; i++) {
+  for (uint32 i=0; i<arrySize; i++) {
     pos[i]       = i;
     val[i]       = mtRandom64(mtctx);
-    val[i]      &= u64bitMASK(wordSize);
+    val[i]      &= uint64MASK(wordSize);
     ans[pos[i]]  = val[i];
   }
 
   //  Then hit random elements, with replacement, looking for bugs
-  for (u32bit i=arrySize; i<testSize; i++) {
+  for (uint32 i=arrySize; i<testSize; i++) {
     pos[i]       = mtRandom32(mtctx) % arrySize;
     val[i]       = mtRandom64(mtctx);
-    val[i]      &= u64bitMASK(wordSize);
+    val[i]      &= uint64MASK(wordSize);
     ans[pos[i]]  = val[i];
   }
 
   fprintf(stderr, "Filling array.\n");
 
-  for (u32bit i=0; i<testSize; i++)
+  for (uint32 i=0; i<testSize; i++)
     ARR->set(pos[i], val[i]);
 
   fprintf(stderr, "Validating array.\n");
 
-  for (u32bit i=0; i<arrySize; i++)
+  for (uint32 i=0; i<arrySize; i++)
     if (ARR->get(i) != ans[i]) {
-      fprintf(stderr, "FAIL at i="u32bitFMT"\n", i);
+      fprintf(stderr, "FAIL at i="uint32FMT"\n", i);
       fail++;
 
       if (fail > 1024) {
@@ -74,7 +74,7 @@ main(int argc, char **argv) {
     }
 
   if (fail) {
-    fprintf(stderr, "bitPackedArray had "u32bitFMT" errors.\n", fail);
+    fprintf(stderr, "bitPackedArray had "uint32FMT" errors.\n", fail);
     return(1);
   }
 
@@ -90,44 +90,44 @@ main(int argc, char **argv) {
   //
   //
 
-  for (u32bit testNum=0; testNum<32; testNum++) {
-    u32bit  thisTestSize = 0;
-    u32bit  thisWordSize = 0;
+  for (uint32 testNum=0; testNum<32; testNum++) {
+    uint32  thisTestSize = 0;
+    uint32  thisWordSize = 0;
 
     //  Test a BIG heap the first iteration.
     if (testNum == 0) {
       thisTestSize = 857353; //23987153;
       thisWordSize = 63;
 
-      fprintf(stderr, "Building heap "u32bitFMT" (wordsize="u32bitFMT" testsize="u32bitFMT").\n",
+      fprintf(stderr, "Building heap "uint32FMT" (wordsize="uint32FMT" testsize="uint32FMT").\n",
               testNum, thisWordSize, thisTestSize);
     } else {
       thisTestSize = (mtRandom64(mtctx) % (2 * testNum)) * 1024 + 1024;
       thisWordSize = (mtRandom64(mtctx) % 63) + 1;
     }
 
-    u32bit  blockSize = mtRandom64(mtctx) % 32 + 1;
+    uint32  blockSize = mtRandom64(mtctx) % 32 + 1;
     bitPackedHeap  *HEAP = new bitPackedHeap(thisWordSize, blockSize);
 
-    val = new u64bit [thisTestSize];
-    for (u32bit i=0; i<thisTestSize; i++) {
+    val = new uint64 [thisTestSize];
+    for (uint32 i=0; i<thisTestSize; i++) {
       val[i]       = mtRandom64(mtctx);
-      val[i]      &= u64bitMASK(thisWordSize);
+      val[i]      &= uint64MASK(thisWordSize);
       HEAP->add(val[i]);
     }
 
-    fprintf(stderr, "Testing heap "u32bitFMT" (wordsize="u32bitFMT" testsize="u32bitFMT").\n",
+    fprintf(stderr, "Testing heap "uint32FMT" (wordsize="uint32FMT" testsize="uint32FMT").\n",
             testNum, thisWordSize, thisTestSize);
 
-    qsort(val, thisTestSize, sizeof(u64bit), u64bitcompare);
+    qsort(val, thisTestSize, sizeof(uint64), uint64compare);
 
-    for (u32bit i=0; i<thisTestSize; i++) {
-      u64bit  h = HEAP->get();
+    for (uint32 i=0; i<thisTestSize; i++) {
+      uint64  h = HEAP->get();
 
-      //fprintf(stderr, "val["u32bitFMT"]="u64bitFMT" -- HEAP="u64bitFMT"\n", i, val[i], h);
+      //fprintf(stderr, "val["uint32FMT"]="uint64FMT" -- HEAP="uint64FMT"\n", i, val[i], h);
 
       if (val[i] != h) {
-        fprintf(stderr, "val["u32bitFMT"]="u64bitFMT" !! HEAP="u64bitFMT"\n", i, val[i], h);
+        fprintf(stderr, "val["uint32FMT"]="uint64FMT" !! HEAP="uint64FMT"\n", i, val[i], h);
         fail++;
         if (fail > 25) {
           fprintf(stderr, "bitPackedHeap has errors, aborting!\n");
@@ -137,7 +137,7 @@ main(int argc, char **argv) {
     }
     
     if (fail) {
-      fprintf(stderr, "bitPackedHeap had "u32bitFMT" errors.!\n", fail);
+      fprintf(stderr, "bitPackedHeap had "uint32FMT" errors.!\n", fail);
       return(1);
     }
 

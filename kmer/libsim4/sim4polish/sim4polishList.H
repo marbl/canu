@@ -14,22 +14,22 @@ public:
   ~sim4polishList();
 
   void          push(sim4polish *p);
-  void          remove(u32bit i);
+  void          remove(uint32 i);
 
-  u32bit        length(void)         { return(len); };
+  uint32        length(void)         { return(len); };
 
-  sim4polish   *operator[](u32bit i) { if (i >= len) return(0L); return(list[i]); };
-  sim4polish   *get(u32bit i)        { if (i >= len) return(0L); return(list[i]); };
+  sim4polish   *operator[](uint32 i) { if (i >= len) return(0L); return(list[i]); };
+  sim4polish   *get(uint32 i)        { if (i >= len) return(0L); return(list[i]); };
 
   void          sortBycDNAIID(void);
   void          sortByGenomicIID(void);
 
   //  Removes polishes below the specified quality
-  void          filterByQuality(u32bit minI, u32bit minC);
+  void          filterByQuality(uint32 minI, uint32 minC);
 
 private:
-  u32bit        len;
-  u32bit        max;
+  uint32        len;
+  uint32        max;
   sim4polish  **list;
 };
 

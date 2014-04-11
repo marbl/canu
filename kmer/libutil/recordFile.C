@@ -10,12 +10,12 @@
 //  N.B. any read() / write() pair (either order) must have a seek (or
 //  a fflush) in between.
 
-u64bit   recordFileMagic1 = 0x694664726f636572llu;
-u64bit   recordFileMagic2 = 0x000000000000656cllu;
+uint64   recordFileMagic1 = 0x694664726f636572llu;
+uint64   recordFileMagic2 = 0x000000000000656cllu;
 
 recordFile::recordFile(char const *name,
-                       u32bit      headerSize,
-                       u32bit      recordSize,
+                       uint32      headerSize,
+                       uint32      recordSize,
                        char        mode) {
 
   _file = 0;
@@ -33,9 +33,9 @@ recordFile::recordFile(char const *name,
   _bfrmax       = MAX(1048576 / _recordSize, 16);
   _bfr          = new char [_bfrmax * _recordSize];
 
-  _limit        = ~u32bitZERO;
+  _limit        = ~uint32ZERO;
 
-  _pos          = u64bitZERO;
+  _pos          = uint64ZERO;
   _rec          = 0;
 
   memset(_bfr, 0, sizeof(char) * _bfrmax * _recordSize);
@@ -65,11 +65,11 @@ recordFile::recordFile(char const *name,
               _name, strerror(errno)), exit(1);
     _isReadOnly = false;
 
-    write(_file, &recordFileMagic1,  sizeof(u64bit));
-    write(_file, &recordFileMagic2,  sizeof(u64bit));
-    write(_file, &_numRecords,       sizeof(u64bit));
-    write(_file, &_recordSize,       sizeof(u32bit));
-    write(_file, &_headerSize,       sizeof(u32bit));
+    write(_file, &recordFileMagic1,  sizeof(uint64));
+    write(_file, &recordFileMagic2,  sizeof(uint64));
+    write(_file, &_numRecords,       sizeof(uint64));
+    write(_file, &_recordSize,       sizeof(uint32));
+    write(_file, &_headerSize,       sizeof(uint32));
     write(_file,  _header,           sizeof(char) * _headerSize);
 
     if (errno)
@@ -105,15 +105,15 @@ recordFile::recordFile(char const *name,
   //  Read the magic, metadata and header.
 
   {
-    u64bit m1, m2;
+    uint64 m1, m2;
 
     errno = 0;
 
-    read(_file, &m1,                sizeof(u64bit));
-    read(_file, &m2,                sizeof(u64bit));
-    read(_file, &_numRecords,       sizeof(u64bit));
-    read(_file, &_recordSize,       sizeof(u32bit));
-    read(_file, &_headerSize,       sizeof(u32bit));
+    read(_file, &m1,                sizeof(uint64));
+    read(_file, &m2,                sizeof(uint64));
+    read(_file, &_numRecords,       sizeof(uint64));
+    read(_file, &_recordSize,       sizeof(uint32));
+    read(_file, &_headerSize,       sizeof(uint32));
     read(_file,  _header,           sizeof(char) * _headerSize);
 
     if (errno)
@@ -148,11 +148,11 @@ recordFile::~recordFile() {
     if (errno)
       fprintf(stderr, "recordFile::~recordFile()-- seek to start of '%s' failed: %s\n", _name, strerror(errno)), exit(1);
 
-    write(_file, &recordFileMagic1,  sizeof(u64bit));
-    write(_file, &recordFileMagic2,  sizeof(u64bit));
-    write(_file, &_numRecords,       sizeof(u64bit));
-    write(_file, &_recordSize,       sizeof(u32bit));
-    write(_file, &_headerSize,       sizeof(u32bit));
+    write(_file, &recordFileMagic1,  sizeof(uint64));
+    write(_file, &recordFileMagic2,  sizeof(uint64));
+    write(_file, &_numRecords,       sizeof(uint64));
+    write(_file, &_recordSize,       sizeof(uint32));
+    write(_file, &_headerSize,       sizeof(uint32));
     write(_file,  _header,           sizeof(char) * _headerSize);
 
     if (errno)
@@ -206,7 +206,7 @@ recordFile::flushDirty(void) {
 //  Seeks to rec in the file, reads in a new block.
 //
 void
-recordFile::seek(u64bit rec, bool forced) {
+recordFile::seek(uint64 rec, bool forced) {
 
   //  If we are seeking to somewhere in the current block, don't do a
   //  real seek, just move our position within the block.
@@ -224,29 +224,29 @@ recordFile::seek(u64bit rec, bool forced) {
   errno = 0;
   lseek(_file, 32 + _headerSize + _pos * _recordSize, SEEK_SET);
   if (errno)
-    fprintf(stderr, "recordFile::seek() '%s' seek to record="u64bitFMT" at fileposition="u64bitFMT" failed: %s\n",
+    fprintf(stderr, "recordFile::seek() '%s' seek to record="uint64FMT" at fileposition="uint64FMT" failed: %s\n",
             _name, _pos, _headerSize + _pos * _recordSize, strerror(errno)), exit(1);
 
   errno = 0;
   read(_file, _bfr, _recordSize * _bfrmax);
   if (errno)
-    fprintf(stderr, "recordFile::seek() '%s' read of "u64bitFMT" bytes failed at record "u64bitFMT", fileposition "u64bitFMT"': %s\n",
+    fprintf(stderr, "recordFile::seek() '%s' read of "uint64FMT" bytes failed at record "uint64FMT", fileposition "uint64FMT"': %s\n",
             _name, _recordSize * _bfrmax, _pos, _headerSize + _pos * _recordSize, strerror(errno)), exit(1);
 }
 
 
 
-u32bit
-recordFile::getRecord(void *record, u32bit num) {
-  u32bit  maxnum  = _bfrmax / 2;
+uint32
+recordFile::getRecord(void *record, uint32 num) {
+  uint32  maxnum  = _bfrmax / 2;
 
   //  Reading large blocks -- bigger than the in-core size?  Loop and
   //  recurse.
   //
   if (num > maxnum) {
-    u32bit  numread = 0;
-    u32bit  pos = 0;
-    u32bit  len = 0;
+    uint32  numread = 0;
+    uint32  pos = 0;
+    uint32  len = 0;
 
     while (num > 0) {
       len = MIN(maxnum, num);
@@ -290,12 +290,12 @@ recordFile::getRecord(void *record, u32bit num) {
 
 
 void
-recordFile::putRecord(void *record, u32bit num) {
-  u32bit  maxnum = _bfrmax / 2;
+recordFile::putRecord(void *record, uint32 num) {
+  uint32  maxnum = _bfrmax / 2;
 
   if (num > maxnum) {
-    u32bit  pos = 0;
-    u32bit  len = 0;
+    uint32  pos = 0;
+    uint32  len = 0;
 
     while (num > 0) {
       len = MIN(maxnum, num);

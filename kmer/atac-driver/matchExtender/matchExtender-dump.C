@@ -28,10 +28,10 @@
 
 void
 match_s::dump(FILE *out, const char *descr, bool showSeq) {
-  fprintf(out, "%s: ID:%s range1:"u32bitFMT","u32bitFMT" _pos="u32bitFMT" (seqlen="u32bitFMT")\n",
+  fprintf(out, "%s: ID:%s range1:"uint32FMT","uint32FMT" _pos="uint32FMT" (seqlen="uint32FMT")\n",
           descr, _matchId,
           _acc1->getRangeBegin(), _acc1->getRangeLength(), _acc1->_pos, _seq1->sequenceLength());
-  fprintf(out, "%s  ID:%s range2:"u32bitFMT","u32bitFMT" _pos="u32bitFMT" (seqlen="u32bitFMT")  diag:"u32bitFMT" %s\n",
+  fprintf(out, "%s  ID:%s range2:"uint32FMT","uint32FMT" _pos="uint32FMT" (seqlen="uint32FMT")  diag:"uint32FMT" %s\n",
           descr, _matchId,
           _acc2->getRangeBegin(), _acc2->getRangeLength(), _acc2->_pos, _seq2->sequenceLength(),
           _diagonal, (_ori1 != _ori2) ? "reversed" : "");
@@ -42,14 +42,14 @@ match_s::dump(FILE *out, const char *descr, bool showSeq) {
 
     //  Save the position of the accessors
     //
-    u32bit  acc1pos = A._pos;
-    u32bit  acc2pos = B._pos;
+    uint32  acc1pos = A._pos;
+    uint32  acc2pos = B._pos;
 
     A.setPosition(A.getRangeBegin());
     B.setPosition(B.getRangeBegin());
 
-    u32bit    margin = 5;
-    u32bit    i = 0;
+    uint32    margin = 5;
+    uint32    i = 0;
     char     *seq = new char [_acc1->getRangeEnd() - _acc1->getRangeBegin() + margin + margin + 32];
     char     *las = seq;
 

@@ -30,19 +30,19 @@ using namespace std;
 #include "seqCache.H"
 
 
-u32bit  minEndRunLen = 10;    // -E /matchExtenderMinEndRunLen
-u32bit  maxMMBlock   = 3;     // -B /matchExtenderMaxMMBlock
-u32bit  minBlockSep  = 20;    // -S /matchExtenderMinBlockSep
+uint32  minEndRunLen = 10;    // -E /matchExtenderMinEndRunLen
+uint32  maxMMBlock   = 3;     // -B /matchExtenderMaxMMBlock
+uint32  minBlockSep  = 20;    // -S /matchExtenderMinBlockSep
 double  minIdentity  = 0.95;  // -I /matchExtenderMinIdentity
-u32bit  maxNbrSep    = 100;   // -P /matchExtenderMaxNbrSep
-u32bit  maxNbrPathMM = 5;     // -D /matchExtenderMaxNbrPathMM
+uint32  maxNbrSep    = 100;   // -P /matchExtenderMaxNbrSep
+uint32  maxNbrPathMM = 5;     // -D /matchExtenderMaxNbrPathMM
 
 
-bool   trim_to_pct(vector<match_s *>& matches, u32bit midx, double pct);
-void   extend_match_backward(vector<match_s *>& matches, u32bit midx, u32bit min_start_pos);
+bool   trim_to_pct(vector<match_s *>& matches, uint32 midx, double pct);
+void   extend_match_backward(vector<match_s *>& matches, uint32 midx, uint32 min_start_pos);
 bool   can_reach_nearby_match(match_s *src, match_s *dest);
-bool   extend_match_forward(vector<match_s *>& matches, u32bit midx, match_s *target);
-u32bit extend_matches_on_diagonal(vector<match_s *>& matches, u32bit diag_start);
+bool   extend_match_forward(vector<match_s *>& matches, uint32 midx, match_s *target);
+uint32 extend_matches_on_diagonal(vector<match_s *>& matches, uint32 diag_start);
 
 
 class MatchCompare {
@@ -77,8 +77,8 @@ readMatches(atacFileStreamMerge   &AF,
   if (m == 0L)
     return(false);
 
-  u32bit               iid1 = m->iid1;
-  u32bit               iid2 = m->iid2;
+  uint32               iid1 = m->iid1;
+  uint32               iid2 = m->iid2;
 
   seqInCore *seq1 = C1->getSequenceInCore(iid1);
   seqInCore *seq2 = C2->getSequenceInCore(iid2);
@@ -123,17 +123,17 @@ main(int argc, char *argv[]) {
   int arg=1;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-e") == 0) {
-      minEndRunLen = strtou32bit(argv[++arg], 0L);
+      minEndRunLen = strtouint32(argv[++arg], 0L);
     } else if (strcmp(argv[arg], "-b") == 0) {
-      maxMMBlock   = strtou32bit(argv[++arg], 0L);
+      maxMMBlock   = strtouint32(argv[++arg], 0L);
     } else if (strcmp(argv[arg], "-s") == 0) {
-      minBlockSep  = strtou32bit(argv[++arg], 0L);
+      minBlockSep  = strtouint32(argv[++arg], 0L);
     } else if (strcmp(argv[arg], "-i") == 0) {
       minIdentity  = atof(argv[++arg]);
     } else if (strcmp(argv[arg], "-p") == 0) {
-      maxNbrSep    = strtou32bit(argv[++arg], 0L);
+      maxNbrSep    = strtouint32(argv[++arg], 0L);
     } else if (strcmp(argv[arg], "-d") == 0) {
-      maxNbrPathMM = strtou32bit(argv[++arg], 0L);
+      maxNbrPathMM = strtouint32(argv[++arg], 0L);
     } else {
       //fprintf(stderr, "unknown option %s\n", argv[arg]);
       //fail = true;
@@ -166,7 +166,7 @@ main(int argc, char *argv[]) {
 
   while (readMatches(AF, m, C1, C2, fwdMatches, revMatches)) {
 
-    u32bit diag_start = 0;
+    uint32 diag_start = 0;
     while (diag_start < fwdMatches.size()) {
       //fprintf(stderr, "fwd: M u %s . %s %d %d 1 %s %d %d 1\n",
       //        fwdMatches[diag_start]->_matchId,
@@ -187,18 +187,18 @@ main(int argc, char *argv[]) {
 
     //  Dump and destroy all the matches
     //
-    for (u32bit i=0; i<fwdMatches.size(); i++) {
+    for (uint32 i=0; i<fwdMatches.size(); i++) {
       if (!fwdMatches[i]->isDeleted())
-        fprintf(stdout, "M u %s . %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" 1 %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" 1\n",
+        fprintf(stdout, "M u %s . %s:"uint32FMT" "uint32FMT" "uint32FMT" 1 %s:"uint32FMT" "uint32FMT" "uint32FMT" 1\n",
                 fwdMatches[i]->_matchId,
                 AF.labelA(), fwdMatches[i]->_iid1, fwdMatches[i]->_acc1->getRangeBegin(), fwdMatches[i]->_acc1->getRangeLength(),
                 AF.labelB(), fwdMatches[i]->_iid2, fwdMatches[i]->_acc2->getRangeBegin(), fwdMatches[i]->_acc2->getRangeLength());
       delete fwdMatches[i];
     }
 
-    for (u32bit i=0; i<revMatches.size(); i++) {
+    for (uint32 i=0; i<revMatches.size(); i++) {
       if (!revMatches[i]->isDeleted())
-        fprintf(stdout, "M u %s . %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" 1 %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" -1\n",
+        fprintf(stdout, "M u %s . %s:"uint32FMT" "uint32FMT" "uint32FMT" 1 %s:"uint32FMT" "uint32FMT" "uint32FMT" -1\n",
                 revMatches[i]->_matchId,
                 AF.labelA(), revMatches[i]->_iid1, revMatches[i]->_acc1->getRangeBegin(), revMatches[i]->_acc1->getRangeLength(),
                 AF.labelB(), revMatches[i]->_iid2, revMatches[i]->_acc2->getRangeBegin(), revMatches[i]->_acc2->getRangeLength());

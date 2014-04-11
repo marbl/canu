@@ -14,13 +14,13 @@ doSearch(searcherState *state,
 
   //  Get the hits
   double startTime = getTime();
-  u64bit count     = 0;
+  uint64 count     = 0;
 
   hitMatrix *matrix = new hitMatrix(query->bpTotal(),
                                     query->bpCovered(false),
                                     query->IID());
 
-  for (u32bit qi=0; qi<query->numberOfMers(); qi++)
+  for (uint32 qi=0; qi<query->numberOfMers(); qi++)
     if ((query->getSkip(qi, isReverse) == false) &&
         (config._positions->getExact(query->getMer(qi, isReverse),
                                      state->posn,
@@ -53,13 +53,13 @@ searchThread(void *U, void *T, void *Q) {
   double startTime = getTime();
 
   if (config._maskDB)
-    for (u32bit qi=0; qi<query->numberOfMers(); qi++)
+    for (uint32 qi=0; qi<query->numberOfMers(); qi++)
       if ((query->getSkip(qi, false) == false) &&
           (config._maskDB->exists(query->getMer(qi, false))))
         query->setSkip(qi, false);
 
   if (config._onlyDB)
-    for (u32bit qi=0; qi<query->numberOfMers(); qi++)
+    for (uint32 qi=0; qi<query->numberOfMers(); qi++)
       if ((query->getSkip(qi, false) == false) &&
           (!config._onlyDB->exists(query->getMer(qi, false))))
         query->setSkip(qi, false);

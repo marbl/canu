@@ -13,7 +13,7 @@
 
 class bitPackedMerHeap {
 public:
-  bitPackedMerHeap(seqStore *SS, u32bit width, u64bit size=16) {
+  bitPackedMerHeap(seqStore *SS, uint32 width, uint64 size=16) {
     _array    = new bitPackedArray(width, size);
     _array->set(0, 0);
     _lastVal  = 0;
@@ -26,7 +26,7 @@ public:
 
   //  Get the mer with index idx in the merStream
   //
-  kMer const  &getMer(u64bit idx) {
+  kMer const  &getMer(uint64 idx) {
     _mers->setIterationStart(idx);
     _mers->nextMer();
     if (_mers->theRMer() < _mers->theFMer())
@@ -34,8 +34,8 @@ public:
     return(_mers->theFMer());
   }
 
-  u64bit       get(kMer &mer) {
-    u64bit  pos = ~u64bitZERO;
+  uint64       get(kMer &mer) {
+    uint64  pos = ~uint64ZERO;
 
     if (_lastVal == 0)
       return(pos);
@@ -48,16 +48,16 @@ public:
 
     //  Rebalance the heap
 
-    u64bit  tval = _array->get(_lastVal);
+    uint64  tval = _array->get(_lastVal);
     kMer    tmer;
 
     _array->set(0, tval);
 
-    u64bit  pidx = 0;
-    u64bit  pval = tval;
+    uint64  pidx = 0;
+    uint64  pval = tval;
     kMer    pmer = getMer(pval);
-    u64bit  cidx = 1;
-    u64bit  cval = 0;  //  set below
+    uint64  cidx = 1;
+    uint64  cval = 0;  //  set below
     kMer    cmer;
 
     while (cidx < _lastVal) {
@@ -95,12 +95,12 @@ public:
     return(pos);
   };
 
-  void      add(u64bit value) {
-    u64bit  cidx = _lastVal++;
-    u64bit  cval = value;
+  void      add(uint64 value) {
+    uint64  cidx = _lastVal++;
+    uint64  cval = value;
     kMer    cmer;
-    u64bit  pidx = 0;
-    u64bit  pval = 0;
+    uint64  pidx = 0;
+    uint64  pval = 0;
     kMer    pmer;
     bool    more = true;
 
@@ -133,8 +133,8 @@ public:
   };
 
   void      dump(void) {
-    for (u32bit i=0; i<_lastVal; i++)
-      fprintf(stderr, "HEAP["u32bitFMT"]="u64bitFMT"\n", i, _array->get(i));
+    for (uint32 i=0; i<_lastVal; i++)
+      fprintf(stderr, "HEAP["uint32FMT"]="uint64FMT"\n", i, _array->get(i));
   }
 
   void      clear(void) {
@@ -144,7 +144,7 @@ public:
 
 private:
   bitPackedArray       *_array;
-  u64bit                _lastVal;
+  uint64                _lastVal;
   seqStore             *_mers;
 };
 

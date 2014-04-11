@@ -9,13 +9,13 @@
 configuration          config;
 seqCache              *qsFASTA          = 0L;
 positionDB            *positions        = 0L;
-volatile u32bit        numberOfQueries  = 0;
+volatile uint32        numberOfQueries  = 0;
 filterObj            **output           = 0L;
 pthread_mutex_t        inputTailMutex;
 seqInCore            **input            = 0L;
-volatile u32bit        inputHead        = 0;
-volatile u32bit        inputTail        = 0;
-volatile u32bit        outputPos        = 0;
+volatile uint32        inputHead        = 0;
+volatile uint32        inputTail        = 0;
+volatile uint32        outputPos        = 0;
 char                  *threadStats[MAX_THREADS] = { 0L };
 
 
@@ -62,7 +62,7 @@ main(int argc, char **argv) {
   inputHead        = 0;
   inputTail        = 0;
 
-  for (u32bit i=numberOfQueries; i--; ) {
+  for (uint32 i=numberOfQueries; i--; ) {
     output[i]    = 0L;
     input[i]     = 0L;
   }
@@ -88,14 +88,14 @@ main(int argc, char **argv) {
     if (config._maskFileName) {
       if (config._beVerbose)
         fprintf(stderr, "Building maskDB from '%s'\n", config._maskFileName);
-      maskDB = new existDB(config._maskFileName, config._merSize, existDBcanonical | existDBcompressHash | existDBcompressBuckets, 0, ~u32bitZERO);
+      maskDB = new existDB(config._maskFileName, config._merSize, existDBcanonical | existDBcompressHash | existDBcompressBuckets, 0, ~uint32ZERO);
     }
 
     existDB *onlyDB = 0L;
     if (config._onlyFileName) {
       if (config._beVerbose)
         fprintf(stderr, "Building onlyDB from '%s'\n", config._onlyFileName);
-      onlyDB = new existDB(config._onlyFileName, config._merSize, existDBcanonical | existDBcompressHash | existDBcompressBuckets, 0, ~u32bitZERO);
+      onlyDB = new existDB(config._onlyFileName, config._merSize, existDBcanonical | existDBcompressHash | existDBcompressBuckets, 0, ~uint32ZERO);
     }
 
     merStream  *MS = new merStream(new kMerBuilder(config._merSize),
@@ -150,7 +150,7 @@ main(int argc, char **argv) {
 
   //  Start the search threads
   //
-  for (u32bit i=0; i<config._numSearchThreads; i++) {
+  for (uint32 i=0; i<config._numSearchThreads; i++) {
     threadStats[i] = 0L;
     pthread_create(&threadID, &threadAttr, searchThread, (void *)(unsigned long)i);
   }
@@ -190,7 +190,7 @@ main(int argc, char **argv) {
 
   //  The match id of each output record.
   //
-  u64bit   matchID = 0;
+  uint64   matchID = 0;
 
   double  zeroTime = getTime() - 0.00000001;
 
@@ -198,7 +198,7 @@ main(int argc, char **argv) {
     if (output[outputPos]) {
       if (config._beVerbose && ((outputPos & 0x1ff) == 0x1ff)) {
         fprintf(stderr,
-                "O:"u32bitFMTW(7)" S:"u32bitFMTW(7)" I:"u32bitFMTW(7)" T:"u32bitFMTW(7)" (%5.1f%%; %8.3f/sec) Finish in %5.2f seconds.\r",
+                "O:"uint32FMTW(7)" S:"uint32FMTW(7)" I:"uint32FMTW(7)" T:"uint32FMTW(7)" (%5.1f%%; %8.3f/sec) Finish in %5.2f seconds.\r",
                 outputPos,
                 inputTail,
                 inputHead,
@@ -236,7 +236,7 @@ main(int argc, char **argv) {
   }
 
   if (config._beVerbose) {
-    fprintf(stderr, "\n"u32bitFMTW(7)" sequences (%5.1f%%; %8.3f/sec) %5.2f seconds.\n",
+    fprintf(stderr, "\n"uint32FMTW(7)" sequences (%5.1f%%; %8.3f/sec) %5.2f seconds.\n",
             numberOfQueries,
             100.0 * outputPos / numberOfQueries,
             outputPos / (getTime() - zeroTime),

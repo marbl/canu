@@ -62,19 +62,19 @@ main(int argc, char **argv) {
   //
   merylStreamReader  *MSR = new merylStreamReader(merylCount);
 
-  fprintf(stderr, "Mers are "u32bitFMT" bases.\n", MSR->merSize());
-  fprintf(stderr, "There are "u64bitFMT" unique (copy = 1) mers.\n", MSR->numberOfUniqueMers());
-  fprintf(stderr, "There are "u64bitFMT" distinct mers.\n", MSR->numberOfDistinctMers());
-  fprintf(stderr, "There are "u64bitFMT" mers total.\n", MSR->numberOfTotalMers());
+  fprintf(stderr, "Mers are "uint32FMT" bases.\n", MSR->merSize());
+  fprintf(stderr, "There are "uint64FMT" unique (copy = 1) mers.\n", MSR->numberOfUniqueMers());
+  fprintf(stderr, "There are "uint64FMT" distinct mers.\n", MSR->numberOfDistinctMers());
+  fprintf(stderr, "There are "uint64FMT" mers total.\n", MSR->numberOfTotalMers());
 
   //  Guess how many mers we can fit into 512MB, then report how many chunks we need to do.
 
-  u32bit  merSize      = MSR->merSize();
-  u64bit  memoryLimit  = 700 * 1024 * 1024;
-  u64bit  perMer       = sizeof(kMerLite) + sizeof(dnode_t);
-  u64bit  mersPerBatch = memoryLimit / perMer;
-  u32bit  numBatches   = MSR->numberOfDistinctMers() / mersPerBatch;
-  u32bit  batch        = 0;
+  uint32  merSize      = MSR->merSize();
+  uint64  memoryLimit  = 700 * 1024 * 1024;
+  uint64  perMer       = sizeof(kMerLite) + sizeof(dnode_t);
+  uint64  mersPerBatch = memoryLimit / perMer;
+  uint32  numBatches   = MSR->numberOfDistinctMers() / mersPerBatch;
+  uint32  batch        = 0;
 
   dnode_t   *nodes     = new dnode_t  [mersPerBatch];
   kMerLite  *mers      = new kMerLite [mersPerBatch];
@@ -82,20 +82,20 @@ main(int argc, char **argv) {
   if (MSR->numberOfDistinctMers() % mersPerBatch)
     numBatches++;
 
-  fprintf(stderr, "perMer:  "u64bitFMT" bytes ("u64bitFMT" for kMerLite, "u64bitFMT" for dnode_t.\n",
-          perMer, (u64bit)sizeof(kMerLite), (u64bit)sizeof(dnode_t));
-  fprintf(stderr, "We can fit "u64bitFMT" mers into "u64bitFMT"MB.\n", mersPerBatch, memoryLimit >> 20);
-  fprintf(stderr, "So we need "u32bitFMT" batches to verify the count.\n", numBatches);
+  fprintf(stderr, "perMer:  "uint64FMT" bytes ("uint64FMT" for kMerLite, "uint64FMT" for dnode_t.\n",
+          perMer, (uint64)sizeof(kMerLite), (uint64)sizeof(dnode_t));
+  fprintf(stderr, "We can fit "uint64FMT" mers into "uint64FMT"MB.\n", mersPerBatch, memoryLimit >> 20);
+  fprintf(stderr, "So we need "uint32FMT" batches to verify the count.\n", numBatches);
 
   while (MSR->validMer()) {
-    u64bit          mersRemain = mersPerBatch;
+    uint64          mersRemain = mersPerBatch;
     dict_t         *merDict    = dict_create(mersPerBatch, kMerLiteSort);
 
     batch++;
 
     //  STEP 1:  Insert mersPerBatch into the merDict
     //
-    fprintf(stderr, "STEP 1 BATCH "u32bitFMTW(2)":  Insert into merDict\n", batch);
+    fprintf(stderr, "STEP 1 BATCH "uint32FMTW(2)":  Insert into merDict\n", batch);
     while (MSR->nextMer() && mersRemain) {
       mersRemain--;
 
@@ -104,14 +104,14 @@ main(int argc, char **argv) {
       //  initialize the node with the value, then insert the node
       //  into the tree using the key
 
-      s32bit val = (s32bit)MSR->theCount();
+      int32 val = (int32)MSR->theCount();
       dnode_init(&nodes[mersRemain], (void *)val);
       dict_insert(merDict, &nodes[mersRemain], &mers[mersRemain]);
     }
 
     //  STEP 2:  Stream the original file, decrementing the count
     //
-    fprintf(stderr, "STEP 2 BATCH "u32bitFMTW(2)":  Stream fasta\n", batch);
+    fprintf(stderr, "STEP 2 BATCH "uint32FMTW(2)":  Stream fasta\n", batch);
     seqStream    *CS = new seqStream(fastaName, true);
     merStream    *MS = new merStream(new kMerBuilder(merSize), CS);
 
@@ -124,7 +124,7 @@ main(int argc, char **argv) {
       nod = dict_lookup(merDict, &mer);
 
       if (nod != 0L) {
-        s32bit val = (s32bit)dnode_get(nod);
+        int32 val = (int32)dnode_get(nod);
         val--;
         dnode_put(nod, (void *)val);
       } else {
@@ -144,15 +144,15 @@ main(int argc, char **argv) {
     //  STEP 3:  Check every node in the tree to make sure that the counts
     //  are exactly zero.
     //
-    fprintf(stderr, "STEP 3 BATCH "u32bitFMTW(2)":  Check\n", batch);
+    fprintf(stderr, "STEP 3 BATCH "uint32FMTW(2)":  Check\n", batch);
     nod = dict_first(merDict);
     while (nod) {
-      s32bit           val = (s32bit)dnode_get(nod); 
+      int32           val = (int32)dnode_get(nod); 
       kMerLite const  *nodmer = (kMerLite const *)dnode_getkey(nod);
 
       if (val != 0) {
         char str[1024];
-        fprintf(stderr, "Got count "s32bitFMT" for mer '%s'\n",
+        fprintf(stderr, "Got count "int32FMT" for mer '%s'\n",
                 val,
                 nodmer->merToString(merSize, str));
       }
@@ -163,7 +163,7 @@ main(int argc, char **argv) {
 
     //  STEP 4:  Destroy the dictionary.
     //
-    fprintf(stderr, "STEP 4 BATCH "u32bitFMTW(2)":  Destroy\n", batch);
+    fprintf(stderr, "STEP 4 BATCH "uint32FMTW(2)":  Destroy\n", batch);
     while ((nod = dict_first(merDict)))
       dict_delete(merDict, nod);
     dict_destroy(merDict);

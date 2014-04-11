@@ -32,20 +32,20 @@ NAME(FILE             *outfile,
      atacMatchList    *M2,
      overlapStats     &stats,
      annoList         *AL,
-     u32bit           &ALlen,
-     u32bit           &ALmax) {
+     uint32           &ALlen,
+     uint32           &ALmax) {
 
   dnode_t  *node = dict_first(S->_tree);
 
   while (node) {
     span_t  *span = (span_t *)dnode_getkey(node);
-    u32bit   spanLen = span->_end - span->_beg;
+    uint32   spanLen = span->_end - span->_beg;
 
     if (span->_matchesLen == 0) {
       stats.unmapped += spanLen;
       printAnno(outfile, AL, ALlen, 'U', INDEX, span);
     } else if (span->_matchesLen == 1) {
-      u32bit    match = span->_matches[0];
+      uint32    match = span->_matches[0];
       atacMatch  *m;
 
       if (match >> COLORSHIFT) {
@@ -62,8 +62,8 @@ NAME(FILE             *outfile,
       stats.inconsistent += spanLen;
       printAnno(outfile, AL, ALlen, '?', INDEX, span);
     } else if (span->_matchesLen == 2) {
-      u32bit match1 = span->_matches[0];
-      u32bit match2 = span->_matches[1];
+      uint32 match1 = span->_matches[0];
+      uint32 match2 = span->_matches[1];
 
       if (match1 >> COLORSHIFT) {
         match1 = span->_matches[1];
@@ -74,13 +74,13 @@ NAME(FILE             *outfile,
       atacMatch  *m2 = M2->getMatch(match2 & COLORMASK);
 
       if (m1->iid2 == m2->iid2) {
-        u32bit off1  = span->_beg - m1->POS1;
-        u32bit pos1l = m1->POS2 + off1;
-        u32bit pos1r = m1->POS2 + m1->LEN2 - off1;
+        uint32 off1  = span->_beg - m1->POS1;
+        uint32 pos1l = m1->POS2 + off1;
+        uint32 pos1r = m1->POS2 + m1->LEN2 - off1;
 
-        u32bit off2  = span->_beg - m2->POS1;
-        u32bit pos2l = m2->POS2 + off2;
-        u32bit pos2r = m2->POS2 + m2->LEN2 - off2;
+        uint32 off2  = span->_beg - m2->POS1;
+        uint32 pos2l = m2->POS2 + off2;
+        uint32 pos2r = m2->POS2 + m2->LEN2 - off2;
 
         if ((pos1l == pos2l) || (pos1r == pos2r)) {
           stats.same += spanLen;

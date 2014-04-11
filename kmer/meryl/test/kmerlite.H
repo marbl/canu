@@ -16,19 +16,19 @@ public:
 
   //  Used by some of the test routines.
   void    dump(void) const {
-    for (u32bit i=0; i<KMER_WORDS; i++)
-      fprintf(stderr, "kMerLite["u32bitFMTW(2)"] = "u64bitHEX"\n", i, _wd[i]);
+    for (uint32 i=0; i<KMER_WORDS; i++)
+      fprintf(stderr, "kMerLite["uint32FMTW(2)"] = "uint64HEX"\n", i, _wd[i]);
   };
 
 
 public:
   void    copy(kMer const &that) {
-    for (u32bit i=0; i<KMER_WORDS; i++)
+    for (uint32 i=0; i<KMER_WORDS; i++)
       _wd[i] = that.getWord(i);
   };
   void    clear(void) {
-    for (u32bit i=0; i<KMER_WORDS; i++)
-      _wd[i] = u64bitZERO;
+    for (uint32 i=0; i<KMER_WORDS; i++)
+      _wd[i] = uint64ZERO;
   };
 
 public:
@@ -46,20 +46,20 @@ public:
     return(*this);
   };
 
-  char    *merToString(u32bit merSize, char *instr) const {
-    u32bit  lastWord = merSize >> 5;
+  char    *merToString(uint32 merSize, char *instr) const {
+    uint32  lastWord = merSize >> 5;
     char   *str = instr;
 
-    if ((merSize & u32bitMASK(6)) == 0)
+    if ((merSize & uint32MASK(6)) == 0)
       lastWord++;
 
     //  We build the string right to left, print any partial word
     //  first, then print whole words until we run out of words to
     //  print.
 
-    if (merSize & u32bitMASK(5)) {
-      ::merToString(merSize & u32bitMASK(5), _wd[lastWord], str);
-      str += merSize & u32bitMASK(5);
+    if (merSize & uint32MASK(5)) {
+      ::merToString(merSize & uint32MASK(5), _wd[lastWord], str);
+      str += merSize & uint32MASK(5);
     }
 
     while (lastWord > 0) {
@@ -83,41 +83,41 @@ public:
 #else
 
   bool    operator!=(kMerLite const &r) const {
-    u64bit res = u64bitZERO;
-    for (u32bit i=KMER_WORDS; i--; )
+    uint64 res = uint64ZERO;
+    for (uint32 i=KMER_WORDS; i--; )
       res |= _wd[i] ^ r._wd[i];
-    return(res != u64bitZERO);
+    return(res != uint64ZERO);
   };
   bool    operator==(kMerLite const &r) const {
-    u64bit res = u64bitZERO;
-    for (u32bit i=KMER_WORDS; i--; )
+    uint64 res = uint64ZERO;
+    for (uint32 i=KMER_WORDS; i--; )
       res |= _wd[i] ^ r._wd[i];
-    return(res == u64bitZERO);
+    return(res == uint64ZERO);
   };
 
   bool    operator<(kMerLite const &r) const {
-    for (u32bit i=KMER_WORDS; i--; ) {
+    for (uint32 i=KMER_WORDS; i--; ) {
       if (_wd[i] < r._wd[i])  return(true);
       if (_wd[i] > r._wd[i])  return(false);
     }
     return(false);
   };
   bool    operator>(kMerLite const &r) const {
-    for (u32bit i=KMER_WORDS; i--; ) {
+    for (uint32 i=KMER_WORDS; i--; ) {
       if (_wd[i] > r._wd[i])  return(true);
       if (_wd[i] < r._wd[i])  return(false);
     }
     return(false);
   };
   bool    operator<=(kMerLite const &r) const {
-    for (u32bit i=KMER_WORDS; i--; ) {
+    for (uint32 i=KMER_WORDS; i--; ) {
       if (_wd[i] < r._wd[i])  return(true);
       if (_wd[i] > r._wd[i])  return(false);
     }
     return(true);
   };
   bool    operator>=(kMerLite const &r) const {
-    for (u32bit i=KMER_WORDS; i--; ) {
+    for (uint32 i=KMER_WORDS; i--; ) {
       if (_wd[i] > r._wd[i])  return(true);
       if (_wd[i] < r._wd[i])  return(false);
     }
@@ -126,7 +126,7 @@ public:
 #endif
 
 private:
-  u64bit   _wd[KMER_WORDS];
+  uint64   _wd[KMER_WORDS];
 };
 
 

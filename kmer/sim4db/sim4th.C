@@ -42,8 +42,8 @@ readBuffer       *scriptFile       = 0L;
 seqCache         *GENs             = 0L;
 seqCache         *ESTs             = 0L;
 
-u32bit            lastGENiid       = ~u32bitZERO;
-u32bit            lastESTiid       = ~u32bitZERO;
+uint32            lastGENiid       = ~uint32ZERO;
+uint32            lastESTiid       = ~uint32ZERO;
 seqInCore        *lastGENseq       = 0L;
 
 int               fOutput          = 0;
@@ -61,8 +61,8 @@ bool              pairwise         = false;
 bool              beVerbose        = false;
 bool              beYesNo          = false;
 
-u32bit            numThreads       = 2;
-u32bit            loaderCacheSize  = 1024;
+uint32            numThreads       = 2;
+uint32            loaderCacheSize  = 1024;
 
 sim4parameters    sim4params;
 
@@ -77,8 +77,8 @@ sim4parameters    sim4params;
 //
 //
 char*
-getNextScript(u32bit     &ESTiid,
-              u32bit     &GENiid, u32bit &GENlo, u32bit &GENhi,
+getNextScript(uint32     &ESTiid,
+              uint32     &GENiid, uint32 &GENlo, uint32 &GENhi,
               bool       &doForward,
               bool       &doReverse) {
 
@@ -94,8 +94,8 @@ getNextScript(u32bit     &ESTiid,
   if (scriptFile->eof())
     return(0L);
 
-  u32bit  linePos = 0;
-  u32bit  lineMax = 128;
+  uint32  linePos = 0;
+  uint32  lineMax = 128;
   char   *line    = new char [lineMax];
 
   //  Copy the line from the readBuffer into our storage
@@ -108,7 +108,7 @@ getNextScript(u32bit     &ESTiid,
 
   //  Decode the line
   //
-  u32bit         argWords = 0;
+  uint32         argWords = 0;
   splitToWords   words(line);
 
   while (words.getWord(argWords)) {
@@ -122,12 +122,12 @@ getNextScript(u32bit     &ESTiid,
         doReverse = true;
         break;
       case 'D':
-        GENiid = strtou32bit(words.getWord(++argWords), 0L);
-        GENlo  = strtou32bit(words.getWord(++argWords), 0L);
-        GENhi  = strtou32bit(words.getWord(++argWords), 0L);
+        GENiid = strtouint32(words.getWord(++argWords), 0L);
+        GENlo  = strtouint32(words.getWord(++argWords), 0L);
+        GENhi  = strtouint32(words.getWord(++argWords), 0L);
         break;
       case 'e':
-        ESTiid = strtou32bit(words.getWord(++argWords), 0L);
+        ESTiid = strtouint32(words.getWord(++argWords), 0L);
         break;
       default:
         //fprintf(stderr, "Unknown option '%s'\n", words.getWord(argWords));
@@ -165,10 +165,10 @@ void*
 loader(void *U) {
   bool                  doForward = true;
   bool                  doReverse = true;
-  u32bit                ESTiid = 0;
-  u32bit                GENiid = 0;
-  u32bit                GENlo  = 0;
-  u32bit                GENhi  = 0;
+  uint32                ESTiid = 0;
+  uint32                GENiid = 0;
+  uint32                GENlo  = 0;
+  uint32                GENhi  = 0;
 
   sim4thWork *p = new sim4thWork();
   
@@ -220,9 +220,9 @@ loaderPairwise(void *) {
 
   //  Align cDNA i to genomic i.
 
-  if (lastGENiid == ~u32bitZERO)  //  happens on the first time through
+  if (lastGENiid == ~uint32ZERO)  //  happens on the first time through
     lastGENiid = 0;
-  if (lastESTiid == ~u32bitZERO)  //  happens on the first time through
+  if (lastESTiid == ~uint32ZERO)  //  happens on the first time through
     lastESTiid = 0;
 
   //  If we've run out of sequences, we're done!
@@ -262,7 +262,7 @@ loaderAll(void *) {
     p->gendelete = lastGENseq;
     lastGENseq   = 0L;
 
-    if (lastGENiid == ~u32bitZERO)  //  happens on the first time through
+    if (lastGENiid == ~uint32ZERO)  //  happens on the first time through
       lastGENiid = 0;
     else
       lastGENiid++;
@@ -309,7 +309,7 @@ writer(void *U, void *S) {
 
   sim4polishList  &L4 = *(p->output);
 
-  for (u32bit i=0; L4[i]; i++) {
+  for (uint32 i=0; L4[i]; i++) {
     char *o = L4[i]->s4p_polishToString(sim4params.getOutputFormat());
 
     errno = 0;
@@ -324,7 +324,7 @@ writer(void *U, void *S) {
     char  str[128];
 
     if (L4[0])
-      sprintf(str, "%s -Y "u32bitFMT" "u32bitFMT"\n",
+      sprintf(str, "%s -Y "uint32FMT" "uint32FMT"\n",
               p->script, L4[0]->_percentIdentity, L4[0]->_querySeqIdentity);
     else
       sprintf(str, "%s -N 0 0\n", p->script);
@@ -443,7 +443,7 @@ main(int argc, char **argv) {
       yesnoFileName = argv[++arg];
 
     } else if (strncmp(argv[arg], "-threads", 3) == 0) {
-      numThreads = strtou32bit(argv[++arg], 0L);
+      numThreads = strtouint32(argv[++arg], 0L);
 
     } else if (strncmp(argv[arg], "-H", 2) == 0) {
       sim4params.setRelinkWeight(atoi(argv[++arg]));

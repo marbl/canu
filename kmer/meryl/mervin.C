@@ -16,33 +16,33 @@ using namespace std;
 //
 //  CAS - #elif (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__) > 40100
 
-const u32bit pileMax     = 32768;
+const uint32 pileMax     = 32768;
 
-const u32bit kmerSize    = 22;
-const u32bit kmerBits    = 2 * kmerSize;
+const uint32 kmerSize    = 22;
+const uint32 kmerBits    = 2 * kmerSize;
 
-const u32bit pilePreSize = 6;
-const u32bit pilePreBits = 2 * pilePreSize;
+const uint32 pilePreSize = 6;
+const uint32 pilePreBits = 2 * pilePreSize;
 
-const u32bit sortPreSize = 10;
-const u32bit sortPreBits = 2 * sortPreSize;
+const uint32 sortPreSize = 10;
+const uint32 sortPreBits = 2 * sortPreSize;
 
 
 class kmerPile {
 public:
-  kmerPile(u32bit prefix) {
+  kmerPile(uint32 prefix) {
     pileLen    = 0;
     pilePrefix = prefix;
   };
   ~kmerPile() {
   };
 
-  void     initialize(u32bit prefix) {
+  void     initialize(uint32 prefix) {
     pileLen    = 0;
     pilePrefix = prefix;
   };
 
-  void     addMer(u64bit mer) {
+  void     addMer(uint64 mer) {
     pileDat[pileLen++] = mer;
   };
 
@@ -50,10 +50,10 @@ public:
     ::sort(pileDat, pileDat + pileLen);
   };
 
-  u32bit   pileLen;
-  u32bit   pilePrefix;
+  uint32   pileLen;
+  uint32   pilePrefix;
 
-  u64bit   pileDat[pileMax];
+  uint64   pileDat[pileMax];
 };
 
 
@@ -65,24 +65,24 @@ public:
     sorterLocked = 0;
     sorterLen    = 0;
     sorterMax    = 4;
-    sorterMer    = new u64bit [sorterMax];
-    sorterCnt    = new u32bit [sorterMax];
+    sorterMer    = new uint64 [sorterMax];
+    sorterCnt    = new uint32 [sorterMax];
   };
   ~kmerSorter() {
     delete [] sorterMer;
     delete [] sorterCnt;
   };
 
-  void  merge(u64bit *pileDat, u32bit pileLen) {
-    u32bit   nmax = MAX(16, sorterLen + pileLen / 4);
-    u64bit  *nmer = new u64bit [nmax];
-    u32bit  *ncnt = new u32bit [nmax];
-    u32bit   npos = 0;
+  void  merge(uint64 *pileDat, uint32 pileLen) {
+    uint32   nmax = MAX(16, sorterLen + pileLen / 4);
+    uint64  *nmer = new uint64 [nmax];
+    uint32  *ncnt = new uint32 [nmax];
+    uint32   npos = 0;
 
     assert(nmax > 0);
 
-    u32bit   spos = 0;
-    u32bit   ppos = 0;
+    uint32   spos = 0;
+    uint32   ppos = 0;
 
     bool     useSorterFirst = false;
 
@@ -114,11 +114,11 @@ public:
       if (nmax <= npos + 1) {
         nmax += (pileLen - ppos) + (sorterLen - spos) + 1;
 
-        u64bit *nmermore = new u64bit [nmax];
-        u32bit *ncntmore = new u32bit [nmax];
+        uint64 *nmermore = new uint64 [nmax];
+        uint32 *ncntmore = new uint32 [nmax];
 
-        memcpy(nmermore, nmer, sizeof(u64bit) * (npos + 1));
-        memcpy(ncntmore, ncnt, sizeof(u32bit) * (npos + 1));
+        memcpy(nmermore, nmer, sizeof(uint64) * (npos + 1));
+        memcpy(ncntmore, ncnt, sizeof(uint32) * (npos + 1));
 
         delete [] nmer;  nmer = nmermore;
         delete [] ncnt;  ncnt = ncntmore;
@@ -146,16 +146,16 @@ public:
       }
     }
 
-    u32bit remain = (sorterLen - spos) + (pileLen - ppos);
+    uint32 remain = (sorterLen - spos) + (pileLen - ppos);
 
     if (nmax < npos + 1 + remain) {
       nmax = npos + 1 + remain;
 
-      u64bit *nmermore = new u64bit [nmax];
-      u32bit *ncntmore = new u32bit [nmax];
+      uint64 *nmermore = new uint64 [nmax];
+      uint32 *ncntmore = new uint32 [nmax];
 
-      memcpy(nmermore, nmer, sizeof(u64bit) * (npos + 1));
-      memcpy(ncntmore, ncnt, sizeof(u32bit) * (npos + 1));
+      memcpy(nmermore, nmer, sizeof(uint64) * (npos + 1));
+      memcpy(ncntmore, ncnt, sizeof(uint32) * (npos + 1));
 
       delete [] nmer;  nmer = nmermore;
       delete [] ncnt;  ncnt = ncntmore;
@@ -199,7 +199,7 @@ public:
 #if 1
     bool broken = false;
 
-    for (u32bit i=1; i<sorterLen; i++) {
+    for (uint32 i=1; i<sorterLen; i++) {
       assert(sorterMer[i-1] < sorterMer[i]);
       if (sorterMer[i-1] >= sorterMer[i])
         broken = true;
@@ -208,15 +208,15 @@ public:
 
   };
 
-  void     write(u32bit prefix, FILE *F, merylStreamWriter *W) {
+  void     write(uint32 prefix, FILE *F, merylStreamWriter *W) {
     char   km[64] = {0};
-    u32bit kp = pilePreSize;
-    u32bit np = 0;
+    uint32 kp = pilePreSize;
+    uint32 np = 0;
 
     {
-      u32bit pre = prefix;
+      uint32 pre = prefix;
 
-      for (u32bit pp=0; pp<pilePreSize; pp++) {
+      for (uint32 pp=0; pp<pilePreSize; pp++) {
         km[--kp] = bitsToLetter[pre & 0x03];
         pre >>= 2;
       }
@@ -224,17 +224,17 @@ public:
 
     np = kmerSize - pilePreSize;
 
-    for (u32bit ii=0; ii<sorterLen; ii++) {
-      u64bit mer = sorterMer[ii];
+    for (uint32 ii=0; ii<sorterLen; ii++) {
+      uint64 mer = sorterMer[ii];
 
       kp = kmerSize;
 
-      for (u32bit pp=0; pp<np; pp++) {
+      for (uint32 pp=0; pp<np; pp++) {
         km[--kp] = bitsToLetter[mer & 0x03];
         mer >>= 2;
       }
 
-      fprintf(F, ">"u32bitFMT"\n%s\n", sorterCnt[ii], km);
+      fprintf(F, ">"uint32FMT"\n%s\n", sorterCnt[ii], km);
 
       if (W)
         W->addMer(prefix,        pilePreBits,
@@ -244,12 +244,12 @@ public:
     }
   };
 
-  volatile u32bit   sorterLocked;
-  u32bit   sorterLen;
-  u32bit   sorterMax;
+  volatile uint32   sorterLocked;
+  uint32   sorterLen;
+  uint32   sorterMax;
 
-  u64bit  *sorterMer;
-  u32bit  *sorterCnt;
+  uint64  *sorterMer;
+  uint32  *sorterCnt;
 };
 
 
@@ -296,10 +296,10 @@ public:
 
     memset(piles, 0, sizeof(kmerPile *) * (1 << pilePreBits));
 
-    for (u32bit i=0; i<pilesFreeLen; i++)
+    for (uint32 i=0; i<pilesFreeLen; i++)
       pilesFree[i] = new kmerPile(0);
 
-    for (u32bit i=0; i< (1 << pilePreBits); i++)
+    for (uint32 i=0; i< (1 << pilePreBits); i++)
       piles[i] = new kmerPile(i);
 
     pilesToSortLen  = 0;
@@ -329,7 +329,7 @@ public:
     naptime.tv_nsec     = 250000ULL;
   };
 
-  kmerPile *getFreePile(u32bit prefix) {
+  kmerPile *getFreePile(uint32 prefix) {
     kmerPile *pp;
 
     while (__sync_bool_compare_and_swap(&pilesFreeLock, 0, 1) == false)
@@ -372,7 +372,7 @@ public:
   };
 
 
-  void    addToPile(u64bit pre, u64bit mer) {
+  void    addToPile(uint64 pre, uint64 mer) {
 
     assert(piles[pre] != NULL);
     //if (piles[pre] == NULL)
@@ -399,17 +399,17 @@ public:
     if (pilesToSortLen == 0)
       return(NULL);
 
-    //fprintf(stderr, "return pile "u32bitFMT"\n", pilesToSort[pilesToSortLen-1]->pilePrefix);
+    //fprintf(stderr, "return pile "uint32FMT"\n", pilesToSort[pilesToSortLen-1]->pilePrefix);
     return(pilesToSort[--pilesToSortLen]);
   };
 
 
   kmerPile *allDataLoaded(void) {
 
-    for (u32bit pp=0; pp < (1 << pilePreBits); pp++) {
+    for (uint32 pp=0; pp < (1 << pilePreBits); pp++) {
       if ((piles[pp] != NULL) &&
           (piles[pp]->pileLen > 0)) {
-        //fprintf(stderr, "Add pile "u32bitFMT" to list.\n", pp);
+        //fprintf(stderr, "Add pile "uint32FMT" to list.\n", pp);
         pilesToSort[pilesToSortLen++] = piles[pp];
       } else {
         delete piles[pp];
@@ -418,28 +418,28 @@ public:
       piles[pp] = NULL;
     }
 
-    fprintf(stderr, "allDataLoaded()-- pilesToSortLen = "u32bitFMT"\n", pilesToSortLen);
+    fprintf(stderr, "allDataLoaded()-- pilesToSortLen = "uint32FMT"\n", pilesToSortLen);
 
     return(getFullPile());
   };
 
 
-  void    addBases(u32bit bgn, u32bit len) {
-    u32bit   kp2 = kmerBits - pilePreBits - 2;
-    u32bit   pp2 = pilePreBits - 2;
+  void    addBases(uint32 bgn, uint32 len) {
+    uint32   kp2 = kmerBits - pilePreBits - 2;
+    uint32   pp2 = pilePreBits - 2;
 
-    u64bit   mpp = u64bitMASK(pilePreBits);
-    u64bit   mkp = u64bitMASK(kmerBits - pilePreBits);
+    uint64   mpp = uint64MASK(pilePreBits);
+    uint64   mkp = uint64MASK(kmerBits - pilePreBits);
 
-    for (u32bit pos=0; pos<len; pos++) {
-      u64bit  bt = letterToBits[ inputBuffer[bgn+pos] ];
+    for (uint32 pos=0; pos<len; pos++) {
+      uint64  bt = letterToBits[ inputBuffer[bgn+pos] ];
 
       if (bt > 4) {
         kLen = 0;
         continue;
       }
 
-      u64bit tm = 0;
+      uint64 tm = 0;
 
       tm  = fkMer >> kp2;
       tm &= 0x00000003;
@@ -477,14 +477,14 @@ public:
   }
 
   bool    addBaseToKmer(char base) {
-    u64bit  bt = letterToBits[base];
+    uint64  bt = letterToBits[base];
 
     if (bt > 4) {
       kLen = 0;
       return(false);
     }
 
-    u64bit tm = 0;
+    uint64 tm = 0;
 
     tm  = fkMer >> (kmerBits - pilePreBits - 2);
     tm &= 0x00000003;
@@ -511,11 +511,11 @@ public:
 
     kLen = kmerSize;
 
-    fkPre  &= u64bitMASK(pilePreBits);
-    fkMer  &= u64bitMASK(kmerBits - pilePreBits);
+    fkPre  &= uint64MASK(pilePreBits);
+    fkMer  &= uint64MASK(kmerBits - pilePreBits);
 
-    rkPre  &= u64bitMASK(pilePreBits);
-    rkMer  &= u64bitMASK(kmerBits - pilePreBits);
+    rkPre  &= uint64MASK(pilePreBits);
+    rkMer  &= uint64MASK(kmerBits - pilePreBits);
 
     addToPile(fkPre, fkMer);
     addToPile(rkPre, rkMer);
@@ -536,7 +536,7 @@ public:
 
     //merylStreamWriter   *W = new merylStreamWriter(outPrefix, kmerSize, 0, sortPreBits, false);
 
-    for (u32bit ss=0; ss < (1 << sortPreBits); ss++)
+    for (uint32 ss=0; ss < (1 << sortPreBits); ss++)
       sorters[ss].write(ss, F, NULL);
 
     fclose(F);
@@ -548,25 +548,25 @@ public:
 
   readBuffer  *inBuffer;
 
-  u64bit       inputBufferMax;
-  u64bit       inputBufferLen;
-  u64bit       inputBufferPos;
+  uint64       inputBufferMax;
+  uint64       inputBufferLen;
+  uint64       inputBufferPos;
   char        *inputBuffer;
 
   char  *outPrefix;
   FILE  *outFile;
 
-  u64bit       fkPre;  //  Forward loaded kmer
-  u64bit       fkMer;
+  uint64       fkPre;  //  Forward loaded kmer
+  uint64       fkMer;
 
-  u64bit       rkPre;  //  Reverse loaded kmer
-  u64bit       rkMer;
+  uint64       rkPre;  //  Reverse loaded kmer
+  uint64       rkMer;
 
-  u32bit       kLen;
+  uint32       kLen;
 
-  u32bit       pilesFreeLock;
-  u32bit       pilesFreeLen;
-  u32bit       pilesFreeMax;
+  uint32       pilesFreeLock;
+  uint32       pilesFreeLen;
+  uint32       pilesFreeMax;
   kmerPile   **pilesFree;
 
   kmerPile   **piles;
@@ -574,8 +574,8 @@ public:
 
   struct timespec   naptime;
 
-  u32bit       pilesToSortLen;
-  u32bit       pilesToSortMax;
+  uint32       pilesToSortLen;
+  uint32       pilesToSortMax;
   kmerPile   **pilesToSort;
 };
 
@@ -583,8 +583,8 @@ public:
 
 
 
-u64bit        bytesLoaded = 0;
-u64bit        basesLoaded = 0;
+uint64        bytesLoaded = 0;
+uint64        basesLoaded = 0;
 speedCounter  bytes(" bytes %8.0f Mbytes (%8.5f Mbytes/sec\r", 1048576, 1048576, true);
 
   //  Reads input, constructs kmers, adds kmers to piles of kmers.
@@ -602,7 +602,7 @@ sifterThread(void *global) {
  anotherBase:
   //bytesLoaded++;
   //if ((bytesLoaded % (16 * 1048576)) == 0)
-  //  fprintf(stderr, "sifterThread()-- loaded "u64bitFMT" MB.\n", bytesLoaded >> 20);
+  //  fprintf(stderr, "sifterThread()-- loaded "uint64FMT" MB.\n", bytesLoaded >> 20);
 
 #if 0
   //  Uses the readBuffer in char-by-char mode
@@ -625,7 +625,7 @@ sifterThread(void *global) {
 #if 0
   //  Uses the readBuffer in block-copy mode
   //
-  u32bit  len = glob->inBuffer->read(glob->inputBuffer, glob->inputBufferMax);
+  uint32  len = glob->inBuffer->read(glob->inputBuffer, glob->inputBufferMax);
 
   if (len == 0) {
     delete glob->inBuffer;
@@ -641,7 +641,7 @@ sifterThread(void *global) {
 #if 1
   //  Uses a direct mmap'd file
   //
-  u64bit len = glob->inputBufferLen - glob->inputBufferPos;
+  uint64 len = glob->inputBufferLen - glob->inputBufferPos;
 
   if (len == 0)
     return(NULL);
@@ -649,7 +649,7 @@ sifterThread(void *global) {
   if (len > 16 * 1048576)
     len = 16 * 1048576;
 
-  //fprintf(stderr, "Add "u64bitFMT" bases.\n", len);
+  //fprintf(stderr, "Add "uint64FMT" bases.\n", len);
 
   glob->addBases(glob->inputBufferPos, len);
   bytes.tick(len);
@@ -684,28 +684,28 @@ sorterThread(void *global, void *thread, void *thing) {
 
   pile->sort();
 
-  u32bit  pileBgn       = 0;
-  u32bit  pileEnd       = 1;
+  uint32  pileBgn       = 0;
+  uint32  pileEnd       = 1;
 
-  u32bit  pileMaskShift = sortPreBits - pilePreBits;
-  u32bit  pileDataShift = kmerBits - sortPreBits;
+  uint32  pileMaskShift = sortPreBits - pilePreBits;
+  uint32  pileDataShift = kmerBits - sortPreBits;
 
-  u64bit  pileToSortPreMask = u64bitMASK(sortPreBits - pilePreBits) << (kmerBits - sortPreBits);
-  u64bit  pileToSortMask    = u64bitMASK(kmerBits - sortPreBits);
+  uint64  pileToSortPreMask = uint64MASK(sortPreBits - pilePreBits) << (kmerBits - sortPreBits);
+  uint64  pileToSortMask    = uint64MASK(kmerBits - sortPreBits);
 
-  u32bit  sortPre           = 0;
-  u64bit  pileToSort        = 0;
+  uint32  sortPre           = 0;
+  uint64  pileToSort        = 0;
 
   while (pileBgn < pile->pileLen) {
     sortPre    = (pile->pilePrefix << pileMaskShift) | (pile->pileDat[pileBgn] >> pileDataShift);
     pileToSort = pile->pileDat[pileBgn] & pileToSortPreMask;
 
-    //fprintf(stderr, "0x"u64bitHEX"\n", pileToSortPreMask);
-    //fprintf(stderr, "0x"u64bitHEX"\n", pileToSortMask);
+    //fprintf(stderr, "0x"uint64HEX"\n", pileToSortPreMask);
+    //fprintf(stderr, "0x"uint64HEX"\n", pileToSortMask);
 
     while ((pileEnd < pile->pileLen) &&
            ((pile->pileDat[pileEnd] & pileToSortPreMask) == pileToSort)) {
-      //fprintf(stderr, "0x"u64bitHEX" -> 0x"u64bitHEX" "u64bitFMT"\n",
+      //fprintf(stderr, "0x"uint64HEX" -> 0x"uint64HEX" "uint64FMT"\n",
       //        pile->pileDat[pileEnd],
       //        pile->pileDat[pileEnd] & pileToSortMask,
       //        pile->pileDat[pileEnd] & pileToSortMask);
@@ -778,7 +778,7 @@ main(int argc, char **argv) {
   ss->setNumberOfWorkers(1);
   ss->setWriterQueueSize(16384);
 
-  //for (u32bit i=0; i<config._numSearchThreads; i++)
+  //for (uint32 i=0; i<config._numSearchThreads; i++)
   //  ss->setThreadData(i, new searcherState(i));
 
   ss->run(kg, true);

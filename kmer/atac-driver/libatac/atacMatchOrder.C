@@ -25,7 +25,7 @@
 
 
 void
-atacMatchOrder::mergeMatches(atacMatch *l, atacMatch *r, u32bit mergeuid) {
+atacMatchOrder::mergeMatches(atacMatch *l, atacMatch *r, uint32 mergeuid) {
   atacMatch   n;
 
   //  Create a new match record for the merged match.  We could
@@ -35,7 +35,7 @@ atacMatchOrder::mergeMatches(atacMatch *l, atacMatch *r, u32bit mergeuid) {
   //
   memcpy(&n, l, sizeof(atacMatch));
 
-  sprintf(n.matchuid, "merge"u32bitFMT, mergeuid);
+  sprintf(n.matchuid, "merge"uint32FMT, mergeuid);
 
   n.len1 = (r->pos1 + r->len1) - (l->pos1);
   n.len2 = n.len1;
@@ -56,7 +56,7 @@ atacMatchOrder::mergeMatches(atacMatch *l, atacMatch *r, u32bit mergeuid) {
   //  makes us trust our index.
   //
   _matchesLen--;
-  for (u32bit idx = index(r->matchiid); idx < _matchesLen; idx++) {
+  for (uint32 idx = index(r->matchiid); idx < _matchesLen; idx++) {
     _matches[idx]                           = _matches[idx+1];
     _matchIIDtoIdx[_matches[idx]->matchiid] = idx;
   }
@@ -125,16 +125,16 @@ sortdiagonal_(const void *a, const void *b) {
   //  So much easier if we use signed math.
 
   //  This works for forward matches
-  s32bit dA = (s32bit)A->pos2 - (s32bit)A->pos1;
-  s32bit dB = (s32bit)B->pos2 - (s32bit)B->pos1;
+  int32 dA = (int32)A->pos2 - (int32)A->pos1;
+  int32 dB = (int32)B->pos2 - (int32)B->pos1;
 
   if (A->fwd2 == 0) {
     //  OK, so not the greatest diagonal computation ever.  We end up
     //  with a gigantic discontinuity at the origin, but we don't
     //  care, just as long as the diagonals are distinct.
     //
-    dA = (s32bit)A->pos2 - (1000000000 - (s32bit)(A->pos2 + A->len2));
-    dB = (s32bit)B->pos2 - (1000000000 - (s32bit)(B->pos2 + B->len2));
+    dA = (int32)A->pos2 - (1000000000 - (int32)(A->pos2 + A->len2));
+    dB = (int32)B->pos2 - (1000000000 - (int32)(B->pos2 + B->len2));
   }
 
   if (dA < dB)  return(-1);
@@ -183,35 +183,35 @@ sortparentuid_(const void *a, const void *b) {
 
 
 void
-atacMatchOrder::sortA(u32bit first, u32bit len) {
+atacMatchOrder::sortA(uint32 first, uint32 len) {
   if (len == 0) len = _matchesLen;
   qsort(_matches + first, len, sizeof(atacMatch*), sortA_);
   updateIndex();
 }
 
 void
-atacMatchOrder::sortB(u32bit first, u32bit len) {
+atacMatchOrder::sortB(uint32 first, uint32 len) {
   if (len == 0) len = _matchesLen;
   qsort(_matches + first, len, sizeof(atacMatch*), sortB_);
   updateIndex();
 }
 
 void
-atacMatchOrder::sortDiagonal(u32bit first, u32bit len) {
+atacMatchOrder::sortDiagonal(uint32 first, uint32 len) {
   if (len == 0) len = _matchesLen;
   qsort(_matches + first, len, sizeof(atacMatch*), sortdiagonal_);
   updateIndex();
 }
 
 void
-atacMatchOrder::sortMatchUID(u32bit first, u32bit len) {
+atacMatchOrder::sortMatchUID(uint32 first, uint32 len) {
   if (len == 0) len = _matchesLen;
   qsort(_matches + first, len, sizeof(atacMatch*), sortmatchuid_);
   updateIndex();
 }
 
 void
-atacMatchOrder::sortParentUID(u32bit first, u32bit len) {
+atacMatchOrder::sortParentUID(uint32 first, uint32 len) {
   if (len == 0) len = _matchesLen;
   qsort(_matches + first, len, sizeof(atacMatch*), sortparentuid_);
   updateIndex();

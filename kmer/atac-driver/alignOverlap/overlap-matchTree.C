@@ -18,7 +18,7 @@
 
 #include "overlap.H"
 
-matchTree::matchTree(atacMatchList *L, u32bit side) {
+matchTree::matchTree(atacMatchList *L, uint32 side) {
 
   //  Construct a list of pointers to the atacMatchList data
   //
@@ -36,7 +36,7 @@ matchTree::matchTree(atacMatchList *L, u32bit side) {
   //  qsort() below sorts pointers to objects, and does the same.
 
   atacMatch  **matchPointers = new atacMatch * [L->numberOfMatches()];
-  for (u32bit i=0; i<L->numberOfMatches(); i++)
+  for (uint32 i=0; i<L->numberOfMatches(); i++)
     matchPointers[i] = L->getMatch(i);
 
   //  Choose a comparison function based on the side we want
@@ -56,7 +56,7 @@ matchTree::matchTree(atacMatchList *L, u32bit side) {
 
   dict_load_begin(&_load, _tree);
 
-  for (u32bit i=0; i<L->numberOfMatches(); i++) {
+  for (uint32 i=0; i<L->numberOfMatches(); i++) {
     dnode_t   *node = (dnode_t *)malloc(sizeof(dnode_t));
     dnode_init(node, 0L);
     dict_load_next(&_load, node, matchPointers[i]);

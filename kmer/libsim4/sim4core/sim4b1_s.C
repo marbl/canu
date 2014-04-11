@@ -49,10 +49,10 @@ mss_t::mss_t(char seed[32]) {
 
   assert(masknum <= 64);
 
-  mask          = (u64bitONE << (seedLength+seedLength-2)) - 1;
+  mask          = (uint64ONE << (seedLength+seedLength-2)) - 1;
 
 #ifdef DEBUG
-  printf(u64bitHEX, mask);
+  printf(uint64HEX, mask);
   printf("\n");
 #endif
 
@@ -80,7 +80,7 @@ mss_t::mss_t(char seed[32]) {
 
 
   for (int i=0;i<masknum;i++){
-    masks[i]  = ( (u64bitONE << MP[i].width) - u64bitONE) << MP[i].begin;
+    masks[i]  = ( (uint64ONE << MP[i].width) - uint64ONE) << MP[i].begin;
     shifts[i] = MP[i].result_shifts;
   }
 
@@ -88,9 +88,9 @@ mss_t::mss_t(char seed[32]) {
 }
 
 
-u64bit
-mss_t::mask_shift(u64bit ecode) {
-  u64bit masked_ecode = 0;
+uint64
+mss_t::mask_shift(uint64 ecode) {
+  uint64 masked_ecode = 0;
 
   for (int i=0; i<masknum; i++)
     masked_ecode += (ecode & masks[i]) >> shifts[i];

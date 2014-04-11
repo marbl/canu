@@ -30,10 +30,10 @@ typedef struct {
   aHit     a;
   double   coverage;
   double   multiplicity;
-  u32bit   estid;
+  uint32   estid;
 #ifdef WITH_ANSWERS
-  u32bit   mappedIdentity;
-  u32bit   mappedCoverage;
+  uint32   mappedIdentity;
+  uint32   mappedCoverage;
 #endif
 } hit_s;
 
@@ -51,32 +51,32 @@ public:
 
   double bestScore(void)  { return(_bestScore);  };
   double worstScore(void) { return(_worstScore); };
-  u32bit iid(void)        { return(_iid);        };
-  u32bit numHits(void)    { return(_listLen);    };
+  uint32 iid(void)        { return(_iid);        };
+  uint32 numHits(void)    { return(_listLen);    };
 
   void   sortByCoverage(void);
   void   mergeOverlappingHits(void);
 
-  hit_s &operator[](u32bit x) {
+  hit_s &operator[](uint32 x) {
     if (x >= _listLen) {
-      fprintf(stderr, "hitReader::operator[]()-- ERROR: asked for hit "u32bitFMT" out of "u32bitFMT".\n", x, _listLen);
+      fprintf(stderr, "hitReader::operator[]()-- ERROR: asked for hit "uint32FMT" out of "uint32FMT".\n", x, _listLen);
       exit(1);
     }
 
     return(_list[x]);
   };
 private:
-  u32bit        _filesMax;
-  u32bit        _filesLen;
+  uint32        _filesMax;
+  uint32        _filesLen;
   hitFile_s    *_files;
 
-  u32bit        _listLen;
-  u32bit        _listMax;
+  uint32        _listLen;
+  uint32        _listMax;
   hit_s        *_list;
 
   double        _bestScore;
   double        _worstScore;
-  u32bit        _iid;
+  uint32        _iid;
 };
 
 #endif  //  HITREADER_H

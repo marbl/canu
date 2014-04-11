@@ -118,7 +118,7 @@ main(int argc, char *argv[]) {
   W = ML._seq1;
   W->find(ML[0]->iid1);
   S = W->getSequenceInCore();
-  for (u32bit i=1; i<ML.numMatches(); i++) {
+  for (uint32 i=1; i<ML.numMatches(); i++) {
     atacMatch *l = ML[i-1];
     atacMatch *r = ML[i];
 
@@ -146,7 +146,7 @@ main(int argc, char *argv[]) {
   W = ML._seq2;
   W->find(ML[0]->iid2);
   S = W->getSequenceInCore();
-  for (u32bit i=1; i<ML.numMatches(); i++) {
+  for (uint32 i=1; i<ML.numMatches(); i++) {
     atacMatch *l = ML[i-1];
     atacMatch *r = ML[i];
 

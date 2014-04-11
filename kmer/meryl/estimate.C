@@ -11,13 +11,13 @@
 //  fit in that memory size, assuming optimalNumberOfBuckets() below
 //  uses the same algorithm.
 //
-u64bit
-estimateNumMersInMemorySize(u32bit merSize,
-                            u32bit mem,
+uint64
+estimateNumMersInMemorySize(uint32 merSize,
+                            uint32 mem,
                             bool   positionsEnabled,
                             bool   beVerbose) {
-  u64bit maxN    = 0;
-  u64bit bestT   = 0;
+  uint64 maxN    = 0;
+  uint64 bestT   = 0;
 
 
   //  For each possible number of buckets, try all poissible pointer
@@ -29,35 +29,35 @@ estimateNumMersInMemorySize(u32bit merSize,
 
   //  This is the memory size we are trying to fill, in bits.
   //
-  u64bit memLimt = ((u64bit)mem) << 23;
+  uint64 memLimt = ((uint64)mem) << 23;
 
   //  Positions consume space too, but only if enabled.
   //
-  u64bit posPerMer = 0;
+  uint64 posPerMer = 0;
   if (positionsEnabled)
     posPerMer = 32;
 
   //  Limit the number of entries in the bucket pointer table to
   //  50 bits -- thus, the prefix of each mer is at most 25.
   //
-  u32bit  tMax = 2*merSize - 2;
+  uint32  tMax = 2*merSize - 2;
   if (tMax > 50)
     tMax = 50;
 
-  for (u64bit t=2; t < tMax; t++) {
+  for (uint64 t=2; t < tMax; t++) {
 
     //  We need to try all possibilities of N, the width of the
     //  bucket pointer table === log2(numMers).
     //
     //  Increased to 40 bits, so we're valid up to 1 trillion mers.
     //
-    for (u64bit N=1; N<40; N++) {
-      u64bit Nmin = u64bitONE << (N - 1);
-      u64bit Nmax = u64bitONE << (N);
+    for (uint64 N=1; N<40; N++) {
+      uint64 Nmin = uint64ONE << (N - 1);
+      uint64 Nmax = uint64ONE << (N);
 
       //  The size in bits of the bucket pointer table.
       //
-      u64bit bucketsize = (u64bitONE << t) * N;
+      uint64 bucketsize = (uint64ONE << t) * N;
 
       //  If our bucket pointer table size hasn't already blown our
       //  memory limit, compute the number of mers that we can stuff
@@ -73,16 +73,16 @@ estimateNumMersInMemorySize(u32bit merSize,
         //  release bucketSizes, and so we only estimate the maximum
         //  in core (not allocated) size.
         //
-        u64bit n = (memLimt - bucketsize) / (2*merSize - t + posPerMer);
+        uint64 n = (memLimt - bucketsize) / (2*merSize - t + posPerMer);
 
         //  We can stop now if our computed number of mers is outside the range that
         //  the bucket pointer table can address.
         //
         if ((Nmin <= n) && (n <= Nmax)) {
 
-          //fprintf(stderr, "prefixSize="u64bitFMTW(2)" numMers="u64bitFMTW(9)" memory=%.3fMB\n",
+          //fprintf(stderr, "prefixSize="uint64FMTW(2)" numMers="uint64FMTW(9)" memory=%.3fMB\n",
           //        t, n,
-          //        (((u64bitONE << t) * logBaseTwo64(n) + n * (2*merSize - t + posPerMer)) >> 3) / 1048576.0);
+          //        (((uint64ONE << t) * logBaseTwo64(n) + n * (2*merSize - t + posPerMer)) >> 3) / 1048576.0);
 
           //  Remember the settings with the highest number of mers, if
           //  more than zero mers.
@@ -99,10 +99,10 @@ estimateNumMersInMemorySize(u32bit merSize,
   }
 
   if (beVerbose)
-    fprintf(stdout, "Can fit "u64bitFMT" mers into table with prefix of "u64bitFMT" bits, using %8.3fMB (%8.3fMB for positions)\n",
+    fprintf(stdout, "Can fit "uint64FMT" mers into table with prefix of "uint64FMT" bits, using %8.3fMB (%8.3fMB for positions)\n",
             maxN,
             bestT,
-            (((u64bitONE << bestT) * logBaseTwo64(maxN) + maxN * (2*merSize - bestT + posPerMer)) >> 3) / 1048576.0,
+            (((uint64ONE << bestT) * logBaseTwo64(maxN) + maxN * (2*merSize - bestT + posPerMer)) >> 3) / 1048576.0,
             ((maxN * posPerMer) >> 3) / 1048576.0);
 
   return(maxN);
@@ -110,20 +110,20 @@ estimateNumMersInMemorySize(u32bit merSize,
 
 
 
-u32bit
-optimalNumberOfBuckets(u32bit merSize,
-                       u64bit numMers,
+uint32
+optimalNumberOfBuckets(uint32 merSize,
+                       uint64 numMers,
                        bool   positionsEnabled) {
-  u64bit opth   = ~u64bitZERO;
-  u64bit opts   = ~u64bitZERO;
-  u64bit h      = 0;
-  u64bit s      = 0;
-  u64bit hwidth = logBaseTwo64(numMers);
+  uint64 opth   = ~uint64ZERO;
+  uint64 opts   = ~uint64ZERO;
+  uint64 h      = 0;
+  uint64 s      = 0;
+  uint64 hwidth = logBaseTwo64(numMers);
 
   //  Positions consume space too, but only if enabled.  Probably
   //  doesn't matter here.
   //
-  u64bit posPerMer = 0;
+  uint64 posPerMer = 0;
   if (positionsEnabled)
     posPerMer = 32;
 
@@ -134,11 +134,11 @@ optimalNumberOfBuckets(u32bit merSize,
   //    the bucket pointers num buckets * pointer width   == 2 << h * hwidth
   //    the mer data:       num mers * (mersize - hwidth)
   //
-  u64bit hmax = 64 - logBaseTwo64(hwidth + numMers * (2 * merSize - h));
+  uint64 hmax = 64 - logBaseTwo64(hwidth + numMers * (2 * merSize - h));
   for (h=2; h<=hmax && h<2*merSize; h++) {
-    s = (u64bitONE << h) * hwidth + numMers * (2 * merSize - h + posPerMer);
+    s = (uint64ONE << h) * hwidth + numMers * (2 * merSize - h + posPerMer);
 
-    //fprintf(stderr, "optimalNumberOfBuckets()-- h="u64bitFMT" s="u64bitFMT"\n", h, s);
+    //fprintf(stderr, "optimalNumberOfBuckets()-- h="uint64FMT" s="uint64FMT"\n", h, s);
 
     if (s < opts) {
       opth = h;
@@ -146,7 +146,7 @@ optimalNumberOfBuckets(u32bit merSize,
     }
   }
 
-  return((u32bit)opth);
+  return((uint32)opth);
 }
 
 
@@ -173,10 +173,10 @@ estimate(merylArgs *args) {
     C.finish();
   }
 
-  u32bit opth = optimalNumberOfBuckets(args->merSize, args->numMersEstimated, args->positionsEnabled);
-  u64bit memu = ((u64bitONE << opth)    * logBaseTwo64(args->numMersEstimated+1) +
+  uint32 opth = optimalNumberOfBuckets(args->merSize, args->numMersEstimated, args->positionsEnabled);
+  uint64 memu = ((uint64ONE << opth)    * logBaseTwo64(args->numMersEstimated+1) +
                  args->numMersEstimated * (2 * args->merSize - opth));
 
-  fprintf(stderr, u64bitFMT" "u32bitFMT"-mers can be computed using "u64bitFMT"MB memory.\n",
+  fprintf(stderr, uint64FMT" "uint32FMT"-mers can be computed using "uint64FMT"MB memory.\n",
           args->numMersEstimated, args->merSize, memu >> 23);
 }

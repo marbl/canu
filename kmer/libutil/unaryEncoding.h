@@ -25,38 +25,38 @@
 
 inline
 void
-setUnaryEncodedNumber(u64bit *ptr,
-                      u64bit  pos,
-                      u64bit *siz,
-                      u64bit  val) {
+setUnaryEncodedNumber(uint64 *ptr,
+                      uint64  pos,
+                      uint64 *siz,
+                      uint64  val) {
 
   *siz = val + 1;
 
   while (val >= 64) {
-    setDecodedValue(ptr, pos, 64, u64bitZERO);
+    setDecodedValue(ptr, pos, 64, uint64ZERO);
     pos += 64;
     val -= 64;
     siz += 64;
   }
 
-  setDecodedValue(ptr, pos, val + 1, u64bitONE);
+  setDecodedValue(ptr, pos, val + 1, uint64ONE);
   pos += val + 1;
 }
 
 
 
 inline
-u64bit
-getUnaryEncodedNumber(u64bit *ptr,
-                      u64bit  pos,
-                      u64bit *siz) {
-  u64bit val = u64bitZERO;
-  u64bit enc = u64bitZERO;
+uint64
+getUnaryEncodedNumber(uint64 *ptr,
+                      uint64  pos,
+                      uint64 *siz) {
+  uint64 val = uint64ZERO;
+  uint64 enc = uint64ZERO;
 
   //  How many whole words are zero?
   //
   enc = getDecodedValue(ptr, pos, 64);
-  while (enc == u64bitZERO) {
+  while (enc == uint64ZERO) {
     val += 64;
     pos += 64;
     enc  = getDecodedValue(ptr, pos, 64);

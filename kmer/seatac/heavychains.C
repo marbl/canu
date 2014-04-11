@@ -46,13 +46,13 @@ int y_compar(const void *x,const void *y) {
 
 
 void StrandPair::addHit(char   direction,
-                        u32bit id1,
-                        u32bit xlo,
-                        u32bit xln,
-                        u32bit id2,
-                        u32bit ylo,
-                        u32bit yln,
-                        u32bit filled) {
+                        uint32 id1,
+                        uint32 xlo,
+                        uint32 xln,
+                        uint32 id2,
+                        uint32 ylo,
+                        uint32 yln,
+                        uint32 filled) {
   Match tmp;
 
   tmp.xlo = xlo;
@@ -93,7 +93,7 @@ void StrandPair::process(void) {
 
   if (Plen > 0) {
     if (beVerbose > 0)
-      fprintf(stderr,"HeavyChains: filtering strands "u32bitFMT" "u32bitFMT" "u32bitFMT"\n", iid1, iid2, Plen);
+      fprintf(stderr,"HeavyChains: filtering strands "uint32FMT" "uint32FMT" "uint32FMT"\n", iid1, iid2, Plen);
 
     DPTree *dp = NULL;
     dp = new DPTree(Plen, P);
@@ -143,9 +143,9 @@ void StrandPair::process(void) {
 
 
 
-u64bit
+uint64
 StrandPair::print(FILE   *outF,
-                  u64bit  matchid) {
+                  uint64  matchid) {
 
   for (int i=0; i<Plen; ++i) {
 
@@ -161,12 +161,12 @@ StrandPair::print(FILE   *outF,
       matchid++;
 
       if (beVerbose > 1)
-        fprintf(stderr, "heavychains: out "u32bitFMTW(8)" %8d %8d -- "u32bitFMTW(8)" %8d %8d\n",
+        fprintf(stderr, "heavychains: out "uint32FMTW(8)" %8d %8d -- "uint32FMTW(8)" %8d %8d\n",
                 iid1, P[i].xlo, P[i].xhi,
                 iid2, P[i].ylo, P[i].yhi);
 
       errno = 0;
-      fprintf(outF, "M x H"u64bitFMT" . %s:"u32bitFMT" %d %d %d %s:"u32bitFMT" %d %d %d > /hf=%.1f /hr=%.1f\n",
+      fprintf(outF, "M x H"uint64FMT" . %s:"uint32FMT" %d %d %d %s:"uint32FMT" %d %d %d > /hf=%.1f /hr=%.1f\n",
               matchid,
               assemblyId1, iid1, P[i].xlo, len1, 1,
               assemblyId2, iid2, P[i].ylo, len2, (P[i].ori == 'f'? 1 : -1),
@@ -183,7 +183,7 @@ StrandPair::print(FILE   *outF,
     }
 
     if (beVerbose > 0)
-      fprintf(stderr, "HeavyChains: finished strands "u32bitFMTW(8)" "u32bitFMTW(8)" maxlen1=%f maxlen2=%f maxScoreFwd=%f maxScoreRef=%f\n",
+      fprintf(stderr, "HeavyChains: finished strands "uint32FMTW(8)" "uint32FMTW(8)" maxlen1=%f maxlen2=%f maxScoreFwd=%f maxScoreRef=%f\n",
               iid1, iid2, maxlen1, maxlen2, maxScoreFwd, maxScoreRev);
   }
 

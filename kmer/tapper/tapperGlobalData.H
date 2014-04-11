@@ -15,7 +15,7 @@ public:
   void   initialize(void);
 
 private:
-  void     convertACGTtoColor(char *color, char *acgt, u32bit len);
+  void     convertACGTtoColor(char *color, char *acgt, uint32 len);
   void     rewriteFileAsColorACGT(char *acgtname, char  *colorname);
 
 public:
@@ -23,22 +23,22 @@ public:
   char             *qryName;
   char             *outName;
 
-  u32bit            bgnRead;
-  u32bit            endRead;
+  uint32            bgnRead;
+  uint32            endRead;
 
-  u32bit            thisPartition;
-  u32bit            numPartitions;
+  uint32            thisPartition;
+  uint32            numPartitions;
 
-  u32bit            repeatThreshold;
+  uint32            repeatThreshold;
 
-  u32bit            maxMemory;
-  u32bit            numThreads;
+  uint32            maxMemory;
+  uint32            numThreads;
   bool              beVerbose;
 
-  u32bit            tagSize;
+  uint32            tagSize;
 
-  u32bit            maxColorError;
-  u32bit            maxBaseError;
+  uint32            maxColorError;
+  uint32            maxBaseError;
 
   tapperTagFile        *TF;
   tapperResultFile     *TA;
@@ -59,8 +59,8 @@ tapperGlobalData::tapperGlobalData() {
   qryName   = 0L;
   outName   = 0L;
 
-  bgnRead =  u32bitZERO;
-  endRead = ~u32bitZERO;
+  bgnRead =  uint32ZERO;
+  endRead = ~uint32ZERO;
 
   thisPartition = 0;
   numPartitions = 1;
@@ -106,18 +106,18 @@ tapperGlobalData::initialize(void) {
 
   if (numPartitions > 1) {
     if (thisPartition >= numPartitions) {
-      fprintf(stderr, "ERROR: invalid partition n="u32bitFMT" m="u32bitFMT".\n", thisPartition, numPartitions);
+      fprintf(stderr, "ERROR: invalid partition n="uint32FMT" m="uint32FMT".\n", thisPartition, numPartitions);
       exit(1);
     }
 
     //  File has either fragment tags OR mate pairs, never both.
 
-    u32bit  numTags = (TF->numberOfFragmentTags() + TF->numberOfMatePairs()) / numPartitions + 1;
+    uint32  numTags = (TF->numberOfFragmentTags() + TF->numberOfMatePairs()) / numPartitions + 1;
 
     bgnRead = numTags * thisPartition;
     endRead = numTags * thisPartition + numTags;
 
-    fprintf(stderr, "Set partition for "u64bitFMT" frags or "u64bitFMT" mates: -begin "u32bitFMT" -end "u32bitFMT"\n",
+    fprintf(stderr, "Set partition for "uint64FMT" frags or "uint64FMT" mates: -begin "uint32FMT" -end "uint32FMT"\n",
             TF->numberOfFragmentTags(), TF->numberOfMatePairs(), bgnRead, endRead);
   }
 
@@ -141,7 +141,7 @@ tapperGlobalData::initialize(void) {
                      SS,
                      true, false);
 
-  sprintf(colName, "%s.ms"u32bitFMT".ce"u32bitFMT".posDB", genName, tagSize, maxColorError);
+  sprintf(colName, "%s.ms"uint32FMT".ce"uint32FMT".posDB", genName, tagSize, maxColorError);
 
   if (fileExists(colName)) {
     fprintf(stderr, "Loading positionDB\n");
@@ -174,11 +174,11 @@ tapperGlobalData::initialize(void) {
 
 //  Inplace converts an acgt sequence to a color-space sequence.
 void
-tapperGlobalData::convertACGTtoColor(char *color, char *acgt, u32bit len) {
+tapperGlobalData::convertACGTtoColor(char *color, char *acgt, uint32 len) {
   char       l = 'n';  //  We always start the color encoding assuming the -1 letter is a gap
   char       n = 0;
 
-  for (u32bit i=0; i<len; i++) {
+  for (uint32 i=0; i<len; i++) {
     n        = acgt[i];
     color[i] = baseToColor[l][n];
     l        = n;

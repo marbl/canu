@@ -20,11 +20,11 @@ public:
 
   //  Run a single EST against a genomic range
   //
-  sim4command(u32bit        ESTid,
+  sim4command(uint32        ESTid,
               seqCache     *ESTs,
-              u32bit        GENid,
-              u32bit        GENlo,
-              u32bit        GENhi,
+              uint32        GENid,
+              uint32        GENlo,
+              uint32        GENhi,
               seqCache     *GENs,
               bool          doForward,
               bool          doReverse);
@@ -34,8 +34,8 @@ public:
   //
   sim4command(seqInCore  *EST,
               seqInCore  *GEN,
-              u32bit      GENlo,
-              u32bit      GENhi,
+              uint32      GENlo,
+              uint32      GENhi,
               bool        doForward,
               bool        doReverse);
 
@@ -43,11 +43,11 @@ public:
   //  and iid's are undefined!
   //
   sim4command(char             *EST,
-              u32bit            ESTlen,
+              uint32            ESTlen,
               char             *GEN,
-              u32bit            GENlen,
-              u32bit            GENlo,
-              u32bit            GENhi,
+              uint32            GENlen,
+              uint32            GENlo,
+              uint32            GENhi,
               bool              doForward,
               bool              doReverse);
 
@@ -62,15 +62,15 @@ public:
   //  addSeed() takes coordinates relative to the start of the GEN
   //  sequence supplied to the constructor.
   //
-  void   addSeed(u32bit GENpos, u32bit ESTpos, u32bit length);
+  void   addSeed(uint32 GENpos, uint32 ESTpos, uint32 length);
 
   void   sortExternalSeeds(void);
   bool   externalSeedsExist(void)          { return(_externalSeedsLen > 0); };
-  u32bit numberOfExternalSeeds(void)       { return(_externalSeedsLen); };
-  u32bit externalSeedESTPosition(u32bit i) { return(_externalSeeds[i]._ESTposition); };
-  u32bit externalSeedGENPosition(u32bit i) { return(_externalSeeds[i]._GENposition); };
-  u32bit externalSeedLength(u32bit i)      { return(_externalSeeds[i]._length);      };
-  void   maskExternalSeed(u32bit i)        { _externalSeeds[i]._length = 0; };
+  uint32 numberOfExternalSeeds(void)       { return(_externalSeedsLen); };
+  uint32 externalSeedESTPosition(uint32 i) { return(_externalSeeds[i]._ESTposition); };
+  uint32 externalSeedGENPosition(uint32 i) { return(_externalSeeds[i]._GENposition); };
+  uint32 externalSeedLength(uint32 i)      { return(_externalSeeds[i]._length);      };
+  void   maskExternalSeed(uint32 i)        { _externalSeeds[i]._length = 0; };
 
 
   //  Load the sequences, make some checks.  This isn't done in the
@@ -86,42 +86,42 @@ public:
   bool   doForward(void)    { return(_doForward); };
   bool   doReverse(void)    { return(_doReverse); };
 
-  void   setGenomic(u32bit idx, u32bit lo, u32bit hi) {
+  void   setGenomic(uint32 idx, uint32 lo, uint32 hi) {
     _genIdx = idx;
     _genLo  = lo;
     _genHi  = hi;
   };
 
-  u32bit          getESTidx();
+  uint32          getESTidx();
   char           *getESTheader();
   char           *getESTsequence();
-  u32bit          getESTlength();
+  uint32          getESTlength();
 
-  u32bit          getGENidx(void)           { return(_genIdx); };
-  u32bit          getGENlo(void)            { return(_genLo); };
-  u32bit          getGENhi(void)            { return(_genHi); };
+  uint32          getGENidx(void)           { return(_genIdx); };
+  uint32          getGENlo(void)            { return(_genLo); };
+  uint32          getGENhi(void)            { return(_genHi); };
   char           *getGENheader(void);
   char           *getGENsequence(void);
-  u32bit          getGENlength(void);
+  uint32          getGENlength(void);
 private:
   void            loadEST(void);
   void            loadGEN(void);
 
-  u32bit                _estIdx;
+  uint32                _estIdx;
 
   seqCache             *_ESTs;
   seqInCore            *_ESTloaded;
   char                 *_ESTsequence;
-  u32bit                _ESTsequenceLength;  //  valid only for _ESTsequence
+  uint32                _ESTsequenceLength;  //  valid only for _ESTsequence
 
-  u32bit                _genIdx;
-  u32bit                _genLo;
-  u32bit                _genHi;
+  uint32                _genIdx;
+  uint32                _genLo;
+  uint32                _genHi;
 
   seqCache             *_GENs;
   seqInCore            *_GENloaded;
   char                 *_GENsequence;
-  u32bit                _GENsequenceLength;
+  uint32                _GENsequenceLength;
 
   bool                  _doForward;
   bool                  _doReverse;
@@ -130,17 +130,17 @@ private:
   //
   class externalSeed {
   public:
-    u32bit    _GENposition;
-    u32bit    _ESTposition;
-    u32bit    _length;
+    uint32    _GENposition;
+    uint32    _ESTposition;
+    uint32    _length;
 
     bool       operator<(const externalSeed &that) const {
       return(_GENposition < that._GENposition);
     };
   };
 
-  u32bit                _externalSeedsLen;
-  u32bit                _externalSeedsMax;
+  uint32                _externalSeedsLen;
+  uint32                _externalSeedsMax;
   externalSeed         *_externalSeeds;
 };
 

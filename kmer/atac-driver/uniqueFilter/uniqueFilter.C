@@ -58,21 +58,21 @@
 //  that have coverage > 1.
 //
 struct coverage1_s {
-  u32bit  axis;
-  u32bit  position;
+  uint32  axis;
+  uint32  position;
   int     increment;
 };
 
 struct coverage2_s {
-  u32bit  axis;
-  u32bit  beg;
-  u32bit  end;
-  u32bit  coverage;
+  uint32  axis;
+  uint32  beg;
+  uint32  end;
+  uint32  coverage;
 };
 
 struct match_s {
-  u32bit  iid1, pos1, len1, ori1;
-  u32bit  iid2, pos2, len2, ori2;
+  uint32  iid1, pos1, len1, ori1;
+  uint32  iid2, pos2, len2, ori2;
 };
 
 int
@@ -196,11 +196,11 @@ public:
 
 
 void
-offsetsToCoverage(u32bit minCov, bigQueue *I, coverageIntervals *L) {
-  u32bit  axis     = ~u32bitZERO;
-  u32bit  position = ~u32bitZERO;
-  u32bit  coverage = 0;
-  u64bit  covered  = 0;
+offsetsToCoverage(uint32 minCov, bigQueue *I, coverageIntervals *L) {
+  uint32  axis     = ~uint32ZERO;
+  uint32  position = ~uint32ZERO;
+  uint32  coverage = 0;
+  uint64  covered  = 0;
 
 
   L->beginLoad();
@@ -223,7 +223,7 @@ offsetsToCoverage(u32bit minCov, bigQueue *I, coverageIntervals *L) {
     //  numbers.  This is one of them.
     //
     if ((coverage == 0) && (cov1->increment == -1))
-      fprintf(stderr, "Sorting error -- have negative coverage (axis="u32bitFMT" position="u32bitFMT")!\n",
+      fprintf(stderr, "Sorting error -- have negative coverage (axis="uint32FMT" position="uint32FMT")!\n",
               axis, position), exit(1);
 
     coverage   += cov1->increment;
@@ -233,7 +233,7 @@ offsetsToCoverage(u32bit minCov, bigQueue *I, coverageIntervals *L) {
   D.finish();
   L->endLoad();
 
-  fprintf(stderr, "offsetsToCoverage()-- Found "u64bitFMT" bases at coverage "u32bitFMT" or greater.\n",
+  fprintf(stderr, "offsetsToCoverage()-- Found "uint64FMT" bases at coverage "uint32FMT" or greater.\n",
           covered, minCov);
 }
 
@@ -243,7 +243,7 @@ offsetsToCoverage(u32bit minCov, bigQueue *I, coverageIntervals *L) {
 
 void
 findCoverageIntervals(char const *fileName,
-                      u32bit      minCov,
+                      uint32      minCov,
                       coverageIntervals *Fint,
                       coverageIntervals *Rint) {
   bigQueue  F(sortCoverage1, 0L, 0L, 0L, sizeof(coverage1_s), 128, 0L);
@@ -309,13 +309,13 @@ findCoverageIntervals(char const *fileName,
 
 void
 intersectTest(match_s            *matches,
-              u32bit              matchesLen,
+              uint32              matchesLen,
               coverageIntervals  *Fint,
               coverageIntervals  *Rint,
-              u32bit              matchNumber) {
+              uint32              matchNumber) {
   bool errors = false;
 
-  for (u32bit i=0; i<matchesLen; i++) {
+  for (uint32 i=0; i<matchesLen; i++) {
     coverage2_s   thing;
 
     //  Query the tree for the first interval intersecting iid1
@@ -367,20 +367,20 @@ intersectTest(match_s            *matches,
 
 
       if (isect1) {
-        fprintf(stderr, "Got fwd intersection on i="u32bitFMT" matchNumber="u32bitFMT"\n", i, matchNumber);
-        fprintf(stdout, "--"u32bitFMT" "u32bitFMT" 1    "u32bitFMT" "u32bitFMT" %d\n",
+        fprintf(stderr, "Got fwd intersection on i="uint32FMT" matchNumber="uint32FMT"\n", i, matchNumber);
+        fprintf(stdout, "--"uint32FMT" "uint32FMT" 1    "uint32FMT" "uint32FMT" %d\n",
                 matches[i].pos1, matches[i].pos1 + matches[i].len1,
                 matches[i].pos2, matches[i].pos2 + matches[i].len2, matches[i].ori2 ? 1 : -1);
-        fprintf(stdout, "--key1 beg="u32bitFMT" end="u32bitFMT"\n",
+        fprintf(stdout, "--key1 beg="uint32FMT" end="uint32FMT"\n",
                 key1->beg, key1->end);
         errors = true;
       }
       if (isect2) {
-        fprintf(stderr, "Got rev intersection on i="u32bitFMT" matchNumber="u32bitFMT"\n", i, matchNumber);
-        fprintf(stdout, "--"u32bitFMT" "u32bitFMT" 1    "u32bitFMT" "u32bitFMT" %d\n",
+        fprintf(stderr, "Got rev intersection on i="uint32FMT" matchNumber="uint32FMT"\n", i, matchNumber);
+        fprintf(stdout, "--"uint32FMT" "uint32FMT" 1    "uint32FMT" "uint32FMT" %d\n",
                 matches[i].pos1, matches[i].pos1 + matches[i].len1,
                 matches[i].pos2, matches[i].pos2 + matches[i].len2, matches[i].ori2 ? 1 : -1);
-        fprintf(stdout, "--key2 beg="u32bitFMT" end="u32bitFMT"\n",
+        fprintf(stdout, "--key2 beg="uint32FMT" end="uint32FMT"\n",
                 key2->beg, key2->end);
         errors = true;
       }
@@ -415,9 +415,9 @@ intersectTest(match_s            *matches,
 
 //  This is used all over the place.
 //
-#define D08D2 u32bitFMTW(8)" "u32bitFMTW(8)
-#define KEY1THING "key1 = "u32bitFMTW(8)" "u32bitFMTW(8)" "u32bitFMTW(8)"    thing = "D08D2" "D08D2"\n"
-#define KEY2THING "key2 = "u32bitFMTW(8)" "u32bitFMTW(8)" "u32bitFMTW(8)"    thing = "D08D2" "D08D2"\n"
+#define D08D2 uint32FMTW(8)" "uint32FMTW(8)
+#define KEY1THING "key1 = "uint32FMTW(8)" "uint32FMTW(8)" "uint32FMTW(8)"    thing = "D08D2" "D08D2"\n"
+#define KEY2THING "key2 = "uint32FMTW(8)" "uint32FMTW(8)" "uint32FMTW(8)"    thing = "D08D2" "D08D2"\n"
 
 int
 main(int argc, char **argv) {
@@ -465,12 +465,12 @@ main(int argc, char **argv) {
   //    return the intervals that are covered by this interval
 
 
-  u32bit        matchesLen = 0;
-  u32bit        matchesMax = 1024;
+  uint32        matchesLen = 0;
+  uint32        matchesMax = 1024;
   match_s      *matches    = new match_s [matchesMax];
   match_s       extent;
 
-  u32bit        matchNumber = 0;
+  uint32        matchNumber = 0;
 
   atacFileStream  AF(inputName);
   atacMatch      *m = AF.nextMatch('u');
@@ -556,7 +556,7 @@ main(int argc, char **argv) {
         //  If anything is modified, reset the node to the start
         //
 
-        for (u32bit i=0; i<matchesLen; i++) {
+        for (uint32 i=0; i<matchesLen; i++) {
           if (matches[i].len1 == 0)
             continue;
 
@@ -668,7 +668,7 @@ main(int argc, char **argv) {
         before2 = ((key2->axis  < extent.iid2) ||
                    ((key2->axis == extent.iid2) && (key2->beg < extent.pos2 + extent.len2)));
 
-        for (u32bit i=0; i<matchesLen; i++) {
+        for (uint32 i=0; i<matchesLen; i++) {
           if (matches[i].len2 == 0)
             continue;
 
@@ -809,13 +809,13 @@ main(int argc, char **argv) {
 
     //  Nobody should be outside the extent
     //
-    for (u32bit i=0; i<matchesLen; i++) {
+    for (uint32 i=0; i<matchesLen; i++) {
       if ((matches[i].len1 > 0) && (matches[i].len2 > 0)) {
         if ((matches[i].pos1 < extent.pos1) ||
             (matches[i].pos1 + matches[i].len1 > extent.pos1 + extent.len1) ||
             (matches[i].pos2 < extent.pos2) ||
             (matches[i].pos2 + matches[i].len2 > extent.pos2 + extent.len2)) {
-          fprintf(stderr, "match "u32bitFMT" is outside the extent!\n", i);
+          fprintf(stderr, "match "uint32FMT" is outside the extent!\n", i);
           abort();
         }
       }
@@ -823,9 +823,9 @@ main(int argc, char **argv) {
 
     //  Print out all the modified matches
     //
-    for (u32bit i=0; i<matchesLen; i++) {
+    for (uint32 i=0; i<matchesLen; i++) {
       if ((matches[i].len1 > 0) && (matches[i].len2 > 0)) {
-        fprintf(stdout, "M %s %s."u32bitFMT" . %s "u32bitFMT" "u32bitFMT" 1 %s "u32bitFMT" "u32bitFMT" %d\n",
+        fprintf(stdout, "M %s %s."uint32FMT" . %s "uint32FMT" "uint32FMT" 1 %s "uint32FMT" "uint32FMT" %d\n",
                 m->matchuid, m->parentuid, i,
                 AF.labelA(), matches[i].pos1, matches[i].len1,
                 AF.labelB(), matches[i].pos2, matches[i].len2, matches[i].ori2 ? 1 : -1);

@@ -24,26 +24,26 @@ sim4polish::s4p_readPolishS4DB(readBuffer *rb) {
 
   //  Read it.
 
-  u64bit    startPosition = rb->tell();
+  uint64    startPosition = rb->tell();
 
-  u64bit    thisLineMax  = 1048576;
-  u64bit    thisLineLen  = 0;
+  uint64    thisLineMax  = 1048576;
+  uint64    thisLineLen  = 0;
   char     *thisLine     = new char [thisLineMax];
 
-  u32bit    numLines = 10240;
-  u32bit    curLine  = 0;
+  uint32    numLines = 10240;
+  uint32    curLine  = 0;
 
   char    **lines   = new char * [numLines + 1];
-  u32bit   *lengths = new u32bit [numLines + 1];
+  uint32   *lengths = new uint32 [numLines + 1];
 
   memset(lines,   0, sizeof(char *) * numLines);
-  memset(lengths, 0, sizeof(u32bit) * numLines);
+  memset(lengths, 0, sizeof(uint32) * numLines);
 
   thisLineLen = rb->read(thisLine, thisLineMax, '\n');
   chompL(thisLine, thisLineLen);
 
   while (!rb->eof() && strcmp(thisLine, "sim4begin")) {
-    fprintf(stderr, "sim4reader: Got '%s', expecting 'sim4begin' at byte "u64bitFMT"\n",
+    fprintf(stderr, "sim4reader: Got '%s', expecting 'sim4begin' at byte "uint64FMT"\n",
             thisLine, startPosition);
     thisLineLen = rb->read(thisLine, thisLineMax, '\n');
     chompL(thisLine, thisLineLen);
@@ -78,7 +78,7 @@ sim4polish::s4p_readPolishS4DB(readBuffer *rb) {
   if (numLines > 0)
     s4p_linesToPolishS4DB(startPosition, numLines, lines, lengths);
 
-  for (u32bit i=0; i<curLine; i++)
+  for (uint32 i=0; i<curLine; i++)
     delete [] lines[i];
 
   delete [] lines;
@@ -101,29 +101,29 @@ sim4polish::s4p_readPolishGFF3(readBuffer *rb) {
   //  Decide the type of record we're reading.
 
   //  Read it.
-  u64bit    startPosition = rb->tell();
+  uint64    startPosition = rb->tell();
 
-  u64bit    thisLineMax  = 1048576;
-  u64bit    thisLineLen  = 0;
+  uint64    thisLineMax  = 1048576;
+  uint64    thisLineLen  = 0;
   char     *thisLine     = new char [thisLineMax];
 
-  u32bit    numLines = 10240;
-  u32bit    curLine  = 0;
+  uint32    numLines = 10240;
+  uint32    curLine  = 0;
 
   bool      firstLine = true;
 
   char    **lines   = new char * [numLines + 1];
-  u32bit   *lengths = new u32bit [numLines + 1];
+  uint32   *lengths = new uint32 [numLines + 1];
 
   memset(lines,   0, sizeof(char *) * numLines);
-  memset(lengths, 0, sizeof(u32bit) * numLines);
+  memset(lengths, 0, sizeof(uint32) * numLines);
 
   thisLineLen = rb->read(thisLine, thisLineMax, '\n');
   chompL(thisLine, thisLineLen);
 
   while (!rb->eof() && (!strstr(thisLine, "\tsim4db\tmRNA") || (thisLine[0]=='#'))) {
     if (thisLine[0]!='#')
-      fprintf(stderr, "sim4reader: Got '%s', expecting GFF3 mRNA line at byte "u64bitFMT"\n",
+      fprintf(stderr, "sim4reader: Got '%s', expecting GFF3 mRNA line at byte "uint64FMT"\n",
               thisLine, startPosition);
     thisLineLen = rb->read(thisLine, thisLineMax, '\n');
     chompL(thisLine, thisLineLen);
@@ -167,7 +167,7 @@ sim4polish::s4p_readPolishGFF3(readBuffer *rb) {
   if (curLine > 0)
     s4p_linesToPolishGFF3(startPosition, numLines, lines, lengths);
 
-  for (u32bit i=0; i<curLine; i++)
+  for (uint32 i=0; i<curLine; i++)
     delete [] lines[i];
 
   delete [] lines;

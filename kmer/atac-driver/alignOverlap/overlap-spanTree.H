@@ -31,24 +31,24 @@ public:
     dict_free(_tree);
   };
 
-  void addNewSpan(u32bit iid, u32bit len) {
+  void addNewSpan(uint32 iid, uint32 len) {
     span_t       *span = new span_t(iid, 0, len);
     dict_alloc_insert(_tree, span, 0L);
   };
 
-  u32bit size(void) {
-    return((u32bit)dict_count(_tree));
+  uint32 size(void) {
+    return((uint32)dict_count(_tree));
   };
 
-  void addMatch(atacMatch *match, u32bit side, u32bit color) {
+  void addMatch(atacMatch *match, uint32 side, uint32 color) {
 
     //  Query the tree for the first match before this position.
     //  We're guaranteed to find one before, since the tree was
     //  initialized with a span for the whole sequence.
     //
     span_t   *span = 0L;
-    u32bit    beg  = 0;
-    u32bit    end  = 0;
+    uint32    beg  = 0;
+    uint32    end  = 0;
 
     if (side == 0) {
       span = new span_t(match->iid1, match->pos1, match->pos1 + match->len1);

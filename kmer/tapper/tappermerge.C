@@ -9,7 +9,7 @@
 int
 main(int argc, char **argv) {
   char     *outName = 0L;
-  u32bit    inputsLen   = 0;
+  uint32    inputsLen   = 0;
   char     *inputs[8192];
 
   //  Parse and check the inputs.
@@ -43,7 +43,7 @@ main(int argc, char **argv) {
   //  looser here, just blindly copying all records in each file, but
   //  we'll be a little more careful, and copy frag by frag.
 
-  for (u32bit inputsIdx=0; inputsIdx<inputsLen; inputsIdx++) {
+  for (uint32 inputsIdx=0; inputsIdx<inputsLen; inputsIdx++) {
     tapperResultFile *inp = new tapperResultFile(inputs[inputsIdx], 'r');
     tapperResult     *res = new tapperResult;
 

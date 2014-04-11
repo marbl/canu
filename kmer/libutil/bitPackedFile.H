@@ -14,22 +14,22 @@
 
 class bitPackedFile {
 public:
-  bitPackedFile(char const *name, u64bit offset=0, bool forceTruncate=false);
+  bitPackedFile(char const *name, uint64 offset=0, bool forceTruncate=false);
   ~bitPackedFile();
 
-  u64bit     getBits(u32bit size);
-  u64bit     getNumber(void);
+  uint64     getBits(uint32 size);
+  uint64     getNumber(void);
 
-  void       putBits(u64bit bits, u32bit size);
-  void       putNumber(u64bit val);
+  void       putBits(uint64 bits, uint32 size);
+  void       putNumber(uint64 val);
 
-  u64bit     tell(void)       { return((_pos << 6) + _bit); };
-  void       seek(u64bit pos);
+  uint64     tell(void)       { return((_pos << 6) + _bit); };
+  void       seek(uint64 pos);
 
-  u64bit     loadInCore(void);
+  uint64     loadInCore(void);
 
   void       showStats(FILE *f) {
-    fprintf(f, "inside: "u64bitFMT"  outside: "u64bitFMT"\n", stat_seekInside, stat_seekOutside);
+    fprintf(f, "inside: "uint64FMT"  outside: "uint64FMT"\n", stat_seekInside, stat_seekOutside);
     fflush(f);
   };
 private:
@@ -45,8 +45,8 @@ private:
   };
 
   void       flushDirty(void);
-  void       seekBzip2(u64bit bitpos);
-  void       seekNormal(u64bit bitpos);
+  void       seekBzip2(uint64 bitpos);
+  void       seekNormal(uint64 bitpos);
 
   int       _file;
   char     *_name;
@@ -57,10 +57,10 @@ private:
   BZFILE   *_bzfile;
 #endif
 
-  u64bit    _bfrmax;  //  Number of words in the buffer
-  u64bit   *_bfr;     //  A chunk of the bitPackedFile in core
-  u64bit    _pos;     //  The location this chunk is from (in words)
-  u64bit    _bit;     //  The bit position we are modifying relative to _pos
+  uint64    _bfrmax;  //  Number of words in the buffer
+  uint64   *_bfr;     //  A chunk of the bitPackedFile in core
+  uint64    _pos;     //  The location this chunk is from (in words)
+  uint64    _bit;     //  The bit position we are modifying relative to _pos
 
   bool      _inCore;
   bool      _bfrDirty;
@@ -70,33 +70,33 @@ private:
 
   //  For collecting statistics on our usage
   //
-  u64bit  stat_seekInside;
-  u64bit  stat_seekOutside;
-  u64bit  stat_dirtyFlushes;
+  uint64  stat_seekInside;
+  uint64  stat_seekOutside;
+  uint64  stat_dirtyFlushes;
 
   //  For converting between hardware of different endianess.
   //
-  u64bit  file_offset;
-  u64bit  endianess_offset;
+  uint64  file_offset;
+  uint64  endianess_offset;
   bool    endianess_flipped;
 };
 
 
 inline
-u64bit
-bitPackedFile::getBits(u32bit siz) {
+uint64
+bitPackedFile::getBits(uint32 siz) {
   sync();
-  u64bit ret = getDecodedValue(_bfr, _bit, siz);
+  uint64 ret = getDecodedValue(_bfr, _bit, siz);
   _bit += siz;
   return(ret);
 }
 
 inline
-u64bit
+uint64
 bitPackedFile::getNumber(void) {
   sync();
-  u64bit siz = 0;
-  u64bit ret = getFibonacciEncodedNumber(_bfr, _bit, &siz);
+  uint64 siz = 0;
+  uint64 ret = getFibonacciEncodedNumber(_bfr, _bit, &siz);
   _bit += siz;
   return(ret);
 }
@@ -104,7 +104,7 @@ bitPackedFile::getNumber(void) {
 
 inline
 void
-bitPackedFile::putBits(u64bit bits, u32bit siz) {
+bitPackedFile::putBits(uint64 bits, uint32 siz) {
   assert(_isReadOnly == false);
   sync();
   setDecodedValue(_bfr, _bit, siz, bits);
@@ -114,10 +114,10 @@ bitPackedFile::putBits(u64bit bits, u32bit siz) {
 
 inline
 void
-bitPackedFile::putNumber(u64bit val) {
+bitPackedFile::putNumber(uint64 val) {
   assert(_isReadOnly == false);
   sync();
-  u64bit siz = 0;
+  uint64 siz = 0;
   setFibonacciEncodedNumber(_bfr, _bit, &siz, val);
   _bit += siz;
   _bfrDirty = true;

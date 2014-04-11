@@ -34,15 +34,15 @@ public:
   void           add(atacMatch &m);
   //void           delete();
 
-  u32bit         numMatches(void)      { return(_matchesLen);  };
-  u32bit         numberOfMatches(void) { return(_matchesLen);  };
+  uint32         numMatches(void)      { return(_matchesLen);  };
+  uint32         numberOfMatches(void) { return(_matchesLen);  };
 
-  atacMatch     *getMatch(u32bit i)    { return(_matches + i); };
-  atacMatch     *operator[](u32bit i)  { return(_matches + i); };
+  atacMatch     *getMatch(uint32 i)    { return(_matches + i); };
+  atacMatch     *operator[](uint32 i)  { return(_matches + i); };
 
 private:
-  u32bit        _matchesLen;
-  u32bit        _matchesMax;
+  uint32        _matchesLen;
+  uint32        _matchesMax;
   atacMatch    *_matches;
 };
 

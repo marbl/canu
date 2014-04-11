@@ -28,9 +28,9 @@
 
 
 positionDB::positionDB(char const        *filename,
-                       u32bit             merSize,
-                       u32bit             merSkip,
-                       u32bit             maxMismatch,
+                       uint32             merSize,
+                       uint32             merSkip,
+                       uint32             maxMismatch,
                        bool               loadData) {
   memset(this, 0, sizeof(positionDB));
 
@@ -43,19 +43,19 @@ positionDB::positionDB(char const        *filename,
   }
 
   if ((loadData) && (merSize != _merSizeInBases)) {
-    fprintf(stderr, "positionDB()-- Tried to read state from '%s', but mer size is wrong (found "u32bitFMT", wanted "u32bitFMT").\n",
+    fprintf(stderr, "positionDB()-- Tried to read state from '%s', but mer size is wrong (found "uint32FMT", wanted "uint32FMT").\n",
             filename, _merSizeInBases, merSize);
     exit(1);
   }
 
   if ((loadData) && (merSkip != _merSkipInBases)) {
-    fprintf(stderr, "positionDB()-- Tried to read state from '%s', but mer skip is wrong (found "u32bitFMT", wanted "u32bitFMT").\n",
+    fprintf(stderr, "positionDB()-- Tried to read state from '%s', but mer skip is wrong (found "uint32FMT", wanted "uint32FMT").\n",
             filename, _merSkipInBases, merSkip);
     exit(1);
   }
 
 if ((loadData) && (maxMismatch != _nErrorsAllowed)) {
-    fprintf(stderr, "positionDB()-- Tried to read state from '%s', but max number of mismatches is wrong (found "u32bitFMT", wanted "u32bitFMT").\n",
+    fprintf(stderr, "positionDB()-- Tried to read state from '%s', but max number of mismatches is wrong (found "uint32FMT", wanted "uint32FMT").\n",
             filename, _nErrorsAllowed, maxMismatch);
     exit(1);
   }
@@ -68,15 +68,15 @@ if ((loadData) && (maxMismatch != _nErrorsAllowed)) {
 
 
 positionDB::positionDB(merStream          *MS,
-                       u32bit              merSize,
-                       u32bit              merSkip,
+                       uint32              merSize,
+                       uint32              merSkip,
                        existDB            *mask,
                        existDB            *only,
                        merylStreamReader  *counts,
-                       u32bit              minCount,
-                       u32bit              maxCount,
-                       u32bit              maxMismatch,
-                       u32bit              maxMemory,
+                       uint32              minCount,
+                       uint32              maxCount,
+                       uint32              maxMismatch,
+                       uint32              maxMemory,
                        bool                beVerbose) {
 
   memset(this, 0, sizeof(positionDB));
@@ -108,13 +108,13 @@ positionDB::positionDB(merStream          *MS,
   //    2^tblBits * posnWidth +
   //    approxMers * (2*merSize - tblBits + 1 + posnWidth)
   //
-  u64bit  approxMers = MS->approximateNumberOfMers();
-  u64bit  posnWidth  = logBaseTwo64(approxMers + 1);
+  uint64  approxMers = MS->approximateNumberOfMers();
+  uint64  posnWidth  = logBaseTwo64(approxMers + 1);
 
   //  Find the smallest and largest tblBits we could possibly use.
   //
-  u64bit  sm = 2 * merSize + posnWidth + 1 - 64;
-  u64bit  lg = 2 * merSize - 4;
+  uint64  sm = 2 * merSize + posnWidth + 1 - 64;
+  uint64  lg = 2 * merSize - 4;
 
   if (2 * merSize + posnWidth + 1 < 64)
     sm = 2;
@@ -124,11 +124,11 @@ positionDB::positionDB(merStream          *MS,
 
   if (sm > lg) {
     fprintf(stderr, "ERROR:  too many mers for this mersize!\n");
-    fprintf(stderr, "        sm         = "u64bitFMT"\n", sm);
-    fprintf(stderr, "        lg         = "u64bitFMT"\n", lg);
-    fprintf(stderr, "        merSize    = "u32bitFMT" bits\n", 2 * merSize);
-    fprintf(stderr, "        approxMers = "u64bitFMT" mers\n", approxMers);
-    fprintf(stderr, "        posnWidth  = "u64bitFMT" bits\n", posnWidth);
+    fprintf(stderr, "        sm         = "uint64FMT"\n", sm);
+    fprintf(stderr, "        lg         = "uint64FMT"\n", lg);
+    fprintf(stderr, "        merSize    = "uint32FMT" bits\n", 2 * merSize);
+    fprintf(stderr, "        approxMers = "uint64FMT" mers\n", approxMers);
+    fprintf(stderr, "        posnWidth  = "uint64FMT" bits\n", posnWidth);
     exit(1);
   }
 
@@ -139,21 +139,21 @@ positionDB::positionDB(merStream          *MS,
   {
 
     if (beVerbose) {
-      fprintf(stderr, "potential configurations for approximately "u64bitFMT" "u32bitFMT"-mers (posnW="u64bitFMT").\n",
+      fprintf(stderr, "potential configurations for approximately "uint64FMT" "uint32FMT"-mers (posnW="uint64FMT").\n",
               approxMers, merSize, posnWidth);
     }
 
-    u64bit  mini = 0;      //  tblSize of the smallest found
-    u64bit  minm = ~mini;  //  memory size of the smallest found
+    uint64  mini = 0;      //  tblSize of the smallest found
+    uint64  minm = ~mini;  //  memory size of the smallest found
     double  minw = 0.0;    //  work of the smallest found
 
-    u64bit  memory    = 0;
+    uint64  memory    = 0;
     double  effort    = 0;
 
     if (maxMemory == 0)
-      maxMemory = ~u32bitZERO;
+      maxMemory = ~uint32ZERO;
 
-    for (u64bit i=sm; i<=lg; i++) {
+    for (uint64 i=sm; i<=lg; i++) {
 
       //  These are only needed if maxMismatch is set, but it's
       //  simpler to always set.
@@ -162,21 +162,21 @@ positionDB::positionDB(merStream          *MS,
       _merSizeInBits         = 2 * _merSizeInBases;
       _merSkipInBases        = merSkip;
       _tableSizeInBits       = i;
-      _tableSizeInEntries    = u64bitONE << _tableSizeInBits;
-      _hashWidth             = u32bitZERO;
-      _hashMask              = u64bitMASK(_tableSizeInBits);
+      _tableSizeInEntries    = uint64ONE << _tableSizeInBits;
+      _hashWidth             = uint32ZERO;
+      _hashMask              = uint64MASK(_tableSizeInBits);
       _chckWidth             = _merSizeInBits - _tableSizeInBits;
-      _posnWidth             = u64bitZERO;
+      _posnWidth             = uint64ZERO;
       _sizeWidth             = 0;
 
       _shift1                = _merSizeInBits - _tableSizeInBits;
       _shift2                = _shift1 / 2;
-      _mask1                 = u64bitMASK(_tableSizeInBits);
-      _mask2                 = u64bitMASK(_shift1);
+      _mask1                 = uint64MASK(_tableSizeInBits);
+      _mask2                 = uint64MASK(_shift1);
 
       //  Everyone wants to know the memory size (in MB).
       //
-      memory = ((u64bitONE << i) * posnWidth + approxMers * (2*merSize - i + 1 + posnWidth)) >> 23;
+      memory = ((uint64ONE << i) * posnWidth + approxMers * (2*merSize - i + 1 + posnWidth)) >> 23;
 
       //  If we know we're looking for mismatches, we compute the amount
       //  of work needed per lookup, and use that, instead of strict
@@ -197,7 +197,7 @@ positionDB::positionDB(merStream          *MS,
       }
 
       if (beVerbose) {
-        fprintf(stderr, "tblBits="u64bitFMTW(2)" shifts="u32bitFMTW(02)","u32bitFMTW(02)" -- size %8.3fGB -- work %8.3f%s\n",
+        fprintf(stderr, "tblBits="uint64FMTW(2)" shifts="uint32FMTW(02)","uint32FMTW(02)" -- size %8.3fGB -- work %8.3f%s\n",
                 i, _shift1, _shift2, memory / 1024.0, effort, (mini == i) ? " ***" : "");
       }
     }
@@ -213,8 +213,8 @@ positionDB::positionDB(merStream          *MS,
 
 
   if (beVerbose) {
-    u32bit s1 = 2*merSize-_tableSizeInBits;
-    fprintf(stderr, "tblBits="u32bitFMT" s1="u32bitFMT" s2="u32bitFMT" -- merSize="u32bitFMT" bits + posnWidth="u64bitFMT" bits (est "u64bitFMT" mers) FINAL\n",
+    uint32 s1 = 2*merSize-_tableSizeInBits;
+    fprintf(stderr, "tblBits="uint32FMT" s1="uint32FMT" s2="uint32FMT" -- merSize="uint32FMT" bits + posnWidth="uint64FMT" bits (est "uint64FMT" mers) FINAL\n",
             _tableSizeInBits, s1, s1/2, merSize, posnWidth, approxMers);
   }
 
@@ -222,30 +222,30 @@ positionDB::positionDB(merStream          *MS,
   _merSizeInBases        = merSize;
   _merSizeInBits         = 2 * _merSizeInBases;
   _merSkipInBases        = merSkip;
-  _tableSizeInEntries    = u64bitONE << _tableSizeInBits;
-  _hashWidth             = u32bitZERO;
-  _hashMask              = u64bitMASK(_tableSizeInBits);
+  _tableSizeInEntries    = uint64ONE << _tableSizeInBits;
+  _hashWidth             = uint32ZERO;
+  _hashMask              = uint64MASK(_tableSizeInBits);
   _chckWidth             = _merSizeInBits - _tableSizeInBits;
-  _posnWidth             = u64bitZERO;
+  _posnWidth             = uint64ZERO;
   _sizeWidth             = 0;
 
   if (maxCount == 0)
-    maxCount = ~u32bitZERO;
+    maxCount = ~uint32ZERO;
 
   if (counts)
-    _sizeWidth = (maxCount < ~u32bitZERO) ? logBaseTwo64(maxCount+1) : 32;
+    _sizeWidth = (maxCount < ~uint32ZERO) ? logBaseTwo64(maxCount+1) : 32;
 
   _shift1                = _merSizeInBits - _tableSizeInBits;
   _shift2                = _shift1 / 2;
-  _mask1                 = u64bitMASK(_tableSizeInBits);
-  _mask2                 = u64bitMASK(_shift1);
+  _mask1                 = uint64MASK(_tableSizeInBits);
+  _mask2                 = uint64MASK(_shift1);
 
 #if 0
-  fprintf(stderr, "merSizeInBits   "u32bitFMT"\n", _merSizeInBits);
-  fprintf(stderr, "hashWidth       "u32bitFMT"\n", _hashWidth);
-  fprintf(stderr, "chckWidth       "u32bitFMT"\n", _chckWidth);
-  fprintf(stderr, "shift1          "u32bitFMT"\n", _shift1);
-  fprintf(stderr, "shift2          "u32bitFMT"\n", _shift2);
+  fprintf(stderr, "merSizeInBits   "uint32FMT"\n", _merSizeInBits);
+  fprintf(stderr, "hashWidth       "uint32FMT"\n", _hashWidth);
+  fprintf(stderr, "chckWidth       "uint32FMT"\n", _chckWidth);
+  fprintf(stderr, "shift1          "uint32FMT"\n", _shift1);
+  fprintf(stderr, "shift2          "uint32FMT"\n", _shift2);
 #endif
 
   if (maxMismatch > 0)
@@ -261,8 +261,8 @@ positionDB::build(merStream          *MS,
                   existDB            *mask,
                   existDB            *only,
                   merylStreamReader  *counts,
-                  u32bit              minCount,
-                  u32bit              maxCount,
+                  uint32              minCount,
+                  uint32              maxCount,
                   bool                beVerbose) {
 
   _bucketSizes           = 0L;
@@ -276,22 +276,22 @@ positionDB::build(merStream          *MS,
   _wFin                  = 0;
 
   //  For get/setDecodedValues().
-  u64bit  lensC[4] = {~u64bitZERO, ~u64bitZERO, ~u64bitZERO, ~u64bitZERO};
-  u64bit  lensF[4] = {~u64bitZERO, ~u64bitZERO, ~u64bitZERO, ~u64bitZERO};
-  u64bit  vals[4]  = {0};
-  u64bit  nval     = (_sizeWidth == 0) ? 3 : 4;
+  uint64  lensC[4] = {~uint64ZERO, ~uint64ZERO, ~uint64ZERO, ~uint64ZERO};
+  uint64  lensF[4] = {~uint64ZERO, ~uint64ZERO, ~uint64ZERO, ~uint64ZERO};
+  uint64  vals[4]  = {0};
+  uint64  nval     = (_sizeWidth == 0) ? 3 : 4;
 
-  _numberOfMers          = u64bitZERO;
-  _numberOfPositions     = u64bitZERO;
-  _numberOfDistinct      = u64bitZERO;
-  _numberOfUnique        = u64bitZERO;
-  _numberOfEntries       = u64bitZERO;
-  _maximumEntries        = u64bitZERO;
+  _numberOfMers          = uint64ZERO;
+  _numberOfPositions     = uint64ZERO;
+  _numberOfDistinct      = uint64ZERO;
+  _numberOfUnique        = uint64ZERO;
+  _numberOfEntries       = uint64ZERO;
+  _maximumEntries        = uint64ZERO;
 
   //  We assume later that these are already allocated.
   _sortedMax             = 16384;
-  _sortedChck            = new u64bit [_sortedMax];
-  _sortedPosn            = new u64bit [_sortedMax];
+  _sortedChck            = new uint64 [_sortedMax];
+  _sortedPosn            = new uint64 [_sortedMax];
 
   if (MS == 0L) {
     fprintf(stderr, "positionDB()-- ERROR: No merStream?  Nothing to build a table with!\n");
@@ -308,7 +308,7 @@ positionDB::build(merStream          *MS,
 
   //  We'll later want to reuse the _bucketSizes space for storing the
   //  hash table.  To make it somewhat safe, we allocate the space as
-  //  u64bit, then cast it to be u32bit.
+  //  uint64, then cast it to be uint32.
   //
   //  bktAllocIsJunk tells us if we should release this memory (if we
   //  need to allocate separate space for the hash table).  We'd need
@@ -318,34 +318,34 @@ positionDB::build(merStream          *MS,
   //  The _bucketSizes is offset by one from bktAlloc so that we don't
   //  overwrite _bucketSizes when we are constructing hash table.
   //
-  u64bit *bktAlloc;
+  uint64 *bktAlloc;
   try {
-    bktAlloc = new u64bit [_tableSizeInEntries / 2 + 4];
+    bktAlloc = new uint64 [_tableSizeInEntries / 2 + 4];
   } catch (std::bad_alloc) {
     fprintf(stderr, "positionDB()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
-    fprintf(stderr, "positionDB()-- bktAlloc = new u64bit ["u64bitFMT"]\n", _tableSizeInEntries / 2 + 4);
+    fprintf(stderr, "positionDB()-- bktAlloc = new uint64 ["uint64FMT"]\n", _tableSizeInEntries / 2 + 4);
     exit(1);
   }
   bool     bktAllocIsJunk = false;
 
-  bzero(bktAlloc, sizeof(u64bit) * (_tableSizeInEntries / 2 + 4));
+  bzero(bktAlloc, sizeof(uint64) * (_tableSizeInEntries / 2 + 4));
 
   //  Why +2?  We try to reuse the bktAlloc space for the hash table,
   //  which is constructed from the bucketSizes.  The hashTable is
   //  built from the bucketSizes.  It definitely needs to be +1, and
   //  so we use +2 just in case the human is being stupid again.
   //
-  _bucketSizes = (u32bit *)(bktAlloc + 2);
+  _bucketSizes = (uint32 *)(bktAlloc + 2);
 
 #ifdef ERROR_CHECK_COUNTING
   fprintf(stdout, "ERROR_CHECK_COUNTING is defined.\n");
-  u32bit *_errbucketSizes = new u32bit [_tableSizeInEntries + 2];
-  for (u64bit i=0; i<_tableSizeInEntries + 2; i++)
-    _errbucketSizes[i] = u32bitZERO;
+  uint32 *_errbucketSizes = new uint32 [_tableSizeInEntries + 2];
+  for (uint64 i=0; i<_tableSizeInEntries + 2; i++)
+    _errbucketSizes[i] = uint32ZERO;
 #endif
 
   if (beVerbose)
-    fprintf(stderr, "    Allocated bucket size counting space with total size "u64bitFMT" KB\n", _tableSizeInEntries >> 8);
+    fprintf(stderr, "    Allocated bucket size counting space with total size "uint64FMT" KB\n", _tableSizeInEntries >> 8);
 
 
   speedCounter  *C = new speedCounter("    %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, beVerbose);
@@ -389,12 +389,12 @@ positionDB::build(merStream          *MS,
   C = 0L;
 
   if (beVerbose)
-    fprintf(stderr, "    Found "u64bitFMT" mers (max position = "u64bitFMT")\n", _numberOfMers, _numberOfPositions);
+    fprintf(stderr, "    Found "uint64FMT" mers (max position = "uint64FMT")\n", _numberOfMers, _numberOfPositions);
 
   //  This caught a nasty bug in merStream rewind(), and it's pretty
   //  cheap, so I left it in.  Search for the other DEBUGnumPositions.
   //
-  u64bit DEBUGnumPositions = _numberOfPositions + 1;
+  uint64 DEBUGnumPositions = _numberOfPositions + 1;
 
   //  This is _numberOfMers+1 because we need to store the first
   //  position after the last mer.  That is, if there are two mers, we
@@ -423,23 +423,23 @@ positionDB::build(merStream          *MS,
   lensC[2] = 1;
   lensC[3] = _sizeWidth;
 
-  u64bit   bucketsSpace  = (_numberOfMers+1) * _wCnt / 64 + 1;
-  u32bit   endPosition   = 0;
+  uint64   bucketsSpace  = (_numberOfMers+1) * _wCnt / 64 + 1;
+  uint32   endPosition   = 0;
 
   if (beVerbose)
-    fprintf(stderr, "    Allocated "u64bitFMT"KB for buckets ("u64bitFMT" 64-bit words)\n", bucketsSpace >> 7, bucketsSpace);
+    fprintf(stderr, "    Allocated "uint64FMT"KB for buckets ("uint64FMT" 64-bit words)\n", bucketsSpace >> 7, bucketsSpace);
   try {
-    _countingBuckets = new u64bit [bucketsSpace];
+    _countingBuckets = new uint64 [bucketsSpace];
   } catch (std::bad_alloc) {
     fprintf(stderr, "positionDB()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
-    fprintf(stderr, "positionDB()-- _countingBuckets = new u64bit ["u64bitFMT"]\n", bucketsSpace);
+    fprintf(stderr, "positionDB()-- _countingBuckets = new uint64 ["uint64FMT"]\n", bucketsSpace);
     exit(1);
   }
 
-  for (u64bit i=0; i<bucketsSpace; i++)
-    _countingBuckets[i] = ~u64bitZERO;
+  for (uint64 i=0; i<bucketsSpace; i++)
+    _countingBuckets[i] = ~uint64ZERO;
 
-  for (u64bit i=0; i<_tableSizeInEntries; i++) {
+  for (uint64 i=0; i<_tableSizeInEntries; i++) {
     endPosition     += _bucketSizes[i];
     _bucketSizes[i]  = endPosition;
   }
@@ -447,7 +447,7 @@ positionDB::build(merStream          *MS,
 
 #ifdef ERROR_CHECK_COUNTING
   if (endPosition != _numberOfMers)
-    fprintf(stdout, "ERROR_CHECK_COUNTING: BUCKETSIZE COUNTING PROBLEM -- endPos="u32bitFMT" != numMers="u64bitFMT"\n",
+    fprintf(stdout, "ERROR_CHECK_COUNTING: BUCKETSIZE COUNTING PROBLEM -- endPos="uint32FMT" != numMers="uint64FMT"\n",
             endPosition, _numberOfMers);
 #endif
 
@@ -469,13 +469,13 @@ positionDB::build(merStream          *MS,
   MS->rewind();
 
   while (MS->nextMer(_merSkipInBases)) {
-    u64bit h = HASH(MS->theFMer());
+    uint64 h = HASH(MS->theFMer());
 
 #ifdef ERROR_CHECK_COUNTING
     if (_bucketSizes[h] == 0) {
       char  str[33];
-      fprintf(stderr, "positionDB()-- ERROR_CHECK_COUNTING: Bucket "u64bitFMT" ran out of things!  '%s'\n", h, MS->theFMer().merToString(str));
-      fprintf(stderr, "positionDB()-- ERROR_CHECK_COUNTING: Stream is at "u64bitFMT"\n", MS->thePositionInStream());
+      fprintf(stderr, "positionDB()-- ERROR_CHECK_COUNTING: Bucket "uint64FMT" ran out of things!  '%s'\n", h, MS->theFMer().merToString(str));
+      fprintf(stderr, "positionDB()-- ERROR_CHECK_COUNTING: Stream is at "uint64FMT"\n", MS->thePositionInStream());
     }
 #endif
 
@@ -488,18 +488,18 @@ positionDB::build(merStream          *MS,
 
 #ifdef ERROR_CHECK_EMPTY_BUCKETS
     //  Check that everything is empty.  Empty is defined as set to all 1's.
-    getDecodedValues(_countingBuckets, (u64bit)_bucketSizes[h] * (u64bit)_wCnt, nval, lensC, vals);
+    getDecodedValues(_countingBuckets, (uint64)_bucketSizes[h] * (uint64)_wCnt, nval, lensC, vals);
 
-    if (((~vals[0]) & u64bitMASK(lensC[0])) ||
-        ((~vals[1]) & u64bitMASK(lensC[1])) ||
-        ((~vals[2]) & u64bitMASK(lensC[2])) ||
-        ((lensC[3] > 0) && ((~vals[3]) & u64bitMASK(lensC[3]))))
+    if (((~vals[0]) & uint64MASK(lensC[0])) ||
+        ((~vals[1]) & uint64MASK(lensC[1])) ||
+        ((~vals[2]) & uint64MASK(lensC[2])) ||
+        ((lensC[3] > 0) && ((~vals[3]) & uint64MASK(lensC[3]))))
       fprintf(stdout, "ERROR_CHECK_EMPTY_BUCKETS: countingBucket not empty!  pos=%lu 0x%016lx 0x%016lx 0x%016lx 0x%016lx\n",
               _bucketSizes[h] * _wCnt,
-              (~vals[0]) & u64bitMASK(lensC[0]),
-              (~vals[1]) & u64bitMASK(lensC[1]),
-              (~vals[2]) & u64bitMASK(lensC[2]),
-              (~vals[3]) & u64bitMASK(lensC[3]));
+              (~vals[0]) & uint64MASK(lensC[0]),
+              (~vals[1]) & uint64MASK(lensC[1]),
+              (~vals[2]) & uint64MASK(lensC[2]),
+              (~vals[3]) & uint64MASK(lensC[3]));
 #endif
 
     vals[0] = CHECK(MS->theFMer());
@@ -507,16 +507,16 @@ positionDB::build(merStream          *MS,
     vals[2] = 0;
     vals[3] = 0;
 
-    setDecodedValues(_countingBuckets, (u64bit)_bucketSizes[h] * (u64bit)_wCnt, nval, lensC, vals);
+    setDecodedValues(_countingBuckets, (uint64)_bucketSizes[h] * (uint64)_wCnt, nval, lensC, vals);
 
 #ifdef ERROR_CHECK_COUNTING_ENCODING
-    getDecodedValues(_countingBuckets, (u64bit)_bucketSizes[h] * (u64bit)_wCnt, nval, lensC, vals);
+    getDecodedValues(_countingBuckets, (uint64)_bucketSizes[h] * (uint64)_wCnt, nval, lensC, vals);
 
     if (vals[0] != CHECK(MS->theFMer()))
-      fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error:  CHCK corrupted!  Wanted "u64bitHEX" got "u64bitHEX"\n",
+      fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error:  CHCK corrupted!  Wanted "uint64HEX" got "uint64HEX"\n",
               CHECK(MS->theFMer()), vals[0]);
     if (vals[1] != MS->thePositionInStream())
-      fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error:  POSN corrupted!  Wanted "u64bitHEX" got "u64bitHEX"\n",
+      fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error:  POSN corrupted!  Wanted "uint64HEX" got "uint64HEX"\n",
               MS->thePositionInStream(), vals[1]);
     if (vals[2] != 0)
       fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error:  UNIQ corrupted.\n");
@@ -532,9 +532,9 @@ positionDB::build(merStream          *MS,
   C = 0L;
 
 #ifdef ERROR_CHECK_COUNTING
-  for (u64bit i=0; i<_tableSizeInEntries; i++)
+  for (uint64 i=0; i<_tableSizeInEntries; i++)
     if (_errbucketSizes[i] != 0)
-      fprintf(stdout, "ERROR_CHECK_COUNTING: Bucket "u32bitFMT" wasn't filled fully?  "u32bitFMT" left over.\n", i, _errbucketSizes[i]);
+      fprintf(stdout, "ERROR_CHECK_COUNTING: Bucket "uint32FMT" wasn't filled fully?  "uint32FMT" left over.\n", i, _errbucketSizes[i]);
 
   delete [] _errbucketSizes;
   _errbucketSizes = 0L;
@@ -550,10 +550,10 @@ positionDB::build(merStream          *MS,
   //      also need to repack the sorted things
   //
   if (beVerbose)
-    fprintf(stderr, "    Sorting and repacking buckets ("u64bitFMT" buckets).\n", _tableSizeInEntries);
+    fprintf(stderr, "    Sorting and repacking buckets ("uint64FMT" buckets).\n", _tableSizeInEntries);
 
   C = new speedCounter("    %7.2f Mbuckets -- %5.2f Mbuckets/second\r", 1000000.0, 0x1ffffff, beVerbose);
-  for (u64bit i=0; i<_tableSizeInEntries; i++) {
+  for (uint64 i=0; i<_tableSizeInEntries; i++) {
     sortAndRepackBucket(i);
     C->tick();
   }
@@ -562,10 +562,10 @@ positionDB::build(merStream          *MS,
 
   if (beVerbose)
     fprintf(stderr,
-            "    Found "u64bitFMTW(12)" total mers\n"
-            "    Found "u64bitFMTW(12)" distinct mers\n"
-            "    Found "u64bitFMTW(12)" unique mers\n"
-            "    Need "u64bitFMT" non-unique position list entries ("u64bitFMT" maximum count)\n",
+            "    Found "uint64FMTW(12)" total mers\n"
+            "    Found "uint64FMTW(12)" distinct mers\n"
+            "    Found "uint64FMTW(12)" unique mers\n"
+            "    Need "uint64FMT" non-unique position list entries ("uint64FMT" maximum count)\n",
             _numberOfMers, _numberOfDistinct, _numberOfUnique, _numberOfEntries, _maximumEntries);
 
 
@@ -609,9 +609,9 @@ positionDB::build(merStream          *MS,
   //  same too -- OK, if the existDB has a small number of mers in it,
   //  then we don't need a large table.
 
-  u64bit  hs = _tableSizeInEntries * _hashWidth / 64 + 1;
-  u64bit  bs = _numberOfDistinct   * _wFin      / 64 + 1;
-  u64bit  ps = _numberOfEntries    * _posnWidth / 64 + 1;
+  uint64  hs = _tableSizeInEntries * _hashWidth / 64 + 1;
+  uint64  bs = _numberOfDistinct   * _wFin      / 64 + 1;
+  uint64  ps = _numberOfEntries    * _posnWidth / 64 + 1;
 
   if (_hashWidth <= 32) {
     if (beVerbose)
@@ -619,7 +619,7 @@ positionDB::build(merStream          *MS,
 
 #ifdef UNCOMPRESS_HASH_TABLE
     _hashTable_BP  = 0L;
-    _hashTable_FW  = (u32bit *)bktAlloc;
+    _hashTable_FW  = (uint32 *)bktAlloc;
 #else
     _hashTable_BP  = bktAlloc;
     _hashTable_FW  = 0L;
@@ -634,13 +634,13 @@ positionDB::build(merStream          *MS,
     //  _hashTable_FW64 or something.
 
     if (beVerbose)
-      fprintf(stderr, "    Allocated "u64bitFMTW(10)"KB for hash table ("u64bitFMT" 64-bit words)\n", hs >> 7, hs);
+      fprintf(stderr, "    Allocated "uint64FMTW(10)"KB for hash table ("uint64FMT" 64-bit words)\n", hs >> 7, hs);
     try {
-      _hashTable_BP = new u64bit [hs];
+      _hashTable_BP = new uint64 [hs];
       _hashTable_FW = 0L;
     } catch (std::bad_alloc) {
       fprintf(stderr, "positionDB()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
-      fprintf(stderr, "positionDB()-- _hashTable_BP = new u64bit ["u64bitFMT"]\n", hs);
+      fprintf(stderr, "positionDB()-- _hashTable_BP = new uint64 ["uint64FMT"]\n", hs);
       exit(1);
     }
     bktAllocIsJunk = true;
@@ -659,30 +659,30 @@ positionDB::build(merStream          *MS,
   //
   if ((bs < bucketsSpace) && (_wFin <= _wCnt)) {
     if (beVerbose)
-      fprintf(stderr, "    Reusing bucket space; Have: "u64bitFMT"  Need: "u64bitFMT" (64-bit words)\n", bucketsSpace, bs);
+      fprintf(stderr, "    Reusing bucket space; Have: "uint64FMT"  Need: "uint64FMT" (64-bit words)\n", bucketsSpace, bs);
 
     _buckets = _countingBuckets;
 
     bs = bucketsSpace;  // for output at the end
   } else {
     if (beVerbose)
-      fprintf(stderr, "    Allocated "u64bitFMTW(10)"KB for buckets    ("u64bitFMT" 64-bit words)\n", bs >> 7, bs);
+      fprintf(stderr, "    Allocated "uint64FMTW(10)"KB for buckets    ("uint64FMT" 64-bit words)\n", bs >> 7, bs);
     try {
-      _buckets   = new u64bit [bs];
+      _buckets   = new uint64 [bs];
     } catch (std::bad_alloc) {
       fprintf(stderr, "positionDB()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
-      fprintf(stderr, "positionDB()-- _buckets = new u64bit ["u64bitFMT"]\n", bs);
+      fprintf(stderr, "positionDB()-- _buckets = new uint64 ["uint64FMT"]\n", bs);
       exit(1);
     }
   }
 
   if (beVerbose)
-    fprintf(stderr, "    Allocated "u64bitFMTW(10)"KB for positions  ("u64bitFMT" 64-bit words)\n", ps >> 7, ps);
+    fprintf(stderr, "    Allocated "uint64FMTW(10)"KB for positions  ("uint64FMT" 64-bit words)\n", ps >> 7, ps);
   try {
-    _positions = new u64bit [ps];
+    _positions = new uint64 [ps];
   } catch (std::bad_alloc) {
     fprintf(stderr, "positionDB()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
-    fprintf(stderr, "positionDB()-- _positions = new u64bit ["u64bitFMT"\n", ps);
+    fprintf(stderr, "positionDB()-- _positions = new uint64 ["uint64FMT"\n", ps);
     exit(1);
   }
 
@@ -692,21 +692,21 @@ positionDB::build(merStream          *MS,
   //  6)  Transfer from the sorted buckets to the hash table.
   //
   if (beVerbose)
-    fprintf(stderr, "    Transferring to final structure ("u64bitFMT" buckets).\n", _tableSizeInEntries);
+    fprintf(stderr, "    Transferring to final structure ("uint64FMT" buckets).\n", _tableSizeInEntries);
 
-  u64bit   bucketStartPosition = 0;
+  uint64   bucketStartPosition = 0;
 
   //  Current positions and bit positions in the buckets and position list.
   //
-  u64bit  currentBbit = u64bitZERO;  //  Bit position into bucket
-  u64bit  currentPbit = u64bitZERO;  //  Bit position into positions
-  u64bit  currentPpos = u64bitZERO;  //  Value position into positions
+  uint64  currentBbit = uint64ZERO;  //  Bit position into bucket
+  uint64  currentPbit = uint64ZERO;  //  Bit position into positions
+  uint64  currentPpos = uint64ZERO;  //  Value position into positions
 
 #ifdef TEST_NASTY_BUGS
   //  Save the position array pointer of each bucket for debugging.
   //
-  u64bit  currentBpos = u64bitZERO;  //  Value position into bucket
-  u32bit *posPtrCheck = new u32bit [65826038];
+  uint64  currentBpos = uint64ZERO;  //  Value position into bucket
+  uint32 *posPtrCheck = new uint32 [65826038];
 #endif
 
   //  We also take this opportunity to reset some statistics that are
@@ -723,7 +723,7 @@ positionDB::build(merStream          *MS,
 
   //  We need b outside the loop!
   //
-  u64bit  b;
+  uint64  b;
   for (b=0; b<_tableSizeInEntries; b++) {
     C->tick();
 
@@ -732,7 +732,7 @@ positionDB::build(merStream          *MS,
     //  space for the hash table.
     //
     if (_hashTable_BP)
-      setDecodedValue(_hashTable_BP, (u64bit)b * (u64bit)_hashWidth, _hashWidth, bucketStartPosition);
+      setDecodedValue(_hashTable_BP, (uint64)b * (uint64)_hashWidth, _hashWidth, bucketStartPosition);
     else
       _hashTable_FW[b] = bucketStartPosition;
 
@@ -740,13 +740,13 @@ positionDB::build(merStream          *MS,
     //  checking and sizing of _sortedChck and _sortedPosn was already
     //  done in the sort.
     //
-    u64bit st = _bucketSizes[b];
-    u64bit ed = _bucketSizes[b+1];
-    u32bit le = ed - st;
+    uint64 st = _bucketSizes[b];
+    uint64 ed = _bucketSizes[b+1];
+    uint32 le = ed - st;
 
     //  Unpack the check values
     //
-    for (u64bit i=st, J=st * _wCnt; i<ed; i++, J += _wCnt) {
+    for (uint64 i=st, J=st * _wCnt; i<ed; i++, J += _wCnt) {
       getDecodedValues(_countingBuckets, J, 2, lensC, vals);
       _sortedChck[i-st] = vals[0];
       _sortedPosn[i-st] = vals[1];
@@ -761,8 +761,8 @@ positionDB::build(merStream          *MS,
     //  start and end locations of the mer.  For mers with only
     //  one occurrance (unique mers), stM+1 == edM.
     //
-    u32bit  stM = u32bitZERO;
-    u32bit  edM = u32bitZERO;
+    uint32  stM = uint32ZERO;
+    uint32  edM = uint32ZERO;
 
     while (stM < le) {
 
@@ -800,8 +800,8 @@ positionDB::build(merStream          *MS,
         //  throw the mer out if either the forward or reverse exists
         //  (or doesn't exist).
 
-        u64bit m = REBUILD(b, _sortedChck[stM]);
-        u64bit r;
+        uint64 m = REBUILD(b, _sortedChck[stM]);
+        uint64 r;
 
         if (mask) {
           if (mask->isCanonical()) {
@@ -875,7 +875,7 @@ positionDB::build(merStream          *MS,
 
           for (; stM < edM; stM++) {
             if (_sortedPosn[stM] >= DEBUGnumPositions) {
-              fprintf(stderr, "positionDB()-- ERROR:  Got position "u64bitFMT", but only "u64bitFMT" available!\n",
+              fprintf(stderr, "positionDB()-- ERROR:  Got position "uint64FMT", but only "uint64FMT" available!\n",
                       _sortedPosn[stM], DEBUGnumPositions);
               abort();
             }
@@ -906,16 +906,16 @@ positionDB::build(merStream          *MS,
   //
   if (_hashTable_BP) {
     b = b * _hashWidth + _hashWidth;
-    setDecodedValue(_hashTable_BP, b,           64 - (b % 64),           u64bitZERO);
+    setDecodedValue(_hashTable_BP, b,           64 - (b % 64),           uint64ZERO);
   }
-  setDecodedValue(_buckets,   currentBbit, 64 - (currentBbit % 64), u64bitZERO);
-  setDecodedValue(_positions, currentPbit, 64 - (currentPbit % 64), u64bitZERO);
+  setDecodedValue(_buckets,   currentBbit, 64 - (currentBbit % 64), uint64ZERO);
+  setDecodedValue(_positions, currentPbit, 64 - (currentPbit % 64), uint64ZERO);
 
 
   if (beVerbose) {
-    fprintf(stderr, "    Avail: Bucket "u64bitFMTW(12)"    Position "u64bitFMTW(12)" (64-bit words)\n", bs, ps);
-    fprintf(stderr, "    Avail: Bucket "u64bitFMTW(12)"    Position "u64bitFMTW(12)" (entries)\n", _numberOfDistinct, _numberOfEntries);
-    fprintf(stderr, "    Used:  Bucket "u64bitFMTW(12)"    Position "u64bitFMTW(12)" (64-bit words)\n", currentBbit / 64, currentPbit / 64);
+    fprintf(stderr, "    Avail: Bucket "uint64FMTW(12)"    Position "uint64FMTW(12)" (64-bit words)\n", bs, ps);
+    fprintf(stderr, "    Avail: Bucket "uint64FMTW(12)"    Position "uint64FMTW(12)" (entries)\n", _numberOfDistinct, _numberOfEntries);
+    fprintf(stderr, "    Used:  Bucket "uint64FMTW(12)"    Position "uint64FMTW(12)" (64-bit words)\n", currentBbit / 64, currentPbit / 64);
   }
 
   //  Reset the sizes to what we actually found.  If we then
@@ -925,12 +925,12 @@ positionDB::build(merStream          *MS,
   _numberOfEntries  = currentPbit / _posnWidth;
 
   if (beVerbose) {
-    fprintf(stderr, "    Used:  Bucket "u64bitFMTW(12)"    Position "u64bitFMTW(12)" (entries)\n", _numberOfDistinct, _numberOfEntries);
+    fprintf(stderr, "    Used:  Bucket "uint64FMTW(12)"    Position "uint64FMTW(12)" (entries)\n", _numberOfDistinct, _numberOfEntries);
     fprintf(stderr,
-            "    Found "u64bitFMTW(12)" total mers\n"
-            "    Found "u64bitFMTW(12)" distinct mers\n"
-            "    Found "u64bitFMTW(12)" unique mers\n"
-            "    Need "u64bitFMT" non-unique position list entries ("u64bitFMT" maximum count)\n",
+            "    Found "uint64FMTW(12)" total mers\n"
+            "    Found "uint64FMTW(12)" distinct mers\n"
+            "    Found "uint64FMTW(12)" unique mers\n"
+            "    Need "uint64FMT" non-unique position list entries ("uint64FMT" maximum count)\n",
             _numberOfMers, _numberOfDistinct, _numberOfUnique, _numberOfEntries, _maximumEntries);
   }
 
@@ -943,19 +943,19 @@ positionDB::build(merStream          *MS,
   //  can make this nice and tight
   //
   if (_hashTable_BP) {
-    u32bit newHashWidth = 1;
-    while ((_numberOfDistinct+1) > (u64bitONE << newHashWidth))
+    uint32 newHashWidth = 1;
+    while ((_numberOfDistinct+1) > (uint64ONE << newHashWidth))
       newHashWidth++;
 
     if (newHashWidth != _hashWidth) {
-      u64bit npos = 0;
-      u64bit opos = 0;
+      uint64 npos = 0;
+      uint64 opos = 0;
 
       if (beVerbose)
-        fprintf(stderr, "    Rebuilding the hash table, from "u32bitFMT" bits wide to "u32bitFMT" bits wide.\n",
+        fprintf(stderr, "    Rebuilding the hash table, from "uint32FMT" bits wide to "uint32FMT" bits wide.\n",
                 _hashWidth, newHashWidth);
       
-      for (u64bit z=0; z<_tableSizeInEntries+1; z++) {
+      for (uint64 z=0; z<_tableSizeInEntries+1; z++) {
         setDecodedValue(_hashTable_BP,
                         npos,
                         newHashWidth, 
@@ -965,7 +965,7 @@ positionDB::build(merStream          *MS,
       }
 
       //  Clear the end again.
-      setDecodedValue(_hashTable_BP, npos, 64 - (npos % 64), u64bitZERO);
+      setDecodedValue(_hashTable_BP, npos, 64 - (npos % 64), uint64ZERO);
     }
 
     _hashWidth = newHashWidth;
@@ -982,21 +982,21 @@ positionDB::build(merStream          *MS,
   //  space any.  Check if the largestMerylCount is much smaller than
   //  the space it is stored in.  If so, we can compress the table.
   //
-  u64bit  largestMerylCount = 0;
-  u64bit  countsLoaded      = 0;
+  uint64  largestMerylCount = 0;
+  uint64  countsLoaded      = 0;
 
   if (counts) {
     if (beVerbose)
-      fprintf(stderr, "    Loading "u64bitFMT" mercounts.\n", counts->numberOfDistinctMers());
+      fprintf(stderr, "    Loading "uint64FMT" mercounts.\n", counts->numberOfDistinctMers());
 
     C = new speedCounter("    %7.2f Mmercounts -- %5.2f Mmercounts/second\r", 1000000.0, 0x1fffff, beVerbose);
 
     while (counts->nextMer()) {
       kMer    k = counts->theFMer();
-      u64bit  c = counts->theCount();
-      u64bit  f = setCount(k, c);
+      uint64  c = counts->theCount();
+      uint64  f = setCount(k, c);
       k.reverseComplement();
-      u64bit  r = setCount(k, c);
+      uint64  r = setCount(k, c);
 
       if (f + r > 0) {
         countsLoaded++;
@@ -1010,26 +1010,26 @@ positionDB::build(merStream          *MS,
     delete C;
 
     if (beVerbose)
-      fprintf(stderr, "    Loaded "u64bitFMT" mercounts; largest is "u64bitFMT".\n", countsLoaded, largestMerylCount);
+      fprintf(stderr, "    Loaded "uint64FMT" mercounts; largest is "uint64FMT".\n", countsLoaded, largestMerylCount);
 
     if (logBaseTwo64(largestMerylCount + 1) < _sizeWidth) {
       if (beVerbose)
-        fprintf(stderr, "    Compress sizes from "u32bitFMT" bits to "u32bitFMT" bits.\n",
+        fprintf(stderr, "    Compress sizes from "uint32FMT" bits to "uint32FMT" bits.\n",
                 _sizeWidth,
-                (u32bit)logBaseTwo64(largestMerylCount + 1));
+                (uint32)logBaseTwo64(largestMerylCount + 1));
 
-      u64bit oSiz[4] = { _chckWidth, _pptrWidth, 1, _sizeWidth };
-      u64bit nSiz[4] = { _chckWidth, _pptrWidth, 1, logBaseTwo64(largestMerylCount + 1) };
-      u64bit tVal[4] = { 0, 0, 0, 0 };
+      uint64 oSiz[4] = { _chckWidth, _pptrWidth, 1, _sizeWidth };
+      uint64 nSiz[4] = { _chckWidth, _pptrWidth, 1, logBaseTwo64(largestMerylCount + 1) };
+      uint64 tVal[4] = { 0, 0, 0, 0 };
 
-      u64bit  oP = 0, oS = oSiz[0] + oSiz[1] + oSiz[2] + oSiz[3];
-      u64bit  nP = 0, nS = nSiz[0] + nSiz[1] + nSiz[2] + nSiz[3];
+      uint64  oP = 0, oS = oSiz[0] + oSiz[1] + oSiz[2] + oSiz[3];
+      uint64  nP = 0, nS = nSiz[0] + nSiz[1] + nSiz[2] + nSiz[3];
 
       assert(nS < oS);
 
       C = new speedCounter("    %7.2f Mmercounts -- %5.2f Mmercounts/second\r", 1000000.0, 0x1fffff, beVerbose);
 
-      for (u64bit bu=0; bu<_numberOfDistinct; bu++) {
+      for (uint64 bu=0; bu<_numberOfDistinct; bu++) {
         getDecodedValues(_buckets, oP, 4, oSiz, tVal);
         setDecodedValues(_buckets, nP, 4, nSiz, tVal);
 
@@ -1051,7 +1051,7 @@ positionDB::build(merStream          *MS,
   //  Unpack the bucket positions and check.  Report the first one
   //  that is broken.
   //
-  for(u64bit bb=0; bb<currentBpos; bb++)
+  for(uint64 bb=0; bb<currentBpos; bb++)
     if (posPtrCheck[bb] != getDecodedValue(_buckets, bb * _wFin + _chckWidth, _pptrWidth))
       fprintf(stderr, "Bucket %lu (at bitpos %lu) failed position check (wanted %lu got %lu)\n",
               bb,
@@ -1070,26 +1070,26 @@ positionDB::build(merStream          *MS,
   MS->rewind();
   if (mask) {
     C = new speedCounter("    %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, beVerbose);
-    u32bit  extraMer   = 0;
+    uint32  extraMer   = 0;
     while (MS->nextMer(_merSkipInBases)) {
-      u64bit  mer = MS->theFMer();
+      uint64  mer = MS->theFMer();
       if (mask->exists(mer) && exists(mer))
         extraMer++;
       C->tick();
     }
     delete C;
-    fprintf(stderr, "positionDB()-- mask: "u32bitFMT" mers extra!\n", extraMer);
+    fprintf(stderr, "positionDB()-- mask: "uint32FMT" mers extra!\n", extraMer);
   } else if (only) {
     C = new speedCounter("    %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, beVerbose);
-    u32bit  missingMer = 0;
+    uint32  missingMer = 0;
     while (MS->nextMer(_merSkipInBases)) {
-      u64bit  mer = MS->theFMer();
+      uint64  mer = MS->theFMer();
       if (only->exists(mer) && !exists(mer))
         missingMer++;
       C->tick();
     }
     delete C;
-    fprintf(stderr, "positionDB()-- only: "u32bitFMT" mers missing!\n", missingMer);
+    fprintf(stderr, "positionDB()-- only: "uint32FMT" mers missing!\n", missingMer);
   }
 #endif
 

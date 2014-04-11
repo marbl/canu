@@ -32,13 +32,13 @@
 class tapperResultIndex {
 public:
   void    print(FILE *out) {
-    u16bit                 id1[4];
-    u16bit                 id2[4];
+    uint16                 id1[4];
+    uint16                 id2[4];
 
     decodeTagID(_tag1id, id1);
     decodeTagID(_tag2id, id2);
 
-    fprintf(out, "R\t"u16bitFMT"_"u16bitFMT"_"u16bitFMT"_"u16bitFMT"\t"u16bitFMT"_"u16bitFMT"_"u16bitFMT"_"u16bitFMT"\t"u64bitFMT"/"u64bitFMT"\t"u64bitFMT"+-"u64bitFMT"\tf:"u64bitFMT"\td:"u64bitFMT"\ts:"u64bitFMT"\tm:"u64bitFMT"\tt:"u64bitFMT"\n",
+    fprintf(out, "R\t"uint16FMT"_"uint16FMT"_"uint16FMT"_"uint16FMT"\t"uint16FMT"_"uint16FMT"_"uint16FMT"_"uint16FMT"\t"uint64FMT"/"uint64FMT"\t"uint64FMT"+-"uint64FMT"\tf:"uint64FMT"\td:"uint64FMT"\ts:"uint64FMT"\tm:"uint64FMT"\tt:"uint64FMT"\n",
             id1[0], id1[1], id1[2], id1[3],
             id2[0], id2[1], id2[2], id2[3],
             _maxColrMismatchMapped, _maxBaseMismatchMapped,
@@ -47,30 +47,30 @@ public:
   };
 
 public:
-  u64bit   _tag1id;
-  u64bit   _tag2id;
+  uint64   _tag1id;
+  uint64   _tag2id;
 
   //  Command line, how many color mismatches we looked for, and how
   //  many base mismatches we allowed.  These deterine the number and
   //  meaning of the alignment quality histogram.  This is stored per
   //  result, so multiple runs can be easily combined.
   //
-  u64bit   _maxColrMismatchMapped:4;   
-  u64bit   _maxBaseMismatchMapped:4;
+  uint64   _maxColrMismatchMapped:4;   
+  uint64   _maxBaseMismatchMapped:4;
 
-  u64bit   _mean:18;               //  Expected mean and stddev for this pair.
-  u64bit   _stddev:16;             //  Again, per result so we can combine mappings.
-  u64bit   _pad1:22;
+  uint64   _mean:18;               //  Expected mean and stddev for this pair.
+  uint64   _stddev:16;             //  Again, per result so we can combine mappings.
+  uint64   _pad1:22;
 
-  u64bit   _numFrag:16;            //  Number of fragment alignments
-  u64bit   _numFragDiscarded:20;   //  Number of fragment alignments found but not reported
-  u64bit   _numFragTangled:20;     //  Number of fragment alignments in tangled mated
-  u64bit   _numFragSingleton:16;   //  Number of fragment alignments potentially linking
-  u64bit   _pad2:8;
+  uint64   _numFrag:16;            //  Number of fragment alignments
+  uint64   _numFragDiscarded:20;   //  Number of fragment alignments found but not reported
+  uint64   _numFragTangled:20;     //  Number of fragment alignments in tangled mated
+  uint64   _numFragSingleton:16;   //  Number of fragment alignments potentially linking
+  uint64   _pad2:8;
 
-  u64bit   _numMated:13;           //  Number of mated alignments
-  u64bit   _numTangled:13;         //  Number of tangled alignments
-  u64bit   _pad3:22;
+  uint64   _numMated:13;           //  Number of mated alignments
+  uint64   _numTangled:13;         //  Number of tangled alignments
+  uint64   _pad3:22;
 };
 
 
@@ -83,22 +83,22 @@ public:
 //
 class tapperResultQV {
 public:
-  u32bit   _tag1valid:1;              //  Tag 1 is valid data
-  u32bit   _tag1basesMismatch:4;      //  Number of mismatches in ACGT alignment
-  u32bit   _tag1colorMismatch:4;      //  Number of consistent color mismatches
-  u32bit   _tag1colorInconsistent:4;  //  Number of inconsistent color mismatches
-  u32bit   _tag1rev:1;                //  Is reverse complement
+  uint32   _tag1valid:1;              //  Tag 1 is valid data
+  uint32   _tag1basesMismatch:4;      //  Number of mismatches in ACGT alignment
+  uint32   _tag1colorMismatch:4;      //  Number of consistent color mismatches
+  uint32   _tag1colorInconsistent:4;  //  Number of inconsistent color mismatches
+  uint32   _tag1rev:1;                //  Is reverse complement
 
-  u32bit   _tag2valid:1;              //  Tag 2 is valid data
-  u32bit   _tag2basesMismatch:4;      //  Number of mismatches in ACGT alignment
-  u32bit   _tag2colorMismatch:4;      //  Number of consistent color mismatches
-  u32bit   _tag2colorInconsistent:4;  //  Number of inconsistent color mismatches
-  u32bit   _tag2rev:1;                //  Is reverse complement
+  uint32   _tag2valid:1;              //  Tag 2 is valid data
+  uint32   _tag2basesMismatch:4;      //  Number of mismatches in ACGT alignment
+  uint32   _tag2colorMismatch:4;      //  Number of consistent color mismatches
+  uint32   _tag2colorInconsistent:4;  //  Number of inconsistent color mismatches
+  uint32   _tag2rev:1;                //  Is reverse complement
 
-  u32bit   _diffSize:4;               //  Value of MAX_COLOR_MISMATCH_MAPPED.
+  uint32   _diffSize:4;               //  Value of MAX_COLOR_MISMATCH_MAPPED.
 
-  u8bit    _tag1colorDiffs[MAX_COLOR_MISMATCH_MAPPED];
-  u8bit    _tag2colorDiffs[MAX_COLOR_MISMATCH_MAPPED];
+  uint8    _tag1colorDiffs[MAX_COLOR_MISMATCH_MAPPED];
+  uint8    _tag2colorDiffs[MAX_COLOR_MISMATCH_MAPPED];
 };
 
 
@@ -109,27 +109,27 @@ public:
 class tapperResultFragment {
 public:
   void    print(FILE *out, tapperResultIndex *idx) {
-    u16bit                 id[4];
+    uint16                 id[4];
     char                   cor[128];
-    u32bit                 err = 0;
+    uint32                 err = 0;
 
 #warning do not know real tag length
     memset(cor, '.', 128);
     cor[26] = 0;
 
     if (_qual._tag1valid) {
-      for (u32bit x=0; x<_qual._tag1colorMismatch; x++, err++) {
-        u32bit pos = _qual._tag1colorDiffs[err] & 0x3f;
+      for (uint32 x=0; x<_qual._tag1colorMismatch; x++, err++) {
+        uint32 pos = _qual._tag1colorDiffs[err] & 0x3f;
         cor[pos] = '*';
       }
 
-      for (u32bit x=0; x<_qual._tag1colorInconsistent; x++, err++) {
-        u32bit pos = _qual._tag1colorDiffs[err] & 0x3f;
+      for (uint32 x=0; x<_qual._tag1colorInconsistent; x++, err++) {
+        uint32 pos = _qual._tag1colorDiffs[err] & 0x3f;
         cor[pos] = bitsToColor[_qual._tag1colorDiffs[err] >> 6];
       }
 
       decodeTagID(idx->_tag1id, id);
-      fprintf(stdout, "F\t"u16bitFMT"_"u16bitFMT"_"u16bitFMT"_"u16bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t%c\t"u32bitFMT"/"u32bitFMT"/"u32bitFMT"\t'%s'\n",
+      fprintf(stdout, "F\t"uint16FMT"_"uint16FMT"_"uint16FMT"_"uint16FMT"\t"uint32FMT"\t"uint32FMT"\t%c\t"uint32FMT"/"uint32FMT"/"uint32FMT"\t'%s'\n",
               id[0], id[1], id[2], id[3],
               _seq,
               _pos,
@@ -141,18 +141,18 @@ public:
     }
 
     if (_qual._tag2valid) {
-      for (u32bit x=0; x<_qual._tag2colorMismatch; x++, err++) {
-        u32bit pos = _qual._tag2colorDiffs[err] & 0x3f;
+      for (uint32 x=0; x<_qual._tag2colorMismatch; x++, err++) {
+        uint32 pos = _qual._tag2colorDiffs[err] & 0x3f;
         cor[pos] = '*';
       }
 
-      for (u32bit x=0; x<_qual._tag2colorInconsistent; x++, err++) {
-        u32bit pos = _qual._tag2colorDiffs[err] & 0x3f;
+      for (uint32 x=0; x<_qual._tag2colorInconsistent; x++, err++) {
+        uint32 pos = _qual._tag2colorDiffs[err] & 0x3f;
         cor[pos] = bitsToColor[_qual._tag2colorDiffs[err] >> 6];
       }
 
       decodeTagID(idx->_tag2id, id);
-      fprintf(stdout, "F\t"u16bitFMT"_"u16bitFMT"_"u16bitFMT"_"u16bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t%c\t"u32bitFMT"/"u32bitFMT"/"u32bitFMT"\t'%s'\n",
+      fprintf(stdout, "F\t"uint16FMT"_"uint16FMT"_"uint16FMT"_"uint16FMT"\t"uint32FMT"\t"uint32FMT"\t%c\t"uint32FMT"/"uint32FMT"/"uint32FMT"\t'%s'\n",
               id[0], id[1], id[2], id[3],
               _seq,
               _pos,
@@ -166,8 +166,8 @@ public:
 
 
 public:
-  u32bit            _seq;
-  u32bit            _pos;
+  uint32            _seq;
+  uint32            _pos;
   tapperResultQV    _qual;
 };
 
@@ -178,13 +178,13 @@ public:
 class tapperResultMated {
 public:
   void    print(FILE *out, tapperResultIndex *idx) {
-    u16bit                 id1[4];
-    u16bit                 id2[4];
+    uint16                 id1[4];
+    uint16                 id2[4];
 
     decodeTagID(idx->_tag1id, id1);
     decodeTagID(idx->_tag2id, id2);
 
-    fprintf(stdout, "M\t"u16bitFMT"_"u16bitFMT"_"u16bitFMT"_"u16bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t%c\t"u32bitFMT"/"u32bitFMT"/"u32bitFMT"\t"u16bitFMT"_"u16bitFMT"_"u16bitFMT"_"u16bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t%c\t"u32bitFMT"/"u32bitFMT"/"u32bitFMT"\n",
+    fprintf(stdout, "M\t"uint16FMT"_"uint16FMT"_"uint16FMT"_"uint16FMT"\t"uint32FMT"\t"uint32FMT"\t%c\t"uint32FMT"/"uint32FMT"/"uint32FMT"\t"uint16FMT"_"uint16FMT"_"uint16FMT"_"uint16FMT"\t"uint32FMT"\t"uint32FMT"\t%c\t"uint32FMT"/"uint32FMT"/"uint32FMT"\n",
             id1[0], id1[1], id1[2], id1[3],
             _seq,
             _pos1,
@@ -202,9 +202,9 @@ public:
   };
 
 public:
-  u32bit             _seq;
-  u32bit             _pos1;
-  u32bit             _pos2;
+  uint32             _seq;
+  uint32             _pos1;
+  uint32             _pos2;
   tapperResultQV     _qual;
 };
 
@@ -215,13 +215,13 @@ public:
 class tapperResultTangled {
 public:
   void    print(FILE *out, tapperResultIndex *idx) {
-    u16bit                 id1[4];
-    u16bit                 id2[4];
+    uint16                 id1[4];
+    uint16                 id2[4];
 
     decodeTagID(idx->_tag1id, id1);
     decodeTagID(idx->_tag2id, id2);
 
-    fprintf(stdout, "T\t"u16bitFMT"_"u16bitFMT"_"u16bitFMT"_"u16bitFMT"\t"u32bitFMT"\t"u16bitFMT"_"u16bitFMT"_"u16bitFMT"_"u16bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\n",
+    fprintf(stdout, "T\t"uint16FMT"_"uint16FMT"_"uint16FMT"_"uint16FMT"\t"uint32FMT"\t"uint16FMT"_"uint16FMT"_"uint16FMT"_"uint16FMT"\t"uint32FMT"\t"uint32FMT"\t"uint32FMT"\t"uint32FMT"\n",
             id1[0], id1[1], id1[2], id1[3],
             _tag1count,
             id2[0], id2[1], id2[2], id2[3],
@@ -232,11 +232,11 @@ public:
   };
 
 public:
-  u16bit           _tag1count;  //  Number of times tag1 is in here
-  u16bit           _tag2count;  //  Number of times tag2 is in here
-  u32bit           _seq;        //  Sequence we hit
-  u32bit           _bgn;        //  Beginning location
-  u32bit           _end;        //  Ending location
+  uint16           _tag1count;  //  Number of times tag1 is in here
+  uint16           _tag2count;  //  Number of times tag2 is in here
+  uint32           _seq;        //  Sequence we hit
+  uint32           _bgn;        //  Beginning location
+  uint32           _end;        //  Ending location
 };
 
 
@@ -271,27 +271,27 @@ public:
   tapperResultIndex       idx;
 
   //  A single unmated alignment
-  u32bit                  fragMax;
+  uint32                  fragMax;
   tapperResultFragment   *frag;
 
   //  Tag in a mate pair, mapped near the end of a sequence
-  u32bit                  singMax;
+  uint32                  singMax;
   tapperResultFragment   *sing;
 
   //  Tag in a mate pair, involved in a tangle
-  u32bit                  taliMax;
+  uint32                  taliMax;
   tapperResultFragment   *tali;
 
   //  Happy mated tags
-  u32bit                  mateMax;
+  uint32                  mateMax;
   tapperResultMated      *mate;
 
   //  Location of tangle
-  u32bit                  tangMax;
+  uint32                  tangMax;
   tapperResultTangled    *tang;
 
-  u32bit                  aqltMax;
-  u32bit                 *aqlt;
+  uint32                  aqltMax;
+  uint32                 *aqlt;
 };
 
 
@@ -301,15 +301,15 @@ public:
 class tapperAlignmentQualityHistogramIndices {
 public:
   tapperAlignmentQualityHistogramIndices() {
-    for (u32bit i=0; i<16; i++)
-      for (u32bit j=0; j<16; j++) {
+    for (uint32 i=0; i<16; i++)
+      for (uint32 j=0; j<16; j++) {
         _indices[i][j] = 0L;
-        _length[i][j]  = ~u32bitZERO;
+        _length[i][j]  = ~uint32ZERO;
       }
   };
   ~tapperAlignmentQualityHistogramIndices() {
-    for (u32bit i=0; i<16; i++)
-      for (u32bit j=0; j<16; j++)
+    for (uint32 i=0; i<16; i++)
+      for (uint32 j=0; j<16; j++)
         delete [] _indices[i][j];
   };
 
@@ -319,22 +319,22 @@ public:
   //
   //  A maximum of 16 is allowed on all values.
 
-  u32bit   getLength(u32bit maxBaseError, u32bit maxColorError) {
+  uint32   getLength(uint32 maxBaseError, uint32 maxColorError) {
     generate(maxBaseError, maxColorError);
-    assert(_length[maxBaseError][maxColorError] < ~u32bitZERO);
+    assert(_length[maxBaseError][maxColorError] < ~uint32ZERO);
     return(_length[maxBaseError][maxColorError]);
   };
 
-  u32bit   getIndex(u32bit maxBaseError, u32bit maxColorError,
-                    u32bit numBaseMismatch, u32bit numColorMismatch, u32bit numColorError) {
+  uint32   getIndex(uint32 maxBaseError, uint32 maxColorError,
+                    uint32 numBaseMismatch, uint32 numColorMismatch, uint32 numColorError) {
     generate(maxBaseError, maxColorError);
-    assert(_length[maxBaseError][maxColorError] < ~u32bitZERO);
+    assert(_length[maxBaseError][maxColorError] < ~uint32ZERO);
     assert(numBaseMismatch * 256 + numColorMismatch * 16 + numColorError < 16 * 16 * 16);
     return(_indices[maxBaseError][maxColorError][numBaseMismatch * 256 + numColorMismatch * 16 + numColorError]);
   };
 
 private:
-  void     generate(u32bit maxBaseError, u32bit maxColorError) {
+  void     generate(uint32 maxBaseError, uint32 maxColorError) {
 
     if (_indices[maxBaseError][maxColorError] != 0L)
       return;
@@ -352,29 +352,29 @@ private:
     //  finally, it is impossible to have just one color mismatch.
 
     //                cm 0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15
-    u32bit bmmin[16] = { 0, 0, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8 };
+    uint32 bmmin[16] = { 0, 0, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8 };
 
-    u32bit maxc = maxColorError;  //  max color errors given to the mapper
-    u32bit maxb = maxBaseError;   //  max base  errors given to the mapper
+    uint32 maxc = maxColorError;  //  max color errors given to the mapper
+    uint32 maxb = maxBaseError;   //  max base  errors given to the mapper
 
-    u32bit index = 0;
+    uint32 index = 0;
 
-    u32bit *histogramIndices = _indices[maxBaseError][maxColorError] = new u32bit [16 * 16 * 16];
+    uint32 *histogramIndices = _indices[maxBaseError][maxColorError] = new uint32 [16 * 16 * 16];
 
-    for (u32bit ii=0; ii < 16 * 16 * 16; ii++)
-      histogramIndices[ii] = ~u32bitZERO;
+    for (uint32 ii=0; ii < 16 * 16 * 16; ii++)
+      histogramIndices[ii] = ~uint32ZERO;
 
     //  A special case for 0.
-    for (u32bit ce=0; ce <= maxc; ce++) {
-      //fprintf(stderr, "histogramIndices["u32bitFMT"/"u32bitFMT"/"u32bitFMT"] = "u32bitFMT"\n", 0, 0, ce, index);
+    for (uint32 ce=0; ce <= maxc; ce++) {
+      //fprintf(stderr, "histogramIndices["uint32FMT"/"uint32FMT"/"uint32FMT"] = "uint32FMT"\n", 0, 0, ce, index);
       assert(0 * 256 + 0 * 16 + ce < 16 * 16 * 16);
       histogramIndices[0 * 256 + 0 * 16 + ce] = index++;
     }
     
-    for (u32bit cm=2; cm <= maxc; cm++)
-      for (u32bit ce=0; ce <= maxc - cm; ce++)
-        for (u32bit bm=bmmin[cm]; bm <= maxb; bm++) {
-          //fprintf(stderr, "histogramIndices["u32bitFMT"/"u32bitFMT"/"u32bitFMT"] = "u32bitFMT"\n", bm, cm, ce, index);
+    for (uint32 cm=2; cm <= maxc; cm++)
+      for (uint32 ce=0; ce <= maxc - cm; ce++)
+        for (uint32 bm=bmmin[cm]; bm <= maxb; bm++) {
+          //fprintf(stderr, "histogramIndices["uint32FMT"/"uint32FMT"/"uint32FMT"] = "uint32FMT"\n", bm, cm, ce, index);
           assert(bm * 256 + cm * 16 + ce < 16 * 16 * 16);
           histogramIndices[bm * 256 + cm * 16 + ce] = index++;
         }
@@ -383,8 +383,8 @@ private:
   };
 
 
-  u32bit  *_indices[16][16];
-  u32bit   _length[16][16];
+  uint32  *_indices[16][16];
+  uint32   _length[16][16];
 };
 
 
@@ -429,7 +429,7 @@ public:
     TANG = new recordFile(filename, 0, sizeof(tapperResultTangled), mode);
 
     sprintf(filename, "%s/tapperMappedAlignQual", prefix);
-    AQLT = new recordFile(filename, 0, sizeof(u32bit), mode);
+    AQLT = new recordFile(filename, 0, sizeof(uint32), mode);
   };
 
   ~tapperResultFile() {
@@ -447,15 +447,15 @@ public:
     return(fileExists(prefix));
   };
 
-  u32bit  AQIlength(u32bit maxBaseErrors, u32bit maxColorErrors) {
-    //fprintf(stderr, "AQIlength("u32bitFMT","u32bitFMT") -> "u32bitFMT"\n",
+  uint32  AQIlength(uint32 maxBaseErrors, uint32 maxColorErrors) {
+    //fprintf(stderr, "AQIlength("uint32FMT","uint32FMT") -> "uint32FMT"\n",
     //        maxBaseErrors, maxColorErrors, AQI.getLength(maxBaseErrors, maxColorErrors));
     return(AQI.getLength(maxBaseErrors, maxColorErrors));
   };
 
-  u32bit  AQIindex(u32bit maxBaseErrors, u32bit maxColorErrors,
-                   u32bit numBaseMismatch, u32bit numColorMismatch, u32bit numColorError) {
-    //fprintf(stderr, "AQIindex("u32bitFMT","u32bitFMT","u32bitFMT","u32bitFMT","u32bitFMT") -> "u32bitFMT"\n",
+  uint32  AQIindex(uint32 maxBaseErrors, uint32 maxColorErrors,
+                   uint32 numBaseMismatch, uint32 numColorMismatch, uint32 numColorError) {
+    //fprintf(stderr, "AQIindex("uint32FMT","uint32FMT","uint32FMT","uint32FMT","uint32FMT") -> "uint32FMT"\n",
     //        maxBaseErrors, maxColorErrors,
     //        numBaseMismatch, numColorMismatch, numColorError,
     //        AQI.getIndex(maxBaseErrors, maxColorErrors, numBaseMismatch, numColorMismatch, numColorError));
@@ -468,7 +468,7 @@ public:
     if (IDX->getRecord(&align->idx) == 0)
       return(false);
 
-    u32bit aqilen = AQIlength(align->idx._maxBaseMismatchMapped, align->idx._maxColrMismatchMapped);
+    uint32 aqilen = AQIlength(align->idx._maxBaseMismatchMapped, align->idx._maxColrMismatchMapped);
 
     if (align->idx._numFrag +
         align->idx._numFragDiscarded +
@@ -510,11 +510,11 @@ public:
     if (aqilen > align->aqltMax) {
       delete [] align->aqlt;
       align->aqltMax = aqilen;
-      align->aqlt    = new u32bit [align->aqltMax];
+      align->aqlt    = new uint32 [align->aqltMax];
     }
 
 #if 0
-    fprintf(stderr, "reading: "u32bitFMT" "u32bitFMT" "u32bitFMT" "u32bitFMT" "u32bitFMT"\n",
+    fprintf(stderr, "reading: "uint32FMT" "uint32FMT" "uint32FMT" "uint32FMT" "uint32FMT"\n",
             align->idx._numFrag,
             align->idx._numFragSingleton,
             align->idx._numFragTangled,
@@ -549,7 +549,7 @@ public:
                 tapperResultFragment   *tali,
                 tapperResultMated      *mate,
                 tapperResultTangled    *tang,
-                u32bit                 *aqlt) {
+                uint32                 *aqlt) {
     IDX->putRecord(idx);
 
     FRAG->putRecord(frag, idx->_numFrag);

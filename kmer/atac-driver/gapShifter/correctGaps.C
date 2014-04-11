@@ -76,21 +76,21 @@ main(int argc, char *argv[]) {
   seqInCore  *S1 = 0L;
   seqInCore  *S2 = 0L;
 
-  for (u32bit iter=0; iter<10; iter++) {
-    u32bit  gapsize = 1000;
-    u32bit  fgaps = 0;
-    u32bit  rgaps = 0;
+  for (uint32 iter=0; iter<10; iter++) {
+    uint32  gapsize = 1000;
+    uint32  fgaps = 0;
+    uint32  rgaps = 0;
 
     int mergeuid = 1;
 
-    for (u32bit i=1; i<MO.numMatches(); i++) {
+    for (uint32 i=1; i<MO.numMatches(); i++) {
       atacMatch  *l = MO[i-1];
       atacMatch  *r = MO[i];
 
       bool  joinMatches = false;
 
-      u32bit  gap1 = 0;
-      u32bit  gap2 = 0;
+      uint32  gap1 = 0;
+      uint32  gap2 = 0;
 
       if ((l->iid1 == r->iid1) &&  //  Matches are between the same sequences
           (l->iid2 == r->iid2) &&
@@ -112,10 +112,10 @@ main(int argc, char *argv[]) {
               char *s1 = S1->sequence() + l->pos1 + l->len1;
               char *s2 = S2->sequence() + l->pos2 + l->len1;
 
-              u32bit  identities = 0;
-              u32bit  n1 = 0;
-              u32bit  n2 = 0;
-              for (u32bit p=0; p<gap1; p++) {
+              uint32  identities = 0;
+              uint32  n1 = 0;
+              uint32  n2 = 0;
+              for (uint32 p=0; p<gap1; p++) {
                 if (toUpper[(int)s1[p]] == toUpper[(int)s2[p]])
                   identities++;
                 if (toUpper[(int)s1[p]] == 'N')
@@ -135,7 +135,7 @@ main(int argc, char *argv[]) {
                 //  these two matches are in the same run.
                 //
                 if (strcmp(l->parentuid, r->parentuid) != 0) {
-                  fprintf(logFile, "HEY!  F gap of size "u32bitFMT" not in a run?\n", gap1);
+                  fprintf(logFile, "HEY!  F gap of size "uint32FMT" not in a run?\n", gap1);
                   l->print(logFile, AF.labelA(), AF.labelB());
                   r->print(logFile, AF.labelA(), AF.labelB());
                 } else {
@@ -143,7 +143,7 @@ main(int argc, char *argv[]) {
 
                   joinMatches = true;
                   
-                  //fprintf(logFile, "potential f gap of size L "u32bitFMTW(4)" (n1="u32bitFMTW(4)" n2="u32bitFMTW(4)" ident="u32bitFMTW(4)"/"u32bitFMTW(4)")!\n",
+                  //fprintf(logFile, "potential f gap of size L "uint32FMTW(4)" (n1="uint32FMTW(4)" n2="uint32FMTW(4)" ident="uint32FMTW(4)"/"uint32FMTW(4)")!\n",
                   //        gap1, n1, n2, identities, gap1);
                   //l->print(logFile, AF.labelA(), AF.labelB());
                   //r->print(logFile, AF.labelA(), AF.labelB());
@@ -171,10 +171,10 @@ main(int argc, char *argv[]) {
               char *s1 = S1->sequence() + l->pos1 + l->len1;
               char *s2 = S2->sequence() + r->pos2 + r->len2;
 
-              u32bit  identities = 0;
-              u32bit  n1 = 0;
-              u32bit  n2 = 0;
-              for (u32bit p=0, q=gap1-1; p<gap1; p++, q--) {
+              uint32  identities = 0;
+              uint32  n1 = 0;
+              uint32  n2 = 0;
+              for (uint32 p=0, q=gap1-1; p<gap1; p++, q--) {
                 if (toUpper[(int)s1[p]] == toUpper[complementSymbol[(int)s2[q]]])
                   identities++;
                 if (toUpper[(int)s1[p]] == 'N')
@@ -197,7 +197,7 @@ main(int argc, char *argv[]) {
                 //  these two matches are in the same run.
                 //
                 if (strcmp(l->parentuid, r->parentuid) != 0) {
-                  fprintf(logFile, "HEY!  R gap of size "u32bitFMT" not in a run?\n", gap1);
+                  fprintf(logFile, "HEY!  R gap of size "uint32FMT" not in a run?\n", gap1);
                   l->print(logFile, AF.labelA(), AF.labelB());
                   r->print(logFile, AF.labelA(), AF.labelB());
                 } else {
@@ -205,7 +205,7 @@ main(int argc, char *argv[]) {
 
                   joinMatches = true;
 
-                  //fprintf(logFile, "potential r gap of size L "u32bitFMTW(4)" (n1="u32bitFMTW(4)" n2="u32bitFMTW(4)" ident="u32bitFMTW(4)"/"u32bitFMTW(4)")!\n",
+                  //fprintf(logFile, "potential r gap of size L "uint32FMTW(4)" (n1="uint32FMTW(4)" n2="uint32FMTW(4)" ident="uint32FMTW(4)"/"uint32FMTW(4)")!\n",
                   //        gap1, n1, n2, identities, gap1);
                   //l->print(logFile, AF.labelA(), AF.labelB());
                   //r->print(logFile, AF.labelA(), AF.labelB());
@@ -219,7 +219,7 @@ main(int argc, char *argv[]) {
       }
 
       if (joinMatches) {
-        fprintf(logFile, "CLOSE "u32bitFMT"----------------------------------------\n", gap1);
+        fprintf(logFile, "CLOSE "uint32FMT"----------------------------------------\n", gap1);
         l->print(logFile, AF.labelA(), AF.labelB());
         r->print(logFile, AF.labelA(), AF.labelB());
 
@@ -232,7 +232,7 @@ main(int argc, char *argv[]) {
       }
     }
 
-    fprintf(logFile, "At gapSize="u32bitFMT" closed "u32bitFMT" f-gaps and "u32bitFMT" r-gaps.\n", gapsize, fgaps, rgaps);
+    fprintf(logFile, "At gapSize="uint32FMT" closed "uint32FMT" f-gaps and "uint32FMT" r-gaps.\n", gapsize, fgaps, rgaps);
 
     if (fgaps + rgaps == 0)
       iter = 10;
@@ -249,7 +249,7 @@ main(int argc, char *argv[]) {
   //
   //  We only found 3 on huref4 vs b35.  Further development here was stopped.
 
-  for (u32bit i=2; i<ML.numMatches(); i++) {
+  for (uint32 i=2; i<ML.numMatches(); i++) {
     atacMatch  *l = ML[i-2];
     atacMatch  *m = ML[i-1];
     atacMatch  *r = ML[i];
@@ -264,13 +264,13 @@ main(int argc, char *argv[]) {
           if ((l->pos1 + l->len1 <= r->pos1) &&  //  Matches are ordered correctly (should be, from the sort)
               (l->pos2 + l->len2 <= r->pos2)) {
 
-            u32bit  gapl1 = m->pos1 - (l->pos1 + l->len1);
-            u32bit  gapl2 = m->pos2 - (l->pos2 + l->len2);
-            u32bit  gapr1 = r->pos1 - (m->pos1 + m->len1);
-            u32bit  gapr2 = r->pos2 - (m->pos2 + m->len2);
+            uint32  gapl1 = m->pos1 - (l->pos1 + l->len1);
+            uint32  gapl2 = m->pos2 - (l->pos2 + l->len2);
+            uint32  gapr1 = r->pos1 - (m->pos1 + m->len1);
+            uint32  gapr2 = r->pos2 - (m->pos2 + m->len2);
 
             if ((gapl1 + gapr1 == gapl2 + gapr2) && (gapl1 + gapr1 < 5)) {
-              fprintf(logFile, "potential f fix of size L "u32bitFMT" "u32bitFMT" and R "u32bitFMT" "u32bitFMT"!\n",
+              fprintf(logFile, "potential f fix of size L "uint32FMT" "uint32FMT" and R "uint32FMT" "uint32FMT"!\n",
                       gapl1, gapl2, gapr1, gapr2);
               l->print(logFile, "A", "B");
               m->print(logFile, "A", "B");
@@ -291,10 +291,10 @@ main(int argc, char *argv[]) {
   //
   AF.writeHeader(stdout);
 
-  for (u32bit i=0; i<MO.numMatches(); i++)
+  for (uint32 i=0; i<MO.numMatches(); i++)
     MO[i]->print(stdout, AF.labelA(), AF.labelB());
 
-  for (u32bit i=0; i<AF.runs()->numberOfMatches(); i++)
+  for (uint32 i=0; i<AF.runs()->numberOfMatches(); i++)
     AF.runs()->getMatch(i)->print(stdout, AF.labelA(), AF.labelB());
 
   return(0);

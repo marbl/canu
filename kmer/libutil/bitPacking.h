@@ -7,7 +7,7 @@
 //  Routines used for stuffing bits into a word array.
 
 //  Define this to enable testing that the width of the data element
-//  is greater than zero.  The u64bitMASK() macro (bri.h) does not
+//  is greater than zero.  The uint64MASK() macro (bri.h) does not
 //  generate a mask for 0.  Compiler warnings are issued, because you
 //  shouldn't use this in production code.
 //
@@ -31,10 +31,10 @@
 //  Sets a collection of values; the number of bits advanced in the
 //  stream is returned.
 //
-u64bit getDecodedValue (u64bit *ptr, u64bit  pos, u64bit  siz);
-u64bit getDecodedValues(u64bit *ptr, u64bit  pos, u64bit  num, u64bit *sizs, u64bit *vals);
-void   setDecodedValue (u64bit *ptr, u64bit  pos, u64bit  siz, u64bit  val);
-u64bit setDecodedValues(u64bit *ptr, u64bit  pos, u64bit  num, u64bit *sizs, u64bit *vals);
+uint64 getDecodedValue (uint64 *ptr, uint64  pos, uint64  siz);
+uint64 getDecodedValues(uint64 *ptr, uint64  pos, uint64  num, uint64 *sizs, uint64 *vals);
+void   setDecodedValue (uint64 *ptr, uint64  pos, uint64  siz, uint64  val);
+uint64 setDecodedValues(uint64 *ptr, uint64  pos, uint64  num, uint64 *sizs, uint64 *vals);
 
 
 //  Like getDecodedValue() but will pre/post increment/decrement the
@@ -53,10 +53,10 @@ u64bit setDecodedValues(u64bit *ptr, u64bit  pos, u64bit  num, u64bit *sizs, u64
 //  postDecrementDecodedValue(ptr, pos, siz) === x = getDecodedValue(ptr, pos, siz);
 //                                               setDecodedValue(ptr, pos, siz, x - 1);
 //
-u64bit preIncrementDecodedValue(u64bit *ptr, u64bit  pos, u64bit  siz);
-u64bit preDecrementDecodedValue(u64bit *ptr, u64bit  pos, u64bit  siz);
-u64bit postIncrementDecodedValue(u64bit *ptr, u64bit  pos, u64bit  siz); 
-u64bit postDecrementDecodedValue(u64bit *ptr, u64bit  pos, u64bit  siz);
+uint64 preIncrementDecodedValue(uint64 *ptr, uint64  pos, uint64  siz);
+uint64 preDecrementDecodedValue(uint64 *ptr, uint64  pos, uint64  siz);
+uint64 postIncrementDecodedValue(uint64 *ptr, uint64  pos, uint64  siz); 
+uint64 postDecrementDecodedValue(uint64 *ptr, uint64  pos, uint64  siz);
 
 
 
@@ -103,15 +103,15 @@ u64bit postDecrementDecodedValue(u64bit *ptr, u64bit  pos, u64bit  siz);
 
 
 inline
-u64bit
-getDecodedValue(u64bit *ptr,
-                u64bit  pos,
-                u64bit  siz) {
-  u64bit wrd = (pos >> 6) & 0x0000cfffffffffffllu;
+uint64
+getDecodedValue(uint64 *ptr,
+                uint64  pos,
+                uint64  siz) {
+  uint64 wrd = (pos >> 6) & 0x0000cfffffffffffllu;
   //PREFETCH(ptr + wrd);  makes it worse
-  u64bit bit = (pos     ) & 0x000000000000003fllu;
-  u64bit b1  = 64 - bit;
-  u64bit ret = 0;
+  uint64 bit = (pos     ) & 0x000000000000003fllu;
+  uint64 b1  = 64 - bit;
+  uint64 ret = 0;
 
 #ifdef CHECK_WIDTH
   if (siz == 0) {
@@ -119,7 +119,7 @@ getDecodedValue(u64bit *ptr,
     abort();
   }
   if (siz > 64) {
-    fprintf(stderr, "ERROR: getDecodedValue() called with huge size ("u64bitFMT")!\n", siz);
+    fprintf(stderr, "ERROR: getDecodedValue() called with huge size ("uint64FMT")!\n", siz);
     abort();
   }
 #endif
@@ -128,12 +128,12 @@ getDecodedValue(u64bit *ptr,
     ret = ptr[wrd] >> (b1 - siz);
   } else {
     bit  = siz - b1;
-    ret  = (ptr[wrd] & u64bitMASK(b1)) << bit;
+    ret  = (ptr[wrd] & uint64MASK(b1)) << bit;
     wrd++;
-    ret |= (ptr[wrd] >> (64 - bit)) & u64bitMASK(bit);
+    ret |= (ptr[wrd] >> (64 - bit)) & uint64MASK(bit);
   }
 
-  ret &= u64bitMASK(siz);
+  ret &= uint64MASK(siz);
 
   return(ret);
 }
@@ -141,13 +141,13 @@ getDecodedValue(u64bit *ptr,
 
 inline
 void
-setDecodedValue(u64bit *ptr,
-                u64bit  pos,
-                u64bit  siz,
-                u64bit  val) {
-  u64bit wrd = (pos >> 6) & 0x0000cfffffffffffllu;
-  u64bit bit = (pos     ) & 0x000000000000003fllu;
-  u64bit b1  = 64 - bit;
+setDecodedValue(uint64 *ptr,
+                uint64  pos,
+                uint64  siz,
+                uint64  val) {
+  uint64 wrd = (pos >> 6) & 0x0000cfffffffffffllu;
+  uint64 bit = (pos     ) & 0x000000000000003fllu;
+  uint64 b1  = 64 - bit;
 
 #ifdef CHECK_WIDTH
   if (siz == 0) {
@@ -155,44 +155,44 @@ setDecodedValue(u64bit *ptr,
     abort();
   }
   if (siz > 64) {
-    fprintf(stderr, "ERROR: getDecodedValue() called with huge size ("u64bitFMT")!\n", siz);
+    fprintf(stderr, "ERROR: getDecodedValue() called with huge size ("uint64FMT")!\n", siz);
     abort();
   }
 #endif
 
-  val &= u64bitMASK(siz);
+  val &= uint64MASK(siz);
 
   if (b1 >= siz) {
-    ptr[wrd] &= ~( u64bitMASK(siz) << (b1 - siz) );
+    ptr[wrd] &= ~( uint64MASK(siz) << (b1 - siz) );
     ptr[wrd] |= val << (b1 - siz);
   } else {
     bit = siz - b1;
-    ptr[wrd] &= ~u64bitMASK(b1);
-    ptr[wrd] |= (val & (u64bitMASK(b1) << (bit))) >> (bit);
+    ptr[wrd] &= ~uint64MASK(b1);
+    ptr[wrd] |= (val & (uint64MASK(b1) << (bit))) >> (bit);
     wrd++;
-    ptr[wrd] &= ~(u64bitMASK(bit) << (64 - bit));
-    ptr[wrd] |= (val & (u64bitMASK(bit))) << (64 - bit);
+    ptr[wrd] &= ~(uint64MASK(bit) << (64 - bit));
+    ptr[wrd] |= (val & (uint64MASK(bit))) << (64 - bit);
   }
 }
 
 
 inline
-u64bit
-getDecodedValues(u64bit *ptr,
-                 u64bit  pos,
-                 u64bit  num,
-                 u64bit *sizs,
-                 u64bit *vals) {
+uint64
+getDecodedValues(uint64 *ptr,
+                 uint64  pos,
+                 uint64  num,
+                 uint64 *sizs,
+                 uint64 *vals) {
 
   //  compute the location of the start of the encoded words, then
   //  just walk through to get the remaining words.
 
-  u64bit wrd = (pos >> 6) & 0x0000cfffffffffffllu;
+  uint64 wrd = (pos >> 6) & 0x0000cfffffffffffllu;
   //PREFETCH(ptr + wrd);  makes it worse
-  u64bit bit = (pos     ) & 0x000000000000003fllu;
-  u64bit b1  = 0;
+  uint64 bit = (pos     ) & 0x000000000000003fllu;
+  uint64 b1  = 0;
 
-  for (u64bit i=0; i<num; i++) {
+  for (uint64 i=0; i<num; i++) {
     b1 = 64 - bit;
 
 #ifdef CHECK_WIDTH
@@ -201,7 +201,7 @@ getDecodedValues(u64bit *ptr,
       abort();
     }
     if (siz[i] > 64) {
-      fprintf(stderr, "ERROR: getDecodedValue() called with huge size ("u64bitFMT")!\n", siz);
+      fprintf(stderr, "ERROR: getDecodedValue() called with huge size ("uint64FMT")!\n", siz);
       abort();
     }
 #endif
@@ -213,9 +213,9 @@ getDecodedValues(u64bit *ptr,
     } else {
       //fprintf(stderr, "get-double pos=%d b1=%d bit=%d wrd=%d bitafter=%d\n", pos, b1, bit, wrd, sizs[i]-b1);
       bit = sizs[i] - b1;
-      vals[i]  = (ptr[wrd] & u64bitMASK(b1)) << bit;
+      vals[i]  = (ptr[wrd] & uint64MASK(b1)) << bit;
       wrd++;
-      vals[i] |= (ptr[wrd] >> (64 - bit)) & u64bitMASK(bit);
+      vals[i] |= (ptr[wrd] >> (64 - bit)) & uint64MASK(bit);
     }
 
     if (bit == 64) {
@@ -225,7 +225,7 @@ getDecodedValues(u64bit *ptr,
 
     assert(bit < 64);
 
-    vals[i] &= u64bitMASK(sizs[i]);
+    vals[i] &= uint64MASK(sizs[i]);
     pos     += sizs[i];
   }
 
@@ -234,18 +234,18 @@ getDecodedValues(u64bit *ptr,
 
 
 inline
-u64bit
-setDecodedValues(u64bit *ptr,
-                 u64bit  pos,
-                 u64bit  num,
-                 u64bit *sizs,
-                 u64bit *vals) {
-  u64bit wrd = (pos >> 6) & 0x0000cfffffffffffllu;
-  u64bit bit = (pos     ) & 0x000000000000003fllu;
-  u64bit b1  = 0;
+uint64
+setDecodedValues(uint64 *ptr,
+                 uint64  pos,
+                 uint64  num,
+                 uint64 *sizs,
+                 uint64 *vals) {
+  uint64 wrd = (pos >> 6) & 0x0000cfffffffffffllu;
+  uint64 bit = (pos     ) & 0x000000000000003fllu;
+  uint64 b1  = 0;
 
-  for (u64bit i=0; i<num; i++) {
-    vals[i] &= u64bitMASK(sizs[i]);
+  for (uint64 i=0; i<num; i++) {
+    vals[i] &= uint64MASK(sizs[i]);
 
     b1 = 64 - bit;
 
@@ -255,24 +255,24 @@ setDecodedValues(u64bit *ptr,
       abort();
     }
     if (siz[i] > 64) {
-      fprintf(stderr, "ERROR: getDecodedValue() called with huge size ("u64bitFMT")!\n", siz);
+      fprintf(stderr, "ERROR: getDecodedValue() called with huge size ("uint64FMT")!\n", siz);
       abort();
     }
 #endif
 
     if (b1 >= sizs[i]) {
       //fprintf(stderr, "set-single pos=%d b1=%d bit=%d wrd=%d\n", pos, b1, bit, wrd);
-      ptr[wrd] &= ~( u64bitMASK(sizs[i]) << (b1 - sizs[i]) );
+      ptr[wrd] &= ~( uint64MASK(sizs[i]) << (b1 - sizs[i]) );
       ptr[wrd] |= vals[i] << (b1 - sizs[i]);
       bit += sizs[i];
     } else {
       //fprintf(stderr, "set-double pos=%d b1=%d bit=%d wrd=%d bitafter=%d\n", pos, b1, bit, wrd, sizs[i]-b1);
       bit = sizs[i] - b1;
-      ptr[wrd] &= ~u64bitMASK(b1);
-      ptr[wrd] |= (vals[i] & (u64bitMASK(b1) << (bit))) >> (bit);
+      ptr[wrd] &= ~uint64MASK(b1);
+      ptr[wrd] |= (vals[i] & (uint64MASK(b1) << (bit))) >> (bit);
       wrd++;
-      ptr[wrd] &= ~(u64bitMASK(bit) << (64 - bit));
-      ptr[wrd] |= (vals[i] & (u64bitMASK(bit))) << (64 - bit);
+      ptr[wrd] &= ~(uint64MASK(bit) << (64 - bit));
+      ptr[wrd] |= (vals[i] & (uint64MASK(bit))) << (64 - bit);
     }
 
     if (bit == 64) {
@@ -300,14 +300,14 @@ setDecodedValues(u64bit *ptr,
 
 
 inline
-u64bit
-preIncrementDecodedValue(u64bit *ptr,
-                         u64bit  pos,
-                         u64bit  siz) {
-  u64bit wrd = (pos >> 6) & 0x0000cfffffffffffllu;
-  u64bit bit = (pos     ) & 0x000000000000003fllu;
-  u64bit b1  = 64 - bit;
-  u64bit ret = 0;
+uint64
+preIncrementDecodedValue(uint64 *ptr,
+                         uint64  pos,
+                         uint64  siz) {
+  uint64 wrd = (pos >> 6) & 0x0000cfffffffffffllu;
+  uint64 bit = (pos     ) & 0x000000000000003fllu;
+  uint64 b1  = 64 - bit;
+  uint64 ret = 0;
 
 #ifdef CHECK_WIDTH
   if (siz == 0) {
@@ -315,7 +315,7 @@ preIncrementDecodedValue(u64bit *ptr,
     abort();
   }
   if (siz > 64) {
-    fprintf(stderr, "ERROR: getDecodedValue() called with huge size ("u64bitFMT")!\n", siz);
+    fprintf(stderr, "ERROR: getDecodedValue() called with huge size ("uint64FMT")!\n", siz);
     abort();
   }
 #endif
@@ -324,24 +324,24 @@ preIncrementDecodedValue(u64bit *ptr,
     ret  = ptr[wrd] >> (b1 - siz);
 
     ret++;
-    ret &= u64bitMASK(siz);
+    ret &= uint64MASK(siz);
 
-    ptr[wrd] &= ~( u64bitMASK(siz) << (b1 - siz) );
+    ptr[wrd] &= ~( uint64MASK(siz) << (b1 - siz) );
     ptr[wrd] |= ret << (b1 - siz);
   } else {
     bit  = siz - b1;
 
-    ret  = (ptr[wrd] & u64bitMASK(b1)) << bit;
-    ret |= (ptr[wrd+1] >> (64 - bit)) & u64bitMASK(bit);
+    ret  = (ptr[wrd] & uint64MASK(b1)) << bit;
+    ret |= (ptr[wrd+1] >> (64 - bit)) & uint64MASK(bit);
 
     ret++;
-    ret &= u64bitMASK(siz);
+    ret &= uint64MASK(siz);
 
-    ptr[wrd] &= ~u64bitMASK(b1);
-    ptr[wrd] |= (ret & (u64bitMASK(b1) << (bit))) >> (bit);
+    ptr[wrd] &= ~uint64MASK(b1);
+    ptr[wrd] |= (ret & (uint64MASK(b1) << (bit))) >> (bit);
     wrd++;
-    ptr[wrd] &= ~(u64bitMASK(bit) << (64 - bit));
-    ptr[wrd] |= (ret & (u64bitMASK(bit))) << (64 - bit);
+    ptr[wrd] &= ~(uint64MASK(bit) << (64 - bit));
+    ptr[wrd] |= (ret & (uint64MASK(bit))) << (64 - bit);
   }
 
   return(ret);
@@ -350,14 +350,14 @@ preIncrementDecodedValue(u64bit *ptr,
 
 
 inline
-u64bit
-preDecrementDecodedValue(u64bit *ptr,
-                         u64bit  pos,
-                         u64bit  siz) {
-  u64bit wrd = (pos >> 6) & 0x0000cfffffffffffllu;
-  u64bit bit = (pos     ) & 0x000000000000003fllu;
-  u64bit b1  = 64 - bit;
-  u64bit ret = 0;
+uint64
+preDecrementDecodedValue(uint64 *ptr,
+                         uint64  pos,
+                         uint64  siz) {
+  uint64 wrd = (pos >> 6) & 0x0000cfffffffffffllu;
+  uint64 bit = (pos     ) & 0x000000000000003fllu;
+  uint64 b1  = 64 - bit;
+  uint64 ret = 0;
 
 #ifdef CHECK_WIDTH
   if (siz == 0) {
@@ -365,7 +365,7 @@ preDecrementDecodedValue(u64bit *ptr,
     abort();
   }
   if (siz > 64) {
-    fprintf(stderr, "ERROR: getDecodedValue() called with huge size ("u64bitFMT")!\n", siz);
+    fprintf(stderr, "ERROR: getDecodedValue() called with huge size ("uint64FMT")!\n", siz);
     abort();
   }
 #endif
@@ -374,24 +374,24 @@ preDecrementDecodedValue(u64bit *ptr,
     ret = ptr[wrd] >> (b1 - siz);
 
     ret--;
-    ret &= u64bitMASK(siz);
+    ret &= uint64MASK(siz);
 
-    ptr[wrd] &= ~( u64bitMASK(siz) << (b1 - siz) );
+    ptr[wrd] &= ~( uint64MASK(siz) << (b1 - siz) );
     ptr[wrd] |= ret << (b1 - siz);
   } else {
     bit  = siz - b1;
 
-    ret  = (ptr[wrd] & u64bitMASK(b1)) << bit;
-    ret |= (ptr[wrd+1] >> (64 - bit)) & u64bitMASK(bit);
+    ret  = (ptr[wrd] & uint64MASK(b1)) << bit;
+    ret |= (ptr[wrd+1] >> (64 - bit)) & uint64MASK(bit);
 
     ret--;
-    ret &= u64bitMASK(siz);
+    ret &= uint64MASK(siz);
 
-    ptr[wrd] &= ~u64bitMASK(b1);
-    ptr[wrd] |= (ret & (u64bitMASK(b1) << (bit))) >> (bit);
+    ptr[wrd] &= ~uint64MASK(b1);
+    ptr[wrd] |= (ret & (uint64MASK(b1) << (bit))) >> (bit);
     wrd++;
-    ptr[wrd] &= ~(u64bitMASK(bit) << (64 - bit));
-    ptr[wrd] |= (ret & (u64bitMASK(bit))) << (64 - bit);
+    ptr[wrd] &= ~(uint64MASK(bit) << (64 - bit));
+    ptr[wrd] |= (ret & (uint64MASK(bit))) << (64 - bit);
   }
 
   return(ret);
@@ -400,14 +400,14 @@ preDecrementDecodedValue(u64bit *ptr,
 
 
 inline
-u64bit
-postIncrementDecodedValue(u64bit *ptr,
-                          u64bit  pos,
-                          u64bit  siz) {
-  u64bit wrd = (pos >> 6) & 0x0000cfffffffffffllu;
-  u64bit bit = (pos     ) & 0x000000000000003fllu;
-  u64bit b1  = 64 - bit;
-  u64bit ret = 0;
+uint64
+postIncrementDecodedValue(uint64 *ptr,
+                          uint64  pos,
+                          uint64  siz) {
+  uint64 wrd = (pos >> 6) & 0x0000cfffffffffffllu;
+  uint64 bit = (pos     ) & 0x000000000000003fllu;
+  uint64 b1  = 64 - bit;
+  uint64 ret = 0;
 
 #ifdef CHECK_WIDTH
   if (siz == 0) {
@@ -415,7 +415,7 @@ postIncrementDecodedValue(u64bit *ptr,
     abort();
   }
   if (siz > 64) {
-    fprintf(stderr, "ERROR: getDecodedValue() called with huge size ("u64bitFMT")!\n", siz);
+    fprintf(stderr, "ERROR: getDecodedValue() called with huge size ("uint64FMT")!\n", siz);
     abort();
   }
 #endif
@@ -424,28 +424,28 @@ postIncrementDecodedValue(u64bit *ptr,
     ret = ptr[wrd] >> (b1 - siz);
 
     ret++;
-    ret &= u64bitMASK(siz);
+    ret &= uint64MASK(siz);
 
-    ptr[wrd] &= ~( u64bitMASK(siz) << (b1 - siz) );
+    ptr[wrd] &= ~( uint64MASK(siz) << (b1 - siz) );
     ptr[wrd] |= ret << (b1 - siz);
   } else {
     bit  = siz - b1;
 
-    ret  = (ptr[wrd] & u64bitMASK(b1)) << bit;
-    ret |= (ptr[wrd+1] >> (64 - bit)) & u64bitMASK(bit);
+    ret  = (ptr[wrd] & uint64MASK(b1)) << bit;
+    ret |= (ptr[wrd+1] >> (64 - bit)) & uint64MASK(bit);
 
     ret++;
-    ret &= u64bitMASK(siz);
+    ret &= uint64MASK(siz);
 
-    ptr[wrd] &= ~u64bitMASK(b1);
-    ptr[wrd] |= (ret & (u64bitMASK(b1) << (bit))) >> (bit);
+    ptr[wrd] &= ~uint64MASK(b1);
+    ptr[wrd] |= (ret & (uint64MASK(b1) << (bit))) >> (bit);
     wrd++;
-    ptr[wrd] &= ~(u64bitMASK(bit) << (64 - bit));
-    ptr[wrd] |= (ret & (u64bitMASK(bit))) << (64 - bit);
+    ptr[wrd] &= ~(uint64MASK(bit) << (64 - bit));
+    ptr[wrd] |= (ret & (uint64MASK(bit))) << (64 - bit);
   }
 
   ret--;
-  ret &= u64bitMASK(siz);
+  ret &= uint64MASK(siz);
 
   return(ret);
 }
@@ -455,14 +455,14 @@ postIncrementDecodedValue(u64bit *ptr,
 
 
 inline
-u64bit
-postDecrementDecodedValue(u64bit *ptr,
-                          u64bit  pos,
-                          u64bit  siz) {
-  u64bit wrd = (pos >> 6) & 0x0000cfffffffffffllu;
-  u64bit bit = (pos     ) & 0x000000000000003fllu;
-  u64bit b1  = 64 - bit;
-  u64bit ret = 0;
+uint64
+postDecrementDecodedValue(uint64 *ptr,
+                          uint64  pos,
+                          uint64  siz) {
+  uint64 wrd = (pos >> 6) & 0x0000cfffffffffffllu;
+  uint64 bit = (pos     ) & 0x000000000000003fllu;
+  uint64 b1  = 64 - bit;
+  uint64 ret = 0;
 
 #ifdef CHECK_WIDTH
   if (siz == 0) {
@@ -470,7 +470,7 @@ postDecrementDecodedValue(u64bit *ptr,
     abort();
   }
   if (siz > 64) {
-    fprintf(stderr, "ERROR: getDecodedValue() called with huge size ("u64bitFMT")!\n", siz);
+    fprintf(stderr, "ERROR: getDecodedValue() called with huge size ("uint64FMT")!\n", siz);
     abort();
   }
 #endif
@@ -479,28 +479,28 @@ postDecrementDecodedValue(u64bit *ptr,
     ret = ptr[wrd] >> (b1 - siz);
 
     ret--;
-    ret &= u64bitMASK(siz);
+    ret &= uint64MASK(siz);
 
-    ptr[wrd] &= ~( u64bitMASK(siz) << (b1 - siz) );
+    ptr[wrd] &= ~( uint64MASK(siz) << (b1 - siz) );
     ptr[wrd] |= ret << (b1 - siz);
   } else {
     bit  = siz - b1;
 
-    ret  = (ptr[wrd] & u64bitMASK(b1)) << bit;
-    ret |= (ptr[wrd+1] >> (64 - bit)) & u64bitMASK(bit);
+    ret  = (ptr[wrd] & uint64MASK(b1)) << bit;
+    ret |= (ptr[wrd+1] >> (64 - bit)) & uint64MASK(bit);
 
     ret--;
-    ret &= u64bitMASK(siz);
+    ret &= uint64MASK(siz);
 
-    ptr[wrd] &= ~u64bitMASK(b1);
-    ptr[wrd] |= (ret & (u64bitMASK(b1) << (bit))) >> (bit);
+    ptr[wrd] &= ~uint64MASK(b1);
+    ptr[wrd] |= (ret & (uint64MASK(b1) << (bit))) >> (bit);
     wrd++;
-    ptr[wrd] &= ~(u64bitMASK(bit) << (64 - bit));
-    ptr[wrd] |= (ret & (u64bitMASK(bit))) << (64 - bit);
+    ptr[wrd] &= ~(uint64MASK(bit) << (64 - bit));
+    ptr[wrd] |= (ret & (uint64MASK(bit))) << (64 - bit);
   }
 
   ret++;
-  ret &= u64bitMASK(siz);
+  ret &= uint64MASK(siz);
 
   return(ret);
 }

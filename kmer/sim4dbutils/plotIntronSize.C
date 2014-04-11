@@ -15,8 +15,8 @@
 
 int
 main(int argc, char ** argv) {
-  u32bit       dumpSize = 0;
-  u32bit      *hist;
+  uint32       dumpSize = 0;
+  uint32      *hist;
   FILE        *all;
   FILE        *big;
   int          i, j;
@@ -50,8 +50,8 @@ main(int argc, char ** argv) {
   }
 
   if (all || big) {
-    hist = new u32bit [HISTMAX];
-    memset(hist, 0, sizeof(u32bit) * HISTMAX);
+    hist = new uint32 [HISTMAX];
+    memset(hist, 0, sizeof(uint32) * HISTMAX);
   }
 
   sim4polish  *p = new sim4polish(stdin);

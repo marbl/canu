@@ -11,8 +11,8 @@
 int
 main(int argc, char **argv) {
   bool     beVerbose   = false;
-  u64bit   merSize     = 20;
-  u64bit   memLimit    = 768;
+  uint64   merSize     = 20;
+  uint64   memLimit    = 768;
   char    *inName      = 0L;
   char    *outName     = 0L;
 
@@ -21,9 +21,9 @@ main(int argc, char **argv) {
     if        (strncmp(argv[arg], "-verbose", 2) == 0) {
       beVerbose = true;
     } else if (strncmp(argv[arg], "-mersize", 4) == 0) {
-      merSize = strtou64bit(argv[++arg], 0L);
+      merSize = strtouint64(argv[++arg], 0L);
     } else if (strncmp(argv[arg], "-memory", 4) == 0) {
-      memLimit = strtou64bit(argv[++arg], 0L) * 1024 * 1024;
+      memLimit = strtouint64(argv[++arg], 0L) * 1024 * 1024;
     } else if (strncmp(argv[arg], "-sequence", 2) == 0) {
       inName = argv[++arg];
     } else {
@@ -43,12 +43,12 @@ main(int argc, char **argv) {
   seqStream  *seqstr = new seqStream(inName);
   seqStore   *seqsto = new seqStore(outName, seqstr);
 
-  u64bit      memUsed = seqsto->loadStoreInCore();
-  u64bit      numMers = seqsto->numberOfACGT();
+  uint64      memUsed = seqsto->loadStoreInCore();
+  uint64      numMers = seqsto->numberOfACGT();
 
 #warning needed exact number of mers here
 
-  fprintf(stderr, "Found "u64bitFMT" mers in file of size "u64bitFMT"\n", numMers, memUsed);
+  fprintf(stderr, "Found "uint64FMT" mers in file of size "uint64FMT"\n", numMers, memUsed);
 
   if (memUsed > memLimit) {
     fprintf(stderr, "ERROR:  two-bit encoded sequence file is bigger than allowed memory usage.\n");
@@ -63,15 +63,15 @@ main(int argc, char **argv) {
   //  The bitPackedHeap doesn't care about the maximum size, only
   //  about the block size.
   //
-  u64bit   pointerWidth = logBaseTwo64(numMers);
+  uint64   pointerWidth = logBaseTwo64(numMers);
   bitPackedMerHeap  *heap = new bitPackedMerHeap(seqsto, pointerWidth, 8 * 1024);
 
   speedCounter *S;
 
-  u64bit N = (memLimit - memUsed) * 8 / pointerWidth;
-  u64bit M = 0;
+  uint64 N = (memLimit - memUsed) * 8 / pointerWidth;
+  uint64 M = 0;
 
-  fprintf(stderr, "Can store "u64bitFMT" mer pointers of size "u64bitFMT" in the heap.\n", N, pointerWidth);
+  fprintf(stderr, "Can store "uint64FMT" mer pointers of size "uint64FMT" in the heap.\n", N, pointerWidth);
 
   kMer mer;
 
@@ -86,7 +86,7 @@ main(int argc, char **argv) {
 #if 0
     heap->add(M);
     heap->get(mer);
-    fprintf(stdout, "ADD "u64bitFMT" -- %s\n", M, mer.merToString(str));
+    fprintf(stdout, "ADD "uint64FMT" -- %s\n", M, mer.merToString(str));
 #endif
 
     heap->add(M++);
@@ -100,7 +100,7 @@ main(int argc, char **argv) {
   while (M < numMers) {
     heap->add(M++);
     heap->get(mer);
-    //fprintf(stdout, "GOT "u64bitFMT" -- %s\n", M, mer.merToString(str));
+    //fprintf(stdout, "GOT "uint64FMT" -- %s\n", M, mer.merToString(str));
     S->tick();
   }
   delete S;
@@ -108,9 +108,9 @@ main(int argc, char **argv) {
   //  And finally, flush the heap.
   //
   S = new speedCounter(" Dumping heap: %7.2f Mmers -- %8.1f Mmers/second\r", 1.0, 0x1fff, beVerbose);
-  u64bit idx = heap->get(mer);
-  while (idx != ~u64bitZERO) {
-    //fprintf(stdout, "OUT "u64bitFMT" -- %s\n", idx, mer.merToString(str));
+  uint64 idx = heap->get(mer);
+  while (idx != ~uint64ZERO) {
+    //fprintf(stdout, "OUT "uint64FMT" -- %s\n", idx, mer.merToString(str));
     idx = heap->get(mer);
     S->tick();
   }

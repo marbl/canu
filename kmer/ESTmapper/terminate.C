@@ -57,7 +57,7 @@ public:
     fclose(otFile);
   };
 
-  bool     thisIID(u32bit targetiid) {
+  bool     thisIID(uint32 targetiid) {
     return(iids[targetiid]);
   };
 
@@ -65,10 +65,10 @@ public:
     fprintf(otFile, ">%s\n%s\n", S->header(), S->sequence());
   };
 
-  void     load(u32bit maxiid) {
+  void     load(uint32 maxiid) {
     iids = new bool [maxiid];
 
-    for (u32bit i=0; i<maxiid; i++)
+    for (uint32 i=0; i<maxiid; i++)
       iids[i] = false;
 
     if (isPolishes) {
@@ -79,10 +79,10 @@ public:
         p = inPolishes->nextAlignment();
       }
     } else {
-      fscanf(inFile, u32bitFMT, &iid);
+      fscanf(inFile, uint32FMT, &iid);
       while (!feof(inFile)) {
         iids[iid] = true;
-        fscanf(inFile, u32bitFMT, &iid);
+        fscanf(inFile, uint32FMT, &iid);
       }
     }
   };
@@ -92,15 +92,15 @@ private:
   sim4polishReader  *inPolishes;
   FILE              *inFile;
   FILE              *otFile;
-  u32bit             iid;
+  uint32             iid;
   bool              *iids;
 };
 
 
 int
 main(int argc, char **argv) {
-  u32bit                iidRWlen = 0;
-  u32bit                iidRWmax = 128;
+  uint32                iidRWlen = 0;
+  uint32                iidRWmax = 128;
   iidReaderWriter     **iidRW    = new iidReaderWriter* [iidRWmax];
 
   FILE                 *defaultOut = 0L;
@@ -134,14 +134,14 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  for (u32bit i=0; i<iidRWlen; i++)
+  for (uint32 i=0; i<iidRWlen; i++)
     iidRW[i]->load(F->getNumberOfSequences());
 
-  for (u32bit sid=0; ((S = F->getSequenceInCore(sid)) != 0L); sid++) {
+  for (uint32 sid=0; ((S = F->getSequenceInCore(sid)) != 0L); sid++) {
     bool     found = false;
-    u32bit   iid   = S->getIID();
+    uint32   iid   = S->getIID();
 
-    for (u32bit i=0; i<iidRWlen; i++) {
+    for (uint32 i=0; i<iidRWlen; i++) {
       if (iidRW[i]->thisIID(iid)) {
         found = true;
         iidRW[i]->writeSequence(S);

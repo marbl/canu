@@ -7,8 +7,8 @@ main(int argc, char **argv) {
   if (argc == 0) {
   }
 
-  u32bit  zero = 0;
-  u32bit  totl = 0;
+  uint32  zero = 0;
+  uint32  totl = 0;
 
   FastABuffer    B;
   FastA         *F = new FastA(argv[1]);

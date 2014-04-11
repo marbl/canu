@@ -8,7 +8,7 @@ seqCache      *F     = 0L;
 
   bool                  V[256] = {0};
 
-  for (u32bit i=0; i<256; i++)
+  for (uint32 i=0; i<256; i++)
     V[i] = false;
 
   V['n'] = true;
@@ -16,20 +16,20 @@ seqCache      *F     = 0L;
 
   F = new seqCache(filename);
 
-  for (u32bit s=0; s<F->getNumberOfSequences(); s++) {
+  for (uint32 s=0; s<F->getNumberOfSequences(); s++) {
     seqInCore *S = F->getSequenceInCore(s);
 
-    u32bit  len    = S->sequenceLength();
+    uint32  len    = S->sequenceLength();
     char    begseq = S->sequence()[0];
     bool    nnn    = V[begseq];
-    u32bit  begpos = 0;
-    u32bit  pos    = 0;
+    uint32  begpos = 0;
+    uint32  pos    = 0;
 
     for (pos=0; pos<len; pos++) {
       char seq = S->sequence()[pos];
 
       if (nnn != V[seq]) {
-        fprintf(stdout, "%c "u32bitFMT" "u32bitFMT" "u32bitFMT" "u32bitFMT"\n",
+        fprintf(stdout, "%c "uint32FMT" "uint32FMT" "uint32FMT" "uint32FMT"\n",
                 begseq, s, begpos, pos, pos - begpos);
         nnn = V[seq];
         begpos = pos;
@@ -37,9 +37,9 @@ seqCache      *F     = 0L;
       }
     }
 
-    fprintf(stdout, "%c "u32bitFMT" "u32bitFMT" "u32bitFMT" "u32bitFMT"\n",
+    fprintf(stdout, "%c "uint32FMT" "uint32FMT" "uint32FMT" "uint32FMT"\n",
             begseq, s, begpos, pos, pos - begpos);
-    fprintf(stdout, ". "u32bitFMT" "u32bitFMT" "u32bitFMT"\n", s, pos, u32bitZERO);
+    fprintf(stdout, ". "uint32FMT" "uint32FMT" "uint32FMT"\n", s, pos, uint32ZERO);
 
     delete S;
   }

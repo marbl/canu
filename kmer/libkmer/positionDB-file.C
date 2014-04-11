@@ -49,18 +49,18 @@ positionDB::saveState(char const *filename) {
   //  Before you go rip out this stuff, remember that you can now
   //  checksum the resulting files.  So don't do it.
   //
-  u32bit     *bs = _bucketSizes;
-  u64bit     *cb = _countingBuckets;
-  u64bit     *hp = _hashTable_BP;
-  u32bit     *hw = _hashTable_FW;
-  u64bit     *bu = _buckets;
-  u64bit     *ps = _positions;
-  u64bit     *he = _hashedErrors;
+  uint32     *bs = _bucketSizes;
+  uint64     *cb = _countingBuckets;
+  uint64     *hp = _hashTable_BP;
+  uint32     *hw = _hashTable_FW;
+  uint64     *bu = _buckets;
+  uint64     *ps = _positions;
+  uint64     *he = _hashedErrors;
 
   _bucketSizes     = 0L;
   _countingBuckets = 0L;
-  _hashTable_BP    = (u64bit *)((_hashTable_BP) ? u64bitONE : u64bitZERO);
-  _hashTable_FW    = (u32bit *)((_hashTable_FW) ? u32bitONE : u32bitZERO);
+  _hashTable_BP    = (uint64 *)((_hashTable_BP) ? uint64ONE : uint64ZERO);
+  _hashTable_FW    = (uint32 *)((_hashTable_FW) ? uint32ONE : uint32ZERO);
   _buckets         = 0L;
   _positions       = 0L;
   _hashedErrors    = 0L;
@@ -76,14 +76,14 @@ positionDB::saveState(char const *filename) {
   _hashedErrors    = he;
 
   if (_hashTable_BP) {
-    safeWrite(F, _hashTable_BP, "_hashTable_BP", sizeof(u64bit) * (_tableSizeInEntries * _hashWidth / 64 + 1));
+    safeWrite(F, _hashTable_BP, "_hashTable_BP", sizeof(uint64) * (_tableSizeInEntries * _hashWidth / 64 + 1));
   } else {
-    safeWrite(F, _hashTable_FW, "_hashTable_FW", sizeof(u32bit) * (_tableSizeInEntries + 1));
+    safeWrite(F, _hashTable_FW, "_hashTable_FW", sizeof(uint32) * (_tableSizeInEntries + 1));
   }
 
-  safeWrite(F, _buckets,      "_buckets",      sizeof(u64bit) * (_numberOfDistinct   * _wFin      / 64 + 1));
-  safeWrite(F, _positions,    "_positions",    sizeof(u64bit) * (_numberOfEntries    * _posnWidth / 64 + 1));
-  safeWrite(F, _hashedErrors, "_hashedErrors", sizeof(u64bit) * (_hashedErrorsLen));
+  safeWrite(F, _buckets,      "_buckets",      sizeof(uint64) * (_numberOfDistinct   * _wFin      / 64 + 1));
+  safeWrite(F, _positions,    "_positions",    sizeof(uint64) * (_numberOfEntries    * _posnWidth / 64 + 1));
+  safeWrite(F, _hashedErrors, "_hashedErrors", sizeof(uint64) * (_hashedErrorsLen));
 
   if (magicFirst == false) {
     lseek(F, 0, SEEK_SET);
@@ -162,27 +162,27 @@ positionDB::loadState(char const *filename, bool beNoisy, bool loadData) {
   _hashedErrors    = 0L;
 
   if (loadData) {
-    u64bit  hs = _tableSizeInEntries * _hashWidth / 64 + 1;
-    u64bit  bs = _numberOfDistinct   * _wFin      / 64 + 1;
-    u64bit  ps = _numberOfEntries    * _posnWidth / 64 + 1;
+    uint64  hs = _tableSizeInEntries * _hashWidth / 64 + 1;
+    uint64  bs = _numberOfDistinct   * _wFin      / 64 + 1;
+    uint64  ps = _numberOfEntries    * _posnWidth / 64 + 1;
 
     if (_hashTable_BP) {
-      _hashTable_BP = new u64bit [hs];
+      _hashTable_BP = new uint64 [hs];
       _hashTable_FW = 0L;
-      safeRead(F, _hashTable_BP, "_hashTable_BP", sizeof(u64bit) * hs);
+      safeRead(F, _hashTable_BP, "_hashTable_BP", sizeof(uint64) * hs);
     } else {
       _hashTable_BP = 0L;
-      _hashTable_FW = new u32bit [_tableSizeInEntries + 1];
-      safeRead(F, _hashTable_FW, "_hashTable_FW", sizeof(u32bit) * (_tableSizeInEntries + 1));
+      _hashTable_FW = new uint32 [_tableSizeInEntries + 1];
+      safeRead(F, _hashTable_FW, "_hashTable_FW", sizeof(uint32) * (_tableSizeInEntries + 1));
     }
 
-    _buckets      = new u64bit [bs];
-    _positions    = new u64bit [ps];
-    _hashedErrors = new u64bit [_hashedErrorsMax];
+    _buckets      = new uint64 [bs];
+    _positions    = new uint64 [ps];
+    _hashedErrors = new uint64 [_hashedErrorsMax];
 
-    safeRead(F, _buckets,      "_buckets",      sizeof(u64bit) * bs);
-    safeRead(F, _positions,    "_positions",    sizeof(u64bit) * ps);
-    safeRead(F, _hashedErrors, "_hashedErrors", sizeof(u64bit) * _hashedErrorsLen);
+    safeRead(F, _buckets,      "_buckets",      sizeof(uint64) * bs);
+    safeRead(F, _positions,    "_positions",    sizeof(uint64) * ps);
+    safeRead(F, _hashedErrors, "_hashedErrors", sizeof(uint64) * _hashedErrorsLen);
   }
 
   close(F);
@@ -194,18 +194,18 @@ positionDB::loadState(char const *filename, bool beNoisy, bool loadData) {
 
 void
 positionDB::printState(FILE *stream) {
-  fprintf(stream, "merSizeInBases:       "u32bitFMT"\n", _merSizeInBases);
-  fprintf(stream, "merSkipInBases:       "u32bitFMT"\n", _merSkipInBases);
-  fprintf(stream, "tableSizeInBits:      "u32bitFMT"\n", _tableSizeInBits);
-  fprintf(stream, "tableSizeInEntries:   "u64bitFMT"\n", _tableSizeInEntries);
-  fprintf(stream, "hashWidth:            "u32bitFMT"\n", _hashWidth);
-  fprintf(stream, "chckWidth:            "u32bitFMT"\n", _chckWidth);
-  fprintf(stream, "posnWidth:            "u32bitFMT"\n", _posnWidth);
-  fprintf(stream, "numberOfMers:         "u64bitFMT"\n", _numberOfMers);
-  fprintf(stream, "numberOfPositions:    "u64bitFMT"\n", _numberOfPositions);
-  fprintf(stream, "numberOfDistinct:     "u64bitFMT"\n", _numberOfDistinct);
-  fprintf(stream, "numberOfUnique:       "u64bitFMT"\n", _numberOfUnique);
-  fprintf(stream, "numberOfEntries:      "u64bitFMT"\n", _numberOfEntries);
-  fprintf(stream, "maximumEntries:       "u64bitFMT"\n", _maximumEntries);
+  fprintf(stream, "merSizeInBases:       "uint32FMT"\n", _merSizeInBases);
+  fprintf(stream, "merSkipInBases:       "uint32FMT"\n", _merSkipInBases);
+  fprintf(stream, "tableSizeInBits:      "uint32FMT"\n", _tableSizeInBits);
+  fprintf(stream, "tableSizeInEntries:   "uint64FMT"\n", _tableSizeInEntries);
+  fprintf(stream, "hashWidth:            "uint32FMT"\n", _hashWidth);
+  fprintf(stream, "chckWidth:            "uint32FMT"\n", _chckWidth);
+  fprintf(stream, "posnWidth:            "uint32FMT"\n", _posnWidth);
+  fprintf(stream, "numberOfMers:         "uint64FMT"\n", _numberOfMers);
+  fprintf(stream, "numberOfPositions:    "uint64FMT"\n", _numberOfPositions);
+  fprintf(stream, "numberOfDistinct:     "uint64FMT"\n", _numberOfDistinct);
+  fprintf(stream, "numberOfUnique:       "uint64FMT"\n", _numberOfUnique);
+  fprintf(stream, "numberOfEntries:      "uint64FMT"\n", _numberOfEntries);
+  fprintf(stream, "maximumEntries:       "uint64FMT"\n", _maximumEntries);
 }
 

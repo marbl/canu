@@ -19,8 +19,8 @@ heatMap() {
   double   heatraw[MAXA][MAXB];
   double   heatsca[MAXA][MAXB];
 
-  for (u32bit i=0; i<MAXA; i++)
-    for (u32bit j=0; j<MAXB; j++)
+  for (uint32 i=0; i<MAXA; i++)
+    for (uint32 j=0; j<MAXB; j++)
       heatraw[i][j] = heatsca[i][j] = 0;
 
   A->nextMer();
@@ -31,8 +31,8 @@ heatMap() {
     kMer  &a = A->theFMer();
     kMer  &b = B->theFMer();
 
-    u32bit ac = A->theCount();
-    u32bit bc = B->theCount();
+    uint32 ac = A->theCount();
+    uint32 bc = B->theCount();
 
     if (ac >= MAXA)
       ac = MAXA-1;
@@ -78,26 +78,26 @@ heatMap() {
   //  Scale each row to be between 0 and 1
 
 #if 0
-  for (u32bit j=0; j<MAXB; j++) {
+  for (uint32 j=0; j<MAXB; j++) {
     double  mina = heatraw[0][j];
     double  maxa = heatraw[0][j];
 
-    for (u32bit ii=0; ii<MAXA; ii++) {
+    for (uint32 ii=0; ii<MAXA; ii++) {
       if (maxa < heatraw[ii][j])
         maxa = heatraw[ii][j];
       if (heatraw[ii][j] < mina)
         mina = heatraw[ii][j];
     }
 
-    for (u32bit i=0; i<MAXA; i++)
+    for (uint32 i=0; i<MAXA; i++)
       heatsca[i][j] = (heatraw[i][j] - mina) / (maxa - mina);
   }
 #endif
 
 
-  for (u32bit i=0; i<MAXA; i++)
-    for (u32bit j=0; j<MAXB; j++)
-      fprintf(stdout, u32bitFMT"\t"u32bitFMT"\t%f\n", i, j, log(heatraw[i][j]));
+  for (uint32 i=0; i<MAXA; i++)
+    for (uint32 j=0; j<MAXB; j++)
+      fprintf(stdout, uint32FMT"\t"uint32FMT"\t%f\n", i, j, log(heatraw[i][j]));
 }
 #endif
 
@@ -144,14 +144,14 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  u32bit   kmerSize = T->merSize();
+  uint32   kmerSize = T->merSize();
 
 #define HMAX  64 * 1024
 
-  u32bit  *Htrue  = new u32bit [HMAX];
-  u32bit  *Hnoise = new u32bit [HMAX];
+  uint32  *Htrue  = new uint32 [HMAX];
+  uint32  *Hnoise = new uint32 [HMAX];
 
-  for (u32bit i=0; i<HMAX; i++)
+  for (uint32 i=0; i<HMAX; i++)
     Htrue[i] = Hnoise[i] = 0;
 
   T->nextMer();
@@ -162,8 +162,8 @@ main(int argc, char **argv) {
     kMer  &t = T->theFMer();
     kMer  &s = S->theFMer();
 
-    u32bit tc = T->theCount();
-    u32bit sc = S->theCount();
+    uint32 tc = T->theCount();
+    uint32 sc = S->theCount();
 
     if (tc >= HMAX)   tc = HMAX-1;
     if (sc >= HMAX)   sc = HMAX-1;
@@ -221,8 +221,8 @@ main(int argc, char **argv) {
 
   fclose(outputGP);
 
-  for (u32bit i=0; i<HMAX; i++)
-    fprintf(outputDAT, u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\n", i, Htrue[i], Hnoise[i]);
+  for (uint32 i=0; i<HMAX; i++)
+    fprintf(outputDAT, uint32FMT"\t"uint32FMT"\t"uint32FMT"\n", i, Htrue[i], Hnoise[i]);
 
   fclose(outputDAT);
 

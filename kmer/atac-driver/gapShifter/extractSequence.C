@@ -29,8 +29,8 @@
 void
 extractA(seqCache *A, seqCache *B,
          FILE *Aoutput, FILE *Boutput,
-         u32bit Aiid,
-         u32bit Biid,
+         uint32 Aiid,
+         uint32 Biid,
          atacMatchList &ML) {
 
 }
@@ -63,8 +63,8 @@ main(int argc, char *argv[]) {
   char         *matchesFile = 0L;
   FILE         *Aoutput = 0L;
   FILE         *Boutput = 0L;
-  u32bit        Aiid = ~u32bitZERO;
-  u32bit        Biid = ~u32bitZERO;
+  uint32        Aiid = ~uint32ZERO;
+  uint32        Biid = ~uint32ZERO;
 
   int arg=1;
   while (arg < argc) {
@@ -76,9 +76,9 @@ main(int argc, char *argv[]) {
       Boutput = openOutputFile(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-1") == 0) {
-      Aiid = strtou32bit(argv[++arg], 0L);
+      Aiid = strtouint32(argv[++arg], 0L);
     } else if (strcmp(argv[arg], "-2") == 0) {
-      Biid = strtou32bit(argv[++arg], 0L);
+      Biid = strtouint32(argv[++arg], 0L);
     } else {
       usage(argv[0]);
       exit(1);
@@ -98,16 +98,16 @@ main(int argc, char *argv[]) {
   A->loadAllSequences();
   B->loadAllSequences();
 
-  for (u32bit x=0; x<ML.numMatches(); x++) {
+  for (uint32 x=0; x<ML.numMatches(); x++) {
     atacMatch *m = ML[x];
 
-    if (((Aiid == ~u32bitZERO) || (Aiid == m->iid1)) &&
-        ((Biid == ~u32bitZERO) || (Biid == m->iid2))) {
+    if (((Aiid == ~uint32ZERO) || (Aiid == m->iid1)) &&
+        ((Biid == ~uint32ZERO) || (Biid == m->iid2))) {
 
       if (Aoutput) {
         seqInCore *S = A->getSequenceInCore(m->iid1);
 
-        fprintf(Aoutput, "%s extracted from iid "u32bitFMT" pos "u32bitFMT" "u32bitFMT" match %s(%s)\n",
+        fprintf(Aoutput, "%s extracted from iid "uint32FMT" pos "uint32FMT" "uint32FMT" match %s(%s)\n",
                 S->header(), S->getIID(),
                 m->pos1, m->pos1 + m->len1,
                 m->matchuid, m->parentuid);
@@ -118,7 +118,7 @@ main(int argc, char *argv[]) {
       if (Boutput) {
         seqInCore *S = B->getSequenceInCore(m->iid2);
 
-        fprintf(Boutput, "%s extracted from iid "u32bitFMT" pos "u32bitFMT" "u32bitFMT" match %s(%s)\n",
+        fprintf(Boutput, "%s extracted from iid "uint32FMT" pos "uint32FMT" "uint32FMT" match %s(%s)\n",
                 S->header(), S->getIID(),
                 m->pos2, m->pos2 + m->len2,
                 m->matchuid, m->parentuid);

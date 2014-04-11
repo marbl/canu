@@ -7,18 +7,18 @@
 #include "seqFile.H"
 
 struct fastqFileHeader {
-  u64bit       _magic[2];
-  u32bit       _numberOfSequences;      //  Number of sequences in the file
-  u32bit       _namesLength;            //  Bytes in the names
-  u64bit       _fastqFileSize;          //  st_size  - size of file in bytes
-  u64bit       _fastqModificationTime;  //  st_mtime - time of last data modification
-  u64bit       _fastqCreationTime;      //  st_ctime - time of last file status change
+  uint64       _magic[2];
+  uint32       _numberOfSequences;      //  Number of sequences in the file
+  uint32       _namesLength;            //  Bytes in the names
+  uint64       _fastqFileSize;          //  st_size  - size of file in bytes
+  uint64       _fastqModificationTime;  //  st_mtime - time of last data modification
+  uint64       _fastqCreationTime;      //  st_ctime - time of last file status change
 };
 
 
 struct fastqFileIndex {
-  u64bit       _seqPosition;       //  Position of the sequence in the file
-  u32bit       _seqLength;         //  Length of the sequence (no whitespace counted)
+  uint64       _seqPosition;       //  Position of the sequence in the file
+  uint32       _seqLength;         //  Length of the sequence (no whitespace counted)
 };
 
 
@@ -34,14 +34,14 @@ protected:
   seqFile            *openFile(const char *filename);
 
 public:
-  u32bit              find(const char *sequencename);
+  uint32              find(const char *sequencename);
 
-  u32bit              getSequenceLength(u32bit iid);
-  bool                getSequence(u32bit iid,
-                                  char *&h, u32bit &hLen, u32bit &hMax,
-                                  char *&s, u32bit &sLen, u32bit &sMax);
-  bool                getSequence(u32bit iid,
-                                  u32bit bgn, u32bit end, char *s);
+  uint32              getSequenceLength(uint32 iid);
+  bool                getSequence(uint32 iid,
+                                  char *&h, uint32 &hLen, uint32 &hMax,
+                                  char *&s, uint32 &sLen, uint32 &sMax);
+  bool                getSequence(uint32 iid,
+                                  uint32 bgn, uint32 end, char *s);
 
 private:
   void                clear(void);
@@ -54,10 +54,10 @@ private:
   fastqFileIndex    *_index;
   char              *_names;
 
-  u32bit             _nextID;         //  Next sequence in the read buffer
+  uint32             _nextID;         //  Next sequence in the read buffer
 
-  u32bit             _gs_iid;
-  u32bit             _gs_pos;
+  uint32             _gs_iid;
+  uint32             _gs_pos;
 
   friend class seqFactory;
 };

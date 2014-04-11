@@ -29,10 +29,10 @@ main(int argc, char **argv) {
   char *incName = argv[3];
 
   fprintf(stderr, "BUILDING EXCLUDE\n");
-  exclude = new existDB(mskName, MERSIZE, existDBnoFlags, u32bitZERO, ~u32bitZERO);
+  exclude = new existDB(mskName, MERSIZE, existDBnoFlags, uint32ZERO, ~uint32ZERO);
 
   fprintf(stderr, "BUILDING INCLUDE\n");
-  include = new existDB(incName, MERSIZE, existDBnoFlags, u32bitZERO, ~u32bitZERO);
+  include = new existDB(incName, MERSIZE, existDBnoFlags, uint32ZERO, ~uint32ZERO);
 
   seqStream *F = new seqStream(seqName, true);
   merStream *T = new merStream(new kMerBuilder(MERSIZE), F);
@@ -63,39 +63,39 @@ main(int argc, char **argv) {
   thrs = new positionDB("junk-thrs", MERSIZE, 0, 0);
 
   char    themer[1000];
-  u32bit  mernum = 0;
+  uint32  mernum = 0;
 
-  u32bit  err = 0;
+  uint32  err = 0;
 
   //  Check everything looks ok
   T->rewind();
   while (T->nextMer()) {
 
     if (!full->existsExact(T->theFMer())) {
-      fprintf(stderr, "Didn't find mer "u32bitFMT" %s in full.\n", mernum, T->theFMer().merToString(themer));
+      fprintf(stderr, "Didn't find mer "uint32FMT" %s in full.\n", mernum, T->theFMer().merToString(themer));
       err++;
     }
 
     if (include->exists(T->theFMer())) {
       if (!incl->existsExact(T->theFMer())) {
-        fprintf(stderr, "Didn't find mer "u32bitFMT" %s in incl.\n", mernum, T->theFMer().merToString(themer));
+        fprintf(stderr, "Didn't find mer "uint32FMT" %s in incl.\n", mernum, T->theFMer().merToString(themer));
         err++;
       }
     } else {
       if (incl->existsExact(T->theFMer())) {
-        fprintf(stderr, "Found extra mer "u32bitFMT" %s in incl.\n", mernum, T->theFMer().merToString(themer));
+        fprintf(stderr, "Found extra mer "uint32FMT" %s in incl.\n", mernum, T->theFMer().merToString(themer));
         err++;
       }
     }
 
     if (exclude->exists(T->theFMer())) {
       if (excl->existsExact(T->theFMer())) {
-        fprintf(stderr, "Found extra mer "u32bitFMT" %s in excl.\n", mernum, T->theFMer().merToString(themer));
+        fprintf(stderr, "Found extra mer "uint32FMT" %s in excl.\n", mernum, T->theFMer().merToString(themer));
         err++;
       }
     } else {
       if (!excl->existsExact(T->theFMer())) {
-        fprintf(stderr, "Didn't find mer "u32bitFMT" %s in excl.\n", mernum, T->theFMer().merToString(themer));
+        fprintf(stderr, "Didn't find mer "uint32FMT" %s in excl.\n", mernum, T->theFMer().merToString(themer));
         err++;
       }
     }

@@ -100,7 +100,7 @@ makeTempFile(char *path) {
 
 
 void*
-mapFile(const char *filename, u64bit *length, char mode) {
+mapFile(const char *filename, uint64 *length, char mode) {
   void        *ptr = 0L;
   struct stat  sb;
   int          f;
@@ -151,7 +151,7 @@ mapFile(const char *filename, u64bit *length, char mode) {
 
 
 void
-unmapFile(void *addr, u64bit length) {
+unmapFile(void *addr, uint64 length) {
 #ifdef __sun
   //  This might work in general, but sun definitely needs the cast.
   //
@@ -237,12 +237,12 @@ copyFile(char *srcName, FILE *dstFile) {
 //  the number of MB (1048576 bytes) free in the directory of that
 //  file.
 //
-u32bit
+uint32
 freeDiskSpace(char *path) {
   char          *p, *t;
   struct statvfs dst;
   struct stat    fst;
-  u64bit         ret = 0;
+  uint64         ret = 0;
 
   //  Stat the path; if it exists, we're golden.
   //
@@ -282,7 +282,7 @@ freeDiskSpace(char *path) {
   ret  *= dst.f_bavail;
   ret >>= 20;
 
-  return((u32bit)ret);
+  return((uint32)ret);
 }
 
 
@@ -310,7 +310,7 @@ safeWrite(int filedes, const void *buffer, const char *desc, size_t nbytes) {
 
     if ((errno) || (towrite != written)) {
       fprintf(stderr, "safeWrite()-- Write failure on %s: %s\n", desc, strerror(errno));
-      fprintf(stderr, "safeWrite()-- Wanted to write "s64bitFMT" bytes, wrote "s64bitFMT".\n", (s64bit)towrite, (s64bit)written);
+      fprintf(stderr, "safeWrite()-- Wanted to write "int64FMT" bytes, wrote "int64FMT".\n", (int64)towrite, (int64)written);
       exit(1);
     }
 
@@ -342,7 +342,7 @@ safeRead(int filedes, const void *buffer, const char *desc, size_t nbytes) {
 
     if ((failed) && (errno != EINTR)) {
       fprintf(stderr, "safeRead()-- Read failure on %s: %s.\n", desc, strerror(errno));
-      fprintf(stderr, "safeRead()-- Wanted to read "s64bitFMT" bytes, read "s64bitFMT".\n", (s64bit)toread, (s64bit)written);
+      fprintf(stderr, "safeRead()-- Wanted to read "int64FMT" bytes, read "int64FMT".\n", (int64)toread, (int64)written);
       exit(1);
     }
 

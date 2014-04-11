@@ -40,8 +40,8 @@ binaryOperations(merylArgs *args) {
   //
   if (A->merSize() != B->merSize()) {
     fprintf(stderr, "ERROR - mersizes are different!\n");
-    fprintf(stderr, "ERROR - mersize of '%s' is "u32bitFMT"\n", args->mergeFiles[0], A->merSize());
-    fprintf(stderr, "ERROR - mersize of '%s' is "u32bitFMT"\n", args->mergeFiles[1], B->merSize());
+    fprintf(stderr, "ERROR - mersize of '%s' is "uint32FMT"\n", args->mergeFiles[0], A->merSize());
+    fprintf(stderr, "ERROR - mersize of '%s' is "uint32FMT"\n", args->mergeFiles[1], B->merSize());
     exit(1);
   }
 
@@ -63,9 +63,9 @@ binaryOperations(merylArgs *args) {
   //  any bug found in one is probably in the other.
   //
   kMer    Amer;
-  u32bit  Acnt = u32bitZERO;
+  uint32  Acnt = uint32ZERO;
   kMer    Bmer;
-  u32bit  Bcnt = u32bitZERO;
+  uint32  Bcnt = uint32ZERO;
 
   switch (args->personality) {
     case PERSONALITY_SUB:
@@ -80,14 +80,14 @@ binaryOperations(merylArgs *args) {
         //
         if (!A->validMer()) {
           Amer = Bmer;
-          Acnt = u32bitZERO;
+          Acnt = uint32ZERO;
         }
         if (!B->validMer()) {
           Bmer = Amer;
-          Bcnt = u32bitZERO;
+          Bcnt = uint32ZERO;
         }
 
-        //fprintf(stderr, "sub A="u64bitHEX" B="u64bitHEX"\n", Amer, Bmer);
+        //fprintf(stderr, "sub A="uint64HEX" B="uint64HEX"\n", Amer, Bmer);
 
         if (Amer == Bmer) {
           W->addMer(Amer, (Acnt > Bcnt) ? Acnt - Bcnt : 0);
@@ -113,11 +113,11 @@ binaryOperations(merylArgs *args) {
         //
         if (!A->validMer()) {
           Amer = Bmer;
-          Acnt = u32bitZERO;
+          Acnt = uint32ZERO;
         }
         if (!B->validMer()) {
           Bmer = Amer;
-          Bcnt = u32bitZERO;
+          Bcnt = uint32ZERO;
         }
 
         if (Amer == Bmer) {
@@ -145,11 +145,11 @@ binaryOperations(merylArgs *args) {
         //
         if (!A->validMer()) {
           Amer = Bmer;
-          Acnt = u32bitZERO;
+          Acnt = uint32ZERO;
         }
         if (!B->validMer()) {
           Bmer = Amer;
-          Bcnt = u32bitZERO;
+          Bcnt = uint32ZERO;
         }
 
         if (Amer == Bmer) {
@@ -157,7 +157,7 @@ binaryOperations(merylArgs *args) {
             double d = 1000.0 * (double)Acnt / (double)Bcnt;
             if (d > 4096.0 * 1024.0 * 1024.0)
               d = 4096.0 * 1024.0 * 1024.0;
-            W->addMer(Amer, (u32bit)floor(d));
+            W->addMer(Amer, (uint32)floor(d));
           }
           A->nextMer();
           B->nextMer();

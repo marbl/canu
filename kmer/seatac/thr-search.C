@@ -1,12 +1,12 @@
 #include "seatac.H"
 
-char const *srchGbye = "[%ld] computed: "u64bitFMTW(8)"  blocked: "u64bitFMTW(4)"/"u64bitFMTW(4)"  encodeTime: %7.2f   searchTime: %7.2f   processTime: %7.2f\n";
+char const *srchGbye = "[%ld] computed: "uint64FMTW(8)"  blocked: "uint64FMTW(4)"/"uint64FMTW(4)"  encodeTime: %7.2f   searchTime: %7.2f   processTime: %7.2f\n";
 
 class searcherState {
 public:
-  u64bit         posnMax;
-  u64bit         posnLen;
-  u64bit        *posn;
+  uint64         posnMax;
+  uint64         posnLen;
+  uint64        *posn;
 
   double         encodeTime;
   double         maskTime;
@@ -16,7 +16,7 @@ public:
   searcherState() {
     posnMax = 16384;
     posnLen = 0;
-    posn    = new u64bit [ posnMax ];
+    posn    = new uint64 [ posnMax ];
 
     encodeTime = 0.0;
     maskTime   = 0.0;
@@ -33,15 +33,15 @@ public:
 void
 doSearch(searcherState *state,
          seqInCore *seq,
-         u32bit idx,
+         uint32 idx,
          bool rc,
          filterObj *FO) {
   encodedQuery  *query      = 0L;
   hitMatrix     *matrix     = 0L;
   double         startTime  = 0.0;
-  u64bit         mer        = u64bitZERO;
-  u32bit         pos        = u32bitZERO;
-  u64bit         count      = 0;
+  uint64         mer        = uint64ZERO;
+  uint32         pos        = uint32ZERO;
+  uint64         count      = 0;
 
   //  Build and mask the query
   //
@@ -74,11 +74,11 @@ doSearch(searcherState *state,
 
 void*
 searchThread(void *U) {
-  u32bit               idx      = 0;
+  uint32               idx      = 0;
   seqInCore           *seq      = 0L;
-  u32bit               blockedI = 0;
-  u32bit               blockedO = 0;
-  u32bit               computed = 0;
+  uint32               blockedI = 0;
+  uint32               blockedO = 0;
+  uint32               computed = 0;
 
   searcherState       *state    = new searcherState;
 
@@ -88,7 +88,7 @@ searchThread(void *U) {
   threadStats[(long)U] = new char [1025];
   sprintf(threadStats[(long)U], srchGbye,
           (long)U,
-          (u32bit)0, (u32bit)0, (u32bit)0,
+          (uint32)0, (uint32)0, (uint32)0,
           0.0, 0.0, 0.0);
 
   while (inputTail < numberOfQueries) {
@@ -116,7 +116,7 @@ searchThread(void *U) {
       //
       if (seq == 0L) {
         //if (config._loaderWarnings)
-        //  fprintf(stderr, "%lu Blocked by input.\n", (u64bit)U);
+        //  fprintf(stderr, "%lu Blocked by input.\n", (uint64)U);
         blockedI++;
         nanosleep(&config._searchSleep, 0L);
       } else {
@@ -127,7 +127,7 @@ searchThread(void *U) {
         //
         while (idx > (outputPos + config._writerHighWaterMark)) {
           if (config._writerWarnings)
-            fprintf(stderr, u64bitFMT" Blocked by output (idx = "u32bitFMT", outputPos = "u32bitFMT").\n", (long)U, idx, outputPos);
+            fprintf(stderr, uint64FMT" Blocked by output (idx = "uint32FMT", outputPos = "uint32FMT").\n", (long)U, idx, outputPos);
           blockedO++;
           nanosleep(&config._searchSleep, 0L);
         }

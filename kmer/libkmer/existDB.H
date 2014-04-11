@@ -19,7 +19,7 @@
 
 //#define STATS
 
-typedef u32bit existDBflags;
+typedef uint32 existDBflags;
 const existDBflags  existDBnoFlags         = 0x0000;
 const existDBflags  existDBcompressHash    = 0x0001;
 const existDBflags  existDBcompressBuckets = 0x0002;
@@ -37,14 +37,14 @@ public:
 
   //  Load mers from an existing existDB file, a fastafile, or a meryl database
   existDB(char const    *filename,
-          u32bit         merSize,
+          uint32         merSize,
           existDBflags   flags,
-          u32bit         lo,
-          u32bit         hi);
+          uint32         lo,
+          uint32         hi);
 
   //  Load mers from a character string
   existDB(char const    *sequence,
-          u32bit         merSize,
+          uint32         merSize,
           existDBflags   flags);
 
   ~existDB();
@@ -56,32 +56,32 @@ public:
   bool        isForward(void)    { return(_isForward);   };
   bool        isCanonical(void)  { return(_isCanonical); };
 
-  bool        exists(u64bit mer);
-  u64bit      count(u64bit mer);
+  bool        exists(uint64 mer);
+  uint64      count(uint64 mer);
 
 private:
   bool        loadState(char const *filename, bool beNoisy=false, bool loadData=true);
   bool        createFromFastA(char const  *filename,
-                              u32bit       merSize,
-                              u32bit       flags);
+                              uint32       merSize,
+                              uint32       flags);
   bool        createFromMeryl(char const  *filename,
-                              u32bit       merSize,
-                              u32bit       lo,
-                              u32bit       hi,
-                              u32bit       flags);
+                              uint32       merSize,
+                              uint32       lo,
+                              uint32       hi,
+                              uint32       flags);
   bool        createFromSequence(char const  *sequence,
-                                 u32bit       merSize,
-                                 u32bit       flags);
+                                 uint32       merSize,
+                                 uint32       flags);
 
-  u64bit       HASH(u64bit k) {
+  uint64       HASH(uint64 k) {
     return(((k >> _shift1) ^ (k >> _shift2) ^ k) & _mask1);
   };
 
-  u64bit       CHECK(u64bit k) {
+  uint64       CHECK(uint64 k) {
     return(k & _mask2);
   };
 
-  void         insertMer(u64bit hsh, u64bit chk, u64bit cnt, u64bit *countingTable) {
+  void         insertMer(uint64 hsh, uint64 chk, uint64 cnt, uint64 *countingTable) {
 
     //  If the mer is already here, just update the count.  This only
     //  works if not _compressedBucket, and only makes sense for loading from
@@ -89,8 +89,8 @@ private:
 
     if ((_compressedBucket == false) &&
         (_searchForDupe)) {
-      u64bit st = _hashTable[hsh];
-      u64bit ed = countingTable[hsh];
+      uint64 st = _hashTable[hsh];
+      uint64 ed = countingTable[hsh];
 
       for (; st<ed; st++) {
         if (_buckets[st] == chk) {
@@ -125,24 +125,24 @@ private:
 
   bool        _searchForDupe;
 
-  u32bit      _merSizeInBases;
+  uint32      _merSizeInBases;
 
-  u32bit      _shift1;
-  u32bit      _shift2;
-  u64bit      _mask1;
-  u64bit      _mask2;
+  uint32      _shift1;
+  uint32      _shift2;
+  uint64      _mask1;
+  uint64      _mask2;
 
-  u32bit      _hshWidth;  //  Only for the compressed hash
-  u32bit      _chkWidth;  //  Only for the compressed bucket
-  u32bit      _cntWidth;  //  Only for the compressed counts
+  uint32      _hshWidth;  //  Only for the compressed hash
+  uint32      _chkWidth;  //  Only for the compressed bucket
+  uint32      _cntWidth;  //  Only for the compressed counts
 
-  u64bit      _hashTableWords;
-  u64bit      _bucketsWords;
-  u64bit      _countsWords;
+  uint64      _hashTableWords;
+  uint64      _bucketsWords;
+  uint64      _countsWords;
 
-  u64bit     *_hashTable;
-  u64bit     *_buckets;
-  u64bit     *_counts;
+  uint64     *_hashTable;
+  uint64     *_buckets;
+  uint64     *_counts;
 
   void clear(void) {
   };

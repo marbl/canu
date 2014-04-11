@@ -13,17 +13,17 @@ bool
 writeString(const char *str, FILE *F) {
   errno = 0;
 
-  u32bit len = 0;
+  uint32 len = 0;
   if (str) {
-    len = (u32bit)strlen(str) + 1;
-    fwrite(&len, sizeof(u32bit), 1, F);
+    len = (uint32)strlen(str) + 1;
+    fwrite(&len, sizeof(uint32), 1, F);
     fwrite( str, sizeof(char), len, F);
   } else {
-    fwrite(&len, sizeof(u32bit), 1, F);
+    fwrite(&len, sizeof(uint32), 1, F);
   }
 
   if (errno) {
-    fprintf(stderr, "writeString()-- Failed to write string of length "u32bitFMT": %s\n", len, strerror(errno));
+    fprintf(stderr, "writeString()-- Failed to write string of length "uint32FMT": %s\n", len, strerror(errno));
     fprintf(stderr, "writeString()-- First 80 bytes of string is:\n");
     fprintf(stderr, "%80.80s\n", str);
     return(false);
@@ -36,8 +36,8 @@ char*
 readString(FILE *F) {
   errno = 0;
 
-  u32bit len = 0;
-  fread(&len, sizeof(u32bit), 1, F);
+  uint32 len = 0;
+  fread(&len, sizeof(uint32), 1, F);
   if (errno) {
     fprintf(stderr, "readString()-- Failed to read string: %s\n", strerror(errno));
     exit(1);
@@ -61,7 +61,7 @@ char*
 duplString(char *str) {
   char   *dupstr = 0L;
   if (str) {
-    u32bit  len = (u32bit)strlen(str);
+    uint32  len = (uint32)strlen(str);
     dupstr = new char [len+1];
     strcpy(dupstr, str);
   }
@@ -229,7 +229,7 @@ merylArgs::clear(void) {
   numBuckets         = 0;
   numBuckets_log2    = 0;
   merDataWidth       = 0;
-  merDataMask        = u64bitZERO;
+  merDataMask        = uint64ZERO;
   bucketPointerWidth = 0;
 
   numThreads         = 0;
@@ -279,7 +279,7 @@ merylArgs::merylArgs(int argc, char **argv) {
   //  so we can copy them into an 'options' string used when we
   //  resubmit to the grid.
   //
-  u32bit  optionsLen = 0;
+  uint32  optionsLen = 0;
   for (int arg=1; arg < argc; arg++) {
     optionsLen += strlen(argv[arg]) + 1;
     if (strcmp(argv[arg], "-s") == 0)
@@ -321,10 +321,10 @@ merylArgs::merylArgs(int argc, char **argv) {
       exit(0);
     } else if (strcmp(argv[arg], "-m") == 0) {
       arg++;
-      merSize = strtou32bit(argv[arg], 0L);
+      merSize = strtouint32(argv[arg], 0L);
     } else if (strcmp(argv[arg], "-c") == 0) {
       arg++;
-      merComp = strtou32bit(argv[arg], 0L);
+      merComp = strtouint32(argv[arg], 0L);
     } else if (strcmp(argv[arg], "-p") == 0) {
       positionsEnabled = true;
     } else if (strcmp(argv[arg], "-s") == 0) {
@@ -334,7 +334,7 @@ merylArgs::merylArgs(int argc, char **argv) {
       mergeFiles[mergeFilesLen++] = duplString(argv[arg]);
     } else if (strcmp(argv[arg], "-n") == 0) {
       arg++;
-      numMersEstimated = strtou64bit(argv[arg], 0L);
+      numMersEstimated = strtouint64(argv[arg], 0L);
     } else if (strcmp(argv[arg], "-f") == 0) {
       doForward   = true;
       doReverse   = false;
@@ -349,10 +349,10 @@ merylArgs::merylArgs(int argc, char **argv) {
       doCanonical = true;
     } else if (strcmp(argv[arg], "-L") == 0) {
       arg++;
-      lowCount = strtou32bit(argv[arg], 0L);
+      lowCount = strtouint32(argv[arg], 0L);
     } else if (strcmp(argv[arg], "-U") == 0) {
       arg++;
-      highCount = strtou32bit(argv[arg], 0L);
+      highCount = strtouint32(argv[arg], 0L);
     } else if (strcmp(argv[arg], "-o") == 0) {
       arg++;
       delete [] outputFile;
@@ -397,23 +397,23 @@ merylArgs::merylArgs(int argc, char **argv) {
       } else if (strcmp(argv[arg], "lessthan") == 0) {
         personality = PERSONALITY_LEQ;
         arg++;
-        desiredCount = strtou32bit(argv[arg], 0L) - 1;
+        desiredCount = strtouint32(argv[arg], 0L) - 1;
       } else if (strcmp(argv[arg], "lessthanorequal") == 0) {
         personality = PERSONALITY_LEQ;
         arg++;
-        desiredCount = strtou32bit(argv[arg], 0L);
+        desiredCount = strtouint32(argv[arg], 0L);
       } else if (strcmp(argv[arg], "greaterthan") == 0) {
         personality = PERSONALITY_GEQ;
         arg++;
-        desiredCount = strtou32bit(argv[arg], 0L) + 1;
+        desiredCount = strtouint32(argv[arg], 0L) + 1;
       } else if (strcmp(argv[arg], "greaterthanorequal") == 0) {
         personality = PERSONALITY_GEQ;
         arg++;
-        desiredCount = strtou32bit(argv[arg], 0L);
+        desiredCount = strtouint32(argv[arg], 0L);
       } else if (strcmp(argv[arg], "equal") == 0) {
         personality = PERSONALITY_EQ;
         arg++;
-        desiredCount = strtou32bit(argv[arg], 0L);
+        desiredCount = strtouint32(argv[arg], 0L);
       } else {
         fprintf(stderr, "ERROR: unknown math personality %s\n", argv[arg]);
         exit(1);
@@ -430,32 +430,32 @@ merylArgs::merylArgs(int argc, char **argv) {
       personality = 'h';
     } else if (strcmp(argv[arg], "-memory") == 0) {
       arg++;
-      memoryLimit = strtou64bit(argv[arg], 0L);
+      memoryLimit = strtouint64(argv[arg], 0L);
     } else if (strcmp(argv[arg], "-segments") == 0) {
       arg++;
-      segmentLimit = strtou64bit(argv[arg], 0L);
+      segmentLimit = strtouint64(argv[arg], 0L);
     } else if (strcmp(argv[arg], "-threads") == 0) {
       arg++;
-      numThreads   = strtou32bit(argv[arg], 0L);
+      numThreads   = strtouint32(argv[arg], 0L);
     } else if (strcmp(argv[arg], "-configbatch") == 0) {
       personality = 'B';
       configBatch = true;
       countBatch  = false;
       mergeBatch  = false;
-      batchNumber = u32bitZERO;
+      batchNumber = uint32ZERO;
     } else if (strcmp(argv[arg], "-countbatch") == 0) {
       arg++;
       personality = 'B';
       configBatch = false;
       countBatch  = true;
       mergeBatch  = false;
-      batchNumber = strtou32bit(argv[arg], 0L);
+      batchNumber = strtouint32(argv[arg], 0L);
     } else if (strcmp(argv[arg], "-mergebatch") == 0) {
       personality = 'B';
       configBatch = false;
       countBatch  = false;
       mergeBatch  = true;
-      batchNumber = u32bitZERO;
+      batchNumber = uint32ZERO;
     } else if (strcmp(argv[arg], "-sge") == 0) {
       sgeJobName = argv[++arg];
     } else if (strcmp(argv[arg], "-sgebuild") == 0) {
@@ -531,7 +531,7 @@ merylArgs::merylArgs(const char *prefix) {
 
   mergeFiles  = new char* [mergeFilesLen];
 
-  for (u32bit i=0; i<mergeFilesLen; i++)
+  for (uint32 i=0; i<mergeFilesLen; i++)
     mergeFiles[i] = readString(F);
 
   fclose(F);
@@ -547,7 +547,7 @@ merylArgs::~merylArgs() {
   delete [] inputFile;
   delete [] outputFile;
 
-  for (u32bit i=0; i<mergeFilesLen; i++)
+  for (uint32 i=0; i<mergeFilesLen; i++)
     delete [] mergeFiles[i];
 
   delete [] mergeFiles;
@@ -580,7 +580,7 @@ merylArgs::writeConfig(void) {
   writeString(sgeBuildOpt, F);
   writeString(sgeMergeOpt, F);
 
-  for (u32bit i=0; i<mergeFilesLen; i++)
+  for (uint32 i=0; i<mergeFilesLen; i++)
     writeString(mergeFiles[i], F);
 
   fclose(F);

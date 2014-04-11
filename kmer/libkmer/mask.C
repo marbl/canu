@@ -20,13 +20,13 @@ int
 main(int argc, char **argv) {
   const char   *merName = "/project/huref4/assembly-mapping/missing/missing0/HMISSING-and-B35LC";
   const char   *seqName = "/project/huref4/assembly-mapping/missing/missing0/HMISSING-ge64.uid.fasta";
-  u32bit        merSize = 28;
+  uint32        merSize = 28;
 
   fprintf(stderr, "Build existDB.\n");
 
   existDB *exist = 0L;
   if (0) {
-    exist = new existDB(merName, merSize, existDBnoFlags, 0, ~u32bitZERO);
+    exist = new existDB(merName, merSize, existDBnoFlags, 0, ~uint32ZERO);
     exist->saveState("/project/huref4/assembly-mapping/missing/missing0/HMISSING-and-B35LC.existDB");
   } else {
     exist = new existDB("/project/huref4/assembly-mapping/missing/missing0/HMISSING-and-B35LC.existDB");
@@ -35,7 +35,7 @@ main(int argc, char **argv) {
   seqCache     *F     = new seqCache(seqName);
   seqInCore    *S     = 0L;
 
-  u32bit   maskLen = 1048576;
+  uint32   maskLen = 1048576;
   bool    *mask    = new bool [maskLen];
   char    *maskSeq = new char [maskLen];
   char    *maskBit = new char [maskLen];
@@ -43,7 +43,7 @@ main(int argc, char **argv) {
   fprintf(stderr, "Begin.\n");
 
   while ((S = F->getSequenceInCore()) != 0L) {
-    //fprintf(stderr, "iid="u32bitFMT" len="u32bitFMT" %s\n", S->getIID(), S->sequenceLength(), S->header());
+    //fprintf(stderr, "iid="uint32FMT" len="uint32FMT" %s\n", S->getIID(), S->sequenceLength(), S->header());
 
     if (maskLen <= S->sequenceLength() + 1024) {
       maskLen = S->sequenceLength() + S->sequenceLength() + 1024;
@@ -57,7 +57,7 @@ main(int argc, char **argv) {
       maskBit = new char [maskLen];
     }
 
-    for (u32bit i=0; i<S->sequenceLength(); i++)
+    for (uint32 i=0; i<S->sequenceLength(); i++)
       mask[i] = false;
 
     //  Build the initial masking
@@ -72,7 +72,7 @@ main(int argc, char **argv) {
 
 
 #ifdef PRINT_BITS
-    for (u32bit i=0; i<S->sequenceLength(); i++) {
+    for (uint32 i=0; i<S->sequenceLength(); i++) {
       if (mask[i])
         maskBit[i] = '1';
       else
@@ -134,7 +134,7 @@ main(int argc, char **argv) {
     //  Possibly extend the block merSize-1 bases to either side.
     //
     //
-    for (u32bit i=0; i<S->sequenceLength(); i++) {
+    for (uint32 i=0; i<S->sequenceLength(); i++) {
 
       //  Now we're potentially at the start of a small block.  The
       //  goal is to see if this is an isolated block of spurious
@@ -152,12 +152,12 @@ main(int argc, char **argv) {
       //
 
       bool    isIsolated = true;
-      u32bit  blockEnd   = i;
-      u32bit  bs         = 0;
-      u32bit  nextStart  = i;
+      uint32  blockEnd   = i;
+      uint32  bs         = 0;
+      uint32  nextStart  = i;
 
       while (isIsolated) {
-        u32bit j  = blockEnd;
+        uint32 j  = blockEnd;
 
         while ((j < S->sequenceLength()) &&
                (mask[j] == mask[blockEnd]))
@@ -206,12 +206,12 @@ main(int argc, char **argv) {
               blockEnd--;
         }
 
-        fprintf(stdout, "mask "u32bitFMT" "u32bitFMT"\n", i, blockEnd);
+        fprintf(stdout, "mask "uint32FMT" "uint32FMT"\n", i, blockEnd);
 
         //  Supposedly, our block of unmasked sequence is now from i to
         //  blockEnd.  Flip all that stuff to unmasked.
         //
-        for (u32bit j=i; j<blockEnd; j++)
+        for (uint32 j=i; j<blockEnd; j++)
           mask[j] = false;
       }
 
@@ -222,7 +222,7 @@ main(int argc, char **argv) {
 
 
 #ifdef PRINT_BITS
-    for (u32bit i=0; i<S->sequenceLength(); i++) {
+    for (uint32 i=0; i<S->sequenceLength(); i++) {
       if (mask[i])
         maskBit[i] = '1';
       else
@@ -236,8 +236,8 @@ main(int argc, char **argv) {
 
     //  Convert the mer-markings to base-markings
     //
-    u32bit isMasking = 0;
-    for (u32bit i=0; i<S->sequenceLength(); i++) {
+    uint32 isMasking = 0;
+    for (uint32 i=0; i<S->sequenceLength(); i++) {
       if (mask[i])
         isMasking = merSize;
 
@@ -249,7 +249,7 @@ main(int argc, char **argv) {
 
 
 #ifdef PRINT_BITS
-    for (u32bit i=0; i<S->sequenceLength(); i++) {
+    for (uint32 i=0; i<S->sequenceLength(); i++) {
       if (mask[i])
         maskBit[i] = '1';
       else
@@ -263,7 +263,7 @@ main(int argc, char **argv) {
 
     char *seq          = S->sequence();
 
-    for (u32bit i=0; i<S->sequenceLength(); i++) {
+    for (uint32 i=0; i<S->sequenceLength(); i++) {
       if (mask[i]) {
         maskSeq[i] = 'n';
       } else {

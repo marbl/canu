@@ -53,9 +53,9 @@ public:
   atacFeature(char *line);
   atacFeature(char *fuid,
               char *puid,
-              u32bit fiid,
+              uint32 fiid,
               char *t,
-              u32bit i, u32bit p, u32bit l);
+              uint32 i, uint32 p, uint32 l);
 
   void   decode(char *line);
 
@@ -63,12 +63,12 @@ public:
 
   char    featureuid[16];
   char    parentuid[16];
-  u32bit  featureiid;
+  uint32  featureiid;
   char    type[4];
-  u32bit  iid, pos, len;
+  uint32  iid, pos, len;
 
   void  print(FILE *f, char const *label) const {
-    fprintf(f, "F %s %s %s %s:"u32bitFMT" "u32bitFMT" "u32bitFMT"\n",
+    fprintf(f, "F %s %s %s %s:"uint32FMT" "uint32FMT" "uint32FMT"\n",
             type,
             featureuid, parentuid,
             label, iid, pos, len);

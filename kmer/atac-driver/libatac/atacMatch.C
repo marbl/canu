@@ -19,7 +19,7 @@
 #include "atac.H"
 
 static
-u32bit
+uint32
 decodeAtacName(char *atac,
                char *label) {
   if (label) {
@@ -31,8 +31,8 @@ decodeAtacName(char *atac,
       atac++;
   }
   if (*atac)
-    return(strtou32bit(atac+1, 0L));
-  return(~u32bitZERO);
+    return(strtouint32(atac+1, 0L));
+  return(~uint32ZERO);
 }
 
 
@@ -42,10 +42,10 @@ atacMatch::atacMatch(char *line) {
 
 atacMatch::atacMatch(char *muid,
                      char *puid,
-                     u32bit miid,
+                     uint32 miid,
                      char *t,
-                     u32bit i1, u32bit p1, u32bit l1, u32bit f1,
-                     u32bit i2, u32bit p2, u32bit l2, u32bit f2) {
+                     uint32 i1, uint32 p1, uint32 l1, uint32 f1,
+                     uint32 i2, uint32 p2, uint32 l2, uint32 f2) {
 
   strncpy(matchuid,  muid, 16);
   strncpy(parentuid, puid, 16);
@@ -89,12 +89,12 @@ atacMatch::decode(char *line) {
   splitToWords  S(line);
 
   iid1 = decodeAtacName(S[4], 0L);
-  pos1 = strtou32bit(S[5], 0L);
-  len1 = strtou32bit(S[6], 0L);
+  pos1 = strtouint32(S[5], 0L);
+  len1 = strtouint32(S[6], 0L);
   fwd1 = (S[7][0] == '-') ? 0 : 1;
   iid2 = decodeAtacName(S[8], 0L);
-  pos2 = strtou32bit(S[9], 0L);
-  len2 = strtou32bit(S[10], 0L);
+  pos2 = strtouint32(S[9], 0L);
+  len2 = strtouint32(S[10], 0L);
   fwd2 = (S[11][0] == '-') ? 0 : 1;
 
   strncpy(matchuid,  S[2], 16);
@@ -128,7 +128,7 @@ atacMatch::sanity(seqCache *A, seqCache *B, char *inLine) {
   if (A && B) {
     if ((pos1) > A->getSequenceLength(iid1) || (pos1 + len1) > A->getSequenceLength(iid1)) {
       chomp(inLine);
-      fprintf(stderr, "Match longer than sequence (by "u32bitFMT"bp) in 1: seqLen="u32bitFMTW(8)" %s\n",
+      fprintf(stderr, "Match longer than sequence (by "uint32FMT"bp) in 1: seqLen="uint32FMTW(8)" %s\n",
               pos1 + len1 - A->getSequenceLength(iid1),
               A->getSequenceLength(iid1), inLine);
       matchOK = false;
@@ -136,7 +136,7 @@ atacMatch::sanity(seqCache *A, seqCache *B, char *inLine) {
 
     if ((pos2) > B->getSequenceLength(iid2) || (pos2 + len2) > B->getSequenceLength(iid2)) {
       chomp(inLine);
-      fprintf(stderr, "Match longer than sequence (by "u32bitFMT"bp) in 2: seqLen="u32bitFMTW(8)" %s\n",
+      fprintf(stderr, "Match longer than sequence (by "uint32FMT"bp) in 2: seqLen="uint32FMTW(8)" %s\n",
               pos2 + len2 - B->getSequenceLength(iid2),
               B->getSequenceLength(iid2), inLine);
       matchOK = false;

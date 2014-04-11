@@ -25,7 +25,7 @@
 
 
 static
-u32bit
+uint32
 decodeAtacName(char *atac,
                char *label) {
   if (label) {
@@ -37,8 +37,8 @@ decodeAtacName(char *atac,
       atac++;
   }
   if (*atac)
-    return(strtou32bit(atac+1, 0L));
-  return(~u32bitZERO);
+    return(strtouint32(atac+1, 0L));
+  return(~uint32ZERO);
 }
 
 
@@ -49,9 +49,9 @@ atacFeature::atacFeature(char *line) {
 
 atacFeature::atacFeature(char *fuid,
                          char *puid,
-                         u32bit fiid,
+                         uint32 fiid,
                          char *t,
-                         u32bit i, u32bit p, u32bit l) {
+                         uint32 i, uint32 p, uint32 l) {
 
   strcpy(featureuid, fuid);
   strcpy(parentuid, puid);
@@ -93,8 +93,8 @@ atacFeature::decode(char *line) {
   strcpy(type, W[1]);
 
   iid = decodeAtacName(W[4], 0L);
-  pos = strtou32bit(W[5], 0L);
-  len = strtou32bit(W[6], 0L);
+  pos = strtouint32(W[5], 0L);
+  len = strtouint32(W[6], 0L);
 }
 
 
@@ -106,7 +106,7 @@ atacFeature::sanity(seqCache *A, char *inLine) {
   if (A) {
     if ((pos) > A->getSequenceLength(iid) || (pos + len) > A->getSequenceLength(iid)) {
       chomp(inLine);
-      fprintf(stderr, "Feature longer than sequence (by "u32bitFMT"bp): seqLen="u32bitFMTW(8)" %s\n",
+      fprintf(stderr, "Feature longer than sequence (by "uint32FMT"bp): seqLen="uint32FMTW(8)" %s\n",
               pos + len - A->getSequenceLength(iid),
               A->getSequenceLength(iid), inLine);
       featureOK = false;

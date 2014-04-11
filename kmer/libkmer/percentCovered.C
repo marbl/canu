@@ -23,7 +23,7 @@ main(int argc, char **argv) {
     arg++;
   }
 
-  existDB      *E = new existDB(merFile, 22, existDBnoFlags, 0, ~u32bitZERO);
+  existDB      *E = new existDB(merFile, 22, existDBnoFlags, 0, ~uint32ZERO);
   seqCache     *Q = new seqCache(queryFile);
   seqInCore    *S = Q->getSequenceInCore();
 

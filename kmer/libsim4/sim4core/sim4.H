@@ -392,7 +392,7 @@ private:
   //
   public:
     mss_t  masks_shifts(char *);
-    int    mask_shift(u64bit, mss_t);
+    int    mask_shift(uint64, mss_t);
 
 private:  
   //  splice.h
@@ -551,7 +551,7 @@ public:
     _genLen = 0;
     _estLen = 0;
 
-    for (u32bit i=256; i;)
+    for (uint32 i=256; i;)
       encoding[--i] = -1;
     encoding[(int)'A'] = encoding[(int)'a'] = 0;
     encoding[(int)'C'] = encoding[(int)'c'] = 1;

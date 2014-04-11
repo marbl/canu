@@ -76,9 +76,9 @@ main(int argc, char **argv) {
   MO.sortA();
   FL.sort();
 
-  u32bit  mid = 0;
-  u32bit  fid = 0;
-  u32bit  pid = 0;
+  uint32  mid = 0;
+  uint32  fid = 0;
+  uint32  pid = 0;
 
   while ((mid < MO.numberOfMatches()) &&
          (fid < FL.numberOfFeatures())) {
@@ -120,7 +120,7 @@ main(int argc, char **argv) {
     //  If feature is completely in match, this is easy.
     //
     if ((m->pos1 <= f->pos) && ((f->pos + f->len) <= (m->pos1 + m->len1))) {
-      u32bit beg;
+      uint32 beg;
 
       if (m->fwd2 == true) {
         beg = m->pos2 + f->pos - m->pos1;
@@ -129,7 +129,7 @@ main(int argc, char **argv) {
       }
 
       if (f->len > 0)
-        fprintf(stdout, "M u Aprojected"u32bitFMT" %s.%s %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" 1 %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" %d\n",
+        fprintf(stdout, "M u Aprojected"uint32FMT" %s.%s %s:"uint32FMT" "uint32FMT" "uint32FMT" 1 %s:"uint32FMT" "uint32FMT" "uint32FMT" %d\n",
                 pid,
                 f->featureuid, m->matchuid,
                 AF.labelA(), f->iid, f->pos, f->len,
@@ -143,7 +143,7 @@ main(int argc, char **argv) {
     //
     if ((f->pos < m->pos1) && (m->pos1 + m->len1) < (f->pos + f->len)) {
       if (m->len1 > 0)
-        fprintf(stdout, "M u Bprojected"u32bitFMT" %s.%s %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" 1 %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" %d\n",
+        fprintf(stdout, "M u Bprojected"uint32FMT" %s.%s %s:"uint32FMT" "uint32FMT" "uint32FMT" 1 %s:"uint32FMT" "uint32FMT" "uint32FMT" %d\n",
                 pid,
                 f->featureuid, m->matchuid,
                 AF.labelA(), m->iid1, m->pos1, m->len1,
@@ -158,8 +158,8 @@ main(int argc, char **argv) {
     //  could be ending?  Or just project as much as possible?
 
     if (f->pos < m->pos1) {
-      u32bit len = f->len - (m->pos1 - f->pos);
-      u32bit beg;
+      uint32 len = f->len - (m->pos1 - f->pos);
+      uint32 beg;
 
       if (m->fwd2 == true) {
         beg = m->pos2;
@@ -168,7 +168,7 @@ main(int argc, char **argv) {
       }
 
       if (len > 0)
-        fprintf(stdout, "M u Cprojected"u32bitFMT" %s.%s %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" 1 %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" %d\n",
+        fprintf(stdout, "M u Cprojected"uint32FMT" %s.%s %s:"uint32FMT" "uint32FMT" "uint32FMT" 1 %s:"uint32FMT" "uint32FMT" "uint32FMT" %d\n",
                 pid,
                 f->featureuid, m->matchuid,
                 AF.labelA(), f->iid, m->pos1, len,
@@ -179,8 +179,8 @@ main(int argc, char **argv) {
     }
 
     if (m->pos1 + m->len1 < f->pos + f->len) {
-      u32bit len = m->pos1 + m->len1 - f->pos;
-      u32bit beg;
+      uint32 len = m->pos1 + m->len1 - f->pos;
+      uint32 beg;
 
       if (m->fwd2 == true) {
         beg = m->pos2 + m->len2 - len;
@@ -189,7 +189,7 @@ main(int argc, char **argv) {
       }
 
       if (len > 0)
-        fprintf(stdout, "M u Dprojected"u32bitFMT" %s.%s %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" 1 %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" %d\n",
+        fprintf(stdout, "M u Dprojected"uint32FMT" %s.%s %s:"uint32FMT" "uint32FMT" "uint32FMT" 1 %s:"uint32FMT" "uint32FMT" "uint32FMT" %d\n",
                 pid,
                 f->featureuid, m->matchuid,
                 AF.labelA(), f->iid, f->pos, len,

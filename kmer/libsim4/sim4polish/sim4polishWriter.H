@@ -56,7 +56,7 @@ private:
 
   char             _matchIDprefix[32];
   char             _matchIDsalt[8];
-  u64bit           _matchID;
+  uint64           _matchID;
 };
 
 #endif // SIM4POLISHWRITER

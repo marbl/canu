@@ -11,13 +11,13 @@
 //  Sorts a file of polishes by cDNA or genomic idx.
 
 sim4polishReader *
-writeTemporary(char *filePrefix, sim4polish **p, u32bit pLen, sim4polishStyle style, int (*fcn)(const void *, const void *)) {
+writeTemporary(char *filePrefix, sim4polish **p, uint32 pLen, sim4polishStyle style, int (*fcn)(const void *, const void *)) {
   sim4polishWriter *W = new sim4polishWriter(0L, style, true);
   sim4polishReader *R;
 
   qsort(p, pLen, sizeof(sim4polish *), fcn);
 
-  for (u32bit i=0; i<pLen; i++)
+  for (uint32 i=0; i<pLen; i++)
     W->writeAlignment(p[i]);
 
   R = new sim4polishReader(0L, W);
@@ -30,7 +30,7 @@ writeTemporary(char *filePrefix, sim4polish **p, u32bit pLen, sim4polishStyle st
 //  Save the polish using palloc;
 //
 sim4polish *
-savePolish(sim4polish *q, u64bit *alloc) {
+savePolish(sim4polish *q, uint64 *alloc) {
   int l;
 
   //  Copy the base polish structure.
@@ -61,7 +61,7 @@ savePolish(sim4polish *q, u64bit *alloc) {
 
   //  Copy the exon alignments.
   //
-  for (u32bit i=0; i<q->_numExons; i++) {
+  for (uint32 i=0; i<q->_numExons; i++) {
     if (q->_exons[i]._estAlignment) {
       l = strlen(q->_exons[i]._estAlignment) + 1;
       r->_exons[i]._estAlignment = (char *)palloc(sizeof(char) * l);
@@ -82,9 +82,9 @@ savePolish(sim4polish *q, u64bit *alloc) {
 
 
 void
-statusReport(u32bit pLen, u32bit mergeFilesLen, u64bit arrayAlloc, u64bit matchAlloc, u64bit upperAlloc) {
+statusReport(uint32 pLen, uint32 mergeFilesLen, uint64 arrayAlloc, uint64 matchAlloc, uint64 upperAlloc) {
   if (pLen > 0) {
-    fprintf(stderr, "Read: "u32bitFMTW(8)" polishes -- "u32bitFMTW(5)" temporary files -- "u64bitFMTW(5)"MB / "u64bitFMTW(5)"MB -- "u64bitFMTW(5)" bytes/polish\r",
+    fprintf(stderr, "Read: "uint32FMTW(8)" polishes -- "uint32FMTW(5)" temporary files -- "uint64FMTW(5)"MB / "uint64FMTW(5)"MB -- "uint64FMTW(5)" bytes/polish\r",
             pLen,
             mergeFilesLen,
             (arrayAlloc + matchAlloc) >> 20,
@@ -108,19 +108,19 @@ main(int argc, char **argv) {
   bool                beVerbose = false;
   char               *filePrefix = NULL;
 
-  u32bit              pLen = 0;
-  u32bit              pMax = 1 * 1024 * 1024;
+  uint32              pLen = 0;
+  uint32              pMax = 1 * 1024 * 1024;
 
-  u64bit              upperAlloc = getProcessSizeLimit();   //  Maximum allowed memory usage
-  u64bit              arrayAlloc = 0;                       //  Static stuff: the process, arrays
-  u64bit              matchAlloc = 0;                       //  palloc size, matches
+  uint64              upperAlloc = getProcessSizeLimit();   //  Maximum allowed memory usage
+  uint64              arrayAlloc = 0;                       //  Static stuff: the process, arrays
+  uint64              matchAlloc = 0;                       //  palloc size, matches
 
   int               (*fcn)(const void *, const void *) = 0L;
 
   bool                moreInput = true;
 
-  u32bit              mergeFilesLen   = 0;
-  u32bit              mergeFilesMax   = sysconf(_SC_OPEN_MAX);
+  uint32              mergeFilesLen   = 0;
+  uint32              mergeFilesMax   = sysconf(_SC_OPEN_MAX);
   sim4polishReader  **mergeFiles      = new sim4polishReader * [mergeFilesMax];
   char              **mergeNames      = new char * [mergeFilesMax];
 
@@ -131,7 +131,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "sortPolishes: Failed to initialize.\n");
     exit(1);
   }
-  for (u32bit i=0; i<mergeFilesMax; i++) {
+  for (uint32 i=0; i<mergeFilesMax; i++) {
     mergeFiles[i] = NULL;
     mergeNames[i] = NULL;
   }
@@ -293,7 +293,7 @@ main(int argc, char **argv) {
     //  No temporary files.  Sort the polishes, and dump.
     qsort(p, pLen, sizeof(sim4polish *), fcn);
 
-    for (u32bit i=0; i<pLen; i++)
+    for (uint32 i=0; i<pLen; i++)
       W->writeAlignment(p[i]);
   } else {
 
@@ -325,15 +325,15 @@ main(int argc, char **argv) {
 
     memset(p, 0, sizeof(sim4polish *) * mergeFilesLen);
 
-    for (u32bit i=0; i<mergeFilesLen; i++)
+    for (uint32 i=0; i<mergeFilesLen; i++)
       mergeFiles[i]->nextAlignment(p[i]);
 
     while (moreInput) {
-      u32bit smallestPolish = 0;
+      uint32 smallestPolish = 0;
 
       //  Find the smallest polish.
       //
-      for (u32bit nextPolish = smallestPolish+1; nextPolish < mergeFilesLen; nextPolish++) {
+      for (uint32 nextPolish = smallestPolish+1; nextPolish < mergeFilesLen; nextPolish++) {
         if ((*fcn)(p+smallestPolish, p+nextPolish) > 0)
           smallestPolish = nextPolish;
       }
@@ -351,7 +351,7 @@ main(int argc, char **argv) {
 
     //  Attempt cleanup
     //
-    for (u32bit i=0; i<mergeFilesLen; i++)
+    for (uint32 i=0; i<mergeFilesLen; i++)
       delete mergeFiles[i];
 
     delete [] p;

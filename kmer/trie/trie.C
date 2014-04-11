@@ -8,34 +8,34 @@
 //  are first, then the rest of the protein letters.
 //
 const char  *trieAlpha         = "acgtdefhiklmnpqrsvwy";
-u32bit       trieAlphaMap[256] = {0};
+uint32       trieAlphaMap[256] = {0};
 
 class trieNode {
 public:
   trieNode(void) {
-    for (u32bit i=0; i<ALPHALEN; i++)
-      next[i] = ~u32bitZERO;
+    for (uint32 i=0; i<ALPHALEN; i++)
+      next[i] = ~uint32ZERO;
     numseq  = 0;
-    seqptr  = ~u32bitZERO;
+    seqptr  = ~uint32ZERO;
   };
 
-  u32bit   next[ALPHALEN];  //  next node for A, C, G, T input, ~u32bitZERO if no next
-  u32bit   numseq;          //  number of seqs we have in here
-  u32bit   seqptr;         //  pointer to seqs
+  uint32   next[ALPHALEN];  //  next node for A, C, G, T input, ~uint32ZERO if no next
+  uint32   numseq;          //  number of seqs we have in here
+  uint32   seqptr;         //  pointer to seqs
 };
 
 
 class trieSeqPtr {
 public:
   trieSeqPtr(void) {
-    seqiid     = ~u32bitZERO;
-    nodeiid    = ~u32bitZERO;
+    seqiid     = ~uint32ZERO;
+    nodeiid    = ~uint32ZERO;
     defline    = 0L;
     reversed   = false;
   };
 
-  u32bit   seqiid;
-  u32bit   nodeiid;
+  uint32   seqiid;
+  uint32   nodeiid;
   char    *defline;
   bool     reversed;
 };
@@ -56,13 +56,13 @@ trieSeqPtrCompare(const void *a, const void *b) {
 }
 
 
-u32bit
-addSequence(trieNode *nodes,    u32bit &nodesLen,
-            trieSeqPtr *seqptr, u32bit &seqptrLen,
+uint32
+addSequence(trieNode *nodes,    uint32 &nodesLen,
+            trieSeqPtr *seqptr, uint32 &seqptrLen,
             seqInCore *S,
             bool isReverse) {
   char   *s = 0L;
-  u32bit  n = 0;
+  uint32  n = 0;
 
   if (S->sequenceLength() < 12)
     return(0);
@@ -72,10 +72,10 @@ addSequence(trieNode *nodes,    u32bit &nodesLen,
       return(0);
 
   for (s = S->sequence(); *s; s++) {
-    u32bit  v = trieAlphaMap[*s] - 1;
+    uint32  v = trieAlphaMap[*s] - 1;
 
     //  add a new pointer if needed
-    if (nodes[n].next[v] == ~u32bitZERO)
+    if (nodes[n].next[v] == ~uint32ZERO)
       nodes[n].next[v] = nodesLen++;
 
     //  Go there
@@ -132,7 +132,7 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  for (u32bit i=0; i<ALPHALEN; i++) {
+  for (uint32 i=0; i<ALPHALEN; i++) {
     trieAlphaMap[trieAlpha[i]] = i+1;
     trieAlphaMap[trieAlpha[i] + 'A' - 'a'] = i+1;
   }
@@ -143,26 +143,26 @@ main(int argc, char **argv) {
   //
   //  32M * 28 = 896M.
   //
-  u32bit     nodesLen = 1;
-  u32bit     nodesMax = 32 * 1024 * 1024;
+  uint32     nodesLen = 1;
+  uint32     nodesMax = 32 * 1024 * 1024;
   trieNode  *nodes    = new trieNode [nodesMax];
 
   seqCache             *F = new seqCache(queries);
   seqInCore            *S = 0L;
 
-  u32bit      seqptrLen = 0;
-  u32bit      seqptrMax = 2 * 1024 * 1024;
+  uint32      seqptrLen = 0;
+  uint32      seqptrMax = 2 * 1024 * 1024;
   trieSeqPtr *seqptr    = new trieSeqPtr [seqptrMax];
 
   //  Number of matches per IID, not seqptr (which has two entries for
   //  each iid, one forward, one reverse).
   //
-  u32bit     *nummatches = new u32bit [seqptrMax];
-  for (u32bit i=0; i<seqptrMax; i++)
+  uint32     *nummatches = new uint32 [seqptrMax];
+  for (uint32 i=0; i<seqptrMax; i++)
     nummatches[i] = 0;
 
   while ((S = F->getSequenceInCore()) != 0L) {
-    u32bit success = 0;
+    uint32 success = 0;
 
     success += addSequence(nodes, nodesLen, seqptr, seqptrLen, S, false);
 
@@ -187,7 +187,7 @@ main(int argc, char **argv) {
 
   delete F;
 
-  fprintf(stderr, "Used "u32bitFMT" trie nodes.           \n", nodesLen);
+  fprintf(stderr, "Used "uint32FMT" trie nodes.           \n", nodesLen);
 
   //  Fix up sequence pointers - we could probably do this inplace
   //  with some trickery, but why?
@@ -198,10 +198,10 @@ main(int argc, char **argv) {
   //  pointers.  We point to the first thing found, and remember
   //  the number of things found.
 
-  for (u32bit i=0; i<seqptrLen; i++) {
-    u32bit  ni = seqptr[i].nodeiid;
+  for (uint32 i=0; i<seqptrLen; i++) {
+    uint32  ni = seqptr[i].nodeiid;
 
-    if (nodes[ni].seqptr == ~u32bitZERO)
+    if (nodes[ni].seqptr == ~uint32ZERO)
       nodes[ni].seqptr = i;
 
     nodes[ni].numseq++;
@@ -213,12 +213,12 @@ main(int argc, char **argv) {
   S = 0L;
   while ((S = F->getSequenceInCore()) != 0L) {
     char    *s    = S->sequence();
-    u32bit   siid = S->getIID();
-    u32bit   spos = 0;
+    uint32   siid = S->getIID();
+    uint32   spos = 0;
 
-    u32bit   n[256] = {0};  //  Pointer into the trie
-    u32bit   d[256] = {0};  //  Depth this pointer is at (== sequence length)
-    u32bit   nLen = 0;
+    uint32   n[256] = {0};  //  Pointer into the trie
+    uint32   d[256] = {0};  //  Depth this pointer is at (== sequence length)
+    uint32   nLen = 0;
 
     //fprintf(stderr, "WORKING ON '%s'\n", S->header());
 
@@ -235,9 +235,9 @@ main(int argc, char **argv) {
         //  matches, kill any pointers, and then finally add a new
         //  one.
 
-        u32bit  v = trieAlphaMap[*s] - 1;
-        u32bit  ni;
-        u32bit  nj;
+        uint32  v = trieAlphaMap[*s] - 1;
+        uint32  ni;
+        uint32  nj;
 
         //  Advance pointers.
         //
@@ -249,7 +249,7 @@ main(int argc, char **argv) {
         //  Kill any thing that is now dead - copy nj into ni
         //
         for (ni=0, nj=0; nj<nLen; nj++)
-          if (n[nj] != ~u32bitZERO) {
+          if (n[nj] != ~uint32ZERO) {
             if ((ni != nj)) {
               n[ni] = n[nj];
               d[ni] = d[nj];
@@ -263,17 +263,17 @@ main(int argc, char **argv) {
         for (ni=0; ni<nLen; ni++) {
           if (nodes[n[ni]].numseq > 0) {
             for (nj=0; nj<nodes[n[ni]].numseq; nj++) {
-              u32bit  p = nodes[n[ni]].seqptr + nj;
+              uint32  p = nodes[n[ni]].seqptr + nj;
 
               nummatches[seqptr[p].seqiid]++;
               if (nummatches[seqptr[p].seqiid] == 1000) {
                 if (logfile)
-                  fprintf(logfile, "sequence "u32bitFMT" '%s' has too many matches, not reporting any more.\n",
+                  fprintf(logfile, "sequence "uint32FMT" '%s' has too many matches, not reporting any more.\n",
                           seqptr[p].seqiid,
                           seqptr[p].defline);
               } else if (nummatches[seqptr[p].seqiid] < 1000) {
                 fprintf(stdout, "sim4begin\n");
-                fprintf(stdout, u32bitFMT"["u32bitFMT"-0-0] "u32bitFMT"[0-0] <"u32bitFMT"-0-100-%s-unknown>\n",
+                fprintf(stdout, uint32FMT"["uint32FMT"-0-0] "uint32FMT"[0-0] <"uint32FMT"-0-100-%s-unknown>\n",
                         seqptr[p].seqiid,
                         d[ni] + 1,
                         siid,
@@ -281,7 +281,7 @@ main(int argc, char **argv) {
                         seqptr[p].reversed ? "complement" : "forward");
                 fprintf(stdout, "edef=%s\n", seqptr[p].defline);
                 fprintf(stdout, "ddef=%s\n", S->header());
-                fprintf(stdout, "1-"u32bitFMT" ("u32bitFMT"-"u32bitFMT") <"u32bitFMT"-0-100>\n",
+                fprintf(stdout, "1-"uint32FMT" ("uint32FMT"-"uint32FMT") <"uint32FMT"-0-100>\n",
                         d[ni] + 1,
                         spos - d[ni] + 1,
                         spos + 1,
@@ -294,7 +294,7 @@ main(int argc, char **argv) {
 
         //  Add a new pointer for the just seen letter
         //
-        if (nodes[0].next[v] != ~u32bitZERO) {
+        if (nodes[0].next[v] != ~uint32ZERO) {
           d[nLen]   = 0;
           n[nLen++] = nodes[0].next[v];
         }
@@ -311,16 +311,16 @@ main(int argc, char **argv) {
   //  sequence....  Report those with matches first.
   //
   if (logfile) {
-    for (u32bit i=0; i<seqptrLen; i++)
+    for (uint32 i=0; i<seqptrLen; i++)
       if ((seqptr[i].reversed == false) && (nummatches[seqptr[i].seqiid] > 0))
-        fprintf(logfile, "sequence "u32bitFMT" '%s' has "u32bitFMT" matches.\n",
+        fprintf(logfile, "sequence "uint32FMT" '%s' has "uint32FMT" matches.\n",
                 seqptr[i].seqiid,
                 seqptr[i].defline,
                 nummatches[seqptr[i].seqiid]);
 
-    for (u32bit i=0; i<seqptrLen; i++)
+    for (uint32 i=0; i<seqptrLen; i++)
       if ((seqptr[i].reversed == false) && (nummatches[seqptr[i].seqiid] == 0))
-        fprintf(logfile, "sequence "u32bitFMT" '%s' has no matches.\n",
+        fprintf(logfile, "sequence "uint32FMT" '%s' has no matches.\n",
                 seqptr[i].seqiid,
                 seqptr[i].defline,
                 nummatches[seqptr[i].seqiid]);

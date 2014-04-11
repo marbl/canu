@@ -4,7 +4,7 @@
 
 void
 bin2asc(FILE *I, FILE *O) {
-  u32bit  i = 0;
+  uint32  i = 0;
   aHit    a;
 
   fprintf(stderr, "Converting BINARY to ASCII.\n");
@@ -16,20 +16,20 @@ bin2asc(FILE *I, FILE *O) {
       ahit_printASCII(&a, O);
 
       if ((++i & 0xffff) == 0) {
-        fprintf(stderr, u32bitFMT" hits.\r", i);
+        fprintf(stderr, uint32FMT" hits.\r", i);
         fflush(stderr);
       }
     }
   }
 
-  fprintf(stderr, u32bitFMT" hits.\r", i);
+  fprintf(stderr, uint32FMT" hits.\r", i);
   fprintf(stderr, "\n");
 }
 
 
 void
 asc2bin(FILE *I, FILE *O) {
-  u32bit  i = 0;
+  uint32  i = 0;
   aHit    a;
   char    b[1025];
 
@@ -43,13 +43,13 @@ asc2bin(FILE *I, FILE *O) {
       ahit_writeBinary(&a, O);
 
       if ((++i & 0xffff) == 0) {
-        fprintf(stderr, u32bitFMT" hits.\r", i);
+        fprintf(stderr, uint32FMT" hits.\r", i);
         fflush(stderr);
       }
     }
   }
 
-  fprintf(stderr, u32bitFMT" hits.\r", i);
+  fprintf(stderr, uint32FMT" hits.\r", i);
   fprintf(stderr, "\n");
 }
 

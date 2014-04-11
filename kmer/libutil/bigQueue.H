@@ -44,7 +44,7 @@ public:
   bigQueue(bool   (*readfcn)(FILE *, void *),
            bool   (*writfcn)(FILE *, void *),
            void   (*killfcn)(void *),
-           u32bit   objectSize,
+           uint32   objectSize,
            char    *tmpPath) {
     _initialize(0L, readfcn, writfcn, killfcn, objectSize, 0, tmpPath, 0L);
   };
@@ -56,7 +56,7 @@ public:
   bigQueue(bool   (*readfcn)(FILE *, void *),
            bool   (*writfcn)(FILE *, void *),
            void   (*killfcn)(void *),
-           u32bit   objectSize,
+           uint32   objectSize,
            char    *tmpPath,
            char    *filename) {
     _initialize(0L, readfcn, writfcn, killfcn, objectSize, 0, tmpPath, filename);
@@ -69,8 +69,8 @@ public:
            bool   (*readfcn)(FILE *, void *),
            bool   (*writfcn)(FILE *, void *),
            void   (*killfcn)(void *),
-           u32bit   objectSize,
-           u32bit   memoryToUse,
+           uint32   objectSize,
+           uint32   memoryToUse,
            char    *tmpPath) {
     _initialize(sortfcn, readfcn, writfcn, killfcn, objectSize, memoryToUse, tmpPath, 0L);
   };
@@ -80,8 +80,8 @@ private:
                         bool   (*readfcn)(FILE *f, void *a),
                         bool   (*writfcn)(FILE *f, void *a),
                         void   (*killfcn)(void *),
-                        u32bit   objectSize,
-                        u32bit   memoryToUse,
+                        uint32   objectSize,
+                        uint32   memoryToUse,
                         char    *tmppath,
                         char    *filename);
 
@@ -118,12 +118,12 @@ private:
   bool    (*_readFunction)(FILE *f, void *a);
   void    (*_killFunction)(void *a);
 
-  u32bit    _objectSize;
-  u32bit    _memoryToUse;
+  uint32    _objectSize;
+  uint32    _memoryToUse;
 
-  u32bit    _maxOpenFiles;
-  u32bit    _numTemporaryFiles;
-  u32bit    _numMergeFiles;
+  uint32    _maxOpenFiles;
+  uint32    _numTemporaryFiles;
+  uint32    _numMergeFiles;
 
   //  _temporaryFiles is all the opened output files.  If we aren't
   //  sorting, then only the first one is opened.
@@ -140,8 +140,8 @@ private:
   //
   void     *_thingBuffer;
 
-  u32bit    _bufferMax;
-  u32bit    _bufferLen;
+  uint32    _bufferMax;
+  uint32    _bufferLen;
   void    **_buffer;
 };
 

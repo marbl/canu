@@ -9,17 +9,17 @@
 #include "libmeryl.H"
 
 void
-runSegment(merylArgs *args, u64bit segment);
+runSegment(merylArgs *args, uint64 segment);
 
 pthread_mutex_t        segmentMutex;
-u64bit                 segmentNext;
-u64bit                 segmentMax;
-u32bit                *segmentDone;
+uint64                 segmentNext;
+uint64                 segmentMax;
+uint32                *segmentDone;
 
 
 void*
 buildThread(void *U) {
-  u64bit      segment = u32bitZERO;
+  uint64      segment = uint32ZERO;
   merylArgs  *args = (merylArgs *)U;
 
   while (segment < segmentMax) {
@@ -45,11 +45,11 @@ runThreaded(merylArgs *args) {
 
   //  Clear stuff
   //
-  segmentNext = u64bitZERO;
+  segmentNext = uint64ZERO;
   segmentMax  = args->segmentLimit;
-  segmentDone = new u32bit [segmentMax];
-  for (u64bit s=0; s<segmentMax; s++)
-    segmentDone[s] = u32bitZERO;
+  segmentDone = new uint32 [segmentMax];
+  for (uint64 s=0; s<segmentMax; s++)
+    segmentDone[s] = uint32ZERO;
 
   //  Initialize threads
   //
@@ -65,7 +65,7 @@ runThreaded(merylArgs *args) {
 
   //  Start the threads
   //
-  for (u64bit i=0; i<args->numThreads; i++)
+  for (uint64 i=0; i<args->numThreads; i++)
     pthread_create(&threadID, &threadAttr, buildThread, (void *)args);
 
   //  Wait for the threads to complete
@@ -74,7 +74,7 @@ runThreaded(merylArgs *args) {
   shortNap.tv_sec  = 1;
   shortNap.tv_nsec = 0;
 
-  u64bit s=0;
+  uint64 s=0;
   while (s < segmentMax) {
     if (segmentDone[s] == 0)
       nanosleep(&shortNap, 0L);

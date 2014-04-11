@@ -6,10 +6,10 @@
 //  Analysis functions
 //
 void dumpBlocks(char *filename);
-void stats(char *filename, u64bit refLen);
-void partitionBySize(char *prefix, u64bit partitionSize, char *filename);
-void partitionByBucket(char *prefix, u64bit partitionSize, char *filename);
-void partitionBySegment(char *prefix, u64bit numSegments, char *filename);
+void stats(char *filename, uint64 refLen);
+void partitionBySize(char *prefix, uint64 partitionSize, char *filename);
+void partitionByBucket(char *prefix, uint64 partitionSize, char *filename);
+void partitionBySegment(char *prefix, uint64 numSegments, char *filename);
 void simseq(char *,char *,int,int,int,int,double);
 void computeGCcontent(char *name);
 void findDuplicates(char *filename);
@@ -22,17 +22,17 @@ bool                   reverse           = false;
 bool                   complement        = false;
 bool                   withDefLine       = true;
 char                  *specialDefLine    = 0L;
-u32bit                 withLineBreaks    = 0;
+uint32                 withLineBreaks    = 0;
 
 bool                   toUppercase       = false;
 char                   translate[256]    = {0};
 
 seqCache              *fasta             = 0L;
 
-u32bit                 begPos            =  (u32bit)0;
-u32bit                 endPos            = ~(u32bit)0;
+uint32                 begPos            =  (uint32)0;
+uint32                 endPos            = ~(uint32)0;
 
-u32bit                 endExtract        = ~(u32bit)0;
+uint32                 endExtract        = ~(uint32)0;
 
 mt_s                  *mtctx             = 0L;
 
@@ -207,16 +207,16 @@ static
 void
 printSequence(char        *def,
               char        *seq,
-              u32bit       beg,
-              u32bit       end) {
+              uint32       beg,
+              uint32       end) {
 
   if (beg >= end)
     return;
 
-  if ((endExtract != ~u32bitZERO) &&
+  if ((endExtract != ~uint32ZERO) &&
       (endExtract + endExtract < end - beg)) {
     char    d[1024];
-    u32bit  l = strlen(seq);
+    uint32  l = strlen(seq);
 
     sprintf(d, "%s_5", def);
     printSequence(d, seq, 0, endExtract);
@@ -233,7 +233,7 @@ printSequence(char        *def,
   if (withDefLine == false)
     def = 0L;
 
-  u32bit    limit = end - beg;
+  uint32    limit = end - beg;
   char     *n = new char [end - beg + 1];
   char     *m;
 
@@ -272,7 +272,7 @@ printSequence(char        *def,
     char      *a = new char [withLineBreaks+1];
 
     while (*t) {
-      u32bit i=0;
+      uint32 i=0;
       while ((*t) && (i < withLineBreaks))
         a[i++] = *(t++);
       a[i++] = '\n';
@@ -292,16 +292,16 @@ printSequence(char        *def,
 static
 void
 printSequence(seqInCore *sic) {
-  printSequence(sic->header(), sic->sequence(), (begPos!=(u32bit)0) ? begPos:0, (endPos!=~u32bit(0)) ? endPos:sic->sequenceLength());
+  printSequence(sic->header(), sic->sequence(), (begPos!=(uint32)0) ? begPos:0, (endPos!=~uint32(0)) ? endPos:sic->sequenceLength());
 }
 
 
 static
 void
-printSequence(u32bit sid) {
+printSequence(uint32 sid) {
   seqInCore *sic   = fasta->getSequenceInCore(sid);
   if (sic == 0L)
-    fprintf(stderr, "WARNING: Didn't find sequence with iid '"u32bitFMT"'\n", sid);
+    fprintf(stderr, "WARNING: Didn't find sequence with iid '"uint32FMT"'\n", sid);
   else
     printSequence(sic);
   delete sic;
@@ -323,8 +323,8 @@ printSequence(char *sid) {
 static
 void
 printIDsFromFile(char *name) {
-  u32bit      idLen = 0;
-  u32bit      idMax = 63;
+  uint32      idLen = 0;
+  uint32      idMax = 63;
   char       *id    = new char [idMax+1];
 
   readBuffer  B(name);
@@ -387,21 +387,21 @@ processArray(int argc, char **argv) {
         fprintf(stderr, "ERROR: next arg to -i should be 'name', I got '%s'\n",
                 (argv[arg] == 0L) ? "(nullpointer)" : argv[arg]), exit(1);
 
-      for (u32bit s=0; s<fasta->getNumberOfSequences(); s++)
-        fprintf(stdout, "G\tseq\t%s:"u32bitFMT"\t"u32bitFMT"\t%s\n",
+      for (uint32 s=0; s<fasta->getNumberOfSequences(); s++)
+        fprintf(stdout, "G\tseq\t%s:"uint32FMT"\t"uint32FMT"\t%s\n",
                 argv[arg], s, fasta->getSequenceLength(s), ">unimplemented");
 
     } else if (strcmp(argv[arg], "-d") == 0) {
       failIfNoSource();
-      printf(u32bitFMT"\n", fasta->getNumberOfSequences());
+      printf(uint32FMT"\n", fasta->getNumberOfSequences());
 
     } else if (strcmp(argv[arg], "-L") == 0) {
-      u32bit small = strtou32bit(argv[++arg], 0L);
-      u32bit large = strtou32bit(argv[++arg], 0L);
+      uint32 small = strtouint32(argv[++arg], 0L);
+      uint32 large = strtouint32(argv[++arg], 0L);
 
       failIfNoSource();
 
-      for (u32bit s=0; s<fasta->getNumberOfSequences(); s++)
+      for (uint32 s=0; s<fasta->getNumberOfSequences(); s++)
         if ((small <= fasta->getSequenceLength(s)) && (fasta->getSequenceLength(s) < large))
           printSequence(s);
 
@@ -411,13 +411,13 @@ processArray(int argc, char **argv) {
 
       failIfNoSource();
 
-      for (u32bit s=0; s<fasta->getNumberOfSequences(); s++) {
+      for (uint32 s=0; s<fasta->getNumberOfSequences(); s++) {
         seqInCore *S   = fasta->getSequenceInCore(s);
-        u32bit     Ns  = 0;
-        u32bit     len = S->sequenceLength();
+        uint32     Ns  = 0;
+        uint32     len = S->sequenceLength();
         char      *seq = S->sequence();
 
-        for (u32bit i=begPos; i<len && i<endPos; i++)
+        for (uint32 i=begPos; i<len && i<endPos; i++)
           if ((seq[i] == 'n') || (seq[i] == 'N'))
             Ns++;
 
@@ -432,13 +432,13 @@ processArray(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-W") == 0) {
       failIfNoSource();
 
-      for (u32bit s=0; s<fasta->getNumberOfSequences(); s++)
+      for (uint32 s=0; s<fasta->getNumberOfSequences(); s++)
         printSequence(s);
           
     } else if (strcmp(argv[arg], "-G") == 0) {
-      u32bit n = strtou32bit(argv[++arg], 0L);
-      u32bit s = strtou32bit(argv[++arg], 0L);
-      u32bit l = strtou32bit(argv[++arg], 0L);
+      uint32 n = strtouint32(argv[++arg], 0L);
+      uint32 s = strtouint32(argv[++arg], 0L);
+      uint32 l = strtouint32(argv[++arg], 0L);
 
       char      bases[4] = {'A', 'C', 'G', 'T'};
       char     *def      = new char [1024];
@@ -449,15 +449,15 @@ processArray(int argc, char **argv) {
       if (s > l)
         fprintf(stderr, "leaff: usage: -G num-seqs min-length max-length\n"), exit(1);
 
-      for (u32bit i=0; i<n; i++) {
-        u32bit j = s + ((l-s == 0) ? 0 : (mtRandom32(mtctx) % (l-s)));
-        u32bit p = 0;
+      for (uint32 i=0; i<n; i++) {
+        uint32 j = s + ((l-s == 0) ? 0 : (mtRandom32(mtctx) % (l-s)));
+        uint32 p = 0;
 
         while (p < j)
           seq[p++] = bases[mtRandom32(mtctx) & 0x3];            
         seq[p] = 0;
 
-        sprintf(def, "random"u32bitFMTW(06), i);
+        sprintf(def, "random"uint32FMTW(06), i);
 
         printSequence(def, seq, 0, j);
       }
@@ -472,39 +472,39 @@ processArray(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-S") == 0) {
       failIfNoSource();
 
-      u32bit lowID  = fasta->getSequenceIID(argv[++arg]);
-      u32bit highID = fasta->getSequenceIID(argv[++arg]);
+      uint32 lowID  = fasta->getSequenceIID(argv[++arg]);
+      uint32 highID = fasta->getSequenceIID(argv[++arg]);
 
       if (lowID > highID) {
-        u32bit t = lowID;
+        uint32 t = lowID;
         lowID    = highID;
         highID   = t;
       }
 
-      for (u32bit s=lowID; (s <= highID) && (s <= fasta->getNumberOfSequences()); s++)
+      for (uint32 s=lowID; (s <= highID) && (s <= fasta->getNumberOfSequences()); s++)
         printSequence(s);
 
     } else if (strcmp(argv[arg], "-r") == 0) {
-      u32bit num = strtou32bit(argv[++arg], 0L);
+      uint32 num = strtouint32(argv[++arg], 0L);
 
       failIfNoSource();
 
       if (num >= fasta->getNumberOfSequences())
         num = fasta->getNumberOfSequences();
 
-      u32bit  *seqs = new u32bit [fasta->getNumberOfSequences()];
+      uint32  *seqs = new uint32 [fasta->getNumberOfSequences()];
 
-      for (u32bit i=0; i<fasta->getNumberOfSequences(); i++)
+      for (uint32 i=0; i<fasta->getNumberOfSequences(); i++)
         seqs[i] = i;
 
-      for (u32bit i=0; i<fasta->getNumberOfSequences(); i++) {
-        u32bit j = mtRandom32(mtctx) % (fasta->getNumberOfSequences() - i) + i;
-        u32bit t = seqs[j];
+      for (uint32 i=0; i<fasta->getNumberOfSequences(); i++) {
+        uint32 j = mtRandom32(mtctx) % (fasta->getNumberOfSequences() - i) + i;
+        uint32 t = seqs[j];
         seqs[j] = seqs[i];
         seqs[i] = t;
       }
 
-      for (u32bit i=0; i<num; i++)
+      for (uint32 i=0; i<num; i++)
         printSequence(seqs[i]);
 
       delete [] seqs;
@@ -516,7 +516,7 @@ processArray(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-6") == 0) {
       withLineBreaks = 60;
       if ((argv[arg+1] != 0L) && (argv[arg+1][0] != '-'))
-        withLineBreaks = strtou32bit(argv[++arg], 0L);
+        withLineBreaks = strtouint32(argv[++arg], 0L);
           
     } else if (strcmp(argv[arg], "-w") == 0) {
       toUppercase = !toUppercase;
@@ -538,11 +538,11 @@ processArray(int argc, char **argv) {
       specialDefLine = argv[++arg];
           
     } else if (strcmp(argv[arg], "-e") == 0) {
-      begPos = strtou32bit(argv[++arg], 0L);
-      endPos = strtou32bit(argv[++arg], 0L);
+      begPos = strtouint32(argv[++arg], 0L);
+      endPos = strtouint32(argv[++arg], 0L);
 
     } else if (strcmp(argv[arg], "-ends") == 0) {
-      endExtract = strtou32bit(argv[++arg], 0L);
+      endExtract = strtouint32(argv[++arg], 0L);
 
     } else if (strcmp(argv[arg], "-A") == 0) {
       processFile(argv[++arg]);
@@ -563,7 +563,7 @@ processArray(int argc, char **argv) {
 
       fasta = new seqCache(argv[++arg]);
 
-      for (u32bit s=0; s<fasta->getNumberOfSequences(); s++) {
+      for (uint32 s=0; s<fasta->getNumberOfSequences(); s++) {
         seqInCore *S = fasta->getSequenceInCore(s);
         fprintf(stdout, "%s %s\n",
                 md5_toascii(md5_string(&md5, S->sequence(), S->sequenceLength()), sum),
@@ -584,7 +584,7 @@ processArray(int argc, char **argv) {
       //  partition by length, else partition into buckets.
       //
       int     al = strlen(argv[arg+1]);
-      u64bit  ps = strtou64bit(argv[arg+1], 0L);
+      uint64  ps = strtouint64(argv[arg+1], 0L);
 
       char a3 = (al<3) ? '0' : (char)toLower[argv[arg+1][al-3]];
       char a2 = (al<2) ? '0' : (char)toLower[argv[arg+1][al-2]];
@@ -616,7 +616,7 @@ processArray(int argc, char **argv) {
       exit(0);
 
     } else if (strcmp(argv[arg], "--segment") == 0) {
-      partitionBySegment(argv[arg+1], strtou32bit(argv[arg+2], 0L), argv[arg+3]);
+      partitionBySegment(argv[arg+1], strtouint32(argv[arg+2], 0L), argv[arg+3]);
       exit(0);
 
     } else if (strcmp(argv[arg], "--gccontent") == 0) {
@@ -628,16 +628,16 @@ processArray(int argc, char **argv) {
       exit(0);
 
     } else if (strcmp(argv[arg], "--stats") == 0) {
-      stats(argv[arg+1], (argv[arg+2] != 0L) ? strtou64bit(argv[arg+2], 0L) : 0);
+      stats(argv[arg+1], (argv[arg+2] != 0L) ? strtouint64(argv[arg+2], 0L) : 0);
       exit(0);
 
     } else if (strcmp(argv[arg], "--errors") == 0) {
-      int    L = strtou32bit(argv[++arg], 0L);  //  Desired length
+      int    L = strtouint32(argv[++arg], 0L);  //  Desired length
       int    l = 0;                             //  min of desired length, length of sequence
-      int    N = strtou32bit(argv[++arg], 0L);  //  number of copies per sequence
-      int    C = strtou32bit(argv[++arg], 0L);  //  number of mutations per copy
+      int    N = strtouint32(argv[++arg], 0L);  //  number of copies per sequence
+      int    C = strtouint32(argv[++arg], 0L);  //  number of mutations per copy
       double P = atof(argv[++arg]);             //  probability of mutation
-      u32bit i = 0;
+      uint32 i = 0;
 
       fasta = new seqCache(argv[++arg]);
 
@@ -699,8 +699,8 @@ processFile(char  *filename) {
       fprintf(stderr, "Couldn't open '%s': %s\n", filename, strerror(errno)), exit(1);
   }
 
-  u64bit  max  = 16 * 1024 * 1024;
-  u64bit  pos  = 0;
+  uint64  max  = 16 * 1024 * 1024;
+  uint64  pos  = 0;
   size_t  len  = 0;
 
   char   *data = new char [max];
@@ -711,8 +711,8 @@ processFile(char  *filename) {
     errno = 0;
     len = fread(data+pos, 1, max - pos, F);
     if (errno)
-      fprintf(stderr, "Couldn't read "u64bitFMT" bytes from '%s': %s\n",
-              (u64bit)(max-pos), filename, strerror(errno)), exit(1);
+      fprintf(stderr, "Couldn't read "uint64FMT" bytes from '%s': %s\n",
+              (uint64)(max-pos), filename, strerror(errno)), exit(1);
 
     pos += len;
 
@@ -738,7 +738,7 @@ processFile(char  *filename) {
   int     argc = 2;
   char  **argv = 0L;
 
-  for (u32bit i=0; i<len; i++) {
+  for (uint32 i=0; i<len; i++) {
     if (isspace(data[i])) {
       argc++;
       data[i] = 0;
@@ -757,7 +757,7 @@ processFile(char  *filename) {
   //  Three steps: Skip leading whitespace; save the arg if it's a
   //  real arg (and not the end of the file; then skip the word.
 
-  for (u32bit pos=0; pos<len; pos++) {
+  for (uint32 pos=0; pos<len; pos++) {
     while ((data[pos] == 0) && (pos < len))
       pos++;
     if (pos < len)

@@ -136,18 +136,18 @@ s4p_compatable(sim4polish *A, sim4polish *B) {
 //
 bool
 s4p_IsSameRegion(sim4polish *A, sim4polish *B, int tolerance) {
-  s32bit Alo=0, Ahi=0;
-  s32bit Blo=0, Bhi=0;
-  s32bit Dlo=0, Dhi=0;
+  int32 Alo=0, Ahi=0;
+  int32 Blo=0, Bhi=0;
+  int32 Dlo=0, Dhi=0;
 
   if (A->_numExons > 0) {
-    Alo = (s32bit)A->_exons[0]._genFrom;
-    Ahi = (s32bit)A->_exons[A->_numExons-1]._genTo;
+    Alo = (int32)A->_exons[0]._genFrom;
+    Ahi = (int32)A->_exons[A->_numExons-1]._genTo;
   }
 
   if (B->_numExons > 0) {
-    Blo = (s32bit)B->_exons[0]._genFrom;
-    Bhi = (s32bit)B->_exons[B->_numExons-1]._genTo;
+    Blo = (int32)B->_exons[0]._genFrom;
+    Bhi = (int32)B->_exons[B->_numExons-1]._genTo;
   }
 
   Dlo = Blo - Alo;
@@ -166,20 +166,20 @@ s4p_IsSameRegion(sim4polish *A, sim4polish *B, int tolerance) {
 //
 bool
 s4p_IsRegionOverlap(sim4polish *A, sim4polish *B) {
-  s32bit Alo=0, Ahi=0;
-  s32bit Blo=0, Bhi=0;
+  int32 Alo=0, Ahi=0;
+  int32 Blo=0, Bhi=0;
 
   if (A->_genID != B->_genID)
     return(false);
 
   if (A->_numExons > 0) {
-    Alo = (s32bit)A->_exons[0]._genFrom;
-    Ahi = (s32bit)A->_exons[A->_numExons-1]._genTo;
+    Alo = (int32)A->_exons[0]._genFrom;
+    Ahi = (int32)A->_exons[A->_numExons-1]._genTo;
   }
 
   if (B->_numExons > 0) {
-    Blo = (s32bit)B->_exons[0]._genFrom;
-    Bhi = (s32bit)B->_exons[B->_numExons-1]._genTo;
+    Blo = (int32)B->_exons[0]._genFrom;
+    Bhi = (int32)B->_exons[B->_numExons-1]._genTo;
   }
 
   if (((Alo <= Blo) && (Blo <= Ahi)) ||
@@ -196,19 +196,19 @@ s4p_IsRegionOverlap(sim4polish *A, sim4polish *B) {
 //
 bool
 s4p_IsSameExonModel(sim4polish *A, sim4polish *B, int tolerance) {
-  s32bit Alo=0, Ahi=0;
-  s32bit Blo=0, Bhi=0;
-  s32bit Dlo=0, Dhi=0;
+  int32 Alo=0, Ahi=0;
+  int32 Blo=0, Bhi=0;
+  int32 Dlo=0, Dhi=0;
 
   if (A->_numExons != B->_numExons)
     return(0);
 
-  for (u32bit i=0; i<A->_numExons; i++) {
-    Alo = (s32bit)A->_exons[i]._genFrom;
-    Ahi = (s32bit)A->_exons[i]._genTo;
+  for (uint32 i=0; i<A->_numExons; i++) {
+    Alo = (int32)A->_exons[i]._genFrom;
+    Ahi = (int32)A->_exons[i]._genTo;
 
-    Blo = (s32bit)B->_exons[i]._genFrom;
-    Bhi = (s32bit)B->_exons[i]._genTo;
+    Blo = (int32)B->_exons[i]._genFrom;
+    Bhi = (int32)B->_exons[i]._genTo;
 
     Dlo = Blo - Alo;
     Dhi = Bhi - Ahi;
@@ -227,13 +227,13 @@ void
 s4p_compareExons_Overlap(sim4polish *A,
                          sim4polish *B,
                          double      overlapThreshold,
-                         u32bit     *numSame,
-                         u32bit     *numAMissed,
-                         u32bit     *numBMissed) {
-  u32bit    i, j;
-  u32bit    al=0, ah=0, bl=0, bh=0;
-  u32bit   *foundA = 0L;
-  u32bit   *foundB = 0L;
+                         uint32     *numSame,
+                         uint32     *numAMissed,
+                         uint32     *numBMissed) {
+  uint32    i, j;
+  uint32    al=0, ah=0, bl=0, bh=0;
+  uint32   *foundA = 0L;
+  uint32   *foundB = 0L;
   double    overlap = 0;
 
   if (numSame)     *numSame    = 0;
@@ -242,11 +242,11 @@ s4p_compareExons_Overlap(sim4polish *A,
 
   errno = 0;
 
-  foundA = new u32bit [A->_numExons + B->_numExons];
+  foundA = new uint32 [A->_numExons + B->_numExons];
   foundB = foundA + A->_numExons;
 
   if (errno) {
-    fprintf(stderr, "s4p_compareExons()-- Can't allocate "u32bitFMT" + "u32bitFMT" words for counting exons.\n%s\n", A->_numExons, B->_numExons, strerror(errno));
+    fprintf(stderr, "s4p_compareExons()-- Can't allocate "uint32FMT" + "uint32FMT" words for counting exons.\n%s\n", A->_numExons, B->_numExons, strerror(errno));
     exit(1);
   }
 
@@ -345,24 +345,24 @@ s4p_compareExons_Overlap(sim4polish *A,
 void
 s4p_compareExons_Ends(sim4polish *A,
                       sim4polish *B,
-                      s32bit     tolerance,
-                      u32bit     *numSame,
-                      u32bit     *numAMissed,
-                      u32bit     *numBMissed) {
-  u32bit    i, j;
-  s32bit    Dlo=0, Dhi=0;
-  u32bit   *foundA = 0L;
-  u32bit   *foundB = 0L;
+                      int32     tolerance,
+                      uint32     *numSame,
+                      uint32     *numAMissed,
+                      uint32     *numBMissed) {
+  uint32    i, j;
+  int32    Dlo=0, Dhi=0;
+  uint32   *foundA = 0L;
+  uint32   *foundB = 0L;
 
   if (numSame)     *numSame    = 0;
   if (numAMissed)  *numAMissed = 0;
   if (numBMissed)  *numBMissed = 0;
 
-  foundA = new u32bit [A->_numExons + B->_numExons];
+  foundA = new uint32 [A->_numExons + B->_numExons];
   foundB = foundA + A->_numExons;
 
   if (errno) {
-    fprintf(stderr, "s4p_compareExons()-- Can't allocate "u32bitFMT" + "u32bitFMT" words for counting exons.\n%s\n", A->_numExons, B->_numExons, strerror(errno));
+    fprintf(stderr, "s4p_compareExons()-- Can't allocate "uint32FMT" + "uint32FMT" words for counting exons.\n%s\n", A->_numExons, B->_numExons, strerror(errno));
     exit(1);
   }
 
@@ -376,8 +376,8 @@ s4p_compareExons_Ends(sim4polish *A,
   //
   for (i=0; i<A->_numExons; i++) {
     for (j=0; j<B->_numExons; j++) {
-      Dlo = (s32bit)(B->_exons[j]._genFrom) - (s32bit)(A->_exons[i]._genFrom);
-      Dhi = (s32bit)(B->_exons[j]._genTo)   - (s32bit)(A->_exons[i]._genTo);
+      Dlo = (int32)(B->_exons[j]._genFrom) - (int32)(A->_exons[i]._genFrom);
+      Dhi = (int32)(B->_exons[j]._genTo)   - (int32)(A->_exons[i]._genTo);
 
       if ((Dlo > -tolerance) && (Dlo < tolerance) &&
           (Dhi > -tolerance) && (Dhi < tolerance)) {

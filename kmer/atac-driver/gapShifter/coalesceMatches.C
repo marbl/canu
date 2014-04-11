@@ -37,7 +37,7 @@ main(int argc, char *argv[]) {
 
   MO.sortDiagonal();
 
-  for (u32bit i=1; i<MO.numMatches(); i++) {
+  for (uint32 i=1; i<MO.numMatches(); i++) {
     l = MO[i-1];
     r = MO[i];
 

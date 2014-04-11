@@ -9,13 +9,13 @@
 int
 main(int argc, char **argv) {
 
-  u64bit   merorig    = 0;
+  uint64   merorig    = 0;
 
-  u64bit   hashorig   = 0;
-  u64bit   hasherrors = 0;
+  uint64   hashorig   = 0;
+  uint64   hasherrors = 0;
 
-  u32bit   skipped = 0;
-  u32bit   usable  = 0;
+  uint32   skipped = 0;
+  uint32   usable  = 0;
 
   //  1,000,000 hashes with three errors in 156u
 
@@ -25,7 +25,7 @@ main(int argc, char **argv) {
     while (iter.next()) {
 
       //  40 == 01000000 in binary
-      for (u64bit errors=0; errors < 0x00000040; errors++) {
+      for (uint64 errors=0; errors < 0x00000040; errors++) {
 
         //  Build the hash with errors
         hasherrors  = hashorig;
@@ -47,18 +47,18 @@ main(int argc, char **argv) {
             ((hasherrors & iter.error3()) == (hashorig & iter.error3()))) {
           //  Skip it.
           skipped++;
-          //fprintf(stdout, "hash:"u64bitHEX" errs:"u64bitHEX" e1:"u64bitHEX" e2:"u64bitHEX" e3:"u64bitHEX" SKIP\n",
+          //fprintf(stdout, "hash:"uint64HEX" errs:"uint64HEX" e1:"uint64HEX" e2:"uint64HEX" e3:"uint64HEX" SKIP\n",
           //        hasherrors, errors, iter.error1(), iter.error2(), iter.error3());
         } else {
           usable++;
-          //fprintf(stdout, "hash:"u64bitHEX" errs:"u64bitHEX" e1:"u64bitHEX" e2:"u64bitHEX" e3:"u64bitHEX"\n",
+          //fprintf(stdout, "hash:"uint64HEX" errs:"uint64HEX" e1:"uint64HEX" e2:"uint64HEX" e3:"uint64HEX"\n",
           //        hasherrors, errors, iter.error1(), iter.error2(), iter.error3());
         }
       }
     }
   }
 
-  fprintf(stderr, "skipped "u32bitFMT" usable "u32bitFMT"\n", skipped, usable);
+  fprintf(stderr, "skipped "uint32FMT" usable "uint32FMT"\n", skipped, usable);
 
   return(0);
 }

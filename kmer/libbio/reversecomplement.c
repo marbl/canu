@@ -6,11 +6,11 @@
 //  string is returned.
 //
 char *
-reverseComplementSequence(char *seq, u32bit seqlen) {
+reverseComplementSequence(char *seq, uint32 seqlen) {
   char   *s = seq;
   char   *e = seq + seqlen - 1;
   char    t;
-  u32bit  c = seqlen / 2;
+  uint32  c = seqlen / 2;
 
   while (c--) {
     t = complementSymbol[*s];
@@ -28,11 +28,11 @@ reverseComplementSequence(char *seq, u32bit seqlen) {
 //  Inplace reverse a string.  A pointer the the string is returned.
 //
 char *
-reverseString(char *seq, u32bit seqlen) {
+reverseString(char *seq, uint32 seqlen) {
   char   *s = seq;
   char   *e = seq + seqlen - 1;
   char    t;
-  u32bit  c = seqlen / 2;
+  uint32  c = seqlen / 2;
 
   while (c--) {
     t = *s;

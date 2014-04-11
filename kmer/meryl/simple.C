@@ -21,8 +21,8 @@ int
 main(int argc, char **argv) {
   char    *inName         = 0L;
   char    *otName         = 0L;
-  u32bit   merSize        = 22;
-  u32bit   merCompression = 1;
+  uint32   merSize        = 22;
+  uint32   merCompression = 1;
 
   bool     doForward      = true;
   bool     doReverse      = false;
@@ -32,11 +32,11 @@ main(int argc, char **argv) {
   merStream           *M = 0L;
   merylStreamWriter   *W = 0L;
 
-  u64bit         numMers = 0;
+  uint64         numMers = 0;
 
-  u64bit        *theMers    = 0L;
-  u64bit         theMersMax = 0;
-  u64bit         theMersLen = 0;
+  uint64        *theMers    = 0L;
+  uint64         theMersMax = 0;
+  uint64         theMersLen = 0;
 
   int arg = 1;
   int err = 0;
@@ -95,10 +95,10 @@ main(int argc, char **argv) {
     delete M;
   }
 
-  fprintf(stderr, "Guessing "u64bitFMT" mers in input '%s'\n", numMers, inName);
-  fprintf(stderr, "Allocating "u64bitFMT"MB for mer storage.\n", numMers * 8 >> 20);
+  fprintf(stderr, "Guessing "uint64FMT" mers in input '%s'\n", numMers, inName);
+  fprintf(stderr, "Allocating "uint64FMT"MB for mer storage.\n", numMers * 8 >> 20);
   
-  theMers    = new u64bit [numMers];
+  theMers    = new uint64 [numMers];
   theMersLen = 0;
   theMersMax = numMers;
 
@@ -126,7 +126,7 @@ main(int argc, char **argv) {
   delete C;
   delete M;
 
-  fprintf(stderr, "Found "u64bitFMT" mers in input '%s'\n", theMersLen, inName);
+  fprintf(stderr, "Found "uint64FMT" mers in input '%s'\n", theMersLen, inName);
 
   if (theMersLen > theMersMax)
     fprintf(stderr, "ERROR:  too many mers in input!\n"), exit(1);
@@ -147,7 +147,7 @@ main(int argc, char **argv) {
 
   kMer mer(merSize);
 
-  for (u64bit i=0; i<theMersLen; i++) {
+  for (uint64 i=0; i<theMersLen; i++) {
     mer.setWord(0, theMers[i]);
     W->addMer(mer, 1, 0L);
     C->tick();

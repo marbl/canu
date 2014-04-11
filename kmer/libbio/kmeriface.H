@@ -19,8 +19,8 @@ class kMerInterface {
   //    += shifts onto the right end
   //    -= shifts onto the left end
   //
-  virtual void   operator+=(u64bit x) = 0;
-  virtual void   operator-=(u64bit x) = 0;
+  virtual void   operator+=(uint64 x) = 0;
+  virtual void   operator-=(uint64 x) = 0;
 
   //  used by merStream at least
   //
@@ -30,7 +30,7 @@ class kMerInterface {
   //  32-bases long, then the left-most (the earliest, the start, etc)
   //  bases are used.
   //
-  virtual operator u64bit () const = 0;
+  virtual operator uint64 () const = 0;
 
   //  These are written/read in 5'endian, which isn't the most natural
   //  implementation.  It's done this way to keep the sequence in
@@ -42,8 +42,8 @@ class kMerInterface {
   //  Takes an optional number of BITS to write, pulled from the
   //  END of the mer.
   //
-  virtual void   writeToBitPackedFile(bitPackedFile *BPF, u32bit numBits=0) const = 0;
-  virtual void   readFromBitPackedFile(bitPackedFile *BPF, u32bit numBits=0) = 0;
+  virtual void   writeToBitPackedFile(bitPackedFile *BPF, uint32 numBits=0) const = 0;
+  virtual void   readFromBitPackedFile(bitPackedFile *BPF, uint32 numBits=0) = 0;
 
   //  Returns a sub-mer from either the start (left end) or the end
   //  (right end) of the mer.  The sub-mer must be at most 64 bits
@@ -52,8 +52,8 @@ class kMerInterface {
   //  The start is difficult, because it can span multiple words.  The
   //  end is always in the first word.
   //
-  virtual u64bit   startOfMer(u32bit bits) const = 0;
-  virtual u64bit   endOfMer(u32bit bits) const = 0;
+  virtual uint64   startOfMer(uint32 bits) const = 0;
+  virtual uint64   endOfMer(uint32 bits) const = 0;
 
   //  Set 'numbits' bits from (the end of) 'val' at bit position 'pos'
   //  in the mer.  This is wildly low-level, but merylStreamReader
@@ -66,8 +66,8 @@ class kMerInterface {
   //
   //  Meryl
   //
-  virtual u64bit   getWord(u32bit wrd) const        = 0;  // { return(MERWORD(wrd)); };
-  virtual void     setWord(u32bit wrd, u64bit val)  = 0;  // { MERWORD(wrd) = val;   };
+  virtual uint64   getWord(uint32 wrd) const        = 0;  // { return(MERWORD(wrd)); };
+  virtual void     setWord(uint32 wrd, uint64 val)  = 0;  // { MERWORD(wrd) = val;   };
 
   //  Show the mer as ascii
   //

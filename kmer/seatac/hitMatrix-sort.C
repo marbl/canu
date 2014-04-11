@@ -4,13 +4,13 @@
 
 inline
 void
-adjustHeap_dsPos(diagonalLine *L, u32bit p, u32bit n) {
-  u32bit  q = L[p]._qsPos;
-  u32bit  d = L[p]._dsPos;
+adjustHeap_dsPos(diagonalLine *L, uint32 p, uint32 n) {
+  uint32  q = L[p]._qsPos;
+  uint32  d = L[p]._dsPos;
 #ifndef WITHOUT_DIAGONALID
-  u32bit  l = L[p]._diagonalID;
+  uint32  l = L[p]._diagonalID;
 #endif
-  u32bit  c = (p << 1) + 1;  //  let c be the left child of p
+  uint32  c = (p << 1) + 1;  //  let c be the left child of p
 
   while (c < n) {
 
@@ -52,16 +52,16 @@ hitMatrix::sort_dsPos(void) {
 
     //  Create the heap of lines.
     //
-    for (u32bit i=_hitsLen/2; i--; )
+    for (uint32 i=_hitsLen/2; i--; )
       adjustHeap_dsPos(_hits, i, _hitsLen);
 
     //  Interchange the new maximum with the element at the end of the tree
     //
-    for (u32bit i=_hitsLen-1; i>0; i--) {
-      u32bit  q  = _hits[i]._qsPos;
-      u32bit  d  = _hits[i]._dsPos;
+    for (uint32 i=_hitsLen-1; i>0; i--) {
+      uint32  q  = _hits[i]._qsPos;
+      uint32  d  = _hits[i]._dsPos;
 #ifndef WITHOUT_DIAGONALID
-      u32bit  l  = _hits[i]._diagonalID;
+      uint32  l  = _hits[i]._diagonalID;
 #endif
 
       _hits[i]._qsPos      = _hits[0]._qsPos;

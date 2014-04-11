@@ -55,29 +55,29 @@ public:
     clump        = -1;
   };
 
-  s64bit   get_bestScore() const {
+  int64   get_bestScore() const {
     return(max(scoreStart, scoreExtend));
   };
 
   atacMatch  match;
 
-  u32bit     matchIID;
+  uint32     matchIID;
 
-  u32bit     refIID;
-  s32bit     refBeg;
-  s32bit     refEnd;
+  uint32     refIID;
+  int32     refBeg;
+  int32     refEnd;
 
-  u32bit     qryIID;
-  s32bit     qryBeg;
-  s32bit     qryEnd;
+  uint32     qryIID;
+  int32     qryBeg;
+  int32     qryEnd;
 
-  s32bit     ori;
+  int32     ori;
 
-  s32bit     scoreStart;
-  s32bit     bestStart;
-  s32bit     scoreExtend;
-  s32bit     bestExtend;
-  s32bit     clump;
+  int32     scoreStart;
+  int32     bestStart;
+  int32     scoreExtend;
+  int32     bestExtend;
+  int32     clump;
 };
 
 
@@ -116,7 +116,7 @@ clumpHitCompareIID(const void *A, const void *B) {
 
 
 bool
-chainable(tClumpHit *a, tClumpHit *b, s32bit maxjump) {
+chainable(tClumpHit *a, tClumpHit *b, int32 maxjump) {
 
   // return false if
   //    hits are to different chromosomes
@@ -133,24 +133,24 @@ chainable(tClumpHit *a, tClumpHit *b, s32bit maxjump) {
 }
 
 
-s32bit
+int32
 score_all_hits(tClumpHit *hits,
-               s32bit     clumpcost,
-               s32bit     maxjump,
-               u32bit     num_hits){
+               int32     clumpcost,
+               int32     maxjump,
+               uint32     num_hits){
 
   // location of best score so far (to which we point whenever starting a new clump)
-  s32bit bestEnd = -1;
+  int32 bestEnd = -1;
 
 
   // best scores so far internal to a reference unit (scaffold, chromosome, etc)
-  s32bit bestEndThis   = -1;
-  s32bit bestScoreThis = -clumpcost;
+  int32 bestEndThis   = -1;
+  int32 bestScoreThis = -clumpcost;
 
   // furthest back still accessible ...
-  u32bit furthest_back=0;
+  uint32 furthest_back=0;
   
-  for(u32bit i=0; i<num_hits; i++) {
+  for(uint32 i=0; i<num_hits; i++) {
 
     if ((i==0) || (hits[i].qryIID != hits[i-1].qryIID)) {
       bestEnd       = bestEndThis; // best of previous query unit
@@ -172,18 +172,18 @@ score_all_hits(tClumpHit *hits,
 
     // find best way of extending a clump, if any
     if (furthest_back < i) {
-      s32bit cutoff = hits[i].qryBeg - maxjump;
+      int32 cutoff = hits[i].qryBeg - maxjump;
 
       while ((hits[furthest_back].qryIID != hits[i].qryIID) ||
              (hits[furthest_back].qryEnd < cutoff))
 	furthest_back++;
     }
 
-    s32bit extendScore = -clumpcost;
-    s32bit extendprev  = -1;
-    for (u32bit j=furthest_back; j<i; j++) {
+    int32 extendScore = -clumpcost;
+    int32 extendprev  = -1;
+    for (uint32 j=furthest_back; j<i; j++) {
       if (chainable(hits+j, hits+i, maxjump)) {
-	s32bit tmpscore = hits[j].get_bestScore() + hits[i].qryEnd - hits[i].qryBeg;
+	int32 tmpscore = hits[j].get_bestScore() + hits[i].qryEnd - hits[i].qryBeg;
 	if(extendScore < tmpscore){
 	  extendScore=tmpscore;
 	  extendprev=j;
@@ -194,7 +194,7 @@ score_all_hits(tClumpHit *hits,
     hits[i].bestExtend  = extendprev;
 
     //figure out whether this is a new best ...
-    s32bit tmpscore = hits[i].get_bestScore();
+    int32 tmpscore = hits[i].get_bestScore();
     if (tmpscore > bestScoreThis) {
       bestScoreThis = tmpscore;
       bestEndThis   = i;
@@ -213,8 +213,8 @@ score_all_hits(tClumpHit *hits,
 
 int
 main(int argc, char **argv) {
-  s32bit   clumpcost    = 50000;
-  s32bit   maxjump      = 200000;
+  int32   clumpcost    = 50000;
+  int32   maxjump      = 200000;
   bool     seq1IsRef    = false;
   char    *filename     = 0L;
   bool     isSorted     = false;
@@ -256,10 +256,10 @@ main(int argc, char **argv) {
   fprintf(stderr, "1 load the matches\n");
 
   atacFile    *AF      = new atacFile(filename);
-  u32bit       hitsLen = AF->matches()->numberOfMatches();
+  uint32       hitsLen = AF->matches()->numberOfMatches();
   tClumpHit   *hits    = new tClumpHit [hitsLen];
   
-  for (u32bit i=0; i<hitsLen; i++)
+  for (uint32 i=0; i<hitsLen; i++)
     hits[i].set(AF->matches()->getMatch(i), seq1IsRef);
 
 
@@ -270,7 +270,7 @@ main(int argc, char **argv) {
 
 
   fprintf(stderr, "3 score the matches\n");
-  s32bit bestEnd = score_all_hits(hits,
+  int32 bestEnd = score_all_hits(hits,
                                   clumpcost,
                                   maxjump,
                                   hitsLen);
@@ -278,7 +278,7 @@ main(int argc, char **argv) {
   //  Mark the clumps
   //
   fprintf(stderr, "4 mark clumps\n");
-  u32bit clump = 0;
+  uint32 clump = 0;
 
   while(bestEnd >= 0) {
     hits[bestEnd].clump = clump;
@@ -300,13 +300,13 @@ main(int argc, char **argv) {
   //  For each clump, find the min/max extent in both sequences.  We
   //  use this to output the clump match record.
   //
-  s32bit *clumpLoRef = new s32bit [clump];
-  s32bit *clumpHiRef = new s32bit [clump];
-  s32bit *clumpLoQry = new s32bit [clump];
-  s32bit *clumpHiQry = new s32bit [clump];
+  int32 *clumpLoRef = new int32 [clump];
+  int32 *clumpHiRef = new int32 [clump];
+  int32 *clumpLoQry = new int32 [clump];
+  int32 *clumpHiQry = new int32 [clump];
   bool   *clumpOut   = new bool   [clump];
 
-  for (u32bit xx=0; xx<clump; xx++) {
+  for (uint32 xx=0; xx<clump; xx++) {
     clumpLoRef[xx] = 1000000000;
     clumpHiRef[xx] = 0;
     clumpLoQry[xx] = 1000000000;
@@ -314,8 +314,8 @@ main(int argc, char **argv) {
     clumpOut[xx] = false;
   }
 
-  for (u32bit xx=0; xx<hitsLen; xx++) {
-    s32bit  cc = hits[xx].clump;
+  for (uint32 xx=0; xx<hitsLen; xx++) {
+    int32  cc = hits[xx].clump;
     if (cc >= 0) {
       if (hits[xx].refBeg < clumpLoRef[cc])   clumpLoRef[cc] = hits[xx].refBeg;
       if (hits[xx].refEnd > clumpHiRef[cc])   clumpHiRef[cc] = hits[xx].refEnd;
@@ -332,13 +332,13 @@ main(int argc, char **argv) {
 
   AF->writeHeader(stdout);
 
-  for (u32bit mm=0; mm<hitsLen; mm++) {
-    s32bit cc = hits[mm].clump;
+  for (uint32 mm=0; mm<hitsLen; mm++) {
+    int32 cc = hits[mm].clump;
 
     if ((cc >= 0) &&
         (clumpOut[cc] == false)) {
       atacMatch  C;
-      sprintf(C.matchuid,  "clump"s32bitFMTW(06), cc);
+      sprintf(C.matchuid,  "clump"int32FMTW(06), cc);
       sprintf(C.parentuid, ".");
       C.matchiid = 0;
       C.type[0] = 'c';
@@ -374,7 +374,7 @@ main(int argc, char **argv) {
 
 
     if (cc >= 0)
-      sprintf(hits[mm].match.parentuid, "clump"s32bitFMTW(06), cc);
+      sprintf(hits[mm].match.parentuid, "clump"int32FMTW(06), cc);
     else
       sprintf(hits[mm].match.parentuid, ".");
 

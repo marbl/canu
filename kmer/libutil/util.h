@@ -24,63 +24,63 @@
 //  *MASK(x) is only defined for unsigned types, with x != 0 and less
 //  than the datawidth.
 
-typedef uint64_t       u64bit;
-typedef uint32_t       u32bit;
-typedef uint16_t       u16bit;
-typedef uint8_t         u8bit;
+typedef uint64_t       uint64;
+typedef uint32_t       uint32;
+typedef uint16_t       uint16;
+typedef uint8_t        uint8;
 
-typedef int64_t        s64bit;
-typedef int32_t        s32bit;
-typedef int16_t        s16bit;
-typedef int8_t          s8bit;
+typedef int64_t         int64;
+typedef int32_t         int32;
+typedef int16_t         int16;
+typedef int8_t          int8;
 
 
 #if defined(__alpha) || defined(_AIX) || defined(__LP64__) || defined(_LP64)
 #define TRUE64BIT
-#define  u64bitNUMBER(X) X ## LU
-#define  u32bitNUMBER(X) X ## U
+#define  uint64NUMBER(X) X ## LU
+#define  uint32NUMBER(X) X ## U
 #else
-#define  u64bitNUMBER(X) X ## LLU
-#define  u32bitNUMBER(X) X ## LU
+#define  uint64NUMBER(X) X ## LLU
+#define  uint32NUMBER(X) X ## LU
 #endif
 
 
 #define  sizetFMT        "%zd"
 
-#define  u64bitZERO      u64bitNUMBER(0x0000000000000000)
-#define  u64bitONE       u64bitNUMBER(0x0000000000000001)
-#define  u64bitMAX       u64bitNUMBER(0xffffffffffffffff)
-#define  u64bitMASK(X)   ((~u64bitZERO) >> (64 - (X)))
-#define  u64bitFMTW(X)   "%" #X PRIu64
-#define  u64bitFMT       "%"PRIu64
-#define  u64bitHEX       "0x%016"PRIx64
-#define  s64bitFMTW(X)   "%" #X PRId64
-#define  s64bitFMT       "%"PRId64
+#define  uint64ZERO      uint64NUMBER(0x0000000000000000)
+#define  uint64ONE       uint64NUMBER(0x0000000000000001)
+#define  uint64MAX       uint64NUMBER(0xffffffffffffffff)
+#define  uint64MASK(X)   ((~uint64ZERO) >> (64 - (X)))
+#define  uint64FMTW(X)   "%" #X PRIu64
+#define  uint64FMT       "%"PRIu64
+#define  uint64HEX       "0x%016"PRIx64
+#define  int64FMTW(X)    "%" #X PRId64
+#define  int64FMT        "%"PRId64
 
-#define  u32bitZERO      u32bitNUMBER(0x00000000)
-#define  u32bitONE       u32bitNUMBER(0x00000001)
-#define  u32bitMAX       u32bitNUMBER(0xffffffff)
-#define  u32bitMASK(X)   ((~u32bitZERO) >> (32 - (X)))
-#define  u32bitFMTW(X)   "%" #X PRIu32
-#define  u32bitFMT       "%"PRIu32
-#define  u32bitHEX       "0x%08"PRIx32
-#define  s32bitFMTW(X)   "%" #X PRId32
-#define  s32bitFMT       "%"PRId32
+#define  uint32ZERO      uint32NUMBER(0x00000000)
+#define  uint32ONE       uint32NUMBER(0x00000001)
+#define  uint32MAX       uint32NUMBER(0xffffffff)
+#define  uint32MASK(X)   ((~uint32ZERO) >> (32 - (X)))
+#define  uint32FMTW(X)   "%" #X PRIu32
+#define  uint32FMT       "%"PRIu32
+#define  uint32HEX       "0x%08"PRIx32
+#define  int32FMTW(X)    "%" #X PRId32
+#define  int32FMT        "%"PRId32
 
-#define  u16bitZERO      (0x0000)
-#define  u16bitONE       (0x0001)
-#define  u16bitMAX       (0xffff)
-#define  u16bitMASK(X)   ((~u16bitZERO) >> (16 - (X)))
-#define  u16bitFMTW(X)   "%" #X PRIu16
-#define  u16bitFMT       "%"PRIu16
+#define  uint16ZERO      (0x0000)
+#define  uint16ONE       (0x0001)
+#define  uint16MAX       (0xffff)
+#define  uint16MASK(X)   ((~uint16ZERO) >> (16 - (X)))
+#define  uint16FMTW(X)   "%" #X PRIu16
+#define  uint16FMT       "%"PRIu16
 
-#define  u8bitZERO       (0x00)
-#define  u8bitONE        (0x01)
-#define  u8bitMAX        (0xff)
-#define  u8bitMASK(X)    ((~u8bitZERO) >> (8 - (X)))
+#define  uint8ZERO       (0x00)
+#define  uint8ONE        (0x01)
+#define  uint8MAX        (0xff)
+#define  uint8MASK(X)    ((~uint8ZERO) >> (8 - (X)))
 
-#define  strtou32bit(N,O) (u32bit)strtoul(N, O, 10)
-#define  strtou64bit(N,O) (u64bit)strtoul(N, O, 10)
+#define  strtouint32(N,O) (uint32)strtoul(N, O, 10)
+#define  strtouint64(N,O) (uint64)strtoul(N, O, 10)
 
 
 
@@ -114,8 +114,8 @@ double  getTime(void);
 #endif
 
 
-u64bit   getProcessSizeCurrent(void);
-u64bit   getProcessSizeLimit(void);
+uint64   getProcessSizeCurrent(void);
+uint64   getProcessSizeLimit(void);
 
 
 //  Useful routines for dealing with the existence of files
@@ -127,12 +127,12 @@ int   isHuman(FILE *F);
 //
 void*
 mapFile(const char *filename,
-        u64bit     *length,
+        uint64     *length,
         char        mode);
 
 void
 unmapFile(void     *addr,
-          u64bit    length);
+          uint64    length);
 
 
 
@@ -152,7 +152,7 @@ off_t copyFile(char *srcName, FILE *dstFile);
 //  the number of MB (1048576 bytes) free in the directory of that
 //  file.
 //
-u32bit freeDiskSpace(char *path);
+uint32 freeDiskSpace(char *path);
 
 //  Safer read(2) and write(2).
 //
@@ -165,7 +165,7 @@ int    safeRead(int filedes, const void *buffer, const char *desc, size_t nbytes
 //
 int       fileExists(const char *path);
 off_t     sizeOfFile(const char *path);
-u64bit    timeOfFile(const char *path);
+uint64    timeOfFile(const char *path);
 
 //  Open a file, read/write, using compression based on the file name
 //
@@ -227,17 +227,17 @@ void    psetdebug(int on);
 
 
 typedef struct {
-  u64bit  a;
-  u64bit  b;
-  u32bit  i;    //  the iid, used in leaff
-  u32bit  pad;  //  keep us size compatible between 32- and 64-bit machines.
+  uint64  a;
+  uint64  b;
+  uint32  i;    //  the iid, used in leaff
+  uint32  pad;  //  keep us size compatible between 32- and 64-bit machines.
 } md5_s;
 
 #define MD5_BUFFER_SIZE   32*1024
 
 typedef struct {
-  u64bit           a;
-  u64bit           b;
+  uint64           a;
+  uint64           b;
   void            *context;
   int              bufferPos;
   unsigned char    buffer[MD5_BUFFER_SIZE];
@@ -258,7 +258,7 @@ char   *md5_toascii(md5_s *m, char *s);
 
 //  Computes the md5 checksum on the string s.
 //
-md5_s  *md5_string(md5_s *m, char *s, u32bit l);
+md5_s  *md5_string(md5_s *m, char *s, uint32 l);
 
 
 //  Computes an md5 checksum piece by piece.
@@ -266,7 +266,7 @@ md5_s  *md5_string(md5_s *m, char *s, u32bit l);
 //  If m is NULL, a new md5_increment_s is allocated and returned.
 //
 md5_increment_s  *md5_increment_char(md5_increment_s *m, char s);
-md5_increment_s  *md5_increment_block(md5_increment_s *m, char *s, u32bit l);
+md5_increment_s  *md5_increment_block(md5_increment_s *m, char *s, uint32 l);
 void              md5_increment_finalize(md5_increment_s *m);
 void              md5_increment_destroy(md5_increment_s *m);
 
@@ -278,13 +278,13 @@ void              md5_increment_destroy(md5_increment_s *m);
 //
 typedef struct mtctx mt_s;
 
-mt_s          *mtInit(u32bit s);
-mt_s          *mtInitArray(u32bit *init_key, u32bit key_length);
-u32bit         mtRandom32(mt_s *mt);
+mt_s          *mtInit(uint32 s);
+mt_s          *mtInitArray(uint32 *init_key, uint32 key_length);
+uint32         mtRandom32(mt_s *mt);
 
-//  A u64bit random number
+//  A uint64 random number
 //
-#define        mtRandom64(MT) ( (((u64bit)mtRandom32(MT)) << 32) | (u64bit)mtRandom32(MT) )
+#define        mtRandom64(MT) ( (((uint64)mtRandom32(MT)) << 32) | (uint64)mtRandom32(MT) )
 
 //  Real valued randomness
 //    mtRandomRealOpen()    -- on [0,1) real interval

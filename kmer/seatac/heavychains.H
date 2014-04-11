@@ -69,21 +69,21 @@ public:
   };
 
   void addHit(char   direction,
-              u32bit id1,
-              u32bit xlo,
-              u32bit xln,
-              u32bit id2,
-              u32bit ylo,
-              u32bit yln,
-              u32bit filled);
+              uint32 id1,
+              uint32 xlo,
+              uint32 xln,
+              uint32 id2,
+              uint32 ylo,
+              uint32 yln,
+              uint32 filled);
 
   void process(void);
 
-  u64bit print(FILE *outF, u64bit matchid);
+  uint64 print(FILE *outF, uint64 matchid);
 
   void clear(void) {
-    iid1        = ~u32bitZERO;
-    iid2        = ~u32bitZERO;
+    iid1        = ~uint32ZERO;
+    iid2        = ~uint32ZERO;
 
     _next       = 0L;
 
@@ -104,8 +104,8 @@ public:
   StrandPair  *next(void)             { return(_next); };
   void         addNext(StrandPair *n) { _next = n;     };
 
-  u32bit       sequenceIID1(void) { return(iid1); };
-  //u32bit       sequenceIID2(void) { return(iid2); };
+  uint32       sequenceIID1(void) { return(iid1); };
+  //uint32       sequenceIID2(void) { return(iid2); };
 
   double getsumlen1(void) const { return(sumlen1); };
   double getsumlen2(void) const { return(sumlen2); };
@@ -135,9 +135,9 @@ private:
   };
 
 private:
-  u32bit     iid1;
-  u32bit     iid2;
-  u32bit     beVerbose;
+  uint32     iid1;
+  uint32     iid2;
+  uint32     beVerbose;
   char       assemblyId1[32];
   char       assemblyId2[32];
   int        maxJump;          // Default maximum intra-run jump allowed in a good run.

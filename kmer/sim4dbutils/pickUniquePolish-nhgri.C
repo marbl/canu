@@ -67,21 +67,21 @@ this is now dead code.  It was unused and needed too much effort to update to si
 
 
 
-u32bit  statOneMatch      = 0;
-u32bit  statConsistent    = 0;
-u32bit  statInconsistent  = 0;
-u32bit  statUnique        = 0;
-u32bit  statLost          = 0;
+uint32  statOneMatch      = 0;
+uint32  statConsistent    = 0;
+uint32  statInconsistent  = 0;
+uint32  statUnique        = 0;
+uint32  statLost          = 0;
 
-u32bit  consistentTie         = 0;
-u32bit  consistentMatches     = 0;
-u32bit  consistentIdentity    = 0;
-u32bit  consistentTooShort    = 0;
-u32bit  consistentNot         = 0;
+uint32  consistentTie         = 0;
+uint32  consistentMatches     = 0;
+uint32  consistentIdentity    = 0;
+uint32  consistentTooShort    = 0;
+uint32  consistentNot         = 0;
 
-u32bit  totLQ = 0;
-u32bit  totMQ = 0;
-u32bit  totRQ = 0;
+uint32  totLQ = 0;
+uint32  totMQ = 0;
+uint32  totRQ = 0;
 
 seqCache     *SEQ = 0L;
 seqCache     *QLT = 0L;
@@ -95,10 +95,10 @@ bool         doFiltering = false;
 
 
 void
-analyze(u32bit   iid,
-        u32bit   clrl,
-        u32bit   clrr,
-        u32bit   len,
+analyze(uint32   iid,
+        uint32   clrl,
+        uint32   clrr,
+        uint32   len,
         bool     isForward,
         char     type) {
 
@@ -106,11 +106,11 @@ analyze(u32bit   iid,
 
   char  *q = Q->sequence();
 
-  u32bit i = 0;
+  uint32 i = 0;
 
-  u32bit  lq = 0;
-  u32bit  mq = 0;
-  u32bit  rq = 0;
+  uint32  lq = 0;
+  uint32  mq = 0;
+  uint32  rq = 0;
 
   for ( ;i<clrl; i++)
     if (q[i] >= '0' + 20)
@@ -136,7 +136,7 @@ analyze(u32bit   iid,
     totRQ += lq;
   }
 
-  fprintf(sFile, u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t%c\n",
+  fprintf(sFile, uint32FMT"\t"uint32FMT"\t"uint32FMT"\t"uint32FMT"\t"uint32FMT"\t"uint32FMT"\t"uint32FMT"\t%c\n",
           iid, clrl, clrr, len, lq, mq, rq, type);
 }
 
@@ -145,8 +145,8 @@ void
 analyze(sim4polish *p,
         char        type) {
 
-  u32bit  clrl = p->_exons[0]._estFrom - 1;
-  u32bit  clrr = p->_exons[0]._estTo   - 1;
+  uint32  clrl = p->_exons[0]._estFrom - 1;
+  uint32  clrr = p->_exons[0]._estTo   - 1;
 
   if (p->_matchOrientation == SIM4_MATCH_COMPLEMENT) {
     clrl = p->_estLen - (p->_exons[0]._estTo   - 1);
@@ -159,10 +159,10 @@ analyze(sim4polish *p,
 
 
 void
-pickBestSlave(sim4polish **p, u32bit pNum) {
-  u32bit        identitym = 0, nmatchesm = 0;  //  Best score for the mList
-  u32bit        identityi = 0, nmatchesi = 0;  //  Best score the the iList
-  u32bit        matchi = 0,    matchm = 0;
+pickBestSlave(sim4polish **p, uint32 pNum) {
+  uint32        identitym = 0, nmatchesm = 0;  //  Best score for the mList
+  uint32        identityi = 0, nmatchesi = 0;  //  Best score the the iList
+  uint32        matchi = 0,    matchm = 0;
 
   //  Difficult choice here....
   //
@@ -191,7 +191,7 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
   //  identitym is the highest percent identity for the best numMatches match(es).
   //  matchm    is the match index
 
-  for (u32bit i=0; i<pNum; i++) {
+  for (uint32 i=0; i<pNum; i++) {
     if ((p[i]->_percentIdentity > identityi) || 
         (p[i]->_percentIdentity == identityi && p[i]->_numMatches > nmatchesi)) {
       identityi = p[i]->_percentIdentity;
@@ -222,8 +222,8 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
     //  Count the number of matches with exactly those scores.  If
     //  there is more than one, then we cannot pick out a single best.
     //
-    u32bit numBest = 0;
-    for (u32bit i=0; i<pNum; i++)
+    uint32 numBest = 0;
+    for (uint32 i=0; i<pNum; i++)
       if ((p[i]->_percentIdentity == identityi) && (p[i]->_numMatches == nmatchesi))
         numBest++;
 
@@ -238,9 +238,9 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
       //  We claim to have a single best match.  See if any other
       //  matches are close to the quality of that one.
 
-      u32bit  closeQuality = 0;
+      uint32  closeQuality = 0;
 
-      for (u32bit i=0; i<pNum; i++)
+      for (uint32 i=0; i<pNum; i++)
         if (((p[i]->_percentIdentity * 102) >= (identityi * 100)) ||
             ((p[i]->_numMatches      * 102) >= (nmatchesi * 100)))
           closeQuality++;
@@ -248,7 +248,7 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
       //  If only one match has close quality (the one we want to save!),
       //  save it.  Otherwise, label this query as multiple.
 
-      u32bit  length = p[matchi]->_exons[0]._estFrom - p[matchi]->_exons[0]._estTo;
+      uint32  length = p[matchi]->_exons[0]._estFrom - p[matchi]->_exons[0]._estTo;
 
       if (closeQuality == 1) {
         matchIsOK = true;
@@ -278,8 +278,8 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
   }
 
 
-  u32bit  best  = 0;
-  u32bit  besti = 0;
+  uint32  best  = 0;
+  uint32  besti = 0;
   
   if (matchIsOK) {
     statUnique++;
@@ -295,8 +295,8 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
 
     //  Just pick the longest match, analyze that.
 
-    for (u32bit i=0; i<pNum; i++) {
-      u32bit  len = p[i]->_exons[0]._estFrom - p[i]->_exons[0]._estTo;
+    for (uint32 i=0; i<pNum; i++) {
+      uint32  len = p[i]->_exons[0]._estFrom - p[i]->_exons[0]._estTo;
 
       if ((len  > best) ||
           ((len == best) && (p[i]->_numMatches > p[besti]->_numMatches))) {
@@ -310,14 +310,14 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
 
 
 #if 0
-  u32bit  nm = (u32bit)(p[besti]->_numMatches * 0.75);
-  u32bit  sv = 0;
+  uint32  nm = (uint32)(p[besti]->_numMatches * 0.75);
+  uint32  sv = 0;
 
-  for (u32bit i=0; i<pNum; i++)
+  for (uint32 i=0; i<pNum; i++)
     if (p[i]->_numMatches >= nm)
       sv++;
   
-  fprintf(stderr, "Saved "u32bitFMT" matches more than nmatches "u32bitFMT" (from best of "u32bitFMT")\n", sv, nm, p[besti]->_numMatches);
+  fprintf(stderr, "Saved "uint32FMT" matches more than nmatches "uint32FMT" (from best of "uint32FMT")\n", sv, nm, p[besti]->_numMatches);
 #endif
 
 
@@ -325,15 +325,15 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
   //  to throw out the obvious junk.
   //
   if ((oFile) && (doFiltering)) {
-    u32bit  nm = (u32bit)(p[besti]->_numMatches * filter);
+    uint32  nm = (uint32)(p[besti]->_numMatches * filter);
 
-    for (u32bit i=0; i<pNum; i++)
+    for (uint32 i=0; i<pNum; i++)
       if (p[i]->_numMatches >= nm)
         p[i]->s4p_printPolish(oFile);
   }
 
 #if 0
-  fprintf(stderr, "Uni:"u32bitFMTW(8)" Con:"u32bitFMTW(8)" (T:"u32bitFMTW(8)" M:"u32bitFMTW(8)" I:"u32bitFMTW(8)" N:"u32bitFMTW(8)") Inc:"u32bitFMTW(8)" -- Save:"u32bitFMTW(8)" Lost:"u32bitFMTW(8)"\r",
+  fprintf(stderr, "Uni:"uint32FMTW(8)" Con:"uint32FMTW(8)" (T:"uint32FMTW(8)" M:"uint32FMTW(8)" I:"uint32FMTW(8)" N:"uint32FMTW(8)") Inc:"uint32FMTW(8)" -- Save:"uint32FMTW(8)" Lost:"uint32FMTW(8)"\r",
           statOneMatch,
           statConsistent, consistentTie, consistentMatches, consistentIdentity, consistentNot,
           statInconsistent,
@@ -351,11 +351,11 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
 //  destroy polishes when we're done.
 //
 void
-pickBest(sim4polish **p, u32bit pNum) {
+pickBest(sim4polish **p, uint32 pNum) {
 
   pickBestSlave(p, pNum);
 
-  for (u32bit i=0; i<pNum; i++)
+  for (uint32 i=0; i<pNum; i++)
     delete p[i];
 }
 
@@ -386,8 +386,8 @@ fixIID(sim4polish *q, dict_t *estdict) {
     exit(1);
   }
 
-  q->_estID = (u32bit)(unsigned long)dnode_get(cid);
-  q->_genID = (u32bit)(unsigned long)dnode_get(gid);
+  q->_estID = (uint32)(unsigned long)dnode_get(cid);
+  q->_genID = (uint32)(unsigned long)dnode_get(gid);
 }
 
 
@@ -501,9 +501,9 @@ headerCompare(const void *a, const void *b) {
 
 int
 main(int argc, char **argv) {
-  u32bit       pNum   = 0;
-  u32bit       pAlloc = 8388608;
-  u32bit       estID  = ~u32bitZERO;
+  uint32       pNum   = 0;
+  uint32       pAlloc = 8388608;
+  uint32       estID  = ~uint32ZERO;
 
   bool        *found  = 0L;
 
@@ -525,7 +525,7 @@ main(int argc, char **argv) {
   int arg = 1;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-n") == 0) {
-      pAlloc = strtou32bit(argv[++arg], 0L);
+      pAlloc = strtouint32(argv[++arg], 0L);
 
     } else if (strcmp(argv[arg], "-fpart") == 0) {
       arg++;
@@ -638,7 +638,7 @@ main(int argc, char **argv) {
   //  already.
   //
   found = new bool [ SEQ->getNumberOfSequences() ];
-  for (u32bit i=0; i<SEQ->getNumberOfSequences(); i++)
+  for (uint32 i=0; i<SEQ->getNumberOfSequences(); i++)
     found[i] = false;
 
 
@@ -659,7 +659,7 @@ main(int argc, char **argv) {
   while ((q = nextPolish()) != 0L) {
 
     if ((q->_estID != estID) && (pNum > 0)) {
-      //fprintf(stderr, "PickBest for estID "u32bitFMT"\n", estID);
+      //fprintf(stderr, "PickBest for estID "uint32FMT"\n", estID);
 
       found[estID] = true;
       pickBest(p, pNum);
@@ -700,12 +700,12 @@ main(int argc, char **argv) {
   if (uFile)  pclose(uFile);
   if (sFile)  fclose(sFile);
 
-  fprintf(stderr, "Uni:"u32bitFMTW(8)" Con:"u32bitFMTW(8)" (T:"u32bitFMTW(8)" M:"u32bitFMTW(8)" I:"u32bitFMTW(8)" S:"u32bitFMTW(8)" N:"u32bitFMTW(8)") Inc:"u32bitFMTW(8)" -- Save:"u32bitFMTW(8)" Lost:"u32bitFMTW(8)"\n",
+  fprintf(stderr, "Uni:"uint32FMTW(8)" Con:"uint32FMTW(8)" (T:"uint32FMTW(8)" M:"uint32FMTW(8)" I:"uint32FMTW(8)" S:"uint32FMTW(8)" N:"uint32FMTW(8)") Inc:"uint32FMTW(8)" -- Save:"uint32FMTW(8)" Lost:"uint32FMTW(8)"\n",
           statOneMatch,
           statConsistent, consistentTie, consistentMatches, consistentIdentity, consistentTooShort, consistentNot,
           statInconsistent,
           statUnique, statLost);
-  fprintf(stderr, "total:  LQ:"u32bitFMT" MQ:"u32bitFMT" RQ:"u32bitFMT"\n",
+  fprintf(stderr, "total:  LQ:"uint32FMT" MQ:"uint32FMT" RQ:"uint32FMT"\n",
           totLQ, totMQ, totRQ);
 
   return(0);

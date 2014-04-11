@@ -25,10 +25,10 @@
 //  memory size guarantee though.
 
 
-u32bit
-saveFrag(tapperAlignment *ali, u32bit aliLen, tapperResult *res, u32bit fragLen, tapperResultFragment *frag) {
+uint32
+saveFrag(tapperAlignment *ali, uint32 aliLen, tapperResult *res, uint32 fragLen, tapperResultFragment *frag) {
 
-  for (u32bit i=0; i<fragLen; i++) {
+  for (uint32 i=0; i<fragLen; i++) {
     tapperResultFragment *f = frag + i;
 
     //  At least one is true, and at least one is false ==> exactly
@@ -55,7 +55,7 @@ saveFrag(tapperAlignment *ali, u32bit aliLen, tapperResult *res, u32bit fragLen,
 
       memcpy(ali[aliLen]._colorDiffs,
              f->_qual._tag1colorDiffs,
-             sizeof(u8bit) * MAX_COLOR_MISMATCH_MAPPED);
+             sizeof(uint8) * MAX_COLOR_MISMATCH_MAPPED);
 
       aliLen++;
     }
@@ -75,7 +75,7 @@ saveFrag(tapperAlignment *ali, u32bit aliLen, tapperResult *res, u32bit fragLen,
 
       memcpy(ali[aliLen]._colorDiffs,
              f->_qual._tag2colorDiffs,
-             sizeof(u8bit) * MAX_COLOR_MISMATCH_MAPPED);
+             sizeof(uint8) * MAX_COLOR_MISMATCH_MAPPED);
 
       aliLen++;
     }
@@ -86,10 +86,10 @@ saveFrag(tapperAlignment *ali, u32bit aliLen, tapperResult *res, u32bit fragLen,
 
 
 
-u32bit
-saveMate(tapperAlignment *ali, u32bit aliLen, tapperResult *res) {
+uint32
+saveMate(tapperAlignment *ali, uint32 aliLen, tapperResult *res) {
 
-  for (u32bit i=0; i<res->idx._numMated; i++) {
+  for (uint32 i=0; i<res->idx._numMated; i++) {
     tapperResultMated *m = res->mate + i;
 
     memset(ali + aliLen, 0, sizeof(tapperAlignment));
@@ -106,7 +106,7 @@ saveMate(tapperAlignment *ali, u32bit aliLen, tapperResult *res) {
 
     memcpy(ali[aliLen]._colorDiffs,
            m->_qual._tag1colorDiffs,
-           sizeof(u8bit) * MAX_COLOR_MISMATCH_MAPPED);
+           sizeof(uint8) * MAX_COLOR_MISMATCH_MAPPED);
 
     aliLen++;
 
@@ -124,7 +124,7 @@ saveMate(tapperAlignment *ali, u32bit aliLen, tapperResult *res) {
 
     memcpy(ali[aliLen]._colorDiffs,
            m->_qual._tag2colorDiffs,
-           sizeof(u8bit) * MAX_COLOR_MISMATCH_MAPPED);
+           sizeof(uint8) * MAX_COLOR_MISMATCH_MAPPED);
 
     aliLen++;
   }
@@ -135,8 +135,8 @@ saveMate(tapperAlignment *ali, u32bit aliLen, tapperResult *res) {
 
 
 
-u32bit
-sortAndDump(tapperAlignment *ali, u32bit aliLen, char *outputName, u32bit &outputIndex) {
+uint32
+sortAndDump(tapperAlignment *ali, uint32 aliLen, char *outputName, uint32 &outputIndex) {
   char     filename[FILENAME_MAX];
 
   if (aliLen == 0)
@@ -145,9 +145,9 @@ sortAndDump(tapperAlignment *ali, u32bit aliLen, char *outputName, u32bit &outpu
   tapperAlignmentPositionCompare pc;
   std::sort(ali, ali + aliLen, pc);
 
-  sprintf(filename, "%s."u32bitFMTW(03)".tapperAlignment", outputName, outputIndex);
+  sprintf(filename, "%s."uint32FMTW(03)".tapperAlignment", outputName, outputIndex);
 
-  fprintf(stderr, "Writing "u32bitFMT" sorted alignments to '%s'\n", aliLen, filename);
+  fprintf(stderr, "Writing "uint32FMT" sorted alignments to '%s'\n", aliLen, filename);
 
   recordFile  *out = new recordFile(filename, 0, sizeof(tapperAlignment), 'w');
   out->putRecord(ali, aliLen);
@@ -163,16 +163,16 @@ sortAndDump(tapperAlignment *ali, u32bit aliLen, char *outputName, u32bit &outpu
 int
 main(int argc, char **argv) {
   char     *outputName  = 0L;
-  u32bit    outputIndex = 0;
-  u32bit    inputsLen   = 0;
+  uint32    outputIndex = 0;
+  uint32    inputsLen   = 0;
   char     *inputs[8192];
-  u64bit    memoryLimit = 1024 * 1024 * 1024;
+  uint64    memoryLimit = 1024 * 1024 * 1024;
 
   int arg=1;
   int err=0;
   while (arg < argc) {
     if        (strncmp(argv[arg], "-memory", 2) == 0) {
-      memoryLimit = strtou64bit(argv[++arg], 0L) * 1024 * 1024;
+      memoryLimit = strtouint64(argv[++arg], 0L) * 1024 * 1024;
 
     } else if (strncmp(argv[arg], "-output", 2) == 0) {
       outputName = argv[++arg];
@@ -195,16 +195,16 @@ main(int argc, char **argv) {
 
 
   {
-    u32bit              aliMax = memoryLimit / sizeof(tapperAlignment);
-    u32bit              aliLen = 0;
+    uint32              aliMax = memoryLimit / sizeof(tapperAlignment);
+    uint32              aliLen = 0;
     tapperAlignment    *ali    = new tapperAlignment [aliMax];
 
-    fprintf(stderr, "Can fit "u32bitFMT" alignments into "u64bitFMT" bytes memory; "u32bitFMT" bytes each.\n",
-            aliMax, memoryLimit, (u32bit)sizeof(tapperAlignment));
+    fprintf(stderr, "Can fit "uint32FMT" alignments into "uint64FMT" bytes memory; "uint32FMT" bytes each.\n",
+            aliMax, memoryLimit, (uint32)sizeof(tapperAlignment));
 
     speedCounter        S(" %10.0f results (%8.0f results/sec)\r", 1, 100000, true);
 
-    for (u32bit inputsIdx=0; inputsIdx<inputsLen; inputsIdx++) {
+    for (uint32 inputsIdx=0; inputsIdx<inputsLen; inputsIdx++) {
       tapperResultFile   *inp = new tapperResultFile(inputs[inputsIdx], 'r');
       tapperResult       *res = new tapperResult;
 
@@ -249,12 +249,12 @@ main(int argc, char **argv) {
     recordFile         *out = 0L;
 
     bool                stillMore = true;
-    u32bit              minidx = 0;
+    uint32              minidx = 0;
 
     tapperAlignmentPositionCompare lessthan;
 
-    for (u32bit x=0; x<outputIndex; x++) {
-      sprintf(filename, "%s."u32bitFMTW(03)".tapperAlignment", outputName, x);
+    for (uint32 x=0; x<outputIndex; x++) {
+      sprintf(filename, "%s."uint32FMTW(03)".tapperAlignment", outputName, x);
       inp[x] = new recordFile(filename, 0, sizeof(tapperAlignment), 'r');
 
       inp[x]->getRecord(ali + x);
@@ -268,7 +268,7 @@ main(int argc, char **argv) {
 
       //  Compare all against the current default minidx, pick the
       //  smallest alignment currently loaded.
-      for (u32bit x=0; x<outputIndex; x++)
+      for (uint32 x=0; x<outputIndex; x++)
         if ((x != minidx) && (inp[x] != 0L) && (lessthan(ali[x], ali[minidx])))
           minidx = x;
 
@@ -283,7 +283,7 @@ main(int argc, char **argv) {
 
         stillMore = false;
 
-        for (u32bit x=0; x<outputIndex; x++)
+        for (uint32 x=0; x<outputIndex; x++)
           if (inp[x] != 0L) {
             minidx    = x;
             stillMore = true;
@@ -293,10 +293,10 @@ main(int argc, char **argv) {
 
     delete    out;
 
-    for (u32bit x=0; x<outputIndex; x++) {
+    for (uint32 x=0; x<outputIndex; x++) {
       assert(inp[x] == 0L);
 
-      sprintf(filename, "%s."u32bitFMTW(03)".tapperAlignment", outputName, x);
+      sprintf(filename, "%s."uint32FMTW(03)".tapperAlignment", outputName, x);
       unlink(filename);
     }
 

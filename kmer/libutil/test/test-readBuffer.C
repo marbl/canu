@@ -24,8 +24,8 @@ doTest(readBuffer *B, md5_s *correct, const char *description) {
 
   if ((testing->a != correct->a) || (testing->b != correct->b)) {
     fprintf(stderr, "readBuffer test %s failed (read %d bytes).\n", description, bread);
-    fprintf(stderr, "Got correct md5 of "u64bitHEX" "u64bitHEX"\n", correct->a, correct->b);
-    fprintf(stderr, "Got testing md5 of "u64bitHEX" "u64bitHEX"\n", testing->a, testing->b);
+    fprintf(stderr, "Got correct md5 of "uint64HEX" "uint64HEX"\n", correct->a, correct->b);
+    fprintf(stderr, "Got testing md5 of "uint64HEX" "uint64HEX"\n", testing->a, testing->b);
     error = 1;
   }
 
@@ -55,8 +55,8 @@ doTestRead(readBuffer *B, md5_s *correct, size_t bufferSize, const char *descrip
 
   if ((testing->a != correct->a) || (testing->b != correct->b)) {
     fprintf(stderr, "readBuffer test %s failed.\n", description);
-    fprintf(stderr, "Got correct md5 of "u64bitHEX" "u64bitHEX"\n", correct->a, correct->b);
-    fprintf(stderr, "Got testing md5 of "u64bitHEX" "u64bitHEX"\n", testing->a, testing->b);
+    fprintf(stderr, "Got correct md5 of "uint64HEX" "uint64HEX"\n", correct->a, correct->b);
+    fprintf(stderr, "Got testing md5 of "uint64HEX" "uint64HEX"\n", testing->a, testing->b);
     error = 1;
   }
 

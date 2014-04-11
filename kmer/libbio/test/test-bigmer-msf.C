@@ -42,19 +42,19 @@ buildFastA(void) {
 
   FILE *F = fopen(FASTA_FILENAME, "w");
 
-  for (u32bit i=0; i<TEST_ITERATIONS; i++) {
-    u32bit len;
+  for (uint32 i=0; i<TEST_ITERATIONS; i++) {
+    uint32 len;
 
-    fprintf(F, ">"u32bitFMT"short\n", i);
+    fprintf(F, ">"uint32FMT"short\n", i);
     len = mtRandom32(mtctx) % (TEST_SIZE-1) + 1;
-    for (u32bit s=0; s<len; s++)
+    for (uint32 s=0; s<len; s++)
       seq[s] = dna[ mtRandom32(mtctx) % 4 ];
     seq[len] = 0;
     fprintf(F, "%s\n", seq);
 
-    fprintf(F, ">"u32bitFMT"long\n", i);
+    fprintf(F, ">"uint32FMT"long\n", i);
     len = TEST_SIZE * MERS_PER_SEQ;
-    for (u32bit s=0; s<len; s++)
+    for (uint32 s=0; s<len; s++)
       seq[s] = dna[ mtRandom32(mtctx) % 4 ];
     seq[len] = 0;
     fprintf(F, "%s\n", seq);
@@ -68,7 +68,7 @@ buildFastA(void) {
 //  into a sequence, compares against the correct sequence.
 //
 void
-test1(u32bit style) {
+test1(uint32 style) {
   seqCache   *fasta = new seqCache(FASTA_FILENAME);
   seqInCore  *sseq  = fasta->getSequenceInCore();
   seqInCore  *lseq  = fasta->getSequenceInCore();
@@ -103,8 +103,8 @@ test1(u32bit style) {
   }
 
 
-  for (u32bit s=0; fasta->eof() == false; s++) {
-    for (u32bit i=0; i<TEST_SIZE * MERS_PER_SEQ + 1; i++)
+  for (uint32 s=0; fasta->eof() == false; s++) {
+    for (uint32 i=0; i<TEST_SIZE * MERS_PER_SEQ + 1; i++)
       mseq[i] = 0;
 
     switch (style) {
@@ -115,7 +115,7 @@ test1(u32bit style) {
         //  last mer in the sequence!)
         //
         MS->nextMer();
-        for (u32bit i=0; i<MERS_PER_SEQ; i++) {
+        for (uint32 i=0; i<MERS_PER_SEQ; i++) {
           MS->theFMer().merToString(mseq + i * TEST_SIZE);
           if (i != MERS_PER_SEQ-1)
             MS->nextMer(TEST_SIZE - 1);
@@ -126,7 +126,7 @@ test1(u32bit style) {
         //  the sequences backwards, too, but that doesn't gain us
         //  anything (we still seek to every location).
         //
-        for (u32bit i=MERS_PER_SEQ; i--; ) {
+        for (uint32 i=MERS_PER_SEQ; i--; ) {
           char  copy[TEST_SIZE + 1];
           RD->setIterationStart(s * (MERS_PER_SEQ * TEST_SIZE - TEST_SIZE + 1) + i * (TEST_SIZE));
           RD->nextMer();
@@ -171,7 +171,7 @@ test1(u32bit style) {
     //  the file
     //
     if (strcmp(mseq, lseq->sequence()) != 0) {
-      fprintf(stderr, "FAIL:  seq="u32bitFMT"\nmseq=%s\nlseq=%s\n", s, mseq, lseq->sequence());
+      fprintf(stderr, "FAIL:  seq="uint32FMT"\nmseq=%s\nlseq=%s\n", s, mseq, lseq->sequence());
       exit(1);
     }
 

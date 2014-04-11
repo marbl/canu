@@ -17,14 +17,14 @@
 int
 main(int argc, char **argv) {
   bool   beVerbose      = false;
-  u32bit chimeraOverlap = 5;
+  uint32 chimeraOverlap = 5;
 
   int arg = 1;
   while (arg < argc) {
     if        (strncmp(argv[arg], "-v", 2) == 0) {
       beVerbose = true;
     } else if (strncmp(argv[arg], "-o", 2) == 0) {
-      chimeraOverlap = strtou32bit(argv[++arg], 0L);
+      chimeraOverlap = strtouint32(argv[++arg], 0L);
     } else {
       fprintf(stderr, "Unknown arg '%s'\n", argv[arg]);
     }
@@ -33,24 +33,24 @@ main(int argc, char **argv) {
 
   intervalList   IL;
   intervalList   ILfull;
-  u32bit         ILid = 0;
+  uint32         ILid = 0;
   char           lastdefline[1024] = { 0 };
 
-  u32bit         numPts = 0;
-  u32bit         maxPts = 1024;
-  u32bit        *begPt = new u32bit [maxPts];
-  u32bit        *endPt = new u32bit [maxPts];
+  uint32         numPts = 0;
+  uint32         maxPts = 1024;
+  uint32        *begPt = new uint32 [maxPts];
+  uint32        *endPt = new uint32 [maxPts];
 
-  u32bit        *genBeg = new u32bit [maxPts];
-  u32bit        *genEnd = new u32bit [maxPts];
+  uint32        *genBeg = new uint32 [maxPts];
+  uint32        *genEnd = new uint32 [maxPts];
 
-  u32bit         queryLength = 0;
+  uint32         queryLength = 0;
 
   char   spaces[QUERY_LENGTH+1];
   char   lines[QUERY_LENGTH+1];
   char   equals[QUERY_LENGTH+1];
 
-  for (u32bit i=0; i<QUERY_LENGTH; i++) {
+  for (uint32 i=0; i<QUERY_LENGTH; i++) {
     spaces[i]  = ' ';
     lines[i]   = '-';
     equals[i]  = '=';
@@ -69,13 +69,13 @@ main(int argc, char **argv) {
 #if 0
       fprintf(stdout, "\n\n");
 
-      fprintf(stdout, "IL "u32bitFMT"\n", IL.numberOfIntervals());
-      for (u32bit i=0; i<IL.numberOfIntervals(); i++)
-        fprintf(stderr, "IL["u32bitFMTW(3)"] "u64bitFMT" "u64bitFMT"\n", i, IL.lo(i), IL.hi(i));
+      fprintf(stdout, "IL "uint32FMT"\n", IL.numberOfIntervals());
+      for (uint32 i=0; i<IL.numberOfIntervals(); i++)
+        fprintf(stderr, "IL["uint32FMTW(3)"] "uint64FMT" "uint64FMT"\n", i, IL.lo(i), IL.hi(i));
 
-      fprintf(stdout, "ILfull "u32bitFMT"\n", ILfull.numberOfIntervals());
-      for (u32bit i=0; i<ILfull.numberOfIntervals(); i++)
-        fprintf(stderr, "ILfull["u32bitFMTW(3)"] "u64bitFMT" "u64bitFMT"\n", i, ILfull.lo(i), ILfull.hi(i));
+      fprintf(stdout, "ILfull "uint32FMT"\n", ILfull.numberOfIntervals());
+      for (uint32 i=0; i<ILfull.numberOfIntervals(); i++)
+        fprintf(stderr, "ILfull["uint32FMTW(3)"] "uint64FMT" "uint64FMT"\n", i, ILfull.lo(i), ILfull.hi(i));
 #endif
 
       IL.merge();
@@ -91,12 +91,12 @@ main(int argc, char **argv) {
 
         //  Bubble sort the positions.
         //
-        for (u32bit a=0; a<numPts; a++) {
-          for (u32bit b=a+1; b<numPts; b++) {
+        for (uint32 a=0; a<numPts; a++) {
+          for (uint32 b=a+1; b<numPts; b++) {
             if ((begPt[a] > begPt[b]) ||
                 ((begPt[a] == begPt[b]) && (endPt[a] > endPt[b]))) {
-              u32bit x = begPt[a];
-              u32bit y = endPt[a];
+              uint32 x = begPt[a];
+              uint32 y = endPt[a];
               begPt[a] = begPt[b];
               endPt[a] = endPt[b];
               begPt[b] = x;
@@ -113,7 +113,7 @@ main(int argc, char **argv) {
         }
 
 
-        for (u32bit i=0; i<numPts && i<maxPts; i++) {
+        for (uint32 i=0; i<numPts && i<maxPts; i++) {
           if (begPt[i] >= QUERY_LENGTH) {
             fprintf(stdout, "WARNING:  Next line (begin) truncated to %d positions!\n", QUERY_LENGTH);
             begPt[i] = QUERY_LENGTH-1;
@@ -126,7 +126,7 @@ main(int argc, char **argv) {
 
           spaces[begPt[i]] = 0;
           lines[endPt[i] - begPt[i]] = 0;
-          fprintf(stdout, u32bitFMTW(3)"-"u32bitFMTW(3)" %s%s ("u32bitFMT","u32bitFMT")\n",
+          fprintf(stdout, uint32FMTW(3)"-"uint32FMTW(3)" %s%s ("uint32FMT","uint32FMT")\n",
                   begPt[i], endPt[i], spaces, lines, genBeg[i], genEnd[i]);
           spaces[begPt[i]] = ' ';
           lines[endPt[i] - begPt[i]] = '-';
@@ -145,12 +145,12 @@ main(int argc, char **argv) {
 
     queryLength = p->_estLen;
 
-    u32bit  beg = p->_exons[0]._estFrom - 1;
-    u32bit  end = p->_exons[p->_numExons-1]._estTo;
+    uint32  beg = p->_exons[0]._estFrom - 1;
+    uint32  end = p->_exons[p->_numExons-1]._estTo;
 
     if (numPts == maxPts) {
       fprintf(stdout, "Wow!  The next guy is a deep mapping!  I'm only showing the\n");
-      fprintf(stdout, "first "u32bitFMT" alignments.\n", maxPts);
+      fprintf(stdout, "first "uint32FMT" alignments.\n", maxPts);
     } else if (numPts < maxPts) {
       begPt[numPts] = beg;
       endPt[numPts] = end;

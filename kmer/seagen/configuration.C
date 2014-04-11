@@ -79,9 +79,9 @@ configuration::configuration(void) {
 configuration::~configuration() {
 
   if (_beVerbose) {
-    u32bit nq = _qsFASTA->getNumberOfSequences();
+    uint32 nq = _qsFASTA->getNumberOfSequences();
     double tm = _searchTime - _buildTime;
-    fprintf(stderr, "\n"u32bitFMTW(7)" sequences in %5.2f seconds, %8.3f per second.\n", nq, tm, nq/tm);
+    fprintf(stderr, "\n"uint32FMTW(7)" sequences in %5.2f seconds, %8.3f per second.\n", nq, tm, nq/tm);
   }
 
   errno = 0;

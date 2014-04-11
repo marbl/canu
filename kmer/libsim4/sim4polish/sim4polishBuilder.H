@@ -8,23 +8,23 @@ public:
   sim4polishBuilder();
   ~sim4polishBuilder();
 
-  void          create(u32bit estid, u32bit estlen,
-                       u32bit genid, u32bit genlo, u32bit genhi);
+  void          create(uint32 estid, uint32 estlen,
+                       uint32 genid, uint32 genlo, uint32 genhi);
 
-  void          setPolyTails(u32bit pa,
-                             u32bit pt);
+  void          setPolyTails(uint32 pa,
+                             uint32 pt);
 
   void          setESTdefline(char *defline);
   void          setGENdefline(char *defline);
 
-  void          setNumberOfMatches(u32bit nummatches, u32bit nummatchesN);
-  void          setPercentIdentity(u32bit id);
+  void          setNumberOfMatches(uint32 nummatches, uint32 nummatchesN);
+  void          setPercentIdentity(uint32 id);
   void          setMatchOrientation(char o);
   void          setStrandOrientation(char o);
 
-  void          addExon(u32bit estlo, u32bit esthi,
-                        u32bit genlo, u32bit genhi,
-                        u32bit nummatches, u32bit nummatchesN, u32bit percentid,
+  void          addExon(uint32 estlo, uint32 esthi,
+                        uint32 genlo, uint32 genhi,
+                        uint32 nummatches, uint32 nummatchesN, uint32 percentid,
                         char intronorientation);
 
   void          addExonAlignment(char *estalign,
@@ -34,9 +34,9 @@ public:
 private:
   sim4polish      *it;
 
-  u32bit           exMax;  //  maximum number of exons available
-  u32bit           exPos;  //  next exon
-  u32bit           exAli;  //  next exon without alignment
+  uint32           exMax;  //  maximum number of exons available
+  uint32           exPos;  //  next exon
+  uint32           exAli;  //  next exon without alignment
   sim4polishExon **ex;
 };
 

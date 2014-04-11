@@ -22,7 +22,7 @@ seqFactory::seqFactory() {
 
 
 seqFactory::~seqFactory() {
-  for (u32bit i=0; i<_filesNum; i++)
+  for (uint32 i=0; i<_filesNum; i++)
     delete _files[i];
   delete [] _files;
 }
@@ -42,7 +42,7 @@ seqFile *
 seqFactory::openFile(const char *name) {
   seqFile  *n = 0L;
 
-  for (u32bit i=0; i<_filesNum; i++) {
+  for (uint32 i=0; i<_filesNum; i++) {
     n = _files[i]->openFile(name);
     if (n)
       return(n);
@@ -50,7 +50,7 @@ seqFactory::openFile(const char *name) {
 
   fprintf(stderr, "seqFactory::registerFile()--  Cannot determine type of file '%s'.  Tried:\n", name);
 
-  for (u32bit i=0; i<_filesNum; i++)
+  for (uint32 i=0; i<_filesNum; i++)
     fprintf(stderr, "seqFactory::registerFile()--         '%s'\n", _files[i]->getFileTypeName());
 
   exit(1);

@@ -32,14 +32,14 @@
 class annoList {
 public:
   char    type;
-  u32bit  iid1,  pos1,  len1;   //  The position on the reference axis
-  u32bit  iid2a, pos2a, len2a;  //  The position on mapping 1
-  u32bit  iid2b, pos2b, len2b;  //  The position on mapping 2
+  uint32  iid1,  pos1,  len1;   //  The position on the reference axis
+  uint32  iid2a, pos2a, len2a;  //  The position on mapping 1
+  uint32  iid2b, pos2b, len2b;  //  The position on mapping 2
 
   void add(char type_,
-           u32bit  iid1_,  u32bit pos1_,  u32bit len1_,
-           u32bit  match1, atacMatch *m1,
-           u32bit  match2, atacMatch *m2) {
+           uint32  iid1_,  uint32 pos1_,  uint32 len1_,
+           uint32  match1, atacMatch *m1,
+           uint32  match2, atacMatch *m2) {
     type  = type_;
     iid1  = iid1_;
     pos1  = pos1_;

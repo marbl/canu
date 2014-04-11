@@ -31,21 +31,21 @@ public:
   atacFeatureList();
   ~atacFeatureList();
 
-  u32bit         numberOfFeatures(void) { return(_featuresLen);  };
-  atacFeature   *getFeature(u32bit i)   { return(_features + i); };
-  atacFeature   *operator[](u32bit i)   { return(_features + i); };
+  uint32         numberOfFeatures(void) { return(_featuresLen);  };
+  atacFeature   *getFeature(uint32 i)   { return(_features + i); };
+  atacFeature   *operator[](uint32 i)   { return(_features + i); };
 
   void           add(atacFeature &m);
   //void           delete();
 
   //  Sort by the A assembly or B assembly location
-  void           sort(u32bit first=0, u32bit len=0);
-  void           sortFeatureUID(u32bit first=0, u32bit len=0);
-  void           sortParentUID(u32bit first=0, u32bit len=0);
+  void           sort(uint32 first=0, uint32 len=0);
+  void           sortFeatureUID(uint32 first=0, uint32 len=0);
+  void           sortParentUID(uint32 first=0, uint32 len=0);
 
 private:
-  u32bit        _featuresLen;
-  u32bit        _featuresMax;
+  uint32        _featuresLen;
+  uint32        _featuresMax;
   atacFeature  *_features;
 };
 

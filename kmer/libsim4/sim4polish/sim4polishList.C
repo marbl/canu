@@ -29,7 +29,7 @@ sim4polishList::sim4polishList(char const *filename) {
 }
 
 sim4polishList::~sim4polishList() {
-  for (u32bit i=0; i<len; i++)
+  for (uint32 i=0; i<len; i++)
     delete list[i];
   delete [] list;
 }
@@ -52,7 +52,7 @@ sim4polishList::push(sim4polish *p) {
 }
 
 void
-sim4polishList::remove(u32bit i) {
+sim4polishList::remove(uint32 i) {
 
   if (i >= len)
     return;
@@ -77,9 +77,9 @@ sim4polishList::sortByGenomicIID(void) {
 
 
 void
-sim4polishList::filterByQuality(u32bit minI, u32bit minC) {
-  u32bit save = 0;
-  u32bit next = 0;
+sim4polishList::filterByQuality(uint32 minI, uint32 minC) {
+  uint32 save = 0;
+  uint32 next = 0;
 
   while (next < len) {
     if ((list[next]->_percentIdentity  >= minI) &&

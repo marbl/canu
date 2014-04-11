@@ -11,10 +11,10 @@
 #warning HOW DO WE TEST IF WE GET ALL THE MERS?
 
 
-u32bit
-testMerStreamSimple(merStream *MS, u32bit merSize, char *seq, u32bit *SP) {
-  u32bit   err = 0;
-  u32bit   pos = 0;
+uint32
+testMerStreamSimple(merStream *MS, uint32 merSize, char *seq, uint32 *SP) {
+  uint32   err = 0;
+  uint32   pos = 0;
   char     testmer[32];
   bool     verbose = true;
   bool     nm      = false;
@@ -30,13 +30,13 @@ testMerStreamSimple(merStream *MS, u32bit merSize, char *seq, u32bit *SP) {
     MS->theFMer().merToString(testmer);
 
     if (verbose) {
-      fprintf(stdout, "MS pos="u32bitFMT" posInSeq="u64bitFMT" posInStr="u64bitFMT" seqNum="u64bitFMT"\n",
+      fprintf(stdout, "MS pos="uint32FMT" posInSeq="uint64FMT" posInStr="uint64FMT" seqNum="uint64FMT"\n",
               pos,
               MS->thePositionInSequence(),
               MS->thePositionInStream(),
               MS->theSequenceNumber());
       if (strncmp(testmer, seq + pos, merSize))
-        fprintf(stdout, "MS pos="u32bitFMT" failed '%s' != '%s'.\n", pos, testmer, seq + pos);
+        fprintf(stdout, "MS pos="uint32FMT" failed '%s' != '%s'.\n", pos, testmer, seq + pos);
     }
 
     assert(nm == true);
@@ -58,9 +58,9 @@ testMerStreamSimple(merStream *MS, u32bit merSize, char *seq, u32bit *SP) {
 
 
 
-u32bit
-testMerStreamOperation(merStream *MS, u32bit beg, u32bit end, u32bit sepLen) {
-  u32bit  err = 0;
+uint32
+testMerStreamOperation(merStream *MS, uint32 beg, uint32 end, uint32 sepLen) {
+  uint32  err = 0;
 
   char fmerstr[256];
   char rmerstr[256];
@@ -84,19 +84,19 @@ testMerStreamOperation(merStream *MS, u32bit beg, u32bit end, u32bit sepLen) {
       FAIL();
     }
 
-    u32bit  pseq = MS->thePositionInSequence();
-    u32bit  pstr = MS->thePositionInStream();
-    u32bit  piid = MS->theSequenceNumber();
+    uint32  pseq = MS->thePositionInSequence();
+    uint32  pstr = MS->thePositionInStream();
+    uint32  piid = MS->theSequenceNumber();
 
-    u32bit  mersize = MS->theFMer().getMerSize();
-    u32bit  merspan = MS->theFMer().getMerSpan();
+    uint32  mersize = MS->theFMer().getMerSize();
+    uint32  merspan = MS->theFMer().getMerSpan();
 
 #if 0
     if (beg > 10) {
-      u32bit  pp = pstr + piid * sepLen - 10;
-      u32bit  xx = 0;
+      uint32  pp = pstr + piid * sepLen - 10;
+      uint32  xx = 0;
 
-      fprintf(stderr, "beg="u32bitFMT" pstr="u32bitFMT" '", beg, pstr);
+      fprintf(stderr, "beg="uint32FMT" pstr="uint32FMT" '", beg, pstr);
 
       for (xx=0; xx<10; xx++, pp++)
         fprintf(stderr, "%c", chainSeq[pp]);
@@ -121,7 +121,7 @@ testMerStreamOperation(merStream *MS, u32bit beg, u32bit end, u32bit sepLen) {
       }
 
       if ((pstr < beg) || (end < pstr)) {
-        fprintf(stderr, "mer stream position out of range; at "u32bitFMT", range "u32bitFMT"-"u32bitFMT"\n",
+        fprintf(stderr, "mer stream position out of range; at "uint32FMT", range "uint32FMT"-"uint32FMT"\n",
                 pstr, beg, end);
         FAIL();
       }
@@ -148,9 +148,9 @@ testMerStreamOperation(merStream *MS, u32bit beg, u32bit end, u32bit sepLen) {
 
 
 
-u32bit
-testMerStream(kMerBuilder *KB, u32bit numSeq, char sep, u32bit sepLen) {
-  u32bit      err = 0;
+uint32
+testMerStream(kMerBuilder *KB, uint32 numSeq, char sep, uint32 sepLen) {
+  uint32      err = 0;
   seqStream  *ST  = 0L;
   merStream  *MS  = 0L;
 
@@ -165,7 +165,7 @@ testMerStream(kMerBuilder *KB, u32bit numSeq, char sep, u32bit sepLen) {
 
   MS = new merStream(KB, ST, true, true);
 
-  u32bit  maxLen = ST->startOf(numSeq-1) + ST->lengthOf(numSeq-1);
+  uint32  maxLen = ST->startOf(numSeq-1) + ST->lengthOf(numSeq-1);
 
   //  Whole thing, rewind, whole thing
 
@@ -181,11 +181,11 @@ testMerStream(kMerBuilder *KB, u32bit numSeq, char sep, u32bit sepLen) {
 
   fprintf(stderr, "subsets.\n");
 
-  for (u32bit iter=0; iter<500; iter++) {
-    u32bit beg = mtRandom32(mtctx) % maxLen;
-    u32bit end = (beg + 10000 < maxLen) ? (beg + 10000) : maxLen;
+  for (uint32 iter=0; iter<500; iter++) {
+    uint32 beg = mtRandom32(mtctx) % maxLen;
+    uint32 end = (beg + 10000 < maxLen) ? (beg + 10000) : maxLen;
 
-    //fprintf(stderr, "subsets - "u32bitFMT"-"u32bitFMT"\n", beg, end);
+    //fprintf(stderr, "subsets - "uint32FMT"-"uint32FMT"\n", beg, end);
 
     MS->setBaseRange(beg, end);
 
@@ -205,10 +205,10 @@ testMerStream(kMerBuilder *KB, u32bit numSeq, char sep, u32bit sepLen) {
 
 int
 main(int argc, char **argv) {
-  u32bit     minLen = 1000;
-  u32bit     maxLen = 200000;
-  u32bit     numSeq = 1000;
-  u32bit     err    = 0;
+  uint32     minLen = 1000;
+  uint32     maxLen = 200000;
+  uint32     numSeq = 1000;
+  uint32     err    = 0;
 
   //  Very simple merStream test
 
@@ -218,7 +218,7 @@ main(int argc, char **argv) {
     merStream *MS = new merStream(new kMerBuilder(20),
                                   new seqStream("GGGTCAACTCCGCCCGCACTCTAGC", 25),
                                   true, true);
-    u32bit     SP[10] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+    uint32     SP[10] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 
     testMerStreamSimple(MS, 20, "GGGTCAACTCCGCCCGCACTCTAGC", SP);
     MS->rewind();
@@ -238,7 +238,7 @@ main(int argc, char **argv) {
     merStream *MS = new merStream(new kMerBuilder(20, 1),
                                   new seqStream("GGGAATTTTCAACTCCGCCCGCACTCTAGCCCAAA", 35),
                                   true, true);
-    u32bit     SP[10] = { 0, 3, 5, 9, 10, 12 };
+    uint32     SP[10] = { 0, 3, 5, 9, 10, 12 };
 
     testMerStreamSimple(MS, 20, "GATCACTCGCGCACTCTAGCA", SP);
     MS->rewind();

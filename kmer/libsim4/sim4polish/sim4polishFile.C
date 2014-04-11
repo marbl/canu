@@ -13,8 +13,8 @@ sim4polishFile::polishRecord *__prsa;
 
 int
 __prsaEST(const void *a, const void *b) {
-  u32bit aid = __prsa[ *((u32bit*)a) ]._ESTiid;
-  u32bit bid = __prsa[ *((u32bit*)b) ]._ESTiid;
+  uint32 aid = __prsa[ *((uint32*)a) ]._ESTiid;
+  uint32 bid = __prsa[ *((uint32*)b) ]._ESTiid;
 
   if (aid < bid) return(-1);
   if (aid > bid) return(1);
@@ -23,8 +23,8 @@ __prsaEST(const void *a, const void *b) {
 
 int
 __prsaGEN(const void *a, const void *b) {
-  u32bit aid = __prsa[ *((u32bit*)a) ]._GENiid;
-  u32bit bid = __prsa[ *((u32bit*)b) ]._GENiid;
+  uint32 aid = __prsa[ *((uint32*)a) ]._GENiid;
+  uint32 bid = __prsa[ *((uint32*)b) ]._GENiid;
 
   if (aid < bid) return(-1);
   if (aid > bid) return(1);
@@ -67,17 +67,17 @@ sim4polishFile::~sim4polishFile() {
 
 
 sim4polishList*
-sim4polishFile::getEST(u32bit iid) {
+sim4polishFile::getEST(uint32 iid) {
   sim4polishList *l = new sim4polishList();
 
   if (iid >= _maxEST)
-    //fprintf(stderr, "Invalid EST iid "u32bitFMT", max is "u32bitFMT"\n", iid, _maxEST), exit(1);
+    //fprintf(stderr, "Invalid EST iid "uint32FMT", max is "uint32FMT"\n", iid, _maxEST), exit(1);
     return(l);
 
   sim4polish     *p = 0L;
-  u32bit          i = _ESTiidLocation[iid];
+  uint32          i = _ESTiidLocation[iid];
 
-  if (i != ~u32bitZERO) {
+  if (i != ~uint32ZERO) {
     setPosition(_polishRecordEST[i]);
 
     p = new sim4polish(_file, _style);
@@ -97,7 +97,7 @@ sim4polishFile::getEST(u32bit iid) {
 
 
 sim4polishList*
-sim4polishFile::getGEN(u32bit iid, u32bit lo, u32bit hi) {
+sim4polishFile::getGEN(uint32 iid, uint32 lo, uint32 hi) {
   fprintf(stderr, "sim4polishFile::getGEN() not implemented.  Sorry.\n");
   exit(1);
   return(0L);
@@ -111,13 +111,13 @@ sim4polishFile::getNext(void) {
 
 
 void
-sim4polishFile::setPosition(u32bit ordinal) {
+sim4polishFile::setPosition(uint32 ordinal) {
 
   if (_polishRecord == 0L)
     buildIndex();
 
   if (ordinal >= _polishRecordLen)
-    fprintf(stderr, "Failed to reposition %s to record "u32bitFMT", only "u32bitFMT" records\n", _path, ordinal, _polishRecordLen), exit(1);
+    fprintf(stderr, "Failed to reposition %s to record "uint32FMT", only "uint32FMT" records\n", _path, ordinal, _polishRecordLen), exit(1);
 
   _file->seek(_polishRecord[ordinal]._fileposition);
 }
@@ -142,24 +142,24 @@ sim4polishFile::loadIndex(void) {
     if (strncmp(magic, cigam, 8) != 0)
       fprintf(stderr, "Failed to open '%s': Not a sim4polishFile!\n", nam), exit(1);
 
-    fread(&_polishRecordLen, sizeof(u32bit), 1, F);
+    fread(&_polishRecordLen, sizeof(uint32), 1, F);
 
     _polishRecord    = new polishRecord [_polishRecordLen];
-    _polishRecordEST = new u32bit       [_polishRecordLen];
-    _polishRecordGEN = new u32bit       [_polishRecordLen];
+    _polishRecordEST = new uint32       [_polishRecordLen];
+    _polishRecordGEN = new uint32       [_polishRecordLen];
 
     fread( _polishRecord,    sizeof(polishRecord), _polishRecordLen, F);
-    fread( _polishRecordEST, sizeof(u32bit),       _polishRecordLen, F);
-    fread( _polishRecordGEN, sizeof(u32bit),       _polishRecordLen, F);
+    fread( _polishRecordEST, sizeof(uint32),       _polishRecordLen, F);
+    fread( _polishRecordGEN, sizeof(uint32),       _polishRecordLen, F);
 
-    fread(&_maxEST, sizeof(u32bit), 1, F);
-    fread(&_maxGEN, sizeof(u32bit), 1, F);
+    fread(&_maxEST, sizeof(uint32), 1, F);
+    fread(&_maxGEN, sizeof(uint32), 1, F);
 
-    _ESTiidLocation = new u32bit [_maxEST];
-    _GENiidLocation = new u32bit [_maxGEN];
+    _ESTiidLocation = new uint32 [_maxEST];
+    _GENiidLocation = new uint32 [_maxGEN];
 
-    fread( _ESTiidLocation, sizeof(u32bit), _maxEST, F);
-    fread( _GENiidLocation, sizeof(u32bit), _maxGEN, F);
+    fread( _ESTiidLocation, sizeof(uint32), _maxEST, F);
+    fread( _GENiidLocation, sizeof(uint32), _maxGEN, F);
 
     if (errno)
       fprintf(stderr, "Failed to read '%s': %s\n", nam, strerror(errno)), exit(1);
@@ -186,15 +186,15 @@ sim4polishFile::saveIndex(void) {
 
   fwrite(&cigam, sizeof(char), 8, F);
 
-  fwrite(&_polishRecordLen, sizeof(u32bit), 1, F);
+  fwrite(&_polishRecordLen, sizeof(uint32), 1, F);
   fwrite( _polishRecord,    sizeof(polishRecord), _polishRecordLen, F);
-  fwrite( _polishRecordEST, sizeof(u32bit),       _polishRecordLen, F);
-  fwrite( _polishRecordGEN, sizeof(u32bit),       _polishRecordLen, F);
+  fwrite( _polishRecordEST, sizeof(uint32),       _polishRecordLen, F);
+  fwrite( _polishRecordGEN, sizeof(uint32),       _polishRecordLen, F);
 
-  fwrite(&_maxEST, sizeof(u32bit), 1, F);
-  fwrite(&_maxGEN, sizeof(u32bit), 1, F);
-  fwrite( _ESTiidLocation, sizeof(u32bit), _maxEST, F);
-  fwrite( _GENiidLocation, sizeof(u32bit), _maxGEN, F);
+  fwrite(&_maxEST, sizeof(uint32), 1, F);
+  fwrite(&_maxGEN, sizeof(uint32), 1, F);
+  fwrite( _ESTiidLocation, sizeof(uint32), _maxEST, F);
+  fwrite( _GENiidLocation, sizeof(uint32), _maxGEN, F);
 
   if (errno)
     fprintf(stderr, "Failed to write '%s': %s\n", nam, strerror(errno)), exit(1);
@@ -245,7 +245,7 @@ sim4polishFile::buildIndex(void) {
       _polishRecordLen++;
 
       if ((_polishRecordLen & 0xfff) == 0) {
-        fprintf(stderr, "polishes: "u32bitFMT"\r", _polishRecordLen);
+        fprintf(stderr, "polishes: "uint32FMT"\r", _polishRecordLen);
         fflush(stderr);
       }
 
@@ -268,15 +268,15 @@ sim4polishFile::buildIndex(void) {
     //  2) use a global pointer to _polishRecord
     //  3) use a temporary array holding the sort key and position
     //
-    _polishRecordEST = new u32bit [_polishRecordLen];
-    _polishRecordGEN = new u32bit [_polishRecordLen];
+    _polishRecordEST = new uint32 [_polishRecordLen];
+    _polishRecordGEN = new uint32 [_polishRecordLen];
 
-    for (u32bit i=0; i<_polishRecordLen; i++)
+    for (uint32 i=0; i<_polishRecordLen; i++)
       _polishRecordEST[i] = _polishRecordGEN[i] = i;
 
     __prsa = _polishRecord;
-    qsort(_polishRecordEST, _polishRecordLen, sizeof(u32bit), __prsaEST);
-    qsort(_polishRecordGEN, _polishRecordLen, sizeof(u32bit), __prsaGEN);
+    qsort(_polishRecordEST, _polishRecordLen, sizeof(uint32), __prsaEST);
+    qsort(_polishRecordGEN, _polishRecordLen, sizeof(uint32), __prsaGEN);
     __prsa = 0L;
 
 
@@ -284,22 +284,22 @@ sim4polishFile::buildIndex(void) {
     //
     _maxEST = _polishRecord[ _polishRecordEST[_polishRecordLen-1] ]._ESTiid + 1;
     _maxGEN = _polishRecord[ _polishRecordGEN[_polishRecordLen-1] ]._GENiid + 1;
-    _ESTiidLocation = new u32bit [_maxEST];
-    _GENiidLocation = new u32bit [_maxGEN];
+    _ESTiidLocation = new uint32 [_maxEST];
+    _GENiidLocation = new uint32 [_maxGEN];
 
-    for (u32bit i=0; i<_maxEST; i++)
-      _ESTiidLocation[i] = ~u32bitZERO;
-    for (u32bit i=0; i<_polishRecordLen; i++) {
-      u32bit iid = _polishRecord[ _polishRecordEST[i] ]._ESTiid;
-      if (_ESTiidLocation[iid] == ~u32bitZERO)
+    for (uint32 i=0; i<_maxEST; i++)
+      _ESTiidLocation[i] = ~uint32ZERO;
+    for (uint32 i=0; i<_polishRecordLen; i++) {
+      uint32 iid = _polishRecord[ _polishRecordEST[i] ]._ESTiid;
+      if (_ESTiidLocation[iid] == ~uint32ZERO)
         _ESTiidLocation[iid] = i;
     }
 
-    for (u32bit i=0; i<_maxGEN; i++)
-      _GENiidLocation[i] = ~u32bitZERO;
-    for (u32bit i=0; i<_polishRecordLen; i++) {
-      u32bit iid = _polishRecord[ _polishRecordGEN[i] ]._GENiid;
-      if (_GENiidLocation[iid] == ~u32bitZERO)
+    for (uint32 i=0; i<_maxGEN; i++)
+      _GENiidLocation[i] = ~uint32ZERO;
+    for (uint32 i=0; i<_polishRecordLen; i++) {
+      uint32 iid = _polishRecord[ _polishRecordGEN[i] ]._GENiid;
+      if (_GENiidLocation[iid] == ~uint32ZERO)
         _GENiidLocation[iid] = i;
     }
 

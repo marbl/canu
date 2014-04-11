@@ -74,13 +74,13 @@ main(int argc, char **argv) {
   if (config._maskFileName) {
     if (config._beVerbose)
       fprintf(stderr, "Building maskDB from '%s'\n", config._maskFileName);
-    config._maskDB = new existDB(config._maskFileName, config._merSize, existDBnoFlags, 0, ~u32bitZERO);
+    config._maskDB = new existDB(config._maskFileName, config._merSize, existDBnoFlags, 0, ~uint32ZERO);
   }
 
   if (config._onlyFileName) {
     if (config._beVerbose)
       fprintf(stderr, "Building onlyDB from '%s'\n", config._onlyFileName);
-    config._onlyDB = new existDB(config._onlyFileName, config._merSize, existDBnoFlags, 0, ~u32bitZERO);
+    config._onlyDB = new existDB(config._onlyFileName, config._merSize, existDBnoFlags, 0, ~uint32ZERO);
   }
 
   config._buildTime = getTime();
@@ -102,7 +102,7 @@ main(int argc, char **argv) {
 
   ss->setNumberOfWorkers(config._numSearchThreads);
 
-  for (u32bit i=0; i<config._numSearchThreads; i++)
+  for (uint32 i=0; i<config._numSearchThreads; i++)
     ss->setThreadData(i, new searcherState);
 
   ss->setLoaderQueueSize(config._loaderQueue);

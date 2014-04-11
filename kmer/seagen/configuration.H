@@ -12,32 +12,32 @@ class configuration {
 public:
   bool             _beVerbose;
 
-  u32bit           _merSize;
-  u32bit           _numSearchThreads;
+  uint32           _merSize;
+  uint32           _numSearchThreads;
 
-  u32bit           _merSkip;
+  uint32           _merSkip;
 
   bool             _doReverse;
   bool             _doForward;
 
-  u32bit           _maxDiagonal;
-  u32bit           _maxGap;
-  u32bit           _qsOverlap;
-  u32bit           _dsOverlap;
+  uint32           _maxDiagonal;
+  uint32           _maxGap;
+  uint32           _qsOverlap;
+  uint32           _dsOverlap;
 
-  u32bit           _extendWeight;
-  u32bit           _extendMinimum;
+  uint32           _extendWeight;
+  uint32           _extendMinimum;
   bool             _extendAlternate;
 
-  u32bit           _maxIntronLength;
+  uint32           _maxIntronLength;
 
-  u32bit           _smallSequenceCutoff;
+  uint32           _smallSequenceCutoff;
 
-  u32bit           _minLengthSingle;
+  uint32           _minLengthSingle;
   double           _minCoverageSingle;
 
   double           _minCoverageMultiple;
-  u32bit           _minLengthMultiple;
+  uint32           _minLengthMultiple;
 
   char            *_dbFileName;
   char            *_qsFileName;
@@ -65,7 +65,7 @@ public:
   existDB          *_onlyDB;
   positionDB       *_positions;
 
-  u32bit            _numberOfQueries;
+  uint32            _numberOfQueries;
 
   //  Wall clock times
   //
@@ -77,13 +77,13 @@ public:
   //  sweatShop queue sizes; maximum number of sequences pre-loaded,
   //  maximum number of results waiting for output.
   //
-  u32bit           _loaderQueue;
+  uint32           _loaderQueue;
   struct timespec  _loaderSleep;
   bool             _loaderWarnings;
 
   struct timespec  _searchSleep;
 
-  u32bit           _writerQueue;
+  uint32           _writerQueue;
   struct timespec  _writerSleep;
   bool             _writerWarnings;
 
@@ -98,7 +98,7 @@ public:
     ts->tv_nsec = (long)((t - ts->tv_sec) * 1e9);
   };
 private:
-  void  addToUse(u32bit v);
+  void  addToUse(uint32 v);
   void  parseUseLine(char *line);
 };
 

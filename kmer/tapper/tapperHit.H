@@ -8,13 +8,13 @@ class tapperGlobalData;
 //
 class tapperHit {
 public:
-  u32bit    numberOfBaseMismatches(void)        { return(_basesMismatch);     };
-  u32bit    numberOfColorMismatches(void)       { return(_colorMismatch);     };
-  u32bit    numberOfColorInconsistencies(void)  { return(_colorInconsistent); };
+  uint32    numberOfBaseMismatches(void)        { return(_basesMismatch);     };
+  uint32    numberOfColorMismatches(void)       { return(_colorMismatch);     };
+  uint32    numberOfColorInconsistencies(void)  { return(_colorInconsistent); };
 
 
-  char *printHit(char *OS, u64bit tagid) {
-    sprintf(OS, "0x"u64bitFMT"\t"u32bitFMT":"u32bitFMT":%c\t"u64bitFMT","u64bitFMT","u64bitFMT,
+  char *printHit(char *OS, uint64 tagid) {
+    sprintf(OS, "0x"uint64FMT"\t"uint32FMT":"uint32FMT":%c\t"uint64FMT","uint64FMT","uint64FMT,
             tagid,
             _seqIdx, _seqPos, _rev ? '-' : '+',
             _basesMismatch, _colorMismatch, _colorInconsistent);
@@ -27,12 +27,12 @@ public:
   //  in a different sequence (or in a gap).
   //
   bool   alignToReference(tapperGlobalData *g,
-                          u32bit so,
-                          u32bit po,
-                          char  *tag, u32bit len);
+                          uint32 so,
+                          uint32 po,
+                          char  *tag, uint32 len);
 
 
-  bool   happyNearEnd(bool isFTag, u32bit mean, u32bit stddev, u32bit seqlen) {
+  bool   happyNearEnd(bool isFTag, uint32 mean, uint32 stddev, uint32 seqlen) {
     bool  isHappy = false;
 
     if (seqlen < mean + 3 * stddev)
@@ -65,7 +65,7 @@ public:
   //
   //  ASSUMES it is called on this read being the forward/F3/a read.
   //
-  bool   mateTooFarBefore(tapperHit& that, u32bit mean, u32bit stddev) {
+  bool   mateTooFarBefore(tapperHit& that, uint32 mean, uint32 stddev) {
 
     //  that read is on the sequence after us.
     if (_seqIdx < that._seqIdx) {
@@ -92,7 +92,7 @@ public:
     //  TTTffffffffffffffffffffffffffffffff
     //  
     if ((_rev == false) && (that._seqPos + mean + 3 * stddev < _seqPos)) {
-      //fprintf(stderr, "isBefore()- forward true "u32bitFMT" + "u32bitFMT" + 3 * "u32bitFMT" < "u32bitFMT"\n",
+      //fprintf(stderr, "isBefore()- forward true "uint32FMT" + "uint32FMT" + 3 * "uint32FMT" < "uint32FMT"\n",
       //        that._seqPos, mean, stddev, _seqPos);
       return(true);
     }
@@ -104,7 +104,7 @@ public:
     //  TTTTTTTTTTTTTTTTTTTffffffffffffffff
     //
     if ((_rev == true)  && (that._seqPos < _seqPos + mean - 3 * stddev)) {
-      //fprintf(stderr, "isBefore()- forward true "u32bitFMT" < "u32bitFMT" + "u32bitFMT" - 3 * "u32bitFMT"\n",
+      //fprintf(stderr, "isBefore()- forward true "uint32FMT" < "uint32FMT" + "uint32FMT" - 3 * "uint32FMT"\n",
       //        that._seqPos, _seqPos, mean, stddev);
       return(true);
     }
@@ -119,7 +119,7 @@ public:
   //
   //  ASSUMES it is called on this read being the forward/F3/a read.
   //
-  bool   mateTooFarAfter(tapperHit& that, u32bit mean, u32bit stddev) {
+  bool   mateTooFarAfter(tapperHit& that, uint32 mean, uint32 stddev) {
 
     //  that read is on the sequence after us, true.
     if (_seqIdx < that._seqIdx)
@@ -158,8 +158,8 @@ public:
 
   //  ASSUMES it is called on this read being the forward/F3/a read.
   //
-  bool   happy(tapperHit& b, u32bit mean, u32bit stddev) {
-    u64bit  dist        = ~u64bitZERO;
+  bool   happy(tapperHit& b, uint32 mean, uint32 stddev) {
+    uint64  dist        = ~uint64ZERO;
     bool    isHappy     = false;
     bool    isOriented  = false;
 
@@ -184,16 +184,16 @@ public:
       isOriented = true;
 
     if (!isHappy) {
-      //fprintf(stderr, "GRUMPY DIST  "u32bitFMT"\n", dist);
+      //fprintf(stderr, "GRUMPY DIST  "uint32FMT"\n", dist);
       return(false);
     }
 
     if (!isOriented) {
-      //fprintf(stderr, "GRUMPY ORIENT "u32bitFMT"\n", dist);
+      //fprintf(stderr, "GRUMPY ORIENT "uint32FMT"\n", dist);
       return(false);
     }
 
-    //fprintf(stderr, "HAPPY!  "u32bitFMT"\n", dist);
+    //fprintf(stderr, "HAPPY!  "uint32FMT"\n", dist);
     return(true);
   };
   
@@ -205,20 +205,20 @@ public:
 
   //  Argh, should be private, but tapperWorker copies most of the hit to a result.
   //private:
-  u32bit  _seqIdx;
-  u32bit  _seqPos;
+  uint32  _seqIdx;
+  uint32  _seqPos;
 
-  u64bit  _tagIdx;               //  4e9 tags is only 34x of human
+  uint64  _tagIdx;               //  4e9 tags is only 34x of human
 
-  u64bit  _len:6;                //  Length of tag
-  u64bit  _rev:1;                //  Match is reversecomplement
+  uint64  _len:6;                //  Length of tag
+  uint64  _rev:1;                //  Match is reversecomplement
 
-  u64bit  _pad:17;               //  Nothing
+  uint64  _pad:17;               //  Nothing
 
-  u64bit  _basesMismatch:6;      //  Number of mismatches in ACGT alignment
+  uint64  _basesMismatch:6;      //  Number of mismatches in ACGT alignment
 
-  u64bit  _colorMismatch:6;      //  Number of consistent color mismatches
-  u64bit  _colorInconsistent:6;  //  Number of inconsistent color mismatches
+  uint64  _colorMismatch:6;      //  Number of consistent color mismatches
+  uint64  _colorInconsistent:6;  //  Number of inconsistent color mismatches
 
   char    _tagCOLOR[TAG_LEN_MAX];
   char    _refCOLOR[TAG_LEN_MAX];
@@ -226,7 +226,7 @@ public:
   char    _tagACGT[TAG_LEN_MAX];
   char    _refACGT[TAG_LEN_MAX];
 
-  u8bit   _tagColorDiffs[MAX_COLOR_MISMATCH_MAPPED];
+  uint8   _tagColorDiffs[MAX_COLOR_MISMATCH_MAPPED];
 };
 
 

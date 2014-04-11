@@ -40,10 +40,10 @@ public:
   atacMatch(char *line);
   atacMatch(char *muid,
             char *puid,
-            u32bit miid,
+            uint32 miid,
             char *t,
-            u32bit i1, u32bit p1, u32bit l1, u32bit f1,
-            u32bit i2, u32bit p2, u32bit l2, u32bit f2);
+            uint32 i1, uint32 p1, uint32 l1, uint32 f1,
+            uint32 i2, uint32 p2, uint32 l2, uint32 f2);
 
   void  decode(char *line);
 
@@ -55,13 +55,13 @@ public:
 
   char    matchuid[16];     //  external id
   char    parentuid[16];    //  external parent id
-  u32bit  matchiid;         //  internal id, usually pointing to an entry in atacMatchList
+  uint32  matchiid;         //  internal id, usually pointing to an entry in atacMatchList
   char    type[4];          //  right now, only need one byte, but we keep things aligned
-  u32bit  iid1, pos1, len1, fwd1;
-  u32bit  iid2, pos2, len2, fwd2;
+  uint32  iid1, pos1, len1, fwd1;
+  uint32  iid2, pos2, len2, fwd2;
 
   void  print(FILE *f, char const *label1, char const *label2) const {
-    fprintf(f, "M %s %s %s %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" %d %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" %d\n",
+    fprintf(f, "M %s %s %s %s:"uint32FMT" "uint32FMT" "uint32FMT" %d %s:"uint32FMT" "uint32FMT" "uint32FMT" %d\n",
             type,
             matchuid, parentuid,
             label1, iid1, pos1, len1, fwd1 ? 1 : -1,

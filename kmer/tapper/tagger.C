@@ -32,13 +32,13 @@ tapperTagCompare(const void *a, const void *b) {
 
 
 bool
-readTag(u32bit fileUID, FILE *seq, FILE *qlt, tapperTag *T) {
-  static u16bit  id[4];
+readTag(uint32 fileUID, FILE *seq, FILE *qlt, tapperTag *T) {
+  static uint16  id[4];
   static char    seqhdr[1024];
   static char    seqseq[1024];
   static char    qlthdr[1024];
   static char    qltseq[1024];
-  static u64bit  qltnum[1024];
+  static uint64  qltnum[1024];
   static splitToWords  S;
 
   seqhdr[0] = 0;
@@ -75,7 +75,7 @@ readTag(u32bit fileUID, FILE *seq, FILE *qlt, tapperTag *T) {
   //  -- the loop below doesn't move the zero-terminator
   //  -- resulting string is "461 28 1918 F33"
   //
-  for (u32bit i=1; seqhdr[i]; i++) {
+  for (uint32 i=1; seqhdr[i]; i++) {
     if (seqhdr[i] == '_')
       seqhdr[i] = ' ';
     seqhdr[i-1] = seqhdr[i];
@@ -84,16 +84,16 @@ readTag(u32bit fileUID, FILE *seq, FILE *qlt, tapperTag *T) {
   S.split(seqhdr);
 
   id[0] = fileUID;
-  id[1] = strtou32bit(S[0], 0L);
-  id[2] = strtou32bit(S[1], 0L);
-  id[3] = strtou32bit(S[2], 0L);
+  id[1] = strtouint32(S[0], 0L);
+  id[2] = strtouint32(S[1], 0L);
+  id[3] = strtouint32(S[2], 0L);
 
   S.split(qltseq);
 
   //  Not sure why there are negative numbers here, but there are.
   //
-  for (u32bit i=0; i<S.numWords(); i++) {
-    qltnum[i] = (S[i][0] == '-') ? 0 : strtou64bit(S[i], 0L);
+  for (uint32 i=0; i<S.numWords(); i++) {
+    qltnum[i] = (S[i][0] == '-') ? 0 : strtouint64(S[i], 0L);
 
 #ifdef TEST_ENCODING
     //  We need to fudge the QV's here, so our tests pass.
@@ -106,17 +106,17 @@ readTag(u32bit fileUID, FILE *seq, FILE *qlt, tapperTag *T) {
 
 #ifdef TEST_ENCODING
   {
-    u16bit  it[4];
+    uint16  it[4];
     char    seqtst[1024];
-    u64bit  qlttst[1024];
+    uint64  qlttst[1024];
 
     T->decode(it, seqtst, qlttst);
 
-    u32bit  len = strlen(seqtst);
-    u32bit  fail = 0;
-    u64bit  qltsum=0, tstsum=0;
+    uint32  len = strlen(seqtst);
+    uint32  fail = 0;
+    uint64  qltsum=0, tstsum=0;
 
-    for (u32bit l=0; l<len; l++) {
+    for (uint32 l=0; l<len; l++) {
       qltsum += qltnum[l];
       tstsum += qlttst[l];
       if ((seqseq[l] != seqtst[l]) || (qltnum[l] != qlttst[l]))
@@ -128,11 +128,11 @@ readTag(u32bit fileUID, FILE *seq, FILE *qlt, tapperTag *T) {
         (id[2] != it[2]) ||
         (id[3] != it[3]) ||
         (fail)) {
-      fprintf(stderr, "FAIL:  ("u32bitFMT"_"u32bitFMT"_"u32bitFMT"_"u32bitFMT",%s,"u64bitFMT") != ("u16bitFMT"_"u16bitFMT"_"u16bitFMT"_"u16bitFMT",%s,"u64bitFMT")\n",
+      fprintf(stderr, "FAIL:  ("uint32FMT"_"uint32FMT"_"uint32FMT"_"uint32FMT",%s,"uint64FMT") != ("uint16FMT"_"uint16FMT"_"uint16FMT"_"uint16FMT",%s,"uint64FMT")\n",
               id[0], id[1], id[2], id[3], seqseq, qltsum,
               it[0], it[1], it[2], it[3], seqtst, tstsum);
-      for (u32bit l=0; l<len; l++)
-        fprintf(stderr, "  %2d -- "u64bitFMT" "u64bitFMT"\n", l, qltnum[l], qlttst[l]);
+      for (uint32 l=0; l<len; l++)
+        fprintf(stderr, "  %2d -- "uint64FMT" "uint64FMT"\n", l, qltnum[l], qlttst[l]);
     }
   }
 #endif
@@ -148,14 +148,14 @@ dumpTagFileStats(char *tagfile) {
 
   if (TF->metaData()->isPairedTagFile()) {
     fprintf(stdout, "%s\ttype\tmated tags\n", tagfile);
-    fprintf(stdout, "%s\tlength\t"u32bitFMT"\n", tagfile, TF->metaData()->tagSize());
-    fprintf(stdout, "%s\tnumMates\t"u64bitFMT"\n", tagfile, TF->numberOfMatePairs());
-    fprintf(stdout, "%s\tmean\t"u32bitFMT"\n", tagfile, TF->metaData()->mean());
-    fprintf(stdout, "%s\tstddev\t"u32bitFMT"\n", tagfile, TF->metaData()->stddev());
+    fprintf(stdout, "%s\tlength\t"uint32FMT"\n", tagfile, TF->metaData()->tagSize());
+    fprintf(stdout, "%s\tnumMates\t"uint64FMT"\n", tagfile, TF->numberOfMatePairs());
+    fprintf(stdout, "%s\tmean\t"uint32FMT"\n", tagfile, TF->metaData()->mean());
+    fprintf(stdout, "%s\tstddev\t"uint32FMT"\n", tagfile, TF->metaData()->stddev());
   } else {
     fprintf(stdout, "%s\ttype\tfragment tags\n", tagfile);
-    fprintf(stdout, "%s\tlength\t"u32bitFMT"\n", tagfile, TF->metaData()->tagSize());
-    fprintf(stdout, "%s\tnumTags\t"u64bitFMT"\n", tagfile, TF->numberOfFragmentTags());
+    fprintf(stdout, "%s\tlength\t"uint32FMT"\n", tagfile, TF->metaData()->tagSize());
+    fprintf(stdout, "%s\tnumTags\t"uint64FMT"\n", tagfile, TF->numberOfFragmentTags());
  
   }
 }
@@ -165,11 +165,11 @@ void
 dumpTagFile(char *tagfile) {
   tapperTagFile  *TF = new tapperTagFile(tagfile, 'r');
   tapperTag       a, b;
-  u16bit          ida[4],    idb[4];
+  uint16          ida[4],    idb[4];
   char            seqa[265], seqb[256];
   char            quaa[256], quab[256];
-  u64bit          qvsa[256], qvsb[256];
-  u32bit          i;
+  uint64          qvsa[256], qvsb[256];
+  uint32          i;
 
   if (TF->metaData()->isPairedTagFile()) {
     while (TF->get(&a, &b)) {
@@ -179,7 +179,7 @@ dumpTagFile(char *tagfile) {
         quaa[i] = qvsa[i] + '0';
       for (i=0; seqb[i+1]; i++)
         quab[i] = qvsb[i] + '0';
-      fprintf(stdout, ">"u16bitFMT"_"u16bitFMT"_"u16bitFMT"_"u16bitFMT"\t%s/%s\t>"u16bitFMT"_"u16bitFMT"_"u16bitFMT"_"u16bitFMT"\t%s/%s\n",
+      fprintf(stdout, ">"uint16FMT"_"uint16FMT"_"uint16FMT"_"uint16FMT"\t%s/%s\t>"uint16FMT"_"uint16FMT"_"uint16FMT"_"uint16FMT"\t%s/%s\n",
               ida[0], ida[1], ida[2], ida[3], seqa, quaa,
               idb[0], idb[1], idb[2], idb[3], seqb, quab);
     }
@@ -188,7 +188,7 @@ dumpTagFile(char *tagfile) {
       a.decode(ida, seqa, qvsa);
       for (i=0; seqa[i+1]; i++)
         quaa[i] = qvsa[i] + '0';
-      fprintf(stdout, ">"u16bitFMT"_"u16bitFMT"_"u16bitFMT"_"u16bitFMT"\t%s/%s\n",
+      fprintf(stdout, ">"uint16FMT"_"uint16FMT"_"uint16FMT"_"uint16FMT"\t%s/%s\n",
               ida[0], ida[1], ida[2], ida[3], seqa, quaa);
     }
   }
@@ -202,16 +202,16 @@ int
 main(int argc, char **argv) {
   char  *prefix  = 0L;
 
-  u32bit  sampleSize    = 0;
+  uint32  sampleSize    = 0;
   char   *sampleFile    = 0L;
-  u32bit  sampleErrors  = 3;
-  u32bit  sampleTagSize = 25;
+  uint32  sampleErrors  = 3;
+  uint32  sampleTagSize = 25;
 
-  u32bit  tagfuid = 0,   tagruid = 0;
+  uint32  tagfuid = 0,   tagruid = 0;
   char   *tagfseq = 0L, *tagrseq  = 0L;
   char   *tagfqlt = 0L, *tagrqlt  = 0L;
 
-  u32bit  mean=0, stddev=0;
+  uint32  mean=0, stddev=0;
 
   int arg=1;
   int err=0;
@@ -220,22 +220,22 @@ main(int argc, char **argv) {
       prefix   = argv[++arg];
 
     } else if (strncmp(argv[arg], "-tags", 5) == 0) {
-      tagfuid  = strtou32bit(argv[++arg], 0L);
+      tagfuid  = strtouint32(argv[++arg], 0L);
       tagfseq  = argv[++arg];
       tagfqlt  = argv[++arg];
 
     } else if (strncmp(argv[arg], "-ftags", 2) == 0) {
-      tagfuid  = strtou32bit(argv[++arg], 0L);
+      tagfuid  = strtouint32(argv[++arg], 0L);
       tagfseq  = argv[++arg];
       tagfqlt  = argv[++arg];
     } else if (strncmp(argv[arg], "-rtags", 2) == 0) {
-      tagruid  = strtou32bit(argv[++arg], 0L);
+      tagruid  = strtouint32(argv[++arg], 0L);
       tagrseq  = argv[++arg];
       tagrqlt  = argv[++arg];
 
     } else if (strncmp(argv[arg], "-insertsize", 2) == 0) {
-      mean   = strtou32bit(argv[++arg], 0L);
-      stddev = strtou32bit(argv[++arg], 0L);
+      mean   = strtouint32(argv[++arg], 0L);
+      stddev = strtouint32(argv[++arg], 0L);
 
       if (mean > MAX_INSERT_SIZE)
         fprintf(stderr, "%s: insert size limited to at most %dbp.\n", argv[0], MAX_INSERT_SIZE), exit(1);
@@ -243,12 +243,12 @@ main(int argc, char **argv) {
         fprintf(stderr, "%s: insert size limited to at most +- %dbp.\n", argv[0], MAX_INSERT_DEVIATION), exit(1);
 
     } else if (strcmp(argv[arg], "-sample") == 0) {
-      sampleSize = strtou32bit(argv[++arg], 0L);
+      sampleSize = strtouint32(argv[++arg], 0L);
       sampleFile = argv[++arg];
     } else if (strcmp(argv[arg], "-sampleerrors") == 0) {
-      sampleErrors = strtou32bit(argv[++arg], 0L);
+      sampleErrors = strtouint32(argv[++arg], 0L);
     } else if (strcmp(argv[arg], "-sampletagsize") == 0) {
-      sampleTagSize = strtou32bit(argv[++arg], 0L);
+      sampleTagSize = strtouint32(argv[++arg], 0L);
 
     } else if (strncmp(argv[arg], "-stats", 3) == 0) {
       dumpTagFileStats(argv[++arg]);
@@ -278,9 +278,9 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  u64bit  numTagsF = 0, maxTagsF = 0;
-  u64bit  numTagsR = 0, maxTagsR = 0;
-  u64bit  numTagsM = 0;
+  uint64  numTagsF = 0, maxTagsF = 0;
+  uint64  numTagsR = 0, maxTagsR = 0;
+  uint64  numTagsM = 0;
 
   tapperTag      *TF = 0L;
   tapperTag      *TR = 0L;
@@ -290,13 +290,13 @@ main(int argc, char **argv) {
     seqCache   *F = new seqCache(sampleFile);
     seqInCore  *s = F->getSequenceInCore();
 
-    u32bit  pos = 0;
-    u32bit  len = s->sequenceLength();
+    uint32  pos = 0;
+    uint32  len = s->sequenceLength();
 
-    u16bit  id[4];
+    uint16  id[4];
     char    cor[64] = {0};
     char    seq[64] = {0};
-    u64bit  qlt[64] = {0};
+    uint64  qlt[64] = {0};
 
     char    acgt[4] = {'A', 'C', 'G', 'T'};
 
@@ -308,7 +308,7 @@ main(int argc, char **argv) {
     maxTagsR = sampleSize;
     TR       = new tapperTag [maxTagsR];
 
-    for (u32bit i=0; i<sampleSize; i++) {
+    for (uint32 i=0; i<sampleSize; i++) {
       pos = mtRandom32(mtctx) % (len - sampleTagSize);
 
       char  n = acgt[mtRandom32(mtctx) % 4];
@@ -321,16 +321,16 @@ main(int argc, char **argv) {
       //doForward = false;
 
       if (doForward) {
-        u32bit sp = pos;
-        for (u32bit x=1; x<=sampleTagSize; x++) {
+        uint32 sp = pos;
+        for (uint32 x=1; x<=sampleTagSize; x++) {
           n = s->sequence()[sp++];
           cor[x] = n;
           seq[x] = baseToColor[l][n];
           l = n;
         }
       } else {
-        u32bit sp = pos + sampleTagSize - 1;
-        for (u32bit x=1; x<=sampleTagSize; x++) {
+        uint32 sp = pos + sampleTagSize - 1;
+        for (uint32 x=1; x<=sampleTagSize; x++) {
           n = complementSymbol[s->sequence()[sp--]];
           cor[x] = n;
           seq[x] = baseToColor[l][n];
@@ -342,10 +342,10 @@ main(int argc, char **argv) {
 
       char     errors[256] = {0};
       char     errort[256] = {0};
-      u32bit   nerrs = mtRandom32(mtctx) % (sampleErrors + 1);
+      uint32   nerrs = mtRandom32(mtctx) % (sampleErrors + 1);
 
-      for (u32bit xx=0; xx<nerrs; xx++) {
-        u32bit e = mtRandom32(mtctx) % (sampleTagSize-1) + 1;
+      for (uint32 xx=0; xx<nerrs; xx++) {
+        uint32 e = mtRandom32(mtctx) % (sampleTagSize-1) + 1;
         char   o = seq[e];
         seq[e] = seq[e] + 1;
         if (seq[e] > '3')
@@ -359,7 +359,7 @@ main(int argc, char **argv) {
       id[2] = 0;
       id[3] = 0;
 
-      fprintf(stdout, "F\t"u16bitFMT"_"u16bitFMT"_"u16bitFMT"_"u16bitFMT"\t0\t"u32bitFMT"\t%c\t%s%s\t%s\n",
+      fprintf(stdout, "F\t"uint16FMT"_"uint16FMT"_"uint16FMT"_"uint16FMT"\t0\t"uint32FMT"\t%c\t%s%s\t%s\n",
               id[0], id[1], id[2], id[3],
               pos,
               (doForward) ? 'f' : 'r',
@@ -451,8 +451,8 @@ main(int argc, char **argv) {
   speedCounter *CM = new speedCounter(" writing mate tags %7.0f sequences -- %5.0f sequences/second\r", 1.0, 0x1ffff, true);
 
   while ((numTagsF < maxTagsF) && (numTagsR < maxTagsR)) {
-    u64bit   fID = TF[numTagsF].tagID() & u64bitMASK(48);
-    u64bit   rID = TR[numTagsR].tagID() & u64bitMASK(48);
+    uint64   fID = TF[numTagsF].tagID() & uint64MASK(48);
+    uint64   rID = TR[numTagsR].tagID() & uint64MASK(48);
 
     if (fID == rID) {
       if (TOmate == 0L)

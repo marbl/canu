@@ -38,9 +38,9 @@
 void
 writeGaplessSequence(FILE         *output,
                      seqInCore    *S,
-                     u32bit        beg,
-                     u32bit        end,
-                     u32bit        extend,
+                     uint32        beg,
+                     uint32        end,
+                     uint32        extend,
                      atacMatch    *l,
                      atacMatch    *r) {
   char  *s = S->sequence();
@@ -62,12 +62,12 @@ writeGaplessSequence(FILE         *output,
   //  Extend the ends up to 'extend' positions, as long as we don't
   //  hit a gap.
   //
-  for (u32bit x=0; ((x < extend) &&
+  for (uint32 x=0; ((x < extend) &&
                     (beg > 0) &&
                     (toUpper[(int)s[beg-1]] != 'N')); x++)
     beg--;
 
-  for (u32bit x=0; ((x < extend) &&
+  for (uint32 x=0; ((x < extend) &&
                     (end < S->sequenceLength()) &&
                     (toUpper[(int)s[end]] != 'N')); x++)
     end++;
@@ -87,7 +87,7 @@ writeGaplessSequence(FILE         *output,
       beg++;
         
     //  Move our current up to here
-    u32bit cur = beg;
+    uint32 cur = beg;
 
     //  If we're at the end of the sequence, this block doesn't
     //  exist; it's solid N.
@@ -102,7 +102,7 @@ writeGaplessSequence(FILE         *output,
 
       //  And output whatever this block is
       //
-      fprintf(output, "%s extracted from iid "u32bitFMT" pos "u32bitFMT" "u32bitFMT" between match %s(%s) and %s(%s)\n",
+      fprintf(output, "%s extracted from iid "uint32FMT" pos "uint32FMT" "uint32FMT" between match %s(%s) and %s(%s)\n",
               S->header(), S->getIID(), beg, cur,
               (l) ? l->matchuid  : "none",
               (l) ? l->parentuid : "none",
@@ -185,11 +185,11 @@ public:
     delete [] matches;
   };
 
-  atacMatch *operator[](u32bit idx) {
+  atacMatch *operator[](uint32 idx) {
     return(matches[idx]);
   };
 
-  u32bit len(void) {
+  uint32 len(void) {
     return(matchesLen);
   };
 
@@ -213,8 +213,8 @@ public:
 
 private:
   atacMatch  **matches;
-  u32bit       matchesLen;
-  u32bit       matchesMax;
+  uint32       matchesLen;
+  uint32       matchesMax;
 };
 
 
@@ -223,18 +223,18 @@ private:
 void
 extractUnmapped(seqCache *A, seqCache *B,
                 FILE *Aoutput, FILE *Boutput,
-                u32bit extend,
+                uint32 extend,
                 atacFile &AF,
                 atacMatchList &ML) {
-  u32bit   numSeqsA = AF.fastaA()->getNumberOfSequences();
-  u32bit   numSeqsB = AF.fastaB()->getNumberOfSequences();
+  uint32   numSeqsA = AF.fastaA()->getNumberOfSequences();
+  uint32   numSeqsB = AF.fastaB()->getNumberOfSequences();
 
   extractMatchList  *coveredA = new extractMatchList [numSeqsA];
   extractMatchList  *coveredB = new extractMatchList [numSeqsB];
 
   //  Populate the intervals with the mapping
   //
-  for (u32bit x=0; x<ML.numMatches(); x++) {
+  for (uint32 x=0; x<ML.numMatches(); x++) {
     atacMatch *m = ML[x];
 
     coveredA[m->iid1].add(m);
@@ -244,7 +244,7 @@ extractUnmapped(seqCache *A, seqCache *B,
   //  Sort the intervals, manually invert the interval -- remembering
   //  what matches are where.
   //
-  for (u32bit seq=0; seq<numSeqsA; seq++) {
+  for (uint32 seq=0; seq<numSeqsA; seq++) {
     coveredA[seq].sort1();
 
     //ML.fastaA()->find(seq);
@@ -271,7 +271,7 @@ extractUnmapped(seqCache *A, seqCache *B,
                              0L, coveredA[seq][0]);
       }
 
-      for (u32bit i=1; i<coveredA[seq].len(); i++) {
+      for (uint32 i=1; i<coveredA[seq].len(); i++) {
         if (coveredA[seq][i-1]->pos1 + coveredA[seq][i-1]->len1 < coveredA[seq][i]->pos1) {
           writeGaplessSequence(Aoutput,
                                S,
@@ -282,7 +282,7 @@ extractUnmapped(seqCache *A, seqCache *B,
         }
       }
 
-      u32bit last = coveredA[seq].len()-1;
+      uint32 last = coveredA[seq].len()-1;
       if (coveredA[seq][last]->pos1) {
         writeGaplessSequence(Aoutput,
                              S,
@@ -302,7 +302,7 @@ extractUnmapped(seqCache *A, seqCache *B,
   //  Sort the intervals, manually invert the interval -- remembering
   //  what matches are where.
   //
-  for (u32bit seq=0; seq<numSeqsB; seq++) {
+  for (uint32 seq=0; seq<numSeqsB; seq++) {
     coveredB[seq].sort2();
 
     seqInCore *S = B->getSequenceInCore(seq);
@@ -326,7 +326,7 @@ extractUnmapped(seqCache *A, seqCache *B,
                              0L, coveredB[seq][0]);
       }
 
-      for (u32bit i=1; i<coveredB[seq].len(); i++) {
+      for (uint32 i=1; i<coveredB[seq].len(); i++) {
         if (coveredB[seq][i-1]->pos2 + coveredB[seq][i-1]->len2 < coveredB[seq][i]->pos2) {
           writeGaplessSequence(Boutput,
                                S,
@@ -337,7 +337,7 @@ extractUnmapped(seqCache *A, seqCache *B,
         }
       }
 
-      u32bit last = coveredB[seq].len()-1;
+      uint32 last = coveredB[seq].len()-1;
       if (coveredB[seq][last]->pos2) {
         writeGaplessSequence(Boutput,
                              S,
@@ -363,7 +363,7 @@ extractUnmapped(seqCache *A, seqCache *B,
 void
 extractUnmappedRuns(seqCache *A, seqCache *B,
                     FILE *ARoutput, FILE *BRoutput,
-                    u32bit extend,
+                    uint32 extend,
                     atacMatchList &ML) {
   seqInCore  *S1 = 0L;
   seqInCore  *S2 = 0L;
@@ -371,7 +371,7 @@ extractUnmappedRuns(seqCache *A, seqCache *B,
   atacMatchOrder  MO(ML);
   MO.sortA();
 
-  for (u32bit i=1; i<MO.numMatches(); i++) {
+  for (uint32 i=1; i<MO.numMatches(); i++) {
     atacMatch *l = MO[i-1];
     atacMatch *r = MO[i];
 
@@ -482,7 +482,7 @@ main(int argc, char *argv[]) {
   FILE         *Boutput = 0L;
   FILE         *ARoutput = 0L;
   FILE         *BRoutput = 0L;
-  u32bit        extend = 0;
+  uint32        extend = 0;
   char         *trFile = 0L;
 
   int arg=1;
@@ -498,7 +498,7 @@ main(int argc, char *argv[]) {
     } else if (strcmp(argv[arg], "-br") == 0) {
       BRoutput = openOutputFile(argv[++arg]);
     } else if (strcmp(argv[arg], "-e") == 0) {
-      extend = strtou32bit(argv[++arg], 0L);
+      extend = strtouint32(argv[++arg], 0L);
     } else if (strcmp(argv[arg], "-t") == 0) {
       trFile = argv[++arg];
     } else {
@@ -534,17 +534,17 @@ main(int argc, char *argv[]) {
 
     fprintf(stderr, "Masking repeats in '%s'\n", trFile);
 
-    u32bit  statidx = 0;
-    u32bit  stats[2] = { 0 };
+    uint32  statidx = 0;
+    uint32  stats[2] = { 0 };
 
     while (!feof(F)) {
       fgets(L, 1024, F);
       W.split(L);
 
       char   source = W[0][0];
-      u32bit iid    = strtou32bit(W[1], 0L);
-      u32bit pos    = strtou32bit(W[2], 0L);
-      u32bit len    = strtou32bit(W[3], 0L);
+      uint32 iid    = strtouint32(W[1], 0L);
+      uint32 pos    = strtouint32(W[2], 0L);
+      uint32 len    = strtouint32(W[3], 0L);
       bool   fwd    = (W[4][0] != '-');
 
       seqInCore   *S = 0L;
@@ -563,7 +563,7 @@ main(int argc, char *argv[]) {
         exit(1);
       }
 
-      //fprintf(stderr, "Masking %c "u32bitFMTW(8)" from "u32bitFMTW(9)" to "u32bitFMTW(9)" on strand %c\r",
+      //fprintf(stderr, "Masking %c "uint32FMTW(8)" from "uint32FMTW(9)" to "uint32FMTW(9)" on strand %c\r",
       //        source, iid, pos, pos+len, (fwd) ? 'f' : 'r');
 
       if (fwd) {
@@ -572,7 +572,7 @@ main(int argc, char *argv[]) {
         s += S->sequenceLength() - pos - len;
       }
 
-      for (u32bit i=0; i<len; i++) {
+      for (uint32 i=0; i<len; i++) {
         if (toUpper[(int)s[i]] != 'N')
           stats[statidx]++;
         s[i] = 'N';
@@ -580,7 +580,7 @@ main(int argc, char *argv[]) {
     }
     fclose(F);
 
-    fprintf(stderr, "Done masking.  "u32bitFMT" in A, "u32bitFMT" in B.\n", stats[0], stats[1]);
+    fprintf(stderr, "Done masking.  "uint32FMT" in A, "uint32FMT" in B.\n", stats[0], stats[1]);
   }
 
 

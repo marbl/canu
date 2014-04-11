@@ -5,11 +5,11 @@
 
 inline
 void
-setEliasGammaEncodedNumber(u64bit *ptr,
-                           u64bit  pos,
-                           u64bit *siz,
-                           u64bit  val) {
-  u64bit b = logBaseTwo64(val);
+setEliasGammaEncodedNumber(uint64 *ptr,
+                           uint64  pos,
+                           uint64 *siz,
+                           uint64  val) {
+  uint64 b = logBaseTwo64(val);
   setUnaryEncodedNumber(ptr, pos, siz, b);
   pos += *siz;
   setDecodedValue(ptr, pos, b, val);
@@ -18,11 +18,11 @@ setEliasGammaEncodedNumber(u64bit *ptr,
 
 
 inline
-u64bit
-getEliasGammaEncodedNumber(u64bit *ptr,
-                           u64bit  pos,
-                           u64bit *siz) {
-  u64bit b = getUnaryEncodedNumber(ptr, pos, siz);
+uint64
+getEliasGammaEncodedNumber(uint64 *ptr,
+                           uint64  pos,
+                           uint64 *siz) {
+  uint64 b = getUnaryEncodedNumber(ptr, pos, siz);
   pos  += *siz;
   *siz += b;
   return(getDecodedValue(ptr, pos, b));

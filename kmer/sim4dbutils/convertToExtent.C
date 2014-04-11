@@ -13,11 +13,11 @@ void
 output(sim4polish *p,
        char       *Ep,
        char       *Gp,
-       u32bit      a,
-       u32bit      b,
+       uint32      a,
+       uint32      b,
        bool        isExon) {
-  u32bit  beg = p->_exons[a]._estFrom - 1;
-  u32bit  end = p->_exons[b]._estTo;
+  uint32  beg = p->_exons[a]._estFrom - 1;
+  uint32  end = p->_exons[b]._estTo;
 
   if (p->_matchOrientation == SIM4_MATCH_COMPLEMENT) {
     beg = p->_estLen - beg;
@@ -40,14 +40,14 @@ output(sim4polish *p,
   }
 
   if (extendedFormat)
-    fprintf(stdout, "%s\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t%s\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t%6.3f\t%6.3f\n",
+    fprintf(stdout, "%s\t"uint32FMT"\t"uint32FMT"\t"uint32FMT"\t"uint32FMT"\t"uint32FMT"\t%s\t"uint32FMT"\t"uint32FMT"\t"uint32FMT"\t%6.3f\t%6.3f\n",
             Ep, p->_estID,
             p->_estLen, a, beg, end,
             Gp, p->_genID,
             p->_exons[a]._genFrom - 1, p->_exons[b]._genTo,
             ident, cover);
   else
-    fprintf(stdout, "%s\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t%s\t"u32bitFMT"\t"u32bitFMT"\t%6.3f\t%6.3f\n",
+    fprintf(stdout, "%s\t"uint32FMT"\t"uint32FMT"\t"uint32FMT"\t"uint32FMT"\t%s\t"uint32FMT"\t"uint32FMT"\t%6.3f\t%6.3f\n",
             Ep, p->_estLen, a, beg, end,
             Gp, p->_exons[a]._genFrom - 1, p->_exons[b]._genTo,
             ident, cover);
@@ -122,7 +122,7 @@ main(int argc, char **argv) {
     if (doExons == false) {
       output(p, Ep, Gp, 0, p->_numExons-1, false);
     } else {
-      for (u32bit i=0; i<p->_numExons; i++)
+      for (uint32 i=0; i<p->_numExons; i++)
         output(p, Ep, Gp, i, i, true);
     }
   }

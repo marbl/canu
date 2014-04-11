@@ -47,16 +47,16 @@ main(int argc, char ** argv) {
     exit(1);
   }
 
-  u32bit   numseqs = seqs->numberOfSequences();
-  u32bit  *lrange = new u32bit [numseqs];
-  u32bit  *hrange = new u32bit [numseqs];
+  uint32   numseqs = seqs->numberOfSequences();
+  uint32  *lrange = new uint32 [numseqs];
+  uint32  *hrange = new uint32 [numseqs];
 
-  for (u32bit i=0; i<numseqs; i++) {
-    lrange[i] = ~u32bitZERO;
-    hrange[i] =  u32bitZERO;
+  for (uint32 i=0; i<numseqs; i++) {
+    lrange[i] = ~uint32ZERO;
+    hrange[i] =  uint32ZERO;
   }
 
-  u32bit  numRead = 0;
+  uint32  numRead = 0;
 
   while ((p = readPolish(pfile)) != 0L) {
     if (lrange[p->estID] > p->exons[0].estFrom-1)
@@ -76,13 +76,13 @@ main(int argc, char ** argv) {
 
   fprintf(stderr, "\n");
 
-  u32bit  seqcopylen = 128 * 1024;
+  uint32  seqcopylen = 128 * 1024;
   char   *seqcopy    = new char [seqcopylen + 1];
   char   *defcopy    = new char [128 * 1024];
 
   seqs->first(seqsbuffer);
 
-  for (u32bit i=0; i<numseqs; i++, seqs->next(seqsbuffer)) {
+  for (uint32 i=0; i<numseqs; i++, seqs->next(seqsbuffer)) {
     
     //  If there is no polish for the sequence, just write the whole
     //  thing out.  This is a hack, so that svi will run.
@@ -102,14 +102,14 @@ main(int argc, char ** argv) {
         seqcopy    = new char [seqcopylen + 1];
       }
 
-      for (u32bit j=0, k=lrange[i]; k<hrange[i]; j++, k++)
+      for (uint32 j=0, k=lrange[i]; k<hrange[i]; j++, k++)
         seqcopy[j] = seqsbuffer.sequence()[k];
 
       seqcopy[hrange[i] - lrange[i]] = 0;
 
       //  Mangle the defline
       //
-      u32bit j = 0;
+      uint32 j = 0;
       for (j=0; !isspace(seqsbuffer.header()[j]) && j<seqsbuffer.headerLength(); j++)
         defcopy[j] = seqsbuffer.header()[j];
 

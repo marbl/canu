@@ -11,17 +11,17 @@ public:
     _ptrs    = new coord * [_ptrsMax];
 
     _mersWid = 12;
-    _mersMax = u32bitMASK(_mersWid);
+    _mersMax = uint32MASK(_mersWid);
     _mersLen = 0;
     _ptrs[0] = new coord [_mersMax+1];
   };
   ~merList() {
-    for (u32bit x=0; x<_ptrsLen+1; x++)
+    for (uint32 x=0; x<_ptrsLen+1; x++)
       delete [] _ptrs[x];
     delete [] _ptrs;
   };
 
-  void  addMer(u32bit x, u32bit y) {
+  void  addMer(uint32 x, uint32 y) {
     if (_mersLen > _mersMax) {
       _ptrsLen++;
 
@@ -43,9 +43,9 @@ public:
     _mersLen++;
   };
 
-  bool  getMer(u32bit i, u32bit &x, u32bit &y) {
-    u32bit p = i >> _mersWid;
-    u32bit a = i  & _mersMax;
+  bool  getMer(uint32 i, uint32 &x, uint32 &y) {
+    uint32 p = i >> _mersWid;
+    uint32 a = i  & _mersMax;
 
     if ((p > _ptrsLen) || ((p == _ptrsLen) && (a >= _mersLen)))
       return(false);
@@ -58,37 +58,37 @@ public:
 
   void  clear(void) {
     // Don't delete the first guy!  We write into it blindly!
-    for (u32bit x=1; x<_ptrsLen; x++)
+    for (uint32 x=1; x<_ptrsLen; x++)
       delete [] _ptrs[x];
     _ptrsLen = 0;
     _mersLen = 0;
   };
 
   void  merge(merList *ML) {
-    u32bit i, x, y;
+    uint32 i, x, y;
     for (i=0; ML->getMer(i, x, y); i++)
       addMer(x, y);
   };
 
 private:
   struct coord {
-    u32bit  _qPos;
-    u32bit  _gPos;
+    uint32  _qPos;
+    uint32  _gPos;
   };
 
   //  The number of mer blocks we have space for, and the current mer
   //  block.
   //
-  u32bit         _ptrsMax;
-  u32bit         _ptrsLen;
+  uint32         _ptrsMax;
+  uint32         _ptrsLen;
   coord        **_ptrs;
 
   //  The number of mers available in each block, and the current mer
   //  we are at in the current block (for adding new mers).
   //
-  u32bit         _mersWid;
-  u32bit         _mersMax;
-  u32bit         _mersLen;
+  uint32         _mersWid;
+  uint32         _mersMax;
+  uint32         _mersLen;
 };
 
 #endif  //  MER_LIST_H

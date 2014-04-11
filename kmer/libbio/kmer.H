@@ -47,7 +47,7 @@ typedef kMerHuge kMer;
 
 class kMerBuilder {
 public:
-  kMerBuilder(u32bit ms=0, u32bit cm=0, char *tm=0L);
+  kMerBuilder(uint32 ms=0, uint32 cm=0, char *tm=0L);
   ~kMerBuilder();
 
   //  Clear all mer data, reset state to as just after construction.
@@ -57,15 +57,15 @@ public:
   //  only occurs for compressed mers, if we are in a homopolymer run.
   //
 private:
-  bool addBaseContiguous(u64bit cf, u64bit cr);
-  bool addBaseCompressed(u64bit cf, u64bit cr);
-  bool addBaseSpaced(u64bit cf, u64bit cr);
-  bool addBaseCompressedSpaced(u64bit cf, u64bit cr);
+  bool addBaseContiguous(uint64 cf, uint64 cr);
+  bool addBaseCompressed(uint64 cf, uint64 cr);
+  bool addBaseSpaced(uint64 cf, uint64 cr);
+  bool addBaseCompressedSpaced(uint64 cf, uint64 cr);
 
 public:
   bool    addBase(char ch) {
-    u64bit  cf = letterToBits[ch];
-    u64bit  cr = letterToBits[complementSymbol[ch]];
+    uint64  cf = letterToBits[ch];
+    uint64  cr = letterToBits[complementSymbol[ch]];
 
 #ifdef DEBUGADDBASE
     fprintf(stderr, "addBase() %c\n", ch);
@@ -98,17 +98,17 @@ public:
   kMer const   &theRMer(void) { return(*_rMer); };
   kMer const   &theCMer(void) { return((theFMer() < theRMer()) ? theFMer() : theRMer()); };
 
-  u32bit        merSize(void)      { return(_merSize); };
-  u32bit        templateSpan(void) { return(_templateSpan); };
+  uint32        merSize(void)      { return(_merSize); };
+  uint32        templateSpan(void) { return(_templateSpan); };
 
-  u32bit        baseSpan(u32bit b) {
+  uint32        baseSpan(uint32 b) {
     return(_compressionLength[(_compressionIndex + 1 + b) % _merSize]);;
   };
 
 private:
 
   //  Style of builder we are
-  u32bit   _style;
+  uint32   _style;
 
   //  Amount of the mer that has valid sequence.  Sigh.  I really needed a signed value here --
   //  where negative values mean that we first have to get to the end of the template that was
@@ -129,10 +129,10 @@ private:
   //  _merSizeValidIs is the size _merSizeValid needs to be in order for it to be valid.
   //  Similarily, _merSizeValidZero is the value of zero (currently this is equal to _merSize).
   //
-  u32bit   _merSize;              //  Desired number of bases in the mer
-  u32bit  *_merSizeValid;         //  Actual number of bases in the mer
-  u32bit   _merSizeValidZero;     //  Definition of 'zero' bases in the mer
-  u32bit   _merSizeValidIs;       //  Definition of 'full' bases in the mer
+  uint32   _merSize;              //  Desired number of bases in the mer
+  uint32  *_merSizeValid;         //  Actual number of bases in the mer
+  uint32   _merSizeValidZero;     //  Definition of 'zero' bases in the mer
+  uint32   _merSizeValidIs;       //  Definition of 'full' bases in the mer
 
   //  An array of mers, we allocate all mers in one block
   kMer    *_merStorage;
@@ -142,19 +142,19 @@ private:
   kMer    *_rMer;
 
   //  For compression
-  u32bit   _compression;
-  u32bit   _compressionIndex;        //  index into cL[] that is the last base in the mer
-  u32bit   _compressionFirstIndex;   //  index into cL[] that is the first base in a run
-  u32bit  *_compressionLength;       //  one per base
-  u32bit   _compressionCurrentLength;
+  uint32   _compression;
+  uint32   _compressionIndex;        //  index into cL[] that is the last base in the mer
+  uint32   _compressionFirstIndex;   //  index into cL[] that is the first base in a run
+  uint32  *_compressionLength;       //  one per base
+  uint32   _compressionCurrentLength;
 
   //  For templates
-  u32bit   _templateSpan;     //  # of 0's and 1's in the template
-  u32bit   _templateLength;   //  length of the pattern in the template
+  uint32   _templateSpan;     //  # of 0's and 1's in the template
+  uint32   _templateLength;   //  length of the pattern in the template
   char    *_template;         //  character string template
-  u32bit   _templatePos;      //  position we are building in the template
-  u32bit   _templateMer;      //  the mer we should output next
-  u32bit   _templateFirst;    //  if true, we're still building the initial mer
+  uint32   _templatePos;      //  position we are building in the template
+  uint32   _templateMer;      //  the mer we should output next
+  uint32   _templateFirst;    //  if true, we're still building the initial mer
 };
 
 #endif  //  BIO_KMER_H

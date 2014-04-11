@@ -36,11 +36,11 @@ Sim4::maskExonsFromSeeds(sim4command *cmd,
 
   while (theExon) {
     if (theExon->toGEN) {
-      for (u32bit x=0; x<cmd->numberOfExternalSeeds(); x++) {
-        u32bit pos = cmd->externalSeedGENPosition(x);
+      for (uint32 x=0; x<cmd->numberOfExternalSeeds(); x++) {
+        uint32 pos = cmd->externalSeedGENPosition(x);
 
-        if (((u32bit)theExon->frGEN <= pos + 1) &&
-            (pos <= (u32bit)theExon->toGEN + cmd->externalSeedLength(x)))
+        if (((uint32)theExon->frGEN <= pos + 1) &&
+            (pos <= (uint32)theExon->toGEN + cmd->externalSeedLength(x)))
           cmd->maskExternalSeed(x);
       }
     }
@@ -93,7 +93,7 @@ Sim4::run(sim4command *cmd) {
 
   cmd->finalize();
 
-  u32bit  dblen       = cmd->getGENhi() - cmd->getGENlo();
+  uint32  dblen       = cmd->getGENhi() - cmd->getGENlo();
   char   *dbseq       = 0L;
   char   *dbrev       = 0L;
   char   *dbseqorig   = cmd->getGENsequence();
@@ -111,7 +111,7 @@ Sim4::run(sim4command *cmd) {
   //  reverse complemented).
   //
   char   *seqStorage     = 0L;
-  u32bit  seqStorageSize = 0;
+  uint32  seqStorageSize = 0;
 
   seqStorageSize  = 2 * dblen + 2 * cmd->getESTlength() + 8;
   seqStorage      = new char [seqStorageSize];
@@ -130,7 +130,7 @@ Sim4::run(sim4command *cmd) {
   //  Convert to uppercase
   //  Reverse complement
   //
-  for (u32bit i=0, j=cmd->getGENlo(), k=dblen-1; j<cmd->getGENhi(); i++, j++, k--) {
+  for (uint32 i=0, j=cmd->getGENlo(), k=dblen-1; j<cmd->getGENhi(); i++, j++, k--) {
     dbseq[i] = touppercache[(int)dbseqorig[j]];
     dbrev[k] = complementSymbol[(int)dbseq[i]];
   }
@@ -215,12 +215,12 @@ Sim4::run(sim4command *cmd) {
         exon_cores(_genSeq-1, _estSeq-1, _genLen, _estLen, 1, 1, 0, spacedSeedMSS, mspThreshold1, PERM);
       } else {
 #ifdef SHOW_EXTERNAL_SEEDING
-        fprintf(stderr, "FWD: Using external seeds -- adding "u32bitFMT" seeds to sim4.\n", cmd->numberOfExternalSeeds());
+        fprintf(stderr, "FWD: Using external seeds -- adding "uint32FMT" seeds to sim4.\n", cmd->numberOfExternalSeeds());
 #endif
 
         cmd->sortExternalSeeds();
 
-        for (u32bit x=0; x<cmd->numberOfExternalSeeds(); x++)
+        for (uint32 x=0; x<cmd->numberOfExternalSeeds(); x++)
           if (cmd->externalSeedLength(x) > 0)
             _mspManager.addHit(_genSeq-1, _estSeq-1,
                                _genLen, _estLen,
@@ -296,7 +296,7 @@ Sim4::run(sim4command *cmd) {
         exon_cores(_genSeq-1, _estSeq-1, _genLen, _estLen, 1, 1, 0, spacedSeedMSS, mspThreshold1, PERM);
       } else {
 #ifdef SHOW_EXTERNAL_SEEDING
-        fprintf(stderr, "BWD: Using external seeds -- adding "u32bitFMT" seeds to sim4.\n", cmd->numberOfExternalSeeds());
+        fprintf(stderr, "BWD: Using external seeds -- adding "uint32FMT" seeds to sim4.\n", cmd->numberOfExternalSeeds());
 #endif
 
         cmd->sortExternalSeeds();
@@ -305,7 +305,7 @@ Sim4::run(sim4command *cmd) {
         //  but we need to reverse everything.  We can do this by just
         //  adding the seeds backwards!
         //
-        //  for (u32bit x=cmd->numberOfExternalSeeds(); x--; )
+        //  for (uint32 x=cmd->numberOfExternalSeeds(); x--; )
         //
         //  Not sure _why_ we wanted to add them backwards, but it
         //  screws up the addHit logic of skipping seeds we have
@@ -313,7 +313,7 @@ Sim4::run(sim4command *cmd) {
         //  external seeding needing to be done backwards.
         //  Apparently, this isn't it.
         //
-        for (u32bit x=0; x<cmd->numberOfExternalSeeds(); x++)
+        for (uint32 x=0; x<cmd->numberOfExternalSeeds(); x++)
           if (cmd->externalSeedLength(x) > 0)
             _mspManager.addHit(_genSeq-1, _estSeq-1,
                                _genLen, _estLen,

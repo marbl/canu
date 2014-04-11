@@ -91,7 +91,7 @@ fastqFile::openFile(const char *filename) {
 
 
 
-u32bit
+uint32
 fastqFile::find(const char *sequencename) {
   char   *ptr = _names;
 
@@ -101,7 +101,7 @@ fastqFile::find(const char *sequencename) {
   //
   //  Similar code is used for seqStore::find()
 
-  for (u32bit iid=0; iid < _header._numberOfSequences; iid++) {
+  for (uint32 iid=0; iid < _header._numberOfSequences; iid++) {
     //fprintf(stderr, "fastqFile::find()-- '%s' vs '%s'\n", sequencename, ptr);
     if (strcmp(sequencename, ptr) == 0)
       return(iid);
@@ -111,16 +111,16 @@ fastqFile::find(const char *sequencename) {
     ptr++;
   }
 
-  return(~u32bitZERO);
+  return(~uint32ZERO);
 }
 
 
 
-u32bit
-fastqFile::getSequenceLength(u32bit iid) {
+uint32
+fastqFile::getSequenceLength(uint32 iid) {
 
 #ifdef DEBUG
-  fprintf(stderr, "fastqFile::getSequenceLength()-- "u32bitFMT"\n", iid);
+  fprintf(stderr, "fastqFile::getSequenceLength()-- "uint32FMT"\n", iid);
 #endif
 
   return((iid < _numberOfSequences) ? _index[iid]._seqLength : 0);
@@ -129,16 +129,16 @@ fastqFile::getSequenceLength(u32bit iid) {
 
 
 bool
-fastqFile::getSequence(u32bit iid,
-                       char *&h, u32bit &hLen, u32bit &hMax,
-                       char *&s, u32bit &sLen, u32bit &sMax) {
+fastqFile::getSequence(uint32 iid,
+                       char *&h, uint32 &hLen, uint32 &hMax,
+                       char *&s, uint32 &sLen, uint32 &sMax) {
 
 #ifdef DEBUG
-  fprintf(stderr, "fastqFile::getSequence(full)-- "u32bitFMT"\n", iid);
+  fprintf(stderr, "fastqFile::getSequence(full)-- "uint32FMT"\n", iid);
 #endif
 
   if (iid >= _header._numberOfSequences) {
-    fprintf(stderr, "fastqFile::getSequence(full)--  iid "u32bitFMT" more than number of sequences "u32bitFMT"\n",
+    fprintf(stderr, "fastqFile::getSequence(full)--  iid "uint32FMT" more than number of sequences "uint32FMT"\n",
       iid, _header._numberOfSequences);
     return(false);
   }
@@ -163,7 +163,7 @@ fastqFile::getSequence(u32bit iid,
   sLen = 0;
 
 #ifdef DEBUG
-  fprintf(stderr, "fastqFile::getSequence(full)-- seek to iid="u32bitFMT" at pos="u32bitFMT"\n",
+  fprintf(stderr, "fastqFile::getSequence(full)-- seek to iid="uint32FMT" at pos="uint32FMT"\n",
           iid, _index[iid]._seqPosition);
 #endif
   _rb->seek(_index[iid]._seqPosition);
@@ -246,17 +246,17 @@ fastqFile::getSequence(u32bit iid,
 
 // slow
 bool
-fastqFile::getSequence(u32bit iid,
-                       u32bit bgn, u32bit end, char *s) {
+fastqFile::getSequence(uint32 iid,
+                       uint32 bgn, uint32 end, char *s) {
 
   if (iid >= _header._numberOfSequences) {
-    fprintf(stderr, "fastqFile::getSequence(part)--  iid "u32bitFMT" more than number of sequences "u32bitFMT"\n",
+    fprintf(stderr, "fastqFile::getSequence(part)--  iid "uint32FMT" more than number of sequences "uint32FMT"\n",
       iid, _header._numberOfSequences);
     return(false);
   }
 
 #ifdef DEBUG
-  fprintf(stderr, "fastqFile::getSequence(part)-- "u32bitFMT"\n", iid);
+  fprintf(stderr, "fastqFile::getSequence(part)-- "uint32FMT"\n", iid);
 #endif
 
   //  Unlike the fasta version of this, we know that all the sequence is on one line.  However, we
@@ -264,7 +264,7 @@ fastqFile::getSequence(u32bit iid,
 
   _rb->seek(_index[iid]._seqPosition);
 
-  u32bit pos = 0;
+  uint32 pos = 0;
   char   x   = _rb->read();
 
   //  Skip whitespace at the start of the sequence.
@@ -358,9 +358,9 @@ fastqFile::loadIndex(char *indexname) {
     return;
   }
 
-  if ((_header._fastqFileSize         != (u64bit)fastqstat.st_size) ||
-      (_header._fastqModificationTime != (u64bit)fastqstat.st_mtime) ||
-      (_header._fastqCreationTime     != (u64bit)fastqstat.st_ctime)) {
+  if ((_header._fastqFileSize         != (uint64)fastqstat.st_size) ||
+      (_header._fastqModificationTime != (uint64)fastqstat.st_mtime) ||
+      (_header._fastqCreationTime     != (uint64)fastqstat.st_ctime)) {
     fprintf(stderr, "fastqFile::constructIndex()-- stat mismatch.\n");
     fclose(I);
     return;
@@ -393,7 +393,7 @@ fastqFile::constructIndex(void) {
   char  indexname[FILENAME_MAX];
 
   strcpy(indexname, _filename);
-  u32bit l = strlen(_filename);
+  uint32 l = strlen(_filename);
   if ((l > 5) && (strcmp(_filename + l - 6, ".fastq") == 0))
     strcat(indexname, "idx");
   else
@@ -412,22 +412,22 @@ fastqFile::constructIndex(void) {
 
   //  Allocate some space for the index structures.
 
-  u32bit  indexMax = 64 * 1024 * 1024 / sizeof(fastqFileIndex);
-  u32bit  indexLen = 0;
+  uint32  indexMax = 64 * 1024 * 1024 / sizeof(fastqFileIndex);
+  uint32  indexLen = 0;
 
   _index = new fastqFileIndex [indexMax];
 
-  u32bit  namesMax = 32 * 1024 * 1024;
-  u32bit  namesLen = 0;
+  uint32  namesMax = 32 * 1024 * 1024;
+  uint32  namesLen = 0;
 
   _names = new char [namesMax];
 
   //  Some local storage
 
-  u64bit       seqStart;
-  u32bit       seqLen;
-  u32bit       seqLenMax = ~u32bitZERO;
-  u32bit       namePos;
+  uint64       seqStart;
+  uint32       seqLen;
+  uint32       seqLenMax = ~uint32ZERO;
+  uint32       namePos;
 
   readBuffer   ib(_filename);
   char         x = ib.read();
@@ -528,7 +528,7 @@ fastqFile::constructIndex(void) {
     //  Save to the index.
 
     if (indexLen >= indexMax) {
-      fprintf(stderr, "REALLOC len="u32bitFMT" from "u32bitFMT" to "u32bitFMT"\n", indexLen, indexMax, indexMax * 2);
+      fprintf(stderr, "REALLOC len="uint32FMT" from "uint32FMT" to "uint32FMT"\n", indexLen, indexMax, indexMax * 2);
       indexMax *= 2;
       fastqFileIndex *et = new fastqFileIndex[indexMax];
       memcpy(et, _index, sizeof(fastqFileIndex) * indexLen);
@@ -542,7 +542,7 @@ fastqFile::constructIndex(void) {
 #if 0
     if ((indexLen * sizeof(fastqFileIndex) > 131000) &&
         (indexLen * sizeof(fastqFileIndex) < 131200))
-      fprintf(stderr, "INDEX pos="u64bitFMT" iid="u32bitFMT" len="u32bitFMT" pos="u64bitFMT"\n",
+      fprintf(stderr, "INDEX pos="uint64FMT" iid="uint32FMT" len="uint32FMT" pos="uint64FMT"\n",
               indexLen * sizeof(fastqFileIndex), indexLen, seqLen, seqStart);
 #endif
 

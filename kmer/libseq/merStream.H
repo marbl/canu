@@ -37,7 +37,7 @@ public:
   kMer const &           theRMer(void)    { assert(_invalid == false); return(_kb->theRMer()); };
   kMer const &           theCMer(void)    { assert(_invalid == false); return(_kb->theCMer()); };
 
-  bool                   nextMer(u32bit skip=0) {
+  bool                   nextMer(uint32 skip=0) {
     char  ch;
 
     do {
@@ -52,7 +52,7 @@ public:
 #if 0
     char   merstring[256];
 
-    fprintf(stderr, "merStream::nextMer()-- seqPos="u64bitFMT" merPos="u64bitFMT" span="u32bitFMT" base0span="u32bitFMT" end="u64bitFMT" %s %s\n",
+    fprintf(stderr, "merStream::nextMer()-- seqPos="uint64FMT" merPos="uint64FMT" span="uint32FMT" base0span="uint32FMT" end="uint64FMT" %s %s\n",
             _ss->strPos(),
             _ss->strPos() - theFMer().getMerSpan(),
             theFMer().getMerSpan(),
@@ -74,13 +74,13 @@ public:
 
   void                   rewind(void);
   void                   rebuild(void);
-  void                   setBaseRange(u64bit beg, u64bit end);
+  void                   setBaseRange(uint64 beg, uint64 end);
 
-  u64bit                 thePositionInSequence(void)   { assert(_invalid == false); return(_ss->seqPos() - theFMer().getMerSpan()); };
-  u64bit                 thePositionInStream(void)     { assert(_invalid == false); return(_ss->strPos() - theFMer().getMerSpan()); };
-  u64bit                 theSequenceNumber(void)       { assert(_invalid == false); return(_ss->seqIID()); };
+  uint64                 thePositionInSequence(void)   { assert(_invalid == false); return(_ss->seqPos() - theFMer().getMerSpan()); };
+  uint64                 thePositionInStream(void)     { assert(_invalid == false); return(_ss->strPos() - theFMer().getMerSpan()); };
+  uint64                 theSequenceNumber(void)       { assert(_invalid == false); return(_ss->seqIID()); };
 
-  u64bit                 approximateNumberOfMers(void);
+  uint64                 approximateNumberOfMers(void);
 
 private:
   kMerBuilder          *_kb;
@@ -91,8 +91,8 @@ private:
 
   bool                  _invalid;
 
-  u64bit                _beg;
-  u64bit                _end;
+  uint64                _beg;
+  uint64                _end;
 };
 
 

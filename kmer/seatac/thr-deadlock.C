@@ -12,8 +12,8 @@
 #include <signal.h>
 #endif
 
-u32bit deadlockTested = 0;
-u32bit deadlockPassed = 0;
+uint32 deadlockTested = 0;
+uint32 deadlockPassed = 0;
 
 void*
 deadlockDetector(void *) {

@@ -15,25 +15,25 @@
 class recordFile {
 public:
   recordFile(char const *name,
-             u32bit      headerSize,
-             u32bit      recordSize,
+             uint32      headerSize,
+             uint32      recordSize,
              char        mode);
   ~recordFile();
 
   void      *header(void) { return(_header); };
 
-  u64bit     numRecords(void) { return(_numRecords); };
+  uint64     numRecords(void) { return(_numRecords); };
 
   //  Read/write records.
-  u32bit     getRecord(void *record, u32bit num=1);
-  void       putRecord(void *record, u32bit num=1);
+  uint32     getRecord(void *record, uint32 num=1);
+  void       putRecord(void *record, uint32 num=1);
 
   //  Seek to record rec, optionally repositioning the buffer to that
   //  record.
-  void       seek(u64bit rec, bool forced=false);
+  void       seek(uint64 rec, bool forced=false);
 
   //  Set an artificial EOF at record rec.
-  void       limit(u64bit rec) { _limit = rec; };
+  void       limit(uint64 rec) { _limit = rec; };
 
 private:
   void       flushDirty(void);
@@ -41,19 +41,19 @@ private:
   int       _file;
   char     *_name;
 
-  u64bit    _numRecords;
-  u32bit    _recordSize;
+  uint64    _numRecords;
+  uint32    _recordSize;
 
-  u32bit    _headerSize;
+  uint32    _headerSize;
   char     *_header;
 
-  u64bit    _bfrmax;  //  Number of records in the buffer
+  uint64    _bfrmax;  //  Number of records in the buffer
   char     *_bfr;     //  A chunk of the bitPackedFile in core
 
-  u64bit    _limit;   //  An artificial EOF
+  uint64    _limit;   //  An artificial EOF
 
-  u64bit    _pos;     //  The location this chunk is from (in records)
-  u64bit    _rec;     //  The record we're modifying relative to _pos
+  uint64    _pos;     //  The location this chunk is from (in records)
+  uint64    _rec;     //  The record we're modifying relative to _pos
 
   bool      _bfrDirty;
   bool      _isReadOnly;

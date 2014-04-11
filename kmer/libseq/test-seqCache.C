@@ -7,35 +7,35 @@
 #include "test-correctSequence.H"
 
 
-u32bit
-testSeqVsCorrect(seqInCore *S, u32bit testID) {
-  u32bit err = 0;
+uint32
+testSeqVsCorrect(seqInCore *S, uint32 testID) {
+  uint32 err = 0;
 
   if (S == 0L) {
-    fprintf(stderr, "testID:"u32bitFMT" - empty sequence\n", testID);
+    fprintf(stderr, "testID:"uint32FMT" - empty sequence\n", testID);
     return(1);
   }
 
-  u32bit sid = S->getIID();
+  uint32 sid = S->getIID();
 
   if (strcmp(S->header(),   correctSequence[sid].header) != 0) {
-    fprintf(stderr, "testID:"u32bitFMT" - header differs '%s' vs '%s'\n", testID, S->header(), correctSequence[sid].header);
+    fprintf(stderr, "testID:"uint32FMT" - header differs '%s' vs '%s'\n", testID, S->header(), correctSequence[sid].header);
     err++;
   }
   if (S->headerLength() != correctSequence[sid].headerLength) {
-    fprintf(stderr, "testID:"u32bitFMT" - header length differs "u32bitFMT" vs "u32bitFMT"\n", testID, S->headerLength(), correctSequence[sid].headerLength);
+    fprintf(stderr, "testID:"uint32FMT" - header length differs "uint32FMT" vs "uint32FMT"\n", testID, S->headerLength(), correctSequence[sid].headerLength);
     err++;
   }
   if (strcmp(S->sequence(), correctSequence[sid].sequence) != 0) {
-    fprintf(stderr, "testID:"u32bitFMT" - sequence differs\n", testID);
+    fprintf(stderr, "testID:"uint32FMT" - sequence differs\n", testID);
     err++;
   }
   if (strlen(S->sequence()) != correctSequence[sid].sequenceLength) {
-    fprintf(stderr, "testID:"u32bitFMT" - sequence length differs strlen "u32bitFMT" vs "u32bitFMT"\n", testID, (u32bit)strlen(S->sequence()), correctSequence[sid].sequenceLength);
+    fprintf(stderr, "testID:"uint32FMT" - sequence length differs strlen "uint32FMT" vs "uint32FMT"\n", testID, (uint32)strlen(S->sequence()), correctSequence[sid].sequenceLength);
     err++;
   }
   if (S->sequenceLength() != correctSequence[sid].sequenceLength) {
-    fprintf(stderr, "testID:"u32bitFMT" - sequence length differs "u32bitFMT" vs "u32bitFMT"\n", testID, S->sequenceLength(), correctSequence[sid].sequenceLength);
+    fprintf(stderr, "testID:"uint32FMT" - sequence length differs "uint32FMT" vs "uint32FMT"\n", testID, S->sequenceLength(), correctSequence[sid].sequenceLength);
     err++;
   }
 
@@ -43,15 +43,15 @@ testSeqVsCorrect(seqInCore *S, u32bit testID) {
 }
 
 
-u32bit
+uint32
 testSeqCacheIDLookups(seqCache *SC) {
-  u32bit      err    = 0;
-  u32bit      numSeq = SC->getNumberOfSequences();
+  uint32      err    = 0;
+  uint32      numSeq = SC->getNumberOfSequences();
   double      start  = getTime();
 
   //  1 - getSequenceIID()
   fprintf(stderr, "1 - getSequenceIID()\n");
-  for (u32bit sid=0; sid<numSeq; sid++) {
+  for (uint32 sid=0; sid<numSeq; sid++) {
     if (sid != SC->getSequenceIID(correctSequence[sid].header)) {
       fprintf(stderr, "2 - failed to find name '%s'\n", correctSequence[sid].header);
       err++;
@@ -64,16 +64,16 @@ testSeqCacheIDLookups(seqCache *SC) {
 }
 
 
-u32bit
+uint32
 testSeqCache(seqCache *SC) {
-  u32bit      err    = 0;
-  u32bit      numSeq = SC->getNumberOfSequences();
+  uint32      err    = 0;
+  uint32      numSeq = SC->getNumberOfSequences();
   seqInCore  *S      = 0L;
   double      start  = getTime();
 
   //  0 - getSequenceLength()
   fprintf(stderr, "0 - getSequenceLength()\n");
-  for (u32bit sid=0; sid<numSeq; sid++)
+  for (uint32 sid=0; sid<numSeq; sid++)
     if (SC->getSequenceLength(sid) != correctSequence[sid].sequenceLength) {
       fprintf(stderr, "1 - length differs.\n");
       err++;
@@ -90,7 +90,7 @@ testSeqCache(seqCache *SC) {
 
   //  3 - iterate with getSequenceInCore(sid++)
   fprintf(stderr, "3 - iterate with getSequenceInCore(sid++)\n");
-  for (u32bit sid=0; sid<numSeq; sid++) {
+  for (uint32 sid=0; sid<numSeq; sid++) {
     S = SC->getSequenceInCore(sid);
     err += testSeqVsCorrect(S, 3);
     delete S;
@@ -98,8 +98,8 @@ testSeqCache(seqCache *SC) {
 
   //  4 - random with getSequenceInCore(sid)
   fprintf(stderr, "4 - random with getSequenceInCore(sid)\n");
-  for (u32bit cnt=0; cnt<4*numSeq; cnt++) {
-    u32bit sid = mtRandom32(mtctx) % numSeq;
+  for (uint32 cnt=0; cnt<4*numSeq; cnt++) {
+    uint32 sid = mtRandom32(mtctx) % numSeq;
     S = SC->getSequenceInCore(sid);
     err += testSeqVsCorrect(S, 4);
     delete S;
@@ -113,11 +113,11 @@ testSeqCache(seqCache *SC) {
 
 int
 main(int argc, char **argv) {
-  u32bit     minLen = 100;
-  u32bit     maxLen = 2000;
-  u32bit     numSeq = 100000;
+  uint32     minLen = 100;
+  uint32     maxLen = 2000;
+  uint32     numSeq = 100000;
   seqCache  *SC     = 0L;
-  u32bit     err    = 0;
+  uint32     err    = 0;
 
   generateCorrectSequence(minLen, maxLen, numSeq);
 

@@ -82,20 +82,20 @@ main(int argc, char **argv) {
 
   //  Read matches.
 
-  u32bit            lMax = 10240;
-  u32bit            lLen = 0;
+  uint32            lMax = 10240;
+  uint32            lLen = 0;
 
-  u32bit           *nTot = new u32bit [lMax];
-  u32bit           *nIde = new u32bit [lMax];
-  u32bit           *nMis = new u32bit [lMax];
-  u32bit           *nIns = new u32bit [lMax];
-  u32bit           *nDel = new u32bit [lMax];
+  uint32           *nTot = new uint32 [lMax];
+  uint32           *nIde = new uint32 [lMax];
+  uint32           *nMis = new uint32 [lMax];
+  uint32           *nIns = new uint32 [lMax];
+  uint32           *nDel = new uint32 [lMax];
 
-  memset(nTot, 0, sizeof(u32bit) * lMax);
-  memset(nIde, 0, sizeof(u32bit) * lMax);
-  memset(nMis, 0, sizeof(u32bit) * lMax);
-  memset(nIns, 0, sizeof(u32bit) * lMax);
-  memset(nDel, 0, sizeof(u32bit) * lMax);
+  memset(nTot, 0, sizeof(uint32) * lMax);
+  memset(nIde, 0, sizeof(uint32) * lMax);
+  memset(nMis, 0, sizeof(uint32) * lMax);
+  memset(nIns, 0, sizeof(uint32) * lMax);
+  memset(nDel, 0, sizeof(uint32) * lMax);
 
   sim4polishReader *R = new sim4polishReader(inName);
   sim4polish       *p = 0L;
@@ -103,7 +103,7 @@ main(int argc, char **argv) {
   while (R->nextAlignment(p)) {
     bool    fwd  = (p->_matchOrientation == SIM4_MATCH_FORWARD);
 
-    for (u32bit exon=0; exon<p->_numExons; exon++) {
+    for (uint32 exon=0; exon<p->_numExons; exon++) {
       sim4polishExon *e = p->_exons + exon;
 
       //  Fail if there are no alignments.
@@ -114,9 +114,9 @@ main(int argc, char **argv) {
 
       //  Parse the alignment to find ungapped blocks
 
-      u32bit  aPos = 0;                //  Position in the alignment
-      u32bit  qPos = e->_estFrom - 1;  //  Actual position in the query sequence
-      u32bit  gPos = e->_genFrom - 1;  //  Actual position in the genome sequence
+      uint32  aPos = 0;                //  Position in the alignment
+      uint32  qPos = e->_estFrom - 1;  //  Actual position in the query sequence
+      uint32  gPos = e->_genFrom - 1;  //  Actual position in the genome sequence
 
       if (fwd == false)
         qPos = p->_estLen - e->_estFrom + 1;
@@ -148,7 +148,7 @@ main(int argc, char **argv) {
         if (lLen < qPos)
           lLen = qPos;
 
-        //fprintf(stdout, "%s "u32bitFMT" %c ->_ %s "u32bitFMT" %c\n",
+        //fprintf(stdout, "%s "uint32FMT" %c ->_ %s "uint32FMT" %c\n",
         //        p->_estDefLine, qPos, e->_estAlignment[aPos],
         //        p->_genDefLine, gPos, e->_genAlignment[aPos]);
 
@@ -172,7 +172,7 @@ main(int argc, char **argv) {
   //  nMis,   percent
 
   fprintf(DAT, "#idx\tnTot\tnIde\tfrac\tnDel\tfrac\tnIns\tfrac\tnMis\tfrac\tnErr\tfrac\n");
-  for (u32bit i=0; i<=lLen; i++)
+  for (uint32 i=0; i<=lLen; i++)
     fprintf(DAT, "%u\t%u\t%u\t%6.4f\t%u\t%6.4f\t%u\t%6.4f\t%u\t%6.4f\t%u\t%6.4f\n",
             i,
             nTot[i],

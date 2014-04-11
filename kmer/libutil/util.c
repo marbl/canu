@@ -23,10 +23,10 @@ getTime(void) {
 }
 
 
-u64bit
+uint64
 getProcessSizeCurrent(void) {
   struct rusage  ru;
-  u64bit         sz = 0;
+  uint64         sz = 0;
 
   errno = 0;
   if (getrusage(RUSAGE_SELF, &ru) == -1) {
@@ -41,10 +41,10 @@ getProcessSizeCurrent(void) {
 }
 
 
-u64bit
+uint64
 getProcessSizeLimit(void) {
   struct rlimit rlp;
-  u64bit        sz = ~u64bitZERO;
+  uint64        sz = ~uint64ZERO;
 
   errno = 0;
   if (getrlimit(RLIMIT_DATA, &rlp) == -1) {
@@ -69,12 +69,12 @@ memdup(const void *orig, size_t size) {
     rslt = malloc(size);
     if (errno) {
       //  Some ugliness to print out a size_t.  This might be useless,
-      //  as it might be determined by TRUE64BIT.
+      //  as it might be determined by TRUEINT64.
       //
       if (sizeof(size_t) == 8)
-        fprintf(stderr, "memdup()-- can't allocate "s64bitFMT" bytes.\n%s\n", (s64bit)size, strerror(errno));
+        fprintf(stderr, "memdup()-- can't allocate "int64FMT" bytes.\n%s\n", (int64)size, strerror(errno));
       else
-        fprintf(stderr, "memdup()-- can't allocate "u32bitFMT" bytes.\n%s\n", (u32bit)size, strerror(errno));
+        fprintf(stderr, "memdup()-- can't allocate "uint32FMT" bytes.\n%s\n", (uint32)size, strerror(errno));
       exit(1);
     }
     memcpy(rslt, orig, size);
@@ -103,7 +103,7 @@ sizeOfFile(const char *path) {
 }
 
 
-u64bit
+uint64
 timeOfFile(const char *path) {
   struct stat s;
 

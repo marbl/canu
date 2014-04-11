@@ -43,16 +43,16 @@ fastaStdin::openFile(const char *filename) {
 
 
 
-u32bit
+uint32
 fastaStdin::find(const char *sequencename) {
   fprintf(stderr, "fastaStdin::find()-- WARNING!  Used for random access.\n");
-  return(~u32bitZERO);
+  return(~uint32ZERO);
 }
 
 
 
-u32bit
-fastaStdin::getSequenceLength(u32bit iid) {
+uint32
+fastaStdin::getSequenceLength(uint32 iid) {
   fprintf(stderr, "fastaStdin::getSequenceLength()-- WARNING!  Used for random access.\n");
   return(0);
 }
@@ -60,12 +60,12 @@ fastaStdin::getSequenceLength(u32bit iid) {
 
 
 bool
-fastaStdin::getSequence(u32bit iid,
-                             char *&h, u32bit &hLen, u32bit &hMax,
-                             char *&s, u32bit &sLen, u32bit &sMax) {
+fastaStdin::getSequence(uint32 iid,
+                             char *&h, uint32 &hLen, uint32 &hMax,
+                             char *&s, uint32 &sLen, uint32 &sMax) {
 
 #ifdef DEBUG
-  fprintf(stderr, "fastaStdin::getSequence(full)-- "u32bitFMT"\n", iid);
+  fprintf(stderr, "fastaStdin::getSequence(full)-- "uint32FMT"\n", iid);
 #endif
 
   if (iid != _thisIID)
@@ -87,11 +87,11 @@ fastaStdin::getSequence(u32bit iid,
 
 
 bool
-fastaStdin::getSequence(u32bit iid,
-                             u32bit bgn, u32bit end, char *s) {
+fastaStdin::getSequence(uint32 iid,
+                             uint32 bgn, uint32 end, char *s) {
 
 #ifdef DEBUG
-  fprintf(stderr, "fastaStdin::getSequence(part)-- "u32bitFMT"\n", iid);
+  fprintf(stderr, "fastaStdin::getSequence(part)-- "uint32FMT"\n", iid);
 #endif
   assert(0);
   return(false);
@@ -106,7 +106,7 @@ fastaStdin::clear(void) {
 
   strcpy(_typename, "FastAstream");
 
-  _numberOfSequences = ~u32bitZERO;
+  _numberOfSequences = ~uint32ZERO;
 
   _rb = 0L;
   _thisIID = 0;
@@ -115,8 +115,8 @@ fastaStdin::clear(void) {
 
 
 bool
-fastaStdin::loadNextSequence(char *&h, u32bit &hLen, u32bit &hMax,
-                                  char *&s, u32bit &sLen, u32bit &sMax) {
+fastaStdin::loadNextSequence(char *&h, uint32 &hLen, uint32 &hMax,
+                                  char *&s, uint32 &sLen, uint32 &sMax) {
   char   x   = _rb->read();
 
   //  Skip whitespace at the start of the sequence.

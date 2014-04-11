@@ -31,7 +31,7 @@ const char *iOriNOO = "";
 
 bool            sim4polishStyleSet     = false;
 sim4polishStyle sim4polishStyleDefault = sim4polishS4DB;
-u32bit          sim4polishPolishID     = 0;
+uint32          sim4polishPolishID     = 0;
 
 
 char *
@@ -40,8 +40,8 @@ encodeGap(char *ref, char *tgt) {
   if ((ref == 0L) || (tgt == 0L))
     return(0L);
 
-  u32bit lenref = strlen(ref);
-  u32bit lentgt = strlen(tgt);
+  uint32 lenref = strlen(ref);
+  uint32 lentgt = strlen(tgt);
 
   assert(lenref == lentgt);
 
@@ -49,13 +49,13 @@ encodeGap(char *ref, char *tgt) {
   char   *gpp    = gap;
 
   char    gaptyp = 0;
-  u32bit  gapcnt = 0;
+  uint32  gapcnt = 0;
 
-  for (u32bit i=0; i<lenref; i++) {
+  for (uint32 i=0; i<lenref; i++) {
     if        ((ref[i] == '-') && (tgt[i] != '-')) {
       if (gaptyp != 'I') {
         if (gaptyp != 0) {
-          sprintf(gpp, "%c"u32bitFMT" ", gaptyp, gapcnt);
+          sprintf(gpp, "%c"uint32FMT" ", gaptyp, gapcnt);
           while (*gpp) gpp++;
         }
         gaptyp = 'I';
@@ -65,7 +65,7 @@ encodeGap(char *ref, char *tgt) {
     } else if ((ref[i] != '-') && (tgt[i] == '-')) {
       if (gaptyp != 'D') {
         if (gaptyp != 0) {
-          sprintf(gpp, "%c"u32bitFMT" ", gaptyp, gapcnt);
+          sprintf(gpp, "%c"uint32FMT" ", gaptyp, gapcnt);
           while (*gpp) gpp++;
         }
         gaptyp = 'D';
@@ -77,7 +77,7 @@ encodeGap(char *ref, char *tgt) {
     } else {
       if (gaptyp != 'M') {
         if (gaptyp != 0) {
-          sprintf(gpp, "%c"u32bitFMT" ", gaptyp, gapcnt);
+          sprintf(gpp, "%c"uint32FMT" ", gaptyp, gapcnt);
           while (*gpp) gpp++;
         }
         gaptyp = 'M';
@@ -88,7 +88,7 @@ encodeGap(char *ref, char *tgt) {
   }
 
   if (gaptyp != 0) {
-    sprintf(gpp, "%c"u32bitFMT"", gaptyp, gapcnt);
+    sprintf(gpp, "%c"uint32FMT"", gaptyp, gapcnt);
     while (*gpp) gpp++;
   }
 
@@ -143,12 +143,12 @@ sim4polish::s4p_polishToStringS4DB(void) {
 
   //  Make a decent estimate of how much space we'll need to store the string
   //
-  u32bit spaceNeeded = (1024 + 128 * _numExons +
+  uint32 spaceNeeded = (1024 + 128 * _numExons +
                         ((_comment)    ? strlen(_comment)    : 0) +
                         ((_estDefLine) ? strlen(_estDefLine) : 0) +
                         ((_genDefLine) ? strlen(_genDefLine) : 0));
 
-  for (u32bit i=0; i<_numExons; i++)
+  for (uint32 i=0; i<_numExons; i++)
     if (_exons[i]._estAlignment)
       spaceNeeded += 2 * strlen(_exons[i]._estAlignment);
 
@@ -160,7 +160,7 @@ sim4polish::s4p_polishToStringS4DB(void) {
     case SIM4_MATCH_COMPLEMENT:  mOri = mOriCMP;  break;
     case SIM4_MATCH_ERROR:       mOri = mOriERR;  break;
     default:
-      fprintf(stderr, "sim4reader: Unknown matchOrientation '"u32bitFMT"' in printPolish()\n", _matchOrientation);
+      fprintf(stderr, "sim4reader: Unknown matchOrientation '"uint32FMT"' in printPolish()\n", _matchOrientation);
       mOri = mOriDEF;
       break;
   }
@@ -173,12 +173,12 @@ sim4polish::s4p_polishToStringS4DB(void) {
     case SIM4_STRAND_FAILED:      sOri = sOriABT;  break;
     case SIM4_STRAND_ERROR:       sOri = sOriERR;  break;
     default:
-      fprintf(stderr, "sim4reader: Unknown strandOrientation '"u32bitFMT"' in printPolish()\n", _matchOrientation);
+      fprintf(stderr, "sim4reader: Unknown strandOrientation '"uint32FMT"' in printPolish()\n", _matchOrientation);
       sOri = sOriDEF;
       break;
   }
 
-  sprintf(outc, "sim4begin\n"u32bitFMT"["u32bitFMT"-"u32bitFMT"-"u32bitFMT"] "u32bitFMT"["u32bitFMT"-"u32bitFMT"] <"u32bitFMT"-"u32bitFMT"-"u32bitFMT"-%s-%s>\n",
+  sprintf(outc, "sim4begin\n"uint32FMT"["uint32FMT"-"uint32FMT"-"uint32FMT"] "uint32FMT"["uint32FMT"-"uint32FMT"] <"uint32FMT"-"uint32FMT"-"uint32FMT"-%s-%s>\n",
           _estID, _estLen, _estPolyA, _estPolyT,
           _genID, _genRegionOffset, _genRegionLength,
           _numMatches, _numMatchesN, _percentIdentity, mOri, sOri);
@@ -199,7 +199,7 @@ sim4polish::s4p_polishToStringS4DB(void) {
     while (*outc)  outc++;
   }
 
-  for (u32bit i=0; i<_numExons; i++) {
+  for (uint32 i=0; i<_numExons; i++) {
     switch (_exons[i]._intronOrientation) {
       case SIM4_INTRON_POSITIVE:    iOri = iOriPOS;  break;
       case SIM4_INTRON_NEGATIVE:    iOri = iOriNEG;  break;
@@ -209,7 +209,7 @@ sim4polish::s4p_polishToStringS4DB(void) {
       default:                      iOri = iOriNOO;  break;
     }
 
-    sprintf(outc, ""u32bitFMT"-"u32bitFMT" ("u32bitFMT"-"u32bitFMT") <"u32bitFMT"-"u32bitFMT"-"u32bitFMT">%s\n",
+    sprintf(outc, ""uint32FMT"-"uint32FMT" ("uint32FMT"-"uint32FMT") <"uint32FMT"-"uint32FMT"-"uint32FMT">%s\n",
             _exons[i]._estFrom, _exons[i]._estTo,
             _exons[i]._genFrom, _exons[i]._genTo,
             _exons[i]._numMatches, _exons[i]._numMatchesN, _exons[i]._percentIdentity, iOri);
@@ -217,7 +217,7 @@ sim4polish::s4p_polishToStringS4DB(void) {
     while (*outc)  outc++;
   }
 
-  for (u32bit i=0; i<_numExons; i++) {
+  for (uint32 i=0; i<_numExons; i++) {
     if (_exons[i]._estAlignment) {
       strcpy(outc, _exons[i]._estAlignment);
       while (*outc)  outc++;
@@ -274,12 +274,12 @@ sim4polish::s4p_polishToStringGFF3(void) {
 
   //  Make a decent estimate of how much space we'll need to store the string
   //
-  u32bit spaceNeeded = (1024 + 128 * _numExons +
+  uint32 spaceNeeded = (1024 + 128 * _numExons +
                         ((_comment)    ? strlen(_comment)    : 0) +
                         ((_estDefLine) ? strlen(_estDefLine) : 0) +
                         ((_genDefLine) ? strlen(_genDefLine) : 0));
 
-  for (u32bit i=0; i<_numExons; i++)
+  for (uint32 i=0; i<_numExons; i++)
     if (_exons[i]._estAlignment)
       spaceNeeded += 2 * strlen(_exons[i]._estAlignment);
 
@@ -287,12 +287,12 @@ sim4polish::s4p_polishToStringGFF3(void) {
   char   *outc = outs;
 
   //  Find extents of this match.
-  u32bit  estbgn = _exons[0]._estFrom;
-  u32bit  estend = _exons[_numExons-1]._estTo;
-  u32bit  genbgn = _exons[0]._genFrom;
-  u32bit  genend = _exons[_numExons-1]._genTo;
+  uint32  estbgn = _exons[0]._estFrom;
+  uint32  estend = _exons[_numExons-1]._estTo;
+  uint32  genbgn = _exons[0]._genFrom;
+  uint32  genend = _exons[_numExons-1]._genTo;
 
-  for (u32bit i=0; i<_numExons; i++) {
+  for (uint32 i=0; i<_numExons; i++) {
     if (_exons[i]._genFrom < genbgn)  genbgn = _exons[i]._genFrom;
     if (_exons[i]._genTo   < genbgn)  genbgn = _exons[i]._genTo;
     if (genend < _exons[i]._genFrom)  genend = _exons[i]._genFrom;
@@ -320,15 +320,15 @@ sim4polish::s4p_polishToStringGFF3(void) {
     case SIM4_STRAND_FAILED:
     case SIM4_STRAND_ERROR:       sOri = '.';  break;
     default:
-      fprintf(stderr, "sim4reader: Unknown strandOrientation '"u32bitFMT"' in printPolishGFF3()\n", _matchOrientation);
+      fprintf(stderr, "sim4reader: Unknown strandOrientation '"uint32FMT"' in printPolishGFF3()\n", _matchOrientation);
       sOri = '.';
       break;
   }
 
   //  Get rid of spaces in the names (and do it non-destructively).
 
-  u32bit  estDefSpace = 0;
-  u32bit  genDefSpace = 0;
+  uint32  estDefSpace = 0;
+  uint32  genDefSpace = 0;
 
   while ((_estDefLine[estDefSpace]) && (isspace(_estDefLine[estDefSpace]) == 0))
     estDefSpace++;
@@ -343,32 +343,32 @@ sim4polish::s4p_polishToStringGFF3(void) {
 
   //  The main mRNA match line.
 
-  sprintf(outc, u32bitFMT":%s\tsim4db\tmRNA\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t%c\t.\t",
+  sprintf(outc, uint32FMT":%s\tsim4db\tmRNA\t"uint32FMT"\t"uint32FMT"\t"uint32FMT"\t%c\t.\t",
           _genID, _genDefLine, genbgn, genend, _percentIdentity, sOri);
   while (*outc)  outc++;
 
-  sprintf(outc, "ID=sim4db"u32bitFMT";Name="u32bitFMT":%s;Target="u32bitFMT":%s "u32bitFMT" "u32bitFMT" %c;",
+  sprintf(outc, "ID=sim4db"uint32FMT";Name="uint32FMT":%s;Target="uint32FMT":%s "uint32FMT" "uint32FMT" %c;",
           sim4polishPolishID, _estID, _estDefLine, _estID, _estDefLine, estbgn, estend, mOri);
   while (*outc)  outc++;
 
-  sprintf(outc, "targetLen="u32bitFMT";pA="u32bitFMT";pT="u32bitFMT";genRegion="u32bitFMT"-"u32bitFMT"\n",
+  sprintf(outc, "targetLen="uint32FMT";pA="uint32FMT";pT="uint32FMT";genRegion="uint32FMT"-"uint32FMT"\n",
           _estLen, _estPolyA, _estPolyT, _genRegionOffset, _genRegionOffset + _genRegionLength -1);
   while (*outc)  outc++;
 
   //  Exons.
 
-  for (u32bit i=0; i<_numExons; i++) {
+  for (uint32 i=0; i<_numExons; i++) {
     char *gap = encodeGap(_exons[i]._genAlignment, _exons[i]._estAlignment);
 
-    sprintf(outc, u32bitFMT":%s\tsim4db\texon\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t%c\t.\t",
+    sprintf(outc, uint32FMT":%s\tsim4db\texon\t"uint32FMT"\t"uint32FMT"\t"uint32FMT"\t%c\t.\t",
             _genID, _genDefLine, _exons[i]._genFrom, _exons[i]._genTo, _exons[i]._percentIdentity, sOri);
     while (*outc)  outc++;
 
     if (gap)
-      sprintf(outc, "Parent=sim4db"u32bitFMT";Target="u32bitFMT":%s "u32bitFMT" "u32bitFMT" %c;Gap=%s;nMatches="u32bitFMT"",
+      sprintf(outc, "Parent=sim4db"uint32FMT";Target="uint32FMT":%s "uint32FMT" "uint32FMT" %c;Gap=%s;nMatches="uint32FMT"",
               sim4polishPolishID, _estID, _estDefLine, _exons[i]._estFrom, _exons[i]._estTo, mOri, gap, _exons[i]._numMatches);
     else
-      sprintf(outc, "Parent=sim4db"u32bitFMT";Target="u32bitFMT":%s "u32bitFMT" "u32bitFMT" %c;nMatches="u32bitFMT"",
+      sprintf(outc, "Parent=sim4db"uint32FMT";Target="uint32FMT":%s "uint32FMT" "uint32FMT" %c;nMatches="uint32FMT"",
               sim4polishPolishID, _estID, _estDefLine, _exons[i]._estFrom, _exons[i]._estTo, mOri, _exons[i]._numMatches);
     while (*outc)  outc++;
 

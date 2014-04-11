@@ -45,8 +45,8 @@ openOutput(const char *prefix, const char *suffix, sim4polishStyle style) {
 
 int
 main(int argc, char **argv) {
-  u32bit           minI   = 95;
-  u32bit           minC   = 50;
+  uint32           minI   = 95;
+  uint32           minC   = 50;
   const char      *prefix = "comparePolishes";
   sim4polishFile  *Afile  = 0L;
   sim4polishFile  *Bfile  = 0L;
@@ -64,12 +64,12 @@ main(int argc, char **argv) {
   //
   //  hairyOverlap  -- multiple matches in both.
   //
-  u32bit           goodOverlap  = 0;  //  the number of lines in the output
-  u32bit           novelInA     = 0;
-  u32bit           novelInB     = 0;
-  u32bit           multipleInA  = 0;
-  u32bit           multipleInB  = 0;
-  u32bit           hairyOverlap = 0;
+  uint32           goodOverlap  = 0;  //  the number of lines in the output
+  uint32           novelInA     = 0;
+  uint32           novelInB     = 0;
+  uint32           multipleInA  = 0;
+  uint32           multipleInB  = 0;
+  uint32           hairyOverlap = 0;
 
   bool             doGFF3;
 
@@ -134,14 +134,14 @@ main(int argc, char **argv) {
 
   //  Find the largest IID
   //
-  u32bit  largestIID = Afile->maxIID();
+  uint32  largestIID = Afile->maxIID();
   if (largestIID < Bfile->maxIID())
     largestIID = Bfile->maxIID();
 
 
   //  Iterate over all the ESTs.
 
-  for (u32bit iid=0; iid<largestIID; iid++) {
+  for (uint32 iid=0; iid<largestIID; iid++) {
     sim4polishList *A  = Afile->getEST(iid);
     sim4polishList *B  = Bfile->getEST(iid);
     sim4polishList *Ta = 0L;
@@ -155,11 +155,11 @@ main(int argc, char **argv) {
 
     olap_t  **overlap = new olap_t* [A->length()];
     overlap[0] = new olap_t [A->length() * B->length()];
-    for (u32bit i=1; i<A->length(); i++)
+    for (uint32 i=1; i<A->length(); i++)
       overlap[i] = overlap[i-1] + B->length();
 
-    for (u32bit a=0; a<A->length(); a++)
-      for (u32bit b=0; b<B->length(); b++)
+    for (uint32 a=0; a<A->length(); a++)
+      for (uint32 b=0; b<B->length(); b++)
         overlap[a][b] = findOverlap((*A)[a], (*B)[b]);
 
 
@@ -172,17 +172,17 @@ main(int argc, char **argv) {
     bool *removeA = new bool [A->length()];
     bool *removeB = new bool [B->length()];
 
-    for (u32bit a=0; a<A->length(); a++)
+    for (uint32 a=0; a<A->length(); a++)
       removeA[a] = false;
 
-    for (u32bit b=0; b<B->length(); b++)
+    for (uint32 b=0; b<B->length(); b++)
       removeB[b] = false;
 
 
-    for (u32bit a=0; a<A->length(); a++) {
-      u32bit ovl = 0;
+    for (uint32 a=0; a<A->length(); a++) {
+      uint32 ovl = 0;
 
-      for (u32bit b=0; b<B->length(); b++)
+      for (uint32 b=0; b<B->length(); b++)
         if (overlap[a][b])
           ovl++;
 
@@ -195,10 +195,10 @@ main(int argc, char **argv) {
       }
     }
 
-    for (u32bit b=0; b<B->length(); b++) {
-      u32bit ovl = 0;
+    for (uint32 b=0; b<B->length(); b++) {
+      uint32 ovl = 0;
 
-      for (u32bit a=0; a<A->length(); a++)
+      for (uint32 a=0; a<A->length(); a++)
         if (overlap[a][b])
           ovl++;
 
@@ -216,12 +216,12 @@ main(int argc, char **argv) {
     //  could ignore those that we already marked for removal.
     //
 
-    for (u32bit a=0; a<A->length(); a++) {
-      u32bit Boverlaps = 0;
-      u32bit theBovl   = 0;
+    for (uint32 a=0; a<A->length(); a++) {
+      uint32 Boverlaps = 0;
+      uint32 theBovl   = 0;
 
       //  Count the number of things we overlap in B.
-      for (u32bit b=0; b<B->length(); b++) {
+      for (uint32 b=0; b<B->length(); b++) {
         if (overlap[a][b]) {
           Boverlaps++;
           theBovl = b;
@@ -236,10 +236,10 @@ main(int argc, char **argv) {
         //  Count the number of overlaps the guy in B has with A.  If
         //  1, it's a goodOverlap, else it's a multipleInA.
 
-        u32bit b = theBovl;
+        uint32 b = theBovl;
 
-        u32bit Aoverlaps = 0;
-        for (u32bit x=0; x<A->length(); x++)
+        uint32 Aoverlaps = 0;
+        for (uint32 x=0; x<A->length(); x++)
           if (overlap[x][b])
             Aoverlaps++;
 
@@ -250,17 +250,17 @@ main(int argc, char **argv) {
 
           //    ESTiid ESTlen  overlap  A%id A%cov AgenLen #exons #cdnagaps  B%id B%cov BgenLen #exons #cdnagaps
 
-          u32bit AgenLen = 0, BgenLen = 0;
-          u32bit Agaps   = 0, Bgaps   = 0;
+          uint32 AgenLen = 0, BgenLen = 0;
+          uint32 Agaps   = 0, Bgaps   = 0;
 
-          for (u32bit x=0; x < (*A)[a]->_numExons; x++)
+          for (uint32 x=0; x < (*A)[a]->_numExons; x++)
             AgenLen += (*A)[a]->_exons[x]._genTo - (*A)[a]->_exons[x]._genFrom + 1;
 
-          for (u32bit x=0; x < (*B)[b]->_numExons; x++)
+          for (uint32 x=0; x < (*B)[b]->_numExons; x++)
             BgenLen += (*B)[b]->_exons[x]._genTo - (*B)[b]->_exons[x]._genFrom + 1;
 
 #ifdef GAP_MINIMUM
-          for (u32bit x=1; x < (*A)[a]->_numExons; x++) {
+          for (uint32 x=1; x < (*A)[a]->_numExons; x++) {
             int egap = (*A)[a]->_exons[x]._estFrom - (*A)[a]->_exons[x-1]._estTo;
             int ggap = (*A)[a]->_exons[x]._genFrom - (*A)[a]->_exons[x-1]._genTo;
             int dgap = 0;
@@ -275,7 +275,7 @@ main(int argc, char **argv) {
               Agaps++;
           }
 
-          for (u32bit x=1; x < (*B)[b]->_numExons; x++) {
+          for (uint32 x=1; x < (*B)[b]->_numExons; x++) {
             int egap = (*B)[b]->_exons[x]._estFrom - (*B)[b]->_exons[x-1]._estTo;
             int ggap = (*B)[b]->_exons[x]._genFrom - (*B)[b]->_exons[x-1]._genTo;
             int dgap = 0;
@@ -290,11 +290,11 @@ main(int argc, char **argv) {
               Bgaps++;
           }
 #else
-          for (u32bit x=1; x < (*A)[a]->_numExons; x++)
+          for (uint32 x=1; x < (*A)[a]->_numExons; x++)
             if ( (*A)[a]->_exons[x]._estFrom - (*A)[a]->_exons[x-1]._estTo != 1 )
               Agaps++;
 
-          for (u32bit x=1; x < (*B)[b]->_numExons; x++)
+          for (uint32 x=1; x < (*B)[b]->_numExons; x++)
             if ( (*B)[b]->_exons[x]._estFrom - (*B)[b]->_exons[x-1]._estTo != 1 )
               Bgaps++;
 #endif
@@ -305,7 +305,7 @@ main(int argc, char **argv) {
           else
             score = (double)overlap[a][b] / (double)AgenLen;
 
-          fprintf(stdout, u32bitFMT"\t"u32bitFMT"\t"OLAPTFMT"\t%f\t%8.3f\t%8.3f\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t%8.3f\t%8.3f\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\n",
+          fprintf(stdout, uint32FMT"\t"uint32FMT"\t"OLAPTFMT"\t%f\t%8.3f\t%8.3f\t"uint32FMT"\t"uint32FMT"\t"uint32FMT"\t%8.3f\t%8.3f\t"uint32FMT"\t"uint32FMT"\t"uint32FMT"\n",
                   iid,
                   (*A)[a]->_estLen,
                   overlap[a][b],
@@ -332,11 +332,11 @@ main(int argc, char **argv) {
     Ta = new sim4polishList;
     Tb = new sim4polishList;
 
-    for (u32bit a=0; a<A->length(); a++)
+    for (uint32 a=0; a<A->length(); a++)
       if (removeA[a] == false)
         Ta->push(new sim4polish((*A)[a]));
 
-    for (u32bit b=0; b<B->length(); b++)
+    for (uint32 b=0; b<B->length(); b++)
       if (removeB[b] == false)
         Tb->push(new sim4polish((*B)[b]));
 
@@ -348,8 +348,8 @@ main(int argc, char **argv) {
 
     //  Rebuild overlaps
     //
-    for (u32bit a=0; a<A->length(); a++)
-      for (u32bit b=0; b<B->length(); b++)
+    for (uint32 a=0; a<A->length(); a++)
+      for (uint32 b=0; b<B->length(); b++)
         overlap[a][b] = findOverlap((*A)[a], (*B)[b]);
 
 
@@ -364,10 +364,10 @@ main(int argc, char **argv) {
     //  matches.  Do it all again until there are no more matches.
 
     while (A->length()) {
-      for (u32bit a=0; a<A->length(); a++)
+      for (uint32 a=0; a<A->length(); a++)
         removeA[a] = false;
 
-      for (u32bit b=0; b<B->length(); b++)
+      for (uint32 b=0; b<B->length(); b++)
         removeB[b] = false;
 
       removeA[0] = true;
@@ -381,9 +381,9 @@ main(int argc, char **argv) {
         //  overlap with anything in B.  If that b is not marked for removal,
         //  mark it, and keep going.
         //
-        for (u32bit a=0; a<A->length(); a++) {
+        for (uint32 a=0; a<A->length(); a++) {
           if (removeA[a]) {
-            for (u32bit b=0; b<B->length(); b++) {
+            for (uint32 b=0; b<B->length(); b++) {
               if ((overlap[a][b]) && (removeB[b] == false)) {
                 removeB[b] = true;
                 keepGoing = true;
@@ -394,9 +394,9 @@ main(int argc, char **argv) {
 
         //  Same thing, but for B.
         // 
-        for (u32bit b=0; b<B->length(); b++) {
+        for (uint32 b=0; b<B->length(); b++) {
           if (removeB[b]) {
-            for (u32bit a=0; a<A->length(); a++) {
+            for (uint32 a=0; a<A->length(); a++) {
               if ((overlap[a][b]) && (removeA[a] == false)) {
                 removeA[a] = true;
                 keepGoing = true;
@@ -408,48 +408,48 @@ main(int argc, char **argv) {
 
       //  Found a component.  Output it.
 
-      u32bit inA = 0;
-      u32bit inB = 0;
+      uint32 inA = 0;
+      uint32 inB = 0;
 
-      for (u32bit a=0; a<A->length(); a++)
+      for (uint32 a=0; a<A->length(); a++)
         if (removeA[a])
           inA++;
-      for (u32bit b=0; b<B->length(); b++)
+      for (uint32 b=0; b<B->length(); b++)
         if (removeB[b])
           inB++;
 
       if        ((inA  > 1) && (inB  > 1)) {
         hairyOverlap++;
 
-        //fprintf(fhairy, "EST="u32bitFMT" "u32bitFMT" "u32bitFMT"\n", (*A)[0]->_estID, inA, inB);
-        for (u32bit a=0; a<A->length(); a++)
+        //fprintf(fhairy, "EST="uint32FMT" "uint32FMT" "uint32FMT"\n", (*A)[0]->_estID, inA, inB);
+        for (uint32 a=0; a<A->length(); a++)
           if (removeA[a])
             fhairy->writeAlignment((*A)[a]);
-        for (u32bit b=0; b<B->length(); b++)
+        for (uint32 b=0; b<B->length(); b++)
           if (removeB[b])
             fhairy->writeAlignment((*B)[b]);
       } else if ((inA == 1) && (inB  > 1)) {
         multipleInB++;
 
-        //fprintf(fbmulti, "EST="u32bitFMT" "u32bitFMT" "u32bitFMT"\n", (*A)[0]->_estID, inA, inB);
-        for (u32bit a=0; a<A->length(); a++)
+        //fprintf(fbmulti, "EST="uint32FMT" "uint32FMT" "uint32FMT"\n", (*A)[0]->_estID, inA, inB);
+        for (uint32 a=0; a<A->length(); a++)
           if (removeA[a])
             fbmulti->writeAlignment((*A)[a]);
-        for (u32bit b=0; b<B->length(); b++)
+        for (uint32 b=0; b<B->length(); b++)
           if (removeB[b])
             fbmulti->writeAlignment((*B)[b]);
       } else if ((inA  > 1) && (inB == 1)) {
         multipleInA++;
 
-        //fprintf(famulti, "EST="u32bitFMT" "u32bitFMT" "u32bitFMT"\n", (*A)[0]->_estID, inA, inB);
-        for (u32bit a=0; a<A->length(); a++)
+        //fprintf(famulti, "EST="uint32FMT" "uint32FMT" "uint32FMT"\n", (*A)[0]->_estID, inA, inB);
+        for (uint32 a=0; a<A->length(); a++)
           if (removeA[a])
             famulti->writeAlignment((*A)[a]);
-        for (u32bit b=0; b<B->length(); b++)
+        for (uint32 b=0; b<B->length(); b++)
           if (removeB[b])
             famulti->writeAlignment((*B)[b]);
       } else {
-        fprintf(stderr, "ERROR!  inA="u32bitFMT" inB="u32bitFMT"\n", inA, inB);
+        fprintf(stderr, "ERROR!  inA="uint32FMT" inB="uint32FMT"\n", inA, inB);
       }
 
       //
@@ -459,11 +459,11 @@ main(int argc, char **argv) {
       Ta = new sim4polishList;
       Tb = new sim4polishList;
 
-      for (u32bit a=0; a<A->length(); a++)
+      for (uint32 a=0; a<A->length(); a++)
         if (removeA[a] == false)
           Ta->push(new sim4polish((*A)[a]));
 
-      for (u32bit b=0; b<B->length(); b++)
+      for (uint32 b=0; b<B->length(); b++)
         if (removeB[b] == false)
           Tb->push(new sim4polish((*B)[b]));
     
@@ -475,13 +475,13 @@ main(int argc, char **argv) {
 
       //  Rebuild overlaps
       //
-      for (u32bit a=0; a<A->length(); a++)
-        for (u32bit b=0; b<B->length(); b++)
+      for (uint32 a=0; a<A->length(); a++)
+        for (uint32 b=0; b<B->length(); b++)
           overlap[a][b] = findOverlap((*A)[a], (*B)[b]);
     }
 
     if ((iid % 100) == 0) {
-      fprintf(stderr, "IID:"u32bitFMTW(8)"  good:"u32bitFMTW(4)" Anovel:"u32bitFMTW(4)" Amulti:"u32bitFMTW(4)" Bnovel:"u32bitFMTW(4)" Bmulti:"u32bitFMTW(4)" hairy:"u32bitFMTW(4)"\r",
+      fprintf(stderr, "IID:"uint32FMTW(8)"  good:"uint32FMTW(4)" Anovel:"uint32FMTW(4)" Amulti:"uint32FMTW(4)" Bnovel:"uint32FMTW(4)" Bmulti:"uint32FMTW(4)" hairy:"uint32FMTW(4)"\r",
               iid,
               goodOverlap, novelInA, multipleInA, novelInB, multipleInB, hairyOverlap);
       fflush(stderr);
@@ -489,7 +489,7 @@ main(int argc, char **argv) {
 
 #if 0
     if ((iid % 1234) == 0) {
-      fprintf(stderr, "IID:"u32bitFMTW(8)"  good:"u32bitFMTW(4)" Anovel:"u32bitFMTW(4)" Amulti:"u32bitFMTW(4)" Bnovel:"u32bitFMTW(4)" Bmulti:"u32bitFMTW(4)" hairy:"u32bitFMTW(4)"\r",
+      fprintf(stderr, "IID:"uint32FMTW(8)"  good:"uint32FMTW(4)" Anovel:"uint32FMTW(4)" Amulti:"uint32FMTW(4)" Bnovel:"uint32FMTW(4)" Bmulti:"uint32FMTW(4)" hairy:"uint32FMTW(4)"\r",
               iid,
               goodOverlap, novelInA, multipleInA, novelInB, multipleInB, hairyOverlap);
       fflush(stderr);
@@ -517,7 +517,7 @@ main(int argc, char **argv) {
   delete Afile;
   delete Bfile;
 
-  fprintf(stderr, "\ngood:"u32bitFMTW(4)" Anovel:"u32bitFMTW(4)" Amulti:"u32bitFMTW(4)" Bnovel:"u32bitFMTW(4)" Bmulti:"u32bitFMTW(4)" hairy:"u32bitFMTW(4)"\n",
+  fprintf(stderr, "\ngood:"uint32FMTW(4)" Anovel:"uint32FMTW(4)" Amulti:"uint32FMTW(4)" Bnovel:"uint32FMTW(4)" Bmulti:"uint32FMTW(4)" hairy:"uint32FMTW(4)"\n",
           goodOverlap, novelInA, multipleInA, novelInB, multipleInB, hairyOverlap);
 
   exit(0);

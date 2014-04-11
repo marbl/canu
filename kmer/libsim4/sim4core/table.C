@@ -45,7 +45,7 @@ Sim4::add_word(int ecode, int pos) {
 
 void
 Sim4::bld_table(char *s, int len, mss_t MSS, int type) {
-  u64bit ecode;
+  uint64 ecode;
   int i, j, masked_ecode;
   char *t;
 
@@ -71,7 +71,7 @@ Sim4::bld_table(char *s, int len, mss_t MSS, int type) {
     phashtable.nodesused = 0;
 
     for (i=0; i<HASH_SIZE+1; ++i)
-      phashtable.table[i] = u64bitZERO;
+      phashtable.table[i] = uint64ZERO;
   } else if (type == TEMP) {
     mask = (1 << (2*MSS.seedLength-2)) - 1;  /* LLL 6/16/10 we are setting this for continuous seeds, where 2*seedLength=matchedLength; no effect if seed is spaced */
 
@@ -103,7 +103,7 @@ Sim4::bld_table(char *s, int len, mss_t MSS, int type) {
   if (MSS.type == CONTINUOUS_SEED) {
     for (i=1; (i<=len) && *t; ) {
     restart_c:
-      ecode = u64bitZERO;
+      ecode = uint64ZERO;
 
       for (j=1; (j<MSS.seedLength) && (i<=len) && *t; ++j) {
         emer = encoding[(int)(*t++)];
@@ -134,7 +134,7 @@ Sim4::bld_table(char *s, int len, mss_t MSS, int type) {
     /* SPACED_SEED */
     for (i=1; (i<=len) && *t; ) {
     restart_s: 
-      ecode = u64bitZERO;
+      ecode = uint64ZERO;
 
       for (j=1; (j<MSS.seedLength) && (i<=len) && *t; ++j) {
         emer = encoding[(int)(*t++)];

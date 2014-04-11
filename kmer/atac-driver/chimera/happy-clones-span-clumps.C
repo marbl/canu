@@ -20,14 +20,14 @@ public:
   atacClumpCoordTreeScaffold() {
     clumpsLen = 0;
     clumpsMax = 64;
-    clumpID   = new u32bit [clumpsMax];
+    clumpID   = new uint32 [clumpsMax];
     clumps    = new intervalList * [clumpsMax];
-    clumpmin  = new u32bit [clumpsMax];
-    clumpmax  = new u32bit [clumpsMax];
+    clumpmin  = new uint32 [clumpsMax];
+    clumpmax  = new uint32 [clumpsMax];
 
-    clumpconfirm = new u32bit [clumpsMax * clumpsMax];
+    clumpconfirm = new uint32 [clumpsMax * clumpsMax];
 
-    for (u32bit i=0; i<clumpsMax * clumpsMax; i++)
+    for (uint32 i=0; i<clumpsMax * clumpsMax; i++)
       clumpconfirm[i] = 0;
 
     intervalsLen = 0;
@@ -36,7 +36,7 @@ public:
   };
 
   ~atacClumpCoordTreeScaffold() {
-    for (u32bit i=0; i<clumpsLen; i++)
+    for (uint32 i=0; i<clumpsLen; i++)
       delete clumps[i];
     delete [] clumpID;
     delete [] clumps;
@@ -48,7 +48,7 @@ public:
 
   //  Add a match to some clump.
   //
-  void    addMatch(s32bit clumpid, u32bit begin, u32bit length) {
+  void    addMatch(int32 clumpid, uint32 begin, uint32 length) {
 
     //  Not in a clump, get the heck outta here!
     //
@@ -58,8 +58,8 @@ public:
     //  Linear search through the clumps to find the correct id, we
     //  don't expect to have many clumps per scaffold.
     //
-    for (u32bit i=0; i<clumpsLen; i++) {
-      if (clumpID[i] == (u32bit)clumpid) {
+    for (uint32 i=0; i<clumpsLen; i++) {
+      if (clumpID[i] == (uint32)clumpid) {
         clumps[i]->add(begin, length);
         if (clumpmin[i] > begin)
           clumpmin[i] = begin;
@@ -85,9 +85,9 @@ public:
   };
 
 
-  u32bit  getClumpID(u32bit begin, u32bit end) {
-    u32bit  clumpid = 0;
-    u32bit  numhits = 0;
+  uint32  getClumpID(uint32 begin, uint32 end) {
+    uint32  clumpid = 0;
+    uint32  numhits = 0;
 
     //  We can make this much quicker if we remember the extent of
     //  each interval list.
@@ -98,7 +98,7 @@ public:
     //         b-------e               b-----e
     //                 -------clump------
     //
-    for (u32bit i=0; i<clumpsLen; i++) {
+    for (uint32 i=0; i<clumpsLen; i++) {
       if ((clumpmin[i] <= end) && (begin <= clumpmax[i])) {
         if (clumps[i]->overlapping(begin, end, intervals, intervalsLen, intervalsMax) > 0) {
           clumpid = clumpID[i];
@@ -117,18 +117,18 @@ public:
       return(clumpid);
 
     //fprintf(stderr, "FOUND MORE THAN ONE CLUMP MATCHING!\n");
-    return(~u32bitZERO);
+    return(~uint32ZERO);
   };
 
 
   void    sortClumps(void) {
-    u32bit         ciid;
+    uint32         ciid;
     intervalList  *cptr;
-    u32bit         cmin;
-    u32bit         cmax;
+    uint32         cmin;
+    uint32         cmax;
 
-    u32bit         i = 0;
-    u32bit         j = 0;
+    uint32         i = 0;
+    uint32         j = 0;
 
     //  an insertion sort
 
@@ -153,10 +153,10 @@ public:
   };
 
 
-  void    confirm(u32bit ca, u32bit cb) {
-    u32bit  caidx = 0;
-    u32bit  cbidx = 0;
-    for (u32bit i=0; i<clumpsLen; i++) {
+  void    confirm(uint32 ca, uint32 cb) {
+    uint32  caidx = 0;
+    uint32  cbidx = 0;
+    for (uint32 i=0; i<clumpsLen; i++) {
       if (ca == clumpID[i])
         caidx = i;
       if (cb == clumpID[i])
@@ -166,18 +166,18 @@ public:
   };
 
 
-  u32bit           clumpsLen;
-  u32bit           clumpsMax;
-  u32bit          *clumpID;
+  uint32           clumpsLen;
+  uint32           clumpsMax;
+  uint32          *clumpID;
   intervalList   **clumps;
-  u32bit          *clumpmin;
-  u32bit          *clumpmax;
+  uint32          *clumpmin;
+  uint32          *clumpmax;
 
-  u32bit          *clumpconfirm;
+  uint32          *clumpconfirm;
 
-  u32bit           intervalsLen;
-  u32bit           intervalsMax;
-  u32bit          *intervals;
+  uint32           intervalsLen;
+  uint32           intervalsMax;
+  uint32          *intervals;
 };
 
 
@@ -186,20 +186,20 @@ public:
   atacClumpCoordTree() {
     scaffoldsMax = 262144;
     scaffolds    = new atacClumpCoordTreeScaffold * [scaffoldsMax];
-    for (u32bit i=0; i<scaffoldsMax; i++)
+    for (uint32 i=0; i<scaffoldsMax; i++)
       scaffolds[i] = 0L;
   };
   ~atacClumpCoordTree() {
-    for (u32bit i=0; i<scaffoldsMax; i++)
+    for (uint32 i=0; i<scaffoldsMax; i++)
       if (scaffolds[i])
         delete scaffolds[i];
     delete [] scaffolds;
   };
 
 
-  void    addMatch(u32bit scaffoldid, s32bit clumpid, u32bit begin, u32bit length) {
+  void    addMatch(uint32 scaffoldid, int32 clumpid, uint32 begin, uint32 length) {
     if (scaffoldid >= scaffoldsMax) {
-      fprintf(stderr, "ERROR: increase scaffoldsMax "u32bitFMT"\n", scaffoldid);
+      fprintf(stderr, "ERROR: increase scaffoldsMax "uint32FMT"\n", scaffoldid);
       exit(1);
     }
 
@@ -211,11 +211,11 @@ public:
 
 
   void    removeSingleClumpScaffolds(void) {
-    u32bit deleted = 0;
-    u32bit remain = 0;
+    uint32 deleted = 0;
+    uint32 remain = 0;
 
 
-    for (u32bit i=0; i<scaffoldsMax; i++) {
+    for (uint32 i=0; i<scaffoldsMax; i++) {
       if ((scaffolds[i]) && (scaffolds[i]->clumpsLen < 2)) {
         delete scaffolds[i];
         scaffolds[i] = 0L;
@@ -226,41 +226,41 @@ public:
         remain++;
       }
     }
-    fprintf(stderr, "Deleted "u32bitFMT" scaffolds with less than 2 clumps.\n", deleted);
-    fprintf(stderr, "Remain  "u32bitFMT" scaffolds with more than 2 clumps.\n", remain);
+    fprintf(stderr, "Deleted "uint32FMT" scaffolds with less than 2 clumps.\n", deleted);
+    fprintf(stderr, "Remain  "uint32FMT" scaffolds with more than 2 clumps.\n", remain);
   };
 
 
   void    showMultipleClumpScaffolds(void) {
 
-    for (u32bit i=0; i<scaffoldsMax; i++) {
+    for (uint32 i=0; i<scaffoldsMax; i++) {
       if ((scaffolds[i]) && (scaffolds[i]->clumpsLen >= 2)) {
 
         fprintf(stdout, "\n");
 
-        for (u32bit j=0; j<scaffolds[i]->clumpsLen; j++) {
+        for (uint32 j=0; j<scaffolds[i]->clumpsLen; j++) {
           bool  overlap = false;
 
           if ((j+1 < scaffolds[i]->clumpsLen) &&
               (scaffolds[i]->clumpmax[j] > scaffolds[i]->clumpmin[j+1]))
             overlap = true;
 
-          fprintf(stdout, "scaffold "u32bitFMT" clump "u32bitFMT" begin "u32bitFMT" end "u32bitFMT"\n",
+          fprintf(stdout, "scaffold "uint32FMT" clump "uint32FMT" begin "uint32FMT" end "uint32FMT"\n",
                   i,
                   scaffolds[i]->clumpID[j],
                   scaffolds[i]->clumpmin[j],
                   scaffolds[i]->clumpmax[j]);
 
           if (overlap)
-            fprintf(stdout, "scaffold "u32bitFMT" clump "u32bitFMT" and clump "u32bitFMT" OVERLAP\n",
+            fprintf(stdout, "scaffold "uint32FMT" clump "uint32FMT" and clump "uint32FMT" OVERLAP\n",
                     i,
                     scaffolds[i]->clumpID[j],
                     scaffolds[i]->clumpID[j+1]);
 
-          for (u32bit b=0; b<scaffolds[i]->clumpsLen; b++) {
-            u32bit cc = j * scaffolds[i]->clumpsMax + b;
+          for (uint32 b=0; b<scaffolds[i]->clumpsLen; b++) {
+            uint32 cc = j * scaffolds[i]->clumpsMax + b;
             if (scaffolds[i]->clumpconfirm[cc]) {
-              fprintf(stdout, "scaffold "u32bitFMT" clump "u32bitFMT" and "u32bitFMT" confirmed by "u32bitFMT" clones.\n",
+              fprintf(stdout, "scaffold "uint32FMT" clump "uint32FMT" and "uint32FMT" confirmed by "uint32FMT" clones.\n",
                       i,
                       scaffolds[i]->clumpID[j],
                       scaffolds[i]->clumpID[b],
@@ -274,20 +274,20 @@ public:
   };
 
 
-  u32bit  getClumpID(u32bit scaffoldid, u32bit begin, u32bit end) {
+  uint32  getClumpID(uint32 scaffoldid, uint32 begin, uint32 end) {
     if (scaffolds[scaffoldid])
       return(scaffolds[scaffoldid]->getClumpID(begin, end));
     return(0);
   };
 
-  void    confirmClump(u32bit scaffoldid, u32bit ca, u32bit cb) {
+  void    confirmClump(uint32 scaffoldid, uint32 ca, uint32 cb) {
     if (scaffolds[scaffoldid]) {
       scaffolds[scaffoldid]->confirm(ca, cb);
     }
   };
 
   
-  u32bit                       scaffoldsMax;
+  uint32                       scaffoldsMax;
   atacClumpCoordTreeScaffold **scaffolds;
 };
 
@@ -387,7 +387,7 @@ main(int argc, char **argv) {
   //
   //  ugly hack -- read in the map from HUREF6A UID to scaffold
   //
-  map<u64bit,u32bit>  UIDtoIID;
+  map<uint64,uint32>  UIDtoIID;
 
   {
     char *uidmapName = "/project/huref6/assembly/fasta/HUREF6A.info";
@@ -404,7 +404,7 @@ main(int argc, char **argv) {
       if (L[0] == 'G') {
         splitToWords  S(L);
 
-        UIDtoIID[strtou64bit(S[13]+1, 0L)] = strtou32bit(S[10], 0L);
+        UIDtoIID[strtouint64(S[13]+1, 0L)] = strtouint32(S[10], 0L);
       }
       fgets(L, 1024, F);
     }
@@ -435,22 +435,22 @@ main(int argc, char **argv) {
     }
 
 
-    u32bit  scfa = UIDtoIID[strtou64bit(A[7], 0L)];
-    u32bit  scfb = UIDtoIID[strtou64bit(B[7], 0L)];
+    uint32  scfa = UIDtoIID[strtouint64(A[7], 0L)];
+    uint32  scfb = UIDtoIID[strtouint64(B[7], 0L)];
 
-    u32bit  cla = ct->getClumpID(scfa,
+    uint32  cla = ct->getClumpID(scfa,
                                  atoi(A[8]),
                                  atoi(A[9]));
-    u32bit  clb = ct->getClumpID(scfb,
+    uint32  clb = ct->getClumpID(scfb,
                                  atoi(B[8]),
                                  atoi(B[9]));
 
-    if (cla == ~u32bitZERO) {
-      fprintf(stdout, "%s spans clump in scaffold %s,"u32bitFMT"\n", ina, A[7], scfa);
+    if (cla == ~uint32ZERO) {
+      fprintf(stdout, "%s spans clump in scaffold %s,"uint32FMT"\n", ina, A[7], scfa);
       cla = 0;
     }
-    if (clb == ~u32bitZERO) {
-      fprintf(stdout, "%s spans clump in scaffold %s,"u32bitFMT" \n", inb, B[7], scfb);
+    if (clb == ~uint32ZERO) {
+      fprintf(stdout, "%s spans clump in scaffold %s,"uint32FMT" \n", inb, B[7], scfb);
       clb = 0;
     }
 
@@ -461,7 +461,7 @@ main(int argc, char **argv) {
                        (cla < clb) ? cla : clb,
                        (cla < clb) ? clb : cla);
 
-      fprintf(stdout, "scaffold %s,"u32bitFMT" clump "u32bitFMT" "u32bitFMT" confirmed by %s\n",
+      fprintf(stdout, "scaffold %s,"uint32FMT" clump "uint32FMT" "uint32FMT" confirmed by %s\n",
               A[7], scfa,
               (cla < clb) ? cla : clb,
               (cla < clb) ? clb : cla,

@@ -10,10 +10,10 @@
 #define _(VAL) VAL ## LLU
 #endif
 
-u32bit
+uint32
 fibonacciValuesLen = 92;
 
-u64bit
+uint64
 fibonacciValues[92] = { _(1),
                         _(2),
                         _(3),

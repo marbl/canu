@@ -69,7 +69,7 @@ public:
     _exonManager = em;
   };
 
-  void   setLimits(u32bit a, double p) {
+  void   setLimits(uint32 a, double p) {
     _mspLimitAbsolute = a;
     _mspLimitPercent  = p;
   };
@@ -77,7 +77,7 @@ public:
   void   setScoreThreshold(int K, int interspecies);
 
   bool          tooManyMSPs(void)  { return(_tooManyMSPs); };
-  u32bit        numberOfMSPs(void) { return(_numMSPs);     };
+  uint32        numberOfMSPs(void) { return(_numMSPs);     };
 
   void          setLength(int l)   {
     _cDNALength = l;
@@ -162,15 +162,15 @@ private:
   int            _ESTlen;
   int            _GENlen;
 
-  u32bit         _allocMSPs;
-  u32bit         _numMSPs;
+  uint32         _allocMSPs;
+  uint32         _numMSPs;
   msp           *_allMSPs;
 
   bool           _tooManyMSPs;
   int            _cDNALength;
 
   double         _mspLimitPercent;
-  u32bit         _mspLimitAbsolute;
+  uint32         _mspLimitAbsolute;
 
   int            _match;
   int            _imismatch;
@@ -203,7 +203,7 @@ mspManager::addMSP(int l, int p1, int p2, int sc) {
 
     msp *n = new msp [_allocMSPs];
 
-    for (u32bit i=0; i<_numMSPs; i++) {
+    for (uint32 i=0; i<_numMSPs; i++) {
       n[i].len          = _allMSPs[i].len;
       n[i].pos1         = _allMSPs[i].pos1;
       n[i].pos2         = _allMSPs[i].pos2;

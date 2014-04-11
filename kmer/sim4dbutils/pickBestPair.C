@@ -11,13 +11,13 @@ using namespace std;
 #define NAME_MAX  32
 
 struct mapResult {
-  u32bit seqIdx;
+  uint32 seqIdx;
   char   seqName[NAME_MAX];
 
-  u32bit refIdx;
+  uint32 refIdx;
   char   refName[NAME_MAX];
-  u32bit refBgn;
-  u32bit refEnd;
+  uint32 refBgn;
+  uint32 refEnd;
 
   bool   forward;
 };
@@ -120,13 +120,13 @@ main(int argc, char **argv) {
   sprintf(name, "%s.stats", out);
   STA = fopen(name, "w");
 
-  u32bit   mr1bgn = 0;
-  u32bit   mr1end = 0;
-  u32bit   mr1END = mr1.size();
+  uint32   mr1bgn = 0;
+  uint32   mr1end = 0;
+  uint32   mr1END = mr1.size();
 
-  u32bit   mr2bgn = 0;
-  u32bit   mr2end = 0;
-  u32bit   mr2END = mr2.size();
+  uint32   mr2bgn = 0;
+  uint32   mr2end = 0;
+  uint32   mr2END = mr2.size();
 
   while ((mr1bgn < mr1END) && (mr2bgn < mr2END)) {
 
@@ -158,15 +158,15 @@ main(int argc, char **argv) {
 
     //  Group of reads from mr1bgn-mr1end and mr2bgn-mr2end need to be compared.
 
-    for (u32bit i1=mr1bgn; i1<mr1end; i1++) {
-      for (u32bit i2=mr2bgn; i2<mr2end; i2++) {
+    for (uint32 i1=mr1bgn; i1<mr1end; i1++) {
+      for (uint32 i2=mr2bgn; i2<mr2end; i2++) {
         if (mr1[i1].refIdx != mr2[i2].refIdx)
           continue;
 
         //validParis++;
 
-        u32bit  df  = 0;
-        u32bit  dr  = 0;
+        uint32  df  = 0;
+        uint32  dr  = 0;
         char    ori = 'X';
 
         if (mr1[i1].refBgn < mr2[i2].refEnd)
@@ -187,7 +187,7 @@ main(int argc, char **argv) {
           if ((mr1[i1].forward == false) && (mr2[i2].forward == false))
             ori = 'A';
 
-          fprintf(LOG, "%c "u32bitFMT" "u32bitFMT" %s ("u32bitFMT","u32bitFMT") "u32bitFMT" %s ("u32bitFMT","u32bitFMT") "u32bitFMT" %s\n",
+          fprintf(LOG, "%c "uint32FMT" "uint32FMT" %s ("uint32FMT","uint32FMT") "uint32FMT" %s ("uint32FMT","uint32FMT") "uint32FMT" %s\n",
                   ori,
                   df,
                   mr1[i1].seqIdx, mr1[i1].seqName, mr1[i1].refBgn, mr1[i1].refEnd,
@@ -204,7 +204,7 @@ main(int argc, char **argv) {
           if ((mr2[i2].forward == false) && (mr1[i1].forward == false))
             ori = 'A';
 
-          fprintf(LOG, "%c "u32bitFMT" "u32bitFMT" %s ("u32bitFMT","u32bitFMT") "u32bitFMT" %s ("u32bitFMT","u32bitFMT") "u32bitFMT" %s\n",
+          fprintf(LOG, "%c "uint32FMT" "uint32FMT" %s ("uint32FMT","uint32FMT") "uint32FMT" %s ("uint32FMT","uint32FMT") "uint32FMT" %s\n",
                   ori,
                   dr,
                   mr2[i2].seqIdx, mr2[i2].seqName, mr2[i2].refBgn, mr2[i2].refEnd,
@@ -218,7 +218,7 @@ main(int argc, char **argv) {
     mr2bgn = mr2end;
   }
 
-  fprintf(STA, "alignments:  "u32bitFMT" "u32bitFMT"\n", mr1END, mr2END);
+  fprintf(STA, "alignments:  "uint32FMT" "uint32FMT"\n", mr1END, mr2END);
 
   fclose(LOG);
   fclose(STA);

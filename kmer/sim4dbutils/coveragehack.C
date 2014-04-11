@@ -9,7 +9,7 @@
 //  Flag that tells which side of the alignment our contaminated assembly is on.
 //    1 (R) -- if atac     the contaminant is on the left, the assembly is on the right
 //
-u32bit  orientation = 1;
+uint32  orientation = 1;
 
 //
 //  WARNING!  This is stale code.  It does not compile.  The fasta interface has changed.
@@ -31,12 +31,12 @@ readATAC(intervalList **coverage, char *path) {
     if ((line[0] == 'M') && (line[2] == 'u')) {
       S.split(line);
 
-      u32bit  taglength = 0;
+      uint32  taglength = 0;
       while (S[8][taglength] != ':')
         taglength++;
-      u32bit  idx = atoi(S[8] + taglength + 1);
-      u32bit  beg = atoi(S[9]);
-      u32bit  len = atoi(S[10]);
+      uint32  idx = atoi(S[8] + taglength + 1);
+      uint32  beg = atoi(S[9]);
+      uint32  len = atoi(S[10]);
 
       if (orientation == 2) {
         while (S[4][taglength] != ':')
@@ -74,7 +74,7 @@ readSIM4(intervalList **coverage, int which, char *path) {
         case 1:
           //  The query are contaminant reads, the genomic is the assembly
           if ((p->_percentIdentity >= 94) && (p->_querySeqIdentity >= 80)) {
-            u32bit  idx = p->_genID;
+            uint32  idx = p->_genID;
 
             if (coverage[idx] == 0L)
               coverage[idx] = new intervalList();
@@ -86,7 +86,7 @@ readSIM4(intervalList **coverage, int which, char *path) {
         case 2:
           //  The query are assembly scaffolds, the genomic is the contaminant assembly (one or a few contigs)
           //
-          u32bit  idx = p->_estID;
+          uint32  idx = p->_estID;
 
           if (coverage[idx] == 0L)
             coverage[idx] = new intervalList();
@@ -115,11 +115,11 @@ main(int argc, char **argv) {
   intervalList    **coverage = new intervalList* [MAXSCAFFOLD];
   intervalList    **gaps     = new intervalList* [MAXSCAFFOLD];
   FastAWrapper     *W        = 0L;
-  u32bit            minCov   = 80;
+  uint32            minCov   = 80;
 
   bool              includeGapsAsContamination = true;
 
-  for (u32bit i=0; i<MAXSCAFFOLD; i++)
+  for (uint32 i=0; i<MAXSCAFFOLD; i++)
     coverage[i] = 0L;
 
   int arg=1;
@@ -135,7 +135,7 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-f") == 0) {
       W = new seqCache(argv[++arg]);
     } else if (strcmp(argv[arg], "-c") == 0) {
-      minCov = strtou32bit(argv[++arg], 0L);
+      minCov = strtouint32(argv[++arg], 0L);
     } else if (strcmp(argv[arg], "-r") == 0) {
       orientation = 1;
     } else if (strcmp(argv[arg], "-l") == 0) {
@@ -154,10 +154,10 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  u32bit  sumOfLengths = 0;
-  u32bit  sequences   = 0;
+  uint32  sumOfLengths = 0;
+  uint32  sequences   = 0;
 
-  for (u32bit i=0; i<MAXSCAFFOLD; i++) {
+  for (uint32 i=0; i<MAXSCAFFOLD; i++) {
     if (coverage[i]) {
 
       W->find(i);
@@ -167,10 +167,10 @@ main(int argc, char **argv) {
 
       //  Compute how much of the scaffold is gap.
 
-      u32bit  gapBeg = W->sequenceLength(i);
+      uint32  gapBeg = W->sequenceLength(i);
       char   *seq    = S->sequence();
 
-      for (u32bit beg=0, len=W->sequenceLength(i); beg<len; beg++) {
+      for (uint32 beg=0, len=W->sequenceLength(i); beg<len; beg++) {
         if ((seq[beg] == 'N') || (seq[beg] == 'n')) {
           if (gapBeg > beg)
             gapBeg = beg;
@@ -187,9 +187,9 @@ main(int argc, char **argv) {
       gaps.merge();
       coverage[i]->merge();
 
-      u32bit   coveredLength = coverage[i]->sumOfLengths();
-      u32bit   gapLength     = gaps.sumOfLengths();
-      u32bit   totalLength   = W->sequenceLength(i) - gapLength;
+      uint32   coveredLength = coverage[i]->sumOfLengths();
+      uint32   gapLength     = gaps.sumOfLengths();
+      uint32   totalLength   = W->sequenceLength(i) - gapLength;
 
       if (100 * coveredLength > minCov * totalLength) {
 
@@ -198,7 +198,7 @@ main(int argc, char **argv) {
 
         double cov = 100.0 * coveredLength / (double)totalLength;
 
-        fprintf(stderr, "sequence ["u32bitFMT"] %s covered "u32bitFMT" out of "u32bitFMT" (%7.3f)\n",
+        fprintf(stderr, "sequence ["uint32FMT"] %s covered "uint32FMT" out of "uint32FMT" (%7.3f)\n",
                 i,
                 S->header(),
                 coveredLength,
@@ -210,7 +210,7 @@ main(int argc, char **argv) {
 
       //  Dump a special scaffold
       if (i == 4796) {
-        for (u32bit z=0; z<coverage[i]->numberOfIntervals(); z++) {
+        for (uint32 z=0; z<coverage[i]->numberOfIntervals(); z++) {
           fprintf(stderr, "interval[%3d] %6d - %6d\n", z, coverage[i]->lo(z), coverage[i]->hi(z));
         }
 
@@ -219,6 +219,6 @@ main(int argc, char **argv) {
     }
   }
 
-  fprintf(stderr, "Found "u32bitFMT" bases in "u32bitFMT" scaffolds.\n", sumOfLengths, sequences);
+  fprintf(stderr, "Found "uint32FMT" bases in "uint32FMT" scaffolds.\n", sumOfLengths, sequences);
 }
 

@@ -101,19 +101,19 @@ sortparentuid_(const void *a, const void *b) {
 
 
 void
-atacFeatureList::sort(u32bit first, u32bit len) {
+atacFeatureList::sort(uint32 first, uint32 len) {
   if (len == 0) len = _featuresLen;
   qsort(_features + first, len, sizeof(atacFeature), sort_);
 }
 
 void
-atacFeatureList::sortFeatureUID(u32bit first, u32bit len) {
+atacFeatureList::sortFeatureUID(uint32 first, uint32 len) {
   if (len == 0) len = _featuresLen;
   qsort(_features + first, len, sizeof(atacFeature), sortfeatureuid_);
 }
 
 void
-atacFeatureList::sortParentUID(u32bit first, u32bit len) {
+atacFeatureList::sortParentUID(uint32 first, uint32 len) {
   if (len == 0) len = _featuresLen;
   qsort(_features + first, len, sizeof(atacFeature), sortparentuid_);
 }

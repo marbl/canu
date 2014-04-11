@@ -136,10 +136,10 @@ findPosition(char *defline) {
 static
 int
 printSNP(FILE *F, sim4polish *p) {
-  u32bit   pos           = findPosition(p->_estDefLine);
-  u32bit   exonWithSNP   = ~u32bitZERO;
-  u32bit   i             = 0;
-  u32bit   seqOffset     = 0;
+  uint32   pos           = findPosition(p->_estDefLine);
+  uint32   exonWithSNP   = ~uint32ZERO;
+  uint32   i             = 0;
+  uint32   seqOffset     = 0;
 
   //  If the match is complement, then the alignment is printed using
   //  the reverse complemented SNP sequence, and so we need to find
@@ -161,7 +161,7 @@ printSNP(FILE *F, sim4polish *p) {
     if (((p->_exons[i]._estFrom-1) <= seqOffset) && (seqOffset <= (p->_exons[i]._estTo-1)))
       exonWithSNP = i;
 
-  if (exonWithSNP == ~u32bitZERO)
+  if (exonWithSNP == ~uint32ZERO)
     return(0);
 
   //  If we are printing to a file, continue to find the location, otherwise,
@@ -183,9 +183,9 @@ printSNP(FILE *F, sim4polish *p) {
     //
     //  XXX:  these used to be int!
     //
-    u32bit  bpToExamine = seqOffset - (p->_exons[exonWithSNP]._estFrom - 1) + 1;
-    u32bit  examinePos  = 0;
-    u32bit  genPosition = p->_exons[exonWithSNP]._genFrom - 1;
+    uint32  bpToExamine = seqOffset - (p->_exons[exonWithSNP]._estFrom - 1) + 1;
+    uint32  examinePos  = 0;
+    uint32  genPosition = p->_exons[exonWithSNP]._genFrom - 1;
 
     //  Recent runs of dbSNP showed that we are off by one (too many if forward, too few if complement).  This is a hack to fix it.
     //
@@ -226,7 +226,7 @@ printSNP(FILE *F, sim4polish *p) {
 
 
     if (outputFormat == 1) {
-      fprintf(F, "%s %s "u32bitFMT" %c/%c %s global["u32bitFMT" "u32bitFMT"] exon["u32bitFMT" "u32bitFMT" "u32bitFMT" "u32bitFMT"]\n",
+      fprintf(F, "%s %s "uint32FMT" %c/%c %s global["uint32FMT" "uint32FMT"] exon["uint32FMT" "uint32FMT" "uint32FMT" "uint32FMT"]\n",
               SNPid,
               GENid,
               genPosition,
@@ -238,7 +238,7 @@ printSNP(FILE *F, sim4polish *p) {
               p->_numExons,
               exonWithSNP,
               p->_exons[exonWithSNP]._percentIdentity,
-              (u32bit)floor(100.0 * (double)p->_exons[exonWithSNP]._numMatches / (double)p->_estLen));
+              (uint32)floor(100.0 * (double)p->_exons[exonWithSNP]._numMatches / (double)p->_estLen));
     } else if (outputFormat == 2) {
 
       //  The format is all on one line, data fields separated by tab.
@@ -266,7 +266,7 @@ printSNP(FILE *F, sim4polish *p) {
       //  The order and content should be consistent for any given
       //  version of the software.
       //
-      fprintf(F, "%s %s "u32bitFMT" sa=%c ga=%c mo=%c pi="u32bitFMT" pc="u32bitFMT" nb="u32bitFMT" bl="u32bitFMT" bp="u32bitFMT" bi="u32bitFMT" bc="u32bitFMT"\n",
+      fprintf(F, "%s %s "uint32FMT" sa=%c ga=%c mo=%c pi="uint32FMT" pc="uint32FMT" nb="uint32FMT" bl="uint32FMT" bp="uint32FMT" bi="uint32FMT" bc="uint32FMT"\n",
               "a", //SNPid,
               "b", //GENid,
               genPosition,
@@ -279,7 +279,7 @@ printSNP(FILE *F, sim4polish *p) {
               exonWithSNP,                                                                               // bl
               examinePos,                                                                                // bp
               p->_exons[exonWithSNP]._percentIdentity,                                                   // bi
-              (u32bit)floor(100.0 * (double)p->_exons[exonWithSNP]._numMatches / (double)p->_estLen));   // bc
+              (uint32)floor(100.0 * (double)p->_exons[exonWithSNP]._numMatches / (double)p->_estLen));   // bc
     } else {
     }
 
@@ -403,10 +403,10 @@ int
 main(int argc, char **argv) {
   int          pNum   = 0;
   int          pAlloc = 8388608;
-  u32bit       estID  = 0;
+  uint32       estID  = 0;
 
-  u32bit       percentID = 0;
-  u32bit       percentCO = 0;
+  uint32       percentID = 0;
+  uint32       percentCO = 0;
 
   validSNPMapFile   = 0L;
   failedSNPMapFile  = 0L;
@@ -535,7 +535,7 @@ main(int argc, char **argv) {
 
   while (R->nextAlignment(q)) {
     if (q->_estID < estID) {
-      fprintf(stderr, "ERROR:  Polishes not sorted by SNP idx!  this="u32bitFMT", looking for "u32bitFMT"\n",
+      fprintf(stderr, "ERROR:  Polishes not sorted by SNP idx!  this="uint32FMT", looking for "uint32FMT"\n",
               q->_estID, estID);
       exit(1);
     }

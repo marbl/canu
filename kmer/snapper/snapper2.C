@@ -7,10 +7,10 @@ struct filterStats {
   double L;
   double H;
   double V;
-  u32bit tp;
-  u32bit tn;
-  u32bit fp;
-  u32bit fn;
+  uint32 tp;
+  uint32 tn;
+  uint32 fp;
+  uint32 fn;
 };
 
 
@@ -26,13 +26,13 @@ seqCache              *qsFASTA;
 existDB               *maskDB;
 existDB               *onlyDB;
 positionDB            *positions;
-volatile u32bit        numberOfQueries;
+volatile uint32        numberOfQueries;
 
 int resultFILE;
 int logmsgFILE;
 
-u32bit        numFilters;
-u32bit        maxFilters;
+uint32        numFilters;
+uint32        maxFilters;
 filterStats  *theFilters;
 
 
@@ -46,7 +46,7 @@ writeValidationFile(char *name) {
             "sens", "spec",
             "tp", "fp", "tn", "fn");
 
-    for (u32bit f=0; f<numFilters; f++) {
+    for (uint32 f=0; f<numFilters; f++) {
       double sens = 0.0;
       double spec = 0.0;
 
@@ -56,7 +56,7 @@ writeValidationFile(char *name) {
       if (theFilters[f].tn + theFilters[f].fp > 0)
         spec = (double)theFilters[f].tn / (theFilters[f].tn + theFilters[f].fp);
 
-      fprintf(F, "%6.4f %6.4f %6.4f  %6.4f %6.4f  "u32bitFMTW(8)" "u32bitFMTW(8)" "u32bitFMTW(8)" "u32bitFMTW(8)"\n",
+      fprintf(F, "%6.4f %6.4f %6.4f  %6.4f %6.4f  "uint32FMTW(8)" "uint32FMTW(8)" "uint32FMTW(8)" "uint32FMTW(8)"\n",
               theFilters[f].L,
               theFilters[f].H,
               theFilters[f].V,
@@ -119,7 +119,7 @@ searchThread(void *global, void *thread, void *thing) {
   delete qry->seq;
   qry->seq = 0L;
 
-  for (u32bit h=0; h<qry->theHitsLen; h++) {
+  for (uint32 h=0; h<qry->theHitsLen; h++) {
     delete qry->theHits[h]._ML;
     qry->theHits[h]._ML = 0L;
   }
@@ -170,14 +170,14 @@ writerThread(void *global, void *thing) {
   //
   if (config._doValidation &&
       (qry->theHitsLen > 0)) {
-    for (u32bit f=0; f<numFilters; f++) {
-      u32bit cutL = configureFilter(theFilters[f].L,
+    for (uint32 f=0; f<numFilters; f++) {
+      uint32 cutL = configureFilter(theFilters[f].L,
                                     theFilters[f].H,
                                     theFilters[f].V,
                                     qry->theHits,
                                     qry->theHitsLen);
 
-      for (u32bit a=0; a<qry->theHitsLen; a++) {
+      for (uint32 a=0; a<qry->theHitsLen; a++) {
         if (qry->theHits[a]._covered < cutL) {
           //  These hits would have been discarded by the filter.
           //
@@ -232,27 +232,27 @@ main(int argc, char **argv) {
   //  sequences before the table is built.
   //
   {
-    u32bit  numTooShortQueries = 0;
-    u32bit  numTooLongQueries  = 0;
-    u32bit  numOKQueries         = 0;
-    for (u32bit i=0; i<numberOfQueries; i++) {
+    uint32  numTooShortQueries = 0;
+    uint32  numTooLongQueries  = 0;
+    uint32  numOKQueries         = 0;
+    for (uint32 i=0; i<numberOfQueries; i++) {
       if      (qsFASTA->getSequenceLength(i) < config._discardExonLength)
         numTooShortQueries++;
-      else if (qsFASTA->getSequenceLength(i) >= (u64bitONE << 22))
+      else if (qsFASTA->getSequenceLength(i) >= (uint64ONE << 22))
         numTooLongQueries++;
       else
         numOKQueries++;
     }
     if (numTooShortQueries > 0) {
       fprintf(stderr, "WARNING:\n");
-      fprintf(stderr, "WARNING:  Found "u32bitFMT" queries shorter than minimum reportable size (-discardexonlength = "u32bitFMT")\n",
+      fprintf(stderr, "WARNING:  Found "uint32FMT" queries shorter than minimum reportable size (-discardexonlength = "uint32FMT")\n",
               numTooShortQueries, config._discardExonLength);
       fprintf(stderr, "WARNING:\n");
     }
     if (numTooLongQueries > 0) {
       fprintf(stderr, "WARNING:\n");
-      fprintf(stderr, "WARNING:  Found "u32bitFMT" queries longer than maximum size ("u32bitFMT")\n",
-              numTooLongQueries, u32bitONE << 22);
+      fprintf(stderr, "WARNING:  Found "uint32FMT" queries longer than maximum size ("uint32FMT")\n",
+              numTooLongQueries, uint32ONE << 22);
       fprintf(stderr, "WARNING:\n");
     }
     if (numOKQueries == 0) {
@@ -272,9 +272,9 @@ main(int argc, char **argv) {
   if (config._doValidation) {
     theFilters = new filterStats [maxFilters];
 
-    for (u32bit h=0; h<=100; h+=5) {
-      for (u32bit l=0; l<=h; l+=5) {
-        for (u32bit v=5; v<=100; v+=5) {
+    for (uint32 h=0; h<=100; h+=5) {
+      for (uint32 l=0; l<=h; l+=5) {
+        for (uint32 v=5; v<=100; v+=5) {
           if (numFilters >= maxFilters) {
             fprintf(stderr, "ERROR:  Ran out of filterStats structures while configuring the filters!\n");
             exit(1);
@@ -292,7 +292,7 @@ main(int argc, char **argv) {
       }
     }
 
-    fprintf(stderr, "Created "u32bitFMT" filters (out of "u32bitFMT" available) to test/validate.\n",
+    fprintf(stderr, "Created "uint32FMT" filters (out of "uint32FMT" available) to test/validate.\n",
             numFilters, maxFilters);
   }
 
@@ -318,12 +318,12 @@ main(int argc, char **argv) {
     if (config._maskFileName) {
       if (config._beVerbose)
         fprintf(stderr, "Building maskDB from fasta file '%s'\n", config._maskFileName);
-      maskDB = new existDB(config._maskFileName, config._KBmerSize, existDBnoFlags, 0, ~u32bitZERO);
+      maskDB = new existDB(config._maskFileName, config._KBmerSize, existDBnoFlags, 0, ~uint32ZERO);
     }
     if (config._maskPrefix) {
       if (config._beVerbose)
         fprintf(stderr, "Building maskDB from meryl prefix '%s'\n", config._maskPrefix);
-      maskDB = new existDB(config._maskPrefix, config._KBmerSize, existDBnoFlags, config._maskThreshold, ~u32bitZERO);
+      maskDB = new existDB(config._maskPrefix, config._KBmerSize, existDBnoFlags, config._maskThreshold, ~uint32ZERO);
     }
 #endif
 
@@ -332,7 +332,7 @@ main(int argc, char **argv) {
     if (config._onlyFileName) {
       if (config._beVerbose)
         fprintf(stderr, "Building onlyDB from fasta file '%s'\n", config._onlyFileName);
-      onlyDB = new existDB(config._onlyFileName, config._KBmerSize, existDBnoFlags, 0, ~u32bitZERO);
+      onlyDB = new existDB(config._onlyFileName, config._KBmerSize, existDBnoFlags, 0, ~uint32ZERO);
     }
     if (config._onlyPrefix) {
       if (config._beVerbose)
@@ -450,7 +450,7 @@ main(int argc, char **argv) {
 
   ss->setWriterQueueSize(16384);
 
-  for (u32bit i=0; i<config._numSearchThreads; i++)
+  for (uint32 i=0; i<config._numSearchThreads; i++)
     ss->setThreadData(i, new searcherState(i));
 
   ss->run(0L, config._beVerbose);

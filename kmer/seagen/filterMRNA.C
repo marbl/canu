@@ -19,7 +19,7 @@ main(int argc, char **argv) {
   double       V  = 0.7;
   double       M  = 0.3;
   double       MC = 0.2;
-  u32bit       ML = 150;
+  uint32       ML = 150;
   bool         beVerbose = false;
 
   int arg = 1;
@@ -50,7 +50,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "  score difference of %4.2f or less -> 100.0%% of best score\n", L);
     fprintf(stderr, "  score difference of %4.2f or more -> %5.1f%% of best score\n", H, 100*V);
     fprintf(stderr, "  scores at least %4.2f are always output\n", M);
-    fprintf(stderr, "  scores at least %4.2f AND at least "u32bitFMT" bases covered are always output\n", MC, ML);
+    fprintf(stderr, "  scores at least %4.2f AND at least "uint32FMT" bases covered are always output\n", MC, ML);
   }
 
   while (HR.loadHits()) {
@@ -58,7 +58,7 @@ main(int argc, char **argv) {
 
     double  hiCov = HR[0].coverage;
     double  loCov = HR[0].coverage;
-    for (u32bit i=0; i < HR.numHits(); i++)
+    for (uint32 i=0; i < HR.numHits(); i++)
       if ((HR[i].a._merged == false) && (loCov > HR[i].coverage))
         loCov = HR[i].coverage;
         
@@ -83,7 +83,7 @@ main(int argc, char **argv) {
     //  the minimum coverage or long.  Also blindly save merged
     //  hits.
     //
-    for (u32bit i=0; i < HR.numHits(); i++)
+    for (uint32 i=0; i < HR.numHits(); i++)
       if (((cutL <= HR[i].coverage) && ((MC <= HR[i].coverage) ||
                                         (ML <= HR[i].a._covered))) ||
           (HR[i].a._merged))

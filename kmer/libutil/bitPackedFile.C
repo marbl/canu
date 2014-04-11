@@ -10,7 +10,7 @@
 //  N.B. any read() / write() pair (either order) must have a seek (or
 //  a fflush) in between.
 
-bitPackedFile::bitPackedFile(char const *name, u64bit offset, bool forceTruncate) {
+bitPackedFile::bitPackedFile(char const *name, uint64 offset, bool forceTruncate) {
 
   _file = 0;
   _name = new char [strlen(name) + 1];
@@ -23,11 +23,11 @@ bitPackedFile::bitPackedFile(char const *name, u64bit offset, bool forceTruncate
 #endif
 
   _bfrmax = 1048576 / 8;
-  _bfr    = new u64bit [_bfrmax];
-  _pos    = u64bitZERO;
-  _bit    = u64bitZERO;
+  _bfr    = new uint64 [_bfrmax];
+  _pos    = uint64ZERO;
+  _bit    = uint64ZERO;
 
-  memset(_bfr, 0, sizeof(u64bit) * _bfrmax);
+  memset(_bfr, 0, sizeof(uint64) * _bfrmax);
 
   _inCore         = false;
   _bfrDirty       = false;
@@ -35,9 +35,9 @@ bitPackedFile::bitPackedFile(char const *name, u64bit offset, bool forceTruncate
   _isReadOnly     = false;
   _isBzip2        = false;
 
-  stat_seekInside   = u64bitZERO;
-  stat_seekOutside  = u64bitZERO;
-  stat_dirtyFlushes = u64bitZERO;
+  stat_seekInside   = uint64ZERO;
+  stat_seekOutside  = uint64ZERO;
+  stat_dirtyFlushes = uint64ZERO;
 
   file_offset        = 0;
   endianess_offset   = 0;
@@ -91,24 +91,24 @@ bitPackedFile::bitPackedFile(char const *name, u64bit offset, bool forceTruncate
 
   char    t[16] = { 'b', 'i', 't', 'P', 'a', 'c', 'k', 'e', 'd', 'F', 'i', 'l', 'e', 0, 0, 1 };
   char    c[16] = { 0 };
-  u64bit  at = u64bitNUMBER(0xdeadbeeffeeddada );
-  u64bit  bt = u64bitNUMBER(0x0abeadedbabed8f8);
-  u64bit  ac = u64bitNUMBER(0);
-  u64bit  bc = u64bitNUMBER(0);
+  uint64  at = uint64NUMBER(0xdeadbeeffeeddada );
+  uint64  bt = uint64NUMBER(0x0abeadedbabed8f8);
+  uint64  ac = uint64NUMBER(0);
+  uint64  bc = uint64NUMBER(0);
   size_t  nr = 0;
 
   errno = 0;
   nr += read(_file, c, sizeof(char) * 16);
-  nr += read(_file, &ac, sizeof(u64bit));
-  nr += read(_file, &bc, sizeof(u64bit));
+  nr += read(_file, &ac, sizeof(uint64));
+  nr += read(_file, &bc, sizeof(uint64));
 
   if (nr == 0) {
     //  Empty file!  Write the magic number and our endianess check.
 
     errno = 0;
     write(_file,  t,  sizeof(char) * 16);
-    write(_file, &at, sizeof(u64bit));
-    write(_file, &bt, sizeof(u64bit));
+    write(_file, &at, sizeof(uint64));
+    write(_file, &bt, sizeof(uint64));
     if (errno)
       fprintf(stderr, "bitPackedFile::bitPackedFile()-- '%s' failed to write the header: %s\n", _name, strerror(errno)), exit(1);
 
@@ -135,8 +135,8 @@ bitPackedFile::bitPackedFile(char const *name, u64bit offset, bool forceTruncate
     }
 
     BZ2_bzRead(&_bzerr, _bzfile, c,   sizeof(char) * 16);
-    BZ2_bzRead(&_bzerr, _bzfile, &ac, sizeof(u64bit));
-    BZ2_bzRead(&_bzerr, _bzfile, &bc, sizeof(u64bit));
+    BZ2_bzRead(&_bzerr, _bzfile, &ac, sizeof(uint64));
+    BZ2_bzRead(&_bzerr, _bzfile, &bc, sizeof(uint64));
 
     //  XXX  should check bzerr!
 
@@ -154,7 +154,7 @@ bitPackedFile::bitPackedFile(char const *name, u64bit offset, bool forceTruncate
   if (strncmp(t, c, 16) == 0) {
     if ((at == ac) && (bt == bc)) {
       endianess_flipped = false;
-    } else if ((at == u64bitSwap(ac)) && (bt == u64bitSwap(bc))) {
+    } else if ((at == uint64Swap(ac)) && (bt == uint64Swap(bc))) {
       endianess_flipped = true;
     } else {
       fprintf(stderr, "bitPackedFile::bitPackedFile()-- '%s' looked like a bitPackedFile, but failed the endianess check, not opened.\n", _name);
@@ -163,9 +163,9 @@ bitPackedFile::bitPackedFile(char const *name, u64bit offset, bool forceTruncate
   } else {
     fprintf(stderr, "bitPackedFile::bitPackedFile()-- '%s' doesn't appear to be a bitPackedFile, not opened.\n", _name);
     fprintf(stderr, "bitPackedFile::bitPackedFile()-- found ");
-    for (u32bit i=0; i<16; i++)
+    for (uint32 i=0; i<16; i++)
       fprintf(stderr, "%c", isascii(c[i]) ? c[i] : '.');
-    fprintf(stderr, " at position "u64bitHEX"\n", file_offset);
+    fprintf(stderr, " at position "uint64HEX"\n", file_offset);
     exit(1);
   }
 
@@ -207,7 +207,7 @@ bitPackedFile::flushDirty(void) {
   stat_dirtyFlushes++;
 
   errno = 0;
-  lseek(_file, _pos * sizeof(u64bit) + endianess_offset, SEEK_SET);
+  lseek(_file, _pos * sizeof(uint64) + endianess_offset, SEEK_SET);
   if (errno) {
     fprintf(stderr, "bitPackedFile::seek()-- '%s' failed: %s\n",
             _name, strerror(errno));
@@ -217,8 +217,8 @@ bitPackedFile::flushDirty(void) {
   //  If we need to, flip all the words we are going to write
   //
   if (endianess_flipped)
-    for (u32bit i=0; i<_bfrmax; i++)
-      _bfr[i] = u64bitSwap(_bfr[i]);
+    for (uint32 i=0; i<_bfrmax; i++)
+      _bfr[i] = uint64Swap(_bfr[i]);
 
   //  We should only write bits up to _bit, the position we are
   //  currently at.  However, we don't know if the block is being
@@ -229,7 +229,7 @@ bitPackedFile::flushDirty(void) {
   //  either case, we flush the word that contains _bit.
   //
   errno = 0;
-  write(_file, _bfr, sizeof(u64bit) * _bfrmax);
+  write(_file, _bfr, sizeof(uint64) * _bfrmax);
   if (errno) {
     fprintf(stderr, "bitPackedFile::write()-- '%s' failed: %s\n",
             _name, strerror(errno));
@@ -239,8 +239,8 @@ bitPackedFile::flushDirty(void) {
   //  And then flip them back
   //
   if (endianess_flipped)
-    for (u32bit i=0; i<_bfrmax; i++)
-      _bfr[i] = u64bitSwap(_bfr[i]);
+    for (uint32 i=0; i<_bfrmax; i++)
+      _bfr[i] = uint64Swap(_bfr[i]);
 
   _bfrDirty = false;
 }
@@ -248,14 +248,14 @@ bitPackedFile::flushDirty(void) {
 
 
 void
-bitPackedFile::seekBzip2(u64bit bitpos) {
+bitPackedFile::seekBzip2(uint64 bitpos) {
 
 #ifdef WITH_BZIP2
   //  All we can do here is check that bitpos is
   //  a) in our current buffer
   //  b) would be in the next buffer once we read it
 
-  u64bit  newpos = bitpos >> 6;
+  uint64  newpos = bitpos >> 6;
 
   if (_pos + _bfrmax < newpos) {
     //  nope, not in the buffer -- we could probably handle this by just reading and
@@ -267,14 +267,14 @@ bitPackedFile::seekBzip2(u64bit bitpos) {
   //  Copy the remaining bits of the current buffer to the start.  Or
   //  not, if this is the first load.
 
-  u64bit  lastpos = _bit >> 6;            //  The word we are currently in
-  u64bit  lastlen = (_bfrmax - lastpos);  //  The number of words left in the buffer
+  uint64  lastpos = _bit >> 6;            //  The word we are currently in
+  uint64  lastlen = (_bfrmax - lastpos);  //  The number of words left in the buffer
 
   if (_forceFirstLoad == true) {
     lastpos = 0;
     lastlen = 0;
   } else {
-    memcpy(_bfr, _bfr + lastpos, sizeof(u64bit) * lastlen);
+    memcpy(_bfr, _bfr + lastpos, sizeof(uint64) * lastlen);
   }
 
   //  Update _bit and _pos -- lastlen is now the first invalid word
@@ -288,7 +288,7 @@ bitPackedFile::seekBzip2(u64bit bitpos) {
 
   if (_bzfile) {
     _bzerr = 0;
-    wordsread = BZ2_bzRead(&_bzerr, _bzfile, _bfr + lastlen, sizeof(u64bit) * (_bfrmax - lastlen));
+    wordsread = BZ2_bzRead(&_bzerr, _bzfile, _bfr + lastlen, sizeof(uint64) * (_bfrmax - lastlen));
     if (_bzerr == BZ_STREAM_END) {
       //fprintf(stderr, "bitPackedFile::seekBzip2() file ended.\n");
       BZ2_bzReadClose(&_bzerr, _bzfile);
@@ -310,14 +310,14 @@ bitPackedFile::seekBzip2(u64bit bitpos) {
   //  Flip all the words we just read, if needed
   //
   if (endianess_flipped)
-    for (u32bit i=lastlen; i<wordsread; i++)
-      _bfr[i] = u64bitSwap(_bfr[i]);
+    for (uint32 i=lastlen; i<wordsread; i++)
+      _bfr[i] = uint64Swap(_bfr[i]);
   
   //  Clear any words that we didn't read (supposedly, because we hit
   //  EOF).
   //
   while (wordsread < _bfrmax)
-    _bfr[wordsread++] = u64bitZERO;
+    _bfr[wordsread++] = uint64ZERO;
 #else
   fprintf(stderr, "bitPackedFile::bitPackedFile()-- '%s'\n", _name);
   fprintf(stderr, "bitPackedFile::bitPackedFile()-- bzip2 support not present, but still tried to read it??\n");
@@ -328,7 +328,7 @@ bitPackedFile::seekBzip2(u64bit bitpos) {
 
 
 void
-bitPackedFile::seekNormal(u64bit bitpos) {
+bitPackedFile::seekNormal(uint64 bitpos) {
 
   if (_inCore) {
     fprintf(stderr, "bitPackedFile::bitPackedFile()-- '%s' is in core, but still needed to seek??\n",
@@ -364,18 +364,18 @@ bitPackedFile::seekNormal(u64bit bitpos) {
   errno = 0;
   lseek(_file, _pos * 8 + endianess_offset, SEEK_SET);
   if (errno) {
-    fprintf(stderr, "bitPackedFile::seekNormal() '%s' seek to pos="u64bitFMT" failed: %s\n",
+    fprintf(stderr, "bitPackedFile::seekNormal() '%s' seek to pos="uint64FMT" failed: %s\n",
             _name,
             _pos * 8 + endianess_offset, strerror(errno));
     exit(1);
   }
 
   errno = 0;
-  size_t wordsread = read(_file, _bfr, sizeof(u64bit) * _bfrmax);
+  size_t wordsread = read(_file, _bfr, sizeof(uint64) * _bfrmax);
   if (errno) {
-    fprintf(stderr, "bitPackedFile::seekNormal() '%s' read of "u64bitFMT" bytes failed': %s\n",
+    fprintf(stderr, "bitPackedFile::seekNormal() '%s' read of "uint64FMT" bytes failed': %s\n",
             _name,
-            sizeof(u64bit) * _bfrmax,
+            sizeof(uint64) * _bfrmax,
             strerror(errno));
     exit(1);
   }
@@ -383,14 +383,14 @@ bitPackedFile::seekNormal(u64bit bitpos) {
   //  Flip all the words we just read, if needed
   //
   if (endianess_flipped)
-    for (u32bit i=0; i<wordsread; i++)
-      _bfr[i] = u64bitSwap(_bfr[i]);
+    for (uint32 i=0; i<wordsread; i++)
+      _bfr[i] = uint64Swap(_bfr[i]);
 
   //  Clear any words that we didn't read (supposedly, because we hit
   //  EOF).
   //
   while (wordsread < _bfrmax)
-    _bfr[wordsread++] = u64bitZERO;
+    _bfr[wordsread++] = uint64ZERO;
 }
 
 
@@ -400,18 +400,18 @@ bitPackedFile::seekNormal(u64bit bitpos) {
 //  Seeks to bitposition pos in the file, reads in a new block.
 //
 void
-bitPackedFile::seek(u64bit bitpos) {
+bitPackedFile::seek(uint64 bitpos) {
 
   //  If we are seeking to somewhere in the current block, don't do a
   //  real seek, just move our position within the block.
   //
   if (_forceFirstLoad == false) {
-    u64bit np = bitpos >> 6;
+    uint64 np = bitpos >> 6;
     
     if ((_pos <= np) && (np <= _pos + _bfrmax - 32)) {
       _bit = bitpos - (_pos << 6);
       stat_seekInside++;
-      //fprintf(stderr, "SEEK INSIDE to _bit="u64bitFMT"\n", _bit);
+      //fprintf(stderr, "SEEK INSIDE to _bit="uint64FMT"\n", _bit);
       return;
     }
   }
@@ -433,13 +433,13 @@ bitPackedFile::seek(u64bit bitpos) {
 
   _forceFirstLoad = false;
 
-  //fprintf(stderr, "SEEK OUTSIDE to _pos="u64bitFMT" _bit="u64bitFMT"\n", _pos, _bit);
+  //fprintf(stderr, "SEEK OUTSIDE to _pos="uint64FMT" _bit="uint64FMT"\n", _pos, _bit);
 }
 
 
 
 
-u64bit
+uint64
 bitPackedFile::loadInCore(void) {
   struct stat  sb;
 
@@ -457,7 +457,7 @@ bitPackedFile::loadInCore(void) {
   delete [] _bfr;
 
   _bfrmax = sb.st_size / 8 + 1024;
-  _bfr    = new u64bit [_bfrmax];
+  _bfr    = new uint64 [_bfrmax];
   _pos    = 0;
   _bit    = 0;
 

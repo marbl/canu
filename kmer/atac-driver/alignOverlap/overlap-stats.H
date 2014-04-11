@@ -28,28 +28,28 @@
 //
 class histogram {
 public:
-  histogram(u32bit max=65536) {
+  histogram(uint32 max=65536) {
     histMax = max;
-    hist    = new u32bit [histMax];
+    hist    = new uint32 [histMax];
     sum     = 0;
 
-    for (u32bit i=0; i<histMax; i++)
+    for (uint32 i=0; i<histMax; i++)
       hist[i] = 0;
   };
   ~histogram() {
     delete [] hist;
   };
 
-  void  update(u32bit length) {
+  void  update(uint32 length) {
     sum += length;
     hist[ ((length) > histMax) ? 0 : length ]++;
   };
 
-  void operator+=(u32bit length) {
+  void operator+=(uint32 length) {
     update(length);
   };
 
-  u32bit  getSum(void) {
+  uint32  getSum(void) {
     return(sum);
   };
 
@@ -60,15 +60,15 @@ public:
     FILE *out = fopen(filename, "w");
     if (errno)
       fprintf(stderr, "Failed to open '%s': %s\n", filename, strerror(errno)), exit(1);
-    for (u32bit i=0; i<histMax; i++)
-      fprintf(out, u32bitFMT" "u32bitFMT"\n", i, hist[i]);
+    for (uint32 i=0; i<histMax; i++)
+      fprintf(out, uint32FMT" "uint32FMT"\n", i, hist[i]);
     fclose(out);
   };
 
 private:
-  u32bit  *hist;
-  u32bit   histMax;
-  u32bit   sum;
+  uint32  *hist;
+  uint32   histMax;
+  uint32   sum;
 };
 
 class overlapStats {

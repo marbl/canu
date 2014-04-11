@@ -8,10 +8,10 @@
 
 bool
 existDB::createFromMeryl(char const  *prefix,
-                         u32bit       merSize,
-                         u32bit       lo,
-                         u32bit       hi,
-                         u32bit       flags) {
+                         uint32       merSize,
+                         uint32       lo,
+                         uint32       hi,
+                         uint32       flags) {
 
   merylStreamReader *M = new merylStreamReader(prefix);
 
@@ -24,7 +24,7 @@ existDB::createFromMeryl(char const  *prefix,
   _merSizeInBases        = M->merSize();
 
   if (merSize != _merSizeInBases) {
-    fprintf(stderr, "createFromMeryl()-- ERROR: requested merSize ("u32bitFMT") is different than merSize in meryl database ("u32bitFMT").\n",
+    fprintf(stderr, "createFromMeryl()-- ERROR: requested merSize ("uint32FMT") is different than merSize in meryl database ("uint32FMT").\n",
             merSize, _merSizeInBases);
     exit(1);
   }
@@ -32,30 +32,30 @@ existDB::createFromMeryl(char const  *prefix,
   //  We can set this exactly, but not memory optimal (see meryl/estimate.C:optimalNumberOfBuckets()).
   //  Instead, we just blindly use whatever meryl used.
   //
-  u32bit tblBits = M->prefixSize();
+  uint32 tblBits = M->prefixSize();
 
   //  But it is faster to reset to this.  Might use 2x the memory.
-  //u32bit tblBits = logBaseTwo64(M->numberOfDistinctMers() + 1);
+  //uint32 tblBits = logBaseTwo64(M->numberOfDistinctMers() + 1);
 
   _shift1                = 2 * _merSizeInBases - tblBits;
   _shift2                = _shift1 / 2;
-  _mask1                 = u64bitMASK(tblBits);
-  _mask2                 = u64bitMASK(_shift1);
+  _mask1                 = uint64MASK(tblBits);
+  _mask2                 = uint64MASK(_shift1);
 
-  _hshWidth              = u32bitZERO;
+  _hshWidth              = uint32ZERO;
   _chkWidth              = 2 * _merSizeInBases - tblBits;
   _cntWidth              = 16;
 
-  u64bit  tableSizeInEntries = u64bitONE << tblBits;
-  u64bit  numberOfMers       = u64bitZERO;
-  u64bit *countingTable      = new u64bit [tableSizeInEntries + 1];
+  uint64  tableSizeInEntries = uint64ONE << tblBits;
+  uint64  numberOfMers       = uint64ZERO;
+  uint64 *countingTable      = new uint64 [tableSizeInEntries + 1];
 
   if (beVerbose) {
-    fprintf(stderr, "createFromMeryl()-- tableSizeInEntries   "u64bitFMT"\n", tableSizeInEntries);
-    fprintf(stderr, "createFromMeryl()-- count range          "u32bitFMT"-"u32bitFMT"\n", lo, hi);
+    fprintf(stderr, "createFromMeryl()-- tableSizeInEntries   "uint64FMT"\n", tableSizeInEntries);
+    fprintf(stderr, "createFromMeryl()-- count range          "uint32FMT"-"uint32FMT"\n", lo, hi);
   }
 
-  for (u64bit i=tableSizeInEntries+1; i--; )
+  for (uint64 i=tableSizeInEntries+1; i--; )
     countingTable[i] = 0;
 
   _isCanonical = flags & existDBcanonical;
@@ -101,19 +101,19 @@ existDB::createFromMeryl(char const  *prefix,
   }
 
   if (beVerbose)
-    fprintf(stderr, "createFromMeryl()-- numberOfMers         "u64bitFMT"\n", numberOfMers);
+    fprintf(stderr, "createFromMeryl()-- numberOfMers         "uint64FMT"\n", numberOfMers);
 
   delete C;
   delete M;
 
   if (_compressedHash) {
     _hshWidth = 1;
-    while ((numberOfMers+1) > (u64bitONE << _hshWidth))
+    while ((numberOfMers+1) > (uint64ONE << _hshWidth))
       _hshWidth++;
   }
 
   if (beVerbose) {
-    fprintf(stderr, "existDB::createFromMeryl()-- Found "u64bitFMT" mers between count of "u32bitFMT" and "u32bitFMT"\n",
+    fprintf(stderr, "existDB::createFromMeryl()-- Found "uint64FMT" mers between count of "uint32FMT" and "uint32FMT"\n",
             numberOfMers, lo, hi);
   }
 
@@ -132,24 +132,24 @@ existDB::createFromMeryl(char const  *prefix,
     _countsWords = _countsWords * _cntWidth / 64 + 1;
 
   if (beVerbose) {
-    fprintf(stderr, "existDB::createFromMeryl()-- hashTable is "u64bitFMT"MB\n", _hashTableWords >> 17);
-    fprintf(stderr, "existDB::createFromMeryl()-- buckets is "u64bitFMT"MB\n", _bucketsWords >> 17);
+    fprintf(stderr, "existDB::createFromMeryl()-- hashTable is "uint64FMT"MB\n", _hashTableWords >> 17);
+    fprintf(stderr, "existDB::createFromMeryl()-- buckets is "uint64FMT"MB\n", _bucketsWords >> 17);
     if (flags & existDBcounts)
-      fprintf(stderr, "existDB::createFromMeryl()-- counts is "u64bitFMT"MB\n", _countsWords >> 17);
+      fprintf(stderr, "existDB::createFromMeryl()-- counts is "uint64FMT"MB\n", _countsWords >> 17);
   }
 
-  _hashTable   = new u64bit [_hashTableWords];
-  _buckets     = new u64bit [_bucketsWords];
+  _hashTable   = new uint64 [_hashTableWords];
+  _buckets     = new uint64 [_bucketsWords];
   _countsWords = (flags & existDBcounts) ?             _countsWords  : 0;
-  _counts      = (flags & existDBcounts) ? new u64bit [_countsWords] : 0L;
+  _counts      = (flags & existDBcounts) ? new uint64 [_countsWords] : 0L;
 
   //  These aren't strictly needed.  _buckets is cleared as it is initialied.  _hashTable
   //  is also cleared as it is initialized, but in the _compressedHash case, the last
   //  few words might be uninitialized.  They're unused.
 
-  //memset(_hashTable, 0, sizeof(u64bit) * _hashTableWords);
-  //memset(_buckets,   0, sizeof(u64bit) * _bucketsWords);  //  buckets is cleared as it is built
-  //memset(_counts,    0, sizeof(u64bit) * _countsWords);
+  //memset(_hashTable, 0, sizeof(uint64) * _hashTableWords);
+  //memset(_buckets,   0, sizeof(uint64) * _bucketsWords);  //  buckets is cleared as it is built
+  //memset(_counts,    0, sizeof(uint64) * _countsWords);
 
   _hashTable[_hashTableWords-1] = 0;
   _hashTable[_hashTableWords-2] = 0;
@@ -161,12 +161,12 @@ existDB::createFromMeryl(char const  *prefix,
   //  Make the hash table point to the start of the bucket, and reset
   //  the counting table -- we're going to use it to fill the buckets.
   //
-  u64bit  tmpPosition = 0;
-  u64bit  begPosition = 0;
-  u64bit  ptr         = 0;
+  uint64  tmpPosition = 0;
+  uint64  begPosition = 0;
+  uint64  ptr         = 0;
 
   if (_compressedHash) {
-    for (u64bit i=0; i<tableSizeInEntries; i++) {
+    for (uint64 i=0; i<tableSizeInEntries; i++) {
       tmpPosition    = countingTable[i];
       countingTable[i] = begPosition;
 
@@ -178,7 +178,7 @@ existDB::createFromMeryl(char const  *prefix,
 
     setDecodedValue(_hashTable, ptr, _hshWidth, begPosition);
   } else {
-    for (u64bit i=0; i<tableSizeInEntries; i++) {
+    for (uint64 i=0; i<tableSizeInEntries; i++) {
       tmpPosition    = countingTable[i];
       countingTable[i] = begPosition;
 

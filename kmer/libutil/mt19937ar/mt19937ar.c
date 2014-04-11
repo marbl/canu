@@ -62,7 +62,7 @@
 
 //  initialize with a single seed
 mt_s*
-mtInit(u32bit s) {
+mtInit(uint32 s) {
   mt_s *ctx = (mt_s *)malloc(sizeof(mt_s));
   if (ctx == NULL)
     return(NULL);
@@ -77,7 +77,7 @@ mtInit(u32bit s) {
   for (ctx->mti=1; ctx->mti<MT_N; ctx->mti++)
     ctx->mt[ctx->mti] = (1812433253UL * (ctx->mt[ctx->mti-1] ^ (ctx->mt[ctx->mti-1] >> 30)) + ctx->mti); 
 
-  ctx->mag01[0] = u32bitZERO;
+  ctx->mag01[0] = uint32ZERO;
   ctx->mag01[1] = MT_MATRIX_A;
 
   return(ctx);
@@ -91,7 +91,7 @@ mtInit(u32bit s) {
 /* key_length is its length */
 /* slight change for C++, 2004/2/26 */
 mt_s*
-mtInitArray(u32bit *init_key, u32bit key_length) {
+mtInitArray(uint32 *init_key, uint32 key_length) {
 
   mt_s *ctx = mtInit(19650218UL);
   int   i   = 1;
@@ -125,9 +125,9 @@ mtInitArray(u32bit *init_key, u32bit key_length) {
 
 
 /* generates a random number on [0,0xffffffff]-interval */
-u32bit
+uint32
 mtRandom32(mt_s *ctx) {
-    u32bit y;
+    uint32 y;
 
     //  generate MT_N words at one time
     //
@@ -136,14 +136,14 @@ mtRandom32(mt_s *ctx) {
 
         for (kk=0; kk < MT_N - MT_M; kk++) {
             y = (ctx->mt[kk] & MT_UPPER_MASK) | (ctx->mt[kk+1] & MT_LOWER_MASK);
-            ctx->mt[kk] = ctx->mt[kk + MT_M] ^ (y >> 1) ^ ctx->mag01[y & u32bitONE];
+            ctx->mt[kk] = ctx->mt[kk + MT_M] ^ (y >> 1) ^ ctx->mag01[y & uint32ONE];
         }
         for (; kk < MT_N-1; kk++) {
             y = (ctx->mt[kk] & MT_UPPER_MASK) | (ctx->mt[kk + 1] & MT_LOWER_MASK);
-            ctx->mt[kk] = ctx->mt[kk + (MT_M - MT_N)] ^ (y >> 1) ^ ctx->mag01[y & u32bitONE];
+            ctx->mt[kk] = ctx->mt[kk + (MT_M - MT_N)] ^ (y >> 1) ^ ctx->mag01[y & uint32ONE];
         }
         y = (ctx->mt[MT_N-1] & MT_UPPER_MASK) | (ctx->mt[0] & MT_LOWER_MASK);
-        ctx->mt[MT_N-1] = ctx->mt[MT_M-1] ^ (y >> 1) ^ ctx->mag01[y & u32bitONE];
+        ctx->mt[MT_N-1] = ctx->mt[MT_M-1] ^ (y >> 1) ^ ctx->mag01[y & uint32ONE];
 
         ctx->mti = 0;
     }

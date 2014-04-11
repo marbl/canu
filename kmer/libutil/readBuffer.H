@@ -4,8 +4,8 @@
 
 class readBuffer {
 public:
-  readBuffer(const char *filename, u64bit bufferMax = 32 * 1024);
-  readBuffer(FILE *F, u64bit bufferMax = 32 * 1024);
+  readBuffer(const char *filename, uint64 bufferMax = 32 * 1024);
+  readBuffer(FILE *F, uint64 bufferMax = 32 * 1024);
   ~readBuffer();
 
   bool             eof(void) { return(_eof); };
@@ -13,22 +13,22 @@ public:
   char             peek(void);
 
   char             read(void);
-  u64bit           read(void *buf, u64bit len);
-  u64bit           read(void *buf, u64bit maxlen, char stop);
+  uint64           read(void *buf, uint64 len);
+  uint64           read(void *buf, uint64 maxlen, char stop);
 
-  void             seek(u64bit pos);
-  u64bit           tell(void) { return(_filePos); };
+  void             seek(uint64 pos);
+  uint64           tell(void) { return(_filePos); };
 
   const char      *filename(void) { return(_filename); };
 
 private:
   void             fillBuffer(void);
-  void             init(int fileptr, const char *filename, u64bit bufferMax);
+  void             init(int fileptr, const char *filename, uint64 bufferMax);
 
   char           *_filename;
 
   int             _file;
-  u64bit          _filePos;
+  uint64          _filePos;
 
   bool            _mmap;
   bool            _stdin;
@@ -38,9 +38,9 @@ private:
   //  If bufferMax is zero, then we are using the mmapped interface, otherwise,
   //  we are using a open()/read() and a small buffer.
 
-  u64bit          _bufferPos;
-  u64bit          _bufferLen;
-  u64bit          _bufferMax;
+  uint64          _bufferPos;
+  uint64          _bufferLen;
+  uint64          _bufferMax;
   char           *_buffer;
 };
 

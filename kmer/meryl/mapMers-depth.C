@@ -11,19 +11,19 @@
 
 int
 main(int argc, char **argv) {
-  u32bit    merSize    = 16;
+  uint32    merSize    = 16;
   char     *merylFile  = 0L;
   char     *fastaFile  = 0L;
   bool      beVerbose  = false;
-  u32bit    loCount    = 0;
-  u32bit    hiCount    = ~u32bitZERO;
-  u32bit    windowsize = 0;
-  u32bit    skipsize   = 0;
+  uint32    loCount    = 0;
+  uint32    hiCount    = ~uint32ZERO;
+  uint32    windowsize = 0;
+  uint32    skipsize   = 0;
 
   int arg=1;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-m") == 0) {
-      merSize = strtou32bit(argv[++arg], 0L);
+      merSize = strtouint32(argv[++arg], 0L);
     } else if (strcmp(argv[arg], "-mers") == 0) {
       merylFile = argv[++arg];
     } else if (strcmp(argv[arg], "-seq") == 0) {
@@ -31,13 +31,13 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-v") == 0) {
       beVerbose = true;
     } else if (strcmp(argv[arg], "-lo") == 0) {
-      loCount = strtou32bit(argv[++arg], 0L);
+      loCount = strtouint32(argv[++arg], 0L);
     } else if (strcmp(argv[arg], "-hi") == 0) {
-      hiCount = strtou32bit(argv[++arg], 0L);
+      hiCount = strtouint32(argv[++arg], 0L);
     } else if (strcmp(argv[arg], "-w") == 0) {
-      windowsize = strtou32bit(argv[++arg], 0L);
+      windowsize = strtouint32(argv[++arg], 0L);
     } else if (strcmp(argv[arg], "-s") == 0) {
-      skipsize = strtou32bit(argv[++arg], 0L);
+      skipsize = strtouint32(argv[++arg], 0L);
     } else {
       fprintf(stderr, "unknown option '%s'\n", argv[arg]);
     }
@@ -52,17 +52,17 @@ main(int argc, char **argv) {
   existDB       *E = new existDB(merylFile, merSize, existDBcounts | existDBcompressCounts | existDBcompressBuckets, loCount, hiCount);
   seqCache      *F = new seqCache(fastaFile);
 
-  for (u32bit Sid=0; Sid < F->getNumberOfSequences(); Sid++) {
+  for (uint32 Sid=0; Sid < F->getNumberOfSequences(); Sid++) {
     seqInCore  *S  = F->getSequenceInCore(Sid);
     merStream  *MS = new merStream(new kMerBuilder(merSize),
                                    new seqStream(S->sequence(), S->sequenceLength()),
                                    true, true);
 
-    u32bit                 idlen = 0;
+    uint32                 idlen = 0;
     intervalDepthRegions  *id    = new intervalDepthRegions [S->sequenceLength() * 2 + 2];
 
     while (MS->nextMer()) {
-      s32bit   cnt = (s32bit)E->count(MS->theFMer()) + (s32bit)E->count(MS->theRMer());
+      int32   cnt = (int32)E->count(MS->theFMer()) + (int32)E->count(MS->theRMer());
 
       id[idlen].pos = MS->thePositionInSequence();
       id[idlen].cha = cnt;
@@ -74,40 +74,40 @@ main(int argc, char **argv) {
     }
 
     intervalDepth ID(id, idlen);
-    u32bit        x = 0;
+    uint32        x = 0;
 
-    u32bit        len = S->sequenceLength();
+    uint32        len = S->sequenceLength();
 
     //  Default case, report un-averaged depth at every single location.
     //
     if ((windowsize == 0) && (skipsize == 0)) {
-      for (u32bit i=0; i < ID.numberOfIntervals(); i++) {
+      for (uint32 i=0; i < ID.numberOfIntervals(); i++) {
         for (; x < ID.lo(i); x++)
-          fprintf(stdout, u32bitFMTW(7)"\t"u32bitFMTW(6)"\n", x, 0);
+          fprintf(stdout, uint32FMTW(7)"\t"uint32FMTW(6)"\n", x, 0);
         for (; x < ID.hi(i); x++)
-          fprintf(stdout, u32bitFMTW(7)"\t"u32bitFMTW(6)"\n", x, ID.de(i));
+          fprintf(stdout, uint32FMTW(7)"\t"uint32FMTW(6)"\n", x, ID.de(i));
       }
       for (; x < len; x++)
-        fprintf(stdout, u32bitFMTW(7)"\t"u32bitFMTW(6)"\n", x, 0);
+        fprintf(stdout, uint32FMTW(7)"\t"uint32FMTW(6)"\n", x, 0);
 
     } else {
-      u32bit  *depth = new u32bit [len];
+      uint32  *depth = new uint32 [len];
       for (x=0; x < len; x++)
         depth[x] = 0;
 
-      for (u32bit i=0; i < ID.numberOfIntervals(); i++)
+      for (uint32 i=0; i < ID.numberOfIntervals(); i++)
         for (x=ID.lo(i); x < ID.hi(i); x++)
           depth[x] = ID.de(i);
 
-      u32bit   avedepth = 0;
+      uint32   avedepth = 0;
 
       for (x=0; x < windowsize; x++)
         avedepth += depth[x];
 
       while (x < len) {
-        u32bit  avepos = (x - 1) - (windowsize - 1) / 2;
+        uint32  avepos = (x - 1) - (windowsize - 1) / 2;
         if ((avepos % skipsize) == 0)
-          fprintf(stdout, u32bitFMT"\t%.4f\n",
+          fprintf(stdout, uint32FMT"\t%.4f\n",
                   avepos,
                   (double)avedepth / (double)windowsize);
 

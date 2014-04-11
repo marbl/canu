@@ -68,7 +68,7 @@ loop:
 
 #if 0
   intervalList  *G = new intervalList(10);
-  for (u32bit i=0; i<TEST_ITERS; i++) {
+  for (uint32 i=0; i<TEST_ITERS; i++) {
     G->addInterval(floor(drand48() * (TEST_SIZE - 10)));
     G->test();
   }
@@ -80,8 +80,8 @@ loop:
   intervalList *B = new intervalList(10);
   intervalList *C = new intervalList(10);
 
-  for (u32bit i=0; i<TEST_ITERS; i++) {
-    u32bit j = floor(drand48() * (TEST_SIZE - 10));
+  for (uint32 i=0; i<TEST_ITERS; i++) {
+    uint32 j = floor(drand48() * (TEST_SIZE - 10));
 
     C->addInterval(j);
     if (drand48() < 0.5)

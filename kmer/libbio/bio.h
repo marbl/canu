@@ -20,8 +20,8 @@ extern "C" {
 //
 //  reversecomplement.c
 //
-char *reverseComplementSequence(char *seq, u32bit seqlen);
-char *reverseString(char *seq, u32bit seqlen);
+char *reverseComplementSequence(char *seq, uint32 seqlen);
+char *reverseString(char *seq, uint32 seqlen);
 
 
 //  halign

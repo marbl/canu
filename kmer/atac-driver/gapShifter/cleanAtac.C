@@ -37,7 +37,7 @@ int
 main(int argc, char *argv[]) {
   char         *matchesFile      = 0L;
   double        discardThreshold = 0.0;
-  u32bit        discardLength    = 0;
+  uint32        discardLength    = 0;
 
   int arg=1;
   while (arg < argc) {
@@ -64,14 +64,14 @@ main(int argc, char *argv[]) {
   seqCache     Acache(AF.assemblyFileA(), 32, false);
   seqCache     Bcache(AF.assemblyFileB(), 32, false);
 
-  for (u32bit i=0; i<ML.numMatches(); i++) {
+  for (uint32 i=0; i<ML.numMatches(); i++) {
     atacMatch            *m = ML.getMatch(i);
 
-    u32bit identities = 0;
+    uint32 identities = 0;
 
     //char   *a = Acache.getSequenceInCore(m->iid1)->sequence() + m->pos1;
     //char   *b = Bcache.getSequenceInCore(m->iid2)->sequence() + m->pos2;
-    //u32bit  p, q;
+    //uint32  p, q;
 
 
     //  Trim the match
@@ -79,7 +79,7 @@ main(int argc, char *argv[]) {
     if (m->fwd2) {
       char   *a = Acache.getSequenceInCore(m->iid1)->sequence() + m->pos1;
       char   *b = Bcache.getSequenceInCore(m->iid2)->sequence() + m->pos2;
-      u32bit  p = 0;
+      uint32  p = 0;
 
       while ((m->len1 > 0) && (toUpper[(int)a[p]] != toUpper[(int)b[p]])) {
         m->pos1++;
@@ -101,8 +101,8 @@ main(int argc, char *argv[]) {
     } else {
       char   *a = Acache.getSequenceInCore(m->iid1)->sequence() + m->pos1;
       char   *b = Bcache.getSequenceInCore(m->iid2)->sequence() + m->pos2;
-      u32bit  p = 0;
-      u32bit  q = m->len2 - 1;
+      uint32  p = 0;
+      uint32  q = m->len2 - 1;
 
       while ((m->len1 > 0) && (toUpper[(int)a[p]] != complementSymbol[toUpper[(int)b[q]]])) {
         m->pos1++;
@@ -130,12 +130,12 @@ main(int argc, char *argv[]) {
       char *b = Bcache.getSequenceInCore(m->iid2)->sequence() + m->pos2;
 
       if (m->fwd2) {
-        for (u32bit p=0; p<m->len1; p++) {
+        for (uint32 p=0; p<m->len1; p++) {
           if (toUpper[(int)a[p]] == toUpper[(int)b[p]])
             identities++;
         }
       } else {
-        for (u32bit p=0, q=m->len2-1; p<m->len1; p++, q--) {
+        for (uint32 p=0, q=m->len2-1; p<m->len1; p++, q--) {
           if (toUpper[(int)a[p]] == toUpper[complementSymbol[(int)b[q]]])
             identities++;
         }
@@ -146,7 +146,7 @@ main(int argc, char *argv[]) {
       if ((myIdentity > discardThreshold) && (m->len1 > discardLength)) {
         m->print(stdout, AF.labelA(), AF.labelB());
       } else {
-        fprintf(stderr, "match "u32bitFMT" is only %6.2f%% identity and "u32bitFMT" long:  ",
+        fprintf(stderr, "match "uint32FMT" is only %6.2f%% identity and "uint32FMT" long:  ",
                 i, 100.0 * identities / m->len1, m->len1);
         m->print(stderr, AF.labelA(), AF.labelB());
         if (m->len1 < 200) {

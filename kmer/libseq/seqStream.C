@@ -19,7 +19,7 @@ seqStream::seqStream(const char *filename) {
   _idxLen            = _file->getNumberOfSequences();
   _idx               = new seqStreamIndex [_idxLen + 1];
 
-  //fprintf(stderr, "seqStream::seqStream()--  Allocating "u64bitFMT"MB for seqStreamIndex on "u64bitFMT" sequences.\n",
+  //fprintf(stderr, "seqStream::seqStream()--  Allocating "uint64FMT"MB for seqStreamIndex on "uint64FMT" sequences.\n",
   //        _idxLen * sizeof(seqStreamIndex) / 1024 / 1024, _idxLen);
 
   _seqNumOfPos       = 0L;
@@ -39,7 +39,7 @@ seqStream::seqStream(const char *filename) {
 
 
 
-seqStream::seqStream(const char *sequence, u32bit length) {
+seqStream::seqStream(const char *sequence, uint32 length) {
   _file              = 0L;
   _string            = (char *)sequence;
 
@@ -62,7 +62,7 @@ seqStream::seqStream(const char *sequence, u32bit length) {
   _idx[0]._len = length;
   _idx[0]._bgn = 0;
 
-  _idx[1]._iid = ~u32bitZERO;
+  _idx[1]._iid = ~uint32ZERO;
   _idx[1]._len = 0;
   _idx[1]._bgn = length;
 
@@ -91,7 +91,7 @@ seqStream::~seqStream() {
 
 
 void
-seqStream::setSeparator(char sep, u32bit len) {
+seqStream::setSeparator(char sep, uint32 len) {
 
   //  Special case; no separator needed for string backed sequences.
   if (_string)
@@ -117,7 +117,7 @@ seqStream::setSeparator(char sep, u32bit len) {
   _separator       = sep;
   _separatorLength = len;;
 
-  for (u32bit s=0; s<_idxLen; s++) {
+  for (uint32 s=0; s<_idxLen; s++) {
     _idx[s]._iid = s;
     _idx[s]._len = _file->getSequenceLength(s);
     _idx[s]._bgn = _lengthOfSequences;
@@ -125,7 +125,7 @@ seqStream::setSeparator(char sep, u32bit len) {
     _lengthOfSequences += _idx[s]._len;
   }
 
-  _idx[_idxLen]._iid = ~u32bitZERO;
+  _idx[_idxLen]._iid = ~uint32ZERO;
   _idx[_idxLen]._len = 0;
   _idx[_idxLen]._bgn = _lengthOfSequences;
 
@@ -141,12 +141,12 @@ seqStream::setSeparator(char sep, u32bit len) {
 
 void
 seqStream::tradeSpaceForTime(void) {
-  u32bit  i = 0;
-  u32bit  s = 0;
+  uint32  i = 0;
+  uint32  s = 0;
 
-  //fprintf(stderr, "Allocating "u32bitFMT" u32bits for seqNumOfPos.\n", _lengthOfSequences);
+  //fprintf(stderr, "Allocating "uint32FMT" uint32s for seqNumOfPos.\n", _lengthOfSequences);
 
-  _seqNumOfPos = new u32bit [_lengthOfSequences];
+  _seqNumOfPos = new uint32 [_lengthOfSequences];
 
   for (i=0; i<_lengthOfSequences; i++) {
 
@@ -188,8 +188,8 @@ seqStream::rewind(void){
   //  Search for the correct spot.  Uncommon operation, be inefficient
   //  but simple.  The range was checked to be good by setRange().
 
-  u32bit s = 0;
-  u64bit l = 0;
+  uint32 s = 0;
+  uint64 l = 0;
 
   while ((s < _idxLen) && (l + _idx[s]._len < _bgn))
     l += _idx[s++]._len;
@@ -207,33 +207,33 @@ seqStream::rewind(void){
   _streamPos  = _bgn;
   _bufferPos  = _bgn;
 
-  //fprintf(stderr, "seqStream::rewind()-- 1 currentIdx="u32bitFMT" currentPos="u32bitFMT" streamPos="u32bitFMT" bufferPos="u32bitFMT"\n",
+  //fprintf(stderr, "seqStream::rewind()-- 1 currentIdx="uint32FMT" currentPos="uint32FMT" streamPos="uint32FMT" bufferPos="uint32FMT"\n",
   //        _currentIdx, _currentPos, _streamPos, _bufferPos);
 
   fillBuffer();
 
-  //fprintf(stderr, "seqStream::rewind()-- 2 currentIdx="u32bitFMT" currentPos="u32bitFMT" streamPos="u32bitFMT" bufferPos="u32bitFMT"\n",
+  //fprintf(stderr, "seqStream::rewind()-- 2 currentIdx="uint32FMT" currentPos="uint32FMT" streamPos="uint32FMT" bufferPos="uint32FMT"\n",
   //        _currentIdx, _currentPos, _streamPos, _bufferPos);
 }
 
 
 
 void
-seqStream::setRange(u64bit bgn, u64bit end) {
+seqStream::setRange(uint64 bgn, uint64 end) {
 
   assert(bgn < end);
 
-  u32bit s = 0;
-  u64bit l = 0;
+  uint32 s = 0;
+  uint64 l = 0;
 
   while (s < _idxLen)
     l += _idx[s++]._len;
 
-  if (end == ~u64bitZERO)
+  if (end == ~uint64ZERO)
     end = l;
 
   if ((bgn > l) || (end > l))
-    fprintf(stderr, "seqStream::setRange()-- ERROR: range ("u64bitFMT","u64bitFMT") too big; only "u64bitFMT" positions.\n",
+    fprintf(stderr, "seqStream::setRange()-- ERROR: range ("uint64FMT","uint64FMT") too big; only "uint64FMT" positions.\n",
             bgn, end, l), exit(1);
 
   _bgn = bgn;
@@ -244,12 +244,12 @@ seqStream::setRange(u64bit bgn, u64bit end) {
 
 
 void
-seqStream::setPosition(u64bit pos) {
+seqStream::setPosition(uint64 pos) {
 
   assert(_bgn <=  pos);
   assert( pos <  _end);
 
-  u64bit old = _bgn;
+  uint64 old = _bgn;
 
   _bgn = pos;
   rewind();
@@ -257,15 +257,15 @@ seqStream::setPosition(u64bit pos) {
 }
 
 
-u32bit
-seqStream::sequenceNumberOfPosition(u64bit p) {
-  u32bit   s = ~u32bitZERO;
+uint32
+seqStream::sequenceNumberOfPosition(uint64 p) {
+  uint32   s = ~uint32ZERO;
 
   //  binary search on our list of start positions, to find the
   //  sequence that p is in.
 
   if (_lengthOfSequences <= p) {
-    fprintf(stderr, "seqStream::sequenceNumberOfPosition()-- WARNING: position p="u64bitFMT" too big; only "u64bitFMT" positions.\n",
+    fprintf(stderr, "seqStream::sequenceNumberOfPosition()-- WARNING: position p="uint64FMT" too big; only "uint64FMT" positions.\n",
             p, _lengthOfSequences);
     return(s);
   }
@@ -278,9 +278,9 @@ seqStream::sequenceNumberOfPosition(u64bit p) {
       if ((_idx[s]._bgn <= p) && (p < _idx[s+1]._bgn))
         break;
   } else {
-    u32bit  lo = 0;
-    u32bit  hi = _idxLen;
-    u32bit  md = 0;
+    uint32  lo = 0;
+    uint32  hi = _idxLen;
+    uint32  md = 0;
 
     while (lo <= hi) {
       md = (lo + hi) / 2;
@@ -329,7 +329,7 @@ seqStream::fillBuffer(void) {
 
   if (_currentPos < _idx[_currentIdx]._len) {
 #ifdef DEBUG
-    fprintf(stderr, "seqStream::fillBuffer()--  More Seq currentPos="u32bitFMT" len="u32bitFMT"\n", _currentPos, _idx[_currentIdx]._len);
+    fprintf(stderr, "seqStream::fillBuffer()--  More Seq currentPos="uint32FMT" len="uint32FMT"\n", _currentPos, _idx[_currentIdx]._len);
 #endif
     _bufferLen = MIN(_idx[_currentIdx]._len - _currentPos, _bufferMax);
 
@@ -337,7 +337,7 @@ seqStream::fillBuffer(void) {
                            _currentPos,
                            _currentPos + _bufferLen,
                            _buffer) == false)
-      fprintf(stderr, "seqStream::fillBuffer()-- Failed to getSequence(part) #1 iid="u32bitFMT" bgn="u32bitFMT" end="u32bitFMT"\n",
+      fprintf(stderr, "seqStream::fillBuffer()-- Failed to getSequence(part) #1 iid="uint32FMT" bgn="uint32FMT" end="uint32FMT"\n",
               _idx[_currentIdx]._iid, _currentPos, _currentPos + _bufferLen), exit(1);
 
     return;
@@ -352,7 +352,7 @@ seqStream::fillBuffer(void) {
     _currentIdx++;
 
 #ifdef DEBUG
-  fprintf(stderr, "seqStream::fillBuffer()--  New Seq currentPos="u32bitFMT" len="u32bitFMT"\n", _currentPos, _idx[_currentIdx]._len);
+  fprintf(stderr, "seqStream::fillBuffer()--  New Seq currentPos="uint32FMT" len="uint32FMT"\n", _currentPos, _idx[_currentIdx]._len);
 #endif
 
   //  All done if there is no more sequence.
@@ -377,13 +377,13 @@ seqStream::fillBuffer(void) {
   //  the buffer size.  Don't forget about the separator we already
   //  inserted!
   //
-  u32bit bl = MIN(_idx[_currentIdx]._len - _currentPos, _bufferMax - _bufferLen);
+  uint32 bl = MIN(_idx[_currentIdx]._len - _currentPos, _bufferMax - _bufferLen);
 
   if (_file->getSequence(_idx[_currentIdx]._iid,
                          _currentPos,
                          _currentPos + bl,
                          _buffer + _bufferLen) == false)
-    fprintf(stderr, "seqStream::fillBuffer()-- Failed to getSequence(part) #2 iid="u32bitFMT" bgn="u32bitFMT" end="u32bitFMT"\n",
+    fprintf(stderr, "seqStream::fillBuffer()-- Failed to getSequence(part) #2 iid="uint32FMT" bgn="uint32FMT" end="uint32FMT"\n",
             _idx[_currentIdx]._iid, _currentPos, _currentPos + bl), exit(1);
 
   _bufferLen += bl;

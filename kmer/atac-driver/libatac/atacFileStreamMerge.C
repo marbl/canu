@@ -54,7 +54,7 @@ atacFileStreamMerge::atacFileStreamMerge(void) {
 }
 
 atacFileStreamMerge::~atacFileStreamMerge(void) {
-  for (u32bit i=0; i<_filesLen; i++)
+  for (uint32 i=0; i<_filesLen; i++)
     delete _files[i]._theFile;
   delete [] _files;
 
@@ -113,11 +113,11 @@ atacFileStreamMerge::addFile(char const *filename) {
 atacMatch*
 atacFileStreamMerge::nextMatch(char type) {
   atacMatch  *theMatch;
-  u32bit      theMatchIdx;
+  uint32      theMatchIdx;
 
   //  Make sure everyone has a match
   //
-  for (u32bit i=0; i<_filesLen; i++) {
+  for (uint32 i=0; i<_filesLen; i++) {
     if (_files[i]._endOfFile == false) {
       if (_files[i]._theMatch == 0L)
         _files[i]._theMatch = _files[i]._theFile->nextMatch(type);
@@ -136,7 +136,7 @@ atacFileStreamMerge::nextMatch(char type) {
   //  should probably also make a new match UID, or better, fix seatac to make UIDs
 
 
-  for (u32bit i=1; i<_filesLen; i++) {
+  for (uint32 i=1; i<_filesLen; i++) {
     if (_files[i]._theMatch) {
       if (theMatch == 0L) {
         theMatch    = _files[i]._theMatch;

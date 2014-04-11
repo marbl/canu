@@ -14,23 +14,23 @@
 int
 main(int argc, char **argv) {
   size_t   lw;
-  u32bit  *ww = 0L;
-  u32bit   idx = 0;
-  u32bit   err = 0;
+  uint32  *ww = 0L;
+  uint32   idx = 0;
+  uint32   err = 0;
   FILE    *out;
-  u32bit   blockSize = 1048576;
-  u32bit   numBlocks = 32;
+  uint32   blockSize = 1048576;
+  uint32   numBlocks = 32;
 
   if (argc == 2)
-    numBlocks = strtou32bit(argv[1], 0L);
+    numBlocks = strtouint32(argv[1], 0L);
 
   //  The file must exist, and it must be large enough to contain all
   //  that we want to write.  So, we create the file and fill it with
   //  junk.
   //
-  ww  = (u32bit *)malloc(sizeof(u32bit) * blockSize);
+  ww  = (uint32 *)malloc(sizeof(uint32) * blockSize);
   if (ww == NULL) {
-    fprintf(stderr, "can't allocate %d u32bit's for clearing the file.\n", blockSize);
+    fprintf(stderr, "can't allocate %d uint32's for clearing the file.\n", blockSize);
     exit(1);
   }
   errno = 0;
@@ -40,8 +40,8 @@ main(int argc, char **argv) {
     exit(1);
   }
   for (idx=0; idx<numBlocks; idx++) {
-    fprintf(stderr, "Writing initial blocks: "u32bitFMT"/"u32bitFMT"\r", idx, numBlocks), fflush(stderr);
-    fwrite(ww, sizeof(u32bit), 1048576, out);
+    fprintf(stderr, "Writing initial blocks: "uint32FMT"/"uint32FMT"\r", idx, numBlocks), fflush(stderr);
+    fwrite(ww, sizeof(uint32), 1048576, out);
     if (errno) {
       fprintf(stderr, "can't write to 'mmap.test.junk': %s\n", strerror(errno));
       exit(1);
@@ -53,10 +53,10 @@ main(int argc, char **argv) {
 
   //  Now, map it, and fill it with real data.
   //
-  ww = (u32bit *)mapFile("mmap.test.junk", &lw, 'w');
+  ww = (uint32 *)mapFile("mmap.test.junk", &lw, 'w');
   for (idx=0; idx<numBlocks * blockSize; idx++) {
     if ((idx & 0xfff) == 0)
-      fprintf(stderr, "Writing: "u32bitFMT"/"u32bitFMT"\r", idx, numBlocks * blockSize), fflush(stderr);
+      fprintf(stderr, "Writing: "uint32FMT"/"uint32FMT"\r", idx, numBlocks * blockSize), fflush(stderr);
     ww[idx] = idx;
   }
   unmapFile(ww, lw);
@@ -67,7 +67,7 @@ main(int argc, char **argv) {
   ww = mapFile("mmap.test.junk", &lw, 'r');
   for (idx=0; idx<numBlocks * blockSize; idx++) {
     if ((idx & 0xfff) == 0)
-      fprintf(stderr, "Verifying: "u32bitFMT"/"u32bitFMT"\r", idx, numBlocks * blockSize), fflush(stderr);
+      fprintf(stderr, "Verifying: "uint32FMT"/"uint32FMT"\r", idx, numBlocks * blockSize), fflush(stderr);
     if (ww[idx] != idx)
       err++;
   }

@@ -1,5 +1,5 @@
-#ifndef U32BITLIST_H
-#define U32BITLIST_H
+#ifndef UINT32LIST_H
+#define UINT32LIST_H
 
 #include <string.h>
 
@@ -9,23 +9,23 @@
 //  It might be useful to extend this to have 'undef' values,
 //  and to allow shift(), pop().
 
-class u32bitList {
+class uint32List {
 public:
-  u32bitList(u32bit max=16) {
+  uint32List(uint32 max=16) {
     _len = 0;
     _max = max;
-    _lst = new u32bit [_max];
+    _lst = new uint32 [_max];
   };
-  ~u32bitList() {
+  ~uint32List() {
     delete [] _lst;
   };
 
 private:
-  void     resize(u32bit idx) {
+  void     resize(uint32 idx) {
     if (idx >= _max) {
       _max *= 2;
-      u32bit *L = new u32bit [_max];
-      memcpy(L, _lst, sizeof(u32bit) * _len);
+      uint32 *L = new uint32 [_max];
+      memcpy(L, _lst, sizeof(uint32) * _len);
       delete [] _lst;
       _lst = L;
     }
@@ -34,17 +34,17 @@ private:
   }
 
 public:
-  u32bit &operator[](u32bit idx) {
+  uint32 &operator[](uint32 idx) {
     resize(idx);
     return(_lst[idx]);
   }
 
-  void    push(u32bit val) {
+  void    push(uint32 val) {
     resize(_len);
     _lst[_len++] = val;
   }
 
-  u32bit  length(void) {
+  uint32  length(void) {
     return(_len);
   };
 
@@ -53,10 +53,10 @@ public:
   }
 
 private:
-  u32bit  _len;
-  u32bit  _max;
-  u32bit *_lst;
+  uint32  _len;
+  uint32  _max;
+  uint32 *_lst;
 };
 
 
-#endif  //   U32BITLIST_H
+#endif  //   UINT32LIST_H

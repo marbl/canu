@@ -9,14 +9,14 @@
 
 int main(void) {
     int i;
-    u32bit init[4] = {0x123, 0x234, 0x345, 0x456};
-    u32bit length  = 4;
+    uint32 init[4] = {0x123, 0x234, 0x345, 0x456};
+    uint32 length  = 4;
     mt_s *ctx = mtInitArray(init, length);
 
     printf("1000 outputs of genrand_int32()\n");
 
     for (i=0; i<1000; i++) {
-      printf(u32bitFMTW(10)" ", mtRandom32(ctx));
+      printf(uint32FMTW(10)" ", mtRandom32(ctx));
       if (i%5==4) printf("\n");
     }
 
@@ -30,7 +30,7 @@ int main(void) {
 
 
     for (i=0; i<999; i++) {
-      printf(u64bitHEX" ", mtRandom64(ctx));
+      printf(uint64HEX" ", mtRandom64(ctx));
       if (i%3==2) printf("\n");
     }
 

@@ -16,7 +16,7 @@ using namespace std;
 //  they remain the same.
 
 void
-addToDict(map<string, u64bit> &d, char *n) {
+addToDict(map<string, uint64> &d, char *n) {
 
   if (n == 0L)
     return;
@@ -77,8 +77,8 @@ main(int argc, char **argv) {
   //  We parse args, then build the dictionaries, so we can do
   //  any quick error detection first.
 
-  map<string, u64bit>   g;
-  map<string, u64bit>   c;
+  map<string, uint64>   g;
+  map<string, uint64>   c;
 
   if (gDeflines) {
     fprintf(stderr, "Reading genomic deflines from '%s'\n", gDeflines);

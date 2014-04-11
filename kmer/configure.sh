@@ -129,11 +129,11 @@ case $target in
 #
 CC                := $CC
 SHLIB_FLAGS       := -dynamiclib -undefined dynamic_lookup
-CFLAGS_COMPILE    := -fast -fPIC -m64 -fmessage-length=0 -D_REENTRANT -D_THREAD_SAFE -Wall -Wno-char-subscripts
+CFLAGS_COMPILE    := -Ofast -fPIC -m64 -fmessage-length=0 -D_REENTRANT -D_THREAD_SAFE -Wall -Wno-char-subscripts
 CLDFLAGS          := -m64
 CLIBS             := 
 CXX               := $CXX
-CXXFLAGS_COMPILE  := -fast -fPIC -m64 -fmessage-length=0 -D_REENTRANT -D_THREAD_SAFE -Wall -Wno-char-subscripts
+CXXFLAGS_COMPILE  := -Ofast -fPIC -m64 -fmessage-length=0 -D_REENTRANT -D_THREAD_SAFE -Wall -Wno-char-subscripts
 CXXLDFLAGS        := -m64
 CXXLIBS           := 
 LDFLAGS_PYTHON    := -bundle -framework CoreFoundation -framework Python -dynamic

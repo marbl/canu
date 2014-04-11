@@ -20,13 +20,13 @@ sffFile::sffFile(const char *name) {
 
   if (_header.magic_number != 0x2e736666) {
     _header.swap_endianess           = 1;
-    _header.magic_number             = u32bitSwap(_header.magic_number);
-    _header.index_offset             = u64bitSwap(_header.index_offset);
-    _header.index_length             = u32bitSwap(_header.index_length);
-    _header.number_of_reads          = u32bitSwap(_header.number_of_reads);
-    _header.header_length            = u16bitSwap(_header.header_length);
-    _header.key_length               = u16bitSwap(_header.key_length);
-    _header.number_of_flows_per_read = u16bitSwap(_header.number_of_flows_per_read);
+    _header.magic_number             = uint32Swap(_header.magic_number);
+    _header.index_offset             = uint64Swap(_header.index_offset);
+    _header.index_length             = uint32Swap(_header.index_length);
+    _header.number_of_reads          = uint32Swap(_header.number_of_reads);
+    _header.header_length            = uint16Swap(_header.header_length);
+    _header.key_length               = uint16Swap(_header.key_length);
+    _header.number_of_flows_per_read = uint16Swap(_header.number_of_flows_per_read);
   }
 
   assert(_header.magic_number == 0x2e736666);
@@ -49,15 +49,15 @@ sffFile::sffFile(const char *name) {
   _index = new sffIndex [_header.number_of_reads];
 
 
-  for (u64bit i=0; i<_header.number_of_reads; i++) {
-    u64bit  pos = _rb->tell();
+  for (uint64 i=0; i<_header.number_of_reads; i++) {
+    uint64  pos = _rb->tell();
 
     _rb->read(&_read, 16);
 
     if (_header.swap_endianess) {
-      _read.read_header_length = u16bitSwap(_read.read_header_length);
-      _read.name_length        = u16bitSwap(_read.name_length);
-      _read.number_of_bases    = u32bitSwap(_read.number_of_bases);
+      _read.read_header_length = uint16Swap(_read.read_header_length);
+      _read.name_length        = uint16Swap(_read.name_length);
+      _read.number_of_bases    = uint32Swap(_read.number_of_bases);
     }
 
     _index[i]._seqPos = pos;
@@ -65,15 +65,15 @@ sffFile::sffFile(const char *name) {
     _index[i]._namLen = _read.name_length;
 
     pos += _read.read_header_length;
-    pos += sizeof(u16bit) * _header.number_of_flows_per_read;
-    pos += sizeof(u8bit)  * _read.number_of_bases;
+    pos += sizeof(uint16) * _header.number_of_flows_per_read;
+    pos += sizeof(uint8)  * _read.number_of_bases;
     pos += sizeof(char)   * _read.number_of_bases;
-    pos += sizeof(u8bit)  * _read.number_of_bases;
+    pos += sizeof(uint8)  * _read.number_of_bases;
 
-    pos += (_header.number_of_flows_per_read * sizeof(u16bit) +
-            _read.number_of_bases * sizeof(u8bit) +
+    pos += (_header.number_of_flows_per_read * sizeof(uint16) +
+            _read.number_of_bases * sizeof(uint8) +
             _read.number_of_bases * sizeof(char) +
-            _read.number_of_bases * sizeof(u8bit)) % 8;
+            _read.number_of_bases * sizeof(uint8)) % 8;
 
     _rb->seek(pos);
   }
@@ -111,12 +111,12 @@ sffFile::openFile(const char *name) {
     return(0L);
   }
 
-  u32bit  magic_number = 0;
-  safeRead(fileno(F), &magic_number, "sff magic_number", sizeof(u32bit));
+  uint32  magic_number = 0;
+  safeRead(fileno(F), &magic_number, "sff magic_number", sizeof(uint32));
 
   fclose(F);
 
-  if ((magic_number == 0x2e736666) || (u32bitSwap(magic_number) == 0x2e736666))
+  if ((magic_number == 0x2e736666) || (uint32Swap(magic_number) == 0x2e736666))
     return(new sffFile(name));
 
   return(0L);
@@ -125,9 +125,9 @@ sffFile::openFile(const char *name) {
 
 
 bool
-sffFile::getSequence(u32bit iid,
-                     char *&h, u32bit &hLen, u32bit &hMax,
-                     char *&s, u32bit &sLen, u32bit &sMax) {
+sffFile::getSequence(uint32 iid,
+                     char *&h, uint32 &hLen, uint32 &hMax,
+                     char *&s, uint32 &sLen, uint32 &sMax) {
 
   if (iid > _header.number_of_reads)
     return(false);
@@ -139,13 +139,13 @@ sffFile::getSequence(u32bit iid,
   _rb->read(&_read, 16);
 
   if (_header.swap_endianess) {
-    _read.read_header_length = u16bitSwap(_read.read_header_length);
-    _read.name_length        = u16bitSwap(_read.name_length);
-    _read.number_of_bases    = u32bitSwap(_read.number_of_bases);
-    _read.clip_quality_left  = u16bitSwap(_read.clip_quality_left);
-    _read.clip_quality_right = u16bitSwap(_read.clip_quality_right);
-    _read.clip_adapter_left  = u16bitSwap(_read.clip_adapter_left);
-    _read.clip_adapter_right = u16bitSwap(_read.clip_adapter_right);
+    _read.read_header_length = uint16Swap(_read.read_header_length);
+    _read.name_length        = uint16Swap(_read.name_length);
+    _read.number_of_bases    = uint32Swap(_read.number_of_bases);
+    _read.clip_quality_left  = uint16Swap(_read.clip_quality_left);
+    _read.clip_quality_right = uint16Swap(_read.clip_quality_right);
+    _read.clip_adapter_left  = uint16Swap(_read.clip_adapter_left);
+    _read.clip_adapter_right = uint16Swap(_read.clip_adapter_right);
   }
 
   assert(_read.read_header_length < SFF_NAME_LENGTH_MAX);
@@ -154,11 +154,11 @@ sffFile::getSequence(u32bit iid,
   _rb->read(_read.name, sizeof(char) * _read.name_length);
   _read.name[_read.name_length] = 0;
 
-  u64bit pos = _rb->tell();
+  uint64 pos = _rb->tell();
 
   pos += _read.read_header_length;
-  pos += sizeof(u16bit) * _header.number_of_flows_per_read;
-  pos += sizeof(u8bit)  * _read.number_of_bases;
+  pos += sizeof(uint16) * _header.number_of_flows_per_read;
+  pos += sizeof(uint8)  * _read.number_of_bases;
 
   _rb->seek(pos);
 
@@ -173,8 +173,8 @@ sffFile::getSequence(u32bit iid,
 
 
 bool
-sffFile::getSequence(u32bit iid,
-                     u32bit bgn, u32bit end, char *s) {
+sffFile::getSequence(uint32 iid,
+                     uint32 bgn, uint32 end, char *s) {
 
   if (iid > _header.number_of_reads)
     return(false);

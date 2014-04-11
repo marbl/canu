@@ -18,14 +18,14 @@ public:
   ~mss_t() {};
 
   int     type;
-  u64bit  mask;
+  uint64  mask;
   int     masknum;
   int     seedLength;
   int     matchedLength;
-  u64bit  masks[64];      //  Fails assert in sim4b1_s.C if exceeded
+  uint64  masks[64];      //  Fails assert in sim4b1_s.C if exceeded
   int     shifts[64];
 
-  u64bit  mask_shift(u64bit ecode);
+  uint64  mask_shift(uint64 ecode);
 };
 
 #endif

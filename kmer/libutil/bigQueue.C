@@ -21,8 +21,8 @@ bigQueue::_initialize(int    (*sortfcn)(const void *a, const void *b),
                       bool   (*readfcn)(FILE *f, void *a),
                       bool   (*writfcn)(FILE *f, void *a),
                       void   (*killfcn)(void *a),
-                      u32bit   objectSize,
-                      u32bit   memoryToUse,
+                      uint32   objectSize,
+                      uint32   memoryToUse,
                       char    *tmppath,
                       char    *filename) {
   _saveFile     = 0L;
@@ -51,7 +51,7 @@ bigQueue::_initialize(int    (*sortfcn)(const void *a, const void *b),
 
   _temporaryFiles = new FILE* [_maxOpenFiles];
 
-  for (u32bit i=0; i<_maxOpenFiles; i++)
+  for (uint32 i=0; i<_maxOpenFiles; i++)
     _temporaryFiles[i] = 0L;
 
   //  Open the first temporary file for writing.
@@ -65,14 +65,14 @@ bigQueue::_initialize(int    (*sortfcn)(const void *a, const void *b),
   //
   //_inputFile  = fdopen(dup(fileno(_temporaryFiles[0])), "w+");
 
-  _thingBuffer = new u64bit [_objectSize / 8 + 1];
+  _thingBuffer = new uint64 [_objectSize / 8 + 1];
 
   _bufferMax = 0;
   _bufferLen = 0;
   _buffer    = 0L;
 
   if (_sortFunction) {
-    _bufferMax = (u64bit)memoryToUse * 1024 * 1024 / ((u64bit)sizeof(void *) + objectSize);
+    _bufferMax = (uint64)memoryToUse * 1024 * 1024 / ((uint64)sizeof(void *) + objectSize);
     _bufferLen = 0;
     _buffer    = new void* [_bufferMax];
   }
@@ -84,7 +84,7 @@ bigQueue::~bigQueue() {
   delete [] _saveFile;
   delete [] _tmpPath;
 
-  for (u32bit i=0; i<_numTemporaryFiles; i++)
+  for (uint32 i=0; i<_numTemporaryFiles; i++)
     fclose(_temporaryFiles[i]);
 
   delete [] _temporaryFiles;
@@ -140,10 +140,10 @@ bigQueue::sortAndWriteBuffer(void) {
     //  Write!
     //
     if (_writFunction) {
-      for (u32bit i=0; i<_bufferLen; i++)
+      for (uint32 i=0; i<_bufferLen; i++)
         (*_writFunction)(_temporaryFiles[_numTemporaryFiles-1], _buffer[i]);
     } else {
-      for (u32bit i=0; i<_bufferLen; i++)
+      for (uint32 i=0; i<_bufferLen; i++)
         fwrite(_buffer[i], _objectSize, 1, _temporaryFiles[_numTemporaryFiles-1]);
     }
 
@@ -161,10 +161,10 @@ void
 bigQueue::clearBuffer(void) {
 
   if (_killFunction)
-    for (u32bit i=0; i<_bufferLen; i++)
+    for (uint32 i=0; i<_bufferLen; i++)
       (*_killFunction)(_buffer[i]);
   else
-    for (u32bit i=0; i<_bufferLen; i++)
+    for (uint32 i=0; i<_bufferLen; i++)
       free(_buffer[i]);
 
   _bufferLen = 0;
@@ -188,7 +188,7 @@ bigQueue::mergeTemporaryFiles(void) {
     //  The 'key' is our chunk of data, and the 'value' is the file number
     //  it came from.
     //
-    for (u32bit i=0; i<_numTemporaryFiles; i++) {
+    for (uint32 i=0; i<_numTemporaryFiles; i++) {
       if (_temporaryFiles[i]) {
 
         //  Rewind all the temporary files.  XXXX This is probably done

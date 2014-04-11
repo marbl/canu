@@ -38,9 +38,9 @@ main(int argc, char **argv) {
   }
 
 
-  u32bit  matchesWithNoOverlap       = 0;
-  u32bit  matchesWithOverlap         = 0;
-  u32bit  notPerfectClique           = 0;
+  uint32  matchesWithNoOverlap       = 0;
+  uint32  matchesWithOverlap         = 0;
+  uint32  notPerfectClique           = 0;
 
   //  Open a polishFile and force the index to build
   //  First find the input file type, with a hack
@@ -60,9 +60,9 @@ main(int argc, char **argv) {
 
   //  Ask both for the largest EST iid seen, then iterate over those.
   //
-  u32bit  largestIID = Afile->maxIID();
+  uint32  largestIID = Afile->maxIID();
 
-  for (u32bit iid=0; iid<largestIID; iid++) {
+  for (uint32 iid=0; iid<largestIID; iid++) {
     sim4polishList *A = Afile->getEST(iid);
 
     if (A->length() > 0) {
@@ -71,11 +71,11 @@ main(int argc, char **argv) {
 
       olap_t  **overlap = new olap_t* [A->length()];
       overlap[0] = new olap_t [A->length() * A->length()];
-      for (u32bit i=1; i<A->length(); i++)
+      for (uint32 i=1; i<A->length(); i++)
         overlap[i] = overlap[i-1] + A->length();
 
-      for (u32bit a=0; a<A->length(); a++)
-        for (u32bit b=0; b<A->length(); b++)
+      for (uint32 a=0; a<A->length(); a++)
+        for (uint32 b=0; b<A->length(); b++)
           if (a == b)
             overlap[a][b] = 0;
           else
@@ -85,10 +85,10 @@ main(int argc, char **argv) {
 
       sim4polishList *W = new sim4polishList;
 
-      for (u32bit a=0; a<A->length(); a++) {
+      for (uint32 a=0; a<A->length(); a++) {
         bool nooverlaps = true;
 
-        for (u32bit b=0; b<A->length(); b++)
+        for (uint32 b=0; b<A->length(); b++)
           if (overlap[a][b])
             nooverlaps = false;
 
@@ -104,7 +104,7 @@ main(int argc, char **argv) {
 
 
 #if 1
-      fprintf(stderr, "IID="u32bitFMTW(8)" -- overlap:"u32bitFMT" noOverlap:"u32bitFMT"\r",
+      fprintf(stderr, "IID="uint32FMTW(8)" -- overlap:"uint32FMT" noOverlap:"uint32FMT"\r",
               iid, matchesWithOverlap, matchesWithNoOverlap);
       fflush(stderr);
 #endif
@@ -119,9 +119,9 @@ main(int argc, char **argv) {
       //  Report all the overlaps
 
 #ifdef DEBUGOUT
-      for (u32bit a=0; a<W->length(); a++) {
+      for (uint32 a=0; a<W->length(); a++) {
         sim4polish *p = (*W)[a];
-        fprintf(stderr, u32bitFMTW(3)": "u32bitFMTW(3)"--"u32bitFMTW(3)"\n",
+        fprintf(stderr, uint32FMTW(3)": "uint32FMTW(3)"--"uint32FMTW(3)"\n",
                 iid, p->exons[0].genFrom, p->exons[p->numExons-1].genTo);
       }
 #endif
@@ -132,23 +132,23 @@ main(int argc, char **argv) {
       //  find a connected component, check that it is/is not a
       //  clique, and decide which match to keep.
 
-      u32bit  *clique      = new u32bit [W->length()];
-      u32bit   cliqueSize  = 0;
+      uint32  *clique      = new uint32 [W->length()];
+      uint32   cliqueSize  = 0;
       bool     inserted    = false;
-      u32bit   *length     = new u32bit [W->length()];
+      uint32   *length     = new uint32 [W->length()];
 
       while (W->length() > 0) {
 
 #ifdef DEBUGOUT
-        fprintf(stderr, "IID="u32bitFMTW(8)" -- examine "u32bitFMT" matches\n",
+        fprintf(stderr, "IID="uint32FMTW(8)" -- examine "uint32FMT" matches\n",
                 iid, W->length());
 #endif
 
         //  Find the length of all the matches in this set
 
-        for (u32bit a=0; a<W->length(); a++) {
+        for (uint32 a=0; a<W->length(); a++) {
           length[a] = 0;
-          for (u32bit i=0; i<(*W)[a]->_numExons; i++)
+          for (uint32 i=0; i<(*W)[a]->_numExons; i++)
             length[a] += (*W)[a]->_exons[i]._genTo - (*W)[a]->_exons[i]._genFrom + 1;
         }
 
@@ -156,8 +156,8 @@ main(int argc, char **argv) {
         //  efficient and recover this from the existing one, nobody is
         //  stopping you.
         
-        for (u32bit a=0; a<W->length(); a++)
-          for (u32bit b=0; b<W->length(); b++)
+        for (uint32 a=0; a<W->length(); a++)
+          for (uint32 b=0; b<W->length(); b++)
             if (a == b)
               overlap[a][b] = 0;
             else
@@ -165,7 +165,7 @@ main(int argc, char **argv) {
 
         //  OK, now find the clique/connected component
 
-        for (u32bit i=0; i<W->length(); i++)
+        for (uint32 i=0; i<W->length(); i++)
           clique[i] = 0;
 
         clique[0]   = 1;
@@ -177,9 +177,9 @@ main(int argc, char **argv) {
 
           //  If a is in the clique, add all it's overlaps
 
-          for (u32bit a=0; a<W->length(); a++) {
+          for (uint32 a=0; a<W->length(); a++) {
             if (clique[a]) {
-              for (u32bit b=0; b<W->length(); b++) {
+              for (uint32 b=0; b<W->length(); b++) {
                 if ((overlap[a][b]) && (!clique[b])) {
                   clique[b] = 1;
                   cliqueSize++;
@@ -191,7 +191,7 @@ main(int argc, char **argv) {
         }
 
 #ifdef DEBUGOUT
-        fprintf(stderr, "IID="u32bitFMTW(8)" -- examine "u32bitFMT" matches, found "u32bitFMT" overlapping\n",
+        fprintf(stderr, "IID="uint32FMTW(8)" -- examine "uint32FMT" matches, found "uint32FMT" overlapping\n",
                 iid, W->length(), cliqueSize);
 #endif
 
@@ -199,20 +199,20 @@ main(int argc, char **argv) {
 
         if (cliqueSize > 2) {
 
-          u32bit num = 0;
+          uint32 num = 0;
 
-          for (u32bit a=0; a<W->length(); a++)
-            for (u32bit b=0; b<W->length(); b++)
+          for (uint32 a=0; a<W->length(); a++)
+            for (uint32 b=0; b<W->length(); b++)
               if (clique[a] && clique[b] && overlap[a][b])
                 num++;
 
           if (num != cliqueSize * (cliqueSize-1)) {
             notPerfectClique++;
 
-            fprintf(stderr, "\nNOT A PERFECT CLIQUE!  Found "u32bitFMT" overlaps, wanted "u32bitFMT" in the clique.\n",
+            fprintf(stderr, "\nNOT A PERFECT CLIQUE!  Found "uint32FMT" overlaps, wanted "uint32FMT" in the clique.\n",
                     num, cliqueSize * (cliqueSize-1));
 
-            //for (u32bit a=0; a<W->length(); a++)
+            //for (uint32 a=0; a<W->length(); a++)
             //  if (clique[a])
             //    writer->writeAlignment((*W)[a]);
           }
@@ -221,11 +221,11 @@ main(int argc, char **argv) {
 
         //  Find the longest member, output it
 
-        u32bit longest = 0;
+        uint32 longest = 0;
         while (clique[longest] == 0)
           longest++;
 
-        for (u32bit i=0; i<W->length(); i++)
+        for (uint32 i=0; i<W->length(); i++)
           if ((clique[i]) && (length[longest] < length[i]))
             longest = i;
 
@@ -234,7 +234,7 @@ main(int argc, char **argv) {
         //  Remove the clique from the set of overlaps
 
         A = new sim4polishList;
-        for (u32bit i=0; i<W->length(); i++) {
+        for (uint32 i=0; i<W->length(); i++) {
           if (clique[i] == 0)
             A->push(new sim4polish((*W)[i]));
         }
@@ -257,9 +257,9 @@ main(int argc, char **argv) {
   delete writer;
   delete Afile;
 
-  fprintf(stderr, "\nmatches withOvl:"u32bitFMT" withoutOvl:"u32bitFMT"\n",
+  fprintf(stderr, "\nmatches withOvl:"uint32FMT" withoutOvl:"uint32FMT"\n",
           matchesWithOverlap, matchesWithNoOverlap);
-  fprintf(stderr, "not perfect clique:"u32bitFMT"\n", notPerfectClique);
+  fprintf(stderr, "not perfect clique:"uint32FMT"\n", notPerfectClique);
 }
 
 

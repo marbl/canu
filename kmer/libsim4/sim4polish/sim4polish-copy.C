@@ -27,13 +27,13 @@ sim4polishExon::s4p_copyExon(sim4polishExon *orig) {
   _genAlignment       = NULL;
 
   if (orig->_estAlignment) {
-    u32bit len = strlen(orig->_estAlignment) + 1;
+    uint32 len = strlen(orig->_estAlignment) + 1;
     _estAlignment = new char [len];
     memcpy(_estAlignment, orig->_estAlignment, sizeof(char) * len);
   }
 
   if (orig->_genAlignment) {
-    u32bit len = strlen(orig->_genAlignment) + 1;
+    uint32 len = strlen(orig->_genAlignment) + 1;
     _genAlignment = new char [len];
     memcpy(_genAlignment, orig->_genAlignment, sizeof(char) * len);
   }
@@ -41,7 +41,7 @@ sim4polishExon::s4p_copyExon(sim4polishExon *orig) {
 
 
 void
-sim4polish::s4p_copyPolish(sim4polish *orig, u32bit exonNum) {
+sim4polish::s4p_copyPolish(sim4polish *orig, uint32 exonNum) {
 
   if (orig == 0L)
     return;
@@ -79,19 +79,19 @@ sim4polish::s4p_copyPolish(sim4polish *orig, u32bit exonNum) {
   //  Well, that was easy.  Onto the deep copy!
 
   if (orig->_comment) {
-    u32bit len = strlen(orig->_comment) + 1;
+    uint32 len = strlen(orig->_comment) + 1;
     _comment = new char [len];
     memcpy(_comment, orig->_comment, sizeof(char) * len);
   }
 
   if (orig->_estDefLine) {
-    u32bit len = strlen(orig->_estDefLine) + 1;
+    uint32 len = strlen(orig->_estDefLine) + 1;
     _estDefLine = new char [len];
     memcpy(_estDefLine, orig->_estDefLine, sizeof(char) * len);
   }
 
   if (orig->_genDefLine) {
-    u32bit len = strlen(orig->_genDefLine) + 1;
+    uint32 len = strlen(orig->_genDefLine) + 1;
     _genDefLine = new char [len];
     memcpy(_genDefLine, orig->_genDefLine, sizeof(char) * len);
   }
@@ -124,6 +124,6 @@ sim4polish::s4p_copyPolish(sim4polish *orig, u32bit exonNum) {
   _numExons = orig->_numExons;
   _exons    = new sim4polishExon [_numExons];
 
-  for (u32bit i=0; i<_numExons; i++)
+  for (uint32 i=0; i<_numExons; i++)
     _exons[i].s4p_copyExon(orig->_exons + i);
 }

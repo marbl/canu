@@ -6,7 +6,7 @@
 #include "memory.h"
 
 void
-sim4polish::s4p_swapExons(u32bit a, u32bit b) {
+sim4polish::s4p_swapExons(uint32 a, uint32 b) {
   sim4polishExon  copyofa = _exons[a];
 
   _exons[a] = _exons[b];
@@ -16,7 +16,7 @@ sim4polish::s4p_swapExons(u32bit a, u32bit b) {
 
 //  Insert a single exon into the list at position a
 void
-sim4polish::s4p_insertExon(u32bit a, u32bit intronori, sim4polishExon *e) {
+sim4polish::s4p_insertExon(uint32 a, uint32 intronori, sim4polishExon *e) {
   sim4polish  p;
 
   p._numExons = 1;
@@ -29,24 +29,24 @@ sim4polish::s4p_insertExon(u32bit a, u32bit intronori, sim4polishExon *e) {
 
 //  Inserts all the exons in e into the list at position a.
 void
-sim4polish::s4p_insertExons(u32bit a, u32bit intronori, sim4polish *e) {
+sim4polish::s4p_insertExons(uint32 a, uint32 intronori, sim4polish *e) {
   sim4polishExon *ne = new sim4polishExon [_numExons + e->_numExons];
 
   //  Copy exons up to the insert point.
 
-  for (u32bit i=0; i<a; i++) {
+  for (uint32 i=0; i<a; i++) {
     ne[i] = _exons[i];
     _exons[i].s4p_clearExon();
   }
 
   //  Insert the new ones.  We don't own them, so can't assume anything about the alignment strings.
 
-  for (u32bit i=0; i<e->_numExons; i++)
+  for (uint32 i=0; i<e->_numExons; i++)
     ne[a+i].s4p_copyExon(e->_exons+i);
 
   //  Copy the rest.
 
-  for (u32bit i=a; i<_numExons; i++) {
+  for (uint32 i=a; i<_numExons; i++) {
     ne[i+e->_numExons] = _exons[i];
     _exons[i].s4p_clearExon();
   }

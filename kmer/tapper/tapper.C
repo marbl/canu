@@ -86,10 +86,10 @@ tapperWriter(void *G, void *S) {
 //
 inline
 char
-composeColors(char *colors, u32bit beg, u32bit end) {
+composeColors(char *colors, uint32 beg, uint32 end) {
   char c = colors[beg];
 
-  for (u32bit x=beg; x<end; x++)
+  for (uint32 x=beg; x<end; x++)
     c = baseToColor[c][colors[x]];
 
   return(c);
@@ -104,7 +104,7 @@ composeColors(char *colors, u32bit beg, u32bit end) {
 inline
 bool
 isConsistent(char     *ref, char     *tag,
-             u32bit    i,   u32bit    j) {
+             uint32    i,   uint32    j) {
   return(composeColors(ref, i, j) == composeColors(tag, i, j));
 }
 
@@ -124,9 +124,9 @@ isConsistent(char     *ref, char     *tag,
 //
 bool
 tapperHit::alignToReference(tapperGlobalData *g,
-                            u32bit  so_in,
-                            u32bit  po_in,
-                            char   *tag_in, u32bit len_in) {
+                            uint32  so_in,
+                            uint32  po_in,
+                            char   *tag_in, uint32 len_in) {
 
   //  This function is NOT a bottleneck.  Don't bother optimizing.
 
@@ -138,9 +138,9 @@ tapperHit::alignToReference(tapperGlobalData *g,
   //  the COLOR CALLS in tag_in, NOT the strlen of it.
   //
 
-  u32bit      errs = 0;               //  number of errors
-  u32bit      errp[TAG_LEN_MAX];      //  location of the errors
-  u32bit      errc[TAG_LEN_MAX];      //  status of confirmed or error
+  uint32      errs = 0;               //  number of errors
+  uint32      errp[TAG_LEN_MAX];      //  location of the errors
+  uint32      errc[TAG_LEN_MAX];      //  status of confirmed or error
 
   char       _tagCOREC[TAG_LEN_MAX];  //  For holding corrected color calls, only to generate ACGT align
 
@@ -182,11 +182,11 @@ tapperHit::alignToReference(tapperGlobalData *g,
   //
   {
     if (_rev) {
-      for (u32bit i=0, j=_len-1; i<_len; i++, j--)
+      for (uint32 i=0, j=_len-1; i<_len; i++, j--)
         _tagCOLOR[i] = _tagCOREC[i] = tag_in[j];
       _tagCOLOR[0] = _tagCOREC[0] = complementSymbol[_tagCOLOR[0]];
     } else {
-      for (u32bit i=0; i<_len; i++)
+      for (uint32 i=0; i<_len; i++)
         _tagCOLOR[i] = _tagCOREC[i] = tag_in[i];
     }
     _tagCOLOR[_len] = 0;
@@ -209,7 +209,7 @@ tapperHit::alignToReference(tapperGlobalData *g,
     _refCOLOR[0] = _tagCOLOR[0];  //  ALWAYS the reference encoding base, as long as we copy the tag first.
     _refCOLOR[1] = baseToColor[_refCOLOR[0]][_refACGT[0]];
 
-    for (u32bit ti=2; ti<_len; ti++)
+    for (uint32 ti=2; ti<_len; ti++)
       _refCOLOR[ti] = baseToColor[_refACGT[ti-2]][_refACGT[ti-1]];
 
     _refCOLOR[_len] = 0;
@@ -222,7 +222,7 @@ tapperHit::alignToReference(tapperGlobalData *g,
   //  Note that errp[] is actaully 1-based; the first position is
   //  never an error; it's the reference base.
 
-  for (u32bit ti=1; ti<_len; ti++) {
+  for (uint32 ti=1; ti<_len; ti++) {
     if (_tagCOLOR[ti] != _refCOLOR[ti]) {
       errp[errs] = ti;
       errc[errs] = 0;
@@ -405,14 +405,14 @@ tapperHit::alignToReference(tapperGlobalData *g,
 
   _tagACGT[0] = baseToColor[_tagCOREC[0]][_tagCOREC[1]];
   _refACGT[0] = baseToColor[_refCOLOR[0]][_refCOLOR[1]];
-  for (u32bit ti=1; ti<_len; ti++) {
+  for (uint32 ti=1; ti<_len; ti++) {
     _tagACGT[ti] = baseToColor[_tagACGT[ti-1]][_tagCOREC[ti+1]];
     _refACGT[ti] = baseToColor[_refACGT[ti-1]][_refCOLOR[ti+1]];
   }
   _tagACGT[_len-1] = 0;
   _refACGT[_len-1] = 0;
 
-  for (u32bit ti=0; ti<_len-1; ti++) {
+  for (uint32 ti=0; ti<_len-1; ti++) {
     if (_tagACGT[ti] != _refACGT[ti]) {
       _basesMismatch++;
 
@@ -439,7 +439,7 @@ tapperHit::alignToReference(tapperGlobalData *g,
 
     //  Adjust the error positions...once we start caring about positions.
 
-    for (u32bit x=0; x<errs; x++)
+    for (uint32 x=0; x<errs; x++)
       errp[x] = _len - errp[x];
   }
 
@@ -448,20 +448,20 @@ tapperHit::alignToReference(tapperGlobalData *g,
   if (_basesMismatch > g->maxBaseError)
     return(false);
 
-  //fprintf(stderr, "tag: %s %s ref: %s %s "u32bitFMT" "u32bitFMT" "u32bitFMT"\n",
+  //fprintf(stderr, "tag: %s %s ref: %s %s "uint32FMT" "uint32FMT" "uint32FMT"\n",
   //        tag_in, _tagCOLOR, _refCOLOR, _refACGT, _basesMismatch, _colorMismatch, _colorInconsistent);
 
   //  Stuff the errors into the hit.
 
-  u32bit nn = 0;
+  uint32 nn = 0;
 
-  for (u32bit x=0; x<errs; x++)
+  for (uint32 x=0; x<errs; x++)
     if (errc[x] == 1)
       _tagColorDiffs[nn++] = (letterToBits[ _tagCOLOR[ errp[x] ] ] << 6) | errp[x];
 
   assert(nn == _colorMismatch);
 
-  for (u32bit x=0; x<errs; x++)
+  for (uint32 x=0; x<errs; x++)
     if (errc[x] == 0)
       _tagColorDiffs[nn++] = (letterToBits[ _tagCOLOR[ errp[x] ] ] << 6) | errp[x];
 
@@ -481,14 +481,14 @@ tapperHit::alignToReference(tapperGlobalData *g,
 //
 inline
 void
-tapperWorker_addHits(u64bit    *posn, u64bit posnLen,
+tapperWorker_addHits(uint64    *posn, uint64 posnLen,
                      tapperGlobalData   *g,
                      tapperComputation  *s,
                      bool                rev,
                      bool                tag1) {
   tapperHit  h;
   char      *tagseq;
-  u32bit     taglen;
+  uint32     taglen;
 
   if (tag1) {
     tagseq = (rev) ? s->tag1rseq : s->tag1fseq;
@@ -498,9 +498,9 @@ tapperWorker_addHits(u64bit    *posn, u64bit posnLen,
     taglen = s->tag2size;
   }
 
-  for (u32bit i=0; i<posnLen; i++) {
-    u64bit  pos = posn[i];
-    u64bit  seq = g->SS->sequenceNumberOfPosition(pos);
+  for (uint32 i=0; i<posnLen; i++) {
+    uint64  pos = posn[i];
+    uint64  seq = g->SS->sequenceNumberOfPosition(pos);
 
     pos -= g->SS->startOf(seq);
     seq  = g->SS->IIDOf(seq);
@@ -550,7 +550,7 @@ tapperWorker(void *G, void *T, void *S) {
     return;
 
 #ifdef VERBOSEWORKER
-  fprintf(stderr, " raw hits: "u64bitFMT" "u64bitFMT" "u64bitFMT" "u64bitFMT"\n",
+  fprintf(stderr, " raw hits: "uint64FMT" "uint64FMT" "uint64FMT" "uint64FMT"\n",
           t->posn1fLen, t->posn1rLen, t->posn2fLen, t->posn2rLen);
 #endif
 
@@ -593,7 +593,7 @@ tapperWorker(void *G, void *T, void *S) {
 
     memset(s->resultFragment, 0, sizeof(tapperResultFragment) * s->tag1hitsLen);
 
-    for (u32bit i=0; i<s->tag1hitsLen; i++) {
+    for (uint32 i=0; i<s->tag1hitsLen; i++) {
       s->resultFragment[i]._seq = s->tag1hits[i]._seqIdx;
       s->resultFragment[i]._pos = s->tag1hits[i]._seqPos;
 
@@ -607,7 +607,7 @@ tapperWorker(void *G, void *T, void *S) {
 
       memcpy(s->resultFragment[i]._qual._tag1colorDiffs,
              s->tag1hits[i]._tagColorDiffs,
-             sizeof(u8bit) * MAX_COLOR_MISMATCH_MAPPED);
+             sizeof(uint8) * MAX_COLOR_MISMATCH_MAPPED);
     }
 
     //  OUTPUT CASE 3 - unmated fragments (but wrong set, should always be in tag1)
@@ -630,47 +630,47 @@ tapperWorker(void *G, void *T, void *S) {
 
       t->numHappiesMax = MAX(s->tag1hitsLen, s->tag2hitsLen) + 16 * 1024;
 
-      fprintf(stderr, "Reallocate t->numHappiesMax to "u32bitFMT"\n", t->numHappiesMax);
+      fprintf(stderr, "Reallocate t->numHappiesMax to "uint32FMT"\n", t->numHappiesMax);
 
-      t->tag1happies = new u32bit [t->numHappiesMax];
-      t->tag1mate    = new u32bit [t->numHappiesMax];
-      t->tag1tangled = new u32bit [t->numHappiesMax];
+      t->tag1happies = new uint32 [t->numHappiesMax];
+      t->tag1mate    = new uint32 [t->numHappiesMax];
+      t->tag1tangled = new uint32 [t->numHappiesMax];
 
-      t->tag2happies = new u32bit [t->numHappiesMax];
-      t->tag2mate    = new u32bit [t->numHappiesMax];
-      t->tag2tangled = new u32bit [t->numHappiesMax];
+      t->tag2happies = new uint32 [t->numHappiesMax];
+      t->tag2mate    = new uint32 [t->numHappiesMax];
+      t->tag2tangled = new uint32 [t->numHappiesMax];
     }
 
 #ifdef VERBOSEWORKER
-    fprintf(stderr, "  Found "u32bitFMT" and "u32bitFMT" hits.\n", s->tag1hitsLen, s->tag2hitsLen);
+    fprintf(stderr, "  Found "uint32FMT" and "uint32FMT" hits.\n", s->tag1hitsLen, s->tag2hitsLen);
 #endif
 
     //  Sort by position.
     s->sortHitsByPosition();
 
-    u32bit  mean   = g->TF->metaData()->mean();
-    u32bit  stddev = g->TF->metaData()->stddev();
+    uint32  mean   = g->TF->metaData()->mean();
+    uint32  stddev = g->TF->metaData()->stddev();
 
     tapperHit *t1h = s->tag1hits;
     tapperHit *t2h = s->tag2hits;
 
     //  Pass zero, clear.  Tangles are cleared below.
     //
-    memset(t->tag1happies, 0, sizeof(u32bit) * s->tag1hitsLen);
-    memset(t->tag1tangled, 0, sizeof(u32bit) * s->tag1hitsLen);
-    memset(t->tag2happies, 0, sizeof(u32bit) * s->tag2hitsLen);
-    memset(t->tag2tangled, 0, sizeof(u32bit) * s->tag2hitsLen);
+    memset(t->tag1happies, 0, sizeof(uint32) * s->tag1hitsLen);
+    memset(t->tag1tangled, 0, sizeof(uint32) * s->tag1hitsLen);
+    memset(t->tag2happies, 0, sizeof(uint32) * s->tag2hitsLen);
+    memset(t->tag2tangled, 0, sizeof(uint32) * s->tag2hitsLen);
 
     //  Pass one.  Count the number of times each fragment is in a
     //  happy relationship.
     //
     {
 #ifdef DEBUG_MATES
-      u32bit  debug_numHappies = 0;
-      u64bit  debug_happyCheck = 0;
+      uint32  debug_numHappies = 0;
+      uint64  debug_happyCheck = 0;
 
-      for (u32bit a=0; a<s->tag1hitsLen; a++) {
-        for (u32bit b=0; b<s->tag2hitsLen; b++) {
+      for (uint32 a=0; a<s->tag1hitsLen; a++) {
+        for (uint32 b=0; b<s->tag2hitsLen; b++) {
           if (t1h[a].happy(t2h[b], mean, stddev)) {
             debug_numHappies += 1;
             debug_happyCheck += t1h[a]._seqPos ^ t2h[b]._seqPos;
@@ -679,17 +679,17 @@ tapperWorker(void *G, void *T, void *S) {
       }
 #endif
 
-      u32bit  bbaserev = 0;
-      u32bit  bbasefor = 0;
+      uint32  bbaserev = 0;
+      uint32  bbasefor = 0;
 
-      for (u32bit a=0; a<s->tag1hitsLen; a++) {
+      for (uint32 a=0; a<s->tag1hitsLen; a++) {
 
         //  Both lists of hits are sorted by position.  For each tag1 (a)
         //  hit, we first advance the bbase to the first hit that is
         //  within the proper distance before the a tag.  Then scan forward
         //  until the b tag is too far away to be mated.
 
-        u32bit b = 0;
+        uint32 b = 0;
 
         if (t1h[a]._rev == true) {
           while ((bbaserev < s->tag2hitsLen) && (t1h[a].mateTooFarBefore(t2h[bbaserev], mean, stddev)))
@@ -720,9 +720,9 @@ tapperWorker(void *G, void *T, void *S) {
             //  It is possible for both to be == 2, but in that case,
             //  we've already added the previous mate pair.
             if ((t->tag1happies[a] == 2) && (t->tag2happies[b] == 1)) {
-              u32bit c  = t->tag1mate[a];
-              u32bit mn = MIN(t1h[a]._seqPos,               t2h[c]._seqPos);
-              u32bit mx = MAX(t1h[a]._seqPos + s->tag1size, t2h[c]._seqPos + s->tag2size);
+              uint32 c  = t->tag1mate[a];
+              uint32 mn = MIN(t1h[a]._seqPos,               t2h[c]._seqPos);
+              uint32 mx = MAX(t1h[a]._seqPos + s->tag1size, t2h[c]._seqPos + s->tag2size);
 
               t->tangle[t1h[a]._seqIdx].add(mn, mx-mn);
               t->tag1tangled[a]++;
@@ -730,9 +730,9 @@ tapperWorker(void *G, void *T, void *S) {
             }
 
             if ((t->tag1happies[a] == 1) && (t->tag2happies[b] == 2)) {
-              u32bit c  = t->tag2mate[b];
-              u32bit mn = MIN(t1h[c]._seqPos,               t2h[b]._seqPos);
-              u32bit mx = MAX(t1h[c]._seqPos + s->tag1size, t2h[b]._seqPos + s->tag2size);
+              uint32 c  = t->tag2mate[b];
+              uint32 mn = MIN(t1h[c]._seqPos,               t2h[b]._seqPos);
+              uint32 mx = MAX(t1h[c]._seqPos + s->tag1size, t2h[b]._seqPos + s->tag2size);
 
               t->tangle[t1h[c]._seqIdx].add(mn, mx-mn);
               t->tag1tangled[c]++;
@@ -741,8 +741,8 @@ tapperWorker(void *G, void *T, void *S) {
 
             //  Finally, add the current mate pair to the tangle.
             if ((t->tag1happies[a] >= 2) || (t->tag2happies[b] >= 2)) {
-              u32bit mn = MIN(t1h[a]._seqPos,               t2h[b]._seqPos);
-              u32bit mx = MAX(t1h[a]._seqPos + s->tag1size, t2h[b]._seqPos + s->tag2size);
+              uint32 mn = MIN(t1h[a]._seqPos,               t2h[b]._seqPos);
+              uint32 mx = MAX(t1h[a]._seqPos + s->tag1size, t2h[b]._seqPos + s->tag2size);
 
               t->tangle[t1h[a]._seqIdx].add(mn, mx-mn);
               t->tag1tangled[a]++;
@@ -761,49 +761,49 @@ tapperWorker(void *G, void *T, void *S) {
       if ((debug_numHappies != 0) || (debug_happyCheck != 0)) {
         FILE *df = fopen("tapper.DEBUG_MATES.err", "w");
 
-        fprintf(df, "numHappies: "u64bitFMT"\n", debug_numHappies);
-        fprintf(df, "happyCheck: "u64bitFMT"\n", debug_happyCheck);
+        fprintf(df, "numHappies: "uint64FMT"\n", debug_numHappies);
+        fprintf(df, "happyCheck: "uint64FMT"\n", debug_happyCheck);
 
-        for (u32bit a=0; a<s->tag1hitsLen; a++)
-          fprintf(df, "a="u32bitFMT" ori=%c pos="u32bitFMT","u32bitFMT"\n",
+        for (uint32 a=0; a<s->tag1hitsLen; a++)
+          fprintf(df, "a="uint32FMT" ori=%c pos="uint32FMT","uint32FMT"\n",
                   a, t1h[a]._rev ? 'r' : 'f', t1h[a]._seqIdx, t1h[a]._seqPos);
 
-        for (u32bit b=0; b<s->tag2hitsLen; b++)
-          fprintf(df, "b="u32bitFMT" ori=%c pos="u32bitFMT","u32bitFMT"\n",
+        for (uint32 b=0; b<s->tag2hitsLen; b++)
+          fprintf(df, "b="uint32FMT" ori=%c pos="uint32FMT","uint32FMT"\n",
                   b, t2h[b]._rev ? 'r' : 'f', t2h[b]._seqIdx, t2h[b]._seqPos);
 
-        u32bit  bbaserev = 0;
-        u32bit  bbasefor = 0;
+        uint32  bbaserev = 0;
+        uint32  bbasefor = 0;
 
-        for (u32bit a=0; a<s->tag1hitsLen; a++) {
-          u32bit b = 0;
+        for (uint32 a=0; a<s->tag1hitsLen; a++) {
+          uint32 b = 0;
 
           if (t1h[a]._rev == true) {
             while ((bbaserev < s->tag2hitsLen) && (t1h[a].mateTooFarBefore(t2h[bbaserev], mean, stddev))) {
-              fprintf(df, "rev bbaserev <- "u32bitFMT" + 1\n", bbaserev);
+              fprintf(df, "rev bbaserev <- "uint32FMT" + 1\n", bbaserev);
               bbaserev++;
             }
             b = bbaserev;
           } else {
             while ((bbasefor < s->tag2hitsLen) && (t1h[a].mateTooFarBefore(t2h[bbasefor], mean, stddev))) {
-              fprintf(df, "rev bbasefor <- "u32bitFMT" + 1\n", bbasefor);
+              fprintf(df, "rev bbasefor <- "uint32FMT" + 1\n", bbasefor);
               bbasefor++;
             }
             b = bbasefor;
           }
 
           for (; (b<s->tag2hitsLen) && (t1h[a].mateTooFarAfter(t2h[b], mean, stddev) == false); b++) {
-            fprintf(df, "test a="u32bitFMT" b="u32bitFMT"\n", a, b);
+            fprintf(df, "test a="uint32FMT" b="uint32FMT"\n", a, b);
             if (t1h[a].happy(t2h[b], mean, stddev)) {
-              fprintf(df, "HAPPY CLEVER     a="u32bitFMT" b="u32bitFMT"\n", a, b);
+              fprintf(df, "HAPPY CLEVER     a="uint32FMT" b="uint32FMT"\n", a, b);
             }
           }
         }
 
-        for (u32bit a=0; a<s->tag1hitsLen; a++) {
-          for (u32bit b=0; b<s->tag2hitsLen; b++) {
+        for (uint32 a=0; a<s->tag1hitsLen; a++) {
+          for (uint32 b=0; b<s->tag2hitsLen; b++) {
             if (t1h[a].happy(t2h[b], mean, stddev)) {
-              fprintf(df, "HAPPY EXHAUSTIVE a="u32bitFMT" b="u32bitFMT"\n", a, b);
+              fprintf(df, "HAPPY EXHAUSTIVE a="uint32FMT" b="uint32FMT"\n", a, b);
             }
           }
         }
@@ -835,7 +835,7 @@ tapperWorker(void *G, void *T, void *S) {
     //  Count exactly how much space is needed.  The test for
     //  singleton vs fragment is somewhat expensive, so we skip it.
     //
-    for (u32bit a=0; a<s->tag1hitsLen; a++) {
+    for (uint32 a=0; a<s->tag1hitsLen; a++) {
       if (t->tag1tangled[a] != 0) {
         s->resultTangledAlignmentLen++;
       } else if (t->tag1happies[a] == 1) {
@@ -846,7 +846,7 @@ tapperWorker(void *G, void *T, void *S) {
       }
     }
 
-    for (u32bit b=0; b<s->tag2hitsLen; b++) {
+    for (uint32 b=0; b<s->tag2hitsLen; b++) {
       if (t->tag2tangled[b] != 0) {
         s->resultTangledAlignmentLen++;
       } else if (t->tag2happies[b] == 1) {
@@ -881,7 +881,7 @@ tapperWorker(void *G, void *T, void *S) {
     //  For anything with zero happies, emit to the
     //  singleton file.
 
-    for (u32bit a=0; a<s->tag1hitsLen; a++) {
+    for (uint32 a=0; a<s->tag1hitsLen; a++) {
       tapperResultFragment *f;
 
       if (t->tag1tangled[a] != 0) {
@@ -914,11 +914,11 @@ tapperWorker(void *G, void *T, void *S) {
 
         memcpy(f->_qual._tag1colorDiffs,
                s->tag1hits[a]._tagColorDiffs,
-               sizeof(u8bit) * MAX_COLOR_MISMATCH_MAPPED);
+               sizeof(uint8) * MAX_COLOR_MISMATCH_MAPPED);
       }
     }
 
-    for (u32bit b=0; b<s->tag2hitsLen; b++) {
+    for (uint32 b=0; b<s->tag2hitsLen; b++) {
       tapperResultFragment *f;
 
       if (t->tag2tangled[b] != 0) {
@@ -951,15 +951,15 @@ tapperWorker(void *G, void *T, void *S) {
 
         memcpy(f->_qual._tag2colorDiffs,
                s->tag2hits[b]._tagColorDiffs,
-               sizeof(u8bit) * MAX_COLOR_MISMATCH_MAPPED);
+               sizeof(uint8) * MAX_COLOR_MISMATCH_MAPPED);
       }
     }
 
     //  For anything with a pair of single happies, emit to the happy
     //  mate file.
 
-    for (u32bit a=0; a<s->tag1hitsLen; a++) {
-      u32bit b = t->tag1mate[a];
+    for (uint32 a=0; a<s->tag1hitsLen; a++) {
+      uint32 b = t->tag1mate[a];
 
       if ((t->tag1happies[a] == 1) && (t->tag2happies[b] == 1)) {
         tapperResultMated     *m = s->resultMated + s->resultMatedLen++;
@@ -989,24 +989,24 @@ tapperWorker(void *G, void *T, void *S) {
 
         memcpy(m->_qual._tag1colorDiffs,
                s->tag1hits[a]._tagColorDiffs,
-               sizeof(u8bit) * MAX_COLOR_MISMATCH_MAPPED);
+               sizeof(uint8) * MAX_COLOR_MISMATCH_MAPPED);
         memcpy(m->_qual._tag2colorDiffs,
                s->tag2hits[b]._tagColorDiffs,
-               sizeof(u8bit) * MAX_COLOR_MISMATCH_MAPPED);
+               sizeof(uint8) * MAX_COLOR_MISMATCH_MAPPED);
       }
     }
 
     //  Emit and then clear the tangles.
 
     {
-      u32bit simax = g->GS->getNumberOfSequences();
+      uint32 simax = g->GS->getNumberOfSequences();
 
-      for (u32bit si=0; si<simax; si++) {
+      for (uint32 si=0; si<simax; si++) {
 
         if (t->tangle[si].numberOfIntervals() > 0) {
           t->tangle[si].merge();
 
-          for (u32bit ti=0; ti<t->tangle[si].numberOfIntervals(); ti++) {
+          for (uint32 ti=0; ti<t->tangle[si].numberOfIntervals(); ti++) {
             tapperResultTangled   *x = s->resultTangled + s->resultTangledLen++;
 
             x->_tag1count = 0;
@@ -1017,13 +1017,13 @@ tapperWorker(void *G, void *T, void *S) {
             x->_bgn = t->tangle[si].lo(ti);
             x->_end = t->tangle[si].hi(ti);
 
-            for (u32bit a=0; a<s->tag1hitsLen; a++) {
+            for (uint32 a=0; a<s->tag1hitsLen; a++) {
               if ((t->tag1tangled[a] > 0) &&
                   (x->_seq == s->tag1hits[a]._seqIdx) &&
                   (x->_bgn <= s->tag1hits[a]._seqPos) && (s->tag1hits[a]._seqPos <= x->_end))
                 x->_tag1count++;
             }
-            for (u32bit b=0; b<s->tag2hitsLen; b++) {
+            for (uint32 b=0; b<s->tag2hitsLen; b++) {
               if ((t->tag2tangled[b] > 0) &&
                   (x->_seq == s->tag2hits[b]._seqIdx) &&
                   (x->_bgn <= s->tag2hits[b]._seqPos) && (s->tag2hits[b]._seqPos <= x->_end))
@@ -1064,27 +1064,27 @@ main(int argc, char **argv) {
       g->outName = argv[++arg];
 
     } else if (strncmp(argv[arg], "-begin", 2) == 0) {
-      g->bgnRead = strtou32bit(argv[++arg], 0L);
+      g->bgnRead = strtouint32(argv[++arg], 0L);
       g->thisPartition = 0;
       g->numPartitions = 1;
 
     } else if (strncmp(argv[arg], "-end", 2) == 0) {
-      g->endRead = strtou32bit(argv[++arg], 0L);
+      g->endRead = strtouint32(argv[++arg], 0L);
       g->thisPartition = 0;
       g->numPartitions = 1;
 
     } else if (strncmp(argv[arg], "-partition", 2) == 0) {
-      g->thisPartition = strtou32bit(argv[++arg], 0L);
-      g->numPartitions = strtou32bit(argv[++arg], 0L);
+      g->thisPartition = strtouint32(argv[++arg], 0L);
+      g->numPartitions = strtouint32(argv[++arg], 0L);
 
     } else if (strncmp(argv[arg], "-repeatthreshold", 2) == 0) {
-      g->repeatThreshold = strtou32bit(argv[++arg], 0L);
+      g->repeatThreshold = strtouint32(argv[++arg], 0L);
 
     } else if (strncmp(argv[arg], "-maxcolorerror", 5) == 0) {
-      g->maxColorError = strtou32bit(argv[++arg], 0L);
+      g->maxColorError = strtouint32(argv[++arg], 0L);
 
     } else if (strncmp(argv[arg], "-maxbaseerror", 5) == 0) {
-      g->maxBaseError = strtou32bit(argv[++arg], 0L);
+      g->maxBaseError = strtouint32(argv[++arg], 0L);
 
     } else if (strncmp(argv[arg], "-maxmemory", 5) == 0) {
       g->maxMemory = atoi(argv[++arg]);
@@ -1121,7 +1121,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "          -repeatthreshold x     Do not report fragment alignments for tags\n");
     fprintf(stderr, "                                 with more than x alignments.  Singletons, mated\n");
     fprintf(stderr, "                                 tags and are still reported and computed using\n");
-    fprintf(stderr, "                                 all alignments.  The default is "u32bitFMT".\n", g->repeatThreshold);
+    fprintf(stderr, "                                 all alignments.  The default is "uint32FMT".\n", g->repeatThreshold);
     fprintf(stderr, "\n");
     fprintf(stderr, "          -maxcolorerror  n\n");
     fprintf(stderr, "          -maxbaseerror   n\n");
@@ -1144,7 +1144,7 @@ main(int argc, char **argv) {
 
   ss->setNumberOfWorkers(g->numThreads);
 
-  for (u32bit w=0; w<g->numThreads; w++)
+  for (uint32 w=0; w<g->numThreads; w++)
     ss->setThreadData(w, new tapperThreadData(g));
 
   ss->run(g, g->beVerbose);

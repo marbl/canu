@@ -17,8 +17,8 @@ doTest(bzipBuffer *B, char *description) {
 
   if ((testing->a != correct->a) || (testing->b != correct->b)) {
     fprintf(stderr, "bzipBuffer test %s failed.\n", description);
-    fprintf(stderr, "Got correct md5 of "u64bitHEX" "u64bitHEX"\n", correct->a, correct->b);
-    fprintf(stderr, "Got testing md5 of "u64bitHEX" "u64bitHEX"\n", testing->a, testing->b);
+    fprintf(stderr, "Got correct md5 of "uint64HEX" "uint64HEX"\n", correct->a, correct->b);
+    fprintf(stderr, "Got testing md5 of "uint64HEX" "uint64HEX"\n", testing->a, testing->b);
     error = 1;
   }
 
@@ -44,8 +44,8 @@ doTestRead(bzipBuffer *B, size_t bufferSize, char *description) {
 
   if ((testing->a != correct->a) || (testing->b != correct->b)) {
     fprintf(stderr, "bzipBuffer test %s failed.\n", description);
-    fprintf(stderr, "Got correct md5 of "u64bitHEX" "u64bitHEX"\n", correct->a, correct->b);
-    fprintf(stderr, "Got testing md5 of "u64bitHEX" "u64bitHEX"\n", testing->a, testing->b);
+    fprintf(stderr, "Got correct md5 of "uint64HEX" "uint64HEX"\n", correct->a, correct->b);
+    fprintf(stderr, "Got testing md5 of "uint64HEX" "uint64HEX"\n", testing->a, testing->b);
     error = 1;
   }
 

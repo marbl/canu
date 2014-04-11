@@ -12,7 +12,7 @@ statusThread(void *) {
   if (config._outputPos > 0)
     finish = (config._numberOfQueries - config._outputPos) / (config._outputPos / (getTime() - config._zeroTime));
 
-  fprintf(stderr, "O:"u32bitFMTW(7)" S:"u32bitFMTW(7)" I:"u32bitFMTW(7)" T:"u32bitFMTW(7)" (%5.1f%%; %8.3f/sec) Finish in %5.2f seconds.\r",
+  fprintf(stderr, "O:"uint32FMTW(7)" S:"uint32FMTW(7)" I:"uint32FMTW(7)" T:"uint32FMTW(7)" (%5.1f%%; %8.3f/sec) Finish in %5.2f seconds.\r",
           outputPos,
           inputTail,
           inputHead,
@@ -56,7 +56,7 @@ writerThread(void *U, void *Q) {
   if (config._matchCountsFile) {
     char   str[256];
 
-    sprintf(str, u32bitFMT"\n", query->numberOfResults());
+    sprintf(str, uint32FMT"\n", query->numberOfResults());
 
     errno = 0;
     write(config._matchCountsFile, str, strlen(str));

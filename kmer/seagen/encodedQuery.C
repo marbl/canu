@@ -3,7 +3,7 @@
 #include "encodedQuery.H"
 
 encodedQuery::encodedQuery(seqInCore  *S,
-                           u32bit      k) {
+                           uint32      k) {
 
   _iid             = S->getIID();
   _sequenceLength  = S->sequenceLength();
@@ -21,18 +21,18 @@ encodedQuery::encodedQuery(seqInCore  *S,
     return;
 
   char const           *seq    = S->sequence();
-  u32bit                seqLen = S->sequenceLength();
+  uint32                seqLen = S->sequenceLength();
 
   _mersTotal = seqLen - k + 1;
   _mersAvail = 0;
-  _mers      = new u64bit [_mersTotal];
-  _skip      = new u8bit  [_mersTotal];
+  _mers      = new uint64 [_mersTotal];
+  _skip      = new uint8  [_mersTotal];
 
-  u64bit   substring      = u64bitZERO;
-  u64bit   mermask        = u64bitMASK(2 * k);
-  s32bit   timeUntilValid = k;
+  uint64   substring      = uint64ZERO;
+  uint64   mermask        = uint64MASK(2 * k);
+  int32   timeUntilValid = k;
 
-  for (u32bit i=0; i<seqLen; ) {
+  for (uint32 i=0; i<seqLen; ) {
     substring <<= 2;
     substring  &= mermask;
 
@@ -67,27 +67,27 @@ encodedQuery::test(seqInCore *S) {
 
   //  We assume we've been initialized with the forward version!
 
-  u32bit                k = _merSize;
+  uint32                k = _merSize;
 
   char const           *seq    = S->sequence();
-  u32bit                seqLen = S->sequenceLength();
+  uint32                seqLen = S->sequenceLength();
 
-  u64bit   substring      = u64bitZERO;
-  u64bit   mermask        = u64bitMASK(2 * k);
-  s32bit   timeUntilValid = k;
+  uint64   substring      = uint64ZERO;
+  uint64   mermask        = uint64MASK(2 * k);
+  int32   timeUntilValid = k;
 
   //  Compute the complement version; we'll iterate through all data
   //  in us, comparing against what the original method would say.
 
-  u32bit    _r_mersAvail = 0;
-  u64bit   *_r_mers      = new u64bit [_mersTotal];
-  u8bit    *_r_skip      = new u8bit  [_mersTotal];
+  uint32    _r_mersAvail = 0;
+  uint64   *_r_mers      = new uint64 [_mersTotal];
+  uint8    *_r_skip      = new uint8  [_mersTotal];
 
-  substring      = u64bitZERO;
-  mermask        = u64bitMASK(2 * k);
+  substring      = uint64ZERO;
+  mermask        = uint64MASK(2 * k);
   timeUntilValid = k;
 
-  for (u32bit i=0; i<seqLen; ) {
+  for (uint32 i=0; i<seqLen; ) {
     substring <<= 2;
     substring  &= mermask;
 
@@ -111,7 +111,7 @@ encodedQuery::test(seqInCore *S) {
   //  For comparison, this is the original code used to compute the
   //  reverse complement mers.
 
-  for (u32bit i=0; i<seqLen; ) {
+  for (uint32 i=0; i<seqLen; ) {
     substring <<= 2;
     substring  &= mermask;
 
@@ -139,25 +139,25 @@ encodedQuery::test(seqInCore *S) {
   //  CHECK!
   //
   if (_r_mersAvail != _mersAvail) {
-    fprintf(stderr, "encodedQuery::test()-- mersAvail incorrect:  Recomputed:"u32bitFMT"  Real:"u32bitFMT"\n", _mersAvail, _r_mersAvail);
+    fprintf(stderr, "encodedQuery::test()-- mersAvail incorrect:  Recomputed:"uint32FMT"  Real:"uint32FMT"\n", _mersAvail, _r_mersAvail);
   }
 
   char  mer1[65];
   char  mer2[65];
   bool  fail = false;
 
-  for (u32bit i=0; i<_mersTotal; i++) {
+  for (uint32 i=0; i<_mersTotal; i++) {
 
     if (getSkip(i, true) != _r_skip[i]) {
-      fprintf(stderr, "encodedQuery::test()-- skip["u32bitFMTW(4)"] incorrect:  Acc:%d  Real:%d\n", i, getSkip(i, true), _r_skip[i]);
+      fprintf(stderr, "encodedQuery::test()-- skip["uint32FMTW(4)"] incorrect:  Acc:%d  Real:%d\n", i, getSkip(i, true), _r_skip[i]);
       fail = true;
     }
 
     if (getSkip(i, true) == false) {
       if (getMer(i, true) != _r_mers[i]) {
-        u64bitToMerString(_merSize, getMer(i, true), mer1);
-        u64bitToMerString(_merSize, _r_mers[i], mer2);
-        fprintf(stderr, "encodedQuery::test()-- mers["u32bitFMTW(4)"] incorrect:  Acc:"u64bitHEX" %s   Real:"u64bitHEX" %s\n",
+        uint64ToMerString(_merSize, getMer(i, true), mer1);
+        uint64ToMerString(_merSize, _r_mers[i], mer2);
+        fprintf(stderr, "encodedQuery::test()-- mers["uint32FMTW(4)"] incorrect:  Acc:"uint64HEX" %s   Real:"uint64HEX" %s\n",
                 i,
                 getMer(i, true), mer1,
                 _r_mers[i], mer2);
@@ -175,7 +175,7 @@ encodedQuery::test(seqInCore *S) {
   }
 
   //fprintf(stderr, "encodedQuery::test()-- %s\n", seq);
-  //fprintf(stderr, "encodedQuery::test()-- tested avail:"u32bitFMT" total:"u32bitFMT"\n", _mersAvail, _mersTotal);
+  //fprintf(stderr, "encodedQuery::test()-- tested avail:"uint32FMT" total:"uint32FMT"\n", _mersAvail, _mersTotal);
 
   delete [] _r_mers;
   delete [] _r_skip;
@@ -183,7 +183,7 @@ encodedQuery::test(seqInCore *S) {
 
 
 void
-encodedQuery::addOutput(void *newout, u32bit size) {
+encodedQuery::addOutput(void *newout, uint32 size) {
 
   //  Allocate space for the output -- 1MB should be enough for about
   //  29000 signals.  Make it 32K -> 900 signals.
@@ -206,7 +206,7 @@ encodedQuery::addOutput(void *newout, u32bit size) {
       o = new char [_outputMax];
     } catch (std::bad_alloc) {
       fprintf(stderr, "encodedQuery::addOutput()-- out of memory, tried to extend output string\n");
-      fprintf(stderr, "encodedQuery::addOutput()-- from "u32bitFMT" to "u32bitFMT" bytes.\n",
+      fprintf(stderr, "encodedQuery::addOutput()-- from "uint32FMT" to "uint32FMT" bytes.\n",
               _outputLen, _outputMax);
       exit(1);
     }

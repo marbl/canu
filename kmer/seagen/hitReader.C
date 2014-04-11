@@ -52,14 +52,14 @@ hitReader::hitReader(int m) {
   _listMax    = 1024 * 1024;
   _list       = new hit_s [_listMax];
 
-  _iid        = u32bitZERO;
+  _iid        = uint32ZERO;
   _bestScore  = 0.0;
   _worstScore = 1.0;
 }
 
 
 hitReader::~hitReader() {
-  for (u32bit i=0; i<_filesLen; i++)
+  for (uint32 i=0; i<_filesLen; i++)
     //fclose(_files[i].file);
     delete _files[i].buff;
 
@@ -106,14 +106,14 @@ bool
 hitReader::loadHits(void) {
 
   _listLen    = 0;
-  _iid        = u32bitZERO;
+  _iid        = uint32ZERO;
   _bestScore  = 0.0;
   _worstScore = 1.0;
 
   //  See if there are more hits to process.
   //
   bool  keepGoing = false;
-  for (u32bit i=0; i<_filesLen; i++)
+  for (uint32 i=0; i<_filesLen; i++)
     keepGoing |= _files[i].stillMore;
 
   if (keepGoing == false)
@@ -122,7 +122,7 @@ hitReader::loadHits(void) {
   //  Find the lowest ESTid
   //
   _iid = 1 << 30;
-  for (u32bit i=0; i<_filesLen; i++)
+  for (uint32 i=0; i<_filesLen; i++)
     if ((_files[i].stillMore) && (_iid > _files[i].a._qsIdx))
       _iid = _files[i].a._qsIdx;
 
@@ -130,7 +130,7 @@ hitReader::loadHits(void) {
   //  For each file, load the next hit if it's the est
   //  we're looking at
   //
-  for (u32bit i=0; i<_filesLen; i++) {
+  for (uint32 i=0; i<_filesLen; i++) {
     while ((_files[i].stillMore) && (_files[i].a._qsIdx == _iid)) {
       if (_listLen >= _listMax) {
         _listMax *= 2;
@@ -166,8 +166,8 @@ hitReader::loadHits(void) {
       for (int p=0; _files[i].b[p]; p++) {
         if ((_files[i].b[p] == 'Y') || (_files[i].b[p] == 'N')) {
           char *c = _files[i].b+p+1;
-          _list[_listLen].mappedIdentity = (u32bit)strtoul(c, &c, 10);
-          _list[_listLen].mappedCoverage = (u32bit)strtoul(c, &c, 10);
+          _list[_listLen].mappedIdentity = (uint32)strtoul(c, &c, 10);
+          _list[_listLen].mappedCoverage = (uint32)strtoul(c, &c, 10);
         }
       }
 #endif
@@ -206,8 +206,8 @@ hitReader::mergeOverlappingHits(void) {
 
   //  Scan through the list, merging.
   //
-  u32bit   cur = 0;  //  Currently active entry
-  u32bit   exa = 1;  //  Entry we examine for merging
+  uint32   cur = 0;  //  Currently active entry
+  uint32   exa = 1;  //  Entry we examine for merging
   while (exa < _listLen) {
 
     //  Do they overlap?
@@ -235,9 +235,9 @@ hitReader::mergeOverlappingHits(void) {
         } else {
 #ifdef DEBUG_HITREADER
           fprintf(stderr,
-                  "MERGE:   ("u32bitFMT","u32bitFMT") -e "u32bitFMT" "
-                  u32bitFMT":"u32bitFMT"-"u32bitFMT"%c("u32bitFMT"-"u32bitFMT"-"u32bitFMT") "
-                  u32bitFMT":"u32bitFMT"-"u32bitFMT"%c("u32bitFMT"-"u32bitFMT"-"u32bitFMT")\n",
+                  "MERGE:   ("uint32FMT","uint32FMT") -e "uint32FMT" "
+                  uint32FMT":"uint32FMT"-"uint32FMT"%c("uint32FMT"-"uint32FMT"-"uint32FMT") "
+                  uint32FMT":"uint32FMT"-"uint32FMT"%c("uint32FMT"-"uint32FMT"-"uint32FMT")\n",
                   cur, exa,
                   _list[cur].a._qsIdx,
                   _list[cur].a._dsIdx,

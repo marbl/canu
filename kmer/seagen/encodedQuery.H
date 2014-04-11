@@ -9,57 +9,57 @@
 class encodedQuery {
 public:
   encodedQuery(seqInCore  *S,
-               u32bit      k);
+               uint32      k);
   ~encodedQuery();
 
   void             test(seqInCore  *S);
 
-  u32bit           IID(void)                 { return(_iid); };
+  uint32           IID(void)                 { return(_iid); };
 
-  u32bit           numberOfMers(void)        { return(_mersTotal); };
-  u32bit           numberOfValidMers(void)   { return(_mersAvail); };
+  uint32           numberOfMers(void)        { return(_mersTotal); };
+  uint32           numberOfValidMers(void)   { return(_mersAvail); };
 
   //  Return either an approximation or the exact number of bp covered by valid mers.
   //
-  u32bit           bpCovered(bool doCompute);
-  u32bit           bpTotal(void);
+  uint32           bpCovered(bool doCompute);
+  uint32           bpTotal(void);
 
-  u64bit           getMer(u32bit i, bool isReverse);
-  bool             getSkip(u32bit i, bool isReverse);
-  void             setSkip(u32bit i, bool isReverse);
+  uint64           getMer(uint32 i, bool isReverse);
+  bool             getSkip(uint32 i, bool isReverse);
+  void             setSkip(uint32 i, bool isReverse);
 
-  void             addOutput(void *output, u32bit size);
+  void             addOutput(void *output, uint32 size);
 
   char            *theOutput(void)       { return(_output); };
-  u32bit           theOutputLength(void) { return(_outputLen); };
-  u32bit           numberOfResults(void) { return(_numberOfResults); };
+  uint32           theOutputLength(void) { return(_outputLen); };
+  uint32           numberOfResults(void) { return(_numberOfResults); };
 private:
-  u32bit          _iid;
-  u32bit          _sequenceLength;
+  uint32          _iid;
+  uint32          _sequenceLength;
 
-  u32bit          _merSize;
+  uint32          _merSize;
 
-  u32bit          _mersTotal;  //  Number of mers possible in the query
-  u32bit          _mersAvail;  //  Number of mers not masked out
-  u64bit         *_mers;       //  List of mers
-  u8bit          *_skip;
+  uint32          _mersTotal;  //  Number of mers possible in the query
+  uint32          _mersAvail;  //  Number of mers not masked out
+  uint64         *_mers;       //  List of mers
+  uint8          *_skip;
 
-  u32bit          _numberOfResults;
+  uint32          _numberOfResults;
   char           *_output;
-  u32bit          _outputLen;
-  u32bit          _outputMax;
+  uint32          _outputLen;
+  uint32          _outputMax;
 };
 
 
 inline
-u32bit
+uint32
 encodedQuery::bpCovered(bool doCompute) {
-  u32bit  bp = numberOfValidMers();
+  uint32  bp = numberOfValidMers();
 
   if (doCompute) {
     merCovering   *IL = new merCovering(_merSize);
 
-    for (u32bit qi=0; qi<numberOfMers(); qi++) {
+    for (uint32 qi=0; qi<numberOfMers(); qi++) {
       if (getSkip(qi, false) == false)
         IL->addMer(qi);
     }
@@ -72,7 +72,7 @@ encodedQuery::bpCovered(bool doCompute) {
 }
 
 inline
-u32bit
+uint32
 encodedQuery::bpTotal(void) {
   return(_sequenceLength);
 }
@@ -82,8 +82,8 @@ encodedQuery::bpTotal(void) {
 //  and to then return the reverse-complement mer, skip, etc.
 
 inline
-u64bit
-encodedQuery::getMer(u32bit i, bool isReverse) {
+uint64
+encodedQuery::getMer(uint32 i, bool isReverse) {
 
   if (isReverse) {
     i = _mersTotal - i - 1;
@@ -95,7 +95,7 @@ encodedQuery::getMer(u32bit i, bool isReverse) {
 
 inline
 bool
-encodedQuery::getSkip(u32bit i, bool isReverse) {
+encodedQuery::getSkip(uint32 i, bool isReverse) {
 
   if (isReverse)
     i = _mersTotal - i - 1;
@@ -105,7 +105,7 @@ encodedQuery::getSkip(u32bit i, bool isReverse) {
 
 inline
 void
-encodedQuery::setSkip(u32bit i, bool isReverse) {
+encodedQuery::setSkip(uint32 i, bool isReverse) {
 
   if (isReverse)
     i = _mersTotal - i - 1;

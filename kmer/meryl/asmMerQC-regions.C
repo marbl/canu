@@ -16,15 +16,15 @@ using namespace std;
 //
 //  Begin code from Bri's intervalList.H, intervalList.C, splitToWords.H
 //
-typedef unsigned long     u64bit;
-typedef unsigned int      u32bit;
+typedef unsigned long     uint64;
+typedef unsigned int      uint32;
 
-#define  u64bitFMT       "%lu"
-#define  u32bitFMT       "%u"
-#define  u32bitFMTW(X)   "%" #X "u"
+#define  uint64FMT       "%lu"
+#define  uint32FMT       "%u"
+#define  uint32FMTW(X)   "%" #X "u"
 
-#define  strtou32bit(N,O) (u32bit)strtoul(N, O, 10)
-#define  strtou64bit(N,O) (u64bit)strtoul(N, O, 10)
+#define  strtouint32(N,O) (uint32)strtoul(N, O, 10)
+#define  strtouint64(N,O) (uint64)strtoul(N, O, 10)
 
 class splitToWords {
 public:
@@ -60,8 +60,8 @@ public:
     //  Then, allocate space for a temporary copy of the string, and a
     //  set of pointers into the temporary copy (much like argv).
     //
-    u32bit   cmdChars = 1;  //  1 == Space for terminating 0
-    u32bit   cmdWords = 2;  //  2 == Space for first word and terminating 0L
+    uint32   cmdChars = 1;  //  1 == Space for terminating 0
+    uint32   cmdWords = 2;  //  2 == Space for first word and terminating 0L
 
     for (char *tmp=cmd; *tmp; tmp++) {
       cmdWords += *tmp == ' ';
@@ -125,21 +125,21 @@ public:
   };
 
 
-  u32bit  numWords(void)        { return(_argWords); };
-  char   *getWord(u32bit i)     { return(_arg[i]); };
-  char   *operator[](u32bit i)  { return(_arg[i]); };
+  uint32  numWords(void)        { return(_argWords); };
+  char   *getWord(uint32 i)     { return(_arg[i]); };
+  char   *operator[](uint32 i)  { return(_arg[i]); };
 private:
-  u32bit    _argWords;
-  u32bit    _maxWords;
+  uint32    _argWords;
+  uint32    _maxWords;
   char    **_arg;
-  u32bit    _maxChars;
+  uint32    _maxChars;
   char     *_cmd;
 };
 
 
 
 
-typedef u64bit  intervalNumber;
+typedef uint64  intervalNumber;
 
 struct _intervalPair {
   intervalNumber    lo;
@@ -149,7 +149,7 @@ struct _intervalPair {
 struct _intervalDepth {
   intervalNumber    lo;
   intervalNumber    hi;
-  u32bit            de;
+  uint32            de;
 };
 
 
@@ -179,14 +179,14 @@ public:
   void        invert(intervalNumber lo, intervalNumber hi);
 
   //  Returns the number of intervals
-  u32bit      numberOfIntervals(void) {
+  uint32      numberOfIntervals(void) {
     return(_listLen);
   };
 
   //  Returns the sum of the length of all intervals
   intervalNumber      sumOfLengths(void) {
     intervalNumber len = 0;
-    u32bit         i   = numberOfIntervals();
+    uint32         i   = numberOfIntervals();
 
     if (i > 0)
       while (i--)
@@ -198,11 +198,11 @@ public:
   //  Populates an array with the intervals that are within the
   //  supplied interval.  Return
   //
-  u32bit      overlapping(intervalNumber    lo,
+  uint32      overlapping(intervalNumber    lo,
                           intervalNumber    hi,
-                          u32bit          *&intervals,
-                          u32bit           &intervalsLen,
-                          u32bit           &intervalsMax);
+                          uint32          *&intervals,
+                          uint32           &intervalsLen,
+                          uint32           &intervalsMax);
 
   //  Populates this intervalList with the intersection of A and B.
   //  This intervalList is not cleared prior to adding new intervals.
@@ -221,14 +221,14 @@ public:
                                 intervalList &B);
 
 
-  intervalNumber      lo(u32bit i) { return(_list[i].lo); };
-  intervalNumber      hi(u32bit i) { return(_list[i].hi); };
+  intervalNumber      lo(uint32 i) { return(_list[i].lo); };
+  intervalNumber      hi(uint32 i) { return(_list[i].hi); };
 
 private:
   bool                      _isSorted;
   bool                      _isMerged;
-  u32bit                    _listLen;
-  u32bit                    _listMax;
+  uint32                    _listLen;
+  uint32                    _listMax;
   _intervalPair            *_list;
 };
 
@@ -246,17 +246,17 @@ public:
   ~intervalDepth();
 
   //  Returns the number of intervals
-  u32bit      numberOfIntervals(void) {
+  uint32      numberOfIntervals(void) {
     return(_listLen);
   };
 
-  intervalNumber      lo(u32bit i) { return(_list[i].lo); };
-  intervalNumber      hi(u32bit i) { return(_list[i].hi); };
-  u32bit              de(u32bit i) { return(_list[i].de); };
+  intervalNumber      lo(uint32 i) { return(_list[i].lo); };
+  intervalNumber      hi(uint32 i) { return(_list[i].hi); };
+  uint32              de(uint32 i) { return(_list[i].de); };
 
 private:
-  u32bit                    _listLen;
-  u32bit                    _listMax;
+  uint32                    _listLen;
+  uint32                    _listMax;
   _intervalDepth           *_list;
 };
 
@@ -313,10 +313,10 @@ intervalList::add(intervalNumber position, intervalNumber length) {
 
   _list[_listLen].data = 0L;
 
-  if (data != ~u64bitZERO) {
+  if (data != ~uint64ZERO) {
     _list[_listLen].dataLen = 1;
     _list[_listLen].dataMax = 4;
-    _list[_listLen].data    = new u64bit [_list[_listLen].dataMax];
+    _list[_listLen].data    = new uint64 [_list[_listLen].dataMax];
     _list[_listLen].data[0] = data;
   }
 #endif
@@ -360,8 +360,8 @@ intervalList::sort(void) {
 
 void
 intervalList::merge(void) {
-  u32bit  thisInterval  = 0;
-  u32bit  nextInterval = 1;
+  uint32  thisInterval  = 0;
+  uint32  nextInterval = 1;
 
   if (_listLen < 2)
     return;
@@ -442,8 +442,8 @@ intervalList::invert(intervalNumber lo, intervalNumber hi) {
 
   //  Create a new list to store the inversion
   //
-  u32bit             invLen = 0;
-  u32bit             invMax = _listLen + 2;
+  uint32             invLen = 0;
+  uint32             invMax = _listLen + 2;
   _intervalPair     *inv    = new _intervalPair [invMax];
 
   //  Add the first
@@ -455,7 +455,7 @@ intervalList::invert(intervalNumber lo, intervalNumber hi) {
   }
 
   //  Add the pieces
-  for (u32bit i=1; i<_listLen; i++) {
+  for (uint32 i=1; i<_listLen; i++) {
     if (_list[i-1].hi < _list[i].lo) {
       inv[invLen].lo = _list[i-1].hi;
       inv[invLen].hi = _list[i].lo;
@@ -480,12 +480,12 @@ intervalList::invert(intervalNumber lo, intervalNumber hi) {
 
 
 
-u32bit
+uint32
 intervalList::overlapping(intervalNumber    rangelo,
                           intervalNumber    rangehi,
-                          u32bit          *&intervals,
-                          u32bit           &intervalsLen,
-                          u32bit           &intervalsMax) {
+                          uint32          *&intervals,
+                          uint32           &intervalsLen,
+                          uint32           &intervalsMax) {
 
 
   //  XXX: Naive implementation that is easy to verify (and that works
@@ -493,18 +493,18 @@ intervalList::overlapping(intervalNumber    rangelo,
 
   if (intervals == 0L) {
     intervalsMax = 256;
-    intervals    = new u32bit [intervalsMax];
+    intervals    = new uint32 [intervalsMax];
   }
 
   intervalsLen = 0;
 
-  for (u32bit i=0; i<_listLen; i++) {
+  for (uint32 i=0; i<_listLen; i++) {
     if ((rangelo <= _list[i].hi) &&
         (rangehi >= _list[i].lo)) {
       if (intervalsLen >= intervalsMax) {
         intervalsMax *= 2;
-        u32bit *X = new u32bit [intervalsMax];
-        memcpy(X, intervals, sizeof(u32bit) * intervalsLen);
+        uint32 *X = new uint32 [intervalsMax];
+        memcpy(X, intervals, sizeof(uint32) * intervalsLen);
         delete [] intervals;
         intervals = X;
       }
@@ -524,17 +524,17 @@ intervalList::intersect(intervalList &A,
   A.merge();
   B.merge();
 
-  u32bit  ai = 0;
-  u32bit  bi = 0;
+  uint32  ai = 0;
+  uint32  bi = 0;
 
   while ((ai < A.numberOfIntervals()) &&
          (bi < B.numberOfIntervals())) {
-    u32bit   al = A.lo(ai);
-    u32bit   ah = A.hi(ai);
-    u32bit   bl = B.lo(bi);
-    u32bit   bh = B.hi(bi);
-    u32bit   nl = 0;
-    u32bit   nh = 0;
+    uint32   al = A.lo(ai);
+    uint32   ah = A.hi(ai);
+    uint32   bl = B.lo(bi);
+    uint32   bh = B.hi(bi);
+    uint32   nl = 0;
+    uint32   nh = 0;
 
     //  If they intersect, make a new region
     //
@@ -573,15 +573,15 @@ intervalList::contained(intervalList &A,
   A.merge();
   B.merge();
 
-  u32bit  ai = 0;
-  u32bit  bi = 0;
+  uint32  ai = 0;
+  uint32  bi = 0;
 
   while ((ai < A.numberOfIntervals()) &&
          (bi < B.numberOfIntervals())) {
-    u32bit   al = A.lo(ai);
-    u32bit   ah = A.hi(ai);
-    u32bit   bl = B.lo(bi);
-    u32bit   bh = B.hi(bi);
+    uint32   al = A.lo(ai);
+    uint32   ah = A.hi(ai);
+    uint32   bl = B.lo(bi);
+    uint32   bh = B.hi(bi);
 
     //  If A is contained in B, make a new region.
     //
@@ -628,10 +628,10 @@ intervalDepth_sort_helper(const void *a, const void *b) {
 
 intervalDepth::intervalDepth(intervalList &IL) {
 
-  u32bit           idlen = IL.numberOfIntervals() * 2;
+  uint32           idlen = IL.numberOfIntervals() * 2;
   _intervalDepth  *id    = new _intervalDepth [idlen];
 
-  for (u32bit i=0; i<IL.numberOfIntervals(); i++) {
+  for (uint32 i=0; i<IL.numberOfIntervals(); i++) {
     id[2*i  ].lo = IL.lo(i);
     id[2*i  ].hi = 0;
     id[2*i  ].de = 1;
@@ -645,7 +645,7 @@ intervalDepth::intervalDepth(intervalList &IL) {
   //  Scan the list, counting how many times we change depth.
   //
   _listMax = 1;
-  for (u32bit i=1; i<idlen; i++) {
+  for (uint32 i=1; i<idlen; i++) {
     if (id[i-1].lo != id[i].lo)
       _listMax++;
   }
@@ -663,7 +663,7 @@ intervalDepth::intervalDepth(intervalList &IL) {
   _list[_listLen].hi = id[0].lo;
   _list[_listLen].de = 1;
 
-  for (u32bit i=1; i<idlen; i++) {
+  for (uint32 i=1; i<idlen; i++) {
 
     if (_list[_listLen].de == 0) {
       //  Update the start position if the current interval is at zero
@@ -714,9 +714,9 @@ intervalDepth::~intervalDepth() {
 
 
 void
-readDepth(char *depthname, map<u64bit,intervalDepth*> &lowCoverage) {
+readDepth(char *depthname, map<uint64,intervalDepth*> &lowCoverage) {
   char                         line[1024] = {0};
-  map<u64bit,intervalList*>    ILs;
+  map<uint64,intervalList*>    ILs;
 
   fprintf(stderr, "Reading depth from '%s'\n", depthname);
 
@@ -725,18 +725,18 @@ readDepth(char *depthname, map<u64bit,intervalDepth*> &lowCoverage) {
   if (errno)
     fprintf(stderr, "failed to open '%s': %s\n", depthname, strerror(errno)), exit(1);
 
-  u32bit i=0;
+  uint32 i=0;
 
   fgets(line, 1024, F);
   while (!feof(F)) {
     splitToWords   W(line);
 
-    u64bit  uid = strtou64bit(W[1], 0L);
-    u32bit  beg = strtou32bit(W[2], 0L);
-    u32bit  end = strtou32bit(W[3], 0L);
+    uint64  uid = strtouint64(W[1], 0L);
+    uint32  beg = strtouint32(W[2], 0L);
+    uint32  end = strtouint32(W[3], 0L);
 
     if (beg > end)
-      fprintf(stderr, "ERROR: l="u32bitFMT" h="u32bitFMT"\n", beg, end);
+      fprintf(stderr, "ERROR: l="uint32FMT" h="uint32FMT"\n", beg, end);
 
     if (ILs[uid] == 0L)
       ILs[uid] = new intervalList();
@@ -748,10 +748,10 @@ readDepth(char *depthname, map<u64bit,intervalDepth*> &lowCoverage) {
   }
 
   fclose(F);
-  fprintf(stderr, " "u32bitFMT" lines.\n", i);
+  fprintf(stderr, " "uint32FMT" lines.\n", i);
 
-  map<u64bit,intervalList*>::iterator    it = ILs.begin();
-  map<u64bit,intervalList*>::iterator    ed = ILs.end();
+  map<uint64,intervalList*>::iterator    it = ILs.begin();
+  map<uint64,intervalList*>::iterator    ed = ILs.end();
 
   while (it != ed) {
     lowCoverage[it->first] = new intervalDepth(*it->second);
@@ -763,7 +763,7 @@ readDepth(char *depthname, map<u64bit,intervalDepth*> &lowCoverage) {
 
 
 void
-readVariation(char *depthname, map<u64bit,intervalList*> &variation) {
+readVariation(char *depthname, map<uint64,intervalList*> &variation) {
   char                         line[1024 * 1024] = {0};
 
   fprintf(stderr, "Reading variation from '%s'\n", depthname);
@@ -773,15 +773,15 @@ readVariation(char *depthname, map<u64bit,intervalList*> &variation) {
   if (errno)
     fprintf(stderr, "failed to open '%s': %s\n", depthname, strerror(errno)), exit(1);
 
-  u32bit i=0;
+  uint32 i=0;
 
   fgets(line, 1024 * 1024, F);
   while (!feof(F)) {
     splitToWords   W(line);
 
-    u64bit  uid = strtou64bit(W[1], 0L);
-    u32bit  beg = strtou32bit(W[2], 0L);
-    u32bit  end = strtou32bit(W[3], 0L);
+    uint64  uid = strtouint64(W[1], 0L);
+    uint32  beg = strtouint32(W[2], 0L);
+    uint32  end = strtouint32(W[3], 0L);
 
     if (variation[uid] == 0L)
       variation[uid] = new intervalList();
@@ -793,12 +793,12 @@ readVariation(char *depthname, map<u64bit,intervalList*> &variation) {
   }
 
   fclose(F);
-  fprintf(stderr, " "u32bitFMT" lines.\n", i);
+  fprintf(stderr, " "uint32FMT" lines.\n", i);
 }
 
 
 void
-readBadMers(char *depthname, map<u64bit,intervalList*> &badMers) {
+readBadMers(char *depthname, map<uint64,intervalList*> &badMers) {
   char                         line[1024] = {0};
 
   fprintf(stderr, "Reading badMers from '%s'\n", depthname);
@@ -808,20 +808,20 @@ readBadMers(char *depthname, map<u64bit,intervalList*> &badMers) {
   if (errno)
     fprintf(stderr, "failed to open '%s': %s\n", depthname, strerror(errno)), exit(1);
 
-  u32bit i=0;
+  uint32 i=0;
 
   fgets(line, 1024, F);
   while (!feof(F)) {
     splitToWords   W(line);
 
     //  Change every non-digit to a space in the first word.
-    for (u32bit z=strlen(W[0])-1; z--; )
+    for (uint32 z=strlen(W[0])-1; z--; )
       if (!isdigit(W[0][z]))
         W[0][z] = ' ';
 
-    u64bit  uid = strtou64bit(W[0], 0L);
-    u32bit  beg = strtou32bit(W[3], 0L);
-    u32bit  end = strtou32bit(W[4], 0L);
+    uint64  uid = strtouint64(W[0], 0L);
+    uint32  beg = strtouint32(W[3], 0L);
+    uint32  end = strtouint32(W[4], 0L);
 
     if (badMers[uid] == 0L)
       badMers[uid] = new intervalList();
@@ -833,16 +833,16 @@ readBadMers(char *depthname, map<u64bit,intervalList*> &badMers) {
   }
 
   fclose(F);
-  fprintf(stderr, " "u32bitFMT" lines.\n", i);
+  fprintf(stderr, " "uint32FMT" lines.\n", i);
 }
 
 
 
 int
 main(int argc, char **argv) {
-  map<u64bit,intervalList*>    badMers;
-  map<u64bit,intervalList*>    variation;
-  map<u64bit,intervalDepth*>   lowCoverage;
+  map<uint64,intervalList*>    badMers;
+  map<uint64,intervalList*>    variation;
+  map<uint64,intervalDepth*>   lowCoverage;
 
   bool  showDepthIntersect    = false;
   bool  showVariantIntersect  = false;
@@ -892,18 +892,18 @@ main(int argc, char **argv) {
   readBadMers  ("/project/huref6/redo_consensus-gennady/mer-validation/h6tmp-ms22-allfrags-allcontigs.badmers.0.singlecontig.zerofrag.badmers", badMers);
 #endif
 
-  u32bit   badBegDepth[1024] = {0};
-  u32bit   badEndDepth[1024] = {0};
+  uint32   badBegDepth[1024] = {0};
+  uint32   badEndDepth[1024] = {0};
 
-  u32bit   badDepth[32][32];
-  for (u32bit i=0; i<32; i++)
-    for (u32bit j=0; j<32; j++)
+  uint32   badDepth[32][32];
+  for (uint32 i=0; i<32; i++)
+    for (uint32 j=0; j<32; j++)
       badDepth[i][j] = 0;
 
-  map<u64bit,intervalList*>::iterator    it = badMers.begin();
-  map<u64bit,intervalList*>::iterator    ed = badMers.end();
+  map<uint64,intervalList*>::iterator    it = badMers.begin();
+  map<uint64,intervalList*>::iterator    ed = badMers.end();
   while (it != ed) {
-    u64bit         uid        = it->first;
+    uint64         uid        = it->first;
 
     intervalList  *Iv = variation[uid];
     intervalList  *Ib = badMers[uid];
@@ -922,8 +922,8 @@ main(int argc, char **argv) {
 
 
     if (Ii) {
-      u32bit ii = 0;
-      u32bit id = 0;
+      uint32 ii = 0;
+      uint32 id = 0;
 
       while ((ii < Ii->numberOfIntervals()) &&
              (id < Id->numberOfIntervals())) {
@@ -931,58 +931,58 @@ main(int argc, char **argv) {
         //  We want to count the number of times a badmer region
         //  begins/ends in some depth.
 
-        //fprintf(stderr, "testing beg        "u32bitFMT" "u32bitFMT" -- "u32bitFMT" "u32bitFMT"\n",
+        //fprintf(stderr, "testing beg        "uint32FMT" "uint32FMT" -- "uint32FMT" "uint32FMT"\n",
         //        Ii->lo(ii), Ii->hi(ii), Id->lo(id), Id->hi(id));
 
-        u32bit  beg = 0;
-        u32bit  end = 0;
+        uint32  beg = 0;
+        uint32  end = 0;
 
         //  Low points are not allowed to be equal to high points, skip to the next
         while ((id < Id->numberOfIntervals()) &&
                (Id->hi(id) <= Ii->lo(ii))) {
           id++;
-          //fprintf(stderr, "testing beg (m)     "u32bitFMT" "u32bitFMT" -- "u32bitFMT" "u32bitFMT"\n",
+          //fprintf(stderr, "testing beg (m)     "uint32FMT" "uint32FMT" -- "uint32FMT" "uint32FMT"\n",
           //        Ii->lo(ii), Ii->hi(ii), Id->lo(id), Id->hi(id));
         }
         if (id < Id->numberOfIntervals()) {
-          u32bit lo = Id->lo(id);
-          u32bit hi = Id->hi(id);
+          uint32 lo = Id->lo(id);
+          uint32 hi = Id->hi(id);
 
           //  Low points are not allowed to be equal to high points.
           if ((lo <= Ii->lo(ii)) && (Ii->lo(ii) < hi)) {
             beg = Id->de(id);
           } else {
-            fprintf(stderr, "failed to find begin "u32bitFMT" "u32bitFMT" -- "u32bitFMT" "u32bitFMT" "u32bitFMT"\n",
+            fprintf(stderr, "failed to find begin "uint32FMT" "uint32FMT" -- "uint32FMT" "uint32FMT" "uint32FMT"\n",
                     Ii->lo(ii), Ii->hi(ii), Id->lo(id), Id->hi(id), Id->de(id));
             if (id > 0)
-              fprintf(stderr, "                     "u32bitFMT" "u32bitFMT" -- "u32bitFMT" "u32bitFMT" "u32bitFMT"\n",
+              fprintf(stderr, "                     "uint32FMT" "uint32FMT" -- "uint32FMT" "uint32FMT" "uint32FMT"\n",
                       Ii->lo(ii), Ii->hi(ii), Id->lo(id-1), Id->hi(id-1), Id->de(id-1));
             //exit(1);
           }
         }
 
-        //fprintf(stderr, "testing end        "u32bitFMT" "u32bitFMT" -- "u32bitFMT" "u32bitFMT"\n",
+        //fprintf(stderr, "testing end        "uint32FMT" "uint32FMT" -- "uint32FMT" "uint32FMT"\n",
         //        Ii->lo(ii), Ii->hi(ii), Id->lo(id), Id->hi(id));
 
         //  High points can be equal.
         while ((id < Id->numberOfIntervals()) &&
                (Id->hi(id) < Ii->hi(ii))) {
           id++;
-          //fprintf(stderr, "testing end (m)    "u32bitFMT" "u32bitFMT" -- "u32bitFMT" "u32bitFMT"\n",
+          //fprintf(stderr, "testing end (m)    "uint32FMT" "uint32FMT" -- "uint32FMT" "uint32FMT"\n",
           //        Ii->lo(ii), Ii->hi(ii), Id->lo(id), Id->hi(id));
         }
         if (id < Id->numberOfIntervals()) {
-          u32bit lo = Id->lo(id);
-          u32bit hi = Id->hi(id);
+          uint32 lo = Id->lo(id);
+          uint32 hi = Id->hi(id);
 
           //  High points aren't allowed to be equal to lo, but can be equal to hi.
           if ((lo < Ii->hi(ii)) && (Ii->hi(ii) <= hi)) {
             end = Id->de(id);
           } else {
-            fprintf(stderr, "failed to find end "u32bitFMT" "u32bitFMT" -- "u32bitFMT" "u32bitFMT" "u32bitFMT"\n",
+            fprintf(stderr, "failed to find end "uint32FMT" "uint32FMT" -- "uint32FMT" "uint32FMT" "uint32FMT"\n",
                     Ii->lo(ii), Ii->hi(ii), Id->lo(id), Id->hi(id), Id->de(id));
             if (id > 0)
-              fprintf(stderr, "                     "u32bitFMT" "u32bitFMT" -- "u32bitFMT" "u32bitFMT" "u32bitFMT"\n",
+              fprintf(stderr, "                     "uint32FMT" "uint32FMT" -- "uint32FMT" "uint32FMT" "uint32FMT"\n",
                       Ii->lo(ii), Ii->hi(ii), Id->lo(id-1), Id->hi(id-1), Id->de(id-1));
             //exit(1);
           }
@@ -991,7 +991,7 @@ main(int argc, char **argv) {
         badBegDepth[beg]++;
         badEndDepth[end]++;
 
-        fprintf(stdout, u64bitFMT"\t"u32bitFMT"\t"u32bitFMT"\tdepth="u32bitFMT","u32bitFMT"\n",
+        fprintf(stdout, uint64FMT"\t"uint32FMT"\t"uint32FMT"\tdepth="uint32FMT","uint32FMT"\n",
                 uid, Ii->lo(ii), Ii->hi(ii), beg, end);
 
         if ((beg < 32) && (end < 32))
@@ -1004,18 +1004,18 @@ main(int argc, char **argv) {
     it++;
   }
 
-  u32bit bb = 0;
-  u32bit be = 0;
-  for (u32bit x=0; x<32; x++) {
-    fprintf(stdout, u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\n", x, badBegDepth[x], badEndDepth[x]);
+  uint32 bb = 0;
+  uint32 be = 0;
+  for (uint32 x=0; x<32; x++) {
+    fprintf(stdout, uint32FMT"\t"uint32FMT"\t"uint32FMT"\n", x, badBegDepth[x], badEndDepth[x]);
     bb += badBegDepth[x];
     be += badEndDepth[x];
   }
-  fprintf(stdout, "total\t"u32bitFMT"\t"u32bitFMT"\n", bb, be);
+  fprintf(stdout, "total\t"uint32FMT"\t"uint32FMT"\n", bb, be);
 
-  for (u32bit i=0; i<30; i++) {
-    for (u32bit j=0; j<30; j++)
-      fprintf(stdout, u32bitFMTW(5), badDepth[i][j]);
+  for (uint32 i=0; i<30; i++) {
+    for (uint32 j=0; j<30; j++)
+      fprintf(stdout, uint32FMTW(5), badDepth[i][j]);
     fprintf(stdout, "\n");
   }
 

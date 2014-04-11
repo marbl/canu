@@ -86,7 +86,7 @@ public:
       aMax = MAX(aMax, lenA) + 1000;
       bMax = MAX(bMax, lenB) + 1000;
 
-      fprintf(stderr, "dpMatrix-- reallocate to "u32bitFMT" x "u32bitFMT"\n", aMax, bMax);
+      fprintf(stderr, "dpMatrix-- reallocate to "uint32FMT" x "uint32FMT"\n", aMax, bMax);
 
       alignA = new char   [aMax + bMax + 1];
       alignB = new char   [bMax + bMax + 1];
@@ -271,9 +271,9 @@ doPolishDP(searcherState       *state,
            query               *qry) {
 
   //  For the autofilter
-  u64bit   successes    = u64bitZERO;
-  u64bit   successMask  = u64bitMASK(config._afLength);
-  u32bit   attempts     = 0;
+  uint64   successes    = uint64ZERO;
+  uint64   successMask  = uint64MASK(config._afLength);
+  uint32   attempts     = 0;
 
   if (qry->theHitsLen == 0)
     return;
@@ -292,7 +292,7 @@ doPolishDP(searcherState       *state,
   dpMatch   match;
   dpMatrix *matrix = (dpMatrix *)state->DP;
 
-  for (u32bit h=0; h<qry->theHitsLen; h++) {
+  for (uint32 h=0; h<qry->theHitsLen; h++) {
 
     //  If the hit was discarded, move along.
     //
@@ -329,8 +329,8 @@ doPolishDP(searcherState       *state,
 
     seqInCore            *QRYseq = qry->seq;
     seqInCore            *GENseq = genome->getSequenceInCore(qry->theHits[h]._dsIdx);
-    u32bit                GENlo  = qry->theHits[h]._dsLo;
-    u32bit                GENhi  = qry->theHits[h]._dsHi;
+    uint32                GENlo  = qry->theHits[h]._dsLo;
+    uint32                GENhi  = qry->theHits[h]._dsHi;
 
     char  *q = QRYseq->sequence();
     char  *g = GENseq->sequence() + GENlo;
@@ -338,8 +338,8 @@ doPolishDP(searcherState       *state,
     if (GENhi > GENseq->sequenceLength())
       GENhi = GENseq->sequenceLength();
 
-    u32bit   qlen = qry->seq->sequenceLength();
-    u32bit   glen = GENhi - GENlo;
+    uint32   qlen = qry->seq->sequenceLength();
+    uint32   glen = GENhi - GENlo;
 
     bool     doForward =  qry->theHits[h]._status & AHIT_DIRECTION_MASK;
     bool     doReverse = !doForward;
@@ -349,7 +349,7 @@ doPolishDP(searcherState       *state,
     }
 
 #if 0
-    fprintf(stderr, "align QRYlen="u32bitFMT" GEN="u32bitFMT"-"u32bitFMT" GENlen="u32bitFMT"\n",
+    fprintf(stderr, "align QRYlen="uint32FMT" GEN="uint32FMT"-"uint32FMT" GENlen="uint32FMT"\n",
             qlen, GENlo, GENhi, glen);
 #endif
 
@@ -360,7 +360,7 @@ doPolishDP(searcherState       *state,
     if (doReverse) {
       reverseComplementSequence(q, qlen);
 
-      u32bit x = match.begI;
+      uint32 x = match.begI;
       match.begI = qlen - match.endI;
       match.endI = qlen - x;
     }
@@ -427,7 +427,7 @@ doPolishDP(searcherState       *state,
           (p._querySeqIdentity >= config._minMatchCoverage)) {
         char *pstr = p.s4p_polishToString(sim4polishStyleDefault);
 
-        u32bit l = (u32bit)strlen(pstr);
+        uint32 l = (uint32)strlen(pstr);
 
         if (qry->theOutputLen + l + 1 >= qry->theOutputMax) {
           qry->theOutputMax = qry->theOutputMax + qry->theOutputMax + l;
@@ -435,7 +435,7 @@ doPolishDP(searcherState       *state,
           try {
             o = new char [qry->theOutputMax];
           } catch (...) {
-            fprintf(stderr, "doPolish()-- Can't reallocate space for the output string ("u32bitFMT" bytes) in thread "u64bitFMT"\n", qry->theOutputMax, state->threadID);
+            fprintf(stderr, "doPolish()-- Can't reallocate space for the output string ("uint32FMT" bytes) in thread "uint64FMT"\n", qry->theOutputMax, state->threadID);
             abort();
           }
           memcpy(o, qry->theOutput, sizeof(char) * qry->theOutputLen);
@@ -452,8 +452,8 @@ doPolishDP(searcherState       *state,
 
         //  Save the best scores
         //
-        u32bit pi = p._percentIdentity;
-        u32bit pc = p._querySeqIdentity;
+        uint32 pi = p._percentIdentity;
+        uint32 pc = p._querySeqIdentity;
 
         qry->theHits[h]._status |= pi << 16;
         qry->theHits[h]._status |= pc << 24;
@@ -461,11 +461,11 @@ doPolishDP(searcherState       *state,
         successes <<= 1;
         if ((pi  >= config._minMatchIdentity) &&
             (pc >= config._minMatchCoverage)) {
-          //fprintf(stderr, "GOOD "u32bitFMT" "u32bitFMT"\n", pi, pc);
-          successes |= u64bitONE;
+          //fprintf(stderr, "GOOD "uint32FMT" "uint32FMT"\n", pi, pc);
+          successes |= uint64ONE;
         } else {
-          //fprintf(stderr, "BAD  "u32bitFMT" "u32bitFMT"\n", pi, pc);
-          successes |= u64bitZERO;
+          //fprintf(stderr, "BAD  "uint32FMT" "uint32FMT"\n", pi, pc);
+          successes |= uint64ZERO;
         }
         successes  &= successMask;
       }

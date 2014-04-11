@@ -87,7 +87,7 @@ main(int argc, char ** argv) {
 
   bool    filter        = true;
   bool    saveJunk      = false;
-  u32bit  intronLimit   = 100000;
+  uint32  intronLimit   = 100000;
 
   //  Before / after files
   //
@@ -175,7 +175,7 @@ main(int argc, char ** argv) {
   }
 
   if (beVerbose)
-    fprintf(stderr, "A big intron is one that is at least "u32bitFMT"bp long.\n", intronLimit);
+    fprintf(stderr, "A big intron is one that is at least "uint32FMT"bp long.\n", intronLimit);
 
   if (beforeafter) {
 #if 0
@@ -209,8 +209,8 @@ main(int argc, char ** argv) {
     fprintf(stderr, "warning: input format and output format differ.\n");
 
   while (R->nextAlignment(p)) {
-    u32bit exA;
-    u32bit exB;
+    uint32 exA;
+    uint32 exB;
 
     if (p->_numExons == 1) {
       oneExon++;
@@ -224,12 +224,12 @@ main(int argc, char ** argv) {
 
       //  Find the big intron.  We assume there is only one big intron.
       //
-      u32bit biggestIntron = 0;
-      u32bit intronSplit   = 0;
-      u32bit intronOri     = 0;
+      uint32 biggestIntron = 0;
+      uint32 intronSplit   = 0;
+      uint32 intronOri     = 0;
 
       for (exA=0, exB=1; exB < p->_numExons; exA++, exB++) {
-        u32bit dist = p->_exons[exB]._genFrom - p->_exons[exA]._genTo + 1;
+        uint32 dist = p->_exons[exB]._genFrom - p->_exons[exA]._genTo + 1;
         if (dist > biggestIntron) {
           biggestIntron = dist;
           intronSplit   = exB;
@@ -263,13 +263,13 @@ main(int argc, char ** argv) {
         bool  killFirst = true;
         bool  killLast  = true;
 
-        for (u32bit i=0; i<intronSplit; i++)
+        for (uint32 i=0; i<intronSplit; i++)
           if ((p->_exons[i]._estTo - p->_exons[i]._estFrom + 1 >= MIN_EXON_LENGTH) &&
               (p->_exons[i]._percentIdentity >= MIN_PERCENT_IDENTITY) &&
               (lowComplexityExon(p->_exons[i]._estAlignment) == false))
             killFirst = false;
 
-        for (u32bit i=intronSplit; i<p->_numExons; i++)
+        for (uint32 i=intronSplit; i<p->_numExons; i++)
           if ((p->_exons[i]._estTo - p->_exons[i]._estFrom + 1 >= MIN_EXON_LENGTH) &&
               (p->_exons[i]._percentIdentity >= MIN_PERCENT_IDENTITY) &&
               (lowComplexityExon(p->_exons[i]._estAlignment) == false))

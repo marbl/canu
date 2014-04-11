@@ -4,9 +4,9 @@
 #include <math.h>
 
 struct partition_s {
-  u32bit  length;
-  u32bit  index;
-  u32bit  partition;
+  uint32  length;
+  uint32  index;
+  uint32  partition;
 };
 
 
@@ -26,10 +26,10 @@ partition_s_compare(const void *A, const void *B) {
 static
 partition_s *
 loadPartition(seqCache *F) {
-  u32bit        n = F->getNumberOfSequences();
+  uint32        n = F->getNumberOfSequences();
   partition_s  *p = new partition_s [n];
 
-  for (u32bit i=0; i<n; i++) {
+  for (uint32 i=0; i<n; i++) {
     p[i].length    = F->getSequenceLength(i);
     p[i].index     = i;
     p[i].partition = 0;
@@ -45,28 +45,28 @@ static
 void
 outputPartition(seqCache *F,
                 char *prefix,
-                partition_s *p, u32bit openP, u32bit n) {
+                partition_s *p, uint32 openP, uint32 n) {
   char  filename[1024];
 
   //  Check that everything has been partitioned
   //
-  for (u32bit i=0; i<n; i++)
+  for (uint32 i=0; i<n; i++)
     if (p[i].partition == 0)
-      fprintf(stderr, "ERROR: Failed to partition "u32bitFMT"\n", i);
+      fprintf(stderr, "ERROR: Failed to partition "uint32FMT"\n", i);
 
   if (prefix) {
 
     //  This rewrites the source fasta file into partitioned fasta files
     //
-    for (u32bit o=1; o<=openP; o++) {
-      sprintf(filename, "%s-"u32bitFMTW(03)".fasta", prefix, o);
+    for (uint32 o=1; o<=openP; o++) {
+      sprintf(filename, "%s-"uint32FMTW(03)".fasta", prefix, o);
 
       errno = 0;
       FILE *file = fopen(filename, "w");
       if (errno)
         fprintf(stderr, "Couldn't open '%s' for write: %s\n", filename, strerror(errno));
 
-      for (u32bit i=0; i<n; i++)
+      for (uint32 i=0; i<n; i++)
         if (p[i].partition == o) {
           seqInCore *S = F->getSequenceInCore(p[i].index);
           fprintf(file, ">%s\n", S->header());
@@ -74,7 +74,7 @@ outputPartition(seqCache *F,
           fprintf(file, "\n");
 
           if (S->sequenceLength() != p[i].length) {
-            fprintf(stderr, "Huh?  '%s' "u32bitFMT" != "u32bitFMT"\n", S->header(), S->sequenceLength(), p[i].length);
+            fprintf(stderr, "Huh?  '%s' "uint32FMT" != "uint32FMT"\n", S->header(), S->sequenceLength(), p[i].length);
           }
 
           delete S;
@@ -87,16 +87,16 @@ outputPartition(seqCache *F,
 
     //  This dumps the partition information to stdout.
     //
-    fprintf(stdout, u32bitFMT"\n", openP);
-    for (u32bit o=1; o<=openP; o++) {
-      u32bit  sizeP = 0;
-      for (u32bit i=0; i<n; i++)
+    fprintf(stdout, uint32FMT"\n", openP);
+    for (uint32 o=1; o<=openP; o++) {
+      uint32  sizeP = 0;
+      for (uint32 i=0; i<n; i++)
         if (p[i].partition == o)
           sizeP += p[i].length;
-      fprintf(stdout, u32bitFMT"]("u32bitFMT")", o, sizeP);
-      for (u32bit i=0; i<n; i++)
+      fprintf(stdout, uint32FMT"]("uint32FMT")", o, sizeP);
+      for (uint32 i=0; i<n; i++)
         if (p[i].partition == o)
-          fprintf(stdout, " "u32bitFMT"("u32bitFMT")", p[i].index, p[i].length);
+          fprintf(stdout, " "uint32FMT"("uint32FMT")", p[i].index, p[i].length);
       fprintf(stdout, "\n");
     }
 
@@ -105,19 +105,19 @@ outputPartition(seqCache *F,
 
 
 void
-partitionBySize(char *prefix, u64bit partitionSize, char *filename) {
+partitionBySize(char *prefix, uint64 partitionSize, char *filename) {
   seqCache     *F = new seqCache(filename);
-  u32bit        n = F->getNumberOfSequences();
+  uint32        n = F->getNumberOfSequences();
   partition_s  *p = loadPartition(F);
 
-  u32bit  openP = 1;  //  Currently open partition
-  u32bit  sizeP = 0;  //  Size of open partition
-  u32bit  seqsP = n;  //  Number of sequences to partition
+  uint32  openP = 1;  //  Currently open partition
+  uint32  sizeP = 0;  //  Size of open partition
+  uint32  seqsP = n;  //  Number of sequences to partition
 
   //  For any sequences larger than partitionSize, create
   //  partitions containing just one sequence
   //
-  for (u32bit i=0; i<n; i++) {
+  for (uint32 i=0; i<n; i++) {
     if (p[i].length > partitionSize) {
       p[i].partition = openP++;
       seqsP--;
@@ -129,7 +129,7 @@ partitionBySize(char *prefix, u64bit partitionSize, char *filename) {
   //  into the open partition
   //
   while (seqsP > 0) {
-    for (u32bit i=0; i<n; i++) {
+    for (uint32 i=0; i<n; i++) {
       if ((p[i].partition == 0) &&
           (p[i].length + sizeP < partitionSize)) {
         p[i].partition = openP;
@@ -150,9 +150,9 @@ partitionBySize(char *prefix, u64bit partitionSize, char *filename) {
 
 
 void
-partitionByBucket(char *prefix, u64bit partitionSize, char *filename) {
+partitionByBucket(char *prefix, uint64 partitionSize, char *filename) {
   seqCache     *F = new seqCache(filename);
-  u32bit        n = F->getNumberOfSequences();
+  uint32        n = F->getNumberOfSequences();
   partition_s  *p = loadPartition(F);
 
   if (partitionSize > n)
@@ -160,18 +160,18 @@ partitionByBucket(char *prefix, u64bit partitionSize, char *filename) {
 
   //  The size, in bases, of each partition
   //
-  u32bit       *s = new u32bit [partitionSize];
-  for (u32bit i=0; i<partitionSize; i++)
+  uint32       *s = new uint32 [partitionSize];
+  for (uint32 i=0; i<partitionSize; i++)
     s[i] = 0;
 
   //  For each sequence
   //
-  for (u32bit nextS=0; nextS<n; nextS++) {
+  for (uint32 nextS=0; nextS<n; nextS++) {
 
     //  find the smallest partition
     //
-    u32bit openP = 0;
-    for (u32bit i=0; i<partitionSize; i++)
+    uint32 openP = 0;
+    for (uint32 i=0; i<partitionSize; i++)
       if (s[i] < s[openP])
         openP = i;
 
@@ -181,7 +181,7 @@ partitionByBucket(char *prefix, u64bit partitionSize, char *filename) {
     p[nextS].partition = openP+1;
   }
 
-  outputPartition(F, prefix, p, (u32bit)partitionSize, n);
+  outputPartition(F, prefix, p, (uint32)partitionSize, n);
 
   delete [] p;
   delete    F;
@@ -189,13 +189,13 @@ partitionByBucket(char *prefix, u64bit partitionSize, char *filename) {
 
 
 void
-partitionBySegment(char *prefix, u64bit numSegments, char *filename) {
+partitionBySegment(char *prefix, uint64 numSegments, char *filename) {
   seqCache     *F = new seqCache(filename);
-  u32bit        n = F->getNumberOfSequences();
+  uint32        n = F->getNumberOfSequences();
   partition_s  *p = new partition_s [n];
-  u32bit        numSeqPerPart = (u32bit)ceil(n / (double)numSegments);
+  uint32        numSeqPerPart = (uint32)ceil(n / (double)numSegments);
 
-  for (u32bit i=0; i<n; i++) {
+  for (uint32 i=0; i<n; i++) {
     p[i].length    = F->getSequenceLength(i);
     p[i].index     = i;
     p[i].partition = i / numSeqPerPart + 1;

@@ -34,7 +34,7 @@
 
 
 void
-updateExactBlockHistogram(u32bit *blockHistogram, u32bit blockMatches) {
+updateExactBlockHistogram(uint32 *blockHistogram, uint32 blockMatches) {
 
   if (blockMatches > 8 * 1024 * 1024)
     blockHistogram[0]++;
@@ -69,12 +69,12 @@ main(int argc, char *argv[]) {
     arg++;
   }
 
-  u32bit   globalSequence   = 0;
-  u32bit   globalMismatches = 0;
-  u32bit   blockMatches     = 0;
-  u32bit  *blockHistogram   = new u32bit [8 * 1024 * 1024];
+  uint32   globalSequence   = 0;
+  uint32   globalMismatches = 0;
+  uint32   blockMatches     = 0;
+  uint32  *blockHistogram   = new uint32 [8 * 1024 * 1024];
 
-  for (u32bit x=0; x<8*1024*1024; x++)
+  for (uint32 x=0; x<8*1024*1024; x++)
     blockHistogram[x] = 0;
 
   atacFile       AF("-");
@@ -83,7 +83,7 @@ main(int argc, char *argv[]) {
   seqCache  *C1 = new seqCache(AF.assemblyFileA(), 1, false);
   seqCache  *C2 = new seqCache(AF.assemblyFileA(), 1, false);
 
-  for (u32bit mi=0; mi<ML.numberOfMatches(); mi++) {
+  for (uint32 mi=0; mi<ML.numberOfMatches(); mi++) {
     atacMatch *m = ML.getMatch(mi);
 
     seqInCore  *S1 = C1->getSequenceInCore(m->iid1);
@@ -95,11 +95,11 @@ main(int argc, char *argv[]) {
     A1.setRange(m->pos1, m->len1);
     A2.setRange(m->pos2, m->len2);
 
-    u32bit localMismatches = 0;
+    uint32 localMismatches = 0;
 
 #ifdef EXTRAMATCHES
-    u32bit extraMatchesL = 0;
-    u32bit extraMatchesR = 0;
+    uint32 extraMatchesL = 0;
+    uint32 extraMatchesR = 0;
 
     //  Check for matches on either side of the region.
 
@@ -139,15 +139,15 @@ main(int argc, char *argv[]) {
       A2.setPosition(m->pos2);
 
       chomp(inLine);
-      fprintf(stderr, "WARNING: found "u32bitFMT" extra matches to the left and "u32bitFMT" extra matches to the right in %s\n",
+      fprintf(stderr, "WARNING: found "uint32FMT" extra matches to the left and "uint32FMT" extra matches to the right in %s\n",
               extraMatchesL, extraMatchesR, inLine);
 
 #if 0
-      for (u32bit ii=0; ii<m->len1; ii++, ++A1)
+      for (uint32 ii=0; ii<m->len1; ii++, ++A1)
         fprintf(stdout, "%c", *A1);
       fprintf(stdout, "\n");
 
-      for (u32bit ii=0; ii<m->len1; ii++, ++A2)
+      for (uint32 ii=0; ii<m->len1; ii++, ++A2)
         fprintf(stdout, "%c", *A2);
       fprintf(stdout, "\n");
 #endif
@@ -159,7 +159,7 @@ main(int argc, char *argv[]) {
 
     A1.setPosition(m->pos1);
     A2.setPosition(m->pos2);
-    for (u32bit ii=0; ii<m->len1; ii++, ++A1, ++A2) {
+    for (uint32 ii=0; ii<m->len1; ii++, ++A1, ++A2) {
 
       //  Count global matches / mismatches
       //
@@ -194,13 +194,13 @@ main(int argc, char *argv[]) {
 
   //  Report stuff
   //
-  fprintf(stderr, "globalSequence   = "u32bitFMT"\n", globalSequence);
-  fprintf(stderr, "globalMismatches = "u32bitFMT"\n", globalMismatches);
+  fprintf(stderr, "globalSequence   = "uint32FMT"\n", globalSequence);
+  fprintf(stderr, "globalMismatches = "uint32FMT"\n", globalMismatches);
 
 #if 0
   FILE *O = fopen("MismatchCounter.block.histogram.out", "w");
-  for (u32bit i=0; i<8 * 1024 * 1024; i++)
-    fprintf(O, u32bitFMT" "u32bitFMT"\n", i, blockHistogram[i]);
+  for (uint32 i=0; i<8 * 1024 * 1024; i++)
+    fprintf(O, uint32FMT" "uint32FMT"\n", i, blockHistogram[i]);
   fclose(O);
 #endif
 

@@ -23,20 +23,20 @@
 #define    EPS_I	3
 
 
-u32bit EPS_N       = EPS_N_ESTS;
-u32bit doValidate  = 0;
+uint32 EPS_N       = EPS_N_ESTS;
+uint32 doValidate  = 0;
 
 sim4polishWriter *W = 0L;
 
 static
 void
-printPolishValidate(FILE *O, sim4polish *p, u32bit isBest) {
+printPolishValidate(FILE *O, sim4polish *p, uint32 isBest) {
 
-  fprintf(O, u32bitFMTW(8)" "u32bitFMTW(8)" "u32bitFMTW(4)" "u32bitFMTW(4),
+  fprintf(O, uint32FMTW(8)" "uint32FMTW(8)" "uint32FMTW(4)" "uint32FMTW(4),
           p->_estID, p->_genID, p->_percentIdentity, p->_numMatches);
 
-  for (u32bit i=0; i<p->_numExons; i++)
-    fprintf(O, " ("u32bitFMTW(6)"/"u32bitFMTW(6)" "u32bitFMTW(6)"/"u32bitFMTW(6)" "u32bitFMTW(3)")",
+  for (uint32 i=0; i<p->_numExons; i++)
+    fprintf(O, " ("uint32FMTW(6)"/"uint32FMTW(6)" "uint32FMTW(6)"/"uint32FMTW(6)" "uint32FMTW(3)")",
             p->_exons[i]._estFrom, p->_exons[i]._genFrom,
             p->_exons[i]._estTo,   p->_exons[i]._genTo,
             p->_exons[i]._percentIdentity);
@@ -50,11 +50,11 @@ printPolishValidate(FILE *O, sim4polish *p, u32bit isBest) {
 
 static
 void
-pickBestSlave(sim4polish **p, u32bit pNum) {
-  u32bit    identitym = 0, nmatchesm = 0;  //  Best score for the mList
-  u32bit    identityi = 0, nmatchesi = 0;  //  Best score the the iList
-  u32bit    numExons = 0, numExonsi = 0, numExonsm = 0;
-  u32bit    tmp_nmatches = 0;
+pickBestSlave(sim4polish **p, uint32 pNum) {
+  uint32    identitym = 0, nmatchesm = 0;  //  Best score for the mList
+  uint32    identityi = 0, nmatchesi = 0;  //  Best score the the iList
+  uint32    numExons = 0, numExonsi = 0, numExonsm = 0;
+  uint32    tmp_nmatches = 0;
   double    alpha;
 
   //  Difficult choice here....
@@ -66,7 +66,7 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
   }
 
   if ((p[0]->_estID % 1287) == 0) {
-    fprintf(stderr, "Picking Best for estID="u32bitFMT" with %5d choices.\r", p[0]->_estID, pNum);
+    fprintf(stderr, "Picking Best for estID="uint32FMT" with %5d choices.\r", p[0]->_estID, pNum);
     fflush(stderr);
   }
 
@@ -78,7 +78,7 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
   //  nmatchesm is the best numMatches of all the matches for this EST, and 
   //  identitym is the highest percent identity for the best numMatches match(es).
 
-  for (u32bit i=0; i<pNum; i++) {
+  for (uint32 i=0; i<pNum; i++) {
 
     if ((p[i]->_percentIdentity > identityi) || 
         (p[i]->_percentIdentity == identityi && p[i]->_numMatches > nmatchesi)) {
@@ -104,7 +104,7 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
     //  Find the largest number of exons, allowing some margin in numMatches
     //
     numExonsi = 0;
-    for (u32bit i=0; i<pNum; i++) 
+    for (uint32 i=0; i<pNum; i++) 
       if ((p[i]->_percentIdentity == identityi) &&
           (p[i]->_numMatches >= nmatchesi) &&
           (numExonsi < p[i]->_numExons))
@@ -112,7 +112,7 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
 
     numExons = numExonsi;
     tmp_nmatches = nmatchesi;
-    for (u32bit i=0; i<pNum; i++)
+    for (uint32 i=0; i<pNum; i++)
       if ((p[i]->_percentIdentity == identityi) &&
           (p[i]->_numMatches >= nmatchesi - EPS_N) &&
           (numExons < p[i]->_numExons - EPS_X)) {
@@ -129,12 +129,12 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
         fprintf(stdout, "--------------------1 (Clear Winner)\n");
       else
         fprintf(stdout, "--------------------2 (Exon Clear Winner)\n");
-      for (u32bit i=0; i<pNum; i++)
+      for (uint32 i=0; i<pNum; i++)
         printPolishValidate(stdout, p[i], ((p[i]->_percentIdentity == identityi) &&
                                            (p[i]->_numMatches == tmp_nmatches) &&
                                            (p[i]->_numExons == numExons)));
     } else {
-      for (u32bit i=0; i<pNum; i++)
+      for (uint32 i=0; i<pNum; i++)
         if ((p[i]->_percentIdentity == identityi) &&
             (p[i]->_numMatches == tmp_nmatches) &&
             (p[i]->_numExons == numExons))
@@ -153,7 +153,7 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
   identityi = identitym = 0;
   nmatchesi = nmatchesm = 0;
 
-  for (u32bit i=0; i<pNum; i++) {
+  for (uint32 i=0; i<pNum; i++) {
 
     //  Pick the two matches with the highest (different) percent
     //  identities; for each, pick the highest number of matches.
@@ -196,7 +196,7 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
     //  Find the match(es) with the largest number of exons
     
     numExonsi = 0;
-    for (u32bit i=0; i<pNum; i++) 
+    for (uint32 i=0; i<pNum; i++) 
       if ((p[i]->_percentIdentity == identityi) &&
           (p[i]->_numMatches >= nmatchesi) &&
           (numExonsi < p[i]->_numExons)) 
@@ -205,7 +205,7 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
 
     numExons = numExonsi;
     tmp_nmatches = nmatchesi;
-    for (u32bit i=0; i<pNum; i++)
+    for (uint32 i=0; i<pNum; i++)
       if ((p[i]->_percentIdentity == identityi) &&
           (p[i]->_numMatches >= nmatchesi - EPS_N) &&
           (numExons < p[i]->_numExons - EPS_X)) {
@@ -218,12 +218,12 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
         fprintf(stdout, "--------------------3 (?)\n");
       else 
         fprintf(stdout, "--------------------4 (Exon ?)\n");
-      for (u32bit i=0; i<pNum; i++)
+      for (uint32 i=0; i<pNum; i++)
         printPolishValidate(stdout, p[i], ((p[i]->_percentIdentity == identityi) &&
                                            (p[i]->_numMatches      == tmp_nmatches) &&
                                            (p[i]->_numExons        == numExons)));
     } else {
-      for (u32bit i=0; i<pNum; i++)
+      for (uint32 i=0; i<pNum; i++)
         if ((p[i]->_percentIdentity == identityi) &&
             (p[i]->_numMatches      == tmp_nmatches) &&
             (p[i]->_numExons	 == numExons))
@@ -246,7 +246,7 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
     //  Find the match(es) with the largest number of exons
 
     numExons = tmp_nmatches = 0;
-    for (u32bit i=0; i<pNum; i++)
+    for (uint32 i=0; i<pNum; i++)
       if ((p[i]->_percentIdentity == identityi) &&
           (p[i]->_numMatches >= nmatchesi) &&
           (numExons < p[i]->_numExons))
@@ -254,12 +254,12 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
 
     if (doValidate) {
       fprintf(stdout, "--------------------5 (alpha < 0.8)\n");
-      for (u32bit i=0; i<pNum; i++)
+      for (uint32 i=0; i<pNum; i++)
         printPolishValidate(stdout, p[i], ((p[i]->_percentIdentity == identityi) &&
                                            (p[i]->_numMatches      == nmatchesi) &&
                                            (p[i]->_numExons	== numExons)));
     } else {
-      for (u32bit i=0; i<pNum; i++)
+      for (uint32 i=0; i<pNum; i++)
         if ((p[i]->_percentIdentity == identityi) &&
             (p[i]->_numMatches      == nmatchesi) &&
             (p[i]->_numExons 	 == numExons))
@@ -289,7 +289,7 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
   //  Find the largest number of exons for each of the contenders
    
   numExonsi = numExonsm = 0;
-  for (u32bit i=0; i<pNum; i++) {
+  for (uint32 i=0; i<pNum; i++) {
     if ((p[i]->_percentIdentity == identitym) &&
         (p[i]->_numMatches == nmatchesm) &&
         (numExonsm < p[i]->_numExons))
@@ -308,12 +308,12 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
       else 
         fprintf(stdout, "--------------------7 (Pctid Plus alpha > 0.8)\n");
 
-      for (u32bit i=0; i<pNum; i++)
+      for (uint32 i=0; i<pNum; i++)
         printPolishValidate(stdout, p[i], ((p[i]->_percentIdentity == identityi) &&
                                            (p[i]->_numMatches      == nmatchesi) &&
                                            (p[i]->_numExons	      == numExonsi)));
     } else {
-      for (u32bit i=0; i<pNum; i++)
+      for (uint32 i=0; i<pNum; i++)
         if ((p[i]->_percentIdentity == identityi) &&
             (p[i]->_numMatches      == nmatchesi) &&
             (p[i]->_numExons	       == numExonsi))
@@ -322,7 +322,7 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
   } else {
     numExons = numExonsm;
     tmp_nmatches = nmatchesm;
-    for (u32bit i=0; i<pNum; i++)
+    for (uint32 i=0; i<pNum; i++)
       if ((p[i]->_percentIdentity == identitym) &&
           (p[i]->_numMatches >= nmatchesm - EPS_N) &&
           (numExons < p[i]->_numExons - EPS_X)) {
@@ -335,12 +335,12 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
         fprintf(stdout, "--------------------8 (alpha > 0.8)\n");
       else 
         fprintf(stdout, "--------------------9 (Exon alpha > 0.8)\n");
-      for (u32bit i=0; i<pNum; i++)
+      for (uint32 i=0; i<pNum; i++)
         printPolishValidate(stdout, p[i], ((p[i]->_percentIdentity == identitym) &&
                                            (p[i]->_numMatches      == tmp_nmatches) &&
                                            (p[i]->_numExons        == numExons)));
     } else {
-      for (u32bit i=0; i<pNum; i++)
+      for (uint32 i=0; i<pNum; i++)
         if ((p[i]->_percentIdentity == identitym) &&
             (p[i]->_numMatches      == tmp_nmatches) &&
             (p[i]->_numExons        == numExons))
@@ -355,20 +355,20 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
 //
 static
 void
-pickBest(sim4polish **p, u32bit pNum) {
+pickBest(sim4polish **p, uint32 pNum) {
 
   pickBestSlave(p, pNum);
 
-  for (u32bit i=0; i<pNum; i++)
+  for (uint32 i=0; i<pNum; i++)
     delete p[i];
 }
 
 
 int
 main(int argc, char **argv) {
-  u32bit       pNum   = 0;
-  u32bit       pAlloc = 8388608;
-  u32bit       estID  = ~u32bitZERO;
+  uint32       pNum   = 0;
+  uint32       pAlloc = 8388608;
+  uint32       estID  = ~uint32ZERO;
 
   sim4polishStyle  style = sim4polishStyleDefault;
 

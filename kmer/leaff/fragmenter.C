@@ -27,23 +27,23 @@ usage(char *name) {
 
 int
 main(int argc, char **argv) {
-  u32bit                desiredLength = 0;
-  u32bit                overlapLength = 0;
+  uint32                desiredLength = 0;
+  uint32                overlapLength = 0;
   bool                  beVerbose = false;
   seqCache             *F   = 0L;
   seqInCore            *B   = 0L;
-  u32bit                Bid = 0;
+  uint32                Bid = 0;
   FILE                 *O   = 0L;
   FILE                 *L   = 0L;
 
-  u32bit                fragmentIndex = 0;
+  uint32                fragmentIndex = 0;
 
   int arg=1;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-length") == 0) {
-      desiredLength = strtou32bit(argv[++arg], 0L);
+      desiredLength = strtouint32(argv[++arg], 0L);
     } else if (strcmp(argv[arg], "-overlap") == 0) {
-      overlapLength = strtou32bit(argv[++arg], 0L);
+      overlapLength = strtouint32(argv[++arg], 0L);
     } else if (strcmp(argv[arg], "-input") == 0) {
       F = new seqCache(argv[++arg]);
     } else if (strcmp(argv[arg], "-output") == 0) {
@@ -75,17 +75,17 @@ main(int argc, char **argv) {
 
     char     *seq = (char *)B->sequence();
 
-    u32bit    pos = 0;
-    u32bit    max = 16384;
-    u32bit   *sta = new u32bit [max];
-    u32bit   *end = new u32bit [max];
+    uint32    pos = 0;
+    uint32    max = 16384;
+    uint32   *sta = new uint32 [max];
+    uint32   *end = new uint32 [max];
 
     //  step 1: build a list of regions to output.  Scan the sequence,
     //  making a new region if we see a significant chunk of N, or if we
     //  hit the desiredLength.
     //
-    u32bit s = 0;
-    u32bit e = 0;
+    uint32 s = 0;
+    uint32 e = 0;
     while (s < B->sequenceLength()) {
 
       //  Skip any N at the start
@@ -98,13 +98,13 @@ main(int argc, char **argv) {
       if (e > B->sequenceLength())
         e = B->sequenceLength();
 
-      fprintf(stderr, "got block1 "u32bitFMT" - "u32bitFMT"\n", s, e);
+      fprintf(stderr, "got block1 "uint32FMT" - "uint32FMT"\n", s, e);
 
       //  Scan from s to e, looking for significant N.  If we find it,
       //  reset e and stop.
       //
-      u32bit  numN = 0;
-      for (u32bit i=s; i<e; i++) {
+      uint32  numN = 0;
+      for (uint32 i=s; i<e; i++) {
         if ((seq[i] == 'n') || (seq[i] == 'N')) {
           numN++;
         } else {
@@ -116,7 +116,7 @@ main(int argc, char **argv) {
         }
       }
 
-      fprintf(stderr, "got block2 "u32bitFMT" - "u32bitFMT"\n", s, e);
+      fprintf(stderr, "got block2 "uint32FMT" - "uint32FMT"\n", s, e);
 
       //  Back up e until we hit the first non-N
       if ((s < e) && ((seq[e] == 'n') || (seq[e] == 'N'))) {
@@ -125,15 +125,15 @@ main(int argc, char **argv) {
         e++;
       }
 
-      fprintf(stderr, "got block3 "u32bitFMT" - "u32bitFMT"\n", s, e);
+      fprintf(stderr, "got block3 "uint32FMT" - "uint32FMT"\n", s, e);
 
       //  Add this region
       //
       if (s > e) {
-        fprintf(stderr, "ERROR!  s>e!  "u32bitFMT" "u32bitFMT"\n", s, e);
+        fprintf(stderr, "ERROR!  s>e!  "uint32FMT" "uint32FMT"\n", s, e);
       }
       if (s != e) {
-        fprintf(stderr, "ADD ["u32bitFMTW(3)"] "u32bitFMTW(9)" "u32bitFMTW(9)" length "u32bitFMTW(9)"\n", pos, s, e, e-s);
+        fprintf(stderr, "ADD ["uint32FMTW(3)"] "uint32FMTW(9)" "uint32FMTW(9)" length "uint32FMTW(9)"\n", pos, s, e, e-s);
         sta[pos] = s;
         end[pos] = e;
         pos++;
@@ -149,10 +149,10 @@ main(int argc, char **argv) {
     //  If we're supposed to be overlapping, fiddle with the begin position to make it so.
     //
     if (overlapLength > 0) {
-      for (u32bit p=1; p<pos; p++) {
+      for (uint32 p=1; p<pos; p++) {
         if (end[p-1] == sta[p]) {
           sta[p] -= overlapLength;
-          fprintf(stderr, "ADJ ["u32bitFMTW(3)"] "u32bitFMTW(9)" "u32bitFMTW(9)" length "u32bitFMTW(9)"\n",
+          fprintf(stderr, "ADJ ["uint32FMTW(3)"] "uint32FMTW(9)" "uint32FMTW(9)" length "uint32FMTW(9)"\n",
                   p, sta[p], end[p], end[p] - sta[p]);
         }
       }
@@ -163,16 +163,16 @@ main(int argc, char **argv) {
       fprintf(stderr, "created %d regions\n", pos+1);
 
 
-    for (u32bit p=0; p<pos; p++) {
+    for (uint32 p=0; p<pos; p++) {
 
 #if 1
-      fprintf(O, "%s begin "u32bitFMT" end "u32bitFMT" length "u32bitFMT"\n",
+      fprintf(O, "%s begin "uint32FMT" end "uint32FMT" length "uint32FMT"\n",
               B->header(), sta[p], end[p], end[p] - sta[p]);
       fwrite(seq+sta[p], sizeof(char), end[p] - sta[p], O);
       fprintf(O, "\n");
 #endif
 
-      fprintf(L, u32bitFMT" : "u32bitFMT"["u32bitFMT"-"u32bitFMT"]\n",
+      fprintf(L, uint32FMT" : "uint32FMT"["uint32FMT"-"uint32FMT"]\n",
               fragmentIndex++,
               B->getIID(),
               sta[p],

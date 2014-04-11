@@ -96,13 +96,13 @@ public:
   //  use _merSize as a surrogate for the length of the seed,
   //  compressed seeds can be much longer.
   //
-  u32bit           _KBmerSize;
-  u32bit           _KBcompression;
+  uint32           _KBmerSize;
+  uint32           _KBcompression;
   char            *_KBspacingTemplate;
 
-  u32bit           _merSkip;
+  uint32           _merSkip;
 
-  u32bit           _numSearchThreads;
+  uint32           _numSearchThreads;
 
   bool             _doReverse;
   bool             _doForward;
@@ -115,31 +115,31 @@ public:
   double           _Hi;
   double           _Va;
 
-  u32bit           _maxDiagonal;
+  uint32           _maxDiagonal;
 
   double           _extendWeight;
-  u32bit           _extendMinimum;
-  u32bit           _extendMaximum;
+  uint32           _extendMinimum;
+  uint32           _extendMaximum;
 
-  u32bit           _repeatThreshold;
+  uint32           _repeatThreshold;
 
   //  Minimums for hits
   double           _minHitCoverage;
-  u32bit           _minHitLength;
+  uint32           _minHitLength;
 
   //  Minimums for matches
-  u32bit           _minMatchIdentity;
-  u32bit           _minMatchCoverage;
+  uint32           _minMatchIdentity;
+  uint32           _minMatchCoverage;
 
   //  Filtering of hits
   bool             _afEnabled;
   double           _afThreshold;
-  u32bit           _afLength;
-  u32bit           _afInit;
+  uint32           _afLength;
+  uint32           _afInit;
 
   //  Filtering and/or cleanup of matches
-  u32bit           _discardExonLength;
-  u32bit           _discardExonQuality;
+  uint32           _discardExonLength;
+  uint32           _discardExonQuality;
   bool             _splitMatches;
   bool             _polishOptimally;
 
@@ -152,11 +152,11 @@ public:
 
   bool             _buildOnly;
 
-  u32bit           _ignoreThreshold;
+  uint32           _ignoreThreshold;
   char            *_maskPrefix;
-  u32bit           _maskThreshold;
+  uint32           _maskThreshold;
   char            *_onlyPrefix;
-  u32bit           _onlyThreshold;
+  uint32           _onlyThreshold;
 
   char            *_outputFileName;
   char            *_logmsgFileName;
@@ -183,7 +183,7 @@ extern existDB               *onlyDB;  //  thr-search.C
 
 extern positionDB            *positions;
 
-extern volatile u32bit        numberOfQueries;
+extern volatile uint32        numberOfQueries;
 
 
 
@@ -207,14 +207,14 @@ extern volatile u32bit        numberOfQueries;
 
 
 struct aHit {
-  u32bit     _status;
-  u32bit     _qsIdx;
-  u32bit     _dsIdx;
-  u32bit     _dsLo;
-  u32bit     _dsHi;
-  u32bit     _covered;
-  u32bit     _matched;
-  u32bit     _numMers;
+  uint32     _status;
+  uint32     _qsIdx;
+  uint32     _dsIdx;
+  uint32     _dsLo;
+  uint32     _dsHi;
+  uint32     _covered;
+  uint32     _matched;
+  uint32     _numMers;
   merList   *_ML;
 };
 
@@ -251,14 +251,14 @@ public:
   };
 
   seqInCore   *seq;
-  u32bit       theHitsLen;
-  u32bit       theHitsMax;
+  uint32       theHitsLen;
+  uint32       theHitsMax;
   aHit        *theHits;
 
   logMsg      *theLog;
 
-  u32bit       theOutputLen;
-  u32bit       theOutputMax;
+  uint32       theOutputLen;
+  uint32       theOutputMax;
   char        *theOutput;
 };
 
@@ -266,16 +266,16 @@ public:
 
 class searcherState {
 public:
-  u64bit         threadID;
+  uint64         threadID;
 
-  u64bit         posnMax;
-  u64bit         posnLen;
-  u64bit        *posn;
+  uint64         posnMax;
+  uint64         posnLen;
+  uint64        *posn;
 
   kMerBuilder   *KB;
   void          *DP;
 
-  searcherState(u64bit U) {
+  searcherState(uint64 U) {
     threadID    = U;
 
     posnMax     = 0;
@@ -297,11 +297,11 @@ public:
 
 struct diagonalLine {
   union {
-    u64bit  all;
+    uint64  all;
     struct {
-      u64bit     uniq : 10;  //  uniqueness score for the mer here
-      u64bit     qPos : 22;  //  position in the query, 0 to 4M
-      u64bit     dPos : 32;  //  position in the genome, 0 to 4G
+      uint64     uniq : 10;  //  uniqueness score for the mer here
+      uint64     qPos : 22;  //  position in the query, 0 to 4M
+      uint64     dPos : 32;  //  position in the genome, 0 to 4G
     } val;
   };
 };
@@ -310,22 +310,22 @@ struct diagonalLine {
 
 class trapMatch {
 public:
-  u32bit         _unique;
-  u32bit         _qsLo;
-  u32bit         _qsHi;
-  u32bit         _dsLo;
-  u32bit         _dsHi;
+  uint32         _unique;
+  uint32         _qsLo;
+  uint32         _qsHi;
+  uint32         _dsLo;
+  uint32         _dsHi;
 
   merCovering   *_IL;
   merList       *_ML;
 
   trapMatch     *_next;
 
-  trapMatch(u32bit         isunique,
-            u32bit         qsLo,
-            u32bit         qsHi,
-            u32bit         dsLo,
-            u32bit         dsHi,
+  trapMatch(uint32         isunique,
+            uint32         qsLo,
+            uint32         qsHi,
+            uint32         dsLo,
+            uint32         dsHi,
             merCovering   *IL,
             merList       *ML) {
     _unique     = isunique;
@@ -344,35 +344,35 @@ public:
 
 class hitMatrix {
 public:
-  hitMatrix(u32bit qsLen, u32bit q, u32bit qsIdx, logMsg *theLog);
+  hitMatrix(uint32 qsLen, uint32 q, uint32 qsIdx, logMsg *theLog);
   ~hitMatrix();
 
-  void    addHits(u32bit  qi,
-                  u64bit *ps,
-                  u64bit  cn,
-                  u64bit  ad=0);
+  void    addHits(uint32  qi,
+                  uint64 *ps,
+                  uint64  cn,
+                  uint64  ad=0);
 
   void    sort_diagonal(void);
   void    sort_dsPos(void);
 
   void    filter(char      direction,
                  double    minHitCoverage,
-                 u32bit    minHitLength,
+                 uint32    minHitLength,
                  aHit    *&theOutput,
-                 u32bit   &theOutputPos,
-                 u32bit   &theOutputMax);
+                 uint32   &theOutputPos,
+                 uint32   &theOutputMax);
 private:
-  u32bit                        _qsLen;   //  Seq Len of Q
-  u32bit                        _qsMers;  //  Valid mers in Q
-  u32bit                        _qsIdx;   //  Index of Q in the FastA
+  uint32                        _qsLen;   //  Seq Len of Q
+  uint32                        _qsMers;  //  Valid mers in Q
+  uint32                        _qsIdx;   //  Index of Q in the FastA
 
   //  Instead of building the lines during add(), we store
   //  the information used to build lines, and then build them
   //  in chain().  This was done to reduce simultaneous memory
   //  usage, as the lineArrayMap and etc take up considerable space.
   //
-  u32bit                        _hitsLen;
-  u32bit                        _hitsMax;
+  uint32                        _hitsLen;
+  uint32                        _hitsMax;
   diagonalLine                 *_hits;
 
   logMsg                       *_theLog;
@@ -392,11 +392,11 @@ private:
   //
   trapMatch                    *_matches;
 
-  void addMatch(u32bit         isunique,
-                u32bit         qsLo,
-                u32bit         qsHi,
-                u32bit         dsLo,
-                u32bit         dsHi,
+  void addMatch(uint32         isunique,
+                uint32         qsLo,
+                uint32         qsHi,
+                uint32         dsLo,
+                uint32         dsHi,
                 merCovering   *IL,
                 merList       *ML);
 
@@ -405,35 +405,35 @@ private:
 
 inline
 void
-hitMatrix::addHits(u32bit  qi,
-                   u64bit *ps,
-                   u64bit  cn,
-                   u64bit  ad) {
+hitMatrix::addHits(uint32  qi,
+                   uint64 *ps,
+                   uint64  cn,
+                   uint64  ad) {
 
   if ((_hitsLen + cn) >= _hitsMax) {
-    _hitsMax = _hitsMax + _hitsMax + (u32bit)cn;
+    _hitsMax = _hitsMax + _hitsMax + (uint32)cn;
 
     diagonalLine *h;
     try {
       h = new diagonalLine [_hitsMax];
     } catch (std::bad_alloc) {
       fprintf(stderr, "hitMatrix::addHits()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
-      fprintf(stderr, "hitMatrix::addHits()-- have "u32bitFMT" hits, tried to add "u64bitFMT" more\n", _hitsLen, cn);
+      fprintf(stderr, "hitMatrix::addHits()-- have "uint32FMT" hits, tried to add "uint64FMT" more\n", _hitsLen, cn);
       exit(1);
     }
 
-    memcpy(h, _hits, sizeof(u64bit) * _hitsLen);
+    memcpy(h, _hits, sizeof(uint64) * _hitsLen);
     delete [] _hits;
     _hits = h;
   }
 
-  u64bit  uniq = cn;
+  uint64  uniq = cn;
   if (ad > 0)
     uniq = ad;
   if (uniq > 0x000003ff)
     uniq = 0x000003ff;
 
-  for (u64bit i=0; i<cn; i++) {
+  for (uint64 i=0; i<cn; i++) {
     _hits[_hitsLen].val.uniq = uniq;
     _hits[_hitsLen].val.qPos = qi;
     _hits[_hitsLen].val.dPos = ps[i];
@@ -461,8 +461,8 @@ doPolishDP(searcherState       *state,
            query               *qry);
 
 
-u32bit    configureFilter(double L,
+uint32    configureFilter(double L,
                           double H,
                           double V,
                           aHit  *theHits,
-                          u32bit theHitsLen);
+                          uint32 theHitsLen);

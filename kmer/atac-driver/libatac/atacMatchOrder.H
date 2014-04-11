@@ -32,10 +32,10 @@ private:
     _matchesLen    = ML->numberOfMatches();
     _matchesMax    = ML->numberOfMatches();
     _matches       = new atacMatch * [_matchesLen];
-    _matchIIDtoIdx = new u32bit      [_matchesLen];
-    for (u32bit i=0; i<_matchesLen; i++) {
+    _matchIIDtoIdx = new uint32      [_matchesLen];
+    for (uint32 i=0; i<_matchesLen; i++) {
       _matches[i] = ML->getMatch(i);
-      _matchIIDtoIdx[i] = ~u32bitZERO;
+      _matchIIDtoIdx[i] = ~uint32ZERO;
     }
   };
 public:
@@ -49,50 +49,50 @@ public:
     delete [] _matches;
   };
 
-  u32bit            numMatches(void)      { return(_matchesLen);  };
-  u32bit            numberOfMatches(void) { return(_matchesLen);  };
+  uint32            numMatches(void)      { return(_matchesLen);  };
+  uint32            numberOfMatches(void) { return(_matchesLen);  };
 
   //  Return match i in our list.  Common usage would be
   //    getMatch(index(iid) + 1)  //  return the match after the one we have
   //    getMatch(index(iid) - 1)
   //
-  atacMatch        *getMatch(u32bit i)    {
+  atacMatch        *getMatch(uint32 i)    {
     return(_matches[i]);
   };
-  atacMatch        *operator[](u32bit i)  {
+  atacMatch        *operator[](uint32 i)  {
     return(_matches[i]);
   };
 
   //  Return the index, in our sorted list, of the matchiid supplied.
   //
-  u32bit            index(u32bit matchiid) {
+  uint32            index(uint32 matchiid) {
     return(_matchIIDtoIdx[matchiid]);
   };
 
   //  Merge the r match into the l match.  The l match gets the result.
-  void              mergeMatches(atacMatch *l, atacMatch *r, u32bit mergeuid);
+  void              mergeMatches(atacMatch *l, atacMatch *r, uint32 mergeuid);
 
-  void              sortA(u32bit first=0, u32bit len=0);
-  void              sortB(u32bit first=0, u32bit len=0);
-  void              sortDiagonal(u32bit first=0, u32bit len=0);
-  void              sortMatchUID(u32bit first=0, u32bit len=0);
-  void              sortParentUID(u32bit first=0, u32bit len=0);
+  void              sortA(uint32 first=0, uint32 len=0);
+  void              sortB(uint32 first=0, uint32 len=0);
+  void              sortDiagonal(uint32 first=0, uint32 len=0);
+  void              sortMatchUID(uint32 first=0, uint32 len=0);
+  void              sortParentUID(uint32 first=0, uint32 len=0);
 
 private:
-  u32bit           _matchesLen;
-  u32bit           _matchesMax;
+  uint32           _matchesLen;
+  uint32           _matchesMax;
   atacMatch      **_matches;
 
   atacMatchList   *_ML;
 
   void              updateIndex(void) {
-    for (u32bit i=0; i<_matchesLen; i++)
-      _matchIIDtoIdx[i] = ~u32bitZERO;
-    for (u32bit i=0; i<_matchesLen; i++)
+    for (uint32 i=0; i<_matchesLen; i++)
+      _matchIIDtoIdx[i] = ~uint32ZERO;
+    for (uint32 i=0; i<_matchesLen; i++)
       _matchIIDtoIdx[_matches[i]->matchiid] = i;
   };
 
-  u32bit          *_matchIIDtoIdx;
+  uint32          *_matchIIDtoIdx;
 };
 
 

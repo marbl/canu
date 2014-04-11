@@ -4,8 +4,8 @@
 #include "bio++.H"
 
 encodedQuery::encodedQuery(char const    *seq,
-                           u32bit         seqLen,
-                           u32bit         k,
+                           uint32         seqLen,
+                           uint32         k,
                            bool           rc) {
   _seq            = seq;
   _seqLen         = seqLen;
@@ -14,18 +14,18 @@ encodedQuery::encodedQuery(char const    *seq,
 
   _seqPos         = 0;
 
-  _substring      = u64bitZERO;
-  _mermask        = u64bitMASK(2 * _merSize);
+  _substring      = uint64ZERO;
+  _mermask        = uint64MASK(2 * _merSize);
   _timeUntilValid = _merSize;
 }
 
 
 bool
-encodedQuery::getMer(u64bit &mer, u32bit &pos) {
+encodedQuery::getMer(uint64 &mer, uint32 &pos) {
   bool  found = false;
 
-  mer = u64bitZERO;
-  pos = u32bitZERO;
+  mer = uint64ZERO;
+  pos = uint32ZERO;
 
   if (_rc) {
 

@@ -12,7 +12,7 @@
 //  it probably reads an unpackaged raw bzip stream.
 
 
-bzipBuffer::bzipBuffer(const char *filename, u32bit bufferMax) {
+bzipBuffer::bzipBuffer(const char *filename, uint32 bufferMax) {
 
   _filename  = new char [strlen(filename) + 1];
   strcpy(_filename, filename);
@@ -138,7 +138,7 @@ bzipBuffer::fillBuffer(void) {
   //
   errno = 0;
   _bzip2stream.next_in   = _bzip2in;
-  _bzip2stream.avail_in  = (u32bit)::read(_file, _bzip2in, sizeof(char) * _bzip2bufferMax);
+  _bzip2stream.avail_in  = (uint32)::read(_file, _bzip2in, sizeof(char) * _bzip2bufferMax);
   _bzip2stream.next_out  = _bzip2out;
   _bzip2stream.avail_out = _bzip2bufferMax;
   if (errno) {
@@ -200,7 +200,7 @@ bzipBuffer::read(char *buf, size_t len) {
       bRead   = 0;
 
       memcpy(buf, _buffer + _bufferPos, sizeof(char) * len);
-      _bufferPos += (u32bit)len;
+      _bufferPos += (uint32)len;
     } else {
 
       //  Existing buffer not big enough.  Copy what's there, then finish
@@ -212,10 +212,10 @@ bzipBuffer::read(char *buf, size_t len) {
 
       while (bCopied + bRead < len) {
         errno = 0;
-        bAct = (u32bit)::read(_file, buf + bCopied + bRead, (len - bCopied - bRead) * sizeof(char));
+        bAct = (uint32)::read(_file, buf + bCopied + bRead, (len - bCopied - bRead) * sizeof(char));
         if (errno) {
           fprintf(stderr, "bzipBuffer()-- couldn't read %d bytes from '%s': n%s\n",
-                  (u32bit)len * sizeof(char), _filename, strerror(errno));
+                  (uint32)len * sizeof(char), _filename, strerror(errno));
           exit(1);
         }
 

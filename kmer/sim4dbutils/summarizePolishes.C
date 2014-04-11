@@ -60,10 +60,10 @@ using namespace std;
 //
 
 struct match {
-  u32bit   _estid;
-  u32bit   _genid;
-  u32bit   _identity;
-  u32bit   _coverage;
+  uint32   _estid;
+  uint32   _genid;
+  uint32   _identity;
+  uint32   _coverage;
 };
 
 
@@ -110,12 +110,12 @@ readMatches(char           *filename,
 int
 main(int argc, char **argv) {
   char      *polishesFile = 0L;
-  u32bit     numSeqs      = 0;
+  uint32     numSeqs      = 0;
   char      *sequenceFile = 0L;;
-  u32bit     idLen        = 0;
-  u32bit     id[101]      = { 0 };
-  u32bit     cvLen        = 0;
-  u32bit     cv[101]      = { 0 };
+  uint32     idLen        = 0;
+  uint32     id[101]      = { 0 };
+  uint32     cvLen        = 0;
+  uint32     cv[101]      = { 0 };
   bool       formatExcel  = false;
 
   if (argc == 1) {
@@ -164,15 +164,15 @@ main(int argc, char **argv) {
 
 
   fprintf(stderr, "Polishes:      %s\n", polishesFile);
-  fprintf(stderr, "numSeqs:       "u32bitFMT"\n", numSeqs);
+  fprintf(stderr, "numSeqs:       "uint32FMT"\n", numSeqs);
   fprintf(stderr, "sequenceFile:  %s\n", sequenceFile);
-  fprintf(stderr, "ids:           "u32bitFMT" -- ", idLen);
-  for (u32bit i=0; i<idLen; i++)
-    fprintf(stderr, " "u32bitFMT"", id[i]);
+  fprintf(stderr, "ids:           "uint32FMT" -- ", idLen);
+  for (uint32 i=0; i<idLen; i++)
+    fprintf(stderr, " "uint32FMT"", id[i]);
   fprintf(stderr, "\n");
-  fprintf(stderr, "cvs:           "u32bitFMT" -- ", cvLen);
-  for (u32bit i=0; i<cvLen; i++)
-    fprintf(stderr, " "u32bitFMT"", cv[i]);
+  fprintf(stderr, "cvs:           "uint32FMT" -- ", cvLen);
+  for (uint32 i=0; i<cvLen; i++)
+    fprintf(stderr, " "uint32FMT"", cv[i]);
   fprintf(stderr, "\n");
 
   vector<match>  matches;
@@ -181,9 +181,9 @@ main(int argc, char **argv) {
 
   //  Find the largest cDNA and genomic idx
   //
-  u32bit  estmax = 0;
-  u32bit  genmax = 0;
-  for (u32bit i=0; i<matches.size(); i++) {
+  uint32  estmax = 0;
+  uint32  genmax = 0;
+  for (uint32 i=0; i<matches.size(); i++) {
     if (estmax < matches[i]._estid)
       estmax = matches[i]._estid;
     if (genmax < matches[i]._genid)
@@ -195,12 +195,12 @@ main(int argc, char **argv) {
 
   //  Allocate space for statistics
   //
-  u32bit  *estcounts = new u32bit [estmax];
-  u32bit  *gencounts = new u32bit [genmax];
-  u32bit   mapped;
-  u32bit   notmapped;
-  u32bit   uniqest;
-  u32bit   uniqgen;
+  uint32  *estcounts = new uint32 [estmax];
+  uint32  *gencounts = new uint32 [genmax];
+  uint32   mapped;
+  uint32   notmapped;
+  uint32   uniqest;
+  uint32   uniqgen;
 
   if (formatExcel) {
     fprintf(stdout, "identity\tcoverage\tmapped\tnotmapped\tuniqest\tuniqgen\n");
@@ -210,16 +210,16 @@ main(int argc, char **argv) {
   //  Foreach identity and each coverage, find how many things
   //  are above that level.
   //
-  for (u32bit i=0; i<idLen; i++) {
-    for (u32bit c=0; c<cvLen; c++) {
+  for (uint32 i=0; i<idLen; i++) {
+    for (uint32 c=0; c<cvLen; c++) {
       mapped    = 0;
       notmapped = 0;
-      for (u32bit z=0; z<estmax; z++)
+      for (uint32 z=0; z<estmax; z++)
         estcounts[z] = 0;
-      for (u32bit z=0; z<genmax; z++)
+      for (uint32 z=0; z<genmax; z++)
         gencounts[z] = 0;
 
-      for (u32bit z=0; z<matches.size(); z++) {
+      for (uint32 z=0; z<matches.size(); z++) {
         if ((id[i] <= matches[z]._identity) &&
             (cv[c] <= matches[z]._coverage)) {
           mapped++;
@@ -233,18 +233,18 @@ main(int argc, char **argv) {
       uniqest = 0;
       uniqgen = 0;
 
-      for (u32bit z=0; z<estmax; z++)
+      for (uint32 z=0; z<estmax; z++)
         if (estcounts[z])
           uniqest++;
-      for (u32bit z=0; z<genmax; z++)
+      for (uint32 z=0; z<genmax; z++)
         if (gencounts[z])
           uniqgen++;
 
       if (formatExcel) {
-        fprintf(stdout, u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\n", id[i], cv[c], mapped, notmapped, uniqest, uniqgen);
+        fprintf(stdout, uint32FMT"\t"uint32FMT"\t"uint32FMT"\t"uint32FMT"\t"uint32FMT"\t"uint32FMT"\n", id[i], cv[c], mapped, notmapped, uniqest, uniqgen);
         fflush(stdout);
       } else {
-        fprintf(stdout, u32bitFMTW(3)" "u32bitFMTW(3)": mapped="u32bitFMTW(8)" notmapped="u32bitFMTW(8)"  est="u32bitFMTW(8)" gen="u32bitFMTW(8)"\n", id[i], cv[c], mapped, notmapped, uniqest, uniqgen);
+        fprintf(stdout, uint32FMTW(3)" "uint32FMTW(3)": mapped="uint32FMTW(8)" notmapped="uint32FMTW(8)"  est="uint32FMTW(8)" gen="uint32FMTW(8)"\n", id[i], cv[c], mapped, notmapped, uniqest, uniqgen);
         fflush(stdout);
       }
     }

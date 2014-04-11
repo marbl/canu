@@ -70,9 +70,9 @@ pickBest(sim4polish **p, int pNum) {
 
 int
 main(int argc, char **argv) {
-  u32bit   pNum   = 0;
-  u32bit   pAlloc = 8388608;
-  u32bit   estID  = ~u32bitZERO;
+  uint32   pNum   = 0;
+  uint32   pAlloc = 8388608;
+  uint32   estID  = ~uint32ZERO;
 
   sim4polishStyle  style = sim4polishStyleDefault;
 

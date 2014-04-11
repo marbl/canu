@@ -21,10 +21,10 @@ existDB::existDB(char const  *filename,
 
 
 existDB::existDB(char const    *filename,
-                 u32bit         merSize,
+                 uint32         merSize,
                  existDBflags   flags,
-                 u32bit         lo,
-                 u32bit         hi) {
+                 uint32         lo,
+                 uint32         hi) {
   clear();
 
   _compressedHash   = flags & existDBcompressHash;
@@ -41,7 +41,7 @@ existDB::existDB(char const    *filename,
 
     if (_merSizeInBases != merSize) {
       fprintf(stderr, "existDB::existDB()-- Read state from '%s', but got different mer sizes\n", filename);
-      fprintf(stderr, "existDB::existDB()-- Got "u32bitFMT", expected "u32bitFMT"\n", _merSizeInBases, merSize);
+      fprintf(stderr, "existDB::existDB()-- Got "uint32FMT", expected "uint32FMT"\n", _merSizeInBases, merSize);
       fail = true;
     }
 
@@ -54,7 +54,7 @@ existDB::existDB(char const    *filename,
   //  If no direction flags are set, set the default direction of
   //  forward.  Stupid precedence rules.
   //
-  if ((flags & (existDBcanonical | existDBforward)) == u32bitZERO)
+  if ((flags & (existDBcanonical | existDBforward)) == uint32ZERO)
     flags |= existDBforward;
 
   //  If we can open 'filename' for reading, then we assume the file
@@ -72,7 +72,7 @@ existDB::existDB(char const    *filename,
 
 
 existDB::existDB(char const    *sequence,
-                 u32bit         merSize,
+                 uint32         merSize,
                  existDBflags   flags) {
   clear();
 
@@ -80,7 +80,7 @@ existDB::existDB(char const    *sequence,
   _compressedBucket = flags & existDBcompressBuckets;
   _compressedCounts = flags & existDBcompressCounts;
 
-  if ((flags & (existDBcanonical | existDBforward)) == u32bitZERO)
+  if ((flags & (existDBcanonical | existDBforward)) == uint32ZERO)
     flags |= existDBforward;
 
   createFromSequence(sequence, merSize, flags);
@@ -98,8 +98,8 @@ existDB::~existDB() {
 
 
 bool
-existDB::exists(u64bit mer) {
-  u64bit c, h, st, ed;
+existDB::exists(uint64 mer) {
+  uint64 c, h, st, ed;
 
   if (_compressedHash) {
     h  = HASH(mer) * _hshWidth;
@@ -135,9 +135,9 @@ existDB::exists(u64bit mer) {
 }
 
 
-u64bit
-existDB::count(u64bit mer) {
-  u64bit c, h, st, ed;
+uint64
+existDB::count(uint64 mer) {
+  uint64 c, h, st, ed;
 
   if (_counts == 0L)
     return(0);

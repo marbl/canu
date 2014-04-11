@@ -3,13 +3,13 @@
 
 
 void
-positionDB::reallocateSpace(u64bit*&    posn,
-                            u64bit&     posnMax,
-                            u64bit&     posnLen,
-                            u64bit      len) {
+positionDB::reallocateSpace(uint64*&    posn,
+                            uint64&     posnMax,
+                            uint64&     posnLen,
+                            uint64      len) {
  
   if (posnMax < posnLen + len) {
-    u64bit  *pp;
+    uint64  *pp;
 
     posnMax = posnLen + len + (len >> 2);
 
@@ -17,13 +17,13 @@ positionDB::reallocateSpace(u64bit*&    posn,
       posnMax = 16384;
 
     try {
-      pp = new u64bit [posnMax];
+      pp = new uint64 [posnMax];
     } catch (...) {
-      fprintf(stderr, "positionDB::get()-- Can't allocate space for more positions, requested "u64bitFMT" u64bit's.\n", posnMax);
+      fprintf(stderr, "positionDB::get()-- Can't allocate space for more positions, requested "uint64FMT" uint64's.\n", posnMax);
       abort();
     }
 
-    memcpy(pp, posn, sizeof(u64bit) * posnLen);
+    memcpy(pp, posn, sizeof(uint64) * posnLen);
 
     delete [] posn;
     posn = pp;
@@ -33,14 +33,14 @@ positionDB::reallocateSpace(u64bit*&    posn,
 
 
 void
-positionDB::loadPositions(u64bit   J,
-                          u64bit*& posn,
-                          u64bit&  posnMax,
-                          u64bit&  posnLen,
-                          u64bit&  count) {
+positionDB::loadPositions(uint64   J,
+                          uint64*& posn,
+                          uint64&  posnMax,
+                          uint64&  posnLen,
+                          uint64&  count) {
 
-  u64bit  sizs[3] = {_pptrWidth, 1, _sizeWidth};
-  u64bit  vals[3] = {0, 0, 1};
+  uint64  sizs[3] = {_pptrWidth, 1, _sizeWidth};
+  uint64  vals[3] = {0, 0, 1};
 
   getDecodedValues(_buckets, J + _chckWidth, (_sizeWidth == 0) ? 2 : 3, sizs, vals);
 
@@ -55,8 +55,8 @@ positionDB::loadPositions(u64bit   J,
     reallocateSpace(posn, posnMax, posnLen, 64);
     posn[posnLen++] = vals[0];
   } else {
-    u64bit ptr  = vals[0] * _posnWidth;
-    u64bit len  = getDecodedValue(_positions, ptr, _posnWidth);
+    uint64 ptr  = vals[0] * _posnWidth;
+    uint64 len  = getDecodedValue(_positions, ptr, _posnWidth);
 
     if (_sizeWidth == 0)
       count = len;
@@ -71,14 +71,14 @@ positionDB::loadPositions(u64bit   J,
 
 
 bool
-positionDB::getExact(u64bit   mer,
-                     u64bit*& posn,
-                     u64bit&  posnMax,
-                     u64bit&  posnLen,
-                     u64bit&  count) {
-  u64bit  h = HASH(mer);
-  u64bit  c = CHECK(mer);
-  u64bit st, ed;
+positionDB::getExact(uint64   mer,
+                     uint64*& posn,
+                     uint64&  posnMax,
+                     uint64&  posnLen,
+                     uint64&  count) {
+  uint64  h = HASH(mer);
+  uint64  c = CHECK(mer);
+  uint64 st, ed;
 
   if (_hashTable_BP) {
     st = getDecodedValue(_hashTable_BP, h * _hashWidth,              _hashWidth);
@@ -93,7 +93,7 @@ positionDB::getExact(u64bit   mer,
   if (st == ed)
     return(false);
 
-  for (u64bit i=st, J=st * _wFin; i<ed; i++, J += _wFin) {
+  for (uint64 i=st, J=st * _wFin; i<ed; i++, J += _wFin) {
     if (c == getDecodedValue(_buckets, J, _chckWidth)) {
       loadPositions(J, posn, posnMax, posnLen, count);
       return(true);
@@ -105,10 +105,10 @@ positionDB::getExact(u64bit   mer,
 
 
 bool
-positionDB::existsExact(u64bit mer) {
-  u64bit  h = HASH(mer);
-  u64bit  c = CHECK(mer);
-  u64bit st, ed;
+positionDB::existsExact(uint64 mer) {
+  uint64  h = HASH(mer);
+  uint64  c = CHECK(mer);
+  uint64 st, ed;
 
   if (_hashTable_BP) {
     st = getDecodedValue(_hashTable_BP, h * _hashWidth,              _hashWidth);
@@ -121,7 +121,7 @@ positionDB::existsExact(u64bit mer) {
   if (st == ed)
     return(false);
 
-  for (u64bit i=st, J=st * _wFin; i<ed; i++, J += _wFin)
+  for (uint64 i=st, J=st * _wFin; i<ed; i++, J += _wFin)
     if (c == getDecodedValue(_buckets, J, _chckWidth))
       return(true);
 
@@ -129,11 +129,11 @@ positionDB::existsExact(u64bit mer) {
 }
 
 
-u64bit
-positionDB::countExact(u64bit mer) {
-  u64bit  h = HASH(mer);
-  u64bit  c = CHECK(mer);
-  u64bit st, ed;
+uint64
+positionDB::countExact(uint64 mer) {
+  uint64  h = HASH(mer);
+  uint64  c = CHECK(mer);
+  uint64 st, ed;
 
   if (_hashTable_BP) {
     st = getDecodedValue(_hashTable_BP, h * _hashWidth,              _hashWidth);
@@ -146,10 +146,10 @@ positionDB::countExact(u64bit mer) {
   if (st == ed)
     return(0);
 
-  for (u64bit i=st, J=st * _wFin; i<ed; i++, J += _wFin) {
+  for (uint64 i=st, J=st * _wFin; i<ed; i++, J += _wFin) {
     if (c == getDecodedValue(_buckets, J, _chckWidth)) {
-      u64bit  sizs[3] = {_pptrWidth, 1, _sizeWidth};
-      u64bit  vals[3] = {0};
+      uint64  sizs[3] = {_pptrWidth, 1, _sizeWidth};
+      uint64  vals[3] = {0};
 
       getDecodedValues(_buckets, J + _chckWidth, 3, sizs, vals);
 
@@ -167,11 +167,11 @@ positionDB::countExact(u64bit mer) {
 }
 
 
-u64bit
-positionDB::setCount(u64bit mer, u64bit count) {
-  u64bit  h = HASH(mer);
-  u64bit  c = CHECK(mer);
-  u64bit st, ed;
+uint64
+positionDB::setCount(uint64 mer, uint64 count) {
+  uint64  h = HASH(mer);
+  uint64  c = CHECK(mer);
+  uint64 st, ed;
 
   if (_hashTable_BP) {
     st = getDecodedValue(_hashTable_BP, h * _hashWidth,              _hashWidth);
@@ -184,7 +184,7 @@ positionDB::setCount(u64bit mer, u64bit count) {
   if (st == ed)
     return(0);
 
-  for (u64bit i=st, J=st * _wFin; i<ed; i++, J += _wFin)
+  for (uint64 i=st, J=st * _wFin; i<ed; i++, J += _wFin)
     if (c == getDecodedValue(_buckets, J, _chckWidth)) {
       setDecodedValue(_buckets, J + _chckWidth + _pptrWidth + 1, _sizeWidth, count);
       return(count);
@@ -196,23 +196,23 @@ positionDB::setCount(u64bit mer, u64bit count) {
 
 
 void
-positionDB::filter(u64bit lo,
-                   u64bit hi) {
-  u64bit  st=0, ed=0;  //  iteration through buckets
-  u64bit        nb=0;  //  bit position of the current (read) bucket and next (write) bucket
-  u64bit        np=0;  //  bit position of the current (read) position and next (write) position
-  u64bit  vv;
+positionDB::filter(uint64 lo,
+                   uint64 hi) {
+  uint64  st=0, ed=0;  //  iteration through buckets
+  uint64        nb=0;  //  bit position of the current (read) bucket and next (write) bucket
+  uint64        np=0;  //  bit position of the current (read) position and next (write) position
+  uint64  vv;
 
-  u64bit  loCount = 0;
-  u64bit  okCount = 0;
-  u64bit  hiCount = 0;
+  uint64  loCount = 0;
+  uint64  okCount = 0;
+  uint64  hiCount = 0;
 
-  u64bit  sizs[4] = {_chckWidth, _pptrWidth, 1, _sizeWidth};
-  u64bit  vals[4] = {0, 0, 0, 0};
+  uint64  sizs[4] = {_chckWidth, _pptrWidth, 1, _sizeWidth};
+  uint64  vals[4] = {0, 0, 0, 0};
 
   //dump("posDB.before");
 
-  fprintf(stderr, "positionDB::filter()--  Filtering out kmers less than "u64bitFMT" and more than "u64bitFMT"\n", lo, hi);
+  fprintf(stderr, "positionDB::filter()--  Filtering out kmers less than "uint64FMT" and more than "uint64FMT"\n", lo, hi);
 
   if (_sizeWidth == 0) {
     //  Single copy mers in a table without counts can be multi-copy
@@ -234,7 +234,7 @@ positionDB::filter(u64bit lo,
 
   //  Over all buckets
   //
-  for (u64bit h=0; h<_tableSizeInEntries; h++) {
+  for (uint64 h=0; h<_tableSizeInEntries; h++) {
 
     //  Grab the end of this bucket - the end is always for the
     //  current structure.  This gets reset at the end of the loop.
@@ -247,16 +247,16 @@ positionDB::filter(u64bit lo,
     //  Over all entries in the bucket
     //
     while (st < ed) {
-      u64bit     cb = st * _wFin;
+      uint64     cb = st * _wFin;
 
       getDecodedValues(_buckets, cb, (_sizeWidth == 0) ? 3 : 4, sizs, vals);
 
       //  Argh.  Tricky.  We need to grab the count stored in the
       //  table, but if it's a single mer, there is no count.
 
-      u64bit count = 1;            //  Real count over the whole data set
-      u64bit len   = 1;            //  Number of times the mer occurs in this subset
-      u64bit cp    = ~u64bitZERO;  //  current position pointer, used to copy position information
+      uint64 count = 1;            //  Real count over the whole data set
+      uint64 len   = 1;            //  Number of times the mer occurs in this subset
+      uint64 cp    = ~uint64ZERO;  //  current position pointer, used to copy position information
 
       //  If not a unique mer in this table, len and cp are defined.
       if (vals[2] == 0) {
@@ -336,9 +336,9 @@ positionDB::filter(u64bit lo,
 
   }  //  Over all buckets
 
-  fprintf(stderr, "positionDB::filter()--  Filtered "u64bitFMT" kmers less than "u64bitFMT"\n", loCount, lo);
-  fprintf(stderr, "positionDB::filter()--  Filtered "u64bitFMT" kmers more than "u64bitFMT"\n", hiCount, hi);
-  fprintf(stderr, "positionDB::filter()--  Saved    "u64bitFMT" kmers with acceptable count\n", okCount);
+  fprintf(stderr, "positionDB::filter()--  Filtered "uint64FMT" kmers less than "uint64FMT"\n", loCount, lo);
+  fprintf(stderr, "positionDB::filter()--  Filtered "uint64FMT" kmers more than "uint64FMT"\n", hiCount, hi);
+  fprintf(stderr, "positionDB::filter()--  Saved    "uint64FMT" kmers with acceptable count\n", okCount);
 
   //dump("posDB.after");
 }

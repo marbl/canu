@@ -49,7 +49,7 @@ public:
     _mspThresh2 = t;
   };
 
-  void  setMSPLimitAbsolute(u32bit t) {
+  void  setMSPLimitAbsolute(uint32 t) {
     _mspLimitAbsolute = t;
   };
   void  setMSPLimitPercent(double p) {
@@ -158,7 +158,7 @@ private:
   //  For aborting expensive polishes
   //
   double        _mspLimitPercent;   //  Same as below, as percentage of length of cDNA
-  u32bit        _mspLimitAbsolute;  //  Number of MSPs allowed per hit
+  uint32        _mspLimitAbsolute;  //  Number of MSPs allowed per hit
 
   int           _relinkWeight;
 

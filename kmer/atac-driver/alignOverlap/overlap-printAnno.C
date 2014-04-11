@@ -19,21 +19,21 @@
 #include "overlap.H"
 
 void
-printAnno(FILE *F, annoList *AL, u32bit &ALlen,
+printAnno(FILE *F, annoList *AL, uint32 &ALlen,
           char label,
-          u32bit axis,
+          uint32 axis,
           span_t *span,
-          u32bit match1, atacMatch *m1,
-          u32bit match2, atacMatch *m2) {
+          uint32 match1, atacMatch *m1,
+          uint32 match2, atacMatch *m2) {
 
   //  If we're just given match1, make it match2 if it is the second mapping
   //
-  if ((match1 >> COLORSHIFT) && (match2 == u32bitZERO)) {
+  if ((match1 >> COLORSHIFT) && (match2 == uint32ZERO)) {
     match2 = match1; m2 = m1;
     match1 = 0;      m1 = 0;
   }
 
-  u32bit len  = span->_end - span->_beg;
+  uint32 len  = span->_end - span->_beg;
 
   //  axis is 1 or 2; if we're the first axis (B35 centric) make a
   //  list of the matches for later processing
@@ -43,52 +43,52 @@ printAnno(FILE *F, annoList *AL, u32bit &ALlen,
                     match1 & COLORMASK, m1,
                     match2 & COLORMASK, m2);
 
-  fprintf(F, "%c "u32bitFMTW(4)":"u32bitFMTW(09)"-"u32bitFMTW(09)"["u32bitFMTW(6)"] ",
+  fprintf(F, "%c "uint32FMTW(4)":"uint32FMTW(09)"-"uint32FMTW(09)"["uint32FMTW(6)"] ",
           label,
           span->_iid, span->_beg, span->_end, len);
 
   if (m1) {
     fprintf(F, "%s ", m1->matchuid);
-    u32bit off1 = span->_beg - m1->pos1;
+    uint32 off1 = span->_beg - m1->pos1;
 
     if (axis == 1) {
-      u32bit  sta = m1->pos2 + off1;
-      u32bit  end = m1->pos2 + off1 + len;
+      uint32  sta = m1->pos2 + off1;
+      uint32  end = m1->pos2 + off1 + len;
 
       if (m1->fwd2 == 0) {
         sta = m1->pos2 + m1->len2 - off1;
         end = m1->pos2 + m1->len2 - off1 - len;
       }
 
-      fprintf(F, "("u32bitFMTW(8)": "u32bitFMTW(9)"-"u32bitFMTW(9)") ", m1->iid2, sta, end);
+      fprintf(F, "("uint32FMTW(8)": "uint32FMTW(9)"-"uint32FMTW(9)") ", m1->iid2, sta, end);
     } else {
-      fprintf(F, "("u32bitFMTW(8)": "u32bitFMTW(9)"-"u32bitFMTW(9)") ", m1->iid1, m1->pos1 + off1, m1->pos1 + off1 + len);
+      fprintf(F, "("uint32FMTW(8)": "uint32FMTW(9)"-"uint32FMTW(9)") ", m1->iid1, m1->pos1 + off1, m1->pos1 + off1 + len);
     }
   } else {
-    fprintf(F, u32bitFMTW(07)" ", u32bitZERO);
-    fprintf(F, "("u32bitFMTW(8)": "u32bitFMTW(9)"-"u32bitFMTW(9)") ", u32bitZERO, u32bitZERO, u32bitZERO);
+    fprintf(F, uint32FMTW(07)" ", uint32ZERO);
+    fprintf(F, "("uint32FMTW(8)": "uint32FMTW(9)"-"uint32FMTW(9)") ", uint32ZERO, uint32ZERO, uint32ZERO);
   }
 
   if (m2) {
     fprintf(F, "%s ", m2->matchuid);
-    u32bit off2 = span->_beg - m2->pos1;
+    uint32 off2 = span->_beg - m2->pos1;
 
     if (axis == 1) {
-      u32bit  sta = m2->pos2 + off2;
-      u32bit  end = m2->pos2 + off2 + len;
+      uint32  sta = m2->pos2 + off2;
+      uint32  end = m2->pos2 + off2 + len;
       
       if (m2->fwd2 == 0) {
         sta = m2->pos2 + m2->len2 - off2;
         end = m2->pos2 + m2->len2 - off2 - len;
       }
 
-      fprintf(F, "("u32bitFMTW(8)": "u32bitFMTW(9)"-"u32bitFMTW(9)") ", m2->iid2, sta, end);
+      fprintf(F, "("uint32FMTW(8)": "uint32FMTW(9)"-"uint32FMTW(9)") ", m2->iid2, sta, end);
     } else {
-      fprintf(F, "("u32bitFMTW(8)": "u32bitFMTW(9)"-"u32bitFMTW(9)") ", m2->iid1, m2->pos1 + off2, m2->pos1 + off2 + len);
+      fprintf(F, "("uint32FMTW(8)": "uint32FMTW(9)"-"uint32FMTW(9)") ", m2->iid1, m2->pos1 + off2, m2->pos1 + off2 + len);
     }
   } else {
-    fprintf(F, u32bitFMTW(07)" ", u32bitZERO);
-    fprintf(F, "("u32bitFMTW(8)": "u32bitFMTW(9)"-"u32bitFMTW(9)") ", u32bitZERO, u32bitZERO, u32bitZERO);
+    fprintf(F, uint32FMTW(07)" ", uint32ZERO);
+    fprintf(F, "("uint32FMTW(8)": "uint32FMTW(9)"-"uint32FMTW(9)") ", uint32ZERO, uint32ZERO, uint32ZERO);
   }
 
   fprintf(F, "\n");

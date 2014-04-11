@@ -54,7 +54,7 @@ seqStore::~seqStore() {
 
 seqFile *
 seqStore::openFile(const char *filename) {
-  u64bit         magic1, magic2;
+  uint64         magic1, magic2;
   struct stat    st;
 
   errno = 0;
@@ -70,8 +70,8 @@ seqStore::openFile(const char *filename) {
   FILE *F = fopen(filename, "r");
   if (errno)
     return(0L);
-  fread(&magic1, sizeof(u64bit), 1, F);
-  fread(&magic2, sizeof(u64bit), 1, F);
+  fread(&magic1, sizeof(uint64), 1, F);
+  fread(&magic2, sizeof(uint64), 1, F);
   fclose(F);
   if ((magic1 != SEQSTORE_MAGICNUMBER1) || (magic2 != SEQSTORE_MAGICNUMBER2))
     return(0L);
@@ -86,7 +86,7 @@ seqStore::openFile(const char *filename) {
 //
 //  Similar code is used for fastaFile::find()
 //
-u32bit
+uint32
 seqStore::find(const char *sequencename) {
 
   if (_names == NULL)
@@ -94,7 +94,7 @@ seqStore::find(const char *sequencename) {
 
   char   *ptr = _names;
 
-  for (u32bit iid=0; iid < _header._numberOfSequences; iid++) {
+  for (uint32 iid=0; iid < _header._numberOfSequences; iid++) {
     if (strcmp(sequencename, ptr) == 0)
       return(iid);
 
@@ -103,13 +103,13 @@ seqStore::find(const char *sequencename) {
     ptr++;
   }
 
-  return(~u32bitZERO);
+  return(~uint32ZERO);
 }
 
 
 
-u32bit
-seqStore::getSequenceLength(u32bit iid) {
+uint32
+seqStore::getSequenceLength(uint32 iid) {
   if (_index == NULL)
     loadIndex();
   return((iid < _header._numberOfSequences) ? _index[iid]._seqLength : 0);
@@ -118,15 +118,15 @@ seqStore::getSequenceLength(u32bit iid) {
 
 
 bool
-seqStore::getSequence(u32bit iid,
-                      char *&h, u32bit &hLen, u32bit &hMax,
-                      char *&s, u32bit &sLen, u32bit &sMax) {
+seqStore::getSequence(uint32 iid,
+                      char *&h, uint32 &hLen, uint32 &hMax,
+                      char *&s, uint32 &sLen, uint32 &sMax) {
 
   if (_index == NULL)
     loadIndex();
 
   if (iid >= _header._numberOfSequences) {
-    fprintf(stderr, "seqStore::getSequence(full)--  iid "u32bitFMT" more than number of sequences "u32bitFMT"\n",
+    fprintf(stderr, "seqStore::getSequence(full)--  iid "uint32FMT" more than number of sequences "uint32FMT"\n",
             iid, _header._numberOfSequences);
     return(false);
   }
@@ -157,9 +157,9 @@ seqStore::getSequence(u32bit iid,
 
   //  Decode and copy the sequence into s
 
-  u32bit seqLen  = _index[iid]._seqLength;
-  u32bit block   = _index[iid]._block;
-  u64bit seekpos = _index[iid]._seqPosition * 2;
+  uint32 seqLen  = _index[iid]._seqLength;
+  uint32 block   = _index[iid]._block;
+  uint64 seekpos = _index[iid]._seqPosition * 2;
 
   _bpf->seek(seekpos);
 
@@ -171,7 +171,7 @@ seqStore::getSequence(u32bit iid,
       memset(s + sLen, 'N', _block[block]._len);
       sLen += _block[block]._len;
     } else {
-      for (u32bit xx=0; xx<_block[block]._len; xx++) {
+      for (uint32 xx=0; xx<_block[block]._len; xx++) {
         s[sLen++] = bitsToLetter[_bpf->getBits(2)];
       }
     }
@@ -187,29 +187,29 @@ seqStore::getSequence(u32bit iid,
 
 
 bool
-seqStore::getSequence(u32bit iid,
-                      u32bit bgn, u32bit end, char *s) {
+seqStore::getSequence(uint32 iid,
+                      uint32 bgn, uint32 end, char *s) {
 
   if (_index == NULL)
     loadIndex();
 
   if (iid >= _header._numberOfSequences) {
-    fprintf(stderr, "seqStore::getSequence(part)--  iid "u32bitFMT" more than number of sequences "u32bitFMT"\n",
+    fprintf(stderr, "seqStore::getSequence(part)--  iid "uint32FMT" more than number of sequences "uint32FMT"\n",
             iid, _header._numberOfSequences);
     return(false);
   }
 
   if (bgn >= end) {
-    fprintf(stderr, "seqStore::getSequence(part)--  for iid "u32bitFMT"; invalid bgn="u32bitFMT" end="u32bitFMT"; seqLen="u32bitFMT"\n",
+    fprintf(stderr, "seqStore::getSequence(part)--  for iid "uint32FMT"; invalid bgn="uint32FMT" end="uint32FMT"; seqLen="uint32FMT"\n",
             iid, bgn, end, _index[iid]._seqLength);
     return(false);
   }
 
   //  Decode and copy the sequence into s
 
-  u32bit block  = _index[iid]._block;
-  u32bit sLen   = 0;  //  length of sequence we've copied
-  u32bit sPos   = 0;  //  position in the sequence
+  uint32 block  = _index[iid]._block;
+  uint32 sLen   = 0;  //  length of sequence we've copied
+  uint32 sPos   = 0;  //  position in the sequence
 
   //  Skip blocks before we care.
   //
@@ -226,7 +226,7 @@ seqStore::getSequence(u32bit iid,
   //  Handle the partial block.  Copy what is left in the block, or
   //  the requested size, whichever is smaller.
 
-  u32bit partLen = MIN((_block[block]._pos + _block[block]._len - bgn),
+  uint32 partLen = MIN((_block[block]._pos + _block[block]._len - bgn),
                        (end - bgn));
 
   if (_block[block]._isACGT == 0) {
@@ -236,7 +236,7 @@ seqStore::getSequence(u32bit iid,
   } else {
     _bpf->seek((_block[block]._bpf + bgn - _block[block]._pos) * 2);
 
-    for (u32bit xx=0; xx<partLen; xx++)
+    for (uint32 xx=0; xx<partLen; xx++)
       s[sLen++] = bitsToLetter[_bpf->getBits(2)];
   }
 
@@ -257,7 +257,7 @@ seqStore::getSequence(u32bit iid,
       memset(s + sLen, 'N', partLen);
       sLen += partLen;
     } else {
-      for (u32bit xx=0; xx<partLen; xx++)
+      for (uint32 xx=0; xx<partLen; xx++)
         s[sLen++] = bitsToLetter[_bpf->getBits(2)];
     }
 
@@ -294,7 +294,7 @@ seqStore::clear(void) {
   _blockBPF = 0L;
   _namesBPF = 0L;
 
-  _lastIIDloaded = ~u32bitZERO;
+  _lastIIDloaded = ~uint32ZERO;
 }
 
 
@@ -317,9 +317,9 @@ seqStore::loadIndex(void) {
 
   fread(&_header,   sizeof(seqStoreHeader), 1, F);
 
-  //fprintf(stderr, "seqStore::seqStore()--  Allocating space for "u32bitFMT" sequences ("u64bitFMT"MB)\n", _header._numberOfSequences, _header._numberOfSequences * sizeof(seqStoreIndex) / 1024 / 1024);
-  //fprintf(stderr, "seqStore::seqStore()--  Allocating space for "u32bitFMT" blocks    ("u64bitFMT"MB)\n", _header._numberOfBlocks,    _header._numberOfBlocks    * sizeof(seqStoreBlock) / 1024 / 1024);
-  //fprintf(stderr, "seqStore::seqStore()--  Allocating space for "u32bitFMT" labels    ("u64bitFMT"MB)\n", _header._namesLength,       _header._namesLength       * sizeof(char)          / 1024 / 1024);
+  //fprintf(stderr, "seqStore::seqStore()--  Allocating space for "uint32FMT" sequences ("uint64FMT"MB)\n", _header._numberOfSequences, _header._numberOfSequences * sizeof(seqStoreIndex) / 1024 / 1024);
+  //fprintf(stderr, "seqStore::seqStore()--  Allocating space for "uint32FMT" blocks    ("uint64FMT"MB)\n", _header._numberOfBlocks,    _header._numberOfBlocks    * sizeof(seqStoreBlock) / 1024 / 1024);
+  //fprintf(stderr, "seqStore::seqStore()--  Allocating space for "uint32FMT" labels    ("uint64FMT"MB)\n", _header._namesLength,       _header._namesLength       * sizeof(char)          / 1024 / 1024);
 
   _index = new seqStoreIndex [_header._numberOfSequences];
   _block = new seqStoreBlock [_header._numberOfBlocks];
@@ -329,7 +329,7 @@ seqStore::loadIndex(void) {
   fread( _index,   sizeof(seqStoreIndex), _header._numberOfSequences, F);
 
 #if 0
-  for (u32bit i=0; i<_header._numberOfSequences; i++)
+  for (uint32 i=0; i<_header._numberOfSequences; i++)
     fprintf(stderr, "IDX[%4u] hdrPos=%u hdrLen=%u seqPos=%llu seqLen=%u block=%u\n",
             i,
             _index[i]._hdrPosition,
@@ -366,13 +366,13 @@ seqStore::loadIndex(void) {
 
 static
 void
-addSeqStoreBlock(u32bit          &BLOKmax,
-                 u32bit          &BLOKlen,
+addSeqStoreBlock(uint32          &BLOKmax,
+                 uint32          &BLOKlen,
                  seqStoreBlock*  &BLOK,
                  seqStoreBlock   &b,
-                 u32bit          &nBlockACGT,
-                 u32bit          &nBlockGAP,
-                 u64bit          &nACGT) {
+                 uint32          &nBlockACGT,
+                 uint32          &nBlockGAP,
+                 uint64          &nACGT) {
 
   //fprintf(stderr, "addSeqStoreBlock()-- BLOK max=%u len=%u ACGT=%u GAP=%u nACGT=%lu\n",
   //        BLOKmax, BLOKlen, nBlockACGT, nBlockGAP, nACGT);
@@ -411,23 +411,23 @@ constructSeqStore(char *filename, seqCache *inputseq) {
 
   bitPackedFile    *DATA    = new bitPackedFile(filename, sizeof(seqStoreHeader), true);
 
-  u32bit            INDXmax = 1048576;
+  uint32            INDXmax = 1048576;
   seqStoreIndex    *INDX    = new seqStoreIndex [INDXmax];
 
-  u32bit            BLOKmax = 1048576;
-  u32bit            BLOKlen = 0;
+  uint32            BLOKmax = 1048576;
+  uint32            BLOKlen = 0;
   seqStoreBlock    *BLOK    = new seqStoreBlock [BLOKmax];
 
-  u32bit            NAMEmax = 32 * 1024 * 1024;
-  u32bit            NAMElen = 0;
+  uint32            NAMEmax = 32 * 1024 * 1024;
+  uint32            NAMElen = 0;
   char             *NAME    = new char [NAMEmax];
 
   seqInCore        *sic        = inputseq->getSequenceInCore();
 
-  u64bit            nACGT      = 0;
-  u32bit            nBlockACGT = 0;
-  u32bit            nBlockGAP  = 0;
-  u32bit            nSequences = 0;
+  uint64            nACGT      = 0;
+  uint32            nBlockACGT = 0;
+  uint32            nBlockGAP  = 0;
+  uint32            nSequences = 0;
 
   speedCounter      C(" reading sequences %7.0f sequences -- %5.0f sequences/second\r", 1.0, 0x1ffff, true);
 
@@ -460,11 +460,11 @@ constructSeqStore(char *filename, seqCache *inputseq) {
 #endif
 
       if (sic->sequenceLength() > SEQSTOREBLOCK_MAXPOS)
-        fprintf(stderr, "constructSeqStore()-- sequence %s too long, must be shorter than "u64bitFMT" Gbp.\n",
+        fprintf(stderr, "constructSeqStore()-- sequence %s too long, must be shorter than "uint64FMT" Gbp.\n",
                 sic->header(), SEQSTOREBLOCK_MAXPOS / 1024 / 1024 / 1024), exit(1);
 
       if (sic->getIID() > SEQSTOREBLOCK_MAXPOS)
-        fprintf(stderr, "constructSeqStore()-- too many sequences, must be fewer than "u64bitFMT".\n",
+        fprintf(stderr, "constructSeqStore()-- too many sequences, must be fewer than "uint64FMT".\n",
                 SEQSTOREBLOCK_MAXIID), exit(1);
 
       if (NAMElen + sic->headerLength() + 1 > NAMEmax) {
@@ -483,8 +483,8 @@ constructSeqStore(char *filename, seqCache *inputseq) {
       b._len    = 0;
       b._bpf    = DATA->tell() / 2;
 
-      for (u32bit p=0; p<sic->sequenceLength(); p++) {
-        u64bit   bits = letterToBits[seq[p]];
+      for (uint32 p=0; p<sic->sequenceLength(); p++) {
+        uint64   bits = letterToBits[seq[p]];
 
         //  If the length of the current block is too big (which would
         //  soon overflow the bit field storing length) write out a
@@ -560,8 +560,8 @@ constructSeqStore(char *filename, seqCache *inputseq) {
   //  full).
 
   BLOK[BLOKlen]._isACGT = 0;
-  BLOK[BLOKlen]._iid    = u32bitMASK(32);
-  BLOK[BLOKlen]._pos    = u32bitMASK(31);
+  BLOK[BLOKlen]._iid    = uint32MASK(32);
+  BLOK[BLOKlen]._pos    = uint32MASK(31);
   BLOK[BLOKlen]._len    = 0;
   BLOK[BLOKlen]._bpf    = DATA->tell() / 2;
 
@@ -573,16 +573,16 @@ constructSeqStore(char *filename, seqCache *inputseq) {
 
   HEAD._magic[0]           = SEQSTORE_MAGICNUMBER1;
   HEAD._magic[1]           = SEQSTORE_MAGICNUMBER2;
-  HEAD._pad                = u32bitZERO;
+  HEAD._pad                = uint32ZERO;
   HEAD._numberOfSequences  = nSequences;
   HEAD._numberOfACGT       = nACGT;
   HEAD._numberOfBlocksACGT = nBlockACGT;
   HEAD._numberOfBlocksGAP  = nBlockGAP;
   HEAD._numberOfBlocks     = BLOKlen;
   HEAD._namesLength        = NAMElen;
-  HEAD._indexStart         = u64bitZERO;
-  HEAD._blockStart         = u64bitZERO;
-  HEAD._namesStart         = u64bitZERO;
+  HEAD._indexStart         = uint64ZERO;
+  HEAD._blockStart         = uint64ZERO;
+  HEAD._namesStart         = uint64ZERO;
 
   errno = 0;
   FILE *F = fopen(filename, "r+");
@@ -617,6 +617,6 @@ constructSeqStore(char *filename, seqCache *inputseq) {
 
   //  ESTmapper depends on this output.
 
-  fprintf(stderr, "constructSeqStore()-- seqStore '%s' constructed ("u32bitFMT" sequences, "u64bitFMT" ACGT letters, "u32bitFMT" ACGT blocks, "u32bitFMT" GAP blocks).\n",
+  fprintf(stderr, "constructSeqStore()-- seqStore '%s' constructed ("uint32FMT" sequences, "uint64FMT" ACGT letters, "uint32FMT" ACGT blocks, "uint32FMT" GAP blocks).\n",
           filename, HEAD._numberOfSequences, HEAD._numberOfACGT, HEAD._numberOfBlocksACGT, HEAD._numberOfBlocksGAP);
 }

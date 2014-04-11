@@ -17,7 +17,7 @@ void   ahit_readBinary(aHit *a, readBuffer *F) {
 }
 
 void   ahit_printASCII(aHit *a, FILE *F) {
-  fprintf(F, "-%c -e "u32bitFMT" -D "u32bitFMT" "u32bitFMT" "u32bitFMT" -M "u32bitFMT" "u32bitFMT" "u32bitFMT"\n",
+  fprintf(F, "-%c -e "uint32FMT" -D "uint32FMT" "uint32FMT" "uint32FMT" -M "uint32FMT" "uint32FMT" "uint32FMT"\n",
           a->_forward ? 'f' : 'r',
           a->_qsIdx,
           a->_dsIdx,
@@ -69,7 +69,7 @@ void   ahit_parseString(aHit *a, char *b) {
   if (c[2] != 'e')  fprintf(stderr, "'%s' didn't get -e\n", b);
 
   c += 4;
-  a->_qsIdx     = (u32bit)strtoul(c, &c, 10);
+  a->_qsIdx     = (uint32)strtoul(c, &c, 10);
 
   //  If we get a "-D" next then we are reading search output,
   //  otherwise, we are (hopefully) reading seatac output.
@@ -79,15 +79,15 @@ void   ahit_parseString(aHit *a, char *b) {
     //  searchGENOME format here!
 
     c += 4;
-    a->_dsIdx     = (u32bit)strtoul(c, &c, 10);
-    a->_dsLo      = (u32bit)strtoul(c, &c, 10);
-    a->_dsHi      = (u32bit)strtoul(c, &c, 10);
+    a->_dsIdx     = (uint32)strtoul(c, &c, 10);
+    a->_dsLo      = (uint32)strtoul(c, &c, 10);
+    a->_dsHi      = (uint32)strtoul(c, &c, 10);
 
     if (c[2] == 'M') {
       c += 4;
-      a->_covered   = (u32bit)strtoul(c, &c, 10);
-      a->_matched   = (u32bit)strtoul(c, &c, 10);
-      a->_numMers   = (u32bit)strtoul(c, &c, 10);
+      a->_covered   = (uint32)strtoul(c, &c, 10);
+      a->_matched   = (uint32)strtoul(c, &c, 10);
+      a->_numMers   = (uint32)strtoul(c, &c, 10);
     } else {
       a->_covered   = 0;
       a->_matched   = 0;
@@ -104,16 +104,16 @@ void   ahit_parseString(aHit *a, char *b) {
     //  matched are the regions on the first sequence, and numMers
     //  is the "F" value.
 
-    a->_covered   = (u32bit)strtoul(c, &c, 10);
-    a->_matched   = (u32bit)strtoul(c, &c, 10);
+    a->_covered   = (uint32)strtoul(c, &c, 10);
+    a->_matched   = (uint32)strtoul(c, &c, 10);
 
     c += 4;
-    a->_dsIdx     = (u32bit)strtoul(c, &c, 10);
-    a->_dsLo      = (u32bit)strtoul(c, &c, 10);
-    a->_dsHi      = (u32bit)strtoul(c, &c, 10);
+    a->_dsIdx     = (uint32)strtoul(c, &c, 10);
+    a->_dsLo      = (uint32)strtoul(c, &c, 10);
+    a->_dsHi      = (uint32)strtoul(c, &c, 10);
 
     c += 4;
-    a->_numMers   = (u32bit)strtoul(c, &c, 10);
+    a->_numMers   = (uint32)strtoul(c, &c, 10);
 #endif
   }
 }

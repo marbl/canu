@@ -9,11 +9,11 @@
 //  Filters a hit file based on the length of the genomic region
 
 typedef struct {
-  u32bit dir;
-  u32bit estID;
-  u32bit scfID;
-  u32bit scfLo;
-  u32bit scfHi;
+  uint32 dir;
+  uint32 estID;
+  uint32 scfID;
+  uint32 scfLo;
+  uint32 scfHi;
 } hit_s;
 
 

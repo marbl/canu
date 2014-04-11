@@ -12,28 +12,28 @@
 
 //  Global statistics
 //
-u32bit  hitsSaved     = 0;
-u32bit  hitsFiltered  = 0;
-u32bit  hitsUnknown   = 0;
-u32bit  hitsTotal     = 0;
+uint32  hitsSaved     = 0;
+uint32  hitsFiltered  = 0;
+uint32  hitsUnknown   = 0;
+uint32  hitsTotal     = 0;
 
-u32bit  seqsMapped    = 0;  //  Sequences that we mapped
-u32bit  seqsPartial   = 0;  //  Sequences that we mapped, but missed a few good matches
-u32bit  seqsMissed    = 0;  //  Sequences that we failed to map, but should have
+uint32  seqsMapped    = 0;  //  Sequences that we mapped
+uint32  seqsPartial   = 0;  //  Sequences that we mapped, but missed a few good matches
+uint32  seqsMissed    = 0;  //  Sequences that we failed to map, but should have
 
-u32bit  filterTP      = 0;
-u32bit  filterFP      = 0;
-u32bit  filterFNfilt  = 0;  //  false negatives from filtering
-u32bit  filterFNunk   = 0;  //  false negatives from our failure to classify
-u32bit  filterTN      = 0;
+uint32  filterTP      = 0;
+uint32  filterFP      = 0;
+uint32  filterFNfilt  = 0;  //  false negatives from filtering
+uint32  filterFNunk   = 0;  //  false negatives from our failure to classify
+uint32  filterTN      = 0;
 
-u32bit  goodPercentID = 94;
-u32bit  goodCoverage  = 50;
+uint32  goodPercentID = 94;
+uint32  goodCoverage  = 50;
 
 //  Command line options
 //
-u32bit       uniqThresh         = 200;  //  Used to be 100
-u32bit       reptThresh         = 200;  //  Used to be 100
+uint32       uniqThresh         = 200;  //  Used to be 100
+uint32       reptThresh         = 200;  //  Used to be 100
 
 FILE        *logFile            = 0L;
 
@@ -41,39 +41,39 @@ FILE        *logFile            = 0L;
 //
 //  bool   decided    -- true if the filter could decide on how to filter the hits
 //  char   label      -- if decided, the name of the decider
-//  u32bit hitsToSave -- the number of hits to save
+//  uint32 hitsToSave -- the number of hits to save
 //  double qualToSave -- the quality threshold to filter at
 //
 bool         decided;
 const char  *label;
-u32bit       hitsToSave;
+uint32       hitsToSave;
 double       qualToSave;
 
 
 
 
 void
-report(u32bit iid
+report(uint32 iid
 #ifdef WITH_ANSWERS
        ,
-       u32bit filterTP,
-       u32bit filterFP,
-       u32bit filterFNfilt,
-       u32bit filterFNunk,
-       u32bit filterTN,
-       u32bit seqsMapped,
-       u32bit seqsPartial,
-       u32bit seqsMissed
+       uint32 filterTP,
+       uint32 filterFP,
+       uint32 filterFNfilt,
+       uint32 filterFNunk,
+       uint32 filterTN,
+       uint32 seqsMapped,
+       uint32 seqsPartial,
+       uint32 seqsMissed
 #endif
        ) {
 
   fprintf(stderr,
-          u32bitFMTW(9)"]"
+          uint32FMTW(9)"]"
 #ifdef WITH_ANSWERS
-          "  tp="u32bitFMTW(7)" fp="u32bitFMTW(7)" fnfilt="u32bitFMTW(7)" fnunkn="u32bitFMTW(7)" tn="u32bitFMTW(7)
-          "  yea:"u32bitFMTW(7)" may:"u32bitFMTW(7)" nay:"u32bitFMTW(7)
+          "  tp="uint32FMTW(7)" fp="uint32FMTW(7)" fnfilt="uint32FMTW(7)" fnunkn="uint32FMTW(7)" tn="uint32FMTW(7)
+          "  yea:"uint32FMTW(7)" may:"uint32FMTW(7)" nay:"uint32FMTW(7)
 #endif
-          "  hits saved:"u32bitFMTW(8)"/"u32bitFMTW(8)" = %6.3f%%\r",
+          "  hits saved:"uint32FMTW(8)"/"uint32FMTW(8)" = %6.3f%%\r",
           iid,
 #ifdef WITH_ANSWERS
           filterTP, filterFP, filterFNfilt, filterFNunk, filterTN,
@@ -164,10 +164,10 @@ main(int argc, char **argv) {
 #ifdef WITH_ANSWERS
       //  We've failed to classify all these hits, so anythig that looks good is a false negative
       //
-      for (u32bit i=0; i < HR.numHits(); i++)
+      for (uint32 i=0; i < HR.numHits(); i++)
         if ((HR[i].mappedCoverage >= goodCoverage) && (HR[i].mappedIdentity >= goodPercentID)) {
           if (logFile) {
-            fprintf(logFile, "FAILUNKN hit="u32bitFMTW(3)" id=%2d cv=%2d COV=%5.3f MUL=%5.3f: ", i, HR[i].mappedIdentity, HR[i].mappedCoverage, HR[i].coverage, HR[i].multiplicity);
+            fprintf(logFile, "FAILUNKN hit="uint32FMTW(3)" id=%2d cv=%2d COV=%5.3f MUL=%5.3f: ", i, HR[i].mappedIdentity, HR[i].mappedCoverage, HR[i].coverage, HR[i].multiplicity);
             ahit_printASCII(&HR[i].a, logFile);
           }
           filterFNunk++;
@@ -178,7 +178,7 @@ main(int argc, char **argv) {
 #endif
 
     } else {
-      for (u32bit i=0; i < HR.numHits(); i++) {
+      for (uint32 i=0; i < HR.numHits(); i++) {
         if ((i < hitsToSave) && (qualToSave <= HR[i].coverage)) {
           hitsSaved++;
           ahit_printASCII(&HR[i].a, stdout);
@@ -203,7 +203,7 @@ main(int argc, char **argv) {
           //
           if ((HR[i].mappedCoverage >= goodCoverage) && (HR[i].mappedIdentity >= goodPercentID)) {
             if (logFile) {
-              fprintf(logFile, "FAILFILT hit="u32bitFMTW(3)" id=%2d cv=%2d COV=%5.3f MUL=%5.3f: ", i, HR[i].mappedIdentity, HR[i].mappedCoverage, HR[i].coverage, HR[i].multiplicity);
+              fprintf(logFile, "FAILFILT hit="uint32FMTW(3)" id=%2d cv=%2d COV=%5.3f MUL=%5.3f: ", i, HR[i].mappedIdentity, HR[i].mappedCoverage, HR[i].coverage, HR[i].multiplicity);
               ahit_printASCII(&HR[i].a, logFile);
             }
             filterFNfilt++;
@@ -238,7 +238,7 @@ main(int argc, char **argv) {
     //
     if (fn > 0)
       if (logFile)
-        fprintf(logFile, u32bitFMT"] %sFALSENEGATIVE %10.10s  tp="u32bitFMTW(7)" fp="u32bitFMTW(7)" fn="u32bitFMTW(7)" tn="u32bitFMTW(7)"\n",
+        fprintf(logFile, uint32FMT"] %sFALSENEGATIVE %10.10s  tp="uint32FMTW(7)" fp="uint32FMTW(7)" fn="uint32FMTW(7)" tn="uint32FMTW(7)"\n",
                 HR.iid(),
                 (tp > 0) ? "partial" : "fatal",
                 label,

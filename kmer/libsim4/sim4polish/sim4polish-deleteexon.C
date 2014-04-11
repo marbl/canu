@@ -6,7 +6,7 @@
 #include <math.h>
 
 void
-sim4polish::s4p_deleteExon(u32bit a) {
+sim4polish::s4p_deleteExon(uint32 a) {
   char  *ed, *gd;
   int    editDistance    = 0;
   int    alignmentLength = 0;
@@ -47,7 +47,7 @@ sim4polish::s4p_deleteExon(u32bit a) {
   //  Shift all the exons down by one, and decrement the number of
   //  exons present in the list.
   //
-  for (u32bit i=a+1; i<_numExons; i++)
+  for (uint32 i=a+1; i<_numExons; i++)
     _exons[i-1] = _exons[i];
 
   _numExons--;
@@ -71,7 +71,7 @@ sim4polish::s4p_deleteExon(u32bit a) {
 
   _numCovered   = 0;
 
-  for (u32bit i=0; i<_numExons; i++) {
+  for (uint32 i=0; i<_numExons; i++) {
     ed = _exons[i]._estAlignment;
     gd = _exons[i]._genAlignment;
 

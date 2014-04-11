@@ -63,21 +63,21 @@ main(int argc, char *argv[]) {
   Acache.loadAllSequences();
   Bcache.loadAllSequences();
 
-  for (u32bit i=0; i<ML.numMatches(); i++) {
+  for (uint32 i=0; i<ML.numMatches(); i++) {
     atacMatch            *m = ML.getMatch(i);
 
-    u32bit identities = 0;
+    uint32 identities = 0;
 
     char  *a = Acache.getSequenceInCore(m->iid1)->sequence() + m->pos1;
     char  *b = Bcache.getSequenceInCore(m->iid2)->sequence() + m->pos2;
 
     if (m->fwd2) {
-      for (u32bit p=0; p<m->len1; p++) {
+      for (uint32 p=0; p<m->len1; p++) {
         if (toUpper[(int)a[p]] == toUpper[(int)b[p]])
           identities++;
       }
     } else {
-      for (u32bit p=0, q=m->len2-1; p<m->len1; p++, q--) {
+      for (uint32 p=0, q=m->len2-1; p<m->len1; p++, q--) {
         if (toUpper[(int)a[p]] == toUpper[complementSymbol[(int)b[q]]])
           identities++;
       }
@@ -86,7 +86,7 @@ main(int argc, char *argv[]) {
     double   myIdentity = (double)identities / m->len1;
 
     if (myIdentity < identityLimit) {
-      fprintf(stderr, "match "u32bitFMT" is only %6.2f%% identity:  ",
+      fprintf(stderr, "match "uint32FMT" is only %6.2f%% identity:  ",
               i, 100.0 * identities / m->len1);
       m->print(stderr, AF.labelA(), AF.labelB());
       if (m->len1 < 200) {

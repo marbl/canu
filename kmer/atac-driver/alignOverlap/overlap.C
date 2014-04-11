@@ -56,18 +56,18 @@ main(int argc, char **argv) {
   //  Initialize the tree of spans by inserting a single span for each
   //  sequence in the file.
   //
-  for (u32bit i=0; i<AF1->fastaA()->getNumberOfSequences(); i++)
+  for (uint32 i=0; i<AF1->fastaA()->getNumberOfSequences(); i++)
     S1->addNewSpan(i, AF1->fastaA()->getSequenceLength(i));
-  for (u32bit i=0; i<AF1->fastaB()->getNumberOfSequences(); i++)
+  for (uint32 i=0; i<AF1->fastaB()->getNumberOfSequences(); i++)
     S2->addNewSpan(i, AF1->fastaB()->getSequenceLength(i));
 
   //  Add every match to the spanTrees.
 
-  for (u32bit i=0; i<M1->numberOfMatches(); i++) {
+  for (uint32 i=0; i<M1->numberOfMatches(); i++) {
     S1->addMatch(M1->getMatch(i), 0, 0);
     S2->addMatch(M1->getMatch(i), 1, 0);
   }
-  for (u32bit i=0; i<M2->numberOfMatches(); i++) {
+  for (uint32 i=0; i<M2->numberOfMatches(); i++) {
     S1->addMatch(M2->getMatch(i), 0, 1);
     S2->addMatch(M2->getMatch(i), 1, 1);
   }
@@ -95,8 +95,8 @@ main(int argc, char **argv) {
   FILE *outfile;
 
   overlapStats  statsA;
-  u32bit     ALmax = (u32bit)dict_count(S1->_tree);
-  u32bit     ALlen = 0;
+  uint32     ALmax = (uint32)dict_count(S1->_tree);
+  uint32     ALlen = 0;
   annoList  *AL    = new annoList [ ALmax ];
 
   sprintf(outname, "%s.map1annotation", OP);
@@ -108,8 +108,8 @@ main(int argc, char **argv) {
   fclose(outfile);
 
   overlapStats  statsB;
-  u32bit     BLmax = (u32bit)dict_count(S1->_tree);
-  u32bit     BLlen = 0;
+  uint32     BLmax = (uint32)dict_count(S1->_tree);
+  uint32     BLlen = 0;
   annoList  *BL    = new annoList [ ALmax ];
 
   sprintf(outname, "%s.map2annotation", OP);
@@ -120,13 +120,13 @@ main(int argc, char **argv) {
   process2(outfile, S2, M1, M2, statsB, BL, BLlen, BLmax);
   fclose(outfile);
 
-  fprintf(stderr, "unmapped:           A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", statsA.unmapped.getSum(),     statsB.unmapped.getSum());
-  fprintf(stderr, "unique mapping 1:   A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", statsA.map1unique.getSum(),   statsB.map1unique.getSum());
-  fprintf(stderr, "unique mapping 2:   A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", statsA.map2unique.getSum(),   statsB.map2unique.getSum());
-  fprintf(stderr, "different:          A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", statsA.different.getSum(),    statsB.different.getSum());
-  fprintf(stderr, "wild diff:          A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", statsA.wilddiff.getSum(),     statsB.wilddiff.getSum());
-  fprintf(stderr, "same:               A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", statsA.same.getSum(),         statsB.same.getSum());
-  fprintf(stderr, "inconsistent:       A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", statsA.inconsistent.getSum(), statsB.inconsistent.getSum());
+  fprintf(stderr, "unmapped:           A:"uint32FMTW(10)" B:"uint32FMTW(10)"\n", statsA.unmapped.getSum(),     statsB.unmapped.getSum());
+  fprintf(stderr, "unique mapping 1:   A:"uint32FMTW(10)" B:"uint32FMTW(10)"\n", statsA.map1unique.getSum(),   statsB.map1unique.getSum());
+  fprintf(stderr, "unique mapping 2:   A:"uint32FMTW(10)" B:"uint32FMTW(10)"\n", statsA.map2unique.getSum(),   statsB.map2unique.getSum());
+  fprintf(stderr, "different:          A:"uint32FMTW(10)" B:"uint32FMTW(10)"\n", statsA.different.getSum(),    statsB.different.getSum());
+  fprintf(stderr, "wild diff:          A:"uint32FMTW(10)" B:"uint32FMTW(10)"\n", statsA.wilddiff.getSum(),     statsB.wilddiff.getSum());
+  fprintf(stderr, "same:               A:"uint32FMTW(10)" B:"uint32FMTW(10)"\n", statsA.same.getSum(),         statsB.same.getSum());
+  fprintf(stderr, "inconsistent:       A:"uint32FMTW(10)" B:"uint32FMTW(10)"\n", statsA.inconsistent.getSum(), statsB.inconsistent.getSum());
 
   //  Dump the histograms for each of the labelings
   //

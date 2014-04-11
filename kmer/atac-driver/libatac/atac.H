@@ -81,8 +81,8 @@ private:
   FILE        *_inFile;
   char         _inLine[1024];
 
-  u32bit       _theMatchIID;
-  u32bit       _theFeatureIID;
+  uint32       _theMatchIID;
+  uint32       _theFeatureIID;
 
   atacMatch    _theMatch;
   atacFeature  _theFeature;
@@ -103,12 +103,12 @@ public:
   void         writeHeader(FILE *out);
 
 private:
-  u32bit       _filesLen;
-  u32bit       _filesMax;
+  uint32       _filesLen;
+  uint32       _filesMax;
   afsm        *_files;
 
-  u32bit       _theMatchIID;
-  u32bit       _theFeatureIID;
+  uint32       _theMatchIID;
+  uint32       _theFeatureIID;
 };
 
 

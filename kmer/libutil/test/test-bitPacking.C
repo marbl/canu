@@ -29,37 +29,37 @@ testBinaryEncoding(void) {
   time_t     mtseed     = time(0L);
   mt_s      *mtctx      = 0L;
 
-  u32bit     iterations = TEST_LENGTH;
+  uint32     iterations = TEST_LENGTH;
 
-  u64bit    *bits        = new u64bit [iterations + 2];
-  u64bit     bpos        = u64bitZERO;
+  uint64    *bits        = new uint64 [iterations + 2];
+  uint64     bpos        = uint64ZERO;
 
-  u64bit    *V           = new u64bit [iterations];
-  u64bit    *C           = new u64bit [iterations];
-  u64bit    *S           = new u64bit [iterations];
+  uint64    *V           = new uint64 [iterations];
+  uint64    *C           = new uint64 [iterations];
+  uint64    *S           = new uint64 [iterations];
 
-  u32bit     failed      = 0;
-  u32bit     errors      = 0;
+  uint32     failed      = 0;
+  uint32     errors      = 0;
 
   fprintf(stderr, "Starting test of binary encoding\n");
 
-  bpos   = u64bitZERO;
+  bpos   = uint64ZERO;
   mtctx = mtInit(mtseed);
 
   //  Build some values to stuff into the bits
 
-  for (u32bit j=0; j < iterations; j++) {
+  for (uint32 j=0; j < iterations; j++) {
     S[j] = (mtRandom32(mtctx) % 63) + 1;
-    V[j] = mtRandom64(mtctx) & u64bitMASK(S[j]);
-    //fprintf(stderr, "[%2d] S="u64bitFMT" V="u64bitHEX"\n", j, S[j], V[j]);
+    V[j] = mtRandom64(mtctx) & uint64MASK(S[j]);
+    //fprintf(stderr, "[%2d] S="uint64FMT" V="uint64HEX"\n", j, S[j], V[j]);
   }
 
   //  Stuff them in, in blocks of some size.  At the same time, decode
   //  (this has found bugs in the past).
 
   failed = 0;
-  for (u32bit j=0; j < iterations; ) {
-    u64bit num = (mtRandom32(mtctx) % 8);
+  for (uint32 j=0; j < iterations; ) {
+    uint64 num = (mtRandom32(mtctx) % 8);
 
     if (j + num > iterations)
       num = iterations - j;
@@ -67,16 +67,16 @@ testBinaryEncoding(void) {
     if (num == 0) {
       setDecodedValue(bits, bpos, S[j], V[j]);
       C[j] = getDecodedValue(bits, bpos, S[j]);
-      //fprintf(stderr, "[%2d] V="u64bitHEX" C="u64bitHEX" single\n", j, V[j], C[j]);
+      //fprintf(stderr, "[%2d] V="uint64HEX" C="uint64HEX" single\n", j, V[j], C[j]);
       bpos += S[j];
     } else {
-      u64bit newp1 = setDecodedValues(bits, bpos, num, S+j, V+j);
-      u64bit newp2 = getDecodedValues(bits, bpos, num, S+j, C+j);
+      uint64 newp1 = setDecodedValues(bits, bpos, num, S+j, V+j);
+      uint64 newp2 = getDecodedValues(bits, bpos, num, S+j, C+j);
 
       if (newp1 != newp2) {
         //  not perfect; we should be checking the values too, but we do that later.
-        for (u32bit x=0; x<num; x++)
-          fprintf(stderr, "[%2d] #1 V="u64bitHEX" C="u64bitHEX" multiple "u32bitFMT" %s\n",
+        for (uint32 x=0; x<num; x++)
+          fprintf(stderr, "[%2d] #1 V="uint64HEX" C="uint64HEX" multiple "uint32FMT" %s\n",
                   j+x, V[j+x], C[j+x], num, (V[j+x] == C[j+x]) ? "" : "FAILED");
         failed++;
       }
@@ -89,22 +89,22 @@ testBinaryEncoding(void) {
       j++;
   }
   if (failed) {
-    fprintf(stderr, "binEncoding #1 failed encoding "u32bitFMT" times.\n", failed);
+    fprintf(stderr, "binEncoding #1 failed encoding "uint32FMT" times.\n", failed);
     errors++;
   }
 
   //  Check that V == C
 
   failed = 0;
-  for (u32bit j=0; j<iterations; j++) {
+  for (uint32 j=0; j<iterations; j++) {
     if (V[j] != C[j]) {
-      fprintf(stderr, "[%2d] #2 V="u64bitHEX" C="u64bitHEX" S="u32bitFMT"\n",
+      fprintf(stderr, "[%2d] #2 V="uint64HEX" C="uint64HEX" S="uint32FMT"\n",
               j, V[j], C[j], S[j]);
       failed++;
     }
   }
   if (failed) {
-    fprintf(stderr, "binEncoding #2 failed encode/decode "u32bitFMT" times.\n", failed);
+    fprintf(stderr, "binEncoding #2 failed encode/decode "uint32FMT" times.\n", failed);
     errors++;
   }
 
@@ -113,8 +113,8 @@ testBinaryEncoding(void) {
 
   bpos = 0;  //  reset to start of bits
 
-  for (u32bit j=0; j < iterations; ) {
-    u64bit num = (mtRandom32(mtctx) % 8);
+  for (uint32 j=0; j < iterations; ) {
+    uint64 num = (mtRandom32(mtctx) % 8);
 
     if (j + num > iterations)
       num = iterations - j;
@@ -134,15 +134,15 @@ testBinaryEncoding(void) {
   //  Check that V == C
 
   failed = 0;
-  for (u32bit j=0; j<iterations; j++) {
+  for (uint32 j=0; j<iterations; j++) {
     if (V[j] != C[j]) {
-      fprintf(stderr, "[%2d] #3 V="u64bitHEX" C="u64bitHEX" S="u32bitFMT"\n",
+      fprintf(stderr, "[%2d] #3 V="uint64HEX" C="uint64HEX" S="uint32FMT"\n",
               j, V[j], C[j], S[j]);
       failed++;
     }
   }
   if (failed) {
-    fprintf(stderr, "binEncoding #3 failed decoding "u32bitFMT" times.\n", failed);
+    fprintf(stderr, "binEncoding #3 failed decoding "uint32FMT" times.\n", failed);
     errors++;
   }
 
@@ -165,57 +165,57 @@ testBinaryEncodingPrePost(void) {
   time_t     mtseed     = time(0L);
   mt_s      *mtctx      = 0L;
 
-  u32bit     iterations = TEST_LENGTH;
+  uint32     iterations = TEST_LENGTH;
 
-  u64bit    *bits        = new u64bit [2 * iterations];
-  u64bit     bpos        = u64bitZERO;
-  u32bit     siz1       = u64bitZERO;
-  u64bit     val1       = u64bitZERO;
-  u64bit     val2       = u64bitZERO;
+  uint64    *bits        = new uint64 [2 * iterations];
+  uint64     bpos        = uint64ZERO;
+  uint32     siz1       = uint64ZERO;
+  uint64     val1       = uint64ZERO;
+  uint64     val2       = uint64ZERO;
 
   fprintf(stderr, "Starting test of binary encoding pre/post increment\n");
 
-  bpos   = u64bitZERO;
+  bpos   = uint64ZERO;
   mtctx = mtInit(mtseed);
 
-  for (u32bit j=0; j < iterations; j++) {
+  for (uint32 j=0; j < iterations; j++) {
     siz1  = (mtRandom32(mtctx) % 63) + 1;
-    val1  = mtRandom64(mtctx) & u64bitMASK(siz1);
+    val1  = mtRandom64(mtctx) & uint64MASK(siz1);
 
     setDecodedValue(bits, bpos, siz1, val1);
 
     val2 = postDecrementDecodedValue(bits, bpos, siz1);
     if (val2 != val1) {
-      fprintf(stderr, "postDec1 failed: got "u64bitFMT" expected "u64bitFMT" siz="u32bitFMT"\n",
+      fprintf(stderr, "postDec1 failed: got "uint64FMT" expected "uint64FMT" siz="uint32FMT"\n",
               val2, val1, siz1);
       exit(1);
     }
     val2  = getDecodedValue(bits, bpos, siz1) + 1;
-    val2 &= u64bitMASK(siz1);
+    val2 &= uint64MASK(siz1);
     if (val2 != val1) {
-      fprintf(stderr, "postDec2 failed: got "u64bitFMT" expected "u64bitFMT" siz="u32bitFMT"\n",
+      fprintf(stderr, "postDec2 failed: got "uint64FMT" expected "uint64FMT" siz="uint32FMT"\n",
               val2, val1, siz1);
       exit(1);
     }
 
     val2 = preDecrementDecodedValue(bits, bpos, siz1) + 2;
-    val2 &= u64bitMASK(siz1);
+    val2 &= uint64MASK(siz1);
     if (val2 != val1) {
-      fprintf(stderr, "preDec failed: got "u64bitFMT" expected "u64bitFMT" siz="u32bitFMT"\n",
+      fprintf(stderr, "preDec failed: got "uint64FMT" expected "uint64FMT" siz="uint32FMT"\n",
               val2, val1, siz1);
       exit(1);
     }
 
     val2 = postIncrementDecodedValue(bits, bpos, siz1) + 2;
-    val2 &= u64bitMASK(siz1);
+    val2 &= uint64MASK(siz1);
     if (val2 != val1) {
-      fprintf(stderr, "postInc failed: got "u64bitFMT" expected "u64bitFMT"\n", val2+2, val1-2);
+      fprintf(stderr, "postInc failed: got "uint64FMT" expected "uint64FMT"\n", val2+2, val1-2);
       exit(1);
     }
     val2  = getDecodedValue(bits, bpos, siz1) + 1;
-    val2 &= u64bitMASK(siz1);
+    val2 &= uint64MASK(siz1);
     if (val2 != val1) {
-      fprintf(stderr, "postInc2 failed: got "u64bitFMT" expected "u64bitFMT" siz="u32bitFMT"\n",
+      fprintf(stderr, "postInc2 failed: got "uint64FMT" expected "uint64FMT" siz="uint32FMT"\n",
               val2, val1, siz1);
       exit(1);
     }
@@ -223,7 +223,7 @@ testBinaryEncodingPrePost(void) {
     val2 = preIncrementDecodedValue(bits, bpos, siz1);
     //  Should be back to original value, so no mask
     if (val2 != val1) {
-      fprintf(stderr, "preInc failed: got "u64bitFMT" expected "u64bitFMT"\n", val2, val1);
+      fprintf(stderr, "preInc failed: got "uint64FMT" expected "uint64FMT"\n", val2, val1);
       exit(1);
     }
 
@@ -245,7 +245,7 @@ testBinaryEncodingPrePost(void) {
     bpos += siz1;
   }
 
-  bpos   = u64bitZERO;
+  bpos   = uint64ZERO;
   mtctx = mtInit(mtseed);
 
   //for (j=0; j < iterations; j++) {
@@ -264,57 +264,57 @@ testFibonacciEncoding(void) {
   time_t     mtseed     = time(0L);
   mt_s      *mtctx      = 0L;
 
-  u32bit     iterations = TEST_LENGTH / 4;
+  uint32     iterations = TEST_LENGTH / 4;
 
-  u64bit    *bits        = new u64bit [3 * iterations];
-  u64bit     bpos        = u64bitZERO;
+  uint64    *bits        = new uint64 [3 * iterations];
+  uint64     bpos        = uint64ZERO;
 
-  u32bit     failed = 0;
-  u32bit     errors = 0;
+  uint32     failed = 0;
+  uint32     errors = 0;
 
   fprintf(stderr, "Starting test of fibonacci encoding\n");
 
-  bpos   = u64bitZERO;
+  bpos   = uint64ZERO;
   mtctx  = mtInit(mtseed);
   failed = 0;
 
-  for (u32bit j=0; j < iterations; j++) {
-    u64bit siz1  = (mtRandom32(mtctx) % 63) + 1;
-    u64bit val1  = mtRandom64(mtctx) & u64bitMASK(siz1);
-    u64bit siz2  = siz1;
+  for (uint32 j=0; j < iterations; j++) {
+    uint64 siz1  = (mtRandom32(mtctx) % 63) + 1;
+    uint64 val1  = mtRandom64(mtctx) & uint64MASK(siz1);
+    uint64 siz2  = siz1;
 
     setFibonacciEncodedNumber(bits, bpos, &siz1, val1);
 
-    u64bit val2 = getFibonacciEncodedNumber(bits, bpos, &siz2);
+    uint64 val2 = getFibonacciEncodedNumber(bits, bpos, &siz2);
 
     if ((val1 != val2) || (siz1 != siz2)) {
-      fprintf(stderr, "fibEnc #1 failed on "u32bitFMT": got "u64bitFMT" expected "u64bitFMT"\n", j, val2, val1);
+      fprintf(stderr, "fibEnc #1 failed on "uint32FMT": got "uint64FMT" expected "uint64FMT"\n", j, val2, val1);
       failed++;
     }
     bpos += siz1;
   }
   if (failed) {
-    fprintf(stderr, "fibEnc #1 failed "u32bitFMT" times.\n", failed);
+    fprintf(stderr, "fibEnc #1 failed "uint32FMT" times.\n", failed);
     errors++;
   }
 
-  bpos   = u64bitZERO;
+  bpos   = uint64ZERO;
   mtctx  = mtInit(mtseed);
   failed = 0;
 
-  for (u32bit j=0; j < iterations; j++) {
-    u64bit siz1  = (mtRandom32(mtctx) % 63) + 1;
-    u64bit val1  = mtRandom64(mtctx) & u64bitMASK(siz1);
-    u64bit val2  = getFibonacciEncodedNumber(bits, bpos, &siz1);
+  for (uint32 j=0; j < iterations; j++) {
+    uint64 siz1  = (mtRandom32(mtctx) % 63) + 1;
+    uint64 val1  = mtRandom64(mtctx) & uint64MASK(siz1);
+    uint64 val2  = getFibonacciEncodedNumber(bits, bpos, &siz1);
 
     if (val1 != val2) {
-      fprintf(stderr, "fibEnc #2 failed on "u32bitFMT": got "u64bitFMT" expected "u64bitFMT"\n", j, val2, val1);
+      fprintf(stderr, "fibEnc #2 failed on "uint32FMT": got "uint64FMT" expected "uint64FMT"\n", j, val2, val1);
       failed++;
     }
     bpos += siz1;
   }
   if (failed) {
-    fprintf(stderr, "fibEnc #2 failed "u32bitFMT" times.\n", failed);
+    fprintf(stderr, "fibEnc #2 failed "uint32FMT" times.\n", failed);
     errors++;
   }
 

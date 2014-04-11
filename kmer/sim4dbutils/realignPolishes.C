@@ -115,7 +115,7 @@ main(int argc, char **argv) {
     int   gapped = 0;
 
     if ((mergeTolerancePerc > 0) || (mergeToleranceBase > 0)) {
-      for (u32bit i=1; i<p->_numExons; i++) {
+      for (uint32 i=1; i<p->_numExons; i++) {
         int cgap = p->_exons[i]._estFrom - p->_exons[i-1]._estTo;
         int ggap = p->_exons[i]._genFrom - p->_exons[i-1]._genTo;
 
@@ -157,8 +157,8 @@ main(int argc, char **argv) {
 
           if (mergeLog)
             fprintf(mergeLog,
-                    "MERGE: "u32bitFMTW(4)"-"u32bitFMTW(4)" (%6.2f,%6.2f) "u32bitFMTW(4)"-"u32bitFMTW(4)
-                    " and "u32bitFMTW(8)"-"u32bitFMTW(8)" (%6.2f,%6.2f) "u32bitFMTW(8)"-"u32bitFMTW(8)"\n",
+                    "MERGE: "uint32FMTW(4)"-"uint32FMTW(4)" (%6.2f,%6.2f) "uint32FMTW(4)"-"uint32FMTW(4)
+                    " and "uint32FMTW(8)"-"uint32FMTW(8)" (%6.2f,%6.2f) "uint32FMTW(8)"-"uint32FMTW(8)"\n",
                     p->_exons[i-1]._estFrom, p->_exons[i-1]._estTo,
                     cgap / 100.0, ctol / 100.0,
                     p->_exons[i]._estFrom, p->_exons[i]._estTo,
@@ -196,7 +196,7 @@ main(int argc, char **argv) {
       p->_estPolyA = 0;
       p->_estPolyT = 0;
 
-      for (u32bit i=0; i<p->_numExons; i++) {
+      for (uint32 i=0; i<p->_numExons; i++) {
         l1 = p->_exons[i]._estTo - p->_exons[i]._estFrom + 1;
         l2 = p->_exons[i]._genTo - p->_exons[i]._genFrom + 1;
 
@@ -228,24 +228,24 @@ main(int argc, char **argv) {
       p->_exons[p->_numExons-1]._intronOrientation = SIM4_INTRON_NONE;
 
       //  Check that we didn't radically change things
-      u32bit nm = p->_numMatches;
+      uint32 nm = p->_numMatches;
 
       p->s4p_updateAlignmentScores();
 
       W->writeAlignment(p);
 
       if (warnOnChange) {
-        u32bit diff = 0;
+        uint32 diff = 0;
         if (nm < p->_numMatches)  diff = p->_numMatches - nm;
         if (nm > p->_numMatches)  diff = nm - p->_numMatches;
 
         if (diff > p->_numMatches / 100)
-          fprintf(stdout, "WARNING: CHANGED! "u32bitFMT" -> "u32bitFMT"\n", nm, p->_numMatches);
+          fprintf(stdout, "WARNING: CHANGED! "uint32FMT" -> "uint32FMT"\n", nm, p->_numMatches);
       }
     }
 
     if (merged) {
-      fprintf(mergeLog, "MERGED\tEST\t"u32bitFMT"\tfrom\t%8.3f\t%8.3f\tto\t%8.3f\t%8.3f\n",
+      fprintf(mergeLog, "MERGED\tEST\t"uint32FMT"\tfrom\t%8.3f\t%8.3f\tto\t%8.3f\t%8.3f\n",
               p->_estID, id, cv, p->s4p_percentIdentityExact(), p->s4p_percentCoverageExact());
     }
 

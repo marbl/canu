@@ -1,7 +1,7 @@
 #include "seatac.H"
 
 
-hitMatrix::hitMatrix(u32bit qsLen, u32bit qsIdx) {
+hitMatrix::hitMatrix(uint32 qsLen, uint32 qsIdx) {
   _qsLen    = qsLen;
   _qsIdx    = qsIdx;
 
@@ -32,9 +32,9 @@ hitMatrix::~hitMatrix() {
 
 inline
 int
-compareLines(diagonalLine *A, diagonalLine *B, u32bit qsLen) {
-  u32bit a = qsLen - A->_qsPos - 1 + A->_dsPos;
-  u32bit b = qsLen - B->_qsPos - 1 + B->_dsPos;
+compareLines(diagonalLine *A, diagonalLine *B, uint32 qsLen) {
+  uint32 a = qsLen - A->_qsPos - 1 + A->_dsPos;
+  uint32 b = qsLen - B->_qsPos - 1 + B->_dsPos;
 
   return(((a  < b)) ||
          ((a == b) && (A->_qsPos < B->_qsPos)));
@@ -42,8 +42,8 @@ compareLines(diagonalLine *A, diagonalLine *B, u32bit qsLen) {
 
 inline
 int
-compareLines(u32bit l, u32bit q, diagonalLine *B, u32bit qsLen) {
-  u32bit b = qsLen - B->_qsPos - 1 + B->_dsPos;
+compareLines(uint32 l, uint32 q, diagonalLine *B, uint32 qsLen) {
+  uint32 b = qsLen - B->_qsPos - 1 + B->_dsPos;
 
   return(((l  < b)) ||
          ((l == b) && (q < B->_qsPos)));
@@ -51,11 +51,11 @@ compareLines(u32bit l, u32bit q, diagonalLine *B, u32bit qsLen) {
 
 inline
 void
-adjustHeap(diagonalLine *L, s32bit p, s32bit n, u32bit qsLen) {
-  u32bit  q = L[p]._qsPos;
-  u32bit  d = L[p]._dsPos;
-  u32bit  l = qsLen - q - 1 + d;
-  s32bit  c = (p << 1) + 1;  //  let c be the left child of p
+adjustHeap(diagonalLine *L, int32 p, int32 n, uint32 qsLen) {
+  uint32  q = L[p]._qsPos;
+  uint32  d = L[p]._dsPos;
+  uint32  l = qsLen - q - 1 + d;
+  int32  c = (p << 1) + 1;  //  let c be the left child of p
 
   while (c < n) {
 
@@ -97,18 +97,18 @@ compareLines(diagonalLine *A, diagonalLine *B) {
 
 inline
 int
-compareLines(u32bit l, u32bit q, diagonalLine *B) {
+compareLines(uint32 l, uint32 q, diagonalLine *B) {
   return(((l  < B->_diagonalID)) ||
          ((l == B->_diagonalID) && (q < B->_qsPos)));
 }
 
 inline
 void
-adjustHeap(diagonalLine *L, s32bit p, s32bit n) {
-  u32bit  q = L[p]._qsPos;
-  u32bit  d = L[p]._dsPos;
-  u32bit  l = L[p]._diagonalID;
-  s32bit  c = (p << 1) + 1;  //  let c be the left child of p
+adjustHeap(diagonalLine *L, int32 p, int32 n) {
+  uint32  q = L[p]._qsPos;
+  uint32  d = L[p]._dsPos;
+  uint32  l = L[p]._diagonalID;
+  int32  c = (p << 1) + 1;  //  let c be the left child of p
 
   while (c < n) {
 
@@ -160,13 +160,13 @@ hitMatrix::processMatrix(char direction, filterObj *FO) {
 
 
   merCovering    IL(config._merSize);
-  u32bit         ILlength = 0;
+  uint32         ILlength = 0;
 
   //  Now, while there are hits left....
   //
-  u32bit  firstHit   = 0;
-  u32bit  lastHit    = 0;
-  u32bit  currentSeq = 0;
+  uint32  firstHit   = 0;
+  uint32  lastHit    = 0;
+  uint32  currentSeq = 0;
 
   while (firstHit < _hitsLen) {
 
@@ -199,7 +199,7 @@ hitMatrix::processMatrix(char direction, filterObj *FO) {
 
     //  Adjust the hits to be relative to the start of this sequence
     //
-    for (u32bit i=firstHit; i<lastHit; i++)
+    for (uint32 i=firstHit; i<lastHit; i++)
       _hits[i]._dsPos -= config._genome->startOf(currentSeq);
 
     //  Sort them, if needed.
@@ -214,7 +214,7 @@ hitMatrix::processMatrix(char direction, filterObj *FO) {
       //  Build the heap.  I initially thought this could be done at the
       //  same time as the scan for the last hit, but it can't (easily)
       //
-      for (s32bit i=(lastHit - firstHit)/2 - 1; i>=0; i--)
+      for (int32 i=(lastHit - firstHit)/2 - 1; i>=0; i--)
 #ifdef WITHOUT_DIAGONALID
         adjustHeap(hitsToSort, i, lastHit - firstHit, _qsLen);
 #else
@@ -225,11 +225,11 @@ hitMatrix::processMatrix(char direction, filterObj *FO) {
       //  heap sort -- Interchange the new maximum with the element
       //  at the end of the tree
       //
-      for (u32bit i=lastHit - firstHit - 1; i>0; i--) {
-        u32bit  q  = hitsToSort[i]._qsPos;
-        u32bit  d  = hitsToSort[i]._dsPos;
+      for (uint32 i=lastHit - firstHit - 1; i>0; i--) {
+        uint32  q  = hitsToSort[i]._qsPos;
+        uint32  d  = hitsToSort[i]._dsPos;
 #ifndef WITHOUT_DIAGONALID
-        u32bit  l  = hitsToSort[i]._diagonalID;
+        uint32  l  = hitsToSort[i]._diagonalID;
 #endif
         
         hitsToSort[i]._qsPos      = hitsToSort[0]._qsPos;
@@ -256,18 +256,18 @@ hitMatrix::processMatrix(char direction, filterObj *FO) {
     //  Filter them
     //
 #ifdef WITHOUT_DIAGONALID
-    u32bit  lastDiagonal = _qsLen - _hits[firstHit]._qsPos - 1 + _hits[firstHit]._dsPos;
+    uint32  lastDiagonal = _qsLen - _hits[firstHit]._qsPos - 1 + _hits[firstHit]._dsPos;
 #else
-    u32bit  lastDiagonal = _hits[firstHit]._diagonalID;
+    uint32  lastDiagonal = _hits[firstHit]._diagonalID;
 #endif
-    u32bit  qsLow        = _hits[firstHit]._qsPos;
-    u32bit  qsHigh       = _hits[firstHit]._qsPos;
-    u32bit  dsLow        = _hits[firstHit]._dsPos;
-    u32bit  dsHigh       = _hits[firstHit]._dsPos;
+    uint32  qsLow        = _hits[firstHit]._qsPos;
+    uint32  qsHigh       = _hits[firstHit]._qsPos;
+    uint32  dsLow        = _hits[firstHit]._dsPos;
+    uint32  dsHigh       = _hits[firstHit]._dsPos;
 
     IL.clear();
 
-    for (u32bit i=firstHit; i<lastHit; i++) {
+    for (uint32 i=firstHit; i<lastHit; i++) {
       //fprintf(stdout, "hit[%6u] seq=%8u qs=%5u ds=%5u\n", i, currentSeq, _hits[i]._qsPos, _hits[i]._dsPos);
 
       //

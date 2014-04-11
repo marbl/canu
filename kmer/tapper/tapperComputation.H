@@ -4,7 +4,7 @@
 class tapperComputation {
 public:
   tapperComputation(tapperTag *a, tapperTag *b) {
-    u16bit  id[4];
+    uint16  id[4];
 
     tag1f.clear();
     tag1r.clear();
@@ -44,7 +44,7 @@ public:
       tag1f.setMerSize(tag1size-1); tag1f.setMerSpan(tag1size-1);
       tag1r.setMerSize(tag1size-1); tag1r.setMerSpan(tag1size-1);
 
-      for (u32bit i=0, j=tag1size-1; i<tag1size; i++, j--) {
+      for (uint32 i=0, j=tag1size-1; i<tag1size; i++, j--) {
         tag1rseq[i] = tag1fseq[j];
         tag1rqlt[i] = tag1fqlt[j];
       }
@@ -52,10 +52,10 @@ public:
       tag1rseq[tag1size] = 0;
       tag1rqlt[tag1size] = 0;
 
-      for (u32bit i=2; i<tag1size; i++)
+      for (uint32 i=2; i<tag1size; i++)
         tag1f += letterToBits[tag1fseq[i]];
 
-      for (u32bit i=0; i<tag1size-2; i++)
+      for (uint32 i=0; i<tag1size-2; i++)
         tag1r += letterToBits[tag1rseq[i]];
 
       tag1size--;
@@ -68,7 +68,7 @@ public:
       tag2f.setMerSize(tag2size-1); tag2f.setMerSpan(tag2size-1);
       tag2r.setMerSize(tag2size-1); tag2r.setMerSpan(tag2size-1);
 
-      for (u32bit i=0, j=tag2size-1; i<tag2size; i++, j--) {
+      for (uint32 i=0, j=tag2size-1; i<tag2size; i++, j--) {
         tag2rseq[i] = tag2fseq[j];
         tag2rqlt[i] = tag2fqlt[j];
       }
@@ -76,10 +76,10 @@ public:
       tag2rseq[tag2size] = 0;
       tag2rqlt[tag2size] = 0;
 
-      for (u32bit i=2; i<tag2size; i++)
+      for (uint32 i=2; i<tag2size; i++)
         tag2f += letterToBits[tag2fseq[i]];
 
-      for (u32bit i=0; i<tag2size-2; i++)
+      for (uint32 i=0; i<tag2size-2; i++)
         tag2r += letterToBits[tag2rseq[i]];
 
       tag2size--;
@@ -132,16 +132,16 @@ public:
 
   void addHit(tapperGlobalData *g, tapperHit& h, bool tag1) {
 
-    u32bit  ii = g->TA->AQIindex(g->maxBaseError, g->maxColorError,
+    uint32  ii = g->TA->AQIindex(g->maxBaseError, g->maxColorError,
                                  h.numberOfBaseMismatches(),
                                  h.numberOfColorMismatches(),
                                  h.numberOfColorInconsistencies());
  
     if (alignQualHistogram == 0L) {
       alignQualHistogramLen = g->TA->AQIlength(g->maxBaseError, g->maxColorError);
-      alignQualHistogram    = new u32bit [alignQualHistogramLen];
+      alignQualHistogram    = new uint32 [alignQualHistogramLen];
 
-      memset(alignQualHistogram, 0, sizeof(u32bit) * alignQualHistogramLen);
+      memset(alignQualHistogram, 0, sizeof(uint32) * alignQualHistogramLen);
     }
 
     alignQualHistogram[ii]++;
@@ -177,45 +177,45 @@ public:
   kMer        tag1f, tag1r;
   kMer        tag2f, tag2r;
 
-  u32bit      tag1size;
-  u32bit      tag2size;
+  uint32      tag1size;
+  uint32      tag2size;
 
-  u64bit      tag1id;
-  u64bit      tag2id;
+  uint64      tag1id;
+  uint64      tag2id;
 
   char        tag1fseq[TAG_LEN_MAX], tag1rseq[TAG_LEN_MAX];
   char        tag2fseq[TAG_LEN_MAX], tag2rseq[TAG_LEN_MAX];
 
-  u64bit      tag1fqlt[TAG_LEN_MAX], tag1rqlt[TAG_LEN_MAX];
-  u64bit      tag2fqlt[TAG_LEN_MAX], tag2rqlt[TAG_LEN_MAX];
+  uint64      tag1fqlt[TAG_LEN_MAX], tag1rqlt[TAG_LEN_MAX];
+  uint64      tag2fqlt[TAG_LEN_MAX], tag2rqlt[TAG_LEN_MAX];
 
-  u32bit      tag1hitsLen;
-  u32bit      tag1hitsMax;
+  uint32      tag1hitsLen;
+  uint32      tag1hitsMax;
   tapperHit  *tag1hits;
 
-  u32bit      tag2hitsLen;
-  u32bit      tag2hitsMax;
+  uint32      tag2hitsLen;
+  uint32      tag2hitsMax;
   tapperHit  *tag2hits;
 
-  u32bit                  mean;
-  u32bit                  stddev;
+  uint32                  mean;
+  uint32                  stddev;
 
-  u32bit                 *alignQualHistogram;
-  u32bit                  alignQualHistogramLen;
+  uint32                 *alignQualHistogram;
+  uint32                  alignQualHistogramLen;
 
   tapperResultFragment   *resultFragment;
-  u32bit                  resultFragmentLen;
+  uint32                  resultFragmentLen;
 
   tapperResultFragment   *resultSingleton;
-  u32bit                  resultSingletonLen;
+  uint32                  resultSingletonLen;
 
   tapperResultFragment   *resultTangledAlignment;
-  u32bit                  resultTangledAlignmentLen;
+  uint32                  resultTangledAlignmentLen;
 
   tapperResultMated      *resultMated;
-  u32bit                  resultMatedLen;
+  uint32                  resultMatedLen;
 
   tapperResultTangled    *resultTangled;
-  u32bit                  resultTangledLen;
+  uint32                  resultTangledLen;
 };
 

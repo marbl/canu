@@ -34,17 +34,17 @@
 
 //  Global statistics, reset on each iteration
 //
-u32bit   numShifted;     //  valid to be shifted, and were shifted
-u32bit   numNotShifted;  //  but valid to be shifted
-u32bit   numDiffSeq;     //  all the rest are not valid to be shifted
-u32bit   numDiffOri;
-u32bit   numZeroLen;
-u32bit   numOutOfOrder;
-u32bit   numNotAdjacent;
-u32bit   numNoGap;
-u32bit   numGapTooBig;
-u32bit   numOverlapping;
-u32bit   amountShifted[1024];
+uint32   numShifted;     //  valid to be shifted, and were shifted
+uint32   numNotShifted;  //  but valid to be shifted
+uint32   numDiffSeq;     //  all the rest are not valid to be shifted
+uint32   numDiffOri;
+uint32   numZeroLen;
+uint32   numOutOfOrder;
+uint32   numNotAdjacent;
+uint32   numNoGap;
+uint32   numGapTooBig;
+uint32   numOverlapping;
+uint32   amountShifted[1024];
 
 FILE    *logFile = 0L;
 
@@ -82,7 +82,7 @@ bool
 isPotentiallyShiftable(atacMatch *ma,
                        atacMatch *mb,
                        atacMatchOrder &MOB,
-                       u32bit gapLimit) {
+                       uint32 gapLimit) {
 
 #ifdef REPORT_UNSHIFTABLE
   fprintf(stderr, "isPotentiallyShiftable()\n");
@@ -140,14 +140,14 @@ isPotentiallyShiftable(atacMatch *ma,
     return(false);
   }
 
-  u32bit magap = mb->pos1 - (ma->pos1 + ma->len1);
-  u32bit mbgap = br->pos2 - (bl->pos2 + bl->len2);
+  uint32 magap = mb->pos1 - (ma->pos1 + ma->len1);
+  uint32 mbgap = br->pos2 - (bl->pos2 + bl->len2);
 
   //  Not shiftable if there is no zero size gap
   //
   if ((magap > 0) && (mbgap > 0)) {
 #ifdef REPORT_UNSHIFTABLE
-    fprintf(stderr, "UNSHIFTABLE no zero size gap ("u32bitFMT", "u32bitFMT")\n", magap, mbgap);
+    fprintf(stderr, "UNSHIFTABLE no zero size gap ("uint32FMT", "uint32FMT")\n", magap, mbgap);
 #endif
     numNotAdjacent++;
     return(false);
@@ -157,7 +157,7 @@ isPotentiallyShiftable(atacMatch *ma,
   //
   if ((magap == 0) && (mbgap == 0)) {
 #ifdef REPORT_UNSHIFTABLE
-    fprintf(stderr, "UNSHIFTABLE no gap on both sequences ("u32bitFMT", "u32bitFMT")\n", magap, mbgap);
+    fprintf(stderr, "UNSHIFTABLE no gap on both sequences ("uint32FMT", "uint32FMT")\n", magap, mbgap);
 #endif
     numNoGap++;
     return(false);
@@ -167,7 +167,7 @@ isPotentiallyShiftable(atacMatch *ma,
   //
   if ((magap > gapLimit) || (mbgap > gapLimit)) {
 #ifdef REPORT_UNSHIFTABLE
-    fprintf(stderr, "UNSHIFTABLE gap too big ("u32bitFMT", "u32bitFMT")\n", magap, mbgap);
+    fprintf(stderr, "UNSHIFTABLE gap too big ("uint32FMT", "uint32FMT")\n", magap, mbgap);
 #endif
     numGapTooBig++;
     return(false);
@@ -190,8 +190,8 @@ isPotentiallyShiftable(atacMatch *ma,
     return(false);
   }
 
-  u32bit iid1 = ma->matchiid;
-  u32bit iid2 = mb->matchiid;
+  uint32 iid1 = ma->matchiid;
+  uint32 iid2 = mb->matchiid;
 
   //  Check that there isn't another match stuck in the middle on
   //  the B axis.
@@ -200,7 +200,7 @@ isPotentiallyShiftable(atacMatch *ma,
     if ((MOB.index(iid1)+1) != MOB.index(iid2)) {
       fprintf(stderr, "WARNING:  Match inbetween!  (forward)\n");
 
-      fprintf(stderr, "iid1 "u32bitFMT", iid2 "u32bitFMT"\n", iid1, iid2);
+      fprintf(stderr, "iid1 "uint32FMT", iid2 "uint32FMT"\n", iid1, iid2);
       ma->print(stderr, "A", "B");
       mb->print(stderr, "A", "B");
 
@@ -220,7 +220,7 @@ isPotentiallyShiftable(atacMatch *ma,
     if ((MOB.index(iid1)-1) != MOB.index(iid2)) {
       fprintf(stderr, "WARNING:  Match inbetween!  (reverse-complement)\n");
 
-      fprintf(stderr, "iid1 "u32bitFMT", iid2 "u32bitFMT"\n", iid1, iid2);
+      fprintf(stderr, "iid1 "uint32FMT", iid2 "uint32FMT"\n", iid1, iid2);
       ma->print(stderr, "A", "B");
       mb->print(stderr, "A", "B");
 
@@ -247,7 +247,7 @@ void
 dumpAgap(atacMatch *ma, atacMatch *mb,
          atacMatchOrder &MOB,
          seqCache *C1, seqCache *C2,
-         u32bit gapLimit,
+         uint32 gapLimit,
          bool shiftRight) {
 }
 
@@ -256,15 +256,15 @@ void
 dumpBgap(atacMatch *ma, atacMatch *mb,
          atacMatchOrder &MOB,
          seqCache *C1, seqCache *C2,
-         u32bit gapLimit,
+         uint32 gapLimit,
          bool shiftRight) {
 }
 
 
 //  Returns the beginning of the sequence from pos to pos+len
 char *
-getSequenceBeg(char *str, u32bit pos, u32bit len, FastAAccessor &it) {
-  u32bit i = 0;
+getSequenceBeg(char *str, uint32 pos, uint32 len, FastAAccessor &it) {
+  uint32 i = 0;
 
   it.setRange(pos, len);
 
@@ -285,8 +285,8 @@ getSequenceBeg(char *str, u32bit pos, u32bit len, FastAAccessor &it) {
 
 //  Returns all sequence from pos to pos+len
 char *
-getSequenceAll(char *str, u32bit pos, u32bit len, FastAAccessor &it) {
-  u32bit i = 0;
+getSequenceAll(char *str, uint32 pos, uint32 len, FastAAccessor &it) {
+  uint32 i = 0;
 
   it.setRange(pos, len);
 
@@ -304,8 +304,8 @@ getSequenceAll(char *str, u32bit pos, u32bit len, FastAAccessor &it) {
 
 //  Returns the end of the sequence from pos to pos+len
 char *
-getSequenceEnd(char *str, u32bit pos, u32bit len, FastAAccessor &it) {
-  u32bit i = 0;
+getSequenceEnd(char *str, uint32 pos, uint32 len, FastAAccessor &it) {
+  uint32 i = 0;
 
   it.setRange(pos, len);
 
@@ -326,13 +326,13 @@ getSequenceEnd(char *str, u32bit pos, u32bit len, FastAAccessor &it) {
 
 
 
-u32bit
+uint32
 shiftGap(atacFile &AF,
          atacMatchList &ML,
          atacMatch *ma, atacMatch *mb,
          atacMatchOrder &MOB,
          seqCache *C1, seqCache *C2,
-         u32bit gapLimit,
+         uint32 gapLimit,
          bool shiftRight) {
 
 #ifdef REPORT_RESULTS
@@ -361,7 +361,7 @@ shiftGap(atacFile &AF,
   mbs1.setRange(mb->pos1, mb->len1);
   mbs2.setRange(mb->pos2, mb->len2);
 
-  u32bit  shifted = 0;
+  uint32  shifted = 0;
 
   //  We want to extend ma to the right, this will shift the gap to
   //  the right-most position (relative to the forward genomic).
@@ -385,14 +385,14 @@ shiftGap(atacFile &AF,
     //  Dump out some sequence to see where we really are
     //
     fprintf(stderr, "A: ");
-    for (u32bit i=0; i<50; i++) {
+    for (uint32 i=0; i<50; i++) {
       fprintf(stderr, "%c", *mas1);
       --mas1;
     }
     fprintf(stderr, "\n");
 
     fprintf(stderr, "B: ");
-    for (u32bit i=0; i<50; i++) {
+    for (uint32 i=0; i<50; i++) {
       fprintf(stderr, "%c", *mbs1);
       --mbs1;
     }
@@ -507,12 +507,12 @@ shiftGap(atacFile &AF,
     if (ma->fwd2) {
       //  Forward matches are easy.
       //
-      fprintf(logFile, "%s\t%s\t%s:"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t->\t"u32bitFMT"\t"u32bitFMT"\t",
+      fprintf(logFile, "%s\t%s\t%s:"uint32FMT"\t"uint32FMT"\t"uint32FMT"\t->\t"uint32FMT"\t"uint32FMT"\t",
               ma->matchuid, mb->matchuid,
               AF.labelA(), ma->iid1,
               macopy.pos1 + macopy.len1, ma->pos1 + ma->len1,
               mbcopy.pos1, mb->pos1);
-      fprintf(logFile, "%s:"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t->\t"u32bitFMT"\t"u32bitFMT"\n",
+      fprintf(logFile, "%s:"uint32FMT"\t"uint32FMT"\t"uint32FMT"\t->\t"uint32FMT"\t"uint32FMT"\n",
               AF.labelB(), ma->iid2,
               macopy.pos2 + macopy.len2, ma->pos2 + ma->len2,
               mbcopy.pos2, mb->pos2);
@@ -520,12 +520,12 @@ shiftGap(atacFile &AF,
       //  Reverse matches are painful.  The gap on B is between the
       //  right edge of mb, and the the left edge of ma.
       //
-      fprintf(logFile, "%s\t%s\t%s:"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t->\t"u32bitFMT"\t"u32bitFMT"\t",
+      fprintf(logFile, "%s\t%s\t%s:"uint32FMT"\t"uint32FMT"\t"uint32FMT"\t->\t"uint32FMT"\t"uint32FMT"\t",
               ma->matchuid, mb->matchuid,
               AF.labelA(), ma->iid1,
               macopy.pos1 + macopy.len1, ma->pos1 + ma->len1,
               mbcopy.pos1, mb->pos1);
-      fprintf(logFile, "%s:"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t->\t"u32bitFMT"\t"u32bitFMT"\n",
+      fprintf(logFile, "%s:"uint32FMT"\t"uint32FMT"\t"uint32FMT"\t->\t"uint32FMT"\t"uint32FMT"\n",
               AF.labelB(), ma->iid2,
               mbcopy.pos2 + mbcopy.len2, mb->pos2 + mb->len2,
               macopy.pos2, ma->pos2);
@@ -535,26 +535,26 @@ shiftGap(atacFile &AF,
 
 #ifdef REPORT_RESULTS
   if (shifted)
-    fprintf(stderr, "SHIFTED "u32bitFMT" bases.\n", shifted);
+    fprintf(stderr, "SHIFTED "uint32FMT" bases.\n", shifted);
   else
     fprintf(stderr, "NOT SHIFTED.\n");
 
-  fprintf(stderr, u32bitFMTW(9)"-"u32bitFMTW(9)" -- "u32bitFMTW(9)"-"u32bitFMTW(9)"\n",
+  fprintf(stderr, uint32FMTW(9)"-"uint32FMTW(9)" -- "uint32FMTW(9)"-"uint32FMTW(9)"\n",
           macopy.pos1, macopy.pos1 + macopy.len1,
           mbcopy.pos1, mbcopy.pos1 + mbcopy.len1);
-  fprintf(stderr, u32bitFMTW(9)"-"u32bitFMTW(9)" -- "u32bitFMTW(9)"-"u32bitFMTW(9)"\n",
+  fprintf(stderr, uint32FMTW(9)"-"uint32FMTW(9)" -- "uint32FMTW(9)"-"uint32FMTW(9)"\n",
           macopy.pos2, macopy.pos2 + macopy.len2,
           mbcopy.pos2, mbcopy.pos2 + mbcopy.len2);
-  fprintf(stderr, "shifted "u32bitFMT" bases (fwd1=%d fwd2=%d  fwd1=%d fwd2=%d)\n", shifted, ma->fwd1, ma->fwd2, mb->fwd1, mb->fwd2);
-  fprintf(stderr, u32bitFMTW(9)"-"u32bitFMTW(9)" -- "u32bitFMTW(9)"-"u32bitFMTW(9)"\n",
+  fprintf(stderr, "shifted "uint32FMT" bases (fwd1=%d fwd2=%d  fwd1=%d fwd2=%d)\n", shifted, ma->fwd1, ma->fwd2, mb->fwd1, mb->fwd2);
+  fprintf(stderr, uint32FMTW(9)"-"uint32FMTW(9)" -- "uint32FMTW(9)"-"uint32FMTW(9)"\n",
           ma->pos1, ma->pos1 + ma->len1,
           mb->pos1, mb->pos1 + mb->len1);
-  fprintf(stderr, u32bitFMTW(9)"-"u32bitFMTW(9)" -- "u32bitFMTW(9)"-"u32bitFMTW(9)"\n",
+  fprintf(stderr, uint32FMTW(9)"-"uint32FMTW(9)" -- "uint32FMTW(9)"-"uint32FMTW(9)"\n",
           ma->pos2, ma->pos2 + ma->len2,
           mb->pos2, mb->pos2 + mb->len2);
 #endif
 
-  u32bit errors = 0;
+  uint32 errors = 0;
 
   if (macopy.pos1 != ma->pos1)
     fprintf(stderr, "WARNING:  begin of assembly 1 moved!\n"), errors++;
@@ -695,7 +695,7 @@ main(int argc, char *argv[]) {
   seqCache  *C2 = new seqCache(AF.assemblyFileB(), 1024, false);
 
   bool    shiftRight   = true;
-  u32bit  gapLimit     = 5;
+  uint32  gapLimit     = 5;
 
   char   *logFileName  = 0L;
 
@@ -716,12 +716,12 @@ main(int argc, char *argv[]) {
       shiftRight   = true;
       doShift      = true;
     } else {
-      gapLimit     = strtou32bit(argv[arg], 0L);
+      gapLimit     = strtouint32(argv[arg], 0L);
     }
 
     if (doShift) {
 
-      for (u32bit x=0; x<1024; x++)
+      for (uint32 x=0; x<1024; x++)
         amountShifted[x] = 0;
 
       numShifted = 0;
@@ -735,33 +735,33 @@ main(int argc, char *argv[]) {
       numGapTooBig = 0;
       numOverlapping = 0;
 
-      fprintf(stderr, "Shifting gaps of length at most "u32bitFMT" bases, to the %s.\n", gapLimit, (shiftRight) ? "right" : "left");
+      fprintf(stderr, "Shifting gaps of length at most "uint32FMT" bases, to the %s.\n", gapLimit, (shiftRight) ? "right" : "left");
 
-      u32bit gapsShifted = 0;
-      for (u32bit i=1; i<ML.numMatches(); i++) {
+      uint32 gapsShifted = 0;
+      for (uint32 i=1; i<ML.numMatches(); i++) {
 
         if (shiftGap(AF, ML, MOA[i-1], MOA[i], MOB, C1, C2, gapLimit, shiftRight)) {
           gapsShifted++;
-          //fprintf(stderr, "shifted "u32bitFMT" out of "u32bitFMT" (%6.2f%%)\r", gapsShifted, i, (double)gapsShifted / (double)i * 100.0);
+          //fprintf(stderr, "shifted "uint32FMT" out of "uint32FMT" (%6.2f%%)\r", gapsShifted, i, (double)gapsShifted / (double)i * 100.0);
           //fflush(stderr);
         }
       }
 
-      fprintf(stderr, "numShifted = "u32bitFMT"\n", numShifted);
-      fprintf(stderr, "numNotShifted = "u32bitFMT"\n", numNotShifted);
-      fprintf(stderr, "numDiffSeq = "u32bitFMT"\n", numDiffSeq);
-      fprintf(stderr, "numDiffOri = "u32bitFMT"\n", numDiffOri);
-      fprintf(stderr, "numZeroLen = "u32bitFMT"\n", numZeroLen);
-      fprintf(stderr, "numOutOfOrder = "u32bitFMT"\n", numOutOfOrder);
-      fprintf(stderr, "numNotAdjacent = "u32bitFMT"\n", numNotAdjacent);
-      fprintf(stderr, "numNoGap = "u32bitFMT"\n", numNoGap);
-      fprintf(stderr, "numGapTooBig = "u32bitFMT"\n", numGapTooBig);
-      fprintf(stderr, "numOverlapping = "u32bitFMT"\n", numOverlapping);
+      fprintf(stderr, "numShifted = "uint32FMT"\n", numShifted);
+      fprintf(stderr, "numNotShifted = "uint32FMT"\n", numNotShifted);
+      fprintf(stderr, "numDiffSeq = "uint32FMT"\n", numDiffSeq);
+      fprintf(stderr, "numDiffOri = "uint32FMT"\n", numDiffOri);
+      fprintf(stderr, "numZeroLen = "uint32FMT"\n", numZeroLen);
+      fprintf(stderr, "numOutOfOrder = "uint32FMT"\n", numOutOfOrder);
+      fprintf(stderr, "numNotAdjacent = "uint32FMT"\n", numNotAdjacent);
+      fprintf(stderr, "numNoGap = "uint32FMT"\n", numNoGap);
+      fprintf(stderr, "numGapTooBig = "uint32FMT"\n", numGapTooBig);
+      fprintf(stderr, "numOverlapping = "uint32FMT"\n", numOverlapping);
 
-      for (u32bit x=0; x<50; x++)
-        fprintf(stderr, "amountShifted["u32bitFMT"] = "u32bitFMT" (number of gaps shifted by [number of bases])\n", x, amountShifted[x]);
+      for (uint32 x=0; x<50; x++)
+        fprintf(stderr, "amountShifted["uint32FMT"] = "uint32FMT" (number of gaps shifted by [number of bases])\n", x, amountShifted[x]);
 
-      fprintf(stderr, "shifted "u32bitFMT" out of "u32bitFMT" (%6.2f%%)\n", gapsShifted, ML.numMatches(), (double)gapsShifted / (double)ML.numMatches() * 100.0);
+      fprintf(stderr, "shifted "uint32FMT" out of "uint32FMT" (%6.2f%%)\n", gapsShifted, ML.numMatches(), (double)gapsShifted / (double)ML.numMatches() * 100.0);
 
       if (logFile) {
         fclose(logFile);
@@ -774,10 +774,10 @@ main(int argc, char *argv[]) {
   }
 
 
-  for (u32bit i=0; i<ML.numMatches(); i++) {
+  for (uint32 i=0; i<ML.numMatches(); i++) {
     atacMatch *ma = ML[i];
     if ((ma->len1 > 0) && (ma->len2 > 0))
-      fprintf(stdout, "M u %s %s %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" 1  %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" %d\n",
+      fprintf(stdout, "M u %s %s %s:"uint32FMT" "uint32FMT" "uint32FMT" 1  %s:"uint32FMT" "uint32FMT" "uint32FMT" %d\n",
               ma->matchuid, ma->parentuid,
               AF.labelA(), ma->iid1, ma->pos1, ma->len1,
               AF.labelB(), ma->iid2, ma->pos2, ma->len2, ma->fwd2 ? 1 : -1);

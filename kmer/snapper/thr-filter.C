@@ -2,19 +2,19 @@
 
 
 
-u32bit
+uint32
 configureFilter(double L,
                 double H,
                 double V,
                 aHit  *theHits,
-                u32bit theHitsLen) {
+                uint32 theHitsLen) {
 
   //  Find the highest and lowest quality hit
   //
-  u32bit  hiQ = theHits[0]._covered;
-  u32bit  loQ = hiQ;
+  uint32  hiQ = theHits[0]._covered;
+  uint32  loQ = hiQ;
 
-  for (u32bit i=0; i<theHitsLen; i++) {
+  for (uint32 i=0; i<theHitsLen; i++) {
     if (hiQ < theHits[i]._covered)
       hiQ = theHits[i]._covered;
     if (loQ > theHits[i]._covered)
@@ -48,7 +48,7 @@ configureFilter(double L,
   //  Any thing at or above cutL is good, and we should polish it.
   //  Anything below is junk, and we should ignore it.
   //
-  return((u32bit)floor(hiQ - p * h * theHits[0]._numMers));
+  return((uint32)floor(hiQ - p * h * theHits[0]._numMers));
 }
 
 
@@ -88,7 +88,7 @@ doFilter(searcherState       *state,
   if (qry->theHitsLen == 0)
     return;
 
-  u32bit numF = 0;
+  uint32 numF = 0;
 
   //  Auto filter -- keep polishing until a running average of
   //  polishes falls below some threshold.
@@ -96,20 +96,20 @@ doFilter(searcherState       *state,
   if (config._afEnabled) {
     qsort(qry->theHits, qry->theHitsLen, sizeof(aHit), aHitAutoFilterSort);
 
-    for (u32bit i=0; i < qry->theHitsLen; i++)
+    for (uint32 i=0; i < qry->theHitsLen; i++)
       qry->theHits[i]._status |= AHIT_POLISHABLE;
 
     numF = qry->theHitsLen;
 
   } else {
-    u32bit cutL = configureFilter(config._Lo,
+    uint32 cutL = configureFilter(config._Lo,
                                   config._Hi,
                                   config._Va, qry->theHits, qry->theHitsLen);
 
     //  If the coverage of the hit is more than the minimum, mark the
     //  hit as polishable.  Unless the hit was discarded.
 
-    for (u32bit i=0; i < qry->theHitsLen; i++) {
+    for (uint32 i=0; i < qry->theHitsLen; i++) {
       if (!(qry->theHits[i]._status & AHIT_DISCARDED) &&
           (qry->theHits[i]._covered >= cutL)) {
         qry->theHits[i]._status |= AHIT_POLISHABLE;
@@ -120,7 +120,7 @@ doFilter(searcherState       *state,
 
 #ifdef VERBOSE_FILTER
   if (qry->theHitsLen >= VERBOSE_FILTER_MINIMUM)
-    theLog->add("Query "u32bitFMT" with "u32bitFMT" good hits out of "u32bitFMT" total hits.\n",
+    theLog->add("Query "uint32FMT" with "uint32FMT" good hits out of "uint32FMT" total hits.\n",
                 idx, numF, qry->theHitsLen);
 #endif
 }

@@ -1,6 +1,6 @@
 #include "kmer.H"
 
-kMerBuilder::kMerBuilder(u32bit ms, u32bit cm, char *tm) {
+kMerBuilder::kMerBuilder(uint32 ms, uint32 cm, char *tm) {
   _style            = 0;
 
   _merSize          = 0;
@@ -62,7 +62,7 @@ kMerBuilder::kMerBuilder(u32bit ms, u32bit cm, char *tm) {
     //  with a letter.  We silently fix these problems.  Unless there
     //  are no 1's in the string, then we bail.
 
-    u32bit i=0, t=0;
+    uint32 i=0, t=0;
     while ((i < _templateSpan) && (tm[i] == '0'))
       i++;
 
@@ -114,18 +114,18 @@ kMerBuilder::kMerBuilder(u32bit ms, u32bit cm, char *tm) {
     fprintf(stderr, "kMer size too large; increase KMER_WORDS in libbio/kmer.H\n"), exit(1);
 
 
-  _compressionLength = new u32bit [_merSize];
+  _compressionLength = new uint32 [_merSize];
 
-  for (u32bit z=0; z<_merSize; z++)
+  for (uint32 z=0; z<_merSize; z++)
     _compressionLength[z] = (cm) ? 0 : 1;
 
 
 
   if (tm) {
     _merStorage   = new kMer   [_templateLength * 2];
-    _merSizeValid = new u32bit [_templateLength];
+    _merSizeValid = new uint32 [_templateLength];
 
-    for (u32bit i=0; i<2*_templateLength; i++) {
+    for (uint32 i=0; i<2*_templateLength; i++) {
       _merStorage[i].setMerSize(_merSize);
       _merStorage[i].setMerSpan(_templateSpan);
     }
@@ -134,11 +134,11 @@ kMerBuilder::kMerBuilder(u32bit ms, u32bit cm, char *tm) {
     //  template that every mer except the first is starting in the
     //  middle of.
     //
-    for (u32bit i=0; i<_templateLength; i++)
+    for (uint32 i=0; i<_templateLength; i++)
       _merSizeValid[i] = _merSize - i;
   } else {
     _merStorage   = new kMer   [2];
-    _merSizeValid = new u32bit [1];
+    _merSizeValid = new uint32 [1];
 
     _merStorage[0].setMerSize(_merSize);
     _merStorage[1].setMerSize(_merSize);
@@ -178,7 +178,7 @@ kMerBuilder::clear(bool clearMer) {
     _compressionFirstIndex    = 0;
     _compressionCurrentLength = 0;
 
-    for (u32bit z=0; z<_merSize; z++)
+    for (uint32 z=0; z<_merSize; z++)
       _compressionLength[z] = 0;
 
     _merStorage[0].setMerSpan(0);
@@ -187,10 +187,10 @@ kMerBuilder::clear(bool clearMer) {
 
   //  Spaced mers
   if (_template) {
-    for (u32bit i=0; i<2*_templateLength; i++)
+    for (uint32 i=0; i<2*_templateLength; i++)
       _merStorage[i].clear();
 
-    for (u32bit i=0; i<_templateLength; i++)
+    for (uint32 i=0; i<_templateLength; i++)
       _merSizeValid[i] = _merSize - i;
 
     _templatePos     = 0;
@@ -218,7 +218,7 @@ kMerBuilder::clear(bool clearMer) {
 
 
 bool
-kMerBuilder::addBaseContiguous(u64bit cf, u64bit cr) {
+kMerBuilder::addBaseContiguous(uint64 cf, uint64 cr) {
 
   //  Not a valid base, reset the mer to empty, and request more bases
   //  (this is a slightly optimized version of clear()).
@@ -247,7 +247,7 @@ kMerBuilder::addBaseContiguous(u64bit cf, u64bit cr) {
 
 
 bool
-kMerBuilder::addBaseCompressed(u64bit cf, u64bit cr) {
+kMerBuilder::addBaseCompressed(uint64 cf, uint64 cr) {
 
   //  Not a valid base, reset the mer to empty, and request more bases.
   //
@@ -256,14 +256,14 @@ kMerBuilder::addBaseCompressed(u64bit cf, u64bit cr) {
     return(true);
   }
 
-  u64bit  lb = theFMer().endOfMer(2);   //  Last base in the mer
-  u32bit  ms = theFMer().getMerSpan();  //  Span BEFORE adding the mer
+  uint64  lb = theFMer().endOfMer(2);   //  Last base in the mer
+  uint32  ms = theFMer().getMerSpan();  //  Span BEFORE adding the mer
 
   if (_merSizeValid[0] <= _merSizeValidZero)
-    lb = 9;  //  No valid last base (should probably be ~u64bitZERO, but that screws up diagnostic output)
+    lb = 9;  //  No valid last base (should probably be ~uint64ZERO, but that screws up diagnostic output)
 
 #ifdef DEBUGCOMP
-  fprintf(stderr, "kMerBuilder::addBaseCompressed()--  lb="u64bitFMT" cf="u64bitFMT" ms="u32bitFMT" ccl="u32bitFMT" lvl="u32bitFMT"\n",
+  fprintf(stderr, "kMerBuilder::addBaseCompressed()--  lb="uint64FMT" cf="uint64FMT" ms="uint32FMT" ccl="uint32FMT" lvl="uint32FMT"\n",
           lb, cf, ms, _compressionCurrentLength, _compression);
 #endif
 
@@ -287,7 +287,7 @@ kMerBuilder::addBaseCompressed(u64bit cf, u64bit cr) {
 #ifdef DEBUGCOMP
     fprintf(stderr, "kMerBuilder::addBaseCompressed()--  COMPRESSED currentIdx=%u first=%u",
             _compressionIndex, _compressionFirstIndex);
-    for (u32bit x=0, y=_compressionFirstIndex; x<_merSize; x++) {
+    for (uint32 x=0, y=_compressionFirstIndex; x<_merSize; x++) {
       fprintf(stderr, " %u(%d)", _compressionLength[y], y);
       y = (y + 1) % _merSize;
     }
@@ -330,7 +330,7 @@ kMerBuilder::addBaseCompressed(u64bit cf, u64bit cr) {
 #ifdef DEBUGCOMP
   fprintf(stderr, "kMerBuilder::addBaseCompressed()--  ADDNEWBASE currentIdx=%u first=%u",
           _compressionIndex, _compressionFirstIndex);
-  for (u32bit x=0, y=_compressionFirstIndex; x<_merSize; x++) {
+  for (uint32 x=0, y=_compressionFirstIndex; x<_merSize; x++) {
     fprintf(stderr, " %u(%d)", _compressionLength[y], y);
     y = (y + 1) % _merSize;
   }
@@ -355,7 +355,7 @@ kMerBuilder::addBaseCompressed(u64bit cf, u64bit cr) {
   ms -= _compressionLength[_compressionIndex];  //  subtract the count for the letter we just shifted out
 
 #ifdef DEBUGCOMP
-  fprintf(stderr, "kMerBuilder::addBaseCompressed()--  ADDNEWBASE shifted out at idx="u32bitFMT" with "u32bitFMT" positions; final span "u32bitFMT"\n",
+  fprintf(stderr, "kMerBuilder::addBaseCompressed()--  ADDNEWBASE shifted out at idx="uint32FMT" with "uint32FMT" positions; final span "uint32FMT"\n",
           _compressionIndex,
           _compressionLength[_compressionIndex],
           ms + 1);
@@ -381,7 +381,7 @@ kMerBuilder::addBaseCompressed(u64bit cf, u64bit cr) {
 
 
 bool
-kMerBuilder::addBaseSpaced(u64bit cf, u64bit cr) {
+kMerBuilder::addBaseSpaced(uint64 cf, uint64 cr) {
 #ifdef DEBUGSPACE
   fprintf(stderr, "add %c templatePos=%u templateMer=%u\n", ch, _templatePos, _templateMer);
 #endif
@@ -391,7 +391,7 @@ kMerBuilder::addBaseSpaced(u64bit cf, u64bit cr) {
   //  was a single return point, we could advance immediately
   //  before returning.
   //
-  u32bit tp = _templatePos;
+  uint32 tp = _templatePos;
   _templatePos = (_templatePos + 1) % _templateLength;
 
   //  If we get an invalid letter, set all mers that would have
@@ -399,8 +399,8 @@ kMerBuilder::addBaseSpaced(u64bit cf, u64bit cr) {
   //
   if (cf & (unsigned char)0xfc) {
 
-    for (u32bit m=0; m<_templateLength; m++) {
-      u32bit tppos = (tp + _templateLength - m) % _templateLength;
+    for (uint32 m=0; m<_templateLength; m++) {
+      uint32 tppos = (tp + _templateLength - m) % _templateLength;
 
       if (_template[tppos] == 1) {
 
@@ -425,8 +425,8 @@ kMerBuilder::addBaseSpaced(u64bit cf, u64bit cr) {
   //  We have a valid letter, and add it to all the mers that the
   //  template allows.
   //
-  for (u32bit m=0; m<_templateLength; m++) {
-    u32bit  tppos = (tp + _templateLength - m) % _templateLength;
+  for (uint32 m=0; m<_templateLength; m++) {
+    uint32  tppos = (tp + _templateLength - m) % _templateLength;
 
     if (_template[tppos] == 1) {
       _merStorage[2*m+0] += cf;
@@ -490,7 +490,7 @@ kMerBuilder::addBaseSpaced(u64bit cf, u64bit cr) {
 
 
 bool
-kMerBuilder::addBaseCompressedSpaced(u64bit cf, u64bit cr) {
+kMerBuilder::addBaseCompressedSpaced(uint64 cf, uint64 cr) {
   fprintf(stderr, "kMerBuilder::addBaseCompressedSpace()--  Compressed and spaced mers not supported.\n");
   exit(1);
 }

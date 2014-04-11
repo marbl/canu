@@ -13,7 +13,7 @@
 //  be easily localized.
 //
 bool    beVerbose   = false;
-u64bit  memoryLimit = 128 * 1024 * 1024;
+uint64  memoryLimit = 128 * 1024 * 1024;
 char   *tmpPath     = 0L;
 
 
@@ -69,13 +69,13 @@ private:
 //
 class aHitTemporary {
 public:
-  aHitTemporary(aHit *hits, u32bit hitsLen) {
+  aHitTemporary(aHit *hits, uint32 hitsLen) {
     theFile = makeTempFile(tmpPath);
 
     //  XXX:  Known bug on Tru64: fwrite() of data blocks > 2GB is broken
 
-    u32bit  outputPos = 0;
-    u32bit  outputLen = 1024 * 1024 / sizeof(aHit);
+    uint32  outputPos = 0;
+    uint32  outputLen = 1024 * 1024 / sizeof(aHit);
 
     while (outputPos < hitsLen) {
       errno = 0;
@@ -95,13 +95,13 @@ public:
 
     hit._forward   = false;
     hit._merged    = false;
-    hit._qsIdx     = u32bitZERO;
-    hit._dsIdx     = u32bitZERO;
-    hit._dsLo      = u32bitZERO;
-    hit._dsHi      = u32bitZERO;
-    hit._covered   = u32bitZERO;
-    hit._matched   = u32bitZERO;
-    hit._numMers   = u32bitZERO;
+    hit._qsIdx     = uint32ZERO;
+    hit._dsIdx     = uint32ZERO;
+    hit._dsLo      = uint32ZERO;
+    hit._dsHi      = uint32ZERO;
+    hit._covered   = uint32ZERO;
+    hit._matched   = uint32ZERO;
+    hit._numMers   = uint32ZERO;
 
     nextHit();
   };
@@ -114,7 +114,7 @@ public:
     return(&hit);
   };
   void   nextHit(void) {
-    if (hit._qsIdx != ~u32bitZERO) {
+    if (hit._qsIdx != ~uint32ZERO) {
       errno = 0;
       fread(&hit, sizeof(aHit), 1, theFile);
       if (errno) {
@@ -128,13 +128,13 @@ public:
       if (feof(theFile)) {
         hit._forward   = false;
         hit._merged    = false;
-        hit._qsIdx     = ~u32bitZERO;
-        hit._dsIdx     = ~u32bitZERO;
-        hit._dsLo      = ~u32bitZERO;
-        hit._dsHi      = ~u32bitZERO;
-        hit._covered   = ~u32bitZERO;
-        hit._matched   = ~u32bitZERO;
-        hit._numMers   = ~u32bitZERO;
+        hit._qsIdx     = ~uint32ZERO;
+        hit._dsIdx     = ~uint32ZERO;
+        hit._dsLo      = ~uint32ZERO;
+        hit._dsHi      = ~uint32ZERO;
+        hit._covered   = ~uint32ZERO;
+        hit._matched   = ~uint32ZERO;
+        hit._numMers   = ~uint32ZERO;
       }
     }
   };
@@ -194,12 +194,12 @@ main(int argc, char **argv) {
 
   //  Allocate a bunch of spaces to store hits.
   //
-  u64bit   hitsMax = memoryLimit / sizeof(aHit);
-  u32bit   hitsPos = 0;
+  uint64   hitsMax = memoryLimit / sizeof(aHit);
+  uint32   hitsPos = 0;
   aHit  *hits    = new aHit [hitsMax];
 
-  u32bit            tmpFlen = 0;
-  u32bit            tmpFmax = 1024;
+  uint32            tmpFlen = 0;
+  uint32            tmpFmax = 1024;
   aHitTemporary   **tmpF    = new aHitTemporary * [tmpFmax];
 
   while (arg < argc) {
@@ -240,7 +240,7 @@ main(int argc, char **argv) {
   //  No temporary files?  Just write the hits and exit.  We're done.
   //
   if (tmpFlen == 0) {
-    for (u32bit i=0; i<hitsPos; i++)
+    for (uint32 i=0; i<hitsPos; i++)
       ahit_printASCII(hits+i, stdout);
     exit(0);
   }
@@ -273,9 +273,9 @@ main(int argc, char **argv) {
     //  Pick the smallest hit -- if file [i] is finished, then hit[i]
     //  is bogus and all the values are set to maximal values.
     //
-    u32bit smallestHit = 0;
+    uint32 smallestHit = 0;
 
-    for (u32bit nh = smallestHit+1; nh < tmpFlen; nh++) {
+    for (uint32 nh = smallestHit+1; nh < tmpFlen; nh++) {
       if (hitcmp(tmpF[smallestHit]->theHit(), tmpF[nh]->theHit()) > 0)
         smallestHit = nh;
     }
@@ -283,7 +283,7 @@ main(int argc, char **argv) {
     //  If the smallest hit is invalid, we're done.  Otherwise, write
     //  the hit, and read a new one.
     //
-    if (tmpF[smallestHit]->theHit()->_qsIdx == ~u32bitZERO) {
+    if (tmpF[smallestHit]->theHit()->_qsIdx == ~uint32ZERO) {
       moreInput = false;
     } else {
       ahit_printASCII(tmpF[smallestHit]->theHit(), stdout);

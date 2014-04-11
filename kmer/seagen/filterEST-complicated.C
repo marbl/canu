@@ -7,12 +7,12 @@
 #include "hitReader.H"
 
 
-extern u32bit       uniqThresh;
-extern u32bit       reptThresh;
+extern uint32       uniqThresh;
+extern uint32       reptThresh;
 extern FILE        *logFile;
 extern bool         decided;
 extern const char  *label;
-extern u32bit       hitsToSave;
+extern uint32       hitsToSave;
 extern double       qualToSave;
 
 double difference = 0.1;
@@ -42,7 +42,7 @@ complicatedFilter_1_unique(hitReader &HR) {
     //  matches -- 1.21% of the total, but 50% of what we actually
     //  need to polish.
     //
-    u32bit i = HR.numHits() - 1;
+    uint32 i = HR.numHits() - 1;
     while ((i >= 10) && ((HR[i-10].coverage - HR[i].coverage) < difference))
       i--;
 
@@ -64,7 +64,7 @@ complicatedFilter_1_unique(hitReader &HR) {
       i++;
 
     if (logFile)
-      fprintf(logFile, u32bitFMT"] unique: aggressively filtered to "u32bitFMT" hits out of "u32bitFMT" hits.\n",
+      fprintf(logFile, uint32FMT"] unique: aggressively filtered to "uint32FMT" hits out of "uint32FMT" hits.\n",
               HR.iid(), i, HR.numHits());
   }
 }
@@ -90,7 +90,7 @@ complicatedFilter_2_knee(hitReader &HR) {
   //  Apply the same filter as used in #1 (the aggressive part), and accept
   //  it if the number of hits saved is below some threshold.
 
-  u32bit i = HR.numHits() - 1;
+  uint32 i = HR.numHits() - 1;
   while ((i >= 10) && ((HR[i-10].coverage - HR[i].coverage) < difference))
     i--;
 
@@ -112,7 +112,7 @@ complicatedFilter_2_knee(hitReader &HR) {
     label   = "knee";
 
     if (logFile)
-      fprintf(logFile, u32bitFMT"] knee: filtered "u32bitFMT" hits down to "u32bitFMT" hits using threshold %f\n",
+      fprintf(logFile, uint32FMT"] knee: filtered "uint32FMT" hits down to "uint32FMT" hits using threshold %f\n",
               HR.iid(), HR.numHits(), i, qualToSave);
   }
 }
@@ -136,7 +136,7 @@ complicatedFilter_3_uniform(hitReader &HR) {
     qualToSave = 0.0;
 
     if (logFile) {
-      fprintf(logFile, u32bitFMT"] uniform: uniform signal strength, saving the first "u32bitFMT" hits out of "u32bitFMT" hits, best=%f, worst=%f\n",
+      fprintf(logFile, uint32FMT"] uniform: uniform signal strength, saving the first "uint32FMT" hits out of "uint32FMT" hits, best=%f, worst=%f\n",
               HR.iid(), hitsToSave, HR.numHits(), HR.bestScore(), HR.worstScore());
     }
   }
@@ -157,7 +157,7 @@ complicatedFilter_4_largestdifference(hitReader &HR) {
   qualToSave = 0.0;
 
   double  largestDifference = 0.0;
-  for (u32bit i=1; i < HR.numHits(); i++)
+  for (uint32 i=1; i < HR.numHits(); i++)
     if (largestDifference < (HR[i-1].coverage - HR[i].coverage))
       largestDifference = HR[i-1].coverage - HR[i].coverage;
 
@@ -171,7 +171,7 @@ complicatedFilter_4_largestdifference(hitReader &HR) {
     qualToSave = 0.0;
 
     if (logFile)
-      fprintf(logFile, u32bitFMT"] diff: has no clear signal knee, saving the first "u32bitFMT" hits out of "u32bitFMT" hits, best=%f, worst=%f, largestdiff=%f\n",
+      fprintf(logFile, uint32FMT"] diff: has no clear signal knee, saving the first "uint32FMT" hits out of "uint32FMT" hits, best=%f, worst=%f, largestdiff=%f\n",
               HR.iid(), hitsToSave, HR.numHits(), HR.bestScore(), HR.worstScore(), largestDifference);
   }
 }
@@ -196,8 +196,8 @@ complicatedFilter_5_spikes(hitReader &HR) {
   hitsToSave = 0;
   qualToSave = 0.0;
 
-  u32bit  spikeFound = 0;
-  for (u32bit i=1; i < uniqThresh; i++)
+  uint32  spikeFound = 0;
+  for (uint32 i=1; i < uniqThresh; i++)
     if ((HR[i-1].coverage - HR[i].coverage) > difference)
       spikeFound = i;
 
@@ -216,7 +216,7 @@ complicatedFilter_5_spikes(hitReader &HR) {
     hitsToSave = uniqThresh;
     qualToSave = 0.0;
 
-    for (u32bit i=uniqThresh-1; i > 9; i--)
+    for (uint32 i=uniqThresh-1; i > 9; i--)
       if ((HR[i-10].coverage - HR[i].coverage) > difference) {
         hitsToSave = i + 1;
         break;
@@ -225,7 +225,7 @@ complicatedFilter_5_spikes(hitReader &HR) {
     qualToSave = HR[hitsToSave].coverage;
 
     if (logFile)
-      fprintf(logFile, u32bitFMT"] spike: at "u32bitFMT", "u32bitFMT" hits saved:  thresh=%f, "u32bitFMT" hits, best=%f, worst=%f\n",
+      fprintf(logFile, uint32FMT"] spike: at "uint32FMT", "uint32FMT" hits saved:  thresh=%f, "uint32FMT" hits, best=%f, worst=%f\n",
               HR.iid(), spikeFound, hitsToSave, qualToSave, HR.numHits(), HR.bestScore(), HR.worstScore());
   }
 }
@@ -274,6 +274,6 @@ complicatedFilter(hitReader &HR) {
     hitsToSave = HR.numHits();
 
   if (logFile)
-    fprintf(logFile, u32bitFMT"] is an unclassified signal, "u32bitFMT" hits saved out of "u32bitFMT" hits, best=%f, worst=%f\n",
+    fprintf(logFile, uint32FMT"] is an unclassified signal, "uint32FMT" hits saved out of "uint32FMT" hits, best=%f, worst=%f\n",
             HR.iid(), hitsToSave, HR.numHits(), HR.bestScore(), HR.worstScore());
 }

@@ -32,24 +32,24 @@ typedef unsigned short ushort;
 class encodedQuery {
 private:
   char const  *_seq;
-  u32bit       _seqLen;
-  u32bit       _merSize;
+  uint32       _seqLen;
+  uint32       _merSize;
   bool         _rc;
 
-  u32bit       _seqPos;
+  uint32       _seqPos;
 
-  s32bit       _timeUntilValid;
+  int32       _timeUntilValid;
 
-  u64bit       _substring;
-  u64bit       _mermask;
+  uint64       _substring;
+  uint64       _mermask;
 public:
   encodedQuery(char const           *seq,
-               u32bit                seqLen,
-               u32bit                k,
+               uint32                seqLen,
+               uint32                k,
                bool                  rc);
   ~encodedQuery();
 
-  bool   getMer(u64bit &mer, u32bit &pos);
+  bool   getMer(uint64 &mer, uint32 &pos);
 };
 
 
@@ -65,19 +65,19 @@ class configuration {
 public:
   bool             _beVerbose;
 
-  u32bit           _merSize;
-  u32bit           _merSkip;
-  u32bit           _numSearchThreads;
+  uint32           _merSize;
+  uint32           _merSkip;
+  uint32           _numSearchThreads;
 
   bool             _doReverse;
   bool             _doForward;
 
-  u32bit           _maxDiagonal;
-  u32bit           _maxGap;
-  u32bit           _qsOverlap;
-  u32bit           _dsOverlap;
+  uint32           _maxDiagonal;
+  uint32           _maxGap;
+  uint32           _qsOverlap;
+  uint32           _dsOverlap;
 
-  u32bit           _minLength;
+  uint32           _minLength;
 
   char            *_dbFileName;
   char            *_qsFileName;
@@ -107,7 +107,7 @@ public:
 
   //  Loader parameters
   //
-  u32bit           _loaderHighWaterMark;
+  uint32           _loaderHighWaterMark;
   struct timespec  _loaderSleep;
   bool             _loaderWarnings;
 
@@ -117,7 +117,7 @@ public:
 
   //  Output parameters
   //
-  u32bit           _writerHighWaterMark;
+  uint32           _writerHighWaterMark;
   struct timespec  _writerSleep;
   bool             _writerWarnings;
 
@@ -148,16 +148,16 @@ extern seqCache              *qsFASTA;  //  Used exclusively by thr-loader.C
 
 extern positionDB            *positions;
 
-extern volatile u32bit        numberOfQueries;
+extern volatile uint32        numberOfQueries;
 
 extern filterObj            **output;
 
 extern pthread_mutex_t        inputTailMutex;
 extern seqInCore            **input;
-extern volatile u32bit        inputHead;
-extern volatile u32bit        inputTail;
+extern volatile uint32        inputHead;
+extern volatile uint32        inputTail;
 
-extern volatile u32bit        outputPos;
+extern volatile uint32        outputPos;
 
 extern char                  *threadStats[MAX_THREADS];
 

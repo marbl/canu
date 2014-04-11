@@ -29,23 +29,23 @@
 
 
 struct diagonalLine {
-  u32bit   _qsPos;
-  u32bit   _dsPos;
+  uint32   _qsPos;
+  uint32   _dsPos;
 #ifndef WITHOUT_DIAGONALID
-  u32bit   _diagonalID;
+  uint32   _diagonalID;
 #endif
 };
 
 
 class hitMatrix {
 public:
-  hitMatrix(u32bit qsLen,
-            u32bit qsIdx);
+  hitMatrix(uint32 qsLen,
+            uint32 qsIdx);
   ~hitMatrix();
 
-  void    addHits(u32bit  qi,
-                  u64bit *ps,
-                  u64bit  cn);
+  void    addHits(uint32  qi,
+                  uint64 *ps,
+                  uint64  cn);
 
   void    sort_diagonal(void);
   void    sort_dsPos(void);
@@ -53,39 +53,39 @@ public:
   void    processMatrix(char direction, filterObj *FO);
 
 private:
-  u32bit                        _qsLen;   //  Seq Len of Q
-  u32bit                        _qsIdx;   //  Index of Q in the FastA
+  uint32                        _qsLen;   //  Seq Len of Q
+  uint32                        _qsIdx;   //  Index of Q in the FastA
 
   //  Instead of building the lines during add(), we store
   //  the information used to build lines, and then build them
   //  in chain().  This was done to reduce simultaneous memory
   //  usage, as the lineArrayMap and etc take up considerable space.
   //
-  u32bit                        _hitsLen;
-  u32bit                        _hitsMax;
+  uint32                        _hitsLen;
+  uint32                        _hitsMax;
   diagonalLine                 *_hits;
 };
 
 
 inline
 void
-hitMatrix::addHits(u32bit  qi,
-                   u64bit *ps,
-                   u64bit  cn) {
+hitMatrix::addHits(uint32  qi,
+                   uint64 *ps,
+                   uint64  cn) {
 
   if ((_hitsLen + cn) >= _hitsMax) {
-    _hitsMax = _hitsMax + _hitsMax + (u32bit)cn;
+    _hitsMax = _hitsMax + _hitsMax + (uint32)cn;
 
     diagonalLine *h;
     try {
       h = new diagonalLine [_hitsMax];
     } catch (std::bad_alloc) {
       fprintf(stderr, "hitMatrix::addHits()-- caught std::bad_alloc in %s at line %d.\n", __FILE__, __LINE__);
-      fprintf(stderr, "hitMatrix::addHits()-- have "u32bitFMT" hits, tried to add "u64bitFMT" more\n", _hitsLen, cn);
+      fprintf(stderr, "hitMatrix::addHits()-- have "uint32FMT" hits, tried to add "uint64FMT" more\n", _hitsLen, cn);
       exit(1);
     }
 
-    for (u32bit z=_hitsLen; z--; ) {
+    for (uint32 z=_hitsLen; z--; ) {
       h[z]._qsPos      = _hits[z]._qsPos;
       h[z]._dsPos      = _hits[z]._dsPos;
 #ifndef WITHOUT_DIAGONALID
@@ -98,11 +98,11 @@ hitMatrix::addHits(u32bit  qi,
     _hits = h;
   }
 
-  for (u64bit i=0; i<cn; i++) {
-    _hits[_hitsLen]._qsPos      = (u32bit)(qi);
-    _hits[_hitsLen]._dsPos      = (u32bit)(ps[i]);
+  for (uint64 i=0; i<cn; i++) {
+    _hits[_hitsLen]._qsPos      = (uint32)(qi);
+    _hits[_hitsLen]._dsPos      = (uint32)(ps[i]);
 #ifndef WITHOUT_DIAGONALID
-    _hits[_hitsLen]._diagonalID = (u32bit)(_qsLen - qi - 1 + ps[i]);
+    _hits[_hitsLen]._diagonalID = (uint32)(_qsLen - qi - 1 + ps[i]);
 #endif
     _hitsLen++;
   }

@@ -22,15 +22,15 @@ public:
   ~filterObj();
 
   void   addHit(char   direction,
-                u32bit id1,
-                u32bit pos1,
-                u32bit len1,
-                u32bit id2,
-                u32bit pos2,
-                u32bit len2,
-                u32bit filled);
+                uint32 id1,
+                uint32 pos1,
+                uint32 len1,
+                uint32 id2,
+                uint32 pos2,
+                uint32 len2,
+                uint32 filled);
   void   filter(void);
-  u64bit output(FILE *, u64bit);
+  uint64 output(FILE *, uint64);
 
 private:
   char        *soOpts;
@@ -40,12 +40,12 @@ private:
 
   void *     (*soconstruct)(char *);
   void       (*sodestruct)(void *);
-  void       (*soaddHit)(void *, char, u32bit, u32bit, u32bit, u32bit, u32bit, u32bit, u32bit);
+  void       (*soaddHit)(void *, char, uint32, uint32, uint32, uint32, uint32, uint32, uint32);
   void       (*sofilter)(void *);
-  u64bit     (*sooutput)(void *, FILE *, u64bit);
+  uint64     (*sooutput)(void *, FILE *, uint64);
 
-  u32bit       theOutputPos;
-  u32bit       theOutputMax;
+  uint32       theOutputPos;
+  uint32       theOutputMax;
   char        *theOutput;
 
   char         name1[32];
@@ -82,7 +82,7 @@ filterObj::filterObj(sharedObj *so_, char *op_) {
 
     splitToWords  W(soOpts);
 
-    for (u32bit arg = 0; arg < W.numWords(); arg++) {
+    for (uint32 arg = 0; arg < W.numWords(); arg++) {
       if        (strcmp(W.getWord(arg), "-1") == 0) {
         strncpy(name1, W.getWord(++arg), 31);
       } else if (strcmp(W.getWord(arg), "-2") == 0) {
@@ -94,9 +94,9 @@ filterObj::filterObj(sharedObj *so_, char *op_) {
   if (so) {
     soconstruct = (void*  (*)(char *))so->get("construct");
     sodestruct  = (void   (*)(void*))so->get("destruct");
-    soaddHit    = (void   (*)(void *, char, u32bit, u32bit, u32bit, u32bit, u32bit, u32bit, u32bit))so->get("addHit");
+    soaddHit    = (void   (*)(void *, char, uint32, uint32, uint32, uint32, uint32, uint32, uint32))so->get("addHit");
     sofilter    = (void   (*)(void*))so->get("filter");
-    sooutput    = (u64bit (*)(void*,FILE*,u64bit))so->get("output");
+    sooutput    = (uint64 (*)(void*,FILE*,uint64))so->get("output");
 
     if (!soconstruct) fprintf(stderr, "construct not found!\n");
     if (!sodestruct)  fprintf(stderr, "destruct not found!\n");
@@ -127,13 +127,13 @@ filterObj::~filterObj() {
 inline
 void
 filterObj::addHit(char   orientation,
-                  u32bit id1,
-                  u32bit pos1,
-                  u32bit len1,
-                  u32bit id2,
-                  u32bit pos2,
-                  u32bit len2,
-                  u32bit filled) {
+                  uint32 id1,
+                  uint32 pos1,
+                  uint32 len1,
+                  uint32 id2,
+                  uint32 pos2,
+                  uint32 len2,
+                  uint32 filled) {
 
   if (soaddHit) {
     (*soaddHit)(handle, orientation, id1, pos1, len1, id2, pos2, len2, filled);
@@ -145,7 +145,7 @@ filterObj::addHit(char   orientation,
         o = new char [theOutputMax];
       } catch (std::bad_alloc) {
         fprintf(stderr, "hitMatrix::filter()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
-        fprintf(stderr, "hitMatrix::filter()-- tried to extend output string from "u32bitFMT" to "u32bitFMT" bytes.\n", theOutputPos, theOutputMax);
+        fprintf(stderr, "hitMatrix::filter()-- tried to extend output string from "uint32FMT" to "uint32FMT" bytes.\n", theOutputPos, theOutputMax);
         exit(1);
       }
       memcpy(o, theOutput, theOutputPos);
@@ -154,7 +154,7 @@ filterObj::addHit(char   orientation,
     }
 
     sprintf(theOutput + theOutputPos,
-            "M x ############ . %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" 1 %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" %s "u32bitFMT"\n",
+            "M x ############ . %s:"uint32FMT" "uint32FMT" "uint32FMT" 1 %s:"uint32FMT" "uint32FMT" "uint32FMT" %s "uint32FMT"\n",
             name1, id1, pos1, len1, name2, id2, pos2, len2, (orientation == 'f') ? "1" : "-1", filled);
 
     while (theOutput[theOutputPos])
@@ -174,8 +174,8 @@ filterObj::filter(void) {
 }
 
 inline
-u64bit
-filterObj::output(FILE *F, u64bit matchid) {
+uint64
+filterObj::output(FILE *F, uint64 matchid) {
   if (sooutput) {
     matchid = (*sooutput)(handle, F, matchid);
   } else {
@@ -190,7 +190,7 @@ filterObj::output(FILE *F, u64bit matchid) {
       //  Construct a string holding the text version of the match id.
       //
       matchid++;
-      sprintf(matchIDstring, u64bitFMT, matchid);
+      sprintf(matchIDstring, uint64FMT, matchid);
 
       //  At the start of an output record.  Skip the row type and
       //  sub type, 'M x ', which should put us at the start of
@@ -209,7 +209,7 @@ filterObj::output(FILE *F, u64bit matchid) {
         *pos++ = ' ';
 
       if (*matchIDiterator != 0)
-        fprintf(stderr, "WARNING:  there isn't enough space in the match to insert the match id "u64bitFMT" '%s'!\n",
+        fprintf(stderr, "WARNING:  there isn't enough space in the match to insert the match id "uint64FMT" '%s'!\n",
                 matchid, matchIDstring);
 
       //  Skip to the next record

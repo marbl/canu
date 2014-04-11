@@ -26,7 +26,7 @@
 #include "fibonacciEncoding.h"
 
 //  Lists?
-#include "u32bitList.H"
+#include "uint32List.H"
 
 //  Now the good stuff!
 //

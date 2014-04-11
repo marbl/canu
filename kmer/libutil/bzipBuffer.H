@@ -9,7 +9,7 @@
 
 class bzipBuffer {
 public:
-  bzipBuffer(const char *filename, u32bit bufferMax = 32 * 1024);
+  bzipBuffer(const char *filename, uint32 bufferMax = 32 * 1024);
   ~bzipBuffer();
 
   bool      eof(void);
@@ -22,7 +22,7 @@ public:
 
 private:
   void      fillBuffer(void);
-  void      init(int fileptr, const char *filename, u32bit bufferMax);
+  void      init(int fileptr, const char *filename, uint32 bufferMax);
 
   char       *_filename;
 
@@ -30,9 +30,9 @@ private:
   off_t       _filePos;
   bool        _eof;
 
-  u32bit      _bzip2bufferMax;
-  u32bit      _bzip2inPos;
-  u32bit      _bzip2outPos;
+  uint32      _bzip2bufferMax;
+  uint32      _bzip2inPos;
+  uint32      _bzip2outPos;
 
   char       *_bzip2in;
   char       *_bzip2out;

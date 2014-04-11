@@ -10,8 +10,8 @@
 
 bool
 existDB::createFromSequence(char const  *sequence,
-                            u32bit       merSize,
-                            u32bit       flags) {
+                            uint32       merSize,
+                            uint32       flags) {
 
   bool               beVerbose  = false;
   bool               rebuilding = false;
@@ -35,25 +35,25 @@ existDB::createFromSequence(char const  *sequence,
   //  Setting this too high drastically reduces performance, suspected because of cache misses.
   //  Setting this too low will also reduce performance, by increasing the search time in a bucket.
   //
-  u32bit tblBits = logBaseTwo64(strlen(sequence));
+  uint32 tblBits = logBaseTwo64(strlen(sequence));
 
  rebuild:
   fprintf(stderr, "tblBits %d seqlen %d\n", tblBits, strlen(sequence));
 
   _shift1                = 2 * _merSizeInBases - tblBits;
   _shift2                = _shift1 / 2;
-  _mask1                 = u64bitMASK(tblBits);
-  _mask2                 = u64bitMASK(_shift1);
+  _mask1                 = uint64MASK(tblBits);
+  _mask2                 = uint64MASK(_shift1);
 
-  _hshWidth              = u32bitZERO;
+  _hshWidth              = uint32ZERO;
   _chkWidth              = 2 * merSize - tblBits;
   _cntWidth              = 16;
 
-  u64bit  tableSizeInEntries = u64bitONE << tblBits;
-  u64bit  numberOfMers       = u64bitZERO;
-  u64bit *countingTable      = new u64bit [tableSizeInEntries + 1];
+  uint64  tableSizeInEntries = uint64ONE << tblBits;
+  uint64  numberOfMers       = uint64ZERO;
+  uint64 *countingTable      = new uint64 [tableSizeInEntries + 1];
 
-  for (u64bit i=tableSizeInEntries+1; i--; )
+  for (uint64 i=tableSizeInEntries+1; i--; )
     countingTable[i] = 0;
 
   _isCanonical = flags & existDBcanonical;
@@ -84,9 +84,9 @@ existDB::createFromSequence(char const  *sequence,
   delete M;
 
 #ifdef STATS
-  u64bit  dist[32] = {0};
-  u64bit  maxcnt = 0;
-  for (u64bit i=tableSizeInEntries+1; i--; ) {
+  uint64  dist[32] = {0};
+  uint64  maxcnt = 0;
+  for (uint64 i=tableSizeInEntries+1; i--; ) {
     if (countingTable[i] > maxcnt)
       maxcnt = countingTable[i];
 
@@ -94,7 +94,7 @@ existDB::createFromSequence(char const  *sequence,
       dist[countingTable[i]]++;
   }
 
-  for(u64bit i=0; i<32; i++)
+  for(uint64 i=0; i<32; i++)
     fprintf(stderr, "existDB::usage[%2d] = %d\n", i, dist[i]);
   fprintf(stderr, "existDB::maxcnt    = %d\n", maxcnt);
 #endif
@@ -113,7 +113,7 @@ existDB::createFromSequence(char const  *sequence,
   //
   if (_compressedHash) {
     _hshWidth = 1;
-    while ((numberOfMers+1) > (u64bitONE << _hshWidth))
+    while ((numberOfMers+1) > (uint64ONE << _hshWidth))
       _hshWidth++;
   }
 
@@ -135,24 +135,24 @@ existDB::createFromSequence(char const  *sequence,
     _countsWords = _countsWords * _cntWidth / 64 + 1;
 
   if (beVerbose) {
-    fprintf(stderr, "existDB::createFromSequence()-- hashTable is "u64bitFMT"MB\n", _hashTableWords >> 17);
-    fprintf(stderr, "existDB::createFromSequence()-- buckets is "u64bitFMT"MB\n", _bucketsWords >> 17);
+    fprintf(stderr, "existDB::createFromSequence()-- hashTable is "uint64FMT"MB\n", _hashTableWords >> 17);
+    fprintf(stderr, "existDB::createFromSequence()-- buckets is "uint64FMT"MB\n", _bucketsWords >> 17);
     if (flags & existDBcounts)
-      fprintf(stderr, "existDB::createFromSequence()-- counts is "u64bitFMT"MB\n", _countsWords >> 17);
+      fprintf(stderr, "existDB::createFromSequence()-- counts is "uint64FMT"MB\n", _countsWords >> 17);
   }
 
-  _hashTable   = new u64bit [_hashTableWords];
-  _buckets     = new u64bit [_bucketsWords];
+  _hashTable   = new uint64 [_hashTableWords];
+  _buckets     = new uint64 [_bucketsWords];
   _countsWords = (flags & existDBcounts) ?             _countsWords  : 0;
-  _counts      = (flags & existDBcounts) ? new u64bit [_countsWords] : 0L;
+  _counts      = (flags & existDBcounts) ? new uint64 [_countsWords] : 0L;
 
   //  These aren't strictly needed.  _buckets is cleared as it is initialied.  _hashTable
   //  is also cleared as it is initialized, but in the _compressedHash case, the last
   //  few words might be uninitialized.  They're unused.
 
-  //memset(_hashTable, 0, sizeof(u64bit) * _hashTableWords);
-  //memset(_buckets,   0, sizeof(u64bit) * _bucketsWords);  //  buckets is cleared as it is built
-  //memset(_counts,    0, sizeof(u64bit) * _countsWords);
+  //memset(_hashTable, 0, sizeof(uint64) * _hashTableWords);
+  //memset(_buckets,   0, sizeof(uint64) * _bucketsWords);  //  buckets is cleared as it is built
+  //memset(_counts,    0, sizeof(uint64) * _countsWords);
 
   _hashTable[_hashTableWords-1] = 0;
   _hashTable[_hashTableWords-2] = 0;
@@ -164,12 +164,12 @@ existDB::createFromSequence(char const  *sequence,
   //  Make the hash table point to the start of the bucket, and reset
   //  the counting table -- we're going to use it to fill the buckets.
   //
-  u64bit  tmpPosition = 0;
-  u64bit  begPosition = 0;
-  u64bit  ptr         = 0;
+  uint64  tmpPosition = 0;
+  uint64  begPosition = 0;
+  uint64  ptr         = 0;
 
   if (_compressedHash) {
-    for (u64bit i=0; i<tableSizeInEntries; i++) {
+    for (uint64 i=0; i<tableSizeInEntries; i++) {
       tmpPosition    = countingTable[i];
       countingTable[i] = begPosition;
 
@@ -181,7 +181,7 @@ existDB::createFromSequence(char const  *sequence,
 
     setDecodedValue(_hashTable, ptr, _hshWidth, begPosition);
   } else {
-    for (u64bit i=0; i<tableSizeInEntries; i++) {
+    for (uint64 i=0; i<tableSizeInEntries; i++) {
       tmpPosition    = countingTable[i];
       countingTable[i] = begPosition;
 
@@ -219,17 +219,17 @@ existDB::createFromSequence(char const  *sequence,
 
   //  Compress out the gaps we have from redundant kmers.
 
-  u64bit  pos = 0;
-  u64bit  frm = 0;
-  u64bit  len = 0;
+  uint64  pos = 0;
+  uint64  frm = 0;
+  uint64  len = 0;
 
-  for (u64bit i=0; i<tableSizeInEntries; i++) {
+  for (uint64 i=0; i<tableSizeInEntries; i++) {
     frm = _hashTable[i];
     len = countingTable[i] - _hashTable[i];
 
     _hashTable[i] = pos;
 
-    for (u64bit j=0; j<len; j++) {
+    for (uint64 j=0; j<len; j++) {
       if (_counts)
         _counts[pos]  = _counts[frm];
 
@@ -237,7 +237,7 @@ existDB::createFromSequence(char const  *sequence,
     }
   }
 
-  fprintf(stderr, "Compressed from "u64bitFMT" to "u64bitFMT" ("u64bitFMT" bits)\n",
+  fprintf(stderr, "Compressed from "uint64FMT" to "uint64FMT" ("uint64FMT" bits)\n",
           _hashTable[tableSizeInEntries], pos, logBaseTwo64(pos));
 
   while (pos < _bucketsWords)

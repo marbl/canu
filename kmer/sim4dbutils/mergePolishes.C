@@ -13,7 +13,7 @@
 
 static
 void
-loadNext(u32bit idx, sim4polish **polishes, sim4polishReader **inMatch, u32bit *numSeqs) {
+loadNext(uint32 idx, sim4polish **polishes, sim4polishReader **inMatch, uint32 *numSeqs) {
   if (inMatch[idx]->nextAlignment(polishes[idx]))
     polishes[idx]->_estID += numSeqs[idx];
 }
@@ -28,9 +28,9 @@ main(int argc, char **argv) {
   sim4polishReader  **inMatch  = new sim4polishReader * [argc];
   sim4polish        **polishes = new sim4polish * [argc];
   sim4polishWriter   *otMatch  = 0L;
-  u32bit             *numSeqs  = new u32bit [argc];
+  uint32             *numSeqs  = new uint32 [argc];
 
-  u32bit              numIn = 0;
+  uint32              numIn = 0;
 
   sim4polishStyle    style = sim4polishStyleDefault;
 
@@ -62,7 +62,7 @@ main(int argc, char **argv) {
 
   otMatch = new sim4polishWriter(otMatchName, style);
 
-  for (u32bit i=0; i<numIn; i++)
+  for (uint32 i=0; i<numIn; i++)
     if (inMatch[i]->getsim4polishStyle() != style) {
       fprintf(stderr, "warning: input format and output format may differ.\n");
       break;
@@ -74,7 +74,7 @@ main(int argc, char **argv) {
   fprintf(stderr, "Merging sequences.\n");
 
   FILE         *O = fopen(otSeqName, "w");
-  for (u32bit i=0; i<numIn; i++) {
+  for (uint32 i=0; i<numIn; i++) {
     seqCache  *I = new seqCache(inSeqName[i]);
     seqInCore *B = I->getSequenceInCore();
 
@@ -96,9 +96,9 @@ main(int argc, char **argv) {
   //  Make numSeqs[] be the offset needed to convert a polish in each inMatch[] file into a polish
   //  in the merged file.
   //
-  u32bit o = 0;
-  u32bit s = 0;
-  for (u32bit i=0; i<numIn; i++) {
+  uint32 o = 0;
+  uint32 s = 0;
+  for (uint32 i=0; i<numIn; i++) {
     o  = numSeqs[i];
     numSeqs[i] = s;
     s += o;
@@ -106,7 +106,7 @@ main(int argc, char **argv) {
 
   //  Load the initial polishes
   //
-  for (u32bit i=0; i<numIn; i++)
+  for (uint32 i=0; i<numIn; i++)
     loadNext(i, polishes, inMatch, numSeqs);
 
   //  Merge, until no more input is left.  Each round we scan the list of loaded polishes[] and
@@ -115,7 +115,7 @@ main(int argc, char **argv) {
   bool keepGoing = true;
   while (keepGoing) {
 
-    u32bit first = 0;
+    uint32 first = 0;
     while ((polishes[first] == 0L) && (first < numIn))
       first++;
 
@@ -124,7 +124,7 @@ main(int argc, char **argv) {
       continue;
     }
 
-    for (u32bit i=first+1; i<numIn; i++)
+    for (uint32 i=first+1; i<numIn; i++)
       if ((polishes[i]) &&
           (s4p_genIDcompare(polishes + first, polishes + i) > 0))
         first = i;

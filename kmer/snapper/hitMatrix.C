@@ -2,7 +2,7 @@
 
 #define MINCOUNT  3
 
-hitMatrix::hitMatrix(u32bit qsLen, u32bit qsMers, u32bit qsIdx, logMsg *theLog) {
+hitMatrix::hitMatrix(uint32 qsLen, uint32 qsMers, uint32 qsIdx, logMsg *theLog) {
   _qsLen    = qsLen;
   _qsMers   = qsMers;
   _qsIdx    = qsIdx;
@@ -22,16 +22,16 @@ hitMatrix::~hitMatrix() {
 
 
 void
-hitMatrix::addMatch(u32bit         isunique,
-                    u32bit         qsLo,
-                    u32bit         qsHi,
-                    u32bit         dsLo,
-                    u32bit         dsHi,
+hitMatrix::addMatch(uint32         isunique,
+                    uint32         qsLo,
+                    uint32         qsHi,
+                    uint32         dsLo,
+                    uint32         dsHi,
                     merCovering   *IL,
                     merList       *ML) {
-  u32bit offset = 0;
+  uint32 offset = 0;
 
-  offset = (u32bit)(config._extendWeight * qsLo);
+  offset = (uint32)(config._extendWeight * qsLo);
   if (offset < config._extendMinimum)
     offset = config._extendMinimum;
   if (offset > config._extendMaximum)
@@ -41,7 +41,7 @@ hitMatrix::addMatch(u32bit         isunique,
   else
     dsLo -= offset;
 
-  offset = (u32bit)(config._extendWeight * (_qsLen - qsHi));
+  offset = (uint32)(config._extendWeight * (_qsLen - qsHi));
   if (offset < config._extendMinimum)
     offset = config._extendMinimum;
   if (offset > config._extendMaximum)
@@ -58,7 +58,7 @@ hitMatrix::addMatch(u32bit         isunique,
   trapMatch *n = new trapMatch(isunique, qsLo, qsHi, dsLo, dsHi, IL, ML);
 
 #ifdef SHOW_HITMATRIX
-  _theLog->add("chained:  Q::"u32bitFMT"-"u32bitFMT"("u32bitFMT") G::"u32bitFMT"-"u32bitFMT"("u32bitFMT")\n",
+  _theLog->add("chained:  Q::"uint32FMT"-"uint32FMT"("uint32FMT") G::"uint32FMT"-"uint32FMT"("uint32FMT")\n",
                qsLo, qsHi, qsHi - qsLo,
                dsLo, dsHi, dsHi - dsLo);
 #endif
@@ -91,9 +91,9 @@ hitMatrix::addMatch(u32bit         isunique,
 
 inline
 int
-compareLines(diagonalLine *A, diagonalLine *B, u32bit qsLen) {
-  u32bit a = qsLen - A->val.qPos - 1 + A->val.dPos;
-  u32bit b = qsLen - B->val.qPos - 1 + B->val.dPos;
+compareLines(diagonalLine *A, diagonalLine *B, uint32 qsLen) {
+  uint32 a = qsLen - A->val.qPos - 1 + A->val.dPos;
+  uint32 b = qsLen - B->val.qPos - 1 + B->val.dPos;
 
   return(((a  < b)) ||
          ((a == b) && (A->val.qPos < B->val.qPos)));
@@ -101,8 +101,8 @@ compareLines(diagonalLine *A, diagonalLine *B, u32bit qsLen) {
 
 inline
 int
-compareLines(u32bit l, u32bit q, diagonalLine *B, u32bit qsLen) {
-  u32bit b = qsLen - B->val.qPos - 1 + B->val.dPos;
+compareLines(uint32 l, uint32 q, diagonalLine *B, uint32 qsLen) {
+  uint32 b = qsLen - B->val.qPos - 1 + B->val.dPos;
 
   return(((l  < b)) ||
          ((l == b) && (q < B->val.qPos)));
@@ -110,11 +110,11 @@ compareLines(u32bit l, u32bit q, diagonalLine *B, u32bit qsLen) {
 
 inline
 void
-adjustHeap(diagonalLine *L, s32bit p, s32bit n, u32bit qsLen) {
-  u64bit  v = L[p].all;
-  u32bit  q = L[p].val.qPos;
-  u32bit  l = qsLen - q - 1 + L[p].val.dPos;
-  s32bit  c = (p << 1) + 1;  //  let c be the left child of p
+adjustHeap(diagonalLine *L, int32 p, int32 n, uint32 qsLen) {
+  uint64  v = L[p].all;
+  uint32  q = L[p].val.qPos;
+  uint32  l = qsLen - q - 1 + L[p].val.dPos;
+  int32  c = (p << 1) + 1;  //  let c be the left child of p
 
   while (c < n) {
 
@@ -147,10 +147,10 @@ adjustHeap(diagonalLine *L, s32bit p, s32bit n, u32bit qsLen) {
 void
 hitMatrix::filter(char      direction,
                   double    minHitCoverage,
-                  u32bit    minHitLength,
+                  uint32    minHitLength,
                   aHit    *&theHits,
-                  u32bit   &theHitsPos,
-                  u32bit   &theHitsMax) {
+                  uint32   &theHitsPos,
+                  uint32   &theHitsMax) {
 
   if (_hitsLen == 0)
     return;
@@ -158,7 +158,7 @@ hitMatrix::filter(char      direction,
   //  Decide on the minimum quality values; we pick the larger of
   //  the fixed lengths, and the sequence length * coverage.
   //
-  u32bit   minLength = (u32bit)(minHitCoverage * _qsLen);
+  uint32   minLength = (uint32)(minHitCoverage * _qsLen);
   if (minLength < minHitLength)
     minLength = minHitLength;
 
@@ -169,9 +169,9 @@ hitMatrix::filter(char      direction,
 
   //  Now, while there are hits left....
   //
-  u32bit  firstHit   = 0;
-  u32bit  lastHit    = 0;
-  u32bit  currentSeq = 0;
+  uint32  firstHit   = 0;
+  uint32  lastHit    = 0;
+  uint32  currentSeq = 0;
 
   //
   //  Step 1:  Sort the mer-hits, chain, promote decent ones to matches
@@ -205,7 +205,7 @@ hitMatrix::filter(char      direction,
 
     //  Adjust the hits to be relative to the start of this sequence
     //
-    for (u32bit i=firstHit; i<lastHit; i++)
+    for (uint32 i=firstHit; i<lastHit; i++)
       _hits[i].val.dPos -= genomeMap->startOf(currentSeq);
 
     //  Sort them, if needed.
@@ -220,15 +220,15 @@ hitMatrix::filter(char      direction,
       //  Build the heap.  I initially thought this could be done at the
       //  same time as the scan for the last hit, but it can't (easily)
       //
-      for (s32bit i=(lastHit - firstHit)/2 - 1; i>=0; i--)
+      for (int32 i=(lastHit - firstHit)/2 - 1; i>=0; i--)
         adjustHeap(hitsToSort, i, lastHit - firstHit, _qsLen);
 
       //  Sort the hits by diagonal.  This is the second part of
       //  heap sort -- Interchange the new maximum with the element
       //  at the end of the tree
       //
-      for (u32bit i=lastHit - firstHit - 1; i>0; i--) {
-        u64bit v            = hitsToSort[i].all;
+      for (uint32 i=lastHit - firstHit - 1; i>0; i--) {
+        uint64 v            = hitsToSort[i].all;
         hitsToSort[i].all   = hitsToSort[0].all;
         hitsToSort[0].all   = v;
       
@@ -238,20 +238,20 @@ hitMatrix::filter(char      direction,
 
     //  Filter them
     //
-    u32bit  frstDiagonal = _qsLen - _hits[firstHit].val.qPos - 1 + _hits[firstHit].val.dPos;
-    u32bit  lastDiagonal = frstDiagonal;
-    u32bit  unique       = u32bitZERO;
-    u32bit  qsLow        = _hits[firstHit].val.qPos;
-    u32bit  qsHigh       = _hits[firstHit].val.qPos;
-    u32bit  dsLow        = _hits[firstHit].val.dPos;
-    u32bit  dsHigh       = _hits[firstHit].val.dPos;
-    u32bit  minCount     = ~u32bitZERO;
+    uint32  frstDiagonal = _qsLen - _hits[firstHit].val.qPos - 1 + _hits[firstHit].val.dPos;
+    uint32  lastDiagonal = frstDiagonal;
+    uint32  unique       = uint32ZERO;
+    uint32  qsLow        = _hits[firstHit].val.qPos;
+    uint32  qsHigh       = _hits[firstHit].val.qPos;
+    uint32  dsLow        = _hits[firstHit].val.dPos;
+    uint32  dsHigh       = _hits[firstHit].val.dPos;
+    uint32  minCount     = ~uint32ZERO;
 
     merCovering   *IL = new merCovering(config._KBmerSize);
     merList       *ML = new merList();
 
-    for (u32bit i=firstHit; i<lastHit; i++) {
-      u32bit thisDiagonalID = _qsLen - _hits[i].val.qPos - 1 + _hits[i].val.dPos;
+    for (uint32 i=firstHit; i<lastHit; i++) {
+      uint32 thisDiagonalID = _qsLen - _hits[i].val.qPos - 1 + _hits[i].val.dPos;
 
       //  Unconditionally extend if the diagonal difference is small.
       //
@@ -382,7 +382,7 @@ hitMatrix::filter(char      direction,
           o = new aHit [theHitsMax];
         } catch (std::bad_alloc) {
           fprintf(stderr, "hitMatrix::filter()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
-          fprintf(stderr, "hitMatrix::filter()-- tried to extend output string from "u32bitFMT" to "u32bitFMT".\n", theHitsPos, theHitsMax);
+          fprintf(stderr, "hitMatrix::filter()-- tried to extend output string from "uint32FMT" to "uint32FMT".\n", theHitsPos, theHitsMax);
           exit(1);
         }
         memcpy(o, theHits, theHitsPos * sizeof(aHit));
@@ -408,7 +408,7 @@ hitMatrix::filter(char      direction,
       assert(a->_dsLo < a->_dsHi);
 
 #ifdef SHOW_HITMATRIX
-      _theLog->add("merged:   G::"u32bitFMT"-"u32bitFMT"("u32bitFMT")  q:"u32bitFMT" g:"u32bitFMT" cov:"u32bitFMT" mat:"u32bitFMT" mer:"u32bitFMT"\n",
+      _theLog->add("merged:   G::"uint32FMT"-"uint32FMT"("uint32FMT")  q:"uint32FMT" g:"uint32FMT" cov:"uint32FMT" mat:"uint32FMT" mer:"uint32FMT"\n",
               a->_dsLo, a->_dsHi, a->_dsHi - a->_dsLo,
               a->_qsIdx,
               a->_dsIdx,

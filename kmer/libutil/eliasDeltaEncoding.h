@@ -5,11 +5,11 @@
 
 inline
 void
-setEliasDeltaEncodedNumber(u64bit *ptr,
-                           u64bit  pos,
-                           u64bit *siz,
-                           u64bit  val) {
-  u64bit b = logBaseTwo64(val);
+setEliasDeltaEncodedNumber(uint64 *ptr,
+                           uint64  pos,
+                           uint64 *siz,
+                           uint64  val) {
+  uint64 b = logBaseTwo64(val);
   setEliasGammaEncodedNumber(ptr, pos, siz, b);
   pos += *siz;
   setDecodedValue(ptr, pos, b-1, val);
@@ -18,14 +18,14 @@ setEliasDeltaEncodedNumber(u64bit *ptr,
 
 
 inline
-u64bit
-getEliasDeltaEncodedNumber(u64bit *ptr,
-                           u64bit  pos,
-                           u64bit *siz) {
-  u64bit b = getEliasGammaEncodedNumber(ptr, pos, siz) - 1;
+uint64
+getEliasDeltaEncodedNumber(uint64 *ptr,
+                           uint64  pos,
+                           uint64 *siz) {
+  uint64 b = getEliasGammaEncodedNumber(ptr, pos, siz) - 1;
   pos  += *siz;
   *siz += b;
-  return(u64bitONE << b | getDecodedValue(ptr, pos, b));
+  return(uint64ONE << b | getDecodedValue(ptr, pos, b));
 }
 
 

@@ -16,11 +16,11 @@ class merCovering {
 private:
   class interval {
   public:
-    u32bit      _lo;
-    u32bit      _hi;
+    uint32      _lo;
+    uint32      _hi;
     interval   *_next;
 
-    interval(u32bit lo, u32bit hi, interval *n) {
+    interval(uint32 lo, uint32 hi, interval *n) {
       _lo   = lo;
       _hi   = hi;
       _next = n;
@@ -28,20 +28,20 @@ private:
   };
 
   interval    *_intervals;
-  u32bit       _width;
-  u32bit       _pieces;
+  uint32       _width;
+  uint32       _pieces;
 #ifdef TEST_MERCOVERING
-  u32bit       _test[TEST_SIZE];
+  uint32       _test[TEST_SIZE];
 #endif
 
 public:
-  merCovering(u32bit w) {
+  merCovering(uint32 w) {
     _intervals = 0L;
     _width     = w;
     _pieces    = 0;
 
 #ifdef TEST_MERCOVERING
-    for (u32bit i=0; i<TEST_SIZE; i++)
+    for (uint32 i=0; i<TEST_SIZE; i++)
       _test[i] = 0;
 #endif
   };
@@ -63,8 +63,8 @@ public:
     _pieces    = 0;
   };
 
-  u32bit        sumOfLengths(void) {
-    u32bit s=0;
+  uint32        sumOfLengths(void) {
+    uint32 s=0;
 
     for (interval *i=_intervals; i; i = i->_next)
       s += i->_hi - i->_lo;
@@ -72,19 +72,19 @@ public:
     return(s);
   };
 
-  u32bit        numberOfPieces(void) {
+  uint32        numberOfPieces(void) {
     return(_pieces);
   };
 
-  void          addMer(u32bit lo) {
+  void          addMer(uint32 lo) {
     _pieces++;
 
-    u32bit hi = lo + _width;
+    uint32 hi = lo + _width;
 
     interval  *c;
 
 #ifdef TEST_MERCOVERING
-    for (u32bit i=lo; i<hi; i++)
+    for (uint32 i=lo; i<hi; i++)
       _test[i] = 1;
 #endif
 
@@ -171,12 +171,12 @@ public:
 
 #ifdef TEST_MERCOVERING
   void         test(void) {
-    for (u32bit i=0; i<TEST_SIZE; i++) {
+    for (uint32 i=0; i<TEST_SIZE; i++) {
       if (_test[i])
         _test[i] = 2;
     }
     for (interval *z=_intervals; z; z = z->_next) {
-      for (u32bit i=z->_lo; i<z->_hi; i++) {
+      for (uint32 i=z->_lo; i<z->_hi; i++) {
         if (_test[i] == 0) {
           fprintf(stderr, "INTERVAL CONTAINS SOMETHING NOT IN ARRAY! (%d)\n", i);
           exit(1);
@@ -188,7 +188,7 @@ public:
         _test[i] = 1;
       }
     }
-    for (u32bit i=0; i<TEST_SIZE; i++) {
+    for (uint32 i=0; i<TEST_SIZE; i++) {
       if (_test[i] == 2) {
         fprintf(stderr, "ARRAY CONTAINED SOMETHING NOT IN INTERVAL! (%d)\n", i);
         exit(1);
@@ -213,8 +213,8 @@ public:
     L = 0L;
 
     while (A || B) {
-      u32bit lo = 0;
-      u32bit hi = 0;
+      uint32 lo = 0;
+      uint32 hi = 0;
 
       //  if either list is zero, we can just zip down the other list
       //  and add things.
@@ -296,7 +296,7 @@ public:
 
     //  Save the number of mers in both intervals
     //
-    u32bit  p = _pieces + I->_pieces;
+    uint32  p = _pieces + I->_pieces;
 
     clear();
 

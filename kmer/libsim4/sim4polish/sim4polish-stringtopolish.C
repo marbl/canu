@@ -9,10 +9,10 @@
 #include <assert.h>
 
 void
-sim4polish::s4p_linesToPolishS4DB(u32bit startPosition,
-                                  u32bit maxLines,
+sim4polish::s4p_linesToPolishS4DB(uint32 startPosition,
+                                  uint32 maxLines,
                                   char **lines,
-                                  u32bit *lengths) {
+                                  uint32 *lengths) {
   char             mOri[65];
   char             sOri[65];
 
@@ -28,18 +28,18 @@ sim4polish::s4p_linesToPolishS4DB(u32bit startPosition,
     return;
   }
 
-  u32bit cl = 1;
+  uint32 cl = 1;
 
   //  Convert '-' into ' ', on the assumption that this is the description line.  This allows us to
   //  use scanf properly.
   //
-  for (u32bit i=0; i<lengths[cl]; i++)
+  for (uint32 i=0; i<lengths[cl]; i++)
     if (lines[cl][i] == '-')
       lines[cl][i] = ' ';
 
   mOri[0] = 0;
   sOri[0] = 0;
-  u32bit r = sscanf(lines[cl], ""u32bitFMT"["u32bitFMT" "u32bitFMT" "u32bitFMT"] "u32bitFMT"["u32bitFMT" "u32bitFMT"] <"u32bitFMT" "u32bitFMT" "u32bitFMT" %s %s>",
+  uint32 r = sscanf(lines[cl], ""uint32FMT"["uint32FMT" "uint32FMT" "uint32FMT"] "uint32FMT"["uint32FMT" "uint32FMT"] <"uint32FMT" "uint32FMT" "uint32FMT" %s %s>",
                     &_estID,
                     &_estLen,
                     &_estPolyA,
@@ -52,7 +52,7 @@ sim4polish::s4p_linesToPolishS4DB(u32bit startPosition,
                     &_percentIdentity,
                     mOri, sOri);
   if (r != 12) {
-    fprintf(stderr, "sim4polish::s4p_linesToPolishS4DB()--  byte "u32bitFMT": '%s'\n", startPosition, lines[cl]);
+    fprintf(stderr, "sim4polish::s4p_linesToPolishS4DB()--  byte "uint32FMT": '%s'\n", startPosition, lines[cl]);
     fprintf(stderr, "sim4polish::s4p_linesToPolishS4DB()--  Expecting description line, found %d tokens instead of 12.\n", r);
   }
 
@@ -69,7 +69,7 @@ sim4polish::s4p_linesToPolishS4DB(u32bit startPosition,
       _matchOrientation = SIM4_MATCH_COMPLEMENT;
       break;
     default:
-      fprintf(stderr, "sim4polish::s4p_linesToPolishS4DB()--  byte "u32bitFMT": '%s'\n", startPosition, lines[cl]);
+      fprintf(stderr, "sim4polish::s4p_linesToPolishS4DB()--  byte "uint32FMT": '%s'\n", startPosition, lines[cl]);
       fprintf(stderr, "sim4polish::s4p_linesToPolishS4DB()--  unknown match orientation\n");
       break;
   }
@@ -81,7 +81,7 @@ sim4polish::s4p_linesToPolishS4DB(u32bit startPosition,
     case 't': _strandOrientation = SIM4_STRAND_INTRACTABLE; break;
     case 'i': _strandOrientation = SIM4_STRAND_FAILED; break;
     default:
-      fprintf(stderr, "sim4polish::s4p_linesToPolishS4DB()--  byte "u32bitFMT": '%s'\n", startPosition, lines[cl]);
+      fprintf(stderr, "sim4polish::s4p_linesToPolishS4DB()--  byte "uint32FMT": '%s'\n", startPosition, lines[cl]);
       fprintf(stderr, "sim4polish::s4p_linesToPolishS4DB()--  unknown strand orientation\n");
       break;
   }
@@ -117,14 +117,14 @@ sim4polish::s4p_linesToPolishS4DB(u32bit startPosition,
   //
 
   sim4polishExon    exon;
-  u32bit            maxExons = 1024;
+  uint32            maxExons = 1024;
 
   _numExons = 0;
   _exons    = new sim4polishExon [maxExons];
 
   _numCovered = 0;
 
-  while (sscanf(lines[cl], ""u32bitFMT"-"u32bitFMT" ("u32bitFMT"-"u32bitFMT") <"u32bitFMT"-"u32bitFMT"-"u32bitFMT">",
+  while (sscanf(lines[cl], ""uint32FMT"-"uint32FMT" ("uint32FMT"-"uint32FMT") <"uint32FMT"-"uint32FMT"-"uint32FMT">",
                 &exon._estFrom, &exon._estTo,
                 &exon._genFrom, &exon._genTo,
                 &exon._numMatches,
@@ -166,7 +166,7 @@ sim4polish::s4p_linesToPolishS4DB(u32bit startPosition,
   }
 
   if (_numExons == 0) {
-    fprintf(stderr, "sim4polish::s4p_linesToPolishS4DB()--  byte "u32bitFMT": '%s'\n", startPosition, lines[cl]);
+    fprintf(stderr, "sim4polish::s4p_linesToPolishS4DB()--  byte "uint32FMT": '%s'\n", startPosition, lines[cl]);
     fprintf(stderr, "sim4polish::s4p_linesToPolishS4DB()--  WARNING: found ZERO exons?\n");
   }
 
@@ -178,7 +178,7 @@ sim4polish::s4p_linesToPolishS4DB(u32bit startPosition,
   //  we did, we'd compain about it and remove the alignment lines.  Too much work.
   //
   if (strcmp(lines[cl], "sim4end") != 0) {
-    for (u32bit el=0; el<_numExons; el++) {
+    for (uint32 el=0; el<_numExons; el++) {
       _exons[el]._estAlignment = new char [lengths[cl] + 1];
       strcpy(_exons[el]._estAlignment, lines[cl]);
       cl++;
@@ -193,10 +193,10 @@ sim4polish::s4p_linesToPolishS4DB(u32bit startPosition,
 
 //  NOTE: This alters the lines array, with strtok()
 void
-sim4polish::s4p_linesToPolishGFF3(u32bit startPosition,
-                                  u32bit maxLines,
+sim4polish::s4p_linesToPolishGFF3(uint32 startPosition,
+                                  uint32 maxLines,
                                   char **lines,
-                                  u32bit *lengths) {
+                                  uint32 *lengths) {
   char             mOri;
   char             sOri;
   char            *clptr;
@@ -205,7 +205,7 @@ sim4polish::s4p_linesToPolishGFF3(u32bit startPosition,
   int              dummy1, dummy2;
   char             dummybuf[1000];
 
-  u32bit           r;
+  uint32           r;
   bool             ok = true;
 
   assert(_comment    == 0L);
@@ -216,7 +216,7 @@ sim4polish::s4p_linesToPolishGFF3(u32bit startPosition,
 
   //  Don't need to store matchID; re-assigned when file changes
 
-  u32bit cl = 0;
+  uint32 cl = 0;
   for (cl=0; lines[cl] && (lines[cl][0]=='#'); cl++);
   if (lines[cl] == NULL) {
     fprintf(stderr, "sim4polish::s4p_linesToPolishGFF3()-- Empty record.  Cannot convert (%s).\n", lines[0]);
@@ -240,10 +240,10 @@ sim4polish::s4p_linesToPolishGFF3(u32bit startPosition,
 
   _genDefLine = new char [lengths[cl]];
 
-  r = sscanf(lines[cl], ""u32bitFMT":%s\tsim4db\tmRNA\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t%c\t.\t",
+  r = sscanf(lines[cl], ""uint32FMT":%s\tsim4db\tmRNA\t"uint32FMT"\t"uint32FMT"\t"uint32FMT"\t%c\t.\t",
                         &_genID, _genDefLine, &dummy1, &dummy2, &_percentIdentity, &sOri);
   if (r != 6) {
-    fprintf(stderr, "sim4polish::s4p_linesToPolishGFF3()--  byte "u32bitFMT": '%s'\n", startPosition, lines[cl]);
+    fprintf(stderr, "sim4polish::s4p_linesToPolishGFF3()--  byte "uint32FMT": '%s'\n", startPosition, lines[cl]);
     fprintf(stderr, "sim4polish::s4p_linesToPolishGFF3()--  Expecting description line, found %d tokens instead of 6.\n", r);
   }
 
@@ -272,17 +272,17 @@ sim4polish::s4p_linesToPolishGFF3(u32bit startPosition,
     crttok = strtok(tok, ";");
     while (crttok) {
       if (!strncmp(crttok, "ID=sim4db", 9)) {
-        r = sscanf(crttok, "ID=sim4db"u32bitFMT"", &matchID);
+        r = sscanf(crttok, "ID=sim4db"uint32FMT"", &matchID);
         if (r != 1)  ok = false;
       } else if (!strncmp(crttok, "Name", 4)) {
         if (_estDefLine == 0L)
           _estDefLine = new char [lengths[cl]];
-        r = sscanf(crttok, "Name="u32bitFMT":%s", &_estID, _estDefLine);
+        r = sscanf(crttok, "Name="uint32FMT":%s", &_estID, _estDefLine);
         if (r != 2)  ok = false;
       } else if (!strncmp(crttok, "Target", 6)) {
         if (_estDefLine == 0L)
           _estDefLine = new char [lengths[cl]];
-        r = sscanf(crttok, "Target="u32bitFMT":%s "u32bitFMT" "u32bitFMT" %c", &_estID, _estDefLine, &dummy1, &dummy2, &mOri);
+        r = sscanf(crttok, "Target="uint32FMT":%s "uint32FMT" "uint32FMT" %c", &_estID, _estDefLine, &dummy1, &dummy2, &mOri);
         if (r != 5)  ok = false;
         if (mOri == '+') _matchOrientation = SIM4_MATCH_FORWARD;
         else
@@ -290,16 +290,16 @@ sim4polish::s4p_linesToPolishGFF3(u32bit startPosition,
           else
             ok = false;
       } else if (!strncmp(crttok, "targetLen", 9)) { 
-        r = sscanf(crttok, "targetLen="u32bitFMT"", &_estLen);
+        r = sscanf(crttok, "targetLen="uint32FMT"", &_estLen);
         if (r != 1)  ok = false;
       } else if (!strncmp(crttok, "pA", 2)) {
-        r = sscanf(crttok, "pA="u32bitFMT"", &_estPolyA);
+        r = sscanf(crttok, "pA="uint32FMT"", &_estPolyA);
         if (r != 1)  ok = false;
       } else if (!strncmp(crttok, "pT", 2)) {
-        r = sscanf(crttok, "pT="u32bitFMT"", &_estPolyT);
+        r = sscanf(crttok, "pT="uint32FMT"", &_estPolyT);
         if (r != 1)  ok = false; 
       } else if (!strncmp(crttok, "genRegion", 9)) {
-        r = sscanf(crttok, "genRegion="u32bitFMT"-"u32bitFMT"", &_genRegionOffset, &dummy1);
+        r = sscanf(crttok, "genRegion="uint32FMT"-"uint32FMT"", &_genRegionOffset, &dummy1);
         if (r != 2)  ok = false;
         else 
           _genRegionLength = dummy1 - _genRegionOffset + 1;
@@ -310,7 +310,7 @@ sim4polish::s4p_linesToPolishGFF3(u32bit startPosition,
 
     //  Check that we read what we should have read so far 
     if ((ok == false) || !_estDefLine  || !_genDefLine || !_estLen || !_matchOrientation || !_strandOrientation) {
-      fprintf(stderr, "sim4polish::s4p_linesToPolishGFF3()--  byte "u32bitFMT": '%s'\n", startPosition, lines[cl]);
+      fprintf(stderr, "sim4polish::s4p_linesToPolishGFF3()--  byte "uint32FMT": '%s'\n", startPosition, lines[cl]);
       fprintf(stderr, "sim4polish::s4p_linesToPolishGFF3()--  Expecting mRNA description line, %s.\n", (ok==false) ? "failed":"incomplete");
     }
   }
@@ -321,7 +321,7 @@ sim4polish::s4p_linesToPolishGFF3(u32bit startPosition,
   //
 
   sim4polishExon    exon;
-  u32bit            maxExons = 1024;
+  uint32            maxExons = 1024;
 
   _numExons = 0;
   _exons    = new sim4polishExon [maxExons];
@@ -336,10 +336,10 @@ sim4polish::s4p_linesToPolishGFF3(u32bit startPosition,
 
     exon._intronOrientation = SIM4_INTRON_NONE;
 
-    r = sscanf(lines[cl], ""u32bitFMT":%s\tsim4db\texon\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t%c\t.\t",
+    r = sscanf(lines[cl], ""uint32FMT":%s\tsim4db\texon\t"uint32FMT"\t"uint32FMT"\t"uint32FMT"\t%c\t.\t",
                         &dummy1, dummybuf, &exon._genFrom, &exon._genTo, &exon._percentIdentity, &sOri);
     if (r != 6) {
-      fprintf(stderr, "sim4polish::s4p_linesToPolishGFF3()--  byte "u32bitFMT": '%s'\n", startPosition, lines[cl]);
+      fprintf(stderr, "sim4polish::s4p_linesToPolishGFF3()--  byte "uint32FMT": '%s'\n", startPosition, lines[cl]);
       fprintf(stderr, "sim4polish::s4p_linesToPolishGFF3()--  Expecting exon description line, found %d tokens instead of 6.\n", r);
     }
 
@@ -363,18 +363,18 @@ sim4polish::s4p_linesToPolishGFF3(u32bit startPosition,
       crttok = strtok(tok, ";");
       while (crttok) {
         if (!strncmp(crttok, "Parent=sim4db", 13)) {
-          r = sscanf(crttok, "Parent=sim4db"u32bitFMT"", &dummy1);
+          r = sscanf(crttok, "Parent=sim4db"uint32FMT"", &dummy1);
           if ((r != 1) || (dummy1 != matchID))  ok = false;
 
         } else if (!strncmp(crttok, "Target=", 7)) {
-          r = sscanf(crttok, "Target=%s "u32bitFMT" "u32bitFMT" %c", &dummybuf, &exon._estFrom, &exon._estTo, &mOri);
+          r = sscanf(crttok, "Target=%s "uint32FMT" "uint32FMT" %c", &dummybuf, &exon._estFrom, &exon._estTo, &mOri);
           if ((r != 4) ||
               ((mOri == '+') && (_matchOrientation == SIM4_MATCH_COMPLEMENT)) ||
               ((mOri == '-') && (_matchOrientation == SIM4_MATCH_FORWARD))) 
             ok = false;
 
         } else if (!strncmp(crttok, "nMatches=", 9)) {
-          r = sscanf(crttok, "nMatches="u32bitFMT"", &exon._numMatches);
+          r = sscanf(crttok, "nMatches="uint32FMT"", &exon._numMatches);
           if (r != 1)  ok = false;
         } else if (!strncmp(crttok, "Gap=", 4)) {
            ; // Handle this later or, better yet, just skip alignment
@@ -400,7 +400,7 @@ sim4polish::s4p_linesToPolishGFF3(u32bit startPosition,
 
     //  Check that we read what we should have read so far
     if ((ok == false) || !exon._estFrom  || !exon._estTo || !exon._numMatches) {
-      fprintf(stderr, "sim4polish::s4p_linesToPolishGFF3()--  byte "u32bitFMT": '%s'\n", startPosition, lines[cl]);
+      fprintf(stderr, "sim4polish::s4p_linesToPolishGFF3()--  byte "uint32FMT": '%s'\n", startPosition, lines[cl]);
       fprintf(stderr, "sim4polish::s4p_linesToPolishGFF3()--  Expecting exon description line, %s.\n", (ok==false) ? "failed":"incomplete");
     }
 
@@ -434,7 +434,7 @@ sim4polish::s4p_linesToPolishGFF3(u32bit startPosition,
   }
 
   if (_numExons == 0) {
-    fprintf(stderr, "sim4polish::s4p_linesToPolishGFF3()--  byte "u32bitFMT": '%s'\n", startPosition, lines[cl]);
+    fprintf(stderr, "sim4polish::s4p_linesToPolishGFF3()--  byte "uint32FMT": '%s'\n", startPosition, lines[cl]);
     fprintf(stderr, "sim4polish::s4p_linesToPolishGFF3()--  WARNING: found ZERO exons?\n");
   }
 

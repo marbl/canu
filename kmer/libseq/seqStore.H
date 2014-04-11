@@ -22,29 +22,29 @@
 //    name to IID mapping
 
 struct seqStoreHeader {
-  u64bit  _magic[2];
-  u32bit  _pad;
-  u32bit  _numberOfSequences;
-  u64bit  _numberOfACGT;
-  u32bit  _numberOfBlocksACGT;
-  u32bit  _numberOfBlocksGAP;
-  u32bit  _numberOfBlocks;
-  u32bit  _namesLength;
+  uint64  _magic[2];
+  uint32  _pad;
+  uint32  _numberOfSequences;
+  uint64  _numberOfACGT;
+  uint32  _numberOfBlocksACGT;
+  uint32  _numberOfBlocksGAP;
+  uint32  _numberOfBlocks;
+  uint32  _namesLength;
 
-  u64bit  _indexStart;
-  u64bit  _blockStart;
-  u64bit  _namesStart;
+  uint64  _indexStart;
+  uint64  _blockStart;
+  uint64  _namesStart;
 };
 
 
 //  This index allows us to return a complete sequence
 //
 struct seqStoreIndex {
-  u32bit  _hdrPosition;  //  Offset into _names for the defline
-  u32bit  _hdrLength;    //  Length of the defline
-  u64bit  _seqPosition;  //  Offset into _bpf for the sequence data
-  u32bit  _seqLength;    //  Length, in bases, of the sequence
-  u32bit  _block;        //  The seqStoreBlock that starts this sequence
+  uint32  _hdrPosition;  //  Offset into _names for the defline
+  uint32  _hdrLength;    //  Length of the defline
+  uint64  _seqPosition;  //  Offset into _bpf for the sequence data
+  uint32  _seqLength;    //  Length, in bases, of the sequence
+  uint32  _block;        //  The seqStoreBlock that starts this sequence
 };
 
 
@@ -56,16 +56,16 @@ struct seqStoreIndex {
 //  of that sequence (seq ID and location in that sequence).
 //
 struct seqStoreBlock {
-  u64bit      _isACGT:1;    // block is acgt
-  u64bit      _pos:32;      // position in sequence
-  u64bit      _iid:32;      // iid of the sequence we are in
-  u64bit      _len:23;      // length of block
-  u64bit      _bpf:40;      // position in the bit file of sequence
+  uint64      _isACGT:1;    // block is acgt
+  uint64      _pos:32;      // position in sequence
+  uint64      _iid:32;      // iid of the sequence we are in
+  uint64      _len:23;      // length of block
+  uint64      _bpf:40;      // position in the bit file of sequence
 };
 
-#define SEQSTOREBLOCK_MAXPOS u64bitMASK(32)
-#define SEQSTOREBLOCK_MAXIID u64bitMASK(32)
-#define SEQSTOREBLOCK_MAXLEN u64bitMASK(23)
+#define SEQSTOREBLOCK_MAXPOS uint64MASK(32)
+#define SEQSTOREBLOCK_MAXIID uint64MASK(32)
+#define SEQSTOREBLOCK_MAXLEN uint64MASK(23)
 
 class seqStore : public seqFile {
 protected:
@@ -79,14 +79,14 @@ protected:
   seqFile            *openFile(const char *filename);
 
 public:
-  u32bit              find(const char *sequencename);
+  uint32              find(const char *sequencename);
 
-  u32bit              getSequenceLength(u32bit iid);
-  bool                getSequence(u32bit iid,
-                                  char *&h, u32bit &hLen, u32bit &hMax,
-                                  char *&s, u32bit &sLen, u32bit &sMax);
-  bool                getSequence(u32bit iid,
-                                  u32bit bgn, u32bit end, char *s);
+  uint32              getSequenceLength(uint32 iid);
+  bool                getSequence(uint32 iid,
+                                  char *&h, uint32 &hLen, uint32 &hMax,
+                                  char *&s, uint32 &sLen, uint32 &sMax);
+  bool                getSequence(uint32 iid,
+                                  uint32 bgn, uint32 end, char *s);
 
 private:
   void                clear(void);
@@ -104,7 +104,7 @@ private:
   bitPackedFile     *_blockBPF;
   bitPackedFile     *_namesBPF;
 
-  u32bit             _lastIIDloaded;
+  uint32             _lastIIDloaded;
 
   friend class seqFactory;
 };

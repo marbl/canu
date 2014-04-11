@@ -129,7 +129,7 @@ public:
     _list[0] = new Exon [_curMax];
   };
   ~exonManager() {
-    for (u32bit i=0; i<_listLen; i++)
+    for (uint32 i=0; i<_listLen; i++)
       delete [] _list[i];
     delete [] _list;
   };
@@ -166,12 +166,12 @@ private:
   //  so we can't use realloc here.  Instead, we keep a list of arrays
   //  of exons.
   //
-  u32bit   _listLen;
-  u32bit   _listMax;
+  uint32   _listLen;
+  uint32   _listMax;
   Exon   **_list;
 
-  u32bit   _curLen;
-  u32bit   _curMax;
+  uint32   _curLen;
+  uint32   _curMax;
 };
 
 

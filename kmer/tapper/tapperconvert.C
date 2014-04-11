@@ -68,22 +68,22 @@ main(int argc, char **argv) {
       res->idx.print(stdout);
 
     if (dumpFrag)
-      for (u32bit i=0; i<res->idx._numFrag; i++)
+      for (uint32 i=0; i<res->idx._numFrag; i++)
         res->frag[i].print(stdout, &res->idx);
 
     if (dumpSing)
-      for (u32bit i=0; i<res->idx._numFragSingleton; i++)
+      for (uint32 i=0; i<res->idx._numFragSingleton; i++)
         res->sing[i].print(stdout, &res->idx);
 
     if (dumpMate)
-      for (u32bit i=0; i<res->idx._numMated; i++)
+      for (uint32 i=0; i<res->idx._numMated; i++)
         res->mate[i].print(stdout, &res->idx);
 
     if (dumpTang)
-      for (u32bit i=0; i<res->idx._numTangled; i++) {
+      for (uint32 i=0; i<res->idx._numTangled; i++) {
         res->tang[i].print(stdout, &res->idx);
 
-        for (u32bit j=0; j<res->idx._numFragTangled; j++) {
+        for (uint32 j=0; j<res->idx._numFragTangled; j++) {
           if ((res->tang[i]._seq == res->tali[j]._seq) &&
               (res->tang[i]._bgn <= res->tali[j]._pos) && (res->tali[j]._pos <= res->tang[i]._end)) {
             res->tali[j].print(stdout, &res->idx);

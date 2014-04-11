@@ -7,21 +7,21 @@ public:
 
   //  Except as noted, all this is the same stuff as from tapperResult.
 
-  u64bit   _tagid;
-  u32bit   _seq;
-  u32bit   _pos;
+  uint64   _tagid;
+  uint32   _seq;
+  uint32   _pos;
 
-  u8bit    _colorDiffs[MAX_COLOR_MISMATCH_MAPPED];        //  OLD, list of errors in the align
-  u8bit    _colorCorrections[MAX_COLOR_MISMATCH_MAPPED];  //  NEW, list of errors in the align, after corrections
+  uint8    _colorDiffs[MAX_COLOR_MISMATCH_MAPPED];        //  OLD, list of errors in the align
+  uint8    _colorCorrections[MAX_COLOR_MISMATCH_MAPPED];  //  NEW, list of errors in the align, after corrections
 
-  u32bit   _confidence:15;        //  NEW, confidence score on the corrected read
+  uint32   _confidence:15;        //  NEW, confidence score on the corrected read
 
-  u32bit   _basesMismatch:4;      //  Number of mismatches in ACGT alignment
-  u32bit   _colorMismatch:4;      //  Number of consistent color mismatches
-  u32bit   _colorInconsistent:4;  //  Number of inconsistent color mismatches
-  u32bit   _rev:1;                //  Is reverse complement
+  uint32   _basesMismatch:4;      //  Number of mismatches in ACGT alignment
+  uint32   _colorMismatch:4;      //  Number of consistent color mismatches
+  uint32   _colorInconsistent:4;  //  Number of inconsistent color mismatches
+  uint32   _rev:1;                //  Is reverse complement
 
-  u32bit   _diffSize:4;           //  Value of MAX_COLOR_MISMATCH_MAPPED.
+  uint32   _diffSize:4;           //  Value of MAX_COLOR_MISMATCH_MAPPED.
 };
 
 

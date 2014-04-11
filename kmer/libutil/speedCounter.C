@@ -30,7 +30,7 @@ speedCounter::_liner[19] = { "[-         ]",
 
 speedCounter::speedCounter(char const   *fmt,
                            double        unit,
-                           u64bit        freq,
+                           uint64        freq,
                            bool          enabled) {
   _count     = 0;
   _draws     = 0;

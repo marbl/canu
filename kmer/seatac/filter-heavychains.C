@@ -30,15 +30,15 @@ extern "C" {
   void     destruct(void *handle);
   void     addHit(void *handle,
                   char    orientation,
-                  u32bit  id1,
-                  u32bit  pos1,
-                  u32bit  len1,
-                  u32bit  id2,
-                  u32bit  pos2,
-                  u32bit  len2,
-                  u32bit  filled);
+                  uint32  id1,
+                  uint32  pos1,
+                  uint32  len1,
+                  uint32  id2,
+                  uint32  pos2,
+                  uint32  len2,
+                  uint32  filled);
   void     filter(void *handle);
-  u64bit   output(void *handle, FILE *file, u64bit matchid);
+  uint64   output(void *handle, FILE *file, uint64 matchid);
 
   void    *constructStats(char *options);
   void     destructStats(void *handle);
@@ -97,13 +97,13 @@ public:
   };
 
   void addHit(char   direction,
-              u32bit id1,
-              u32bit xlo,
-              u32bit xln,
-              u32bit id2,
-              u32bit ylo,
-              u32bit yln,
-              u32bit filled) {
+              uint32 id1,
+              uint32 xlo,
+              uint32 xln,
+              uint32 id2,
+              uint32 ylo,
+              uint32 yln,
+              uint32 filled) {
 
     //  We're given hits for exactly one id2 and all id1, forward hits
     //  followed by reverse hits.  Which means that id1 makes two
@@ -175,7 +175,7 @@ public:
       SP->process();
   };
 
-  u64bit print(FILE *outF, u64bit matchid) {
+  uint64 print(FILE *outF, uint64 matchid) {
     for (StrandPair *SP=Proot; SP; SP=SP->next())
       matchid = SP->print(outF, matchid);
     return(matchid);
@@ -207,7 +207,7 @@ construct(char *options) {
   //
   splitToWords  W(options);
 
-  u32bit arg = 0;
+  uint32 arg = 0;
   while (arg < W.numWords()) {
     if        (strcmp(W.getWord(arg), "-v") == 0) {
       beVerbose++;
@@ -235,13 +235,13 @@ destruct(void *handle) {
 void
 addHit(void   *handle,
        char    orientation,
-       u32bit  id1,
-       u32bit  pos1,
-       u32bit  len1,
-       u32bit  id2,
-       u32bit  pos2,
-       u32bit  len2,
-       u32bit  filled) {
+       uint32  id1,
+       uint32  pos1,
+       uint32  len1,
+       uint32  id2,
+       uint32  pos2,
+       uint32  len2,
+       uint32  filled) {
   ((StrandPairManager *)handle)->addHit(orientation, id1, pos1, len1, id2, pos2, len2, filled);
 }
 
@@ -251,8 +251,8 @@ filter(void *handle) {
 }
 
 
-u64bit
-output(void *handle, FILE *file, u64bit matchid) {
+uint64
+output(void *handle, FILE *file, uint64 matchid) {
   return(((StrandPairManager *)handle)->print(file, matchid));
 }
 
@@ -274,7 +274,7 @@ constructStats(char *options) {
   //
   splitToWords  W(options);
 
-  u32bit arg = 0;
+  uint32 arg = 0;
   while (arg < W.numWords()) {
     if        (strcmp(W.getWord(arg), "-v") == 0) {
       beVerbose++;

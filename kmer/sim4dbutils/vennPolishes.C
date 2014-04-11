@@ -26,51 +26,51 @@ const char *usage =
 
 
 //  Yes, yes.  Tell me all about how bad globals are.
-u32bit   minI      = 95;
-u32bit   minC      = 50;
-u32bit   foundMax  = 100000;
-u32bit   dumpIID   = ~u32bitZERO;
+uint32   minI      = 95;
+uint32   minC      = 50;
+uint32   foundMax  = 100000;
+uint32   dumpIID   = ~uint32ZERO;
 int      numArgs   = 0;
 bool     plot      = false;
-u32bit   numFiles = 0;
-u32bit **found    = 0L;
-u32bit   indexMax = 0;
-u32bit  *counts   = 0L;
-u32bit  *sizes    = 0L;
+uint32   numFiles = 0;
+uint32 **found    = 0L;
+uint32   indexMax = 0;
+uint32  *counts   = 0L;
+uint32  *sizes    = 0L;
 
 
 void
-doVenn(u32bit minI, u32bit minC) {
+doVenn(uint32 minI, uint32 minC) {
 
   //  Count how many elements are in each set
-  for (u32bit i=0; i<numFiles; i++) {
+  for (uint32 i=0; i<numFiles; i++) {
     sizes[i] = 0;
-    for (u32bit j=0; j<foundMax; j++)
+    for (uint32 j=0; j<foundMax; j++)
       if (found[i][j] >= minI)
         sizes[i]++;
   }
 
 
-  for (u32bit i=0; i<indexMax; i++)
+  for (uint32 i=0; i<indexMax; i++)
     counts[i] = 0;
 
 
   //  For each guy in the datasets
   //
-  for (u32bit thisguy=0; thisguy < foundMax; thisguy++) {
+  for (uint32 thisguy=0; thisguy < foundMax; thisguy++) {
 
     //  Compute which class he is in.  'class' is a reserved word,
     //  so we use 'membership' instead.
     //
-    u32bit   membership = 0;
+    uint32   membership = 0;
 
-    for (u32bit dataset=0; dataset < numFiles; dataset++) {
+    for (uint32 dataset=0; dataset < numFiles; dataset++) {
       if (found[dataset][thisguy] >= minI)
         membership |= 1 << dataset;
     }
 
     if (membership == dumpIID)
-      fprintf(stdout, u32bitFMT"\n", thisguy);
+      fprintf(stdout, uint32FMT"\n", thisguy);
 
     counts[membership]++;
   }
@@ -109,19 +109,19 @@ main(int argc, char **argv) {
   }
 
   numFiles = argc - numArgs;
-  found    = new u32bit * [numFiles];
+  found    = new uint32 * [numFiles];
 
   if (numFiles > 16) {
-    fprintf(stderr, "WARNING:  You gave me "u32bitFMT" files!  That's pretty big.  I don't know\n", numFiles);
+    fprintf(stderr, "WARNING:  You gave me "uint32FMT" files!  That's pretty big.  I don't know\n", numFiles);
     fprintf(stderr, "          if I'm up to it.  Fasten seat belts and hang on!\n");
   }
 
   for (int arg=numArgs; arg<argc; arg++) {
     fprintf(stderr, "Reading '%s'\n", argv[arg]);
 
-    found[arg-numArgs]    = new u32bit [foundMax];
+    found[arg-numArgs]    = new uint32 [foundMax];
 
-    for (u32bit i=0; i<foundMax; i++)
+    for (uint32 i=0; i<foundMax; i++)
       found[arg-numArgs][i] = 0;
 
     sim4polishReader *R = new sim4polishReader("-");
@@ -157,36 +157,36 @@ main(int argc, char **argv) {
   //  class.  It's indexed by a bit vector.
   //
   indexMax = 1 << numFiles;
-  counts   = new u32bit [indexMax];
-  sizes    = new u32bit [numFiles];
+  counts   = new uint32 [indexMax];
+  sizes    = new uint32 [numFiles];
 
-  if        (dumpIID != ~u32bitZERO) {
+  if        (dumpIID != ~uint32ZERO) {
     doVenn(minI, minC);
   } else if (plot) {
-    for (u32bit id=minI; id <= 100; id++) {
+    for (uint32 id=minI; id <= 100; id++) {
       doVenn(id, minC);
 
-      fprintf(stdout, u32bitFMTW(3)" ", id);
-      for (u32bit i=0; i<numFiles; i++)
-        fprintf(stdout, u32bitFMTW(8)" ", sizes[i]);
-      for (u32bit index=0; index < indexMax; index++) {
-        for (u32bit dataset=0; dataset < numFiles; dataset++)
+      fprintf(stdout, uint32FMTW(3)" ", id);
+      for (uint32 i=0; i<numFiles; i++)
+        fprintf(stdout, uint32FMTW(8)" ", sizes[i]);
+      for (uint32 index=0; index < indexMax; index++) {
+        for (uint32 dataset=0; dataset < numFiles; dataset++)
           fprintf(stdout, "%c", (index & (1 << dataset)) ? 'A' + (char)dataset : '-');
-        fprintf(stdout, " "u32bitFMTW(8)" ", counts[index]);
+        fprintf(stdout, " "uint32FMTW(8)" ", counts[index]);
       }
       fprintf(stdout, "\n");
     }
   } else {
     doVenn(minI, minC);
 
-    for (u32bit i=0; i<numFiles; i++)
-      fprintf(stdout, "%c = ("u32bitFMTW(8)" total) %s\n", 'A' + (char)i, sizes[i], argv[i+numArgs]);
+    for (uint32 i=0; i<numFiles; i++)
+      fprintf(stdout, "%c = ("uint32FMTW(8)" total) %s\n", 'A' + (char)i, sizes[i], argv[i+numArgs]);
 
-    for (u32bit index=0; index < indexMax; index++) {
-      fprintf(stdout, u32bitFMTW(4)" [", index);
-      for (u32bit dataset=0; dataset < numFiles; dataset++)
+    for (uint32 index=0; index < indexMax; index++) {
+      fprintf(stdout, uint32FMTW(4)" [", index);
+      for (uint32 dataset=0; dataset < numFiles; dataset++)
         fprintf(stdout, "%c", (index & (1 << dataset)) ? 'A' + (char)dataset : '-');
-      fprintf(stdout, "]  "u32bitFMT"\n", counts[index]);
+      fprintf(stdout, "]  "uint32FMT"\n", counts[index]);
     }
   }
 }

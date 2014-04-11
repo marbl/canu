@@ -13,8 +13,8 @@
 
 void
 indelRedo(char *a, char *b) {
-  u32bit  orig = 0;
-  u32bit  copy = 0;
+  uint32  orig = 0;
+  uint32  copy = 0;
 
   while (a[orig] && b[orig]) {
     if ((a[orig] != '-') ||
@@ -33,16 +33,16 @@ indelRedo(char *a, char *b) {
 }
 
 
-u32bit
+uint32
 indelFixAlignment(char *a, char *b) {
   bool    redo  = false;
-  u32bit  len   = strlen(a) - 1;
-  u32bit  fixed = 0;
+  uint32  len   = strlen(a) - 1;
+  uint32  fixed = 0;
 
   //fprintf(stdout, "fixIndel\n");
   //fprintf(stdout, "%s\n%s\n", a, b);
 
-  for (u32bit i=2; i<len; i++) {
+  for (uint32 i=2; i<len; i++) {
 
     //  -Ac
     //  cA-  two gaps -> two mismatches
@@ -63,14 +63,14 @@ indelFixAlignment(char *a, char *b) {
 
   if (redo) {
     //fprintf(stdout, "%s\n%s\n", a, b);
-    //fprintf(stdout, "Fixed "u32bitFMT" 1 base wide indel\n", fixed);
+    //fprintf(stdout, "Fixed "uint32FMT" 1 base wide indel\n", fixed);
     indelRedo(a, b);
   }
 
   redo  = false;
   len   = strlen(a) - 1;
 
-  for (u32bit i=3; i<len; i++) {
+  for (uint32 i=3; i<len; i++) {
 
     //  cAt-
     //  -Agg  two gaps, one mismatch -> three mismatches
@@ -92,7 +92,7 @@ indelFixAlignment(char *a, char *b) {
 
   if (redo) {
     //fprintf(stdout, "%s\n%s\n", a, b);
-    //fprintf(stdout, "Fixed "u32bitFMT" 2 base wide indel\n", fixed);
+    //fprintf(stdout, "Fixed "uint32FMT" 2 base wide indel\n", fixed);
     indelRedo(a, b);
   }
 
@@ -142,10 +142,10 @@ main(int argc, char **argv) {
     fprintf(stdout, "/assemblyId2=%s\n", nickname1);
   }
 
-  u32bit   dupRecordIID = 0;
-  u32bit   dupParentIID = 0;
+  uint32   dupRecordIID = 0;
+  uint32   dupParentIID = 0;
 
-  u32bit   totalFixed   = 0;
+  uint32   totalFixed   = 0;
 
   sim4polishReader *R = new sim4polishReader("-");
   sim4polish       *p = 0L;
@@ -159,15 +159,15 @@ main(int argc, char **argv) {
 
     splitToWords  W(p->_estDefLine);
 
-    u32bit   i=0;
+    uint32   i=0;
     while ((i < W.numWords()) && (strcmp(W[i], "iid") != 0))
       i++;
     if ((i == 0) || (i == W.numWords()))
       fprintf(stderr, "Failed to match est defline '%s'\n", p->_estDefLine), exit(1);
 
-    u32bit  qSeqIID = strtou32bit(W[i+1], 0L);
-    u32bit  qSeqBeg = strtou32bit(W[i+3], 0L);
-    u32bit  qSeqEnd = strtou32bit(W[i+4], 0L);  //  Not used
+    uint32  qSeqIID = strtouint32(W[i+1], 0L);
+    uint32  qSeqBeg = strtouint32(W[i+3], 0L);
+    uint32  qSeqEnd = strtouint32(W[i+4], 0L);  //  Not used
 
 
     W.split(p->_genDefLine);
@@ -178,9 +178,9 @@ main(int argc, char **argv) {
     if ((i == 0) || (i == W.numWords()))
       fprintf(stderr, "Failed to match gen defline '%s'\n", p->_genDefLine), exit(1);
 
-    u32bit  gSeqIID = strtou32bit(W[i+1], 0L);
-    u32bit  gSeqBeg = strtou32bit(W[i+3], 0L);
-    //u32bit  gSeqEnd = strtou32bit(W[i+4], 0L);  //  Not used
+    uint32  gSeqIID = strtouint32(W[i+1], 0L);
+    uint32  gSeqBeg = strtouint32(W[i+3], 0L);
+    //uint32  gSeqEnd = strtouint32(W[i+4], 0L);  //  Not used
 
     bool    fwd  = (p->_matchOrientation == SIM4_MATCH_FORWARD);
 
@@ -190,7 +190,7 @@ main(int argc, char **argv) {
     if (fwd) {
       //  Forward is easy!  Just add.
 
-      for (u32bit exon=0; exon<p->_numExons; exon++) {
+      for (uint32 exon=0; exon<p->_numExons; exon++) {
         sim4polishExon *e = p->_exons + exon;
 
         e->_estFrom += qSeqBeg;
@@ -201,13 +201,13 @@ main(int argc, char **argv) {
     } else {
       //  Reverse is not easy.  Need to reverse complement the query positions.
 
-      for (u32bit exon=0; exon<p->_numExons; exon++) {
+      for (uint32 exon=0; exon<p->_numExons; exon++) {
         sim4polishExon *e = p->_exons + exon;
 
         //  First, reverse the query relative to our extracted piece
         //
-        u32bit f = (qSeqEnd - qSeqBeg) - e->_estTo   + 2;  //  Extra +1 to offset -1 when we set qBeg
-        u32bit t = (qSeqEnd - qSeqBeg) - e->_estFrom + 2;
+        uint32 f = (qSeqEnd - qSeqBeg) - e->_estTo   + 2;  //  Extra +1 to offset -1 when we set qBeg
+        uint32 t = (qSeqEnd - qSeqBeg) - e->_estFrom + 2;
 
         //  Now we can just offset stuff.
         e->_estFrom  = qSeqBeg + t;  //  Really the end!
@@ -219,17 +219,17 @@ main(int argc, char **argv) {
 
 
 
-    for (u32bit exon=0; exon<p->_numExons; exon++) {
+    for (uint32 exon=0; exon<p->_numExons; exon++) {
       sim4polishExon *e = p->_exons + exon;
 
       //  Parse the alignment to find ungapped blocks
 
-      u32bit  aPos = 0;
+      uint32  aPos = 0;
 
-      u32bit  qBeg = e->_estFrom - 1;
-      u32bit  gBeg = e->_genFrom - 1;
+      uint32  qBeg = e->_estFrom - 1;
+      uint32  gBeg = e->_genFrom - 1;
 
-      u32bit  mLen = 0;
+      uint32  mLen = 0;
 
       totalFixed += indelFixAlignment(e->_estAlignment, e->_genAlignment);
 
@@ -260,7 +260,7 @@ main(int argc, char **argv) {
 
           //  Trim off any mismatches at the end of this block.
           //
-          u32bit  mismatch = 0;
+          uint32  mismatch = 0;
           while ((aPos > mismatch) &&
                  (e->_estAlignment[aPos - mismatch - 1] != e->_genAlignment[aPos - mismatch - 1])) {
             //fprintf(stderr, "SKIP MIDDLE %c %c\n", e->_estAlignment[aPos-mismatch], e->_genAlignment[aPos-mismatch]);
@@ -276,14 +276,14 @@ main(int argc, char **argv) {
             mLen -= mismatch;
 
             if (flip == false) {
-              fprintf(stdout, "M u dupr"u32bitFMT" dupp"u32bitFMT" %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" 1 %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" %s\n",
+              fprintf(stdout, "M u dupr"uint32FMT" dupp"uint32FMT" %s:"uint32FMT" "uint32FMT" "uint32FMT" 1 %s:"uint32FMT" "uint32FMT" "uint32FMT" %s\n",
                       dupRecordIID,
                       dupParentIID,
                       nickname1, qSeqIID, (fwd) ? qBeg : qBeg - mLen, mLen,
                       nickname2, gSeqIID, gBeg, mLen,
                       (fwd) ? "1" : "-1");
             } else {
-              fprintf(stdout, "M u dupr"u32bitFMT" dupp"u32bitFMT" %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" 1 %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" %s\n",
+              fprintf(stdout, "M u dupr"uint32FMT" dupp"uint32FMT" %s:"uint32FMT" "uint32FMT" "uint32FMT" 1 %s:"uint32FMT" "uint32FMT" "uint32FMT" %s\n",
                       dupRecordIID,
                       dupParentIID,
                       nickname2, gSeqIID, gBeg, mLen,
@@ -327,7 +327,7 @@ main(int argc, char **argv) {
     dupParentIID++;
   }
 
-  fprintf(stderr, "Fixed "u32bitFMT" indel/mismatches.\n", totalFixed);
+  fprintf(stderr, "Fixed "uint32FMT" indel/mismatches.\n", totalFixed);
 
   return(0);
 }

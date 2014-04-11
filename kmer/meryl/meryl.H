@@ -31,7 +31,7 @@ public:
   void              usage(void);
   void              clear(void);
 
-  u64bit            hash(kMer const &mer) {
+  uint64            hash(kMer const &mer) {
     return(mer.startOfMer(numBuckets_log2));
   };
 
@@ -50,40 +50,40 @@ public:
   char             *outputFile;
   char             *queryFile;
 
-  u32bit            merSize;
-  u32bit            merComp;
+  uint32            merSize;
+  uint32            merComp;
   bool              positionsEnabled;
 
-  u64bit            numMersEstimated;
-  u64bit            numMersActual;
+  uint64            numMersEstimated;
+  uint64            numMersActual;
 
-  u64bit            numBasesActual;
+  uint64            numBasesActual;
 
-  u64bit            mersPerBatch;
-  u64bit            basesPerBatch;
+  uint64            mersPerBatch;
+  uint64            basesPerBatch;
 
-  u64bit            numBuckets;
-  u32bit            numBuckets_log2;
-  u32bit            merDataWidth;
-  u64bit            merDataMask;
-  u32bit            bucketPointerWidth;
+  uint64            numBuckets;
+  uint32            numBuckets_log2;
+  uint32            merDataWidth;
+  uint64            merDataMask;
+  uint32            bucketPointerWidth;
 
-  u32bit            numThreads;
-  u64bit            memoryLimit;
-  u64bit            segmentLimit;
+  uint32            numThreads;
+  uint64            memoryLimit;
+  uint64            segmentLimit;
   bool              configBatch;
   bool              countBatch;
   bool              mergeBatch;
-  u32bit            batchNumber;
+  uint32            batchNumber;
 
   char             *sgeJobName;
   char             *sgeBuildOpt;
   char             *sgeMergeOpt;
   bool              isOnGrid;
 
-  u32bit            lowCount;
-  u32bit            highCount;
-  u32bit            desiredCount;
+  uint32            lowCount;
+  uint32            highCount;
+  uint32            desiredCount;
 
   bool              outputCount;
   bool              outputAll;
@@ -92,23 +92,23 @@ public:
   bool              includeDefLine;
   bool              includeMer;
 
-  u32bit            mergeFilesMax;
-  u32bit            mergeFilesLen;
+  uint32            mergeFilesMax;
+  uint32            mergeFilesLen;
   char            **mergeFiles;
 
-  u32bit            personality;
+  uint32            personality;
 };
 
 
-u64bit
-estimateNumMersInMemorySize(u32bit merSize,
-                            u32bit mem,
+uint64
+estimateNumMersInMemorySize(uint32 merSize,
+                            uint32 mem,
                             bool   positionsEnabled,
                             bool   beVerbose);
 
-u32bit
-optimalNumberOfBuckets(u32bit merSize,
-                       u64bit numMers,
+uint32
+optimalNumberOfBuckets(uint32 merSize,
+                       uint64 numMers,
                        bool   positionsEnabled);
 
 void estimate(merylArgs *args);

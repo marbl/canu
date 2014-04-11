@@ -21,8 +21,8 @@ public:
 private:
   static seqFactory  *me;
 
-  u32bit         _filesNum;
-  u32bit         _filesMax;
+  uint32         _filesNum;
+  uint32         _filesMax;
   seqFile      **_files;
 };
 

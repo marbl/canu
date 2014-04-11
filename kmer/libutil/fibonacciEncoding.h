@@ -50,19 +50,19 @@
 //   75024  25
 //  121392  26
 
-extern u32bit fibonacciValuesLen;
-extern u64bit fibonacciValues[92];
+extern uint32 fibonacciValuesLen;
+extern uint64 fibonacciValues[92];
 
 inline
 void
-setFibonacciEncodedNumber(u64bit *ptr,
-                          u64bit  pos,
-                          u64bit *siz,
-                          u64bit  val) {
-  u64bit  out1   = u64bitZERO;
-  u64bit  out2   = u64bitZERO;
-  u32bit  fib    = fibonacciValuesLen;
-  u32bit  fibmax = u64bitZERO;
+setFibonacciEncodedNumber(uint64 *ptr,
+                          uint64  pos,
+                          uint64 *siz,
+                          uint64  val) {
+  uint64  out1   = uint64ZERO;
+  uint64  out2   = uint64ZERO;
+  uint32  fib    = fibonacciValuesLen;
+  uint32  fibmax = uint64ZERO;
 
   //  We cannot store zero as a fibonacci number, so we simply
   //  increase everything by one.
@@ -79,18 +79,18 @@ setFibonacciEncodedNumber(u64bit *ptr,
   while (fib-- > 0) {
     if (val >= fibonacciValues[fib]) {
       if (fib >= 64)
-        out2 |= u64bitONE << (127 - fib);
+        out2 |= uint64ONE << (127 - fib);
       else
-        out1 |= u64bitONE << (63  - fib);
+        out1 |= uint64ONE << (63  - fib);
 
       val -= fibonacciValues[fib];
 
-      if (fibmax == u64bitZERO) {
+      if (fibmax == uint64ZERO) {
         fibmax = fib + 1;
         if (fibmax >= 64)
-          out2 |= u64bitONE << (127 - fibmax);
+          out2 |= uint64ONE << (127 - fibmax);
         else
-          out1 |= u64bitONE << (63  - fibmax);
+          out1 |= uint64ONE << (63  - fibmax);
       }
     }
   }
@@ -117,27 +117,27 @@ setFibonacciEncodedNumber(u64bit *ptr,
 
 
 inline
-u64bit
-getFibonacciEncodedNumber(u64bit *ptr,
-                          u64bit  pos,
-                          u64bit *siz) {
-  u64bit wrd = (pos >> 6) & 0x0000cfffffffffffllu;
-  u64bit sft = 0x8000000000000000llu >> (pos & 0x000000000000003fllu);
-  u64bit val = 0;
-  u32bit fib = 0;
-  u64bit newbit;
-  u64bit oldbit;
+uint64
+getFibonacciEncodedNumber(uint64 *ptr,
+                          uint64  pos,
+                          uint64 *siz) {
+  uint64 wrd = (pos >> 6) & 0x0000cfffffffffffllu;
+  uint64 sft = 0x8000000000000000llu >> (pos & 0x000000000000003fllu);
+  uint64 val = 0;
+  uint32 fib = 0;
+  uint64 newbit;
+  uint64 oldbit;
 
   oldbit = ptr[wrd] & sft;
   sft >>= 1;
-  if (sft == u64bitZERO) {
+  if (sft == uint64ZERO) {
     wrd++;
     sft = 0x8000000000000000llu;
   }
 
   newbit = ptr[wrd] & sft;
   sft >>= 1;
-  if (sft == u64bitZERO) {
+  if (sft == uint64ZERO) {
     wrd++;
     sft = 0x8000000000000000llu;
   }
@@ -151,7 +151,7 @@ getFibonacciEncodedNumber(u64bit *ptr,
     oldbit = newbit;
     newbit = ptr[wrd] & sft;
     sft >>= 1;
-    if (sft == u64bitZERO) {
+    if (sft == uint64ZERO) {
       wrd++;
       sft = 0x8000000000000000llu;
     }

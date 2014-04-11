@@ -9,27 +9,27 @@
 
 int
 main(int argc, char ** argv) {
-  u32bit              minC = 0;
-  u32bit              minI = 0;
-  u32bit              minL = 0;
-  u32bit              cdna = ~u32bitZERO;
-  u32bit              geno = ~u32bitZERO;
-  u32bit              minExons = 0;
-  u32bit              maxExons = ~u32bitZERO;
-  u32bit              beVerbose = 0;
+  uint32              minC = 0;
+  uint32              minI = 0;
+  uint32              minL = 0;
+  uint32              cdna = ~uint32ZERO;
+  uint32              geno = ~uint32ZERO;
+  uint32              minExons = 0;
+  uint32              maxExons = ~uint32ZERO;
+  uint32              beVerbose = 0;
   int                 GOODsilent = 0;
   sim4polishWriter   *GOOD       = 0L;
   int                 CRAPsilent = 0;
   sim4polishWriter   *CRAP       = 0L;
   sim4polishWriter   *JUNK = 0L;
-  u64bit              pmod = 1;
-  u64bit              good = 0;
-  u64bit              crap = 0;
-  u64bit              junk = 0;
+  uint64              pmod = 1;
+  uint64              good = 0;
+  uint64              crap = 0;
+  uint64              junk = 0;
   int                 doSelfFilter = 0;
   int                 doSegregation = 0;
-  u32bit              doSegregationLo = 0;
-  u32bit              doSegregationHi = 0;
+  uint32              doSegregationLo = 0;
+  uint32              doSegregationHi = 0;
   char               *filePrefixGOOD = 0L;
   char               *filePrefixCRAP = 0L;
   char               *filePrefixJUNK = 0L;
@@ -42,7 +42,7 @@ main(int argc, char ** argv) {
   //  We limit scaffolds to be below the number of open files per
   //  process.
   //
-  u32bit       maxScaffold = sysconf(_SC_OPEN_MAX);
+  uint32       maxScaffold = sysconf(_SC_OPEN_MAX);
 
   int arg = 1;
   while (arg < argc) {
@@ -175,14 +175,14 @@ main(int argc, char ** argv) {
     fprintf(stderr, "warning: No deflines option inactive with GFF3.\n");
 
   if (beVerbose) {
-    fprintf(stderr, "Filtering at "u32bitFMT"%% coverage and "u32bitFMT"%% identity and "u32bitFMT"bp.\n", minC, minI, minL);
+    fprintf(stderr, "Filtering at "uint32FMT"%% coverage and "uint32FMT"%% identity and "uint32FMT"bp.\n", minC, minI, minL);
 
-    if ((cdna != ~u32bitZERO) && (cdna != ~u32bitZERO))
-      fprintf(stderr, "Filtering for cDNA idx "u32bitFMT" and genomic idx "u32bitFMT"\n", cdna, geno);
-    else if (cdna != ~u32bitZERO)
-      fprintf(stderr, "Filtering for cDNA idx "u32bitFMT".\n", cdna);
-    else if (geno != ~u32bitZERO)
-      fprintf(stderr, "Filtering for genomic idx "u32bitFMT".\n", geno);
+    if ((cdna != ~uint32ZERO) && (cdna != ~uint32ZERO))
+      fprintf(stderr, "Filtering for cDNA idx "uint32FMT" and genomic idx "uint32FMT"\n", cdna, geno);
+    else if (cdna != ~uint32ZERO)
+      fprintf(stderr, "Filtering for cDNA idx "uint32FMT".\n", cdna);
+    else if (geno != ~uint32ZERO)
+      fprintf(stderr, "Filtering for genomic idx "uint32FMT".\n", geno);
   }
 
   //  Prepare input files
@@ -226,8 +226,8 @@ main(int argc, char ** argv) {
       if ((p->_percentIdentity  >= minI) &&
           (p->_querySeqIdentity >= minC) &&
           (p->_numCovered  >= minL) &&
-          ((cdna == ~u32bitZERO) || (cdna == p->_estID)) &&
-          ((geno == ~u32bitZERO) || (geno == p->_genID)) &&
+          ((cdna == ~uint32ZERO) || (cdna == p->_estID)) &&
+          ((geno == ~uint32ZERO) || (geno == p->_genID)) &&
           (minExons <= p->_numExons) &&
           (p->_numExons <= maxExons) &&
           ((doSelfFilter == 0) || (strcmp(p->_estDefLine, p->_genDefLine) != 0))) {
@@ -256,12 +256,12 @@ main(int argc, char ** argv) {
     if ((beVerbose) && ((good+crap) == pmod)) {
       pmod += 8888 + (random() % 1000);
       if (junk > 0)
-        fprintf(stderr, " Filter: %6.2f%% ("u64bitFMT" matches processed) ("u64bitFMT" failed/intractable)\r",
+        fprintf(stderr, " Filter: %6.2f%% ("uint64FMT" matches processed) ("uint64FMT" failed/intractable)\r",
                 100.0 * good / (good+crap),
                 good+crap,
                 junk);
       else
-        fprintf(stderr, " Filter: %6.2f%% ("u64bitFMT" matches processed)\r",
+        fprintf(stderr, " Filter: %6.2f%% ("uint64FMT" matches processed)\r",
                 100.0 * good / (good+crap),
                 good+crap);
       fflush(stderr);
@@ -271,12 +271,12 @@ main(int argc, char ** argv) {
 
   if (beVerbose) {
     if (junk > 0)
-      fprintf(stderr, " Filter: %6.2f%% ("u64bitFMT" matches processed) ("u64bitFMT" failed/intractable)\n",
+      fprintf(stderr, " Filter: %6.2f%% ("uint64FMT" matches processed) ("uint64FMT" failed/intractable)\n",
               100.0 * good / (good+crap),
               good+crap,
               junk);
     else
-      fprintf(stderr, " Filter: %6.2f%% ("u64bitFMT" matches processed)\n",
+      fprintf(stderr, " Filter: %6.2f%% ("uint64FMT" matches processed)\n",
               100.0 * good / (good+crap),
               good+crap);
   }
@@ -284,7 +284,7 @@ main(int argc, char ** argv) {
   delete R;
 
   if (doSegregation) {
-    for (u32bit i=0; i<maxScaffold; i++)
+    for (uint32 i=0; i<maxScaffold; i++)
       if (SEGREGATE[i])
         delete SEGREGATE[i];
     delete [] SEGREGATE;

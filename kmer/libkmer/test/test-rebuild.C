@@ -11,21 +11,21 @@
 int
 main(int argc, char **argv) {
 
-  u64bit  maxMers = u64bitONE << 25;
+  uint64  maxMers = uint64ONE << 25;
 
-  for (u32bit merSize=8; merSize<33; merSize++) {
-    fprintf(stderr, "Testing "u64bitFMT" Mmers at merSize "u32bitFMT".\n", maxMers, merSize);
+  for (uint32 merSize=8; merSize<33; merSize++) {
+    fprintf(stderr, "Testing "uint64FMT" Mmers at merSize "uint32FMT".\n", maxMers, merSize);
 
     kMerBuilder *K  = new kMerBuilder(merSize);
     merStream   *T  = new merStream(K, "acgcgactcgagctacgagcgatcacgacgactacgagca", 40);
     positionDB  *P  = new positionDB(T, merSize, 0, 0L, 0L, 0L, 0, 0, false, true);
 
-    u64bit p = 0;
-    u64bit f = 0;
+    uint64 p = 0;
+    uint64 f = 0;
 
     mt_s   *mts = mtInit(3492);
-    u64bit  msk = u64bitMASK(2*merSize);
-    u64bit  cnt = maxMers;
+    uint64  msk = uint64MASK(2*merSize);
+    uint64  cnt = maxMers;
 
     while (cnt--) {
       if (P->checkREBUILD(mtRandom64(mts) & msk) == false) {
@@ -36,7 +36,7 @@ main(int argc, char **argv) {
     }
 
     if (f) {
-      fprintf(stderr, "PASS: "u64bitFMT"  FAIL: "u64bitFMT"\n", p, f);
+      fprintf(stderr, "PASS: "uint64FMT"  FAIL: "uint64FMT"\n", p, f);
       exit(1);
     }
 

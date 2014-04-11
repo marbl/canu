@@ -170,7 +170,7 @@ mspManager::doLinking(int    weight,
   best_sc = INT_MIN;
 
 #if 0
-  for (u32bit i = 0; i < _numMSPs; ++i) {
+  for (uint32 i = 0; i < _numMSPs; ++i) {
     fprintf(stderr, "LINK MSP %d -- %d-%d %d-%d score=%d,%d\n",
             i,
             _allMSPs[i].pos1, _allMSPs[i].pos1 + _allMSPs[i].len,
@@ -179,7 +179,7 @@ mspManager::doLinking(int    weight,
   }
 #endif
 
-  for (u32bit i = 0; i < _numMSPs; ++i) {
+  for (uint32 i = 0; i < _numMSPs; ++i) {
     f1 = _allMSPs[i].pos1;      /* start position in seq1 */
     f2 = _allMSPs[i].pos2;      /* start position in seq2 */
     diag = f1 - f2;
@@ -191,7 +191,7 @@ mspManager::doLinking(int    weight,
     fflush(stderr);
 #endif
 
-    for (u32bit j = 0; j < i; ++j) {
+    for (uint32 j = 0; j < i; ++j) {
 
       //  12 == default word size.  A Magic Value.
       int WS = 12;

@@ -15,27 +15,27 @@ public:
 
   seqInCore  *_seq1;
   FastAAccessor  *_acc1;
-  u32bit  _iid1;
-  u32bit  _pos1;
-  u32bit  _len1;
-  u32bit  _ori1;
+  uint32  _iid1;
+  uint32  _pos1;
+  uint32  _len1;
+  uint32  _ori1;
 
   seqInCore  *_seq2;
   FastAAccessor  *_acc2;
-  u32bit  _iid2;
-  u32bit  _pos2;
-  u32bit  _len2;
-  u32bit  _ori2;
+  uint32  _iid2;
+  uint32  _pos2;
+  uint32  _len2;
+  uint32  _ori2;
 
   bool    _isDeleted;
 
   //  Our diagonal never, ever changes
-  u32bit  _diagonal;
+  uint32  _diagonal;
 
 public:
   match_s(char *matchId,
-          seqInCore *s1, u32bit i1, u32bit p1, u32bit l1, u32bit o1,
-          seqInCore *s2, u32bit i2, u32bit p2, u32bit l2, u32bit o2) {
+          seqInCore *s1, uint32 i1, uint32 p1, uint32 l1, uint32 o1,
+          seqInCore *s2, uint32 i2, uint32 p2, uint32 l2, uint32 o2) {
 
     strncpy(_matchId, matchId, 32);
 
@@ -87,12 +87,12 @@ public:
 
   //  For compatibility
 
-  void extendLeft(s32bit num) {
+  void extendLeft(int32 num) {
     _acc1->extendLeft(num);
     _acc2->extendLeft(num);
   };
 
-  void extendRight(s32bit num) {
+  void extendRight(int32 num) {
     _acc1->extendRight(num);
     _acc2->extendRight(num);
   };
@@ -117,9 +117,9 @@ public:
       extendRight(m->_acc1->getRangeEnd() - _acc1->getRangeEnd());
   };
 
-  u32bit      len(void)  { return(_acc1->getRangeEnd() - _acc1->getRangeBegin()); };
-  u32bit      pos1(void) { return(_acc1->getRangeBegin()); };
-  u32bit      pos2(void) { return(_acc2->getRangeBegin()); };
+  uint32      len(void)  { return(_acc1->getRangeEnd() - _acc1->getRangeBegin()); };
+  uint32      pos1(void) { return(_acc1->getRangeBegin()); };
+  uint32      pos2(void) { return(_acc2->getRangeBegin()); };
   seqInCore  *seq1(void) { return(_seq1); };
   seqInCore  *seq2(void) { return(_seq2); };
 };

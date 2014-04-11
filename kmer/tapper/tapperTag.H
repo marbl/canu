@@ -7,7 +7,7 @@
 //  sequence and 110 bytes for QVs -> 154 bytes per tag.
 //
 //  Without QVs, we can fit upto a 60bp tag into 24 bytes, using a
-//  64bit global id instead of the sequence name.  At 24B per tag, 10x
+//  int64 global id instead of the sequence name.  At 24B per tag, 10x
 //  human is 27GB.
 //
 //  Including QVs, we now need to use 7 bits per bp, but we then
@@ -29,9 +29,9 @@
 
 
 inline
-u64bit
-encodeTagID(u16bit id[4]) {
-  u64bit  tid;
+uint64
+encodeTagID(uint16 id[4]) {
+  uint64  tid;
 
   tid = id[0];
   tid <<= 16;
@@ -47,11 +47,11 @@ encodeTagID(u16bit id[4]) {
 
 inline
 void
-decodeTagID(u64bit tid, u16bit id[4]) {
-  id[0] = (tid >> 48) & u64bitMASK(16);
-  id[1] = (tid >> 32) & u64bitMASK(16);
-  id[2] = (tid >> 16) & u64bitMASK(16);
-  id[3] = (tid)       & u64bitMASK(16);
+decodeTagID(uint64 tid, uint16 id[4]) {
+  id[0] = (tid >> 48) & uint64MASK(16);
+  id[1] = (tid >> 32) & uint64MASK(16);
+  id[2] = (tid >> 16) & uint64MASK(16);
+  id[3] = (tid)       & uint64MASK(16);
 }
 
 
@@ -62,13 +62,13 @@ public:
   //  Expects seq to be "T01023030122303" and qlt to be 0 through 31,
   //  1-1 correspondence.
   //
-  void     encode(u16bit id[4], char *seq, u64bit *qlt) {
-    u64bit   pos = 64;
-    u32bit   len = strlen(seq);
-    u32bit   i   = 0;
+  void     encode(uint16 id[4], char *seq, uint64 *qlt) {
+    uint64   pos = 64;
+    uint32   len = strlen(seq);
+    uint32   i   = 0;
 
     for (i=1; i<TAPPER_TAG_WORDS; i++)
-      _w[i] = u64bitZERO;
+      _w[i] = uint64ZERO;
 
     _w[0] = encodeTagID(id);
 
@@ -80,13 +80,13 @@ public:
 
 #undef DEBUG_TAG_ENCODING
 #ifdef DEBUG_TAG_ENCODING
-    fprintf(stderr, "tapperTag::encode()-- seq: %s id "u64bitHEX" %c/%d len "u32bitFMT" "u64bitFMT" "u64bitFMT"\n",
+    fprintf(stderr, "tapperTag::encode()-- seq: %s id "uint64HEX" %c/%d len "uint32FMT" "uint64FMT" "uint64FMT"\n",
             seq, _w[0], seq[0], seq[0], len, pos-7, getDecodedValue(_w, pos-7, 7));
 #endif
 
     for (i=1; i<len; i++) {
       if (qlt[i] > 31) {
-        //fprintf(stderr, "tapperTag::encode()-- WARNING!  QV too big; "u64bitFMT" truncated to 31.\n", qlt[i]);
+        //fprintf(stderr, "tapperTag::encode()-- WARNING!  QV too big; "uint64FMT" truncated to 31.\n", qlt[i]);
         qlt[i] = 31;
       }
       setDecodedValue(_w, pos, 7, (letterToBits[seq[i]] << 5) | (qlt[i-1]));
@@ -97,10 +97,10 @@ public:
   //  Decodes a tag into seq and qlt (as for encode()), returns the
   //  tagID, or 0 if failure.
   //
-  u64bit   decode(u16bit id[4], char *seq, u64bit *qlt) {
-    u64bit   pos = 64;
-    u32bit   len = 0;
-    u32bit   i   = 0;
+  uint64   decode(uint16 id[4], char *seq, uint64 *qlt) {
+    uint64   pos = 64;
+    uint32   len = 0;
+    uint32   i   = 0;
 
     seq[0] = bitsToLetter[getDecodedValue(_w, pos, 2)];
     qlt[0] = 0;
@@ -110,9 +110,9 @@ public:
     pos += 7;
 
     for (i=1; i<len; i++) {
-      u64bit x = getDecodedValue(_w, pos, 7);
+      uint64 x = getDecodedValue(_w, pos, 7);
       seq[i]   = bitsToColor[(x >> 5) & 0x03];
-      qlt[i-1] = x & u64bitMASK(5);
+      qlt[i-1] = x & uint64MASK(5);
       pos += 7;
     }
 
@@ -120,7 +120,7 @@ public:
     qlt[len-1] = 0;
 
 #ifdef DEBUG_TAG_ENCODING
-    fprintf(stderr, "tapperTag::decode()-- seq: %s id "u64bitHEX" %c/%d len "u32bitFMT"\n",
+    fprintf(stderr, "tapperTag::decode()-- seq: %s id "uint64HEX" %c/%d len "uint32FMT"\n",
             seq, _w[0], seq[0], seq[0], len);
 #endif
 
@@ -129,13 +129,13 @@ public:
     return(_w[0]);
   };
 
-  u64bit   tagID(void) const     { return(_w[0]); };
-  u64bit   length(void)          { return(getDecodedValue(_w, 66, 7)); };
+  uint64   tagID(void) const     { return(_w[0]); };
+  uint64   length(void)          { return(getDecodedValue(_w, 66, 7)); };
 
 private:
   friend class tapperTagFile;
 
-  u64bit  _w[TAPPER_TAG_WORDS];
+  uint64  _w[TAPPER_TAG_WORDS];
 };
 
 
@@ -144,25 +144,25 @@ private:
 
 class tapperTagFileMetaData {
 public:
-  u32bit   tagSize(void)          { return(_minTagLen); };
-  u32bit   isPairedTagFile(void)  { return(_isPaired);  };
-  u32bit   mean(void)             { return(_mean);      };
-  u32bit   stddev(void)           { return(_stddev);    };
+  uint32   tagSize(void)          { return(_minTagLen); };
+  uint32   isPairedTagFile(void)  { return(_isPaired);  };
+  uint32   mean(void)             { return(_mean);      };
+  uint32   stddev(void)           { return(_stddev);    };
 
-  void     setMeanStdDev(u32bit mean_, u32bit stddev_) {
+  void     setMeanStdDev(uint32 mean_, uint32 stddev_) {
     _mean   = mean_;
     _stddev = stddev_;
   };
 
 private:
   friend class tapperTagFile;
-  u32bit   _minTagLen;
-  u32bit   _maxTagLen;
-  u32bit   _tagWords;
-  u32bit   _isPaired;
-  u32bit   _isFragment;
-  u32bit   _mean;
-  u32bit   _stddev;
+  uint32   _minTagLen;
+  uint32   _maxTagLen;
+  uint32   _tagWords;
+  uint32   _isPaired;
+  uint32   _isFragment;
+  uint32   _mean;
+  uint32   _stddev;
 };
 
 
@@ -187,11 +187,11 @@ public:
       exit(1);
     }
 
-    _tagFile  = new recordFile(name, sizeof(tapperTagFileMetaData), TAPPER_TAG_WORDS * sizeof(u64bit), mode);
+    _tagFile  = new recordFile(name, sizeof(tapperTagFileMetaData), TAPPER_TAG_WORDS * sizeof(uint64), mode);
     _metaData = (tapperTagFileMetaData *)_tagFile->header();
 
     if (_metaData->_tagWords == 0) {
-      _metaData->_minTagLen  = ~u32bitZERO;
+      _metaData->_minTagLen  = ~uint32ZERO;
       _metaData->_maxTagLen  = 0;
       _metaData->_tagWords   = TAPPER_TAG_WORDS;
       _metaData->_isPaired   = 0;
@@ -201,7 +201,7 @@ public:
     }
 
     if (_metaData->_tagWords != TAPPER_TAG_WORDS) {
-      fprintf(stderr, "tapperTagFile()--  ERROR!  Tag file was built with TAPPER_TAG_WORDS="u32bitFMT", but code has %d.\n",
+      fprintf(stderr, "tapperTagFile()--  ERROR!  Tag file was built with TAPPER_TAG_WORDS="uint32FMT", but code has %d.\n",
               _metaData->_tagWords, TAPPER_TAG_WORDS);
       exit(1);
     }
@@ -218,21 +218,21 @@ public:
     return(_metaData);
   };
 
-  u64bit numberOfFragmentTags(void) {
+  uint64 numberOfFragmentTags(void) {
     if (metaData()->isPairedTagFile())
       return(0);
     else
       return(_tagFile->numRecords());
   };
 
-  u64bit numberOfMatePairs(void) {
+  uint64 numberOfMatePairs(void) {
     if (metaData()->isPairedTagFile())
       return(_tagFile->numRecords() / 2);
     else
       return(0);
   };
 
-  void   setBegin(u32bit bgn) {
+  void   setBegin(uint32 bgn) {
     if (metaData()->isPairedTagFile())
       _tagFile->seek(bgn * 2);
     else
@@ -240,7 +240,7 @@ public:
   };
 
 
-  void   setEnd(u32bit end) {
+  void   setEnd(uint32 end) {
     if (metaData()->isPairedTagFile())
       _tagFile->limit(end * 2);
     else
@@ -249,7 +249,7 @@ public:
 
 
   void   put(tapperTag *tag) {
-    u64bit len = tag->length();
+    uint64 len = tag->length();
 
     _metaData->_isFragment = 1;
     if (_metaData->_isPaired)
@@ -263,8 +263,8 @@ public:
 
 
   void   put(tapperTag *ta1, tapperTag *ta2) {
-    u64bit len1 = ta1->length();
-    u64bit len2 = ta2->length();
+    uint64 len1 = ta1->length();
+    uint64 len2 = ta2->length();
 
     _metaData->_isPaired  = 1;
     if (_metaData->_isFragment)

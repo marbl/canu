@@ -3,7 +3,7 @@
 
 #define TRACE    0
 
-hitMatrix::hitMatrix(u32bit qsLen, u32bit qsMers, u32bit qsIdx) {
+hitMatrix::hitMatrix(uint32 qsLen, uint32 qsMers, uint32 qsIdx) {
   _qsLen    = qsLen;
   _qsMers   = qsMers;
   _qsIdx    = qsIdx;
@@ -21,12 +21,12 @@ hitMatrix::~hitMatrix() {
 }
 
 void
-hitMatrix::addMatch(u32bit         qsLo,
-                    u32bit         qsHi,
-                    u32bit         dsLo,
-                    u32bit         dsHi,
+hitMatrix::addMatch(uint32         qsLo,
+                    uint32         qsHi,
+                    uint32         dsLo,
+                    uint32         dsHi,
                     merCovering   *IL) {
-  u32bit offset = 0;
+  uint32 offset = 0;
 
   //  Extend the match
   //
@@ -125,9 +125,9 @@ hitMatrix::addMatch(u32bit         qsLo,
 
 inline
 int
-compareLines(diagonalLine *A, diagonalLine *B, u32bit qsLen) {
-  u32bit a = qsLen - A->_qsPos - 1 + A->_dsPos;
-  u32bit b = qsLen - B->_qsPos - 1 + B->_dsPos;
+compareLines(diagonalLine *A, diagonalLine *B, uint32 qsLen) {
+  uint32 a = qsLen - A->_qsPos - 1 + A->_dsPos;
+  uint32 b = qsLen - B->_qsPos - 1 + B->_dsPos;
 
   return(((a  < b)) ||
          ((a == b) && (A->_qsPos < B->_qsPos)));
@@ -135,8 +135,8 @@ compareLines(diagonalLine *A, diagonalLine *B, u32bit qsLen) {
 
 inline
 int
-compareLines(u32bit l, u32bit q, diagonalLine *B, u32bit qsLen) {
-  u32bit b = qsLen - B->_qsPos - 1 + B->_dsPos;
+compareLines(uint32 l, uint32 q, diagonalLine *B, uint32 qsLen) {
+  uint32 b = qsLen - B->_qsPos - 1 + B->_dsPos;
 
   return(((l  < b)) ||
          ((l == b) && (q < B->_qsPos)));
@@ -144,11 +144,11 @@ compareLines(u32bit l, u32bit q, diagonalLine *B, u32bit qsLen) {
 
 inline
 void
-adjustHeap(diagonalLine *L, s32bit p, s32bit n, u32bit qsLen) {
-  u32bit  q = L[p]._qsPos;
-  u32bit  d = L[p]._dsPos;
-  u32bit  l = qsLen - q - 1 + d;
-  s32bit  c = (p << 1) + 1;  //  let c be the left child of p
+adjustHeap(diagonalLine *L, int32 p, int32 n, uint32 qsLen) {
+  uint32  q = L[p]._qsPos;
+  uint32  d = L[p]._dsPos;
+  uint32  l = qsLen - q - 1 + d;
+  int32  c = (p << 1) + 1;  //  let c be the left child of p
 
   while (c < n) {
 
@@ -190,18 +190,18 @@ compareLines(diagonalLine *A, diagonalLine *B) {
 
 inline
 int
-compareLines(u32bit l, u32bit q, diagonalLine *B) {
+compareLines(uint32 l, uint32 q, diagonalLine *B) {
   return(((l  < B->_diagonalID)) ||
          ((l == B->_diagonalID) && (q < B->_qsPos)));
 }
 
 inline
 void
-adjustHeap(diagonalLine *L, s32bit p, s32bit n) {
-  u32bit  q = L[p]._qsPos;
-  u32bit  d = L[p]._dsPos;
-  u32bit  l = L[p]._diagonalID;
-  s32bit  c = (p << 1) + 1;  //  let c be the left child of p
+adjustHeap(diagonalLine *L, int32 p, int32 n) {
+  uint32  q = L[p]._qsPos;
+  uint32  d = L[p]._dsPos;
+  uint32  l = L[p]._diagonalID;
+  int32  c = (p << 1) + 1;  //  let c be the left child of p
 
   while (c < n) {
 
@@ -244,8 +244,8 @@ hitMatrix::filter(encodedQuery *query, bool isReverse) {
   //  Decide on the minimum quality values; we pick the larger of
   //  the fixed lengths, and the sequence length * coverage.
   //
-  u32bit   minLengthSingle   = (u32bit)(config._minCoverageSingle   * _qsLen);
-  u32bit   minLengthMultiple = (u32bit)(config._minCoverageMultiple * _qsLen);
+  uint32   minLengthSingle   = (uint32)(config._minCoverageSingle   * _qsLen);
+  uint32   minLengthMultiple = (uint32)(config._minCoverageMultiple * _qsLen);
 
   if (minLengthSingle < config._minLengthSingle)
     minLengthSingle = config._minLengthSingle;
@@ -263,9 +263,9 @@ hitMatrix::filter(encodedQuery *query, bool isReverse) {
 
   //  Now, while there are hits left....
   //
-  u32bit  firstHit   = 0;
-  u32bit  lastHit    = 0;
-  u32bit  currentSeq = 0;
+  uint32  firstHit   = 0;
+  uint32  lastHit    = 0;
+  uint32  currentSeq = 0;
 
   while (firstHit < _hitsLen) {
 
@@ -301,7 +301,7 @@ hitMatrix::filter(encodedQuery *query, bool isReverse) {
 
 #if 0
     fprintf(stdout, "UNSORTED\n");
-    for (u32bit i=firstHit; i<lastHit; i++)
+    for (uint32 i=firstHit; i<lastHit; i++)
       fprintf(stdout, "hit at qs=%4u ds=%6u diag=%6u\n",
               _hits[i]._qsPos,
               _hits[i]._dsPos,
@@ -311,7 +311,7 @@ hitMatrix::filter(encodedQuery *query, bool isReverse) {
 
     //  Adjust the hits to be relative to the start of this sequence
     //
-    for (u32bit i=firstHit; i<lastHit; i++)
+    for (uint32 i=firstHit; i<lastHit; i++)
       _hits[i]._dsPos -= config._dbSTREAM->startOf(currentSeq);
 
     //  Sort them, if needed.
@@ -326,7 +326,7 @@ hitMatrix::filter(encodedQuery *query, bool isReverse) {
       //  Build the heap.  I initially thought this could be done at the
       //  same time as the scan for the last hit, but it can't (easily)
       //
-      for (s32bit i=(lastHit - firstHit)/2 - 1; i>=0; i--)
+      for (int32 i=(lastHit - firstHit)/2 - 1; i>=0; i--)
 #ifdef WITHOUT_DIAGONALID
         adjustHeap(hitsToSort, i, lastHit - firstHit, _qsLen);
 #else
@@ -337,11 +337,11 @@ hitMatrix::filter(encodedQuery *query, bool isReverse) {
       //  heap sort -- Interchange the new maximum with the element
       //  at the end of the tree
       //
-      for (u32bit i=lastHit - firstHit - 1; i>0; i--) {
-        u32bit  q  = hitsToSort[i]._qsPos;
-        u32bit  d  = hitsToSort[i]._dsPos;
+      for (uint32 i=lastHit - firstHit - 1; i>0; i--) {
+        uint32  q  = hitsToSort[i]._qsPos;
+        uint32  d  = hitsToSort[i]._dsPos;
 #ifndef WITHOUT_DIAGONALID
-        u32bit  l  = hitsToSort[i]._diagonalID;
+        uint32  l  = hitsToSort[i]._diagonalID;
 #endif
         
         hitsToSort[i]._qsPos      = hitsToSort[0]._qsPos;
@@ -370,10 +370,10 @@ hitMatrix::filter(encodedQuery *query, bool isReverse) {
 #if 0
 #if 0
     fprintf(stderr, "sort by diagonal:\n");
-    for (u32bit i=firstHit; i<lastHit; i++)
+    for (uint32 i=firstHit; i<lastHit; i++)
       fprintf(stderr, "%8u %8u %8u\n", _hits[i]._diagonalID, _hits[i]._qsPos, _hits[i]._dsPos);
 #endif
-    for (u32bit i=firstHit; i<lastHit-1; i++) {
+    for (uint32 i=firstHit; i<lastHit-1; i++) {
       if (_hits[i]._diagonalID > _hits[i+1]._diagonalID) {
         fprintf(stderr, "sort by diagonal failed.\n");
         exit(1);
@@ -386,7 +386,7 @@ hitMatrix::filter(encodedQuery *query, bool isReverse) {
 #if TRACE
 #if 0
     fprintf(stdout, "SORTED\n");
-    for (u32bit i=firstHit; i<lastHit; i++)
+    for (uint32 i=firstHit; i<lastHit; i++)
       fprintf(stdout, "hit at qs=%4u ds=%6u diag=%6u\n",
               _hits[i]._qsPos,
               _hits[i]._dsPos,
@@ -399,26 +399,26 @@ hitMatrix::filter(encodedQuery *query, bool isReverse) {
     //  Filter them
     //
 #ifdef WITHOUT_DIAGONALID
-    u32bit  frstDiagonal = _qsLen - _hits[firstHit]._qsPos - 1 + _hits[firstHit]._dsPos;
-    u32bit  lastDiagonal = frstDiagonal;
+    uint32  frstDiagonal = _qsLen - _hits[firstHit]._qsPos - 1 + _hits[firstHit]._dsPos;
+    uint32  lastDiagonal = frstDiagonal;
 #else
-    u32bit  frstDiagonal = _hits[firstHit]._diagonalID;
-    u32bit  lastDiagonal = _hits[firstHit]._diagonalID;
+    uint32  frstDiagonal = _hits[firstHit]._diagonalID;
+    uint32  lastDiagonal = _hits[firstHit]._diagonalID;
 #endif
-    u32bit  qsLow        = _hits[firstHit]._qsPos;
-    u32bit  qsHigh       = _hits[firstHit]._qsPos;
-    u32bit  dsLow        = _hits[firstHit]._dsPos;
-    u32bit  dsHigh       = _hits[firstHit]._dsPos;
+    uint32  qsLow        = _hits[firstHit]._qsPos;
+    uint32  qsHigh       = _hits[firstHit]._qsPos;
+    uint32  dsLow        = _hits[firstHit]._dsPos;
+    uint32  dsHigh       = _hits[firstHit]._dsPos;
 
     //  Create a new merCovering, and space to count the number of mers in a match
     //
     merCovering *IL = new merCovering(config._merSize);
 
-    for (u32bit i=firstHit; i<lastHit; i++) {
+    for (uint32 i=firstHit; i<lastHit; i++) {
 #ifdef WITHOUT_DIAGONALID
-      u32bit thisDiagonalID = _qsLen - _hits[i]._qsPos - 1 + _hits[i]._dsPos;
+      uint32 thisDiagonalID = _qsLen - _hits[i]._qsPos - 1 + _hits[i]._dsPos;
 #else
-      u32bit thisDiagonalID = _hits[i]._diagonalID;
+      uint32 thisDiagonalID = _hits[i]._diagonalID;
 #endif
 
 
@@ -504,7 +504,7 @@ hitMatrix::filter(encodedQuery *query, bool isReverse) {
 
       //  Save the current cluster and start a new one?
       //
-      u32bit qCov = IL->sumOfLengths();
+      uint32 qCov = IL->sumOfLengths();
       if ((qCov >= minLengthMultiple) ||
           ((lastDiagonal - frstDiagonal < 25) && (qCov >= minLengthSingle))) {
 #if TRACE
@@ -545,7 +545,7 @@ hitMatrix::filter(encodedQuery *query, bool isReverse) {
 
     //  Save the final cluster?
     //
-    u32bit qCov = IL->sumOfLengths();
+    uint32 qCov = IL->sumOfLengths();
     if ((qCov >= minLengthMultiple) ||
         ((lastDiagonal - frstDiagonal < 21) && (qCov >= minLengthSingle))) {
       addMatch(qsLow,
@@ -565,7 +565,7 @@ hitMatrix::filter(encodedQuery *query, bool isReverse) {
     //  Merge and print the matches
     //
     trapMatch     *n  = 0L;
-    u32bit         ML = 0;
+    uint32         ML = 0;
 
     while (_matches) {
 
@@ -639,7 +639,7 @@ hitMatrix::filter(encodedQuery *query, bool isReverse) {
       } else {
         char  line[128];
 
-        sprintf(line, "-%c -e "u32bitFMT" -D "u32bitFMT" "u32bitFMT" "u32bitFMT" -M "u32bitFMT" "u32bitFMT" "u32bitFMT"\n",
+        sprintf(line, "-%c -e "uint32FMT" -D "uint32FMT" "uint32FMT" "uint32FMT" -M "uint32FMT" "uint32FMT" "uint32FMT"\n",
                 isReverse ? 'r' : 'f', _qsIdx,
                 config._dbSTREAM->IIDOf(currentSeq),
                 dsLow, dsHigh, IL->sumOfLengths(), ML, _qsMers);

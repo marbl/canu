@@ -30,12 +30,12 @@
 using namespace std;
 
 
-extern u32bit  minEndRunLen;
-extern u32bit  maxMMBlock;
-extern u32bit  minBlockSep;
+extern uint32  minEndRunLen;
+extern uint32  maxMMBlock;
+extern uint32  minBlockSep;
 extern double  minIdentity;
-extern u32bit  maxNbrSep;
-extern u32bit  maxNbrPathMM;
+extern uint32  maxNbrSep;
+extern uint32  maxNbrPathMM;
 
 
 //#define DEBUG_TRACE
@@ -61,13 +61,13 @@ isIdentity(char c1, char c2) {
 //  Finds the largest block >= 'pct' (95%) identity.
 //
 bool
-trim_to_pct(vector<match_s *>& matches, u32bit midx, double pct) {
+trim_to_pct(vector<match_s *>& matches, uint32 midx, double pct) {
 #ifdef DEBUG_TRACE
   fprintf(stderr, "trim_to_pct()\n");
 #endif
 
-  u32bit     best_start   = 0;
-  u32bit     best_len     = 0;
+  uint32     best_start   = 0;
+  uint32     best_len     = 0;
   match_s   *m = matches[midx];
 
   FastAAccessor  &A = *m->_acc1;
@@ -86,11 +86,11 @@ trim_to_pct(vector<match_s *>& matches, u32bit midx, double pct) {
   //  shorter than our best_len, we have no hope in finding a better
   //  one.
   //
-  for (u32bit start=0;
+  for (uint32 start=0;
        (start< m->len()) && (m->len() - start > best_len);
        ++start) {
-    u32bit best_run_len = 0;
-    u32bit sum          = 0;
+    uint32 best_run_len = 0;
+    uint32 sum          = 0;
 
     A.setPosition(m->pos1() + start);
     B.setPosition(m->pos2() + start);
@@ -100,7 +100,7 @@ trim_to_pct(vector<match_s *>& matches, u32bit midx, double pct) {
     //  Compute the number of identities we've seen, and remember the
     //  length of the highest identity.
     //
-    for (u32bit len = 1; start + len <= m->len(); ++len) {
+    for (uint32 len = 1; start + len <= m->len(); ++len) {
       char c1 = *A;
       char c2 = *B;
 
@@ -138,13 +138,13 @@ trim_to_pct(vector<match_s *>& matches, u32bit midx, double pct) {
   if (best_len < m->len()) {
 #ifdef DEBUG_TRIMTOPERCENT
     fprintf(stderr, "============================================================\n");
-    fprintf(stderr, "Trimming to substring with start="u32bitFMT" and len="u32bitFMT" for percent identity\n",
+    fprintf(stderr, "Trimming to substring with start="uint32FMT" and len="uint32FMT" for percent identity\n",
             best_start, best_len);
     m->dump(stderr, "BEFORE", true);
 #endif
 
-    m->extendLeft(-(s32bit)best_start);
-    m->extendRight(-(s32bit)(m->len() - best_len));
+    m->extendLeft(-(int32)best_start);
+    m->extendRight(-(int32)(m->len() - best_len));
 
 #ifdef DEBUG_TRIMTOPERCENT
     m->dump(stderr, "AFTER", true);
@@ -160,20 +160,20 @@ trim_to_pct(vector<match_s *>& matches, u32bit midx, double pct) {
 
 void
 extend_match_backward(vector<match_s *>& matches,
-                      u32bit midx,
-		      u32bit min_start_pos) {
+                      uint32 midx,
+		      uint32 min_start_pos) {
 #ifdef DEBUG_TRACE
-  fprintf(stderr, "extend_match_backward()-- min_start_pos="u32bitFMT"\n", min_start_pos);
+  fprintf(stderr, "extend_match_backward()-- min_start_pos="uint32FMT"\n", min_start_pos);
 #endif
 
   // Assumes when traveling backwards that we will never run into
   // another match (otherwise, that match would have been forward
   // extended previously).
 
-  u32bit     num_recent_mismatches = 0;
+  uint32     num_recent_mismatches = 0;
   match_s   *m = matches[midx];
-  u32bit     good_run_len = (int) m->len();
-  u32bit     num_pending = 0;
+  uint32     good_run_len = (int) m->len();
+  uint32     num_pending = 0;
 
   FastAAccessor  &A = *m->_acc1;
   FastAAccessor  &B = *m->_acc2;
@@ -251,7 +251,7 @@ can_reach_nearby_match(match_s *src, match_s *dest) {
   fprintf(stderr, "can_reach_nearby_match()\n");
 #endif
 
-  if (dest->pos1() - (src->pos1() + src->len()) > (u32bit) maxNbrSep)  // 100
+  if (dest->pos1() - (src->pos1() + src->len()) > (uint32) maxNbrSep)  // 100
     return false;
 
 #if 0
@@ -268,7 +268,7 @@ can_reach_nearby_match(match_s *src, match_s *dest) {
   ++A;
   ++B;
 
-  u32bit  num_mismatch = 0;
+  uint32  num_mismatch = 0;
 
   while ((num_mismatch    <= maxNbrPathMM) &&  // 5
          (A.getPosition() <  dest->pos1()) &&
@@ -294,16 +294,16 @@ can_reach_nearby_match(match_s *src, match_s *dest) {
 //  Stops and returns true if we hit the next match
 //
 bool
-extend_match_forward(vector<match_s *>& matches, u32bit midx, match_s *target) {
+extend_match_forward(vector<match_s *>& matches, uint32 midx, match_s *target) {
 #ifdef DEBUG_TRACE
   fprintf(stderr, "extend_match_forward()\n");
 #endif
 
   match_s     *m = matches[midx];
-  u32bit       num_recent_mismatches = 0;
-  u32bit       num_pending = 0;
+  uint32       num_recent_mismatches = 0;
+  uint32       num_pending = 0;
 
-  u32bit       good_run_len = (int) m->len();
+  uint32       good_run_len = (int) m->len();
 
   FastAAccessor  &A = *m->_acc1;
   FastAAccessor  &B = *m->_acc2;
@@ -395,15 +395,15 @@ extend_match_forward(vector<match_s *>& matches, u32bit midx, match_s *target) {
 
 
 
-u32bit
-extend_matches_on_diagonal(vector<match_s *>& matches, u32bit diag_start) {
+uint32
+extend_matches_on_diagonal(vector<match_s *>& matches, uint32 diag_start) {
 #ifdef DEBUG_TRACE
   fprintf(stderr, "extend_matches_on_diagonal()\n");
 #endif
 
-  u32bit     diag_id = matches[diag_start]->_diagonal;
-  u32bit     idx;
-  u32bit     prev_end = 0;
+  uint32     diag_id = matches[diag_start]->_diagonal;
+  uint32     idx;
+  uint32     prev_end = 0;
   match_s   *m;
   match_s   *next_m = NULL;
 
@@ -462,7 +462,7 @@ extend_matches_on_diagonal(vector<match_s *>& matches, u32bit diag_start) {
     m        = matches[idx];
     next_m   = 0L;
 
-    for (u32bit next_idx=idx+1; ((next_idx < matches.size()) && 
+    for (uint32 next_idx=idx+1; ((next_idx < matches.size()) && 
                                  (matches[next_idx]->_diagonal == diag_id) &&
                                  (next_m == 0L)); next_idx++)
       if (matches[next_idx]->isDeleted() == false)

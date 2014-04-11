@@ -7,23 +7,23 @@
 #include "seqFile.H"
 
 struct seqStreamIndex {
-  u32bit   _iid;  //  seqFile IID
-  u32bit   _len;  //  length of the sequence
-  u64bit   _bgn;  //  begin position in the stream
+  uint32   _iid;  //  seqFile IID
+  uint32   _len;  //  length of the sequence
+  uint64   _bgn;  //  begin position in the stream
 };
 
 
 class seqStream {
 public:
   seqStream(const char *filename);
-  seqStream(const char *sequence, u32bit length);
+  seqStream(const char *sequence, uint32 length);
   ~seqStream();
 
   //  Separate sequences with this letter.  Non-ACGT is always
   //  returned as 'N'.  Changing the length of the separator AFTER
   //  setting the range will result in the wrong range being used.
   //
-  void              setSeparator(char sep, u32bit len);
+  void              setSeparator(char sep, uint32 len);
 
   //  get() returns one letter per input letter -- a gap of size n
   //  will return n gap symbols.
@@ -56,8 +56,8 @@ public:
   //  range(0,4) -> AAAnnnC
   //  range(0,5) -> AAAnnnCnnnG
   //
-  void              setRange(u64bit bgn, u64bit end);
-  void              setPosition(u64bit pos);
+  void              setRange(uint64 bgn, uint64 end);
+  void              setPosition(uint64 pos);
 
   //  seqPos() is the position we are at in the current sequence;
   //  seqIID() is the iid of that sequence;
@@ -65,22 +65,22 @@ public:
   //
   //  Values are not defined if the letter is a separator.
   //
-  u32bit            seqPos(void)     { return(_currentPos);            };
-  u32bit            seqIID(void)     { return(_idx[_currentIdx]._iid); };
-  u64bit            strPos(void)     { return(_streamPos);             };
+  uint32            seqPos(void)     { return(_currentPos);            };
+  uint32            seqIID(void)     { return(_idx[_currentIdx]._iid); };
+  uint64            strPos(void)     { return(_streamPos);             };
 
-  u32bit            numberOfSequences(void) { return(_idxLen); };
+  uint32            numberOfSequences(void) { return(_idxLen); };
 
   //  Return the length of, position of (in the chain) and IID of the
   //  (s)th sequence in the chain.
   //
-  u32bit            lengthOf(u32bit s) { return((s >= _idxLen) ? ~u32bitZERO : _idx[s]._len); };
-  u32bit            IIDOf(u32bit s)    { return((s >= _idxLen) ? ~u32bitZERO : _idx[s]._iid); };
-  u64bit            startOf(u32bit s)  { return((s >= _idxLen) ? ~u64bitZERO : _idx[s]._bgn); };
+  uint32            lengthOf(uint32 s) { return((s >= _idxLen) ? ~uint32ZERO : _idx[s]._len); };
+  uint32            IIDOf(uint32 s)    { return((s >= _idxLen) ? ~uint32ZERO : _idx[s]._iid); };
+  uint64            startOf(uint32 s)  { return((s >= _idxLen) ? ~uint64ZERO : _idx[s]._bgn); };
 
   //  For a chain position p, returns the s (above) for that position.
   //
-  u32bit            sequenceNumberOfPosition(u64bit p);
+  uint32            sequenceNumberOfPosition(uint64 p);
   void              tradeSpaceForTime(void);
 
 private:
@@ -89,34 +89,34 @@ private:
   seqFile         *_file;        //  Backed by a seqFile.
   char            *_string;      //  Backed by a character string.
 
-  u64bit           _bgn;         //  Begin/End position in chained sequence
-  u64bit           _end;
+  uint64           _bgn;         //  Begin/End position in chained sequence
+  uint64           _end;
 
-  u32bit           _currentIdx;  //  index into _idx of the current sequence
-  u32bit           _currentPos;  //  position in the current sequence
-  u64bit           _streamPos;   //  position in the chained sequence
+  uint32           _currentIdx;  //  index into _idx of the current sequence
+  uint32           _currentPos;  //  position in the current sequence
+  uint64           _streamPos;   //  position in the chained sequence
 
   // Buffer for holding sequence from the seqFile.
 
-  u32bit           _bufferMax;   //  Max size of the buffer
-  u32bit           _bufferLen;   //  Actual size of the buffer
-  u32bit           _bufferPos;   //  Position we are at in the buffer
-  u32bit           _bufferSep;   //  How much of the buffer is separator
+  uint32           _bufferMax;   //  Max size of the buffer
+  uint32           _bufferLen;   //  Actual size of the buffer
+  uint32           _bufferPos;   //  Position we are at in the buffer
+  uint32           _bufferSep;   //  How much of the buffer is separator
   char            *_buffer;
 
   //  Info about the raw sequences
 
-  u32bit           _idxLen;
+  uint32           _idxLen;
   seqStreamIndex  *_idx;
 
-  u32bit          *_seqNumOfPos;
+  uint32          *_seqNumOfPos;
 
-  u64bit           _lengthOfSequences;
+  uint64           _lengthOfSequences;
 
   bool             _eof;
 
   char             _separator;
-  u32bit           _separatorLength;
+  uint32           _separatorLength;
 };
 
 

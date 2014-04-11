@@ -45,9 +45,9 @@ simpleTest(void) {
 
   FastAAccessor F(fwd, 1000, false);
   FastAAccessor R(rev, 1000, true);
-  u32bit        C;
+  uint32        C;
 
-  for (u32bit i=0; i<1000; i++)
+  for (uint32 i=0; i<1000; i++)
     if (F[i] != R[i])
       exit(1);
 
@@ -144,7 +144,7 @@ harderTest(void) {
     A.setRange(100, 200);
     A.setPosition(100);
 
-    fprintf(stderr, "Range: "u32bitFMT"-"u32bitFMT" len="u32bitFMT"\n",
+    fprintf(stderr, "Range: "uint32FMT"-"uint32FMT" len="uint32FMT"\n",
             A.getRangeBegin(), A.getRangeEnd(), A.getRangeLength());
     if ((A.getRangeBegin() != 100) || (A.getRangeEnd() != 300) || (A.getRangeLength() != 200))
       fprintf(stderr, "FAILED.\n"), exit(1);
@@ -172,7 +172,7 @@ harderTest(void) {
     for (int i=0; i<10; i++)
       A.extendLeft(-1);
 
-    fprintf(stderr, "Range: "u32bitFMT"-"u32bitFMT" len="u32bitFMT"\n",
+    fprintf(stderr, "Range: "uint32FMT"-"uint32FMT" len="uint32FMT"\n",
             A.getRangeBegin(), A.getRangeEnd(), A.getRangeLength());
     if ((A.getRangeBegin() != 300) || (A.getRangeEnd() != 310) || (A.getRangeLength() != 10))
       fprintf(stderr, "FAILED.\n"), exit(1);
@@ -196,7 +196,7 @@ harderTest(void) {
     A.setRange(100, 200);
     A.setPosition(100);
 
-    fprintf(stderr, "Range: "u32bitFMT"-"u32bitFMT" len="u32bitFMT"\n",
+    fprintf(stderr, "Range: "uint32FMT"-"uint32FMT" len="uint32FMT"\n",
             A.getRangeBegin(), A.getRangeEnd(), A.getRangeLength());
     if ((A.getRangeBegin() != 100) || (A.getRangeEnd() != 300) || (A.getRangeLength() != 200))
       fprintf(stderr, "FAILED.\n"), exit(1);
@@ -223,7 +223,7 @@ harderTest(void) {
     for (int i=0; i<10; i++)
       A.extendLeft(-1);
 
-    fprintf(stderr, "Range: "u32bitFMT"-"u32bitFMT" len="u32bitFMT"\n",
+    fprintf(stderr, "Range: "uint32FMT"-"uint32FMT" len="uint32FMT"\n",
             A.getRangeBegin(), A.getRangeEnd(), A.getRangeLength());
     if ((A.getRangeBegin() != 90) || (A.getRangeEnd() != 100) || (A.getRangeLength() != 10))
       fprintf(stderr, "FAILED.\n"), exit(1);

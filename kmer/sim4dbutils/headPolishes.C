@@ -9,7 +9,7 @@
 
 int
 main(int argc, char **argv) {
-  u32bit              numToPrint   = 1;
+  uint32              numToPrint   = 1;
   sim4polishReader   *R = 0L;
   sim4polishWriter   *W = 0L;
 

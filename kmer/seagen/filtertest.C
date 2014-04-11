@@ -14,17 +14,17 @@
 ////////////////////////////////////////
 
 struct aHit {
-  u32bit  _forward;
-  u32bit  _qsIdx;
-  u32bit  _dsIdx;
-  u32bit  _dsLo;
-  u32bit  _dsHi;
-  u32bit  _covered;
-  u32bit  _matched;
-  u32bit  _numMers;
-  u32bit  _yesno;
-  u32bit  _identity;
-  u32bit  _coverage;
+  uint32  _forward;
+  uint32  _qsIdx;
+  uint32  _dsIdx;
+  uint32  _dsLo;
+  uint32  _dsHi;
+  uint32  _covered;
+  uint32  _matched;
+  uint32  _numMers;
+  uint32  _yesno;
+  uint32  _identity;
+  uint32  _coverage;
 
   float    scoreCov;
   float    scoreMult;
@@ -79,20 +79,20 @@ void   ahit_parseString(aHit *a, char *b) {
   if (c[2] != 'e')  fprintf(stderr, "'%s' didn't get -e\n", b);
 
   c += 4;
-  a->_qsIdx     = (u32bit)strtoul(c, &c, 10);
+  a->_qsIdx     = (uint32)strtoul(c, &c, 10);
 
   if (c[2] != 'D')  fprintf(stderr, "'%s' didn't get -D\n", b);
 
   c += 4;
-  a->_dsIdx     = (u32bit)strtoul(c, &c, 10);
-  a->_dsLo      = (u32bit)strtoul(c, &c, 10);
-  a->_dsHi      = (u32bit)strtoul(c, &c, 10);
+  a->_dsIdx     = (uint32)strtoul(c, &c, 10);
+  a->_dsLo      = (uint32)strtoul(c, &c, 10);
+  a->_dsHi      = (uint32)strtoul(c, &c, 10);
 
   if (c[2] == 'M') {
     c += 4;
-    a->_covered   = (u32bit)strtoul(c, &c, 10);
-    a->_matched   = (u32bit)strtoul(c, &c, 10);
-    a->_numMers   = (u32bit)strtoul(c, &c, 10);
+    a->_covered   = (uint32)strtoul(c, &c, 10);
+    a->_matched   = (uint32)strtoul(c, &c, 10);
+    a->_numMers   = (uint32)strtoul(c, &c, 10);
   } else {
     //fprintf(stderr, "'%s' didn't get -M\n", b);
     a->_covered   = 0;
@@ -107,16 +107,16 @@ void   ahit_parseString(aHit *a, char *b) {
   if (c[2] == 'Y') {
     c += 4;
     a->_yesno     = 1;
-    a->_identity  = (u32bit)strtoul(c, &c, 10);
-    a->_coverage  = (u32bit)strtoul(c, &c, 10);
+    a->_identity  = (uint32)strtoul(c, &c, 10);
+    a->_coverage  = (uint32)strtoul(c, &c, 10);
   }
 
 #if 0
   if (c[2] == 'N') {
     c += 4;
     a->_yesno     = 0;
-    a->_identity  = (u32bit)strtoul(c, &c, 10);
-    a->_coverage  = (u32bit)strtoul(c, &c, 10);
+    a->_identity  = (uint32)strtoul(c, &c, 10);
+    a->_coverage  = (uint32)strtoul(c, &c, 10);
   }
 #endif
 }
@@ -151,7 +151,7 @@ hitCompareID(const void *a, const void *b) {
 int
 main(int argc, char **argv) {
   aHit        *hits         = new aHit   [MAX_HITS];
-  u32bit       hitsLen      = 0;
+  uint32       hitsLen      = 0;
 
 
   //  read all the hits from stdin -- assumes ascii format
@@ -177,13 +177,13 @@ main(int argc, char **argv) {
       hitsLen++;
 
       if ((hitsLen & 0xff) == 0) {
-        fprintf(stderr, "reading hits "u32bitFMT"\r", hitsLen);
+        fprintf(stderr, "reading hits "uint32FMT"\r", hitsLen);
         fflush(stderr);
       }
     }
   }
 
-  fprintf(stderr, "reading hits "u32bitFMT"\n", hitsLen);
+  fprintf(stderr, "reading hits "uint32FMT"\n", hitsLen);
 
 
   //  Sort the hits by estid
@@ -195,10 +195,10 @@ main(int argc, char **argv) {
   //  Sort the hits by score (scoreCov), in decreasing order.
   //
   fprintf(stderr, "sorting hits by score\n");
-  for (u32bit currentHit = 0; currentHit < hitsLen; ) {
-    u32bit estOfInterest = hits[currentHit]._qsIdx;
-    u32bit numHits       = 0;
-    for (u32bit t=currentHit; (t < hitsLen) && (hits[t]._qsIdx == estOfInterest); t++)
+  for (uint32 currentHit = 0; currentHit < hitsLen; ) {
+    uint32 estOfInterest = hits[currentHit]._qsIdx;
+    uint32 numHits       = 0;
+    for (uint32 t=currentHit; (t < hitsLen) && (hits[t]._qsIdx == estOfInterest); t++)
       numHits++;
 
     qsort(hits + currentHit, numHits, sizeof(aHit), hitCompare);
@@ -213,14 +213,14 @@ main(int argc, char **argv) {
   double V  = 0.1;
   double M  = 1.0;
   double MC = 0.0;
-  u32bit ML = 0;
+  uint32 ML = 0;
 
   double minIdentity = 98.0;
   double minCoverage = 96.0;
 
-  for (u32bit Hcnt = 10; Hcnt <= 100; Hcnt += 10) {
-    for (u32bit Lcnt = 10; Lcnt < Hcnt && Lcnt < 60; Lcnt += 10) {
-      for (u32bit Vcnt = 10; Vcnt < 100; Vcnt += 10) {
+  for (uint32 Hcnt = 10; Hcnt <= 100; Hcnt += 10) {
+    for (uint32 Lcnt = 10; Lcnt < Hcnt && Lcnt < 60; Lcnt += 10) {
+      for (uint32 Vcnt = 10; Vcnt < 100; Vcnt += 10) {
 #ifdef SHOW_ONE
         Lcnt = 30;
         Hcnt = 40;
@@ -230,18 +230,18 @@ main(int argc, char **argv) {
         H = Hcnt / 100.0;
         V = Vcnt / 100.0;
 
-        u32bit truepositive  = 0;
-        u32bit falsepositive = 0;
-        u32bit truenegative  = 0;
-        u32bit falsenegative = 0;
+        uint32 truepositive  = 0;
+        uint32 falsepositive = 0;
+        uint32 truenegative  = 0;
+        uint32 falsenegative = 0;
 
-        for (u32bit currentHit = 0; currentHit < hitsLen; ) {
+        for (uint32 currentHit = 0; currentHit < hitsLen; ) {
 
           //  Find the number of hits for this ESTid
           //
-          u32bit estOfInterest = hits[currentHit]._qsIdx;
-          u32bit numHits       = 0;
-          for (u32bit t=currentHit; (t < hitsLen) && (hits[t]._qsIdx == estOfInterest); t++)
+          uint32 estOfInterest = hits[currentHit]._qsIdx;
+          uint32 numHits       = 0;
+          for (uint32 t=currentHit; (t < hitsLen) && (hits[t]._qsIdx == estOfInterest); t++)
             numHits++;
 
           double h = hits[currentHit].scoreCov - hits[currentHit + numHits - 1].scoreCov;
@@ -274,7 +274,7 @@ main(int argc, char **argv) {
 #endif
 
 
-          for (u32bit i=currentHit; i < currentHit + numHits; i++) {
+          for (uint32 i=currentHit; i < currentHit + numHits; i++) {
             if ((cutL <= hits[i].scoreCov) &&
                 ((MC <= hits[i].scoreCov) || (ML <= hits[i]._covered))) {
 #ifdef SHOW_ONE
@@ -305,7 +305,7 @@ main(int argc, char **argv) {
 
         //  Print L, H, V, sensitivity, specificity
         //
-        fprintf(stdout, "%f %f %f  %6.4f %6.4f  "u32bitFMT" "u32bitFMT" "u32bitFMT" "u32bitFMT"\n",
+        fprintf(stdout, "%f %f %f  %6.4f %6.4f  "uint32FMT" "uint32FMT" "uint32FMT" "uint32FMT"\n",
                 L, H, V,
                 (double)truepositive / (truepositive + falsenegative),
                 (double)truenegative / (truenegative + falsepositive),

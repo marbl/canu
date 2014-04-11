@@ -12,35 +12,35 @@ using namespace std;
 
 struct mMer {
   kMer     _mer;
-  u32bit   _cnt;
-  u32bit   _off;
-  u32bit   _nxt;
-  u32bit   _stp;
+  uint32   _cnt;
+  uint32   _off;
+  uint32   _nxt;
+  uint32   _stp;
 };
 
 
 class mMerList {
 public:
-  mMerList(u32bit maxSize) {
+  mMerList(uint32 maxSize) {
     _posLen = 0;
     _posMax = 2 * maxSize;
-    _pos    = new u32bit [_posMax];
+    _pos    = new uint32 [_posMax];
 
     _mmmLen = 0;
     _mmmMax = maxSize;
     _mmm    = new mMer [_mmmMax];
 
-    _tip    = ~u32bitZERO;
+    _tip    = ~uint32ZERO;
     _fre    = 0;
 
-    for (u32bit i=0; i<_mmmMax; i++) {
+    for (uint32 i=0; i<_mmmMax; i++) {
       _mmm[i]._cnt = 0;
       _mmm[i]._off = 0;
       _mmm[i]._nxt = i+1;
       _mmm[i]._stp = 0;
     }
 
-    _mmm[_mmmMax-1]._nxt = ~u32bitZERO;
+    _mmm[_mmmMax-1]._nxt = ~uint32ZERO;
   };
   ~mMerList() {
     delete [] _pos;
@@ -49,19 +49,19 @@ public:
 
   bool    loadMore(void)  { return((_mmmMax < _tip) || (_mmm[_tip]._stp == 1)); };
 
-  u32bit  length(void) { return(_mmmLen); };
+  uint32  length(void) { return(_mmmLen); };
 
-  kMer   *pop(u32bit &cnt, u32bit* &pos) {
+  kMer   *pop(uint32 &cnt, uint32* &pos) {
     kMer  *ret = 0L;
 
-    //fprintf(stderr, "POP tip="u32bitFMT"\n", _tip);
+    //fprintf(stderr, "POP tip="uint32FMT"\n", _tip);
 
     if (_tip < _mmmMax) {
-      u32bit f = _tip;
+      uint32 f = _tip;
 
       ret = &_mmm[f]._mer;
       cnt =  _mmm[f]._cnt;
-      pos = (_mmm[f]._off != ~u32bitZERO) ? _pos + _mmm[f]._off : 0L;
+      pos = (_mmm[f]._off != ~uint32ZERO) ? _pos + _mmm[f]._off : 0L;
 
       //  Move tip to the next thing
       _tip = _mmm[f]._nxt;
@@ -72,7 +72,7 @@ public:
 
       _mmmLen--;
 
-      //fprintf(stderr, "POP f="u32bitFMT" tip="u32bitFMT" len="u32bitFMT"\n", f, _tip, _mmmLen);
+      //fprintf(stderr, "POP f="uint32FMT" tip="uint32FMT" len="uint32FMT"\n", f, _tip, _mmmLen);
     }
 
     return(ret);
@@ -83,17 +83,17 @@ public:
   void    rebuild(void) {
     if (_posLen > 0) {
       assert(0);
-      u32bit   *np = new u32bit [_posMax];
+      uint32   *np = new uint32 [_posMax];
 
       _posLen = 0;
     
-      for (u32bit i=0; i<_mmmLen; i++) {
+      for (uint32 i=0; i<_mmmLen; i++) {
         mMer *m = _mmm + i;
 
-        if (m->_off != ~u32bitZERO) {
+        if (m->_off != ~uint32ZERO) {
           _mmm[_mmmLen]._off = _posLen;
 
-          for (u32bit p=0; p<m->_cnt; p++, _posLen++)
+          for (uint32 p=0; p<m->_cnt; p++, _posLen++)
             np[_posLen] = _pos[p];
         }
       }
@@ -106,45 +106,45 @@ public:
 
 
   //  Read more mers from the file
-  void    read(merylStreamReader *R, u32bit num, bool loadAll) {
-    u32bit xxx  = 0;
-    u32bit las  = ~u32bitZERO;
-    u32bit pos  = _tip;
+  void    read(merylStreamReader *R, uint32 num, bool loadAll) {
+    uint32 xxx  = 0;
+    uint32 las  = ~uint32ZERO;
+    uint32 pos  = _tip;
     bool   stop = false;
 
-    //fprintf(stderr, "read()- loading "u32bitFMT"\n", num);
+    //fprintf(stderr, "read()- loading "uint32FMT"\n", num);
 
     assert(_mmmLen + num < _mmmMax);
 
     //  Load until we hit the sentinal.
     if (loadAll == false)
-      num = ~u32bitZERO;
+      num = ~uint32ZERO;
 
     for (xxx=0; (xxx < num) && (stop == false) && (R->nextMer()); xxx++) {
 
       //  Insert into a free node
-      u32bit fre = _fre;
+      uint32 fre = _fre;
       _fre = _mmm[fre]._nxt;
 
       _mmm[fre]._mer = R->theFMer();
       _mmm[fre]._cnt = R->theCount();
-      _mmm[fre]._off = ~u32bitZERO;
+      _mmm[fre]._off = ~uint32ZERO;
       _mmm[fre]._stp = 0;
 
-      u32bit  *ppp = R->thePositions();
+      uint32  *ppp = R->thePositions();
       if (ppp) {
         _mmm[fre]._off = _posLen;
 
         if (_posMax <= _posLen + _mmm[fre]._cnt) {
           fprintf(stderr, "Reallocate _pos\n");
           _posMax *= 2;
-          u32bit *tmp = new u32bit [_posMax];
-          memcpy(tmp, _pos, sizeof(u32bit) * _posLen);
+          uint32 *tmp = new uint32 [_posMax];
+          memcpy(tmp, _pos, sizeof(uint32) * _posLen);
           delete [] _pos;
           _pos = tmp;
         }
 
-        for (u32bit i=0; i<_mmm[fre]._cnt; i++, _posLen++)
+        for (uint32 i=0; i<_mmm[fre]._cnt; i++, _posLen++)
           _pos[_posLen] = ppp[i];
       }
 
@@ -163,13 +163,13 @@ public:
         //  No tip, make new list.
         _mmm[fre]._nxt = _tip;
         _tip           = fre;
-        las = ~u32bitZERO;
+        las = ~uint32ZERO;
         pos = _tip;
       } else if (_mmmMax < las) {
         //  Valid list, but we want to insert before the start
         _mmm[fre]._nxt = _tip;
         _tip           = fre;
-        las = ~u32bitZERO;
+        las = ~uint32ZERO;
         pos = _tip;
       } else if (pos < _mmmMax) {
         //  Valid pos, insert in the middle (after las, before pos)
@@ -179,7 +179,7 @@ public:
         //pos = _mmm[las]._nxt;
       } else {
         //  Have a list, but we ran off the end, append (after las)
-        _mmm[fre]._nxt = ~u32bitZERO;
+        _mmm[fre]._nxt = ~uint32ZERO;
         _mmm[las]._nxt = fre;
         pos = fre;
 
@@ -191,24 +191,24 @@ public:
     //  Set the sentinal.  This forces us to load more mers.
     //
     if (loadAll == true) {
-      //fprintf(stderr, "read()-- stop on tip = "u32bitFMT"\n", las);
+      //fprintf(stderr, "read()-- stop on tip = "uint32FMT"\n", las);
       _mmm[las]._stp = 1;
     }
 
-    //fprintf(stderr, "read()-- now up to "u32bitFMT" mers ("u32bitFMT" pos); loaded "u32bitFMT" out of "u32bitFMT" requested.\n", _mmmLen, _posLen, xxx, num);
+    //fprintf(stderr, "read()-- now up to "uint32FMT" mers ("uint32FMT" pos); loaded "uint32FMT" out of "uint32FMT" requested.\n", _mmmLen, _posLen, xxx, num);
   };
 
 private:
-  u32bit  _posLen;
-  u32bit  _posMax;
-  u32bit *_pos;
+  uint32  _posLen;
+  uint32  _posMax;
+  uint32 *_pos;
 
-  u32bit  _mmmLen;
-  u32bit  _mmmMax;
+  uint32  _mmmLen;
+  uint32  _mmmMax;
   mMer   *_mmm;
 
-  u32bit  _tip;
-  u32bit  _fre;
+  uint32  _tip;
+  uint32  _fre;
 };
 
 
@@ -218,7 +218,7 @@ void
 multipleOperations(merylArgs *args) {
 
   if (args->mergeFilesLen < 2) {
-    fprintf(stderr, "ERROR - must have at least two databases (you gave "u32bitFMT")!\n", args->mergeFilesLen);
+    fprintf(stderr, "ERROR - must have at least two databases (you gave "uint32FMT")!\n", args->mergeFilesLen);
     exit(1);
   }
   if (args->outputFile == 0L) {
@@ -240,22 +240,22 @@ multipleOperations(merylArgs *args) {
     exit(1);
   }
 
-  u32bit               maxSize = 64 * 1024 * 1024;
+  uint32               maxSize = 64 * 1024 * 1024;
 
   merylStreamReader  **R = new merylStreamReader* [args->mergeFilesLen];
   merylStreamWriter   *W = 0L;
   mMerList            *M = new mMerList(maxSize + maxSize / 4);
 
-  for (u32bit i=0; i<args->mergeFilesLen; i++)
+  for (uint32 i=0; i<args->mergeFilesLen; i++)
     R[i] = new merylStreamReader(args->mergeFiles[i]);
 
   //  Verify that the mersizes are all the same
   //
   bool    fail       = false;
-  u32bit  merSize    = R[0]->merSize();
-  u32bit  merComp    = R[0]->merCompression();
+  uint32  merSize    = R[0]->merSize();
+  uint32  merComp    = R[0]->merCompression();
 
-  for (u32bit i=0; i<args->mergeFilesLen; i++) {
+  for (uint32 i=0; i<args->mergeFilesLen; i++) {
     fail |= (merSize != R[i]->merSize());
     fail |= (merComp != R[i]->merCompression());
   }
@@ -266,8 +266,8 @@ multipleOperations(merylArgs *args) {
   //  Open the output file, using the largest prefix size found in the
   //  input/mask files.
   //
-  u32bit  prefixSize = 0;
-  for (u32bit i=0; i<args->mergeFilesLen; i++)
+  uint32  prefixSize = 0;
+  for (uint32 i=0; i<args->mergeFilesLen; i++)
     if (prefixSize < R[i]->prefixSize())
       prefixSize = R[i]->prefixSize();
 
@@ -276,25 +276,25 @@ multipleOperations(merylArgs *args) {
   //  Load mers from all files, remember the largest mer we load.
   //
   bool     loadAll = true;
-  for (u32bit i=0; i<args->mergeFilesLen; i++) {
+  for (uint32 i=0; i<args->mergeFilesLen; i++) {
     M->read(R[i], maxSize / args->mergeFilesLen, loadAll);
     loadAll = false;
   }
 
-  fprintf(stderr, "Initial load:  length="u32bitFMT"\n", M->length());
+  fprintf(stderr, "Initial load:  length="uint32FMT"\n", M->length());
 
   bool     moreStuff = true;
 
   kMer     currentMer;                      //  The current mer we're operating on
-  u32bit   currentCount     =  u32bitZERO;  //  The count (operation dependent) of this mer
-  u32bit   currentTimes     =  u32bitZERO;  //  Number of files it's in
+  uint32   currentCount     =  uint32ZERO;  //  The count (operation dependent) of this mer
+  uint32   currentTimes     =  uint32ZERO;  //  Number of files it's in
 
-  u32bit   currentPositionsMax =  0;
-  u32bit  *currentPositions    =  0L;
+  uint32   currentPositionsMax =  0;
+  uint32  *currentPositions    =  0L;
 
   kMer    *thisMer;                         //  The mer we just read
-  u32bit   thisCount        =  u32bitZERO;  //  The count of the mer we just read
-  u32bit  *thisPositions    = 0L;
+  uint32   thisCount        =  uint32ZERO;  //  The count of the mer we just read
+  uint32  *thisPositions    = 0L;
 
   speedCounter *C = new speedCounter("    %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, args->beVerbose);
 
@@ -307,14 +307,14 @@ multipleOperations(merylArgs *args) {
     if (M->loadMore() == true) {
       M->rebuild();
 
-      u32bit additionalLoading = 8192;
+      uint32 additionalLoading = 8192;
 
       if (maxSize / args->mergeFilesLen > M->length())
         additionalLoading = maxSize / args->mergeFilesLen - M->length();
 
       loadAll   = true;
 
-      for (u32bit i=0; i<args->mergeFilesLen; i++) {
+      for (uint32 i=0; i<args->mergeFilesLen; i++) {
         if (R[i]->validMer()) {
           M->read(R[i], additionalLoading, loadAll);
           loadAll   = false;
@@ -365,8 +365,8 @@ multipleOperations(merylArgs *args) {
 
       currentMer = *thisMer;
 
-      currentCount = u32bitZERO;
-      currentTimes = u32bitZERO;
+      currentCount = uint32ZERO;
+      currentTimes = uint32ZERO;
 
       C->tick();
     }
@@ -383,24 +383,24 @@ multipleOperations(merylArgs *args) {
 
           if (currentPositionsMax == 0) {
             currentPositionsMax = 1048576;
-            currentPositions    = new u32bit [currentPositionsMax];
+            currentPositions    = new uint32 [currentPositionsMax];
           }
 
           if (currentPositionsMax < currentCount + thisCount) {
             while (currentPositionsMax < currentCount + thisCount)
               currentPositionsMax *= 2;
 
-            u32bit *t = new u32bit [currentPositionsMax];
-            memcpy(t, currentPositions, sizeof(u32bit) * currentCount);
+            uint32 *t = new uint32 [currentPositionsMax];
+            memcpy(t, currentPositions, sizeof(uint32) * currentCount);
             delete [] currentPositions;
             currentPositions = t;
           }
 
           if (thisCount < 16) {
-            for (u32bit i=0; i<thisCount; i++)
+            for (uint32 i=0; i<thisCount; i++)
               currentPositions[currentCount + i] = thisPositions[i];
           } else {
-            memcpy(currentPositions + currentCount, thisPositions, sizeof(u32bit) * thisCount);
+            memcpy(currentPositions + currentCount, thisPositions, sizeof(uint32) * thisCount);
           }
         }
         //  Otherwise, we're the same as ADD.
@@ -438,7 +438,7 @@ multipleOperations(merylArgs *args) {
     currentTimes++;
   }
 
-  for (u32bit i=0; i<args->mergeFilesLen; i++)
+  for (uint32 i=0; i<args->mergeFilesLen; i++)
     delete R[i];
   delete R;
   delete W;

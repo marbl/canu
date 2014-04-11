@@ -13,10 +13,10 @@ main(int argc, char **argv) {
     exit(0);
   }
 
-  for (u32bit i=0; i<168; i++) {
+  for (uint32 i=0; i<168; i++) {
     x.clear();
     x.setBits(i, 24, 0x535);
-    fprintf(stderr, u32bitFMTW(3)" -- %s -- "u64bitHEX"\n", i, x.merToString(str), x.getBits(i, 16));
+    fprintf(stderr, uint32FMTW(3)" -- %s -- "uint64HEX"\n", i, x.merToString(str), x.getBits(i, 16));
 
     if (x.getBits(i, 16) != 0x535) {
       fprintf(stderr, "decode error.\n");

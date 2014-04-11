@@ -15,14 +15,14 @@ sim4polishBuilder::sim4polishBuilder() {
   exAli = 0;
   ex    = new sim4polishExon * [exMax];
 
-  for (u32bit i=0; i<exMax; i++)
+  for (uint32 i=0; i<exMax; i++)
     ex[i] = 0L;
 }
 
 sim4polishBuilder::~sim4polishBuilder() {
   delete it;
 
-  for (u32bit i=0; i<exMax; i++)
+  for (uint32 i=0; i<exMax; i++)
     delete ex[i];
 
   delete [] ex;
@@ -30,8 +30,8 @@ sim4polishBuilder::~sim4polishBuilder() {
 
 
 void
-sim4polishBuilder::create(u32bit estid, u32bit estlen,
-                          u32bit genid, u32bit genlo, u32bit genhi) {
+sim4polishBuilder::create(uint32 estid, uint32 estlen,
+                          uint32 genid, uint32 genlo, uint32 genhi) {
 
   //  Someone didn't call release()!!
   //
@@ -68,7 +68,7 @@ sim4polishBuilder::create(u32bit estid, u32bit estlen,
 }
 
 void
-sim4polishBuilder::setPolyTails(u32bit pa, u32bit pt) {
+sim4polishBuilder::setPolyTails(uint32 pa, uint32 pt) {
   it->_estPolyA = pa;
   it->_estPolyT = pt;
 }
@@ -98,7 +98,7 @@ sim4polishBuilder::setGENdefline(char *defline) {
 
 
 void
-sim4polishBuilder::setNumberOfMatches(u32bit nummatches, u32bit nummatchesN) {
+sim4polishBuilder::setNumberOfMatches(uint32 nummatches, uint32 nummatchesN) {
   if (it == 0L) {
     fprintf(stderr, "sim4polishBuilder::setNumberOfMatches()-- no polish to build; create() not called\n");
     return;
@@ -109,7 +109,7 @@ sim4polishBuilder::setNumberOfMatches(u32bit nummatches, u32bit nummatchesN) {
 
 
 void
-sim4polishBuilder::setPercentIdentity(u32bit id) {
+sim4polishBuilder::setPercentIdentity(uint32 id) {
   if (it == 0L) {
     fprintf(stderr, "sim4polishBuilder::setPercentIdentitysetPercentIdentity()-- no polish to build; create() not called\n");
     return;
@@ -159,9 +159,9 @@ sim4polishBuilder::setStrandOrientation(char o) {
 
 
 void
-sim4polishBuilder::addExon(u32bit estlo, u32bit esthi,
-                           u32bit genlo, u32bit genhi,
-                           u32bit nummatches, u32bit nummatchesN, u32bit percentid,
+sim4polishBuilder::addExon(uint32 estlo, uint32 esthi,
+                           uint32 genlo, uint32 genhi,
+                           uint32 nummatches, uint32 nummatchesN, uint32 percentid,
                            char intronorientation) {
   if (it == 0L) {
     fprintf(stderr, "sim4polishBuilder::addExon()-- no polish to build; create() not called\n");
@@ -176,7 +176,7 @@ sim4polishBuilder::addExon(u32bit estlo, u32bit esthi,
     memcpy(t, ex, exPos * sizeof(sim4polishExon *));
     delete [] ex;
     ex = t;
-    for (u32bit i=exPos; i<exMax; i++)
+    for (uint32 i=exPos; i<exMax; i++)
       ex[i] = 0L;
   }
 
@@ -242,7 +242,7 @@ sim4polishBuilder::release(void) {
   it->_numExons   = exPos;
   it->_exons      = new sim4polishExon [exPos];
 
-  for (u32bit i=0; i<exPos; i++) {
+  for (uint32 i=0; i<exPos; i++) {
     memcpy(it->_exons + i, ex[i], sizeof(sim4polishExon));
     ex[i]->_estAlignment = 0L;  //  Owned by 'it' now
     ex[i]->_genAlignment = 0L;

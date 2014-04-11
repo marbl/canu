@@ -14,11 +14,11 @@ using namespace std;
 //  XXX: We should pull out the EST and GEN from the seqCache,
 //  and store them as the "two char*" method.
 //
-sim4command::sim4command(u32bit      ESTid,
+sim4command::sim4command(uint32      ESTid,
                          seqCache   *ESTs,
-                         u32bit      GENid,
-                         u32bit      GENlo,
-                         u32bit      GENhi,
+                         uint32      GENid,
+                         uint32      GENlo,
+                         uint32      GENhi,
                          seqCache   *GENs,
                          bool        doFor,
                          bool        doRev) {
@@ -50,8 +50,8 @@ sim4command::sim4command(u32bit      ESTid,
 
 sim4command::sim4command(seqInCore  *EST,
                          seqInCore  *GEN,
-                         u32bit      GENlo,
-                         u32bit      GENhi,
+                         uint32      GENlo,
+                         uint32      GENhi,
                          bool        doFor,
                          bool        doRev) {
 
@@ -83,11 +83,11 @@ sim4command::sim4command(seqInCore  *EST,
 //  Use two char*'s for sequence sources
 //
 sim4command::sim4command(char             *EST,
-                         u32bit            ESTlen,
+                         uint32            ESTlen,
                          char             *GEN,
-                         u32bit            GENlen,
-                         u32bit            GENlo,
-                         u32bit            GENhi,
+                         uint32            GENlen,
+                         uint32            GENlo,
+                         uint32            GENhi,
                          bool              doFor,
                          bool              doRev) {
   _estIdx = 0;
@@ -172,7 +172,7 @@ sim4command::loadEST(void) {
 }
 
 
-u32bit
+uint32
 sim4command::getESTidx(void) {
   if (_ESTsequence)
     return(0);
@@ -196,7 +196,7 @@ sim4command::getESTsequence(void) {
   return(_ESTloaded->sequence());
 }
 
-u32bit
+uint32
 sim4command::getESTlength(void) {
   if (_ESTsequence)
     return(_ESTsequenceLength);
@@ -234,7 +234,7 @@ sim4command::getGENsequence(void) {
   return(_GENloaded->sequence());
 }
 
-u32bit
+uint32
 sim4command::getGENlength(void) {
   if (_GENsequence)
     return(_GENsequenceLength);
@@ -253,7 +253,7 @@ sim4command::getGENlength(void) {
 //  If reverse-complement match, the EST is reversed, the GEN is forward.
 //
 void
-sim4command::addSeed(u32bit GENpos, u32bit ESTpos, u32bit length) {
+sim4command::addSeed(uint32 GENpos, uint32 ESTpos, uint32 length) {
 
   if (_externalSeedsLen >= _externalSeedsMax) {
     if (_externalSeedsMax == 0)
@@ -269,7 +269,7 @@ sim4command::addSeed(u32bit GENpos, u32bit ESTpos, u32bit length) {
   _externalSeeds[_externalSeedsLen]._ESTposition = ESTpos;
   _externalSeeds[_externalSeedsLen]._length      = length;
 
-  //  fprintf(stderr, "sim4command::addSeed()-- GEN="u32bitFMT" EST="u32bitFMT" of length "u32bitFMT"\n", GENpos, ESTpos, length);
+  //  fprintf(stderr, "sim4command::addSeed()-- GEN="uint32FMT" EST="uint32FMT" of length "uint32FMT"\n", GENpos, ESTpos, length);
 
   _externalSeedsLen++;
 }

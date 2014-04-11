@@ -17,7 +17,7 @@ main(int argc, char **argv) {
     HR.addInputFile(argv[arg++]);
 
   while (HR.loadHits())
-    for (u32bit i=0; i < HR.numHits(); i++)
+    for (uint32 i=0; i < HR.numHits(); i++)
       ahit_printASCII(&HR[i].a, stdout);
 
   return(0);

@@ -10,16 +10,16 @@
 
 int
 main(int argc, char **argv) {
-  u32bit   genomeLength = 0;
-  u32bit   seqIdx       = 0;
+  uint32   genomeLength = 0;
+  uint32   seqIdx       = 0;
 
   int arg = 1;
   while (arg < argc) {
     if (strncmp(argv[arg], "-l", 2) == 0) {
-      genomeLength = strtou32bit(argv[++arg], 0L);
+      genomeLength = strtouint32(argv[++arg], 0L);
       
     } else if (strncmp(argv[arg], "-s", 2) == 0) {
-      seqIdx = strtou32bit(argv[++arg], 0L);
+      seqIdx = strtouint32(argv[++arg], 0L);
 
     } else {
       fprintf(stderr, "Unknown arg '%s'\n", argv[arg]);
@@ -33,8 +33,8 @@ main(int argc, char **argv) {
   sim4polish       *p = 0L;
 
   while (R->nextAlignment(p)) {
-    u32bit  beg = p->_exons[0]._genFrom - 1;
-    u32bit  end = p->_exons[p->_numExons-1]._genTo;
+    uint32  beg = p->_exons[0]._genFrom - 1;
+    uint32  end = p->_exons[p->_numExons-1]._genTo;
 
     if (p->_genID != seqIdx)
       continue;
@@ -50,14 +50,14 @@ main(int argc, char **argv) {
   //  The extra 1000 here is so we can be lazy in the
   //  output section when computing averages.
   //
-  u32bit       *DD = new u32bit [genomeLength + 1000];
-  for (u32bit i=0; i<genomeLength + 1000; i++)
+  uint32       *DD = new uint32 [genomeLength + 1000];
+  for (uint32 i=0; i<genomeLength + 1000; i++)
     DD[i] = 0;
 
-  for (u32bit i=0; i<ID.numberOfIntervals(); i++) {
-    u32bit l = ID.lo(i);
-    u32bit h = ID.hi(i);
-    u32bit d = ID.de(i);
+  for (uint32 i=0; i<ID.numberOfIntervals(); i++) {
+    uint32 l = ID.lo(i);
+    uint32 h = ID.hi(i);
+    uint32 d = ID.de(i);
 
     while (l < h) {
       DD[l] = d;
@@ -67,29 +67,29 @@ main(int argc, char **argv) {
 
   //  This stolen to leaff.C for %GC computation
 
-  u32bit  ave3    = 0;
-  u32bit  ave5    = 0;
-  u32bit  ave11   = 0;
-  u32bit  ave51   = 0;
-  u32bit  ave101  = 0;
-  u32bit  ave201  = 0;
-  u32bit  ave501  = 0;
-  u32bit  ave1001 = 0;
-  u32bit  ave2001 = 0;
+  uint32  ave3    = 0;
+  uint32  ave5    = 0;
+  uint32  ave11   = 0;
+  uint32  ave51   = 0;
+  uint32  ave101  = 0;
+  uint32  ave201  = 0;
+  uint32  ave501  = 0;
+  uint32  ave1001 = 0;
+  uint32  ave2001 = 0;
 
   //  Preload the averages
   ave3   += DD[0];
   ave5   += DD[0] + DD[1];
 
-  for (u32bit i=0; i<5; i++)     ave11   += DD[i];
-  for (u32bit i=0; i<25; i++)    ave51   += DD[i];
-  for (u32bit i=0; i<50; i++)    ave101  += DD[i];
-  for (u32bit i=0; i<100; i++)   ave201  += DD[i];
-  for (u32bit i=0; i<250; i++)   ave501  += DD[i];
-  for (u32bit i=0; i<500; i++)   ave1001 += DD[i];
-  for (u32bit i=0; i<1000; i++)  ave2001 += DD[i];
+  for (uint32 i=0; i<5; i++)     ave11   += DD[i];
+  for (uint32 i=0; i<25; i++)    ave51   += DD[i];
+  for (uint32 i=0; i<50; i++)    ave101  += DD[i];
+  for (uint32 i=0; i<100; i++)   ave201  += DD[i];
+  for (uint32 i=0; i<250; i++)   ave501  += DD[i];
+  for (uint32 i=0; i<500; i++)   ave1001 += DD[i];
+  for (uint32 i=0; i<1000; i++)  ave2001 += DD[i];
 
-  for (u32bit i=0; i<genomeLength; i++) {
+  for (uint32 i=0; i<genomeLength; i++) {
     ave3    += DD[i+1]    - ((i >    1) ? DD[i-2]    : 0);
     ave5    += DD[i+2]    - ((i >    2) ? DD[i-3]    : 0);
     ave11   += DD[i+5]    - ((i >    5) ? DD[i-6]    : 0);
@@ -100,7 +100,7 @@ main(int argc, char **argv) {
     ave1001 += DD[i+500]  - ((i >  500) ? DD[i-501]  : 0);
     ave2001 += DD[i+1000] - ((i > 1000) ? DD[i-1001] : 0);
 
-    fprintf(stdout, u32bitFMT"\t"u32bitFMT"\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\n",
+    fprintf(stdout, uint32FMT"\t"uint32FMT"\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\n",
             i,
             DD[i],
             ave3    / (double)((i >=   1)  ? 3    - ((i < genomeLength -   1) ? 0 : i +    2 - genomeLength) : i+2),

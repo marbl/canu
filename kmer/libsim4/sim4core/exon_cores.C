@@ -39,7 +39,7 @@ void
 Sim4::search(char *s1, char *s2, int l1, int l2, mss_t MSS) {
   struct hash_node *h;
   char             *t;
-  u64bit            ecode;
+  uint64            ecode;
   int               masked_ecode;
   int               i, p, j;
 
@@ -54,7 +54,7 @@ Sim4::search(char *s1, char *s2, int l1, int l2, mss_t MSS) {
   int   validEncoding = 1 - MSS.seedLength;
   int   pos1;
 
-  ecode = u64bitZERO;
+  ecode = uint64ZERO;
 
   //  5% win (tested on on small examples) if we use t[] instead of *t below.
 

@@ -7,14 +7,14 @@
 int
 main(int argc, char **argv) {
   char    *seqName = 0L;
-  u32bit   merSize = 20;
+  uint32   merSize = 20;
 
   int arg=1;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-s") == 0) {
       seqName = argv[++arg];
     } else if (strcmp(argv[arg], "-m") == 0) {
-      merSize = strtou32bit(argv[++arg], 0L);
+      merSize = strtouint32(argv[++arg], 0L);
     }
     arg++;
   }

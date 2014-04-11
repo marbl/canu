@@ -5,9 +5,9 @@
 
 struct correctSequence_t {
   char      header[256];
-  u32bit    headerLength;
+  uint32    headerLength;
   char     *sequence;
-  u32bit    sequenceLength;
+  uint32    sequenceLength;
 };
 
 
@@ -15,32 +15,32 @@ correctSequence_t  *correctSequence = 0L;
 mt_s               *mtctx           = 0L;
 
 char     *chainSeq;
-u32bit   *chainSeqPos;
-u32bit   *chainSeqIID;
-u64bit   *chainStrPos;
+uint32   *chainSeqPos;
+uint32   *chainSeqIID;
+uint64   *chainStrPos;
 
 
 void
-generateCorrectSequence(u32bit minLen, u32bit maxLen, u32bit numSeq) {
+generateCorrectSequence(uint32 minLen, uint32 maxLen, uint32 numSeq) {
   char      bases[4] = {'A', 'C', 'G', 'T'};
 
-  u32bit    n = numSeq;
-  u32bit    s = minLen;
-  u32bit    l = maxLen;
+  uint32    n = numSeq;
+  uint32    s = minLen;
+  uint32    l = maxLen;
 
-  u32bit    seed = (u32bit)(getTime() * 1000);
+  uint32    seed = (uint32)(getTime() * 1000);
 
-  fprintf(stderr, "generateCorrectSequence()-- Using seed "u32bitFMT"\n", seed);
-  fprintf(stderr, "generateCorrectSequence()-- Generating "u32bitFMT" sequences of length "u32bitFMT" to "u32bitFMT"\n", numSeq, minLen, maxLen);
+  fprintf(stderr, "generateCorrectSequence()-- Using seed "uint32FMT"\n", seed);
+  fprintf(stderr, "generateCorrectSequence()-- Generating "uint32FMT" sequences of length "uint32FMT" to "uint32FMT"\n", numSeq, minLen, maxLen);
 
   correctSequence = new correctSequence_t [n];
   mtctx           = mtInit(seed);
 
   FILE *F = fopen("test-correctSequence.fasta", "w");
 
-  for (u32bit i=0; i<n; i++) {
-    u32bit j = s + (mtRandom32(mtctx) % (l-s));
-    u32bit p = 0;
+  for (uint32 i=0; i<n; i++) {
+    uint32 j = s + (mtRandom32(mtctx) % (l-s));
+    uint32 p = 0;
 
     sprintf(correctSequence[i].header, "sequence%d", i);
 
@@ -56,18 +56,18 @@ generateCorrectSequence(u32bit minLen, u32bit maxLen, u32bit numSeq) {
     //  Spend lots of pain adding whitespace to the file.
 
 #ifdef WITH_WHITESPACE
-    for (u32bit r=mtRandom32(mtctx) % 4; r--; )
+    for (uint32 r=mtRandom32(mtctx) % 4; r--; )
       fprintf(F, "\n");
 
     fprintf(F, ">%s\n", correctSequence[i].header);
 
-    for (u32bit r=mtRandom32(mtctx) % 4; r--; )
+    for (uint32 r=mtRandom32(mtctx) % 4; r--; )
       fprintf(F, "\n");
 
-    for (u32bit p=0; p<correctSequence[i].sequenceLength; p++) {
+    for (uint32 p=0; p<correctSequence[i].sequenceLength; p++) {
       fprintf(F, "%c", correctSequence[i].sequence[p]);
       if ((mtRandom32(mtctx) % 100) == 0)
-        for (u32bit r=mtRandom32(mtctx) % 4; r--; )
+        for (uint32 r=mtRandom32(mtctx) % 4; r--; )
           fprintf(F, "\n");
     }
 #else
@@ -77,7 +77,7 @@ generateCorrectSequence(u32bit minLen, u32bit maxLen, u32bit numSeq) {
 
   }
 
-  for (u32bit r=mtRandom32(mtctx) % 4; r--; )
+  for (uint32 r=mtRandom32(mtctx) % 4; r--; )
     fprintf(F, "\n");
 
   fclose(F);
@@ -85,10 +85,10 @@ generateCorrectSequence(u32bit minLen, u32bit maxLen, u32bit numSeq) {
 
 
 void
-generateChainedAnswer(u32bit numSeq, char sep, u32bit sepLen) {
-  u32bit maxLen = 0;
+generateChainedAnswer(uint32 numSeq, char sep, uint32 sepLen) {
+  uint32 maxLen = 0;
 
-  for (u32bit i=0; i<numSeq; i++)
+  for (uint32 i=0; i<numSeq; i++)
     maxLen += correctSequence[i].sequenceLength + sepLen;
 
   maxLen -= sepLen;
@@ -99,26 +99,26 @@ generateChainedAnswer(u32bit numSeq, char sep, u32bit sepLen) {
   delete [] chainStrPos;
 
   chainSeq    = new char   [maxLen + 1];
-  chainSeqPos = new u32bit [maxLen];
-  chainSeqIID = new u32bit [maxLen];
-  chainStrPos = new u64bit [maxLen];
+  chainSeqPos = new uint32 [maxLen];
+  chainSeqIID = new uint32 [maxLen];
+  chainStrPos = new uint64 [maxLen];
 
-  u32bit p      = 0;
-  u64bit strpos = 0;
+  uint32 p      = 0;
+  uint64 strpos = 0;
 
-  for (u32bit sid=0; sid<numSeq; sid++) {
-    for (u32bit ppp=0; ppp<correctSequence[sid].sequenceLength; ppp++, p++, strpos++) {
+  for (uint32 sid=0; sid<numSeq; sid++) {
+    for (uint32 ppp=0; ppp<correctSequence[sid].sequenceLength; ppp++, p++, strpos++) {
       chainSeq[p]    = correctSequence[sid].sequence[ppp];
       chainSeqPos[p] = ppp;
       chainSeqIID[p] = sid;
       chainStrPos[p] = strpos;
     }
     if (sid+1 < numSeq) {
-      for (u32bit ppp=0; ppp<sepLen; ppp++, p++) {
+      for (uint32 ppp=0; ppp<sepLen; ppp++, p++) {
         chainSeq[p]    = sep;
-        chainSeqPos[p] = ~u32bitZERO;
-        chainSeqIID[p] = ~u32bitZERO;
-        chainStrPos[p] = ~u64bitZERO;
+        chainSeqPos[p] = ~uint32ZERO;
+        chainSeqIID[p] = ~uint32ZERO;
+        chainStrPos[p] = ~uint64ZERO;
       }
     }
   }
@@ -131,12 +131,12 @@ generateChainedAnswer(u32bit numSeq, char sep, u32bit sepLen) {
 
 
 void
-removeCorrectSequence(u32bit numSeq) {
+removeCorrectSequence(uint32 numSeq) {
 
   unlink("test-correctSequence.fasta");
   unlink("test-correctSequence.fastaidx");
 
-  for (u32bit i=0; i<numSeq; i++)
+  for (uint32 i=0; i<numSeq; i++)
     delete [] correctSequence[i].sequence;
 
   delete [] correctSequence;

@@ -24,9 +24,9 @@ public:
   sweatShop        *shop;
   void             *threadUserData;
   pthread_t         threadID;
-  u32bit            numComputed;
+  uint32            numComputed;
   sweatShopState  **workerQueue;
-  u32bit            workerQueueLen;
+  uint32            workerQueueLen;
 };
 
 
@@ -119,12 +119,12 @@ sweatShop::~sweatShop() {
 
 
 void
-sweatShop::setThreadData(u32bit t, void *x) {
+sweatShop::setThreadData(uint32 t, void *x) {
   if (_workerData == 0L)
     _workerData = new sweatShopWorker [_numberOfWorkers];
 
   if (t >= _numberOfWorkers)
-    fprintf(stderr, "sweatShop::setThreadData()-- worker ID "u32bitFMT" more than number of workers="u32bitFMT"\n", t, _numberOfWorkers), exit(1);
+    fprintf(stderr, "sweatShop::setThreadData()-- worker ID "uint32FMT" more than number of workers="uint32FMT"\n", t, _numberOfWorkers), exit(1);
 
   _workerData[t].threadUserData = x;
 }
@@ -195,7 +195,7 @@ sweatShop::loader(void) {
   //
   sweatShopState        *tail       = 0L;  //  The first thing loaded
   sweatShopState        *head       = 0L;  //  The last thing loaded
-  u32bit                 numLoaded  = 0;
+  uint32                 numLoaded  = 0;
 
   bool  moreToLoad = true;
 
@@ -280,7 +280,7 @@ sweatShop::worker(sweatShopWorker *workerData) {
 
     //  Execute
     //
-    for (u32bit x=0; x<workerData->workerQueueLen; x++) {
+    for (uint32 x=0; x<workerData->workerQueueLen; x++) {
       sweatShopState *ts = workerData->workerQueue[x];
 
       if (ts && ts->_user) {
@@ -320,7 +320,7 @@ sweatShop::writer(void) {
       naptime.tv_sec      = 0;
       naptime.tv_nsec     = 5000000ULL;
 
-      //fprintf(stderr, "Writer waits for slow thread at "u64bitFMT".\n", _numberOutput);
+      //fprintf(stderr, "Writer waits for slow thread at "uint64FMT".\n", _numberOutput);
       nanosleep(&naptime, 0L);
     } else if (_writerP->_next == 0L) {
       //  Wait for the input.
@@ -328,7 +328,7 @@ sweatShop::writer(void) {
       naptime.tv_sec      = 0;
       naptime.tv_nsec     = 5000000ULL;
 
-      //fprintf(stderr, "Writer waits for all threads at "u64bitFMT".\n", _numberOutput);
+      //fprintf(stderr, "Writer waits for all threads at "uint64FMT".\n", _numberOutput);
       nanosleep(&naptime, 0L);
     } else {
       (*_userWriter)(_globalUserData, _writerP->_user);
@@ -362,16 +362,16 @@ sweatShop::status(void) {
   double  startTime = getTime() - 0.001;
   double  thisTime  = 0;
 
-  u64bit  deltaOut = 0;
-  u64bit  deltaCPU = 0;
+  uint64  deltaOut = 0;
+  uint64  deltaCPU = 0;
 
   double  cpuPerSec = 0;
 
-  u64bit  readjustAt = 16384;
+  uint64  readjustAt = 16384;
 
   while (_writerP) {
-    u32bit nc = 0;
-    for (u32bit i=0; i<_numberOfWorkers; i++)
+    uint32 nc = 0;
+    for (uint32 i=0; i<_numberOfWorkers; i++)
       nc += _workerData[i].numComputed;
     _numberComputed = nc;
 
@@ -387,7 +387,7 @@ sweatShop::status(void) {
     cpuPerSec = _numberComputed / (thisTime - startTime);
 
     if (_showStatus) {
-      fprintf(stderr, " %6.1f/s - "u64bitFMTW(8)" loaded; "u64bitFMTW(8)" queued for compute; "u64bitFMTW(8)" finished; "u64bitFMTW(8)" written; "u64bitFMTW(8)" queued for output)\r",
+      fprintf(stderr, " %6.1f/s - "uint64FMTW(8)" loaded; "uint64FMTW(8)" queued for compute; "uint64FMTW(8)" finished; "uint64FMTW(8)" written; "uint64FMTW(8)" queued for output)\r",
               cpuPerSec, _numberLoaded, deltaCPU, _numberComputed, _numberOutput, deltaOut);
       fflush(stderr);
     }
@@ -396,8 +396,8 @@ sweatShop::status(void) {
     //  In particular, don't let it get below 2*numberOfWorkers.
     //
      if (_numberComputed > readjustAt) {
-       readjustAt       += (u64bit)(2 * cpuPerSec);
-       _loaderQueueSize  = (u32bit)(5 * cpuPerSec);
+       readjustAt       += (uint64)(2 * cpuPerSec);
+       _loaderQueueSize  = (uint32)(5 * cpuPerSec);
      }
 
     if (_loaderQueueSize < _loaderQueueMin)
@@ -422,7 +422,7 @@ sweatShop::status(void) {
 
     cpuPerSec = _numberComputed / (thisTime - startTime);
 
-    fprintf(stderr, " %6.1f/s - "u64bitFMTW(8)" queued for compute; "u64bitFMTW(8)" finished; "u64bitFMTW(8)" queued for output)\n",
+    fprintf(stderr, " %6.1f/s - "uint64FMTW(8)" queued for compute; "uint64FMTW(8)" finished; "uint64FMTW(8)" queued for output)\n",
             cpuPerSec, deltaCPU, _numberComputed, deltaOut);
   }
 
@@ -458,7 +458,7 @@ sweatShop::run(void *user, bool beVerbose) {
   if (_workerData == 0L)
     _workerData = new sweatShopWorker [_numberOfWorkers];
 
-  for (u32bit i=0; i<_numberOfWorkers; i++) {
+  for (uint32 i=0; i<_numberOfWorkers; i++) {
     _workerData[i].shop        = this;
     _workerData[i].workerQueue = new sweatShopState * [_workerBatchSize];
   }
@@ -554,10 +554,10 @@ sweatShop::run(void *user, bool beVerbose) {
     fprintf(stderr, "sweatShop::run()--  Failed to set worker priority: %s.\n", strerror(err)), exit(1);
 #endif
 
-  for (u32bit i=0; i<_numberOfWorkers; i++) {
+  for (uint32 i=0; i<_numberOfWorkers; i++) {
     err = pthread_create(&_workerData[i].threadID, &threadAttr, _sweatshop_workerThread, _workerData + i);
     if (err)
-      fprintf(stderr, "sweatShop::run()--  Failed to launch worker thread "u32bitFMT": %s.\n", i, strerror(err)), exit(1);
+      fprintf(stderr, "sweatShop::run()--  Failed to launch worker thread "uint32FMT": %s.\n", i, strerror(err)), exit(1);
   }
 
   //  Now sit back and relax.
@@ -574,10 +574,10 @@ sweatShop::run(void *user, bool beVerbose) {
   if (err)
     fprintf(stderr, "sweatShop::run()--  Failed to join status thread: %s.\n", strerror(err)), exit(1);
 
-  for (u32bit i=0; i<_numberOfWorkers; i++) {
+  for (uint32 i=0; i<_numberOfWorkers; i++) {
     err = pthread_join(_workerData[i].threadID, 0L);
     if (err)
-      fprintf(stderr, "sweatShop::run()--  Failed to join worker thread "u32bitFMT": %s.\n", i, strerror(err)), exit(1);
+      fprintf(stderr, "sweatShop::run()--  Failed to join worker thread "uint32FMT": %s.\n", i, strerror(err)), exit(1);
   }
 
   //  Cleanup.

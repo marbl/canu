@@ -36,8 +36,8 @@ public:
     //  Then, allocate space for a temporary copy of the string, and a
     //  set of pointers into the temporary copy (much like argv).
     //
-    u32bit   cmdChars = 1;  //  1 == Space for terminating 0
-    u32bit   cmdWords = 2;  //  2 == Space for first word and terminating 0L
+    uint32   cmdChars = 1;  //  1 == Space for terminating 0
+    uint32   cmdWords = 2;  //  2 == Space for first word and terminating 0L
 
     for (char *tmp=cmd; *tmp; tmp++) {
       cmdWords += *tmp == ' ';
@@ -101,15 +101,15 @@ public:
   };
 
 
-  u32bit  numWords(void)        { return(_argWords); };
-  char   *getWord(u32bit i)     { return(_arg[i]); };
-  char   *operator[](u32bit i)  { return(_arg[i]); };
-  s64bit  operator()(u32bit i)  { return(strtoull(_arg[i], NULL, 10)); };
+  uint32  numWords(void)        { return(_argWords); };
+  char   *getWord(uint32 i)     { return(_arg[i]); };
+  char   *operator[](uint32 i)  { return(_arg[i]); };
+  int64  operator()(uint32 i)  { return(strtoull(_arg[i], NULL, 10)); };
 private:
-  u32bit    _argWords;
-  u32bit    _maxWords;
+  uint32    _argWords;
+  uint32    _maxWords;
   char    **_arg;
-  u32bit    _maxChars;
+  uint32    _maxChars;
   char     *_cmd;
 };
 

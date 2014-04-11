@@ -17,34 +17,34 @@
 //  silently discard all.
 //
 
-u32bit  statOneMatch      = 0;
-u32bit  statConsistent    = 0;
-u32bit  statInconsistent  = 0;
-u32bit  statUnique        = 0;
-u32bit  statLost          = 0;
+uint32  statOneMatch      = 0;
+uint32  statConsistent    = 0;
+uint32  statInconsistent  = 0;
+uint32  statUnique        = 0;
+uint32  statLost          = 0;
 
-u32bit  consistentTie         = 0;
-u32bit  consistentMatches     = 0;
-u32bit  consistentIdentity    = 0;
-u32bit  consistentTooShort    = 0;
-u32bit  consistentNot         = 0;
+uint32  consistentTie         = 0;
+uint32  consistentMatches     = 0;
+uint32  consistentIdentity    = 0;
+uint32  consistentTooShort    = 0;
+uint32  consistentNot         = 0;
 
-u32bit  totLQ = 0;
-u32bit  totMQ = 0;
-u32bit  totRQ = 0;
+uint32  totLQ = 0;
+uint32  totMQ = 0;
+uint32  totRQ = 0;
 
-u32bit  qualityDifference = 5;
-u32bit  minQuality        = 95;
+uint32  qualityDifference = 5;
+uint32  minQuality        = 95;
 
 sim4polishWriter *W = 0L;
 
 
 
 void
-pickUniqueSlave(sim4polish **p, u32bit pNum) {
-  u32bit        identitym = 0, nmatchesm = 0;  //  Best score for the mList
-  u32bit        identityi = 0, nmatchesi = 0;  //  Best score the the iList
-  u32bit        matchi = 0,    matchm = 0;
+pickUniqueSlave(sim4polish **p, uint32 pNum) {
+  uint32        identitym = 0, nmatchesm = 0;  //  Best score for the mList
+  uint32        identityi = 0, nmatchesi = 0;  //  Best score the the iList
+  uint32        matchi = 0,    matchm = 0;
 
  //  Difficult choice here....
   //
@@ -65,7 +65,7 @@ pickUniqueSlave(sim4polish **p, u32bit pNum) {
   //  identitym is the highest percent identity for the best numMatches match(es).
   //  matchm    is the match index
 
-  for (u32bit i=0; i<pNum; i++) {
+  for (uint32 i=0; i<pNum; i++) {
     if ((p[i]->_percentIdentity > identityi) || 
         (p[i]->_percentIdentity == identityi && p[i]->_numMatches > nmatchesi)) {
       identityi = p[i]->_percentIdentity;
@@ -95,8 +95,8 @@ pickUniqueSlave(sim4polish **p, u32bit pNum) {
     //  Count the number of matches with exactly those scores.  If
     //  there is more than one, then we cannot pick out a single best.
     //
-    u32bit numBest = 0;
-    for (u32bit i=0; i<pNum; i++)
+    uint32 numBest = 0;
+    for (uint32 i=0; i<pNum; i++)
       if ((p[i]->_percentIdentity == identityi) && (p[i]->_numMatches == nmatchesi))
         numBest++;
 
@@ -113,8 +113,8 @@ pickUniqueSlave(sim4polish **p, u32bit pNum) {
       //
       //  This says if (p[i]/ii >= 1.0 - Q), then we're close.
 
-      u32bit  closeQuality = 0;
-      for (u32bit i=0; i<pNum; i++)
+      uint32  closeQuality = 0;
+      for (uint32 i=0; i<pNum; i++)
         if (((p[i]->_percentIdentity * 100) >= (identityi * (100 - qualityDifference))) ||
             ((p[i]->_numMatches      * 100) >= (nmatchesi * (100 - qualityDifference))))
           closeQuality++;
@@ -122,7 +122,7 @@ pickUniqueSlave(sim4polish **p, u32bit pNum) {
       //  If only one match has close quality (the one we want to save!),
       //  save it.  Otherwise, label this query as multiple.
 
-      u32bit  length = p[matchi]->_exons[0]._estFrom - p[matchi]->_exons[0]._estTo;
+      uint32  length = p[matchi]->_exons[0]._estFrom - p[matchi]->_exons[0]._estTo;
 
       if (closeQuality == 1) {
         matchIsOK = true;
@@ -169,11 +169,11 @@ pickUniqueSlave(sim4polish **p, u32bit pNum) {
 //  Matches that are close ties in span, but are clearly lower quality are deleted.
 //
 void
-pickCoveringSlave(sim4polish **p, u32bit pNum, char doCovering) {
-  u32bit *bgn = new u32bit [pNum];
-  u32bit *end = new u32bit [pNum];
+pickCoveringSlave(sim4polish **p, uint32 pNum, char doCovering) {
+  uint32 *bgn = new uint32 [pNum];
+  uint32 *end = new uint32 [pNum];
 
-  for (u32bit i=0; i<pNum; i++) {
+  for (uint32 i=0; i<pNum; i++) {
     if (doCovering == 'q') {
       if (p[i]->_matchOrientation == SIM4_MATCH_FORWARD) {
         bgn[i] = p[i]->_exons[0]._estFrom - 1;
@@ -191,13 +191,13 @@ pickCoveringSlave(sim4polish **p, u32bit pNum, char doCovering) {
   }
 
 
-  for (u32bit i=0; i<pNum; i++) {
+  for (uint32 i=0; i<pNum; i++) {
     if (p[i] == NULL)
       continue;
 
     assert(p[i]->_numExons == 1);
 
-    for (u32bit j=i+1; j<pNum; j++) {
+    for (uint32 j=i+1; j<pNum; j++) {
       if (p[j] == NULL)
         continue;
 
@@ -237,7 +237,7 @@ pickCoveringSlave(sim4polish **p, u32bit pNum, char doCovering) {
     }
   }
   
-  for (u32bit i=0; i<pNum; i++) {
+  for (uint32 i=0; i<pNum; i++) {
     if (p[i] == NULL)
       continue;
 
@@ -257,14 +257,14 @@ pickCoveringSlave(sim4polish **p, u32bit pNum, char doCovering) {
 //  destroy polishes when we're done.
 //
 void
-pickUnique(sim4polish **p, u32bit pNum, char doCovering) {
+pickUnique(sim4polish **p, uint32 pNum, char doCovering) {
 
   if (doCovering != 0)
     pickCoveringSlave(p, pNum, doCovering);
   else
     pickUniqueSlave(p, pNum);
 
-  for (u32bit i=0; i<pNum; i++)
+  for (uint32 i=0; i<pNum; i++)
     delete p[i];
 }
 
@@ -274,9 +274,9 @@ pickUnique(sim4polish **p, u32bit pNum, char doCovering) {
 int
 main(int argc, char **argv) {
   char         doCovering     = 0;
-  u32bit       pNum           = 0;
-  u32bit       pAlloc         = 1048576;
-  u32bit       lastID         = ~u32bitZERO;
+  uint32       pNum           = 0;
+  uint32       pAlloc         = 1048576;
+  uint32       lastID         = ~uint32ZERO;
 
   sim4polishStyle  style = sim4polishStyleDefault;
 
@@ -289,7 +289,7 @@ main(int argc, char **argv) {
       doCovering = 'g';
 
     } else if (strcmp(argv[arg], "-q") == 0) {
-      qualityDifference = strtou32bit(argv[++arg], 0L);
+      qualityDifference = strtouint32(argv[++arg], 0L);
 
     } else if (strcmp(argv[arg], "-gff3") == 0) {
       style = sim4polishGFF3;
@@ -365,7 +365,7 @@ main(int argc, char **argv) {
     pickUnique(p, pNum, doCovering);
 
 #if 0
-  fprintf(stderr, "Uni:"u32bitFMTW(8)" Con:"u32bitFMTW(8)" (T:"u32bitFMTW(8)" M:"u32bitFMTW(8)" I:"u32bitFMTW(8)" N:"u32bitFMTW(8)") Inc:"u32bitFMTW(8)" -- Save:"u32bitFMTW(8)" Lost:"u32bitFMTW(8)"\n",
+  fprintf(stderr, "Uni:"uint32FMTW(8)" Con:"uint32FMTW(8)" (T:"uint32FMTW(8)" M:"uint32FMTW(8)" I:"uint32FMTW(8)" N:"uint32FMTW(8)") Inc:"uint32FMTW(8)" -- Save:"uint32FMTW(8)" Lost:"uint32FMTW(8)"\n",
           statOneMatch,
           statConsistent, consistentTie, consistentMatches, consistentIdentity, consistentNot,
           statInconsistent,

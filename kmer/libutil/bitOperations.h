@@ -14,7 +14,7 @@
 //  A bit of verbage on counting the number of set bits.  The naive way
 //  is to loop and shift:
 //
-//      u32bit r = u32bitZERO;
+//      uint32 r = uint32ZERO;
 //      while (x) {
 //        r++;
 //        x >>= 1;
@@ -44,25 +44,25 @@
 
 
 inline
-u32bit
-reverseBits32(u32bit x) {
-  x = ((x >>  1) & u32bitNUMBER(0x55555555)) | ((x <<  1) & u32bitNUMBER(0xaaaaaaaa));
-  x = ((x >>  2) & u32bitNUMBER(0x33333333)) | ((x <<  2) & u32bitNUMBER(0xcccccccc));
-  x = ((x >>  4) & u32bitNUMBER(0x0f0f0f0f)) | ((x <<  4) & u32bitNUMBER(0xf0f0f0f0));
-  x = ((x >>  8) & u32bitNUMBER(0x00ff00ff)) | ((x <<  8) & u32bitNUMBER(0xff00ff00));
-  x = ((x >> 16) & u32bitNUMBER(0x0000ffff)) | ((x << 16) & u32bitNUMBER(0xffff0000));
+uint32
+reverseBits32(uint32 x) {
+  x = ((x >>  1) & uint32NUMBER(0x55555555)) | ((x <<  1) & uint32NUMBER(0xaaaaaaaa));
+  x = ((x >>  2) & uint32NUMBER(0x33333333)) | ((x <<  2) & uint32NUMBER(0xcccccccc));
+  x = ((x >>  4) & uint32NUMBER(0x0f0f0f0f)) | ((x <<  4) & uint32NUMBER(0xf0f0f0f0));
+  x = ((x >>  8) & uint32NUMBER(0x00ff00ff)) | ((x <<  8) & uint32NUMBER(0xff00ff00));
+  x = ((x >> 16) & uint32NUMBER(0x0000ffff)) | ((x << 16) & uint32NUMBER(0xffff0000));
   return(x);
 }
 
 inline
-u64bit
-reverseBits64(u64bit x) {
-  x = ((x >>  1) & u64bitNUMBER(0x5555555555555555)) | ((x <<  1) & u64bitNUMBER(0xaaaaaaaaaaaaaaaa));
-  x = ((x >>  2) & u64bitNUMBER(0x3333333333333333)) | ((x <<  2) & u64bitNUMBER(0xcccccccccccccccc));
-  x = ((x >>  4) & u64bitNUMBER(0x0f0f0f0f0f0f0f0f)) | ((x <<  4) & u64bitNUMBER(0xf0f0f0f0f0f0f0f0));
-  x = ((x >>  8) & u64bitNUMBER(0x00ff00ff00ff00ff)) | ((x <<  8) & u64bitNUMBER(0xff00ff00ff00ff00));
-  x = ((x >> 16) & u64bitNUMBER(0x0000ffff0000ffff)) | ((x << 16) & u64bitNUMBER(0xffff0000ffff0000));
-  x = ((x >> 32) & u64bitNUMBER(0x00000000ffffffff)) | ((x << 32) & u64bitNUMBER(0xffffffff00000000));
+uint64
+reverseBits64(uint64 x) {
+  x = ((x >>  1) & uint64NUMBER(0x5555555555555555)) | ((x <<  1) & uint64NUMBER(0xaaaaaaaaaaaaaaaa));
+  x = ((x >>  2) & uint64NUMBER(0x3333333333333333)) | ((x <<  2) & uint64NUMBER(0xcccccccccccccccc));
+  x = ((x >>  4) & uint64NUMBER(0x0f0f0f0f0f0f0f0f)) | ((x <<  4) & uint64NUMBER(0xf0f0f0f0f0f0f0f0));
+  x = ((x >>  8) & uint64NUMBER(0x00ff00ff00ff00ff)) | ((x <<  8) & uint64NUMBER(0xff00ff00ff00ff00));
+  x = ((x >> 16) & uint64NUMBER(0x0000ffff0000ffff)) | ((x << 16) & uint64NUMBER(0xffff0000ffff0000));
+  x = ((x >> 32) & uint64NUMBER(0x00000000ffffffff)) | ((x << 32) & uint64NUMBER(0xffffffff00000000));
   return(x);
 }
 
@@ -88,39 +88,39 @@ reverseBits64(u64bit x) {
 #ifdef BUILTIN_POPCOUNT
 
 inline
-u32bit
-countNumberOfSetBits32(u32bit x) {
+uint32
+countNumberOfSetBits32(uint32 x) {
   return(__builtin_popcount(x));
 }
 
 inline
-u64bit
-countNumberOfSetBits64(u64bit x) {
+uint64
+countNumberOfSetBits64(uint64 x) {
   return(__builtin_popcountll(x));
 }
 
 #else
 
 inline
-u32bit
-countNumberOfSetBits32(u32bit x) {
-  x = ((x >>  1) & u32bitNUMBER(0x55555555)) + (x & u32bitNUMBER(0x55555555));
-  x = ((x >>  2) & u32bitNUMBER(0x33333333)) + (x & u32bitNUMBER(0x33333333));
-  x = ((x >>  4) & u32bitNUMBER(0x0f0f0f0f)) + (x & u32bitNUMBER(0x0f0f0f0f));
-  x = ((x >>  8) & u32bitNUMBER(0x00ff00ff)) + (x & u32bitNUMBER(0x00ff00ff));
-  x = ((x >> 16) & u32bitNUMBER(0x0000ffff)) + (x & u32bitNUMBER(0x0000ffff));
+uint32
+countNumberOfSetBits32(uint32 x) {
+  x = ((x >>  1) & uint32NUMBER(0x55555555)) + (x & uint32NUMBER(0x55555555));
+  x = ((x >>  2) & uint32NUMBER(0x33333333)) + (x & uint32NUMBER(0x33333333));
+  x = ((x >>  4) & uint32NUMBER(0x0f0f0f0f)) + (x & uint32NUMBER(0x0f0f0f0f));
+  x = ((x >>  8) & uint32NUMBER(0x00ff00ff)) + (x & uint32NUMBER(0x00ff00ff));
+  x = ((x >> 16) & uint32NUMBER(0x0000ffff)) + (x & uint32NUMBER(0x0000ffff));
   return(x);
 }
 
 inline
-u64bit
-countNumberOfSetBits64(u64bit x) {
-  x = ((x >>  1) & u64bitNUMBER(0x5555555555555555)) + (x & u64bitNUMBER(0x5555555555555555));
-  x = ((x >>  2) & u64bitNUMBER(0x3333333333333333)) + (x & u64bitNUMBER(0x3333333333333333));
-  x = ((x >>  4) & u64bitNUMBER(0x0f0f0f0f0f0f0f0f)) + (x & u64bitNUMBER(0x0f0f0f0f0f0f0f0f));
-  x = ((x >>  8) & u64bitNUMBER(0x00ff00ff00ff00ff)) + (x & u64bitNUMBER(0x00ff00ff00ff00ff));
-  x = ((x >> 16) & u64bitNUMBER(0x0000ffff0000ffff)) + (x & u64bitNUMBER(0x0000ffff0000ffff));
-  x = ((x >> 32) & u64bitNUMBER(0x00000000ffffffff)) + (x & u64bitNUMBER(0x00000000ffffffff));
+uint64
+countNumberOfSetBits64(uint64 x) {
+  x = ((x >>  1) & uint64NUMBER(0x5555555555555555)) + (x & uint64NUMBER(0x5555555555555555));
+  x = ((x >>  2) & uint64NUMBER(0x3333333333333333)) + (x & uint64NUMBER(0x3333333333333333));
+  x = ((x >>  4) & uint64NUMBER(0x0f0f0f0f0f0f0f0f)) + (x & uint64NUMBER(0x0f0f0f0f0f0f0f0f));
+  x = ((x >>  8) & uint64NUMBER(0x00ff00ff00ff00ff)) + (x & uint64NUMBER(0x00ff00ff00ff00ff));
+  x = ((x >> 16) & uint64NUMBER(0x0000ffff0000ffff)) + (x & uint64NUMBER(0x0000ffff0000ffff));
+  x = ((x >> 32) & uint64NUMBER(0x00000000ffffffff)) + (x & uint64NUMBER(0x00000000ffffffff));
   return(x);
 }
 
@@ -129,8 +129,8 @@ countNumberOfSetBits64(u64bit x) {
 
 
 inline
-u32bit
-logBaseTwo32(u32bit x) {
+uint32
+logBaseTwo32(uint32 x) {
   x |= x >> 1;
   x |= x >> 2;
   x |= x >> 4;
@@ -140,8 +140,8 @@ logBaseTwo32(u32bit x) {
 }
 
 inline
-u64bit
-logBaseTwo64(u64bit x) {
+uint64
+logBaseTwo64(uint64 x) {
   x |= x >> 1;
   x |= x >> 2;
   x |= x >> 4;

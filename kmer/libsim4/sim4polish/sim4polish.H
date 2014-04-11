@@ -82,14 +82,14 @@ public:
   void   s4p_copyExon(sim4polishExon *orig);
 
 public:
-  u32bit           _estFrom;
-  u32bit           _estTo;
-  u32bit           _genFrom;
-  u32bit           _genTo;
-  u32bit           _numMatches;
-  u32bit           _numMatchesN;
-  u32bit           _percentIdentity;
-  u32bit           _intronOrientation;
+  uint32           _estFrom;
+  uint32           _estTo;
+  uint32           _genFrom;
+  uint32           _genTo;
+  uint32           _numMatches;
+  uint32           _numMatchesN;
+  uint32           _percentIdentity;
+  uint32           _intronOrientation;
   char            *_estAlignment;
   char            *_genAlignment;
 };
@@ -163,7 +163,7 @@ public:
     s4p_copyPolish(orig);
   };
 
-  sim4polish(sim4polish *orig, u32bit exon) {
+  sim4polish(sim4polish *orig, uint32 exon) {
     clear();
     s4p_copyPolish(orig, exon);
   };
@@ -180,11 +180,11 @@ private:
   void   s4p_readPolishGFF3(readBuffer *rb);
   void   s4p_readPolishATAC(readBuffer *rb);
 
-  void   s4p_linesToPolishS4DB(u32bit lineNumber, u32bit maxLines, char **lines, u32bit *lengths);
-  void   s4p_linesToPolishGFF3(u32bit lineNumber, u32bit maxLines, char **lines, u32bit *lengths);
-  void   s4p_linesToPolishATAC(u32bit lineNumber, u32bit maxLines, char **lines, u32bit *lengths);
+  void   s4p_linesToPolishS4DB(uint32 lineNumber, uint32 maxLines, char **lines, uint32 *lengths);
+  void   s4p_linesToPolishGFF3(uint32 lineNumber, uint32 maxLines, char **lines, uint32 *lengths);
+  void   s4p_linesToPolishATAC(uint32 lineNumber, uint32 maxLines, char **lines, uint32 *lengths);
 
-  void   s4p_copyPolish(sim4polish *orig, u32bit exonNum=2147483648);
+  void   s4p_copyPolish(sim4polish *orig, uint32 exonNum=2147483648);
 
 public:
 
@@ -199,7 +199,7 @@ private:
 
 public:
   void   s4p_removeAlignments(void) {
-    for (u32bit i=0; i<_numExons; i++) {
+    for (uint32 i=0; i<_numExons; i++) {
       delete [] _exons[i]._estAlignment;   _exons[i]._estAlignment = 0L;
       delete [] _exons[i]._genAlignment;   _exons[i]._genAlignment = 0L;
     }
@@ -228,34 +228,34 @@ public:
   double s4p_percentIdentityExact(void);
   double s4p_percentCoverageExact(void);
 
-  void   s4p_swapExons(u32bit a, u32bit b);
-  void   s4p_deleteExon(u32bit a);
-  void   s4p_insertExon(u32bit a, u32bit intronori, sim4polishExon  *e);
-  void   s4p_insertExons(u32bit a, u32bit intronori, sim4polish     *e);
+  void   s4p_swapExons(uint32 a, uint32 b);
+  void   s4p_deleteExon(uint32 a);
+  void   s4p_insertExon(uint32 a, uint32 intronori, sim4polishExon  *e);
+  void   s4p_insertExons(uint32 a, uint32 intronori, sim4polish     *e);
 
 public:
-  u32bit           _estID;
-  u32bit           _estLen;
-  u32bit           _estPolyA;
-  u32bit           _estPolyT;
+  uint32           _estID;
+  uint32           _estLen;
+  uint32           _estPolyA;
+  uint32           _estPolyT;
 
-  u32bit           _genID;
-  u32bit           _genRegionOffset;
-  u32bit           _genRegionLength;
+  uint32           _genID;
+  uint32           _genRegionOffset;
+  uint32           _genRegionLength;
 
-  u32bit           _numMatches;
-  u32bit           _numMatchesN;
-  u32bit           _numCovered;          //  Number of bp covered in alignments
-  u32bit           _percentIdentity;
-  u32bit           _querySeqIdentity;    //  numCovered / (estLen - pA -pT)
-  u32bit           _matchOrientation;
-  u32bit           _strandOrientation;
+  uint32           _numMatches;
+  uint32           _numMatchesN;
+  uint32           _numCovered;          //  Number of bp covered in alignments
+  uint32           _percentIdentity;
+  uint32           _querySeqIdentity;    //  numCovered / (estLen - pA -pT)
+  uint32           _matchOrientation;
+  uint32           _strandOrientation;
 
   char            *_comment;
   char            *_estDefLine;
   char            *_genDefLine;
 
-  u32bit           _numExons;
+  uint32           _numExons;
   sim4polishExon  *_exons;
 };
 
@@ -273,15 +273,15 @@ bool s4p_IsSameExonModel(sim4polish *A, sim4polish *B, int tolerance);
 void s4p_compareExons_Overlap(sim4polish *A,
                               sim4polish *B,
                               double      overlapThreshold,
-                              u32bit     *numSame,
-                              u32bit     *numAOnly,
-                              u32bit     *numBOnly);
+                              uint32     *numSame,
+                              uint32     *numAOnly,
+                              uint32     *numBOnly);
 
 void s4p_compareExons_Ends(sim4polish *A,
                            sim4polish *B,
-                           s32bit      tolerance,
-                           u32bit     *numSame,
-                           u32bit     *numAOnly,
-                           u32bit     *numBOnly);
+                           int32      tolerance,
+                           uint32     *numSame,
+                           uint32     *numAOnly,
+                           uint32     *numBOnly);
 
 #endif  //  SIM4_POLISH_H

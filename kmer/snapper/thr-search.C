@@ -7,19 +7,19 @@
 
 class encodedQuery {
 private:
-  u64bit   *_mers;
-  u32bit   *_posn;
-  u32bit   *_span;
-  u32bit    _mersActive;
-  u32bit    _mersInQuery;
+  uint64   *_mers;
+  uint32   *_posn;
+  uint32   *_span;
+  uint32    _mersActive;
+  uint32    _mersInQuery;
 
 public:
   encodedQuery(seqInCore           *seq,
                kMerBuilder         *KB,
                bool                 rc) {
-    _mers        = new u64bit [seq->sequenceLength()];
-    _posn        = new u32bit [seq->sequenceLength()];
-    _span        = new u32bit [seq->sequenceLength()];
+    _mers        = new uint64 [seq->sequenceLength()];
+    _posn        = new uint32 [seq->sequenceLength()];
+    _span        = new uint32 [seq->sequenceLength()];
     _mersActive  = 0;
     _mersInQuery = 0;
 
@@ -30,8 +30,8 @@ public:
 
     seqStream  *SS = new seqStream(seq->sequence(), seq->sequenceLength());
     merStream  *MS = new merStream(KB, SS);
-    u64bit      mer;
-    u32bit      val;
+    uint64      mer;
+    uint32      val;
 
     //  The rc flag tells us if we should build for the forward or
     //  reverse strand.  If forward (rc == false) the mers are in the
@@ -78,7 +78,7 @@ public:
       //  Reverse the array -- this appears to be optional.
 #if 1
       if (_mersActive > 0)
-        for (u32bit i=0, j=_mersActive-1; i<j; i++, j--) {
+        for (uint32 i=0, j=_mersActive-1; i<j; i++, j--) {
           mer      = _mers[i];
           _mers[i] = _mers[j];
           _mers[j] = mer;
@@ -105,12 +105,12 @@ public:
     delete [] _span;
   };
 
-  u32bit           numberOfMersActive(void)    { return(_mersActive);  };
-  u32bit           numberOfMersInQuery(void)   { return(_mersInQuery); };
+  uint32           numberOfMersActive(void)    { return(_mersActive);  };
+  uint32           numberOfMersInQuery(void)   { return(_mersInQuery); };
 
-  u64bit           getMer(u32bit i)            { return(_mers[i]);     };
-  u32bit           getPosn(u32bit i)           { return(_posn[i]);     };
-  u32bit           getSpan(u32bit i)           { return(_span[i]);     };
+  uint64           getMer(uint32 i)            { return(_mers[i]);     };
+  uint32           getPosn(uint32 i)           { return(_posn[i]);     };
+  uint32           getSpan(uint32 i)           { return(_span[i]);     };
 };
 
 
@@ -134,8 +134,8 @@ doSearch(searcherState       *state,
                                        qry->seq->getIID(),
                                        qry->theLog);
 
-  for (u32bit qidx=0; qidx<encqry->numberOfMersActive(); qidx++) {
-    u64bit  count = 0;
+  for (uint32 qidx=0; qidx<encqry->numberOfMersActive(); qidx++) {
+    uint64  count = 0;
 
     if (positions->getExact(encqry->getMer(qidx), state->posn, state->posnMax, state->posnLen, count))
       matrix->addHits(encqry->getPosn(qidx), state->posn, state->posnLen);
@@ -154,7 +154,7 @@ doSearch(searcherState       *state,
   //  We work backwards because we add on new hits to the end of our
   //  list.
   //
-  for (u32bit h=qry->theHitsLen; h--; ) {
+  for (uint32 h=qry->theHitsLen; h--; ) {
 
     //  The first test eliminates hits that were not generated for the
     //  complementarity used in this search (e.g., the first search
@@ -165,7 +165,7 @@ doSearch(searcherState       *state,
         (qry->theHits[h]._matched > 2 * qry->theHits[h]._numMers)) {
 
 #ifdef SHOW_HIT_DISCARDING
-      qry->theLog->add("Seq "u32bitFMT" Hit "u32bitFMT" (%c) has "u32bitFMT" matched, but only "u32bitFMT" mers.\n",
+      qry->theLog->add("Seq "uint32FMT" Hit "uint32FMT" (%c) has "uint32FMT" matched, but only "uint32FMT" mers.\n",
                  seq->getIID(), h, rc ? 'r' : 'f', qry->theHits[h]._matched, qry->theHits[h]._numMers);
 #endif
 
@@ -175,8 +175,8 @@ doSearch(searcherState       *state,
       //  Fill out another hitMatrix using about 2*length mers.
       //
       seqInCore            *GENseq = genome->getSequenceInCore(qry->theHits[h]._dsIdx);
-      u32bit                GENlo  = qry->theHits[h]._dsLo;
-      u32bit                GENhi  = qry->theHits[h]._dsHi;
+      uint32                GENlo  = qry->theHits[h]._dsLo;
+      uint32                GENhi  = qry->theHits[h]._dsHi;
 
       merStream            *MS     = new merStream(state->KB,
                                                    new seqStream(GENseq->sequence(), GENseq->sequenceLength()),
@@ -195,18 +195,18 @@ doSearch(searcherState       *state,
       //
 #define COUNT_MAX   256
 
-      u32bit numHitsAtCount[COUNT_MAX] = { 0 };
-      u32bit countLimit                = 0;
-      u64bit count                     = 0;
+      uint32 numHitsAtCount[COUNT_MAX] = { 0 };
+      uint32 countLimit                = 0;
+      uint64 count                     = 0;
 
-      u32bit numMers = 0;
+      uint32 numMers = 0;
 #ifdef SHOW_HIT_DISCARDING
-      u32bit numHits = 0;
-      u32bit minNum  = ~u32bitZERO;
-      u32bit maxNum  = 0;
+      uint32 numHits = 0;
+      uint32 minNum  = ~uint32ZERO;
+      uint32 maxNum  = 0;
 #endif
 
-      for (u32bit qidx=0; qidx<encqry->numberOfMersActive(); qidx++) {
+      for (uint32 qidx=0; qidx<encqry->numberOfMersActive(); qidx++) {
         if (PS->getExact(encqry->getMer(qidx), state->posn, state->posnMax, state->posnLen, count)) {
           numMers++;
 
@@ -224,7 +224,7 @@ doSearch(searcherState       *state,
       //  Scan the number of hits at count, pick the first highest
       //  count such that the number of hits is below our threshold.
       //
-      for (u32bit qidx=1; qidx<COUNT_MAX; qidx++) {
+      for (uint32 qidx=1; qidx<COUNT_MAX; qidx++) {
         numHitsAtCount[qidx] = numHitsAtCount[qidx-1] + numHitsAtCount[qidx];
 
         if (numHitsAtCount[qidx] <= numMers * config._repeatThreshold)
@@ -232,16 +232,16 @@ doSearch(searcherState       *state,
       }
 
 #ifdef SHOW_HIT_DISCARDING
-      qry->theLog->add(" -- found "u32bitFMT" hits in "u32bitFMT" mers, min="u32bitFMT" max="u32bitFMT" avg=%.5f hits/mer.\n",
+      qry->theLog->add(" -- found "uint32FMT" hits in "uint32FMT" mers, min="uint32FMT" max="uint32FMT" avg=%.5f hits/mer.\n",
                  numHits, numMers, minNum, maxNum, (double)numHits / (double)numMers);
-      qry->theLog->add(" -- using a countLimit of "u32bitFMT" which gets us "u32bitFMT" mers\n",
+      qry->theLog->add(" -- using a countLimit of "uint32FMT" which gets us "uint32FMT" mers\n",
                  countLimit, numHitsAtCount[countLimit]);
 #endif
 
-      for (u32bit qidx=0; qidx<encqry->numberOfMersActive(); qidx++) {
+      for (uint32 qidx=0; qidx<encqry->numberOfMersActive(); qidx++) {
         if (PS->getExact(encqry->getMer(qidx), state->posn, state->posnMax, state->posnLen, count)) {
           if (state->posnLen <= countLimit) {
-            for (u32bit x=0; x<state->posnLen; x++)
+            for (uint32 x=0; x<state->posnLen; x++)
               state->posn[x] += genomeMap->startOf(qry->theHits[h]._dsIdx);
 
             //  The kmer counts for these mers are relative to the

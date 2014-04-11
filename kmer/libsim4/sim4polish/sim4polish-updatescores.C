@@ -4,17 +4,17 @@
 
 void
 sim4polish::s4p_updateAlignmentScores(void) {
-  u32bit  ni = 0, numInDel    = 0;
-  u32bit  ne = 0, numEdits    = 0;
-  u32bit  nn = 0, numMatchesN = 0;
-  u32bit  nm = 0, numMatches  = 0;
-  u32bit  al = 0, alignmentLength = 0;
-  u32bit  nc = 0, numCovered  = 0;
+  uint32  ni = 0, numInDel    = 0;
+  uint32  ne = 0, numEdits    = 0;
+  uint32  nn = 0, numMatchesN = 0;
+  uint32  nm = 0, numMatches  = 0;
+  uint32  al = 0, alignmentLength = 0;
+  uint32  nc = 0, numCovered  = 0;
 
-  u32bit  estn = 0;
-  u32bit  genn = 0;
+  uint32  estn = 0;
+  uint32  genn = 0;
 
-  for (u32bit exon=0; exon<_numExons; exon++) {
+  for (uint32 exon=0; exon<_numExons; exon++) {
     char *est = _exons[exon]._estAlignment;
     char *gen = _exons[exon]._genAlignment;
 
@@ -135,19 +135,19 @@ sim4polish::s4p_percentCoverageExact(void) {
 
 double
 sim4polish::s4p_percentIdentityExact(void) {
-  u32bit  ni = 0, numInDel    = 0;
-  u32bit  ne = 0, numEdits    = 0;
-  u32bit  nn = 0, numMatchesN = 0;
-  u32bit  nm = 0, numMatches  = 0;
-  u32bit  al = 0, alignmentLength = 0;
-  u32bit  nc = 0, numCovered  = 0;
+  uint32  ni = 0, numInDel    = 0;
+  uint32  ne = 0, numEdits    = 0;
+  uint32  nn = 0, numMatchesN = 0;
+  uint32  nm = 0, numMatches  = 0;
+  uint32  al = 0, alignmentLength = 0;
+  uint32  nc = 0, numCovered  = 0;
 
-  u32bit  estn = 0;
-  u32bit  genn = 0;
+  uint32  estn = 0;
+  uint32  genn = 0;
 
   double ret = 0.0;
 
-  for (u32bit exon=0; exon<_numExons; exon++) {
+  for (uint32 exon=0; exon<_numExons; exon++) {
     char *est = _exons[exon]._estAlignment;
     char *gen = _exons[exon]._genAlignment;
 

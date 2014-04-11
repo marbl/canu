@@ -37,7 +37,7 @@ public:
 
   //  Number of EST's actually present
   //
-  u32bit    maxIID(void) {
+  uint32    maxIID(void) {
     return(_maxEST);
   };
 
@@ -47,8 +47,8 @@ public:
   //
   //  N.B. getNext() doesn't really mean much after these.
   //
-  sim4polishList  *getEST(u32bit iid);
-  sim4polishList  *getGEN(u32bit iid, u32bit lo=0, u32bit hi=~u32bitZERO);
+  sim4polishList  *getEST(uint32 iid);
+  sim4polishList  *getGEN(uint32 iid, uint32 lo=0, uint32 hi=~uint32ZERO);
 
   //  Returns the next polish in the file.
   //
@@ -57,7 +57,7 @@ public:
   //  Positions the file pointer to the ordinal'th polish in the file.
   //  getNext() will then return that polish.
   //
-  void             setPosition(u32bit ordinal);
+  void             setPosition(uint32 ordinal);
 
   //  24 bytes/record.  A typical large EST set has ~10 million
   //  matches, this fits into 240MB.  That's reasonable.
@@ -66,10 +66,10 @@ public:
   //
   struct polishRecord {
     off_t      _fileposition;
-    u32bit     _ESTiid;
-    u32bit     _GENiid;
-    u32bit     _GENlo;
-    u32bit     _GENhi;
+    uint32     _ESTiid;
+    uint32     _GENiid;
+    uint32     _GENlo;
+    uint32     _GENhi;
   };
 
 private:
@@ -80,11 +80,11 @@ private:
   //  One integer pointer into _polishRecord, sorted by either the EST
   //  or GEN iid.
   //
-  u32bit           _polishRecordLen;
-  u32bit           _polishRecordMax;
+  uint32           _polishRecordLen;
+  uint32           _polishRecordMax;
   polishRecord    *_polishRecord;
-  u32bit          *_polishRecordEST;
-  u32bit          *_polishRecordGEN;
+  uint32          *_polishRecordEST;
+  uint32          *_polishRecordGEN;
   
   sim4polishStyle  _style;
 
@@ -92,10 +92,10 @@ private:
   //  _polishRecordEST or _polishRecordGEN.  If memory is tight, we
   //  could binary search those arrays instead.
   //
-  u32bit           _maxEST;
-  u32bit           _maxGEN;
-  u32bit          *_ESTiidLocation;
-  u32bit          *_GENiidLocation;
+  uint32           _maxEST;
+  uint32           _maxGEN;
+  uint32          *_ESTiidLocation;
+  uint32          *_GENiidLocation;
 
   void             loadIndex(void);
   void             saveIndex(void);

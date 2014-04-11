@@ -10,7 +10,7 @@ public:
   //
   speedCounter(char const   *fmt,
                double        unit,
-               u64bit        freq,
+               uint64        freq,
                bool          enabled=true);
   ~speedCounter();
 
@@ -18,7 +18,7 @@ public:
   void   enableLiner(void)   { _line = true; };
 
   bool   tick(void) {
-    if (_enabled && ((++_count & _freq) == u64bitZERO)) {
+    if (_enabled && ((++_count & _freq) == uint64ZERO)) {
       double  v = _count / _unit;
       if (_spin) fputs(_spinr[_draws %  4], stderr);
       if (_line) fputs(_liner[_draws % 19], stderr);
@@ -30,12 +30,12 @@ public:
     return(false);
   };
 
-  bool   tick(u64bit increment) {
+  bool   tick(uint64 increment) {
     if (_enabled == false)
       return(false);
 
     _count += increment;
-    if ((_count & _freq) == u64bitZERO) {
+    if ((_count & _freq) == uint64ZERO) {
       double  v = _count / _unit;
       if (_spin) fputs(_spinr[_draws %  4], stderr);
       if (_line) fputs(_liner[_draws % 19], stderr);
@@ -62,10 +62,10 @@ public:
 private:
   static const char  *_spinr[4];
   static const char  *_liner[19];
-  u64bit              _count;
-  u64bit              _draws;
+  uint64              _count;
+  uint64              _draws;
   double              _unit;
-  u64bit              _freq;
+  uint64              _freq;
   double              _startTime;
   char const         *_fmt;
   bool                _spin;

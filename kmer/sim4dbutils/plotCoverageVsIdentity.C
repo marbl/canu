@@ -29,7 +29,7 @@ main(int argc, char ** argv) {
   sim4polish       *p = 0L;
 
   while (R->nextAlignment(p)) {
-    fprintf(S, u32bitFMT" "u32bitFMT"\n", p->_percentIdentity, p->_querySeqIdentity);
+    fprintf(S, uint32FMT" "uint32FMT"\n", p->_percentIdentity, p->_querySeqIdentity);
 
     i[p->_percentIdentity]++;
     c[p->_querySeqIdentity]++;

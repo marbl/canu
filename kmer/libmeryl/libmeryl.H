@@ -18,29 +18,29 @@
 
 class merylStreamReader {
 public:
-  merylStreamReader(const char *fn, u32bit ms=0);
+  merylStreamReader(const char *fn, uint32 ms=0);
   ~merylStreamReader();
 
   kMer           &theFMer(void)      { return(_thisMer);          };
-  u64bit          theCount(void)     { return(_thisMerCount);     };
+  uint64          theCount(void)     { return(_thisMerCount);     };
 
   bool            hasPositions(void)    { return(_POS != 0L); };
-  u32bit         *thePositions(void)    { return(_thisMerPositions); };
-  u32bit          getPosition(u32bit i) { return(((_POS) && (i < _thisMerCount)) ? _thisMerPositions[i] : ~u32bitZERO); };
+  uint32         *thePositions(void)    { return(_thisMerPositions); };
+  uint32          getPosition(uint32 i) { return(((_POS) && (i < _thisMerCount)) ? _thisMerPositions[i] : ~uint32ZERO); };
 
-  u32bit          merSize(void)         { return(_merSizeInBits >> 1); };
-  u32bit          merCompression(void)  { return(_merCompression); };
+  uint32          merSize(void)         { return(_merSizeInBits >> 1); };
+  uint32          merCompression(void)  { return(_merCompression); };
 
-  u32bit          prefixSize(void) { return(_prefixSize); };
+  uint32          prefixSize(void) { return(_prefixSize); };
 
-  u64bit          numberOfUniqueMers(void)   { return(_numUnique); };
-  u64bit          numberOfDistinctMers(void) { return(_numDistinct); };
-  u64bit          numberOfTotalMers(void)    { return(_numTotal); };
+  uint64          numberOfUniqueMers(void)   { return(_numUnique); };
+  uint64          numberOfDistinctMers(void) { return(_numDistinct); };
+  uint64          numberOfTotalMers(void)    { return(_numTotal); };
 
-  u64bit          histogram(u32bit i)         { return((i < _histogramLen) ? _histogram[i] : ~u64bitZERO); };
-  u64bit          histogramLength(void)       { return(_histogramLen); };
-  u64bit          histogramHuge(void)         { return(_histogramHuge); };
-  u64bit          histogramMaximumCount(void) { return(_histogramMaxValue); };
+  uint64          histogram(uint32 i)         { return((i < _histogramLen) ? _histogram[i] : ~uint64ZERO); };
+  uint64          histogramLength(void)       { return(_histogramLen); };
+  uint64          histogramHuge(void)         { return(_histogramHuge); };
+  uint64          histogramMaximumCount(void) { return(_histogramMaxValue); };
 
   bool            nextMer(void);
   bool            validMer(void) { return(_validMer); };
@@ -49,8 +49,8 @@ private:
   bitPackedFile         *_DAT;
   bitPackedFile         *_POS;
 
-  u64bit                  getIDXnumber(void) {
-    u64bit n = 1;
+  uint64                  getIDXnumber(void) {
+    uint64 n = 1;
 
     if (_idxIsPacked)
       n = _IDX->getNumber();
@@ -59,8 +59,8 @@ private:
 
     return(n);
   };
-  u64bit                  getDATnumber(void) {
-    u64bit n = 1;
+  uint64                  getDATnumber(void) {
+    uint64 n = 1;
 
     if (_datIsPacked) {
       if (_DAT->getBits(1))
@@ -74,32 +74,32 @@ private:
 
   //  Why not bool?  Seems like the bitPackedFile is incompatible
   //  with bools.
-  u32bit                 _idxIsPacked;
-  u32bit                 _datIsPacked;
-  u32bit                 _posIsPacked;
+  uint32                 _idxIsPacked;
+  uint32                 _datIsPacked;
+  uint32                 _posIsPacked;
 
-  u32bit                 _merSizeInBits;
-  u32bit                 _merCompression;
-  u32bit                 _prefixSize;
-  u32bit                 _merDataSize;
-  u64bit                 _thisBucket;
-  u64bit                 _thisBucketSize;
-  u64bit                 _numBuckets;
+  uint32                 _merSizeInBits;
+  uint32                 _merCompression;
+  uint32                 _prefixSize;
+  uint32                 _merDataSize;
+  uint64                 _thisBucket;
+  uint64                 _thisBucketSize;
+  uint64                 _numBuckets;
 
   kMer                   _thisMer;
-  u64bit                 _thisMerCount;
+  uint64                 _thisMerCount;
 
-  u32bit                 _thisMerPositionsMax;
-  u32bit                *_thisMerPositions;
+  uint32                 _thisMerPositionsMax;
+  uint32                *_thisMerPositions;
 
-  u64bit                 _numUnique;
-  u64bit                 _numDistinct;
-  u64bit                 _numTotal;
+  uint64                 _numUnique;
+  uint64                 _numDistinct;
+  uint64                 _numTotal;
 
-  u64bit                 _histogramHuge;       // number that are bigger than Len
-  u64bit                 _histogramLen;        // number of entries in the histo
-  u64bit                 _histogramMaxValue;   // highest count ever seen
-  u64bit                *_histogram;
+  uint64                 _histogramHuge;       // number that are bigger than Len
+  uint64                 _histogramLen;        // number of entries in the histo
+  uint64                 _histogramMaxValue;   // highest count ever seen
+  uint64                *_histogram;
 
   bool                   _validMer;
 };
@@ -108,33 +108,33 @@ private:
 class merylStreamWriter {
 public:
   merylStreamWriter(const char *filePrefix,
-                    u32bit merSize,          //  In bases
-                    u32bit merComp,          //  A length, bases
-                    u32bit prefixSize,       //  In bits
+                    uint32 merSize,          //  In bases
+                    uint32 merComp,          //  A length, bases
+                    uint32 prefixSize,       //  In bits
                     bool   positionsEnabled);
   ~merylStreamWriter();
 
-  void                    addMer(kMer &mer, u32bit count=1, u32bit *positions=0L);
-  void                    addMer(u64bit prefix, u32bit prefixBits,
-                                 u64bit mer,    u32bit merBits,
-                                 u32bit count=1,
-                                 u32bit *positions=0L);
+  void                    addMer(kMer &mer, uint32 count=1, uint32 *positions=0L);
+  void                    addMer(uint64 prefix, uint32 prefixBits,
+                                 uint64 mer,    uint32 merBits,
+                                 uint32 count=1,
+                                 uint32 *positions=0L);
 
 private:
   void                    writeMer(void);
 
-  void                    setIDXnumber(u64bit n) {
+  void                    setIDXnumber(uint64 n) {
     if (_idxIsPacked)
       _IDX->putNumber(n);
     else
       _IDX->putBits(n, 32);
   };
-  void                    setDATnumber(u64bit n) {
+  void                    setDATnumber(uint64 n) {
     if (_datIsPacked) {
       if (n == 1) {
-        _DAT->putBits(u64bitZERO, 1);
+        _DAT->putBits(uint64ZERO, 1);
       } else {
-        _DAT->putBits(u64bitONE, 1);
+        _DAT->putBits(uint64ONE, 1);
         _DAT->putNumber(n-2);
       }
     } else {
@@ -147,39 +147,39 @@ private:
   bitPackedFile         *_DAT;
   bitPackedFile         *_POS;
 
-  u32bit                 _idxIsPacked;
-  u32bit                 _datIsPacked;
-  u32bit                 _posIsPacked;
+  uint32                 _idxIsPacked;
+  uint32                 _datIsPacked;
+  uint32                 _posIsPacked;
 
-  u32bit                 _merSizeInBits;
-  u32bit                 _merCompression;
-  u32bit                 _prefixSize;
-  u32bit                 _merDataSize;
-  u64bit                 _thisBucket;
-  u64bit                 _thisBucketSize;
-  u64bit                 _numBuckets;
+  uint32                 _merSizeInBits;
+  uint32                 _merCompression;
+  uint32                 _prefixSize;
+  uint32                 _merDataSize;
+  uint64                 _thisBucket;
+  uint64                 _thisBucketSize;
+  uint64                 _numBuckets;
 
-  u64bit                 _numUnique;
-  u64bit                 _numDistinct;
-  u64bit                 _numTotal;
+  uint64                 _numUnique;
+  uint64                 _numDistinct;
+  uint64                 _numTotal;
 
-  u64bit                 _histogramHuge;       // number that are bigger than Len
-  u64bit                 _histogramLen;        // number of entries in the histo
-  u64bit                 _histogramMaxValue;   // highest count ever seen
-  u64bit                *_histogram;
+  uint64                 _histogramHuge;       // number that are bigger than Len
+  uint64                 _histogramLen;        // number of entries in the histo
+  uint64                 _histogramMaxValue;   // highest count ever seen
+  uint64                *_histogram;
 
   bool                   _thisMerIsBits;
   bool                   _thisMerIskMer;
 
   kMer                   _thisMer;
 
-  u64bit                 _thisMerPre;
-  u64bit                 _thisMerMer;
+  uint64                 _thisMerPre;
+  uint64                 _thisMerMer;
 
-  u32bit                 _thisMerPreSize;
-  u32bit                 _thisMerMerSize;
+  uint32                 _thisMerPreSize;
+  uint32                 _thisMerMerSize;
 
-  u64bit                 _thisMerCount;
+  uint64                 _thisMerCount;
 };
 
 #endif  //  LIBMERYL_H

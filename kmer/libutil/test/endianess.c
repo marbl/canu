@@ -30,7 +30,7 @@ end
 
 int
 isBig1(void) {
-  u64bit  l = u64bitONE;
+  uint64  l = uint64ONE;
 
   if (*((char *)(&l)) == 1)
     return(0);
@@ -42,11 +42,11 @@ isBig1(void) {
 int
 isBig2(void) {
   union {
-    u64bit l;
-    char c[sizeof(u64bit)];
+    uint64 l;
+    char c[sizeof(uint64)];
   } u;
 
-  u.l = u64bitONE;
+  u.l = uint64ONE;
 
 #if 0
   fprintf(stderr, "%d%d%d%d%d%d%d%d\n",
@@ -63,9 +63,9 @@ isBig2(void) {
 
 int
 main(int argc, char **argv) {
-  u16bit   u16 = 0x0102;
-  u32bit   u32 = u32bitNUMBER(0x01020304);
-  u64bit   u64 = u64bitNUMBER(0x0102030405060708);
+  uint16   u16 = 0x0102;
+  uint32   u32 = uint32NUMBER(0x01020304);
+  uint64   u64 = uint64NUMBER(0x0102030405060708);
 
   fprintf(stderr, "BYTE_ORDER      = %d\n", BYTE_ORDER);
 
@@ -82,15 +82,15 @@ main(int argc, char **argv) {
   }
 
   if (strcmp(argv[1], "write") == 0) {
-    fwrite(&u16, sizeof(u16bit), 1, stdout);
-    fwrite(&u32, sizeof(u32bit), 1, stdout);
-    fwrite(&u64, sizeof(u64bit), 1, stdout);
+    fwrite(&u16, sizeof(uint16), 1, stdout);
+    fwrite(&u32, sizeof(uint32), 1, stdout);
+    fwrite(&u64, sizeof(uint64), 1, stdout);
     return(0);
   }
 
-  fread(&u16, sizeof(u16bit), 1, stdin);
-  fread(&u32, sizeof(u32bit), 1, stdin);
-  fread(&u64, sizeof(u64bit), 1, stdin);
+  fread(&u16, sizeof(uint16), 1, stdin);
+  fread(&u32, sizeof(uint32), 1, stdin);
+  fread(&u64, sizeof(uint64), 1, stdin);
 
 #if 0
   //  swap bytes to convert u16
@@ -104,20 +104,20 @@ main(int argc, char **argv) {
          ((u32 << 24) & 0xff000000));
 
   //  swap bytes, then flip words [0<->3, 1<->2] to convert u64
-  u64 = (((u64 >> 24) & u64bitNUMBER(0x000000ff000000ff)) |
-         ((u64 >>  8) & u64bitNUMBER(0x0000ff000000ff00)) |
-         ((u64 <<  8) & u64bitNUMBER(0x00ff000000ff0000)) |
-         ((u64 << 24) & u64bitNUMBER(0xff000000ff000000)));
-  u64 = (((u64 >> 32) & u64bitNUMBER(0x00000000ffffffff)) |
-         ((u64 << 32) & u64bitNUMBER(0xffffffff00000000)));
+  u64 = (((u64 >> 24) & uint64NUMBER(0x000000ff000000ff)) |
+         ((u64 >>  8) & uint64NUMBER(0x0000ff000000ff00)) |
+         ((u64 <<  8) & uint64NUMBER(0x00ff000000ff0000)) |
+         ((u64 << 24) & uint64NUMBER(0xff000000ff000000)));
+  u64 = (((u64 >> 32) & uint64NUMBER(0x00000000ffffffff)) |
+         ((u64 << 32) & uint64NUMBER(0xffffffff00000000)));
 #endif
 
   if (u16 != 0x1234)
     fprintf(stderr, "u16 -- 0x%04x correct=0x%04x\n", u16, 0x1234);
   if (u32 != 0x12345678)
-    fprintf(stderr, "u32 -- "u32bitHEX" correct="u32bitHEX"\n", u32, 0x12345678);
-  if (u64 != u64bitNUMBER(0x1234567890abcdef))
-    fprintf(stderr, "u64 -- "u64bitHEX" correct="u64bitHEX"\n", u64, u64bitNUMBER(0x1234567890abcdef));
+    fprintf(stderr, "u32 -- "uint32HEX" correct="uint32HEX"\n", u32, 0x12345678);
+  if (u64 != uint64NUMBER(0x1234567890abcdef))
+    fprintf(stderr, "u64 -- "uint64HEX" correct="uint64HEX"\n", u64, uint64NUMBER(0x1234567890abcdef));
 
   return(0);
 }

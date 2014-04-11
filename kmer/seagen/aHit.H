@@ -6,15 +6,15 @@
 #include <stdio.h>
 
 struct aHit {
-  u32bit  _forward : 1;
-  u32bit  _merged : 1;
-  u32bit  _qsIdx;
-  u32bit  _dsIdx;
-  u32bit  _dsLo;
-  u32bit  _dsHi;
-  u32bit  _covered;
-  u32bit  _matched;
-  u32bit  _numMers;
+  uint32  _forward : 1;
+  uint32  _merged : 1;
+  uint32  _qsIdx;
+  uint32  _dsIdx;
+  uint32  _dsLo;
+  uint32  _dsHi;
+  uint32  _covered;
+  uint32  _matched;
+  uint32  _numMers;
 };
 
 

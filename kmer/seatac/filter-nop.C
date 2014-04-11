@@ -14,15 +14,15 @@ extern "C" {
   void     destruct(void *handle);
   void     addHit(void *handle,
                   char    orientation,
-                  u32bit  id1,
-                  u32bit  pos1,
-                  u32bit  len1,
-                  u32bit  id2,
-                  u32bit  pos2,
-                  u32bit  len2,
-                  u32bit  filled);
+                  uint32  id1,
+                  uint32  pos1,
+                  uint32  len1,
+                  uint32  id2,
+                  uint32  pos2,
+                  uint32  len2,
+                  uint32  filled);
   void     filter(void *handle);
-  u64bit   output(void *handle, FILE *file, u64bit matchid);
+  uint64   output(void *handle, FILE *file, uint64 matchid);
 
   void    *constructStats(char *options);
   void     destructStats(void *handle);
@@ -45,13 +45,13 @@ public:
   };
 
   void addHit(char    orientation,
-              u32bit  id1,
-              u32bit  pos1,
-              u32bit  len1,
-              u32bit  id2,
-              u32bit  pos2,
-              u32bit  len2,
-              u32bit  filled) {
+              uint32  id1,
+              uint32  pos1,
+              uint32  len1,
+              uint32  id2,
+              uint32  pos2,
+              uint32  len2,
+              uint32  filled) {
 
     if (maxfilled < filled) {
       fprintf(stderr, "filterNOP-- addHit\n");
@@ -59,12 +59,12 @@ public:
       maxfilled = filled;
 #if 0
       sprintf(outstring,
-              "-%c -e "u32bitFMT" "u32bitFMT" "u32bitFMT" -D "u32bitFMT" "u32bitFMT" "u32bitFMT" -F "u32bitFMT"\n",
+              "-%c -e "uint32FMT" "uint32FMT" "uint32FMT" -D "uint32FMT" "uint32FMT" "uint32FMT" -F "uint32FMT"\n",
               orientation, id1, pos1, len1, id2, pos2, len2, filled);
 #endif
 
       sprintf(outstring,
-              "M x . . %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" 1 %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" %s "u32bitFMT"\n",
+              "M x . . %s:"uint32FMT" "uint32FMT" "uint32FMT" 1 %s:"uint32FMT" "uint32FMT" "uint32FMT" %s "uint32FMT"\n",
               name1, id1, pos1, len1, name2, id2, pos2, len2, (orientation == 'f') ? "1" : "-1", filled);
     }
   };
@@ -73,7 +73,7 @@ public:
     fprintf(stderr, "filterNOP-- filter\n");
   };
 
-  u64bit output(FILE *file, u64bit matchid) {
+  uint64 output(FILE *file, uint64 matchid) {
     fprintf(stderr, "filterNOP-- output (ignoring matchid)\n");
     fprintf(file, "%s", outstring);
     return(matchid);
@@ -81,7 +81,7 @@ public:
 private:
   char     outstring[512];
   char     name1[32], name2[32];
-  u32bit   maxfilled;
+  uint32   maxfilled;
 };
 
 
@@ -120,7 +120,7 @@ construct(char *opts) {
   //
   splitToWords  W(opts);
 
-  u32bit arg = 0;
+  uint32 arg = 0;
   while (arg < W.numWords()) {
     if        (strcmp(W.getWord(arg), "-1") == 0) {
       seq1 = W.getWord(++arg);
@@ -142,13 +142,13 @@ destruct(void *handle) {
 void
 addHit(void   *handle,
        char    orientation,
-       u32bit  id1,
-       u32bit  pos1,
-       u32bit  len1,
-       u32bit  id2,
-       u32bit  pos2,
-       u32bit  len2,
-       u32bit  filled) {
+       uint32  id1,
+       uint32  pos1,
+       uint32  len1,
+       uint32  id2,
+       uint32  pos2,
+       uint32  len2,
+       uint32  filled) {
   ((filterLongest *)handle)->addHit(orientation, id1, pos1, len1, id2, pos2, len2, filled);
 }
 
@@ -157,8 +157,8 @@ filter(void *handle) {
   ((filterLongest *)handle)->filter();
 }
 
-u64bit
-output(void *handle, FILE *file, u64bit matchid) {
+uint64
+output(void *handle, FILE *file, uint64 matchid) {
   return(((filterLongest *)handle)->output(file, matchid));
 }
 

@@ -18,7 +18,7 @@ char const *loadDesc = "WARNING: Loader ran dry.  Increasing limit to %lu sequen
 
 void*
 loaderThread(void *) {
-  u32bit               waterLevel = 0;
+  uint32               waterLevel = 0;
   seqInCore           *B          = 0L;
   bool                 slept      = false;
 
@@ -35,7 +35,7 @@ loaderThread(void *) {
     //
     if ((slept) && (waterLevel <= 1)) {
 
-      u32bit i = (u32bit) (0.1 * config._loaderHighWaterMark);
+      uint32 i = (uint32) (0.1 * config._loaderHighWaterMark);
       if (i == 0)
         i = 1;
       config._loaderHighWaterMark += i;

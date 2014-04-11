@@ -33,40 +33,40 @@
 //  encoded number, then read that many bits to get the value.
 //
 
-static const u64bit _genunary_start = 3;
-static const u64bit _genunary_step  = 2;
-//static const u64bit _genunary_stop  = ~u64bitZERO;
+static const uint64 _genunary_start = 3;
+static const uint64 _genunary_step  = 2;
+//static const uint64 _genunary_stop  = ~uint64ZERO;
 
 
 inline
 void
-setGeneralizedUnaryEncodedNumber(u64bit *ptr,
-                                 u64bit  pos,
-                                 u64bit *siz,
-                                 u64bit  val) {
-  u64bit m = u64bitZERO;
-  u64bit w = _genunary_start;
-  u64bit n = u64bitONE << w;
+setGeneralizedUnaryEncodedNumber(uint64 *ptr,
+                                 uint64  pos,
+                                 uint64 *siz,
+                                 uint64  val) {
+  uint64 m = uint64ZERO;
+  uint64 w = _genunary_start;
+  uint64 n = uint64ONE << w;
 
   //  Search for the prefix m, given our number 'val'.
   //  While doing this, we get rid of all the implicitly stored values from 'val'.
   //
 #ifdef DEBUG_GENERALIZEDUNARYENCODING
-  fprintf(stderr, "  val="u64bitFMT" try n="u64bitFMT" for m="u64bitFMT"\n", val, n, m);
+  fprintf(stderr, "  val="uint64FMT" try n="uint64FMT" for m="uint64FMT"\n", val, n, m);
 #endif
 
   while (n <= val) {
     val -= n;
     w   += _genunary_step;
-    n    = u64bitONE << w;
+    n    = uint64ONE << w;
     m++;
 #ifdef DEBUG_GENERALIZEDUNARYENCODING
-    fprintf(stderr, "  val="u64bitFMT" try n="u64bitFMT" for m="u64bitFMT"\n", val, n, m);
+    fprintf(stderr, "  val="uint64FMT" try n="uint64FMT" for m="uint64FMT"\n", val, n, m);
 #endif
   }
 
 #ifdef DEBUG_GENERALIZEDUNARYENCODING
-  fprintf(stderr, "val="u64bitFMT" found m="u64bitFMT"\n", val, m);
+  fprintf(stderr, "val="uint64FMT" found m="uint64FMT"\n", val, m);
 #endif
 
   //  Now just encode the number
@@ -81,13 +81,13 @@ setGeneralizedUnaryEncodedNumber(u64bit *ptr,
 
 
 inline
-u64bit
-getGeneralizedUnaryEncodedNumber(u64bit *ptr,
-                                 u64bit  pos,
-                                 u64bit *siz) {
-  u64bit val = u64bitZERO;
-  u64bit m   = u64bitZERO;
-  u64bit w   = u64bitZERO;
+uint64
+getGeneralizedUnaryEncodedNumber(uint64 *ptr,
+                                 uint64  pos,
+                                 uint64 *siz) {
+  uint64 val = uint64ZERO;
+  uint64 m   = uint64ZERO;
+  uint64 w   = uint64ZERO;
 
   //  Comments in the encoder apply here too.
 
@@ -97,14 +97,14 @@ getGeneralizedUnaryEncodedNumber(u64bit *ptr,
   *siz = m + 1 + w;
 
 #ifdef DEBUG_GENERALIZEDUNARYENCODING
-  fprintf(stderr, "m="u64bitFMT" w="u64bitFMT" val="u64bitFMT"\n", m, w, val);
+  fprintf(stderr, "m="uint64FMT" w="uint64FMT" val="uint64FMT"\n", m, w, val);
 #endif
 
   //  Add in the implcitly stored pieces of the number
   //
   while (m--) {
     w -= _genunary_step;
-    val += u64bitONE << w;
+    val += uint64ONE << w;
   }
 
   return(val);

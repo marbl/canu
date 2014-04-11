@@ -14,7 +14,7 @@
 
 class logMsg {
 public:
-  logMsg(bool toScreen=false, u32bit r=8192) {
+  logMsg(bool toScreen=false, uint32 r=8192) {
     _logLen       = 0;
     _logMax       = r;
     _log          = new char [_logMax];
@@ -28,14 +28,14 @@ public:
   };
 
 
-  void     setResize(u32bit r) {
+  void     setResize(uint32 r) {
     _resize = r;
   };
 
 
   //  Ensure that the string has at least 'moreSpace' available.
   //
-  void     resize(u32bit moreSpace) {
+  void     resize(uint32 moreSpace) {
     if (_logLen + moreSpace < _logMax)
       return;
 
@@ -72,7 +72,7 @@ public:
 
     if (_logLen > _logMax)
       fprintf(stderr,
-              "logMsg::add()-- HEY!  I wrote "u32bitFMT" bytes beyond the end of the buffer!\n"
+              "logMsg::add()-- HEY!  I wrote "uint32FMT" bytes beyond the end of the buffer!\n"
               "logMsg::add()-- This program will probably crash soon....\n\n%s\n\n",
               _logLen - _logMax, _log);
   };
@@ -104,10 +104,10 @@ public:
 
 
 private:
-  u32bit   _logLen;
-  u32bit   _logMax;
+  uint32   _logLen;
+  uint32   _logMax;
   char    *_log;
-  u32bit   _resize;
+  uint32   _resize;
   bool     _toScreenToo;
 };
 

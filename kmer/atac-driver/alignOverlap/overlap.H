@@ -51,8 +51,8 @@ process1(FILE             *outfile,
          atacMatchList    *M2,
          overlapStats     &stats,
          annoList         *AL,
-         u32bit           &ALlen,
-         u32bit           &ALmax);
+         uint32           &ALlen,
+         uint32           &ALmax);
 
 void
 process2(FILE             *outfile,
@@ -61,22 +61,22 @@ process2(FILE             *outfile,
          atacMatchList    *M2,
          overlapStats     &stats,
          annoList         *AL,
-         u32bit           &ALlen,
-         u32bit           &ALmax);
+         uint32           &ALlen,
+         uint32           &ALmax);
 
 void
-printAnno(FILE *F, annoList *AL, u32bit &ALlen,
+printAnno(FILE *F, annoList *AL, uint32 &ALlen,
           char label,
-          u32bit axis,
+          uint32 axis,
           span_t *span,
-          u32bit match1=u32bitZERO, atacMatch *m1=0L,
-          u32bit match2=u32bitZERO, atacMatch *m2=0L);
+          uint32 match1=uint32ZERO, atacMatch *m1=0L,
+          uint32 match2=uint32ZERO, atacMatch *m2=0L);
 
 void
-findIsolatedUnique(annoList *AL, u32bit ALlen);
+findIsolatedUnique(annoList *AL, uint32 ALlen);
 
 void
-findExtended(annoList *AL, u32bit ALlen);
+findExtended(annoList *AL, uint32 ALlen);
 
 
 #endif  //  OVERLAP_H

@@ -16,19 +16,19 @@ public:
             void (*writerfcn)(void *G, void *S));
   ~sweatShop();
 
-  void        setNumberOfWorkers(u32bit x) {
+  void        setNumberOfWorkers(uint32 x) {
     _numberOfWorkers = x;
     _loaderQueueMin  = x * 2;
   };
 
-  void        setThreadData(u32bit t, void *x);
+  void        setThreadData(uint32 t, void *x);
 
-  void        setLoaderBatchSize(u32bit batchSize) { _loaderBatchSize = batchSize; };
-  void        setLoaderQueueSize(u32bit queueSize) { _loaderQueueSize = queueSize;  _loaderQueueMax = queueSize; };
+  void        setLoaderBatchSize(uint32 batchSize) { _loaderBatchSize = batchSize; };
+  void        setLoaderQueueSize(uint32 queueSize) { _loaderQueueSize = queueSize;  _loaderQueueMax = queueSize; };
 
-  void        setWorkerBatchSize(u32bit batchSize) { _workerBatchSize = batchSize; };
+  void        setWorkerBatchSize(uint32 batchSize) { _workerBatchSize = batchSize; };
 
-  void        setWriterQueueSize(u32bit queueSize) { _writerQueueSize = queueSize;  _writerQueueMax = queueSize; };
+  void        setWriterQueueSize(uint32 queueSize) { _writerQueueSize = queueSize;  _writerQueueMax = queueSize; };
 
   void        run(void *user=0L, bool beVerbose=false);
 private:
@@ -64,18 +64,18 @@ private:
 
   bool                   _showStatus;
 
-  u32bit                 _loaderQueueSize, _loaderQueueMin, _loaderQueueMax;
-  u32bit                 _loaderBatchSize;
-  u32bit                 _workerBatchSize;
-  u32bit                 _writerQueueSize, _writerQueueMax;
+  uint32                 _loaderQueueSize, _loaderQueueMin, _loaderQueueMax;
+  uint32                 _loaderBatchSize;
+  uint32                 _workerBatchSize;
+  uint32                 _writerQueueSize, _writerQueueMax;
 
-  u32bit                 _numberOfWorkers;
+  uint32                 _numberOfWorkers;
 
   sweatShopWorker       *_workerData;
 
-  u64bit                 _numberLoaded;
-  u64bit                 _numberComputed;
-  u64bit                 _numberOutput;
+  uint64                 _numberLoaded;
+  uint64                 _numberComputed;
+  uint64                 _numberOutput;
 };
 
 #endif  //  SWEATSHOP_H

@@ -15,11 +15,11 @@
 
 int
 main(int argc, char **argv) {
-  u32bit                covMax    = 0;
+  uint32                covMax    = 0;
   intervalList        **cov       = 0L;
-  u32bit               *len       = 0L;
+  uint32               *len       = 0L;
 
-  u32bit                lastIID   = 0;
+  uint32                lastIID   = 0;
 
   bool                  isRaw     = false;
   bool                  isBlast   = false;
@@ -89,11 +89,11 @@ main(int argc, char **argv) {
   if (F)
     covMax = F->getNumberOfSequences();
   cov      = new intervalList * [covMax];
-  len      = new u32bit [covMax];
+  len      = new uint32 [covMax];
 
-  fprintf(stderr, "Found "u32bitFMT" sequences in the input file.\n", covMax);
+  fprintf(stderr, "Found "uint32FMT" sequences in the input file.\n", covMax);
 
-  for (u32bit i=0; i<covMax; i++) {
+  for (uint32 i=0; i<covMax; i++) {
     cov[i] = 0L;
     len[i] = 0;
   }
@@ -106,12 +106,12 @@ main(int argc, char **argv) {
       fgets(inLine, 1024, stdin);
       S.split(inLine);
 
-      u32bit  iid=0, beg=0, end=0;
+      uint32  iid=0, beg=0, end=0;
 
       if (isRaw) {
-        iid = strtou32bit(S[0], 0L);
-        beg = strtou32bit(S[1], 0L) - 1;   //  Convert to space-based
-        end = strtou32bit(S[2], 0L);
+        iid = strtouint32(S[0], 0L);
+        beg = strtouint32(S[1], 0L) - 1;   //  Convert to space-based
+        end = strtouint32(S[2], 0L);
       }
       if (isBlast) {
         char *iii = S[0];
@@ -121,13 +121,13 @@ main(int argc, char **argv) {
         if (*iii == 0)
           fprintf(stderr, "UID.IID error: '%s'\n", S[0]);
 
-        iid = strtou32bit(iii, 0L);
-        beg = strtou32bit(S[6], 0L) - 1;   //  Convert to space-based
-        end = strtou32bit(S[7], 0L);
+        iid = strtouint32(iii, 0L);
+        beg = strtouint32(S[6], 0L) - 1;   //  Convert to space-based
+        end = strtouint32(S[7], 0L);
       }
 
       if (iid >= covMax) {
-        fprintf(stderr, "ERROR:  Found iid "u32bitFMT", but only allocated "u32bitFMT" places!\n",
+        fprintf(stderr, "ERROR:  Found iid "uint32FMT", but only allocated "uint32FMT" places!\n",
                 iid, covMax);
         exit(1);
       }
@@ -150,7 +150,7 @@ main(int argc, char **argv) {
         fprintf(stderr, "DIE!  You have more sequences in your polishes than in your source!\n"), exit(1);
 
       if (p->_estID >= covMax) {
-        fprintf(stderr, "ERROR:  Found iid "u32bitFMT", but only allocated "u32bitFMT" places!\n",
+        fprintf(stderr, "ERROR:  Found iid "uint32FMT", but only allocated "uint32FMT" places!\n",
                 p->_estID, covMax);
         exit(1);
       }
@@ -162,7 +162,7 @@ main(int argc, char **argv) {
         lastIID = p->_estID + 1;
       }
 
-      for (u32bit e=0; e<p->_numExons; e++) {
+      for (uint32 e=0; e<p->_numExons; e++) {
         p->_exons[e]._estFrom--;        //  Convert to space-based
 
         if (p->_matchOrientation == SIM4_MATCH_FORWARD)
@@ -178,14 +178,14 @@ main(int argc, char **argv) {
 
   //  Scan the list of intervalLists, compute the amount covered, print.
   //
-  for (u32bit iid=0; iid<lastIID; iid++) {
+  for (uint32 iid=0; iid<lastIID; iid++) {
 
     //  Argh!  If there are no intervals, we need to report the whole
     //  sequence is uncovered!
 
-    u32bit  numRegions  = 0;
-    u32bit  sumLengths  = 0;
-    u32bit  l, h;
+    uint32  numRegions  = 0;
+    uint32  sumLengths  = 0;
+    uint32  l, h;
 
     //  Save the number of regions and the sum of their lengths,
     //  then merge regions
@@ -207,21 +207,21 @@ main(int argc, char **argv) {
       char   *seq = new char [len[iid] + 1];
       strcpy(seq, S->sequence());
 
-      for (u32bit p=0; p<len[iid]; p++)
+      for (uint32 p=0; p<len[iid]; p++)
         seq[p] = toUpper[seq[p]];
 
       if (cov[iid]) {
-        for (u32bit c=0; c<cov[iid]->numberOfIntervals(); c++) {
+        for (uint32 c=0; c<cov[iid]->numberOfIntervals(); c++) {
           l = cov[iid]->lo(c);
           h = cov[iid]->hi(c);
 
           if (h > len[iid]) {
-            fprintf(stderr, "ERROR:  range "u32bitFMT"-"u32bitFMT" out of bounds (seqLen = "u32bitFMT")\n",
+            fprintf(stderr, "ERROR:  range "uint32FMT"-"uint32FMT" out of bounds (seqLen = "uint32FMT")\n",
                     l, h, len[iid]);
             assert(h <= len[iid]);
           }
 
-          for (u32bit p=l; p<h; p++)
+          for (uint32 p=l; p<h; p++)
             //seq[p] = toLower[seq[p]];
             seq[p] = 'N';
         }
@@ -239,7 +239,7 @@ main(int argc, char **argv) {
       if (cov[iid])
         percentCovered = cov[iid]->sumOfLengths() / (double)len[iid];
 
-      fprintf(C, u32bitFMT"\t"u32bitFMT"\t%5.3f\t"u32bitFMT"\t"u32bitFMT"\n",
+      fprintf(C, uint32FMT"\t"uint32FMT"\t%5.3f\t"uint32FMT"\t"uint32FMT"\n",
               iid,
               len[iid],
               percentCovered,

@@ -20,12 +20,12 @@
 
 //  Looks for 1's surrounded by U's
 void
-findIsolatedUnique(annoList *AL, u32bit ALlen) {
+findIsolatedUnique(annoList *AL, uint32 ALlen) {
   bool   only1 = true;
-  u32bit sumA = 0, tA=0;
-  u32bit sumB = 0, tB=0;
+  uint32 sumA = 0, tA=0;
+  uint32 sumB = 0, tB=0;
 
-  for (u32bit i=1; i<ALlen; i++) {
+  for (uint32 i=1; i<ALlen; i++) {
     if (AL[i].type == 'U') {
       if (only1 && (!tA || !tB)) {
         sumA += tA;
@@ -42,13 +42,13 @@ findIsolatedUnique(annoList *AL, u32bit ALlen) {
     }
   }
 
-  fprintf(stderr, "isolated Unique: map1: "u32bitFMT" map2: "u32bitFMT"\n", sumA, sumB);
+  fprintf(stderr, "isolated Unique: map1: "uint32FMT" map2: "uint32FMT"\n", sumA, sumB);
 }
 
 
 
-u32bit encodeType(u32bit type) {
-  u32bit  t = 9;
+uint32 encodeType(uint32 type) {
+  uint32  t = 9;
   if      (type == 'U') t = 0;
   else if (type == '1') t = 1;
   else if (type == 'Y') t = 2;
@@ -56,7 +56,7 @@ u32bit encodeType(u32bit type) {
   else if (type == '?') t = 4;
   else if (type == '!') t = 5;
   if (t == 9)
-    fprintf(stderr, "got invalid type; "u32bitFMT" -- %c\n", type, (char)type), exit(1);
+    fprintf(stderr, "got invalid type; "uint32FMT" -- %c\n", type, (char)type), exit(1);
   return(t);
 }
 
@@ -64,19 +64,19 @@ u32bit encodeType(u32bit type) {
 
 //  Looks for 1's at the end of a Y, that have the same match id
 void
-findExtended(annoList *AL, u32bit ALlen) {
+findExtended(annoList *AL, uint32 ALlen) {
 
   class stat_s {
   public:
-    u32bit  count;
-    u32bit  len;
+    uint32  count;
+    uint32  len;
 
     stat_s() {
       count = 0;
       len   = 0;
     };
 
-    stat_s &operator+=(u32bit x) {
+    stat_s &operator+=(uint32 x) {
       count++;
       len += x;
       return(*this);
@@ -88,7 +88,7 @@ findExtended(annoList *AL, u32bit ALlen) {
     };
 
     void print(char const *msg) {
-      fprintf(stderr, "%s:  "u32bitFMT" len:"u32bitFMT"\n", msg, count, len);
+      fprintf(stderr, "%s:  "uint32FMT" len:"uint32FMT"\n", msg, count, len);
     };
   };
 
@@ -101,12 +101,12 @@ findExtended(annoList *AL, u32bit ALlen) {
   //
   //  End is the match after the 1, beg is the match before the 1.
   //
-  for (u32bit i=0; i<ALlen; i++) {
+  for (uint32 i=0; i<ALlen; i++) {
     if (AL[i].type == '1') {
-      u32bit  beg = i-1;
-      u32bit  gap = i;
-      u32bit  end = i;
-      u32bit  len = 0;
+      uint32  beg = i-1;
+      uint32  gap = i;
+      uint32  end = i;
+      uint32  len = 0;
 
       if (AL[gap].iid2a) {
         while ((AL[gap].iid2a == AL[end].iid2a) && (AL[end].type == '1')) {
@@ -125,8 +125,8 @@ findExtended(annoList *AL, u32bit ALlen) {
       if (gap == end)
         fprintf(stderr, "end == gap?\n"), exit(1);
 
-      u32bit tbeg = encodeType(AL[beg].type);
-      u32bit tend = encodeType(AL[end].type);
+      uint32 tbeg = encodeType(AL[beg].type);
+      uint32 tend = encodeType(AL[end].type);
 
       bool  mbeg, mend, moth;
       if (AL[gap].iid2a) {
@@ -161,27 +161,27 @@ findExtended(annoList *AL, u32bit ALlen) {
   stat_s   oth_diff_1;
   stat_s   oth_diff_2;
 
-  for (u32bit i=0; i<6; i++)
-    for (u32bit j=0; j<6; j++)
-      for (u32bit k=0; k<2; k++)
-        for (u32bit l=0; l<2; l++) {
+  for (uint32 i=0; i<6; i++)
+    for (uint32 j=0; j<6; j++)
+      for (uint32 k=0; k<2; k++)
+        for (uint32 l=0; l<2; l++) {
           oth_cnst_1 += count1[i][j][k][l][1];
           oth_cnst_2 += count2[i][j][k][l][1];
           oth_diff_1 += count1[i][j][k][l][0];
           oth_diff_2 += count2[i][j][k][l][0];
         }
-  fprintf(stderr, "count1 other iid constant:  "u32bitFMT" len:"u32bitFMT"\n", oth_cnst_1.count, oth_cnst_1.len);
-  fprintf(stderr, "count2 other iid constant:  "u32bitFMT" len:"u32bitFMT"\n", oth_cnst_2.count, oth_cnst_2.len);
-  fprintf(stderr, "count1 other iid different: "u32bitFMT" len:"u32bitFMT"\n", oth_diff_1.count, oth_diff_1.len);
-  fprintf(stderr, "count2 other iid different: "u32bitFMT" len:"u32bitFMT"\n", oth_diff_2.count, oth_diff_2.len);
+  fprintf(stderr, "count1 other iid constant:  "uint32FMT" len:"uint32FMT"\n", oth_cnst_1.count, oth_cnst_1.len);
+  fprintf(stderr, "count2 other iid constant:  "uint32FMT" len:"uint32FMT"\n", oth_cnst_2.count, oth_cnst_2.len);
+  fprintf(stderr, "count1 other iid different: "uint32FMT" len:"uint32FMT"\n", oth_diff_1.count, oth_diff_1.len);
+  fprintf(stderr, "count2 other iid different: "uint32FMT" len:"uint32FMT"\n", oth_diff_2.count, oth_diff_2.len);
 #endif
 
 #if 0
-  for (u32bit tbeg=0; tbeg<6; tbeg++)
-    for (u32bit tend=0; tend<6; tend++)
-      for (u32bit mbeg=0; mbeg<2; mbeg++)
-        for (u32bit mend=0; mend<2; mend++)
-          for (u32bit moth=0; moth<2; moth++) {
+  for (uint32 tbeg=0; tbeg<6; tbeg++)
+    for (uint32 tend=0; tend<6; tend++)
+      for (uint32 mbeg=0; mbeg<2; mbeg++)
+        for (uint32 mend=0; mend<2; mend++)
+          for (uint32 moth=0; moth<2; moth++) {
           }
 #endif
 
@@ -191,11 +191,11 @@ findExtended(annoList *AL, u32bit ALlen) {
   stat_s   extraMid1[7];
   stat_s   extraMid2[7];
 
-  for (u32bit tbeg=0; tbeg<6; tbeg++)
-    for (u32bit tend=0; tend<6; tend++)
-      for (u32bit mbeg=0; mbeg<2; mbeg++)
-        for (u32bit mend=0; mend<2; mend++)
-          for (u32bit moth=0; moth<2; moth++) {
+  for (uint32 tbeg=0; tbeg<6; tbeg++)
+    for (uint32 tend=0; tend<6; tend++)
+      for (uint32 mbeg=0; mbeg<2; mbeg++)
+        for (uint32 mend=0; mend<2; mend++)
+          for (uint32 moth=0; moth<2; moth++) {
             if (mbeg && mend) {
               extraMid1[6] += count1[tbeg][tend][mbeg][mend][moth];
               extraMid2[6] += count2[tbeg][tend][mbeg][mend][moth];
@@ -209,7 +209,7 @@ findExtended(annoList *AL, u32bit ALlen) {
 
   extraMid1[6].print("extra middle 1");
   extraMid2[6].print("extra middle 2");
-  for (u32bit i=0; i<6; i++) {
+  for (uint32 i=0; i<6; i++) {
     char l[64];
     sprintf(l, "extra middle 1 %c", label[i]);
     extraMid1[i].print(l);
@@ -224,11 +224,11 @@ findExtended(annoList *AL, u32bit ALlen) {
   stat_s  extY2;
   stat_s  extN2;
 
-  for (u32bit tbeg=0; tbeg<6; tbeg++)
-    for (u32bit tend=0; tend<6; tend++)
-      for (u32bit mbeg=0; mbeg<2; mbeg++)
-        for (u32bit mend=0; mend<2; mend++)
-          for (u32bit moth=0; moth<2; moth++) {
+  for (uint32 tbeg=0; tbeg<6; tbeg++)
+    for (uint32 tend=0; tend<6; tend++)
+      for (uint32 mbeg=0; mbeg<2; mbeg++)
+        for (uint32 mend=0; mend<2; mend++)
+          for (uint32 moth=0; moth<2; moth++) {
             if (mbeg && !mend) {
               if (tbeg == TYPE_Y) {
                 extY1 += count1[tbeg][tend][mbeg][mend][moth];

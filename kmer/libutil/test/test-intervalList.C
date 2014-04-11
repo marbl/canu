@@ -25,7 +25,7 @@ test(void) {
   I.add(15,  5);
 
 #if 0
-  for (u32bit i=0; i<I.numberOfIntervals(); i++)
+  for (uint32 i=0; i<I.numberOfIntervals(); i++)
     fprintf(stderr, "%2d] %2d %2d\n", i, I.lo(i), I.hi(i));
 #endif
 
@@ -54,17 +54,17 @@ test(void) {
 
 
 void
-testIntersect(u32bit type) {
-  u32bit   numTests = 1000000;
-  u32bit  *beg     = new u32bit [numTests];
-  u32bit  *len     = new u32bit [numTests];
-  u32bit  *end     = new u32bit [numTests];
-  u32bit  *abegh   = new u32bit [numTests];
-  u32bit  *aendh   = new u32bit [numTests];
-  u32bit  *bbegh   = new u32bit [numTests];
-  u32bit  *bendh   = new u32bit [numTests];
-  u32bit   errors  = 0;
-  u32bit   passed  = 0;
+testIntersect(uint32 type) {
+  uint32   numTests = 1000000;
+  uint32  *beg     = new uint32 [numTests];
+  uint32  *len     = new uint32 [numTests];
+  uint32  *end     = new uint32 [numTests];
+  uint32  *abegh   = new uint32 [numTests];
+  uint32  *aendh   = new uint32 [numTests];
+  uint32  *bbegh   = new uint32 [numTests];
+  uint32  *bendh   = new uint32 [numTests];
+  uint32   errors  = 0;
+  uint32   passed  = 0;
 
   intervalList  A;
   intervalList  B;
@@ -82,7 +82,7 @@ testIntersect(u32bit type) {
   if (type == 2)
     B.add(1, 1500000000);
 
-  for (u32bit i=0; i<numTests; i++) {
+  for (uint32 i=0; i<numTests; i++) {
 
     //  Compute the result we want to get
     //
@@ -157,9 +157,9 @@ testIntersect(u32bit type) {
   //  Check the result.
   //
 
-  for (u32bit i=0, j=0; i<numTests; i++) {
-    u32bit  b = I.lo(j) - 1000 * i;
-    u32bit  e = I.hi(j) - 1000 * i;
+  for (uint32 i=0, j=0; i<numTests; i++) {
+    uint32  b = I.lo(j) - 1000 * i;
+    uint32  e = I.hi(j) - 1000 * i;
 
     if (len[i] < 100) {
       //
@@ -169,11 +169,11 @@ testIntersect(u32bit type) {
       //
     } else {
       if ((b != beg[i]) || (e != end[i])) {
-        fprintf(stderr, "FAILED[%4d]: "u32bitFMT"-"u32bitFMT" X "u32bitFMT"-"u32bitFMT" -> "u32bitFMT","u32bitFMT" ("u32bitFMT","u32bitFMT") (should have been "u32bitFMT","u32bitFMT")\n",
+        fprintf(stderr, "FAILED[%4d]: "uint32FMT"-"uint32FMT" X "uint32FMT"-"uint32FMT" -> "uint32FMT","uint32FMT" ("uint32FMT","uint32FMT") (should have been "uint32FMT","uint32FMT")\n",
                 i,
                 beg[i] - abegh[i], beg[i] - abegh[i] + abegh[i] + end[i] - beg[i] + aendh[i],
                 beg[i] - bbegh[i], beg[i] - bbegh[i] + bbegh[i] + end[i] - beg[i] + bendh[i],
-                b, e, (u32bit)I.lo(j), (u32bit)I.hi(j),
+                b, e, (uint32)I.lo(j), (uint32)I.hi(j),
                 beg[i], end[i]);
         errors++;
       } else {
@@ -183,7 +183,7 @@ testIntersect(u32bit type) {
     }
   }
 
-  fprintf(stderr, "intersection test had "u32bitFMT" successes and "u32bitFMT" errors.\n", passed, errors);
+  fprintf(stderr, "intersection test had "uint32FMT" successes and "uint32FMT" errors.\n", passed, errors);
 }
 
 
@@ -201,30 +201,30 @@ testMerge(void) {
   fprintf(stderr, "Merge test 1\n");
   IL.clear();
   IL.add(0, 100000);
-  for (u32bit i=0; i<999; i++)
+  for (uint32 i=0; i<999; i++)
     IL.add(100 + 100 * i, 50);
   IL.merge();
-  for (u32bit i=0; i<IL.numberOfIntervals(); i++)
-    fprintf(stderr, "IL["u32bitFMTW(3)"] "u64bitFMT" "u64bitFMT"\n", i, IL.lo(i), IL.hi(i));
+  for (uint32 i=0; i<IL.numberOfIntervals(); i++)
+    fprintf(stderr, "IL["uint32FMTW(3)"] "uint64FMT" "uint64FMT"\n", i, IL.lo(i), IL.hi(i));
 
   fprintf(stderr, "Merge test 2\n");
   IL.clear();
   IL.add(0, 25000);
   IL.add(25000, 25000);
   IL.add(50000, 50000);
-  for (u32bit i=0; i<999; i++)
+  for (uint32 i=0; i<999; i++)
     IL.add(100 + 100 * i, 50);
   IL.merge();
-  for (u32bit i=0; i<IL.numberOfIntervals(); i++)
-    fprintf(stderr, "IL["u32bitFMTW(3)"] "u64bitFMT" "u64bitFMT"\n", i, IL.lo(i), IL.hi(i));
+  for (uint32 i=0; i<IL.numberOfIntervals(); i++)
+    fprintf(stderr, "IL["uint32FMTW(3)"] "uint64FMT" "uint64FMT"\n", i, IL.lo(i), IL.hi(i));
 
   fprintf(stderr, "Merge test 3\n");
   IL.clear();
-  u32bit lo = 200;
-  u32bit hi = 0;
-  for (u32bit i=0; i<999; i++) {
-    u32bit beg = mtRandom32(mt) % 100;
-    u32bit end = mtRandom32(mt) % 100 + 100;
+  uint32 lo = 200;
+  uint32 hi = 0;
+  for (uint32 i=0; i<999; i++) {
+    uint32 beg = mtRandom32(mt) % 100;
+    uint32 end = mtRandom32(mt) % 100 + 100;
     if (beg < lo)  lo = beg;
     if (end > hi)  hi = end;
     IL.add(beg, end - beg);
@@ -232,8 +232,8 @@ testMerge(void) {
   IL.merge();
   if ((IL.lo(0) != lo) || (IL.hi(0) != hi))
     fprintf(stderr, "ERROR!\n");
-  for (u32bit i=0; i<IL.numberOfIntervals(); i++)
-    fprintf(stderr, "IL["u32bitFMTW(3)"] "u64bitFMT" "u64bitFMT"\n", i, IL.lo(i), IL.hi(i));
+  for (uint32 i=0; i<IL.numberOfIntervals(); i++)
+    fprintf(stderr, "IL["uint32FMTW(3)"] "uint64FMT" "uint64FMT"\n", i, IL.lo(i), IL.hi(i));
 
   fprintf(stderr, "Merge test 4a\n");
   IL.clear();
@@ -241,8 +241,8 @@ testMerge(void) {
   IL.add(25000, 25000);
   IL.add(50000, 50000);
   IL.merge();
-  for (u32bit i=0; i<IL.numberOfIntervals(); i++)
-    fprintf(stderr, "IL["u32bitFMTW(3)"] "u64bitFMT" "u64bitFMT"\n", i, IL.lo(i), IL.hi(i));
+  for (uint32 i=0; i<IL.numberOfIntervals(); i++)
+    fprintf(stderr, "IL["uint32FMTW(3)"] "uint64FMT" "uint64FMT"\n", i, IL.lo(i), IL.hi(i));
 
   fprintf(stderr, "Merge test 4b\n");
   IL.clear();
@@ -253,8 +253,8 @@ testMerge(void) {
   IL.add(45000, 5000);
   IL.add(95000, 5000);
   IL.merge();
-  for (u32bit i=0; i<IL.numberOfIntervals(); i++)
-    fprintf(stderr, "IL["u32bitFMTW(3)"] "u64bitFMT" "u64bitFMT"\n", i, IL.lo(i), IL.hi(i));
+  for (uint32 i=0; i<IL.numberOfIntervals(); i++)
+    fprintf(stderr, "IL["uint32FMTW(3)"] "uint64FMT" "uint64FMT"\n", i, IL.lo(i), IL.hi(i));
 }
 
 

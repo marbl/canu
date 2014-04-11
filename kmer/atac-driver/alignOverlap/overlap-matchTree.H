@@ -24,7 +24,7 @@
 //  Contructs a search tree from a atacMatchList
 class matchTree {
 public:
-  matchTree(atacMatchList *L, u32bit side);
+  matchTree(atacMatchList *L, uint32 side);
   ~matchTree() {
     dict_free_nodes(_tree);
     dict_free(_tree);

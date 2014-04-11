@@ -56,11 +56,11 @@ sim4polishWriter::sim4polishWriter(const char *name, sim4polishStyle style, bool
   //  Construct a match ID salt based on the current time and process ID.  We make a 48-bit
   //  number from the combination of process ID and curent time, then convert that to base-64.
 
-  u64bit  saltTime    = (u64bit)getTime();  //  returns a double, fraction of seconds
-  u64bit  saltPID     = (u64bit)getpid();
+  uint64  saltTime    = (uint64)getTime();  //  returns a double, fraction of seconds
+  uint64  saltPID     = (uint64)getpid();
 
-  u64bit  saltInteger = (saltPID << 32) | (saltTime);
-  u64bit  saltMask    = u64bitMASK(6);
+  uint64  saltInteger = (saltPID << 32) | (saltTime);
+  uint64  saltMask    = uint64MASK(6);
 
   _matchIDsalt[0] = base64[saltInteger & saltMask];  saltInteger >>= 6;  //   6 bits
   _matchIDsalt[1] = base64[saltInteger & saltMask];  saltInteger >>= 6;  //  12 bits
@@ -72,7 +72,7 @@ sim4polishWriter::sim4polishWriter(const char *name, sim4polishStyle style, bool
   _matchIDsalt[7] = 0;
 
 #if DEBUG_WRITER
-  fprintf(stderr, "SALT: "u64bitFMT" + "u64bitFMT" = %s\n",
+  fprintf(stderr, "SALT: "uint64FMT" + "uint64FMT" = %s\n",
           saltPID, saltTime, _matchIDsalt);
 #endif
 }

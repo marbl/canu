@@ -91,7 +91,7 @@ fastaFile::openFile(const char *filename) {
 
 
 
-u32bit
+uint32
 fastaFile::find(const char *sequencename) {
   char   *ptr = _names;
 
@@ -101,7 +101,7 @@ fastaFile::find(const char *sequencename) {
   //
   //  Similar code is used for seqStore::find()
 
-  for (u32bit iid=0; iid < _header._numberOfSequences; iid++) {
+  for (uint32 iid=0; iid < _header._numberOfSequences; iid++) {
     //fprintf(stderr, "fastaFile::find()-- '%s' vs '%s'\n", sequencename, ptr);
     if (strcmp(sequencename, ptr) == 0)
       return(iid);
@@ -111,16 +111,16 @@ fastaFile::find(const char *sequencename) {
     ptr++;
   }
 
-  return(~u32bitZERO);
+  return(~uint32ZERO);
 }
 
 
 
-u32bit
-fastaFile::getSequenceLength(u32bit iid) {
+uint32
+fastaFile::getSequenceLength(uint32 iid) {
 
 #ifdef DEBUG
-  fprintf(stderr, "fastaFile::getSequenceLength()-- "u32bitFMT"\n", iid);
+  fprintf(stderr, "fastaFile::getSequenceLength()-- "uint32FMT"\n", iid);
 #endif
 
   return((iid < _numberOfSequences) ? _index[iid]._seqLength : 0);
@@ -129,12 +129,12 @@ fastaFile::getSequenceLength(u32bit iid) {
 
 
 bool
-fastaFile::getSequence(u32bit iid,
-                       char *&h, u32bit &hLen, u32bit &hMax,
-                       char *&s, u32bit &sLen, u32bit &sMax) {
+fastaFile::getSequence(uint32 iid,
+                       char *&h, uint32 &hLen, uint32 &hMax,
+                       char *&s, uint32 &sLen, uint32 &sMax) {
 
 #ifdef DEBUG
-  fprintf(stderr, "fastaFile::getSequence(full)-- "u32bitFMT"\n", iid);
+  fprintf(stderr, "fastaFile::getSequence(full)-- "uint32FMT"\n", iid);
 #endif
 
   //  Assume there is no index.  Without being horribly complicated
@@ -148,7 +148,7 @@ fastaFile::getSequence(u32bit iid,
   //  use the seqFile instead.
 
   if (iid >= _header._numberOfSequences) {
-    fprintf(stderr, "fastaFile::getSequence(full)--  iid "u32bitFMT" more than number of sequences "u32bitFMT"\n",
+    fprintf(stderr, "fastaFile::getSequence(full)--  iid "uint32FMT" more than number of sequences "uint32FMT"\n",
       iid, _header._numberOfSequences);
     return(false);
   }
@@ -173,7 +173,7 @@ fastaFile::getSequence(u32bit iid,
   sLen = 0;
 
 #ifdef DEBUG
-  fprintf(stderr, "fastaFile::getSequence(full)-- seek to iid="u32bitFMT" at pos="u32bitFMT"\n",
+  fprintf(stderr, "fastaFile::getSequence(full)-- seek to iid="uint32FMT" at pos="uint32FMT"\n",
           iid, _index[iid]._seqPosition);
 #endif
   _rb->seek(_index[iid]._seqPosition);
@@ -245,17 +245,17 @@ fastaFile::getSequence(u32bit iid,
 
 // slow
 bool
-fastaFile::getSequence(u32bit iid,
-                       u32bit bgn, u32bit end, char *s) {
+fastaFile::getSequence(uint32 iid,
+                       uint32 bgn, uint32 end, char *s) {
 
   if (iid >= _header._numberOfSequences) {
-    fprintf(stderr, "fastaFile::getSequence(part)--  iid "u32bitFMT" more than number of sequences "u32bitFMT"\n",
+    fprintf(stderr, "fastaFile::getSequence(part)--  iid "uint32FMT" more than number of sequences "uint32FMT"\n",
       iid, _header._numberOfSequences);
     return(false);
   }
 
 #ifdef DEBUG
-  fprintf(stderr, "fastaFile::getSequence(part)-- "u32bitFMT"\n", iid);
+  fprintf(stderr, "fastaFile::getSequence(part)-- "uint32FMT"\n", iid);
 #endif
 
   //  It is impossible to be efficient here; see the big comment in
@@ -267,7 +267,7 @@ fastaFile::getSequence(u32bit iid,
 
   _rb->seek(_index[iid]._seqPosition);
 
-  u32bit pos = 0;
+  uint32 pos = 0;
   char   x   = _rb->read();
 
   //  Skip whitespace at the start of the sequence.
@@ -362,10 +362,10 @@ fastaFile::loadIndex(char *indexname) {
   }
 
 #if 0
-      (_header._fastaModificationTime != (u64bit)fastastat.st_mtime)
-      (_header._fastaCreationTime     != (u64bit)fastastat.st_ctime)
+      (_header._fastaModificationTime != (uint64)fastastat.st_mtime)
+      (_header._fastaCreationTime     != (uint64)fastastat.st_ctime)
 #endif
-  if (_header._fastaFileSize         != (u64bit)fastastat.st_size) {
+  if (_header._fastaFileSize         != (uint64)fastastat.st_size) {
     fprintf(stderr, "fastaFile::constructIndex()-- stat mismatch.\n");
     fclose(I);
     return;
@@ -398,7 +398,7 @@ fastaFile::constructIndex(void) {
   char  indexname[FILENAME_MAX];
 
   strcpy(indexname, _filename);
-  u32bit l = strlen(_filename);
+  uint32 l = strlen(_filename);
   if ((l > 5) && (strcmp(_filename + l - 6, ".fasta") == 0))
     strcat(indexname, "idx");
   else
@@ -417,22 +417,22 @@ fastaFile::constructIndex(void) {
 
   //  Allocate some space for the index structures.
 
-  u32bit  indexMax = 64 * 1024 * 1024 / sizeof(fastaFileIndex);
-  u32bit  indexLen = 0;
+  uint32  indexMax = 64 * 1024 * 1024 / sizeof(fastaFileIndex);
+  uint32  indexLen = 0;
 
   _index = new fastaFileIndex [indexMax];
 
-  u32bit  namesMax = 32 * 1024 * 1024;
-  u32bit  namesLen = 0;
+  uint32  namesMax = 32 * 1024 * 1024;
+  uint32  namesLen = 0;
 
   _names = new char [namesMax];
 
   //  Some local storage
 
-  u64bit       seqStart;
-  u32bit       seqLen;
-  u32bit       seqLenMax = ~u32bitZERO;
-  u32bit       namePos;
+  uint64       seqStart;
+  uint32       seqLen;
+  uint32       seqLenMax = ~uint32ZERO;
+  uint32       namePos;
 
   readBuffer   ib(_filename);
   char         x = ib.read();
@@ -544,7 +544,7 @@ fastaFile::constructIndex(void) {
     _index[indexLen]._seqLength   = seqLen;
 
 #ifdef DEBUG
-    fprintf(stderr, "INDEX iid="u32bitFMT" len="u32bitFMT" pos="u64bitFMT"\n",
+    fprintf(stderr, "INDEX iid="uint32FMT" len="uint32FMT" pos="uint64FMT"\n",
             indexLen, seqLen, seqStart);
 #endif
 

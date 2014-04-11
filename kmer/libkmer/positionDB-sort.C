@@ -3,11 +3,11 @@
 
 
 void
-adjustHeap(u64bit *C,
-           u64bit *P, s64bit i, s64bit n) {
-  u64bit  c = C[i];
-  u64bit  p = P[i];
-  s64bit  j = (i << 1) + 1;  //  let j be the left child
+adjustHeap(uint64 *C,
+           uint64 *P, int64 i, int64 n) {
+  uint64  c = C[i];
+  uint64  p = P[i];
+  int64  j = (i << 1) + 1;  //  let j be the left child
 
   while (j < n) {
     if (j<n-1 && C[j] < C[j+1])
@@ -28,13 +28,13 @@ adjustHeap(u64bit *C,
 
 
 void
-positionDB::sortAndRepackBucket(u64bit b) {
-  u64bit st = _bucketSizes[b];
-  u64bit ed = _bucketSizes[b+1];
-  u32bit le = (u32bit)(ed - st);
+positionDB::sortAndRepackBucket(uint64 b) {
+  uint64 st = _bucketSizes[b];
+  uint64 ed = _bucketSizes[b+1];
+  uint32 le = (uint32)(ed - st);
 
   if (ed < st)
-    fprintf(stdout, "ERROR: Bucket "u64bitFMT" starts at "u64bitFMT" ends at "u64bitFMT"?\n", b, st, ed);
+    fprintf(stdout, "ERROR: Bucket "uint64FMT" starts at "uint64FMT" ends at "uint64FMT"?\n", b, st, ed);
 
   if (le == 0)
     return;
@@ -54,15 +54,15 @@ positionDB::sortAndRepackBucket(u64bit b) {
     _sortedMax = le + 1024;
     delete [] _sortedChck;
     delete [] _sortedPosn;
-    _sortedChck = new u64bit [_sortedMax];
-    _sortedPosn = new u64bit [_sortedMax];
+    _sortedChck = new uint64 [_sortedMax];
+    _sortedPosn = new uint64 [_sortedMax];
   }
 
   //  Unpack the bucket
   //
-  u64bit   lens[3] = {_chckWidth, _posnWidth, 1 + _sizeWidth};
-  u64bit   vals[3] = {0};
-  for (u64bit i=st, J=st * _wCnt; i<ed; i++, J += _wCnt) {
+  uint64   lens[3] = {_chckWidth, _posnWidth, 1 + _sizeWidth};
+  uint64   vals[3] = {0};
+  for (uint64 i=st, J=st * _wCnt; i<ed; i++, J += _wCnt) {
     getDecodedValues(_countingBuckets, J, 2, lens, vals);
     _sortedChck[i-st] = vals[0];
     _sortedPosn[i-st] = vals[1];
@@ -72,24 +72,24 @@ positionDB::sortAndRepackBucket(u64bit b) {
   //
   int unsetBucket = 0;
 
-  for (s64bit t=(le-2)/2; t>=0; t--) {
-    if (_sortedPosn[t] == u64bitMASK(_posnWidth)) {
+  for (int64 t=(le-2)/2; t>=0; t--) {
+    if (_sortedPosn[t] == uint64MASK(_posnWidth)) {
       unsetBucket = 1;
-      fprintf(stdout, "ERROR: unset posn bucket="u64bitFMT" t="s64bitFMT" le="u32bitFMT"\n", b, t, le);
+      fprintf(stdout, "ERROR: unset posn bucket="uint64FMT" t="int64FMT" le="uint32FMT"\n", b, t, le);
     }
 
     adjustHeap(_sortedChck, _sortedPosn, t, le);
   }
 
   if (unsetBucket)
-    for (u32bit t=0; t<le; t++)
-      fprintf(stdout, u32bitFMTW(4)"] chck="u64bitHEX" posn="u64bitFMT"\n", t, _sortedChck[t], _sortedPosn[t]);
+    for (uint32 t=0; t<le; t++)
+      fprintf(stdout, uint32FMTW(4)"] chck="uint64HEX" posn="uint64FMT"\n", t, _sortedChck[t], _sortedPosn[t]);
 
   //  Interchange the new maximum with the element at the end of the tree
   //
-  for (s64bit t=le-1; t>0; t--) {
-    u64bit           tc = _sortedChck[t];
-    u64bit           tp = _sortedPosn[t];
+  for (int64 t=le-1; t>0; t--) {
+    uint64           tc = _sortedChck[t];
+    uint64           tp = _sortedPosn[t];
 
     _sortedChck[t]      = _sortedChck[0];
     _sortedPosn[t]      = _sortedPosn[0];
@@ -103,11 +103,11 @@ positionDB::sortAndRepackBucket(u64bit b) {
   //  Scan the list of sorted mers, counting the number of distinct and unique,
   //  and the space needed in the position list.
 
-  u64bit   entries = 1;  //  For t=0
+  uint64   entries = 1;  //  For t=0
 
-  for (u32bit t=1; t<le; t++) {
+  for (uint32 t=1; t<le; t++) {
     if (_sortedChck[t-1] > _sortedChck[t])
-      fprintf(stdout, "ERROR: bucket="u64bitFMT" t="u32bitFMT" le="u32bitFMT": "u64bitHEX" > "u64bitHEX"\n",
+      fprintf(stdout, "ERROR: bucket="uint64FMT" t="uint32FMT" le="uint32FMT": "uint64HEX" > "uint64HEX"\n",
               b, t, le, _sortedChck[t-1], _sortedChck[t]);
 
     if (_sortedChck[t-1] != _sortedChck[t]) {
@@ -140,7 +140,7 @@ positionDB::sortAndRepackBucket(u64bit b) {
 
   //  Repack the sorted entries
   //
-  for (u64bit i=st, J=st * _wCnt; i<ed; i++, J += _wCnt) {
+  for (uint64 i=st, J=st * _wCnt; i<ed; i++, J += _wCnt) {
     vals[0] = _sortedChck[i-st];
     vals[1] = _sortedPosn[i-st];
     vals[2] = 0;

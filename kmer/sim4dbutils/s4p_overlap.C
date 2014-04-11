@@ -6,23 +6,23 @@
 //  Result: the number of bp that the two matches overlap in the
 //  genomic.
 //
-u32bit
+uint32
 findOverlap(sim4polish *A, sim4polish *B) {
 
   if ((A->_genID != B->_genID) || (A->_matchOrientation != B->_matchOrientation))
     return(0);
 
-  u32bit        length = 0;
-  u32bit        total  = 0;
+  uint32        length = 0;
+  uint32        total  = 0;
   intervalList  IL;
 
-  for (u32bit i=0; i<A->_numExons; i++) {
+  for (uint32 i=0; i<A->_numExons; i++) {
     length = A->_exons[i]._genTo - A->_exons[i]._genFrom + 1;
     total  += length;
     IL.add(A->_exons[i]._genFrom, length);
   }
 
-  for (u32bit i=0; i<B->_numExons; i++) {
+  for (uint32 i=0; i<B->_numExons; i++) {
     length = B->_exons[i]._genTo - B->_exons[i]._genFrom + 1;
     total  += length;
     IL.add(B->_exons[i]._genFrom, length);

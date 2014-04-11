@@ -5,7 +5,7 @@
 #include "util++.H"
 
 
-intervalList::intervalList(u32bit initialSize) {
+intervalList::intervalList(uint32 initialSize) {
   _isSorted = true;
   _isMerged = true;
   _listLen  = 0;
@@ -58,10 +58,10 @@ intervalList::add(intervalNumber position, intervalNumber length) {
 
   _list[_listLen].data = 0L;
 
-  if (data != ~u64bitZERO) {
+  if (data != ~uint64ZERO) {
     _list[_listLen].dataLen = 1;
     _list[_listLen].dataMax = 4;
-    _list[_listLen].data    = new u64bit [_list[_listLen].dataMax];
+    _list[_listLen].data    = new uint64 [_list[_listLen].dataMax];
     _list[_listLen].data[0] = data;
   }
 #endif
@@ -104,9 +104,9 @@ intervalList::sort(void) {
 
 
 void
-intervalList::merge(u32bit minOverlap) {
-  u32bit  thisInterval  = 0;
-  u32bit  nextInterval = 1;
+intervalList::merge(uint32 minOverlap) {
+  uint32  thisInterval  = 0;
+  uint32  nextInterval = 1;
 
   if (_listLen < 2)
     return;
@@ -204,8 +204,8 @@ intervalList::invert(intervalNumber lo, intervalNumber hi) {
 
   //  Create a new list to store the inversion
   //
-  u32bit             invLen = 0;
-  u32bit             invMax = _listLen + 2;
+  uint32             invLen = 0;
+  uint32             invMax = _listLen + 2;
   _intervalPair     *inv    = new _intervalPair [invMax];
 
   //  Add the first
@@ -217,7 +217,7 @@ intervalList::invert(intervalNumber lo, intervalNumber hi) {
   }
 
   //  Add the pieces
-  for (u32bit i=1; i<_listLen; i++) {
+  for (uint32 i=1; i<_listLen; i++) {
     if (_list[i-1].hi < _list[i].lo) {
       inv[invLen].lo = _list[i-1].hi;
       inv[invLen].hi = _list[i].lo;
@@ -247,7 +247,7 @@ intervalList::merge(intervalList *IL) {
   //bool  isSorted = _isSorted;
   //bool  isMerged = _isMerged;
 
-  for (u32bit i=0; i<IL->_listLen; i++)
+  for (uint32 i=0; i<IL->_listLen; i++)
     add(IL->_list[i].lo, IL->_list[i].hi - IL->_list[i].lo);
 
   //if (isSorted)  sort();
@@ -262,17 +262,17 @@ intervalList::intersect(intervalList &A,
   A.merge();
   B.merge();
 
-  u32bit  ai = 0;
-  u32bit  bi = 0;
+  uint32  ai = 0;
+  uint32  bi = 0;
 
   while ((ai < A.numberOfIntervals()) &&
          (bi < B.numberOfIntervals())) {
-    u32bit   al = A.lo(ai);
-    u32bit   ah = A.hi(ai);
-    u32bit   bl = B.lo(bi);
-    u32bit   bh = B.hi(bi);
-    u32bit   nl = 0;
-    u32bit   nh = 0;
+    uint32   al = A.lo(ai);
+    uint32   ah = A.hi(ai);
+    uint32   bl = B.lo(bi);
+    uint32   bh = B.hi(bi);
+    uint32   nl = 0;
+    uint32   nh = 0;
 
     //  If they intersect, make a new region
     //
@@ -311,27 +311,27 @@ intervalList::intersect(intervalList &A,
 //
 //  Naive implementation that is easy to verify (and that works on an unsorted list).
 //
-u32bit
+uint32
 intervalList::overlapping(intervalNumber    rangelo,
                           intervalNumber    rangehi,
-                          u32bit          *&intervals,
-                          u32bit           &intervalsLen,
-                          u32bit           &intervalsMax) {
+                          uint32          *&intervals,
+                          uint32           &intervalsLen,
+                          uint32           &intervalsMax) {
 
   if (intervals == 0L) {
     intervalsMax = 256;
-    intervals    = new u32bit [intervalsMax];
+    intervals    = new uint32 [intervalsMax];
   }
 
   intervalsLen = 0;
 
-  for (u32bit i=0; i<_listLen; i++) {
+  for (uint32 i=0; i<_listLen; i++) {
     if ((rangelo <= _list[i].hi) &&
         (rangehi >= _list[i].lo)) {
       if (intervalsLen >= intervalsMax) {
         intervalsMax *= 2;
-        u32bit *X = new u32bit [intervalsMax];
-        memcpy(X, intervals, sizeof(u32bit) * intervalsLen);
+        uint32 *X = new uint32 [intervalsMax];
+        memcpy(X, intervals, sizeof(uint32) * intervalsLen);
         delete [] intervals;
         intervals = X;
       }
@@ -358,10 +358,10 @@ intervalDepth_sort_helper(const void *a, const void *b) {
 
 
 intervalDepth::intervalDepth(intervalList &IL) {
-  u32bit                 idlen = IL.numberOfIntervals() * 2;
+  uint32                 idlen = IL.numberOfIntervals() * 2;
   intervalDepthRegions  *id    = new intervalDepthRegions [idlen];
 
-  for (u32bit i=0; i<IL.numberOfIntervals(); i++) {
+  for (uint32 i=0; i<IL.numberOfIntervals(); i++) {
     id[2*i  ].pos = IL.lo(i);
     id[2*i  ].cha = 1;
     id[2*i+1].pos = IL.hi(i);
@@ -375,19 +375,19 @@ intervalDepth::intervalDepth(intervalList &IL) {
 }
 
 
-intervalDepth::intervalDepth(intervalDepthRegions *id, u32bit idlen) {
+intervalDepth::intervalDepth(intervalDepthRegions *id, uint32 idlen) {
   qsort(id, idlen, sizeof(intervalDepthRegions), intervalDepth_sort_helper);
   computeIntervals(id, idlen);
 }
 
 
 void
-intervalDepth::computeIntervals(intervalDepthRegions *id, u32bit idlen) {
+intervalDepth::computeIntervals(intervalDepthRegions *id, uint32 idlen) {
 
   //  Scan the list, counting how many times we change depth.
   //
   _listMax = 1;
-  for (u32bit i=1; i<idlen; i++) {
+  for (uint32 i=1; i<idlen; i++) {
     if (id[i-1].pos != id[i].pos)
       _listMax++;
   }
@@ -404,7 +404,7 @@ intervalDepth::computeIntervals(intervalDepthRegions *id, u32bit idlen) {
   _list[_listLen].hi = id[0].pos;
   _list[_listLen].de = id[0].cha;
 
-  for (u32bit i=1; i<idlen; i++) {
+  for (uint32 i=1; i<idlen; i++) {
     //  Update the end of the current interval.
     _list[_listLen].hi = id[i].pos;
 

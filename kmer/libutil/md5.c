@@ -33,8 +33,8 @@
 
 
 typedef struct {
-  u32bit  state[4];                                   // state (ABCD)
-  u32bit  count[2];        // number of bits, modulo 2^64 (lsb first)
+  uint32  state[4];                                   // state (ABCD)
+  uint32  count[2];        // number of bits, modulo 2^64 (lsb first)
   unsigned char buffer[64];                           // input buffer
 } MD5_CTX;
 
@@ -43,9 +43,9 @@ static void MD5Init(MD5_CTX *);
 static void MD5Update(MD5_CTX *, unsigned char const *, size_t);
 static void MD5Final(unsigned char [16], MD5_CTX *);
 
-static void MD5Transform(u32bit [4], unsigned char const [64]);
-static void Encode(unsigned char *, u32bit *, unsigned int);
-static void Decode(u32bit *, unsigned char const *, unsigned int);
+static void MD5Transform(uint32 [4], unsigned char const [64]);
+static void Encode(unsigned char *, uint32 *, unsigned int);
+static void Decode(uint32 *, unsigned char const *, unsigned int);
 
 //  Constants for MD5Transform routine.
 #define S11 7
@@ -83,22 +83,22 @@ static unsigned char PADDING[64] = {
 //  FF, GG, HH, and II transformations for rounds 1, 2, 3, and 4.
 //  Rotation is separate from addition to prevent recomputation.
 #define FF(a, b, c, d, x, s, ac) { \
- (a) += F ((b), (c), (d)) + (x) + (u32bit)(ac); \
+ (a) += F ((b), (c), (d)) + (x) + (uint32)(ac); \
  (a) = ROTATE_LEFT ((a), (s)); \
  (a) += (b); \
   }
 #define GG(a, b, c, d, x, s, ac) { \
- (a) += G ((b), (c), (d)) + (x) + (u32bit)(ac); \
+ (a) += G ((b), (c), (d)) + (x) + (uint32)(ac); \
  (a) = ROTATE_LEFT ((a), (s)); \
  (a) += (b); \
   }
 #define HH(a, b, c, d, x, s, ac) { \
- (a) += H ((b), (c), (d)) + (x) + (u32bit)(ac); \
+ (a) += H ((b), (c), (d)) + (x) + (uint32)(ac); \
  (a) = ROTATE_LEFT ((a), (s)); \
  (a) += (b); \
   }
 #define II(a, b, c, d, x, s, ac) { \
- (a) += I ((b), (c), (d)) + (x) + (u32bit)(ac); \
+ (a) += I ((b), (c), (d)) + (x) + (uint32)(ac); \
  (a) = ROTATE_LEFT ((a), (s)); \
  (a) += (b); \
   }
@@ -125,10 +125,10 @@ void MD5Update (MD5_CTX *context, unsigned char const *input, size_t inputLen) {
   index = (unsigned int)((context->count[0] >> 3) & 0x3F);
 
   //  Update number of bits
-  if ((context->count[0] += ((u32bit)inputLen << 3))
-      < ((u32bit)inputLen << 3))
+  if ((context->count[0] += ((uint32)inputLen << 3))
+      < ((uint32)inputLen << 3))
     context->count[1]++;
-  context->count[1] += ((u32bit)inputLen >> 29);
+  context->count[1] += ((uint32)inputLen >> 29);
 
   partLen = 64 - index;
 
@@ -175,8 +175,8 @@ void MD5Final (unsigned char digest[16], MD5_CTX *context) {
 
 //  MD5 basic transformation. Transforms state based on block.
 //
-static void MD5Transform(u32bit state[4], unsigned char const block[64]) {
-  u32bit a = state[0], b = state[1], c = state[2], d = state[3], x[16];
+static void MD5Transform(uint32 state[4], unsigned char const block[64]) {
+  uint32 a = state[0], b = state[1], c = state[2], d = state[3], x[16];
 
   Decode(x, block, 64);
 
@@ -261,10 +261,10 @@ static void MD5Transform(u32bit state[4], unsigned char const block[64]) {
   memset (x, 0, sizeof(x));
 }
 
-//  Encodes input (u32bit) into output (unsigned char). Assumes len is
+//  Encodes input (uint32) into output (unsigned char). Assumes len is
 //  a multiple of 4.
 //
-static void Encode (unsigned char *output, u32bit *input, unsigned int len) {
+static void Encode (unsigned char *output, uint32 *input, unsigned int len) {
   unsigned int i, j;
 
   for (i = 0, j = 0; j < len; i++, j += 4) {
@@ -275,15 +275,15 @@ static void Encode (unsigned char *output, u32bit *input, unsigned int len) {
   }
 }
 
-//  Decodes input (unsigned char) into output (u32bit). Assumes len is
+//  Decodes input (unsigned char) into output (uint32). Assumes len is
 //  a multiple of 4.
 //
-static void Decode (u32bit *output, unsigned char const *input, unsigned int len) {
+static void Decode (uint32 *output, unsigned char const *input, unsigned int len) {
   unsigned int i, j;
 
   for (i = 0, j = 0; j < len; i++, j += 4)
-    output[i] = ((u32bit)input[j]) | (((u32bit)input[j+1]) << 8) |
-      (((u32bit)input[j+2]) << 16) | (((u32bit)input[j+3]) << 24);
+    output[i] = ((uint32)input[j]) | (((uint32)input[j+1]) << 8) |
+      (((uint32)input[j+2]) << 16) | (((uint32)input[j+3]) << 24);
 }
 
 
@@ -321,7 +321,7 @@ md5_toascii(md5_s *m, char *s) {
 }
 
 md5_s*
-md5_string(md5_s *m, char *s, u32bit l) {
+md5_string(md5_s *m, char *s, uint32 l) {
   MD5_CTX         ctx;
   unsigned char   dig[16];
   int             i = 0;
@@ -395,7 +395,7 @@ md5_increment_char(md5_increment_s *m, char s) {
 }
 
 md5_increment_s*
-md5_increment_block(md5_increment_s *m, char *s, u32bit l) {
+md5_increment_block(md5_increment_s *m, char *s, uint32 l) {
 
   if (m == NULL)
     m = md5_increment_initialize();

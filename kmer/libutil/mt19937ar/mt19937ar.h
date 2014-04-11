@@ -26,17 +26,17 @@
 struct mtctx {
   //  The array for the state vector
   //
-  u32bit  mt[MT_N];
+  uint32  mt[MT_N];
 
   //  The ordinal of the first uninitialized element --
   //  mti = N+1 -> element N is uninitialized
   //
-  u32bit  mti;
+  uint32  mti;
 
   //  Something
   //  mag01[x] = x * MT_MATRIX_A  for x=0,1
   //
-  u32bit  mag01[2];
+  uint32  mag01[2];
 };
 
 //  This is declared in util.h
