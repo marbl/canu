@@ -142,20 +142,29 @@ endif
 
 
 ifeq ($(OSTYPE), Darwin)
-  CC               = gcc-4.2
-  CXX              = g++-4.2
+  CC               = gcc
+  CXX              = g++
   ARCH_CFLAGS      = -D_THREAD_SAFE
+
+  #  Bogart, OpenMP, will not compile with clang.  It cannot find omp.h.
+  #CC  = clang 
+  #CXX = clang++
 
   ifeq ($(BUILDDEBUG), 1)
     ARCH_CFLAGS   += -g -Wall
   else
-    ARCH_CFLAGS   += -fast
+    ARCH_CFLAGS   += -O3
   endif
 
+  #  For gcc/g++
   ARCH_CFLAGS  += -D_GLIBCXX_PARALLEL -fopenmp
   ARCH_LDFLAGS += -D_GLIBCXX_PARALLEL -fopenmp
 
-  ARCH_CFLAGS += -fPIC -m64 -fmessage-length=0 -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare
+  #  For clang
+  #ARCH_CFLAGS  += 
+  #ARCH_LDFLAGS += 
+
+  ARCH_CFLAGS += -fPIC -m64 -fmessage-length=0 -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare
 # ARCH_CFLAGS += -Wshorten-64-to-32  # Wow, tough
 # ARCH_CFLAGS += -Wextra
 # ARCH_CFLAGS += -pedantic  (see above about pedantic)
@@ -204,7 +213,13 @@ endif
 
 CFLAGS          += $(ARCH_CFLAGS)
 CXXFLAGS        += $(ARCH_CFLAGS) $(ARCH_CXXFLAGS)
-LDFLAGS         += $(ARCH_LDFLAGS) -rdynamic
+
+#  -rdynamic is needed for the crash reporting, iirc.
+ifneq ($(OSTYPE), Darwin)
+  LDFLAGS         += $(ARCH_LDFLAGS) -rdynamic
+else
+  LDFLAGS         += $(ARCH_LDFLAGS)
+endif
 
 INC_IMPORT_DIRS += $(LOCAL_WORK)/src $(patsubst %, $(LOCAL_WORK)/src/%, $(strip $(SUBDIRS)))
 INC_IMPORT_DIRS += $(ARCH_INC)
