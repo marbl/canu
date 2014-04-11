@@ -67,24 +67,24 @@ protected:
   seqFile            *openFile(const char *filename);
 
 public:
-  u32bit              find(const char *sequencename) {
+  uint32              find(const char *sequencename) {
     fprintf(stderr, "gkpStoreFile::find()--  Not implemented.\n");
     exit(1);
-    return(~u32bitZERO);
+    return(~uint32ZERO);
   };
 
-  u32bit              getSequenceLength(u32bit iid) {
+  uint32              getSequenceLength(uint32 iid) {
     return(_clrEnd[iid] - _clrBeg[iid]);
   };
 
-  bool                getSequence(u32bit iid,
-                                  char *&h, u32bit &hLen, u32bit &hMax,
-                                  char *&s, u32bit &sLen, u32bit &sMax);
-  bool                getSequence(u32bit iid,
-                                  u32bit bgn, u32bit end, char *s);
+  bool                getSequence(uint32 iid,
+                                  char *&h, uint32 &hLen, uint32 &hMax,
+                                  char *&s, uint32 &sLen, uint32 &sMax);
+  bool                getSequence(uint32 iid,
+                                  uint32 bgn, uint32 end, char *s);
 
-  uint16              clrBeg(u32bit iid) { return(_clrBeg[iid]); };
-  uint16              clrEnd(u32bit iid) { return(_clrEnd[iid]); };
+  uint16              clrBeg(uint32 iid) { return(_clrBeg[iid]); };
+  uint16              clrEnd(uint32 iid) { return(_clrEnd[iid]); };
 
 private:
   void                clear(void);

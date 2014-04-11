@@ -205,9 +205,9 @@ public:
       uint32  i  = 0;
       uint32  iX = 0;
 
-      //fprintf(stderr, "distinct: "u64bitFMT"\n", MF->numberOfDistinctMers());
-      //fprintf(stderr, "unique:   "u64bitFMT"\n", MF->numberOfUniqueMers());
-      //fprintf(stderr, "total:    "u64bitFMT"\n", MF->numberOfTotalMers());
+      //fprintf(stderr, "distinct: "F_U64"\n", MF->numberOfDistinctMers());
+      //fprintf(stderr, "unique:   "F_U64"\n", MF->numberOfUniqueMers());
+      //fprintf(stderr, "total:    "F_U64"\n", MF->numberOfTotalMers());
 
       //fprintf(stderr, "Xcoverage zero 1 0 "F_U64"\n", MF->histogram(1));
 
@@ -868,8 +868,8 @@ mertrimComputation::analyze(void) {
   memset(disconnect, 0, sizeof(uint32) * (allocLen));
 
   while (rMS->nextMer()) {
-    u32bit  posBgn = rMS->thePositionInSequence();
-    u32bit  posEnd = rMS->thePositionInSequence() + g->merSize;
+    uint32  posBgn = rMS->thePositionInSequence();
+    uint32  posEnd = rMS->thePositionInSequence() + g->merSize;
 
     assert(posEnd <= seqLen);
 
@@ -884,7 +884,7 @@ mertrimComputation::analyze(void) {
       disconnect[posBgn-1] = disconnect[posBgn] = 'D';
 
     //  Add coverage for the good mer.
-    for (u32bit add=posBgn; add<posEnd; add++)
+    for (uint32 add=posBgn; add<posEnd; add++)
       coverage[add]++;
 
   }  //  Over all mers
@@ -2395,7 +2395,7 @@ main(int argc, char **argv) {
 
   ss->setNumberOfWorkers(g->numThreads);
 
-  for (u32bit w=0; w<g->numThreads; w++)
+  for (uint32 w=0; w<g->numThreads; w++)
     ss->setThreadData(w, new mertrimThreadData(g));  //  these leak
 
   ss->run(g, g->beVerbose);  //  true == verbose

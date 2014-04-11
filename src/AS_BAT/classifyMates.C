@@ -368,7 +368,7 @@ main(int argc, char **argv) {
 
   ss->setNumberOfWorkers(numThreads);
 
-  for (u32bit w=0; w<numThreads; w++)
+  for (uint32 w=0; w<numThreads; w++)
     ss->setThreadData(w, new cmThreadData());  //  these leak
 
   ss->run(g, beVerbose);

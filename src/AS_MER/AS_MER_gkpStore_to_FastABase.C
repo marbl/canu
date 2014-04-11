@@ -126,9 +126,9 @@ gkpStoreFile::openFile(const char *name) {
 
 
 bool
-gkpStoreFile::getSequence(u32bit iid,
-                          char *&h, u32bit &hLen, u32bit &hMax,
-                          char *&s, u32bit &sLen, u32bit &sMax) {
+gkpStoreFile::getSequence(uint32 iid,
+                          char *&h, uint32 &hLen, uint32 &hMax,
+                          char *&s, uint32 &sLen, uint32 &sMax) {
 
   if (sMax == 0) {
     sMax = AS_READ_MAX_NORMAL_LEN+1;
@@ -171,8 +171,8 @@ gkpStoreFile::getSequence(u32bit iid,
 
 
 bool
-gkpStoreFile::getSequence(u32bit iid,
-                          u32bit bgn, u32bit end, char *s) {
+gkpStoreFile::getSequence(uint32 iid,
+                          uint32 bgn, uint32 end, char *s) {
 
   if (iid == 0)
     fprintf(stderr, "gkpStoreFile::getSequence(part)-- someone requested iid==0?\n"), exit(1);

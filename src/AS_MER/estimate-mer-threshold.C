@@ -39,7 +39,7 @@ main(int argc, char **argv) {
 
   merylStreamReader *MF  = 0L;
 
-  u32bit             maxCount = 0;
+  uint32             maxCount = 0;
 
   argc = AS_configure(argc, argv);
 
@@ -71,9 +71,9 @@ main(int argc, char **argv) {
   uint64  total               = 0;
   uint32  Xcoverage           = 8;
 
-  fprintf(stderr, "distinct: "u64bitFMT"\n", MF->numberOfDistinctMers());
-  fprintf(stderr, "unique:   "u64bitFMT"\n", MF->numberOfUniqueMers());
-  fprintf(stderr, "total:    "u64bitFMT"\n", MF->numberOfTotalMers());
+  fprintf(stderr, "distinct: "F_U64"\n", MF->numberOfDistinctMers());
+  fprintf(stderr, "unique:   "F_U64"\n", MF->numberOfUniqueMers());
+  fprintf(stderr, "total:    "F_U64"\n", MF->numberOfTotalMers());
 
   //  Pass 0: try to deduce the X coverage we have.  The
   //  pattern we should see in mer counts is an initial spike
@@ -92,9 +92,9 @@ main(int argc, char **argv) {
   uint32  i  = 0;
   uint32  iX = 0;
 
-  fprintf(stderr, "distinct: "u64bitFMT"\n", MF->numberOfDistinctMers());
-  fprintf(stderr, "unique:   "u64bitFMT"\n", MF->numberOfUniqueMers());
-  fprintf(stderr, "total:    "u64bitFMT"\n", MF->numberOfTotalMers());
+  fprintf(stderr, "distinct: "F_U64"\n", MF->numberOfDistinctMers());
+  fprintf(stderr, "unique:   "F_U64"\n", MF->numberOfUniqueMers());
+  fprintf(stderr, "total:    "F_U64"\n", MF->numberOfTotalMers());
 
   fprintf(stderr, "Xcoverage zero 1 0 "F_U64"\n", MF->histogram(1));
 
@@ -136,7 +136,7 @@ main(int argc, char **argv) {
       maxCount = i;
   }
 
-  fprintf(stderr, "Set maxCount to "u32bitFMT", which will cover %.2f%% of distinct mers and %.2f%% of all mers.\n",
+  fprintf(stderr, "Set maxCount to "F_U32", which will cover %.2f%% of distinct mers and %.2f%% of all mers.\n",
           i, 100.0 * distinct / totalUsefulDistinct, 100.0 * total / totalUsefulAll);
 
 
@@ -167,11 +167,11 @@ main(int argc, char **argv) {
 
     maxCount = i;
 
-    fprintf(stderr, "Reset maxCount to "u32bitFMT", which will cover %.2f%% of distinct mers and %.2f%% of all mers.\n",
+    fprintf(stderr, "Reset maxCount to "F_U32", which will cover %.2f%% of distinct mers and %.2f%% of all mers.\n",
             maxCount, 100.0 * distinct / totalUsefulDistinct, 100.0 * total / totalUsefulAll);
   }
 
-  fprintf(stdout, u32bitFMT"\n", maxCount);
+  fprintf(stdout, F_U32"\n", maxCount);
 
   return(0);
 }

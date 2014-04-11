@@ -38,9 +38,9 @@ gkpStoreChain::gkpStoreChain(char const *gkpName,
 
   _numberOfSequences = 0;
 
-  _chainIID    = ~u32bitZERO;
-  _chainLen    = new u32bit [_maxChains];
-  _chainBgnFrg = new u32bit [_maxChains];
+  _chainIID    = ~uint32ZERO;
+  _chainLen    = new uint32 [_maxChains];
+  _chainBgnFrg = new uint32 [_maxChains];
 
   for (uint32 i=0; i<_maxChains; i++) {
     _chainLen[i]    = 0;
@@ -53,11 +53,11 @@ gkpStoreChain::gkpStoreChain(char const *gkpName,
 
   while (stm->next(&_frg)) {
     if (_frg.gkFragment_getIsDeleted() == false) {
-      u32bit  iid = _frg.gkFragment_getReadIID();
+      uint32  iid = _frg.gkFragment_getReadIID();
 #ifdef FULLREAD
-      u32bit  len = _frg.gkFragment_getSequenceLength();
+      uint32  len = _frg.gkFragment_getSequenceLength();
 #else
-      u32bit  len = _frg.gkFragment_getClearRegionLength();
+      uint32  len = _frg.gkFragment_getClearRegionLength();
 #endif
 
       if (_chainLen[_numberOfSequences] + len > _maxChainLen) {
@@ -130,9 +130,9 @@ gkpStoreChain::openFile(const char *name) {
 
 
 bool
-gkpStoreChain::getSequence(u32bit iid,
-                           char *&h, u32bit &hLen, u32bit &hMax,
-                           char *&s, u32bit &sLen, u32bit &sMax) {
+gkpStoreChain::getSequence(uint32 iid,
+                           char *&h, uint32 &hLen, uint32 &hMax,
+                           char *&s, uint32 &sLen, uint32 &sMax) {
 
   if (_chainLen[iid] == 0)
     return(false);
@@ -148,7 +148,7 @@ gkpStoreChain::getSequence(u32bit iid,
     h    = new char [hMax];
   }
 
-  sprintf(h, "iid:"u32bitFMT"-"u32bitFMT, _chainBgnFrg[iid], _chainBgnFrg[iid+1]-1);
+  sprintf(h, "iid:"F_U32"-"F_U32, _chainBgnFrg[iid], _chainBgnFrg[iid+1]-1);
 
   hLen = strlen(h);
   sLen = 0;
@@ -175,8 +175,8 @@ gkpStoreChain::getSequence(u32bit iid,
 
 
 bool
-gkpStoreChain::getSequence(u32bit iid,
-                           u32bit bgn, u32bit end, char *s) {
+gkpStoreChain::getSequence(uint32 iid,
+                           uint32 bgn, uint32 end, char *s) {
 
   char   *t = s;
 
@@ -189,11 +189,11 @@ gkpStoreChain::getSequence(u32bit iid,
 
   if ((_chainIID != iid) || (_frgLengths == 0L)) {
     delete [] _frgLengths;
-    _frgLengths = new u32bit [_chainBgnFrg[iid+1] - _chainBgnFrg[iid]];
+    _frgLengths = new uint32 [_chainBgnFrg[iid+1] - _chainBgnFrg[iid]];
     _chainIID   = iid;
 
-    for (u32bit i=0; i<_chainBgnFrg[iid+1] - _chainBgnFrg[iid]; i++)
-      _frgLengths[i] = ~u32bitZERO;
+    for (uint32 i=0; i<_chainBgnFrg[iid+1] - _chainBgnFrg[iid]; i++)
+      _frgLengths[i] = ~uint32ZERO;
 
     _lastFrg = _chainBgnFrg[iid];
     _lastPos = 0;
@@ -217,7 +217,7 @@ gkpStoreChain::getSequence(u32bit iid,
   //  Skip fragments that come before bgn
   //
   while ((frg < _chainBgnFrg[iid+1]) &&
-         (_frgLengths[frg-bas] != ~u32bitZERO) &&
+         (_frgLengths[frg-bas] != ~uint32ZERO) &&
          (pos + _frgLengths[frg-bas] < bgn)) {
     pos += _frgLengths[frg-bas];
     frg++;
@@ -234,11 +234,11 @@ gkpStoreChain::getSequence(u32bit iid,
     _gkp->gkStore_getFragment(frg, &_frg, GKFRAGMENT_SEQ);
 
 #ifdef FULLREAD
-    u32bit  clr = 0;
-    u32bit  len = _frg.gkFragment_getSequenceLength();
+    uint32  clr = 0;
+    uint32  len = _frg.gkFragment_getSequenceLength();
 #else
-    u32bit  clr = _frg.gkFragment_getClearRegionBegin();
-    u32bit  len = _frg.gkFragment_getClearRegionLength();
+    uint32  clr = _frg.gkFragment_getClearRegionBegin();
+    uint32  len = _frg.gkFragment_getClearRegionLength();
 #endif
 
     _frgLengths[frg-bas] = len + 1;

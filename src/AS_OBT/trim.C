@@ -123,7 +123,7 @@ findGoodQuality(double  *qltD,
   flen = fpos;
   rlen = rpos;
 
-  //fprintf(stderr, "qltLen = "uint32FMT"  flen="uint32FMT"  rlen="uint32FMT"\n", qltLen, flen, rlen);
+  //fprintf(stderr, "qltLen = "F_U32"  flen="F_U32"  rlen="F_U32"\n", qltLen, flen, rlen);
 
   uint32   winningFPos  = 0;
   uint32   winningRPos  = 0;

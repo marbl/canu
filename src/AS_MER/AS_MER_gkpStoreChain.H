@@ -53,21 +53,21 @@ protected:
   seqFile            *openFile(const char *filename);
 
 public:
-  u32bit              find(const char *sequencename) {
+  uint32              find(const char *sequencename) {
     fprintf(stderr, "gkpStoreChain::find()--  Not implemented.\n");
     exit(1);
-    return(~u32bitZERO);
+    return(~uint32ZERO);
   };
 
-  u32bit              getSequenceLength(u32bit iid) {
+  uint32              getSequenceLength(uint32 iid) {
     return(_chainLen[iid]);
   };
 
-  bool                getSequence(u32bit iid,
-                                  char *&h, u32bit &hLen, u32bit &hMax,
-                                  char *&s, u32bit &sLen, u32bit &sMax);
-  bool                getSequence(u32bit iid,
-                                  u32bit bgn, u32bit end, char *s);
+  bool                getSequence(uint32 iid,
+                                  char *&h, uint32 &hLen, uint32 &hMax,
+                                  char *&s, uint32 &sLen, uint32 &sMax);
+  bool                getSequence(uint32 iid,
+                                  uint32 bgn, uint32 end, char *s);
 
 private:
   void                clear(void);
@@ -75,17 +75,17 @@ private:
   gkStore            *_gkp;
   gkFragment          _frg;
 
-  u32bit              _maxChains;
-  u32bit              _maxChainLen;
+  uint32              _maxChains;
+  uint32              _maxChainLen;
 
-  u32bit              _chainIID;
-  u32bit             *_chainLen;
-  u32bit             *_chainBgnFrg;
+  uint32              _chainIID;
+  uint32             *_chainLen;
+  uint32             *_chainBgnFrg;
 
-  u32bit             *_frgLengths;
+  uint32             *_frgLengths;
 
-  u32bit              _lastFrg;
-  u32bit              _lastPos;
+  uint32              _lastFrg;
+  uint32              _lastPos;
 };
 
 

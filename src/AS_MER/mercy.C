@@ -51,14 +51,14 @@ FILE  *dumpMCSF = 0L;
 FILE  *dumpMCMF = 0L;
 char   merstring[1024];
 
-u32bit
+uint32
 findMode(char *name) {
   merylStreamReader  *M = new merylStreamReader(name);
-  u32bit             *H = new u32bit [16384];
+  uint32             *H = new uint32 [16384];
 
   fprintf(stderr, "Finding mode of '%s'\n", name);
 
-  for (u32bit i=0; i<16384; i++)
+  for (uint32 i=0; i<16384; i++)
     H[i] = 0;
 
   while (M->validMer()) {
@@ -67,12 +67,12 @@ findMode(char *name) {
     M->nextMer();
   }
 
-  u32bit  mi = 16;
-  for (u32bit i=mi; i<16384; i++)
+  uint32  mi = 16;
+  for (uint32 i=mi; i<16384; i++)
     if (H[i] > H[mi])
       mi = i;
 
-  fprintf(stderr, "Mode of '%s' is "u32bitFMT"\n", name, mi);
+  fprintf(stderr, "Mode of '%s' is "F_U32"\n", name, mi);
 
   return(mi);
 }
@@ -82,14 +82,14 @@ void
 compare(merylStreamReader *F,
         merylStreamReader *C,
         kMer              &minmer,
-        u32bit             mode,
-        u32bit             R[NUMCATEGORIES][NUMCATEGORIES]) {
-  u32bit  Ftype = 0;
-  u32bit  Ctype = 0;
+        uint32             mode,
+        uint32             R[NUMCATEGORIES][NUMCATEGORIES]) {
+  uint32  Ftype = 0;
+  uint32  Ctype = 0;
   kMer    Fmer  = F->theFMer();
   kMer    Cmer  = C->theFMer();
-  u32bit  Fcnt  = F->theCount();
-  u32bit  Ccnt  = C->theCount();
+  uint32  Fcnt  = F->theCount();
+  uint32  Ccnt  = C->theCount();
 
   if (Fcnt == 0)
     Ftype = 0;
@@ -135,9 +135,9 @@ compare(merylStreamReader *F,
       if (dumpFlag)
         if (Ftype == 0)
           if (Ctype == 1)
-            fprintf(dumpSCZF, ">"u32bitFMT"\n%s\n", Ccnt, Cmer.merToString(merstring));
+            fprintf(dumpSCZF, ">"F_U32"\n%s\n", Ccnt, Cmer.merToString(merstring));
           else
-            fprintf(dumpMCZF, ">"u32bitFMT"\n%s\n", Ccnt, Cmer.merToString(merstring));
+            fprintf(dumpMCZF, ">"F_U32"\n%s\n", Ccnt, Cmer.merToString(merstring));
     }
     return;
   }
@@ -154,9 +154,9 @@ compare(merylStreamReader *F,
       //  Again, save the mer since it's in contigs, but not fragments.
       if (dumpFlag)
         if (Ctype == 1)
-          fprintf(dumpSCZF, ">"u32bitFMT"\n%s\n", Ccnt, Cmer.merToString(merstring));
+          fprintf(dumpSCZF, ">"F_U32"\n%s\n", Ccnt, Cmer.merToString(merstring));
         else
-          fprintf(dumpMCZF, ">"u32bitFMT"\n%s\n", Ccnt, Cmer.merToString(merstring));
+          fprintf(dumpMCZF, ">"F_U32"\n%s\n", Ccnt, Cmer.merToString(merstring));
     }
 
     return;
@@ -173,25 +173,25 @@ compare(merylStreamReader *F,
   if (dumpFlag) {
     if (Ftype < Ctype)
       if (Ctype == 2)
-        fprintf(dumpMCSF, ">"u32bitFMT"\n%s\n", Ccnt, Cmer.merToString(merstring));
+        fprintf(dumpMCSF, ">"F_U32"\n%s\n", Ccnt, Cmer.merToString(merstring));
       else
-        fprintf(dumpMCMF, ">"u32bitFMT"\n%s\n", Ccnt, Cmer.merToString(merstring));
+        fprintf(dumpMCMF, ">"F_U32"\n%s\n", Ccnt, Cmer.merToString(merstring));
 
     if ((Ftype == 0) && (Ctype == 1))
-      fprintf(dumpSCZF, ">"u32bitFMT"\n%s\n", Ccnt, Cmer.merToString(merstring));
+      fprintf(dumpSCZF, ">"F_U32"\n%s\n", Ccnt, Cmer.merToString(merstring));
   }
 }
 
 
 void
 output(char              *title,
-       u32bit             mode,
-       u32bit             R[NUMCATEGORIES][NUMCATEGORIES]) {
+       uint32             mode,
+       uint32             R[NUMCATEGORIES][NUMCATEGORIES]) {
 
   fprintf(stdout, "\n\n%s\n", title);
   fprintf(stdout, "(frags)    |      zero |       one |     <= 10 |    <= 100 |    <= inf | (contigs)\n");
 
-  for (u32bit i=0; i<6; i++) {
+  for (uint32 i=0; i<6; i++) {
     switch (i) {
       case 0:  fprintf(stdout, "zero       ");  break;
       case 1:  fprintf(stdout, "one        ");  break;
@@ -201,8 +201,8 @@ output(char              *title,
       case 5:  fprintf(stdout, "<= inf     ");  break;
       default: fprintf(stdout, "?????????  ");  break;
     }
-    for (u32bit j=0; j<5; j++)
-      fprintf(stdout, u32bitFMTW(12), R[i][j]);
+    for (uint32 j=0; j<5; j++)
+      fprintf(stdout, "%12"F_U32P, R[i][j]);
     fprintf(stdout, "\n");
   }
 }
@@ -218,8 +218,8 @@ main(int argc, char **argv) {
   merylStreamReader  *DC = 0L;
   merylStreamReader  *CO = 0L;
 
-  u32bit              AFmode = 0;
-  u32bit              TFmode = 0;
+  uint32              AFmode = 0;
+  uint32              TFmode = 0;
 
   char                dumpSCZFname[1024] = {0};  //  single contig, zero frags
   char                dumpMCZFname[1024] = {0};  //  low contig, zero frags
@@ -286,8 +286,8 @@ main(int argc, char **argv) {
 
   //  Check mersizes.
   //
-  u32bit  merSize = 0;
-  u32bit  ms[5] = { 0 };
+  uint32  merSize = 0;
+  uint32  ms[5] = { 0 };
 
   if (AF)  merSize = ms[0] = AF->merSize();
   if (TF)  merSize = ms[1] = TF->merSize();
@@ -305,11 +305,11 @@ main(int argc, char **argv) {
 
   if (differ) {
     fprintf(stderr, "error:  mer size differ.\n");
-    fprintf(stderr, "        AF - "u32bitFMT"\n", ms[0]);
-    fprintf(stderr, "        TF - "u32bitFMT"\n", ms[1]);
-    fprintf(stderr, "        AC - "u32bitFMT"\n", ms[2]);
-    fprintf(stderr, "        DC - "u32bitFMT"\n", ms[3]);
-    fprintf(stderr, "        CO - "u32bitFMT"\n", ms[4]);
+    fprintf(stderr, "        AF - "F_U32"\n", ms[0]);
+    fprintf(stderr, "        TF - "F_U32"\n", ms[1]);
+    fprintf(stderr, "        AC - "F_U32"\n", ms[2]);
+    fprintf(stderr, "        DC - "F_U32"\n", ms[3]);
+    fprintf(stderr, "        CO - "F_U32"\n", ms[4]);
     exit(1);
   }
 
@@ -323,14 +323,14 @@ main(int argc, char **argv) {
       fprintf(stderr, "Failed to open the dump files: %s\n", strerror(errno)), exit(1);
   }
 
-  u32bit   AFvsAC[NUMCATEGORIES][NUMCATEGORIES];
-  u32bit   AFvsDC[NUMCATEGORIES][NUMCATEGORIES];
-  u32bit   AFvsCO[NUMCATEGORIES][NUMCATEGORIES];
-  u32bit   TFvsAC[NUMCATEGORIES][NUMCATEGORIES];
-  u32bit   TFvsDC[NUMCATEGORIES][NUMCATEGORIES];
-  u32bit   TFvsCO[NUMCATEGORIES][NUMCATEGORIES];
-  for (u32bit i=0; i<NUMCATEGORIES; i++)
-    for (u32bit j=0; j<NUMCATEGORIES; j++) {
+  uint32   AFvsAC[NUMCATEGORIES][NUMCATEGORIES];
+  uint32   AFvsDC[NUMCATEGORIES][NUMCATEGORIES];
+  uint32   AFvsCO[NUMCATEGORIES][NUMCATEGORIES];
+  uint32   TFvsAC[NUMCATEGORIES][NUMCATEGORIES];
+  uint32   TFvsDC[NUMCATEGORIES][NUMCATEGORIES];
+  uint32   TFvsCO[NUMCATEGORIES][NUMCATEGORIES];
+  for (uint32 i=0; i<NUMCATEGORIES; i++)
+    for (uint32 j=0; j<NUMCATEGORIES; j++) {
       AFvsAC[i][j] = 0;
       AFvsDC[i][j] = 0;
       AFvsCO[i][j] = 0;

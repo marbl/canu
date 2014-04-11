@@ -47,20 +47,20 @@ const char *mainid = "$Id$";
 class kmerhit {
 public:
   union {
-    u64bit  num;
+    uint64  num;
 
     struct {
-      u64bit   tseq:30;              //  sequence in the table
-      u64bit   tpos:AS_OVS_POSBITS;  //  position in that sequence
-      u64bit   qpos:AS_OVS_POSBITS;  //  position in the query sequence
-      u64bit   cnt:8;                //  count of the kmer
-      u64bit   pal:1;                //  palindromic ; 0 = nope,    1 = yup
-      u64bit   fwd:1;                //  orientation ; 0 = reverse, 1 = forward
-      u64bit   pad:2;
+      uint64   tseq:30;              //  sequence in the table
+      uint64   tpos:AS_OVS_POSBITS;  //  position in that sequence
+      uint64   qpos:AS_OVS_POSBITS;  //  position in the query sequence
+      uint64   cnt:8;                //  count of the kmer
+      uint64   pal:1;                //  palindromic ; 0 = nope,    1 = yup
+      uint64   fwd:1;                //  orientation ; 0 = reverse, 1 = forward
+      uint64   pad:2;
     } val;
   } dat;
 
-  void  setInteger(u64bit tseq, u64bit cnt, u64bit qpos, u64bit tpos, u64bit pal, u64bit fwd) {
+  void  setInteger(uint64 tseq, uint64 cnt, uint64 qpos, uint64 tpos, uint64 pal, uint64 fwd) {
 
     //  Threshold cnt to the maximum allowed.
     if (cnt > 255)
@@ -125,8 +125,8 @@ public:
 
   ~ovmGlobalData() {
 
-    //fprintf(stderr, "Found "u64bitFMT" mer hits.\n", merfound);
-    //fprintf(stderr, "Found "u64bitFMT" overlaps.\n", ovlfound);
+    //fprintf(stderr, "Found "F_U64" mer hits.\n", merfound);
+    //fprintf(stderr, "Found "F_U64" overlaps.\n", ovlfound);
 
     AS_OVS_closeBinaryOverlapFile(outputFile);
 
@@ -325,11 +325,11 @@ public:
   void
   addHit(seqStream   *SS,
          AS_IID       iid,
-         u64bit       qpos,
-         u64bit       pos,
-         u64bit       cnt,
-         u64bit       pal,
-         u64bit       fwd) {
+         uint64       qpos,
+         uint64       pos,
+         uint64       cnt,
+         uint64       pal,
+         uint64       fwd) {
 
     uint32  seq = SS->sequenceNumberOfPosition(pos);
 
@@ -364,20 +364,20 @@ public:
 
   kMerBuilder  *qKB;
 
-  u64bit        posnFLen;
-  u64bit        posnFMax;
-  u64bit       *posnF;
+  uint64        posnFLen;
+  uint64        posnFMax;
+  uint64       *posnF;
 
-  u64bit        posnRLen;
-  u64bit        posnRMax;
-  u64bit       *posnR;
+  uint64        posnRLen;
+  uint64        posnRMax;
+  uint64       *posnR;
 
-  u32bit        hitsLen;
-  u32bit        hitsMax;
+  uint32        hitsLen;
+  uint32        hitsMax;
   kmerhit      *hits;
 
-  u64bit        merfound;
-  u64bit        ovlfound;
+  uint64        merfound;
+  uint64        ovlfound;
 };
 
 
@@ -437,19 +437,19 @@ public:
 
 
 
-u32bit
+uint32
 ovmWorker_analyzeReadForThreshold(ovmGlobalData    *g,
                                   ovmThreadData    *t,
                                   ovmComputation   *s,
                                   merStream        *sMSTR,
                                   uint32           *sSPAN) {
 
-  u32bit  maxCount = 0;
-  u32bit  cnt = 0;
-  u32bit  ave = 0;
+  uint32  maxCount = 0;
+  uint32  cnt = 0;
+  uint32  ave = 0;
 
   while (sMSTR->nextMer()) {
-    u32bit  c = (u32bit)g->tPS->countExact(sMSTR->theFMer());
+    uint32  c = (uint32)g->tPS->countExact(sMSTR->theFMer());
 
     if (c > 1) {
       sSPAN[cnt]  = c;
@@ -458,16 +458,16 @@ ovmWorker_analyzeReadForThreshold(ovmGlobalData    *g,
     }
   }
 
-  u32bit  minc = 0;  //  Min count observed
-  u32bit  maxc = 0;  //  Max count observed
+  uint32  minc = 0;  //  Min count observed
+  uint32  maxc = 0;  //  Max count observed
 
-  u32bit  medi = 0;  //  Median count
-  u32bit  mean = 0;  //  Mean count;
+  uint32  medi = 0;  //  Median count
+  uint32  mean = 0;  //  Mean count;
 
-  u32bit  mode = 0;  //  Modal count
-  u32bit  mcnt = 0;  //  Times we saw the modal count
+  uint32  mode = 0;  //  Modal count
+  uint32  mcnt = 0;  //  Times we saw the modal count
 
-  u32bit  mtmp = 0;  //  A temporary for counting the mode
+  uint32  mtmp = 0;  //  A temporary for counting the mode
 
   if (cnt > 0) {
     std::sort(sSPAN, sSPAN + cnt);
@@ -482,7 +482,7 @@ ovmWorker_analyzeReadForThreshold(ovmGlobalData    *g,
 
     mtmp = 1;
 
-    for (u32bit i=1; i<cnt; i++) {
+    for (uint32 i=1; i<cnt; i++) {
       mean += sSPAN[i];
 
       if (sSPAN[i] == sSPAN[i-1])
@@ -532,7 +532,7 @@ ovmWorker(void *G, void *T, void *S) {
                                            false, true);
   uint32           *sSPAN  = new uint32 [s->end - s->beg];
 
-  u32bit            maxCountForFrag = g->maxCountGlobal;
+  uint32            maxCountForFrag = g->maxCountGlobal;
 
   switch (g->maxCountType) {
     case MAX_COUNT_GLOBAL:
@@ -557,10 +557,10 @@ ovmWorker(void *G, void *T, void *S) {
   t->posnRLen = 0;
 
   while (sMSTR->nextMer()) {
-    u64bit  qpos   = sMSTR->thePositionInSequence();
-    u64bit  fcount = 0;
-    u64bit  rcount = 0;
-    u64bit  tcount = 0;
+    uint64  qpos   = sMSTR->thePositionInSequence();
+    uint64  fcount = 0;
+    uint64  rcount = 0;
+    uint64  tcount = 0;
 
     sSPAN[qpos] = sMSTR->theFMer().getMerSpan();
     assert(qpos <= s->end - s->beg);
@@ -569,7 +569,7 @@ ovmWorker(void *G, void *T, void *S) {
       g->tPS->getExact(sMSTR->theFMer(), t->posnF, t->posnFMax, t->posnFLen, fcount);
 
       if (fcount < maxCountForFrag) {
-        for (u32bit i=0; i<t->posnFLen; i++)
+        for (uint32 i=0; i<t->posnFLen; i++)
           t->addHit(g->tSS, s->iid, qpos, t->posnF[i], fcount, 1, 0);
       }
     } else {
@@ -630,9 +630,9 @@ ovmWorker(void *G, void *T, void *S) {
 
 
       if (tcount < maxCountForFrag) {
-        for (u32bit i=0; i<t->posnFLen; i++)
+        for (uint32 i=0; i<t->posnFLen; i++)
           t->addHit(g->tSS, s->iid, qpos, t->posnF[i], tcount, 0, 1);
-        for (u32bit i=0; i<t->posnRLen; i++)
+        for (uint32 i=0; i<t->posnRLen; i++)
           t->addHit(g->tSS, s->iid, qpos, t->posnR[i], tcount, 0, 0);
       }
     }
@@ -655,7 +655,7 @@ ovmWorker(void *G, void *T, void *S) {
   //
   std::sort(t->hits, t->hits + t->hitsLen);
 
-  for (u32bit i=0; i<t->hitsLen; i++)
+  for (uint32 i=0; i<t->hitsLen; i++)
     t->hits[i].unpackInteger();
 
 #if 0
@@ -663,9 +663,9 @@ ovmWorker(void *G, void *T, void *S) {
   //  big identical overlaps will have lots and lots of mers in
   //  common.
   //
-  for (u32bit i=0; i<t->hitsLen; i++) {
+  for (uint32 i=0; i<t->hitsLen; i++) {
     if (i != t->hitsLen) {
-      fprintf(stderr, u32bitFMT"\t"F_U64"\t"u32bitFMT"\t"F_U64"\t%c\t"u32bitFMT"\n",
+      fprintf(stderr, F_U32"\t"F_U64"\t"F_U32"\t"F_U64"\t%c\t"F_U32"\n",
               t->hits[i].dat.val.tseq, t->hits[i].dat.val.tpos,
               s->iid,  t->hits[i].dat.val.qpos,
               t->hits[i].dat.val.pal ? 'p' : (t->hits[i].dat.val.fwd ? 'f' : 'r'),
@@ -679,8 +679,8 @@ ovmWorker(void *G, void *T, void *S) {
   memset(&overlap, 0, sizeof(OVSoverlap));
 
 
-  for (u32bit i=0; i<t->hitsLen; ) {
-    //fprintf(stderr, "FILTER STARTS i="u32bitFMT" tseq="F_U64" tpos="F_U64" qpos="F_U64"\n",
+  for (uint32 i=0; i<t->hitsLen; ) {
+    //fprintf(stderr, "FILTER STARTS i="F_U32" tseq="F_U64" tpos="F_U64" qpos="F_U64"\n",
     //          i, t->hits[i].dat.val.tseq, t->hits[i].dat.val.tpos, t->hits[i].dat.val.qpos);
 
     //  By the definition of our sort, the least common mer is the
@@ -746,9 +746,9 @@ ovmWorker(void *G, void *T, void *S) {
 
     //  Now, skip ahead until we find the next pair.
     //
-    u64bit  lastiid = t->hits[i].dat.val.tseq;
+    uint64  lastiid = t->hits[i].dat.val.tseq;
     while ((i < t->hitsLen) && (t->hits[i].dat.val.tseq == lastiid)) {
-      //fprintf(stderr, "FILTER OUT i="u32bitFMT" tseq="F_U64" tpos="F_U64" qpos="F_U64"\n",
+      //fprintf(stderr, "FILTER OUT i="F_U32" tseq="F_U64" tpos="F_U64" qpos="F_U64"\n",
       //        i, t->hits[i].dat.val.tseq, t->hits[i].dat.val.tpos, t->hits[i].dat.val.qpos);
       i++;
     }
@@ -889,7 +889,7 @@ main(int argc, char **argv) {
 
   ss->setNumberOfWorkers(g->numThreads);
 
-  for (u32bit w=0; w<g->numThreads; w++)
+  for (uint32 w=0; w<g->numThreads; w++)
     ss->setThreadData(w, new ovmThreadData(g));  //  these leak
 
   ss->run(g, g->beVerbose);  //  true == verbose
