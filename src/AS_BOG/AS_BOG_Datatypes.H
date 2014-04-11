@@ -33,9 +33,6 @@ static const char *rcsid_INCLUDE_AS_BOG_DATATYPES = "$Id$";
 #include <set>
 #include <list>
 #include <vector>
-#include <iostream>
-#include <cmath>
-#include <limits>
 #include <algorithm>
 
 using namespace std;
