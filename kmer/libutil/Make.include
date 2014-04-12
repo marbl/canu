@@ -33,7 +33,7 @@ src    := $/bigQueue.C \
           $/splitToWords.H \
           $/sweatShop.C \
           $/sweatShop.H \
-          $/u32bitList.H \
+          $/uint32List.H \
           $/unaryEncoding.h \
           $/util++.H \
           $/util.c \
