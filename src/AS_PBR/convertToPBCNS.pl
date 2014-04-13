@@ -78,14 +78,32 @@ sub setGlobal ($$) {
     $val =~ s/\"/\\\"/g;
     $val =~ s/\\\$/\$/g;
     $val =~ s/\$/\\\$/g;
+
+    if ($var eq "consensus") {
+       if ($val eq "pbdagcon") {
+          setGlobal("batch", 1);
+          setGlobal("runBlasr", 1);
+       } elsif ($val eq "falcon" ){
+          setGlobal("batch", 100);
+          setGlobal("runBlasr", 0);
+       } elsif ($val eq "fast") {
+          setGlobal("batch", 1);
+          setGlobal("runBlasr", 0);
+       } elsif ($val eq "pbutgcns") {
+          setGlobal("batch", 1);
+          setGlobal("runBlasr", 0);
+       } else {
+          die "Unknown consensus type $val specified.\n";
+       }
+    }
 }
 
 
-sub flushFalcon($$) {
+sub flushFalcon($) {
    my $output = shift @_;
-   my $runBlasr = shift @_;
+   my $consensus = getGlobal("consensus");
 
-   if ($runBlasr == 1) { return; }
+   if ($consensus ne "falcon") { return; }
 
    my $threads = getGlobal("threads");
    my $cov = getGlobal("coverage");
@@ -110,26 +128,25 @@ sub flushFalcon($$) {
    }
 }
 
-sub processLayout($$$$$$) {
+sub processLayout($$$$$) {
    my $output = shift @_;
    my $id = shift @_;
    my $cns = shift @_;
    my $hashref = shift @_;
    my $sensitive = shift @_;
-   my $runBlasr = shift @_;
    my %hash = %$hashref;
    my $prefix = getGlobal("prefix");
    my $path = getGlobal("smrtpath");
    my $threads = getGlobal("threads");
    my $cov = getGlobal("coverage");
    my $length = getGlobal("length");
-   my $align = getGlobal("align");
+   my $consensus = getGlobal("consensus");
 
    my $alnCount = scalar keys %hash;
    $cns =~ s/^\s+|\s+$//g;
 
    # just output our frakenconsensus
-   if ($align == 0) {
+   if ($consensus eq "fast") {
       open(OUT, ">> $output") or die("Couldn't open '$output'", undef);
       print OUT ">$id\n";
       print OUT "$cns\n";
@@ -137,6 +154,7 @@ sub processLayout($$$$$$) {
       return;
    }
 
+   #  now we format our data for whatever consensus was selected
    if ($alnCount == 0) {
       return;
    } elsif ($alnCount == 1) {
@@ -152,8 +170,7 @@ sub processLayout($$$$$$) {
    } elsif (length($cns) < $length) {
       # skip short stuff
       return;
-   } else {
-      if ($runBlasr) {
+   } elsif ($consensus eq "pbdagcon") {
          open(CNS, "> $prefix.cns.fasta") or die("Couldn't open '$prefix.cns.fasta'", undef);
          print CNS ">$id\n";
          print CNS "$cns\n";
@@ -162,7 +179,9 @@ sub processLayout($$$$$$) {
          open(ALN, "> $prefix.aln.fasta") or die ("Couldn't open '$prefix.aln.fasta'", undef);
          for (keys %hash) {
             print ALN ">$_\n";
-            my $aln = $hash{$_};
+            my $str = $hash{$_};
+            my @tokenized = split('\s+', $str);
+            my $aln =  $tokenized[2];
             $aln =~ s/^\s+|\s+$//g;
             print ALN "$aln\n";
          }
@@ -172,7 +191,7 @@ sub processLayout($$$$$$) {
             system("$path/blasr $prefix.aln.fasta $prefix.cns.fasta -sdpDel 5 -minMatch 10 -maxMatch 16 -bestn 1 -m 5 -nproc $threads > $prefix.m5 2>/dev/null");
          } else {
             system("$path/blasr $prefix.aln.fasta $prefix.cns.fasta -maxMatch 16 -bestn 1 -m 5 -nproc $threads > $prefix.m5 2>/dev/null");
-         } 
+         }
          if ($? != 0) { 
             die "Error: blasr could not run successfully"
          }
@@ -180,30 +199,46 @@ sub processLayout($$$$$$) {
          if ($? != 0) {
             die "Error: pbdagon could not run successfully"
          }
+   } elsif ($consensus eq "pbutgcns") {
+      open(CNS, "> $prefix.cns.in") or die ("Couldn't open '$prefix.cns.in'", undef);
+      print CNS "$id $cns\n";
+      for (keys %hash) {
+         my $str = $hash{$_};
+         my @tokenized = split('\s+', $str);
+         my $aln = $tokenized[2];
+         $aln =~ s/^\s+|\s+$//g;
+         print CNS "$_ $tokenized[0] $tokenized[1] $aln\n";
+      }
+      close(CNS);
+      system("$path/pbutgcns -j $threads $prefix.cns.in >> $output 2>/dev/null");
+      if ($? != 0) {
+         die "Error: pbutgcns could not run successfully"
+      }
+   } elsif ($consensus eq "falcon") {
+      if ($layCounter == 0) {
+         open(CNS, "> $prefix.cns.in") or die("Couldn't open '$prefix.cns.in'", undef);
       } else {
-         if ($layCounter == 0) {
-            open(CNS, "> $prefix.cns.in") or die("Couldn't open '$prefix.cns.in'", undef);
-         } else {
-            open(CNS, ">> $prefix.cns.in") or die("Couldn't open '$prefix.cns.in'", undef);
-         }
-         $id =~ s/^\s+|\s+$//g;
-         $cns =~ s/^\s+|\s+$//g;
-         print CNS "$id $cns\n";
-         for (keys %hash) {
-            my $aln = $hash{$_};
-            $aln =~ s/^\s+|\s+$//g;
+         open(CNS, ">> $prefix.cns.in") or die("Couldn't open '$prefix.cns.in'", undef);
+      }
+      $id =~ s/^\s+|\s+$//g;
+      $cns =~ s/^\s+|\s+$//g;
+      print CNS "$id $cns\n";
+      for (keys %hash) {
+         my $str = $hash{$_};
+         my @tokenized = split('\s+', $str);
+         my $aln =  $tokenized[2];
+         $aln =~ s/^\s+|\s+$//g;
 
-            print CNS "$_ $aln\n";
-         }
-         print CNS "+ +\n";
+         print CNS "$_ $aln\n";
+      }
+      print CNS "+ +\n";
+      close(CNS);
+      $layCounter++;
+      if ($layCounter > getGlobal("batch")) {
+         flushFalcon($output);
+         open(CNS, "> $prefix.cns.in") or die("Couldn't open '$prefix.cns.in'", undef);
          close(CNS);
-         $layCounter++;
-         if ($layCounter > getGlobal("batch")) {
-            flushFalcon($output, $runBlasr);
-            open(CNS, "> $prefix.cns.in") or die("Couldn't open '$prefix.cns.in'", undef);
-            close(CNS);
-            $layCounter = 0;
-         }
+         $layCounter = 0;
       }
    }
 }
@@ -330,14 +365,13 @@ sub processTig($$$) {
    print STDERR "Converted $counter unitigs\n";
 }
 
-sub processLayouts($$$$) {
+sub processLayouts($$$) {
    my $input = shift @_;
    my $output = shift @_;
    my $sensitive = shift @_;
-   my $runBlasr = shift @_;
 
-   my $align = getGlobal("align");
    my $coverage = getGlobal("maxCoverage");
+   my $consensus = getGlobal("consensus");
    my $lastEnd = 0;
    my $lastOffset=0;
    my $cns = "";
@@ -356,7 +390,7 @@ sub processLayouts($$$$) {
       my $hashLen = scalar keys %toAlign;
 
       if ($lastID eq "" || $lastID ne $tokenized[1]) {
-         if ($lastID ne "") { processLayout($output, $lastID, $cns, \%toAlign, $sensitive, $runBlasr); } 
+         if ($lastID ne "") { processLayout($output, $lastID, $cns, \%toAlign, $sensitive); } 
          for (keys %toAlign) { delete $toAlign{$_}; }
          $cns = ' ' x ($tokenized[3] + 1);
          for (keys %bpCov) { delete $bpCov{$_}; }
@@ -377,7 +411,7 @@ sub processLayouts($$$$) {
          substr($cns, $start+$lastOffset, $end-$start) = $tokenized[7];
       }
       my $belowCov = 0;
-      if ($sensitive && $runBlasr) {
+      if ($sensitive && $consensus eq "pbdagcon") {
          for (my $i = $start; $i < $end; $i++) {
             if (!defined($bpCov{$i})) {
                $bpCov{$i} = 0;
@@ -388,30 +422,28 @@ sub processLayouts($$$$) {
             $bpCov{$i} = $bpCov{$i} + 1;
          }
       }
-      if ($align && ($belowCov > length($tokenized[6])*0.2 || $runBlasr == 0 || $sensitive == 0 )) {
-         $toAlign{$tokenized[0]} = $tokenized[6];
+      if ($belowCov > length($tokenized[6])*0.2 || $consensus ne "pbdagcon" || $sensitive == 0) {
+         $toAlign{$tokenized[0]} = $start+$lastOffset . " " . $end . " " .  $tokenized[6];
       }
       $lastID = $tokenized[1];
    }
    if ($lastID ne "") {
-      processLayout($output, $lastID, $cns, \%toAlign, $sensitive, $runBlasr);
+      processLayout($output, $lastID, $cns, \%toAlign, $sensitive);
    }
-   flushFalcon($output, $runBlasr);
+   flushFalcon($output);
    close(F);
 }
 
 my $err = 0;
+setGlobal("consensus", "pbdagcon");
 setGlobal("prefix", "tmp");
 setGlobal("coverage", 0);
 setGlobal("threads", 1);
-setGlobal("batch", 1);
 setGlobal("maxCoverage", 50);
-setGlobal("align", 1);
 
 my $input = undef;
 my $output = undef;
 my $inputSequences = undef;
-my $runBlasr = 1;
 
 # finally, command-line parameters take precedence
 while (scalar(@ARGV) > 0) {
@@ -450,13 +482,9 @@ while (scalar(@ARGV) > 0) {
     } elsif ($arg eq "-sequence") {
         $inputSequences = shift @ARGV;
 
-    } elsif ($arg eq "-experimental") {
-        $runBlasr = 0;
-        setGlobal("batch", 100);
+    } elsif ($arg eq "-consensus") {
+        setGlobal("consensus", shift @ARGV);
 
-    } elsif ($arg eq "-fast") {
-        setGlobal("align", 0);
-   
     } else {
        print STDERR "Unknown parameter " + $err + "\n";
        $err++;
@@ -476,21 +504,49 @@ if ($err > 0 || !defined($input) || !defined($output)) {
    print STDERR "  -length               Minimum sequence length to keep\n";
    exit(1);
 }
-# find blasr
-my $BLASR = getGlobal("smrtpath");
-if (!defined($BLASR) || $BLASR eq "") {
-   # try to use path
-   my $blasrPath = `which blasr`;
-   chomp $blasrPath;
-   my @t = split '/', "$blasrPath";
-   pop @t;                      #  blasr 
-   $BLASR = join '/', @t;  #  path to the assembler
-   setGlobal("smrtpath", $BLASR);
+
+my $consensus = getGlobal("consensus");
+if ($consensus eq "falcon") {
+   my $falconPath = getGlobal("falconpath");
+   if (! -e "$falconPath/falcon_sense.py") {
+       print STDERR "Error: selected falcon but it was not available, using pbdagcon instead\n";
+       setGlobal("consensus", "pbdagcon");
+   }
 }
-# if we really can't find it just give up
-if ((! -e "$BLASR/blasr" || ! -e "$BLASR/pbdagcon") && ! -e "$BLASR/falcon_wrap.py") {
-   print STDERR "Error, could not find blasr/smrtportal in path. Please update your path or specify a location using -path\n";
-   exit(1);
+if ($consensus eq "pbutgcns") {
+   my $path = getGlobal("smrtpath"); 
+   if (!defined($path) || $path eq "" || ! -e "$path/pbutgcns") {
+      # try to use path
+      my $binPath = `which pbutgcns`;
+      chomp $binPath;
+      my @t = split '/', "$binPath";
+      pop @t;                      #  pbutgncs
+      $path = join '/', @t;  #  path to the assembler
+   }
+   if (! -e "$path/pbutgcns") {
+       print STDERR "Error: selected pbutgcns but it was not available, using pbdagcon instead\n";
+       setGlobal("consensus", "pbdagcon");
+   } else {
+      setGlobal("smrtpath", $path);
+   }
+}
+if ($consensus eq "pbdagcon") {
+   # find blasr
+   my $BLASR = getGlobal("smrtpath");
+   if (!defined($BLASR) || $BLASR eq "") {
+      # try to use path
+      my $blasrPath = `which blasr`;
+      chomp $blasrPath;
+      my @t = split '/', "$blasrPath";
+      pop @t;                      #  blasr 
+      $BLASR = join '/', @t;  #  path to the assembler
+      setGlobal("smrtpath", $BLASR);
+   }
+   # if we really can't find it just give up
+   if ((! -e "$BLASR/blasr" || ! -e "$BLASR/pbdagcon")) {
+      print STDERR "Error, could not find blasr/smrtportal in path. Please update your path or specify a location using -path\n";
+      exit(1);
+   }
 }
 
 # clear output file
@@ -501,9 +557,9 @@ close(O);
 if (defined($inputSequences)) {
    my $out = getGlobal("prefix") . ".layout";
    processTig($input, $inputSequences, $out);
-   processLayouts($out, $output, 0, $runBlasr);
+   processLayouts($out, $output, 0);
 } else {
-   processLayouts($input, $output, 1, $runBlasr);
+   processLayouts($input, $output, 1);
 }
 # cleanup
-system("rm -f " . getGlobal("prefix") . "*");
+#system("rm -f " . getGlobal("prefix") . "*");
