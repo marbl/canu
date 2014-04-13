@@ -837,6 +837,7 @@ main (int argc, char **argv) {
   char         *editName       = NULL;
   char         *replaceName    = NULL;
   bool          sameVersion    = true;
+  bool		append	       = false;
   char         *buildName      = NULL;
 
   uint32        minNreads      = 0;
@@ -973,6 +974,9 @@ main (int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-N") == 0) {
       sameVersion = false;
+
+    } else if (strcmp(argv[arg], "-A") == 0) {
+       append = true;
 
     } else if (strcmp(argv[arg], "-compress") == 0) {
       opType = OPERATION_COMPRESS;
@@ -1127,7 +1131,7 @@ main (int argc, char **argv) {
     if (sameVersion)
       tigStore = new MultiAlignStore(tigName, tigVers, tigPartU, tigPartC, TRUE, true, false);  //  default
     else
-      tigStore = new MultiAlignStore(tigName, tigVers, tigPartU, tigPartC, TRUE, false, false);
+      tigStore = new MultiAlignStore(tigName, tigVers, tigPartU, tigPartC, TRUE, false, append);
 
     MultiAlignT  *ma       = CreateEmptyMultiAlignT();
     bool          isUnitig = false;
