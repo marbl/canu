@@ -283,7 +283,7 @@ main(int argc, char **argv) {
   double   *singleReadCoverage            = new double [maxID];
 
   memset(singleReadCoverageHistogram, 0, sizeof(uint32) * 1001);
-  memset(singleReadCoverage,          0, sizeof(double) * 1001);
+  memset(singleReadCoverage,          0, sizeof(double) * maxID);
 
   uint32    numReadsPerUnitigMax = maxID + 1;
   uint32   *numReadsPerUnitig    = new uint32 [numReadsPerUnitigMax];
