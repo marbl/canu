@@ -33,10 +33,6 @@ using namespace std;
 
 
 
-#define CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH 1000
-
-
-
 //  Stats on repeat labeling of input unitigs.
 //
 class ruLabelStat {
@@ -118,7 +114,8 @@ main(int argc, char **argv) {
   double            singleReadMaxCoverage     = 1.0;    //  Reads covering more than this will demote the unitig
   uint32            lowCovDepth               = 2;
   double            lowCovFractionAllowed     = 1.0;
-  uint32            maxLength                 = UINT32_MAX;
+  uint32            tooLong                   = UINT32_MAX;
+  uint32            tooShort                  = 1000;
   uint32            minReads                  = 2;
   double            minPopulous               = 0;
 
@@ -179,8 +176,11 @@ main(int argc, char **argv) {
       if (minPopulous > 1.0)
         minPopulous = 0;
 
-    } else if (strcmp(argv[arg], "-length") == 0) {
-      maxLength = atoi(argv[++arg]);  //  Unitigs longer than this cannot be demoted
+    } else if (strcmp(argv[arg], "-long") == 0) {
+      tooLong = atoi(argv[++arg]);  //  Unitigs longer than this cannot be demoted
+
+    } else if (strcmp(argv[arg], "-short") == 0) {
+      tooShort = atoi(argv[++arg]);  //  Unitigs shorter than this are demoted
 
 
     } else {
@@ -201,22 +201,34 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -g <G>       Mandatory, path G to a gkpStore directory.\n");
     fprintf(stderr, "  -t <T> <v>   Mandatory, path T to a tigStore, and version V.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -e P         Microhet probability\n");
-    fprintf(stderr, "  -i C         Microhet cutoff\n");
+    fprintf(stderr, "  -e P         Microhet probability (default 1e-5)\n");
+    fprintf(stderr, "  -i C         Microhet cutoff (default -1)\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -j U         Unitig is not unique if astat is below U (cgbUniqueCutoff)\n");
-    fprintf(stderr, "  -k D         (unused) (cgbDefinitelyUniqueCutoff)\n");
+    fprintf(stderr, "  -j J         Unitig is not unique if astat is below J (cgbUniqueCutoff)\n");
+    fprintf(stderr, "  -k K         (unused) (cgbDefinitelyUniqueCutoff)\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -span F      Unitig is not unique if a single read spans more than fraction F (default 1.0) of unitig\n");
     fprintf(stderr, "  -lowcov D F  Unitig is not unique if fraction F (default 1.0) of unitig is below read depth D (default 2)\n");
     fprintf(stderr, "  -reads R     Unitig is not unique if unitig has fewer than R (default 2) reads\n");
     fprintf(stderr, "               If R is fractional, the least populous unitigs containing fraction R of reads are marked as repeat\n");
     fprintf(stderr, "               Example: unitigs with 9 or fewer reads contain 10%% of the reads.  -reads 0.10 would mark these are repeat.\n");
-    fprintf(stderr, "  -length L    Unitig is forced unique if unitig is at least L (default unlimited) bases long\n");
+    fprintf(stderr, "  -long L      Unitig is unique if unitig is at least L (default unlimited) bases long\n");
+    fprintf(stderr, "  -short S     Unitig is not unique if unitig is shorter than S (default 1000) bases long\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -o <name>    Prefix for output files.\n");
     fprintf(stderr, "  -n           Do not update the tigStore.\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "Algorithm:  The first rule to trigger will mark the unitig.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  1)  A unitig with a single read is NOT unique.\n");
+    fprintf(stderr, "  2)  A unitig with fewer than R (-reads) reads is NOT unique.\n");
+    fprintf(stderr, "  3)  A unitig with a single read spanning fraction F (-span) of the unitig is NOT unique.\n");
+    fprintf(stderr, "  4)  A unitig longer than L (-length) bases IS unique.\n");
+    fprintf(stderr, "  5)  A unitig with astat less than J (-j) is NOT unique.\n");
+    fprintf(stderr, "  6)  A unitig with microhet probability P (-e) and astat below C (-i) is NOT unique.\n");
+    fprintf(stderr, "  7)  A unitig with fraction F below coverage D (-lowcov) is NOT unique.\n");
+    fprintf(stderr, "  8)  A unitig shorter than S (-short) bases long is NOT unique.\n");
+    fprintf(stderr, "  9)  Otherwise, the unitig IS unique.\n");
 
     if (gkpName == NULL)
       fprintf(stderr, "No gatekeeper store (-g option) supplied.\n");
@@ -261,7 +273,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "  minReads                 recomputed based on least populous fraction %.4f\n", minPopulous);
   else
     fprintf(stderr, "  minReads                 %u\n", minReads);
-  fprintf(stderr, "  maxLength                %u\n", maxLength);
+  fprintf(stderr, "  tooLong                  %u\n", tooLong);
+  fprintf(stderr, "  tooShort                 %u\n", tooShort);
 
   //
   //  Load fragment data
@@ -471,10 +484,19 @@ main(int argc, char **argv) {
       isUnique = false;
     }
 
-    else if (maLen >= maxLength) {
-      fprintf(outLOG, "unitig %d not repeat -- too long, %u > allowed %u\n",
+    else if (singleReadCoverage[ma->maID] > singleReadMaxCoverage) {
+      fprintf(outLOG, "unitig %d not unique -- single read spans fraction %f of unitig (>= %f)\n",
               ma->maID,
-              maLen, maxLength);
+              singleReadCoverage[ma->maID],
+              singleReadMaxCoverage);
+      repeat_SingleSpan += maLen;
+      isUnique = false;
+    }
+
+    else if (maLen >= tooLong) {
+      fprintf(outLOG, "unitig %d IS unique -- too long to be repeat, %u > allowed %u\n",
+              ma->maID,
+              maLen, tooLong);
       isUnique = true;
     }
 
@@ -492,15 +514,6 @@ main(int argc, char **argv) {
               tigStore->getUnitigMicroHetProb(ma->maID), cgbMicrohetProb,
               tigStore->getUnitigCoverageStat(ma->maID), cgbApplyMicrohetCutoff);
       repeat_MicroHet += maLen;
-      isUnique = false;
-    }
-
-    else if (singleReadCoverage[ma->maID] > singleReadMaxCoverage) {
-      fprintf(outLOG, "unitig %d not unique -- single read spans fraction %f of unitig (>= %f)\n",
-              ma->maID,
-              singleReadCoverage[ma->maID],
-              singleReadMaxCoverage);
-      repeat_SingleSpan += maLen;
       isUnique = false;
     }
 
@@ -527,9 +540,9 @@ main(int argc, char **argv) {
     }
 #endif
 
-    else if (maLen < CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH) {
+    else if (maLen < tooShort) {
       fprintf(outLOG, "unitig %d not unique -- length %d too short, need to be at least %d\n",
-              ma->maID, maLen, CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH);
+              ma->maID, maLen, tooShort);
       repeat_Short += maLen;
       isUnique = false;
     }
