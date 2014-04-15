@@ -108,15 +108,19 @@ main(int argc, char **argv) {
   FILE             *outLOG = NULL;
   FILE             *outSTA = NULL;
 
+  //  MicroHet probability is actually the probability of the sequence being UNIQUE, based on
+  //  microhet considerations.  Falling below threshhold makes something a repeat.
   double            cgbApplyMicrohetCutoff    = -1;     //  Basically turns it off, unless enabled
   double            cgbMicrohetProb           = 1.e-5;  //  Scores less than this are considered repeats
+
   double            cgbUniqueCutoff           = CGB_UNIQUE_CUTOFF;
   double            cgbDefinitelyUniqueCutoff = CGB_UNIQUE_CUTOFF;
-  double            singleReadMaxCoverage     = 1.0;    //  Reads covering more than this will demote the unitig; 0.9
+  double            singleReadMaxCoverage     = 1.0;    //  Reads covering more than this will demote the unitig
   uint32            lowCovDepth               = 2;
-  double            lowCovFractionAllowed     = 1.0;  //  1. / 3.;
+  double            lowCovFractionAllowed     = 1.0;
   uint32            maxLength                 = UINT32_MAX;
   uint32            minReads                  = 2;
+  double            minPopulous               = 0;
 
   AS_IID            bgnID = 0;
   AS_IID            endID = 0;
@@ -168,7 +172,12 @@ main(int argc, char **argv) {
       lowCovFractionAllowed  = atof(argv[++arg]);  //  If unitig has more than this fraction low coverage, it is demoted
 
     } else if (strcmp(argv[arg], "-reads") == 0) {
-      minReads = atoi(argv[++arg]);  //  If unitig has fewer than this number of reads it is demoted
+      arg++;
+      minReads    = atoi(argv[arg]);  //  If unitig has fewer than this number of reads it is demoted
+      minPopulous = atof(argv[arg]);
+
+      if (minPopulous > 1.0)
+        minPopulous = 0;
 
     } else if (strcmp(argv[arg], "-length") == 0) {
       maxLength = atoi(argv[++arg]);  //  Unitigs longer than this cannot be demoted
@@ -189,13 +198,24 @@ main(int argc, char **argv) {
   if (err) {
     fprintf(stderr, "usage: %s -g gkpStore -t tigStore version\n", argv[0]);
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -g <G>     Mandatory, path G to a gkpStore directory.\n");
-    fprintf(stderr, "  -t <T> <v> Mandatory, path T to a tigStore, and version V.\n");
+    fprintf(stderr, "  -g <G>       Mandatory, path G to a gkpStore directory.\n");
+    fprintf(stderr, "  -t <T> <v>   Mandatory, path T to a tigStore, and version V.\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "  -e P         Microhet probability\n");
+    fprintf(stderr, "  -i C         Microhet cutoff\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "  -j U         Unitig is not unique if astat is below U (cgbUniqueCutoff)\n");
+    fprintf(stderr, "  -k D         (unused) (cgbDefinitelyUniqueCutoff)\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -o <name>  Prefix for output files.\n");
-    fprintf(stderr, "  -n         Do not update the tigStore.\n");
+    fprintf(stderr, "  -span F      Unitig is not unique if a single read spans more than fraction F (default 1.0) of unitig\n");
+    fprintf(stderr, "  -lowcov D F  Unitig is not unique if fraction F (default 1.0) of unitig is below read depth D (default 2)\n");
+    fprintf(stderr, "  -reads R     Unitig is not unique if unitig has fewer than R (default 2) reads\n");
+    fprintf(stderr, "               If R is fractional, the least populous unitigs containing fraction R of reads are marked as repeat\n");
+    fprintf(stderr, "               Example: unitigs with 9 or fewer reads contain 10%% of the reads.  -reads 0.10 would mark these are repeat.\n");
+    fprintf(stderr, "  -length L    Unitig is forced unique if unitig is at least L (default unlimited) bases long\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -o <name>    Prefix for output files.\n");
+    fprintf(stderr, "  -n           Do not update the tigStore.\n");
     fprintf(stderr, "\n");
 
     if (gkpName == NULL)
@@ -211,7 +231,7 @@ main(int argc, char **argv) {
   }
 
   gkpStore     = new gkStore(gkpName, false, false);
-  tigStore     = new MultiAlignStore(tigName, tigVers, 0, 0, true, true, false);
+  tigStore     = new MultiAlignStore(tigName, tigVers, 0, 0, doUpdate, doUpdate, false);
 
   if (endID == 0)
     endID = tigStore->numUnitigs();
@@ -234,14 +254,20 @@ main(int argc, char **argv) {
   if (errno)
     fprintf(stderr, "Failed to open '%s': %s\n", outName, strerror(errno)), exit(1);
 
-  fprintf(stderr, "singleReadMaxCoverage    %f\n", singleReadMaxCoverage);
-  fprintf(stderr, "lowCoverage              %u coverage %f fraction\n", lowCovDepth, lowCovFractionAllowed);
-  fprintf(stderr, "minReads                 %u\n", minReads);
-  fprintf(stderr, "maxLength                %u\n", maxLength);
+  fprintf(stderr, "Command Line options:\n");
+  fprintf(stderr, "  singleReadMaxCoverage    %f\n", singleReadMaxCoverage);
+  fprintf(stderr, "  lowCoverage              %u coverage %f fraction\n", lowCovDepth, lowCovFractionAllowed);
+  if (minPopulous > 0)
+    fprintf(stderr, "  minReads                 recomputed based on least populous fraction %.4f\n", minPopulous);
+  else
+    fprintf(stderr, "  minReads                 %u\n", minReads);
+  fprintf(stderr, "  maxLength                %u\n", maxLength);
 
   //
   //  Load fragment data
   //
+
+  fprintf(stderr, "Loading fragment data.\n");
 
   double      globalRate     = 0;
 
@@ -270,6 +296,8 @@ main(int argc, char **argv) {
   //    global number of reads per unitig
   //
 
+  fprintf(stderr, "Generating statistics.\n");
+
   uint32    covHistogramMax      = 1048576;
   uint32   *covHistogram         = new uint32   [covHistogramMax];
   uint32  **utgCovHistogram      = new uint32 * [maxID];
@@ -289,7 +317,6 @@ main(int argc, char **argv) {
   uint32   *numReadsPerUnitig    = new uint32 [numReadsPerUnitigMax];
 
   memset(numReadsPerUnitig, 0, sizeof(uint32) * numReadsPerUnitigMax);
-
 
   for (uint32 uu=0; uu<maxID; uu++) {
     MultiAlignT  *ma    = tigStore->loadMultiAlign(uu, isUnitig);
@@ -354,13 +381,60 @@ main(int argc, char **argv) {
   //  Analyze our collected data, decide on some thresholds.
   //
 
+  fprintf(stderr, "Analyzing statistics.\n");
 
+  if ((minPopulous > 0.0) &&
+      (minPopulous < 1.0)) {
+    uint32    maxReadsPerUnitig = 0;
+
+    for (uint32 uu=0; uu<maxID; uu++)
+      maxReadsPerUnitig = MAX(maxReadsPerUnitig, numReadsPerUnitig[uu] + 1);
+
+    uint32   *totReadsPerNumReads  = new uint32 [maxReadsPerUnitig];
+    uint32    totReads             = 0;
+
+    memset(totReadsPerNumReads, 0, sizeof(uint32) * maxReadsPerUnitig + 1);
+
+    for (uint32 uu=0; uu<maxID; uu++) {
+      totReadsPerNumReads[numReadsPerUnitig[uu]] += numReadsPerUnitig[uu];
+      totReads                                   += numReadsPerUnitig[uu];
+    }
+
+    double   xx = 0.0;
+
+    for (minReads=0; xx < minPopulous; minReads++)
+      xx += (double)totReadsPerNumReads[minReads] / totReads;
+
+    minReads--;
+    xx -= (double)totReadsPerNumReads[minReads] / totReads;
+
+    fprintf(stderr, "  minReads                 %u based on least populous unitigs with fraction %.4f of reads (wanted fraction %.4f)\n",
+            minReads, xx, minPopulous);
+
+    uint32  hist[101] = {0};
+    double  vals[101] = {0};
+    
+    xx = 0.0;
+
+    for (uint32 ff=0; ff<maxReadsPerUnitig; ff++) {
+      xx += (double)totReadsPerNumReads[ff] / totReads;
+      assert(xx <= 1.0 + 1e9 * ff);  //  For rounding issues
+      hist[(int32)(100 * xx)] = ff;
+      vals[(int32)(100 * xx)] = xx;
+    }
+    for (uint32 xx=0; xx<101; xx++)
+      if (hist[xx] > 0)
+        fprintf(outSTA, "minReads %u with fraction %.04f of reads\n", hist[xx], vals[xx]);
+
+    delete [] totReadsPerNumReads;
+  }
 
 
   //
   //  Apply the thresholds to unitigs.  The first half of these are the historical CGW rules.
   //
 
+  fprintf(stderr, "Processing unitigs.\n");
 
   for (uint32 uu=bgnID; uu<endID; uu++) {
     MultiAlignT  *ma = tigStore->loadMultiAlign(uu, isUnitig);
@@ -382,18 +456,12 @@ main(int argc, char **argv) {
     bool          isUnique    = true;
     bool          isSingleton = false;
 
+
     if (maNum == 1) {
       fprintf(outLOG, "unitig %d not unique -- singleton\n",
               ma->maID);
       isUnique    = false;
       isSingleton = true;
-    }
-
-    else if (maLen >= maxLength) {
-      fprintf(outLOG, "unitig %d not repeat -- too long, %u > allowed %u\n",
-              ma->maID,
-              maLen, maxLength);
-      isUnique = true;
     }
 
     else if (maNum < minReads) {
@@ -403,6 +471,13 @@ main(int argc, char **argv) {
       isUnique = false;
     }
 
+    else if (maLen >= maxLength) {
+      fprintf(outLOG, "unitig %d not repeat -- too long, %u > allowed %u\n",
+              ma->maID,
+              maLen, maxLength);
+      isUnique = true;
+    }
+
     else if (tigStore->getUnitigCoverageStat(ma->maID) < cgbUniqueCutoff) {
       fprintf(outLOG, "unitig %d not unique -- coverage stat %d, needs to be at least %f\n",
               ma->maID, tigStore->getUnitigCoverageStat(ma->maID), cgbUniqueCutoff);
@@ -410,17 +485,8 @@ main(int argc, char **argv) {
       isUnique = false;
     }
 
-
-
-
-
-    //  MicroHet probability is actually the probability of the sequence being UNIQUE, based on
-    //  microhet considerations.  Falling below threshhold makes something a repeat.
-    //  Note that this is off by default (see options -e, -i)
-    //  Defaults  cgbMicrohetProb        = 1.0 e-5
-    //            cgbApplyMicrohetCutoff = -1
     else if ((tigStore->getUnitigMicroHetProb(ma->maID) < cgbMicrohetProb) &&
-        (tigStore->getUnitigCoverageStat(ma->maID) < cgbApplyMicrohetCutoff)) {
+             (tigStore->getUnitigCoverageStat(ma->maID) < cgbApplyMicrohetCutoff)) {
       fprintf(outLOG, "unitig %d not unique -- low microhetprob %f (< %f) and low coverage stat %d (< %f)\n",
               ma->maID,
               tigStore->getUnitigMicroHetProb(ma->maID), cgbMicrohetProb,
@@ -428,11 +494,6 @@ main(int argc, char **argv) {
       repeat_MicroHet += maLen;
       isUnique = false;
     }
-
-    //  New rules.
-    //
-    //  If the unitig is mostly spanned by a single read, it is not unique.
-    //  If the unitig is mostly low coverage, it is not unique.
 
     else if (singleReadCoverage[ma->maID] > singleReadMaxCoverage) {
       fprintf(outLOG, "unitig %d not unique -- single read spans fraction %f of unitig (>= %f)\n",
@@ -452,24 +513,19 @@ main(int argc, char **argv) {
       isUnique = false;
     }
 
-
-
-
-#ifdef SHORT_HIGH_ASTAT_ARE_UNIQUE
-
-    //  This is an attempt to not blindly call all short unitigs as non-unique.  It didn't work so
+    //  This was an attempt to not blindly call all short unitigs as non-unique.  It didn't work so
     //  well in initial limited testing.  The threshold is arbitrary; older versions used
-    //  cgbDefinitelyUniqueCutoff.
+    //  cgbDefinitelyUniqueCutoff.  If used, be sure to disable the real check after this!
+#if 0
     else if ((tigStore->getUnitigCoverageStat(ma->maID) < cgbUniqueCutoff * 10) &&
-        (maLen < CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH)) {
+             (maLen < CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH)) {
       fprintf(outLOG, "unitig %d not unique -- length %d too short, need to be at least %d AND coverage stat %d must be larger than %d\n",
               ma->maID, maLen, CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH,
               tigStore->getUnitigCoverageStat(ma->maID), cgbUniqueCutoff * 10);
       repeat_Short += maLen;
       isUnique = false;
     }
-
-#else
+#endif
 
     else if (maLen < CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH) {
       fprintf(outLOG, "unitig %d not unique -- length %d too short, need to be at least %d\n",
@@ -478,19 +534,13 @@ main(int argc, char **argv) {
       isUnique = false;
     }
 
-#endif
-
-
-
     else {
       fprintf(outLOG, "unitig %d not repeat -- no test failed\n", ma->maID);
     }
 
-    //  Reset if the unitig is long.
-
-
+    //
     //  Allow flag to override the rules and force it to be unique or repeat.  AKA, toggling.
-  finished:
+    //
 
     if (isUnique) {
       repeat_IsUnique += maLen;
@@ -510,7 +560,8 @@ main(int argc, char **argv) {
   }
 
 
-  fprintf(stderr, "Processed %d unitigs with %d fragments.\n", 0, 0);
+  fprintf(stderr, "\n");
+  //fprintf(stderr, "Processed %d unitigs with %d fragments.\n", 0, 0);
   fprintf(stderr, "\n");
   fprintf(stderr, "classification     number of unitigs    total length\n");
   fprintf(stderr, "  unique:          %17"F_U32P"  %14"F_U64P"\n", repeat_IsUnique.num,     repeat_IsUnique.len);
