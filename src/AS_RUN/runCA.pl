@@ -40,13 +40,16 @@ sub findBlasr($) {
    my $BLASR = "$CA/../../../smrtanalysis/current/analysis/bin/";
 
    if (! -e "$BLASR/blasr" && $cns eq "pbdagcon") {
-      # try to use path
-      my $amosPath = `which blasr`;
-      chomp $amosPath;
-      my @t = split '/', "$amosPath";
-      pop @t;                      #  blasr
-      $BLASR = join '/', @t;  #  path to the assembler
-
+      if (-e "$CA/blasr") {
+         $BLASR = $CA;
+      } else {
+         # try to use path
+         my $amosPath = `which blasr`;
+         chomp $amosPath;
+         my @t = split '/', "$amosPath";
+         pop @t;                      #  blasr
+         $BLASR = join '/', @t;  #  path to the assembler
+      }
       # if we really can't find it just give up
       if (! -e "$BLASR/blasr") {
          return undef;
@@ -58,13 +61,16 @@ sub findBlasr($) {
          return undef;
       }
    } elsif (! -e "$BLASR/pbutgcns" && $cns eq "pbutgcns") {
-      # try to use path
-      my $amosPath = `which pbutgcns`;
-      chomp $amosPath;
-      my @t = split '/', "$amosPath";
-      pop @t;                      #  pbutgcns
-      $BLASR = join '/', @t;  #  path to the assembler
-
+      if (-e "$CA/pbutgcns") {
+         $BLASR = $CA;
+      } else {
+         # try to use path
+         my $amosPath = `which pbutgcns`;
+         chomp $amosPath;
+         my @t = split '/', "$amosPath";
+         pop @t;                      #  pbutgcns
+         $BLASR = join '/', @t;  #  path to the assembler
+      }
       # if we really can't find it just give up
       if (! -e "$BLASR/pbutgcns") {
          return undef;
@@ -4388,6 +4394,7 @@ sub overlapCorrection {
         print F getBinDirectoryShellCode();
 
         print F "if [ ! -e $wrk/3-overlapcorrection/\$jobid.erate ] ; then\n";
+
         print F "  \$bin/correct-olaps \\\n";
         print F "    -S $wrk/$asm.ovlStore \\\n";
         print F "    -e $wrk/3-overlapcorrection/\$jobid.erate.WORKING \\\n";
@@ -4847,6 +4854,10 @@ sub createPostUnitiggerConsensusJobs (@) {
         print F "\$bin/gatekeeper -dumpfasta $wrk/5-consensus/$asm.\$jobid $wrk/$asm.gkpStore\n";
         print F "\$bin/convertToPBCNS -path $blasr -consensus $consensusType -coverage 1 -threads " . getGlobal("cnsConcurrency") . " -prefix $wrk/5-consensus/$asm.\$jobid.tmp -length 500 -sequence $wrk/5-consensus/$asm.\$jobid.fasta -input $wrk/5-consensus/$asm.\$jobid.lay -output $wrk/5-consensus/$asm.\$jobid.fa\n";
         print F "\$bin/addCNSToStore -path \$bin -input $wrk/5-consensus/$asm.\$jobid.fa -lay $wrk/5-consensus/$asm.\$jobid.lay -output $wrk/5-consensus/$asm.\$jobid.cns -prefix $wrk/$asm -sequence $wrk/5-consensus/$asm.\$jobid.fasta -partition \$jobid && \$bin/utgcnsfix -g $wrk/$asm.gkpStore  -t $wrk/$asm.tigStore 2 \$jobid -o $wrk/5-consensus/${asm}_\$jobid.fixes > $wrk/5-consensus/${asm}_\$jobid.fix.err 2>&1 && touch $wrk/5-consensus/${asm}_\$jobid.success\n";
+        print F "if [ -e $wrk/5-consensus/${asm}_\$jobid.success ]; then\n";
+        print F "   rm -f $wrk/5-consensus/${asm}_\$jobid.fasta*\n";
+        print F "   rm -f $wrk/5-consensus/${asm}_\$jobid.lay\n";
+        print F "fi\n";
         setGlobal("cnsConcurrency", 1);
 
     } else {
@@ -5615,9 +5626,13 @@ sub createPostScaffolderConsensusJobs () {
         print F "touch $wrk/8-consensus/$asm.cns_contigs.\$jobid.success\n";
     } elsif ($consensusType eq "pbdagcon" || $consensusType eq "pbutgcns") {
         print F "\$bin/tigStore -d layout -C -t $wrk/$asm.tigStore $tigVersion -cp \$jobid -g $wrk/$asm.gkpStore > $wrk/8-consensus/$asm.\$jobid.lay\n";
-        print F "\$bin/tigStore -d consensus -U -t $wrk/$asm.tigStore 2 -up \$jobid -g $wrk/$asm.gkpStore > $wrk/8-consensus/$asm.\$jobid.fasta\n";
+        print F "\$bin/tigStore -d consensus -U -t $wrk/$asm.tigStore 2 -cp \$jobid -g $wrk/$asm.gkpStore > $wrk/8-consensus/$asm.\$jobid.fasta\n";
         print F "\$bin/convertToPBCNS -path $blasr -consensus $consensusType -coverage 1 -threads " . getGlobal("cnsConcurrency") . " -prefix $wrk/8-consensus/$asm.\$jobid.tmp -length 500 -sequence $wrk/8-consensus/$asm.\$jobid.fasta -input $wrk/8-consensus/$asm.\$jobid.lay -output $wrk/8-consensus/$asm.\$jobid.fa\n";
         print F "\$bin/addCNSToStore -path \$bin -version $tigVersion -input $wrk/8-consensus/$asm.\$jobid.fa -lay $wrk/8-consensus/$asm.\$jobid.lay -output $wrk/8-consensus/$asm.\$jobid.cns -prefix $wrk/$asm -sequence $wrk/8-consensus/$asm.\$jobid.fasta -partition \$jobid && touch $wrk/8-consensus/${asm}_\$jobid.success\n";
+        print F "if [ -e $wrk/8-consensus/${asm}_\$jobid.success ]; then\n";
+        print F "   rm -f $wrk/8-consensus/${asm}_\$jobid.fasta*\n";
+        print F "   rm -f $wrk/8-consensus/${asm}_\$jobid.lay\n";
+        print F "fi\n";
         setGlobal("cnsConcurrency", 1);
     } else {
         caFailure("unknown consensus type $consensusType; must be 'cns' or 'seqan'", undef);
