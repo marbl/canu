@@ -4939,7 +4939,7 @@ sub postUnitiggerConsensus () {
 
     #  FAILUREHELPME
     #
-    #caFailure("$failedJobs unitig consensus jobs failed; remove $wrk/5-consensus/consensus.sh to try again", undef) if ($failedJobs);
+    caFailure("$failedJobs unitig consensus jobs failed; remove $wrk/5-consensus/consensus.sh to try again", undef) if ($failedJobs);
 
     #
     #  Summarize the sampling done by reading logs
