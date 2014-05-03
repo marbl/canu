@@ -1560,6 +1560,8 @@ markRepeats_breakUnitigs(UnitigVector                    &unitigs,
     uint32  bid = breakID[fi];
 
     if (ejtFrags.count(frg.ident) > 0) {
+      writeLog("markRepeats()-- EJECT unanchored frag %u from unitig %u (mate frag %u)\n",
+               frg.ident, target->id(), FI->mateIID(frg.ident));
       target->removeFrag(frg.ident);
       continue;
     }
