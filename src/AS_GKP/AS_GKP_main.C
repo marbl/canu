@@ -40,6 +40,7 @@ const char *mainid = "$Id$";
 #include "AS_GKP_include.H"
 
 char            *progName       = NULL;
+long		srandSeed	= 0;
 
 gkStore         *gkpStore       = NULL;
 gkFragment      *gkFrag1        = NULL;
@@ -101,6 +102,7 @@ usage(char *filename, int longhelp) {
   fprintf(stdout, "                          so that the untrimmed length is close to l bp\n");
   fprintf(stdout, "  -longestovermin <lib> <n> pick all reads longer than n bp from library lib\n");
   fprintf(stdout, "  -longestlength  <lib> <n> pick longest reads from library lib to add up to n total bp\n"); 
+  fprintf(stdout, "  -deterministic	     use a constant seed for random subset dumps\n");
   fprintf(stdout, "\n");
   fprintf(stdout, "  ---------\n");
   fprintf(stdout, "  [options]\n");
@@ -350,7 +352,7 @@ constructIIDdump(char  *gkpStoreName,
   //  Now pick N reads from our list of candidates, and let the dump
   //  routines fill in the missing mates
 
-  srand48(time(NULL));
+  srand48(srandSeed == 0 ? time(NULL) : srandSeed);
 
   if (dumpRandLength > 0) {
     double a = (double)lenFrag / (numSingle + numMated);
@@ -577,6 +579,9 @@ main(int argc, char **argv) {
         fprintf(stderr, "%s: -randommated told to dump 0 mates; exit.\n", argv[0]);
         exit(0);
       }
+    } else if (strcmp(argv[arg], "-deterministic") == 0) {
+       srandSeed = 1;
+
     } else if (strcmp(argv[arg], "-randomsubset") == 0) {
       dumpRandLib      = atoi(argv[++arg]);
       dumpRandFraction = atof(argv[++arg]);
