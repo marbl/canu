@@ -76,7 +76,7 @@ main (int argc, char * argv []) {
 
     char      *gkpStorePath           = NULL;
     uint32     part		      = 0;
-    bool       outputAsLay            = true;
+    OUTPUT_TYPE outputType = OUT_AMOS;
 
     // initialize default parameters
     thread_globals.globalRepeats     = TRUE;
@@ -99,6 +99,9 @@ main (int argc, char * argv []) {
 
         } else if (strcmp(argv[arg], "-o") == 0) {
             strncpy(thread_globals.prefix, argv[++arg], FILENAME_MAX);
+
+        } else if (strcmp(argv[arg], "-i") == 0) {
+            strncpy(thread_globals.inPrefix, argv[++arg], FILENAME_MAX);
 
         } else if (strcmp(argv[arg], "-l") == 0) {
             thread_globals.minLength = atoi(argv[++arg]);
@@ -129,7 +132,10 @@ main (int argc, char * argv []) {
             thread_globals.erate = atof(argv[++arg]);
 
         } else if (strcmp(argv[arg], "-P") == 0) {
-           outputAsLay = false;
+           outputType = OUT_PBDAGCON;
+
+        } else if (strcmp(argv[arg], "-F") == 0) {
+           outputType = OUT_FALCON;
 
         } else {
             err++;
@@ -149,6 +155,7 @@ main (int argc, char * argv []) {
         fprintf(stderr, "  -G         Mandatory path to a gkpStore.\n");
         fprintf(stderr, "\n");
         fprintf(stderr, "  -l %d     ignore corrected fragments less than %d bp\n", thread_globals.minLength, thread_globals.minLength);
+        fprintf(stderr, " -i %s      input prefix of %s\n", thread_globals.inPrefix, thread_globals.inPrefix);
         fprintf(stderr, "  -o %s     output prefix of %s\n", thread_globals.prefix, thread_globals.prefix);
         fprintf(stderr, "\n");
         fprintf(stderr, " -M %d	 	 The maximum uncorrected PacBio gap that will be allowed. When there is no short-read coverage for a region, by default the pipeline will split a PacBio sequence. This option allows a number of PacBio sequences without short-read coverage to remain. For example, specifying 50, will mean 50bp can have no short-read coverage without splitting the PacBio sequence. Warning: this will allow more sequences that went through the SMRTportal to not be fixed.\n", thread_globals.maxUncorrectedGap);
@@ -194,7 +201,7 @@ main (int argc, char * argv []) {
 
     gkStream    *fs = new gkStream(thread_globals.gkp, 1, thread_globals.gkp->gkStore_getNumFragments(), GKFRAGMENT_INF);
     uint32 numFrags = loadFragments(fs, thread_globals.libToInclude, thread_globals.frgToLen);
-    outputResults(&thread_globals, part, outputAsLay);
+    outputResults(&thread_globals, part, outputType);
     delete[] thread_globals.libToInclude;
     delete thread_globals.gkp;
 }

@@ -81,10 +81,10 @@ sub setGlobal ($$) {
 
     if ($var eq "consensus") {
        if ($val eq "pbdagcon") {
-          setGlobal("batch", 1);
+          setGlobal("batch", 1000);
           setGlobal("runBlasr", 1);
        } elsif ($val eq "falcon" ){
-          setGlobal("batch", 100);
+          setGlobal("batch", 1000);
           setGlobal("runBlasr", 0);
        } elsif ($val eq "fast") {
           setGlobal("batch", 1);
@@ -97,7 +97,6 @@ sub setGlobal ($$) {
        }
     }
 }
-
 
 sub flushFalcon($) {
    my $output = shift @_;
@@ -125,6 +124,46 @@ sub flushFalcon($) {
 
    if ($? != 0) {
       die "Error: falcon_sense could not run successfully"
+   }
+}
+
+sub flushPBDAGCON($) {
+   my $output = shift @_;
+   my $consensus = getGlobal("consensus");
+
+   if ($consensus ne "pbdagcon") { return; }
+
+   my $threads = getGlobal("threads");
+   my $cov = getGlobal("coverage");
+   my $path = getGlobal("smrtpath");
+   my $length = getGlobal("length");
+   my $python = getGlobal("falconpath");
+   my $prefix = getGlobal("prefix");
+
+   if (! -e "$prefix.m5" || ! -s "$prefix.m5") { return; }
+   system("$path/pbdagcon -t 0 -m $length -j $threads -c $cov $prefix.m5 >> $output 2>/dev/null");
+   if ($? != 0) {
+      die "Error: pbdagon could not run successfully"
+   }
+}
+
+sub flushPBUTGCNS($) {
+   my $output = shift @_;
+   my $consensus = getGlobal("consensus");
+
+   if ($consensus ne "pbutgcns") { return; }
+
+   my $threads = getGlobal("threads");
+   my $cov = getGlobal("coverage");
+   my $path = getGlobal("smrtpath");
+   my $length = getGlobal("length");
+   my $python = getGlobal("falconpath");
+   my $prefix = getGlobal("prefix");
+
+   if (! -e "$prefix.cns.in" || ! -s "$prefix.cns.in") { return; }
+   system("$path/pbutgcns -j $threads $prefix.cns.in >> $output 2>/dev/null");
+   if ($? != 0) {
+      die "Error: pbutgcns could not run successfully"
    }
 }
 
@@ -188,19 +227,26 @@ sub processLayout($$$$$) {
          close(ALN);
 
          if ($sensitive) {
-            system("$path/blasr $prefix.aln.fasta $prefix.cns.fasta -sdpDel 5 -minMatch 10 -maxMatch 16 -bestn 1 -m 5 -nproc $threads > $prefix.m5 2>/dev/null");
+            system("$path/blasr $prefix.aln.fasta $prefix.cns.fasta -sdpDel 5 -minMatch 10 -maxMatch 16 -bestn 1 -m 5 -nproc $threads >> $prefix.m5 2>/dev/null");
          } else {
-            system("$path/blasr $prefix.aln.fasta $prefix.cns.fasta -maxMatch 16 -bestn 1 -m 5 -nproc $threads > $prefix.m5 2>/dev/null");
+            system("$path/blasr $prefix.aln.fasta $prefix.cns.fasta -maxMatch 16 -bestn 1 -m 5 -nproc $threads >> $prefix.m5 2>/dev/null");
          }
          if ($? != 0) { 
             die "Error: blasr could not run successfully"
          }
-         system("$path/pbdagcon -t 0 -m $length -j $threads -c $cov $prefix.m5 >> $output 2>/dev/null");
-         if ($? != 0) {
-            die "Error: pbdagon could not run successfully"
+         $layCounter++;
+         if ($layCounter > getGlobal("batch")) {
+            flushPBDAGCON($output);
+            open(CNS, "> $prefix.m5") or die("Couldn't open '$prefix.m5'", undef);
+            close(CNS);
+            $layCounter = 0;
          }
    } elsif ($consensus eq "pbutgcns") {
-      open(CNS, "> $prefix.cns.in") or die ("Couldn't open '$prefix.cns.in'", undef);
+      if ($layCounter == 0) {
+         open(CNS, "> $prefix.cns.in") or die ("Couldn't open '$prefix.cns.in'", undef);
+      } else {
+         open(CNS, ">> $prefix.cns.in") or die ("Couldn't open '$prefix.cns.in'", undef);
+      }
       print CNS "$id $cns\n";
       for (keys %hash) {
          my $str = $hash{$_};
@@ -210,9 +256,12 @@ sub processLayout($$$$$) {
          print CNS "$_ $tokenized[0] $tokenized[1] $aln\n";
       }
       close(CNS);
-      system("$path/pbutgcns -j $threads $prefix.cns.in >> $output 2>/dev/null");
-      if ($? != 0) {
-         die "Error: pbutgcns could not run successfully"
+      $layCounter++;
+      if ($layCounter > getGlobal("batch")) {
+         flushPBUTGCNS($output);
+         open(CNS, "> $prefix.cns.in") or die("Couldn't open '$prefix.cns.in'", undef);
+         close(CNS);
+         $layCounter = 0;
       }
    } elsif ($consensus eq "falcon") {
       if ($layCounter == 0) {
@@ -379,8 +428,13 @@ sub processLayouts($$$) {
    my %toAlign = {};
    my %bpCov = {};
 
-   open(F, "< $input") or die("Couldn't open '$input'", undef);
-   while (<F>) {
+   my $F;
+   if (defined($input)) {
+      open($F, "< $input") or die("Couldn't open '$input'", undef);
+   } else {
+      $F = *STDIN;
+   }
+   while (<$F>) {
       s/^\s+//;
       s/\s+$//;
 
@@ -431,7 +485,11 @@ sub processLayouts($$$) {
       processLayout($output, $lastID, $cns, \%toAlign, $sensitive);
    }
    flushFalcon($output);
-   close(F);
+   flushPBDAGCON($output);
+   flushPBUTGCNS($output);
+   if (defined($input)) {
+      close($F);
+   }
 }
 
 my $err = 0;
@@ -439,7 +497,7 @@ setGlobal("consensus", "pbdagcon");
 setGlobal("prefix", "tmp");
 setGlobal("coverage", 0);
 setGlobal("threads", 1);
-setGlobal("maxCoverage", 50);
+setGlobal("maxCoverage", 5000);
 
 my $input = undef;
 my $output = undef;
@@ -491,8 +549,7 @@ while (scalar(@ARGV) > 0) {
     }
  }
 
-if ($err > 0 || !defined($input) || !defined($output)) {
-   print STDERR "Error: no valid input lay specified\n" if (!defined($input));
+if ($err > 0 || !defined($output)) {
    print STDERR "Error: no valid output fasta specified\n" if (!defined($output));
    print STDERR "Invalid arguments specified\n";
 
@@ -562,4 +619,4 @@ if (defined($inputSequences)) {
    processLayouts($input, $output, 1);
 }
 # cleanup
-#system("rm -f " . getGlobal("prefix") . "*");
+system("rm -f " . getGlobal("prefix") . "*");

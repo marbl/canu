@@ -290,14 +290,20 @@ static void getCandidateOverlaps(PBRThreadGlobals *waGlobal, boost::dynamic_bits
 /**
  * Output a single AMOS layout record
  */
-static void closeRecord(PBRThreadGlobals *waGlobal, FILE *outFile, FILE *logFile, stringstream &layout, LayRecord &layRecord, uint32 lastEnd, int32 &offset, uint32 &readIID, uint32 &readSubID, bool outputAsLay) {
+static void closeRecord(PBRThreadGlobals *waGlobal, FILE *outFile, FILE *logFile, stringstream &layout, LayRecord &layRecord, uint32 lastEnd, int32 &offset, uint32 &readIID, uint32 &readSubID, OUTPUT_TYPE outputType) {
     // close the layout and start a new one because we have a coverage gap
 
-    if (outputAsLay) {
-       if (lastEnd - offset >= waGlobal->minLength) {
+    if (outputType == OUT_FALCON) {
+       fprintf(outFile, "+ +\n");
+    }
+
+    if (lastEnd - offset >= waGlobal->minLength) {
+       if (outputType == OUT_AMOS) {
            fprintf(outFile, "%s}\n", layout.str().c_str());
+        }
+        if ((!waGlobal->allowLong && layRecord.mp.size()) > 0 || (waGlobal->allowLong && layRecord.mp.size() > 1)) {
            fprintf(logFile, "%d\t%s_%d_%d\t%d\t%d\t%d\n", layRecord.iid, waGlobal->libName, layRecord.iid, readSubID, readSubID, offset, lastEnd);
-       }
+        }
     }
     readIID++;
     readSubID++;
@@ -309,7 +315,7 @@ static void closeRecord(PBRThreadGlobals *waGlobal, FILE *outFile, FILE *logFile
 /**
  *output AMOS-style layout messaged based on our internal structures
  */
-void outputResults(PBRThreadGlobals *waGlobal, uint32 part, bool outputAsLAY) {
+void outputResults(PBRThreadGlobals *waGlobal, uint32 part, OUTPUT_TYPE outputType) {
         assert(part > 0);
         map<AS_IID, uint8> readsToPrint;
         map<AS_IID, uint8> readsWithGaps;
@@ -326,18 +332,21 @@ void outputResults(PBRThreadGlobals *waGlobal, uint32 part, bool outputAsLAY) {
         }
 
         char outputName[FILENAME_MAX] = {0};
-        sprintf(outputName, "%s.%d.lay", waGlobal->prefix, part);
-        errno = 0;
-        FILE *outFile = fopen(outputName, "w");
-        if (errno) {
-            fprintf(stderr, "Couldn't open '%s' for write: %s\n", outputName, strerror(errno)); exit(1);
+        FILE *outFile = stdout;
+        if (outputType != OUT_FALCON && outputType != OUT_PBDAGCON && strncmp("-", waGlobal->prefix, 1) != 0) {
+           sprintf(outputName, "%s.%d.lay", waGlobal->prefix, part);
+           errno = 0;
+           outFile = fopen(outputName, "w");
+           if (errno) {
+               fprintf(stderr, "Couldn't open '%s' for write: %s\n", outputName, strerror(errno)); exit(1);
+           }
         }
 
         char inName[FILENAME_MAX] = {0};
         if (waGlobal->hasMates) {
-            sprintf(inName, "%s.%d.paired.olaps", waGlobal->prefix, part);
+            sprintf(inName, "%s.%d.paired.olaps", waGlobal->inPrefix, part);
         } else {
-            sprintf(inName, "%s.%d.olaps", waGlobal->prefix, part);
+            sprintf(inName, "%s.%d.olaps", waGlobal->inPrefix, part);
         }
         errno = 0;
         LayRecordStore *inFile = openLayFile(inName);
@@ -350,10 +359,10 @@ void outputResults(PBRThreadGlobals *waGlobal, uint32 part, bool outputAsLAY) {
 
         ShortMapStore *inStore = NULL;
         if (waGlobal->maxUncorrectedGap > 0) {
-            sprintf(inRankName, "%s.%d", waGlobal->prefix, part);
+            sprintf(inRankName, "%s.%d", waGlobal->inPrefix, part);
             inStore = new ShortMapStore(inRankName, false, false, true);
         }
-        sprintf(inRankName, "%s.%d.rank", waGlobal->prefix, part);
+        sprintf(inRankName, "%s.%d.rank", waGlobal->inPrefix, part);
         errno = 0;
         FILE *inRankFile = fopen(inRankName, "r");
         if (errno) {
@@ -367,7 +376,6 @@ void outputResults(PBRThreadGlobals *waGlobal, uint32 part, bool outputAsLAY) {
             readRanking[illumina].insert(corrected);
         }
         fclose(inRankFile);
-        AS_UTL_unlink(inRankName);
 
         uint32 readIID = 0;
         uint32 readLen = 0;
@@ -383,8 +391,11 @@ void outputResults(PBRThreadGlobals *waGlobal, uint32 part, bool outputAsLAY) {
         LayRecord layRecord;
         while (readLayRecord(inFile, layRecord)) {
             uint32 readSubID = 1;
-            if (!outputAsLAY) {
+            if (outputType != OUT_AMOS) {
                readLen = loadOneSequence(waGlobal->gkp, layRecord.iid, seq);
+               if (outputType == OUT_FALCON) {
+                  fprintf(outFile, "%s_%d_%d %.*s\n", waGlobal->libName, layRecord.iid, readSubID, readLen, seq);
+               }
             }
 
             stringstream layout (stringstream::in | stringstream::out);
@@ -395,8 +406,8 @@ void outputResults(PBRThreadGlobals *waGlobal, uint32 part, bool outputAsLAY) {
             // process record
             for (vector<OverlapPos>::const_iterator iter = layRecord.mp.begin(); iter != layRecord.mp.end(); iter++) {
                 // skip reads over coverage
-                if (waGlobal->globalRepeats == TRUE && (readRanking[iter->ident].find(layRecord.iid) == readRanking[iter->ident].end())) {
-                    //fprintf(stderr, "Skipping read %d to correct %d it was at cutoff %d true %d\n", iter->ident, i, waGlobal->readRanking[iter->ident][i].first, waGlobal->readRanking[iter->ident][i].second);
+                if (waGlobal->globalRepeats == TRUE && (iter->ident != layRecord.iid && readRanking[iter->ident].find(layRecord.iid) == readRanking[iter->ident].end())) {
+                    //fprintf(stderr, "Skipping read %d to correct %d\n",iter->ident, layRecord.iid);
                     continue;
                 }
                 // if the last fragment ended before the current one starts, we have a gap
@@ -409,8 +420,12 @@ void outputResults(PBRThreadGlobals *waGlobal, uint32 part, bool outputAsLAY) {
                         uint32 gapStart = lastEnd;
                         uint32 gapEnd = MIN(iter->position.bgn, iter->position.end);
                         if (bits.size() != 0 && bits.test(inStore->getStoreIID(layRecord.iid)) == true) {
-                            gapStart = matchingSequencePositions[layRecord.iid].bgn;
-                            gapEnd = matchingSequencePositions[layRecord.iid].end;
+                           if (matchingSequencePositions[layRecord.iid].bgn < 0 || matchingSequencePositions[layRecord.iid].end < 0) { 
+                              bits.clear(); 
+                           } else {
+                              gapStart = MIN(matchingSequencePositions[layRecord.iid].bgn, matchingSequencePositions[layRecord.iid].end);
+                              gapEnd = MAX(matchingSequencePositions[layRecord.iid].bgn, matchingSequencePositions[layRecord.iid].end);
+                           }
                         }
                         assert(gapEnd >= gapStart);
 
@@ -421,6 +436,8 @@ void outputResults(PBRThreadGlobals *waGlobal, uint32 part, bool outputAsLAY) {
                                 AS_IID iid = inStore->getMappedIID(i);
 
                                 if (iid != layRecord.iid) {
+                                    if (matchingSequencePositions[iid].bgn < 0) { matchingSequencePositions[iid].bgn = 0; }
+                                    if (matchingSequencePositions[iid].end < 0) { matchingSequencePositions[iid].end = 0; }
                                     uint32 min = MIN(matchingSequencePositions[iid].bgn,matchingSequencePositions[iid].end);
                                     uint32 max = MAX(matchingSequencePositions[iid].bgn,matchingSequencePositions[iid].end);
                                     uint32 gapSize = (int32)(MIN(iter->position.bgn, iter->position.end) - gapStart + 1);
@@ -436,7 +453,7 @@ void outputResults(PBRThreadGlobals *waGlobal, uint32 part, bool outputAsLAY) {
                                             max = (matchingSequencePositions[iid].end+(MIN_DIST_TO_RECRUIT) < waGlobal->frgToLen[iid] ? matchingSequencePositions[iid].end+(MIN_DIST_TO_RECRUIT) : waGlobal->frgToLen[iid]);
                                         } else {
                                             if (matchingSequencePositions[iid].bgn+MIN_DIST_TO_RECRUIT >= waGlobal->frgToLen[iid]) {
-                                                gapPatch = MIN_DIST_TO_RECRUIT - (waGlobal->frgToLen[iid] - matchingSequencePositions[iid].bgn);
+                                                gapPatch = MIN(waGlobal->frgToLen[iid], MIN_DIST_TO_RECRUIT - (waGlobal->frgToLen[iid] - matchingSequencePositions[iid].bgn));
                                             }
                                             min = (matchingSequencePositions[iid].bgn+(MIN_DIST_TO_RECRUIT) < waGlobal->frgToLen[iid] ? matchingSequencePositions[iid].bgn+(MIN_DIST_TO_RECRUIT) : waGlobal->frgToLen[iid]);
                                             max = (matchingSequencePositions[iid].end >= (MIN_DIST_TO_RECRUIT) ? matchingSequencePositions[iid].end - (MIN_DIST_TO_RECRUIT) : 0);
@@ -444,6 +461,9 @@ void outputResults(PBRThreadGlobals *waGlobal, uint32 part, bool outputAsLAY) {
 
                                         if (waGlobal->verboseLevel >= VERBOSE_DEBUG) fprintf(stderr, "Found read %d (will be called %d) sequence %d - %d (min: %d, max: %d) that could help gap %d to %d in %d (gap diff is %d)\n", iid, gapIID, matchingSequencePositions[iid].bgn, matchingSequencePositions[iid].end, min, max, gapStart, MIN(iter->position.bgn, iter->position.end), layRecord.iid, diff);
 
+                                        if (gapPatch < MIN_DIST_TO_RECRUIT) {
+                                           continue;
+                                        }
                                         uint32 MIN_FRM_START = 50;
                                         // ran off the end of the patchee
                                         if (gapStart + gapPatch - tmpoff < MIN_DIST_TO_RECRUIT) {
@@ -454,7 +474,8 @@ void outputResults(PBRThreadGlobals *waGlobal, uint32 part, bool outputAsLAY) {
                                             }
                                         }
                                         uint32 gapOffset = (gapStart+gapPatch-tmpoff >= (MIN_DIST_TO_RECRUIT) ? gapStart + gapPatch - (MIN_DIST_TO_RECRUIT) - tmpoff: MIN_FRM_START);
-                                        if (outputAsLAY) {
+                                        if (gapStart + gapPatch < tmpoff) { gapOffset = MIN_FRM_START; }
+                                        if (outputType == OUT_AMOS) {
                                            layout << "{TLE\nclr:"
                                                    << 0 /*min*/
                                                    << ","
@@ -469,14 +490,22 @@ void outputResults(PBRThreadGlobals *waGlobal, uint32 part, bool outputAsLAY) {
                                            uint32 qlen = loadOneSequence(waGlobal->gkp, iid, qseq);
                                            uint32 gaplen = (MAX(max, min) - MIN(max, min));
                                            if (min < max) {
-                                              fprintf(outFile, "%d %s_%d_%d %s %d %d %d", iid, waGlobal->libName, layRecord.iid, readSubID, "+", readLen, gapOffset, gapOffset + (max - min));
-                                              fprintf(outFile, " %.*s %.*s\n", max - min, qseq+min, gaplen, seq+gapOffset);
+                                              if (outputType == OUT_PBDAGCON) {
+                                                 fprintf(outFile, "%d %s_%d_%d %s %d %d %d", iid, waGlobal->libName, layRecord.iid, readSubID, "+", readLen, gapOffset, gapOffset + (max - min));
+                                                 fprintf(outFile, " %.*s %.*s\n", max - min, qseq+min, gaplen, seq+gapOffset);
+                                              } else {
+                                                 fprintf(outFile, "%d %.*s\n", iid, max-min, qseq+min);
+                                              }
                                             } else {
                                                memcpy(rseq, qseq, qlen);
                                                rseq[qlen] = 0;
                                                reverseComplementSequence(rseq, 0);
-                                               fprintf(outFile, "%d %s_%d_%d %s %d %d %d", iid, waGlobal->libName, layRecord.iid, readSubID, "+", readLen, gapOffset, gapOffset + (min - max));
-                                               fprintf(outFile, " %.*s %.*s\n", min - max, rseq+min, gaplen, seq + gapOffset);
+                                               if (outputType == OUT_PBDAGCON) {
+                                                  fprintf(outFile, "%d %s_%d_%d %s %d %d %d", iid, waGlobal->libName, layRecord.iid, readSubID, "+", readLen, gapOffset, gapOffset + (min - max));
+                                                  fprintf(outFile, " %.*s %.*s\n", min - max, rseq+max, gaplen, seq + gapOffset);
+                                               } else {
+                                                  fprintf(outFile, "%d %.*s\n", iid, min - max, rseq+max);
+                                               }
                                             }
                                         }
                                         count++;
@@ -489,11 +518,11 @@ void outputResults(PBRThreadGlobals *waGlobal, uint32 part, bool outputAsLAY) {
                                 if (offset < 0) {
                                     offset = 0;
                                 }
-                                uint32 overlappingStart = (lastEnd-offset >= (MIN_DIST_TO_RECRUIT / 3) ? lastEnd - (MIN_DIST_TO_RECRUIT / 3) - offset: 0);
+                                uint32 overlappingStart = (lastEnd >= ((MIN_DIST_TO_RECRUIT / 3) + offset) ? lastEnd - (MIN_DIST_TO_RECRUIT / 3) - offset: 0);
                                 uint32 overlappingEnd = MIN(iter->position.bgn, iter->position.end) + (MIN_DIST_TO_RECRUIT / 3) - offset;
                                 // record this gap
                                 if (waGlobal->verboseLevel >= VERBOSE_DEBUG) fprintf(stderr, "For fragment %d with %d supporters had a gap from %d to %d inserting range %d from %d %d with offset %d so in original read positions are %d %d\n", layRecord.iid, count, lastEnd, MIN(iter->position.bgn, iter->position.end),gapIID, overlappingStart, overlappingEnd, offset, overlappingStart+offset, overlappingEnd+offset);
-                                if (outputAsLAY) {
+                                if (outputType == OUT_AMOS) {
                                    layout << "{TLE\nclr:"
                                            << 0
                                            << ","
@@ -504,71 +533,71 @@ void outputResults(PBRThreadGlobals *waGlobal, uint32 part, bool outputAsLAY) {
                                    readsWithGaps[layRecord.iid] = 1;
                                    pair<AS_IID, pair<uint32, uint32> > gapInfo(gapIID++, pair<uint32, uint32>(overlappingStart+offset, MIN(waGlobal->frgToLen[layRecord.iid], overlappingEnd+offset)));
                                    gaps[layRecord.iid].push_back(gapInfo);
-                                } else {
+                                } else if (outputType == OUT_PBDAGCON) {
                                    fprintf(outFile, "%d %s_%d_%d %s %d %d %d", gapIID++, waGlobal->libName, layRecord.iid, readSubID, "+", readLen, overlappingStart, overlappingEnd);
                                    fprintf(outFile, " %.*s %.*s\n", overlappingEnd - overlappingStart, seq + overlappingStart, overlappingEnd - overlappingStart, seq + overlappingStart);
-                                }
+                                } else if (outputType == OUT_FALCON) {
+                                   fprintf(outFile, "%d %.*s\n", gapIID++, overlappingEnd - overlappingStart, seq + overlappingStart);
+                               }
                             } else {
-                                if (waGlobal->verboseLevel >= VERBOSE_DEBUG) fprintf(stderr, "For fragment %d had a gap from %d to %d but no one had a matching gap size it so breaking it\n", layRecord.iid, lastEnd, MIN(iter->position.bgn, iter->position.end));
-                                closeRecord(waGlobal, outFile, reportFile, layout, layRecord, lastEnd, offset, readIID, readSubID, outputAsLAY);
+                                if (waGlobal->allowLong && outputType != OUT_AMOS) {
+                                   // don't break, rely on the consensus to do it
+                                } else {
+                                   if (waGlobal->verboseLevel >= VERBOSE_DEBUG) fprintf(stderr, "For fragment %d had a gap from %d to %d but no one had a matching gap size it so breaking it\n", layRecord.iid, lastEnd, MIN(iter->position.bgn, iter->position.end));
+                                   closeRecord(waGlobal, outFile, reportFile, layout, layRecord, lastEnd, offset, readIID, readSubID, outputType);
+                                }
                             }
                         } else { // no one could agree with this read, break it
-                            /*
-                            if (MIN(iter->position.bgn, iter->position.end) - lastEnd < 2*FUDGE_BP) {
-                                if (offset < 0) {
-                                    offset = 0;
-                                }
-                                uint32 overlappingStart = (lastEnd-offset >= (MIN_DIST_TO_RECRUIT / 3) ? lastEnd - (MIN_DIST_TO_RECRUIT / 3) - offset: 0);
-                                uint32 overlappingEnd = MIN(iter->position.bgn, iter->position.end) + (MIN_DIST_TO_RECRUIT / 3) - offset;
-                                // record this gap
-                                if (waGlobal->verboseLevel >= VERBOSE_DEBUG) fprintf(stderr, "For fragment %d with 0 supporters had a gap from %d to %d inserting range %d from %d %d with offset %d so in original read positions are %d %d\n", layRecord.iid, lastEnd, MIN(iter->position.bgn, iter->position.end),gapIID, overlappingStart, overlappingEnd, offset, overlappingStart+offset, overlappingEnd+offset);
-                                layout << "{TLE\nclr:"
-                                        << 0
-                                        << ","
-                                        << overlappingEnd - overlappingStart
-                                        << "\noff:" << overlappingStart
-                                        << "\nsrc:" << gapIID
-                                        << "\n}\n";
-                                readsWithGaps[layRecord.iid] = 1;
-                                pair<AS_IID, pair<uint32, uint32> > gapInfo(gapIID++, pair<uint32, uint32>(overlappingStart+offset, MIN(waGlobal->frgToLen[layRecord.iid], overlappingEnd+offset)));
-                                gaps[layRecord.iid].push_back(gapInfo);
-                                if (waGlobal->verboseLevel >= VERBOSE_DEBUG) fprintf(stderr, "For fragment %d had a gap from %d to %d, no one believed it but it was very small so we allowed.\n", layRecord.iid, lastEnd, MIN(iter->position.bgn, iter->position.end));
+                           if (waGlobal->allowLong && outputType != OUT_AMOS) {
+                              // don't break, rely on the consensus to do it
                             } else {
-                            */
-                            if (waGlobal->verboseLevel >= VERBOSE_DEBUG) fprintf(stderr, "For fragment %d had a gap from %d to %d but no one believed it so breaking it\n", layRecord.iid, lastEnd, MIN(iter->position.bgn, iter->position.end));
-                            closeRecord(waGlobal, outFile, reportFile, layout, layRecord, lastEnd, offset, readIID, readSubID, outputAsLAY);
-                            //}
+                               if (waGlobal->verboseLevel >= VERBOSE_DEBUG) fprintf(stderr, "For fragment %d had a gap from %d to %d but no one believed it so breaking it\n", layRecord.iid, lastEnd, MIN(iter->position.bgn, iter->position.end));
+                               closeRecord(waGlobal, outFile, reportFile, layout, layRecord, lastEnd, offset, readIID, readSubID, outputType);
+                            }
                         }
                     } else {
-                        // close the layout and start a new one because we have a coverage gap
-                        if (waGlobal->verboseLevel >= VERBOSE_DEBUG) fprintf(stderr, "Gap in sequence %d between positions %d - %d is greater than allowed %d\n", layRecord.iid, lastEnd, MIN(iter->position.bgn, iter->position.end), waGlobal->maxUncorrectedGap);
-                        closeRecord(waGlobal, outFile, reportFile, layout, layRecord, lastEnd, offset, readIID, readSubID, outputAsLAY);
+                        if (waGlobal->allowLong && outputType != OUT_AMOS) {
+                           // don't break, rely on the consensus to do it
+                        } else {
+                           // close the layout and start a new one because we have a coverage gap
+                           if (waGlobal->verboseLevel >= VERBOSE_DEBUG) fprintf(stderr, "Gap in sequence %d between positions %d - %d is greater than allowed %d\n", layRecord.iid, lastEnd, MIN(iter->position.bgn, iter->position.end), waGlobal->maxUncorrectedGap);
+                           closeRecord(waGlobal, outFile, reportFile, layout, layRecord, lastEnd, offset, readIID, readSubID, outputType);
+                       }
                     }
                 }
+                SeqInterval bClr = layRecord.bClrs[iter->ident];
+                if (bClr.bgn >= bClr.end) { continue; }
                 if (offset < 0) {
                     offset = MIN(iter->position.bgn, iter->position.end);
                     //fprintf(stderr, "Updating offset in layout "F_IID" to be "F_U32"\n", i, offset);
                 }
-                SeqInterval bClr = layRecord.bClrs[iter->ident];
                 uint32 min = MIN(iter->position.bgn, iter->position.end);
                 uint32 max = MAX(iter->position.bgn, iter->position.end);
                 uint32 length = max - min;
 
                 //fprintf(stderr, "Writing layout for frg "F_IID" "F_IID" "F_U32" "F_U32" "F_U32"\n", i, iter->ident, iter->position.bgn, iter->position.end, offset);
-                if (!outputAsLAY) {
+                if (outputType != OUT_AMOS) {
                    loadOneSequence(waGlobal->gkp, iter->ident, qseq);
                    uint32 qlen = bClr.end - bClr.bgn;
                    if (iter->position.bgn < iter->position.end) {
-                      fprintf(outFile, "%d %s_%d_%d %s %d %d %d", iter->ident, waGlobal->libName, layRecord.iid, readSubID, "+", readLen, iter->position.bgn, iter->position.bgn + qlen);
-                      fprintf(outFile, " %.*s %.*s\n", bClr.end - bClr.bgn, qseq+bClr.bgn, length, seq+iter->position.bgn); 
+                      if (outputType == OUT_PBDAGCON) {
+                         fprintf(outFile, "%d %s_%d_%d %s %d %d %d", iter->ident, waGlobal->libName, layRecord.iid, readSubID, "+", readLen, iter->position.bgn, iter->position.bgn + qlen);
+                         fprintf(outFile, " %.*s %.*s\n", bClr.end - bClr.bgn, qseq+bClr.bgn, length, seq+iter->position.bgn); 
+                       } else { 
+                          fprintf(outFile, "%d %.*s\n", iter->ident, bClr.end - bClr.bgn, qseq+bClr.bgn);
+                       }
                    } else {
                       memcpy(rseq, qseq, qlen);
                       rseq[qlen] = 0;
                       reverseComplementSequence(rseq, 0);
 
-                      fprintf(outFile, "%d %s_%d_%d %s %d %d %d", iter->ident, waGlobal->libName, layRecord.iid, readSubID, "+", readLen, iter->position.end, iter->position.end + qlen);
-                      fprintf(outFile, " %.*s %.*s\n", bClr.end - bClr.bgn, rseq+bClr.bgn, length, seq + iter->position.end);
-                   }
+                      if (outputType == OUT_PBDAGCON) {
+                         fprintf(outFile, "%d %s_%d_%d %s %d %d %d", iter->ident, waGlobal->libName, layRecord.iid, readSubID, "+", readLen, iter->position.end, iter->position.end + qlen);
+                         fprintf(outFile, " %.*s %.*s\n", bClr.end - bClr.bgn, rseq+bClr.bgn, length, seq + iter->position.end);
+                      } else {
+                          fprintf(outFile, "%d %.*s\n", iter->ident, bClr.end - bClr.bgn, rseq+bClr.bgn);
+                      }
+                   } 
                 } else {
                    layout << "{TLE\nclr:"
                            << (iter->position.bgn < iter->position.end ? bClr.bgn : bClr.end)
@@ -579,21 +608,26 @@ void outputResults(PBRThreadGlobals *waGlobal, uint32 part, bool outputAsLAY) {
                            << "\n}\n";
                    readsToPrint[iter->ident]=1;
                 }
-                if (lastEnd < (min + length - 1)) {
+                if (layRecord.iid != iter->ident && lastEnd < (min + length - 1)) {
                     lastEnd = min + length - 1;
                 }
             }
             if (lastEnd - offset >= waGlobal->minLength) {
-                if (outputAsLAY) {
+                if (outputType == OUT_AMOS) {
                    fprintf(outFile, "%s}\n", layout.str().c_str());
-                }
-                fprintf(reportFile, "%d\t%s_%d_%d\t%d\t%d\t%d\n", layRecord.iid, waGlobal->libName, layRecord.iid, readSubID, readSubID, offset, lastEnd);
+                 } 
+                 if ((!waGlobal->allowLong && layRecord.mp.size()) > 0 || (waGlobal->allowLong && layRecord.mp.size() > 1)) {
+                    fprintf(reportFile, "%d\t%s_%d_%d\t%d\t%d\t%d\n", layRecord.iid, waGlobal->libName, layRecord.iid, readSubID, readSubID, offset, lastEnd);
+                 }
+             }
+            if (outputType == OUT_FALCON) {
+                fprintf(outFile, "+ +\n");
             }
             readIID++;
             if (waGlobal->verboseLevel >= VERBOSE_DEBUG) fprintf(stderr, "Finished processing read %d subsegments %d\n", layRecord.iid, readSubID);
         }
 
-        if (outputAsLAY) {
+        if (outputType == OUT_AMOS) {
            if (waGlobal->verboseLevel >= VERBOSE_OFF) fprintf(stderr, "Beginning output of "F_SIZE_T" reads\n", readsToPrint.size());
            loadSequence(waGlobal->gkp, readsToPrint, frgToEnc);
            map<AS_IID, char*> *theFrgs = &frgToEnc;
@@ -630,15 +664,10 @@ void outputResults(PBRThreadGlobals *waGlobal, uint32 part, bool outputAsLAY) {
             delete[] iter->second;
         }
         frgToEnc.clear();
+        if (outputType == OUT_FALCON) { fprintf(outFile, "- -\n"); }
         fclose(outFile);
         fclose(reportFile);
         closeLayFile(inFile);
-
-        if (waGlobal->maxUncorrectedGap > 0) {
-            inStore->unlink();
-            delete inStore;
-        }
-        AS_UTL_unlink(inName);
-    fprintf(stderr, "Done output\n");
+        fprintf(stderr, "Done output\n");
 }
 

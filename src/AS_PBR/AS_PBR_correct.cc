@@ -176,6 +176,36 @@ void *  correctFragments(void *ptr) {
         LayRecord layout;
         layout.iid = i;
 
+        // always output self match
+        if (waGlobal->allowLong == TRUE) {
+            SeqInterval aClr;
+            aClr.bgn = 0;
+            aClr.end = alen;
+
+            SeqInterval pos;
+            pos.bgn = aClr.bgn;
+            pos.end = aClr.end;
+
+            pos.bgn += TRIM_BACK_AMOUNT;
+            pos.end -= TRIM_BACK_AMOUNT;
+            aClr.bgn += TRIM_BACK_AMOUNT;
+            aClr.end -= TRIM_BACK_AMOUNT;
+
+            OVSoverlap olap;
+            olap.a_iid = olap.b_iid = i;
+            olap.dat.ovl.type = AS_OVS_TYPE_OVL;
+            olap.dat.ovl.flipped = 0;
+            olap.dat.ovl.corr_erate = olap.dat.ovl.orig_erate = AS_OVS_encodeQuality(0);
+            olap.dat.ovl.a_hang = olap.dat.ovl.b_hang = 0;
+
+            layout.bClrs.insert(pair<AS_IID, SeqInterval>(i, aClr));
+            layout.bOvls.insert(pair<AS_IID, OVSoverlap>(i, olap));
+            OverlapPos tileStr;
+            tileStr.position = pos;
+            tileStr.ident = i;
+            tile[i] = tileStr;
+        }
+
         map<AS_IID, uint8> toSkip;
 
         // read next batch of records from the overlap store, since this requires locking, we try to do it in batches
@@ -226,6 +256,10 @@ void *  correctFragments(void *ptr) {
             pos.bgn = pos.end = 0;
             SeqInterval bClr;
             bClr.bgn = bClr.end = 0;
+
+            if (waGlobal->allowLong != FALSE) {
+               allowCloseDovetail(olap);
+            }
             convertOverlapToPosition(olap, pos, bClr, alen, blen);
 
             // when we have an overlap that is coming from the long reads, trim it back
@@ -234,13 +268,17 @@ void *  correctFragments(void *ptr) {
                 if (waGlobal->allowLong == FALSE) {
                     continue;
                 }
-                int32 min = MIN(pos.bgn, pos.end);
-                int32 max = MAX(pos.bgn, pos.end);
+                // skip self match, we always output it
+                if (bid == aid) { continue; }
+                int32 min = MAX(0,MIN(pos.bgn, pos.end));
+                int32 max = MIN(alen, MAX(pos.bgn, pos.end));
                 // bad overlap if it is too small to trim
                 if (min + TRIM_BACK_AMOUNT > alen || max < TRIM_BACK_AMOUNT || bClr.bgn + TRIM_BACK_AMOUNT > blen || bClr.end < TRIM_BACK_AMOUNT) {
+                 if (waGlobal->verboseLevel >= VERBOSE_DEVELOPER) fprintf(stderr, "Fragment %d (%d) (%d-%d) versus %d (%d) (%d-%d) with error rate %f is short 1 , skipping it\n", aid, alen, min, max, bid, blen, bClr.bgn, bClr.end, AS_OVS_decodeQuality(olap.dat.ovl.corr_erate));
                     continue;
                 }
                 if (min + TRIM_BACK_AMOUNT < 0 || max - TRIM_BACK_AMOUNT > alen) {
+                 if (waGlobal->verboseLevel >= VERBOSE_DEVELOPER) fprintf(stderr, "Fragment %d (%d) (%d-%d) versus %d (%d) (%d-%d) with error rate %f is short 2, skipping it\n", aid, alen, min, max, bid, blen, bClr.bgn, bClr.end, AS_OVS_decodeQuality(olap.dat.ovl.corr_erate));
                     continue;
                 }
                 if (pos.bgn < pos.end) {
@@ -263,13 +301,15 @@ void *  correctFragments(void *ptr) {
 
             // skip overlaps below our quality criteria
             if (isOlapBad(olap, alen, blen, waGlobal->erate, waGlobal->elimit, waGlobal->maxErate)) {
+                 if (waGlobal->verboseLevel >= VERBOSE_DEVELOPER) fprintf(stderr, "Fragment %d (%d) versus %d (%d) with error rate %f is bad, skipping it\n", aid, alen, bid, blen, AS_OVS_decodeQuality(olap.dat.ovl.corr_erate));
                 continue;
             }
 
-            // non contained overlap, dont use these fragments for correction
+            // non contained overlap, dont use these fragments for correction, if close then ok
             if (olap.dat.ovl.type == AS_OVS_TYPE_OVL && (olap.dat.ovl.a_hang < 0 || olap.dat.ovl.b_hang > 0)) {
                 // if there is a better non-contained overlap, then do not trust the contained overlap for this same fragment
                 if (frgToScore[bid] != 0) {
+if (waGlobal->verboseLevel >= VERBOSE_DEVELOPER) fprintf(stderr, "Fragment %d being kicked out of %d because it has a better non-contained overlap\n", bid, aid);
                     OVSoverlap best = frgToBest[bid];
                     uint32 min = MIN(tile[best.b_iid].position.bgn, tile[best.b_iid].position.end);
                     uint32 max = MAX(tile[best.b_iid].position.bgn, tile[best.b_iid].position.end);

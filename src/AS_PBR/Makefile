@@ -94,7 +94,7 @@ ifdef SAMTOOLS
    CXX_PROGS += convertSamToCA
 endif
 
-SCRIPTS     = pacBioToCA convertToPBCNS
+SCRIPTS     = PBcR convertToPBCNS addCNSToStore mhap falcon_sense pbutgcns jellyfish
 
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
@@ -141,10 +141,39 @@ correctPacBio:	   CorrectPacBio.o $(LIBS)
 
 dumpPBRLayoutStore:	AS_PBR_dumpStore.o $(LIBS)
 
-pacBioToCA: pacBioToCA.pl
+PBcR: PBcR.pl
 	@cp $< $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
+	@rm -f $(LOCAL_BIN)/pacBioToCA
+	@ln -s $(LOCAL_BIN)/$@ $(LOCAL_BIN)/pacBioToCA
 
 convertToPBCNS: convertToPBCNS.pl
 	@cp $< $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
+
+addCNSToStore: addCNSToStore.pl
+	@cp $< $(LOCAL_BIN)/$@
+	@chmod 775 $(LOCAL_BIN)/$@
+
+# for now we support these as binaries, we should do better and build code
+mhap: mhap.tar.gz
+	@tar xvzf $< -C $(LOCAL_LIB)/
+
+falcon_sense: falcon_sense.$(LOCAL_NAME).bin
+	@cp $< $(LOCAL_BIN)/$@
+	@chmod 775 $(LOCAL_BIN)/$@
+
+pbutgcns: pbutgcns.$(LOCAL_NAME).bin
+	@cp $< $(LOCAL_BIN)/$@
+	@chmod 775 $(LOCAL_BIN)/$@
+
+ifeq ($(OSTYPE), Linux)
+jellyfish: jellyfish.$(LOCAL_NAME).bin
+	@cp $< $(LOCAL_BIN)/$@
+	@chmod 775 $(LOCAL_BIN)/$@
+else
+jellyfish: jellyfish.$(LOCAL_NAME).bin
+	@cp $< $(LOCAL_BIN)/$@
+	@cp *dylib $(LOCAL_LIB)/
+	@chmod 775 $(LOCAL_BIN)/$@
+endif

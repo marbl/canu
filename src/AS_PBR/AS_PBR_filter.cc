@@ -49,6 +49,9 @@ using namespace std;
 
 static const char *rcsid_AS_PBR_FILTER_C = "$Id$";
 
+static const int NUM_SD=2;
+static const bool FILTER_BY_LENGTH=false;
+
 /**
  * This function is responsible for computing the repeat threshold based on the number of PacBio sequences each short-read maps to
  */
@@ -68,6 +71,7 @@ void computeRepeatThreshold(PBRThreadGlobals &thread_globals, AS_IID firstFrag) 
 
         for (map<AS_IID, uint8>::const_iterator iter = thread_globals.readsToPrint.begin(); iter != thread_globals.readsToPrint.end(); iter++) {
             if (iter->second != 0) {
+ if (thread_globals.verboseLevel >= VERBOSE_DEVELOPER) fprintf(stderr, "Processing read %d with mappings %d\n", iter->first, iter->second);
                 uint32 val = iter->second;
                 if (val == MAX_COV) {
                     val = thread_globals.longReadsToPrint[iter->first];
@@ -99,6 +103,7 @@ void computeRepeatThreshold(PBRThreadGlobals &thread_globals, AS_IID firstFrag) 
         double IQD = 1.5 * (thirdQuartile-firstQuartile);
         uint16_t minVal = IQD > firstQuartile ? 0 : (uint16_t)round(firstQuartile) - IQD;
         uint16_t maxVal = (IQD + (uint16_t)round(thirdQuartile)) > MAX_COV_HIST ? MAX_COV_HIST : IQD + (uint16_t)round(thirdQuartile);
+        if (minVal == 0) { minVal++; }
         fprintf(stderr, "Computed mean %f sd %f using min value %d (%f) max %d (%f)\n", mean, sd, minVal, firstQuartile, maxVal, thirdQuartile);
 
         // now that we've got the quartile dist, run and get the updated mean just within the quartile
@@ -148,8 +153,8 @@ void computeRepeatThreshold(PBRThreadGlobals &thread_globals, AS_IID firstFrag) 
             fclose(histF);
         }
         delete[] covHist;
-        thread_globals.covCutoff = MAX(thread_globals.covCutoff, MIN((int)(floor(mean*2)), (int)(floor(mean + 2*sd))));
-        if (thread_globals.verboseLevel >= VERBOSE_OFF) fprintf(stderr, "Picking cutoff as %d mean would be %f +- %f (%d)\n", thread_globals.covCutoff, mean, sd, (int)(ceil(mean + 2*sd)));
+        thread_globals.covCutoff = MAX(thread_globals.covCutoff, MIN((int)(floor(mean*NUM_SD)), (int)(floor(mean + NUM_SD*sd))));
+        if (thread_globals.verboseLevel >= VERBOSE_OFF) fprintf(stderr, "Picking cutoff as %d mean would be %f +- %f (%d)\n", thread_globals.covCutoff, mean, sd, (int)(ceil(mean + NUM_SD*sd)));
     }
 }
 
@@ -227,6 +232,7 @@ void filterRepeatReads(PBRThreadGlobals &thread_globals, AS_IID firstFrag) {
             // build a sorted by score map of all mapping a short-read sequence has
             multimap<uint64, OverlapPos> scoreToReads;
             map<AS_IID, uint64> readsToScore;
+            map<AS_IID, uint64> readsToIdy;
             map<AS_IID, uint32> readsToBgn;
 
             uint32 alen = thread_globals.frgToLen[iter->first];
@@ -238,6 +244,11 @@ void filterRepeatReads(PBRThreadGlobals &thread_globals, AS_IID firstFrag) {
                 uint32 blen = thread_globals.frgToLen[olaps[rank].b_iid];
                 if (isOlapBad(olaps[ovlPosition], alen, blen, thread_globals.erate, thread_globals.elimit, thread_globals.maxErate)) {
                     continue;
+                }
+
+                // allow close overlaps in
+                if (thread_globals.allowLong != FALSE) {
+                   allowCloseDovetail(olaps[ovlPosition], true);
                 }
                 if (olaps[ovlPosition].dat.ovl.type == AS_OVS_TYPE_OVL && (olaps[ovlPosition].dat.ovl.a_hang > 0 || olaps[ovlPosition].dat.ovl.b_hang < 0)) {
                     continue;
@@ -251,13 +262,16 @@ void filterRepeatReads(PBRThreadGlobals &thread_globals, AS_IID firstFrag) {
                 // TODO: this currently assumes ties are non-randomly broken with greater positions winning which is not ideal
                 map<AS_IID, uint64>::iterator ovlIter = readsToScore.find(pos.ident);
                 if (ovlIter != readsToScore.end()) {
-                    if (currScore == ovlIter->second && readsToBgn[pos.ident] >= pos.position.bgn) {
-                        continue;
+                    if (FILTER_BY_LENGTH && blen == ovlIter->second && readsToIdy[pos.ident] >= currScore) {
+                       continue;
+                    } else if (currScore == ovlIter->second && readsToBgn[pos.ident] >= pos.position.bgn) {
+                       continue;
                     }
                 }
-                readsToScore[pos.ident] = currScore;
+                readsToScore[pos.ident] = (FILTER_BY_LENGTH ? blen : currScore);
+                readsToIdy[pos.ident] = currScore;
                 readsToBgn[pos.ident] = pos.position.bgn;
-                scoreToReads.insert(pair<uint64, OverlapPos>(currScore, pos));
+                scoreToReads.insert(pair<uint64, OverlapPos>((FILTER_BY_LENGTH ? blen : currScore), pos));
             }
 
             // now keep only the best cutoff of those and store them for easy access

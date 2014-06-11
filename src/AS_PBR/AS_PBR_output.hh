@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 static const char *rcsid_AS_PBR_OUTPUT_H = "$Id$";
 
-extern void outputResults(PBRThreadGlobals *waGlobal, uint32 part, bool outputAsLay);
+enum OUTPUT_TYPE { OUT_AMOS, OUT_PBDAGCON, OUT_FALCON };
+extern void outputResults(PBRThreadGlobals *waGlobal, uint32 part, OUTPUT_TYPE outputType);
 
 #endif

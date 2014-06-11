@@ -71,6 +71,7 @@ const uint32	CHIMERA_MAX_SIZE 				= 	150;
 const uint32	MIN_DIST_TO_RECRUIT				=	500;
 const double    ERATE_ADJUST                    =   1.5;
 const uint8     TRIM_BACK_AMOUNT                =   50;
+const uint8	DOVETAIL_AMOUNT			=   200;
 const uint8	MIN_NUM_SAMPLES			=   100;
 
 const uint8		VERBOSE_OFF 					= 0;
@@ -115,6 +116,7 @@ struct PBRThreadGlobals {
    double    repeatMultiplier;
    int       minLength;
    char      prefix[FILENAME_MAX];
+   char      inPrefix[FILENAME_MAX];
    char		 exePath[FILENAME_MAX];
    double	 percentToEstimateInserts;
    uint8	 verboseLevel;
@@ -354,6 +356,28 @@ static bool rangesOverlap(const SeqInterval &first, const SeqInterval &second) {
    int end = MIN(maxA, maxB);
 
    return (end-start+1) > 0;
+}
+
+static void allowCloseDovetail(OVSoverlap & olap, bool forB = false) {
+   if (olap.dat.ovl.type != AS_OVS_TYPE_OVL) { // do nothing
+      return;
+   }
+
+   if (forB) { 
+      if (olap.dat.ovl.a_hang > 0 && olap.dat.ovl.a_hang - DOVETAIL_AMOUNT <= 0) {
+         olap.dat.ovl.a_hang = 0;
+      }
+      if (olap.dat.ovl.b_hang < 0 && olap.dat.ovl.b_hang + DOVETAIL_AMOUNT >= 0) {
+         olap.dat.ovl.b_hang = 0;
+      }
+   } else {
+      if (olap.dat.ovl.a_hang < 0 && olap.dat.ovl.a_hang + DOVETAIL_AMOUNT >= 0) { 
+         olap.dat.ovl.a_hang = 0;
+      }
+      if (olap.dat.ovl.b_hang > 0 && olap.dat.ovl.b_hang - DOVETAIL_AMOUNT <= 0) {
+         olap.dat.ovl.b_hang = 0;
+      }
+   }
 }
 
 extern void convertOverlapToPosition(const OVSoverlap& olap, SeqInterval &pos, SeqInterval &bClr, uint32 alen, uint32 blen, bool forB = false);
