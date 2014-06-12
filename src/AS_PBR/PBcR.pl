@@ -1477,6 +1477,9 @@ if (defined($longReads) && $longReads == 1) {
    } else {
       die "Aligning long reads requires either MHAP or BLASR and neither was available. Please either add SMRTportal to your path or download MHAP.";
   }
+  if ((!defined(getGlobal("pbcns")) || getGlobal("pbcns") == 0) && -e "$FALCON/falcon_sense") {
+     setGlobal("falconcns", 1);
+  }
 } else {
    # always default to blasr alignments when available
    if (-e "$BLASR/blasr") {
