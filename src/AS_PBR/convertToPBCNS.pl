@@ -257,7 +257,7 @@ sub processLayout($$$$$) {
       }
       close(CNS);
       $layCounter++;
-      if ($layCounter > getGlobal("batch")) {
+      if ($layCounter >= getGlobal("batch")) {
          flushPBUTGCNS($output);
          open(CNS, "> $prefix.cns.in") or die("Couldn't open '$prefix.cns.in'", undef);
          close(CNS);
