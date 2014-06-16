@@ -1683,6 +1683,9 @@ if (! -d "$wrk/temp$libraryname/$asm.ovlStore") {
          my $numInBatch = 1;
          my $numBatch = 1;
          my $maxRefsToCompare = floor($totalNumCorrectingWith / $ovlRefBlockSize / 2);
+         if ($maxRefsToCompare == 0) {
+           $maxRefsToCompare = floor($totalNumCorrectingWith / $ovlRefBlockSize);
+         }
          my $maxToCompare = $maxRefsToCompare * $ovlRefBlockSize;
          for (my $i = 1; $i <= $totalNumCorrectingWith; $i+=$ovlRefBlockSize) {
             if ($numInBatch > $maxBatch) {
