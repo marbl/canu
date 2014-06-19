@@ -2192,8 +2192,6 @@ if (! -d "$wrk/temp$libraryname/$asm.ovlStore") {
             print F " echo \"Copying file $wrk/temp$libraryname/1-overlapper/correct_reads_part\$sa.fasta\"\n";
             print F " cp $wrk/temp$libraryname/1-overlapper/correct_reads_part\$sa.fasta $wrkDir/temp$libraryname/1-overlapper/correct_reads_part\$sa.fasta\n";
             print F "fi\n";
-            print F "numEntries=`grep -c $wrkDir/temp$libraryname/1-overlapper/correct_reads_part\$sa.fasta`\n";
-            print F "echo \$numEntries\n";
          }
          print F " rm -rf $wrkDir/temp$libraryname/1-overlapper/stream_\$jobid\n";
          print F " mkdir -p $wrkDir/temp$libraryname/1-overlapper/stream_\$jobid\n";
