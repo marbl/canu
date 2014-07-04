@@ -135,6 +135,12 @@ sub setGlobal ($$) {
        setGlobal("falconcns", 0);
     }
 
+    if ($var eq "threads") {
+       setGlobal("merylThreads") = $val;
+       setGlobal("ovlThreads") = $val;
+       setGlobal("consensusConcurrency") = $val;
+    }
+
     $commandLineOptions .= " \"$var=$val\" ";
 }
 
@@ -1008,9 +1014,10 @@ while (scalar(@cmdArgs) > 0) {
        setGlobal("fastqFile", shift @cmdArgs);
 
     } elsif ($arg eq "-t" || $arg eq "-threads") {
-       setGlobal("threads", shift @cmdArgs);
-       if (getGlobal("threads") <= 0) { setGlobal("threads", 1); }
+       my $thread = shift @cmdArgs;
+       if ($thread <= 0) { $thread = 1; }
 
+       setGlobal("threads", $thread);
     } elsif ($arg eq "-l" || $arg eq "-libraryname") {
        setGlobal("libraryname", shift @cmdArgs);
 
@@ -2199,6 +2206,8 @@ if (! -d "$wrk/temp$libraryname/$asm.ovlStore") {
          print F "    leadingI=`printf %06d \$i`\n";
          if (defined(getGlobal("localStaging"))) {
             print F "    cp $wrk/temp$libraryname/1-overlapper/correct_reads_part\$i.fasta $wrkDir/temp$libraryname/1-overlapper/stream_\$jobid/correct_reads_part\$leadingI.fasta\n";
+         elif (!defined(getGlobal("mhapPrecompute"))) {
+            print F "    ln -s $wrk/temp$libraryname/1-overlapper/correct_reads_part\$i.fasta $wrkDir/temp$libraryname/1-overlapper/stream_\$jobid/correct_reads_part\$leadingI.fasta\n";
          } else {
             print F "    ln -s $wrk/temp$libraryname/1-overlapper/correct_reads_part\$i.dat $wrkDir/temp$libraryname/1-overlapper/stream_\$jobid/correct_reads_part\$leadingI.dat\n";
          }

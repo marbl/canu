@@ -458,6 +458,9 @@ sub processLayouts($$$) {
          $cns = ' ' x ($tokenized[3] + 1 + $lastOffset);
       }
       if ($end >= $lastEnd) {
+         if ($start > $lastEnd) {
+            $start = $lastEnd;
+         }
          if ($end - $start > length($tokenized[7])) {
             $end = $start + length($tokenized[7]);
          }
