@@ -178,10 +178,29 @@ sub process($$$$) {
             print OUT "UTG type X ident\t$utgID position\t0\t" . length($fastaSeq) . " num_instances 0\n";
          }
          my $cnsId = $cnsHash{$val};
-         die "Unknown consensus for unitig $val\n" if (!defined($seqs{$cnsId}));
-         $fastaSeq = uc $seqs{$cnsId};
-         $utgID = $val;
-         print OUT "$_\n";
+         # if unknown unitig encountered due to it being too short delete it from the tigStore
+         if (!defined($seqs{$cnsId})) {
+            print STDERR "Unknown consensus for unitig $val\n";
+            $fastaSeq="";
+            print OUT "$_\n";
+	    print OUT "len 0\n";
+	    print OUT "cns\n";
+	    print OUT "qlt\n";
+	    print OUT "data.unitig_coverage_stat\t1.000000\n";
+	    print OUT "data.unitig_microhet_prob\t1.000000\n";
+	    print OUT "data.unitig_status\tX\n";
+	    print OUT "data.unitig_suggest_repeat\tF\n";
+	    print OUT "data.unitig_suggest_unique\tF\n";
+	    print OUT "data.unitig_force_repeat\tF\n";
+	    print OUT "data.unitig_force_unique\tF\n";
+            print OUT "data.contig_status\tU\n";
+            print OUT "data.num_frags\t0\n";
+            print OUT "data.num_unitigs\t0\n";
+         } else {
+            $fastaSeq = uc $seqs{$cnsId};
+            $utgID = $val;
+            print OUT "$_\n";
+         }
       } elsif ($type eq "contig") {
          # close previous contig
          my $cnsId = $cnsHash{$val};

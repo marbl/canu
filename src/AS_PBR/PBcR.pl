@@ -136,9 +136,9 @@ sub setGlobal ($$) {
     }
 
     if ($var eq "threads") {
-       setGlobal("merylThreads") = $val;
-       setGlobal("ovlThreads") = $val;
-       setGlobal("consensusConcurrency") = $val;
+       setGlobal("merylThreads",$val);
+       setGlobal("ovlThreads", $val);
+       setGlobal("consensusConcurrency", $val);
     }
 
     $commandLineOptions .= " \"$var=$val\" ";
@@ -2206,7 +2206,7 @@ if (! -d "$wrk/temp$libraryname/$asm.ovlStore") {
          print F "    leadingI=`printf %06d \$i`\n";
          if (defined(getGlobal("localStaging"))) {
             print F "    cp $wrk/temp$libraryname/1-overlapper/correct_reads_part\$i.fasta $wrkDir/temp$libraryname/1-overlapper/stream_\$jobid/correct_reads_part\$leadingI.fasta\n";
-         elif (!defined(getGlobal("mhapPrecompute"))) {
+         } elsif (!defined(getGlobal("mhapPrecompute"))) {
             print F "    ln -s $wrk/temp$libraryname/1-overlapper/correct_reads_part\$i.fasta $wrkDir/temp$libraryname/1-overlapper/stream_\$jobid/correct_reads_part\$leadingI.fasta\n";
          } else {
             print F "    ln -s $wrk/temp$libraryname/1-overlapper/correct_reads_part\$i.dat $wrkDir/temp$libraryname/1-overlapper/stream_\$jobid/correct_reads_part\$leadingI.dat\n";
