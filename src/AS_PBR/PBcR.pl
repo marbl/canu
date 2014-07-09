@@ -930,6 +930,7 @@ my $MAX_TO_PRECOMPUTE = 2000000000;
 my $MIN_SELF_CORRECTION = 50;
 my $MAX_SPLIT_PERCENTAGE = 0.30;
 my $FALCON_ERATE_ADJUST = 1.0;
+my $MIN_COVERAGE_TO_ASM = 10;
 
 setDefaults();
 
@@ -1478,6 +1479,35 @@ if (defined($longReads) && $longReads == 1) {
       if ($totalCorrectingWith > $MAX_TO_PRECOMPUTE) {
          setGlobal("mhapPrecompute", undef);
       }
+      # check java version and stop if not found or too old
+      if (defined(getGlobal("javaPath")) && ! -e $javaPath) {
+         die "Error: java is required to use MHAP and is not found in $javaPath specified.\n";
+      } elsif (!(defined(getGlobal("javaPath")))) {
+         my $java = `which java`;
+         chomp $java;
+         my @t = split '/', "$java";
+         pop @t;                      #  java
+         my $jPath = join '/', @t;
+         if (! -e "$jPath/java") {
+            die "Error: java is required to use MHAP and is not found in $ENV{PATH}.\n";
+         }
+      }
+      open(F, "$javaPath -version 2>&1 |") or die("Couldn't find java in $ENV{PATH} or $javaPath. Specify javaPath=<path to java> or add it to your path.", undef);
+      while (<F>) {
+         s/^\s+//;
+         s/\s+$//;
+
+         if (m/java version/) {
+            my @vArray = split '\s+';
+            my $v = $vArray[2];
+            $v =~ s/\"//g;
+            @vArray = split '\.', $v;
+            if ($vArray[0] == 1 && $vArray[1] < 7) {
+               die "Error: java version 1.7 or newer is required for MHAP and found version $v. Please update and try again.\n";
+            }
+         }
+      }
+      close(F);
    } elsif (-e "$BLASR/blasr")  {
       print STDERR "Warning: Blasr is required to align long reads to long reads. Switching blasr ON.\n";
       setGlobal("blasr", defined(getGlobal("blasr")) ? getGlobal("blasr") . " -maxLCPLength 16" : "-minReadLength 200 -maxScore -1000 -maxLCPLength 16");
@@ -1654,7 +1684,7 @@ if (! -d "$wrk/temp$libraryname/$asm.ovlStore") {
             }
             my $loadFactor = 5000;
             if ($numHashes < 786) { $loadFactor = $loadFactor * 2; }
-            $ovlRefBlockSize = $memFactor * $loadFactor;
+            $ovlRefBlockSize = floor($memFactor * $loadFactor);
          }
          $ovlRefBlockLength = undef; 
          $ovlHashBlockLength = undef;
@@ -2752,28 +2782,33 @@ if (defined(getGlobal("assemble")) && getGlobal("assemble") == 1) {
      runCommand("$wrk", "mv tmp.fasta $wrk/$libraryname.longest$asmCoverage.fasta");
      runCommand("$wrk", "rm -rf $libraryname.gkpStore*");
 
-     my $ovlPartCmd = "";
-     my $ovlRefBlockSize    = getGlobal("ovlRefBlockSize");
-     my $ovlRefBlockLength  = getGlobal("ovlRefBlockLength");
-     if ($ovlRefBlockLength > 0) {
-        $ovlPartCmd = "ovlRefBlockLength=$ovlRefBlockLength ovlRefBlockSize=0";
-     } elsif ($ovlRefBlockSize > 0) {
-        $ovlPartCmd = "ovlRefBlockSize=$ovlRefBlockSize ovlRefBlockLength=0";
-     }
-     $cmd  =    "-s $specFile ";
-     $cmd .=    "-p $asm -d $libraryname $ovlPartCmd ";
-     $cmd .=    "useGrid=" .getGlobal("useGrid") . " scriptOnGrid=" . getGlobal("scriptOnGrid") . " unitigger=" . getGlobal("unitigger") . " ";
-     $cmd .=    "ovlErrorRate=" . getGlobal("asmOvlErrorRate") . " utgErrorRate=" . getGlobal("asmUtgErrorRate") . " cgwErrorRate=" . getGlobal("asmCgwErrorRate") . " cnsErrorRate=" . getGlobal("asmCnsErrorRate") . " ";
-     $cmd .=    "utgGraphErrorLimit=" . getGlobal("utgGraphErrorLimit") . " utgGraphErrorRate=" . getGlobal("utgGraphErrorRate") . " utgMergeErrorLimit=" . getGlobal("utgMergeErrorLimit") . " utgMergeErrorRate=" . getGlobal("utgMergeErrorRate") . " ";
-     $cmd .=    "frgCorrBatchSize=100000 doOverlapBasedTrimming=" . getGlobal("asmOBT") . " obtErrorRate=" . getGlobal("asmObtErrorRate") . " obtErrorLimit=" . getGlobal("asmObtErrorLimit") . " frgMinLen=$frgLen ovlMinLen=$ovlLen ";
-     $cmd .=    "consensus=" . getGlobal("asmCns") . " merSize=" . getGlobal("asmMerSize") . " cnsMaxCoverage=1 cnsReuseUnitigs=1 ";
-     $cmd .=    "sgeName=\"" . getGlobal("sgeName") . "\" " if defined(getGlobal("sgeName"));
-     $cmd .=    "sgePropagateHold=\"pBcR_$asm$sgeName\" ";
-     $cmd .=    " $libraryname.longest$asmCoverage.frg ";
-     if ($submitToGrid == 1) {
-        submitRunCAHelper("$wrk", $asm, $cmd, "runCA_asm_$asm$sgeName", 0);
+     # don't assemble if we don't have enough data
+     if ($totalBP < $MIN_COVERAGE_TO_ASM * $genomeSize) {
+        print STDERR "Error: after correction only " . ($totalBP / $genomeSize) . "X for genome $genomeSize. Not performing automated assembly\n";
      } else {
-        runCommand("$wrk", "$CA/runCA $cmd");
+        my $ovlPartCmd = "";
+        my $ovlRefBlockSize    = getGlobal("ovlRefBlockSize");
+        my $ovlRefBlockLength  = getGlobal("ovlRefBlockLength");
+        if ($ovlRefBlockLength > 0) {
+           $ovlPartCmd = "ovlRefBlockLength=$ovlRefBlockLength ovlRefBlockSize=0";
+        } elsif ($ovlRefBlockSize > 0) {
+           $ovlPartCmd = "ovlRefBlockSize=$ovlRefBlockSize ovlRefBlockLength=0";
+        }
+        $cmd  =    "-s $specFile ";
+        $cmd .=    "-p $asm -d $libraryname $ovlPartCmd ";
+        $cmd .=    "useGrid=" .getGlobal("useGrid") . " scriptOnGrid=" . getGlobal("scriptOnGrid") . " unitigger=" . getGlobal("unitigger") . " ";
+        $cmd .=    "ovlErrorRate=" . getGlobal("asmOvlErrorRate") . " utgErrorRate=" . getGlobal("asmUtgErrorRate") . " cgwErrorRate=" . getGlobal("asmCgwErrorRate") . " cnsErrorRate=" . getGlobal("asmCnsErrorRate") . " ";
+        $cmd .=    "utgGraphErrorLimit=" . getGlobal("utgGraphErrorLimit") . " utgGraphErrorRate=" . getGlobal("utgGraphErrorRate") . " utgMergeErrorLimit=" . getGlobal("utgMergeErrorLimit") . " utgMergeErrorRate=" . getGlobal("utgMergeErrorRate") . " ";
+        $cmd .=    "frgCorrBatchSize=100000 doOverlapBasedTrimming=" . getGlobal("asmOBT") . " obtErrorRate=" . getGlobal("asmObtErrorRate") . " obtErrorLimit=" . getGlobal("asmObtErrorLimit") . " frgMinLen=$frgLen ovlMinLen=$ovlLen ";
+        $cmd .=    "consensus=" . getGlobal("asmCns") . " merSize=" . getGlobal("asmMerSize") . " cnsMaxCoverage=1 cnsReuseUnitigs=1 ";
+        $cmd .=    "sgeName=\"" . getGlobal("sgeName") . "\" " if defined(getGlobal("sgeName"));
+        $cmd .=    "sgePropagateHold=\"pBcR_$asm$sgeName\" ";
+        $cmd .=    " $libraryname.longest$asmCoverage.frg ";
+        if ($submitToGrid == 1) {
+           submitRunCAHelper("$wrk", $asm, $cmd, "runCA_asm_$asm$sgeName", 0);
+        } else {
+           runCommand("$wrk", "$CA/runCA $cmd");
+        }
      }
   }
 }
