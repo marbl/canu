@@ -215,6 +215,11 @@ sub readXML () {
         }
         if (m!^\s*<TRACE_END>(.*)<!i) {
             $end = $1;
+
+            $end = "F" if ($end eq "FORWARD");
+            $end = "R" if ($end eq "REVERSE");
+
+            die "Invalid end=$end for TI=$xid.\n" if (($end ne "F") && ($end ne "R"));
         }
         if (m!^\s*<SEQ_LIB_ID>(.*)</!i) {
             if ($useSLI != 0) {
@@ -1026,9 +1031,6 @@ sub runNBL ($) {
         my ($xid, $type, $template, $end, $lib, $libsize, $libstddev, $clr, $clv, $clq) = readXML();
         my ($sid, $seq) = readFasta(0);
         my ($qid, $qlt) = readQual(0);
-
-        $end = "F" if ($end eq "FORWARD");
-        $end = "R" if ($end eq "REVERSE");
 
         if (($type eq "WGS") ||
             ($type eq "SHOTGUN") ||
