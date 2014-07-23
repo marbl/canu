@@ -95,7 +95,7 @@ const char *mainid = "$Id$";
     //  a separate haplotype
 #define  NORMAL_DISTRIB_THOLD        3.62
     //  Determined by  EDIT_DIST_PROB_BOUND
-#define  THREAD_STACKSIZE        (16 * 512 * 512)
+#define  THREAD_STACKSIZE        (128 * 512 * 512)
     //  The amount of memory to allocate for the stack of each thread
 
 #define USE_STORE_DIRECTLY_READ
