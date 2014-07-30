@@ -109,14 +109,14 @@ sub setGlobal ($$) {
 
     if (($var eq "gridEngine") && ($val eq "LSF")) {
         setGlobal("gridSubmitCommand",      "bsub");
-        setGlobal("gridHoldOption",         "-w \"done\(\"WAIT_TAG\"\)\"");
+        setGlobal("gridHoldOption",         "-w \"numended\(\"WAIT_TAG\", \*\)\"");
         setGlobal("gridSyncOption",         "-K");
         setGlobal("gridNameOption",         "-J");
         setGlobal("gridArrayOption",        "");
         setGlobal("gridArrayName",          "ARRAY_NAME\[ARRAY_JOBS\]");
         setGlobal("gridOutputOption",       "-o");
         setGlobal("gridPropagateCommand",   "bmodify -w \"done\(\"WAIT_TAG\"\)\"");
-        setGlobal("gridNameToJobIDCommand", "bjobs -J \"WAIT_TAG\" | grep -v JOBID");
+        setGlobal("gridNameToJobIDCommand", "bjobs -A -J \"WAIT_TAG\" | grep -v JOBID");
         setGlobal("gridTaskID",             "LSB_JOBINDEX");
         setGlobal("gridArraySubmitID",      "%I");
         setGlobal("gridJobID",              "LSB_JOBID");
@@ -707,7 +707,21 @@ sub submit($$$$$) {
     my $jobName = $prefix;
     if (defined($waitTag)) {
        my $hold = $holdOption;
-       $hold =~ s/WAIT_TAG/$waitTag/g;
+       if (getGlobal("gridEngine") eq "LSF"){
+          my $tcmd = getGlobal("gridNameToJobIDCommand");
+          $tcmd =~ s/WAIT_TAG/$waitTag/g;
+          my $propJobCount = `$tcmd |wc -l`;
+          my $list = `$tcmd`;
+          chomp $propJobCount;
+          if ($propJobCount != 1) {
+             print STDERR "Warning: multiple IDs for job $sgePropHold got $propJobCount and should have been 1.\n";
+          }
+          my $jobID = `$tcmd |tail -n 1 |awk '{print \$1}'`;
+          chomp $jobID;
+          $hold =~ s/WAIT_TAG/$jobID/g;
+       } else{
+          $hold =~ s/WAIT_TAG/$waitTag/g;
+       }
        $waitTag = $hold;
     }
 
@@ -1020,7 +1034,12 @@ while (scalar(@cmdArgs) > 0) {
 
        setGlobal("threads", $thread);
     } elsif ($arg eq "-l" || $arg eq "-libraryname") {
-       setGlobal("libraryname", shift @cmdArgs);
+       my $name  = shift @cmdArgs;
+       if ($name =~ /^[0-9]/) {
+          print STDERR "Warning: library name must start with a character, not a number\n";
+          $name = "lib$name";
+       }
+       setGlobal("libraryname", $name);
 
     } elsif ($arg eq "-partitions") {
        setGlobal("partitions", shift @cmdArgs);
