@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 
 #   Copyright (C) 2011, Battelle National Biodefense Institute (BNBI);
 #   all rights reserved. Authored by: Sergey Koren
@@ -95,6 +95,7 @@ sub setGlobal ($$) {
     if (($var eq "gridEngine") && ($val eq "SGE")) {
         setGlobal("gridSubmitCommand",      "qsub");
         setGlobal("gridHoldOption",         "-hold_jid \"WAIT_TAG\"");
+        setGlobal("gridHoldOptionNoArray",  undef);
         setGlobal("gridSyncOption",         "-sync y");
         setGlobal("gridNameOption",         "-cwd -N");
         setGlobal("gridArrayOption",        "-t ARRAY_JOBS");
@@ -102,6 +103,7 @@ sub setGlobal ($$) {
         setGlobal("gridOutputOption",       "-j y -o");
         setGlobal("gridPropagateCommand",   "qalter -hold_jid \"WAIT_TAG\"");
         setGlobal("gridNameToJobIDCommand", undef);
+        setGlobal("gridNameToJobIDCommandNoArray", undef);
         setGlobal("gridTaskID",             "SGE_TASK_ID");
         setGlobal("gridArraySubmitID",      "\\\$TASK_ID");
         setGlobal("gridJobID",              "JOB_ID");
@@ -110,6 +112,7 @@ sub setGlobal ($$) {
     if (($var eq "gridEngine") && ($val eq "LSF")) {
         setGlobal("gridSubmitCommand",      "bsub");
         setGlobal("gridHoldOption",         "-w \"numended\(\"WAIT_TAG\", \*\)\"");
+        setGlobal("gridHoldOptionNoArray",  "-w \"done\(\"WAIT_TAG\"\)\"");
         setGlobal("gridSyncOption",         "-K");
         setGlobal("gridNameOption",         "-J");
         setGlobal("gridArrayOption",        "");
@@ -117,6 +120,7 @@ sub setGlobal ($$) {
         setGlobal("gridOutputOption",       "-o");
         setGlobal("gridPropagateCommand",   "bmodify -w \"done\(\"WAIT_TAG\"\)\"");
         setGlobal("gridNameToJobIDCommand", "bjobs -A -J \"WAIT_TAG\" | grep -v JOBID");
+        setGlobal("gridNameToJobIDCommandNoArray", "bjobs -J \"WAIT_TAG\" | grep -v JOBID");
         setGlobal("gridTaskID",             "LSB_JOBINDEX");
         setGlobal("gridArraySubmitID",      "%I");
         setGlobal("gridJobID",              "LSB_JOBID");
@@ -711,8 +715,13 @@ sub submit($$$$$) {
           my $tcmd = getGlobal("gridNameToJobIDCommand");
           $tcmd =~ s/WAIT_TAG/$waitTag/g;
           my $propJobCount = `$tcmd |wc -l`;
-          my $list = `$tcmd`;
           chomp $propJobCount;
+          if ($propJobCount == 0) {
+             $tcmd = getGlobal("gridNameToJobIDCommandNoArray");
+             $tcmd =~ s/WAIT_TAG/$waitTag/g;
+             $hold = getGlobal("gridHoldOptionNoArray");
+             $propJobCount = `$tcmd |wc -l`;
+          }
           if ($propJobCount != 1) {
              print STDERR "Warning: multiple IDs for job $sgePropHold got $propJobCount and should have been 1.\n";
           }
@@ -729,8 +738,8 @@ sub submit($$$$$) {
     runCommand($wrk, $qcmd) and caFailure("Failed to submit script.\n");
 
     if (defined($sgePropHold)) {
-		if (defined($holdPropagateCommand)) {
-           my $translateCmd = getGlobal("gridNameToJobIDCommand");
+	if (defined($holdPropagateCommand)) {
+           my $translateCmd = getGlobal("gridNameToJobIDCommandNoArray");
            
            # translate hold option to job id if necessar
            if (defined($translateCmd) && $translateCmd ne "") {
