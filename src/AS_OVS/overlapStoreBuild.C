@@ -44,8 +44,8 @@ using namespace std;
 
 #define AS_OVS_CURRENT_VERSION  2
 
-
-
+uint32  lastLibFirstIID = 0;
+uint32  lastLibLastIID  = 0;
 
 
 static
@@ -199,6 +199,22 @@ writeToDumpFile(OVSoverlap          *overlap,
 
   uint32 df = overlap->a_iid / iidPerBucket;
 
+  if (lastLibFirstIID > 0) {
+    uint32  firstHighDensity = lastLibFirstIID;      //  IID of first pacBio read
+    uint32  lastHighDensity  = lastLibLastIID + 1;  //  IID of last pacBio read, plus 1
+    uint32  numHighDensity   = lastHighDensity - firstHighDensity;
+
+    uint32  lowDensity       = firstHighDensity /  64;  //  64 buckets for illumina overlaps
+    uint32  highDensity      = numHighDensity   / 128;  //  128 buckets for dense overlaps
+
+    if (overlap->a_iid < firstHighDensity)
+      df = overlap->a_iid / lowDensity;
+    else
+      df = (overlap->a_iid - firstHighDensity) / highDensity + 64;  //  plus 64 buckets from above
+  }
+
+  //fprintf(stderr, "IID %u DF %u\n", overlap->a_iid, df);
+
   if (df >= dumpFileMax) {
     char   olapstring[256];
     
@@ -318,6 +334,9 @@ main(int argc, char **argv) {
 
       fclose(F);
 
+    } else if (strcmp(argv[arg], "-big") == 0) {
+      lastLibFirstIID = atoi(argv[++arg]);
+
     } else if ((argv[arg][0] == '-') && (argv[arg][1] != 0)) {
       fprintf(stderr, "%s: unknown option '%s'.\n", argv[0], argv[arg]);
       err++;
@@ -351,6 +370,10 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -e e                  filter overlaps above e fraction error\n");
     fprintf(stderr, "  -L fileList           read input filenames from 'flieList'\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -big iid              handle a large number of overlaps in the last library\n");
+    fprintf(stderr, "                        iid is the first read iid in the last library, from\n");
+    fprintf(stderr, "                        'gatekeeper -dumpinfo *gkpStore'\n");
 
     if (ovlName == NULL)
       fprintf(stderr, "ERROR: No overlap store (-o) supplied.\n");
@@ -373,8 +396,9 @@ main(int argc, char **argv) {
   gkStore *gkp         = new gkStore(gkpName, FALSE, FALSE);
 
   uint64  maxIID       = gkp->gkStore_getNumFragments() + 1;
-  //uint64  iidPerBucket = (uint64)ceil((double)maxIID / (double)fileLimit);
   uint64  iidPerBucket = computeIIDperBucket(fileLimit, memoryLimit, maxIID, fileList);
+
+  lastLibLastIID       = gkp->gkStore_getNumFragments();
 
   uint32                   dumpFileMax  = sysconf(_SC_OPEN_MAX) + 1;
   BinaryOverlapFile      **dumpFile     = new BinaryOverlapFile * [dumpFileMax];
