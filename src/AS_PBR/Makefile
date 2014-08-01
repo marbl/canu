@@ -156,24 +156,35 @@ addCNSToStore: addCNSToStore.pl
 	@chmod 775 $(LOCAL_BIN)/$@
 
 # for now we support these as binaries, we should do better and build code
+
+#  This is _ALWAYS_ unpacked, regardless of up-to-dateness.
 mhap: mhap.tar.gz
 	@tar xvzf $< -C $(LOCAL_LIB)/
+
+falcon_sense.$(LOCAL_NAME).bin:
+	@touch falcon_sense.$(LOCAL_NAME).bin
 
 falcon_sense: falcon_sense.$(LOCAL_NAME).bin
 	@cp $< $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
+pbutgcns.$(LOCAL_NAME).bin:
+	@touch pbutgcns.$(LOCAL_NAME).bin
+
 pbutgcns: pbutgcns.$(LOCAL_NAME).bin
 	@cp $< $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
-ifeq ($(OSTYPE), Linux)
+jellyfish.$(LOCAL_NAME).bin:
+	@touch jellyfish.$(LOCAL_NAME).bin
+
+ifeq ($(OSTYPE), Darwin)
 jellyfish: jellyfish.$(LOCAL_NAME).bin
 	@cp $< $(LOCAL_BIN)/$@
+	@cp *dylib $(LOCAL_LIB)/
 	@chmod 775 $(LOCAL_BIN)/$@
 else
 jellyfish: jellyfish.$(LOCAL_NAME).bin
 	@cp $< $(LOCAL_BIN)/$@
-	@cp *dylib $(LOCAL_LIB)/
 	@chmod 775 $(LOCAL_BIN)/$@
 endif
