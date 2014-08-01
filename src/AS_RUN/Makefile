@@ -61,7 +61,9 @@ runCA-overlapStoreBuild: runCA-overlapStoreBuild.pl
 	@chmod 775 $(LOCAL_BIN)/$@
 
 TIGR: asmQC/TIGR
-	@cp -r $< $(LOCAL_BIN)
+	@mkdir $(LOCAL_BIN)/TIGR
+	@cp $</AsmLib.pm $(LOCAL_BIN)/TIGR
+	@cp $</Foundation.pm $(LOCAL_BIN)/TIGR
 
 caqc_help.ini: asmQC/caqc_help.ini
 	@cp $< $(LOCAL_BIN)/$@
