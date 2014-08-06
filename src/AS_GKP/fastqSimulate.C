@@ -737,11 +737,11 @@ main(int argc, char **argv) {
   int32      seqLen = 0;
   char      *seq    = NULL;
 
-  int32      readLen        = 100;  //  Length of read to generate
-  int32      numReads       = 0;    //  Number of reads to generate, constant
-  int32      numPairs       = 0;    //  Number of pairs to generate, constant (= numReads / 2)
-  double     readCoverage   = 0.0;  //  Number of pairs to generate, based on length of read
-  double     cloneCoverage  = 0.0;  //  Number of pairs to generate, based on length of clone
+  int32      readLen        = 100;         //  Length of read to generate
+  int32      numReads       = UINT32_MAX;  //  Number of reads to generate, constant
+  int32      numPairs       = UINT32_MAX;  //  Number of pairs to generate, constant (= numReads / 2)
+  double     readCoverage   = 0.0;         //  Number of pairs to generate, based on length of read
+  double     cloneCoverage  = 0.0;         //  Number of pairs to generate, based on length of clone
 
   bool       seEnable       = false;
 
@@ -1080,11 +1080,11 @@ main(int argc, char **argv) {
     uint32  cloneSize      = 0;
     uint32  cloneStdDev    = 0;
 
-    uint32  readNumReads   = 0;
-    uint32  readNumPairs   = 0;
+    uint32  readNumReads   = UINT32_MAX;
+    uint32  readNumPairs   = UINT32_MAX;
 
-    uint32  cloneNumReads  = 0;
-    uint32  cloneNumPairs  = 0;
+    uint32  cloneNumReads  = UINT32_MAX;
+    uint32  cloneNumPairs  = UINT32_MAX;
       
     if (peEnable) { cloneSize = peShearSize;  cloneStdDev = peShearStdDev; }
     if (mpEnable) { cloneSize = mpInsertSize; cloneStdDev = mpInsertStdDev; }
@@ -1100,8 +1100,11 @@ main(int argc, char **argv) {
       cloneNumReads = cloneNumPairs * 2;
     }
 
-    numReads = MIN(readNumReads, cloneNumReads);
-    numPairs = MIN(readNumPairs, cloneNumPairs);
+    numReads = MIN(numReads, readNumReads);
+    numPairs = MIN(numPairs, readNumPairs);
+
+    numReads = MIN(numReads, cloneNumReads);
+    numPairs = MIN(numPairs, cloneNumPairs);
 
     if (seEnable)
       fprintf(stderr, "Generate %.2f X read coverage of a %dbp genome with %u %dbp reads.\n",
