@@ -103,6 +103,10 @@ OverlapCache::OverlapCache(OverlapStore *ovlStoreUniq,
     _memLimit = UINT64_MAX;
   }
 
+  //  Need to initialize thread data before we can account for their size.
+  _threadMax = omp_get_max_threads();
+  _thread    = new OverlapCacheThreadData [_threadMax];
+
   //  Account for memory used by fragment data, best overlaps, and unitigs.
   //  The chunk graph is temporary, and should be less than the size of the unitigs.
 
@@ -112,8 +116,23 @@ OverlapCache::OverlapCache(OverlapStore *ovlStoreUniq,
   uint64 memUL = FI->numFragments() * sizeof(ufNode);           //  For fragment positions in unitigs
   uint64 memUT = FI->numFragments() * sizeof(uint32) / 16;      //  For unitigs (assumes 32 frag / unitig)
   uint64 memID = FI->numFragments() * sizeof(uint32) * 2;       //  For maps of fragment id to unitig id
+  uint64 memC1 = (FI->numFragments() + 1) * (sizeof(BAToverlapInt *) + sizeof(uint32));
+  uint64 memC2 = _ovsMax * (sizeof(OVSoverlap) + sizeof(uint64) + sizeof(uint64));
+  uint64 memC3 = _threadMax * _thread[0]._batMax * sizeof(BAToverlap);
+  uint64 memC4 = (FI->numFragments() + 1) * sizeof(uint32);
   uint64 memOS = (_memLimit == getMemorySize()) ? (0.1 * getMemorySize()) : 0.0;
-  uint64 memTT = memFI + memBE + memBC + memUL + memUT + memID + memOS;
+
+  uint64 memTT = memFI + memBE + memBC + memUL + memUT + memID + memC1 + memC2 + memC3 + memC4 + memOS;
+
+  if (onlySave) {
+    fprintf(stderr, "OverlapCache()-- Only saving overlaps, not computing unitigs.\n");
+    memBE = 0;
+    memBC = 0;
+    memUL = 0;
+    memUT = 0;
+    memID = 0;
+    memTT = memFI + memBE + memBC + memUL + memUT + memID + memOS + memC1 + memC2 + memC3 + memC4;
+  }
 
   fprintf(stderr, "OverlapCache()-- %7"F_U64P"MB for fragment data.\n",                  memFI >> 20);
   fprintf(stderr, "OverlapCache()-- %7"F_U64P"MB for best edges.\n",                     memBE >> 20);
@@ -121,6 +140,10 @@ OverlapCache::OverlapCache(OverlapStore *ovlStoreUniq,
   fprintf(stderr, "OverlapCache()-- %7"F_U64P"MB for unitig layouts.\n",                 memUL >> 20);
   fprintf(stderr, "OverlapCache()-- %7"F_U64P"MB for unitigs.\n",                        memUT >> 20);
   fprintf(stderr, "OverlapCache()-- %7"F_U64P"MB for id maps.\n",                        memID >> 20);
+  fprintf(stderr, "OverlapCache()-- %7"F_U64P"MB for overlap cache pointers.\n",         memC1 >> 20);
+  fprintf(stderr, "OverlapCache()-- %7"F_U64P"MB for overlap cache initial bucket.\n",   memC2 >> 20);
+  fprintf(stderr, "OverlapCache()-- %7"F_U64P"MB for overlap cache thread data.\n",      memC3 >> 20);
+  fprintf(stderr, "OverlapCache()-- %7"F_U64P"MB for number of overlaps per read.\n",    memC4 >> 20);
   fprintf(stderr, "OverlapCache()-- %7"F_U64P"MB for other processes.\n",                memOS >> 20);
   fprintf(stderr, "OverlapCache()-- ---------\n");
   fprintf(stderr, "OverlapCache()-- %7"F_U64P"MB for data structures (sum of above).\n", memTT >> 20);
@@ -128,7 +151,7 @@ OverlapCache::OverlapCache(OverlapStore *ovlStoreUniq,
   if (_memLimit <= memTT) {
     int64 defecit = (int64)memTT - (int64)_memLimit;
 
-    fprintf(stderr, "OverlapCache()-- %7"F_U64P"MB available for overlaps.\n", defecit);
+    fprintf(stderr, "OverlapCache()-- %7"F_S64P"MB available for overlaps.\n", defecit);
     fprintf(stderr, "OverlapCache()--  Out of memory before loading overlaps; increase -M.\n");
     exit(1);
   }
@@ -136,7 +159,7 @@ OverlapCache::OverlapCache(OverlapStore *ovlStoreUniq,
   _memLimit -= memTT;
   _memUsed   = 0;
 
-  fprintf(stderr, "OverlapCache()-- %7"F_U64P"MB available for overlaps.\n", _memLimit >> 20);
+  fprintf(stderr, "OverlapCache()-- %7"F_U64P"MB available for overlaps.\n",             _memLimit >> 20);
   fprintf(stderr, "\n");
 
   //  Decide on the default block size.  We want to use large blocks (to reduce the number of
@@ -166,8 +189,6 @@ OverlapCache::OverlapCache(OverlapStore *ovlStoreUniq,
   _cachePtr = new BAToverlapInt * [FI->numFragments() + 1];
   _cacheLen = new uint32          [FI->numFragments() + 1];
 
-  _memUsed += (FI->numFragments() + 1) * (sizeof(BAToverlapInt *) + sizeof(uint32));
-
   memset(_cachePtr, 0, sizeof(BAToverlapInt *) * (FI->numFragments() + 1));
   memset(_cacheLen, 0, sizeof(uint32)          * (FI->numFragments() + 1));
 
@@ -178,13 +199,8 @@ OverlapCache::OverlapCache(OverlapStore *ovlStoreUniq,
   _ovsSco  = new uint64     [_ovsMax];
   _ovsTmp  = new uint64     [_ovsMax];
 
-  _memUsed += _ovsMax * sizeof(OVSoverlap);
-  _memUsed += _ovsMax * sizeof(uint64);
-
-  _threadMax = omp_get_max_threads();
-  _thread    = new OverlapCacheThreadData [_threadMax];
-
-  _memUsed += _threadMax * _thread[0]._batMax * sizeof(BAToverlap);
+  //_threadMax = omp_get_max_threads();
+  //_thread    = new OverlapCacheThreadData [_threadMax];
 
   _OVSerate     = NULL;
   _BATerate     = NULL;
