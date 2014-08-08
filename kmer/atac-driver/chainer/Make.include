@@ -30,6 +30,14 @@ $/.PY_LIBS    := $/python/AtacDriver.py \
 
 $/.CLEAN      := $/*.o $/*/*.o $/*.so $/python/*.pyc
 
+#  Dependency generation doesn't know about CFLAGS_PYTHON, so this can appear as a dependency
+#  if Python.h isn't in the standard include paths, and then 'No rule to make target 'Python.h',
+#  needed by ...' appears.  We fix by explicitly pointing to Python.h
+#
+#  Unfortunately, Python.h remains out of date (as it would with .PHONY), so we build every time.
+#
+Python.h: ${PYTHON_H}
+
 $/localalign/localAlignerInterfacemodule.o: $/localalign/localAlignerInterfacemodule.C
 	${-CXX} ${CXX} ${CXXFLAGS} ${CXXFLAGS_COMPILE} ${CFLAGS_PYTHON} -o $@ -c $<
 

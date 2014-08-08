@@ -94,7 +94,6 @@ else
     WITHOUT_ATAC="atac-driver/ seatac/"
   else
     echo "Python libraries found in '$CFLAGS_PYTHON'"
-    CFLAGS_PYTHON="-I$CFLAGS_PYTHON"
   fi
 fi
 
@@ -373,7 +372,8 @@ CXXDEP	          := g++ -MM -MG
 CLIBS             += -lm -lbz2
 CXXLIBS           += -lm -lbz2
 PYTHON            := $PYTHON
-CFLAGS_PYTHON     := $CFLAGS_PYTHON
+PYTHON_H          := $CFLAGS_PYTHON/Python.h
+CFLAGS_PYTHON     := -I$CFLAGS_PYTHON
 WITHOUT           := $WITHOUT_ATAC
 EOF
 
