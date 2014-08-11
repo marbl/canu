@@ -50,7 +50,9 @@ const char *mainid = "$Id$";
 
 #include "CIScaffoldT_Analysis.H"  //  For checking mates on load
 
+#ifndef BROKEN_CLANG_OpenMP
 #include <omp.h>
+#endif
 
 //  Defines the logical checkpoints
 

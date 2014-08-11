@@ -66,8 +66,8 @@ DNC_SOURCES = classifyMates-BFS.C \
 DNC_OBJECTS = $(DNC_SOURCES:.C=.o)
 
 
-SOURCES     = bogart.C petey.C bogus.C bogusness.C AS_BAT_bogusUtil.C classifyMates.C classifyMatesApply.C classifyMatesPairwise.C splitUnitigs.C computeCoverageStat.C markRepeatUnique.C rewriteCache.C $(BAT_SOURCES) $(DNC_SOURCES)
-OBJECTS     = bogart.o petey.o bogus.o bogusness.o AS_BAT_bogusUtil.o classifyMates.o classifyMatesApply.o classifyMatesPairwise.o splitUnitigs.o computeCoverageStat.o markRepeatUnique.o rewriteCache.o $(BAT_OBJECTS) $(DNC_OBJECTS)
+SOURCES     = bogart.C bogus.C bogusness.C AS_BAT_bogusUtil.C classifyMates.C classifyMatesApply.C classifyMatesPairwise.C splitUnitigs.C computeCoverageStat.C markRepeatUnique.C rewriteCache.C $(BAT_SOURCES) $(DNC_SOURCES)
+OBJECTS     = bogart.o bogus.o bogusness.o AS_BAT_bogusUtil.o classifyMates.o classifyMatesApply.o classifyMatesPairwise.o splitUnitigs.o computeCoverageStat.o markRepeatUnique.o rewriteCache.o $(BAT_OBJECTS) $(DNC_OBJECTS)
 
 CXX_PROGS   = bogart bogus bogusness classifyMates classifyMatesApply classifyMatesPairwise splitUnitigs computeCoverageStat markRepeatUnique rewriteCache
 
@@ -119,7 +119,7 @@ all:    $(OBJECTS) $(LIBRARIES) $(CXX_PROGS)
 	@test -n nop
 
 bogart:                 bogart.o                $(BAT_OBJECTS) libCA.a
-petey:                  petey.o                 $(BAT_OBJECTS) libCA.a
+#petey:                  petey.o                 $(BAT_OBJECTS) libCA.a
 bogus:                  bogus.o                                libCA.a AS_BAT_bogusUtil.o
 bogusness:              bogusness.o                            libCA.a AS_BAT_bogusUtil.o
 classifyMates:          classifyMates.o         $(DNC_OBJECTS) libCA.a libutil.a

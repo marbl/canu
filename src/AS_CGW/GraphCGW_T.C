@@ -42,7 +42,9 @@ static char *rcsid = "$Id$";
 
 #include "Input_CGW.H"
 
+#ifndef BROKEN_CLANG_OpenMP
 #include <omp.h>
+#endif
 
 #include <vector>
 #include <algorithm>

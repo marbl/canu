@@ -33,12 +33,11 @@ static const char *rcsid_INCLUDE_AS_BAT_DATATYPES = "$Id$";
 #include <set>
 #include <list>
 #include <vector>
-#include <iostream>
-#include <cmath>
-#include <limits>
 #include <algorithm>
 
+#ifndef BROKEN_CLANG_OpenMP
 #include <omp.h>
+#endif
 
 using namespace std;
 

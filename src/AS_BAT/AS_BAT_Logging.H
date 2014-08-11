@@ -36,7 +36,9 @@ static const char *rcsid_INCLUDE_AS_BAT_LOGGING = "$Id$";
 #include <stdarg.h>
 #include <errno.h>
 
+#ifndef BROKEN_CLANG_OpenMP
 #include <omp.h>
+#endif
 
 void  setLogFile(char const *prefix, char const *name);
 void  writeLog(char const *fmt, ...);

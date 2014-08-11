@@ -50,6 +50,9 @@ void  safe_free2(void *);
 //  implemented as a macro that calls free(), which then gets expanded
 //  into our bogus function.
 //
+//  And, thanks, Apple.  Your iostream implementation uses malloc. (!)
+//
+#ifndef BROKEN_CLANG_OpenMP
 #ifndef X86_GCC_LINUX
 
 #define malloc(X)     use_safe_malloc_instead(X)
@@ -57,6 +60,7 @@ void  safe_free2(void *);
 #define realloc(X,Y)  use_safe_realloc_instead(X,Y)
 #define free(X)       use_safe_free_instead(X)
 
+#endif
 #endif
 
 template<class T>

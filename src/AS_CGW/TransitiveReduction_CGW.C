@@ -38,7 +38,9 @@ static char *rcsid = "$Id$";
 
 #include "DataTypesREZ.H"  //  Target_Info_t
 
+#ifndef BROKEN_CLANG_OpenMP
 #include <omp.h>
+#endif
 
 static VA_TYPE(CIEdgeT)        *graphCIEdges;
 

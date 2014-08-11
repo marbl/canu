@@ -260,4 +260,58 @@ int AS_configure(int argc, char **argv);
 // without bothering lint
 #define AssertPtr(ptr) (assert((ptr) != NULL))
 
+
+
+//  Stubs for ignoring OpenMP on clang.
+#ifdef BROKEN_CLANG_OpenMP
+
+static
+int
+omp_get_max_threads(void) {
+  return(1);
+}
+
+static
+void
+omp_set_num_threads(int x) {
+}
+
+static
+int
+omp_get_num_threads(void) {
+  return(1);
+}
+
+static
+int
+omp_get_thread_num(void) {
+  return(0);
+}
+
+typedef int omp_lock_t;
+
+static
+void
+omp_init_lock(omp_lock_t *a) {
+}
+
+static
+void
+omp_set_lock(omp_lock_t *a) {
+}
+
+static
+void
+omp_unset_lock(omp_lock_t *a) {
+}
+
+static
+void
+omp_destroy_lock(omp_lock_t *a) {
+}
+
+#endif
+
+
+
 #endif

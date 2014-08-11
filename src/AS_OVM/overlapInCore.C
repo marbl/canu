@@ -792,10 +792,10 @@ main(int argc, char **argv) {
   //  Adjust the number of reads to load into memory at once (for processing, not the hash table),
 
   if (Max_Reads_Per_Batch == 0)
-    Max_Reads_Per_Batch = 100000;
+    Max_Reads_Per_Batch = (Max_Hash_Strings < 100000) ? Max_Hash_Strings : 100000;
 
-  if (Max_Hash_Strings < Max_Reads_Per_Batch)
-    Max_Reads_Per_Batch = Max_Hash_Strings;
+  //if (Max_Hash_Strings < Max_Reads_Per_Batch)
+  //  Max_Reads_Per_Batch = Max_Hash_Strings;
 
   //  Adjust the number of reads processed per thread.  Default to having four blocks per thread,
   //  but make sure that (a) all threads have work to do, and (b) batches are not minuscule.

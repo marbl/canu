@@ -142,27 +142,27 @@ endif
 
 
 ifeq ($(OSTYPE), Darwin)
-  CC               = gcc
-  CXX              = g++
   ARCH_CFLAGS      = -D_THREAD_SAFE
 
-  #  Bogart, OpenMP, will not compile with clang.  It cannot find omp.h.
+  #  For gnu gcc/g++
+  #
+  ARCH_CFLAGS  += -D_GLIBCXX_PARALLEL -fopenmp
+  ARCH_LDFLAGS += -D_GLIBCXX_PARALLEL -fopenmp
+
+  #  For clang/clang++
+  #
+  #  Bogart, CGW and possibly others, will not compile with clang because OpenMP is missing.
+  #  If you must use clang, add the symbol below.
+  #
   #CC  = clang 
   #CXX = clang++
+  #ARCH_CFLAGS     += -DBROKEN_CLANG_OpenMP
 
   ifeq ($(BUILDDEBUG), 1)
     ARCH_CFLAGS   += -g -Wall
   else
     ARCH_CFLAGS   += -O3
   endif
-
-  #  For gcc/g++
-  ARCH_CFLAGS  += -D_GLIBCXX_PARALLEL -fopenmp
-  ARCH_LDFLAGS += -D_GLIBCXX_PARALLEL -fopenmp
-
-  #  For clang
-  #ARCH_CFLAGS  += 
-  #ARCH_LDFLAGS += 
 
   ARCH_CFLAGS += -fPIC -m64 -fmessage-length=0 -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare
 # ARCH_CFLAGS += -Wshorten-64-to-32  # Wow, tough
