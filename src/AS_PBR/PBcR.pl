@@ -1432,9 +1432,6 @@ if (! -e "$wrk/temp$libraryname/$asm.toerase.out") {
    # use the genome size/coverage, if available to subset the sequences
    if ($genomeSize != 0 && getGlobal("maxCoverage") != 0) {
       $totalBP = $genomeSize * getGlobal("maxCoverage");
-      if ($genomeSize * getGlobal("maxCoverage") >= $totalInputBP) {
-         $totalBP = $totalInputBP / 2;
-      }
    }
    runCommand($wrk, "$CA/gatekeeper -dumpfragments -invert -tabular -longestovermin $libToCorrect $length -longestlength $libToCorrect $totalBP $wrk/temp$libraryname/$asm.gkpStore 2> $wrk/temp$libraryname/$asm.seedlength |awk '{if (!(match(\$1, \"UID\") != 0 && length(\$1) == " . length("UID") . ")) { print \"frg uid \"\$1\" isdeleted 1\"; } }' > $wrk/temp$libraryname/$asm.toerase.uid");
    runCommand($wrk, "$CA/gatekeeper --edit $wrk/temp$libraryname/$asm.toerase.uid $wrk/temp$libraryname/$asm.gkpStore > $wrk/temp$libraryname/$asm.toerase.out 2> $wrk/temp$libraryname/$asm.toerase.err");
