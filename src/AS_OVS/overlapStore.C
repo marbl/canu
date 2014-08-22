@@ -34,6 +34,7 @@ main(int argc, char **argv) {
 
   uint32          dumpBinary  = FALSE;
   double          dumpERate   = 100.0;
+  uint32          dumpLength  = 0;
   uint32          dumpType    = 0;
 
   char           *erateFile   = NULL;
@@ -91,6 +92,9 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-E") == 0) {
       dumpERate = atof(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-L") == 0) {
+      dumpLength = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-d5") == 0) {
       dumpType |= DUMP_5p;
@@ -150,6 +154,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "DUMPING - report overlaps in the store\n");
     fprintf(stderr, "  -B                Dump the store as binary, suitable for input to create a new store.\n");
     fprintf(stderr, "  -E erate          Dump only overlaps <= erate error.\n");
+    fprintf(stderr, "  -L length         Dump only overlaps that are larger than L bases (only for -p picture mode).\n");
     fprintf(stderr, "  -d5               Dump only overlaps off the 5' end of the A frag.\n");
     fprintf(stderr, "  -d3               Dump only overlaps off the 3' end of the A frag.\n");
     fprintf(stderr, "  -dC               Dump only overlaps that are contained in the A frag (B contained in A).\n");
@@ -174,10 +179,10 @@ main(int argc, char **argv) {
 
   switch (operation) {
     case OP_DUMP:
-      dumpStore(storeName, dumpBinary, dumpERate, dumpType, bgnIID, endIID, qryIID);
+      dumpStore(storeName, dumpBinary, dumpERate, dumpLength, dumpType, bgnIID, endIID, qryIID);
       break;
     case OP_DUMP_PICTURE:
-      dumpPicture(storeName, gkpName, clearRegion, dumpERate, dumpType, qryIID);
+      dumpPicture(storeName, gkpName, clearRegion, dumpERate, dumpLength, dumpType, qryIID);
       break;
     case OP_GENOME_LENGTH:
       estimateGenomeLength(storeName,

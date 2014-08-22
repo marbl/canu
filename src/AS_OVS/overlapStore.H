@@ -42,10 +42,10 @@ void
 updateErates(char *storeName, char *eratesName);
 
 void
-dumpStore(char *storeName, uint32 dumpBinary, double dumpERate, uint32 dumpType, uint32 bgnIID, uint32 endIID, uint32 qryIID);
+dumpStore(char *storeName, uint32 dumpBinary, double dumpERate, uint32 dumpLength, uint32 dumpType, uint32 bgnIID, uint32 endIID, uint32 qryIID);
 
 void
-dumpPicture(char *ovlName, char *gkpName, uint32 clearRegion, double dumpERate, uint32 dumpType, uint32 qryIID);
+dumpPicture(char *ovlName, char *gkpName, uint32 clearRegion, double dumpERate, uint32 dumpLength, uint32 dumpType, uint32 qryIID);
 
 void
 estimateGenomeLength(char    *ovlName,

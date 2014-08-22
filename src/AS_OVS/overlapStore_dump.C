@@ -43,7 +43,7 @@ static const char *rcsid = "$Id$";
 
 
 void
-dumpStore(char *ovlName, uint32 dumpBinary, double dumpERate, uint32 dumpType, uint32 bgnIID, uint32 endIID, uint32 qryIID) {
+dumpStore(char *ovlName, uint32 dumpBinary, double dumpERate, uint32 dumpType, uint32 dumpLength, uint32 bgnIID, uint32 endIID, uint32 qryIID) {
   OverlapStore  *ovlStore = AS_OVS_openOverlapStore(ovlName);
   OVSoverlap     overlap;
   uint64         erate     = AS_OVS_encodeQuality(dumpERate / 100.0);
@@ -51,63 +51,53 @@ dumpStore(char *ovlName, uint32 dumpBinary, double dumpERate, uint32 dumpType, u
 
   AS_OVS_setRangeOverlapStore(ovlStore, bgnIID, endIID);
 
+  //  Length filtering is expensive to compute, need to load both reads to get their length.
+  //
+  //if ((dumpLength > 0) && (dumpLength < overlapLength(overlap)))
+  //  continue;
+  
   while (AS_OVS_readOverlapFromStore(ovlStore, &overlap, AS_OVS_TYPE_ANY) == TRUE) {
+    if ((qryIID != 0) && (qryIID != overlap.b_iid))
+      continue;
+
     switch (overlap.dat.ovl.type) {
       case AS_OVS_TYPE_OVL:
-
         if (overlap.dat.ovl.corr_erate > erate)
-            continue;
-
-        if ((qryIID != 0) && (qryIID != overlap.b_iid))
           continue;
-
         if (((dumpType & DUMP_5p) == 0) &&
             (overlap.dat.ovl.a_hang < 0) && (overlap.dat.ovl.b_hang < 0))
           continue;
-
         if (((dumpType & DUMP_3p) == 0) &&
             (overlap.dat.ovl.a_hang > 0) && (overlap.dat.ovl.b_hang > 0))
           continue;
-
         if (((dumpType & DUMP_CONTAINS) == 0) &&
             (overlap.dat.ovl.a_hang >= 0) && (overlap.dat.ovl.b_hang <= 0))
           continue;
-
         if (((dumpType & DUMP_CONTAINED) == 0) &&
             (overlap.dat.ovl.a_hang <= 0) && (overlap.dat.ovl.b_hang >= 0))
           continue;
-
-
-        if (dumpBinary)
-          AS_UTL_safeWrite(stdout, &overlap, "dumpStore", sizeof(OVSoverlap), 1);
-        else
-          fprintf(stdout, "%s\n", AS_OVS_toString(ovlString, overlap));
         break;
       case AS_OVS_TYPE_OBT:
         if (overlap.dat.obt.erate > erate)
           continue;
-
-        if ((qryIID != 0) && (qryIID != overlap.b_iid))
-          continue;
-
-        if (dumpBinary)
-          AS_UTL_safeWrite(stdout, &overlap, "dumpStore", sizeof(OVSoverlap), 1);
-        else
-          fprintf(stdout, "%s\n", AS_OVS_toString(ovlString, overlap));
         break;
       case AS_OVS_TYPE_MER:
-        if ((qryIID != 0) && (qryIID != overlap.b_iid))
-          continue;
-
-        if (dumpBinary)
-          AS_UTL_safeWrite(stdout, &overlap, "dumpStore", sizeof(OVSoverlap), 1);
-        else
-          fprintf(stdout, "%s\n", AS_OVS_toString(ovlString, overlap));
         break;
       default:
         assert(0);
         break;
     }
+
+    //  All the slow for this dump is in sprintf() within AS_OVS_toString().
+    //    Without both the puts() and AS_OVS_toString(), a dump ran in 3 seconds.
+    //    With both, 138 seconds.
+    //    Without the puts(), 127 seconds.
+
+    if (dumpBinary)
+      AS_UTL_safeWrite(stdout, &overlap, "dumpStore", sizeof(OVSoverlap), 1);
+    else
+      //fprintf(stdout, "%s\n", AS_OVS_toString(ovlString, overlap));
+      puts(AS_OVS_toString(ovlString, overlap));
   }
 
   AS_OVS_closeOverlapStore(ovlStore);
@@ -255,9 +245,118 @@ dumpPicture(OVSoverlap *overlaps, uint64 novl, gkStore *gkpStore, uint32 clearRe
 
 
 void
-dumpPictureOBT(OVSoverlap *overlaps, uint64 novl, gkStore *gkpStore, uint32 clearRegion, uint32 qryIID) {
+dumpPicture(char *ovlName, char *gkpName, uint32 clearRegion, double dumpERate, uint32 dumpLength, uint32 dumpType, uint32 qryIID) {
+  fprintf(stderr, "DUMPING PICTURE for ID "F_IID" in store %s (gkp %s clear %s)\n",
+          qryIID, ovlName, gkpName, AS_READ_CLEAR_NAMES[clearRegion]);
+
+  OverlapStore  *ovlStore = AS_OVS_openOverlapStore(ovlName);
+  gkStore       *gkpStore = new gkStore(gkpName, FALSE, FALSE);
+
+  gkFragment     A;
+  gkFragment     B;
+
+  uint32  clrBgnA, clrEndA;
+
+  gkpStore->gkStore_getFragment(qryIID, &A, GKFRAGMENT_INF);
+  A.gkFragment_getClearRegion(clrBgnA, clrEndA, clearRegion);
+
+  uint32  frgLenA = clrEndA - clrBgnA;
+
+  AS_OVS_setRangeOverlapStore(ovlStore, qryIID, qryIID);
+
+  uint64         novl     = 0;
+  OVSoverlap     overlap;
+  OVSoverlap    *overlaps = (OVSoverlap *)safe_malloc(sizeof(OVSoverlap) * AS_OVS_numOverlapsInRange(ovlStore));
+  uint64         erate    = AS_OVS_encodeQuality(dumpERate / 100.0);
+
+  //  Load all the overlaps so we can sort by the A begin position.
+
+  while (AS_OVS_readOverlapFromStore(ovlStore, &overlap, AS_OVS_TYPE_ANY) == TRUE) {
+
+    //  For OBT, the only filter is erate (and length, at the bottom)
+
+    if (overlap.dat.obt.type == AS_OVS_TYPE_OBT) {
+      if (overlap.dat.obt.erate > erate)
+        continue;
+    }
+
+    //  For OVL, we can also filter on overlap type.
+
+    if (overlap.dat.obt.type == AS_OVS_TYPE_OVL) {
+      if (overlap.dat.ovl.corr_erate > erate)
+        continue;
+
+      if (((dumpType & DUMP_5p) == 0) &&
+          (overlap.dat.ovl.a_hang < 0) && (overlap.dat.ovl.b_hang < 0))
+        continue;
+
+      if (((dumpType & DUMP_3p) == 0) &&
+          (overlap.dat.ovl.a_hang > 0) && (overlap.dat.ovl.b_hang > 0))
+        continue;
+
+      if (((dumpType & DUMP_CONTAINS) == 0) &&
+          (overlap.dat.ovl.a_hang >= 0) && (overlap.dat.ovl.b_hang <= 0))
+        continue;
+
+      if (((dumpType & DUMP_CONTAINED) == 0) &&
+          (overlap.dat.ovl.a_hang <= 0) && (overlap.dat.ovl.b_hang >= 0))
+        continue;
+    }
+
+    //  Convert the OVL to an OBT overlap, so we can check length.  We need to do it anyway for
+    //  dumpPicture(), so it isn't a horrible waste.
+
+    if (overlap.dat.obt.type == AS_OVS_TYPE_OVL) {
+      uint32  clrBgnB, clrEndB;
+
+      gkpStore->gkStore_getFragment(overlap.b_iid, &B, GKFRAGMENT_INF);
+      B.gkFragment_getClearRegion(clrBgnB, clrEndB, clearRegion);
+
+      uint32  frgLenB = clrEndB - clrBgnB;
+
+      int32   ahang   = overlap.dat.ovl.a_hang;
+      int32   bhang   = overlap.dat.ovl.b_hang;
+
+      uint32  abgn    = (ahang < 0) ? (0)               : (ahang);
+      uint32  aend    = (bhang < 0) ? (frgLenA + bhang) : (frgLenA);
+      uint32  bbgn    = (ahang < 0) ? (-ahang)          : (0);
+      uint32  bend    = (bhang < 0) ? (frgLenB)         : (frgLenB - bhang);
+
+      uint64  erate   = overlap.dat.ovl.corr_erate;
+
+      if (overlap.dat.ovl.flipped) {
+        bbgn = frgLenB - bbgn;
+        bend = frgLenB - bend;
+      }
+
+      overlap.dat.obt.type     = AS_OVS_TYPE_OBT;
+
+      overlap.dat.obt.a_beg    = abgn;
+      overlap.dat.obt.a_end    = aend;
+      overlap.dat.obt.b_beg    = bbgn;
+      overlap.dat.obt.b_end_hi = bend >> 9;
+      overlap.dat.obt.b_end_lo = bend & 0x1ff;
+
+      overlap.dat.obt.erate    = erate;
+    }
+
+    //  Finally, check the length.
+
+    if (overlap.dat.obt.type == AS_OVS_TYPE_OBT) {
+      if ((overlap.dat.obt.b_end_hi << 9 | overlap.dat.obt.b_end_lo) - overlap.dat.obt.b_beg < dumpLength)
+        continue;
+      if (overlap.dat.obt.a_end - overlap.dat.obt.a_beg < dumpLength)
+        continue;
+    }
+
+    overlaps[novl++] = overlap;
+  }
+
 
 #if 0
+  //  dumpPictureOBT() (removed 21 Aug 2014) used to have this chunk of code, also ifdef'd out.  It
+  //  seems to work without, but I don't know.
+
   for (uint32 o=0; o<novl; o++) {
     uint32 abgn = (overlaps[o].dat.obt.a_beg);
     uint32 aend = (overlaps[o].dat.obt.a_end);
@@ -283,114 +382,6 @@ dumpPictureOBT(OVSoverlap *overlaps, uint64 novl, gkStore *gkpStore, uint32 clea
   }
 #endif
 
-  dumpPicture(overlaps, novl, gkpStore, clearRegion, qryIID);
-}
-
-
-
-void
-dumpPictureOVL(OVSoverlap *overlaps, uint64 novl, gkStore *gkpStore, uint32 clearRegion, uint32 qryIID) {
-  char           ovl[256] = {0};
-  gkFragment     A;
-  gkFragment     B;
-
-  uint32  clrBgnA, clrEndA;
-
-  gkpStore->gkStore_getFragment(qryIID, &A, GKFRAGMENT_INF);
-  A.gkFragment_getClearRegion(clrBgnA, clrEndA, clearRegion);
-
-  uint32  frgLenA = clrEndA - clrBgnA;
-
-  //  Convert from OVL to OBT overlap form; those are easier to dump....
-
-  for (uint32 o=0; o<novl; o++) {
-    uint32  clrBgnB, clrEndB;
-
-    gkpStore->gkStore_getFragment(overlaps[o].b_iid, &B, GKFRAGMENT_INF);
-    B.gkFragment_getClearRegion(clrBgnB, clrEndB, clearRegion);
-
-    uint32  frgLenB = clrEndB - clrBgnB;
-
-    int32  ahang = overlaps[o].dat.ovl.a_hang;
-    int32  bhang = overlaps[o].dat.ovl.b_hang;
-
-    uint32  abgn = (ahang < 0) ? (0)               : (ahang);
-    uint32  aend = (bhang < 0) ? (frgLenA + bhang) : (frgLenA);
-    uint32  bbgn = (ahang < 0) ? (-ahang)          : (0);
-    uint32  bend = (bhang < 0) ? (frgLenB)         : (frgLenB - bhang);
-
-    uint64  erate = overlaps[o].dat.ovl.corr_erate;
-
-    if (overlaps[o].dat.ovl.flipped) {
-      bbgn = frgLenB - bbgn;
-      bend = frgLenB - bend;
-    }
-
-    overlaps[o].dat.obt.a_beg    = abgn;
-    overlaps[o].dat.obt.a_end    = aend;
-    overlaps[o].dat.obt.b_beg    = bbgn;
-    overlaps[o].dat.obt.b_end_hi = bend >> 9;
-    overlaps[o].dat.obt.b_end_lo = bend & 0x1ff;
-
-    overlaps[o].dat.obt.erate    = erate;
-  }
-
-  //  ...and the dump function is already written.
-
-  dumpPicture(overlaps, novl, gkpStore, clearRegion, qryIID);
-}
-
-
-
-
-void
-dumpPicture(char *ovlName, char *gkpName, uint32 clearRegion, double dumpERate, uint32 dumpType, uint32 qryIID) {
-  fprintf(stderr, "DUMPING PICTURE for ID "F_IID" in store %s (gkp %s clear %s)\n",
-          qryIID, ovlName, gkpName, AS_READ_CLEAR_NAMES[clearRegion]);
-
-  OverlapStore  *ovlStore = AS_OVS_openOverlapStore(ovlName);
-  gkStore       *gkpStore = new gkStore(gkpName, FALSE, FALSE);
-
-  AS_OVS_setRangeOverlapStore(ovlStore, qryIID, qryIID);
-
-  uint64         novl     = 0;
-  OVSoverlap     overlap;
-  OVSoverlap    *overlaps = (OVSoverlap *)safe_malloc(sizeof(OVSoverlap) * AS_OVS_numOverlapsInRange(ovlStore));
-  uint64         erate    = AS_OVS_encodeQuality(dumpERate / 100.0);
-
-  //  Load all the overlaps so we can sort by the A begin position.
-
-  while (AS_OVS_readOverlapFromStore(ovlStore, &overlap, AS_OVS_TYPE_ANY) == TRUE) {
-
-    if (overlap.dat.obt.type == AS_OVS_TYPE_OBT) {
-      if (overlap.dat.obt.erate > erate)
-        continue;
-    }
-
-    if (overlap.dat.obt.type == AS_OVS_TYPE_OVL) {
-      if (overlap.dat.ovl.corr_erate > erate)
-        continue;
-
-      if (((dumpType & DUMP_5p) == 0) &&
-          (overlap.dat.ovl.a_hang < 0) && (overlap.dat.ovl.b_hang < 0))
-        continue;
-
-      if (((dumpType & DUMP_3p) == 0) &&
-          (overlap.dat.ovl.a_hang > 0) && (overlap.dat.ovl.b_hang > 0))
-        continue;
-
-      if (((dumpType & DUMP_CONTAINS) == 0) &&
-          (overlap.dat.ovl.a_hang >= 0) && (overlap.dat.ovl.b_hang <= 0))
-        continue;
-
-      if (((dumpType & DUMP_CONTAINED) == 0) &&
-          (overlap.dat.ovl.a_hang <= 0) && (overlap.dat.ovl.b_hang >= 0))
-        continue;
-    }
-
-    overlaps[novl++] = overlap;
-  }
-
 
   if      (novl == 0)
     fprintf(stderr, "no overlaps to show.\n");
@@ -399,8 +390,8 @@ dumpPicture(char *ovlName, char *gkpName, uint32 clearRegion, double dumpERate, 
     fprintf(stderr, "mer overlaps cannot be visualized.\n");
 
   else if (overlaps[0].dat.obt.type == AS_OVS_TYPE_OBT)
-    dumpPictureOBT(overlaps, novl, gkpStore, clearRegion, qryIID);
+    dumpPicture(overlaps, novl, gkpStore, clearRegion, qryIID);
 
   else if (overlaps[0].dat.ovl.type == AS_OVS_TYPE_OVL)
-    dumpPictureOVL(overlaps, novl, gkpStore, clearRegion, qryIID);
+    dumpPicture(overlaps, novl, gkpStore, clearRegion, qryIID);
 }
