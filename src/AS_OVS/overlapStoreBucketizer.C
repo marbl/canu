@@ -74,7 +74,7 @@ writeToFile(OVSoverlap          *overlap,
   if (sliceFile[df] == NULL) {
     char name[FILENAME_MAX];
 
-    sprintf(name, "%s/bucket%04d/slice%03d%s", ovlName, jobIndex, df, (useGzip) ? ".gz" : "");
+    sprintf(name, "%s/create%04d/slice%03d%s", ovlName, jobIndex, df, (useGzip) ? ".gz" : "");
     sliceFile[df]   = AS_OVS_createBinaryOverlapFile(name, FALSE);
     sliceSize[df] = 0;
   }
@@ -271,14 +271,20 @@ main(int argc, char **argv) {
 
 
   {
-    char name[FILENAME_MAX];
-
     if (AS_UTL_fileExists(ovlName, TRUE, FALSE) == false)
       AS_UTL_mkdir(ovlName);
+  }
 
-    sprintf(name, "%s/bucket%04d", ovlName, jobIndex);
+
+  {
+    char name[FILENAME_MAX];
+
+    sprintf(name, "%s/create%04d", ovlName, jobIndex);
+
     if (AS_UTL_fileExists(name, TRUE, FALSE) == false)
       AS_UTL_mkdir(name);
+    else
+      fprintf(stderr, "Overwriting previous result; directory '%s' exists.\n", name), exit(0);
   }
 
 
@@ -287,10 +293,8 @@ main(int argc, char **argv) {
 
     sprintf(name, "%s/bucket%04d/sliceSizes", ovlName, jobIndex);
 
-    if (AS_UTL_fileExists(name, FALSE, FALSE) == true) {
-      fprintf(stderr, "Job finished; file '%s' exists.\n", name);
-      exit(0);
-    }
+    if (AS_UTL_fileExists(name, FALSE, FALSE) == true)
+      fprintf(stderr, "Job finished; file '%s' exists.\n", name), exit(0);
   }
 
 
@@ -476,8 +480,9 @@ main(int argc, char **argv) {
 
   {
     char name[FILENAME_MAX];
+    char finl[FILENAME_MAX];
 
-    sprintf(name, "%s/bucket%04d/sliceSizes", ovlName, jobIndex);
+    sprintf(name, "%s/create%04d/sliceSizes", ovlName, jobIndex);
 
     FILE *F = fopen(name, "w");
     if (errno)
@@ -486,6 +491,15 @@ main(int argc, char **argv) {
     AS_UTL_safeWrite(F, sliceSize, "sliceSize", sizeof(uint64), fileLimit + 1);
 
     fclose(F);
+
+    sprintf(name, "%s/create%04d", ovlName, jobIndex);
+    sprintf(finl, "%s/bucket%04d", ovlName, jobIndex);
+
+    errno = 0;
+    rename(name, finl);
+    if (errno)
+      fprintf(stderr, "ERROR:  Failed to rename '%s' to final name '%s': %s\n",
+              name, finl, strerror(errno));
   }
 
   fprintf(stderr, "overlap fate:\n");

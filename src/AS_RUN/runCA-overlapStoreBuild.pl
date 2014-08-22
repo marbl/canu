@@ -172,11 +172,11 @@ my @jobArray;
 
 my $numJobs     = 0;
 
-open(F, "find $inp -type f -name \*.ovb.gz -print | sort |");
+open(F, "find $inp -type f -print |");
 while (<F>) {
     chomp;
 
-    if (m/\d\d\d\/(\d\d\d\d\d\d).ovb.gz$/) {
+    if (m/\d\d\d\/(\d\d\d\d\d\d).ovb.[gx]z$/) {
         $firstIdx = $1  if ($1 < $firstIdx);
         $lastIdx = $1   if ($lastIdx < $1);
 
@@ -194,22 +194,56 @@ print STDERR "Found $numJobs jobs from index $firstIdx to $lastIdx.\n";
 
 my $firstNum = int($firstIdx);
 my $lastNum  = int($lastIdx);
+my $missing  = $lastNum - $firstNum + 1 - $numJobs;
 
 die "First index ($firstIdx) not 000001.\n"  if ($firstIdx ne "000001");
-die "Potential missing jobs.\n"              if ($numJobs != $lastNum - $firstNum + 1);
+
+if ($missing != 0) {
+    print STDERR "Missing $missing jobs.\n";
+
+    open(F, "> $inp/redo-overlapper.sh") or die;
+
+    my $cc = $firstNum;
+    my $ii = 0;
+
+    while ($cc < $lastNum) {
+        if ($jobArray[$ii] =~ m/(\d+).ovb/) {
+            if ($cc == $1) {
+                $ii++;
+            } else {
+                printf STDERR "  %06d.ovb\n", $cc;
+                printf F      "qsub -cwd -j y -o redo-\\\$TASK_ID -pe threads 2 -l mem=2g -t $cc overlap.sh\n";
+            }
+        } else {
+            print "Malformed job '$jobArray[$ii]'\n";
+            $ii++;
+        }
+
+        $cc++;
+    }
+
+    close(F);
+
+    print STDERR "Submission commands written to '$inp/redo-overlapper.sh'\n";
+
+    exit(1);
+}
 
 die "No jobs.\n" if ($numJobs == 0);
 
-#  Create an output directory, and populate it with scripts
+#  Create an output directory, and populate it with more directories and scripts
 
-if (! -d "$wrk/$asm.${typ}Store") {
-    system("mkdir -p $wrk/$asm.${typ}Store");
-}
+system("mkdir -p $wrk/$asm.${typ}Store")                   if (! -d "$wrk/$asm.${typ}Store");
+system("mkdir -p $wrk/$asm.${typ}Store/scripts")           if (! -d "$wrk/$asm.${typ}Store/scripts");
+system("mkdir -p $wrk/$asm.${typ}Store/logs")              if (! -d "$wrk/$asm.${typ}Store/logs");
+system("mkdir -p $wrk/$asm.${typ}Store/logs/1-bucketize")  if (! -d "$wrk/$asm.${typ}Store/logs/bucketize");
+system("mkdir -p $wrk/$asm.${typ}Store/logs/2-sort")       if (! -d "$wrk/$asm.${typ}Store/logs/sort");
+system("mkdir -p $wrk/$asm.${typ}Store/logs/3-index")      if (! -d "$wrk/$asm.${typ}Store/logs/index");
 
 #  Submit parallel jobs for bucketizing.  This should really be part
 #  of overlap computation itself.
 
-open(F, "> $wrk/$asm.${typ}Store/1-bucketize.sh") or die;
+open(F, "> $wrk/$asm.${typ}Store/scripts/1-bucketize.sh") or die;
 print F "#!/bin/sh\n";
 print F "\n";
 print F "jobid=\$SGE_TASK_ID\n";
@@ -237,28 +271,16 @@ print F "  echo \"Job out of range.\"\n";
 print F "  exit\n";
 print F "fi\n";
 print F "\n";
-print F "if [ ! -e \"$wrk/$asm.${typ}Store/bucket\$bn\" -a -e \"\$jn.success\" ] ; then\n";
-print F "  echo job \$jn claims success, but bucket $wrk/$asm.${typ}Store/bucket\$bn not found.  rerunning.\n";
-print F "  rm -f \$jn.success\n";
-print F "fi\n";
-print F "\n";
-print F "if [ -e \"\$jn.success\" ] ; then\n";
-print F "  echo \"Input \$jn finished successfully.\"\n";
+print F "if [ -e \"$wrk/$asm.${typ}Store/bucket\$bn/sliceSizes\" ] ; then\n";
+print F "  echo \"Bucket $wrk/$asm.${typ}Store/bucket\$bn finished successfully.\"\n";
 print F "  exit\n";
 print F "fi\n";
 print F "\n";
-print F "if [ -e \"\$jn.bucketizing\" ] ; then\n";
-print F "  echo \"Input \$jn is in progress.  Remove \$jn.bucketizing to try again.\"\n";
-print F "  exit\n";
+print F "if [ -e \"$wrk/$asm.${typ}Store/create\$bn\" ] ; then\n";
+print F "  echo \"Incomplete bucket $wrk/$asm.${typ}Store/create\$bn exists; you must remove to try again.\"\n";
+#print F "  rm -rf \"$wrk/$asm.${typ}Store/create\$bn\"\n";
+print F "  exit 1\n";
 print F "fi\n";
-print F "\n";
-print F "if [ -e \"\$jn.FAILED\" ] ; then\n";
-print F "  echo \"Input \$jn failed previously, cleaning up bucket $wrk/$asm.${typ}Store/bucket\$bn and rerunning.\"\n";
-print F "  rm  -f \$jn.FAILED\n";
-print F "  rm -rf \"$wrk/$asm.${typ}Store/bucket\$bn\"\n";
-print F "fi\n";
-print F "\n";
-print F "touch \"\$jn.bucketizing\"\n";
 print F "\n";
 print F "$sbn\n";
 print F "\n";
@@ -271,18 +293,10 @@ print F "  -obt \\\n"   if ($typ eq "obt");
 print F "  -dup \\\n"   if ($typ eq "dup");
 print F "  -job \$jobid \\\n";
 print F "  -i   \$jn\n";
-print F "\n";
-print F "if [ \$? = 0 ] ; then\n";
-print F "  mv -f \$jn.bucketizing \$jn.success\n";
-print F "fi\n";
-print F "\n";
-print F "if [ -e \"\$jn.bucketizing\" ] ; then\n";
-print F "  mv -f \$jn.bucketizing \$jn.FAILED\n";
-print F "fi\n";
 close(F);
 
 
-open(F, "> $wrk/$asm.${typ}Store/2-sort.sh") or die;
+open(F, "> $wrk/$asm.${typ}Store/scripts/2-sort.sh") or die;
 print F "#!/bin/sh\n";
 print F "\n";
 print F "jobid=\$SGE_TASK_ID\n";
@@ -312,7 +326,7 @@ print F "fi\n";
 close(F);
 
 
-open(F, "> $wrk/$asm.${typ}Store/3-index.sh") or die;
+open(F, "> $wrk/$asm.${typ}Store/scripts/3-index.sh") or die;
 print F "#!/bin/sh\n";
 print F "\n";
 print F "$sbn\n";
@@ -339,8 +353,8 @@ $qsub1 .= "  -N ovs1$asm \\\n";
 $qsub1 .= "  -t 1-$numJobs \\\n";
 $qsub1 .= "  -l memory=1g \\\n";
 $qsub1 .= "  -j y \\\n";
-$qsub1 .= "  -o $wrk/$asm.${typ}Store/1-bucketize-\\\$TASK_ID.err \\\n";
-$qsub1 .= "  $wrk/$asm.${typ}Store/1-bucketize.sh";
+$qsub1 .= "  -o $wrk/$asm.${typ}Store/logs/1-bucketize/bucket-\\\$TASK_ID.err \\\n";
+$qsub1 .= "  $wrk/$asm.${typ}Store/scripts/1-bucketize.sh";
 
 $qsub2 .= "qsub -cwd -b n \\\n";
 $qsub2 .= "  -N ovs2$asm \\\n";
@@ -348,16 +362,16 @@ $qsub2 .= "  -hold_jid ovs1$asm \\\n";
 $qsub2 .= "  -t 1-$jobs \\\n";
 $qsub2 .= "  -l memory=${maxMemory}g \\\n";
 $qsub2 .= "  -j y \\\n";
-$qsub2 .= "  -o $wrk/$asm.${typ}Store/2-sort-\\\$TASK_ID.err \\\n";
-$qsub2 .= "  $wrk/$asm.${typ}Store/2-sort.sh";
+$qsub2 .= "  -o $wrk/$asm.${typ}Store/logs/2-sort/sort-\\\$TASK_ID.err \\\n";
+$qsub2 .= "  $wrk/$asm.${typ}Store/scripts/2-sort.sh";
 
 $qsub3 .= "qsub -cwd -b n \\\n";
 $qsub3 .= "  -N ovs3$asm \\\n";
 $qsub3 .= "  -hold_jid ovs2$asm \\\n";
 $qsub3 .= "  -l memory=1g \\\n";
 $qsub3 .= "  -j y \\\n";
-$qsub3 .= "  -o $wrk/$asm.${typ}Store/3-index.err \\\n";
-$qsub3 .= "  $wrk/$asm.${typ}Store/3-index.sh";
+$qsub3 .= "  -o $wrk/$asm.${typ}Store/logs/3-index/index.err \\\n";
+$qsub3 .= "  $wrk/$asm.${typ}Store/scripts/3-index.sh";
 
 print "$qsub1\n";
 system($qsub1) if ($submit == 1);
