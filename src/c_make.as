@@ -113,7 +113,7 @@ ifeq ($(OSTYPE), FreeBSD)
 
   ifeq ($(BUILDPROFILE), 1)
     ARCH_CFLAGS  += -fopenmp
-    ARCH_LDFLAGS += -fopenmp -rpath /usr/local/lib/gcc46
+    ARCH_LDFLAGS += -fopenmp -rpath /usr/local/lib/gcc46 -pg
   else
     ARCH_CFLAGS  += -D_GLIBCXX_PARALLEL -fopenmp
     ARCH_LDFLAGS += -D_GLIBCXX_PARALLEL -fopenmp -rpath /usr/local/lib/gcc46
