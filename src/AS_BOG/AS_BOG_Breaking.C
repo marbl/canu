@@ -108,7 +108,7 @@ void UnitigGraph::filterBreakPoints(ContainerMap &cMap,
 
   // Check for sentinal at end, not added by MateChecker
   UnitigBreakPoint fakeEnd = breaks.back();
-  if (fakeEnd.inSize == std::numeric_limits<int>::max())
+  if (fakeEnd.inSize == INT32_MAX)
     breaks.pop_back();
 
   UnitigBreakPoints smallBPs;

@@ -259,7 +259,7 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix, bool ena
       breakPoint.fragPos     = f->position;
       breakPoint.fragsBefore = fragCount + 1;
       breakPoint.fragsAfter  = 0;
-      breakPoint.inSize      = std::numeric_limits<int>::max();
+      breakPoint.inSize      = INT32_MAX;
       breakPoint.inFrags     = 0;
 
       breaks.push_back(breakPoint);
