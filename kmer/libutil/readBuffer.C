@@ -82,7 +82,7 @@ readBuffer::readBuffer(FILE *file, uint64 bufferMax) {
   //  Just be sure that we are at the start of the file.
   errno = 0;
   lseek(_file, 0, SEEK_SET);
-  if (errno)
+  if ((errno) && (errno != ESPIPE))
     fprintf(stderr, "readBuffer()-- '%s' couldn't seek to position 0: %s\n",
             _filename, strerror(errno)), exit(1);
 
