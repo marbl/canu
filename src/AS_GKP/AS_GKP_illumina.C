@@ -45,7 +45,7 @@ static char const *rcsid = "$Id$";
 static int *isValidACGTN = NULL;
 
 #define NAME_MAX_LEN  2048
-#define BASE_MAX_LEN  16 * 1024 * 1024
+#define BASE_MAX_LEN  AS_READ_MAX_NORMAL_LEN
 
 class ilFragment {
  public:
@@ -431,6 +431,11 @@ readSeq(FILE       *F,
   fr->qnam[0] = 0;
   fr->qstr[0] = 0;
 
+  fr->snam[NAME_MAX_LEN - 2] = 0;
+  fr->sstr[BASE_MAX_LEN - 2] = 0;
+  fr->qnam[NAME_MAX_LEN - 2] = 0;
+  fr->qstr[BASE_MAX_LEN - 2] = 0;
+
   fgets(fr->snam, NAME_MAX_LEN, F);
   fgets(fr->sstr, BASE_MAX_LEN, F);
   fgets(fr->qnam, NAME_MAX_LEN, F);
@@ -440,6 +445,18 @@ readSeq(FILE       *F,
   chomp(fr->sstr);
   chomp(fr->qnam);
   chomp(fr->qstr);
+
+  if (fr->snam[NAME_MAX_LEN - 2] != 0)
+    fprintf(stderr, "FASTQ sequence name line too long in read '%s'\n", fr->snam), exit(1);
+
+  if (fr->sstr[BASE_MAX_LEN - 2] != 0)
+    fprintf(stderr, "FASTQ sequence line too long in read '%s'\n", fr->sstr), exit(1);
+
+  if (fr->qnam[NAME_MAX_LEN - 2] != 0)
+    fprintf(stderr, "FASTQ quality name line too long in read '%s'\n", fr->qnam), exit(1);
+
+  if (fr->qstr[BASE_MAX_LEN - 2] != 0)
+    fprintf(stderr, "FASTQ quality line too long in read '%s'\n", fr->qstr), exit(1);
 
   if (feof(F))
     return(0);
