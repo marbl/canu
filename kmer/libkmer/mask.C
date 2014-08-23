@@ -10,274 +10,298 @@
 #include "seqStream.H"
 #include "merStream.H"
 
-//  1) Use meryl to find the list of mers in common between HMISSING and NCBI.
-//  2) Read mers from that meryl database into an existDB.
-//  3) Stream each sequence from HMISSING.  Mask out any mer in HMISSING.
+//  Masks mers present in the database from the input sequences.  Chains together
+//  across small bits of missing mer.
 
-#define DEBUG
+void
+printBits(char *S, uint32 Slen, bool *found, char *display, const char *label) {
+  for (uint32 i=0; i<Slen; i++)
+    display[i] = (found[i]) ? '1' : '0';
+
+  display[Slen] = 0;
+
+  fprintf(stdout, "%s\n%s\n", label, display);
+}
+
+
+
+
+//  Scan the read for kmers that exist in the DB.  Set a bit for each kmer that exists.
+void
+buildMask(char *S, uint32 Slen, bool *found, bool keepNovel, existDB *exist, uint32 merSize) {
+  merStream    MS(new kMerBuilder(merSize),
+                  new seqStream(S, Slen),
+                  true, true);
+
+  for (uint32 i=0; i<Slen; i++)
+    found[i] = false;
+
+  while (MS.nextMer())
+    if (exist->exists(MS.theFMer()) || exist->exists(MS.theRMer()))
+      found[MS.thePositionInSequence()] = true;
+}
+
+
+
+
+//  Searched for isolated 'true' bits, and removes them.  Isolated means fewer than minSize true
+//  bits are adjacent.
+//
+void
+removeIsolatedMers(char *S, uint32 Slen, bool *found, uint32 minSize) {
+  uint32  bgn   = 0;
+  uint32  end   = 0;
+  bool    inRun = false;
+
+  for (uint32 ii=0; ii<Slen; ii++) {
+
+    //  Start of a run of 'true'.
+    if ((found[ii] == true) && (inRun == false)) {
+      bgn = ii;
+      end = ii;
+      inRun = true;
+    }
+
+    //  End of run of 'true'.  If small, destroy it.
+    if ((found[ii] == false) && (inRun == true)) {
+      end = ii;
+
+      if (end - bgn < minSize)
+        for (uint32 jj=bgn; jj<end; jj++)
+          found[jj] = false;
+
+      inRun = false;
+    }
+  }
+}
+
+
+
+//  Convert the mer-start-based mask to a base-covering mask, allowing an extra uncovered
+//  'extension' bases in between two blocks to join.
+void
+convertToBases(char *S, uint32 Slen, bool *found, uint32 merSize, uint32 extend) {
+  uint32   isMasking = 0;
+
+  for (uint32 ii=0; ii<Slen; ii++) {
+
+    if (found[ii])
+      isMasking = merSize;
+
+    //  If the last mer we've found, see if we can extend over bases.
+    if ((isMasking == 1) &&
+        (extend > 0)) {
+      for (uint32 jj=ii; (jj<Slen) && (jj <= ii + extend + 1); jj++) {
+        if (found[jj] == true)
+          isMasking = jj - ii + 2;
+      }
+    }
+
+    if (isMasking > 0) {
+      found[ii] = true;
+      isMasking--;
+    }
+  }
+}
+
+
+
+//  Assumes the found[] array represents base-based masking.
+//  Returns the fraction of the sequence that is not masked.
+double
+maskSequence(char *S, uint32 Slen, bool *found, bool keepNovel, char *display) {
+  uint32  saved  = 0;
+
+  for (uint32 ii=0; ii<Slen; ii++) {
+    if (found[ii] == keepNovel) {
+      display[ii] = 'n';
+    } else {
+      display[ii] = S[ii];
+      saved++;
+    }
+  }
+
+  display[Slen] = 0;
+
+  return((double)saved  / Slen);
+}
+
+
+
+
+
 
 int
 main(int argc, char **argv) {
-  const char   *merName = "/project/huref4/assembly-mapping/missing/missing0/HMISSING-and-B35LC";
-  const char   *seqName = "/project/huref4/assembly-mapping/missing/missing0/HMISSING-ge64.uid.fasta";
-  uint32        merSize = 28;
+  char         *merName         = NULL;
+  char         *seqName         = NULL;
+  uint32        merSize         = 0;
+  char         *existName       = NULL;
+  uint32        minSize         = 0;
+  uint32        extend          = 0;
+  bool          keepNovel       = false;
 
-  fprintf(stderr, "Build existDB.\n");
+  uint32        belowLow        = 0;
+  double        lowThreshold    = 1. / 3.;
 
-  existDB *exist = 0L;
-  if (0) {
-    exist = new existDB(merName, merSize, existDBnoFlags, 0, ~uint32ZERO);
-    exist->saveState("/project/huref4/assembly-mapping/missing/missing0/HMISSING-and-B35LC.existDB");
-  } else {
-    exist = new existDB("/project/huref4/assembly-mapping/missing/missing0/HMISSING-and-B35LC.existDB");
+  uint32        aboveHigh       = 0;
+  double        highThreshold   = 2. / 3.;
+
+  char         *outputHistogram = NULL;
+
+  int32 arg=1;
+  int32 err=0;
+  while (arg < argc) {
+    if        (strcmp(argv[arg], "-mdb") == 0) {
+      merName = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-ms") == 0) {
+      merSize = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-edb") == 0) {
+      existName = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-s") == 0) {
+      seqName = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-m") == 0) {
+      minSize = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-e") == 0) {
+      extend = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-novel") == 0) {
+      //  Retains kmers that do NOT exist in the DB.
+      keepNovel = true;
+
+    } else if (strcmp(argv[arg], "-confirmed") == 0) {
+      //  Retains kmers that exist in the DB.
+      keepNovel = false;
+
+    } else if (strcmp(argv[arg], "-lowthreshold") == 0) {
+      lowThreshold = atof(argv[++arg]);
+    } else if (strcmp(argv[arg], "-highthreshold") == 0) {
+      highThreshold = atof(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-h") == 0) {
+      outputHistogram = argv[++arg];
+    //} else if (strcmp(argv[arg], "-o") == 0) {
+    //  outputSequence = atoi(argv[++arg]);
+
+    } else {
+      err++;
+    }
+
+    arg++;
+  }
+  if (err) {
   }
 
-  seqCache     *F     = new seqCache(seqName);
-  seqInCore    *S     = 0L;
+  //  Open inputs
 
-  uint32   maskLen = 1048576;
-  bool    *mask    = new bool [maskLen];
-  char    *maskSeq = new char [maskLen];
-  char    *maskBit = new char [maskLen];
+  char *CMD   = new char [2 * FILENAME_MAX];
+  sprintf(CMD, "gzip -dc %s", seqName);
+  FILE *FASTQ = popen(CMD, "r");
+  if (errno)
+    fprintf(stderr, "ERROR: failed to open '%s': %s\n", seqName, strerror(errno));
+
+  //  Load data
+
+  existDB *exist = 0L;
+
+  if ((existName != NULL) && (fileExists(existName))) {
+    fprintf(stderr, "Load existDB existName='%s'.\n", existName);
+    exist = new existDB(existName);
+
+  } else {
+    fprintf(stderr, "Build existDB from merName='%s'.\n", merName);
+    fprintf(stderr, "Save existDB into existName='%s'.\n", existName);
+    exist = new existDB(merName, merSize, existDBnoFlags, 0, ~uint32ZERO);
+
+    if (existName != NULL)
+      exist->saveState(existName);
+  }
+
+  //seqCache     *F     = new seqCache(seqName);
+  //seqInCore    *S     = 0L;
+
+  uint32    allocLen = 1048576;
+  bool     *found    = new bool [allocLen];
+  char     *display  = new char [allocLen];
+
+  char     *a1 = new char [1024];
+  char     *a2 = new char [allocLen];
+  char     *a3 = new char [1024];
+  char     *a4 = new char [allocLen];
+
+  uint32    al = strlen(a2);
+
+  uint32   scoreHistogram[1001] = { 0 };
+
+  fgets(a1,     1024, FASTQ);  chomp(a1);
+  fgets(a2, allocLen, FASTQ);  chomp(a2);
+  fgets(a3,     1024, FASTQ);  chomp(a3);
+  fgets(a4, allocLen, FASTQ);  chomp(a4);
+
+  al = strlen(a2);
 
   fprintf(stderr, "Begin.\n");
 
-  while ((S = F->getSequenceInCore()) != 0L) {
-    //fprintf(stderr, "iid="uint32FMT" len="uint32FMT" %s\n", S->getIID(), S->sequenceLength(), S->header());
+  while (!feof(FASTQ)) {
+    //(S = F->getSequenceInCore()) != 0L)
 
-    if (maskLen <= S->sequenceLength() + 1024) {
-      maskLen = S->sequenceLength() + S->sequenceLength() + 1024;
+    buildMask(a2, al, found, keepNovel, exist, merSize);
+    //printBits(S, found, display , "INITIAL");
 
-      delete [] mask;
-      delete [] maskSeq;
-      delete [] maskBit;
+    removeIsolatedMers(a2, al, found, minSize);
+    //printBits(S, found, display, "ISOLATED REMOVAL");
 
-      mask    = new bool [maskLen];
-      maskSeq = new char [maskLen];
-      maskBit = new char [maskLen];
-    }
+    convertToBases(a2, al, found, merSize, extend);
+    //printBits(S, found, display, "BASE COVERAGE");
 
-    for (uint32 i=0; i<S->sequenceLength(); i++)
-      mask[i] = false;
+    double fractionRetained = maskSequence(a2, al, found, keepNovel, display);
 
-    //  Build the initial masking
-    //
-    merStream    *MS = new merStream(new kMerBuilder(merSize),
-                                     new seqStream(S->sequence(), S->sequenceLength()),
-                                     true, true);
-    while (MS->nextMer())
-      if (exist->exists(MS->theFMer()) || exist->exists(MS->theRMer()))
-        mask[MS->thePositionInSequence()] = true;
-    delete    MS;
+    //fprintf(stdout, "%.3f\t%s\n", fractionRetained, S->header());
+    fprintf(stdout, "%s fractionRetained=%.3f\n%s\n%s\n%s\n",
+            a1, fractionRetained,
+            display,
+            a3,
+            a4);
 
+    if (fractionRetained < lowThreshold)
+      belowLow++;
 
-#ifdef PRINT_BITS
-    for (uint32 i=0; i<S->sequenceLength(); i++) {
-      if (mask[i])
-        maskBit[i] = '1';
-      else
-        maskBit[i] = '0';
-    }
-    maskBit[S->sequenceLength()] = 0;
-    fprintf(stdout, "%s\n",     maskBit);
-#endif
+    if (fractionRetained > highThreshold)
+      aboveHigh++;
 
+    scoreHistogram[(uint32)(1000 * fractionRetained)]++;
 
-    //  Clean up the masking.
-    //
-    //  If there are no spurious mer matchs, a real mismatch (and also an insert) should look like:
-    //
-    //    AAAAAAAAAAAAAAAAAAAAAAAAAXAAAAAAAA.....
-    //    1111111111111111111110000011111111
-    //                   -----
-    //                    -----
-    //                     -----
-    //                      -----
-    //                       -----
-    //                        -----
-    //                              -----
-    //                               -----
-    //  The mers cover all letters, except for the mismatch.
-    //
-    //
-    //  A break in contiguous sequence (or a deletion) is very similar, except
-    //  mers cover all letters, they just don't span the gap.
-    //    AAAAAAAAAAAAAAAAAAAAAAAAACCCCCCCCCCCCCC....
-    //    111111111111111111111000011111111
-    //                   -----
-    //                    -----
-    //                     -----
-    //                      -----
-    //                       -----
-    //                        -----
-    //                             -----
-    //                              -----
-    //
-    //
-    //  Thus, A block of fewer than merSize 0's indicates that we have
-    //  spurious mer hits, and don't find any contiguous sequence
-    //  match.
-    //
-    //  This block marks the zeros and ms-1 bases on either side as questionable
-    //  sequence.
-    //
-    //  I'm not sure if the blocks outside are questionable -- we do
-    //  find the mer, and overlapping mers on the other side.  So
-    //  possibly the unmapped sequence is just:
-    //    11111111111111100110010001111111111111111111
-    //                   ----------
-    //
-    //
-    //  Alg is now to look for blocks of less than merSize zeros,
-    //  and....do something.  Certainly, chain blocks together if
-    //  there is no intervening block of merSize 1's in between.
-    //  Possibly extend the block merSize-1 bases to either side.
-    //
-    //
-    for (uint32 i=0; i<S->sequenceLength(); i++) {
+    //delete S;
 
-      //  Now we're potentially at the start of a small block.  The
-      //  goal is to see if this is an isolated block of spurious
-      //  match, and if so, merge it into the surrounding blocks of
-      //  mismatch.
-      //
-      //  If it's a small block of 1's, we extend the block into the
-      //  next small blocks, stopping at the start of a large block.
-      //  e.g.: (the --'s are the end of the small blocks):
-      //
-      //   ...0000000--1111110000011111--000000000000000000000...
-      //   ...0000000--1110001100110010--111111111111111111111...
-      //   ...1111111--0000111100100000--111111111111111111111...
-      //   ...1111111--0000111100100011--000000000000000000000...
-      //
+    fgets(a1,     1024, FASTQ);  chomp(a1);
+    fgets(a2, allocLen, FASTQ);  chomp(a2);
+    fgets(a3,     1024, FASTQ);  chomp(a3);
+    fgets(a4, allocLen, FASTQ);  chomp(a4);
 
-      bool    isIsolated = true;
-      uint32  blockEnd   = i;
-      uint32  bs         = 0;
-      uint32  nextStart  = i;
-
-      while (isIsolated) {
-        uint32 j  = blockEnd;
-
-        while ((j < S->sequenceLength()) &&
-               (mask[j] == mask[blockEnd]))
-          j++;
-
-        bs = j - blockEnd;
-
-        //  Remember how far we got.
-        nextStart += j;
-
-        //  If a big block terminate.
-        //
-        if (bs >= merSize)
-          isIsolated = false;
-        else
-          blockEnd += bs;
-
-        //  If now at the end of the sequence, terminate.
-        //
-        if (blockEnd >= S->sequenceLength())
-          isIsolated = false;
-      }
-
-
-      //  But if we stop because we find a big block of zeros, then
-      //  the previous block of ones is still valid.  Our big block of
-      //  zeros indicates a true mismatch.
-      //
-      //  .....11111000110000111100000000000000000000000000111
-      //
-
-      //  If we did find a small block
-      if (i != blockEnd) {
-
-        //  And that block doesn't run up to the end
-        if (blockEnd < S->sequenceLength()) {
-
-          //  And the last thing in that block is 1's, move back to the previous block of zeros.
-          //
-          //  EXCEPT, that this big block of zeros might REALLY be
-          //  unmatched sequence, not just an isolated error.  So we
-          //  don't reverse if the big block of zeros is big.
-          //
-          if (bs < merSize + 6)
-            while ((blockEnd > 0) && (mask[blockEnd-1] == true))
-              blockEnd--;
-        }
-
-        fprintf(stdout, "mask "uint32FMT" "uint32FMT"\n", i, blockEnd);
-
-        //  Supposedly, our block of unmasked sequence is now from i to
-        //  blockEnd.  Flip all that stuff to unmasked.
-        //
-        for (uint32 j=i; j<blockEnd; j++)
-          mask[j] = false;
-      }
-
-
-      //  And move up to the next starting position.
-      i = nextStart - 1;
-    }
-
-
-#ifdef PRINT_BITS
-    for (uint32 i=0; i<S->sequenceLength(); i++) {
-      if (mask[i])
-        maskBit[i] = '1';
-      else
-        maskBit[i] = '0';
-    }
-    maskBit[S->sequenceLength()] = 0;
-    fprintf(stdout, "%s\n",     maskBit);
-#endif
-
-
-
-    //  Convert the mer-markings to base-markings
-    //
-    uint32 isMasking = 0;
-    for (uint32 i=0; i<S->sequenceLength(); i++) {
-      if (mask[i])
-        isMasking = merSize;
-
-      if (isMasking > 0) {
-        mask[i] = true;
-        isMasking--;
-      }
-    }
-
-
-#ifdef PRINT_BITS
-    for (uint32 i=0; i<S->sequenceLength(); i++) {
-      if (mask[i])
-        maskBit[i] = '1';
-      else
-        maskBit[i] = '0';
-    }
-    maskBit[S->sequenceLength()] = 0;
-    fprintf(stdout, "%s\n",     maskBit);
-#endif
-
-
-
-    char *seq          = S->sequence();
-
-    for (uint32 i=0; i<S->sequenceLength(); i++) {
-      if (mask[i]) {
-        maskSeq[i] = 'n';
-      } else {
-        maskSeq[i] = seq[i];
-      }
-    }
-
-    maskSeq[S->sequenceLength()] = 0;
-
-    fprintf(stdout, "%s\n%s\n", S->header(), maskSeq);
-
-    delete S;
+    al = strlen(a2);
   }
 
-  delete [] maskSeq;
-  delete [] mask;
+  fprintf(stderr, "below %8.6f:   %u\n", lowThreshold, belowLow);
+  fprintf(stderr, "above %8.6f:   %u\n", highThreshold, aboveHigh);
+
+  delete [] display;
+  delete [] found;
+
+  if (outputHistogram != NULL) {
+    FILE *H = fopen(outputHistogram, "w");
+
+    fprintf(H, "# amount of sequence not masked\n");
+    for (uint32 i=0; i<1001; i++)
+      if (scoreHistogram[i] > 0)
+        fprintf(H, "%.4f\t%u\n", i / 1000.0, scoreHistogram[i]);
+
+    fclose(H);
+  }
+
+  exit(0);
 }
