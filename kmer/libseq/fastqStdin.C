@@ -1,31 +1,31 @@
-#include "fastaStdin.H"
+#include "fastqStdin.H"
 #include "alphabet.h"
 
-fastaStdin::fastaStdin(const char *filename) {
+fastqStdin::fastqStdin(const char *filename) {
   clear();
 
 #ifdef DEBUG
-  fprintf(stderr, "fastaStdin::fastaStdin()-- '%s'\n", (filename) ? filename : "NULLPOINTER");
+  fprintf(stderr, "fastqStdin::fastqStdin()-- '%s'\n", (filename) ? filename : "NULLPOINTER");
 #endif
 
   if (filename == 0L) {
     strcpy(_filename, "(stdin)");
     _rb = new readBuffer("-");
-  } else {
 
+  } else {
     _pipe = popen(filename, "r");
     _rb = new readBuffer(_pipe);
   }
 }
 
 
-fastaStdin::fastaStdin() {
+fastqStdin::fastqStdin() {
   clear();
 }
 
 
 
-fastaStdin::~fastaStdin() {
+fastqStdin::~fastqStdin() {
   delete    _rb;
   delete [] _header;
   delete [] _sequence;
@@ -34,15 +34,15 @@ fastaStdin::~fastaStdin() {
 
 
 seqFile *
-fastaStdin::openFile(const char *filename) {
+fastqStdin::openFile(const char *filename) {
 
 #ifdef DEBUG
-  fprintf(stderr, "fastaStdin::openFile()-- '%s'\n", (filename) ? filename : "NULLPOINTER");
+  fprintf(stderr, "fastqStdin::openFile()-- '%s'\n", (filename) ? filename : "NULLPOINTER");
 #endif
 
   if (((filename == 0L) && (isatty(fileno(stdin)) == 0)) ||
       ((filename != 0L) && (filename[0] == '-') && (filename[1] == 0)))
-    return(new fastaStdin(0L));
+    return(new fastqStdin(0L));
 
   if (filename == 0L)
     return(0L);
@@ -62,13 +62,13 @@ fastaStdin::openFile(const char *filename) {
   else
     return(0L);
 
-  return(new fastaStdin(cmd));
+  return(new fastqStdin(cmd));
 }
 
 
 
 uint32
-fastaStdin::getNumberOfSequences(void) {
+fastqStdin::getNumberOfSequences(void) {
   if (_rb->peek() == 0)
     return(_nextIID);
   else
@@ -77,8 +77,8 @@ fastaStdin::getNumberOfSequences(void) {
 
 
 uint32
-fastaStdin::find(const char *sequencename) {
-  fprintf(stderr, "fastaStdin::find()-- ERROR!  Used for random access.\n");
+fastqStdin::find(const char *sequencename) {
+  fprintf(stderr, "fastqStdin::find()-- ERROR!  Used for random access.\n");
   assert(0);
   return(~uint32ZERO);
 }
@@ -86,14 +86,14 @@ fastaStdin::find(const char *sequencename) {
 
 
 uint32
-fastaStdin::getSequenceLength(uint32 iid) {
+fastqStdin::getSequenceLength(uint32 iid) {
 
   if (iid == _nextIID)
     if (loadNextSequence(_header, _headerLen, _headerMax, _sequence, _sequenceLen, _sequenceMax) == false)
       return(0);
 
   if (iid + 1 != _nextIID) {
-    fprintf(stderr, "fastaStdin::getSequenceLength()-- ERROR!  Used for random access.  Requested iid=%u, at iid=%u\n",
+    fprintf(stderr, "fastqStdin::getSequence()-- ERROR!  Used for random access.  Requested iid=%u, at iid=%u\n",
             iid, _nextIID);
     assert(0);
   }
@@ -104,13 +104,13 @@ fastaStdin::getSequenceLength(uint32 iid) {
 
 
 bool
-fastaStdin::getSequence(uint32 iid,
+fastqStdin::getSequence(uint32 iid,
                         char *&h, uint32 &hLen, uint32 &hMax,
                         char *&s, uint32 &sLen, uint32 &sMax) {
   bool  ret = true;
 
 #ifdef DEBUG
-  fprintf(stderr, "fastaStdin::getSequence(full)-- "uint32FMT"\n", iid);
+  fprintf(stderr, "fastqStdin::getSequence(full)-- "uint32FMT"\n", iid);
 #endif
 
   if (iid == _nextIID)
@@ -118,7 +118,7 @@ fastaStdin::getSequence(uint32 iid,
       return(false);
 
   if (iid + 1 != _nextIID) {
-    fprintf(stderr, "fastaStdin::getSequence(full)-- ERROR!  Used for random access.  Requested iid=%u, at iid=%u\n",
+    fprintf(stderr, "fastqStdin::getSequence(full)-- ERROR!  Used for random access.  Requested iid=%u, at iid=%u\n",
             iid, _nextIID);
     assert(0);
   }
@@ -147,13 +147,13 @@ fastaStdin::getSequence(uint32 iid,
 
 
 bool
-fastaStdin::getSequence(uint32 iid,
+fastqStdin::getSequence(uint32 iid,
                         uint32 bgn, uint32 end, char *s) {
 
 #ifdef DEBUG
-  fprintf(stderr, "fastaStdin::getSequence(part)-- "uint32FMT"\n", iid);
+  fprintf(stderr, "fastqStdin::getSequence(part)-- "uint32FMT"\n", iid);
 #endif
-  fprintf(stderr, "fastaStdin::getSequence(part)-- ERROR!  Used for random access.\n");
+  fprintf(stderr, "fastqStdin::getSequence(part)-- ERROR!  Used for random access.\n");
   assert(0);
   return(false);
 }
@@ -161,13 +161,13 @@ fastaStdin::getSequence(uint32 iid,
 
 
 void
-fastaStdin::clear(void) {
+fastqStdin::clear(void) {
   memset(_filename, 0, FILENAME_MAX);
   memset(_typename, 0, FILENAME_MAX);
 
   _randomAccessSupported = false;
 
-  strcpy(_typename, "FastAstream");
+  strcpy(_typename, "FastQstream");
 
   _numberOfSequences = ~uint32ZERO;
 
@@ -187,7 +187,7 @@ fastaStdin::clear(void) {
 
 
 bool
-fastaStdin::loadNextSequence(char *&h, uint32 &hLen, uint32 &hMax,
+fastqStdin::loadNextSequence(char *&h, uint32 &hLen, uint32 &hMax,
                              char *&s, uint32 &sLen, uint32 &sMax) {
 
   if (hMax == 0) {
@@ -209,17 +209,17 @@ fastaStdin::loadNextSequence(char *&h, uint32 &hLen, uint32 &hMax,
   while ((_rb->eof() == false) && (whitespaceSymbol[x] == true))
     x = _rb->read();
 
-  //  We should be at a '>' character now.  Fail if not.
+  //  We should be at a '@' character now.  Fail if not.
   if (_rb->eof() == true)
     return(false);
-  if (x != '>')
-    fprintf(stderr, "fastaStdin::loadNextSequence(part)-- ERROR: In %s, expected '>' at beginning of defline, got '%c' instead.\n",
+  if (x != '@')
+    fprintf(stderr, "fastqStdin::loadNextSequence(part)-- ERROR: In %s, expected '@' at beginning of defline, got '%c' instead.\n",
             _filename, x), exit(1);
 
-  //  Skip the '>' in the defline
+  //  Skip the '@' in the defline
   x = _rb->read();
 
-  //  Skip whitespace between the '>' and the defline
+  //  Skip whitespace between the '@' and the defline
   while ((_rb->eof() == false) && (whitespaceSymbol[x] == true) && (x != '\r') && (x != '\n'))
     x = _rb->read();
 
@@ -242,8 +242,8 @@ fastaStdin::loadNextSequence(char *&h, uint32 &hLen, uint32 &hMax,
   while ((_rb->eof() == false) && (whitespaceSymbol[x] == true))
     x = _rb->read();
 
-  //  Copy the sequence, until EOF or the next '>'.
-  while ((_rb->eof() == false) && (_rb->peek() != '>')) {
+  //  Copy the sequence, until EOF or the start of the QV bases.
+  while ((_rb->eof() == false) && (_rb->peek() != '+')) {
     if (whitespaceSymbol[x] == false) {
       s[sLen++] = x;
       if (sLen >= sMax) {
@@ -258,6 +258,17 @@ fastaStdin::loadNextSequence(char *&h, uint32 &hLen, uint32 &hMax,
     x = _rb->read();
   }
   s[sLen] = 0;
+
+  //  Skip the rest of the QV id line and then the entire QV line.
+
+  //x = _rb->read();
+  assert((_rb->eof() == true) || (x == '+'));
+
+  while ((_rb->eof() == false) && (x != '\r') && (x != '\n'))
+    x = _rb->read();
+  x = _rb->read();
+  while ((_rb->eof() == false) && (x != '\r') && (x != '\n'))
+    x = _rb->read();
 
   _nextIID++;
 

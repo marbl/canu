@@ -1,5 +1,5 @@
-#ifndef FASTASTDIN_H
-#define FASTASTDIN_H
+#ifndef FASTQSTDIN_H
+#define FASTQSTDIN_H
 
 #include "util++.H"
 #include "bio++.H"
@@ -7,13 +7,13 @@
 #include "seqFile.H"
 
 
-class fastaStdin : public seqFile {
+class fastqStdin : public seqFile {
 protected:
-  fastaStdin(const char *filename);
-  fastaStdin();
+  fastqStdin(const char *filename);
+  fastqStdin();
 
 public:
-  ~fastaStdin();
+  ~fastqStdin();
 
 protected:
   seqFile            *openFile(const char *filename);
@@ -49,8 +49,12 @@ private:
   uint32             _sequenceLen;
   uint32             _sequenceMax;
 
+  char              *_quality;
+  uint32             _qualityLen;
+  uint32             _qualityMax;
+
   friend class seqFactory;
 };
 
 
-#endif  //  FASTASTDIN_H
+#endif  //  FASTQSTDIN_H

@@ -78,6 +78,8 @@ public:
   const char             *getSourceName(void)    { return(_fb->getSourceName()); };
   const char             *getFileTypeName(void)  { return(_fb->getFileTypeName()); };
 
+  bool                    randomAccessSupported(void) { return(_fb->randomAccessSupported()); };
+
   uint32                  getNumberOfSequences(void) { return(_fb->getNumberOfSequences()); };
 
   uint32                  getSequenceLength(uint32 iid) { return(_fb->getSequenceLength(iid)); };

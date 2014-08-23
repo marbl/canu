@@ -44,6 +44,13 @@ failIfNoSource(void) {
     fprintf(stderr, "No source file specified.\n"), exit(1);
 }
 
+static
+void
+failIfNotRandomAccess(void) {
+  if (fasta->randomAccessSupported() == false)
+    fprintf(stderr, "Algorithm required random access; soruce file not supported.\n"), exit(1);
+}
+
 
 static
 void
@@ -381,7 +388,9 @@ processArray(int argc, char **argv) {
       fasta = new seqCache(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-i") == 0) {
+
       failIfNoSource();
+
       ++arg;
       if ((argv[arg] == 0L) || (argv[arg][0] == '-'))
         fprintf(stderr, "ERROR: next arg to -i should be 'name', I got '%s'\n",
@@ -467,10 +476,12 @@ processArray(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-s") == 0) {
       failIfNoSource();
+      failIfNotRandomAccess();  //  Easy to fix, just read the first N sequences
       printSequence(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-S") == 0) {
       failIfNoSource();
+      failIfNotRandomAccess();  //  Easy to fix, just read the first N sequences
 
       uint32 lowID  = fasta->getSequenceIID(argv[++arg]);
       uint32 highID = fasta->getSequenceIID(argv[++arg]);
@@ -488,6 +499,7 @@ processArray(int argc, char **argv) {
       uint32 num = strtouint32(argv[++arg], 0L);
 
       failIfNoSource();
+      failIfNotRandomAccess();  //  Impossible to fix, or load whole thing into memory
 
       if (num >= fasta->getNumberOfSequences())
         num = fasta->getNumberOfSequences();
@@ -511,6 +523,7 @@ processArray(int argc, char **argv) {
           
     } else if (strcmp(argv[arg], "-q") == 0) {
       failIfNoSource();
+      failIfNotRandomAccess();  //  Impossible to fix, or load whole thing into memory
       printIDsFromFile(argv[++arg]);
           
     } else if (strcmp(argv[arg], "-6") == 0) {

@@ -23,13 +23,15 @@ protected:
   virtual seqFile      *openFile(const char *filename) = 0;
 
 public:
-  virtual uint32        find(const char *sequencename) = 0;
-
   virtual const char   *getSourceName(void)    { return(_filename); };
   virtual const char   *getFileTypeName(void)  { return(_typename); };
 
-  //  Needs to go.  It is unreliable for stdin fasta files.
+  virtual bool          randomAccessSupported(void) { return(_randomAccessSupported); };
+
   virtual uint32        getNumberOfSequences(void) { return(_numberOfSequences); };
+
+public:
+  virtual uint32        find(const char *sequencename) = 0;
 
   virtual uint32        getSequenceLength(uint32 id) = 0;
   virtual bool          getSequence(uint32 id,
@@ -41,6 +43,8 @@ public:
 protected:
   char                 _filename[FILENAME_MAX];
   char                 _typename[FILENAME_MAX];
+
+  bool                 _randomAccessSupported;
 
   uint32               _numberOfSequences;
 

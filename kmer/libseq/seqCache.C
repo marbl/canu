@@ -68,9 +68,9 @@ seqCache::getSequenceInCore(uint32 iid) {
   uint32       cacheID = ~uint32ZERO;
   seqInCore   *retSeq  = 0L;
 
-  if (iid >= _fb->getNumberOfSequences())
+  if ((_fb->randomAccessSupported() == true) &&
+      (iid >= _fb->getNumberOfSequences()))
     return(0L);
-
 
   if (_allSequencesLoaded == true) {
     cacheID = iid;
