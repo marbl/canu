@@ -38,8 +38,6 @@ existDB::createFromSequence(char const  *sequence,
   uint32 tblBits = logBaseTwo64(strlen(sequence));
 
  rebuild:
-  fprintf(stderr, "tblBits %d seqlen %d\n", tblBits, strlen(sequence));
-
   _shift1                = 2 * _merSizeInBases - tblBits;
   _shift2                = _shift1 / 2;
   _mask1                 = uint64MASK(tblBits);
@@ -237,8 +235,9 @@ existDB::createFromSequence(char const  *sequence,
     }
   }
 
-  fprintf(stderr, "Compressed from "uint64FMT" to "uint64FMT" ("uint64FMT" bits)\n",
-          _hashTable[tableSizeInEntries], pos, logBaseTwo64(pos));
+  if (beVerbose)
+    fprintf(stderr, "Compressed from "uint64FMT" to "uint64FMT" ("uint64FMT" bits)\n",
+            _hashTable[tableSizeInEntries], pos, logBaseTwo64(pos));
 
   while (pos < _bucketsWords)
     _buckets[pos++] = 0;

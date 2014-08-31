@@ -235,8 +235,9 @@ existDB::createFromFastA(char const  *filename,
     }
   }
 
-  fprintf(stderr, "Compressed from "uint64FMT" to "uint64FMT" ("uint64FMT" bits)\n",
-          _hashTable[tableSizeInEntries], pos, logBaseTwo64(pos));
+  if (beVerbose)
+    fprintf(stderr, "Compressed from "uint64FMT" to "uint64FMT" ("uint64FMT" bits)\n",
+            _hashTable[tableSizeInEntries], pos, logBaseTwo64(pos));
 
   while (pos < _bucketsWords)
     _buckets[pos++] = 0;
