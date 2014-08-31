@@ -208,32 +208,41 @@ intervalList::invert(intervalNumber lo, intervalNumber hi) {
   uint32             invMax = _listLen + 2;
   _intervalPair     *inv    = new _intervalPair [invMax];
 
-  //  Add the first
-  //
-  if (lo < _list[0].lo) {
+  //  Add the zeroth and only?
+  if (_listLen == 0) {
     inv[invLen].lo = lo;
-    inv[invLen].hi = _list[0].lo;
-    invLen++;
-  }
-
-  //  Add the pieces
-  for (uint32 i=1; i<_listLen; i++) {
-    if (_list[i-1].hi < _list[i].lo) {
-      inv[invLen].lo = _list[i-1].hi;
-      inv[invLen].hi = _list[i].lo;
-      invLen++;
-    }
-  }
-
-  //  Add the last
-  if (_list[_listLen-1].hi < hi) {
-    inv[invLen].lo = _list[_listLen-1].hi;
     inv[invLen].hi = hi;
     invLen++;
   }
 
+  //  Add the first, then the pieces, then the last
+  //
+  else {
+    if (lo < _list[0].lo) {
+      inv[invLen].lo = lo;
+      inv[invLen].hi = _list[0].lo;
+      invLen++;
+    }
+
+    for (uint32 i=1; i<_listLen; i++) {
+      if (_list[i-1].hi < _list[i].lo) {
+        inv[invLen].lo = _list[i-1].hi;
+        inv[invLen].hi = _list[i].lo;
+        invLen++;
+      }
+    }
+
+    if (_list[_listLen-1].hi < hi) {
+      inv[invLen].lo = _list[_listLen-1].hi;
+      inv[invLen].hi = hi;
+      invLen++;
+    }
+  }
+
   //  Nuke the old list, swap in the new one
   delete [] _list;
+
+  assert(invLen <= invMax);
 
   _list = inv;
   _listLen = invLen;
