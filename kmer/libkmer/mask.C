@@ -10,11 +10,261 @@
 #include "seqStream.H"
 #include "merStream.H"
 
+#include "sweatShop.H"
+
+
+
+
+class fastqRecord {
+public:
+  fastqRecord(uint32 ml) {
+    maxLength = ml;
+    alloc     = new char [maxLength * 8];
+
+    a2        = alloc + 0 * maxLength;
+    af        = alloc + 1 * maxLength;
+    am        = alloc + 2 * maxLength;
+    a4        = alloc + 3 * maxLength;
+
+    a1[0]     = 0;
+    a2[0]     = 0;
+    af[0]     = 0;
+    am[0]     = 0;
+    a3[0]     = 0;
+    a4[0]     = 0;
+
+    aLength   = 0;
+    aRetained = 0.0;
+    aLabel    = 0;
+
+    b2        = alloc + 4 * maxLength;
+    bf        = alloc + 5 * maxLength;
+    bm        = alloc + 6 * maxLength;
+    b4        = alloc + 7 * maxLength;
+
+    b1[0]     = 0;
+    b2[0]     = 0;
+    bf[0]     = 0;
+    bm[0]     = 0;
+    b3[0]     = 0;
+    b4[0]     = 0;
+
+    bLength   = 0;
+    bRetained = 0.0;
+    bLabel    = 0;
+  };
+
+  ~fastqRecord() {
+    delete [] alloc;
+  };
+
+
+  bool          load(FILE *FASTQ1, FILE *FASTQ2) {
+    bool  tooShort = false;
+
+    a2[maxLength - 2] = 0;
+    b2[maxLength - 2] = 0;
+
+    if (FASTQ1) {
+      fgets(a1,      1024, FASTQ1);  chomp(a1);
+      fgets(a2, maxLength, FASTQ1);  chomp(a2);
+      fgets(a3,      1024, FASTQ1);  chomp(a3);
+      fgets(a4, maxLength, FASTQ1);  chomp(a4);
+
+      aLength   = strlen(a2);
+      aRetained = 0.0;
+      aLabel    = 0;
+
+      if (a2[maxLength - 2] != 0)
+        tooShort = true;
+    }
+
+    if (FASTQ2) {
+      fgets(b1,      1024, FASTQ2);  chomp(b1);
+      fgets(b2, maxLength, FASTQ2);  chomp(b2);
+      fgets(b3,      1024, FASTQ2);  chomp(b3);
+      fgets(b4, maxLength, FASTQ2);  chomp(b4);
+
+      bLength   = strlen(b2);
+      bRetained = 0.0;
+      bLabel    = 0;
+
+      if (b2[maxLength - 2] != 0)
+        tooShort = true;
+    }
+
+    if (tooShort) {
+      fprintf(stderr, "ERROR: -l too small for reads:\n");
+      fprintf(stderr, "       a = '%s'\n", a1);
+      fprintf(stderr, "       b = '%s'\n", b1);
+      exit(1);
+    }
+
+    return(!feof(FASTQ1));
+  };
+
+
+  void          write(FILE *FASTQ1, FILE *FASTQ2) {
+
+    if (FASTQ1)
+      fprintf(FASTQ1, "%s fractionRetained=%.3f\n%s\n%s\n%s\n", a1, aRetained, am, a3, a4);
+
+    if (FASTQ2)
+      fprintf(FASTQ2, "%s fractionRetained=%.3f\n%s\n%s\n%s\n", b1, bRetained, bm, b3, b4);
+  };
+
+
+
+public:
+  uint32        maxLength;
+  char         *alloc;
+
+  char          a1[1024];
+  char         *a2;
+  char         *af;
+  char         *am;
+  char          a3[1024];
+  char         *a4;
+  
+  uint32        aLength;
+  double        aRetained;
+  uint32        aLabel;
+
+  char          b1[1024];
+  char         *b2;
+  char         *bf;
+  char         *bm;
+  char          b3[1024];
+  char         *b4;
+
+  uint32        bLength;
+  double        bRetained;
+  uint32        bLabel;
+
+  //speedCounter *C;
+};
+
+
+
+
+class maskGlobal {
+public:
+  maskGlobal() {
+    merName         = NULL;
+
+    seq1Name        = NULL;
+    seq2Name        = NULL;
+
+    outPrefix       = NULL;
+
+    merSize         = 0;
+    maxLength       = 512;
+
+    existName       = NULL;
+    minSize         = 0;
+    extend          = 0;
+    keepNovel       = false;
+    keepConfirmed   = false;
+
+    lowThreshold    = 1. / 3.;
+    highThreshold   = 2. / 3.;
+
+    for (uint32 ii=0; ii<1001; ii++)
+      scoreHistogram[ii] = 0;
+
+    thresholdCounts[0][0] = 0.0;
+    thresholdCounts[0][1] = 0.0;
+    thresholdCounts[0][2] = 0.0;
+
+    thresholdCounts[1][0] = 0.0;
+    thresholdCounts[1][1] = 0.0;
+    thresholdCounts[1][2] = 0.0;
+
+    thresholdCounts[2][0] = 0.0;
+    thresholdCounts[2][1] = 0.0;
+    thresholdCounts[2][2] = 0.0;
+
+    outputHistogram = NULL;
+
+    exist = NULL;
+
+    FASTQ1      = NULL;
+    FASTQ1pipe  = false;
+
+    FASTQ2      = NULL;
+    FASTQ2pipe  = false;
+
+    OUTPUT1[0]  = NULL;
+    OUTPUT1[1]  = NULL;
+    OUTPUT1[2]  = NULL;
+
+    OUTPUT2[0]  = NULL;
+    OUTPUT2[1]  = NULL;
+    OUTPUT2[2]  = NULL;
+  };
+
+  ~maskGlobal() {
+  };
+
+
+public:
+  char         *merName;
+
+  char         *seq1Name;
+  char         *seq2Name;
+
+  char         *outPrefix;
+
+  uint32        merSize;
+  uint32        maxLength;
+
+  char         *existName;
+  uint32        minSize;
+  uint32        extend;
+  bool          keepNovel;
+  bool          keepConfirmed;
+
+  double        lowThreshold;
+  double        highThreshold;
+
+  uint32        scoreHistogram[1001];
+  uint64        thresholdCounts[3][3];
+
+  char         *outputHistogram;
+
+  existDB      *exist;
+
+  FILE         *FASTQ1;
+  bool          FASTQ1pipe;
+
+  FILE         *FASTQ2;
+  bool          FASTQ2pipe;
+
+  FILE         *OUTPUT1[3];
+  FILE         *OUTPUT2[3];
+
+  //speedCounter *C;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 //  Masks mers present in the database from the input sequences.  Chains together
 //  across small bits of missing mer.
 
 void
-printBits(char *S, uint32 Slen, bool *found, char *display, const char *label) {
+printBits(char *S, uint32 Slen, char *found, char *display, const char *label) {
   for (uint32 i=0; i<Slen; i++)
     display[i] = (found[i]) ? '1' : '0';
 
@@ -28,7 +278,7 @@ printBits(char *S, uint32 Slen, bool *found, char *display, const char *label) {
 
 //  Scan the read for kmers that exist in the DB.  Set a bit for each kmer that exists.
 void
-buildMask(char *S, uint32 Slen, bool *found, bool keepNovel, existDB *exist, uint32 merSize) {
+buildMask(char *S, uint32 Slen, char *found, bool keepNovel, existDB *exist, uint32 merSize) {
   merStream    MS(new kMerBuilder(merSize),
                   new seqStream(S, Slen),
                   true, true);
@@ -48,7 +298,7 @@ buildMask(char *S, uint32 Slen, bool *found, bool keepNovel, existDB *exist, uin
 //  bits are adjacent.
 //
 void
-removeIsolatedMers(char *S, uint32 Slen, bool *found, uint32 minSize) {
+removeIsolatedMers(char *S, uint32 Slen, char *found, uint32 minSize) {
   uint32  bgn   = 0;
   uint32  end   = 0;
   bool    inRun = false;
@@ -80,7 +330,7 @@ removeIsolatedMers(char *S, uint32 Slen, bool *found, uint32 minSize) {
 //  Convert the mer-start-based mask to a base-covering mask, allowing an extra uncovered
 //  'extension' bases in between two blocks to join.
 void
-convertToBases(char *S, uint32 Slen, bool *found, uint32 merSize, uint32 extend) {
+convertToBases(char *S, uint32 Slen, char *found, uint32 merSize, uint32 extend) {
   uint32   isMasking = 0;
 
   for (uint32 ii=0; ii<Slen; ii++) {
@@ -109,7 +359,7 @@ convertToBases(char *S, uint32 Slen, bool *found, uint32 merSize, uint32 extend)
 //  Assumes the found[] array represents base-based masking.
 //  Returns the fraction of the sequence that is not masked.
 double
-maskSequence(char *S, uint32 Slen, bool *found, bool keepNovel, char *display) {
+maskSequence(char *S, uint32 Slen, char *found, bool keepNovel, char *display) {
   uint32  saved  = 0;
 
   for (uint32 ii=0; ii<Slen; ii++) {
@@ -131,74 +381,196 @@ maskSequence(char *S, uint32 Slen, bool *found, bool keepNovel, char *display) {
 
 
 
+
+
+void *
+fastqLoader(void *G) {
+  maskGlobal   *g = (maskGlobal *)G;
+  fastqRecord  *s = new fastqRecord(g->maxLength);
+
+  if (s->load(g->FASTQ1, g->FASTQ2) == false) {
+    delete s;
+    s = NULL;
+  }
+
+  //if (g->C == NULL)
+  //  g->C = new speedCounter("    %7.2f reads -- %5.2f reads/second\r", 1.0, 0x1ffff, true);
+
+  return(s);
+}
+
+
+void
+maskWorker(void *G, void *T, void *S) {
+  maskGlobal   *g = (maskGlobal *)G;
+  //maskThread  *t = (maskThread *)T;
+  fastqRecord  *s = (fastqRecord *)S;
+
+  buildMask(s->a2, s->aLength, s->af, g->keepNovel, g->exist, g->merSize);
+  buildMask(s->b2, s->bLength, s->bf, g->keepNovel, g->exist, g->merSize);
+  //printBits(S, found, display , "INITIAL");
+
+  removeIsolatedMers(s->a2, s->aLength, s->af, g->minSize);
+  removeIsolatedMers(s->b2, s->bLength, s->bf, g->minSize);
+  //printBits(S, found, display, "ISOLATED REMOVAL");
+
+  convertToBases(s->a2, s->aLength, s->af, g->merSize, g->extend);
+  convertToBases(s->b2, s->bLength, s->bf, g->merSize, g->extend);
+  //printBits(S, found, display, "BASE COVERAGE");
+
+  s->aRetained = maskSequence(s->a2, s->aLength, s->af, g->keepNovel, s->am);
+  s->bRetained = maskSequence(s->b2, s->bLength, s->bf, g->keepNovel, s->bm);
+
+  s->aLabel = (s->aRetained < g->lowThreshold) ? 0 : ((s->aRetained < g->highThreshold) ? 1 : 2);
+  s->bLabel = (s->bRetained < g->lowThreshold) ? 0 : ((s->bRetained < g->highThreshold) ? 1 : 2);
+}
+
+
+void
+fastqWriter(void *G, void *S) {
+  maskGlobal  *g = (maskGlobal *)G;
+  fastqRecord *s = (fastqRecord *)S;
+
+  //if (g->C)
+  //  g->C->tick();
+
+  s->write(g->OUTPUT1[s->aLabel], g->OUTPUT2[s->bLabel]);
+
+  g->thresholdCounts[s->aLabel][s->bLabel]++;
+
+  g->scoreHistogram[(uint32)(1000 * s->aRetained)]++;
+  g->scoreHistogram[(uint32)(1000 * s->bRetained)]++;
+
+  delete s;
+}
+
+
+
+
+
+
+FILE *
+openInput(char *filename, bool &P) {
+  char  C[2 * FILENAME_MAX];
+  FILE *F = NULL;
+  int32 L = strlen(filename);
+
+  if ((L > 6) && (strcmp(filename + L - 6, ".fastq") == 0)) {
+    F = fopen(filename, "r");
+    P = false;
+  }
+
+  if ((L > 3) && (strcmp(filename + L - 3, ".gz") == 0)) {
+    sprintf(C, "gzip -dc %s", filename);
+    F = popen(C, "r");
+    P = true;
+  }
+
+  if ((L > 4) && (strcmp(filename + L - 4, ".bz2") == 0)) {
+    sprintf(C, "bzip2 -dc %s", filename);
+    F = popen(C, "r");
+    P = true;
+  }
+
+  if ((L > 3) && (strcmp(filename + L - 3, ".xz") == 0)) {
+    sprintf(C, "xz -dc %s", filename);
+    F = popen(C, "r");
+    P = true;
+  }
+
+  return(F);
+}
+
+void
+closeInput(FILE *F, char *filename, bool P) {
+  if (F)
+    if (P)
+      pclose(F);
+    else
+      fclose(F);
+}
+
+
+
+FILE *
+openOutput(char *prefix, const char *extension) {
+  char  N[FILENAME_MAX];
+  FILE *F = NULL;
+
+  sprintf(N, "%s.%s.fastq", prefix, extension);
+  F = fopen(N, "w");
+  if (errno)
+    fprintf(stderr, "ERROR: failed to open '%s': %s\n", N, strerror(errno)), exit(1);
+
+  return(F);
+}
+
+void
+closeOutput(FILE *F, char *prefix, const char *extension) {
+  if (F)
+    fclose(F);
+}
+
+
+
 int
 main(int argc, char **argv) {
-  char         *merName         = NULL;
+  maskGlobal   *g = new maskGlobal();
 
-  char         *seq1Name        = NULL;
-  char         *seq2Name        = NULL;
-
-  char         *outPrefix       = NULL;
-
-  uint32        merSize         = 0;
-  char         *existName       = NULL;
-  uint32        minSize         = 0;
-  uint32        extend          = 0;
-  bool          keepNovel       = false;
-  bool          keepConfirmed   = false;
-
-  double        lowThreshold    = 1. / 3.;
-  double        highThreshold   = 2. / 3.;
-
-  //  Save threshold stats.  For each read, we can label (0) below threshold, (1) in between, (2) above threshold
-  //
-  uint64        thresholdCounts[3][3] = { {0,0,0}, {0,0,0}, {0,0,0} };
-
-  char         *outputHistogram = NULL;
+  uint32        numWorkers = 1;
+  bool          beVerbose  = false;
 
   int32 arg=1;
   int32 err=0;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-mdb") == 0) {
-      merName = argv[++arg];
+      g->merName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-ms") == 0) {
-      merSize = atoi(argv[++arg]);
+      g->merSize = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-l") == 0) {
+      g->maxLength = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-edb") == 0) {
-      existName = argv[++arg];
+      g->existName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-1") == 0) {
-      seq1Name = argv[++arg];
+      g->seq1Name = argv[++arg];
     } else if (strcmp(argv[arg], "-2") == 0) {
-      seq2Name = argv[++arg];
+      g->seq2Name = argv[++arg];
 
     } else if (strcmp(argv[arg], "-o") == 0) {
-      outPrefix = argv[++arg];
+      g->outPrefix = argv[++arg];
 
     } else if (strcmp(argv[arg], "-m") == 0) {
-      minSize = atoi(argv[++arg]);
+      g->minSize = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-e") == 0) {
-      extend = atoi(argv[++arg]);
+      g->extend = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-t") == 0) {
+      numWorkers = atoi(argv[++arg]);
+    } else if (strcmp(argv[arg], "-v") == 0) {
+      beVerbose = true;
 
     } else if (strcmp(argv[arg], "-novel") == 0) {
       //  Retains kmers that do NOT exist in the DB.
-      keepNovel = true;
+      g->keepNovel = true;
 
     } else if (strcmp(argv[arg], "-confirmed") == 0) {
       //  Retains kmers that exist in the DB.
-      keepConfirmed = true;
+      g->keepConfirmed = true;
 
     } else if (strncmp(argv[arg], "-lowthreshold", 3) == 0) {
-      lowThreshold = atof(argv[++arg]);
+      g->lowThreshold = atof(argv[++arg]);
     } else if (strncmp(argv[arg], "-highthreshold", 3) == 0) {
-      highThreshold = atof(argv[++arg]);
+      g->highThreshold = atof(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-h") == 0) {
-      outputHistogram = argv[++arg];
-    //} else if (strcmp(argv[arg], "-o") == 0) {
-    //  outputSequence = atoi(argv[++arg]);
+      g->outputHistogram = argv[++arg];
+      //} else if (strcmp(argv[arg], "-o") == 0) {
+      //  outputSequence = atoi(argv[++arg]);
 
     } else {
       err++;
@@ -206,7 +578,7 @@ main(int argc, char **argv) {
 
     arg++;
   }
-  if ((keepNovel == false) && (keepConfirmed == false))
+  if ((g->keepNovel == false) && (g->keepConfirmed == false))
     err++;
   if (err) {
     fprintf(stderr, "usage: %s [-novel | -confirmed] ...\n", argv[0]);
@@ -222,20 +594,22 @@ main(int argc, char **argv) {
     fprintf(stderr, "                            out.partiallymasked.[12].fastq  - reads in between\n");
     fprintf(stderr, "                            out.retained.[12].fastq         - reads with more than 'hightreshold' bases retained\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -m min-size            ignore database hits below this many consecutive kmers (%d)\n", minSize);
-    fprintf(stderr, "  -e extend-size         extend database hits across this many missing kmers (%d)\n", extend);
+    fprintf(stderr, "  -m min-size            ignore database hits below this many consecutive kmers (%d)\n", g->minSize);
+    fprintf(stderr, "  -e extend-size         extend database hits across this many missing kmers (%d)\n", g->extend);
     fprintf(stderr, "\n");
     fprintf(stderr, "  -novel                 RETAIN novel sequence not present in the database\n");
     fprintf(stderr, "  -confirmed             RETAIN confirmed sequence present in the database\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "stats on stderr, number of sequences with amount RETAINED:\n");
-    fprintf(stderr, "  -lowthreshold t        (%.4f)\n", lowThreshold);
-    fprintf(stderr, "  -highthreshold t       (%.4f)\n", highThreshold);
+    fprintf(stderr, "  -lowthreshold t        (%.4f)\n", g->lowThreshold);
+    fprintf(stderr, "  -highthreshold t       (%.4f)\n", g->highThreshold);
     fprintf(stderr, "\n");
     fprintf(stderr, "  -h histogram           write a histogram of the amount of sequence RETAINED\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "  -t t                   use 't' compute threads\n");
+    fprintf(stderr, "  -v                     show progress\n");
 
-    if ((keepNovel == false) && (keepConfirmed == false))
+    if ((g->keepNovel == false) && (g->keepConfirmed == false))
       fprintf(stderr, "ERROR: exactly one of -novel and -confirmed must be supplied.\n");
 
     exit(1);
@@ -243,242 +617,77 @@ main(int argc, char **argv) {
 
   //  Open inputs
 
-  
-  FILE *FASTQ1      = NULL;
-  bool  FASTQ1pipe  = false;
+  g->FASTQ1     = openInput(g->seq1Name, g->FASTQ1pipe);
+  g->FASTQ2     = openInput(g->seq2Name, g->FASTQ2pipe);
 
-  FILE *FASTQ2      = NULL;
-  bool  FASTQ2pipe  = false;
+  g->OUTPUT1[0] = openOutput(g->outPrefix, "fulymasked.1");
+  g->OUTPUT1[1] = openOutput(g->outPrefix, "partiallymasked.1");
+  g->OUTPUT1[2] = openOutput(g->outPrefix, "retained.1");
 
-  FILE *OUTPUT1[3]  = { NULL, NULL, NULL };
-  FILE *OUTPUT2[3]  = { NULL, NULL, NULL };
+  g->OUTPUT2[0] = openOutput(g->outPrefix, "fulymasked.2");
+  g->OUTPUT2[1] = openOutput(g->outPrefix, "partiallymasked.2");
+  g->OUTPUT2[2] = openOutput(g->outPrefix, "retained.2");
 
-
-  if (seq1Name) {
-    char *CMD   = new char [2 * FILENAME_MAX];
-    int32 LEN   = strlen(seq1Name);
-
-    sprintf(CMD, "gzip -dc %s", seq1Name);
-    FASTQ1 = popen(CMD, "r");
-    if (errno)
-      fprintf(stderr, "ERROR: failed to open -1 '%s': %s\n", seq1Name, strerror(errno));
-
-    sprintf(CMD, "%s.fullymasked.1.fastq", outPrefix);
-    OUTPUT1[0] = fopen(CMD, "w");
-    if (errno)
-      fprintf(stderr, "ERROR: failed to open 1[0] '%s': %s\n", CMD, strerror(errno));
-
-    sprintf(CMD, "%s.partiallymasked.1.fastq", outPrefix);
-    OUTPUT1[1] = fopen(CMD, "w");
-    if (errno)
-      fprintf(stderr, "ERROR: failed to open 1[1] '%s': %s\n", CMD, strerror(errno));
-
-    sprintf(CMD, "%s.retained.1.fastq", outPrefix);
-    OUTPUT1[2] = fopen(CMD, "w");
-    if (errno)
-      fprintf(stderr, "ERROR: failed to open 1[2] '%s': %s\n", CMD, strerror(errno));
-  }
-
-  if (seq2Name) {
-    char *CMD   = new char [2 * FILENAME_MAX];
-    int32 LEN   = strlen(seq1Name);
-
-#if 0
-    if ((LEN > 6) && (strcmp(seq2Name + LEN - 6, ".fastq") == 0)) {
-      FASTQ2     = fopen(seq2Name, "r");
-      FASTQ2pipe = false;
-    }
-    if ((LEN > 3) && (strcmp(seq2Name + LEN - 3, ".gz") == 0)) {
-      sprintf(CMD, "gzip -dc %s", seq2Name);
-      FASTQ2     = popen(CMD, "r");
-      FASTQ2pipe = true;
-    }
-    if ((LEN > 4) && (strcmp(seq2Name + LEN - 4, ".bz2") == 0)) {
-      sprintf(CMD, "bzip2 -dc %s", seq2Name);
-      FASTQ2     = popen(CMD, "r");
-      FASTQ2pipe = true;
-    }
-    if ((LEN > 3) && (strcmp(seq2Name + LEN - 3, ".xz") == 0)) {
-      sprintf(CMD, "xz -dc %s", seq2Name);
-      FASTQ2     = popen(CMD, "r");
-      FASTQ2pipe = true;
-    }
-#endif
-
-    sprintf(CMD, "gzip -dc %s", seq2Name);
-    FASTQ2 = popen(CMD, "r");
-    if (errno)
-      fprintf(stderr, "ERROR: failed to open -2 '%s': %s\n", seq2Name, strerror(errno));
-
-    sprintf(CMD, "%s.fullymasked.2.fastq", outPrefix);
-    OUTPUT2[0] = fopen(CMD, "w");
-    if (errno)
-      fprintf(stderr, "ERROR: failed to open 2[[0] '%s': %s\n", CMD, strerror(errno));
-
-    sprintf(CMD, "%s.partiallymasked.2.fastq", outPrefix);
-    OUTPUT2[1] = fopen(CMD, "w");
-    if (errno)
-      fprintf(stderr, "ERROR: failed to open 2[1] '%s': %s\n", CMD, strerror(errno));
-
-    sprintf(CMD, "%s.retained.2.fastq", outPrefix);
-    OUTPUT2[2] = fopen(CMD, "w");
-    if (errno)
-      fprintf(stderr, "ERROR: failed to open 2[2] '%s': %s\n", CMD, strerror(errno));
-  }
 
   //  Load data
 
-  existDB *exist = 0L;
-
-  if ((existName != NULL) && (fileExists(existName))) {
-    fprintf(stderr, "Load existDB existName='%s'.\n", existName);
-    exist = new existDB(existName);
+  if ((g->existName != NULL) && (fileExists(g->existName))) {
+    if (beVerbose)
+      fprintf(stderr, "Load existDB existName='%s'.\n", g->existName);
+    g->exist = new existDB(g->existName);
 
   } else {
-    fprintf(stderr, "Build existDB from merName='%s'.\n", merName);
-    fprintf(stderr, "Save existDB into existName='%s'.\n", existName);
-    exist = new existDB(merName, merSize, existDBnoFlags, 0, ~uint32ZERO);
+    if (beVerbose)
+      fprintf(stderr, "Build existDB from merName='%s'.\n", g->merName);
+    g->exist = new existDB(g->merName, g->merSize, existDBnoFlags, 0, ~uint32ZERO);
 
-    if (existName != NULL)
-      exist->saveState(existName);
-  }
-
-  uint32        allocLen = 1048576;
-
-  bool         *found1    = new bool [allocLen];
-  char         *display1  = new char [allocLen];
-
-  char         *a1 = new char [1024];
-  char         *a2 = new char [allocLen];
-  char         *a3 = new char [1024];
-  char         *a4 = new char [allocLen];
-
-  bool         *found2    = new bool [allocLen];
-  char         *display2  = new char [allocLen];
-
-  char         *b1 = new char [1024];
-  char         *b2 = new char [allocLen];
-  char         *b3 = new char [1024];
-  char         *b4 = new char [allocLen];
-
-  uint32        al = 0;
-  uint32        bl = 0;
-
-  uint32        scoreHistogram[1001] = { 0 };
-
-  speedCounter  C("    %7.2f reads -- %5.2f reads/second\r", 1.0, 0x1ffff, true);
-
-  if (FASTQ1) {
-    fgets(a1,     1024, FASTQ1);  chomp(a1);
-    fgets(a2, allocLen, FASTQ1);  chomp(a2);
-    fgets(a3,     1024, FASTQ1);  chomp(a3);
-    fgets(a4, allocLen, FASTQ1);  chomp(a4);
-
-    al = strlen(a2);
-  }
-
-  if (FASTQ2) {
-    fgets(b1,     1024, FASTQ2);  chomp(b1);
-    fgets(b2, allocLen, FASTQ2);  chomp(b2);
-    fgets(b3,     1024, FASTQ2);  chomp(b3);
-    fgets(b4, allocLen, FASTQ2);  chomp(b4);
-
-    bl = strlen(b2);
-  }
-
-  fprintf(stderr, "Begin.\n");
-
-  while (((FASTQ1 != NULL) || (FASTQ2 != NULL)) &&
-         ((FASTQ1 == NULL) || (feof(FASTQ1) == false)) &&
-         ((FASTQ2 == NULL) || (feof(FASTQ2) == false))) {
-
-    buildMask(a2, al, found1, keepNovel, exist, merSize);
-    buildMask(b2, bl, found2, keepNovel, exist, merSize);
-    //printBits(S, found, display , "INITIAL");
-
-    removeIsolatedMers(a2, al, found1, minSize);
-    removeIsolatedMers(b2, bl, found2, minSize);
-    //printBits(S, found, display, "ISOLATED REMOVAL");
-
-    convertToBases(a2, al, found1, merSize, extend);
-    convertToBases(b2, bl, found2, merSize, extend);
-    //printBits(S, found, display, "BASE COVERAGE");
-
-    double fractionRetained1 = maskSequence(a2, al, found1, keepNovel, display1);
-    double fractionRetained2 = maskSequence(b2, bl, found2, keepNovel, display2);
-
-    uint32  aLabel = (fractionRetained1 < lowThreshold) ? 0 : ((fractionRetained1 < highThreshold) ? 1 : 2);
-    uint32  bLabel = (fractionRetained2 < lowThreshold) ? 0 : ((fractionRetained2 < highThreshold) ? 1 : 2);
-
-    if (OUTPUT1[aLabel])
-      fprintf(OUTPUT1[aLabel], "%s fractionRetained=%.3f\n%s\n%s\n%s\n", a1, fractionRetained1, display1, a3, a4);
-
-    if (OUTPUT2[bLabel])
-      fprintf(OUTPUT2[bLabel], "%s fractionRetained=%.3f\n%s\n%s\n%s\n", b1, fractionRetained2, display2, b3, b4);
-
-    thresholdCounts[aLabel][bLabel]++;
-
-    scoreHistogram[(uint32)(1000 * fractionRetained1)]++;
-    scoreHistogram[(uint32)(1000 * fractionRetained2)]++;
-
-    //  Load next.
-
-    if (FASTQ1) {
-      fgets(a1,     1024, FASTQ1);  chomp(a1);
-      fgets(a2, allocLen, FASTQ1);  chomp(a2);
-      fgets(a3,     1024, FASTQ1);  chomp(a3);
-      fgets(a4, allocLen, FASTQ1);  chomp(a4);
-
-      al = strlen(a2);
+    if (g->existName != NULL) {
+      if (beVerbose)
+        fprintf(stderr, "Save existDB into existName='%s'.\n", g->existName);
+      g->exist->saveState(g->existName);
     }
-
-    if (FASTQ2) {
-      fgets(b1,     1024, FASTQ2);  chomp(b1);
-      fgets(b2, allocLen, FASTQ2);  chomp(b2);
-      fgets(b3,     1024, FASTQ2);  chomp(b3);
-      fgets(b4, allocLen, FASTQ2);  chomp(b4);
-
-      bl = strlen(b2);
-    }
-
-    C.tick();
   }
 
-  C.finish();
+  //  Process!
 
-  pclose(FASTQ1);
-  pclose(FASTQ2);
+  sweatShop *ss = new sweatShop(fastqLoader, maskWorker, fastqWriter);
 
-  fclose(OUTPUT1[0]);
-  fclose(OUTPUT1[1]);
-  fclose(OUTPUT1[2]);
+  ss->setNumberOfWorkers(numWorkers);
+  ss->setLoaderQueueSize(32768);
+  ss->setWriterQueueSize(32768);
 
-  fclose(OUTPUT2[0]);
-  fclose(OUTPUT2[1]);
-  fclose(OUTPUT2[2]);
+  ss->run(g, beVerbose);
+
+  //g->C->finish();
+
+  closeInput(g->FASTQ1, g->seq1Name, g->FASTQ1pipe);
+  closeInput(g->FASTQ2, g->seq1Name, g->FASTQ2pipe);
+
+  closeOutput(g->OUTPUT1[0], g->outPrefix, "fulymasked.1");
+  closeOutput(g->OUTPUT1[1], g->outPrefix, "partiallymasked.1");
+  closeOutput(g->OUTPUT1[2], g->outPrefix, "retained.1");
+
+  closeOutput(g->OUTPUT2[0], g->outPrefix, "fulymasked.2");
+  closeOutput(g->OUTPUT2[1], g->outPrefix, "partiallymasked.2");
+  closeOutput(g->OUTPUT2[2], g->outPrefix, "retained.2");
 
   fprintf(stderr, "         bBelow    bNormal   bHigh\n");
-  fprintf(stderr, "aBelow   %8lu  %8lu  %8lu\n", thresholdCounts[0][0], thresholdCounts[0][1], thresholdCounts[0][2]);
-  fprintf(stderr, "aNormal  %8lu  %8lu  %8lu\n", thresholdCounts[1][0], thresholdCounts[1][1], thresholdCounts[1][2]);
-  fprintf(stderr, "aHigh    %8lu  %8lu  %8lu\n", thresholdCounts[2][0], thresholdCounts[2][1], thresholdCounts[2][2]);
-         
+  fprintf(stderr, "aBelow   %8lu  %8lu  %8lu\n", g->thresholdCounts[0][0], g->thresholdCounts[0][1], g->thresholdCounts[0][2]);
+  fprintf(stderr, "aNormal  %8lu  %8lu  %8lu\n", g->thresholdCounts[1][0], g->thresholdCounts[1][1], g->thresholdCounts[1][2]);
+  fprintf(stderr, "aHigh    %8lu  %8lu  %8lu\n", g->thresholdCounts[2][0], g->thresholdCounts[2][1], g->thresholdCounts[2][2]);
 
-  delete [] display1;
-  delete [] display2;
-
-  delete [] found1;
-  delete [] found2;
-
-  if (outputHistogram != NULL) {
-    FILE *H = fopen(outputHistogram, "w");
+  if (g->outputHistogram != NULL) {
+    FILE *H = fopen(g->outputHistogram, "w");
 
     fprintf(H, "# amount of sequence retained\n");
     for (uint32 i=0; i<1001; i++)
-      if (scoreHistogram[i] > 0)
-        fprintf(H, "%.4f\t%u\n", i / 1000.0, scoreHistogram[i]);
+      if (g->scoreHistogram[i] > 0)
+        fprintf(H, "%.4f\t%u\n", i / 1000.0, g->scoreHistogram[i]);
 
     fclose(H);
   }
+
+  delete g;
 
   exit(0);
 }
