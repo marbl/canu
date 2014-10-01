@@ -117,9 +117,9 @@ public:
 
 int
 main(int argc, char **argv) {
-  aRead     Ar,        Br;
-  FILE     *Ai = NULL, *Bi = NULL;
-  FILE     *Ao = NULL, *Bo = NULL;
+  aRead    *Ar = new aRead, *Br = new aRead;
+  FILE     *Ai = NULL,      *Bi = NULL;
+  FILE     *Ao = NULL,      *Bo = NULL;
 
   vector<anInput>   ids;
   vector<bool>      sav;
@@ -280,12 +280,12 @@ main(int argc, char **argv) {
         fprintf(stderr, "Failed to open '%s': %s\n", path2, strerror(errno)), exit(1);
     }
 
-    bool  moreA = Ar.read(Ai);
-    bool  moreB = Br.read(Bi);
+    bool  moreA = Ar->read(Ai);
+    bool  moreB = Br->read(Bi);
 
     while (moreA || moreB) {
-      uint32  lA = Ar.length();
-      uint32  lB = Br.length();
+      uint32  lA = Ar->length();
+      uint32  lB = Br->length();
 
       if (lA > 0)  Ac++;
       if (lB > 0)  Bc++;
@@ -296,8 +296,8 @@ main(int argc, char **argv) {
       totPairsInInput += 1;
       totBasesInInput += lA + lB;
 
-      moreA = Ar.read(Ai);
-      moreB = Br.read(Bi);
+      moreA = Ar->read(Ai);
+      moreB = Br->read(Bi);
     }
 
     if (Ai)  fclose(Ai);
@@ -492,10 +492,10 @@ main(int argc, char **argv) {
       fprintf(stderr, "Extracting "F_U64" bases of mate pairs into %s and %s\n",
               nBasesToOutput, path1, path2);
 
-    for (; Ar.read(Ai) && Br.read(Bi); i++) {
+    for (; Ar->read(Ai) && Br->read(Bi); i++) {
       if ((i < totPairsInInput) && (sav[i])) {
-        Ar.write(Ao);
-        Br.write(Bo);
+        Ar->write(Ao);
+        Br->write(Bo);
         s++;
       }
     }
@@ -515,9 +515,9 @@ main(int argc, char **argv) {
       fprintf(stderr, "Extracting "F_U64" bases of reads into %s\n",
               nBasesToOutput, path1);
 
-    for (; Ar.read(Ai); i++) {
+    for (; Ar->read(Ai); i++) {
       if ((i < totPairsInInput) && (sav[i])) {
-        Ar.write(Ao);
+        Ar->write(Ao);
         s++;
       }
     }
@@ -525,6 +525,9 @@ main(int argc, char **argv) {
     fclose(Ai);
     fclose(Ao);
   }
+
+  delete Ar;
+  delete Br;
 
   if (i > totPairsInInput) {
     fprintf(stderr, "WARNING:  There are "F_U64" %s in the input; you claimed there are "F_U64" (-t option) %s.\n",
