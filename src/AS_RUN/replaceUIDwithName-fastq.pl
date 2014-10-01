@@ -94,7 +94,7 @@ while (scalar(@ARGV)) {
 
         die "Didn't find UID '$a'\n"  if (!exists($UIDtoNAME{$a}));
         $a = "\@$UIDtoNAME{$a}\n";
-
+        
         print O "$a$b$c$d";
 
         $readsRenamed++;
