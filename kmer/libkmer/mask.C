@@ -140,8 +140,6 @@ public:
   uint32        bLength;
   double        bRetained;
   uint32        bLabel;
-
-  //speedCounter *C;
 };
 
 
@@ -166,23 +164,19 @@ public:
     keepNovel       = false;
     keepConfirmed   = false;
 
+    demote          = false;
+    promote         = false;
+    discard         = true;
+
     lowThreshold    = 1. / 3.;
     highThreshold   = 2. / 3.;
 
     for (uint32 ii=0; ii<1001; ii++)
       scoreHistogram[ii] = 0;
 
-    thresholdCounts[0][0] = 0.0;
-    thresholdCounts[0][1] = 0.0;
-    thresholdCounts[0][2] = 0.0;
-
-    thresholdCounts[1][0] = 0.0;
-    thresholdCounts[1][1] = 0.0;
-    thresholdCounts[1][2] = 0.0;
-
-    thresholdCounts[2][0] = 0.0;
-    thresholdCounts[2][1] = 0.0;
-    thresholdCounts[2][2] = 0.0;
+    for (uint32 ii=0; ii<4; ii++)
+      for (uint32 jj=0; jj<4; jj++)
+        thresholdCounts[ii][jj] = 0.0;
 
     outputHistogram = NULL;
 
@@ -224,11 +218,15 @@ public:
   bool          keepNovel;
   bool          keepConfirmed;
 
+  bool          demote;
+  bool          promote;
+  bool          discard;
+
   double        lowThreshold;
   double        highThreshold;
 
   uint32        scoreHistogram[1001];
-  uint64        thresholdCounts[3][3];
+  uint64        thresholdCounts[4][4];
 
   char         *outputHistogram;
 
@@ -240,10 +238,8 @@ public:
   FILE         *FASTQ2;
   bool          FASTQ2pipe;
 
-  FILE         *OUTPUT1[3];
-  FILE         *OUTPUT2[3];
-
-  //speedCounter *C;
+  FILE         *OUTPUT1[4];
+  FILE         *OUTPUT2[4];
 };
 
 
@@ -423,6 +419,21 @@ maskWorker(void *G, void *T, void *S) {
 
   s->aLabel = (s->aRetained < g->lowThreshold) ? 0 : ((s->aRetained < g->highThreshold) ? 1 : 2);
   s->bLabel = (s->bRetained < g->lowThreshold) ? 0 : ((s->bRetained < g->highThreshold) ? 1 : 2);
+
+  if ((s->aLabel != s->bLabel) && (g->demote)) {
+    s->aLabel = MIN(s->aLabel, s->bLabel);
+    s->bLabel = MIN(s->aLabel, s->bLabel);
+  }
+
+  if ((s->aLabel != s->bLabel) && (g->promote)) {
+    s->aLabel = MAX(s->aLabel, s->bLabel);
+    s->bLabel = MAX(s->aLabel, s->bLabel);
+  }
+
+  if ((s->aLabel != s->bLabel) && (g->discard)) {
+    s->aLabel = 3;
+    s->bLabel = 3;
+  }
 }
 
 
@@ -430,9 +441,6 @@ void
 fastqWriter(void *G, void *S) {
   maskGlobal  *g = (maskGlobal *)G;
   fastqRecord *s = (fastqRecord *)S;
-
-  //if (g->C)
-  //  g->C->tick();
 
   s->write(g->OUTPUT1[s->aLabel], g->OUTPUT2[s->bLabel]);
 
@@ -555,12 +563,16 @@ main(int argc, char **argv) {
       beVerbose = true;
 
     } else if (strcmp(argv[arg], "-novel") == 0) {
-      //  Retains kmers that do NOT exist in the DB.
       g->keepNovel = true;
-
     } else if (strcmp(argv[arg], "-confirmed") == 0) {
-      //  Retains kmers that exist in the DB.
       g->keepConfirmed = true;
+
+    } else if (strcmp(argv[arg], "-demote") == 0) {
+      g->demote = true;
+    } else if (strcmp(argv[arg], "-promote") == 0) {
+      g->promote = true;
+    } else if (strcmp(argv[arg], "-discard") == 0) {
+      g->discard = true;
 
     } else if (strncmp(argv[arg], "-lowthreshold", 3) == 0) {
       g->lowThreshold = atof(argv[++arg]);
@@ -593,12 +605,20 @@ main(int argc, char **argv) {
     fprintf(stderr, "                            out.fullymasked.[12].fastq      - reads with below 'lowthreshold' bases retained\n");
     fprintf(stderr, "                            out.partiallymasked.[12].fastq  - reads in between\n");
     fprintf(stderr, "                            out.retained.[12].fastq         - reads with more than 'hightreshold' bases retained\n");
+    fprintf(stderr, "                            out.discarded.[12].fastq        - reads with conflicting status\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -m min-size            ignore database hits below this many consecutive kmers (%d)\n", g->minSize);
     fprintf(stderr, "  -e extend-size         extend database hits across this many missing kmers (%d)\n", g->extend);
     fprintf(stderr, "\n");
     fprintf(stderr, "  -novel                 RETAIN novel sequence not present in the database\n");
     fprintf(stderr, "  -confirmed             RETAIN confirmed sequence present in the database\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -promote               promote the lesser RETAINED read to the status of the more RETAINED read\n");
+    fprintf(stderr, "                           read1=fullymasked and read2=partiallymasked -> both are partiallymasked\n");
+    fprintf(stderr, "  -demote                demote the more RETAINED read to the status of the lesser RETAINED read\n");
+    fprintf(stderr, "                           read1=fullymasked and read2=partiallymasked -> both are fullymasked\n");
+    fprintf(stderr, "  -discard               discard pairs with conflicting status (DEFAULT)\n");
+    fprintf(stderr, "                           read1=fullymasked and read2=partiallymasked -> both are discarded\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "stats on stderr, number of sequences with amount RETAINED:\n");
     fprintf(stderr, "  -lowthreshold t        (%.4f)\n", g->lowThreshold);
@@ -620,13 +640,15 @@ main(int argc, char **argv) {
   g->FASTQ1     = openInput(g->seq1Name, g->FASTQ1pipe);
   g->FASTQ2     = openInput(g->seq2Name, g->FASTQ2pipe);
 
-  g->OUTPUT1[0] = openOutput(g->outPrefix, "fulymasked.1");
+  g->OUTPUT1[0] = openOutput(g->outPrefix, "fullymasked.1");
   g->OUTPUT1[1] = openOutput(g->outPrefix, "partiallymasked.1");
   g->OUTPUT1[2] = openOutput(g->outPrefix, "retained.1");
+  g->OUTPUT1[3] = openOutput(g->outPrefix, "discarded.1");
 
-  g->OUTPUT2[0] = openOutput(g->outPrefix, "fulymasked.2");
+  g->OUTPUT2[0] = openOutput(g->outPrefix, "fullymasked.2");
   g->OUTPUT2[1] = openOutput(g->outPrefix, "partiallymasked.2");
   g->OUTPUT2[2] = openOutput(g->outPrefix, "retained.2");
+  g->OUTPUT2[3] = openOutput(g->outPrefix, "discarded.2");
 
 
   //  Load data
@@ -653,12 +675,13 @@ main(int argc, char **argv) {
   sweatShop *ss = new sweatShop(fastqLoader, maskWorker, fastqWriter);
 
   ss->setNumberOfWorkers(numWorkers);
-  ss->setLoaderQueueSize(32768);
-  ss->setWriterQueueSize(32768);
+
+  ss->setWorkerBatchSize(1024);
+
+  ss->setLoaderQueueSize(numWorkers * 81920);
+  ss->setWriterQueueSize(numWorkers * 81920);
 
   ss->run(g, beVerbose);
-
-  //g->C->finish();
 
   closeInput(g->FASTQ1, g->seq1Name, g->FASTQ1pipe);
   closeInput(g->FASTQ2, g->seq1Name, g->FASTQ2pipe);
@@ -666,15 +689,18 @@ main(int argc, char **argv) {
   closeOutput(g->OUTPUT1[0], g->outPrefix, "fulymasked.1");
   closeOutput(g->OUTPUT1[1], g->outPrefix, "partiallymasked.1");
   closeOutput(g->OUTPUT1[2], g->outPrefix, "retained.1");
+  closeOutput(g->OUTPUT1[3], g->outPrefix, "discarded.1");
 
   closeOutput(g->OUTPUT2[0], g->outPrefix, "fulymasked.2");
   closeOutput(g->OUTPUT2[1], g->outPrefix, "partiallymasked.2");
   closeOutput(g->OUTPUT2[2], g->outPrefix, "retained.2");
+  closeOutput(g->OUTPUT2[3], g->outPrefix, "discarded.2");
 
-  fprintf(stderr, "         bBelow    bNormal   bHigh\n");
-  fprintf(stderr, "aBelow   %8lu  %8lu  %8lu\n", g->thresholdCounts[0][0], g->thresholdCounts[0][1], g->thresholdCounts[0][2]);
-  fprintf(stderr, "aNormal  %8lu  %8lu  %8lu\n", g->thresholdCounts[1][0], g->thresholdCounts[1][1], g->thresholdCounts[1][2]);
-  fprintf(stderr, "aHigh    %8lu  %8lu  %8lu\n", g->thresholdCounts[2][0], g->thresholdCounts[2][1], g->thresholdCounts[2][2]);
+  fprintf(stderr, "            bBelow    bNormal   bHigh     bDiscarded\n");
+  fprintf(stderr, "aBelow      %8lu  %8lu  %8lu  %8lu\n", g->thresholdCounts[0][0], g->thresholdCounts[0][1], g->thresholdCounts[0][2], g->thresholdCounts[0][3]);
+  fprintf(stderr, "aNormal     %8lu  %8lu  %8lu  %8lu\n", g->thresholdCounts[1][0], g->thresholdCounts[1][1], g->thresholdCounts[1][2], g->thresholdCounts[1][3]);
+  fprintf(stderr, "aHigh       %8lu  %8lu  %8lu  %8lu\n", g->thresholdCounts[2][0], g->thresholdCounts[2][1], g->thresholdCounts[2][2], g->thresholdCounts[2][3]);
+  fprintf(stderr, "aDiscarded  %8lu  %8lu  %8lu  %8lu\n", g->thresholdCounts[3][0], g->thresholdCounts[3][1], g->thresholdCounts[3][2], g->thresholdCounts[3][3]);
 
   if (g->outputHistogram != NULL) {
     FILE *H = fopen(g->outputHistogram, "w");
