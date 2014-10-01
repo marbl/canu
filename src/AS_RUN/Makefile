@@ -37,7 +37,8 @@ SCRIPTS = runCA \
           caqc_help.ini \
           ca2ace.pl \
           asmToAGP.pl \
-          replaceUIDwithName
+          replaceUIDwithName-fastq \
+          replaceUIDwithName-posmap
 
 
 # Include for AS project rules
@@ -85,7 +86,11 @@ mergeqc.pl: asmQC/mergeqc.pl
 	@cp $< $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
-replaceUIDwithName: replaceUIDwithName.pl
+replaceUIDwithName-fastq: replaceUIDwithName-fastq.pl
+	@cp $< $(LOCAL_BIN)/$@
+	@chmod 775 $(LOCAL_BIN)/$@
+
+replaceUIDwithName-posmap: replaceUIDwithName-posmap.pl
 	@cp $< $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
