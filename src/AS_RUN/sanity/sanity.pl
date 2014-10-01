@@ -7,22 +7,23 @@ use Config;  #  for @signame
 #
 my $site    = undef;
 my $wrkdir  = undef;
-my $wgscvs  = undef;
+my $wgssvn  = undef;
 my $kmersvn = undef;
 
 if      (-d "/usr/local/projects/BIOINFO/ASSEMBLY/NIGHTLY") {
     $site    = "JCVI";
     $wrkdir  = "/usr/local/projects/BIOINFO/ASSEMBLY/NIGHTLY";
-    $wgscvs  = "/usr/local/projects/BIOINFO/ASSEMBLY/NIGHTLY/wgs-assembler-cvs";
-    $kmersvn = "/usr/local/projects/BIOINFO/ASSEMBLY/NIGHTLY/kmer-svn";
+    $wgssvn  = "/usr/local/projects/BIOINFO/ASSEMBLY/NIGHTLY/SVN-wgs";
+    $kmersvn = "/usr/local/projects/BIOINFO/ASSEMBLY/NIGHTLY/SVN-kmer";
 } elsif (-d "/work/NIGHTLY/") {
     $site    = "BPWI";
     $wrkdir  = "/work/NIGHTLY";
-    $wgscvs  = "/work/NIGHTLY/wgs-assembler-cvs";
-    $kmersvn = "/work/NIGHTLY/kmer-svn";
+    $wgssvn  = "/work/NIGHTLY/SVN-wgs";
+    $kmersvn = "/work/NIGHTLY/SVN-kmer";
 } else {
     die "Unknown site configuration.\n";
 }
+
 
 #  Command line options are
 #
@@ -60,15 +61,16 @@ if      (-d "/usr/local/projects/BIOINFO/ASSEMBLY/NIGHTLY") {
     my ($thisdate, $lastdate) = parseDate($ddir);
 
     if ($oper eq "rsync") {
-        system("mkdir $wgscvs")  if (! -d "$wgscvs");
-        system("mkdir $kmersvn") if (! -d "$kmersvn");
+        system("mkdir -p $wgssvn")  if (! -d "$wgssvn");
+        system("mkdir -p $kmersvn") if (! -d "$kmersvn");
 
-        system("cd $wgscvs  && rsync -av rsync://wgs-assembler.cvs.sourceforge.net/cvsroot/wgs-assembler/\* . > rsync.out 2>&1");
-        system("cd $kmersvn && rsync -av kmer.svn.sourceforge.net::svn/kmer/\* . > rsync.out 2>&1");
+        #system("cd $wgscvs  && rsync -av rsync://wgs-assembler.cvs.sourceforge.net/cvsroot/wgs-assembler/\* . > rsync.out 2>&1");
+        system("cd $wgssvn  && rsync -av svn.code.sf.net::p/wgs-assembler/svn/ . > rsync.out 2>&1");
+        system("cd $kmersvn && rsync -av svn.code.sf.net::p/kmer/code/         . > rsync.out 2>&1");
 
     } elsif ($oper eq "checkout") {
-        checkoutAndLogKmer($thisdate, $lastdate);
-        checkoutAndLogCA($thisdate, $lastdate);
+        checkoutAndLog($thisdate, $lastdate, "file://$kmersvn/trunk",    "kmer", "kmer");
+        checkoutAndLog($thisdate, $lastdate, "file://$wgssvn/trunk/src", "src", "src");
 
     } elsif ($oper eq "build") {
         buildKmer($thisdate);
@@ -130,19 +132,21 @@ sub parseDate ($) {
 }
 
 
-sub checkoutAndLogKmer ($$) {
+sub checkoutAndLog ($$) {
     my $thisdate = shift @_;
     my $lastdate = shift @_;
+    my $repo     = shift @_;  #  Path to local repository
+    my $target   = shift @_;  #  Thing to checkout
+    my $path     = shift @_;  #  Where to put it (in wgs/)
 
-    print STDERR "Checking out $wrkdir/$thisdate (KMER)\n";
+    print STDERR "Checking out $wrkdir/$thisdate (repo=$repo path=$path)\n";
 
-    if (-d "$wrkdir/$thisdate/wgs/kmer") {
-        print STDERR "$wrkdir/$thisdate/wgs/kmer already exists.  Please remove to rerun.\n";
+    if (-d "$wrkdir/$thisdate/wgs/$path") {
+        print STDERR "$wrkdir/$thisdate/wgs/$path already exists.  Please remove to rerun.\n";
         return;
     }
 
-    system("mkdir $wrkdir/$thisdate")     if (! -d "$wrkdir/$thisdate");
-    system("mkdir $wrkdir/$thisdate/wgs") if (! -d "$wrkdir/$thisdate/wgs");
+    system("mkdir -p $wrkdir/$thisdate/wgs") if (! -d "$wrkdir/$thisdate/wgs");
 
     #  Convert time-names to dates that svn can use.
 
@@ -163,8 +167,8 @@ sub checkoutAndLogKmer ($$) {
         } else {
         }
     }
-
-    system("cd $wrkdir/$thisdate/wgs && svn co  -r \"{$thisdatesvn}\" file://$kmersvn/trunk kmer > kmer.checkout.err 2>&1");
+    
+    system("cd $wrkdir/$thisdate/wgs && svn co  -r \"{$thisdatesvn}\" $repo $target > $path.checkout.err 2>&1");
 
     #  This is annoying.  SVN log will report changes inclusive to revisions.  -r 5:9 will report
     #  changes made in revisions 5 through 9.  When you give it a date, it finds the revision that
@@ -178,8 +182,8 @@ sub checkoutAndLogKmer ($$) {
         my $loRev;
         my $hiRev;
 
-        print "svn log -v file://$kmersvn/trunk -r \"{$lastdatesvn}:{$thisdatesvn}\"\n";
-        open(F, "cd $wrkdir/$thisdate/wgs && svn log -v file://$kmersvn/trunk -r \"{$lastdatesvn}:{$thisdatesvn}\" |");
+        print "svn log -v $repo -r \"{$lastdatesvn}:{$thisdatesvn}\"\n";
+        open(F, "cd $wrkdir/$thisdate/wgs && svn log -v $repo -r \"{$lastdatesvn}:{$thisdatesvn}\" |");
         while (<F>) {
             if (m/^r(\d+)\s+\|\s+/) {
                 $loRev = $1  if ((!defined($loRev)) || ($1 < $loRev));
@@ -193,127 +197,14 @@ sub checkoutAndLogKmer ($$) {
         print STDERR "loRev='$loRev' hiRev='$hiRev'\n";
             
         if (defined($loRev) && defined($hiRev) && ($loRev < $hiRev)) {
-            print "svn log -v file://$kmersvn/trunk -r $loRev:$hiRev\n";
-            system("cd $wrkdir/$thisdate/wgs && svn log -v file://$kmersvn/trunk -r $loRev:$hiRev > kmer.updates");
+            print "svn log -v $repo -r $loRev:$hiRev\n";
+            system("cd $wrkdir/$thisdate/wgs && svn log -v $repo -r $loRev:$hiRev > $path.updates");
         }
     }
 
     print STDERR "$thisdate checked out!\n";
 }
 
-sub checkoutAndLogCA ($$) {
-    my $thisdate = shift @_;
-    my $lastdate = shift @_;
-    my $tag      = undef;  #"-r VERSION-5_40-BRANCH";
-
-    print STDERR "Checking out $wrkdir/$thisdate (CA) ", (defined($tag)) ? "TAG=$tag" : "", "\n";
-
-    if (-d "$wrkdir/$thisdate/wgs/src") {
-        print STDERR "$wrkdir/$thisdate/wgs/src already exists.  Please remove to rerun.\n";
-        return;
-    }
-
-    system("mkdir $wrkdir/$thisdate")     if (! -d "$wrkdir/$thisdate");
-    system("mkdir $wrkdir/$thisdate/wgs") if (! -d "$wrkdir/$thisdate/wgs");
-
-    #  Convert time-names to dates that cvs can use.
-
-    my $thisdatecvs;
-    my $lastdatecvs;
-
-    my $tz = `date +%z`;  chomp $tz;
-
-    if ($thisdate =~ m/(\d\d\d\d)-(\d\d)-(\d\d)-(\d\d)(\d\d)/) {
-        $thisdatecvs = "$1-$2-$3 $4:$5 $tz";
-    } else {
-    }
-
-    if (defined($lastdate)) {
-        if ($lastdate =~ m/(\d\d\d\d)-(\d\d)-(\d\d)-(\d\d)(\d\d)/) {
-            $lastdatecvs = "$1-$2-$3 $4:$5 $tz";
-        } else {
-        }
-    }
-
-    #  Add -R to cvs options, for read-only repository; breaks on jcvi
-    #  cvs; this seems to be a BSD extension?
-
-    #print STDERR "cd $wrkdir/$thisdate/wgs && cvs -r -d $wgscvs -z3 co  -N    -D '$thisdatecvs' $tag src\n";
-    system("cd $wrkdir/$thisdate/wgs && cvs -r -d $wgscvs -z3 co  -N    -D '$thisdatecvs' $tag src > src.checkout.err 2>&1");
-
-    if ($lastdate ne "") {
-        #print STDERR "cd $wrkdir/$thisdate/wgs && cvs -r -d $wgscvs -z3 log -N -S -d '$lastdatecvs<$thisdatecvs' src\n";
-        system("cd $wrkdir/$thisdate/wgs && cvs -r -d $wgscvs -z3 log -N -S -d '$lastdatecvs<$thisdatecvs' src > src.updates.raw");
-
-        my $log;
-        my $revs;
-        my $date;
-        my $auth;
-        my $chng;
-        my $file;
-        my $inlog;
-        my %logs;
-        my %logdate;
-
-        open(F, "< $wrkdir/$thisdate/wgs/src.updates.raw");
-        while (<F>) {
-            if (m/^==========.*========$/) {
-                $inlog = 0;
-                if (!defined($logs{$log})) {
-                    $logs{$log}  = "$date\t$revs\t$chng\t$auth\t$file\n";
-                } else {
-                    $logs{$log} .= "$date\t$revs\t$chng\t$auth\t$file\n";
-                }
-                $logdate{"$date\0$log"}++;
-                undef $log;
-            }
-            if (m/^----------------------------$/) {
-                $inlog = 0;
-                if (!defined($logs{$log})) {
-                    $logs{$log}  = "$date\t$revs\t$chng\t$auth\t$file\n";
-                } else {
-                    $logs{$log} .= "$date\t$revs\t$chng\t$auth\t$file\n";
-                }
-                $logdate{"$date\0$log"}++;
-                undef $log;
-            }
-            if ($inlog) {
-                $log .= $_;
-            }
-            if (m/^RCS\s+file:\s+(.*),v/) {
-                $file = $1;
-                $file =~ s!$wgscvs/src/!!g;
-            }
-            if (m/^revision\s+(\d+.\d+)/) {
-                $revs = $1;
-            }
-            if (m/^date:\s+(.*);\s+author:\s+(.*);\s+state.*lines:\s+(.*)\s*$/) {
-                $date = $1;
-                $auth = $2;
-                $chng = $3;
-                $inlog = 1;
-            }
-        }
-        close(F);
-
-
-        open(F, "> $wrkdir/$thisdate/wgs/src.updates");
-        my @keys = sort keys %logdate;
-        foreach my $l (@keys) {
-            my ($d, $l) = split '\0', $l;
-            
-            if ((defined($logs{$l})) && (length($logs{$l} > 0))) {
-                print F "----------------------------------------\n";
-                print F "$logs{$l}\n";
-                print F "$l\n";
-                undef $logs{$l};
-            }
-        }
-        close(F);
-    }
-
-    print STDERR "$thisdate checked out!\n";
-}
 
 
 sub buildKmer ($) {

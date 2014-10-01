@@ -8,147 +8,146 @@
 
 use strict;
 
-my $wgscvs  = "/work/NIGHTLY/wgs-assembler-cvs";
-my $kmersvn = "/work/NIGHTLY/kmer-svn";
+my $wgssvn  = "/work/NIGHTLY/SVN-wgs";
+my $kmersvn = "/work/NIGHTLY/SVN-kmer";
 
 my $wgsbyd  = "/work/NIGHTLY/bydate";
 
-if (! -d "$wgsbyd") {
-    system("mkdir $wgsbyd");
-}
+system("mkdir $wgsbyd")  if (! -d "$wgsbyd");
 
-my %logdate;
+my %revToDate;
 
 if (-d "$wgsbyd/TIP") {
     print STDERR "Updating to latest.  DON'T FORGET TO sanity.pl rsync FIRST!\n";
-    system("cd $wgsbyd/TIP/src ; cvs update > update.err");
+    system("cd $wgsbyd/TIP/src ; svn update > update.err");
 } else {
     print STDERR "Checking out latest.\n";
     system("mkdir $wgsbyd/TIP");
-    system("cd $wgsbyd/TIP ; cvs -d $wgscvs co src > src.err");
+    system("cd $wgsbyd/TIP ; svn co file://$wgssvn/trunk/src src > checkout.err");
 }
 
-print STDERR "Reading commit logs.\n";
+print STDERR "Reading CA commit logs.\n";
 
-open(F, "cd $wgsbyd/TIP/src ; cvs log -N -S |");
+open(F, "cd $wgsbyd/TIP/src ; svn log |");
 while (<F>) {
     #print STDERR $_;
-    if (m/^date:\s+(....)\/(..)\/(..)\s+(..):(..):(..);\s+author:\s+(.*);\s+state/) {
-        my $fildate = "$1-$2-$3-$4$5";
-        my $cvsdate = "$1/$2/$3 $4:$5:$6 GMT";
-        my $svndate = "{$1$2$3T$4$5Z}";
-        #print "$fildate -- $cvsdate\n";
-        $logdate{"$fildate\0$cvsdate\0$svndate"}++;
+
+    #  CVS relic
+    #if (m/^date:\s+(....)\/(..)\/(..)\s+(..):(..):(..);\s+author:\s+(.*);\s+state/) {
+    #    my $fildate = "$1-$2-$3-$4$5";
+    #    my $cvsdate = "$1/$2/$3 $4:$5:$6 GMT";
+    #    my $svndate = "{$1$2$3T$4$5Z}";
+    #    $logdate{"$fildate\0$cvsdate\0$svndate"}++;
+    #}
+
+    if (m/^(r\d+)\s+\|\s+(.+)\s+\|\s+(\d\d\d\d)-(\d\d)-(\d\d)\s(\d\d):(\d\d):(\d\d)\s(.\d\d\d\d)\s/) {
+        my $fildate = "$3-$4-$5-$6$7";
+        my $svndate = "{$3$4$5T$6$7Z}";
+
+        $revToDate{$1} = "$fildate\0$svndate\0$2";
     }
 }
 close(F);
 
-my @keys = sort keys %logdate;
+
+
+my @keys = sort keys %revToDate;
 
 print STDERR "Checking out versions.\n";
 
-foreach my $d (@keys) {
-    my ($f, $c, $s) = split '\0', $d;
+foreach my $wgsrev (@keys) {
+    my ($dirdate, $svndate, $author) = split '\0', $revToDate{$wgsrev};
 
-    next if (-e "$wgsbyd/$f.tar");
-    next if (-e "$wgsbyd/$f.tar.gz");
-    next if (-e "$wgsbyd/$f.tar.bz2");
+    #next if (-e "$wgsbyd/$dirdate");
+    #next if (-e "$wgsbyd/$dirdate.tar");
+    #next if (-e "$wgsbyd/$dirdate.tar.gz");
+    #next if (-e "$wgsbyd/$dirdate.tar.bz2");
+    #next if (-e "$wgsbyd/$dirdate.tar.xz");
 
-    next if ($f eq "2004-04-14-1349");  #  These are all one
-    next if ($f eq "2004-04-14-1350");  #  slow commit, which
-    next if ($f eq "2004-04-14-1351");  #  we capture in
-    next if ($f eq "2004-04-14-1352");  #  2004-04-14-1354
-    next if ($f eq "2004-04-14-1353");  #
+    next if ($dirdate eq "2004-04-14-1349");  #  These are all one
+    next if ($dirdate eq "2004-04-14-1350");  #  slow commit, which
+    next if ($dirdate eq "2004-04-14-1351");  #  we capture in
+    next if ($dirdate eq "2004-04-14-1352");  #  2004-04-14-1354
+    next if ($dirdate eq "2004-04-14-1353");  #
 
-    next if ($f le "2010-00");
+    next if ($dirdate le "2010-00");
 
-    next if ($f eq "2011-09-06-1707");  #  Doesn't compile
+    next if ($dirdate eq "2011-09-06-1707");  #  Doesn't compile
 
-    next if ($f eq "2012-02-01-2010");  #  Broken GWS overlapStore
-    next if ($f eq "2012-02-01-2012");  #  Broken GWS overlapStore
-    next if ($f eq "2012-02-01-2015");  #  Broken GWS overlapStore
+    next if ($dirdate eq "2012-02-01-2010");  #  Broken GWS overlapStore
+    next if ($dirdate eq "2012-02-01-2012");  #  Broken GWS overlapStore
+    next if ($dirdate eq "2012-02-01-2015");  #  Broken GWS overlapStore
 
-    if (! -e "$wgsbyd/$f") {
-        system("mkdir -p $wgsbyd/$f");
-    }
+    next if ($dirdate le "2014-00");
+
+    system("mkdir -p $wgsbyd/$dirdate")       if (! -e "$wgsbyd/$dirdate");
+    system("ln -s $dirdate $wgsbyd/$wgsrev")  if (! -e "$wgsbyd/$wgsrev");
 
     #  Checkout the assembler
 
-    if (! -e "$wgsbyd/$f/src") {
-        print "$f -- $c -- checkout wgs\n";
+    if (! -e "$wgsbyd/$dirdate/src") {
+        print "$dirdate -- $wgsrev CHECKOUT\n";
 
-        system("cd $wgsbyd/$f ; cvs -r -d $wgscvs  -z3 co -N -D \"$c\" src > src.err");
+        system("cd $wgsbyd/$dirdate ; svn co -r $wgsrev file://$wgssvn/trunk/src src > src.$wgsrev.err");
     } else {
-        print "$f -- $c -- update wgs\n";
+        print "$dirdate -- $wgsrev UPDATE\n";
 
-        system("cd $wgsbyd/$f ; cvs update");
+        system("cd $wgsbyd/$dirdate/src ; svn update -r $wgsrev");
     }
 
-    #  Checkout kmer
+    #  Checkout kmer, or, more probably, just link to one that exists already
 
-    if (! -e "$wgsbyd/$f/kmer") {
-        print "$f -- $c -- checkout kmer\n";
+    my $kmerev = "0000";
 
-        system("cd $wgsbyd/$f && svn co  -r \"$s\" file://$kmersvn/trunk kmer > kmer.err 2>&1");
-
-        #  Analyze the kmer checkout log to decide which revision we have.  Create a link to it.
-
-        my $revision = "0000";
-
-        open(L, "< $wgsbyd/$f/kmer.err") or die "Failed to open '$wgsbyd/$f/kmer.err'\n";
-        while (<L>) {
-            chomp;
-            
-            if (m/^Checked\s+out\s+revision\s+(\d+).$/) {
-                $revision = $1;
-            }
-        }
-        close(L);
+    open(L, "svn info -r \"$svndate\" file://$kmersvn/trunk |") or die "Failed to get info: $!\n";
+    while (<L>) {
+        $kmerev = $1  if (m/^Revision:\s+(\d+)/);
+    }
+    close(L);
  
-        if ($revision eq "0000") {
-            die "Didn't find a kmer revision in $wgsbyd/$f/kmer/kmer.err.\n";
+    die "Didn't find a kmer revision in $wgsbyd/$dirdate/kmer/kmer.err.\n"  if ($kmerev eq "0000");
 
-        } elsif (! -e "$wgsbyd/kmer$revision") {
-            print "$f -- $c -- kmer$revision is NEW\n";
+    if (! -e "$wgsbyd/kmer$kmerev") {
+        print "$dirdate -- kmer$kmerev CHECKOUT\n";
 
-            system("mv $wgsbyd/$f/kmer     $wgsbyd/kmer$revision");
-            system("mv $wgsbyd/$f/kmer.err $wgsbyd/kmer$revision.err");
-
-            system("ln -s $wgsbyd/kmer$revision $wgsbyd/$f/kmer");
-
-        } else {
-            print "$f -- $c -- kmer$revision\n";
-
-            system("mv $wgsbyd/$f/kmer     $wgsbyd/kmer$revision.$f.DELETE");
-            system("mv $wgsbyd/$f/kmer.err $wgsbyd/kmer$revision.$f.DELETE.err");
-
-            system("ln -s $wgsbyd/kmer$revision $wgsbyd/$f/kmer");
-        }
-
-        if (! -e "$wgsbyd/kmer$revision/FreeBSD-amd64/bin/meryl") {
-            print "$f -- $c -- kmer$revision -- compile\n";
-
-            if (! -e "$wgsbyd/kmer$revision/Makefile") {
-                system("cd $wgsbyd/kmer$revision && sh configure.sh > configure.err 2>&1");
-            }
-
-            system("cd $wgsbyd/kmer$revision && gmake install > build.err 2>&1");
-        }
+        system("cd $wgsbyd/$dirdate && svn co -r \"$svndate\" file://$kmersvn/trunk $wgsbyd/kmer$kmerev > $wgsbyd/kmer$kmerev.err 2>&1");
     }
+
+    system("ln -s ../kmer$kmerev $wgsbyd/$dirdate/kmer")   if (! -e "$wgsbyd/$dirdate/kmer");
 
     #  Compile
 
+    if (! -e "$wgsbyd/kmer$kmerev/build.err") {
+        print "$dirdate -- kmer$kmerev COMPILE\n";
 
-    if (! -e "$wgsbyd/$f/FreeBSD-amd64/bin/gatekeeper") {
-        print "$f -- $c -- compile wgs\n";
+        if (! -e "$wgsbyd/kmer$kmerev/Makefile") {
+            system("cd $wgsbyd/kmer$kmerev && sh configure.sh > configure.err 2>&1");
+        }
 
-        #system("cd $wgsbyd/$f/src && gmake > build.err 2>&1");
-        system("qsub -cwd -j y -o $wgsbyd/$f/src/build.err -q vomit.q -wd $wgsbyd/$f/src -b y gmake");
+        open(F, "> $wgsbyd/kmer$kmerev/build.err");
+        print F "Waiting to compile.\n";
+        close(F);
+
+        system("qsub -N kmer$kmerev -cwd -j y -o $wgsbyd/kmer$kmerev/build.err -q vomit.q -wd $wgsbyd/kmer$kmerev -b y gmake install");
+        #system("cd $wgsbyd/kmer$kmerev && gmake install > build.err 2>&1 &");
     }
 
+    if (! -e "$wgsbyd/$dirdate/src/build.err") {
+        print "$dirdate -- $wgsrev COMPILE\n";
+    
+        open(F, "> $wgsbyd/$dirdate/src/build.err");
+        print F "Waiting to compile.\n";
+        close(F);
 
-    #if (! -e "$wgsbyd/$f.tar.bz2") {
-    #    system("cd $wgsbyd && tar -cf - $f | bzip2 -9vc > $f.tar.bz2 && mv $wgsbyd/$f $wgsbyd/$f.DELETE &");
+        system("qsub -N wgs$wgsrev -hold_jid kmer$kmerev -cwd -j y -o $wgsbyd/$dirdate/src/build.err -q vomit.q -wd $wgsbyd/$dirdate/src -b y gmake");
+        #system("cd $wgsbyd/$dirdate/src && gmake > build.err 2>&1");
+    }
+
+    #  Archive
+
+    #if (! -e "$wgsbyd/$dirdate.tar.bz2") {
+    #    Use sge, hold on both $kmerev and $wgsrev
+    #    system("cd $wgsbyd && tar -cf - $dirdate | xz -9vc > $dirdate.tar.bz2 && mv $wgsbyd/$dirdate $wgsbyd/$dirdate.DELETE &");
     #}
 }
 
