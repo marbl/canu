@@ -389,9 +389,6 @@ fastqLoader(void *G) {
     s = NULL;
   }
 
-  //if (g->C == NULL)
-  //  g->C = new speedCounter("    %7.2f reads -- %5.2f reads/second\r", 1.0, 0x1ffff, true);
-
   return(s);
 }
 
@@ -598,8 +595,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -ms  mer-size          \n");
     fprintf(stderr, "  -edb exist-database    save masking kmers to 'exist-database' for faster restarts\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -1 in.1.fastq.gz       input reads - must be .gz!\n");
-    fprintf(stderr, "  -2 in.2.fastq.gz                   - (optional)\n");
+    fprintf(stderr, "  -1 in.1.fastq          input reads - fastq, fastq.gz, fastq.bz2 or fastq.xz\n");
+    fprintf(stderr, "  -2 in.2.fastq                      - (optional, but if not present, messes up the output classification)\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -o  out                output reads:\n");
     fprintf(stderr, "                            out.fullymasked.[12].fastq      - reads with below 'lowthreshold' bases retained\n");
