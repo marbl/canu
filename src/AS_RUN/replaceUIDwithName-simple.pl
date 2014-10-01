@@ -5,7 +5,7 @@ use strict;
 my %UIDtoNAME;
 
 #  Usage
-#  fastqUIDmap fastq fastq fastq
+#  fastqUIDmap posmnap posmap posmap
 
 my $fastqUIDmap = shift @ARGV;
 
@@ -35,31 +35,26 @@ my $otFile;
 
 while (scalar(@ARGV)) {
     $inFile = shift @ARGV;
-    $otFile = $inFile;
 
-    if ($otFile =~ m/(.*).fastq/) {
-        $otFile = "$1.nameFix.fastq";
-    }
+    print STDERR "Renaming '$inFile' to '$inFile.UID'.\n";
 
-    open(F, "< $inFile") or die "Failed to open '$inFile' for reading\n";
-    open(O, "> $otFile") or die "Failed to open '$otFile' for writing\n";
+    rename "$inFile", "$inFile.UID";
 
-    print STDERR "Renaming '$inFile' to '$otFile'.\n";
+    open(F, "< $inFile.UID") or die "Failed to open '$inFile.UID' for reading\n";
+    open(O, "> $inFile")     or die "Failed to open '$inFile' for writing\n";
 
     while (!eof(F)) {
-        my $a = <F>;  chomp $a;
-        my $b = <F>;
-        my $c = <F>;
-        my $d = <F>;
+        my $a = <F>;
+        my @a = split '\s+', $a;
 
-        if ($a =~ m/\@(\w+)\s/) {
-            die "Didn't find UID '$1'\n"  if (!exists($UIDtoNAME{$1}));
-            $a = "\@$UIDtoNAME{$1}\n";
-        } else {
-            print "Nope '$a'\n";
+        foreach my $a (@a) {
+            if (exists($UIDtoNAME{$a})) {
+                $a = $UIDtoNAME{$a};
+            }
         }
 
-        print O "$a$b$c$d";
+        print O join "\t", @a;
+        print O "\n";
     }
 
     close(F);
