@@ -187,6 +187,40 @@ AS_OVS_convertOBTdumpToOVSoverlap(char *line, OVSoverlap *olap) {
 
 
 
+void
+AS_OVS_convertOVLoverlapToOBToverlap(OVSoverlap &overlap, uint32 clrLenA, uint32 clrLenB) {
+
+  if (overlap.dat.obt.type != AS_OVS_TYPE_OVL)
+    return;
+
+  int32   ahang   = overlap.dat.ovl.a_hang;
+  int32   bhang   = overlap.dat.ovl.b_hang;
+
+  uint32  abgn    = (ahang < 0) ? (0)               : (ahang);
+  uint32  aend    = (bhang < 0) ? (clrLenA + bhang) : (clrLenA);
+  uint32  bbgn    = (ahang < 0) ? (-ahang)          : (0);
+  uint32  bend    = (bhang < 0) ? (clrLenB)         : (clrLenB - bhang);
+
+  uint64  erate   = overlap.dat.ovl.corr_erate;
+
+  if (overlap.dat.ovl.flipped) {
+    bbgn = clrLenB - bbgn;
+    bend = clrLenB - bend;
+  }
+
+  overlap.dat.obt.type     = AS_OVS_TYPE_OBT;
+
+  overlap.dat.obt.a_beg    = abgn;
+  overlap.dat.obt.a_end    = aend;
+  overlap.dat.obt.b_beg    = bbgn;
+  overlap.dat.obt.b_end_hi = bend >> 9;
+  overlap.dat.obt.b_end_lo = bend & 0x1ff;
+
+  overlap.dat.obt.erate    = erate;
+}
+
+
+
 
 char *
 AS_OVS_toString(char *outstr, OVSoverlap &olap) {

@@ -314,30 +314,7 @@ dumpPicture(char *ovlName, char *gkpName, uint32 clearRegion, double dumpERate, 
 
       uint32  frgLenB = clrEndB - clrBgnB;
 
-      int32   ahang   = overlap.dat.ovl.a_hang;
-      int32   bhang   = overlap.dat.ovl.b_hang;
-
-      uint32  abgn    = (ahang < 0) ? (0)               : (ahang);
-      uint32  aend    = (bhang < 0) ? (frgLenA + bhang) : (frgLenA);
-      uint32  bbgn    = (ahang < 0) ? (-ahang)          : (0);
-      uint32  bend    = (bhang < 0) ? (frgLenB)         : (frgLenB - bhang);
-
-      uint64  erate   = overlap.dat.ovl.corr_erate;
-
-      if (overlap.dat.ovl.flipped) {
-        bbgn = frgLenB - bbgn;
-        bend = frgLenB - bend;
-      }
-
-      overlap.dat.obt.type     = AS_OVS_TYPE_OBT;
-
-      overlap.dat.obt.a_beg    = abgn;
-      overlap.dat.obt.a_end    = aend;
-      overlap.dat.obt.b_beg    = bbgn;
-      overlap.dat.obt.b_end_hi = bend >> 9;
-      overlap.dat.obt.b_end_lo = bend & 0x1ff;
-
-      overlap.dat.obt.erate    = erate;
+      AS_OVS_convertOVLoverlapToOBToverlap(overlap, frgLenA, frgLenB);
     }
 
     //  Finally, check the length.
@@ -351,37 +328,6 @@ dumpPicture(char *ovlName, char *gkpName, uint32 clearRegion, double dumpERate, 
 
     overlaps[novl++] = overlap;
   }
-
-
-#if 0
-  //  dumpPictureOBT() (removed 21 Aug 2014) used to have this chunk of code, also ifdef'd out.  It
-  //  seems to work without, but I don't know.
-
-  for (uint32 o=0; o<novl; o++) {
-    uint32 abgn = (overlaps[o].dat.obt.a_beg);
-    uint32 aend = (overlaps[o].dat.obt.a_end);
-
-    uint32 bbgn = (overlaps[o].dat.obt.b_beg);
-    uint32 bend = (overlaps[o].dat.obt.b_end_hi << 9) | (overlaps[o].dat.obt.b_end_lo);
-
-    if (overlaps[o].dat.obt.fwd) {
-      //  Does nothing, just replaces with the same stuff.
-      overlaps[o].dat.obt.a_beg    = abgn;
-      overlaps[o].dat.obt.a_end    = aend;
-      overlaps[o].dat.obt.b_beg    = bbgn;
-      overlaps[o].dat.obt.b_end_hi = bend >> 9;
-      overlaps[o].dat.obt.b_end_lo = bend & 0x1ff;
-    } else {
-      //  Reverse the coords for B to indicate a reversed overlap.
-      overlaps[o].dat.obt.a_beg    = abgn;
-      overlaps[o].dat.obt.a_end    = aend;
-      overlaps[o].dat.obt.b_beg    = bend;
-      overlaps[o].dat.obt.b_end_hi = bbgn >> 9;
-      overlaps[o].dat.obt.b_end_lo = bbgn & 0x1ff;
-    }
-  }
-#endif
-
 
   if      (novl == 0)
     fprintf(stderr, "no overlaps to show.\n");

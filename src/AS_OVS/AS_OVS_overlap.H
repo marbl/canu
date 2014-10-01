@@ -261,6 +261,8 @@ void  AS_OVS_convertOverlapMesgToOVSoverlap(OverlapMesg *omesg, OVSoverlap *ovs)
 int   AS_OVS_convertOVLdumpToOVSoverlap(char *line, OVSoverlap *olap);
 int   AS_OVS_convertOBTdumpToOVSoverlap(char *line, OVSoverlap *olap);
 
+void  AS_OVS_convertOVLoverlapToOBToverlap(OVSoverlap &overlap, uint32 clrLenA, uint32 clrLenB);
+
 char *AS_OVS_toString(char *outstr, OVSoverlap &olap);
 
 
