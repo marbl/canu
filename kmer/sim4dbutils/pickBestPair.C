@@ -10,15 +10,15 @@
 #include <string>
 using namespace std;
 
-#define NAME_MAX  64
+#define SEQNAME_MAX  64
 
 class mapResult {
 public:
   uint32 seqIdx;
-  char   seqName[NAME_MAX];
+  char   seqName[SEQNAME_MAX];
 
   uint32 refIdx;
-  char   refName[NAME_MAX];
+  char   refName[SEQNAME_MAX];
   uint32 refBgn;
   uint32 refEnd;
 
@@ -62,14 +62,14 @@ readMR(FILE *in, mapResult &mr) {
   chomp(line);
   W.split(line);
 
-  if (strlen(W[0]) >= NAME_MAX)
-    W[0][NAME_MAX-1] = 0;
+  if (strlen(W[0]) >= SEQNAME_MAX)
+    W[0][SEQNAME_MAX-1] = 0;
 
-  if (strlen(W[6]) >= NAME_MAX)
-    W[6][NAME_MAX-1] = 0;
+  if (strlen(W[6]) >= SEQNAME_MAX)
+    W[6][SEQNAME_MAX-1] = 0;
 
-  assert(strlen(W[0]) < NAME_MAX);
-  assert(strlen(W[6]) < NAME_MAX);
+  assert(strlen(W[0]) < SEQNAME_MAX);
+  assert(strlen(W[6]) < SEQNAME_MAX);
 
   mr.seqIdx = W(1);
   mr.refIdx = W(7);
@@ -89,14 +89,14 @@ readMR(FILE *in, mapResult &mr) {
 mapResult &
 readMRsim4db(sim4polish *p, mapResult &mr) {
 
-  if (strlen(p->_estDefLine) >= NAME_MAX)
-    p->_estDefLine[NAME_MAX-1] = 0;
+  if (strlen(p->_estDefLine) >= SEQNAME_MAX)
+    p->_estDefLine[SEQNAME_MAX-1] = 0;
 
-  if (strlen(p->_genDefLine) >= NAME_MAX)
-    p->_genDefLine[NAME_MAX-1] = 0;
+  if (strlen(p->_genDefLine) >= SEQNAME_MAX)
+    p->_genDefLine[SEQNAME_MAX-1] = 0;
 
-  assert(strlen(p->_estDefLine) < NAME_MAX);
-  assert(strlen(p->_genDefLine) < NAME_MAX);
+  assert(strlen(p->_estDefLine) < SEQNAME_MAX);
+  assert(strlen(p->_genDefLine) < SEQNAME_MAX);
 
   mr.seqIdx = p->_estID;
   mr.refIdx = p->_genID;
@@ -154,14 +154,14 @@ readMRcoords(FILE *in, mapResult &mr) {
   uint32  refIdx = nameToIndex[refNam].cloneIndex;
 
 
-  if (strlen(W[9]) >= NAME_MAX)
-    W[9][NAME_MAX-1] = 0;
+  if (strlen(W[9]) >= SEQNAME_MAX)
+    W[9][SEQNAME_MAX-1] = 0;
 
-  if (strlen(W[10]) >= NAME_MAX)
-    W[10][NAME_MAX-1] = 0;
+  if (strlen(W[10]) >= SEQNAME_MAX)
+    W[10][SEQNAME_MAX-1] = 0;
 
-  assert(strlen(W[9]) < NAME_MAX);
-  assert(strlen(W[10]) < NAME_MAX);
+  assert(strlen(W[9]) < SEQNAME_MAX);
+  assert(strlen(W[10]) < SEQNAME_MAX);
 
   mr.seqIdx = seqIdx;
   mr.refIdx = refIdx;
@@ -225,14 +225,14 @@ readMRcoords(FILE *in, mapResult &mr, bool &is1) {
   is1 = nameToIndex[seqNam].isFirstMate;
 
 
-  if (strlen(W[9]) >= NAME_MAX)
-    W[9][NAME_MAX-1] = 0;
+  if (strlen(W[9]) >= SEQNAME_MAX)
+    W[9][SEQNAME_MAX-1] = 0;
 
-  if (strlen(W[10]) >= NAME_MAX)
-    W[10][NAME_MAX-1] = 0;
+  if (strlen(W[10]) >= SEQNAME_MAX)
+    W[10][SEQNAME_MAX-1] = 0;
 
-  assert(strlen(W[9]) < NAME_MAX);
-  assert(strlen(W[10]) < NAME_MAX);
+  assert(strlen(W[9]) < SEQNAME_MAX);
+  assert(strlen(W[10]) < SEQNAME_MAX);
 
   mr.seqIdx = seqIdx;
   mr.refIdx = refIdx;
