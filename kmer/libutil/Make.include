@@ -18,7 +18,6 @@ src    := $/bigQueue.C \
           $/fibonacciNumbers.C \
           $/file.c \
           $/generalizedUnaryEncoding.h \
-          $/intervalList.C \
           $/intervalList.H \
           $/logMsg.H \
           $/md5.c \
