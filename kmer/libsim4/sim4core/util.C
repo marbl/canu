@@ -196,10 +196,10 @@ Sim4::merge(Exon **t0, Exon **t1)
       diff = tmp1->frEST - tmp0->toEST - 1;
       
       /* merge blocks tmp0 and tmp1 */
-      tmp0->frGEN = min(tmp0->frGEN, tmp1->frGEN);
-      tmp0->frEST = min(tmp0->frEST, tmp1->frEST);
-      tmp0->toGEN = max(tmp1->toGEN, tmp0->toGEN);
-      tmp0->toEST = max(tmp1->toEST, tmp0->toEST);
+      tmp0->frGEN = MIN(tmp0->frGEN, tmp1->frGEN);
+      tmp0->frEST = MIN(tmp0->frEST, tmp1->frEST);
+      tmp0->toGEN = MAX(tmp1->toGEN, tmp0->toGEN);
+      tmp0->toEST = MAX(tmp1->toEST, tmp0->toEST);
       tmp0->length = tmp0->toEST-tmp0->frEST+1;
       tmp0->flag = tmp1->flag;
       tmp0->edist += tmp1->edist;
@@ -378,8 +378,8 @@ Sim4::sync_slide_intron(int in_w, Exon *first, Exon *last, int spl_model, sim4_s
         t0->splScore = 888888;
 #endif
       } else {
-        w1 = min(in_w, (int)(0.5*min(t0->length-1, t0->toGEN-t0->frGEN)));
-        w2 = min(in_w, (int)(0.5*min(t1->length-1, t1->toGEN-t1->frGEN)));
+        w1 = MIN(in_w, (int)(0.5*MIN(t0->length-1, t0->toGEN-t0->frGEN)));
+        w2 = MIN(in_w, (int)(0.5*MIN(t1->length-1, t1->toGEN-t1->frGEN)));
         model = ((t0->toGEN-w1<=MAX_SPAN) || (t1->frGEN+w2+MAX_SPAN+2>_genLen)) ?
                   SPLICE_ORIGINAL : spl_model;
         splice(_genSeq, t0->toGEN-w1, t0->toGEN+w1, t1->frGEN-w2, t1->frGEN+w2,
@@ -424,8 +424,8 @@ Sim4::sync_slide_intron(int in_w, Exon *first, Exon *last, int spl_model, sim4_s
       case 'G': break;
       case 'C': if (Glist[i]==NULL) {
                 /* compute the values for C */
-                w1 = min(in_w, (int)(0.5*min(t0->length-1, t0->toGEN-t0->frGEN)));
-                w2 = min(in_w, (int)(0.5*min(t1->length-1, t1->toGEN-t1->frGEN)));
+                w1 = MIN(in_w, (int)(0.5*MIN(t0->length-1, t0->toGEN-t0->frGEN)));
+                w2 = MIN(in_w, (int)(0.5*MIN(t1->length-1, t1->toGEN-t1->frGEN)));
                 model = ((t0->toGEN-w1<=MAX_SPAN) || (t1->frGEN+w2+MAX_SPAN+2>_genLen)) ?
                          SPLICE_ORIGINAL : spl_model;
                 splice(_genSeq, t0->toGEN-w1, t0->toGEN+w1,
@@ -459,8 +459,8 @@ Sim4::sync_slide_intron(int in_w, Exon *first, Exon *last, int spl_model, sim4_s
       case 'C': break;
               case 'G': if (Clist[i]==NULL) {
                 /* compute the values for C */
-                w1 = min(in_w, (int)(0.5*min(t0->length-1, t0->toGEN-t0->frGEN)));
-                w2 = min(in_w, (int)(0.5*min(t1->length-1, t1->toGEN-t1->frGEN)));
+                w1 = MIN(in_w, (int)(0.5*MIN(t0->length-1, t0->toGEN-t0->frGEN)));
+                w2 = MIN(in_w, (int)(0.5*MIN(t1->length-1, t1->toGEN-t1->frGEN)));
                 model = ((t0->toGEN-w1<=MAX_SPAN) || (t1->frGEN+w2+MAX_SPAN+2>_genLen)) ?
                          SPLICE_ORIGINAL : spl_model;
                 splice(_genSeq, t0->toGEN-w1, t0->toGEN+w1,
@@ -602,8 +602,8 @@ Sim4::slide_intron(int in_w, Exon *first, Exon *last, int spl_model, sim4_stats_
         int gtag=0, ctac=0;
         char *s;
 
-        w1 = min(in_w, (int)(0.5*min(t0->length-2, t0->toGEN-t0->frGEN-1)));
-        w2 = min(in_w, (int)(0.5*min(t1->length-2, t1->toGEN-t1->frGEN-1)));
+        w1 = MIN(in_w, (int)(0.5*MIN(t0->length-2, t0->toGEN-t0->frGEN-1)));
+        w2 = MIN(in_w, (int)(0.5*MIN(t1->length-2, t1->toGEN-t1->frGEN-1)));
         model = ((t0->toGEN-w1<=MAX_SPAN) || (t1->frGEN+w2+MAX_SPAN+2>_genLen)) ?
                  SPLICE_ORIGINAL : spl_model;
         splice(_genSeq, t0->toGEN-w1, t0->toGEN+w1, t1->frGEN-w2, t1->frGEN+w2,
@@ -817,10 +817,10 @@ Sim4::get_match_quality(Exon *lblock, Exon *rblock, sim4_stats_t *st, int N)
   tcov = rblock->toEST-lblock->next_exon->frEST+1;
   if (lblock->next_exon->frEST>=.5*N &&
       tcov>=.75*(N-lblock->next_exon->frEST) &&
-      st->icoverage>=max(.95*tcov,100))
+      st->icoverage>=MAX(.95*tcov,100))
     ;
   else if (rblock->toEST<=.5*N && tcov>=.75*rblock->toEST &&
-           st->icoverage>=max(.95*tcov,100))
+           st->icoverage>=MAX(.95*tcov,100))
     ;
   else if ((tcov<.75*N) ||
            (st->icoverage<.9*tcov))

@@ -22,15 +22,15 @@ Sim4::greedy(char *s1, char *s2, int m, int n0, int OFFSET1, int OFFSET2, Exon *
   int     *min_row, *min_diag;    /* min (b)/ max (f) row (and diagonal) */
   int     *max_row, *max_diag;    /* reached for cost d=0, ... m.  */
   
-  const int MAX_D = max_d = max(wordSize,(int)(globalParams->_percentError * m + 1));
+  const int MAX_D = max_d = MAX(wordSize,(int)(globalParams->_percentError * m + 1));
 
   if (n0 < m) {
-    if (m < (int)min(wordSize, (1 + globalParams->_percentError) * n0)) {
+    if (m < (int)MIN(wordSize, (1 + globalParams->_percentError) * n0)) {
       *lblock = *rblock = _exonManager.newExon(OFFSET2+1,OFFSET1+1,OFFSET2+n0,OFFSET1+m,
                                                m,n0-m+(int)(globalParams->_percentError * m + 1),0,NULL);
       ANNOUNCEEXIT("greedy-1\n");
       return(m-n0+(int)(globalParams->_percentError * n0 + 1));
-    } else if (m > (int)min(wordSize, (1 + globalParams->_percentError) * n0)) {
+    } else if (m > (int)MIN(wordSize, (1 + globalParams->_percentError) * n0)) {
       if (globalParams->_interspecies) {
          /* flip coordinates */
          d = m; m = n0; n0 = d;
@@ -46,7 +46,7 @@ Sim4::greedy(char *s1, char *s2, int m, int n0, int OFFSET1, int OFFSET2, Exon *
     }
   }       
 
-  const int n1    = min(m+max_d+1, n0);
+  const int n1    = MIN(m+max_d+1, n0);
   const int n2    = n1;
   const int DELTA = n2-m;
 
@@ -204,7 +204,7 @@ Sim4::greedy(char *s1, char *s2, int m, int n0, int OFFSET1, int OFFSET2, Exon *
     }                                         
     
     /* record cell, if paths overlap with minimum combined cost */
-    /* obs: it suffices to search up to Cost=min(d-1,(max_d-d)) */
+    /* obs: it suffices to search up to Cost=MIN(d-1,(max_d-d)) */
     for (Cost=0; Cost<d; Cost++) {
       if ((min_row[d]<=max_row[Cost]) &&
           ((max_d > d+Cost) || (max_d==d+Cost && (forth<0)))) {
@@ -273,7 +273,7 @@ Sim4::greedy(char *s1, char *s2, int m, int n0, int OFFSET1, int OFFSET2, Exon *
     
     /* record backward and forward limits, if minimum combined
      * cost in overlapping. Note: it suffices to search up to
-     * Cost=min(d,(max_d-d)).
+     * Cost=MIN(d,(max_d-d)).
      */          
     for (Cost=0; Cost<=d; Cost++) {
       if ((min_row[Cost]<=max_row[d]) &&

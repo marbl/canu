@@ -20,9 +20,9 @@ Sim4::SIM4_block3(bool     good_match,
 
 #if 0
   int diff = (int)(tmp_block1->frEST - tmp_block->toEST - 1);
-  diff = (int)(min(diff,(int)(MAX_GRINIT/2)));
+  diff = (int)(MIN(diff,(int)(MAX_GRINIT/2)));
 
-  int u = min(4*diff,tmp_block1->frGEN-tmp_block->toGEN-1); 
+  int u = MIN(4*diff,tmp_block1->frGEN-tmp_block->toGEN-1); 
   cost = EXTEND_BW(_estSeq+tmp_block->toEST+
                    (tmp_block1->frEST-tmp_block->toEST-1)-diff,
                    _genSeq+tmp_block->toGEN+
@@ -34,8 +34,8 @@ Sim4::SIM4_block3(bool     good_match,
                    (tmp_block1->frGEN-tmp_block->toGEN-1)-u,
                    &I, &J);
 #else
-  int diff = min(tmp_block1->frEST - tmp_block->toEST - 1, MAX_GRINIT/2);
-  int u    = min(4*diff, tmp_block1->frGEN - tmp_block->toGEN - 1); 
+  int diff = MIN(tmp_block1->frEST - tmp_block->toEST - 1, MAX_GRINIT/2);
+  int u    = MIN(4*diff, tmp_block1->frGEN - tmp_block->toGEN - 1); 
 
   cost = EXTEND_BW(_estSeq + tmp_block1->frEST - 1 - diff,
                    _genSeq + tmp_block1->frGEN - 1 - u,

@@ -20,15 +20,15 @@ Sim4::SIM4_block2(Exon*   &tmp_Lblock,
                   tmp_block->toEST,tmp_block->toGEN,
                   &tmp_Lblock, &tmp_Rblock);
 #if 0
-    printf("greedy returned cost %d (limit:%d)\n", cost, max(wordSize,(int)(globalParams->_percentError * diff + 1)));
+    printf("greedy returned cost %d (limit:%d)\n", cost, MAX(wordSize,(int)(globalParams->_percentError * diff + 1)));
 #endif
   } else {
-    cost = max(wordSize,(int)(globalParams->_percentError * diff + 1))+1;
+    cost = MAX(wordSize,(int)(globalParams->_percentError * diff + 1))+1;
   }
 
   //PRINTEXONS("greedy\n", tmp_Lblock);
 
-  if (cost>max(wordSize,(int)(globalParams->_percentError * diff + 1))) {
+  if (cost>MAX(wordSize,(int)(globalParams->_percentError * diff + 1))) {
     if (!tmp_block->flag && !tmp_block1->flag) {
       exon_cores(_genSeq+tmp_block->toGEN-1,
                  _estSeq+tmp_block->toEST-1,

@@ -21,8 +21,13 @@
 #define  DEFAULT_K         16
 #define  DEFAULT_C         12
 
-#define  min(x,y)        ((x>y) ? (y):(x))
-#define  max(x,y)        ((x<y) ? (y):(x))
+#ifndef MIN
+#define  MIN(x,y)        ((x>y) ? (y):(x))
+#endif
+
+#ifndef MAX
+#define  MAX(x,y)        ((x<y) ? (y):(x))
+#endif
 
 #define  START_SIG       ((G_score >= abs(C_score)) ? "GT" : "CT") 
 #define  END_SIG         ((G_score >= abs(C_score)) ? "AG" : "AC")

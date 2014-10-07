@@ -233,7 +233,7 @@ Sim4::splice_donor(char *xseq, char *yseq, int M, int N, double *gt_score,
     ss = CCf[0]; ssx = Xt[0];
     c = ++CCf[0]; cx = Xt[0];
     for (j=1; j<=M; j++, s++) {
-      tmpi=min(min(CCf[j]+1, ss+(*t!=*s)),c+1);
+      tmpi=MIN(MIN(CCf[j]+1, ss+(*t!=*s)),c+1);
       if (tmpi==c+1);
       else if (tmpi==CCf[j]+1) cx = Xt[j];
       else cx = ssx + (*t==*s);
@@ -288,7 +288,7 @@ Sim4::splice_donor_uni(char *xseq, char *yseq, int M, int N,
     ss = CCf[0]; ssx = Xt[0];
     c = ++CCf[0]; cx = Xt[0];
     for (j=1; j<=M; j++, s++) {
-      tmpi=min(min(CCf[j]+1, ss+(*t!=*s)),c+1);
+      tmpi=MIN(MIN(CCf[j]+1, ss+(*t!=*s)),c+1);
       if (tmpi==c+1);
       else if (tmpi==CCf[j]+1) cx = Xt[j];
       else cx = ssx + (*t==*s);
@@ -341,7 +341,7 @@ Sim4::splice_acceptor(char *xseq, char *yseq, int M, int N,
     ss = CCb[M]; ssx = Xt[M];
     c = ++CCb[M]; cx = Xt[M];
     for (j=M-1; j>=0; j--, s--) {
-      tmpi=min(min(CCb[j]+1, ss+(*t!=*s)),c+1);
+      tmpi=MIN(MIN(CCb[j]+1, ss+(*t!=*s)),c+1);
       if (tmpi==c+1) ; 
       else if (tmpi==CCb[j]+1) cx = Xt[j];
       else cx = ssx + (*t==*s);
@@ -394,7 +394,7 @@ Sim4::splice_acceptor_uni(char *xseq, char *yseq, int M, int N,
     ss = CCb[M]; ssx = Xt[M];
     c = ++CCb[M]; cx = Xt[M];
     for (j=M-1; j>=0; j--, s--) {
-      tmpi=min(min(CCb[j]+1, ss+(*t!=*s)),c+1);
+      tmpi=MIN(MIN(CCb[j]+1, ss+(*t!=*s)),c+1);
       if (tmpi==c+1) ;
       else if (tmpi==CCb[j]+1) cx = Xt[j];
       else cx = ssx + (*t==*s);

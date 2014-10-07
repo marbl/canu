@@ -109,9 +109,9 @@ int find_log_entry(const int *log4s, int n, int len, int offset)
 
     a = n/2;
     if ((len<log4s[a]) && (!a || (len>=log4s[a-1])))
-                return max(0,(a-1))+offset;
+                return MAX(0,(a-1))+offset;
     else if ((len>=log4s[a]) && ((a==n-1) || (len<log4s[a+1])))
-                return min(n-1,(a+1))+offset;
+                return MIN(n-1,(a+1))+offset;
     else if (len<log4s[a])
                 return find_log_entry(log4s,a-1,len, offset);
     else if (len>log4s[a])
@@ -269,14 +269,14 @@ mspManager::doLinking(int    weight,
                           elist->frGEN+diff-1,mp->pos2+mp->len-1,s1,s2);
         dist2 = get_edist(mp->pos1+mp->len-diff,mp->pos2+mp->len-diff,
                           mp->pos1+mp->len-1,mp->pos2+mp->len-1,s1,s2);
-        elist->edist -= max(dist1,dist2);
+        elist->edist -= MAX(dist1,dist2);
       } else if (diff<0) {  /* gap */
         elist->edist += (int)(0.5 * _percentError * (-1) * diff);
       }
-      elist->toGEN = max(elist->toGEN,mp->pos1+mp->len-1);
-      elist->toEST = max(elist->toEST,mp->pos2+mp->len-1);
-      elist->frGEN = min(elist->frGEN,mp->pos1);
-      elist->frEST = min(elist->frEST,mp->pos2);
+      elist->toGEN = MAX(elist->toGEN,mp->pos1+mp->len-1);
+      elist->toEST = MAX(elist->toEST,mp->pos2+mp->len-1);
+      elist->frGEN = MIN(elist->frGEN,mp->pos1);
+      elist->frEST = MIN(elist->frEST,mp->pos2);
     } else {
       elist = _exonManager->newExon(mp->pos1,
                                     mp->pos2,

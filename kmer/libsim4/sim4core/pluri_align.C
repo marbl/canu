@@ -99,11 +99,11 @@ Sim4::pluri_align(int *dist_ptr,
     if (globalParams->_interspecies) {
        diff = get_dist(nextExon->frGEN-1, nextExon->frEST-1,
                        nextExon->toGEN, nextExon->toEST,
-                       max(1000, (int)(globalParams->_percentError*(nextExon->toEST - nextExon->frEST + 1))));
+                       MAX(1000, (int)(globalParams->_percentError*(nextExon->toEST - nextExon->frEST + 1))));
     } else { // original       
        diff = align_get_dist(nextExon->frGEN-1, nextExon->frEST-1,
                              nextExon->toGEN, nextExon->toEST,
-                             max(1000, (int)(.2*(nextExon->toEST - nextExon->frEST + 1))));
+                             MAX(1000, (int)(.2*(nextExon->toEST - nextExon->frEST + 1))));
     }
 
 

@@ -581,8 +581,8 @@ public:
     //  otherwise, use the original method.
     //
     wordSize      = globalParams->_wordSize;
-    wordSizeInt   = min(8,  globalParams->_wordSize);
-    wordSizeExt   = min(10, globalParams->_wordSize);
+    wordSizeInt   = MIN(8,  globalParams->_wordSize);
+    wordSizeExt   = MIN(10, globalParams->_wordSize);
 
     if (globalParams->_wordSizeInt)  wordSizeInt = globalParams->_wordSizeInt;
     if (globalParams->_wordSizeExt)  wordSizeExt = globalParams->_wordSizeExt;

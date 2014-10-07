@@ -57,8 +57,8 @@ Sim4::align_get_dist(int i1, int j1, int i2, int j2, int limit) {
   
   //  Compute the boundary diagonals
   int start     = j1 - i1;
-  int lower     = max(j1-i2, start-limit);
-  int upper     = min(j2-i1, start+limit);
+  int lower     = MAX(j1-i2, start-limit);
+  int upper     = MIN(j2-i1, start+limit);
   int goal_diag = j2-i2;
 
   if (goal_diag > upper || goal_diag < lower)
@@ -89,8 +89,8 @@ Sim4::align_get_dist(int i1, int j1, int i2, int j2, int limit) {
   }
 
   for (int c=1; c<=limit; ++c) {
-    int ll = max(lower,start-c);
-    int uu = min(upper, start+c);
+    int ll = MAX(lower,start-c);
+    int uu = MIN(upper, start+c);
 
     for (int k=ll; k<=uu; ++k) {
       int row;
@@ -145,8 +145,8 @@ Sim4::get_dist(int i1, int j1, int i2, int j2, int limit)
 
         /* Compute the boundary diagonals */
         start = j1 - i1;
-        lower = max(j1-i2, start-limit);
-        upper = min(j2-i1, start+limit);
+        lower = MAX(j1-i2, start-limit);
+        upper = MIN(j2-i1, start+limit);
         goal_diag = j2-i2;
 
         if (goal_diag > upper || goal_diag < lower) {
@@ -194,14 +194,14 @@ Sim4::get_dist(int i1, int j1, int i2, int j2, int limit)
         }
 
         for (c=1; c<=limit; ++c) {
-                t = max(lower, start-c);
+                t = MAX(lower, start-c);
                 t1 = II[t-1];
-                for (k=t; k<=min(upper, start+c); ++k) {
+                for (k=t; k<=MIN(upper, start+c); ++k) {
                         t2 = II[k];
-                        II[k] = max(t1, SS[k]);
+                        II[k] = MAX(t1, SS[k]);
                         t1 = t2;
-                        DD[k] = max(DD[k+1]+1, SS[k]);
-                        SS[k] = snake(k, min(j2-k,max(max(SS[k]+1, II[k]), DD[k]
+                        DD[k] = MAX(DD[k+1]+1, SS[k]);
+                        SS[k] = snake(k, MIN(j2-k,MAX(MAX(SS[k]+1, II[k]), DD[k]
 )), i2, j2);
                 }
 
@@ -349,11 +349,11 @@ Sim4::align_path(int i1, int j1,
   
   //  Compute the boundary diagonals
   int start = j1 - i1;
-  int lower = max(j1-i2, start-midc);
-  int upper = min(j2-i1, start+midc);
+  int lower = MAX(j1-i2, start-midc);
+  int upper = MIN(j2-i1, start+midc);
   int rstart = j2-i2; 
-  int rlower = max(j1-i2, rstart-rmidc);
-  int rupper = min(j2-i1, rstart+rmidc);
+  int rlower = MAX(j1-i2, rstart-rmidc);
+  int rupper = MIN(j2-i1, rstart+rmidc);
 
 
 #if 0
@@ -384,8 +384,8 @@ Sim4::align_path(int i1, int j1,
   
   //  Forward computation  
   for (int c=1; c<=midc; ++c) {
-    ll = max(lower,start-c); 
-    uu = min(upper,start+c);
+    ll = MAX(lower,start-c); 
+    uu = MIN(upper,start+c);
     //fprintf(stderr, "c=%d ll=%d uu=%d\n", c, ll, uu);
     for (int k=ll; k<=uu; ++k) {
       int row;
@@ -433,8 +433,8 @@ Sim4::align_path(int i1, int j1,
 
   //  Backward computation
   for (int c=1; c<=rmidc; ++c) {
-    ll = max(rlower,rstart-c);
-    uu = min(rupper,rstart+c);
+    ll = MAX(rlower,rstart-c);
+    uu = MIN(rupper,rstart+c);
     for (int k=ll; k<=uu; ++k) {
       int row;
 
@@ -470,8 +470,8 @@ Sim4::align_path(int i1, int j1,
   int mi   = 0;
   int mj   = 0;
 
-  ll = max(lower,rlower);
-  uu = min(upper,rupper);
+  ll = MAX(lower,rlower);
+  uu = MIN(upper,rupper);
 
   //fprintf(stderr, "ll=%d uu=%d\n", ll, uu);
 
@@ -646,11 +646,11 @@ printf("i1=%d,j1=%d,type1=%d,i2=%d,j2=%d,type2=%d,dist=%d\n",i1,j1,type1,i2,j2,t
 
         /* Compute the boundary diagonals */
         start = j1 - i1;
-        lower = max(j1-i2, start-midc);
-        upper = min(j2-i1, start+midc);
+        lower = MAX(j1-i2, start-midc);
+        upper = MIN(j2-i1, start+midc);
         rstart = j2-i2;
-        rlower = max(j1-i2, rstart-rmidc);
-        rupper = min(j2-i1, rstart+rmidc);
+        rlower = MAX(j1-i2, rstart-rmidc);
+        rupper = MIN(j2-i1, rstart+rmidc);
 
         /* Allocate space for forward vectors */
         SS = (int *)ckalloc((upper-lower+1)*sizeof(int)) - lower;
@@ -671,14 +671,14 @@ printf("i1=%d,j1=%d,type1=%d,i2=%d,j2=%d,type2=%d,dist=%d\n",i1,j1,type1,i2,j2,t
         }
 
         for (c=1; c<=midc; ++c) {
-                t = max(lower, start-c);
+                t = MAX(lower, start-c);
                 t1 = II[t-1];
-                for (k=t; k<=min(upper, start+c); ++k) {
+                for (k=t; k<=MIN(upper, start+c); ++k) {
                         t2 = II[k];
-                        II[k] = max(t1, SS[k]);
+                        II[k] = MAX(t1, SS[k]);
                         t1 = t2;
-                        DD[k] = max(DD[k+1]+1, SS[k]);
-                        SS[k] = snake(k, min(j2-k,max(max(SS[k]+1, II[k]), DD[k])), i2, j2);
+                        DD[k] = MAX(DD[k+1]+1, SS[k]);
+                        SS[k] = snake(k, MIN(j2-k,MAX(MAX(SS[k]+1, II[k]), DD[k])), i2, j2);
                 }
         }
 
@@ -698,21 +698,21 @@ printf("i1=%d,j1=%d,type1=%d,i2=%d,j2=%d,type2=%d,dist=%d\n",i1,j1,type1,i2,j2,t
         else RI[rstart] = i2;
 
         for (c=1; c<=rmidc; ++c) {
-                t = max(rlower, rstart-c);
+                t = MAX(rlower, rstart-c);
                 t1 = RD[t-1];
-                for (k=t; k<=min(rupper, rstart+c); ++k) {
+                for (k=t; k<=MIN(rupper, rstart+c); ++k) {
 #if 0
-                        int x = min(min(RS[k]-1,RD[k]),RI[k]);
+                        int x = MIN(MIN(RS[k]-1,RD[k]),RI[k]);
                         printf("<<<%d>>>", x);
                         assert(0<=x);
                         assert (x<=_estLen);
                         printf("%d", x);
 #endif
-                        RS[k] = rsnake(k, max(j1-k, min(min(RS[k]-1,RD[k]),RI[k])),i1,j1,i2+1);
+                        RS[k] = rsnake(k, MAX(j1-k, MIN(MIN(RS[k]-1,RD[k]),RI[k])),i1,j1,i2+1);
                         t2 = RD[k];
-                        RD[k] = min(t1-1, RS[k]);
+                        RD[k] = MIN(t1-1, RS[k]);
                         t1 = t2;
-                        RI[k] = min(RI[k+1], RS[k]);
+                        RI[k] = MIN(RI[k+1], RS[k]);
                 }
         }
 
@@ -722,7 +722,7 @@ printf("i1=%d,j1=%d,type1=%d,i2=%d,j2=%d,type2=%d,dist=%d\n",i1,j1,type1,i2,j2,t
         */ 
 
         flag = 0;
-        for (k=max(lower,rlower); k<=min(upper,rupper);++k) {
+        for (k=MAX(lower,rlower); k<=MIN(upper,rupper);++k) {
 
 /*
 printf("k=%d, SS=%d, RS=%d, DD=%d, RD=%d, II=%d, RI=%d\n",k,SS[k],RS[k],DD[k],RD[k],II[k],RI[k]);
