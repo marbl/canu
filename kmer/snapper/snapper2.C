@@ -405,7 +405,7 @@ main(int argc, char **argv) {
   //
   sim4params.setPrintAlignments(config._doAlignments);
   sim4params.setFindAllExons();
-  sim4params.setMinCoverage(max(0.0, config._minMatchCoverage / 100.0 - 0.1));
+  sim4params.setMinCoverage(MAX(0.0, config._minMatchCoverage / 100.0 - 0.1));
   sim4params.setMinPercentExonIdentity(config._minMatchIdentity - 5);
   sim4params.setIgnorePolyTails(false);
   //sim4params.setSlideIntrons(false);  //  see sim4b1.C for why this is disabled
