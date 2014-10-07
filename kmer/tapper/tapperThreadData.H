@@ -68,6 +68,6 @@ public:
   uint32 *tag2mate;
   uint32 *tag2tangled;
 
-  intervalList *tangle;
+  intervalList<uint64> *tangle;
 };
 

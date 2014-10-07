@@ -31,24 +31,24 @@ main(int argc, char **argv) {
     arg++;
   }
 
-  intervalList   IL;
-  intervalList   ILfull;
-  uint32         ILid = 0;
-  char           lastdefline[1024] = { 0 };
+  intervalList<uint64>   IL;
+  intervalList<uint64>   ILfull;
+  uint32                 ILid = 0;
+  char                   lastdefline[1024] = { 0 };
 
-  uint32         numPts = 0;
-  uint32         maxPts = 1024;
-  uint32        *begPt = new uint32 [maxPts];
-  uint32        *endPt = new uint32 [maxPts];
+  uint32                 numPts = 0;
+  uint32                 maxPts = 1024;
+  uint32                *begPt = new uint32 [maxPts];
+  uint32                *endPt = new uint32 [maxPts];
 
-  uint32        *genBeg = new uint32 [maxPts];
-  uint32        *genEnd = new uint32 [maxPts];
+  uint32                *genBeg = new uint32 [maxPts];
+  uint32                *genEnd = new uint32 [maxPts];
 
-  uint32         queryLength = 0;
+  uint32                 queryLength = 0;
 
-  char   spaces[QUERY_LENGTH+1];
-  char   lines[QUERY_LENGTH+1];
-  char   equals[QUERY_LENGTH+1];
+  char                   spaces[QUERY_LENGTH+1];
+  char                   lines[QUERY_LENGTH+1];
+  char                   equals[QUERY_LENGTH+1];
 
   for (uint32 i=0; i<QUERY_LENGTH; i++) {
     spaces[i]  = ' ';

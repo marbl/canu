@@ -27,7 +27,7 @@ main(int argc, char **argv) {
   seqCache     *Q = new seqCache(queryFile);
   seqInCore    *S = Q->getSequenceInCore();
 
-  intervalList          IL;
+  intervalList<uint64>  IL;
   speedCounter          SC(" %8f frags (%8.5f frags/sec)\r", 1, 1000, true);
 
   while (S) {

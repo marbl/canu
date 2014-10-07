@@ -15,21 +15,21 @@
 
 int
 main(int argc, char **argv) {
-  uint32                covMax    = 0;
-  intervalList        **cov       = 0L;
-  uint32               *len       = 0L;
+  uint32                  covMax    = 0;
+  intervalList<uint64>  **cov       = 0L;
+  uint32                 *len       = 0L;
 
-  uint32                lastIID   = 0;
+  uint32                  lastIID   = 0;
 
-  bool                  isRaw     = false;
-  bool                  isBlast   = false;
+  bool                    isRaw     = false;
+  bool                    isBlast   = false;
 
-  char                 *fastaname = 0L;
-  char                 *covname   = 0L;
+  char                   *fastaname = 0L;
+  char                   *covname   = 0L;
 
-  seqCache             *F = 0L;
+  seqCache               *F = 0L;
 
-  FILE                 *C = stdout;
+  FILE                   *C = stdout;
 
   int arg=1;
   int err=0;
@@ -88,7 +88,7 @@ main(int argc, char **argv) {
   covMax   = 1024 * 1024;
   if (F)
     covMax = F->getNumberOfSequences();
-  cov      = new intervalList * [covMax];
+  cov      = new intervalList<uint64> * [covMax];
   len      = new uint32 [covMax];
 
   fprintf(stderr, "Found "uint32FMT" sequences in the input file.\n", covMax);
@@ -132,7 +132,7 @@ main(int argc, char **argv) {
         exit(1);
       }
       if (cov[iid] == 0L) {
-        cov[iid] = new intervalList;
+        cov[iid] = new intervalList<uint64>;
         len[iid] = 0;
       }
       if (iid >= lastIID) {
@@ -155,7 +155,7 @@ main(int argc, char **argv) {
         exit(1);
       }
       if (cov[p->_estID] == 0L) {
-        cov[p->_estID] = new intervalList;
+        cov[p->_estID] = new intervalList<uint64>;
         len[p->_estID] = p->_estLen;
       }
       if (p->_estID >= lastIID) {

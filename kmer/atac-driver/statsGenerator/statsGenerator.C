@@ -199,14 +199,13 @@ totalLength(atacFile &AF, seqCache *A, seqCache *B) {
 
 
 uint64
-tandemRepeatACGTLength(intervalList &il,
-                       uint64       *offset,
-                       seqCache     *A) {
+tandemRepeatACGTLength(intervalList<uint64> &il,
+                       uint64               *offset,
+                       seqCache             *A) {
 
   //  s -- the sequence
   //  i -- the interval list index
 
-  il.sort();  //  Both should be done already.
   il.merge();
   uint64 length = 0;
   uint64 unknown[256] = {0};
@@ -251,9 +250,9 @@ tandemRepeatStats(atacFileStream   &featuresA,
                   atacFile         &AF,
                   seqCache         *A,
                   seqCache         *B) {
-  intervalList  ifa, ifb;
-  intervalList  ima, imb;
-  intervalList  mma, mmb;
+  intervalList<uint64>  ifa, ifb;
+  intervalList<uint64>  ima, imb;
+  intervalList<uint64>  mma, mmb;
 
   atacMatchList    &matches = *AF.matches();
 
@@ -322,8 +321,8 @@ mappedLengths(atacFile &AF, atacMatchList &matches, seqCache *A, seqCache *B, ch
   uint64  *offset1 = buildOffset(AF.fastaA());
   uint64  *offset2 = buildOffset(AF.fastaB());
 
-  intervalList  intervalA;
-  intervalList  intervalB;
+  intervalList<uint64>  intervalA;
+  intervalList<uint64>  intervalB;
 
   for (uint32 m=0; m<matches.numberOfMatches(); m++) {
     intervalA.add(offset1[matches[m]->iid1] + (uint64)matches[m]->pos1, (uint64)matches[m]->len1);
@@ -442,11 +441,11 @@ MappedByChromosome(atacFile      &AF,
                    seqCache      *B,
                    char          *prefix) {
 
-  uint32         maxIID1 = A->getNumberOfSequences();
-  intervalList  *il1full;
-  intervalList  *il1acgt;
-  histogram    **hist1full;
-  histogram    **hist1acgt;
+  uint32                 maxIID1 = A->getNumberOfSequences();
+  intervalList<uint64>  *il1full;
+  intervalList<uint64>  *il1acgt;
+  histogram            **hist1full;
+  histogram            **hist1acgt;
 
   if (A->getNumberOfSequences() > 24) {
     fprintf(stderr, "WARNING: too many sequences to be chromosomes, only using the first 24.\n");
@@ -464,8 +463,8 @@ MappedByChromosome(atacFile      &AF,
         nonNlength[i]++;
   }
 
-  il1full = new intervalList [maxIID1 + 1];
-  il1acgt = new intervalList [maxIID1 + 1];
+  il1full = new intervalList<uint64> [maxIID1 + 1];
+  il1acgt = new intervalList<uint64> [maxIID1 + 1];
 
   hist1full = new histogram * [maxIID1 + 1];
   hist1acgt = new histogram * [maxIID1 + 1];
@@ -540,11 +539,11 @@ MappedByChromosome(atacFile      &AF,
 
 
 void
-statsInACGT(seqInCore       *S,
-            uint32           beg,
-            uint32           len,
-            intervalList    *IL,
-            histogram       *HI) {
+statsInACGT(seqInCore            *S,
+            uint32                beg,
+            uint32                len,
+            intervalList<uint64> *IL,
+            histogram            *HI) {
   char     *s = S->sequence() + beg;
   uint32    length = 0;
 
@@ -583,8 +582,8 @@ unmappedInRuns(atacFile &AF, seqCache *A, seqCache *B, char *prefix) {
   atacMatchOrder  MO(matches);
   MO.sortA();
 
-  intervalList  il1full, il2full;
-  intervalList  il1acgt, il2acgt;
+  intervalList<uint64>  il1full, il2full;
+  intervalList<uint64>  il1acgt, il2acgt;
 
   histogram     hist1full(100, 1000000), hist2full(100, 1000000);
   histogram     hist1acgt(100, 1000000), hist2acgt(100, 1000000);

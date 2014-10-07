@@ -21,7 +21,7 @@ public:
     clumpsLen = 0;
     clumpsMax = 64;
     clumpID   = new uint32 [clumpsMax];
-    clumps    = new intervalList * [clumpsMax];
+    clumps    = new intervalList<uint64> * [clumpsMax];
     clumpmin  = new uint32 [clumpsMax];
     clumpmax  = new uint32 [clumpsMax];
 
@@ -77,7 +77,7 @@ public:
     //  Didn't add to an existing clump, so must be a new clump.
     //
     clumpID[clumpsLen] = clumpid;
-    clumps[clumpsLen]  = new intervalList;
+    clumps[clumpsLen]  = new intervalList<uint64>;
     clumps[clumpsLen]->add(begin, length);
     clumpmin[clumpsLen] = begin;
     clumpmax[clumpsLen] = begin + length;
@@ -122,10 +122,10 @@ public:
 
 
   void    sortClumps(void) {
-    uint32         ciid;
-    intervalList  *cptr;
-    uint32         cmin;
-    uint32         cmax;
+    uint32                 ciid;
+    intervalList<uint64>  *cptr;
+    uint32                 cmin;
+    uint32                 cmax;
 
     uint32         i = 0;
     uint32         j = 0;
@@ -166,18 +166,18 @@ public:
   };
 
 
-  uint32           clumpsLen;
-  uint32           clumpsMax;
-  uint32          *clumpID;
-  intervalList   **clumps;
-  uint32          *clumpmin;
-  uint32          *clumpmax;
+  uint32                   clumpsLen;
+  uint32                   clumpsMax;
+  uint32                  *clumpID;
+  intervalList<uint64>   **clumps;
+  uint32                  *clumpmin;
+  uint32                  *clumpmax;
 
-  uint32          *clumpconfirm;
+  uint32                  *clumpconfirm;
 
-  uint32           intervalsLen;
-  uint32           intervalsMax;
-  uint32          *intervals;
+  uint32                   intervalsLen;
+  uint32                   intervalsMax;
+  uint32                  *intervals;
 };
 
 

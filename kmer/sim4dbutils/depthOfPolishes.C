@@ -27,7 +27,7 @@ main(int argc, char **argv) {
     arg++;
   }
 
-  intervalList  IL;
+  intervalList<uint64>  IL;
 
   sim4polishReader *R = new sim4polishReader("-");
   sim4polish       *p = 0L;
@@ -45,7 +45,7 @@ main(int argc, char **argv) {
     IL.add(beg, end-beg);
   }
 
-  intervalDepth ID(IL);
+  intervalDepth<uint64> ID(IL);
 
   //  The extra 1000 here is so we can be lazy in the
   //  output section when computing averages.

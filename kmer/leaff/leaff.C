@@ -18,8 +18,8 @@ void mapDuplicates(char *filea, char *fileb);
 void processFile(char  *filename);
 void processArray(int argc, char **argv);
 
-bool                   reverse           = false;
-bool                   complement        = false;
+bool                   doReverse         = false;
+bool                   doComplement      = false;
 bool                   withDefLine       = true;
 char                  *specialDefLine    = 0L;
 uint32                 withLineBreaks    = 0;
@@ -244,25 +244,25 @@ printSequence(char        *def,
   char     *n = new char [end - beg + 1];
   char     *m;
 
-  if        ((reverse == false) && (complement == false)) {
+  if        ((doReverse == false) && (doComplement == false)) {
     m    = n;
     seq += beg;
     while (limit--)
       *(m++) = translate[*(seq++)];
 
-  } else if ((reverse == true) && (complement == false)) {
+  } else if ((doReverse == true) && (doComplement == false)) {
     m    = n + limit - 1;
     seq += beg;
     while (limit--)
       *(m--) = translate[*(seq++)];
 
-  } else if ((reverse == false) && (complement == true)) {
+  } else if ((doReverse == false) && (doComplement == true)) {
     m    = n;
     seq += beg;
     while (limit--)
       *(m++) = complementSymbol[translate[*(seq++)]];
 
-  } else if ((reverse == true) && (complement == true)) {
+  } else if ((doReverse == true) && (doComplement == true)) {
     m    = n + limit - 1;
     seq += beg;
     while (limit--)
@@ -537,10 +537,10 @@ processArray(int argc, char **argv) {
         translate[z] = (toUppercase) ? (char)toUpper[z] : (char)z;
 
     } else if (strcmp(argv[arg], "-R") == 0) {
-      reverse = !reverse;
+      doReverse = !doReverse;
           
     } else if (strcmp(argv[arg], "-C") == 0) {
-      complement = !complement;
+      doComplement = !doComplement;
           
     } else if (strcmp(argv[arg], "-H") == 0) {
       withDefLine    = !withDefLine;

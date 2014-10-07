@@ -12,9 +12,9 @@ findOverlap(sim4polish *A, sim4polish *B) {
   if ((A->_genID != B->_genID) || (A->_matchOrientation != B->_matchOrientation))
     return(0);
 
-  uint32        length = 0;
-  uint32        total  = 0;
-  intervalList  IL;
+  uint32                length = 0;
+  uint32                total  = 0;
+  intervalList<uint64>  IL;
 
   for (uint32 i=0; i<A->_numExons; i++) {
     length = A->_exons[i]._genTo - A->_exons[i]._genFrom + 1;

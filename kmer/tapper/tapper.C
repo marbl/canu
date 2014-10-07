@@ -617,7 +617,7 @@ tapperWorker(void *G, void *T, void *S) {
     //  OUTPUT CASE 4 - mated fragments
   } else if ((s->tag1size > 0) && (s->tag2size > 0)) {
     if (t->tangle == 0L)
-      t->tangle = new intervalList [g->GS->getNumberOfSequences()];
+      t->tangle = new intervalList<uint64> [g->GS->getNumberOfSequences()];
 
     if ((t->numHappiesMax < s->tag1hitsLen) || (t->numHappiesMax < s->tag2hitsLen)) {
       delete [] t->tag1happies;

@@ -58,8 +58,8 @@ main(int argc, char **argv) {
                                    new seqStream(S->sequence(), S->sequenceLength()),
                                    true, true);
 
-    uint32                 idlen = 0;
-    intervalDepthRegions  *id    = new intervalDepthRegions [S->sequenceLength() * 2 + 2];
+    uint32                         idlen = 0;
+    intervalDepthRegions<uint64>  *id    = new intervalDepthRegions<uint64> [S->sequenceLength() * 2 + 2];
 
     while (MS->nextMer()) {
       int32   cnt = (int32)E->count(MS->theFMer()) + (int32)E->count(MS->theRMer());
@@ -73,10 +73,10 @@ main(int argc, char **argv) {
       idlen++;
     }
 
-    intervalDepth ID(id, idlen);
-    uint32        x = 0;
+    intervalDepth<uint64> ID(id, idlen);
+    uint32                x = 0;
 
-    uint32        len = S->sequenceLength();
+    uint32                len = S->sequenceLength();
 
     //  Default case, report un-averaged depth at every single location.
     //
