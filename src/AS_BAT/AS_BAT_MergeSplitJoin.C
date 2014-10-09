@@ -40,7 +40,7 @@ static const char *rcsid = "$Id$";
 
 #include "AS_BAT_RepeatJunctionEvidence.H"
 
-#include "AS_UTL_intervalList.H"
+#include "intervalList.H"
 
 
 uint32 SPURIOUS_COVERAGE_THRESHOLD  = 6;   //  Need to have more than this coverage in non-unitig reads aligned to call it a repeat area
@@ -797,7 +797,7 @@ markRepeats_placeAndProcessOverlaps(UnitigVector                     &unitigs,
                                     double                           meanError,
                                     double                           stddevError,
                                     set<AS_IID>                      &ovlFrags,
-                                    intervalList                     &aligned,
+                                    intervalList<int32>              &aligned,
                                     vector<repeatJunctionEvidence>   &evidence) {
 
   aligned.clear();
@@ -875,7 +875,7 @@ markRepeats_placeAndProcessOverlaps(UnitigVector                     &unitigs,
 #if 0
 uint32
 markRepeats_computeUnitigCoverage(Unitig *tig) {
-  intervalList   coverage;
+  intervalList<int32>   coverage;
 
   for (uint32 fi=0; fi<tig->ufpath.size(); fi++) {
     ufNode  frg         = tig->ufpath[fi];
@@ -934,7 +934,7 @@ markRepeats_computeUnitigCoverage(Unitig *tig) {
 //
 void
 markRepeats_filterIntervalsSpannedByFragment(Unitig                    *target,
-                                             intervalList              &aligned,
+                                             intervalList<int32>       &aligned,
                                              vector<repeatRegion>      &regions) {
   uint32   tiglen  = target->getLength();
 
@@ -942,7 +942,7 @@ markRepeats_filterIntervalsSpannedByFragment(Unitig                    *target,
   uint32   filteredBases          = 0;
   uint32   filteredCovered        = 0;
 
-  intervalDepth   depth(aligned);
+  intervalDepth<int32>   depth(aligned);
 
   aligned.merge();  //  Just for a stupid log message
 
@@ -1685,7 +1685,7 @@ markRepeats(UnitigVector &unitigs,
   double                          meanError = 0;
   double                          stddevError = 0;
 
-  intervalList                    aligned;
+  intervalList<int32>             aligned;
 
   vector<overlapPlacement>        places;
 

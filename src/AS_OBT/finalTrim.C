@@ -140,9 +140,12 @@ enforceMaximumClearRange(OVSoverlap  *ovl,
 
 int
 main(int argc, char **argv) {
-  gkStore          *gkpStore     = 0L;
-  OverlapStore     *ovlPrimary   = 0L;
-  OverlapStore     *ovlSecondary = 0L;
+  char             *gkpName          = 0L;
+  gkStore          *gkpStore         = 0L;
+  char             *ovlPrimaryName   = 0L;
+  OverlapStore     *ovlPrimary       = 0L;
+  OverlapStore     *ovlSecondary     = 0L;
+  char             *ovlSecondaryName = 0L;
 
   uint32            errorRate    = AS_OVS_encodeQuality(0.015);
   double            errorLimit   = 2.5;
@@ -167,15 +170,13 @@ main(int argc, char **argv) {
   int err=0;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-G") == 0) {
-      gkpStore = new gkStore(argv[++arg], FALSE, doModify);
-      gkpStore->gkStore_enableClearRange(AS_READ_CLEAR_OBTMERGE);
-      gkpStore->gkStore_metadataCaching(true);
+      gkpName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-O") == 0) {
-      if (ovlPrimary == NULL)
-        ovlPrimary = AS_OVS_openOverlapStore(argv[++arg]);
+      if (ovlPrimaryName == NULL)
+        ovlPrimaryName = argv[++arg];
       else if (ovlSecondary == NULL)
-        ovlSecondary = AS_OVS_openOverlapStore(argv[++arg]);
+        ovlSecondaryName = argv[++arg];
       else {
         fprintf(stderr, "ERROR:  Only two obtStores (-O) allowed.\n");
         err++;
@@ -212,9 +213,9 @@ main(int argc, char **argv) {
 
     arg++;
   }
-  if ((gkpStore     == NULL) ||
-      (ovlPrimary   == NULL) ||
-      (outputPrefix == NULL) ||
+  if ((gkpName          == NULL) ||
+      (ovlPrimaryName   == NULL) ||
+      (outputPrefix     == NULL) ||
       (err)) {
     fprintf(stderr, "usage: %s -G gkpStore -O ovlStore [-O ovlStore] -o outputPrefix\n", argv[0]);
     fprintf(stderr, "   -e erate       allow 'erate' percent error\n");
@@ -229,6 +230,18 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     exit(1);
   }
+
+  gkpStore = new gkStore(gkpName, FALSE, doModify);
+
+  gkpStore->gkStore_enableClearRange(AS_READ_CLEAR_OBTMERGE);
+  gkpStore->gkStore_metadataCaching(true);
+
+  if (ovlPrimaryName != NULL)
+    ovlPrimary = AS_OVS_openOverlapStore(ovlPrimaryName);
+
+  if (ovlSecondary != NULL)
+    ovlSecondary = AS_OVS_openOverlapStore(ovlSecondaryName);
+
 
   sprintf(logName, "%s.log",     outputPrefix);
   sprintf(sumName, "%s.summary", outputPrefix);

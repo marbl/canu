@@ -31,7 +31,7 @@ static const char *rcsid = "$Id$";
 #include "MultiAlignment_CNS.H"
 #include "MultiAlignment_CNS_private.H"
 
-#include "AS_UTL_splitToWords.H"
+#include "splitToWords.H"
 
 #undef  DEBUG_CREATE
 #undef  DEBUG_FILES

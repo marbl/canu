@@ -36,7 +36,7 @@ static const char *rcsid_FINALTRIM_H = "$Id$";
 #include "AS_global.H"
 #include "AS_PER_gkpStore.H"
 #include "AS_OVS_overlapStore.H"
-#include "AS_UTL_intervalList.H"
+#include "intervalList.H"
 
 
 #define OBT_MODE_WIGGLE      (5)

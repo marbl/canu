@@ -26,7 +26,7 @@ static const char *rcsid = "$Id$";
 #include "AS_BOG_UnitigGraph.H"
 #include "AS_BOG_Unitig.H"
 
-#include "AS_UTL_intervalList.H"
+#include "intervalList.H"
 
 #define MAX_OVERLAPS_PER_FRAG   (16 * 1024 * 1024)
 
@@ -231,8 +231,8 @@ UnitigGraph::placeFragUsingOverlaps(ufNode frag,
   uint32         bgn = 0;
   uint32         end = 1;
 
-  intervalList   UP;  //  Unitig position
-  intervalList   FC;  //  Fragment coverage
+  intervalList<int32>   UP;  //  Unitig position
+  intervalList<int32>   FC;  //  Fragment coverage
 
   while (bgn < ovlLen) {
     UP.clear();
@@ -269,7 +269,7 @@ UnitigGraph::placeFragUsingOverlaps(ufNode frag,
 
     if (logFileFlagSet(LOG_PLACE_FRAG))
       for (uint32 i=0; i<UP.numberOfIntervals(); i++)
-        fprintf(logFile, "placeFragUsingOverlaps()-- frag %d in unitig %d (len %d nfrags "F_SIZE_T") at "F_S64","F_S64" from "F_U32" overlaps\n",
+        fprintf(logFile, "placeFragUsingOverlaps()-- frag %d in unitig %d (len %d nfrags "F_SIZE_T") at "F_S32","F_S32" from "F_U32" overlaps\n",
                 frag.ident,
                 ovlPlace[bgn].tigID, unitigs[ovlPlace[bgn].tigID]->getLength(), unitigs[ovlPlace[bgn].tigID]->ufpath.size(),
                 UP.lo(i),

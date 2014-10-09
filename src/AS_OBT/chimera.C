@@ -24,7 +24,7 @@ const char *mainid = "$Id$";
 #include "AS_global.H"
 
 #include "AS_PER_gkpStore.H"
-#include "AS_UTL_intervalList.H"
+#include "intervalList.H"
 #include "AS_UTL_decodeRange.H"
 #include "AS_OBT_overlaps.H"
 
@@ -646,7 +646,7 @@ checkSpanningMates(const AS_IID           iid,
                    const chimeraClear    *clear,
                    gkStore               *gkp,
                    vector<chimeraOvl>    &olist,
-                   intervalList          &IL) {
+                   intervalList<int32>   &IL) {
 
   //  Build a list of mated reads internal to this fragment.  We have choice of algorithm:
   //    N log N -- build a set<> of the IDs for lookup
@@ -657,7 +657,7 @@ checkSpanningMates(const AS_IID           iid,
   //  second list of <readID, mateID, position>, also sorted.  The two lists are scanned, and
   //  whenever we find mateID (list 1) == readID (list 2) we have a mate internal to this fragment.
 
-  intervalList   CC;
+  intervalList<int32>   CC;
 
   //fprintf(reportFile, "checkSpanningMates()-- for read "F_IID"\n", iid);
 
@@ -928,10 +928,10 @@ processChimera(const AS_IID           iid,
 
 
 
-  intervalList     IL;
-  uint32           hasPotentialChimera = 0;
-  uint32           hasInniePair        = 0;
-  uint32           hasOverhang         = 0;
+  intervalList<int32>   IL;
+  uint32                hasPotentialChimera = 0;
+  uint32                hasInniePair        = 0;
+  uint32                hasOverhang         = 0;
 
   //  These types are described in Bri's VI Notebook #2 page 33.
 
@@ -1562,8 +1562,8 @@ processSubRead(const AS_IID           iid,
   map<AS_IID, uint32>  numOlaps;
 
   bool                 largePalindrome = false;
-  intervalList         BAD;
-  intervalList         BADall;
+  intervalList<int32>  BAD;
+  intervalList<int32>  BADall;
 
   for (uint32 ii=0; ii<olist.size(); ii++) {
     //fprintf(stderr, "COUNT OLAPS B %u %u-%u\n", olist[ii].Biid, olist[ii].Bbeg, olist[ii].Bend);
@@ -1775,7 +1775,7 @@ processSubRead(const AS_IID           iid,
         numSpan += (clear[olist[ii].Aiid].doCheckSubRead) ? 1 : 2;
 
     if (subreadFile)
-      fprintf(subreadFile, "AcheckSub region %u ("F_U64"-"F_U64") with %u hits %u bighits - span %u largePalindrome %s\n",
+      fprintf(subreadFile, "AcheckSub region %u ("F_S32"-"F_S32") with %u hits %u bighits - span %u largePalindrome %s\n",
               olist[0].Aiid, BAD.lo(bb), BAD.hi(bb), BAD.ct(bb), allHits,
               numSpan, largePalindrome ? "true" : "false");
 
@@ -1789,7 +1789,7 @@ processSubRead(const AS_IID           iid,
       continue;
 
     if (subreadFile)
-      fprintf(subreadFile, "CONFIRMED BAD REGION %ld-%ld\n", BAD.lo(bb), BAD.hi(bb));
+      fprintf(subreadFile, "CONFIRMED BAD REGION %d-%d\n", BAD.lo(bb), BAD.hi(bb));
 
     blist.push_back(chimeraBad(olist[0].Aiid, BAD.lo(bb), BAD.hi(bb)));
   }
@@ -1989,7 +1989,7 @@ main(int argc, char **argv) {
     //  But first, if the bad interval just touches the clear, trim it out.
 
     if (blist.size() > 0) {
-      intervalList  goodRegions;
+      intervalList<int32>  goodRegions;
 
       for (uint32 bb=0; bb<blist.size(); bb++) {
         if ((blist[bb].end   <= res.intervalBeg) ||
@@ -2049,7 +2049,7 @@ main(int argc, char **argv) {
           uint32  len = goodRegions.hi(ii) - goodRegions.lo(ii);
 
           if (subreadFile)
-            fprintf(subreadFile, "BAD iid %u trim %u %u region %lu %lu SUBREAD_REGION len %u\n",
+            fprintf(subreadFile, "BAD iid %u trim %u %u region %d %d SUBREAD_REGION len %u\n",
                     res.iid, res.intervalBeg, res.intervalEnd, goodRegions.lo(ii), goodRegions.hi(ii), len);
 
           if (goodLen < len) {

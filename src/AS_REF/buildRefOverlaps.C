@@ -32,7 +32,7 @@ const char *mainid = "$Id$";
 #include "AS_global.H"
 #include "AS_UTL_Var.H"
 #include "AS_UTL_fileIO.H"
-#include "AS_UTL_splitToWords.H"
+#include "splitToWords.H"
 #include "AS_MSG_pmesg.H"
 #include "AS_PER_gkpStore.H"
 

@@ -27,7 +27,7 @@ static const char *rcsid = "$Id$";
 
 #include "AS_BAT_PlaceFragUsingOverlaps.H"
 
-#include "AS_UTL_intervalList.H"
+#include "intervalList.H"
 
 //  Report LOTS of details on placement, including evidence.
 #undef VERBOSE_PLACEMENT
@@ -412,8 +412,8 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
     //  picture above), not just the overlapping fragment sets (left or right in the above picture
     //  above).
     //
-    intervalList   bgnPoints;
-    intervalList   endPoints;
+    intervalList<int32>   bgnPoints;
+    intervalList<int32>   endPoints;
 
     uint32         windowSlop = 0.075 * FI->fragmentLength(frag.ident);
 

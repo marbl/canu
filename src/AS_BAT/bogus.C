@@ -51,8 +51,8 @@ map<string, int32>         IIDmap;       //  Maps an ID string to an IID.
 vector<string>             IIDname;      //  Maps an IID to an ID string.
 vector<uint32>             IIDcount;     //  Maps an IID to the number of alignments
 
-intervalList  REPT;
-intervalList  UNIQ;
+intervalList<int32>  REPT;
+intervalList<int32>  UNIQ;
 
 bool         *REPTvalid = NULL;
 bool         *UNIQvalid = NULL;

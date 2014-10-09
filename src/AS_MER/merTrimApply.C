@@ -23,7 +23,7 @@ const char *mainid = "$Id$";
 
 #include "AS_global.H"
 #include "AS_PER_gkpStore.H"
-#include "AS_UTL_splitToWords.H"
+#include "splitToWords.H"
 
 #include "merTrimResult.H"
 

@@ -23,7 +23,7 @@ const char *mainid = "$Id$";
 
 #include "AS_global.H"
 #include "AS_UTL_decodeRange.H"
-#include "AS_UTL_intervalList.H"
+#include "intervalList.H"
 
 #include "MultiAlign.H"
 #include "MultiAlignStore.H"
@@ -284,7 +284,7 @@ dumpConsensus(MultiAlignStore *tigStore,
   //  filtered later.
 
   if (minCoverage > 0) {
-    intervalList  allL;
+    intervalList<int32>  allL;
 
     for (uint32 i=0; i<GetNumIntMultiPoss(ma->f_list); i++) {
       IntMultiPos *imp = GetIntMultiPos(ma->f_list, i);
@@ -295,7 +295,7 @@ dumpConsensus(MultiAlignStore *tigStore,
       allL.add(bgn, end - bgn);
     }
 
-    intervalDepth  ID(allL);
+    intervalDepth<int32>  ID(allL);
 
     for (uint32 ii=0; ii<ID.numberOfIntervals(); ii++) {
       if (ID.de(ii) >= minCoverage)
@@ -386,7 +386,7 @@ dumpCoverage(MultiAlignStore *tigStore,
              uint64          *coverageHistogram,
              uint32           coverageHistogramLen,
              char            *outPrefix) {
-  intervalList  allL;
+  intervalList<int32>  allL;
 
   uint32        maxPos = 0;
 
@@ -405,10 +405,10 @@ dumpCoverage(MultiAlignStore *tigStore,
 
   maxPos++;  //  Now the C-style maxPos.
 
-  intervalDepth  ID(allL);
+  intervalDepth<int32>  ID(allL);
 
-  intervalList   minL;
-  intervalList   maxL;
+  intervalList<int32>   minL;
+  intervalList<int32>   maxL;
 
   uint32  maxDepth    = 0;
   double  aveDepth    = 0;
@@ -492,8 +492,8 @@ dumpCoverage(MultiAlignStore *tigStore,
       fprintf(stderr, "Failed to open '%s': %s\n", outName, strerror(errno)), exit(1);
 
     for (uint32 ii=0; ii<ID.numberOfIntervals(); ii++) {
-      fprintf(outFile, "%lu\t%u\n", ID.lo(ii),     ID.de(ii));
-      fprintf(outFile, "%lu\t%u\n", ID.hi(ii) - 1, ID.de(ii));
+      fprintf(outFile, "%d\t%u\n", ID.lo(ii),     ID.de(ii));
+      fprintf(outFile, "%d\t%u\n", ID.hi(ii) - 1, ID.de(ii));
     }
 
     fclose(outFile);
@@ -527,8 +527,8 @@ dumpThinOverlap(MultiAlignStore *tigStore,
                 int32            tigIsUnitig,
                 MultiAlignT     *ma,
                 uint32           minOverlap) {
-  intervalList  allL;
-  intervalList  ovlL;
+  intervalList<int32>  allL;
+  intervalList<int32>  ovlL;
 
   uint32        maxPos = 0;
 
@@ -558,12 +558,12 @@ dumpThinOverlap(MultiAlignStore *tigStore,
 
 #if 1
   for (uint32 i=0; i<ovlL.numberOfIntervals(); i++)
-    fprintf(stderr, "%s %u IL "F_U64" "F_U64"\n",
+    fprintf(stderr, "%s %u IL %d %d\n",
             (tigIsUnitig) ? "unitig" : "contig", tigID,
             ovlL.lo(i), ovlL.hi(i));
 #endif
 
-  intervalList badL;
+  intervalList<int32> badL;
 
   for (uint32 i=1; i<ovlL.numberOfIntervals(); i++) {
     assert(ovlL.lo(i) < ovlL.hi(i-1));
@@ -574,7 +574,7 @@ dumpThinOverlap(MultiAlignStore *tigStore,
 
 #if 1
   for (uint32 i=0; i<badL.numberOfIntervals(); i++)
-    fprintf(stderr, "%s %u BAD "F_U64" "F_U64"\n",
+    fprintf(stderr, "%s %u BAD %d %d\n",
             (tigIsUnitig) ? "unitig" : "contig", tigID,
             badL.lo(i), badL.hi(i));
 #endif

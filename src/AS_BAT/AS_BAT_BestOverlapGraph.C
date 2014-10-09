@@ -25,7 +25,7 @@ static const char *rcsid = "$Id$";
 #include "AS_BAT_BestOverlapGraph.H"
 #include "AS_BAT_Unitig.H"
 
-#include "AS_UTL_intervalList.H"
+#include "intervalList.H"
 
 
 //  HACK
@@ -42,13 +42,13 @@ BestOverlapGraph::removeSuspicious(void) {
 
 #pragma omp parallel for schedule(dynamic, blockSize)
   for (AS_IID fi=1; fi <= fiLimit; fi++) {
-    uint32      no  = 0;
-    BAToverlap *ovl = OC->getOverlaps(fi, no);
+    uint32               no  = 0;
+    BAToverlap          *ovl = OC->getOverlaps(fi, no);
 
-    bool          verified = false;
-    intervalList  IL;
+    bool                 verified = false;
+    intervalList<int32>  IL;
 
-    uint32        fLen = FI->fragmentLength(fi);
+    uint32               fLen = FI->fragmentLength(fi);
 
     for (uint32 ii=0; (ii<no) && (verified == false); ii++) {
       if (isOverlapBadQuality(ovl[ii]))

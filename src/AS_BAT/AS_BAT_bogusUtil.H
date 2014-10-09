@@ -23,8 +23,9 @@
 static const char *rcsid_INCLUDE_AS_BAT_BOGUSUTIL = "$Id$";
 
 #include "AS_global.H"
-#include "AS_UTL_splitToWords.H"
-#include "AS_UTL_intervalList.H"
+
+#include "splitToWords.H"
+#include "intervalList.H"
 
 #include <string>
 #include <vector>

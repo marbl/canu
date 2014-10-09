@@ -73,45 +73,6 @@ CXX_PROGS   = bogart bogus bogusness classifyMates classifyMatesApply classifyMa
 
 
 
-#
-#  BOILERPLATE
-#
-#  We'd like to include the global include (c_make.as) to get these
-#  definitions, but we cannot without defining rules.
-
-OSTYPE      = $(shell echo `uname`)
-MACHINETYPE = $(shell echo `uname -m`)
-
-ifeq ($(MACHINETYPE), x86_64)
-  MACHINETYPE = amd64
-endif
-ifeq ($(MACHINETYPE), Power Macintosh)
-  MACHINETYPE = ppc
-endif
-
-
-#  This isn't perfect; if we're building debug here, we _usually_ want
-#  to use the debug kmer.  But checking if kmer exists, and failing if
-#  we don't find the debug kmer, is a little tricky.
-
-ifneq "$(origin KMER)" "environment"
-
-ifeq ($(shell ls -d $(LOCAL_WORK)/kmer/$(OSTYPE)-$(MACHINETYPE)-debug 2> /dev/null), $(LOCAL_WORK)/kmer/$(OSTYPE)-$(MACHINETYPE)-debug)
-  KMER = $(LOCAL_WORK)/kmer/$(OSTYPE)-$(MACHINETYPE)-debug
-endif
-
-ifeq ($(shell ls -d $(LOCAL_WORK)/kmer/$(OSTYPE)-$(MACHINETYPE) 2> /dev/null), $(LOCAL_WORK)/kmer/$(OSTYPE)-$(MACHINETYPE))
-  KMER = $(LOCAL_WORK)/kmer/$(OSTYPE)-$(MACHINETYPE)
-endif
-
-endif
-#
-#  BOILERPLATE
-#
-
-INC_IMPORT_DIRS += $(KMER)/include
-LIB_IMPORT_DIRS += $(KMER)/lib
-
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
 

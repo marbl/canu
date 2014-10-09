@@ -25,7 +25,8 @@ const char *mainid = "$Id:  $";
 #include "MultiAlignStore.H"
 
 #include "AS_CGB_histo.H"
-#include "AS_UTL_intervalList.H"
+
+#include "intervalList.H"
 
 #include <algorithm>
 
@@ -66,10 +67,10 @@ ruLabelStat  repeat_IsRepeat;
 
 
 
-intervalDepth *
+intervalDepth<int32> *
 computeCoverage(MultiAlignT *ma) {
-  uint32          maNum = GetNumIntMultiPoss(ma->f_list);
-  intervalList    IL;
+  uint32                 maNum = GetNumIntMultiPoss(ma->f_list);
+  intervalList<int32>    IL;
 
   for (uint32 ii=0; ii<maNum; ii++) {
     IntMultiPos *imp = GetIntMultiPos(ma->f_list, ii);
@@ -81,7 +82,7 @@ computeCoverage(MultiAlignT *ma) {
     IL.add(bgn, len);
   }
 
-  return(new intervalDepth(IL));
+  return(new intervalDepth<int32>(IL));
 }
 
 
@@ -352,7 +353,7 @@ main(int argc, char **argv) {
 
     //  Global coverage histogram.
 
-    intervalDepth  *ID = computeCoverage(ma);
+    intervalDepth<int32>  *ID = computeCoverage(ma);
 
     for (uint32 ii=0; ii<ID->numberOfIntervals(); ii++) {
       if (ID->de(ii) < lowCovDepth)

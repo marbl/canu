@@ -27,8 +27,8 @@ const char *mainid = "$Id$";
 #include <errno.h>
 
 #include "AS_global.H"
-#include "AS_UTL_splitToWords.H"
-#include "AS_UTL_intervalList.H"
+#include "splitToWords.H"
+#include "intervalList.H"
 
 //  This reads the assembly frgctg, varctg and merQC badmers, computes
 //  the number and location of bad-mer, bad-var regions, and their
@@ -42,9 +42,9 @@ using namespace std;
 
 
 void
-readDepth(char *depthname, map<uint64,intervalDepth*> &lowCoverage) {
-  char                         line[1024] = {0};
-  map<uint64,intervalList*>    ILs;
+readDepth(char *depthname, map<uint64,intervalDepth<uint32>*> &lowCoverage) {
+  char                                       line[1024] = {0};
+  map<uint64,intervalList<uint32>*>          ILs;
 
   fprintf(stderr, "Reading depth from '%s'\n", depthname);
 
@@ -67,7 +67,7 @@ readDepth(char *depthname, map<uint64,intervalDepth*> &lowCoverage) {
       fprintf(stderr, "ERROR: l="F_U32" h="F_U32"\n", beg, end);
 
     if (ILs[uid] == 0L)
-      ILs[uid] = new intervalList();
+      ILs[uid] = new intervalList<uint32>;
     ILs[uid]->add(beg, end - beg);
 
     i++;
@@ -78,11 +78,11 @@ readDepth(char *depthname, map<uint64,intervalDepth*> &lowCoverage) {
   fclose(F);
   fprintf(stderr, " "F_U32" lines.\n", i);
 
-  map<uint64,intervalList*>::iterator    it = ILs.begin();
-  map<uint64,intervalList*>::iterator    ed = ILs.end();
+  map<uint64,intervalList<uint32>*>::iterator    it = ILs.begin();
+  map<uint64,intervalList<uint32>*>::iterator    ed = ILs.end();
 
   while (it != ed) {
-    lowCoverage[it->first] = new intervalDepth(*it->second);
+    lowCoverage[it->first] = new intervalDepth<uint32>(*it->second);
     delete it->second;
     it->second = 0L;
     it++;
@@ -91,7 +91,7 @@ readDepth(char *depthname, map<uint64,intervalDepth*> &lowCoverage) {
 
 
 void
-readVariation(char *depthname, map<uint64,intervalList*> &variation) {
+readVariation(char *depthname, map<uint64,intervalList<uint32>*> &variation) {
   char                         line[1024 * 1024] = {0};
 
   fprintf(stderr, "Reading variation from '%s'\n", depthname);
@@ -112,7 +112,7 @@ readVariation(char *depthname, map<uint64,intervalList*> &variation) {
     uint32  end = strtoul(W[3], 0L, 10);
 
     if (variation[uid] == 0L)
-      variation[uid] = new intervalList();
+      variation[uid] = new intervalList<uint32>;
     variation[uid]->add(beg, end - beg);
 
     i++;
@@ -126,7 +126,7 @@ readVariation(char *depthname, map<uint64,intervalList*> &variation) {
 
 
 void
-readBadMers(char *depthname, map<uint64,intervalList*> &badMers) {
+readBadMers(char *depthname, map<uint64,intervalList<uint32>*> &badMers) {
   char                         line[1024] = {0};
 
   fprintf(stderr, "Reading badMers from '%s'\n", depthname);
@@ -152,7 +152,7 @@ readBadMers(char *depthname, map<uint64,intervalList*> &badMers) {
     uint32  end = strtoul(W[4], 0L, 10);
 
     if (badMers[uid] == 0L)
-      badMers[uid] = new intervalList();
+      badMers[uid] = new intervalList<uint32>;
     badMers[uid]->add(beg, end - beg);
 
     i++;
@@ -168,9 +168,9 @@ readBadMers(char *depthname, map<uint64,intervalList*> &badMers) {
 
 int
 main(int argc, char **argv) {
-  map<uint64,intervalList*>    badMers;
-  map<uint64,intervalList*>    variation;
-  map<uint64,intervalDepth*>   lowCoverage;
+  map<uint64,intervalList<uint32>*>    badMers;
+  map<uint64,intervalList<uint32>*>    variation;
+  map<uint64,intervalDepth<uint32>*>   lowCoverage;
 
   bool  showDepthIntersect    = false;
   bool  showVariantIntersect  = false;
@@ -230,15 +230,15 @@ main(int argc, char **argv) {
     for (uint32 j=0; j<32; j++)
       badDepth[i][j] = 0;
 
-  map<uint64,intervalList*>::iterator    it = badMers.begin();
-  map<uint64,intervalList*>::iterator    ed = badMers.end();
+  map<uint64,intervalList<uint32>*>::iterator    it = badMers.begin();
+  map<uint64,intervalList<uint32>*>::iterator    ed = badMers.end();
   while (it != ed) {
     uint64         uid        = it->first;
 
-    intervalList  *Iv = variation[uid];
-    intervalList  *Ib = badMers[uid];
-    intervalList  *Ii = 0L;
-    intervalDepth *Id = lowCoverage[uid];
+    intervalList<uint32>  *Iv = variation[uid];
+    intervalList<uint32>  *Ib = badMers[uid];
+    intervalList<uint32>  *Ii = 0L;
+    intervalDepth<uint32> *Id = lowCoverage[uid];
 
     if (Iv)
       Iv->merge();
@@ -246,7 +246,7 @@ main(int argc, char **argv) {
       Ib->merge();
 
     if (Iv && Ib) {
-      Ii = new intervalList();
+      Ii = new intervalList<uint32>;
       Ii->intersect(*Iv, *Ib);
     }
 
@@ -282,10 +282,10 @@ main(int argc, char **argv) {
           if ((lo <= Ii->lo(ii)) && (Ii->lo(ii) < hi)) {
             beg = Id->de(id);
           } else {
-            fprintf(stderr, "failed to find begin "F_U64" "F_U64" -- "F_U64" "F_U64" "F_U32"\n",
+            fprintf(stderr, "failed to find begin "F_U32" "F_U32" -- "F_U32" "F_U32" "F_U32"\n",
                     Ii->lo(ii), Ii->hi(ii), Id->lo(id), Id->hi(id), Id->de(id));
             if (id > 0)
-              fprintf(stderr, "                     "F_U64" "F_U64" -- "F_U64" "F_U64" "F_U32"\n",
+              fprintf(stderr, "                     "F_U32" "F_U32" -- "F_U32" "F_U32" "F_U32"\n",
                       Ii->lo(ii), Ii->hi(ii), Id->lo(id-1), Id->hi(id-1), Id->de(id-1));
             //exit(1);
           }
@@ -309,10 +309,10 @@ main(int argc, char **argv) {
           if ((lo < Ii->hi(ii)) && (Ii->hi(ii) <= hi)) {
             end = Id->de(id);
           } else {
-            fprintf(stderr, "failed to find end "F_U64" "F_U64" -- "F_U64" "F_U64" "F_U32"\n",
+            fprintf(stderr, "failed to find end "F_U32" "F_U32" -- "F_U32" "F_U32" "F_U32"\n",
                     Ii->lo(ii), Ii->hi(ii), Id->lo(id), Id->hi(id), Id->de(id));
             if (id > 0)
-              fprintf(stderr, "                     "F_U64" "F_U64" -- "F_U64" "F_U64" "F_U32"\n",
+              fprintf(stderr, "                     "F_U32" "F_U32" -- "F_U32" "F_U32" "F_U32"\n",
                       Ii->lo(ii), Ii->hi(ii), Id->lo(id-1), Id->hi(id-1), Id->de(id-1));
             //exit(1);
           }
@@ -321,7 +321,7 @@ main(int argc, char **argv) {
         badBegDepth[beg]++;
         badEndDepth[end]++;
 
-        fprintf(stdout, F_U64"\t"F_U64"\t"F_U64"\tdepth="F_U32","F_U32"\n",
+        fprintf(stdout, F_U64"\t"F_U32"\t"F_U32"\tdepth="F_U32","F_U32"\n",
                 uid, Ii->lo(ii), Ii->hi(ii), beg, end);
 
         if ((beg < 32) && (end < 32))

@@ -31,7 +31,7 @@ static const char *rcsid = "$Id$";
 #include "AS_global.H"
 #include "AS_PER_gkpStore.H"
 #include "AS_OVS_overlapStore.H"
-#include "AS_UTL_intervalList.H"
+#include "intervalList.H"
 
 
 bool
@@ -66,9 +66,9 @@ largestCovered(OVSoverlap  *ovl,
     return(false);
   }
 
-  intervalList  IL;
-  intervalList  ID;
-  int32         iid = fr.gkFragment_getReadIID();
+  intervalList<uint32>  IL;
+  intervalList<uint32>  ID;
+  int32                 iid = fr.gkFragment_getReadIID();
 
   for (uint32 i=0; i<ovlLen; i++) {
     uint32 tbgn = ibgn + ovl[i].dat.obt.a_beg;
@@ -98,7 +98,7 @@ largestCovered(OVSoverlap  *ovl,
   //  acceptable.
 
   if (minCoverage > 0) {
-    intervalDepth  DE(IL);
+    intervalDepth<uint32>  DE(IL);
 
     uint32  it = 0;
     uint32  ib = 0;
@@ -164,7 +164,7 @@ largestCovered(OVSoverlap  *ovl,
   //                      -----------
 
   if (minCoverage > 0) {
-    intervalList FI;
+    intervalList<uint32> FI;
 
     uint32  li = 0;
     uint32  di = 0;

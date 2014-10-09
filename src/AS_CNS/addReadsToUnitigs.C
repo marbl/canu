@@ -23,7 +23,7 @@ const char *mainid = "$Id:  $";
 
 #include "AS_global.H"
 
-#include "AS_UTL_splitToWords.H"
+#include "splitToWords.H"
 
 #include "MultiAlign.H"
 #include "MultiAlignStore.H"
