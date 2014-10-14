@@ -404,8 +404,8 @@ markWeak(void) {
       if ((REPT.lo(ir) <= UNIQ.lo(iu)) &&
           (UNIQ.hi(iu) <= REPT.hi(ir))) {
         //fprintf(stderr, "EXCEPTION:  UNIQ %ld,%ld len=%ld ct=%d contained in REPT %ld,%ld len=%ld ct=%d\n",
-        //        UNIQ.lo(iu), UNIQ.hi(iu), UNIQ.hi(iu) - UNIQ.lo(iu), UNIQ.ct(iu),
-        //        REPT.lo(ir), REPT.hi(ir), REPT.hi(ir) - REPT.lo(ir), REPT.ct(ir));
+        //        UNIQ.lo(iu), UNIQ.hi(iu), UNIQ.hi(iu) - UNIQ.lo(iu), UNIQ.count(iu),
+        //        REPT.lo(ir), REPT.hi(ir), REPT.hi(ir) - REPT.lo(ir), REPT.count(ir));
         UNIQvalid[iu] = false;
         UNIQvalidParent[iu] = ir;
         UNIQexceptions++;
@@ -413,8 +413,8 @@ markWeak(void) {
       if ((UNIQ.lo(iu) <= REPT.lo(ir)) &&
           (REPT.hi(ir) <= UNIQ.hi(iu))) {
         //fprintf(stderr, "EXCEPTION:  REPT %ld,%ld len=%ld  ct=%d contained in UNIQ %ld,%ld len=%ld ct=%d\n",
-        //        REPT.lo(ir), REPT.hi(ir), REPT.hi(ir) - REPT.lo(ir), REPT.ct(ir),
-        //        UNIQ.lo(iu), UNIQ.hi(iu), UNIQ.hi(iu) - UNIQ.lo(iu), UNIQ.ct(iu));
+        //        REPT.lo(ir), REPT.hi(ir), REPT.hi(ir) - REPT.lo(ir), REPT.count(ir),
+        //        UNIQ.lo(iu), UNIQ.hi(iu), UNIQ.hi(iu) - UNIQ.lo(iu), UNIQ.count(iu));
         REPTvalid[ir] = false;
         REPTvalidParent[ir] = iu;
         REPTexceptions++;
@@ -612,7 +612,7 @@ main(int argc, char **argv) {
           refhdr = refList[rr].rsrefName;
           refbgn = REPT.lo(ir) - refList[rr].rschnBgn;
           refend = REPT.hi(ir) - refList[rr].rschnBgn;
-          refcnt = REPT.ct(ir);
+          refcnt = REPT.count(ir);
         }
 
       if (refcnt == 0) {
@@ -648,7 +648,7 @@ main(int argc, char **argv) {
           refhdr = refList[rr].rsrefName;
           refbgn = UNIQ.lo(iu) - fragTrim - refList[rr].rschnBgn;
           refend = UNIQ.hi(iu) + fragTrim - refList[rr].rschnBgn;
-          refcnt = UNIQ.ct(iu);
+          refcnt = UNIQ.count(iu);
         }
 
       //  Not sure why some data sets (long pacbio for example) trigger this.

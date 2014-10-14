@@ -67,7 +67,7 @@ ruLabelStat  repeat_IsRepeat;
 
 
 
-intervalDepth<int32> *
+intervalList<int32> *
 computeCoverage(MultiAlignT *ma) {
   uint32                 maNum = GetNumIntMultiPoss(ma->f_list);
   intervalList<int32>    IL;
@@ -82,7 +82,7 @@ computeCoverage(MultiAlignT *ma) {
     IL.add(bgn, len);
   }
 
-  return(new intervalDepth<int32>(IL));
+  return(new intervalList<int32>(IL));
 }
 
 
@@ -353,14 +353,14 @@ main(int argc, char **argv) {
 
     //  Global coverage histogram.
 
-    intervalDepth<int32>  *ID = computeCoverage(ma);
+    intervalList<int32>  *ID = computeCoverage(ma);
 
     for (uint32 ii=0; ii<ID->numberOfIntervals(); ii++) {
-      if (ID->de(ii) < lowCovDepth)
-        utgCovHistogram[ma->maID][ID->de(ii)] += ID->hi(ii) - ID->lo(ii) + 1;
+      if (ID->depth(ii) < lowCovDepth)
+        utgCovHistogram[ma->maID][ID->depth(ii)] += ID->hi(ii) - ID->lo(ii) + 1;
 
-      if (ID->de(ii) < covHistogramMax)
-        covHistogram[ID->de(ii)] += ID->hi(ii) - ID->lo(ii) + 1;
+      if (ID->depth(ii) < covHistogramMax)
+        covHistogram[ID->depth(ii)] += ID->hi(ii) - ID->lo(ii) + 1;
     }
 
     //  Single read max fraction covered.

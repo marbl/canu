@@ -942,7 +942,7 @@ markRepeats_filterIntervalsSpannedByFragment(Unitig                    *target,
   uint32   filteredBases          = 0;
   uint32   filteredCovered        = 0;
 
-  intervalDepth<int32>   depth(aligned);
+  intervalList<int32>   depth(aligned);
 
   aligned.merge();  //  Just for a stupid log message
 
@@ -957,10 +957,10 @@ markRepeats_filterIntervalsSpannedByFragment(Unitig                    *target,
   //
 
   for (uint32 dd=0; dd<depth.numberOfIntervals(); dd++) {
-    if (depth.de(dd) == 0)
+    if (depth.depth(dd) == 0)
       continue;
 
-    if (depth.de(dd) <= spuriousNoiseThreshold) {
+    if (depth.depth(dd) <= spuriousNoiseThreshold) {
       filteredBases += depth.hi(dd) - depth.lo(dd);
       continue;
     }

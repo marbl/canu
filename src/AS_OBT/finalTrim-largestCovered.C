@@ -98,16 +98,16 @@ largestCovered(OVSoverlap  *ovl,
   //  acceptable.
 
   if (minCoverage > 0) {
-    intervalDepth<uint32>  DE(IL);
+    intervalList<uint32>  DE(IL);
 
     uint32  it = 0;
     uint32  ib = 0;
     uint32  ie = 0;
 
     while (it < DE.numberOfIntervals()) {
-      //fprintf(stderr, "DE - %d - "F_S64" "F_S64" "F_U32"\n", fr.gkFragment_getReadIID(), DE.lo(it), DE.hi(it), DE.de(it));
+      //fprintf(stderr, "DE - %d - "F_S64" "F_S64" "F_U32"\n", fr.gkFragment_getReadIID(), DE.lo(it), DE.hi(it), DE.depth(it));
 
-      if (DE.de(it) < minCoverage) {
+      if (DE.depth(it) < minCoverage) {
         //  Dropped below good coverage depth.  If we have an interval, save it.  Reset.
         if (ie > ib) {
           //fprintf(stderr, "AD1 %d-%d len %d\n", ib, ie, ie - ib);

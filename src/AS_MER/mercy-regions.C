@@ -42,7 +42,7 @@ using namespace std;
 
 
 void
-readDepth(char *depthname, map<uint64,intervalDepth<uint32>*> &lowCoverage) {
+readDepth(char *depthname, map<uint64,intervalList<uint32>*> &lowCoverage) {
   char                                       line[1024] = {0};
   map<uint64,intervalList<uint32>*>          ILs;
 
@@ -82,7 +82,7 @@ readDepth(char *depthname, map<uint64,intervalDepth<uint32>*> &lowCoverage) {
   map<uint64,intervalList<uint32>*>::iterator    ed = ILs.end();
 
   while (it != ed) {
-    lowCoverage[it->first] = new intervalDepth<uint32>(*it->second);
+    lowCoverage[it->first] = new intervalList<uint32>(*it->second);
     delete it->second;
     it->second = 0L;
     it++;
@@ -170,7 +170,7 @@ int
 main(int argc, char **argv) {
   map<uint64,intervalList<uint32>*>    badMers;
   map<uint64,intervalList<uint32>*>    variation;
-  map<uint64,intervalDepth<uint32>*>   lowCoverage;
+  map<uint64,intervalList<uint32>*>   lowCoverage;
 
   bool  showDepthIntersect    = false;
   bool  showVariantIntersect  = false;
@@ -238,7 +238,7 @@ main(int argc, char **argv) {
     intervalList<uint32>  *Iv = variation[uid];
     intervalList<uint32>  *Ib = badMers[uid];
     intervalList<uint32>  *Ii = 0L;
-    intervalDepth<uint32> *Id = lowCoverage[uid];
+    intervalList<uint32>  *Id = lowCoverage[uid];
 
     if (Iv)
       Iv->merge();
@@ -280,13 +280,13 @@ main(int argc, char **argv) {
 
           //  Low points are not allowed to be equal to high points.
           if ((lo <= Ii->lo(ii)) && (Ii->lo(ii) < hi)) {
-            beg = Id->de(id);
+            beg = Id->depth(id);
           } else {
             fprintf(stderr, "failed to find begin "F_U32" "F_U32" -- "F_U32" "F_U32" "F_U32"\n",
-                    Ii->lo(ii), Ii->hi(ii), Id->lo(id), Id->hi(id), Id->de(id));
+                    Ii->lo(ii), Ii->hi(ii), Id->lo(id), Id->hi(id), Id->depth(id));
             if (id > 0)
               fprintf(stderr, "                     "F_U32" "F_U32" -- "F_U32" "F_U32" "F_U32"\n",
-                      Ii->lo(ii), Ii->hi(ii), Id->lo(id-1), Id->hi(id-1), Id->de(id-1));
+                      Ii->lo(ii), Ii->hi(ii), Id->lo(id-1), Id->hi(id-1), Id->depth(id-1));
             //exit(1);
           }
         }
@@ -307,13 +307,13 @@ main(int argc, char **argv) {
 
           //  High points aren't allowed to be equal to lo, but can be equal to hi.
           if ((lo < Ii->hi(ii)) && (Ii->hi(ii) <= hi)) {
-            end = Id->de(id);
+            end = Id->depth(id);
           } else {
             fprintf(stderr, "failed to find end "F_U32" "F_U32" -- "F_U32" "F_U32" "F_U32"\n",
-                    Ii->lo(ii), Ii->hi(ii), Id->lo(id), Id->hi(id), Id->de(id));
+                    Ii->lo(ii), Ii->hi(ii), Id->lo(id), Id->hi(id), Id->depth(id));
             if (id > 0)
               fprintf(stderr, "                     "F_U32" "F_U32" -- "F_U32" "F_U32" "F_U32"\n",
-                      Ii->lo(ii), Ii->hi(ii), Id->lo(id-1), Id->hi(id-1), Id->de(id-1));
+                      Ii->lo(ii), Ii->hi(ii), Id->lo(id-1), Id->hi(id-1), Id->depth(id-1));
             //exit(1);
           }
         }

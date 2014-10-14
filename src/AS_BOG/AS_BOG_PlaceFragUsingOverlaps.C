@@ -274,7 +274,7 @@ UnitigGraph::placeFragUsingOverlaps(ufNode frag,
                 ovlPlace[bgn].tigID, unitigs[ovlPlace[bgn].tigID]->getLength(), unitigs[ovlPlace[bgn].tigID]->ufpath.size(),
                 UP.lo(i),
                 UP.hi(i),
-                UP.ct(i));
+                UP.count(i));
 
     bgn = end;
     end = end + 1;

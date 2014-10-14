@@ -753,7 +753,7 @@ checkSpanningMates(const AS_IID           iid,
   CC.merge();
 
   for (uint32 i=0; i<CC.numberOfIntervals(); i++) {
-    if (CC.ct(i) < 2)
+    if (CC.count(i) < 2)
       continue;
 
 #ifdef DEBUG_MATES
@@ -1402,10 +1402,10 @@ processChimera(const AS_IID           iid,
   if (IL.numberOfIntervals() > 1) {
     uint32  aveOlaps = 0;
     for (uint32 interval=0; interval<IL.numberOfIntervals()-1; interval++)
-      aveOlaps += IL.ct(interval);
+      aveOlaps += IL.count(interval);
     aveOlaps /= (IL.numberOfIntervals() - 1);
 
-    if (IL.ct(IL.numberOfIntervals()-1) < 0.33 * aveOlaps)
+    if (IL.count(IL.numberOfIntervals()-1) < 0.33 * aveOlaps)
       ignoreLast = true;
   }
 
@@ -1747,9 +1747,9 @@ processSubRead(const AS_IID           iid,
 #if 0
   if (subreadFile) {
     for (uint32 bb=0; bb<BAD.numberOfIntervals(); bb++)
-      fprintf(subreadFile, "BAD[%d]  %ld-%ld %d hits\n", bb, BAD.lo(bb), BAD.hi(bb), BAD.ct(bb));
+      fprintf(subreadFile, "BAD[%d]  %ld-%ld %d hits\n", bb, BAD.lo(bb), BAD.hi(bb), BAD.count(bb));
     for (uint32 bb=0; bb<BADall.numberOfIntervals(); bb++)
-      fprintf(subreadFile, "BADall[%d]  %ld-%ld %d hits\n", bb, BADall.lo(bb), BADall.hi(bb), BADall.ct(bb));
+      fprintf(subreadFile, "BADall[%d]  %ld-%ld %d hits\n", bb, BADall.lo(bb), BADall.hi(bb), BADall.count(bb));
   }
 #endif
 
@@ -1763,7 +1763,7 @@ processSubRead(const AS_IID           iid,
 
     for (uint32 aa=0; aa<BADall.numberOfIntervals(); aa++)
       if ((BADall.lo(aa) <= BAD.lo(bb)) && (BAD.hi(bb) <= BADall.hi(aa)))
-        allHits += BADall.ct(aa);
+        allHits += BADall.count(aa);
 
     assert(allHits != 0);
 
@@ -1776,7 +1776,7 @@ processSubRead(const AS_IID           iid,
 
     if (subreadFile)
       fprintf(subreadFile, "AcheckSub region %u ("F_S32"-"F_S32") with %u hits %u bighits - span %u largePalindrome %s\n",
-              olist[0].Aiid, BAD.lo(bb), BAD.hi(bb), BAD.ct(bb), allHits,
+              olist[0].Aiid, BAD.lo(bb), BAD.hi(bb), BAD.count(bb), allHits,
               numSpan, largePalindrome ? "true" : "false");
 
     if (numSpan > 9)
@@ -1784,7 +1784,7 @@ processSubRead(const AS_IID           iid,
       //  is plenty of evidence it is true.
       continue;
 
-    if (BAD.ct(bb) + allHits / 4 + largePalindrome < 3)
+    if (BAD.count(bb) + allHits / 4 + largePalindrome < 3)
       //  If 2 or fewer reads claim this is a sub read junction, skip it.  Evidence is weak.
       continue;
 

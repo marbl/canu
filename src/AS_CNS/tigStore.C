@@ -295,10 +295,10 @@ dumpConsensus(MultiAlignStore *tigStore,
       allL.add(bgn, end - bgn);
     }
 
-    intervalDepth<int32>  ID(allL);
+    intervalList<int32>  ID(allL);
 
     for (uint32 ii=0; ii<ID.numberOfIntervals(); ii++) {
-      if (ID.de(ii) >= minCoverage)
+      if (ID.depth(ii) >= minCoverage)
         continue;
 
       for (uint32 pp=ID.lo(ii); pp<ID.hi(ii); pp++)
@@ -405,7 +405,7 @@ dumpCoverage(MultiAlignStore *tigStore,
 
   maxPos++;  //  Now the C-style maxPos.
 
-  intervalDepth<int32>  ID(allL);
+  intervalList<int32>   ID(allL);
 
   intervalList<int32>   minL;
   intervalList<int32>   maxL;
@@ -416,36 +416,36 @@ dumpCoverage(MultiAlignStore *tigStore,
 
 #if 0
   for (uint32 ii=0; ii<ID.numberOfIntervals(); ii++) {
-    if ((ID.de(ii) < minCoverage) && (ID.lo(ii) != 0) && (ID.hi(ii) != maxPos)) {
+    if ((ID.depth(ii) < minCoverage) && (ID.lo(ii) != 0) && (ID.hi(ii) != maxPos)) {
       fprintf(stderr, "%s %d low coverage interval %ld %ld max %u coverage %u\n",
-              (tigIsUnitig) ? "unitig" : "contig", tigID, ID.lo(ii), ID.hi(ii), maxPos, ID.de(ii));
+              (tigIsUnitig) ? "unitig" : "contig", tigID, ID.lo(ii), ID.hi(ii), maxPos, ID.depth(ii));
       minL.add(ID.lo(ii), ID.hi(ii) - ID.lo(ii) + 1);
     }
 
-    if (maxCoverage <= ID.de(ii)) {
+    if (maxCoverage <= ID.depth(ii)) {
       fprintf(stderr, "%s %d high coverage interval %ld %ld max %u coverage %u\n",
-              (tigIsUnitig) ? "unitig" : "contig", tigID, ID.lo(ii), ID.hi(ii), maxPos, ID.de(ii));
+              (tigIsUnitig) ? "unitig" : "contig", tigID, ID.lo(ii), ID.hi(ii), maxPos, ID.depth(ii));
       maxL.add(ID.lo(ii), ID.hi(ii) - ID.lo(ii) + 1);
     }
   }
 #endif
 
   for (uint32 ii=0; ii<ID.numberOfIntervals(); ii++) {
-    if (ID.de(ii) > maxDepth)
-      maxDepth = ID.de(ii);
+    if (ID.depth(ii) > maxDepth)
+      maxDepth = ID.depth(ii);
 
-    aveDepth += (ID.hi(ii) - ID.lo(ii) + 1) * ID.de(ii);
+    aveDepth += (ID.hi(ii) - ID.lo(ii) + 1) * ID.depth(ii);
 
-    if (ID.de(ii) < coverageHistogramLen)
-      coverageHistogram[ID.de(ii)] += ID.hi(ii) - ID.lo(ii) + 1;
+    if (ID.depth(ii) < coverageHistogramLen)
+      coverageHistogram[ID.depth(ii)] += ID.hi(ii) - ID.lo(ii) + 1;
     else
-      fprintf(stderr, "deep coverage %d\n", ID.de(ii));
+      fprintf(stderr, "deep coverage %d\n", ID.depth(ii));
   }
 
   aveDepth /= maxPos;
 
   for (uint32 ii=0; ii<ID.numberOfIntervals(); ii++) {
-    sdeDepth += (ID.hi(ii) - ID.lo(ii) + 1) * (ID.de(ii) - aveDepth) * (ID.de(ii) - aveDepth);
+    sdeDepth += (ID.hi(ii) - ID.lo(ii) + 1) * (ID.depth(ii) - aveDepth) * (ID.depth(ii) - aveDepth);
   }
 
   sdeDepth = sqrt(sdeDepth / maxPos);
@@ -492,8 +492,8 @@ dumpCoverage(MultiAlignStore *tigStore,
       fprintf(stderr, "Failed to open '%s': %s\n", outName, strerror(errno)), exit(1);
 
     for (uint32 ii=0; ii<ID.numberOfIntervals(); ii++) {
-      fprintf(outFile, "%d\t%u\n", ID.lo(ii),     ID.de(ii));
-      fprintf(outFile, "%d\t%u\n", ID.hi(ii) - 1, ID.de(ii));
+      fprintf(outFile, "%d\t%u\n", ID.lo(ii),     ID.depth(ii));
+      fprintf(outFile, "%d\t%u\n", ID.hi(ii) - 1, ID.depth(ii));
     }
 
     fclose(outFile);
