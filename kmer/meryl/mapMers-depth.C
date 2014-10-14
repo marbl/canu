@@ -8,6 +8,7 @@
 #include "libmeryl.H"
 #include "existDB.H"
 
+#warning this code might not work due to intervalList changes
 
 int
 main(int argc, char **argv) {
@@ -64,16 +65,23 @@ main(int argc, char **argv) {
     while (MS->nextMer()) {
       int32   cnt = (int32)E->count(MS->theFMer()) + (int32)E->count(MS->theRMer());
 
-      id[idlen].pos = MS->thePositionInSequence();
-      id[idlen].cha = cnt;
+      //  Old intervalDepth was to add 'cnt' in the first and subtract 'cnt' in the second.
+      //  Then to use the 'ct' field below.
+      //  New intervalDepth is the same, but uses the value field.
+      //  Count is now the number of intervals that are represented in this block.
+
+      id[idlen].pos     = MS->thePositionInSequence();
+      id[idlen].change  = cnt;
+      id[idlen].open    = true;
       idlen++;
 
-      id[idlen].pos = MS->thePositionInSequence() + merSize;
-      id[idlen].cha = -cnt;
+      id[idlen].pos     = MS->thePositionInSequence() + merSize;
+      id[idlen].change  = cnt;
+      id[idlen].open    = false;
       idlen++;
     }
 
-    intervalDepth<uint64> ID(id, idlen);
+    intervalList<uint64>  ID(id, idlen);
     uint32                x = 0;
 
     uint32                len = S->sequenceLength();
@@ -85,7 +93,7 @@ main(int argc, char **argv) {
         for (; x < ID.lo(i); x++)
           fprintf(stdout, uint32FMTW(7)"\t"uint32FMTW(6)"\n", x, 0);
         for (; x < ID.hi(i); x++)
-          fprintf(stdout, uint32FMTW(7)"\t"uint32FMTW(6)"\n", x, ID.de(i));
+          fprintf(stdout, uint32FMTW(7)"\t"uint32FMTW(6)"\n", x, ID.value(i));
       }
       for (; x < len; x++)
         fprintf(stdout, uint32FMTW(7)"\t"uint32FMTW(6)"\n", x, 0);
@@ -97,7 +105,7 @@ main(int argc, char **argv) {
 
       for (uint32 i=0; i < ID.numberOfIntervals(); i++)
         for (x=ID.lo(i); x < ID.hi(i); x++)
-          depth[x] = ID.de(i);
+          depth[x] = ID.count(i);
 
       uint32   avedepth = 0;
 

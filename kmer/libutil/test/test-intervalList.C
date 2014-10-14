@@ -7,7 +7,7 @@ mt_s  *mt = 0L;
 void
 test(void) {
   int           e = 0;
-  intervalList  I;
+  intervalList<uint32>  I;
 
   I.add(71,  3);
   I.add( 5,  3);
@@ -66,8 +66,8 @@ testIntersect(uint32 type) {
   uint32   errors  = 0;
   uint32   passed  = 0;
 
-  intervalList  A;
-  intervalList  B;
+  intervalList<uint32>  A;
+  intervalList<uint32>  B;
 
   //
   //  Build two interval lists
@@ -150,7 +150,7 @@ testIntersect(uint32 type) {
     B.add(1000 * i + beg[i] - bbegh[i], bbegh[i] + end[i] - beg[i] + bendh[i]);
   }
 
-  intervalList I;
+  intervalList<uint32> I;
   I.intersect(A, B);
 
   //
@@ -191,7 +191,8 @@ testIntersect(uint32 type) {
 
 void
 testMerge(void) {
-  intervalList  IL;
+  intervalList<uint32,double>  IL;
+  intervalList<uint32,double>  ID;
 
   //  Test 1:  one long sequence containing lots of little non-overlapping sequences
   //  Test 2:  three long overlapping sequences, containing lots of non-overlapping sequences
@@ -205,7 +206,15 @@ testMerge(void) {
     IL.add(100 + 100 * i, 50);
   IL.merge();
   for (uint32 i=0; i<IL.numberOfIntervals(); i++)
-    fprintf(stderr, "IL["uint32FMTW(3)"] "uint64FMT" "uint64FMT"\n", i, IL.lo(i), IL.hi(i));
+    fprintf(stderr, "IL["uint32FMTW(3)"] %6u %6u\n", i, IL.lo(i), IL.hi(i));
+
+  IL.clear();
+  for (uint32 i=0; i<999; i++)
+    IL.add(100 + 100 * i, 50);
+  IL.add(0, 100000);
+  IL.merge();
+  for (uint32 i=0; i<IL.numberOfIntervals(); i++)
+    fprintf(stderr, "IL["uint32FMTW(3)"] %6u %6u\n", i, IL.lo(i), IL.hi(i));
 
   fprintf(stderr, "Merge test 2\n");
   IL.clear();
@@ -216,7 +225,7 @@ testMerge(void) {
     IL.add(100 + 100 * i, 50);
   IL.merge();
   for (uint32 i=0; i<IL.numberOfIntervals(); i++)
-    fprintf(stderr, "IL["uint32FMTW(3)"] "uint64FMT" "uint64FMT"\n", i, IL.lo(i), IL.hi(i));
+    fprintf(stderr, "IL["uint32FMTW(3)"] %6u %6u\n", i, IL.lo(i), IL.hi(i));
 
   fprintf(stderr, "Merge test 3\n");
   IL.clear();
@@ -233,7 +242,7 @@ testMerge(void) {
   if ((IL.lo(0) != lo) || (IL.hi(0) != hi))
     fprintf(stderr, "ERROR!\n");
   for (uint32 i=0; i<IL.numberOfIntervals(); i++)
-    fprintf(stderr, "IL["uint32FMTW(3)"] "uint64FMT" "uint64FMT"\n", i, IL.lo(i), IL.hi(i));
+    fprintf(stderr, "IL["uint32FMTW(3)"] %6u %6u\n", i, IL.lo(i), IL.hi(i));
 
   fprintf(stderr, "Merge test 4a\n");
   IL.clear();
@@ -242,19 +251,56 @@ testMerge(void) {
   IL.add(50000, 50000);
   IL.merge();
   for (uint32 i=0; i<IL.numberOfIntervals(); i++)
-    fprintf(stderr, "IL["uint32FMTW(3)"] "uint64FMT" "uint64FMT"\n", i, IL.lo(i), IL.hi(i));
+    fprintf(stderr, "IL["uint32FMTW(3)"] %6u %6u\n", i, IL.lo(i), IL.hi(i));
 
   fprintf(stderr, "Merge test 4b\n");
   IL.clear();
-  IL.add(0, 25000);
-  IL.add(25000, 25000);
-  IL.add(50000, 50000);
-  IL.add(20000, 5000);
-  IL.add(45000, 5000);
-  IL.add(95000, 5000);
+  IL.add(    0, 25000, 1);
+  IL.add(25000, 25000, 2);
+  IL.add(50000, 50000, 4);
+  IL.add(20000,  5000, 8);
+  IL.add(45000,  5000, 16);
+  IL.add(95000,  5000, 32);
+  ID.depth(IL);
   IL.merge();
   for (uint32 i=0; i<IL.numberOfIntervals(); i++)
-    fprintf(stderr, "IL["uint32FMTW(3)"] "uint64FMT" "uint64FMT"\n", i, IL.lo(i), IL.hi(i));
+    fprintf(stderr, "IL["uint32FMTW(3)"] %6u %6u count %6u value %f\n", i, IL.lo(i), IL.hi(i), IL.count(i), IL.value(i));
+  for (uint32 i=0; i<ID.numberOfIntervals(); i++)
+    fprintf(stderr, "ID["uint32FMTW(3)"] %6u %6u depth %6u value %f\n", i, ID.lo(i), ID.hi(i), ID.count(i), ID.value(i));
+
+  fprintf(stderr, "Merge test 5\n");
+  IL.clear();
+  ID.clear();
+  IL.add(    0, 25000, 1);
+  IL.add(25000, 25000, 2);
+  IL.add(50000, 50000, 4);
+  IL.add(20000, 20000, 8);
+  IL.add(30000, 40000, 16);
+  IL.add(50000, 10000, 32);
+  //IL.add(10000, 90000, 32);
+  ID.depth(IL);
+  for (uint32 i=0; i<IL.numberOfIntervals(); i++)
+    fprintf(stderr, "IL["uint32FMTW(3)"] %6u %6u count %6u value %f\n", i, IL.lo(i), IL.hi(i), IL.count(i), IL.value(i));
+  for (uint32 i=0; i<ID.numberOfIntervals(); i++)
+    fprintf(stderr, "ID["uint32FMTW(3)"] %6u %6u depth %6u value %f\n", i, ID.lo(i), ID.hi(i), ID.count(i), ID.value(i));
+
+  fprintf(stderr, "Merge test 6 (same as 5, but val = default)\n");
+  IL.clear();
+  ID.clear();
+  IL.add(    0, 25000);
+  IL.add(25000, 25000);
+  IL.add(50000, 50000);
+  IL.add(20000, 20000);
+  IL.add(30000, 40000);
+  IL.add(50000, 10000);
+  //IL.add(10000, 90000);
+  ID.depth(IL);
+  for (uint32 i=0; i<IL.numberOfIntervals(); i++)
+    fprintf(stderr, "IL["uint32FMTW(3)"] %6u %6u count %6u value %f\n", i, IL.lo(i), IL.hi(i), IL.count(i), IL.value(i));
+  for (uint32 i=0; i<ID.numberOfIntervals(); i++)
+    fprintf(stderr, "ID["uint32FMTW(3)"] %6u %6u depth %6u value %f\n", i, ID.lo(i), ID.hi(i), ID.count(i), ID.value(i));
+
+
 }
 
 

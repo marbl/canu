@@ -45,7 +45,7 @@ main(int argc, char **argv) {
     IL.add(beg, end-beg);
   }
 
-  intervalDepth<uint64> ID(IL);
+  intervalList<uint64> ID(IL);
 
   //  The extra 1000 here is so we can be lazy in the
   //  output section when computing averages.
@@ -57,7 +57,7 @@ main(int argc, char **argv) {
   for (uint32 i=0; i<ID.numberOfIntervals(); i++) {
     uint32 l = ID.lo(i);
     uint32 h = ID.hi(i);
-    uint32 d = ID.de(i);
+    uint32 d = ID.count(i);
 
     while (l < h) {
       DD[l] = d;
