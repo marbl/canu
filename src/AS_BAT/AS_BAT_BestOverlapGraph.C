@@ -226,16 +226,14 @@ BestOverlapGraph::removeFalseBest(void) {
   memset(altBest, 0, sizeof(char) * (fiLimit + 1));
   memset(isBad,   0, sizeof(char) * (fiLimit + 1));
 
+  //  Compute a histogram of the current best edges, and save the erate of the best for each read.
+
   for (AS_IID fi=1; fi <= fiLimit; fi++) {
     uint32            olapsLen = 0;
     BAToverlap       *olaps    = OC->getOverlaps(fi, olapsLen);
 
     BestEdgeOverlap  *ovl5 = getBestEdgeOverlap(fi, false);
     BestEdgeOverlap  *ovl3 = getBestEdgeOverlap(fi, true);
-
-    if (fi == 3359) {
-      fprintf(stderr, "3359 best %u %u\n", ovl5->fragId(), ovl3->fragId());
-    }
 
     for (uint32 oo=0; oo<olapsLen; oo++) {
       assert(fi == olaps[oo].a_iid);
@@ -252,7 +250,7 @@ BestOverlapGraph::removeFalseBest(void) {
     }
   }
 
-  //  Compute a nice threshold.
+  //  Compute a nice threshold.  Find the mean and stddev of the best edge error rates.
 
   double  m5 = 0, s5 = 100;
   double  m3 = 0, s3 = 100;
@@ -263,7 +261,7 @@ BestOverlapGraph::removeFalseBest(void) {
     double  stddev5 = 100, stddev3 = 100;
 
     for (AS_IID er=0; er <= AS_BAT_MAX_ERATE; er++) {
-      double ER =  OC->decodeError(er) * 100;
+      double ER = OC->decodeError(er) * 100;
 
       if (ER <= 0.0)
         continue;
@@ -314,7 +312,6 @@ BestOverlapGraph::removeFalseBest(void) {
     fprintf(stderr, "set xtics ( %.4f, %.4f,    %.4f, %.4f)\n",
             mean5 - 3 * stddev5, mean5 + 3 * stddev5,
             mean3 - 3 * stddev3, mean3 + 3 * stddev3);
-
   }  //  xx 10 times to stabilize
 
 
@@ -347,12 +344,11 @@ BestOverlapGraph::removeFalseBest(void) {
     fclose(EH);
   }
 
-  double  erate5thresh = m5 + 2 * s5;
-  double  erate3thresh = m3 + 2 * s3;
-
-
   //  For any read with best edge above THRESHOLD error, see if there is an alternate best
   //  that is within the target error range.
+
+  double  erate5thresh = m5 + 2 * s5;  //  Discard best if it is worse than 2 s.d. from mean.
+  double  erate3thresh = m3 + 2 * s3;
 
   for (AS_IID fi=1; fi <= fiLimit; fi++) {
 
@@ -429,9 +425,97 @@ BestOverlapGraph::removeFalseBest(void) {
 
 
 
+
+
+
+
+
+
+void
+BestOverlapGraph::removeWeak(double threshold) {
+  uint32  fiLimit    = FI->numFragments();
+  uint32  numThreads = omp_get_max_threads();
+  uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
+
+  writeLog("BestOverlapGraph()-- detecting weak overlaps.\n");
+
+  //  For each read, mark an overlap as bad if it falls in the lower
+  //  X% of overlaps sorted by identity.
+
+  uint32  *minErate5p = new uint32 [fiLimit + 1];
+  uint32  *minErate3p = new uint32 [fiLimit + 1];
+
+  memset(minErate5p, 0, sizeof(uint32) * (fiLimit + 1));
+  memset(minErate3p, 0, sizeof(uint32) * (fiLimit + 1));
+
+  uint32   eratesMax  = 1048576;
+  uint32   erates5len = 0;
+  uint32  *erates5    = new uint32 [eratesMax];
+  uint32   erates3len = 0;
+  uint32  *erates3    = new uint32 [eratesMax];
+
+  for (AS_IID fi=1; fi <= fiLimit; fi++) {
+    uint32            olapsLen = 0;
+    BAToverlap       *olaps    = OC->getOverlaps(fi, olapsLen);
+
+    uint64            ovl5sum = 0;
+    uint32            ovl5cnt = 0;
+
+    uint64            ovl3sum = 0;
+    uint32            ovl3cnt = 0;
+
+    erates5len = 0;
+    erates5[0] = 0;
+
+    erates3len = 0;
+    erates3[0] = 0;
+
+    //  Find the error rate histogram for each end.
+
+    for (uint32 oo=0; oo<olapsLen; oo++) {
+      assert(fi == olaps[oo].a_iid);
+
+      if ((AS_BAT_overlapAEndIs5prime(olaps[oo])) && (erates5len < eratesMax))
+        erates5[erates5len++] = olaps[oo].errorRaw;
+
+      if ((AS_BAT_overlapAEndIs3prime(olaps[oo])) && (erates5len < eratesMax))
+        erates3[erates3len++] = olaps[oo].errorRaw;
+    }
+
+    //  Sort by increasing error rate.
+
+    sort(erates5, erates5 + erates5len);
+    sort(erates3, erates3 + erates3len);
+
+    //  Pick a min erate for each end.
+
+    minErate5p[fi] = erates5[(int32)(erates5len - erates5len * threshold)];
+    minErate3p[fi] = erates3[(int32)(erates3len - erates3len * threshold)];
+
+    if ((fi % 1000) == 0) {
+      fprintf(stderr, "len %d %d t %f vals %d %f %d %f\n", erates5len, erates3len, threshold,
+              minErate5p[fi], OC->decodeError(minErate5p[fi]),
+              minErate3p[fi], OC->decodeError(minErate3p[fi]));
+    }
+  }
+
+  delete [] erates5;
+  delete [] erates3;
+
+  //  Throw this at the OverlapCache, so it can remove overlaps.
+
+  OC->removeWeakOverlaps(minErate5p, minErate3p);
+
+  delete [] minErate5p;
+  delete [] minErate3p;
+}
+
+
+
 BestOverlapGraph::BestOverlapGraph(double               utgErrorRate,
                                    double               utgErrorLimit,
                                    const char          *prefix,
+                                   double               doRemoveWeakThreshold,
                                    bool                 doRemoveSuspicious,
                                    bool                 doRemoveSpurs) {
 
@@ -467,6 +551,9 @@ BestOverlapGraph::BestOverlapGraph(double               utgErrorRate,
 
   //  PASS 0:  Find suspicious fragments.  For any found, mark as suspicious and don't allow
   //  these to be best overlaps.
+
+  if (doRemoveWeakThreshold > 0.0)
+    removeWeak(doRemoveWeakThreshold);
 
   if (doRemoveSuspicious)
     removeSuspicious();

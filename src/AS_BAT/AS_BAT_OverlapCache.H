@@ -138,6 +138,9 @@ public:
 
   BAToverlap  *getOverlaps(uint32 fragIID, uint32 &numOverlaps);
 
+  void         removeWeakOverlaps(uint32 *minErate5p,
+                                  uint32 *minErate3p);
+
   double       decodeError(uint32 error) {
     return(_BATerate[error]);
   };

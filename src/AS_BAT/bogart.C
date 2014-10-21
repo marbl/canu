@@ -79,6 +79,7 @@ main (int argc, char * argv []) {
   char     *output_prefix            = NULL;
 
   bool      removeSpur               = false;
+  double    removeWeak               = 0.0;
   bool      removeSuspicious         = false;
   bool      noContainsInSingletons   = false;
   bool      enableJoining            = false;
@@ -116,6 +117,9 @@ main (int argc, char * argv []) {
 
     } else if (strcmp(argv[arg], "-RS") == 0) {
       removeSpur = true;
+
+    } else if (strcmp(argv[arg], "-RW") == 0) {
+      removeWeak = atof(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-NS") == 0) {
       removeSuspicious = true;
@@ -274,6 +278,7 @@ main (int argc, char * argv []) {
     fprintf(stderr, "  -RS        Remove edges to spur reads from best overlap graph.\n");
     fprintf(stderr, "  -NS        Don't seed promiscuous unitigs with suspicious reads.\n");
     fprintf(stderr, "  -CS        Don't place contained reads in singleton unitigs.\n");
+    fprintf(stderr, "  -RW t      Remove weak overlaps, those in the lower t fraction of erates per overlap end.\n");
     fprintf(stderr, "  -J         Join promiscuous unitigs using unused best edges.\n");
     fprintf(stderr, "  -SR        Shatter repeats.  Enabled with -R and -E; if neither are supplied,\n");
     fprintf(stderr, "               repeat fragments are promoted to singleton unitigs (unless -DP).\n");
@@ -390,7 +395,7 @@ main (int argc, char * argv []) {
   Unitig::resetFragUnitigMap(FI->numFragments());
 
   OC = new OverlapCache(ovlStoreUniq, ovlStoreRept, output_prefix, MAX(erateGraph, erateMerge), MAX(elimitGraph, elimitMerge), ovlCacheMemory, ovlCacheLimit, onlySave, doSave);
-  OG = new BestOverlapGraph(erateGraph, elimitGraph, output_prefix, removeSuspicious, removeSpur);
+  OG = new BestOverlapGraph(erateGraph, elimitGraph, output_prefix, removeWeak, removeSuspicious, removeSpur);
   CG = new ChunkGraph(output_prefix);
   IS = NULL;
 

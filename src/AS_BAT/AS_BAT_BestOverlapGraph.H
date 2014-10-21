@@ -56,13 +56,15 @@ private:
   void   examineOnlyTopN(void);
   void   removeSpurs(void);
   void   removeFalseBest(void);
+  void   removeWeak(double threshold);
 
 public:
   BestOverlapGraph(double      erate,
                    double      elimit,
                    const char *prefix,
-                   bool        removeSuspicious,
-                   bool        removeSpurs);
+                   double      doRemoveWeakThreshold,
+                   bool        doRemoveSuspicious,
+                   bool        doRemoveSpurs);
 
   BestOverlapGraph(double erate,
                    double elimit,

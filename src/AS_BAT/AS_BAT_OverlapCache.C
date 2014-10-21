@@ -699,6 +699,77 @@ OverlapCache::getOverlaps(uint32 fragIID, uint32 &numOverlaps) {
 
 
 
+void
+OverlapCache::removeWeakOverlaps(uint32 *minErate5p,
+                                 uint32 *minErate3p) {
+
+  uint32  fiLimit    = FI->numFragments();
+
+  uint64  saved      = 0;
+  uint64  ignored    = 0;
+  uint64  removed    = 0;
+
+  for (AS_IID fi=1; fi <= fiLimit; fi++) {
+    uint32         numOverlaps = _cacheLen[fi];
+    BAToverlapInt *ptr         = _cachePtr[fi];
+
+    for (uint32 pos=0; pos < numOverlaps; pos++) {
+      uint32  aiid  = fi;
+      uint32  biid  = ptr[pos].b_iid;
+      uint32  erate = ptr[pos].error;
+
+      //  Ignore contained overlaps.
+
+      if (((ptr[pos].a_hang <= 0) && (ptr[pos].b_hang >= 0)) ||
+          ((ptr[pos].a_hang >= 0) && (ptr[pos].b_hang <= 0))) {
+        ignored++;
+        continue;
+      }
+
+      //  Decide which end we need to be looking at.
+
+      uint32  ta = 0;
+      uint32  tb = 0;
+
+      if (ptr[pos].a_hang > 0)
+        ta = minErate3p[aiid];
+      else
+        ta = minErate5p[aiid];
+
+      if (ptr[pos].flipped == false) {
+        if (ptr[pos].b_hang > 0)
+          tb = minErate5p[biid];
+        else
+          tb = minErate3p[biid];
+
+      } else {
+        if (ptr[pos].b_hang > 0)
+          tb = minErate3p[biid];
+        else
+          tb = minErate5p[biid];
+      }
+
+      //  If the erate is more than the threshold, 'remove' the overlap by maxing out the erate.
+
+      if ((erate > ta) ||
+          (erate > tb)) {
+        //fprintf(stdout, "OverlapCache::removeWeakOverlaps()--  remove %7d %7d at %.3f\n", aiid, biid, OC->decodeError(erate));
+        removed++;
+        ptr[pos].error = AS_BAT_MAX_ERATE;
+      } else {
+        saved++;
+      }
+    }
+  }
+
+  writeLog("OverlapCache::removeWeakOverlaps()--  removed  "F_U64" weak overlaps.\n", removed);
+  writeLog("OverlapCache::removeWeakOverlaps()--  ignored  "F_U64" contained overlaps.\n", ignored);
+  writeLog("OverlapCache::removeWeakOverlaps()--  retained "F_U64" strong overlaps.\n", saved);
+}
+
+
+
+
 double
 OverlapCache::findError(uint32 aIID, uint32 bIID) {
 
