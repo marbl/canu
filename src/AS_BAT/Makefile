@@ -66,10 +66,10 @@ DNC_SOURCES = classifyMates-BFS.C \
 DNC_OBJECTS = $(DNC_SOURCES:.C=.o)
 
 
-SOURCES     = bogart.C bogus.C bogusness.C AS_BAT_bogusUtil.C classifyMates.C classifyMatesApply.C classifyMatesPairwise.C splitUnitigs.C computeCoverageStat.C markRepeatUnique.C rewriteCache.C $(BAT_SOURCES) $(DNC_SOURCES)
-OBJECTS     = bogart.o bogus.o bogusness.o AS_BAT_bogusUtil.o classifyMates.o classifyMatesApply.o classifyMatesPairwise.o splitUnitigs.o computeCoverageStat.o markRepeatUnique.o rewriteCache.o $(BAT_OBJECTS) $(DNC_OBJECTS)
+SOURCES     = bogart.C bogus.C bogusness.C AS_BAT_bogusUtil.C classifyMates.C classifyMatesApply.C classifyMatesPairwise.C splitUnitigs.C computeCoverageStat.C markRepeatUnique.C rewriteCache.C erate-estimate.C $(BAT_SOURCES) $(DNC_SOURCES)
+OBJECTS     = bogart.o bogus.o bogusness.o AS_BAT_bogusUtil.o classifyMates.o classifyMatesApply.o classifyMatesPairwise.o splitUnitigs.o computeCoverageStat.o markRepeatUnique.o rewriteCache.o erate-estimate.o $(BAT_OBJECTS) $(DNC_OBJECTS)
 
-CXX_PROGS   = bogart bogus bogusness classifyMates classifyMatesApply classifyMatesPairwise splitUnitigs computeCoverageStat markRepeatUnique rewriteCache
+CXX_PROGS   = bogart bogus bogusness classifyMates classifyMatesApply classifyMatesPairwise splitUnitigs computeCoverageStat markRepeatUnique rewriteCache erate-estimate
 
 
 
@@ -90,3 +90,4 @@ splitUnitigs:           splitUnitigs.o                         libCA.a
 computeCoverageStat:    computeCoverageStat.o                  libCA.a
 markRepeatUnique:       markRepeatUnique.o                     libCA.a
 rewriteCache:           rewriteCache.o AS_BAT_FragmentInfo.o AS_BAT_Logging.o libCA.a
+erate-estimate:         erate-estimate.o                       libCA.a
