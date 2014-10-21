@@ -1596,7 +1596,7 @@ sub caFailure ($$) {
         print STDERR "----------------------------------------\n";
         print STDERR "Last few lines of the relevant log file ($log):\n";
         print STDERR "\n";
-        system("tail -n 20 $log");
+        system("tail -n 50 $log");
     }
 
     print STDERR "\n";
