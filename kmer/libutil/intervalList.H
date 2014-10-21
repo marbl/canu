@@ -60,11 +60,24 @@ public:
   //    4,6,1
   //
   intervalList(intervalList<iNum, iVal> &IL) {
+    _isSorted = false;
+    _isMerged = false;
+    _listLen  = 0;
+    _listMax  = 0;
+    _list     = 0L;
+
     depth(IL);
   };
 
   intervalList(intervalDepthRegions<iNum, iVal> *id, uint32 idlen) {
+    _isSorted = false;
+    _isMerged = false;
+    _listLen  = 0;
+    _listMax  = 0;
+    _list     = 0L;
+
     std::sort(id, id + idlen);
+
     computeDepth(id, idlen);
   };
 
@@ -166,7 +179,7 @@ intervalList<iNum, iVal>::operator=(intervalList &src) {
 
 template <class iNum, class iVal>
 void
-intervalList<iNum, iVal>::add(iNum position, iNum length, iVal value) {
+intervalList<iNum, iVal>::add(iNum position, iNum length, iVal val) {
 
   if (_listLen >= _listMax) {
     _listMax *= 2;
@@ -179,7 +192,7 @@ intervalList<iNum, iVal>::add(iNum position, iNum length, iVal value) {
   _list[_listLen].lo   = position;
   _list[_listLen].hi   = position + length;
   _list[_listLen].ct   = 1;
-  _list[_listLen].va   = value;
+  _list[_listLen].va   = val;
 
   //  Could optimize, and search the list to see if these are false,
   //  but that's rather expensive.
@@ -315,7 +328,7 @@ intervalList<iNum, iVal>::merge(intervalList<iNum, iVal> *IL) {
 
 template <class iNum, class iVal>
 void
-intervalList<iNum, iVal>::invert(iNum lo, iNum hi) {
+intervalList<iNum, iVal>::invert(iNum invlo, iNum invhi) {
 
   merge();
 
@@ -327,8 +340,8 @@ intervalList<iNum, iVal>::invert(iNum lo, iNum hi) {
 
   //  Add the zeroth and only?
   if (_listLen == 0) {
-    inv[invLen].lo = lo;
-    inv[invLen].hi = hi;
+    inv[invLen].lo = invlo;
+    inv[invLen].hi = invhi;
     inv[invLen].ct = 1;
     inv[invLen].va = 0;
     invLen++;
@@ -337,8 +350,8 @@ intervalList<iNum, iVal>::invert(iNum lo, iNum hi) {
   //  Add the first, then the pieces, then the last
   //
   else {
-    if (lo < _list[0].lo) {
-      inv[invLen].lo = lo;
+    if (invlo < _list[0].lo) {
+      inv[invLen].lo = invlo;
       inv[invLen].hi = _list[0].lo;
       inv[invLen].ct = 1;
       inv[invLen].va = 0;
@@ -355,9 +368,9 @@ intervalList<iNum, iVal>::invert(iNum lo, iNum hi) {
       }
     }
 
-    if (_list[_listLen-1].hi < hi) {
+    if (_list[_listLen-1].hi < invhi) {
       inv[invLen].lo = _list[_listLen-1].hi;
-      inv[invLen].hi = hi;
+      inv[invLen].hi = invhi;
       inv[invLen].ct = 1;
       inv[invLen].va = 0;
       invLen++;
@@ -556,9 +569,9 @@ intervalList<iNum, iVal>::computeDepth(intervalDepthRegions<iNum, iVal> *id, uin
 
   //  Scan the list, counting how many times we change depth.
 
+#if 0
   uint32  lm = 1;
 
-#if 0
   for (uint32 i=1; i<idlen; i++)
     if (id[i-1].pos != id[i].pos)
       lm++;
@@ -566,14 +579,12 @@ intervalList<iNum, iVal>::computeDepth(intervalDepthRegions<iNum, iVal> *id, uin
 
   //  But then admit we don't really know how many, and reset to the maximum possible.
 
-  lm = idlen;
-
   //  Allocate the real depth of coverage intervals
 
-  if (lm < _listMax) {
+  if (_listMax < idlen) {
     delete [] _list;
 
-    _listMax = lm;
+    _listMax = idlen;
     _list    = new _intervalPair<iNum, iVal> [_listMax];
   }
 
