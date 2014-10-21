@@ -43,6 +43,8 @@ main(int argc, char **argv) {
   uint32          endIID      = UINT32_MAX;
   uint32          qryIID      = 0;
 
+  bool            beVerbose   = false;
+
   //  Genome size parameters
   uint32          gs_ovlLimit = 100;
   uint32          gs_winSize  = 100;
@@ -117,6 +119,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-e") == 0) {
       endIID = atoi(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-v") == 0) {
+      beVerbose = true;
+
     } else if (strcmp(argv[arg], "-q") == 0) {
       if (storeName)
         fprintf(stderr, "ERROR: only one of -c, -m, -d, -q, -s, -S or -u may be supplied.\n"), err++;
@@ -161,6 +166,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -dc               Dump only overlaps that are containing the A frag (A contained in B).\n");
     fprintf(stderr, "  -b beginIID       Start dumping at 'beginIID'.\n");
     fprintf(stderr, "  -e endIID         Stop dumping after 'endIID'.\n");
+    fprintf(stderr, "  -v                Report statistics (to stderr) on some dumps (-d).\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "QUERYING - quickly ask if an overlap exists\n");
     fprintf(stderr, "  -q aiid biid storeName\n");
@@ -179,7 +185,7 @@ main(int argc, char **argv) {
 
   switch (operation) {
     case OP_DUMP:
-      dumpStore(storeName, dumpBinary, dumpERate, dumpLength, dumpType, bgnIID, endIID, qryIID);
+      dumpStore(storeName, dumpBinary, dumpERate, dumpLength, dumpType, bgnIID, endIID, qryIID, beVerbose);
       break;
     case OP_DUMP_PICTURE:
       dumpPicture(storeName, gkpName, clearRegion, dumpERate, dumpLength, dumpType, qryIID);
