@@ -186,7 +186,9 @@ AS_OVS_convertOBTdumpToOVSoverlap(char *line, OVSoverlap *olap) {
 
 
 
-
+//  NOTE!  This isn't a PROPER OBT overlap, since the b coord can be
+//  reversed to show fwd/rev orientation.
+//
 void
 AS_OVS_convertOVLoverlapToOBToverlap(OVSoverlap &overlap, uint32 clrLenA, uint32 clrLenB) {
 
@@ -200,6 +202,8 @@ AS_OVS_convertOVLoverlapToOBToverlap(OVSoverlap &overlap, uint32 clrLenA, uint32
   uint32  aend    = (bhang < 0) ? (clrLenA + bhang) : (clrLenA);
   uint32  bbgn    = (ahang < 0) ? (-ahang)          : (0);
   uint32  bend    = (bhang < 0) ? (clrLenB)         : (clrLenB - bhang);
+
+  bool    fwd     = (overlap.dat.ovl.flipped == false);
 
   uint64  erate   = overlap.dat.ovl.corr_erate;
 
@@ -215,6 +219,8 @@ AS_OVS_convertOVLoverlapToOBToverlap(OVSoverlap &overlap, uint32 clrLenA, uint32
   overlap.dat.obt.b_beg    = bbgn;
   overlap.dat.obt.b_end_hi = bend >> 9;
   overlap.dat.obt.b_end_lo = bend & 0x1ff;
+
+  overlap.dat.obt.fwd      = fwd;
 
   overlap.dat.obt.erate    = erate;
 }
