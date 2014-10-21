@@ -415,22 +415,24 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
     intervalList<int32>   bgnPoints;
     intervalList<int32>   endPoints;
 
-    uint32         windowSlop = 0.075 * FI->fragmentLength(frag.ident);
+    int32                 windowSlop = 0.075 * FI->fragmentLength(frag.ident);
 
     if (windowSlop < 5)
       windowSlop = 5;
 
     for (uint32 oo=bgn; oo<end; oo++) {
-      int32   b = ovlPlace[oo].position.bgn;
-      int32   e = ovlPlace[oo].position.end;
-
       assert(ovlPlace[oo].tigID > 0);
+
+      int32   b  = ovlPlace[oo].position.bgn;
+      int32   be = ovlPlace[oo].position.bgn + windowSlop;
+      int32   e  = ovlPlace[oo].position.end;
+      int32   ee = ovlPlace[oo].position.end + windowSlop;
 
       b = (b < windowSlop) ? 0 : b - windowSlop;
       e = (e < windowSlop) ? 0 : e - windowSlop;
 
-      bgnPoints.add(b - windowSlop, 2 * windowSlop);
-      endPoints.add(e - windowSlop, 2 * windowSlop);
+      bgnPoints.add(b, be - b);
+      endPoints.add(e, ee - e);
     }
 
     bgnPoints.merge();
@@ -450,24 +452,22 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
     for (uint32 oo=bgn; oo<end; oo++) {
       int32   b = ovlPlace[oo].position.bgn;
       int32   e = ovlPlace[oo].position.end;
-
       int32   c = 0;
 
       ovlPlace[oo].clusterID = 0;
 
       for (int32 r=0; r<numBgnPoints; r++)
         if ((bgnPoints.lo(r) <= b) && (b <= bgnPoints.hi(r))) {
-          assert(ovlPlace[oo].clusterID == 0);
+          assert(ovlPlace[oo].clusterID == 0);  //  Obvious; we just set it to zero above.
           ovlPlace[oo].clusterID = c = r * numEndPoints + 1;
         }
 
       for (int32 r=0; r<numEndPoints; r++)
         if ((endPoints.lo(r) <= e) && (e <= endPoints.hi(r))) {
-          assert(ovlPlace[oo].clusterID == c);
+          assert(ovlPlace[oo].clusterID == c);  //  Otherwise, bgn point wasn't placed in a cluster!
           ovlPlace[oo].clusterID += r;
         }
     }
-
       
     sort(ovlPlace + bgn, ovlPlace + end, overlapPlacement_byCluster);
 
