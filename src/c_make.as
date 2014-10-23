@@ -208,11 +208,14 @@ ifeq ($(BUILDPROFILE), 1)
   ARCH_LDFLAGS += -pg
 endif
 
+
+
 # One can argue that CXXFLAGS should be separate.  For now, we only
 # add to the flags.
 
 CFLAGS          += $(ARCH_CFLAGS)
 CXXFLAGS        += $(ARCH_CFLAGS) $(ARCH_CXXFLAGS)
+
 
 #  -rdynamic is needed for the crash reporting, iirc.
 ifneq ($(OSTYPE), Darwin)
@@ -221,18 +224,6 @@ else
   LDFLAGS         += $(ARCH_LDFLAGS)
 endif
 
-INC_IMPORT_DIRS += $(LOCAL_WORK)/src $(patsubst %, $(LOCAL_WORK)/src/%, $(strip $(SUBDIRS)))
-INC_IMPORT_DIRS += $(ARCH_INC)
-
-LIB_IMPORT_DIRS += $(LOCAL_LIB)
-LIB_IMPORT_DIRS += $(ARCH_LIB)
-
-OBJ_SEARCH_PATH  = $(LOCAL_OBJ)
-
-
-ifeq ($(SITE_NAME), JCVI)
-  LDFLAGS += -lcurl
-endif
 
 
 #  This isn't perfect; if we're building debug here, we _usually_ want
@@ -250,12 +241,24 @@ ifeq ($(shell ls -d $(LOCAL_WORK)/kmer/$(OSTYPE)-$(MACHINETYPE) 2> /dev/null), $
 endif
 
 endif
-#
-#  BOILERPLATE
-#
 
+
+
+INC_IMPORT_DIRS += $(LOCAL_WORK)/src $(patsubst %, $(LOCAL_WORK)/src/%, $(strip $(SUBDIRS)))
 INC_IMPORT_DIRS += $(KMER)/include
+INC_IMPORT_DIRS += $(ARCH_INC)
+
+LIB_IMPORT_DIRS += $(LOCAL_LIB)
 LIB_IMPORT_DIRS += $(KMER)/lib
+LIB_IMPORT_DIRS += $(ARCH_LIB)
+
+OBJ_SEARCH_PATH  = $(LOCAL_OBJ)
+
+
+ifeq ($(SITE_NAME), JCVI)
+  LDFLAGS += -lcurl
+endif
+
 
 
 
