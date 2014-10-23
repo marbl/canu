@@ -76,7 +76,12 @@ public:
     _listMax  = 0;
     _list     = 0L;
 
+#ifdef _GLIBCXX_PARALLEL
+    //  Don't use the parallel sort, not with the expense of starting threads.
+    __gnu_sequential::sort(id, id + idlen);
+#else
     std::sort(id, id + idlen);
+#endif
 
     computeDepth(id, idlen);
   };
@@ -212,7 +217,12 @@ intervalList<iNum, iVal>::sort(void) {
     return;
 
   if (_listLen > 1)
+#ifdef _GLIBCXX_PARALLEL
+    //  Don't use the parallel sort, not with the expense of starting threads.
+    __gnu_sequential::sort(_list, _list + _listLen);
+#else
     std::sort(_list, _list + _listLen);
+#endif
 
   _isSorted = true;
 }
@@ -565,7 +575,12 @@ intervalList<iNum, iVal>::computeDepth(intervalDepthRegions<iNum, iVal> *id, uin
 
   //  Sort by coordinate.
 
-  std::sort(id, id + idlen);
+#ifdef _GLIBCXX_PARALLEL
+    //  Don't use the parallel sort, not with the expense of starting threads.
+    __gnu_sequential::sort(id, id + idlen);
+#else
+    std::sort(id, id + idlen);
+#endif
 
   //  Scan the list, counting how many times we change depth.
 
