@@ -361,7 +361,7 @@ dumpPicture(char   *ovlName,
     //  dumpPicture(), so it isn't a horrible waste.
 
     if (overlap.dat.obt.type == AS_OVS_TYPE_OVL) {
-  clrBgnB, clrEndB;
+      uint32  clrBgnB, clrEndB;
 
       gkpStore->gkStore_getFragment(overlap.b_iid, &B, GKFRAGMENT_INF);
       B.gkFragment_getClearRegion(clrBgnB, clrEndB, clearRegion);
