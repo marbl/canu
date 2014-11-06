@@ -20,9 +20,9 @@ src := $/existDB-create-from-fasta.C \
        $/positionDB.C \
        $/positionDB.H
 
-$/.CXX_SRCS   := $(filter %.C,${src}) $/driver-existDB.C $/driver-posDB.C $/percentCovered.C $/mask.C
+$/.CXX_SRCS   := $(filter %.C,${src}) $/driver-existDB.C $/driver-posDB.C $/percentCovered.C $/kmer-mask.C
 $/.CXX_INCS   := $(filter %.H,${src})
-$/.CXX_EXES   := $/existDB $/positionDB $/percentCovered $/mask
+$/.CXX_EXES   := $/existDB $/positionDB $/percentCovered $/kmer-mask
 $/.CXX_LIBS   := $/libkmer.a
 $/.CLEAN      := $/*.o
 
@@ -30,6 +30,6 @@ $/libkmer.a:      $(filter %.o,${src:.C=.o})
 $/existDB:        $/driver-existDB.o $/libkmer.a ${LIBMERYL/}libmeryl.a ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a 
 $/positionDB:     $/driver-posDB.o   $/libkmer.a ${LIBMERYL/}libmeryl.a ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a 
 $/percentCovered: $/percentCovered.o $/libkmer.a ${LIBMERYL/}libmeryl.a ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a 
-$/mask:           $/mask.o           $/libkmer.a ${LIBMERYL/}libmeryl.a ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a 
+$/kmer-mask:      $/kmer-mask.o      $/libkmer.a ${LIBMERYL/}libmeryl.a ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a 
 
 $(eval $/%.d $/%.o:    CXXFLAGS+= -I${LIBMERYL/} -I${LIBBIO/} -I${LIBSEQ/} -I${LIBUTL/})
