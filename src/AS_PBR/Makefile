@@ -112,6 +112,7 @@ ifeq ($(OSTYPE), OSF1)
 endif
 
 ifeq ($(OSTYPE), FreeBSD)
+   LDFLAGS += -lz
 endif
 
 ifeq ($(OSTYPE), Darwin)
