@@ -35,32 +35,24 @@ GKPSRC    = AS_GKP_buildPartition.C \
             AS_GKP_illumina.C
 
 SOURCES   = AS_GKP_main.C \
-            AS_GKP_bench.C \
             $(GKPSRC) \
-            sffToCA.C \
             fastqToCA.C \
             fastqSample.C \
             fastqSimulate.C \
             fastqSimulate-sort.C \
             fastqAnalyze.C \
             gkpStoreDumpFASTQ.C \
-            gkpStoreCreate.C \
-            upgrade-v8-to-v9.C \
-            upgrade-v9-to-v10.C
+            gkpStoreCreate.C
 OBJECTS   = $(SOURCES:.C=.o)
 LIBRARIES =
 CXX_PROGS = gatekeeper \
-            gatekeeperbench \
-            sffToCA \
             fastqToCA \
             fastqSample \
             fastqSimulate \
             fastqSimulate-sort \
             fastqAnalyze \
             gkpStoreDumpFASTQ \
-            gkpStoreCreate \
-            upgrade-v8-to-v9 \
-            upgrade-v9-to-v10
+            gkpStoreCreate
 
 include $(LOCAL_WORK)/src/c_make.as
 
@@ -68,8 +60,6 @@ all:    $(OBJECTS) $(LIBRARIES) $(CXX_PROGS)
 	@test -n nop
 
 gatekeeper:           AS_GKP_main.o $(GKPSRC:.C=.o) libCA.a
-gatekeeperbench:      AS_GKP_bench.o                libCA.a
-sffToCA:              sffToCA.o                     libCA.a
 fastqToCA:            fastqToCA.o                   libCA.a
 fastqSample:          fastqSample.o                 libCA.a
 fastqSimulate:        fastqSimulate.o               libCA.a
@@ -77,5 +67,3 @@ fastqSimulate-sort:   fastqSimulate-sort.o          libCA.a
 fastqAnalyze:         fastqAnalyze.o                libCA.a
 gkpStoreDumpFASTQ:    gkpStoreDumpFASTQ.o           libCA.a
 gkpStoreCreate:       gkpStoreCreate.o              libCA.a
-upgrade-v8-to-v9:     upgrade-v8-to-v9.o            libCA.a
-upgrade-v9-to-v10:    upgrade-v9-to-v10.o           libCA.a
