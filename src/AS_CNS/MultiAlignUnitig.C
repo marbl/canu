@@ -24,7 +24,7 @@ static char *rcsid = "$Id$";
 #include "AS_global.H"
 #include "MultiAlignment_CNS.H"
 #include "MultiAlignment_CNS_private.H"
-#include "MicroHetREZ.H"
+//#include "MicroHetREZ.H"
 #include "AS_UTL_reverseComplement.H"
 
 #include <set>
@@ -1158,7 +1158,7 @@ unitigConsensus::generateConsensus(void) {
 
     int32 depth = MANode2Array(manode, &multia, &id_array,0);
 
-    ma->data.unitig_microhet_prob = AS_REZ_MP_MicroHet_prob(multia, id_array, gkpStore, frankensteinLen, depth);
+    ma->data.unitig_microhet_prob = 1.0;  //AS_REZ_MP_MicroHet_prob(multia, id_array, gkpStore, frankensteinLen, depth);
 
     for (int32 i=0;i<depth;i++) {
       delete [] multia[2*i];

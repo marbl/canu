@@ -33,17 +33,11 @@ const char *mainid = "$Id$";
 
 #include "AS_global.H"
 #include "AS_UTL_Var.H"
-#include "SYS_UIDclient.H"
 
 #include "AS_PER_gkpStore.H"
 #include "MultiAlignStore.H"
 
-#include "Globals_CGW.H"
-#include "AS_CGW_dataTypes.H"
-#include "ScaffoldGraph_CGW.H"
-#include "ScaffoldGraphIterator_CGW.H"
-#include "ChiSquareTest_CGW.H"
-
+uint64      uidStart                 = 0;
 
 
 class IIDtoUIDmap {
@@ -97,7 +91,6 @@ private:
 
 
 
-UIDserver     *uidServer = NULL;
 uint64         uidMin    = 0;
 
 IIDtoUIDmap    MDImap;
@@ -290,7 +283,7 @@ bool buildUTGMessage(int32 ID, SnapUnitigMesg *utg) {
   if (ma == NULL)
     return(false);
 
-  utg->eaccession    = AS_UID_fromInteger(getUID(uidServer));
+  utg->eaccession    = ID;
   utg->iaccession    = ID;
   utg->coverage_stat = ScaffoldGraph->tigStore->getUnitigCoverageStat(ID);
   utg->microhet_prob = ScaffoldGraph->tigStore->getUnitigMicroHetProb(ID);
@@ -553,7 +546,7 @@ writeCCO(FILE *asmFile, bool doWrite) {
 
     MultiAlignT *ma = ScaffoldGraph->tigStore->loadMultiAlign(contig->id, FALSE);
 
-    cco.eaccession  = AS_UID_fromInteger(getUID(uidServer));
+    cco.eaccession  = contig->id;
     cco.iaccession  = contig->id;
     cco.placed      = ScaffoldGraph->tigStore->getContigStatus(contig->id);
     cco.length      = GetMultiAlignLength(ma);
@@ -811,7 +804,7 @@ writeSCF(FILE *asmFile, bool doWrite) {
 
     assert(scaffold->info.Scaffold.numElements > 0);
 
-    scf.eaccession       = AS_UID_fromInteger(getUID(uidServer));
+    scf.eaccession       = scaffold->id;
     scf.iaccession       = scaffold->id;
     scf.num_contig_pairs = scaffold->info.Scaffold.numElements - 1;
     scf.contig_pairs     = (SnapContigPairs *)safe_malloc(sizeof(SnapContigPairs) * scaffold->info.Scaffold.numElements);
@@ -990,7 +983,6 @@ int main (int argc, char *argv[]) {
   char        outputName[FILENAME_MAX] = {0};
   int32       checkpointVers           = 0;
   int32       tigStoreVers             = 0;
-  uint64      uidStart                 = 0;
 
   int32       outputScaffolds          = FALSE;
 
@@ -1019,12 +1011,6 @@ int main (int argc, char *argv[]) {
     } else if (strcmp(argv[arg], "-s") == 0) {
       uidStart = strtoul(argv[++arg], NULL, 10);
 
-    } else if (strcmp(argv[arg], "-n") == 0) {
-      SYS_UIDset_euid_namespace(argv[++arg]);
-
-    } else if (strcmp(argv[arg], "-E") == 0) {
-      SYS_UIDset_euid_server(argv[++arg]);
-
     } else if (strcmp(argv[arg], "-h") == 0) {
       err++;
 
@@ -1044,9 +1030,7 @@ int main (int argc, char *argv[]) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -o prefix               write the output here\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -s firstUID      don't use real UIDs, but start counting from here\n");
-    fprintf(stderr, "  -n namespace     use this UID namespace\n");
-    fprintf(stderr, "  -E server        use this UID server\n");
+    fprintf(stderr, "  -s firstUID             don't use real UIDs, but start counting from here\n");
     exit(1);
   }
 
@@ -1071,11 +1055,6 @@ int main (int argc, char *argv[]) {
 
   writeMDI(asmFile, true);
   writeAFG(asmFile, true, outputScaffolds);
-
-  //  If uidStart is zero, use the UID server; otherwise, initialize the 'fake uid server' to start
-  //  there, or after the last UID used by a fragment.
-  //
-  uidServer = UIDserverInitialize(256, (uidStart == 0) ? 0 : MAX(uidMin, uidStart));
 
   writeAMP(asmFile, true);
   writeUTG(asmFile, true, outputScaffolds);

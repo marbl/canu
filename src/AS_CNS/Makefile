@@ -71,19 +71,16 @@ LIB_SOURCES = MultiAlign.C \
               ApplyAlignment.C \
               BaseCall.C \
               GetAlignmentTrace.C \
-              MergeMultiAligns.C \
               MergeRefine.C \
-              MultiAlignContig.C \
               MultiAlignUnitig.C \
               PrintAlignment.C \
-              ReplaceEndUnitigInContig.C
 
 
 LIB_OBJECTS = $(LIB_SOURCES:.C=.o)
 
 LOCAL_WORK  = $(shell cd ../..; pwd)
 
-AS_CNS_SRCS = $(LIB_SOURCES) utgcns.C utgcnsfix.C ctgcns.C tigStore.C addReadsToUnitigs.C
+AS_CNS_SRCS = $(LIB_SOURCES) utgcns.C utgcnsfix.C tigStore.C addReadsToUnitigs.C
 
 AS_CNS_OBJS = $(AS_CNS_SRCS:.C=.o)
 
@@ -91,7 +88,7 @@ SOURCES   = $(AS_CNS_SRCS)
 OBJECTS   = $(AS_CNS_OBJS)
 LIBRARIES = libAS_CNS.a libCA.a
 
-CXX_PROGS = utgcns utgcnsfix ctgcns tigStore addReadsToUnitigs
+CXX_PROGS = utgcns utgcnsfix tigStore addReadsToUnitigs
 
 SCRIPTS =
 
@@ -112,7 +109,6 @@ LIBS =  libCA.a
 
 utgcns:                       utgcns.o                       $(LIBS)
 utgcnsfix:                    utgcnsfix.o                    $(LIBS)
-ctgcns:                       ctgcns.o                       $(LIBS)
 tigStore:                     tigStore.o                     $(LIBS)
 
 addReadsToUnitigs:            addReadsToUnitigs.o            $(LIBS)

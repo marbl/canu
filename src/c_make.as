@@ -260,8 +260,6 @@ ifeq ($(SITE_NAME), JCVI)
 endif
 
 
-
-
 #  The order of compilation here is very carefully chosen to be the
 #  same as the order used in running an assembly.  It is extremely
 #  useful if you happen to be making changes to, say, the persistent
@@ -272,15 +270,6 @@ endif
 #  use REZ or CNS, etc.  It gets hairy at the end; REZ, CNS and CGW are
 #  all dependent on each other.  Everything after TER isn't needed for
 #  an assembly.
-
-#CFLAGS += -I/n8/wgs/src/AS_CNS -I/n8/wgs/src/AS_CGW -I/n8/wgs/src/AS_ALN -I/n8/wgs/src/AS_REZ -I/n8/wgs/src/AS_SDB
-
-# Broken by BPW's string UID hack: AS_CVT, AS_MPA.  AS_CVT might work,
-# but its only used by AS_MPA.
-
-# Broken by the C++ switch: AS_VWR (won't link on Linux64)
-
-# Broken by the .c -> .C rename: AS_ARD (just didn't update it)
 
 SUBDIRS = AS_RUN \
           AS_UTL \
@@ -298,10 +287,5 @@ SUBDIRS = AS_RUN \
           AS_BOG \
           AS_BAT \
           AS_PBR \
-          AS_REZ \
           AS_CNS \
-          AS_LIN \
-          AS_CGW \
-          AS_TER \
-          AS_ENV \
-          AS_REF
+          AS_TER

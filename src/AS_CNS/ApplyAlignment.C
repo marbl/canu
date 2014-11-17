@@ -29,7 +29,7 @@ static char *rcsid = "$Id$";
 
 #include "MultiAlignment_CNS.H"
 #include "MultiAlignment_CNS_private.H"
-#include "MicroHetREZ.H"
+//#include "MicroHetREZ.H"
 #include "AS_UTL_reverseComplement.H"
 
 

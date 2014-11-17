@@ -26,7 +26,6 @@ static const char *rcsid_AS_ALN_ALIGNERS_H = "$Id$";
 
 #include "AS_global.H"
 #include "AS_MSG_pmesg.H"
-#include "SUBDELREZ.H"
 
 typedef struct {
   uint32           aifrag;
