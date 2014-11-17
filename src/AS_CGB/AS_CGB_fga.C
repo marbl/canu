@@ -44,7 +44,7 @@ void view_fgb_chkpnt(char * Store_File_Prefix,
      diff^ed to find the differences in two assemblies.  One of the
      files has the fragments and the other is the edges. */
 
-  const IntFragment_ID nfrag = GetNumFragments(frags);
+  const AS_IID nfrag = GetNumFragments(frags);
   const IntEdge_ID nedge     = GetNumEdges(edges);
   char thePath[FILENAME_MAX]={0};
 
@@ -59,7 +59,7 @@ void view_fgb_chkpnt(char * Store_File_Prefix,
   sprintf(thePath,"%s%s",Store_File_Prefix,".fge");
   foute = fopen(thePath,"w");
 
-  { IntFragment_ID iv0;
+  { AS_IID iv0;
     for(iv0=0; iv0<nfrag; iv0++) {
       fprintf(foutv,
               //"%6d: "
@@ -96,10 +96,10 @@ void view_fgb_chkpnt(char * Store_File_Prefix,
   {
     IntEdge_ID ie0;
     for(ie0=0; ie0 < nedge; ie0++) {
-      const IntFragment_ID avx = get_avx_edge(edges,ie0);
-      const IntFragment_ID bvx = get_bvx_edge(edges,ie0);
-      const IntFragment_ID afr = get_iid_fragment(frags,avx);
-      const IntFragment_ID bfr = get_iid_fragment(frags,bvx);
+      const AS_IID avx = get_avx_edge(edges,ie0);
+      const AS_IID bvx = get_bvx_edge(edges,ie0);
+      const AS_IID afr = get_iid_fragment(frags,avx);
+      const AS_IID bfr = get_iid_fragment(frags,bvx);
       const Tnes nes = get_nes_edge(edges,ie0);
       if(
 	 TRUE
@@ -163,11 +163,11 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
                                                Tfragment frags[],
                                                Tedge edges[]) {
 
-  const IntFragment_ID nfrag = GetNumFragments(frags);
+  const AS_IID nfrag = GetNumFragments(frags);
   const IntEdge_ID nedge = GetNumEdges(edges);
 
-  IntFragment_ID ifrag;
-  IntFragment_ID
+  AS_IID ifrag;
+  AS_IID
     n_raw_noncontained_nonspur_thru_frag = 0,
     n_raw_noncontained_nonspur_prefix_hanging_frag = 0,
     n_raw_noncontained_nonspur_suffix_hanging_frag = 0,
@@ -210,7 +210,7 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
 
     n_as_fgb_deleted_frag = 0;
 
-  IntFragment_ID
+  AS_IID
     raw_dvt_count = 0,
     raw_frc_count = 0,
     raw_toc_count = 0,
@@ -279,7 +279,7 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
          ) {
         // If the fragment-end has a zero dvt degree in the current graph,
         // then it should have a zero dvt degree in the raw graph.
-        const IntFragment_ID iid = get_iid_fragment(frags,ifrag);
+        const AS_IID iid = get_iid_fragment(frags,ifrag);
         fprintf(stdout,"REAPER DVT DISCONNECT: "F_IID " %d %d %d %d %d %d %d\n",
                 iid,
                 deleted, spur, contained,
@@ -298,7 +298,7 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
     assert(deleted || (cur_suffix_dvt_degree <= raw_suffix_dvt_degree));
 
     {
-      const IntFragment_ID iid = get_iid_fragment(frags,ifrag);
+      const AS_IID iid = get_iid_fragment(frags,ifrag);
 
       if(!(deleted || contained || (!raw_thru) || cur_thru)) {
         fprintf(stdout,"REAPER THRU DISCONNECT: "
@@ -311,7 +311,7 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
     // Assert if cur_thru then raw_thru
 
     if(!(deleted || !spur || !raw_thru)) {
-      const IntFragment_ID iid = get_iid_fragment(frags,ifrag);
+      const AS_IID iid = get_iid_fragment(frags,ifrag);
       fprintf(stdout,"REAPER DVT DISCONNECT: "F_IID " %d %d %d %d %d %d %d\n",
               iid,
               deleted, spur, contained,
@@ -768,7 +768,7 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
   }
 
   {
-    IntFragment_ID ifrag;
+    AS_IID ifrag;
     const int nsample=500;
     const int nbucket=500;
     Histogram_t
@@ -804,7 +804,7 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
   }
 
   {
-    IntFragment_ID ifrag;
+    AS_IID ifrag;
     const int nsample=500;
     const int nbucket=500;
     Histogram_t
@@ -829,7 +829,7 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
   }
 
   {
-    IntFragment_ID ifrag;
+    AS_IID ifrag;
     const int nsample=500;
     const int nbucket=500;
     Histogram_t
@@ -851,7 +851,7 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
   }
 
   {
-    IntFragment_ID ifrag;
+    AS_IID ifrag;
     const int nsample=500;
     const int nbucket=500;
     Histogram_t
@@ -873,7 +873,7 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
   }
 
   {
-    IntFragment_ID ifrag;
+    AS_IID ifrag;
     const int nsample=500;
     const int nbucket=500;
     Histogram_t
@@ -895,7 +895,7 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
   }
 
   {
-    IntFragment_ID ifrag;
+    AS_IID ifrag;
     const int nsample=500;
     const int nbucket=500;
     Histogram_t
@@ -917,7 +917,7 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
   }
 
   {
-    IntFragment_ID ifrag;
+    AS_IID ifrag;
     const int nsample=500;
     const int nbucket=500;
     Histogram_t
@@ -939,7 +939,7 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
   }
 
   {
-    IntFragment_ID ifrag;
+    AS_IID ifrag;
     const int nsample=500;
     const int nbucket=500;
     Histogram_t
@@ -961,7 +961,7 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
   }
 
   {
-    IntFragment_ID ifrag;
+    AS_IID ifrag;
     const int nsample=500;
     const int nbucket=500;
     Histogram_t
@@ -990,7 +990,7 @@ void fragment_graph_analysis(Tfragment frags[],
                              Tedge     edges[],
                              FILE      *ffga) {
 
-  const IntFragment_ID nfrag = GetNumFragments(frags);
+  const AS_IID nfrag = GetNumFragments(frags);
 
   assert(frags      != NULL);
   assert(edges      != NULL);
@@ -1009,8 +1009,8 @@ void fragment_graph_analysis(Tfragment frags[],
     if((nes1 != AS_CGB_REMOVED_BY_DUPLICATE_DVT) &&
        (nes1 != AS_CGB_REMOVED_BY_DUPLICATE_CON)
        ) {
-      const IntFragment_ID iv0 = get_avx_edge(edges,ie1);
-      const IntFragment_ID iv1 = get_bvx_edge(edges,ie1);
+      const AS_IID iv0 = get_avx_edge(edges,ie1);
+      const AS_IID iv1 = get_bvx_edge(edges,ie1);
       const int iv1_iv0 = iv1 - iv0;
       const int vdiff = (iv1_iv0 > 0 ? iv1_iv0 : -iv1_iv0);
       add_to_histogram(edges_locality_histogram, vdiff, NULL);

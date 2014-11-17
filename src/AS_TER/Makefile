@@ -33,9 +33,9 @@ ANALYZE_SOURCES = analyzePosMap.C \
 ANALYZE_OBJECTS = $(ANALYZE_SOURCES:.C=.o)
 
 #terminator.C
-SOURCES   = asmOutputFasta.C asmOutputStatistics.C fragsInVars.C buildPosMap.C $(ANALYZE_SOURCES) demotePosMap.C
+SOURCES   = fragsInVars.C $(ANALYZE_SOURCES) demotePosMap.C
 OBJECTS   = (SOURCES:.C=.o)
-CXX_PROGS = asmOutputFasta asmOutputStatistics fragsInVars buildPosMap analyzePosMap demotePosMap
+CXX_PROGS = fragsInVars analyzePosMap demotePosMap
 #  terminator doesn't build.
 
 include $(LOCAL_WORK)/src/c_make.as
@@ -44,9 +44,7 @@ all: $(OBJECTS) $(LIBRARIES) $(CXX_PROGS)
 	@test -n nop
 
 terminator:              terminator.o               libCA.a
-asmOutputFasta:          asmOutputFasta.o           libCA.a
 asmOutputStatistics:     asmOutputStatistics.o      libCA.a
 fragsInVars:             fragsInVars.o              libCA.a
-buildPosMap:             buildPosMap.o              libCA.a
 analyzePosMap:           $(ANALYZE_OBJECTS)         libCA.a
 demotePosMap:            demotePosMap.o             libCA.a

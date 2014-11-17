@@ -200,7 +200,7 @@ void Print_Overlap_AS(FILE *file, InternalFragMesg *a,
   fprintf(file," B = (%s,"F_IID ")",AS_UID_toString(b->eaccession),b->iaccession);
   fprintf(file,"\n\n");
 
-  if (align->orientation.isNormal()) {
+  if (align->orientation == AS_NORMAL) {
     if (align->bhg <= 0)
       { fprintf(file,"  A -----+------+----> %-4d\n",align->bhg);
         fprintf(file,"    %4d -------> B\n",align->ahg);
@@ -209,7 +209,7 @@ void Print_Overlap_AS(FILE *file, InternalFragMesg *a,
       { fprintf(file,"  A -----+------> %-4d\n",align->bhg);
         fprintf(file,"    %4d -------+----> B\n",align->ahg);
       }
-  } else if (align->orientation.isInnie()) {
+  } else if (align->orientation == AS_INNIE) {
     if (align->bhg <= 0)
       { fprintf(file,"  A -----+------+----> %-4d\n",align->bhg);
         fprintf(file,"    %4d <------- B\n",align->ahg);
@@ -218,7 +218,7 @@ void Print_Overlap_AS(FILE *file, InternalFragMesg *a,
       { fprintf(file,"  A -----+------> %-4d\n",align->bhg);
         fprintf(file,"    %4d <------+----- B\n",align->ahg);
       }
-  } else if (align->orientation.isOuttie()) {
+  } else if (align->orientation == AS_OUTTIE) {
     if (align->bhg <= 0)
       { fprintf(file,"  A <----+------+----- %-4d\n",align->bhg);
         fprintf(file,"    %4d -------> B\n",align->ahg);
@@ -233,16 +233,16 @@ void Print_Overlap_AS(FILE *file, InternalFragMesg *a,
   fprintf(file,"\n");
 
   if (align->alignment_trace != NULL) {
-    if (align->orientation.isInnie())
+    if (align->orientation == AS_INNIE)
       reverseComplement(b->sequence, b->quality, strlen(b->sequence));
-    else if (align->orientation.isOuttie())
+    else if (align->orientation == AS_OUTTIE)
       reverseComplement(a->sequence, a->quality, strlen(a->sequence));
 
     PrintAlign(file,align->ahg,align->bhg,a->sequence,b->sequence,align->alignment_trace);
 
-    if (align->orientation.isInnie())
+    if (align->orientation == AS_INNIE)
       reverseComplement(b->sequence, b->quality, strlen(b->sequence));
-    else if (align->orientation.isOuttie())
+    else if (align->orientation == AS_OUTTIE)
       reverseComplement(a->sequence, a->quality, strlen(a->sequence));
   }
 }
@@ -405,9 +405,9 @@ void Analyze_Affine_ALNoverlapFull(InternalFragMesg *a, InternalFragMesg *b,
     swap = 1;
   }
 
-  if (align->orientation.isInnie())
+  if (align->orientation == AS_INNIE)
     reverseComplement(b->sequence, b->quality, strlen(b->sequence));
-  else if (align->orientation.isOuttie())
+  else if (align->orientation == AS_OUTTIE)
     reverseComplement(a->sequence, a->quality, strlen(a->sequence));
 
   AnalyzeAffineAlign(align->ahg,align->bhg,
@@ -418,9 +418,9 @@ void Analyze_Affine_ALNoverlapFull(InternalFragMesg *a, InternalFragMesg *b,
                      blockdel,blockins,blocksize,
                      biggestBlock);
 
-  if (align->orientation.isInnie())
+  if (align->orientation == AS_INNIE)
     reverseComplement(b->sequence, b->quality, strlen(b->sequence));
-  else if (align->orientation.isOuttie())
+  else if (align->orientation == AS_OUTTIE)
     reverseComplement(a->sequence, a->quality, strlen(a->sequence));
 
   if (swap) {
@@ -445,6 +445,7 @@ void Analyze_Affine_ALNoverlapFull(InternalFragMesg *a, InternalFragMesg *b,
 
 /***** Wrapper for bubble smoothing overlap detector on top of affine dp_compare *****/
 
+#if 0
 /*
    Usage/arguments as for DP_Compare_AS, except that some of the parameters
    are hijacked:
@@ -581,7 +582,7 @@ Affine_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
   return(NULL);
 
 }
-
+#endif
 
 
 

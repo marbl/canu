@@ -80,7 +80,7 @@ const uint8		VERBOSE_DEVELOPER				= 2;
 
 struct OverlapPos {
    SeqInterval position;
-   IntFragment_ID ident;
+   AS_IID      ident;
 };
 
 // global variables shared between all threads

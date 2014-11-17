@@ -70,7 +70,6 @@ LIB_SOURCES = MultiAlign.C \
               AbacusRefine.C \
               ApplyAlignment.C \
               BaseCall.C \
-              GetAlignmentTrace.C \
               MergeRefine.C \
               MultiAlignUnitig.C \
               PrintAlignment.C \

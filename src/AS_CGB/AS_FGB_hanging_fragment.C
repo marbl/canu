@@ -63,7 +63,7 @@ void identify_early_spur_fragments
   // restricted dovetail degree zero, then re-assign the proximal
   // fragment as AS_CGB_HANGING_FRAG.
 
-  const IntFragment_ID nfrag = GetNumFragments(frags);
+  const AS_IID nfrag = GetNumFragments(frags);
   const IntEdge_ID nedge = GetNumEdges(edges);
 
   int * thru_fragment_prefix_dovetail_overlap_count = NULL;
@@ -74,7 +74,7 @@ void identify_early_spur_fragments
 
   {
     // Initialize the incoming dovetail degree at each fragment.
-    IntFragment_ID vid;
+    AS_IID vid;
     // #pragma omp parallel for
     for(vid=0; vid<nfrag; vid++){
 #if 1
@@ -100,12 +100,12 @@ void identify_early_spur_fragments
       switch(ines) {
       case AS_CGB_DOVETAIL_EDGE:
         {
-          const IntFragment_ID avx = get_avx_edge(edges,ie);
-          //const IntFragment_ID asx = get_asx_edge(edges,ie);
-          const IntFragment_ID bvx = get_bvx_edge(edges,ie);
-          const IntFragment_ID bsx = get_bsx_edge(edges,ie);
-          //const IntFragment_ID aid = get_iid_fragment(frags,avx);
-          //const IntFragment_ID bid = get_iid_fragment(frags,bvx);
+          const AS_IID avx = get_avx_edge(edges,ie);
+          //const AS_IID asx = get_asx_edge(edges,ie);
+          const AS_IID bvx = get_bvx_edge(edges,ie);
+          const AS_IID bsx = get_bsx_edge(edges,ie);
+          //const AS_IID aid = get_iid_fragment(frags,avx);
+          //const AS_IID bid = get_iid_fragment(frags,bvx);
           const Tlab alab = get_lab_fragment(frags,avx);
           //const Tlab blab = get_lab_fragment(frags,bvx);
 
@@ -136,7 +136,7 @@ void identify_early_spur_fragments
 
   {
     // All the hanging fragments will be removed unless redeemed.
-    IntFragment_ID vid;
+    AS_IID vid;
     // #pragma omp parallel for
     for(vid=0; vid<nfrag; vid++){
       const Tlab lab = get_lab_fragment(frags,vid);
@@ -173,12 +173,12 @@ void identify_early_spur_fragments
       switch(ines) {
       case AS_CGB_DOVETAIL_EDGE:
         {
-          const IntFragment_ID avx = get_avx_edge(edges,ie);
-          //const IntFragment_ID asx = get_asx_edge(edges,ie);
-          const IntFragment_ID bvx = get_bvx_edge(edges,ie);
-          const IntFragment_ID bsx = get_bsx_edge(edges,ie);
-          //const IntFragment_ID aid = get_iid_fragment(frags,avx);
-          //const IntFragment_ID bid = get_iid_fragment(frags,bvx);
+          const AS_IID avx = get_avx_edge(edges,ie);
+          //const AS_IID asx = get_asx_edge(edges,ie);
+          const AS_IID bvx = get_bvx_edge(edges,ie);
+          const AS_IID bsx = get_bsx_edge(edges,ie);
+          //const AS_IID aid = get_iid_fragment(frags,avx);
+          //const AS_IID bid = get_iid_fragment(frags,bvx);
           const Tlab alab = get_lab_fragment(frags,avx);
           //const Tlab blab = get_lab_fragment(frags,bvx);
           if(
@@ -228,7 +228,7 @@ void separate_fragments_as_solo_hanging_thru
   // A "thru" fragment is has a positive outgoing dovetail overlap
   // edge degree on both fragment-ends.
 
-  const IntFragment_ID nfrag = GetNumFragments(frags);
+  const AS_IID nfrag = GetNumFragments(frags);
   const IntEdge_ID nedge = GetNumEdges(edges);
 
 #ifndef USE_REAPERS_DVT_DEGREE
@@ -240,7 +240,7 @@ void separate_fragments_as_solo_hanging_thru
 
   {
     // Initialize the outgoing dovetail degree at each fragment.
-    IntFragment_ID vid;
+    AS_IID vid;
     // #pragma omp parallel for
     for(vid=0; vid<nfrag; vid++){
       all_fragment_prefix_dovetail_overlap_count[vid] = 0;
@@ -257,12 +257,12 @@ void separate_fragments_as_solo_hanging_thru
       switch(ines) {
       case AS_CGB_DOVETAIL_EDGE:
         {
-          const IntFragment_ID avx = get_avx_edge(edges,ie);
-          const IntFragment_ID asx = get_asx_edge(edges,ie);
-          const IntFragment_ID bvx = get_bvx_edge(edges,ie);
-          //const IntFragment_ID bsx = get_bsx_edge(edges,ie);
-          //const IntFragment_ID aid = get_iid_fragment(frags,avx);
-          //const IntFragment_ID bid = get_iid_fragment(frags,bvx);
+          const AS_IID avx = get_avx_edge(edges,ie);
+          const AS_IID asx = get_asx_edge(edges,ie);
+          const AS_IID bvx = get_bvx_edge(edges,ie);
+          //const AS_IID bsx = get_bsx_edge(edges,ie);
+          //const AS_IID aid = get_iid_fragment(frags,avx);
+          //const AS_IID bid = get_iid_fragment(frags,bvx);
           const Tlab alab = get_lab_fragment(frags,avx);
           const Tlab blab = get_lab_fragment(frags,bvx);
 
@@ -291,13 +291,13 @@ void separate_fragments_as_solo_hanging_thru
 #endif // USE_REAPERS_DVT_DEGREE
 
   {
-    const IntFragment_ID nfrag = GetNumFragments(frags);
-    IntFragment_ID solo_fragment_count = 0;
-    IntFragment_ID prefix_hanging_fragment_count = 0;
-    IntFragment_ID suffix_hanging_fragment_count = 0;
-    IntFragment_ID thru_fragment_count = 0;
+    const AS_IID nfrag = GetNumFragments(frags);
+    AS_IID solo_fragment_count = 0;
+    AS_IID prefix_hanging_fragment_count = 0;
+    AS_IID suffix_hanging_fragment_count = 0;
+    AS_IID thru_fragment_count = 0;
 
-    IntFragment_ID vid;
+    AS_IID vid;
     // #pragma omp parallel for
 
     for(vid=0; vid<nfrag; vid++){
@@ -346,7 +346,7 @@ void separate_fragments_as_solo_hanging_thru
               raw_fragment_suffix_dovetail_overlap_count );
 
       {
-	IntFragment_ID iid = get_iid_fragment(frags,vid);
+	AS_IID iid = get_iid_fragment(frags,vid);
         if(!(! (raw_fragment_prefix_dovetail_overlap_count>0)
              ||(cur_fragment_prefix_dovetail_overlap_count>0))
            ||

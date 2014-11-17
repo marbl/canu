@@ -99,7 +99,7 @@ BVS__removeOldest(BubVertexSet_t bvs)
 
 
 static void
-BVS__insertWithAge(BubVertexSet_t bvs, IntFragment_ID id, int age)
+BVS__insertWithAge(BubVertexSet_t bvs, AS_IID id, int age)
 {
   int ip = 0;
   int sp;
@@ -293,7 +293,7 @@ void BVS_age(BubVertexSet_t bvs, int inc)
 
 
 void
-BVS_insert(BubVertexSet_t bvs, IntFragment_ID id)
+BVS_insert(BubVertexSet_t bvs, AS_IID id)
 {
   BVS__insertWithAge(bvs, id, 0);
 }

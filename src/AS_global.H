@@ -239,6 +239,35 @@ extern uint32 AS_OVERLAP_MIN_LEN;
 
 int AS_configure(int argc, char **argv);
 
+#include "AS_UTL_IID.H"
+#include "AS_UTL_UID.H"
+
+
+
+//  These need to be removed, or placed in a home
+
+
+//  PairOrient -- the orientation between two sequence objects.
+//
+typedef enum {
+  AS_UNKNOWN  = 0,  //    AS_UNKNOWN == XX_XX == 'U'
+  AS_INNIE    = 1,  //    AS_INNIE   == AB_BA == 'I'
+  AS_OUTTIE   = 2,  //    AS_OUTTIE  == BA_AB == 'O'
+  AS_NORMAL   = 3,  //    AS_NORMAL  == AB_AB == 'N'
+  AS_ANTI     = 4   //    AS_ANTI    == BA_BA == 'A'
+} PairOrient;
+
+typedef struct {
+  int32 bgn;
+  int32 end;
+} SeqInterval;
+
+
+
+
+
+
+
 
 
 // These macros are use to eliminate inter-platform differnces between

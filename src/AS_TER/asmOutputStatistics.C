@@ -516,58 +516,6 @@ getNidx(uint32 n, vector<T> v) {
 
 
 void
-generateStatisticsFromASMFile(char *progName, char *asmName) {
-  GenericMesg *pmesg       = NULL;
-
-  errno = 0;
-  FILE *asmFile = fopen(asmName, "r");
-  if (errno)
-    fprintf(stderr, "%s: failed to open '%s' for reading: %s\n",
-            progName, asmName, strerror(errno));
-
-  while(ReadProtoMesg_AS(asmFile, &pmesg) != EOF){
-    switch(pmesg->t){
-      case MESG_MDI:
-        processMDI((SnapMateDistMesg *)pmesg->m);
-        break;
-
-      case MESG_AFG:
-        processAFG((AugFragMesg *)pmesg->m);
-        break;
-      case MESG_AMP:
-        processAMP((AugMatePairMesg *)pmesg->m);
-        break;
-
-      case MESG_UTG:
-        processUTG((SnapUnitigMesg *)pmesg->m);
-        break;
-      case MESG_ULK:
-        processULK((SnapUnitigLinkMesg *)pmesg->m);
-        break;
-
-      case MESG_CCO:
-        processCCO((SnapConConMesg *)pmesg->m);
-        break;
-      case MESG_CLK:
-        processCLK((SnapContigLinkMesg *)pmesg->m);
-        break;
-
-      case MESG_SCF:
-        processSCF((SnapScaffoldMesg *)pmesg->m);
-        break;
-      case MESG_SLK:
-        processSLK((SnapScaffoldLinkMesg *)pmesg->m);
-        break;
-
-      default:
-        break;
-    }
-  }
-}
-
-
-
-void
 generateStatisticsFromGKPStore(char *progName, char *gkpName) {
   //  Open the gkStore, but discard UID info for now.
   gkStore    *gkp = new gkStore(gkpName, FALSE, TRUE);

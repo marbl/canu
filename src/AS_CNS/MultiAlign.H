@@ -24,7 +24,6 @@
 
 static const char *rcsid_MULTIALIGN_H = "$Id$";
 
-#include "AS_MSG_pmesg.H"
 #include "AS_UTL_Var.H"
 #include "AS_PER_gkpStore.H"
 
@@ -34,6 +33,91 @@ using namespace std;
 
 VA_DEF(char)
 VA_DEF(int32)
+
+typedef enum {
+  AS_READ    = (int)'R',  //  Celera Read
+  AS_EXTR    = (int)'X',  //  External WGS read
+  AS_TRNR    = (int)'T',  //  Transposon library read
+  AS_UNITIG  = (int)'U',  //  Assembled unitig
+  AS_CONTIG  = (int)'C'   //  Assembled contig
+} FragType;
+
+typedef enum {
+  AS_UNIQUE =     (int)'U',
+  AS_NOTREZ =     (int)'N',
+  AS_SEP =        (int)'S',
+  AS_UNASSIGNED = (int)'X'
+} UnitigStatus;
+
+typedef enum {
+  AS_PLACED	= (int)'P',
+  AS_UNPLACED   = (int)'U'
+} ContigStatus;
+
+typedef enum {
+  AS_UNIQUE_UNITIG   = (int)'U',  // U-Unique
+  AS_ROCK_UNITIG     = (int)'R',  // Rock
+  AS_STONE_UNITIG    = (int)'S',  // Stone
+  AS_PEBBLE_UNITIG   = (int)'P',  // Pebble
+  AS_SINGLE_UNITIG   = (int)'s',  // Singleton Unitig in Unplaced Contig
+  AS_OTHER_UNITIG    = (int)'X'   // Unspecified surrogate unitig
+} UnitigType;
+
+typedef struct IntMultiPos {
+  FragType        type;
+  AS_IID          ident;
+  AS_IID          contained;
+  AS_IID          parent;     //  IID of the fragment we align to
+
+  int32           ahang;      //  If parent defined, these are relative
+  int32           bhang;      //  that fragment
+
+  SeqInterval     position;
+  int32           delta_length;
+  int32          *delta;
+} IntMultiPos;  //  IMP
+
+typedef struct IntVarAllele {
+  int32           num_reads;
+  int32           weight;
+  int32           var_seq_offset;  //  offset into var_seq_memory for this allele
+  int32           read_id_offset;  //  offset into read_id_memory for this allele
+} IntVarAllele;
+
+typedef struct IntMultiVar {
+  int32           var_id;                 // id of current VAR record
+  int32           phased_id;              // id of the VAR record phased with the current one
+  SeqInterval     position;               // position of the var region
+  int32           num_reads;              // num reads total
+  int32           num_alleles;            // num alleles total
+  int32           num_alleles_confirmed;  // num confirmed alleles
+  int32           min_anchor_size;        //
+  int32           var_length;             // bases in the var region
+  IntVarAllele   *alleles;                // list of num_alleles alleles
+
+  char           *var_seq_memory;         // single allocation for all memory
+  int32          *read_id_memory;         // single allocation for all memory
+
+  char           *enc_num_reads;          //  the nra field
+  char           *enc_weights;            //  the wgt field
+  char           *enc_var_seq;            //  the seq field
+  char           *enc_read_ids;           //  the rid field
+} IntMultiVar;  //  IMV
+
+typedef struct {
+  UnitigType    type;
+  AS_IID        ident;
+  SeqInterval   position;
+  int32         num_instances;
+  int32         delta_length;
+  int32        *delta;
+} IntUnitigPos;  //  IUP
+
+VA_DEF(IntMultiPos)
+VA_DEF(IntMultiVar)
+VA_DEF(IntUnitigPos)
+
+
 
 typedef struct {
   double                     unitig_coverage_stat;

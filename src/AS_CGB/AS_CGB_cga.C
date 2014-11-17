@@ -49,13 +49,13 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
                                                Tfragment frags[],
                                                Tedge edges[]) {
 
-  const IntFragment_ID nfrag = GetNumFragments(frags);
+  const AS_IID nfrag = GetNumFragments(frags);
   const IntEdge_ID nedge = GetNumEdges(edges);
 
   fprintf(fout,"FRAGMENT OVERLAP GRAPH INFORMATION\n\n");
 
   {
-    IntFragment_ID
+    AS_IID
       ifrag,
       n_as_cgb_solo_frag=0,
       n_as_cgb_hanging_frag=0,
@@ -187,10 +187,10 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
 	  n_as_cgb_intrachunk++; break;
 	case AS_CGB_TOUCHES_CONTAINED_EDGE:
 	  {
-	    const IntFragment_ID iavx = get_avx_edge(edges,iedge);
+	    const AS_IID iavx = get_avx_edge(edges,iedge);
 	    /* An index into the Tfragment array of the fragment
 	       at the proximal vertex of the edge. */
-	    const IntFragment_ID ibvx = get_bvx_edge(edges,iedge);
+	    const AS_IID ibvx = get_bvx_edge(edges,iedge);
 	    /* An index into the Tfragment array of the fragment
 	       at the distal vertex of the edge. */
 
@@ -221,10 +221,10 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
           n_as_cgb_between_crappy_con++; break;
 	case AS_CGB_CONTAINED_EDGE:
 	  {
-	    const IntFragment_ID iavx = get_avx_edge(edges,iedge);
+	    const AS_IID iavx = get_avx_edge(edges,iedge);
 	    /* An index into the Tfragment array of the fragment
 	       at the proximal vertex of the edge. */
-	    const IntFragment_ID ibvx = get_bvx_edge(edges,iedge);
+	    const AS_IID ibvx = get_bvx_edge(edges,iedge);
 	    /* An index into the Tfragment array of the fragment
 	       at the distal vertex of the edge. */
 	    if(
@@ -317,7 +317,7 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
 
 
   {
-    IntFragment_ID ifrag;
+    AS_IID ifrag;
     const int nsample=500;
     const int nbucket=500;
     Histogram_t
@@ -441,7 +441,7 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
   }
 
   {
-    IntFragment_ID ifrag;
+    AS_IID ifrag;
     int isuff;
     const int nsample=500;
     const int nbucket=500;
@@ -494,8 +494,8 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
           int nnode = get_seglen_vertex(frags,ifrag,isuff);
           { IntEdge_ID ie; for(ie=snode;ie<snode+nnode;ie++) {
 	      Tnes nes = get_nes_edge(edges,ie);
-	      IntFragment_ID avx = get_avx_edge(edges,ie);
-	      IntFragment_ID bvx = get_bvx_edge(edges,ie);
+	      AS_IID avx = get_avx_edge(edges,ie);
+	      AS_IID bvx = get_bvx_edge(edges,ie);
 	      Tlab alab = get_lab_fragment(frags,avx);
 	      Tlab blab = get_lab_fragment(frags,bvx);
 	      switch(nes) {
@@ -679,7 +679,7 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
   }
 
   {
-    IntFragment_ID ifrag;
+    AS_IID ifrag;
     const int nsample=500;
     const int nbucket=500;
     Histogram_t
@@ -702,7 +702,7 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
   }
 
   {
-    IntFragment_ID ifrag;
+    AS_IID ifrag;
     const int nsample=500;
     const int nbucket=500;
     Histogram_t
@@ -725,7 +725,7 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
   }
 
   {
-    IntFragment_ID ifrag;
+    AS_IID ifrag;
     const int nsample=500;
     const int nbucket=500;
     Histogram_t
@@ -748,7 +748,7 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
   }
 
   {
-    IntFragment_ID ifrag;
+    AS_IID ifrag;
     const int nsample=500;
     const int nbucket=500;
     Histogram_t
@@ -771,7 +771,7 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
   }
 
   {
-    IntFragment_ID ifrag;
+    AS_IID ifrag;
     const int nsample=500;
     const int nbucket=500;
     Histogram_t
@@ -794,7 +794,7 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
   }
 
   {
-    IntFragment_ID ifrag;
+    AS_IID ifrag;
     const int nsample=500;
     const int nbucket=500;
     Histogram_t
@@ -817,7 +817,7 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
   }
 
   {
-    IntFragment_ID ifrag;
+    AS_IID ifrag;
     const int nsample=500;
     const int nbucket=500;
     Histogram_t
@@ -840,7 +840,7 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
   }
 
   {
-    IntFragment_ID ifrag;
+    AS_IID ifrag;
     const int nsample=500;
     const int nbucket=500;
     Histogram_t
@@ -863,7 +863,7 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
   }
 
   {
-    IntFragment_ID ifrag;
+    AS_IID ifrag;
     const int nsample=500;
     const int nbucket=500;
     Histogram_t
@@ -886,7 +886,7 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
   }
 
   {
-    IntFragment_ID ifrag;
+    AS_IID ifrag;
     const int nsample=500;
     const int nbucket=500;
     Histogram_t
@@ -909,7 +909,7 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
   }
 
   {
-    IntFragment_ID ifrag;
+    AS_IID ifrag;
     const int nsample=500;
     const int nbucket=500;
     Histogram_t
@@ -947,25 +947,25 @@ static void analyze_the_chunks(FILE *fout,
                                const float global_fragment_arrival_rate,
                                gkStore *gkp) {
 
-  IntChunk_ID ichunk;
-  IntFragment_ID num_of_chunks[MAX_NUM_CHUNK_LABELS]={0};
-  IntFragment_ID nfrag_in_all_chunks=0;
-  IntFragment_ID nfrag_essential_in_all_chunks=0;
-  IntFragment_ID nfrag_contained_in_all_chunks=0;
+  AS_IID ichunk;
+  AS_IID num_of_chunks[MAX_NUM_CHUNK_LABELS]={0};
+  AS_IID nfrag_in_all_chunks=0;
+  AS_IID nfrag_essential_in_all_chunks=0;
+  AS_IID nfrag_contained_in_all_chunks=0;
   int64  nbase_essential_in_all_chunks=0;
   int64  rho_in_all_chunks = 0;
-  IntFragment_ID n_rs_frag_in_all_chunks = 0;
-  IntFragment_ID n_nr_frag_in_all_chunks = 0;
+  AS_IID n_rs_frag_in_all_chunks = 0;
+  AS_IID n_nr_frag_in_all_chunks = 0;
 
   const int nsample=500;
   const int nbucket=500;
   MyHistoDataType zork;
 
-  IntFragment_ID *fragment_visited = NULL;
+  AS_IID *fragment_visited = NULL;
   int            *fragment_timesinchunks = NULL;
-  IntFragment_ID *afr_to_avx = NULL;
-  IntFragment_ID  nfrag   = GetNumFragments(frags);
-  IntChunk_ID     nchunks = (IntChunk_ID)GetNumVA_AChunkMesg(thechunks);
+  AS_IID *afr_to_avx = NULL;
+  AS_IID  nfrag   = GetNumFragments(frags);
+  AS_IID     nchunks = (AS_IID)GetNumVA_AChunkMesg(thechunks);
   Histogram_t    *length_of_unitigs_histogram = create_histogram(nsample,nbucket,0,TRUE);
 
   Histogram_t * rho_histogram = create_histogram(nsample,nbucket,0,TRUE);
@@ -988,12 +988,12 @@ static void analyze_the_chunks(FILE *fout,
   extend_histogram(length_of_unitigs_histogram, sizeof(MyHistoDataType),
 		   myindexdata,mysetdata,myaggregate,myprintdata);
 
-  fragment_visited       = (IntFragment_ID *)safe_calloc(nfrag,     sizeof(IntFragment_ID));
+  fragment_visited       = (AS_IID *)safe_calloc(nfrag,     sizeof(AS_IID));
   fragment_timesinchunks = (int            *)safe_calloc(nfrag,     sizeof(int));
 
   /* Initialize a flag for chunk following. */
   {
-    IntFragment_ID ifrag;
+    AS_IID ifrag;
     for(ifrag=0;ifrag<nfrag;ifrag++) {
       fragment_visited[ifrag]          = FRAGMENT_NOT_VISITED;
       fragment_timesinchunks[ifrag]    = 0;
@@ -1003,18 +1003,18 @@ static void analyze_the_chunks(FILE *fout,
   // Re-hash the fragment IID to fragment VID mapping using the
   // fragments in the store.  (duplicated, search for BUILD_AFR_TO_AVX
   {
-    IntFragment_ID  iv    = 0;
-    IntFragment_ID  im    = 0;
-    IntFragment_ID  nfrag = GetNumFragments(frags);
+    AS_IID  iv    = 0;
+    AS_IID  im    = 0;
+    AS_IID  nfrag = GetNumFragments(frags);
 
     for (iv=0; iv<nfrag; iv++) {
-      IntFragment_ID iid = get_iid_fragment(frags,iv);
+      AS_IID iid = get_iid_fragment(frags,iv);
       im = MAX(im, iid);
     }
 
     assert(im < AS_CGB_NOT_SEEN_YET);
 
-    afr_to_avx = (IntFragment_ID *)safe_calloc(im + 1, sizeof(IntFragment_ID));
+    afr_to_avx = (AS_IID *)safe_calloc(im + 1, sizeof(AS_IID));
 
     for(iv=0; iv<nfrag; iv++)
       afr_to_avx[get_iid_fragment(frags,iv)] = iv;
@@ -1025,9 +1025,9 @@ static void analyze_the_chunks(FILE *fout,
   assert((!0) == 1); /* Needed for the following bitwise XOR operator. */
   for(ichunk=0;ichunk<nchunks;ichunk++) {
 
-    const IntFragment_ID irec_start_of_chunk = GetVA_AChunkMesg(thechunks,ichunk)->f_list;
+    const AS_IID irec_start_of_chunk = GetVA_AChunkMesg(thechunks,ichunk)->f_list;
     const int64  rho = GetVA_AChunkMesg(thechunks,ichunk)->rho;
-    const IntFragment_ID nfrag_in_chunk = GetVA_AChunkMesg(thechunks,ichunk)->num_frags;
+    const AS_IID nfrag_in_chunk = GetVA_AChunkMesg(thechunks,ichunk)->num_frags;
     const int64  nbase_essential_in_chunk = GetVA_AChunkMesg(thechunks,ichunk)->bp_length;
 
     const int number_of_randomly_sampled_fragments_in_chunk
@@ -1048,8 +1048,8 @@ static void analyze_the_chunks(FILE *fout,
     // The fragment arrival distance in base pairs.
     // CMM: Should this be for Celera reads only?
 
-    IntFragment_ID nfrag_essential_in_chunk=0;
-    IntFragment_ID nfrag_contained_in_chunk=0;
+    AS_IID nfrag_essential_in_chunk=0;
+    AS_IID nfrag_contained_in_chunk=0;
     int64  nbase_sampled_in_chunk=0;
     int64  nbase_essential_sampled_in_chunk=0;
     int64  nbase_contained_sampled_in_chunk=0;
@@ -1064,8 +1064,8 @@ static void analyze_the_chunks(FILE *fout,
 
     {
       // Process the chunk-end fragments first to label the chunks.
-      const IntFragment_ID chunk_avx = GetVA_AChunkMesg(thechunks,ichunk)->chunk_avx;
-      const IntFragment_ID chunk_bvx = GetVA_AChunkMesg(thechunks,ichunk)->chunk_bvx;
+      const AS_IID chunk_avx = GetVA_AChunkMesg(thechunks,ichunk)->chunk_avx;
+      const AS_IID chunk_bvx = GetVA_AChunkMesg(thechunks,ichunk)->chunk_bvx;
       const int chunk_asx = GetVA_AChunkMesg(thechunks,ichunk)->chunk_asx;
       const int chunk_bsx = GetVA_AChunkMesg(thechunks,ichunk)->chunk_bsx;
 
@@ -1096,16 +1096,16 @@ static void analyze_the_chunks(FILE *fout,
 
     // Process the fragments of the chunk.
     {
-      IntFragment_ID ifrag;
+      AS_IID ifrag;
       for(ifrag=0;ifrag<nfrag_in_chunk;ifrag++){
 
-        const IntFragment_ID ivc = irec_start_of_chunk + ifrag;
-        const IntFragment_ID vid = *GetVA_AChunkFrag(chunkfrags,ivc);
+        const AS_IID ivc = irec_start_of_chunk + ifrag;
+        const AS_IID vid = *GetVA_AChunkFrag(chunkfrags,ivc);
 
-        const IntFragment_ID iid  = get_iid_fragment(frags,vid);
+        const AS_IID iid  = get_iid_fragment(frags,vid);
         const Tlab ilabel = get_lab_fragment(frags,vid);
         const int ilen = get_length_fragment(frags,vid);
-        const IntFragment_ID ibvx = afr_to_avx[iid];
+        const AS_IID ibvx = afr_to_avx[iid];
 
         fragment_visited[ibvx] = ichunk;
         fragment_timesinchunks[ibvx] ++;
@@ -1190,9 +1190,9 @@ static void analyze_the_chunks(FILE *fout,
               num_as_2_contains_1_overlap[2]={0};      // I
 
               // Process the chunk-end fragments first to label the chunks.
-              const IntFragment_ID chunk_avx
+              const AS_IID chunk_avx
                 = GetVA_AChunkMesg(thechunks,ichunk)->chunk_avx;
-              const IntFragment_ID chunk_bvx
+              const AS_IID chunk_bvx
                 = GetVA_AChunkMesg(thechunks,ichunk)->chunk_bvx;
               const int chunk_asx = GetVA_AChunkMesg(thechunks,ichunk)->chunk_asx;
               const int chunk_bsx = GetVA_AChunkMesg(thechunks,ichunk)->chunk_bsx;
@@ -1220,7 +1220,7 @@ static void analyze_the_chunks(FILE *fout,
                 for(isuffix=0;isuffix<2;isuffix++) {
                   {
                     const AChunkMesg * chunk = GetVA_AChunkMesg( thechunks, ichunk);
-                    IntFragment_ID ifrag = (isuffix == 0 ? chunk->chunk_avx : chunk->chunk_bvx);
+                    AS_IID ifrag = (isuffix == 0 ? chunk->chunk_avx : chunk->chunk_bvx);
                     int        isuff = (isuffix == 0 ? chunk->chunk_asx : chunk->chunk_bsx);
                     IntEdge_ID ir;
                     const IntEdge_ID ir0  = get_segstart_vertex(frags,ifrag,isuff);
@@ -1352,8 +1352,8 @@ static void analyze_the_chunks(FILE *fout,
     fprintf(fout,"%15"F_S64P" : Estimated number of base pairs in the genome.\n", nbase_in_genome);
 
     {
-      IntFragment_ID nfound = 0;
-      IntFragment_ID ifrag;
+      AS_IID nfound = 0;
+      AS_IID ifrag;
       for(ifrag=0;ifrag<nfrag;ifrag++) {
 	Tlab lab = get_lab_fragment(frags,ifrag);
 
@@ -1380,7 +1380,7 @@ static void analyze_the_chunks(FILE *fout,
                                              gkp);
 
     {
-      IntFragment_ID ifrag;
+      AS_IID ifrag;
       for(ifrag=0; ifrag<nfrag; ifrag++) {
 	const Tlab ilab = get_lab_fragment(frags,ifrag);
 	assert(!(ilab==AS_CGB_SOLO_FRAG)

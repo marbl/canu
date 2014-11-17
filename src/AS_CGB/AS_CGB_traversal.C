@@ -44,7 +44,6 @@ static char *rcsid = "$Id$";
 #include <sys/times.h>
 
 #include "AS_global.H"
-#include "AS_MSG_pmesg.H"
 #include "AS_CGB_all.H"
 
 #define MAXQUEUELEN   ((1 << 24)-1) // 0xffffff
@@ -52,11 +51,11 @@ static char *rcsid = "$Id$";
 
 
 static void as_addq
-(IntFragment_ID item,
- IntFragment_ID thequeue[],
+(AS_IID item,
+ AS_IID thequeue[],
  int lenqueue,
- IntFragment_ID *front,
- IntFragment_ID *rear)
+ AS_IID *front,
+ AS_IID *rear)
 {
   /* Insert item into the circular queue stored in thequeue[0..lenqueue-1].
      rear points to one position counterclockwise from the last item and
@@ -73,11 +72,11 @@ static void as_addq
 }
 
 static void as_delq
-( IntFragment_ID *item,
-  IntFragment_ID thequeue[],
+( AS_IID *item,
+  AS_IID thequeue[],
   int lenqueue,
-  IntFragment_ID *front,
-  IntFragment_ID *rear)
+  AS_IID *front,
+  AS_IID *rear)
 {
   /* Removes the rear element of the queue, and stores it
      in the item. This is a undo or stack pop operation. */
@@ -90,11 +89,11 @@ static void as_delq
 }
 
 static void as_subq
-( IntFragment_ID *item,
-  IntFragment_ID thequeue[],
+( AS_IID *item,
+  AS_IID thequeue[],
   int lenqueue,
-  IntFragment_ID *front,
-  IntFragment_ID *rear)
+  AS_IID *front,
+  AS_IID *rear)
 {
   /* Removes the front element of the queue, and stores it
      in the item. */
@@ -108,12 +107,12 @@ static void as_subq
 
 static void as_diagq
 ( FILE *fout,
-  IntFragment_ID thequeue[],
+  AS_IID thequeue[],
   int lenqueue,
-  IntFragment_ID front,
-  IntFragment_ID rear)
+  AS_IID front,
+  AS_IID rear)
 {
-  IntFragment_ID iq;
+  AS_IID iq;
   fprintf(fout,"the queue front="F_IID " rear="F_IID "\n",front,rear);
   if( front != rear ) {
   if( front < rear ) {
@@ -135,16 +134,16 @@ static void as_diagq
 
 static void as_dfs_intrachunk
 (
- IntFragment_ID iv0,
+ AS_IID iv0,
  size_t    *nfound,
- IntFragment_ID nfrag,
+ AS_IID nfrag,
  Tfragment  frags[],
  IntEdge_ID nedge,
  Tedge      edges[],
  size_t     fragment_rank[])
 {
   int is0;
-  IntFragment_ID iv1;
+  AS_IID iv1;
   IntEdge_ID ie1,ie0;
   int ne0;
 
@@ -168,16 +167,16 @@ static void as_dfs_intrachunk
 }
 
 static void as_dfs
-(IntFragment_ID iv0,
+(AS_IID iv0,
  size_t    *nfound,
- IntFragment_ID nfrag,
+ AS_IID nfrag,
  Tfragment  frags[],
  IntEdge_ID nedge,
  Tedge      edges[],
  size_t     fragment_rank[])
 {
   int is0;
-  IntFragment_ID iv1;
+  AS_IID iv1;
   IntEdge_ID ie1,ie0;
   int ne0;
 
@@ -204,12 +203,12 @@ static void as_dfs
   }
 }
 
-static IntFragment_ID thequeue[MAXQUEUELEN];
+static AS_IID thequeue[MAXQUEUELEN];
 
 static void as_bfs
-(IntFragment_ID ivi,
+(AS_IID ivi,
  size_t    *nfound,
- IntFragment_ID nfrag,
+ AS_IID nfrag,
  Tfragment  frags[],
  IntEdge_ID nedge,
  Tedge      edges[],
@@ -222,8 +221,8 @@ static void as_bfs
      The graph and the array fragment_rank[] are initialized.
   */
 
-  IntFragment_ID iv0,iv1;
-  IntFragment_ID front,rear;
+  AS_IID iv0,iv1;
+  AS_IID front,rear;
   IntEdge_ID ie1,ie0;
   int ne0;
 
@@ -276,9 +275,9 @@ void as_graph_traversal
  )
 { /* A marked traversal of the graph. */
   size_t  nconnected=0,nfound=0,ncontained=0,ncircl=0;
-  IntFragment_ID ivi;
+  AS_IID ivi;
 
-  const IntFragment_ID nfrag = GetNumFragments(frags);
+  const AS_IID nfrag = GetNumFragments(frags);
   const IntEdge_ID nedge = GetNumEdges(edges);
 
   for(ivi=0; ivi<nfrag; ivi++) {

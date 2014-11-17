@@ -25,7 +25,37 @@
 static const char *rcsid_AS_ALN_ALIGNERS_H = "$Id$";
 
 #include "AS_global.H"
-#include "AS_MSG_pmesg.H"
+#include "AS_PER_gkpStore.H"  //  <- PairOrient
+
+typedef enum {
+  AS_DOVETAIL    = (int)'D',
+  AS_CONTAINMENT = (int)'C'
+
+#if 0
+//  These are dead.  BPW 2009-06
+
+  AS_SUPERREPEAT = (int)'S',
+
+  AS_DOVETAIL_TRANS = (int) 'X',
+  // A dovetail overlap that is transitively inferrable by a path in
+  // the fragment overlap graph, for example using a path of dovetail
+  // overlaps followed by a path of containment overlaps.
+
+  /* The following are created during de-chording the fragment overlap
+     graph. They are not by default present in a path compressed
+     fragment overlap graph but instead removed since they are easily
+     inferred. */
+  AS_DOVETAIL_CHORD  = (int)'d',
+  // This dovetail overlap is known to be a chord in the dovetail
+  // overlap sub-graph.
+  AS_CONTAINMENT_CHORD = (int)'c'
+  // This containment overlap is known to be a chord in the
+  // containment overlap sub-graph.
+#endif
+} OverlapType;
+
+#if 0
+#endif
 
 typedef struct {
   uint32           aifrag;
@@ -61,6 +91,34 @@ ALNoverlap *CopyALNoverlap(ALNoverlap *ovl);
 #define AS_ANALYZE_DELETES       1
 #define AS_ANALYZE_INSERTS       2
 #define AS_ANALYZE_SUBSTITUTIONS 3
+
+
+
+
+//  Former FragMesg
+typedef struct {
+  int32  action;
+  uint32                version;
+  AS_UID         eaccession;
+  AS_UID                library_uid;     //  only version 2
+  int32         library_iid;     //  only version 2
+  AS_UID                plate_uid;       //  only version 2
+  uint32                plate_location;  //  only version 2
+  int32         type;            //  only version 1
+  //  was FragType
+  uint32                is_random;       //  only version 2
+  char                  status_code;     //  only version 2
+  SeqInterval      clear_rng;
+  SeqInterval      clear_vec;       //  only version 2
+  SeqInterval      clear_max;       //  only version 2
+  SeqInterval           contamination;   //  only version 2
+  char            *source;
+  char            *sequence;
+  char            *quality;
+  char                  *hps;            //  only version 2
+  int32     iaccession;
+} InternalFragMesg;  //  FRG
+
 
 
 /* Just like Analyze_Overlap_AS with addition of evaluation of affine model
@@ -126,16 +184,16 @@ typedef int (AS_ALN_OverlapScorer)(ALNoverlap *O,
                                    double  *aScore_out,
                                    double  *bScore_out);
 
-AS_ALN_Aligner_AS  DP_Compare_AS;
-AS_ALN_Aligner_AS  Affine_Overlap_AS;
-AS_ALN_Aligner_AS  Local_Overlap_AS;
+//AS_ALN_Aligner_AS  DP_Compare_AS;
+//AS_ALN_Aligner_AS  Affine_Overlap_AS;
+AS_ALN_Aligner_AS  Local_Overlap_AS;  //  <- Bubble Popping in unitigger uses this
 
-AS_ALN_Aligner     DP_Compare;
-AS_ALN_Aligner     Local_Overlap_AS_forCNS;
-AS_ALN_Aligner     Affine_Overlap_AS_forCNS;
-AS_ALN_Aligner     Optimal_Overlap_AS_forCNS;
+AS_ALN_Aligner     DP_Compare;                 //  <- utgcns
+AS_ALN_Aligner     Local_Overlap_AS_forCNS;    //  <- utgcns
+//AS_ALN_Aligner     Affine_Overlap_AS_forCNS;
+AS_ALN_Aligner     Optimal_Overlap_AS_forCNS;  //  <- utgcns
 
-AS_ALN_OverlapScorer ScoreOverlap;
+//AS_ALN_OverlapScorer ScoreOverlap;
 
 #include "CA_ALN_local.H"
 int *AS_Local_Trace(Local_Overlap *local_overlap, char *aseq, char *bseq);

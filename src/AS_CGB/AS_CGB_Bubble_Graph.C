@@ -38,7 +38,7 @@ IntEdge_ID find_overlap_edge_mate(Tfragment frags[],
 void
 BG_initialize(BubGraph_t bg, Tfragment *frags, Tedge *edges)
 {
-  IntFragment_ID num_v = GetNumFragments(frags);
+  AS_IID num_v = GetNumFragments(frags);
   IntEdge_ID e, num_e = GetNumEdges(edges);
 
   memset(bg,0,sizeof(BubGraph));
@@ -108,10 +108,10 @@ BG_edges(BubGraph_t bg)
 }
 
 
-IntFragment_ID
-BG_getOppositeVertex(BubGraph_t bg, IntEdge_ID e, IntFragment_ID v)
+AS_IID
+BG_getOppositeVertex(BubGraph_t bg, IntEdge_ID e, AS_IID v)
 {
-  IntFragment_ID a = get_avx_edge(bg->e, e);
+  AS_IID a = get_avx_edge(bg->e, e);
   if (a == v)
     return get_bvx_edge(bg->e, e);
   else
@@ -120,14 +120,14 @@ BG_getOppositeVertex(BubGraph_t bg, IntEdge_ID e, IntFragment_ID v)
 
 
 int
-BG_vertexForward(BubGraph_t bg, IntFragment_ID v)
+BG_vertexForward(BubGraph_t bg, AS_IID v)
 {
   return !BG_V_isSetFlag(bg, v, AS_CGB_BUBBLE_V_REVERSED);
 }
 
 
 int
-BG_Degree(BubGraph_t bg, IntFragment_ID v, uint16 flags)
+BG_Degree(BubGraph_t bg, AS_IID v, uint16 flags)
 {
   BG_E_Iter it;
   IntEdge_ID e;
@@ -143,7 +143,7 @@ BG_Degree(BubGraph_t bg, IntFragment_ID v, uint16 flags)
 
 
 int
-BG_outDegree(BubGraph_t bg, IntFragment_ID v, uint16 flags)
+BG_outDegree(BubGraph_t bg, AS_IID v, uint16 flags)
 {
   BG_E_Iter it;
   IntEdge_ID e;
@@ -159,7 +159,7 @@ BG_outDegree(BubGraph_t bg, IntFragment_ID v, uint16 flags)
 
 
 int
-BG_inDegree(BubGraph_t bg, IntFragment_ID v, uint16 flags)
+BG_inDegree(BubGraph_t bg, AS_IID v, uint16 flags)
 {
   BG_E_Iter it;
   IntEdge_ID e;
@@ -175,7 +175,7 @@ BG_inDegree(BubGraph_t bg, IntFragment_ID v, uint16 flags)
 
 
 void
-BG_V_setFlag(BubGraph_t bg, IntFragment_ID v, uint16 flag)
+BG_V_setFlag(BubGraph_t bg, AS_IID v, uint16 flag)
 {
   bg->vFlags[v] |= flag;
 }
@@ -202,7 +202,7 @@ BG_E_setFlagSymmetric(BubGraph_t bg, IntEdge_ID e, uint16 flag)
 
 
 void
-BG_V_clearFlag(BubGraph_t bg, IntFragment_ID v, uint16 flag)
+BG_V_clearFlag(BubGraph_t bg, AS_IID v, uint16 flag)
 {
   bg->vFlags[v] &= ~flag;
 }
@@ -229,7 +229,7 @@ BG_E_clearFlagSymmetric(BubGraph_t bg, IntEdge_ID e, uint16 flag)
 
 
 uint16
-BG_V_isSetFlag(BubGraph_t bg, IntFragment_ID v, uint16 flag)
+BG_V_isSetFlag(BubGraph_t bg, AS_IID v, uint16 flag)
 {
   assert(NULL != bg);
   return bg->vFlags[v] & flag;
@@ -244,7 +244,7 @@ BG_E_isSetFlag(BubGraph_t bg, IntEdge_ID e, uint16 flag)
 
 
 uint16
-BG_V_getFlags(BubGraph_t bg, IntFragment_ID v)
+BG_V_getFlags(BubGraph_t bg, AS_IID v)
 {
   return bg->vFlags[v];
 }
@@ -258,14 +258,14 @@ BG_E_getFlags(BubGraph_t bg, IntEdge_ID e)
 
 
 void
-BG_V_setDistance(BubGraph_t bg, IntFragment_ID v, int64 p)
+BG_V_setDistance(BubGraph_t bg, AS_IID v, int64 p)
 {
   bg->vPos[v] = p;
 }
 
 
 int64
-BG_V_getDistance(BubGraph_t bg, IntFragment_ID v)
+BG_V_getDistance(BubGraph_t bg, AS_IID v)
 {
   return bg->vPos[v];
 }
@@ -308,7 +308,7 @@ BGEI__advance(BubGraph_t bg, BG_E_Iter_t it, uint16 flags)
 
 
 IntEdge_ID
-BGEI_bgn(BubGraph_t bg, BG_E_Iter_t it, IntFragment_ID v, BG_E_IterType t,
+BGEI_bgn(BubGraph_t bg, BG_E_Iter_t it, AS_IID v, BG_E_IterType t,
 	 uint16 flags)
 {
   int forward = BG_vertexForward(bg, v);

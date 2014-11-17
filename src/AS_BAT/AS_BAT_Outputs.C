@@ -202,13 +202,16 @@ void
 writeOVLtoFile(UnitigVector &unitigs,
                char         *fileprefix) {
   char         filename[FILENAME_MAX] = {0};
+#if 0
   GenericMesg  pmesg;
   OverlapMesg  omesg;
+#endif
 
   sprintf(filename, "%s.unused.ovl", fileprefix);
   FILE *file = fopen(filename, "w");
   assert(file != NULL);
 
+#if 0
   for (uint32  ti=0; ti<unitigs.size(); ti++) {
     Unitig  *utg = unitigs[ti];
 
@@ -291,6 +294,7 @@ writeOVLtoFile(UnitigVector &unitigs,
       }
     }
   }
+#endif
 
   fclose(file);
 }

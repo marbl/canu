@@ -271,10 +271,9 @@ endif
 #  all dependent on each other.  Everything after TER isn't needed for
 #  an assembly.
 
+
 SUBDIRS = AS_RUN \
           AS_UTL \
-          AS_UID \
-          AS_MSG \
           AS_PER \
           AS_GKP \
           AS_OBT \

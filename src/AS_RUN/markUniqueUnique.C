@@ -8,7 +8,6 @@ const char *mainid = "$Id$";
 #include "AS_UTL_UID.H"
 #include "AS_UTL_Hash.H"
 #include "AS_UTL_Var.H"
-#include "AS_MSG_pmesg.H"
 #include "MultiAlignStore.H"
 
 

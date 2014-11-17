@@ -27,7 +27,7 @@ LOCAL_WORK = $(shell cd ../..; pwd)
 OVS_LIB_SRC = AS_OVS_overlap.C AS_OVS_overlapFile.C AS_OVS_overlapStore.C
 OVS_STR_SRC = overlapStore.C overlapStore_dump.C overlapStore_erates.C overlapStore_genomeLength.C
 OVS_STA_SRC = overlapStats.C
-OVS_CVT_SRC = convertOverlap.C filterOverlap.C
+OVS_CVT_SRC = convertOverlap.C
 
 OVS_LIB_OBJ = $(OVS_LIB_SRC:.C=.o)
 OVS_STR_OBJ = $(OVS_STR_SRC:.C=.o)
@@ -39,7 +39,7 @@ OBJECTS = $(SOURCES:.C=.o)
 
 LIBRARIES = libAS_OVS.a libCA.a
 
-CXX_PROGS = overlapStore overlapStats convertOverlap filterOverlap overlapStoreBucketizer overlapStoreSorter overlapStoreIndexer overlapStoreBuild
+CXX_PROGS = overlapStore overlapStats convertOverlap overlapStoreBucketizer overlapStoreSorter overlapStoreIndexer overlapStoreBuild
 
 include $(LOCAL_WORK)/src/c_make.as
 
@@ -57,4 +57,4 @@ overlapStoreBuild:        overlapStoreBuild.o        libCA.a
 
 overlapStats:   overlapStats.o   libCA.a
 convertOverlap: convertOverlap.o libCA.a
-filterOverlap:  filterOverlap.o  libCA.a
+

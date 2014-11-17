@@ -54,10 +54,10 @@ BOG_SOURCES = AS_BOG_BestOverlapGraph.C \
               AS_BOG_UnitigGraph.C
 BOG_OBJECTS = $(BOG_SOURCES:.C=.o)
 
-SOURCES     = BuildUnitigs.C  fixUnitigs.C analyzeBest.C $(BOG_SOURCES)
-OBJECTS     = BuildUnitigs.o  fixUnitigs.o analyzeBest.o $(BOG_OBJECTS)
+SOURCES     = BuildUnitigs.C  analyzeBest.C $(BOG_SOURCES)
+OBJECTS     = BuildUnitigs.o  analyzeBest.o $(BOG_OBJECTS)
 
-CXX_PROGS = buildUnitigs fixUnitigs analyzeBest
+CXX_PROGS = buildUnitigs analyzeBest
 
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
@@ -66,5 +66,4 @@ all:    $(OBJECTS) $(LIBRARIES) $(CXX_PROGS)
 	@test -n nop
 
 buildUnitigs:    BuildUnitigs.o $(BOG_OBJECTS) libCA.a
-fixUnitigs:      fixUnitigs.o                  libCA.a
 analyzeBest:     analyzeBest.o                 libCA.a

@@ -33,6 +33,20 @@
 #define LIBRARY_NAME_SIZE 128
 #define LIBRARY_NAME_DEFAULT "UNDEFINED"
 
+
+typedef struct {
+  AS_UID       eaccession;
+  double       mean;
+  double       stddev;
+  char        *source;
+  PairOrient   link_orient;
+  uint32       num_features;
+  char       **features;
+  char       **values;
+} LibraryMesg;  //  LIB, only version 2
+
+
+
 class gkLibrary {
 public:
   gkLibrary() {

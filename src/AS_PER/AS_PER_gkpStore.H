@@ -25,7 +25,6 @@
 static const char *rcsid_AS_PER_GKPFRGSTORE_H = "$Id$";
 
 #include "AS_global.H"
-#include "AS_MSG_pmesg.H"
 #include "AS_PER_genericStore.H"
 #include "AS_UTL_fileIO.H"
 

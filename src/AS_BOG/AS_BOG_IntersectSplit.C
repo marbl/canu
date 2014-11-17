@@ -207,6 +207,8 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix, bool ena
                   bestEdge->frag3p() ? '3' : '5',
                   pos);
 
+#warning breaks not written to breakFile
+#if 0
         if (breakFile) {
           GenericMesg  pmesg;
           OverlapMesg  omesg;
@@ -240,6 +242,7 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix, bool ena
 
           WriteProtoMesg_AS(breakFile, &pmesg);
         }
+#endif
       }  //  Over all fragments that intersect with us
     }  //  Over all fragments in the unitig
 

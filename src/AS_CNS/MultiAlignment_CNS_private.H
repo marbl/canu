@@ -119,14 +119,14 @@ typedef struct {
 
 typedef struct {
   FragType             frgType;
-  IntFragment_ID       frgIdent;
-  IntFragment_ID       frgContained;
-  IntUnitig_ID         frgInUnitig;
+  AS_IID               frgIdent;
+  AS_IID               frgContained;
+  AS_IID               frgInUnitig;
 } CNS_FragmentContigElement;
 
 typedef struct {
   UnitigType           utgType;
-  IntUnitig_ID         utgIdent;
+  AS_IID               utgIdent;
 } CNS_UnitigContigElement;
 
 

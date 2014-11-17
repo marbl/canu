@@ -50,7 +50,7 @@ void
 input_messages_from_a_file(FILE       *fovl,
                            Tfragment  frags[],
                            Tedge      edges[],
-                           IntFragment_ID *afr_to_avx,
+                           AS_IID *afr_to_avx,
                            VA_TYPE(IntEdge_ID)  *next_edge,
                            const int dvt_double_sided_threshold_fragment_end_degree,
                            const int con_double_sided_threshold_fragment_end_degree,
@@ -66,7 +66,7 @@ void
 process_ovl_store(char * OVL_Store_Path,
                   Tfragment  frags[],
                   Tedge      edges[],
-                  IntFragment_ID *afr_to_avx,
+                  AS_IID *afr_to_avx,
                   VA_TYPE(IntEdge_ID)  *next_edge,
                   const int dvt_double_sided_threshold_fragment_end_degree,
                   const int con_double_sided_threshold_fragment_end_degree,
@@ -77,7 +77,7 @@ process_ovl_store(char * OVL_Store_Path,
 void
 process_ovl_file(const char Batch_File_Name[],
                  THeapGlobals   * heapva,
-                 IntFragment_ID * afr_to_avx,
+                 AS_IID * afr_to_avx,
                  VA_TYPE(IntEdge_ID)  * next_edge,
                  const int dvt_double_sided_threshold_fragment_end_degree,
                  const int con_double_sided_threshold_fragment_end_degree,
@@ -96,19 +96,19 @@ static void output_mesgs(Tfragment          frags[],
   for(ie=0;ie<nedge;ie++){
     OVSoverlap overlap;
 
-    const IntFragment_ID avx = get_avx_edge(edges,ie);
+    const AS_IID avx = get_avx_edge(edges,ie);
     const int asx = get_asx_edge(edges,ie);
     const int ahg = get_ahg_edge(edges,ie);
 
-    const IntFragment_ID bvx = get_bvx_edge(edges,ie);
+    const AS_IID bvx = get_bvx_edge(edges,ie);
     const int bsx = get_bsx_edge(edges,ie);
     const int bhg = get_bhg_edge(edges,ie);
 
     const Tnes    nes = get_nes_edge(edges,ie);
     const uint32  qua = get_qua_edge(edges,ie);
 
-    const IntFragment_ID aid = get_iid_fragment(frags,avx);
-    const IntFragment_ID bid = get_iid_fragment(frags,bvx);
+    const AS_IID aid = get_iid_fragment(frags,avx);
+    const AS_IID bid = get_iid_fragment(frags,bvx);
     // Assembler internal Fragment ids.
 
     overlap.a_iid = aid;
@@ -282,7 +282,7 @@ int main_fgb(THeapGlobals  * heapva,
   int status = 0;
   int ierr = 0;
 
-  IntFragment_ID *afr_to_avx = NULL;
+  AS_IID *afr_to_avx = NULL;
 
   int did_processing_phase_2 = FALSE;
 
@@ -297,18 +297,18 @@ int main_fgb(THeapGlobals  * heapva,
   // Re-hash the fragment IID to fragment VID mapping using the
   // fragments in the store.  (duplicated, search for BUILD_AFR_TO_AVX
   {
-    IntFragment_ID  iv    = 0;
-    IntFragment_ID  im    = 0;
-    IntFragment_ID  nfrag = GetNumFragments(heapva->frags);
+    AS_IID  iv    = 0;
+    AS_IID  im    = 0;
+    AS_IID  nfrag = GetNumFragments(heapva->frags);
 
     for (iv=0; iv<nfrag; iv++) {
-      IntFragment_ID iid = get_iid_fragment(heapva->frags,iv);
+      AS_IID iid = get_iid_fragment(heapva->frags,iv);
       im = MAX(im, iid);
     }
 
     assert(im < AS_CGB_NOT_SEEN_YET);
 
-    afr_to_avx = (IntFragment_ID *)safe_calloc(im + 1, sizeof(IntFragment_ID));
+    afr_to_avx = (AS_IID *)safe_calloc(im + 1, sizeof(AS_IID));
 
     for(iv=0; iv<nfrag; iv++)
       afr_to_avx[get_iid_fragment(heapva->frags,iv)] = iv;

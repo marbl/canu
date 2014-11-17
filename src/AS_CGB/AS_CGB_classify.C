@@ -37,8 +37,8 @@ static void maskout_overlaps_touching_crappy_fragments(Tfragment * frags,
 
   const IntEdge_ID nedge = GetNumEdges(edges);
   { IntEdge_ID ie; for(ie=0; ie<nedge; ie++) {
-    const IntFragment_ID iavx = get_avx_edge(edges,ie);
-    const IntFragment_ID ibvx = get_bvx_edge(edges,ie);
+    const AS_IID iavx = get_avx_edge(edges,ie);
+    const AS_IID ibvx = get_bvx_edge(edges,ie);
     const Tnes ines = get_nes_edge(edges,ie);
     Tnes jnes = ines;
     const int ikeep
@@ -176,11 +176,11 @@ static void find_in_degree_of_essential_dovetails
   // overlaps to each fragment-end in the transitively reduced graph
   // for the purpose of determining INTRACHUNK edges.
 
-  const IntFragment_ID nfrag = GetNumFragments(frags);
+  const AS_IID nfrag = GetNumFragments(frags);
   const IntEdge_ID nedge = GetNumEdges(edges);
 
   {
-    IntFragment_ID vid;
+    AS_IID vid;
     // #pragma omp parallel for
     for(vid=0; vid<nfrag; vid++){
       fragment_npx[vid] = 0;
@@ -199,8 +199,8 @@ static void find_in_degree_of_essential_dovetails
   {
     IntEdge_ID ie;
     for(ie=0; ie<nedge; ie++) {
-      //const IntFragment_ID iavx = get_avx_edge(edges,ie);
-      const IntFragment_ID ibvx = get_bvx_edge(edges,ie);
+      //const AS_IID iavx = get_avx_edge(edges,ie);
+      const AS_IID ibvx = get_bvx_edge(edges,ie);
       const int iasx = get_asx_edge(edges,ie);
       const int ibsx = get_bsx_edge(edges,ie);
       const Tnes ines = get_nes_edge(edges,ie);
@@ -227,7 +227,7 @@ static void intrachunk_classification_of_overlaps
   const int walk_depth
 )
 {
-  const IntFragment_ID nfrag = GetNumFragments(frags);
+  const AS_IID nfrag = GetNumFragments(frags);
   const IntEdge_ID nedge = GetNumEdges(edges);
   int *fragment_npx = NULL;
   int *fragment_nsx = NULL;
@@ -248,8 +248,8 @@ static void intrachunk_classification_of_overlaps
     IntEdge_ID ie;
     for(ie=0; ie<nedge; ie++) {
       const Tnes ines = get_nes_edge(edges,ie);
-      const IntFragment_ID iavx = get_avx_edge(edges,ie);
-      const IntFragment_ID ibvx = get_bvx_edge(edges,ie);
+      const AS_IID iavx = get_avx_edge(edges,ie);
+      const AS_IID ibvx = get_bvx_edge(edges,ie);
       const int iasx = get_asx_edge(edges,ie);
       const int ibsx = get_bsx_edge(edges,ie);
       assert( (ibsx == 0) || (ibsx == 1));
@@ -338,7 +338,7 @@ static void chunk_classification_of_fragments
   // AS_CGB_HANGING_FRAG, AS_CGB_HANGING_CHUNK_FRAG, and the death
   // sentence AS_CGB_HANGING_CRAPPY_FRAG.
 
-  const IntFragment_ID nfrag = GetNumFragments(frags);
+  const AS_IID nfrag = GetNumFragments(frags);
   const IntEdge_ID nedge = GetNumEdges(edges);
   char *intrachunk_npx = NULL; // boolean
   char *intrachunk_nsx = NULL;
@@ -365,7 +365,7 @@ static void chunk_classification_of_fragments
   */
 
   {
-    IntFragment_ID vid;
+    AS_IID vid;
     // #pragma omp parallel for
     for(vid=0; vid<nfrag; vid++){
       intrachunk_nsx[vid] = 0; /* Will be the number of intrachunk edges
@@ -382,8 +382,8 @@ static void chunk_classification_of_fragments
   {
     IntEdge_ID ie;
     for(ie=0; ie<nedge; ie++) {
-      const IntFragment_ID iavx = get_avx_edge(edges,ie);
-      //const IntFragment_ID ibvx = get_bvx_edge(edges,ie);
+      const AS_IID iavx = get_avx_edge(edges,ie);
+      //const AS_IID ibvx = get_bvx_edge(edges,ie);
       const int iasx = get_asx_edge(edges,ie);
       const int ibsx = get_bsx_edge(edges,ie);
       const Tnes ines = get_nes_edge(edges,ie);
@@ -436,7 +436,7 @@ static void chunk_classification_of_fragments
     // Now examine the intrachunk and interchunk degree of each
     // fragment-end to find the chunk status of a fragment.
 
-    IntFragment_ID vid;
+    AS_IID vid;
     // #pragma omp parallel for
     for(vid=0; vid<nfrag; vid++) {
       const int deleted = get_del_fragment(frags,vid);
@@ -456,7 +456,7 @@ static void chunk_classification_of_fragments
 
       const Tlab ilab = get_lab_fragment(frags,vid);
 
-      // const IntFragment_ID iid = get_iid_fragment(frags,vid);
+      // const AS_IID iid = get_iid_fragment(frags,vid);
 
       /* There can not be more than one intrachunk edge into each port
 	   of the fragment. */
@@ -484,12 +484,12 @@ static void chunk_classification_of_fragments
         int suffix_blunt = (insx == 0) && (jnsx == 0);
 
         if( (inpx != 0) && (jnpx != 0) ) {
-          const IntFragment_ID iid = get_iid_fragment(frags,vid);
+          const AS_IID iid = get_iid_fragment(frags,vid);
           fprintf(stderr,"Woops: iid="F_IID " vid="F_IID " inpx=%d jnpx=%d\n",
                   iid,vid,inpx,jnpx);
         }
         if( (insx != 0) && (jnsx != 0) ) {
-          const IntFragment_ID iid = get_iid_fragment(frags,vid);
+          const AS_IID iid = get_iid_fragment(frags,vid);
           fprintf(stderr,"Woops: iid="F_IID " vid="F_IID " insx=%d jnsx=%d\n",
                   iid,vid,insx,jnsx);
         }

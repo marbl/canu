@@ -34,7 +34,7 @@ static char *rcsid = "$Id$";
 
 
 int
-BP__insertFragment(BubblePopper_t bp, IntFragment_ID v)
+BP__insertFragment(BubblePopper_t bp, AS_IID v)
 {
   int p;
   int64 v_pos = BG_V_getDistance(bp->bg, v);
@@ -58,11 +58,11 @@ BP__insertFragment(BubblePopper_t bp, IntFragment_ID v)
 
 
 int
-BP_find_bubble_dfs(BubblePopper_t bp, IntFragment_ID start,
-		   IntFragment_ID end)
+BP_find_bubble_dfs(BubblePopper_t bp, AS_IID start,
+		   AS_IID end)
 {
   int32 s_top = -1;
-  IntFragment_ID cur_v, dst_v;
+  AS_IID cur_v, dst_v;
   IntEdge_ID cur_e;
   BG_E_Iter_t cur_v_it;
   uint16 e_flags = AS_CGB_BUBBLE_E_DOVETAIL | AS_CGB_BUBBLE_E_UNUSED |
@@ -241,8 +241,8 @@ BP_DAG_longest_path(BubblePopper_t bp)
 float
 BP_discriminator(BubblePopper_t bp)
 {
-  IntFragment_ID start_bid, end_bid, i;
-  IntChunk_ID start_c, end_c;
+  AS_IID start_bid, end_bid, i;
+  AS_IID start_c, end_c;
   int64 total_len;
   int num_rand_frags;
   FragType type;
@@ -271,7 +271,7 @@ BP_discriminator(BubblePopper_t bp)
 
   for (i = 0; i < BP_numFrags(bp); ++i) {
     type = get_typ_fragment(BG_vertices(bp->bg), BP_getFrag(bp, i));
-    if (AS_FA_RANDOM(type))
+    if ((type == AS_READ) || (type == AS_EXTR))
       num_rand_frags++;
   }
 

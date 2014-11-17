@@ -33,10 +33,10 @@ void check_containment_edges
   const IntEdge_ID nedge = GetNumEdges(edges);
 
   { IntEdge_ID ie; for(ie=0; ie<nedge; ie++) {
-    const IntFragment_ID iavx = get_avx_edge(edges,ie);
-    const IntFragment_ID ibvx = get_bvx_edge(edges,ie);
-    const IntFragment_ID aid = get_iid_fragment(frags,iavx);
-    const IntFragment_ID bid = get_iid_fragment(frags,ibvx);
+    const AS_IID iavx = get_avx_edge(edges,ie);
+    const AS_IID ibvx = get_bvx_edge(edges,ie);
+    const AS_IID aid = get_iid_fragment(frags,iavx);
+    const AS_IID bid = get_iid_fragment(frags,ibvx);
     const int iahg = get_ahg_edge(edges,ie);
     const int ibhg = get_bhg_edge(edges,ie);
     const Tnes ines = get_nes_edge(edges,ie);
@@ -83,16 +83,16 @@ void contained_fragment_marking_frc
  Tfragment frags[],
  Tedge edges[])
 {
-  const IntFragment_ID nfrag = GetNumEdges(frags);
+  const AS_IID nfrag = GetNumEdges(frags);
   const IntEdge_ID nedge = GetNumEdges(edges);
 
-  { IntFragment_ID iv; for(iv=0; iv<nfrag; iv++) {
+  { AS_IID iv; for(iv=0; iv<nfrag; iv++) {
     set_con_fragment(frags,iv,FALSE);
   }}
 
   { IntEdge_ID ie; for(ie=0; ie<nedge; ie++) {
-    const IntFragment_ID iavx = get_avx_edge(edges,ie);
-    const IntFragment_ID ibvx = get_bvx_edge(edges,ie);
+    const AS_IID iavx = get_avx_edge(edges,ie);
+    const AS_IID ibvx = get_bvx_edge(edges,ie);
     const Tnes ines = get_nes_edge(edges,ie);
 
     switch(ines) {

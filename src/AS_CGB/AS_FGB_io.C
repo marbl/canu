@@ -33,7 +33,6 @@ static char *rcsid = "$Id$";
 #include <time.h>
 
 #include "AS_global.H"
-#include "AS_MSG_pmesg.H"
 #include "AS_CGB_all.H"
 #include "AS_OVS_overlapStore.H"
 
@@ -107,7 +106,7 @@ static void Insert_Aedge_into_the_edge_array_wrapper
  int           con_double_sided_threshold_fragment_end_degree
  )
 {
-  const IntFragment_ID avx = the_edge->avx;
+  const AS_IID avx = the_edge->avx;
   const int asx = the_edge->asx;
   const int ahg = the_edge->ahg;
   const int bhg = the_edge->bhg;
@@ -221,7 +220,7 @@ static void insert_dovetail_into_the_edge_array_Aedge
 static void add_overlap_to_graph(Aedge  an_edge,
                                  Tfragment  frags[],
                                  Tedge      edges[],
-                                 IntFragment_ID   *afr_to_avx,
+                                 AS_IID   *afr_to_avx,
                                  VA_TYPE(IntEdge_ID)  *next_edge,
                                  const int dvt_double_sided_threshold_fragment_end_degree,
                                  const int con_double_sided_threshold_fragment_end_degree,
@@ -230,11 +229,11 @@ static void add_overlap_to_graph(Aedge  an_edge,
                                  IntEdge_ID * novl_containment,
                                  IntEdge_ID * nedges_delta) {
 
-  const IntFragment_ID iafr = an_edge.avx;
+  const AS_IID iafr = an_edge.avx;
   const int iasx = an_edge.asx;
   const int iahg = an_edge.ahg;
 
-  const IntFragment_ID ibfr = an_edge.bvx;
+  const AS_IID ibfr = an_edge.bvx;
   const int ibsx = an_edge.bsx;
   const int ibhg = an_edge.bhg;
 
@@ -246,8 +245,8 @@ static void add_overlap_to_graph(Aedge  an_edge,
 
   const int is_dovetail = is_a_dvt_simple(iahg,ibhg) ;
 
-  const IntFragment_ID iavx = afr_to_avx[iafr];
-  const IntFragment_ID ibvx = afr_to_avx[ibfr];
+  const AS_IID iavx = afr_to_avx[iafr];
+  const AS_IID ibvx = afr_to_avx[ibfr];
 
 #ifdef USE_FRAGMENT_SUBSET
   if((iavx == AS_CGB_NOT_SEEN_YET) ||
@@ -541,8 +540,8 @@ void
 process_gkp_store_for_fragments(char *gkpStoreName,
                                 Tfragment   *frags,
                                 Tedge       *edges) {
-  IntFragment_ID    iid = 0;
-  IntFragment_ID    vid = 0;
+  AS_IID    iid = 0;
+  AS_IID    vid = 0;
 
   assert(0 == GetNumFragments(frags));
 
@@ -605,7 +604,7 @@ process_gkp_store_for_fragments(char *gkpStoreName,
 void process_ovl_store(char * OVL_Store_Path,
                        Tfragment  frags[],
                        Tedge      edges[],
-                       IntFragment_ID *afr_to_avx,
+                       AS_IID *afr_to_avx,
                        VA_TYPE(IntEdge_ID) *next_edge,
                        const int dvt_double_sided_threshold_fragment_end_degree,
                        const int con_double_sided_threshold_fragment_end_degree,
@@ -720,7 +719,7 @@ void process_ovl_store(char * OVL_Store_Path,
 void input_messages_from_a_file(BinaryOverlapFile *bof,
                                 Tfragment  frags[],
                                 Tedge      edges[],
-                                IntFragment_ID *afr_to_avx,
+                                AS_IID *afr_to_avx,
                                 VA_TYPE(IntEdge_ID)  *next_edge,
                                 const int dvt_double_sided_threshold_fragment_end_degree,
                                 const int con_double_sided_threshold_fragment_end_degree,
@@ -831,7 +830,7 @@ void input_messages_from_a_file(BinaryOverlapFile *bof,
 
 void process_ovl_file(const char Batch_File_Name[],
                       THeapGlobals   * heapva,
-                      IntFragment_ID * afr_to_avx,
+                      AS_IID * afr_to_avx,
                       VA_TYPE(IntEdge_ID)  * next_edge,
                       const int dvt_double_sided_threshold_fragment_end_degree,
                       const int con_double_sided_threshold_fragment_end_degree,

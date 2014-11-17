@@ -224,6 +224,7 @@ Local_Overlap_AS_forCNS(char *a, char *b,
 
 
 
+#if 0
 ALNoverlap *
 Affine_Overlap_AS_forCNS(char *a, char *b,
                          int beg, int end,
@@ -346,7 +347,7 @@ Affine_Overlap_AS_forCNS(char *a, char *b,
 
   return(&o);
 }
-
+#endif
 
 
 ALNoverlap *

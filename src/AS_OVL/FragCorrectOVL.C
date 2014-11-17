@@ -1021,9 +1021,9 @@ static void  Extract_Needed_Frags
       char *seqptr = NULL;
       char  seq_buff[AS_READ_MAX_NORMAL_LEN+1];
 
-      FragType  read_type;
       unsigned  deleted, clear_start, clear_end;
-      int  result, shredded;
+      int  result;
+      int  shredded = FALSE;
 
       stream_ct ++;
 
@@ -1038,10 +1038,6 @@ static void  Extract_Needed_Frags
       deleted = frag_read.gkFragment_getIsDeleted();
       if  (deleted)
           goto  Advance_Next_Olap;
-
-      //getReadType_ReadStruct (&frag_read, & read_type);
-      read_type = AS_READ;
-      shredded = (AS_FA_SHREDDED(read_type))? TRUE : FALSE;
 
       frag_read.gkFragment_getClearRegion(clear_start, clear_end);
 
@@ -1958,9 +1954,9 @@ static void  Read_Frags
    for  (i = 0;  Frag_Stream->next (&frag_read);
            i ++)
      {
-      FragType  read_type;
       unsigned  deleted;
-      int  result, frag_len;
+      int  result;
+      int  frag_len;
 
       if ((i % 100000) == 0)
         fprintf(stderr, "Read_Frags - at %d\n", i);
@@ -1973,9 +1969,7 @@ static void  Read_Frags
            continue;
           }
 
-      //getReadType_ReadStruct (&frag_read, & read_type);
-      read_type = AS_READ;
-      Frag [i] . shredded = (AS_FA_SHREDDED(read_type))? TRUE : FALSE;
+      Frag [i] . shredded = FALSE;
 
       strcpy(seq_buff, frag_read.gkFragment_getSequence());
 
@@ -2136,11 +2130,11 @@ static void  Stream_Old_Frags
                    && next_olap < Num_Olaps;
            i ++)
      {
-      FragType  read_type;
       int32  rev_id;
       AS_IID frag_iid;
       unsigned  deleted;
-      int  result, shredded;
+      int  result;
+      int  shredded = FALSE;
 
       frag_iid = frag_read.gkFragment_getReadIID();
       if  (frag_iid < Olap [next_olap] . b_iid)
@@ -2149,10 +2143,6 @@ static void  Stream_Old_Frags
       deleted = frag_read.gkFragment_getIsDeleted ();
       if  (deleted)
           continue;
-
-      //getReadType_ReadStruct (&frag_read, & read_type);
-      read_type = AS_READ;
-      shredded = (AS_FA_SHREDDED(read_type))? TRUE : FALSE;
 
       frag_read.gkFragment_getClearRegion(clear_start, clear_end);
 

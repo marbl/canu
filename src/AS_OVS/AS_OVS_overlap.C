@@ -27,7 +27,6 @@ static const char *rcsid = "$Id$";
 #include <assert.h>
 
 #include "AS_global.H"
-#include "AS_MSG_pmesg.H"
 #include "AS_OVS_overlap.H"
 
 
@@ -56,59 +55,6 @@ stringSplit(char *string, char **ptrs, int ptrsLen) {
   return(ptrsFound);
 }
 
-
-
-void
-AS_OVS_convertOverlapMesgToOVSoverlap(OverlapMesg *omesg, OVSoverlap *ovs) {
-
-  //  The asserts below check for encoding errors -- the dat
-  //  structure only saves a small number of bits for each field,
-  //  and we want to be sure we stored all the bits.
-
-  ovs->a_iid = omesg->aifrag;
-  ovs->b_iid = omesg->bifrag;
-  ovs->dat.ovl.orig_erate = AS_OVS_encodeQuality(omesg->quality);
-  ovs->dat.ovl.corr_erate = ovs->dat.ovl.orig_erate;
-  ovs->dat.ovl.type = AS_OVS_TYPE_OVL;
-
-  if (omesg->orientation.isNormal()) {
-    ovs->dat.ovl.a_hang   = omesg->ahg;
-    ovs->dat.ovl.b_hang   = omesg->bhg;
-    ovs->dat.ovl.flipped  = FALSE;
-
-    assert(ovs->dat.ovl.a_hang  == omesg->ahg);
-    assert(ovs->dat.ovl.b_hang  == omesg->bhg);
-
-  } else if (omesg->orientation.isInnie()) {
-    ovs->dat.ovl.a_hang   = omesg->ahg;
-    ovs->dat.ovl.b_hang   = omesg->bhg;
-    ovs->dat.ovl.flipped  = TRUE;
-
-    assert(ovs->dat.ovl.a_hang  == omesg->ahg);
-    assert(ovs->dat.ovl.b_hang  == omesg->bhg);
-
-  } else if (omesg->orientation.isOuttie()) {
-    ovs->dat.ovl.a_hang   = -omesg->bhg;
-    ovs->dat.ovl.b_hang   = -omesg->ahg;
-    ovs->dat.ovl.flipped  = TRUE;
-
-    assert(ovs->dat.ovl.a_hang  == -omesg->bhg);
-    assert(ovs->dat.ovl.b_hang  == -omesg->ahg);
-
-  } else if (omesg->orientation.isAnti()) {
-    ovs->dat.ovl.a_hang   = -omesg->bhg;
-    ovs->dat.ovl.b_hang   = -omesg->ahg;
-    ovs->dat.ovl.flipped  = FALSE;
-
-    assert(ovs->dat.ovl.a_hang  == -omesg->bhg);
-    assert(ovs->dat.ovl.b_hang  == -omesg->ahg);
-
-  } else {
-    fprintf(stderr, "YIKES:  Bad overlap orientation = %d for a = %d  b = %d\n",
-            omesg->orientation.toLetter(), omesg->aifrag, omesg->bifrag);
-    assert(0);
-  }
-}
 
 
 

@@ -40,7 +40,7 @@ extern int AS_CGB_BUBBLE_max_outdegree_G;
  */
 
 typedef struct BubVertexEntry {
-  IntFragment_ID id;
+  AS_IID id;
   int age;
 } BubVertexEntry;
 
@@ -95,7 +95,7 @@ void BVS_age(BubVertexSet_t bvs, int inc);
 
 /* Inserts a new entry into the BVS with age 0.  If the BVS is full,
    the oldest entry is removed to make space. */
-void BVS_insert(BubVertexSet_t bvs, IntFragment_ID new_entry);
+void BVS_insert(BubVertexSet_t bvs, AS_IID new_entry);
 
 /* Returns true if the second argument is a subset of the first. */
 int BVS_subset(BubVertexSet_t bvs1, BubVertexSet_t bvs2);

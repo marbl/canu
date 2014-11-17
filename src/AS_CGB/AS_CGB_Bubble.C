@@ -94,11 +94,11 @@ _is_termination_node(int in_deg, int out_deg)
 
 AS_CGB_Bubble_List_t
 _collect_bubbles(BubGraph_t bg, BubVertexSet *fwd, BubVertexSet *rvs,
-		 IntFragment_ID *top, int num_valid)
+		 AS_IID *top, int num_valid)
 {
-  IntFragment_ID f, bub_start;
+  AS_IID f, bub_start;
   HashTable_AS *init_nodes = NULL;
-  IntFragment_ID *i_node = NULL;
+  AS_IID *i_node = NULL;
   AS_CGB_Bubble_List result;
   AS_CGB_Bubble_List_t *ins_h = &(result.next);
   BVSPair *bp_ins_keys = NULL, bp_find_key;
@@ -133,7 +133,7 @@ _collect_bubbles(BubGraph_t bg, BubVertexSet *fwd, BubVertexSet *rvs,
 #endif
       bp_find_key.f = &(fwd[top[f]]);
       bp_find_key.r = &(rvs[top[f]]);
-      i_node = (IntFragment_ID *)(INTPTR)LookupValueInHashTable_AS(init_nodes, (uint64)(INTPTR)&bp_find_key, sizeof(BVSPair));
+      i_node = (AS_IID *)(INTPTR)LookupValueInHashTable_AS(init_nodes, (uint64)(INTPTR)&bp_find_key, sizeof(BVSPair));
 #if AS_CGB_BUBBLE_VERY_VERBOSE
       if (!i_node)
 	fprintf(stderr, "None found.\n");
@@ -162,10 +162,10 @@ _collect_bubbles(BubGraph_t bg, BubVertexSet *fwd, BubVertexSet *rvs,
 
 
 void
-_process_vertex(BubGraph_t bg, IntFragment_ID f, BubVertexSet *bvs,
+_process_vertex(BubGraph_t bg, AS_IID f, BubVertexSet *bvs,
 		BG_E_Iter_t in, int in_deg, BG_E_Iter_t out, int out_deg)
 {
-  IntFragment_ID opp_f;
+  AS_IID opp_f;
   IntEdge_ID e;
 
   if (in_deg > 0) {
@@ -187,10 +187,10 @@ _process_vertex(BubGraph_t bg, IntFragment_ID f, BubVertexSet *bvs,
 
 
 void
-_forward_collect_sets(BubGraph_t bg, BubVertexSet *fwd, IntFragment_ID *top,
+_forward_collect_sets(BubGraph_t bg, BubVertexSet *fwd, AS_IID *top,
 		      int num_valid)
 {
-  IntFragment_ID f;
+  AS_IID f;
   BG_E_Iter in, out;
   int in_deg, out_deg;
 
@@ -205,10 +205,10 @@ _forward_collect_sets(BubGraph_t bg, BubVertexSet *fwd, IntFragment_ID *top,
 
 
 void
-_reverse_collect_sets(BubGraph_t bg, BubVertexSet *fwd, IntFragment_ID *top,
+_reverse_collect_sets(BubGraph_t bg, BubVertexSet *fwd, AS_IID *top,
 		      int num_valid)
 {
-  IntFragment_ID f;
+  AS_IID f;
   BG_E_Iter in, out;
   int in_deg, out_deg;
 
@@ -241,10 +241,10 @@ _reverse_collect_sets(BubGraph_t bg, BubVertexSet *fwd, IntFragment_ID *top,
    The return value is the number of elements placed in topological order.
    If the graph is found to be cyclic, 0 is returned instead.
 */
-IntFragment_ID
-AS_CGB_Bubble_topo_sort(BubGraph_t bg, IntFragment_ID *out)
+AS_IID
+AS_CGB_Bubble_topo_sort(BubGraph_t bg, AS_IID *out)
 {
-  IntFragment_ID q_start = 0, q_end = 0, f, opp_f, num_valid = 0;
+  AS_IID q_start = 0, q_end = 0, f, opp_f, num_valid = 0;
   IntEdge_ID e;
   uint16 valid_and_unused = AS_CGB_BUBBLE_E_VALID | AS_CGB_BUBBLE_E_UNUSED;
   BG_E_Iter e_it;
@@ -295,8 +295,8 @@ AS_CGB_Bubble_List_t
 AS_CGB_Bubble_find_bubbles_with_graph(BubGraph_t bg, int sz, int age,
 			   int max_outdegree)
 {
-  IntFragment_ID *top_order = NULL;
-  IntFragment_ID num_frags, num_valid, f;
+  AS_IID *top_order = NULL;
+  AS_IID num_frags, num_valid, f;
   BubVertexSet *fwd = NULL;
   BubVertexSet *rvs = NULL;
   AS_CGB_Bubble_List_t result = NULL;
@@ -314,7 +314,7 @@ AS_CGB_Bubble_find_bubbles_with_graph(BubGraph_t bg, int sz, int age,
   AS_CGB_Bubble_dfs(bg);
 
   num_frags = GetNumFragments(BG_vertices(bg));
-  top_order = (IntFragment_ID *)safe_calloc(sizeof(IntFragment_ID), num_frags);
+  top_order = (AS_IID *)safe_calloc(sizeof(AS_IID), num_frags);
 
   /* Get a topological ordering of the valid fragments. */
   fprintf(stderr, "  * Step 2: Topological sort of fragment graph\n");
@@ -450,22 +450,22 @@ AS_CGB_Bubble_find_and_remove_bubbles
 
       //  This is similar to AS_OVS_convertOverlapMesgToOVSOverlap()
 
-      if (ovl[o].orientation.isNormal()) {
+      if (ovl[o].orientation == AS_NORMAL) {
         olap.dat.ovl.a_hang  = ovl[o].ahg;
         olap.dat.ovl.b_hang  = ovl[o].bhg;
         olap.dat.ovl.flipped = FALSE;
 
-      } else if (ovl[o].orientation.isInnie()) {
+      } else if (ovl[o].orientation == AS_INNIE) {
         olap.dat.ovl.a_hang  = ovl[o].ahg;
         olap.dat.ovl.b_hang  = ovl[o].bhg;
         olap.dat.ovl.flipped = TRUE;
 
-      } else if (ovl[o].orientation.isOuttie()) {
+      } else if (ovl[o].orientation == AS_OUTTIE) {
         olap.dat.ovl.a_hang  = -ovl[o].bhg;
         olap.dat.ovl.b_hang  = -ovl[o].ahg;
         olap.dat.ovl.flipped = TRUE;
 
-      } else if (ovl[o].orientation.isAnti()) {
+      } else if (ovl[o].orientation == AS_ANTI) {
         olap.dat.ovl.a_hang  = -ovl[o].bhg;
         olap.dat.ovl.b_hang  = -ovl[o].ahg;
         olap.dat.ovl.flipped = FALSE;

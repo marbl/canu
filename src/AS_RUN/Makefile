@@ -24,10 +24,10 @@
 
 LOCAL_WORK = $(shell cd ../..; pwd)
 
-SOURCES = fragmentDepth.C markUniqueUnique.C
-OBJECTS = fragmentDepth.o markUniqueUnique.o
+SOURCES = fragmentDepth.C
+OBJECTS = fragmentDepth.o
 
-CXX_PROGS = fragmentDepth markUniqueUnique
+CXX_PROGS = fragmentDepth
 
 SCRIPTS = runCA \
           runCA-dedupe \
@@ -95,5 +95,3 @@ replaceUIDwithName-posmap: replaceUIDwithName-posmap.pl
 	@chmod 775 $(LOCAL_BIN)/$@
 
 fragmentDepth: fragmentDepth.o libCA.a
-
-markUniqueUnique: markUniqueUnique.o libCA.a

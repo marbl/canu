@@ -69,21 +69,21 @@ static char *rcsid = "$Id:";
 #define O2O(a)     ((a) ^ 1)
 // From the chunk-end, return the mate chunk-end.
 
-static IntChunk_ID get_second_mate_index
+static AS_IID get_second_mate_index
 (
   TChunkMesg chunks[],
   const Tfragment frags[],
   const Tedge edges[],
-  const IntChunk_ID sentinel,
-  const IntChunk_ID b_index,
-  const IntChunk_ID other_index,
+  const AS_IID sentinel,
+  const AS_IID b_index,
+  const AS_IID other_index,
   const float cgb_unique_cutoff
 )
 {
   int i;
   const AChunkMesg * chunk = GetVA_AChunkMesg(chunks,O2CI(b_index));
-  IntChunk_ID mate_index = sentinel;
-  IntChunk_ID temp_index = sentinel;
+  AS_IID mate_index = sentinel;
+  AS_IID temp_index = sentinel;
   const int b_side = O2S(b_index);
   const int32 raw_degree =
     (b_side == 1) ? chunk->b_degree_raw : chunk->a_degree_raw;
@@ -98,7 +98,7 @@ static IntChunk_ID get_second_mate_index
     if( AS_CGB_INTERCHUNK_EDGE == edge )
     {
       // get the chunk index
-      IntChunk_ID temp_chunk = get_chunk_index( chunks, frags,
+      AS_IID temp_chunk = get_chunk_index( chunks, frags,
 					  edges, edge_id + i );
       int temp_suffix = get_chunk_suffix( chunks, frags,
 					  edges, edge_id + i );
@@ -128,18 +128,18 @@ static IntChunk_ID get_second_mate_index
   return mate_index;
 }
 
-static IntChunk_ID get_lone_mate_index
+static AS_IID get_lone_mate_index
 (
  TChunkMesg chunks[],
  const Tfragment frags[],
  const Tedge edges[],
- const IntChunk_ID sentinel,
- const IntChunk_ID b_index,
+ const AS_IID sentinel,
+ const AS_IID b_index,
  const float cgb_unique_cutoff
 )
 {
   int i;
-  IntChunk_ID mate_index = sentinel;
+  AS_IID mate_index = sentinel;
   const AChunkMesg * chunk = GetVA_AChunkMesg( chunks, O2CI( b_index ) );
   const int b_side = O2S( b_index );
   const int32 raw_degree =
@@ -155,7 +155,7 @@ static IntChunk_ID get_lone_mate_index
     // if it's the right kind of edge
     if( AS_CGB_INTERCHUNK_EDGE == edge )
     {
-      const IntChunk_ID temp_index = get_chunk_index( chunks, frags, edges, edge_id + i );
+      const AS_IID temp_index = get_chunk_index( chunks, frags, edges, edge_id + i );
 
       if(
 	 (mate_index == sentinel )
@@ -185,7 +185,7 @@ static int is_hanging_chunk_end
  TChunkMesg chunks[],
  const Tfragment frags[],
  const Tedge edges[],
- const IntChunk_ID b_index
+ const AS_IID b_index
 )
 {
   int i;
@@ -231,9 +231,9 @@ uint32 count_chimeras
 )
 {
   uint32         num_chimeras = 0;
-  const IntChunk_ID  num_chunks = GetNumVA_AChunkMesg( chunks );
-  const IntChunk_ID  sentinel = CIS2O( num_chunks, 0 );
-  IntChunk_ID        schunk;
+  const AS_IID  num_chunks = GetNumVA_AChunkMesg( chunks );
+  const AS_IID  sentinel = CIS2O( num_chunks, 0 );
+  AS_IID        schunk;
   FILE             * fp_chimeras;
 
   fp_chimeras = fopen( chimeras_report_filename, "w" );
@@ -247,11 +247,11 @@ uint32 count_chimeras
   // loop over chunks
   for( schunk = 0; schunk < num_chunks; schunk++ )
   {
-    const IntChunk_ID  s_index = CIS2O(schunk,0);
-    IntChunk_ID  a_index = sentinel;
-    IntChunk_ID  b_index = sentinel;
-    IntChunk_ID  c_index = sentinel;
-    IntChunk_ID  d_index = sentinel;
+    const AS_IID  s_index = CIS2O(schunk,0);
+    AS_IID  a_index = sentinel;
+    AS_IID  b_index = sentinel;
+    AS_IID  c_index = sentinel;
+    AS_IID  d_index = sentinel;
 
     assert( schunk == O2CI(s_index) );
     // s must consist of exactly one fragment
@@ -402,9 +402,9 @@ uint32 count_crappies
 )
 {
   uint32         num_crappies = 0;
-  const IntChunk_ID  num_chunks = GetNumVA_AChunkMesg( chunks );
-  const IntChunk_ID  sentinel = CIS2O( num_chunks, 0 );
-  IntChunk_ID        schunk;
+  const AS_IID  num_chunks = GetNumVA_AChunkMesg( chunks );
+  const AS_IID  sentinel = CIS2O( num_chunks, 0 );
+  AS_IID        schunk;
   int                ssuffix;
   FILE             * fp_crappies;
 
@@ -420,9 +420,9 @@ uint32 count_crappies
   for( schunk = 0; schunk < num_chunks; schunk++ )
     for( ssuffix = 0; ssuffix < 2; ssuffix++ )
   {
-    const IntChunk_ID  s_index = CIS2O(schunk,ssuffix);
-    IntChunk_ID  c_index = sentinel;
-    IntChunk_ID  d_index = sentinel;
+    const AS_IID  s_index = CIS2O(schunk,ssuffix);
+    AS_IID  c_index = sentinel;
+    AS_IID  d_index = sentinel;
 
     assert( schunk == O2CI(s_index) );
     // s must consist of exactly one fragment

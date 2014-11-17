@@ -77,12 +77,12 @@ typedef struct BubblePopper {
   /* Recycled scratch space for each bubble. */
 
   gkFragment  rsp;
-  IntFragment_ID curBubSize;
+  AS_IID curBubSize;
   int *topDistArray;		/* Scratch space for longest path algorithm */
   BG_E_Iter *dfsStack;	        /* Scratch space for traversals (dfs and
 				   longest path) */
   int *vidToBid;	        /* Maps VIDs to IDs in the bubFrags array */
-  IntFragment_ID *bubFrags;	/* Fragments in bubble */
+  AS_IID *bubFrags;	/* Fragments in bubble */
   InternalFragMesg *bubMesgs;	/* Frags in message form for aligner */
   int *adj;			/* Adjacency array */
   int numOlaps;
@@ -119,27 +119,27 @@ BP_chunkFrags(BubblePopper_t bp);
 
 /* Returns the Chunk with the specific ID. */
 AChunkMesg *
-BP_getChunk(BubblePopper_t bp, IntChunk_ID cid);
+BP_getChunk(BubblePopper_t bp, AS_IID cid);
 
 /* Returns the number of fragments in the bubble. */
-IntFragment_ID
+AS_IID
 BP_numFrags(BubblePopper_t bp);
 
 /* Returns the VID of fragment with BID bid in the bubble.
    Fragments are sorted in increasing order by DFS coordinate. */
-IntFragment_ID
-BP_getFrag(BubblePopper_t bp, IntFragment_ID bid);
+AS_IID
+BP_getFrag(BubblePopper_t bp, AS_IID bid);
 
 /* Given a VID, returns the BID of the fragment.  Undefined if the fragment
    is not in the bubble. */
 int
-BP_getBID(BubblePopper_t bp, IntFragment_ID vid);
+BP_getBID(BubblePopper_t bp, AS_IID vid);
 
 /* Tries to find an overlap between two fragments.  If an overlap is found,
    then TRUE is returned, the overlap is placed in the bubOlaps array, and
    the adjacency array is updated.  Otherwise, FALSE is returned. */
 int
-BP_findOverlap(BubblePopper_t bp, IntFragment_ID bid1, IntFragment_ID bid2);
+BP_findOverlap(BubblePopper_t bp, AS_IID bid1, AS_IID bid2);
 
 /* Operations on the directed adjacency array.  An Entry (V1, V2)
    indicates an from V1 to V2.  Also, by default, (V1, V1) is 1 even
@@ -149,16 +149,16 @@ BP_findOverlap(BubblePopper_t bp, IntFragment_ID bid1, IntFragment_ID bid2);
    1 indicates a direct edge.
    2 indicates transitive connectivity. */
 int
-BP_getAdj(BubblePopper_t bp, IntFragment_ID bid1, IntFragment_ID bid2);
+BP_getAdj(BubblePopper_t bp, AS_IID bid1, AS_IID bid2);
 
 int
-BP_getAdj_VID(BubblePopper_t bp, IntFragment_ID vid1, IntFragment_ID vid2);
+BP_getAdj_VID(BubblePopper_t bp, AS_IID vid1, AS_IID vid2);
 
 void
-BP_setAdj(BubblePopper_t bp, IntFragment_ID bid1, IntFragment_ID bid2, int v);
+BP_setAdj(BubblePopper_t bp, AS_IID bid1, AS_IID bid2, int v);
 
 void
-BP_setAdj_VID(BubblePopper_t bp, IntFragment_ID vid1, IntFragment_ID vid2,
+BP_setAdj_VID(BubblePopper_t bp, AS_IID vid1, AS_IID vid2,
 	      int v);
 
 #endif

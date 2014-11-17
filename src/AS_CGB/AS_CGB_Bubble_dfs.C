@@ -30,7 +30,7 @@ static char *rcsid = "$Id$";
 
 
 static
-int64 _get_dist_from_edge(BubGraph_t bg, IntFragment_ID src, IntEdge_ID e)
+int64 _get_dist_from_edge(BubGraph_t bg, AS_IID src, IntEdge_ID e)
 {
   IntEdge_ID dst;
   int64 d;
@@ -84,9 +84,9 @@ _dst_edge_is_reversed(int cur_rev, int cur_sx, int dst_sx)
 
 static
 void
-_set_dist_from_edge(BubGraph_t bg, IntFragment_ID src, IntEdge_ID e)
+_set_dist_from_edge(BubGraph_t bg, AS_IID src, IntEdge_ID e)
 {
-  IntFragment_ID dst = BG_getOppositeVertex(bg, e, src);
+  AS_IID dst = BG_getOppositeVertex(bg, e, src);
 
   BG_V_setDistance(bg, dst, _get_dist_from_edge(bg, src, e));
 }
@@ -94,8 +94,8 @@ _set_dist_from_edge(BubGraph_t bg, IntFragment_ID src, IntEdge_ID e)
 
 static
 int
-_back_edge_consistent(BubGraph_t bg, IntEdge_ID cur_e, IntFragment_ID cur_v,
-		      IntFragment_ID dst_v)
+_back_edge_consistent(BubGraph_t bg, IntEdge_ID cur_e, AS_IID cur_v,
+		      AS_IID dst_v)
 {
   int cur_sx, dst_sx, cur_fwd;
   int dst_rev_by_edge, dst_rev_by_mark;
@@ -139,10 +139,10 @@ _back_edge_consistent(BubGraph_t bg, IntEdge_ID cur_e, IntFragment_ID cur_v,
 
 static
 void
-_do_dfs(BubGraph_t bg, IntFragment_ID start_v, BG_E_Iter stack[])
+_do_dfs(BubGraph_t bg, AS_IID start_v, BG_E_Iter stack[])
 {
   int32 s_top = -1;
-  IntFragment_ID cur_v, dst_v;
+  AS_IID cur_v, dst_v;
   IntEdge_ID cur_e;
   int cur_sx, dst_sx;
   BG_E_Iter_t cur_v_it;
@@ -240,8 +240,8 @@ void
 AS_CGB_Bubble_dfs(BubGraph_t bg)
 {
   BG_E_Iter *stack = NULL;
-  IntFragment_ID num_v = GetNumFragments(BG_vertices(bg));
-  IntFragment_ID v;
+  AS_IID num_v = GetNumFragments(BG_vertices(bg));
+  AS_IID v;
   IntEdge_ID num_e = GetNumEdges(BG_edges(bg));
   IntEdge_ID e;
 

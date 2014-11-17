@@ -19,7 +19,6 @@
 const char *mainid = "$Id:  $";
 
 #include "AS_global.H"
-#include "AS_MSG_pmesg.H"
 #include "AS_PER_gkpStore.H"
 
 #include "AS_OVS_overlap.H"

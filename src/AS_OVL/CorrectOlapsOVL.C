@@ -39,7 +39,6 @@ const char *mainid = "$Id$";
 
 #include  "AS_OVL_delcher.H"
 #include  "AS_PER_gkpStore.H"
-#include  "AS_MSG_pmesg.H"
 #include  "AS_UTL_reverseComplement.H"
 #include  "FragCorrectOVL.H"
 #include  "AS_OVS_overlapStore.H"
@@ -1401,7 +1400,7 @@ static int  Olap_In_Unitig
 
 
 
-
+#if 0
 static int  Output_OVL
     (Olap_Info_t * olap, double quality)
 
@@ -1476,7 +1475,7 @@ static int  Output_OVL
 
    return  TRUE;
   }
-
+#endif
 
 
 static void  Parse_Command_Line
@@ -1929,7 +1928,9 @@ static void  Process_Olap
      if  (Olap_In_Unitig (olap))
 #endif
        {
-        Output_OVL (olap, quality);
+#warning Output_OVL disabled.
+         fprintf(stderr, "Output_OVL disabled.\n");
+         //Output_OVL (olap, quality);
        }
 
    return;

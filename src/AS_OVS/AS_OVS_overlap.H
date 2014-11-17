@@ -25,7 +25,6 @@
 static const char *rcsid_AS_OVS_OVERLAP_H = "$Id$";
 
 #include "AS_global.H"
-#include "AS_MSG_pmesg.H"  //  pretty heavy just to get OverlapMesg.
 
 #define AS_OVS_HNGBITS   (AS_READ_MAX_NORMAL_LEN_BITS + 1)
 #define AS_OVS_POSBITS   (AS_READ_MAX_NORMAL_LEN_BITS)
@@ -257,7 +256,6 @@ operator<(const OVSoverlap &A, const OVSoverlap &B) {
 }
 
 
-void  AS_OVS_convertOverlapMesgToOVSoverlap(OverlapMesg *omesg, OVSoverlap *ovs);
 int   AS_OVS_convertOVLdumpToOVSoverlap(char *line, OVSoverlap *olap);
 int   AS_OVS_convertOBTdumpToOVSoverlap(char *line, OVSoverlap *olap);
 

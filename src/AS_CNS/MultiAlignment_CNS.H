@@ -25,7 +25,6 @@ static const char *rcsid_MULTIALIGNMENT_CNS_INCLUDE = "$Id$";
 
 #include "AS_global.H"
 #include "AS_UTL_Var.H"
-#include "AS_MSG_pmesg.H"
 #include "AS_ALN_aligners.H"
 
 #include "MultiAlign.H"
@@ -53,26 +52,12 @@ typedef enum {
 }  CNS_RefineLevel;
 
 
-MultiAlignT *MergeMultiAlignsFast_new(VA_TYPE(IntElementPos) *,
-                                      CNS_Options *opp);
-
-MultiAlignT *ReplaceEndUnitigInContig(uint32,
-                                      uint32,
-                                      int,
-                                      CNS_Options *opp);
 
 bool
 MultiAlignUnitig(MultiAlignT   *ma,
                  gkStore       *fragStore,
                  CNS_Options   *opp,
                  int32         *failed);
-
-
-bool
-MultiAlignContig(MultiAlignT   *ma,
-                 gkStore       *fragStore,
-                 CNS_Options   *opp);
-
 
 //  Options to things in MultiAligment_CNS.c
 

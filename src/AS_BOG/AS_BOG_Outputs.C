@@ -199,13 +199,17 @@ UnitigGraph::writeIUMtoFile(char   *fileprefix,
 void
 UnitigGraph::writeOVLtoFile(char *fileprefix) {
   char         filename[FILENAME_MAX] = {0};
+#if 0
   GenericMesg  pmesg;
   OverlapMesg  omesg;
+#endif
 
   sprintf(filename, "%s.unused.ovl", fileprefix);
   FILE *file = fopen(filename, "w");
   assert(file != NULL);
 
+#warning not writing unused.ovl
+#if 0
   for (uint32  ti=0; ti<unitigs.size(); ti++) {
     Unitig  *utg = unitigs[ti];
 
@@ -288,6 +292,7 @@ UnitigGraph::writeOVLtoFile(char *fileprefix) {
       }
     }
   }
+#endif
 
   fclose(file);
 }

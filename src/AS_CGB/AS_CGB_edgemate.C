@@ -42,11 +42,11 @@ void reflect_Aedge( Aedge *new_edge, Aedge *old_edge) {
        A^c       <----------------
     */
 
-  const IntFragment_ID old_avx = old_edge->avx;
+  const AS_IID old_avx = old_edge->avx;
   const int old_asx = old_edge->asx;
   const int old_ahg = old_edge->ahg;
 
-  const IntFragment_ID old_bvx = old_edge->bvx;
+  const AS_IID old_bvx = old_edge->bvx;
   const int old_bsx = old_edge->bsx;
   const int old_bhg = old_edge->bhg;
 
@@ -87,11 +87,11 @@ void granger_Aedge( Aedge *new_edge, Aedge *old_edge) {
        B^c  <----------------
     */
 
-  const IntFragment_ID old_avx = old_edge->avx;
+  const AS_IID old_avx = old_edge->avx;
   const int old_asx = old_edge->asx;
   const int old_ahg = old_edge->ahg;
 
-  const IntFragment_ID old_bvx = old_edge->bvx;
+  const AS_IID old_bvx = old_edge->bvx;
   const int old_bsx = old_edge->bsx;
   const int old_bhg = old_edge->bhg;
 
@@ -200,10 +200,10 @@ void fix_overlap_edge_mate
   Tnes ines1 = ines0; // This will be the "fix".
 
   if(AS_CGB_EDGE_NOT_FOUND == ie1) {
-    IntFragment_ID avx = get_avx_edge(edges,ie0);
-    IntFragment_ID bvx = get_bvx_edge(edges,ie0);
-    IntFragment_ID aid = get_iid_fragment(frags,avx);
-    IntFragment_ID bid = get_iid_fragment(frags,bvx);
+    AS_IID avx = get_avx_edge(edges,ie0);
+    AS_IID bvx = get_bvx_edge(edges,ie0);
+    AS_IID aid = get_iid_fragment(frags,avx);
+    AS_IID bid = get_iid_fragment(frags,bvx);
     fprintf(stderr,"ERROR: AS_CGB_EDGE_NOT_FOUND == ie1\n");
     fprintf(stderr,"ie0="F_IID "\n",ie0);
     fprintf(stderr,"aid="F_IID "\n",aid);
@@ -316,8 +316,8 @@ void count_fragment_and_edge_labels(Tfragment frags[],
   const int nsample=500;
   const int nbucket=500;
 
-  IntFragment_ID nfrag = GetNumFragments(frags);
-  IntFragment_ID vid;
+  AS_IID nfrag = GetNumFragments(frags);
+  AS_IID vid;
   Histogram_t *frag_lab_histogram = create_histogram(nsample,nbucket,TRUE,FALSE);
 
   fprintf(fout,"*** Histogram Fragment Labels <%s> ***\n",comment);
@@ -342,10 +342,10 @@ void count_fragment_and_edge_labels(Tfragment frags[],
 
   for(ie=0; ie<nedge; ie++) {
     const Tnes nes = get_nes_edge(edges,ie);
-    const IntFragment_ID avx = get_avx_edge(edges,ie);
-    const IntFragment_ID bvx = get_bvx_edge(edges,ie);
-    const IntChunk_ID a_cid = get_cid_fragment(frags,avx);
-    const IntChunk_ID b_cid = get_cid_fragment(frags,bvx);
+    const AS_IID avx = get_avx_edge(edges,ie);
+    const AS_IID bvx = get_bvx_edge(edges,ie);
+    const AS_IID a_cid = get_cid_fragment(frags,avx);
+    const AS_IID b_cid = get_cid_fragment(frags,bvx);
     if( a_cid == b_cid ) {
       add_to_histogram(intra_chunk_edge_nes_histogram, (int)nes, NULL);
     } else {

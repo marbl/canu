@@ -25,14 +25,13 @@ static char *rcsid = "$Id$";
 #include <stdlib.h>
 #include <string.h>
 #include "AS_global.H"
-#include "AS_ALN_aligners.H"
+//#include "AS_ALN_aligners.H"
 #include "AS_CGB_all.H"
 #include "AS_CGB_methods.H"
 #include "AS_CGB_Bubble_Graph.H"
 #include "AS_CGB_Bubble.H"
 #include "AS_CGB_Bubble_Popper.H"
 #include "AS_CGB_Bubble_PopperMethods.H"
-#include "AS_MSG_pmesg.H"
 #include "AS_PER_gkpStore.H"
 
 #undef AS_CGB_BUBBLE_VERBOSE2
@@ -65,7 +64,7 @@ BP_init(BubblePopper_t bp, BubGraph_t bg, TChunkMesg *chunks,
 
   bp->topDistArray = (int *)safe_malloc(sizeof(int) * POPPER_MAX_BUBBLE_SIZE);
   bp->dfsStack     = (BG_E_Iter *)safe_malloc(sizeof(BG_E_Iter) * POPPER_MAX_BUBBLE_SIZE);
-  bp->bubFrags     = (IntFragment_ID *)safe_malloc(sizeof(IntFragment_ID) * POPPER_MAX_BUBBLE_SIZE);
+  bp->bubFrags     = (AS_IID *)safe_malloc(sizeof(AS_IID) * POPPER_MAX_BUBBLE_SIZE);
   bp->bubMesgs     = (InternalFragMesg *)safe_calloc(sizeof(InternalFragMesg), POPPER_MAX_BUBBLE_SIZE);
   bp->adj          = (int *)safe_malloc(sizeof(int) * BP_SQR(POPPER_MAX_BUBBLE_SIZE));
   bp->bubOlaps     = (ALNoverlapFull *)safe_calloc(sizeof(ALNoverlapFull), BP_SQR(POPPER_MAX_BUBBLE_SIZE));
@@ -146,35 +145,35 @@ BP_chunkFrags(BubblePopper_t bp)
 
 
 AChunkMesg *
-BP_getChunk(BubblePopper_t bp, IntChunk_ID cid)
+BP_getChunk(BubblePopper_t bp, AS_IID cid)
 {
   return (AChunkMesg *) GetElement_VA(bp->chunks, cid);
 }
 
 
-IntFragment_ID
+AS_IID
 BP_numFrags(BubblePopper_t bp)
 {
   return bp->curBubSize;
 }
 
 
-IntFragment_ID
-BP_getFrag(BubblePopper_t bp, IntFragment_ID bid)
+AS_IID
+BP_getFrag(BubblePopper_t bp, AS_IID bid)
 {
   return bp->bubFrags[bid];
 }
 
 
 int
-BP_getBID(BubblePopper_t bp, IntFragment_ID vid)
+BP_getBID(BubblePopper_t bp, AS_IID vid)
 {
   return bp->vidToBid[vid];
 }
 
 
 int
-BP_findOverlap(BubblePopper_t bp, IntFragment_ID bid1, IntFragment_ID bid2)
+BP_findOverlap(BubblePopper_t bp, AS_IID bid1, AS_IID bid2)
 {
 
   /* Setup fake fragment messages. */
@@ -295,14 +294,14 @@ BP_findOverlap(BubblePopper_t bp, IntFragment_ID bid1, IntFragment_ID bid2)
 
 
 int
-BP_getAdj(BubblePopper_t bp, IntFragment_ID bid1, IntFragment_ID bid2)
+BP_getAdj(BubblePopper_t bp, AS_IID bid1, AS_IID bid2)
 {
   return bp->adj[bid1 * POPPER_MAX_BUBBLE_SIZE + bid2];
 }
 
 
 int
-BP_getAdj_VID(BubblePopper_t bp, IntFragment_ID vid1, IntFragment_ID vid2)
+BP_getAdj_VID(BubblePopper_t bp, AS_IID vid1, AS_IID vid2)
 {
   return bp->adj[bp->vidToBid[vid1] * POPPER_MAX_BUBBLE_SIZE +
 		bp->vidToBid[vid2]];
@@ -310,14 +309,14 @@ BP_getAdj_VID(BubblePopper_t bp, IntFragment_ID vid1, IntFragment_ID vid2)
 
 
 void
-BP_setAdj(BubblePopper_t bp, IntFragment_ID bid1, IntFragment_ID bid2, int v)
+BP_setAdj(BubblePopper_t bp, AS_IID bid1, AS_IID bid2, int v)
 {
   bp->adj[bid1 * POPPER_MAX_BUBBLE_SIZE + bid2] = v;
 }
 
 
 void
-BP_setAdj_VID(BubblePopper_t bp, IntFragment_ID vid1, IntFragment_ID vid2,
+BP_setAdj_VID(BubblePopper_t bp, AS_IID vid1, AS_IID vid2,
 	      int v)
 {
   bp->adj[bp->vidToBid[vid1] * POPPER_MAX_BUBBLE_SIZE +
@@ -327,11 +326,11 @@ BP_setAdj_VID(BubblePopper_t bp, IntFragment_ID vid1, IntFragment_ID vid2,
 
 
 ALNoverlapFull *
-AS_CGB_Bubble_pop_bubble(BubblePopper_t bp, IntFragment_ID start,
-			 int start_sx, IntFragment_ID end,
+AS_CGB_Bubble_pop_bubble(BubblePopper_t bp, AS_IID start,
+			 int start_sx, AS_IID end,
 			 int end_sx, int *num_olaps)
 {
-  IntFragment_ID tmp;
+  AS_IID tmp;
   int r, c, path_len, num_frags, bub_closed;
   int64 bub_size;
   BG_E_Iter e_it;

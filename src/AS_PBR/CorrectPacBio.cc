@@ -40,7 +40,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 const char *mainid = "$Id$";
 
 #include "AS_global.H"
-#include "AS_MSG_pmesg.H"
 #include "AS_PER_gkpStore.H"
 
 #include "AS_PBR_util.hh"

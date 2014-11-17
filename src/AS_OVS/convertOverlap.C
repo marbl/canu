@@ -27,7 +27,6 @@ const char *mainid = "$Id$";
 #include <assert.h>
 
 #include "AS_global.H"
-#include "AS_MSG_pmesg.H"
 #include "AS_OVS_overlap.H"
 #include "AS_OVS_overlapFile.H"
 

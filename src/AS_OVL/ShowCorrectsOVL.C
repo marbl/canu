@@ -56,7 +56,6 @@ static char *rcsid = "$Id$";
 #include  "AS_OVL_delcher.H"
 #include  "AS_PER_gkpStore.H"
 #include  "AS_PER_genericStore.H"
-#include  "AS_MSG_pmesg.H"
 #include  "FragCorrectOVL.H"
 
 

@@ -1352,9 +1352,9 @@ DP_Compare_AS(InternalFragMesg *a, InternalFragMesg *b,
       QVBuffer.ahg = -ahang;
       QVBuffer.bhg = -bhang;
       if (opposite)
-        QVBuffer.orientation.setIsOuttie();
+        QVBuffer.orientation = AS_OUTTIE;
       else
-        QVBuffer.orientation.setIsNormal();
+        QVBuffer.orientation = AS_NORMAL;
       QVBuffer.aifrag = b->iaccession;
       QVBuffer.bifrag = a->iaccession;
       if (trace != NULL)
@@ -1371,9 +1371,9 @@ DP_Compare_AS(InternalFragMesg *a, InternalFragMesg *b,
       QVBuffer.ahg = ahang;
       QVBuffer.bhg = bhang;
       if (opposite)
-        QVBuffer.orientation.setIsInnie();
+        QVBuffer.orientation = AS_INNIE;
       else
-        QVBuffer.orientation.setIsNormal();
+        QVBuffer.orientation = AS_NORMAL;
       QVBuffer.aifrag = a->iaccession;
       QVBuffer.bifrag = b->iaccession;
     }

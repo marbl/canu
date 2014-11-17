@@ -29,13 +29,13 @@ const char *mainid = "$Id$";
 
 #include "AS_UTL_fileIO.H"
 #include "AS_PER_gkpStore.H"
-#include "AS_MSG_pmesg.H"
 
 #include <vector>
 
 using namespace std;
 
 
+#if 0
 void
 addFeature(LibraryMesg *libMesg, char *feature, char *value) {
   int32 nf = libMesg->num_features;
@@ -48,6 +48,7 @@ addFeature(LibraryMesg *libMesg, char *feature, char *value) {
 
   libMesg->num_features++;
 }
+#endif
 
 
 int32
@@ -518,6 +519,7 @@ main(int argc, char **argv) {
 
   //  Construct the messages.
 
+#if 0
   VersionMesg       vr2Mesg;
   VersionMesg       vr1Mesg;
   LibraryMesg       libMesg;
@@ -591,6 +593,7 @@ main(int argc, char **argv) {
   //  Clean up.
 
   gkl.gkLibrary_encodeFeaturesCleanup(&libMesg);
+#endif
 
   delete [] reads;
   delete [] mates;

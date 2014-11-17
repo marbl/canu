@@ -26,7 +26,7 @@
 #ifndef _AS_CGB_BUBBLE_H_
 #define _AS_CGB_BUBBLE_H_
 
-#include "AS_ALN_aligners.H"
+//#include "AS_ALN_aligners.H"
 
 static const char *rcsid__AS_CGB_BUBBLE_H_ = "$Id$";
 
@@ -83,7 +83,7 @@ AS_CGB_Bubble_find_and_remove_bubbles
  */
 
 typedef struct AS_CGB_Bubble_List {
-  IntFragment_ID start, end;
+  AS_IID start, end;
   int start_sx, end_sx;
   struct AS_CGB_Bubble_List *next;
 } AS_CGB_Bubble_List;
@@ -128,8 +128,8 @@ typedef struct BubblePopper * BubblePopper_t;
 
    Implemented in "AS_CGB_Bubble_PopperMethods.c" */
 ALNoverlapFull *
-AS_CGB_Bubble_pop_bubble(BubblePopper_t bp, IntFragment_ID start,
-			 int start_sx, IntFragment_ID end,
+AS_CGB_Bubble_pop_bubble(BubblePopper_t bp, AS_IID start,
+			 int start_sx, AS_IID end,
 			 int end_sx, int *num_olaps);
 
 /*

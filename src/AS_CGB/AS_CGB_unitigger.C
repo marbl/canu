@@ -96,7 +96,7 @@ output_the_chunks(Tfragment     *frags,
             ch->iaccession, ch->iaccession, partmap[ch->iaccession], nf);
 
     for (int32 ivc=0; ivc<ch->num_frags; ivc++) {
-      IntFragment_ID vid = *GetVA_AChunkFrag(chunkfrags, ch->f_list + ivc);
+      AS_IID vid = *GetVA_AChunkFrag(chunkfrags, ch->f_list + ivc);
       fprintf(part, "%d\t%d\n", prt_count, get_iid_fragment(frags, vid));
     }
 
@@ -146,7 +146,7 @@ output_the_chunks(Tfragment     *frags,
     //SetRangeVA_IntMultiPos(ma->f_list, 0, nf, &(*utg->dovetail_path_ptr)[0]);
 
     for (int32 ivc=0; ivc<ch->num_frags; ivc++) {
-      IntFragment_ID vid = *GetVA_AChunkFrag(chunkfrags, ch->f_list + ivc);
+      AS_IID vid = *GetVA_AChunkFrag(chunkfrags, ch->f_list + ivc);
       IntMultiPos    imp;
 
       memset(&imp, 0, sizeof(IntMultiPos));
@@ -547,7 +547,7 @@ main(int argc, char **argv) {
   // Determine the blessed overlaps.  They are the overlaps
   // that are interior to u-unitigs.  In particular, intrachunk overlaps
   //
-  IntFragment_ID nfrag = GetNumFragments(heapva->frags);
+  AS_IID nfrag = GetNumFragments(heapva->frags);
   IntEdge_ID     nedge = GetNumEdges(heapva->edges);
   IntEdge_ID     ie;
 
@@ -559,7 +559,7 @@ main(int argc, char **argv) {
 
   for (ie=0; ie < nedge; ie ++) {
     Tnes nes = get_nes_edge(heapva->edges,ie);
-    IntFragment_ID avx = get_avx_edge(heapva->edges,ie);
+    AS_IID avx = get_avx_edge(heapva->edges,ie);
 
     assert(nfrag > avx);
 
@@ -578,18 +578,18 @@ main(int argc, char **argv) {
     // output latest set of blessed overlap edges.
 
     if (get_blessed_edge(heapva->edges,ie)) {
-      IntFragment_ID avx = get_avx_edge(heapva->edges,ie);
+      AS_IID avx = get_avx_edge(heapva->edges,ie);
       int asx = get_asx_edge(heapva->edges,ie);
       int ahg = get_ahg_edge(heapva->edges,ie);
 
-      IntFragment_ID bvx = get_bvx_edge(heapva->edges,ie);
+      AS_IID bvx = get_bvx_edge(heapva->edges,ie);
       int bsx = get_bsx_edge(heapva->edges,ie);
       int bhg = get_bhg_edge(heapva->edges,ie);
 
       uint32 qua = get_qua_edge(heapva->edges,ie);
 
-      IntFragment_ID aid = get_iid_fragment(heapva->frags,avx);
-      IntFragment_ID bid = get_iid_fragment(heapva->frags,bvx);
+      AS_IID aid = get_iid_fragment(heapva->frags,avx);
+      AS_IID bid = get_iid_fragment(heapva->frags,bvx);
 
       //  The rest swiped from output_mesgs() in AS_FGB_main.c
 

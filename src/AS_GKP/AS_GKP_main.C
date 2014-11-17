@@ -36,7 +36,7 @@ const char *mainid = "$Id$";
 #include "AS_PER_genericStore.H"
 #include "AS_PER_gkpStore.H"
 #include "AS_UTL_fileIO.H"
-#include "AS_MSG_pmesg.H"
+
 #include "AS_GKP_include.H"
 
 char            *progName       = NULL;

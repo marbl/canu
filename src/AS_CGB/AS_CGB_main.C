@@ -52,7 +52,7 @@ void chunk_graph_build_1(const char * const Graph_Store_File_Prefix,
 static IntEdge_ID get_the_thickest_dvt_overlap_from_vertex
 ( Tfragment * frags,
   Tedge     * edges,
-  IntFragment_ID avx,
+  AS_IID avx,
   int            asx
   ) {
   // Does the graph have to be in adjacency format?
@@ -96,10 +96,10 @@ static void identify_thickest_overlaps
   )
 {
   const IntEdge_ID nedge = GetNumEdges(edges);
-  const IntFragment_ID nfrag = GetNumFragments(frags);
+  const AS_IID nfrag = GetNumFragments(frags);
 
   // Assume an adjaceny representation.
-  IntFragment_ID avx;
+  AS_IID avx;
   int asx;
   for(avx=0; avx < nfrag; avx++) {
     for(asx=0; asx < 2; asx++) {
@@ -140,7 +140,7 @@ static void identify_bmpc_paths
        // Note that nedge < AS_CGB_EDGE_NOT_FOUND.
        ie_now = ie_next
        ) {
-    const IntFragment_ID bvx = get_bvx_edge(edges,ie_now);
+    const AS_IID bvx = get_bvx_edge(edges,ie_now);
     const int bcon = get_con_fragment(frags,bvx);
     set_nes_edge(edges,ie_now,AS_CGB_INTERCHUNK_EDGE);
     fix_overlap_edge_mate(frags,edges,ie_now);
@@ -177,11 +177,11 @@ static void identify_essential_components
   const IntEdge_ID nfrag = GetNumFragments(frags);
 
   { // Assume an adjaceny representation.
-    IntFragment_ID avx;
+    AS_IID avx;
     int asx;
     for(avx=0; avx < nfrag; avx++) {
-      const IntFragment_ID con = get_con_fragment(frags,avx);
-      const IntFragment_ID lab = get_lab_fragment(frags,avx);
+      const AS_IID con = get_con_fragment(frags,avx);
+      const AS_IID lab = get_lab_fragment(frags,avx);
       if( (!con) && ((AS_CGB_HANGING_FRAG == lab) || (AS_CGB_THRU_FRAG == lab)) ) {
         for(asx=0; asx < 2; asx++) {
           const IntEdge_ID ie = get_the_thickest_dvt_overlap_from_vertex ( frags, edges, avx, asx );
@@ -283,8 +283,8 @@ static void maskout_overlaps_touching_crappy_fragments
    */
   const IntEdge_ID nedge = GetNumEdges(edges);
   { IntEdge_ID ie; for(ie=0; ie<nedge; ie++) {
-    const IntFragment_ID iavx = get_avx_edge(edges,ie);
-    const IntFragment_ID ibvx = get_bvx_edge(edges,ie);
+    const AS_IID iavx = get_avx_edge(edges,ie);
+    const AS_IID ibvx = get_bvx_edge(edges,ie);
     const Tnes ines = get_nes_edge(edges,ie);
     Tnes jnes = ines;
     const int ikeep
@@ -385,9 +385,9 @@ int main_cgb(THeapGlobals  * heapva,
 
   { // beginning of the non-incremental phase
 
-    IntFragment_ID nfrag = GetNumFragments(heapva->frags);
-    IntFragment_ID ifrag;
-    IntFragment_ID num_of_guides_total = 0;
+    AS_IID nfrag = GetNumFragments(heapva->frags);
+    AS_IID ifrag;
+    AS_IID num_of_guides_total = 0;
 
     /* Count the total amount of guide fragments. */
 
@@ -397,7 +397,7 @@ int main_cgb(THeapGlobals  * heapva,
       // Only AS_READ & AS_EXTR fragments are to be used in Gene Myers
       // coverage statistic.
       //
-      IntFragment_ID iid = get_iid_fragment(heapva->frags, ifrag);
+      AS_IID iid = get_iid_fragment(heapva->frags, ifrag);
       gkFragment     frg;
       gkpStore->gkStore_getFragment(iid, &frg, GKFRAGMENT_INF);
 
