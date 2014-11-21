@@ -24,8 +24,6 @@
 
 LOCAL_WORK = $(shell cd ../../; pwd)
 
-include $(LOCAL_WORK)/src/site_name.as
-
 ANALYZE_SOURCES = analyzePosMap.C \
                   analyzePosMap-libraryFate.C \
                   analyzePosMap-load.C \
