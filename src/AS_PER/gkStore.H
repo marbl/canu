@@ -96,8 +96,7 @@ public:
 
 class gkStore {
 private:
-  void         gkStore_open(int writable) { gkStore_open(writable, 1); }
-  void         gkStore_open(int writable, int doNotUseUIDs);
+  void         gkStore_open(int writable);
   //void         gkStore_create(const char *path, uint32 packedLength);
 
   void         gkStore_clear(void);
@@ -105,7 +104,7 @@ private:
 public:
   gkStore();
   gkStore(const char *path, uint32 packedLength);
-  gkStore(const char *path, int creatable, int writable, int doNotUseUIDs=0);
+  gkStore(const char *path, int creatable, int writable);
   ~gkStore();
 
   //  The 'name' of this gkpStore.
@@ -140,9 +139,8 @@ public:
   gkLibrary *gkStore_getLibrary(int id)                { return((id == 0) ? libNull : (gkLibrary *)getIndexStorePtr(lib, id)); }
   void       gkStore_getLibrary(int id, gkLibrary *lb) { getIndexStore(lib, id, lb); };
   void       gkStore_setLibrary(int id, gkLibrary *lb) { setIndexStore(lib, id, lb); }
-  void       gkStore_addLibrary(AS_UID u, gkLibrary *lb) {
+  void       gkStore_addLibrary(gkLibrary *lb) {
     appendIndexStore(lib, lb);
-    gkStore_setUIDtoIID(u, getLastElemStore(lib), AS_IID_LIB);
     inf.libLoaded++;
   };
 
@@ -162,28 +160,6 @@ public:
 
   ////////////////////////////////////////
   //
-  //  Placement constraint support.
-  //
-  ////////////////////////////////////////
-private:
-   void        gkStore_loadFRGtoPLC(void);
-   int         gkStore_setFRGtoPLC(AS_IID iid, int plid);
-
-public:
-  int32        gkStore_getNumPlacement(void)                 { return(inf.plcLoaded); }
-  int          gkStore_getFRGtoPLC(AS_IID iid);
-  
-  gkPlacement *gkStore_getPlacement(int id)                  { return((id == 0) ? NULL : (gkPlacement *)getIndexStorePtr(plc, id)); }
-  void         gkStore_getPlacement(int id, gkPlacement *pl) { getIndexStore(plc, id, pl); }  
-  gkPlacement *gkStore_getReadPlacement(AS_IID iid)          { 
-    int index = gkStore_getFRGtoPLC(iid);
-    return (index == 0 ? NULL : gkStore_getPlacement(index));
-  }
-  void         gkStore_setPlacement(int id, gkPlacement *pl) { setIndexStore(plc, id, pl); }
-  void         gkStore_addPlacement(gkPlacement *pl);
-
-  ////////////////////////////////////////
-  //
   //  Clear range support.
   //
   ////////////////////////////////////////
@@ -194,33 +170,6 @@ public:
   //
   void      gkStore_enableClearRange(uint32 which);
   void      gkStore_purgeClearRange(uint32 which);
-
-  ////////////////////////////////////////
-  //
-  //  AS_PER_gkStore_UID.c
-  //
-  ////////////////////////////////////////
-
-  //  Privates to load/save data
-private:
-  void           gkStore_loadUIDtoIID(void);
-  void           gkStore_loadIIDtoUID(void);
-  void           gkStore_loadSTRtoUID(void);
-
-
-  //  These for general consumption
-public:
-  AS_IID         gkStore_getUIDtoIID(AS_UID uid, uint32 *type);
-  int            gkStore_setUIDtoIID(AS_UID uid, AS_IID iid, uint32 type);
-  AS_UID         gkStore_getIIDtoUID(AS_IID iid, uint32 type);
-
-  //  This for gatekeeper the program
-  void           gkStore_rebuildUIDtoIID(void);
-
-  //  The next three functions should only be used by AS_UTL_UID.c (and the null constructor).
-  AS_UID         gkStore_getUIDfromString(char *uidstr);
-  char          *gkStore_getUIDstring(AS_UID uid);
-  AS_UID         gkStore_addUID(char *uidstr);
 
   ////////////////////////////////////////
   //
@@ -254,25 +203,7 @@ private:
 
   StoreStruct             *lib;
   gkLibrary               *libNull;  //  Pointer, because we don't know gkLibrary here
-
-  StoreStruct             *uid;
-  
-  // Stores placement constraints for fragments
-  StoreStruct             *plc;
-  HashTable_AS            *FRGtoPLC;
-
-  //  Maps UIDs to IIDs; maps strings to UIDs.  The STR array holds ALL the string UIDs.
-  //
-  HashTable_AS            *UIDtoIID;
-  HashTable_AS            *STRtoUID;
-
-  //  We can generate a quick mapping from IID to UID for fragments.
-  //
-  uint64                  *frgUID;
-
-  //  Flag to indicate whether we are using UIDs. If this is set to true, UIDs will not be loaded
-  uint32                   doNotLoadUIDs;
-  
+ 
   //  Clear ranges
   //
   gkClearRange           **clearRange;

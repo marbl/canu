@@ -108,8 +108,6 @@ static const char *AS_READ_TYPE_NAMES[4] = { "ERROR", "PACKED", "NORMAL", "STROB
 
 class gkPackedFragment {
 private:
-  AS_UID           readUID;
-
   AS_IID           readIID;
   AS_IID           mateIID;
   AS_IID           libraryIID;
@@ -134,8 +132,6 @@ private:
 
 class  gkNormalFragment {
 private:
-  AS_UID           readUID;
-
   AS_IID           readIID;
   AS_IID           mateIID;
   AS_IID           libraryIID;
@@ -161,8 +157,6 @@ private:
 
 class gkStrobeFragment {
 private:
-  AS_UID           readUID;
-
   AS_IID           readIID;
   AS_IID           mateIID;
   AS_IID           libraryIID;
@@ -301,12 +295,6 @@ public:
   }
 
 
-  AS_UID      gkFragment_getReadUID(void) {
-    AS_UID r = AS_UID_undefined();
-    gkFragment_get(readUID);
-    return(r);
-  };
-
   AS_IID      gkFragment_getReadIID(void) {
     AS_IID r = 0;
     gkFragment_get(readIID);
@@ -419,7 +407,6 @@ public:
   };
 
   void        gkFragment_setType(uint32 t)        { assert(isGKP);  type = t; };
-  void        gkFragment_setReadUID(AS_UID u)     {                 gkFragment_set(readUID, u); };
   void        gkFragment_setLength(uint32 l)      { assert(isGKP);  gkFragment_set(seqLen, l); };
   void        gkFragment_setLibraryIID(AS_IID l)  {                 gkFragment_set(libraryIID, l); };
   void        gkFragment_setMateIID(AS_IID i)     {                 gkFragment_set(mateIID, i); };

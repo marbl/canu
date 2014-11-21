@@ -218,7 +218,7 @@ AS_GKP_reportError(int error, uint32 libIID, ...) {
 
 bool
 AS_GKP_summarizeErrors(char *gkpStoreName) {
-  gkStore      *gkp    = new gkStore(gkpStoreName, FALSE, FALSE, TRUE);
+  gkStore      *gkp    = new gkStore(gkpStoreName, FALSE, FALSE);
   gkStoreStats *stats  = new gkStoreStats(gkp);
 
   //  Report the stats -- this is the same as 'gatekeeper -dumpinfo'.

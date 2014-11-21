@@ -227,16 +227,16 @@ void
 gkClearRange::gkClearRange_setClearRegion(gkFragment *fr, uint32  begin, uint32  end) {
 
   if (begin > end)
-    fprintf(stderr, "ERROR: fragment %s,%d clear begin (%d) > end (%d).\n",
-            AS_UID_toString(fr->gkFragment_getReadUID()), fr->gkFragment_getReadIID(), begin, end);
+    fprintf(stderr, "ERROR: fragment %d clear begin (%d) > end (%d).\n",
+            fr->gkFragment_getReadIID(), begin, end);
 
   if (begin > fr->gkFragment_getSequenceLength())
-    fprintf(stderr, "ERROR: fragment %s,%d clear begin (%d) > sequence length (%d).\n",
-            AS_UID_toString(fr->gkFragment_getReadUID()), fr->gkFragment_getReadIID(), begin, fr->gkFragment_getSequenceLength());
+    fprintf(stderr, "ERROR: fragment %d clear begin (%d) > sequence length (%d).\n",
+            fr->gkFragment_getReadIID(), begin, fr->gkFragment_getSequenceLength());
 
   if (end   > fr->gkFragment_getSequenceLength())
-    fprintf(stderr, "ERROR: fragment %s,%d clear end (%d) > sequence length (%d).\n",
-            AS_UID_toString(fr->gkFragment_getReadUID()), fr->gkFragment_getReadIID(), end, fr->gkFragment_getSequenceLength());
+    fprintf(stderr, "ERROR: fragment %d clear end (%d) > sequence length (%d).\n",
+            fr->gkFragment_getReadIID(), end, fr->gkFragment_getSequenceLength());
 
   assert(begin <= end);
   assert(begin <= fr->gkFragment_getSequenceLength());

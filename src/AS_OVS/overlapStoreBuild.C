@@ -267,7 +267,6 @@ main(int argc, char **argv) {
   uint32          fileLimit    = 512;
   uint64          memoryLimit  = 0;
 
-  Ovl_Skip_Type_t ovlSkipOpt   = PLC_ALL;
   uint32          doFilterOBT  = 0;
 
   double          maxErrorRate = 1.0;
@@ -297,11 +296,6 @@ main(int argc, char **argv) {
       memoryLimit  = atoi(argv[++arg]);
       memoryLimit *= 1024;
       memoryLimit *= 1024;
-
-    } else if (strcmp(argv[arg], "-plc") == 0) {
-      //  Former -i option
-      //  PLC_NONE, PLC_ALL, PLC_INTERNAL
-      ovlSkipOpt = PLC_ALL;
 
     } else if (strcmp(argv[arg], "-obt") == 0) {
       doFilterOBT = 1;
@@ -364,7 +358,6 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -F f                  use up to 'f' files for store creation\n");
     fprintf(stderr, "  -M m                  use up to 'm' MB memory for store creation\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -plc t                type of filtering for PLC fragments -- NOT SUPPORTED\n");
     fprintf(stderr, "  -obt                  filter overlaps for OBT\n");
     fprintf(stderr, "  -dup                  filter overlaps for OBT/dedupe\n");
     fprintf(stderr, "\n");
@@ -496,23 +489,6 @@ main(int argc, char **argv) {
       if ((doFilterOBT == 2) && (skipFragment[fovrlap.a_iid])) {
         skipOBT2NODEDUP++;
         continue;
-      }
-
-      if (doFilterOBT == 0) {
-         int firstIgnore  = (gkp->gkStore_getFRGtoPLC(fovrlap.a_iid) != 0 ? TRUE : FALSE);
-         int secondIgnore = (gkp->gkStore_getFRGtoPLC(fovrlap.b_iid) != 0 ? TRUE : FALSE);
-         
-         // option means don't ignore them at all
-         if (ovlSkipOpt == PLC_NONE) {
-         }
-         // option means don't overlap them at all
-         else if (ovlSkipOpt == PLC_ALL && ((firstIgnore == TRUE || secondIgnore == TRUE))) {
-            continue;
-         }
-         // option means let them overlap other reads but not each other
-         else if (ovlSkipOpt == PLC_INTERNAL && ((firstIgnore == TRUE && secondIgnore == TRUE))) {
-            continue;
-         }
       }
 
       writeToDumpFile(&fovrlap, dumpFile, dumpFileMax, dumpLength, iidPerBucket, ovlName);

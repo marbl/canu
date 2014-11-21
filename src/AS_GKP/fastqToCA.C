@@ -301,8 +301,6 @@ main(int argc, char **argv) {
 
   gkLibrary         gkl;
 
-  gkl.libraryUID                 = AS_UID_load(libraryName);
-
   strcpy(gkl.libraryName, libraryName);
 
   gkl.mean                       = insertSize;

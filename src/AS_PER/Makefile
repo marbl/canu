@@ -29,8 +29,6 @@ SOURCES = AS_PER_genericStore.C \
           AS_PER_gkLibrary.C \
           AS_PER_gkStore.C \
           AS_PER_gkStore_IID.C \
-          AS_PER_gkStore_PLC.C \
-          AS_PER_gkStore_UID.C \
           AS_PER_gkStore_clearRange.C \
           AS_PER_gkStore_fragments.C \
           AS_PER_gkStore_load.C \

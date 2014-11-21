@@ -35,7 +35,6 @@
 
 
 typedef struct {
-  AS_UID       eaccession;
   double       mean;
   double       stddev;
   char        *source;
@@ -50,8 +49,6 @@ typedef struct {
 class gkLibrary {
 public:
   gkLibrary() {
-    libraryUID = AS_UID_undefined();
-
     memset(libraryName, 0, sizeof(char) * LIBRARY_NAME_SIZE);
     strcpy(libraryName, LIBRARY_NAME_DEFAULT);
 
@@ -120,7 +117,6 @@ public:
 
 private:
 public:
-  AS_UID         libraryUID;
   char           libraryName[LIBRARY_NAME_SIZE];
 
   double         mean;

@@ -106,8 +106,8 @@ processSeq(char       *N,
       (slen > AS_READ_MAX_NORMAL_LEN)) {
     AS_GKP_reportError(AS_GKP_ILL_SEQ_TOO_LONG, libraryIID,
                        fr->snam, slen, AS_READ_MAX_NORMAL_LEN);
-    fr->sstr[AS_READ_MAX_NORMAL_LEN] = 0;
-    fr->qstr[AS_READ_MAX_NORMAL_LEN] = 0;
+    fr->sstr[AS_READ_MAX_NORMAL_LEN-1] = 0;
+    fr->qstr[AS_READ_MAX_NORMAL_LEN-1] = 0;
     slen = AS_READ_MAX_NORMAL_LEN;
     qlen = AS_READ_MAX_NORMAL_LEN;
   }
@@ -369,7 +369,6 @@ processSeq(char       *N,
 
   //  Got a good read, make it.
 
-  fr->fr.gkFragment_setReadUID(AS_UID_fromInteger(readUID));
   fr->fr.gkFragment_setIsDeleted(0);
 
   fr->fr.gkFragment_setLibraryIID(libraryIID);

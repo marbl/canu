@@ -377,7 +377,6 @@ gkStore::gkStore_addFragment(gkFragment *fr) {
       assert(fr->seq[fr->fr.packed.seqLen] == 0);
       assert(fr->qlt[fr->fr.packed.seqLen] == 0);
 
-      gkStore_setUIDtoIID(fr->fr.packed.readUID, fr->fr.packed.readIID, AS_IID_FRG);
       appendIndexStore(fpk, &fr->fr.packed);
 
       encodeSequenceQuality(fr->enc, fr->seq, fr->qlt);
@@ -393,7 +392,6 @@ gkStore::gkStore_addFragment(gkFragment *fr) {
       fr->fr.normal.seqOffset = getLastElemStore(snm) + 1;
       fr->fr.normal.qltOffset = getLastElemStore(qnm) + 1;
 
-      gkStore_setUIDtoIID(fr->fr.normal.readUID, fr->fr.normal.readIID, AS_IID_FRG);
       appendIndexStore(fnm, &fr->fr.normal);
 
       encLen = encodeSequence(fr->enc, fr->seq);
@@ -412,7 +410,6 @@ gkStore::gkStore_addFragment(gkFragment *fr) {
       fr->fr.strobe.seqOffset = getLastElemStore(ssb) + 1;
       fr->fr.strobe.qltOffset = getLastElemStore(qsb) + 1;
 
-      gkStore_setUIDtoIID(fr->fr.strobe.readUID, fr->fr.strobe.readIID, AS_IID_FRG);
       appendIndexStore(fsb, &fr->fr.strobe);
 
       encLen = encodeSequence(fr->enc, fr->seq);

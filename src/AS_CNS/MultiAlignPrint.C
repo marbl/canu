@@ -385,7 +385,7 @@ PrintMultiAlignT(FILE *out,
     {
       char save = consensus[window + rowlen];
       consensus[window+rowlen] = 0;
-      fprintf(out,"%s  cns  (uid,iid) type\n", consensus+window);
+      fprintf(out,"%s  cns  (iid) type\n", consensus+window);
       consensus[window+rowlen] = save;
     }
 
@@ -436,10 +436,9 @@ PrintMultiAlignT(FILE *out,
       {
         char save = multia[2*i][window + MULTIALIGN_PRINT_WIDTH];
         multia[2*i][window + MULTIALIGN_PRINT_WIDTH] = 0;
-        fprintf(out, "%s   %c   (%s,%d)\n",
+        fprintf(out, "%s   %c   (%d)\n",
                 multia[2*i]+window,
                 (orient>0)?'>':'<',
-                AS_UID_toString(rsp.gkFragment_getReadUID()),
                 row_id);
         multia[2*i][window + MULTIALIGN_PRINT_WIDTH] = save;
       }

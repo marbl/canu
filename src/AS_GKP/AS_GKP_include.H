@@ -57,8 +57,7 @@ dumpGateKeeperLibraries(char       *gkpStoreName,
                         AS_IID      begIID,
                         AS_IID      endIID,
                         char       *iidToDump,
-                        int         asTable,
-                        int         withoutUIDs);
+                        int         asTable);
 
 void
 dumpGateKeeperFragments(char       *gkpStoreName,
@@ -67,8 +66,7 @@ dumpGateKeeperFragments(char       *gkpStoreName,
                         char       *iidToDump,
                         int         dumpWithSequence,
                         int         dumpClear,
-                        int         asTable,
-                        int         withoutUIDs);
+                        int         asTable);
 
 void
 dumpGateKeeperAsFasta(char       *gkpStoreName,
@@ -80,8 +78,7 @@ dumpGateKeeperAsFasta(char       *gkpStoreName,
                       int         doNotFixMates,
                       int         dumpAllReads,
                       int         dumpAllBases,
-                      int         dumpClear,
-                      int         withoutUIDs);
+                      int         dumpClear);
 
 void
 dumpGateKeeperAsFastQ(char       *gkpStoreName,
@@ -93,8 +90,7 @@ dumpGateKeeperAsFastQ(char       *gkpStoreName,
                       int         doNotFixMates,
                       int         dumpAllReads,
                       int         dumpAllBases,
-                      int         dumpClear,
-                      int         withoutUIDs);
+                      int         dumpClear);
 
 int
 dumpGateKeeperIsFeatureSet(char       *gkpStoreName,

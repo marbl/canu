@@ -170,7 +170,6 @@ main(int argc, char **argv) {
   char           *gkpName      = NULL;
   uint32          fileLimit    = 512;
 
-  Ovl_Skip_Type_t ovlSkipOpt   = PLC_ALL;
   uint32          doFilterOBT  = 0;
 
   uint32          jobIndex     = 0;
@@ -195,11 +194,6 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-F") == 0) {
       fileLimit = atoi(argv[++arg]);
-
-    } else if (strcmp(argv[arg], "-plc") == 0) {
-      //  Former -i option
-      //  PLC_NONE, PLC_ALL, PLC_INTERNAL
-      ovlSkipOpt = PLC_ALL;
 
     } else if (strcmp(argv[arg], "-obt") == 0) {
       doFilterOBT = 1;
@@ -247,7 +241,6 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -F f                  use up to 'f' files for store creation\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -plc t                type of filtering for PLC fragments -- NOT SUPPORTED\n");
     fprintf(stderr, "  -obt                  filter overlaps for OBT\n");
     fprintf(stderr, "  -dup                  filter overlaps for OBT/dedupe\n");
     fprintf(stderr, "\n");
@@ -400,24 +393,6 @@ main(int argc, char **argv) {
       skipOBT2NODEDUP++;
       continue;
     }
-
-    if (doFilterOBT == 0) {
-      int firstIgnore  = (gkp->gkStore_getFRGtoPLC(fovrlap.a_iid) != 0 ? TRUE : FALSE);
-      int secondIgnore = (gkp->gkStore_getFRGtoPLC(fovrlap.b_iid) != 0 ? TRUE : FALSE);
-         
-      // option means don't ignore them at all
-      if (ovlSkipOpt == PLC_NONE) {
-      }
-      // option means don't overlap them at all
-      else if (ovlSkipOpt == PLC_ALL && ((firstIgnore == TRUE || secondIgnore == TRUE))) {
-        continue;
-      }
-      // option means let them overlap other reads but not each other
-      else if (ovlSkipOpt == PLC_INTERNAL && ((firstIgnore == TRUE && secondIgnore == TRUE))) {
-        continue;
-      }
-    }
-
 
     writeToFile(&fovrlap, sliceFile, fileLimit, sliceSize, iidPerBucket, ovlName, jobIndex, useGzip);
     saveTOTAL++;

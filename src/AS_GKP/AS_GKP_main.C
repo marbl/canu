@@ -69,11 +69,6 @@ usage(char *filename, int longhelp) {
   fprintf(stdout, "  -T                     do not check minimum length (for OBT)\n");
   fprintf(stdout, "  -F                     fix invalid insert size estimates\n");
   fprintf(stdout, "\n");
-  fprintf(stdout, "  -v <vector-info>       load vector clear ranges into each read.\n");
-  fprintf(stdout, "                         MUST be done on an existing, complete store.\n");
-  fprintf(stdout, "                         example: -a -v vectorfile -o that.gkpStore\n");
-  fprintf(stdout, "                         format: 'UID vec-clr-begin vec-clr-end'\n");
-  fprintf(stdout, "\n");
   fprintf(stdout, "----------------------------------------------------------------------\n");
   fprintf(stdout, "The second usage will partition an existing store, allowing\n");
   fprintf(stdout, "the entire store partition to be loaded into memory.\n");
@@ -90,15 +85,11 @@ usage(char *filename, int longhelp) {
   fprintf(stdout, "  Dump a random 25%% of the reads in the first library\n");
   fprintf(stdout, "    gatekeeper -randomsubset 1 0.25 -dumpfrg my.gkpStore > random25.frg\n");
   fprintf(stdout, "\n");
-  fprintf(stdout, "  Dump fasta sequence for the UIDs in 'uidFile'\n");
-  fprintf(stdout, "    gatekeeper -uid uidFile -dumpfastaseq file -dumpfrg my.gkpStore\n");
-  fprintf(stdout, "\n");
   fprintf(stdout, "  -----------------------------------\n");
   fprintf(stdout, "  [selection of what objects to dump]\n");
   fprintf(stdout, "  -----------------------------------\n");
   fprintf(stdout, "  -b <begin-iid>          dump starting at this library or read\n");
   fprintf(stdout, "  -e <ending-iid>         dump stopping after this iid\n");
-  fprintf(stdout, "  -uid <uid-file>         dump only objects listed in 'uid-file'\n");
   fprintf(stdout, "  -iid <iid-file>         dump only objects listed in 'iid-file'\n");
   fprintf(stdout, "  -randommated  <lib> <n> pick n mates (2n frags) at random from library lib\n");
   fprintf(stdout, "  -randomsubset <lib> <f> dump a random fraction f (0.0-1.0) of library lib\n");
@@ -116,7 +107,6 @@ usage(char *filename, int longhelp) {
   fprintf(stdout, "                         and -dumpfragments, ignores -withsequence and -clear)\n");
   fprintf(stdout, "  -isfeatureset <libID> <X> sets exit value to 0 if feature X is set in library libID, 1 otherwise.\n");
   fprintf(stdout, "                        If libID == 0, check all libraries.\n");
-  fprintf(stdout, "  -nouid                dump info without including the read UID (for -dumpinfo, -dumplibraries, -dumpfragments)\n");
   fprintf(stdout, "\n");
   fprintf(stdout, "  ----------------\n");
   fprintf(stdout, "  [format of dump]\n");
@@ -202,9 +192,9 @@ usage(char *filename, int longhelp) {
 
 
 char *
-constructIIDdumpFromIDFile(char *gkpStoreName, char *iidToDump, char *uidFileName, char *iidFileName) {
+constructIIDdumpFromIDFile(char *gkpStoreName, char *iidToDump, char *iidFileName) {
 
-  if ((uidFileName == NULL) && (iidFileName == NULL))
+  if (iidFileName == NULL)
     return(iidToDump);
 
   gkStore *gkp      = new gkStore(gkpStoreName, FALSE, FALSE);
@@ -233,35 +223,6 @@ constructIIDdumpFromIDFile(char *gkpStoreName, char *iidToDump, char *uidFileNam
         fprintf(stderr, "%s: IID "F_IID" too big, ignored.\n", progName, iid);
       else
         iidToDump[iid]++;
-      fgets(L, 1024, F);
-    }
-    if (F != stdin)
-      fclose(F);
-  }
-
-  if (uidFileName) {
-    errno = 0;
-    if (strcmp(uidFileName, "-") == 0)
-      F = stdin;
-    else
-      F = fopen(uidFileName, "r");
-    if (errno) {
-      fprintf(stderr, "%s: Couldn't open -uid file '%s': %s\n", progName, uidFileName, strerror(errno));
-      exit(1);
-    }
-    fgets(L, 1024, F);
-    while (!feof(F)) {
-      chomp(L);
-      AS_UID  uid = AS_UID_lookup(L, NULL);
-      AS_IID  iid = gkp->gkStore_getUIDtoIID(uid, NULL);
-
-      if (iid == 0)
-        fprintf(stderr, "%s: UID %s doesn't exist, ignored.\n", progName, L);
-      else if (iid >= lastElem)
-        fprintf(stderr, "%s: UID %s is IID "F_IID", and that's too big, ignored.\n", progName, L, iid);
-      else
-        iidToDump[iid]++;
-
       fgets(L, 1024, F);
     }
     if (F != stdin)
@@ -502,7 +463,6 @@ main(int argc, char **argv) {
   //
   int              append             = 0;
   int              outputExists       = 0;
-  char            *vectorClearFile    = NULL;
   int              assembler          = AS_ASSEMBLER_GRANDE;
   int              firstFileArg       = 0;
   int              fixInsertSizes     = 0;
@@ -516,7 +476,6 @@ main(int argc, char **argv) {
   //
   AS_IID           begIID            = 0;
   AS_IID           endIID            = 2000000000;  //  I hope I never see an assembly with 2 billion IIDs!
-  char            *uidFileName       = NULL;
   char            *iidFileName       = NULL;
   int              dump              = DUMP_NOTHING;
   int              dumpTabular       = 0;
@@ -541,8 +500,6 @@ main(int argc, char **argv) {
   AS_IID           featureLibIID     = 0;
   char            *featureName       = NULL;
 
-  int              dumpDoNotUseUIDs  = FALSE;
-
   progName = argv[0];
   gkpStore = NULL;
   errorFP  = stdout;
@@ -564,9 +521,6 @@ main(int argc, char **argv) {
       err++;
     } else if (strcmp(argv[arg], "-o") == 0) {
       gkpStoreName = argv[++arg];
-    } else if (strcmp(argv[arg], "-v") == 0) {
-      vectorClearFile = argv[++arg];
-      firstFileArg    = 1;  // gets us around the input file sanity check, unused otherwise
     } else if (strcmp(argv[arg], "-T") == 0) {
       assembler = AS_ASSEMBLER_OBT;
     } else if (strcmp(argv[arg], "-F") == 0) {
@@ -581,8 +535,6 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-tabular") == 0) {
       dumpTabular = 1;
-    } else if (strcmp(argv[arg], "-uid") == 0) {
-      uidFileName = argv[++arg];
     } else if (strcmp(argv[arg], "-iid") == 0) {
       iidFileName = argv[++arg];
     } else if (strcmp(argv[arg], "-randommated") == 0) {
@@ -656,8 +608,6 @@ main(int argc, char **argv) {
       dump = DUMP_FEATURE;
       featureLibIID = atoi(argv[++arg]);
       featureName = argv[++arg];
-    } else if (strcmp(argv[arg], "-nouid") == 0 ) {
-      dumpDoNotUseUIDs = 1;
     } else if (strcmp(argv[arg], "-donotfixmates") == 0) {
       doNotFixMates = 1;
     } else if (strcmp(argv[arg], "-invert") == 0) {
@@ -665,9 +615,6 @@ main(int argc, char **argv) {
 
         //  End of dump options, SECRET OPTIONS below
 
-      //} else if (strcmp(argv[arg], "--rebuildmap") == 0) {
-      //  gkStore_rebuildUIDtoIID(argv[arg+1]);
-      //  exit(0);
     } else if (strcmp(argv[arg], "--revertclear") == 0) {
       //  Takes two args:  clear region name, gkpStore
       //
@@ -706,12 +653,7 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  if (vectorClearFile) {
-    updateVectorClear(vectorClearFile, gkpStoreName);
-    exit(0);
-  }
-
-  iidToDump = constructIIDdumpFromIDFile(gkpStoreName, iidToDump, uidFileName, iidFileName);
+  iidToDump = constructIIDdumpFromIDFile(gkpStoreName, iidToDump, iidFileName);
   iidToDump = constructIIDdump(gkpStoreName, iidToDump, dumpRandLib, dumpRandMateNum, dumpRandSingNum, dumpRandFraction, dumpRandLength, dumpInvert);
   iidToDump = constructIIDdumpLongest(gkpStoreName, iidToDump, dumpRandLib, dumpLongestMin, dumpLongestTotal, dumpInvert);
 
@@ -723,21 +665,19 @@ main(int argc, char **argv) {
         dumpGateKeeperInfo(gkpStoreName, dumpTabular);
         break;
       case DUMP_LIBRARIES:
-        dumpGateKeeperLibraries(gkpStoreName, begIID, endIID, iidToDump, dumpTabular, dumpDoNotUseUIDs);
+        dumpGateKeeperLibraries(gkpStoreName, begIID, endIID, iidToDump, dumpTabular);
         break;
       case DUMP_FRAGMENTS:
         dumpGateKeeperFragments(gkpStoreName, begIID, endIID, iidToDump,
                                 dumpWithSequence,
                                 dumpClear,
-                                dumpTabular,
-                                dumpDoNotUseUIDs);
+                                dumpTabular);
         break;
       case DUMP_FASTA:
         dumpGateKeeperAsFasta(gkpStoreName, dumpPrefix, dumpWithLibName, begIID, endIID, iidToDump,
                               doNotFixMates,
                               dumpAllReads, dumpAllBases,
-                              dumpClear,
-                              dumpDoNotUseUIDs);
+                              dumpClear);
         break;
       case DUMP_LASTFRG:
         {
@@ -750,8 +690,7 @@ main(int argc, char **argv) {
         dumpGateKeeperAsFastQ(gkpStoreName, dumpPrefix, dumpWithLibName, begIID, endIID, iidToDump,
                               doNotFixMates,
                               dumpAllReads, dumpAllBases,
-                              dumpClear,
-                              dumpDoNotUseUIDs);
+                              dumpClear);
         break;
       case DUMP_FEATURE:
          exitVal = (dumpGateKeeperIsFeatureSet(gkpStoreName, featureLibIID, featureName) == 0);

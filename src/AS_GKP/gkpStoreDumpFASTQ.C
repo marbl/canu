@@ -216,8 +216,8 @@ main(int argc, char **argv) {
     if (id2 == 0) {
       //  Unmated read, dump to the unmated reads file.
       AS_UTL_writeFastQ(lib[libIID]->u, seq, len, qlt, len,
-                        "@%s clr="F_U32","F_U32" clv="F_U32","F_U32" max="F_U32","F_U32" tnt="F_U32","F_U32" rnd=%c\n",
-                        AS_UID_toString(fr.gkFragment_getReadUID()),
+                        "@"F_IID" clr="F_U32","F_U32" clv="F_U32","F_U32" max="F_U32","F_U32" tnt="F_U32","F_U32" rnd=%c\n",
+                        id1,
                         fr.gkFragment_getClearRegionBegin(clrToDump),
                         fr.gkFragment_getClearRegionEnd  (clrToDump),
                         fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_VEC),
@@ -232,8 +232,8 @@ main(int argc, char **argv) {
 
     //  Write the first fragment (twice).
     AS_UTL_writeFastQ(lib[libIID]->a, seq, len, qlt, len,
-                      "@%s clr="F_U32","F_U32" clv="F_U32","F_U32" max="F_U32","F_U32" tnt="F_U32","F_U32" rnd=%c\n",
-                      AS_UID_toString(fr.gkFragment_getReadUID()),
+                      "@"F_IID" clr="F_U32","F_U32" clv="F_U32","F_U32" max="F_U32","F_U32" tnt="F_U32","F_U32" rnd=%c\n",
+                      id2,
                       fr.gkFragment_getClearRegionBegin(clrToDump),
                       fr.gkFragment_getClearRegionEnd  (clrToDump),
                       fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_VEC),
@@ -245,8 +245,8 @@ main(int argc, char **argv) {
                       fr.gkFragment_getIsNonRandom() ? 'f' : 't');
 
     AS_UTL_writeFastQ(lib[libIID]->p, seq, len, qlt, len,
-                      "@%s clr="F_U32","F_U32" clv="F_U32","F_U32" max="F_U32","F_U32" tnt="F_U32","F_U32" rnd=%c\n",
-                      AS_UID_toString(fr.gkFragment_getReadUID()),
+                      "@"F_IID" clr="F_U32","F_U32" clv="F_U32","F_U32" max="F_U32","F_U32" tnt="F_U32","F_U32" rnd=%c\n",
+                      id2,
                       fr.gkFragment_getClearRegionBegin(clrToDump),
                       fr.gkFragment_getClearRegionEnd  (clrToDump),
                       fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_VEC),
@@ -273,8 +273,8 @@ main(int argc, char **argv) {
 
     //  Write the second fragment (twice).
     AS_UTL_writeFastQ(lib[libIID]->b, seq, len, qlt, len,
-                      "@%s clr="F_U32","F_U32" clv="F_U32","F_U32" max="F_U32","F_U32" tnt="F_U32","F_U32" rnd=%c\n",
-                      AS_UID_toString(fr.gkFragment_getReadUID()),
+                      "@"F_IID" clr="F_U32","F_U32" clv="F_U32","F_U32" max="F_U32","F_U32" tnt="F_U32","F_U32" rnd=%c\n",
+                      id2,
                       fr.gkFragment_getClearRegionBegin(clrToDump),
                       fr.gkFragment_getClearRegionEnd  (clrToDump),
                       fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_VEC),
@@ -286,8 +286,8 @@ main(int argc, char **argv) {
                       fr.gkFragment_getIsNonRandom() ? 'f' : 't');
 
     AS_UTL_writeFastQ(lib[libIID]->p, seq, len, qlt, len,
-                      "@%s clr="F_U32","F_U32" clv="F_U32","F_U32" max="F_U32","F_U32" tnt="F_U32","F_U32" rnd=%c\n",
-                      AS_UID_toString(fr.gkFragment_getReadUID()),
+                      "@"F_IID" clr="F_U32","F_U32" clv="F_U32","F_U32" max="F_U32","F_U32" tnt="F_U32","F_U32" rnd=%c\n",
+                      id2,
                       fr.gkFragment_getClearRegionBegin(clrToDump),
                       fr.gkFragment_getClearRegionEnd  (clrToDump),
                       fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_VEC),

@@ -33,6 +33,8 @@ typedef uint32 AS_IID;
 #define F_IID           F_U32
 #define F_IIDP          F_U32P
 
+#define NO_IID          UINT32_MAX
+
 static
 inline
 AS_IID

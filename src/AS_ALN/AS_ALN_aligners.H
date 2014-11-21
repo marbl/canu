@@ -99,11 +99,7 @@ ALNoverlap *CopyALNoverlap(ALNoverlap *ovl);
 typedef struct {
   int32  action;
   uint32                version;
-  AS_UID         eaccession;
-  AS_UID                library_uid;     //  only version 2
   int32         library_iid;     //  only version 2
-  AS_UID                plate_uid;       //  only version 2
-  uint32                plate_location;  //  only version 2
   int32         type;            //  only version 1
   //  was FragType
   uint32                is_random;       //  only version 2

@@ -437,22 +437,8 @@ appendStringStore(StoreStruct *s, char *str, uint32 len) {
     if (s->allocatedSize <= desiredSize) {
       char *oldbuffer = s->memoryBuffer;
 
-#if 0
-      //
-      //  Useful for playing with string UID reallocation bugs.
-      //
-      fprintf(stderr, "REALLOCATE from %d to %d\n",
-              s->allocatedSize, desiredSize + 2 * 1024 * 1024);
-      size_t oldsize = s->allocatedSize;
-      s->allocatedSize = desiredSize + 2 * 1024 * 1024;
-      char *n = safe_calloc(s->allocatedSize, 1);
-      memcpy(n, s->memoryBuffer, oldsize);
-      safe_free(s->memoryBuffer);
-      s->memoryBuffer = n;
-#else
       s->allocatedSize = desiredSize + 32 * 1024 * 1024;
       s->memoryBuffer  = (char *)safe_realloc(s->memoryBuffer, s->allocatedSize);
-#endif
 
       retval = s->memoryBuffer - oldbuffer;
     }

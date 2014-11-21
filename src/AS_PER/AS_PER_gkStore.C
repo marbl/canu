@@ -42,14 +42,11 @@ static char *rcsid = "$Id$";
 gkStore::gkStore() {
 
   gkStore_clear();
-
-  uid      = createStringStore(NULL, "uid");
-  STRtoUID = CreateStringHashTable_AS();
 }
 
 
 void
-gkStore::gkStore_open(int writable, int doNotUseUIDs) {
+gkStore::gkStore_open(int writable) {
   char  name[FILENAME_MAX];
   char   mode[4];
   FILE  *gkpinfo;
@@ -156,22 +153,10 @@ gkStore::gkStore_open(int writable, int doNotUseUIDs) {
   lib   = openStore(name, mode);
   lib   = convertStoreToMemoryStore(lib);
 
-  sprintf(name,"%s/uid", storePath);
-  uid    = openStore(name, "r");
-
-  sprintf(name, "%s/plc", storePath);
-  plc    = openStore(name, "r");
-  plc    = convertStoreToMemoryStore(plc); 
-
-  //  UIDtoIID and STRtoUID are loaded on demand.
-  UIDtoIID = NULL;
-  STRtoUID = NULL;
-  doNotLoadUIDs = doNotUseUIDs;
-
   if ((NULL == fpk) || (NULL == qpk) ||
       (NULL == fnm) || (NULL == snm) || (NULL == qnm) ||
       (NULL == fsb) || (NULL == ssb) || (NULL == qsb) ||
-      (NULL == lib) || (NULL == uid) || (NULL == plc)) {
+      (NULL == lib)) {
     fprintf(stderr,"Failed to open gkpStore '%s'.\n", storePath);
     exit(1);
   }
@@ -195,7 +180,6 @@ gkStore::gkStore(const char *path, uint32 packedLength) {
 
   isReadOnly      = 0;
   isCreating      = 1;
-  doNotLoadUIDs   = 0;
 
   sprintf(name,"%s/inf", storePath);
   if (AS_UTL_fileExists(name, FALSE, TRUE)) {
@@ -252,21 +236,6 @@ gkStore::gkStore(const char *path, uint32 packedLength) {
   lib = createIndexStore(name, "lib", sizeof(gkLibrary), 1);
   lib = convertStoreToMemoryStore(lib);
 
-  sprintf(name,"%s/uid", storePath);
-  uid = createStringStore(name, "uid");
-
-  sprintf(name, "%s/plc", storePath);
-  plc = createIndexStore(name, "plc", sizeof(gkPlacement), 1);
-  plc = convertStoreToMemoryStore(plc);
-  
-  sprintf(name,"%s/f2p", storePath);
-  FRGtoPLC = CreateScalarHashTable_AS();
-  SaveHashTable_AS(name, FRGtoPLC);
-  
-  sprintf(name,"%s/u2i", storePath);
-  UIDtoIID = CreateScalarHashTable_AS();
-  SaveHashTable_AS(name, UIDtoIID);
-
   IIDmax    = 0;
   IIDtoTYPE = NULL;
   IIDtoTIID = NULL;
@@ -276,12 +245,10 @@ gkStore::gkStore(const char *path, uint32 packedLength) {
 
   for (uint32 i=0; i<AS_READ_CLEAR_NUM; i++)
     clearRange[i] = new gkClearRange(this, i, FALSE);
-
-  AS_UID_setGatekeeper(this);
 }
 
 
-gkStore::gkStore(const char *path, int creatable, int writable, int doNotUseUIDs) {
+gkStore::gkStore(const char *path, int creatable, int writable) {
   char   name[FILENAME_MAX];
 
   gkStore_clear();
@@ -298,7 +265,7 @@ gkStore::gkStore(const char *path, int creatable, int writable, int doNotUseUIDs
   sprintf(name,"%s/inf", storePath);
 
   if (AS_UTL_fileExists(name, FALSE, writable)) {
-    gkStore_open(writable, doNotUseUIDs);
+    gkStore_open(writable);
   } else if (AS_UTL_fileExists(name, FALSE, FALSE)) {
     fprintf(stderr, "gkStore::gkStore()-- GateKeeper Store '%s' isn't writable.\n", storePath);
     exit(1);
@@ -312,8 +279,6 @@ gkStore::gkStore(const char *path, int creatable, int writable, int doNotUseUIDs
 
   for (uint32 i=0; i<AS_READ_CLEAR_NUM; i++)
     clearRange[i] = new gkClearRange(this, i, FALSE);
-
-  AS_UID_setGatekeeper(this);
 }
 
 
@@ -357,16 +322,6 @@ gkStore::~gkStore() {
 
   closeStore(lib);
   delete libNull;
-
-  closeStore(uid);
-
-  closeStore(plc);
-  DeleteHashTable_AS(FRGtoPLC);
-  
-  DeleteHashTable_AS(UIDtoIID);
-  DeleteHashTable_AS(STRtoUID);
-
-  safe_free(frgUID);
 
   if (clearRange)
     for (uint32 i=0; i<AS_READ_CLEAR_NUM; i++)
@@ -412,16 +367,6 @@ gkStore::gkStore_clear(void) {
   lib = NULL;
   libNull = new gkLibrary;
 
-  uid = NULL;
-
-  plc      = NULL;
-  FRGtoPLC = NULL;
-  
-  UIDtoIID = NULL;
-  STRtoUID = NULL;
-
-  frgUID = NULL;
-
   IIDmax    = 0;
   IIDtoTYPE = NULL;
   IIDtoTIID = NULL;
@@ -435,8 +380,6 @@ gkStore::gkStore_clear(void) {
   partfsb = partqsb = NULL;
 
   partmap = NULL;
-  
-  doNotLoadUIDs = FALSE;
 }
 
 
@@ -459,16 +402,6 @@ gkStore::gkStore_delete(void) {
   closeStore(qsb);
 
   closeStore(lib);
-
-  closeStore(uid);
-
-  closeStore(plc);
-  DeleteHashTable_AS(FRGtoPLC);
-  
-  DeleteHashTable_AS(UIDtoIID);
-  DeleteHashTable_AS(STRtoUID);
-
-  safe_free(frgUID);
 
   safe_free(IIDtoTYPE);
   safe_free(IIDtoTIID);
@@ -498,10 +431,6 @@ gkStore::gkStore_delete(void) {
   sprintf(name,"%s/qsb", storePath);  unlink(name);
 
   sprintf(name,"%s/lib", storePath);  unlink(name);
-  sprintf(name,"%s/uid", storePath);  unlink(name);
-  sprintf(name,"%s/plc", storePath);  unlink(name);
-  sprintf(name,"%s/f2p", storePath);  unlink(name);
-  sprintf(name,"%s/u2i", storePath);  unlink(name);
 
   for (int32 i=0; i<AS_READ_CLEAR_NUM; i++) {
     gkStore_purgeClearRange(i);

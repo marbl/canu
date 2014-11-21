@@ -177,7 +177,7 @@ main(int argc, char **argv) {
 
     fprintf(stderr, "%-8u %-30s %8"F_U64P" %8"F_U64P" (%4.1f%%)  %8"F_U64P" (%4.1f%%)  %8"F_U64P" (%4.1f%%)  %8"F_U64P" (%4.1f%%)  %8"F_U64P" (%4.1f%%)  %8"F_U64P" (%4.1f%%)  %8"F_U64P" (%4.1f%%)\n",
             i,
-            (i == 0) ? "(none)" : AS_UID_toString(gkp->gkStore_getLibrary(i)->libraryUID),
+            gkp->gkStore_getLibrary(i)->libraryName,
             fragPerLib[i],
             deldPerLib[i], (deldPerLib[i] == 0) ? 0.0 : 100.0 * deldPerLib[i] / tot,
             cntdPerLib[i], (cntdPerLib[i] == 0) ? 0.0 : 100.0 * cntdPerLib[i] / tot,

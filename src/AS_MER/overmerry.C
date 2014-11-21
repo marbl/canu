@@ -390,7 +390,6 @@ public:
     tln = fr->gkFragment_getSequenceLength();
 
     iid = fr->gkFragment_getReadIID();
-    uid = fr->gkFragment_getReadUID();
 
     memset(seq, 0, AS_READ_MAX_NORMAL_LEN);
     strcpy(seq, fr->gkFragment_getSequence());
@@ -425,7 +424,6 @@ public:
   uint32      tln;
 
   AS_IID      iid;
-  AS_UID      uid;
 
   char        seq[AS_READ_MAX_NORMAL_LEN+1];
 

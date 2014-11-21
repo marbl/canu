@@ -155,7 +155,7 @@ gkpStoreFile::getSequence(uint32 iid,
 
   _gkp->gkStore_getFragment(iid, &_frg, GKFRAGMENT_SEQ);
 
-  sprintf(h, "%s,"F_IID, AS_UID_toString(_frg.gkFragment_getReadUID()), _frg.gkFragment_getReadIID());
+  sprintf(h, F_IID, _frg.gkFragment_getReadIID());
 
   hLen = strlen(h);
   sLen = _clrEnd[iid] - _clrBeg[iid];

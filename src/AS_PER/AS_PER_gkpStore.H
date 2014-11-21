@@ -33,9 +33,6 @@ static const char *rcsid_AS_PER_GKPFRGSTORE_H = "$Id$";
 #define AS_IID_FRG     2
 #define AS_IID_LIB     3
 
-#define UID_NAMESPACE_AS 'U'
-
-
 uint32 gkStore_decodeClearRegionLabel(const char *label);
 
 class gkLibrary;

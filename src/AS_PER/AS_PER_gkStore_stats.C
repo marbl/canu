@@ -26,7 +26,7 @@ static char *rcsid = "$Id$";
 
 
 gkStoreStats::gkStoreStats(const char *gkStoreName) {
-  gkStore   *gkp = new gkStore(gkStoreName, FALSE, FALSE, TRUE);
+  gkStore   *gkp = new gkStore(gkStoreName, FALSE, FALSE);
 
   if (gkp == NULL) {
     fprintf(stderr, "Failed to open %s\n", gkStoreName);

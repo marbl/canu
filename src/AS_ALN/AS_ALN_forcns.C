@@ -115,12 +115,10 @@ Local_Overlap_AS_forCNS(char *a, char *b,
   A.sequence   = safe_copy_Astring_with_preceding_null(a);
   A.quality    = NULL;
   A.iaccession = 1;
-  A.eaccession = AS_UID_fromInteger(A.iaccession);
 
   B.sequence = safe_copy_Bstring_with_preceding_null(b);
   B.quality = NULL;
   B.iaccession = 2;
-  B.eaccession = AS_UID_fromInteger(B.iaccession);
 
   O = Local_Overlap_AS(&A,&B,beg,end,
 		       opposite,

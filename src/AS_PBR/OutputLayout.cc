@@ -175,7 +175,7 @@ main (int argc, char * argv []) {
 
     // set up global data structures
     fprintf(stderr, "Opening stores\n");
-    thread_globals.gkp = new gkStore(gkpStorePath, FALSE, FALSE, TRUE);
+    thread_globals.gkp = new gkStore(gkpStorePath, FALSE, FALSE);
     uint32 i;
     thread_globals.libToInclude = new uint32[thread_globals.gkp->gkStore_getNumLibraries() + 1];
     memset(thread_globals.libToInclude, 0, (thread_globals.gkp->gkStore_getNumLibraries() + 1) * sizeof(uint32));

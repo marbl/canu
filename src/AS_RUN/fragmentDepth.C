@@ -22,7 +22,6 @@
 const char *mainid = "$Id$";
 
 #include "AS_global.H"
-#include "AS_UTL_UID.H"
 #include "AS_UTL_fasta.H"
 
 //  A quick hack to compute a histogram of coverage depth using
@@ -124,7 +123,7 @@ computeStuff(uint32 *V, uint32 N,
   safe_free(histogram);
 }
 
-void outputResult(AS_UID lastuid,
+void outputResult(AS_IID lastiid,
                   intDep *id, 
                   uint32 idlen, 
                   int mode, 
@@ -184,7 +183,7 @@ void outputResult(AS_UID lastuid,
               if (E > N) { E = N; }
 
               computeStuff(V, N, i, E, &mode, &mean, &median);
-              fprintf(stdout, "%s\t"F_U32"\t"F_U32"\t"F_U32"\t%f\t"F_U32"\n", AS_UID_toString(lastuid), i, E, mode, mean, median);
+              fprintf(stdout, "%s\t"F_U32"\t"F_U32"\t"F_U32"\t%f\t"F_U32"\n", lastiid, i, E, mode, mean, median);
             }
             safe_free(V);
           }
@@ -210,13 +209,13 @@ void outputResult(AS_UID lastuid,
 
             seq[id[idlen-1].hi] = 0;
 
-            AS_UTL_writeFastA(stdout, seq, id[idlen-1].hi, 0, ">%s\n", AS_UID_toString(lastuid));
+            AS_UTL_writeFastA(stdout, seq, id[idlen-1].hi, 0, ">%d\n", lastiid);
             }
          break;
    }
 }
 
-void processScaffold(AS_UID lastuid,
+void processScaffold(AS_IID lastiid,
                      intDep *in, 
                      uint32 inlen, 
                      int mode, 
@@ -301,7 +300,7 @@ void processScaffold(AS_UID lastuid,
    assert(id[idlen].lo == id[idlen].hi);
 
    safe_free(is);
-   outputResult(lastuid, id, idlen, mode, histogram, histmax, stepSize);
+   outputResult(lastiid, id, idlen, mode, histogram, histmax, stepSize);
    safe_free(id);
 }
 
@@ -310,12 +309,7 @@ int
 main(int argc, char **argv) {
   uint32           i = 0;
 
-  AS_UID           uidjunk = AS_UID_undefined();
-  AS_UID           uid     = AS_UID_undefined();
-  int              beg     = 0;
-  int              end     = 0;
-
-  AS_UID           lastuid = AS_UID_undefined();
+  AS_IID           lastiid = NO_IID;
   int              lastend = 0;
 
   uint32           histogram[HISTMAX] = { 0 };
@@ -391,35 +385,33 @@ main(int argc, char **argv) {
   char      *cont       = NULL;
 
   if (mode == MODE_SCAFFOLD)
-    fprintf(stdout, "uid\tstart\tend\tmode\tmean\tmedian\n");
+    fprintf(stdout, "iid\tstart\tend\tmode\tmean\tmedian\n");
 
   while (fgets(line, 1024, stdin) != NULL) {
+    AS_IID iidjunk = strtol(cont, &cont, 10);  //  read id
+    AS_IID iid     = strtol(cont, &cont, 10);  //  scaffold id
+    int32  beg     = strtol(cont, &cont, 10);
+    int32  end     = strtol(cont, &cont, 10);
 
-    uidjunk = AS_UID_lookup(line, &cont);
-    uid     = AS_UID_lookup(cont, &cont);
-    beg     = strtol(cont, &cont, 10);
-    end     = strtol(cont, &cont, 10);
-
-    if (AS_UID_compare(lastuid, AS_UID_undefined()) == 0)
-      lastuid = uid;
+    if (lastiid == NO_IID)
+      lastiid = iid;
 
     //  Did we switch to a new scaffold?  Process this set of intervals.
     //
-    if ((AS_UID_compare(uid, lastuid) != 0) &&
-        (inlen > 0)) {
-      
+    if ((iid != lastiid) && (inlen > 0)) {
+
       //  This scaffold is the correct size
       //
       if ((minSize <= lastend) &&
           (lastend <= maxSize)) {
-         processScaffold(lastuid, in, inlen, mode, histogram, &histmax, stepSize);
+         processScaffold(lastiid, in, inlen, mode, histogram, &histmax, stepSize);
       }
 
       //  Setup for the next scaffold
       //
       inlen = 0;
 
-      lastuid = uid;
+      lastiid = iid;
       lastend = 0;
     }  //  got a new scaffold
 
@@ -439,14 +431,13 @@ main(int argc, char **argv) {
   }
   
   // process last scaffold
-  if ((AS_UID_compare(lastuid, AS_UID_undefined()) != 0) &&
-   (inlen > 0)) {
-      
+  if ((lastiid != NO_IID) && (inlen > 0)) {
+
      //  This scaffold is the correct size
      //
      if ((minSize <= lastend) &&
        (lastend <= maxSize)) {
-       processScaffold(lastuid, in, inlen, mode, histogram, &histmax, stepSize);
+       processScaffold(lastiid, in, inlen, mode, histogram, &histmax, stepSize);
     }
   }
   
