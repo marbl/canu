@@ -55,7 +55,7 @@ BUILDPROFILE   = 0
 endif
 
 
-include $(LOCAL_WORK)/src/site_name.as
+
 include $(LOCAL_WORK)/src/c_make.gen
 
 
@@ -254,10 +254,6 @@ LIB_IMPORT_DIRS += $(ARCH_LIB)
 
 OBJ_SEARCH_PATH  = $(LOCAL_OBJ)
 
-
-ifeq ($(SITE_NAME), JCVI)
-  LDFLAGS += -lcurl
-endif
 
 
 #  The order of compilation here is very carefully chosen to be the

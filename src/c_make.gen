@@ -231,11 +231,6 @@ endif
 
 LOCAL_NAME=$(OSTYPE)-$(MACHINETYPE)
 
-#  Bri occasionally finds it useful to have the version of the os in the name.
-ifeq ($(SITE_NAME), BRI)
-  LOCAL_NAME=$(OSTYPE)-$(OSVERSION)-$(MACHINETYPE)
-endif
-
 #### Set up paths
 
 LOCAL_OS=$(LOCAL_WORK)/$(LOCAL_NAME)
@@ -304,7 +299,7 @@ dummy_expected_directories := $(shell $(make_expected_directories))
 #### Set INC_DIRS for finding headers
 INC_DIRS = $(patsubst %, -I%, \
     $(strip $(INC_IMPORT_DIRS) \
-            $(INC_SEARCH_PATH)) $(SITE_INC))
+            $(INC_SEARCH_PATH))
 
 #### Set LD_DIRS for finding libraries
 LD_DIRS = $(patsubst %, -L%, \
