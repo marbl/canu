@@ -33,14 +33,18 @@ const char *mainid = "$Id$";
 
 #include <map>
 
+using namespace std;
+
 #include "AS_PER_genericStore.H"
 #include "AS_PER_gkpStore.H"
 #include "AS_UTL_fileIO.H"
 
 #include "AS_GKP_include.H"
 
+#include "findKeyAndValue.H"
+
 char            *progName       = NULL;
-long		srandSeed	= 0;
+long  srandSeed  = 0;
 
 gkStore         *gkpStore       = NULL;
 gkFragment      *gkFrag1        = NULL;
@@ -102,7 +106,7 @@ usage(char *filename, int longhelp) {
   fprintf(stdout, "                          so that the untrimmed length is close to l bp\n");
   fprintf(stdout, "  -longestovermin <lib> <n> pick all reads longer than n bp from library lib\n");
   fprintf(stdout, "  -longestlength  <lib> <n> pick longest reads from library lib to add up to n total bp\n"); 
-  fprintf(stdout, "  -deterministic	     use a constant seed for random subset dumps\n");
+  fprintf(stdout, "  -deterministic       use a constant seed for random subset dumps\n");
   fprintf(stdout, "\n");
   fprintf(stdout, "  ---------\n");
   fprintf(stdout, "  [options]\n");
@@ -279,7 +283,7 @@ constructIIDdump(char  *gkpStoreName,
                  uint32 dumpRandSingNum,
                  double dumpRandFraction,
                  uint64 dumpRandLength,
-                 int	dumpInvert) {
+                 int  dumpInvert) {
 
   if ((dumpRandMateNum == 0) && (dumpRandSingNum == 0) &&
       (dumpRandFraction == 0.0) &&
@@ -320,10 +324,10 @@ constructIIDdump(char  *gkpStoreName,
     if ((dumpRandLib == 0) ||
         (dumpRandLib == fr.gkFragment_getLibraryIID())) {
 
-		// default to selecting everything
-    	if (dumpInvert) {
-    		iidToDump[fr.gkFragment_getReadIID()] = 1;
-    	}
+    // default to selecting everything
+      if (dumpInvert) {
+        iidToDump[fr.gkFragment_getReadIID()] = 1;
+      }
 
       //  Build lists of singletons and mated frags in this library.
       //  Save only the smaller mate ID.
@@ -430,10 +434,10 @@ constructIIDdumpLongest(char  *gkpStoreName,
     if ((dumpRandLib == 0) ||
         (dumpRandLib == fr.gkFragment_getLibraryIID())) {
 
-	// default to selecting everything
-    	if (dumpInvert) {
-    		iidToDump[fr.gkFragment_getReadIID()] = 1;
-    	}
+  // default to selecting everything
+      if (dumpInvert) {
+        iidToDump[fr.gkFragment_getReadIID()] = 1;
+      }
       uint32 len = fr.gkFragment_getSequenceLength();
       if (len > dumpLongestMin) {
          if (dumpLongestLength == 0) {
@@ -467,13 +471,22 @@ constructIIDdumpLongest(char  *gkpStoreName,
 
 
 
+
+
+
+
+
+
+
+
+
+
+
 #define DUMP_NOTHING     0
 #define DUMP_INFO        1
 #define DUMP_LIBRARIES   2
 #define DUMP_FRAGMENTS   3
 #define DUMP_FASTA       4
-#define DUMP_FRG         5
-#define DUMP_NEWBLER     6
 #define DUMP_LASTFRG     7
 #define DUMP_FASTQ       8
 #define DUMP_FEATURE     9
@@ -512,7 +525,7 @@ main(int argc, char **argv) {
   int              dumpClear         = AS_READ_CLEAR_LATEST;
   int              dumpAllBases      = 0;
   int              doNotFixMates     = 0;
-  int			   dumpInvert		 = 0;
+  int         dumpInvert     = 0;
   int              dumpFormat        = 2;
   char            *dumpPrefix        = NULL;
   int              dumpWithLibName   = 0;
@@ -636,11 +649,6 @@ main(int argc, char **argv) {
       dumpAllReads = 1;
     } else if (strcmp(argv[arg], "-allbases") == 0) {
       dumpAllBases = 1;
-    } else if (strcmp(argv[arg], "-dumpfrg") == 0) {
-      dump = DUMP_FRG;
-    } else if (strcmp(argv[arg], "-dumpnewbler") == 0) {
-      dump       = DUMP_NEWBLER;
-      dumpPrefix = argv[++arg];
     } else if (strcmp(argv[arg], "-dumpfastq") == 0) {
       dump       = DUMP_FASTQ;
       dumpPrefix = argv[++arg];
@@ -653,7 +661,7 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-donotfixmates") == 0) {
       doNotFixMates = 1;
     } else if (strcmp(argv[arg], "-invert") == 0) {
-    	dumpInvert = 1;
+      dumpInvert = 1;
 
         //  End of dump options, SECRET OPTIONS below
 
@@ -731,20 +739,6 @@ main(int argc, char **argv) {
                               dumpClear,
                               dumpDoNotUseUIDs);
         break;
-      case DUMP_FRG:
-        dumpGateKeeperAsFRG(gkpStoreName, dumpFormat, begIID, endIID, iidToDump,
-                            doNotFixMates,
-                            dumpAllReads,
-                            dumpClear,
-                            dumpDoNotUseUIDs);
-        break;
-      case DUMP_NEWBLER:
-        dumpGateKeeperAsNewbler(gkpStoreName, dumpPrefix, dumpWithLibName, begIID, endIID, iidToDump,
-                                doNotFixMates,
-                                dumpAllReads, dumpAllBases,
-                                dumpClear,
-                                dumpDoNotUseUIDs);
-        break;
       case DUMP_LASTFRG:
         {
           gkStore *gkp = new gkStore(gkpStoreName, FALSE, FALSE);
@@ -803,39 +797,46 @@ main(int argc, char **argv) {
 
   sprintf(fastqUIDmapName, "%s.fastqUIDmap", gkpStoreName);
 
+  char  iscomment[256]   = {0};
+  char  isdelimiter[256] = {0};
+
+  for (int32 i=0; i<256; i++) {
+    iscomment[i] = 0;
+    isdelimiter[i] = 0;
+  }
+
+  iscomment['!'] = true;
+  iscomment['#'] = true;
+
+  isdelimiter[':'] = true;
+  isdelimiter['='] = true;
 
   for (; firstFileArg < argc; firstFileArg++) {
-    GenericMesg           *pmesg             = NULL;
-
     fprintf(stderr, "\n");
     fprintf(stderr, "Starting file '%s'.\n", argv[firstFileArg]);
 
-    AS_MSG_resetProtoLineNum();
-    AS_MSG_setFormatVersion(1);
-
     compressedFileReader *inFile = new compressedFileReader(argv[firstFileArg]);
+    char                 *line   = new char [10240];
+    KeyAndValue           keyval;
 
-    while (EOF != ReadProtoMesg_AS(inFile->file(), &pmesg)) {
-      if        (pmesg->t == MESG_DST) {
-        Check_DistanceMesg((DistanceMesg *)pmesg->m, fixInsertSizes);
-      } else if (pmesg->t == MESG_LIB) {
-        Check_LibraryMesg((LibraryMesg *)pmesg->m, fixInsertSizes, packedLength);
-      } else if (pmesg->t == MESG_FRG) {
-        Check_FragMesg((FragMesg *)pmesg->m, assembler);
-      } else if (pmesg->t == MESG_LKG) {
-        Check_LinkMesg((LinkMesg *)pmesg->m);
-      } else if (pmesg->t == MESG_PLC) {
-        Check_PlacementMesg((PlacementMesg *) pmesg->m);      
-      } else if (pmesg->t == MESG_VER) {
-        //  Ignore
-      } else {
-        //  Ignore messages we don't understand
-        AS_GKP_reportError(AS_GKP_UNKNOWN_MESSAGE, 0, MessageTypeName[pmesg->t]);
-      }
+    fgets(line, 10240, inFile->file());
+
+    while (!feof(inFile->file())) {
+
+      //  We have a line.  Skip spaces to find the key, then skip until we find the delimiter
+      //  (either '=' or ':'), then skip spaces to find the value.  Skip until we find
+      //  a comment ('#' or '!').  Finally, remove spaces from everything.
+      //
+      //  If the key starts with a comment, ignore the line.
+
+      keyval.find(line);
+
+      fgets(line, 10240, inFile->file());
     }
 
-    delete inFile;
-  }
+    delete [] line;
+    delete    inFile;
+  }      
 
   delete gkFrag1;
   delete gkFrag2;

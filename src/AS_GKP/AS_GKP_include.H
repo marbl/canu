@@ -30,7 +30,6 @@ static const char *rcsid_AS_GKP_INCLUDE_H = "$Id$";
 #include <errno.h>
 #include "AS_PER_gkpStore.H"
 #include "AS_UTL_Var.H"
-#include "AS_MSG_pmesg.H"
 
 #define GATEKEEPER_MAX_ERROR_RATE        0.025
 #define GATEKEEPER_QV_WINDOW_WIDTH      50
@@ -45,31 +44,6 @@ extern gkFragment  *gkFrag2;
 extern FILE        *errorFP;
 extern char         fastqUIDmapName[FILENAME_MAX];
 extern FILE        *fastqUIDmap;
-
-int
-Check_DistanceMesg(DistanceMesg     *dst_mesg,
-                   int                believeInputStdDev);
-
-void
-checkLibraryForFastQPointers(LibraryMesg *lib_mesg,
-                             AS_IID       lib_iid,
-                             uint32       packedLength);
-
-int
-Check_LibraryMesg(LibraryMesg       *dst_mesg,
-                  int                believeInputStdDev,
-                  uint32             packedLength);
-
-int
-Check_FragMesg(FragMesg            *frg_mesg,
-               int                   assembler);
-
-int
-Check_LinkMesg(LinkMesg             *lkg_mesg);
-
-int
-Check_PlacementMesg(PlacementMesg   *plc_mesg);
-
 
 void
 buildGateKeeperInfo(char      *gkpStoreName);
@@ -108,30 +82,6 @@ dumpGateKeeperAsFasta(char       *gkpStoreName,
                       int         dumpAllBases,
                       int         dumpClear,
                       int         withoutUIDs);
-
-void
-dumpGateKeeperAsFRG(char       *gkpStoreName,
-                    int         dumpFormat,
-                    AS_IID      begIID,
-                    AS_IID      endIID,
-                    char       *iidToDump,
-                    int         doNotFixMates,
-                    int         dumpAllReads,
-                    int         dumpFRGClear,
-                    int         withoutUIDs);
-
-void
-dumpGateKeeperAsNewbler(char       *gkpStoreName,
-                        char       *prefix,
-                        int         withLibName,
-                        AS_IID      begIID,
-                        AS_IID      endIID,
-                        char       *iidToDump,
-                        int         doNotFixMates,
-                        int         dumpAllReads,
-                        int         dumpAllBases,
-                        int         dumpClear,
-                        int         withoutUIDs);
 
 void
 dumpGateKeeperAsFastQ(char       *gkpStoreName,

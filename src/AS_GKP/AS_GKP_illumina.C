@@ -691,11 +691,13 @@ checkLibraryForFastQPointers(LibraryMesg *lib_mesg,
       char *sr = lib_mesg->values[i];
 
       //  If there are mates, then the library orientationand distance must be valid.
+#if 0
       if (lib_mesg->link_orient.isUnknown() == true) {
         fprintf(stderr, "\nERROR: Library has unknown orientation (ori:U) but reads are mated.\n");
         fprintf(stderr, "Mated reads must come with innie (ori:I) orientation.\n");
         exit(1);
       }
+#endif
 
       while ((*sr) && (*sr != ','))
         sr++;

@@ -576,19 +576,7 @@ main(int argc, char **argv) {
 
   //  Emit the VER and LIB messages.  Enable version 2, write the LIB, switch back to version 1.
 
-  GenericMesg       pmesg;
-
-  pmesg.m = &vr2Mesg;
-  pmesg.t = MESG_VER;
-  WriteProtoMesg_AS(stdout, &pmesg);
-
-  pmesg.m = &libMesg;
-  pmesg.t = MESG_LIB;
-  WriteProtoMesg_AS(stdout, &pmesg);
-
-  pmesg.m = &vr1Mesg;
-  pmesg.t = MESG_VER;
-  WriteProtoMesg_AS(stdout, &pmesg);
+  //  Removed, to make grep pmesg clean
 
   //  Clean up.
 

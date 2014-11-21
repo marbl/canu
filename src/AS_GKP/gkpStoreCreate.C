@@ -23,7 +23,10 @@ const char *mainid = "$Id$";
 
 #include "AS_global.H"
 #include "AS_PER_gkpStore.H"
+
 #include "splitToWords.H"
+#include "findKeyAndValue.H"
+#include "AS_UTL_fileIO.H"
 
 
 
@@ -136,17 +139,95 @@ main(int argc, char **argv) {
 
 
   for (; firstFileArg < argc; firstFileArg++) {
-    FILE *inFile = fopen(argv[firstFileArg], "r");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Starting file '%s'.\n", argv[firstFileArg]);
 
-    if (errno)
-      fprintf(stderr, "ERROR: failed to open input '%s': %s\n", argv[firstFileArg], strerror(errno)), exit(1);
+    compressedFileReader *inFile = new compressedFileReader(argv[firstFileArg]);
+    char                 *line   = new char [10240];
+    KeyAndValue           keyval;
 
-    //  Construct a new library
+    fgets(line, 10240, inFile->file());
+    chomp(line);
 
-    //gkpLibrary.clear();
+    while (!feof(inFile->file())) {
+      keyval.find(line);
+
+      if        (strcasecmp(keyval.key(), "libraryname") == 0) {
+        //gkpStore->gkStore_addLibrary(lib_mesg->eaccession, &gkpl);
+
+#if 0
+    gkpl.libraryUID                 = lib_mesg->eaccession;
+
+    strcpy(gkpl.libraryName, AS_UID_toString(gkpl.libraryUID));
+
+    gkpl.mean                       = lib_mesg->mean;
+    gkpl.stddev                     = lib_mesg->stddev;
+
+    gkpl.orientation                = AS_READ_ORIENT_UNKNOWN;
+
+    if (lib_mesg->link_orient.isInnie())
+      gkpl.orientation = AS_READ_ORIENT_INNIE;
+
+    if (lib_mesg->link_orient.isOuttie())
+      gkpl.orientation = AS_READ_ORIENT_OUTTIE;
+
+    if (lib_mesg->link_orient.isNormal())
+      gkpl.orientation = AS_READ_ORIENT_NORMAL;
+
+    if (lib_mesg->link_orient.isAnti())
+      gkpl.orientation = AS_READ_ORIENT_ANTINORMAL;
+
+    gkpl.gkLibrary_decodeFeatures(lib_mesg);
+
+    gkpStore->gkStore_addLibrary(lib_mesg->eaccession, &gkpl);
+
+    //  If this library specifies fastq reads, load them now.
+
+    iid = gkpStore->gkStore_getUIDtoIID(lib_mesg->eaccession, NULL);
+    assert(iid > 0);
+
+    checkLibraryForFastQPointers(lib_mesg,
+                                 iid,
+                                 packedLength);
+#endif
+
+
+
+      } else if (strcasecmp(keyval.key(), "librarypreset") == 0) {
+
+      } else if (strcasecmp(keyval.key(), "qv") == 0) {
+
+      } else if (strcasecmp(keyval.key(), "isNotRandom") == 0) {
+
+      } else if (strcasecmp(keyval.key(), "doNotTrustHomopolymerRuns") == 0) {
+
+      } else if (strcasecmp(keyval.key(), "initialTrim") == 0) {
+
+      } else if (strcasecmp(keyval.key(), "removeDuplicateReads") == 0) {
+
+      } else if (strcasecmp(keyval.key(), "finalTrim") == 0) {
+
+      } else if (strcasecmp(keyval.key(), "removeSpurReads") == 0) {
+
+      } else if (strcasecmp(keyval.key(), "removeChimericReads") == 0) {
+
+      } else if (strcasecmp(keyval.key(), "removeSubReads") == 0) {
+
+      } else if (AS_UTL_fileExists(keyval.key(), false, false)) {
+
+      } else {
+        fprintf(stderr, "line '%s' invalid.\n", line);
+      }
+
+      fgets(line, 10240, inFile->file());
+      chomp(line);
+    }
+
 
     //  Get the library name
 
+
+#if 0
     getLine(inLine, inLineLen, inFile);
     {
       char    *nmPtr = gkpLibrary.libraryName;
@@ -263,9 +344,11 @@ main(int argc, char **argv) {
       fprintf(stderr, "FASTQ - '%s'\n", fea);
 
     else
-      gkpLibrary.gkLibrary_setFeature(fea, val);
   
     goto anotherLine;
+#endif
+
+
   }
 
  noMoreLines:
