@@ -211,20 +211,9 @@ typedef uintptr_t INTPTR;
 // calling an overlap definately a tandem repeat.
 
 
-//  AS_READ_MAX_NORMAL_LEN_BITS must be at least 11.  10 might work, 9 will not compile.
-//  AS_READ_MAX_NORMAL_LEN_BITS must be at most 20.  21 will not compile.
-//
-//  Be aware that overlapper does not work well at large sizes.  Consensus allocates excessive
-//  amounts of memory too.
-//
-#define AS_READ_MAX_PACKED_LEN_BITS       8
-#define AS_READ_MAX_NORMAL_LEN_BITS       16
 
 //  Do not define this.
 #undef OVS_DANGEROUSLY_OVERSIZE
-
-#define AS_READ_MAX_PACKED_LEN            ((1 << AS_READ_MAX_PACKED_LEN_BITS) - 1)
-#define AS_READ_MAX_NORMAL_LEN            ((1 << AS_READ_MAX_NORMAL_LEN_BITS) - 1)
 
 //  AS_OVL controls both overlapper and bubble popping
 

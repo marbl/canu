@@ -268,7 +268,8 @@ OBJ_SEARCH_PATH  = $(LOCAL_OBJ)
 #  an assembly.
 
 
-SUBDIRS = AS_RUN \
+SUBDIRS = stores \
+          AS_RUN \
           AS_UTL \
           AS_PER \
           AS_GKP \

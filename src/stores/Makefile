@@ -20,37 +20,51 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 ###########################################################################
-#
-# gmake Makefile for AS_PER
-
 LOCAL_WORK = $(shell cd ../..; pwd)
 
-SOURCES = AS_PER_genericStore.C \
-          AS_PER_gkLibrary.C \
-          AS_PER_gkStore.C \
-          AS_PER_gkStore_IID.C \
-          AS_PER_gkStore_clearRange.C \
-          AS_PER_gkStore_fragments.C \
-          AS_PER_gkStore_load.C \
-          AS_PER_gkStore_partition.C \
-          AS_PER_gkStore_stats.C \
-          AS_PER_gkStream.C \
-          AS_PER_encodeSequenceQuality.C
+#
+# gmake Makefile for AS_CNS, Consensus Modules
 
-OBJECTS = $(SOURCES:.C=.o)
+#  SEQ_AN should point to a configured, compiled and installed copy of
+#  http://www.seqan.de/
+#
+#  We attempt to find it in the same place that our src/ directory is.
 
-LIBRARIES = libAS_PER.a libCA.a
 
-CXX_PROGS =
+#  We'd like to include the global include (c_make.as) to get these
+#  definitions, but we cannot without defining rules.
 
+OSTYPE      = $(shell echo `uname`)
+MACHINETYPE = $(shell echo `uname -m`)
+
+ifeq ($(MACHINETYPE), x86_64)
+  MACHINETYPE = amd64
+endif
+ifeq ($(MACHINETYPE), Power Macintosh)
+  MACHINETYPE = ppc
+endif
+
+LIB_SOURCES = gkStore.C
+
+LIB_OBJECTS = $(LIB_SOURCES:.C=.o)
+
+LOCAL_WORK  = $(shell cd ../..; pwd)
+
+SOURCES   = $(LIB_SOURCES)
+OBJECTS   = $(LIB_OBJECTS)
+LIBRARIES = libCA.a
+
+CXX_PROGS = 
+
+SCRIPTS =
+
+# Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
 
-all: $(OBJECTS) $(LIBRARIES) $(CXX_PROGS)
+all: $(LIB_OBJECTS) $(LIBRARIES) $(OBJECTS) $(CXX_PROGS) $(SCRIPTS)
 	@test -n nop
 
-objects: $(OBJECTS)
+libCA.a:     $(LIB_OBJECTS)
 
-libAS_PER.a: $(OBJECTS)
-
-libCA.a: $(OBJECTS)
+LIBS =  libCA.a
 
