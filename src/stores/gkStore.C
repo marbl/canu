@@ -21,7 +21,7 @@ gkRead::gkRead_loadData(gkReadData *readData, void *blobs, bool partitioned) {
   readData->_seq  = new char [_seqLen];
   readData->_qlt  = new char [_seqLen];
 
-  uint64  offset = (partitioned == false) ? (_mPtr * DATA_BLOCK_SIZE) : (_pPtr * DATA_BLOCK_SIZE);
+  uint64  offset = (partitioned == false) ? (_mPtr * BLOB_BLOCK_SIZE) : (_pPtr * BLOB_BLOCK_SIZE);
 
   switch (_technology) {
   case GKREAD_TECH_FASTA:
@@ -79,32 +79,129 @@ gkRead::gkRead_loadNanoporeData(gkReadData *readData, void *blob) {
 
 ////////////////////////////////////////
 
+//  The N valid modes for a 'new gkpStore' call:
+//
+//  1)  Add new reads/libraries, modify old ones.  gkStore(path, true, true)
+//  2)  No addition, but can modify old ones.      gkStore(path, true)
+//  3)  No addition, no modification.              gkStore(path);
+//
+gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
+  char    name[FILENAME_MAX];
+
+  strcpy(_storePath, path);
+  strcpy(_storeName, path);  //  Broken.
+
+  sprintf(name, "%s/info", _storePath);
+
+  if (AS_UTL_fileExists(name, false, false) == true) {
+    errno = 0;
+    FILE *I = fopen(name, "r");
+    AS_UTL_safeRead(I, &_info, "gkStore::_info", sizeof(gkStoreInfo), 1);
+    fclose(I);
+  } else {
+    //  already initialized.
+    assert(_info.gkLibrarySize == sizeof(gkLibrary));
+    assert(_info.gkReadSize    == sizeof(gkRead));
+  }
+
+  //
+  //  READ ONLY
+  //
+  if (mode == gkStore_readOnly) {
+    fprintf(stderr, "gkStore()--  opening '%s' for read-only access.\n", _storePath);
+
+    sprintf(name, "%s/libraries", _storePath);
+    _librariesMMap = new memoryMappedFile (name, false);
+    _libraries     = (gkLibrary *)_librariesMMap->get(0);
+
+    sprintf(name, "%s/reads", _storePath);
+    _readsMMap     = new memoryMappedFile (name, false);
+    _reads         = (gkRead *)_readsMMap->get(0);
+
+    sprintf(name, "%s/blobs", _storePath);
+    _blobsMMap     = new memoryMappedFile (name, false);
+    _blobs         = (void *)_blobsMMap->get(0);
+  }
+
+  //
+  //  MODIFY, NO APPEND
+  //
+  else if (mode == gkStore_modify) {
+    fprintf(stderr, "gkStore()--  opening '%s' for read-write access.\n", _storePath);
+
+    sprintf(name, "%s/libraries", _storePath);
+    _librariesMMap = new memoryMappedFile (name, true);
+    _libraries     = (gkLibrary *)_librariesMMap->get(0);
+
+    sprintf(name, "%s/reads", _storePath);
+    _readsMMap     = new memoryMappedFile (name, true);
+    _reads         = (gkRead *)_readsMMap->get(0);
+
+    sprintf(name, "%s/blobs", _storePath);
+    _blobsMMap     = new memoryMappedFile (name, true);
+    _blobs         = (void *)_blobsMMap->get(0);
+  }
+
+  //
+  //  MODIFY, APPEND
+  //
+  else if (mode == gkStore_extend) {
+    fprintf(stderr, "gkStore()--  opening '%s' for read-write and append access.\n", _storePath);
+
+    if (AS_UTL_fileExists(_storePath, true, true) == false)
+      AS_UTL_mkdir(_storePath);
+
+    _librariesAlloc = MAX(64, 2 * _info.numLibraries);
+    _libraries      = new gkLibrary [_librariesAlloc];
+
+    sprintf(name, "%s/libraries", _storePath);
+    if (AS_UTL_fileExists(name, false, false) == true) {
+      _librariesMMap  = new memoryMappedFile (name, true);
+
+      memcpy(_libraries, _librariesMMap->get(0), sizeof(gkLibrary) * _info.numLibraries);
+
+      delete _librariesMMap;
+      _librariesMMap = NULL;;
+    }
 
 
-gkStore::gkStore(char const *path, bool readOnly, bool createOnly) {
-  _librariesFile = NULL;
-  _libraries     = (gkLibrary *)_librariesFile->get(0);
+    _readsAlloc     = MAX(1048576, 2 * _info.numLibraries);
+    _reads          = new gkRead [_readsAlloc];
 
-  _readsFile     = NULL;
-  _reads         = (gkRead *)_readsFile->get(0);
+    sprintf(name, "%s/reads", _storePath);
+    if (AS_UTL_fileExists(name, false, false) == true) {
+      _readsMMap      = new memoryMappedFile (name, true);
 
-  _blobsFile     = NULL;
-  _blobs         = (void *)_blobsFile->get(0);
+      memcpy(_reads, _readsMMap->get(0), sizeof(gkRead) * _info.numReads);
+
+      delete _readsMMap;
+      _readsMMap = NULL;
+    }
+
+    sprintf(name, "%s/blobs", _storePath);
+
+
+    _blobsMMap     = NULL;
+    _blobs         = NULL;
+
+    errno = 0;
+    _blobsFile     = fopen(name, "a+");
+    if (errno)
+      fprintf(stderr, "gkStore()--  Failed to open blobs file '%s' for appending: %s\n",
+              name, strerror(errno)), exit(1);
+  }
+
+  else if (mode == gkStore_partitioned) {
+  }
+
+  else {
+    fprintf(stderr, "gkStore::gkStore()-- unknown mode 0x%02x.\n", mode);
+    exit(1);
+  }
 }
 
 
 
-//  Open a partitioned store, only reading is supported.
-gkStore::gkStore(char const *path, uint32 partID) {
-  _librariesFile = NULL;
-  _libraries     = (gkLibrary *)_librariesFile->get(0);
-
-  _readsFile     = NULL;
-  _reads         = (gkRead *)_readsFile->get(0);
-
-  _blobsFile     = NULL;
-  _blobs         = (void *)_blobsFile->get(0);
-}
 
 
 
@@ -112,11 +209,92 @@ gkStore::~gkStore() {
 
   //  Should check that inf on disk is the same as inf in memory, and update if needed.
 
-  delete _librariesFile;   _libraries = NULL;
-  delete _readsFile;       _reads     = NULL;
-  delete _blobsFile;       _blobs     = NULL;
+  bool   needsInfoUpdate = false;
+
+  if (_librariesMMap) {
+    delete _librariesMMap;
+
+  } else {
+    //  dump the new data
+    needsInfoUpdate = true;
+  }
+
+  if (_blobsFile)
+    fclose(_blobsFile);
 };
 
+
+gkLibrary *
+gkStore::gkStore_addEmptyLibrary(char const *name) {
+
+  assert(_librariesMMap == NULL);
+  assert(_info.numLibraries <= _librariesAlloc);
+
+  if (_librariesAlloc == _info.numLibraries) {
+    fprintf(stderr, "NEED TO REALLOC LIBRARIES.\n");
+    assert(0);
+  }
+
+  //  Bullet proof the library name - so we can make files with this prefix.
+
+  char    libname[LIBRARY_NAME_SIZE];
+  uint32  libnamepos = 0;
+
+  for (char const *orig=name; *orig; orig++) {
+    if        (*orig == '/') {
+      libname[libnamepos++] = '_';
+      libname[libnamepos++] = '-';
+      libname[libnamepos++] = '_';
+    } else if (isspace(*orig) == 0) {
+      libname[libnamepos++] = *orig;
+    } else {
+      libname[libnamepos++] = '_';
+    }
+
+    if (libnamepos >= LIBRARY_NAME_SIZE) {
+      libname[LIBRARY_NAME_SIZE-1] = 0;
+      fprintf(stderr, "gkStore_addEmptyLibrary()--  WARNING: library name '%s' truncated to '%s'\n",
+              name, libname);
+      break;
+    }
+  }
+
+  libname[libnamepos] = 0;
+
+  if (strcmp(libname, name) != 0)
+    fprintf(stderr, "gkStore_addEmptyLibrary()--  added library '%s' (original name '%s')\n",
+            libname, name);
+  else
+    fprintf(stderr, "gkStore_addEmptyLibrary()--  added library '%s'\n",
+            libname);
+
+  _libraries[_info.numLibraries] = gkLibrary();
+  _libraries[_info.numLibraries].gkLibrary_setLibraryName(libname);
+
+  _info.numLibraries++;
+
+  return(_libraries + _info.numLibraries);
+}
+
+
+gkRead *
+gkStore::gkStore_addEmptyRead(void) {
+  gkRead     empty;
+
+  assert(_readsMMap == NULL);
+  assert(_info.numReads <= _readsAlloc);
+
+  if (_readsAlloc == _info.numReads) {
+    fprintf(stderr, "NEED TO REALLOC READS.\n");
+    assert(0);
+  }
+
+  _reads[_info.numReads] = gkRead();
+
+  _info.numReads++;
+
+  return(_reads + _info.numReads);
+}
 
 
 
@@ -169,8 +347,8 @@ gkStore::gkStore_loadPartition(uint32 partID) {
 
   sprintf(path, "%s/%s.%04u", gkStore_path(), "seqs", _partitionID);
 
-  _blobsFile = new memoryMappedFile(path);
-  _blobs     = (void *)_blobsFile->get(0);
+  _blobsMMap = new memoryMappedFile(path);
+  _blobs     = (void *)_blobsMMap->get(0);
 
   return(true);
 }
@@ -230,5 +408,80 @@ gkStore::gkStore_deletePartitions(void) {
 
   for (uint32 ii=0; ii<_numberOfPartitions; ii++)
     sprintf(path, "%s/blobs.%04u", gkStore_path(), ii+1);  AS_UTL_unlink(path);
+}
+
+
+
+
+
+
+void
+gkStoreStats::init(gkStore *gkp) {
+
+#if 0
+  gkFragment    fr;
+  gkStream     *fs = new gkStream(gkp, 0, 0, GKFRAGMENT_INF);
+
+  numActiveFrag     = 0;
+  numDeletedFrag    = 0;
+  numMatedFrag      = 0;
+  readLength        = 0;
+  clearLength       = 0;
+
+  lowestID          = new uint32 [gkp->gkStore_getNumLibraries() + 1];
+  highestID         = new uint32 [gkp->gkStore_getNumLibraries() + 1];
+
+  numActivePerLib   = new uint32 [gkp->gkStore_getNumLibraries() + 1];
+  numDeletedPerLib  = new uint32 [gkp->gkStore_getNumLibraries() + 1];
+  numMatedPerLib    = new uint32 [gkp->gkStore_getNumLibraries() + 1];
+  readLengthPerLib  = new uint64 [gkp->gkStore_getNumLibraries() + 1];
+  clearLengthPerLib = new uint64 [gkp->gkStore_getNumLibraries() + 1];
+
+  for (uint32 i=0; i<gkp->gkStore_getNumLibraries() + 1; i++) {
+    lowestID[i]          = 0;
+    highestID[i]         = 0;
+
+    numActivePerLib[i]   = 0;
+    numDeletedPerLib[i]  = 0;
+    numMatedPerLib[i]    = 0;
+    readLengthPerLib[i]  = 0;
+    clearLengthPerLib[i] = 0;
+  }
+
+  while (fs->next(&fr)) {
+    uint32     lid = fr.gkFragment_getLibraryID();
+    uint32     rid = fr.gkFragment_getReadID();
+
+    if (lowestID[lid] == 0) {
+      lowestID[lid]  = rid;
+      highestID[lid] = rid;
+    }
+    if (highestID[lid] < rid) {
+      highestID[lid] = rid;
+    }
+
+    if (fr.gkFragment_getIsDeleted()) {
+      numDeletedFrag++;
+      numDeletedPerLib[lid]++;
+    } else {
+      numActiveFrag++;
+      numActivePerLib[lid]++;
+
+      //if (fr.gkFragment_getMateID() > 0) {
+      //  numMatedFrag++;
+      //  numMatedPerLib[lid]++;
+      //}
+
+      readLength             += fr.gkFragment_getSequenceLength();
+      readLengthPerLib[lid]  += fr.gkFragment_getSequenceLength();
+
+      clearLength            += fr.gkFragment_getClearRegionLength();
+      clearLengthPerLib[lid] += fr.gkFragment_getClearRegionLength();
+    }
+  }
+
+  delete fs;
+#endif
+
 }
 

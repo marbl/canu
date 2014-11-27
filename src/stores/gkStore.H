@@ -5,6 +5,10 @@
 #include "AS_global.H"
 #include "memoryMappedFile.H"
 
+#include <vector>
+
+using namespace std;
+
 //  The number of library IIDs we can handle.
 //
 #define AS_MAX_LIBRARIES_BITS      8
@@ -31,7 +35,7 @@
 //    2^32 * 64 * 5 / 8 = 171.8 Gbp.
 //  With the default 134.2 million reads, that's only 1280 bp/read.
 //
-#define DATA_BLOCK_SIZE            1024
+#define BLOB_BLOCK_SIZE            1024
 
 //  Per-library algorithm options.
 //
@@ -70,6 +74,14 @@ public:
 
     gkLibrary_clearFeatures();
   };
+
+  gkLibrary(char const *name) {
+    memset(_libraryName, 0, sizeof(char) * LIBRARY_NAME_SIZE);
+    strcpy(_libraryName, name);
+
+    gkLibrary_clearFeatures();
+  };
+
   ~gkLibrary() {
   };
 
@@ -88,45 +100,27 @@ public:
   };
 
 public:
-  char const    *gkLibrary_libraryName(void) {
-    return(_libraryName);
-  };
+  char const    *gkLibrary_libraryName(void)           { return(_libraryName);          };
+  uint32         gkLibrary_isNotRandom(void)           { return(_isNotRandom);          };
+  uint32         gkLibrary_trustHomopolymerRuns(void)  { return(_trustHomopolymerRuns); };
+  uint32         gkLibrary_correctBases(void)          { return(_doCorrection);         };
+  uint32         gkLibrary_initialTrim(void)           { return(_initialTrim);          };
+  uint32         gkLibrary_finalTrim(void)             { return(_finalTrim);            };
+  uint32         gkLibrary_removeDuplicateReads(void)  { return(_removeDuplicateReads); };
+  uint32         gkLibrary_removeSpurReads(void)       { return(_removeSpurReads);      };
+  uint32         gkLibrary_removeChimericReads(void)   { return(_removeChimericReads);  };
+  uint32         gkLibrary_checkForSubReads(void)      { return(_checkForSubReads);     };
 
-  uint32         gkLibrary_isNotRandom(void) {
-    return(_isNotRandom);
-  };
-
-  uint32         gkLibrary_trustHomopolymerRuns(void) {
-    return(_trustHomopolymerRuns);
-  };
-
-  uint32         gkLibrary_correctBases(void) {
-    return(_doCorrection);
-  };
-
-  uint32         gkLibrary_initialTrim(void) {
-    return(_initialTrim);
-  };
-
-  uint32         gkLibrary_finalTrim(void) {
-    return(_finalTrim);
-  };
-
-  uint32         gkLibrary_removeDuplicateReads(void) {
-    return(_removeDuplicateReads);
-  };
-
-  uint32         gkLibrary_removeSpurReads(void) {
-    return(_removeSpurReads);
-  };
-
-  uint32         gkLibrary_removeChimericReads(void) {
-    return(_removeChimericReads);
-  };
-
-  uint32         gkLibrary_checkForSubReads(void) {
-    return(_checkForSubReads);
-  };
+  void           gkLibrary_setLibraryName(char *n)          { strcpy(_libraryName, n);   };
+  void           gkLibrary_setIsNotRandom(bool f)           { _isNotRandom = f;          };
+  void           gkLibrary_setTrustHomopolymerRuns(bool f)  { _trustHomopolymerRuns = f; };
+  void           gkLibrary_setCorrectBases(bool f)          { _doCorrection = f;         };
+  void           gkLibrary_setInitialTrim(uint32 t)         { _initialTrim = t;          };
+  void           gkLibrary_setFinalTrim(uint32 t)           { _finalTrim = t;            };
+  void           gkLibrary_setRemoveDuplicateReads(bool f)  { _removeDuplicateReads = f; };
+  void           gkLibrary_setRemoveSpurReads(bool f)       { _removeSpurReads = f;      };
+  void           gkLibrary_setRemoveChimericReads(bool f)   { _removeChimericReads = f;  };
+  void           gkLibrary_setCheckForSubReads(bool f)      { _checkForSubReads = f;     };
 
 private:
   char           _libraryName[LIBRARY_NAME_SIZE];
@@ -334,6 +328,20 @@ private:
 class gkStoreInfo {
 public:
   gkStoreInfo() {
+    //                      63 61 33 67 3a 47 4b 50
+    gkMagic            = 0x636133673a474b50llu;
+    gkVersion          = 0x0000000000000001llu;
+
+    gkLibrarySize      = sizeof(gkLibrary);
+    gkReadSize         = sizeof(gkRead);
+    gkMaxLibrariesBits = AS_MAX_LIBRARIES_BITS;
+    gkLibraryNameSize  = LIBRARY_NAME_SIZE;
+    gkMaxReadBits      = AS_MAX_READS_BITS;
+    gkMaxReadLenBits   = AS_MAX_READLEN_BITS;
+    gkBlobBlockSize    = BLOB_BLOCK_SIZE;
+
+    numLibraries       = 0;
+    numReads           = 0;
   };
   ~gkStoreInfo() {
   };
@@ -348,7 +356,7 @@ private:
   uint32    gkLibraryNameSize;
   uint32    gkMaxReadBits;
   uint32    gkMaxReadLenBits;
-  uint32    gkOffsetBlockSize;
+  uint32    gkBlobBlockSize;
 
   uint32    numLibraries;       //  Counts of types of things we have loaded
   uint32    numReads;
@@ -361,19 +369,22 @@ private:
 //  The default behavior is to open the store for read only, and to load
 //  all the metadata into memory.
 
-const bool gkStore_readOnly = true;
-const bool gkStore_writable = false;
+typedef enum {
+  gkStore_readOnly    = 0x00,  //  Open read only
+  gkStore_modify      = 0x01,  //  Open for modification
+  gkStore_extend      = 0x02,  //  Open for modification and appending new reads/libraries
+  gkStore_partitioned = 0x03,  //  Open read only, a partition
+} gkStore_mode;
 
-const bool gkStore_creatable = false;
 
 class gkStore {
 public:
 
   //  Open a full gkpStore.
-  gkStore(char const *path, bool readOnly=true, bool createOnly=true);
+  gkStore(char const *path, gkStore_mode = gkStore_readOnly, uint32 partID=0);
 
   //  Open a partitioned store, only reading is supported.
-  gkStore(char const *path, uint32 partID);
+  //gkStore(char const *path, uint32 partID);
 
   ~gkStore();
 
@@ -387,18 +398,14 @@ public:
   void         gkStore_delete(void);             //  Deletes the files in the store.
   void         gkStore_deletePartitions(void);   //  Deletes the files for a partition.
 
-  uint32       gkStore_getNumLibraries(void)       { return(_inf.numLibraries); }
-  uint32       gkStore_getNumReads(void)           { return(_inf.numReads); }
+  uint32       gkStore_getNumLibraries(void)       { return(_info.numLibraries); }
+  uint32       gkStore_getNumReads(void)           { return(_info.numReads); }
 
   gkLibrary   *gkStore_getLibrary(uint32 id)       { return(NULL); }
   gkRead      *gkStore_getRead(uint32 id)          { return(NULL); }
 
-  //void         gkStore_addLibrary(gkLibrary *lb) {
-  //  inf.libLoaded++;
-  //};
-  //void         gkStore_addFragment(gkReadData *fr) {
-  //  inf.frgLoaded++;
-  //};
+  gkLibrary   *gkStore_addEmptyLibrary(char const *name);
+  gkRead      *gkStore_addEmptyRead(void);
 
   bool         gkStore_loadData(gkRead *read,   gkReadData *readData) {
     return(gkStore_loadData(read->gkRead_readID(), readData));
@@ -406,7 +413,7 @@ public:
   bool         gkStore_loadData(uint32  readID, gkReadData *readData);
 
 private:
-  gkStoreInfo          _inf;  //  All the stuff stored on disk.
+  gkStoreInfo          _info;  //  All the stuff stored on disk.
 
   char                 _storePath[FILENAME_MAX];  //  Needed?
   char                 _storeName[FILENAME_MAX];  //  Needed?
@@ -414,14 +421,17 @@ private:
   //  If these are memory mapped, then multiple processes on the same host can share the
   //  (read-only) data.
 
-  memoryMappedFile    *_librariesFile;
+  memoryMappedFile    *_librariesMMap;
+  uint32               _librariesAlloc;  //  If zero, the mmap is used.
   gkLibrary           *_libraries;
 
-  memoryMappedFile    *_readsFile;
+  memoryMappedFile    *_readsMMap;
+  uint32               _readsAlloc;      //  If zero, the mmap is used.
   gkRead              *_reads;
 
-  memoryMappedFile    *_blobsFile;  //  Either the full blobs, or the partitioned blobs.
+  memoryMappedFile    *_blobsMMap;       //  Either the full blobs, or the partitioned blobs.
   void                *_blobs;
+  FILE                *_blobsFile;
 
   //  If the store is openend partitioned, this data is loaded from disk
 
@@ -482,83 +492,6 @@ public:
   uint64  *readLengthPerLib;
   uint64  *clearLengthPerLib;
 };
-
-
-
-
-
-
-
-void
-gkStoreStats::init(gkStore *gkp) {
-
-#if 0
-  gkFragment    fr;
-  gkStream     *fs = new gkStream(gkp, 0, 0, GKFRAGMENT_INF);
-
-  numActiveFrag     = 0;
-  numDeletedFrag    = 0;
-  numMatedFrag      = 0;
-  readLength        = 0;
-  clearLength       = 0;
-
-  lowestID          = new uint32 [gkp->gkStore_getNumLibraries() + 1];
-  highestID         = new uint32 [gkp->gkStore_getNumLibraries() + 1];
-
-  numActivePerLib   = new uint32 [gkp->gkStore_getNumLibraries() + 1];
-  numDeletedPerLib  = new uint32 [gkp->gkStore_getNumLibraries() + 1];
-  numMatedPerLib    = new uint32 [gkp->gkStore_getNumLibraries() + 1];
-  readLengthPerLib  = new uint64 [gkp->gkStore_getNumLibraries() + 1];
-  clearLengthPerLib = new uint64 [gkp->gkStore_getNumLibraries() + 1];
-
-  for (uint32 i=0; i<gkp->gkStore_getNumLibraries() + 1; i++) {
-    lowestID[i]          = 0;
-    highestID[i]         = 0;
-
-    numActivePerLib[i]   = 0;
-    numDeletedPerLib[i]  = 0;
-    numMatedPerLib[i]    = 0;
-    readLengthPerLib[i]  = 0;
-    clearLengthPerLib[i] = 0;
-  }
-
-  while (fs->next(&fr)) {
-    uint32     lid = fr.gkFragment_getLibraryID();
-    uint32     rid = fr.gkFragment_getReadID();
-
-    if (lowestID[lid] == 0) {
-      lowestID[lid]  = rid;
-      highestID[lid] = rid;
-    }
-    if (highestID[lid] < rid) {
-      highestID[lid] = rid;
-    }
-
-    if (fr.gkFragment_getIsDeleted()) {
-      numDeletedFrag++;
-      numDeletedPerLib[lid]++;
-    } else {
-      numActiveFrag++;
-      numActivePerLib[lid]++;
-
-      //if (fr.gkFragment_getMateID() > 0) {
-      //  numMatedFrag++;
-      //  numMatedPerLib[lid]++;
-      //}
-
-      readLength             += fr.gkFragment_getSequenceLength();
-      readLengthPerLib[lid]  += fr.gkFragment_getSequenceLength();
-
-      clearLength            += fr.gkFragment_getClearRegionLength();
-      clearLengthPerLib[lid] += fr.gkFragment_getClearRegionLength();
-    }
-  }
-
-  delete fs;
-#endif
-
-}
-
 
 
 #endif

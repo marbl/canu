@@ -41,7 +41,7 @@ LIB_OBJECTS = $(LIB_SOURCES:.C=.o)
 SOURCES     = $(LIB_SOURCES) 
 
 OBJECTS     = $(SOURCES:.C=.o)
-LIBRARIES   = libAS_UTL.a libCA.a
+LIBRARIES   = libCA.a
 SCRIPTS     =
 CXX_PROGS   = 
 
@@ -51,7 +51,6 @@ include $(LOCAL_WORK)/src/c_make.as
 all: $(OBJECTS) $(LIBRARIES) $(CXX_PROGS)
 	@test -n nop
 
-libAS_UTL.a: $(LIB_OBJECTS)
 libCA.a: $(LIB_OBJECTS)
 
 .PHONY: test

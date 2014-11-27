@@ -44,17 +44,19 @@ ifeq ($(MACHINETYPE), Power Macintosh)
   MACHINETYPE = ppc
 endif
 
-LIB_SOURCES = gkStore.C
-
-LIB_OBJECTS = $(LIB_SOURCES:.C=.o)
-
 LOCAL_WORK  = $(shell cd ../..; pwd)
 
-SOURCES   = $(LIB_SOURCES)
-OBJECTS   = $(LIB_OBJECTS)
+LIB_SOURCES = gkStore.C
+LIB_OBJECTS = $(LIB_SOURCES:.C=.o)
+
+SOURCES   = $(LIB_SOURCES) gatekeeperCreate.C
+# gatekeeperDumpFASTQ.C
+OBJECTS   = $(LIB_OBJECTS) gatekeeperCreate.o
+# gatekeeperDumpFASTQ.o
 LIBRARIES = libCA.a
 
-CXX_PROGS = 
+CXX_PROGS = gatekeeperCreate
+# gatekeeperDumpFASTQ
 
 SCRIPTS =
 
@@ -66,5 +68,6 @@ all: $(LIB_OBJECTS) $(LIBRARIES) $(OBJECTS) $(CXX_PROGS) $(SCRIPTS)
 
 libCA.a:     $(LIB_OBJECTS)
 
-LIBS =  libCA.a
 
+gatekeeperCreate:       gatekeeperCreate.o             libCA.a
+gatekeeperDumpFASTQ:    gatekeeperDumpFASTQ.o          libCA.a

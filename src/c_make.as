@@ -268,20 +268,22 @@ OBJ_SEARCH_PATH  = $(LOCAL_OBJ)
 #  an assembly.
 
 
-SUBDIRS = stores \
-          AS_RUN \
-          AS_UTL \
-          AS_PER \
-          AS_GKP \
-          AS_OBT \
-          AS_MER \
-          AS_OVL \
-          AS_OVM \
-          AS_OVS \
-          AS_ALN \
-          AS_CGB \
-          AS_BOG \
-          AS_BAT \
-          AS_PBR \
-          AS_CNS \
-          AS_TER
+SUBDIRS = AS_UTL \
+          stores \
+
+#          AS_RUN \
+#          AS_UTL \
+#          AS_PER \
+#          AS_GKP \
+#          AS_OBT \
+#          AS_MER \
+#          AS_OVL \
+#          AS_OVM \
+#          AS_OVS \
+#          AS_ALN \
+#          AS_CGB \
+#          AS_BOG \
+#          AS_BAT \
+#          AS_PBR \
+#          AS_CNS \
+#          AS_TER

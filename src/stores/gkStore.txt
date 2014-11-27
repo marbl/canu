@@ -65,3 +65,12 @@ The two additional files for a partitioned store are the partitioned data and th
   partitions - number of partiions (convenience)
              - map from uint32 IID to uint32 index into data.#### - 32 MB data for 8 million reads.
 
+----------------------------------------
+
+Input example
+
+name      = lib1
+preset    = (technology)
+(feature) = (value)
+input-file.extension.compression
+input-file.extension.compression
