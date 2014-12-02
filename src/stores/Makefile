@@ -49,14 +49,11 @@ LOCAL_WORK  = $(shell cd ../..; pwd)
 LIB_SOURCES = gkStore.C
 LIB_OBJECTS = $(LIB_SOURCES:.C=.o)
 
-SOURCES   = $(LIB_SOURCES) gatekeeperCreate.C
-# gatekeeperDumpFASTQ.C
-OBJECTS   = $(LIB_OBJECTS) gatekeeperCreate.o
-# gatekeeperDumpFASTQ.o
+SOURCES   = $(LIB_SOURCES) gatekeeperCreate.C gatekeeperDumpFASTQ.C
+OBJECTS   = $(LIB_OBJECTS) gatekeeperCreate.o gatekeeperDumpFASTQ.o
 LIBRARIES = libCA.a
 
-CXX_PROGS = gatekeeperCreate
-# gatekeeperDumpFASTQ
+CXX_PROGS = gatekeeperCreate gatekeeperDumpFASTQ
 
 SCRIPTS =
 

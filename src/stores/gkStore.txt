@@ -74,3 +74,11 @@ preset    = (technology)
 (feature) = (value)
 input-file.extension.compression
 input-file.extension.compression
+
+
+----------------------------------------
+Testing
+
+rm -rf new.gkpStore* ; /work/ca3g/FreeBSD-amd64/bin/gatekeeperCreate -o new.gkpStore test.gkp
+
+/work/ca3g/FreeBSD-amd64/bin/gatekeeperDumpFASTQ -o TEST -g new.gkpStore

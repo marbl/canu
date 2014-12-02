@@ -22,56 +22,80 @@
 const char *mainid = "$Id$";
 
 #include "AS_global.H"
-#include "AS_PER_gkpStore.H"
+#include "gkStore.H"
+#include "AS_UTL_fileIO.H"
 #include "AS_UTL_fasta.H"
 
-  //  Currently doesn't support a single library, or figuring out which
-  //  libraries are not in the dump range.
 
-
-class libInfo {
+//  Write sequence in multiple formats.  This used to write to four fastq files, the .1, .2, .paired and .unmated.
+//  It's left around for future expansion to .fastq and .bax.h5.
+//
+class libOutput {
 public:
-  libInfo(char *outPrefix, char *libName) {
-    sprintf(aname, "%s.%s.1.fastq",       outPrefix, libName);
-    sprintf(bname, "%s.%s.2.fastq",       outPrefix, libName);
-    sprintf(pname, "%s.%s.paired.fastq",  outPrefix, libName);
-    sprintf(uname, "%s.%s.unmated.fastq", outPrefix, libName);
+  libOutput(char const *outPrefix, char const *libName) {
+    strcpy(_p, outPrefix);
+    strcpy(_n, libName);
+  };
+
+  ~libOutput() {
+    if (_FASTA)
+      fclose(_FASTA);
+    if (_FASTQ)
+      fclose(_FASTQ);
+  };
+
+  FILE  *getFASTQ(void) {
+
+    if (_FASTQ)
+      return(_FASTQ);
+
+    return(openFASTQ());
+  };
+
+  FILE  *openFASTQ(void) {
+    char  N[FILENAME_MAX];
+
+    sprintf(N, "%s.%s.fastq", _p, _n);
 
     errno = 0;
-
-    a = fopen(aname, "w");
+    _FASTQ = fopen(N, "w");
     if (errno)
-      fprintf(stderr, "Failed to open output file '%s': %s\n", aname, strerror(errno)), exit(1);
+      fprintf(stderr, "Failed to open FASTQ output file '%s': %s\n", N, strerror(errno)), exit(1);
 
-    b = fopen(bname, "w");
-    if (errno)
-      fprintf(stderr, "Failed to open output file '%s': %s\n", bname, strerror(errno)), exit(1);
-
-    p = fopen(pname, "w");
-    if (errno)
-      fprintf(stderr, "Failed to open output file '%s': %s\n", pname, strerror(errno)), exit(1);
-
-    u = fopen(uname, "w");
-    if (errno)
-      fprintf(stderr, "Failed to open output file '%s': %s\n", uname, strerror(errno)), exit(1);
-  };
-  ~libInfo() {
-    fclose(a);
-    fclose(b);
-    fclose(p);
-    fclose(u);
+    return(_FASTQ);
   };
 
-  char aname[FILENAME_MAX];
-  char bname[FILENAME_MAX];
-  char pname[FILENAME_MAX];
-  char uname[FILENAME_MAX];
 
-  FILE *a;
-  FILE *b;
-  FILE *p;
-  FILE *u;
+  FILE  *getFASTA(void) {
+
+    if (_FASTA)
+      return(_FASTA);
+
+    return(openFASTA());
+  };
+
+  FILE  *openFASTA(void) {
+    char  N[FILENAME_MAX];
+
+    sprintf(N, "%s.%s.fasta", _p, _n);
+
+    errno = 0;
+    _FASTA = fopen(N, "w");
+    if (errno)
+      fprintf(stderr, "Failed to open FASTA output file '%s': %s\n", N, strerror(errno)), exit(1);
+
+    return(_FASTA);
+  };
+
+private:
+  char   _p[FILENAME_MAX];
+  char   _n[FILENAME_MAX];
+
+  FILE  *_FASTA;
+  FILE  *_FASTQ;
 };    
+
+
 
 
 int
@@ -79,14 +103,13 @@ main(int argc, char **argv) {
   char            *gkpStoreName      = NULL;
   char            *outPrefix         = NULL;
 
-  AS_IID           libToDump         = 0;
-  uint32           clrToDump         = AS_READ_CLEAR_LATEST;
+  uint32           libToDump         = 0;
 
-  AS_IID           bgnIID            = 1;
-  AS_IID           endIID            = AS_IID_MAX;
+  uint32           bgnID             = 0;
+  uint32           endID             = AS_MAX_READS;
 
   bool             dumpAllBases      = true;
-  bool             dumpAllReads      = false;
+  bool             dumpAllReads      = true;
 
   argc = AS_configure(argc, argv);
 
@@ -97,13 +120,10 @@ main(int argc, char **argv) {
       libToDump = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-b") == 0) {
-      bgnIID = atoi(argv[++arg]);
+      bgnID = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-e") == 0) {
-      endIID  = atoi(argv[++arg]);
-
-    } else if (strcmp(argv[arg], "-c") == 0) {
-      clrToDump = gkStore_decodeClearRegionLabel(argv[++arg]);
+      endID  = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-g") == 0) {
       gkpStoreName = argv[++arg];
@@ -122,67 +142,62 @@ main(int argc, char **argv) {
     err++;
   if (outPrefix == NULL)
     err++;
-  if (clrToDump == AS_READ_CLEAR_ERROR)
-    err++;
   if (err) {
     fprintf(stderr, "usage: %s [...] -o fastq-prefix -g gkpStore\n", argv[0]);
     fprintf(stderr, "  -g gkpStore\n");
     fprintf(stderr, "  -o fastq-prefix     write files fastq-prefix.1.fastq, fastq-prefix.2.fastq, fastq-prefix.paired.fastq, fastq-prefix.unmated.fastq\n");
     fprintf(stderr, "  \n");
     fprintf(stderr, "  -l libToDump        output only fragments in library number libToDump (NOT IMPLEMENTED)\n");
-    fprintf(stderr, "  -b iid              output starting at fragment iid\n");
-    fprintf(stderr, "  -e iid              output stopping after fragment iid\n");
-    fprintf(stderr, "  -c clrName          output clear range 'clrName'\n");
+    fprintf(stderr, "  -b id               output starting at fragment id\n");
+    fprintf(stderr, "  -e id               output stopping after fragment id\n");
     fprintf(stderr, "  \n");
 
     if (gkpStoreName == NULL)
       fprintf(stderr, "ERROR: no gkpStore (-g) supplied.\n");
     if (outPrefix == NULL)
       fprintf(stderr, "ERROR: no output prefix (-o) supplied.\n");
-    if (clrToDump == AS_READ_CLEAR_ERROR)
-      fprintf(stderr, "ERROR: clear range (-c) is not a valid clear range.\n");
     exit(1);
   }
 
-  gkStore    *gkp       = new gkStore(gkpStoreName, FALSE, FALSE);
+  gkStore    *gkpStore  = new gkStore(gkpStoreName);
+  uint32      numReads  = gkpStore->gkStore_getNumReads();
+  uint32      numLibs   = gkpStore->gkStore_getNumLibraries();
 
-  AS_IID    numFrags    = gkp->gkStore_getNumFragments();
-  AS_IID    numLibs     = gkp->gkStore_getNumLibraries();
+  if (numReads < endID)
+    endID = numReads;
 
-  libInfo **lib         = new libInfo * [numLibs];
+  fprintf(stderr, "Dumping reads from %u to %u (inclusive).\n", bgnID, endID - 1);
 
-  lib[0] = new libInfo(outPrefix, "legacy");
+  libOutput   **out     = new libOutput * [numLibs];
 
-  for (uint32 i=1; i<numLibs; i++)
-    lib[i] = new libInfo(outPrefix, gkp->gkStore_getLibrary(i)->libraryName);
+  out[0] = NULL;  //  There isn't a zeroth library.
 
-  if (bgnIID < 1)
-    bgnIID = 1;
-  if (numFrags < endIID)
-    endIID = numFrags;
-
-  //AS_IID    streamBgn = AS_IID_MIN;
-  //AS_IID    streamEnd = AS_IID_MAX;
-
-  gkStream   *fs        = new gkStream(gkp, bgnIID, endIID, GKFRAGMENT_QLT);
-  gkFragment  fr;
+  for (uint32 i=1; i<=numLibs; i++)
+    out[i] = new libOutput(outPrefix, gkpStore->gkStore_getLibrary(i)->gkLibrary_libraryName());
 
 
+  for (uint32 rid=bgnID; rid<=endID; rid++) {
+    gkRead      *read     = gkpStore->gkStore_getRead(rid);
+    gkReadData  *readData = new gkReadData;
 
-  while (fs->next(&fr)) {
-    int32   lclr   = fr.gkFragment_getClearRegionBegin(clrToDump);
-    int32   rclr   = fr.gkFragment_getClearRegionEnd  (clrToDump);
+    uint32   lclr   = read->gkRead_clearRegionBegin();
+    uint32   rclr   = read->gkRead_clearRegionEnd();
 
-    AS_IID  id1    = fr.gkFragment_getReadIID();
-    AS_IID  id2    = fr.gkFragment_getMateIID();
+    uint32   ldump  = read->gkRead_clearRegionBegin();
+    uint32   rdump  = read->gkRead_clearRegionEnd();
 
-    AS_IID  libIID = fr.gkFragment_getLibraryIID();
+    if (dumpAllBases) {
+      ldump = 0;
+      rdump = read->gkRead_sequenceLength();
+    }
 
-    if ((dumpAllReads == false) && (fr.gkFragment_getIsDeleted() == true))
+    uint32  libID = read->gkRead_libraryID();
+
+    if ((dumpAllReads == false) && (read->gkRead_isDeleted() == true))
       //  Fragment is deleted, don't dump.
       continue;
 
-    if ((libToDump != 0) && (fr.gkFragment_getLibraryIID() == libToDump))
+    if ((libToDump != 0) && (libID == libToDump))
       //  Fragment isn't marked for dumping, don't dump.
       continue;
 
@@ -190,17 +205,15 @@ main(int argc, char **argv) {
       //  Fragment has null or invalid clear range, don't dump.
       continue;
 
-    if ((id2 != 0) && (id2 < id1))
-      //  Mated, and the mate is the first frag.  We've already reported this one.
-      continue;
+    gkpStore->gkStore_loadReadData(read, readData);
 
-    char *seq = fr.gkFragment_getSequence() + ((dumpAllBases == false) ? fr.gkFragment_getClearRegionBegin(clrToDump) : 0);
-    char *qlt = fr.gkFragment_getQuality()  + ((dumpAllBases == false) ? fr.gkFragment_getClearRegionBegin(clrToDump) : 0);
+    char *seq = readData->sequence()  + ldump;
+    char *qlt = readData->qualities() + ldump;
 
-    int32 len = (dumpAllBases == false) ? fr.gkFragment_getClearRegionLength(clrToDump) : fr.gkFragment_getSequenceLength();
+    seq[rdump - ldump] = 0;
+    qlt[rdump - ldump] = 0;
 
-    seq[len] = 0;
-    qlt[len] = 0;
+    //  Soft mask not-clear bases
 
     if (dumpAllBases == true) {
       for (uint32 i=0; i<lclr; i++)
@@ -213,94 +226,16 @@ main(int argc, char **argv) {
         seq[i] += (seq[i] >= 'A') ? 'a' - 'A' : 0;
     }
 
-    if (id2 == 0) {
-      //  Unmated read, dump to the unmated reads file.
-      AS_UTL_writeFastQ(lib[libIID]->u, seq, len, qlt, len,
-                        "@"F_IID" clr="F_U32","F_U32" clv="F_U32","F_U32" max="F_U32","F_U32" tnt="F_U32","F_U32" rnd=%c\n",
-                        id1,
-                        fr.gkFragment_getClearRegionBegin(clrToDump),
-                        fr.gkFragment_getClearRegionEnd  (clrToDump),
-                        fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_VEC),
-                        fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_VEC),
-                        fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_MAX),
-                        fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_MAX),
-                        fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_TNT),
-                        fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_TNT),
-                        fr.gkFragment_getIsNonRandom() ? 'f' : 't');
-      continue;
-    }
+    AS_UTL_writeFastQ(out[libID]->getFASTQ(), seq, (rdump - ldump), qlt, (rdump - ldump),
+                      "@"F_U32" clr="F_U32","F_U32"\n",
+                      rid, lclr, rclr);
 
-    //  Write the first fragment (twice).
-    AS_UTL_writeFastQ(lib[libIID]->a, seq, len, qlt, len,
-                      "@"F_IID" clr="F_U32","F_U32" clv="F_U32","F_U32" max="F_U32","F_U32" tnt="F_U32","F_U32" rnd=%c\n",
-                      id2,
-                      fr.gkFragment_getClearRegionBegin(clrToDump),
-                      fr.gkFragment_getClearRegionEnd  (clrToDump),
-                      fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_VEC),
-                      fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_VEC),
-                      fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_MAX),
-                      fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_MAX),
-                      fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_TNT),
-                      fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_TNT),
-                      fr.gkFragment_getIsNonRandom() ? 'f' : 't');
-
-    AS_UTL_writeFastQ(lib[libIID]->p, seq, len, qlt, len,
-                      "@"F_IID" clr="F_U32","F_U32" clv="F_U32","F_U32" max="F_U32","F_U32" tnt="F_U32","F_U32" rnd=%c\n",
-                      id2,
-                      fr.gkFragment_getClearRegionBegin(clrToDump),
-                      fr.gkFragment_getClearRegionEnd  (clrToDump),
-                      fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_VEC),
-                      fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_VEC),
-                      fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_MAX),
-                      fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_MAX),
-                      fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_TNT),
-                      fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_TNT),
-                      fr.gkFragment_getIsNonRandom() ? 'f' : 't');
-
-    //  Grab the second fragment.
-
-    gkp->gkStore_getFragment(id2, &fr, GKFRAGMENT_QLT);
-
-    lclr = fr.gkFragment_getClearRegionBegin(clrToDump) + 1;
-    rclr = fr.gkFragment_getClearRegionEnd  (clrToDump);
-
-    seq = fr.gkFragment_getSequence() + ((dumpAllBases == false) ? fr.gkFragment_getClearRegionBegin(clrToDump) : 0);
-    qlt = fr.gkFragment_getQuality()  + ((dumpAllBases == false) ? fr.gkFragment_getClearRegionBegin(clrToDump) : 0);
-    len = (dumpAllBases == false) ? fr.gkFragment_getClearRegionLength(clrToDump) : fr.gkFragment_getSequenceLength();
-
-    seq[len] = 0;
-    qlt[len] = 0;
-
-    //  Write the second fragment (twice).
-    AS_UTL_writeFastQ(lib[libIID]->b, seq, len, qlt, len,
-                      "@"F_IID" clr="F_U32","F_U32" clv="F_U32","F_U32" max="F_U32","F_U32" tnt="F_U32","F_U32" rnd=%c\n",
-                      id2,
-                      fr.gkFragment_getClearRegionBegin(clrToDump),
-                      fr.gkFragment_getClearRegionEnd  (clrToDump),
-                      fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_VEC),
-                      fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_VEC),
-                      fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_MAX),
-                      fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_MAX),
-                      fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_TNT),
-                      fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_TNT),
-                      fr.gkFragment_getIsNonRandom() ? 'f' : 't');
-
-    AS_UTL_writeFastQ(lib[libIID]->p, seq, len, qlt, len,
-                      "@"F_IID" clr="F_U32","F_U32" clv="F_U32","F_U32" max="F_U32","F_U32" tnt="F_U32","F_U32" rnd=%c\n",
-                      id2,
-                      fr.gkFragment_getClearRegionBegin(clrToDump),
-                      fr.gkFragment_getClearRegionEnd  (clrToDump),
-                      fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_VEC),
-                      fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_VEC),
-                      fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_MAX),
-                      fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_MAX),
-                      fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_TNT),
-                      fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_TNT),
-                      fr.gkFragment_getIsNonRandom() ? 'f' : 't');
+    AS_UTL_writeFastQ(stdout, seq, (rdump - ldump), qlt, (rdump - ldump),
+                      "@"F_U32" clr="F_U32","F_U32"\n",
+                      rid, lclr, rclr);
   }
 
-  delete fs;
-  delete gkp;
+  delete gkpStore;
 
   exit(0);
 }

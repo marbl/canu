@@ -22,24 +22,175 @@
 const char *mainid = "$Id$";
 
 #include "AS_global.H"
-
 #include "gkStore.H"
-
-#include "splitToWords.H"
 #include "findKeyAndValue.H"
-
 #include "AS_UTL_fileIO.H"
 
 
 
-void
-getLine(char *inLine, uint32 inLineLen, FILE *inFile) {
+//  Support fastq of fasta, even in the same file.
+//  Eventually want to support bax.h5 natively.
 
-  do {
-    fgets(inLine, inLineLen, inFile);
-    chomp(inLine);
-  } while ((inLine[0] == '#') || (inLine[0] == 0));
+
+
+
+uint32
+loadFASTA(gkStore *gkpStore,
+          gkLibrary *gkpLibrary,
+          char *L,
+          char *H,
+          char *S,
+          compressedFileReader *F) {
+
+  //  We've already read the header.  It's in L.  But we want to use L to load the sequence, so the
+  //  header is copied to H.  We need to do a copy anyway - we need to return the next header in L.
+  //  We can either copy L to H now, or use H to read lines and copy H to L at the end.  We're stuck
+  //  either way.
+
+  strcpy(H, L);
+
+  //  Load sequence.  This is a bit tricky, since we need to peek ahead
+  //  and stop reading before the next header is loaded.
+
+  //  Load sequence.
+
+  uint32  Slen = 0;
+
+  fgets(L, AS_MAX_READLEN, F->file());
+  chomp(L);
+  
+  while ((!feof(F->file())) && (L[0] != '>')) {
+    strcat(S + Slen, L);
+    Slen += strlen(L);
+
+    fgets(L, AS_MAX_READLEN, F->file());
+    chomp(L);
+  }
+
+  //  Add a new read to the store.
+
+  gkRead     *nr = gkpStore->gkStore_addEmptyRead(gkpLibrary);
+
+  //  Populate the read with the appropriate gunk, based on the library type.
+
+  //assert(gkpLibrary->gkLibrary_encoding() == GKREAD_TYPE_SEQ_QLT);
+
+  gkReadData *nd = nr->gkRead_encodeSeqQlt(H, S, gkpLibrary->gkLibrary_defaultQV());
+
+  //  Stash the encoded data in the store
+
+  gkpStore->gkStore_stashReadData(nr, nd);
+
+  //  And then toss it out.
+
+  delete nd;
+
+  //  Do NOT clear L, it contains the next header.
+
+  H[0] = 0;
+  S[0] = 0;
+
+  return(0);
 }
+
+
+
+uint32
+loadFASTQ(gkStore *gkpStore,
+          gkLibrary *gkpLibrary,
+          char *L,
+          char *H,
+          char *S,
+          char *Q,
+          compressedFileReader *F) {
+
+  //  We've already read the header.  It's in L.
+
+  //  Load sequence.
+  fgets(S, AS_MAX_READLEN, F->file());
+  chomp(S);
+
+  //  Load the qv header, and then load the qvs themselves over the header.
+  fgets(Q, AS_MAX_READLEN, F->file());
+  fgets(Q, AS_MAX_READLEN, F->file());
+  chomp(Q);
+
+  //  Add a new read to the store.
+
+  gkRead     *nr = gkpStore->gkStore_addEmptyRead(gkpLibrary);
+
+  //  Populate the read with the appropriate gunk, based on the library type.
+
+  gkReadData *nd = nr->gkRead_encodeSeqQlt(L, S, Q);
+
+  //  Stash the encoded data in the store
+
+  gkpStore->gkStore_stashReadData(nr, nd);
+
+  //  And then toss it out.
+
+  delete nd;
+
+  //  Clear the lines, so we can load the next one.
+
+  L[0] = 0;
+  H[0] = 0;
+  S[0] = 0;
+  Q[0] = 0;
+
+  return(4);  //  FASTQ always reads exactly four lines
+}
+
+
+
+
+
+void
+loadReads(gkStore *gkpStore, gkLibrary *gkpLibrary, char *fileName) {
+  compressedFileReader *F = new compressedFileReader(fileName);
+
+  char                 *L = new char [AS_MAX_READLEN + 1];
+  char                 *H = new char [AS_MAX_READLEN + 1];
+
+  uint32                Slen = 0;
+  char                 *S = new char [AS_MAX_READLEN + 1];
+
+  uint32                Qlen = 0;
+  char                 *Q = new char [AS_MAX_READLEN + 1];
+
+  uint64                lineNumber = 0;
+
+  fgets(L, AS_MAX_READLEN, F->file());
+  chomp(L);
+
+  while (!feof(F->file())) {
+
+    if      (L[0] == '>') {
+      lineNumber += loadFASTA(gkpStore, gkpLibrary, L, H, S, F);
+    }
+
+    else if (L[0] == '@') {
+      lineNumber += loadFASTQ(gkpStore, gkpLibrary, L, H, S, Q, F);
+    }
+
+    else {
+      fprintf(stderr, "loadReads()-- invalid read header '%s' in file '%s' at line "F_U64", skipping.\n",
+              L, fileName, lineNumber);
+      L[0] = 0;
+    }
+
+    //  If L[0] is nul, we need to load the next line.  If not, the next line is the header (from
+    //  the fasta loader).
+
+    if (L[0] == 0) {
+      fgets(L, AS_MAX_READLEN, F->file());
+      chomp(L);
+    }
+  }
+
+  delete F;
+};
+
 
 
 
@@ -57,6 +208,9 @@ main(int argc, char **argv) {
 
 
   //argc = AS_configure(argc, argv);
+
+  fprintf(stderr, "gkLibrary: %u\n", sizeof(gkLibrary));
+  fprintf(stderr, "gkRead:    %u\n", sizeof(gkRead));
 
   int arg = 1;
   int err = 0;
@@ -149,29 +303,40 @@ main(int argc, char **argv) {
         gkpLibrary = gkpStore->gkStore_addEmptyLibrary(keyval.value());
 
       } else if (strcasecmp(keyval.key(), "preset") == 0) {
+        gkpLibrary->gkLibrary_parsePreset(keyval.value());
 
       } else if (strcasecmp(keyval.key(), "qv") == 0) {
+        gkpLibrary->gkLibrary_setDefaultQV(keyval.value_double());
 
-      } else if (strcasecmp(keyval.key(), "isNotRandom") == 0) {
+      } else if (strcasecmp(keyval.key(), "isNonRandom") == 0) {
+        gkpLibrary->gkLibrary_setIsNonRandom(keyval.value_bool());
 
-      } else if (strcasecmp(keyval.key(), "doNotTrustHomopolymerRuns") == 0) {
+      } else if (strcasecmp(keyval.key(), "trustHomopolymerRuns") == 0) {
+        gkpLibrary->gkLibrary_setTrustHomopolymerRuns(keyval.value_bool());
 
       } else if (strcasecmp(keyval.key(), "initialTrim") == 0) {
+        gkpLibrary->gkLibrary_setInitialTrim(keyval.value());
 
       } else if (strcasecmp(keyval.key(), "removeDuplicateReads") == 0) {
+        gkpLibrary->gkLibrary_setRemoveDuplicateReads(keyval.value_bool());
 
       } else if (strcasecmp(keyval.key(), "finalTrim") == 0) {
+        gkpLibrary->gkLibrary_setFinalTrim(keyval.value());
 
       } else if (strcasecmp(keyval.key(), "removeSpurReads") == 0) {
+        gkpLibrary->gkLibrary_setRemoveSpurReads(keyval.value_bool());
 
       } else if (strcasecmp(keyval.key(), "removeChimericReads") == 0) {
+        gkpLibrary->gkLibrary_setRemoveChimericReads(keyval.value_bool());
 
-      } else if (strcasecmp(keyval.key(), "removeSubReads") == 0) {
+      } else if (strcasecmp(keyval.key(), "checkForSubReads") == 0) {
+        gkpLibrary->gkLibrary_setCheckForSubReads(keyval.value_bool());
 
       } else if (AS_UTL_fileExists(keyval.key(), false, false)) {
+        loadReads(gkpStore, gkpLibrary, keyval.key());
 
       } else {
-        fprintf(stderr, "line '%s' invalid.\n", line);
+        fprintf(stderr, "line '%s' not recognized, and not a file of reads.\n", line);
       }
 
       fgets(line, 10240, inFile->file());

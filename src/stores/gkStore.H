@@ -12,7 +12,7 @@ using namespace std;
 //  The number of library IIDs we can handle.
 //
 #define AS_MAX_LIBRARIES_BITS      8
-#define AS_MAX_LIBRARIES           ((1 << AS_READ_MAX_LIBRARIES_BITS) - 1)
+#define AS_MAX_LIBRARIES           ((1 << AS_MAX_LIBRARIES_BITS) - 1)
 
 #define LIBRARY_NAME_SIZE          128
 #define LIBRARY_NAME_DEFAULT      "UNDEFINED"
@@ -21,13 +21,13 @@ using namespace std;
 //  ovlStore than gkpStore.  The default of 27 = 134.2 million reads.
 //
 #define AS_MAX_READS_BITS          27
-#define AS_MAX_READS               ((1 << AS_READ_MAX_READS_BITS) - 1)
+#define AS_MAX_READS               ((1 << AS_MAX_READS_BITS) - 1)
 
 //  Be aware that overlapper does not work well at large sizes.  Consensus allocates excessive
 //  amounts of memory too.
 //
 #define AS_MAX_READLEN_BITS        16
-#define AS_MAX_READLEN             ((1 << AS_READ_MAX_LEN_BITS) - 1)
+#define AS_MAX_READLEN             ((1 << AS_MAX_READLEN_BITS) - 1)
 
 //  This indirectly controls how much sequence can be loaded, in that the store
 //  can address 2^32 blocks of this many bytes.  QVs are stored in 5/8 of a byte,
@@ -35,7 +35,7 @@ using namespace std;
 //    2^32 * 64 * 5 / 8 = 171.8 Gbp.
 //  With the default 134.2 million reads, that's only 1280 bp/read.
 //
-#define BLOB_BLOCK_SIZE            1024
+#define BLOB_BLOCK_SIZE            1
 
 //  Per-library algorithm options.
 //
@@ -44,26 +44,27 @@ using namespace std;
 #define CORRECTION_MER             0x02
 
 #define INITIALTRIM_NONE           0x00
-#define INITIALTRIM_MER_BASED      0x01
-#define INITIALTRIM_FLOW_BASED     0x02
-#define INITIALTRIM_QUALITY_BASED  0x03
+#define INITIALTRIM_MER_BASED      0x01  //  runs merTrim
+#define INITIALTRIM_FLOW_BASED     0x02  //  rules for 454 reads
+#define INITIALTRIM_QUALITY_BASED  0x03  //  rules for sanger reads
 
 #define FINALTRIM_NONE             0x00
-#define FINALTRIM_LARGEST_COVERED  0x01
-#define FINALTRIM_EVIDENCE_BASED   0x02
-#define FINALTRIM_BEST_EDGE        0x03
+#define FINALTRIM_LARGEST_COVERED  0x01  //  largest region covered by good overlaps
+#define FINALTRIM_EVIDENCE_BASED   0x02  //  rules for sanger reads
+#define FINALTRIM_BEST_EDGE        0x03  //  largest region covered by best overlaps (broken)
 
-//  Sequence data storage methods, one per technology supported.
+//  Sequence data storage methods.  This is the format of the in-core structure.
+//  The on-disk structure is decoded automagically.
 //
-#define GKREAD_TECH_UNKNOWN   0x00
-#define GKREAD_TECH_FASTA     0x01
-#define GKREAD_TECH_FASTQ     0x02
-#define GKREAD_TECH_PACBIO    0x03
-#define GKREAD_TECH_NANOPORE  0x04
-#define GKREAD_TECH_UNUSED1   0x05
-#define GKREAD_TECH_UNUSED2   0x06
-#define GKREAD_TECH_UNUSED3   0x07
-#define GKREAD_TECH_NUM       8
+#define GKREAD_TYPE_UNKNOWN    0x00
+#define GKREAD_TYPE_SEQ_QLT    0x01
+#define GKREAD_TYPE_PACBIO     0x02
+#define GKREAD_TYPE_MINION     0x03
+#define GKREAD_TYPE_1          0x04
+#define GKREAD_TYPE_2          0x05
+#define GKREAD_TYPE_3          0x06
+#define GKREAD_TYPE_4          0x07
+#define GKREAD_TYPE_NUM        8
 
 
 class gkLibrary {
@@ -86,22 +87,26 @@ public:
   };
 
   void gkLibrary_clearFeatures(void) {
-    _isNotRandom                = 0;
+    //  DO NOT change defaults without updating gkLibrary_parsePreset().
+    _isNonRandom                = 0;
 
     _trustHomopolymerRuns       = 1;
     _doCorrection               = CORRECTION_NONE;
 
     _initialTrim                = INITIALTRIM_NONE;
-    _finalTrim                  = FINALTRIM_NONE;
+    _finalTrim                  = FINALTRIM_LARGEST_COVERED;
     _removeDuplicateReads       = 0;
-    _removeSpurReads            = 0;
-    _removeChimericReads        = 0;
+    _removeSpurReads            = 1;
+    _removeChimericReads        = 1;
     _checkForSubReads           = 0;
   };
 
 public:
+
   char const    *gkLibrary_libraryName(void)           { return(_libraryName);          };
-  uint32         gkLibrary_isNotRandom(void)           { return(_isNotRandom);          };
+  uint32         gkLibrary_libraryID(void)             { return(_libraryID);            };
+
+  uint32         gkLibrary_isNonRandom(void)           { return(_isNonRandom);          };
   uint32         gkLibrary_trustHomopolymerRuns(void)  { return(_trustHomopolymerRuns); };
   uint32         gkLibrary_correctBases(void)          { return(_doCorrection);         };
   uint32         gkLibrary_initialTrim(void)           { return(_initialTrim);          };
@@ -111,22 +116,30 @@ public:
   uint32         gkLibrary_removeChimericReads(void)   { return(_removeChimericReads);  };
   uint32         gkLibrary_checkForSubReads(void)      { return(_checkForSubReads);     };
 
-  void           gkLibrary_setLibraryName(char *n)          { strcpy(_libraryName, n);   };
-  void           gkLibrary_setIsNotRandom(bool f)           { _isNotRandom = f;          };
+  uint32         gkLibrary_defaultQV(void)             { return(_defaultQV);            };
+
+
+  void           gkLibrary_setIsNonRandom(bool f)           { _isNonRandom = f;          };
   void           gkLibrary_setTrustHomopolymerRuns(bool f)  { _trustHomopolymerRuns = f; };
   void           gkLibrary_setCorrectBases(bool f)          { _doCorrection = f;         };
-  void           gkLibrary_setInitialTrim(uint32 t)         { _initialTrim = t;          };
-  void           gkLibrary_setFinalTrim(uint32 t)           { _finalTrim = t;            };
+  void           gkLibrary_setInitialTrim(char *t);
+  void           gkLibrary_setFinalTrim(char *t);
   void           gkLibrary_setRemoveDuplicateReads(bool f)  { _removeDuplicateReads = f; };
   void           gkLibrary_setRemoveSpurReads(bool f)       { _removeSpurReads = f;      };
   void           gkLibrary_setRemoveChimericReads(bool f)   { _removeChimericReads = f;  };
   void           gkLibrary_setCheckForSubReads(bool f)      { _checkForSubReads = f;     };
 
+  void           gkLibrary_setDefaultQV(double qv)          { _defaultQV = qv;           };
+
+  void           gkLibrary_parsePreset(char *t);
+
+
 private:
   char           _libraryName[LIBRARY_NAME_SIZE];
+  uint32         _libraryID;
 
   //  If set, reads are from a non-random library and shouldn't count toward coverage stats.
-  uint32         _isNotRandom;
+  uint32         _isNonRandom;
 
   //  If set, reads have issues with homopolymer runs.
   uint32         _trustHomopolymerRuns;
@@ -151,6 +164,14 @@ private:
 
   //  Should PacBio circular sub-reads be cleaned up?  How?
   uint32         _checkForSubReads;
+
+  //  For reads with no QVs, use this.
+  uint32         _defaultQV;
+
+  //  How is this read encoded in core?
+  uint32         _type;
+
+  friend class gkStore;
 };
 
 
@@ -162,28 +183,34 @@ public:
   gkReadData() {
     _read = NULL;
 
-    _technology = GKREAD_TECH_UNKNOWN;
+    _type = GKREAD_TYPE_UNKNOWN;
 
     _seq = NULL;
     _qlt = NULL;
+
+    _blobLen = 0;
+    _blobMax = 0;
+    _blob    = NULL;
   };
+
   ~gkReadData() {
     delete [] _seq;
     delete [] _qlt;
 
-    if ((_technology == GKREAD_TECH_PACBIO)) {
-      delete [] _data._pacbio._deletionQV;
-      delete [] _data._pacbio._deletionTag;
-      delete [] _data._pacbio._insertionQV;
-      delete [] _data._pacbio._substitutionQV;
-      delete [] _data._pacbio._mergeQV;
+    if (_type == GKREAD_TYPE_PACBIO) {
+      delete [] _pacbio._deletionQV;
+      delete [] _pacbio._deletionTag;
+      delete [] _pacbio._insertionQV;
+      delete [] _pacbio._substitutionQV;
+      delete [] _pacbio._mergeQV;
     }
-    if ((_technology == GKREAD_TECH_NANOPORE)) {
-      delete [] _data._nanopore._someQV;
+
+    if (_type == GKREAD_TYPE_MINION) {
+      delete [] _nanopore._someQV;
     }
   };
 
-  uint32   technology(void)   { return(_technology); };
+  uint32   type(void)         { return(_type); };
 
   bool     hasSequence(void)  { return(_seq != NULL); };
   bool     hasQualities(void) { return(_qlt != NULL); };
@@ -191,33 +218,39 @@ public:
   char    *sequence(void)     { return(_seq);  };
   char    *qualities(void)    { return(_qlt);  };
 
-  //void    initialize(uint32 seqLen) {
-  //  _seq = new char [seqLen + 1];
-  //  _qlt = new char [seqLen + 1];
-  //};
-
 private:
   gkRead            *_read;     //  Pointer to the mmap'd read
 
-  uint32             _technology;
+  uint32             _type;
 
   char              *_seq;      //  Everyone has sequence
   char              *_qlt;      //    and quality
 
-  union {
-    struct pacbio {
-      char          *_deletionQV;
-      char          *_deletionTag;
-      char          *_insertionQV;
-      char          *_substitutionQV;
-      char          *_mergeQV;
-    } _pacbio;
-    struct nanopore {
-      char          *_someQV;
-    } _nanopore;
-  } _data;
+  uint32             _blobLen;
+  uint32             _blobMax;
+  uint8             *_blob;     //  And maybe even an encoded blob of data from the store.
+
+  void     encodeBlobChunk(char const *tag, uint32 len, void *dat);
+
+  //  Some reads have more data than others.  This used to be a union, but that
+  //  only complicated things with no clear beneift.  Yay, we saved a few bytes on
+  //  a structure that we have only a few copies in core at a time.
+
+  struct pacbio {
+    char          *_deletionQV;
+    char          *_deletionTag;
+    char          *_insertionQV;
+    char          *_substitutionQV;
+    char          *_mergeQV;
+  } _pacbio;
+
+  struct nanopore {
+    char          *_someQV;
+  } _nanopore;
+
 
   friend class gkRead;
+  friend class gkStore;
 };
 
 
@@ -230,7 +263,6 @@ public:
     _libraryID  = 0;
     _seqLen     = 0;
     _deleted    = true;
-    _technology = GKREAD_TECH_UNKNOWN;
     _flagpad    = 0;
 
     _clrBgn     = 0;
@@ -245,34 +277,18 @@ public:
   ~gkRead() {
   };
 
-  uint32    gkRead_readID(void) {
-    return(_readID);
-  };
+  uint32    gkRead_readID(void)             { return(_readID);           };
 
-  uint32    gkRead_libraryID(void) {
-    return(_libraryID);
-  };
+  uint32    gkRead_libraryID(void)          { return(_libraryID);        };
 
-  uint32    gkRead_sequenceLength(void) {
-    return(_seqLen);
-  };
+  uint32    gkRead_sequenceLength(void)     { return(_seqLen);           };
 
-  bool      gkRead_isDeleted(void) {
-    return(_deleted);
-  };
-  void      gkRead_isDeleted(bool deleted) {
-    _deleted = deleted;
-  };
+  bool      gkRead_isDeleted(void)          { return(_deleted);          };
+  void      gkRead_isDeleted(bool deleted)  { _deleted = deleted;        };
 
-  uint32    gkRead_clearRegionBegin(void) {
-    return(_clrBgn);
-  };
-  uint32    gkRead_clearRegionEnd(void) {
-    return(_clrEnd);
-  };
-  uint32    gkRead_clearRegionLength(void) {
-    return(_clrEnd - _clrBgn);
-  };
+  uint32    gkRead_clearRegionBegin(void)   { return(_clrBgn);           };
+  uint32    gkRead_clearRegionEnd(void)     { return(_clrEnd);           };
+  uint32    gkRead_clearRegionLength(void)  { return(_clrEnd - _clrBgn); };
 
   void      gkRead_setClearRegion(uint32 bgn, uint32 end) {
     _clrBgn = bgn;
@@ -280,32 +296,34 @@ public:
   };
 
 public:
-  bool      gkRead_loadData(gkReadData *readData, void *blob, bool partitioned);
+  bool        gkRead_loadData(gkReadData *readData, void *blob, bool partitioned);
+
+  gkReadData *gkRead_encodeSeqQlt(char *H, char *S, char *Q);
+  gkReadData *gkRead_encodeSeqQlt(char *H, char *S, uint32 qv);
+  gkReadData *gkRead_encodePacBio(char *H, char *S, char *Q);
+  gkReadData *gkRead_encodeMinION(char *H, char *S, char *Q);
 
 private:
-  bool      gkRead_loadFASTAData   (gkReadData *readData, void *blob);
-  bool      gkRead_loadFASTQData   (gkReadData *readData, void *blob);
-  bool      gkRead_loadPacBioData  (gkReadData *readData, void *blob);
-  bool      gkRead_loadNanoporeData(gkReadData *readData, void *blob);
-
+  bool        gkRead_decodeSeqQlt(gkReadData *readData, void *blob);
+  bool        gkRead_decodePacBio(gkReadData *readData, void *blob);
+  bool        gkRead_decodeMinION(gkReadData *readData, void *blob);
 
 private:
-  char     *gkRead_encodeSequence(char *sequence, char *encoded);
-  char     *gkRead_decodeSequence(char *encoded,  char *sequence);
+  char       *gkRead_encodeSequence(char *sequence, char *encoded);
+  char       *gkRead_decodeSequence(char *encoded,  char *sequence);
   
-  char     *gkRead_encodeQuality(char *sequence, char *encoded);
-  char     *gkRead_decodeQuality(char *encoded,  char *sequence);
+  char       *gkRead_encodeQuality(char *sequence, char *encoded);
+  char       *gkRead_decodeQuality(char *encoded,  char *sequence);
 
 private:
   uint64   _readID       : AS_MAX_READS_BITS;       //  Up to 128 million reads
   uint64   _libraryID    : AS_MAX_LIBRARIES_BITS;   //  Up to 256 libraries
   uint64   _seqLen       : AS_MAX_READLEN_BITS;     //  Up to 128 kilobases
   uint64   _deleted      :  1;                      //  Deleted?
-  uint64   _technology   :  3;                      //  Type of sequence data this represents
   uint64   _flagpad      : (64 -
                             AS_MAX_READS_BITS -
                             AS_MAX_LIBRARIES_BITS -
-                            AS_MAX_READLEN_BITS - 1 - 3);
+                            AS_MAX_READLEN_BITS - 1);
 
   uint64   _clrBgn       : AS_MAX_READLEN_BITS;
   uint64   _clrEnd       : AS_MAX_READLEN_BITS;
@@ -401,22 +419,24 @@ public:
   uint32       gkStore_getNumLibraries(void)       { return(_info.numLibraries); }
   uint32       gkStore_getNumReads(void)           { return(_info.numReads); }
 
-  gkLibrary   *gkStore_getLibrary(uint32 id)       { return(NULL); }
-  gkRead      *gkStore_getRead(uint32 id)          { return(NULL); }
+  gkLibrary   *gkStore_getLibrary(uint32 id)       { return(&_libraries[id]); }
+  gkRead      *gkStore_getRead(uint32 id)          { return(&_reads[id]); }
 
   gkLibrary   *gkStore_addEmptyLibrary(char const *name);
-  gkRead      *gkStore_addEmptyRead(void);
+  gkRead      *gkStore_addEmptyRead(gkLibrary *lib);
 
-  bool         gkStore_loadData(gkRead *read,   gkReadData *readData) {
-    return(gkStore_loadData(read->gkRead_readID(), readData));
+  bool         gkStore_loadReadData(gkRead *read,   gkReadData *readData) {
+    return(gkStore_loadReadData(read->gkRead_readID(), readData));
   };
-  bool         gkStore_loadData(uint32  readID, gkReadData *readData);
+  bool         gkStore_loadReadData(uint32  readID, gkReadData *readData);
+
+  void         gkStore_stashReadData(gkRead *read, gkReadData *data);
 
 private:
   gkStoreInfo          _info;  //  All the stuff stored on disk.
 
-  char                 _storePath[FILENAME_MAX];  //  Needed?
-  char                 _storeName[FILENAME_MAX];  //  Needed?
+  char                 _storePath[FILENAME_MAX];  //  Needed to create files
+  char                 _storeName[FILENAME_MAX];  //  Useful for log files in other programs
 
   //  If these are memory mapped, then multiple processes on the same host can share the
   //  (read-only) data.
@@ -464,8 +484,8 @@ public:
     delete [] numActivePerLib;
     delete [] numDeletedPerLib;
 
-    for (uint32 i=0; i<GKREAD_TECH_NUM; i++)
-      delete [] numByTypePerLib[i];
+    for (uint32 i=0; i<GKREAD_TYPE_NUM; i++)
+      delete [] numByEncPerLib[i];
 
     delete [] readLengthPerLib;
     delete [] clearLengthPerLib;
@@ -477,7 +497,7 @@ public:
 
   uint32  numActiveFrag;
   uint32  numDeletedFrag;
-  uint32  numByType[GKREAD_TECH_NUM];
+  uint32  numByEnc[GKREAD_TYPE_NUM];
   uint64  readLength;
   uint64  clearLength;
 
@@ -488,7 +508,7 @@ public:
 
   uint32  *numActivePerLib;
   uint32  *numDeletedPerLib;
-  uint32 **numByTypePerLib;
+  uint32 **numByEncPerLib;
   uint64  *readLengthPerLib;
   uint64  *clearLengthPerLib;
 };

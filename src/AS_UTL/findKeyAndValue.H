@@ -13,8 +13,19 @@ public:
 
   bool     find(char *line);
 
-  char    *key(void)    { return(key_); };
-  char    *value(void)  { return(val_); };
+  char    *key(void)           { return(key_); };
+  char    *value(void)         { return(val_); };
+
+  bool     value_bool(void)    { return((val_[0] == 't') || (val_[0] == 'T') || (val_[0] == '1')); };
+
+  int32    value_int32(void)   { return(strtol (val_, NULL, 10)); };
+  int64    value_int64(void)   { return(strtoll(val_, NULL, 10)); };
+
+  uint32   value_uint32(void)  { return(strtoul (val_, NULL, 10)); };
+  uint64   value_uint64(void)  { return(strtoull(val_, NULL, 10)); };
+
+  float    value_float(void)   { return(strtof(val_, NULL)); };
+  double   value_double(void)  { return(strtod(val_, NULL)); };
 
 public:
   bool    iscomment(char c)    { return((c == '!') || (c == '#') || (c == 0)); };
