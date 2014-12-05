@@ -374,6 +374,17 @@ kMerHuge::setMerSize(uint32 ms) {
 
 inline
 char *
+uint64ToMerString(uint32 ms, uint64 mer, char *str) {
+  for (uint32 i=0; i<ms; i++)
+    str[ms-i-1] = bitsToLetter[(mer >> (2*i)) & 0x03];
+  str[ms] = 0;
+  return(str);
+}
+
+
+
+inline
+char *
 kMerHuge::merToString(char *instr) const {
   uint32  lastWord = _merSize >> 5;
   char   *str = instr;

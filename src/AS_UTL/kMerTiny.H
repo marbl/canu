@@ -15,7 +15,24 @@ public:
   uint32  getMerSpan(void) const { return(_merSpan); };
 
   kMerTiny  &reverseComplement(void) {
-    _md = reverseComplementMer(_merSize, _md);
+
+    //  Reverse the mer
+
+    _md = ((_md >>  2) & 0x3333333333333333llu) | ((_md <<  2) & 0xccccccccccccccccllu);
+    _md = ((_md >>  4) & 0x0f0f0f0f0f0f0f0fllu) | ((_md <<  4) & 0xf0f0f0f0f0f0f0f0llu);
+    _md = ((_md >>  8) & 0x00ff00ff00ff00ffllu) | ((_md <<  8) & 0xff00ff00ff00ff00llu);
+    _md = ((_md >> 16) & 0x0000ffff0000ffffllu) | ((_md << 16) & 0xffff0000ffff0000llu);
+    _md = ((_md >> 32) & 0x00000000ffffffffllu) | ((_md << 32) & 0xffffffff00000000llu);
+
+    //  Complement the bases
+
+    _md ^= 0xffffffffffffffffllu;
+
+    //  Shift and mask out the bases not in the mer
+
+    _md >>= 64 - _merSize * 2;
+    _md  &= uint64MASK(_merSize * 2);
+
     return(*this);
   };
 
@@ -145,3 +162,20 @@ kMerTiny::merToString(char *str) const {
   str[_merSize] = 0;
   return(str);
 }
+
+
+#if 0
+//  This is not used anywhere, and is probably quite stale
+inline
+uint64
+stringToMer(uint32 ms, char *str) {
+  uint64  mer = 0L;
+
+  for (uint32 i=0; i<ms; i++) {
+    mer <<= 2;
+    mer  |= compressSymbol[str[i]];
+  }
+
+  return(mer);
+}
+#endif
