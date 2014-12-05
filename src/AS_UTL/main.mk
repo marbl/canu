@@ -23,13 +23,15 @@ SOURCES  := AS_UTL_GPL.C \
             AS_UTL_rand.C \
             AS_UTL_reverseComplement.C \
             AS_UTL_stackTrace.C \
-            AS_UTL_stackTraceTest.C \
-            AS_UTL_testhisto.C \
-            decodeBooleanString.C \
-            memoryMappedFileTest.C \
-            testHashTable.C \
-            testRand.C \
-            testVar.C \
+            kMer.C \
 
-SRC_INCDIRS  := ..
+#            decodeBooleanString.C \
+#            AS_UTL_stackTraceTest.C \
+#            AS_UTL_testhisto.C \
+#            memoryMappedFileTest.C \
+#            testHashTable.C \
+#            testRand.C \
+#            testVar.C \
+
+SRC_INCDIRS  := . ..
 SUBMAKEFILES := 
