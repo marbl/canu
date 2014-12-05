@@ -25,12 +25,9 @@
 //
 #define KMER_WORDS  1
 
-#include "util.h"
-#include "util++.H"
-#include "bio.h"
-#include "bio++.H"
-#include "kmeriface.H"
+#include "AS_global.H"
 
+#include "bitPackedFile.H"
 
 //  The kmer class is in two mutually exclusive implementations.  The first implementation
 //  uses one word to store up to 32-mers.  The second implementation uses multiple words
@@ -110,12 +107,12 @@
 
 #if KMER_WORDS == 1
 
-#include "kmertiny.H"
+#include "kMerTiny.H"
 typedef kMerTiny kMer;
 
 #else
 
-#include "kmerhuge.H"
+#include "kMerHuge.H"
 typedef kMerHuge kMer;
 
 #endif

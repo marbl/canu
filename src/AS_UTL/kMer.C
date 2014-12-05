@@ -1,4 +1,4 @@
-#include "kmer.H"
+#include "kMer.H"
 
 kMerBuilder::kMerBuilder(uint32 ms, uint32 cm, char *tm) {
   _style            = 0;
