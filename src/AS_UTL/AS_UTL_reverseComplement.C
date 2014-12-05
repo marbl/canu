@@ -68,6 +68,30 @@ reverseComplementSequence(char *seq, int len) {
     *s = inv[*s];
 }
 
+//  Inplace reverse-complement an ACGT sequence.  A pointer the the
+//  string is returned.
+//
+#if 0
+//  From kmer
+char *
+reverseComplementSequence(char *seq, uint32 seqlen) {
+  char   *s = seq;
+  char   *e = seq + seqlen - 1;
+  char    t;
+  uint32  c = seqlen / 2;
+
+  while (c--) {
+    t = complementSymbol[*s];
+    *(s++) = complementSymbol[*e];
+    *(e--) = t;
+  }
+
+  if (s == e)
+    *s = complementSymbol[*s];
+
+  return(seq);
+}
+#endif
 
 void
 reverseComplement(char *seq, char *qlt, int len) {
@@ -119,3 +143,25 @@ reverse(char *a, char *b, int len) {
     *Q-- =  c;
   }
 }
+
+
+//  Inplace reverse a string.  A pointer the the string is returned.
+//
+#if 0
+//  From kmer
+char *
+reverseString(char *seq, uint32 seqlen) {
+  char   *s = seq;
+  char   *e = seq + seqlen - 1;
+  char    t;
+  uint32  c = seqlen / 2;
+
+  while (c--) {
+    t = *s;
+    *(s++) = *e;
+    *(e--) = t;
+  }
+
+  return(seq);
+}
+#endif
