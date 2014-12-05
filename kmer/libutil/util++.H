@@ -38,7 +38,6 @@
 #include "bitPackedFile.H"
 #include "recordFile.H"
 #include "intervalList.H"
-#include "bigQueue.H"
 #include "sweatShop.H"
 #include "logMsg.H"
 
