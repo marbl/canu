@@ -23,6 +23,9 @@ SOURCES  := AS_UTL_GPL.C \
             AS_UTL_rand.C \
             AS_UTL_reverseComplement.C \
             AS_UTL_stackTrace.C \
+            bitPackedFile.C \
+            bitPackedArray.C \
+            sweatShop.C \
             kMer.C \
 
 #            decodeBooleanString.C \
