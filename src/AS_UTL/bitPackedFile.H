@@ -1,10 +1,11 @@
 #ifndef BITPACKEDFILE_H
 #define BITPACKEDFILE_H
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <assert.h>
-#include "util.h"
+#include "AS_global.H"
+
+#include "bitOperations.H"
+#include "bitEncodings.H"
+#include "bitPacking.H"
 
 //#define WITH_BZIP2
 
@@ -29,7 +30,7 @@ public:
   uint64     loadInCore(void);
 
   void       showStats(FILE *f) {
-    fprintf(f, "inside: "uint64FMT"  outside: "uint64FMT"\n", stat_seekInside, stat_seekOutside);
+    fprintf(f, "inside: "F_U64"  outside: "F_U64"\n", stat_seekInside, stat_seekOutside);
     fflush(f);
   };
 private:

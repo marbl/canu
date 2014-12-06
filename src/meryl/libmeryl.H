@@ -1,7 +1,7 @@
 #ifndef LIBMERYL_H
 #define LIBMERYL_H
 
-#include "bio++.H"
+#include "kMer.H"
 
 //  A merStream reader/writer for meryl mercount data.
 //

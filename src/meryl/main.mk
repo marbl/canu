@@ -13,7 +13,8 @@ endif
 
 #SOURCES  := 
 
-SRC_INCDIRS  := .. ../AS_UTL
+#SRC_INCDIRS  := .. ../AS_UTL
+
 SUBMAKEFILES := meryl.mk \
                 estimate-mer-threshold.mk
 

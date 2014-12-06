@@ -129,20 +129,20 @@ public:
       }
 
 #ifdef DEBUG_BPH_GET
-      fprintf(stderr, "test c="uint64FMT" and p="uint64FMT" lastVal="uint64FMT"\n",
+      fprintf(stderr, "test c="F_U64" and p="F_U64" lastVal="F_U64"\n",
               cidx, pidx, _lastVal);
-      fprintf(stderr, "test c="uint64FMT"="uint64FMT"\n",
+      fprintf(stderr, "test c="F_U64"="F_U64"\n",
               cidx, cval);
-      fprintf(stderr, "test p="uint64FMT"="uint64FMT"\n",
+      fprintf(stderr, "test p="F_U64"="F_U64"\n",
               pidx, pval);
-      fprintf(stderr, "test c="uint64FMT"="uint64FMT" and p="uint64FMT"="uint64FMT"\n",
+      fprintf(stderr, "test c="F_U64"="F_U64" and p="F_U64"="F_U64"\n",
               cidx, cval, pidx, pval);
 #endif
 
       if (cval < pval) {
 
 #ifdef DEBUG_BPH_GET
-        fprintf(stderr, "swap c="uint64FMT"="uint64FMT" and p="uint64FMT"="uint64FMT"\n",
+        fprintf(stderr, "swap c="F_U64"="F_U64" and p="F_U64"="F_U64"\n",
                 cidx, cval, pidx, pval);
 #endif
 
@@ -169,7 +169,7 @@ public:
     bool    more = false;
 
 #ifdef DEBUG_BPH_ADD
-    fprintf(stderr, "add  c="uint64FMT"="uint64FMT" -- lastVal="uint64FMT"\n",
+    fprintf(stderr, "add  c="F_U64"="F_U64" -- lastVal="F_U64"\n",
             cidx, cval, _lastVal);
 #endif
 
@@ -182,20 +182,20 @@ public:
       pidx = (cidx-1) / 2;
 
 #ifdef DEBUG_BPH_ADD
-      fprintf(stderr, "more c="uint64FMT" and p="uint64FMT"\n", cidx, pidx);
+      fprintf(stderr, "more c="F_U64" and p="F_U64"\n", cidx, pidx);
 #endif
 
       pval = _array->get(pidx);
 
 #ifdef DEBUG_BPH_ADD
-      fprintf(stderr, "test c="uint64FMT"="uint64FMT" and p="uint64FMT"="uint64FMT"\n",
+      fprintf(stderr, "test c="F_U64"="F_U64" and p="F_U64"="F_U64"\n",
               cidx, cval, pidx, pval);
 #endif
 
       if (pval > cval) {
 
 #ifdef DEBUG_BPH_ADD
-        fprintf(stderr, "swap c="uint64FMT"="uint64FMT" and p="uint64FMT"="uint64FMT"\n",
+        fprintf(stderr, "swap c="F_U64"="F_U64" and p="F_U64"="F_U64"\n",
                 cidx, cval, pidx, pval);
 #endif
 
@@ -219,7 +219,7 @@ public:
 
   void      dump(void) {
     for (uint32 i=0; i<_lastVal; i++)
-      fprintf(stderr, "HEAP["uint32FMT"]="uint64FMT"\n", i, _array->get(i));
+      fprintf(stderr, "HEAP["F_U32"]="F_U64"\n", i, _array->get(i));
   }
 
   void      clear(void) {

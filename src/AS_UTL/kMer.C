@@ -263,7 +263,7 @@ kMerBuilder::addBaseCompressed(uint64 cf, uint64 cr) {
     lb = 9;  //  No valid last base (should probably be ~uint64ZERO, but that screws up diagnostic output)
 
 #ifdef DEBUGCOMP
-  fprintf(stderr, "kMerBuilder::addBaseCompressed()--  lb="uint64FMT" cf="uint64FMT" ms="uint32FMT" ccl="uint32FMT" lvl="uint32FMT"\n",
+  fprintf(stderr, "kMerBuilder::addBaseCompressed()--  lb="uint64FMT" cf="uint64FMT" ms="F_U32" ccl="F_U32" lvl="F_U32"\n",
           lb, cf, ms, _compressionCurrentLength, _compression);
 #endif
 
@@ -355,7 +355,7 @@ kMerBuilder::addBaseCompressed(uint64 cf, uint64 cr) {
   ms -= _compressionLength[_compressionIndex];  //  subtract the count for the letter we just shifted out
 
 #ifdef DEBUGCOMP
-  fprintf(stderr, "kMerBuilder::addBaseCompressed()--  ADDNEWBASE shifted out at idx="uint32FMT" with "uint32FMT" positions; final span "uint32FMT"\n",
+  fprintf(stderr, "kMerBuilder::addBaseCompressed()--  ADDNEWBASE shifted out at idx="F_U32" with "F_U32" positions; final span "F_U32"\n",
           _compressionIndex,
           _compressionLength[_compressionIndex],
           ms + 1);

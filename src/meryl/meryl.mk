@@ -19,11 +19,11 @@ SOURCES  := meryl-args.C \
             meryl-unaryOp.C \
             meryl.C
 
-SRC_INCDIRS := ../libutil ../libbio ../libseq ../libkmer ../libmeryl
+SRC_INCDIRS  := .. ../AS_UTL
 
 TGT_LDFLAGS := -L${TARGET_DIR}
-TGT_LDLIBS  := -lseq -lbio -lkmer -lmeryl -lutil
-TGT_PREREQS := libutil.a libbio.a libkmer.a libmeryl.a
+TGT_LDLIBS  := 
+TGT_PREREQS := 
 
 SUBMAKEFILES :=
 

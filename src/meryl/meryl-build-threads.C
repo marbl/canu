@@ -1,12 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#include <pthread.h>
-
-#include "bio++.H"
 #include "meryl.H"
-#include "libmeryl.H"
 
 void
 runSegment(merylArgs *args, uint64 segment);

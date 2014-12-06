@@ -1,7 +1,14 @@
 #ifndef MERYL_H
 #define MERYL_H
 
-#include "bio++.H"
+#include "AS_global.H"
+#include "AS_UTL_fileIO.H"
+
+#include "kMer.H"
+#include "bitPackedFile.H"
+#include "libmeryl.H"
+
+#include <pthread.h>
 
 #define PERSONALITY_MERGE         0xff
 

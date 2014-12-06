@@ -15,7 +15,7 @@
 
 //  As CHECK_WIDTH is kind of expensive, we'll warn.
 #ifdef CHECK_WIDTH
-#warning libutil/bitPacking.h defined CHECK_WIDTH
+#warning CHECK_WIDTH is EXPENSIVE
 #endif
 
 //  Returns 'siz' bits from the stream based at 'ptr' and currently at

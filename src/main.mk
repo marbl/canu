@@ -27,7 +27,9 @@ SOURCES  := AS_global.C \
             AS_UTL/AS_UTL_stackTrace.C \
             AS_UTL/AS_UTL_testhisto.C \
             \
-            stores/gkStore.C
+            stores/gkStore.C \
+            \
+            meryl/libmeryl.C
 
 #  Not complete, just snippets of code
 #            AS_UTL/decodeBooleanString.C
@@ -44,4 +46,5 @@ SRC_INCDIRS  := . AS_UTL
 #  Cannot be the 'main.mk' from subdirectories, as that redefines libCA.a to
 #  update just those objects.  Instead, this must list each binary indifidually.
 SUBMAKEFILES := stores/gatekeeperCreate.mk \
-                stores/gatekeeperDumpFASTQ.mk
+                stores/gatekeeperDumpFASTQ.mk \
+                meryl/main.mk

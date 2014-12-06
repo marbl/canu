@@ -28,6 +28,7 @@
 #include "AS_global.H"
 
 #include "bitPackedFile.H"
+#include "dnaAlphabets.H"
 
 //  The kmer class is in two mutually exclusive implementations.  The first implementation
 //  uses one word to store up to 32-mers.  The second implementation uses multiple words
@@ -142,8 +143,8 @@ private:
 
 public:
   bool    addBase(char ch) {
-    uint64  cf = letterToBits[ch];
-    uint64  cr = letterToBits[complementSymbol[ch]];
+    uint64  cf = alphabet.letterToBits(ch);
+    uint64  cr = alphabet.letterToBits(alphabet.complementSymbol(ch));
 
 #ifdef DEBUGADDBASE
     fprintf(stderr, "addBase() %c\n", ch);

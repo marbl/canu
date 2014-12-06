@@ -40,7 +40,7 @@ size_t  AS_UTL_safeRead (FILE *file, void *buffer,       const char *desc, size_
 int     AS_UTL_mkdir(const char *dirname);
 int     AS_UTL_unlink(const char *filename);
 
-int     AS_UTL_fileExists(const char *path, int directory, int readwrite);
+int     AS_UTL_fileExists(const char *path, int directory=false, int readwrite=false);
 off_t   AS_UTL_sizeOfFile(const char *path);
 
 off_t   AS_UTL_ftell(FILE *stream);

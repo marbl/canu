@@ -1,5 +1,7 @@
 #include "libmeryl.H"
 
+#include "AS_UTL_fileIO.H"
+
 #define LIBMERYL_HISTOGRAM_MAX  1048576
 
 //                      0123456789012345
@@ -28,7 +30,7 @@ merylStreamReader::merylStreamReader(const char *fn, uint32 ms) {
   _DAT = new bitPackedFile(inpath);
 
   sprintf(inpath, "%s.mcpos", fn);
-  if (fileExists(inpath))
+  if (AS_UTL_fileExists(inpath))
     _POS = new bitPackedFile(inpath);
   else
     _POS = 0L;
@@ -118,20 +120,20 @@ merylStreamReader::merylStreamReader(const char *fn, uint32 ms) {
   _validMer       = true;
 
 #ifdef SHOW_VARIABLES
-  fprintf(stderr, "_merSizeInBits  = "uint32FMT"\n", _merSizeInBits);
-  fprintf(stderr, "_merCompression = "uint32FMT"\n", _merCompression);
-  fprintf(stderr, "_prefixSize     = "uint32FMT"\n", _prefixSize);
-  fprintf(stderr, "_merDataSize    = "uint32FMT"\n", _merDataSize);
-  fprintf(stderr, "_numUnique      = "uint64FMT"\n", _numUnique);
-  fprintf(stderr, "_numDistinct    = "uint64FMT"\n", _numDistinct);
-  fprintf(stderr, "_numTotal       = "uint64FMT"\n", _numTotal);
-  fprintf(stderr, "_thisBucket     = "uint64FMT"\n", _thisBucket);
-  fprintf(stderr, "_thisBucketSize = "uint64FMT"\n", _thisBucketSize);
-  fprintf(stderr, "_thisMerCount   = "uint64FMT"\n", _thisMerCount);
+  fprintf(stderr, "_merSizeInBits  = "F_U32"\n", _merSizeInBits);
+  fprintf(stderr, "_merCompression = "F_U32"\n", _merCompression);
+  fprintf(stderr, "_prefixSize     = "F_U32"\n", _prefixSize);
+  fprintf(stderr, "_merDataSize    = "F_U32"\n", _merDataSize);
+  fprintf(stderr, "_numUnique      = "F_U64"\n", _numUnique);
+  fprintf(stderr, "_numDistinct    = "F_U64"\n", _numDistinct);
+  fprintf(stderr, "_numTotal       = "F_U64"\n", _numTotal);
+  fprintf(stderr, "_thisBucket     = "F_U64"\n", _thisBucket);
+  fprintf(stderr, "_thisBucketSize = "F_U64"\n", _thisBucketSize);
+  fprintf(stderr, "_thisMerCount   = "F_U64"\n", _thisMerCount);
 #endif
 
   if ((ms > 0) && (_merSizeInBits >> 1 != ms)) {
-    fprintf(stderr, "merylStreamReader()-- ERROR: User requested mersize "uint32FMT" but '%s' is mersize "uint32FMT"\n",
+    fprintf(stderr, "merylStreamReader()-- ERROR: User requested mersize "F_U32" but '%s' is mersize "F_U32"\n",
             ms, fn, _merSizeInBits >> 1);
     exit(1);
   }

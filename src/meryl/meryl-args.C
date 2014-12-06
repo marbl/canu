@@ -1,9 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <string.h>
-
-#include "bio++.H"
 #include "meryl.H"
 
 
@@ -23,7 +17,7 @@ writeString(const char *str, FILE *F) {
   }
 
   if (errno) {
-    fprintf(stderr, "writeString()-- Failed to write string of length "uint32FMT": %s\n", len, strerror(errno));
+    fprintf(stderr, "writeString()-- Failed to write string of length "F_U32": %s\n", len, strerror(errno));
     fprintf(stderr, "writeString()-- First 80 bytes of string is:\n");
     fprintf(stderr, "%80.80s\n", str);
     return(false);

@@ -376,7 +376,7 @@ endif
 ifeq (${OSTYPE}, FreeBSD)
   CC       := gcc48
   CXX      := g++48
-  CXXFLAGS := -pthread -fPIC #-Wall -Wextra -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat
+  CXXFLAGS := -pthread -fPIC -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare # -Wformat -Wall -Wextra 
   LDFLAGS  := -pthread -lm
 
   CXXFLAGS  += -fopenmp

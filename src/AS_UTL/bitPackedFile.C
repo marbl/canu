@@ -364,7 +364,7 @@ bitPackedFile::seekNormal(uint64 bitpos) {
   errno = 0;
   lseek(_file, _pos * 8 + endianess_offset, SEEK_SET);
   if (errno) {
-    fprintf(stderr, "bitPackedFile::seekNormal() '%s' seek to pos="uint64FMT" failed: %s\n",
+    fprintf(stderr, "bitPackedFile::seekNormal() '%s' seek to pos="F_U64" failed: %s\n",
             _name,
             _pos * 8 + endianess_offset, strerror(errno));
     exit(1);
@@ -373,7 +373,7 @@ bitPackedFile::seekNormal(uint64 bitpos) {
   errno = 0;
   size_t wordsread = read(_file, _bfr, sizeof(uint64) * _bfrmax);
   if (errno) {
-    fprintf(stderr, "bitPackedFile::seekNormal() '%s' read of "uint64FMT" bytes failed': %s\n",
+    fprintf(stderr, "bitPackedFile::seekNormal() '%s' read of "F_U64" bytes failed': %s\n",
             _name,
             sizeof(uint64) * _bfrmax,
             strerror(errno));
@@ -411,7 +411,7 @@ bitPackedFile::seek(uint64 bitpos) {
     if ((_pos <= np) && (np <= _pos + _bfrmax - 32)) {
       _bit = bitpos - (_pos << 6);
       stat_seekInside++;
-      //fprintf(stderr, "SEEK INSIDE to _bit="uint64FMT"\n", _bit);
+      //fprintf(stderr, "SEEK INSIDE to _bit="F_U64"\n", _bit);
       return;
     }
   }
@@ -433,7 +433,7 @@ bitPackedFile::seek(uint64 bitpos) {
 
   _forceFirstLoad = false;
 
-  //fprintf(stderr, "SEEK OUTSIDE to _pos="uint64FMT" _bit="uint64FMT"\n", _pos, _bit);
+  //fprintf(stderr, "SEEK OUTSIDE to _pos="F_U64" _bit="F_U64"\n", _pos, _bit);
 }
 
 
