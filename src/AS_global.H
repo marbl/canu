@@ -98,9 +98,9 @@ typedef uint64_t uint64;
 
 typedef void* PtrT;
 
-//  Correct?  Or one too many L's?
-#define  uint64NUMBER(X) X ## LLU
-#define  uint32NUMBER(X) X ## LU
+//  Correct?  Or should it be LLU and LU?
+#define  uint64NUMBER(X) X ## LU
+#define  uint32NUMBER(X) X ## U
 
 #define  uint64ZERO      uint64NUMBER(0x0000000000000000)
 #define  uint64ONE       uint64NUMBER(0x0000000000000001)
@@ -134,14 +134,11 @@ typedef void* PtrT;
 #define  uint8MAX        (0xff)
 #define  uint8MASK(X)    ((~uint8ZERO) >> (8 - (X)))
 
+
 #define  strtouint32(N,O) (uint32)strtoul (N, O, 10)
 #define  strtouint64(N,O) (uint64)strtoull(N, O, 10)
 
 
-
-#ifndef UINT32_MAX
-#error UINT32_MAX not defined; if new code, AS_global.h must be the first include
-#endif
 
 // Pointers
 #define F_P           "%p"

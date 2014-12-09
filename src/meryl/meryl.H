@@ -8,6 +8,9 @@
 #include "bitPackedFile.H"
 #include "libmeryl.H"
 
+#include "speedCounter.H"
+#include "timeAndSize.H"
+
 #include <pthread.h>
 
 #define PERSONALITY_MERGE         0xff

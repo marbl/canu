@@ -1,11 +1,7 @@
-#include <stdio.h>
-#include <stdlib.h>
-
-#include "bio++.H"
-#include "seqStream.H"
-#include "merStream.H"
-#include "libmeryl.H"
 #include "meryl.H"
+#include "libleaff/seqCache.H"
+#include "libleaff/seqStore.H"
+#include "libleaff/merStream.H"
 
 //  Takes a memory limit in MB, returns the number of mers that we can
 //  fit in that memory size, assuming optimalNumberOfBuckets() below
@@ -80,7 +76,7 @@ estimateNumMersInMemorySize(uint32 merSize,
         //
         if ((Nmin <= n) && (n <= Nmax)) {
 
-          //fprintf(stderr, "prefixSize="uint64FMTW(2)" numMers="uint64FMTW(9)" memory=%.3fMB\n",
+          //fprintf(stderr, "prefixSize=%2"F_U64" numMers=%9"F_U64" memory=%.3fMB\n",
           //        t, n,
           //        (((uint64ONE << t) * logBaseTwo64(n) + n * (2*merSize - t + posPerMer)) >> 3) / 1048576.0);
 
@@ -99,7 +95,7 @@ estimateNumMersInMemorySize(uint32 merSize,
   }
 
   if (beVerbose)
-    fprintf(stdout, "Can fit "uint64FMT" mers into table with prefix of "uint64FMT" bits, using %8.3fMB (%8.3fMB for positions)\n",
+    fprintf(stdout, "Can fit "F_U64" mers into table with prefix of "F_U64" bits, using %8.3fMB (%8.3fMB for positions)\n",
             maxN,
             bestT,
             (((uint64ONE << bestT) * logBaseTwo64(maxN) + maxN * (2*merSize - bestT + posPerMer)) >> 3) / 1048576.0,
@@ -138,7 +134,7 @@ optimalNumberOfBuckets(uint32 merSize,
   for (h=2; h<=hmax && h<2*merSize; h++) {
     s = (uint64ONE << h) * hwidth + numMers * (2 * merSize - h + posPerMer);
 
-    //fprintf(stderr, "optimalNumberOfBuckets()-- h="uint64FMT" s="uint64FMT"\n", h, s);
+    //fprintf(stderr, "optimalNumberOfBuckets()-- h="F_U64" s="F_U64"\n", h, s);
 
     if (s < opts) {
       opth = h;
@@ -177,6 +173,6 @@ estimate(merylArgs *args) {
   uint64 memu = ((uint64ONE << opth)    * logBaseTwo64(args->numMersEstimated+1) +
                  args->numMersEstimated * (2 * args->merSize - opth));
 
-  fprintf(stderr, uint64FMT" "uint32FMT"-mers can be computed using "uint64FMT"MB memory.\n",
+  fprintf(stderr, F_U64" "F_U32"-mers can be computed using "F_U64"MB memory.\n",
           args->numMersEstimated, args->merSize, memu >> 23);
 }

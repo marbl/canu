@@ -1,5 +1,7 @@
 #include "meryl.H"
 
+#include "seqStream.H"
+#include "merStream.H"
 #include "speedCounter.H"
 
 //#include "../../kmer/libseq/seqStream.H"
@@ -226,8 +228,6 @@ prepareBatch(merylArgs *args) {
     }
   }
 
-#warning NO SEQSTREAM
-#if 0
   {
     seqStream *seqstr = new seqStream(args->inputFile);
 
@@ -241,7 +241,6 @@ prepareBatch(merylArgs *args) {
 
     delete merstr;
   }
-#endif
 
 #warning not submitting prepareBatch to grid
 #if 0
@@ -337,7 +336,6 @@ prepareBatch(merylArgs *args) {
 
 void
 runSegment(merylArgs *args, uint64 segment) {
-#warning NO SEQSTREAM
   merStream           *M  = 0L;
   merylStreamWriter   *W  = 0L;
   speedCounter        *C  = 0L;
@@ -416,14 +414,11 @@ runSegment(merylArgs *args, uint64 segment) {
   //  The last segment goes until the stream runs out of mers,
   //  everybody else does args->basesPerBatch mers.
 
-#warning NO SEQSTREAM
-#if 0
   C = new speedCounter(" Counting mers in buckets: %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, args->beVerbose);
   M = new merStream(new kMerBuilder(args->merSize, args->merComp),
                     new seqStream(args->inputFile),
                     true, true);
   M->setBaseRange(args->basesPerBatch * segment, args->basesPerBatch * segment + args->basesPerBatch);
-#endif
 
   char mstring[256];
 

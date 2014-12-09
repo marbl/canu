@@ -1,7 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-
-#include "util++.H"
+#include "speedCounter.H"
 
 const char*
 speedCounter::_spinr[4] = { "[|]", "[/]", "[-]", "[\\]" };

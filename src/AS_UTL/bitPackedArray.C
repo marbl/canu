@@ -5,7 +5,8 @@
 #include <string.h>
 #include <strings.h>
 
-#include "util++.H"
+#include "bitPackedArray.H"
+#include "bitPacking.H"
 
 bitPackedArray::bitPackedArray(uint32 valueWidth, uint32 segmentSize) {
   _valueWidth       = valueWidth;

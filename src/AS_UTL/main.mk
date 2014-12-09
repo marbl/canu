@@ -23,10 +23,17 @@ SOURCES  := AS_UTL_GPL.C \
             AS_UTL_rand.C \
             AS_UTL_reverseComplement.C \
             AS_UTL_stackTrace.C \
+            bitEncodings.C \
             bitPackedFile.C \
             bitPackedArray.C \
+            dnaAlphabets.C \
+            md5.C \
+            mt19937ar.C \
+            readBuffer.C \
+            speedCounter.C \
             sweatShop.C \
-            kMer.C \
+            timeAndSize.C \
+            kMer.C
 
 #            decodeBooleanString.C \
 #            AS_UTL_stackTraceTest.C \

@@ -11,19 +11,21 @@ endif
 TARGET   := meryl
 SOURCES  := meryl-args.C \
             meryl-binaryOp.C \
-            meryl-build-threads.C \
             meryl-build.C \
+            meryl-build-threads.C \
             meryl-dump.C \
             meryl-estimate.C \
             meryl-merge.C \
             meryl-unaryOp.C \
             meryl.C
 
-SRC_INCDIRS  := .. ../AS_UTL
+#            meryl-build.C \
+
+SRC_INCDIRS  := .. ../AS_UTL libleaff
 
 TGT_LDFLAGS := -L${TARGET_DIR}
-TGT_LDLIBS  := 
-TGT_PREREQS := 
+TGT_LDLIBS  := -lleaff -lCA
+TGT_PREREQS := libleaff.a libCA.a
 
 SUBMAKEFILES :=
 

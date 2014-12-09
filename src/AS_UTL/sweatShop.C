@@ -1,14 +1,7 @@
 #include "sweatShop.H"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <sys/time.h>
-#include <time.h>
+#include "timeAndSize.H"
 
 #include <sched.h>  //  pthread scheduling stuff
-
 
 
 class sweatShopWorker {

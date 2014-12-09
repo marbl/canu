@@ -25,7 +25,17 @@ SOURCES  := AS_global.C \
             AS_UTL/AS_UTL_rand.C \
             AS_UTL/AS_UTL_reverseComplement.C \
             AS_UTL/AS_UTL_stackTrace.C \
-            AS_UTL/AS_UTL_testhisto.C \
+            AS_UTL/bitEncodings.C \
+            AS_UTL/bitPackedFile.C \
+            AS_UTL/bitPackedArray.C \
+            AS_UTL/dnaAlphabets.C \
+            AS_UTL/md5.C \
+            AS_UTL/mt19937ar.C \
+            AS_UTL/readBuffer.C \
+            AS_UTL/speedCounter.C \
+            AS_UTL/sweatShop.C \
+            AS_UTL/timeAndSize.C \
+            AS_UTL/kMer.C \
             \
             stores/gkStore.C \
             \

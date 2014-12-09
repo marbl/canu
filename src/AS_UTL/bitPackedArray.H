@@ -1,6 +1,8 @@
 #ifndef BITPACKEDARRAY_H
 #define BITPACKEDARRAY_H
 
+#include "AS_global.H"
+
 #undef  DEBUG_BPH_ADD
 #undef  DEBUG_BPH_GET
 

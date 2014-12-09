@@ -34,6 +34,10 @@ static const char *rcsid_AS_UTL_FILEIO_H = "$Id$";
 //  be a little more friendly (big writes are usually not
 //  interruptable).
 
+#ifndef O_LARGEFILE
+#define O_LARGEFILE 0
+#endif
+
 void    AS_UTL_safeWrite(FILE *file, const void *buffer, const char *desc, size_t size, size_t nobj);
 size_t  AS_UTL_safeRead (FILE *file, void *buffer,       const char *desc, size_t size, size_t nobj);
 

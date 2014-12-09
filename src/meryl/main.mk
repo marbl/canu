@@ -15,7 +15,9 @@ endif
 
 #SRC_INCDIRS  := .. ../AS_UTL
 
-SUBMAKEFILES := meryl.mk \
+SUBMAKEFILES := libleaff.mk \
+                leaff.mk \
+                meryl.mk \
                 estimate-mer-threshold.mk
 
 #                mercy.mk \

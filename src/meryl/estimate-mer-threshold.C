@@ -21,14 +21,7 @@
 
 const char *mainid = "$Id$";
 
-#include <stdio.h>
-#include <stdlib.h>
-
 #include "AS_global.H"
-
-#include "bio++.H"
-#include "sweatShop.H"
-#include "positionDB.H"
 #include "libmeryl.H"
 
 

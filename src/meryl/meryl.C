@@ -3,7 +3,6 @@
 #include <errno.h>
 #include <string.h>
 
-#include "bio++.H"
 #include "meryl.H"
 
 int

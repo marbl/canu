@@ -1,11 +1,14 @@
-#include "util++.H"
+#include "AS_global.H"
+#include "bitPackedFile.H"
+#include "AS_UTL_fileIO.H"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
-#include <string.h>
+//#include <stdio.h>
+//#include <stdlib.h>
+//#include <unistd.h>
+//#include <errno.h>
+//#include <string.h>
 #include <fcntl.h>
+
 
 //  N.B. any read() / write() pair (either order) must have a seek (or
 //  a fflush) in between.
@@ -58,7 +61,7 @@ bitPackedFile::bitPackedFile(char const *name, uint64 offset, bool forceTruncate
     if (errno)
       fprintf(stderr, "bitPackedFile::bitPackedFile()-- failed to open and truncate '%s': %s\n",
               _name, strerror(errno)), exit(1);
-  } else if (fileExists(_name)) {
+  } else if (AS_UTL_fileExists(_name)) {
     errno = 0;
     _file = open(_name,
                  O_RDONLY | O_LARGEFILE,
@@ -165,7 +168,7 @@ bitPackedFile::bitPackedFile(char const *name, uint64 offset, bool forceTruncate
     fprintf(stderr, "bitPackedFile::bitPackedFile()-- found ");
     for (uint32 i=0; i<16; i++)
       fprintf(stderr, "%c", isascii(c[i]) ? c[i] : '.');
-    fprintf(stderr, " at position "uint64HEX"\n", file_offset);
+    fprintf(stderr, " at position "F_X64"\n", file_offset);
     exit(1);
   }
 

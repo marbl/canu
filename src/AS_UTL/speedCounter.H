@@ -1,7 +1,8 @@
 #ifndef SPEEDCOUNTER_H
 #define SPEEDCOUNTER_H
 
-#include <stdio.h>
+#include "AS_global.H"
+#include "timeAndSize.H"
 
 class speedCounter {
 public:

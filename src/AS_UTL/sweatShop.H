@@ -4,7 +4,7 @@
 #include <pthread.h>
 #include <semaphore.h>
 
-#include "util++.H"
+#include "AS_global.H"
 
 class sweatShopWorker;
 class sweatShopState;

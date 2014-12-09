@@ -22,26 +22,16 @@
 
 //static const char *rcsid = "$Id$";
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <sys/types.h>
+#include "AS_global.H"
+#include "AS_UTL_fileIO.H"
+
 #include <fcntl.h>
-#include <sys/stat.h>
 #include <sys/mman.h>
-#include <sys/sysctl.h>
 
 #include <set>
 #include <map>
 using namespace std;
 
-#ifndef O_LARGEFILE
-#define O_LARGEFILE 0
-#endif
-
-#define F_SIZE_T     "%zu"
-typedef uint32_t uint32;
-typedef uint64_t uint64;
 
 //  Note that the BSD's are able to map to an arbitrary position in the file,
 //  but the Linux's can only map to multiples of pagesize.  Thus, this class
