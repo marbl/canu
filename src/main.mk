@@ -39,6 +39,9 @@ SOURCES  := AS_global.C \
             \
             stores/gkStore.C \
             \
+            stores/ovStore.C \
+            stores/ovStoreFile.C \
+            \
             meryl/libmeryl.C
 
 #  Not complete, just snippets of code
@@ -57,4 +60,5 @@ SRC_INCDIRS  := . AS_UTL
 #  update just those objects.  Instead, this must list each binary indifidually.
 SUBMAKEFILES := stores/gatekeeperCreate.mk \
                 stores/gatekeeperDumpFASTQ.mk \
-                meryl/main.mk
+                meryl/main.mk \
+                AS_OVM/overlapInCore.mk

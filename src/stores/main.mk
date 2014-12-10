@@ -9,7 +9,9 @@ endif
 
 TARGET   := libCA.a
 
-SOURCES  := gkStore.C
+SOURCES  := gkStore.C \
+            ovStore.C \
+            ovStoreFile.C
 
 SRC_INCDIRS  := .. ../AS_UTL
 SUBMAKEFILES := gatekeeperCreate.mk \
