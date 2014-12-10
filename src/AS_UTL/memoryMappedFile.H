@@ -132,7 +132,7 @@ public:
     //  Map a region that allows reading and writing.
     //  Do not dump the memory in a core file.
 
-    pt = mmap(0L, ln, PROT_READ | PROT_WRITE, MAP_FILE | MAP_SHARED | MAP_NOCORE, fd, 0);
+    pt = mmap(0L, ln, PROT_READ | PROT_WRITE, MAP_FILE | MAP_SHARED, fd, 0);
     if (errno)
       fprintf(stderr, "memoryMappedFileRW()-- Couldn't mmap '%s': %s\n", nm, strerror(errno)), exit(1);
 
