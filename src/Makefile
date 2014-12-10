@@ -359,10 +359,13 @@ ${info Building for ${OSTYPE} ${OSVERSION} as ${MACHINETYPE}}
 # (BPW) Set compiler and flags based on discovered hardware
 
 ifeq (${OSTYPE}, Linux)
-  CC       := gcc
-  CXX      := g++
-  CXXFLAGS := -D_GLIBCXX_PARALLEL -O3 -fPIC -m64 -pipe -Wno-write-strings
-  LDFLAGS  := -lm
+  CC        := gcc
+  CXX       := g++
+  CXXFLAGS  := -pthread -fPIC -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare # -Wformat -Wall -Wextra 
+  LDFLAGS   := -pthread -lm
+
+  CXXFLAGS  += -D_GLIBCXX_PARALLEL -fopenmp
+  LDFLAGS   +=                     -fopenmp
 endif
 
 ifeq (${OSTYPE}, Darwin)
