@@ -373,7 +373,7 @@ ifeq (${OSTYPE}, Darwin)
   CXX      := g++
   CFLAGS   := -pthread -fopenmp -D_GLIBCXX_PARALLEL -O3 -fPIC -m64 -Wall -Wextra -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat
   CXXFLAGS := -pthread -fopenmp -D_GLIBCXX_PARALLEL -O3 -fPIC -m64 -Wall -Wextra -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat
-  LDFLAGS  := -pthread -fopenmp lm
+  LDFLAGS  := -pthread -fopenmp -lm
 endif
 
 ifeq (${OSTYPE}, FreeBSD)
