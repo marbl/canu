@@ -105,7 +105,7 @@ main(int argc, char **argv) {
 
   uint32           libToDump         = 0;
 
-  uint32           bgnID             = 0;
+  uint32           bgnID             = 1;
   uint32           endID             = AS_MAX_READS;
 
   bool             dumpAllBases      = true;
@@ -163,10 +163,16 @@ main(int argc, char **argv) {
   uint32      numReads  = gkpStore->gkStore_getNumReads();
   uint32      numLibs   = gkpStore->gkStore_getNumLibraries();
 
+  if (bgnID < 1)
+    bgnID = 1;
+
   if (numReads < endID)
     endID = numReads;
 
-  fprintf(stderr, "Dumping reads from %u to %u (inclusive).\n", bgnID, endID - 1);
+  if (endID < bgnID)
+    fprintf(stderr, "No reads to dump; reversed ranges make no sense: bgn="F_U32" end="F_U32"??\n", bgnID, endID);
+
+  fprintf(stderr, "Dumping reads from %u to %u (inclusive).\n", bgnID, endID);
 
   libOutput   **out     = new libOutput * [numLibs];
 
@@ -230,9 +236,9 @@ main(int argc, char **argv) {
                       "@"F_U32" clr="F_U32","F_U32"\n",
                       rid, lclr, rclr);
 
-    AS_UTL_writeFastQ(stdout, seq, (rdump - ldump), qlt, (rdump - ldump),
-                      "@"F_U32" clr="F_U32","F_U32"\n",
-                      rid, lclr, rclr);
+    //AS_UTL_writeFastQ(stdout, seq, (rdump - ldump), qlt, (rdump - ldump),
+    //                  "@"F_U32" clr="F_U32","F_U32"\n",
+    //                  rid, lclr, rclr);
   }
 
   delete gkpStore;

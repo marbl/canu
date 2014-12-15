@@ -123,6 +123,9 @@ loadFASTQ(gkStore *gkpStore,
 
   gkReadData *nd = nr->gkRead_encodeSeqQlt(L, S, Q);
 
+  //  Figure out a clear range
+#warning NEED TO PARSE CLEAR RANGE FROM HEADER LINE
+
   //  Stash the encoded data in the store
 
   gkpStore->gkStore_stashReadData(nr, nd);
@@ -147,18 +150,24 @@ loadFASTQ(gkStore *gkpStore,
 
 void
 loadReads(gkStore *gkpStore, gkLibrary *gkpLibrary, char *fileName) {
+  char    *L = new char [AS_MAX_READLEN + 1];
+  char    *H = new char [AS_MAX_READLEN + 1];
+
+  uint32   Slen = 0;
+  char    *S = new char [AS_MAX_READLEN + 1];
+
+  uint32   Qlen = 0;
+  char    *Q = new char [AS_MAX_READLEN + 1];
+
+  uint64   lineNumber = 0;
+
+  fprintf(stderr, "loadReads()-- Loading reads from '%s'\n", fileName);
+
   compressedFileReader *F = new compressedFileReader(fileName);
 
-  char                 *L = new char [AS_MAX_READLEN + 1];
-  char                 *H = new char [AS_MAX_READLEN + 1];
-
-  uint32                Slen = 0;
-  char                 *S = new char [AS_MAX_READLEN + 1];
-
-  uint32                Qlen = 0;
-  char                 *Q = new char [AS_MAX_READLEN + 1];
-
-  uint64                lineNumber = 0;
+  uint32   nFASTA = 0;
+  uint32   nFASTQ = 0;
+  uint32   nERROR = 0;
 
   fgets(L, AS_MAX_READLEN, F->file());
   chomp(L);
@@ -167,16 +176,19 @@ loadReads(gkStore *gkpStore, gkLibrary *gkpLibrary, char *fileName) {
 
     if      (L[0] == '>') {
       lineNumber += loadFASTA(gkpStore, gkpLibrary, L, H, S, F);
+      nFASTA++;
     }
 
     else if (L[0] == '@') {
       lineNumber += loadFASTQ(gkpStore, gkpLibrary, L, H, S, Q, F);
+      nFASTQ++;
     }
 
     else {
       fprintf(stderr, "loadReads()-- invalid read header '%s' in file '%s' at line "F_U64", skipping.\n",
               L, fileName, lineNumber);
       L[0] = 0;
+      nERROR++;
     }
 
     //  If L[0] is nul, we need to load the next line.  If not, the next line is the header (from
@@ -189,6 +201,11 @@ loadReads(gkStore *gkpStore, gkLibrary *gkpLibrary, char *fileName) {
   }
 
   delete F;
+
+  if (nFASTA > 0)
+    fprintf(stderr, "loadReads()-- Loaded "F_U32" FASTA format reads from '%s'.\n", nFASTA, fileName);
+  if (nFASTQ > 0)
+    fprintf(stderr, "loadReads()-- Loaded "F_U32" FASTQ format reads from '%s'.\n", nFASTQ, fileName);
 };
 
 
@@ -292,7 +309,7 @@ main(int argc, char **argv) {
     chomp(line);
 
     while (!feof(inFile->file())) {
-      fprintf(stderr, "LINE '%s'\n", line);
+      //fprintf(stderr, "LINE '%s'\n", line);
 
       keyval.find(line);
 

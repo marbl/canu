@@ -162,6 +162,8 @@ gkStore::gkStore_stashReadData(gkRead *read, gkReadData *data) {
 
   assert(_blobsFile != NULL);
 
+  fprintf(stderr, "STASH read %u at position "F_SIZE_T"\n", read->gkRead_readID(), AS_UTL_ftell(_blobsFile));
+
   if (_numberOfPartitions == 0) {
     read->_mPtr = AS_UTL_ftell(_blobsFile);
 
@@ -661,29 +663,34 @@ gkStore::gkStore_addEmptyLibrary(char const *name) {
 
   char    libname[LIBRARY_NAME_SIZE];
   uint32  libnamepos = 0;
+  bool    modified   = false;
+  bool    truncated  = false;
 
   for (char const *orig=name; *orig; orig++) {
     if        (*orig == '/') {
       libname[libnamepos++] = '_';
       libname[libnamepos++] = '-';
       libname[libnamepos++] = '_';
+      modified = true;
+
     } else if (isspace(*orig) == 0) {
       libname[libnamepos++] = *orig;
+
     } else {
       libname[libnamepos++] = '_';
+      modified = true;
     }
 
     if (libnamepos >= LIBRARY_NAME_SIZE) {
       libname[LIBRARY_NAME_SIZE-1] = 0;
-      fprintf(stderr, "gkStore_addEmptyLibrary()--  WARNING: library name '%s' truncated to '%s'\n",
-              name, libname);
+      truncated = true;
       break;
     }
   }
 
   libname[libnamepos] = 0;
 
-  if (strcmp(libname, name) != 0)
+  if (modified || truncated)
     fprintf(stderr, "gkStore_addEmptyLibrary()--  added library '%s' (original name '%s')\n",
             libname, name);
   else
@@ -719,8 +726,6 @@ gkStore::gkStore_addEmptyRead(gkLibrary *lib) {
   //  to iterate up to and including _info.numReads.
 
   _info.numReads++;
-
-  fprintf(stderr, "CREATE read %u\n", _info.numReads);
 
   _reads[_info.numReads] = gkRead();
   _reads[_info.numReads]._readID    = _info.numReads;

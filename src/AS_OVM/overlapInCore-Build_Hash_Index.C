@@ -467,6 +467,8 @@ Build_Hash_Index(gkStore *gkpStore, uint32 bgnID, uint32 endID) {
       maxAlloc += read->gkRead_sequenceLength() + 1;
     else
       maxAlloc += read->gkRead_clearRegionLength() + 1;
+
+    fprintf(stderr, F_U64" len "F_U64" "F_U64"\n", maxAlloc, read->gkRead_sequenceLength(), read->gkRead_clearRegionLength());
   }
 
   fprintf(stderr, "Found "F_U32" reads with length "F_U64" to load; "F_U32" deleted and "F_U32" skipped per library restriction\n",
@@ -474,6 +476,8 @@ Build_Hash_Index(gkStore *gkpStore, uint32 bgnID, uint32 endID) {
 
   //  This should be less than what the user requested on the command line
 
+  if (maxAlloc >= G.Max_Hash_Data_Len + AS_MAX_READLEN)
+    fprintf(stderr, "maxAlloc = "F_U64" G.Max_Hash_Data_Len = "F_U64"  AS_MAX_READLEN = %u\n", maxAlloc, G.Max_Hash_Data_Len, AS_MAX_READLEN);
   assert(maxAlloc < G.Max_Hash_Data_Len + AS_MAX_READLEN);
 
   //  Allocate space, then fill it.
@@ -574,6 +578,8 @@ Build_Hash_Index(gkStore *gkpStore, uint32 bgnID, uint32 endID) {
                hash_entry_limit,
                100.0 * Hash_Entries / (HASH_TABLE_SIZE * ENTRIES_PER_BUCKET));
   }
+
+  curID--;  //  We always stop on the read after we loaded.
 
   fprintf(stderr, "HASH LOADING STOPPED: strings  %12"F_U64P" out of %12"F_U32P" max.\n", String_Ct, G.Max_Hash_Strings);
   fprintf(stderr, "HASH LOADING STOPPED: length   %12"F_U64P" out of %12"F_U64P" max.\n", total_len, G.Max_Hash_Data_Len);

@@ -51,10 +51,10 @@ ovFile::ovFile(const char  *name,
   //  The buffer size must hold an integer number of overlaps, otherwise the reader
   //  will read partial overlaps and fail.
 
-  fprintf(stderr, "lcm = %u\n", lcm);
-  fprintf(stderr, "_bufferMax = %u\n", _bufferMax);
-  fprintf(stderr, "sizeof(uint32) = %u\n", sizeof(uint32));
-  fprintf(stderr, "sizeof(ovsOverlapDAT) = %u\n", sizeof(ovsOverlapDAT));
+  //fprintf(stderr, "lcm = %u\n", lcm);
+  //fprintf(stderr, "_bufferMax = %u\n", _bufferMax);
+  //fprintf(stderr, "sizeof(uint32) = %u\n", sizeof(uint32));
+  //fprintf(stderr, "sizeof(ovsOverlapDAT) = %u\n", sizeof(ovsOverlapDAT));
 
   assert(_bufferMax % ((sizeof(uint32) * 1) + (sizeof(ovsOverlapDAT))) == 0);
   assert(_bufferMax % ((sizeof(uint32) * 2) + (sizeof(ovsOverlapDAT))) == 0);
