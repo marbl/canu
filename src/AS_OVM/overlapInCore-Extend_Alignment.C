@@ -221,7 +221,7 @@ Prefix_Edit_Dist(char A[], int m, char T[], int n, int Error_Limit,
         // Assumes  Branch_Match_Value
         //             - Branch_Error_Value == 1.0
         Tail_Len = Row - Max_Score_Len;
-        if  ((Doing_Partial_Overlaps && Score < Max_Score)
+        if  ((G.Doing_Partial_Overlaps && Score < Max_Score)
              ||  (e > MIN_BRANCH_END_DIST / 2
                   && Tail_Len >= MIN_BRANCH_END_DIST
                   && (Max_Score - Score) / Tail_Len >= MIN_BRANCH_TAIL_SLOPE)) {
@@ -381,7 +381,7 @@ Rev_Prefix_Edit_Dist (char A[], int m, char T[], int n, int Error_Limit,
         // Assumes  Branch_Match_Value
         //             - Branch_Error_Value == 1.0
         Tail_Len = Row - Max_Score_Len;
-        if  ((Doing_Partial_Overlaps && Score < Max_Score)
+        if  ((G.Doing_Partial_Overlaps && Score < Max_Score)
              || (e > MIN_BRANCH_END_DIST / 2
                  && Tail_Len >= MIN_BRANCH_END_DIST
                  && (Max_Score - Score) / Tail_Len >= MIN_BRANCH_TAIL_SLOPE)) {
@@ -539,7 +539,7 @@ Extend_Alignment(Match_Node_t * Match, char * S, int S_Len, char * T, int T_Len,
   (* T_Lo) += T_Left_Begin + 1;        // Check later for branch points
 
   if  (! Right_Match_To_End) {
-    if  (! Doing_Partial_Overlaps)
+    if  (! G.Doing_Partial_Overlaps)
       WA->Left_Delta_Len = 0;
     if  (! Left_Match_To_End)
       return_type = NONE;
@@ -552,7 +552,7 @@ Extend_Alignment(Match_Node_t * Match, char * S, int S_Len, char * T, int T_Len,
       return_type = DOVETAIL;
   }
 
-  if  (return_type == DOVETAIL || Doing_Partial_Overlaps) {
+  if  (return_type == DOVETAIL || G.Doing_Partial_Overlaps) {
     (* Errors) = Left_Errors + Right_Errors;
     assert ((* Errors) <= Error_Limit);
 

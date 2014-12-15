@@ -31,11 +31,13 @@ static const char *rcsid = "$Id$";
  *  to the iid of the fragment read.
  *  If successful, return  TRUE ; if there is no fragment, return  FALSE . */
 
+#if 0
+
 int
-Read_Next_Frag(char frag [AS_READ_MAX_NORMAL_LEN + 1],
-               char quality [AS_READ_MAX_NORMAL_LEN + 1],
-               gkStream *stream,
-               gkFragment *myRead,
+Read_Next_Frag(char frag [AS_MAX_READLEN + 1],
+               char quality [AS_MAX_READLEN + 1],
+               gkStore *store,
+               gkReadData *myReadData,
                uint32 * last_frag_read,
                uint32 minLibToRead, uint32 maxLibToRead) {
   int  return_val, success, match_ct;
@@ -46,24 +48,27 @@ Read_Next_Frag(char frag [AS_READ_MAX_NORMAL_LEN + 1],
   //  BPW says we don't need to mutex this
   success = stream->next (myRead);
 
+  store->gkStore_loadReadData(read, myReadData);
+
   if  (! success)
     return(0);
 
-  *last_frag_read = myRead->gkFragment_getReadIID ();
+  *last_frag_read = myRead->gkRead_readID();
 
-  if  (myRead->gkFragment_getIsDeleted ())
+  if  (myRead->gkRead_isDeleted())
     return (DELETED_FRAG);
 
-  if (minLibToRead != 0 && (myRead->gkFragment_getLibraryIID () < minLibToRead || myRead->gkFragment_getLibraryIID() > maxLibToRead)) {
+  if ((minLibToRead != 0) &&
+      ((myRead->gkRead_libraryID() < minLibToRead) || (myRead->gkRead_libraryID() > maxLibToRead))) {
     return (DELETED_FRAG);
   }
 
   //  We got a read!  Lowercase it, adjust the quality, and extract
   //  the clear region.
 
-  seqptr   = myRead->gkFragment_getSequence();
-  qltptr   = myRead->gkFragment_getQuality();
-  frag_len = myRead->gkFragment_getSequenceLength();
+  seqptr   = myReadData->gkReadData_sequence();
+  qltptr   = myReadData->gkReadData_quality();
+  frag_len = myReadData->gkReadData_read()->gkRead_sequenceLength();
 
   for  (i = 0;  i < frag_len;  i ++) {
     frag [i]    = tolower (seqptr [i]);
@@ -74,7 +79,10 @@ Read_Next_Frag(char frag [AS_READ_MAX_NORMAL_LEN + 1],
     uint32 clear_start, clear_end;
     myRead->gkFragment_getClearRegion(clear_start, clear_end);
 
-    frag_len = clear_end - clear_start;
+    clear_start = myReadData->gkReadData_read()->gkRead_clearRegionBegin();
+    clear_end   = myReadData->gkReadData_read()->gkRead_clearRegionEnd();
+    frag_len    = myReadData->gkReadData_read()->gkRead_clearRegionLength();
+
     if  (clear_start > 0) {
       memmove (frag, frag + clear_start, frag_len);
       memmove (quality, quality + clear_start, frag_len);
@@ -92,3 +100,5 @@ Read_Next_Frag(char frag [AS_READ_MAX_NORMAL_LEN + 1],
 
   return (VALID_FRAG);
 }
+
+#endif

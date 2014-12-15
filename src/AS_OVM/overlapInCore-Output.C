@@ -22,6 +22,7 @@
 static const char *rcsid = "$Id$";
 
 #include "overlapInCore.H"
+#include <pthread.h>
 
 //  Output the overlap between strings  S_ID  and  T_ID  which
 //  have lengths  S_Len  and  T_Len , respectively.
@@ -30,20 +31,28 @@ static const char *rcsid = "$Id$";
 //  T is always forward.
 
 void
-Output_Overlap(AS_IID S_ID, int S_Len, Direction_t S_Dir,
-               AS_IID T_ID, int T_Len, Olap_Info_t *olap,
+Output_Overlap(uint32 S_ID, int S_Len, Direction_t S_Dir,
+               uint32 T_ID, int T_Len, Olap_Info_t *olap,
                Work_Area_t *WA) {
 
-  OVSoverlap  *ovs = WA->overlaps + WA->overlapsLen++;
+  ovsOverlap  *ovs = WA->overlaps + WA->overlapsLen++;
 
-  ovs->a_iid              = 0;
-  ovs->b_iid              = 0;
-  ovs->dat.ovl.a_hang     = 0;
-  ovs->dat.ovl.b_hang     = 0;
-  ovs->dat.ovl.flipped    = FALSE;
-  ovs->dat.ovl.orig_erate = AS_OVS_encodeQuality(olap->quality);
-  ovs->dat.ovl.corr_erate = ovs->dat.ovl.orig_erate;
-  ovs->dat.ovl.type       = AS_OVS_TYPE_OVL;
+  ovs->a_iid                = 0;
+  ovs->b_iid                = 0;
+  ovs->dat.ovl.ahg5         = 0;
+  ovs->dat.ovl.ahg3         = 0;
+  ovs->dat.ovl.bhg5         = 0;
+  ovs->dat.ovl.bhg3         = 0;
+  ovs->dat.ovl.span         = 0;
+  ovs->dat.ovl.erate        = AS_OVS_encodeQuality(olap->quality);
+  ovs->dat.ovl.flipped      = false;
+  ovs->dat.ovl.isPartial    = false;
+  ovs->dat.ovl.extra1       = 0;
+  ovs->dat.ovl.extra2       = 0;
+  ovs->dat.ovl.alignSwapped = false;
+  ovs->dat.ovl.alignFile    = 0;
+  ovs->dat.ovl.alignPosHi   = 0;
+  ovs->dat.ovl.alignPosLo   = 0;
 
   assert (S_ID < T_ID);
 
@@ -122,39 +131,39 @@ Output_Overlap(AS_IID S_ID, int S_Len, Direction_t S_Dir,
 
   switch (orient) {
     case 'N':
-      ovs->dat.ovl.a_hang   = ahg;
-      ovs->dat.ovl.b_hang   = bhg;
-      ovs->dat.ovl.flipped  = FALSE;
+      ovs->a_hang(ahg);
+      ovs->b_hang(bhg);
+      ovs->dat.ovl.flipped  = false;
 
-      assert(ovs->dat.ovl.a_hang == ahg);
-      assert(ovs->dat.ovl.b_hang == bhg);
+      assert(ovs->dat.ovl.ahg5 == ahg);
+      assert(ovs->dat.ovl.bhg3 == bhg);
       break;
 
     case 'I':
-      ovs->dat.ovl.a_hang   = ahg;
-      ovs->dat.ovl.b_hang   = bhg;
-      ovs->dat.ovl.flipped  = TRUE;
+      ovs->a_hang(ahg);
+      ovs->b_hang(bhg);
+      ovs->dat.ovl.flipped  = true;
 
-      assert(ovs->dat.ovl.a_hang == ahg);
-      assert(ovs->dat.ovl.b_hang == bhg);
+      assert(ovs->dat.ovl.ahg5 == ahg);
+      assert(ovs->dat.ovl.bhg3 == bhg);
       break;
 
     case 'O':
-      ovs->dat.ovl.a_hang   = -bhg;
-      ovs->dat.ovl.b_hang   = -ahg;
-      ovs->dat.ovl.flipped  = TRUE;
+      ovs->a_hang(-bhg);
+      ovs->b_hang(-ahg);
+      ovs->dat.ovl.flipped  = true;
 
-      assert(ovs->dat.ovl.a_hang == -bhg);
-      assert(ovs->dat.ovl.b_hang == -ahg);
+      assert(ovs->dat.ovl.bhg5 == bhg);
+      assert(ovs->dat.ovl.ahg3 == ahg);
       break;
 
     case 'A':
-      ovs->dat.ovl.a_hang   = -bhg;
-      ovs->dat.ovl.b_hang   = -ahg;
-      ovs->dat.ovl.flipped  = FALSE;
+      ovs->a_hang(-bhg);
+      ovs->b_hang(-ahg);
+      ovs->dat.ovl.flipped  = false;
 
-      assert(ovs->dat.ovl.a_hang == -bhg);
-      assert(ovs->dat.ovl.b_hang == -ahg);
+      assert(ovs->dat.ovl.bhg5 == bhg);
+      assert(ovs->dat.ovl.ahg3 == ahg);
       break;
   }
 
@@ -196,7 +205,7 @@ Output_Overlap(AS_IID S_ID, int S_Len, Direction_t S_Dir,
     pthread_mutex_lock (& Write_Proto_Mutex);
 
     for (int32 zz=0; zz<WA->overlapsLen; zz++)
-      AS_OVS_writeOverlap(Out_BOF, WA->overlaps + zz);
+      Out_BOF->writeOverlap(WA->overlaps + zz);
     WA->overlapsLen = 0;
 
     pthread_mutex_unlock (& Write_Proto_Mutex);
@@ -206,8 +215,8 @@ Output_Overlap(AS_IID S_ID, int S_Len, Direction_t S_Dir,
 
 
 void
-Output_Partial_Overlap(AS_IID s_id,
-                       AS_IID t_id,
+Output_Partial_Overlap(uint32 s_id,
+                       uint32 t_id,
                        Direction_t dir,
                        const Olap_Info_t *p,
                        int s_len,
@@ -235,24 +244,24 @@ Output_Partial_Overlap(AS_IID s_id,
     dir_ch = 'r';
   }
 
-  OVSoverlap  *ovl = WA->overlaps + WA->overlapsLen++;
+  ovsOverlap  *ovl = WA->overlaps + WA->overlapsLen++;
   ovl->a_iid            = s_id;
   ovl->b_iid            = t_id;
 
-  ovl->dat.dat[0]       = 0;
-  ovl->dat.dat[1]       = 0;
-#if AS_OVS_NWORDS > 2
-  ovl->dat.dat[2]       = 0;
-#endif
-
-  ovl->dat.obt.fwd      = (dir == FORWARD);
-  ovl->dat.obt.a_beg    = a;
-  ovl->dat.obt.a_end    = b;
-  ovl->dat.obt.b_beg    = c;
-  ovl->dat.obt.b_end_hi = d >> 9;
-  ovl->dat.obt.b_end_lo = d & 0x1ff;
-  ovl->dat.obt.erate    = AS_OVS_encodeQuality(p->quality);
-  ovl->dat.obt.type     = AS_OVS_TYPE_OBT;
+  ovl->dat.ovl.ahg5         = a;
+  ovl->dat.ovl.ahg3         = s_len - b;
+  ovl->dat.ovl.bhg5         = c;
+  ovl->dat.ovl.bhg3         = t_len - d;
+  ovl->dat.ovl.span         = 0;
+  ovl->dat.ovl.erate        = AS_OVS_encodeQuality(p->quality);
+  ovl->dat.ovl.flipped      = (dir != FORWARD);
+  ovl->dat.ovl.isPartial    = false;
+  ovl->dat.ovl.extra1       = 0;
+  ovl->dat.ovl.extra2       = 0;
+  ovl->dat.ovl.alignSwapped = false;
+  ovl->dat.ovl.alignFile    = 0;
+  ovl->dat.ovl.alignPosHi   = 0;
+  ovl->dat.ovl.alignPosLo   = 0;
 
   //  We also flush the file at the end of a thread
 
@@ -262,12 +271,10 @@ Output_Partial_Overlap(AS_IID s_id,
     pthread_mutex_lock (& Write_Proto_Mutex);
 
     for (zz=0; zz<WA->overlapsLen; zz++)
-      AS_OVS_writeOverlap(Out_BOF, WA->overlaps + zz);
+      Out_BOF->writeOverlap(WA->overlaps + zz);
     WA->overlapsLen = 0;
 
     pthread_mutex_unlock (& Write_Proto_Mutex);
   }
-
-  return;
 }
 

@@ -36,8 +36,8 @@ ovFile::ovFile(const char  *name,
   //    == 16-bit -- (4 + 5*4) * (8 + 5*4) = 672
   //     > 17-bit -- (4 + 3*8) * (8 + 3*8) = 896
 
-  uint32  lcm = ((sizeof(uint32) * 1) + (sizeof(ovsOverlapDAT)) *
-                 (sizeof(uint32) * 2) + (sizeof(ovsOverlapDAT)));
+  uint32  lcm = ((sizeof(uint32) * 1 + sizeof(ovsOverlapDAT)) *
+                 (sizeof(uint32) * 2 + sizeof(ovsOverlapDAT)));
 
   if (bufferSize < 16 * 1024)
     bufferSize = 16 * 1024;
@@ -46,16 +46,21 @@ ovFile::ovFile(const char  *name,
   _bufferPos  = (bufferSize / (lcm * sizeof(uint32))) * lcm;  //  Forces reload on next read
   _bufferMax  = (bufferSize / (lcm * sizeof(uint32))) * lcm;
   _buffer     = new uint32 [_bufferMax];
-  _isNormal   = (type == ovFileNormal);
+  _isNormal   = (type == ovFileNormal) || (type == ovFileNormalWrite);
 
   //  The buffer size must hold an integer number of overlaps, otherwise the reader
   //  will read partial overlaps and fail.
+
+  fprintf(stderr, "lcm = %u\n", lcm);
+  fprintf(stderr, "_bufferMax = %u\n", _bufferMax);
+  fprintf(stderr, "sizeof(uint32) = %u\n", sizeof(uint32));
+  fprintf(stderr, "sizeof(ovsOverlapDAT) = %u\n", sizeof(ovsOverlapDAT));
 
   assert(_bufferMax % ((sizeof(uint32) * 1) + (sizeof(ovsOverlapDAT))) == 0);
   assert(_bufferMax % ((sizeof(uint32) * 2) + (sizeof(ovsOverlapDAT))) == 0);
 
   //  Open a file for reading?
-  if ((type & ovFileWrite) == 0) {
+  if ((type == ovFileNormal) || (type == ovFileFull)) {
     _reader      = new compressedFileReader(name);
     _writer      = NULL;
     _file        = _reader->file();

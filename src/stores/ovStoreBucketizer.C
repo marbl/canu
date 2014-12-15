@@ -23,17 +23,17 @@ const char *mainid = "$Id$";
 
 #include "AS_global.H"
 
-#include "AS_PER_gkpStore.H"
+#include "gkStore.H"
+#include "ovStore.H"
 
-#include "overlapStore.H"
+//#include "AS_OBT_acceptableOverlap.H"
+#warning NOT INCLUDING ACCEPTABLE OVERLAP FROM OBT
+bool   AS_OBT_acceptableOverlap(ovsOverlap &ol) {
+  return(true);
+};
 
-#include "AS_OVS_overlap.H"
-#include "AS_OVS_overlapFile.H"
-#include "AS_OVS_overlapStore.H"
-#include "AS_OBT_acceptableOverlap.H"
-
-#include <ctype.h>
-#include <unistd.h>  //  sysconf()
+//#include <ctype.h>
+//#include <unistd.h>  //  sysconf()
 
 #include <vector>
 #include <algorithm>
@@ -42,14 +42,14 @@ using namespace std;
 
 static
 void
-writeToFile(OVSoverlap          *overlap,
-            BinaryOverlapFile  **sliceFile,
-            uint32               sliceFileMax,
-            uint64              *sliceSize,
-            uint32               iidPerBucket,
-            char                *ovlName,
-            uint32               jobIndex,
-            bool                 useGzip) {
+writeToFile(ovsOverlap    *overlap,
+            ovFile       **sliceFile,
+            uint32         sliceFileMax,
+            uint64        *sliceSize,
+            uint32         iidPerBucket,
+            char          *ovlName,
+            uint32         jobIndex,
+            bool           useGzip) {
 
   uint32 df = overlap->a_iid / iidPerBucket + 1;
 
@@ -58,7 +58,7 @@ writeToFile(OVSoverlap          *overlap,
     
     fprintf(stderr, "\n");
     fprintf(stderr, "Too many bucket files when adding overlap:\n");
-    fprintf(stderr, "  %s\n", AS_OVS_toString(olapstring, *overlap));
+    fprintf(stderr, "  %s\n", overlap->toString(olapstring));
     fprintf(stderr, "\n");
     fprintf(stderr, "bucket        = "F_U32"\n", df);
     fprintf(stderr, "iidPerBucket  = "F_U32"\n", iidPerBucket);
@@ -75,41 +75,21 @@ writeToFile(OVSoverlap          *overlap,
     char name[FILENAME_MAX];
 
     sprintf(name, "%s/create%04d/slice%03d%s", ovlName, jobIndex, df, (useGzip) ? ".gz" : "");
-    sliceFile[df]   = AS_OVS_createBinaryOverlapFile(name, FALSE);
+    sliceFile[df] = new ovFile(name, ovFileFullWrite);
     sliceSize[df] = 0;
   }
 
-  AS_OVS_writeOverlap(sliceFile[df], overlap);
+  sliceFile[df]->writeOverlap(overlap);
   sliceSize[df]++;
 }
 
 
 
-static
-void
-markLoad(gkStore *gkp, uint32 maxIID, char *&skipFragment, uint32 *&iidToLib) {
-  gkStream    *gks = new gkStream(gkp, 0, 0, GKFRAGMENT_INF);
-  gkFragment   fr;
-
-  fprintf(stderr, "Reading gatekeeper to build a map from fragment ID to library ID.\n");
-
-  skipFragment = new char [maxIID];
-  iidToLib     = new uint32 [maxIID];
-
-  memset(skipFragment, 0, sizeof(char)   * maxIID);
-  memset(iidToLib,     0, sizeof(uint32) * maxIID);
-
-  while (gks->next(&fr))
-    iidToLib[fr.gkFragment_getReadIID()] = fr.gkFragment_getLibraryIID();
-
-  delete gks;
-}
-
-
+//  These are duplicated between ovStoreBucketizer and ovStoreBuild
 
 static
 void
-markOBT(gkStore *gkp, uint32 maxIID, char *skipFragment, uint32 *iidToLib) {
+markOBT(gkStore *gkp, uint32 maxIID, char *skipFragment) {
   uint64  numMarked = 0;
 
   if (skipFragment == NULL)
@@ -118,16 +98,17 @@ markOBT(gkStore *gkp, uint32 maxIID, char *skipFragment, uint32 *iidToLib) {
   fprintf(stderr, "Marking fragments to skip overlap based trimming.\n");
 
   for (uint64 iid=0; iid<maxIID; iid++) {
-    gkLibrary *L = gkp->gkStore_getLibrary(iidToLib[iid]);
+    uint32     Lid = gkp->gkStore_getRead(iid)->gkRead_libraryID();
+    gkLibrary *L   = gkp->gkStore_getLibrary(Lid);
 
     if (L == NULL)
       continue;
 
-    if ((L->doRemoveDuplicateReads     == false) &&
-        (L->doTrim_finalLargestCovered == false) &&
-        (L->doTrim_finalEvidenceBased  == false) &&
-        (L->doRemoveSpurReads          == false) &&
-        (L->doRemoveChimericReads      == false)) {
+    if ((L->gkLibrary_removeDuplicateReads()     == false) &&
+        (L->gkLibrary_finalTrim()                != FINALTRIM_LARGEST_COVERED) &&
+        (L->gkLibrary_finalTrim()                != FINALTRIM_EVIDENCE_BASED) &&
+        (L->gkLibrary_removeSpurReads()          == false) &&
+        (L->gkLibrary_removeChimericReads()      == false)) {
       numMarked++;
       skipFragment[iid] = true;
     }
@@ -139,7 +120,7 @@ markOBT(gkStore *gkp, uint32 maxIID, char *skipFragment, uint32 *iidToLib) {
 
 static
 void
-markDUP(gkStore *gkp, uint32 maxIID, char *skipFragment, uint32 *iidToLib) {
+markDUP(gkStore *gkp, uint32 maxIID, char *skipFragment) {
   uint64  numMarked = 0;
 
   if (skipFragment == NULL)
@@ -148,12 +129,13 @@ markDUP(gkStore *gkp, uint32 maxIID, char *skipFragment, uint32 *iidToLib) {
   fprintf(stderr, "Marking fragments to skip deduplication.\n");
 
   for (uint64 iid=0; iid<maxIID; iid++) {
-    gkLibrary *L = gkp->gkStore_getLibrary(iidToLib[iid]);
+    uint32     Lid = gkp->gkStore_getRead(iid)->gkRead_libraryID();
+    gkLibrary *L   = gkp->gkStore_getLibrary(Lid);
 
     if (L == NULL)
       continue;
 
-    if (L->doRemoveDuplicateReads == false) {
+    if (L->gkLibrary_removeDuplicateReads() == false) {
       numMarked++;
       skipFragment[iid] = true;
     }
@@ -161,6 +143,8 @@ markDUP(gkStore *gkp, uint32 maxIID, char *skipFragment, uint32 *iidToLib) {
 
   fprintf(stderr, "Marked "F_U64" fragments.\n", numMarked);
 }
+
+
 
 
 
@@ -291,16 +275,16 @@ main(int argc, char **argv) {
   }
 
 
-  gkStore *gkp         = new gkStore(gkpName, FALSE, FALSE);
+  gkStore *gkp         = new gkStore(gkpName);
 
-  uint64  maxIID       = gkp->gkStore_getNumFragments() + 1;
+  uint64  maxIID       = gkp->gkStore_getNumReads() + 1;
   uint64  iidPerBucket = (uint64)ceil((double)maxIID / (double)fileLimit);
 
-  BinaryOverlapFile      **sliceFile     = new BinaryOverlapFile * [fileLimit + 1];
-  uint64                  *sliceSize     = new uint64              [fileLimit + 1];
+  ovFile                 **sliceFile     = new ovFile * [fileLimit + 1];
+  uint64                  *sliceSize     = new uint64   [fileLimit + 1];
 
-  memset(sliceFile, 0, sizeof(BinaryOverlapFile *) * (fileLimit + 1));
-  memset(sliceSize, 0, sizeof(uint64)              * (fileLimit + 1));
+  memset(sliceFile, 0, sizeof(ovFile *) * (fileLimit + 1));
+  memset(sliceSize, 0, sizeof(uint64)   * (fileLimit + 1));
 
   //  Read the gkStore to determine which fragments we care about.
   //
@@ -313,7 +297,6 @@ main(int argc, char **argv) {
   //  library, and that library is marked doRemoveDuplicateReads == 1
 
   char    *skipFragment = NULL;
-  uint32  *iidToLib     = NULL;
 
   uint64   saveTOTAL       = 0;
   uint64   skipERATE       = 0;
@@ -322,54 +305,55 @@ main(int argc, char **argv) {
   uint64   skipOBT2LIB     = 0;
   uint64   skipOBT2NODEDUP = 0;
 
-  if (doFilterOBT != 0)
-    markLoad(gkp, maxIID, skipFragment, iidToLib);
+  if (doFilterOBT != 0) {
+    skipFragment = new char [maxIID];
+    memset(skipFragment, 0, sizeof(char) * maxIID);
+  }
 
   if (doFilterOBT == 1)
-    markOBT(gkp, maxIID, skipFragment, iidToLib);
+    markOBT(gkp, maxIID, skipFragment);
 
   if (doFilterOBT == 2)
-    markDUP(gkp, maxIID, skipFragment, iidToLib);
+    markDUP(gkp, maxIID, skipFragment);
 
-  BinaryOverlapFile  *inputFile;
-  OVSoverlap          fovrlap;
-  OVSoverlap          rovrlap;
+  ovFile       *inputFile;
+  ovsOverlap    foverlap;
+  ovsOverlap    roverlap;
 
-  int                 df;
+  int           df;
 
   fprintf(stderr, "maxError fraction: %.3f percent: %.3f encoded: "F_U64"\n",
           maxErrorRate, maxErrorRate * 100, maxError);
 
   fprintf(stderr, "Bucketizing %s\n", ovlInput);
 
-  inputFile = AS_OVS_openBinaryOverlapFile(ovlInput, FALSE);
+  inputFile = new ovFile(ovlInput);
 
   //  Do bigger buffers increase performance?  Do small ones hurt?
-  AS_OVS_setBinaryOverlapFileBufferSize(2 * 1024 * 1024);
+  //AS_OVS_setBinaryOverlapFileBufferSize(2 * 1024 * 1024);
 
-  while (AS_OVS_readOverlap(inputFile, &fovrlap)) {
+  while (inputFile->readOverlap(&foverlap)) {
 
     //  Quick sanity check on IIDs.
-    if ((fovrlap.a_iid == 0) ||
-        (fovrlap.b_iid == 0) ||
-        (fovrlap.a_iid >= maxIID) ||
-        (fovrlap.b_iid >= maxIID)) {
+    if ((foverlap.a_iid == 0) ||
+        (foverlap.b_iid == 0) ||
+        (foverlap.a_iid >= maxIID) ||
+        (foverlap.b_iid >= maxIID)) {
       char ovlstr[256];
 
       fprintf(stderr, "Overlap has IDs out of range (maxIID "F_U64"), possibly corrupt input data.\n", maxIID);
-      fprintf(stderr, "  %s\n", AS_OVS_toString(ovlstr, fovrlap));
+      fprintf(stderr, "  %s\n", foverlap.toString(ovlstr));
       exit(1);
     }
 
     //  Ignore high error overlaps
-    if (((fovrlap.dat.ovl.type == AS_OVS_TYPE_OVL) && (fovrlap.dat.ovl.orig_erate > maxError)) ||
-        ((fovrlap.dat.obt.type == AS_OVS_TYPE_OBT) && (fovrlap.dat.obt.erate      > maxError))) {
+    if ((foverlap.dat.ovl.erate > maxError)) {
       skipERATE++;
       continue;
     }
 
     //  If filtering for OBT, skip the crap.
-    if ((doFilterOBT == 1) && (AS_OBT_acceptableOverlap(fovrlap) == 0)) {
+    if ((doFilterOBT == 1) && (AS_OBT_acceptableOverlap(foverlap) == 0)) {
       skipOBT1LQ++;
       continue;
     }
@@ -378,80 +362,42 @@ main(int argc, char **argv) {
     //  (for now, we allow everything through -- these are used for just about everything)
 
     //  If filtering for OBTs dedup, skip the good
-    if ((doFilterOBT == 2) && (AS_OBT_acceptableOverlap(fovrlap) == 1)) {
+    if ((doFilterOBT == 2) && (AS_OBT_acceptableOverlap(foverlap) == 1)) {
       skipOBT2HQ++;
       continue;
     }
 
     //  If filtering for OBTs dedup, skip things we don't dedup, and overlaps between libraries.
-    if ((doFilterOBT == 2) && (iidToLib[fovrlap.a_iid] != iidToLib[fovrlap.b_iid])) {
+    if ((doFilterOBT == 2) &&
+        (gkp->gkStore_getRead(foverlap.a_iid)->gkRead_libraryID() !=
+         gkp->gkStore_getRead(foverlap.b_iid)->gkRead_libraryID())) {
       skipOBT2LIB++;
       continue;
     }
 
-    if ((doFilterOBT == 2) && (skipFragment[fovrlap.a_iid])) {
+    if ((doFilterOBT == 2) && (skipFragment[foverlap.a_iid])) {
       skipOBT2NODEDUP++;
       continue;
     }
 
-    writeToFile(&fovrlap, sliceFile, fileLimit, sliceSize, iidPerBucket, ovlName, jobIndex, useGzip);
+    writeToFile(&foverlap, sliceFile, fileLimit, sliceSize, iidPerBucket, ovlName, jobIndex, useGzip);
     saveTOTAL++;
 
     //  flip the overlap -- copy all the dat, then fix whatever
     //  needs to change for the flip.
 
-    switch (fovrlap.dat.ovl.type) {
-	
-      case AS_OVS_TYPE_OVL:
-        // This inverts the overlap.
-        rovrlap.a_iid = fovrlap.b_iid;
-        rovrlap.b_iid = fovrlap.a_iid;
-        rovrlap.dat   = fovrlap.dat;
-        if (fovrlap.dat.ovl.flipped) {
-          rovrlap.dat.ovl.a_hang = fovrlap.dat.ovl.b_hang;
-          rovrlap.dat.ovl.b_hang = fovrlap.dat.ovl.a_hang;
-        } else {
-          rovrlap.dat.ovl.a_hang = -fovrlap.dat.ovl.a_hang;
-          rovrlap.dat.ovl.b_hang = -fovrlap.dat.ovl.b_hang;
-        }
+    roverlap.swapIDs(foverlap);
 
-        writeToFile(&rovrlap, sliceFile, fileLimit, sliceSize, iidPerBucket, ovlName, jobIndex, useGzip);
-        saveTOTAL++;
-        break;
-      case AS_OVS_TYPE_OBT:
-        rovrlap.a_iid = fovrlap.b_iid;
-        rovrlap.b_iid = fovrlap.a_iid;
-        rovrlap.dat   = fovrlap.dat;
-        if (fovrlap.dat.obt.fwd) {
-          rovrlap.dat.obt.a_beg    = fovrlap.dat.obt.b_beg;
-          rovrlap.dat.obt.a_end    = (fovrlap.dat.obt.b_end_hi << 9) | fovrlap.dat.obt.b_end_lo;
-          rovrlap.dat.obt.b_beg    = fovrlap.dat.obt.a_beg;
-          rovrlap.dat.obt.b_end_hi = fovrlap.dat.obt.a_end >> 9;
-          rovrlap.dat.obt.b_end_lo = fovrlap.dat.obt.a_end & 0x1ff;
-        } else {
-          rovrlap.dat.obt.a_beg    = (fovrlap.dat.obt.b_end_hi << 9) | fovrlap.dat.obt.b_end_lo;
-          rovrlap.dat.obt.a_end    = fovrlap.dat.obt.b_beg;
-          rovrlap.dat.obt.b_beg    = fovrlap.dat.obt.a_end;
-          rovrlap.dat.obt.b_end_hi = fovrlap.dat.obt.a_beg >> 9;
-          rovrlap.dat.obt.b_end_lo = fovrlap.dat.obt.a_beg & 0x1ff;
-        }
-
-        writeToFile(&rovrlap, sliceFile, fileLimit, sliceSize, iidPerBucket, ovlName, jobIndex, useGzip);
-        saveTOTAL++;
-        break;
-      case AS_OVS_TYPE_MER:
-        //  Not needed; MER outputs both overlaps
-        break;
-      default:
-        assert(0);
-        break;
-    }
+    writeToFile(&roverlap, sliceFile, fileLimit, sliceSize, iidPerBucket, ovlName, jobIndex, useGzip);
+    saveTOTAL++;
   }
 
-  AS_OVS_closeBinaryOverlapFile(inputFile);
+  delete inputFile;
 
   for (uint32 i=0; i<=fileLimit; i++)
-    AS_OVS_closeBinaryOverlapFile(sliceFile[i]);
+    delete sliceFile[i];
+
+  //  Write slice sizes, rename bucket.
 
   {
     char name[FILENAME_MAX];
@@ -489,5 +435,4 @@ main(int argc, char **argv) {
   delete [] sliceSize;
 
   delete [] skipFragment;  skipFragment = NULL;
-  delete [] iidToLib;      iidToLib     = NULL;
 }

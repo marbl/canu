@@ -10,9 +10,15 @@ endif
 TARGET   := libCA.a
 
 SOURCES  := gkStore.C \
+            ovOverlap.C \
             ovStore.C \
             ovStoreFile.C
 
 SRC_INCDIRS  := .. ../AS_UTL
 SUBMAKEFILES := gatekeeperCreate.mk \
-                gatekeeperDumpFASTQ.mk
+                gatekeeperDumpFASTQ.mk \
+                ovStoreBuild.mk \
+                ovStoreBucketizer.mk \
+                ovStoreSorter.mk \
+                ovStoreIndexer.mk \
+                ovStoreDump.mk

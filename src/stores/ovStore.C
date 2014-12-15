@@ -37,6 +37,10 @@ const uint64 ovStoreVersion         = 2;
 const uint64 ovStoreMagic           = 0x4c564f3a67336163;   //  == "ca3g:OVS - store complete
 const uint64 ovStoreMagicIncomplete = 0x50564f3a67336163;   //  == "ca3g:OVP - store under construction
 
+//
+//  Are backups used anymore??
+//
+
 void
 ovStore::renameToBackup(char const *name, uint32 index) {
   char   orig[FILENAME_MAX];
@@ -94,7 +98,6 @@ ovStore::removeBackup(char const *name, uint32 index) {
 }
 
 
-
 void
 ovStore::createBackup(void) {
 
@@ -135,7 +138,6 @@ ovStore::removeBackup(void) {
   for (uint32 i=1; i<=_info._highestFileIndex; i++)
     removeBackup(i);
 }
-
 
 
 
@@ -202,7 +204,7 @@ ovStore::ovStore(const char *path, ovStoreType cType) {
     _info._ovsMagic              = ovStoreMagicIncomplete;
     _info._ovsVersion            = ovStoreVersion;
     _info._numOverlapsPerFile    = 1024 * 1024 * 1024 / (sizeof(ovsOverlap) * sizeof(uint32));
-    _info._smallestIID           = UINT_MAX;
+    _info._smallestIID           = UINT64_MAX;
     _info._largestIID            = 0;
     _info._numOverlapsTotal      = 0;
     _info._highestFileIndex      = 0;
@@ -218,7 +220,7 @@ ovStore::ovStore(const char *path, ovStoreType cType) {
 
     fclose(ovsinfo);
 
-    sprintf(name, "%s/idx", path);
+    sprintf(name, "%s/index", path);
 
     errno = 0;
     _offtFile = fopen(name, "w");
@@ -311,7 +313,6 @@ ovStore::ovStore(const char *path, ovStoreType cType) {
 ovStore::~ovStore() {
 
   removeBackup();
-
 
   //  If output, write the last index element (don't forget to fill in gaps);
   //             update the info, using the final magic number
@@ -636,13 +637,14 @@ ovStore::writeOverlap(ovsOverlap *overlap) {
     _bof              = NULL;
     _overlapsThisFile = 0;
   }
+
   if (_bof == NULL) {
     char  name[FILENAME_MAX];
 
     _currentFileIndex++;
 
     sprintf(name, "%s/%04d", _storePath, _currentFileIndex);
-    _bof = new ovFile(name, ovFileWrite);
+    _bof = new ovFile(name, ovFileNormalWrite);
   }
 
 
@@ -833,3 +835,390 @@ ovStore::numOverlapsPerFrag(void) {
 
   return(numolap);
 }
+
+
+
+//  For the parallel sort, write a block of sorted overlaps into a single file, with index and info.
+
+void
+writeOverlaps(char       *storePath,
+              ovsOverlap *ovls,
+              uint64      ovlsLen,
+              uint32      fileID) {
+
+	char                        name[FILENAME_MAX];
+
+  uint32                      currentFileIndex = fileID;
+  uint64                      overlapsThisFile = 0;
+
+	ovStoreInfo    info;
+ 
+	info._ovsMagic              = 1;
+	info._ovsVersion            = ovStoreVersion;
+  info._numOverlapsPerFile    = 1024 * 1024 * 1024;  //  arbitrary
+  info._smallestIID           = UINT64_MAX;
+  info._largestIID            = 0;
+  info._numOverlapsTotal      = 0;
+  info._highestFileIndex      = 0;
+	info._maxReadLenInBits      = AS_MAX_READLEN_BITS;
+
+	ovStoreOfft    offt; 
+  ovStoreOfft    offm;
+
+  offt._a_iid     = offm._a_iid    = ovls[0].a_iid;
+	offt._fileno    = offm._fileno   = fileID;
+  offt._offset    = offm._offset   = 0;
+  offt._numOlaps  = offm._numOlaps = 0;
+
+  //  Create the output file
+
+  sprintf(name, "%s/%04d", storePath, fileID);
+  ovFile *bof = new ovFile(name, ovFileFullWrite);
+
+  //  Create the index file
+
+	sprintf(name,"%s/%04d.index", storePath, fileID);
+
+  errno = 0;
+  FILE *offtFile=fopen(name,"w");
+  if (errno)
+    fprintf(stderr, "ERROR: Failed to open '%s' for writing: %s\n", name, strerror(errno)), exit(1);
+
+  //  Dump the overlaps
+
+  fprintf(stderr, "Writing "F_U64" overlaps.\n", ovlsLen);
+
+	for (uint64 i=0; i<ovlsLen; i++ ) {
+    bof->writeOverlap(ovls + i);
+
+    if (offt._a_iid > ovls[i].a_iid) {
+			fprintf(stderr, "LAST:  a:"F_U32"\n", offt._a_iid);
+			fprintf(stderr, "THIS:  a:"F_U32" b:"F_U32"\n", ovls[i].a_iid, ovls[i].b_iid);
+		}
+    assert(offt._a_iid <= ovls[i].a_iid);
+
+    info._smallestIID = MIN(info._smallestIID, ovls[i].a_iid);
+    info._largestIID  = MAX(info._largestIID,  ovls[i].a_iid);
+
+		//  Put the index to disk, filling any gaps
+
+		if ((offt._numOlaps != 0) && (offt._a_iid != ovls[i].a_iid)) {
+			while (offm._a_iid < offt._a_iid) {
+				offm._fileno   = offt._fileno;
+				offm._offset   = offt._offset;
+				offm._numOlaps = 0;
+
+				AS_UTL_safeWrite(offtFile, &offm, "AS_OVS_writeOverlapToStore offt", sizeof(ovStoreOfft), 1);
+				offm._a_iid++;
+			}
+
+			//  One more, since this iid is not offm -- we write it next!
+			offm._a_iid++;
+
+			AS_UTL_safeWrite(offtFile, &offt, "AS_OVS_writeOverlapToStore offt", sizeof(ovStoreOfft), 1);
+			offt._numOlaps  = 0;
+		}
+
+		//  Update the index if this is the first overlap for this a_iid
+
+		if (offt._numOlaps == 0) {
+			offt._a_iid   = ovls[i].a_iid;
+			offt._fileno  = currentFileIndex;
+			offt._offset  = overlapsThisFile;
+		}
+
+		offt._numOlaps++;
+
+		info._numOverlapsTotal++;
+
+		overlapsThisFile++;
+	}
+
+  //  Close the output file.
+
+  delete bof;
+
+  //  Write the final index entries.
+
+	while (offm._a_iid < offt._a_iid) {
+		offm._fileno    = offt._fileno;
+		offm._offset    = offt._offset;
+		offm._numOlaps  = 0;
+
+		AS_UTL_safeWrite(offtFile, &offm, "AS_OVS_writeOverlapToStore offt", sizeof(ovStoreOfft), 1);
+		offm._a_iid++;
+	}
+
+	AS_UTL_safeWrite(offtFile, &offt, "AS_OVS_writeOverlapToStore offt", sizeof(ovStoreOfft), 1);
+
+	fclose(offtFile);
+
+  //  In the nasty case that there were no overlaps in this slice, set meaningful smallest and
+  //  largest.  Well, at least, set non-nonsense smallest and largest.
+
+  if (overlapsThisFile == 0) {
+    info._smallestIID = 0;
+    info._largestIID  = 0;
+  }
+
+  //  Write the info, and some stats for the user.
+
+  sprintf(name,"%s/%04d.info", storePath, fileID);
+
+  errno = 0;
+  FILE *F = fopen(name, "w");
+  if (errno)
+    fprintf(stderr, "ERROR: Failed to open '%s' for writing: %s\n", name, strerror(errno)), exit(1);
+
+  AS_UTL_safeWrite(F, &info, "Partition ovs file", sizeof(ovStoreInfo), 1);
+
+  fclose(F);	
+
+  fprintf(stderr, "Wrote "F_U64" overlaps into '%s'\n", info._numOverlapsTotal, name);
+  fprintf(stderr, "  Smallest "F_U64"\n", info._smallestIID);
+  fprintf(stderr, "  Largest  "F_U64"\n", info._largestIID);
+}
+
+
+
+
+//  For the parallel sort, but also generally applicable, test that the index is sane.
+
+bool
+testIndex(char *ovlName,
+          bool  doFixes) {
+  char name[FILENAME_MAX];
+  FILE *I = NULL;
+  FILE *F = NULL;
+
+  sprintf(name, "%s/index", ovlName);
+
+  errno = 0;
+  I = fopen(name, "r");
+  if (errno)
+    fprintf(stderr, "ERROR: Failed to open '%s' for reading: %s\n", name, strerror(errno)), exit(1);
+
+  //fprintf(stderr, "TESTING '%s'\n", name);
+
+  if (doFixes) {
+    sprintf(name, "%s/index.fixed", ovlName);
+
+    errno = 0;
+    F = fopen(name, "w");
+    if (errno)
+      fprintf(stderr, "ERROR: Failed to open '%s' for writing: %s\n", name, strerror(errno)), exit(1);
+
+    //fprintf(stderr, "WITH FIXES TO '%s'\n", name);
+  }
+
+  ovStoreOfft  O;
+
+  uint32  curIID = 0;
+  uint32  minIID = UINT32_MAX;
+  uint32  maxIID = 0;
+
+  uint32  nErrs = 0;
+
+  while (1 == AS_UTL_safeRead(I, &O, "offset", sizeof(ovStoreOfft), 1)) {
+    bool  maxIncreases   = (maxIID < O._a_iid);
+    bool  errorDecreased = ((O._a_iid < curIID));
+    bool  errorGap       = ((O._a_iid > 0) && (curIID + 1 != O._a_iid));
+
+    if (O._a_iid < minIID)
+      minIID = O._a_iid;
+
+    if (maxIncreases)
+      maxIID = O._a_iid;
+
+    if (errorDecreased)
+      fprintf(stderr, "ERROR: index decreased from "F_U32" to "F_U32"\n", curIID, O._a_iid), nErrs++;
+    else if (errorGap)
+      fprintf(stderr, "ERROR: gap between "F_U32" and "F_U32"\n", curIID, O._a_iid), nErrs++;
+
+    if ((maxIncreases == true) && (errorGap == false)) {
+      if (doFixes)
+        AS_UTL_safeWrite(F, &O, "offset", sizeof(ovStoreOfft), 1);
+
+    } else if (O._numOlaps > 0) {
+      fprintf(stderr, "ERROR: lost overlaps a_iid "F_U32" fileno "F_U32" offset "F_U32" numOlaps "F_U32"\n",
+              O._a_iid, O._fileno, O._offset, O._numOlaps);
+    }
+
+    curIID = O._a_iid;
+  }
+
+  fclose(I);
+
+  if (F)
+    fclose(F);
+
+  return(nErrs == 0);
+}
+
+
+
+
+
+//  For the parallel sort, merge index and info files into one, clean up the intermediates.
+
+void
+mergeInfoFiles(char       *storePath,
+               uint32      nPieces) {
+  ovStoreInfo    infopiece;
+  ovStoreInfo    info;
+
+	info._ovsMagic              = 1;
+	info._ovsVersion            = ovStoreVersion;
+  info._numOverlapsPerFile    = 1024 * 1024 * 1024;  //  arbitrary
+  info._smallestIID           = UINT64_MAX;
+  info._largestIID            = 0;
+  info._numOverlapsTotal      = 0;
+  info._highestFileIndex      = 0;
+	info._maxReadLenInBits      = AS_MAX_READLEN_BITS;
+
+  ovStoreOfft offm;
+
+  offm._a_iid     = 0;
+  offm._fileno    = 1;
+  offm._offset    = 0;
+  offm._numOlaps  = 0;
+
+  //  Open the new master index output file
+
+  char            name[FILENAME_MAX];
+
+  sprintf(name, "%s/index", storePath);
+
+  errno = 0;
+  FILE  *idx = fopen(name, "w");
+  if (errno)
+    fprintf(stderr, "ERROR: Failed to open '%s': %s\n", name, strerror(errno)), exit(1);
+
+  info._highestFileIndex = nPieces;
+
+  //  Special case, we need an empty index for the zeroth fragment.
+
+  AS_UTL_safeWrite(idx, &offm, "ovStore::mergeInfoFiles::offsetZero", sizeof(ovStoreOfft), 1);
+
+  //  Process each
+
+  for (uint32 i=1; i<=nPieces; i++) {
+    sprintf(name, "%s/%04d.info", storePath, i);
+
+    fprintf(stderr, "Processing '%s'\n", name);
+
+    if (AS_UTL_fileExists(name, FALSE, FALSE) == false) {
+      fprintf(stderr, "ERROR: file '%s' not found.\n", name);
+      exit(1);
+    }
+
+    {
+      errno = 0;
+      FILE *F = fopen(name, "r");
+      if (errno)
+        fprintf(stderr, "ERROR: Failed to open '%s': %s\n", name, strerror(errno)), exit(1);
+      AS_UTL_safeRead(F, &infopiece, "ovStore::mergeInfoFiles::infopiece", sizeof(ovStoreInfo), 1);
+      fclose(F);
+    }
+
+    //  Add empty index elements for missing overlaps
+
+    if (infopiece._numOverlapsTotal == 0) {
+      fprintf(stderr, "  No overlaps found.\n");
+      continue;
+    }
+
+    assert(infopiece._smallestIID <= infopiece._largestIID);
+
+    if (info._largestIID + 1 < infopiece._smallestIID)
+      fprintf(stderr, "  Adding empty records for fragments "F_U64" to "F_U64"\n",
+              info._largestIID + 1, infopiece._smallestIID - 1);
+
+    while (info._largestIID + 1 < infopiece._smallestIID) {
+      offm._a_iid     = info._largestIID + 1;
+      //offm._fileno    = set elsewhere
+      //offm._offset    = set elsewhere
+      //offm._numOlaps  = 0;
+
+      AS_UTL_safeWrite(idx, &offm, "ovStore::mergeInfoFiles::offsets", sizeof(ovStoreOfft), 1);
+
+      info._largestIID++;
+    }
+
+    //  Copy index elements for existing overlaps.  While copying, update the supposed position
+    //  of any fragments with no overlaps.  Without doing this, accessing the store beginning
+    //  or ending at such a fragment will fail.
+
+    {
+      sprintf(name, "%s/%04d.index", storePath, i);
+
+      errno = 0;
+      FILE  *F = fopen(name, "r");
+      if (errno)
+        fprintf(stderr, "ERROR: Failed to open '%s': %s\n", name, strerror(errno)), exit(1);
+
+      uint32          recsLen = 0;
+      uint32          recsMax = 1024 * 1024;
+      ovStoreOfft    *recs    = new ovStoreOfft [recsMax];
+
+      recsLen = AS_UTL_safeRead(F, recs, "ovStore::mergeInfoFiles::offsetsLoad", sizeof(ovStoreOfft), recsMax);
+
+      if (recsLen > 0) {
+        if (info._largestIID + 1 != recs[0]._a_iid)
+          fprintf(stderr, "ERROR: '%s' starts with iid "F_U32", but store only up to "F_U64"\n",
+                  name, recs[0]._a_iid, info._largestIID);
+        assert(info._largestIID + 1 == recs[0]._a_iid);
+      }
+
+      while (recsLen > 0) {
+        offm._fileno = recs[recsLen-1]._fileno;  //  Update location of missing stuff.
+        offm._offset = recs[recsLen-1]._offset;
+
+				AS_UTL_safeWrite(idx, recs, "ovStore::mergeInfoFiles::offsetsWrite", sizeof(ovStoreOfft), recsLen);
+
+        recsLen = AS_UTL_safeRead(F, recs, "ovStore::mergeInfoFiles::offsetsReLoad", sizeof(ovStoreOfft), recsMax);
+      }
+
+      delete [] recs;
+
+      fclose(F);
+    }
+
+    //  Update
+
+    info._smallestIID = MIN(info._smallestIID, infopiece._smallestIID);
+    info._largestIID  = MAX(info._largestIID,  infopiece._largestIID);
+
+    info._numOverlapsTotal += infopiece._numOverlapsTotal;
+
+    fprintf(stderr, "  Now finished with fragments "F_U64" to "F_U64" -- "F_U64" overlaps.\n",
+            info._smallestIID, info._largestIID, info._numOverlapsTotal);
+  }
+
+  fclose(idx);
+
+
+  //  Dump the new store info file
+
+  {
+    sprintf(name, "%s/info", storePath);
+
+    errno = 0;
+    FILE  *F = fopen(name, "w");
+    if (errno)
+      fprintf(stderr, "ERROR: Failed to open '%s': %s\n", name, strerror(errno)), exit(1);
+
+    AS_UTL_safeWrite(F, &info, "ovStore::mergeInfoFiles::finalInfo", sizeof(ovStoreInfo), 1);
+
+    fclose(F);
+  }
+
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Index finalized for reads "F_U64" to "F_U64" with "F_U64" overlaps.\n",
+          info._smallestIID,
+          info._largestIID,
+          info._numOverlapsTotal);
+}
+
+
+

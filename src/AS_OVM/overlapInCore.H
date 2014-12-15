@@ -21,30 +21,16 @@
 
 //static const char *rcsid = "$Id$";
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <math.h>
-#include <assert.h>
+#include "AS_global.H"
+
+#include "gkStore.H"
+#include "ovStore.H"
 
 #include <pthread.h>
-
-#include "AS_UTL_fileIO.H"
-#include "AS_UTL_reverseComplement.H"
-#include "AS_PER_gkpStore.H"
-#include "AS_OVS_overlapStore.H"
 
 
 #ifndef OVERLAPINCORE_H
 #define OVERLAPINCORE_H
-
-
-////////////////////////////////////////
-//
-//  AS_OVL_overlap.h BEGINS
-//
-////////////////////////////////////////
 
 #define  HASH_KMER_SKIP           0
 //  Skip this many kmers between the kmers put into the hash
@@ -68,27 +54,6 @@
 //  cannot initiate an overlap.  Can be changed on the command
 //  line with  -K  option
 
-#define  DEFAULT_BRANCH_MATCH_VAL    ( AS_OVL_ERROR_RATE / (1.+AS_OVL_ERROR_RATE) )
-#define  PARTIAL_BRANCH_MATCH_VAL    DEFAULT_BRANCH_MATCH_VAL
-//  Value to add for a match in finding branch points.
-//  ALH: Note that AS_OVL_ERROR_RATE also affects what overlaps get found
-//  ALH: Scoring seems to be unusual: given an alignment
-//  of length l with k mismatches, the score seems to be
-//  computed as l + k * error value and NOT (l-k)*match+k*error
-//
-//  I.e. letting x := DEFAULT_BRANCH_MATCH_VAL,
-//  the max mismatch fraction p to give a non-negative score
-//  would be p = x/(1-x); conversely, to compute x for a
-//  goal p, we have x = p/(1+p).  E.g.
-//  for p=0.06, x = .06/(1.06) = .0566038;
-//  for p=0.35, x = .35/(1.35) = .259259
-//  for p=0.2, x = .2/(1.2) = .166667
-//  for p=0.15, x = .15/(1.15) = .130435
-//
-//  Value was for 6% vs 35% error discrimination.
-//  Converting to integers didn't make it faster.
-//  Corresponding error value is this value minus 1.0
-
 #define  DELETED_FRAG            2
 //  Indicates fragment was marked as deleted in the store
 
@@ -111,10 +76,6 @@
 //  bound for terminating alignment extensions in edit distance
 //  calculations
 
-#define  FRAG_OLAP_LIMIT         INT_MAX
-//  Most overlaps any single old fragment can have with a single
-//  set of new fragments in the hash table.
-
 #define  HASH_CHECK_MASK         0x1f
 //  Used to set and check bit in Hash_Check_Array
 //  Change if change  Check_Vector_t
@@ -122,7 +83,7 @@
 #define  HASH_EXPANSION_FACTOR   1.4
 //  Hash table size is >= this times  MAX_HASH_STRINGS
 
-#define  HASH_MASK               ((1 << Hash_Mask_Bits) - 1)
+#define  HASH_MASK               ((1 << G.Hash_Mask_Bits) - 1)
 //  Extract right Hash_Mask_Bits bits of hash key
 
 #define  HASH_TABLE_SIZE         (1 + HASH_MASK)
@@ -166,11 +127,11 @@
 //  in a given orientation.  For fragments of approximately
 //  same size, should never be more than 2.
 
-#define  MAX_ERRORS              (1 + (int) (AS_OVL_ERROR_RATE * AS_READ_MAX_NORMAL_LEN))
+#define  MAX_ERRORS              (1 + (int) (AS_OVL_ERROR_RATE * AS_MAX_READLEN))
 //  Most errors in any edit distance computation
 //  THIS VALUE IS KNOWN ONLY AT RUN TIME!
 
-#define  EXPECTED_STRING_LEN     (AS_READ_MAX_NORMAL_LEN / 2)
+#define  EXPECTED_STRING_LEN     (AS_MAX_READLEN / 2)
 #define  INITIAL_DATA_LEN        (EXPECTED_STRING_LEN * Max_Hash_Strings)
 //  The number of bytes to allocate initially for hash-table sequence
 
@@ -179,9 +140,6 @@
 
 #define  MAX_NAME_LEN            500
 //  Longest file name allowed
-
-#define  MEMORY_EXPANSION_FACTOR  1.2
-//  How much to grow malloc'ed space if necessary
 
 #define  MIN_BRANCH_END_DIST     20
 //  Branch points must be at least this many bases from the
@@ -254,7 +212,7 @@
 //  Amount by which k-mers can overlap a screen region and still
 //  be added to the hash table.
 
-#define  MAX_EXTRA_SUBCOUNT        (AS_READ_MAX_NORMAL_LEN / Kmer_Len)
+#define  MAX_EXTRA_SUBCOUNT        (AS_MAX_READLEN / G.Kmer_Len)
 
 
 #define  HASH_FUNCTION(k)        (((k) ^ ((k) >> HSF1) ^ ((k) >> HSF2)) & HASH_MASK)
@@ -300,37 +258,46 @@ typedef  struct String_Olap_Node {
 
 typedef  struct Work_Area {
   int    Left_Delta_Len;
-  int  * Left_Delta;
+  int   *Left_Delta;
+
   int    Right_Delta_Len;
-  int  * Right_Delta;
-  int  * Delta_Stack;
-  int  * Edit_Space;
-  int  ** Edit_Array;
-  int  * Edit_Match_Limit;
-  int  * Error_Bound;
+  int   *Right_Delta;
+
+  int   *Delta_Stack;
+  int   *Edit_Space;
+  int  **Edit_Array;
+  int   *Edit_Match_Limit;
+  int   *Error_Bound;
+
   String_Olap_t  * String_Olap_Space;
   int32  String_Olap_Size;
   int32  Next_Avail_String_Olap;
+
   Match_Node_t  * Match_Node_Space;
   int32  Match_Node_Size;
   int32  Next_Avail_Match_Node;
-  int32  A_Olaps_For_Frag, B_Olaps_For_Frag;
+
   //  Counts the number of overlaps for each fragment.  Cuts off
   //  overlaps above a limit.
-  gkStream  *stream_segment;
+  int32  A_Olaps_For_Frag;
+  int32  B_Olaps_For_Frag;
 
-  int  left_end_screened;
-  int  right_end_screened;
+  gkStore  *gkpStore;
 
-  int  status;
-  gkFragment  myRead;
-  int  thread_id;
+  int    left_end_screened;
+  int    right_end_screened;
+
+  int    status;
+  int    thread_id;
+
+  uint32         frag_segment_lo;
+  uint32         frag_segment_hi;
 
   //  Instead of outputting each overlap as we create it, we
   //  buffer them and output blocks of overlaps.
   uint64         overlapsLen;
   uint64         overlapsMax;
-  OVSoverlap   *overlaps;
+  ovsOverlap    *overlaps;
 
   //  Various stats that used to be global and updated whenever we
   //  output an overlap or finished processing a set of hits.
@@ -357,7 +324,7 @@ typedef  struct Olap_Info {
   int  s_lo, s_hi;
   int  t_lo, t_hi;
   double  quality;
-  int  delta [AS_READ_MAX_NORMAL_LEN+1];  //  needs only MAX_ERRORS
+  int  delta [AS_MAX_READLEN+1];  //  needs only MAX_ERRORS
   int  delta_ct;
   int  s_left_boundary, s_right_boundary;
   int  t_left_boundary, t_right_boundary;
@@ -414,82 +381,168 @@ typedef  struct Hash_Frag_Info {
 }  Hash_Frag_Info_t;
 
 
+extern char           *basesData;
+extern char           *qualsData;
+extern String_Ref_t   *nextRef;
+extern size_t          Data_Len;
+
 extern int64   Bad_Short_Window_Ct;
 extern int64   Bad_Long_Window_Ct;
 extern double  Branch_Match_Value;
 extern double  Branch_Error_Value;
-extern char  * Data;
-extern char  * Quality_Data;
-extern size_t  Data_Len;
-extern bool  Doing_Partial_Overlaps;
+
 extern size_t  Extra_Data_Len;
+
+extern uint64  Max_Extra_Ref_Space;
 extern uint64  Extra_Ref_Ct;
 extern String_Ref_t  * Extra_Ref_Space;
 extern uint64  Extra_String_Ct;
 extern uint64  Extra_String_Subcount;
-extern uint64  Frag_Olap_Limit;
+
 extern Check_Vector_t  * Hash_Check_Array;
 extern uint64  Hash_String_Num_Offset;
 extern Hash_Bucket_t  * Hash_Table;
-extern bool  Ignore_Clear_Range;
 extern uint64  Kmer_Hits_With_Olap_Ct;
 extern uint64  Kmer_Hits_Without_Olap_Ct;
-extern int32  Min_Olap_Len;
 extern uint64  Multi_Overlap_Ct;
-extern String_Ref_t  * Next_Ref;
 extern uint64  String_Ct;
 extern Hash_Frag_Info_t  * String_Info;
+
 extern int64  * String_Start;
 extern uint32  String_Start_Size;
-extern bool  Unique_Olap_Per_Pair;
+
 extern size_t  Used_Data_Len;
-extern bool  Use_Hopeless_Check;
-extern bool  Use_Window_Filter;
-extern int32  Read_Edit_Match_Limit [AS_READ_MAX_NORMAL_LEN];
-extern int32  Guide_Edit_Match_Limit [AS_READ_MAX_NORMAL_LEN];
-extern int32  Read_Error_Bound [AS_READ_MAX_NORMAL_LEN + 1];
-extern int32  Guide_Error_Bound [AS_READ_MAX_NORMAL_LEN + 1];
-extern double  Branch_Cost [AS_READ_MAX_NORMAL_LEN + 1];
+extern int32  Read_Edit_Match_Limit [AS_MAX_READLEN];
+extern int32  Guide_Edit_Match_Limit [AS_MAX_READLEN];
+extern int32  Read_Error_Bound [AS_MAX_READLEN + 1];
+extern int32  Guide_Error_Bound [AS_MAX_READLEN + 1];
+extern double  Branch_Cost [AS_MAX_READLEN + 1];
 extern int32  Bit_Equivalent [256];
 extern int32  Char_Is_Bad [256];
 extern uint64  Hash_Entries;
 extern uint64  Total_Overlaps;
 extern uint64  Contained_Overlap_Ct;
 extern uint64  Dovetail_Overlap_Ct;
-extern uint32 minLibToHash;
-extern uint32 maxLibToHash;
-extern uint32 minLibToRef;
-extern uint32 maxLibToRef;
-extern uint64  Kmer_Len;
+
+class oicParameters {
+public:
+  oicParameters() {};
+  ~oicParameters() {};
+
+  void   initialize(void) {
+    Doing_Partial_Overlaps = false;
+
+    bgnHashID = 1;
+    endHashID = UINT32_MAX;
+    minLibToHash = 0;
+    maxLibToHash = UINT32_MAX;
+
+    bgnRefID = 1;
+    endRefID = UINT32_MAX;
+    minLibToRef  = 0;
+    maxLibToRef  = UINT32_MAX;
+
+    Kmer_Len = 0;
+    Kmer_Skip_File = NULL;
+
+    Frag_Olap_Limit = UINT64_MAX;
+
+    Unique_Olap_Per_Pair = true;
+
+    Hash_Mask_Bits            = 22;
+    Max_Hash_Load             = 0.6;
+    Max_Hash_Strings          = 100000000 / 800;
+    Max_Hash_Data_Len         = 100000000;
+
+    Max_Reads_Per_Batch  = 0;
+    Max_Reads_Per_Thread = 0;
+
+    Outfile_Name = NULL;
+
+    Num_PThreads = 1;
+
+    Min_Olap_Len = AS_OVERLAP_MIN_LEN;  //  MUST BE SET AFTER AS_configure()
+
+    Use_Window_Filter  = false;
+    Ignore_Clear_Range = false;
+
+    Use_Hopeless_Check = true;
+
+    Frag_Store_Path = NULL;
+  };
+
+  //  If set true by the G option (G for Granger)
+  //  then allow overlaps that do not extend to the end
+  //  of either read.
+  bool  Doing_Partial_Overlaps;  //  -G
+
+  uint32  bgnHashID;     //  -h
+  uint32  endHashID;
+  uint32  minLibToHash;  //  -H
+  uint32  maxLibToHash;
+
+  uint32  bgnRefID;      //  -r
+  uint32  endRefID;
+  uint32  minLibToRef;   //  -R
+  uint32  maxLibToRef;
+
+  uint64  Kmer_Len;         //  -k
+  FILE   *Kmer_Skip_File;   //  -k
+
+  //  Maximum number of overlaps for end of an old fragment against
+  //  a single hash table of frags, in each orientation
+  uint64  Frag_Olap_Limit;  //  -l
+
+  //  If true will allow at most
+  //  one overlap output message per oriented fragment pair
+  //  Set true by  -u  command-line option; set false by  -m
+  bool  Unique_Olap_Per_Pair;  //  -m and -u
+
+  uint32  Hash_Mask_Bits;  //  --hashbits
+ 
+  uint32  Max_Hash_Strings;  //  --hashstrings
+  uint64  Max_Hash_Data_Len;  //  --hashdatalen
+  double  Max_Hash_Load;  //  --hashload
+
+  //  --maxreadlen sets OFFSET_BITS, STRING_NUM_BITS, STRING_NUM_MASK and MAX_STRING_NUM.
+
+  uint32  Max_Reads_Per_Batch;   //  --readsperbatch,  The number of reads loaded in a single batch.
+  uint32  Max_Reads_Per_Thread;  //  --readsperthread, The number of reads processed per thread.
+
+  char  *Outfile_Name;  //  -o
+
+  uint32  Num_PThreads;  //  -t
+
+  int32  Min_Olap_Len;  //  -v
+
+  //  Determines whether check for a window containing too many
+  //  errors is used to disqualify overlaps.
+  bool  Use_Window_Filter;  //  -w
+
+  //  If true will use entire read sequence, ignoring the
+  //  clear range values
+  bool  Ignore_Clear_Range;  //  -x
+
+  //  Determines whether check for absence of kmer matches
+  //  at the end of a read is used to abort the overlap before
+  //  the extension from a single kmer match is attempted.
+  bool  Use_Hopeless_Check;  //  -z
+
+  char *Frag_Store_Path;
+};
+
+extern oicParameters G;
+
+
 extern uint64  HSF1;
 extern uint64  HSF2;
 extern uint64  SV1;
 extern uint64  SV2;
 extern uint64  SV3;
-extern uint32  Hash_Mask_Bits;
-extern double  Max_Hash_Load;
-extern uint32  Max_Hash_Strings;
-extern uint64  Max_Hash_Data_Len;
-extern AS_IID  Max_Frags_In_Memory_Store;
-extern AS_IID  Last_Hash_Frag_Read;
-extern AS_IID  Lo_Hash_Frag;
-extern AS_IID  Hi_Hash_Frag;
-extern AS_IID  Lo_Old_Frag;
-extern AS_IID  Hi_Old_Frag;
-extern uint32  Num_PThreads;
-extern char  Sequence_Buffer [2 * AS_READ_MAX_NORMAL_LEN];
-extern char  Quality_Buffer [2 * AS_READ_MAX_NORMAL_LEN];
-extern FILE  * Kmer_Skip_File;
-extern BinaryOverlapFile  *Out_BOF;
-extern gkStore  *OldFragStore;
-extern char  * Frag_Store_Path;
-extern pthread_mutex_t  FragStore_Mutex;
+
+extern ovFile  *Out_BOF;
+extern pthread_mutex_t  Frag_Store_Mutex;
 extern pthread_mutex_t  Write_Proto_Mutex;
-extern AS_IID  First_Hash_Frag;
-extern AS_IID  Last_Hash_Frag;
-extern gkFragment  myRead;
-extern AS_IID  Frag_Segment_Lo;
-extern AS_IID  Frag_Segment_Hi;
 
 
 
@@ -498,47 +551,47 @@ extern AS_IID  Frag_Segment_Hi;
 
 
 int
-Read_Next_Frag(char frag [AS_READ_MAX_NORMAL_LEN + 1],
-               char quality [AS_READ_MAX_NORMAL_LEN + 1],
-               gkStream *stream,
-               gkFragment *myRead,
-               AS_IID * last_frag_read,
+Read_Next_Frag(char frag [AS_MAX_READLEN + 1],
+               char quality [AS_MAX_READLEN + 1],
+               gkStore *store,
+               gkReadData *myReadData,
+               uint32 * last_frag_read,
                uint32 minLibToRead, uint32 maxLibToRead);
 
 
 void
-Output_Overlap(AS_IID S_ID, int S_Len, Direction_t S_Dir,
-               AS_IID T_ID, int T_Len, Olap_Info_t * olap,
+Output_Overlap(uint32 S_ID, int S_Len, Direction_t S_Dir,
+               uint32 T_ID, int T_Len, Olap_Info_t * olap,
                Work_Area_t *WA);
 
 void
-Output_Partial_Overlap(AS_IID s_id, AS_IID t_id, Direction_t dir,
+Output_Partial_Overlap(uint32 s_id, uint32 t_id, Direction_t dir,
                        const Olap_Info_t * p, int s_len, int t_len,
                        Work_Area_t  *WA);
 
 
 
-Overlap_t  Extend_Alignment
-(Match_Node_t * Match, char * S, int S_Len, char * T, int T_Len,
- int * S_Lo, int * S_Hi, int * T_Lo, int * T_Hi, int * Errors,
- Work_Area_t * WA);
+Overlap_t
+Extend_Alignment(Match_Node_t * Match, char * S, int S_Len, char * T, int T_Len,
+                 int * S_Lo, int * S_Hi, int * T_Lo, int * T_Hi, int * Errors,
+                 Work_Area_t * WA);
 
 
 int
 Process_String_Olaps (char * S,
                       int Len,
                       char * S_quality,
-                      AS_IID ID,
+                      uint32 ID,
                       Direction_t Dir,
                       Work_Area_t * WA);
 
 void
-Find_Overlaps (char Frag [], int Frag_Len, char quality [], AS_IID Frag_Num, Direction_t Dir, Work_Area_t * WA);
+Find_Overlaps (char Frag [], int Frag_Len, char quality [], uint32 Frag_Num, Direction_t Dir, Work_Area_t * WA);
 
-void
-Process_Overlaps (gkStream *stream, Work_Area_t * WA);
+void *
+Process_Overlaps (void *);
 
 int
-Build_Hash_Index(gkStream *stream, int32 first_frag_id, gkFragment *myRead);
+Build_Hash_Index(gkStore *store, uint32 bgnID, uint32 endID);
 
 #endif  //  OVERLAPINCORE_H

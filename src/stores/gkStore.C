@@ -18,8 +18,13 @@ gkRead::gkRead_loadData(gkReadData *readData, void *blobs, bool partitioned) {
 
   readData->_read = this;
 
-  readData->_seq  = new char [_seqLen + 1];
-  readData->_qlt  = new char [_seqLen + 1];
+  if (readData->_seq == NULL)
+    readData->_seq  = new char [_seqLen + 1];
+
+  if (readData->_qlt == NULL)
+    readData->_qlt  = new char [_seqLen + 1];
+
+  //  Where, or where!, is the data?
 
   uint64  offset = (partitioned == false) ? (_mPtr * BLOB_BLOCK_SIZE) : (_pPtr * BLOB_BLOCK_SIZE);
 
@@ -71,7 +76,7 @@ gkRead::gkRead_loadData(gkReadData *readData, void *blobs, bool partitioned) {
       assert(_seqLen <= chunkLen);
       memcpy(readData->_seq, blob + 8, _seqLen);
       readData->_seq[_seqLen] = 0;
-      fprintf(stderr, "READ USEQ chunklen "F_U32" len "F_U64" %c%c%c\n", chunkLen, _seqLen, chunk[8], chunk[9], chunk[10]);
+      //fprintf(stderr, "READ USEQ chunklen "F_U32" len "F_U64" %c%c%c\n", chunkLen, _seqLen, chunk[8], chunk[9], chunk[10]);
     }
 
     else if (strncmp(chunk, "UQLT", 4) == 0) {
@@ -103,7 +108,7 @@ gkRead::gkRead_loadData(gkReadData *readData, void *blobs, bool partitioned) {
   }
 
 #if 0
-  switch (_encoding) {
+  switch (_type) {
   case GKREAD_ENC_UNKNOWN:
     fprintf(stderr, "gkRead::gkRead_loadData()-- encoding not set.\n");
     assert(0);
@@ -175,9 +180,9 @@ gkStore::gkStore_stashReadData(gkRead *read, gkReadData *data) {
 
 
 void
-gkReadData::encodeBlobChunk(char const *tag,
-                            uint32      len,
-                            void       *dat) {
+gkReadData::gkReadData_encodeBlobChunk(char const *tag,
+                                       uint32      len,
+                                       void       *dat) {
 
   //  Allocate an initial blob if we don't have one
 
@@ -250,13 +255,13 @@ gkRead::gkRead_encodeSeqQlt(char *H, char *S, char *Q) {
   _clrBgn    = 0;
   _clrEnd    = Slen;
 
-  rd->encodeBlobChunk("BLOB",    0,  NULL);
-  rd->encodeBlobChunk("TYPE",    4, &blobType);
-  rd->encodeBlobChunk("VERS",    4, &blobVers);
-  //rd->encodeBlobChunk("QSEQ",    0,  qseq);      //  Encoded sequence and quality
-  rd->encodeBlobChunk("USEQ", Slen,  S);         //  Unencoded sequence
-  rd->encodeBlobChunk("UQLT", Qlen,  Q);         //  Unencoded quality
-  rd->encodeBlobChunk("STOP",    0,  NULL);
+  rd->gkReadData_encodeBlobChunk("BLOB",    0,  NULL);
+  rd->gkReadData_encodeBlobChunk("TYPE",    4, &blobType);
+  rd->gkReadData_encodeBlobChunk("VERS",    4, &blobVers);
+  //rd->gkReadData_encodeBlobChunk("QSEQ",    0,  qseq);      //  Encoded sequence and quality
+  rd->gkReadData_encodeBlobChunk("USEQ", Slen,  S);         //  Unencoded sequence
+  rd->gkReadData_encodeBlobChunk("UQLT", Qlen,  Q);         //  Unencoded quality
+  rd->gkReadData_encodeBlobChunk("STOP",    0,  NULL);
 
   return(rd);
 }
@@ -277,14 +282,14 @@ gkRead::gkRead_encodeSeqQlt(char *H, char *S, uint32 qv) {
   _clrBgn    = 0;
   _clrEnd    = Slen;
 
-  rd->encodeBlobChunk("BLOB",    0,  NULL);
-  rd->encodeBlobChunk("TYPE",    4, &blobType);
-  rd->encodeBlobChunk("VERS",    4, &blobVers);
-  //rd->encodeBlobChunk("2SEQ",    0,  qseq);      //  Two-bit encoded sequence (ACGT only)
-  //rd->encodeBlobChunk("3SEQ",    0,  qseq);      //  Three-bit encoded sequence (ACGTN)
-  rd->encodeBlobChunk("USEQ", Slen,  S);         //  Unencoded sequence
-  rd->encodeBlobChunk("QVAL",    4, &qv);        //  QV for every base
-  rd->encodeBlobChunk("STOP",    0,  NULL);
+  rd->gkReadData_encodeBlobChunk("BLOB",    0,  NULL);
+  rd->gkReadData_encodeBlobChunk("TYPE",    4, &blobType);
+  rd->gkReadData_encodeBlobChunk("VERS",    4, &blobVers);
+  //rd->gkReadData_encodeBlobChunk("2SEQ",    0,  qseq);      //  Two-bit encoded sequence (ACGT only)
+  //rd->gkReadData_encodeBlobChunk("3SEQ",    0,  qseq);      //  Three-bit encoded sequence (ACGTN)
+  rd->gkReadData_encodeBlobChunk("USEQ", Slen,  S);         //  Unencoded sequence
+  rd->gkReadData_encodeBlobChunk("QVAL",    4, &qv);        //  QV for every base
+  rd->gkReadData_encodeBlobChunk("STOP",    0,  NULL);
 
   return(rd);
 }
@@ -419,6 +424,9 @@ gkLibrary::gkLibrary_setFinalTrim(char *t) {
 gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
   char    name[FILENAME_MAX];
 
+  memset(_storePath, 0, sizeof(char) * FILENAME_MAX);
+  memset(_storeName, 0, sizeof(char) * FILENAME_MAX);
+
   strcpy(_storePath, path);
   strcpy(_storeName, path);  //  Broken.
 
@@ -436,6 +444,20 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
     assert(_info.gkLibrarySize == sizeof(gkLibrary));
     assert(_info.gkReadSize    == sizeof(gkRead));
   }
+
+  //  Clear ourself, to make valgrind happier.
+
+  _librariesMMap   = NULL;
+  _librariesAlloc  = 0;
+  _libraries       = NULL;
+
+  _readsMMap       = NULL;
+  _readsAlloc      = 0;
+  _reads           = NULL;
+
+  _blobsMMap       = NULL;
+  _blobs           = NULL;
+  _blobsFile       = NULL;
 
   //
   //  READ ONLY
@@ -534,6 +556,14 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
     fprintf(stderr, "gkStore::gkStore()-- unknown mode 0x%02x.\n", mode);
     exit(1);
   }
+
+  //  Continue clearing ourself.
+
+  _numberOfPartitions     = 0;
+  _partitionID            = 0;
+  _partitionIDmap         = NULL;
+  _readsPerPartition      = NULL;
+  _readsInThisPartition   = NULL;
 }
 
 

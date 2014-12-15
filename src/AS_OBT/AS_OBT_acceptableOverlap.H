@@ -30,6 +30,8 @@ static const char *rcsid_AS_OBT_ACCEPTABLEOVERLAP_H = "$Id$";
 #define OBT_MIN_ERATE        (2.0)
 #define OBT_MIN_DIFF         (75)
 
+This needs to be added to ovStoreBuild.C and ovStoreBucketizer.C when it is fixed.
+
 bool   AS_OBT_acceptableOverlap(OVSoverlap &ol);
 
 #endif

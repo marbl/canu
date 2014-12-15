@@ -191,32 +191,38 @@ public:
     _blobLen = 0;
     _blobMax = 0;
     _blob    = NULL;
+
+    _pacbio._deletionQV     = NULL;
+    _pacbio._deletionTag    = NULL;
+    _pacbio._insertionQV    = NULL;
+    _pacbio._substitutionQV = NULL;
+    _pacbio._mergeQV        = NULL;
+
+    _nanopore._someQV       = NULL;
   };
 
   ~gkReadData() {
     delete [] _seq;
     delete [] _qlt;
 
-    if (_type == GKREAD_TYPE_PACBIO) {
-      delete [] _pacbio._deletionQV;
-      delete [] _pacbio._deletionTag;
-      delete [] _pacbio._insertionQV;
-      delete [] _pacbio._substitutionQV;
-      delete [] _pacbio._mergeQV;
-    }
+    delete [] _pacbio._deletionQV;
+    delete [] _pacbio._deletionTag;
+    delete [] _pacbio._insertionQV;
+    delete [] _pacbio._substitutionQV;
+    delete [] _pacbio._mergeQV;
 
-    if (_type == GKREAD_TYPE_MINION) {
-      delete [] _nanopore._someQV;
-    }
+    delete [] _nanopore._someQV;
   };
 
-  uint32   type(void)         { return(_type); };
+  gkRead  *gkReadData_getRead(void)         { return(_read); };
 
-  bool     hasSequence(void)  { return(_seq != NULL); };
-  bool     hasQualities(void) { return(_qlt != NULL); };
+  uint32   gkReadData_getType(void)         { return(_type); };
 
-  char    *sequence(void)     { return(_seq);  };
-  char    *qualities(void)    { return(_qlt);  };
+  bool     gkReadData_hasSequence(void)  { return(_seq != NULL); };
+  bool     gkReadData_hasQualities(void) { return(_qlt != NULL); };
+
+  char    *gkReadData_getSequence(void)     { return(_seq);  };
+  char    *gkReadData_getQualities(void)    { return(_qlt);  };
 
 private:
   gkRead            *_read;     //  Pointer to the mmap'd read
@@ -230,7 +236,7 @@ private:
   uint32             _blobMax;
   uint8             *_blob;     //  And maybe even an encoded blob of data from the store.
 
-  void     encodeBlobChunk(char const *tag, uint32 len, void *dat);
+  void     gkReadData_encodeBlobChunk(char const *tag, uint32 len, void *dat);
 
   //  Some reads have more data than others.  This used to be a union, but that
   //  only complicated things with no clear beneift.  Yay, we saved a few bytes on
@@ -262,7 +268,7 @@ public:
     _readID     = 0;
     _libraryID  = 0;
     _seqLen     = 0;
-    _deleted    = true;
+    _deleted    = false;
     _flagpad    = 0;
 
     _clrBgn     = 0;

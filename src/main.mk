@@ -39,6 +39,7 @@ SOURCES  := AS_global.C \
             \
             stores/gkStore.C \
             \
+            stores/ovOverlap.C \
             stores/ovStore.C \
             stores/ovStoreFile.C \
             \
@@ -60,5 +61,12 @@ SRC_INCDIRS  := . AS_UTL
 #  update just those objects.  Instead, this must list each binary indifidually.
 SUBMAKEFILES := stores/gatekeeperCreate.mk \
                 stores/gatekeeperDumpFASTQ.mk \
+                stores/ovStoreBuild.mk \
+                stores/ovStoreBucketizer.mk \
+                stores/ovStoreSorter.mk \
+                stores/ovStoreIndexer.mk \
+                stores/ovStoreDump.mk \
+                \
                 meryl/main.mk \
+                \
                 AS_OVM/overlapInCore.mk

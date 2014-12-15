@@ -25,10 +25,10 @@ static const char *rcsid = "$Id$";
 
 
 static void  Combine_Into_One_Olap
-(Olap_Info_t olap [], int ct, int deleted [])
+(Olap_Info_t olap[], int ct, int deleted[])
 
-//  Choose the best overlap in  olap [0 .. (ct - 1)] .
-//  Mark all others as deleted (by setting  deleted []  true for them)
+//  Choose the best overlap in  olap[0 .. (ct - 1)] .
+//  Mark all others as deleted (by setting  deleted[]  true for them)
 //  and combine their information in the min/max entries in the
 //  best one.
 
@@ -39,40 +39,40 @@ static void  Combine_Into_One_Olap
   int  i, best;
 
   best = 0;
-  min_diag = olap [0] . min_diag;
-  max_diag = olap [0] . max_diag;
-  s_left_boundary = olap [0] . s_left_boundary;
-  s_right_boundary = olap [0] . s_right_boundary;
-  t_left_boundary = olap [0] . t_left_boundary;
-  t_right_boundary = olap [0] . t_right_boundary;
+  min_diag = olap[0].min_diag;
+  max_diag = olap[0].max_diag;
+  s_left_boundary = olap[0].s_left_boundary;
+  s_right_boundary = olap[0].s_right_boundary;
+  t_left_boundary = olap[0].t_left_boundary;
+  t_right_boundary = olap[0].t_right_boundary;
 
   for  (i = 1;  i < ct;  i ++)
     {
-      if  (olap [i] . quality < olap [best] . quality)
+      if  (olap[i].quality < olap[best].quality)
         best = i;
-      if  (olap [i] . min_diag < min_diag)
-        min_diag = olap [i] . min_diag;
-      if  (olap [i] . max_diag > max_diag)
-        max_diag = olap [i] . max_diag;
-      if  (olap [i] . s_left_boundary < s_left_boundary)
-        s_left_boundary = olap [i] . s_left_boundary;
-      if  (olap [i] . s_right_boundary > s_right_boundary)
-        s_right_boundary = olap [i] . s_right_boundary;
-      if  (olap [i] . t_left_boundary < t_left_boundary)
-        t_left_boundary = olap [i] . t_left_boundary;
-      if  (olap [i] . t_right_boundary > t_right_boundary)
-        t_right_boundary = olap [i] . t_right_boundary;
+      if  (olap[i].min_diag < min_diag)
+        min_diag = olap[i].min_diag;
+      if  (olap[i].max_diag > max_diag)
+        max_diag = olap[i].max_diag;
+      if  (olap[i].s_left_boundary < s_left_boundary)
+        s_left_boundary = olap[i].s_left_boundary;
+      if  (olap[i].s_right_boundary > s_right_boundary)
+        s_right_boundary = olap[i].s_right_boundary;
+      if  (olap[i].t_left_boundary < t_left_boundary)
+        t_left_boundary = olap[i].t_left_boundary;
+      if  (olap[i].t_right_boundary > t_right_boundary)
+        t_right_boundary = olap[i].t_right_boundary;
     }
 
-  olap [best] . min_diag = min_diag;
-  olap [best] . max_diag = max_diag;
-  olap [best] . s_left_boundary = s_left_boundary;
-  olap [best] . s_right_boundary = s_right_boundary;
-  olap [best] . t_left_boundary = t_left_boundary;
-  olap [best] . t_right_boundary = t_right_boundary;
+  olap[best].min_diag = min_diag;
+  olap[best].max_diag = max_diag;
+  olap[best].s_left_boundary = s_left_boundary;
+  olap[best].s_right_boundary = s_right_boundary;
+  olap[best].t_left_boundary = t_left_boundary;
+  olap[best].t_right_boundary = t_right_boundary;
 
   for  (i = 0;  i < ct;  i ++)
-    deleted [i] = (i != best);
+    deleted[i] = (i != best);
 
   return;
 }
@@ -88,11 +88,11 @@ static void  Combine_Into_One_Olap
 
 
 static void  Merge_Intersecting_Olaps
-(Olap_Info_t p [], int ct, int deleted [])
+(Olap_Info_t p[], int ct, int deleted[])
 
 //  Combine overlaps whose overlap regions intersect sufficiently
-//  in  p [0 .. (ct - 1)]  by marking the poorer quality one
-//  deleted (by setting  deleted []  true for it) and combining
+//  in  p[0 .. (ct - 1)]  by marking the poorer quality one
+//  deleted (by setting  deleted[]  true for it) and combining
 //  its min/max info in the other.  Assume all entries in
 //  deleted are 0 initially.
 
@@ -102,56 +102,56 @@ static void  Merge_Intersecting_Olaps
   for  (i = 0;  i < ct - 1;  i ++)
     for  (j = i + 1;  j < ct;  j ++)
       {
-        if  (deleted [i] || deleted [j])
+        if  (deleted[i] || deleted[j])
           continue;
-        lo_diag = p [i] . min_diag;
-        hi_diag = p [i] . max_diag;
-        if  ((lo_diag <= 0 && p [j] . min_diag > 0)
-             || (lo_diag > 0 && p [j] . min_diag <= 0))
+        lo_diag = p[i].min_diag;
+        hi_diag = p[i].max_diag;
+        if  ((lo_diag <= 0 && p[j].min_diag > 0)
+             || (lo_diag > 0 && p[j].min_diag <= 0))
           continue;
         if  ((lo_diag >= 0
-              && p [j] .  t_right_boundary - lo_diag
-              - p [j] . s_left_boundary
+              && p[j]. t_right_boundary - lo_diag
+              - p[j].s_left_boundary
               >= MIN_INTERSECTION)
              || (lo_diag <= 0
-                 && p [j] .  s_right_boundary + lo_diag
-                 - p [j] .  t_left_boundary
+                 && p[j]. s_right_boundary + lo_diag
+                 - p[j]. t_left_boundary
                  >= MIN_INTERSECTION)
              || (hi_diag >= 0
-                 && p [j] .  t_right_boundary - hi_diag
-                 - p [j] . s_left_boundary
+                 && p[j]. t_right_boundary - hi_diag
+                 - p[j].s_left_boundary
                  >= MIN_INTERSECTION)
              || (hi_diag <= 0
-                 && p [j] .  s_right_boundary + hi_diag
-                 - p [j] .  t_left_boundary
+                 && p[j]. s_right_boundary + hi_diag
+                 - p[j]. t_left_boundary
                  >= MIN_INTERSECTION))
           {
             Olap_Info_t  * discard, * keep;
 
-            if  (p [i] . quality < p [j] . quality)
+            if  (p[i].quality < p[j].quality)
               {
                 keep = p + i;
                 discard = p + j;
-                deleted [j] = TRUE;
+                deleted[j] = TRUE;
               }
             else
               {
                 keep = p + j;
                 discard = p + i;
-                deleted [i] = TRUE;
+                deleted[i] = TRUE;
               }
-            if  (discard -> min_diag < keep -> min_diag)
-              keep -> min_diag = discard -> min_diag;
-            if  (discard -> max_diag > keep -> max_diag)
-              keep -> max_diag = discard -> max_diag;
-            if  (discard -> s_left_boundary < keep -> s_left_boundary)
-              keep -> s_left_boundary = discard -> s_left_boundary;
-            if  (discard -> s_right_boundary > keep -> s_right_boundary)
-              keep -> s_right_boundary = discard -> s_right_boundary;
-            if  (discard -> t_left_boundary < keep -> t_left_boundary)
-              keep -> t_left_boundary = discard -> t_left_boundary;
-            if  (discard -> t_right_boundary > keep -> t_right_boundary)
-              keep -> t_right_boundary = discard -> t_right_boundary;
+            if  (discard->min_diag < keep->min_diag)
+              keep->min_diag = discard->min_diag;
+            if  (discard->max_diag > keep->max_diag)
+              keep->max_diag = discard->max_diag;
+            if  (discard->s_left_boundary < keep->s_left_boundary)
+              keep->s_left_boundary = discard->s_left_boundary;
+            if  (discard->s_right_boundary > keep->s_right_boundary)
+              keep->s_right_boundary = discard->s_right_boundary;
+            if  (discard->t_left_boundary < keep->t_left_boundary)
+              keep->t_left_boundary = discard->t_left_boundary;
+            if  (discard->t_right_boundary > keep->t_right_boundary)
+              keep->t_right_boundary = discard->t_right_boundary;
           }
       }
 
@@ -168,7 +168,7 @@ static void  Add_Overlap
 
 //  Add information for the overlap between strings  S  and  T
 //  at positions  s_lo .. s_hi  and  t_lo .. t_hi , resp., and
-//  with quality  qual  to the array  olap []  which
+//  with quality  qual  to the array  olap[]  which
 //  currently has  (* ct)  entries.  Increment  (* ct)  if this
 //  is a new, distinct overlap; otherwise, modify an existing
 //  entry if this is just a "slide" of an existing overlap.
@@ -176,7 +176,7 @@ static void  Add_Overlap
 {
   int  i, new_diag;
 
-  if  (Doing_Partial_Overlaps)
+  if  (G.Doing_Partial_Overlaps)
     olap += (* ct);
   // Don't combine overlaps when doing partials
   else
@@ -185,39 +185,39 @@ static void  Add_Overlap
       new_diag = t_lo - s_lo;
       for  (i = 0;  i < (* ct);  i ++)
         {
-          int  old_diag = olap -> t_lo - olap -> s_lo;
+          int  old_diag = olap->t_lo - olap->s_lo;
 
           if  ((new_diag > 0
                 && old_diag > 0
-                && olap -> t_right_boundary - new_diag - olap -> s_left_boundary
+                && olap->t_right_boundary - new_diag - olap->s_left_boundary
                 >= MIN_INTERSECTION)
                || (new_diag <= 0
                    && old_diag <= 0
-                   && olap -> s_right_boundary + new_diag - olap -> t_left_boundary
+                   && olap->s_right_boundary + new_diag - olap->t_left_boundary
                    >= MIN_INTERSECTION))
             {
-              if  (new_diag < olap -> min_diag)
-                olap -> min_diag = new_diag;
-              if  (new_diag > olap -> max_diag)
-                olap -> max_diag = new_diag;
-              if  (s_lo < olap -> s_left_boundary)
-                olap -> s_left_boundary = s_lo;
-              if  (s_hi > olap -> s_right_boundary)
-                olap -> s_right_boundary = s_hi;
-              if  (t_lo < olap -> t_left_boundary)
-                olap -> t_left_boundary = t_lo;
-              if  (t_hi > olap -> t_right_boundary)
-                olap -> t_right_boundary = t_hi;
-              if  (qual < olap -> quality)      // lower value is better
+              if  (new_diag < olap->min_diag)
+                olap->min_diag = new_diag;
+              if  (new_diag > olap->max_diag)
+                olap->max_diag = new_diag;
+              if  (s_lo < olap->s_left_boundary)
+                olap->s_left_boundary = s_lo;
+              if  (s_hi > olap->s_right_boundary)
+                olap->s_right_boundary = s_hi;
+              if  (t_lo < olap->t_left_boundary)
+                olap->t_left_boundary = t_lo;
+              if  (t_hi > olap->t_right_boundary)
+                olap->t_right_boundary = t_hi;
+              if  (qual < olap->quality)      // lower value is better
                 {
-                  olap -> s_lo = s_lo;
-                  olap -> s_hi = s_hi;
-                  olap -> t_lo = t_lo;
-                  olap -> t_hi = t_hi;
-                  olap -> quality = qual;
-                  memcpy (& (olap ->  delta), WA -> Left_Delta,
-                          WA -> Left_Delta_Len * sizeof (int));
-                  olap -> delta_ct = WA -> Left_Delta_Len;
+                  olap->s_lo = s_lo;
+                  olap->s_hi = s_hi;
+                  olap->t_lo = t_lo;
+                  olap->t_hi = t_hi;
+                  olap->quality = qual;
+                  memcpy (& (olap-> delta), WA->Left_Delta,
+                          WA->Left_Delta_Len * sizeof (int));
+                  olap->delta_ct = WA->Left_Delta_Len;
                 }
 
               //  check for intersections before outputting
@@ -231,15 +231,15 @@ static void  Add_Overlap
   if  ((* ct) >= MAX_DISTINCT_OLAPS)
     return;   // no room for a new entry; this shouldn't happen
 
-  olap -> s_lo = olap -> s_left_boundary = s_lo;
-  olap -> s_hi = olap -> s_right_boundary = s_hi;
-  olap -> t_lo = olap -> t_left_boundary = t_lo;
-  olap -> t_hi = olap -> t_right_boundary = t_hi;
-  olap -> quality = qual;
-  memcpy (& (olap ->  delta), WA -> Left_Delta,
-          WA -> Left_Delta_Len * sizeof (int));
-  olap -> delta_ct = WA -> Left_Delta_Len;
-  olap -> min_diag = olap -> max_diag = t_lo - s_lo;
+  olap->s_lo = olap->s_left_boundary = s_lo;
+  olap->s_hi = olap->s_right_boundary = s_hi;
+  olap->t_lo = olap->t_left_boundary = t_lo;
+  olap->t_hi = olap->t_right_boundary = t_hi;
+  olap->quality = qual;
+  memcpy (& (olap-> delta), WA->Left_Delta,
+          WA->Left_Delta_Len * sizeof (int));
+  olap->delta_ct = WA->Left_Delta_Len;
+  olap->min_diag = olap->max_diag = t_lo - s_lo;
   (* ct) ++;
 
   return;
@@ -259,7 +259,7 @@ static int  Lies_On_Alignment
 //  the second string lies along the alignment from
 //   lo .. hi  on the first string where the delta-encoding
 //  of the alignment is given by
-//   WA -> Left_Delta [0 .. (WA -> Left_Delta_Len-1)] .
+//   WA->Left_Delta[0 .. (WA->Left_Delta_Len-1)] .
 
 {
   int  i, diag, new_diag;
@@ -267,12 +267,12 @@ static int  Lies_On_Alignment
   diag = t_lo - s_lo;
   new_diag = offset - start;
 
-  for  (i = 0;  i < WA -> Left_Delta_Len;  i ++)
+  for  (i = 0;  i < WA->Left_Delta_Len;  i ++)
     {
-      s_lo += abs (WA -> Left_Delta [i]);
+      s_lo += abs (WA->Left_Delta[i]);
       if  (start < s_lo)
         return  (abs (new_diag - diag) <= SHIFT_SLACK);
-      if  (WA -> Left_Delta [i] < 0)
+      if  (WA->Left_Delta[i] < 0)
         diag ++;
       else
         {
@@ -287,9 +287,9 @@ static int  Lies_On_Alignment
 
 
 static void  Choose_Best_Partial
-(Olap_Info_t * olap, int ct, int deleted [])
+(Olap_Info_t * olap, int ct, int deleted[])
 
-//  Choose the best partial overlap in  olap [0 .. (ct - 1)] .
+//  Choose the best partial overlap in  olap[0 .. (ct - 1)] .
 //  Set the corresponding  deleted  entry to false for the others.
 //  Best is the greatest number of matching bases.
 
@@ -298,8 +298,8 @@ static void  Choose_Best_Partial
   int  i, best;
 
   best = 0;
-  matching_bases = (1.0 - olap [0] . quality) * (2 + olap [0] . s_hi - olap [0] . s_lo
-                                                 + olap [0] . t_hi - olap [0] . t_lo);
+  matching_bases = (1.0 - olap[0].quality) * (2 + olap[0].s_hi - olap[0].s_lo
+                                                 + olap[0].t_hi - olap[0].t_lo);
   // actually twice the number of matching bases but the max will be
   // the same overlap
 
@@ -307,15 +307,15 @@ static void  Choose_Best_Partial
     {
       double  mb;
 
-      mb = (1.0 - olap [i] . quality) * (2 + olap [i] . s_hi - olap [i] . s_lo
-                                         + olap [i] . t_hi - olap [i] . t_lo);
+      mb = (1.0 - olap[i].quality) * (2 + olap[i].s_hi - olap[i].s_lo
+                                         + olap[i].t_hi - olap[i].t_lo);
       if  (matching_bases < mb || (matching_bases == mb
-                                   && olap [i] . quality < olap [best] . quality))
+                                   && olap[i].quality < olap[best].quality))
         best = i;
     }
 
   for  (i = 0;  i < ct;  i ++)
-    deleted [i] = (i != best);
+    deleted[i] = (i != best);
 
   return;
 }
@@ -324,7 +324,7 @@ static void  Choose_Best_Partial
 
 
 //  Return  TRUE  iff there is any length-( window_len ) subarray
-//  of  a [0 .. (n-1)]  that sums to  threshold  or higher.
+//  of  a[0 .. (n-1)]  that sums to  threshold  or higher.
 static
 int
 Has_Bad_Window(char *a, int n, int window_len, int threshold) {
@@ -357,7 +357,7 @@ Has_Bad_Window(char *a, int n, int window_len, int threshold) {
 //  Find and report all overlaps and branch points between string  S
 //  (with length  S_Len  and id  S_ID ) and string  T  (with
 //  length & screen info in  t_info  and id  T_ID ) using the exact
-//  matches in the list beginning at subscript  (* Start) .   Dir  is
+//  matches in the list beginning at subscript  (* Start).  Dir  is
 //  the orientation of  S .
 
 static
@@ -366,16 +366,16 @@ Process_Matches (int * Start,
                  char * S,
                  int S_Len,
                  char * S_quality,
-                 AS_IID S_ID,
+                 uint32 S_ID,
                  Direction_t Dir,
                  char * T,
                  Hash_Frag_Info_t t_info,
                  char * T_quality,
-                 AS_IID T_ID,
+                 uint32 T_ID,
                  Work_Area_t * WA,
                  int consistent) {
   int  P, * Ref;
-  Olap_Info_t  distinct_olap [MAX_DISTINCT_OLAPS];
+  Olap_Info_t  distinct_olap[MAX_DISTINCT_OLAPS];
   Match_Node_t  * Longest_Match, * Ptr;
   Overlap_t  Kind_Of_Olap = NONE;
   double  Quality;
@@ -388,25 +388,24 @@ Process_Matches (int * Start,
   int  Errors;
 
   Done_S_Left = Done_S_Right = FALSE;
-  t_len = t_info . length;
+  t_len = t_info.length;
 
   assert ((* Start) != 0);
 
   // If a singleton match is hopeless on either side
   // it needn't be processed
 
-  if  (Use_Hopeless_Check
-       && WA -> Match_Node_Space [(* Start)] . Next == 0
-       && ! Doing_Partial_Overlaps)
-    {
+  if  (G.Use_Hopeless_Check
+       && WA->Match_Node_Space[(* Start)].Next == 0
+       && ! G.Doing_Partial_Overlaps) {
       int  s_head, t_head, s_tail, t_tail;
       int  is_hopeless = FALSE;
 
-      s_head = WA -> Match_Node_Space [(* Start)] . Start;
-      t_head = WA -> Match_Node_Space [(* Start)] . Offset;
+      s_head = WA->Match_Node_Space[(* Start)].Start;
+      t_head = WA->Match_Node_Space[(* Start)].Offset;
       if  (s_head <= t_head)
         {
-          if  (s_head > HOPELESS_MATCH && ! WA -> left_end_screened)
+          if  (s_head > HOPELESS_MATCH && ! WA->left_end_screened)
             is_hopeless = TRUE;
         }
       else
@@ -415,11 +414,11 @@ Process_Matches (int * Start,
             is_hopeless = TRUE;
         }
 
-      s_tail = S_Len - s_head - WA -> Match_Node_Space [(* Start)] . Len + 1;
-      t_tail = t_len - t_head - WA -> Match_Node_Space [(* Start)] . Len + 1;
+      s_tail = S_Len - s_head - WA->Match_Node_Space[(* Start)].Len + 1;
+      t_tail = t_len - t_head - WA->Match_Node_Space[(* Start)].Len + 1;
       if  (s_tail <= t_tail)
         {
-          if  (s_tail > HOPELESS_MATCH && ! WA -> right_end_screened)
+          if  (s_tail > HOPELESS_MATCH && ! WA->right_end_screened)
             is_hopeless = TRUE;
         }
       else
@@ -438,27 +437,26 @@ Process_Matches (int * Start,
 
   distinct_olap_ct = 0;
 
-  while  ((* Start) != 0)
-    {
+  while  ((* Start) != 0) {
       int  a_hang, b_hang;
       int  hit_limit = FALSE;
 
-      Max_Len = WA -> Match_Node_Space [(* Start)] . Len;
-      Longest_Match = WA -> Match_Node_Space + (* Start);
-      for  (P = WA -> Match_Node_Space [(* Start)] . Next;  P != 0;
-            P = WA -> Match_Node_Space [P] . Next)
-        if  (WA -> Match_Node_Space [P] . Len > Max_Len)
+      Max_Len = WA->Match_Node_Space[(* Start)].Len;
+      Longest_Match = WA->Match_Node_Space + (* Start);
+      for  (P = WA->Match_Node_Space[(* Start)].Next;  P != 0;
+            P = WA->Match_Node_Space[P].Next)
+        if  (WA->Match_Node_Space[P].Len > Max_Len)
           {
-            Max_Len = WA -> Match_Node_Space [P] . Len;
-            Longest_Match = WA -> Match_Node_Space + P;
+            Max_Len = WA->Match_Node_Space[P].Len;
+            Longest_Match = WA->Match_Node_Space + P;
           }
 
-      a_hang = Longest_Match -> Start - Longest_Match -> Offset;
+      a_hang = Longest_Match->Start - Longest_Match->Offset;
       b_hang = a_hang + S_Len - t_len;
-      hit_limit =  ((WA -> A_Olaps_For_Frag >= Frag_Olap_Limit
+      hit_limit =  ((WA->A_Olaps_For_Frag >= G.Frag_Olap_Limit
                      && a_hang <= 0)
                     ||
-                    (WA -> B_Olaps_For_Frag >= Frag_Olap_Limit
+                    (WA->B_Olaps_For_Frag >= G.Frag_Olap_Limit
                      && b_hang <= 0));
 
       if  (! hit_limit)
@@ -467,15 +465,15 @@ Process_Matches (int * Start,
                                            & S_Lo, & S_Hi, & T_Lo, & T_Hi, & Errors, WA);
 
 
-          if  (Kind_Of_Olap == DOVETAIL || Doing_Partial_Overlaps)
+          if  (Kind_Of_Olap == DOVETAIL || G.Doing_Partial_Overlaps)
             {
-              if  (1 + S_Hi - S_Lo >= Min_Olap_Len
-                   && 1 + T_Hi - T_Lo >= Min_Olap_Len)
+              if  (1 + S_Hi - S_Lo >= G.Min_Olap_Len
+                   && 1 + T_Hi - T_Lo >= G.Min_Olap_Len)
                 {
                   Olap_Len = 1 + MIN (S_Hi - S_Lo, T_Hi - T_Lo);
                   Quality = (double) Errors / Olap_Len;
 
-                  if  (Errors <= WA -> Error_Bound [Olap_Len])
+                  if  (Errors <= WA->Error_Bound[Olap_Len])
                     {
                       Add_Overlap (S_Lo, S_Hi, T_Lo, T_Hi, Quality,
                                    distinct_olap, & distinct_olap_ct, WA);
@@ -489,42 +487,42 @@ Process_Matches (int * Start,
 
       for  (Ref = Start;  (* Ref) != 0;  )
         {
-          Ptr = WA -> Match_Node_Space + (* Ref);
+          Ptr = WA->Match_Node_Space + (* Ref);
           if  (Ptr == Longest_Match
-               || ((Kind_Of_Olap == DOVETAIL || Doing_Partial_Overlaps)
-                   && S_Lo - SHIFT_SLACK <= Ptr -> Start
-                   && Ptr -> Start + Ptr -> Len
+               || ((Kind_Of_Olap == DOVETAIL || G.Doing_Partial_Overlaps)
+                   && S_Lo - SHIFT_SLACK <= Ptr->Start
+                   && Ptr->Start + Ptr->Len
                    <= (S_Hi + 1) + SHIFT_SLACK - 1
                    && Lies_On_Alignment
-                   (Ptr -> Start, Ptr -> Offset,
+                   (Ptr->Start, Ptr->Offset,
                     S_Lo, T_Lo, WA)
                    ))
-            (* Ref) = Ptr -> Next;         // Remove this node, it matches
+            (* Ref) = Ptr->Next;         // Remove this node, it matches
           //   the alignment
           else
-            Ref = & (Ptr -> Next);
+            Ref = & (Ptr->Next);
         }
     }
 
   if  (distinct_olap_ct > 0)
     {
-      int  deleted [MAX_DISTINCT_OLAPS] = {0};
+      int  deleted[MAX_DISTINCT_OLAPS] = {0};
       Olap_Info_t  * p;
       int  i;
 
       //  Check if any previously distinct overlaps should be merged because
       //  of other merges.
 
-      if  (Doing_Partial_Overlaps)
+      if  (G.Doing_Partial_Overlaps)
         {
-          if  (Unique_Olap_Per_Pair)
+          if  (G.Unique_Olap_Per_Pair)
             Choose_Best_Partial (distinct_olap, distinct_olap_ct, deleted);
           //else
           //  Do nothing, output them all
         }
       else
         {
-          if  (Unique_Olap_Per_Pair)
+          if  (G.Unique_Olap_Per_Pair)
             Combine_Into_One_Olap (distinct_olap, distinct_olap_ct,
                                    deleted);
           else
@@ -535,20 +533,17 @@ Process_Matches (int * Start,
       p = distinct_olap;
 
       for  (i = 0;  i < distinct_olap_ct;  i ++) {
-        if  (! deleted [i]) {
+        if  (! deleted[i]) {
           bool rejected = FALSE;
 
-          if  (Use_Window_Filter) {
+          if  (G.Use_Window_Filter) {
             int32  d;
-            int32  i = p -> s_lo;;
-            int32  j = p -> t_lo;
+            int32  i = p->s_lo;;
+            int32  j = p->t_lo;
             int32  q_len = 0;
 
-#if AS_READ_MAX_NORMAL_LEN > 5000
-            char  *q_diff = new char [AS_READ_MAX_NORMAL_LEN];
-#else
-            char   q_diff[AS_READ_MAX_NORMAL_LEN];
-#endif
+            char  *q_diff = new char [AS_MAX_READLEN];
+
             for  (int32 k=0;  k<p->delta_ct;  k++) {
               int32 len = abs(p->delta[k]);
 
@@ -566,7 +561,7 @@ Process_Matches (int * Start,
                 j++;
               }
 
-              if  (p -> delta[k] > 0) {
+              if  (p->delta[k] > 0) {
                 d = S_quality[i];
                 i++;
               } else {
@@ -576,7 +571,7 @@ Process_Matches (int * Start,
               q_diff[q_len++] = MIN (d, QUALITY_CUTOFF);
             }
 
-            while  (i <= p -> s_hi) {
+            while  (i <= p->s_hi) {
               if  (S[i] == T[j] || S[i] == DONT_KNOW_CHAR || T[j] == DONT_KNOW_CHAR) {
                 d = 0;
               } else {
@@ -600,13 +595,11 @@ Process_Matches (int * Start,
               Bad_Long_Window_Ct++;
             }
             
-#if AS_READ_MAX_NORMAL_LEN > 5000
             delete [] q_diff;
-#endif
           }
 
           if  (! rejected) {
-            if  (Doing_Partial_Overlaps)
+            if  (G.Doing_Partial_Overlaps)
               Output_Partial_Overlap(S_ID, T_ID, Dir, p, S_Len, t_len, WA);
             else
               Output_Overlap(S_ID, S_Len, Dir, T_ID, t_len, p, WA);
@@ -653,9 +646,9 @@ By_Diag_Sum (const void * a, const void * b) {
   x = (String_Olap_t *) a;
   y = (String_Olap_t *) b;
 
-  if  (x -> diag_sum < y -> diag_sum)
+  if  (x->diag_sum < y->diag_sum)
     return  -1;
-  else if  (x -> diag_sum > y -> diag_sum)
+  else if  (x->diag_sum > y->diag_sum)
     return  1;
 
   return  0;
@@ -673,7 +666,7 @@ int
 Process_String_Olaps (char * S,
                       int Len,
                       char * S_quality,
-                      AS_IID ID,
+                      uint32 ID,
                       Direction_t Dir,
                       Work_Area_t * WA) {
   int32  i, ct, root_num, start, processed_ct;
@@ -684,20 +677,20 @@ Process_String_Olaps (char * S,
   //  separately in order from longest to shortest overlap.  Stop
   //  processing when output limit has been reached.
 
-  for  (i = ct = 0;  i < WA -> Next_Avail_String_Olap;  i ++)
-    if  (WA -> String_Olap_Space [i] . Full) {
-      root_num = WA -> String_Olap_Space [i] . String_Num;
+  for  (i = ct = 0;  i < WA->Next_Avail_String_Olap;  i ++)
+    if  (WA->String_Olap_Space[i].Full) {
+      root_num = WA->String_Olap_Space[i].String_Num;
       if  (root_num + Hash_String_Num_Offset > ID) {
-        if  (WA -> String_Olap_Space [i] . Match_List == 0) {
+        if  (WA->String_Olap_Space[i].Match_List == 0) {
           fprintf (stderr, " Curr_String_Num = %d  root_num  %d have no matches\n",
                    ID, root_num);
           exit (-2);
         }
         if  (i != ct)
-          WA -> String_Olap_Space [ct] = WA -> String_Olap_Space [i];
-        assert (WA -> String_Olap_Space [ct] . diag_ct > 0);
-        WA -> String_Olap_Space [ct] . diag_sum
-          /= WA -> String_Olap_Space [ct] . diag_ct;
+          WA->String_Olap_Space[ct] = WA->String_Olap_Space[i];
+        assert (WA->String_Olap_Space[ct].diag_ct > 0);
+        WA->String_Olap_Space[ct].diag_sum
+          /= WA->String_Olap_Space[ct].diag_ct;
         ct ++;
       }
     }
@@ -705,82 +698,94 @@ Process_String_Olaps (char * S,
   if  (ct == 0)
     return  ct;
 
-  if  (ct <= Frag_Olap_Limit) {
+  if  (ct <= G.Frag_Olap_Limit) {
     for  (i = 0;  i < ct;  i ++) {
-      root_num = WA -> String_Olap_Space [i] . String_Num;
+      root_num = WA->String_Olap_Space[i].String_Num;
 
-      WA -> Edit_Match_Limit = Read_Edit_Match_Limit;
-      WA -> Error_Bound = Read_Error_Bound;
+      WA->Edit_Match_Limit = Read_Edit_Match_Limit;
+      WA->Error_Bound = Read_Error_Bound;
 
-      Process_Matches
-        (& (WA -> String_Olap_Space [i] . Match_List),
-         S, Len, S_quality, ID, Dir,
-         Data + String_Start [root_num],
-         String_Info [root_num],
-         Quality_Data + String_Start [root_num],
-         root_num + Hash_String_Num_Offset, WA,
-         WA -> String_Olap_Space [i] . consistent);
-      assert (WA -> String_Olap_Space [i] . Match_List == 0);
+      Process_Matches(&WA->String_Olap_Space[i].Match_List,
+                      S,
+                      Len,
+                      S_quality,
+                      ID,
+                      Dir,
+                      basesData + String_Start[root_num],
+                      String_Info[root_num],
+                      qualsData + String_Start[root_num],
+                      root_num + Hash_String_Num_Offset,
+                      WA,
+                      WA->String_Olap_Space[i].consistent);
+      assert (WA->String_Olap_Space[i].Match_List == 0);
     }
 
     return  ct;
   }
 
 #if  1
-  qsort (WA -> String_Olap_Space, ct, sizeof (String_Olap_t), By_Diag_Sum);
+  qsort (WA->String_Olap_Space, ct, sizeof (String_Olap_t), By_Diag_Sum);
 #else
   for  (i = 0;  i < ct - 1;  i ++)
     for  (j = i + 1;  j < ct;  j ++)
-      if  (WA -> String_Olap_Space [i] . diag_sum
-           > WA -> String_Olap_Space [j] . diag_sum)
+      if  (WA->String_Olap_Space[i].diag_sum
+           > WA->String_Olap_Space[j].diag_sum)
         {
-          String_Olap_t  save = WA -> String_Olap_Space [i];
+          String_Olap_t  save = WA->String_Olap_Space[i];
 
-          WA -> String_Olap_Space [i] = WA -> String_Olap_Space [j];
-          WA -> String_Olap_Space [j] = save;
+          WA->String_Olap_Space[i] = WA->String_Olap_Space[j];
+          WA->String_Olap_Space[j] = save;
         }
 #endif
 
   for  (start = 0;
-        start < ct && WA -> String_Olap_Space [start] . diag_sum < 0;
+        start < ct && WA->String_Olap_Space[start].diag_sum < 0;
         start ++)
     ;
 
   processed_ct = 0;
 
-  for  (i = start;  i < ct && WA -> A_Olaps_For_Frag < Frag_Olap_Limit ;  i ++) {
-    root_num = WA -> String_Olap_Space [i] . String_Num;
+  for  (i = start;  i < ct && WA->A_Olaps_For_Frag < G.Frag_Olap_Limit ;  i ++) {
+    root_num = WA->String_Olap_Space[i].String_Num;
 
-    WA -> Edit_Match_Limit = Read_Edit_Match_Limit;
-    WA -> Error_Bound = Read_Error_Bound;
+    WA->Edit_Match_Limit = Read_Edit_Match_Limit;
+    WA->Error_Bound = Read_Error_Bound;
 
-    Process_Matches
-      (& (WA -> String_Olap_Space [i] . Match_List),
-       S, Len, S_quality, ID, Dir,
-       Data + String_Start [root_num],
-       String_Info [root_num],
-       Quality_Data + String_Start [root_num],
-       root_num + Hash_String_Num_Offset, WA,
-       WA -> String_Olap_Space [i] . consistent);
-    assert (WA -> String_Olap_Space [i] . Match_List == 0);
+    Process_Matches(&WA->String_Olap_Space[i].Match_List,
+                    S,
+                    Len,
+                    S_quality,
+                    ID,
+                    Dir,
+                    basesData + String_Start[root_num],
+                    String_Info[root_num],
+                    qualsData + String_Start[root_num],
+                    root_num + Hash_String_Num_Offset,
+                    WA,
+                    WA->String_Olap_Space[i].consistent);
+    assert (WA->String_Olap_Space[i].Match_List == 0);
 
     processed_ct ++;
   }
-  for  (i = start - 1;  i >= 0 && WA -> B_Olaps_For_Frag < Frag_Olap_Limit ;  i --) {
-    root_num = WA -> String_Olap_Space [i] . String_Num;
+  for  (i = start - 1;  i >= 0 && WA->B_Olaps_For_Frag < G.Frag_Olap_Limit ;  i --) {
+    root_num = WA->String_Olap_Space[i].String_Num;
 
-    WA -> Edit_Match_Limit = Read_Edit_Match_Limit;
-    WA -> Error_Bound = Read_Error_Bound;
+    WA->Edit_Match_Limit = Read_Edit_Match_Limit;
+    WA->Error_Bound = Read_Error_Bound;
 
-    Process_Matches
-      (& (WA -> String_Olap_Space [i] . Match_List),
-       S, Len, S_quality, ID, Dir,
-       Data + String_Start [root_num],
-       String_Info [root_num],
-       Quality_Data + String_Start [root_num],
-       root_num + Hash_String_Num_Offset, WA,
-       WA -> String_Olap_Space [i] . consistent);
-    assert (WA -> String_Olap_Space [i] . Match_List == 0);
+    Process_Matches(&WA->String_Olap_Space[i].Match_List,
+                    S,
+                    Len,
+                    S_quality,
+                    ID,
+                    Dir,
+                    basesData + String_Start[root_num],
+                    String_Info[root_num],
+                    qualsData + String_Start[root_num],
+                    root_num + Hash_String_Num_Offset,
+                    WA,
+                    WA->String_Olap_Space[i].consistent);
+    assert (WA->String_Olap_Space[i].Match_List == 0);
 
     processed_ct ++;
   }

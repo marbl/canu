@@ -207,8 +207,8 @@ main(int argc, char **argv) {
 
     gkpStore->gkStore_loadReadData(read, readData);
 
-    char *seq = readData->sequence()  + ldump;
-    char *qlt = readData->qualities() + ldump;
+    char *seq = readData->gkReadData_getSequence()  + ldump;
+    char *qlt = readData->gkReadData_getQualities() + ldump;
 
     seq[rdump - ldump] = 0;
     qlt[rdump - ldump] = 0;

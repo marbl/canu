@@ -23,26 +23,20 @@ const char *mainid = "$Id$";
 
 #include "AS_global.H"
 
-#include "AS_PER_gkpStore.H"
+#include "gkStore.H"
+#include "ovStore.H"
 
-#include "overlapStore.H"
-
-#include "AS_OVS_overlap.H"
-#include "AS_OVS_overlapFile.H"
-#include "AS_OVS_overlapStore.H"
-#include "AS_OBT_acceptableOverlap.H"
-
-#include <ctype.h>
-#include <unistd.h>  //  sysconf()
+//#include "AS_OBT_acceptableOverlap.H"
+#warning NOT INCLUDING ACCEPTABLE OVERLAP FROM OBT
+bool   AS_OBT_acceptableOverlap(ovsOverlap &ol) {
+  return(true);
+};
 
 #include <vector>
 #include <algorithm>
-//#include <parallel/algorithm>
 
 using namespace std;
 
-
-#define AS_OVS_CURRENT_VERSION  2
 
 uint32  lastLibFirstIID = 0;
 uint32  lastLibLastIID  = 0;
@@ -77,7 +71,7 @@ computeIIDperBucket(uint32 fileLimit, uint64 memoryLimit, uint32 maxIID, vector<
     if (no == 0)
       fprintf(stderr, "WARNING:  No overlaps found (or file not found) in '%s'.\n", fileList[i]);
 
-    numOverlaps += 2 * no / sizeof(OVSoverlap);
+    numOverlaps += 2 * no / sizeof(ovsOverlap);
   }
 
   fprintf(stderr, "Found %.3f million overlaps.\n", numOverlaps / 1000000.0);
@@ -88,7 +82,7 @@ computeIIDperBucket(uint32 fileLimit, uint64 memoryLimit, uint32 maxIID, vector<
   //  and making it too large means we'll get maybe one more bucket and the buckets will be smaller.
   //  Yeah, we probably could have just used ceil.
   //
-  double  overlapsPerBucket   = (double)memoryLimit / (double)sizeof(OVSoverlap);
+  double  overlapsPerBucket   = (double)memoryLimit / (double)sizeof(ovsOverlap);
   double  overlapsPerIID      = (double)numOverlaps / (double)maxIID;
 
   uint64  iidPerBucket        = (uint64)(overlapsPerBucket / overlapsPerIID) + 1;
@@ -106,31 +100,11 @@ computeIIDperBucket(uint32 fileLimit, uint64 memoryLimit, uint32 maxIID, vector<
 
 
 
+//  These are duplicated between ovStoreBucketizer and ovStoreBuild
 
 static
 void
-markLoad(gkStore *gkp, uint32 maxIID, char *&skipFragment, uint32 *&iidToLib) {
-  gkStream    *gks = new gkStream(gkp, 0, 0, GKFRAGMENT_INF);
-  gkFragment   fr;
-
-  fprintf(stderr, "Reading gatekeeper to build a map from fragment ID to library ID.\n");
-
-  skipFragment = new char [maxIID];
-  iidToLib     = new uint32 [maxIID];
-
-  memset(skipFragment, 0, sizeof(char)   * maxIID);
-  memset(iidToLib,     0, sizeof(uint32) * maxIID);
-
-  while (gks->next(&fr))
-    iidToLib[fr.gkFragment_getReadIID()] = fr.gkFragment_getLibraryIID();
-
-  delete gks;
-}
-
-
-static
-void
-markOBT(gkStore *gkp, uint32 maxIID, char *skipFragment, uint32 *iidToLib) {
+markOBT(gkStore *gkp, uint32 maxIID, char *skipFragment) {
   uint64  numMarked = 0;
 
   if (skipFragment == NULL)
@@ -139,16 +113,17 @@ markOBT(gkStore *gkp, uint32 maxIID, char *skipFragment, uint32 *iidToLib) {
   fprintf(stderr, "Marking fragments to skip overlap based trimming.\n");
 
   for (uint64 iid=0; iid<maxIID; iid++) {
-    gkLibrary *L = gkp->gkStore_getLibrary(iidToLib[iid]);
+    uint32     Lid = gkp->gkStore_getRead(iid)->gkRead_libraryID();
+    gkLibrary *L   = gkp->gkStore_getLibrary(Lid);
 
     if (L == NULL)
       continue;
 
-    if ((L->doRemoveDuplicateReads     == false) &&
-        (L->doTrim_finalLargestCovered == false) &&
-        (L->doTrim_finalEvidenceBased  == false) &&
-        (L->doRemoveSpurReads          == false) &&
-        (L->doRemoveChimericReads      == false)) {
+    if ((L->gkLibrary_removeDuplicateReads()     == false) &&
+        (L->gkLibrary_finalTrim()                != FINALTRIM_LARGEST_COVERED) &&
+        (L->gkLibrary_finalTrim()                != FINALTRIM_EVIDENCE_BASED) &&
+        (L->gkLibrary_removeSpurReads()          == false) &&
+        (L->gkLibrary_removeChimericReads()      == false)) {
       numMarked++;
       skipFragment[iid] = true;
     }
@@ -158,9 +133,11 @@ markOBT(gkStore *gkp, uint32 maxIID, char *skipFragment, uint32 *iidToLib) {
 }
 
 
+
+
 static
 void
-markDUP(gkStore *gkp, uint32 maxIID, char *skipFragment, uint32 *iidToLib) {
+markDUP(gkStore *gkp, uint32 maxIID, char *skipFragment) {
   uint64  numMarked = 0;
 
   if (skipFragment == NULL)
@@ -169,12 +146,13 @@ markDUP(gkStore *gkp, uint32 maxIID, char *skipFragment, uint32 *iidToLib) {
   fprintf(stderr, "Marking fragments to skip deduplication.\n");
 
   for (uint64 iid=0; iid<maxIID; iid++) {
-    gkLibrary *L = gkp->gkStore_getLibrary(iidToLib[iid]);
+    uint32     Lid = gkp->gkStore_getRead(iid)->gkRead_libraryID();
+    gkLibrary *L   = gkp->gkStore_getLibrary(Lid);
 
     if (L == NULL)
       continue;
 
-    if (L->doRemoveDuplicateReads == false) {
+    if (L->gkLibrary_removeDuplicateReads() == false) {
       numMarked++;
       skipFragment[iid] = true;
     }
@@ -190,12 +168,12 @@ markDUP(gkStore *gkp, uint32 maxIID, char *skipFragment, uint32 *iidToLib) {
 
 static
 void
-writeToDumpFile(OVSoverlap          *overlap,
-                BinaryOverlapFile  **dumpFile,
-                uint32               dumpFileMax,
-                uint64              *dumpLength,
-                uint32               iidPerBucket,
-                char                *ovlName) {
+writeToDumpFile(ovsOverlap       *overlap,
+                ovFile          **dumpFile,
+                uint32            dumpFileMax,
+                uint64           *dumpLength,
+                uint32            iidPerBucket,
+                char             *ovlName) {
 
   uint32 df = overlap->a_iid / iidPerBucket;
 
@@ -220,7 +198,7 @@ writeToDumpFile(OVSoverlap          *overlap,
     
     fprintf(stderr, "\n");
     fprintf(stderr, "Too many bucket files when adding overlap:\n");
-    fprintf(stderr, "  %s\n", AS_OVS_toString(olapstring, *overlap));
+    fprintf(stderr, "  %s\n", overlap->toString(olapstring));
     fprintf(stderr, "\n");
     fprintf(stderr, "bucket       = "F_U32"\n", df);
     fprintf(stderr, "iidPerBucket = "F_U32"\n", iidPerBucket);
@@ -236,11 +214,12 @@ writeToDumpFile(OVSoverlap          *overlap,
   if (dumpFile[df] == NULL) {
     char name[FILENAME_MAX];
     sprintf(name, "%s/tmp.sort.%03d", ovlName, df);
-    dumpFile[df]   = AS_OVS_createBinaryOverlapFile(name, FALSE);
+    fprintf(stderr, "CREATE bucket '%s'\n", name);
+    dumpFile[df]   = new ovFile(name, ovFileFullWrite);
     dumpLength[df] = 0;
   }
 
-  AS_OVS_writeOverlap(dumpFile[df], overlap);
+  dumpFile[df]->writeOverlap(overlap);
   dumpLength[df]++;
 }
 
@@ -384,21 +363,20 @@ main(int argc, char **argv) {
   //  We create the store early, allowing it to fail if it already
   //  exists, or just cannot be created.
   //
-  OverlapStore    *storeFile = AS_OVS_createOverlapStore(ovlName, TRUE);
+  ovStore *storeFile   = new ovStore(ovlName, ovStoreWrite);
+  gkStore *gkp         = new gkStore(gkpName);
 
-  gkStore *gkp         = new gkStore(gkpName, FALSE, FALSE);
-
-  uint64  maxIID       = gkp->gkStore_getNumFragments() + 1;
+  uint64  maxIID       = gkp->gkStore_getNumReads() + 1;
   uint64  iidPerBucket = computeIIDperBucket(fileLimit, memoryLimit, maxIID, fileList);
 
-  lastLibLastIID       = gkp->gkStore_getNumFragments();
+  lastLibLastIID       = gkp->gkStore_getNumReads();
 
-  uint32                   dumpFileMax  = sysconf(_SC_OPEN_MAX) + 1;
-  BinaryOverlapFile      **dumpFile     = new BinaryOverlapFile * [dumpFileMax];
-  uint64                  *dumpLength   = new uint64              [dumpFileMax];
+  uint32         dumpFileMax  = sysconf(_SC_OPEN_MAX) + 1;
+  ovFile       **dumpFile     = new ovFile * [dumpFileMax];
+  uint64        *dumpLength   = new uint64   [dumpFileMax];
 
-  memset(dumpFile,   0, sizeof(BinaryOverlapFile *) * dumpFileMax);
-  memset(dumpLength, 0, sizeof(uint64)              * dumpFileMax);
+  memset(dumpFile,   0, sizeof(ovFile *) * dumpFileMax);
+  memset(dumpLength, 0, sizeof(uint64)   * dumpFileMax);
 
   if (maxIID / iidPerBucket + 1 > dumpFileMax - 16) {
     fprintf(stderr, "ERROR:\n");
@@ -420,53 +398,52 @@ main(int argc, char **argv) {
   //  library, and that library is marked doRemoveDuplicateReads == 1
 
   char    *skipFragment = NULL;
-  uint32  *iidToLib     = NULL;
 
   uint64   skipOBT1LQ      = 0;
   uint64   skipOBT2HQ      = 0;
   uint64   skipOBT2LIB     = 0;
   uint64   skipOBT2NODEDUP = 0;
 
-  if (doFilterOBT != 0)
-    markLoad(gkp, maxIID, skipFragment, iidToLib);
+  if (doFilterOBT != 0) {
+    skipFragment = new char [maxIID];
+    memset(skipFragment, 0, sizeof(char) * maxIID);
+  }
 
   if (doFilterOBT == 1)
-    markOBT(gkp, maxIID, skipFragment, iidToLib);
+    markOBT(gkp, maxIID, skipFragment);
 
   if (doFilterOBT == 2)
-    markDUP(gkp, maxIID, skipFragment, iidToLib);
-
-
+    markDUP(gkp, maxIID, skipFragment);
   
 
   for (uint32 i=0; i<fileList.size(); i++) {
-    BinaryOverlapFile  *inputFile;
-    OVSoverlap          fovrlap;
-    OVSoverlap          rovrlap;
-    int                 df;
+    ovFile       *inputFile;
+    ovsOverlap    foverlap;
+    ovsOverlap    roverlap;
+    int           df;
 
     fprintf(stderr, "bucketizing %s\n", fileList[i]);
 
-    inputFile = AS_OVS_openBinaryOverlapFile(fileList[i], FALSE);
+    inputFile = new ovFile(fileList[i], ovFileFull);
 
-    while (AS_OVS_readOverlap(inputFile, &fovrlap)) {
+    while (inputFile->readOverlap(&foverlap)) {
 
       //  Quick sanity check on IIDs.
 
-      if ((fovrlap.a_iid == 0) ||
-          (fovrlap.b_iid == 0) ||
-          (fovrlap.a_iid >= maxIID) ||
-          (fovrlap.b_iid >= maxIID)) {
+      if ((foverlap.a_iid == 0) ||
+          (foverlap.b_iid == 0) ||
+          (foverlap.a_iid >= maxIID) ||
+          (foverlap.b_iid >= maxIID)) {
         char ovlstr[256];
 
         fprintf(stderr, "Overlap has IDs out of range (maxIID "F_U64"), possibly corrupt input data.\n", maxIID);
-        fprintf(stderr, "  %s\n", AS_OVS_toString(ovlstr, fovrlap));
+        fprintf(stderr, "  %s\n", foverlap.toString(ovlstr));
         exit(1);
       }
 
 
       //  If filtering for OBT, skip the crap.
-      if ((doFilterOBT == 1) && (AS_OBT_acceptableOverlap(fovrlap) == 0)) {
+      if ((doFilterOBT == 1) && (AS_OBT_acceptableOverlap(foverlap) == 0)) {
         skipOBT1LQ++;
         continue;
       }
@@ -475,76 +452,39 @@ main(int argc, char **argv) {
       //  (for now, we allow everything through -- these are used for just about everything)
 
       //  If filtering for OBTs dedup, skip the good
-      if ((doFilterOBT == 2) && (AS_OBT_acceptableOverlap(fovrlap) == 1)) {
+      if ((doFilterOBT == 2) && (AS_OBT_acceptableOverlap(foverlap) == 1)) {
         skipOBT2HQ++;
         continue;
       }
 
       //  If filtering for OBTs dedup, skip things we don't dedup, and overlaps between libraries.
-      if ((doFilterOBT == 2) && (iidToLib[fovrlap.a_iid] != iidToLib[fovrlap.b_iid])) {
+      if ((doFilterOBT == 2) &&
+          (gkp->gkStore_getRead(foverlap.a_iid)->gkRead_libraryID() !=
+           gkp->gkStore_getRead(foverlap.b_iid)->gkRead_libraryID())) {
         skipOBT2LIB++;
         continue;
       }
 
-      if ((doFilterOBT == 2) && (skipFragment[fovrlap.a_iid])) {
+      if ((doFilterOBT == 2) && (skipFragment[foverlap.a_iid])) {
         skipOBT2NODEDUP++;
         continue;
       }
 
-      writeToDumpFile(&fovrlap, dumpFile, dumpFileMax, dumpLength, iidPerBucket, ovlName);
+      writeToDumpFile(&foverlap, dumpFile, dumpFileMax, dumpLength, iidPerBucket, ovlName);
 
       //  flip the overlap -- copy all the dat, then fix whatever
       //  needs to change for the flip.
 
-      switch (fovrlap.dat.ovl.type) {
-        case AS_OVS_TYPE_OVL:
-          rovrlap.a_iid = fovrlap.b_iid;
-          rovrlap.b_iid = fovrlap.a_iid;
-          rovrlap.dat   = fovrlap.dat;
-          if (fovrlap.dat.ovl.flipped) {
-            rovrlap.dat.ovl.a_hang = fovrlap.dat.ovl.b_hang;
-            rovrlap.dat.ovl.b_hang = fovrlap.dat.ovl.a_hang;
-          } else {
-            rovrlap.dat.ovl.a_hang = -fovrlap.dat.ovl.a_hang;
-            rovrlap.dat.ovl.b_hang = -fovrlap.dat.ovl.b_hang;
-          }
+      roverlap.swapIDs(foverlap);
 
-          writeToDumpFile(&rovrlap, dumpFile, dumpFileMax, dumpLength, iidPerBucket, ovlName);
-          break;
-        case AS_OVS_TYPE_OBT:
-          rovrlap.a_iid = fovrlap.b_iid;
-          rovrlap.b_iid = fovrlap.a_iid;
-          rovrlap.dat   = fovrlap.dat;
-          if (fovrlap.dat.obt.fwd) {
-            rovrlap.dat.obt.a_beg    = fovrlap.dat.obt.b_beg;
-            rovrlap.dat.obt.a_end    = (fovrlap.dat.obt.b_end_hi << 9) | fovrlap.dat.obt.b_end_lo;
-            rovrlap.dat.obt.b_beg    = fovrlap.dat.obt.a_beg;
-            rovrlap.dat.obt.b_end_hi = fovrlap.dat.obt.a_end >> 9;
-            rovrlap.dat.obt.b_end_lo = fovrlap.dat.obt.a_end & 0x1ff;
-          } else {
-            rovrlap.dat.obt.a_beg    = (fovrlap.dat.obt.b_end_hi << 9) | fovrlap.dat.obt.b_end_lo;
-            rovrlap.dat.obt.a_end    = fovrlap.dat.obt.b_beg;
-            rovrlap.dat.obt.b_beg    = fovrlap.dat.obt.a_end;
-            rovrlap.dat.obt.b_end_hi = fovrlap.dat.obt.a_beg >> 9;
-            rovrlap.dat.obt.b_end_lo = fovrlap.dat.obt.a_beg & 0x1ff;
-          }
-
-          writeToDumpFile(&rovrlap, dumpFile, dumpFileMax, dumpLength, iidPerBucket, ovlName);
-          break;
-        case AS_OVS_TYPE_MER:
-          //  Not needed; MER outputs both overlaps
-          break;
-        default:
-          assert(0);
-          break;
-      }
+      writeToDumpFile(&roverlap, dumpFile, dumpFileMax, dumpLength, iidPerBucket, ovlName);
     }
 
-    AS_OVS_closeBinaryOverlapFile(inputFile);
+    delete inputFile;
   }
 
   for (uint32 i=0; i<dumpFileMax; i++)
-    AS_OVS_closeBinaryOverlapFile(dumpFile[i]);
+    delete dumpFile[i];
 
   fprintf(stderr, "bucketizing DONE!\n");
 
@@ -555,7 +495,6 @@ main(int argc, char **argv) {
   fprintf(stderr, "%16"F_U64P" DUP - dedup not requested\n", skipOBT2NODEDUP);
 
   delete [] skipFragment;  skipFragment = NULL;
-  delete [] iidToLib;      iidToLib     = NULL;
 
   //
   //  Read each bucket, sort it, and dump it to the store
@@ -566,13 +505,13 @@ main(int argc, char **argv) {
     if (dumpLengthMax < dumpLength[i])
       dumpLengthMax = dumpLength[i];
 
-  OVSoverlap  *overlapsort = new OVSoverlap [dumpLengthMax];
+  ovsOverlap  *overlapsort = new ovsOverlap [dumpLengthMax];
 
   time_t  beginTime = time(NULL);
 
   for (uint32 i=0; i<dumpFileMax; i++) {
-    char                name[FILENAME_MAX];
-    BinaryOverlapFile  *bof = NULL;
+    char      name[FILENAME_MAX];
+    ovFile   *bof = NULL;
 
     if (dumpLength[i] == 0)
       continue;
@@ -585,13 +524,28 @@ main(int argc, char **argv) {
     sprintf(name, "%s/tmp.sort.%03d", ovlName, i);
     fprintf(stderr, "reading %s (%ld)\n", name, time(NULL) - beginTime);
 
-    bof = AS_OVS_openBinaryOverlapFile(name, FALSE);
+    bof = new ovFile(name, ovFileFull);
 
     uint64 numOvl = 0;
-    while (AS_OVS_readOverlap(bof, overlapsort + numOvl))
-      numOvl++;
+    while (bof->readOverlap(overlapsort + numOvl)) {
 
-    AS_OVS_closeBinaryOverlapFile(bof);
+      //  Quick sanity check on IIDs.
+
+      if ((overlapsort[numOvl].a_iid == 0) ||
+          (overlapsort[numOvl].b_iid == 0) ||
+          (overlapsort[numOvl].a_iid >= maxIID) ||
+          (overlapsort[numOvl].b_iid >= maxIID)) {
+        char ovlstr[256];
+
+        fprintf(stderr, "Overlap has IDs out of range (maxIID "F_U64"), possibly corrupt input data.\n", maxIID);
+        fprintf(stderr, "  %s\n", overlapsort[numOvl].toString(ovlstr));
+        exit(1);
+      }
+
+      numOvl++;
+    }
+
+    delete bof;
 
 
     assert(numOvl == dumpLength[i]);
@@ -607,7 +561,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "sorting %s (%ld)\n", name, time(NULL) - beginTime);
 
 #ifdef _GLIBCXX_PARALLEL
-  //  If we have the parallel STL, don't use it!  Sort is not inplace!
+    //  If we have the parallel STL, don't use it!  Sort is not inplace!
     __gnu_sequential::sort(overlapsort, overlapsort + dumpLength[i]);
 #else
     sort(overlapsort, overlapsort + dumpLength[i]);
@@ -615,14 +569,13 @@ main(int argc, char **argv) {
 
     fprintf(stderr, "writing %s (%ld)\n", name, time(NULL) - beginTime);
     for (uint64 x=0; x<dumpLength[i]; x++)
-      AS_OVS_writeOverlapToStore(storeFile, overlapsort + x);
+      storeFile->writeOverlap(overlapsort + x);
   }
 
-  AS_OVS_closeOverlapStore(storeFile);
-
+  delete    storeFile;
   delete [] overlapsort;
 
   //  And we have a store.
-  //
+
   exit(0);
 }
