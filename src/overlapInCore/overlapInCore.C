@@ -245,9 +245,6 @@ OverlapDriver(void) {
     G.endHashID = gkpStore->gkStore_getNumReads();
 
 
-  uint32  Frag_Segment_Lo = 0;
-  uint32  Frag_Segment_Hi = 0;
-
   //  Note distinction between the local bgn/end and the global G.bgn/G.end.
 
   uint32  bgnHashID = G.bgnHashID;
@@ -272,37 +269,36 @@ OverlapDriver(void) {
 
     //  Decide the range of reads to process.  No more than what is loaded in the table.
 
-    uint32 bgnRefID = 1;
-    uint32 endRefID = gkpStore->gkStore_getNumReads();
+    if (G.bgnRefID < 1)
+      G.bgnRefID = 1;
 
-    if (bgnRefID < G.bgnRefID)
-      bgnRefID = G.bgnRefID;
+    if (G.endRefID > gkpStore->gkStore_getNumReads())
+      G.endRefID = gkpStore->gkStore_getNumReads();
 
-    if (endRefID > G.endRefID)
-      endRefID = G.endRefID;
+    G.curRefID = G.bgnRefID;
 
-    if (endRefID > endHashID)
-      endRefID = endHashID;
-
-    fprintf(stderr, "Range: %u-%u with absolute limits %u-%u.  Store has %u reads\n",
-            bgnRefID, endRefID, G.bgnRefID, G.endRefID, gkpStore->gkStore_getNumReads());
+    fprintf(stderr, "Range: %u-%u.  Store has %u reads\n",
+            G.bgnRefID, G.endRefID, gkpStore->gkStore_getNumReads());
 
     //  The old version used to further divide the ref range into blocks of at most
     //  Max_Reads_Per_Batch so that those reads could be loaded into core.  We don't need to do that
     //  anymore.
 
+    G.perThread = (G.endRefID - G.bgnRefID) / G.Num_PThreads / 8;
 
-    uint32  perThread = (endRefID - bgnRefID) / G.Num_PThreads;
-
-    fprintf(stderr, "Starting "F_U32"-"F_U32" with "F_U32" per thread\n", bgnRefID, endRefID, perThread);
+    fprintf(stderr, "Starting "F_U32"-"F_U32" with "F_U32" per thread\n", G.bgnRefID, G.endRefID, G.perThread);
 
     for (uint32 i=0; i<G.Num_PThreads; i++) {
-      thread_wa[i].frag_segment_lo = bgnRefID + i * perThread;
-      thread_wa[i].frag_segment_hi = bgnRefID + i * perThread + perThread - 1;
 
-      if (i == G.Num_PThreads - 1)
-        //  Catch stupid rounding errors, by forcing the last thread to do a bit more work.
-        thread_wa[i].frag_segment_hi = endRefID;
+      //  Initialize each thread, reset the current position.
+
+      thread_wa[i].bgnID = G.curRefID;
+      thread_wa[i].endID = thread_wa[i].bgnID + G.perThread - 1;
+
+      G.curRefID = thread_wa[i].endID + 1;
+
+      if (G.endRefID > G.endRefID)
+        G.endRefID = G.endRefID;
 
       int status = pthread_create(thread_id+i, &attr, Process_Overlaps, thread_wa+i);
 

@@ -468,7 +468,7 @@ Build_Hash_Index(gkStore *gkpStore, uint32 bgnID, uint32 endID) {
     else
       maxAlloc += read->gkRead_clearRegionLength() + 1;
 
-    fprintf(stderr, F_U64" len "F_U64" "F_U64"\n", maxAlloc, read->gkRead_sequenceLength(), read->gkRead_clearRegionLength());
+    //fprintf(stderr, F_U64" len "F_U64" "F_U64"\n", maxAlloc, read->gkRead_sequenceLength(), read->gkRead_clearRegionLength());
   }
 
   fprintf(stderr, "Found "F_U32" reads with length "F_U64" to load; "F_U32" deleted and "F_U32" skipped per library restriction\n",

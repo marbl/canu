@@ -290,8 +290,8 @@ typedef  struct Work_Area {
   int    status;
   int    thread_id;
 
-  uint32         frag_segment_lo;
-  uint32         frag_segment_hi;
+  uint32         bgnID;  //  Range of reads we are processing
+  uint32         endID;  //  was frag_segment_lo and frag_segment_hi (all lowercase)
 
   //  Instead of outputting each overlap as we create it, we
   //  buffer them and output blocks of overlaps.
@@ -481,10 +481,19 @@ public:
   uint32  minLibToHash;  //  -H
   uint32  maxLibToHash;
 
+
+  //  The range of reads we need to process
+
+  uint32         frag_segment_lo;
+  uint32         frag_segment_hi;
+
   uint32  bgnRefID;      //  -r
+  uint32  curRefID;     //  When processing, this is where we are at, bgn < cur <= end.
   uint32  endRefID;
   uint32  minLibToRef;   //  -R
   uint32  maxLibToRef;
+
+  uint32  perThread;        //  When processing, how many to do per block
 
   uint64  Kmer_Len;         //  -k
   FILE   *Kmer_Skip_File;   //  -k
