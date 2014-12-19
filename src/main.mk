@@ -45,6 +45,9 @@ SOURCES  := AS_global.C \
             \
             meryl/libmeryl.C
 
+
+
+
 #  Not complete, just snippets of code
 #            AS_UTL/decodeBooleanString.C
 #            AS_UTL/AS_UTL_stackTraceTest.C
@@ -69,4 +72,10 @@ SUBMAKEFILES := stores/gatekeeperCreate.mk \
                 \
                 meryl/main.mk \
                 \
-                AS_OVM/overlapInCore.mk
+                overlapInCore/overlapInCore.mk \
+                \
+                bogart/bogart.mk \
+                \
+                bogus/bogus.mk \
+                \
+                erateEstimate/erateEstimate.mk
