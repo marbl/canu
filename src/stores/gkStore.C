@@ -162,7 +162,7 @@ gkStore::gkStore_stashReadData(gkRead *read, gkReadData *data) {
 
   assert(_blobsFile != NULL);
 
-  fprintf(stderr, "STASH read %u at position "F_SIZE_T"\n", read->gkRead_readID(), AS_UTL_ftell(_blobsFile));
+  //fprintf(stderr, "STASH read %u at position "F_SIZE_T"\n", read->gkRead_readID(), AS_UTL_ftell(_blobsFile));
 
   if (_numberOfPartitions == 0) {
     read->_mPtr = AS_UTL_ftell(_blobsFile);
