@@ -62,15 +62,15 @@ public:
     delete [] errorMeanU;
   };
 
-  uint64     initialize(gkFragment &fr) {
-    //uint32      lid = fr.gkFragment_getLibraryIID();
+  uint64     initialize(gkRead *read) {
+    //uint32      lid = read->gkRead_getLibraryIID();
     //gkLibrary  *lb  = gkpStore->gkStore_getLibrary(lid);
 
-    if (fr.gkFragment_getIsDeleted() == 1)
+    if (read->gkRead_isDeleted() == 1)
       return(sizeof(readErrorEstimate));
 
-    clrBgn = fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_LATEST);
-    clrEnd = fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_LATEST);
+    clrBgn = read->gkRead_clearRegionBegin();
+    clrEnd = read->gkRead_clearRegionEnd  ();
     clrLen = clrEnd - clrBgn;
 
     errorMeanS      = new uint32 [clrLen + 1];
@@ -125,38 +125,26 @@ public:
   uint32   flipped    : 1;
   uint32   discarded  : 1;   //  31 bits
 
-  void     populate(OVSoverlap &ovl) {
+  void     populate(ovsOverlap &ovl) {
     a_iid     =  ovl.a_iid;
     b_iid_hi  = (ovl.b_iid >> 14) & 0x000001ff;
     b_iid_lo  = (ovl.b_iid >>  0) & 0x00003fff;
-    a_hang    =  ovl.dat.ovl.a_hang;
-    b_hang    =  ovl.dat.ovl.b_hang;
-    erate     =  ovl.dat.ovl.orig_erate;
-    flipped   =  ovl.dat.ovl.flipped;
+    a_hang    =  ovl.a_hang();
+    b_hang    =  ovl.b_hang();
+    erate     =  ovl.evalue();
+    flipped   =  ovl.flipped();
     discarded =  false;
 
-    assert(ovl.a_iid              ==   a_iid);
-    assert(ovl.b_iid              == ((b_iid_hi << 14) | (b_iid_lo)));
-    assert(ovl.dat.ovl.a_hang     ==   a_hang);
-    assert(ovl.dat.ovl.b_hang     ==   b_hang);
-    assert(ovl.dat.ovl.orig_erate ==   erate);
-    assert(ovl.dat.ovl.flipped    ==   flipped);
+    assert(ovl.a_iid      ==   a_iid);
+    assert(ovl.b_iid      == ((b_iid_hi << 14) | (b_iid_lo)));
+    assert(ovl.a_hang()   ==   a_hang);
+    assert(ovl.b_hang()   ==   b_hang);
+    assert(ovl.erate()    ==   erate);
+    assert(ovl.flipped()  ==   flipped);
   };
 
-  void     populateOVL(OVSoverlap &ovl) {
-    ovl.a_iid              =  a_iid;
-    ovl.b_iid              = (b_iid_hi << 14) | (b_iid_lo);
-
-    ovl.dat.ovl.a_hang     = a_hang;
-    ovl.dat.ovl.b_hang     = b_hang;
-
-    ovl.dat.ovl.flipped    = flipped;
-    ovl.dat.ovl.orig_erate = erate;
-    ovl.dat.ovl.corr_erate = erate;
-    ovl.dat.ovl.type       = AS_OVS_TYPE_OVL;
-  };
-
-  void     populateOBT(OVSoverlap &obt, readErrorEstimate *readProfile, uint32 iidMin) {
+#if 0
+  void     populateOBT(ovsOverlap &obt, readErrorEstimate *readProfile, uint32 iidMin) {
     obt.a_iid              =  a_iid;
     obt.b_iid              = (b_iid_hi << 14) | (b_iid_lo);
 
@@ -182,8 +170,47 @@ public:
 
     obt.dat.obt.erate    =  erate;
   };
+#endif
 };
 
+
+class ESToverlapSpan {
+public:
+  ESToverlapSpan(ESToverlap& ovl, readErrorEstimate *readProfile, uint32 iidMin) {
+    a_iid              =  ovl.a_iid;
+    b_iid              = (ovl.b_iid_hi << 14) | (ovl.b_iid_lo);
+
+    int32 clrLenA = readProfile[a_iid - iidMin].clrLen;
+    int32 clrLenB = readProfile[b_iid - iidMin].clrLen;
+
+    //  Swiped from AS_OVS_overlap.C
+
+    uint32  abgn    = (ovl.a_hang < 0) ? (0)                    : (ovl.a_hang);
+    uint32  aend    = (ovl.b_hang < 0) ? (clrLenA + ovl.b_hang) : (clrLenA);
+    uint32  bbgn    = (ovl.a_hang < 0) ? (-ovl.a_hang)          : (0);
+    uint32  bend    = (ovl.b_hang < 0) ? (clrLenB)              : (clrLenB - ovl.b_hang);
+
+    a_beg    = abgn;
+    a_end    = aend;
+    b_beg    = bbgn;
+    b_end    = bend;
+
+    fwd      = (ovl.flipped == false);
+
+    erate    =  ovl.erate;
+  };
+
+  uint32  a_iid;
+  uint32  b_iid;
+
+  uint32  a_beg;
+  uint32  a_end;
+  uint32  b_beg;
+  uint32  b_end;
+
+  uint32  fwd;
+  uint32  erate;
+};
 
 
 
@@ -214,94 +241,15 @@ saveProfile(uint32             iid,
 
 
 
-#if 0
-void
-computeInitialErrorProfile(gkStore           *gkpStore,
-                           uint32             iidMin,
-                           uint32             numIIDs,
-                           uint64            *overlapIndex,
-                           ESToverlap        *overlaps,
-                           readErrorEstimate *readProfile) {
-
-  fprintf(stderr, "Processing from IID "F_U32" to "F_U32" out of "F_U32" reads.\n",
-          iidMin,
-          iidMin + numIIDs,
-          gkpStore->gkStore_getNumFragments());
-
-  //  PASS 1; compute an initial error rate estimate for each read
-  //
-  //  This doesn't ned any temporary storage, the result can be
-  //  saved directly in errorMeanS[].
-
-#pragma omp parallel for schedule(dynamic, blockSize)
-  for (uint32 iid=0; iid<numIIDs; iid++) {
-    if (readProfile[iid].clrLen == 0)
-      //  Deleted read.
-      continue;
-
-    //  Build a list of the overlap intervals with their error rate
-
-    intervalList<uint32,double>   eRateList;
-
-    for (uint64 oo=overlapIndex[iid]; oo<overlapIndex[iid+1]; oo++) {
-      OVSoverlap  obt;
-
-      overlaps[oo].populateOBT(obt, readProfile, iidMin);
-
-      assert(obt.a_iid == iid + iidMin);
-      assert(obt.dat.obt.a_beg <= obt.dat.obt.a_end);
-
-      eRateList.add(obt.dat.obt.a_beg,
-                    obt.dat.obt.a_end - obt.dat.obt.a_beg,
-                    AS_OVS_decodeQuality(obt.dat.obt.erate) / 2);
-    }
-
-    //  Convert the list to a sum of error rate per base
-
-    intervalList<uint32,double>   eRateMap(eRateList);
-
-    //  Unpack the list into an array of mean error rate per base
-
-    for (uint32 ii=0; ii<eRateMap.numberOfIntervals(); ii++) {
-      double eVal = (eRateMap.depth(ii) > 0) ? (eRateMap.value(ii) / eRateMap.depth(ii)) : 0;
-
-      assert(0.0 <= eVal);
-      assert(eVal <= 1.0);
-
-      assert(eRateMap.hi(ii) <= readProfile[iid].clrLen);
-
-      uint16  eEnc = AS_OVS_encodeQuality(eVal);
-
-      for (uint32 pp=eRateMap.lo(ii); pp < eRateMap.hi(ii); pp++)
-        readProfile[iid].errorMeanU[pp] = eEnc;
-    }
-
-    //  Convert the array of mean error per base into an array of summed error per base
-
-    readProfile[iid].errorMeanS[0] = readProfile[iid].errorMeanU[0];
-
-    for (uint32 ii=1; ii<readProfile[iid].clrLen; ii++)
-      readProfile[iid].errorMeanS[ii] = readProfile[iid].errorMeanS[ii-1] + readProfile[iid].errorMeanU[ii];
-
-    //  Keep users entertained.
-
-    if ((iid % 1000) == 0)
-      fprintf(stderr, "IID %u\r", iid);
-  }
-
-  fprintf(stderr, "IID %u\n", numIIDs);
-}
-#endif
-
 
 double
-computeEstimatedErate(uint32 iidMin, OVSoverlap &obt, readErrorEstimate *readProfile) {
+computeEstimatedErate(uint32 iidMin, ESToverlapSpan &ovl, readErrorEstimate *readProfile) {
   uint64  estErrorA = 0;
   uint64  estErrorB = 0;
   int32   olapLen   = 0;
 
-  uint32  ab = obt.dat.obt.a_beg;
-  uint32  ae = obt.dat.obt.a_end;
+  uint32  ab = ovl.a_beg;
+  uint32  ae = ovl.a_end;
 
   assert(ab < ae);
 
@@ -310,12 +258,12 @@ computeEstimatedErate(uint32 iidMin, OVSoverlap &obt, readErrorEstimate *readPro
     estErrorA += readProfile[obt.a_iid  - iidMin].errorMean[xx];
   estErrorA /= (ae - ab);
 #else
-  estErrorA = ((readProfile[obt.a_iid  - iidMin].errorMeanS[ae]) -
-               (readProfile[obt.a_iid  - iidMin].errorMeanS[ab]));
+  estErrorA = ((readProfile[ovl.a_iid  - iidMin].errorMeanS[ae]) -
+               (readProfile[ovl.a_iid  - iidMin].errorMeanS[ab]));
 #endif
 
-  uint32  bb = obt.dat.obt.b_beg;
-  uint32  be = obt.dat.obt.b_end_hi * 512 + obt.dat.obt.b_end_lo;
+  uint32  bb = ovl.b_beg;
+  uint32  be = ovl.b_end;
 
   assert(bb < be);
 
@@ -324,8 +272,8 @@ computeEstimatedErate(uint32 iidMin, OVSoverlap &obt, readErrorEstimate *readPro
     estErrorB += readProfile[obt.b_iid - iidMin].errorMean[xx];
   estErrorB /= (be - bb);
 #else
-  estErrorB = ((readProfile[obt.b_iid  - iidMin].errorMeanS[be]) -
-               (readProfile[obt.b_iid  - iidMin].errorMeanS[bb]));
+  estErrorB = ((readProfile[ovl.b_iid  - iidMin].errorMeanS[be]) -
+               (readProfile[ovl.b_iid  - iidMin].errorMeanS[bb]));
 #endif
 
   return(AS_OVS_decodeQuality((estErrorA / 2) + (estErrorB / 2)));
@@ -348,7 +296,7 @@ recomputeErrorProfile(gkStore           *gkpStore,
   fprintf(stderr, "Processing from IID "F_U32" to "F_U32" out of "F_U32" reads, iteration %u.\n",
           iidMin,
           iidMin + numIIDs,
-          gkpStore->gkStore_getNumFragments(),
+          gkpStore->gkStore_getNumReads(),
           iter);
 
 #pragma omp parallel for schedule(dynamic, blockSize)
@@ -364,25 +312,24 @@ recomputeErrorProfile(gkStore           *gkpStore,
     intervalList<uint32,double>   eRateList;
 
     for (uint64 oo=overlapIndex[iid]; oo<overlapIndex[iid+1]; oo++) {
-      OVSoverlap  obt;
-
       if (overlaps[oo].discarded == true) {
         nDiscarded++;
         continue;
       }
 
-      overlaps[oo].populateOBT(obt, readProfile, iidMin);
+      //overlaps[oo].populateOBT(obt, readProfile, iidMin);
+      ESToverlapSpan  ovl(overlaps[oo], readProfile, iidMin);
 
-      assert(obt.a_iid == iid + iidMin);
-      assert(obt.dat.obt.a_beg <= obt.dat.obt.a_end);
+      assert(ovl.a_iid == iid + iidMin);
+      assert(ovl.a_beg <= ovl.a_end);
 
       //  Compute the expected erate for this overlap based on our estimated error in both reads,
       //  and filter the overlap if it is higher than this.
 
-      double erate    = AS_OVS_decodeQuality(obt.dat.obt.erate);
+      double erate    = AS_OVS_decodeQuality(ovl.erate);
 
       if (iter > 0) {
-        double estError = computeEstimatedErate(iidMin, obt, readProfile);
+        double estError = computeEstimatedErate(iidMin, ovl, readProfile);
 
         if (estError + ERATE_TOLERANCE < erate) {
           overlaps[oo].discarded = true;
@@ -396,7 +343,7 @@ recomputeErrorProfile(gkStore           *gkpStore,
 
       nRemain++;
 
-      eRateList.add(obt.dat.obt.a_beg, obt.dat.obt.a_end - obt.dat.obt.a_beg, erate / 2);
+      eRateList.add(ovl.a_beg, ovl.a_end - ovl.a_beg, erate / 2);
     }
 
     //  Convert the list to a sum of error rate per base
@@ -458,6 +405,7 @@ void
 outputOverlaps(gkStore           *gkpStore,
                uint32             iidMin,
                uint32             numIIDs,
+               char              *ovlStoreName,
                uint64            *overlapIndex,
                ESToverlap        *overlaps,
                readErrorEstimate *readProfile,
@@ -465,44 +413,84 @@ outputOverlaps(gkStore           *gkpStore,
   uint32      nDiscarded   = 0;
   uint32      nRemain      = 0;
 
-  //  Open an output store
+  //  Open the original and output stores.  We copy overlaps from the original to the copy, instead
+  //  of recreating overlaps from our cache.  The cache doesn't have all the overlap information.
 
-  OverlapStore *storeFile = AS_OVS_createOverlapStore(outputName, TRUE);
+  ovStore *inpStore = new ovStore(ovlStoreName);
+  ovStore *outStore = new ovStore(outputName, ovStoreWrite);
+
+  uint64    numOvls = inpStore->numOverlapsInRange();
 
   fprintf(stderr, "Processing from IID "F_U32" to "F_U32" out of "F_U32" reads.\n",
           iidMin,
           iidMin + numIIDs,
-          gkpStore->gkStore_getNumFragments());
+          gkpStore->gkStore_getNumReads());
 
   //  Can't thread.  This does sequential output.  Plus, it doesn't compute anything.
 
+  //  Overlaps in the store and those in the list should be in lock-step.  We can just
+  //  walk down each.
+
+  uint32            overlapblock = 100000000;
+  ovsOverlap       *overlapsload = new ovsOverlap [overlapblock];
+
+  for (uint64 no=0; no<numOvls; ) {
+    uint64 nLoad  = inpStore->readOverlaps(overlapsload, overlapblock, false);
+
+    assert(nLoad > 0);
+
+    for (uint32 xx=0; xx<nLoad; xx++, no++) {
+      uint32  a_iid =   overlaps[no].a_iid;
+      uint32  b_iid = ((overlaps[no].b_iid_hi << 14) | (overlaps[no].b_iid_lo));
+
+      assert(overlapsload[xx].a_iid == a_iid);
+      assert(overlapsload[xx].b_iid == b_iid);;
+
+      if (overlaps[no].discarded == true) {
+        nDiscarded++;
+
+      } else {
+        outStore->writeOverlap(overlapsload + xx);
+        nRemain++;
+      }
+
+      if ((no & 0x000fffff) == 0)
+        fprintf(stderr, "  overlap %10"F_U64P" %8"F_U32P"-%8"F_U32P"\r", a_iid, b_iid);
+    }
+  }
+
+  delete [] overlapsload;
+
+
+
+#if 0
   for (uint32 iid=0; iid<numIIDs; iid++) {
     if (readProfile[iid].clrLen == 0)
       //  Deleted read.
       continue;
 
     for (uint64 oo=overlapIndex[iid]; oo<overlapIndex[iid+1]; oo++) {
-      OVSoverlap  obt;
+      ovsOverlap  obt;
 
       if (overlaps[oo].discarded == true) {
-        nDiscarded++;
         continue;
       }
 
-      nRemain++;
 
       //  Emit the overlap
 
       overlaps[oo].populateOVL(obt);
 
-      AS_OVS_writeOverlapToStore(storeFile, &obt);
+      outStore->writeOverlap(&obt);
     }
 
     if ((iid % 1000) == 0)
       fprintf(stderr, "IID %u\r", iid);
   }
+#endif
 
-  AS_OVS_closeOverlapStore(storeFile);
+  delete outStore;
+  delete inpStore;
 
   fprintf(stderr, "\n");
   fprintf(stderr, "nDiscarded %u (in previous iterations)\n", nDiscarded);
@@ -521,7 +509,7 @@ main(int argc, char **argv) {
   char             *gkpName        = 0L;
   gkStore          *gkpStore       = 0L;
   char             *ovlStoreName   = 0L;
-  OverlapStore     *ovlStore       = 0L;
+  ovStore          *ovlStore       = 0L;
 
   char             *ovlCacheName   = 0L;
 
@@ -533,8 +521,6 @@ main(int argc, char **argv) {
   char              sumName[FILENAME_MAX] = {0};
   FILE             *logFile = 0L;
   FILE             *sumFile = 0L;
-
-  bool              doModify = true;  //  Make this false for testing
 
   argc = AS_configure(argc, argv);
 
@@ -600,15 +586,12 @@ main(int argc, char **argv) {
   //  Open gatekeeper store
 
   fprintf(stderr, "Opening '%s'\n", gkpName);
-  gkpStore = new gkStore(gkpName, FALSE, doModify);
-
-  gkpStore->gkStore_enableClearRange(AS_READ_CLEAR_OBTMERGE);
-  gkpStore->gkStore_metadataCaching(true);
+  gkpStore = new gkStore(gkpName);
 
   //  Compute what to compute.
 
   if (partNum < partMax) {
-    uint32  nf = gkpStore->gkStore_getNumFragments();
+    uint32  nf = gkpStore->gkStore_getNumReads();
 
     iidMin = (partNum + 0) * nf / partMax + 1;
     iidMax = (partNum + 1) * nf / partMax;
@@ -621,16 +604,16 @@ main(int argc, char **argv) {
     iidMin = 1;
 
   if (iidMax == UINT32_MAX)
-    iidMax = gkpStore->gkStore_getNumFragments();
+    iidMax = gkpStore->gkStore_getNumReads();
 
   uint32    numIIDs = (iidMax - iidMin + 1);
 
   fprintf(stderr, "  iidMin  = %9u\n", iidMin);
-  fprintf(stderr, "  iidMax  = %9u numFrags = %9u\n", iidMax, gkpStore->gkStore_getNumFragments());
+  fprintf(stderr, "  iidMax  = %9u numReads = %9u\n", iidMax, gkpStore->gkStore_getNumReads());
   fprintf(stderr, "  partNum = %9u\n", partNum);
   fprintf(stderr, "  partMax = %9u\n", partMax);
 
-  //fprintf(stderr, "OVSoverlap %lu\n", sizeof(OVSoverlap));
+  //fprintf(stderr, "ovsOverlap %lu\n", sizeof(ovsOverlap));
   //fprintf(stderr, "ESToverlap %lu\n", sizeof(ESToverlap));
 
   //  Load read metadata, clear ranges, read lengths, and deleted status.
@@ -641,11 +624,7 @@ main(int argc, char **argv) {
   readErrorEstimate  *readProfile     = new readErrorEstimate [numIIDs];
 
   for (uint32 iid=0; iid<numIIDs; iid++) {
-    gkFragment   fr;
-
-    gkpStore->gkStore_getFragment(iid + iidMin, &fr, GKFRAGMENT_INF);
-
-    readProfileSize += readProfile[iid].initialize(fr);
+    readProfileSize += readProfile[iid].initialize(gkpStore->gkStore_getRead(iid + iidMin));
 
     if ((iid % 10000) == 0)
       fprintf(stderr, "  %u reads\r", iid);
@@ -657,16 +636,18 @@ main(int argc, char **argv) {
   //  Open overlap stores
 
   fprintf(stderr, "Opening '%s'\n", ovlStoreName);
-  ovlStore = AS_OVS_openOverlapStore(ovlStoreName);
+  ovlStore = new ovStore(ovlStoreName);
 
   fprintf(stderr, "Finding number of overlaps\n");
 
-  AS_OVS_setRangeOverlapStore(ovlStore,   iidMin, iidMax);
+  ovlStore->setRange(iidMin, iidMax);
 
-  uint64    numOvls = AS_OVS_numOverlapsInRange(ovlStore);
+  uint64    numOvls = ovlStore->numOverlapsInRange();
   
   uint64      *overlapIndex = new uint64     [numIIDs + 1];
-  uint32      *overlapLen   = AS_OVS_numOverlapsPerFrag(ovlStore);
+  uint32       bgn = 0;
+  uint32       end = 0;
+  uint32      *overlapLen   = ovlStore->numOverlapsPerFrag(bgn, end);
 
   overlapIndex[0] = 0;
 
@@ -682,7 +663,7 @@ main(int argc, char **argv) {
   fprintf(stderr, "Loading overlaps\n");
   fprintf(stderr, "  number   %lu overlaps\n",           numOvls);
   fprintf(stderr, "  index    %lu GB\n",                 (sizeof(uint64)     * numIIDs) >> 30);
-  fprintf(stderr, "  overlaps %lu GB (previous size)\n", (sizeof(OVSoverlap) * numOvls) >> 30);
+  fprintf(stderr, "  overlaps %lu GB (previous size)\n", (sizeof(ovsOverlap) * numOvls) >> 30);
   fprintf(stderr, "  overlaps %lu GB\n",                 (sizeof(ESToverlap) * numOvls) >> 30);
 
   ESToverlap       *overlaps     = NULL;
@@ -697,7 +678,7 @@ main(int argc, char **argv) {
   } else {
     FILE             *ESTcache     = NULL;
     uint32            overlapblock = 100000000;
-    OVSoverlap       *overlapsload = new OVSoverlap [overlapblock];
+    ovsOverlap       *overlapsload = new ovsOverlap [overlapblock];
 
     overlaps       = new ESToverlap [numOvls];
 
@@ -709,11 +690,7 @@ main(int argc, char **argv) {
     }
 
     for (uint64 no=0; no<numOvls; ) {
-      uint64 nLoad  = AS_OVS_readOverlapsFromStore(ovlStore,
-                                                   overlapsload,
-                                                   overlapblock,
-                                                   AS_OVS_TYPE_OVL,
-                                                   false);
+      uint64 nLoad  = ovlStore->readOverlaps(overlapsload, overlapblock, false);
 
       for (uint32 xx=0; xx<nLoad; xx++)
         overlaps[no++].populate(overlapsload[xx]);
@@ -734,8 +711,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "  loaded and cached %lu overlaps.\n", numOvls);
   }
 
-  AS_OVS_closeOverlapStore(ovlStore);
-
+  delete ovlStore;
   ovlStore   = NULL;
 
   //  Allocate space for the result.
@@ -763,6 +739,7 @@ main(int argc, char **argv) {
 
 
   outputOverlaps(gkpStore, iidMin, numIIDs,
+                 ovlStoreName,
                  overlapIndex,
                  overlaps,
                  readProfile,
