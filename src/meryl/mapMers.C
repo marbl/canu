@@ -32,7 +32,7 @@ main(int argc, char **argv) {
   int arg=1;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-m") == 0) {
-      merSize = strtouint32(argv[++arg], 0L);
+      merSize = strtouint32(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-mers") == 0) {
       merylFile = argv[++arg];
@@ -44,10 +44,10 @@ main(int argc, char **argv) {
       beVerbose = true;
 
     } else if (strcmp(argv[arg], "-lo") == 0) {
-      loCount = strtouint32(argv[++arg], 0L);
+      loCount = strtouint32(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-hi") == 0) {
-      hiCount = strtouint32(argv[++arg], 0L);
+      hiCount = strtouint32(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-stats") == 0) {
       operation = OP_STATS;

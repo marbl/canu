@@ -57,8 +57,8 @@ extendByMates(UnitigVector &unitigs,
     uint32        extraMates = 0;
 
     for (uint32 fi=0; fi<target->ufpath.size(); fi++) {
-      AS_IID  fid = target->ufpath[fi].ident;
-      AS_IID  mid = FI->mateIID(fid);
+      uint32  fid = target->ufpath[fi].ident;
+      uint32  mid = FI->mateIID(fid);
 
       if ((mid != 0) &&
           (Unitig::fragIn(mid) == 0))
@@ -74,12 +74,12 @@ extendByMates(UnitigVector &unitigs,
 
     //  Build a set of the fragments in this unitig plus their mates, and a set of just the mates.
 
-    set<AS_IID>   frags;
-    set<AS_IID>   mates;
+    set<uint32>   frags;
+    set<uint32>   mates;
 
     for (uint32 fi=0; fi<target->ufpath.size(); fi++) {
-      AS_IID  fid = target->ufpath[fi].ident;
-      AS_IID  mid = FI->mateIID(fid);
+      uint32  fid = target->ufpath[fi].ident;
+      uint32  mid = FI->mateIID(fid);
 
       frags.insert(fid);
 

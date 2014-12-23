@@ -709,7 +709,7 @@ OverlapCache::removeWeakOverlaps(uint32 *minErate5p,
   uint64  ignored    = 0;
   uint64  removed    = 0;
 
-  for (AS_IID fi=1; fi <= fiLimit; fi++) {
+  for (uint32 fi=1; fi <= fiLimit; fi++) {
     uint32         numOverlaps = _cacheLen[fi];
     BAToverlapInt *ptr         = _cachePtr[fi];
 

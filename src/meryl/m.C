@@ -20,12 +20,19 @@ main(int argc, char **argv) {
   while (arg < argc) {
     if        (strncmp(argv[arg], "-verbose", 2) == 0) {
       beVerbose = true;
+
     } else if (strncmp(argv[arg], "-mersize", 4) == 0) {
-      merSize = strtouint64(argv[++arg], 0L);
+
+      merSize = strtouint64(argv[++arg]);
+
     } else if (strncmp(argv[arg], "-memory", 4) == 0) {
-      memLimit = strtouint64(argv[++arg], 0L) * 1024 * 1024;
+
+      memLimit = strtouint64(argv[++arg]) * 1024 * 1024;
+
     } else if (strncmp(argv[arg], "-sequence", 2) == 0) {
+
       inName = argv[++arg];
+
     } else {
       fprintf(stderr, "unknown option '%s'\n", argv[arg]);
     }

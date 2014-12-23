@@ -12,7 +12,9 @@ TARGET   := libCA.a
 SOURCES  := gkStore.C \
             ovOverlap.C \
             ovStore.C \
-            ovStoreFile.C
+            ovStoreFile.C \
+            tgStore.C \
+            tgTig.C
 
 SRC_INCDIRS  := .. ../AS_UTL
 SUBMAKEFILES := gatekeeperCreate.mk \
@@ -21,4 +23,5 @@ SUBMAKEFILES := gatekeeperCreate.mk \
                 ovStoreBucketizer.mk \
                 ovStoreSorter.mk \
                 ovStoreIndexer.mk \
-                ovStoreDump.mk
+                ovStoreDump.mk \
+                tgStoreDump.mk

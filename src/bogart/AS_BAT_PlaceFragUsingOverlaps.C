@@ -281,7 +281,7 @@ placeDovetail(Unitig *utg, ufNode &frag, BAToverlap &ovl, overlapPlacement &op) 
 bool
 placeFragUsingOverlaps(UnitigVector             &unitigs,
                        Unitig                   *target,
-                       AS_IID                    fid,
+                       uint32                    fid,
                        vector<overlapPlacement> &placements) {
 
   //logFileFlags |= LOG_PLACE_FRAG;
@@ -760,7 +760,7 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
 
 void
 placeUnmatedFragInBestLocation(UnitigVector   &unitigs,
-                               AS_IID          fid) {
+                               uint32          fid) {
   ufNode                    frg;
   vector<overlapPlacement>  op;
 
@@ -817,21 +817,21 @@ placeUnmatedFragInBestLocation(UnitigVector   &unitigs,
 
 void
 placeMatedFragInBestLocation(UnitigVector   &unitigs,
-                             AS_IID          fid,
-                             AS_IID          mid) {
+                             uint32          fid,
+                             uint32          mid) {
   placeUnmatedFragInBestLocation(unitigs, fid);
 }
 
 
 void
 placeFragInBestLocation(UnitigVector   &unitigs,
-                        AS_IID          fid) {
+                        uint32          fid) {
 
   if (Unitig::fragIn(fid) != 0)
     //  Already placed.
     return;
 
-  AS_IID  mid = FI->mateIID(fid);
+  uint32  mid = FI->mateIID(fid);
 
   if (mid == 0)
     placeUnmatedFragInBestLocation(unitigs, fid);

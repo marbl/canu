@@ -70,8 +70,6 @@ static const char *rcsid_AS_GLOBAL_H = "$Id$";
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#include "AS_UTL_alloc.H"
-
 #ifndef TRUE
   #define TRUE true
 #endif
@@ -96,7 +94,7 @@ typedef uint16_t uint16;
 typedef uint32_t uint32;
 typedef uint64_t uint64;
 
-typedef void* PtrT;
+//typedef void* PtrT;
 
 //  Correct?  Or should it be LLU and LU?
 #define  uint64NUMBER(X) X ## LU
@@ -135,9 +133,13 @@ typedef void* PtrT;
 #define  uint8MASK(X)    ((~uint8ZERO) >> (8 - (X)))
 
 
-#define  strtouint32(N,O) (uint32)strtoul (N, O, 10)
-#define  strtouint64(N,O) (uint64)strtoull(N, O, 10)
+#define  strtouint32(N)   (uint32)strtoul (N, NULL, 10)
+#define  strtouint64(N)   (uint64)strtoull(N, NULL, 10)
+#define  strtodouble(N)   (double)strtod  (N, NULL)
 
+//inline uint32  strtouint32(char *N, O) (uint32)strtoul (N, O, 10)
+//inline uint64  strtouint64(char *N, O) (uint64)strtoull(N, O, 10)
+//inline double  strtodouble(char *N, O) (double)strtod  (N, O)
 
 
 // Pointers
@@ -273,6 +275,7 @@ int AS_configure(int argc, char **argv);
 
 //  These need to be removed, or placed in a home
 
+#if 0
 
 //  PairOrient -- the orientation between two sequence objects.
 //
@@ -288,11 +291,7 @@ typedef struct {
   int32 bgn;
   int32 end;
 } SeqInterval;
-
-
-
-
-
+#endif
 
 
 
@@ -310,12 +309,14 @@ typedef struct {
 #define DBL_EQ_DBL(A,B) (fabs((A)-(B))<16.0*DBL_EPSILON)
 
 // cgw and cns use NULLINDEX for a NULL index value
-#define NULLINDEX (-1)
+//#define NULLINDEX (-1)
 
 // A convenient assert for testing whether ptrs are null
 // without bothering lint
-#define AssertPtr(ptr) (assert((ptr) != NULL))
+//#define AssertPtr(ptr) (assert((ptr) != NULL))
 
+
+#include "AS_UTL_alloc.H"
 
 
 //  Stubs for ignoring OpenMP on clang.

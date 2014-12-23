@@ -68,7 +68,7 @@ public:
 
   BestOverlapGraph(double erate,
                    double elimit,
-                   set<AS_IID> *restrict);
+                   set<uint32> *restrict);
 
   ~BestOverlapGraph() {
     delete [] _bestA;
@@ -129,19 +129,19 @@ private:
   void     scoreEdge(const BAToverlap& olap);
 
 private:
-  uint64  &bestCscore(AS_IID id) {
+  uint64  &bestCscore(uint32 id) {
     if (_restrictEnabled == false)
       return(_scorA[id]._bestCscore);
     return(_scorM[id]._bestCscore);
   };
 
-  uint64  &best5score(AS_IID id) {
+  uint64  &best5score(uint32 id) {
     if (_restrictEnabled == false)
       return(_scorA[id]._best5score);
     return(_scorM[id]._best5score);
   };
 
-  uint64  &best3score(AS_IID id) {
+  uint64  &best3score(uint32 id) {
     if (_restrictEnabled == false)
       return(_scorA[id]._best3score);
     return(_scorM[id]._best3score);
@@ -151,12 +151,12 @@ private:
   BestOverlaps              *_bestA;
   BestScores                *_scorA;
 
-  set<AS_IID>                _suspicious;
+  set<uint32>                _suspicious;
 
-  map<AS_IID, BestOverlaps>  _bestM;
-  map<AS_IID, BestScores>    _scorM;
+  map<uint32, BestOverlaps>  _bestM;
+  map<uint32, BestScores>    _scorM;
 
-  set<AS_IID>               *_restrict;
+  set<uint32>               *_restrict;
   bool                       _restrictEnabled;
 
 public:

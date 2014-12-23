@@ -25,8 +25,8 @@
 static const char *rcsid_INCLUDE_AS_BAT_DATATYPES = "$Id$";
 
 #include "AS_global.H"
-#include "AS_OVS_overlapStore.H"
-#include "AS_PER_gkpStore.H"
+#include "ovStore.H"
+#include "gkStore.H"
 
 #include <map>
 #include <set>
@@ -204,15 +204,9 @@ public:
 
 private:
   uint32            _id;
-#if AS_OVS_HNGBITS < 16
-  uint32            _e3p   : 1;    //  Overlap with the 3' end of that fragment
-  int32             _ahang : AS_OVS_HNGBITS;
-  int32             _bhang : AS_OVS_HNGBITS;
-#else
-  uint64            _e3p   : 1;
-  int64             _ahang : AS_OVS_HNGBITS;
-  int64             _bhang : AS_OVS_HNGBITS;
-#endif
+  uint64            _e3p   : 1;    //  Overlap with the 3' end of that fragment
+  int64             _ahang : AS_MAX_READLEN_BITS+1;
+  int64             _bhang : AS_MAX_READLEN_BITS+1;
 };
 
 
@@ -235,17 +229,10 @@ public:
   };
 
   uint32  container;
-#if AS_OVS_HNGBITS < 16
-  uint32  isContained     : 1;  //  See comments in AS_BAT_Unitig_PlaceFragmentsUsingEdges.cc
-  uint32  sameOrientation : 1;
-  int32   a_hang          : AS_OVS_HNGBITS;
-  int32   b_hang          : AS_OVS_HNGBITS;
-#else
   uint64  isContained     : 1;
   uint64  sameOrientation : 1;
-  int64   a_hang          : AS_OVS_HNGBITS;
-  int64   b_hang          : AS_OVS_HNGBITS;
-#endif
+  int64   a_hang          : AS_MAX_READLEN_BITS+1;
+  int64   b_hang          : AS_MAX_READLEN_BITS+1;
 };
 
 

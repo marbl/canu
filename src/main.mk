@@ -43,6 +43,9 @@ SOURCES  := AS_global.C \
             stores/ovStore.C \
             stores/ovStoreFile.C \
             \
+            stores/tgStore.C \
+            stores/tgTig.C \
+            \
             meryl/libmeryl.C
 
 
@@ -69,6 +72,7 @@ SUBMAKEFILES := stores/gatekeeperCreate.mk \
                 stores/ovStoreSorter.mk \
                 stores/ovStoreIndexer.mk \
                 stores/ovStoreDump.mk \
+                stores/tgStoreDump.mk \
                 \
                 meryl/main.mk \
                 \

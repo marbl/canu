@@ -62,12 +62,12 @@ ChunkGraph::ChunkGraph(const char *output_prefix) {
 
 
 
-ChunkGraph::ChunkGraph(set<AS_IID> *restrict) {
+ChunkGraph::ChunkGraph(set<uint32> *restrict) {
 
   _maxFragment = 0;
   _restrict    = restrict;
 
-  for (set<AS_IID>::iterator it=_restrict->begin(); it != _restrict->end(); it++)
+  for (set<uint32>::iterator it=_restrict->begin(); it != _restrict->end(); it++)
     _idMap[*it] = _maxFragment++;
 
   _pathLen         = new uint32      [_maxFragment * 2 + 2];
@@ -77,7 +77,7 @@ ChunkGraph::ChunkGraph(set<AS_IID> *restrict) {
   memset(_pathLen,     0, sizeof(uint32)      * (_maxFragment * 2 + 2));
   memset(_chunkLength, 0, sizeof(ChunkLength) * (_maxFragment));
 
-  for (set<AS_IID>::iterator it=_restrict->begin(); it != _restrict->end(); it++) {
+  for (set<uint32>::iterator it=_restrict->begin(); it != _restrict->end(); it++) {
     uint32  fid = *it;          //  Actual fragment ID
     uint32  fit = _idMap[fid];  //  Local array index
 

@@ -17,28 +17,24 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#ifndef MULTIALIGNSIZEANALYSIS
-#define MULTIALIGNSIZEANALYSIS
+#ifndef TGTIGSIZEANALYSIS
+#define TGTIGSIZEANALYSIS
 
-static const char *rcsid_MULTIALIGNSIZEANALYSIS = "$Id$";
+static const char *rcsid_TGTIGSIZEANALYSIS = "$Id$";
 
-#include "AS_global.H"
-#include "AS_PER_gkpStore.H"
-#include "MultiAlign.H"
-#include "MultiAlignStore.H"
-#include "MultiAlignment_CNS.H"
-#include "MultiAlignment_CNS_private.H"
+#include "tgTig.H"
 
 #include <vector>
-#include <algorithm>
+
 using namespace std;
 
-class sizeAnalysis {
-public:
-  sizeAnalysis(uint64 genomeSize);
-  ~sizeAnalysis();
 
-  void         evaluateTig(MultiAlignT *ma, bool isUnitig);
+class tgTigSizeAnalysis {
+public:
+  tgTigSizeAnalysis(uint64 genomeSize);
+  ~tgTigSizeAnalysis();
+
+  void         evaluateTig(tgTig *tig);
   void         finalize(void);
 
   void         printSummary(FILE *out, char *description, vector<uint32> &data);
@@ -47,17 +43,14 @@ public:
 private:
   uint64          genomeSize;
 
-  vector<uint32>  utgLenUnassigned;  //  Only unitigs have these labels
-  vector<uint32>  utgLenUnique;
-  vector<uint32>  utgLenSep;
-  vector<uint32>  utgLenNotRez;
+  vector<uint32>  lenSuggestRepeat;
+  vector<uint32>  lenSuggestUnique;
+  vector<uint32>  lenSuggestCircular;
+  vector<uint32>  lenSuggestHaploid;
 
-  vector<uint32>  ctgLenPlaced;      //  Only contigs have these labels
-  vector<uint32>  ctgLenUnplaced;
-
-  vector<uint32>  tigLenSingleton;   //  Both contigs and unitigs can be assembled or single-fragment
-  vector<uint32>  tigLenAssembled;
+  vector<uint32>  lenSingleton;  //  Has exactly one child
+  vector<uint32>  lenAssembled;  //  Has more than one child
 };
 
 
-#endif  //  MULTIALIGNSIZEANALYSIS
+#endif  //  TGTIGSIZEANALYSIS

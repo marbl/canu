@@ -23,8 +23,8 @@ typedef unsigned int      uint32;
 #define  uint32FMT       "%u"
 #define  uint32FMTW(X)   "%" #X "u"
 
-#define  strtouint32(N,O) (uint32)strtoul(N, O, 10)
-#define  strtouint64(N,O) (uint64)strtoul(N, O, 10)
+#define  strtouint32(N) (uint32)strtoul(N, O, 10)
+#define  strtouint64(N) (uint64)strtoul(N, O, 10)
 
 class splitToWords {
 public:
@@ -731,9 +731,9 @@ readDepth(char *depthname, map<uint64,intervalDepth*> &lowCoverage) {
   while (!feof(F)) {
     splitToWords   W(line);
 
-    uint64  uid = strtouint64(W[1], 0L);
-    uint32  beg = strtouint32(W[2], 0L);
-    uint32  end = strtouint32(W[3], 0L);
+    uint64  uid = strtouint64(W[1]);
+    uint32  beg = strtouint32(W[2]);
+    uint32  end = strtouint32(W[3]);
 
     if (beg > end)
       fprintf(stderr, "ERROR: l="uint32FMT" h="uint32FMT"\n", beg, end);
@@ -779,9 +779,9 @@ readVariation(char *depthname, map<uint64,intervalList*> &variation) {
   while (!feof(F)) {
     splitToWords   W(line);
 
-    uint64  uid = strtouint64(W[1], 0L);
-    uint32  beg = strtouint32(W[2], 0L);
-    uint32  end = strtouint32(W[3], 0L);
+    uint64  uid = strtouint64(W[1]);
+    uint32  beg = strtouint32(W[2]);
+    uint32  end = strtouint32(W[3]);
 
     if (variation[uid] == 0L)
       variation[uid] = new intervalList();
@@ -819,9 +819,9 @@ readBadMers(char *depthname, map<uint64,intervalList*> &badMers) {
       if (!isdigit(W[0][z]))
         W[0][z] = ' ';
 
-    uint64  uid = strtouint64(W[0], 0L);
-    uint32  beg = strtouint32(W[3], 0L);
-    uint32  end = strtouint32(W[4], 0L);
+    uint64  uid = strtouint64(W[0]);
+    uint32  beg = strtouint32(W[3]);
+    uint32  end = strtouint32(W[4]);
 
     if (badMers[uid] == 0L)
       badMers[uid] = new intervalList();

@@ -49,7 +49,7 @@ seqCache::getSequenceIID(char *name) {
   }
 
   if (isInt)
-    iid = strtouint32(name, 0L);
+    iid = strtouint32(name);
 
   if (iid >= _fb->getNumberOfSequences())
     iid = _fb->find(name);

@@ -45,7 +45,7 @@ reconstructRepeats(UnitigVector &unitigs,
   BestOverlapGraph  *OGsave = OG;
   ChunkGraph        *CGsave = CG;
 
-  set<AS_IID>        unplaced;
+  set<uint32>        unplaced;
 
   for (uint32 fi=1; fi<=FI->numFragments(); fi++)
     if (Unitig::fragIn(fi) == 0)

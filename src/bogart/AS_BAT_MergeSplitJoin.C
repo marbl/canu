@@ -688,7 +688,7 @@ stealBubbles(UnitigVector &unitigs, Unitig *target, intersectionList *ilist) {
 
 
 void
-markRepeats_buildOverlapList(Unitig *target, set<AS_IID> &ovlFrags) {
+markRepeats_buildOverlapList(Unitig *target, set<uint32> &ovlFrags) {
 
   ovlFrags.clear();
 
@@ -796,15 +796,15 @@ markRepeats_placeAndProcessOverlaps(UnitigVector                     &unitigs,
                                     Unitig                           *target,
                                     double                           meanError,
                                     double                           stddevError,
-                                    set<AS_IID>                      &ovlFrags,
+                                    set<uint32>                      &ovlFrags,
                                     intervalList<int32>              &aligned,
                                     vector<repeatJunctionEvidence>   &evidence) {
 
   aligned.clear();
   evidence.clear();
 
-  for (set<AS_IID>::iterator it=ovlFrags.begin(); it!=ovlFrags.end(); it++) {
-    AS_IID  iid = *it;
+  for (set<uint32>::iterator it=ovlFrags.begin(); it!=ovlFrags.end(); it++) {
+    uint32  iid = *it;
 
     vector<overlapPlacement>  op;
 
@@ -1206,7 +1206,7 @@ markRepeats_filterIntervalsSpannedByMates(Unitig                    *target,
       uint32      frgend   = (frg->position.bgn < frg->position.end) ? frg->position.end : frg->position.bgn;
       bool        frg53    = (frg->position.bgn < frg->position.end) ? true : false;
 
-      AS_IID      mid      = FI->mateIID(frg->ident);
+      uint32      mid      = FI->mateIID(frg->ident);
       uint32      mrgtig   = target->fragIn(mid);
       ufNode     *mrg      = NULL;
       uint32      mrgbgn   = 0;
@@ -1217,7 +1217,7 @@ markRepeats_filterIntervalsSpannedByMates(Unitig                    *target,
         //  Fragment is not mated.  Won't help us.
         continue;
 
-      AS_IID      lib      = FI->libraryIID(frg->ident);
+      uint32      lib      = FI->libraryIID(frg->ident);
 
       uint32      minD     = IS->mean(lib) - 3 * IS->stddev(lib);
       uint32      maxD     = IS->mean(lib) + 3 * IS->stddev(lib);
@@ -1332,8 +1332,8 @@ markRepeats_filterIntervalsSpannedByMates(Unitig                    *target,
 void
 markRepeats_findFragsInRegions(Unitig                    *target,
                                vector<repeatRegion>      &regions,
-                               set<AS_IID>               &rptFrags,
-                               set<AS_IID>               &ejtFrags) {
+                               set<uint32>               &rptFrags,
+                               set<uint32>               &ejtFrags) {
 
   for (uint32 i=0; i<regions.size(); i++) {
     for (uint32 fi=0; fi<target->ufpath.size(); fi++) {
@@ -1360,7 +1360,7 @@ markRepeats_findFragsInRegions(Unitig                    *target,
         continue;
       }
 
-      AS_IID  mid = FI->mateIID(frg->ident);
+      uint32  mid = FI->mateIID(frg->ident);
       uint32  min = target->fragIn(mid);
 
       if ((mid == 0) || (min != target->id()))
@@ -1483,8 +1483,8 @@ markRepeats_breakUnitigs(UnitigVector                    &unitigs,
                          Unitig                          *target,
                          vector<overlapPlacement>        &places,
                          vector<repeatUniqueBreakPoint>  &breakpoints,
-                         set<AS_IID>                     &jctFrags,
-                         set<AS_IID>                     &ejtFrags) {
+                         set<uint32>                     &jctFrags,
+                         set<uint32>                     &ejtFrags) {
 
   jctFrags.clear();
 
@@ -1598,7 +1598,7 @@ markRepeats_breakUnitigs(UnitigVector                    &unitigs,
 
   //  Run back over the ejected frags, and place them with either their mate, or at their best location.
 
-  for (set<AS_IID>::iterator it=ejtFrags.begin(); it!=ejtFrags.end(); it++) {
+  for (set<uint32>::iterator it=ejtFrags.begin(); it!=ejtFrags.end(); it++) {
     writeLog("markRepeats()-- EJECT frag "F_U32"\n", *it);
     placeFragInBestLocation(unitigs, *it);
   }
@@ -1610,11 +1610,11 @@ markRepeats_breakUnitigs(UnitigVector                    &unitigs,
 
 void
 markRepeats_shatterRepeats(UnitigVector   &unitigs,
-                           set<AS_IID>    &jctFrags,
-                           set<AS_IID>    &covFrags) {
+                           set<uint32>    &jctFrags,
+                           set<uint32>    &covFrags) {
 
-  for (set<AS_IID>::iterator it=jctFrags.begin(); it!=jctFrags.end(); it++) {
-    AS_IID   iid = *it;
+  for (set<uint32>::iterator it=jctFrags.begin(); it!=jctFrags.end(); it++) {
+    uint32   iid = *it;
     uint32   ti  = Unitig::fragIn(iid);
     Unitig  *rpt = unitigs[ti];
 
@@ -1632,8 +1632,8 @@ markRepeats_shatterRepeats(UnitigVector   &unitigs,
     delete rpt;
   }
 
-  for (set<AS_IID>::iterator it=covFrags.begin(); it!=covFrags.end(); it++) {
-    AS_IID   iid = *it;
+  for (set<uint32>::iterator it=covFrags.begin(); it!=covFrags.end(); it++) {
+    uint32   iid = *it;
     uint32   ti  = Unitig::fragIn(iid);
     Unitig  *rpt = unitigs[ti];
 
@@ -1677,10 +1677,10 @@ markRepeats(UnitigVector &unitigs,
             Unitig *target,
             bool shatterRepeats) {
 
-  set<AS_IID>                     ovlFrags;
-  set<AS_IID>                     covFrags;  //  Frag IIDs of fragments covered by repeat alignments
-  set<AS_IID>                     jctFrags;  //  Frag IIDs of the first/last fragment in a repeat unitig
-  set<AS_IID>                     ejtFrags;  //  Frag IIDs of frags we should eject instead of split
+  set<uint32>                     ovlFrags;
+  set<uint32>                     covFrags;  //  Frag IIDs of fragments covered by repeat alignments
+  set<uint32>                     jctFrags;  //  Frag IIDs of the first/last fragment in a repeat unitig
+  set<uint32>                     ejtFrags;  //  Frag IIDs of frags we should eject instead of split
 
   double                          meanError = 0;
   double                          stddevError = 0;

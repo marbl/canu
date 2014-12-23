@@ -315,10 +315,10 @@ merylArgs::merylArgs(int argc, char **argv) {
       exit(0);
     } else if (strcmp(argv[arg], "-m") == 0) {
       arg++;
-      merSize = strtouint32(argv[arg], 0L);
+      merSize = strtouint32(argv[arg]);
     } else if (strcmp(argv[arg], "-c") == 0) {
       arg++;
-      merComp = strtouint32(argv[arg], 0L);
+      merComp = strtouint32(argv[arg]);
     } else if (strcmp(argv[arg], "-p") == 0) {
       positionsEnabled = true;
     } else if (strcmp(argv[arg], "-s") == 0) {
@@ -328,7 +328,7 @@ merylArgs::merylArgs(int argc, char **argv) {
       mergeFiles[mergeFilesLen++] = duplString(argv[arg]);
     } else if (strcmp(argv[arg], "-n") == 0) {
       arg++;
-      numMersEstimated = strtouint64(argv[arg], 0L);
+      numMersEstimated = strtouint64(argv[arg]);
     } else if (strcmp(argv[arg], "-f") == 0) {
       doForward   = true;
       doReverse   = false;
@@ -343,10 +343,10 @@ merylArgs::merylArgs(int argc, char **argv) {
       doCanonical = true;
     } else if (strcmp(argv[arg], "-L") == 0) {
       arg++;
-      lowCount = strtouint32(argv[arg], 0L);
+      lowCount = strtouint32(argv[arg]);
     } else if (strcmp(argv[arg], "-U") == 0) {
       arg++;
-      highCount = strtouint32(argv[arg], 0L);
+      highCount = strtouint32(argv[arg]);
     } else if (strcmp(argv[arg], "-o") == 0) {
       arg++;
       delete [] outputFile;
@@ -391,23 +391,23 @@ merylArgs::merylArgs(int argc, char **argv) {
       } else if (strcmp(argv[arg], "lessthan") == 0) {
         personality = PERSONALITY_LEQ;
         arg++;
-        desiredCount = strtouint32(argv[arg], 0L) - 1;
+        desiredCount = strtouint32(argv[arg]) - 1;
       } else if (strcmp(argv[arg], "lessthanorequal") == 0) {
         personality = PERSONALITY_LEQ;
         arg++;
-        desiredCount = strtouint32(argv[arg], 0L);
+        desiredCount = strtouint32(argv[arg]);
       } else if (strcmp(argv[arg], "greaterthan") == 0) {
         personality = PERSONALITY_GEQ;
         arg++;
-        desiredCount = strtouint32(argv[arg], 0L) + 1;
+        desiredCount = strtouint32(argv[arg]) + 1;
       } else if (strcmp(argv[arg], "greaterthanorequal") == 0) {
         personality = PERSONALITY_GEQ;
         arg++;
-        desiredCount = strtouint32(argv[arg], 0L);
+        desiredCount = strtouint32(argv[arg]);
       } else if (strcmp(argv[arg], "equal") == 0) {
         personality = PERSONALITY_EQ;
         arg++;
-        desiredCount = strtouint32(argv[arg], 0L);
+        desiredCount = strtouint32(argv[arg]);
       } else {
         fprintf(stderr, "ERROR: unknown math personality %s\n", argv[arg]);
         exit(1);
@@ -424,13 +424,13 @@ merylArgs::merylArgs(int argc, char **argv) {
       personality = 'h';
     } else if (strcmp(argv[arg], "-memory") == 0) {
       arg++;
-      memoryLimit = strtouint64(argv[arg], 0L);
+      memoryLimit = strtouint64(argv[arg]);
     } else if (strcmp(argv[arg], "-segments") == 0) {
       arg++;
-      segmentLimit = strtouint64(argv[arg], 0L);
+      segmentLimit = strtouint64(argv[arg]);
     } else if (strcmp(argv[arg], "-threads") == 0) {
       arg++;
-      numThreads   = strtouint32(argv[arg], 0L);
+      numThreads   = strtouint32(argv[arg]);
     } else if (strcmp(argv[arg], "-configbatch") == 0) {
       personality = 'B';
       configBatch = true;
@@ -443,7 +443,7 @@ merylArgs::merylArgs(int argc, char **argv) {
       configBatch = false;
       countBatch  = true;
       mergeBatch  = false;
-      batchNumber = strtouint32(argv[arg], 0L);
+      batchNumber = strtouint32(argv[arg]);
     } else if (strcmp(argv[arg], "-mergebatch") == 0) {
       personality = 'B';
       configBatch = false;

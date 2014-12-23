@@ -409,8 +409,8 @@ processArray(int argc, char **argv) {
       printf(F_U32"\n", fasta->getNumberOfSequences());
 
     } else if (strcmp(argv[arg], "-L") == 0) {
-      uint32 small = strtouint32(argv[++arg], 0L);
-      uint32 large = strtouint32(argv[++arg], 0L);
+      uint32 small = strtouint32(argv[++arg]);
+      uint32 large = strtouint32(argv[++arg]);
 
       failIfNoSource();
 
@@ -449,9 +449,9 @@ processArray(int argc, char **argv) {
         printSequence(s);
           
     } else if (strcmp(argv[arg], "-G") == 0) {
-      uint32 n = strtouint32(argv[++arg], 0L);
-      uint32 s = strtouint32(argv[++arg], 0L);
-      uint32 l = strtouint32(argv[++arg], 0L);
+      uint32 n = strtouint32(argv[++arg]);
+      uint32 s = strtouint32(argv[++arg]);
+      uint32 l = strtouint32(argv[++arg]);
 
       char      bases[4] = {'A', 'C', 'G', 'T'};
       char     *def      = new char [1024];
@@ -500,7 +500,7 @@ processArray(int argc, char **argv) {
         printSequence(s);
 
     } else if (strcmp(argv[arg], "-r") == 0) {
-      uint32 num = strtouint32(argv[++arg], 0L);
+      uint32 num = strtouint32(argv[++arg]);
 
       failIfNoSource();
       failIfNotRandomAccess();  //  Impossible to fix, or load whole thing into memory
@@ -533,7 +533,7 @@ processArray(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-6") == 0) {
       withLineBreaks = 60;
       if ((argv[arg+1] != 0L) && (argv[arg+1][0] != '-'))
-        withLineBreaks = strtouint32(argv[++arg], 0L);
+        withLineBreaks = strtouint32(argv[++arg]);
           
     } else if (strcmp(argv[arg], "-w") == 0) {
       toUppercase = !toUppercase;
@@ -555,11 +555,11 @@ processArray(int argc, char **argv) {
       specialDefLine = argv[++arg];
           
     } else if (strcmp(argv[arg], "-e") == 0) {
-      begPos = strtouint32(argv[++arg], 0L);
-      endPos = strtouint32(argv[++arg], 0L);
+      begPos = strtouint32(argv[++arg]);
+      endPos = strtouint32(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-ends") == 0) {
-      endExtract = strtouint32(argv[++arg], 0L);
+      endExtract = strtouint32(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-A") == 0) {
       processFile(argv[++arg]);
@@ -601,7 +601,7 @@ processArray(int argc, char **argv) {
       //  partition by length, else partition into buckets.
       //
       int     al = strlen(argv[arg+1]);
-      uint64  ps = strtouint64(argv[arg+1], 0L);
+      uint64  ps = strtouint64(argv[arg+1]);
 
       char a3 = (al<3) ? '0' : alphabet.toLower(argv[arg+1][al-3]);
       char a2 = (al<2) ? '0' : alphabet.toLower(argv[arg+1][al-2]);
@@ -633,7 +633,7 @@ processArray(int argc, char **argv) {
       exit(0);
 
     } else if (strcmp(argv[arg], "--segment") == 0) {
-      partitionBySegment(argv[arg+1], strtouint32(argv[arg+2], 0L), argv[arg+3]);
+      partitionBySegment(argv[arg+1], strtouint32(argv[arg+2]), argv[arg+3]);
       exit(0);
 
     } else if (strcmp(argv[arg], "--gccontent") == 0) {
@@ -645,15 +645,15 @@ processArray(int argc, char **argv) {
       exit(0);
 
     } else if (strcmp(argv[arg], "--stats") == 0) {
-      stats(argv[arg+1], (argv[arg+2] != 0L) ? strtouint64(argv[arg+2], 0L) : 0);
+      stats(argv[arg+1], (argv[arg+2] != 0L) ? strtouint64(argv[arg+2]) : 0);
       exit(0);
 
     } else if (strcmp(argv[arg], "--errors") == 0) {
-      int    L = strtouint32(argv[++arg], 0L);  //  Desired length
-      int    l = 0;                             //  min of desired length, length of sequence
-      int    N = strtouint32(argv[++arg], 0L);  //  number of copies per sequence
-      int    C = strtouint32(argv[++arg], 0L);  //  number of mutations per copy
-      double P = atof(argv[++arg]);             //  probability of mutation
+      int    L = strtouint32(argv[++arg]);     //  Desired length
+      int    l = 0;                            //  min of desired length, length of sequence
+      int    N = strtouint32(argv[++arg]);     //  number of copies per sequence
+      int    C = strtouint32(argv[++arg]);     //  number of mutations per copy
+      double P = atof(argv[++arg]);            //  probability of mutation
       uint32 i = 0;
 
       fasta = new seqCache(argv[++arg]);

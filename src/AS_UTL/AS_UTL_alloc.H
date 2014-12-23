@@ -63,6 +63,7 @@ void  safe_free2(void *);
 #endif
 #endif
 
+#if 0
 template<class T>
 inline void zero(T* ptr, size_t num)
 {
@@ -71,5 +72,82 @@ inline void zero(T* ptr, size_t num)
 		ptr[a] = NULL;
 	}
 }
+#endif
+
+
+
+
+template<typename TT, typename LL>
+void
+duplicateArray(TT*& to, LL &toLen, LL &toMax, TT *fr, LL frLen, LL frMax, bool forceAlloc=false) {
+
+  if ((toMax < frLen) || (forceAlloc)) {
+    delete [] to;
+
+    toLen = frLen;
+    toMax = toLen;
+
+    to = new TT [toMax];
+  }
+
+  memcpy(to, fr, sizeof(TT) * toLen);
+}
+
+const uint32  resizeArray_doNothing = 0x00;
+const uint32  resizeArray_copyData  = 0x01;
+const uint32  resizeArray_clearNew  = 0x02;
+
+template<typename TT, typename LL>
+void
+resizeArray(TT*& array, uint64 arrayLen, LL &arrayMax, uint64 newMax, uint32 op=resizeArray_copyData) {
+
+  if (newMax <= arrayMax)
+    return;
+
+  arrayMax = newMax;
+
+  TT *copy = new TT [arrayMax];
+
+  if (op & resizeArray_copyData)
+    memcpy(copy, array, sizeof(TT) * arrayLen);
+
+  delete [] array;
+  array = copy;
+
+  if (op & resizeArray_clearNew)
+    memset(array + sizeof(TT) * arrayLen, 0, sizeof(TT) * (newMax - arrayLen));
+}
+
+
+template<typename TT, typename LL>
+void
+resizeArrayPair(TT*& array1, TT*& array2, uint64 arrayLen, LL &arrayMax, LL newMax, uint32 op=resizeArray_copyData) {
+
+  if (newMax <= arrayMax)
+    return;
+
+  arrayMax = newMax;
+
+  TT *copy1 = new TT [arrayMax];
+  TT *copy2 = new TT [arrayMax];
+
+  if (op & resizeArray_copyData) {
+    memcpy(copy1, array1, sizeof(TT) * arrayLen);
+    memcpy(copy2, array2, sizeof(TT) * arrayLen);
+  }
+
+  delete [] array1;
+  delete [] array2;
+
+  array1 = copy1;
+  array2 = copy2;
+
+  if (op & resizeArray_clearNew) {
+    memset(array1 + sizeof(TT) * arrayLen, 0, sizeof(TT) * (newMax - arrayLen));
+    memset(array2 + sizeof(TT) * arrayLen, 0, sizeof(TT) * (newMax - arrayLen));
+  }
+}
+
+
 
 #endif // AS_UTL_ALLOC_H

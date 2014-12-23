@@ -110,7 +110,7 @@ placeContainsUsingBestOverlaps(UnitigVector &unitigs) {
 
 
 void
-placeContainsUsingBestOverlaps(Unitig *target, set<AS_IID> *fragments) {
+placeContainsUsingBestOverlaps(Unitig *target, set<uint32> *fragments) {
   uint32   fragsPlaced  = 1;
 
   logFileFlags &= ~LOG_PLACE_FRAG;
@@ -118,8 +118,8 @@ placeContainsUsingBestOverlaps(Unitig *target, set<AS_IID> *fragments) {
   while (fragsPlaced > 0) {
     fragsPlaced  = 0;
 
-    for (set<AS_IID>::iterator it=fragments->begin(); it != fragments->end(); it++) {
-      AS_IID           fid      = *it;
+    for (set<uint32>::iterator it=fragments->begin(); it != fragments->end(); it++) {
+      uint32           fid      = *it;
       BestContainment *bestcont = OG->getBestContainer(fid);
 
       if ((bestcont->isContained == false) ||

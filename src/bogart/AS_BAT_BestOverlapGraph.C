@@ -41,7 +41,7 @@ BestOverlapGraph::removeSuspicious(void) {
   writeLog("BestOverlapGraph()-- removing suspicious reads from graph, with %d threads.\n", numThreads);
 
 #pragma omp parallel for schedule(dynamic, blockSize)
-  for (AS_IID fi=1; fi <= fiLimit; fi++) {
+  for (uint32 fi=1; fi <= fiLimit; fi++) {
     uint32               no  = 0;
     BAToverlap          *ovl = OC->getOverlaps(fi, no);
 
@@ -102,7 +102,7 @@ BestOverlapGraph::examineOnlyTopN(void) {
   writeLog("BestOverlapGraph()-- scoring highest quality %d overlaps.\n", examineOnly);
 
 #pragma omp parallel for schedule(dynamic, blockSize)
-  for (AS_IID fi=1; fi <= fiLimit; fi++) {
+  for (uint32 fi=1; fi <= fiLimit; fi++) {
     uint32      no  = 0;
     uint32      n5  = 0;
     uint32      n3  = 0;
@@ -148,7 +148,7 @@ BestOverlapGraph::removeSpurs(void) {
 
   memset(isSpur, 0, sizeof(char) * (fiLimit + 1));
 
-  for (AS_IID fi=1; fi <= fiLimit; fi++) {
+  for (uint32 fi=1; fi <= fiLimit; fi++) {
     bool   spur5 = (getBestEdgeOverlap(fi, false)->fragId() == 0);
     bool   spur3 = (getBestEdgeOverlap(fi, true)->fragId()  == 0);
 
@@ -173,7 +173,7 @@ BestOverlapGraph::removeSpurs(void) {
   writeLog("BestOverlapGraph()-- analyzing %d fragments for best contains, with %d threads.\n", fiLimit, numThreads);
 
 #pragma omp parallel for schedule(dynamic, blockSize)
-  for (AS_IID fi=1; fi <= fiLimit; fi++) {
+  for (uint32 fi=1; fi <= fiLimit; fi++) {
     uint32      no  = 0;
     BAToverlap *ovl = OC->getOverlaps(fi, no);
 
@@ -187,7 +187,7 @@ BestOverlapGraph::removeSpurs(void) {
   writeLog("BestOverlapGraph()-- analyzing %d fragments for best edges, with %d threads.\n", fiLimit, numThreads);
 
 #pragma omp parallel for schedule(dynamic, blockSize)
-  for (AS_IID fi=1; fi <= fiLimit; fi++) {
+  for (uint32 fi=1; fi <= fiLimit; fi++) {
     uint32      no  = 0;
     BAToverlap *ovl = OC->getOverlaps(fi, no);
 
@@ -228,7 +228,7 @@ BestOverlapGraph::removeFalseBest(void) {
 
   //  Compute a histogram of the current best edges, and save the erate of the best for each read.
 
-  for (AS_IID fi=1; fi <= fiLimit; fi++) {
+  for (uint32 fi=1; fi <= fiLimit; fi++) {
     uint32            olapsLen = 0;
     BAToverlap       *olaps    = OC->getOverlaps(fi, olapsLen);
 
@@ -260,7 +260,7 @@ BestOverlapGraph::removeFalseBest(void) {
     uint64  count5  =   0, count3  =   0;
     double  stddev5 = 100, stddev3 = 100;
 
-    for (AS_IID er=0; er <= AS_BAT_MAX_ERATE; er++) {
+    for (uint32 er=0; er <= AS_BAT_MAX_ERATE; er++) {
       double ER = OC->decodeError(er) * 100;
 
       if (ER <= 0.0)
@@ -282,7 +282,7 @@ BestOverlapGraph::removeFalseBest(void) {
     mean5 /= count5;
     mean3 /= count3;
 
-    for (AS_IID er=0; er <= AS_BAT_MAX_ERATE; er++) {
+    for (uint32 er=0; er <= AS_BAT_MAX_ERATE; er++) {
       double ER =  OC->decodeError(er) * 100;
 
       if (ER <= 0.0)
@@ -327,7 +327,7 @@ BestOverlapGraph::removeFalseBest(void) {
     if (errno)
       fprintf(stderr, "BestOverlapGraph()-- failed to open '%s' for writing: %s\n", EN, strerror(errno)), exit(1);
 
-    for (AS_IID er=0; er <= AS_BAT_MAX_ERATE; er++) {
+    for (uint32 er=0; er <= AS_BAT_MAX_ERATE; er++) {
       double  ER = OC->decodeError(er) * 100;
 
       if (ER <= 0.0)
@@ -350,7 +350,7 @@ BestOverlapGraph::removeFalseBest(void) {
   double  erate5thresh = m5 + 2 * s5;  //  Discard best if it is worse than 2 s.d. from mean.
   double  erate3thresh = m3 + 2 * s3;
 
-  for (AS_IID fi=1; fi <= fiLimit; fi++) {
+  for (uint32 fi=1; fi <= fiLimit; fi++) {
 
     if (erate5[fi] > erate5thresh) {
       fprintf(stderr, "RECOMPUTE frag %u 5'\n", fi);
@@ -382,7 +382,7 @@ BestOverlapGraph::removeFalseBest(void) {
   writeLog("BestOverlapGraph()-- analyzing %d fragments for best contains, with %d threads.\n", fiLimit, numThreads);
 
 #pragma omp parallel for schedule(dynamic, blockSize)
-  for (AS_IID fi=1; fi <= fiLimit; fi++) {
+  for (uint32 fi=1; fi <= fiLimit; fi++) {
     uint32      no  = 0;
     BAToverlap *ovl = OC->getOverlaps(fi, no);
 
@@ -399,7 +399,7 @@ BestOverlapGraph::removeFalseBest(void) {
   writeLog("BestOverlapGraph()-- analyzing %d fragments for best edges, with %d threads.\n", fiLimit, numThreads);
 
 #pragma omp parallel for schedule(dynamic, blockSize)
-  for (AS_IID fi=1; fi <= fiLimit; fi++) {
+  for (uint32 fi=1; fi <= fiLimit; fi++) {
     uint32      no  = 0;
     BAToverlap *ovl = OC->getOverlaps(fi, no);
 
@@ -454,7 +454,7 @@ BestOverlapGraph::removeWeak(double threshold) {
   uint32   erates3len = 0;
   uint32  *erates3    = new uint32 [eratesMax];
 
-  for (AS_IID fi=1; fi <= fiLimit; fi++) {
+  for (uint32 fi=1; fi <= fiLimit; fi++) {
     uint32            olapsLen = 0;
     BAToverlap       *olaps    = OC->getOverlaps(fi, olapsLen);
 
@@ -568,7 +568,7 @@ BestOverlapGraph::BestOverlapGraph(double               utgErrorRate,
 
   } else {
 #pragma omp parallel for schedule(dynamic, blockSize)
-    for (AS_IID fi=1; fi <= fiLimit; fi++) {
+    for (uint32 fi=1; fi <= fiLimit; fi++) {
       uint32      no  = 0;
       BAToverlap *ovl = OC->getOverlaps(fi, no);
 
@@ -587,7 +587,7 @@ BestOverlapGraph::BestOverlapGraph(double               utgErrorRate,
     writeLog("BestOverlapGraph()-- analyzing %d fragments for best edges, with %d threads.\n", fiLimit, numThreads);
 
 #pragma omp parallel for schedule(dynamic, blockSize)
-    for (AS_IID fi=1; fi <= fiLimit; fi++) {
+    for (uint32 fi=1; fi <= fiLimit; fi++) {
       uint32      no  = 0;
       BAToverlap *ovl = OC->getOverlaps(fi, no);
 
@@ -617,7 +617,7 @@ BestOverlapGraph::BestOverlapGraph(double               utgErrorRate,
   writeLog("BestOverlapGraph()-- removing best edges for contained fragments, with %d threads.\n", numThreads);
 
 #pragma omp parallel for schedule(dynamic, blockSize)
-  for (AS_IID fi=1; fi <= fiLimit; fi++) {
+  for (uint32 fi=1; fi <= fiLimit; fi++) {
     if (isContained(fi) == true) {
       getBestEdgeOverlap(fi, false)->set(0, 0, 0, 0);
       getBestEdgeOverlap(fi, true) ->set(0, 0, 0, 0);
@@ -655,7 +655,7 @@ BestOverlapGraph::rebuildBestContainsWithoutSingletons(UnitigVector  &unitigs,
 
   BestContainment  *bestCold = new BestContainment [fiLimit + 1];
 
-  for (AS_IID fi=0; fi<=fiLimit; fi++) {
+  for (uint32 fi=0; fi<=fiLimit; fi++) {
     bestCold[fi] = _bestA[fi]._bestC;
 
     //  Clearing this destroys unitigs??
@@ -683,7 +683,7 @@ BestOverlapGraph::rebuildBestContainsWithoutSingletons(UnitigVector  &unitigs,
 
   //  Rebuild contains ignoring singleton containers
 
-  for (AS_IID fi=1; fi<=fiLimit; fi++) {
+  for (uint32 fi=1; fi<=fiLimit; fi++) {
     uint32      no   = 0;
 
     if (bestCold[fi].isContained == false)
@@ -692,8 +692,8 @@ BestOverlapGraph::rebuildBestContainsWithoutSingletons(UnitigVector  &unitigs,
     BAToverlap *ovl  = OC->getOverlaps(fi, no);
 
     for (uint32 ii=0; ii<no; ii++) {
-      AS_IID     autg = Unitig::fragIn(ovl[ii].a_iid);
-      AS_IID     butg = Unitig::fragIn(ovl[ii].b_iid);
+      uint32     autg = Unitig::fragIn(ovl[ii].a_iid);
+      uint32     butg = Unitig::fragIn(ovl[ii].b_iid);
 
       assert(autg == 0);  //  Contained cannot be placed yet.
 
@@ -711,7 +711,7 @@ BestOverlapGraph::rebuildBestContainsWithoutSingletons(UnitigVector  &unitigs,
 
   //  Remove best edges for contains (shouldn't be any; we didn't make new ones since the last time we removed)
 
-  for (AS_IID fi=1; fi <= fiLimit; fi++) {
+  for (uint32 fi=1; fi <= fiLimit; fi++) {
     if (isContained(fi) == true) {
       getBestEdgeOverlap(fi, false)->set(0, 0, 0, 0);
       getBestEdgeOverlap(fi, true) ->set(0, 0, 0, 0);
@@ -720,7 +720,7 @@ BestOverlapGraph::rebuildBestContainsWithoutSingletons(UnitigVector  &unitigs,
 
   //  Log changes
 
-  for (AS_IID fi=0; fi<=fiLimit; fi++) {
+  for (uint32 fi=0; fi<=fiLimit; fi++) {
     if ((bestCold[fi].container       != _bestA[fi]._bestC.container) ||
         (bestCold[fi].sameOrientation != _bestA[fi]._bestC.sameOrientation) ||
         (bestCold[fi].a_hang          != _bestA[fi]._bestC.a_hang) ||
@@ -748,7 +748,7 @@ BestOverlapGraph::rebuildBestContainsWithoutSingletons(UnitigVector  &unitigs,
 
 BestOverlapGraph::BestOverlapGraph(double               utgErrorRate,
                                    double               utgErrorLimit,
-                                   set<AS_IID>         *restrict) {
+                                   set<uint32>         *restrict) {
 
   mismatchCutoff  = utgErrorRate;
   mismatchLimit   = utgErrorLimit;
@@ -770,8 +770,8 @@ BestOverlapGraph::BestOverlapGraph(double               utgErrorRate,
   //  PASS 0:  Load the map (necessary?)
 
 #if 0
-  for (set<AS_IID>::iterator it=_restrict->begin(); it != _restrict->end(); it++) {
-    AS_IID      fi  = *it;
+  for (set<uint32>::iterator it=_restrict->begin(); it != _restrict->end(); it++) {
+    uint32      fi  = *it;
 
     _bestM[fi].insert();
     _scorM[fi].insert();
@@ -780,8 +780,8 @@ BestOverlapGraph::BestOverlapGraph(double               utgErrorRate,
 
   //  PASS 1:  Find containments.
 
-  for (set<AS_IID>::iterator it=_restrict->begin(); it != _restrict->end(); it++) {
-    AS_IID      fi  = *it;
+  for (set<uint32>::iterator it=_restrict->begin(); it != _restrict->end(); it++) {
+    uint32      fi  = *it;
     uint32      no  = 0;
     BAToverlap *ovl = OC->getOverlaps(fi, no);
 
@@ -791,8 +791,8 @@ BestOverlapGraph::BestOverlapGraph(double               utgErrorRate,
 
   //  PASS 2:  Find dovetails.
 
-  for (set<AS_IID>::iterator it=_restrict->begin(); it != _restrict->end(); it++) {
-    AS_IID      fi  = *it;
+  for (set<uint32>::iterator it=_restrict->begin(); it != _restrict->end(); it++) {
+    uint32      fi  = *it;
     uint32      no  = 0;
     BAToverlap *ovl = OC->getOverlaps(fi, no);
 
@@ -806,8 +806,8 @@ BestOverlapGraph::BestOverlapGraph(double               utgErrorRate,
 
   //  Remove dovetail overlaps for contained fragments.
 
-  for (set<AS_IID>::iterator it=_restrict->begin(); it != _restrict->end(); it++) {
-    AS_IID      fi  = *it;
+  for (set<uint32>::iterator it=_restrict->begin(); it != _restrict->end(); it++) {
+    uint32      fi  = *it;
 
     if (isContained(fi) == true) {
       getBestEdgeOverlap(fi, false)->set(0, 0, 0, 0);
@@ -818,8 +818,8 @@ BestOverlapGraph::BestOverlapGraph(double               utgErrorRate,
   //  Remove spurs
 
 #if 0
-  for (set<AS_IID>::iterator it=_restrict->begin(); it != _restrict->end(); it++) {
-    AS_IID      fi  = *it;
+  for (set<uint32>::iterator it=_restrict->begin(); it != _restrict->end(); it++) {
+    uint32      fi  = *it;
 
     if ((getBestEdgeOverlap(fi, false)->fragId() == 0) ||
         (getBestEdgeOverlap(fi, true)->fragId()  == 0)) {

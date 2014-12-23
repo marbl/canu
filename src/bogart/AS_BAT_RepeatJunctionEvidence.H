@@ -25,7 +25,7 @@ public:
 
   int32               point;
 
-  AS_IID              eviFrag;  //  Evidence fragment (orientation is meaningless)
+  uint32              eviFrag;  //  Evidence fragment (orientation is meaningless)
   FragmentEnd         tigFrag;  //  Unitig fragment
   
   uint32              numOvl3p;  //  Weight/score of the incoming fragment

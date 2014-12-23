@@ -112,12 +112,12 @@ overlapPlacement_byCluster(const overlapPlacement &A, const overlapPlacement &B)
 bool
 placeFragUsingOverlaps(UnitigVector             &unitigs,
                        Unitig                   *target,
-                       AS_IID                    fid,
+                       uint32                    fid,
                        vector<overlapPlacement> &placements);
 
 void
 placeFragInBestLocation(UnitigVector   &unitigs,
-                        AS_IID          fid);
+                        uint32          fid);
 
 
 #endif  //  INCLUDE_AS_BAT_PLACEFRAGUSINGOVERLAPS

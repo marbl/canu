@@ -27,7 +27,7 @@ static const char *rcsid_INCLUDE_AS_BAT_PLACECONTAINS = "$Id$";
 void placeContainsUsingBestOverlaps(UnitigVector &unitigs);
 
 void placeContainsUsingBestOverlaps(Unitig      *target,
-                                    set<AS_IID> *fragments);
+                                    set<uint32> *fragments);
 
 void placeContainsUsingAllOverlaps(UnitigVector &unitigs,
                                    bool   withMatesToNonContained,

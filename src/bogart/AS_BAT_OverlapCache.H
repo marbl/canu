@@ -29,51 +29,29 @@ static const char *rcsid_INCLUDE_AS_BAT_OVERLAPCACHE = "$Id$";
 //  AS_BAT_ERRBITS stores a reduced-precision overlap error rate using the same method
 //  as used by OverlapStore.  It should be at least 7 bits, and never needs to be more
 //  than AS_OVS_ERRBITS.
-//
-//  AS_OVS_HNGBITS is one more than the read length.  We have no control over it here.
 
 #define AS_BAT_ERRBITS_MIN  7
-#define AS_BAT_ERRBITS_MAX  AS_OVS_ERRBITS
+#define AS_BAT_ERRBITS_MAX  AS_MAX_ERATE_BITS
 
-#if (AS_OVS_HNGBITS_MIN + AS_OVS_HNGBITS + AS_OVS_HNGBITS + 1 > 64)
+#if (AS_OVS_ERRBITS_MIN + AS_MAX_READLEN_BITS+1 + AS_MAX_READLEN_BITS+1 + 1 > 64)
 #error No space for BAToverlapInt.  Decrease read length AS_READ_MAX_NORMAL_LEN_BITS.
 #endif
 
 //  If not enough space for the minimum number of error bits, bump up to a 64-bit word for overlap
 //  storage.
 
-#if (AS_BAT_ERRBITS_MIN + AS_OVS_HNGBITS + AS_OVS_HNGBITS + 1 > 32)
-
-#define AS_BAT_ERRBITS    MIN((64 - AS_OVS_HNGBITS - AS_OVS_HNGBITS - 1), AS_BAT_ERRBITS_MAX)
+#define AS_BAT_ERRBITS    MIN((64 - AS_MAX_READLEN_BITS+1 - AS_MAX_READLEN_BITS+1 - 1), AS_BAT_ERRBITS_MAX)
 #define AS_BAT_MAX_ERATE  ((1 << AS_BAT_ERRBITS) - 1)
 
 //  For storing overlaps in memory.  12 bytes per overlap.
 struct BAToverlapInt {
-  uint64      error     :AS_BAT_ERRBITS;  //   7 by default
-  int64       a_hang    :AS_OVS_HNGBITS;  //  12 by default
-  int64       b_hang    :AS_OVS_HNGBITS;  //  12 by default
+  uint64      error     :AS_BAT_ERRBITS;         //  7 by default
+  int64       a_hang    :AS_MAX_READLEN_BITS+1;  //  16+1 by default
+  int64       b_hang    :AS_MAX_READLEN_BITS+1;  //  16+1 by default
   uint64      flipped   :1;
-  AS_IID      b_iid;
+  uint32      b_iid;
 };
 
-#else
-
-//  Otherwise, there is enough space for the minimum number of bits, so grab as many as we can up to
-//  the maximum we need.
-
-#define AS_BAT_ERRBITS    MIN((32 - AS_OVS_HNGBITS - AS_OVS_HNGBITS - 1), AS_BAT_ERRBITS_MAX)
-#define AS_BAT_MAX_ERATE  ((1 << AS_BAT_ERRBITS) - 1)
-
-//  For storing overlaps in memory.  8 bytes per overlap.
-struct BAToverlapInt {
-  uint32      error     :AS_BAT_ERRBITS;  //   7 by default
-  int32       a_hang    :AS_OVS_HNGBITS;  //  12 by default
-  int32       b_hang    :AS_OVS_HNGBITS;  //  12 by default
-  uint32      flipped   :1;
-  AS_IID      b_iid;
-};
-
-#endif
 
 
 //  For working with overlaps, 32 bytes per overlap.  This data is copied
@@ -88,8 +66,8 @@ struct BAToverlap {
   uint32      errorRaw;  //  Encoded fraction error, 0   -- AS_BAT_MAX_ERATE
   double      error;     //  Decoded fraction error, 0.0 -- 1.0
 
-  AS_IID      a_iid;
-  AS_IID      b_iid;
+  uint32      a_iid;
+  uint32      b_iid;
 };
 
 
@@ -169,7 +147,7 @@ private:
   uint32                  _maxPer;   //  Maximum number of overlaps to load for a single fragment
 
   uint32                  _ovsMax;   //  For loading overlaps
-  OVSoverlap             *_ovs;      //  
+  ovsOverlap             *_ovs;      //  
   uint64                 *_ovsSco;   //  For scoring overlaps during the load
   uint64                 *_ovsTmp;   //  For picking out a score threshold
 
@@ -179,8 +157,8 @@ private:
   uint32                 *_OVSerate; //  Map from OVS erate to BAT erate
   double                 *_BATerate; //  Map from BAT erate to fraction error
 
-  OverlapStore           *_ovlStoreUniq;  //  Pointers to input stores
-  OverlapStore           *_ovlStoreRept;
+  ovStore                *_ovlStoreUniq;  //  Pointers to input stores
+  ovStore                *_ovlStoreRept;
 };
 
 #endif  //  INCLUDE_AS_BAT_OVERLAPCACHE

@@ -44,7 +44,7 @@ public:
 class ChunkGraph {
 public:
   ChunkGraph(const char *output_prefix);
-  ChunkGraph(set<AS_IID> *restrict);
+  ChunkGraph(set<uint32> *restrict);
   ~ChunkGraph(void) {
     delete [] _chunkLength;
   };
@@ -67,9 +67,9 @@ private:
   uint32             *_pathLen;
 
   //  For a chunk graph of a single unitig plus some extra fragments.
-  //  This maps the AS_IID to an index in the arrays above.
-  map<AS_IID,uint32>  _idMap;
-  set<AS_IID>        *_restrict;
+  //  This maps the uint32 to an index in the arrays above.
+  map<uint32,uint32>  _idMap;
+  set<uint32>        *_restrict;
 };
 
 #endif
