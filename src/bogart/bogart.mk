@@ -22,7 +22,6 @@ SOURCES  := bogart.C \
             AS_BAT_Joining.C \
             AS_BAT_Logging.C \
             AS_BAT_MateBubble.C \
-            AS_BAT_MateChecker.C \
             AS_BAT_MateLocation.C \
             AS_BAT_MergeSplitJoin.C \
             AS_BAT_MoveContains.C \
@@ -41,7 +40,8 @@ SOURCES  := bogart.C \
             AS_BAT_Unitig.C \
             AS_BAT_Unitig_PlaceFragUsingEdges.C
 
-UNUSED  := AS_BAT_findEdges.C \
+UNUSED   := AS_BAT_findEdges.C \
+            AS_BAT_MateChecker.C \
 
 
 SRC_INCDIRS  := .. ../AS_UTL ../stores
