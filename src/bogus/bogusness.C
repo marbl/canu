@@ -19,7 +19,7 @@
 
 const char *mainid = "$Id$";
 
-#include "AS_BAT_bogusUtil.H"
+#include "bogusUtil.H"
 
 //  Reads snapper/nucmer output, figures out what the minimal set of alignments that cover each
 //  aligned sequence, then compares those alignments against the ideal unitigs.

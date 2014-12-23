@@ -19,7 +19,7 @@
 
 static const char *rcsid = "$Id$";
 
-#include "AS_BAT_bogusUtil.H"
+#include "bogusUtil.H"
 
 #define MAX_GENOME_SIZE_INPUT 256 * 1024 * 1024
 

@@ -205,6 +205,6 @@ reportUnitigs(UnitigVector &unitigs, const char *prefix, const char *name) {
   //  five minutes.
   setParentAndHang(unitigs);
 
-  writeIUMtoFile(unitigs, tigStorePath, tigStorePath, numFragsP, false);
+  writeUnitigsToStore(unitigs, tigStorePath, tigStorePath, numFragsP, false);
 }
 

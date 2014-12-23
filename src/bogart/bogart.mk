@@ -10,12 +10,10 @@ endif
 TARGET   := bogart
 SOURCES  := bogart.C \
             AS_BAT_BestOverlapGraph.C \
-            AS_BAT_bogusUtil.C \
             AS_BAT_Breaking.C \
             AS_BAT_ChunkGraph.C \
             AS_BAT_EvaluateMates.C \
             AS_BAT_ExtendByMates.C \
-            AS_BAT_findEdges.C \
             AS_BAT_FragmentInfo.C \
             AS_BAT_InsertSizes.C \
             AS_BAT_Instrumentation.C \
@@ -42,6 +40,9 @@ SOURCES  := bogart.C \
             AS_BAT_Unitig_AddFrag.C \
             AS_BAT_Unitig.C \
             AS_BAT_Unitig_PlaceFragUsingEdges.C
+
+UNUSED  := AS_BAT_findEdges.C \
+
 
 SRC_INCDIRS  := .. ../AS_UTL ../stores
 

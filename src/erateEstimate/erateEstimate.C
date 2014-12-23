@@ -19,12 +19,8 @@
 const char *mainid = "$Id:  $";
 
 #include "AS_global.H"
-#include "AS_MSG_pmesg.H"
-#include "AS_PER_gkpStore.H"
-
-#include "AS_OVS_overlap.H"
-#include "AS_OVS_overlapFile.H"
-#include "AS_OVS_overlapStore.H"
+#include "gkStore.H"
+#include "ovStore.H"
 
 #include "memoryMappedFile.H"
 
@@ -36,20 +32,15 @@ const char *mainid = "$Id:  $";
 #include <vector>
 #include <algorithm>
 
+using namespace std;
+
 #ifndef BROKEN_CLANG_OpenMP
 #include <omp.h>
 #endif
 
-using namespace std;
-
-
 #define ERATE_TOLERANCE 0.03
 
-
 uint32 blockSize = 1000;
-
-
-
 
 class readErrorEstimate {
 public:

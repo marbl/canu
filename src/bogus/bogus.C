@@ -19,7 +19,7 @@
 
 const char *mainid = "$Id$";
 
-#include "AS_BAT_bogusUtil.H"
+#include "bogusUtil.H"
 
 class longestAlignment {
 public:

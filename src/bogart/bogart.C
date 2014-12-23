@@ -381,15 +381,14 @@ main (int argc, char * argv []) {
     if (logFileFlagSet(j))
       fprintf(stderr, "DEBUG                 = %s\n", logFileFlagNames[i]);
 
-  gkStore          *gkpStore     = new gkStore(gkpStorePath, FALSE, FALSE);
-  OverlapStore     *ovlStoreUniq = AS_OVS_openOverlapStore(ovlStoreUniqPath);
-  OverlapStore     *ovlStoreRept = ovlStoreReptPath ? AS_OVS_openOverlapStore(ovlStoreReptPath) : NULL;
+  ovStore          *ovlStoreUniq = new ovStore(ovlStoreUniqPath);
+  ovStore          *ovlStoreRept = ovlStoreReptPath ? new ovStore(ovlStoreReptPath) : NULL;
 
   UnitigVector      unitigs;
 
   setLogFile(output_prefix, NULL);
 
-  FI = new FragmentInfo(gkpStore, output_prefix, minReadLen);
+  FI = new FragmentInfo(gkpStorePath, output_prefix, minReadLen);
 
   // Initialize where we've been to nowhere
   Unitig::resetFragUnitigMap(FI->numFragments());
@@ -399,8 +398,8 @@ main (int argc, char * argv []) {
   CG = new ChunkGraph(output_prefix);
   IS = NULL;
 
-  AS_OVS_closeOverlapStore(ovlStoreUniq);  ovlStoreUniq = NULL;
-  AS_OVS_closeOverlapStore(ovlStoreRept);  ovlStoreRept = NULL;
+  delete ovlStoreUniq;  ovlStoreUniq = NULL;
+  delete ovlStoreRept;  ovlStoreRept = NULL;
 
 
 
@@ -520,16 +519,14 @@ main (int argc, char * argv []) {
 
   setLogFile(output_prefix, "output");
 
-  writeIUMtoFile(unitigs, output_prefix, tigStorePath, fragment_count_target);
-  writeOVLtoFile(unitigs, output_prefix);
+  writeUnitigsToStore(unitigs, output_prefix, tigStorePath, fragment_count_target);
+  writeOverlapsUsed(unitigs, output_prefix);
 
   delete IS;
   delete CG;
   delete OG;
   delete OC;
   delete FI;
-
-  delete gkpStore;
 
   for (uint32  ti=0; ti<unitigs.size(); ti++)
     delete unitigs[ti];

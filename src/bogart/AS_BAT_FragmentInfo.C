@@ -27,7 +27,7 @@ const uint64 fiMagicNumber   = 0x6f666e4967617266llu;  //  'fragInfo' until it g
 const uint64 fiVersionNumber = 1;
 
 
-FragmentInfo::FragmentInfo(gkStore    *gkpStore,
+FragmentInfo::FragmentInfo(const char *gkpStorePath,
                            const char *prefix,
                            uint32      minReadLen) {
 
@@ -40,11 +40,10 @@ FragmentInfo::FragmentInfo(gkStore    *gkpStore,
     writeLog("FragmentInfo()-- Reads shorter than "F_U32" bases are forced to be singleton.\n",
              minReadLen);
 
-  gkStream         *fs = new gkStream(gkpStore, 0, 0, GKFRAGMENT_INF);
-  gkFragment        fr;
+  gkStore     *gkp = new gkStore(gkpStorePath);
 
-  _numLibraries = gkpStore->gkStore_getNumLibraries();
-  _numFragments = gkpStore->gkStore_getNumFragments();
+  _numLibraries = gkp->gkStore_getNumLibraries();
+  _numFragments = gkp->gkStore_getNumReads();
 
   _fragLength    = new uint32 [_numFragments + 1];
   _mateIID       = new uint32 [_numFragments + 1];
@@ -62,16 +61,11 @@ FragmentInfo::FragmentInfo(gkStore    *gkpStore,
     _libIID[i] = 0;
   }
 
-  for (uint32 i=0; i<_numLibraries + 1; i++) {
+  for (uint32 i=1; i<_numLibraries + 1; i++) {
     _mean[i]          = 0.0;
     _stddev[i]        = 0.0;
-    _numFragsInLib[i] = 0;
-    _numMatesInLib[i] = 0;
-  }
-
-  for (uint32 i=1; i<_numLibraries + 1; i++) {
-    _mean[i]          = gkpStore->gkStore_getLibrary(i)->mean;
-    _stddev[i]        = gkpStore->gkStore_getLibrary(i)->stddev;
+    //_mean[i]          = gkp->gkStore_getLibrary(i)->mean;
+    //_stddev[i]        = gkp->gkStore_getLibrary(i)->stddev;
     _numFragsInLib[i] = 0;
     _numMatesInLib[i] = 0;
   }
@@ -80,19 +74,21 @@ FragmentInfo::FragmentInfo(gkStore    *gkpStore,
   uint32 numSkipped = 0;
   uint32 numLoaded  = 0;
 
-  while(fs->next(&fr)) {
-    if (fr.gkFragment_getIsDeleted()) {
+  for (uint32 fi=1; fi<=_numFragments; fi++) {
+    gkRead  *read = gkp->gkStore_getRead(fi);
+
+    if (read->gkRead_isDeleted()) {
       numDeleted++;
 
-    } else if (fr.gkFragment_getClearRegionLength() < minReadLen) {
+    } else if (read->gkRead_clearRegionLength() < minReadLen) {
       numSkipped++;
 
     } else {
-      uint32 iid = fr.gkFragment_getReadIID();
-      uint32 lib = fr.gkFragment_getLibraryIID();
+      uint32 iid = read->gkRead_readID();
+      uint32 lib = read->gkRead_libraryID();
 
-      _fragLength[iid] = fr.gkFragment_getClearRegionLength();
-      _mateIID[iid]    = fr.gkFragment_getMateIID();;
+      _fragLength[iid] = read->gkRead_clearRegionLength();
+      _mateIID[iid]    = 0;  //read->gkRead_mateIID();;
       _libIID[iid]     = lib;
 
       _numFragsInLib[lib]++;
@@ -107,6 +103,8 @@ FragmentInfo::FragmentInfo(gkStore    *gkpStore,
       writeLog("FragmentInfo()-- Loading fragment information deleted:%9d skipped:%9d active:%9d\n",
                numDeleted, numSkipped, numLoaded);
   }
+
+  delete gkp;
 
   for (uint32 i=0; i<_numLibraries + 1; i++)
     _numMatesInLib[i] /= 2;
@@ -135,8 +133,6 @@ FragmentInfo::FragmentInfo(gkStore    *gkpStore,
     
   writeLog("FragmentInfo()-- Loaded %d alive fragments, skipped %d short and %d dead fragments.\n",
            numLoaded, numSkipped, numDeleted);
-
-  delete fs;
 
   save(prefix);
 }

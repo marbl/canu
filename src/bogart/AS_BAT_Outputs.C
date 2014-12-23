@@ -28,61 +28,57 @@ static const char *rcsid = "$Id$";
 
 #include "AS_BAT_Outputs.H"
 
-#include "AS_CGB_histo.H"
-#include "MultiAlignStore.H"
+//#include "AS_CGB_histo.H"
+//#include "tgStore.H"
 
 
 
 
 //  Massage the Unitig into a MultiAlignT (also used in SplitChunks_CGW.c)
 void
-unitigToMA(MultiAlignT *ma,
-           uint32       iumiid,
-           Unitig      *utg) {
+unitigToTig(tgTig       *tig,
+            uint32       tigid,
+            Unitig      *utg) {
 
-  ma->maID                       = iumiid;
-  ma->data.unitig_coverage_stat  = 1.0;  //  Default to just barely unique
-  ma->data.unitig_microhet_prob  = 1.0;  //  Default to 100% probability of unique
+  tig->clear();
 
-  ma->data.unitig_status         = AS_UNASSIGNED;
-  ma->data.unitig_suggest_repeat = false;
-  ma->data.unitig_suggest_unique = false;
-  ma->data.unitig_force_repeat   = false;
-  ma->data.unitig_force_unique   = false;
+  tig->_tigID           = tigid;
+  tig->_coverageStat    = 1.0;  //  Default to just barely unique
+  tig->_microhetProb    = 1.0;  //  Default to 100% probability of unique
 
-  ma->data.contig_status         = AS_UNPLACED;
+  tig->_suggestRepeat   = false;
+  tig->_suggestUnique   = false;
+  tig->_suggestCircular = false;
+  tig->_suggestHaploid  = false;
 
-  //  Add the fragments
-
-  ResetVA_IntMultiPos(ma->f_list);
+  resizeArray(tig->_children, tig->_childrenLen, tig->_childrenMax, utg->ufpath.size(), resizeArray_doNothing);
 
   for (uint32 fi=0; fi<utg->ufpath.size(); fi++) {
     ufNode        *frg = &utg->ufpath[fi];
-    IntMultiPos    imp;
+    tgPosition    *pos =  tig->getChild(fi);
 
-    imp.type         = AS_READ;
-    imp.ident        = frg->ident;
-    imp.contained    = frg->contained;
-    imp.parent       = frg->parent;
-    imp.ahang        = frg->ahang;
-    imp.bhang        = frg->bhang;
-    imp.position.bgn = frg->position.bgn;
-    imp.position.end = frg->position.end;
-    imp.delta_length = 0;
-    imp.delta        = NULL;
-
-    AppendVA_IntMultiPos(ma->f_list, &imp);
+    pos->_objID       = frg->ident;
+    pos->_isRead      = true;
+    pos->_isUnitig    = false;
+    pos->_isContig    = false;
+    pos->_anchor      = frg->parent;
+    pos->_ahang       = frg->ahang;
+    pos->_bhang       = frg->bhang;
+    pos->_bgn         = frg->position.bgn;
+    pos->_end         = frg->position.end;
   }
+
+  tig->_childrenLen = utg->ufpath.size();
 }
 
 
 
 void
-writeIUMtoFile(UnitigVector  &unitigs,
-               char          *fileprefix,
-               char          *tigStorePath,
-               uint32         frg_count_target,
-               bool           isFinal) {
+writeUnitigsToStore(UnitigVector  &unitigs,
+                    char          *fileprefix,
+                    char          *tigStorePath,
+                    uint32         frg_count_target,
+                    bool           isFinal) {
   uint32      utg_count              = 0;
   uint32      frg_count              = 0;
   uint32      prt_count              = 1;
@@ -164,10 +160,10 @@ writeIUMtoFile(UnitigVector  &unitigs,
 
   //  Step through all the unitigs once to build the partition mapping and IID mapping.
 
-  MultiAlignStore  *MAS = new MultiAlignStore(tigStorePath);
-  MultiAlignT      *ma  = CreateEmptyMultiAlignT();
+  tgStore     *tigStore = new tgStore(tigStorePath);
+  tgTig       *tig      = new tgTig;
 
-  MAS->writeToPartitioned(partmap, unitigs.size(), NULL, 0);
+  tigStore->writeToPartitioned(partmap, unitigs.size());
 
   for (uint32 iumiid=0, ti=0; ti<unitigs.size(); ti++) {
     Unitig  *utg = unitigs[ti];
@@ -176,7 +172,7 @@ writeIUMtoFile(UnitigVector  &unitigs,
     if ((utg == NULL) || (nf == 0))
       continue;
 
-    unitigToMA(ma, (isFinal) ? iumiid : ti, utg);
+    unitigToTig(tig, (isFinal) ? iumiid : ti, utg);
 
     //  NOTE!  This is not currently a valid multialign as it has NO IntUnitigPos.  That is
     //  added during consensus.  CGW will correctly assert that it reads in unitigs with
@@ -184,23 +180,25 @@ writeIUMtoFile(UnitigVector  &unitigs,
 
     //  Stash the unitig in the store
 
-    MAS->insertMultiAlign(ma, TRUE, FALSE);
+    tigStore->insertTig(tig, false);
 
     iumiid++;
   }
 
-  DeleteMultiAlignT(ma);
-
-  delete    MAS;
+  delete    tig;
+  delete    tigStore;
   delete [] partmap;
 }
 
 
 //  For every unitig, report the best overlaps contained in the
 //  unitig, and all overlaps contained in the unitig.
+//
+//  Wow, this is ancient.
+//
 void
-writeOVLtoFile(UnitigVector &unitigs,
-               char         *fileprefix) {
+writeOverlapsUsed(UnitigVector &unitigs,
+                  char         *fileprefix) {
   char         filename[FILENAME_MAX] = {0};
 #if 0
   GenericMesg  pmesg;

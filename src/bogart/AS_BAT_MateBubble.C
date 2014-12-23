@@ -25,8 +25,6 @@ static const char *rcsid = "$Id$";
 #include "AS_BAT_Unitig.H"
 #include "AS_BAT_BestOverlapGraph.H"
 
-#include "MultiAlignStore.H"
-
 
 void
 popMateBubbles(UnitigVector &unitigs) {

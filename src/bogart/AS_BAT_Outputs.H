@@ -24,11 +24,11 @@
 
 static const char *rcsid_INCLUDE_AS_BAT_OUTPUTS = "$Id$";
 
-#include "MultiAlignStore.H"
+#include "tgStore.H"
 
-void unitigToMA(MultiAlignT *ma, uint32 iumiid, Unitig *utg);
+void unitigToMA(tgTig *tig, uint32 tigid, Unitig *utg);
 
-void writeIUMtoFile(UnitigVector &unitigs, char *fileprefix, char *tigStorePath, uint32 fragment_count_target, bool isFinal=true);
-void writeOVLtoFile(UnitigVector &unitigs, char *fileprefix);
+void writeUnitigsToStore(UnitigVector &unitigs, char *fileprefix, char *tigStorePath, uint32 fragment_count_target, bool isFinal=true);
+void writeOverlapsUsed(UnitigVector &unitigs, char *fileprefix);
 
 #endif  //  INCLUDE_AS_BAT_OUTPUTS

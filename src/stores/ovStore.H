@@ -134,6 +134,7 @@ public:
   uint32     b_end(gkStore *g) const    { return(g->gkStore_getRead(b_iid)->gkRead_clearRegionLength() - dat.ovl.bhg3); };
 
   void       flipped(uint32 f)          { dat.ovl.flipped = f; };
+  uint32     flipped(void) const        { return(dat.ovl.flipped == true); };
 
   double     erate(void) const          { return(AS_OVS_decodeQuality(dat.ovl.erate)); };
   uint64     evalue(void) const         { return(dat.ovl.erate); };
@@ -346,7 +347,7 @@ public:
   void       resetRange(void);
 
   uint64     numOverlapsInRange(void);
-  uint32 *   numOverlapsPerFrag(void);
+  uint32 *   numOverlapsPerFrag(uint32 &firstFrag, uint32 &lastFrag);
 
   //uint32     lastFragInStore(void) { return(_info._largestIID); }
 

@@ -1052,7 +1052,7 @@ markRepeats_filterIntervalsSpannedByFragment(Unitig                    *target,
         continue;
       }
 
-      if (frgbgn + AS_READ_MAX_NORMAL_LEN < intend)
+      if (frgbgn + AS_MAX_READLEN < intend)
         //  All done, no more intersections possible
         break;
     }
@@ -1467,7 +1467,7 @@ markRepeats_filterJunctions(Unitig                          *target,
           target->id(), breakpoints.size());
 
   for (uint32 ji=0; ji<breakpoints.size(); ji++)
-    writeLog("markRepeats()--  junction["F_U32"] at "F_IID"/%c' position "F_U32" repeat %s count "F_U32"\n",
+    writeLog("markRepeats()--  junction["F_U32"] at "F_U32"/%c' position "F_U32" repeat %s count "F_U32"\n",
             ji,
             breakpoints[ji].breakFrag.fragId(), breakpoints[ji].breakFrag.frag3p() ? '3' : '5',
             breakpoints[ji].point,
@@ -1641,7 +1641,7 @@ markRepeats_shatterRepeats(UnitigVector   &unitigs,
       //  Already shattered?
       continue;
 
-    writeLog("markRepeats()--  frag "F_IID" covered by repeats, but still in unitig %d\n",
+    writeLog("markRepeats()--  frag "F_U32" covered by repeats, but still in unitig %d\n",
             iid, ti);
   }
 }

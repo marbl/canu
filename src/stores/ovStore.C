@@ -802,10 +802,13 @@ ovStore::numOverlapsInRange(void) {
 
 
 uint32 *
-ovStore::numOverlapsPerFrag(void) {
+ovStore::numOverlapsPerFrag(uint32 &firstFrag, uint32 &lastFrag) {
 
   if (_firstIIDrequested > _lastIIDrequested)
-    return(0);
+    return(NULL);
+
+  firstFrag = _firstIIDrequested;
+  lastFrag  = _lastIIDrequested;
 
   size_t originalPosition = AS_UTL_ftell(_offtFile);
 

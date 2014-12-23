@@ -85,7 +85,7 @@ extendByMates(UnitigVector &unitigs,
 
       if ((mid != 0) &&
           (Unitig::fragIn(mid) == 0)) {
-        writeLog("  mate frag "F_IID"\n", mid);
+        writeLog("  mate frag "F_U32"\n", mid);
         frags.insert(mid);
         mates.insert(mid);
       }

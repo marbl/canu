@@ -8,7 +8,8 @@ ifeq "$(strip ${TARGET_DIR})" ""
 endif
 
 TARGET   := bogus
-SOURCES  := bogus.C
+SOURCES  := bogus.C \
+            bogusUtil.C
 
 SRC_INCDIRS  := .. ../AS_UTL ../stores
 

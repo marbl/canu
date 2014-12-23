@@ -1142,7 +1142,7 @@ BestOverlapGraph::scoreOverlap(const BAToverlap& olap) {
   uint64  orig = AS_BAT_MAX_ERATE - 0;
 
   //  Shift AFTER assigning to a 64-bit value to avoid overflows.
-  corr <<= AS_OVS_ERRBITS;
+  corr <<= AS_BAT_ERRBITS;
 
   //  Containments - the length of the overlaps are all the same.  We return the quality.
   //
@@ -1176,7 +1176,7 @@ BestOverlapGraph::scoreOverlap(const BAToverlap& olap) {
 
   //  And finally shift it to the correct place in the word.
 
-  leng <<= (2 * AS_OVS_ERRBITS);
+  leng <<= (2 * AS_BAT_ERRBITS);
 
   return(leng | corr | orig);
 }

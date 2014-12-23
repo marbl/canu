@@ -96,8 +96,8 @@ public:
 
 class OverlapCache {
 public:
-  OverlapCache(OverlapStore *ovlStoreUniq,
-               OverlapStore *ovlStoreRept,
+  OverlapCache(ovStore *ovlStoreUniq,
+               ovStore *ovlStoreRept,
                const char *prefix,
                double maxErate,
                double elimit,

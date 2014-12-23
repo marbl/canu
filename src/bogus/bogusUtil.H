@@ -17,10 +17,10 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#ifndef INCLUDE_AS_BAT_BOGUSUTIL
-#define INCLUDE_AS_BAT_BOGUSUTIL
+#ifndef INCLUDE_BOGUSUTIL
+#define INCLUDE_BOGUSUTIL
 
-static const char *rcsid_INCLUDE_AS_BAT_BOGUSUTIL = "$Id$";
+static const char *rcsid_INCLUDE_BOGUSUTIL = "$Id$";
 
 #include "AS_global.H"
 
@@ -116,4 +116,4 @@ loadReferenceSequence(char                       *refName,
                       vector<referenceSequence>  &refList,
                       map<string,uint32>         &refMap);
 
-#endif  //  INCLUDE_AS_BAT_BOGUSUTIL
+#endif  //  INCLUDE_BOGUSUTIL

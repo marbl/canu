@@ -71,6 +71,11 @@ extern InsertSizes      *IS;
 
 ////////////////////////////////////////
 
+struct SeqInterval {
+  uint32           bgn;
+  uint32           end;
+};
+
 static const SeqInterval NULL_SEQ_LOC = {0,0};
 
 inline
@@ -240,7 +245,7 @@ public:
 
 class FragmentInfo {
 public:
-  FragmentInfo(gkStore *gkpStore, const char *prefix, uint32 minReadLen);
+  FragmentInfo(const char *gkpStorePath, const char *prefix, uint32 minReadLen);
   ~FragmentInfo();
 
   uint64  memoryUsage(void) {
