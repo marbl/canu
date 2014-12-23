@@ -26,6 +26,9 @@ static const char *rcsid_ALIGNERS_H = "$Id$";
 
 #include "AS_global.H"
 
+extern int VERBOSE_MULTIALIGN_OUTPUT;
+
+
 //
 //  From AS_MSG, PairOrient -- the orientation between two sequence objects.
 //
@@ -40,6 +43,15 @@ static const char *rcsid_ALIGNERS_H = "$Id$";
 //    AS_ANTI    == BA_BA == 'A'
 //
 
+enum PairOrient {
+  AS_UNKNOWN = 'U',
+  AS_INNIE   = 'I',
+  AS_OUTTIE  = 'O',
+  AS_NORMAL  = 'N',
+  AS_ANTI    = 'A'
+};
+
+#if 0
 class PairOrient {
 public:
   PairOrient()    { orient = 'U'; pad[0] = pad[1] = pad[2] = 0; };
@@ -112,6 +124,7 @@ private:
   char  orient;
   char  pad[3];
 };
+#endif
 
 
 //
@@ -195,10 +208,12 @@ typedef struct {
   //  was FragType
   uint32                is_random;       //  only version 2
   char                  status_code;     //  only version 2
+#if 0
   SeqInterval      clear_rng;
   SeqInterval      clear_vec;       //  only version 2
   SeqInterval      clear_max;       //  only version 2
   SeqInterval           contamination;   //  only version 2
+#endif
   char            *source;
   char            *sequence;
   char            *quality;

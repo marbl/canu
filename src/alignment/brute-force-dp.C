@@ -22,6 +22,7 @@
 static const char *rcsid = "$Id$";
 
 #include "aligners.H"
+#include "gkStore.H"
 #include "AS_UTL_reverseComplement.H"
 
 #undef DEBUG
@@ -62,12 +63,12 @@ static const char *rcsid = "$Id$";
 class dpActions {
 public:
   dpActions() {
-    actions = new uint64 * [2 * AS_READ_MAX_NORMAL_LEN];
-    memset(actions, 0, 2 * AS_READ_MAX_NORMAL_LEN * sizeof(uint64 *));
+    actions = new uint64 * [2 * AS_MAX_READLEN];
+    memset(actions, 0, 2 * AS_MAX_READLEN * sizeof(uint64 *));
   };
 
   ~dpActions() {
-    for (uint32 i=0; i<2 * AS_READ_MAX_NORMAL_LEN; i++)
+    for (uint32 i=0; i<2 * AS_MAX_READLEN; i++)
       if (actions[i] != NULL)
         delete [] actions[i];
 
@@ -82,7 +83,7 @@ public:
     if (actions[i] != NULL)
       return;
 
-    uint32  len = 2 * AS_READ_MAX_NORMAL_LEN * 2 / 64 + 1;
+    uint32  len = 2 * AS_MAX_READLEN * 2 / 64 + 1;
 
     actions[i] = new uint64 [len];
     memset(actions[i], 0, len * sizeof(uint64));  //  IMPORTANT, init to STOP
@@ -149,17 +150,17 @@ alignLinker(char           *alignA,
 
   dpActions  ACT;
 
-  uint32     SCO[4][AS_READ_MAX_NORMAL_LEN * 2];
+  uint32     SCO[4][AS_MAX_READLEN * 2];
 
-  memset(SCO, 0, sizeof(uint32) * AS_READ_MAX_NORMAL_LEN * 2);
+  memset(SCO, 0, sizeof(uint32) * AS_MAX_READLEN * 2);
 
   uint32    *lastCol = SCO[0];
   uint32    *thisCol = SCO[1];
   uint32    *iFinal  = SCO[2];
   uint32    *jFinal  = SCO[3];
 
-  if ((lenA > AS_READ_MAX_NORMAL_LEN) || (lenB > AS_READ_MAX_NORMAL_LEN)) {
-    fprintf(stderr, "alignLinker()-- Reads too long.  %d or %d > %d\n", lenA, lenB, AS_READ_MAX_NORMAL_LEN);
+  if ((lenA > AS_MAX_READLEN) || (lenB > AS_MAX_READLEN)) {
+    fprintf(stderr, "alignLinker()-- Reads too long.  %d or %d > %d\n", lenA, lenB, AS_MAX_READLEN);
     return;
   }
 

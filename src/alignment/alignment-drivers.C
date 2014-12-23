@@ -22,9 +22,10 @@
 static char const *rcsid = "$Id$";
 
 #include "aligners.H"
+#include "gkStore.H"  //  For AS_MAX_READLEN
 #include "AS_UTL_reverseComplement.H"
 
-#include "MultiAlignment_CNS.H"  //  For the debug symbols
+//#include "MultiAlignment_CNS.H"  //  For the debug symbols
 
 #define AFFINE_QUALITY   /* overlap diff and length reported in affine terms */
 
@@ -348,9 +349,9 @@ Optimal_Overlap_AS_forCNS(char *a, char *b,
                           double erate, double thresh, int minlen,
                           CompareOptions what) {
 
-  char     h_alignA[AS_READ_MAX_NORMAL_LEN + AS_READ_MAX_NORMAL_LEN + 2] = {0};
-  char     h_alignB[AS_READ_MAX_NORMAL_LEN + AS_READ_MAX_NORMAL_LEN + 2] = {0};
-  int      h_trace[AS_READ_MAX_NORMAL_LEN + AS_READ_MAX_NORMAL_LEN + 2]  = {0};
+  char     h_alignA[AS_MAX_READLEN + AS_MAX_READLEN + 2] = {0};
+  char     h_alignB[AS_MAX_READLEN + AS_MAX_READLEN + 2] = {0};
+  int      h_trace[AS_MAX_READLEN + AS_MAX_READLEN + 2]  = {0};
 
   static ALNoverlap   o;
 

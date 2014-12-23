@@ -28,6 +28,7 @@ static const char *rcsid = "$Id$";
    369-383, by Eric Anson and Gene Myers. */
 
 #include "aligners.H"
+#include "gkStore.H"  //  For AS_MAX_READLEN
 #include "AS_UTL_reverseComplement.H"
 
 #undef DEBUG
@@ -54,7 +55,7 @@ IsInvalidAlign(int prefix, int suffix,
   a -= 1;
   b -= 1;
 
-  if (prefix > AS_READ_MAX_NORMAL_LEN) {
+  if (prefix > AS_MAX_READLEN) {
     i = prefix-24;
     prefix = 25;
   }
@@ -115,7 +116,7 @@ void PrintAlign(FILE *file, int prefix, int suffix,
   o  = 0;
   i = j = 1;
 
-  if (prefix > AS_READ_MAX_NORMAL_LEN)
+  if (prefix > AS_MAX_READLEN)
     { i = prefix-24;
       prefix = 25;
     }
@@ -144,7 +145,7 @@ void PrintAlign(FILE *file, int prefix, int suffix,
   assert((i-1 <= alen) && (j-1 <= blen));
 
   if (suffix < 0) suffix = -suffix;
-  if (suffix > AS_READ_MAX_NORMAL_LEN)
+  if (suffix > AS_MAX_READLEN)
     suffix = 25;
 
   { int x, y, s;     /* Output remaining column including unaligned suffix */
@@ -189,9 +190,9 @@ void Print_Overlap_AS(FILE *file, InternalFragMesg *a,
     }
 
   fprintf(file,"\nOVERLAP BETWEEN");
-  fprintf(file," A = ("F_IID ")",a->iaccession);
+  fprintf(file," A = ("F_U32 ")",a->iaccession);
   fprintf(file," and");
-  fprintf(file," B = ("F_IID ")",b->iaccession);
+  fprintf(file," B = ("F_U32 ")",b->iaccession);
   fprintf(file,"\n\n");
 
   if (align->orientation == AS_NORMAL) {
