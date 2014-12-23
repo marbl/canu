@@ -53,17 +53,6 @@ static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id$";
 #define MSTRING_SIZE                        3
 #define MAX_SIZE_OF_ADJUSTED_REGION         5
 
-//  GetAlignmentTrace alignment contexts.
-//
-//  Old ones were AS_CONSENSUS=0, AS_MERGE=1
-//
-typedef enum {
-  GETALIGNTRACE_UNITIG    = 'u',  //  unitig consensus: Fragment to fragment
-  GETALIGNTRACE_CONTIGU   = 'U',  //  contig consensus: Unitig to unitig
-  GETALIGNTRACE_CONTIGF   = 'F',  //  contig consensus: Fragment to unitig
-  GETALIGNTRACE_MERGE     = 'm'   //  cgw scaffold merging
-} GetAlignmentTraceContext;
-
 #define CNS_MIN_QV 0
 #define CNS_MAX_QV 60
 
@@ -492,34 +481,6 @@ PrintAlignment(FILE *print, int32 mid, int32 from, int32 to);
 void
 MergeRefine(int32 mid, VA_TYPE(IntMultiVar) *v_list,
             int32 utg_alleles, CNS_Options *opp, int32 get_scores);
-
-
-int
-GetAlignmentTrace(int32                      afid,
-                  char                      *aseq_input,
-                  int32                      bfid,
-                  int32                     *ahang,
-                  int32                     *bhang,
-                  int32                      expected_length,
-                  VA_TYPE(int32)            *trace,
-                  OverlapType               *otype,
-                  AS_ALN_Aligner            *alignFunction,
-                  int32                      show_olap,
-                  int32                      allow_big_endgaps,
-                  GetAlignmentTraceContext   alignment_context,
-                  double                     input_erate);
-
-int
-GetAlignmentTraceDriver(Fragment                    *afrag,
-                        char                        *aseq,
-                        Fragment                    *bfrag,
-                        int32                       *ahang,
-                        int32                       *bhang,
-                        int32                        expected_length,
-                        VA_TYPE(int32)              *trace,
-                        OverlapType                 *otype,
-                        GetAlignmentTraceContext     alignment_context,
-                        int32                        max_gap);
 
 void
 BaseCall(int32        cid,
