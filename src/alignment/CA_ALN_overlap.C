@@ -21,15 +21,7 @@
 
 static const char *rcsid = "$Id$";
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <assert.h>
-#include <string.h>
-
-#include "AS_global.H"
-#include "CA_ALN_local.H"
-#include "AS_ALN_aligners.H"
+#include "aligners.H"
 
 #define TUNED_FOR_FRAGMENT_OVERLAPS
 #ifdef TUNED_FOR_FRAGMENT_OVERLAPS

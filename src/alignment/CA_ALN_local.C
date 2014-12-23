@@ -27,11 +27,8 @@ static const char *rcsid = "$Id$";
 #include <math.h>
 #include <string.h>
 
-#include "AS_global.H"
+#include "aligners.H"
 #include "AS_UTL_reverseComplement.H"
-
-#include "CA_ALN_local.H"
-#include "AS_ALN_aligners.H"
 
 /* Conditional control of diagnostic and debug print outs */
 

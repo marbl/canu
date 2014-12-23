@@ -31,15 +31,8 @@ static const char *rcsid = "$Id$";
            "http://www.cs.arizona.edu/people/gene/vita.html"
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#include <assert.h>
-
-#include "AS_global.H"
+#include "aligners.H"
 #include "AS_UTL_reverseComplement.H"
-#include "AS_ALN_aligners.H"
 
 #undef     THRESH_DEBUG
 #undef     DP_DEBUG

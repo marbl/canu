@@ -27,14 +27,8 @@ static const char *rcsid = "$Id$";
    for Refining DNA Sequence Multi-Alignments," J. Comp. Bio. 4 (1997),
    369-383, by Eric Anson and Gene Myers. */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
-
-#include "AS_global.H"
+#include "aligners.H"
 #include "AS_UTL_reverseComplement.H"
-#include "AS_ALN_aligners.H"
 
 #undef DEBUG
 

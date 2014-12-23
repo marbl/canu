@@ -21,13 +21,8 @@
 
 static const char *rcsid = "$Id$";
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <assert.h>
-#include "AS_global.H"
-#include "CA_ALN_local.H"
-#include "AS_ALN_aligners.H"
+#include "aligners.H"
+#include "AS_UTL_reverseComplement.H"
 
 #define OKNAFFINE 1
 

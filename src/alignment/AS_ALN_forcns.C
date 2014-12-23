@@ -21,15 +21,7 @@
 
 static char const *rcsid = "$Id$";
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
-
-#include "AS_global.H"
-#include "AS_ALN_aligners.H"
-#include "AS_ALN_bruteforcedp.H"
-
+#include "aligners.H"
 #include "AS_UTL_reverseComplement.H"
 
 #include "MultiAlignment_CNS.H"  //  For the debug symbols
