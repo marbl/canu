@@ -200,7 +200,12 @@ loadReads(gkStore *gkpStore, gkLibrary *gkpLibrary, char *fileName) {
     }
   }
 
-  delete F;
+  delete    F;
+
+  delete [] Q;
+  delete [] S;
+  delete [] H;
+  delete [] L;
 
   if (nFASTA > 0)
     fprintf(stderr, "loadReads()-- Loaded "F_U32" FASTA format reads from '%s'.\n", nFASTA, fileName);
@@ -359,9 +364,10 @@ main(int argc, char **argv) {
       fgets(line, 10240, inFile->file());
       chomp(line);
     }
-  }
 
- noMoreLines:
+    delete    inFile;
+    delete [] line;
+  }
 
   delete gkpStore;
 

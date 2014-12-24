@@ -205,6 +205,8 @@ public:
     delete [] _seq;
     delete [] _qlt;
 
+    delete [] _blob;
+
     delete [] _pacbio._deletionQV;
     delete [] _pacbio._deletionTag;
     delete [] _pacbio._insertionQV;
@@ -235,6 +237,8 @@ private:
   uint32             _blobLen;
   uint32             _blobMax;
   uint8             *_blob;     //  And maybe even an encoded blob of data from the store.
+
+  //  Used by the store for adding a read.
 
   void     gkReadData_encodeBlobChunk(char const *tag, uint32 len, void *dat);
 
@@ -320,6 +324,10 @@ private:
   
   char       *gkRead_encodeQuality(char *sequence, char *encoded);
   char       *gkRead_decodeQuality(char *encoded,  char *sequence);
+
+private:
+  //  Used by the store to copy data to a partition
+  void     gkRead_copyDataToPartition(void *blobs, FILE **partfiles, uint64 *partfileslen, uint32 partID);
 
 private:
   uint64   _readID       : AS_MAX_READS_BITS;       //  Up to 128 million reads
@@ -415,9 +423,9 @@ public:
   const char  *gkStore_path(void) { return(_storePath); };  //  Returns the path to the store
   const char  *gkStore_name(void) { return(_storeName); };  //  Returns the name, e.g., name.gkpStore
 
-  bool         gkStore_loadPartition(uint32 partID);
+  //bool         gkStore_loadPartition(uint32 partID);
 
-  void         gkStore_buildPartitions(uint32 *partitionMap, uint32 maxPartition);
+  void         gkStore_buildPartitions(uint32 *partitionMap);
 
   void         gkStore_delete(void);             //  Deletes the files in the store.
   void         gkStore_deletePartitions(void);   //  Deletes the files for a partition.
@@ -444,6 +452,8 @@ private:
   char                 _storePath[FILENAME_MAX];  //  Needed to create files
   char                 _storeName[FILENAME_MAX];  //  Useful for log files in other programs
 
+  gkStore_mode         _mode;  //  What mode this store is opened as, sanity checking
+
   //  If these are memory mapped, then multiple processes on the same host can share the
   //  (read-only) data.
 
@@ -461,11 +471,11 @@ private:
 
   //  If the store is openend partitioned, this data is loaded from disk
 
-  uint32               _numberOfPartitions;   //  Total number of partitions that exist
-  uint32               _partitionID;          //  Which partition this is
-  uint32              *_partitionIDmap;       //  Map from global ID to partition ID
-  uint32              *_readsPerPartition;    //  Number of reads per partition, probably not useful
-  uint32              *_readsInThisPartition; //  A list of the (global ID) reads in this partition
+  uint32               _numberOfPartitions;     //  Total number of partitions that exist
+  uint32               _partitionID;            //  Which partition this is
+  uint32              *_partitionIDmap;         //  Map from global ID to partition ID
+  //uint32              *_readsPerPartition;      //  Number of reads per partition, probably not useful
+  //uint32              *_readIDsInThisPartition; //  A list of the (global ID) reads in this partition
 };
 
 

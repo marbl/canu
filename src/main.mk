@@ -67,6 +67,7 @@ SRC_INCDIRS  := . AS_UTL
 #  update just those objects.  Instead, this must list each binary indifidually.
 SUBMAKEFILES := stores/gatekeeperCreate.mk \
                 stores/gatekeeperDumpFASTQ.mk \
+                stores/gatekeeperPartition.mk \
                 stores/ovStoreBuild.mk \
                 stores/ovStoreBucketizer.mk \
                 stores/ovStoreSorter.mk \
