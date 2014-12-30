@@ -50,7 +50,7 @@ void
 input_messages_from_a_file(FILE       *fovl,
                            Tfragment  frags[],
                            Tedge      edges[],
-                           AS_IID *afr_to_avx,
+                           uint32 *afr_to_avx,
                            VA_TYPE(IntEdge_ID)  *next_edge,
                            const int dvt_double_sided_threshold_fragment_end_degree,
                            const int con_double_sided_threshold_fragment_end_degree,
@@ -66,7 +66,7 @@ void
 process_ovl_store(char * OVL_Store_Path,
                   Tfragment  frags[],
                   Tedge      edges[],
-                  AS_IID *afr_to_avx,
+                  uint32 *afr_to_avx,
                   VA_TYPE(IntEdge_ID)  *next_edge,
                   const int dvt_double_sided_threshold_fragment_end_degree,
                   const int con_double_sided_threshold_fragment_end_degree,
@@ -77,7 +77,7 @@ process_ovl_store(char * OVL_Store_Path,
 void
 process_ovl_file(const char Batch_File_Name[],
                  THeapGlobals   * heapva,
-                 AS_IID * afr_to_avx,
+                 uint32 * afr_to_avx,
                  VA_TYPE(IntEdge_ID)  * next_edge,
                  const int dvt_double_sided_threshold_fragment_end_degree,
                  const int con_double_sided_threshold_fragment_end_degree,
@@ -87,42 +87,37 @@ process_ovl_file(const char Batch_File_Name[],
 
 static void output_mesgs(Tfragment          frags[],
                          Tedge              edges[],
-                         BinaryOverlapFile *bof) {
+                         ovFile            *bof) {
 
   // Output the OVL messages:
 
   const IntEdge_ID  nedge = GetNumEdges(edges);
   IntEdge_ID ie;
   for(ie=0;ie<nedge;ie++){
-    OVSoverlap overlap;
+    ovsOverlap overlap;
 
-    const AS_IID avx = get_avx_edge(edges,ie);
+    const uint32 avx = get_avx_edge(edges,ie);
     const int asx = get_asx_edge(edges,ie);
     const int ahg = get_ahg_edge(edges,ie);
 
-    const AS_IID bvx = get_bvx_edge(edges,ie);
+    const uint32 bvx = get_bvx_edge(edges,ie);
     const int bsx = get_bsx_edge(edges,ie);
     const int bhg = get_bhg_edge(edges,ie);
 
     const Tnes    nes = get_nes_edge(edges,ie);
     const uint32  qua = get_qua_edge(edges,ie);
 
-    const AS_IID aid = get_iid_fragment(frags,avx);
-    const AS_IID bid = get_iid_fragment(frags,bvx);
+    const uint32 aid = get_iid_fragment(frags,avx);
+    const uint32 bid = get_iid_fragment(frags,bvx);
     // Assembler internal Fragment ids.
 
     overlap.a_iid = aid;
     overlap.b_iid = bid;
 
-    overlap.dat.ovl.datpad1     = 0;
-    overlap.dat.ovl.flipped     = 0;
-    overlap.dat.ovl.a_hang      = ahg;
-    overlap.dat.ovl.b_hang      = bhg;
-    overlap.dat.ovl.orig_erate  = qua;
-    overlap.dat.ovl.corr_erate  = qua;
-    overlap.dat.ovl.seed_value  = 0;
-    overlap.dat.ovl.type        = AS_OVS_TYPE_OVL;
-
+    overlap.flipped(false);
+    overlap.a_hang(ahg);
+    overlap.b_hang(bhg);
+    overlap.evalue(qua);
 
     //ovl_mesg.orientation =
     //  ( asx ?
@@ -135,26 +130,26 @@ static void output_mesgs(Tfragment          frags[],
     if (asx) {
       if (bsx) {
         //ovl_mesg.orientation.setIsInnie();
-        overlap.dat.ovl.flipped = 1;
+        overlap.flipped(true);
       } else {
         //ovl_mesg.orientation.setIsNormal();
-        overlap.dat.ovl.flipped = 0;
+        overlap.flipped(false);
       }
     } else {
       if (bsx) {
         //ovl_mesg.orientation.setIsAnti();
         //  Reverse the overlap into a normal overlap.
-        overlap.dat.ovl.flipped = 0;
-        overlap.dat.ovl.a_hang  = -bhg;
-        overlap.dat.ovl.b_hang  = -ahg;
+        overlap.flipped(false);
+        overlap.a_hang(-bhg);
+        overlap.b_hang(-ahg);
       } else {
         //ovl_mesg.orientation.setIsOuttie();
         //  Swap fragments.
         overlap.a_iid           = bid;
         overlap.b_iid           = aid;
-        overlap.dat.ovl.flipped = 1;
-        overlap.dat.ovl.a_hang  = -ahg;
-        overlap.dat.ovl.b_hang  = -bhg;
+        overlap.flipped(true);
+        overlap.a_hang(-ahg);
+        overlap.b_hang(-bhg);
       }
     }
 
@@ -190,7 +185,7 @@ static void output_mesgs(Tfragment          frags[],
     if (((is_a_dvt_simple(ahg,bhg)) &&
          (aid < bid)) ||
        ((!is_a_dvt_simple(ahg,bhg))&&(asx)))
-      AS_OVS_writeOverlap(bof, &overlap);
+      bof->writeOverlap(&overlap);
   }
 }
 
@@ -282,7 +277,7 @@ int main_fgb(THeapGlobals  * heapva,
   int status = 0;
   int ierr = 0;
 
-  AS_IID *afr_to_avx = NULL;
+  uint32 *afr_to_avx = NULL;
 
   int did_processing_phase_2 = FALSE;
 
@@ -297,18 +292,18 @@ int main_fgb(THeapGlobals  * heapva,
   // Re-hash the fragment IID to fragment VID mapping using the
   // fragments in the store.  (duplicated, search for BUILD_AFR_TO_AVX
   {
-    AS_IID  iv    = 0;
-    AS_IID  im    = 0;
-    AS_IID  nfrag = GetNumFragments(heapva->frags);
+    uint32  iv    = 0;
+    uint32  im    = 0;
+    uint32  nfrag = GetNumFragments(heapva->frags);
 
     for (iv=0; iv<nfrag; iv++) {
-      AS_IID iid = get_iid_fragment(heapva->frags,iv);
+      uint32 iid = get_iid_fragment(heapva->frags,iv);
       im = MAX(im, iid);
     }
 
     assert(im < AS_CGB_NOT_SEEN_YET);
 
-    afr_to_avx = (AS_IID *)safe_calloc(im + 1, sizeof(AS_IID));
+    afr_to_avx = (uint32 *)safe_calloc(im + 1, sizeof(uint32));
 
     for(iv=0; iv<nfrag; iv++)
       afr_to_avx[get_iid_fragment(heapva->frags,iv)] = iv;
@@ -439,10 +434,11 @@ int main_fgb(THeapGlobals  * heapva,
     char bon[FILENAME_MAX];
     sprintf(bon, "%s.edges", rg->Output_Graph_Store_Prefix);
 
-    BinaryOverlapFile *bof = AS_OVS_createBinaryOverlapFile(bon, FALSE);
+    ovFile *bof = new ovFile(bon, ovFileFullWrite);
+
     output_mesgs(heapva->frags, heapva->edges, bof);
 
-    AS_OVS_closeBinaryOverlapFile(bof);
+    delete bof;
   }
 
   return( status);

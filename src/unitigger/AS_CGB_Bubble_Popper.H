@@ -22,7 +22,7 @@
 #ifndef _AS_CGB_BUBBLE_POPPER_H_
 #define _AS_CGB_BUBBLE_POPPER_H_
 
-#include "AS_ALN_aligners.H"
+#include "aligners.H"
 
 static const char *rcsid__AS_CGB_BUBBLE_POPPER_H_ = "$Id$";
 
@@ -76,13 +76,14 @@ typedef struct BubblePopper {
 
   /* Recycled scratch space for each bubble. */
 
-  gkFragment  rsp;
-  AS_IID curBubSize;
+  gkReadData  rsd;
+
+  uint32 curBubSize;
   int *topDistArray;		/* Scratch space for longest path algorithm */
   BG_E_Iter *dfsStack;	        /* Scratch space for traversals (dfs and
 				   longest path) */
   int *vidToBid;	        /* Maps VIDs to IDs in the bubFrags array */
-  AS_IID *bubFrags;	/* Fragments in bubble */
+  uint32 *bubFrags;	/* Fragments in bubble */
   InternalFragMesg *bubMesgs;	/* Frags in message form for aligner */
   int *adj;			/* Adjacency array */
   int numOlaps;
@@ -119,27 +120,27 @@ BP_chunkFrags(BubblePopper_t bp);
 
 /* Returns the Chunk with the specific ID. */
 AChunkMesg *
-BP_getChunk(BubblePopper_t bp, AS_IID cid);
+BP_getChunk(BubblePopper_t bp, uint32 cid);
 
 /* Returns the number of fragments in the bubble. */
-AS_IID
+uint32
 BP_numFrags(BubblePopper_t bp);
 
 /* Returns the VID of fragment with BID bid in the bubble.
    Fragments are sorted in increasing order by DFS coordinate. */
-AS_IID
-BP_getFrag(BubblePopper_t bp, AS_IID bid);
+uint32
+BP_getFrag(BubblePopper_t bp, uint32 bid);
 
 /* Given a VID, returns the BID of the fragment.  Undefined if the fragment
    is not in the bubble. */
 int
-BP_getBID(BubblePopper_t bp, AS_IID vid);
+BP_getBID(BubblePopper_t bp, uint32 vid);
 
 /* Tries to find an overlap between two fragments.  If an overlap is found,
    then TRUE is returned, the overlap is placed in the bubOlaps array, and
    the adjacency array is updated.  Otherwise, FALSE is returned. */
 int
-BP_findOverlap(BubblePopper_t bp, AS_IID bid1, AS_IID bid2);
+BP_findOverlap(BubblePopper_t bp, uint32 bid1, uint32 bid2);
 
 /* Operations on the directed adjacency array.  An Entry (V1, V2)
    indicates an from V1 to V2.  Also, by default, (V1, V1) is 1 even
@@ -149,16 +150,16 @@ BP_findOverlap(BubblePopper_t bp, AS_IID bid1, AS_IID bid2);
    1 indicates a direct edge.
    2 indicates transitive connectivity. */
 int
-BP_getAdj(BubblePopper_t bp, AS_IID bid1, AS_IID bid2);
+BP_getAdj(BubblePopper_t bp, uint32 bid1, uint32 bid2);
 
 int
-BP_getAdj_VID(BubblePopper_t bp, AS_IID vid1, AS_IID vid2);
+BP_getAdj_VID(BubblePopper_t bp, uint32 vid1, uint32 vid2);
 
 void
-BP_setAdj(BubblePopper_t bp, AS_IID bid1, AS_IID bid2, int v);
+BP_setAdj(BubblePopper_t bp, uint32 bid1, uint32 bid2, int v);
 
 void
-BP_setAdj_VID(BubblePopper_t bp, AS_IID vid1, AS_IID vid2,
+BP_setAdj_VID(BubblePopper_t bp, uint32 vid1, uint32 vid2,
 	      int v);
 
 #endif

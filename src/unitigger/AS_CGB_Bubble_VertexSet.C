@@ -99,7 +99,7 @@ BVS__removeOldest(BubVertexSet_t bvs)
 
 
 static void
-BVS__insertWithAge(BubVertexSet_t bvs, AS_IID id, int age)
+BVS__insertWithAge(BubVertexSet_t bvs, uint32 id, int age)
 {
   int ip = 0;
   int sp;
@@ -293,7 +293,7 @@ void BVS_age(BubVertexSet_t bvs, int inc)
 
 
 void
-BVS_insert(BubVertexSet_t bvs, AS_IID id)
+BVS_insert(BubVertexSet_t bvs, uint32 id)
 {
   BVS__insertWithAge(bvs, id, 0);
 }
@@ -335,5 +335,5 @@ BVS_print(BubVertexSet_t bvs, FILE *of)
   int i;
 
   for (i = 0; i < bvs->numEntries; ++i)
-    fprintf(of, F_IID" (%d) ", bvs->entries[i].id, bvs->entries[i].age);
+    fprintf(of, F_U32" (%d) ", bvs->entries[i].id, bvs->entries[i].age);
 }

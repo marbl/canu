@@ -136,7 +136,10 @@ public:
   void       flipped(uint32 f)          { dat.ovl.flipped = f; };
   uint32     flipped(void) const        { return(dat.ovl.flipped == true); };
 
+  void       erate(double e)            { dat.ovl.erate = AS_OVS_encodeQuality(e); };
   double     erate(void) const          { return(AS_OVS_decodeQuality(dat.ovl.erate)); };
+
+  void       evalue(uint64 e)           { dat.ovl.erate = e; };
   uint64     evalue(void) const         { return(dat.ovl.erate); };
 
   uint32     overlapAEndIs5prime(void) const  { return((dat.ovl.bhg5 > 0) && (dat.ovl.ahg3  > 0));  };

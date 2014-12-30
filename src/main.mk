@@ -46,9 +46,16 @@ SOURCES  := AS_global.C \
             stores/tgStore.C \
             stores/tgTig.C \
             \
-            meryl/libmeryl.C
-
-
+            meryl/libmeryl.C \
+            \
+            alignment/alignment-drivers.C \
+            alignment/analyze-affine-overlap.C \
+            alignment/brute-force-dp.C \
+            alignment/dp-align.C \
+            alignment/find-local-overlap.C \
+            alignment/find-local-segments.C \
+            alignment/fix-overlapping-pieces.C \
+            alignment/local-overlapper.C
 
 
 #  Not complete, just snippets of code
@@ -61,7 +68,7 @@ SOURCES  := AS_global.C \
 #            AS_UTL/testVar.C
 #            AS_UTL/memoryMappedFileTest.C
 
-SRC_INCDIRS  := . AS_UTL
+SRC_INCDIRS  := . AS_UTL stores
 
 #  Cannot be the 'main.mk' from subdirectories, as that redefines libCA.a to
 #  update just those objects.  Instead, this must list each binary indifidually.
@@ -83,4 +90,6 @@ SUBMAKEFILES := stores/gatekeeperCreate.mk \
                 \
                 bogus/bogus.mk \
                 \
-                erateEstimate/erateEstimate.mk
+                erateEstimate/erateEstimate.mk \
+                \
+                unitigger/unitigger.mk

@@ -30,7 +30,7 @@ static char *rcsid = "$Id$";
 
 
 static
-int64 _get_dist_from_edge(BubGraph_t bg, AS_IID src, IntEdge_ID e)
+int64 _get_dist_from_edge(BubGraph_t bg, uint32 src, IntEdge_ID e)
 {
   IntEdge_ID dst;
   int64 d;
@@ -84,9 +84,9 @@ _dst_edge_is_reversed(int cur_rev, int cur_sx, int dst_sx)
 
 static
 void
-_set_dist_from_edge(BubGraph_t bg, AS_IID src, IntEdge_ID e)
+_set_dist_from_edge(BubGraph_t bg, uint32 src, IntEdge_ID e)
 {
-  AS_IID dst = BG_getOppositeVertex(bg, e, src);
+  uint32 dst = BG_getOppositeVertex(bg, e, src);
 
   BG_V_setDistance(bg, dst, _get_dist_from_edge(bg, src, e));
 }
@@ -94,8 +94,8 @@ _set_dist_from_edge(BubGraph_t bg, AS_IID src, IntEdge_ID e)
 
 static
 int
-_back_edge_consistent(BubGraph_t bg, IntEdge_ID cur_e, AS_IID cur_v,
-		      AS_IID dst_v)
+_back_edge_consistent(BubGraph_t bg, IntEdge_ID cur_e, uint32 cur_v,
+		      uint32 dst_v)
 {
   int cur_sx, dst_sx, cur_fwd;
   int dst_rev_by_edge, dst_rev_by_mark;
@@ -139,10 +139,10 @@ _back_edge_consistent(BubGraph_t bg, IntEdge_ID cur_e, AS_IID cur_v,
 
 static
 void
-_do_dfs(BubGraph_t bg, AS_IID start_v, BG_E_Iter stack[])
+_do_dfs(BubGraph_t bg, uint32 start_v, BG_E_Iter stack[])
 {
   int32 s_top = -1;
-  AS_IID cur_v, dst_v;
+  uint32 cur_v, dst_v;
   IntEdge_ID cur_e;
   int cur_sx, dst_sx;
   BG_E_Iter_t cur_v_it;
@@ -159,7 +159,7 @@ _do_dfs(BubGraph_t bg, AS_IID start_v, BG_E_Iter stack[])
   while (s_top > -1) {
     if (BGEI_end(cur_v_it)) {
 #if AS_CGB_BUBBLE_VERY_VERBOSE
-      fprintf(stderr, "Done with "F_IID " ("F_IID ").  Backtracking.\n", cur_v,
+      fprintf(stderr, "Done with "F_U32 " ("F_U32 ").  Backtracking.\n", cur_v,
 	      get_iid_fragment(BG_vertices(bg), cur_v));
 #endif
       BG_V_clearFlag(bg, cur_v, AS_CGB_BUBBLE_V_STACKED);
@@ -174,7 +174,7 @@ _do_dfs(BubGraph_t bg, AS_IID start_v, BG_E_Iter stack[])
       cur_e = BGEI_cur(cur_v_it);
       dst_v = BG_getOppositeVertex(bg, cur_e, cur_v);
 #if AS_CGB_BUBBLE_VERY_VERBOSE
-      fprintf(stderr, "Processing edge from "F_IID " ("F_IID ") to "F_IID " ("F_IID ").  ", cur_v,
+      fprintf(stderr, "Processing edge from "F_U32 " ("F_U32 ") to "F_U32 " ("F_U32 ").  ", cur_v,
 	      get_iid_fragment(BG_vertices(bg), cur_v), dst_v,
 	      get_iid_fragment(BG_vertices(bg), dst_v));
 #endif
@@ -216,14 +216,14 @@ _do_dfs(BubGraph_t bg, AS_IID start_v, BG_E_Iter stack[])
 	BG_V_setFlag(bg, cur_v, AS_CGB_BUBBLE_V_STACKED);
 #if AS_CGB_BUBBLE_VERY_VERBOSE
 	if (!BG_V_isSetFlag(bg, cur_v, AS_CGB_BUBBLE_V_CONTAINED))
-	  fprintf(stderr, "\nGoing to "F_IID "\t ( iid "F_IID ", dist " F_S64 ", forward = %d, ssx = %d, dsx = %d )\n",
+	  fprintf(stderr, "\nGoing to "F_U32 "\t ( iid "F_U32 ", dist " F_S64 ", forward = %d, ssx = %d, dsx = %d )\n",
 		  cur_v,
 		  get_iid_fragment(BG_vertices(bg), cur_v),
 		  BG_V_getDistance(bg, cur_v),
 		  BG_vertexForward(bg, cur_v),
 		  cur_sx, dst_sx);
 	else
-	  fprintf(stderr, "\nGoing to "F_IID "(C)\t ( iid "F_IID ", dist " F_S64 ", forward = %d, ssx = %d, dsx = %d )\n",
+	  fprintf(stderr, "\nGoing to "F_U32 "(C)\t ( iid "F_U32 ", dist " F_S64 ", forward = %d, ssx = %d, dsx = %d )\n",
 		  cur_v,
 		  get_iid_fragment(BG_vertices(bg), cur_v),
 		  BG_V_getDistance(bg, cur_v),
@@ -240,8 +240,8 @@ void
 AS_CGB_Bubble_dfs(BubGraph_t bg)
 {
   BG_E_Iter *stack = NULL;
-  AS_IID num_v = GetNumFragments(BG_vertices(bg));
-  AS_IID v;
+  uint32 num_v = GetNumFragments(BG_vertices(bg));
+  uint32 v;
   IntEdge_ID num_e = GetNumEdges(BG_edges(bg));
   IntEdge_ID e;
 
@@ -259,7 +259,7 @@ AS_CGB_Bubble_dfs(BubGraph_t bg)
     if ((!BG_V_isSetFlag(bg, v, AS_CGB_BUBBLE_V_DONE)) &&
 	(!BG_V_isSetFlag(bg, v, AS_CGB_BUBBLE_V_CONTAINED))) {
 #if AS_CGB_BUBBLE_VERY_VERBOSE
-      fprintf(stderr, "START: "F_IID " ("F_IID ")\n", v,
+      fprintf(stderr, "START: "F_U32 " ("F_U32 ")\n", v,
 	      get_iid_fragment(BG_vertices(bg), v));
 #endif
       _do_dfs(bg, v, stack);

@@ -33,8 +33,8 @@ static const char *rcsid__AS_CGB_BUBBLE_POPPER_METHODS_H_ = "$Id$";
    is most likely because more than POPPER_MAX_BUBBLE_SIZE fragments were
    found, indicating that the bubble may not be closed. */
 int
-BP_find_bubble_dfs(BubblePopper_t bp, AS_IID start,
-		   AS_IID end);
+BP_find_bubble_dfs(BubblePopper_t bp, uint32 start,
+		   uint32 end);
 
 /* Computes the transitive closure of the adjacency array, which must
    represent a DAG. */

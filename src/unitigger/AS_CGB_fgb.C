@@ -96,7 +96,7 @@ static void setup_segments
  Tfragment frags[],
  Tedge edges[])
 {
-  const AS_IID nfrag = GetNumFragments(frags);
+  const uint32 nfrag = GetNumFragments(frags);
   const IntEdge_ID nedge = GetNumEdges(edges);
 
   /* Set up the segmentation information as vertex data.  This routine
@@ -104,14 +104,14 @@ static void setup_segments
      (axv,asx). Thus if the fragments have been reordered then the
      edges need to have been reordered before this routine. */
   int nrec_used;
-  AS_IID min_frag_vid; /* The minimum fragment iid used. */
-  AS_IID max_frag_vid; /* The maximum fragment iid used. */
-  AS_IID num_frag_used; /* The number of fragments used. */
+  uint32 min_frag_vid; /* The minimum fragment iid used. */
+  uint32 max_frag_vid; /* The maximum fragment iid used. */
+  uint32 num_frag_used; /* The number of fragments used. */
   int max_nnode; /* The maximum number of edges adjacent to a vertex. */
 
   assert(nfrag > 0);
   // #pragma omp for
-  { AS_IID ifrag;
+  { uint32 ifrag;
   for(ifrag=0;ifrag<nfrag;ifrag++) {
       set_seglen_vertex(frags,ifrag,FALSE,0);
       set_seglen_vertex(frags,ifrag,TRUE,0);
@@ -124,13 +124,13 @@ static void setup_segments
   assert(nedge > 0);
   { IntEdge_ID iedge;
   for(iedge=0;iedge<nedge;iedge++){
-    const AS_IID iavx = get_avx_edge(edges,iedge);
+    const uint32 iavx = get_avx_edge(edges,iedge);
     const int iasx = get_asx_edge(edges,iedge);
-    // const AS_IID ibvx = get_bvx_edge(edges,iedge);
+    // const uint32 ibvx = get_bvx_edge(edges,iedge);
     // const int ibsx = get_bsx_edge(edges,iedge);
     const IntEdge_ID iseglen = get_seglen_vertex(frags,iavx,iasx) + 1;
 
-    // printf(F_IID " : "F_IID " %d "F_IID " %d \n",iedge,iavx,iasx,ibvx,ibsx);
+    // printf(F_U32 " : "F_U32 " %d "F_U32 " %d \n",iedge,iavx,iasx,ibvx,ibsx);
     // assert( iavx >= 0 );
     // assert( ibvx >= 0 );
     assert( iavx < nfrag );
@@ -143,7 +143,7 @@ static void setup_segments
 
   // Now assume that the edges are sorted by the (avx,asx) vertex.
   {
-    AS_IID ifrag = 0;
+    uint32 ifrag = 0;
     IntEdge_ID isegstart = 0;
 
     for(ifrag=0;ifrag<nfrag;ifrag++) { /* Note the minus one. */
@@ -169,7 +169,7 @@ static void setup_segments
   ibvx = FRAGMENT_NOT_VISITED;
   /* #pragma omp for private(iedge)  */
   for(iedge=0;iedge<nedge;iedge++){
-    AS_IID last_avx,last_bvx;
+    uint32 last_avx,last_bvx;
     int nnode;
     last_avx = iavx;
     last_bvx = ibvx;
@@ -180,7 +180,7 @@ static void setup_segments
     assert( iavx < nfrag );
     assert( ibvx < nfrag );
     if( iavx != last_avx || iasx != last_asx ) {
-      fprintf(stderr,"last_avx,iavx="F_IID ","F_IID "\n",last_avx,iavx);
+      fprintf(stderr,"last_avx,iavx="F_U32 ","F_U32 "\n",last_avx,iavx);
       assert( iavx == last_avx+1);
       set_segstart_vertex(frags,iavx,iasx,iedge);
       (*nfrag_used)++;
@@ -201,19 +201,19 @@ static void setup_segments
   // #pragma omp barrier
 
   { /* Check the validity of the segments. */
-    AS_IID ifrag;
+    uint32 ifrag;
     nrec_used = 0;
     for(ifrag=0;ifrag<nfrag;ifrag++)
       {
 	nrec_used += get_seglen_vertex(frags,ifrag,FALSE);
 	nrec_used += get_seglen_vertex(frags,ifrag,TRUE);
       }
-    // fprintf(stderr,"nrec_used=%d,nedge="F_IID "\n",nrec_used,nedge);
+    // fprintf(stderr,"nrec_used=%d,nedge="F_U32 "\n",nrec_used,nedge);
   }
   fprintf(stderr,
 	  "Information on the fragments refered to by overlaps.\n"
-	  "nfrag="F_IID ",min_frag_vid="F_IID ",max_frag_vid="F_IID ","
-	  "nfrag_used="F_IID ",max_nnode=%d\n",
+	  "nfrag="F_U32 ",min_frag_vid="F_U32 ",max_frag_vid="F_U32 ","
+	  "nfrag_used="F_U32 ",max_nnode=%d\n",
 	  nfrag,min_frag_vid,max_frag_vid,num_frag_used,max_nnode);
   assert(nrec_used == nedge);
   // assert(min_frag_vid >= 0);
@@ -242,10 +242,10 @@ static void pack_the_edges
   int old_dovetail_degree = 0, new_dovetail_degree = 0;
   int old_containment_degree = 0, new_containment_degree = 0;
 
-  AS_IID old_avx = 0;
-  AS_IID old_asx = 3; // Out of range
-  AS_IID new_avx = 0;
-  AS_IID new_asx = 0;
+  uint32 old_avx = 0;
+  uint32 old_asx = 3; // Out of range
+  uint32 new_avx = 0;
+  uint32 new_asx = 0;
 
   verify_that_the_edges_are_in_order(edges);
 
@@ -264,7 +264,7 @@ static void pack_the_edges
 
       if( (new_dovetail_degree == 0) && (old_dovetail_degree > 0) ) {
         fprintf(stderr,
-                "WARNING: fragment-end became dovetail disconnected iid="F_IID " vid="F_IID " suf=%d\n",
+                "WARNING: fragment-end became dovetail disconnected iid="F_U32 " vid="F_U32 " suf=%d\n",
                 get_iid_fragment(frags,old_avx), old_avx, old_asx);
         //assert(FALSE);
       }
@@ -273,7 +273,7 @@ static void pack_the_edges
 
       if( (new_containment_degree == 0) && (old_containment_degree > 0) ) {
         fprintf(stderr,
-                "WARNING: fragment-end became containment disconnected iid="F_IID " vid="F_IID " suf=%d\n",
+                "WARNING: fragment-end became containment disconnected iid="F_U32 " vid="F_U32 " suf=%d\n",
                 get_iid_fragment(frags,old_avx), old_avx, old_asx);
         //assert(FALSE);
       }
@@ -352,14 +352,14 @@ static void pack_the_edges
 
   fprintf(stderr,
 	  "Pack the edges:\n"
-	  "raw_nedge="F_IID " reduced_nedge="F_IID "\n"
-          "n_AS_CGB_UNUSED_EDGE                =%15"F_IIDP "\n"
-	  "n_AS_CGB_REMOVED_BY_TRANSITIVITY_DVT=%15"F_IIDP "\n"
-	  "n_AS_CGB_REMOVED_BY_THRESHOLD_DVT   =%15"F_IIDP "\n"
-	  "n_AS_CGB_REMOVED_BY_DUPLICATE_DVT   =%15"F_IIDP "\n"
-	  "n_AS_CGB_REMOVED_BY_TRANSITIVITY_CON=%15"F_IIDP "\n"
-	  "n_AS_CGB_REMOVED_BY_THRESHOLD_CON   =%15"F_IIDP "\n"
-	  "n_AS_CGB_REMOVED_BY_DUPLICATE_CON   =%15"F_IIDP "\n"
+	  "raw_nedge="F_U32 " reduced_nedge="F_U32 "\n"
+          "n_AS_CGB_UNUSED_EDGE                =%15"F_U32P "\n"
+	  "n_AS_CGB_REMOVED_BY_TRANSITIVITY_DVT=%15"F_U32P "\n"
+	  "n_AS_CGB_REMOVED_BY_THRESHOLD_DVT   =%15"F_U32P "\n"
+	  "n_AS_CGB_REMOVED_BY_DUPLICATE_DVT   =%15"F_U32P "\n"
+	  "n_AS_CGB_REMOVED_BY_TRANSITIVITY_CON=%15"F_U32P "\n"
+	  "n_AS_CGB_REMOVED_BY_THRESHOLD_CON   =%15"F_U32P "\n"
+	  "n_AS_CGB_REMOVED_BY_DUPLICATE_CON   =%15"F_U32P "\n"
           ,
 	  nedge, idup,
           n_AS_CGB_UNUSED_EDGE,
@@ -375,11 +375,11 @@ static void pack_the_edges
 void reorder_edges(Tfragment *frags,
                    Tedge *edges) {
 
-  const AS_IID nfrag = GetNumFragments(frags);
+  const uint32 nfrag = GetNumFragments(frags);
   const IntEdge_ID nedge = GetNumEdges(edges);
 
   if( nedge > 0) { // Sort the edges ......
-    const IntEdge_ID max_nbins = MAX(AS_READ_MAX_NORMAL_LEN,2*nfrag);
+    const IntEdge_ID max_nbins = MAX(AS_MAX_READLEN,2*nfrag);
 
     IntEdge_ID * seglen = NULL;
     IntEdge_ID * segstart = NULL;
@@ -397,9 +397,9 @@ void reorder_edges(Tfragment *frags,
 	const IntEdge_ID ie_start  = 0;
 	const IntEdge_ID ie_finish = nedge + ie_start;
 
-	{ AS_IID iv0; int is0;
+	{ uint32 iv0; int is0;
 	for(iv0=0;iv0<nfrag;iv0++) for(is0=0;is0<2;is0++) {
-	  const AS_IID ivert = 2*iv0+is0;
+	  const uint32 ivert = 2*iv0+is0;
 	  seglen[ivert] = 0;
 	  segstart[ivert] = 0;
 	  set_seglen_vertex(frags,iv0,is0,0);
@@ -410,9 +410,9 @@ void reorder_edges(Tfragment *frags,
 	// Count the number of edges at each fragment-end.
 	{ IntEdge_ID ie;
 	for(ie=ie_start;ie<ie_finish;ie++) {
-	  const AS_IID iavx = get_avx_edge(edges,ie);
+	  const uint32 iavx = get_avx_edge(edges,ie);
 	  const int iasx = get_asx_edge(edges,ie);
-	  const AS_IID ivert = 2*iavx+iasx;
+	  const uint32 ivert = 2*iavx+iasx;
 	  const int nnode = seglen[ivert] + 1;
 	  seglen[ivert] = nnode;
 	  set_seglen_vertex(frags,iavx,iasx,nnode);
@@ -421,9 +421,9 @@ void reorder_edges(Tfragment *frags,
 	// Scan the number of edges at each fragment-end to find the
 	// segment start for each fragment end.
 	{
-	  AS_IID iv0; int is0; IntEdge_ID isum=0;
+	  uint32 iv0; int is0; IntEdge_ID isum=0;
 	  for(iv0=0;iv0<nfrag;iv0++) for(is0=0;is0<2;is0++) {
-	    const AS_IID ivert = 2*iv0 + is0;
+	    const uint32 ivert = 2*iv0 + is0;
 	    const int nnode = seglen[ivert];
 	    segstart[ivert] = isum;
 	    set_segstart_vertex(frags,iv0,is0,isum);
@@ -437,9 +437,9 @@ void reorder_edges(Tfragment *frags,
 	// Assign a rank to each edge.
 	{ IntEdge_ID ie;
 	for(ie=ie_start;ie<ie_finish;ie++) {
-	  const AS_IID iavx = get_avx_edge(edges,ie);
+	  const uint32 iavx = get_avx_edge(edges,ie);
 	  const int iasx = get_asx_edge(edges,ie);
-	  const AS_IID ivert = 2*iavx + iasx;
+	  const uint32 ivert = 2*iavx + iasx;
 	  const int nnode = seglen[ivert];
 	  const IntEdge_ID start = segstart[ivert];
 	  edge_rank[ie] = ie_start + start + nnode;
@@ -459,7 +459,7 @@ void reorder_edges(Tfragment *frags,
 
    { // Sort the edges (in fragment-end segments)
 
-     { AS_IID iv0; int is0;
+     { uint32 iv0; int is0;
      for(iv0=0;iv0<nfrag;iv0++) for(is0=0;is0<2;is0++) {
        const IntEdge_ID ie_start = get_segstart_vertex(frags,iv0,is0);
        const IntEdge_ID nnode = get_seglen_vertex(frags,iv0,is0);
@@ -488,7 +488,7 @@ void graph_locality_diagnostic
 {
     FILE *ffga = stderr;
     IntEdge_ID ie1;
-    const AS_IID nfrag = GetNumFragments(frags);
+    const uint32 nfrag = GetNumFragments(frags);
     const IntEdge_ID nedge = GetNumEdges(edges);
     const int nsample=500;
     const int nbucket=500;
@@ -502,8 +502,8 @@ void graph_locality_diagnostic
       if((get_nes_edge(edges,ie1) != AS_CGB_REMOVED_BY_DUPLICATE_DVT) &&
          (get_nes_edge(edges,ie1) != AS_CGB_REMOVED_BY_DUPLICATE_CON)
          ) {
-	const AS_IID iv0 = get_avx_edge(edges,ie1);
-        const AS_IID iv1 = get_bvx_edge(edges,ie1);
+	const uint32 iv0 = get_avx_edge(edges,ie1);
+        const uint32 iv1 = get_bvx_edge(edges,ie1);
         const int ahg = get_ahg_edge(edges,ie1);
         const int bhg = get_bhg_edge(edges,ie1);
         const int iv1_iv0 = iv1 - iv0;
@@ -519,7 +519,7 @@ void graph_locality_diagnostic
             twoc[i0][i1] ++;
           }
         }
-        // fprintf(fdiag,F_IID " "F_IID "\n", iv0, iv1);
+        // fprintf(fdiag,F_U32 " "F_U32 "\n", iv0, iv1);
         add_to_histogram(edges_locality_histogram, vdiff, NULL);
       }
     }
@@ -605,10 +605,10 @@ void transitive_edge_marking
  const int cutoff_fragment_end_degree,
  const int work_limit_per_candidate_edge
 ) {
-  const AS_IID nfrag=GetNumFragments(frags);
+  const uint32 nfrag=GetNumFragments(frags);
 
-  AS_IID * visited_a = NULL;
-  AS_IID * visited_b = NULL;
+  uint32 * visited_a = NULL;
+  uint32 * visited_b = NULL;
 
 #ifdef WALK_DEPTH_DIAGNOSTICS
   int64 search_depth_histogram[walk_depth];
@@ -634,8 +634,8 @@ void transitive_edge_marking
   int64 num_of_quads_visited = 0;
   int64 ntrans_test_fail = 0;
 
-  visited_a = (AS_IID *)safe_malloc(sizeof(AS_IID) * 2 * nfrag);
-  visited_b = (AS_IID *)safe_malloc(sizeof(AS_IID) * 2 * nfrag);
+  visited_a = (uint32 *)safe_malloc(sizeof(uint32) * 2 * nfrag);
+  visited_b = (uint32 *)safe_malloc(sizeof(uint32) * 2 * nfrag);
 
   // Was this fragment seen from the target overlap edge before?
 
@@ -646,7 +646,7 @@ void transitive_edge_marking
 
   //check_symmetry_of_the_edge_mates( frags, edges);
 
-  { AS_IID iv0; for(iv0=0;iv0<nfrag;iv0++) {
+  { uint32 iv0; for(iv0=0;iv0<nfrag;iv0++) {
     int is0; for(is0=0;is0<2;is0++) {
       visited_a[2*iv0+is0] = 2*nfrag;
       visited_b[2*iv0+is0] = 2*nfrag;
@@ -671,7 +671,7 @@ void transitive_edge_marking
 
   /* Begin: Check each vertex in the fragment overlap graph. */
   {
-    AS_IID iv0;
+    uint32 iv0;
     for(iv0=0;iv0<nfrag;iv0++) {
       int is0;
       for(is0=0;is0<2;is0++) {
@@ -682,7 +682,7 @@ void transitive_edge_marking
       for(in2=0;in2<nnode;in2++) {
 	const IntEdge_ID ir2 = ir0+in2;
 	const Tnes ir2nes = get_nes_edge(edges,ir2);
-	const AS_IID ir2bvx = get_bvx_edge(edges,ir2);
+	const uint32 ir2bvx = get_bvx_edge(edges,ir2);
 	const int ir2bsx = get_bsx_edge(edges,ir2);
         const int ir2_is_dovetail = is_a_dvt_edge(edges,ir2);
         const int ir2_is_from_contained = is_a_frc_edge(edges,ir2);
@@ -704,11 +704,11 @@ void transitive_edge_marking
              (AS_CGB_REMOVED_BY_THRESHOLD_CON == ir2nes) ||
              (AS_CGB_REMOVED_BY_DUPLICATE_CON == ir2nes)
            )) {
-          const AS_IID ir2avx = get_avx_edge(edges,ir2);
+          const uint32 ir2avx = get_avx_edge(edges,ir2);
           const int ir2asx = get_asx_edge(edges,ir2);
-          const AS_IID ir2afr = get_iid_fragment(frags,ir2avx);
-          const AS_IID ir2bfr = get_iid_fragment(frags,ir2bvx);
-          fprintf(stderr,"BUUBA "F_IID " %d "F_IID " %d %d\n",
+          const uint32 ir2afr = get_iid_fragment(frags,ir2avx);
+          const uint32 ir2bfr = get_iid_fragment(frags,ir2bvx);
+          fprintf(stderr,"BUUBA "F_U32 " %d "F_U32 " %d %d\n",
                   ir2afr,ir2asx,ir2bfr,ir2bsx,ir2nes);
         }
 
@@ -751,9 +751,9 @@ void transitive_edge_marking
 	  {
 	    int iremove = FALSE;
 
-	    const AS_IID ir2avx = get_avx_edge(edges,ir2);
+	    const uint32 ir2avx = get_avx_edge(edges,ir2);
 	    const int        ir2asx = get_asx_edge(edges,ir2);
-	    const AS_IID ir2bvx = get_bvx_edge(edges,ir2);
+	    const uint32 ir2bvx = get_bvx_edge(edges,ir2);
 	    const int        ir2bsx = get_bsx_edge(edges,ir2);
 	    const int        ir2ahg = get_ahg_edge(edges,ir2);
 	    const int        ir2bhg = get_bhg_edge(edges,ir2);

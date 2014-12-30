@@ -42,11 +42,11 @@ void reflect_Aedge( Aedge *new_edge, Aedge *old_edge) {
        A^c       <----------------
     */
 
-  const AS_IID old_avx = old_edge->avx;
+  const uint32 old_avx = old_edge->avx;
   const int old_asx = old_edge->asx;
   const int old_ahg = old_edge->ahg;
 
-  const AS_IID old_bvx = old_edge->bvx;
+  const uint32 old_bvx = old_edge->bvx;
   const int old_bsx = old_edge->bsx;
   const int old_bhg = old_edge->bhg;
 
@@ -87,11 +87,11 @@ void granger_Aedge( Aedge *new_edge, Aedge *old_edge) {
        B^c  <----------------
     */
 
-  const AS_IID old_avx = old_edge->avx;
+  const uint32 old_avx = old_edge->avx;
   const int old_asx = old_edge->asx;
   const int old_ahg = old_edge->ahg;
 
-  const AS_IID old_bvx = old_edge->bvx;
+  const uint32 old_bvx = old_edge->bvx;
   const int old_bsx = old_edge->bsx;
   const int old_bhg = old_edge->bhg;
 
@@ -200,17 +200,17 @@ void fix_overlap_edge_mate
   Tnes ines1 = ines0; // This will be the "fix".
 
   if(AS_CGB_EDGE_NOT_FOUND == ie1) {
-    AS_IID avx = get_avx_edge(edges,ie0);
-    AS_IID bvx = get_bvx_edge(edges,ie0);
-    AS_IID aid = get_iid_fragment(frags,avx);
-    AS_IID bid = get_iid_fragment(frags,bvx);
+    uint32 avx = get_avx_edge(edges,ie0);
+    uint32 bvx = get_bvx_edge(edges,ie0);
+    uint32 aid = get_iid_fragment(frags,avx);
+    uint32 bid = get_iid_fragment(frags,bvx);
     fprintf(stderr,"ERROR: AS_CGB_EDGE_NOT_FOUND == ie1\n");
-    fprintf(stderr,"ie0="F_IID "\n",ie0);
-    fprintf(stderr,"aid="F_IID "\n",aid);
-    fprintf(stderr,"avx="F_IID "\n",avx);
+    fprintf(stderr,"ie0="F_U32 "\n",ie0);
+    fprintf(stderr,"aid="F_U32 "\n",aid);
+    fprintf(stderr,"avx="F_U32 "\n",avx);
     fprintf(stderr,"asx=%d\n",get_asx_edge(edges,ie0));
-    fprintf(stderr,"bid="F_IID "\n",bid);
-    fprintf(stderr,"bvx="F_IID "\n",bvx);
+    fprintf(stderr,"bid="F_U32 "\n",bid);
+    fprintf(stderr,"bvx="F_U32 "\n",bvx);
     fprintf(stderr,"bsx=%d\n",get_bsx_edge(edges,ie0));
     fprintf(stderr,"nes=%d\n",get_nes_edge(edges,ie0));
   }
@@ -257,7 +257,7 @@ void append_the_edge_mates(Tfragment frags[],
     ie0,
     nedge = GetNumEdges(edges),
     nedge_delta = 0;
-  fprintf(stderr,"append_the_edge_mates: nedge="F_IID "\n", nedge);
+  fprintf(stderr,"append_the_edge_mates: nedge="F_U32 "\n", nedge);
 
   verify_that_the_edges_are_in_order(edges);
 
@@ -265,7 +265,7 @@ void append_the_edge_mates(Tfragment frags[],
     const IntEdge_ID ie1 = find_overlap_edge_mate( frags, edges, ie0);
     if( AS_CGB_EDGE_NOT_FOUND == ie1 ) {
       IntEdge_ID ie2 = nedge+nedge_delta;
-      // fprintf(stderr,"nedge_delta="F_IID "\n", nedge_delta);
+      // fprintf(stderr,"nedge_delta="F_U32 "\n", nedge_delta);
       EnableRangeVA_Aedge(edges,ie2+1);
       fill_new_edge_with_reflected_old_edge( edges, ie2, ie0);
       nedge_delta ++;
@@ -295,7 +295,7 @@ IntEdge_ID check_symmetry_of_the_edge_mates(Tfragment frags[],
     if( AS_CGB_EDGE_NOT_FOUND == ie1 )
       counter ++;
   }
-  fprintf(stderr,"check_symmetry_of_the_edge_mates: nedge="F_IID " counter="F_IID "\n",
+  fprintf(stderr,"check_symmetry_of_the_edge_mates: nedge="F_U32 " counter="F_U32 "\n",
           nedge, counter);
   return counter;
 }
@@ -316,8 +316,8 @@ void count_fragment_and_edge_labels(Tfragment frags[],
   const int nsample=500;
   const int nbucket=500;
 
-  AS_IID nfrag = GetNumFragments(frags);
-  AS_IID vid;
+  uint32 nfrag = GetNumFragments(frags);
+  uint32 vid;
   Histogram_t *frag_lab_histogram = create_histogram(nsample,nbucket,TRUE,FALSE);
 
   fprintf(fout,"*** Histogram Fragment Labels <%s> ***\n",comment);
@@ -342,10 +342,10 @@ void count_fragment_and_edge_labels(Tfragment frags[],
 
   for(ie=0; ie<nedge; ie++) {
     const Tnes nes = get_nes_edge(edges,ie);
-    const AS_IID avx = get_avx_edge(edges,ie);
-    const AS_IID bvx = get_bvx_edge(edges,ie);
-    const AS_IID a_cid = get_cid_fragment(frags,avx);
-    const AS_IID b_cid = get_cid_fragment(frags,bvx);
+    const uint32 avx = get_avx_edge(edges,ie);
+    const uint32 bvx = get_bvx_edge(edges,ie);
+    const uint32 a_cid = get_cid_fragment(frags,avx);
+    const uint32 b_cid = get_cid_fragment(frags,bvx);
     if( a_cid == b_cid ) {
       add_to_histogram(intra_chunk_edge_nes_histogram, (int)nes, NULL);
     } else {

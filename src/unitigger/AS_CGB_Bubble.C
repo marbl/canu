@@ -94,11 +94,11 @@ _is_termination_node(int in_deg, int out_deg)
 
 AS_CGB_Bubble_List_t
 _collect_bubbles(BubGraph_t bg, BubVertexSet *fwd, BubVertexSet *rvs,
-		 AS_IID *top, int num_valid)
+		 uint32 *top, int num_valid)
 {
-  AS_IID f, bub_start;
+  uint32 f, bub_start;
   HashTable_AS *init_nodes = NULL;
-  AS_IID *i_node = NULL;
+  uint32 *i_node = NULL;
   AS_CGB_Bubble_List result;
   AS_CGB_Bubble_List_t *ins_h = &(result.next);
   BVSPair *bp_ins_keys = NULL, bp_find_key;
@@ -114,7 +114,7 @@ _collect_bubbles(BubGraph_t bg, BubVertexSet *fwd, BubVertexSet *rvs,
 	!BVS_empty(&(fwd[top[f]])) &&
 	!BVS_empty(&(rvs[top[f]]))) {
 #if AS_CGB_BUBBLE_VERY_VERBOSE
-      fprintf(stderr, "Inserting "F_IID " ("F_IID ") into the table.\n", top[f],
+      fprintf(stderr, "Inserting "F_U32 " ("F_U32 ") into the table.\n", top[f],
 	      get_iid_fragment(BG_vertices(bg), top[f]));
 #endif
       bp_ins_keys[f].f = &(fwd[top[f]]);
@@ -128,17 +128,17 @@ _collect_bubbles(BubGraph_t bg, BubVertexSet *fwd, BubVertexSet *rvs,
 	!BVS_empty(&(fwd[top[f]])) &&
 	!BVS_empty(&(rvs[top[f]]))) {
 #if AS_CGB_BUBBLE_VERY_VERBOSE
-      fprintf(stderr, "Looking for matches for "F_IID " ("F_IID ") in the table.  ",
+      fprintf(stderr, "Looking for matches for "F_U32 " ("F_U32 ") in the table.  ",
 	      top[f], get_iid_fragment(BG_vertices(bg), top[f]));
 #endif
       bp_find_key.f = &(fwd[top[f]]);
       bp_find_key.r = &(rvs[top[f]]);
-      i_node = (AS_IID *)(INTPTR)LookupValueInHashTable_AS(init_nodes, (uint64)(INTPTR)&bp_find_key, sizeof(BVSPair));
+      i_node = (uint32 *)(INTPTR)LookupValueInHashTable_AS(init_nodes, (uint64)(INTPTR)&bp_find_key, sizeof(BVSPair));
 #if AS_CGB_BUBBLE_VERY_VERBOSE
       if (!i_node)
 	fprintf(stderr, "None found.\n");
       else
-	fprintf(stderr, "Found init node = "F_IID " ("F_IID ").\n", *i_node,
+	fprintf(stderr, "Found init node = "F_U32 " ("F_U32 ").\n", *i_node,
 		get_iid_fragment(BG_vertices(bg), *i_node));
 #endif
 
@@ -162,10 +162,10 @@ _collect_bubbles(BubGraph_t bg, BubVertexSet *fwd, BubVertexSet *rvs,
 
 
 void
-_process_vertex(BubGraph_t bg, AS_IID f, BubVertexSet *bvs,
+_process_vertex(BubGraph_t bg, uint32 f, BubVertexSet *bvs,
 		BG_E_Iter_t in, int in_deg, BG_E_Iter_t out, int out_deg)
 {
-  AS_IID opp_f;
+  uint32 opp_f;
   IntEdge_ID e;
 
   if (in_deg > 0) {
@@ -187,10 +187,10 @@ _process_vertex(BubGraph_t bg, AS_IID f, BubVertexSet *bvs,
 
 
 void
-_forward_collect_sets(BubGraph_t bg, BubVertexSet *fwd, AS_IID *top,
+_forward_collect_sets(BubGraph_t bg, BubVertexSet *fwd, uint32 *top,
 		      int num_valid)
 {
-  AS_IID f;
+  uint32 f;
   BG_E_Iter in, out;
   int in_deg, out_deg;
 
@@ -205,10 +205,10 @@ _forward_collect_sets(BubGraph_t bg, BubVertexSet *fwd, AS_IID *top,
 
 
 void
-_reverse_collect_sets(BubGraph_t bg, BubVertexSet *fwd, AS_IID *top,
+_reverse_collect_sets(BubGraph_t bg, BubVertexSet *fwd, uint32 *top,
 		      int num_valid)
 {
-  AS_IID f;
+  uint32 f;
   BG_E_Iter in, out;
   int in_deg, out_deg;
 
@@ -241,10 +241,10 @@ _reverse_collect_sets(BubGraph_t bg, BubVertexSet *fwd, AS_IID *top,
    The return value is the number of elements placed in topological order.
    If the graph is found to be cyclic, 0 is returned instead.
 */
-AS_IID
-AS_CGB_Bubble_topo_sort(BubGraph_t bg, AS_IID *out)
+uint32
+AS_CGB_Bubble_topo_sort(BubGraph_t bg, uint32 *out)
 {
-  AS_IID q_start = 0, q_end = 0, f, opp_f, num_valid = 0;
+  uint32 q_start = 0, q_end = 0, f, opp_f, num_valid = 0;
   IntEdge_ID e;
   uint16 valid_and_unused = AS_CGB_BUBBLE_E_VALID | AS_CGB_BUBBLE_E_UNUSED;
   BG_E_Iter e_it;
@@ -255,7 +255,7 @@ AS_CGB_Bubble_topo_sort(BubGraph_t bg, AS_IID *out)
       BG_E_setFlag(bg, e, AS_CGB_BUBBLE_E_UNUSED);
     }
 
-  //fprintf(stderr, "  * Found "F_IID " valid edges.\n", num_valid);
+  //fprintf(stderr, "  * Found "F_U32 " valid edges.\n", num_valid);
 
   num_valid = 0;
   for (f = 0; f < GetNumFragments(BG_vertices(bg)); ++f)
@@ -265,7 +265,7 @@ AS_CGB_Bubble_topo_sort(BubGraph_t bg, AS_IID *out)
 	out[q_end++] = f;
     }
 
-  //fprintf(stderr, "  * Found "F_IID " valid vertices.\n", num_valid);
+  //fprintf(stderr, "  * Found "F_U32 " valid vertices.\n", num_valid);
 
   while (q_start < q_end) {
     for (e = BGEI_bgn(bg, &e_it, out[q_start], bgeiOut, valid_and_unused);
@@ -280,7 +280,7 @@ AS_CGB_Bubble_topo_sort(BubGraph_t bg, AS_IID *out)
   }
 
   if (q_end < num_valid) {
-    //fprintf(stderr, "  * WARNING: Only processed "F_IID " of "F_IID " vertices!  Cyclic graph!\n", q_end, num_valid);
+    //fprintf(stderr, "  * WARNING: Only processed "F_U32 " of "F_U32 " vertices!  Cyclic graph!\n", q_end, num_valid);
     return 0;
   }
 
@@ -295,8 +295,8 @@ AS_CGB_Bubble_List_t
 AS_CGB_Bubble_find_bubbles_with_graph(BubGraph_t bg, int sz, int age,
 			   int max_outdegree)
 {
-  AS_IID *top_order = NULL;
-  AS_IID num_frags, num_valid, f;
+  uint32 *top_order = NULL;
+  uint32 num_frags, num_valid, f;
   BubVertexSet *fwd = NULL;
   BubVertexSet *rvs = NULL;
   AS_CGB_Bubble_List_t result = NULL;
@@ -314,7 +314,7 @@ AS_CGB_Bubble_find_bubbles_with_graph(BubGraph_t bg, int sz, int age,
   AS_CGB_Bubble_dfs(bg);
 
   num_frags = GetNumFragments(BG_vertices(bg));
-  top_order = (AS_IID *)safe_calloc(sizeof(AS_IID), num_frags);
+  top_order = (uint32 *)safe_calloc(sizeof(uint32), num_frags);
 
   /* Get a topological ordering of the valid fragments. */
   fprintf(stderr, "  * Step 2: Topological sort of fragment graph\n");
@@ -322,7 +322,7 @@ AS_CGB_Bubble_find_bubbles_with_graph(BubGraph_t bg, int sz, int age,
 
 #if AS_CGB_BUBBLE_VERY_VERBOSE
   for (f = 0; f < num_valid; ++f)
-    fprintf(stderr, ""F_IID " ("F_IID ")\n", top_order[f],
+    fprintf(stderr, ""F_U32 " ("F_U32 ")\n", top_order[f],
 	    get_iid_fragment(BG_vertices(bg), top_order[f]));
 #endif
 
@@ -335,7 +335,7 @@ AS_CGB_Bubble_find_bubbles_with_graph(BubGraph_t bg, int sz, int age,
   }
 
   fprintf(stderr, "  * Step 3: Calculating fragment labels\n");
-  fprintf(stderr, "  * Step 3: num_valid = "F_IID "\n", num_valid);
+  fprintf(stderr, "  * Step 3: num_valid = "F_U32 "\n", num_valid);
   if( num_valid != 0 ) {
     _forward_collect_sets(bg, fwd, top_order, num_valid);
     _reverse_collect_sets(bg, rvs, top_order, num_valid);
@@ -343,7 +343,7 @@ AS_CGB_Bubble_find_bubbles_with_graph(BubGraph_t bg, int sz, int age,
 
 #if AS_CGB_BUBBLE_VERY_VERBOSE
   for (f = 0; f < num_valid; ++f) {
-    fprintf(stderr, ""F_IID " ("F_IID "):\t", top_order[f],
+    fprintf(stderr, ""F_U32 " ("F_U32 "):\t", top_order[f],
 	    get_iid_fragment(BG_vertices(bg), top_order[f]));
     BVS_print(&(fwd[top_order[f]]), stderr);
     fprintf(stderr, "  |  ");
@@ -353,7 +353,7 @@ AS_CGB_Bubble_find_bubbles_with_graph(BubGraph_t bg, int sz, int age,
 #endif
 
   fprintf(stderr, "  * Step 4: Finding matching labels\n");
-  fprintf(stderr, "  * Step 4: num_valid = "F_IID "\n", num_valid);
+  fprintf(stderr, "  * Step 4: num_valid = "F_U32 "\n", num_valid);
 
   if( num_valid != 0 ) {
     result = _collect_bubbles(bg, fwd, rvs, top_order, num_valid);
@@ -409,7 +409,7 @@ AS_CGB_Bubble_find_and_remove_bubbles
   BubblePopper bp;
   AS_CGB_Bubble_List_t bubs = NULL;
 
-  BinaryOverlapFile *bof = AS_OVS_createBinaryOverlapFile(bubblename, FALSE);
+  ovFile *bof = new ovFile(bubblename, ovFileFullWrite);
 
   BG_initialize(&bg, frags, edges);
   bubs = AS_CGB_Bubble_find_bubbles_with_graph(&bg, 0, 0, 0);
@@ -425,7 +425,7 @@ AS_CGB_Bubble_find_and_remove_bubbles
     ALNoverlapFull *ovl = AS_CGB_Bubble_pop_bubble(&bp, bubs->start, bubs->start_sx, bubs->end, bubs->end_sx, &num_ovl);
 
     for (int32 o=0; o<num_ovl; ++o) {
-      OVSoverlap   olap;
+      ovsOverlap   olap;
 
 #if 0
       fprintf(stderr, "ALNoverlapFull: ID %d %d HG %d %d orient %c type %c qual %f\n",
@@ -441,40 +441,35 @@ AS_CGB_Bubble_find_and_remove_bubbles
       olap.a_iid = ovl[o].aifrag;
       olap.b_iid = ovl[o].bifrag;
 
-      olap.dat.ovl.datpad1     = 0;
-      olap.dat.ovl.flipped     = 0;
-      olap.dat.ovl.orig_erate  = AS_OVS_encodeQuality(ovl[o].quality / 100.0);
-      olap.dat.ovl.corr_erate  = AS_OVS_encodeQuality(ovl[o].quality / 100.0);
-      olap.dat.ovl.seed_value  = 0;
-      olap.dat.ovl.type        = AS_OVS_TYPE_OVL;
+      olap.erate(ovl[o].quality / 100.0);
 
       //  This is similar to AS_OVS_convertOverlapMesgToOVSOverlap()
 
       if (ovl[o].orientation == AS_NORMAL) {
-        olap.dat.ovl.a_hang  = ovl[o].ahg;
-        olap.dat.ovl.b_hang  = ovl[o].bhg;
-        olap.dat.ovl.flipped = FALSE;
+        olap.a_hang(ovl[o].ahg);
+        olap.b_hang(ovl[o].bhg);
+        olap.flipped(false);
 
       } else if (ovl[o].orientation == AS_INNIE) {
-        olap.dat.ovl.a_hang  = ovl[o].ahg;
-        olap.dat.ovl.b_hang  = ovl[o].bhg;
-        olap.dat.ovl.flipped = TRUE;
+        olap.a_hang(ovl[o].ahg);
+        olap.b_hang(ovl[o].bhg);
+        olap.flipped(true);
 
       } else if (ovl[o].orientation == AS_OUTTIE) {
-        olap.dat.ovl.a_hang  = -ovl[o].bhg;
-        olap.dat.ovl.b_hang  = -ovl[o].ahg;
-        olap.dat.ovl.flipped = TRUE;
+        olap.a_hang(ovl[o].bhg);
+        olap.b_hang(ovl[o].ahg);
+        olap.flipped(true);
 
       } else if (ovl[o].orientation == AS_ANTI) {
-        olap.dat.ovl.a_hang  = -ovl[o].bhg;
-        olap.dat.ovl.b_hang  = -ovl[o].ahg;
-        olap.dat.ovl.flipped = FALSE;
+        olap.a_hang(ovl[o].bhg);
+        olap.b_hang(ovl[o].ahg);
+        olap.flipped(false);
 
       } else {
         assert(0);
       }
 
-      AS_OVS_writeOverlap(bof, &olap);
+      bof->writeOverlap(&olap);
     }
 
     bptr = bubs;
@@ -483,7 +478,7 @@ AS_CGB_Bubble_find_and_remove_bubbles
     // release memory as we go.
   }
 
-  AS_OVS_closeBinaryOverlapFile(bof);
+  delete bof;
 
   // All the memory for bubs is released.
 

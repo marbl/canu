@@ -80,48 +80,48 @@ Tedge *BG_edges(BubGraph_t bg);
 
 /* Given an edge and an incident vertex, returns the ID of the other incident
    vertex. */
-AS_IID
-BG_getOppositeVertex(BubGraph_t bg, IntEdge_ID e, AS_IID v);
+uint32
+BG_getOppositeVertex(BubGraph_t bg, IntEdge_ID e, uint32 v);
 
 /* Returns TRUE if the vertex has forward orientation, or FALSE otherwise. */
-int BG_vertexForward(BubGraph_t bg, AS_IID v);
+int BG_vertexForward(BubGraph_t bg, uint32 v);
 
 /* Returns the total degree of the given vertex, counting only those edges
    which have matching flags. */
-int BG_degree(BubGraph_t bg, AS_IID v, uint16 flags);
+int BG_degree(BubGraph_t bg, uint32 v, uint16 flags);
 
 /* Returns the indegree of the given vertex, counting only those edges
    which have the given flags set. */
-int BG_inDegree(BubGraph_t bg, AS_IID v, uint16 flags);
+int BG_inDegree(BubGraph_t bg, uint32 v, uint16 flags);
 
 /* Returns the outdegree of the given vertex, counting only those edges
    which have the given flags set. */
-int BG_outDegree(BubGraph_t bg, AS_IID v, uint16 flags);
+int BG_outDegree(BubGraph_t bg, uint32 v, uint16 flags);
 
 /* Methods to manipulate the vertex and edge flags. */
 
 /* Turns on a particular flag */
-void BG_V_setFlag(BubGraph_t bg, AS_IID v, uint16 flag);
+void BG_V_setFlag(BubGraph_t bg, uint32 v, uint16 flag);
 void BG_E_setFlag(BubGraph_t bg, IntEdge_ID e, uint16 flag);
 void BG_E_setFlagSymmetric(BubGraph_t bg, IntEdge_ID e, uint16 flag);
 
 /* Turns off a particular flag. */
-void BG_V_clearFlag(BubGraph_t bg, AS_IID v, uint16 flag);
+void BG_V_clearFlag(BubGraph_t bg, uint32 v, uint16 flag);
 void BG_E_clearFlag(BubGraph_t bg, IntEdge_ID e, uint16 flag);
 void BG_E_clearFlagSymmetric(BubGraph_t bg, IntEdge_ID e, uint16 flag);
 
 /* Tests a particular flag. */
-uint16 BG_V_isSetFlag(BubGraph_t bg, AS_IID v, uint16 flag);
+uint16 BG_V_isSetFlag(BubGraph_t bg, uint32 v, uint16 flag);
 uint16 BG_E_isSetFlag(BubGraph_t bg, IntEdge_ID e, uint16 flag);
 
 /* Returns the full flag vector for an edge/vertex. */
-uint16 BG_V_getFlags(BubGraph_t bg, AS_IID v);
+uint16 BG_V_getFlags(BubGraph_t bg, uint32 v);
 uint16 BG_E_getFlags(BubGraph_t bg, IntEdge_ID e);
 
 /* Sets and gets the position field of each vertex, which gives the
    position of the left endpoint relative to some path. */
-void BG_V_setDistance(BubGraph_t bg, AS_IID v, int64 p);
-int64 BG_V_getDistance(BubGraph_t bg, AS_IID v);
+void BG_V_setDistance(BubGraph_t bg, uint32 v, int64 p);
+int64 BG_V_getDistance(BubGraph_t bg, uint32 v);
 
 /*
  *
@@ -135,7 +135,7 @@ typedef struct BG_E_Iter {
   BG_E_IterType type;
   IntEdge_ID cur;
   IntEdge_ID end;
-  AS_IID v;
+  uint32 v;
 } BG_E_Iter;
 
 typedef BG_E_Iter * BG_E_Iter_t;
@@ -148,7 +148,7 @@ typedef BG_E_Iter * BG_E_Iter_t;
    the given vertex matching both the type (either forward, back, or
    either) and the given flags.  If no such edge exists, a random value is
    returned and BGEI_end() returns TRUE. */
-IntEdge_ID BGEI_bgn(BubGraph_t bg, BG_E_Iter_t it, AS_IID v,
+IntEdge_ID BGEI_bgn(BubGraph_t bg, BG_E_Iter_t it, uint32 v,
 		    BG_E_IterType t, uint16 flags);
 
 /* Returns the ID of the next edge matching the flags and type.  Return

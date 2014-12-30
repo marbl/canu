@@ -34,7 +34,7 @@ static char *rcsid = "$Id$";
 
 
 int
-BP__insertFragment(BubblePopper_t bp, AS_IID v)
+BP__insertFragment(BubblePopper_t bp, uint32 v)
 {
   int p;
   int64 v_pos = BG_V_getDistance(bp->bg, v);
@@ -58,11 +58,11 @@ BP__insertFragment(BubblePopper_t bp, AS_IID v)
 
 
 int
-BP_find_bubble_dfs(BubblePopper_t bp, AS_IID start,
-		   AS_IID end)
+BP_find_bubble_dfs(BubblePopper_t bp, uint32 start,
+		   uint32 end)
 {
   int32 s_top = -1;
-  AS_IID cur_v, dst_v;
+  uint32 cur_v, dst_v;
   IntEdge_ID cur_e;
   BG_E_Iter_t cur_v_it;
   uint16 e_flags = AS_CGB_BUBBLE_E_DOVETAIL | AS_CGB_BUBBLE_E_UNUSED |
@@ -78,7 +78,7 @@ BP_find_bubble_dfs(BubblePopper_t bp, AS_IID start,
   while (s_top > -1) {
     if (BGEI_end(cur_v_it) || (cur_v == end)) {
 #if AS_CGB_BUBBLE_VERY_VERBOSE
-      fprintf(stderr, "Done with "F_IID " ("F_IID ").  Backtracking.\n", cur_v,
+      fprintf(stderr, "Done with "F_U32 " ("F_U32 ").  Backtracking.\n", cur_v,
 	      get_iid_fragment(BG_vertices(bp->bg), cur_v));
 #endif
       BG_V_clearFlag(bp->bg, cur_v, AS_CGB_BUBBLE_V_STACKED);
@@ -94,7 +94,7 @@ BP_find_bubble_dfs(BubblePopper_t bp, AS_IID start,
       cur_e = BGEI_cur(cur_v_it);
       dst_v = BG_getOppositeVertex(bp->bg, cur_e, cur_v);
 #if AS_CGB_BUBBLE_VERY_VERBOSE
-      fprintf(stderr, "Processing edge from "F_IID " ("F_IID ") to "F_IID " ("F_IID ").  ", cur_v,
+      fprintf(stderr, "Processing edge from "F_U32 " ("F_U32 ") to "F_U32 " ("F_U32 ").  ", cur_v,
 	      get_iid_fragment(BG_vertices(bp->bg), cur_v), dst_v,
 	      get_iid_fragment(BG_vertices(bp->bg), dst_v));
 #endif
@@ -123,13 +123,13 @@ BP_find_bubble_dfs(BubblePopper_t bp, AS_IID start,
 	BG_V_setFlag(bp->bg, cur_v, AS_CGB_BUBBLE_V_STACKED);
 #if AS_CGB_BUBBLE_VERY_VERBOSE
 	if (!BG_V_isSetFlag(bp->bg, cur_v, AS_CGB_BUBBLE_V_CONTAINED))
-	  fprintf(stderr, "\nGoing to "F_IID "\t ( iid "F_IID ", dist " F_S64 ", forward = %d )\n",
+	  fprintf(stderr, "\nGoing to "F_U32 "\t ( iid "F_U32 ", dist " F_S64 ", forward = %d )\n",
 		  cur_v,
 		  get_iid_fragment(BG_vertices(bp->bg), cur_v),
 		  BG_V_getDistance(bp->bg, cur_v),
 		  BG_vertexForward(bp->bg, cur_v));
 	else
-	  fprintf(stderr, "\nGoing to "F_IID "(C)\t ( iid "F_IID ", dist " F_S64 ", forward = %d )\n",
+	  fprintf(stderr, "\nGoing to "F_U32 "(C)\t ( iid "F_U32 ", dist " F_S64 ", forward = %d )\n",
 		  cur_v,
 		  get_iid_fragment(BG_vertices(bp->bg), cur_v),
 		  BG_V_getDistance(bp->bg, cur_v),
@@ -186,7 +186,7 @@ BP_DAG_longest_path(BubblePopper_t bp)
   }
 
 #if AS_CGB_BUBBLE_VERY_VERBOSE
-  fprintf(stderr, "Adding vertex 0 ("F_IID ") as start.\n",
+  fprintf(stderr, "Adding vertex 0 ("F_U32 ") as start.\n",
 	  get_iid_fragment(BG_vertices(bp->bg), BP_getFrag(bp, 0)));
 #endif
   bp->dfsStack[q_end++].v = 0;	/* Assumes bubble start is one and only
@@ -194,7 +194,7 @@ BP_DAG_longest_path(BubblePopper_t bp)
 
   while (q_start < q_end) {
 #if AS_CGB_BUBBLE_VERY_VERBOSE
-    fprintf(stderr, "PROCESSING vertex "F_IID " ("F_IID ").\n", bp->dfsStack[q_start].v,
+    fprintf(stderr, "PROCESSING vertex "F_U32 " ("F_U32 ").\n", bp->dfsStack[q_start].v,
 	    get_iid_fragment(BG_vertices(bp->bg), bp->dfsStack[q_start].v));
 #endif
 
@@ -212,7 +212,7 @@ BP_DAG_longest_path(BubblePopper_t bp)
 	  bp->dfsStack[q_end++].v = c;
 
 #if AS_CGB_BUBBLE_VERY_VERBOSE
-	  fprintf(stderr, "Adding vertex "F_IID " ("F_IID ") at distance %d.\n", c,
+	  fprintf(stderr, "Adding vertex "F_U32 " ("F_U32 ") at distance %d.\n", c,
 		  get_iid_fragment(BG_vertices(bp->bg), BP_getFrag(bp, c)),
 		  bp->topDistArray[c]);
 #endif
@@ -223,7 +223,7 @@ BP_DAG_longest_path(BubblePopper_t bp)
   }
 
   if (q_end < BP_numFrags(bp)) {
-    fprintf(stderr, "WARNING: Only processed "F_IID " of "F_IID " vertices!  Cyclic graph!\n", q_end, BP_numFrags(bp));
+    fprintf(stderr, "WARNING: Only processed "F_U32 " of "F_U32 " vertices!  Cyclic graph!\n", q_end, BP_numFrags(bp));
     return 0;
   }
 
@@ -241,11 +241,10 @@ BP_DAG_longest_path(BubblePopper_t bp)
 float
 BP_discriminator(BubblePopper_t bp)
 {
-  AS_IID start_bid, end_bid, i;
-  AS_IID start_c, end_c;
+  uint32 start_bid, end_bid, i;
+  uint32 start_c, end_c;
   int64 total_len;
   int num_rand_frags;
-  FragType type;
 
   start_bid = BP_getFrag(bp, 0);
   end_bid = BP_getFrag(bp, BP_numFrags(bp) - 1);
@@ -269,11 +268,16 @@ BP_discriminator(BubblePopper_t bp)
 		      end_c,
                       bp->gkpStore);
 
+#if 0
   for (i = 0; i < BP_numFrags(bp); ++i) {
     type = get_typ_fragment(BG_vertices(bp->bg), BP_getFrag(bp, i));
     if ((type == AS_READ) || (type == AS_EXTR))
       num_rand_frags++;
   }
+#else
+#warning NOT COUNTING NUMBER OF RANDOM READS CORRECTLY see AS_CGB_cgb.C:996
+  num_rand_frags = BP_numFrags(bp);
+#endif
 
 #if AS_CGB_BUBBLE_VERY_VERBOSE
   fprintf(stderr, "Computing discriminator with length = "F_S64P" and num frags = %d.\n", total_len, num_rand_frags);

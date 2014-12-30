@@ -25,10 +25,10 @@
 static const char *rcsid_AS_CGB_UNITIGGER_GLOBALS_INCLUDE = "$Id$";
 
 #include "AS_CGB_all.H"
-#include "AS_ALN_aligners.H"  //  <- now defines IntFragment
+#include "aligners.H"  //  <- now defines IntFragment
 
 typedef struct {
-  AS_IID  avx,bvx;
+  uint32  avx,bvx;
   int32           ahg,bhg;
 
   uint32    quality : 16;  // zero is a perfect overlap
@@ -50,9 +50,9 @@ typedef struct {
      "the_source_text" holding the simulator source
      info. */
 
-  AS_IID  iid; /* The Celera Genomics Assembler Gatekeeper IID
+  uint32  iid; /* The Celera Genomics Assembler Gatekeeper IID
 		      for this fragment read. */
-  AS_IID cid; /* The linkage to chunks. Needed due to the way
+  uint32 cid; /* The linkage to chunks. Needed due to the way
                       that interchunk edges are made. */
   IntEdge_ID  segbgn_prefix;/* The starting location of a segment of
 			   raw fragment overlaps to the prefix. */
@@ -85,7 +85,7 @@ typedef struct {
   int32   raw_frc_count;
   int32   raw_toc_count;
 
-  AS_IID  container;  /* Recomputable */
+  uint32  container;  /* Recomputable */
   // A zero value means that the fragment is not contained by any
   // other fragment.  A positive value is the fragment IID of the
   // container fragment.  This scheme depends on the Assembler IO
@@ -94,7 +94,7 @@ typedef struct {
   int64       offset3p;
   int64       offset5p;
 
-  FragType    frag_type;
+  //FragType    frag_type;
   // The laboratory designation of the fragment type.
 
   Tlab        label; /* Recomputable */
@@ -119,24 +119,24 @@ typedef struct {
   unsigned int suffix_blessed : 1;
 } Afragment;
 
-typedef   AS_IID   AChunkFrag;
+typedef   uint32   AChunkFrag;
 
 typedef struct {
   int64         bp_length;
   // the length in base pairs of the chunk.
   int64         rho;
-  AS_IID   iaccession;
+  uint32   iaccession;
   // An arbitrary, but dense and non-negative enumeration of the
   // unitigs.
   float       coverage_stat;
   // Gene^s coverage statistic.
 
-  AS_IID    chunk_avx; /* The A and B vertices of the chunk. */
-  AS_IID    chunk_bvx;
+  uint32    chunk_avx; /* The A and B vertices of the chunk. */
+  uint32    chunk_bvx;
   int32     chunk_asx;
   int32     chunk_bsx;
-  AS_IID    num_frags;
-  AS_IID    f_list; /* The index into a TChunkFrag array. */
+  uint32    num_frags;
+  uint32    f_list; /* The index into a TChunkFrag array. */
 
   // The following is not necessary. The info available from
   // fragment-end info, chunk_avx, chunk_asx, chunk_bvx, and chunk_bsx.
@@ -210,7 +210,7 @@ typedef struct {
 
   float          cgb_unique_cutoff;
 
-  AS_IID maxfrags;
+  uint32 maxfrags;
   IntEdge_ID     maxedges;
   size_t         maxtext;
 

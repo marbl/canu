@@ -24,9 +24,6 @@ const char *mainid = "$Id$";
 #include "AS_CGB_all.H"
 #include "AS_CGB_Bubble.H"
 
-#include "MultiAlign.H"
-#include "MultiAlignStore.H"
-
 extern int REAPER_VALIDATION;
 
 void
@@ -96,7 +93,7 @@ output_the_chunks(Tfragment     *frags,
             ch->iaccession, ch->iaccession, partmap[ch->iaccession], nf);
 
     for (int32 ivc=0; ivc<ch->num_frags; ivc++) {
-      AS_IID vid = *GetVA_AChunkFrag(chunkfrags, ch->f_list + ivc);
+      uint32 vid = *GetVA_AChunkFrag(chunkfrags, ch->f_list + ivc);
       fprintf(part, "%d\t%d\n", prt_count, get_iid_fragment(frags, vid));
     }
 
@@ -113,62 +110,64 @@ output_the_chunks(Tfragment     *frags,
 
   //  Step through all the unitigs once to build the partition mapping and IID mapping.
 
-  MultiAlignStore  *MAS = new MultiAlignStore(tigStorePath);
-  MultiAlignT      *ma  = CreateEmptyMultiAlignT();
+  tgStore    *MAS = new tgStore(tigStorePath);
+  tgTig      *tig = new tgTig;
 
-  MAS->writeToPartitioned(partmap, nchunks, NULL, 0);
+  MAS->writeToPartitioned(partmap, nchunks);
 
   for (int32 ci=0; ci<nchunks; ci++) {
     AChunkMesg     *ch  = GetVA_AChunkMesg(thechunks,ci);
     uint32          nf  = ch->num_frags;
 
-    ma->maID                      = ch->iaccession;
-    ma->data.unitig_coverage_stat = compute_coverage_statistic(ch->rho,
-                                                               count_the_randomly_sampled_fragments_in_a_chunk(frags,
-                                                                                                               chunkfrags,
-                                                                                                               thechunks,
-                                                                                                               ci,
-                                                                                                               gkp),
+    tig->_tigID = ch->iaccession;
+
+    tig->_coverageStat = compute_coverage_statistic(ch->rho,
+                                                  count_the_randomly_sampled_fragments_in_a_chunk(frags,
+                                                                                                  chunkfrags,
+                                                                                                  thechunks,
+                                                                                                  ci,
+                                                                                                  gkp),
                                                                global_fragment_arrival_rate);
-    ma->data.unitig_microhet_prob = 1.0;  //  Default to 100% probability of unique
+    tig->_microhetProb = 1.0;  //  Default to 100% probability of unique
 
-    ma->data.unitig_status         = AS_UNASSIGNED;
-    ma->data.unitig_suggest_repeat = false;
-    ma->data.unitig_suggest_unique = false;
-    ma->data.unitig_force_repeat   = false;
-    ma->data.unitig_force_unique   = false;
-
-    ma->data.contig_status         = AS_UNPLACED;
+    tig->_suggestRepeat   = false;
+    tig->_suggestUnique   = false;
+    tig->_suggestCircular = false;
+    tig->_suggestHaploid  = false;
 
     //  Add the fragments
 
-    ResetVA_IntMultiPos(ma->f_list);
-    //SetRangeVA_IntMultiPos(ma->f_list, 0, nf, &(*utg->dovetail_path_ptr)[0]);
+    resizeArray(tig->_children, 0, tig->_childrenMax, ch->num_frags, resizeArray_doNothing);
+
+    tig->_childrenLen = ch->num_frags;
 
     for (int32 ivc=0; ivc<ch->num_frags; ivc++) {
-      AS_IID vid = *GetVA_AChunkFrag(chunkfrags, ch->f_list + ivc);
-      IntMultiPos    imp;
+      uint32 vid = *GetVA_AChunkFrag(chunkfrags, ch->f_list + ivc);
 
-      memset(&imp, 0, sizeof(IntMultiPos));
+      tig->_children[ivc]._objID    = get_iid_fragment(frags, vid);
 
-      imp.type         = get_typ_fragment(frags, vid);
-      imp.ident        = get_iid_fragment(frags, vid);
-      imp.contained    = get_container_fragment(frags, vid);
-      imp.parent       = 0;
-      imp.ahang        = 0;
-      imp.bhang        = 0;
-      imp.position.bgn = get_o5p_fragment(frags, vid);
-      imp.position.end = get_o3p_fragment(frags, vid);
-      imp.delta_length = 0;
-      imp.delta        = NULL;
+      tig->_children[ivc]._isRead   = true;
+      tig->_children[ivc]._isUnitig = false;
+      tig->_children[ivc]._isContig = false;
 
-      AppendVA_IntMultiPos(ma->f_list, &imp);
+      tig->_children[ivc]._spare    = 0;
+
+      //  No place to store the container: get_container_fragment(frags, vid)
+
+      tig->_children[ivc]._anchor      = 0;
+      tig->_children[ivc]._ahang       = 0;
+      tig->_children[ivc]._bhang       = 0;
+      tig->_children[ivc]._bgn         = get_o5p_fragment(frags, vid);
+      tig->_children[ivc]._end         = get_o3p_fragment(frags, vid);
+      tig->_children[ivc]._deltaOffset = 0;
+      tig->_children[ivc]._deltaLen    = 0;
     }
 
-    MAS->insertMultiAlign(ma, TRUE, FALSE);
+    MAS->insertTig(tig, false);
   }
 
   delete    MAS;
+  delete    tig;
   delete [] partmap;
 }
 
@@ -458,7 +457,7 @@ main(int argc, char **argv) {
 
   //BasicUnitigger( argc, argv, gstate, heapva, rg);
 
-  gkpStore = new gkStore(rg->frag_store, FALSE, FALSE);
+  gkpStore = new gkStore(rg->frag_store);
  again:
   heapva->frags             = CreateVA_Afragment (rg->maxfrags);
   heapva->edges             = CreateVA_Aedge     (rg->maxedges);
@@ -510,7 +509,7 @@ main(int argc, char **argv) {
       AS_CGB_Bubble_List_t bubbles_tmp = bubbles;
 
       while (bubbles_tmp != NULL) {
-        fprintf(bfp, F_IID" %d "F_IID" %d\n",
+        fprintf(bfp, F_U32" %d "F_U32" %d\n",
                 get_iid_fragment(heapva->frags, bubbles_tmp->start),
                 bubbles_tmp->start_sx,
                 get_iid_fragment(heapva->frags, bubbles_tmp->end),
@@ -547,19 +546,19 @@ main(int argc, char **argv) {
   // Determine the blessed overlaps.  They are the overlaps
   // that are interior to u-unitigs.  In particular, intrachunk overlaps
   //
-  AS_IID nfrag = GetNumFragments(heapva->frags);
+  uint32 nfrag = GetNumFragments(heapva->frags);
   IntEdge_ID     nedge = GetNumEdges(heapva->edges);
   IntEdge_ID     ie;
 
   char bon[FILENAME_MAX];
   sprintf(bon, "%s.edges.blessed", rg->Output_Graph_Store_Prefix);
 
-  BinaryOverlapFile *bof = AS_OVS_createBinaryOverlapFile(bon, FALSE);
-  OVSoverlap overlap;
+  ovFile    *bof = new ovFile(bon, ovFileFullWrite);
+  ovsOverlap overlap;
 
   for (ie=0; ie < nedge; ie ++) {
     Tnes nes = get_nes_edge(heapva->edges,ie);
-    AS_IID avx = get_avx_edge(heapva->edges,ie);
+    uint32 avx = get_avx_edge(heapva->edges,ie);
 
     assert(nfrag > avx);
 
@@ -578,64 +577,60 @@ main(int argc, char **argv) {
     // output latest set of blessed overlap edges.
 
     if (get_blessed_edge(heapva->edges,ie)) {
-      AS_IID avx = get_avx_edge(heapva->edges,ie);
+      uint32 avx = get_avx_edge(heapva->edges,ie);
       int asx = get_asx_edge(heapva->edges,ie);
       int ahg = get_ahg_edge(heapva->edges,ie);
 
-      AS_IID bvx = get_bvx_edge(heapva->edges,ie);
+      uint32 bvx = get_bvx_edge(heapva->edges,ie);
       int bsx = get_bsx_edge(heapva->edges,ie);
       int bhg = get_bhg_edge(heapva->edges,ie);
 
       uint32 qua = get_qua_edge(heapva->edges,ie);
 
-      AS_IID aid = get_iid_fragment(heapva->frags,avx);
-      AS_IID bid = get_iid_fragment(heapva->frags,bvx);
+      uint32 aid = get_iid_fragment(heapva->frags,avx);
+      uint32 bid = get_iid_fragment(heapva->frags,bvx);
 
       //  The rest swiped from output_mesgs() in AS_FGB_main.c
 
       overlap.a_iid = aid;
       overlap.b_iid = bid;
 
-      overlap.dat.ovl.datpad1     = 0;
-      overlap.dat.ovl.flipped     = 0;
-      overlap.dat.ovl.a_hang      = ahg;
-      overlap.dat.ovl.b_hang      = bhg;
-      overlap.dat.ovl.orig_erate  = qua;
-      overlap.dat.ovl.corr_erate  = qua;
-      overlap.dat.ovl.seed_value  = 0;
-      overlap.dat.ovl.type        = AS_OVS_TYPE_OVL;
+      overlap.flipped(false);
+      overlap.a_hang(ahg);
+      overlap.b_hang(bhg);
+      overlap.evalue(qua);
 
       if (asx) {
         if (bsx) {
           //ovl_mesg.orientation.setIsInnie();
-          overlap.dat.ovl.flipped = 1;
+          overlap.flipped(true);
         } else {
           //ovl_mesg.orientation.setIsNormal();
-          overlap.dat.ovl.flipped = 0;
+          overlap.flipped(false);
         }
       } else {
         if (bsx) {
           //ovl_mesg.orientation.setIsAnti();
           //  Reverse the overlap into a normal overlap.
-          overlap.dat.ovl.flipped = 0;
-          overlap.dat.ovl.a_hang  = -bhg;
-          overlap.dat.ovl.b_hang  = -ahg;
+          overlap.flipped(false);
+          overlap.a_hang(-bhg);
+          overlap.b_hang(-ahg);
         } else {
           //ovl_mesg.orientation.setIsOuttie();
           //  Swap fragments.
-          overlap.a_iid           = bid;
-          overlap.b_iid           = aid;
-          overlap.dat.ovl.flipped = 1;
-          overlap.dat.ovl.a_hang  = -ahg;
-          overlap.dat.ovl.b_hang  = -bhg;
+          overlap.a_iid = bid;
+          overlap.b_iid = aid;
+          overlap.flipped(true);
+          overlap.a_hang(-ahg);
+          overlap.b_hang(-bhg);
         }
       }
 
-      AS_OVS_writeOverlap(bof, &overlap);
+      bof->writeOverlap(&overlap);
     }
   }
 
-  AS_OVS_closeBinaryOverlapFile(bof);
+  delete bof;
 
   //  This writes the .fgv and .fge files.
   view_fgb_chkpnt(rg->Output_Graph_Store_Prefix,

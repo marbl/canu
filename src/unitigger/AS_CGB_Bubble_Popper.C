@@ -21,18 +21,12 @@
 
 static char *rcsid = "$Id$";
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include "AS_global.H"
-//#include "AS_ALN_aligners.H"
 #include "AS_CGB_all.H"
-#include "AS_CGB_methods.H"
+
 #include "AS_CGB_Bubble_Graph.H"
 #include "AS_CGB_Bubble.H"
 #include "AS_CGB_Bubble_Popper.H"
 #include "AS_CGB_Bubble_PopperMethods.H"
-#include "AS_PER_gkpStore.H"
 
 #undef AS_CGB_BUBBLE_VERBOSE2
 
@@ -64,13 +58,13 @@ BP_init(BubblePopper_t bp, BubGraph_t bg, TChunkMesg *chunks,
 
   bp->topDistArray = (int *)safe_malloc(sizeof(int) * POPPER_MAX_BUBBLE_SIZE);
   bp->dfsStack     = (BG_E_Iter *)safe_malloc(sizeof(BG_E_Iter) * POPPER_MAX_BUBBLE_SIZE);
-  bp->bubFrags     = (AS_IID *)safe_malloc(sizeof(AS_IID) * POPPER_MAX_BUBBLE_SIZE);
+  bp->bubFrags     = (uint32 *)safe_malloc(sizeof(uint32) * POPPER_MAX_BUBBLE_SIZE);
   bp->bubMesgs     = (InternalFragMesg *)safe_calloc(sizeof(InternalFragMesg), POPPER_MAX_BUBBLE_SIZE);
   bp->adj          = (int *)safe_malloc(sizeof(int) * BP_SQR(POPPER_MAX_BUBBLE_SIZE));
   bp->bubOlaps     = (ALNoverlapFull *)safe_calloc(sizeof(ALNoverlapFull), BP_SQR(POPPER_MAX_BUBBLE_SIZE));
 
   for (i = 0; i < POPPER_MAX_BUBBLE_SIZE; ++i) {
-    bp->bubMesgs[i].sequence = (char *)safe_malloc(sizeof(char) * (AS_READ_MAX_NORMAL_LEN + 3));
+    bp->bubMesgs[i].sequence = (char *)safe_malloc(sizeof(char) * (AS_MAX_READLEN + 3));
     /* This is a hack for DP_compare.  It might not be necessary. */
     bp->bubMesgs[i].sequence[0] = '\0';
     (bp->bubMesgs[i].sequence)++;
@@ -145,35 +139,35 @@ BP_chunkFrags(BubblePopper_t bp)
 
 
 AChunkMesg *
-BP_getChunk(BubblePopper_t bp, AS_IID cid)
+BP_getChunk(BubblePopper_t bp, uint32 cid)
 {
   return (AChunkMesg *) GetElement_VA(bp->chunks, cid);
 }
 
 
-AS_IID
+uint32
 BP_numFrags(BubblePopper_t bp)
 {
   return bp->curBubSize;
 }
 
 
-AS_IID
-BP_getFrag(BubblePopper_t bp, AS_IID bid)
+uint32
+BP_getFrag(BubblePopper_t bp, uint32 bid)
 {
   return bp->bubFrags[bid];
 }
 
 
 int
-BP_getBID(BubblePopper_t bp, AS_IID vid)
+BP_getBID(BubblePopper_t bp, uint32 vid)
 {
   return bp->vidToBid[vid];
 }
 
 
 int
-BP_findOverlap(BubblePopper_t bp, AS_IID bid1, AS_IID bid2)
+BP_findOverlap(BubblePopper_t bp, uint32 bid1, uint32 bid2)
 {
 
   /* Setup fake fragment messages. */
@@ -184,16 +178,19 @@ BP_findOverlap(BubblePopper_t bp, AS_IID bid1, AS_IID bid2)
   if (if1->iaccession != id1) {
     char *seq_buf, *src, *dst;
     if1->iaccession = id1;
-    bp->gkpStore->gkStore_getFragment(id1, &bp->rsp, GKFRAGMENT_SEQ);
 
-    if1->clear_rng.bgn = bp->rsp.gkFragment_getClearRegionBegin();
-    if1->clear_rng.end = bp->rsp.gkFragment_getClearRegionEnd  ();
+    gkRead *rsp = bp->gkpStore->gkStore_getRead(id1);
 
-    seq_buf = bp->rsp.gkFragment_getSequence();
+    bp->gkpStore->gkStore_loadReadData(rsp, &bp->rsd);
 
-    for (src = &(seq_buf[if1->clear_rng.bgn]), dst = if1->sequence;
-	 src < &(seq_buf[if1->clear_rng.end]);
-	 ++src, ++dst)
+    uint32 bgn = rsp->gkRead_clearRegionBegin();
+    uint32 end = rsp->gkRead_clearRegionEnd();
+
+    seq_buf = bp->rsd.gkReadData_getSequence();
+
+    for (src = &(seq_buf[bgn]), dst = if1->sequence;
+         src < &(seq_buf[end]);
+         ++src, ++dst)
       *dst = *src;
     *dst = '\0';
   }
@@ -202,22 +199,25 @@ BP_findOverlap(BubblePopper_t bp, AS_IID bid1, AS_IID bid2)
   if (if2->iaccession != id2) {
     char *seq_buf, *src, *dst;
     if2->iaccession = id2;
-    bp->gkpStore->gkStore_getFragment(id2, &bp->rsp, GKFRAGMENT_SEQ);
 
-    if2->clear_rng.bgn = bp->rsp.gkFragment_getClearRegionBegin();
-    if2->clear_rng.end = bp->rsp.gkFragment_getClearRegionEnd  ();
+    gkRead *rsp = bp->gkpStore->gkStore_getRead(id2);
 
-    seq_buf = bp->rsp.gkFragment_getSequence();
+    bp->gkpStore->gkStore_loadReadData(rsp, &bp->rsd);
 
-    for (src = &(seq_buf[if2->clear_rng.bgn]), dst = if2->sequence;
-	 src < &(seq_buf[if2->clear_rng.end]);
-	 ++src, ++dst)
+    uint32 bgn = rsp->gkRead_clearRegionBegin();
+    uint32 end = rsp->gkRead_clearRegionEnd();
+
+    seq_buf = bp->rsd.gkReadData_getSequence();
+
+    for (src = &(seq_buf[bgn]), dst = if2->sequence;
+         src < &(seq_buf[end]);
+         ++src, ++dst)
       *dst = *src;
     *dst = '\0';
   }
 
 #if AS_CGB_BUBBLE_VERBOSE
-  fprintf(stderr, "Overlapping "F_IID " ("F_IID " , "F_IID ") and "F_IID " ("F_IID " , "F_IID ") ... ",
+  fprintf(stderr, "Overlapping "F_U32 " ("F_U32 " , "F_U32 ") and "F_U32 " ("F_U32 " , "F_U32 ") ... ",
 	  bid1, bp->bubFrags[bid1], id1, bid2, bp->bubFrags[bid2], id2);
 #endif
 
@@ -294,14 +294,14 @@ BP_findOverlap(BubblePopper_t bp, AS_IID bid1, AS_IID bid2)
 
 
 int
-BP_getAdj(BubblePopper_t bp, AS_IID bid1, AS_IID bid2)
+BP_getAdj(BubblePopper_t bp, uint32 bid1, uint32 bid2)
 {
   return bp->adj[bid1 * POPPER_MAX_BUBBLE_SIZE + bid2];
 }
 
 
 int
-BP_getAdj_VID(BubblePopper_t bp, AS_IID vid1, AS_IID vid2)
+BP_getAdj_VID(BubblePopper_t bp, uint32 vid1, uint32 vid2)
 {
   return bp->adj[bp->vidToBid[vid1] * POPPER_MAX_BUBBLE_SIZE +
 		bp->vidToBid[vid2]];
@@ -309,14 +309,14 @@ BP_getAdj_VID(BubblePopper_t bp, AS_IID vid1, AS_IID vid2)
 
 
 void
-BP_setAdj(BubblePopper_t bp, AS_IID bid1, AS_IID bid2, int v)
+BP_setAdj(BubblePopper_t bp, uint32 bid1, uint32 bid2, int v)
 {
   bp->adj[bid1 * POPPER_MAX_BUBBLE_SIZE + bid2] = v;
 }
 
 
 void
-BP_setAdj_VID(BubblePopper_t bp, AS_IID vid1, AS_IID vid2,
+BP_setAdj_VID(BubblePopper_t bp, uint32 vid1, uint32 vid2,
 	      int v)
 {
   bp->adj[bp->vidToBid[vid1] * POPPER_MAX_BUBBLE_SIZE +
@@ -326,11 +326,11 @@ BP_setAdj_VID(BubblePopper_t bp, AS_IID vid1, AS_IID vid2,
 
 
 ALNoverlapFull *
-AS_CGB_Bubble_pop_bubble(BubblePopper_t bp, AS_IID start,
-			 int start_sx, AS_IID end,
+AS_CGB_Bubble_pop_bubble(BubblePopper_t bp, uint32 start,
+			 int start_sx, uint32 end,
 			 int end_sx, int *num_olaps)
 {
-  AS_IID tmp;
+  uint32 tmp;
   int r, c, path_len, num_frags, bub_closed;
   int64 bub_size;
   BG_E_Iter e_it;
@@ -376,7 +376,7 @@ AS_CGB_Bubble_pop_bubble(BubblePopper_t bp, AS_IID start,
 #if AS_CGB_BUBBLE_VERBOSE
   fprintf(stderr, "Fragments:\n");
   for (r = 0; r < num_frags; r++) {
-    fprintf(stderr, "%d]\t\t"F_IID "\t("F_IID ")\t" F_S64 "\n", r, bp->bubFrags[r],
+    fprintf(stderr, "%d]\t\t"F_U32 "\t("F_U32 ")\t" F_S64 "\n", r, bp->bubFrags[r],
 	    get_iid_fragment(BG_vertices(bp->bg), bp->bubFrags[r]),
 	    BG_V_getDistance(bp->bg, bp->bubFrags[r]));
   }

@@ -37,9 +37,12 @@ static const char *rcsid_AS_CGB_ALL_INCLUDE = "$Id$";
 #include <assert.h>
 
 #include "AS_global.H"
-#include "AS_PER_gkpStore.H"
+
+#include "gkStore.H"
+#include "ovStore.H"
+#include "tgStore.H"
+
 #include "AS_UTL_Var.H"
-#include "MultiAlign.H"
 
 typedef uint32 IntEdge_ID;
 
@@ -298,7 +301,7 @@ void count_fragment_and_edge_labels(Tfragment frags[],
 int count_the_randomly_sampled_fragments_in_a_chunk(Tfragment   frags[],
                                                     TChunkFrag  chunkfrags[],
                                                     TChunkMesg  thechunks[],
-                                                    AS_IID chunk_index,
+                                                    uint32 chunk_index,
                                                     gkStore *gkp);
 
 
@@ -343,10 +346,10 @@ IntEdge_ID check_symmetry_of_the_edge_mates (Tfragment frags[],
 
 int is_there_an_overlap_path(const Tfragment * const frags,
                              const Tedge     * const edges,
-                             const AS_IID target_avx,
+                             const uint32 target_avx,
                              const int        target_asx,
 #ifdef MATCH_TARGET_EDGE
-                             const AS_IID target_bvx,
+                             const uint32 target_bvx,
                              const int        target_bsx,
                              const int        target_ahg,
                              const int        target_bhg,
@@ -358,7 +361,7 @@ int is_there_an_overlap_path(const Tfragment * const frags,
 #endif // MATCH_TARGET_EDGE
                              /* recursion variables: */
                              const int        search_depth, // Use zero at the top level.
-                             const AS_IID current_avx,  // Use target_avx at the top level.
+                             const uint32 current_avx,  // Use target_avx at the top level.
                              const int        current_asx,  // Use target_asx at the top level.
                              const int        current_ahg,  // Use zero at the top level.
                              const int        current_bhg,  // Use zero at the top level.
@@ -366,9 +369,9 @@ int is_there_an_overlap_path(const Tfragment * const frags,
                              /* search path limiting: */
                              const int        walk_depth,   // The maximum depth of the stack.
                              const int        tolerance,    // For the overlaps
-                             AS_IID visited_a[],
+                             uint32 visited_a[],
 #ifdef MATCH_TARGET_EDGE
-                             AS_IID visited_b[],
+                             uint32 visited_b[],
 #endif // MATCH_TARGET_EDGE
                              // Was this fragment visited from the target overlap before? That is
                              // by the same (target_avx, target_asx, target_bvx, target_bsx).

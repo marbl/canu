@@ -25,17 +25,7 @@ static char *rcsid = "$Id$";
 //  functional unit reads a *.ovl prototype i/o file an massages it
 //  for the data structures in the chunk graph builder.
 
-#include <assert.h>
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-
-#include "AS_global.H"
 #include "AS_CGB_all.H"
-#include "AS_OVS_overlapStore.H"
-
 
 int REAPER_VALIDATION = FALSE;
 
@@ -106,7 +96,7 @@ static void Insert_Aedge_into_the_edge_array_wrapper
  int           con_double_sided_threshold_fragment_end_degree
  )
 {
-  const AS_IID avx = the_edge->avx;
+  const uint32 avx = the_edge->avx;
   const int asx = the_edge->asx;
   const int ahg = the_edge->ahg;
   const int bhg = the_edge->bhg;
@@ -220,7 +210,7 @@ static void insert_dovetail_into_the_edge_array_Aedge
 static void add_overlap_to_graph(Aedge  an_edge,
                                  Tfragment  frags[],
                                  Tedge      edges[],
-                                 AS_IID   *afr_to_avx,
+                                 uint32   *afr_to_avx,
                                  VA_TYPE(IntEdge_ID)  *next_edge,
                                  const int dvt_double_sided_threshold_fragment_end_degree,
                                  const int con_double_sided_threshold_fragment_end_degree,
@@ -229,11 +219,11 @@ static void add_overlap_to_graph(Aedge  an_edge,
                                  IntEdge_ID * novl_containment,
                                  IntEdge_ID * nedges_delta) {
 
-  const AS_IID iafr = an_edge.avx;
+  const uint32 iafr = an_edge.avx;
   const int iasx = an_edge.asx;
   const int iahg = an_edge.ahg;
 
-  const AS_IID ibfr = an_edge.bvx;
+  const uint32 ibfr = an_edge.bvx;
   const int ibsx = an_edge.bsx;
   const int ibhg = an_edge.bhg;
 
@@ -245,8 +235,8 @@ static void add_overlap_to_graph(Aedge  an_edge,
 
   const int is_dovetail = is_a_dvt_simple(iahg,ibhg) ;
 
-  const AS_IID iavx = afr_to_avx[iafr];
-  const AS_IID ibvx = afr_to_avx[ibfr];
+  const uint32 iavx = afr_to_avx[iafr];
+  const uint32 ibvx = afr_to_avx[ibfr];
 
 #ifdef USE_FRAGMENT_SUBSET
   if((iavx == AS_CGB_NOT_SEEN_YET) ||
@@ -254,9 +244,9 @@ static void add_overlap_to_graph(Aedge  an_edge,
     return;
 #else
   if ((iavx == AS_CGB_NOT_SEEN_YET))
-    fprintf(stderr, "Unseen fragment iid="F_IID" is referred to in an overlap.  I assert!\n", iafr);
+    fprintf(stderr, "Unseen fragment iid="F_U32" is referred to in an overlap.  I assert!\n", iafr);
   if ((ibvx == AS_CGB_NOT_SEEN_YET))
-    fprintf(stderr, "Unseen fragment iid="F_IID" is referred to in an overlap.  I assert!\n", ibfr);
+    fprintf(stderr, "Unseen fragment iid="F_U32" is referred to in an overlap.  I assert!\n", ibfr);
 
   assert(iavx != AS_CGB_NOT_SEEN_YET);
   assert(ibvx != AS_CGB_NOT_SEEN_YET);
@@ -278,13 +268,13 @@ static void add_overlap_to_graph(Aedge  an_edge,
   if(ibmn <= 0 && (AS_CGB_DOVETAIL_EDGE == ines)) {
     fprintf(stderr,"BUG: bmn <= 0 AS_CGB_DOVETAIL_EDGE \n");
     fprintf(stderr,
-            "afr,bfr,ahg,bhg,amn,amx="F_IID","F_IID",%d,%d,%d,%d\n",
+            "afr,bfr,ahg,bhg,amn,amx="F_U32","F_U32",%d,%d,%d,%d\n",
             iafr,ibfr,iahg,ibhg,iamn,iamx);
   }
   if(ibmn > 0 && (AS_CGB_TO_CONTAINED == ines)) {
     fprintf("BUG: bmn > 0 for AS_CGB_TO_CONTAINED \n");
     fprintf(stderr,
-            "afr,bfr,ahg,bhg,amn,amx="F_IID","F_IID",%d,%d,%d,%d\n",
+            "afr,bfr,ahg,bhg,amn,amx="F_U32","F_U32",%d,%d,%d,%d\n",
             iafr,ibfr,iahg,ibhg,iamn,iamx);
   }
 #endif
@@ -345,8 +335,8 @@ static void add_overlap_to_graph(Aedge  an_edge,
     if(ibln == ibhg)     fprintf(stderr,"INPUT ERROR: bln == bhg\n");
     if(ibln == -iahg)    fprintf(stderr,"INPUT ERROR: bln == -ahg\n");
 
-    fprintf(stderr," afr="F_IID" bfr="F_IID" aln=%d bln=%d\n", iafr, ibfr, ialn, ibln);
-    fprintf(stderr," avx="F_IID" bvx="F_IID" ahg=%d bhg=%d\n", iavx, ibvx, iahg, ibhg);
+    fprintf(stderr," afr="F_U32" bfr="F_U32" aln=%d bln=%d\n", iafr, ibfr, ialn, ibln);
+    fprintf(stderr," avx="F_U32" bvx="F_U32" ahg=%d bhg=%d\n", iavx, ibvx, iahg, ibhg);
 
     //  Failed on huref8sanger with:
     //
@@ -373,7 +363,7 @@ static void add_overlap_to_graph(Aedge  an_edge,
 #ifdef REPORT_DEGENERATE_OVERLAPS
   if( (iahg == 0) && (ibhg == 0) ) {
     fprintf(stdout,
-            "Degenerate Overlap "F_IID" %d %d "F_IID" %d %d %d %d\n",
+            "Degenerate Overlap "F_U32" %d %d "F_U32" %d %d %d %d\n",
             get_iid_fragment(frags,iavx), iasx, iahg,
             get_iid_fragment(frags,ibvx), ibsx, ibhg,
             qua,
@@ -478,7 +468,7 @@ static void add_overlap_to_graph(Aedge  an_edge,
         } else {
           fprintf(stderr,
                   "the_raw_new_edge.ahg,the_raw_new_edge.bhg,the_raw_new_edge.avx,the_raw_new_edge.bvx=\n"
-                  "    %d, %d, "F_IID", "F_IID"\n",
+                  "    %d, %d, "F_U32", "F_U32"\n",
                   the_raw_new_edge.ahg,the_raw_new_edge.bhg,the_raw_new_edge.avx,the_raw_new_edge.bvx
                   );
           assert(FALSE);
@@ -540,61 +530,60 @@ void
 process_gkp_store_for_fragments(char *gkpStoreName,
                                 Tfragment   *frags,
                                 Tedge       *edges) {
-  AS_IID    iid = 0;
-  AS_IID    vid = 0;
+  uint32    vid = 0;
 
   assert(0 == GetNumFragments(frags));
 
-  gkStore    *gkp = new gkStore(gkpStoreName, FALSE, FALSE);
-  gkStream   *fs = new gkStream(gkp, 0, 0, GKFRAGMENT_INF);
-  gkFragment  fr;
+  gkStore    *gkp = new gkStore(gkpStoreName);
 
-  while (fs->next(&fr)) {
-    if (fr.gkFragment_getIsDeleted() == FALSE) {
-      iid = fr.gkFragment_getReadIID();
+  for (uint32 fi=1; fi<=gkp->gkStore_getNumReads(); fi++) {
+    gkRead *read = gkp->gkStore_getRead(fi);
 
-      //  Argh!  This needs to be here, other code depends on the
-      //  range of the VA being the number of fragments.
-      //
-      EnableRangeVA_Afragment(frags, vid + 1);
+    if (read->gkRead_isDeleted())
+      continue;
 
-      set_iid_fragment(frags, vid, iid);
-      set_cid_fragment(frags, vid, iid);
-      set_typ_fragment(frags, vid, AS_READ);
-      set_del_fragment(frags, vid, FALSE);
-      set_length_fragment(frags, vid, fr.gkFragment_getClearRegionLength());
+    uint32 iid = read->gkRead_readID();
 
-      // Assume that each fragment spans a chunk.
-      set_lab_fragment(frags, vid, AS_CGB_UNLABELED_FRAG);
+    //  Argh!  This needs to be here, other code depends on the
+    //  range of the VA being the number of fragments.
+    //
+    EnableRangeVA_Afragment(frags, vid + 1);
 
-      // A flag specifying if this fragment is known to be contained.
-      // Set default to non-contained.
-      set_con_fragment(frags, vid, FALSE);
+    set_iid_fragment(frags, vid, iid);
+    set_cid_fragment(frags, vid, iid);
+    //set_typ_fragment(frags, vid, AS_READ);
+    set_del_fragment(frags, vid, FALSE);
+    set_length_fragment(frags, vid, read->gkRead_clearRegionLength());
 
-      // Zero if this flag is not contained, but equal to the
-      // fragment containing this one in a unitig layout graph.
-      set_container_fragment(frags, vid,0);
+    // Assume that each fragment spans a chunk.
+    set_lab_fragment(frags, vid, AS_CGB_UNLABELED_FRAG);
 
-      // Set the counts of raw overlaps seen to zero.
-      set_raw_dvt_count_vertex(frags, vid, FALSE, 0);
-      set_raw_dvt_count_vertex(frags, vid, TRUE, 0);
-      set_raw_toc_count_fragment(frags, vid, 0);
-      set_raw_frc_count_fragment(frags, vid, 0);
+    // A flag specifying if this fragment is known to be contained.
+    // Set default to non-contained.
+    set_con_fragment(frags, vid, FALSE);
 
-      // Initialize the lists for the edge trimming.
-      set_seglen_dvt_vertex(frags, vid, FALSE, 0);
-      set_seglen_frc_vertex(frags, vid, FALSE, 0);
-      set_seglen_dvt_vertex(frags, vid, TRUE, 0);
-      set_seglen_frc_vertex(frags, vid, TRUE, 0);
+    // Zero if this flag is not contained, but equal to the
+    // fragment containing this one in a unitig layout graph.
+    set_container_fragment(frags, vid,0);
 
-      set_blessed_vertex(frags, vid, FALSE, FALSE);
-      set_blessed_vertex(frags, vid, TRUE, FALSE);
+    // Set the counts of raw overlaps seen to zero.
+    set_raw_dvt_count_vertex(frags, vid, FALSE, 0);
+    set_raw_dvt_count_vertex(frags, vid, TRUE, 0);
+    set_raw_toc_count_fragment(frags, vid, 0);
+    set_raw_frc_count_fragment(frags, vid, 0);
 
-      vid++;
-    }
+    // Initialize the lists for the edge trimming.
+    set_seglen_dvt_vertex(frags, vid, FALSE, 0);
+    set_seglen_frc_vertex(frags, vid, FALSE, 0);
+    set_seglen_dvt_vertex(frags, vid, TRUE, 0);
+    set_seglen_frc_vertex(frags, vid, TRUE, 0);
+
+    set_blessed_vertex(frags, vid, FALSE, FALSE);
+    set_blessed_vertex(frags, vid, TRUE, FALSE);
+
+    vid++;
   }
 
-  delete fs;
   delete gkp;
 }
 
@@ -604,14 +593,14 @@ process_gkp_store_for_fragments(char *gkpStoreName,
 void process_ovl_store(char * OVL_Store_Path,
                        Tfragment  frags[],
                        Tedge      edges[],
-                       AS_IID *afr_to_avx,
+                       uint32 *afr_to_avx,
                        VA_TYPE(IntEdge_ID) *next_edge,
                        const int dvt_double_sided_threshold_fragment_end_degree,
                        const int con_double_sided_threshold_fragment_end_degree,
                        const int intrude_with_non_blessed_overlaps_flag,
                        const uint32 overlap_error_threshold) {
-  OverlapStore  *ovs;
-  OVSoverlap     olap;
+  ovStore       *ovs;
+  ovsOverlap     olap;
 
   IntEdge_ID novl_dovetail = 0;
   IntEdge_ID novl_containment = 0;
@@ -619,7 +608,7 @@ void process_ovl_store(char * OVL_Store_Path,
 
   uint32  overlap_consensus_threshold = AS_OVS_encodeQuality(AS_CNS_ERROR_RATE);
 
-  ovs = AS_OVS_openOverlapStore(OVL_Store_Path);
+  ovs = new ovStore(OVL_Store_Path);
 
   //  Copy the information in  (* olap)  into  (* an_edge)  with
   //  appropriate conversions.
@@ -648,14 +637,13 @@ void process_ovl_store(char * OVL_Store_Path,
   //  A degenerate overlap (a_hang==0)&&(b_hang==0)
   //  A_frag  >>>>>>>>>>
   //  B_frag  >>>>>>>>>>
-  while  (AS_OVS_readOverlapFromStore(ovs, &olap, AS_OVS_TYPE_OVL)) {
+  while  (ovs->readOverlap(&olap)) {
 
     //  If the overlap is good enough quality, and we've seen the
     //  frags before (in case we deleted a few from the store after we
     //  computed overlaps), process the overlap.
     //
-    if ((olap.dat.ovl.corr_erate <= overlap_error_threshold) &&
-        (olap.dat.ovl.orig_erate <= overlap_consensus_threshold) &&
+    if ((olap.evalue() <= overlap_error_threshold) &&
         (afr_to_avx[olap.a_iid] != AS_CGB_NOT_SEEN_YET) &&
         (afr_to_avx[olap.b_iid] != AS_CGB_NOT_SEEN_YET)) {
 
@@ -663,25 +651,25 @@ void process_ovl_store(char * OVL_Store_Path,
 
       memset(&e, 0, sizeof(Aedge));
 
-      int improper = (((olap.dat.ovl.a_hang <  0) && (olap.dat.ovl.b_hang <  0)) ||
-                      ((olap.dat.ovl.a_hang == 0) && (olap.dat.ovl.b_hang <  0)) ||
-                      ((olap.dat.ovl.a_hang <  0) && (olap.dat.ovl.b_hang == 0)));
+      int improper = (((olap.a_hang() <  0) && (olap.b_hang() <  0)) ||
+                      ((olap.a_hang() == 0) && (olap.b_hang() <  0)) ||
+                      ((olap.a_hang() <  0) && (olap.b_hang() == 0)));
 
       e.avx = olap.a_iid;
       e.asx = !improper;
-      e.ahg = (improper ? -olap.dat.ovl.b_hang : olap.dat.ovl.a_hang);
+      e.ahg = (improper ? -olap.b_hang() : olap.a_hang());
 
       e.bvx = olap.b_iid;
-      e.bsx = (!improper) ^ (!olap.dat.ovl.flipped);
-      e.bhg = (improper ? -olap.dat.ovl.a_hang : olap.dat.ovl.b_hang);
+      e.bsx = (!improper) ^ (!olap.flipped());
+      e.bhg = (improper ? -olap.a_hang() : olap.b_hang());
 
       //  Why?  Because ahg and bhg are bit-fields, and if they're too small,
       //  we won't set them correctly.
-      assert(e.ahg == (improper ? -olap.dat.ovl.b_hang : olap.dat.ovl.a_hang));
-      assert(e.bhg == (improper ? -olap.dat.ovl.a_hang : olap.dat.ovl.b_hang));
+      assert(e.ahg == (improper ? -olap.b_hang() : olap.a_hang()));
+      assert(e.bhg == (improper ? -olap.a_hang() : olap.b_hang()));
 
       e.nes       = (is_a_dvt_simple(e.ahg, e.bhg) ? AS_CGB_DOVETAIL_EDGE : AS_CGB_CONTAINED_EDGE);
-      e.quality   = olap.dat.ovl.corr_erate;
+      e.quality   = olap.evalue();
       e.invalid   = FALSE;
       e.reflected = FALSE;
       e.grangered = FALSE;
@@ -707,19 +695,19 @@ void process_ovl_store(char * OVL_Store_Path,
                            &nedges_delta);
     }
   }
-  AS_OVS_closeOverlapStore(ovs);
+  delete ovs;
 
-  fprintf(stderr,"novl_dovetail    = "F_IID"\n", novl_dovetail);
-  fprintf(stderr,"novl_containment = "F_IID"\n", novl_containment);
-  fprintf(stderr,"nedges_delta     = "F_IID"\n", nedges_delta);
+  fprintf(stderr,"novl_dovetail    = "F_U32"\n", novl_dovetail);
+  fprintf(stderr,"novl_containment = "F_U32"\n", novl_containment);
+  fprintf(stderr,"nedges_delta     = "F_U32"\n", nedges_delta);
 }
 
 /****************************************************************************/
 
-void input_messages_from_a_file(BinaryOverlapFile *bof,
+void input_messages_from_a_file(ovFile *bof,
                                 Tfragment  frags[],
                                 Tedge      edges[],
-                                AS_IID *afr_to_avx,
+                                uint32 *afr_to_avx,
                                 VA_TYPE(IntEdge_ID)  *next_edge,
                                 const int dvt_double_sided_threshold_fragment_end_degree,
                                 const int con_double_sided_threshold_fragment_end_degree,
@@ -741,9 +729,9 @@ void input_messages_from_a_file(BinaryOverlapFile *bof,
   /* It is assumed that in the overlap records that new fragments
      point to old fragments.  */
 
-  OVSoverlap    olap;
+  ovsOverlap    olap;
 
-  while (AS_OVS_readOverlap(bof, &olap)) {
+  while (bof->readOverlap(&olap)) {
 
     //  This improper dovetail overlap (a_hang<0)&&(b_hang<0)
     //  A_frag    >>>>>>>>>>>
@@ -774,20 +762,20 @@ void input_messages_from_a_file(BinaryOverlapFile *bof,
 
     memset(&e, 0, sizeof(Aedge));
 
-    int improper = (((olap.dat.ovl.a_hang <  0) && (olap.dat.ovl.b_hang <  0)) ||
-                    ((olap.dat.ovl.a_hang == 0) && (olap.dat.ovl.b_hang <  0)) ||
-                    ((olap.dat.ovl.a_hang <  0) && (olap.dat.ovl.b_hang == 0)));
+    int improper = (((olap.a_hang() <  0) && (olap.b_hang() <  0)) ||
+                    ((olap.a_hang() == 0) && (olap.b_hang() <  0)) ||
+                    ((olap.a_hang() <  0) && (olap.b_hang() == 0)));
 
     e.avx = olap.a_iid;
     e.asx = !improper;
-    e.ahg = (improper ? -olap.dat.ovl.b_hang : olap.dat.ovl.a_hang);
+    e.ahg = (improper ? -olap.b_hang() : olap.a_hang());
 
     e.bvx = olap.b_iid;
-    e.bsx = (!improper) ^ (!olap.dat.ovl.flipped);
-    e.bhg = (improper ? -olap.dat.ovl.a_hang : olap.dat.ovl.b_hang);
+    e.bsx = (!improper) ^ (!olap.flipped());
+    e.bhg = (improper ? -olap.a_hang() : olap.b_hang());
 
     e.nes       = (is_a_dvt_simple(e.ahg, e.bhg)) ? AS_CGB_DOVETAIL_EDGE : AS_CGB_CONTAINED_EDGE;
-    e.quality   = olap.dat.ovl.corr_erate;
+    e.quality   = olap.evalue();
     e.invalid   = FALSE;
     e.grangered = FALSE;
     e.reflected = FALSE;
@@ -818,9 +806,9 @@ void input_messages_from_a_file(BinaryOverlapFile *bof,
       //fprintf(stderr, "SKIP\n");
   }
 
-  fprintf(stderr,"Input %10"F_IIDP " OVL records (skipped %10"F_IIDP" degenerate).\n",novl_dovetail+novl_containment, novl_degenerate);
-  fprintf(stderr,"      %10"F_IIDP " OVL dovetail records.\n",novl_dovetail);
-  fprintf(stderr,"      %10"F_IIDP " OVL containment records.\n",novl_containment);
+  fprintf(stderr,"Input %10"F_U32P " OVL records (skipped %10"F_U32P" degenerate).\n",novl_dovetail+novl_containment, novl_degenerate);
+  fprintf(stderr,"      %10"F_U32P " OVL dovetail records.\n",novl_dovetail);
+  fprintf(stderr,"      %10"F_U32P " OVL containment records.\n",novl_containment);
 
   nedge_new = nedge_old + nedge_delta;
   assert(nedge_new == GetNumEdges(edges));
@@ -830,14 +818,14 @@ void input_messages_from_a_file(BinaryOverlapFile *bof,
 
 void process_ovl_file(const char Batch_File_Name[],
                       THeapGlobals   * heapva,
-                      AS_IID * afr_to_avx,
+                      uint32 * afr_to_avx,
                       VA_TYPE(IntEdge_ID)  * next_edge,
                       const int dvt_double_sided_threshold_fragment_end_degree,
                       const int con_double_sided_threshold_fragment_end_degree,
                       const int intrude_with_non_blessed_overlaps_flag,
                       const uint32 overlap_error_threshold) {
 
-  BinaryOverlapFile *bof = AS_OVS_openBinaryOverlapFile(Batch_File_Name, FALSE);
+  ovFile *bof = new ovFile(Batch_File_Name);
 
   input_messages_from_a_file(bof,
                              heapva->frags,
@@ -849,7 +837,7 @@ void process_ovl_file(const char Batch_File_Name[],
                              intrude_with_non_blessed_overlaps_flag,
                              overlap_error_threshold);
 
-  AS_OVS_closeBinaryOverlapFile(bof);
+  delete bof;
 }
 
 

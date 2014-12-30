@@ -132,13 +132,16 @@ typedef struct {
   //  was FragType
   uint32                is_random;       //  only version 2
   char                  status_code;     //  only version 2
+
 #if 0
-  SeqInterval      clear_rng;
-  SeqInterval      clear_vec;       //  only version 2
-  SeqInterval      clear_max;       //  only version 2
+  SeqInterval           clear_rng;
+  SeqInterval           clear_vec;       //  only version 2
+  SeqInterval           clear_max;       //  only version 2
   SeqInterval           contamination;   //  only version 2
 #endif
+#if 0
   char            *source;
+#endif
   char            *sequence;
   char            *quality;
   char                  *hps;            //  only version 2

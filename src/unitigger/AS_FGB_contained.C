@@ -33,10 +33,10 @@ void check_containment_edges
   const IntEdge_ID nedge = GetNumEdges(edges);
 
   { IntEdge_ID ie; for(ie=0; ie<nedge; ie++) {
-    const AS_IID iavx = get_avx_edge(edges,ie);
-    const AS_IID ibvx = get_bvx_edge(edges,ie);
-    const AS_IID aid = get_iid_fragment(frags,iavx);
-    const AS_IID bid = get_iid_fragment(frags,ibvx);
+    const uint32 iavx = get_avx_edge(edges,ie);
+    const uint32 ibvx = get_bvx_edge(edges,ie);
+    const uint32 aid = get_iid_fragment(frags,iavx);
+    const uint32 bid = get_iid_fragment(frags,ibvx);
     const int iahg = get_ahg_edge(edges,ie);
     const int ibhg = get_bhg_edge(edges,ie);
     const Tnes ines = get_nes_edge(edges,ie);
@@ -47,7 +47,7 @@ void check_containment_edges
          (AS_CGB_DOVETAIL_EDGE == ines)
          )
        ) {
-      fprintf(stderr,"ie="F_IID " nes=%d\n", ie,ines);
+      fprintf(stderr,"ie="F_U32 " nes=%d\n", ie,ines);
     }
     assert(/* The containment overlaps... */
 	   (AS_CGB_CONTAINED_EDGE == ines) ||
@@ -68,7 +68,7 @@ void check_containment_edges
             ((is_a_toc_simple(iahg,ibhg) || is_a_frc_simple(iahg,ibhg))
              && (ines == AS_CGB_CONTAINED_EDGE))
            )) {
-	fprintf(stderr,"XX "F_IID " "F_IID " "F_IID " "F_IID " "F_IID " %d %d %d\n",
+	fprintf(stderr,"XX "F_U32 " "F_U32 " "F_U32 " "F_U32 " "F_U32 " %d %d %d\n",
 		ie, aid, bid,
 		iavx, ibvx, iahg, ibhg, ines);
 	fprintf(stderr,"Break the containment tie!!\n");
@@ -83,16 +83,16 @@ void contained_fragment_marking_frc
  Tfragment frags[],
  Tedge edges[])
 {
-  const AS_IID nfrag = GetNumEdges(frags);
+  const uint32 nfrag = GetNumEdges(frags);
   const IntEdge_ID nedge = GetNumEdges(edges);
 
-  { AS_IID iv; for(iv=0; iv<nfrag; iv++) {
+  { uint32 iv; for(iv=0; iv<nfrag; iv++) {
     set_con_fragment(frags,iv,FALSE);
   }}
 
   { IntEdge_ID ie; for(ie=0; ie<nedge; ie++) {
-    const AS_IID iavx = get_avx_edge(edges,ie);
-    const AS_IID ibvx = get_bvx_edge(edges,ie);
+    const uint32 iavx = get_avx_edge(edges,ie);
+    const uint32 ibvx = get_bvx_edge(edges,ie);
     const Tnes ines = get_nes_edge(edges,ie);
 
     switch(ines) {

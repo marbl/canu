@@ -56,10 +56,10 @@ static char *rcsid = "$Id$";
 
 int is_there_an_overlap_path(const Tfragment *frags,
                              const Tedge     *edges,
-                             const AS_IID target_avx,
+                             const uint32 target_avx,
                              const int        target_asx,
 #ifdef MATCH_TARGET_EDGE
-                             const AS_IID target_bvx,
+                             const uint32 target_bvx,
                              const int        target_bsx,
                              const int        target_ahg,
                              const int        target_bhg,
@@ -71,7 +71,7 @@ int is_there_an_overlap_path(const Tfragment *frags,
 #endif // MATCH_TARGET_EDGE
                              /* recursion variables: */
                              const int        search_depth, // Use zero at the top level.
-                             const AS_IID current_avx,  // Use target_avx at the top level.
+                             const uint32 current_avx,  // Use target_avx at the top level.
                              const int        current_asx,  // Use target_asx at the top level.
                              const int        current_ahg,  // Use zero at the top level.
                              const int        current_bhg,  // Use zero at the top level.
@@ -79,9 +79,9 @@ int is_there_an_overlap_path(const Tfragment *frags,
                              /* search path limiting: */
                              const int        walk_depth,   // The maximum depth of the stack.
                              const int        tolerance,    // For the overlaps
-                             AS_IID visited_a[],
+                             uint32 visited_a[],
 #ifdef MATCH_TARGET_EDGE
-                             AS_IID visited_b[],
+                             uint32 visited_b[],
 #endif // MATCH_TARGET_EDGE
                              // Was this fragment visited from the target overlap edge before? That is
                              // by the same (target_avx, target_asx, target_bvx, target_bsx).
@@ -167,14 +167,14 @@ int is_there_an_overlap_path(const Tfragment *frags,
         // initialized to TRUE before a inferring path is searched.
 
       /* Using the Overlap Record notation: */
-      const AS_IID ir1avx = get_avx_edge(edges,ir1);
+      const uint32 ir1avx = get_avx_edge(edges,ir1);
       const int        ir1asx = get_asx_edge(edges,ir1);
       const int        ir1ahg = get_ahg_edge(edges,ir1);
-      const AS_IID ir1bvx = get_bvx_edge(edges,ir1);
+      const uint32 ir1bvx = get_bvx_edge(edges,ir1);
       const int        ir1bsx = get_bsx_edge(edges,ir1);
       const int        ir1bhg = get_bhg_edge(edges,ir1);
 
-      const AS_IID new_avx = ir1bvx;
+      const uint32 new_avx = ir1bvx;
       const int            new_asx = !ir1bsx;
       const int new_ahg = current_ahg + ir1ahg;
       const int new_bhg = current_bhg + ir1bhg;
@@ -232,7 +232,7 @@ int is_there_an_overlap_path(const Tfragment *frags,
          {
            FILE *fwalk = stderr;
            fprintf(fwalk,
-                   "Walk1: "F_IID ":%d "F_IID ":%d %d %d %d : %d "F_IID ":%d "F_IID ":%d %d %d %d\n",
+                   "Walk1: "F_U32 ":%d "F_U32 ":%d %d %d %d : %d "F_U32 ":%d "F_U32 ":%d %d %d %d\n",
                    get_iid_fragment(frags,target_avx),
                    target_asx,
                    get_iid_fragment(frags,target_bvx),
@@ -315,7 +315,7 @@ int is_there_an_overlap_path(const Tfragment *frags,
          {
            FILE *fwalk = stderr;
            fprintf(fwalk,
-                   "Walk2: "F_IID ":%d "F_IID ":%d %d %d %d : %d "F_IID ":%d "F_IID ":%d %d %d %d\n",
+                   "Walk2: "F_U32 ":%d "F_U32 ":%d %d %d %d : %d "F_U32 ":%d "F_U32 ":%d %d %d %d\n",
                    get_iid_fragment(frags,target_avx),
                    target_asx,
                    get_iid_fragment(frags,target_bvx),

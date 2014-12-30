@@ -51,11 +51,11 @@ static char *rcsid = "$Id$";
 
 
 static void as_addq
-(AS_IID item,
- AS_IID thequeue[],
+(uint32 item,
+ uint32 thequeue[],
  int lenqueue,
- AS_IID *front,
- AS_IID *rear)
+ uint32 *front,
+ uint32 *rear)
 {
   /* Insert item into the circular queue stored in thequeue[0..lenqueue-1].
      rear points to one position counterclockwise from the last item and
@@ -64,7 +64,7 @@ static void as_addq
   thequeue[*rear] = item; /* insert the new item */
   *rear = (*rear + 1) & lenqueue; /* advance the rear clockwise */
   if( *front == *rear) { /* The queue is full */
-    fprintf(stderr,"lenqueue=%d front="F_IID " rear="F_IID "\n",
+    fprintf(stderr,"lenqueue=%d front="F_U32 " rear="F_U32 "\n",
             lenqueue, *front, *rear);
     assert( *front != *rear ); /* Increase MAXQUEUELEN ? */
     /* CALL queueFULL */
@@ -72,11 +72,11 @@ static void as_addq
 }
 
 static void as_delq
-( AS_IID *item,
-  AS_IID thequeue[],
+( uint32 *item,
+  uint32 thequeue[],
   int lenqueue,
-  AS_IID *front,
-  AS_IID *rear)
+  uint32 *front,
+  uint32 *rear)
 {
   /* Removes the rear element of the queue, and stores it
      in the item. This is a undo or stack pop operation. */
@@ -89,11 +89,11 @@ static void as_delq
 }
 
 static void as_subq
-( AS_IID *item,
-  AS_IID thequeue[],
+( uint32 *item,
+  uint32 thequeue[],
   int lenqueue,
-  AS_IID *front,
-  AS_IID *rear)
+  uint32 *front,
+  uint32 *rear)
 {
   /* Removes the front element of the queue, and stores it
      in the item. */
@@ -107,24 +107,24 @@ static void as_subq
 
 static void as_diagq
 ( FILE *fout,
-  AS_IID thequeue[],
+  uint32 thequeue[],
   int lenqueue,
-  AS_IID front,
-  AS_IID rear)
+  uint32 front,
+  uint32 rear)
 {
-  AS_IID iq;
-  fprintf(fout,"the queue front="F_IID " rear="F_IID "\n",front,rear);
+  uint32 iq;
+  fprintf(fout,"the queue front="F_U32 " rear="F_U32 "\n",front,rear);
   if( front != rear ) {
   if( front < rear ) {
     for(iq=front;iq<rear;iq++) {
-      fprintf(fout,F_IID " ",thequeue[iq]);
+      fprintf(fout,F_U32 " ",thequeue[iq]);
     }
   } else {
     for(iq=front;iq<lenqueue;iq++) {
-      fprintf(fout,F_IID " ",thequeue[iq]);
+      fprintf(fout,F_U32 " ",thequeue[iq]);
     }
     for(iq=0;iq<rear;iq++) {
-      fprintf(fout,F_IID " ",thequeue[iq]);
+      fprintf(fout,F_U32 " ",thequeue[iq]);
     }
   }}
   fprintf(fout,"\n");
@@ -134,16 +134,16 @@ static void as_diagq
 
 static void as_dfs_intrachunk
 (
- AS_IID iv0,
+ uint32 iv0,
  size_t    *nfound,
- AS_IID nfrag,
+ uint32 nfrag,
  Tfragment  frags[],
  IntEdge_ID nedge,
  Tedge      edges[],
  size_t     fragment_rank[])
 {
   int is0;
-  AS_IID iv1;
+  uint32 iv1;
   IntEdge_ID ie1,ie0;
   int ne0;
 
@@ -167,16 +167,16 @@ static void as_dfs_intrachunk
 }
 
 static void as_dfs
-(AS_IID iv0,
+(uint32 iv0,
  size_t    *nfound,
- AS_IID nfrag,
+ uint32 nfrag,
  Tfragment  frags[],
  IntEdge_ID nedge,
  Tedge      edges[],
  size_t     fragment_rank[])
 {
   int is0;
-  AS_IID iv1;
+  uint32 iv1;
   IntEdge_ID ie1,ie0;
   int ne0;
 
@@ -203,12 +203,12 @@ static void as_dfs
   }
 }
 
-static AS_IID thequeue[MAXQUEUELEN];
+static uint32 thequeue[MAXQUEUELEN];
 
 static void as_bfs
-(AS_IID ivi,
+(uint32 ivi,
  size_t    *nfound,
- AS_IID nfrag,
+ uint32 nfrag,
  Tfragment  frags[],
  IntEdge_ID nedge,
  Tedge      edges[],
@@ -221,8 +221,8 @@ static void as_bfs
      The graph and the array fragment_rank[] are initialized.
   */
 
-  AS_IID iv0,iv1;
-  AS_IID front,rear;
+  uint32 iv0,iv1;
+  uint32 front,rear;
   IntEdge_ID ie1,ie0;
   int ne0;
 
@@ -275,9 +275,9 @@ void as_graph_traversal
  )
 { /* A marked traversal of the graph. */
   size_t  nconnected=0,nfound=0,ncontained=0,ncircl=0;
-  AS_IID ivi;
+  uint32 ivi;
 
-  const AS_IID nfrag = GetNumFragments(frags);
+  const uint32 nfrag = GetNumFragments(frags);
   const IntEdge_ID nedge = GetNumEdges(edges);
 
   for(ivi=0; ivi<nfrag; ivi++) {
@@ -301,7 +301,7 @@ void as_graph_traversal
     //nfound++;
   }
   fprintf(fout,"FRAGMENT OVERLAP GRAPH TRAVERSAL STATISTICS\n\n"
-	  "%15"F_IIDP " : number of fragments in overlap graph\n"
+	  "%15"F_U32P " : number of fragments in overlap graph\n"
 	  "%15" F_SIZE_TP " : number of fragments found by breadth first search\n"
 	  "%15" F_SIZE_TP " : number of weakly connected graph components\n"
 	  "%15" F_SIZE_TP " : number of contained fragments\n"
