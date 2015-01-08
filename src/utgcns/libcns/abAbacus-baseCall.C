@@ -21,6 +21,9 @@
 
 static char *rcsid = "$Id$";
 
+#include "abAbacus.H"
+
+#if 0
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
@@ -31,6 +34,7 @@ static char *rcsid = "$Id$";
 #include "MultiAlignment_CNS_private.H"
 //#include "MicroHetREZ.H"
 #include "AS_UTL_reverseComplement.H"
+#endif
 
 #include <vector>
 
@@ -38,23 +42,19 @@ using namespace std;
 
 
 void
-BaseCallMajority(int32 cid) {
-  int32 bsSum[CNS_NP] = {0};  //  Number of times we've seen this base
-  int32 qvSum[CNS_NP] = {0};  //  Sum of their QVs
+abAbacus::baseCallMajority(abColID cid) {
+  uint32 bsSum[CNS_NP] = {0};  //  Number of times we've seen this base
+  uint32 qvSum[CNS_NP] = {0};  //  Sum of their QVs
 
-  Column *column = GetColumn(columnStore,cid);
-  Bead   *call   = GetBead(beadStore, column->call);
+  abColumn *column = getColumn(cid);
+  abBead   *call   = getBead(column->callID());
 
-  ColumnBeadIterator cbi;
+  abColBeadIterator *cbi = createColBeadIterator(cid);
 
-  CreateColumnBeadIterator(cid, &cbi);
-
-  for (beadIdx bid=NextColumnBead(&cbi);
-       bid.isValid();
-       bid=NextColumnBead(&cbi)) {
-    Bead *bead = GetBead(beadStore,bid);
-    char  bs   = *Getchar(sequenceStore, bead->soffset);
-    char  qv   = *Getchar(qualityStore,  bead->soffset);
+  for (abBeadID bid=cbi->next(); bid.isValid(); bid=cbi->next()) {
+    abBead *bead = getBead(bid);
+    char  bs     = getBase(bead->baseIdx());
+    char  qv     = getQual(bead->baseIdx());
 
     bsSum[RINDEX[bs]] += 1;
     qvSum[RINDEX[bs]] += qv;
@@ -62,10 +62,10 @@ BaseCallMajority(int32 cid) {
 
   //  Find the best, ignore ties.
 
-  int32 bestIdx  = 0;
+  uint32 bestIdx  = 0;
 
-  for (int32 i=0; i<CNS_NALPHABET; i++)
-    if (((bsSum[i] > bsSum[bestIdx])) ||
+  for (uint32 i=0; i<CNS_NALPHABET; i++)
+    if (((bsSum[i] >  bsSum[bestIdx])) ||
         ((bsSum[i] >= bsSum[bestIdx]) && (qvSum[i] > qvSum[bestIdx])))
       bestIdx  = i;
 
@@ -74,26 +74,27 @@ BaseCallMajority(int32 cid) {
   char  base = toupper(RALPHABET[bestIdx]);
   char  qv   = '0';
 
-  Setchar(sequenceStore, call->soffset, &base);
-  Setchar(qualityStore,  call->soffset, &qv);
+  setBase(call->baseIdx(), base);
+  setQual(call->baseIdx(), qv);
 }
 
 
 
 void
-BaseCallQuality(int32        cid,
-                double      &var,
-                VarRegion   *vreg,
-                int32        get_scores,
-                int32        split_alleles,
-                int32        smooth_win) {
+abAbacus::baseCallQuality(abVarRegion   &vreg,
+                          abColID        cid,
+                          double        &var,
+                          int32          target_allele,
+                          bool           getScores,
+                          int32          split_alleles,
+                          int32          smooth_win) {
 
   char    consensusBase = '-';
   char    consensusQV   = '0';
 
-  vector<Bead *>  bReads;  uint32  bBaseCount[CNS_NP] = {0};  uint32  bQVSum[CNS_NP] = {0};
-  vector<Bead *>  oReads;  uint32  oBaseCount[CNS_NP] = {0};  uint32  oQVSum[CNS_NP] = {0};
-  vector<Bead *>  gReads;  uint32  gBaseCount[CNS_NP] = {0};  uint32  gQVSum[CNS_NP] = {0};
+  vector<abBead *>  bReads;  uint32  bBaseCount[CNS_NP] = {0};  uint32  bQVSum[CNS_NP] = {0};
+  vector<abBead *>  oReads;  uint32  oBaseCount[CNS_NP] = {0};  uint32  oQVSum[CNS_NP] = {0};
+  vector<abBead *>  gReads;  uint32  gBaseCount[CNS_NP] = {0};  uint32  gQVSum[CNS_NP] = {0};
 
   double  cw[5]    = { 0.0, 0.0, 0.0, 0.0, 0.0 };      // "consensus weight" for a given base
   double  tau[5]   = { 1.0, 1.0, 1.0, 1.0, 1.0 };
@@ -103,16 +104,12 @@ BaseCallQuality(int32        cid,
 
   uint32 frag_cov = 0;
 
-  int32  target_allele = -1;
-
   bool   used_surrogate = false;
 
-  Column *column = GetColumn(columnStore,cid);
-  Bead   *call   = GetBead(beadStore, column->call);
+  abColumn *column = getColumn(cid);
+  abBead   *call   = getBead(column->callID());
 
-  ColumnBeadIterator cbi;
-
-  CreateColumnBeadIterator(cid, &cbi);
+  abColBeadIterator *cbi = createColBeadIterator(cid);
 
 
   // Scan a column of aligned bases (=beads).
@@ -121,62 +118,55 @@ BaseCallQuality(int32        cid,
   //      - those corresponding to the reads of the other allele and
   //      - those corresponding to non-read fragments (aka guides)
 
-  for (beadIdx bid=NextColumnBead(&cbi);
-       bid.isValid();
-       bid=NextColumnBead(&cbi)) {
-
-    Bead *bead    =   GetBead(beadStore,bid);
-    char  base    = *Getchar(sequenceStore, bead->soffset);
-    int32 baseIdx =  RINDEX[base];
-    int   qv      = *Getchar(qualityStore,  bead->soffset) - '0';
+  for (abBeadID bid=cbi->next(); bid.isValid(); bid=cbi->next()) {
+    abBead *bead    = getBead(bid);
+    char    base    = getBase(bead->baseIdx());
+    int32   baseIdx = RINDEX[base];
+    int     qv      = getQual(bead->baseIdx()) - '0';
 
     if (base == 'N')
       continue;
 
-    FragType type  = GetFragment(fragmentStore,bead->frag_index)->type;
+    if (getSequence(bead->seqIdx())->isRead() == false) {
+      //assert(type == AS_UNITIG);
 
-    if (type != AS_READ) {
-      assert(type == AS_UNITIG);
-      gBaseCount[baseIdx]++;
-      gQVSum[baseIdx] += qv;
+      gBaseCount[baseIdx] += 1;
+      gQVSum[baseIdx]     += qv;
+
       gReads.push_back(bead);
+
       continue;
     }
 
     frag_cov++;
 
-    AS_IID  iid     = GetFragment(fragmentStore,bead->frag_index)->iid;
+    uint32  iid     = getSequence(bead->seqIdx())->iid;
     uint32  vregidx = 0;
 
-    assert(vreg->nr >= 0);
+    assert(vreg.nr >= 0);
 
-    for (; vregidx < vreg->nr; vregidx++)
-      if (iid == vreg->iids[vregidx])
+    for (; vregidx < vreg.nr; vregidx++)
+      if (iid == vreg.iids[vregidx])
         break;
 
     //  If there are vreg's, assert we found the iid in it
-    assert((vreg->nr <= 0) || (vregidx < vreg->nr));
+    assert((vreg.nr <= 0) || (vregidx < vreg.nr));
 
     // Will be used when detecting alleles
 
-    if (get_scores) {
-      vreg->curr_bases[vreg->nb] = base;
-      vreg->iids[vreg->nb]       = iid;
-      vreg->nb++;
+    if (getScores) {
+      vreg.curr_bases.push_back(base);
+      vreg.iids.push_back(iid);
 
-      if (vreg->nb == vreg->max_nr) {
-        vreg->max_nr     += INITIAL_NR;
-        vreg->curr_bases  = (char  *)safe_realloc(vreg->curr_bases, vreg->max_nr * sizeof(char));
-        vreg->iids        = (int32 *)safe_realloc(vreg->iids,       vreg->max_nr * sizeof(int32));
-      }
+      vreg.nb = vreg.curr_bases.size();
     }
 
     // Will be used when detecting variation
 
     if (((target_allele < 0)        ||   // use any allele
          (split_alleles == 0)       ||   // use any allele
-         ((vreg->nr > 0)  &&
-          (vreg->reads[vregidx].allele_id == target_allele)))) { // use the best allele
+         ((vreg.nr > 0)  &&
+          (vreg.reads[vregidx].allele_id == target_allele)))) { // use the best allele
       bBaseCount[baseIdx]++;
       bQVSum[baseIdx] += qv;
       bReads.push_back(bead);
@@ -200,9 +190,9 @@ BaseCallQuality(int32        cid,
   //  Compute tau based on guides
   //
   for (uint32 cind = 0; cind < gReads.size(); cind++) {
-    Bead *gb   = gReads[cind];
-    char  base = *Getchar(sequenceStore,gb->soffset);
-    int32 qv   = *Getchar(qualityStore, gb->soffset) - '0';
+    abBead *gb   = gReads[cind];
+    char    base = getBase(gb->baseIdx());
+    uint32  qv   = getQual(gb->baseIdx()) - '0';
 
     used_surrogate = true;
 
@@ -226,9 +216,9 @@ BaseCallQuality(int32        cid,
   //  Compute tau based on others
   //
   for (uint32 cind=0; cind<oReads.size(); cind++) {
-    Bead  *gb   = oReads[cind];
-    char   base = *Getchar(sequenceStore, gb->soffset);
-    int32  qv   = *Getchar(qualityStore,  gb->soffset) - '0';
+    abBead  *gb   = oReads[cind];
+    char     base = getBase(gb->baseIdx());
+    int32    qv   = getQual(gb->baseIdx()) - '0';
 
     used_surrogate = false;
 
@@ -252,9 +242,9 @@ BaseCallQuality(int32        cid,
   //  Compute tau based on real reads.
   //
   for (uint32 cind=0; cind<bReads.size(); cind++) {
-    Bead  *gb   = bReads[cind];
-    char   base = *Getchar(sequenceStore, gb->soffset);
-    int32  qv   = *Getchar(qualityStore,  gb->soffset) - '0';
+    abBead  *gb   = bReads[cind];
+    char     base = getBase(gb->baseIdx());
+    int32    qv   = getQual(gb->baseIdx()) - '0';
 
     used_surrogate = false;
 
@@ -277,11 +267,8 @@ BaseCallQuality(int32        cid,
       (gReads.size() == 0)) {
     //fprintf(stderr, "No coverage for column=%d.  Assume it's an N in a single coverage area.\n", cid);
 
-    consensusBase = 'N';
-    consensusQV   = '0';
-
-    Setchar(sequenceStore, call->soffset, &consensusBase);
-    Setchar(qualityStore,  call->soffset, &consensusQV);
+    setBase(call->baseIdx(), 'N');
+    setQual(call->baseIdx(), '0');
 
     return;
   }
@@ -386,13 +373,12 @@ BaseCallQuality(int32        cid,
     consensusQV = CNS_MAX_QV + '0';
   }
 
-  Setchar(qualityStore, call->soffset, &consensusQV);
-
+  setQual(call->baseIdx(), consensusQV);
 
   if ((target_allele  < 0) ||
-      (target_allele == vreg->alleles[0].id)) {
-    Setchar(sequenceStore, call->soffset, &consensusBase);
-    Setchar(qualityStore,  call->soffset, &consensusQV);
+      (target_allele == vreg.alleles[0].id)) {
+    setBase(call->baseIdx(), consensusBase);
+    setQual(call->baseIdx(), consensusQV);
   }
 
   // Detecting variation
@@ -451,34 +437,36 @@ BaseCallQuality(int32        cid,
 
 
 
-void
-BaseCall(int32        cid,
-         bool         highQuality,
-         double      &var,
-         VarRegion   *vreg,
-         int32        target_allele,
-         char        &cons_base,
-         int32        get_scores,
-         CNS_Options *opp) {
+char
+abAbacus::baseCall(abVarRegion &vreg,
+                   abColID      cid,
+                   bool         highQuality,
+                   double      &var,
+                   int32        target_allele,
+                   bool         getScores,
+                   int32        split_alleles,
+                   int32        smooth_win) {
 
-  Column *column = GetColumn(columnStore,cid);
-  Bead   *call   = GetBead(beadStore, column->call);
+  abColumn *column = getColumn(cid);
+  abBead   *call   = getBead(column->callID());
 
-  // NOTE: negative target_allele means the the alleles will be used
+  //  NOTE: negative target_allele means the the alleles will be used
+  //  Hardcoded in baseCallQuality
   assert(target_allele == -1);
 
-  var      = 0.0;
-  vreg->nb = 0;
+  var     = 0.0;
+  vreg.nb = 0;
 
   if (highQuality)
-    BaseCallQuality(cid,
+    baseCallQuality(vreg,
+                    cid,
                     var,
-                    vreg,
-                    get_scores,
-                    (opp) ? opp->split_alleles : CNS_OPTIONS_SPLIT_ALLELES_DEFAULT,
-                    (opp) ? opp->smooth_win    : CNS_OPTIONS_MIN_ANCHOR_DEFAULT);
+                    target_allele,
+                    getScores,
+                    split_alleles,
+                    smooth_win);
   else
-    BaseCallMajority(cid);
+    baseCallMajority(cid);
 
-  cons_base = *Getchar(sequenceStore, call->soffset);
+  return(getBase(call->baseIdx()));
 }

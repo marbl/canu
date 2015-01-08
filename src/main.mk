@@ -55,7 +55,21 @@ SOURCES  := AS_global.C \
             alignment/find-local-overlap.C \
             alignment/find-local-segments.C \
             alignment/fix-overlapping-pieces.C \
-            alignment/local-overlapper.C
+            alignment/local-overlapper.C \
+            \
+            utgcns/libcns/abAbacus.C \
+            utgcns/libcns/abAbacus-refreshMultiAlign.C \
+            utgcns/libcns/abAbacus-baseCall.C 
+
+#            utgcns/libcns/AbacusRefine.C \
+#            utgcns/libcns/ApplyAlignment.C \
+#            utgcns/libcns/BaseCall.C \
+#            utgcns/libcns/MergeRefine.C \
+#            utgcns/libcns/MultiAlignUnitig.C \
+#            utgcns/libcns/MultiAlignment_CNS.C \
+#            utgcns/libcns/PrintAlignment.C \
+#            utgcns/libcns/RefreshMANode.C
+
 
 
 #  Not complete, just snippets of code
