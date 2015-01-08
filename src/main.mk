@@ -58,8 +58,10 @@ SOURCES  := AS_global.C \
             alignment/local-overlapper.C \
             \
             utgcns/libcns/abAbacus.C \
+            utgcns/libcns/abAbacus-addRead.C \
             utgcns/libcns/abAbacus-refreshMultiAlign.C \
-            utgcns/libcns/abAbacus-baseCall.C 
+            utgcns/libcns/abAbacus-baseCall.C \
+            utgcns/libcns/abAbacus-applyAlignment.C 
 
 #            utgcns/libcns/AbacusRefine.C \
 #            utgcns/libcns/ApplyAlignment.C \

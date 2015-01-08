@@ -21,7 +21,7 @@ private:
   //FragType    type;
   //UnitigType  utype;
   uint32           iid;            //  external, aka gatekeeper, ID;
-  abBaseID         lid;            //  index in sequence/quality/fragment store
+  abSeqID          lid;            //  index in sequence/quality/fragment store
 
   bool             is_read;
 
@@ -31,7 +31,7 @@ private:
   bool             is_contained;   //  if non-zero, consensus detected this fragment is contained
   bool             deleted;
   abMultiAlignID   manode;
-  abSeqID          sequence;       //  global index of first sequence character
+  abBaseID         sequence;       //  global index of first sequence character
   abBeadID         firstbead;      //  global index of first "bead"
   uint32           n_components;   //  number of component frags (in case of "unitig" Fragments)
   uint32           components;     //  global index of first component frag

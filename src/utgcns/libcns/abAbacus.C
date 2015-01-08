@@ -27,7 +27,7 @@ abAbacus::addBead(char base, char qual) {
 
   _beads[_beadsLen].boffset.set(_beadsLen);
   _beads[_beadsLen].soffset       = abBaseID();
-  _beads[_beadsLen].foffset       = abSeqID();
+  _beads[_beadsLen].foffset       = UINT32_MAX;
   _beads[_beadsLen].prev          = abBeadID();
   _beads[_beadsLen].next          = abBeadID();
   _beads[_beadsLen].up            = abBeadID();
@@ -71,7 +71,8 @@ abAbacus::appendGapBead(abBeadID bid) {
 
   bead->boffset.set(_beadsLen);
   bead->soffset.set(_basesLen);
-  bead->foffset.set(prev->foffset.get() + 1);
+
+  bead->foffset = prev->foffset + 1;
 
   bead->prev         = prev->boffset;
   bead->next         = prev->next;
@@ -132,7 +133,8 @@ abAbacus::prependGapBead(abBeadID bid) {
 
   bead->boffset.set(_beadsLen);
   bead->soffset.set(_basesLen);
-  bead->foffset.set(next->foffset.get());  //  Same as prev+1
+
+  bead->foffset = next->foffset;  //  Same as prev+1
 
   bead->prev         = next->prev;
   bead->next         = next->boffset;

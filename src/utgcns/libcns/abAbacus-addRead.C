@@ -1,4 +1,4 @@
-
+#include "abAbacus.H"
 
 
 #if 0
@@ -158,21 +158,25 @@ abAbacus::addContig() {
       fragment.components   = SetUngappedFragmentPositions(type, fragment.n_components, uma);
 
       //fprintf(stderr, "AppendFragToLocalStore()-- TIG %d len=%d\n", iid, fragment.length);
+}
+
 #endif
 
-}
+
+
 
 
 abSeqID
-abAbacus::addRead(uint32   readID,
-                bool     complemented) {
+abAbacus::addRead(gkStore *gkpStore,
+                  uint32   readID,
+                  bool     complemented) {
 
   //  Grab the read
 
   gkRead      *read = gkpStore->gkStore_getRead(readID);
   gkReadData   readData;
 
-  gkpStore->loadReadData(read, &readData);
+  gkpStore->gkStore_loadReadData(read, &readData);
 
   uint32  bgn = read->gkRead_clearRegionBegin();
   uint32  end = read->gkRead_clearRegionEnd();
@@ -181,20 +185,20 @@ abAbacus::addRead(uint32   readID,
 
   increaseArray(_sequences, _sequencesLen, _sequencesMax, 1);
 
-  abSequence   *ns = _sequences + _sequencesLen++;
+  abSequence   *ns = _sequences + _sequencesLen;
 
   ns->iid           = readID;
-  ns->lid           = reads.size();   // index in sequence/quality/fragment store
+  ns->lid.set(_sequencesLen++);         // index in sequence/quality/fragment store
   ns->length        = end - bgn;
   ns->complement    = complemented;
-  ns->container_iid = -1;             // if non-zero, the iid of our container
-  ns->is_contained  = false;          // if non-zero, consensus detected this fragment is contained
+  ns->container_iid = -1;               // if non-zero, the iid of our container
+  ns->is_contained  = false;            // if non-zero, consensus detected this fragment is contained
   ns->deleted       = false;
-  ns->manode        = -1;
-  ns->sequence      = basesLen;       // global index of first sequence character
-  ns->firstbead     = -1;             // global index of first "bead"
-  ns->n_components  = 0;              // number of component frags (in case of "unitig" Fragments)
-  ns->components    = -1;             // global index of first component frag
+  ns->manode        = abMultiAlignID();
+  ns->sequence.set(_basesLen);          // global index of first sequence character
+  ns->firstbead     = abBeadID();       // global index of first "bead"
+  ns->n_components  = 0;                // number of component frags (in case of "unitig" Fragments)
+  ns->components    = -1;               // global index of first component frag
 
   //  Make a complement table
 
@@ -214,18 +218,23 @@ abAbacus::addRead(uint32   readID,
 
   //  Stash the bases/quals
 
-  increaesArray(_bases, _basesLen, _basesMax, end - bgn + 1);
+  {
+    char  *seq = readData.gkReadData_getSequence();
+    char  *qlt = readData.gkReadData_getQualities();
 
-  if (complement == false) {
-    for (uint32 ii=bgn, pp=_basesLen; ii<end; ii++, pp++) {
-      _bases[pp]._base = read->gkReadData_getSequence()  + ii;
-      _bases[pp]._qual = read->gkReadData_getQualities() + ii;
-    }
+    increaseArray(_bases, _basesLen, _basesMax, end - bgn + 1);
 
-  } else {
-    for (uint32 ii=end, pp=_basesLen; ii-->bgn; pp++) {
-      _bases[pp]._base = inv[read->gkReadData_getSequence()  + ii];
-      _bases[pp]._qual = inv[read->gkReadData_getQualities() + ii];
+    if (complemented == false) {
+      for (uint32 ii=bgn, pp=_basesLen; ii<end; ii++, pp++) {
+        _bases[pp]._base = seq[ii];
+        _bases[pp]._qual = qlt[ii];
+      }
+
+    } else {
+      for (uint32 ii=end, pp=_basesLen; ii-->bgn; pp++) {
+        _bases[pp]._base = inv[ seq[ii] ];
+        _bases[pp]._qual =      qlt[ii];
+      }
     }
   }
 
@@ -242,26 +251,28 @@ abAbacus::addRead(uint32   readID,
   ns->firstbead.set(_beadsLen);
 
   {
-    abacusBead   bead;
-
-    bead.frag_index   = ns->lid;
-
     for (uint32 bp=0; bp<ns->length; bp++, _beadsLen++) {
-      bead.foffset = bp;
+      _beads[_beadsLen].boffset.set(_beadsLen);
+      _beads[_beadsLen].soffset.set(ns->sequence.get() + bp);
+      _beads[_beadsLen].foffset = bp;
 
-      bead.boffset.set(ns->firstbead.get() + bp);
-      bead.soffset.set(ns->sequence.get()  + bp);
+      assert(_beads[_beadsLen].boffset.get() == ns->firstbead.get() + bp);
 
-      bead.next.set(bead.boffset.get() + 1);
-      bead.prev.set(bead.boffset.get() - 1);
+      if (_beads[_beadsLen].foffset == 0)
+        _beads[_beadsLen].prev = abBeadID();
+      else
+        _beads[_beadsLen].prev.set(_beads[_beadsLen].boffset.get() - 1);
 
-      if (foffset == 0)
-        bead.prev = beadIdx();
+      if (_beads[_beadsLen].foffset == ns->length - 1)
+        _beads[_beadsLen].next = abBeadID();
+      else
+        _beads[_beadsLen].next.set(_beads[_beadsLen].boffset.get() + 1);
 
-      if (foffset == fragment.length - 1)
-        bead.next = beadIdx();
+      _beads[_beadsLen].up           = abBeadID();
+      _beads[_beadsLen].down         = abBeadID();
 
-      _beads[_beadsLen] = bead;
+      _beads[_beadsLen].frag_index   = ns->lid;
+      _beads[_beadsLen].column_index = abColID();
     }
   }
 

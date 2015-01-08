@@ -164,8 +164,8 @@ public:
   //  Constructors
   //
 
-  abSeqID         addRead  (uint32 readID, bool complemented);  //  Adds gkpStore read 'readID' to the abacus; former AppendFragToLocalStore
-  abSeqID         addUnitig(uint32 readID, bool complemented);  //  NOT SUPPORTED
+  abSeqID         addRead  (gkStore *gkpStore, uint32 readID, bool complemented);  //  Adds gkpStore read 'readID' to the abacus; former AppendFragToLocalStore
+  abSeqID         addUnitig(gkStore *gkpStore, uint32 readID, bool complemented);  //  NOT SUPPORTED
   
   abBeadID        addBead(char base=0, char qual=0);
 
@@ -174,6 +174,7 @@ public:
 
   //  Former ColumnAppend
   abColID         appendColumn(abColID cid, abBeadID bid);
+  abColID         prependColumn(abColID cid, abBeadID bid);
 
   //  Adds a column, with a single bead
   //  Former CreateColumn()
@@ -229,6 +230,12 @@ public:
                            int32        split_alleles,
                            int32        smooth_win);
 
+  void            applyAlignment(abSeqID  afid,
+                                 int32    alen, abBeadID *aindex,
+                                 abSeqID  bfid,
+                                 int32    ahang,
+                                 int32   *trace);
+
 
 
   //
@@ -242,11 +249,6 @@ int      AbacusRefine(MANode *ma,
                         CNS_Options *opp);
 
 
-  void     ApplyAlignment(int32 afid,
-                          int32 alen, abBeadID *aindex,
-                          int32 bfid,
-                          int32 ahang,
-                          int32 *trace);
 
   void     PrintAlignment(FILE *print,
                           int32 mid,

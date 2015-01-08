@@ -21,17 +21,7 @@
 
 static char *rcsid = "$Id$";
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <assert.h>
-#include <math.h>
-#include <ctype.h>
-
-#include "MultiAlignment_CNS.H"
-#include "MultiAlignment_CNS_private.H"
-//#include "MicroHetREZ.H"
-#include "AS_UTL_reverseComplement.H"
-
+#include "abAbacus.H"
 
 #undef  DEBUG_FIND_BEAD
 #undef  DEBUG_ALIGN_GAPS
@@ -40,20 +30,16 @@ static char *rcsid = "$Id$";
 
 //  Add a column before cid, seeded with bead bid.
 //
-static
-int32
-ColumnPrepend(int32 cid, beadIdx bid) {
+abColID
+abAbacus::prependColumn(abColID cid, abBeadID bid) {
+  abColumn *next     = getColumn(cid);
+  abBead   *nextcall = getBead(next->call);
 
-  ColumnBeadIterator ci;
-  beadIdx  nid;
+  abColID   col      = addColumn(next->ma_id, bid);
+  abColumn *column   = getColumn(col);
+  abBead   *call     = getBead(column->call);
 
-  Bead   *bead     = GetBead(beadStore, bid);
-  Column *column   = CreateColumn(bid);
-  Bead   *call     = GetBead(beadStore, column->call);
-  Column *next     = GetColumn(columnStore, cid);
-  Bead   *nextcall = GetBead(beadStore, next->call);
-
-  //fprintf(stderr, "ColumnPrepend()-- adding column for bid %d\n", bid);
+  //fprintf(stderr, "prependColumn()-- adding column for bid %d\n", bid);
 
   column->prev   = next->prev;
   column->next   = cid;
@@ -64,98 +50,51 @@ ColumnPrepend(int32 cid, beadIdx bid) {
 
   nextcall->prev = call->boffset;
 
-  if (column->prev != -1)
-    GetColumn(columnStore,column->prev)->next = column->lid;
+  if (column->prevID().isValid())
+    getColumn(column->prev)->next = column->lid;
 
   if (call->prev.isValid())
-    GetBead(beadStore,call->prev)->next = call->boffset;
+    getBead(call->prev)->next = call->boffset;
 
-  CreateColumnBeadIterator(cid, &ci);
+  abColBeadIterator *ci = createColBeadIterator(cid);
 
-  while ((nid = NextColumnBead(&ci)).isValid()) {
-    bead = GetBead(beadStore, nid);
+  for (abBeadID  nid=ci->next(); nid.isValid(); nid=ci->next()) {
+    abBead *bead = getBead(nid);
 
     //  The original version would not insert a gap bead at the start of a fragment.
 
     if ((bead->prev.isValid()) &&
         (bead->prev != bid))
-      AlignBeadToColumn(column->lid, PrependGapBead(nid), "ColumnPrepend()");
+      alignBeadToColumn(column->lid, prependGapBead(nid), "prependColumn()");
   }
 
-  column->ma_id    = next->ma_id;
-  column->ma_index = next->ma_index - 1;
+  column->ma_id       = next->ma_id;
+  column->ma_position = next->ma_position - 1;
 
-  AddColumnToMANode(column->ma_id,*column);
+  //AddColumnToMANode(column->ma_id, *column);
+  {
+    abMultiAlign *ma = getMultiAlign(column->ma_id);
 
-  if (column->prev == -1)
-    GetMANode(manodeStore,column->ma_id)->first = column->lid;
+    ma->columnList.push_back(column->lid);
 
-  return column->lid;
-}
+    if (column->next.isValid() == false)
+      ma->last = column->lid;
 
-
-
-static
-void
-CheckColumns(void) {
-  int32 fails = 0;
-  int32 cmax  = GetNumColumns(columnStore);
-
-  for (int32 cid=0; cid<cmax; cid++) {
-    Column *column = GetColumn(columnStore,cid);
-
-    if (column == NULL)
-      continue;
-
-    ColumnBeadIterator ci;
-    CreateColumnBeadIterator(cid,&ci);
-
-    Bead   *call = GetBead(beadStore,column->call);
-    beadIdx  bid;
-
-    while ( (bid = NextColumnBead(&ci)).isValid() ) {
-      Bead *bead = GetBead(beadStore,bid);
-
-      if (bead->column_index != cid)
-        fails++;
-    }
+    if (column->prev.isValid() == false)
+      ma->first = column->lid;
   }
-  assert(fails == 0);
+
+  //  Redundant
+  //if (column->prevID().isValid() == false)
+  //  getMultiAlign(column->ma_id)->first = column->lid;
+
+  return(column->lid);
 }
 
 
 
 
-//  All the a beads should be in a column.  All the b beads should not.
-//
-static
-void
-sanityCheck(beadIdx aboffset, beadIdx bboffset) {
-  Bead   *b = GetBead(beadStore, aboffset);
-  int32   e = 0;
 
-  while (b) {
-    if (b->column_index == -1) {
-      e++;
-      fprintf(stderr, "bead "F_U64" in A has undef column_index.\n",
-              (uint64)b->boffset.get());
-    }
-    b = (b->next.isInvalid()) ? NULL : GetBead(beadStore, b->next);
-  }
-
-  b = GetBead(beadStore, bboffset);
-
-  while (b) {
-    if (b->column_index != -1) {
-      e++;
-      fprintf(stderr, "bead "F_U64" in B has defined column_index %d.\n",
-              (uint64)b->boffset.get(), b->column_index);
-    }
-    b = (b->next.isInvalid()) ? NULL : GetBead(beadStore, b->next);
-  }
-
-  assert(e == 0);
-}
 
 
 
@@ -164,56 +103,55 @@ sanityCheck(beadIdx aboffset, beadIdx bboffset) {
 //    in the same column as bead bi
 //    in the same fragment as bead fi
 //
-static
-beadIdx
-findBeadInColumn(beadIdx bi, beadIdx fi) {
+abBeadID
+findBeadInColumn(abAbacus *abacus, abBeadID bi, abBeadID fi) {
 
 #ifdef DEBUG_FIND_BEAD
-  fprintf(stderr, "findBeadInColumn bead bi=%d bead fi=%d\n", bi.get(), fi.get());
+  fprintf(stderr, "findBeadInColumn bead bi="F_U32" bead fi="F_U32"\n", bi.get(), fi.get());
 #endif
 
   if ((fi.isInvalid()) || (bi.isInvalid()))
-    return(beadIdx());
+    return(abBeadID());
 
-  int32 ff = GetBead(beadStore, fi)->frag_index;
+  abSeqID ff = abacus->getBead(fi)->seqIdx();
 
 #ifdef DEBUG_FIND_BEAD
-  fprintf(stderr, "findBeadInColumn fragindex ff="F_S32"\n", ff);
+  fprintf(stderr, "findBeadInColumn fragindex ff="F_S32"\n", ff.get());
 #endif
 
-  Bead *b = GetBead(beadStore, bi);
+  abBead *b = abacus->getBead(bi);
 
-  if (b->frag_index == ff)
+  if (b->seqIdx() == ff)
     return(bi);
 
   //  Search up.  The way we call findBeadInColumn, the one we're
   //  looking for is usually up from where we start.
-  while (b->up.isValid()) {
-    b = GetBead(beadStore, b->up);
+  while (b->upID().isValid()) {
+    b = abacus->getBead(b->upID());
 #ifdef DEBUG_FIND_BEAD
-    fprintf(stderr, "findBeadInColumn up bead="F_U64" ff=%d\n", (uint64)b->boffset.get(), b->frag_index);
+    fprintf(stderr, "findBeadInColumn up bead="F_U32" ff=%d\n", b->boffset.get(), b->seqIdx().get());
 #endif
-    if (b->frag_index == ff)
-      return(b->boffset);
+    if (b->seqIdx() == ff)
+      return(b->ident());
   }
 
   //  Search down.
-  b = GetBead(beadStore, bi);
+  b = abacus->getBead(bi);
 
-  while (b->down.isValid()) {
-    b = GetBead(beadStore, b->down);
+  while (b->downID().isValid()) {
+    b = abacus->getBead(b->downID());
 #ifdef DEBUG_FIND_BEAD
-    fprintf(stderr, "findBeadInColumn down bead="F_U64" ff=%d\n", (uint64)b->boffset.get(), b->frag_index);
+    fprintf(stderr, "findBeadInColumn down bead="F_U64" ff=%d\n", b->boffset.get(), b->seqIdx());
 #endif
-    if (b->frag_index == ff)
-      return(b->boffset);
+    if (b->seqIdx() == ff)
+      return(b->ident());
   }
 
   //  Give up.  See comments in MultiAlignUnitig, where we append new sequence to the start of
   //  frankenstein ("Append the new stuff...").
 
   assert(0);
-  return(beadIdx());
+  return(abBeadID());
 }
 
 
@@ -230,10 +168,11 @@ findBeadInColumn(beadIdx bi, beadIdx fi) {
 //
 static
 void
-alignGaps(beadIdx *aindex, int32 &apos, int32  alen,
-          beadIdx *bindex, int32 &bpos, int32  blen,
-          beadIdx &lasta,
-          beadIdx &lastb) {
+alignGaps(abAbacus *abacus,
+          abBeadID *aindex, int32 &apos, int32  alen,
+          abBeadID *bindex, int32 &bpos, int32  blen,
+          abBeadID &lasta,
+          abBeadID &lastb) {
 
   //  findBeadInColumn() will move us to the next 'a' fragment when we are at the end of the current
   //  one.
@@ -257,12 +196,12 @@ alignGaps(beadIdx *aindex, int32 &apos, int32  alen,
   if (apos >= alen)
     return;
 
-  lasta = findBeadInColumn(lasta, aindex[apos]);
+  lasta = findBeadInColumn(abacus, lasta, aindex[apos]);
 
   if (lasta.isInvalid())
     return;
 
-  beadIdx nexta = GetBead(beadStore, lasta)->next;
+  abBeadID nexta = abacus->getBead(lasta)->nextID();
 
   //  If the next bead (from 'x' in the picture) is NOT the next base in A, add gaps until that is
   //  so.
@@ -273,14 +212,14 @@ alignGaps(beadIdx *aindex, int32 &apos, int32  alen,
             lasta.get(), nexta.get(), aindex[apos].get());
 #endif
 
-    lastb = AppendGapBead(lastb);
+    lastb = abacus->appendGapBead(lastb);
     lasta = nexta;
 
-    Bead *bead = GetBead(beadStore, nexta);  //  AppendGapBead might reallocate beadStore
+    abBead *bead = abacus->getBead(nexta);  //  AppendGapBead might reallocate beadStore
 
-    AlignBeadToColumn(bead->column_index, lastb, "ApplyAlignment(alignGaps)");
+    abacus->alignBeadToColumn(bead->colIdx(), lastb, "applyAlignment(alignGaps)");
 
-    nexta = bead->next;
+    nexta = bead->nextID();
   }
 }
 
@@ -288,23 +227,24 @@ alignGaps(beadIdx *aindex, int32 &apos, int32  alen,
 //  Aligns a bead in B to the existing column in A.
 static
 void
-alignPosition(beadIdx *aindex, int32 &apos, int32  alen,
-              beadIdx *bindex, int32 &bpos, int32  blen,
-              beadIdx &lasta,
-              beadIdx &lastb,
+alignPosition(abAbacus *abacus,
+              abBeadID *aindex, int32 &apos, int32  alen,
+              abBeadID *bindex, int32 &bpos, int32  blen,
+              abBeadID &lasta,
+              abBeadID &lastb,
               char   *label) {
 
   assert(apos < alen);
   assert(bpos < blen);
 
-  Bead *bead = GetBead(beadStore, aindex[apos]);
+  abBead *bead = abacus->getBead(aindex[apos]);
 
 #ifdef DEBUG_ALIGN_POSITION
   fprintf(stderr, "alignPosition()-- add %c to column %d apos=%d bpos=%d lasta=%d lastb=%d\n",
           *Getchar(sequenceStore, bead->soffset), bead->column_index, apos, bpos, lasta.get(), lastb.get());
 #endif
 
-  AlignBeadToColumn(bead->column_index, bindex[bpos], label);
+  abacus->alignBeadToColumn(bead->colIdx(), bindex[bpos], label);
 
   lasta = aindex[apos];
   lastb = bindex[bpos];
@@ -312,57 +252,58 @@ alignPosition(beadIdx *aindex, int32 &apos, int32  alen,
   apos++;
   bpos++;
 
-  alignGaps(aindex, apos, alen, bindex, bpos, blen, lasta, lastb);
+  alignGaps(abacus, aindex, apos, alen, bindex, bpos, blen, lasta, lastb);
 
-  //assert(GetBead(beadStore, aindex[apos])->prev == bead->bindex);
-  //assert(GetBead(beadStore, bindex[bpos])->prev == lastb);
+  //assert(abacus->getBead(aindex[apos])->prev == bead->bindex);
+  //assert(abacus->getBead(bindex[bpos])->prev == lastb);
 }
 
 
 
 
 void
-ApplyAlignment(int32 afid,
-               int32 alen, beadIdx *aindex,
-               int32 bfid,
-               int32 ahang,
-               int32 *trace) {
+abAbacus::applyAlignment(abSeqID   afid,
+                         int32     alen, abBeadID *aindex,
+                         abSeqID   bfid,
+                         int32     ahang,
+                         int32    *trace) {
 
-  int32   bpos   = 0;
-  int32   blen   = 0;
+  int32     bpos   = 0;
+  int32     blen   = 0;
 
-  int32   apos   = MAX(ahang,0);
-  beadIdx *bindex = NULL;
+  int32     apos   = MAX(ahang,0);
 
-  beadIdx  lasta;
-  beadIdx  lastb;
+  abBeadID *bindex = NULL;
 
-  if (afid >= 0) {
-    Fragment *afrag = GetFragment(fragmentStore,afid);
-    alen            = afrag->length;
-    aindex          = (beadIdx *)safe_malloc(alen * sizeof(beadIdx));
+  abBeadID  lasta;
+  abBeadID  lastb;
+
+  if (afid.isValid()) {
+    abSequence *afrag = getSequence(afid);
+    alen              = afrag->length;
+    aindex            = new abBeadID [alen];
 
     //  The loop really abuses the fact that all the beads for the bases in this read are
     //  contiguous.  They're contiguous because CreateMANode() (I think it's in there) allocated
     //  them in one block.
     //
-    for (int32 ai=0;ai<alen;ai++)
+    for (uint32 ai=0; ai<alen; ai++)
       aindex[ai].set(afrag->firstbead.get() + ai);
+
   } else {
     assert(aindex != NULL);
   }
 
 
-  if (bfid >= 0) {
-    Fragment *bfrag = GetFragment(fragmentStore,bfid);
-    blen            = bfrag->length;
-    bindex          = (beadIdx *)safe_malloc(blen * sizeof(beadIdx));
+  if (bfid.isValid()) {
+    abSequence *bfrag = getSequence(bfid);
+    blen              = bfrag->length;
+    bindex            = (abBeadID *)safe_malloc(blen * sizeof(abBeadID));
 
-    for (int32 bi=0;bi<blen;bi++)
+    for (uint32 bi=0; bi<blen; bi++)
       bindex[bi].set(bfrag->firstbead.get() + bi);
 
-    //  USED?
-    bfrag->manode = NULL;
+    bfrag->manode = abMultiAlignID();  //  USED?
   } else {
     assert(0);
   }
@@ -370,8 +311,44 @@ ApplyAlignment(int32 afid,
   assert(apos < alen);
   assert(bpos < blen);
 
-  sanityCheck((afid >= 0) ? GetFragment(fragmentStore,afid)->firstbead : beadIdx(),
-              (bfid >= 0) ? GetFragment(fragmentStore,bfid)->firstbead : beadIdx());
+  //
+  //  All the a beads should be in a column.  All the b beads should not.
+  //
+  //sanityCheck((afid >= 0) ? getFragment(afid)->firstbead : abBeadID(),
+  //            (bfid >= 0) ? getFragment(bfid)->firstbead : abBeadID());
+
+  {
+    uint32    columnErrors = 0;
+
+    if (afid.isValid()) {
+      abBead   *b = getBead(getSequence(afid)->firstbead);
+
+      while (b) {
+        if (b->column_index.isValid() == false) {
+          columnErrors++;
+          fprintf(stderr, "bead "F_U32" in A has undef column_index.\n",
+                  b->ident().get());
+        }
+        b = (b->nextID().isInvalid()) ? NULL : getBead(b->nextID());
+      }
+    }
+
+    if (bfid.isValid()) {
+      abBead *b = getBead(getSequence(bfid)->firstbead);
+
+      while (b) {
+        if (b->column_index.isValid() == true) {
+          columnErrors++;
+          fprintf(stderr, "bead "F_U32" in B has defined column_index %d.\n",
+                  b->ident().get(), b->column_index.get());
+        }
+        b = (b->nextID().isInvalid()) ? NULL : getBead(b->nextID());
+      }
+    }
+
+    assert(columnErrors == 0);
+  }
+
 
 
   //  Negative ahang?  push these things onto the start of abacus.  Fail if we get a negative ahang,
@@ -379,25 +356,25 @@ ApplyAlignment(int32 afid,
   //  full-length, possibly because we trimmed frankenstein wrong).
   //
   if (ahang < 0) {
-    Bead  *bead = GetBead(beadStore, aindex[0]);
-    int32  colp = bead->column_index;
+    abBead  *bead = getBead(aindex[0]);
+    abColID  colp = bead->colIdx();
 
-    //GetBead(beadStore, aindex[apos])->column_index
+    //abacus->getBead(aindex[apos])->column_index
 
     assert(bead->prev.isInvalid());
 
     while (bpos < -ahang) {
-      bead = GetBead(beadStore, bindex[bpos]);
+      bead = getBead(bindex[bpos]);
 
 #ifdef DEBUG_ABACUS_ALIGN
       fprintf(stderr, "ApplyAlignment()-- Prepend column for ahang bead=%d,%c\n",
               bead->boffset.get(),
-              *Getchar(sequenceStore, bead->soffset));
+              getBase(bead->baseIdx()));
 #endif
-      ColumnPrepend(colp, bindex[bpos++]);
+      prependColumn(colp, bindex[bpos++]);
     }
 
-    lasta = GetBead(beadStore, aindex[0])->prev;
+    lasta = getBead(aindex[0])->prev;
     lastb = bindex[bpos - 1];
   }
 
@@ -419,7 +396,7 @@ ApplyAlignment(int32 afid,
     //
     if ( *trace < 0 ) {
       while ( apos < (- *trace - 1))
-        alignPosition(aindex, apos, alen, bindex, bpos, blen, lasta, lastb, "ApplyAlignment(1)");
+        alignPosition(this, aindex, apos, alen, bindex, bpos, blen, lasta, lastb, "ApplyAlignment(1)");
 
       //  Insert a gap column to accommodate the insert in B.
 
@@ -432,19 +409,21 @@ ApplyAlignment(int32 afid,
       if ((lasta.isInvalid()) || (bpos == 0)) {
         assert(lasta.isInvalid());
         assert(bpos  == 0);
-        ColumnPrepend(GetBead(beadStore, aindex[apos])->column_index, bindex[bpos]);
-        lasta = GetBead(beadStore, aindex[apos])->prev;
+
+        prependColumn(getBead(aindex[apos])->column_index, bindex[bpos]);
+
+        lasta = getBead(aindex[apos])->prev;
         lastb = bindex[bpos];
       } else {
-        assert(lasta == GetBead(beadStore, aindex[apos])->prev);
-        ColumnAppend(GetBead(beadStore, lasta)->column_index, bindex[bpos]);
-        lasta = GetBead(beadStore, lasta)->next;
+        assert(lasta == getBead(aindex[apos])->prev);
+        appendColumn(getBead(lasta)->colIdx(), bindex[bpos]);
+        lasta = getBead(lasta)->nextID();
         lastb = bindex[bpos];
       }
 
       //  lasta should be 'aindex[apos]->prev'.
 
-      assert(lasta == GetBead(beadStore, aindex[apos])->prev);
+      assert(lasta == getBead(aindex[apos])->prev);
 
       bpos++;
     }
@@ -454,7 +433,7 @@ ApplyAlignment(int32 afid,
     //
     if (*trace > 0) {
       while ( bpos < (*trace - 1) )
-        alignPosition(aindex, apos, alen, bindex, bpos, blen, lasta, lastb, "ApplyAlignment(4)");
+        alignPosition(this, aindex, apos, alen, bindex, bpos, blen, lasta, lastb, "ApplyAlignment(4)");
 
       //  Insert a gap bead into B, and align to the existing column.  This event is like
       //  alignPositions(), and we must continue aligning to existing gap columns in A.
@@ -472,12 +451,12 @@ ApplyAlignment(int32 afid,
       //  column.  lasta is still invalid because there is no last column
       //  for a.
 
-      lasta = (lasta.isInvalid()) ? aindex[apos] : GetBead(beadStore, lasta)->next;
-      lastb = AppendGapBead(lastb);
+      lasta = (lasta.isInvalid()) ? aindex[apos] : getBead(lasta)->nextID();
+      lastb = appendGapBead(lastb);
 
       assert(lasta == aindex[apos]);
 
-      AlignBeadToColumn(GetBead(beadStore, lasta)->column_index,
+      alignBeadToColumn(getBead(lasta)->colIdx(),
                         lastb,
                         "ApplyAlignment(6)");
 
@@ -485,7 +464,7 @@ ApplyAlignment(int32 afid,
 
       //  Continue aligning to existing gap columns in A.  Duplication from alignPosition.
       //
-      alignGaps(aindex, apos, alen, bindex, bpos, blen, lasta, lastb);
+      alignGaps(this, aindex, apos, alen, bindex, bpos, blen, lasta, lastb);
     }
 
     trace++;
@@ -501,7 +480,7 @@ ApplyAlignment(int32 afid,
 #endif
 
   for (int32 rem = MIN(blen - bpos, alen - apos); rem > 0; rem--)
-    alignPosition(aindex, apos, alen, bindex, bpos, blen, lasta, lastb, "ApplyAlignment(8)");
+    alignPosition(this, aindex, apos, alen, bindex, bpos, blen, lasta, lastb, "ApplyAlignment(8)");
 
   //
   //  Now just tack on the new sequence
@@ -513,34 +492,60 @@ ApplyAlignment(int32 afid,
 #endif
 
   if (blen - bpos > 0) {
-    int32 ci = GetBead(beadStore, lastb)->column_index;
-    int32 ng = 0;
+    abColID ci = getBead(lastb)->colIdx();
 
     //  There shouldn't be any gaps left to insert...but there might be if we stop early above.  Old
     //  versions of this would simply stuff gaps into the B sequence for the rest of the existing
     //  multialign.  We'd prefer to fail.
     //
-    for (Column *col = GetColumn(columnStore, ci); col->next != -1; col=GetColumn(columnStore, col->next))
-      fprintf(stderr, "ERROR!  Column ci=%d has a next pointer (%d)\n", col->lid, col->next);
+    for (abColumn *col = getColumn(ci); col->nextID().isValid(); col=getColumn(col->nextID()))
+      fprintf(stderr, "ERROR!  Column ci=%d has a next pointer (%d)\n", col->ident(), col->nextID());
 #warning assert skipped until contig consensus gets fixed
-    //assert(GetColumn(columnStore, ci)->next == -1);
+    //assert(getColumn(ci)->nextID() == -1);
 
     //  Add on trailing (dovetail) beads from b
     //
     for (int32 rem=blen-bpos; rem > 0; rem--) {
 #ifdef DEBUG_ALIGN_POSITION
-      Bead *bead = GetBead(beadStore, bindex[bpos]);
+      abBead *bead = getBead(bindex[bpos]);
       fprintf(stderr, "alignPosition()-- add %c to column %d\n",
-              *Getchar(sequenceStore, bead->soffset), bead->column_index);
+              getBase(bead->baseIdx()), bead->colIdx());
 #endif
-      ci = ColumnAppend(ci, bindex[bpos++]);
+      ci = appendColumn(ci, bindex[bpos++]);
     }
   }
 
   //CheckColumns();
+#if 0
+  {
+    int32 fails = 0;
+    int32 cmax  = GetNumColumns(columnStore);
 
-  if (afid >= 0)  safe_free(aindex);
-  if (bfid >= 0)  safe_free(bindex);
+    for (int32 cid=0; cid<cmax; cid++) {
+      abColumn *column = getColumn(cid);
+
+      if (column == NULL)
+        continue;
+
+      ColumnBeadIterator ci;
+      CreateColumnBeadIterator(cid,&ci);
+
+      Bead   *call = GetBead(beadStore,column->call);
+      abBeadID  bid;
+
+      while ( (bid = NextColumnBead(&ci)).isValid() ) {
+        Bead *bead = GetBead(beadStore,bid);
+
+        if (bead->colIdx() != cid)
+          fails++;
+      }
+    }
+    assert(fails == 0);
+  }
+#endif
+
+  if (afid.isValid())  delete [] aindex;
+  if (bfid.isValid())  delete [] bindex;
 
   //bfrag->manode = afrag->manode;
 }
