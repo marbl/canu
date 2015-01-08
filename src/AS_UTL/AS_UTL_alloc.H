@@ -97,6 +97,18 @@ const uint32  resizeArray_doNothing = 0x00;
 const uint32  resizeArray_copyData  = 0x01;
 const uint32  resizeArray_clearNew  = 0x02;
 
+
+template<typename TT, typename LL>
+void
+increaseArray(TT*& array, uint64 arrayLen, LL &arrayMax, uint64 increment) {
+
+  if (arrayLen + increment <= arrayMax)
+    return;
+
+  resizeArray(array, arrayLen, arrayMax, 2 * arrayMax, resizeArray_copyData);
+}
+
+
 template<typename TT, typename LL>
 void
 resizeArray(TT*& array, uint64 arrayLen, LL &arrayMax, uint64 newMax, uint32 op=resizeArray_copyData) {
@@ -119,21 +131,21 @@ resizeArray(TT*& array, uint64 arrayLen, LL &arrayMax, uint64 newMax, uint32 op=
 }
 
 
-template<typename TT, typename LL>
+template<typename T1, typename T2, typename LL>
 void
-resizeArrayPair(TT*& array1, TT*& array2, uint64 arrayLen, LL &arrayMax, LL newMax, uint32 op=resizeArray_copyData) {
+resizeArrayPair(T1*& array1, T2*& array2, uint64 arrayLen, LL &arrayMax, LL newMax, uint32 op=resizeArray_copyData) {
 
   if (newMax <= arrayMax)
     return;
 
   arrayMax = newMax;
 
-  TT *copy1 = new TT [arrayMax];
-  TT *copy2 = new TT [arrayMax];
+  T1 *copy1 = new T1 [arrayMax];
+  T2 *copy2 = new T2 [arrayMax];
 
   if (op & resizeArray_copyData) {
-    memcpy(copy1, array1, sizeof(TT) * arrayLen);
-    memcpy(copy2, array2, sizeof(TT) * arrayLen);
+    memcpy(copy1, array1, sizeof(T1) * arrayLen);
+    memcpy(copy2, array2, sizeof(T2) * arrayLen);
   }
 
   delete [] array1;
@@ -143,8 +155,8 @@ resizeArrayPair(TT*& array1, TT*& array2, uint64 arrayLen, LL &arrayMax, LL newM
   array2 = copy2;
 
   if (op & resizeArray_clearNew) {
-    memset(array1 + sizeof(TT) * arrayLen, 0, sizeof(TT) * (newMax - arrayLen));
-    memset(array2 + sizeof(TT) * arrayLen, 0, sizeof(TT) * (newMax - arrayLen));
+    memset(array1 + sizeof(T1) * arrayLen, 0, sizeof(T1) * (newMax - arrayLen));
+    memset(array2 + sizeof(T2) * arrayLen, 0, sizeof(T2) * (newMax - arrayLen));
   }
 }
 
