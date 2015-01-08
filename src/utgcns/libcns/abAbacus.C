@@ -365,6 +365,133 @@ abAbacus::unalignBeadFromColumn(abBeadID bid) {
 
 
 
+
+
+
+void
+abAbacus::lateralExchangeBead(abBeadID lid, abBeadID rid) {
+  abBead rtmp; // this is just some tmp space for the swap
+
+  //  This function swaps the contents of two beads, ensuring that
+  //  there are only gaps between them.
+  //
+  //  HORRIBLY complicated because ApplyAbacus() and MergeCompatible()
+  //  hold on to pointers to beads.  It would have been much simpler
+  //  to just swap the soffset and foffset, leaving EVERYTHING ELSE
+  //  exactly the same.
+
+  abBead *leftbead  = getBead(lid);
+  abBead *rightbead = getBead(rid);
+
+  abColumn *leftcolumn  = getColumn(leftbead->colIdx());
+  abColumn *rightcolumn = getColumn(rightbead->colIdx());
+
+  char leftchar  = getBase(leftbead->baseIdx());
+  char rightchar = getBase(rightbead->baseIdx());
+
+  // now, verify that left and right are either
+  // a) neighbors, or b) have only '-'s intervening
+
+  {
+    abBead *ibead   = leftbead;
+    int32   failure = 0;
+    int32   limit   = 20;
+
+    while (ibead->next.isValid()) {
+      ibead = getBead(ibead->nextID());
+
+      if (ibead->boffset == rid)
+        break;
+
+      if (getBase(ibead->baseIdx()) != '-')
+        failure++;
+    }
+
+    if (failure) {
+      ibead = leftbead;
+
+      while (ibead->next.isValid()) {
+        ibead = getBead(ibead->nextID());
+
+        fprintf(stderr, "bead %c boffset="F_U32" prev="F_U32" next="F_U32" up="F_U32" down="F_U32" fragindex=%d colulmnindex=%d\n",
+                getBase(ibead->baseIdx()),
+                ibead->boffset.get(),
+                ibead->prevID().get(),
+                ibead->nextID().get(),
+                ibead->upID().get(),
+                ibead->downID().get(),
+                ibead->seqIdx().get(),
+                ibead->colIdx().get());
+
+        if (ibead->boffset == rid)
+          break;
+
+        if (limit-- == 0)
+          break;
+      }
+
+      fprintf(stderr, "lateralExchangeBead can't exchange bead "F_U32" with "F_U32"; bases in between!\n",
+              lid.get(),
+              rid.get());
+      assert(failure == 0);
+    }
+  }
+
+  rtmp = *rightbead;
+
+  rightbead->upID()   = leftbead->upID();
+  rightbead->downID() = leftbead->downID();
+  rightbead->prevID() = leftbead->prevID();
+  rightbead->nextID() = leftbead->nextID();
+
+  if (rightbead->upID().isValid() )   (getBead(rightbead->upID()))->downID() = rid;
+  if (rightbead->downID().isValid())  (getBead(rightbead->downID()))->upID() = rid;
+  if (rightbead->prevID().isValid())  (getBead(rightbead->prevID()))->nextID() = rid;
+
+  leftbead->upID()   = rtmp.upID();
+  leftbead->downID() = rtmp.downID();
+  leftbead->nextID() = rtmp.nextID();
+  leftbead->prevID() = rtmp.prevID();
+
+  if (leftbead->upID().isValid() )   (getBead(leftbead->upID()))->downID() = lid;
+  if (leftbead->downID().isValid())  (getBead(leftbead->downID()))->upID() = lid;
+  if (leftbead->nextID().isValid())  (getBead(leftbead->nextID()))->prevID() = lid;
+
+  // now, handle separately cases of a) left and right are adjacent, and b) gaps intervene
+  if ( rtmp.prev == lid) {
+    rightbead->nextID() = lid;
+    leftbead->prevID() = rid;
+  } else {
+    if (rightbead->nextID().isValid())  (getBead(rightbead->nextID()))->prevID() = rid;
+    if (leftbead->prevID().isValid())   (getBead(leftbead->prevID()))->nextID() = lid;
+  }
+
+  rightbead->column_index = leftbead->column_index;
+  leftbead->column_index  = rtmp.column_index;
+
+  // change basecounts for affected columns
+  assert(leftcolumn != NULL);
+
+  //DecBaseCount(&leftcolumn->base_count,leftchar);
+  //IncBaseCount(&leftcolumn->base_count,rightchar);
+  leftcolumn->base_count.DecBaseCount(leftchar);
+  leftcolumn->base_count.IncBaseCount(rightchar);
+
+  assert(rightcolumn != NULL);
+
+  //DecBaseCount(&rightcolumn->base_count,rightchar);
+  //IncBaseCount(&rightcolumn->base_count,leftchar);
+  rightcolumn->base_count.DecBaseCount(rightchar);
+  rightcolumn->base_count.IncBaseCount(leftchar);
+}
+
+
+
+
+
+
+
+
 abMultiAlignID
 abAbacus::addMultiAlign(abSeqID sid) {
 

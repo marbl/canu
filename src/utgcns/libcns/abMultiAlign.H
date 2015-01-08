@@ -19,6 +19,9 @@ public:
                               vector<char> &bases,
                               vector<char> &quals);
 
+  void            mergeRefine(abAbacus *ab);
+
+
 private:
   abMultiAlignID         lid;         //  MANode id in the manodeStore
   uint32                 iid;         //  tigStore id

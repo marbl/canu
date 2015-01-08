@@ -499,7 +499,8 @@ abAbacus::applyAlignment(abSeqID   afid,
     //  multialign.  We'd prefer to fail.
     //
     for (abColumn *col = getColumn(ci); col->nextID().isValid(); col=getColumn(col->nextID()))
-      fprintf(stderr, "ERROR!  Column ci=%d has a next pointer (%d)\n", col->ident(), col->nextID());
+      fprintf(stderr, "ERROR!  Column ci="F_U32" has a next pointer ("F_U32")\n",
+              col->ident().get(), col->nextID().get());
 #warning assert skipped until contig consensus gets fixed
     //assert(getColumn(ci)->nextID() == -1);
 
