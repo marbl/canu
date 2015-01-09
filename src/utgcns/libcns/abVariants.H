@@ -135,6 +135,12 @@ public:
   void            populateDistanceMatrix(void);
   void            clusterReads(void);
 
+  void            sortAllelesByLength(void);  //  nca
+  void            sortAllelesByWeight(void);  //  na
+  void            sortAllelesByMapping(uint32 *allele_map);  //  nca
+
+
+
   //  Debug interface
   void showConfirmedReads(void);
   void showReadsOfConfirmedAlleles(void);

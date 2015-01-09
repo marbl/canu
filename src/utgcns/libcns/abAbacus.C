@@ -366,6 +366,79 @@ abAbacus::unalignBeadFromColumn(abBeadID bid) {
 
 
 
+//  Remove bid from it's column, returning the prev or next bead in the fragment
+//
+abBeadID
+abAbacus::unalignTrailingGapBeads(abBeadID bid) {
+
+  // find direction to remove
+
+  abBead    *bead   = getBead(bid);
+  abBeadID   anchor = bead->prevID();
+
+  while ((bead->nextID().isValid() == true) &&
+         (getBase(getBead(bead->nextID())->baseIdx()) == '-'))
+    bead = getBead(bead->nextID());
+
+
+  if (bead->next.isValid() ) {
+    anchor = bead->nextID();
+
+    while ((bead->prev.isValid() == true) &&
+           (getBase(getBead(bead->prevID())->baseIdx()) == '-'))
+      bead = getBead(bead->prevID());
+  }
+
+  while (bead->ident() != anchor) {
+    abColumn *column = getColumn(bead->colIdx());
+    abBead   *upbead = getBead(bead->upID());
+
+    char      bchar = getBase(bead->baseIdx());
+
+    if (bchar != '-')
+      fprintf(stderr, "UnAlignTrailingGapBead bchar is not a gap");
+    assert(bchar == '-');
+
+    upbead->down = bead->downID();
+
+    if (bead->downID().isValid())
+      getBead(bead->downID())->up = upbead->ident();
+
+    column->base_count.DecBaseCount(bchar);
+
+#ifdef DEBUG_ABACUS_ALIGN
+    fprintf(stderr, "UnAlignTrailingGapBeads()-- frag=%d bead=%d leaving column=%d\n",
+            bead->seqIdx().get(), bead->ident().get(), bead->colIdx().get());
+#endif
+
+    bead->upID()   = abBeadID();
+    bead->downID() = abBeadID();
+    bead->colIdx() = abColID();
+
+    if (bead->nextID().isInvalid()) {
+      abBead *prevbead   = getBead(bead->prevID());
+
+      prevbead->nextID() = abBeadID();
+      bead->prevID()     = abBeadID();
+      bead               = getBead(prevbead->ident());
+
+    } else {
+      abBead *nextbead   = getBead(bead->nextID());
+      nextbead->prevID() = abBeadID();
+      bead->nextID()     = abBeadID();
+      bead               = getBead(nextbead->ident());
+    }
+  }
+
+  return(anchor);
+}
+
+
+
+
+
+
+
 
 
 void
@@ -400,7 +473,7 @@ abAbacus::lateralExchangeBead(abBeadID lid, abBeadID rid) {
     while (ibead->next.isValid()) {
       ibead = getBead(ibead->nextID());
 
-      if (ibead->boffset == rid)
+      if (ibead->ident() == rid)
         break;
 
       if (getBase(ibead->baseIdx()) != '-')
@@ -413,9 +486,9 @@ abAbacus::lateralExchangeBead(abBeadID lid, abBeadID rid) {
       while (ibead->next.isValid()) {
         ibead = getBead(ibead->nextID());
 
-        fprintf(stderr, "bead %c boffset="F_U32" prev="F_U32" next="F_U32" up="F_U32" down="F_U32" fragindex=%d colulmnindex=%d\n",
+        fprintf(stderr, "bead %c ident()="F_U32" prev="F_U32" next="F_U32" up="F_U32" down="F_U32" fragindex=%d colulmnindex=%d\n",
                 getBase(ibead->baseIdx()),
-                ibead->boffset.get(),
+                ibead->ident().get(),
                 ibead->prevID().get(),
                 ibead->nextID().get(),
                 ibead->upID().get(),
@@ -423,7 +496,7 @@ abAbacus::lateralExchangeBead(abBeadID lid, abBeadID rid) {
                 ibead->seqIdx().get(),
                 ibead->colIdx().get());
 
-        if (ibead->boffset == rid)
+        if (ibead->ident() == rid)
           break;
 
         if (limit-- == 0)

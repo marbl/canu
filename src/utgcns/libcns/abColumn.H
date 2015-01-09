@@ -130,13 +130,15 @@ public:
   abColumn();
   ~abColumn();
 
-  uint32     GetDepth(void)                { return(base_count.GetDepth());      };
-  uint32     GetColumnBaseCount(char c)    { return(base_count.GetBaseCount(c)); };
+  uint32     GetDepth(void)                 { return(base_count.GetDepth());      };
+  uint32     GetColumnBaseCount(char c)     { return(base_count.GetBaseCount(c)); };
 
   void       CheckBaseCounts(abAbacus *ab);
 
-  //  Max over what?  Also needs abacus to get next beads!
-  char       GetMaxBaseCount(abAbacus *ab, int32 start_index);
+  //  Max over what?  Also needs abacus to get next beads!  Gah!  Two with the same name!
+  //#warning GetMaxBaseCount confusion.
+  //char       GetMaxBaseCount(abAbacus *ab, int32 start_index);
+  char       GetMaxBaseCount(bool skipGap)  {  return(base_count.GetMaxBaseCount(skipGap)); };
 
   abColID    ident(void)    { return(lid); };
 
@@ -145,6 +147,9 @@ public:
   abColID    prevID(void)   { return(prev);    };
   abColID    nextID(void)   { return(next);    };
 
+  int32      mismatch(void) {
+    return(base_count.GetDepth() - base_count.GetBaseCount( base_count.GetMaxBaseCount(false) ));
+  };
 
 private:
   abColID          lid;       //  index in columnStore

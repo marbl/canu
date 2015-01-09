@@ -656,16 +656,15 @@ abVarRegion::clusterReads(void) {
 
 
 
-// Reverse sort confirmed alleles by ungapped length
-static
+// Reverse sort confirmed alleles by ungapped length -- over only confirmed alleles??
 void
-sortAllelesByLength(abVarAllele *alleles, uint32 num_alleles, abVarRead *reads) {
+abVarRegion::sortAllelesByLength(void) {
 
-  for (uint32 i=0; i<num_alleles; i++) {
+  for (uint32 i=0; i<nca; i++) {
     uint32 best_uglen = alleles[i].uglen;
     uint32 best_id    = UINT32_MAX;
 
-    for (uint32 j=i+1; j<num_alleles; j++) {
+    for (uint32 j=i+1; j<nca; j++) {
       if (best_uglen  < alleles[j].uglen ) {
         best_uglen = alleles[j].uglen;
         best_id    = j;
@@ -681,22 +680,20 @@ sortAllelesByLength(abVarAllele *alleles, uint32 num_alleles, abVarRead *reads) 
 
   //  Update allele_id of reads
 
-  for (uint32 i=0; i<num_alleles; i++)
+  for (uint32 i=0; i<nca; i++)
     for (uint32 j=0; j<alleles[i].num_reads; j++)
       reads[ alleles[i].read_ids[j] ].allele_id = i;
 }
 
-
-// Reverse sort by weight
-static
+// Reverse sort by weight -- over all alleles, not just confirmed
 void
-sortAllelesByWeight(abVarAllele *alleles, uint32 num_alleles, abVarRead *reads) {
+abVarRegion::sortAllelesByWeight(void) {
 
-  for (uint32 i=0; i<num_alleles; i++) {
+  for (uint32 i=0; i<na; i++) {
     uint32 best_weight = alleles[i].weight;
     uint32 best_id     = UINT32_MAX;
 
-    for (uint32 j=i+1; j<num_alleles; j++) {
+    for (uint32 j=i+1; j<na; j++) {
       if (best_weight < alleles[j].weight) {
         best_weight = alleles[j].weight;
         best_id     = j;
@@ -712,7 +709,7 @@ sortAllelesByWeight(abVarAllele *alleles, uint32 num_alleles, abVarRead *reads) 
 
   //  Update allele_id of reads
 
-  for (uint32 i=0; i<num_alleles; i++)
+  for (uint32 i=0; i<na; i++)
     for (uint32 j=0; j<alleles[i].num_reads; j++)
       reads[ alleles[i].read_ids[j] ].allele_id = i;
 }
@@ -720,9 +717,8 @@ sortAllelesByWeight(abVarAllele *alleles, uint32 num_alleles, abVarRead *reads) 
 
 // Sort confirmed alleles according to their mapping
 // between two "phased" VAR records
-static
 void
-sortAllelesByMapping(abVarAllele *alleles, uint32 nca, abVarRead *reads, uint32 *allele_map) {
+abVarRegion::sortAllelesByMapping(uint32 *allele_map) {
 
   for (uint32 i=0; i<nca; i++) {
     uint32  j = 0;      // j is id of the allele that should be at i-th place
@@ -1071,9 +1067,9 @@ abAbacus::refreshMultiAlign(abMultiAlignID  mid,
                                                prev_ncr, prev_ncr_iid, prev_ncr_iid_max);
 
     if (is_phased)
-      sortAllelesByMapping(vreg.alleles, vreg.nca, vreg.reads, allele_map);
+      vreg.sortAllelesByMapping(allele_map);
     else
-      sortAllelesByWeight(vreg.alleles, vreg.na, vreg.reads);
+      vreg.sortAllelesByWeight();
 
     delete [] allele_map;
 

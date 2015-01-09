@@ -62,7 +62,8 @@ SOURCES  := AS_global.C \
             utgcns/libcns/abAbacus-refreshMultiAlign.C \
             utgcns/libcns/abAbacus-baseCall.C \
             utgcns/libcns/abAbacus-applyAlignment.C \
-            utgcns/libcns/abAbacus-mergeRefine.C
+            utgcns/libcns/abAbacus-mergeRefine.C \
+            utgcns/libcns/abAbacus-refine.C
 
 
 #            utgcns/libcns/AbacusRefine.C \

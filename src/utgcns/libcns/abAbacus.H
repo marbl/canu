@@ -59,14 +59,6 @@ extern uint32  AMASK[5];
 
 
 
-typedef enum {
-  LEFT_SHIFT  = (int) 'L', // Left Shifted
-  RIGHT_SHIFT = (int) 'R', // Right Shifted
-  UNSHIFTED   = (int) 'U', // Unshifted
-  MIXED_SHIFT = (int) 'M'  // shifted in different directions
-} ShiftStatus;
-
-
 
 class abSequence;
 class abBase;
@@ -183,6 +175,7 @@ public:
 
   void            alignBeadToColumn(abColID cid, abBeadID bid, char *label);
   abBeadID        unalignBeadFromColumn(abBeadID bid);
+  abBeadID        unalignTrailingGapBeads(abBeadID bid);
 
   void            checkColumnBaseCounts();
 
@@ -229,8 +222,8 @@ public:
                            double      &var,
                            int32        target_allele,
                            bool         getScores,
-                           int32        split_alleles,
-                           int32        smooth_win);
+                           int32        split_alleles,    //  these need to be set in the class
+                           int32        smooth_win);      //
 
   void            applyAlignment(abSeqID  afid,
                                  int32    alen, abBeadID *aindex,
@@ -261,7 +254,7 @@ int      AbacusRefine(MANode *ma,
 
 
 
-private:
+public:
   abSeqBeadIterator  *createSeqBeadIterator(abSeqID sid);
   //abSeqBeadIterator  *createSeqBeadIterator(abSeqID sid) {
   //  return(new abSeqBeadIterator(this, getSequence(sid)));
@@ -276,10 +269,14 @@ private:
   //  Objects that we're trying to build multialigns for
   //
 
+private:
   abSequence       *_sequences;  //  VA_TYPE(Fragment) *fragmentStore; - indices into bases/quals/beads
   uint32            _sequencesLen;
   uint32            _sequencesMax;
+public:
+  uint32             numberOfSequences(void) { return(_sequencesLen); };
 
+private:
   abBase           *_bases;      //  VA_TYPE(char) *sequenceStore, *qualityStore
   uint32            _basesLen;
   uint32            _basesMax;
@@ -317,8 +314,9 @@ private:
   //  Only used for remembering surrogates in contigs
   //HashTable_AS          *fragmentMap;
 
-
-  int32 thisIsConsensus;
+  //  Parameters
+  uint32  smoothingWindow;
+  uint32  splitAlleles;
 
 
   //  Statistics
@@ -350,6 +348,7 @@ private:
 
   //  Data for this multialignment
 private:
+#if 0
   int32         start_column;
   int32         end_column;
   int32         rows;
@@ -358,6 +357,7 @@ private:
   ShiftStatus   shift;
   char         *beads;
   char         *calls;
+#endif
 };
 
 

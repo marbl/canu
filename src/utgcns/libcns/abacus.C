@@ -337,68 +337,6 @@ abacus::GetMANodePositions(int32        mid,
 
 
 
-//external
-abBeadID
-abacus::UnAlignTrailingGapBeads(abBeadID bid) {
-  // remove bid from it's column, returning the prev or next bead in the fragment
-  Bead *bead = GetBead(beadStore,bid);
-  Bead *upbead,*prevbead,*nextbead;
-  abBeadID anchor;
-  Column *column;
-  char bchar;
-
-  // find direction to remove
-  anchor = bead->prev;
-  while ( bead->next.isValid() && *Getchar(sequenceStore,(GetBead(beadStore,bead->next))->soffset) == '-' ) {
-    bead = GetBead(beadStore,bead->next);
-  }
-  if (bead->next.isValid() ) {
-    anchor = bead->next;
-    while (bead->prev.isValid() && *Getchar(sequenceStore,(GetBead(beadStore,bead->prev))->soffset) == '-' ) {
-      bead = GetBead(beadStore,bead->prev);
-    }
-  }
-  while ( bead->boffset != anchor) {
-    column = GetColumn(columnStore,bead->column_index);
-    upbead = GetBead(beadStore,bead->up);
-    bchar = *Getchar(sequenceStore,bead->soffset);
-    if( bchar != '-'){
-      fprintf(stderr, "UnAlignTrailingGapBead bchar is not a gap");
-      assert(0);
-    }
-    upbead->down = bead->down;
-    if (bead->down.isValid() ) {
-      GetBead(beadStore, bead->down)->up = upbead->boffset;
-    }
-    DecBaseCount(&column->base_count,bchar);
-
-#ifdef DEBUG_ABACUS_ALIGN
-    fprintf(stderr, "UnAlignTrailingGapBeads()-- frag=%d bead=%d leaving column=%d\n",
-            bead->frag_index, bead->boffset.get(), bead->column_index);
-#endif
-
-    bead->up   = abBeadID();
-    bead->down = abBeadID();
-    bead->column_index = -1;
-    if ( bead->next.isInvalid() ) {
-      prevbead = GetBead(beadStore,bead->prev);
-      prevbead->next = abBeadID();
-      bead->prev = abBeadID();
-      bead = GetBead(beadStore,prevbead->boffset);
-    } else {
-      nextbead = GetBead(beadStore,bead->next);
-      nextbead->prev = abBeadID();
-      bead->next = abBeadID();
-      bead = GetBead(beadStore,nextbead->boffset);
-    }
-  }
-  return anchor;
-}
-
-
-
-
-
 
 
 ////////////////////////////////////////
