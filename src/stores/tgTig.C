@@ -54,6 +54,11 @@ tgTig::tgTig() {
   _coverageStat         = 0;
   _microhetProb         = 0;
 
+  _utgcns_verboseLevel  = 0;      //  extern uint32 VERBOSE_MULTIALIGN_OUTPUT;
+  _utgcns_smoothWindow  = 11;     //  #define CNS_OPTIONS_MIN_ANCHOR_DEFAULT    11
+  _utgcns_splitAlleles  = true;   //  #define CNS_OPTIONS_SPLIT_ALLELES_DEFAULT  1
+  _utgcns_doPhasing     = true;   //  #define CNS_OPTIONS_DO_PHASING_DEFAULT     1
+
   _suggestRepeat        = 0;
   _suggestUnique        = 0;
   _suggestCircular      = 0;

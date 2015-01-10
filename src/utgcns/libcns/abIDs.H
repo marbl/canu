@@ -6,10 +6,12 @@
 
 class abSeqID {
 public:
-  abSeqID()  { _id = UINT32_MAX; };
-  ~abSeqID() {                   };
+  abSeqID()           { _id = UINT32_MAX; };
+  abSeqID(uint32 id)  { _id = id;         };
+  ~abSeqID()          {                   };
 
   //operator size_t () const { return(_id); };
+  abSeqID  &operator++(void) { ++_id;  return(*this); };  //  Prefix ++.
 
   void   set(size_t id)   { _id = id; };
   uint32 get(void)        { return(_id); };
@@ -52,6 +54,8 @@ public:
   ~abBeadID() {                   };
 
   //operator const size_t () { return(_id); };
+  abBeadID  &operator+(uint32 x) { _id += x;  return(*this); };
+  abBeadID  &operator-(uint32 x) { _id -= x;  return(*this); };
 
   void   set(size_t id)   { _id = id; };
   uint32 get(void)        { return(_id); };

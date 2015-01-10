@@ -35,7 +35,7 @@ public:
   };
 
   uint32         id;         // ?
-  uint32         iid;        // ?
+  uint32         iid;        // gkp IID
   char          *bases;      // gapped sequence
   uint32        *qvs;        // quality values
   double         ave_qv;
@@ -161,7 +161,7 @@ public:
   //uint32        *iids;        // iids of the reads
 
   vector<char>   curr_bases;  // dim = nr
-  vector<uint32> iids;        // iids of the reads
+  vector<uint32> iids;        // iids of the reads - gkp IID
 
   abVarRead     *reads;
   abVarAllele   *alleles;

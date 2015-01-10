@@ -83,6 +83,7 @@ class abColBeadIterator;
 
 
 class abAbacus {
+public:
   abAbacus(gkStore *gkpStore) {
   };
   ~abAbacus() {

@@ -55,15 +55,17 @@ IntMultiPos_PositionCompare(IntMultiPos const &a, IntMultiPos const &b) {
 //  The original f_list is returned.
 //
 
-  class readLength {
-  public:
-    AS_IID    idx;
-    int32     len;
+class readLength {
+public:
+  AS_IID    idx;
+  int32     len;
 
-    bool operator<(const readLength &that) const {
-      return(len < that.len);
-    };
+  bool operator<(const readLength &that) const {
+    return(len < that.len);
   };
+};
+
+
 
 VA_TYPE(IntMultiPos) *
 stashContains(MultiAlignT *ma,

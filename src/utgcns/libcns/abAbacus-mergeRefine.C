@@ -205,6 +205,6 @@ abMultiAlign::mergeRefine(abAbacus *abacus) {
     }
   }
 
-  safe_free(vl);
+  //safe_free(vl);
 #endif
 }

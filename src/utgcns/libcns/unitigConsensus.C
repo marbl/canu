@@ -21,20 +21,12 @@
 
 static char *rcsid = "$Id$";
 
-#include "AS_global.H"
-#include "MultiAlignment_CNS.H"
-#include "MultiAlignment_CNS_private.H"
-//#include "MicroHetREZ.H"
-#include "AS_UTL_reverseComplement.H"
+#include "unitigConsensus.H"
 
 #include <set>
 
 using namespace std;
 
-#define SHOW_ALGORITHM         2
-#define SHOW_PLACEMENT_BEFORE  3
-#define SHOW_PLACEMENT         3
-#define SHOW_ALIGNMENTS        4
 
 //  If defined, failure to align a read causes immediate crash.
 #undef FAILURE_IS_FATAL
@@ -42,258 +34,25 @@ using namespace std;
 //  If defined, skip ALL contained reads.  This will cause problems in scaffolding.
 #undef SKIP_CONTAINS
 
-static
-int
-MANode2Array(MANode    *ma,
-             char    ***array,
-             int32   ***id_array,
-             int32      show_cel_status) {
-  int32  max_depth = 0;
-
-  for (int32 ci = ma->first; ci != -1; ) {
-    Column *col = GetColumn(columnStore, ci);
-
-    max_depth = MAX(max_depth, GetDepth(col));
-
-    ci = col->next;
-  }
-
-  // rough estimate. first pack rows, then adjust to actual consumed rows
-
-  int32 depth       = 2 * max_depth;
-  int32 num_frags   = GetNumFragments(fragmentStore);
-
-  int32 *rowptr = new int32 [depth];
-  int32 *rowpos = new int32 [num_frags];
-
-  for (int32 ir=0; ir<depth; ir++)
-    rowptr[ir] = 0;
-
-  for (int32 ir=0; ir<num_frags; ir++)
-    rowpos[ir] = -1;
-
-  // setup the packing
-
-  for (uint32 fi=0; fi<num_frags; fi++) {
-    Fragment *fragment = GetFragment(fragmentStore, fi);
-
-    if (fragment->deleted)
-      //  Ejected by contig consensus??
-      continue;
-
-    if (fragment->manode == -1)
-      //  Fragment not placed in this multialign
-      continue;
-
-    if (fragment->type == AS_UNITIG)
-      continue;
-
-    assert(fragment->type == AS_READ);
-
-    int32 fbgn = GetColumn(columnStore, (GetBead(beadStore,fragment->firstbead                         ))->column_index)->ma_index;
-    int32 fend = GetColumn(columnStore, (GetBead(beadStore,fragment->firstbead.get()+fragment->length-1))->column_index)->ma_index+1;
-
-    for (int32 ir=0; ir<depth; ir++) {
-      if (ir + 1 == depth) {
-        int32 *nrp = new int32 [depth + max_depth];
-
-        memset(nrp, 0,      sizeof(int32) * (depth + max_depth));
-        memcpy(nrp, rowptr, sizeof(int32) * (depth));
-
-        depth += max_depth;
-
-        delete [] rowptr;
-
-        rowptr = nrp;
-      }
-
-      if (fbgn <  rowptr[ir])
-        continue;
-
-      rowptr[ir]  = fend;
-      rowpos[fi] = ir;
-      break;
-    }
-  }
-
-  // now, find out actual depth
-
-  max_depth = depth;
-
-  for (int32 ir=0; ir<depth; ir++) {
-    if (rowptr[ir] == 0) {
-      max_depth = ir + 1;
-      break;
-    }
-  }
-
-  depth = max_depth;
-
-  char   **multia = new char  * [depth * 2];
-  int32  **ia     = new int32 * [depth];
-
-  int32 length = GetNumColumns(ma->columnList);
-
-  for (int32 i=0; i<depth; i++) {
-    ia[i] = new int32 [length];
-    memset(ia[i], 0, sizeof(int32) * length);
-  }
-
-  for (int32 i=0; i<2*depth; i++) {
-    multia[i] = new char [length + 1];
-    memset(multia[i], ' ', sizeof(char) * (length + 1));
-    multia[i][length] = 0;
-  }
-
-  for (int32 fi=0; fi<num_frags; fi++) {
-    Fragment *fragment = GetFragment(fragmentStore, fi);
-
-    if (fragment->deleted)
-      //  Ejected by contig consensus??
-      continue;
-
-    if (fragment->manode == -1)
-      //  Fragment not placed in this multialign
-      continue;
-
-    if (fragment->type == AS_UNITIG)
-      continue;
-
-    int32   ir      = rowpos[fi];
-    Bead   *fb      = GetBead(beadStore, fragment->firstbead);
-
-    FragmentBeadIterator fbi;
-    beadIdx              bid;
-
-    CreateFragmentBeadIterator(fi, &fbi);
-
-    // find the first open row here, and put in the sequence/quality/ident
-
-    while ((bid = NextFragmentBead(&fbi)).isValid()) {
-      fb       = GetBead(beadStore, bid);
-
-      int32 mi = GetColumn(columnStore,fb->column_index)->ma_index;
-
-      multia[2*ir  ][mi] = *Getchar(sequenceStore, fb->soffset);
-      multia[2*ir+1][mi] = *Getchar(qualityStore,  fb->soffset);
-
-      ia[ir][mi] = fragment->iid;
-    }
-  }
-
-  delete [] rowptr;
-  delete [] rowpos;
-
-  *array      = multia;
-  *id_array   = ia;
-
-  return(depth);
-}
-
-
-class unitigConsensus {
-public:
-  unitigConsensus(MultiAlignT *ma_, CNS_Options *opp_) {
-    ma       = ma_;
-    numfrags = GetNumIntMultiPoss(ma->f_list);
-    fraglist = GetVA_IntMultiPos(ma->f_list, 0);
-    fragback = NULL;
-    opp      = opp_;
-    trace    = NULL;
-    manode   = NULL;
-    utgpos   = NULL;
-    cnspos   = NULL;
-    tiid     = 0;
-    piid     = -1;
-
-    frankensteinLen = 0;
-    frankensteinMax = 0;
-    frankenstein    = NULL;
-    frankensteinBof = NULL;
-  };
-
-  ~unitigConsensus() {
-    DeleteVA_int32(trace);
-    if (manode)
-      DeleteMANode(manode->lid);
-
-    safe_free(fragback);
-    safe_free(utgpos);
-    safe_free(cnspos);
-    safe_free(frankenstein);
-    safe_free(frankensteinBof);
-  };
-
-  int32  initialize(int32 *failed); 
-
-  void   reportStartingWork(void);
-  void   reportFailure(int32 *failed);
-  void   reportSuccess(int32 *failed);
-
-  int32  moreFragments(void)  { tiid++;  return (tiid < numfrags); };
-
-  int32  computePositionFromParent(bool doContained);
-  int32  computePositionFromLayout(void);
-  int32  computePositionFromAlignment(void);
-
-  void   rebuild(bool recomputeFullConsensus);
-
-  bool   rejectAlignment(bool allowBhang, bool allowAhang, ALNoverlap *O);
-
-  int32  alignFragment(void);
-  void   applyAlignment(int32 frag_aiid=-1, int32 frag_ahang=0, int32 *frag_trace=NULL);
-
-  void   generateConsensus(void);
-  void   restoreUnitig(void);
-
-private:
-  MultiAlignT    *ma;
-  int32           numfrags;
-  IntMultiPos    *fraglist;
-  IntMultiPos    *fragback;
-
-  CNS_Options    *opp;
-
-  VA_TYPE(int32) *trace;
-  int32           traceBgn;
-
-  MANode         *manode;
-  SeqInterval    *utgpos;   //  Original unitigger location, DO NOT MODIFY
-  SeqInterval    *cnspos;   //  Actual location in frankenstein.
-
-  //int32           ovl;    //  Expected overlap in bases to the frankenstein
-  //int32           ahang;  //  Expected hangs to the frankenstein
-  //int32           bhang;
-
-  int32           tiid;   //  This frag IID
-  int32           piid;   //  Parent frag IID - if -1, not valid
-
-  int32           frankensteinLen;
-  int32           frankensteinMax;
-  char           *frankenstein;
-  beadIdx         *frankensteinBof;
-};
 
 
 void
 unitigConsensus::reportStartingWork(void) {
-  fprintf(stderr, "MultiAlignUnitig()-- processing fragment mid %d pos %d,%d parent %d,%d,%d contained %d\n",
-          fraglist[tiid].ident,
-          fraglist[tiid].position.bgn,
-          fraglist[tiid].position.end,
-          fraglist[tiid].parent,
-          fraglist[tiid].ahang,
-          fraglist[tiid].bhang,
-          fraglist[tiid].contained);
+  fprintf(stderr, "MultiAlignUnitig()-- processing fragment mid %d pos %d,%d ahcnor %d,%d,%d\n",
+          utgpos[tiid].ident(),
+          utgpos[tiid].bgn(),
+          utgpos[tiid].end(),
+          utgpos[tiid].anchor(),
+          utgpos[tiid].aHang(),
+          utgpos[tiid].bHang());
 
-  if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_PLACEMENT_BEFORE)
+  if (showPlacementBefore())
     for (int32 x=0; x<=tiid; x++)
-      fprintf(stderr, "MultiAlignUnitig()-- mid %10d  frgpos %7d,%7d  utgpos %7d,%7d  cnspos %7d,%7d  parent %10d,%6d,%6d\n",
-              fraglist[x].ident,
-              fraglist[x].position.bgn, fraglist[x].position.end,
-              utgpos[x].bgn, utgpos[x].end,
-              cnspos[x].bgn, cnspos[x].end,
-              fraglist[x].parent, fraglist[x].ahang, fraglist[x].bhang);
+      fprintf(stderr, "MultiAlignUnitig()-- mid %10d  utgpos %7d,%7d  cnspos %7d,%7d  anchor %10d,%6d,%6d\n",
+              utgpos[x].ident(),
+              utgpos[x].bgn(), utgpos[x].end(),
+              cnspos[x].bgn(), cnspos[x].end(),
+              utgpos[x].anchor(), utgpos[x].aHang(), utgpos[x].bHang());
 }
 
 
@@ -302,7 +61,7 @@ unitigConsensus::reportFailure(int32 *failed) {
   if (failed != NULL)
     failed[tiid] = true;
   fprintf(stderr, "MultiAlignUnitig()-- failed to align fragment %d in unitig %d.\n",
-          fraglist[tiid].ident, ma->maID);
+          utgpos[tiid].ident(), tig->tigID());
 }
 
 
@@ -311,12 +70,12 @@ unitigConsensus::reportSuccess(int32 *failed) {
   if (failed != NULL)
     failed[tiid] = false;
   //fprintf(stderr, "MultiAlignUnitig()-- fragment %d aligned in unitig %d.\n",
-  //        fraglist[tiid].ident, ma->maID);
+  //        utgpos[tiid].ident(), tig->tigID());
 }
 
 
 int
-unitigConsensus::initialize(int32 *failed) {
+unitigConsensus::initialize(gkStore *gkpStore, int32 *failed) {
 
   int32 num_columns = 0;
   int32 num_bases   = 0;
@@ -324,104 +83,104 @@ unitigConsensus::initialize(int32 *failed) {
   if (numfrags == 0)
     return(false);
 
-  fragback = (IntMultiPos *)safe_malloc(sizeof(IntMultiPos) * numfrags);
+  utgpos = new tgPosition [numfrags];
+  cnspos = new tgPosition [numfrags];
+
+  memcpy(utgpos, tig->getChild(0), sizeof(tgPosition) * numfrags);
+  memcpy(cnspos, tig->getChild(0), sizeof(tgPosition) * numfrags);
 
   for (int32 i=0; i<numfrags; i++) {
     if (failed != NULL)
       failed[i]  = true;
 
-    fragback[i] = fraglist[i];
-
-    int32 flen   = (fraglist[i].position.bgn < fraglist[i].position.end) ? (fraglist[i].position.end < fraglist[i].position.bgn) : (fraglist[i].position.bgn - fraglist[i].position.end);
+    int32 flen   = (utgpos[i].bgn() < utgpos[i].end()) ? (utgpos[i].end() < utgpos[i].bgn()) : (utgpos[i].bgn() - utgpos[i].end());
     num_bases   += (int32)ceil(flen + 2 * AS_CNS_ERROR_RATE * flen);
 
-    num_columns  = (fraglist[i].position.bgn > num_columns) ? fraglist[i].position.bgn : num_columns;
-    num_columns  = (fraglist[i].position.end > num_columns) ? fraglist[i].position.end : num_columns;
+    num_columns  = (utgpos[i].bgn() > num_columns) ? utgpos[i].bgn() : num_columns;
+    num_columns  = (utgpos[i].end() > num_columns) ? utgpos[i].end() : num_columns;
   }
 
-  ResetStores(num_bases, numfrags, num_columns);
+  
+  //ResetStores(num_bases, numfrags, num_columns);
 
   //  Magic initialization (in ResetStores()) prevents us calling CreateMANode() until now.
 
-  trace    = CreateVA_int32(2 * AS_READ_MAX_NORMAL_LEN);
-  traceBgn = 0;
+  trace      = new int32 [2 * AS_MAX_READLEN];
+  traceBgn   = 0;
 
-  //manode   = CreateMANode(ma->maID);
-  abAbacus = new abAbacus(ma->maID);
-
-  utgpos   = (SeqInterval *)safe_calloc(numfrags, sizeof(SeqInterval));
-  cnspos   = (SeqInterval *)safe_calloc(numfrags, sizeof(SeqInterval));
-
-  assert(manode->lid == 0);
+  //manode   = CreateMANode(tig->tigID());
+  abacus     = new abAbacus(gkpStore, tig->tigID());
 
   frankensteinLen = 0;
   frankensteinMax = MAX(1024 * 1024, 2 * num_columns);
-  frankenstein    = (char    *)safe_malloc(sizeof(char)    * frankensteinMax);
-  frankensteinBof = (beadIdx *)safe_malloc(sizeof(beadIdx) * frankensteinMax);
+  frankenstein    = new char     [frankensteinMax];
+  frankensteinBof = new abBeadID [frankensteinMax];
 
-  set<AS_IID>  dupFrag;
+  {
+    set<uint32>  dupFrag;
 
-  for (int32 i=0; i<numfrags; i++) {
-    int32 complement = (fraglist[i].position.bgn < fraglist[i].position.end) ? 0 : 1;
-    int32 fid;
+    for (uint32 i=0; i<numfrags; i++) {
+      if (utgpos[i].isRead() == false) {
+        fprintf(stderr, "MultiAlignUnitig()-- Unitig %d FAILED.  Child %d is not a read.\n",
+                tig->tigID(), utgpos[i].ident());
+        return(false);
+      }
 
-    if (fraglist[i].type != AS_READ) {
-      fprintf(stderr, "MultiAlignUnitig()-- Unitig %d FAILED.  Fragment %d is not a read.\n",
-              ma->maID, fraglist[i].ident);
-      return(false);
+      if (dupFrag.find(utgpos[i].ident()) != dupFrag.end()) {
+        fprintf(stderr, "MultiAlignUnitig()-- Unitig %d FAILED.  Child %d is a duplicate.\n",
+                tig->tigID(), utgpos[i].ident());
+        return(false);
+      }
+
+      dupFrag.insert(utgpos[i].ident());
+
+      // This guy allocates and initializes the beads for each fragment.  Beads are not fully inserted
+      // in the abacus here.
+
+      int32 fid = abacus.addRead(gkpStore, utgpos[i].ident(), utgpos[i].isReverse());
+
+      //utgpos[fid].bgn = complement ? utgpos[i].end() : utgpos[i].bgn();
+      //utgpos[fid].end = complement ? utgpos[i].bgn() : utgpos[i].end();
+
+      cnspos[fid].bgn()  = 0;
+      cnspos[fid].end()  = 0;
+
+      //  If this is violated, then the implicit map from utgpos[] and cnspos[] to the unitig child
+      //  list is incorrect.
+
+      assert(fid == i);
+
+      //if (VERBOSE_MULTIALIGN_OUTPUT)
+      //  fprintf(stderr,"MultiAlignUnitig()-- Added fragment mid %d pos %d,%d in unitig %d to store at local id %d.\n",
+      //          utgpos[i].ident(), utgpos[i].bgn(), utgpos[i].end(), tig->tigID(), fid);
     }
-
-    if (dupFrag.find(fraglist[i].ident) != dupFrag.end()) {
-      fprintf(stderr, "MultiAlignUnitig()-- Unitig %d FAILED.  Fragment %d is a duplicate.\n",
-              ma->maID, fraglist[i].ident);
-      return(false);
-    }
-    dupFrag.insert(fraglist[i].ident);
-
-    // This guy allocates and initializes the beads for each fragment.  Beads are not fully inserted
-    // in the abacus here.
-
-    fid = abacus.addRead(fraglist[i].ident, complement);
-
-    utgpos[fid].bgn = complement ? fraglist[i].position.end : fraglist[i].position.bgn;
-    utgpos[fid].end = complement ? fraglist[i].position.bgn : fraglist[i].position.end;
-
-    cnspos[fid].bgn  = 0;
-    cnspos[fid].end  = 0;
-
-    //  If this is violated, then the implicit map from utgpos[] and cnspos[] to fraglist is
-    //  incorrect.
-    assert(fid == i);
-
-    //if (VERBOSE_MULTIALIGN_OUTPUT)
-    //  fprintf(stderr,"MultiAlignUnitig()-- Added fragment mid %d pos %d,%d in unitig %d to store at local id %d.\n",
-    //          fraglist[i].ident, fraglist[i].position.bgn, fraglist[i].position.end, ma->maID, fid);
   }
 
-  SeedMAWithFragment(manode->lid, GetFragment(fragmentStore,0)->lid, opp);
+  //SeedMAWithFragment(manode->lid, GetFragment(fragmentStore,0)->lid, opp);
+  multialign = abacus->addMultiAlign(0);
 
   if (failed)
     failed[0] = false;
 
   //  Save columns
   {
-    beadIdx bidx = GetFragment(fragmentStore, 0)->firstbead;
-    Bead   *bead = GetBead(beadStore, bidx);
+    abBeadID  bidx = abacus->getSequence(0)->firstbead();
+    abBead   *bead = abacus->getBead(bidx);
 
     while (bead) {
-      frankenstein   [frankensteinLen] = *Getchar(sequenceStore, bead->soffset);
-      frankensteinBof[frankensteinLen] = bead->boffset;
+      frankenstein   [frankensteinLen] = abacus->getBase(bead->baseIdx());
+      frankensteinBof[frankensteinLen] = bead->ident();
 
       frankensteinLen++;
 
-      bead = (bead->next.isInvalid()) ? NULL : GetBead(beadStore, bead->next);
+      bead = (bead->nextID().isInvalid()) ? NULL : abacus->getBead(bead->nextID());
     }
 
     frankenstein   [frankensteinLen] = 0;
-    frankensteinBof[frankensteinLen] = beadIdx();
+    frankensteinBof[frankensteinLen] = abBeadID();
 
-    cnspos[0].bgn = 0;
-    cnspos[0].end = frankensteinLen;
+    cnspos[0].bgn() = 0;
+    cnspos[0].end() = frankensteinLen;
   }
 
   return(true);
@@ -430,102 +189,98 @@ unitigConsensus::initialize(int32 *failed) {
 
 
 int
-unitigConsensus::computePositionFromParent(bool doContained) {
+unitigConsensus::computePositionFromAnchor(void) {
 
   assert(piid == -1);
 
-  AS_IID parent = (doContained == false) ? fraglist[tiid].parent : fraglist[tiid].contained;
+  uint32 anchor = utgpos[tiid].anchor();
 
-  if (parent == 0)
-    //  No parent?!  Damn.
-    goto computePositionFromParentFail;
-
-  if ((doContained == true) && (fraglist[tiid].parent == fraglist[tiid].contained))
-    //  Already tried the parent, no need to try it again; silently return.
-    goto computePositionFromParentFail;
+  if (anchor == 0)
+    //  No anchor?!  Damn.
+    goto computePositionFromAnchorFail;
 
   for (piid = tiid-1; piid >= 0; piid--) {
-    Fragment *afrag = GetFragment(fragmentStore, piid);
+    abSequence *aseq = abacus->getSequence(piid);
 
-    if (parent != afrag->iid)
-      //  Not the parent.
+    if (anchor != aseq->gkpIdent())
+      //  Not the anchor.
       continue;
 
-    if ((cnspos[piid].bgn == 0) &&
-        (cnspos[piid].end == 0))
-      //  Is the parent, but that isn't placed.
-      goto computePositionFromParentFail;
+    if ((cnspos[piid].bgn() == 0) &&
+        (cnspos[piid].end() == 0))
+      //  Is the anchor, but that isn't placed.
+      goto computePositionFromAnchorFail;
 
-    if ((utgpos[piid].end < utgpos[tiid].bgn) ||
-        (utgpos[tiid].end < utgpos[piid].bgn)) {
-      //  Is the parent, and parent is placed, but the parent doesn't agree with the placement.
-      if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_PLACEMENT)
-        fprintf(stderr, "computePositionFromParent()-- parent %d at utg %d,%d doesn't agree with my utg %d,%d.  FAIL\n",
-                parent,
-                utgpos[piid].bgn, utgpos[piid].end,
-                utgpos[tiid].bgn, utgpos[tiid].end);
-      goto computePositionFromParentFail;
+    if ((utgpos[piid].end() < utgpos[tiid].bgn()) ||
+        (utgpos[tiid].end() < utgpos[piid].bgn())) {
+      //  Is the anchor, and anchor is placed, but the anchor doesn't agree with the placement.
+      if (showPlacement())
+        fprintf(stderr, "computePositionFromAnchor()-- anchor %d at utg %d,%d doesn't agree with my utg %d,%d.  FAIL\n",
+                anchor,
+                utgpos[piid].bgn(), utgpos[piid].end(),
+                utgpos[tiid].bgn(), utgpos[tiid].end());
+      goto computePositionFromAnchorFail;
     }
 
-    //  Scale the hangs by the change in the parent size between bogart and consensus.
+    //  Scale the hangs by the change in the anchor size between bogart and consensus.
 
-    double   parentScale = (double)(cnspos[piid].end - cnspos[piid].bgn) / (double)(utgpos[piid].end - utgpos[piid].bgn);
+    double   anchorScale = (double)(cnspos[piid].end() - cnspos[piid].bgn()) / (double)(utgpos[piid].end() - utgpos[piid].bgn());
 
-    if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_PLACEMENT)
-      fprintf(stderr, "computePositionFromParent()--  frag %u in parent %u -- hangs %d,%d -- scale %f -- final hangs %.0f,%.0f\n",
-              fraglist[tiid].ident,
-              fraglist[piid].ident,
-              fraglist[tiid].ahang,
-              fraglist[tiid].bhang,
-              parentScale,
-              fraglist[tiid].ahang * parentScale,
-              fraglist[tiid].bhang * parentScale);
+    if (showPlacement())
+      fprintf(stderr, "computePositionFromAnchor()--  frag %u in anchor %u -- hangs %d,%d -- scale %f -- final hangs %.0f,%.0f\n",
+              utgpos[tiid].ident(),
+              utgpos[piid].ident(),
+              utgpos[tiid].aHang(),
+              utgpos[tiid].bHang(),
+              anchorScale,
+              utgpos[tiid].aHang() * anchorScale,
+              utgpos[tiid].bHang() * anchorScale);
 
-    cnspos[tiid].bgn = cnspos[piid].bgn + fraglist[tiid].ahang * parentScale;
-    cnspos[tiid].end = cnspos[piid].end + fraglist[tiid].bhang * parentScale;
+    cnspos[tiid].bgn() = cnspos[piid].bgn() + utgpos[tiid].aHang() * anchorScale;
+    cnspos[tiid].end() = cnspos[piid].end() + utgpos[tiid].bHang() * anchorScale;
 
     //  Hmmm, but if we shrank the read too much, add back in some of the length.  We want to end up
-    //  with the read scaled by parentScale, and centered on the hangs.
+    //  with the read scaled by anchorScale, and centered on the hangs.
 
-    int32   fragmentLength = utgpos[tiid].end - utgpos[tiid].bgn;
+    int32   fragmentLength = utgpos[tiid].end() - utgpos[tiid].bgn();
 
-    if ((cnspos[tiid].bgn >= cnspos[tiid].end) ||
-        (cnspos[tiid].end - cnspos[tiid].bgn < 0.75 * fragmentLength)) {
-      int32  center = (cnspos[tiid].bgn + cnspos[tiid].end) / 2;
+    if ((cnspos[tiid].bgn() >= cnspos[tiid].end()) ||
+        (cnspos[tiid].end() - cnspos[tiid].bgn() < 0.75 * fragmentLength)) {
+      int32  center = (cnspos[tiid].bgn() + cnspos[tiid].end()) / 2;
 
-      if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_PLACEMENT) {
-        fprintf(stderr, "computePositionFromParent()--  frag %u in parent %u -- too short.  reposition around center %d with adjusted length %.0f\n",
-                fraglist[tiid].ident,
-                fraglist[piid].ident,
-                center, fragmentLength * parentScale);
+      if (showPlacement()) {
+        fprintf(stderr, "computePositionFromAnchor()--  frag %u in anchor %u -- too short.  reposition around center %d with adjusted length %.0f\n",
+                utgpos[tiid].ident(),
+                utgpos[piid].ident(),
+                center, fragmentLength * anchorScale);
       }
 
-      cnspos[tiid].bgn = center - fragmentLength * parentScale / 2;
-      cnspos[tiid].end = center + fragmentLength * parentScale / 2;
+      cnspos[tiid].bgn() = center - fragmentLength * anchorScale / 2;
+      cnspos[tiid].end() = center + fragmentLength * anchorScale / 2;
 
       //  We seem immune to having a negative position.  We only use this to pull out a region from
       //  the partial consensus to align to.
       //
-      //if (cnspos[tiid].bgn < 0) {
-      //  cnspos[tiid].bgn = 0;
-      //  cnspos[tiid].end = fragmentLength * parentScale;
+      //if (cnspos[tiid].bgn() < 0) {
+      //  cnspos[tiid].bgn() = 0;
+      //  cnspos[tiid].end() = fragmentLength * anchorScale;
       //}
     }
 
-    assert(cnspos[tiid].bgn < cnspos[tiid].end);
+    assert(cnspos[tiid].bgn() < cnspos[tiid].end());
 
-    if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_PLACEMENT)
-      fprintf(stderr, "computePositionFromParent()-- parent %d at %d,%d --> beg,end %d,%d (fLen %d)\n",
-              parent,
-              cnspos[piid].bgn, cnspos[piid].end,
-              cnspos[tiid].bgn, cnspos[tiid].end,
+    if (showPlacement())
+      fprintf(stderr, "computePositionFromAnchor()-- anchor %d at %d,%d --> beg,end %d,%d (fLen %d)\n",
+              anchor,
+              cnspos[piid].bgn(), cnspos[piid].end(),
+              cnspos[tiid].bgn(), cnspos[tiid].end(),
               frankensteinLen);
     return(true);
   }
 
- computePositionFromParentFail:
-  cnspos[tiid].bgn = 0;
-  cnspos[tiid].end = 0;
+ computePositionFromAnchorFail:
+  cnspos[tiid].bgn() = 0;
+  cnspos[tiid].end() = 0;
 
   piid = -1;
 
@@ -542,26 +297,26 @@ unitigConsensus::computePositionFromLayout(void) {
 
   //  Find the thickest qiid overlap to any cnspos fragment
   for (int32 qiid = tiid-1; qiid >= 0; qiid--) {
-    if ((utgpos[tiid].bgn < utgpos[qiid].end) &&
-        (utgpos[tiid].end > utgpos[qiid].bgn) &&
-        ((cnspos[qiid].bgn != 0) ||
-         (cnspos[qiid].end != 0))) {
-      cnspos[tiid].bgn = cnspos[qiid].bgn + utgpos[tiid].bgn - utgpos[qiid].bgn;
-      cnspos[tiid].end = cnspos[qiid].end + utgpos[tiid].end - utgpos[qiid].end;
+    if ((utgpos[tiid].bgn() < utgpos[qiid].end()) &&
+        (utgpos[tiid].end() > utgpos[qiid].bgn()) &&
+        ((cnspos[qiid].bgn() != 0) ||
+         (cnspos[qiid].end() != 0))) {
+      cnspos[tiid].bgn() = cnspos[qiid].bgn() + utgpos[tiid].bgn() - utgpos[qiid].bgn();
+      cnspos[tiid].end() = cnspos[qiid].end() + utgpos[tiid].end() - utgpos[qiid].end();
 
       //  This assert triggers.  It results in 'ooo' below being negative, and we
       //  discard this overlap anyway.
       //
-      //assert(cnspos[tiid].bgn < cnspos[tiid].end);
+      //assert(cnspos[tiid].bgn() < cnspos[tiid].end());
 
-      int32 ooo = MIN(cnspos[tiid].end, frankensteinLen) - cnspos[tiid].bgn;
+      int32 ooo = MIN(cnspos[tiid].end(), frankensteinLen) - cnspos[tiid].bgn();
 
 #if 1
-      if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_PLACEMENT)
+      if (showPlacement())
         fprintf(stderr, "computePositionFromLayout()-- layout %d at utg %d,%d cns %d,%d --> utg %d,%d cns %d,%d -- overlap %d\n",
-                fraglist[qiid].ident,
-                utgpos[qiid].bgn, utgpos[qiid].end, cnspos[qiid].bgn, cnspos[qiid].end,
-                utgpos[tiid].bgn, utgpos[tiid].end, cnspos[tiid].bgn, cnspos[tiid].end,
+                utgpos[qiid].ident(),
+                utgpos[qiid].bgn(), utgpos[qiid].end(), cnspos[qiid].bgn(), cnspos[qiid].end(),
+                utgpos[tiid].bgn(), utgpos[tiid].end(), cnspos[tiid].bgn(), cnspos[tiid].end(),
                 ooo);
 #endif
 
@@ -577,15 +332,15 @@ unitigConsensus::computePositionFromLayout(void) {
       //  new start placement, it starts after the end of the A read -- the utgpos say the B read
       //  starts 700bp after the A read, which is position 13622 + 700 = 14322....50bp after A ends.
 
-      if ((cnspos[tiid].bgn < frankensteinLen) &&
+      if ((cnspos[tiid].bgn() < frankensteinLen) &&
           (thickestLen < ooo)) {
         thickestLen = ooo;
 
-        assert(cnspos[tiid].bgn < cnspos[tiid].end);  //  But we'll still assert cnspos is ordered correctly.
+        assert(cnspos[tiid].bgn() < cnspos[tiid].end());  //  But we'll still assert cnspos is ordered correctly.
 
         int32 ovl   = ooo;
-        int32 ahang = cnspos[tiid].bgn;
-        int32 bhang = cnspos[tiid].end - frankensteinLen;
+        int32 ahang = cnspos[tiid].bgn();
+        int32 bhang = cnspos[tiid].end() - frankensteinLen;
 
         piid  = qiid;
       }
@@ -598,23 +353,23 @@ unitigConsensus::computePositionFromLayout(void) {
   if (thickestLen >= AS_OVERLAP_MIN_LEN) {
     assert(piid != -1);
 
-    cnspos[tiid].bgn = cnspos[piid].bgn + utgpos[tiid].bgn - utgpos[piid].bgn;
-    cnspos[tiid].end = cnspos[piid].end + utgpos[tiid].end - utgpos[piid].end;
+    cnspos[tiid].bgn() = cnspos[piid].bgn() + utgpos[tiid].bgn() - utgpos[piid].bgn();
+    cnspos[tiid].end() = cnspos[piid].end() + utgpos[tiid].end() - utgpos[piid].end();
 
-    assert(cnspos[tiid].bgn < cnspos[tiid].end);
+    assert(cnspos[tiid].bgn() < cnspos[tiid].end());
 
-    if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_PLACEMENT)
+    if (showPlacement())
       fprintf(stderr, "computePositionFromLayout()-- layout %d at %d,%d --> beg,end %d,%d (fLen %d)\n",
-              fraglist[piid].ident,
-              cnspos[piid].bgn, cnspos[piid].end,
-              cnspos[tiid].bgn, cnspos[tiid].end,
+              utgpos[piid].ident(),
+              cnspos[piid].bgn(), cnspos[piid].end(),
+              cnspos[tiid].bgn(), cnspos[tiid].end(),
               frankensteinLen);
 
     return(true);
   }
 
-  cnspos[tiid].bgn = 0;
-  cnspos[tiid].end = 0;
+  cnspos[tiid].bgn() = 0;
+  cnspos[tiid].end() = 0;
 
   piid = -1;
 
@@ -638,8 +393,9 @@ unitigConsensus::computePositionFromAlignment(void) {
   int32        minlen      = AS_OVERLAP_MIN_LEN;
   int32        ahanglimit  = -10;
 
-  char        *fragment    = Getchar(sequenceStore, GetFragment(fragmentStore, tiid)->sequence);
-  int32        fragmentLen = strlen(fragment);
+  abSequence  *seq         = abacus->getSequence(tiid);
+  char        *fragment    = abacus->getBase(seq->firstBase());
+  int32        fragmentLen = seq->length();
 
   O = DP_Compare(frankenstein,
                  fragment,
@@ -659,43 +415,43 @@ unitigConsensus::computePositionFromAlignment(void) {
                                 AS_FIND_ALIGN);
 
   if (O == NULL) {
-    cnspos[tiid].bgn = 0;
-    cnspos[tiid].end = 0;
+    cnspos[tiid].bgn() = 0;
+    cnspos[tiid].end() = 0;
 
     piid = -1;
 
-    if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
+    if (showAlgorithm())
       fprintf(stderr, "computePositionFromAlignment()-- Returns fail.\n");
     return(false);
   }
 
   //  From the overlap and existing placements, find the thickest overlap, to set the piid and
-  //  hangs, then reset the original placement based on that parents original placement.
+  //  hangs, then reset the original placement based on that anchors original placement.
   //
   //  To work with fixFailures(), we need to scan the entire fragment list.  This isn't so
   //  bad, really, since before we were scanning (on average) half of it.
   //
-  cnspos[tiid].bgn = O->begpos;
-  cnspos[tiid].end = O->endpos + frankensteinLen;
-  //fprintf(stderr, "cnspos[%3d] mid %d %d,%d\n", tiid, fraglist[tiid].ident, cnspos[tiid].bgn, cnspos[tiid].end);
+  cnspos[tiid].bgn() = O->begpos;
+  cnspos[tiid].end() = O->endpos + frankensteinLen;
+  //fprintf(stderr, "cnspos[%3d] mid %d %d,%d\n", tiid, utgpos[tiid].ident(), cnspos[tiid].bgn(), cnspos[tiid].end());
 
-  assert(cnspos[tiid].bgn < cnspos[tiid].end);
+  assert(cnspos[tiid].bgn() < cnspos[tiid].end());
 
   int32   thickestLen = 0;
 
   for (int32 qiid = numfrags-1; qiid >= 0; qiid--) {
     if ((tiid != qiid) &&
-        (cnspos[tiid].bgn < cnspos[qiid].end) &&
-        (cnspos[tiid].end > cnspos[qiid].bgn)) {
-      int32 ooo = (MIN(cnspos[tiid].end, cnspos[qiid].end) -
-                   MAX(cnspos[tiid].bgn, cnspos[qiid].bgn));
+        (cnspos[tiid].bgn() < cnspos[qiid].end()) &&
+        (cnspos[tiid].end() > cnspos[qiid].bgn())) {
+      int32 ooo = (MIN(cnspos[tiid].end(), cnspos[qiid].end()) -
+                   MAX(cnspos[tiid].bgn(), cnspos[qiid].bgn()));
 
       if (thickestLen < ooo) {
         thickestLen = ooo;
 
         int32 ovl   = ooo;
-        int32 ahang = cnspos[tiid].bgn;
-        int32 bhang = cnspos[tiid].end - frankensteinLen;
+        int32 ahang = cnspos[tiid].bgn();
+        int32 bhang = cnspos[tiid].end() - frankensteinLen;
 
         piid  = qiid;
       }
@@ -705,18 +461,18 @@ unitigConsensus::computePositionFromAlignment(void) {
   if (thickestLen > 0) {
     assert(piid != -1);
 
-    if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_PLACEMENT)
+    if (showPlacement())
       fprintf(stderr, "computePositionFromAlignment()-- layout %d at %d,%d --> beg,end %d,%d (fLen %d)\n",
-              fraglist[piid].ident,
-              cnspos[piid].bgn, cnspos[piid].end,
-              cnspos[tiid].bgn, cnspos[tiid].end,
+              utgpos[piid].ident(),
+              cnspos[piid].bgn(), cnspos[piid].end(),
+              cnspos[tiid].bgn(), cnspos[tiid].end(),
               frankensteinLen);
 
     return(true);
   }
 
-  cnspos[tiid].bgn = 0;
-  cnspos[tiid].end = 0;
+  cnspos[tiid].bgn() = 0;
+  cnspos[tiid].end() = 0;
 
   piid = -1;
 
@@ -730,39 +486,40 @@ unitigConsensus::rebuild(bool recomputeFullConsensus) {
   //  Run abacus to rebuild an intermediate consensus sequence.  VERY expensive.
   //
   if (recomputeFullConsensus == true) {
-    RefreshMANode(manode->lid, 0, opp, NULL, NULL, 0, 0);
+    abacus->refreshMultiAlign(manode->lid, 0, opp, NULL, NULL, 0, 0);
 
-    AbacusRefine(manode,0,-1,CNS_SMOOTH, opp);  //  Are all three needed??
-    MergeRefine(manode->lid, NULL, 1, opp, 1);
+    multialign->refine(abacus, abAbacus_Smooth);
+    multialign->mergeRefine(abacus);
 
-    AbacusRefine(manode,0,-1,CNS_POLYX, opp);
-    MergeRefine(manode->lid, NULL, 1, opp, 1);
+    multialign->refine(abacus, abAbacus_Poly_X);
+    multialign->mergeRefine(abacus);
 
-    AbacusRefine(manode,0,-1,CNS_INDEL, opp);
-    MergeRefine(manode->lid, NULL, 1, opp, 1);
+    multialign->refine(abacus, abAbacus_Indel);
+    multialign->mergeRefine(abacus);
   }
 
   //  For each column, vote for the consensus base to use.  Ideally, if we just computed the full
   //  consensus, we'd use that and just replace gaps with N.
 
-  int32 cid   = manode->first;
-  int32 index = 0;
+  abColID cid   = multialign->firstColumn();
+  int32   index = 0;
     
-  Resetint32(manode->columnList);
+  muiltialign->columnList().clear();
 
   frankensteinLen = 0;
 
-  while (cid  > -1) {
-    Column *column = GetColumn(columnStore, cid);
-    int32   nA = GetColumnBaseCount(column, 'A');
-    int32   nC = GetColumnBaseCount(column, 'C');
-    int32   nG = GetColumnBaseCount(column, 'G');
-    int32   nT = GetColumnBaseCount(column, 'T');
-    int32   nN = GetColumnBaseCount(column, 'N');
-    int32   n_ = GetColumnBaseCount(column, '-');
+  while (cid.isValid()) {
+    abColumn *column = abacus->getColumn(cid);
+
+    int32   nA = column->GetColumnBaseCount('A');
+    int32   nC = column->GetColumnBaseCount('C');
+    int32   nG = column->GetColumnBaseCount('G');
+    int32   nT = column->GetColumnBaseCount('T');
+    int32   nN = column->GetColumnBaseCount('N');
+    int32   n_ = column->GetColumnBaseCount('-');
     int32   nn = 0;
 
-    Bead   *bead = GetBead(beadStore, column->call);
+    abBead *bead = abacus->getBead(column->callID());
     char    call = 'N';
 
     if (nA > nn) { nn = nA;  call = 'A'; }
@@ -779,61 +536,61 @@ unitigConsensus::rebuild(bool recomputeFullConsensus) {
 
     assert(call != '-');
 
-    Setchar(sequenceStore, bead->soffset, &call);
+    abacus->setBase(bead->ident(), call);
 
     while (frankensteinLen >= frankensteinMax) {
-      frankensteinMax *= 2;
-      frankenstein     = (char    *)safe_realloc(frankenstein,    sizeof(char)    * frankensteinMax);
-      frankensteinBof  = (beadIdx *)safe_realloc(frankensteinBof, sizeof(beadIdx) * frankensteinMax);
+      resizeArrayPair(frankenstein, frankensteinBof, frankensteinLen, frankensteinMax, frankensteinMax * 2);
+      //frankensteinMax *= 2;
+      //frankenstein     = (char    *)safe_realloc(frankenstein,    sizeof(char)    * frankensteinMax);
+      //frankensteinBof  = (beadIdx *)safe_realloc(frankensteinBof, sizeof(beadIdx) * frankensteinMax);
     }
     assert(frankensteinLen < frankensteinMax);
 
     frankenstein   [frankensteinLen] = call;
-    frankensteinBof[frankensteinLen] = bead->boffset;
+    frankensteinBof[frankensteinLen] = bead->ident();
     frankensteinLen++;
 
     //  This is extracted from RefreshMANode()
-    column->ma_index = index++;
-    AppendVA_int32(manode->columnList, &cid);
+    column->ma_position = index++;
 
-    cid = column->next;
+    multialign->columnList().push_back(cid);
+
+    cid = column->nextID();
   }
 
   frankenstein   [frankensteinLen] = 0;
-  frankensteinBof[frankensteinLen] = beadIdx();
+  frankensteinBof[frankensteinLen] = abBeadID();
 
   //  Update the position of each fragment in the consensus sequence.
 
   for (int32 i=0; i<=tiid; i++) {
-    if ((cnspos[i].bgn == 0) &&
-        (cnspos[i].end == 0))
+    if ((cnspos[i].bgn() == 0) &&
+        (cnspos[i].end() == 0))
       //  Uh oh, not placed originally.
       continue;
 
-    Fragment *frg  = GetFragment(fragmentStore, i);
-    Bead     *frst = GetBead(beadStore, frg->firstbead);
-    Bead     *last = GetBead(beadStore, frg->firstbead.get() + frg->length - 1);
+    abSequence *seq  = abacus->getSequence(i);
+    abBead     *frst = abacus->getBead(frg->firstbead());
+    abBead     *last = abacus->getBead(frg->firstbead().get() + frg->length - 1);
 
-    cnspos[i].bgn = GetColumn(columnStore, frst->column_index)->ma_index;
-    cnspos[i].end = GetColumn(columnStore, last->column_index)->ma_index + 1;
+    cnspos[i].bgn() = abacus->getColumn(frst->colIdx())->ma_position;
+    cnspos[i].end() = abacus->getColumn(last->colIdx())->ma_position + 1;
 
-    assert(cnspos[i].bgn >= 0);
-    assert(cnspos[i].end > cnspos[i].bgn);
+    assert(cnspos[i].bgn() >= 0);
+    assert(cnspos[i].end() > cnspos[i].bgn());
   }
 
-  //  Finally, update the parent/hang of the fragment we just placed.
+  //  Finally, update the anchor/hang of the fragment we just placed.
 
   if (piid >= 0) {
-    fraglist[tiid].parent    = fraglist[piid].ident;
-    fraglist[tiid].ahang     = cnspos[tiid].bgn - cnspos[piid].bgn;
-    fraglist[tiid].bhang     = cnspos[tiid].end - cnspos[piid].end;
-    fraglist[tiid].contained = (fraglist[tiid].bhang > 0) ? 0 : fraglist[piid].ident;
-    fraglist[tiid].contained = (fraglist[tiid].ahang < 0) ? 0 : fraglist[tiid].contained;
+    utgpos[tiid].anchor()  = utgpos[piid].ident();
+    utgpos[tiid].aHang()   = cnspos[tiid].bgn() - cnspos[piid].bgn();
+    utgpos[tiid].bHang()   = cnspos[tiid].end() - cnspos[piid].end();
   }
 
   piid = -1;
 
-  if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALIGNMENTS)
+  if (showAlignments())
     PrintAlignment(stderr, manode->lid, 0, -1);
 }
 
@@ -844,10 +601,10 @@ unitigConsensus::alignFragment(void) {
   int32         bgnExtra     = 0;
   int32         endExtra     = 0;
 
-  assert((cnspos[tiid].bgn != 0) || (cnspos[tiid].end != 0));
+  assert((cnspos[tiid].bgn() != 0) || (cnspos[tiid].end() != 0));
   assert(piid != -1);
 
-  assert(cnspos[tiid].bgn < cnspos[tiid].end);
+  assert(cnspos[tiid].bgn() < cnspos[tiid].end());
 
   //  Compute how much extra consensus sequence to align to.  If we allow too much, we risk placing
   //  the fragment in an incorrect location -- worst case is that we find a longer higher scoring
@@ -866,8 +623,8 @@ unitigConsensus::alignFragment(void) {
   //  So we should allow AS_CNS_ERROR_RATE indel in those relative positionings.
   //
 
-  bgnExtra = (int32)ceil(AS_CNS_ERROR_RATE * (cnspos[tiid].bgn - cnspos[piid].bgn));
-  endExtra = (int32)ceil(AS_CNS_ERROR_RATE * (cnspos[tiid].end - cnspos[piid].end));
+  bgnExtra = (int32)ceil(AS_CNS_ERROR_RATE * (cnspos[tiid].bgn() - cnspos[piid].bgn()));
+  endExtra = (int32)ceil(AS_CNS_ERROR_RATE * (cnspos[tiid].end() - cnspos[piid].end()));
 
   if (bgnExtra < 0)  bgnExtra = -bgnExtra;
   if (endExtra < 0)  endExtra = -endExtra;
@@ -890,10 +647,10 @@ unitigConsensus::alignFragment(void) {
   //            CCCATCCGGGAGGGAGGTGGGGGGGTCAGCCCCCCGCCCCGCCAGCCGCTCCGTCCGGGAGGGAGGTGGGGGGGTCAGCCCCCCGCCCGGCCAGCCGCCCC
   //
 
-  assert(cnspos[tiid].bgn < cnspos[tiid].end);
+  assert(cnspos[tiid].bgn() < cnspos[tiid].end());
 
-  int32 cnsbgn = (cnspos[tiid].bgn < cnspos[tiid].end) ? cnspos[tiid].bgn : cnspos[tiid].end;
-  int32 cnsend = (cnspos[tiid].bgn < cnspos[tiid].end) ? cnspos[tiid].end : cnspos[tiid].bgn;
+  int32 cnsbgn = (cnspos[tiid].bgn() < cnspos[tiid].end()) ? cnspos[tiid].bgn() : cnspos[tiid].end();
+  int32 cnsend = (cnspos[tiid].bgn() < cnspos[tiid].end()) ? cnspos[tiid].end() : cnspos[tiid].bgn();
 
   int32 endTrim = (cnsend - frankensteinLen) - (int32)ceil(AS_CNS_ERROR_RATE * (cnsend - cnsbgn));
 
@@ -901,7 +658,7 @@ unitigConsensus::alignFragment(void) {
 
 
  alignFragmentAgain:
-  int32 frankBgn     = MAX(0, cnspos[tiid].bgn - bgnExtra);   //  Start position in frankenstein
+  int32 frankBgn     = MAX(0, cnspos[tiid].bgn() - bgnExtra);   //  Start position in frankenstein
   int32 frankEnd     = frankensteinLen;                       //  Truncation of frankenstein
   char  frankEndBase = 0;                                     //  Saved base from frankenstein
 
@@ -909,7 +666,7 @@ unitigConsensus::alignFragment(void) {
   bool  allowBhang   = true;
   bool  tryAgain     = false;
 
-  if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
+  if (showAlgorithm())
     fprintf(stderr, "alignFragment()-- Allow bgnExtra=%d and endExtra=%d (frankBgn=%d frankEnd=%d) and endTrim=%d\n",
             bgnExtra, endExtra, frankBgn, frankEnd, endTrim);
 
@@ -922,19 +679,19 @@ unitigConsensus::alignFragment(void) {
   //  If the expected fragment end position plus any extra slop are less than the consensus length,
   //  we need to truncate the frankenstein so we don't incorrectly align to that.
   //
-  if (cnspos[tiid].end + endExtra < frankEnd) {
-    frankEnd     = cnspos[tiid].end + endExtra;
+  if (cnspos[tiid].end() + endExtra < frankEnd) {
+    frankEnd     = cnspos[tiid].end() + endExtra;
     frankEndBase = frankenstein[frankEnd];
     frankenstein[frankEnd] = 0;
     allowBhang   = false;
   }
 
-  char      *aseq  = frankenstein + frankBgn;
-  int32      alen  = frankEnd - frankBgn;
+  char       *aseq  = frankenstein + frankBgn;
+  int32       alen  = frankEnd - frankBgn;
 
-  char      *bseq  = Getchar(sequenceStore, GetFragment(fragmentStore, tiid)->sequence);  //  The fragment
-  Fragment  *bfrag = GetFragment(fragmentStore, tiid);
-  int32      blen  = bfrag->length;
+  abSequence *bSEQ  = abacus->getSequence(tiid);
+  char       *bseq  = abacus->getBase(bSEQ->firstbase());  //  The fragment
+  int32       blen  = bSEQ->length;
 
   if (endTrim >= blen)
     fprintf(stderr, "alignFragment()-- ERROR -- excessive endTrim %d >= length %d\n", endTrim, blen);
@@ -961,7 +718,7 @@ unitigConsensus::alignFragment(void) {
                                     0,
                                     AS_CNS_ERROR_RATE + 0.02, thresh, minlen,
                                     AS_FIND_ALIGN);
-      if ((O) && (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)) {
+      if ((O) && (showAlgorithm())) {
         PrintALNoverlap("Optimal_Overlap", aseq, bseq, O);
       }
     }
@@ -1004,7 +761,7 @@ unitigConsensus::alignFragment(void) {
         AppendVA_int32(trace, t);
       }
 
-      if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
+      if (showAlgorithm())
         fprintf(stderr, "alignFragment()-- Alignment succeeded.\n");
 
       return(true);
@@ -1015,12 +772,12 @@ unitigConsensus::alignFragment(void) {
   }
 
   //  No alignment.  Dang.
-  cnspos[tiid].bgn = 0;
-  cnspos[tiid].end = 0;
+  cnspos[tiid].bgn() = 0;
+  cnspos[tiid].end() = 0;
 
   piid = -1;
 
-  if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
+  if (showAlgorithm())
     fprintf(stderr, "alignFragment()-- No alignment found.\n");
 
   return(false);
@@ -1033,28 +790,28 @@ unitigConsensus::rejectAlignment(bool allowBhang,  //  Allow a positive bhang - 
                                  ALNoverlap *O) {
 
   if (O == NULL) {
-    if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
+    if (showAlgorithm())
       fprintf(stderr, "rejectAlignment()-- No alignment found.\n");
     return(true);
   }
 
   //  Negative ahang?  Nope, don't want it.
   if ((O->begpos < 0) && (allowAhang == false)) {
-    if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
+    if (showAlgorithm())
       fprintf(stderr, "rejectAlignment()-- No alignment found -- begpos = %d (negative ahang not allowed).\n", O->begpos);
     return(true);
   }
 
   //  Positive bhang and not the last fragment?  Nope, don't want it.
   if ((O->endpos > 0) && (allowBhang == false)) {
-    if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
+    if (showAlgorithm())
       fprintf(stderr, "rejectAlignment()-- No alignment found -- endpos = %d (positive bhang not allowed).\n", O->endpos);
     return(true);
   }
 
   //  Too noisy?  Nope, don't want it.
   if (((double)O->diffs / (double)O->length) > AS_CNS_ERROR_RATE) {
-    if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
+    if (showAlgorithm())
       fprintf(stderr, "rejectAlignment()-- No alignment found -- erate %f > max allowed %f.\n",
               (double)O->diffs / (double)O->length, AS_CNS_ERROR_RATE);
     return(true);
@@ -1062,7 +819,7 @@ unitigConsensus::rejectAlignment(bool allowBhang,  //  Allow a positive bhang - 
 
   //  Too short?  Nope, don't want it.
   if (O->length < AS_OVERLAP_MIN_LEN) {
-    if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
+    if (showAlgorithm())
       fprintf(stderr, "rejectAlignment()-- No alignment found -- too short %d < min allowed %d.\n",
               O->length, AS_OVERLAP_MIN_LEN);
     return(true);
@@ -1080,7 +837,7 @@ unitigConsensus::applyAlignment(int32 frag_aiid, int32 frag_ahang, int32 *frag_t
     //  Aligned to a fragent
     assert(0);
     //  Left in because this was a useful invocation of ApplyAlignment -- but it might now be useless
-    if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
+    if (showAlgorithm())
       fprintf(stderr, "applyAlignment()-- aligned to fragment -- frag_aiid=%d frag_ahang=%d\n", frag_aiid, frag_ahang);
     ApplyAlignment(frag_aiid,
                    0, NULL,
@@ -1089,7 +846,7 @@ unitigConsensus::applyAlignment(int32 frag_aiid, int32 frag_ahang, int32 *frag_t
 
   } else {
     //  Aligned to frankenstein
-    //if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
+    //if (showAlgorithm())
     //  fprintf(stderr, "applyAlignment()-- aligned to frankenstein\n");
     ApplyAlignment(-1,
                    frankensteinLen, frankensteinBof,
@@ -1102,37 +859,42 @@ unitigConsensus::applyAlignment(int32 frag_aiid, int32 frag_ahang, int32 *frag_t
 void
 unitigConsensus::generateConsensus(void) {
 
-  RefreshMANode(manode->lid, 0, opp, NULL, NULL, 0, 0);
+  abacus->refreshMultiAlign(manode->lid, 0, opp, NULL, NULL, 0, 0);
 
-  AbacusRefine(manode,0,-1,CNS_SMOOTH, opp);
-  MergeRefine(manode->lid, NULL, 1, opp, 1);
+  multialign->refine(abacus, abAbacus_Smooth);
+  multialign->mergeRefine(abacus);
 
-  AbacusRefine(manode,0,-1,CNS_POLYX, opp);
-  MergeRefine(manode->lid, NULL, 1, opp, 1);
+  multialign->refine(abacus, abAbacus_Poly_X);
+  multialign->mergeRefine(abacus);
 
-  AbacusRefine(manode,0,-1,CNS_INDEL, opp);
-  MergeRefine(manode->lid, NULL, 1, opp, 1);
+  multialign->refine(abacus, abAbacus_Indel);
+  multialign->mergeRefine(abacus);
 
-  GetMANodeConsensus(manode->lid, ma->consensus, ma->quality);
-  GetMANodePositions(manode->lid, ma);
+  multialign->getConsensus(abacus, tig);
+  multialign->getPositions(abacus, tig);
+
+  //GetMANodeConsensus(manode->lid, ma->consensus, ma->quality);
+  //GetMANodePositions(manode->lid, ma);
 
   //  Although we generally don't care about delta values during assembly, we need them for the
   //  output, and this is the only time we compute them.  So, we've gotta hang on to them.
   //
   //for (int32 i=0; i<numfrags; i++) {
-  //  fraglist[i].delta_length = 0;
-  //  fraglist[i].delta        = NULL;
+  //  utgpos[i].elta_length = 0;
+  //  utgpos[i].elta        = NULL;
   //}
 
   //  Update or create the unitig in the MultiAlignT.
 
+#warning not creating a unitig child
+#if 0
   if (GetNumIntUnitigPoss(ma->u_list) == 0) {
     IntUnitigPos  iup;
 
     iup.type           = AS_OTHER_UNITIG;
-    iup.ident          = ma->maID;
-    iup.position.bgn   = 0;
-    iup.position.end   = GetMultiAlignLength(ma);
+    iup.ident          = tig->tigID();
+    iup.position.bgn()   = 0;
+    iup.position.end()   = GetMultiAlignLength(ma);
     iup.num_instances  = 0;
     iup.delta_length   = 0;
     iup.delta          = NULL;
@@ -1141,15 +903,17 @@ unitigConsensus::generateConsensus(void) {
   } else {
     IntUnitigPos  *iup = GetIntUnitigPos(ma->u_list, 0);
 
-    iup->position.bgn = 0;
-    iup->position.end = GetMultiAlignLength(ma);
+    iup->position.bgn() = 0;
+    iup->position.end() = GetMultiAlignLength(ma);
   }
+#endif
 
   //PrintAlignment(stderr,manode->lid,0,-1);
 
   //  While we have fragments in memory, compute the microhet probability.  Ideally, this would be
   //  done in CGW when loading unitigs (the only place the probability is used) but the code wants
   //  to load sequence and quality for every fragment, and that's too expensive.
+#if 0
   {
     char   **multia = NULL;
     int32  **id_array = NULL;
@@ -1166,13 +930,6 @@ unitigConsensus::generateConsensus(void) {
     delete [] multia;
     delete [] id_array;
   }
-}
+#endif
 
-
-//  When the unitig fails, we should restore the layout to what it was - the parent and hangs are
-//  modified whenever a fragment is placed (in method rebuild()).
-//
-void
-unitigConsensus::restoreUnitig(void) {
-  memcpy(fraglist, fragback, sizeof(IntMultiPos) * numfrags);
 }

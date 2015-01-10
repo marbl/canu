@@ -82,12 +82,12 @@ alignLinker(char           *alignA,
 //  EWM's stuff
 //
 
-typedef enum {
+enum OverlapType {
   AS_DOVETAIL    = (int)'D',
   AS_CONTAINMENT = (int)'C'
-} OverlapType;
+};
 
-typedef struct {
+struct  ALNoverlapFull {
   uint32           aifrag;
   uint32           bifrag;
   int32            ahg;
@@ -96,16 +96,16 @@ typedef struct {
   OverlapType      overlap_type;
   float            quality;
   int32            *alignment_trace;
-} ALNoverlapFull;  //  Former 'OverlapMesg'
+};  //  Former 'OverlapMesg'
 
-typedef struct {
+struct ALNoverlap {
   int begpos;
   int endpos;
   int length;
   int diffs;
   int comp;
   int *trace;
-} ALNoverlap;  //  Former 'Overlap'
+};  //  Former 'Overlap'
 
 
 void

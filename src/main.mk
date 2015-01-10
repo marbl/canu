@@ -45,6 +45,8 @@ SOURCES  := AS_global.C \
             \
             stores/tgStore.C \
             stores/tgTig.C \
+            stores/tgTigSizeAnalysis.C \
+            stores/tgTigMultiAlignment.C \
             \
             meryl/libmeryl.C \
             \
@@ -58,22 +60,17 @@ SOURCES  := AS_global.C \
             alignment/local-overlapper.C \
             \
             utgcns/libcns/abAbacus.C \
+            utgcns/libcns/abMultiAlign.C \
             utgcns/libcns/abAbacus-addRead.C \
             utgcns/libcns/abAbacus-refreshMultiAlign.C \
             utgcns/libcns/abAbacus-baseCall.C \
             utgcns/libcns/abAbacus-applyAlignment.C \
             utgcns/libcns/abAbacus-mergeRefine.C \
-            utgcns/libcns/abAbacus-refine.C
+            utgcns/libcns/abAbacus-refine.C \
+            utgcns/libcns/unitigConsensus.C
 
+#            utgcns/libcns/abAbacus-populateTig.C
 
-#            utgcns/libcns/AbacusRefine.C \
-#            utgcns/libcns/ApplyAlignment.C \
-#            utgcns/libcns/BaseCall.C \
-#            utgcns/libcns/MergeRefine.C \
-#            utgcns/libcns/MultiAlignUnitig.C \
-#            utgcns/libcns/MultiAlignment_CNS.C \
-#            utgcns/libcns/PrintAlignment.C \
-#            utgcns/libcns/RefreshMANode.C
 
 
 
@@ -87,7 +84,7 @@ SOURCES  := AS_global.C \
 #            AS_UTL/testVar.C
 #            AS_UTL/memoryMappedFileTest.C
 
-SRC_INCDIRS  := . AS_UTL stores
+SRC_INCDIRS  := . AS_UTL stores alignment utgcns/libcns
 
 #  Cannot be the 'main.mk' from subdirectories, as that redefines libCA.a to
 #  update just those objects.  Instead, this must list each binary indifidually.
@@ -111,4 +108,6 @@ SUBMAKEFILES := stores/gatekeeperCreate.mk \
                 \
                 erateEstimate/erateEstimate.mk \
                 \
-                unitigger/unitigger.mk
+                unitigger/unitigger.mk \
+                \
+                utgcns/unitigConsensus.mk

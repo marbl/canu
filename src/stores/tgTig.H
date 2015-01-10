@@ -78,15 +78,15 @@ public:
   bool                 isUnitig(void)  { return(_isUnitig == true); };
   bool                 isContig(void)  { return(_isContig == true); };
 
-  uint32               anchor(void) { return(_anchor); };
-  int32                aHang(void)  { return(_ahang);  };
-  int32                bHang(void)  { return(_bhang);  };
+  uint32              &anchor(void) { return(_anchor); };
+  int32               &aHang(void)  { return(_ahang);  };
+  int32               &bHang(void)  { return(_bhang);  };
 
   bool                 isForward(void) { return(_bgn < _end); };
   bool                 isReverse(void) { return(_bgn > _end); };
 
-  uint32               bgn(void) { return(_bgn); };
-  uint32               end(void) { return(_end); };
+  uint32              &bgn(void) { return(_bgn); };
+  uint32              &end(void) { return(_end); };
 
   uint32               min(void) { return((_bgn < _end) ? _bgn : _end); };
   uint32               max(void) { return((_bgn < _end) ? _end : _bgn); };
@@ -211,6 +211,13 @@ public:
   double              _coverageStat;
   double              _microhetProb;
 
+  //  Flags for computing consensus/multialignments
+
+  uint32              _utgcns_verboseLevel;
+  uint32              _utgcns_smoothWindow;
+  bool                _utgcns_splitAlleles;
+  bool                _utgcns_doPhasing;
+
   //  A variety of flags to suggest what type of unitig this is
 
   uint32              _suggestRepeat    : 1;
@@ -247,5 +254,12 @@ public:
   uint64              _variantDataLen;
   uint64              _variantDataMax;
 };
+
+
+bool
+generateMultiAlignment(tgTig                     *tig,
+                       gkStore                   *gkpStore,
+                       int32                     *failed);
+
 
 #endif

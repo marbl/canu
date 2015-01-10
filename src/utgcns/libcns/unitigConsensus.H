@@ -1,24 +1,49 @@
 
+#ifndef MULTIALIGNUNITIG_H
+#define MULTIALIGNUNITIG_H
+
+static const char *rcsid_MULTIALIGNUNITIG_H = "$Id:  $";
+
+#include "AS_global.H"
+
+//#include "gkStore.H"
+#include "tgStore.H"
+#include "aligners.H"
+#include "abAbacus.H"
+
+//  uint32  printWidth;
+//  uint32  printSpacing;
+
+//extern uint32 MULTIALIGN_PRINT_WIDTH;       //  In MultiAlignPrint.c
+//extern uint32 MULTIALIGN_PRINT_SPACING;
+
+//typedef enum {
+//  CNS_SMOOTH = 1, // only eliminate pairwise construction artifacts
+//  CNS_POLYX  = 2, // align poly-X regions
+//  CNS_INDEL  = 4  // push apart mushed block indels
+//}  CNS_RefineLevel;
 
 
-
+//  Options to things in MultiAligment_CNS.c
+//extern int32 allow_neg_hang;
 
 
 
 class unitigConsensus {
 public:
-  unitigConsensus(MultiAlignT *ma_, CNS_Options *opp_) {
-    ma       = ma_;
-    numfrags = GetNumIntMultiPoss(ma->f_list);
-    fraglist = GetVA_IntMultiPos(ma->f_list, 0);
-    fragback = NULL;
-    opp      = opp_;
-    trace    = NULL;
-    manode   = NULL;
-    utgpos   = NULL;
-    cnspos   = NULL;
-    tiid     = 0;
-    piid     = -1;
+  unitigConsensus(tgTig *tig_) {
+    tig          = tig_;
+    numfrags     = tig->numberOfChildren();
+    //fraglist = tig->_children;
+    //fragback = NULL;
+    //opp      = opp_;
+    trace        = NULL;
+    abacus       = NULL;
+    multialign   = NULL;
+    utgpos       = NULL;
+    cnspos       = NULL;
+    tiid         = 0;
+    piid         = -1;
 
     frankensteinLen = 0;
     frankensteinMax = 0;
@@ -27,18 +52,25 @@ public:
   };
 
   ~unitigConsensus() {
-    DeleteVA_int32(trace);
-    if (manode)
-      DeleteMANode(manode->lid);
+    delete [] trace;
+    delete    multialign;
+    delete    abacus;
+    //if (manode)
+    //  DeleteMANode(manode->lid);
 
-    safe_free(fragback);
-    safe_free(utgpos);
-    safe_free(cnspos);
-    safe_free(frankenstein);
-    safe_free(frankensteinBof);
+    delete [] utgpos;
+    delete [] cnspos;
+    delete [] frankenstein;
+    delete [] frankensteinBof;
   };
 
-  int32  initialize(int32 *failed); 
+  int32  initialize(gkStore *gkpStore, int32 *failed); 
+
+  bool   showProgress(void)         { return(tig->_utgcns_verboseLevel >= 1); };
+  bool   showAlgorithm(void)        { return(tig->_utgcns_verboseLevel >= 2); };
+  bool   showPlacementBefore(void)  { return(tig->_utgcns_verboseLevel >= 3); };
+  bool   showPlacement(void)        { return(tig->_utgcns_verboseLevel >= 3); };
+  bool   showAlignments(void)       { return(tig->_utgcns_verboseLevel >= 4); };
 
   void   reportStartingWork(void);
   void   reportFailure(int32 *failed);
@@ -46,7 +78,7 @@ public:
 
   int32  moreFragments(void)  { tiid++;  return (tiid < numfrags); };
 
-  int32  computePositionFromParent(bool doContained);
+  int32  computePositionFromAnchor(void);
   int32  computePositionFromLayout(void);
   int32  computePositionFromAlignment(void);
 
@@ -58,32 +90,35 @@ public:
   void   applyAlignment(int32 frag_aiid=-1, int32 frag_ahang=0, int32 *frag_trace=NULL);
 
   void   generateConsensus(void);
-  void   restoreUnitig(void);
 
 private:
-  MultiAlignT    *ma;
-  int32           numfrags;
-  IntMultiPos    *fraglist;
-  IntMultiPos    *fragback;
+  tgTig          *tig;
+  uint32          numfrags;    //  == tig->numberOfChildren()
 
-  CNS_Options    *opp;
+  //IntMultiPos    *fraglist;
+  //IntMultiPos    *fragback;
 
-  VA_TYPE(int32) *trace;
+  int32          *trace;
   int32           traceBgn;
 
-  MANode         *manode;
-  SeqInterval    *utgpos;   //  Original unitigger location, DO NOT MODIFY
-  SeqInterval    *cnspos;   //  Actual location in frankenstein.
+  abAbacus       *abacus;
+  abMultiAlign   *multialign;
+
+  tgPosition     *utgpos;   //  Original unitigger location, DO NOT MODIFY
+  tgPosition     *cnspos;   //  Actual location in frankenstein.
 
   //int32           ovl;    //  Expected overlap in bases to the frankenstein
   //int32           ahang;  //  Expected hangs to the frankenstein
   //int32           bhang;
 
   int32           tiid;   //  This frag IID
-  int32           piid;   //  Parent frag IID - if -1, not valid
+  int32           piid;   //  Anchor frag IID - if -1, not valid
 
   int32           frankensteinLen;
   int32           frankensteinMax;
   char           *frankenstein;
-  beadIdx         *frankensteinBof;
+  abBeadID       *frankensteinBof;
 };
+
+
+#endif

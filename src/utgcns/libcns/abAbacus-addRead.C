@@ -18,7 +18,7 @@ abAbacus::SetUngappedFragmentPositions(FragType type,int32 n_frags, MultiAlignT 
   int32 num_columns   = GetMultiAlignLength(uma);
   int32 ungapped_pos  = 0;
 
-  int32 *gapped_positions = (int32 *)safe_malloc(sizeof(int32) * (num_columns + 1));
+  int32 *gapped_positions = new int32 [num_columns + 1];
   char  *consensus        = Getchar(uma->consensus,0);
 
   for (int32 i=0; i<num_columns+1; i++) {
@@ -122,7 +122,7 @@ abAbacus::SetUngappedFragmentPositions(FragType type,int32 n_frags, MultiAlignT 
   }
 
   DeleteHashTable_AS(unitigFrags);
-  safe_free(gapped_positions);
+  delete [] gapped_positions;
 
   return first_frag;
 }
@@ -187,18 +187,7 @@ abAbacus::addRead(gkStore *gkpStore,
 
   abSequence   *ns = _sequences + _sequencesLen;
 
-  ns->iid           = readID;
-  ns->lid.set(_sequencesLen++);         // index in sequence/quality/fragment store
-  ns->length        = end - bgn;
-  ns->complement    = complemented;
-  ns->container_iid = -1;               // if non-zero, the iid of our container
-  ns->is_contained  = false;            // if non-zero, consensus detected this fragment is contained
-  ns->deleted       = false;
-  ns->manode        = abMultiAlignID();
-  ns->sequence.set(_basesLen);          // global index of first sequence character
-  ns->firstbead     = abBeadID();       // global index of first "bead"
-  ns->n_components  = 0;                // number of component frags (in case of "unitig" Fragments)
-  ns->components    = -1;               // global index of first component frag
+  ns->initialize(readID, _sequencesLen++, end-bgn, complemented, _basesLen, _beadsLen);
 
   //  Make a complement table
 
@@ -225,60 +214,52 @@ abAbacus::addRead(gkStore *gkpStore,
     increaseArray(_bases, _basesLen, _basesMax, end - bgn + 1);
 
     if (complemented == false) {
-      for (uint32 ii=bgn, pp=_basesLen; ii<end; ii++, pp++) {
+      for (uint32 ii=bgn, pp=_basesLen; ii<end; ii++, pp++, _basesLen++) {
         _bases[pp]._base = seq[ii];
         _bases[pp]._qual = qlt[ii];
       }
 
     } else {
-      for (uint32 ii=end, pp=_basesLen; ii-->bgn; pp++) {
+      for (uint32 ii=end, pp=_basesLen; ii-->bgn; pp++, _basesLen++) {
         _bases[pp]._base = inv[ seq[ii] ];
         _bases[pp]._qual =      qlt[ii];
       }
     }
   }
 
-  //  Set a pointer to the bases/quals, extend the bases/quals arrays.
-
-  ns->sequence.set(_basesLen);
-
-  _basesLen += end - bgn;
-
   //  Make beads for each base, set the pointer to the first bead
 
-  increaseArray(_beads, _beadsLen, _beadsMax, end - bgn);
-
-  ns->firstbead.set(_beadsLen);
-
   {
-    for (uint32 bp=0; bp<ns->length; bp++, _beadsLen++) {
-      _beads[_beadsLen].boffset.set(_beadsLen);
-      _beads[_beadsLen].soffset.set(ns->sequence.get() + bp);
+    increaseArray(_beads, _beadsLen, _beadsMax, end - bgn);
+
+    for (uint32 bp=0; bp<ns->length(); bp++, _beadsLen++) {
+      _beads[_beadsLen].ident().set(_beadsLen);
+      _beads[_beadsLen].soffset.set(ns->firstBase().get() + bp);
       _beads[_beadsLen].foffset = bp;
 
-      assert(_beads[_beadsLen].boffset.get() == ns->firstbead.get() + bp);
+      assert(_beads[_beadsLen].ident().get() == ns->firstBead().get() + bp);
 
       if (_beads[_beadsLen].foffset == 0)
         _beads[_beadsLen].prev = abBeadID();
       else
-        _beads[_beadsLen].prev.set(_beads[_beadsLen].boffset.get() - 1);
+        _beads[_beadsLen].prev.set(_beads[_beadsLen].ident().get() - 1);
 
-      if (_beads[_beadsLen].foffset == ns->length - 1)
+      if (_beads[_beadsLen].foffset == ns->length() - 1)
         _beads[_beadsLen].next = abBeadID();
       else
-        _beads[_beadsLen].next.set(_beads[_beadsLen].boffset.get() + 1);
+        _beads[_beadsLen].next.set(_beads[_beadsLen].ident().get() + 1);
 
       _beads[_beadsLen].up           = abBeadID();
       _beads[_beadsLen].down         = abBeadID();
 
-      _beads[_beadsLen].frag_index   = ns->lid;
+      _beads[_beadsLen].frag_index   = ns->ident();
       _beads[_beadsLen].column_index = abColID();
     }
   }
 
   //  Return the (internal) index we saved this read at.
 
-  return(ns->lid);
+  return(ns->ident());
 }
 
 

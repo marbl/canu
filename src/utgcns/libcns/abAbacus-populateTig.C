@@ -74,7 +74,7 @@ PopulateVARRecord(bool             is_phased,
     distant_allele_id = vreg.reads[distant_read_id].allele_id;
   }
 
-  char *base  = (char *)safe_calloc(v[vn].num_alleles, sizeof(char));
+  char *base  = new char [v[vn].num_alleles];
   int32 shift = vreg.end - vreg.beg + 1;
 
   for (int32 m=0; m<vreg.end - vreg.beg; m++) {
@@ -112,7 +112,7 @@ PopulateVARRecord(bool             is_phased,
             NumAAMismatches++;
   }
 
-  safe_free(base);
+  delete [] base;
 
   int32  vso = 0;
   int32  rio = 0;

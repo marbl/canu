@@ -280,7 +280,7 @@ abAbacus::applyAlignment(abSeqID   afid,
 
   if (afid.isValid()) {
     abSequence *afrag = getSequence(afid);
-    alen              = afrag->length;
+    alen              = afrag->length();
     aindex            = new abBeadID [alen];
 
     //  The loop really abuses the fact that all the beads for the bases in this read are
@@ -288,7 +288,7 @@ abAbacus::applyAlignment(abSeqID   afid,
     //  them in one block.
     //
     for (uint32 ai=0; ai<alen; ai++)
-      aindex[ai].set(afrag->firstbead.get() + ai);
+      aindex[ai].set(afrag->firstBead().get() + ai);
 
   } else {
     assert(aindex != NULL);
@@ -297,13 +297,14 @@ abAbacus::applyAlignment(abSeqID   afid,
 
   if (bfid.isValid()) {
     abSequence *bfrag = getSequence(bfid);
-    blen              = bfrag->length;
-    bindex            = (abBeadID *)safe_malloc(blen * sizeof(abBeadID));
+    blen              = bfrag->length();
+    bindex            = new abBeadID [blen];
 
     for (uint32 bi=0; bi<blen; bi++)
-      bindex[bi].set(bfrag->firstbead.get() + bi);
+      bindex[bi].set(bfrag->firstBead().get() + bi);
 
-    bfrag->manode = abMultiAlignID();  //  USED?
+#warning not resetting bfrag multialignID to null
+    //bfrag->multiAlignID() = abMultiAlignID();  //  USED?
   } else {
     assert(0);
   }
@@ -321,7 +322,7 @@ abAbacus::applyAlignment(abSeqID   afid,
     uint32    columnErrors = 0;
 
     if (afid.isValid()) {
-      abBead   *b = getBead(getSequence(afid)->firstbead);
+      abBead   *b = getBead(getSequence(afid)->firstBead());
 
       while (b) {
         if (b->column_index.isValid() == false) {
@@ -334,7 +335,7 @@ abAbacus::applyAlignment(abSeqID   afid,
     }
 
     if (bfid.isValid()) {
-      abBead *b = getBead(getSequence(bfid)->firstbead);
+      abBead *b = getBead(getSequence(bfid)->firstBead());
 
       while (b) {
         if (b->column_index.isValid() == true) {

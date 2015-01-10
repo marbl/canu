@@ -140,7 +140,7 @@ abAbacus::baseCallQuality(abVarRegion   &vreg,
 
     frag_cov++;
 
-    uint32  iid     = getSequence(bead->seqIdx())->iid;
+    uint32  iid     = getSequence(bead->seqIdx())->gkpIdent();
     uint32  vregidx = 0;
 
     assert(vreg.nr >= 0);

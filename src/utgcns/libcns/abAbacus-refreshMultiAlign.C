@@ -131,7 +131,7 @@ abAbacus::getReadsForVAR(abVarRegion &region, abColID *cids) {
       uint32  readLoc = 0;
 
       for (readLoc=0; readLoc<region.nr; readLoc++)
-        if (seq->iid == region.iids[readLoc])
+        if (seq->gkpIdent() == region.iids[readLoc])
           break;
 
       if (readLoc >= region.nr)
@@ -177,7 +177,7 @@ abAbacus::getReadsForVAR(abVarRegion &region, abColID *cids) {
 
       region.reads[readLoc].bases[p] = base;
       region.reads[readLoc].qvs[p]   = qv;
-      region.reads[readLoc].iid      = seq->iid;
+      region.reads[readLoc].iid      = seq->gkpIdent();
     }
   }
 
@@ -872,12 +872,8 @@ abAbacus::refreshMultiAlign(abMultiAlignID  mid,
 
       //
 
-      if (vreg.nb > maxPrev) {
+      if (vreg.nb > maxPrev)
         resizeArrayPair(prevBases, prevIDs, maxPrev, maxPrev, vreg.nb + 128);
-        //maxPrev =  vreg.nb;
-        //prevBases = (char  *)safe_realloc(prevBases, maxPrev*sizeof(char));
-        //prevIDs   = (int32 *)safe_realloc(prevIDs, maxPrev*sizeof(int32));
-      }
 
       prev_nr = vreg.nb;
 
@@ -1010,7 +1006,7 @@ abAbacus::refreshMultiAlign(abMultiAlignID  mid,
         bool  newRead = true;
 
         for (uint32 i=0; i<vreg.iids.size(); i++)
-          if (vreg.iids[i] == seq->iid)
+          if (vreg.iids[i] == seq->gkpIdent())
             newRead = false;
 
         if (newRead == false)
@@ -1019,7 +1015,7 @@ abAbacus::refreshMultiAlign(abMultiAlignID  mid,
 
         //  This used to set the allocated but unused iids to -1.
 
-        vreg.iids.push_back(seq->iid);
+        vreg.iids.push_back(seq->gkpIdent());
       }
     }
 

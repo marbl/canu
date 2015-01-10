@@ -19,16 +19,18 @@ public:
   abMultiAlign();
   ~abMultiAlign();
 
-  abMultiAlignID ident(void) { return(lid); };
+  abMultiAlignID ident(void)       { return(lid); };
+
+  abColID        firstColumn(void) { return(first); };
+  abColID        lastColumn(void)  { return(last); };
 
   //  GetMANodeLength - also guarded against null nodes and returned -1
-  uint32         getLength(void) {
+  uint32         length(void) {
     return(columnList.size());
   };
 
-  uint32         getConsensus(abAbacus *abacus,
-                              vector<char> &bases,
-                              vector<char> &quals);
+  void           getConsensus(abAbacus *abacus, tgTig *tig);
+  void           getPositions(abAbacus *abacus, tgTig *tig);
 
   void            mergeRefine(abAbacus *abacus);
   int32           refineWindow(abAbacus *abacus, abColumn *start_column, abColID stab_bgn);

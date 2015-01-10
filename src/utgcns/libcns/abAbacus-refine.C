@@ -1762,14 +1762,24 @@ AdjustShiftingInterfaces(int32 *lpos, int32 *rpos, int32 lscore, int32 rscore,
 
 static
 void
-GetTemplateForAbacus(char **tmpl, char **consensus, int32 len,
-                     char **ugconsensus, int32 *uglen, int32 lpos, int32 rpos, int32 **imap,
-                     int32 *adjleft, int32 *adjright, int32 short_allele, int32 long_allele) {
+GetTemplateForAbacus(char   *&tmpl,
+                     char    *consensus[2],
+                     int32   len,
+                     char   *ugconsensus[2],
+                     int32  *uglen,
+                     int32   lpos,
+                     int32   rpos,
+                     int32  *imap[2],
+                     int32  *adjleft,
+                     int32  *adjright,
+                     int32   short_allele,
+                     int32   long_allele) {
   int32 i, j;
 
-  *tmpl = (char *)safe_malloc(len*sizeof(char));
+  tmpl = new char [len];
+
   for (i=0; i<len; i++)
-    (*tmpl)[i] = consensus[long_allele][i];
+    tmpl[i] = consensus[long_allele][i];
 
   /* Set Ns in the left part of the tmpl */
   i = 0;
@@ -1780,8 +1790,8 @@ GetTemplateForAbacus(char **tmpl, char **consensus, int32 len,
       int32 lpos = i + adjleft[long_allele];
       int32 spos = i + adjleft[short_allele];
       if ((ugconsensus[short_allele][spos] != ugconsensus[long_allele][lpos]) &&
-          ((*tmpl)[imap[long_allele][lpos]] != '-'))
-        (*tmpl)[imap[long_allele][lpos]] = 'n';
+          (tmpl[imap[long_allele][lpos]] != '-'))
+        tmpl[imap[long_allele][lpos]] = 'n';
       i++;
     }
 
@@ -1794,7 +1804,7 @@ GetTemplateForAbacus(char **tmpl, char **consensus, int32 len,
         {
           if (consensus[long_allele][i] != '-')
             {
-              (*tmpl)[i] = 'n';
+              tmpl[i] = 'n';
               j++;
               i--;
             }
@@ -1811,9 +1821,9 @@ GetTemplateForAbacus(char **tmpl, char **consensus, int32 len,
          (imap[long_allele][i] > rpos))
     {
       if ((ugconsensus[short_allele][j] != ugconsensus[long_allele][i]) &&
-          ((*tmpl)[imap[long_allele][i]] != '-'))
+          (tmpl[imap[long_allele][i]] != '-'))
         {
-          (*tmpl)[imap[long_allele][i]] =  'n';
+          tmpl[imap[long_allele][i]] =  'n';
         }
       i--;
       j--;
@@ -1829,7 +1839,7 @@ GetTemplateForAbacus(char **tmpl, char **consensus, int32 len,
           j = imap[long_allele][i];
           if (consensus[long_allele][j] != '-')
             {
-              (*tmpl)[i] = 'n';
+              tmpl[i] = 'n';
             }
         }
     }
@@ -2050,7 +2060,6 @@ abMultiAlign::refineWindow(abAbacus     *abacus,
     int32 i, j;
     //char    **consensus=NULL;
     //char    **ugconsensus=NULL;
-    char     *tmpl=NULL;
     int32     adjleft[2]={-1,-1};
     int32     adjright[2]={-1,-1};
     int32     gapcount[2];
@@ -2094,27 +2103,14 @@ abMultiAlign::refineWindow(abAbacus     *abacus,
 #endif
       best_abacus->applyAbacus(abacus);
 
-      delete orig_abacus;
-      delete left_abacus;
-      delete right_abacus;
-
-      if (vreg.nr > 0) {
-        for (int32 j=0; j<vreg.nr; j++) {
-          safe_free(vreg.alleles[j].read_ids);
-          safe_free(vreg.alleles[j].read_iids);
-          safe_free(vreg.dist_matrix[j]);
-          safe_free(vreg.reads[j].bases);
-          safe_free(vreg.reads[j].qvs);
-        }
-        safe_free(vreg.reads);
-        safe_free(vreg.alleles);
-        safe_free(vreg.dist_matrix);
-      }
+      delete    orig_abacus;
+      delete    left_abacus;
+      delete    right_abacus;
 
       delete [] consensus[0];
       delete [] consensus[1];
 
-      return score_reduction;
+      return(score_reduction);
     }
 
     /* Now try the mixed consensus */
@@ -2133,22 +2129,9 @@ abMultiAlign::refineWindow(abAbacus     *abacus,
 
       best_abacus->applyAbacus(abacus);
 
-      delete orig_abacus;
-      delete left_abacus;
-      delete right_abacus;
-
-      if (vreg.nr > 0) {
-        for (int32 j=0; j<vreg.nr; j++) {
-          safe_free(vreg.alleles[j].read_ids);
-          safe_free(vreg.alleles[j].read_iids);
-          safe_free(vreg.dist_matrix[j]);
-          safe_free(vreg.reads[j].bases);
-          safe_free(vreg.reads[j].qvs);
-        }
-        safe_free(vreg.reads);
-        safe_free(vreg.alleles);
-        safe_free(vreg.dist_matrix);
-      }
+      delete    orig_abacus;
+      delete    left_abacus;
+      delete    right_abacus;
 
       delete [] consensus[0];
       delete [] consensus[1];
@@ -2184,7 +2167,9 @@ abMultiAlign::refineWindow(abAbacus     *abacus,
     GetLeftScore(ugconsensus, uglen, imap, adjleft, short_allele, long_allele, &lscore, &lpos);
     GetRightScore(ugconsensus, uglen, imap, adjright, short_allele, long_allele, &rscore, &rpos);
     AdjustShiftingInterfaces(&lpos, &rpos, lscore, rscore, adjleft, adjright, long_allele, short_allele);
-    GetTemplateForAbacus(&tmpl, consensus, 3*best_abacus->window_width, ugconsensus, uglen, lpos, rpos, imap, adjleft, adjright, short_allele, long_allele);
+
+    char *tmpl = NULL;
+    GetTemplateForAbacus(tmpl, consensus, 3*best_abacus->window_width, ugconsensus, uglen, lpos, rpos, imap, adjleft, adjright, short_allele, long_allele);
 
     abAbacusWork *mixed_abacus = orig_abacus->clone();
 
@@ -2269,20 +2254,7 @@ abMultiAlign::refineWindow(abAbacus     *abacus,
     delete [] imap[0];
     delete [] imap[1];
 
-    safe_free(tmpl);
-
-    if (vreg.nr > 0) {
-      for (int32 j=0; j<vreg.nr; j++) {
-        safe_free(vreg.alleles[j].read_ids);
-        safe_free(vreg.alleles[j].read_iids);
-        safe_free(vreg.dist_matrix[j]);
-        safe_free(vreg.reads[j].bases);
-        safe_free(vreg.reads[j].qvs);
-      }
-      safe_free(vreg.reads);
-      safe_free(vreg.alleles);
-      safe_free(vreg.dist_matrix);
-    }
+    delete [] tmpl;
   }
 
   return(score_reduction);
@@ -2325,8 +2297,8 @@ abMultiAlign::refine(abAbacus            *abacus,
   int32 i;
 #endif
 
-  if (getLength() < to)
-    to = getLength();
+  if (length() < to)
+    to = length();
 
   abColID sid = columnList[from];   // id of the starting column
   abColID eid = columnList[to];     // id of the ending column

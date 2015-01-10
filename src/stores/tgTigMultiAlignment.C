@@ -1,22 +1,27 @@
 
 
+#include "AS_global.H"
+
+#include "gkStore.H"
+#include "tgStore.H"
+#include "aligners.H"
+#include "unitigConsensus.H"
 
 
 
 bool
-multiAlignUnitig(MultiAlignT     *ma,
-                 gkStore         *fragStore,
-                 CNS_Options     *opp,
-                 int32           *failed) {
+generateMultiAlignment(tgTig                     *tig,
+                       gkStore                   *gkpStore,
+                       int32                     *failed) {
   double             origErate          = AS_CNS_ERROR_RATE;
   uint32             origLen            = AS_OVERLAP_MIN_LEN;
   bool               failuresToFix      = false;
   unitigConsensus   *uc                 = NULL;
 
   origErate          = AS_CNS_ERROR_RATE;
-  uc                 = new unitigConsensus(ma, opp);
+  uc                 = new unitigConsensus(tig);
 
-  if (uc->initialize(failed) == FALSE)
+  if (uc->initialize(gkpStore, failed) == FALSE)
     goto returnFailure;
 
   while (uc->moreFragments()) {
@@ -30,19 +35,18 @@ multiAlignUnitig(MultiAlignT     *ma,
     }
 #endif
 
-    if (VERBOSE_MULTIALIGN_OUTPUT)
+    if (uc->showProgress())
       uc->reportStartingWork();
 
 #if 0
     //  Attempt at increasing quality for high error, didn't help.
     if (AS_CNS_ERROR_RATE > 0.25) {
-      if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
+      if (uc->showAlgorithm())
         fprintf(stderr, "MultiAlignUnitig()-- high error, decrease allowed error rate from %f to %f\n", AS_CNS_ERROR_RATE, AS_CNS_ERROR_RATE * 2 / 3);
 
       AS_CNS_ERROR_RATE = AS_CNS_ERROR_RATE * 2 / 3;
 
-      if (uc->computePositionFromParent(false) && uc->alignFragment())  goto applyAlignment;
-      if (uc->computePositionFromParent(true)  && uc->alignFragment())  goto applyAlignment;
+      if (uc->computePositionFromAnchor()      && uc->alignFragment())  goto applyAlignment;
       if (uc->computePositionFromLayout()      && uc->alignFragment())  goto applyAlignment;
       if (uc->computePositionFromAlignment()   && uc->alignFragment())  goto applyAlignment;
 
@@ -52,36 +56,33 @@ multiAlignUnitig(MultiAlignT     *ma,
 
     //  First attempt, all default parameters
 
-    if (uc->computePositionFromParent(false) && uc->alignFragment())  goto applyAlignment;
-    if (uc->computePositionFromParent(true)  && uc->alignFragment())  goto applyAlignment;
+    if (uc->computePositionFromAnchor()      && uc->alignFragment())  goto applyAlignment;
     if (uc->computePositionFromLayout()      && uc->alignFragment())  goto applyAlignment;
     if (uc->computePositionFromAlignment()   && uc->alignFragment())  goto applyAlignment;
 
     //  Second attempt, higher error rate.
 
-    if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
+    if (uc->showAlgorithm())
       fprintf(stderr, "MultiAlignUnitig()-- increase allowed error rate from %f to %f\n", AS_CNS_ERROR_RATE, MIN(AS_MAX_ERROR_RATE, 2.0 * AS_CNS_ERROR_RATE));
 
     AS_CNS_ERROR_RATE = MIN(AS_MAX_ERROR_RATE, 2.0 * AS_CNS_ERROR_RATE);
 
-    if (uc->computePositionFromParent(false) && uc->alignFragment())  goto applyAlignment;
-    if (uc->computePositionFromParent(true)  && uc->alignFragment())  goto applyAlignment;
+    if (uc->computePositionFromAnchor()      && uc->alignFragment())  goto applyAlignment;
     if (uc->computePositionFromLayout()      && uc->alignFragment())  goto applyAlignment;
     if (uc->computePositionFromAlignment()   && uc->alignFragment())  goto applyAlignment;
 
     AS_CNS_ERROR_RATE = origErate;
 
-    //  Third attempt, thinner overlaps.  These come from bogart repeat splitting, it apparently
+    //  Third attempt, thinner overlaps.  These come from bogart repeat splitting, it apanchorly
     //  doesn't enforce the minimum overlap length in those unitugs.
 
     while (AS_OVERLAP_MIN_LEN > 40) {
-      if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
+      if (uc->showAlgorithm())
         fprintf(stderr, "MultiAlignUnitig()-- decrease minimum overlap from %d to %d\n", AS_OVERLAP_MIN_LEN, MAX(40, AS_OVERLAP_MIN_LEN / 2));
 
       AS_OVERLAP_MIN_LEN = MAX(40, AS_OVERLAP_MIN_LEN / 2);
 
-      if (uc->computePositionFromParent(false) && uc->alignFragment())  goto applyAlignment;
-      if (uc->computePositionFromParent(true)  && uc->alignFragment())  goto applyAlignment;
+      if (uc->computePositionFromAnchor()      && uc->alignFragment())  goto applyAlignment;
       if (uc->computePositionFromLayout()      && uc->alignFragment())  goto applyAlignment;
       if (uc->computePositionFromAlignment()   && uc->alignFragment())  goto applyAlignment;
     }
@@ -90,25 +91,23 @@ multiAlignUnitig(MultiAlignT     *ma,
 
     //  Fourth attempt, default parameters after recomputing consensus sequence.
 
-    if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
+    if (uc->showAlgorithm())
       fprintf(stderr, "MultiAlignUnitig()-- recompute full consensus\n");
 
     uc->rebuild(true);
 
-    if (uc->computePositionFromParent(false) && uc->alignFragment())  goto applyAlignment;
-    if (uc->computePositionFromParent(true)  && uc->alignFragment())  goto applyAlignment;
+    if (uc->computePositionFromAnchor()      && uc->alignFragment())  goto applyAlignment;
     if (uc->computePositionFromLayout()      && uc->alignFragment())  goto applyAlignment;
     if (uc->computePositionFromAlignment()   && uc->alignFragment())  goto applyAlignment;
 
     //  Final attempt, higher error rate.
 
-    if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
+    if (uc->showAlgorithm())
       fprintf(stderr, "MultiAlignUnitig()-- increase allowed error rate from %f to %f\n", AS_CNS_ERROR_RATE, MIN(AS_MAX_ERROR_RATE, 4.0 * AS_CNS_ERROR_RATE));
 
     AS_CNS_ERROR_RATE = MIN(AS_MAX_ERROR_RATE, 4.0 * AS_CNS_ERROR_RATE);
 
-    if (uc->computePositionFromParent(false) && uc->alignFragment())  goto applyAlignment;
-    if (uc->computePositionFromParent(true)  && uc->alignFragment())  goto applyAlignment;
+    if (uc->computePositionFromAnchor()      && uc->alignFragment())  goto applyAlignment;
     if (uc->computePositionFromLayout()      && uc->alignFragment())  goto applyAlignment;
     if (uc->computePositionFromAlignment()   && uc->alignFragment())  goto applyAlignment;
 
@@ -138,13 +137,15 @@ multiAlignUnitig(MultiAlignT     *ma,
 
   uc->generateConsensus();
 
+  //  NEED TO UPDATE THE tgTig
+
   delete uc;
   return(true);
 
  returnFailure:
-  fprintf(stderr, "MultiAlignUnitig()-- unitig %d FAILED.\n", ma->maID);
+  fprintf(stderr, "MultiAlignUnitig()-- unitig %d FAILED.\n", tig->tigID());
 
-  uc->restoreUnitig();
+  //  tgTig should have no changes.
 
   delete uc;
   return(false);

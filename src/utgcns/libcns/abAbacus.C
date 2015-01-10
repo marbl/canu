@@ -598,7 +598,7 @@ abAbacus::addMultiAlign(abSeqID sid) {
 
   //  Mark this sequence as belonging to this multiAlign
 
-  seq->manode = ma->lid;
+  seq->addToMultiAlign(ma->lid);
 
   refreshMultiAlign(ma->lid);
 
