@@ -33,6 +33,8 @@ public:
   ~abBaseID() {                   };
 
   //operator size_t () const { return(_id); };
+  abBaseID  &operator+(uint32 x) { _id += x;  return(*this); };
+  abBaseID  &operator-(uint32 x) { _id -= x;  return(*this); };
 
   void   set(size_t id)   { _id = id; };
   uint32 get(void)        { return(_id); };

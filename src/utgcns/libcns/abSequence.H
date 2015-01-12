@@ -12,8 +12,13 @@ public:
   uint32           gkpIdent(void)  { return(_iid);        };
   abSeqID          ident(void)     { return(_lid);        };
 
-  abBeadID         firstBead(void) { return(_firstbead);  };
-  abBaseID         firstBase(void) { return(_firstbase);  };
+  abBeadID         firstBead(void)   { return(_firstbead);  };
+  abBaseID         firstBase(void)   { return(_firstbase);  };
+  //abColID          firstColumn(void) { needs avacus to get columns };
+
+  abBeadID         lastBead(void)    { return(_firstbead + _length - 1);  };
+  abBaseID         lastBase(void)    { return(_firstbase + _length - 1);  };
+  //abColID          lastColumn(void)  { needs avacus to get columns };
 
   bool             isRead(void)    { return(_is_read);    };
 

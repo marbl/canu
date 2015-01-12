@@ -109,7 +109,7 @@ unitigConsensus::initialize(gkStore *gkpStore, int32 *failed) {
   traceBgn   = 0;
 
   //manode   = CreateMANode(tig->tigID());
-  abacus     = new abAbacus(gkpStore, tig->tigID());
+  abacus     = new abAbacus(gkpStore);
 
   frankensteinLen = 0;
   frankensteinMax = MAX(1024 * 1024, 2 * num_columns);
@@ -137,18 +137,18 @@ unitigConsensus::initialize(gkStore *gkpStore, int32 *failed) {
       // This guy allocates and initializes the beads for each fragment.  Beads are not fully inserted
       // in the abacus here.
 
-      int32 fid = abacus.addRead(gkpStore, utgpos[i].ident(), utgpos[i].isReverse());
+      abSeqID fid = abacus->addRead(gkpStore, utgpos[i].ident(), utgpos[i].isReverse());
 
       //utgpos[fid].bgn = complement ? utgpos[i].end() : utgpos[i].bgn();
       //utgpos[fid].end = complement ? utgpos[i].bgn() : utgpos[i].end();
 
-      cnspos[fid].bgn()  = 0;
-      cnspos[fid].end()  = 0;
+      cnspos[fid.get()].bgn()  = 0;
+      cnspos[fid.get()].end()  = 0;
 
       //  If this is violated, then the implicit map from utgpos[] and cnspos[] to the unitig child
       //  list is incorrect.
 
-      assert(fid == i);
+      assert(fid.get() == i);
 
       //if (VERBOSE_MULTIALIGN_OUTPUT)
       //  fprintf(stderr,"MultiAlignUnitig()-- Added fragment mid %d pos %d,%d in unitig %d to store at local id %d.\n",
@@ -157,14 +157,14 @@ unitigConsensus::initialize(gkStore *gkpStore, int32 *failed) {
   }
 
   //SeedMAWithFragment(manode->lid, GetFragment(fragmentStore,0)->lid, opp);
-  multialign = abacus->addMultiAlign(0);
+  multialign = abacus->addMultiAlign(abSeqID(0));
 
   if (failed)
     failed[0] = false;
 
   //  Save columns
   {
-    abBeadID  bidx = abacus->getSequence(0)->firstbead();
+    abBeadID  bidx = abacus->getSequence(0)->firstBead();
     abBead   *bead = abacus->getBead(bidx);
 
     while (bead) {
@@ -394,7 +394,7 @@ unitigConsensus::computePositionFromAlignment(void) {
   int32        ahanglimit  = -10;
 
   abSequence  *seq         = abacus->getSequence(tiid);
-  char        *fragment    = abacus->getBase(seq->firstBase());
+  char        *fragment    = abacus->getBases(seq);
   int32        fragmentLen = seq->length();
 
   O = DP_Compare(frankenstein,
@@ -486,27 +486,29 @@ unitigConsensus::rebuild(bool recomputeFullConsensus) {
   //  Run abacus to rebuild an intermediate consensus sequence.  VERY expensive.
   //
   if (recomputeFullConsensus == true) {
-    abacus->refreshMultiAlign(manode->lid, 0, opp, NULL, NULL, 0, 0);
+    abacus->refreshMultiAlign(multialign);
 
-    multialign->refine(abacus, abAbacus_Smooth);
-    multialign->mergeRefine(abacus);
+    abacus->getMultiAlign(multialign)->refine(abacus, abAbacus_Smooth);
+    abacus->getMultiAlign(multialign)->mergeRefine(abacus);
 
-    multialign->refine(abacus, abAbacus_Poly_X);
-    multialign->mergeRefine(abacus);
+    abacus->getMultiAlign(multialign)->refine(abacus, abAbacus_Poly_X);
+    abacus->getMultiAlign(multialign)->mergeRefine(abacus);
 
-    multialign->refine(abacus, abAbacus_Indel);
-    multialign->mergeRefine(abacus);
+    abacus->getMultiAlign(multialign)->refine(abacus, abAbacus_Indel);
+    abacus->getMultiAlign(multialign)->mergeRefine(abacus);
   }
 
   //  For each column, vote for the consensus base to use.  Ideally, if we just computed the full
   //  consensus, we'd use that and just replace gaps with N.
 
-  abColID cid   = multialign->firstColumn();
+  abColID cid   = abacus->getMultiAlign(multialign)->firstColumn();
   int32   index = 0;
     
-  muiltialign->columnList().clear();
+  abacus->getMultiAlign(multialign)->columns().clear();
 
   frankensteinLen = 0;
+
+#warning why are we rebuilding columnList here?
 
   while (cid.isValid()) {
     abColumn *column = abacus->getColumn(cid);
@@ -536,7 +538,7 @@ unitigConsensus::rebuild(bool recomputeFullConsensus) {
 
     assert(call != '-');
 
-    abacus->setBase(bead->ident(), call);
+    abacus->setBase(bead->baseIdx(), call);
 
     while (frankensteinLen >= frankensteinMax) {
       resizeArrayPair(frankenstein, frankensteinBof, frankensteinLen, frankensteinMax, frankensteinMax * 2);
@@ -551,9 +553,9 @@ unitigConsensus::rebuild(bool recomputeFullConsensus) {
     frankensteinLen++;
 
     //  This is extracted from RefreshMANode()
-    column->ma_position = index++;
+    column->position() = index++;
 
-    multialign->columnList().push_back(cid);
+    abacus->getMultiAlign(multialign)->columns().push_back(cid);
 
     cid = column->nextID();
   }
@@ -570,11 +572,9 @@ unitigConsensus::rebuild(bool recomputeFullConsensus) {
       continue;
 
     abSequence *seq  = abacus->getSequence(i);
-    abBead     *frst = abacus->getBead(frg->firstbead());
-    abBead     *last = abacus->getBead(frg->firstbead().get() + frg->length - 1);
 
-    cnspos[i].bgn() = abacus->getColumn(frst->colIdx())->ma_position;
-    cnspos[i].end() = abacus->getColumn(last->colIdx())->ma_position + 1;
+    cnspos[i].bgn() = abacus->getColumn(seq->firstBead())->position();
+    cnspos[i].end() = abacus->getColumn(seq->lastBead())->position() + 1;
 
     assert(cnspos[i].bgn() >= 0);
     assert(cnspos[i].end() > cnspos[i].bgn());
@@ -590,8 +590,9 @@ unitigConsensus::rebuild(bool recomputeFullConsensus) {
 
   piid = -1;
 
-  if (showAlignments())
-    PrintAlignment(stderr, manode->lid, 0, -1);
+#warning not PrintAlignment()
+  //if (showAlignments())
+  //  PrintAlignment(stderr, manode->lid, 0, -1);
 }
 
 
@@ -690,8 +691,8 @@ unitigConsensus::alignFragment(void) {
   int32       alen  = frankEnd - frankBgn;
 
   abSequence *bSEQ  = abacus->getSequence(tiid);
-  char       *bseq  = abacus->getBase(bSEQ->firstbase());  //  The fragment
-  int32       blen  = bSEQ->length;
+  char       *bseq  = abacus->getBases(bSEQ);
+  int32       blen  = bSEQ->length();
 
   if (endTrim >= blen)
     fprintf(stderr, "alignFragment()-- ERROR -- excessive endTrim %d >= length %d\n", endTrim, blen);
@@ -751,14 +752,14 @@ unitigConsensus::alignFragment(void) {
     if (fragEndBase)    bseq[fragEnd]          = fragEndBase;
 
     if (O) {
-      Resetint32(trace);
+      traceLen = 0;
 
       traceBgn = frankBgn + O->begpos;
 
       for (int32 *t = O->trace; (t != NULL) && (*t != 0); t++) {
         if (*t < 0)
           *t -= frankBgn;
-        AppendVA_int32(trace, t);
+        trace[traceLen++] = *t;
       }
 
       if (showAlgorithm())
@@ -831,7 +832,6 @@ unitigConsensus::rejectAlignment(bool allowBhang,  //  Allow a positive bhang - 
 
 void
 unitigConsensus::applyAlignment(int32 frag_aiid, int32 frag_ahang, int32 *frag_trace) {
-
   
   if (frag_aiid >= 0) {
     //  Aligned to a fragent
@@ -839,19 +839,19 @@ unitigConsensus::applyAlignment(int32 frag_aiid, int32 frag_ahang, int32 *frag_t
     //  Left in because this was a useful invocation of ApplyAlignment -- but it might now be useless
     if (showAlgorithm())
       fprintf(stderr, "applyAlignment()-- aligned to fragment -- frag_aiid=%d frag_ahang=%d\n", frag_aiid, frag_ahang);
-    ApplyAlignment(frag_aiid,
-                   0, NULL,
-                   tiid,
-                   frag_ahang, frag_trace);
+    abacus->applyAlignment(frag_aiid,
+                           0, NULL,
+                           tiid,
+                           frag_ahang, frag_trace);
 
   } else {
     //  Aligned to frankenstein
     //if (showAlgorithm())
     //  fprintf(stderr, "applyAlignment()-- aligned to frankenstein\n");
-    ApplyAlignment(-1,
-                   frankensteinLen, frankensteinBof,
-                   tiid,
-                   traceBgn, Getint32(trace, 0));
+    abacus->applyAlignment(abSeqID(),
+                           frankensteinLen, frankensteinBof,
+                           tiid,
+                           traceBgn, trace);
   }
 }
 
@@ -859,19 +859,19 @@ unitigConsensus::applyAlignment(int32 frag_aiid, int32 frag_ahang, int32 *frag_t
 void
 unitigConsensus::generateConsensus(void) {
 
-  abacus->refreshMultiAlign(manode->lid, 0, opp, NULL, NULL, 0, 0);
+  abacus->refreshMultiAlign(multialign);
 
-  multialign->refine(abacus, abAbacus_Smooth);
-  multialign->mergeRefine(abacus);
+  abacus->getMultiAlign(multialign)->refine(abacus, abAbacus_Smooth);
+  abacus->getMultiAlign(multialign)->mergeRefine(abacus);
 
-  multialign->refine(abacus, abAbacus_Poly_X);
-  multialign->mergeRefine(abacus);
+  abacus->getMultiAlign(multialign)->refine(abacus, abAbacus_Poly_X);
+  abacus->getMultiAlign(multialign)->mergeRefine(abacus);
 
-  multialign->refine(abacus, abAbacus_Indel);
-  multialign->mergeRefine(abacus);
+  abacus->getMultiAlign(multialign)->refine(abacus, abAbacus_Indel);
+  abacus->getMultiAlign(multialign)->mergeRefine(abacus);
 
-  multialign->getConsensus(abacus, tig);
-  multialign->getPositions(abacus, tig);
+  abacus->getMultiAlign(multialign)->getConsensus(abacus, tig);
+  abacus->getMultiAlign(multialign)->getPositions(abacus, tig);
 
   //GetMANodeConsensus(manode->lid, ma->consensus, ma->quality);
   //GetMANodePositions(manode->lid, ma);

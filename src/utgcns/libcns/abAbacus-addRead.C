@@ -193,16 +193,11 @@ abAbacus::addRead(gkStore *gkpStore,
 
   char inv[256] = {0};
 
-  inv['a'] = 't';
-  inv['c'] = 'g';
-  inv['g'] = 'c';
-  inv['t'] = 'a';
-  inv['n'] = 'n';
-  inv['A'] = 'T';
-  inv['C'] = 'G';
-  inv['G'] = 'C';
-  inv['T'] = 'A';
-  inv['N'] = 'N';
+  inv['a'] = 't';  inv['A'] = 'T';
+  inv['c'] = 'g';  inv['C'] = 'G';
+  inv['g'] = 'c';  inv['G'] = 'C';
+  inv['t'] = 'a';  inv['T'] = 'A';
+  inv['n'] = 'n';  inv['N'] = 'N';
   inv['-'] = '-';
 
   //  Stash the bases/quals
@@ -211,20 +206,26 @@ abAbacus::addRead(gkStore *gkpStore,
     char  *seq = readData.gkReadData_getSequence();
     char  *qlt = readData.gkReadData_getQualities();
 
-    increaseArray(_bases, _basesLen, _basesMax, end - bgn + 1);
+    //increaseArray(_bases, _basesLen, _basesMax, end - bgn + 1);
 
-    if (complemented == false) {
+    if (_basesLen + end - bgn + 1 < _basesMax)
+      resizeArrayPair(_bases, _quals, _basesLen, _basesMax, 2 * _basesMax);
+
+    if (complemented == false)
       for (uint32 ii=bgn, pp=_basesLen; ii<end; ii++, pp++, _basesLen++) {
-        _bases[pp]._base = seq[ii];
-        _bases[pp]._qual = qlt[ii];
+        _bases[pp] = seq[ii];
+        _quals[pp] = qlt[ii];
       }
 
-    } else {
+    else
       for (uint32 ii=end, pp=_basesLen; ii-->bgn; pp++, _basesLen++) {
-        _bases[pp]._base = inv[ seq[ii] ];
-        _bases[pp]._qual =      qlt[ii];
+        _bases[pp] = inv[ seq[ii] ];
+        _quals[pp] =      qlt[ii];
       }
-    }
+
+    _bases[_basesLen] = 0;  //  NUL terminate the strings so we can use them in aligners
+    _quals[_basesLen] = 0;
+    _basesLen++;
   }
 
   //  Make beads for each base, set the pointer to the first bead

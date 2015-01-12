@@ -84,10 +84,8 @@ class abColBeadIterator;
 
 class abAbacus {
 public:
-  abAbacus(gkStore *gkpStore) {
-  };
-  ~abAbacus() {
-  };
+  abAbacus(gkStore *gkpStore);
+  ~abAbacus();
 
 public:
 
@@ -102,19 +100,30 @@ public:
     return(_sequences + sid.get());
   };
 
+
   char          getBase(abBaseID bid) {
     if (bid.isValid() == false)
       return(0);
     assert(bid.get() < _basesLen);
-    return(_bases[bid.get()]._base);
+    return(_bases[bid.get()]);
   };
+
+  char         *getBases(abSequence *seq) {
+    return(_bases + seq->firstBase().get());
+  };
+
 
   char          getQual(abBaseID bid) {
     if (bid.isValid() == false)
       return(0);
     assert(bid.get() < _basesLen);
-    return(_bases[bid.get()]._qual);
+    return(_quals[bid.get()]);
   };
+
+  char         *getQuals(abSequence *seq) {
+    return(_quals + seq->firstBase().get());
+  };
+
 
   abBead       *getBead(abBeadID bid) {
     if (bid.isValid() == false)
@@ -123,12 +132,21 @@ public:
     return(_beads + bid.get());
   };
 
+
   abColumn     *getColumn(abColID cid) {
     if (cid.isValid() == false)
       return(NULL);
     assert(cid.get() < _columnsLen);
     return(_columns + cid.get());
   };
+
+  abColumn     *getColumn(abBeadID bid) {
+    if (bid.isValid() == false)
+      return(NULL);
+
+    return(getColumn(getBead(bid)->colIdx()));
+  };
+
 
   abMultiAlign *getMultiAlign(abMultiAlignID mid) {
     if (mid.isValid() == false)
@@ -144,13 +162,13 @@ public:
   void          setBase(abBaseID bid, char b) {
     assert(bid.isValid() == true);
     assert(bid.get() < _basesLen);
-    _bases[bid.get()]._base = b;
+    _bases[bid.get()] = b;
   };
 
   void          setQual(abBaseID bid, char q) {
     assert(bid.isValid() == true);
     assert(bid.get() < _basesLen);
-    _bases[bid.get()]._qual = q;
+    _quals[bid.get()] = q;
   };
 
   //
@@ -271,36 +289,38 @@ public:
   //
 
 private:
-  abSequence       *_sequences;  //  VA_TYPE(Fragment) *fragmentStore; - indices into bases/quals/beads
   uint32            _sequencesLen;
   uint32            _sequencesMax;
+  abSequence       *_sequences;  //  VA_TYPE(Fragment) *fragmentStore; - indices into bases/quals/beads
 public:
   uint32             numberOfSequences(void) { return(_sequencesLen); };
 
 private:
-  abBase           *_bases;      //  VA_TYPE(char) *sequenceStore, *qualityStore
   uint32            _basesLen;
   uint32            _basesMax;
+  //abBase           *_bases;      //  VA_TYPE(char) *sequenceStore, *qualityStore
+  char             *_bases;      //  Used to be a tuple-type, but then we couldn't grab a pointer to the
+  char             *_quals;      //  read for use in alignment - we would have had to copy it first
 
   //
   //  Work space for the multialigns
   //
 
-  abBead           *_beads;      //  VA_TYPE(Bead) *beadStore;
   uint32            _beadsLen;
   uint32            _beadsMax;
+  abBead           *_beads;      //  VA_TYPE(Bead) *beadStore;
 
-  abColumn         *_columns;    //  VA_TYPE(Column)   *columnStore;   - basecall, profile, index in alignment, indexed pointers to prev/next cols
   uint32            _columnsLen;
   uint32            _columnsMax;
+  abColumn         *_columns;    //  VA_TYPE(Column)   *columnStore;   - basecall, profile, index in alignment, indexed pointers to prev/next cols
 
   //
   //  Multialigns - more than one, so we can handle splitting/joining without creating a new abacus
   //
 
-  abMultiAlign     *_multiAligns;      //  VA_TYPE(MANode)   *manodeStore;   - first and last cols, profile, index into multialign, VA of component cols
   uint32            _multiAlignsLen;
   uint32            _multiAlignsMax;
+  abMultiAlign     *_multiAligns;      //  VA_TYPE(MANode)   *manodeStore;   - first and last cols, profile, index into multialign, VA of component cols
 
   //
   //

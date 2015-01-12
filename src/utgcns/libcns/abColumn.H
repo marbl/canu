@@ -151,7 +151,7 @@ public:
     return(base_count.GetDepth() - base_count.GetBaseCount( base_count.GetMaxBaseCount(false) ));
   };
 
-  uint32     position(void) { return(ma_position); };
+  uint32    &position(void) { return(ma_position); };
 
 private:
   abColID          lid;       //  index in columnStore

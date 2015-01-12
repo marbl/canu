@@ -19,25 +19,29 @@ public:
   abMultiAlign();
   ~abMultiAlign();
 
-  abMultiAlignID ident(void)       { return(lid); };
+  abMultiAlignID    ident(void)       { return(lid); };
 
-  abColID        firstColumn(void) { return(first); };
-  abColID        lastColumn(void)  { return(last); };
+  abColID           firstColumn(void) { return(first); };
+  abColID           lastColumn(void)  { return(last); };
 
   //  GetMANodeLength - also guarded against null nodes and returned -1
-  uint32         length(void) {
+  uint32            length(void) {
     return(columnList.size());
   };
 
-  void           getConsensus(abAbacus *abacus, tgTig *tig);
-  void           getPositions(abAbacus *abacus, tgTig *tig);
+  vector<abColID>  &columns(void) {  //  For unitigConsensus, to rebuild
+    return(columnList);
+  }
 
-  void            mergeRefine(abAbacus *abacus);
-  int32           refineWindow(abAbacus *abacus, abColumn *start_column, abColID stab_bgn);
-  int32           refine(abAbacus            *abacus,
-                         abAbacusRefineLevel  level,
-                         uint32               from = 0,
-                         uint32               to   = UINT32_MAX);
+  void              getConsensus(abAbacus *abacus, tgTig *tig);
+  void              getPositions(abAbacus *abacus, tgTig *tig);
+
+  void              mergeRefine(abAbacus *abacus);
+  int32             refineWindow(abAbacus *abacus, abColumn *start_column, abColID stab_bgn);
+  int32             refine(abAbacus            *abacus,
+                           abAbacusRefineLevel  level,
+                           uint32               from = 0,
+                           uint32               to   = UINT32_MAX);
 
 private:
   abMultiAlignID         lid;         //  MANode id in the manodeStore

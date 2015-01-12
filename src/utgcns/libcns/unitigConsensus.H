@@ -39,7 +39,7 @@ public:
     //opp      = opp_;
     trace        = NULL;
     abacus       = NULL;
-    multialign   = NULL;
+    multialign   = abMultiAlignID();
     utgpos       = NULL;
     cnspos       = NULL;
     tiid         = 0;
@@ -53,7 +53,7 @@ public:
 
   ~unitigConsensus() {
     delete [] trace;
-    delete    multialign;
+    //delete    multialign;
     delete    abacus;
     //if (manode)
     //  DeleteMANode(manode->lid);
@@ -98,21 +98,24 @@ private:
   //IntMultiPos    *fraglist;
   //IntMultiPos    *fragback;
 
+  uint32          traceLen;
+  uint32          traceMax;
   int32          *trace;
+
   int32           traceBgn;
 
   abAbacus       *abacus;
-  abMultiAlign   *multialign;
+  abMultiAlignID  multialign;  //  Should really be storing the abMultiAlignID
 
-  tgPosition     *utgpos;   //  Original unitigger location, DO NOT MODIFY
-  tgPosition     *cnspos;   //  Actual location in frankenstein.
+  tgPosition     *utgpos;      //  Original unitigger location, DO NOT MODIFY
+  tgPosition     *cnspos;      //  Actual location in frankenstein.
 
   //int32           ovl;    //  Expected overlap in bases to the frankenstein
   //int32           ahang;  //  Expected hangs to the frankenstein
   //int32           bhang;
 
-  int32           tiid;   //  This frag IID
-  int32           piid;   //  Anchor frag IID - if -1, not valid
+  int32           tiid;        //  This frag IID
+  int32           piid;        //  Anchor frag IID - if -1, not valid
 
   int32           frankensteinLen;
   int32           frankensteinMax;

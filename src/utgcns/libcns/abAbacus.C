@@ -19,6 +19,62 @@ uint32  AMASK[5]                            = { 0 };
 
 
 
+abAbacus::abAbacus(gkStore *gkpStore) {
+  _sequencesLen    = 0;
+  _sequencesMax    = 16 * 1024;
+  _sequences       = new abSequence [_sequencesMax];
+
+  _basesLen        = 0;
+  _basesMax        = _sequencesMax * 16 * 1024;
+  _bases           = new char [_basesMax];
+  _quals           = new char [_basesMax];
+
+  _beadsLen        = 0;
+  _beadsMax        = _basesMax;
+  _beads           = new abBead [_beadsMax];
+
+  _columnsLen      = 0;
+  _columnsMax      = 1048576;
+  _columns         = new abColumn[_columnsMax];
+
+  _multiAlignsLen = 0;
+  _multiAlignsMax = 4;
+  _multiAligns    = new abMultiAlign [_multiAlignsMax];
+
+
+  uint32  smoothingWindow = 11;
+  uint32  splitAlleles    = 1;
+
+
+  uint32 NumColumns       = 0;
+  uint32 NumRunsOfGaps    = 0;
+  uint32 NumGaps          = 0;
+
+  uint32 NumAAMismatches  = 0;
+
+  uint32 NumVARRecords    = 0;
+  uint32 NumVARStringsWithFlankingGaps = 0;
+
+  uint32 NumUnitigRetrySuccess        = 0;
+
+
+  uint32 VERBOSE_MULTIALIGN_OUTPUT = 0;
+  uint32 FORCE_UNITIG_ABUT         = 0;
+
+  uint32 MULTIALIGN_PRINT_WIDTH    = 100;
+  uint32 MULTIALIGN_PRINT_SPACING  = 3;
+}
+
+
+abAbacus::~abAbacus() {
+  delete [] _multiAligns;
+  delete [] _columns;
+  delete [] _beads;
+  delete [] _quals;
+  delete [] _bases;
+  delete [] _sequences;
+}
+
 
 
 abBeadID
@@ -39,8 +95,8 @@ abAbacus::addBead(char base, char qual) {
   if (base != 0) {
     increaseArray(_bases, _basesLen, _basesMax, 1);
 
-    _bases[_basesLen]._base = base;
-    _bases[_basesLen]._qual = qual;
+    _bases[_basesLen] = base;
+    _quals[_basesLen] = qual;
     _basesLen++;
   }
 
@@ -104,8 +160,8 @@ abAbacus::appendGapBead(abBeadID bid) {
   //  Add the base/qual
 
   increaseArray(_bases, _basesLen, _basesMax, 1);
-  _bases[_basesLen]._base = '-';
-  _bases[_basesLen]._qual = qv;
+  _bases[_basesLen] = '-';
+  _quals[_basesLen] = qv;
 
   //gaps_in_alignment++;
 
@@ -166,8 +222,8 @@ abAbacus::prependGapBead(abBeadID bid) {
   //  Add the base/qual
 
   increaseArray(_bases, _basesLen, _basesMax, 1);
-  _bases[_basesLen]._base = '-';
-  _bases[_basesLen]._qual = qv;
+  _bases[_basesLen] = '-';
+  _quals[_basesLen] = qv;
 
   //gaps_in_alignment++;
 
