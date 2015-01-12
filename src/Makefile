@@ -369,11 +369,19 @@ ifeq (${OSTYPE}, Linux)
 endif
 
 ifeq (${OSTYPE}, Darwin)
-  CC       := gcc
-  CXX      := g++
-  CFLAGS   := -pthread -fopenmp -D_GLIBCXX_PARALLEL -O3 -fPIC -m64 -Wall -Wextra -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat
-  CXXFLAGS := -pthread -fopenmp -D_GLIBCXX_PARALLEL -O3 -fPIC -m64 -Wall -Wextra -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat
-  LDFLAGS  := -pthread -fopenmp -lm
+  ifeq (${MACHINETYPE}, x86_64)
+    CC       := gcc
+    CXX      := g++
+    CFLAGS   := -pthread -fopenmp -D_GLIBCXX_PARALLEL -O3 -fPIC -m64 -Wall -Wextra -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat
+    CXXFLAGS := -pthread -fopenmp -D_GLIBCXX_PARALLEL -O3 -fPIC -m64 -Wall -Wextra -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat
+    LDFLAGS  := -pthread -fopenmp -lm
+  else
+    CC       := gcc
+    CXX      := g++
+    CFLAGS   := -pthread -D_GLIBCXX_PARALLEL -O3 -fPIC -m64 -Wall -Wextra -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat
+    CXXFLAGS := -pthread -D_GLIBCXX_PARALLEL -O3 -fPIC -m64 -Wall -Wextra -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat
+    LDFLAGS  := -pthread -lm
+  endif
 endif
 
 ifeq (${OSTYPE}, FreeBSD)
