@@ -26,7 +26,6 @@ static const char *rcsid_ALIGNERS_H = "$Id$";
 
 #include "AS_global.H"
 
-extern int VERBOSE_MULTIALIGN_OUTPUT;
 
 
 //
