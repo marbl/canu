@@ -107,6 +107,9 @@ OverlapCache::OverlapCache(ovStore *ovlStoreUniq,
   _threadMax = omp_get_max_threads();
   _thread    = new OverlapCacheThreadData [_threadMax];
 
+  //  And this too.
+  _ovsMax  = 1 * 1024 * 1024;  //  At 16B each, this is 16MB
+
   //  Account for memory used by fragment data, best overlaps, and unitigs.
   //  The chunk graph is temporary, and should be less than the size of the unitigs.
 
@@ -194,7 +197,6 @@ OverlapCache::OverlapCache(ovStore *ovlStoreUniq,
 
   _maxPer  = maxOverlaps;
 
-  _ovsMax  = 1 * 1024 * 1024;  //  At 16B each, this is 16MB
   _ovs     = new ovsOverlap [_ovsMax];
   _ovsSco  = new uint64     [_ovsMax];
   _ovsTmp  = new uint64     [_ovsMax];
@@ -416,7 +418,7 @@ OverlapCache::computeOverlapLimit(void) {
   fprintf(stderr, "OverlapCache()-- totalMemory      = "F_U64"MB used\n", (_memUsed + totalLoad * sizeof(BAToverlapInt)) >> 20);
   fprintf(stderr, "\n");
 
-  safe_free(numPer);
+  delete [] numPer;
 }
 
 
