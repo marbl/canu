@@ -14,12 +14,19 @@
 
 //  Refactored again, 20141208 for C++.
 
+  static const uint32 MT_N          = 624;           //  period parameters
+  static const uint32 MT_M          = 397;
+  static const uint32 MT_MATRIX_A   = 0x9908b0dfUL;  //  constant vector a
+  static const uint32 MT_UPPER_MASK = 0x80000000UL;  //  most significant w-r bits
+  static const uint32 MT_LOWER_MASK = 0x7fffffffUL;  //  least significant r bits
+
 class mtRandom {
+private:
+  void   construct(uint32 s);
+
 public:
-  mtRandom() {
-    mtRandom(getpid() * time(NULL));
-  };
-  mtRandom(uint32 s);
+  mtRandom()           { construct(getpid() * time(NULL)); };
+  mtRandom(uint32 s)   { construct(s);                     };
   mtRandom(uint32 *init_key, uint32 key_length);
 
   ~mtRandom() {
@@ -49,12 +56,6 @@ public:
 
 
 private:
-  static const uint32 MT_N          = 624;           //  period parameters
-  static const uint32 MT_M          = 397;
-  static const uint32 MT_MATRIX_A   = 0x9908b0dfUL;  //  constant vector a
-  static const uint32 MT_UPPER_MASK = 0x80000000UL;  //  most significant w-r bits
-  static const uint32 MT_LOWER_MASK = 0x7fffffffUL;  //  least significant r bits
-
   uint32  mt[MT_N];  //  State vector array
   uint32  mti;       //  Ordinal of the first uninit'd element -- mti = N+1 -> elt N is uninit
   uint32  mag01[2];  //  mag01[x] = x * MT_MATRIX_A  for x=0,1

@@ -47,9 +47,9 @@
 #include <math.h>
 
 
-
 //  initialize with a single seed
-mtRandom::mtRandom(uint32 s) {
+void
+mtRandom::construct(uint32 s) {
 
   mt[0] = s;
 
@@ -73,7 +73,7 @@ mtRandom::mtRandom(uint32 s) {
 /* slight change for C++, 2004/2/26 */
 mtRandom::mtRandom(uint32 *init_key, uint32 key_length) {
 
-  mtRandom(19650218UL);
+  construct(19650218UL);
 
   int   i   = 1;
   int   j   = 0;
@@ -108,7 +108,7 @@ mtRandom::mtRandom(uint32 *init_key, uint32 key_length) {
 /* generates a random number on [0,0xffffffff]-interval */
 uint32
 mtRandom::mtRandom32(void) {
-  uint32 y;
+  uint32 y = 0;
 
   //  generate MT_N words at one time
   //
