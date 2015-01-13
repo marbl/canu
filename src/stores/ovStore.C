@@ -377,7 +377,6 @@ ovStore::~ovStore() {
   }
 #endif
 
-  delete _gkp;
   delete _bof;
 
   fclose(_offtFile);

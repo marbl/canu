@@ -401,8 +401,6 @@ private:
   uint64         _overlapsThisFile;
   uint32         _currentFileIndex;
   ovFile        *_bof;
-
-  gkStore       *_gkp;
 };
 
 
