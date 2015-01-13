@@ -100,28 +100,6 @@ const uint32  resizeArray_clearNew  = 0x02;
 
 template<typename TT, typename LL>
 void
-increaseArray(TT*& array, uint64 arrayLen, LL &arrayMax, uint64 increment) {
-
-  if (arrayLen + increment <= arrayMax)
-    return;
-
-  resizeArray(array, arrayLen, arrayMax, 2 * arrayMax, resizeArray_copyData);
-}
-
-
-template<typename T1, typename T2, typename LL>
-void
-increaseArrayPair(T1*& array1, T2*& array2, uint64 arrayLen, LL &arrayMax, uint64 increment) {
-
-  if (arrayLen + increment <= arrayMax)
-    return;
-
-  resizeArrayPair(array1, array2, arrayLen, arrayMax, 2 * arrayMax, resizeArray_copyData);
-}
-
-
-template<typename TT, typename LL>
-void
 resizeArray(TT*& array, uint64 arrayLen, LL &arrayMax, uint64 newMax, uint32 op=resizeArray_copyData) {
 
   if (newMax <= arrayMax)
@@ -171,6 +149,27 @@ resizeArrayPair(T1*& array1, T2*& array2, uint64 arrayLen, LL &arrayMax, LL newM
   }
 }
 
+
+template<typename TT, typename LL>
+void
+increaseArray(TT*& array, uint64 arrayLen, LL &arrayMax, uint64 increment) {
+
+  if (arrayLen + increment <= arrayMax)
+    return;
+
+  resizeArray(array, arrayLen, arrayMax, 2 * arrayMax, resizeArray_copyData);
+}
+
+
+template<typename T1, typename T2, typename LL>
+void
+increaseArrayPair(T1*& array1, T2*& array2, uint64 arrayLen, LL &arrayMax, uint64 increment) {
+
+  if (arrayLen + increment <= arrayMax)
+    return;
+
+  resizeArrayPair(array1, array2, arrayLen, arrayMax, 2 * arrayMax, resizeArray_copyData);
+}
 
 
 #endif // AS_UTL_ALLOC_H
