@@ -213,8 +213,6 @@ tgStore::nextVersion(void) {
 void
 tgStore::writeTigToDisk(tgTig *tig, tgStoreEntry *te) {
 
-  //fprintf(stderr, "tgStore::writeTigToDisk()-- write ma "F_S32" in store version "F_U64" at file position "F_U64"\n", tig->_tigID, maRecord->svID, maRecord->fileOffset);
-
   FILE *FP = openDB(te->svID);
 
   //  The atEOF flag allows us to skip a seek when we're already (supposed) to be at the EOF.  This
@@ -232,6 +230,9 @@ tgStore::writeTigToDisk(tgTig *tig, tgStoreEntry *te) {
 
   te->flushNeeded = 0;
   te->fileOffset  = AS_UTL_ftell(FP);
+
+  //fprintf(stderr, "tgStore::writeTigToDisk()-- write tig "F_S32" in store version "F_U64" at file position "F_U64"\n",
+  //        tig->_tigID, te->svID, te->fileOffset);
 
   tig->saveToStream(FP);
 }
@@ -274,15 +275,6 @@ tgStore::insertTig(tgTig *tig, bool keepInCache) {
     assert(pos == 0);
   }
 
-
-  //  Check
-  for (uint32 i=0; i<_tigMax; i++)
-    if (_tigCache[i] != NULL) {
-      fprintf(stderr, "CACHE: %u %p\n", i, _tigCache[i]);
-    }
-
-
-
   if (tig->_tigID == UINT32_MAX) {
     tig->_tigID = _tigLen;
     _newTigs  = true;
@@ -299,17 +291,11 @@ tgStore::insertTig(tgTig *tig, bool keepInCache) {
       _tigMax = (_tigMax == 0) ? (1024) : (2 * _tigMax);
     assert(tig->_tigID < _tigMax);
 
-    fprintf(stderr, "tgStore::insertTig()-- Reallocate to %u for tig %u\n", _tigMax, tig->_tigID);
-
     tgStoreEntry    *nr = new tgStoreEntry [_tigMax];
     tgTig          **nc = new tgTig *      [_tigMax];
 
-    fprintf(stderr, "tgStore::insertTig()-- Copy 0 to %u\n", _tigLen);
-
     memcpy(nr, _tigEntry, sizeof(tgStoreEntry) * _tigLen);
     memcpy(nc, _tigCache, sizeof(tgTig *)      * _tigLen);
-
-    fprintf(stderr, "tgStore::insertTig()-- Clear %u to %u\n", _tigLen, _tigMax);
 
     memset(nr + _tigLen, 0, sizeof(tgStoreEntry) * (_tigMax - _tigLen));
     memset(nc + _tigLen, 0, sizeof(tgTig *)      * (_tigMax - _tigLen));
@@ -326,26 +312,22 @@ tgStore::insertTig(tgTig *tig, bool keepInCache) {
 
   _tigLen = MAX(_tigLen, tig->_tigID + 1);
 
-  assert(_tigEntry->isDeleted == 0);
+  assert(_tigEntry[tig->_tigID].isDeleted == 0);
 
-#if 0
-  if (_tigEntry->svID > 0)
-    fprintf(stderr, "tgStore::InsetTig()--  Moving tig tigID %d from svID %d to svID %d\n",
-            tig->_tigID, _tigEntry->svID, _currentVersion);
-#endif
+  _tigEntry[tig->_tigID].tigRecord        = *tig;
 
-  _tigEntry->unusedFlags     = 0;
-  _tigEntry->flushNeeded     = 1;  //  Mark as needing a flush by default
-  _tigEntry->isDeleted       = 0;
-  _tigEntry->svID            = _currentVersion;
+  _tigEntry[tig->_tigID].unusedFlags     = 0;
+  _tigEntry[tig->_tigID].flushNeeded     = 1;  //  Mark as needing a flush by default
+  _tigEntry[tig->_tigID].isDeleted       = 0;
+  _tigEntry[tig->_tigID].svID            = _currentVersion;
+  _tigEntry[tig->_tigID].fileOffset      = 123456789;
 
-  _tigEntry->tigRecord        = *tig;
 
   //  Write to disk RIGHT NOW unless we're keeping it in cache.  If it is written, the flushNeeded
   //  flag is cleared.
   //
   if (keepInCache == false)
-    writeTigToDisk(tig, _tigEntry);
+    writeTigToDisk(tig, _tigEntry + tig->_tigID);
 
   //  If the cache is different from this tig, delete the cache.  Not sure why this happens --
   //  did we copy a tig, muck with it, and then want to replace the one in the store?
@@ -384,6 +366,8 @@ tgStore::deleteTig(uint32 tigID) {
 tgTig *
 tgStore::loadTig(uint32 tigID) {
   bool              cantLoad = true;
+
+  //fprintf(stderr, "tgStore::loadTig()-- Loading tig %u out of %u\n", tigID, _tigLen);
 
   if (_tigLen <= tigID)
     fprintf(stderr, "tgStore::loadTig()-- WARNING: invalid out-of-range tigID "F_S32", only "F_S32" ma in store; return NULL.\n",
