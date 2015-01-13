@@ -113,8 +113,6 @@ output_the_chunks(Tfragment     *frags,
   tgStore    *MAS = new tgStore(tigStorePath);
   tgTig      *tig = new tgTig;
 
-  MAS->writeToPartitioned(partmap, nchunks);
-
   for (int32 ci=0; ci<nchunks; ci++) {
     AChunkMesg     *ch  = GetVA_AChunkMesg(thechunks,ci);
     uint32          nf  = ch->num_frags;

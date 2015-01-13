@@ -55,7 +55,7 @@ unitigToTig(tgTig       *tig,
 
   for (uint32 fi=0; fi<utg->ufpath.size(); fi++) {
     ufNode        *frg = &utg->ufpath[fi];
-    tgPosition    *pos =  tig->getChild(fi);
+    tgPosition    *pos =  tig->addChild(fi);
 
     pos->_objID       = frg->ident;
     pos->_isRead      = true;
@@ -163,7 +163,7 @@ writeUnitigsToStore(UnitigVector  &unitigs,
   tgStore     *tigStore = new tgStore(tigStorePath);
   tgTig       *tig      = new tgTig;
 
-  tigStore->writeToPartitioned(partmap, unitigs.size());
+  //tigStore->writeToPartitioned(partmap, unitigs.size());
 
   for (uint32 iumiid=0, ti=0; ti<unitigs.size(); ti++) {
     Unitig  *utg = unitigs[ti];
@@ -173,12 +173,6 @@ writeUnitigsToStore(UnitigVector  &unitigs,
       continue;
 
     unitigToTig(tig, (isFinal) ? iumiid : ti, utg);
-
-    //  NOTE!  This is not currently a valid multialign as it has NO IntUnitigPos.  That is
-    //  added during consensus.  CGW will correctly assert that it reads in unitigs with
-    //  exactly one IUP.
-
-    //  Stash the unitig in the store
 
     tigStore->insertTig(tig, false);
 
