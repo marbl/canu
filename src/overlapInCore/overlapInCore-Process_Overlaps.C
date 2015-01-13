@@ -48,7 +48,7 @@ Process_Overlaps(void *ptr){
   char         *quals = new char [AS_MAX_READLEN + 1];
 
   while (WA->bgnID < G.endRefID) {
-    fprintf(stderr, "Thread %u processes reads "F_U32"-"F_U32"\n",
+    fprintf(stderr, "Thread %02u processes reads "F_U32"-"F_U32"\n",
             WA->thread_id, WA->bgnID, WA->endID);
 
     for (uint32 fi=WA->bgnID; fi<=WA->endID; fi++) {
@@ -105,7 +105,7 @@ Process_Overlaps(void *ptr){
 
     pthread_mutex_lock(& Write_Proto_Mutex);
 
-    fprintf(stderr, "Thread %u writes    reads "F_U32"-"F_U32"\n",
+    fprintf(stderr, "Thread %02u writes    reads "F_U32"-"F_U32"\n",
             WA->thread_id, WA->bgnID, WA->endID);
 
     for (int zz=0; zz<WA->overlapsLen; zz++)
