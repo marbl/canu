@@ -105,11 +105,9 @@ public:
 private:
   struct tgStoreEntry {
     tgTigRecord  tigRecord;
-    uint64       unusedFlags : 1;   //  One whole bit for future use.
+    uint64       unusedFlags : 12;  //  One whole bit for future use.
     uint64       flushNeeded : 1;   //  If true, this MAR and associated tig are NOT saved to disk.
-    uint64       isPresentNOP: 1;   //  No longer used (present in this partition)
     uint64       isDeleted   : 1;   //  If true, this MAR has been deleted from the assembly.
-    uint64       ptIDNOP     : 10;  //  No longer used (10 -> 1024 partitions)
     uint64       svID        : 10;  //  10 -> 1024 versions
     uint64       fileOffset  : 40;  //  40 -> 1 TB file size; offset in file where MA is stored
   };
