@@ -112,4 +112,9 @@ SUBMAKEFILES := stores/gatekeeperCreate.mk \
                 \
                 unitigger/unitigger.mk \
                 \
-                utgcns/utgcns.mk
+                utgcns/utgcns.mk \
+                \
+                fastq-utilities/fastqAnalyze.mk \
+                fastq-utilities/fastqSample.mk \
+                fastq-utilities/fastqSimulate.mk \
+                fastq-utilities/fastqSimulate-sort.mk
