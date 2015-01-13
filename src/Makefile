@@ -369,7 +369,7 @@ ifeq (${OSTYPE}, Linux)
 endif
 
 ifeq (${OSTYPE}, Darwin)
-  ifeq (${MACHINETYPE}, x86_64)
+  ifeq (${MACHINETYPE}, amd64)
     CC       := gcc
     CXX      := g++
     CFLAGS   := -pthread -fopenmp -D_GLIBCXX_PARALLEL -O3 -fPIC -m64 -Wall -Wextra -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat
