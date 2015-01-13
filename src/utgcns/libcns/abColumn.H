@@ -127,8 +127,11 @@ private:
 //
 class abColumn {
 public:
-  abColumn();
-  ~abColumn();
+  abColumn() {
+    ma_position = 0;
+  };
+  ~abColumn() {
+  };
 
   uint32     GetDepth(void)                 { return(base_count.GetDepth());      };
   uint32     GetColumnBaseCount(char c)     { return(base_count.GetBaseCount(c)); };
@@ -140,18 +143,18 @@ public:
   //char       GetMaxBaseCount(abAbacus *ab, int32 start_index);
   char       GetMaxBaseCount(bool skipGap)  {  return(base_count.GetMaxBaseCount(skipGap)); };
 
-  abColID    ident(void)    { return(lid); };
+  abColID    ident(void)                    { return(lid);  };
 
-  abBeadID   callID(void)   { return(call);    };
+  abBeadID   callID(void)                   { return(call); };
 
-  abColID    prevID(void)   { return(prev);    };
-  abColID    nextID(void)   { return(next);    };
+  abColID    prevID(void)                   { return(prev); };
+  abColID    nextID(void)                   { return(next); };
 
   int32      mismatch(void) {
     return(base_count.GetDepth() - base_count.GetBaseCount( base_count.GetMaxBaseCount(false) ));
   };
 
-  uint32    &position(void) { return(ma_position); };
+  uint32    &position(void)                 { return(ma_position); };
 
 private:
   abColID          lid;       //  index in columnStore

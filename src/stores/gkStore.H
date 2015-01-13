@@ -220,8 +220,8 @@ public:
 
   uint32   gkReadData_getType(void)         { return(_type); };
 
-  bool     gkReadData_hasSequence(void)  { return(_seq != NULL); };
-  bool     gkReadData_hasQualities(void) { return(_qlt != NULL); };
+  bool     gkReadData_hasSequence(void)     { return(_seq != NULL); };
+  bool     gkReadData_hasQualities(void)    { return(_qlt != NULL); };
 
   char    *gkReadData_getSequence(void)     { return(_seq);  };
   char    *gkReadData_getQualities(void)    { return(_qlt);  };

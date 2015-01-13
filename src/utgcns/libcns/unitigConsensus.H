@@ -64,7 +64,7 @@ public:
     delete [] frankensteinBof;
   };
 
-  int32  initialize(gkStore *gkpStore, int32 *failed); 
+  int32  initialize(gkStore *gkpStore, uint32 *failed); 
 
   bool   showProgress(void)         { return(tig->_utgcns_verboseLevel >= 1); };
   bool   showAlgorithm(void)        { return(tig->_utgcns_verboseLevel >= 2); };
@@ -73,8 +73,8 @@ public:
   bool   showAlignments(void)       { return(tig->_utgcns_verboseLevel >= 4); };
 
   void   reportStartingWork(void);
-  void   reportFailure(int32 *failed);
-  void   reportSuccess(int32 *failed);
+  void   reportFailure(uint32 *failed);
+  void   reportSuccess(uint32 *failed);
 
   int32  moreFragments(void)  { tiid++;  return (tiid < numfrags); };
 

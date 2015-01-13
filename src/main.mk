@@ -47,6 +47,7 @@ SOURCES  := AS_global.C \
             stores/tgTig.C \
             stores/tgTigSizeAnalysis.C \
             stores/tgTigMultiAlignment.C \
+            stores/tgTigMultiAlignDisplay.C \
             \
             meryl/libmeryl.C \
             \
@@ -59,14 +60,15 @@ SOURCES  := AS_global.C \
             alignment/fix-overlapping-pieces.C \
             alignment/local-overlapper.C \
             \
-            utgcns/libcns/abAbacus.C \
-            utgcns/libcns/abMultiAlign.C \
             utgcns/libcns/abAbacus-addRead.C \
-            utgcns/libcns/abAbacus-refreshMultiAlign.C \
-            utgcns/libcns/abAbacus-baseCall.C \
             utgcns/libcns/abAbacus-applyAlignment.C \
+            utgcns/libcns/abAbacus-baseCall.C \
             utgcns/libcns/abAbacus-mergeRefine.C \
             utgcns/libcns/abAbacus-refine.C \
+            utgcns/libcns/abAbacus-refreshMultiAlign.C \
+            utgcns/libcns/abAbacus.C \
+            utgcns/libcns/abColumn.C \
+            utgcns/libcns/abMultiAlign.C \
             utgcns/libcns/unitigConsensus.C
 
 #            utgcns/libcns/abAbacus-populateTig.C
@@ -110,4 +112,4 @@ SUBMAKEFILES := stores/gatekeeperCreate.mk \
                 \
                 unitigger/unitigger.mk \
                 \
-                utgcns/unitigConsensus.mk
+                utgcns/utgcns.mk

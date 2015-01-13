@@ -472,11 +472,3 @@ tgTig::loadLayout(FILE *F) {
   return(true);
 }
 
-
-
-
-
-
-
-
-

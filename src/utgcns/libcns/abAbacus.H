@@ -108,6 +108,10 @@ public:
     return(_bases[bid.get()]);
   };
 
+  char          getBase(abBeadID bid) {
+    return(getBase(getBead(bid)->baseIdx()));  //  Crashes if bid is not valid.
+  };
+
   char         *getBases(abSequence *seq) {
     return(_bases + seq->firstBase().get());
   };
@@ -118,6 +122,10 @@ public:
       return(0);
     assert(bid.get() < _basesLen);
     return(_quals[bid.get()]);
+  };
+
+  char          getQual(abBeadID bid) {
+    return(getQual(getBead(bid)->baseIdx()));  //  Crashes if bid is not valid.
   };
 
   char         *getQuals(abSequence *seq) {
@@ -274,15 +282,10 @@ int      AbacusRefine(MANode *ma,
 
 
 public:
+  //  The iterators make calls to abAbacus, and to make them inline, they need to be defined after abAbacus.
+  //  That means these constructors cannot be inlined.
   abSeqBeadIterator  *createSeqBeadIterator(abSeqID sid);
-  //abSeqBeadIterator  *createSeqBeadIterator(abSeqID sid) {
-  //  return(new abSeqBeadIterator(this, getSequence(sid)));
-  //}
-
   abColBeadIterator  *createColBeadIterator(abColID cid);
-  //abSeqBeadIterator  *createColBeadIterator(abColID cid) {
-  //  return(new abColBeadIterator(this, getColumn(cid)));
-  //}
 
   //
   //  Objects that we're trying to build multialigns for

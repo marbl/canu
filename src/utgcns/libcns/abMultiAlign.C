@@ -1,22 +1,35 @@
 
-
 #include "abAbacus.H"
+
+
+void
+abMultiAlign::getConsensus(abAbacus *abacus, char *bases, char *quals, uint32 &len, uint32 max) {
+  abColumn   *col = abacus->getColumn(firstColumn());
+  abBeadID   bid  = col->callID();
+
+  len = 0;
+
+  for (abBead *bead = abacus->getBead(bid); bid.isValid(); bid = bead->nextID()) {
+    bases[len] = abacus->getBase(bead->baseIdx());
+    quals[len] = abacus->getQual(bead->baseIdx());
+
+    len++;
+  }
+
+  bases[len] = 0;
+  quals[len] = 0;
+
+  assert(len < max);
+}
+
 
 void
 abMultiAlign::getConsensus(abAbacus *abacus, tgTig *tig) {
 
   resizeArrayPair(tig->_gappedBases, tig->_gappedQuals, tig->_gappedLen, tig->_gappedMax, length(), resizeArray_doNothing);
 
-  abColumn   *col = abacus->getColumn(firstColumn());
-  abBeadID   bid  = col->callID();
-
-  for (abBead *bead = abacus->getBead(bid); bid.isValid(); bid = bead->nextID()) {
-    tig->_gappedBases[tig->_gappedLen] = abacus->getBase(bead->baseIdx());
-    tig->_gappedQuals[tig->_gappedLen] = abacus->getQual(bead->baseIdx());
-
-    tig->_gappedLen++;
-  }
-};
+  getConsensus(abacus, tig->_gappedBases, tig->_gappedQuals, tig->_gappedLen, tig->_gappedMax);
+}
 
 
 
@@ -106,14 +119,173 @@ abMultiAlign::getPositions(abAbacus *abacus, tgTig *tig) {
 
 
 
-//  Used in GetMANodePositions
+void
+abMultiAlign::display(abAbacus  *abacus,
+                      FILE      *F,
+                      uint32     from,
+                      uint32     to) {
+
+  if (to > length())
+    to = length();
+
+  if (from > to)
+    return;
+
+  int32   pageWidth = to - from + 1;
+
+  char   *sequence = new char [length() + 1];
+  char   *quality  = new char [length() + 1];
+  uint32  len      = 0;
+
+  getConsensus(abacus, sequence, quality, len, length() + 1);
+
+  assert(len == length());
+
+
+  uint32 numSeqs = abacus->numberOfSequences();
+
+  abSeqBeadIterator     **fit       = new abSeqBeadIterator * [numSeqs];
+  uint32                 *fid       = new uint32              [numSeqs];
+  char                   *type      = new char                [numSeqs];  //  always 'r' for read
+  uint32                 *bgn       = new uint32              [numSeqs];  //  former positions
+  uint32                 *end       = new uint32              [numSeqs];
+
+
+
+  for (uint32 i=0; i<numSeqs; i++) {
+    abSequence  *seq = abacus->getSequence(i);
+
+    assert(seq->multiAlignID() == ident());
+
+    fid[i]  = seq->gkpIdent();
+    fit[i]  = NULL;
+    type[i] = (seq->isRead() == true) ? 'r' : '?';
+
+    abColumn   *bgnColumn = abacus->getColumn(seq->firstBead());
+    abColumn   *endColumn = abacus->getColumn(seq->lastBead());
+
+    bgn[i] = bgnColumn->position();
+    bgn[i] = endColumn->position();
+  }
+
+  uint32 window_start = from;
+
+  fprintf(F,"\n\n================  MultiAlignment ID %d ==================\n\n", ident().get());
+
+  while (window_start < to) {
+    fprintf(F,"\n");
+    fprintf(F,"%d\n", window_start);
+    fprintf(F,"%-*.*s <<< consensus\n", pageWidth, pageWidth, sequence + window_start);
+    fprintf(F,"%-*.*s <<< quality\n\n", pageWidth, pageWidth, quality  + window_start);
+
+    for (uint32 i=0; i<numSeqs; i++) {
+      if (fid[i] == 0)
+        continue;
+
+      for (uint32 wi=window_start; wi<window_start + pageWidth; wi++) {
+
+
+        //  If no valid iterator, 
+        if (fit[i] == NULL) {
+
+          if ((bgn[i] < wi) &&
+              (wi     < end[i])) {
+            //  Starting in the middle of the sequence, wi should equal window_start, right?
+
+            //  This case only occurs if 'from' is set, and it's probably broken!
+
+            fit[i] = abacus->createSeqBeadIterator(i);
+            fit[i]->advance(wi);
+
+            abBeadID bid = fit[i]->next();
+
+            if (bid.isValid()) {
+              char pc = abacus->getBase(bid);
+              
+              if (pc == sequence[wi])
+                pc = tolower(pc);
+              else
+                pc = toupper(pc);
+
+              fprintf(F, "%c", pc);
+            }
+
+          } else if (bgn[i] ==  wi) {
+            //  Start at the beginning of the sequence
+            fit[i] = abacus->createSeqBeadIterator(i);
+
+          } else if ((window_start < bgn[i]) &&
+                     (bgn[i]       < window_start+pageWidth)) {
+            //  Spaces before the read
+            fprintf(F," ");
+
+          } else if ((window_start <= end[i]) &&
+                     (end[i]       <  window_start+pageWidth)) {
+            //  Spaces after the read
+            fprintf(F," ");
+
+          } else {
+            //  Sequence isn't involved in this window.
+            break;
+          }
+        }
+
+
+        //  This really looks like a bug.  If we had no iterator, and we started in the middle of
+        //  the sequence (HOW?)  we'd print both a base above, and a base below.
+
+
+        //  If a valid iterator, print a base.  If we've run out of bases, delete the iterator
+        //  and print a space.
+        //
+        if (fit[i] != NULL) {
+          abBeadID   bid = fit[i]->next();
+
+          if (bid.isValid()) {
+            char pc = abacus->getBase(bid);
+
+            if (pc == sequence[wi])
+              pc = tolower(pc);
+            else
+              pc = toupper(pc);
+
+            fprintf(F, "%c", pc);
+
+          } else {
+            fprintf(F," ");
+            delete fit[i];
+            fit[i] = NULL;
+          }
+        }
+
+
+        if (wi == window_start + pageWidth - 1)
+          fprintf(F," <<< %d (%c)\n", fid[i], type[i]);
+      }
+    }
+
+    window_start += pageWidth;
+  }
+
+  delete [] fit;
+  delete [] fid;
+  delete [] type;
+  delete [] bgn;
+  delete [] end;
+
+  delete [] sequence;
+  delete [] quality;
+}
+
+
+
+
+
+
 
 
 #if 0
 
-
-
-//external
 int
 GetMANodePositions(int32        mid,
                    MultiAlignT *ma) {

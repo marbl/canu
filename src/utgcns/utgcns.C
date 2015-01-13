@@ -22,32 +22,14 @@
 const char *mainid = "$Id$";
 
 #include "AS_global.H"
-#include "MultiAlign.H"
-#include "MultiAlignStore.H"
-#include "MultiAlignment_CNS.H"
-#include "MultiAlignment_CNS_private.H"
+#include "gkStore.H"
+#include "tgStore.H"
+#include "abAbacus.H"
 
 #include "AS_UTL_decodeRange.H"
 
 #include <map>
 #include <algorithm>
-
-
-inline
-bool
-IntMultiPos_PositionCompare(IntMultiPos const &a, IntMultiPos const &b) {
-  int32 al = (a.position.bgn < a.position.end) ? a.position.bgn : a.position.end;
-  int32 bl = (b.position.bgn < b.position.end) ? b.position.bgn : b.position.end;
-
-  int32 ah = (a.position.bgn < a.position.end) ? a.position.end : a.position.bgn;
-  int32 bh = (b.position.bgn < b.position.end) ? b.position.end : b.position.bgn;
-
-  if (al == bl)
-    return(ah > bh);
-
-  return(al < bl);
-}
-
 
 
 
@@ -57,7 +39,7 @@ IntMultiPos_PositionCompare(IntMultiPos const &a, IntMultiPos const &b) {
 
 class readLength {
 public:
-  AS_IID    idx;
+  uint32    idx;
   int32     len;
 
   bool operator<(const readLength &that) const {
@@ -66,14 +48,33 @@ public:
 };
 
 
+class savedChildren {
+public:
+  savedChildren(tgTig *tig) {
+    childrenLen = tig->_childrenLen;
+    childrenMax = tig->_childrenMax;
+    children    = tig->_children;
+  };
 
-VA_TYPE(IntMultiPos) *
-stashContains(MultiAlignT *ma,
+  uint32      childrenLen;
+  uint32      childrenMax;
+  tgPosition *children;
+};
+
+
+
+//  Replace the children list in tig with one that has fewer contains.  The original
+//  list is returned.
+savedChildren *
+stashContains(tgTig       *tig,
               double       maxCov) {
-  VA_TYPE(IntMultiPos) *fl = ma->f_list;
 
-  int32  nOrig     = GetNumIntMultiPoss(fl);
-  int32  nDove     = 0;
+  if (tig->numberOfChildren() == 1)
+    return(NULL);
+
+  //  Stats we report
+  int32  nOrig     = tig->numberOfChildren();
+  int32  nBack     = 0;
   int32  nCont     = 0;
   int32  nSave     = 0;
   int64  nBase     = 0;
@@ -81,109 +82,134 @@ stashContains(MultiAlignT *ma,
   int64  nBaseCont = 0;
   int64  nBaseSave = 0;
 
-  if (ma->data.num_frags == 1)
-    return(NULL);
+  //  Save the original children
+  savedChildren   *saved = new savedChildren(tig);
 
-  int32        *isDove  = new int32      [nOrig];
-  readLength   *posLen  = new readLength [nOrig];
-  IntMultiPos  *imp     = GetIntMultiPos(fl, 0);
+  //  And make space for a new list
+  tig->_childrenLen = 0;
+  tig->_children    = NULL;
+new tgPosition [tig->_childrenMax];
 
-  std::sort(imp, imp+nOrig, IntMultiPos_PositionCompare);
+  bool         *isBack   = new bool       [nOrig];   //  True, we save the child for processing
+  readLength   *posLen   = new readLength [nOrig];   //  Sorting by length of child
 
-  int32         loEnd = MIN(imp->position.bgn, imp->position.end);
-  int32         hiEnd = MAX(imp->position.bgn, imp->position.end);
+  tgPosition   *children = tig->getChild(0);
 
-  isDove[0]      = 1;
-  nDove          = 1;
+  //  Sort the original children by position.
+
+  std::sort(saved->children, saved->children + saved->childrenLen);
+
+  //  The first read is always saved->
+
+  int32         loEnd = saved->children[0].min();
+  int32         hiEnd = saved->children[0].max();
+
+  isBack[0]      = 1;
+  nBack          = 1;
   posLen[0].idx  = 0;
   posLen[0].len  = hiEnd - loEnd;
   nBaseDove     += posLen[0].len;
   nBase         += posLen[0].len;
 
-  for (uint32 fi=1; fi<nOrig; fi++) {
-    imp = GetIntMultiPos(fl, fi);
+  //  For the other reads, save it if it extends the backbone sequence.
 
-    int32  lo = MIN(imp->position.bgn, imp->position.end);
-    int32  hi = MAX(imp->position.bgn, imp->position.end);
+  for (uint32 fi=1; fi<nOrig; fi++) {
+    int32  lo = saved->children[fi].min();
+    int32  hi = saved->children[fi].max();
 
     posLen[fi].idx  = fi;
     posLen[fi].len  = hi - lo;
     nBase          += posLen[fi].len;
 
     if (hi <= hiEnd) {
-      isDove[fi] = 0;
+      isBack[fi] = false;
       nCont++;
       nBaseCont += posLen[fi].len;
+
     } else {
-      isDove[fi] = 1;
-      nDove++;
+      isBack[fi] = true;
+      nBack++;
       nBaseDove += posLen[fi].len;
     }
 
     hiEnd = MAX(hi, hiEnd);
   }
 
+  //  Entertain the user with some statistics
+
   double percCont = 100.0 * nBaseCont / nBase;
   double percDove = 100.0 * nBaseDove / nBase;
   double totlCov  = (double)nBase / hiEnd;
 
   fprintf(stderr, "  unitig %d detected "F_S32" contains (%.2fx, %.2f%%) "F_S32" dovetail (%.2fx, %.2f%%)\n",
-          ma->maID,
+          tig->tigID(),
           nCont, (double)nBaseCont / hiEnd, percCont,
-          nDove, (double)nBaseDove / hiEnd, percDove);
+          nBack, (double)nBaseDove / hiEnd, percDove);
+
+  //  If the tig has more coverage than allowed, throw out some of the contained reads.
 
   if ((totlCov  >= maxCov) &&
       (maxCov   > 0)) {
-    std::sort(posLen, posLen + nOrig);
+#warning is this really larger first?
+    std::sort(posLen, posLen + nOrig);  //  Sort by length, larger first
 
     nBaseSave = 0.0;
 
     for (uint32 ii=0; ((ii < nOrig) && ((double)(nBaseSave + nBaseDove) / hiEnd < maxCov)); ii++) {
-      if (isDove[posLen[ii].idx])
+      if (isBack[posLen[ii].idx])
+        //  Already a backbone read.
         continue;
 
-      isDove[posLen[ii].idx] = 1;
+      isBack[posLen[ii].idx] = true;  //  Save it.
 
       nSave++;
       nBaseSave += posLen[ii].len;
     }
 
     fprintf(stderr, "    unitig %d removing "F_S32" (%.2fx) contained reads; processing only "F_S32" contained (%.2fx) and "F_S32" dovetail (%.2fx) reads\n",
-            ma->maID,
-            nOrig - nDove - nSave,
+            tig->tigID(),
+            nOrig - nBack - nSave,
             (double)(nBaseCont - nBaseSave) / hiEnd,
             nSave, (double)nBaseSave / hiEnd,
-            nDove, (double)nBaseDove / hiEnd);
+            nBack, (double)nBaseDove / hiEnd);
 
-    ma->f_list = CreateVA_IntMultiPos(0);
+    //  For all the reads we saved, copy them to a new children list in the tig
+
+    tig->_childrenLen = 0;
+    tig->_childrenMax = nBack + nSave;
+    tig->_children    = new tgPosition [tig->_childrenMax];
 
     for (uint32 fi=0; fi<nOrig; fi++) {
-      IntMultiPos  *imp = GetIntMultiPos(fl, fi);
+      if (isBack[fi] == false)
+        continue;
 
-      if (isDove[fi] == 1) {
-        //fprintf(stderr, "    ident %9d position %6d %6d contained %9d\n",
-        //        imp->ident, imp->position.bgn, imp->position.end, imp->contained);
-        AppendVA_IntMultiPos(ma->f_list, imp);
-      }
+      //fprintf(stderr, "    ident %9d position %6d %6d\n",
+      //        saved->children[fi].ident(), saved->children[fi].bgn(), children[fi].end());
+
+      tig->_children[tig->_childrenLen] = saved->children[fi];
     }
-  } else {
-    fl = NULL;
   }
 
-  delete [] isDove;
+  //  Else, the tig coverage is acceptable and we do no filtering.
+  else {
+    delete saved;
+    saved = NULL;
+  }
+
+  delete [] isBack;
   delete [] posLen;
 
-  return(fl);
+  return(saved);
 }
 
 
 //  Restores the f_list, and updates the position of non-contained reads.
 //
 void
-unstashContains(MultiAlignT          *ma,
-                VA_TYPE(IntMultiPos) *fl) {
+unstashContains(tgTig                *tig,
+                savedChildren        *saved) {
 
-  if (fl == NULL)
+  if (saved == NULL)
     return;
 
   uint32   oldMax = 0;
@@ -194,65 +220,61 @@ unstashContains(MultiAlignT          *ma,
   //
   //  We probably should do an alignment to the consensus sequence to find the true location, but
   //  that's (a) expensive and (b) likely overkill for these unitigs.
-  //
-  for (uint32 fi=0, ci=0; fi<GetNumIntMultiPoss(fl); fi++) {
-    IntMultiPos  *imp = GetIntMultiPos(fl, fi);
 
-    if (oldMax < imp->position.bgn)    oldMax = imp->position.bgn;
-    if (oldMax < imp->position.end)    oldMax = imp->position.end;
-  }
+  //  Find the oldMax
+  for (uint32 fi=0, ci=0; fi<saved->childrenLen; fi++)
+    if (oldMax < saved->children[fi].max())
+      oldMax = saved->children[fi].max();
 
-  newMax = GetMultiAlignLength(ma);
+  //  Find the newMax
+  //  We could have just done: newMax = tig->gappedLength();
+  for (uint32 fi=0, ci=0; fi<tig->numberOfChildren(); fi++)
+    if (newMax < tig->getChild(fi)->max())
+      newMax = tig->getChild(fi)->max();
 
   double sf = (double)newMax / oldMax;
 
-  uint32  fi = 0, fiMax = GetNumIntMultiPoss(fl);
-  //uint32  ci = 0, ciMax = GetNumIntMultiPoss(ma->f_list);
+  //  First, we need a map from the child id to the location in the current tig
 
-  //  Over all the reads in the original saved fragment list, update the position.  Either from the
-  //  computed result, or by extrapolating.
+  map<int32, tgPosition *>   idmap;
 
-  //  Dang, sorts the reads by position, which makes this rather complicated.  We first stash the
-  //  new coords in a map, then lookup the map to replace.  The original just needed to walk down
-  //  the two lists.
+  for (uint32 ci=0; ci < tig->numberOfChildren(); ci++)
+    idmap[tig->getChild(ci)->ident()] = tig->getChild(ci);
 
-  map<int32, IntMultiPos *>   cmp;
+  //  Now, over all the reads in the original saved fragment list, update the position.  Either from
+  //  the computed result, or by extrapolating.
 
-  for (uint32 ci=0; ci<GetNumIntMultiPoss(ma->f_list); ci++) {
-    IntMultiPos *imp = GetVA_IntMultiPos(ma->f_list, ci);
+  for (uint32 fi=0; fi<saved->childrenLen; fi++) {
+    uint32  iid = saved->children[fi].ident();
 
-    cmp[imp->ident] = imp;
-  }
+    //  Does the ID exist in the new positions?  Copy the new position to the original list.
+    if (idmap.find(iid) != idmap.end()) {
+      saved->children[fi] = *idmap[iid];
+      idmap.erase(iid);
+    }
 
-  for (; fi<fiMax; fi++) {
-    IntMultiPos  *imp = GetIntMultiPos(fl, fi);
-    //IntMultiPos  *cmp = (ci < ciMax) ? GetVA_IntMultiPos(ma->f_list, ci) : NULL;
+    //  Otherwise, fudge the positions.
+    else {
+      saved->children[fi].bgn() = sf * saved->children[fi].bgn();
+      saved->children[fi].end() = sf * saved->children[fi].end();
 
-    if (cmp.find(imp->ident) != cmp.end()) {
-      //  Copy the location used by consensus back to the original list
-      SetVA_IntMultiPos(fl, fi, cmp[imp->ident]);
-      //ci++;
-
-      cmp.erase(imp->ident);
-
-    } else {
-      //  Adjust old position
-      imp->position.bgn = sf * imp->position.bgn;
-      imp->position.end = sf * imp->position.end;
-
-      if (imp->position.bgn > newMax)  imp->position.bgn = newMax;
-      if (imp->position.end > newMax)  imp->position.end = newMax;
+      if (saved->children[fi].bgn() > newMax)  saved->children[fi].bgn() = newMax;
+      if (saved->children[fi].end() > newMax)  saved->children[fi].end() = newMax;
     }
   }
 
-  if (cmp.empty() == false)
+  if (idmap.empty() == false)
     fprintf(stderr, "Failed to unstash the contained reads.  Still have "F_SIZE_T" reads unplaced.\n",
-            cmp.size());
-  assert(cmp.empty() == true);
+            idmap.size());
+  assert(idmap.empty() == true);
 
-  DeleteVA_IntMultiPos(ma->f_list);
+  //  Throw out the reduced list, and restore the original.
 
-  ma->f_list = fl;
+  delete [] tig->_children;
+
+  tig->_childrenLen = saved->childrenLen;
+  tig->_childrenMax = saved->childrenMax;
+  tig->_children    = saved->children;
 }
 
 
@@ -283,12 +305,7 @@ main (int argc, char **argv) {
   bool   loadall  = false;
   bool   doUpdate = true;
 
-  CNS_Options options = { CNS_OPTIONS_SPLIT_ALLELES_DEFAULT,
-                          CNS_OPTIONS_MIN_ANCHOR_DEFAULT,
-                          CNS_OPTIONS_DO_PHASING_DEFAULT };
-
-  //  Comminucate to MultiAlignment_CNS.c that we are doing consensus and not cgw.
-  thisIsConsensus = 1;
+  uint32 verbosity = 0;
 
   argc = AS_configure(argc, argv);
 
@@ -321,7 +338,7 @@ main (int argc, char **argv) {
       showResult = true;
 
     } else if (strcmp(argv[arg], "-V") == 0) {
-      VERBOSE_MULTIALIGN_OUTPUT++;
+      verbosity++;
 
     } else if (strcmp(argv[arg], "-maxcoverage") == 0) {
       maxCov   = atof(argv[++arg]);
@@ -386,55 +403,54 @@ main (int argc, char **argv) {
     exit(1);
   }
 
-  //  Open gatekeeper for read only.
+  //  Open gatekeeper for read only, and load the partitioned data if tigPart > 0.
 
-  gkpStore = new gkStore(gkpName, FALSE, FALSE);
+  gkStore   *gkpStore = new gkStore(gkpName, gkStore_readOnly, tigPart);
+
+  //  Create a consensus object.
+
+  abAbacus  *abacus   = new abAbacus(gkpStore);
 
   //  If we are testing a unitig, do that.
 
   if (utgFile != NULL) {
+    fprintf(stderr, "utgFile not supported.\n");
+    exit(1);
+#if 0
     errno = 0;
-    FILE         *F = fopen(utgFile, "r");
+    FILE  *F = fopen(utgFile, "r");
     if (errno)
       fprintf(stderr, "Failed to open input unitig file '%s': %s\n", utgFile, strerror(errno)), exit(1);
 
     MultiAlignT  *ma       = CreateEmptyMultiAlignT();
     bool          isUnitig = false;
 
-    while (LoadMultiAlignFromHuman(ma, isUnitig, F) == true) {
-      //if (ma->maID < 0)
-      //  ma->maID = (isUnitig) ? tigStore->numUnitigs() : tigStore->numContigs();
-
-      if (MultiAlignUnitig(ma, gkpStore, &options, NULL)) {
+    while (LoadMultiAlignFromHuman(tig, isUnitig, F) == true) {
+      if (generateMultiAlignment(tig, gkpStore, NULL)) {
         if (showResult)
-          PrintMultiAlignT(stdout, ma, gkpStore, false, false, AS_READ_CLEAR_LATEST);
+          abacus->getMultiAlignment()->printAlignment(abacus, stdout);
+
       } else {
-        fprintf(stderr, "MultiAlignUnitig()-- unitig %d failed.\n", ma->maID);
+        fprintf(stderr, "tig %d failed.\n", tig->tigID());
         numFailures++;
       }
     }
 
     DeleteMultiAlignT(ma);
+#endif
 
     exit(0);
   }
 
-  //  Otherwise, we're computing unitigs from the store.  Open it for read only,
-  //  and load the reads.
+  //  Otherwise, we're computing unitigs from the store.  Open it for read only.
+  //  Outputs get written to a single output file.
 
-  tigStore = new MultiAlignStore(tigName, tigVers, tigPart, 0, FALSE, FALSE, FALSE);
-
-  if (loadall) {
-    fprintf(stderr, "Loading all reads into memory.\n");
-    gkpStore->gkStore_load(0, 0, GKFRAGMENT_QLT);
-  } else {
-    gkpStore->gkStore_loadPartition(tigPart);
-  }
+  tgStore *tigStore = new tgStore(tigName);
 
   //  Decide on what to compute.  Either all unitigs, or a single unitig, or a special case test.
 
   uint32  b = 0;
-  uint32  e = tigStore->numUnitigs();
+  uint32  e = tigStore->numTigs();
 
   if (utgBgn != -1) {
     b = utgBgn;
@@ -443,65 +459,66 @@ main (int argc, char **argv) {
 
   //  Reopen for writing, if we have work to do.
 
-  if (b < e) {
-    delete tigStore;
-    tigStore = new MultiAlignStore(tigName, tigVers, tigPart, 0, doUpdate, inplace, !inplace);
-  }
+  //if (b < e) {
+  //  delete tigStore;
+  //  tigStore = new MultiAlignStore(tigName, tigVers, tigPart, 0, doUpdate, inplace, !inplace);
+  //}
 
   fprintf(stderr, "Computing unitig consensus for b="F_U32" to e="F_U32"\n", b, e);
 
   //  Now the usual case.  Iterate over all unitigs, compute and update.
 
   for (uint32 i=b; i<e; i++) {
-    MultiAlignT              *ma = tigStore->loadMultiAlign(i, true);
+    tgTig  *tig = tigStore->loadTig(i);
 
-    if (ma == NULL) {
+    if (tig == NULL) {
       //  Not in our partition, or deleted.
       continue;
     }
 
-    bool exists = (ma->consensus != NULL) && (GetNumchars(ma->consensus) > 1);
+    bool exists = (tig->gappedLength() > 0);
 
     if ((forceCompute == false) && (exists == true)) {
       //  Already finished unitig consensus.
-      if (ma->data.num_frags > 1)
-        fprintf(stderr, "Working on unitig %d of length %d (%d unitigs %d fragments) - already computed, skipped\n",
-                ma->maID, GetMultiAlignLength(ma), ma->data.num_unitigs, ma->data.num_frags);
+      if (tig->numberOfChildren() > 1)
+        fprintf(stderr, "Working on unitig %d of length %d (%d children) - already computed, skipped\n",
+                tig->tigID(), tig->layoutLength(), tig->numberOfChildren());
       numSkipped++;
       continue;
     }
 
-    if (GetMultiAlignLength(ma) > maxLen) {
-      fprintf(stderr, "SKIP unitig %d of length %d (%d unitigs %d fragments) - too long, skipped\n",
-              ma->maID, GetMultiAlignLength(ma), ma->data.num_unitigs, ma->data.num_frags);
+    if (tig->layoutLength() > maxLen) {
+      fprintf(stderr, "SKIP unitig %d of length %d (%d children) - too long, skipped\n",
+              tig->tigID(), tig->layoutLength(), tig->numberOfChildren());
       continue;
     }
 
-    if (ma->data.num_frags > 1)
-      fprintf(stderr, "Working on unitig %d of length %d (%d unitigs %d fragments)%s\n",
-              ma->maID, GetMultiAlignLength(ma), ma->data.num_unitigs, ma->data.num_frags,
+    if (tig->numberOfChildren() > 1)
+      fprintf(stderr, "Working on unitig %d of length %d (%d children)%s\n",
+              tig->tigID(), tig->layoutLength(), tig->numberOfChildren(),
               (exists) ? " - already computed, recomputing" : "");
 
     //  Build a new ma if we're ignoring contains.  We'll need to put back the reads we remove
     //  before we add it to the store.
 
-    VA_TYPE(IntMultiPos)     *fl = stashContains(ma, maxCov);
+    savedChildren *origChildren = stashContains(tig, maxCov);
 
-    if (MultiAlignUnitig(ma, gkpStore, &options, NULL)) {
+    if (generateMultiAlignment(tig, gkpStore, NULL)) {
       if (showResult)
-        PrintMultiAlignT(stdout, ma, gkpStore, false, false, AS_READ_CLEAR_LATEST);
+        //abacus->getMultiAlign()->printAlignment(abacus, stdout);
+        //  
 
-      unstashContains(ma, fl);
+      unstashContains(tig, origChildren);
 
-      if (doUpdate) {
-        tigStore->insertMultiAlign(ma, true, true);
-        tigStore->unloadMultiAlign(ma->maID, true, false);
-      } else {
-        tigStore->unloadMultiAlign(ma->maID, true, true);
-      }
+      //if (doUpdate) {
+      //  tigStore->insertMultiAlign(ma, true, true);
+      //  tigStore->unloadMultiAlign(ma->maID, true, false);
+      //} else {
+      //  tigStore->unloadMultiAlign(ma->maID, true, true);
+      //}
 
     } else {
-      fprintf(stderr, "MultiAlignUnitig()-- unitig %d failed.\n", ma->maID);
+      fprintf(stderr, "unitigConsensus()-- unitig %d failed.\n", tig->tigID());
       numFailures++;
     }
   }
@@ -509,6 +526,7 @@ main (int argc, char **argv) {
  finish:
   delete tigStore;
 
+#if 0
   fprintf(stderr, "\n");
   fprintf(stderr, "NumColumnsInUnitigs             = %d\n", NumColumnsInUnitigs);
   fprintf(stderr, "NumGapsInUnitigs                = %d\n", NumGapsInUnitigs);
@@ -521,6 +539,7 @@ main (int argc, char **argv) {
   fprintf(stderr, "NumVARStringsWithFlankingGaps   = %d\n", NumVARStringsWithFlankingGaps);
   fprintf(stderr, "NumUnitigRetrySuccess           = %d\n", NumUnitigRetrySuccess);
   fprintf(stderr, "\n");
+#endif
 
   if (numFailures) {
     fprintf(stderr, "WARNING:  Total number of unitig failures = %d\n", numFailures);

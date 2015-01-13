@@ -38,6 +38,28 @@ public:
     return(nid);
   };
 
+  //  Doesn't belong here, used only in multiAlign::print
+  bool      advance(uint32 position) {
+    abBeadID  bid  = next();
+    abColumn *col  = NULL;
+
+    do {
+      if (bid.isValid() == false)
+        return(false);
+
+      abBead   *bead = _abacus->getBead(bid);
+
+      if (bead->colIdx().isValid() == false)
+        return(false);
+
+      col  = _abacus->getColumn(bead->colIdx());
+    } while (col->position() < position);
+
+    assert(col->position() == position);
+
+    return(true);
+  };
+
 private:
   abAbacus      *_abacus;
   abSequence    *_seq;

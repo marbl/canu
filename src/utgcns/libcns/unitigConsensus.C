@@ -38,7 +38,7 @@ using namespace std;
 
 void
 unitigConsensus::reportStartingWork(void) {
-  fprintf(stderr, "MultiAlignUnitig()-- processing fragment mid %d pos %d,%d ahcnor %d,%d,%d\n",
+  fprintf(stderr, "unitigConsensus()-- processing fragment mid %d pos %d,%d ahcnor %d,%d,%d\n",
           utgpos[tiid].ident(),
           utgpos[tiid].bgn(),
           utgpos[tiid].end(),
@@ -48,7 +48,7 @@ unitigConsensus::reportStartingWork(void) {
 
   if (showPlacementBefore())
     for (int32 x=0; x<=tiid; x++)
-      fprintf(stderr, "MultiAlignUnitig()-- mid %10d  utgpos %7d,%7d  cnspos %7d,%7d  anchor %10d,%6d,%6d\n",
+      fprintf(stderr, "unitigConsensus()-- mid %10d  utgpos %7d,%7d  cnspos %7d,%7d  anchor %10d,%6d,%6d\n",
               utgpos[x].ident(),
               utgpos[x].bgn(), utgpos[x].end(),
               cnspos[x].bgn(), cnspos[x].end(),
@@ -57,25 +57,27 @@ unitigConsensus::reportStartingWork(void) {
 
 
 void
-unitigConsensus::reportFailure(int32 *failed) {
+unitigConsensus::reportFailure(uint32 *failed) {
   if (failed != NULL)
     failed[tiid] = true;
-  fprintf(stderr, "MultiAlignUnitig()-- failed to align fragment %d in unitig %d.\n",
+
+  fprintf(stderr, "unitigConsensus()-- failed to align fragment %d in unitig %d.\n",
           utgpos[tiid].ident(), tig->tigID());
 }
 
 
 void
-unitigConsensus::reportSuccess(int32 *failed) {
+unitigConsensus::reportSuccess(uint32 *failed) {
   if (failed != NULL)
     failed[tiid] = false;
-  //fprintf(stderr, "MultiAlignUnitig()-- fragment %d aligned in unitig %d.\n",
+
+  //fprintf(stderr, "unitigConsensus()-- fragment %d aligned in unitig %d.\n",
   //        utgpos[tiid].ident(), tig->tigID());
 }
 
 
 int
-unitigConsensus::initialize(gkStore *gkpStore, int32 *failed) {
+unitigConsensus::initialize(gkStore *gkpStore, uint32 *failed) {
 
   int32 num_columns = 0;
   int32 num_bases   = 0;
@@ -121,13 +123,13 @@ unitigConsensus::initialize(gkStore *gkpStore, int32 *failed) {
 
     for (uint32 i=0; i<numfrags; i++) {
       if (utgpos[i].isRead() == false) {
-        fprintf(stderr, "MultiAlignUnitig()-- Unitig %d FAILED.  Child %d is not a read.\n",
+        fprintf(stderr, "unitigConsensus()-- Unitig %d FAILED.  Child %d is not a read.\n",
                 tig->tigID(), utgpos[i].ident());
         return(false);
       }
 
       if (dupFrag.find(utgpos[i].ident()) != dupFrag.end()) {
-        fprintf(stderr, "MultiAlignUnitig()-- Unitig %d FAILED.  Child %d is a duplicate.\n",
+        fprintf(stderr, "unitigConsensus()-- Unitig %d FAILED.  Child %d is a duplicate.\n",
                 tig->tigID(), utgpos[i].ident());
         return(false);
       }
@@ -151,7 +153,7 @@ unitigConsensus::initialize(gkStore *gkpStore, int32 *failed) {
       assert(fid.get() == i);
 
       //if (VERBOSE_MULTIALIGN_OUTPUT)
-      //  fprintf(stderr,"MultiAlignUnitig()-- Added fragment mid %d pos %d,%d in unitig %d to store at local id %d.\n",
+      //  fprintf(stderr,"unitigConsensus()-- Added fragment mid %d pos %d,%d in unitig %d to store at local id %d.\n",
       //          utgpos[i].ident(), utgpos[i].bgn(), utgpos[i].end(), tig->tigID(), fid);
     }
   }

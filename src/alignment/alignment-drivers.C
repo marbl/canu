@@ -96,8 +96,8 @@ Local_Overlap_AS_forCNS(char *a, char *b,
   memset(&A, 0, sizeof(InternalFragMesg));
   memset(&B, 0, sizeof(InternalFragMesg));
 
-  if (VERBOSE_MULTIALIGN_OUTPUT >= 3)
-    fprintf(stderr, "Local_Overlap_AS_forCNS()--  Begins\n");
+  //if (VERBOSE_MULTIALIGN_OUTPUT >= 3)
+  //  fprintf(stderr, "Local_Overlap_AS_forCNS()--  Begins\n");
 
   if (erate > AS_MAX_ERROR_RATE) {
     //fprintf(stderr, "Local_Overlap_AS_forCNS()--  erate=%f >= AS_MAX_ERROR_RATE=%f, reset to max\n", erate, (double)AS_MAX_ERROR_RATE);
@@ -149,8 +149,8 @@ Local_Overlap_AS_forCNS(char *a, char *b,
 
   o.trace = O->alignment_trace;
 
-  if (VERBOSE_MULTIALIGN_OUTPUT >= 3)
-    fprintf(stderr, "aifrag=%d bifrag=%d ahg=%d bhg=%d\n", O->aifrag, O->bifrag, O->ahg, O->bhg);
+  //if (VERBOSE_MULTIALIGN_OUTPUT >= 3)
+  //  fprintf(stderr, "aifrag=%d bifrag=%d ahg=%d bhg=%d\n", O->aifrag, O->bifrag, O->ahg, O->bhg);
 
   if(O->aifrag==2){/*The ALNoverlapFull gives b first for nonnegative ahang*/
     int i=0;
@@ -179,8 +179,9 @@ Local_Overlap_AS_forCNS(char *a, char *b,
     int fullLenA = strlen(a);
     int fullLenB = strlen(b);
     char c;
-    if (VERBOSE_MULTIALIGN_OUTPUT >= 4)
-      fprintf(stderr, "Local_Overlap_AS_forCNS Trace (lens %d %d):",fullLenA,fullLenB);
+
+    //if (VERBOSE_MULTIALIGN_OUTPUT >= 4)
+    //  fprintf(stderr, "Local_Overlap_AS_forCNS Trace (lens %d %d):",fullLenA,fullLenB);
 
     while(o.trace[i]!=0){
       c='*';
@@ -196,19 +197,19 @@ Local_Overlap_AS_forCNS(char *a, char *b,
         c=' ';
         o.trace[j++]=o.trace[i];
       }
-      if (VERBOSE_MULTIALIGN_OUTPUT >= 4)
-        fprintf(stderr, " %c%d",c,o.trace[i]);
+      //if (VERBOSE_MULTIALIGN_OUTPUT >= 4)
+      //  fprintf(stderr, " %c%d",c,o.trace[i]);
       i++;
     }
-    if (VERBOSE_MULTIALIGN_OUTPUT >= 4)
-      fprintf(stderr, "\n");
+    //if (VERBOSE_MULTIALIGN_OUTPUT >= 4)
+    //  fprintf(stderr, "\n");
     o.trace[j]=0;
     o.begpos+=changeahang;
     o.endpos+=changebhang;
   }
 
-  if (VERBOSE_MULTIALIGN_OUTPUT >= 3)
-    fprintf(stderr, "Local_Overlap_AS_forCNS()--  Ends\n");
+  //if (VERBOSE_MULTIALIGN_OUTPUT >= 3)
+  //  fprintf(stderr, "Local_Overlap_AS_forCNS()--  Ends\n");
 
   return(&o);
 }
@@ -233,8 +234,8 @@ Affine_Overlap_AS_forCNS(char *a, char *b,
   int where=0;
   static ALNoverlap o;
 
-  if (VERBOSE_MULTIALIGN_OUTPUT >= 3)
-    fprintf(stderr, "Affine_Overlap_AS_forCNS()--  Begins\n");
+  //if (VERBOSE_MULTIALIGN_OUTPUT >= 3)
+  //  fprintf(stderr, "Affine_Overlap_AS_forCNS()--  Begins\n");
 
   if (erate > AS_MAX_ERROR_RATE) {
     //fprintf(stderr, "Affine_Overlap_AS_forCNS()--  erate=%f >= AS_MAX_ERROR_RATE=%f, reset to max\n", erate, (double)AS_MAX_ERROR_RATE);
@@ -333,8 +334,8 @@ Affine_Overlap_AS_forCNS(char *a, char *b,
 
   AS_ALN_TEST_NUM_INDELS = orig_TEST_NUM_INDELS;
 
-  if (VERBOSE_MULTIALIGN_OUTPUT >= 3)
-    fprintf(stderr, "Affine_Overlap_AS_forCNS()--  Ends\n");
+  //if (VERBOSE_MULTIALIGN_OUTPUT >= 3)
+  //  fprintf(stderr, "Affine_Overlap_AS_forCNS()--  Ends\n");
 
   return(&o);
 }
@@ -357,8 +358,8 @@ Optimal_Overlap_AS_forCNS(char *a, char *b,
 
   alignLinker_s   al;
 
-  if (VERBOSE_MULTIALIGN_OUTPUT >= 3)
-    fprintf(stderr, "Optimal_Overlap_AS_forCNS()--  Begins\n");
+  //if (VERBOSE_MULTIALIGN_OUTPUT >= 3)
+  //  fprintf(stderr, "Optimal_Overlap_AS_forCNS()--  Begins\n");
 
   if (erate > AS_MAX_ERROR_RATE) {
     //fprintf(stderr, "Optimal_Overlap_AS_forCNS()--  erate=%f >= AS_MAX_ERROR_RATE=%f, reset to max\n", erate, (double)AS_MAX_ERROR_RATE);
@@ -369,10 +370,10 @@ Optimal_Overlap_AS_forCNS(char *a, char *b,
   if (opposite)
     reverseComplementSequence(b, strlen(b));
 
-  if (VERBOSE_MULTIALIGN_OUTPUT >= 3) {
-    fprintf(stderr, "ALIGN %s\n", a);
-    fprintf(stderr, "ALIGN %s\n", b);
-  }
+  //if (VERBOSE_MULTIALIGN_OUTPUT >= 3) {
+  //  fprintf(stderr, "ALIGN %s\n", a);
+  //  fprintf(stderr, "ALIGN %s\n", b);
+  //}
 
   alignLinker(h_alignA,
               h_alignB,
@@ -386,11 +387,11 @@ Optimal_Overlap_AS_forCNS(char *a, char *b,
       return NULL;
    }
 
-   if (VERBOSE_MULTIALIGN_OUTPUT >= 3) {
-     fprintf(stderr, "ALIGN %d %d-%d %d-%d opposite=%d\n", al.alignLen, al.begI, al.endI, al.begJ, al.endJ, opposite);
-     fprintf(stderr, "ALIGN '%s'\n", h_alignA);
-     fprintf(stderr, "ALIGN '%s'\n", h_alignB);
-   }
+   //if (VERBOSE_MULTIALIGN_OUTPUT >= 3) {
+   //  fprintf(stderr, "ALIGN %d %d-%d %d-%d opposite=%d\n", al.alignLen, al.begI, al.endI, al.begJ, al.endJ, opposite);
+   //  fprintf(stderr, "ALIGN '%s'\n", h_alignA);
+   //  fprintf(stderr, "ALIGN '%s'\n", h_alignB);
+   //}
 
   if (opposite) {
     reverseComplementSequence(b, strlen(b));
@@ -472,20 +473,20 @@ Optimal_Overlap_AS_forCNS(char *a, char *b,
 
     h_trace[tp] = 0;
 
-    if (VERBOSE_MULTIALIGN_OUTPUT >= 4) {
-      fprintf(stderr, "trace");
-      for (x=0; x<tp; x++)
-        fprintf(stderr, " %d", h_trace[x]);
-      fprintf(stderr, "\n");
-      fprintf(stderr, "A: %4d-%4d %4d %s\n", al.begI, al.endI, al.lenA, h_alignA);
-      fprintf(stderr, "B: %4d-%4d %4d %s\n", al.begJ, al.endJ, al.lenB, h_alignB);
-    }
+    //if (VERBOSE_MULTIALIGN_OUTPUT >= 4) {
+    //  fprintf(stderr, "trace");
+    //  for (x=0; x<tp; x++)
+    //    fprintf(stderr, " %d", h_trace[x]);
+    //  fprintf(stderr, "\n");
+    //  fprintf(stderr, "A: %4d-%4d %4d %s\n", al.begI, al.endI, al.lenA, h_alignA);
+    //  fprintf(stderr, "B: %4d-%4d %4d %s\n", al.begJ, al.endJ, al.lenB, h_alignB);
+    //}
   }
 
-  if (VERBOSE_MULTIALIGN_OUTPUT >= 3) {
-    fprintf(stderr, "ERATE:   diffs=%d / length=%d = %f\n", o.diffs, o.length, (double)o.diffs / o.length);
-    fprintf(stderr, "Optimal_Overlap_AS_forCNS()--  Ends\n");
-  }
+  //if (VERBOSE_MULTIALIGN_OUTPUT >= 3) {
+  //  fprintf(stderr, "ERATE:   diffs=%d / length=%d = %f\n", o.diffs, o.length, (double)o.diffs / o.length);
+  //  fprintf(stderr, "Optimal_Overlap_AS_forCNS()--  Ends\n");
+  //}
 
   if ((double)o.diffs / o.length <= erate)
     return(&o);

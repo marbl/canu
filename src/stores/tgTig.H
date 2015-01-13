@@ -72,29 +72,50 @@ public:
 
   //  Accessors
 
-  uint32               ident(void) { return(_objID); };
+  uint32               ident(void)     const { return(_objID); };
 
-  bool                 isRead(void)    { return(_isRead   == true); };
-  bool                 isUnitig(void)  { return(_isUnitig == true); };
-  bool                 isContig(void)  { return(_isContig == true); };
+  bool                 isRead(void)    const { return(_isRead   == true); };
+  bool                 isUnitig(void)  const { return(_isUnitig == true); };
+  bool                 isContig(void)  const { return(_isContig == true); };
 
-  uint32              &anchor(void) { return(_anchor); };
-  int32               &aHang(void)  { return(_ahang);  };
-  int32               &bHang(void)  { return(_bhang);  };
+  uint32              &anchor(void)          { return(_anchor); };
+  int32               &aHang(void)           { return(_ahang);  };
+  int32               &bHang(void)           { return(_bhang);  };
 
-  bool                 isForward(void) { return(_bgn < _end); };
-  bool                 isReverse(void) { return(_bgn > _end); };
+  bool                 isForward(void) const { return(_bgn < _end); };
+  bool                 isReverse(void) const { return(_bgn > _end); };
 
-  uint32              &bgn(void) { return(_bgn); };
-  uint32              &end(void) { return(_end); };
+  uint32              &bgn(void)             { return(_bgn); };
+  uint32              &end(void)             { return(_end); };
 
-  uint32               min(void) { return((_bgn < _end) ? _bgn : _end); };
-  uint32               max(void) { return((_bgn < _end) ? _end : _bgn); };
+  uint32               bgn(void) const       { return(_bgn); };
+  uint32               end(void) const       { return(_end); };
+
+  uint32               min(void) const       { return((_bgn < _end) ? _bgn : _end); };
+  uint32               max(void) const       { return((_bgn < _end) ? _end : _bgn); };
+
+  uint32               deltaOffset(void)     { return(_deltaOffset); };
+  uint32               deltaLength(void)     { return(_deltaLen);    };
 
   //  Operators
 
   void                 saveToStream(FILE *F);    //  These do NOT save the object, just the deltas
   void                 loadFromStream(FILE *F);
+
+
+  bool                 operator<(tgPosition const &that) const {
+    int32 al = min();
+    int32 bl = that.min();
+
+    if (al != bl)
+      return(al < bl);
+
+    int32 ah = max();
+    int32 bh = that.max();
+
+    return(ah > bh);
+
+  }
 
 private:
 public:
@@ -191,14 +212,14 @@ public:
   void                 dumpLayout(FILE *F);
   bool                 loadLayout(FILE *F);
 
-  void                 dumpMultiAlign(FILE *F,
-                                      gkStore *gkpStore,
-                                      uint32   printWidth  = 100,     //  Number of bases per line
-                                      uint32   readSpacing = 3,       //  Horizontal space between reads on the same line
-                                      uint32   withQVs     = false,
-                                      uint32   withDots    = false) {
-    //  From MultiAlignPrint.C
-  };
+  //  There are two multiAlign displays; this one, and one in abMultiAlign.
+  void                 display(FILE     *F,
+                               gkStore  *gkp,
+                               uint32    displayWidth    = 100,    //  Width of display
+                               uint32    displaySpacing  = 3,      //  Space between reads on the same line
+                               bool      withQV          = false,
+                               bool      withDots        = false);
+
 
 
 private:
@@ -259,7 +280,7 @@ public:
 bool
 generateMultiAlignment(tgTig                     *tig,
                        gkStore                   *gkpStore,
-                       int32                     *failed);
+                       uint32                    *failed);
 
 
 #endif

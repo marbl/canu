@@ -16,8 +16,11 @@ typedef enum {
 //
 class abMultiAlign {
 public:
-  abMultiAlign();
-  ~abMultiAlign();
+  abMultiAlign() {
+    iid = 0;
+  };
+  ~abMultiAlign() {
+  };
 
   abMultiAlignID    ident(void)       { return(lid); };
 
@@ -33,6 +36,8 @@ public:
     return(columnList);
   }
 
+  void              getConsensus(abAbacus *abacus, char *bases, char *quals, uint32 &len, uint32 max);
+  void              getConsensus(abAbacus *abacus, char *bases, char *quals);
   void              getConsensus(abAbacus *abacus, tgTig *tig);
   void              getPositions(abAbacus *abacus, tgTig *tig);
 
@@ -43,9 +48,15 @@ public:
                            uint32               from = 0,
                            uint32               to   = UINT32_MAX);
 
+  //  There are two multiAlign displays; this one, and one in tgTig.
+  void              display(abAbacus  *abacus,
+                            FILE      *F    = stdout,
+                            uint32     from = 0,
+                            uint32     to   = UINT32_MAX);
+
 private:
   abMultiAlignID         lid;         //  MANode id in the manodeStore
-  uint32                 iid;         //  tigStore id
+  uint32                 iid;         //  tigStore tigID
   abColID                first;       //  first column in the multialignment
   abColID                last;
   vector<abColID>        columnList;  //  Used in AbacusRefine to get random access to specific column

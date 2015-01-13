@@ -725,8 +725,11 @@ main (int argc, char **argv) {
   uint32        minCoverage    = 0;
 
   tgTig        *tig             = NULL;
-  int           showQV          = 0;
-  int           showDots        = 1;
+
+  bool          withQV          = false;
+  bool          withDots        = true;
+  uint32        displayWidth    = 100;
+  uint32        displaySpacing  = 3;
 
   tgTigSizeAnalysis *siz       = NULL;
   uint64             sizSize   = 0;
@@ -735,10 +738,6 @@ main (int argc, char **argv) {
   uint64             covMax    = 0;
 
   char              *outPrefix = NULL;
-
-#warning MULTIALIGN GLOBALS defined LOCALLY.
-  uint32             MULTIALIGN_PRINT_WIDTH;     //  GLOBALS, remove when they exist
-  uint32             MULTIALIGN_PRINT_SPACING;
 
   argc = AS_configure(argc, argv);
 
@@ -841,11 +840,11 @@ main (int argc, char **argv) {
       maxNreads = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-w") == 0) {
-      MULTIALIGN_PRINT_WIDTH = atoi(argv[++arg]);
+      displayWidth = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-s") == 0) {
-      MULTIALIGN_PRINT_SPACING = atoi(argv[++arg]);
-      sizSize                  = atoll(argv[arg]);
+      displaySpacing  = atoi(argv[++arg]);
+      sizSize         = atoll(argv[arg]);
 
     } else if (strcmp(argv[arg], "-o") == 0) {
       outPrefix = argv[++arg];
@@ -1088,7 +1087,7 @@ main (int argc, char **argv) {
         tig->dumpLayout(stdout);
 
       if (dumpFlags == DUMP_MULTIALIGN)
-        tig->dumpMultiAlign(stdout, gkpStore, showQV, showDots);
+        tig->display(stdout, gkpStore, displayWidth, displaySpacing, withQV, withDots);
 
       if (dumpFlags == DUMP_SIZES)
         siz->evaluateTig(tig);

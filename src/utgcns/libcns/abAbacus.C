@@ -108,6 +108,18 @@ abAbacus::addBead(char base, char qual) {
 
 
 
+abSeqBeadIterator *
+abAbacus::createSeqBeadIterator(abSeqID sid) {
+  return(new abSeqBeadIterator(this, getSequence(sid)));
+}
+
+abColBeadIterator *
+abAbacus::createColBeadIterator(abColID cid) {
+  return(new abColBeadIterator(this, getColumn(cid)));
+}
+
+
+
 
 
 //  Add a gap bead after bid.

@@ -10,9 +10,9 @@
 
 
 bool
-generateMultiAlignment(tgTig                     *tig,
-                       gkStore                   *gkpStore,
-                       int32                     *failed) {
+generateMultiAlignment(tgTig     *tig,
+                       gkStore   *gkpStore,
+                       uint32    *failed) {
   double             origErate          = AS_CNS_ERROR_RATE;
   uint32             origLen            = AS_OVERLAP_MIN_LEN;
   bool               failuresToFix      = false;
