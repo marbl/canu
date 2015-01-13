@@ -51,6 +51,8 @@ unitigToTig(tgTig       *tig,
   tig->_suggestCircular = false;
   tig->_suggestHaploid  = false;
 
+  tig->_layoutLen       = utg->getLength();
+
   resizeArray(tig->_children, tig->_childrenLen, tig->_childrenMax, utg->ufpath.size(), resizeArray_doNothing);
 
   for (uint32 fi=0; fi<utg->ufpath.size(); fi++) {
@@ -68,7 +70,7 @@ unitigToTig(tgTig       *tig,
     pos->_end         = frg->position.end;
   }
 
-  tig->_childrenLen = utg->ufpath.size();
+  fprintf(stderr, "unitigToTig()--  tig %u has %u children\n", tig->_tigID, tig->_childrenLen);
 }
 
 
@@ -162,8 +164,6 @@ writeUnitigsToStore(UnitigVector  &unitigs,
 
   tgStore     *tigStore = new tgStore(tigStorePath);
   tgTig       *tig      = new tgTig;
-
-  //tigStore->writeToPartitioned(partmap, unitigs.size());
 
   for (uint32 iumiid=0, ti=0; ti<unitigs.size(); ti++) {
     Unitig  *utg = unitigs[ti];
