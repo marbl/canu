@@ -470,7 +470,7 @@ processArray(int argc, char **argv) {
           seq[p++] = bases[MT.mtRandom32() & 0x3];            
         seq[p] = 0;
 
-        sprintf(def, "random%06"F_U32, i);
+        sprintf(def, "random%06"F_U32P, i);
 
         printSequence(def, seq, 0, j);
       }
