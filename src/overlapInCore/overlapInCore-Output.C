@@ -127,43 +127,29 @@ Output_Overlap(uint32 S_ID, int S_Len, Direction_t S_Dir,
     bhg     = -(olap->s_lo);
   }
 
-  //  The asserts test that we're storing all the bits in a bit-packed field.
-
   switch (orient) {
     case 'N':
       ovs->a_hang(ahg);
       ovs->b_hang(bhg);
       ovs->dat.ovl.flipped  = false;
-
-      assert(ovs->dat.ovl.ahg5 == ahg);
-      assert(ovs->dat.ovl.bhg3 == bhg);
       break;
 
     case 'I':
       ovs->a_hang(ahg);
       ovs->b_hang(bhg);
       ovs->dat.ovl.flipped  = true;
-
-      assert(ovs->dat.ovl.ahg5 == ahg);
-      assert(ovs->dat.ovl.bhg3 == bhg);
       break;
 
     case 'O':
       ovs->a_hang(-bhg);
       ovs->b_hang(-ahg);
       ovs->dat.ovl.flipped  = true;
-
-      assert(ovs->dat.ovl.bhg5 == bhg);
-      assert(ovs->dat.ovl.ahg3 == ahg);
       break;
 
     case 'A':
       ovs->a_hang(-bhg);
       ovs->b_hang(-ahg);
       ovs->dat.ovl.flipped  = false;
-
-      assert(ovs->dat.ovl.bhg5 == bhg);
-      assert(ovs->dat.ovl.ahg3 == ahg);
       break;
   }
 
