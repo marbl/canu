@@ -198,6 +198,11 @@ public:
     assert(c < _childrenLen);
     return(_children + c);
   };
+  tgPosition          *addChild(uint32 c)      {
+    assert(c == _childrenLen);
+    _childrenLen++;
+    return(_children + c);
+  };
 
   //  Operators
 

@@ -27,80 +27,27 @@ static const char *rcsid_TGSTORE_H = "$Id$";
 #include "AS_global.H"
 #include "tgTig.H"
 //
-//  The TgStore is a disk-resident (with memory cache) database of tgTig structures.
-//
-//  The directory structure looks like:
-//    x.maStore/
-//    x.maStore/v001.dat       x.maStore/v001.utg       x.maStore/v001.ctg
-//    x.maStore/v002.p001.dat  x.maStore/v002.p001.dat  x.maStore/v002.p001.dat
-//    x.maStore/v002.p002.dat  x.maStore/v002.p001.utg  x.maStore/v002.p002.ctg
-//    x.maStore/v002.p003.dat  x.maStore/v002.p001.utg  x.maStore/v002.p003.ctg
-//
-//  Showing two "versions" of data (v001 and v002), with the second version being "partitioned" into
-//  three sets (p001, p002, p003).
-//
-//  The MA structures are stored in the 'dat' files, in the order they are written.  Multiple copies
-//  of the same MA can be present in each file, for example, if the same MA is changed twice.
-//
-//  The 'utg' and 'ctg' files store an array of metadata (the MAR struct below) for each MA.  The
-//  primary information in the metadata is where the latest version of a MA structure is stored --
-//  the version, partition and position in the file.
-//
-//  For partitioned data, each 'utg' and 'ctg' file contains metadata for ALL MAs, even those not in
-//  the partition.  The metadata is only valid for the current partition.  The store explicitly
-//  disallows access to an MA not in the current partition.  For example, v002.p003.utg contains
-//  metadata for all unitigs, but only unitigs in partition 3 are guaranteed to be up-to-date.  When
-//  the store is next opened 'unpartitioned' it will consolidate the metadata from all partitions.
+//  The tgStore is a disk-resident (with memory cache) database of tgTig structures.
 //
 
 class tgStore {
 public:
 
   //  Create a tgStore (first constructor).
-  //
-  //    If the partitionMap is supplied, a partitioned store is created by default, placing MA i
-  //    into partition partitionMap[i].  nextVersion() is NOT ALLOWED here.
-  //
-  //    If the partitionMap is not supplied, an unpartitioned store is created.  nextVersion() is
-  //    allowed.
-  //
   //  Open a tgStore (second constructor).
-  //
-  //    If 'partition' is non-zero, then only MAs in that partition are allowed to be accessed, and
-  //    any writes will maintain the partitioning.  In particular, writes to partitions are
-  //    independent.
-  //
-  //    If 'partition' is zero, any previous partitioning is merged to form a single partition.  If
-  //    writable, the next version will be unpartitioned.  Note that data is still stored in
-  //    partitioned files, it is not copied to an unpartitioned file.
   //
   tgStore(const char *path);
   tgStore(const char *path,
           uint32      version,
-          uint32      partition,
           bool        writable=false,
           bool        inplace=false,
           bool        append=false);
   ~tgStore();
 
-  //  Update to the next version.  Fails if the store is opened partitioned -- there is no decent
-  //  way to ensure that all partitions will be at the same version.
+  //  Update to the next version.
   //
   void           nextVersion(void);
 
-  //  Switch from writing non-partitioned data to writing partitioned data.  As usual, calling
-  //  nextVersion() after this will fail.  Tigs that do not get placed into a partition will
-  //  still exist in the (unpartitioned) store, but any clients opening a specific partition will
-  //  not see them.
-  //
-  //  Suppose we have three tigs, A, B and C.  We place A and B in partition 1, but do not touch
-  //  C.  Clients open partitions and process tigs.  Since C is not in a partition, it is never
-  //  processed.  Later, the store is opened unpartitioned.  We now see all three tigs.
-  //
-  //
-  void           writeToPartitioned(uint32 *partMap, uint32 partMapLen);
-
-  
   //  Add or update a MA in the store.  If keepInCache, we keep a pointer to the tgTig.  THE
   //  STORE NOW OWNS THE OBJECT.
   //
@@ -160,9 +107,9 @@ private:
     tgTigRecord  tigRecord;
     uint64       unusedFlags : 1;   //  One whole bit for future use.
     uint64       flushNeeded : 1;   //  If true, this MAR and associated tig are NOT saved to disk.
-    uint64       isPresent   : 1;   //  If true, this MAR is present in this partition.
+    uint64       isPresentNOP: 1;   //  No longer used (present in this partition)
     uint64       isDeleted   : 1;   //  If true, this MAR has been deleted from the assembly.
-    uint64       ptID        : 10;  //  10 -> 1024 partitions
+    uint64       ptIDNOP     : 10;  //  No longer used (10 -> 1024 partitions)
     uint64       svID        : 10;  //  10 -> 1024 versions
     uint64       fileOffset  : 40;  //  40 -> 1 TB file size; offset in file where MA is stored
   };
@@ -171,8 +118,6 @@ private:
 
   void                    writeTigToDisk(tgTig *ma, tgStoreEntry *maRecord);
 
-  void                    dumpMASRfile(char *name, tgStoreEntry *R, uint32 L, uint32 M, uint32 part);
-  bool                    loadMASRfile(char *name, tgStoreEntry *R, uint32 L, uint32 M, uint32 part, bool onlyThisV);
   uint32                  numTigsInMASRfile(char *name);
 
   void                    dumpMASR(tgStoreEntry* &R, uint32& L, uint32& M, uint32 V);
@@ -183,23 +128,19 @@ private:
 
   friend void operationCompress(char *tigName, int tigVers);
 
-  FILE                   *openDB(uint32 V, uint32 P);
+  FILE                   *openDB(uint32 V);
 
   char                    _path[FILENAME_MAX];
   char                    _name[FILENAME_MAX];
 
   bool                    _writable;               //  We are able to write
   bool                    _inplace;                //  We read and write to the same version
-  bool                    _append;                 //  Do not nuke an existing partition
+  bool                    _append;                 //  Do not nuke an existing version
 
   bool                    _newTigs;                //  internal flag, set if tigs were added
 
   uint32                  _originalVersion;        //  Version we started from (see newTigs in code)
   uint32                  _currentVersion;         //  Version we are writing to
-
-  uint32                  _part;                   //  Partition we are restricted to read from
-  uint32                 *_partMap;
-  uint32                  _partMapLen;
 
   uint32                  _tigMax;
   uint32                  _tigLen;
@@ -211,7 +152,7 @@ private:
     bool    atEOF;
   };
 
-  dataFileT             **_dataFile;       //  dataFile[version][partition] = FP
+  dataFileT              *_dataFile;       //  dataFile[version]
 };
 
 

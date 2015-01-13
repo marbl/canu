@@ -311,7 +311,7 @@ dumpConsensus(tgStore *tigStore,
   //  Otherwise, we need to find subsequences in the consensus.  The useful bits of info aren't
   //  valid anymore.
 
-  uint32  part   = 0;
+  uint32  subsequence   = 0;
 
   for (uint32 bgn=0; bgn<len; bgn++)
     if (cns[bgn] == '_')
@@ -330,12 +330,12 @@ dumpConsensus(tgStore *tigStore,
       end++;
 
     fprintf(stdout, ">tig%d.%u bgn=%u end=%u len=%u\n%s\n",
-            tig->tigID(), part, bgn, end, end-bgn,
+            tig->tigID(), subsequence, bgn, end, end-bgn,
             cns + bgn);
 
     bgn = end + 1;
 
-    part++;
+    subsequence++;
   }
 }
 
@@ -607,7 +607,7 @@ operationBuild(char   *buildName,
 
 void
 operationCompress(char *tigName, int tigVers) {
-  tgStore    *tigStore  = new tgStore(tigName, tigVers, 0, false, false, false);
+  tgStore    *tigStore  = new tgStore(tigName, tigVers, false, false, false);
   uint32      nErrors   = 0;
   uint32      nCompress = 0;
 
@@ -642,7 +642,7 @@ operationCompress(char *tigName, int tigVers) {
 
   if (nCompress > 0) {
     delete tigStore;
-    tigStore = new tgStore(tigName, tigVers, 0, true, true, false);
+    tigStore = new tgStore(tigName, tigVers, true, true, false);
   }
 
   if (nCompress > 0) {
@@ -706,7 +706,6 @@ main (int argc, char **argv) {
   char         *gkpName        = NULL;
   char         *tigName        = NULL;
   int           tigVers        = -1;
-  int           tigPart        = 0;
   bool          tigIDset       = false;
   uint32        tigIDbgn       = 0;
   uint32        tigIDend       = UINT32_MAX;
@@ -750,9 +749,6 @@ main (int argc, char **argv) {
     } else if (strcmp(argv[arg], "-t") == 0) {
       tigName = argv[++arg];
       tigVers = atoi(argv[++arg]);
-
-      if ((arg+1 < argc) && (argv[arg+1][0] != '-'))
-        tigPart = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-u") == 0) {
       AS_UTL_decodeRange(argv[++arg], tigIDbgn, tigIDend);
@@ -859,8 +855,8 @@ main (int argc, char **argv) {
   if ((err) || (gkpName == NULL) || (tigName == NULL)) {
     fprintf(stderr, "usage: %s -g <gkpStore> -t <tigStore> <v> [opts]\n", argv[0]);
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -g <gkpStore>           Path to the gatekeeper store\n");
-    fprintf(stderr, "  -t <tigStore> <v> [<p>] Path to the tigStore, version, and optionally partition, to use\n");
+    fprintf(stderr, "  -g <gkpStore>         Path to the gatekeeper store\n");
+    fprintf(stderr, "  -t <tigStore> <v>     Path to the tigStore, version, to use\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -D <operation>        Dump something about the store\n");
@@ -929,14 +925,6 @@ main (int argc, char **argv) {
   //  To delete a multialign: Remove ALL FRG and UTG lines, and set data.num_frags and
   //  data.num_unitigs to zero.  Use -R to 'replae' this unitig in the store.
   //  EXCEPT the code below will ignore treat these as EOF.
-  //
-  //  One can change partitioning by deleting a multialign from one partition and adding it to
-  //  another partition.  Doing so WILL cause consensus to fail, as consensus is expecting a
-  //  specific set of fragments in each partition.
-  //
-  //  It is not possible to add a new partition:
-  //  tgStore::tgStore()-- ERROR, didn't find any unitigs or contigs in the store.  Correct version?
-
 
   if ((opType == OPERATION_BUILD) && (buildName != NULL)) {
     operationBuild(buildName, tigName, tigVers);
@@ -951,7 +939,7 @@ main (int argc, char **argv) {
 
 
   gkStore *gkpStore = new gkStore(gkpName);
-  tgStore *tigStore = new tgStore(tigName, tigVers, tigPart);
+  tgStore *tigStore = new tgStore(tigName, tigVers);
 
   if (outPrefix == NULL)
     outPrefix = tigName;
@@ -959,7 +947,7 @@ main (int argc, char **argv) {
 
   if ((opType == OPERATION_EDIT) && (editName != NULL)) {
     delete tigStore;
-    tigStore = new tgStore(tigName, tigVers, tigPart, true, true);
+    tigStore = new tgStore(tigName, tigVers, true, true);
     changeProperties(tigStore, editName);
   }
 
@@ -980,9 +968,9 @@ main (int argc, char **argv) {
     delete tigStore;
 
     if (sameVersion)
-      tigStore = new tgStore(tigName, tigVers, tigPart, true, true, false);  //  default
+      tigStore = new tgStore(tigName, tigVers, true, true, false);  //  default
     else
-      tigStore = new tgStore(tigName, tigVers, tigPart, true, false, append);
+      tigStore = new tgStore(tigName, tigVers, true, false, append);
 
     tgTig  *tig = new tgTig;
 
