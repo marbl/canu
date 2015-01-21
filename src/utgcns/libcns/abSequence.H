@@ -16,8 +16,10 @@ public:
   abBaseID         firstBase(void)   { return(_firstbase);  };
   //abColID          firstColumn(void) { needs avacus to get columns };
 
-  abBeadID         lastBead(void)    { return(_firstbead + _length - 1);  };
-  abBaseID         lastBase(void)    { return(_firstbase + _length - 1);  };
+  //abBeadID         lastBead(void)    { return(_firstbead + _length - 1);  };
+  //abBaseID         lastBase(void)    { return(_firstbase + _length - 1);  };
+  abBeadID         lastBead(void)    { return(_lastbead);  };
+  abBaseID         lastBase(void)    { return(_lastbase);  };
   //abColID          lastColumn(void)  { needs avacus to get columns };
 
   bool             isRead(void)    { return(_is_read);    };
@@ -51,6 +53,10 @@ public:
 
     _firstbase.set(firstBase);
     _firstbead.set(firstBead);
+
+    _lastbase.set(firstBase + _length - 1);
+    _lastbead.set(firstBead + _length - 1);
+
     //_n_components  = 0;
     //_components    = -1;
   };
@@ -72,6 +78,10 @@ private:
 
   abBaseID         _firstbase;      //  global index of first sequence character
   abBeadID         _firstbead;      //  global index of first "bead"
+
+  abBaseID         _lastbase;       //  global index of first sequence character
+  abBeadID         _lastbead;       //  global index of first "bead"
+
   //uint32           _n_components;   //  number of component frags (in case of "unitig" Fragments)
   //uint32           _components;     //  global index of first component frag
 };

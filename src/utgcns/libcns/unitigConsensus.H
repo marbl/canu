@@ -87,7 +87,7 @@ public:
   bool   rejectAlignment(bool allowBhang, bool allowAhang, ALNoverlap *O);
 
   int32  alignFragment(void);
-  void   applyAlignment(int32 frag_aiid=-1, int32 frag_ahang=0, int32 *frag_trace=NULL);
+  void   applyAlignment(void);
 
   void   generateConsensus(void);
 
@@ -107,7 +107,10 @@ private:
   abAbacus       *abacus;
   abMultiAlignID  multialign;  //  Should really be storing the abMultiAlignID
 
-  tgPosition     *utgpos;      //  Original unitigger location, DO NOT MODIFY
+  //  The two positions below are storing the low/high coords for the read.
+  //  They do not encode the orientation in the coordinates.
+  //
+  tgPosition     *utgpos;      //  Original unitigger location.
   tgPosition     *cnspos;      //  Actual location in frankenstein.
 
   //int32           ovl;    //  Expected overlap in bases to the frankenstein

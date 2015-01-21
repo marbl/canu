@@ -38,7 +38,7 @@ using namespace std;
 
 void
 unitigConsensus::reportStartingWork(void) {
-  fprintf(stderr, "unitigConsensus()-- processing fragment mid %d pos %d,%d ahcnor %d,%d,%d\n",
+  fprintf(stderr, "unitigConsensus()-- processing fragment mid %d pos %d,%d anchor %d,%d,%d\n",
           utgpos[tiid].ident(),
           utgpos[tiid].bgn(),
           utgpos[tiid].end(),
@@ -82,8 +82,10 @@ unitigConsensus::initialize(gkStore *gkpStore, uint32 *failed) {
   int32 num_columns = 0;
   int32 num_bases   = 0;
 
-  if (numfrags == 0)
+  if (numfrags == 0) {
+    fprintf(stderr, "unitigConsensus::initialize()-- unitig has no children.\n");
     return(false);
+  }
 
   utgpos = new tgPosition [numfrags];
   cnspos = new tgPosition [numfrags];
@@ -91,32 +93,63 @@ unitigConsensus::initialize(gkStore *gkpStore, uint32 *failed) {
   memcpy(utgpos, tig->getChild(0), sizeof(tgPosition) * numfrags);
   memcpy(cnspos, tig->getChild(0), sizeof(tgPosition) * numfrags);
 
+  trace      = new int32 [2 * AS_MAX_READLEN];
+  traceBgn   = 0;
+
+  memset(trace, 0, sizeof(int32) * 2 * AS_MAX_READLEN);
+
+  //manode   = CreateMANode(tig->tigID());
+  abacus     = new abAbacus(gkpStore);
+
   for (int32 i=0; i<numfrags; i++) {
     if (failed != NULL)
       failed[i]  = true;
+
+    //  Make the coords show location and not orientation.  Set a bit in the tgPosition
+    //  to rememver orientation.
+
+    if (utgpos[i].bgn() < utgpos[i].end()) {
+      utgpos[i]._isReverse = false;
+      cnspos[i]._isReverse = false;
+
+      utgpos[i].bgn()      = tig->getChild(i)->bgn();  //  Don't swap coords.
+      utgpos[i].end()      = tig->getChild(i)->end();
+
+      cnspos[i].bgn()      = 0;
+      cnspos[i].end()      = 0;
+    } else {
+      utgpos[i]._isReverse = true;
+      cnspos[i]._isReverse = true;
+
+      utgpos[i].bgn()      = tig->getChild(i)->end();  //  Swap the bgn/end coords.
+      utgpos[i].end()      = tig->getChild(i)->bgn();
+
+      cnspos[i].bgn()      = 0;
+      cnspos[i].end()      = 0;
+    }
 
     int32 flen   = (utgpos[i].bgn() < utgpos[i].end()) ? (utgpos[i].end() < utgpos[i].bgn()) : (utgpos[i].bgn() - utgpos[i].end());
     num_bases   += (int32)ceil(flen + 2 * AS_CNS_ERROR_RATE * flen);
 
     num_columns  = (utgpos[i].bgn() > num_columns) ? utgpos[i].bgn() : num_columns;
     num_columns  = (utgpos[i].end() > num_columns) ? utgpos[i].end() : num_columns;
+
+    //  Allocate and initialize the beads for each fragment.  Beads are not
+    //  inserted in the abacus here.
+
+    abSeqID fid = abacus->addRead(gkpStore, utgpos[i].ident(), utgpos[i].isReverse());
+
+    //  If this is violated, then the implicit map from utgpos[] and cnspos[] to the unitig child
+    //  list is incorrect.
+
+    assert(fid.get() == i);
+
+    //if (VERBOSE_MULTIALIGN_OUTPUT)
+    //  fprintf(stderr,"unitigConsensus()-- Added fragment mid %d pos %d,%d in unitig %d to store at local id %d.\n",
+    //          utgpos[i].ident(), utgpos[i].bgn(), utgpos[i].end(), tig->tigID(), fid);
   }
 
-  
-  //ResetStores(num_bases, numfrags, num_columns);
-
-  //  Magic initialization (in ResetStores()) prevents us calling CreateMANode() until now.
-
-  trace      = new int32 [2 * AS_MAX_READLEN];
-  traceBgn   = 0;
-
-  //manode   = CreateMANode(tig->tigID());
-  abacus     = new abAbacus(gkpStore);
-
-  frankensteinLen = 0;
-  frankensteinMax = MAX(1024 * 1024, 2 * num_columns);
-  frankenstein    = new char     [frankensteinMax];
-  frankensteinBof = new abBeadID [frankensteinMax];
+  //  Check for duplicate reads
 
   {
     set<uint32>  dupFrag;
@@ -135,28 +168,13 @@ unitigConsensus::initialize(gkStore *gkpStore, uint32 *failed) {
       }
 
       dupFrag.insert(utgpos[i].ident());
-
-      // This guy allocates and initializes the beads for each fragment.  Beads are not fully inserted
-      // in the abacus here.
-
-      abSeqID fid = abacus->addRead(gkpStore, utgpos[i].ident(), utgpos[i].isReverse());
-
-      //utgpos[fid].bgn = complement ? utgpos[i].end() : utgpos[i].bgn();
-      //utgpos[fid].end = complement ? utgpos[i].bgn() : utgpos[i].end();
-
-      cnspos[fid.get()].bgn()  = 0;
-      cnspos[fid.get()].end()  = 0;
-
-      //  If this is violated, then the implicit map from utgpos[] and cnspos[] to the unitig child
-      //  list is incorrect.
-
-      assert(fid.get() == i);
-
-      //if (VERBOSE_MULTIALIGN_OUTPUT)
-      //  fprintf(stderr,"unitigConsensus()-- Added fragment mid %d pos %d,%d in unitig %d to store at local id %d.\n",
-      //          utgpos[i].ident(), utgpos[i].bgn(), utgpos[i].end(), tig->tigID(), fid);
     }
   }
+
+  frankensteinLen = 0;
+  frankensteinMax = MAX(1024 * 1024, 2 * num_columns);
+  frankenstein    = new char     [frankensteinMax];
+  frankensteinBof = new abBeadID [frankensteinMax];
 
   //SeedMAWithFragment(manode->lid, GetFragment(fragmentStore,0)->lid, opp);
   multialign = abacus->addMultiAlign(abSeqID(0));
@@ -515,6 +533,8 @@ unitigConsensus::rebuild(bool recomputeFullConsensus) {
   while (cid.isValid()) {
     abColumn *column = abacus->getColumn(cid);
 
+    column->CheckBaseCounts(abacus);
+
     int32   nA = column->GetColumnBaseCount('A');
     int32   nC = column->GetColumnBaseCount('C');
     int32   nG = column->GetColumnBaseCount('G');
@@ -525,6 +545,8 @@ unitigConsensus::rebuild(bool recomputeFullConsensus) {
 
     abBead *bead = abacus->getBead(column->callID());
     char    call = 'N';
+
+    //fprintf(stderr, "Column %d %c ACGTN = %d %d %d %d %d\n", column->position(), abacus->getBase(bead->ident()), nA, nC, nG, nT, nN);
 
     if (nA > nn) { nn = nA;  call = 'A'; }
     if (nC > nn) { nn = nC;  call = 'C'; }
@@ -573,10 +595,14 @@ unitigConsensus::rebuild(bool recomputeFullConsensus) {
       //  Uh oh, not placed originally.
       continue;
 
-    abSequence *seq  = abacus->getSequence(i);
+    abSequence *seq   = abacus->getSequence(i);
+    abBeadID    fbead = seq->firstBead();
+    abBeadID    lbead = seq->lastBead();
+    abColumn   *fcol  = abacus->getColumn(fbead);
+    abColumn   *lcol  = abacus->getColumn(lbead);
 
-    cnspos[i].bgn() = abacus->getColumn(seq->firstBead())->position();
-    cnspos[i].end() = abacus->getColumn(seq->lastBead())->position() + 1;
+    cnspos[i].bgn() = fcol->position();
+    cnspos[i].end() = lcol->position() + 1;
 
     assert(cnspos[i].bgn() >= 0);
     assert(cnspos[i].end() > cnspos[i].bgn());
@@ -591,6 +617,8 @@ unitigConsensus::rebuild(bool recomputeFullConsensus) {
   }
 
   piid = -1;
+
+  //fprintf(stderr, "FRANK %s\n", frankenstein);
 
 #warning not PrintAlignment()
   //if (showAlignments())
@@ -764,6 +792,8 @@ unitigConsensus::alignFragment(void) {
         trace[traceLen++] = *t;
       }
 
+      trace[traceLen] = 0;
+
       if (showAlgorithm())
         fprintf(stderr, "alignFragment()-- Alignment succeeded.\n");
 
@@ -833,28 +863,15 @@ unitigConsensus::rejectAlignment(bool allowBhang,  //  Allow a positive bhang - 
 
 
 void
-unitigConsensus::applyAlignment(int32 frag_aiid, int32 frag_ahang, int32 *frag_trace) {
-  
-  if (frag_aiid >= 0) {
-    //  Aligned to a fragent
-    assert(0);
-    //  Left in because this was a useful invocation of ApplyAlignment -- but it might now be useless
-    if (showAlgorithm())
-      fprintf(stderr, "applyAlignment()-- aligned to fragment -- frag_aiid=%d frag_ahang=%d\n", frag_aiid, frag_ahang);
-    abacus->applyAlignment(frag_aiid,
-                           0, NULL,
-                           tiid,
-                           frag_ahang, frag_trace);
+unitigConsensus::applyAlignment(void) {
 
-  } else {
-    //  Aligned to frankenstein
-    //if (showAlgorithm())
-    //  fprintf(stderr, "applyAlignment()-- aligned to frankenstein\n");
-    abacus->applyAlignment(abSeqID(),
-                           frankensteinLen, frankensteinBof,
-                           tiid,
-                           traceBgn, trace);
-  }
+  if (showAlgorithm())
+    fprintf(stderr, "applyAlignment()-- aligned to frankenstein\n");
+
+  abacus->applyAlignment(abSeqID(),
+                         frankensteinLen, frankensteinBof,
+                         tiid,
+                         traceBgn, trace);
 }
 
 

@@ -28,16 +28,17 @@ static char *rcsid = "$Id$";
 #undef  DEBUG_ALIGN_POSITION
 #undef  DEBUG_ABACUS_ALIGN
 
+
 //  Add a column before cid, seeded with bead bid.
 //
 abColID
 abAbacus::prependColumn(abColID cid, abBeadID bid) {
   abColumn *next     = getColumn(cid);
-  abBead   *nextcall = getBead(next->call);
+  abBead   *nextcall = getBead(next->callID());
 
   abColID   col      = addColumn(next->ma_id, bid);
   abColumn *column   = getColumn(col);
-  abBead   *call     = getBead(column->call);
+  abBead   *call     = getBead(column->callID());
 
   //fprintf(stderr, "prependColumn()-- adding column for bid %d\n", bid);
 
@@ -45,16 +46,16 @@ abAbacus::prependColumn(abColID cid, abBeadID bid) {
   column->next   = cid;
 
   call->prev     = nextcall->prev;
-  call->next     = nextcall->boffset;
+  call->next     = nextcall->ident();
   next->prev     = column->lid;
 
-  nextcall->prev = call->boffset;
+  nextcall->prev = call->ident();
 
   if (column->prevID().isValid())
     getColumn(column->prev)->next = column->lid;
 
   if (call->prev.isValid())
-    getBead(call->prev)->next = call->boffset;
+    getBead(call->prev)->next = call->ident();
 
   abColBeadIterator *ci = createColBeadIterator(cid);
 
@@ -68,7 +69,6 @@ abAbacus::prependColumn(abColID cid, abBeadID bid) {
       alignBeadToColumn(column->lid, prependGapBead(nid), "prependColumn()");
   }
 
-  column->ma_id       = next->ma_id;
   column->ma_position = next->ma_position - 1;
 
   //AddColumnToMANode(column->ma_id, *column);
@@ -95,11 +95,7 @@ abAbacus::prependColumn(abColID cid, abBeadID bid) {
 
 
 
-
-
-
-
-//  Returns the boffset of the bead that is:
+//  Returns the ident() of the bead that is:
 //    in the same column as bead bi
 //    in the same fragment as bead fi
 //
@@ -129,7 +125,7 @@ findBeadInColumn(abAbacus *abacus, abBeadID bi, abBeadID fi) {
   while (b->upID().isValid()) {
     b = abacus->getBead(b->upID());
 #ifdef DEBUG_FIND_BEAD
-    fprintf(stderr, "findBeadInColumn up bead="F_U32" ff=%d\n", b->boffset.get(), b->seqIdx().get());
+    fprintf(stderr, "findBeadInColumn up bead="F_U32" ff=%d\n", b->ident().get(), b->seqIdx().get());
 #endif
     if (b->seqIdx() == ff)
       return(b->ident());
@@ -141,7 +137,7 @@ findBeadInColumn(abAbacus *abacus, abBeadID bi, abBeadID fi) {
   while (b->downID().isValid()) {
     b = abacus->getBead(b->downID());
 #ifdef DEBUG_FIND_BEAD
-    fprintf(stderr, "findBeadInColumn down bead="F_U64" ff=%d\n", b->boffset.get(), b->seqIdx());
+    fprintf(stderr, "findBeadInColumn down bead="F_U64" ff=%d\n", b->ident().get(), b->seqIdx());
 #endif
     if (b->seqIdx() == ff)
       return(b->ident());
@@ -225,6 +221,9 @@ alignGaps(abAbacus *abacus,
 
 
 //  Aligns a bead in B to the existing column in A.
+//
+//  Called by applyAlignment().
+//
 static
 void
 alignPosition(abAbacus *abacus,
@@ -241,7 +240,7 @@ alignPosition(abAbacus *abacus,
 
 #ifdef DEBUG_ALIGN_POSITION
   fprintf(stderr, "alignPosition()-- add %c to column %d apos=%d bpos=%d lasta=%d lastb=%d\n",
-          *Getchar(sequenceStore, bead->soffset), bead->column_index, apos, bpos, lasta.get(), lastb.get());
+          abacus->getBase(bead->baseIdx()), bead->colIdx().get(), apos, bpos, lasta.get(), lastb.get());
 #endif
 
   abacus->alignBeadToColumn(bead->colIdx(), bindex[bpos], label);
@@ -369,7 +368,7 @@ abAbacus::applyAlignment(abSeqID   afid,
 
 #ifdef DEBUG_ABACUS_ALIGN
       fprintf(stderr, "ApplyAlignment()-- Prepend column for ahang bead=%d,%c\n",
-              bead->boffset.get(),
+              bead->ident().get(),
               getBase(bead->baseIdx()));
 #endif
       prependColumn(colp, bindex[bpos++]);
@@ -511,7 +510,7 @@ abAbacus::applyAlignment(abSeqID   afid,
 #ifdef DEBUG_ALIGN_POSITION
       abBead *bead = getBead(bindex[bpos]);
       fprintf(stderr, "alignPosition()-- add %c to column %d\n",
-              getBase(bead->baseIdx()), bead->colIdx());
+              getBase(bead->baseIdx()), bead->colIdx().get());
 #endif
       ci = appendColumn(ci, bindex[bpos++]);
     }

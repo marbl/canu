@@ -14,9 +14,6 @@ static const char *rcsid_ABACUS_H = "$Id:  $";
 #define CNS_MIN_QV 0
 #define CNS_MAX_QV 60
 
-#define CNS_NALPHABET 7
-#define CNS_NP 32
-
 //  Probably can change these
 
 #define ALT_QV_THRESH                      30
@@ -48,14 +45,23 @@ static const char *rcsid_ABACUS_H = "$Id:  $";
 //  Tables and other static data - needs to be global so subclasses can access it
 
 extern bool    DATAINITIALIZED;
+
 extern double  EPROB[CNS_MAX_QV - CNS_MIN_QV + 1];  // prob of error for each quality value
 extern double  PROB [CNS_MAX_QV - CNS_MIN_QV + 1];  // prob of correct call for each quality value (1-eprob)
-extern int32   RINDEX[256];
-extern char    ALPHABET[6];
-extern char    RALPHABET[CNS_NP];
-extern char    RALPHABETC[CNS_NP];
+
+#define CNS_NALPHABET 7
+#define CNS_NP 32
+
+#if 0
+extern int32   baseToIndex[256];      //  RINDEX
+extern char    indexToBase[CNS_NP];   //  ALPHABET, RALPHABET
+#else
+extern int32   RINDEX[256];      //  RINDEX
+extern char    ALPHABET[6];   //  ALPHABET, RALPHABET
+extern char    RALPHABET[CNS_NP];   //  ALPHABET, RALPHABET
+#endif
+
 extern double  TAU_MISMATCH;
-extern uint32  AMASK[5];
 
 
 

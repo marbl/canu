@@ -85,21 +85,14 @@ stashContains(tgTig       *tig,
   //  Save the original children
   savedChildren   *saved = new savedChildren(tig);
 
-  //  And make space for a new list
-  tig->_childrenLen = 0;
-  tig->_children    = NULL;
-new tgPosition [tig->_childrenMax];
-
   bool         *isBack   = new bool       [nOrig];   //  True, we save the child for processing
   readLength   *posLen   = new readLength [nOrig];   //  Sorting by length of child
-
-  tgPosition   *children = tig->getChild(0);
 
   //  Sort the original children by position.
 
   std::sort(saved->children, saved->children + saved->childrenLen);
 
-  //  The first read is always saved->
+  //  The first read is always saved
 
   int32         loEnd = saved->children[0].min();
   int32         hiEnd = saved->children[0].max();
@@ -405,10 +398,12 @@ main (int argc, char **argv) {
 
   //  Open gatekeeper for read only, and load the partitioned data if tigPart > 0.
 
+  fprintf(stderr, "Opening gkpStore.\n");
   gkStore   *gkpStore = new gkStore(gkpName, gkStore_readOnly, tigPart);
 
   //  Create a consensus object.
 
+  fprintf(stderr, "Creating abacus.\n");
   abAbacus  *abacus   = new abAbacus(gkpStore);
 
   //  If we are testing a unitig, do that.
@@ -445,7 +440,8 @@ main (int argc, char **argv) {
   //  Otherwise, we're computing unitigs from the store.  Open it for read only.
   //  Outputs get written to a single output file.
 
-  tgStore *tigStore = new tgStore(tigName);
+  fprintf(stderr, "Opening tigStore.\n");
+  tgStore *tigStore = new tgStore(tigName, tigVers);
 
   //  Decide on what to compute.  Either all unitigs, or a single unitig, or a special case test.
 
@@ -468,8 +464,8 @@ main (int argc, char **argv) {
 
   //  Now the usual case.  Iterate over all unitigs, compute and update.
 
-  for (uint32 i=b; i<e; i++) {
-    tgTig  *tig = tigStore->loadTig(i);
+  for (uint32 ti=b; ti<e; ti++) {
+    tgTig  *tig = tigStore->loadTig(ti);
 
     if (tig == NULL) {
       //  Not in our partition, or deleted.
@@ -502,6 +498,11 @@ main (int argc, char **argv) {
     //  before we add it to the store.
 
     savedChildren *origChildren = stashContains(tig, maxCov);
+
+    tig->_utgcns_verboseLevel = verbosity;
+    tig->_utgcns_smoothWindow = 11;
+    tig->_utgcns_splitAlleles = false;
+    tig->_utgcns_doPhasing    = false;
 
     if (generateMultiAlignment(tig, gkpStore, NULL)) {
       if (showResult)

@@ -234,7 +234,7 @@ abAbacus::addRead(gkStore *gkpStore,
     increaseArray(_beads, _beadsLen, _beadsMax, end - bgn);
 
     for (uint32 bp=0; bp<ns->length(); bp++, _beadsLen++) {
-      _beads[_beadsLen].ident().set(_beadsLen);
+      _beads[_beadsLen].boffset.set(_beadsLen);
       _beads[_beadsLen].soffset.set(ns->firstBase().get() + bp);
       _beads[_beadsLen].foffset = bp;
 
@@ -257,6 +257,8 @@ abAbacus::addRead(gkStore *gkpStore,
       _beads[_beadsLen].column_index = abColID();
     }
   }
+
+  assert(_beads[_beadsLen-1].ident() == ns->lastBead());
 
   //  Return the (internal) index we saved this read at.
 

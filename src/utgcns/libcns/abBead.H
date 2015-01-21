@@ -22,16 +22,16 @@ public:
     column_index = abColID();
   };
 
-  abBeadID   ident(void)    { return(boffset);      };
+  abBeadID   ident(void)    const { return(boffset);      };
 
-  abBeadID   prevID(void)   { return(prev);         };
-  abBeadID   nextID(void)   { return(next);         };
-  abBeadID   upID(void)     { return(up);           };
-  abBeadID   downID(void)   { return(down);         };
+  abBeadID   prevID(void)   const { return(prev);         };
+  abBeadID   nextID(void)   const { return(next);         };
+  abBeadID   upID(void)     const { return(up);           };
+  abBeadID   downID(void)   const { return(down);         };
 
-  abBaseID   baseIdx(void)  { return(soffset);      };
-  abSeqID    seqIdx(void)   { return(frag_index);   };
-  abColID    colIdx(void)   { return(column_index); };
+  abBaseID   baseIdx(void)  const { return(soffset);      };
+  abSeqID    seqIdx(void)   const { return(frag_index);   };
+  abColID    colIdx(void)   const { return(column_index); };
 
 private:
   abBeadID   boffset;       //  Location in abAbacus bead array

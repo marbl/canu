@@ -23,19 +23,6 @@ static char *rcsid = "$Id$";
 
 #include "abAbacus.H"
 
-#if 0
-#include <stdlib.h>
-#include <stdio.h>
-#include <assert.h>
-#include <math.h>
-#include <ctype.h>
-
-#include "MultiAlignment_CNS.H"
-#include "MultiAlignment_CNS_private.H"
-//#include "MicroHetREZ.H"
-#include "AS_UTL_reverseComplement.H"
-#endif
-
 #include <vector>
 
 using namespace std;
@@ -71,7 +58,7 @@ abAbacus::baseCallMajority(abColID cid) {
 
   //  Original version set QV to zero.
 
-  char  base = toupper(RALPHABET[bestIdx]);
+  char  base = RALPHABET[bestIdx];
   char  qv   = '0';
 
   setBase(call->baseIdx(), base);

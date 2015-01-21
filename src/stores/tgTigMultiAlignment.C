@@ -21,8 +21,10 @@ generateMultiAlignment(tgTig     *tig,
   origErate          = AS_CNS_ERROR_RATE;
   uc                 = new unitigConsensus(tig);
 
-  if (uc->initialize(gkpStore, failed) == FALSE)
+  if (uc->initialize(gkpStore, failed) == FALSE) {
+    fprintf(stderr, "generateMultiAlignment()--  Failed to initialize for tig %u with %u children\n", tig->tigID(), tig->numberOfChildren());
     goto returnFailure;
+  }
 
   while (uc->moreFragments()) {
 
@@ -42,7 +44,7 @@ generateMultiAlignment(tgTig     *tig,
     //  Attempt at increasing quality for high error, didn't help.
     if (AS_CNS_ERROR_RATE > 0.25) {
       if (uc->showAlgorithm())
-        fprintf(stderr, "MultiAlignUnitig()-- high error, decrease allowed error rate from %f to %f\n", AS_CNS_ERROR_RATE, AS_CNS_ERROR_RATE * 2 / 3);
+        fprintf(stderr, "generateMultiAlignment()-- high error, decrease allowed error rate from %f to %f\n", AS_CNS_ERROR_RATE, AS_CNS_ERROR_RATE * 2 / 3);
 
       AS_CNS_ERROR_RATE = AS_CNS_ERROR_RATE * 2 / 3;
 
@@ -63,7 +65,7 @@ generateMultiAlignment(tgTig     *tig,
     //  Second attempt, higher error rate.
 
     if (uc->showAlgorithm())
-      fprintf(stderr, "MultiAlignUnitig()-- increase allowed error rate from %f to %f\n", AS_CNS_ERROR_RATE, MIN(AS_MAX_ERROR_RATE, 2.0 * AS_CNS_ERROR_RATE));
+      fprintf(stderr, "generateMultiAlignment()-- increase allowed error rate from %f to %f\n", AS_CNS_ERROR_RATE, MIN(AS_MAX_ERROR_RATE, 2.0 * AS_CNS_ERROR_RATE));
 
     AS_CNS_ERROR_RATE = MIN(AS_MAX_ERROR_RATE, 2.0 * AS_CNS_ERROR_RATE);
 
@@ -78,7 +80,7 @@ generateMultiAlignment(tgTig     *tig,
 
     while (AS_OVERLAP_MIN_LEN > 40) {
       if (uc->showAlgorithm())
-        fprintf(stderr, "MultiAlignUnitig()-- decrease minimum overlap from %d to %d\n", AS_OVERLAP_MIN_LEN, MAX(40, AS_OVERLAP_MIN_LEN / 2));
+        fprintf(stderr, "generateMultiAlignment()-- decrease minimum overlap from %d to %d\n", AS_OVERLAP_MIN_LEN, MAX(40, AS_OVERLAP_MIN_LEN / 2));
 
       AS_OVERLAP_MIN_LEN = MAX(40, AS_OVERLAP_MIN_LEN / 2);
 
@@ -92,7 +94,7 @@ generateMultiAlignment(tgTig     *tig,
     //  Fourth attempt, default parameters after recomputing consensus sequence.
 
     if (uc->showAlgorithm())
-      fprintf(stderr, "MultiAlignUnitig()-- recompute full consensus\n");
+      fprintf(stderr, "generateMultiAlignment()-- recompute full consensus\n");
 
     uc->rebuild(true);
 
@@ -103,7 +105,7 @@ generateMultiAlignment(tgTig     *tig,
     //  Final attempt, higher error rate.
 
     if (uc->showAlgorithm())
-      fprintf(stderr, "MultiAlignUnitig()-- increase allowed error rate from %f to %f\n", AS_CNS_ERROR_RATE, MIN(AS_MAX_ERROR_RATE, 4.0 * AS_CNS_ERROR_RATE));
+      fprintf(stderr, "generateMultiAlignment()-- increase allowed error rate from %f to %f\n", AS_CNS_ERROR_RATE, MIN(AS_MAX_ERROR_RATE, 4.0 * AS_CNS_ERROR_RATE));
 
     AS_CNS_ERROR_RATE = MIN(AS_MAX_ERROR_RATE, 4.0 * AS_CNS_ERROR_RATE);
 
@@ -143,7 +145,7 @@ generateMultiAlignment(tgTig     *tig,
   return(true);
 
  returnFailure:
-  fprintf(stderr, "MultiAlignUnitig()-- unitig %d FAILED.\n", tig->tigID());
+  fprintf(stderr, "generateMultiAlignment()-- unitig %d FAILED.\n", tig->tigID());
 
   //  tgTig should have no changes.
 

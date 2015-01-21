@@ -157,12 +157,12 @@ public:
   uint32    &position(void)                 { return(ma_position); };
 
 private:
-  abColID          lid;       //  index in columnStore
-  abBeadID         call;      //  global offset in beadStore;
-  abColID          prev;      //  navigation in columnStore;
-  abColID          next;
-  abMultiAlignID   ma_id;     //  external tigStore id ??
-  uint32           ma_position;  //  was ma_index; index in MANode; // refreshed only periodically // seems to also be gapped position in the align
+  abColID          lid;           //  index in columnStore
+  abBeadID         call;          //  global offset in beadStore;
+  abColID          prev;          //  navigation in columnStore;
+  abColID          next;          //
+  abMultiAlignID   ma_id;         //  abMultiAlign this column belongs to
+  uint32           ma_position;   //  was ma_index; index in MANode; // refreshed only periodically // seems to also be gapped position in the align
   abBaseCount      base_count;
 
   friend class abAbacus;

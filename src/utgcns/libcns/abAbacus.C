@@ -4,65 +4,105 @@
 #include "abAbacus.H"
 
 
+#undef  DEBUG_ABACUS_ALIGN
 
-
+//  Shouldn't be global, but some things -- like abBaseCount -- need it.
 
 bool    DATAINITIALIZED                     = false;
+
 double  EPROB[CNS_MAX_QV - CNS_MIN_QV + 1]  = { 0 };
 double  PROB [CNS_MAX_QV - CNS_MIN_QV + 1]  = { 0 };
+
 int32   RINDEX[256]                         = { 0 };
+
 char    ALPHABET[6]                         = { 0 };
+
 char    RALPHABET[CNS_NP]                   = { 0 };
-char    RALPHABETC[CNS_NP]                  = { 0 };
+
 double  TAU_MISMATCH                        =   0;
-uint32  AMASK[5]                            = { 0 };
 
 
 
 abAbacus::abAbacus(gkStore *gkpStore) {
   _sequencesLen    = 0;
-  _sequencesMax    = 16 * 1024;
+  _sequencesMax    = 1024;
   _sequences       = new abSequence [_sequencesMax];
 
   _basesLen        = 0;
-  _basesMax        = _sequencesMax * 16 * 1024;
+  _basesMax        = 16384;
   _bases           = new char [_basesMax];
   _quals           = new char [_basesMax];
 
   _beadsLen        = 0;
   _beadsMax        = _basesMax;
-  _beads           = new abBead [_beadsMax];
+  _beads           = new abBead [_beadsMax];  //  These are slow to construct.
 
   _columnsLen      = 0;
-  _columnsMax      = 1048576;
-  _columns         = new abColumn[_columnsMax];
+  _columnsMax      = 1024;
+  _columns         = new abColumn[_columnsMax];  //  Or maybe it's these that are slow.
 
   _multiAlignsLen = 0;
-  _multiAlignsMax = 4;
+  _multiAlignsMax = 2;
   _multiAligns    = new abMultiAlign [_multiAlignsMax];
 
+  if (DATAINITIALIZED == false) {
+    ALPHABET[0] = '-';  // These were lowercase, why?  They just got toupper'd later.
+    ALPHABET[1] = 'A';
+    ALPHABET[2] = 'C';
+    ALPHABET[3] = 'G';
+    ALPHABET[4] = 'T';
+    ALPHABET[5] = 'N';
 
-  uint32  smoothingWindow = 11;
-  uint32  splitAlleles    = 1;
+    RALPHABET[ 0] = '-';
+    RALPHABET[ 1] = 'A';
+    RALPHABET[ 2] = 'C';
+    RALPHABET[ 3] = 'G';
+    RALPHABET[ 4] = 'T';
+    RALPHABET[ 5] = 'N';
+    RALPHABET[ 6] = 'a';  //  -A
+    RALPHABET[ 7] = 'c';  //  -C
+    RALPHABET[ 8] = 'g';  //  -G
+    RALPHABET[ 9] = 't';  //  -T
+    RALPHABET[10] = 'M';  //  AC
+    RALPHABET[11] = 'R';  //  AG
+    RALPHABET[12] = 'W';  //  AT
+    RALPHABET[13] = 'S';  //  CG
+    RALPHABET[14] = 'Y';  //  CT
+    RALPHABET[15] = 'K';  //  GT
+    RALPHABET[16] = 'm';  //  -AC
+    RALPHABET[17] = 'r';  //  -AG
+    RALPHABET[18] = 'w';  //  -AT
+    RALPHABET[19] = 's';  //  -CG
+    RALPHABET[20] = 'y';  //  -CT
+    RALPHABET[21] = 'k';  //  -GT
+    RALPHABET[22] = 'V';  //  ACG
+    RALPHABET[23] = 'H';  //  ACT
+    RALPHABET[24] = 'D';  //  AGT
+    RALPHABET[25] = 'B';  //  CGT
+    RALPHABET[26] = 'v';  //  -ACG
+    RALPHABET[27] = 'h';  //  -ACT
+    RALPHABET[28] = 'd';  //  -AGT
+    RALPHABET[29] = 'b';  //  -CGT
+    RALPHABET[30] = 'X';  //  ACGT
+    RALPHABET[31] = 'x';  //  -ACGT
 
+    TAU_MISMATCH = 1.0 / (5.0 - 1.0);
 
-  uint32 NumColumns       = 0;
-  uint32 NumRunsOfGaps    = 0;
-  uint32 NumGaps          = 0;
+    for (int32 i=0; i<256; i++)
+      RINDEX[i] = 31;
 
-  uint32 NumAAMismatches  = 0;
+    for (int32 i=0; i<CNS_NP; i++)
+      RINDEX[(int)RALPHABET[i]] = i;
 
-  uint32 NumVARRecords    = 0;
-  uint32 NumVARStringsWithFlankingGaps = 0;
+    RINDEX[(int)'n'] = RINDEX[(int)'N'];  //  Used in baseCount
 
-  uint32 NumUnitigRetrySuccess        = 0;
+    for (int32 i=0, qv=CNS_MIN_QV; i<CNS_MAX_QV - CNS_MIN_QV + 1; i++, qv++) {
+      EPROB[i]= log(TAU_MISMATCH * pow(10, -qv/10.0));
+      PROB[i] = log(1.0 - pow(10, -qv/10.0));
+    }
 
-
-  uint32 VERBOSE_MULTIALIGN_OUTPUT = 0;
-  uint32 FORCE_UNITIG_ABUT         = 0;
-
-  uint32 MULTIALIGN_PRINT_WIDTH    = 100;
-  uint32 MULTIALIGN_PRINT_SPACING  = 3;
+    DATAINITIALIZED = true;
+  }
 }
 
 
@@ -82,7 +122,7 @@ abAbacus::addBead(char base, char qual) {
   increaseArray(_beads, _beadsLen, _beadsMax, 1);
 
   _beads[_beadsLen].boffset.set(_beadsLen);
-  _beads[_beadsLen].soffset       = abBaseID();
+  _beads[_beadsLen].soffset.set(_basesLen);
   _beads[_beadsLen].foffset       = UINT32_MAX;
   _beads[_beadsLen].prev          = abBeadID();
   _beads[_beadsLen].next          = abBeadID();
@@ -129,6 +169,8 @@ abAbacus::appendGapBead(abBeadID bid) {
 
   assert(prev->frag_index.isValid());
 
+#warning this really should be using addBead()
+
   //  Make space for the new bead, and grab it.
 
   increaseArray(_beads, _beadsLen, _beadsMax, 1);
@@ -137,22 +179,22 @@ abAbacus::appendGapBead(abBeadID bid) {
 
   //  Set up the new bead
 
-  bead->boffset.set(_beadsLen);
+  bead->boffset.set(_beadsLen - 1);
   bead->soffset.set(_basesLen);
 
   bead->foffset = prev->foffset + 1;
 
-  bead->prev         = prev->boffset;
+  bead->prev         = prev->ident();
   bead->next         = prev->next;
   bead->up           = abBeadID();
   bead->down         = abBeadID();
   bead->frag_index   = prev->frag_index;
   bead->column_index = abColID();
 
-  prev->next         = bead->boffset;
+  prev->next         = bead->ident();
 
   if (bead->next.isValid())
-    getBead(bead->next)->prev = bead->boffset;
+    getBead(bead->next)->prev = bead->ident();
 
   //  Pick the minimum of the neighboring QVs, or '5' if both neighbors are zero
 
@@ -175,9 +217,11 @@ abAbacus::appendGapBead(abBeadID bid) {
   _bases[_basesLen] = '-';
   _quals[_basesLen] = qv;
 
+  _basesLen++;
+
   //gaps_in_alignment++;
 
-  return(bead->boffset);
+  return(bead->ident());
 }
 
 
@@ -205,16 +249,16 @@ abAbacus::prependGapBead(abBeadID bid) {
   bead->foffset = next->foffset;  //  Same as prev+1
 
   bead->prev         = next->prev;
-  bead->next         = next->boffset;
+  bead->next         = next->ident();
   bead->up           = abBeadID();
   bead->down         = abBeadID();
   bead->frag_index   = next->frag_index;
   bead->column_index = abColID();
 
-  next->prev         = bead->boffset;
+  next->prev         = bead->ident();
 
   if (bead->prev.isValid())
-    getBead(bead->prev)->next = bead->boffset;
+    getBead(bead->prev)->next = bead->ident();
 
   //  Pick the minimum of the neighboring QVs, or '5' if both neighbors are zero
 
@@ -239,7 +283,7 @@ abAbacus::prependGapBead(abBeadID bid) {
 
   //gaps_in_alignment++;
 
-  return(bead->boffset);
+  return(bead->ident());
 }
 
 
@@ -265,7 +309,7 @@ abAbacus::appendColumn(abColID cid, abBeadID bid) {
 
 #ifdef DEBUG_ABACUS_ALIGN
   fprintf(stderr, "ColumnAppend()-- adding column "F_U32" for bid="F_U32" after column cid=%d\n",
-          nextCol->lid, bid.get(), cid.get());
+          nextCol->ident().get(), bid.get(), cid.get());
 #endif
 
   //  Add the column to the list
@@ -281,12 +325,12 @@ abAbacus::appendColumn(abColID cid, abBeadID bid) {
   //  Add the call to the list
 
   nextcall->next = prevcall->next;
-  nextcall->prev = prevcall->boffset;
+  nextcall->prev = prevcall->ident();
 
-  prevcall->next = nextcall->boffset;
+  prevcall->next = nextcall->ident();
 
   if (nextcall->next.isValid())
-    getBead(nextcall->next)->prev = nextcall->boffset;
+    getBead(nextcall->next)->prev = nextcall->ident();
 
   //  Make new gap beads for every row in the previous column (as long as it wouldn't be a
   //  gap bead at the end of a sequence, and isn't the row with us in it)
@@ -303,7 +347,7 @@ abAbacus::appendColumn(abColID cid, abBeadID bid) {
 
     nid = ci->next();
   }
-  nextCol->ma_id       =  prevCol->ma_id;
+
   nextCol->ma_position =  prevCol->ma_position + 1;
 
   //AddColumnToMANode(nextCol->ma_id, *column);
@@ -328,6 +372,9 @@ abAbacus::appendColumn(abColID cid, abBeadID bid) {
 abColID
 abAbacus::addColumn(abMultiAlignID mid, abBeadID bid) {
   abColID    colID;
+
+  assert(mid.isValid());
+  assert(bid.isValid());
 
   increaseArray(_columns, _columnsLen, _columnsMax, 1);
 
@@ -360,8 +407,8 @@ abAbacus::addColumn(abMultiAlignID mid, abBeadID bid) {
   col->base_count.IncBaseCount(getBase(bead->soffset));
 
 #ifdef DEBUG_ABACUS_ALIGN
-  fprintf(stderr, "CreateColumn()-- Added consensus call bead="F_U32" to column="F_U32" for existing bead="F_U32"\n",
-          call.boffset.get(), column.lid, bead->boffset.get());
+  fprintf(stderr, "addColumn()-- Added consensus call bead="F_U32" to column="F_U32" for existing bead="F_U32"\n",
+          call->ident().get(), col->ident().get(), bead->ident().get());
 #endif
 
   return(col->lid);
@@ -380,15 +427,16 @@ abAbacus::alignBeadToColumn(abColID cid, abBeadID bid, char *label) {
   abBead    *first   = getBead(call->down);
   abBead    *align   = getBead(bid);
 
+  //  Fails if called from appendColumn() because the baseIdx isn't valid
 #ifdef DEBUG_ABACUS_ALIGN
   fprintf(stderr, "AlignBeadToColumn()-- %s frag=%d bead=%d,%c moving from column=%d to column=%d\n",
-          label, align->frag_index, bid.get(), *Getchar(sequenceStore,align->soffset), align->column_index, cid);
+          label, align->seqIdx().get(), bid.get(), getBase(align->baseIdx()), align->colIdx().get(), cid.get());
 #endif
 
-  align->down         = first->boffset;
-  align->up           = call->boffset;
-  call->down          = align->boffset;
-  first->up           = align->boffset;
+  align->down         = first->ident();
+  align->up           = call->ident();
+  call->down          = align->ident();
+  first->up           = align->ident();
   align->column_index = cid;
 
   column->base_count.IncBaseCount(getBase(align->soffset));
@@ -413,13 +461,13 @@ abAbacus::unalignBeadFromColumn(abBeadID bid) {
   upbead->down = bead->down;
 
   if (bead->down.isValid() )
-    getBead(bead->down)->up = upbead->boffset;
+    getBead(bead->down)->up = upbead->ident();
 
   column->base_count.DecBaseCount(bchar);
 
 #ifdef DEBUG_ABACUS_ALIGN
   fprintf(stderr, "UnAlignBeadFromColumn()-- frag=%d bead=%d leaving column=%d\n",
-          bead->frag_index, bead->boffset.get(), bead->column_index);
+          bead->frag_index, bead->ident().get(), bead->column_index);
 #endif
 
   bead->up           = abBeadID();
@@ -636,15 +684,18 @@ abAbacus::lateralExchangeBead(abBeadID lid, abBeadID rid) {
 abMultiAlignID
 abAbacus::addMultiAlign(abSeqID sid) {
 
+  assert(sid.isValid());
+
   abSequence         *seq = getSequence(sid);
   abSeqBeadIterator   fi(this, seq);
 
   increaseArray(_multiAligns, _multiAlignsLen, _multiAlignsMax, 1);
 
-  abMultiAlign *ma = _multiAligns + _multiAlignsLen++;
+  _multiAligns[_multiAlignsLen].lid.set(_multiAlignsLen);
+
+  abMultiAlign *ma     = _multiAligns + _multiAlignsLen++;
 
   abBeadID      bid    = fi.next();  //  The bead seeding this column
-
   abBead       *bead   = getBead(bid);
 
   abColID       cid    = addColumn(ma->lid, bid);
@@ -652,10 +703,10 @@ abAbacus::addMultiAlign(abSeqID sid) {
 
   //  Add the column to the multiAlign; column pointers (in the column) are already set to 'nothing'
 
-  ma->columnList.push_back(cid);
-
   ma->first = cid;
   ma->last  = cid;
+
+  ma->columnList.push_back(cid);
 
   bid = fi.next();
 

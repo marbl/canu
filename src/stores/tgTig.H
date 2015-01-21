@@ -82,8 +82,8 @@ public:
   int32               &aHang(void)           { return(_ahang);  };
   int32               &bHang(void)           { return(_bhang);  };
 
-  bool                 isForward(void) const { return(_bgn < _end); };
-  bool                 isReverse(void) const { return(_bgn > _end); };
+  bool                 isForward(void) const { return((_bgn < _end) || (_isReverse == false)); };
+  bool                 isReverse(void) const { return((_bgn > _end) || (_isReverse == true));  };
 
   uint32              &bgn(void)             { return(_bgn); };
   uint32              &end(void)             { return(_end); };
@@ -114,7 +114,6 @@ public:
     int32 bh = that.max();
 
     return(ah > bh);
-
   }
 
 private:
@@ -124,8 +123,11 @@ public:
   uint32              _isRead      : 1;  //  Type of object this position represents, former FragType
   uint32              _isUnitig    : 1;  //  
   uint32              _isContig    : 1;  //
+  uint32              _isReverse   : 1;  //  Child is oriented forward relative to parent, used during consensus.
 
-  uint32              _spare       : 29;
+#warning confusion between _isReverse and _bgn,_end orientation, rename to min and max
+
+  uint32              _spare       : 28;
 
   uint32              _anchor;           //  ID of the like-type object we align to
   int32               _ahang;            //  Placement relative to anchor object
