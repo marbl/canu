@@ -350,11 +350,15 @@ Optimal_Overlap_AS_forCNS(char *a, char *b,
                           double erate, double thresh, int minlen,
                           CompareOptions what) {
 
-  char     h_alignA[AS_MAX_READLEN + AS_MAX_READLEN + 2] = {0};
-  char     h_alignB[AS_MAX_READLEN + AS_MAX_READLEN + 2] = {0};
-  int      h_trace[AS_MAX_READLEN + AS_MAX_READLEN + 2]  = {0};
+  static char     h_alignA[AS_MAX_READLEN + AS_MAX_READLEN + 2] = {0};
+  static char     h_alignB[AS_MAX_READLEN + AS_MAX_READLEN + 2] = {0};
+  static int      h_trace[AS_MAX_READLEN + AS_MAX_READLEN + 2]  = {0};
 
   static ALNoverlap   o;
+
+  memset(h_alignA, 0, sizeof(char) * (AS_MAX_READLEN + AS_MAX_READLEN + 2));
+  memset(h_alignB, 0, sizeof(char) * (AS_MAX_READLEN + AS_MAX_READLEN + 2));
+  memset(h_trace,  0, sizeof(int)  * (AS_MAX_READLEN + AS_MAX_READLEN + 2));
 
   alignLinker_s   al;
 
