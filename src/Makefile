@@ -366,6 +366,28 @@ ifeq (${OSTYPE}, Linux)
 
   CXXFLAGS  += -D_GLIBCXX_PARALLEL -fopenmp
   LDFLAGS   +=                     -fopenmp
+
+  ifeq ($(BUILDPROFILE), 1)
+    CXXFLAGS  += 
+    LDFLAGS   += -pg
+  else
+    CXXFLAGS  += -D_GLIBCXX_PARALLEL
+    LDFLAGS   += -D_GLIBCXX_PARALLEL
+  endif
+
+  #CXXFLAGS  += -DLIBUNWIND -I/usr/local/include
+  #LDFLAGS   +=             -L/usr/local/lib -lunwind -lunwind-x86_64
+
+  ifeq ($(BUILDDEBUG), 1)
+    #  Inconveniently fix a problem where gcc46 doesn't work with gdb.
+    CXXFLAGS  += -g
+  else
+    ifeq ($(BUILDPROFILE), 1)
+      CXXFLAGS   += -O4 -funroll-loops -fexpensive-optimizations -finline-functions
+    else
+      CXXFLAGS   += -O4 -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+    endif
+  endif
 endif
 
 ifeq (${OSTYPE}, Darwin)
