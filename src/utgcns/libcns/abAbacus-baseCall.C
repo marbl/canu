@@ -30,8 +30,8 @@ using namespace std;
 
 void
 abAbacus::baseCallMajority(abColID cid) {
-  uint32 bsSum[CNS_NP] = {0};  //  Number of times we've seen this base
-  uint32 qvSum[CNS_NP] = {0};  //  Sum of their QVs
+  uint32 bsSum[CNS_NUM_SYMBOLS] = {0};  //  Number of times we've seen this base
+  uint32 qvSum[CNS_NUM_SYMBOLS] = {0};  //  Sum of their QVs
 
   abColumn *column = getColumn(cid);
   abBead   *call   = getBead(column->callID());
@@ -43,22 +43,22 @@ abAbacus::baseCallMajority(abColID cid) {
     char  bs     = getBase(bead->baseIdx());
     char  qv     = getQual(bead->baseIdx());
 
-    bsSum[RINDEX[bs]] += 1;
-    qvSum[RINDEX[bs]] += qv;
+    bsSum[baseToIndex[bs]] += 1;
+    qvSum[baseToIndex[bs]] += qv;
   }
 
   //  Find the best, ignore ties.
 
   uint32 bestIdx  = 0;
 
-  for (uint32 i=0; i<CNS_NALPHABET; i++)
+  for (uint32 i=0; i<CNS_NUM_SYMBOLS; i++)
     if (((bsSum[i] >  bsSum[bestIdx])) ||
         ((bsSum[i] >= bsSum[bestIdx]) && (qvSum[i] > qvSum[bestIdx])))
       bestIdx  = i;
 
   //  Original version set QV to zero.
 
-  char  base = RALPHABET[bestIdx];
+  char  base = indexToBase[bestIdx];
   char  qv   = '0';
 
   setBase(call->baseIdx(), base);
@@ -79,15 +79,15 @@ abAbacus::baseCallQuality(abVarRegion   &vreg,
   char    consensusBase = '-';
   char    consensusQV   = '0';
 
-  vector<abBead *>  bReads;  uint32  bBaseCount[CNS_NP] = {0};  uint32  bQVSum[CNS_NP] = {0};
-  vector<abBead *>  oReads;  uint32  oBaseCount[CNS_NP] = {0};  uint32  oQVSum[CNS_NP] = {0};
-  vector<abBead *>  gReads;  uint32  gBaseCount[CNS_NP] = {0};  uint32  gQVSum[CNS_NP] = {0};
+  vector<abBead *>  bReads;  uint32  bBaseCount[CNS_NUM_SYMBOLS] = {0};  uint32  bQVSum[CNS_NUM_SYMBOLS] = {0};
+  vector<abBead *>  oReads;  uint32  oBaseCount[CNS_NUM_SYMBOLS] = {0};  uint32  oQVSum[CNS_NUM_SYMBOLS] = {0};
+  vector<abBead *>  gReads;  uint32  gBaseCount[CNS_NUM_SYMBOLS] = {0};  uint32  gQVSum[CNS_NUM_SYMBOLS] = {0};
 
   double  cw[5]    = { 0.0, 0.0, 0.0, 0.0, 0.0 };      // "consensus weight" for a given base
   double  tau[5]   = { 1.0, 1.0, 1.0, 1.0, 1.0 };
 
-  uint32 highest1_qv[CNS_NP] = {0};
-  uint32 highest2_qv[CNS_NP] = {0};
+  uint32 highest1_qv[CNS_NUM_SYMBOLS] = {0};
+  uint32 highest2_qv[CNS_NUM_SYMBOLS] = {0};
 
   uint32 frag_cov = 0;
 
@@ -108,7 +108,7 @@ abAbacus::baseCallQuality(abVarRegion   &vreg,
   for (abBeadID bid=cbi->next(); bid.isValid(); bid=cbi->next()) {
     abBead *bead    = getBead(bid);
     char    base    = getBase(bead->baseIdx());
-    int32   baseIdx = RINDEX[base];
+    int32   baseIdx = baseToIndex[base];
     int     qv      = getQual(bead->baseIdx()) - '0';
 
     if (base == 'N')
@@ -326,14 +326,14 @@ abAbacus::baseCallQuality(abVarRegion   &vreg,
   //  If cwMax = 0 then consensus is a gap.  Otherwise, we deterministically set it to A C G T.
 
 #if 0
-  fprintf(stderr, "prob('%c') %f %c\n", RALPHABET[0], cw[0], (cw[0] == cwMax) ? '*' : ' ');
-  fprintf(stderr, "prob('%c') %f %c\n", RALPHABET[1], cw[1], (cw[1] == cwMax) ? '*' : ' ');
-  fprintf(stderr, "prob('%c') %f %c\n", RALPHABET[2], cw[2], (cw[2] == cwMax) ? '*' : ' ');
-  fprintf(stderr, "prob('%c') %f %c\n", RALPHABET[3], cw[3], (cw[3] == cwMax) ? '*' : ' ');
-  fprintf(stderr, "prob('%c') %f %c\n", RALPHABET[4], cw[4], (cw[4] == cwMax) ? '*' : ' ');
+  fprintf(stderr, "prob('%c') %f %c\n", indexToBase[0], cw[0], (cw[0] == cwMax) ? '*' : ' ');
+  fprintf(stderr, "prob('%c') %f %c\n", indexToBase[1], cw[1], (cw[1] == cwMax) ? '*' : ' ');
+  fprintf(stderr, "prob('%c') %f %c\n", indexToBase[2], cw[2], (cw[2] == cwMax) ? '*' : ' ');
+  fprintf(stderr, "prob('%c') %f %c\n", indexToBase[3], cw[3], (cw[3] == cwMax) ? '*' : ' ');
+  fprintf(stderr, "prob('%c') %f %c\n", indexToBase[4], cw[4], (cw[4] == cwMax) ? '*' : ' ');
 #endif
 
-  consensusBase = RALPHABET[cwIdx];
+  consensusBase = indexToBase[cwIdx];
 
   //  If there isn't a clear winner
   if (cwMax < 1.0 - DBL_EPSILON) {
@@ -373,19 +373,12 @@ abAbacus::baseCallQuality(abVarRegion   &vreg,
   uint32   bReadCount = 0;
   uint32   ci         = 0;
 
-  bReadCount += bBaseCount[0];  if (consensusBase == RALPHABET[0])  ci = 0;  //  '-' (RALPHABET)
-  bReadCount += bBaseCount[1];  if (consensusBase == RALPHABET[1])  ci = 1;  //  'A'
-  bReadCount += bBaseCount[2];  if (consensusBase == RALPHABET[2])  ci = 2;  //  'C'
-  bReadCount += bBaseCount[3];  if (consensusBase == RALPHABET[3])  ci = 3;  //  'G'
-  bReadCount += bBaseCount[4];  if (consensusBase == RALPHABET[4])  ci = 4;  //  'T'
-  bReadCount += bBaseCount[5];  if (consensusBase == RALPHABET[5])  ci = 5;  //  'N'
-
-  assert(RALPHABET[0] == '-');
-  assert(RALPHABET[1] == 'A');
-  assert(RALPHABET[2] == 'C');
-  assert(RALPHABET[3] == 'G');
-  assert(RALPHABET[4] == 'T');
-  assert(RALPHABET[5] == 'N');
+  bReadCount += bBaseCount[0];  if (consensusBase == indexToBase[0])  ci = 0;  //  '-'
+  bReadCount += bBaseCount[1];  if (consensusBase == indexToBase[1])  ci = 1;  //  'A'
+  bReadCount += bBaseCount[2];  if (consensusBase == indexToBase[2])  ci = 2;  //  'C'
+  bReadCount += bBaseCount[3];  if (consensusBase == indexToBase[3])  ci = 3;  //  'G'
+  bReadCount += bBaseCount[4];  if (consensusBase == indexToBase[4])  ci = 4;  //  'T'
+  bReadCount += bBaseCount[5];  if (consensusBase == indexToBase[5])  ci = 5;  //  'N'
 
   uint32   sumQVall = 0;
   uint32   sumQVcns = 0;
@@ -396,19 +389,19 @@ abAbacus::baseCallQuality(abVarRegion   &vreg,
       //  Not enough support for either the variation or the consensus.
       continue;
 
-    if (consensusBase == RALPHABET[bi])
+    if (consensusBase == indexToBase[bi])
       //  This is the consensus base.
       continue;
 
     double aveQV = (double)bQVSum[bi] / bBaseCount[bi];
     uint32 sumQV = highest1_qv[bi] + highest2_qv[bi];
 
-    bool   isGap = (consensusBase == '-') || (RALPHABET[bi] == '-');
+    bool   isGap = (consensusBase == '-') || (indexToBase[bi] == '-');
 
     if (((isGap == false) && (aveQV >= MIN_AVE_QV_FOR_VARIATION)) ||
         ((isGap == true)  && (sumQV >= MIN_SUM_QVS_FOR_VARIATION))) {
       sumQVall  += bQVSum[bi];
-      sumQVcns   = (RALPHABET[bi] == consensusBase) ? bQVSum[bi] : sumQVcns;
+      sumQVcns   = (indexToBase[bi] == consensusBase) ? bQVSum[bi] : sumQVcns;
     }
   }
 

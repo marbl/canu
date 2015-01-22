@@ -13,13 +13,8 @@ bool    DATAINITIALIZED                     = false;
 double  EPROB[CNS_MAX_QV - CNS_MIN_QV + 1]  = { 0 };
 double  PROB [CNS_MAX_QV - CNS_MIN_QV + 1]  = { 0 };
 
-int32   RINDEX[256]                         = { 0 };
-
-char    ALPHABET[6]                         = { 0 };
-
-char    RALPHABET[CNS_NP]                   = { 0 };
-
-double  TAU_MISMATCH                        =   0;
+uint32  baseToIndex[256]                    = { 0 };
+char    indexToBase[CNS_NUM_SYMBOLS]        = { 0 };
 
 
 
@@ -46,55 +41,52 @@ abAbacus::abAbacus(gkStore *gkpStore) {
   _multiAligns    = new abMultiAlign [_multiAlignsMax];
 
   if (DATAINITIALIZED == false) {
-    ALPHABET[0] = '-';  // These were lowercase, why?  They just got toupper'd later.
-    ALPHABET[1] = 'A';
-    ALPHABET[2] = 'C';
-    ALPHABET[3] = 'G';
-    ALPHABET[4] = 'T';
-    ALPHABET[5] = 'N';
-
-    RALPHABET[ 0] = '-';
-    RALPHABET[ 1] = 'A';
-    RALPHABET[ 2] = 'C';
-    RALPHABET[ 3] = 'G';
-    RALPHABET[ 4] = 'T';
-    RALPHABET[ 5] = 'N';
-    RALPHABET[ 6] = 'a';  //  -A
-    RALPHABET[ 7] = 'c';  //  -C
-    RALPHABET[ 8] = 'g';  //  -G
-    RALPHABET[ 9] = 't';  //  -T
-    RALPHABET[10] = 'M';  //  AC
-    RALPHABET[11] = 'R';  //  AG
-    RALPHABET[12] = 'W';  //  AT
-    RALPHABET[13] = 'S';  //  CG
-    RALPHABET[14] = 'Y';  //  CT
-    RALPHABET[15] = 'K';  //  GT
-    RALPHABET[16] = 'm';  //  -AC
-    RALPHABET[17] = 'r';  //  -AG
-    RALPHABET[18] = 'w';  //  -AT
-    RALPHABET[19] = 's';  //  -CG
-    RALPHABET[20] = 'y';  //  -CT
-    RALPHABET[21] = 'k';  //  -GT
-    RALPHABET[22] = 'V';  //  ACG
-    RALPHABET[23] = 'H';  //  ACT
-    RALPHABET[24] = 'D';  //  AGT
-    RALPHABET[25] = 'B';  //  CGT
-    RALPHABET[26] = 'v';  //  -ACG
-    RALPHABET[27] = 'h';  //  -ACT
-    RALPHABET[28] = 'd';  //  -AGT
-    RALPHABET[29] = 'b';  //  -CGT
-    RALPHABET[30] = 'X';  //  ACGT
-    RALPHABET[31] = 'x';  //  -ACGT
-
-    TAU_MISMATCH = 1.0 / (5.0 - 1.0);
 
     for (int32 i=0; i<256; i++)
-      RINDEX[i] = 31;
+      baseToIndex[i] = UINT32_MAX;
 
-    for (int32 i=0; i<CNS_NP; i++)
-      RINDEX[(int)RALPHABET[i]] = i;
+    indexToBase[ 0] = '-';
+    indexToBase[ 1] = 'A';
+    indexToBase[ 2] = 'C';
+    indexToBase[ 3] = 'G';
+    indexToBase[ 4] = 'T';
+    indexToBase[ 5] = 'N';
+#if 0
+    indexToBase[ 6] = 'a';  //  -A
+    indexToBase[ 7] = 'c';  //  -C
+    indexToBase[ 8] = 'g';  //  -G
+    indexToBase[ 9] = 't';  //  -T
+    indexToBase[10] = 'M';  //  AC
+    indexToBase[11] = 'R';  //  AG
+    indexToBase[12] = 'W';  //  AT
+    indexToBase[13] = 'S';  //  CG
+    indexToBase[14] = 'Y';  //  CT
+    indexToBase[15] = 'K';  //  GT
+    indexToBase[16] = 'm';  //  -AC
+    indexToBase[17] = 'r';  //  -AG
+    indexToBase[18] = 'w';  //  -AT
+    indexToBase[19] = 's';  //  -CG
+    indexToBase[20] = 'y';  //  -CT
+    indexToBase[21] = 'k';  //  -GT
+    indexToBase[22] = 'V';  //  ACG
+    indexToBase[23] = 'H';  //  ACT
+    indexToBase[24] = 'D';  //  AGT
+    indexToBase[25] = 'B';  //  CGT
+    indexToBase[26] = 'v';  //  -ACG
+    indexToBase[27] = 'h';  //  -ACT
+    indexToBase[28] = 'd';  //  -AGT
+    indexToBase[29] = 'b';  //  -CGT
+    indexToBase[30] = 'X';  //  ACGT
+    indexToBase[31] = 'x';  //  -ACGT
+#endif
 
-    RINDEX[(int)'n'] = RINDEX[(int)'N'];  //  Used in baseCount
+    for (int32 i=0; i<CNS_NUM_SYMBOLS; i++)
+      baseToIndex[indexToBase[i]] = i;
+
+    baseToIndex['n'] = baseToIndex['N'];  //  Used in baseCount
+
+
+    double TAU_MISMATCH = 1.0 / (5.0 - 1.0);
 
     for (int32 i=0, qv=CNS_MIN_QV; i<CNS_MAX_QV - CNS_MIN_QV + 1; i++, qv++) {
       EPROB[i]= log(TAU_MISMATCH * pow(10, -qv/10.0));

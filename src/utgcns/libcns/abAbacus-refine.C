@@ -1455,8 +1455,6 @@ getConsensusForAbacus(abVarRegion     &vreg,
                       abAbacusWork    *abacus,
                       char            *consensus[2]) {
 
-  char bases[CNS_NALPHABET] = {'-', 'A', 'C', 'G', 'T', 'N'};
-
   // Allocate memory for consensus
 
   consensus[0] = new char [3 * abacus->window_width];
@@ -1467,8 +1465,8 @@ getConsensusForAbacus(abVarRegion     &vreg,
 
   // Call consensus
   for (int32 i=0; i < 3*abacus->window_width; i++) {
-    int32 bcount0[CNS_NALPHABET] = {0};
-    int32 bcount1[CNS_NALPHABET] = {0};
+    int32 bcount0[CNS_NUM_SYMBOLS] = {0};
+    int32 bcount1[CNS_NUM_SYMBOLS] = {0};
     int32 best_count0=0, second_best_count0=0;
     int32 best_count1=0, second_best_count1=0;
     char cbase0=0, cbase1=0;
@@ -1485,20 +1483,20 @@ getConsensusForAbacus(abVarRegion     &vreg,
           bcount1[base2int(reads[j].bases[i])]++;
       }
     }
-    for (int32 j=0; j<CNS_NALPHABET; j++) {
+    for (int32 j=0; j<CNS_NUM_SYMBOLS; j++) {
       if (best_count0 < bcount0[j]) {
         second_best_count0 = best_count0;
         best_count0 = bcount0[j];
-        cbase0 = bases[j];
+        cbase0 = indexToBase[j];
       } else if ( best_count0 >= bcount0[j] && second_best_count0 <  bcount0[j]) {
         second_best_count0  = bcount0[j];
       }
     }
-    for (int32 j=0; j<CNS_NALPHABET; j++) {
+    for (int32 j=0; j<CNS_NUM_SYMBOLS; j++) {
       if (best_count1 < bcount1[j]) {
         second_best_count1 = best_count1;
         best_count1 = bcount1[j];
-        cbase1 = bases[j];
+        cbase1 = indexToBase[j];
       } else if ( best_count1 >= bcount1[j] && second_best_count1 <  bcount1[j]) {
         second_best_count1  = bcount1[j];
       }

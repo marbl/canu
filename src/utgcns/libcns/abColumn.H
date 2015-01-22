@@ -10,12 +10,12 @@ public:
   void clear(void) {
     _depth    = 0;
 
-    for (uint32 ii=0; ii<CNS_NALPHABET; ii++)
+    for (uint32 ii=0; ii<CNS_NUM_SYMBOLS; ii++)
       _count[ii] = 0;
   };
 
   uint32 IncBaseCount(char c) {
-    uint32 r = RINDEX[c];
+    uint32 r = baseToIndex[c];
 
     if ((r < 0) || (r > 5))
       fprintf(stderr, "IncBaseCount c=%c r=%u out of range.\n", c, r);
@@ -28,7 +28,7 @@ public:
   };
 
   uint32 DecBaseCount(char c) {
-    uint32 r = RINDEX[c];
+    uint32 r = baseToIndex[c];
 
     if ((r < 0) || (r > 5))
       fprintf(stderr, "DecBaseCount c=%c r=%u out of range.\n", c, r);
@@ -41,7 +41,7 @@ public:
   };
 
   uint32 GetBaseCount(char c) {
-    uint32 r = RINDEX[c];
+    uint32 r = baseToIndex[c];
 
     if ((r < 0) || (r > 5))
       fprintf(stderr, "GetBaseCount c=%c r=%u out of range.\n", c, r);
@@ -69,7 +69,7 @@ public:
     uint32 iMax = (skipGap == false) ? 0 : 1;
     uint32 tied = 0;
 
-    for (int32 i=iMax+1; i<CNS_NALPHABET-1; i++) {
+    for (int32 i=iMax+1; i<CNS_NUM_SYMBOLS-1; i++) {
       if (_count[i] > _count[iMax]) {
         iMax = i;
         tied = 0;
@@ -81,7 +81,7 @@ public:
     if (tied > 0) {
       uint32   iTie = 0;
     
-      for (uint32 i=1; i<CNS_NALPHABET-1; i++) {
+      for (uint32 i=1; i<CNS_NUM_SYMBOLS-1; i++) {
         if (_count[i] == _count[iMax]) {
           uint32 tieBreaker = random();
 
@@ -96,31 +96,12 @@ public:
     return(iMax);
   };
 
-
-#if 0
-  void ShowBaseCount(void) {
-    fprintf(stderr,"%d total\n", _depth);
-    for (uint32 i=0;i<CNS_NALPHABET;i++)
-      fprintf(stderr,"%c\t",ALPHABET[i]);
-
-    fprintf(stderr,"\n");
-    for (uint32 i=0;i<CNS_NALPHABET;i++)
-      fprintf(stderr,"%d\t", _count[i]);
-    fprintf(stderr,"\n");
-  };
-
-  void ShowBaseCountPlain(FILE *out) {
-    fprintf(out,"%d\t",b->depth);
-    for (uint32 i=0;i<CNS_NALPHABET;i++) {
-      fprintf(out,"%d\t", _count[i]);
-    }
-  };
-#endif
-
 private:
   uint32   _depth;
-  uint32   _count[CNS_NALPHABET];
+  uint32   _count[CNS_NUM_SYMBOLS];
 };
+
+
 
 
 //  A column of beads in the multialign

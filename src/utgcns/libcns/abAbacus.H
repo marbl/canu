@@ -49,22 +49,11 @@ extern bool    DATAINITIALIZED;
 extern double  EPROB[CNS_MAX_QV - CNS_MIN_QV + 1];  // prob of error for each quality value
 extern double  PROB [CNS_MAX_QV - CNS_MIN_QV + 1];  // prob of correct call for each quality value (1-eprob)
 
-#define CNS_NALPHABET 7
-#define CNS_NP 32
 
-#if 0
-extern int32   baseToIndex[256];      //  RINDEX
-extern char    indexToBase[CNS_NP];   //  ALPHABET, RALPHABET
-#else
-extern int32   RINDEX[256];      //  RINDEX
-extern char    ALPHABET[6];   //  ALPHABET, RALPHABET
-extern char    RALPHABET[CNS_NP];   //  ALPHABET, RALPHABET
-#endif
+#define CNS_NUM_SYMBOLS  6  //  -ACGTN
 
-extern double  TAU_MISMATCH;
-
-
-
+extern uint32   baseToIndex[256];
+extern char     indexToBase[CNS_NUM_SYMBOLS];
 
 class abSequence;
 class abBase;
