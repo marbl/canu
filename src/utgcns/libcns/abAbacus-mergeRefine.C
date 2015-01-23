@@ -165,6 +165,8 @@ void
 abMultiAlign::mergeRefine(abAbacus *abacus) {
   //abMultiAlign *ma = getMultiAlign(mid);
 
+  fprintf(stderr, "abMultiAlign::mergeRefine()--  legnth %u\n", length());
+
   //  Loop over all columns.  If do not merge, advance to the next
   //  column, otherwise, stay here and merge to the now different next
   //  column (mergeCompatible removes the column that gets merged into
@@ -185,15 +187,34 @@ abMultiAlign::mergeRefine(abAbacus *abacus) {
 
   //RefreshMANode(mid, 1, opp, &nv, &vl, make_v_list, get_scores);
 
+#warning not doing expensive refresh
+
+#if 0
+  //  Expensive
   abacus->refreshMultiAlign(lid,
-                            1,     //  quality
-                            1,     //  split alleles
-                            11,    //  window
-                            1,     //  doPhasing
-                            NULL,  //  nvars
-                            NULL,  //  v_list
-                            1,     //  make_v_list,
-                            1);    //  get scores
+                            true,     //  recallBase
+                            true,     //  highQuality
+                            true,     //  splitAlleles
+                            true,     //  doPhasing
+                            11,       //  smoothWindow
+                            true,     //  getScores
+                            false,    //  populateVarOutput
+                            NULL,     //  nvars
+                            NULL);    //  v_list
+#else
+  //  Quick, just recall the base using majority
+  abacus->refreshMultiAlign(lid,
+                            true,     //  recallBase
+                            false,    //  highQuality
+                            false,    //  splitAlleles
+                            false,    //  doPhasing
+                            11,       //  smoothWindow
+                            false,    //  getScores
+                            false,    //  populateVarOutput
+                            NULL,     //  nvars
+                            NULL);    //  v_list
+#endif
+
 
 #if 0
   if (make_v_list && v_list) {

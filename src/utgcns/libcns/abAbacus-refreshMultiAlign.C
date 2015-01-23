@@ -259,9 +259,9 @@ abAbacus::getReadsForVAR(abVarRegion &region, abColID *cids) {
 
 static
 void
-smoothenVariation(double *var, uint32 len, uint32 window) {
+smoothenVariation(double *var, uint32 len, int32 smoothWindow) {
 
-  if (window <= 0)
+  if (smoothWindow <= 0)
     return;
 
   double *y = new double [len];
@@ -272,8 +272,8 @@ smoothenVariation(double *var, uint32 len, uint32 window) {
 
     double sum_var = (var[i] > ZERO_MINUS) ? var[i] : ((var[i] < -1) ? 0 : -var[i]);
 
-    int32 max_left_win  = window / 2;
-    int32 max_right_win = window - max_left_win;
+    int32 max_left_win  = smoothWindow / 2;
+    int32 max_right_win = smoothWindow - max_left_win;
 
     for (int32 j = i-1; ((j >= 0) && (left_win <= max_left_win)); j--) {
       if (var[j] > ZERO_MINUS) {
@@ -752,39 +752,90 @@ abVarRegion::sortAllelesByMapping(uint32 *allele_map) {
 
 
 
+//
+//  This is called from:
+//
+
+//  THIS IS THE ONE WE'RE STUCK ON
+//abAbacus-mergeRefine.C:  abacus->refreshMultiAlign(lid,     1, 1, 11, 1, NULL, NULL, 1, true)     <- accurate
+
+//abAbacus-refine.C:       abacus->refreshMultiAlign(ident(), 1, 1, 11, 1, NULL, NULL, 1, false);   <- accurate
+
+//abAbacus.C:              refreshMultiAlign(ma->ident());
+
+//unitigConsensus.C:       abacus->refreshMultiAlign(multialign);
+//unitigConsensus.C:       abacus->refreshMultiAlign(multialign);
+
+
+//
+//  Fast if:
+//    splitAlleles == false ||
+//    highQuality  == false ||
+//    make_v_list  == false
+
+
+//  Accurate if:
+//    splitAlleles == true &&
+//    highQuality  == true &&
+//    make_v_list  == true
+//
+//    MUST set recallBase = true.
+
+
+
+
+//  Refresh columns from cid to end
+
 void
 abAbacus::refreshMultiAlign(abMultiAlignID  mid,
-                            uint32          quality,
-                            uint32          splitAlleles,
-                            uint32          smoothWindow,
-                            uint32          doPhasing,
-                            uint32         *nvars,
-                            abVarRead     **v_list,
-                            uint32          make_v_list,   //  0, 1 or 2
-                            bool            getScores) {  //  0, 1 or 2
+                            bool            recallBase,         //  (false) If true, recall the base
+                            bool            highQuality,        //  (false) If true, use the high quality base call algorithm
 
-  // refresh columns from cid to end
-  // if quality == -1, don't recall the consensus base
+                            bool            splitAlleles,       //  (false) ???
+
+                            bool            doPhasing,          //  (false) If true, attempt to phase with previous var region.
+
+                            // smoothWindow <  0  -- no columns with variation will be grouped into regions of variation
+                            // smoothWindow == 0  -- only immediately adjacent columns with variation will be grouped into regions of variation
+                            int32           smoothWindow,
+
+                            bool            getScores,          // Must be true for populateVarOutput
+                            bool            populateVarOutput,
+
+                            uint32         *nvars,
+                            abVarRead     **v_list) {
 
   if (nvars != NULL)
     *nvars = 0;
 
   abMultiAlign *ma = getMultiAlign(mid);
 
-  ma->columnList.clear();
+  fprintf(stderr, "abMultiAlign::refreshMultiAlign()--  legnth %u recallBase=%d highQuality=%d splitAlleles=%d doPhasing=%d getScores=%d populateVarOutput=%d\n",
+          ma->length(), recallBase, highQuality, splitAlleles, doPhasing, getScores, populateVarOutput);
 
-  if (ma->first.isValid() == false);
+  ma->columns().clear();  // columnList
+
+  if (ma->firstColumn().isValid() == false) {
+    fprintf(stderr, "abAbacus::refreshMultiAlign()-- No valid first column.  Stop.\n");
     return;
+  }
 
   abVarRegion  vreg;
 
   uint32       varLen = 1024;
-  double      *varf   = new double  [varLen];
-  abColID     *cids   = new abColID [varLen];
+  double      *varf   = new double  [varLen];    memset(varf, 0, sizeof(double) * varLen);
+  abColID     *cids   = new abColID [varLen];    //  Initialized by constructor
 
-  uint32   maxPrev   = 1024;
-  char    *prevBases = (getScores > 0) ? new char   [maxPrev] : NULL;
-  uint32  *prevIDs   = (getScores > 0) ? new uint32 [maxPrev] : NULL;
+
+  uint32   maxPrev   = 0;
+  char    *prevBases = NULL;
+  uint32  *prevIDs   = NULL;
+
+  if (getScores > 0) {
+    maxPrev   = 1024;
+    prevBases = new char   [maxPrev];   memset(prevBases, 0, sizeof(char)   * maxPrev);
+    prevIDs   = new uint32 [maxPrev];   memset(prevIDs,   0, sizeof(uint32) * maxPrev);
+  }
 
   //
   // Calculate variation as a function of position in MANode.
@@ -794,26 +845,19 @@ abAbacus::refreshMultiAlign(abMultiAlignID  mid,
 
   uint32  prev_nr           = 0;
 
-  // Variables used to phase VAR records
-  uint32  prev_nca          = 0;     // valid size of array prev_nca_iid
-  uint32  prev_ncr          = 0;     // valid size of array prev_ncr_iid
-  uint32  prev_nca_iid_max  = 4096;  // allocated size of arrays; err on the large side
-  uint32  prev_ncr_iid_max  = 4096;  //   hopefully avoiding reallocs.
-  uint32 *prev_nca_iid      = NULL;  // number of reads in 10 first confirmed alleles
-  uint32 *prev_ncr_iid      = NULL;  // iids of the first 100 reads, rev. sorted by allele
-
   uint32   index = 0;
-  abColID  cid   = ma->first;
+  abColID  cid   = ma->firstColumn();
 
   while (cid.isValid()) {
     abColumn  *column = getColumn(cid);
 
-    if (quality != -2) {
+    
+    if (recallBase == true) {
       if (index >= varLen)
         resizeArrayPair(varf, cids, varLen, varLen, varLen + 1024);
 
       //BaseCall(cid, quality, varf[index], &vreg, -1, cbase, getScores, opp);
-      char cbase = baseCall(vreg, cid, quality, varf[index], -1, getScores, splitAlleles, smoothWindow);
+      char cbase = baseCall(vreg, cid, highQuality, varf[index], -1, getScores, splitAlleles, smoothWindow);
 
       if (cbase == '-')
         NumGaps++;
@@ -823,40 +867,51 @@ abAbacus::refreshMultiAlign(abMultiAlignID  mid,
 
     column->ma_position = index;
 
-    ma->columnList.push_back(cid);  //  Does this need to be stored?
+    //ma->addColumnToMultiAlign(column);
+    //ma->columnList.push_back(cid);  //  Does this need to be stored?
+    ma->columns().push_back(column->ident());
 
     // sanity check
     if (index > 0) {
-      abColID   prev = ma->columnList[index-1];
+      abColID   prev = ma->columns()[index-1];  //  columnList
       abColumn *pcol = getColumn(prev);
 
       if ((prev != column->prev) || (pcol->next != column->lid))
         fprintf(stderr, "RefreshMANode column relationships violated");
 
-      assert(prev == column->prev);
-      assert(pcol->next != column->lid);
+      assert(prev        == column->prev);
+      assert(pcol->next  == column->lid);
     }
 
+#if 1
     if (getScores == true) {
-#if 0
-      fprintf(stderr, "vreg.nb=%d vreg.curr_bases=", vreg.nb);
-      for (i=0; i<vreg.nb; i++)
+      fprintf(stderr, "vreg.nb=%d prev_nr=%d NumRunsOfGaps=%d\n", vreg.nb, prev_nr, NumRunsOfGaps);
+
+      fprintf(stderr, "currBases = ");
+      for (int32 i=0; i<vreg.nb; i++)
         fprintf(stderr, "%c", vreg.curr_bases[i]);
-      fprintf(stderr, " prev_nr=%d prevBases=", prev_nr);
-      for (i=0; i<prev_nr; i++)
+      fprintf(stderr, "\n");
+
+      fprintf(stderr, "prevBases = ");
+      for (int32 i=0; i<prev_nr; i++)
         fprintf(stderr, "%c", prevBases[i]);
-      fprintf(stderr, " NumRunsOfGaps=%d \nvreg.iids= ", NumRunsOfGaps);
-      for (i=0; i<vreg.nb; i++)
-        fprintf(stderr, "%d ", vreg.iids[i]);
       fprintf(stderr, "\n");
-      fprintf(stderr, "prevIDs= ");
-      for (i=0; i<prev_nr; i++)
-        fprintf(stderr, "%d ", prevIDs[i]);
+
+      fprintf(stderr, "curIDs    =");
+      for (int32 i=0; i<vreg.nb; i++)
+        fprintf(stderr, " %4d", vreg.iids[i]);
       fprintf(stderr, "\n");
+
+      fprintf(stderr, "prevIDs   =");
+      for (int32 i=0; i<prev_nr; i++)
+        fprintf(stderr, " %4d", prevIDs[i]);
+      fprintf(stderr, "\n");
+    }
 #endif
 
-      //  Update stats: number of runs of gaps and number of gaps.
+    //  Update stats: number of runs of gaps and number of gaps.
 
+    if (getScores == true) {
       for (int32 i=0; i<prev_nr; i++) {
         if (prevBases[i] == '-')
           continue;
@@ -890,9 +945,13 @@ abAbacus::refreshMultiAlign(abMultiAlignID  mid,
   if (getScores == true)
     NumColumns += index;
 
-  if ((splitAlleles == false) ||
-      (quality     <= 0) ||
-      (make_v_list == false)) {
+  // Proceed further only if accurate base calls are needed
+
+
+  if ((splitAlleles       == false) ||
+      (highQuality        == false) ||
+      (populateVarOutput  == false)) {
+
     vreg.curr_bases.clear();
     vreg.iids.clear();
 
@@ -905,10 +964,13 @@ abAbacus::refreshMultiAlign(abMultiAlignID  mid,
     return;
   }
 
-  assert(make_v_list == 1 || nvars  != NULL);
-  assert(make_v_list == 1 || v_list != NULL);
 
-  // Proceed further only if accurate base calls are needed
+
+
+
+
+  assert((populateVarOutput == true) || (nvars  != NULL));
+  assert((populateVarOutput == true) || (v_list != NULL));
 
   varLen = index -1;
 
@@ -928,19 +990,25 @@ abAbacus::refreshMultiAlign(abMultiAlignID  mid,
 
   smoothenVariation(svarf, varLen, smoothWindow);
 
-  prev_nca_iid = new uint32 [prev_nca_iid_max];
-  prev_ncr_iid = new uint32 [prev_ncr_iid_max];
+
+  // Variables used to phase VAR records
+
+  uint32  prev_nca          = 0;                              // valid size of array prev_nca_iid
+  uint32  prev_ncr          = 0;                              // valid size of array prev_ncr_iid
+  uint32  prev_nca_iid_max  = 4096;                           // allocated size of arrays; err on the large side
+  uint32  prev_ncr_iid_max  = 4096;                           //   hopefully avoiding reallocs.
+  uint32 *prev_nca_iid      = new uint32 [prev_nca_iid_max];  // number of reads in 10 first confirmed alleles
+  uint32 *prev_ncr_iid      = new uint32 [prev_ncr_iid_max];  // iids of the first 100 reads, rev. sorted by allele
+
+  memset(prev_nca_iid, 0, sizeof(uint32) * prev_nca_iid_max);  //  Might be unnecessary
+  memset(prev_ncr_iid, 0, sizeof(uint32) * prev_ncr_iid_max);
 
   for (uint32 i=0; i<varLen; i++) {
     if (svarf[i] == 0)
       continue;
 
     // Process a region of variation
-    //
-    // smoothWindow <  0 means no columns with variation will be grouped
-    //                         into regions of variation
-    // smoothWindow == 0 means only immediately adjacent columns with
-    //                         variation will be grouped into regions of variation
+
     uint32  *conf_read_iids = NULL;
     double   fict_var;
 
@@ -1057,7 +1125,7 @@ abAbacus::refreshMultiAlign(abMultiAlignID  mid,
     bool     is_phased  = false;
     uint32  *allele_map = NULL;
     
-    if ((make_v_list == 2) && (doPhasing))
+    if (doPhasing)
       is_phased = vreg.phaseWithPreviousRegion(allele_map,
                                                prev_nca, prev_nca_iid, prev_nca_iid_max,
                                                prev_ncr, prev_ncr_iid, prev_ncr_iid_max);
@@ -1136,10 +1204,11 @@ abAbacus::refreshMultiAlign(abMultiAlignID  mid,
 #endif
 
       /* Store variations in a v_list */
-      if (make_v_list == 2)
+      if (populateVarOutput == true)
 #warning NOT POPULATING OUTPUT
         //vreg.populateVARRecord(is_phased, cids, *nvars, min_len_vlist, *v_list, vreg, opp, getScores, conf_read_iids);
         ;
+
       else
         vreg.setConsensusToMajorAllele(this, cids);
     }

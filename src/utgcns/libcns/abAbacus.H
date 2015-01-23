@@ -218,15 +218,18 @@ private:
   void   getReadsForVAR(abVarRegion &region, abColID *cids);
 
 public:
-  void   refreshMultiAlign(abMultiAlignID  mid,
-                           uint32          quality       = 0,       //  0 (contig consensus), -2, 1 (unitig consensus)
-                           uint32          splitAlleles  = 1,
-                           uint32          smoothWindow  = 11,
-                           uint32          doPhasing     = 1,
-                           uint32         *nvars         = NULL,
-                           abVarRead     **v_list        = NULL,
-                           uint32          make_v_list   = 0,        //  0, 1 (set to majority) or 2 (make a var record, for contigs)
-                           bool            getScores     = false);   //  WAS: 0, 1 (unitig) or 2 (contig)
+
+  void    refreshMultiAlign(abMultiAlignID  mid,
+                            bool            recallBase        = false,
+                            bool            highQuality       = false,
+                            bool            splitAlleles      = false,
+                            bool            doPhasing         = false,
+                            int32           smoothWindow      = 11,
+                            bool            getScores         = false,
+                            bool            populateVarOutput = false,
+                            uint32         *nvars             = NULL,
+                            abVarRead     **v_list            = NULL);
+
 
 private:
   void            baseCallMajority(abColID cid);
@@ -244,36 +247,14 @@ public:
                            double      &var,
                            int32        target_allele,
                            bool         getScores,
-                           int32        split_alleles,    //  these need to be set in the class
-                           int32        smooth_win);      //
+                           bool         splitAlleles,       //  these need to be set in the class
+                           int32        smoothWindow);      //
 
   void            applyAlignment(abSeqID  afid,
                                  int32    alen, abBeadID *aindex,
                                  abSeqID  bfid,
                                  int32    ahang,
                                  int32   *trace);
-
-
-
-  //
-  //  Major operations
-  //
-#if 0
-int      AbacusRefine(MANode *ma,
-                        int32 from,
-                        int32 to,
-                        CNS_RefineLevel level,
-                        CNS_Options *opp);
-
-
-
-  void     PrintAlignment(FILE *print,
-                          int32 mid,
-                          int32 from,
-                          int32 to);
-
-#endif
-
 
 
 public:

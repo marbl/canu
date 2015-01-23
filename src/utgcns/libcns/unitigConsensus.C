@@ -38,13 +38,14 @@ using namespace std;
 
 void
 unitigConsensus::reportStartingWork(void) {
-  fprintf(stderr, "unitigConsensus()-- processing fragment mid %d pos %d,%d anchor %d,%d,%d\n",
+  fprintf(stderr, "unitigConsensus()-- processing fragment mid %d pos %d,%d anchor %d,%d,%d -- length %u\n",
           utgpos[tiid].ident(),
           utgpos[tiid].bgn(),
           utgpos[tiid].end(),
           utgpos[tiid].anchor(),
           utgpos[tiid].aHang(),
-          utgpos[tiid].bHang());
+          utgpos[tiid].bHang(),
+          abacus->getMultiAlign(multialign)->length());
 
   if (showPlacementBefore())
     for (int32 x=0; x<=tiid; x++)
@@ -502,29 +503,30 @@ unitigConsensus::computePositionFromAlignment(void) {
 
 void
 unitigConsensus::rebuild(bool recomputeFullConsensus) {
+  abMultiAlign *ma = abacus->getMultiAlign(multialign);
 
   //  Run abacus to rebuild an intermediate consensus sequence.  VERY expensive.
   //
   if (recomputeFullConsensus == true) {
     abacus->refreshMultiAlign(multialign);
 
-    abacus->getMultiAlign(multialign)->refine(abacus, abAbacus_Smooth);
-    abacus->getMultiAlign(multialign)->mergeRefine(abacus);
+    ma->refine(abacus, abAbacus_Smooth);
+    ma->mergeRefine(abacus);
 
-    abacus->getMultiAlign(multialign)->refine(abacus, abAbacus_Poly_X);
-    abacus->getMultiAlign(multialign)->mergeRefine(abacus);
+    ma->refine(abacus, abAbacus_Poly_X);
+    ma->mergeRefine(abacus);
 
-    abacus->getMultiAlign(multialign)->refine(abacus, abAbacus_Indel);
-    abacus->getMultiAlign(multialign)->mergeRefine(abacus);
+    ma->refine(abacus, abAbacus_Indel);
+    ma->mergeRefine(abacus);
   }
 
   //  For each column, vote for the consensus base to use.  Ideally, if we just computed the full
   //  consensus, we'd use that and just replace gaps with N.
 
-  abColID cid   = abacus->getMultiAlign(multialign)->firstColumn();
+  abColID cid   = ma->firstColumn();
   int32   index = 0;
     
-  abacus->getMultiAlign(multialign)->columns().clear();
+  ma->columns().clear();
 
   frankensteinLen = 0;
 
@@ -579,7 +581,7 @@ unitigConsensus::rebuild(bool recomputeFullConsensus) {
     //  This is extracted from RefreshMANode()
     column->position() = index++;
 
-    abacus->getMultiAlign(multialign)->columns().push_back(cid);
+    ma->columns().push_back(cid);
 
     cid = column->nextID();
   }
@@ -877,20 +879,23 @@ unitigConsensus::applyAlignment(void) {
 
 void
 unitigConsensus::generateConsensus(void) {
+  abMultiAlign *ma = abacus->getMultiAlign(multialign);
+
+  fprintf(stderr, "generateConsensus()-- length %u\n", ma->length());
 
   abacus->refreshMultiAlign(multialign);
+  
+  ma->refine(abacus, abAbacus_Smooth);
+  ma->mergeRefine(abacus);
 
-  abacus->getMultiAlign(multialign)->refine(abacus, abAbacus_Smooth);
-  abacus->getMultiAlign(multialign)->mergeRefine(abacus);
+  ma->refine(abacus, abAbacus_Poly_X);
+  ma->mergeRefine(abacus);
 
-  abacus->getMultiAlign(multialign)->refine(abacus, abAbacus_Poly_X);
-  abacus->getMultiAlign(multialign)->mergeRefine(abacus);
+  ma->refine(abacus, abAbacus_Indel);
+  ma->mergeRefine(abacus);
 
-  abacus->getMultiAlign(multialign)->refine(abacus, abAbacus_Indel);
-  abacus->getMultiAlign(multialign)->mergeRefine(abacus);
-
-  abacus->getMultiAlign(multialign)->getConsensus(abacus, tig);
-  abacus->getMultiAlign(multialign)->getPositions(abacus, tig);
+  ma->getConsensus(abacus, tig);
+  ma->getPositions(abacus, tig);
 
   //GetMANodeConsensus(manode->lid, ma->consensus, ma->quality);
   //GetMANodePositions(manode->lid, ma);
@@ -899,8 +904,8 @@ unitigConsensus::generateConsensus(void) {
   //  output, and this is the only time we compute them.  So, we've gotta hang on to them.
   //
   //for (int32 i=0; i<numfrags; i++) {
-  //  utgpos[i].elta_length = 0;
-  //  utgpos[i].elta        = NULL;
+  //  utgpos[i].delta_length = 0;
+  //  utgpos[i].delta        = NULL;
   //}
 
   //  Update or create the unitig in the MultiAlignT.

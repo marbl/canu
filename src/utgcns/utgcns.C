@@ -284,6 +284,11 @@ main (int argc, char **argv) {
   int64  utgEnd = -1;
   char  *utgFile = NULL;
 
+  char *outResultsName = NULL;
+  char *outLayoutsName = NULL;
+  FILE *outResultsFile = NULL;
+  FILE *outLayoutsFile = NULL;
+
   bool   forceCompute = false;
 
   int32  numFailures = 0;
@@ -296,7 +301,6 @@ main (int argc, char **argv) {
 
   bool   inplace  = false;
   bool   loadall  = false;
-  bool   doUpdate = true;
 
   uint32 verbosity = 0;
 
@@ -324,6 +328,12 @@ main (int argc, char **argv) {
     } else if (strcmp(argv[arg], "-T") == 0) {
       utgFile = argv[++arg];
 
+    } else if (strcmp(argv[arg], "-O") == 0) {
+      outResultsName = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-L") == 0) {
+      outLayoutsName = argv[++arg];
+
     } else if (strcmp(argv[arg], "-f") == 0) {
       forceCompute = true;
 
@@ -345,9 +355,6 @@ main (int argc, char **argv) {
     } else if (strcmp(argv[arg], "-loadall") == 0) {
       loadall = true;
 
-    } else if (strcmp(argv[arg], "-n") == 0) {
-      doUpdate = false;
-
     } else {
       fprintf(stderr, "%s: Unknown option '%s'\n", argv[0], argv[arg]);
       err++;
@@ -368,6 +375,10 @@ main (int argc, char **argv) {
     fprintf(stderr, "    -T file         Test the computation of the unitig layout in 'file'\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "    -f              Recompute unitigs that already have a multialignment\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "    -O results      Write computed tigs to binary output file 'results'\n");
+    fprintf(stderr, "    -L layouts      Write computed tigs to layout output file 'layouts'\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "    -v              Show multialigns.\n");
     fprintf(stderr, "    -V              Enable debugging option 'verbosemultialign'.\n");
@@ -395,6 +406,20 @@ main (int argc, char **argv) {
 
     exit(1);
   }
+
+  errno = 0;
+
+  //  Open output files
+
+  if (outResultsName)
+    outResultsFile = fopen(outResultsName, "w");
+  if (errno)
+    fprintf(stderr, "Failed to open output results file '%s': %s\n", outResultsName, strerror(errno)), exit(1);
+
+  if (outLayoutsName)
+    outLayoutsFile = fopen(outLayoutsName, "w");
+  if (errno)
+    fprintf(stderr, "Failed to open output results file '%s': %s\n", outLayoutsName, strerror(errno)), exit(1);
 
   //  Open gatekeeper for read only, and load the partitioned data if tigPart > 0.
 
@@ -453,24 +478,16 @@ main (int argc, char **argv) {
     e = utgEnd + 1;
   }
 
-  //  Reopen for writing, if we have work to do.
-
-  //if (b < e) {
-  //  delete tigStore;
-  //  tigStore = new MultiAlignStore(tigName, tigVers, tigPart, 0, doUpdate, inplace, !inplace);
-  //}
-
   fprintf(stderr, "Computing unitig consensus for b="F_U32" to e="F_U32"\n", b, e);
 
   //  Now the usual case.  Iterate over all unitigs, compute and update.
 
   for (uint32 ti=b; ti<e; ti++) {
-    tgTig  *tig = tigStore->loadTig(ti);
+    tgTig  *tig = tigStore->loadTig(ti);  //  Store owns the tig
 
-    if (tig == NULL) {
+    if (tig == NULL)
       //  Not in our partition, or deleted.
       continue;
-    }
 
     bool exists = (tig->gappedLength() > 0);
 
@@ -505,18 +522,20 @@ main (int argc, char **argv) {
     tig->_utgcns_doPhasing    = false;
 
     if (generateMultiAlignment(tig, gkpStore, NULL)) {
-      if (showResult)
-        //abacus->getMultiAlign()->printAlignment(abacus, stdout);
-        //  
+      //if (showResult)
+      //  abacus->getMultiAlign()->printAlignment(abacus, stdout);
 
       unstashContains(tig, origChildren);
 
-      //if (doUpdate) {
-      //  tigStore->insertMultiAlign(ma, true, true);
-      //  tigStore->unloadMultiAlign(ma->maID, true, false);
-      //} else {
-      //  tigStore->unloadMultiAlign(ma->maID, true, true);
-      //}
+      //tigStore->insertTig(tig, true);           //  Store owns the tig still.
+
+      if (outResultsFile)
+        tig->saveToStream(outResultsFile);
+
+      if (outLayoutsFile)
+        tig->dumpLayout(outLayoutsFile);
+
+      tigStore->unloadTig(tig->tigID(), true);  //  Tell the store we're done with it
 
     } else {
       fprintf(stderr, "unitigConsensus()-- unitig %d failed.\n", tig->tigID());
@@ -526,6 +545,9 @@ main (int argc, char **argv) {
 
  finish:
   delete tigStore;
+
+  if (outResultsFile)  fclose(outResultsFile);
+  if (outLayoutsFile)  fclose(outLayoutsFile);
 
 #if 0
   fprintf(stderr, "\n");

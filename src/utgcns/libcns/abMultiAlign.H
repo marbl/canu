@@ -17,12 +17,18 @@ typedef enum {
 class abMultiAlign {
 public:
   abMultiAlign() {
-    iid = 0;
+    lid   = abMultiAlignID();
+    iid   = 0;
+    first = abColID();
+    last  = abColID();
+
+    columnList.clear();
   };
   ~abMultiAlign() {
   };
 
-  abMultiAlignID    ident(void)       { return(lid); };
+  abMultiAlignID    ident(void)          { return(lid); };
+  void              identSet(uint32 idx) { lid.set(idx); };  //  Use ONLY bet abAbacus::addMultiAlign()
 
   abColID           firstColumn(void) { return(first); };
   abColID           lastColumn(void)  { return(last); };
@@ -34,7 +40,19 @@ public:
 
   vector<abColID>  &columns(void) {  //  For unitigConsensus, to rebuild
     return(columnList);
-  }
+  };
+
+  void              addColumnToMultiAlign(abColumn *column) {
+    columnList.push_back(column->ident());
+
+    if (column->prevID().isValid() == false)
+      //  No previous, so this becomes the first column
+      first = column->ident();
+
+    if (column->nextID().isValid() == false)
+      //  No next, so this becomes the last
+      last = column->ident();
+  };
 
   void              getConsensus(abAbacus *abacus, char *bases, char *quals, uint32 &len, uint32 max);
   void              getConsensus(abAbacus *abacus, char *bases, char *quals);
@@ -61,7 +79,7 @@ private:
   abColID                last;
   vector<abColID>        columnList;  //  Used in AbacusRefine to get random access to specific column
 
-  friend class abAbacus;
+  //friend class abAbacus;
 };
 
 

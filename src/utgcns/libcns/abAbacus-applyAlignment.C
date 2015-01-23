@@ -47,12 +47,12 @@ abAbacus::prependColumn(abColID cid, abBeadID bid) {
 
   call->prev     = nextcall->prev;
   call->next     = nextcall->ident();
-  next->prev     = column->lid;
+  next->prev     = column->ident();
 
   nextcall->prev = call->ident();
 
   if (column->prevID().isValid())
-    getColumn(column->prev)->next = column->lid;
+    getColumn(column->prev)->next = column->ident();
 
   if (call->prev.isValid())
     getBead(call->prev)->next = call->ident();
@@ -66,29 +66,19 @@ abAbacus::prependColumn(abColID cid, abBeadID bid) {
 
     if ((bead->prev.isValid()) &&
         (bead->prev != bid))
-      alignBeadToColumn(column->lid, prependGapBead(nid), "prependColumn()");
+      alignBeadToColumn(column->ident(), prependGapBead(nid), "prependColumn()");
   }
 
   column->ma_position = next->ma_position - 1;
 
   //AddColumnToMANode(column->ma_id, *column);
-  {
-    abMultiAlign *ma = getMultiAlign(column->ma_id);
-
-    ma->columnList.push_back(column->lid);
-
-    if (column->next.isValid() == false)
-      ma->last = column->lid;
-
-    if (column->prev.isValid() == false)
-      ma->first = column->lid;
-  }
+  getMultiAlign(column->ma_id)->addColumnToMultiAlign(column);
 
   //  Redundant
   //if (column->prevID().isValid() == false)
   //  getMultiAlign(column->ma_id)->first = column->lid;
 
-  return(column->lid);
+  return(column->ident());
 }
 
 

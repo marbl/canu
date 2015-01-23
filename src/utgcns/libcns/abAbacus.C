@@ -343,16 +343,23 @@ abAbacus::appendColumn(abColID cid, abBeadID bid) {
   nextCol->ma_position =  prevCol->ma_position + 1;
 
   //AddColumnToMANode(nextCol->ma_id, *column);
+  getMultiAlign(nextCol->ma_id)->addColumnToMultiAlign(nextCol);  //  columnList
 
+#if 0
   abMultiAlign  *ma = getMultiAlign(nextCol->ma_id);
 
-  ma->columnList.push_back(nextCol->ident());
+  ma->columnsList.push_back(nextCol->ident());
 
-  if (nextCol->prev.isValid() == false)
+  if (nextCol->prev.isValid() == false) {
+    fprintf(stderr, "abAbacus::appendColumn()-- set first from %u to %u\n", ma->first.get(), nextCol->ident().get());
     ma->first = nextCol->ident();
+  }
 
-  if (nextCol->next.isValid() == false)
+  if (nextCol->next.isValid() == false) {
+    fprintf(stderr, "abAbacus::appendColumn()-- set last  from %u to %u\n", ma->last.get(), nextCol->ident().get());
     ma->last = nextCol->ident();
+  }
+#endif
 
   return(nextCol->lid);
 }
@@ -683,22 +690,28 @@ abAbacus::addMultiAlign(abSeqID sid) {
 
   increaseArray(_multiAligns, _multiAlignsLen, _multiAlignsMax, 1);
 
-  _multiAligns[_multiAlignsLen].lid.set(_multiAlignsLen);
+  _multiAligns[_multiAlignsLen].identSet(_multiAlignsLen);
 
   abMultiAlign *ma     = _multiAligns + _multiAlignsLen++;
 
   abBeadID      bid    = fi.next();  //  The bead seeding this column
   abBead       *bead   = getBead(bid);
 
-  abColID       cid    = addColumn(ma->lid, bid);
+  abColID       cid    = addColumn(ma->ident(), bid);
   abColumn     *column = getColumn(cid);
 
   //  Add the column to the multiAlign; column pointers (in the column) are already set to 'nothing'
 
+  assert(column->prevID().isValid() == false);
+  assert(column->nextID().isValid() == false);
+
+  ma->addColumnToMultiAlign(column);
+#if 0
   ma->first = cid;
   ma->last  = cid;
 
   ma->columnList.push_back(cid);
+#endif
 
   bid = fi.next();
 
@@ -709,11 +722,11 @@ abAbacus::addMultiAlign(abSeqID sid) {
 
   //  Mark this sequence as belonging to this multiAlign
 
-  seq->addToMultiAlign(ma->lid);
+  seq->addToMultiAlign(ma->ident());
 
-  refreshMultiAlign(ma->lid);
+  refreshMultiAlign(ma->ident());
 
-  return(ma->lid);
+  return(ma->ident());
 };
 
 

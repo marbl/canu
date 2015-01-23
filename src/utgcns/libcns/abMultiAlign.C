@@ -7,26 +7,32 @@ abMultiAlign::getConsensus(abAbacus *abacus, char *bases, char *quals, uint32 &l
   abColumn   *col = abacus->getColumn(firstColumn());
   abBeadID   bid  = col->callID();
 
-  len = 0;
+  for (len=0; bid.isValid(); len++) {
+    abBead *bead = abacus->getBead(bid);
 
-  for (abBead *bead = abacus->getBead(bid); bid.isValid(); bid = bead->nextID()) {
     bases[len] = abacus->getBase(bead->baseIdx());
     quals[len] = abacus->getQual(bead->baseIdx());
 
-    len++;
+    //fprintf(stderr, "getConsensus()--  len %9u bead %5u base %c %c next %5d\n",
+    //        len, bead->ident(), bases[len], quals[len], bead->nextID().get());
+
+    bid = bead->nextID();
   }
 
   bases[len] = 0;
   quals[len] = 0;
 
-  assert(len < max);
+  assert(len < max);  //  Should be len+1 == max if we just reallocated, but max can be way bigger
 }
 
 
 void
 abMultiAlign::getConsensus(abAbacus *abacus, tgTig *tig) {
 
-  resizeArrayPair(tig->_gappedBases, tig->_gappedQuals, tig->_gappedLen, tig->_gappedMax, length(), resizeArray_doNothing);
+  fprintf(stderr, "abMultiAlign::getConsensus()-- transfering consensus of length %u to tig %u\n", length(), tig->tigID());
+
+  //  +1 for the terminating nul byte.
+  resizeArrayPair(tig->_gappedBases, tig->_gappedQuals, tig->_gappedLen, tig->_gappedMax, length() + 1, resizeArray_doNothing);
 
   getConsensus(abacus, tig->_gappedBases, tig->_gappedQuals, tig->_gappedLen, tig->_gappedMax);
 }
@@ -113,7 +119,7 @@ abMultiAlign::getPositions(abAbacus *abacus, tgTig *tig) {
       tig->_childDeltasLen += tig->_childDeltasLen;
     }
   }
-};
+}
 
 
 

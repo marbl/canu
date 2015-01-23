@@ -62,8 +62,8 @@ public:
   void   initialize(uint32 nr) {
     id        = UINT32_MAX;
     num_reads = 0;
-    read_ids  = new uint32 [nr];
-    read_iids = new uint32 [nr];
+    read_ids  = new uint32 [nr];  memset(read_ids,  0, sizeof(uint32) * nr);
+    read_iids = new uint32 [nr];  memset(read_iids, 0, sizeof(uint32) * nr);
     weight    = 0;
     uglen     = 0;
   };

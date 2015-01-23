@@ -73,8 +73,8 @@ abAbacus::baseCallQuality(abVarRegion   &vreg,
                           double        &var,
                           int32          target_allele,
                           bool           getScores,
-                          int32          split_alleles,
-                          int32          smooth_win) {
+                          int32          splitAlleles,
+                          int32          smoothWindow) {
 
   char    consensusBase = '-';
   char    consensusQV   = '0';
@@ -151,13 +151,16 @@ abAbacus::baseCallQuality(abVarRegion   &vreg,
     // Will be used when detecting variation
 
     if (((target_allele < 0)        ||   // use any allele
-         (split_alleles == 0)       ||   // use any allele
+         (splitAlleles == false)    ||   // use any allele
          ((vreg.nr > 0)  &&
           (vreg.reads[vregidx].allele_id == target_allele)))) { // use the best allele
+
       bBaseCount[baseIdx]++;
       bQVSum[baseIdx] += qv;
       bReads.push_back(bead);
-    } else {
+    }
+
+    else {
       oBaseCount[baseIdx]++;
       oQVSum[baseIdx] += qv;
       oReads.push_back(bead);
@@ -409,9 +412,9 @@ abAbacus::baseCallQuality(abVarRegion   &vreg,
       (sumQVall > 0)) {
     double  ratio = (double)sumQVcns / sumQVall;
 
-    var = ((smooth_win > 0) && (consensusBase == '-')) ? (ratio - 1.0) : (1.0 - ratio);
+    var = ((smoothWindow > 0) && (consensusBase == '-')) ? (ratio - 1.0) : (1.0 - ratio);
   } else {
-    var = ((smooth_win > 0) && (consensusBase == '-')) ? -2.0 : 0.0;
+    var = ((smoothWindow > 0) && (consensusBase == '-')) ? -2.0 : 0.0;
   }
 }
 
@@ -424,14 +427,12 @@ abAbacus::baseCall(abVarRegion &vreg,
                    double      &var,
                    int32        target_allele,
                    bool         getScores,
-                   int32        split_alleles,
-                   int32        smooth_win) {
-
-  abColumn *column = getColumn(cid);
-  abBead   *call   = getBead(column->callID());
+                   bool         splitAlleles,
+                   int32        smoothWindow) {
 
   //  NOTE: negative target_allele means the the alleles will be used
   //  Hardcoded in baseCallQuality
+
   assert(target_allele == -1);
 
   var     = 0.0;
@@ -443,10 +444,13 @@ abAbacus::baseCall(abVarRegion &vreg,
                     var,
                     target_allele,
                     getScores,
-                    split_alleles,
-                    smooth_win);
+                    splitAlleles,
+                    smoothWindow);
   else
     baseCallMajority(cid);
+
+  abColumn *column = getColumn(cid);
+  abBead   *call   = getBead(column->callID());
 
   return(getBase(call->baseIdx()));
 }
