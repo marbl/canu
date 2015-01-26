@@ -25,4 +25,5 @@ SUBMAKEFILES := gatekeeperCreate.mk \
                 ovStoreSorter.mk \
                 ovStoreIndexer.mk \
                 ovStoreDump.mk \
-                tgStoreDump.mk
+                tgStoreDump.mk \
+                tgTigDisplay.mk
