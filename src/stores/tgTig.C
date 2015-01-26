@@ -251,9 +251,13 @@ tgTig::saveToStream(FILE *F) {
     AS_UTL_safeWrite(F, _children, "tgTig::saveToStream::children", sizeof(tgPosition), _childrenLen);
   }
 
+  fprintf(stderr, "tgTig::saveToStream()-- at "F_U64" - before deltas, saving "F_U32"\n", AS_UTL_ftell(F), _childDeltasLen);
+
   if (_childDeltasLen > 0) {
     AS_UTL_safeWrite(F, _childDeltas, "tgTig::saveToStream::childDeltas", sizeof(int32), _childDeltasLen);
   }
+
+  fprintf(stderr, "tgTig::saveToStream()-- at "F_U64" - before variants, saving "F_U32"\n", AS_UTL_ftell(F), _variantsLen);
 
   if (_variantsLen > 0) {
     AS_UTL_safeWrite(F, _variants, "tgTig::saveToStream::variants", sizeof(tgVariantPosition), _variantsLen);
@@ -312,8 +316,8 @@ tgTig::loadFromStream(FILE *F) {
     AS_UTL_safeRead(F, _ungappedQuals, "tgTig::loadFromStream::ungappedQuals", sizeof(char), _ungappedLen);
   }
 
-  fprintf(stderr, "tgTig::loadFromStream()-- Loading at position "F_U64" - before children, need to load "F_U64" bytes each.\n",
-          AS_UTL_ftell(F), sizeof(tgPosition));
+  fprintf(stderr, "tgTig::loadFromStream()-- Loading at position "F_U64" - before children, need to load "F_U32" at "F_U64" bytes each.\n",
+          AS_UTL_ftell(F), _childrenLen, sizeof(tgPosition));
 
   if (_childrenLen > 0) {
     fprintf(stderr, "tgTig::loadFromStream()-- loading %u children\n", _childrenLen);
@@ -323,9 +327,15 @@ tgTig::loadFromStream(FILE *F) {
     //  _children[cc].loadFromStream(F);
   }
 
+  fprintf(stderr, "tgTig::loadFromStream()-- Loading at position "F_U64" - before deltas, need to load "F_U32" at "F_U64" bytes each.\n",
+          AS_UTL_ftell(F), _childDeltasLen, sizeof(tgPosition));
+
   if (_childDeltasLen > 0) {
     AS_UTL_safeRead(F, _childDeltas, "tgTig::loadFromStream::childDeltas", sizeof(int32), _childDeltasLen);
   }
+
+  fprintf(stderr, "tgTig::loadFromStream()-- Loading at position "F_U64" - before children, need to load "F_U32" at "F_U64" bytes each.\n",
+          AS_UTL_ftell(F), _variantsLen, sizeof(tgPosition));
 
   if (_variantsLen > 0) {
     AS_UTL_safeRead(F, _variants, "tgTig::loadFromStream::variants", sizeof(tgVariantPosition), _variantsLen);
@@ -373,16 +383,16 @@ tgTig::dumpLayout(FILE *F) {
     tgPosition *imp = _children + i;
 
     if (imp->_isRead)
-      fprintf(F, "read   %9"F_U32P" anchor %9"F_U32P" hang %6"F_S32P" %6"F_S32P" position %6"F_U32P" %6"F_U32P"\n",
-              imp->ident(), imp->anchor(), imp->aHang(), imp->bHang(), imp->bgn(), imp->end());
+      fprintf(F, "read   %9"F_U32P" anchor %9"F_U32P" hang %6"F_S32P" %6"F_S32P" position %6"F_U32P" %6"F_U32P" deltas %u at %u\n",
+              imp->ident(), imp->anchor(), imp->aHang(), imp->bHang(), imp->bgn(), imp->end(), imp->_deltaLen, imp->_deltaOffset);
 
     if (imp->_isUnitig)
-      fprintf(F, "unitig %9"F_U32P" anchor %9"F_U32P" hang %6"F_S32P" %6"F_S32P" position %6"F_U32P" %6"F_U32P"\n",
-              imp->ident(), imp->anchor(), imp->aHang(), imp->bHang(), imp->bgn(), imp->end());
+      fprintf(F, "unitig %9"F_U32P" anchor %9"F_U32P" hang %6"F_S32P" %6"F_S32P" position %6"F_U32P" %6"F_U32P" deltas %u at %u\n",
+              imp->ident(), imp->anchor(), imp->aHang(), imp->bHang(), imp->bgn(), imp->end(), imp->_deltaLen, imp->_deltaOffset);
 
     if (imp->_isContig)
-      fprintf(F, "contig %9"F_U32P" anchor %9"F_U32P" hang %6"F_S32P" %6"F_S32P" position %6"F_U32P" %6"F_U32P"\n",
-              imp->ident(), imp->anchor(), imp->aHang(), imp->bHang(), imp->bgn(), imp->end());
+      fprintf(F, "contig %9"F_U32P" anchor %9"F_U32P" hang %6"F_S32P" %6"F_S32P" position %6"F_U32P" %6"F_U32P" deltas %u at %u\n",
+              imp->ident(), imp->anchor(), imp->aHang(), imp->bHang(), imp->bgn(), imp->end(), imp->_deltaLen, imp->_deltaOffset);
   }
 
   fprintf(F, "tigend\n");
