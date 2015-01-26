@@ -593,7 +593,8 @@ tgStore::loadMASR(tgStoreEntry* &R, uint32& L, uint32& M, uint32 V, bool onlyThi
     }
 
     M = L + 1024;
-    R = (tgStoreEntry *)safe_calloc(M, sizeof(tgStoreEntry));
+    R = new tgStoreEntry [M];
+    memset(R, 0, sizeof(tgStoreEntry) * M);
   }
 
   sprintf(_name, "%s/seqDB.v%03d.tig", _path, V);
