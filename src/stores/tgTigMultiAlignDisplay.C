@@ -118,15 +118,13 @@ tgTig::display(FILE     *F,
                bool      withQV,
                bool      withDots)  {
 
-  uint32     depth;
-  char     **multia=NULL;
-  int32    **idarray;
-  int32    **oriarray;
 
   if (gappedLength() == 0) {
     fprintf(F, "No MultiAlignment to print for tig %d -- no consensus sequence present.\n", tigID());
     return;
   }
+
+  fprintf(stderr, "tgTig::display()--  display tig %d with %d children\n", tigID(), _childrenLen);
 
   //
   //  Convert the children to a list of lines to print
@@ -183,9 +181,9 @@ tgTig::display(FILE     *F,
       lanesLen++;
   }
 
-  //  Process.
+  //  Allocate space.
 
-  multia = new char * [2 * lanesLen];
+  char  **multia = new char * [2 * lanesLen];
 
   for (int32 i=0; i<2*lanesLen; i++) {
     multia[i]  = new char [gappedLength() + 1 + displayWidth];
@@ -194,8 +192,8 @@ tgTig::display(FILE     *F,
     multia[i][gappedLength()] = 0;
   }
 
-  idarray  = new int32 * [lanesLen];
-  oriarray = new int32 * [lanesLen];
+  int32  **idarray  = new int32 * [lanesLen];
+  int32  **oriarray = new int32 * [lanesLen];
 
   for (int32 i=0; i<lanesLen; i++) {
     idarray[i] = new int32 [gappedLength()];
@@ -205,6 +203,7 @@ tgTig::display(FILE     *F,
     memset(oriarray[i], 0, sizeof(int32) * gappedLength());
   }
 
+  //  Process.
 
   for (int32 i=0; i<lanesLen; i++) {
     char *srow = multia[2*i];
@@ -237,7 +236,7 @@ tgTig::display(FILE     *F,
         assert(cols + seglen < node->readLen);
 
         memcpy(srow + col, node->bases + cols, seglen);
-        memcpy(qrow + col, node->quals  + cols, seglen);
+        memcpy(qrow + col, node->quals + cols, seglen);
 
         col += seglen;
 
@@ -249,7 +248,7 @@ tgTig::display(FILE     *F,
       }
 
       memcpy(srow + col, node->bases + cols, node->readLen - cols);
-      memcpy(qrow + col, node->quals  + cols, node->readLen - cols);
+      memcpy(qrow + col, node->quals + cols, node->readLen - cols);
     }
   }
 
@@ -329,7 +328,9 @@ tgTig::display(FILE     *F,
       _gappedQuals[window+rowlen] = save;
     }
 
-    for (uint32 i=0; i<depth; i++) {
+    //  Display.
+
+    for (uint32 i=0; i<lanesLen; i++) {
       assert(multia[2*i] != NULL);
 
       //  Change matching bases to '.' or lowercase.
@@ -388,12 +389,12 @@ tgTig::display(FILE     *F,
 
   fprintf(F, "\n<<< end Contig %d >>>\n", tigID());
 
-  for (uint32 i=0; i < 2*depth; i++)
+  for (uint32 i=0; i < 2 * lanesLen; i++)
     delete [] multia[i];
 
   delete [] multia;
 
-  for (uint32 i=0; i < depth; i++) {
+  for (uint32 i=0; i < lanesLen; i++) {
     delete [] idarray[i];
     delete [] oriarray[i];
   }
