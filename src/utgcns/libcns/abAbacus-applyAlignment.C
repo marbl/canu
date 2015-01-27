@@ -292,7 +292,6 @@ abAbacus::applyAlignment(abSeqID   afid,
     for (uint32 bi=0; bi<blen; bi++)
       bindex[bi].set(bfrag->firstBead().get() + bi);
 
-#warning not resetting bfrag multialignID to null
     //bfrag->multiAlignID() = abMultiAlignID();  //  USED?
   } else {
     assert(0);

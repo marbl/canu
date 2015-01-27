@@ -18,7 +18,7 @@ public:
     uint32 r = baseToIndex[c];
 
     if ((r < 0) || (r > 5))
-      fprintf(stderr, "IncBaseCount c=%c r=%u out of range.\n", c, r);
+      fprintf(stderr, "IncBaseCount c=%d '%c' r=%u out of range.\n", c, c, r);
     assert(0 <= r);
     assert(r <= 5);
 
@@ -31,7 +31,7 @@ public:
     uint32 r = baseToIndex[c];
 
     if ((r < 0) || (r > 5))
-      fprintf(stderr, "DecBaseCount c=%c r=%u out of range.\n", c, r);
+      fprintf(stderr, "DecBaseCount c=%d '%c' r=%u out of range.\n", c, c, r);
     assert(0 <= r);
     assert(r <= 5);
 
@@ -44,7 +44,7 @@ public:
     uint32 r = baseToIndex[c];
 
     if ((r < 0) || (r > 5))
-      fprintf(stderr, "GetBaseCount c=%c r=%u out of range.\n", c, r);
+      fprintf(stderr, "GetBaseCount c=%d '%c' r=%u out of range.\n", c, c, r);
     assert(0 <= r);
     assert(r <= 5);
 
@@ -65,7 +65,8 @@ public:
   //
   //  BUG:  This wants to return a letter, but doesn't know the mapping
   //
-  uint32  GetMaxBaseCount(bool skipGap) {
+  uint32
+  GetMaxBaseCountBase(bool skipGap) {
     uint32 iMax = (skipGap == false) ? 0 : 1;
     uint32 tied = 0;
 
@@ -93,7 +94,7 @@ public:
       }
     }
 
-    return(iMax);
+    return(indexToBase[iMax]);
   };
 
 private:
@@ -122,20 +123,22 @@ public:
   //  Max over what?  Also needs abacus to get next beads!  Gah!  Two with the same name!
   //#warning GetMaxBaseCount confusion.
   //char       GetMaxBaseCount(abAbacus *ab, int32 start_index);
-  char       GetMaxBaseCount(bool skipGap)  {  return(base_count.GetMaxBaseCount(skipGap)); };
-
-  abColID    ident(void)                    { return(lid);  };
-
-  abBeadID   callID(void)                   { return(call); };
-
-  abColID    prevID(void)                   { return(prev); };
-  abColID    nextID(void)                   { return(next); };
-
-  int32      mismatch(void) {
-    return(base_count.GetDepth() - base_count.GetBaseCount( base_count.GetMaxBaseCount(false) ));
+  char       GetMaxBaseCountBase(bool skipGap) {
+    return(base_count.GetMaxBaseCountBase(skipGap));
   };
 
-  uint32    &position(void)                 { return(ma_position); };
+  abColID    const  ident(void)                    { return(lid);  };
+
+  abBeadID   const  callID(void)                   { return(call); };
+
+  abColID          &prevID(void)                   { return(prev); };
+  abColID          &nextID(void)                   { return(next); };
+
+  int32             mismatch(void) {
+    return(base_count.GetDepth() - base_count.GetBaseCount( base_count.GetMaxBaseCountBase(false) ));
+  };
+
+  int32            &position(void)                 { return(ma_position); };
 
 private:
   abColID          lid;           //  index in columnStore
@@ -143,7 +146,7 @@ private:
   abColID          prev;          //  navigation in columnStore;
   abColID          next;          //
   abMultiAlignID   ma_id;         //  abMultiAlign this column belongs to
-  uint32           ma_position;   //  was ma_index; index in MANode; // refreshed only periodically // seems to also be gapped position in the align
+  int32            ma_position;   //  was ma_index; column ordinal, needs to be signed for compat with tgTig bgn/end
   abBaseCount      base_count;
 
   friend class abAbacus;

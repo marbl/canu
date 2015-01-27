@@ -138,6 +138,7 @@ generateMultiAlignment(tgTig     *tig,
     goto returnFailure;
 
   uc->generateConsensus();
+  uc->exportToTig();
 
   //  NEED TO UPDATE THE tgTig
 

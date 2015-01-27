@@ -9,6 +9,19 @@
 char *
 ovsOverlap::toString(char *str) {
 
+#if 1
+
+  //  Compatible with CA 8.2
+  sprintf(str, "%8"F_U32P" %8"F_U32P"  %c  %6d  %6d  %4.2f  %4.2f",
+          a_iid,
+          b_iid,
+          dat.ovl.flipped ? 'I' : 'N',
+          a_hang(), b_hang(),
+          AS_OVS_decodeQuality(dat.ovl.erate) * 100.0,
+          AS_OVS_decodeQuality(dat.ovl.erate) * 100.0);
+
+#else
+
   sprintf(str, "%8"F_U32P" %8"F_U32P"  %c  %6"F_OVP"  %6"F_OVP" %6"F_OVP"  %6"F_OVP" %6"F_OVP"  %4.2f",
           a_iid,
           b_iid,
@@ -17,6 +30,8 @@ ovsOverlap::toString(char *str) {
           dat.ovl.ahg5, dat.ovl.ahg3,
           dat.ovl.bhg5, dat.ovl.bhg3,
           AS_OVS_decodeQuality(dat.ovl.erate) * 100.0);
+
+#endif
 
   return(str);
 }

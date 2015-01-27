@@ -162,70 +162,23 @@ mergeCompatible(abAbacus *abacus, abColID cid) {
 //*********************************************************************************
 
 void
-abMultiAlign::mergeRefine(abAbacus *abacus) {
-  //abMultiAlign *ma = getMultiAlign(mid);
+abMultiAlign::mergeRefine(abAbacus *abacus, bool highQuality) {
 
   fprintf(stderr, "abMultiAlign::mergeRefine()--  legnth %u\n", length());
 
-  //  Loop over all columns.  If do not merge, advance to the next
-  //  column, otherwise, stay here and merge to the now different next
-  //  column (mergeCompatible removes the column that gets merged into
-  //  the current column).
+  //  Loop over all columns.  If we do not merge, advance to the next column, otherwise, stay here
+  //  and merge to the now different next column (mergeCompatible removes the column that gets
+  //  merged into the current column).
 
-  for (abColID cid=first; cid.isValid(); ){
+  for (abColID cid=first; cid.isValid(); ) {
     if (mergeCompatible(abacus, cid) == false)
       cid = abacus->getColumn(cid)->nextID();
+    else
+      abacus->baseCall(cid, highQuality);
   }
 
-  //  Unitig consensus passed in no v_list, and set utg_alleles to 1, get_scores to 1
-  //  Contig consensus passed in no v_list, and set utg_alleles to 0, get_scores to 1
-  //              THEN passed in a  v_list, and set utg_alleles to 0, get_scores to 2
-
-  //int32   make_v_list = 0;  //  ?? quality mode?  if not utg_alleles and no v_list
-  //int32   make_v_list = 1;  //  majority allele
-  //int32   make_v_list = 2;  //  vars, contig mode, needs valid v_list passed in
-
-  //RefreshMANode(mid, 1, opp, &nv, &vl, make_v_list, get_scores);
-
-#warning not doing expensive refresh
-
-#if 0
-  //  Expensive
-  abacus->refreshMultiAlign(lid,
-                            true,     //  recallBase
-                            true,     //  highQuality
-                            true,     //  splitAlleles
-                            true,     //  doPhasing
-                            11,       //  smoothWindow
-                            true,     //  getScores
-                            false,    //  populateVarOutput
-                            NULL,     //  nvars
-                            NULL);    //  v_list
-#else
-  //  Quick, just recall the base using majority
-  abacus->refreshMultiAlign(lid,
-                            true,     //  recallBase
-                            false,    //  highQuality
-                            false,    //  splitAlleles
-                            false,    //  doPhasing
-                            11,       //  smoothWindow
-                            false,    //  getScores
-                            false,    //  populateVarOutput
-                            NULL,     //  nvars
-                            NULL);    //  v_list
-#endif
-
-
-#if 0
-  if (make_v_list && v_list) {
-    ResetVA_IntMultiVar(v_list);
-        
-    if (nv > 0) {
-      ResetVA_IntMultiPos(v_list);
-      SetRangeVA_IntMultiVar(v_list, 0, nv, vl);
-    }
-  }
-
-  //safe_free(vl);
-#endif
+  //  Recall all the bases.  Ideally, this should only be done for columns that change, which we should
+  //  know in the loop above.
+  //
+  //abacus->refreshMultiAlign(lid, highQuality);
 }

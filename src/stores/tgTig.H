@@ -85,11 +85,11 @@ public:
   bool                 isForward(void) const { return((_bgn < _end) || (_isReverse == false)); };
   bool                 isReverse(void) const { return((_bgn > _end) || (_isReverse == true));  };
 
-  uint32              &bgn(void)             { return(_bgn); };
-  uint32              &end(void)             { return(_end); };
+  int32               &bgnset(void)             { return(_bgn); };
+  int32               &endset(void)             { return(_end); };
 
-  uint32               bgn(void) const       { return(_bgn); };
-  uint32               end(void) const       { return(_end); };
+  int32                bgn(void) const       { return(_bgn); };
+  int32                end(void) const       { return(_end); };
 
   uint32               min(void) const       { return((_bgn < _end) ? _bgn : _end); };
   uint32               max(void) const       { return((_bgn < _end) ? _end : _bgn); };
@@ -133,8 +133,9 @@ public:
   int32               _ahang;            //  Placement relative to anchor object
   int32               _bhang;            //
 
-  uint32              _bgn;              //  Coords in the parent object we are part of
-  uint32              _end;              //  (for a read, this will be the position in the unitig)
+  //  Must be signed, utgcns can push reads negative.
+  int32               _bgn;              //  Coords in the parent object we are part of
+  int32               _end;              //  (for a read, this will be the position in the unitig)
 
   uint32              _deltaOffset;      //  Our delta alignment to the parent object consensus
   uint32              _deltaLen;

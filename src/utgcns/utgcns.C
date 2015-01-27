@@ -248,11 +248,11 @@ unstashContains(tgTig                *tig,
 
     //  Otherwise, fudge the positions.
     else {
-      saved->children[fi].bgn() = sf * saved->children[fi].bgn();
-      saved->children[fi].end() = sf * saved->children[fi].end();
+      saved->children[fi].bgnset() = sf * saved->children[fi].bgn();
+      saved->children[fi].endset() = sf * saved->children[fi].end();
 
-      if (saved->children[fi].bgn() > newMax)  saved->children[fi].bgn() = newMax;
-      if (saved->children[fi].end() > newMax)  saved->children[fi].end() = newMax;
+      if (saved->children[fi].bgn() > newMax)  saved->children[fi].bgnset() = newMax;
+      if (saved->children[fi].end() > newMax)  saved->children[fi].endset() = newMax;
     }
   }
 
@@ -522,8 +522,9 @@ main (int argc, char **argv) {
     tig->_utgcns_doPhasing    = false;
 
     if (generateMultiAlignment(tig, gkpStore, NULL)) {
-      //if (showResult)
-      //  abacus->getMultiAlign()->printAlignment(abacus, stdout);
+      if (showResult)
+        //abacus->getMultiAlign()->printAlignment(abacus, stdout);
+        tig->display(stdout, gkpStore);
 
       unstashContains(tig, origChildren);
 

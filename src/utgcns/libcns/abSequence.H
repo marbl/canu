@@ -9,18 +9,18 @@ public:
   ~abSequence() {
   };
 
-  uint32           gkpIdent(void)  { return(_iid);        };
-  abSeqID          ident(void)     { return(_lid);        };
+  uint32     const      gkpIdent(void)  { return(_iid);        };
+  abSeqID    const      ident(void)     { return(_lid);        };
 
-  abBeadID         firstBead(void)   { return(_firstbead);  };
-  abBaseID         firstBase(void)   { return(_firstbase);  };
-  //abColID          firstColumn(void) { needs avacus to get columns };
+  abBeadID   const      firstBead(void)   { return(_firstbead);  };
+  abBaseID   const      firstBase(void)   { return(_firstbase);  };
+  //abColID    const      firstColumn(void) { needs abacus to get columns };
 
-  //abBeadID         lastBead(void)    { return(_firstbead + _length - 1);  };
-  //abBaseID         lastBase(void)    { return(_firstbase + _length - 1);  };
-  abBeadID         lastBead(void)    { return(_lastbead);  };
-  abBaseID         lastBase(void)    { return(_lastbase);  };
-  //abColID          lastColumn(void)  { needs avacus to get columns };
+  //abBeadID    const     lastBead(void)    { return(_firstbead + _length - 1);  };
+  //abBaseID    const     lastBase(void)    { return(_firstbase + _length - 1);  };
+  abBeadID    const     lastBead(void)    { return(_lastbead);  };
+  abBaseID    const     lastBase(void)    { return(_lastbase);  };
+  //abColID     const     lastColumn(void)  { needs avacus to get columns };
 
   bool             isRead(void)    { return(_is_read);    };
 
@@ -28,8 +28,8 @@ public:
 
   bool             isForward(void) { return(_complement == false); };
 
-  abMultiAlignID   multiAlignID(void) { return(_multiAlignID); };
-  void             addToMultiAlign(abMultiAlignID maid) {_multiAlignID = maid;};
+  //abMultiAlignID   multiAlignID(void) { return(_multiAlignID); };
+  //void             addToMultiAlign(abMultiAlignID maid) {_multiAlignID = maid;};
 
   void             initialize(uint32 readID,
                               uint32 readIdx,
@@ -49,7 +49,7 @@ public:
     //_is_contained  = false;
     //_deleted       = false;
 
-    _multiAlignID  = abMultiAlignID();
+    //_multiAlignID  = abMultiAlignID();
 
     _firstbase.set(firstBase);
     _firstbead.set(firstBead);
@@ -74,7 +74,12 @@ private:
   //bool             _is_contained;   //  if non-zero, consensus detected this fragment is contained
   //bool             _deleted;        //  deleted during consensus
 
-  abMultiAlignID   _multiAlignID;
+  //  Never really used, was supposed to indicate if the read was present in this multialign.  The
+  //  original code initialized this to -1, then reset it to NULL (ApplyAlignment.C:365).  On
+  //  printing (PrintAlignment()), and maybe other places, reads with this value != mid (of the
+  //  multialign we are printing) are skipped.  The multialign ID is _always_ 0.
+  //
+  //abMultiAlignID   _multiAlignID;
 
   abBaseID         _firstbase;      //  global index of first sequence character
   abBeadID         _firstbead;      //  global index of first "bead"

@@ -57,13 +57,19 @@ getFragmentDeltas(abAbacus        *abacus,
   for (abBeadID bid=fi->next(); (bid.isValid()) && (bp < len); bid=fi->next()) {
     abBead  *bead = abacus->getBead(bid);
 
-    if (abacus->getBase(bead->baseIdx()) == '-')
+    if (abacus->getBase(bead->baseIdx()) == '-') {
       if (deltas)
-        deltas[dl++] = bp;
+        deltas[dl] = bp;
+      dl++;
+    }
 
     else
       bp++;
   }
+
+  if (deltas)
+    deltas[dl] = 0;
+  dl++;
 
   return(dl);
 }
@@ -73,7 +79,6 @@ getFragmentDeltas(abAbacus        *abacus,
 void
 abMultiAlign::getPositions(abAbacus *abacus, tgTig *tig) {
 
-
   //  Interesting quandry.  We need to know the number of deltas so we can pre-allocate the array,
   //  or we need to keep growing it.  We're expecting lots of noise in the reads, and so lots of
   //  deltas, wich would mean lots of reallocating (and copying).  Is this faster than a pass
@@ -81,26 +86,23 @@ abMultiAlign::getPositions(abAbacus *abacus, tgTig *tig) {
 
   uint32  nd = 0;
 
-  for (abSeqID si=0; si.get()<abacus->numberOfSequences(); ++si) {
+  for (abSeqID si=0; si.get()<abacus->numberOfSequences(); ++si)
     nd += getFragmentDeltas(abacus, si, NULL);
-  }
 
   resizeArray(tig->_childDeltas, tig->_childDeltasLen, tig->_childDeltasMax, nd, resizeArray_doNothing);
 
   tig->_childDeltasLen = 0;
 
-
   for (abSeqID si=0; si.get()<abacus->numberOfSequences(); ++si) {
     abSequence *seq = abacus->getSequence(si);
 
-    if (seq->multiAlignID() == abMultiAlignID())
-      //  Not placed in the multialign??
-      continue;
+    //if (seq->multiAlignID() == abMultiAlignID())
+    //  //  Not placed in the multialign??
+    //  continue;
+    //assert(seq->multiAlignID() == ident());
 
-    assert(seq->multiAlignID() == ident());
-
-    uint32 bgn = abacus->getColumn( (abacus->getBead( seq->firstBead()                    ))->colIdx())->position();
-    uint32 end = abacus->getColumn( (abacus->getBead( seq->firstBead() + seq->length() - 1))->colIdx())->position() + 1;
+    int32 bgn = abacus->getColumn( (abacus->getBead( seq->firstBead() ))->colIdx())->position();
+    int32 end = abacus->getColumn( (abacus->getBead( seq->lastBead()  ))->colIdx())->position();  // + seq->length() - 1))->colIdx())->position() + 1;
 
     tgPosition *child = tig->getChild(si.get());  //  Assumes one-to-one map of seqs to children;
 
@@ -110,8 +112,10 @@ abMultiAlign::getPositions(abAbacus *abacus, tgTig *tig) {
       child->anchor()      = 0;
       child->aHang()       = 0;
       child->bHang()       = 0;
-      child->bgn()         = (seq->isForward() == true) ? bgn : end;
-      child->end()         = (seq->isForward() == true) ? end : bgn;
+      child->bgnset()         = (seq->isForward() == true) ? bgn : end;
+      child->endset()         = (seq->isForward() == true) ? end : bgn;
+
+      child->_isReverse    = (seq->isForward() == false);
 
       child->_deltaOffset  = tig->_childDeltasLen;
       child->_deltaLen     = getFragmentDeltas(abacus, si, tig->_childDeltas + tig->_childDeltasLen);;
@@ -145,7 +149,9 @@ abMultiAlign::display(abAbacus  *abacus,
 
   getConsensus(abacus, sequence, quality, len, length() + 1);
 
-  assert(len == length());
+  if (len != length())
+    fprintf(stderr, "abMultiAlign::display()-- len=%d != length=%d\n", len, length());
+  //assert(len == length());
 
 
   uint32 numSeqs = abacus->numberOfSequences();
@@ -161,7 +167,11 @@ abMultiAlign::display(abAbacus  *abacus,
   for (uint32 i=0; i<numSeqs; i++) {
     abSequence  *seq = abacus->getSequence(i);
 
-    assert(seq->multiAlignID() == ident());
+    //if (seq->multiAlignID() != ident()) {
+    //  fprintf(stderr, "abMultiAlign::display()-- seq %d multialign %d != multialign %d\n", seq->ident().get(), seq->multiAlignID().get(), ident().get());
+    //  continue;
+    //}
+    //assert(seq->multiAlignID() == ident());
 
     fid[i]  = seq->gkpIdent();
     fit[i]  = NULL;

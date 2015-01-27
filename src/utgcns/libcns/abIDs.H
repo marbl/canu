@@ -13,11 +13,11 @@ public:
   //operator size_t () const { return(_id); };
   abSeqID  &operator++(void) { ++_id;  return(*this); };  //  Prefix ++.
 
-  void   set(size_t id)   { _id = id; };
-  uint32 get(void)        { return(_id); };
+  void   set(size_t id)                { _id = id; };
+  uint32 get(void)               const { return(_id); };
 
-  bool   isInvalid(void)  { return(_id == UINT32_MAX); };
-  bool   isValid(void)    { return(_id != UINT32_MAX); };
+  bool   isInvalid(void)         const { return(_id == UINT32_MAX); };
+  bool   isValid(void)           const { return(_id != UINT32_MAX); };
 
   bool   operator!=(abSeqID that) const  { return(_id != that._id); };
   bool   operator==(abSeqID that) const  { return(_id == that._id); };
@@ -36,11 +36,11 @@ public:
   abBaseID  &operator+(uint32 x) { _id += x;  return(*this); };
   abBaseID  &operator-(uint32 x) { _id -= x;  return(*this); };
 
-  void   set(size_t id)   { _id = id; };
-  uint32 get(void)        { return(_id); };
+  void   set(size_t id)         { _id = id; };
+  uint32 get(void)        const { return(_id); };
 
-  bool   isInvalid(void)  { return(_id == UINT32_MAX); };
-  bool   isValid(void)    { return(_id != UINT32_MAX); };
+  bool   isInvalid(void)  const { return(_id == UINT32_MAX); };
+  bool   isValid(void)    const { return(_id != UINT32_MAX); };
 
   bool   operator!=(abBaseID that) const  { return(_id != that._id); };
   bool   operator==(abBaseID that) const  { return(_id == that._id); };
@@ -59,11 +59,11 @@ public:
   abBeadID  &operator+(uint32 x) { _id += x;  return(*this); };
   abBeadID  &operator-(uint32 x) { _id -= x;  return(*this); };
 
-  void   set(size_t id)   { _id = id; };
-  uint32 get(void)        { return(_id); };
+  void   set(size_t id)         { _id = id; };
+  uint32 get(void)        const { return(_id); };
 
-  bool   isInvalid(void)  { return(_id == UINT32_MAX); };
-  bool   isValid(void)    { return(_id != UINT32_MAX); };
+  bool   isInvalid(void)  const { return(_id == UINT32_MAX); };
+  bool   isValid(void)    const { return(_id != UINT32_MAX); };
 
   bool   operator!=(abBeadID that) const  { return(_id != that._id); };
   bool   operator==(abBeadID that) const  { return(_id == that._id); };
@@ -80,11 +80,11 @@ public:
 
   //operator size_t () const { return(_id); };
 
-  void   set(size_t id)   { _id = id; };
-  uint32 get(void)        { return(_id); };
+  void   set(size_t id)         { _id = id; };
+  uint32 get(void)        const { return(_id); };
 
-  bool   isInvalid(void)  { return(_id == UINT32_MAX); };
-  bool   isValid(void)    { return(_id != UINT32_MAX); };
+  bool   isInvalid(void)  const { return(_id == UINT32_MAX); };
+  bool   isValid(void)    const { return(_id != UINT32_MAX); };
 
   bool   operator!=(abColID that) const  { return(_id != that._id); };
   bool   operator==(abColID that) const  { return(_id == that._id); };
@@ -101,11 +101,11 @@ public:
 
   //operator size_t () const { return(_id); };
 
-  void   set(size_t id)   { _id = id; };
-  uint32 get(void)        { return(_id); };
+  void   set(size_t id)         { _id = id; };
+  uint32 get(void)        const { return(_id); };
 
-  bool   isInvalid(void)  { return(_id == UINT32_MAX); };
-  bool   isValid(void)    { return(_id != UINT32_MAX); };
+  bool   isInvalid(void)  const { return(_id == UINT32_MAX); };
+  bool   isValid(void)    const { return(_id != UINT32_MAX); };
 
   bool   operator!=(abMultiAlignID that) const  { return(_id != that._id); };
   bool   operator==(abMultiAlignID that) const  { return(_id == that._id); };

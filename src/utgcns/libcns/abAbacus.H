@@ -66,14 +66,9 @@ class abColBeadIterator;
 
 #include "abIDs.H"
 #include "abSequence.H"
-#include "abBase.H"
 #include "abBead.H"
 #include "abColumn.H"
-//#include "abIterators.H"  After abAbacus
-#include "abVariants.H"
 #include "abMultiAlign.H"
-
-
 
 
 
@@ -210,45 +205,20 @@ public:
   abMultiAlignID  addMultiAlign(abSeqID sid);
 
 
-  //  Options:
-  //    split_alleles - CNS_OPTIONS_SPLIT_ALLELES_DEFAULT = 1
-  //    smooth_win    - CNS_OPTIONS_MIN_ANCHOR_DEFAULT    = 11
-  //    do_phasing    - CNS_OPTIONS_DO_PHASING_DEFAULT    = 1
-private:
-  void   getReadsForVAR(abVarRegion &region, abColID *cids);
 
 public:
 
   void    refreshMultiAlign(abMultiAlignID  mid,
                             bool            recallBase        = false,
-                            bool            highQuality       = false,
-                            bool            splitAlleles      = false,
-                            bool            doPhasing         = false,
-                            int32           smoothWindow      = 11,
-                            bool            getScores         = false,
-                            bool            populateVarOutput = false,
-                            uint32         *nvars             = NULL,
-                            abVarRead     **v_list            = NULL);
+                            bool            highQuality       = false);
 
 
 private:
   void            baseCallMajority(abColID cid);
-  void            baseCallQuality(abVarRegion   &vreg,
-                                  abColID        cid,
-                                  double        &var,
-                                  int32          target_allele,
-                                  bool           getScores,
-                                  int32          split_alleles,
-                                  int32          smooth_win);
+  void            baseCallQuality(abColID  cid);
 public:
-  char            baseCall(abVarRegion &vreg,
-                           abColID      cid,
-                           bool         highQuality,
-                           double      &var,
-                           int32        target_allele,
-                           bool         getScores,
-                           bool         splitAlleles,       //  these need to be set in the class
-                           int32        smoothWindow);      //
+  char            baseCall(abColID      cid,
+                           bool         highQuality);      //
 
   void            applyAlignment(abSeqID  afid,
                                  int32    alen, abBeadID *aindex,
@@ -307,57 +277,6 @@ private:
 
   vector<int32>       _readIdx;      //  VA_TYPE(int32) *fragment_indices; - convenience array
   vector<int32>       _abacusIdx;    //  VA_TYPE(int32) *abacus_indices;   - convenience array
-
-  //  unused?
-  //vector<alignedContig>  //  VA_TYPE(CNS_AlignedContigElement) *fragment_positions;
-
-  //  Only used for remembering surrogates in contigs
-  //HashTable_AS          *fragmentMap;
-
-  //  Parameters
-  uint32  smoothingWindow;
-  uint32  splitAlleles;
-
-
-  //  Statistics
-private:
-  uint32 NumColumnsInUnitigs;
-  uint32 NumRunsOfGapsInUnitigReads;
-  uint32 NumGapsInUnitigs;
-
-  uint32 NumColumnsInContigs;
-  uint32 NumRunsOfGapsInContigReads;
-  uint32 NumGapsInContigs;
-
-  uint32 NumAAMismatches;
-
-  uint32 NumVARRecords;
-  uint32 NumVARStringsWithFlankingGaps;
-
-  uint32 NumUnitigRetrySuccess;
-
-
-private:
-  //  Options
-  uint32 VERBOSE_MULTIALIGN_OUTPUT;
-  uint32 FORCE_UNITIG_ABUT;
-
-  uint32 MULTIALIGN_PRINT_WIDTH;
-  uint32 MULTIALIGN_PRINT_SPACING;
-
-
-  //  Data for this multialignment
-private:
-#if 0
-  int32         start_column;
-  int32         end_column;
-  int32         rows;
-  int32         columns;
-  int32         window_width;
-  ShiftStatus   shift;
-  char         *beads;
-  char         *calls;
-#endif
 };
 
 

@@ -158,16 +158,18 @@ abAbacus::createColBeadIterator(abColID cid) {
 abBeadID
 abAbacus::appendGapBead(abBeadID bid) {
   abBead *prev = getBead(bid);
+  abBead *bead = NULL;
 
   assert(prev->frag_index.isValid());
 
 #warning this really should be using addBead()
 
-  //  Make space for the new bead, and grab it.
+  //  Make space for the new bead, and grab it.  And then regrab the prev.
 
   increaseArray(_beads, _beadsLen, _beadsMax, 1);
 
-  abBead  *bead = _beads + _beadsLen++;
+  bead = _beads + _beadsLen++;
+  prev = getBead(bid);
 
   //  Set up the new bead
 
@@ -556,18 +558,16 @@ abAbacus::unalignTrailingGapBeads(abBeadID bid) {
 
 
 
+//  This function swaps the contents of two beads, ensuring that
+//  there are only gaps between them.
+//
+//  HORRIBLY complicated because ApplyAbacus() and MergeCompatible()
+//  hold on to pointers to beads.  It would have been much simpler
+//  to just swap the soffset and foffset, leaving EVERYTHING ELSE
+//  exactly the same.
+//
 void
 abAbacus::lateralExchangeBead(abBeadID lid, abBeadID rid) {
-  abBead rtmp; // this is just some tmp space for the swap
-
-  //  This function swaps the contents of two beads, ensuring that
-  //  there are only gaps between them.
-  //
-  //  HORRIBLY complicated because ApplyAbacus() and MergeCompatible()
-  //  hold on to pointers to beads.  It would have been much simpler
-  //  to just swap the soffset and foffset, leaving EVERYTHING ELSE
-  //  exactly the same.
-
   abBead *leftbead  = getBead(lid);
   abBead *rightbead = getBead(rid);
 
@@ -601,16 +601,6 @@ abAbacus::lateralExchangeBead(abBeadID lid, abBeadID rid) {
       while (ibead->next.isValid()) {
         ibead = getBead(ibead->nextID());
 
-        fprintf(stderr, "bead %c ident()="F_U32" prev="F_U32" next="F_U32" up="F_U32" down="F_U32" fragindex=%d colulmnindex=%d\n",
-                getBase(ibead->baseIdx()),
-                ibead->ident().get(),
-                ibead->prevID().get(),
-                ibead->nextID().get(),
-                ibead->upID().get(),
-                ibead->downID().get(),
-                ibead->seqIdx().get(),
-                ibead->colIdx().get());
-
         if (ibead->ident() == rid)
           break;
 
@@ -625,7 +615,7 @@ abAbacus::lateralExchangeBead(abBeadID lid, abBeadID rid) {
     }
   }
 
-  rtmp = *rightbead;
+  abBead  rtmp = *rightbead;
 
   rightbead->upID()   = leftbead->upID();
   rightbead->downID() = leftbead->downID();
@@ -721,8 +711,7 @@ abAbacus::addMultiAlign(abSeqID sid) {
   }
 
   //  Mark this sequence as belonging to this multiAlign
-
-  seq->addToMultiAlign(ma->ident());
+  //seq->addToMultiAlign(ma->ident());
 
   refreshMultiAlign(ma->ident());
 

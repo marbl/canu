@@ -71,9 +71,13 @@ extern InsertSizes      *IS;
 
 ////////////////////////////////////////
 
+//  These MUST be signed integers.  Read placement -- Unitig::placeFrag() for sure -- depends on
+//  being able to set coordinates to negative values to indicate they extend the unitig off the
+//  beginning.
+//
 struct SeqInterval {
-  uint32           bgn;
-  uint32           end;
+  int32           bgn;
+  int32           end;
 };
 
 static const SeqInterval NULL_SEQ_LOC = {0,0};

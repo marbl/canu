@@ -76,7 +76,7 @@ placeContainsUsingBestOverlaps(UnitigVector &unitigs) {
       if (nReadsPer[utgid] == 1)
         totalPlacedInSingleton++;
 
-      utg->addContainedFrag(fid, bestcont, logFileFlagSet(LOG_INITIAL_CONTAINED_PLACEMENT));
+      utg->addContainedFrag(fid, bestcont, true);  //logFileFlagSet(LOG_INITIAL_CONTAINED_PLACEMENT));
 
       if (utg->id() != Unitig::fragIn(fid))
         writeLog("placeContainsUsingBestOverlaps()-- FAILED to add frag %d to unitig %d.\n", fid, bestcont->container);

@@ -90,6 +90,7 @@ public:
   void   applyAlignment(void);
 
   void   generateConsensus(void);
+  void   exportToTig(void);
 
 private:
   tgTig          *tig;

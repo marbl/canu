@@ -113,20 +113,20 @@ unitigConsensus::initialize(gkStore *gkpStore, uint32 *failed) {
       utgpos[i]._isReverse = false;
       cnspos[i]._isReverse = false;
 
-      utgpos[i].bgn()      = tig->getChild(i)->bgn();  //  Don't swap coords.
-      utgpos[i].end()      = tig->getChild(i)->end();
+      utgpos[i].bgnset()      = tig->getChild(i)->bgn();  //  Don't swap coords.
+      utgpos[i].endset()      = tig->getChild(i)->end();
 
-      cnspos[i].bgn()      = 0;
-      cnspos[i].end()      = 0;
+      cnspos[i].bgnset()      = 0;
+      cnspos[i].endset()      = 0;
     } else {
       utgpos[i]._isReverse = true;
       cnspos[i]._isReverse = true;
 
-      utgpos[i].bgn()      = tig->getChild(i)->end();  //  Swap the bgn/end coords.
-      utgpos[i].end()      = tig->getChild(i)->bgn();
+      utgpos[i].bgnset()      = tig->getChild(i)->end();  //  Swap the bgn/end coords.
+      utgpos[i].endset()      = tig->getChild(i)->bgn();
 
-      cnspos[i].bgn()      = 0;
-      cnspos[i].end()      = 0;
+      cnspos[i].bgnset()      = 0;
+      cnspos[i].endset()      = 0;
     }
 
     int32 flen   = (utgpos[i].bgn() < utgpos[i].end()) ? (utgpos[i].end() < utgpos[i].bgn()) : (utgpos[i].bgn() - utgpos[i].end());
@@ -200,8 +200,8 @@ unitigConsensus::initialize(gkStore *gkpStore, uint32 *failed) {
     frankenstein   [frankensteinLen] = 0;
     frankensteinBof[frankensteinLen] = abBeadID();
 
-    cnspos[0].bgn() = 0;
-    cnspos[0].end() = frankensteinLen;
+    cnspos[0].bgnset() = 0;
+    cnspos[0].endset() = frankensteinLen;
   }
 
   return(true);
@@ -257,8 +257,8 @@ unitigConsensus::computePositionFromAnchor(void) {
               utgpos[tiid].aHang() * anchorScale,
               utgpos[tiid].bHang() * anchorScale);
 
-    cnspos[tiid].bgn() = cnspos[piid].bgn() + utgpos[tiid].aHang() * anchorScale;
-    cnspos[tiid].end() = cnspos[piid].end() + utgpos[tiid].bHang() * anchorScale;
+    cnspos[tiid].bgnset() = cnspos[piid].bgn() + utgpos[tiid].aHang() * anchorScale;
+    cnspos[tiid].endset() = cnspos[piid].end() + utgpos[tiid].bHang() * anchorScale;
 
     //  Hmmm, but if we shrank the read too much, add back in some of the length.  We want to end up
     //  with the read scaled by anchorScale, and centered on the hangs.
@@ -276,8 +276,8 @@ unitigConsensus::computePositionFromAnchor(void) {
                 center, fragmentLength * anchorScale);
       }
 
-      cnspos[tiid].bgn() = center - fragmentLength * anchorScale / 2;
-      cnspos[tiid].end() = center + fragmentLength * anchorScale / 2;
+      cnspos[tiid].bgnset() = center - fragmentLength * anchorScale / 2;
+      cnspos[tiid].endset() = center + fragmentLength * anchorScale / 2;
 
       //  We seem immune to having a negative position.  We only use this to pull out a region from
       //  the partial consensus to align to.
@@ -300,8 +300,8 @@ unitigConsensus::computePositionFromAnchor(void) {
   }
 
  computePositionFromAnchorFail:
-  cnspos[tiid].bgn() = 0;
-  cnspos[tiid].end() = 0;
+  cnspos[tiid].bgnset() = 0;
+  cnspos[tiid].endset() = 0;
 
   piid = -1;
 
@@ -322,8 +322,8 @@ unitigConsensus::computePositionFromLayout(void) {
         (utgpos[tiid].end() > utgpos[qiid].bgn()) &&
         ((cnspos[qiid].bgn() != 0) ||
          (cnspos[qiid].end() != 0))) {
-      cnspos[tiid].bgn() = cnspos[qiid].bgn() + utgpos[tiid].bgn() - utgpos[qiid].bgn();
-      cnspos[tiid].end() = cnspos[qiid].end() + utgpos[tiid].end() - utgpos[qiid].end();
+      cnspos[tiid].bgnset() = cnspos[qiid].bgn() + utgpos[tiid].bgn() - utgpos[qiid].bgn();
+      cnspos[tiid].endset() = cnspos[qiid].end() + utgpos[tiid].end() - utgpos[qiid].end();
 
       //  This assert triggers.  It results in 'ooo' below being negative, and we
       //  discard this overlap anyway.
@@ -374,8 +374,8 @@ unitigConsensus::computePositionFromLayout(void) {
   if (thickestLen >= AS_OVERLAP_MIN_LEN) {
     assert(piid != -1);
 
-    cnspos[tiid].bgn() = cnspos[piid].bgn() + utgpos[tiid].bgn() - utgpos[piid].bgn();
-    cnspos[tiid].end() = cnspos[piid].end() + utgpos[tiid].end() - utgpos[piid].end();
+    cnspos[tiid].bgnset() = cnspos[piid].bgn() + utgpos[tiid].bgn() - utgpos[piid].bgn();
+    cnspos[tiid].endset() = cnspos[piid].end() + utgpos[tiid].end() - utgpos[piid].end();
 
     assert(cnspos[tiid].bgn() < cnspos[tiid].end());
 
@@ -389,8 +389,8 @@ unitigConsensus::computePositionFromLayout(void) {
     return(true);
   }
 
-  cnspos[tiid].bgn() = 0;
-  cnspos[tiid].end() = 0;
+  cnspos[tiid].bgnset() = 0;
+  cnspos[tiid].endset() = 0;
 
   piid = -1;
 
@@ -436,8 +436,8 @@ unitigConsensus::computePositionFromAlignment(void) {
                                 AS_FIND_ALIGN);
 
   if (O == NULL) {
-    cnspos[tiid].bgn() = 0;
-    cnspos[tiid].end() = 0;
+    cnspos[tiid].bgnset() = 0;
+    cnspos[tiid].endset() = 0;
 
     piid = -1;
 
@@ -452,8 +452,8 @@ unitigConsensus::computePositionFromAlignment(void) {
   //  To work with fixFailures(), we need to scan the entire fragment list.  This isn't so
   //  bad, really, since before we were scanning (on average) half of it.
   //
-  cnspos[tiid].bgn() = O->begpos;
-  cnspos[tiid].end() = O->endpos + frankensteinLen;
+  cnspos[tiid].bgnset() = O->begpos;
+  cnspos[tiid].endset() = O->endpos + frankensteinLen;
   //fprintf(stderr, "cnspos[%3d] mid %d %d,%d\n", tiid, utgpos[tiid].ident(), cnspos[tiid].bgn(), cnspos[tiid].end());
 
   assert(cnspos[tiid].bgn() < cnspos[tiid].end());
@@ -492,8 +492,8 @@ unitigConsensus::computePositionFromAlignment(void) {
     return(true);
   }
 
-  cnspos[tiid].bgn() = 0;
-  cnspos[tiid].end() = 0;
+  cnspos[tiid].bgnset() = 0;
+  cnspos[tiid].endset() = 0;
 
   piid = -1;
 
@@ -511,13 +511,13 @@ unitigConsensus::rebuild(bool recomputeFullConsensus) {
     abacus->refreshMultiAlign(multialign);
 
     ma->refine(abacus, abAbacus_Smooth);
-    ma->mergeRefine(abacus);
+    ma->mergeRefine(abacus, false);
 
     ma->refine(abacus, abAbacus_Poly_X);
-    ma->mergeRefine(abacus);
+    ma->mergeRefine(abacus, false);
 
     ma->refine(abacus, abAbacus_Indel);
-    ma->mergeRefine(abacus);
+    ma->mergeRefine(abacus, false);
   }
 
   //  For each column, vote for the consensus base to use.  Ideally, if we just computed the full
@@ -603,8 +603,8 @@ unitigConsensus::rebuild(bool recomputeFullConsensus) {
     abColumn   *fcol  = abacus->getColumn(fbead);
     abColumn   *lcol  = abacus->getColumn(lbead);
 
-    cnspos[i].bgn() = fcol->position();
-    cnspos[i].end() = lcol->position() + 1;
+    cnspos[i].bgnset() = fcol->position();
+    cnspos[i].endset() = lcol->position() + 1;
 
     assert(cnspos[i].bgn() >= 0);
     assert(cnspos[i].end() > cnspos[i].bgn());
@@ -807,8 +807,8 @@ unitigConsensus::alignFragment(void) {
   }
 
   //  No alignment.  Dang.
-  cnspos[tiid].bgn() = 0;
-  cnspos[tiid].end() = 0;
+  cnspos[tiid].bgnset() = 0;
+  cnspos[tiid].endset() = 0;
 
   piid = -1;
 
@@ -867,8 +867,8 @@ unitigConsensus::rejectAlignment(bool allowBhang,  //  Allow a positive bhang - 
 void
 unitigConsensus::applyAlignment(void) {
 
-  if (showAlgorithm())
-    fprintf(stderr, "applyAlignment()-- aligned to frankenstein\n");
+  //if (showAlgorithm())
+  //  fprintf(stderr, "applyAlignment()-- aligned to frankenstein\n");
 
   abacus->applyAlignment(abSeqID(),
                          frankensteinLen, frankensteinBof,
@@ -886,58 +886,20 @@ unitigConsensus::generateConsensus(void) {
   abacus->refreshMultiAlign(multialign);
   
   ma->refine(abacus, abAbacus_Smooth);
-  ma->mergeRefine(abacus);
+  ma->mergeRefine(abacus, true);
 
   ma->refine(abacus, abAbacus_Poly_X);
-  ma->mergeRefine(abacus);
+  ma->mergeRefine(abacus, true);
 
   ma->refine(abacus, abAbacus_Indel);
-  ma->mergeRefine(abacus);
+  ma->mergeRefine(abacus, true);
 
-  ma->getConsensus(abacus, tig);
-  ma->getPositions(abacus, tig);
+  //ma->display(abacus, stdout);
 
-  //GetMANodeConsensus(manode->lid, ma->consensus, ma->quality);
-  //GetMANodePositions(manode->lid, ma);
-
-  //  Although we generally don't care about delta values during assembly, we need them for the
-  //  output, and this is the only time we compute them.  So, we've gotta hang on to them.
-  //
-  //for (int32 i=0; i<numfrags; i++) {
-  //  utgpos[i].delta_length = 0;
-  //  utgpos[i].delta        = NULL;
-  //}
-
-  //  Update or create the unitig in the MultiAlignT.
-
-#warning not creating a unitig child
 #if 0
-  if (GetNumIntUnitigPoss(ma->u_list) == 0) {
-    IntUnitigPos  iup;
-
-    iup.type           = AS_OTHER_UNITIG;
-    iup.ident          = tig->tigID();
-    iup.position.bgn()   = 0;
-    iup.position.end()   = GetMultiAlignLength(ma);
-    iup.num_instances  = 0;
-    iup.delta_length   = 0;
-    iup.delta          = NULL;
-
-    AppendIntUnitigPos(ma->u_list, &iup);
-  } else {
-    IntUnitigPos  *iup = GetIntUnitigPos(ma->u_list, 0);
-
-    iup->position.bgn() = 0;
-    iup->position.end() = GetMultiAlignLength(ma);
-  }
-#endif
-
-  //PrintAlignment(stderr,manode->lid,0,-1);
-
   //  While we have fragments in memory, compute the microhet probability.  Ideally, this would be
   //  done in CGW when loading unitigs (the only place the probability is used) but the code wants
   //  to load sequence and quality for every fragment, and that's too expensive.
-#if 0
   {
     char   **multia = NULL;
     int32  **id_array = NULL;
@@ -956,4 +918,23 @@ unitigConsensus::generateConsensus(void) {
   }
 #endif
 
+}
+
+
+
+
+void
+unitigConsensus::exportToTig(void) {
+  abMultiAlign *ma = abacus->getMultiAlign(multialign);
+
+  ma->getConsensus(abacus, tig);
+  ma->getPositions(abacus, tig);
+
+  //  Although we generally don't care about delta values during assembly, we need them for the
+  //  output, and this is the only time we compute them.  So, we've gotta hang on to them.
+  //
+  //for (int32 i=0; i<numfrags; i++) {
+  //  utgpos[i].delta_length = 0;
+  //  utgpos[i].delta        = NULL;
+  //}
 }

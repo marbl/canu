@@ -26,7 +26,7 @@ static const char *rcsid = "$Id$";
 #include "AS_BAT_BestOverlapGraph.H"
 
 //  This provides low level (and usually too much) detail on placing a read using an edge.
-#undef DEBUG_PLACE_FRAG
+#define DEBUG_PLACE_FRAG
 
 
 
@@ -449,11 +449,15 @@ Unitig::placeFrag(ufNode &frag, BestContainment *bestcont) {
   int32   minParent = MIN(parent->position.bgn, parent->position.end);
   int32   maxParent = MAX(parent->position.bgn, parent->position.end);
 
+  writeLog("min/max %d %d frag %d %d\n", minParent, maxParent, frag.position.bgn, frag.position.end);
+
   if (frag.position.bgn < minParent)   frag.position.bgn = minParent;
   if (frag.position.end < minParent)   frag.position.end = minParent;
 
   if (frag.position.bgn > maxParent)   frag.position.bgn = maxParent;
   if (frag.position.end > maxParent)   frag.position.end = maxParent;
+
+  writeLog("min/max %d %d frag %d %d\n", minParent, maxParent, frag.position.bgn, frag.position.end);
 
   assert(frag.position.bgn >= 0);
   assert(frag.position.end >= 0);

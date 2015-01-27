@@ -27,22 +27,22 @@ public:
   ~abMultiAlign() {
   };
 
-  abMultiAlignID    ident(void)          { return(lid); };
-  void              identSet(uint32 idx) { lid.set(idx); };  //  Use ONLY bet abAbacus::addMultiAlign()
+  abMultiAlignID    const ident(void)          { return(lid); };
+  void                    identSet(uint32 idx) { lid.set(idx); };  //  Use ONLY by abAbacus::addMultiAlign()
 
-  abColID           firstColumn(void) { return(first); };
-  abColID           lastColumn(void)  { return(last); };
+  abColID           const firstColumn(void) { return(first); };
+  abColID           const lastColumn(void)  { return(last); };
 
   //  GetMANodeLength - also guarded against null nodes and returned -1
-  uint32            length(void) {
+  uint32                  length(void) {
     return(columnList.size());
   };
 
-  vector<abColID>  &columns(void) {  //  For unitigConsensus, to rebuild
+  vector<abColID>        &columns(void) {  //  For unitigConsensus, to rebuild
     return(columnList);
   };
 
-  void              addColumnToMultiAlign(abColumn *column) {
+  void                   addColumnToMultiAlign(abColumn *column) {
     columnList.push_back(column->ident());
 
     if (column->prevID().isValid() == false)
@@ -54,23 +54,23 @@ public:
       last = column->ident();
   };
 
-  void              getConsensus(abAbacus *abacus, char *bases, char *quals, uint32 &len, uint32 max);
-  void              getConsensus(abAbacus *abacus, char *bases, char *quals);
-  void              getConsensus(abAbacus *abacus, tgTig *tig);
-  void              getPositions(abAbacus *abacus, tgTig *tig);
+  void                   getConsensus(abAbacus *abacus, char *bases, char *quals, uint32 &len, uint32 max);
+  void                   getConsensus(abAbacus *abacus, char *bases, char *quals);
+  void                   getConsensus(abAbacus *abacus, tgTig *tig);
+  void                   getPositions(abAbacus *abacus, tgTig *tig);
 
-  void              mergeRefine(abAbacus *abacus);
-  int32             refineWindow(abAbacus *abacus, abColumn *start_column, abColID stab_bgn);
-  int32             refine(abAbacus            *abacus,
-                           abAbacusRefineLevel  level,
-                           uint32               from = 0,
-                           uint32               to   = UINT32_MAX);
+  void                   mergeRefine(abAbacus *abacus, bool highQuality);
+  int32                  refineWindow(abAbacus *abacus, abColumn *start_column, abColID stab_bgn);
+  int32                  refine(abAbacus            *abacus,
+                                abAbacusRefineLevel  level,
+                                uint32               from = 0,
+                                uint32               to   = UINT32_MAX);
 
   //  There are two multiAlign displays; this one, and one in tgTig.
-  void              display(abAbacus  *abacus,
-                            FILE      *F    = stdout,
-                            uint32     from = 0,
-                            uint32     to   = UINT32_MAX);
+  void                   display(abAbacus  *abacus,
+                                 FILE      *F    = stdout,
+                                 uint32     from = 0,
+                                 uint32     to   = UINT32_MAX);
 
 private:
   abMultiAlignID         lid;         //  MANode id in the manodeStore

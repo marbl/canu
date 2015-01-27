@@ -67,21 +67,16 @@ abAbacus::baseCallMajority(abColID cid) {
 
 
 
-void
-abAbacus::baseCallQuality(abVarRegion   &vreg,
-                          abColID        cid,
-                          double        &var,
-                          int32          target_allele,
-                          bool           getScores,
-                          int32          splitAlleles,
-                          int32          smoothWindow) {
 
+
+void
+abAbacus::baseCallQuality(abColID cid) {
   char    consensusBase = '-';
   char    consensusQV   = '0';
 
-  vector<abBead *>  bReads;  uint32  bBaseCount[CNS_NUM_SYMBOLS] = {0};  uint32  bQVSum[CNS_NUM_SYMBOLS] = {0};
-  vector<abBead *>  oReads;  uint32  oBaseCount[CNS_NUM_SYMBOLS] = {0};  uint32  oQVSum[CNS_NUM_SYMBOLS] = {0};
-  vector<abBead *>  gReads;  uint32  gBaseCount[CNS_NUM_SYMBOLS] = {0};  uint32  gQVSum[CNS_NUM_SYMBOLS] = {0};
+  vector<abBead *>  bReads;  uint32  bBaseCount[CNS_NUM_SYMBOLS] = {0};  uint32  bQVSum[CNS_NUM_SYMBOLS] = {0};  //  Best allele
+  vector<abBead *>  oReads;  uint32  oBaseCount[CNS_NUM_SYMBOLS] = {0};  uint32  oQVSum[CNS_NUM_SYMBOLS] = {0};  //  Other allele
+  vector<abBead *>  gReads;  uint32  gBaseCount[CNS_NUM_SYMBOLS] = {0};  uint32  gQVSum[CNS_NUM_SYMBOLS] = {0};  //  Guide allele
 
   double  cw[5]    = { 0.0, 0.0, 0.0, 0.0, 0.0 };      // "consensus weight" for a given base
   double  tau[5]   = { 1.0, 1.0, 1.0, 1.0, 1.0 };
@@ -98,12 +93,10 @@ abAbacus::baseCallQuality(abVarRegion   &vreg,
 
   abColBeadIterator *cbi = createColBeadIterator(cid);
 
-
-  // Scan a column of aligned bases (=beads).
-  // Sort the beads into three groups:
-  //      - those corresponding to the reads of the best allele,
-  //      - those corresponding to the reads of the other allele and
-  //      - those corresponding to non-read fragments (aka guides)
+  // Scan a column of aligned bases.  Sort into three groups:
+  //  - those corresponding to the reads of the best allele,
+  //  - those corresponding to the reads of the other allele and
+  //  - those corresponding to non-read fragments (aka guides)
 
   for (abBeadID bid=cbi->next(); bid.isValid(); bid=cbi->next()) {
     abBead *bead    = getBead(bid);
@@ -115,8 +108,6 @@ abAbacus::baseCallQuality(abVarRegion   &vreg,
       continue;
 
     if (getSequence(bead->seqIdx())->isRead() == false) {
-      //assert(type == AS_UNITIG);
-
       gBaseCount[baseIdx] += 1;
       gQVSum[baseIdx]     += qv;
 
@@ -128,33 +119,13 @@ abAbacus::baseCallQuality(abVarRegion   &vreg,
     frag_cov++;
 
     uint32  iid     = getSequence(bead->seqIdx())->gkpIdent();
-    uint32  vregidx = 0;
 
-    assert(vreg.nr >= 0);
+    //  Find the allele for this iid.  It searched a map of readIID to variant id.
 
-    for (; vregidx < vreg.nr; vregidx++)
-      if (iid == vreg.iids[vregidx])
-        break;
+    //  If the allele is the target, or we're using all alleles, save to the 'best' list.
+    //  Currently, this is the only case.
 
-    //  If there are vreg's, assert we found the iid in it
-    assert((vreg.nr <= 0) || (vregidx < vreg.nr));
-
-    // Will be used when detecting alleles
-
-    if (getScores) {
-      vreg.curr_bases.push_back(base);
-      vreg.iids.push_back(iid);
-
-      vreg.nb = vreg.curr_bases.size();
-    }
-
-    // Will be used when detecting variation
-
-    if (((target_allele < 0)        ||   // use any allele
-         (splitAlleles == false)    ||   // use any allele
-         ((vreg.nr > 0)  &&
-          (vreg.reads[vregidx].allele_id == target_allele)))) { // use the best allele
-
+    if (1) {
       bBaseCount[baseIdx]++;
       bQVSum[baseIdx] += qv;
       bReads.push_back(bead);
@@ -177,8 +148,9 @@ abAbacus::baseCallQuality(abVarRegion   &vreg,
     }
   }
 
+
   //  Compute tau based on guides
-  //
+
   for (uint32 cind = 0; cind < gReads.size(); cind++) {
     abBead *gb   = gReads[cind];
     char    base = getBase(gb->baseIdx());
@@ -187,7 +159,7 @@ abAbacus::baseCallQuality(abVarRegion   &vreg,
     used_surrogate = true;
 
     if (qv == 0)
-      qv += 5;    /// HUH?!!
+      qv = 5;    /// HUH?!!
 
     tau[0] += (base == '-') ? PROB[qv] : EPROB[qv];
     tau[1] += (base == 'A') ? PROB[qv] : EPROB[qv];
@@ -198,13 +170,13 @@ abAbacus::baseCallQuality(abVarRegion   &vreg,
     consensusQV = qv;
   }
 
-  //  If others, reset.
-  //
+  //  If actual reads,reset.
+
   if (oReads.size() > 0)
     tau[0] = tau[1] = tau[2] = tau[3] = tau[4] = 1.0;
 
   //  Compute tau based on others
-  //
+
   for (uint32 cind=0; cind<oReads.size(); cind++) {
     abBead  *gb   = oReads[cind];
     char     base = getBase(gb->baseIdx());
@@ -213,7 +185,7 @@ abAbacus::baseCallQuality(abVarRegion   &vreg,
     used_surrogate = false;
 
     if (qv == 0)
-      qv += 5;
+      qv = 5;
 
     tau[0] += (base == '-') ? PROB[qv] : EPROB[qv];
     tau[1] += (base == 'A') ? PROB[qv] : EPROB[qv];
@@ -225,12 +197,12 @@ abAbacus::baseCallQuality(abVarRegion   &vreg,
   }
 
   //  If real reads, reset.
-  //
+
   if (bReads.size() > 0)
     tau[0] = tau[1] = tau[2] = tau[3] = tau[4] = 1.0;
 
   //  Compute tau based on real reads.
-  //
+
   for (uint32 cind=0; cind<bReads.size(); cind++) {
     abBead  *gb   = bReads[cind];
     char     base = getBase(gb->baseIdx());
@@ -251,12 +223,10 @@ abAbacus::baseCallQuality(abVarRegion   &vreg,
   }
 
   //  Occasionally we get a single read of coverage, and the base is an N, which we ignored above.
-  //
+
   if ((bReads.size() == 0) &&
       (oReads.size() == 0) &&
       (gReads.size() == 0)) {
-    //fprintf(stderr, "No coverage for column=%d.  Assume it's an N in a single coverage area.\n", cid);
-
     setBase(call->baseIdx(), 'N');
     setQual(call->baseIdx(), '0');
 
@@ -338,14 +308,17 @@ abAbacus::baseCallQuality(abVarRegion   &vreg,
 
   consensusBase = indexToBase[cwIdx];
 
-  //  If there isn't a clear winner
+  //  If there isn't a clear winner:
+  //
+  //    If there is more than one fragment, or we used a surrogate (zero fragments) compute the QV
+  //    from cwMax.
+  //
+  //    Otherwise, there is only one fragment, and we should use that qv (saved in consensusQV).
+  //
+
   if (cwMax < 1.0 - DBL_EPSILON) {
     int32  qv = consensusQV;
 
-    //  If there is more than one fragment, or we used a surrogate (zero fragments) compute the QV
-    //  from cwMax.  Otherwise, there is only one fragment, and we should use that qv (saved in
-    //  consensusQV).
-    //
     if ((frag_cov != 1) || (used_surrogate == true)) {
       double dqv =  -10.0 * log10(1.0 - cwMax);
 
@@ -359,93 +332,27 @@ abAbacus::baseCallQuality(abVarRegion   &vreg,
     qv = MAX(CNS_MIN_QV, qv);
 
     consensusQV = qv + '0';
-  } else {
+  }
+
+  else {
     consensusQV = CNS_MAX_QV + '0';
   }
 
+  //  If no target allele, or this is the target allele, set the base.  Since there
+  //  is (currently) always no target allele, we always set the base.
+
+  setBase(call->baseIdx(), consensusBase);
   setQual(call->baseIdx(), consensusQV);
-
-  if ((target_allele  < 0) ||
-      (target_allele == vreg.alleles[0].id)) {
-    setBase(call->baseIdx(), consensusBase);
-    setQual(call->baseIdx(), consensusQV);
-  }
-
-  // Detecting variation
-
-  uint32   bReadCount = 0;
-  uint32   ci         = 0;
-
-  bReadCount += bBaseCount[0];  if (consensusBase == indexToBase[0])  ci = 0;  //  '-'
-  bReadCount += bBaseCount[1];  if (consensusBase == indexToBase[1])  ci = 1;  //  'A'
-  bReadCount += bBaseCount[2];  if (consensusBase == indexToBase[2])  ci = 2;  //  'C'
-  bReadCount += bBaseCount[3];  if (consensusBase == indexToBase[3])  ci = 3;  //  'G'
-  bReadCount += bBaseCount[4];  if (consensusBase == indexToBase[4])  ci = 4;  //  'T'
-  bReadCount += bBaseCount[5];  if (consensusBase == indexToBase[5])  ci = 5;  //  'N'
-
-  uint32   sumQVall = 0;
-  uint32   sumQVcns = 0;
-
-  for (int32 bi=0; bi<5; bi++) {
-    if ((bBaseCount[bi] < 2) ||
-        (bBaseCount[ci] < 2))
-      //  Not enough support for either the variation or the consensus.
-      continue;
-
-    if (consensusBase == indexToBase[bi])
-      //  This is the consensus base.
-      continue;
-
-    double aveQV = (double)bQVSum[bi] / bBaseCount[bi];
-    uint32 sumQV = highest1_qv[bi] + highest2_qv[bi];
-
-    bool   isGap = (consensusBase == '-') || (indexToBase[bi] == '-');
-
-    if (((isGap == false) && (aveQV >= MIN_AVE_QV_FOR_VARIATION)) ||
-        ((isGap == true)  && (sumQV >= MIN_SUM_QVS_FOR_VARIATION))) {
-      sumQVall  += bQVSum[bi];
-      sumQVcns   = (indexToBase[bi] == consensusBase) ? bQVSum[bi] : sumQVcns;
-    }
-  }
-
-  if ((bReadCount > 1) &&
-      (sumQVall > 0)) {
-    double  ratio = (double)sumQVcns / sumQVall;
-
-    var = ((smoothWindow > 0) && (consensusBase == '-')) ? (ratio - 1.0) : (1.0 - ratio);
-  } else {
-    var = ((smoothWindow > 0) && (consensusBase == '-')) ? -2.0 : 0.0;
-  }
 }
 
 
 
 char
-abAbacus::baseCall(abVarRegion &vreg,
-                   abColID      cid,
-                   bool         highQuality,
-                   double      &var,
-                   int32        target_allele,
-                   bool         getScores,
-                   bool         splitAlleles,
-                   int32        smoothWindow) {
-
-  //  NOTE: negative target_allele means the the alleles will be used
-  //  Hardcoded in baseCallQuality
-
-  assert(target_allele == -1);
-
-  var     = 0.0;
-  vreg.nb = 0;
+abAbacus::baseCall(abColID      cid,
+                   bool         highQuality) {
 
   if (highQuality)
-    baseCallQuality(vreg,
-                    cid,
-                    var,
-                    target_allele,
-                    getScores,
-                    splitAlleles,
-                    smoothWindow);
+    baseCallQuality(cid);
   else
     baseCallMajority(cid);
 
@@ -454,3 +361,5 @@ abAbacus::baseCall(abVarRegion &vreg,
 
   return(getBase(call->baseIdx()));
 }
+
+

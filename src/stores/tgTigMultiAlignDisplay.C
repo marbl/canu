@@ -219,6 +219,7 @@ tgTig::display(FILE     *F,
       //  Set ID and orientation
 
       for (int32 col=firstcol; col<lastcol; col++) {
+        fprintf(stderr, "READ %d orient %d\n", node->read->ident(), orient);
         idarray[i][col] = node->read->ident();
         oriarray[i][col] = orient;
       }
