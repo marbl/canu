@@ -9,57 +9,6 @@ static const char *rcsid_TG_TIG_H = "$Id:  $";
 
 #include "gkStore.H"
 
-//  Old, for consensus
-//  Former IntVarAllele
-class tgAllelePosition {
-public:
-  tgAllelePosition() {};
-  ~tgAllelePosition() {};
-
-private:
-public:
-  uint32           num_reads;
-  uint32           weight;
-  uint32           var_seq_offset;  //  offset into var_seq_memory for this allele
-  uint32           read_id_offset;  //  offset into read_id_memory for this allele
-};
-
-
-//  Former IntMultiVar
-class tgVariantPosition {
-public:
-  tgVariantPosition() {};
-  ~tgVariantPosition() {};
-
-  void                 saveToStream(FILE *F);    //  These do NOT save the object, just the arrays
-  void                 loadFromStream(FILE *F);
-
-
-private:
-public:
-  int32              var_id;                 // id of current VAR record
-  int32              phased_id;              // id of the VAR record phased with the current one
-
-  uint32             bgn;                    // position of the var region
-  uint32             end;
-
-  int32              num_reads;              // num reads total
-  int32              num_alleles;            // num alleles total
-  int32              num_alleles_confirmed;  // num confirmed alleles
-  int32              min_anchor_size;        //
-  int32              var_length;             // bases in the var region
-
-  tgAllelePosition  *alleles;                // list of num_alleles alleles
-
-  char              *var_seq_memory;         // single allocation for all memory
-  int32             *read_id_memory;         // single allocation for all memory
-
-  char              *enc_num_reads;          //  the nra field
-  char              *enc_weights;            //  the wgt field
-  char              *enc_var_seq;            //  the seq field
-  char              *enc_read_ids;           //  the rid field
-};
-
 
 //  Former IntMultiPos
 //
@@ -98,10 +47,6 @@ public:
   uint32               deltaLength(void)     { return(_deltaLen);    };
 
   //  Operators
-
-  void                 saveToStream(FILE *F);    //  These do NOT save the object, just the deltas
-  void                 loadFromStream(FILE *F);
-
 
   bool                 operator<(tgPosition const &that) const {
     int32 al = min();
@@ -170,8 +115,6 @@ public:
   uint32              _ungappedLen;     //  Ungapped consensus
   uint32              _childrenLen;
   uint32              _childDeltasLen;
-  uint32              _variantsLen;
-  uint32              _variantDataLen;
 };
 
 
@@ -274,14 +217,6 @@ public:
   int32              *_childDeltas;     //  deltas for all objects in the _children list
   uint32              _childDeltasLen;
   uint32              _childDeltasMax;
-
-  tgVariantPosition  *_variants;        //  variations
-  uint32              _variantsLen;
-  uint32              _variantsMax;
-
-  uint8              *_variantData;
-  uint64              _variantDataLen;
-  uint64              _variantDataMax;
 };
 
 

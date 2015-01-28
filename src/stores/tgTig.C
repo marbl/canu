@@ -42,8 +42,6 @@ tgTigRecord::tgTigRecord() {
   _ungappedLen     = 0;
   _childrenLen     = 0;
   _childDeltasLen  = 0;
-  _variantsLen     = 0;
-  _variantDataLen  = 0;
 }
 
 
@@ -85,14 +83,6 @@ tgTig::tgTig() {
   _childDeltas          = NULL;
   _childDeltasLen       = 0;
   _childDeltasMax       = 0;
-
-  _variants             = NULL;
-  _variantsLen          = 0;
-  _variantsMax          = 0;
-
-  _variantData          = NULL;
-  _variantDataLen       = 0;
-  _variantDataMax       = 0;
 }
 
 tgTig::~tgTig() {
@@ -102,8 +92,6 @@ tgTig::~tgTig() {
   delete [] _ungappedQuals;
   delete [] _children;
   delete [] _childDeltas;
-  delete [] _variants;
-  delete [] _variantData;
 }
 
 
@@ -129,8 +117,6 @@ tgTigRecord::operator=(tgTig & tg) {
   _ungappedLen         = tg._ungappedLen;
   _childrenLen         = tg._childrenLen;
   _childDeltasLen      = tg._childDeltasLen;
-  _variantsLen         = tg._variantsLen;
-  _variantDataLen      = tg._variantDataLen;
 }
 
 
@@ -154,8 +140,6 @@ tgTig::operator=(tgTigRecord & tr) {
   _ungappedLen         = tr._ungappedLen;
   _childrenLen         = tr._childrenLen;
   _childDeltasLen      = tr._childDeltasLen;
-  _variantsLen         = tr._variantsLen;
-  _variantDataLen      = tr._variantDataLen;
 }
 
 
@@ -191,12 +175,6 @@ tgTig::operator=(tgTig & tg) {
 
   _childDeltasLen = tg._childDeltasLen;
   duplicateArray(_childDeltas, _childDeltasLen, _childDeltasMax, tg._childDeltas, tg._childDeltasLen, tg._childDeltasMax);
-
-  _variantsLen = tg._variantsLen;
-  duplicateArray(_variants, _variantsLen, _variantsMax, tg._variants, tg._variantsLen, tg._variantsMax);
-
-  _variantDataLen = tg._variantDataLen;
-  duplicateArray(_variantData, _variantDataLen, _variantDataMax, tg._variantData, tg._variantDataLen, tg._variantDataMax);
 }
 
 
@@ -221,7 +199,6 @@ tgTig::clear(void) {
   _ungappedLen          = 0;
   _childrenLen          = 0;
   _childDeltasLen       = 0;
-  _variantsLen          = 0;
 };
 
 
@@ -257,25 +234,8 @@ tgTig::saveToStream(FILE *F) {
     AS_UTL_safeWrite(F, _childDeltas, "tgTig::saveToStream::childDeltas", sizeof(int32), _childDeltasLen);
   }
 
-  fprintf(stderr, "tgTig::saveToStream()-- at "F_U64" - before variants, saving "F_U32"\n", AS_UTL_ftell(F), _variantsLen);
-
-  if (_variantsLen > 0) {
-    AS_UTL_safeWrite(F, _variants, "tgTig::saveToStream::variants", sizeof(tgVariantPosition), _variantsLen);
-  }
-
   fprintf(stderr, "tgTig::saveToStream()-- at "F_U64" - finsihed\n", AS_UTL_ftell(F));
 };
-
-void
-tgPosition::saveToStream(FILE *F) {
-  fprintf(stderr, "tgPosition::saveToStream unimplemented\n");
-}
-
-void
-tgVariantPosition::saveToStream(FILE *F) {
-  fprintf(stderr, "tgVariantPosition::saveToStream unimplemented\n");
-}
-
 
 
 
@@ -302,8 +262,6 @@ tgTig::loadFromStream(FILE *F) {
 
   resizeArray(_childDeltas, 0, _childDeltasMax, _childDeltasLen, resizeArray_doNothing);
 
-  resizeArray(_variants, 0, _variantsMax, _variantsLen, resizeArray_doNothing);
-
   if (_gappedLen > 0) {
     fprintf(stderr, "tgTig::loadFromStream()-- loading %u gapped bases\n", _gappedLen);
     AS_UTL_safeRead(F, _gappedBases, "tgTig::loadFromStream::gappedBases", sizeof(char), _gappedLen);
@@ -322,9 +280,6 @@ tgTig::loadFromStream(FILE *F) {
   if (_childrenLen > 0) {
     fprintf(stderr, "tgTig::loadFromStream()-- loading %u children\n", _childrenLen);
     AS_UTL_safeRead(F, _children, "tgTig::savetoStream::children", sizeof(tgPosition), _childrenLen);
-
-    //for (uint32 cc=0; cc<_childrenLen; cc++)
-    //  _children[cc].loadFromStream(F);
   }
 
   fprintf(stderr, "tgTig::loadFromStream()-- Loading at position "F_U64" - before deltas, need to load "F_U32" at "F_U64" bytes each.\n",
@@ -334,29 +289,8 @@ tgTig::loadFromStream(FILE *F) {
     AS_UTL_safeRead(F, _childDeltas, "tgTig::loadFromStream::childDeltas", sizeof(int32), _childDeltasLen);
   }
 
-  fprintf(stderr, "tgTig::loadFromStream()-- Loading at position "F_U64" - before children, need to load "F_U32" at "F_U64" bytes each.\n",
-          AS_UTL_ftell(F), _variantsLen, sizeof(tgPosition));
-
-  if (_variantsLen > 0) {
-    AS_UTL_safeRead(F, _variants, "tgTig::loadFromStream::variants", sizeof(tgVariantPosition), _variantsLen);
-
-    //for (uint32 vv=0; vv<_variantsLen; vv++)
-    //  _variants[vv].loadFromStream(F);
-  }
-
   fprintf(stderr, "tgTig::loadFromStream()-- Loading at position "F_U64" - finished\n", AS_UTL_ftell(F));
 };
-
-void
-tgPosition::loadFromStream(FILE *F) {
-  fprintf(stderr, "tgPosition::loadFromStream unimplemented\n");
-}
-
-void
-tgVariantPosition::loadFromStream(FILE *F) {
-  fprintf(stderr, "tgVariantPosition::loadFromStream unimplemented\n");
-}
-
 
 
 
