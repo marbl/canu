@@ -246,33 +246,40 @@ tgStore::insertTig(tgTig *tig, bool keepInCache) {
   //
   if (tig->_gappedBases > 0) {
     uint32  len = tig->_gappedLen;
+    uint32  swp = 0;
     uint32  neg = 0;
     uint32  pos = 0;
 
     for (uint32 i=0; i<tig->_childrenLen; i++) {
       tgPosition *read = tig->_children + i;
 
-      if ((read->_bgn < 0) || (read->_end < 0))
-        fprintf(stderr, "tgStore::insertTig()-- ERROR: tig %d read %d at (%d,%d) has negative position\n",
-                tig->_tigID, read->_objID, read->_bgn, read->_end), neg++;
-      if (read->_bgn < 0)  read->_bgn = 0;
-      if (read->_end < 0)  read->_end = 0;
+      if ((read->_max < read->_min))
+        fprintf(stderr, "tgStore::insertTig()-- ERROR: tig %d read %d at (%d,%d) has swapped min/max coordinates\n",
+                tig->_tigID, read->_objID, read->_min, read->_max), swp++;
+      //  Could fix, but we currently just fail
 
-      if ((read->_bgn > len) || (read->_end > len))
+      if ((read->_min < 0) || (read->_max < 0))
+        fprintf(stderr, "tgStore::insertTig()-- ERROR: tig %d read %d at (%d,%d) has negative position\n",
+                tig->_tigID, read->_objID, read->_min, read->_max), neg++;
+      if (read->_min < 0)  read->_min = 0;
+      if (read->_max < 0)  read->_max = 0;
+
+      if ((read->_min > len) || (read->_max > len))
         fprintf(stderr, "tgStore::insertTig()-- ERROR: tig %d read %d at (%d,%d) exceeded multialign length %d\n",
-                tig->_tigID, read->_objID, read->_bgn, read->_end, len), pos++;
-      if (read->_bgn > len)  read->_bgn = len;
-      if (read->_end > len)  read->_end = len;
+                tig->_tigID, read->_objID, read->_min, read->_max, len), pos++;
+      if (read->_min > len)  read->_min = len;
+      if (read->_max > len)  read->_max = len;
     }
 
-    if (neg + pos > 0) {
+    if (neg + pos + swp > 0) {
       tig->dumpLayout(stderr);
-      fprintf(stderr, "tgStore::insertTig()-- ERROR: tig %d has invalid layout, exceeds bounds of consensus sequence (length %d) -- neg=%d pos=%d.\n",
-              tig->_tigID, len, neg, pos);
+      fprintf(stderr, "tgStore::insertTig()-- ERROR: tig %d has invalid layout, exceeds bounds of consensus sequence (length %d) -- neg=%d pos=%d -- swp=%d.\n",
+              tig->_tigID, len, neg, pos, swp);
     }
 
     assert(neg == 0);
     assert(pos == 0);
+    assert(swp == 0);
   }
 
   if (tig->_tigID == UINT32_MAX) {

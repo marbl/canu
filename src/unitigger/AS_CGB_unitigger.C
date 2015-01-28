@@ -152,11 +152,18 @@ output_the_chunks(Tfragment     *frags,
 
       //  No place to store the container: get_container_fragment(frags, vid)
 
+      tig->_children[ivc].set(0, 0, 0, 
+                              get_o5p_fragment(frags, vid),
+                              get_o3p_fragment(frags, vid));
+
+#if 0
       tig->_children[ivc]._anchor      = 0;
       tig->_children[ivc]._ahang       = 0;
       tig->_children[ivc]._bhang       = 0;
       tig->_children[ivc]._bgn         = get_o5p_fragment(frags, vid);
       tig->_children[ivc]._end         = get_o3p_fragment(frags, vid);
+#endif
+
       tig->_children[ivc]._deltaOffset = 0;
       tig->_children[ivc]._deltaLen    = 0;
     }

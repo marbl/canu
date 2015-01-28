@@ -27,24 +27,64 @@ public:
   bool                 isUnitig(void)  const { return(_isUnitig == true); };
   bool                 isContig(void)  const { return(_isContig == true); };
 
-  uint32              &anchor(void)          { return(_anchor); };
-  int32               &aHang(void)           { return(_ahang);  };
-  int32               &bHang(void)           { return(_bhang);  };
+  uint32               anchor(void)          { return(_anchor); };
+  int32                aHang(void)           { return(_ahang);  };
+  int32                bHang(void)           { return(_bhang);  };
 
-  bool                 isForward(void) const { return((_bgn < _end) || (_isReverse == false)); };
-  bool                 isReverse(void) const { return((_bgn > _end) || (_isReverse == true));  };
+  bool                 isForward(void) const { return(_isReverse == false); };
+  bool                 isReverse(void) const { return(_isReverse == true);  };
 
-  int32               &bgnset(void)             { return(_bgn); };
-  int32               &endset(void)             { return(_end); };
+  //int32               &bgnset(void)             { return(_bgn); };
+  //int32               &endset(void)             { return(_end); };
 
-  int32                bgn(void) const       { return(_bgn); };
-  int32                end(void) const       { return(_end); };
+  int32          const bgn(void) const       { return((_isReverse == false) ? _min : _max); };
+  int32          const end(void) const       { return((_isReverse == false) ? _max : _min); };
 
-  uint32               min(void) const       { return((_bgn < _end) ? _bgn : _end); };
-  uint32               max(void) const       { return((_bgn < _end) ? _end : _bgn); };
+  int32                min(void) const       { return(_min); };
+  int32                max(void) const       { return(_max); };
+
+  //uint32               min(void) const       { return((_bgn < _end) ? _bgn : _end); };
+  //uint32               max(void) const       { return((_bgn < _end) ? _end : _bgn); };
 
   uint32               deltaOffset(void)     { return(_deltaOffset); };
   uint32               deltaLength(void)     { return(_deltaLen);    };
+
+  //  Set just the anchor and hangs, leave positions alone.
+  void                 set(uint32 anchor, int32 ahang, int32 bhang) {
+    _anchor = anchor;
+    _ahang  = ahang;
+    _bhang  = bhang;
+  };
+
+  //  Set everything.  This is to be used by unitigger.
+  void                 set(uint32 anchor, int32 ahang, int32 bhang, int32  bgn, int32  end) {
+    _anchor    = anchor;
+    _ahang     = ahang;
+    _bhang     = bhang;
+
+    if (bgn < end) {
+      _min       = bgn;
+      _max       = end;
+      _isReverse = false;
+    } else {
+      _min       = end;
+      _max       = bgn;
+      _isReverse = true;
+    }
+  };
+
+  //  Set the coords, ignoring orientation.
+  void                 set(int32 bgn, int32 end) {
+    if (bgn < end) {
+      //assert(_isReverse == false);
+      _min = bgn;
+      _max = end;
+    } else {
+      //assert(_isReverse == true);
+      _min = bgn;
+      _max = end;
+    }
+  };
 
   //  Operators
 
@@ -70,8 +110,6 @@ public:
   uint32              _isContig    : 1;  //
   uint32              _isReverse   : 1;  //  Child is oriented forward relative to parent, used during consensus.
 
-#warning confusion between _isReverse and _bgn,_end orientation, rename to min and max
-
   uint32              _spare       : 28;
 
   uint32              _anchor;           //  ID of the like-type object we align to
@@ -79,8 +117,12 @@ public:
   int32               _bhang;            //
 
   //  Must be signed, utgcns can push reads negative.
-  int32               _bgn;              //  Coords in the parent object we are part of
-  int32               _end;              //  (for a read, this will be the position in the unitig)
+  //int32               _bgn;              //  Coords in the parent object we are part of
+  //int32               _end;              //  (for a read, this will be the position in the unitig)
+
+  //  Must be signed, utgcns can push reads negative.
+  int32               _min;
+  int32               _max;
 
   uint32              _deltaOffset;      //  Our delta alignment to the parent object consensus
   uint32              _deltaLen;

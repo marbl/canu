@@ -109,18 +109,29 @@ abMultiAlign::getPositions(abAbacus *abacus, tgTig *tig) {
     assert(seq->gkpIdent() == child->ident());
 
     if (seq->isRead() == true) {
-      child->anchor()      = 0;
-      child->aHang()       = 0;
-      child->bHang()       = 0;
-      child->bgnset()         = (seq->isForward() == true) ? bgn : end;
-      child->endset()         = (seq->isForward() == true) ? end : bgn;
+      //child->anchor()      = 0;
+      //child->aHang()       = 0;
+      //child->bHang()       = 0;
+      //child->bgnset()      = (seq->isForward() == true) ? bgn : end;
+      //child->endset()      = (seq->isForward() == true) ? end : bgn;
 
-      child->_isReverse    = (seq->isForward() == false);
+      //child->_isReverse    = (seq->isForward() == false);
 
-      child->_deltaOffset  = tig->_childDeltasLen;
-      child->_deltaLen     = getFragmentDeltas(abacus, si, tig->_childDeltas + tig->_childDeltasLen);;
+      //  The child remembers its orientation, and sets min/max appropriately.
+      child->set(bgn, end);
 
-      tig->_childDeltasLen += tig->_childDeltasLen;
+      //  Grab the deltas for real now, and set the deltaLen to one less than the number returned
+      //  (we don't care about the terminating zero!)
+
+      child->_deltaOffset   = tig->_childDeltasLen;
+      child->_deltaLen      = getFragmentDeltas(abacus, si, tig->_childDeltas + tig->_childDeltasLen);
+
+      tig->_childDeltasLen += child->_deltaLen;
+
+      child->_deltaLen--;
+
+      //fprintf(stderr, "getPositions()-- si %u deltaLen %u offset %u\n",
+      //        si.get(), child->_deltaLen, child->_deltaOffset);
     }
   }
 }

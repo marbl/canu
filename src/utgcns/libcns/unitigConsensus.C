@@ -40,8 +40,8 @@ void
 unitigConsensus::reportStartingWork(void) {
   fprintf(stderr, "unitigConsensus()-- processing fragment mid %d pos %d,%d anchor %d,%d,%d -- length %u\n",
           utgpos[tiid].ident(),
-          utgpos[tiid].bgn(),
-          utgpos[tiid].end(),
+          utgpos[tiid].min(),
+          utgpos[tiid].max(),
           utgpos[tiid].anchor(),
           utgpos[tiid].aHang(),
           utgpos[tiid].bHang(),
@@ -51,8 +51,8 @@ unitigConsensus::reportStartingWork(void) {
     for (int32 x=0; x<=tiid; x++)
       fprintf(stderr, "unitigConsensus()-- mid %10d  utgpos %7d,%7d  cnspos %7d,%7d  anchor %10d,%6d,%6d\n",
               utgpos[x].ident(),
-              utgpos[x].bgn(), utgpos[x].end(),
-              cnspos[x].bgn(), cnspos[x].end(),
+              utgpos[x].min(), utgpos[x].max(),
+              cnspos[x].min(), cnspos[x].max(),
               utgpos[x].anchor(), utgpos[x].aHang(), utgpos[x].bHang());
 }
 
@@ -81,7 +81,7 @@ int
 unitigConsensus::initialize(gkStore *gkpStore, uint32 *failed) {
 
   int32 num_columns = 0;
-  int32 num_bases   = 0;
+  //int32 num_bases   = 0;
 
   if (numfrags == 0) {
     fprintf(stderr, "unitigConsensus::initialize()-- unitig has no children.\n");
@@ -106,34 +106,15 @@ unitigConsensus::initialize(gkStore *gkpStore, uint32 *failed) {
     if (failed != NULL)
       failed[i]  = true;
 
-    //  Make the coords show location and not orientation.  Set a bit in the tgPosition
-    //  to rememver orientation.
+    //  Clear the cnspos position.  We use this to show it's been placed by consensus.
 
-    if (utgpos[i].bgn() < utgpos[i].end()) {
-      utgpos[i]._isReverse = false;
-      cnspos[i]._isReverse = false;
+    cnspos[i].set(0, 0);
 
-      utgpos[i].bgnset()      = tig->getChild(i)->bgn();  //  Don't swap coords.
-      utgpos[i].endset()      = tig->getChild(i)->end();
+    //  Guess a nice ... totally unused value
+    //num_bases   += (int32)ceil( (utgpos[i].max() - utgpos[i].min()) * (1 + 2 * AS_CNS_ERROR_RATE));
 
-      cnspos[i].bgnset()      = 0;
-      cnspos[i].endset()      = 0;
-    } else {
-      utgpos[i]._isReverse = true;
-      cnspos[i]._isReverse = true;
-
-      utgpos[i].bgnset()      = tig->getChild(i)->end();  //  Swap the bgn/end coords.
-      utgpos[i].endset()      = tig->getChild(i)->bgn();
-
-      cnspos[i].bgnset()      = 0;
-      cnspos[i].endset()      = 0;
-    }
-
-    int32 flen   = (utgpos[i].bgn() < utgpos[i].end()) ? (utgpos[i].end() < utgpos[i].bgn()) : (utgpos[i].bgn() - utgpos[i].end());
-    num_bases   += (int32)ceil(flen + 2 * AS_CNS_ERROR_RATE * flen);
-
-    num_columns  = (utgpos[i].bgn() > num_columns) ? utgpos[i].bgn() : num_columns;
-    num_columns  = (utgpos[i].end() > num_columns) ? utgpos[i].end() : num_columns;
+    num_columns  = (utgpos[i].min() > num_columns) ? utgpos[i].min() : num_columns;
+    num_columns  = (utgpos[i].max() > num_columns) ? utgpos[i].max() : num_columns;
 
     //  Allocate and initialize the beads for each fragment.  Beads are not
     //  inserted in the abacus here.
@@ -147,7 +128,7 @@ unitigConsensus::initialize(gkStore *gkpStore, uint32 *failed) {
 
     //if (VERBOSE_MULTIALIGN_OUTPUT)
     //  fprintf(stderr,"unitigConsensus()-- Added fragment mid %d pos %d,%d in unitig %d to store at local id %d.\n",
-    //          utgpos[i].ident(), utgpos[i].bgn(), utgpos[i].end(), tig->tigID(), fid);
+    //          utgpos[i].ident(), utgpos[i].min(), utgpos[i].max(), tig->tigID(), fid);
   }
 
   //  Check for duplicate reads
@@ -200,8 +181,7 @@ unitigConsensus::initialize(gkStore *gkpStore, uint32 *failed) {
     frankenstein   [frankensteinLen] = 0;
     frankensteinBof[frankensteinLen] = abBeadID();
 
-    cnspos[0].bgnset() = 0;
-    cnspos[0].endset() = frankensteinLen;
+    cnspos[0].set(0, frankensteinLen);
   }
 
   return(true);
@@ -227,25 +207,25 @@ unitigConsensus::computePositionFromAnchor(void) {
       //  Not the anchor.
       continue;
 
-    if ((cnspos[piid].bgn() == 0) &&
-        (cnspos[piid].end() == 0))
+    if ((cnspos[piid].min() == 0) &&
+        (cnspos[piid].max() == 0))
       //  Is the anchor, but that isn't placed.
       goto computePositionFromAnchorFail;
 
-    if ((utgpos[piid].end() < utgpos[tiid].bgn()) ||
-        (utgpos[tiid].end() < utgpos[piid].bgn())) {
+    if ((utgpos[piid].max() < utgpos[tiid].min()) ||
+        (utgpos[tiid].max() < utgpos[piid].min())) {
       //  Is the anchor, and anchor is placed, but the anchor doesn't agree with the placement.
       if (showPlacement())
         fprintf(stderr, "computePositionFromAnchor()-- anchor %d at utg %d,%d doesn't agree with my utg %d,%d.  FAIL\n",
                 anchor,
-                utgpos[piid].bgn(), utgpos[piid].end(),
-                utgpos[tiid].bgn(), utgpos[tiid].end());
+                utgpos[piid].min(), utgpos[piid].max(),
+                utgpos[tiid].min(), utgpos[tiid].max());
       goto computePositionFromAnchorFail;
     }
 
     //  Scale the hangs by the change in the anchor size between bogart and consensus.
 
-    double   anchorScale = (double)(cnspos[piid].end() - cnspos[piid].bgn()) / (double)(utgpos[piid].end() - utgpos[piid].bgn());
+    double   anchorScale = (double)(cnspos[piid].max() - cnspos[piid].min()) / (double)(utgpos[piid].max() - utgpos[piid].min());
 
     if (showPlacement())
       fprintf(stderr, "computePositionFromAnchor()--  frag %u in anchor %u -- hangs %d,%d -- scale %f -- final hangs %.0f,%.0f\n",
@@ -257,17 +237,17 @@ unitigConsensus::computePositionFromAnchor(void) {
               utgpos[tiid].aHang() * anchorScale,
               utgpos[tiid].bHang() * anchorScale);
 
-    cnspos[tiid].bgnset() = cnspos[piid].bgn() + utgpos[tiid].aHang() * anchorScale;
-    cnspos[tiid].endset() = cnspos[piid].end() + utgpos[tiid].bHang() * anchorScale;
+    cnspos[tiid].set(cnspos[piid].min() + utgpos[tiid].aHang() * anchorScale,
+                     cnspos[piid].max() + utgpos[tiid].bHang() * anchorScale);
 
     //  Hmmm, but if we shrank the read too much, add back in some of the length.  We want to end up
     //  with the read scaled by anchorScale, and centered on the hangs.
 
-    int32   fragmentLength = utgpos[tiid].end() - utgpos[tiid].bgn();
+    int32   fragmentLength = utgpos[tiid].max() - utgpos[tiid].min();
 
-    if ((cnspos[tiid].bgn() >= cnspos[tiid].end()) ||
-        (cnspos[tiid].end() - cnspos[tiid].bgn() < 0.75 * fragmentLength)) {
-      int32  center = (cnspos[tiid].bgn() + cnspos[tiid].end()) / 2;
+    if ((cnspos[tiid].min() >= cnspos[tiid].max()) ||
+        (cnspos[tiid].max() - cnspos[tiid].min() < 0.75 * fragmentLength)) {
+      int32  center = (cnspos[tiid].min() + cnspos[tiid].max()) / 2;
 
       if (showPlacement()) {
         fprintf(stderr, "computePositionFromAnchor()--  frag %u in anchor %u -- too short.  reposition around center %d with adjusted length %.0f\n",
@@ -276,32 +256,31 @@ unitigConsensus::computePositionFromAnchor(void) {
                 center, fragmentLength * anchorScale);
       }
 
-      cnspos[tiid].bgnset() = center - fragmentLength * anchorScale / 2;
-      cnspos[tiid].endset() = center + fragmentLength * anchorScale / 2;
+      cnspos[tiid].set(center - fragmentLength * anchorScale / 2,
+                       center + fragmentLength * anchorScale / 2);
 
       //  We seem immune to having a negative position.  We only use this to pull out a region from
       //  the partial consensus to align to.
       //
-      //if (cnspos[tiid].bgn() < 0) {
-      //  cnspos[tiid].bgn() = 0;
-      //  cnspos[tiid].end() = fragmentLength * anchorScale;
+      //if (cnspos[tiid].min() < 0) {
+      //  cnspos[tiid].min() = 0;
+      //  cnspos[tiid].max() = fragmentLength * anchorScale;
       //}
     }
 
-    assert(cnspos[tiid].bgn() < cnspos[tiid].end());
+    assert(cnspos[tiid].min() < cnspos[tiid].max());
 
     if (showPlacement())
       fprintf(stderr, "computePositionFromAnchor()-- anchor %d at %d,%d --> beg,end %d,%d (fLen %d)\n",
               anchor,
-              cnspos[piid].bgn(), cnspos[piid].end(),
-              cnspos[tiid].bgn(), cnspos[tiid].end(),
+              cnspos[piid].min(), cnspos[piid].max(),
+              cnspos[tiid].min(), cnspos[tiid].max(),
               frankensteinLen);
     return(true);
   }
 
  computePositionFromAnchorFail:
-  cnspos[tiid].bgnset() = 0;
-  cnspos[tiid].endset() = 0;
+  cnspos[tiid].set(0, 0);
 
   piid = -1;
 
@@ -318,26 +297,26 @@ unitigConsensus::computePositionFromLayout(void) {
 
   //  Find the thickest qiid overlap to any cnspos fragment
   for (int32 qiid = tiid-1; qiid >= 0; qiid--) {
-    if ((utgpos[tiid].bgn() < utgpos[qiid].end()) &&
-        (utgpos[tiid].end() > utgpos[qiid].bgn()) &&
-        ((cnspos[qiid].bgn() != 0) ||
-         (cnspos[qiid].end() != 0))) {
-      cnspos[tiid].bgnset() = cnspos[qiid].bgn() + utgpos[tiid].bgn() - utgpos[qiid].bgn();
-      cnspos[tiid].endset() = cnspos[qiid].end() + utgpos[tiid].end() - utgpos[qiid].end();
+    if ((utgpos[tiid].min() < utgpos[qiid].max()) &&
+        (utgpos[tiid].max() > utgpos[qiid].min()) &&
+        ((cnspos[qiid].min() != 0) ||
+         (cnspos[qiid].max() != 0))) {
+      cnspos[tiid].set(cnspos[qiid].min() + utgpos[tiid].min() - utgpos[qiid].min(),
+                       cnspos[qiid].max() + utgpos[tiid].max() - utgpos[qiid].max());
 
       //  This assert triggers.  It results in 'ooo' below being negative, and we
       //  discard this overlap anyway.
       //
-      //assert(cnspos[tiid].bgn() < cnspos[tiid].end());
+      //assert(cnspos[tiid].min() < cnspos[tiid].max());
 
-      int32 ooo = MIN(cnspos[tiid].end(), frankensteinLen) - cnspos[tiid].bgn();
+      int32 ooo = MIN(cnspos[tiid].max(), frankensteinLen) - cnspos[tiid].min();
 
 #if 1
       if (showPlacement())
         fprintf(stderr, "computePositionFromLayout()-- layout %d at utg %d,%d cns %d,%d --> utg %d,%d cns %d,%d -- overlap %d\n",
                 utgpos[qiid].ident(),
-                utgpos[qiid].bgn(), utgpos[qiid].end(), cnspos[qiid].bgn(), cnspos[qiid].end(),
-                utgpos[tiid].bgn(), utgpos[tiid].end(), cnspos[tiid].bgn(), cnspos[tiid].end(),
+                utgpos[qiid].min(), utgpos[qiid].max(), cnspos[qiid].min(), cnspos[qiid].max(),
+                utgpos[tiid].min(), utgpos[tiid].max(), cnspos[tiid].min(), cnspos[tiid].max(),
                 ooo);
 #endif
 
@@ -353,15 +332,15 @@ unitigConsensus::computePositionFromLayout(void) {
       //  new start placement, it starts after the end of the A read -- the utgpos say the B read
       //  starts 700bp after the A read, which is position 13622 + 700 = 14322....50bp after A ends.
 
-      if ((cnspos[tiid].bgn() < frankensteinLen) &&
+      if ((cnspos[tiid].min() < frankensteinLen) &&
           (thickestLen < ooo)) {
         thickestLen = ooo;
 
-        assert(cnspos[tiid].bgn() < cnspos[tiid].end());  //  But we'll still assert cnspos is ordered correctly.
+        assert(cnspos[tiid].min() < cnspos[tiid].max());  //  But we'll still assert cnspos is ordered correctly.
 
         int32 ovl   = ooo;
-        int32 ahang = cnspos[tiid].bgn();
-        int32 bhang = cnspos[tiid].end() - frankensteinLen;
+        int32 ahang = cnspos[tiid].min();
+        int32 bhang = cnspos[tiid].max() - frankensteinLen;
 
         piid  = qiid;
       }
@@ -374,23 +353,22 @@ unitigConsensus::computePositionFromLayout(void) {
   if (thickestLen >= AS_OVERLAP_MIN_LEN) {
     assert(piid != -1);
 
-    cnspos[tiid].bgnset() = cnspos[piid].bgn() + utgpos[tiid].bgn() - utgpos[piid].bgn();
-    cnspos[tiid].endset() = cnspos[piid].end() + utgpos[tiid].end() - utgpos[piid].end();
+    cnspos[tiid].set(cnspos[piid].min() + utgpos[tiid].min() - utgpos[piid].min(),
+                     cnspos[piid].max() + utgpos[tiid].max() - utgpos[piid].max());
 
-    assert(cnspos[tiid].bgn() < cnspos[tiid].end());
+    assert(cnspos[tiid].min() < cnspos[tiid].max());
 
     if (showPlacement())
       fprintf(stderr, "computePositionFromLayout()-- layout %d at %d,%d --> beg,end %d,%d (fLen %d)\n",
               utgpos[piid].ident(),
-              cnspos[piid].bgn(), cnspos[piid].end(),
-              cnspos[tiid].bgn(), cnspos[tiid].end(),
+              cnspos[piid].min(), cnspos[piid].max(),
+              cnspos[tiid].min(), cnspos[tiid].max(),
               frankensteinLen);
 
     return(true);
   }
 
-  cnspos[tiid].bgnset() = 0;
-  cnspos[tiid].endset() = 0;
+  cnspos[tiid].set(0, 0);
 
   piid = -1;
 
@@ -436,8 +414,7 @@ unitigConsensus::computePositionFromAlignment(void) {
                                 AS_FIND_ALIGN);
 
   if (O == NULL) {
-    cnspos[tiid].bgnset() = 0;
-    cnspos[tiid].endset() = 0;
+    cnspos[tiid].set(0, 0);
 
     piid = -1;
 
@@ -452,27 +429,26 @@ unitigConsensus::computePositionFromAlignment(void) {
   //  To work with fixFailures(), we need to scan the entire fragment list.  This isn't so
   //  bad, really, since before we were scanning (on average) half of it.
   //
-  cnspos[tiid].bgnset() = O->begpos;
-  cnspos[tiid].endset() = O->endpos + frankensteinLen;
-  //fprintf(stderr, "cnspos[%3d] mid %d %d,%d\n", tiid, utgpos[tiid].ident(), cnspos[tiid].bgn(), cnspos[tiid].end());
+  cnspos[tiid].set(O->begpos, O->endpos + frankensteinLen);
+  //fprintf(stderr, "cnspos[%3d] mid %d %d,%d\n", tiid, utgpos[tiid].ident(), cnspos[tiid].min(), cnspos[tiid].max());
 
-  assert(cnspos[tiid].bgn() < cnspos[tiid].end());
+  assert(cnspos[tiid].min() < cnspos[tiid].max());
 
   int32   thickestLen = 0;
 
   for (int32 qiid = numfrags-1; qiid >= 0; qiid--) {
     if ((tiid != qiid) &&
-        (cnspos[tiid].bgn() < cnspos[qiid].end()) &&
-        (cnspos[tiid].end() > cnspos[qiid].bgn())) {
-      int32 ooo = (MIN(cnspos[tiid].end(), cnspos[qiid].end()) -
-                   MAX(cnspos[tiid].bgn(), cnspos[qiid].bgn()));
+        (cnspos[tiid].min() < cnspos[qiid].max()) &&
+        (cnspos[tiid].max() > cnspos[qiid].min())) {
+      int32 ooo = (MIN(cnspos[tiid].max(), cnspos[qiid].max()) -
+                   MAX(cnspos[tiid].min(), cnspos[qiid].min()));
 
       if (thickestLen < ooo) {
         thickestLen = ooo;
 
         int32 ovl   = ooo;
-        int32 ahang = cnspos[tiid].bgn();
-        int32 bhang = cnspos[tiid].end() - frankensteinLen;
+        int32 ahang = cnspos[tiid].min();
+        int32 bhang = cnspos[tiid].max() - frankensteinLen;
 
         piid  = qiid;
       }
@@ -485,15 +461,14 @@ unitigConsensus::computePositionFromAlignment(void) {
     if (showPlacement())
       fprintf(stderr, "computePositionFromAlignment()-- layout %d at %d,%d --> beg,end %d,%d (fLen %d)\n",
               utgpos[piid].ident(),
-              cnspos[piid].bgn(), cnspos[piid].end(),
-              cnspos[tiid].bgn(), cnspos[tiid].end(),
+              cnspos[piid].min(), cnspos[piid].max(),
+              cnspos[tiid].min(), cnspos[tiid].max(),
               frankensteinLen);
 
     return(true);
   }
 
-  cnspos[tiid].bgnset() = 0;
-  cnspos[tiid].endset() = 0;
+  cnspos[tiid].set(0, 0);
 
   piid = -1;
 
@@ -592,8 +567,8 @@ unitigConsensus::rebuild(bool recomputeFullConsensus) {
   //  Update the position of each fragment in the consensus sequence.
 
   for (int32 i=0; i<=tiid; i++) {
-    if ((cnspos[i].bgn() == 0) &&
-        (cnspos[i].end() == 0))
+    if ((cnspos[i].min() == 0) &&
+        (cnspos[i].max() == 0))
       //  Uh oh, not placed originally.
       continue;
 
@@ -603,20 +578,19 @@ unitigConsensus::rebuild(bool recomputeFullConsensus) {
     abColumn   *fcol  = abacus->getColumn(fbead);
     abColumn   *lcol  = abacus->getColumn(lbead);
 
-    cnspos[i].bgnset() = fcol->position();
-    cnspos[i].endset() = lcol->position() + 1;
+    cnspos[i].set(fcol->position(),
+                  lcol->position() + 1);
 
-    assert(cnspos[i].bgn() >= 0);
-    assert(cnspos[i].end() > cnspos[i].bgn());
+    assert(cnspos[i].min() >= 0);
+    assert(cnspos[i].max() > cnspos[i].min());
   }
 
   //  Finally, update the anchor/hang of the fragment we just placed.
 
-  if (piid >= 0) {
-    utgpos[tiid].anchor()  = utgpos[piid].ident();
-    utgpos[tiid].aHang()   = cnspos[tiid].bgn() - cnspos[piid].bgn();
-    utgpos[tiid].bHang()   = cnspos[tiid].end() - cnspos[piid].end();
-  }
+  if (piid >= 0)
+    utgpos[tiid].set(utgpos[piid].ident(),
+                     cnspos[tiid].min() - cnspos[piid].min(),
+                     cnspos[tiid].max() - cnspos[piid].max());
 
   piid = -1;
 
@@ -634,10 +608,10 @@ unitigConsensus::alignFragment(void) {
   int32         bgnExtra     = 0;
   int32         endExtra     = 0;
 
-  assert((cnspos[tiid].bgn() != 0) || (cnspos[tiid].end() != 0));
+  assert((cnspos[tiid].min() != 0) || (cnspos[tiid].max() != 0));
   assert(piid != -1);
 
-  assert(cnspos[tiid].bgn() < cnspos[tiid].end());
+  assert(cnspos[tiid].min() < cnspos[tiid].max());
 
   //  Compute how much extra consensus sequence to align to.  If we allow too much, we risk placing
   //  the fragment in an incorrect location -- worst case is that we find a longer higher scoring
@@ -656,8 +630,8 @@ unitigConsensus::alignFragment(void) {
   //  So we should allow AS_CNS_ERROR_RATE indel in those relative positionings.
   //
 
-  bgnExtra = (int32)ceil(AS_CNS_ERROR_RATE * (cnspos[tiid].bgn() - cnspos[piid].bgn()));
-  endExtra = (int32)ceil(AS_CNS_ERROR_RATE * (cnspos[tiid].end() - cnspos[piid].end()));
+  bgnExtra = (int32)ceil(AS_CNS_ERROR_RATE * (cnspos[tiid].min() - cnspos[piid].min()));
+  endExtra = (int32)ceil(AS_CNS_ERROR_RATE * (cnspos[tiid].max() - cnspos[piid].max()));
 
   if (bgnExtra < 0)  bgnExtra = -bgnExtra;
   if (endExtra < 0)  endExtra = -endExtra;
@@ -680,10 +654,10 @@ unitigConsensus::alignFragment(void) {
   //            CCCATCCGGGAGGGAGGTGGGGGGGTCAGCCCCCCGCCCCGCCAGCCGCTCCGTCCGGGAGGGAGGTGGGGGGGTCAGCCCCCCGCCCGGCCAGCCGCCCC
   //
 
-  assert(cnspos[tiid].bgn() < cnspos[tiid].end());
+  assert(cnspos[tiid].min() < cnspos[tiid].max());
 
-  int32 cnsbgn = (cnspos[tiid].bgn() < cnspos[tiid].end()) ? cnspos[tiid].bgn() : cnspos[tiid].end();
-  int32 cnsend = (cnspos[tiid].bgn() < cnspos[tiid].end()) ? cnspos[tiid].end() : cnspos[tiid].bgn();
+  int32 cnsbgn = (cnspos[tiid].min() < cnspos[tiid].max()) ? cnspos[tiid].min() : cnspos[tiid].max();
+  int32 cnsend = (cnspos[tiid].min() < cnspos[tiid].max()) ? cnspos[tiid].max() : cnspos[tiid].min();
 
   int32 endTrim = (cnsend - frankensteinLen) - (int32)ceil(AS_CNS_ERROR_RATE * (cnsend - cnsbgn));
 
@@ -691,7 +665,7 @@ unitigConsensus::alignFragment(void) {
 
 
  alignFragmentAgain:
-  int32 frankBgn     = MAX(0, cnspos[tiid].bgn() - bgnExtra);   //  Start position in frankenstein
+  int32 frankBgn     = MAX(0, cnspos[tiid].min() - bgnExtra);   //  Start position in frankenstein
   int32 frankEnd     = frankensteinLen;                       //  Truncation of frankenstein
   char  frankEndBase = 0;                                     //  Saved base from frankenstein
 
@@ -712,8 +686,8 @@ unitigConsensus::alignFragment(void) {
   //  If the expected fragment end position plus any extra slop are less than the consensus length,
   //  we need to truncate the frankenstein so we don't incorrectly align to that.
   //
-  if (cnspos[tiid].end() + endExtra < frankEnd) {
-    frankEnd     = cnspos[tiid].end() + endExtra;
+  if (cnspos[tiid].max() + endExtra < frankEnd) {
+    frankEnd     = cnspos[tiid].max() + endExtra;
     frankEndBase = frankenstein[frankEnd];
     frankenstein[frankEnd] = 0;
     allowBhang   = false;
@@ -806,9 +780,8 @@ unitigConsensus::alignFragment(void) {
       goto alignFragmentAgain;
   }
 
-  //  No alignment.  Dang.
-  cnspos[tiid].bgnset() = 0;
-  cnspos[tiid].endset() = 0;
+  //  No alignment.  Dang.  (Should already be 0,0, but just in case...)
+  cnspos[tiid].set(0, 0);
 
   piid = -1;
 

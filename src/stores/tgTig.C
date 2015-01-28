@@ -17,8 +17,8 @@ tgPosition::tgPosition() {
   _ahang       = INT32_MAX;
   _bhang       = INT32_MAX;
 
-  _bgn         = UINT32_MAX;
-  _end         = UINT32_MAX;
+  _min         = INT32_MIN;
+  _max         = INT32_MAX;
 
   _deltaOffset = UINT32_MAX;
   _deltaLen    = 0;
@@ -415,14 +415,21 @@ tgTig::loadLayout(FILE *F) {
       _children[nChildren]._isRead      = (strcmp(W[0], "read")   == 0);
       _children[nChildren]._isUnitig    = (strcmp(W[0], "unitig") == 0);
       _children[nChildren]._isContig    = (strcmp(W[0], "contig") == 0);
+      _children[nChildren]._isReverse   = false;
       _children[nChildren]._spare       = 0;
       _children[nChildren]._anchor      = strtouint32(W[3]);
       _children[nChildren]._ahang       = strtouint32(W[5]);
       _children[nChildren]._bhang       = strtouint32(W[6]);
-      _children[nChildren]._bgn         = strtouint32(W[8]);
-      _children[nChildren]._end         = strtouint32(W[9]);
+      _children[nChildren]._min         = strtouint32(W[8]);
+      _children[nChildren]._max         = strtouint32(W[9]);
       _children[nChildren]._deltaOffset = 0;
       _children[nChildren]._deltaLen    = 0;
+
+      if (_children[nChildren]._max < _children[nChildren]._min) {
+        _children[nChildren]._min       = strtouint32(W[9]);
+        _children[nChildren]._max       = strtouint32(W[8]);
+        _children[nChildren]._isReverse = true;
+      }
 
       nChildren++;
 

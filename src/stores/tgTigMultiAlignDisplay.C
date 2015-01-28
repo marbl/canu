@@ -125,6 +125,7 @@ tgTig::display(FILE     *F,
   }
 
   fprintf(stderr, "tgTig::display()--  display tig %d with %d children\n", tigID(), _childrenLen);
+  fprintf(stderr, "tgTig::display()--  width %u spacing %u\n", displayWidth, displaySpacing);
 
   //
   //  Convert the children to a list of lines to print
@@ -161,10 +162,13 @@ tgTig::display(FILE     *F,
     memcpy(node->quals, readData.gkReadData_getQualities() + read->gkRead_clearRegionBegin(), sizeof(char) * node->readLen);
 
     node->bases[node->readLen] = 0;
-    node->quals [node->readLen] = 0;
+    node->quals[node->readLen] = 0;
 
     if (node->read->isReverse())
       reverseComplement(node->bases, node->quals, node->readLen);
+
+    //fprintf(stderr, "NODE READ %u at %d %d with %u deltas at offset %u\n",
+    //        i, node->read->bgn(), node->read->end(), node->read->deltaLength(), node->read->deltaOffset());
 
     //  Try to add this new node to the lanes.  The last iteration will always succeed, adding the
     //  node to a fresh empty lane.
@@ -186,9 +190,10 @@ tgTig::display(FILE     *F,
   char  **multia = new char * [2 * lanesLen];
 
   for (int32 i=0; i<2*lanesLen; i++) {
-    multia[i]  = new char [gappedLength() + 1 + displayWidth];
+    multia[i]  = new char [gappedLength() + displayWidth + 1];
 
     memset(multia[i], ' ', gappedLength() + displayWidth);
+
     multia[i][gappedLength()] = 0;
   }
 
@@ -196,10 +201,10 @@ tgTig::display(FILE     *F,
   int32  **oriarray = new int32 * [lanesLen];
 
   for (int32 i=0; i<lanesLen; i++) {
-    idarray[i] = new int32 [gappedLength()];
+    idarray[i]  = new int32 [gappedLength()];
     oriarray[i] = new int32 [gappedLength()];
 
-    memset(idarray[i], 0, sizeof(int32) * gappedLength());
+    memset(idarray[i],  0, sizeof(int32) * gappedLength());
     memset(oriarray[i], 0, sizeof(int32) * gappedLength());
   }
 
@@ -218,8 +223,10 @@ tgTig::display(FILE     *F,
 
       //  Set ID and orientation
 
+      fprintf(stderr, "READ %d minmax %d %d bgnend %d %d orient %d\n",
+              node->read->ident(), node->read->min(), node->read->max(), node->read->bgn(), node->read->end(), orient);
+
       for (int32 col=firstcol; col<lastcol; col++) {
-        fprintf(stderr, "READ %d orient %d\n", node->read->ident(), orient);
         idarray[i][col] = node->read->ident();
         oriarray[i][col] = orient;
       }
@@ -235,6 +242,9 @@ tgTig::display(FILE     *F,
         if (cols + seglen >= node->readLen)
           fprintf(stderr, "ERROR:  Clear ranges not correct.\n");
         assert(cols + seglen < node->readLen);
+
+        fprintf(stderr, "copy to col=%d from cols=%d seglen=%d -- max %d -- delta %d\n",
+                col, cols, seglen, gappedLength() + displayWidth, node->delta[j]);
 
         memcpy(srow + col, node->bases + cols, seglen);
         memcpy(qrow + col, node->quals + cols, seglen);

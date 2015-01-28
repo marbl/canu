@@ -63,11 +63,8 @@ unitigToTig(tgTig       *tig,
     pos->_isRead      = true;
     pos->_isUnitig    = false;
     pos->_isContig    = false;
-    pos->_anchor      = frg->parent;
-    pos->_ahang       = frg->ahang;
-    pos->_bhang       = frg->bhang;
-    pos->_bgn         = frg->position.bgn;
-    pos->_end         = frg->position.end;
+
+    pos->set(frg->parent, frg->ahang, frg->bhang, frg->position.bgn, frg->position.end);
   }
 
   fprintf(stderr, "unitigToTig()--  tig %u has %u children\n", tig->_tigID, tig->_childrenLen);
