@@ -194,18 +194,21 @@ tgTig::display(FILE     *F,
 
     memset(multia[i], ' ', gappedLength() + displayWidth);
 
-    multia[i][gappedLength()] = 0;
+    multia[i][gappedLength() + displayWidth] = 0;
   }
 
   int32  **idarray  = new int32 * [lanesLen];
   int32  **oriarray = new int32 * [lanesLen];
 
-  for (int32 i=0; i<lanesLen; i++) {
-    idarray[i]  = new int32 [gappedLength()];
-    oriarray[i] = new int32 [gappedLength()];
+  //  Not sure where the +1 comes from.  The original was using GetNumchars(ma->consensus) which (I
+  //  think) included the terminating NUL, while gappedLength() does not.
 
-    memset(idarray[i],  0, sizeof(int32) * gappedLength());
-    memset(oriarray[i], 0, sizeof(int32) * gappedLength());
+  for (int32 i=0; i<lanesLen; i++) {
+    idarray[i]  = new int32 [gappedLength() + 1];
+    oriarray[i] = new int32 [gappedLength() + 1];
+
+    memset(idarray[i],  0, sizeof(int32) * (gappedLength() + 1));
+    memset(oriarray[i], 0, sizeof(int32) * (gappedLength() + 1));
   }
 
   //  Process.
@@ -243,8 +246,8 @@ tgTig::display(FILE     *F,
           fprintf(stderr, "ERROR:  Clear ranges not correct.\n");
         assert(cols + seglen < node->readLen);
 
-        fprintf(stderr, "copy to col=%d from cols=%d seglen=%d -- max %d -- delta %d\n",
-                col, cols, seglen, gappedLength() + displayWidth, node->delta[j]);
+        //fprintf(stderr, "copy to col=%d from cols=%d seglen=%d -- max %d -- delta %d\n",
+        //        col, cols, seglen, gappedLength() + displayWidth, node->delta[j]);
 
         memcpy(srow + col, node->bases + cols, seglen);
         memcpy(qrow + col, node->quals + cols, seglen);
@@ -279,6 +282,8 @@ tgTig::display(FILE     *F,
 
   int32 ungapped = 1;
   int32 tick     = 1;
+
+  //  The original used 'length = strlen(consensus)' which does NOT include the terminating NUL.
 
   for (uint32 window=0; window < gappedLength(); ) {
     uint32 row_id  = 0;

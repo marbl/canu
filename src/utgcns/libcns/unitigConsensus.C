@@ -867,7 +867,7 @@ unitigConsensus::generateConsensus(void) {
   ma->refine(abacus, abAbacus_Indel);
   ma->mergeRefine(abacus, true);
 
-  //ma->display(abacus, stdout);
+  ma->display(abacus, stdout);
 
 #if 0
   //  While we have fragments in memory, compute the microhet probability.  Ideally, this would be

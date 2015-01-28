@@ -194,7 +194,7 @@ abMultiAlign::display(abAbacus  *abacus,
     abColumn   *endColumn = abacus->getColumn(seq->lastBead());
 
     bgn[i] = bgnColumn->position();
-    bgn[i] = endColumn->position();
+    end[i] = endColumn->position();
   }
 
   uint32 window_start = from;
