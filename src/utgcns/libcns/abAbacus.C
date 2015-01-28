@@ -342,6 +342,8 @@ abAbacus::appendColumn(abColID cid, abBeadID bid) {
     nid = ci->next();
   }
 
+  delete ci;
+
   nextCol->ma_position =  prevCol->ma_position + 1;
 
   //AddColumnToMANode(nextCol->ma_id, *column);

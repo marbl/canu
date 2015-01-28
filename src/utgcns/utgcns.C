@@ -461,6 +461,9 @@ main (int argc, char **argv) {
     DeleteMultiAlignT(ma);
 #endif
 
+    delete abacus;
+    delete gkpStore;
+
     exit(0);
   }
 
@@ -547,7 +550,9 @@ main (int argc, char **argv) {
   }
 
  finish:
+  delete abacus;
   delete tigStore;
+  delete gkpStore;
 
   if (outResultsFile)  fclose(outResultsFile);
   if (outLayoutsFile)  fclose(outLayoutsFile);

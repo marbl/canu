@@ -47,6 +47,8 @@ abAbacus::baseCallMajority(abColID cid) {
     qvSum[baseToIndex[bs]] += qv;
   }
 
+  delete cbi;
+
   //  Find the best, ignore ties.
 
   uint32 bestIdx  = 0;
@@ -148,6 +150,7 @@ abAbacus::baseCallQuality(abColID cid) {
     }
   }
 
+  delete cbi;
 
   //  Compute tau based on guides
 

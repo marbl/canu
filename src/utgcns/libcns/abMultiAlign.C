@@ -67,6 +67,8 @@ getFragmentDeltas(abAbacus        *abacus,
       bp++;
   }
 
+  delete fi;
+
   if (deltas)
     deltas[dl] = 0;
   dl++;
