@@ -124,6 +124,8 @@ makeSequenceError(char   *s1,
     s1[p] = errorBase[s1[p]][randomUniform(0, 3)];
     q1[p] = (validBase[s1[p]]) ? QV_BASE + 8 : QV_BASE + 2;
     nMismatch++;
+    //fprintf(stderr, "MISMATCH at p=%d base=%d/%c qc=%d/%c\n",
+    //        p, s1[p], s1[p], q1[p], q1[p]);
     return;
   }
   r -= readMismatchRate;
@@ -133,13 +135,17 @@ makeSequenceError(char   *s1,
     s1[p] = insertBase[randomUniform(0, 4)];
     q1[p] = (validBase[s1[p]]) ? QV_BASE + 4 : QV_BASE + 2;
     nInsert++;
+    //fprintf(stderr, "INSERT   at p=%d base=%d/%c qc=%d/%c\n",
+    //        p, s1[p], s1[p], q1[p], q1[p]);
     return;
   }
   r -= readInsertRate;
 
-  if (r < readDeleteRate) {
+  if ((r < readDeleteRate) && (p > 0)) {
     p--;
     nDelete++;
+    //fprintf(stderr, "DELETE   at p=%d\n",
+    //        p);
     return;
   }
   r -= readDeleteRate;
@@ -148,7 +154,7 @@ makeSequenceError(char   *s1,
 }
 
 
-void
+bool
 makeSequences(char    *frag,
               int32    fragLen,
               int32    readLen,
@@ -173,17 +179,16 @@ makeSequences(char    *frag,
     }
     assert(s1[p] != '*');
 
-    if (s1[p] == 0) {
-      //fprintf(stderr, "BREAK\n");
-      break;
-    }
+    //  If null, we ran off the end of the genome.
+    if (s1[p] == 0)
+      return(false);
   }
 
   s1[readLen] = 0;
   q1[readLen] = 0;
 
   if ((fragLen == 0) || (s2 == NULL) || (q2 == NULL))
-    return;
+    return(true);
 
   if (makeNormal == true)
     for (int32 p=0, i=fragLen-readLen; p<readLen; p++, i++)
@@ -211,6 +216,8 @@ makeSequences(char    *frag,
     reverseComplement(s1, q1, readLen);
     reverseComplement(s2, q2, readLen);
   }
+
+  return(true);
 }
 
 
@@ -242,7 +249,8 @@ makeSE(char   *seq,
 
     //  Generate the sequence.
 
-    makeSequences(seq + bgn, 0, readLen, s1, q1, NULL, NULL);
+    if (makeSequences(seq + bgn, 0, readLen, s1, q1, NULL, NULL) == false)
+      goto trySEagain;
 
     //  Make sure the read doesn't contain N's (redundant in this particular case)
 
@@ -311,7 +319,8 @@ makePE(char   *seq,
 
     bool   makeNormal = ((pNormal > 0.0) && (drand48() < pNormal));
 
-    makeSequences(seq + bgn, len, readLen, s1, q1, s2, q2, makeNormal);
+    if (makeSequences(seq + bgn, len, readLen, s1, q1, s2, q2, makeNormal) == false)
+      goto tryPEagain;
 
     //  Make sure the reads don't contain N's
 
@@ -422,7 +431,8 @@ makeMP(char   *seq,
 
       bool   makeNormal = ((pNormal > 0.0) && (drand48() < pNormal));
 
-      makeSequences(seq + sbgn, slen, readLen, s1, q1, s2, q2, makeNormal);
+      if (makeSequences(seq + sbgn, slen, readLen, s1, q1, s2, q2, makeNormal) == false)
+        goto tryMPagain;
 
       //  Make sure the reads don't contain N's
 
@@ -531,7 +541,8 @@ makeMP(char   *seq,
 
       bool   makeNormal = ((pNormal > 0.0) && (drand48() < pNormal));
 
-      makeSequences(sh, slen, readLen, s1, q1, s2, q2, makeNormal);
+      if (makeSequences(sh, slen, readLen, s1, q1, s2, q2, makeNormal) == false)
+        goto tryMPagain;
 
       //  Make sure the reads don't contain N's
 
@@ -683,8 +694,9 @@ makeCC(char   *seq,
 
     //  Generate the sequence.
 
-    makeSequences(seq + bgnf, 0, lenf, s1,                  q1,                  NULL, NULL);
-    makeSequences(seq + bgnr, 0, lenr, s1 + readLen - lenr, q1 + readLen - lenr, NULL, NULL);
+    if ((makeSequences(seq + bgnf, 0, lenf, s1,                  q1,                  NULL, NULL) == false) ||
+        (makeSequences(seq + bgnr, 0, lenr, s1 + readLen - lenr, q1 + readLen - lenr, NULL, NULL) == false))
+      goto tryCCagain;
 
     //  Load the read with random garbage.
 
@@ -768,6 +780,8 @@ main(int argc, char **argv) {
   FILE      *outputC        = NULL;  //  Interleaved output, reverse complemented
   FILE      *output1        = NULL;  //  A read output
   FILE      *output2        = NULL;  //  B read output
+
+  uint32     seed           = time(NULL);
 
   int arg = 1;
   int err = 0;
@@ -853,6 +867,9 @@ main(int argc, char **argv) {
         ccFalse        = atof(argv[++arg]);
       }
 
+    } else if (strcmp(argv[arg], "-seed") == 0) {
+      seed = atoi(argv[++arg]);
+
     } else {
       fprintf(stderr, "Unknown arg '%s'\n", argv[arg]);
       err++;
@@ -879,6 +896,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -em err         Reads will contain fraction mismatch  error 'e' (0.01 == 1%% error).\n");
     fprintf(stderr, "  -ei err         Reads will contain fraction insertion error 'e' (0.01 == 1%% error).\n");
     fprintf(stderr, "  -ed err         Reads will contain fraction deletion  error 'e' (0.01 == 1%% error).\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -seed s         Seed randomness with 32-bit integer s.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -allowgaps      Allow pairs to span N regions in the reference.  By default, pairs\n");
     fprintf(stderr, "                  are not allowed to span a gap.  Reads are never allowed to cover N's.\n");
@@ -949,7 +968,8 @@ main(int argc, char **argv) {
   //  Initialize
   //
 
-  srand48(time(NULL));
+  fprintf(stderr, "seed = "F_U64"\n", seed);
+  srand48(seed);
 
   memset(revComp, '&', sizeof(char) * 256);
 
