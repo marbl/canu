@@ -206,9 +206,7 @@ abAbacus::addRead(gkStore *gkpStore,
     char  *seq = readData.gkReadData_getSequence();
     char  *qlt = readData.gkReadData_getQualities();
 
-    //increaseArray(_bases, _basesLen, _basesMax, end - bgn + 1);
-
-    if (_basesLen + end - bgn + 1 < _basesMax)
+    while (_basesMax <= _basesLen + end - bgn + 1)
       resizeArrayPair(_bases, _quals, _basesLen, _basesMax, 2 * _basesMax);
 
     if (complemented == false)
