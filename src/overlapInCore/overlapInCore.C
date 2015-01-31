@@ -277,16 +277,24 @@ OverlapDriver(void) {
 
     G.curRefID = G.bgnRefID;
 
-    fprintf(stderr, "Range: %u-%u.  Store has %u reads\n",
-            G.bgnRefID, G.endRefID, gkpStore->gkStore_getNumReads());
-
     //  The old version used to further divide the ref range into blocks of at most
     //  Max_Reads_Per_Batch so that those reads could be loaded into core.  We don't need to do that
     //  anymore.
 
     G.perThread = (G.endRefID - G.bgnRefID) / G.Num_PThreads / 8;
 
+    if (G.perThread < 1)
+      G.perThread = 1;
+
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Range: %u-%u.  Store has %u reads.\n",
+            G.bgnRefID, G.endRefID, gkpStore->gkStore_getNumReads());
+    fprintf(stderr, "Chunk: "F_U32" reads/thread -- (G.endRefID="F_U32" - G.bgnRefID="F_U32") / G.Num_PThreads="F_U32" / 8\n",
+            G.perThread, G.endRefID, G.bgnRefID, G.Num_PThreads);
+
+    fprintf(stderr, "\n");
     fprintf(stderr, "Starting "F_U32"-"F_U32" with "F_U32" per thread\n", G.bgnRefID, G.endRefID, G.perThread);
+    fprintf(stderr, "\n");
 
     for (uint32 i=0; i<G.Num_PThreads; i++) {
 
