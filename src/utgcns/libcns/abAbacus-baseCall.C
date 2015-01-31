@@ -69,6 +69,34 @@ abAbacus::baseCallMajority(abColID cid) {
 
 
 
+uint32
+baseToTauIndex(char base) {
+
+  switch (base) {
+  case '-':
+    return(0);
+    break;
+  case 'A':
+    return(1);
+    break;
+  case 'C':
+    return(2);
+    break;
+  case 'G':
+    return(3);
+    break;
+  case 'T':
+    return(4);
+    break;
+  default:
+    fprintf(stderr, "baseToTauIndex()-- invalid base '%c' %d\n", base, base);
+    assert(0);
+    break;
+  }
+
+  return(0);
+}
+
 
 
 void
@@ -80,18 +108,19 @@ abAbacus::baseCallQuality(abColID cid) {
   vector<abBead *>  oReads;  uint32  oBaseCount[CNS_NUM_SYMBOLS] = {0};  uint32  oQVSum[CNS_NUM_SYMBOLS] = {0};  //  Other allele
   vector<abBead *>  gReads;  uint32  gBaseCount[CNS_NUM_SYMBOLS] = {0};  uint32  gQVSum[CNS_NUM_SYMBOLS] = {0};  //  Guide allele
 
-  double  cw[5]    = { 0.0, 0.0, 0.0, 0.0, 0.0 };      // "consensus weight" for a given base
-  double  tau[5]   = { 1.0, 1.0, 1.0, 1.0, 1.0 };
-
+#if 0
   uint32 highest1_qv[CNS_NUM_SYMBOLS] = {0};
   uint32 highest2_qv[CNS_NUM_SYMBOLS] = {0};
+#endif
 
   uint32 frag_cov = 0;
 
   bool   used_surrogate = false;
 
-  abColumn *column = getColumn(cid);
-  abBead   *call   = getBead(column->callID());
+  abColumn *column  = getColumn(cid);
+  abBead   *call    = getBead(column->callID());
+
+  uint32  position  = getColumn(call->colIdx())->position();
 
   abColBeadIterator *cbi = createColBeadIterator(cid);
 
@@ -100,47 +129,63 @@ abAbacus::baseCallQuality(abColID cid) {
   //  - those corresponding to the reads of the other allele and
   //  - those corresponding to non-read fragments (aka guides)
 
+  //fprintf(stderr, "POSITION %d - ", position);
+
   for (abBeadID bid=cbi->next(); bid.isValid(); bid=cbi->next()) {
     abBead *bead    = getBead(bid);
     char    base    = getBase(bead->baseIdx());
     int32   baseIdx = baseToIndex[base];
     int     qv      = getQual(bead->baseIdx()) - '0';
 
+    //  Not a base call?  Skip it.
     if (base == 'N')
       continue;
 
+    //  Not a read?  Save the guide base.
     if (getSequence(bead->seqIdx())->isRead() == false) {
       gBaseCount[baseIdx] += 1;
       gQVSum[baseIdx]     += qv;
 
       gReads.push_back(bead);
 
+      //fprintf(stderr, " guide/%c/%d", base, qv);
+
       continue;
     }
 
+    //  Otherwise, a real read, with a real base.
+
     frag_cov++;
 
-    uint32  iid     = getSequence(bead->seqIdx())->gkpIdent();
-
+#if 0
     //  Find the allele for this iid.  It searched a map of readIID to variant id.
+    uint32  iid = getSequence(bead->seqIdx())->gkpIdent();
+#endif
 
     //  If the allele is the target, or we're using all alleles, save to the 'best' list.
     //  Currently, this is the only case.
 
     if (1) {
+      // Save the base in the majority allele.
       bBaseCount[baseIdx]++;
       bQVSum[baseIdx] += qv;
       bReads.push_back(bead);
+
+      //fprintf(stderr, " base/%c/%d", base, qv);
     }
 
     else {
+      //  Save the base in the 'other' allele.
       oBaseCount[baseIdx]++;
       oQVSum[baseIdx] += qv;
       oReads.push_back(bead);
+
+      //fprintf(stderr, " other/%c/%d", base, qv);
     }
 
     //  Remember the two highest QVs
 
+#if 0
     if (highest1_qv[baseIdx] < qv) {
       highest2_qv[baseIdx] = highest1_qv[baseIdx];
       highest1_qv[baseIdx] = qv;
@@ -148,9 +193,15 @@ abAbacus::baseCallQuality(abColID cid) {
     } else if (highest2_qv[baseIdx] < qv) {
       highest2_qv[baseIdx] = qv;
     }
+#endif
   }
 
+  //fprintf(stderr, "\n");
+
   delete cbi;
+
+  double  cw[5]    = { 0.0, 0.0, 0.0, 0.0, 0.0 };      // "consensus weight" for a given base
+  double  tau[5]   = { 1.0, 1.0, 1.0, 1.0, 1.0 };
 
   //  Compute tau based on guides
 
@@ -173,14 +224,14 @@ abAbacus::baseCallQuality(abColID cid) {
     consensusQV = qv;
   }
 
-  //  If actual reads,reset.
+  //  If other reads exist, reset.
 
   if (oReads.size() > 0)
     tau[0] = tau[1] = tau[2] = tau[3] = tau[4] = 1.0;
 
   //  Compute tau based on others
 
-  for (uint32 cind=0; cind<oReads.size(); cind++) {
+  for (uint32 cind=0; cind < oReads.size(); cind++) {
     abBead  *gb   = oReads[cind];
     char     base = getBase(gb->baseIdx());
     int32    qv   = getQual(gb->baseIdx()) - '0';
@@ -199,14 +250,14 @@ abAbacus::baseCallQuality(abColID cid) {
     consensusQV = qv;
   }
 
-  //  If real reads, reset.
+  //  If real reads exist, reset.
 
   if (bReads.size() > 0)
     tau[0] = tau[1] = tau[2] = tau[3] = tau[4] = 1.0;
 
   //  Compute tau based on real reads.
 
-  for (uint32 cind=0; cind<bReads.size(); cind++) {
+  for (uint32 cind=0; cind < bReads.size(); cind++) {
     abBead  *gb   = bReads[cind];
     char     base = getBase(gb->baseIdx());
     int32    qv   = getQual(gb->baseIdx()) - '0';
@@ -240,6 +291,8 @@ abAbacus::baseCallQuality(abColID cid) {
   //  values up to DBL_MIN without making the large values larger than DBL_MAX.  If we end up with
   //  some values still too small, oh well.  We have a winner (the large value) anyway!
 
+  //fprintf(stderr, "tau: %f %f %f %f %f\n", tau[0], tau[1], tau[2], tau[3], tau[4]);
+
   double  scaleValue = 0.0;
 
   double  minValue   = log(DBL_MIN);
@@ -272,13 +325,20 @@ abAbacus::baseCallQuality(abColID cid) {
   tau[3] = exp(tau[3] + scaleValue);
   tau[4] = exp(tau[4] + scaleValue);
 
-  double  normalize = 0.0;
 
-  cw[0] = tau[0] * 0.2;    normalize += cw[0];
-  cw[1] = tau[1] * 0.2;    normalize += cw[1];
-  cw[2] = tau[2] * 0.2;    normalize += cw[2];
-  cw[3] = tau[3] * 0.2;    normalize += cw[3];
-  cw[4] = tau[4] * 0.2;    normalize += cw[4];
+  assert(tau[0] >= 0.0);
+  assert(tau[1] >= 0.0);
+  assert(tau[2] >= 0.0);
+  assert(tau[3] >= 0.0);
+  assert(tau[4] >= 0.0);
+
+  cw[0] = tau[0] * 0.2;
+  cw[1] = tau[1] * 0.2;
+  cw[2] = tau[2] * 0.2;
+  cw[3] = tau[3] * 0.2;
+  cw[4] = tau[4] * 0.2;
+
+  double  normalize = cw[0] + cw[1] + cw[2] + cw[3] + cw[4];
 
   if (normalize > 0.0) {
     normalize = 1.0 / normalize;
@@ -290,7 +350,13 @@ abAbacus::baseCallQuality(abColID cid) {
     cw[4] *= normalize;
   }
 
-  double cwMax = 0.0;
+  assert(cw[0] >= 0.0);
+  assert(cw[1] >= 0.0);
+  assert(cw[2] >= 0.0);
+  assert(cw[3] >= 0.0);
+  assert(cw[4] >= 0.0);
+
+  double cwMax = DBL_MIN;
   uint32 cwIdx = 0;     //  Default is a gap.
 
   if (cw[0] > cwMax) { cwIdx = 0;  cwMax = cw[0]; }  //  '-'
@@ -311,18 +377,21 @@ abAbacus::baseCallQuality(abColID cid) {
 
   consensusBase = indexToBase[cwIdx];
 
-  //  If there isn't a clear winner:
-  //
-  //    If there is more than one fragment, or we used a surrogate (zero fragments) compute the QV
-  //    from cwMax.
-  //
-  //    Otherwise, there is only one fragment, and we should use that qv (saved in consensusQV).
-  //
+  //  Compute the QV.
 
-  if (cwMax < 1.0 - DBL_EPSILON) {
+  //  If cwMax is big, we've max'd out the QV and set it to the maximum.
+  //
+  if (cwMax >= 1.0 - DBL_EPSILON) {
+    consensusQV = CNS_MAX_QV + '0';
+  }
+
+  //  Otherwise compute the QV.  If there is more than one read, or we used the surrogate,
+  //  we can compute from cwMax.  If only one read, use its qv.
+  //
+  else {
     int32  qv = consensusQV;
 
-    if ((frag_cov != 1) || (used_surrogate == true)) {
+    if ((frag_cov > 1) || (used_surrogate == true)) {
       double dqv =  -10.0 * log10(1.0 - cwMax);
 
       qv = DBL_TO_INT(dqv);
@@ -337,13 +406,12 @@ abAbacus::baseCallQuality(abColID cid) {
     consensusQV = qv + '0';
   }
 
-  else {
-    consensusQV = CNS_MAX_QV + '0';
-  }
 
   //  If no target allele, or this is the target allele, set the base.  Since there
   //  is (currently) always no target allele, we always set the base.
 
+  //fprintf(stderr, "SET %u to %c qv %c\n", position, consensusBase, consensusQV);
+  
   setBase(call->baseIdx(), consensusBase);
   setQual(call->baseIdx(), consensusQV);
 }

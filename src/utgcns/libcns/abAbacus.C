@@ -91,6 +91,8 @@ abAbacus::abAbacus(gkStore *gkpStore) {
     for (int32 i=0, qv=CNS_MIN_QV; i<CNS_MAX_QV - CNS_MIN_QV + 1; i++, qv++) {
       EPROB[i]= log(TAU_MISMATCH * pow(10, -qv/10.0));
       PROB[i] = log(1.0 - pow(10, -qv/10.0));
+
+      //fprintf(stderr, "i %2d qv %2d PROB %f EPROB %f\n", i, qv, PROB[i], EPROB[i]);
     }
 
     DATAINITIALIZED = true;
@@ -157,23 +159,22 @@ abAbacus::createColBeadIterator(abColID cid) {
 //  Add a gap bead after bid.
 abBeadID
 abAbacus::appendGapBead(abBeadID bid) {
-  abBead *prev = getBead(bid);
-  abBead *bead = NULL;
-
-  assert(prev->frag_index.isValid());
 
 #warning this really should be using addBead()
 
   //  Make space for the new bead, and grab it.  And then regrab the prev.
 
   increaseArray(_beads, _beadsLen, _beadsMax, 1);
+  increaseArray(_bases, _basesLen, _basesMax, 1);
 
-  bead = _beads + _beadsLen++;
-  prev = getBead(bid);
+  abBead *bead = _beads + _beadsLen;
+  abBead *prev = getBead(bid);
+
+  assert(prev->frag_index.isValid());
 
   //  Set up the new bead
 
-  bead->boffset.set(_beadsLen - 1);
+  bead->boffset.set(_beadsLen);
   bead->soffset.set(_basesLen);
 
   bead->foffset = prev->foffset + 1;
@@ -190,7 +191,7 @@ abAbacus::appendGapBead(abBeadID bid) {
   if (bead->next.isValid())
     getBead(bead->next)->prev = bead->ident();
 
-  //  Pick the minimum of the neighboring QVs, or '5' if both neighbors are zero
+  //  Pick the minimum of the neighboring QVs, or '5' if both neighbors are zero, and set the base/qual
 
   char  qv = getQual(prev->soffset);
 
@@ -205,12 +206,12 @@ abAbacus::appendGapBead(abBeadID bid) {
       qv = '5';
   }
 
-  //  Add the base/qual
-
-  increaseArray(_bases, _basesLen, _basesMax, 1);
   _bases[_basesLen] = '-';
   _quals[_basesLen] = qv;
 
+  //  Finally, update the length of the beads/bases arrays.
+
+  _beadsLen++;
   _basesLen++;
 
   //gaps_in_alignment++;
@@ -225,15 +226,16 @@ abAbacus::appendGapBead(abBeadID bid) {
 //  Add a gap bead before bid.
 abBeadID
 abAbacus::prependGapBead(abBeadID bid) {
+
+  //  Make space for the new bead (and base), and grab the two beads.
+
+  increaseArray(_beads, _beadsLen, _beadsMax, 1);
+  increaseArray(_bases, _basesLen, _basesMax, 1);
+
+  abBead *bead = _beads + _beadsLen;
   abBead *next = getBead(bid);
 
   assert(next->frag_index.isValid());
-
-  //  Make space for the new bead, and grab it.
-
-  increaseArray(_beads, _beadsLen, _beadsMax, 1);
-
-  abBead  *bead = _beads + _beadsLen++;
 
   //  Set up the new bead
 
@@ -254,7 +256,7 @@ abAbacus::prependGapBead(abBeadID bid) {
   if (bead->prev.isValid())
     getBead(bead->prev)->next = bead->ident();
 
-  //  Pick the minimum of the neighboring QVs, or '5' if both neighbors are zero
+  //  Pick the minimum of the neighboring QVs, or '5' if both neighbors are zero, and set the base/qual
 
   char  qv = getQual(next->soffset);
 
@@ -269,11 +271,13 @@ abAbacus::prependGapBead(abBeadID bid) {
       qv = '5';
   }
 
-  //  Add the base/qual
-
-  increaseArray(_bases, _basesLen, _basesMax, 1);
   _bases[_basesLen] = '-';
   _quals[_basesLen] = qv;
+
+  //  Finally, update the length of the beads/bases arrays.
+
+  _beadsLen++;
+  _basesLen++;
 
   //gaps_in_alignment++;
 
@@ -487,7 +491,7 @@ abAbacus::unalignBeadFromColumn(abBeadID bid) {
 
 //  Remove bid from it's column, returning the prev or next bead in the fragment
 //
-abBeadID
+void
 abAbacus::unalignTrailingGapBeads(abBeadID bid) {
 
   // find direction to remove
@@ -495,18 +499,68 @@ abAbacus::unalignTrailingGapBeads(abBeadID bid) {
   abBead    *bead   = getBead(bid);
   abBeadID   anchor = bead->prevID();
 
+
+  fprintf(stderr, "unalignTrailingGapBeads()-- bid=%d %c anchor=%d %c\n",
+          bead->ident().get(),
+          getBase(bead->baseIdx()),
+          anchor.get(),
+          anchor.isValid() ? getBase(getBead(anchor)->baseIdx()) : '?');
+
+
+  if (bead->nextID().isValid() == true)
+    fprintf(stderr, "unalignTrailingGapBeads()-- next=%d %c\n",
+            bead->nextID().get(),
+            getBase(getBead(bead->nextID())->baseIdx()));
+
+
   while ((bead->nextID().isValid() == true) &&
-         (getBase(getBead(bead->nextID())->baseIdx()) == '-'))
+         (getBase(getBead(bead->nextID())->baseIdx()) == '-')) {
+    fprintf(stderr, "unalignTrailingGapBeads()-- bid=%d next is a gap\n", bead->ident().get());
     bead = getBead(bead->nextID());
+  }
 
 
-  if (bead->next.isValid() ) {
+  if (bead->nextID().isValid() == true)
+    fprintf(stderr, "unalignTrailingGapBeads()-- next=%d %c\n",
+            bead->nextID().get(),
+            getBase(getBead(bead->nextID())->baseIdx()));
+
+
+  if (bead->nextID().isValid()) {
     anchor = bead->nextID();
 
+    fprintf(stderr, "unalignTrailingGapBeads()-- reset anchor to %d\n", anchor.get());
+
     while ((bead->prev.isValid() == true) &&
-           (getBase(getBead(bead->prevID())->baseIdx()) == '-'))
+           (getBase(getBead(bead->prevID())->baseIdx()) == '-')) {
+      fprintf(stderr, "unalignTrailingGapBeads()-- bid=%d prev is a gap\n", bead->ident().get());
       bead = getBead(bead->prevID());
+    }
   }
+
+
+  if ((bead->prevID().isValid() == true) &&
+      (bead->nextID().isValid() == true)) {
+    fprintf(stderr, "unalignTrailingGapBeads()-- NOT TRAILING GAP BEADS!  Ignored.\n");
+  }
+
+
+  fprintf(stderr, "unalignTrailingGapBeads()-- bead ident=%d %c  anchor ident=%d %c\n",
+          bead->ident().get(), getBase(bead->baseIdx()),
+          anchor.get(), getBase(getBead(anchor)->baseIdx()));
+
+  {
+    abBead *anch = getBead(anchor);
+
+    fprintf(stderr, "unalignTrailingGapBeads()-- bead %d %d %d  anchor %d %d %d\n",
+            bead->prevID().get(), bead->ident().get(), bead->nextID().get(),
+            anch->prevID().get(), anch->ident().get(), anch->nextID().get());
+
+    //fprintf(stderr, "unalignTrailingGapBeads()-- bead %c %c %c  anchor %c %c %c\n",
+    //        bead->prevID().get(), bead->ident().get(), bead->nextID().get(),
+    //        anch->prevID().get(), anch->ident().get(), anch->nextID().get());
+  }
+
 
   while (bead->ident() != anchor) {
     abColumn *column = getColumn(bead->colIdx());
@@ -514,14 +568,19 @@ abAbacus::unalignTrailingGapBeads(abBeadID bid) {
 
     char      bchar = getBase(bead->baseIdx());
 
+    fprintf(stderr, "unalignTrailingGapBeads()-- bead ident=%d %c  anchor ident=%d %c (loop)\n",
+            bead->ident().get(), getBase(bead->baseIdx()),
+            anchor.get(), getBase(getBead(anchor)->baseIdx()));
+
     if (bchar != '-')
-      fprintf(stderr, "UnAlignTrailingGapBead bchar is not a gap");
+      fprintf(stderr, "unAlignTrailingGapBeads()-- bead %d %c is not a gap.\n",
+              bead->ident().get(), bchar);
     assert(bchar == '-');
 
-    upbead->down = bead->downID();
+    upbead->downID() = bead->downID();
 
     if (bead->downID().isValid())
-      getBead(bead->downID())->up = upbead->ident();
+      getBead(bead->downID())->upID() = upbead->ident();
 
     column->base_count.DecBaseCount(bchar);
 
@@ -549,7 +608,7 @@ abAbacus::unalignTrailingGapBeads(abBeadID bid) {
     }
   }
 
-  return(anchor);
+  //return(anchor);
 }
 
 

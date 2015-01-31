@@ -529,7 +529,7 @@ main (int argc, char **argv) {
     if (generateMultiAlignment(tig, gkpStore, NULL)) {
       if (showResult)
         //abacus->getMultiAlign()->printAlignment(abacus, stdout);
-        tig->display(stdout, gkpStore);
+        tig->display(stdout, gkpStore, 200, 3);
 
       unstashContains(tig, origChildren);
 

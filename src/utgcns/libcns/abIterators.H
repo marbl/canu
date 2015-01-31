@@ -14,9 +14,11 @@ public:
   ~abSeqBeadIterator() {
   };
 
+
   bool     isNull(void) {
     return(_isNull);
   };
+
 
   void     nullify(void) {
     _seq    = NULL;  //  used to be the 0th sequence
@@ -24,41 +26,30 @@ public:
     _isNull = true;
   };
 
+
   abBeadID  next(void) {
     assert(_isNull == false);
 
-    abBeadID nid;
+    abBeadID nid = _beadID;
 
-    if (_beadID.isValid()) {
-      abBead *bead = _abacus->getBead(_beadID);
-      nid          = bead->ident();
-      _beadID      = bead->nextID();
-    }
+    if (_beadID.isValid())
+      _beadID = _abacus->getBead(_beadID)->nextID();
 
     return(nid);
   };
 
-  //  Doesn't belong here, used only in multiAlign::print
-  bool      advance(uint32 position) {
-    abBeadID  bid  = next();
-    abColumn *col  = NULL;
 
-    do {
-      if (bid.isValid() == false)
-        return(false);
+  abBeadID  prev(void) {
+    assert(_isNull == false);
 
-      abBead   *bead = _abacus->getBead(bid);
+    abBeadID nid = _beadID;
 
-      if (bead->colIdx().isValid() == false)
-        return(false);
+    if (_beadID.isValid())
+      _beadID      = _abacus->getBead(_beadID)->prevID();
 
-      col  = _abacus->getColumn(bead->colIdx());
-    } while (col->position() < position);
-
-    assert(col->position() == position);
-
-    return(true);
+    return(nid);
   };
+
 
 private:
   abAbacus      *_abacus;

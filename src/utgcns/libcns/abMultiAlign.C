@@ -7,7 +7,9 @@ abMultiAlign::getConsensus(abAbacus *abacus, char *bases, char *quals, uint32 &l
   abColumn   *col = abacus->getColumn(firstColumn());
   abBeadID   bid  = col->callID();
 
-  for (len=0; bid.isValid(); len++) {
+  len = 0;
+
+  while (bid.isValid()) {
     abBead *bead = abacus->getBead(bid);
 
     bases[len] = abacus->getBase(bead->baseIdx());
@@ -17,6 +19,7 @@ abMultiAlign::getConsensus(abAbacus *abacus, char *bases, char *quals, uint32 &l
     //        len, bead->ident(), bases[len], quals[len], bead->nextID().get());
 
     bid = bead->nextID();
+    len++;
   }
 
   bases[len] = 0;
@@ -154,7 +157,7 @@ abMultiAlign::display(abAbacus  *abacus,
   if (from > to)
     return;
 
-  int32   pageWidth = to - from + 1;
+  int32   pageWidth = to - from;
 
   char   *sequence = new char [length() + 1];
   char   *quality  = new char [length() + 1];
@@ -188,7 +191,7 @@ abMultiAlign::display(abAbacus  *abacus,
 
     fid[i]  = seq->gkpIdent();
     fit[i]  = NULL;
-    type[i] = (seq->isRead() == true) ? 'r' : '?';
+    type[i] = (seq->isRead() == true) ? 'R' : '?';
 
     abColumn   *bgnColumn = abacus->getColumn(seq->firstBead());
     abColumn   *endColumn = abacus->getColumn(seq->lastBead());
@@ -199,7 +202,7 @@ abMultiAlign::display(abAbacus  *abacus,
 
   uint32 window_start = from;
 
-  fprintf(F,"\n\n================  MultiAlignment ID %d ==================\n\n", ident().get());
+  fprintf(F,"\n==================== abMultiAlign::display %d ====================\n", ident().get());
 
   while (window_start < to) {
     fprintf(F,"\n");
@@ -223,21 +226,20 @@ abMultiAlign::display(abAbacus  *abacus,
 
             //  This case only occurs if 'from' is set, and it's probably broken!
 
+            //  It prints exactly one base, but serves to skip all the bases we shouldn't be printing.
+            //  Once that base is printed, the iterator is valid, and we do the 'normal' case in the else clause.
+
             fit[i] = abacus->createSeqBeadIterator(i);
-            fit[i]->advance(wi);
 
-            abBeadID bid = fit[i]->next();
+            abBeadID   bid = fit[i]->next();
+            abColumn  *col = abacus->getColumn(bid);
 
-            if (bid.isValid()) {
-              char pc = abacus->getBase(bid);
-              
-              if (pc == sequence[wi])
-                pc = tolower(pc);
-              else
-                pc = toupper(pc);
-
-              fprintf(F, "%c", pc);
+            while (col->position() < wi) {
+              bid = fit[i]->next();
+              col = abacus->getColumn(bid);
             }
+
+            fit[i]->prev();
 
           } else if (bgn[i] ==  wi) {
             //  Start at the beginning of the sequence
@@ -257,11 +259,8 @@ abMultiAlign::display(abAbacus  *abacus,
             //  Sequence isn't involved in this window.
             break;
           }
-        }
+        }  //  End of fit[i] == NULL
 
-
-        //  This really looks like a bug.  If we had no iterator, and we started in the middle of
-        //  the sequence (HOW?)  we'd print both a base above, and a base below.
 
 
         //  If a valid iterator, print a base.  If we've run out of bases, delete the iterator
@@ -279,8 +278,10 @@ abMultiAlign::display(abAbacus  *abacus,
               pc = toupper(pc);
 
             fprintf(F, "%c", pc);
+          }
 
-          } else {
+          //  Not a valid bead, we just ran off the end of the read.  Print a space, and destroy the iterator.
+          else {
             fprintf(F," ");
             delete fit[i];
             fit[i] = NULL;
@@ -288,6 +289,8 @@ abMultiAlign::display(abAbacus  *abacus,
         }
 
 
+        //  If at the end of the window, print the id of the object we just printed.
+        //
         if (wi == window_start + pageWidth - 1)
           fprintf(F," <<< %d (%c)\n", fid[i], type[i]);
       }
@@ -295,6 +298,10 @@ abMultiAlign::display(abAbacus  *abacus,
 
     window_start += pageWidth;
   }
+
+
+  for (uint32 i=0; i<numSeqs; i++)
+    delete fit[i];
 
   delete [] fit;
   delete [] fid;
@@ -305,140 +312,3 @@ abMultiAlign::display(abAbacus  *abacus,
   delete [] sequence;
   delete [] quality;
 }
-
-
-
-
-
-
-
-
-#if 0
-
-int
-GetMANodePositions(int32        mid,
-                   MultiAlignT *ma) {
-
-  MANode *manode = GetMANode(manodeStore, mid);
-
-  int32  n_frags   = 0;
-  int32  n_unitigs = 0;
-
-  ResetVA_int32(ma->fdelta);
-  ResetVA_int32(ma->udelta);
-
-  for (uint32 i=0; i<GetNumFragments(fragmentStore); i++) {
-    Fragment *fragment = GetFragment(fragmentStore, i);
-
-    //fprintf(stderr, "GetMANodePositions()--  frag %d ident %d deleted %d\n",
-    //        i, fragment->iid, fragment->deleted);
-
-    if (fragment->deleted)
-      //  Ejected by contig consensus??
-      continue;
-
-    if (fragment->manode == -1)
-      //  Fragment not placed in this multialign
-      continue;
-
-    assert(fragment->manode == mid);
-
-    int32 bgn = GetColumn(columnStore, (GetBead(beadStore,fragment->firstbead.get()                       ))->column_index)->ma_index;
-    int32 end = GetColumn(columnStore, (GetBead(beadStore,fragment->firstbead.get() + fragment->length - 1))->column_index)->ma_index + 1;
-
-    if (fragment->type == AS_READ) {
-
-      //  Not valid for unitig consensus.
-      if (fragmentMap) {
-        if (FALSE == ExistsInHashTable_AS (fragmentMap, fragment->iid, 0))
-          //  Fragment is not in the contig f_list; is in a surrogate.
-          continue;
-
-        if (1 != LookupValueInHashTable_AS (fragmentMap, fragment->iid, 0))
-          //  Attempting to place a surrogate fragment more than once.
-          continue;
-
-        //  Indicate we've placed the fragment.
-        ReplaceInHashTable_AS(fragmentMap, fragment->iid, 0, 2, 0);
-      }
-
-      IntMultiPos *imp = GetIntMultiPos(ma->f_list, n_frags++);
-
-      imp->ident        = fragment->iid;
-      imp->type         = fragment->type;
-      imp->position.bgn = (fragment->complement) ? end : bgn;
-      imp->position.end = (fragment->complement) ? bgn : end;
-      imp->delta        = NULL;
-      imp->delta_length = GetFragmentDeltas(i, ma->fdelta, fragment->length);
-    }
-
-    if (fragment->type  == AS_UNITIG) {
-      IntUnitigPos  *iup = GetIntUnitigPos(ma->u_list, n_unitigs++);
-
-      assert(iup->ident == fragment->iid);
-
-      iup->position.bgn = (fragment->complement) ? end : bgn;
-      iup->position.end = (fragment->complement) ? bgn : end;
-      iup->delta        = NULL;
-      iup->delta_length = GetFragmentDeltas(i, ma->udelta, fragment->length);
-    }
-  }
-
-  //  Because contig consensus might have ejected fragments that don't align, the new list can be
-  //  shorter than the original list.
-  //
-  ResetToRangeVA_IntMultiPos(ma->f_list, n_frags);
-
-  //  Set delta pointers into the VA.
-
-  int32  fdeltapos = 0;
-  int32  udeltapos = 0;
-
-  n_frags   = 0;
-  n_unitigs = 0;
-
-  for (uint32 i=0; i<GetNumFragments(fragmentStore); i++) {
-    Fragment *fragment = GetFragment(fragmentStore, i);
-
-    if (fragment->deleted)
-      //  Ejected by contig consensus??
-      continue;
-
-    if (fragment->manode == -1)
-      //  Fragment not placed in this multialign
-      continue;
-
-    if (fragment->type == AS_READ) {
-
-      //  Not valid for unitig consensus
-
-      if (fragmentMap) {
-        if (FALSE == ExistsInHashTable_AS(fragmentMap, fragment->iid, 0))
-          continue;
-
-        // all of the contig's fragments should've had their value set to 2 in previous block
-
-        assert(2 == LookupValueInHashTable_AS(fragmentMap, fragment->iid, 0));
-        DeleteFromHashTable_AS(fragmentMap, fragment->iid, 0);
-      }
-
-      IntMultiPos *imp = GetIntMultiPos(ma->f_list, n_frags++);
-
-      imp->delta = (imp->delta_length == 0) ? NULL : Getint32(ma->fdelta, fdeltapos);
-
-      fdeltapos += imp->delta_length;
-    }
-
-    if (fragment->type == AS_UNITIG) {
-      IntUnitigPos  *iup = GetIntUnitigPos(ma->u_list, n_unitigs++);
-
-      iup->delta = (iup->delta_length == 0) ? NULL : Getint32(ma->udelta, udeltapos);
-
-      udeltapos += iup->delta_length;
-    }
-  }
-}
-
-
-
-#endif

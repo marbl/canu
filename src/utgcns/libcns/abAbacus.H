@@ -192,7 +192,7 @@ public:
 
   void            alignBeadToColumn(abColID cid, abBeadID bid, char *label);
   abBeadID        unalignBeadFromColumn(abBeadID bid);
-  abBeadID        unalignTrailingGapBeads(abBeadID bid);
+  void            unalignTrailingGapBeads(abBeadID bid);
 
   void            checkColumnBaseCounts();
 

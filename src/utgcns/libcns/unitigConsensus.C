@@ -856,8 +856,8 @@ unitigConsensus::generateConsensus(void) {
 
   fprintf(stderr, "generateConsensus()-- length %u\n", ma->length());
 
-  abacus->refreshMultiAlign(multialign);
-  
+  abacus->refreshMultiAlign(multialign, true, true);
+
   ma->refine(abacus, abAbacus_Smooth);
   ma->mergeRefine(abacus, true);
 
@@ -867,7 +867,11 @@ unitigConsensus::generateConsensus(void) {
   ma->refine(abacus, abAbacus_Indel);
   ma->mergeRefine(abacus, true);
 
-  ma->display(abacus, stdout);
+  //  Why is columnList getting screwed up?
+  abacus->refreshMultiAlign(multialign, true, true);
+
+  for (uint32 bb=0; bb<1200; bb += 100)
+    ma->display(abacus, stderr, bb, bb+200);
 
 #if 0
   //  While we have fragments in memory, compute the microhet probability.  Ideally, this would be
