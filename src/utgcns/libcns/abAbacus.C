@@ -127,7 +127,7 @@ abAbacus::addBead(char base, char qual) {
 
   //  Add a base/qual for the bead
   if (base != 0) {
-    increaseArray(_bases, _basesLen, _basesMax, 1);
+    increaseArrayPair(_bases, _quals, _basesLen, _basesMax, 1);
 
     _bases[_basesLen] = base;
     _quals[_basesLen] = qual;
