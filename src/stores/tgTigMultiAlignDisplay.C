@@ -118,7 +118,6 @@ tgTig::display(FILE     *F,
                bool      withQV,
                bool      withDots)  {
 
-
   if (gappedLength() == 0) {
     fprintf(F, "No MultiAlignment to print for tig %d -- no consensus sequence present.\n", tigID());
     return;
@@ -167,8 +166,8 @@ tgTig::display(FILE     *F,
     if (node->read->isReverse())
       reverseComplement(node->bases, node->quals, node->readLen);
 
-    //fprintf(stderr, "NODE READ %u at %d %d with %u deltas at offset %u\n",
-    //        i, node->read->bgn(), node->read->end(), node->read->deltaLength(), node->read->deltaOffset());
+    //fprintf(stderr, "NODE READ %u at %d %d tigLength %d with %u deltas at offset %u\n",
+    //        i, node->read->bgn(), node->read->end(), gappedLength(), node->read->deltaLength(), node->read->deltaOffset());
 
     //  Try to add this new node to the lanes.  The last iteration will always succeed, adding the
     //  node to a fresh empty lane.
@@ -223,6 +222,12 @@ tgTig::display(FILE     *F,
       int32 firstcol = (node->read->bgn() < node->read->end()) ? node->read->bgn() : node->read->end();
       int32 lastcol  = (node->read->bgn() < node->read->end()) ? node->read->end() : node->read->bgn();
       int32 orient   = (node->read->bgn() < node->read->end()) ? 1 : -1;
+
+      if (lastcol > gappedLength())
+        fprintf(stderr, "lastcol too big: %d vs %d\n", lastcol, gappedLength());
+
+      assert(firstcol <= gappedLength());
+      assert(lastcol  <= gappedLength());
 
       //  Set ID and orientation
 
@@ -405,16 +410,25 @@ tgTig::display(FILE     *F,
 
   fprintf(F, "\n<<< end Contig %d >>>\n", tigID());
 
-  for (uint32 i=0; i < 2 * lanesLen; i++)
+  for (uint32 i=0; i < 2 * lanesLen; i++) {
+    fprintf(stderr, "m %d\n", i);
     delete [] multia[i];
+  }
 
   delete [] multia;
 
   for (uint32 i=0; i < lanesLen; i++) {
+    fprintf(stderr, "i %d\n", i);
     delete [] idarray[i];
+    fprintf(stderr, "o %d\n", i);
     delete [] oriarray[i];
+    fprintf(stderr, "e\n", i);
   }
 
+    fprintf(stderr, "i\n");
   delete [] idarray;
+    fprintf(stderr, "o\n");
   delete [] oriarray;
+
+  fprintf(stderr, "Return.\n");
 }
