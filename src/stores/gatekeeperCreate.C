@@ -115,6 +115,14 @@ loadFASTQ(gkStore *gkpStore,
   fgets(Q, AS_MAX_READLEN, F->file());
   chomp(Q);
 
+  //  Convert from whatever QV encoding they have to the CA encoding
+#warning ASSUMING READS ARE SANGER QV ENCODED
+
+  for (uint32 i=0; Q[i]; i++) {
+    Q[i] -= '!';
+    Q[i] += '0';
+  }
+
   //  Add a new read to the store.
 
   gkRead     *nr = gkpStore->gkStore_addEmptyRead(gkpLibrary);
