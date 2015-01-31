@@ -20,11 +20,11 @@ char    indexToBase[CNS_NUM_SYMBOLS]        = { 0 };
 
 abAbacus::abAbacus(gkStore *gkpStore) {
   _sequencesLen    = 0;
-  _sequencesMax    = 1024;
+  _sequencesMax    = 4;
   _sequences       = new abSequence [_sequencesMax];
 
   _basesLen        = 0;
-  _basesMax        = 16384;
+  _basesMax        = 32;
   _bases           = new char [_basesMax];
   _quals           = new char [_basesMax];
 
@@ -33,7 +33,7 @@ abAbacus::abAbacus(gkStore *gkpStore) {
   _beads           = new abBead [_beadsMax];  //  These are slow to construct.
 
   _columnsLen      = 0;
-  _columnsMax      = 1024;
+  _columnsMax      = 32;
   _columns         = new abColumn[_columnsMax];  //  Or maybe it's these that are slow.
 
   _multiAlignsLen = 0;
