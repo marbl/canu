@@ -71,8 +71,6 @@ SOURCES  := AS_global.C \
             utgcns/libcns/abMultiAlign.C \
             utgcns/libcns/unitigConsensus.C
 
-#            utgcns/libcns/abAbacus-populateTig.C
-
 
 
 
