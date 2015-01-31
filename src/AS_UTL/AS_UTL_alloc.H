@@ -157,7 +157,12 @@ increaseArray(TT*& array, uint64 arrayLen, LL &arrayMax, uint64 increment) {
   if (arrayLen + increment <= arrayMax)
     return;
 
-  resizeArray(array, arrayLen, arrayMax, 2 * arrayMax, resizeArray_copyData);
+  LL newMax = arrayMax;
+
+  while (newMax < arrayLen + increment)
+    newMax *= 2;
+
+  resizeArray(array, arrayLen, arrayMax, newMax, resizeArray_copyData);
 }
 
 
@@ -168,7 +173,12 @@ increaseArrayPair(T1*& array1, T2*& array2, uint64 arrayLen, LL &arrayMax, uint6
   if (arrayLen + increment <= arrayMax)
     return;
 
-  resizeArrayPair(array1, array2, arrayLen, arrayMax, 2 * arrayMax, resizeArray_copyData);
+  LL newMax = arrayMax;
+
+  while (newMax < arrayLen + increment)
+    newMax *= 2;
+
+  resizeArrayPair(array1, array2, arrayLen, arrayMax, newMax, resizeArray_copyData);
 }
 
 
