@@ -62,15 +62,19 @@ KeyAndValue::find(char *line) {
 
   val_ = key_;                           //  We're at the key now
 
-  while (isdelimiter(*val_) == false)    //  The key cannot contain a delimiter.
+  while ((*val_ != 0) &&
+         (isdelimiter(*val_) == false))  //  The key cannot contain a delimiter.
     val_++;
 
   *val_++ = 0;
 
   while (isdelimiter(*val_) == true) {   //  Spaces or delimiter after the key
-    //*val_ = 0;
+    *val_ = 0;
     val_++;
   }
+
+  if (*val_ == 0)                        //  And there is no value, must be a filename.
+    return(true);
 
   char *eol = val_;                      //  We're at the value now
 
