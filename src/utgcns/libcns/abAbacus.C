@@ -131,6 +131,10 @@ abAbacus::addBead(char base, char qual) {
 
     _bases[_basesLen] = base;
     _quals[_basesLen] = qual;
+
+    assert(CNS_MIN_QV + '0' <= _quals[_basesLen]);
+    assert(_quals[_basesLen] <= CNS_MAX_QV + '0');
+
     _basesLen++;
   }
 
@@ -165,7 +169,8 @@ abAbacus::appendGapBead(abBeadID bid) {
   //  Make space for the new bead, and grab it.  And then regrab the prev.
 
   increaseArray(_beads, _beadsLen, _beadsMax, 1);
-  increaseArray(_bases, _basesLen, _basesMax, 1);
+
+  increaseArrayPair(_bases, _quals, _basesLen, _basesMax, 1);
 
   abBead *bead = _beads + _beadsLen;
   abBead *prev = getBead(bid);
@@ -209,6 +214,9 @@ abAbacus::appendGapBead(abBeadID bid) {
   _bases[_basesLen] = '-';
   _quals[_basesLen] = qv;
 
+  assert(CNS_MIN_QV + '0' <= _quals[_basesLen]);
+  assert(_quals[_basesLen] <= CNS_MAX_QV + '0');
+
   //  Finally, update the length of the beads/bases arrays.
 
   _beadsLen++;
@@ -230,7 +238,8 @@ abAbacus::prependGapBead(abBeadID bid) {
   //  Make space for the new bead (and base), and grab the two beads.
 
   increaseArray(_beads, _beadsLen, _beadsMax, 1);
-  increaseArray(_bases, _basesLen, _basesMax, 1);
+
+  increaseArrayPair(_bases, _quals, _basesLen, _basesMax, 1);
 
   abBead *bead = _beads + _beadsLen;
   abBead *next = getBead(bid);
@@ -273,6 +282,9 @@ abAbacus::prependGapBead(abBeadID bid) {
 
   _bases[_basesLen] = '-';
   _quals[_basesLen] = qv;
+
+  assert(CNS_MIN_QV + '0' <= _quals[_basesLen]);
+  assert(_quals[_basesLen] <= CNS_MAX_QV + '0');
 
   //  Finally, update the length of the beads/bases arrays.
 

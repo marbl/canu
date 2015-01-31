@@ -205,6 +205,8 @@ abAbacus::baseCallQuality(abColID cid) {
 
   //  Compute tau based on guides
 
+  //fprintf(stderr, "TAU1     %f %f %f %f %f\n", tau[0], tau[1], tau[2], tau[3], tau[4]);
+
   for (uint32 cind = 0; cind < gReads.size(); cind++) {
     abBead *gb   = gReads[cind];
     char    base = getBase(gb->baseIdx());
@@ -221,13 +223,19 @@ abAbacus::baseCallQuality(abColID cid) {
     tau[3] += (base == 'G') ? PROB[qv] : EPROB[qv];
     tau[4] += (base == 'T') ? PROB[qv] : EPROB[qv];
 
+    //fprintf(stderr, "TAU2[%2d] %f %f %f %f %f qv %d\n", cind, tau[0], tau[1], tau[2], tau[3], tau[4], qv);
+
     consensusQV = qv;
   }
+
+  //fprintf(stderr, "TAU3     %f %f %f %f %f\n", tau[0], tau[1], tau[2], tau[3], tau[4]);
 
   //  If other reads exist, reset.
 
   if (oReads.size() > 0)
     tau[0] = tau[1] = tau[2] = tau[3] = tau[4] = 1.0;
+
+  //fprintf(stderr, "TAU4     %f %f %f %f %f\n", tau[0], tau[1], tau[2], tau[3], tau[4]);
 
   //  Compute tau based on others
 
@@ -247,6 +255,8 @@ abAbacus::baseCallQuality(abColID cid) {
     tau[3] += (base == 'G') ? PROB[qv] : EPROB[qv];
     tau[4] += (base == 'T') ? PROB[qv] : EPROB[qv];
 
+    //fprintf(stderr, "TAU5[%2d] %f %f %f %f %f qv %d\n", cind, tau[0], tau[1], tau[2], tau[3], tau[4], qv);
+
     consensusQV = qv;
   }
 
@@ -254,6 +264,8 @@ abAbacus::baseCallQuality(abColID cid) {
 
   if (bReads.size() > 0)
     tau[0] = tau[1] = tau[2] = tau[3] = tau[4] = 1.0;
+
+  //fprintf(stderr, "TAU6     %f %f %f %f %f\n", tau[0], tau[1], tau[2], tau[3], tau[4]);
 
   //  Compute tau based on real reads.
 
@@ -273,8 +285,12 @@ abAbacus::baseCallQuality(abColID cid) {
     tau[3] += (base == 'G') ? PROB[qv] : EPROB[qv];
     tau[4] += (base == 'T') ? PROB[qv] : EPROB[qv];
 
+    //fprintf(stderr, "TAU7[%2d] %f %f %f %f %f qv %d\n", cind, tau[0], tau[1], tau[2], tau[3], tau[4], qv);
+
     consensusQV = qv;
   }
+
+  //fprintf(stderr, "TAU8     %f %f %f %f %f\n", tau[0], tau[1], tau[2], tau[3], tau[4]);
 
   //  Occasionally we get a single read of coverage, and the base is an N, which we ignored above.
 
@@ -319,12 +335,16 @@ abAbacus::baseCallQuality(abColID cid) {
   if (maxTau + scaleValue > maxValue)
     scaleValue = maxValue - maxTau;
 
+  //fprintf(stderr, "TAU9     %f %f %f %f %f value %f/%f tau %f/%f scale %f\n",
+  //        tau[0], tau[1], tau[2], tau[3], tau[4], minValue, maxValue, minTau, maxTau, scaleValue);
+
   tau[0] = exp(tau[0] + scaleValue);
   tau[1] = exp(tau[1] + scaleValue);
   tau[2] = exp(tau[2] + scaleValue);
   tau[3] = exp(tau[3] + scaleValue);
   tau[4] = exp(tau[4] + scaleValue);
 
+  //fprintf(stderr, "TAU10    %f %f %f %f %f\n", tau[0], tau[1], tau[2], tau[3], tau[4]);
 
   assert(tau[0] >= 0.0);
   assert(tau[1] >= 0.0);
@@ -411,7 +431,7 @@ abAbacus::baseCallQuality(abColID cid) {
   //  is (currently) always no target allele, we always set the base.
 
   //fprintf(stderr, "SET %u to %c qv %c\n", position, consensusBase, consensusQV);
-  
+
   setBase(call->baseIdx(), consensusBase);
   setQual(call->baseIdx(), consensusQV);
 }

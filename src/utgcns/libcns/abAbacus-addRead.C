@@ -213,12 +213,18 @@ abAbacus::addRead(gkStore *gkpStore,
       for (uint32 ii=bgn, pp=_basesLen; ii<end; ii++, pp++, _basesLen++) {
         _bases[pp] = seq[ii];
         _quals[pp] = qlt[ii];
+
+        assert(CNS_MIN_QV + '0' <= _quals[pp]);
+        assert(_quals[pp] <= CNS_MAX_QV + '0');
       }
 
     else
       for (uint32 ii=end, pp=_basesLen; ii-->bgn; pp++, _basesLen++) {
         _bases[pp] = inv[ seq[ii] ];
         _quals[pp] =      qlt[ii];
+
+        assert(CNS_MIN_QV + '0' <= _quals[pp]);
+        assert(_quals[pp] <= CNS_MAX_QV + '0');
       }
 
     _bases[_basesLen] = 0;  //  NUL terminate the strings so we can use them in aligners

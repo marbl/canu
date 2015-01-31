@@ -160,12 +160,15 @@ public:
   void          setBase(abBaseID bid, char b) {
     assert(bid.isValid() == true);
     assert(bid.get() < _basesLen);
+    //assert((b == 'A') || (b == 'C') || (b == 'G') || (b == 'T') || (b == '-'));
     _bases[bid.get()] = b;
   };
 
   void          setQual(abBaseID bid, char q) {
     assert(bid.isValid() == true);
     assert(bid.get() < _basesLen);
+    assert(CNS_MIN_QV + '0' <= q);
+    assert(q <= CNS_MAX_QV + '0');
     _quals[bid.get()] = q;
   };
 
