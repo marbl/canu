@@ -781,7 +781,7 @@ main(int argc, char **argv) {
   FILE      *output1        = NULL;  //  A read output
   FILE      *output2        = NULL;  //  B read output
 
-  uint32     seed           = time(NULL);
+  uint64     seed           = (uint64)time(NULL) * (uint64)getpid();
 
   int arg = 1;
   int err = 0;
