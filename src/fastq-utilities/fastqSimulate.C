@@ -31,6 +31,8 @@ const char *mainid = "$Id$";
 #include <vector>
 using namespace std;
 
+#undef  DEBUG_ERRORS //  Print when mismatch, insert or delete errors are added
+
 vector<int32> seqStartPositions;
 
 static char revComp[256];
@@ -120,12 +122,18 @@ makeSequenceError(char   *s1,
                   int32  &p) {
   double   r = drand48();
 
-  if (r < readMismatchRate) {
+  if ((r < readMismatchRate) && (p >= 0)) {
+#ifdef DEBUG_ERRORS
+    fprintf(stderr, "MISMATCH at p=%d base=%d/%c qc=%d/%c (INITIAL)\n",
+            p, s1[p], s1[p], q1[p], q1[p]);
+#endif
     s1[p] = errorBase[s1[p]][randomUniform(0, 3)];
     q1[p] = (validBase[s1[p]]) ? QV_BASE + 8 : QV_BASE + 2;
     nMismatch++;
-    //fprintf(stderr, "MISMATCH at p=%d base=%d/%c qc=%d/%c\n",
-    //        p, s1[p], s1[p], q1[p], q1[p]);
+#ifdef DEBUG_ERRORS
+    fprintf(stderr, "MISMATCH at p=%d base=%d/%c qc=%d/%c\n",
+            p, s1[p], s1[p], q1[p], q1[p]);
+#endif
     return;
   }
   r -= readMismatchRate;
@@ -135,8 +143,10 @@ makeSequenceError(char   *s1,
     s1[p] = insertBase[randomUniform(0, 4)];
     q1[p] = (validBase[s1[p]]) ? QV_BASE + 4 : QV_BASE + 2;
     nInsert++;
-    //fprintf(stderr, "INSERT   at p=%d base=%d/%c qc=%d/%c\n",
-    //        p, s1[p], s1[p], q1[p], q1[p]);
+#ifdef DEBUG_ERRORS
+    fprintf(stderr, "INSERT   at p=%d base=%d/%c qc=%d/%c\n",
+            p, s1[p], s1[p], q1[p], q1[p]);
+#endif
     return;
   }
   r -= readInsertRate;
@@ -144,8 +154,10 @@ makeSequenceError(char   *s1,
   if ((r < readDeleteRate) && (p > 0)) {
     p--;
     nDelete++;
-    //fprintf(stderr, "DELETE   at p=%d\n",
-    //        p);
+#ifdef DEBUG_ERRORS
+    fprintf(stderr, "DELETE   at p=%d\n",
+            p);
+#endif
     return;
   }
   r -= readDeleteRate;
@@ -168,8 +180,10 @@ makeSequences(char    *frag,
     s1[p] = frag[i];
     q1[p] = (validBase[s1[p]]) ? QV_BASE + 39 : QV_BASE + 2;
 
-    //  Lots of deletions can cause i to exceed the bounds of frag.
-    //  If that happens, we just end the read early.
+    //  Lots of deletions can cause i to exceed the bounds of frag.  If that happens, we fail.
+    //
+    if (s1[p] == 0)
+      return(false);
 
     makeSequenceError(s1, q1, p);
 
@@ -178,10 +192,6 @@ makeSequences(char    *frag,
       fprintf(stdout, "\n");
     }
     assert(s1[p] != '*');
-
-    //  If null, we ran off the end of the genome.
-    if (s1[p] == 0)
-      return(false);
   }
 
   s1[readLen] = 0;
@@ -967,6 +977,9 @@ main(int argc, char **argv) {
   //
   //  Initialize
   //
+  //  The errorBase[0] assignments permit makeSequenceError() to return a result
+  //  when the end of genome is hit.  This is caught later in makeSequence() and the
+  //  read is aborted.
 
   fprintf(stderr, "seed = "F_U64"\n", seed);
   srand48(seed);
@@ -981,6 +994,7 @@ main(int argc, char **argv) {
 
   memset(errorBase, '*', sizeof(char) * 256 * 3);
 
+  errorBase[ 0 ][0] =  0 ;  errorBase[ 0 ][1] =  0 ;  errorBase[ 0 ][2] =  0 ;
   errorBase['A'][0] = 'C';  errorBase['A'][1] = 'G';  errorBase['A'][2] = 'T';
   errorBase['C'][0] = 'A';  errorBase['C'][1] = 'G';  errorBase['C'][2] = 'T';
   errorBase['G'][0] = 'A';  errorBase['G'][1] = 'C';  errorBase['G'][2] = 'T';
