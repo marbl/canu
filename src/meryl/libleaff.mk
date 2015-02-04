@@ -13,6 +13,7 @@ SOURCES  := libleaff/fastaFile.C \
             libleaff/fastaStdin.C \
             libleaff/fastqFile.C \
             libleaff/fastqStdin.C \
+            libleaff/gkStoreFile.C \
             libleaff/merStream.C \
             libleaff/seqCache.C \
             libleaff/seqFactory.C \
@@ -25,7 +26,7 @@ SOURCES  := libleaff/fastaFile.C \
 #            libleaff/test-seqCache.C
 #            libleaff/test-seqStream.C
 
-SRC_INCDIRS  := .. ../AS_UTL
+SRC_INCDIRS  := .. ../AS_UTL ../stores
 
 TGT_LDFLAGS := -L${TARGET_DIR}
 TGT_LDLIBS  := 

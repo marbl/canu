@@ -5,6 +5,7 @@
 #include "fastqFile.H"
 #include "fastqStdin.H"
 #include "seqStore.H"
+#include "gkStoreFile.H"
 
 seqFactory *seqFactory::me = 0L;
 
@@ -19,6 +20,7 @@ seqFactory::seqFactory() {
   registerFile(new fastqFile);
   registerFile(new fastqStdin);
   registerFile(new seqStore);
+  registerFile(new gkStoreFile);
   //registerFile(new sffFile);
 }
 

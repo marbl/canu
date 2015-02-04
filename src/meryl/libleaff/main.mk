@@ -12,12 +12,12 @@ endif
 #CXXFLAGS := -fopenmp -D_GLIBCXX_PARALLEL -O3 -fPIC -m64 -pipe -Wno-write-strings
 #LDFLAGS  := -fopenmp -lm
 
-TARGET   := libseq.a
-
+TARGET   := libleaff.a
 SOURCES  := fastaFile.C \
             fastaStdin.C \
             fastqFile.C \
             fastqStdin.C \
+            gkStoreFile.C \
             merStream.C \
             seqCache.C \
             seqFactory.C \
@@ -25,7 +25,7 @@ SOURCES  := fastaFile.C \
             seqStream.C \
             sffFile.C
 
-SRC_INCDIRS  := ../libutil ../libbio
+SRC_INCDIRS  := ../.. ../../AS_UTL ../../stores
 
 #SUBMAKEFILES := test-merStream.mk test-seqCache.mk test-seqStream.mk
 
