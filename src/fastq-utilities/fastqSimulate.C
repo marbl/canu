@@ -1067,7 +1067,7 @@ main(int argc, char **argv) {
   seqLen = 0;
   seq    = new char [seqMax + 1];
 
-  memset(seq, '.', sizeof(char) * seqMax);
+  memset(seq, 0, sizeof(char) * seqMax);
 
   uint32  nInvalid = 0;
 
