@@ -37,8 +37,7 @@ generateMultiAlignment(tgTig     *tig,
     }
 #endif
 
-    if (uc->showProgress())
-      uc->reportStartingWork();
+    uc->reportStartingWork();
 
 #if 0
     //  Attempt at increasing quality for high error, didn't help.

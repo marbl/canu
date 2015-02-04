@@ -38,14 +38,15 @@ using namespace std;
 
 void
 unitigConsensus::reportStartingWork(void) {
-  fprintf(stderr, "unitigConsensus()-- processing fragment mid %d pos %d,%d anchor %d,%d,%d -- length %u\n",
-          utgpos[tiid].ident(),
-          utgpos[tiid].min(),
-          utgpos[tiid].max(),
-          utgpos[tiid].anchor(),
-          utgpos[tiid].aHang(),
-          utgpos[tiid].bHang(),
-          abacus->getMultiAlign(multialign)->length());
+  if (showProgress())
+    fprintf(stderr, "unitigConsensus()-- processing fragment mid %d pos %d,%d anchor %d,%d,%d -- length %u\n",
+            utgpos[tiid].ident(),
+            utgpos[tiid].min(),
+            utgpos[tiid].max(),
+            utgpos[tiid].anchor(),
+            utgpos[tiid].aHang(),
+            utgpos[tiid].bHang(),
+            abacus->getMultiAlign(multialign)->length());
 
   if (showPlacementBefore())
     for (int32 x=0; x<=tiid; x++)
@@ -131,6 +132,10 @@ unitigConsensus::initialize(gkStore *gkpStore, uint32 *failed) {
     //          utgpos[i].ident(), utgpos[i].min(), utgpos[i].max(), tig->tigID(), fid);
   }
 
+  //  Now that the reads exist, we can initialize the multialign, and add the first read to it.
+
+  multialign = abacus->addMultiAlign(abSeqID(0));
+
   //  Check for duplicate reads
 
   {
@@ -153,16 +158,13 @@ unitigConsensus::initialize(gkStore *gkpStore, uint32 *failed) {
     }
   }
 
+  if (failed)
+    failed[0] = false;
+
   frankensteinLen = 0;
   frankensteinMax = MAX(1024 * 1024, 2 * num_columns);
   frankenstein    = new char     [frankensteinMax];
   frankensteinBof = new abBeadID [frankensteinMax];
-
-  //SeedMAWithFragment(manode->lid, GetFragment(fragmentStore,0)->lid, opp);
-  multialign = abacus->addMultiAlign(abSeqID(0));
-
-  if (failed)
-    failed[0] = false;
 
   //  Save columns
   {
@@ -596,7 +598,6 @@ unitigConsensus::rebuild(bool recomputeFullConsensus) {
 
   //fprintf(stderr, "FRANK %s\n", frankenstein);
 
-#warning not PrintAlignment()
   //if (showAlignments())
   //  PrintAlignment(stderr, manode->lid, 0, -1);
 }
@@ -725,7 +726,7 @@ unitigConsensus::alignFragment(void) {
                                     0,
                                     AS_CNS_ERROR_RATE + 0.02, thresh, minlen,
                                     AS_FIND_ALIGN);
-      if ((O) && (showAlgorithm())) {
+      if ((O) && (showAlignments())) {
         PrintALNoverlap("Optimal_Overlap", aseq, bseq, O);
       }
     }
