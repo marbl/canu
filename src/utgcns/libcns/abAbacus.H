@@ -160,8 +160,8 @@ public:
   void          setBase(abBaseID bid, char b) {
     assert(bid.isValid() == true);
     assert(bid.get() < _basesLen);
-    assert((b == 'A') || (b == 'C') || (b == 'G') || (b == 'T') ||
-           (b == 'a') || (b == 'c') || (b == 'g') || (b == 't') ||
+    assert((b == 'A') || (b == 'C') || (b == 'G') || (b == 'T') || (b == 'N') ||
+           (b == 'a') || (b == 'c') || (b == 'g') || (b == 't') || (b == 'n') ||
            (b == '-'));
     _bases[bid.get()] = b;
   };
