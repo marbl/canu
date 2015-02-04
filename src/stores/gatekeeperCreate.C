@@ -127,6 +127,7 @@ loadFASTQ(gkStore *gkpStore,
         fprintf(stderr, "loadFASTQ()-- read '%s' has invalid base '%c' (0x%02x) at position %u.  Converted to 'N'.\n",
                 L, S[i], S[i], i);
         S[i] = 'N';
+        Q[i] = '!';
         break;
     }
   }
