@@ -57,27 +57,31 @@ public:
     int fd = (_type == memoryMappedFile_readOnly) ? open(_name, O_RDONLY | O_LARGEFILE)
                                                   : open(_name, O_RDWR   | O_LARGEFILE);
     if (errno)
-      fprintf(stderr, "memoryMappedFile()-- Couldn't open '%s' for mapping: %s\n", _name, strerror(errno)), exit(1);
+      fprintf(stderr, "memoryMappedFile()-- Couldn't open '%s' for mmap: %s\n", _name, strerror(errno)), exit(1);
 
     struct stat  sb;
 
     fstat(fd, &sb);
     if (errno)
-      fprintf(stderr, "memoryMappedFile()-- Couldn't stat '%s': %s\n", _name, strerror(errno)), exit(1);
+      fprintf(stderr, "memoryMappedFile()-- Couldn't stat '%s' for mmap: %s\n", _name, strerror(errno)), exit(1);
 
     _length = sb.st_size;
     _offset = 0;
 
-    //  Map a region that allows reading, or reading and shared writing.  One could att PROT_WRITE
-    //  to the readOnly, and modifications will be kept private to the process (and discarded at the
-    //  end).
+    if (_length == 0)
+      fprintf(stderr, "memoryMappedFile()-- File '%s' is empty, can't mmap.\n", _name), exit(1);
+      
+    //  Map a region that allows reading, or reading and shared writing.  One could add PROT_WRITE
+    //  to the readOnly, and modifications will be kept private (if MAP_SHARED is switched to
+    //  MAP_PRIVATE) to the process (and discarded at the end).
     //
     //  FreeBSD supports MAP_NOCORE which will exclude the region from any core files generated.  Linux does not support it.
     //  
     //  NOTA BENE!!  Even though it is writable, it CANNOT be extended.
 
-    _data = (_type == memoryMappedFile_readOnly) ? mmap(0L, _length, PROT_READ,              MAP_FILE | MAP_PRIVATE, fd, 0)
-                                                 : mmap(0L, _length, PROT_READ | PROT_WRITE, MAP_FILE | MAP_SHARED,  fd, 0);
+    _data = (_type == memoryMappedFile_readOnly) ? mmap(0L, _length, PROT_READ,              MAP_FILE | MAP_SHARED, fd, 0)
+                                                 : mmap(0L, _length, PROT_READ | PROT_WRITE, MAP_FILE | MAP_SHARED, fd, 0);
+
     if (errno)
       fprintf(stderr, "memoryMappedFile()-- Couldn't mmap '%s': %s\n", _name, strerror(errno)), exit(1);
 
