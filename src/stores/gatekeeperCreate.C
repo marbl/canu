@@ -110,6 +110,27 @@ loadFASTQ(gkStore *gkpStore,
   fgets(S, AS_MAX_READLEN, F->file());
   chomp(S);
 
+  //  Check for and correct invalid bases.
+  for (uint32 i=0; S[i]; i++) {
+    switch (S[i]) {
+      case 'a':   S[i] = 'A';  break;
+      case 'c':   S[i] = 'C';  break;
+      case 'g':   S[i] = 'G';  break;
+      case 't':   S[i] = 'T';  break;
+      case 'A':                break;
+      case 'C':                break;
+      case 'G':                break;
+      case 'T':                break;
+      case 'n':   S[i] = 'N';  break;
+      case 'N':                break;
+      default:
+        fprintf(stderr, "loadFASTQ()-- read '%s' has invalid base '%c' (0x%02x) at position %u.  Converted to 'N'.\n",
+                L, S[i], S[i], i);
+        S[i] = 'N';
+        break;
+    }
+  }
+
   //  Load the qv header, and then load the qvs themselves over the header.
   fgets(Q, AS_MAX_READLEN, F->file());
   fgets(Q, AS_MAX_READLEN, F->file());
