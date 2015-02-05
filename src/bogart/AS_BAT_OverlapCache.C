@@ -27,6 +27,8 @@ static const char *rcsid = "$Id$";
 
 #include "memoryMappedFile.H"
 
+#include <sys/types.h>
+#include <sys/sysctl.h>
 
 uint64  ovlCacheMagic = 0x65686361436c766fLLU;  //0102030405060708LLU;
 
