@@ -561,15 +561,6 @@ extern pthread_mutex_t  Write_Proto_Mutex;
 #define Sign(a) ( ((a) > 0) - ((a) < 0) ) 
 
 
-int
-Read_Next_Frag(char frag [AS_MAX_READLEN + 1],
-               char quality [AS_MAX_READLEN + 1],
-               gkStore *store,
-               gkReadData *myReadData,
-               uint32 * last_frag_read,
-               uint32 minLibToRead, uint32 maxLibToRead);
-
-
 void
 Output_Overlap(uint32 S_ID, int S_Len, Direction_t S_Dir,
                uint32 T_ID, int T_Len, Olap_Info_t * olap,
