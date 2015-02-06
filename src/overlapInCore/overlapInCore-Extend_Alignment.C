@@ -43,27 +43,32 @@ Set_Left_Delta (int e, int d, int * leftover, int * t_end, int t_len, Work_Area_
   int  from, last, max;
   int  j, k;
 
-  last = WA->Edit_Array[e][d];
+  assert(WA->Edit_Array_Lazy[e] != NULL);
+
+  last = WA->Edit_Array_Lazy[e][d];
   WA->Left_Delta_Len = 0;
+
   for  (k = e;  k > 0;  k--) {
+    assert(WA->Edit_Array_Lazy[k] != NULL);
+
     from = d;
-    max = 1 + WA->Edit_Array[k - 1][d];
-    if  ((j = WA->Edit_Array[k - 1][d - 1]) > max) {
+    max = 1 + WA->Edit_Array_Lazy[k - 1][d];
+    if  ((j = WA->Edit_Array_Lazy[k - 1][d - 1]) > max) {
       from = d - 1;
       max = j;
     }
-    if  ((j = 1 + WA->Edit_Array[k - 1][d + 1]) > max) {
+    if  ((j = 1 + WA->Edit_Array_Lazy[k - 1][d + 1]) > max) {
       from = d + 1;
       max = j;
     }
     if  (from == d - 1) {
       WA->Left_Delta[WA->Left_Delta_Len++] = max - last - 1;
       d--;
-      last = WA->Edit_Array[k - 1][from];
+      last = WA->Edit_Array_Lazy[k - 1][from];
     } else if  (from == d + 1) {
       WA->Left_Delta[WA->Left_Delta_Len++] = last - (max - 1);
       d++;
-      last = WA->Edit_Array[k - 1][from];
+      last = WA->Edit_Array_Lazy[k - 1][from];
     }
   }
   (* leftover) = last;
@@ -106,27 +111,32 @@ Set_Right_Delta (int e, int d, Work_Area_t * WA) {
   int  from, last, max;
   int  i, j, k;
 
-  last = WA->Edit_Array[e][d];
+  assert(WA->Edit_Array_Lazy[e] != NULL);
+
+  last = WA->Edit_Array_Lazy[e][d];
   WA->Right_Delta_Len = 0;
+
   for  (k = e;  k > 0;  k--) {
+    assert(WA->Edit_Array_Lazy[k] != NULL);
+
     from = d;
-    max = 1 + WA->Edit_Array[k - 1][d];
-    if  ((j = WA->Edit_Array[k - 1][d - 1]) > max) {
+    max = 1 + WA->Edit_Array_Lazy[k - 1][d];
+    if  ((j = WA->Edit_Array_Lazy[k - 1][d - 1]) > max) {
       from = d - 1;
       max = j;
     }
-    if  ((j = 1 + WA->Edit_Array[k - 1][d + 1]) > max) {
+    if  ((j = 1 + WA->Edit_Array_Lazy[k - 1][d + 1]) > max) {
       from = d + 1;
       max = j;
     }
     if  (from == d - 1) {
       WA->Delta_Stack[WA->Right_Delta_Len++] = max - last - 1;
       d--;
-      last = WA->Edit_Array[k - 1][from];
+      last = WA->Edit_Array_Lazy[k - 1][from];
     } else if  (from == d + 1) {
       WA->Delta_Stack[WA->Right_Delta_Len++] = last - (max - 1);
       d++;
-      last = WA->Edit_Array[k - 1][from];
+      last = WA->Edit_Array_Lazy[k - 1][from];
     }
   }
   WA->Delta_Stack[WA->Right_Delta_Len++] = last + 1;
@@ -144,6 +154,76 @@ Set_Right_Delta (int e, int d, Work_Area_t * WA) {
 
 
 
+//  Allocate another block of 64mb for edits
+
+//  Needs to be at least:
+//       52,432 to handle 40% error at  64k overlap
+//      104,860 to handle 80% error at  64k overlap
+//      209,718 to handle 40% error at 256k overlap
+//      419,434 to handle 80% error at 256k overlap
+//    3,355,446 to handle 40% error at   4m overlap
+//    6,710,890 to handle 80% error at   4m overlap
+//  Bigger means we can assign more than one Edit_Array[] in one allocation.
+
+uint32  EDIT_SPACE_SIZE  = 1 * 1024 * 1024;
+
+static
+int *
+Allocate_More_Edit_Space(Work_Area_t *WA) {
+
+  //  Determine the last allocated block, and the last assigned block
+
+  int32  b = 0;  //  Last edit array assigned
+  int32  e = 0;  //  Last edit array assigned more space
+  int32  a = 0;  //  Last allocated block
+
+  while (WA->Edit_Array_Lazy[b] != NULL)
+    b++;
+
+  while (WA->Edit_Space_Lazy[a] != NULL)
+    a++;
+
+  //  Fill in the edit space array.  Well, not quite yet.  First, decide the minimum size.
+  //
+  //  Element [0] can access from [-2] to [2] = 5 elements.
+  //  Element [1] can access from [-3] to [3] = 7 elements.
+  //
+  //  Element [e] can access from [-2-e] to [2+e] = 5 + e * 2 elements
+  //
+  //  So, our offset for this new block needs to put [e][0] at offset...
+
+  int32 Offset = 2 + b;
+  int32 Del    = 6 + b * 2;
+  int32 Size   = EDIT_SPACE_SIZE;
+
+  while (Size < Offset + Del)
+    Size *= 2;
+
+  //  Allocate another block
+
+  WA->Edit_Space_Lazy[a] = new int [Size];
+
+  //  And, now, fill in the edit space array.
+
+  e = b;
+
+  while (Offset + Del < Size) {
+    WA->Edit_Array_Lazy[e++] = WA->Edit_Space_Lazy[a] + Offset;
+
+    Offset += Del;
+    Del    += 2;
+  }
+
+  if (e == b)
+    fprintf(stderr, "Allocate_More_Edit_Space()-- ERROR: couldn't allocate enough space for even one more entry!  e=%d\n", e);
+  assert(e != b);
+
+  fprintf(stderr, "WorkArea %d allocates space %d of size %d for array %d through %d\n", WA->thread_id, a, Size, b, e-1);
+}
+
+
+
+
 //  Return the minimum number of changes (inserts, deletes, replacements)
 //  needed to match string  A[0 .. (m-1)]  with a prefix of string
 //   T[0 .. (n-1)]  if it's not more than  Error_Limit .
@@ -157,7 +237,6 @@ Set_Right_Delta (int e, int d, Work_Area_t * WA) {
 //  Set  Match_To_End  true if the match extended to the end
 //  of at least one string; otherwise, set it false to indicate
 //  a branch point.
-
 
 static
 int
@@ -181,7 +260,10 @@ Prefix_Edit_Dist(char A[], int m, char T[], int n, int Error_Limit,
               || T[Row] == DONT_KNOW_CHAR);  Row++)
     ;
 
-  WA->Edit_Array[0][0] = Row;
+  if (WA->Edit_Array_Lazy[0] == NULL)
+    Allocate_More_Edit_Space(WA);
+
+  WA->Edit_Array_Lazy[0][0] = Row;
 
   if  (Row == m) {
     // Exact match
@@ -193,18 +275,21 @@ Prefix_Edit_Dist(char A[], int m, char T[], int n, int Error_Limit,
   Left = Right = 0;
   Max_Score = 0.0;
   for  (e = 1;  e <= Error_Limit;  e++) {
+    if (WA->Edit_Array_Lazy[e] == NULL)
+      Allocate_More_Edit_Space(WA);
+
     Left = MAX (Left - 1, -e);
     Right = MIN (Right + 1, e);
-    WA->Edit_Array[e - 1][Left] = -2;
-    WA->Edit_Array[e - 1][Left - 1] = -2;
-    WA->Edit_Array[e - 1][Right] = -2;
-    WA->Edit_Array[e - 1][Right + 1] = -2;
+    WA->Edit_Array_Lazy[e - 1][Left] = -2;
+    WA->Edit_Array_Lazy[e - 1][Left - 1] = -2;
+    WA->Edit_Array_Lazy[e - 1][Right] = -2;
+    WA->Edit_Array_Lazy[e - 1][Right + 1] = -2;
 
     for  (d = Left;  d <= Right;  d++) {
-      Row = 1 + WA->Edit_Array[e - 1][d];
-      if  ((j = WA->Edit_Array[e - 1][d - 1]) > Row)
+      Row = 1 + WA->Edit_Array_Lazy[e - 1][d];
+      if  ((j = WA->Edit_Array_Lazy[e - 1][d - 1]) > Row)
         Row = j;
-      if  ((j = 1 + WA->Edit_Array[e - 1][d + 1]) > Row)
+      if  ((j = 1 + WA->Edit_Array_Lazy[e - 1][d + 1]) > Row)
         Row = j;
       while  (Row < m && Row + d < n
               && (A[Row] == T[Row + d]
@@ -212,7 +297,7 @@ Prefix_Edit_Dist(char A[], int m, char T[], int n, int Error_Limit,
                   || T[Row + d] == DONT_KNOW_CHAR))
         Row++;
 
-      WA->Edit_Array[e][d] = Row;
+      WA->Edit_Array_Lazy[e][d] = Row;
 
       if  (Row == m || Row + d == n) {
         //  Check for branch point here caused by uneven
@@ -233,9 +318,9 @@ Prefix_Edit_Dist(char A[], int m, char T[], int n, int Error_Limit,
         }
 
         // Force last error to be mismatch rather than insertion
-        if  (Row == m && 1 + WA->Edit_Array[e - 1][d + 1] == WA->Edit_Array[e][d] && d < Right) {
+        if  (Row == m && 1 + WA->Edit_Array_Lazy[e - 1][d + 1] == WA->Edit_Array_Lazy[e][d] && d < Right) {
           d++;
-          WA->Edit_Array[e][d] = WA->Edit_Array[e][d - 1];
+          WA->Edit_Array_Lazy[e][d] = WA->Edit_Array_Lazy[e][d - 1];
         }
 
         (* A_End) = Row;           // One past last align position
@@ -247,32 +332,32 @@ Prefix_Edit_Dist(char A[], int m, char T[], int n, int Error_Limit,
     }
 
     while  (Left <= Right && Left < 0
-            && WA->Edit_Array[e][Left] < WA->Edit_Match_Limit[e])
+            && WA->Edit_Array_Lazy[e][Left] < WA->Edit_Match_Limit[e])
       Left++;
 
     if  (Left >= 0)
       while  (Left <= Right
-              && WA->Edit_Array[e][Left] + Left < WA->Edit_Match_Limit[e])
+              && WA->Edit_Array_Lazy[e][Left] + Left < WA->Edit_Match_Limit[e])
         Left++;
 
     if  (Left > Right)
       break;
 
     while  (Right > 0
-            && WA->Edit_Array[e][Right] + Right < WA->Edit_Match_Limit[e])
+            && WA->Edit_Array_Lazy[e][Right] + Right < WA->Edit_Match_Limit[e])
       Right--;
 
     if  (Right <= 0)
-      while  (WA->Edit_Array[e][Right] < WA->Edit_Match_Limit[e])
+      while  (WA->Edit_Array_Lazy[e][Right] < WA->Edit_Match_Limit[e])
         Right--;
 
     assert (Left <= Right);
 
     for  (d = Left;  d <= Right;  d++)
-      if  (WA->Edit_Array[e][d] > Longest) {
+      if  (WA->Edit_Array_Lazy[e][d] > Longest) {
         Best_d = d;
         Best_e = e;
-        Longest = WA->Edit_Array[e][d];
+        Longest = WA->Edit_Array_Lazy[e][d];
       }
 
     Score = Longest * Branch_Match_Value - e;
@@ -339,7 +424,10 @@ Rev_Prefix_Edit_Dist (char A[], int m, char T[], int n, int Error_Limit,
               || T[- Row] == DONT_KNOW_CHAR);  Row++)
     ;
 
-  WA->Edit_Array[0][0] = Row;
+  if (WA->Edit_Array_Lazy[0] == NULL)
+    Allocate_More_Edit_Space(WA);
+
+  WA->Edit_Array_Lazy[0][0] = Row;
 
   if  (Row == m) {
     (* A_End) = (* T_End) = - m;
@@ -351,18 +439,21 @@ Rev_Prefix_Edit_Dist (char A[], int m, char T[], int n, int Error_Limit,
   Left = Right = 0;
   Max_Score = 0.0;
   for  (e = 1;  e <= Error_Limit;  e++) {
+    if (WA->Edit_Array_Lazy[e] == NULL)
+      Allocate_More_Edit_Space(WA);
+
     Left = MAX (Left - 1, -e);
     Right = MIN (Right + 1, e);
-    WA->Edit_Array[e - 1][Left] = -2;
-    WA->Edit_Array[e - 1][Left - 1] = -2;
-    WA->Edit_Array[e - 1][Right] = -2;
-    WA->Edit_Array[e - 1][Right + 1] = -2;
+    WA->Edit_Array_Lazy[e - 1][Left] = -2;
+    WA->Edit_Array_Lazy[e - 1][Left - 1] = -2;
+    WA->Edit_Array_Lazy[e - 1][Right] = -2;
+    WA->Edit_Array_Lazy[e - 1][Right + 1] = -2;
 
     for  (d = Left;  d <= Right;  d++) {
-      Row = 1 + WA->Edit_Array[e - 1][d];
-      if  ((j = WA->Edit_Array[e - 1][d - 1]) > Row)
+      Row = 1 + WA->Edit_Array_Lazy[e - 1][d];
+      if  ((j = WA->Edit_Array_Lazy[e - 1][d - 1]) > Row)
         Row = j;
-      if  ((j = 1 + WA->Edit_Array[e - 1][d + 1]) > Row)
+      if  ((j = 1 + WA->Edit_Array_Lazy[e - 1][d + 1]) > Row)
         Row = j;
       while  (Row < m && Row + d < n
               && (A[- Row] == T[- Row - d]
@@ -370,7 +461,7 @@ Rev_Prefix_Edit_Dist (char A[], int m, char T[], int n, int Error_Limit,
                   || T[- Row - d] == DONT_KNOW_CHAR))
         Row++;
 
-      WA->Edit_Array[e][d] = Row;
+      WA->Edit_Array_Lazy[e][d] = Row;
 
       if  (Row == m || Row + d == n) {
 
@@ -402,32 +493,32 @@ Rev_Prefix_Edit_Dist (char A[], int m, char T[], int n, int Error_Limit,
     }
 
     while  (Left <= Right && Left < 0
-            && WA->Edit_Array[e][Left] < WA->Edit_Match_Limit[e])
+            && WA->Edit_Array_Lazy[e][Left] < WA->Edit_Match_Limit[e])
       Left++;
 
     if  (Left >= 0)
       while  (Left <= Right
-              && WA->Edit_Array[e][Left] + Left < WA->Edit_Match_Limit[e])
+              && WA->Edit_Array_Lazy[e][Left] + Left < WA->Edit_Match_Limit[e])
         Left++;
 
     if  (Left > Right)
       break;
 
     while  (Right > 0
-            && WA->Edit_Array[e][Right] + Right < WA->Edit_Match_Limit[e])
+            && WA->Edit_Array_Lazy[e][Right] + Right < WA->Edit_Match_Limit[e])
       Right--;
 
     if  (Right <= 0)
-      while  (WA->Edit_Array[e][Right] < WA->Edit_Match_Limit[e])
+      while  (WA->Edit_Array_Lazy[e][Right] < WA->Edit_Match_Limit[e])
         Right--;
 
     assert (Left <= Right);
 
     for  (d = Left;  d <= Right;  d++)
-      if  (WA->Edit_Array[e][d] > Longest) {
+      if  (WA->Edit_Array_Lazy[e][d] > Longest) {
         Best_d = d;
         Best_e = e;
-        Longest = WA->Edit_Array[e][d];
+        Longest = WA->Edit_Array_Lazy[e][d];
       }
 
     Score = Longest * Branch_Match_Value - e;

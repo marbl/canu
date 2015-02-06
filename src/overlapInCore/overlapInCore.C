@@ -158,10 +158,14 @@ Initialize_Work_Area(Work_Area_t * WA, int id) {
 
   allocated += 3 * MAX_ERRORS * sizeof(int);
 
-  WA->Edit_Space = new int    [(MAX_ERRORS + 4) * MAX_ERRORS];
-  WA->Edit_Array = new int *  [MAX_ERRORS];
+  WA->Edit_Space_Lazy = new int *  [MAX_ERRORS];
+  WA->Edit_Array_Lazy = new int *  [MAX_ERRORS];
 
-  allocated += (MAX_ERRORS + 4) * MAX_ERRORS * sizeof (int) + MAX_ERRORS * sizeof (int *);
+  memset(WA->Edit_Space_Lazy, 0, sizeof(int *) * MAX_ERRORS);
+  memset(WA->Edit_Array_Lazy, 0, sizeof(int *) * MAX_ERRORS);
+
+  allocated += MAX_ERRORS * sizeof (int);
+  allocated += MAX_ERRORS * sizeof (int);
 
   WA->String_Olap_Size  = INIT_STRING_OLAP_SIZE;
   WA->String_Olap_Space = new String_Olap_t [WA->String_Olap_Size];
@@ -172,13 +176,36 @@ Initialize_Work_Area(Work_Area_t * WA, int id) {
   allocated += WA->String_Olap_Size * sizeof (String_Olap_t);
   allocated += WA->Match_Node_Size  * sizeof (Match_Node_t);
 
+  //  Allocate space for reads up to 25% Error and 32k overlaps.
+  //    MAX_ERRORS = (1 + (int) (AS_OVL_ERROR_RATE * AS_MAX_READLEN))
+  //  The unallocated entries will be allocated on demand.
+  //
+  //int  MAX_ERRORS_MAX = 2046;  //(1 + (int) (0.25 * 32768));
+  //int  ERROR_LIMIT    = min(MAX_ERRORS_MAX, MAX_ERRORS);
+
+  //  Or, allocate about 64mb of space (per thread)
+
+  //  REPLACE THIS WITH A CALL TO Allocate_More_Edit_Space
+#if 0
+  int  ERROR_LIMIT=0;
+  while ((ERROR_LIMIT < MAX_ERRORS) && (sizeof(int) * (ERROR_LIMIT + 4) * ERROR_LIMIT < 64 * 1024 * 1024))
+    ERROR_LIMIT++;
+  ERROR_LIMIT--;
+
+  WA->Edit_Space_Lazy[0] = new int [(ERROR_LIMIT + 4) * ERROR_LIMIT];
+
+  allocated += (ERROR_LIMIT + 4) * ERROR_LIMIT * sizeof (int);
+
   int32 Offset = 2;
   int32 Del = 6;
-  for  (int32 i=0;  i<MAX_ERRORS;  i++) {
-    WA->Edit_Array[i] = WA->Edit_Space + Offset;
+  for  (int32 i=0;  i<ERROR_LIMIT;  i++) {
+    assert(Del == 6 + i * 2);  //  Length of the array for this index
+
+    WA->Edit_Array_Lazy[i] = WA->Edit_Space_Lazy[0] + Offset;
     Offset += Del;
     Del += 2;
   }
+#endif
 
   WA->status = 0;
   WA->thread_id = id;
@@ -191,7 +218,7 @@ Initialize_Work_Area(Work_Area_t * WA, int id) {
 
   allocated += sizeof(ovsOverlap) * WA->overlapsMax;
 
-  fprintf(stderr, "Initialize_Work_Area:  MAX_ERRORS=%d  allocated "F_U64"MB\n", MAX_ERRORS, allocated >> 20);
+  //fprintf(stderr, "Initialize_Work_Area:  MAX_ERRORS=%d ERROR_LIMIT=%d  allocated "F_U64"MB\n", MAX_ERRORS, ERROR_LIMIT, allocated >> 20);
 }
 
 
@@ -203,8 +230,12 @@ Delete_Work_Area(Work_Area_t *WA) {
 
   delete [] WA->Delta_Stack;
 
-  delete [] WA->Edit_Space;
-  delete [] WA->Edit_Array;
+  for (uint32 i=0; i<MAX_ERRORS; i++)
+    if (WA->Edit_Space_Lazy[i])
+      delete [] WA->Edit_Space_Lazy[i];
+
+  delete [] WA->Edit_Space_Lazy;
+  delete [] WA->Edit_Array_Lazy;
 
   delete [] WA->String_Olap_Space;
 

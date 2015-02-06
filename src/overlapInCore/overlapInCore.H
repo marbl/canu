@@ -264,8 +264,10 @@ typedef  struct Work_Area {
   int   *Right_Delta;
 
   int   *Delta_Stack;
-  int   *Edit_Space;
-  int  **Edit_Array;
+
+  int  **Edit_Space_Lazy;        //  Array of pointers, if set, it was a new'd allocation
+  int  **Edit_Array_Lazy;        //  Array of pointers, some are not new'd allocations
+
   int   *Edit_Match_Limit;
   int   *Error_Bound;
 
