@@ -53,8 +53,9 @@ static char *rcsid = "$Id$";
 
 //  Local include files
 
-#include  "AS_OVL_delcher.H"
 #include  "AS_PER_gkpStore.H"
+#include  "AS_PER_genericStore.H"
+#include  "AS_MSG_pmesg.H"
 #include  "FragCorrectOVL.H"
 
 
@@ -83,7 +84,10 @@ int  main
         exit (1);
        }
 
-   fp = File_Open (argv [1], "rb");
+   errno = 0;
+   fp = fopen (argv [1], "rb");
+   if (errno)
+     fprintf(stderr, "Failed to open '%s': %s\n", argv[1], strerror(errno)), exit(1);
 
    while  (fread (& msg, sizeof (Correction_Output_t), 1, fp) == 1)
      {
