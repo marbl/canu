@@ -7,16 +7,16 @@ ifeq "$(strip ${TARGET_DIR})" ""
   TARGET_DIR   := ../$(OSTYPE)-$(MACHINETYPE)/bin
 endif
 
-TARGET   := overlapInCore
-SOURCES  := overlapInCore.C \
-            overlapInCore-Build_Hash_Index.C \
-            overlapInCore-Extend_Alignment.C \
-            overlapInCore-Find_Overlaps.C \
-            overlapInCore-Output.C \
-            overlapInCore-Process_Overlaps.C \
-            overlapInCore-Process_String_Overlaps.C
+TARGET   := findErrors
+SOURCES  := findErrors.C \
+            findErrors-Analyze_Alignment.C \
+            findErrors-Output.C \
+            findErrors-Prefix_Edit_Distance.C \
+            findErrors-Process_Olap.C \
+            findErrors-Read_Frags.C \
+            findErrors-Read_Olaps.C
 
-SRC_INCDIRS  := .. ../AS_UTL ../stores liboverlap
+SRC_INCDIRS  := .. ../AS_UTL ../stores ../overlapInCore/liboverlap
 
 TGT_LDFLAGS := -L${TARGET_DIR}
 TGT_LDLIBS  := -lCA

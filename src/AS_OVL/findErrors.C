@@ -1,0 +1,467 @@
+
+
+const char *mainid = "$Id: FragCorrectOVL.C 6709 2015-02-06 09:39:26Z bri $";
+
+#include "findErrors.H"
+
+#include "Binomial_Bound.H"
+
+void
+Process_Olap(Olap_Info_t        *olap,
+             char               *b_seq,
+             bool                shredded,
+             Thread_Work_Area_t *wa);
+
+void
+Read_Frags(feParameters   &G,
+           gkStore        *gkpStore);
+
+void
+Read_Olaps(feParameters &G);
+
+void 
+Output_Corrections(feParameters &G);
+
+
+
+
+//  From overlapInCore.C
+int
+Binomial_Bound (int e, double p, int Start, double Limit);
+
+
+
+//  Read fragments  lo_frag .. hi_frag  from  store  and save
+//  the ids and sequences of those with overlaps to fragments in
+//  global  Frag .
+
+//  This shares lots of code with Read_Frags.
+static
+void
+Extract_Needed_Frags(feParameters &G,
+                     gkStore      *gkpStore,
+                     uint32        loID,
+                     uint32        hiID,
+                     Frag_List_t  *fl,
+                     uint64       &nextOlap) {
+
+  //  The original converted to lowercase, and made non-acgt be 'a'.
+
+  char  filter[256];
+
+  for (uint32 i=0; i<256; i++)
+    filter[i] = 'a';
+
+  filter['A'] = filter['a'] = 'a';
+  filter['C'] = filter['c'] = 'c';
+  filter['G'] = filter['g'] = 'g';
+  filter['T'] = filter['t'] = 't';
+
+  //  Count the amount of stuff we're loading.
+
+  fl->readsLen = 0;
+  fl->basesLen = 0;
+
+  uint64 lastOlap = nextOlap;
+  uint32 ii       = 0;                        //  Index into reads arrays
+  uint32 fi       = G.olaps[lastOlap].b_iid;  //  Actual ID we're extracting
+
+  assert(loID <= fi);
+
+  while (fi < hiID) {
+    gkRead *read = gkpStore->gkStore_getRead(fi);
+
+    fl->readsLen += 1;
+    fl->basesLen += read->gkRead_clearRegionLength() + 1;
+
+    //  Advance to the next overlap
+
+    lastOlap++;
+    while ((lastOlap < G.olapsLen) && (G.olaps[lastOlap].b_iid == fi))
+      lastOlap++;
+    fi = (lastOlap < G.olapsLen) ? G.olaps[lastOlap].b_iid : hiID;
+  }
+
+  //  Ensure there is space.
+
+  if (fl->readsMax < fl->readsLen) {
+    delete [] fl->readIDs;
+    delete [] fl->readBases;
+
+    fl->readIDs   = new uint32 [fl->readsLen];
+    fl->readBases = new char * [fl->readsLen];
+  }
+
+  if (fl->basesMax < fl->basesLen) {
+    delete [] fl->bases;
+
+    fl->bases       = new char [fl->basesLen];
+  }
+
+  //  Load.  This is complicated by loading only the reads that have overlaps we care about.
+
+  fl->readsLen = 0;
+  fl->basesLen = 0;
+
+  gkReadData  readData;
+
+  ii = 0;
+  fi = G.olaps[nextOlap].b_iid;
+
+  assert(loID <= fi);
+
+  while (fi < hiID) {
+    gkRead *read       = gkpStore->gkStore_getRead(fi);
+
+    //  Reads with overlaps shouldn't be deleted.  Actually, we no longer have deleted reads, yay!
+    assert(read->gkRead_isDeleted() == false);
+
+    fl->readIDs[ii]     = fi;
+    fl->readLengths[ii] = read->gkRead_clearRegionLength();
+    fl->readBases[ii]   = fl->bases + fl->basesLen;
+    fl->basesLen       += fl->readLengths[ii] + 1;
+
+    gkpStore->gkStore_loadReadData(read, &readData);
+
+    char   *readBases  = readData.gkReadData_getSequence();
+
+    for (uint32 bb=0; bb<fl->readLengths[ii]; bb++)
+      fl->readBases[ii][bb] = filter[readBases[bb]];
+
+    fl->readBases[ii][fl->readLengths[ii]] = 0;  //  All good reads end.
+
+    //  Advance to the next overlap.
+
+    nextOlap++;
+    while ((nextOlap < G.olapsLen) && (G.olaps[nextOlap].b_iid == fi))
+      nextOlap++;
+    fi = (nextOlap < G.olapsLen) ? G.olaps[nextOlap].b_iid : hiID;
+  }
+
+  fl->readsLen = ii;
+
+  fprintf(stderr, "Extracted %u fragments out of %u in iid range %u - %u\n",
+           fl->readsLen, hiID - loID, loID, hiID-1);
+}
+
+
+
+//  Process all old fragments in  Internal_gkpStore. Only
+//  do overlaps/corrections with fragments where
+//    frag_iid % Num_PThreads == thread_id
+
+void *
+Threaded_Process_Stream(void *ptr) {
+  Thread_Work_Area_t  *wa = (Thread_Work_Area_t *)ptr;
+
+  for (int32 i=0; i<wa->frag_list->readsLen; i++) {
+    int32  skip_id = -1;
+
+    while (wa->frag_list->readIDs[i] > wa->G->olaps[wa->nextOlap].b_iid) {
+      if (wa->G->olaps[wa->nextOlap].b_iid != skip_id) {
+        fprintf(stderr, "SKIP:  b_iid = %d\n", wa->G->olaps[wa->nextOlap].b_iid);
+        skip_id = wa->G->olaps[wa->nextOlap].b_iid;
+      }
+      wa->nextOlap++;
+    }
+
+    if (wa->frag_list->readIDs[i] != wa->G->olaps[wa->nextOlap].b_iid) {
+      fprintf (stderr, "ERROR:  Lists don't match\n");
+      fprintf (stderr, "frag_list iid = %d  nextOlap = %d  i = %d\n",
+               wa->frag_list->readIDs[i],
+               wa->G->olaps[wa->nextOlap].b_iid, i);
+      exit (1);
+    }
+
+    wa->rev_id = -1;
+
+    while ((wa->nextOlap < wa->G->olapsLen) && (wa->G->olaps[wa->nextOlap].b_iid == wa->frag_list->readIDs[i])) {
+      if (wa->G->olaps[wa->nextOlap].a_iid % wa->G->numThreads == wa->thread_id) {
+        Process_Olap(wa->G->olaps + wa->nextOlap,
+                     wa->frag_list->readBases[i],
+                     false,  //  shredded
+                     wa);
+      }
+
+      wa->nextOlap++;
+    }
+  }
+
+  //pthread_mutex_lock(& Print_Mutex);
+  //fprintf(stderr, "Thread %d processed %d olaps\n", wa->thread_id, olap_ct);
+  //pthread_mutex_unlock(& Print_Mutex);
+
+  pthread_exit(ptr);
+
+  return(NULL);
+}
+
+
+
+//  Read old fragments in  gkpStore  that have overlaps with
+//  fragments in  Frag. Read a batch at a time and process them
+//  with multiple pthreads.  Each thread processes all the old fragments
+//  but only changes entries in  Frag  that correspond to its thread
+//  ID.  Recomputes the overlaps and records the vote information about
+//  changes to make (or not) to fragments in  Frag .
+
+
+static
+void
+Threaded_Stream_Old_Frags(feParameters &G, gkStore *gkpStore) {
+
+#if 0
+  pthread_t  * thread_id;
+  Frag_List_t  * curr_frag_list, * next_frag_list, * save_frag_list;
+  Thread_Work_Area_t  * thread_wa;
+  int64  nextOlap;
+  int64  save_olap;
+  int status;
+  int32  first_frag, last_frag, lo_frag, hi_frag;
+  int  i;
+#endif
+
+  pthread_attr_t  attr;
+
+  pthread_mutex_init(&G.Print_Mutex, NULL);
+
+  pthread_attr_init(&attr);
+  pthread_attr_setstacksize(&attr, THREAD_STACKSIZE);
+
+  pthread_t           *thread_id = new pthread_t         [G.numThreads];
+  Thread_Work_Area_t  *thread_wa = new Thread_Work_Area_t[G.numThreads];
+
+  for (uint32 i=0; i<G.numThreads; i++) {
+    thread_wa[i].thread_id    = i;
+    thread_wa[i].loID         = 0;
+    thread_wa[i].hiID         = 0;
+    thread_wa[i].nextOlap     = 0;
+    thread_wa[i].frag_list    = NULL;
+    thread_wa[i].rev_id       = 0;
+    thread_wa[i].deltaLen     = 0;
+    thread_wa[i].failedOlaps  = 0;
+
+    thread_wa[i].Edit_Array_Lazy = new int32 *[MAX_ERRORS];
+    thread_wa[i].Edit_Space_Lazy = new int32 *[MAX_ERRORS];
+
+    memset(thread_wa[i].rev_seq,         0, sizeof(char)    * AS_MAX_READLEN);
+    memset(thread_wa[i].delta,           0, sizeof(int32)   * AS_MAX_READLEN);
+    memset(thread_wa[i].Edit_Array_Lazy, 0, sizeof(int32 *) * MAX_ERRORS);
+    memset(thread_wa[i].Edit_Space_Lazy, 0, sizeof(int32 *) * MAX_ERRORS);
+  }
+
+  uint32 loID = G.olaps[0].b_iid;
+  uint32 hiID = loID + FRAGS_PER_BATCH - 1;
+
+  uint32 endID   = G.olaps[G.olapsLen - 1].b_iid;
+
+  if (hiID > endID)
+    hiID = endID;
+
+  uint64 frstOlap = 0;
+  uint64 nextOlap = 0;
+
+  Frag_List_t   frag_list_1;
+  Frag_List_t   frag_list_2;
+
+  Frag_List_t  *curr_frag_list = &frag_list_1;
+  Frag_List_t  *next_frag_list = &frag_list_2;
+
+  Extract_Needed_Frags(G, gkpStore, loID, hiID, curr_frag_list, nextOlap);
+
+  while (loID <= endID) {
+
+    // Process fragments in curr_frag_list in background
+
+    for (uint32 i=0; i<G.numThreads; i++) {
+      thread_wa[i].loID      = loID;
+      thread_wa[i].hiID      = hiID;
+      thread_wa[i].nextOlap  = frstOlap;
+      thread_wa[i].frag_list = curr_frag_list;
+
+      int status = pthread_create(thread_id + i, &attr, Threaded_Process_Stream, thread_wa + i);
+
+      if (status != 0)
+        fprintf(stderr, "pthread_create error:  %s\n", strerror(status)), exit(1);
+    }
+
+    // Read next batch of fragments
+
+    loID = hiID + 1;
+
+    if (loID <= endID) {
+      hiID = loID + FRAGS_PER_BATCH - 1;
+
+      if (hiID > endID)
+        hiID = endID;
+
+      frstOlap = nextOlap;
+
+      Extract_Needed_Frags(G, gkpStore, loID, hiID, next_frag_list, nextOlap);
+    }
+
+    // Wait for background processing to finish
+
+    for (uint32 i=0; i<G.numThreads; i++) {
+      void  *ptr;
+
+      int status = pthread_join(thread_id[i], &ptr);
+
+      if (status != 0)
+        fprintf(stderr, "pthread_join error: %s\n", strerror(status)), exit(1);
+    }
+
+    //  Swap the lists and compute another block
+
+    {
+      Frag_List_t *s = curr_frag_list;
+      curr_frag_list = next_frag_list;
+      next_frag_list = s;
+    }
+  }
+}
+
+
+
+
+
+
+
+
+
+int
+main(int argc, char **argv) {
+  feParameters  G;
+
+  argc = AS_configure(argc, argv);
+
+  int arg = 1;
+  int err = 0;
+  while (arg < argc) {
+    if        (strcmp(argv[arg], "-G") == 0) {
+      G.gkpStorePath = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-b") == 0) {
+      G.bgnID = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-e") == 0) {
+      G.endID = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-O") == 0) {
+      G.ovlStorePath = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-o") == 0) {
+      G.outputFileName = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-t") == 0) {
+      G.numThreads = atoi(argv[++arg]);
+
+
+
+    } else if (strcmp(argv[arg], "-d") == 0) {
+      G.Degree_Threshold = strtol(argv[++arg], NULL, 10);
+
+    } else if (strcmp(argv[arg], "-k") == 0) {
+      G.Kmer_Len = strtol(argv[++arg], NULL, 10);
+
+    } else if (strcmp(argv[arg], "-p") == 0) {
+      G.Use_Haplo_Ct = FALSE;
+
+    } else if (strcmp(argv[arg], "-V") == 0) {
+      G.Vote_Qualify_Len = strtol(argv[++arg], NULL, 10);
+
+    } else if (strcmp(argv[arg], "-x") == 0) {
+      G.End_Exclude_Len = strtol(argv[++arg], NULL, 10);
+
+    } else {
+      fprintf(stderr, "Unknown option '%s'\n", argv[arg]);
+      err++;
+    }
+
+    arg++;
+  }
+
+
+
+  if (err > 0) {
+    fprintf(stderr, "usage: %s[-ehp][-d DegrThresh][-k KmerLen][-x ExcludeLen]\n", argv[0]);
+    fprintf(stderr, "        [-F OlapFile][-S OlapStore][-o CorrectFile]\n");
+    fprintf(stderr, "        [-t NumPThreads][-v VerboseLevel]\n");
+    fprintf(stderr, "        [-V Vote_Qualify_Len]\n");
+    fprintf(stderr, "          <FragStore> <lo> <hi>\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Makes corrections to fragment sequence based on overlaps\n");
+    fprintf(stderr, "and recomputes overlaps on corrected fragments\n");
+    fprintf(stderr, "Fragments come from <FragStore> <lo> and <hi> specify\n");
+    fprintf(stderr, "the range of fragments to modify\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Options:\n");
+    fprintf(stderr, "-d   set keep flag on end of frags with less than this many olaps\n");
+    fprintf(stderr, "-F   specify file of sorted overlaps to use (in the format produced\n");
+    fprintf(stderr, "     by  get-olaps\n");
+    fprintf(stderr, "-h   print this message\n");
+    fprintf(stderr, "-k   minimum exact-match region to prevent change\n");
+    fprintf(stderr, "-o   specify output file to hold correction info\n");
+    fprintf(stderr, "-p   don't use haplotype counts to correct\n");
+    fprintf(stderr, "-S   specify the binary overlap store containing overlaps to use\n");
+    fprintf(stderr, "-t   set number of p-threads to use\n");
+    fprintf(stderr, "-v   specify level of verbose outputs, higher is more\n");
+    fprintf(stderr, "-V   specify number of exact match bases around an error to vote to change\n");
+    fprintf(stderr, "-x   length of end of exact match to exclude in preventing change\n");
+    exit(1);
+  }
+
+
+  //
+  //  Initialize Globals
+  //
+
+  {
+    for  (uint32 i = 0;  i <= ERRORS_FOR_FREE;  i++)
+      G.Edit_Match_Limit[i] = 0;
+
+    uint32 start = 1;
+
+    for  (uint32 e = ERRORS_FOR_FREE + 1;  e < MAX_ERRORS;  e++) {
+      start = Binomial_Bound (e - ERRORS_FOR_FREE, AS_OVL_ERROR_RATE, start);
+      G.Edit_Match_Limit[e] = start - 1;
+
+      assert(G.Edit_Match_Limit[e] >= G.Edit_Match_Limit[e - 1]);
+    }
+
+    for  (uint32 i = 0;  i <= AS_MAX_READLEN;  i++)
+      G.Error_Bound[i] = (int) (i * AS_OVL_ERROR_RATE);
+
+    //G.Frag_List.init();
+  }
+
+  //
+  //
+  //
+
+  gkStore *gkpStore = new gkStore(G.gkpStorePath);
+
+  if (G.bgnID < 1)
+    G.bgnID = 1;
+
+  if (gkpStore->gkStore_getNumReads() < G.endID)
+    G.endID = gkpStore->gkStore_getNumReads();
+
+
+  Read_Frags(G, gkpStore);
+  Read_Olaps(G);
+
+  //fprintf (stderr, "Before Stream_Old_Frags  Num_Olaps = "F_S64"\n", Num_Olaps);
+
+  Threaded_Stream_Old_Frags(G, gkpStore);
+
+  //fprintf (stderr, "                   Failed overlaps = %d\n", Failed_Olaps);
+
+  delete gkpStore;
+
+  //Output_Details(G);
+  Output_Corrections(G);
+
+  exit(0);
+}
+

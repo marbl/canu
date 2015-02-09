@@ -24,6 +24,7 @@ const char *mainid = "$Id$";
 #include "overlapInCore.H"
 #include "AS_UTL_decodeRange.H"
 
+#include "Binomial_Bound.H"
 
 oicParameters  G;
 
@@ -386,78 +387,6 @@ OverlapDriver(void) {
 
 
 
-
-//  Return the smallest  n >= Start  s.t.
-//    prob [>= e  errors in  n  binomial trials (p = error prob)]
-//          > Limit
-
-static
-int
-Binomial_Bound (int e, double p, int Start, double Limit) {
-  double  Normal_Z, Mu_Power, Factorial, Poisson_Coeff;
-  double  q, Sum, P_Power, Q_Power, X;
-  int  k, n, Bin_Coeff, Ct;
-
-  q = 1.0 - p;
-  if  (Start < e)
-    Start = e;
-
-  for  (n = Start;  n < AS_MAX_READLEN;  n ++) {
-    if  (n <= 35) {
-      Sum = 0.0;
-      Bin_Coeff = 1;
-      Ct = 0;
-      P_Power = 1.0;
-      Q_Power = pow (q, n);
-
-      for  (k = 0;  k < e && 1.0 - Sum > Limit;  k ++) {
-        X = Bin_Coeff * P_Power * Q_Power;
-        Sum += X;
-        Bin_Coeff *= n - Ct;
-        Bin_Coeff /= ++ Ct;
-        P_Power *= p;
-        Q_Power /= q;
-      }
-      if  (1.0 - Sum > Limit)
-        return  n;
-    } else {
-      Normal_Z = (e - 0.5 - n * p) / sqrt (n * p * q);
-      if  (Normal_Z <= NORMAL_DISTRIB_THOLD)
-        return  n;
-#undef COMPUTE_IN_LOG_SPACE
-#ifndef COMPUTE_IN_LOG_SPACE
-      Sum = 0.0;
-      Mu_Power = 1.0;
-      Factorial = 1.0;
-      Poisson_Coeff = exp (- n * p);
-      for  (k = 0;  k < e;  k ++) {
-        Sum += Mu_Power * Poisson_Coeff / Factorial;
-        Mu_Power *= n * p;
-        Factorial *= k + 1;
-      }
-#else
-      Sum = 0.0;
-      Mu_Power = 0.0;
-      Factorial = 0.0;
-      Poisson_Coeff = - n * p;
-      for  (k = 0;  k < e;  k ++) {
-	      Sum += exp(Mu_Power + Poisson_Coeff - Factorial);
-        Mu_Power += log(n * p);
-        Factorial = lgamma(k + 1);
-      }
-#endif
-      if  (1.0 - Sum > Limit)
-        return  n;
-    }
-  }
-
-  return  AS_MAX_READLEN;
-}
-
-
-
-
-
 int
 main(int argc, char **argv) {
   int  illegal;
@@ -724,7 +653,7 @@ main(int argc, char **argv) {
   int Start = 1;
 
   for  (int e = ERRORS_FOR_FREE + 1;  e < MAX_ERRORS;  e ++) {
-    Start = Binomial_Bound (e - ERRORS_FOR_FREE, AS_OVL_ERROR_RATE, Start, EDIT_DIST_PROB_BOUND);
+    Start = Binomial_Bound (e - ERRORS_FOR_FREE, AS_OVL_ERROR_RATE, Start);
     Read_Edit_Match_Limit[e] = Start - 1;
     assert (Read_Edit_Match_Limit[e] >= Read_Edit_Match_Limit[e - 1]);
   }
@@ -735,7 +664,7 @@ main(int argc, char **argv) {
   Start = 1;
 
   for  (int e = ERRORS_FOR_FREE + 1;  e < MAX_ERRORS;  e ++) {
-    Start = Binomial_Bound (e - ERRORS_FOR_FREE, AS_OVL_ERROR_RATE, Start, EDIT_DIST_PROB_BOUND);
+    Start = Binomial_Bound (e - ERRORS_FOR_FREE, AS_OVL_ERROR_RATE, Start);
     Guide_Edit_Match_Limit[e] = Start - 1;
     assert (Guide_Edit_Match_Limit[e] >= Guide_Edit_Match_Limit[e - 1]);
   }

@@ -60,6 +60,8 @@ SOURCES  := AS_global.C \
             alignment/fix-overlapping-pieces.C \
             alignment/local-overlapper.C \
             \
+            overlapInCore/liboverlap/Binomial_Bound.C \
+            \
             utgcns/libcns/abAbacus-addRead.C \
             utgcns/libcns/abAbacus-applyAlignment.C \
             utgcns/libcns/abAbacus-baseCall.C \
@@ -72,8 +74,6 @@ SOURCES  := AS_global.C \
             utgcns/libcns/unitigConsensus.C
 
 
-
-
 #  Not complete, just snippets of code
 #            AS_UTL/decodeBooleanString.C
 #            AS_UTL/AS_UTL_stackTraceTest.C
@@ -84,7 +84,7 @@ SOURCES  := AS_global.C \
 #            AS_UTL/testVar.C
 #            AS_UTL/memoryMappedFileTest.C
 
-SRC_INCDIRS  := . AS_UTL stores alignment utgcns/libcns
+SRC_INCDIRS  := . AS_UTL stores alignment overlapInCore/liboverlap utgcns/libcns
 
 #  Cannot be the 'main.mk' from subdirectories, as that redefines libCA.a to
 #  update just those objects.  Instead, this must list each binary indifidually.
@@ -102,6 +102,8 @@ SUBMAKEFILES := stores/gatekeeperCreate.mk \
                 meryl/main.mk \
                 \
                 overlapInCore/overlapInCore.mk \
+                \
+                AS_OVL/findErrors.mk \
                 \
                 bogart/bogart.mk \
                 \

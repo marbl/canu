@@ -63,10 +63,6 @@
 #define  DONT_KNOW_CHAR          'n'
 //  Unknown input character
 
-#define  EDIT_DIST_PROB_BOUND    1e-4
-//  Probability limit to "band" edit-distance calculation
-//  Determines  NORMAL_DISTRIB_THOLD
-
 #define  ENTRIES_PER_BUCKET      21
 //  In main hash table.  Recommended values are 21, 31 or 42
 //  depending on cache line size.
@@ -161,9 +157,6 @@
 //  Minimum number of bases outside of screened regions
 //  to be a reportable overlap.  Entire overlap (including screened
 //  portion) must still be  MIN_OLAP_LEN .
-
-#define  NORMAL_DISTRIB_THOLD    3.62
-//  Determined by  EDIT_DIST_PROB_BOUND
 
 #define  OUTPUT_OVERLAP_DELTAS   0
 //  If true include delta-encoding of overlap alignment
