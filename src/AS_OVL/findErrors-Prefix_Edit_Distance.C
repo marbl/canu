@@ -51,7 +51,7 @@ Compute_Delta(Thread_Work_Area_t   *WA,
     }
   }
 
-  WA->deltaStack[WA->deltaLen] = last + 1;
+  WA->deltaStack[WA->deltaLen++] = last + 1;
 
   for (int32 k=0, i=WA->deltaLen-1; i>0; i--)
     WA->delta[k++] = abs(WA->deltaStack[i]) * Sign(WA->deltaStack[i-1]);
@@ -266,6 +266,9 @@ Prefix_Edit_Dist(char   *A, int m,
       int32  Score = Longest * BRANCH_PT_MATCH_VALUE - e;
 
       // Assumes  BRANCH_PT_MATCH_VALUE - BRANCH_PT_ERROR_VALUE == 1.0
+
+      //  CorrectOverlaps didn't have the second clause.
+      //  Neither did overlapper.
 
       if ((Score > Max_Score) &&
           (Best_e <= WA->G->Error_Bound[min(Longest, Longest + Best_d)])) {
