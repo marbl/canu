@@ -125,6 +125,10 @@ public:
   };
 
 
+  size_t  length(void) {
+    return(_length);
+  };
+
 private:
   char                    _name[FILENAME_MAX];
 
