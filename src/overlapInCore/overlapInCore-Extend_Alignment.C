@@ -36,7 +36,9 @@ static const char *rcsid = "$Id$";
 //  converted to a substitution by adjusting (* t_end) which
 //  is where the alignment ends in the T string, which has length
 //   t_len .
-
+//
+//  Used in Rev_Prefix_Edit_Distance.
+//
 static
 void
 Set_Left_Delta (int e, int d, int * leftover, int * t_end, int t_len, Work_Area_t * WA) {
@@ -104,7 +106,9 @@ Set_Left_Delta (int e, int d, int * leftover, int * t_end, int t_len, Work_Area_
 //  (which is the diagonal) and working back to the start, into
 //  WA->Right_Delta. Set WA->Right_Delta_Len to the number of
 //  delta entries.
-
+//
+//  Used in Prefix_Edit_Distance
+//
 static
 void
 Set_Right_Delta (int e, int d, Work_Area_t * WA) {
