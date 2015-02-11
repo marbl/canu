@@ -7,49 +7,12 @@
 #include "gkStore.H"
 #include "ovStore.H"
 
+#include "correctionOutput.H"
+
 #include <algorithm>
 
 using namespace std;
 
-
-//  Definitions for our exportable data.
-
-typedef  enum {
-   DELETE,
-   A_SUBST,
-   C_SUBST,
-   G_SUBST,
-   T_SUBST,
-   A_INSERT,
-   C_INSERT,
-   G_INSERT,
-   T_INSERT,
-   NO_VOTE,
-   EXTENSION
-}  Vote_Value_t;
-
-
-typedef  struct {
-  uint32  is_ID       : 1;
-  uint32  pad         : 32 - 1 - 1 - 1;
-  uint32  keep_left   : 1;    // set true if left overlap degree is low
-  uint32  keep_right  : 1;    // set true if right overlap degree is low
-  uint32  iid;
-} Frag_ID_t;
-
-
-typedef  struct {
-  uint32  is_ID : 1;
-  uint32  pad   : 20;
-  uint32  type  : 11;
-  uint32  pos;
-} Correction_t;
-
-
-typedef  union {
-  Frag_ID_t     frag;
-  Correction_t  corr;
-} Correction_Output_t;
 
 
 
@@ -146,9 +109,6 @@ struct Vote_t {
 };
 
 
-const int  INNIE = 0;
-const int  NORMAL = 1;
-
 
 class Frag_Info_t {
 public:
@@ -162,8 +122,6 @@ public:
     unused       = false;
   };
   ~Frag_Info_t() {
-    delete [] sequence;
-    delete [] vote;
   };
 
   char          *sequence;

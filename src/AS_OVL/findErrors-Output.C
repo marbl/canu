@@ -35,6 +35,7 @@ Output_Details(feParameters &G) {
 
 void 
 Output_Corrections(feParameters &G) {
+  Correction_Output_t  out;
 
   errno = 0;
   FILE *fp = fopen(G.outputFileName, "wb");
@@ -44,17 +45,13 @@ Output_Corrections(feParameters &G) {
 
   for (uint32 i=0; i<G.readsLen; i++) {
 
-    {
-      Correction_Output_t  out;
+    out.keep_left   = (G.reads[i].left_degree  < G.Degree_Threshold);
+    out.keep_right  = (G.reads[i].right_degree < G.Degree_Threshold);
+    out.type        = IDENT;
+    out.pos         = 0;
+    out.readID      = G.bgnID + i;
 
-      out.frag.is_ID       = true;
-      out.frag.pad         = 0;
-      out.frag.keep_left   = (G.reads[i].left_degree  < G.Degree_Threshold);
-      out.frag.keep_right  = (G.reads[i].right_degree < G.Degree_Threshold);
-      out.frag.iid         = G.bgnID + i;
-
-      AS_UTL_safeWrite(fp, &out, "correction1", sizeof (Correction_Output_t), 1);
-    }
+    AS_UTL_safeWrite(fp, &out, "correction1", sizeof(Correction_Output_t), 1);
 
     if (G.reads[i].sequence == NULL)
       // Deleted fragment
@@ -130,12 +127,8 @@ Output_Corrections(feParameters &G) {
 
         //  Otherwise, output.
 
-        Correction_Output_t  out;
-
-        out.corr.is_ID = false;
-        out.corr.pad   = 0;
-        out.corr.type  = (int)vote;
-        out.corr.pos   = j;
+        out.type       = vote;
+        out.pos        = j;
 
         AS_UTL_safeWrite(fp, &out, "correction2", sizeof(Correction_Output_t), 1);
       }
@@ -193,12 +186,8 @@ Output_Corrections(feParameters &G) {
 
         //  Otherwise, output.
 
-        Correction_Output_t  out;
-
-        out.corr.is_ID = false;
-        out.corr.pad   = 0;
-        out.corr.type  = (int) ins_vote;
-        out.corr.pos   = j;
+        out.type  = ins_vote;
+        out.pos   = j;
 
         AS_UTL_safeWrite(fp, &out, "correction3", sizeof(Correction_Output_t), 1);
       }
