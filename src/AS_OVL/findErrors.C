@@ -451,6 +451,10 @@ main(int argc, char **argv) {
   Read_Frags(G, gkpStore);
   Read_Olaps(G);
 
+  //  Now sort them!
+
+  sort(G.olaps, G.olaps + G.olapsLen);
+
   //fprintf (stderr, "Before Stream_Old_Frags  Num_Olaps = "F_S64"\n", Num_Olaps);
 
   Threaded_Stream_Old_Frags(G, gkpStore);

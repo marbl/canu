@@ -34,10 +34,6 @@ Read_Olaps(feParameters &G) {
   }
 
   delete ovs;
-
-  //  Now sort them!
-
-  sort(G.olaps, G.olaps + G.olapsLen);
 }
 
 
