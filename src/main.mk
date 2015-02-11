@@ -104,6 +104,7 @@ SUBMAKEFILES := stores/gatekeeperCreate.mk \
                 overlapInCore/overlapInCore.mk \
                 \
                 AS_OVL/findErrors.mk \
+                AS_OVL/correctOverlaps.mk \
                 \
                 bogart/bogart.mk \
                 \
