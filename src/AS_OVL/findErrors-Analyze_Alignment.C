@@ -83,8 +83,8 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
   int32  j = 0;
   int32  p = 0;
 
-  for (int32 k=0;  k<wa->deltaLen;  k++) {
-    for (int32 m=1;  m<abs (wa->delta[k]);  m++) {
+  for (int32 k=0;  k<wa->ped.deltaLen;  k++) {
+    for (int32 m=1;  m<abs (wa->ped.delta[k]);  m++) {
       if (a_part[i] != b_part[j]) {
         wa->vote[ct].frag_sub = i;
         wa->vote[ct].align_sub = p;
@@ -107,7 +107,7 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
       p++;
     }
 
-    if (wa->delta[k] < 0) {
+    if (wa->ped.delta[k] < 0) {
       wa->vote[ct].frag_sub = i - 1;
       wa->vote[ct].align_sub = p;
 

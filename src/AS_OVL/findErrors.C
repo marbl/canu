@@ -210,17 +210,6 @@ static
 void
 Threaded_Stream_Old_Frags(feParameters &G, gkStore *gkpStore) {
 
-#if 0
-  pthread_t  * thread_id;
-  Frag_List_t  * curr_frag_list, * next_frag_list, * save_frag_list;
-  Thread_Work_Area_t  * thread_wa;
-  int64  nextOlap;
-  int64  save_olap;
-  int status;
-  int32  first_frag, last_frag, lo_frag, hi_frag;
-  int  i;
-#endif
-
   pthread_attr_t  attr;
 
   pthread_mutex_init(&G.Print_Mutex, NULL);
@@ -236,18 +225,25 @@ Threaded_Stream_Old_Frags(feParameters &G, gkStore *gkpStore) {
     thread_wa[i].loID         = 0;
     thread_wa[i].hiID         = 0;
     thread_wa[i].nextOlap     = 0;
+    thread_wa[i].G            = &G;
     thread_wa[i].frag_list    = NULL;
     thread_wa[i].rev_id       = 0;
-    thread_wa[i].deltaLen     = 0;
     thread_wa[i].failedOlaps  = 0;
 
-    thread_wa[i].Edit_Array_Lazy = new int32 *[MAX_ERRORS];
-    thread_wa[i].Edit_Space_Lazy = new int32 *[MAX_ERRORS];
+    memset(thread_wa[i].rev_seq, 0, sizeof(char) * AS_MAX_READLEN);
 
-    memset(thread_wa[i].rev_seq,         0, sizeof(char)    * AS_MAX_READLEN);
-    memset(thread_wa[i].delta,           0, sizeof(int32)   * AS_MAX_READLEN);
-    memset(thread_wa[i].Edit_Array_Lazy, 0, sizeof(int32 *) * MAX_ERRORS);
-    memset(thread_wa[i].Edit_Space_Lazy, 0, sizeof(int32 *) * MAX_ERRORS);
+
+    thread_wa[i].ped.G        = &G;
+    thread_wa[i].ped.deltaLen = 0;
+
+    memset(thread_wa[i].ped.delta,      0, sizeof(int32) * AS_MAX_READLEN);
+    memset(thread_wa[i].ped.deltaStack, 0, sizeof(int32) * AS_MAX_READLEN);
+
+    thread_wa[i].ped.Edit_Array_Lazy = new int32 * [MAX_ERRORS];
+    thread_wa[i].ped.Edit_Space_Lazy = new int32 * [MAX_ERRORS];
+
+    memset(thread_wa[i].ped.Edit_Array_Lazy, 0, sizeof(int32 *) * MAX_ERRORS);
+    memset(thread_wa[i].ped.Edit_Space_Lazy, 0, sizeof(int32 *) * MAX_ERRORS);
   }
 
   uint32 loID = G.olaps[0].b_iid;

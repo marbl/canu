@@ -13,7 +13,7 @@ Prefix_Edit_Dist(char   *A, int m,
                  int32  &A_End,
                  int32  &T_End,
                  bool   &Match_To_End,
-                 Thread_Work_Area_t * wa);
+                 pedWorkArea_t * wa);
 
 void
 Analyze_Alignment(Thread_Work_Area_t *wa,
@@ -116,7 +116,7 @@ Process_Olap(Olap_Info_t        *olap,
                                      a_end,
                                      b_end,
                                      match_to_end,
-                                     wa);
+                                     &wa->ped);
 
   if ((a_end < 0) || (a_end > a_part_len) || (b_end < 0) || (b_end > b_part_len)) {
     fprintf (stderr, "ERROR:  Bad edit distance.\n");

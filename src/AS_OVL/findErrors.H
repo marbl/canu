@@ -197,31 +197,38 @@ public:
 class feParameters;
 
 
+struct pedWorkArea_t {
+  feParameters *G;
+
+  int32         delta[AS_MAX_READLEN];  //  Only need ERATE * READLEN
+  int32         deltaStack[AS_MAX_READLEN];
+  int32         deltaLen;
+
+  int32       **Edit_Array_Lazy;
+  int32       **Edit_Space_Lazy;
+};
+
+
 struct Thread_Work_Area_t {
   int32         thread_id;
   uint32        loID;
   uint32        hiID;
   uint64        nextOlap;
 
-  Frag_List_t  *frag_list;
-  //gkStore      *gkpStore;
-
   feParameters *G;
+  
+  Frag_List_t  *frag_list;
 
   char          rev_seq[AS_MAX_READLEN + 1];  //  Used in Process_Olap to hold RC of the B read
   uint32        rev_id;                       //  Ident of the rev_seq read.
-
-  int32         delta[AS_MAX_READLEN];  //  Only need ERATE * READLEN
-  int32         deltaStack[AS_MAX_READLEN];
-  int32         deltaLen;
 
   Vote_t        vote[AS_MAX_READLEN];
 
   uint32        failedOlaps;
 
-  int32       **Edit_Array_Lazy;
-  int32       **Edit_Space_Lazy;
+  pedWorkArea_t ped;
 };
+
 
 
 

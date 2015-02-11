@@ -12,7 +12,7 @@
 
 static
 void
-Compute_Delta(Thread_Work_Area_t   *WA,
+Compute_Delta(pedWorkArea_t        *WA,
               int32                 e,
               int32                 d,
               int32                 row) {
@@ -78,7 +78,7 @@ uint32  EDIT_SPACE_SIZE  = 16 * 1024 * 1024;
 
 static
 void
-Allocate_More_Edit_Space(Thread_Work_Area_t *WA) {
+Allocate_More_Edit_Space(pedWorkArea_t *WA) {
 
   //  Determine the last allocated block, and the last assigned block
 
@@ -154,7 +154,7 @@ Prefix_Edit_Dist(char   *A, int m,
                  int32  &A_End,
                  int32  &T_End,
                  bool   &Match_To_End,
-                 Thread_Work_Area_t *WA) {
+                 pedWorkArea_t *WA) {
 
   assert (m <= n);
 
@@ -279,13 +279,16 @@ Prefix_Edit_Dist(char   *A, int m,
       }
     }
 
+  //  CorrectOverlaps didn't have this call
+
   Compute_Delta(WA, Max_Score_Best_e, Max_Score_Best_d, Max_Score_Len);
 
   A_End        = Max_Score_Len;
   T_End        = Max_Score_Len + Max_Score_Best_d;
   Match_To_End = false;
 
+  //  CorrectOverlaps was returning just 'e', not the best as below.
+  //  It used this return value to compute the new error rate.
+
   return(Max_Score_Best_e);
 }
-
-
