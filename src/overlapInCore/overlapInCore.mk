@@ -14,7 +14,10 @@ SOURCES  := overlapInCore.C \
             overlapInCore-Find_Overlaps.C \
             overlapInCore-Output.C \
             overlapInCore-Process_Overlaps.C \
-            overlapInCore-Process_String_Overlaps.C
+            overlapInCore-Process_String_Overlaps.C \
+            prefixEditDistance-allocateMoreSpace.C \
+            prefixEditDistance-forward.C \
+            prefixEditDistance-reverse.C
 
 SRC_INCDIRS  := .. ../AS_UTL ../stores liboverlap
 

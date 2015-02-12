@@ -24,8 +24,6 @@ const char *mainid = "$Id$";
 #include "overlapInCore.H"
 #include "AS_UTL_decodeRange.H"
 
-#include "Binomial_Bound.H"
-
 oicParameters  G;
 
 
@@ -48,11 +46,6 @@ int64  Bad_Short_Window_Ct = 0;
 int64  Bad_Long_Window_Ct = 0;
 //  The number of overlaps rejected because of too many errors in a long window
 
-double  Branch_Match_Value = 0.0;
-double  Branch_Error_Value = 0.0;
-//  Scores of matches and mismatches in alignments.  Alignment
-//  ends at maximum score.
-//  THESE VALUES CAN BE SET ONLY AT RUN TIME (search for them below)
 
 //  Stores sequence and quality data of fragments in hash table
 char   *basesData = NULL;
@@ -97,31 +90,6 @@ size_t  Used_Data_Len = 0;
 //  Number of bytes of Data currently occupied, including
 //  regular strings and extra kmer screen strings
 
-
-int32  Read_Edit_Match_Limit[AS_MAX_READLEN] = {0};
-//  This array [e] is the minimum value of  Edit_Array[e][d]
-//  to be worth pursuing in edit-distance computations between reads
-//  (only MAX_ERRORS needed)
-
-int32  Guide_Edit_Match_Limit[AS_MAX_READLEN] = {0};
-//  This array [e] is the minimum value of  Edit_Array[e][d]
-//  to be worth pursuing in edit-distance computations between guides
-//  (only MAX_ERRORS needed)
-
-int32  Read_Error_Bound[AS_MAX_READLEN + 1];
-//  This array [i]  is the maximum number of errors allowed
-//  in a match between reads of length  i , which is
-//  i * AS_OVL_ERROR_RATE .
-
-int32  Guide_Error_Bound[AS_MAX_READLEN + 1];
-//  This array [i]  is the maximum number of errors allowed
-//  in a match between guides of length  i , which is
-//  i * AS_OVL_ERROR_RATE .
-
-double  Branch_Cost[AS_MAX_READLEN + 1];
-//  Branch_Cost[i]  is the "goodness" of matching i characters
-//  after a single error in determining branch points.
-
 int32  Bit_Equivalent[256] = {0};
 //  Table to convert characters to 2-bit integer code
 
@@ -149,24 +117,8 @@ ovFile  *Out_BOF = NULL;
 //  Allocate memory for  (* WA)  and set initial values.
 //  Set  thread_id  field to  id .
 void
-Initialize_Work_Area(Work_Area_t * WA, int id) {
+Initialize_Work_Area(Work_Area_t *WA, int id) {
   uint64  allocated = 0;
-
-  WA->Left_Delta  = new int  [MAX_ERRORS];
-  WA->Right_Delta = new int  [MAX_ERRORS];
-
-  WA->Delta_Stack = new int  [MAX_ERRORS];
-
-  allocated += 3 * MAX_ERRORS * sizeof(int);
-
-  WA->Edit_Space_Lazy = new int *  [MAX_ERRORS];
-  WA->Edit_Array_Lazy = new int *  [MAX_ERRORS];
-
-  memset(WA->Edit_Space_Lazy, 0, sizeof(int *) * MAX_ERRORS);
-  memset(WA->Edit_Array_Lazy, 0, sizeof(int *) * MAX_ERRORS);
-
-  allocated += MAX_ERRORS * sizeof (int);
-  allocated += MAX_ERRORS * sizeof (int);
 
   WA->String_Olap_Size  = INIT_STRING_OLAP_SIZE;
   WA->String_Olap_Space = new String_Olap_t [WA->String_Olap_Size];
@@ -177,41 +129,8 @@ Initialize_Work_Area(Work_Area_t * WA, int id) {
   allocated += WA->String_Olap_Size * sizeof (String_Olap_t);
   allocated += WA->Match_Node_Size  * sizeof (Match_Node_t);
 
-  //  Allocate space for reads up to 25% Error and 32k overlaps.
-  //    MAX_ERRORS = (1 + (int) (AS_OVL_ERROR_RATE * AS_MAX_READLEN))
-  //  The unallocated entries will be allocated on demand.
-  //
-  //int  MAX_ERRORS_MAX = 2046;  //(1 + (int) (0.25 * 32768));
-  //int  ERROR_LIMIT    = min(MAX_ERRORS_MAX, MAX_ERRORS);
-
-  //  Or, allocate about 64mb of space (per thread)
-
-  //  REPLACE THIS WITH A CALL TO Allocate_More_Edit_Space
-#if 0
-  int  ERROR_LIMIT=0;
-  while ((ERROR_LIMIT < MAX_ERRORS) && (sizeof(int) * (ERROR_LIMIT + 4) * ERROR_LIMIT < 64 * 1024 * 1024))
-    ERROR_LIMIT++;
-  ERROR_LIMIT--;
-
-  WA->Edit_Space_Lazy[0] = new int [(ERROR_LIMIT + 4) * ERROR_LIMIT];
-
-  allocated += (ERROR_LIMIT + 4) * ERROR_LIMIT * sizeof (int);
-
-  int32 Offset = 2;
-  int32 Del = 6;
-  for  (int32 i=0;  i<ERROR_LIMIT;  i++) {
-    assert(Del == 6 + i * 2);  //  Length of the array for this index
-
-    WA->Edit_Array_Lazy[i] = WA->Edit_Space_Lazy[0] + Offset;
-    Offset += Del;
-    Del += 2;
-  }
-#endif
-
-  WA->status = 0;
-  WA->thread_id = id;
-
-  //  ovsOverlap is 28 to 32 bytes, so 1MB of data would store 37449 or 32768 overlaps.
+  WA->status     = 0;
+  WA->thread_id  = id;
 
   WA->overlapsLen = 0;
   WA->overlapsMax = 1024 * 1024 / sizeof(ovsOverlap);
@@ -219,29 +138,15 @@ Initialize_Work_Area(Work_Area_t * WA, int id) {
 
   allocated += sizeof(ovsOverlap) * WA->overlapsMax;
 
-  //fprintf(stderr, "Initialize_Work_Area:  MAX_ERRORS=%d ERROR_LIMIT=%d  allocated "F_U64"MB\n", MAX_ERRORS, ERROR_LIMIT, allocated >> 20);
+  WA->editDist = new prefixEditDistance(G.Doing_Partial_Overlaps);
 }
 
 
 void
 Delete_Work_Area(Work_Area_t *WA) {
-
-  delete [] WA->Left_Delta;
-  delete [] WA->Right_Delta;
-
-  delete [] WA->Delta_Stack;
-
-  for (uint32 i=0; i<MAX_ERRORS; i++)
-    if (WA->Edit_Space_Lazy[i])
-      delete [] WA->Edit_Space_Lazy[i];
-
-  delete [] WA->Edit_Space_Lazy;
-  delete [] WA->Edit_Array_Lazy;
-
+  delete    WA->editDist;
   delete [] WA->String_Olap_Space;
-
   delete [] WA->Match_Node_Space;
-
   delete [] WA->overlaps;
 }
 
@@ -600,30 +505,6 @@ main(int argc, char **argv) {
   SV2  = (HSF1 + HSF2) / 2;
   SV3  = HSF2 - 2;
 
-  //  Value to add for a match in finding branch points.
-  //  ALH: Note that AS_OVL_ERROR_RATE also affects what overlaps get found
-  //  ALH: Scoring seems to be unusual: given an alignment
-  //  of length l with k mismatches, the score seems to be
-  //  computed as l + k * error value and NOT (l-k)*match+k*error
-  //
-  //  I.e. letting x := DEFAULT_BRANCH_MATCH_VAL,
-  //  the max mismatch fraction p to give a non-negative score
-  //  would be p = x/(1-x); conversely, to compute x for a
-  //  goal p, we have x = p/(1+p).  E.g.
-  //  for p=0.06, x = .06/(1.06) = .0566038;
-  //  for p=0.35, x = .35/(1.35) = .259259
-  //  for p=0.2, x = .2/(1.2) = .166667
-  //  for p=0.15, x = .15/(1.15) = .130435
-  //
-  //  Value was for 6% vs 35% error discrimination.
-  //  Converting to integers didn't make it faster.
-  //  Corresponding error value is this value minus 1.0
-
-#define  DEFAULT_BRANCH_MATCH_VAL    ( AS_OVL_ERROR_RATE / (1.+AS_OVL_ERROR_RATE) )
-#define  PARTIAL_BRANCH_MATCH_VAL    DEFAULT_BRANCH_MATCH_VAL
-
-  Branch_Match_Value = (G.Doing_Partial_Overlaps) ? PARTIAL_BRANCH_MATCH_VAL : DEFAULT_BRANCH_MATCH_VAL;
-  Branch_Error_Value = Branch_Match_Value - 1.0;
 
   fprintf(stderr, "\n");
   fprintf(stderr, "STRING_NUM_BITS       "F_U32"\n", STRING_NUM_BITS);
@@ -647,36 +528,6 @@ main(int argc, char **argv) {
 
   assert (8 * sizeof (uint64) > 2 * G.Kmer_Len);
 
-  for  (int i = 0;  i <= ERRORS_FOR_FREE;  i ++)
-    Read_Edit_Match_Limit[i] = 0;
-
-  int Start = 1;
-
-  for  (int e = ERRORS_FOR_FREE + 1;  e < MAX_ERRORS;  e ++) {
-    Start = Binomial_Bound (e - ERRORS_FOR_FREE, AS_OVL_ERROR_RATE, Start);
-    Read_Edit_Match_Limit[e] = Start - 1;
-    assert (Read_Edit_Match_Limit[e] >= Read_Edit_Match_Limit[e - 1]);
-  }
-
-  for  (int i = 0;  i <= ERRORS_FOR_FREE;  i ++)
-    Guide_Edit_Match_Limit[i] = 0;
-
-  Start = 1;
-
-  for  (int e = ERRORS_FOR_FREE + 1;  e < MAX_ERRORS;  e ++) {
-    Start = Binomial_Bound (e - ERRORS_FOR_FREE, AS_OVL_ERROR_RATE, Start);
-    Guide_Edit_Match_Limit[e] = Start - 1;
-    assert (Guide_Edit_Match_Limit[e] >= Guide_Edit_Match_Limit[e - 1]);
-  }
-
-  for  (int i = 0;  i <= AS_MAX_READLEN;  i ++)
-    Read_Error_Bound[i] = (int) (i * AS_OVL_ERROR_RATE + 0.0000000000001);
-
-  for  (int i = 0;  i <= AS_MAX_READLEN;  i ++)
-    Guide_Error_Bound[i] = (int) (i * AS_OVL_ERROR_RATE + 0.0000000000001);
-
-  for  (int i = 0;  i <= AS_MAX_READLEN;  i ++)
-    Branch_Cost[i] = i * Branch_Match_Value + Branch_Error_Value;
 
   Bit_Equivalent['a'] = Bit_Equivalent['A'] = 0;
   Bit_Equivalent['c'] = Bit_Equivalent['C'] = 1;

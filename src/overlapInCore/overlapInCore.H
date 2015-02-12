@@ -26,6 +26,8 @@
 #include "gkStore.H"
 #include "ovStore.H"
 
+#include "prefixEditDistance.H"
+
 #include <pthread.h>
 
 
@@ -60,17 +62,9 @@
 #define  DISPLAY_WIDTH           60
 //  Number of characters per line when displaying sequences
 
-#define  DONT_KNOW_CHAR          'n'
-//  Unknown input character
-
 #define  ENTRIES_PER_BUCKET      21
 //  In main hash table.  Recommended values are 21, 31 or 42
 //  depending on cache line size.
-
-#define  ERRORS_FOR_FREE         1
-//  The number of errors that are ignored in setting probability
-//  bound for terminating alignment extensions in edit distance
-//  calculations
 
 #define  HASH_CHECK_MASK         0x1f
 //  Used to set and check bit in Hash_Check_Array
@@ -123,10 +117,6 @@
 //  in a given orientation.  For fragments of approximately
 //  same size, should never be more than 2.
 
-#define  MAX_ERRORS              (1 + (int) (AS_OVL_ERROR_RATE * AS_MAX_READLEN))
-//  Most errors in any edit distance computation
-//  THIS VALUE IS KNOWN ONLY AT RUN TIME!
-
 #define  EXPECTED_STRING_LEN     (AS_MAX_READLEN / 2)
 #define  INITIAL_DATA_LEN        (EXPECTED_STRING_LEN * Max_Hash_Strings)
 //  The number of bytes to allocate initially for hash-table sequence
@@ -136,15 +126,6 @@
 
 #define  MAX_NAME_LEN            500
 //  Longest file name allowed
-
-#define  MIN_BRANCH_END_DIST     20
-//  Branch points must be at least this many bases from the
-//  end of the fragment to be reported
-
-#define  MIN_BRANCH_TAIL_SLOPE   ((AS_OVL_ERROR_RATE > 0.06) ? 1.0 : 0.20)
-//  Branch point tails must fall off from the max by at least
-//  this rate
-//  THIS VALUE IS KNOWN ONLY AT RUN TIME!
 
 #define  MIN_CALC_KMER           4
 //  When calculating the  Hi_Hit_Limit  based on genome length, etc,
@@ -250,19 +231,8 @@ typedef  struct String_Olap_Node {
 //  parallel threads.
 
 typedef  struct Work_Area {
-  int    Left_Delta_Len;
-  int   *Left_Delta;
 
-  int    Right_Delta_Len;
-  int   *Right_Delta;
-
-  int   *Delta_Stack;
-
-  int  **Edit_Space_Lazy;        //  Array of pointers, if set, it was a new'd allocation
-  int  **Edit_Array_Lazy;        //  Array of pointers, some are not new'd allocations
-
-  int   *Edit_Match_Limit;
-  int   *Error_Bound;
+  //int   *Error_Bound;
 
   String_Olap_t  * String_Olap_Space;
   int32  String_Olap_Size;
@@ -304,6 +274,8 @@ typedef  struct Work_Area {
   uint64         Kmer_Hits_Without_Olap_Ct;
   uint64         Kmer_Hits_With_Olap_Ct;
   uint64         Multi_Overlap_Ct;
+
+  prefixEditDistance  *editDist;
 }  Work_Area_t;
 
 
@@ -383,8 +355,6 @@ extern size_t          Data_Len;
 
 extern int64   Bad_Short_Window_Ct;
 extern int64   Bad_Long_Window_Ct;
-extern double  Branch_Match_Value;
-extern double  Branch_Error_Value;
 
 extern size_t  Extra_Data_Len;
 
@@ -407,11 +377,7 @@ extern int64  * String_Start;
 extern uint32  String_Start_Size;
 
 extern size_t  Used_Data_Len;
-extern int32  Read_Edit_Match_Limit [AS_MAX_READLEN];
-extern int32  Guide_Edit_Match_Limit [AS_MAX_READLEN];
-extern int32  Read_Error_Bound [AS_MAX_READLEN + 1];
-extern int32  Guide_Error_Bound [AS_MAX_READLEN + 1];
-extern double  Branch_Cost [AS_MAX_READLEN + 1];
+
 extern int32  Bit_Equivalent [256];
 extern int32  Char_Is_Bad [256];
 extern uint64  Hash_Entries;
@@ -551,9 +517,6 @@ extern pthread_mutex_t  Write_Proto_Mutex;
 
 
 
-#define Sign(a) ( ((a) > 0) - ((a) < 0) ) 
-
-
 void
 Output_Overlap(uint32 S_ID, int S_Len, Direction_t S_Dir,
                uint32 T_ID, int T_Len, Olap_Info_t * olap,
@@ -567,10 +530,13 @@ Output_Partial_Overlap(uint32 s_id, uint32 t_id, Direction_t dir,
 
 
 Overlap_t
-Extend_Alignment(Match_Node_t * Match, char * S, int S_Len, char * T, int T_Len,
-                 int * S_Lo, int * S_Hi, int * T_Lo, int * T_Hi, int * Errors,
-                 Work_Area_t * WA);
-
+Extend_Alignment(Match_Node_t  *Match,
+                 char          *S,     int32   S_Len,
+                 char          *T,     int32   T_Len,
+                 int32         &S_Lo,  int32   &S_Hi,
+                 int32         &T_Lo,  int32   &T_Hi,
+                 int32         &Errors,
+                 Work_Area_t   *WA);
 
 int
 Process_String_Olaps (char * S,
