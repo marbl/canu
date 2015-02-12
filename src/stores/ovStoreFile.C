@@ -142,7 +142,7 @@ ovFile::writeOverlap(ovsOverlap *overlap) {
 
 
 
-uint32
+bool
 ovFile::readOverlap(ovsOverlap *overlap) {
 
   assert(_isOutput == false);

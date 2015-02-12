@@ -48,9 +48,8 @@ struct ovsOverlapDAT {
   ovsOverlapWORD  span           : AS_MAX_READLEN_BITS;   //  16
   ovsOverlapWORD  erate          : AS_MAX_ERATE_BITS;     //  12
   ovsOverlapWORD  flipped        : 1;                     //  1
-  ovsOverlapWORD  isPartial      : 1;                     //  1
   ovsOverlapWORD  extra1         : 1;                     //  1
-  ovsOverlapWORD  extra2         : 1;                     //  1
+  ovsOverlapWORD  extra2         : 2;                     //  1
 
   ovsOverlapWORD  alignSwapped   : 1;                     //  Our IDs are opposite those in the alignment
   ovsOverlapWORD  alignFile      : 19;                    //  Which file of overlap alignments
@@ -70,13 +69,12 @@ struct ovsOverlapDAT {
   ovsOverlapWORD  ahg3           : AS_MAX_READLEN_BITS;   //  17-21
   ovsOverlapWORD  erate          : AS_MAX_ERATE_BITS;     //  12
   ovsOverlapWORD  flipped        : 1;                     //  1
-  ovsOverlapWORD  isPartial      : 1;                     //  1
-  ovsOverlapWORD  extra1         : 64 - 2 * AS_MAX_READLEN_BITS - AS_MAX_ERATE_BITS - 1 - 1;  //  Between 16 and 8
+  ovsOverlapWORD  extra1         : 64 - 2 * AS_MAX_READLEN_BITS - AS_MAX_ERATE_BITS - 1;  //  Between 17 and 9
 
   ovsOverlapWORD  bhg5           : AS_MAX_READLEN_BITS;   //  17-21
   ovsOverlapWORD  bhg3           : AS_MAX_READLEN_BITS;   //  17-21
   ovsOverlapWORD  span           : AS_MAX_READLEN_BITS;   //  17-21
-  ovsOverlapWORD  extra2         : 64 - 3 * AS_MAX_READLEN_BITS;                              //  Between 13 and 1
+  ovsOverlapWORD  extra2         : 64 - 3 * AS_MAX_READLEN_BITS;                          //  Between 13 and 1
 
   ovsOverlapWORD  alignSwapped   : 1;                     //  Our IDs are opposite those in the alignment
   ovsOverlapWORD  alignFile      : 19;                    //  Which file of overlap alignments
@@ -101,14 +99,20 @@ public:
   ~ovsOverlap() {
   };
 
-  uint32     overlapIsPartial(void) const    { return(dat.ovl.isPartial == true);  };
-  uint32     overlapIsDovetail(void) const   { return(dat.ovl.isPartial == false); };
+  //  Dovetail if any of the following are true:
+  //    ahg3 == 0  &&  ahg5 == 0  (a is contained)
+  //    ahg3 == 0  &&  bhg5 == 0  (a3' dovetail b5')
+  //
+  //    bhg3 == 0  &&  bhg5 == 0  (b is contained)
+  //    bhg3 == 0  &&  ahg5 == 0  (a5' dovetail b3')
+  //
+  //  In general, if the 3' hang of either A or B is zero, AND the 5' hang of either A or B is zero.
+  //
+  uint32     overlapIsDovetail(void) const {
+    return(((dat.ovl.ahg5 == 0) || (dat.ovl.bhg5 == 0)) &&
+           ((dat.ovl.ahg3 == 0) || (dat.ovl.bhg3 == 0)));
+  };
 
-  uint32     assertOverlapIsDovatail(void) const {
-    assert((dat.ovl.ahg5 == 0) || (dat.ovl.bhg5 == 0));
-    assert((dat.ovl.ahg3 == 0) || (dat.ovl.bhg3 == 0));
-    assert(dat.ovl.isPartial  == false);
-  }
 
   //  These assume that at most one of ahg5 and bhg5 (or 3') is positive.  If two are positive, then the overlap is partial.
   //
@@ -228,7 +232,7 @@ public:
   void    flushOverlaps(void);
 
   void    writeOverlap(ovsOverlap *overlap);
-  uint32  readOverlap(ovsOverlap *overlap);
+  bool    readOverlap(ovsOverlap *overlap);
 
   void    seekOverlap(off_t overlap);
 

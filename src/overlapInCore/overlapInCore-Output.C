@@ -46,7 +46,6 @@ Output_Overlap(uint32 S_ID, int S_Len, Direction_t S_Dir,
   ovs->dat.ovl.span         = 0;
   ovs->dat.ovl.erate        = AS_OVS_encodeQuality(olap->quality);
   ovs->dat.ovl.flipped      = false;
-  ovs->dat.ovl.isPartial    = false;
   ovs->dat.ovl.extra1       = 0;
   ovs->dat.ovl.extra2       = 0;
   ovs->dat.ovl.alignSwapped = false;
@@ -241,7 +240,6 @@ Output_Partial_Overlap(uint32 s_id,
   ovl->dat.ovl.span         = 0;
   ovl->dat.ovl.erate        = AS_OVS_encodeQuality(p->quality);
   ovl->dat.ovl.flipped      = (dir != FORWARD);
-  ovl->dat.ovl.isPartial    = false;
   ovl->dat.ovl.extra1       = 0;
   ovl->dat.ovl.extra2       = 0;
   ovl->dat.ovl.alignSwapped = false;
