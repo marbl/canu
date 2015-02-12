@@ -102,6 +102,7 @@ SUBMAKEFILES := stores/gatekeeperCreate.mk \
                 meryl/main.mk \
                 \
                 overlapInCore/overlapInCore.mk \
+                overlapInCore/overlapConvert.mk \
                 \
                 AS_OVL/findErrors.mk \
                 AS_OVL/correctOverlaps.mk \
