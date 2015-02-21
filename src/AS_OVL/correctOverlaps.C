@@ -50,6 +50,10 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-t") == 0) {
       G.numThreads = atoi(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-error") == 0) {
+      AS_OVL_ERROR_RATE = atof(argv[++arg]);
+
+
 
     } else {
       err++;
@@ -95,25 +99,30 @@ main(int argc, char **argv) {
   //  Initialize Globals
   //
 
+  fprintf(stderr, "Initializing.\n");
+
   {
-    for  (int32 i=0;  i <= ERRORS_FOR_FREE;  i++)
-      G.Edit_Match_Limit [i] = 0;
+    for (int32 i=0;  i <= ERRORS_FOR_FREE;  i++)
+      G.Edit_Match_Limit[i] = 0;
 
     int32 start = 1;
-    for  (int32 e = ERRORS_FOR_FREE + 1;  e < MAX_ERRORS;  e++) {
-      start = Binomial_Bound (e - ERRORS_FOR_FREE, AS_OVL_ERROR_RATE, start);
-      G.Edit_Match_Limit [e] = start - 1;
+    for (int32 e = ERRORS_FOR_FREE + 1;  e < MAX_ERRORS;  e++) {
+      start = Binomial_Bound(e - ERRORS_FOR_FREE, AS_OVL_ERROR_RATE, start);
 
-      assert(G.Edit_Match_Limit [e] >= G.Edit_Match_Limit [e - 1]);
+      G.Edit_Match_Limit[e] = start - 1;
+
+      assert(G.Edit_Match_Limit[e] >= G.Edit_Match_Limit[e - 1]);
     }
 
-    for  (int32 i=0;  i <= AS_MAX_READLEN;  i++)
+    for (int32 i=0;  i <= AS_MAX_READLEN;  i++)
       G.Error_Bound[i] = (int) (i * AS_OVL_ERROR_RATE);
   }
 
   //
   //
   //
+
+  fprintf(stderr, "Opening gkpStore '%s'.\n", G.gkpStorePath);
 
   gkStore *gkpStore = new gkStore(G.gkpStorePath);
 
@@ -124,6 +133,8 @@ main(int argc, char **argv) {
     G.endID = gkpStore->gkStore_getNumReads();
 
   //  Load the reads for the overlaps we are going to be correcting, and apply corrections to them
+
+  fprintf(stderr, "Correcting reads "F_U32" to "F_U32".\n", G.bgnID, G.endID);
 
   Correct_Frags(G, gkpStore);
 
@@ -159,7 +170,7 @@ main(int argc, char **argv) {
 
     uint16 *evalue = new uint16 [G.olapsLen];
 
-    for  (int32 i=0; i<G.olapsLen; i++)
+    for (int32 i=0; i<G.olapsLen; i++)
       evalue[i] = G.olaps[i].evalue;
 
     AS_UTL_safeWrite(fp, evalue, "evalue", sizeof(uint16), G.olapsLen);

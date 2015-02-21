@@ -41,10 +41,10 @@ Process_Olap(Olap_Info_t        *olap,
              Thread_Work_Area_t *wa) {
 
 #if 0
-  printf ("Process_Olap:  %8d %8d %5d %5d  %c\n",
+  fprintf(stderr, "Process_Olap:  %8d %8d %5d %5d  %c\n",
           olap->a_iid, olap->b_iid,
           olap->a_hang, olap->b_hang,
-          olap->orient == INNIE ? 'I' : 'N');
+          olap->innie == true ? 'I' : 'N');
 #endif
 
   int32  ri = olap->a_iid - wa->G->bgnID;
@@ -55,9 +55,11 @@ Process_Olap(Olap_Info_t        *olap,
   char  *a_part   = wa->G->reads[ri].sequence;
   int32  a_offset = 0;
 
-  char  *b_part   = (olap->normal) ? b_seq : wa->rev_seq;
+  char  *b_part   = (olap->normal == true) ? b_seq : wa->rev_seq;
+  int32  b_offset = 0;
 
   //  If innie, reverse-complement the B sequence.
+
   if ((olap->innie == true) && (wa->rev_id != olap->b_iid)) {
     strcpy(b_part, b_seq);
     reverseComplementSequence(b_part, 0);
@@ -67,12 +69,13 @@ Process_Olap(Olap_Info_t        *olap,
   //  Adjust for hangs.
 
   if (olap->a_hang > 0) {
-    a_part   += olap->a_hang;
-    a_offset += olap->a_hang;
+    a_offset  = olap->a_hang;
+    a_part   += a_offset;
   }
 
   if (olap->a_hang < 0) {
-    b_part -= olap->a_hang;
+    b_offset  = -olap->a_hang;
+    b_part   +=  b_offset;
   }
 
   //  Count degree - just how many times we cover the end of the read?
@@ -83,25 +86,10 @@ Process_Olap(Olap_Info_t        *olap,
   if ((olap->b_hang >= 0) && (wa->G->reads[ri].right_degree < MAX_DEGREE))
     wa->G->reads[ri].right_degree++;
 
-#if 0
-  printf (">a_part\n");
-  for  (uint32 j = 0;  a_part[j] != '\0';  j++)
-    if (j + a_offset >= wa->G->reads[ri].clear_len )
-      putchar (toupper (a_part[j]));
-    else
-      putchar (a_part[j]);
-  putchar ('\n');
-
-  printf (">b_part\n");
-  for  (uint32 j = 0;  b_part[j] != '\0';  j++)
-    putchar (b_part[j]);
-  putchar ('\n');
-#endif
-
   // Get the alignment
 
-  uint32   a_part_len = strlen (a_part);
-  uint32   b_part_len = strlen (b_part);
+  uint32   a_part_len = strlen(a_part);
+  uint32   b_part_len = strlen(b_part);
 
   int32    a_end = 0;
   int32    b_end = 0;
@@ -109,6 +97,9 @@ Process_Olap(Olap_Info_t        *olap,
   uint32   olap_len = min(a_part_len, b_part_len);
 
   bool     match_to_end = false;
+
+  //fprintf(stderr, "A: offset %d length %d\n", a_offset, a_part_len);
+  //fprintf(stderr, "B: offset %d length %d\n", b_offset, b_part_len);
 
   int32    errors = Prefix_Edit_Dist(a_part, a_part_len,
                                      b_part, b_part_len,
@@ -127,17 +118,15 @@ Process_Olap(Olap_Info_t        *olap,
   assert(a_end >= 0);
   assert(a_end <= a_part_len);
   assert(b_end >= 0);
-  assert(b_end < b_part_len);
+  assert(b_end <= b_part_len);
 
-#if 0
-  printf("  errors = %d  delta_len = %d\n", errors, delta_len);
-  printf("  a_align = %d/%d  b_align = %d/%d\n", a_end, a_part_len, b_end, b_part_len);
-  Display_Alignment(a_part, a_end, b_part, b_end, wa->delta, wa->deltaLen, wa->G->reads[ri].clear_len - a_offset);
-#endif
+  //printf("  errors = %d  delta_len = %d\n", errors, wa->ped.deltaLen);
+  //printf("  a_align = %d/%d  b_align = %d/%d\n", a_end, a_part_len, b_end, b_part_len);
+  //Display_Alignment(a_part, a_end, b_part, b_end, wa->delta, wa->deltaLen, wa->G->reads[ri].clear_len - a_offset);
 
   if ((match_to_end == false) && (a_end + a_offset >= wa->G->reads[ri].clear_len - 1)) {
     olap_len = min(a_end, b_end);
-    match_to_end = TRUE;
+    match_to_end = true;
   }
 
   if ((errors <= wa->G->Error_Bound[olap_len]) && (match_to_end == true))

@@ -12,13 +12,12 @@
 
 static
 void
-Compute_Delta(pedWorkArea_t        *WA,
-              int32                 e,
-              int32                 d,
-              int32                 row) {
-  int32  last = row;
-
-  WA->deltaLen = 0;
+Compute_Delta(pedWorkArea_t   *WA,
+              int32            e,
+              int32            d,
+              int32            row) {
+  int32  last     = row;
+  int32  stackLen = 0;
 
   for (int32 k=e; k>0; k--) {
     int32  from = d;
@@ -39,24 +38,24 @@ Compute_Delta(pedWorkArea_t        *WA,
     }
 
     if (from == d-1) {
-      WA->deltaStack[WA->deltaLen++] = max - last - 1;
+      WA->deltaStack[stackLen++] = max - last - 1;
       d--;
       last = WA->Edit_Array_Lazy[k-1][from];
     }
 
     else if (from == d+1) {
-      WA->deltaStack[WA->deltaLen] = last - (max - 1);
+      WA->deltaStack[stackLen++] = last - (max - 1);
       d++;
       last = WA->Edit_Array_Lazy[k-1][from];
     }
   }
 
-  WA->deltaStack[WA->deltaLen++] = last + 1;
+  WA->deltaStack[stackLen++] = last + 1;
 
-  for (int32 k=0, i=WA->deltaLen-1; i>0; i--)
+  for (int32 k=0, i=stackLen-1; i>0; i--)
     WA->delta[k++] = abs(WA->deltaStack[i]) * Sign(WA->deltaStack[i-1]);
 
-  WA->deltaLen--;
+  WA->deltaLen = stackLen - 1;
 }
 
 
@@ -110,13 +109,14 @@ Allocate_More_Edit_Space(pedWorkArea_t *WA) {
 
   //  Allocate another block
 
-  WA->Edit_Space_Lazy[a] = new int [Size];
+  WA->Edit_Space_Lazy[a] = new int32 [Size];
 
   //  And, now, fill in the edit space array.
 
   e = b;
 
-  while (Offset + Del < Size) {
+  while ((Offset + Del < Size) &&
+         (e < MAX_ERRORS)) {
     WA->Edit_Array_Lazy[e++] = WA->Edit_Space_Lazy[a] + Offset;
 
     Offset += Del;
@@ -148,15 +148,15 @@ Allocate_More_Edit_Space(pedWorkArea_t *WA) {
 //  a branch point.
 
 int32
-Prefix_Edit_Dist(char   *A, int m,
-                 char   *T, int n,
-                 int     Error_Limit,
+Prefix_Edit_Dist(char   *A, int32 m,
+                 char   *T, int32 n,
+                 int32   Error_Limit,
                  int32  &A_End,
                  int32  &T_End,
                  bool   &Match_To_End,
                  pedWorkArea_t *WA) {
 
-  assert (m <= n);
+  //assert (m <= n);
 
   int32 Best_d  = 0;
   int32 Best_e  = 0;
@@ -190,97 +190,97 @@ Prefix_Edit_Dist(char   *A, int m,
   int32  Max_Score_Best_d = 0;
   int32  Max_Score_Best_e = 0;
 
-  for (int32 e=1;  e<=Error_Limit; e++) {
-      if (WA->Edit_Array_Lazy[e] == NULL)
-        Allocate_More_Edit_Space(WA);
+  for (int32 e=1; e<=Error_Limit; e++) {
+    if (WA->Edit_Array_Lazy[e] == NULL)
+      Allocate_More_Edit_Space(WA);
 
-      Left  = max(Left - 1, -e);
-      Right = min(Right + 1, e);
+    Left  = max(Left  - 1, -e);
+    Right = min(Right + 1,  e);
 
-      WA->Edit_Array_Lazy[e-1][Left]    = -2;
-      WA->Edit_Array_Lazy[e-1][Left-1]  = -2;
-      WA->Edit_Array_Lazy[e-1][Right]   = -2;
-      WA->Edit_Array_Lazy[e-1][Right+1] = -2;
+    WA->Edit_Array_Lazy[e-1][Left]    = -2;
+    WA->Edit_Array_Lazy[e-1][Left-1]  = -2;
+    WA->Edit_Array_Lazy[e-1][Right]   = -2;
+    WA->Edit_Array_Lazy[e-1][Right+1] = -2;
 
-      for (int32 d=Left; d<=Right;  d++) {
-          Row = 1 + WA->Edit_Array_Lazy[e-1][d];
+    for (int32 d=Left; d<=Right; d++) {
+      Row = 1 + WA->Edit_Array_Lazy[e-1][d];
+      Row = max(Row, WA->Edit_Array_Lazy[e-1][d-1]);
+      Row = max(Row, WA->Edit_Array_Lazy[e-1][d+1] + 1);
 
-          Row = max(Row, WA->Edit_Array_Lazy[e-1][d-1]);
-          Row = max(Row, WA->Edit_Array_Lazy[e-1][d+1] + 1);
+      while ((Row < m) && (Row + d < n) && (A[Row] == T[Row + d]))
+        Row++;
 
-          while (Row < m && Row + d < n
-                 && A[Row] == T[Row + d])
-            Row++;
+      assert(e < MAX_ERRORS);
+      //assert(d < ??);
 
-          WA->Edit_Array_Lazy[e][d] = Row;
+      WA->Edit_Array_Lazy[e][d] = Row;
 
-          if (Row == m || Row + d == n) {
+      if (Row == m || Row + d == n) {
 
-              // Force last error to be mismatch rather than insertion
-              if ((Row == m) &&
-                  (1 + WA->Edit_Array_Lazy[e-1][d+1] == WA->Edit_Array_Lazy[e][d]) &&
-                  (d < Right)) {
-                  d++;
-                  WA->Edit_Array_Lazy[e][d] = WA->Edit_Array_Lazy[e][d-1];
-                }
-
-              A_End = Row;           // One past last align position
-              T_End = Row + d;
-              Match_To_End = true;
-
-              Compute_Delta(WA, e, d, Row);
-
-              return(e);
-            }
+        // Force last error to be mismatch rather than insertion
+        if ((Row == m) &&
+            (1 + WA->Edit_Array_Lazy[e-1][d+1] == WA->Edit_Array_Lazy[e][d]) &&
+            (d < Right)) {
+          d++;
+          WA->Edit_Array_Lazy[e][d] = WA->Edit_Array_Lazy[e][d-1];
         }
 
-      while (Left <= Right && Left < 0
-             && WA->Edit_Array_Lazy[e][Left] < WA->G->Edit_Match_Limit[e])
-        Left++;
+        A_End        = Row;           // One past last align position
+        T_End        = Row + d;
+        Match_To_End = true;
 
-      if (Left >= 0)
-        while (Left <= Right
-               && WA->Edit_Array_Lazy[e][Left] + Left < WA->G->Edit_Match_Limit[e])
-          Left++;
+        Compute_Delta(WA, e, d, Row);
 
-      if (Left > Right)
-        break;
-
-      while (Right > 0
-             && WA->Edit_Array_Lazy[e][Right] + Right < WA->G->Edit_Match_Limit[e])
-        Right--;
-
-      if (Right <= 0)
-        while (WA->Edit_Array_Lazy[e][Right] < WA->G->Edit_Match_Limit[e])
-          Right--;
-
-      assert (Left <= Right);
-
-      for (int32 d=Left;  d <= Right;  d++)
-        if (WA->Edit_Array_Lazy[e][d] > Longest) {
-            Best_d = d;
-            Best_e = e;
-            Longest = WA->Edit_Array_Lazy[e][d];
-          }
-
-      int32  Score = Longest * BRANCH_PT_MATCH_VALUE - e;
-
-      // Assumes  BRANCH_PT_MATCH_VALUE - BRANCH_PT_ERROR_VALUE == 1.0
-
-      //  CorrectOverlaps didn't have the second clause.
-      //  Neither did overlapper.
-
-      if ((Score > Max_Score) &&
-          (Best_e <= WA->G->Error_Bound[min(Longest, Longest + Best_d)])) {
-        Max_Score        = Score;
-        Max_Score_Len    = Longest;
-        Max_Score_Best_d = Best_d;
-        Max_Score_Best_e = Best_e;
+        return(e);
       }
     }
 
-  //  CorrectOverlaps didn't have this call
+    while (Left <= Right && Left < 0
+           && WA->Edit_Array_Lazy[e][Left] < WA->G->Edit_Match_Limit[e])
+      Left++;
 
+    if (Left >= 0)
+      while (Left <= Right
+             && WA->Edit_Array_Lazy[e][Left] + Left < WA->G->Edit_Match_Limit[e])
+        Left++;
+
+    if (Left > Right)
+      break;
+
+    while (Right > 0
+           && WA->Edit_Array_Lazy[e][Right] + Right < WA->G->Edit_Match_Limit[e])
+      Right--;
+
+    if (Right <= 0)
+      while (WA->Edit_Array_Lazy[e][Right] < WA->G->Edit_Match_Limit[e])
+        Right--;
+
+    assert (Left <= Right);
+
+    for (int32 d=Left;  d <= Right;  d++)
+      if (WA->Edit_Array_Lazy[e][d] > Longest) {
+        Best_d  = d;
+        Best_e  = e;
+        Longest = WA->Edit_Array_Lazy[e][d];
+      }
+
+    int32  Score = Longest * BRANCH_PT_MATCH_VALUE - e;
+
+    // Assumes  BRANCH_PT_MATCH_VALUE - BRANCH_PT_ERROR_VALUE == 1.0
+
+    //  CorrectOverlaps didn't have the second clause.
+    //  Neither did overlapper.
+
+    if ((Score > Max_Score) &&
+        (Best_e <= WA->G->Error_Bound[min(Longest, Longest + Best_d)])) {
+      Max_Score        = Score;
+      Max_Score_Len    = Longest;
+      Max_Score_Best_d = Best_d;
+      Max_Score_Best_e = Best_e;
+    }
+  }
+
+  //  CorrectOverlaps doesn't have this call
   Compute_Delta(WA, Max_Score_Best_e, Max_Score_Best_d, Max_Score_Len);
 
   A_End        = Max_Score_Len;

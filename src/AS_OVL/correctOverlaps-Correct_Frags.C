@@ -14,12 +14,24 @@ correctRead(uint32 curID,
             char *oseq, uint32  oseqLen,
             Correction_Output_t  *C,
             uint64               &Cpos,
-            uint64                Clen) {
+            uint64                Clen,
+            uint64               *changes) {
+
+#if DO_NO_CORRECTIONS
+  //  for testing if the adjustments are screwed up.  yup.
+  strcpy(fseq, oseq);
+  fseqLen += oseqLen;
+  return;
+#endif
+
+  //fprintf(stderr, "Correcting read %u\n", curID);
 
   //  Find the correct corrections.
 
-  while ((Cpos < Clen) && (C[Cpos].readID < curID))
+  while ((Cpos < Clen) && (C[Cpos].readID < curID)) {
+    fprintf(stderr, "SKIP Cpos=%d for read %u, want read %u\n", Cpos, C[Cpos].readID, curID);
     Cpos++;
+  }
 
   //  Skip any IDENT message.
 
@@ -30,23 +42,38 @@ correctRead(uint32 curID,
 
   Cpos++;
 
+  //fprintf(stderr, "Start at Cpos=%d position=%d type=%d id=%d\n", Cpos, C[Cpos].pos, C[Cpos].type, C[Cpos].readID);
+
   int32   adjVal = 0;
 
   for (uint32 i=0; i<oseqLen; i++) {
 
-    //  No more corrections, just copy bases till the end.
+    //  No more corrections, or no more corrections for this read -- just copy bases till the end.
     if ((Cpos == Clen) || (C[Cpos].readID != curID)) {
+      while (i < oseqLen)
+        fseq[fseqLen++] = filter[oseq[i++]];
+      break;
+    }
+
+    //  Not at a correction -- copy the base.
+    if (i < C[Cpos].pos) {
       fseq[fseqLen++] = filter[oseq[i]];
       continue;
     }
 
+    if ((i != C[Cpos].pos) &&
+        (i != C[Cpos].pos + 1))
+      fprintf(stderr, "i=%d Cpos=%d C[Cpos].pos=%d\n", i, Cpos, C[Cpos].pos);
     assert((i == C[Cpos].pos) ||
            (i == C[Cpos].pos + 1));
-      
+
+    if (changes)
+      changes[C[Cpos].type]++;
+
     switch (C[Cpos].type) {
 
     case DELETE:  //  Delete base
-      fadj[fadjLen].pos    = i + 1;
+      fadj[fadjLen].adjpos = i + 1;
       fadj[fadjLen].adjust = --adjVal;
       fadjLen++;
       break;
@@ -61,7 +88,7 @@ correctRead(uint32 curID,
         fseq[fseqLen++] = filter[oseq[i++]];     //  i++ to undo the 'undo' below
       fseq[fseqLen++] = 'a';
 
-      fadj[fadjLen].pos    = i + 1;
+      fadj[fadjLen].adjpos = i + 1;
       fadj[fadjLen].adjust = ++adjVal;
       fadjLen++;
       i--;  //  Undo the automagic loop increment
@@ -72,7 +99,7 @@ correctRead(uint32 curID,
         fseq[fseqLen++] = filter[oseq[i++]];
       fseq[fseqLen++] = 'c';
 
-      fadj[fadjLen].pos    = i + 1;
+      fadj[fadjLen].adjpos = i + 1;
       fadj[fadjLen].adjust = ++adjVal;
       fadjLen++;
       i--;
@@ -83,7 +110,7 @@ correctRead(uint32 curID,
         fseq[fseqLen++] = filter[oseq[i++]];
       fseq[fseqLen++] = 'g';
 
-      fadj[fadjLen].pos    = i + 1;
+      fadj[fadjLen].adjpos = i + 1;
       fadj[fadjLen].adjust = ++adjVal;
       fadjLen++;
       i--;
@@ -94,7 +121,7 @@ correctRead(uint32 curID,
         fseq[fseqLen++] = filter[oseq[i++]];
       fseq[fseqLen++] = 't';
 
-      fadj[fadjLen].pos    = i + 1;
+      fadj[fadjLen].adjpos = i + 1;
       fadj[fadjLen].adjust = ++adjVal;
       fadjLen++;
       i--;
@@ -110,7 +137,9 @@ correctRead(uint32 curID,
 
   //  Terminate the sequence.
 
-  fseq[fseqLen++] = 0;
+  fseq[fseqLen] = 0;
+
+  //fprintf(stdout, ">%u\n%s\n", curID, fseq);
 }
 
 
@@ -150,13 +179,15 @@ Correct_Frags(coParameters &G,
   uint64     firstRecord   = 0;
   uint64     currentRecord = 0;
 
+  fprintf(stderr, "Reading "F_U64" corrections from '%s'.\n", Clen, G.correctionsName);
+
   //  Count the number of bases, so we can do two gigantic allocations for bases and adjustments.
   //  Adjustments are always less than the number of corrections; we could also count exactly.
 
   G.basesLen   = 0;
   G.adjustsLen = 0;
 
-  for (uint32 curID=G.bgnID; curID<G.endID; curID++) {
+  for (uint32 curID=G.bgnID; curID<=G.endID; curID++) {
     gkRead *read = gkpStore->gkStore_getRead(curID);
 
     G.basesLen += read->gkRead_clearRegionLength() + 1;
@@ -174,6 +205,8 @@ Correct_Frags(coParameters &G,
     }
   }
 
+  fprintf(stderr, "Correcting "F_U64" bases with "F_U64" indel adjustments.\n", G.basesLen, G.adjustsLen);
+
   G.bases        = new char          [G.basesLen];
   G.adjusts      = new Adjust_t      [G.adjustsLen];
   G.reads        = new Frag_Info_t   [G.endID - G.bgnID + 1];
@@ -182,11 +215,13 @@ Correct_Frags(coParameters &G,
   G.basesLen   = 0;
   G.adjustsLen = 0;
 
+  uint64   changes[12] = {0};
+
   //  Load reads and apply corrections for each one.
 
   gkReadData  readData;
 
-  for (uint32 curID=G.bgnID; curID<G.endID; curID++) {
+  for (uint32 curID=G.bgnID; curID<=G.endID; curID++) {
     gkRead *read       = gkpStore->gkStore_getRead(curID);
 
     if (read->gkRead_isDeleted() == true)
@@ -216,7 +251,7 @@ Correct_Frags(coParameters &G,
     G.reads[G.readsLen].keep_left  = C[Cpos].keep_left;
     G.reads[G.readsLen].keep_right = C[Cpos].keep_right;
 
-    Cpos++;
+    //Cpos++;
 
     //  Now do the corrections.
 
@@ -229,14 +264,21 @@ Correct_Frags(coParameters &G,
                 read->gkRead_clearRegionLength(),
                 C,
                 Cpos,
-                Clen);
+                Clen,
+                changes);
 
     //  Update the lengths in the globals.
 
-    G.basesLen   += G.reads[G.readsLen].basesLen;
+    G.basesLen   += G.reads[G.readsLen].basesLen   + 1;
     G.adjustsLen += G.reads[G.readsLen].adjustsLen;
     G.readsLen   += 1;
   }
 
   delete Cfile;
+
+  fprintf(stderr, "Corrected "F_U64" bases with "F_U64" substitutions, "F_U64" deletions and "F_U64" insertions.\n",
+          G.basesLen,
+          changes[A_SUBST] + changes[C_SUBST] + changes[G_SUBST] + changes[T_SUBST],
+          changes[DELETE],
+          changes[A_INSERT] + changes[C_INSERT] + changes[G_INSERT] + changes[T_INSERT]);
 }

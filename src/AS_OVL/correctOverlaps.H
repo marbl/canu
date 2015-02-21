@@ -81,7 +81,7 @@ using namespace std;
 
 
 struct Adjust_t {
-  int32  pos;
+  int32  adjpos;
   int32  adjust;
 };
 
@@ -121,8 +121,8 @@ public:
   uint32      b_iid;
   int64       a_hang : 31;
   int64       b_hang : 31;
-  int64       innie  : 1;  //  was 'orient' with choice INNIE=0 or NORMAL=1
-  int64       normal : 1;  //  so 'normal' always != 'innie'
+  uint64      innie  : 1;  //  was 'orient' with choice INNIE=0 or NORMAL=1
+  uint64      normal : 1;  //  so 'normal' always != 'innie'
 
   uint64      order;
   uint32      evalue;
@@ -157,6 +157,52 @@ public:
 
 
 
+class coParameters;
+
+
+class pedWorkArea_t {
+public:
+  pedWorkArea_t() {
+    G        = NULL;
+
+    memset(delta,      0, sizeof(int32) * AS_MAX_READLEN);
+    memset(deltaStack, 0, sizeof(int32) * AS_MAX_READLEN);
+
+    deltaLen = 0;
+
+    Edit_Array_Lazy = NULL;
+    Edit_Space_Lazy = NULL;
+  };
+
+  ~pedWorkArea_t() {
+
+    for (uint32 xx=0; Edit_Space_Lazy[xx]; xx++)
+      delete [] Edit_Space_Lazy[xx];
+
+    delete [] Edit_Array_Lazy;
+    delete [] Edit_Space_Lazy;
+  };
+
+  void          initialize(coParameters *G_, uint32 maxErrors) {
+    G = G_;
+
+    Edit_Array_Lazy = new int32 * [maxErrors];
+    Edit_Space_Lazy = new int32 * [maxErrors];
+
+    memset(Edit_Array_Lazy, 0, sizeof(int32 *) * maxErrors);
+    memset(Edit_Space_Lazy, 0, sizeof(int32 *) * maxErrors);
+  };
+
+public:
+  coParameters *G;
+
+  int32         delta[AS_MAX_READLEN];  //  Only need ERATE * READLEN
+  int32         deltaStack[AS_MAX_READLEN];
+  int32         deltaLen;
+
+  int32       **Edit_Array_Lazy;
+  int32       **Edit_Space_Lazy;
+};
 
 
 
@@ -164,6 +210,30 @@ public:
 class coParameters {
 public:
   coParameters() {
+    gkpStorePath = NULL;
+    ovlStorePath = NULL;
+
+  //  Input read corrections, output overlap corrections
+    correctionsName = NULL;
+    eratesName      = NULL;
+
+  // Range of IDs to process
+    bgnID = 0;
+    endID = UINT32_MAX;
+
+    bases    = NULL;
+    basesLen = 0;
+
+    adjusts    = NULL;
+    adjustsLen = 0;
+
+    reads    = NULL;
+    readsLen = 0;
+
+    olaps    = NULL;
+    olapsLen = 0;
+
+    numThreads = 1;
   };
   ~coParameters() {
     delete [] bases;
@@ -181,7 +251,7 @@ public:
   char         *correctionsName;
   char         *eratesName;
 
-  // Range of IDs to process
+  //  Range of IDs to process
   uint32        bgnID;
   uint32        endID;
 
@@ -191,122 +261,25 @@ public:
   Adjust_t     *adjusts;
   uint64        adjustsLen;
 
-  Frag_Info_t  *reads;
-  uint32        readsLen;  // Number of fragments being corrected
+  Frag_Info_t  *reads;     //  These are relative to bgnID!
+  uint32        readsLen;  //  Number of fragments being corrected
 
   Olap_Info_t  *olaps;
-  uint64        olapsLen;  // Number of overlaps being used
+  uint64        olapsLen;  //  Number of overlaps being used
 
   uint32        numThreads;
 
- 
-//  Globals
+  pedWorkArea_t ped;
 
-int  Edit_Match_Limit[AS_MAX_READLEN+1];
-    // This array[e] is the minimum value of  Edit_Array[e][d]
-    // to be worth pursuing in edit-distance computations between guides
-    // (only MAX_ERRORS needed)
+  //  Globals
 
-int  Error_Bound[AS_MAX_READLEN + 1];
-    // This array[i]  is the maximum number of errors allowed
-    // in a match between sequences of length  i , which is
-    //  i * MAXERROR_RATE .
+  // This array[e] is the minimum value of  Edit_Array[e][d]
+  // to be worth pursuing in edit-distance computations between guides
+  // (only MAX_ERRORS needed)
+  int  Edit_Match_Limit[AS_MAX_READLEN+1];
 
-
-
-
-#if 0
-
-char  * Correct_File_Path;
-    // Name of file containing fragment corrections
-
-FILE  * Delete_fp = NULL;
-    // File to which list of overlaps to delete is written if  -x  option is specified
-
-  int  * Edit_Array_Lazy[AS_MAX_READLEN+1];
-    // Use for alignment calculation.  Points into  Edit_Space .
-    // (only MAX_ERRORS needed)
-
-
-int * Edit_Space_Lazy[AS_MAX_READLEN+1];
-    // Memory used by alignment calculation
-    // (only (MAX_ERRORS + 4) * MAX_ERRORS needed)
-
-int  End_Exclude_Len = DEFAULT_END_EXCLUDE_LEN;
-    // Length of ends of exact-match regions not used in preventing
-    // sequence correction
-
-char  * Erate_Path = NULL;
-    // Name of binary file to which to dump revised error rates
-    // This allows the program to run in parallel (e.g., under LSF)
-    // Presumably the error-rate files will be added to the overlap
-    // store later by the  update-erates  program.
-
-int  Failed_Alignments_Ct = 0;
-    // Count the number of alignments that failed
-
-Frag_Info_t  * Frag;
-    // Sequence and vote information for current range of fragments
-    // being corrected
-
-int32  Frags_Per_File;
-    // Maximum number of fragments in each data file of fragment store.
-    // This is read from the store
-
-int  Half_Len = DEFAULT_HALF_LEN;
-    // Number of bases on each side of SNP to vote for change
-
-AS_IID  Hi_Frag_IID;
-    // Internal ID of last fragment in frag store to process
-
-int  Hi_Unitig = -1;
-    // The highest numbered unitig.
-
-AS_IID  Highest_Frag = 0;
-    // The highest numbered fragment in the unitig messages.
-
-AS_IID* IUM = NULL;
-    // Has unitig ID for each fragment.
-
-uint32 IUM_Size = 0;
-    // Number of entries in  IUM .
-
-Int_List_t  * Keep_Pair = NULL;
-    // Array holding pairs of unitigs that corrected overlaps imply
-    // should overlap.
-
-int  Kmer_Len = DEFAULT_KMER_LEN;
-    // Length of minimum exact match in overlap to confirm base pairs
-
-AS_IID Lo_Frag_IID;
-    // Internal ID of first fragment in frag store to process
-
-uint32 Num_Frags = 0;
-    // Number of fragments being corrected
-
-uint64  Num_Olaps;
-    // Number of overlaps being used
-
-Olap_Info_t  * Olap = NULL;
-    // Array of overlaps being used
-
-uint32  * Olap_Offset = NULL;
-    // Indicates the first overlap of each fragment
-
-char  * Olap_Path;
-    // Name of file containing a sorted list of overlaps
-
-bool Olaps_From_Store = FALSE;
-    // Indicates if overlap info comes from  get-olaps  or from
-    // a binary overlap store
-
-FILE  * OVL_fp = NULL;
-    // File to which OVL messages are written if  -o  option is specified
-
-
-int  Total_Alignments_Ct = 0;
-    // Count the number of alignments attempted
-
-#endif
-
+  // This array[i]  is the maximum number of errors allowed
+  // in a match between sequences of length  i , which is
+  //  i * MAXERROR_RATE .
+  int  Error_Bound[AS_MAX_READLEN + 1];
 };

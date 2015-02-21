@@ -13,14 +13,14 @@ Process_Olap(Olap_Info_t        *olap,
              Thread_Work_Area_t *wa);
 
 void
-Read_Frags(feParameters   &G,
+Read_Frags(feParameters   *G,
            gkStore        *gkpStore);
 
 void
-Read_Olaps(feParameters &G);
+Read_Olaps(feParameters *G);
 
 void 
-Output_Corrections(feParameters &G);
+Output_Corrections(feParameters *G);
 
 
 
@@ -31,14 +31,12 @@ Binomial_Bound (int e, double p, int Start, double Limit);
 
 
 
-//  Read fragments  lo_frag .. hi_frag  from  store  and save
-//  the ids and sequences of those with overlaps to fragments in
-//  global  Frag .
+//  Read fragments lo_frag..hi_frag (INCLUSIVE) from store and save the ids and sequences of those
+//  with overlaps to fragments in global Frag .
 
-//  This shares lots of code with Read_Frags.
 static
 void
-Extract_Needed_Frags(feParameters &G,
+Extract_Needed_Frags(feParameters *G,
                      gkStore      *gkpStore,
                      uint32        loID,
                      uint32        hiID,
@@ -64,11 +62,16 @@ Extract_Needed_Frags(feParameters &G,
 
   uint64 lastOlap = nextOlap;
   uint32 ii       = 0;                        //  Index into reads arrays
-  uint32 fi       = G.olaps[lastOlap].b_iid;  //  Actual ID we're extracting
+  uint32 fi       = G->olaps[lastOlap].b_iid;  //  Actual ID we're extracting
 
   assert(loID <= fi);
 
-  while (fi < hiID) {
+  fprintf(stderr, "Extract_Needed_Frags()--  Loading used reads between "F_U32" and "F_U32".\n",
+          fi, hiID);
+
+  fprintf(stderr, "Extract_Needed_Frags()--  At overlap "F_U64"\n", lastOlap);
+
+  while (fi <= hiID) {
     gkRead *read = gkpStore->gkStore_getRead(fi);
 
     fl->readsLen += 1;
@@ -77,10 +80,14 @@ Extract_Needed_Frags(feParameters &G,
     //  Advance to the next overlap
 
     lastOlap++;
-    while ((lastOlap < G.olapsLen) && (G.olaps[lastOlap].b_iid == fi))
+    while ((lastOlap < G->olapsLen) && (G->olaps[lastOlap].b_iid == fi))
       lastOlap++;
-    fi = (lastOlap < G.olapsLen) ? G.olaps[lastOlap].b_iid : hiID;
+    fi = (lastOlap < G->olapsLen) ? G->olaps[lastOlap].b_iid : hiID + 1;
   }
+
+  fprintf(stderr, "Extract_Needed_Frags()--  Loading reads for overlaps "F_U64" to "F_U64"\n",
+          nextOlap, lastOlap);
+  fprintf(stderr, "Extract_Needed_Frags()--  reads %u bases %u\n", fl->readsLen, fl->basesLen);
 
   //  Ensure there is space.
 
@@ -88,12 +95,16 @@ Extract_Needed_Frags(feParameters &G,
     delete [] fl->readIDs;
     delete [] fl->readBases;
 
+    fprintf(stderr, "realloc reads\n");
+
     fl->readIDs   = new uint32 [fl->readsLen];
     fl->readBases = new char * [fl->readsLen];
   }
 
   if (fl->basesMax < fl->basesLen) {
     delete [] fl->bases;
+
+    fprintf(stderr, "realloc bases\n");
 
     fl->bases       = new char [fl->basesLen];
   }
@@ -106,42 +117,45 @@ Extract_Needed_Frags(feParameters &G,
   gkReadData  readData;
 
   ii = 0;
-  fi = G.olaps[nextOlap].b_iid;
+  fi = G->olaps[nextOlap].b_iid;
 
   assert(loID <= fi);
 
-  while (fi < hiID) {
+  while (fi <= hiID) {
     gkRead *read       = gkpStore->gkStore_getRead(fi);
 
     //  Reads with overlaps shouldn't be deleted.  Actually, we no longer have deleted reads, yay!
     assert(read->gkRead_isDeleted() == false);
 
     fl->readIDs[ii]     = fi;
-    fl->readLengths[ii] = read->gkRead_clearRegionLength();
     fl->readBases[ii]   = fl->bases + fl->basesLen;
-    fl->basesLen       += fl->readLengths[ii] + 1;
+    fl->basesLen       += read->gkRead_clearRegionLength() + 1;
 
     gkpStore->gkStore_loadReadData(read, &readData);
 
+    uint32  readLen    = read->gkRead_clearRegionLength();
     char   *readBases  = readData.gkReadData_getSequence();
 
-    for (uint32 bb=0; bb<fl->readLengths[ii]; bb++)
+    for (uint32 bb=0; bb<readLen; bb++)
       fl->readBases[ii][bb] = filter[readBases[bb]];
 
-    fl->readBases[ii][fl->readLengths[ii]] = 0;  //  All good reads end.
+    fl->readBases[ii][readLen] = 0;  //  All good reads end.
+
+    ii++;
 
     //  Advance to the next overlap.
 
     nextOlap++;
-    while ((nextOlap < G.olapsLen) && (G.olaps[nextOlap].b_iid == fi))
+    while ((nextOlap < G->olapsLen) && (G->olaps[nextOlap].b_iid == fi))
       nextOlap++;
-    fi = (nextOlap < G.olapsLen) ? G.olaps[nextOlap].b_iid : hiID;
+    fi = (nextOlap < G->olapsLen) ? G->olaps[nextOlap].b_iid : hiID + 1;
   }
 
   fl->readsLen = ii;
 
-  fprintf(stderr, "Extracted %u fragments out of %u in iid range %u - %u\n",
-           fl->readsLen, hiID - loID, loID, hiID-1);
+  fprintf(stderr, "Extract_Needed_Frags()--  Loaded "F_U32" reads (%.4f%%).  Loaded IDs "F_U32" through "F_U32".\n",
+          fl->readsLen, 100.0 * fl->readsLen / (hiID - 1 - loID),
+          fl->readIDs[0], fl->readIDs[fl->readsLen-1]);
 }
 
 
@@ -173,7 +187,7 @@ Threaded_Process_Stream(void *ptr) {
       exit (1);
     }
 
-    wa->rev_id = -1;
+    wa->rev_id = UINT32_MAX;
 
     while ((wa->nextOlap < wa->G->olapsLen) && (wa->G->olaps[wa->nextOlap].b_iid == wa->frag_list->readIDs[i])) {
       if (wa->G->olaps[wa->nextOlap].a_iid % wa->G->numThreads == wa->thread_id) {
@@ -208,48 +222,37 @@ Threaded_Process_Stream(void *ptr) {
 
 static
 void
-Threaded_Stream_Old_Frags(feParameters &G, gkStore *gkpStore) {
+Threaded_Stream_Old_Frags(feParameters *G, gkStore *gkpStore) {
 
   pthread_attr_t  attr;
 
-  pthread_mutex_init(&G.Print_Mutex, NULL);
+  pthread_mutex_init(&G->Print_Mutex, NULL);
 
   pthread_attr_init(&attr);
   pthread_attr_setstacksize(&attr, THREAD_STACKSIZE);
 
-  pthread_t           *thread_id = new pthread_t         [G.numThreads];
-  Thread_Work_Area_t  *thread_wa = new Thread_Work_Area_t[G.numThreads];
+  pthread_t           *thread_id = new pthread_t         [G->numThreads];
+  Thread_Work_Area_t  *thread_wa = new Thread_Work_Area_t[G->numThreads];
 
-  for (uint32 i=0; i<G.numThreads; i++) {
+  for (uint32 i=0; i<G->numThreads; i++) {
     thread_wa[i].thread_id    = i;
     thread_wa[i].loID         = 0;
     thread_wa[i].hiID         = 0;
     thread_wa[i].nextOlap     = 0;
-    thread_wa[i].G            = &G;
+    thread_wa[i].G            = G;
     thread_wa[i].frag_list    = NULL;
-    thread_wa[i].rev_id       = 0;
+    thread_wa[i].rev_id       = UINT32_MAX;
     thread_wa[i].failedOlaps  = 0;
 
     memset(thread_wa[i].rev_seq, 0, sizeof(char) * AS_MAX_READLEN);
 
-
-    thread_wa[i].ped.G        = &G;
-    thread_wa[i].ped.deltaLen = 0;
-
-    memset(thread_wa[i].ped.delta,      0, sizeof(int32) * AS_MAX_READLEN);
-    memset(thread_wa[i].ped.deltaStack, 0, sizeof(int32) * AS_MAX_READLEN);
-
-    thread_wa[i].ped.Edit_Array_Lazy = new int32 * [MAX_ERRORS];
-    thread_wa[i].ped.Edit_Space_Lazy = new int32 * [MAX_ERRORS];
-
-    memset(thread_wa[i].ped.Edit_Array_Lazy, 0, sizeof(int32 *) * MAX_ERRORS);
-    memset(thread_wa[i].ped.Edit_Space_Lazy, 0, sizeof(int32 *) * MAX_ERRORS);
+    thread_wa[i].ped.initialize(G, MAX_ERRORS);
   }
 
-  uint32 loID = G.olaps[0].b_iid;
-  uint32 hiID = loID + FRAGS_PER_BATCH - 1;
+  uint32 loID  = G->olaps[0].b_iid;
+  uint32 hiID  = loID + FRAGS_PER_BATCH - 1;
 
-  uint32 endID   = G.olaps[G.olapsLen - 1].b_iid;
+  uint32 endID = G->olaps[G->olapsLen - 1].b_iid;
 
   if (hiID > endID)
     hiID = endID;
@@ -269,7 +272,7 @@ Threaded_Stream_Old_Frags(feParameters &G, gkStore *gkpStore) {
 
     // Process fragments in curr_frag_list in background
 
-    for (uint32 i=0; i<G.numThreads; i++) {
+    for (uint32 i=0; i<G->numThreads; i++) {
       thread_wa[i].loID      = loID;
       thread_wa[i].hiID      = hiID;
       thread_wa[i].nextOlap  = frstOlap;
@@ -298,7 +301,7 @@ Threaded_Stream_Old_Frags(feParameters &G, gkStore *gkpStore) {
 
     // Wait for background processing to finish
 
-    for (uint32 i=0; i<G.numThreads; i++) {
+    for (uint32 i=0; i<G->numThreads; i++) {
       void  *ptr;
 
       int status = pthread_join(thread_id[i], &ptr);
@@ -327,7 +330,7 @@ Threaded_Stream_Old_Frags(feParameters &G, gkStore *gkpStore) {
 
 int
 main(int argc, char **argv) {
-  feParameters  G;
+  feParameters  *G = new feParameters();
 
   argc = AS_configure(argc, argv);
 
@@ -335,39 +338,42 @@ main(int argc, char **argv) {
   int err = 0;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-G") == 0) {
-      G.gkpStorePath = argv[++arg];
+      G->gkpStorePath = argv[++arg];
 
     } else if (strcmp(argv[arg], "-b") == 0) {
-      G.bgnID = atoi(argv[++arg]);
+      G->bgnID = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-e") == 0) {
-      G.endID = atoi(argv[++arg]);
+      G->endID = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-O") == 0) {
-      G.ovlStorePath = argv[++arg];
+      G->ovlStorePath = argv[++arg];
 
     } else if (strcmp(argv[arg], "-o") == 0) {
-      G.outputFileName = argv[++arg];
+      G->outputFileName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-t") == 0) {
-      G.numThreads = atoi(argv[++arg]);
+      G->numThreads = atoi(argv[++arg]);
 
 
+
+    } else if (strcmp(argv[arg], "-error") == 0) {
+      AS_OVL_ERROR_RATE = atof(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-d") == 0) {
-      G.Degree_Threshold = strtol(argv[++arg], NULL, 10);
+      G->Degree_Threshold = strtol(argv[++arg], NULL, 10);
 
     } else if (strcmp(argv[arg], "-k") == 0) {
-      G.Kmer_Len = strtol(argv[++arg], NULL, 10);
+      G->Kmer_Len = strtol(argv[++arg], NULL, 10);
 
     } else if (strcmp(argv[arg], "-p") == 0) {
-      G.Use_Haplo_Ct = FALSE;
+      G->Use_Haplo_Ct = FALSE;
 
     } else if (strcmp(argv[arg], "-V") == 0) {
-      G.Vote_Qualify_Len = strtol(argv[++arg], NULL, 10);
+      G->Vote_Qualify_Len = strtol(argv[++arg], NULL, 10);
 
     } else if (strcmp(argv[arg], "-x") == 0) {
-      G.End_Exclude_Len = strtol(argv[++arg], NULL, 10);
+      G->End_Exclude_Len = strtol(argv[++arg], NULL, 10);
 
     } else {
       fprintf(stderr, "Unknown option '%s'\n", argv[arg]);
@@ -377,7 +383,8 @@ main(int argc, char **argv) {
     arg++;
   }
 
-
+  if (G->numThreads == 0)
+    err++;
 
   if (err > 0) {
     fprintf(stderr, "usage: %s[-ehp][-d DegrThresh][-k KmerLen][-x ExcludeLen]\n", argv[0]);
@@ -404,6 +411,10 @@ main(int argc, char **argv) {
     fprintf(stderr, "-v   specify level of verbose outputs, higher is more\n");
     fprintf(stderr, "-V   specify number of exact match bases around an error to vote to change\n");
     fprintf(stderr, "-x   length of end of exact match to exclude in preventing change\n");
+
+    if (G->numThreads == 0)
+      fprintf(stderr, "ERROR: number of compute threads (-t) must be larger than zero.\n");
+
     exit(1);
   }
 
@@ -414,42 +425,39 @@ main(int argc, char **argv) {
 
   {
     for  (uint32 i = 0;  i <= ERRORS_FOR_FREE;  i++)
-      G.Edit_Match_Limit[i] = 0;
+      G->Edit_Match_Limit[i] = 0;
 
     uint32 start = 1;
 
     for  (uint32 e = ERRORS_FOR_FREE + 1;  e < MAX_ERRORS;  e++) {
       start = Binomial_Bound (e - ERRORS_FOR_FREE, AS_OVL_ERROR_RATE, start);
-      G.Edit_Match_Limit[e] = start - 1;
+      G->Edit_Match_Limit[e] = start - 1;
 
-      assert(G.Edit_Match_Limit[e] >= G.Edit_Match_Limit[e - 1]);
+      assert(G->Edit_Match_Limit[e] >= G->Edit_Match_Limit[e - 1]);
     }
 
     for  (uint32 i = 0;  i <= AS_MAX_READLEN;  i++)
-      G.Error_Bound[i] = (int) (i * AS_OVL_ERROR_RATE);
-
-    //G.Frag_List.init();
+      G->Error_Bound[i] = (int) (i * AS_OVL_ERROR_RATE);
   }
 
   //
   //
   //
 
-  gkStore *gkpStore = new gkStore(G.gkpStorePath);
+  gkStore *gkpStore = new gkStore(G->gkpStorePath);
 
-  if (G.bgnID < 1)
-    G.bgnID = 1;
+  if (G->bgnID < 1)
+    G->bgnID = 1;
 
-  if (gkpStore->gkStore_getNumReads() < G.endID)
-    G.endID = gkpStore->gkStore_getNumReads();
-
+  if (gkpStore->gkStore_getNumReads() < G->endID)
+    G->endID = gkpStore->gkStore_getNumReads();
 
   Read_Frags(G, gkpStore);
   Read_Olaps(G);
 
   //  Now sort them!
 
-  sort(G.olaps, G.olaps + G.olapsLen);
+  sort(G->olaps, G->olaps + G->olapsLen);
 
   //fprintf (stderr, "Before Stream_Old_Frags  Num_Olaps = "F_S64"\n", Num_Olaps);
 
@@ -461,6 +469,8 @@ main(int argc, char **argv) {
 
   //Output_Details(G);
   Output_Corrections(G);
+
+  delete G;
 
   exit(0);
 }

@@ -142,8 +142,8 @@ public:
   uint32      b_iid;
   int64       a_hang : 31;
   int64       b_hang : 31;
-  int64       innie  : 1;  //  was 'orient' with choice INNIE=0 or NORMAL=1
-  int64       normal : 1;  //  so 'normal' always != 'innie'
+  uint64      innie  : 1;  //  was 'orient' with choice INNIE=0 or NORMAL=1
+  uint64      normal : 1;  //  so 'normal' always != 'innie'
 
   //  Sort by increasing b_iid, then increasing a_iid.
   bool  operator<(Olap_Info_t const &that) const {
@@ -176,7 +176,6 @@ public:
 
   ~Frag_List_t() {
     delete [] readIDs;
-    delete [] readLengths;
     delete [] readBases;
     delete [] bases;
   };
@@ -184,7 +183,6 @@ public:
   uint32             readsMax;
   uint32             readsLen;
   uint32            *readIDs;
-  uint32            *readLengths;  //  Not really used.
   char             **readBases;
 
   uint64             basesMax;
@@ -197,7 +195,40 @@ public:
 class feParameters;
 
 
-struct pedWorkArea_t {
+class pedWorkArea_t {
+public:
+  pedWorkArea_t() {
+    G        = NULL;
+
+    memset(delta,      0, sizeof(int32) * AS_MAX_READLEN);
+    memset(deltaStack, 0, sizeof(int32) * AS_MAX_READLEN);
+
+    deltaLen = 0;
+
+    Edit_Array_Lazy = NULL;
+    Edit_Space_Lazy = NULL;
+  };
+
+  ~pedWorkArea_t() {
+
+    for (uint32 xx=0; Edit_Space_Lazy[xx]; xx++)
+      delete [] Edit_Space_Lazy[xx];
+
+    delete [] Edit_Array_Lazy;
+    delete [] Edit_Space_Lazy;
+  };
+
+  void          initialize(feParameters *G_, uint32 maxErrors) {
+    G = G_;
+
+    Edit_Array_Lazy = new int32 * [maxErrors];
+    Edit_Space_Lazy = new int32 * [maxErrors];
+
+    memset(Edit_Array_Lazy, 0, sizeof(int32 *) * maxErrors);
+    memset(Edit_Space_Lazy, 0, sizeof(int32 *) * maxErrors);
+  };
+
+public:
   feParameters *G;
 
   int32         delta[AS_MAX_READLEN];  //  Only need ERATE * READLEN
@@ -207,6 +238,7 @@ struct pedWorkArea_t {
   int32       **Edit_Array_Lazy;
   int32       **Edit_Space_Lazy;
 };
+
 
 
 struct Thread_Work_Area_t {
@@ -222,7 +254,7 @@ struct Thread_Work_Area_t {
   char          rev_seq[AS_MAX_READLEN + 1];  //  Used in Process_Olap to hold RC of the B read
   uint32        rev_id;                       //  Ident of the rev_seq read.
 
-  Vote_t        vote[AS_MAX_READLEN];
+  Vote_t        globalvote[AS_MAX_READLEN];
 
   uint32        failedOlaps;
 
@@ -241,32 +273,23 @@ struct Thread_Work_Area_t {
 class feParameters {
 public:
   feParameters() {
-  };
-  ~feParameters() {
-    delete [] readBases;
-    delete [] readVotes;
-    delete [] reads;
-    delete [] olaps;
-  };
+    gkpStorePath   = NULL;
+    ovlStorePath   = NULL;
 
-  void   initialize(void) {
-    gkpStorePath = NULL;
-    ovlStorePath = NULL;
+    bgnID          = 0;
+    endID          = UINT32_MAX;
 
-    bgnID = 0;
-    endID = UINT32_MAX;
+    readBases      = NULL;
+    readVotes      = NULL;
+    reads          = NULL;
+    readsLen       = 0;
 
-    readBases   = NULL;
-    readVotes   = NULL;
-    reads       = NULL;
-    readsLen    = 0;
-
-    olaps       = NULL;
-    olapsLen    = 0;
+    olaps          = NULL;
+    olapsLen       = 0;
 
     outputFileName = NULL;
 
-    numThreads = 0;
+    numThreads     = 1;
 
     //  Parameters
 
@@ -278,6 +301,12 @@ public:
     End_Exclude_Len   = 3;  //DEFAULT_END_EXCLUDE_LEN;
     Kmer_Len          = 9;  //DEFAULT_KMER_LEN;
     Vote_Qualify_Len  = 9; //DEFAULT_VOTE_QUALIFY_LEN;
+  };
+  ~feParameters() {
+    delete [] readBases;
+    delete [] readVotes;
+    delete [] reads;
+    delete [] olaps;
   };
 
 
