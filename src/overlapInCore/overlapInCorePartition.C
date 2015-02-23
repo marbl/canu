@@ -22,11 +22,10 @@
 const char *mainid = "$Id$";
 
 #include "AS_global.H"
+#include "gkStore.H"
 #include "AS_UTL_decodeRange.H"
-#include "AS_PER_gkpStore.H"
 
-
-//  Reads gkpStore, outputs four files:
+//  Reads gkpStore, outputs three files:
 //    ovlbat - batch names
 //    ovljob - job names
 //    ovlopt - overlapper options
@@ -37,11 +36,11 @@ void
 outputJob(FILE   *BAT,
           FILE   *JOB,
           FILE   *OPT,
-          AS_IID  hashBeg,
-          AS_IID  hashEnd,
-          AS_IID  refBeg,
-          AS_IID  refEnd,
-          uint32  maxNumFrags,
+          uint32  hashBeg,
+          uint32  hashEnd,
+          uint32  refBeg,
+          uint32  refEnd,
+          uint32  maxNumReads,
           uint32  maxLength,
           uint32 &batchSize,
           uint32 &batchName,
@@ -50,16 +49,16 @@ outputJob(FILE   *BAT,
   fprintf(BAT, "%03"F_U32P"\n", batchName);
   fprintf(JOB, "%06"F_U32P"\n", jobName);
 
-  if (maxNumFrags == 0) {
+  if (maxNumReads == 0) {
     fprintf(OPT, "-h "F_U32"-"F_U32" -r "F_U32"-"F_U32"\n",
             hashBeg, hashEnd, refBeg, refEnd);
     fprintf(stderr, "HASH %10d-%10d  REFR %10d-%10d JOB %d\n",
             hashBeg, hashEnd, refBeg, refEnd, jobName);
   } else {
     fprintf(OPT, "-h "F_U32"-"F_U32" -r "F_U32"-"F_U32" --hashstrings "F_U32" --hashdatalen "F_U32"\n",
-            hashBeg, hashEnd, refBeg, refEnd, maxNumFrags, maxLength);
+            hashBeg, hashEnd, refBeg, refEnd, maxNumReads, maxLength);
     fprintf(stderr, "HASH %10d-%10d  REFR %10d-%10d  STRINGS %10d  BASES %10d JOB %d\n",
-            hashBeg, hashEnd, refBeg, refEnd, maxNumFrags, maxLength, jobName);
+            hashBeg, hashEnd, refBeg, refEnd, maxNumReads, maxLength, jobName);
   }
   refBeg = refEnd + 1;
 
@@ -76,25 +75,25 @@ outputJob(FILE   *BAT,
 
 
 uint32 *
-loadFragmentLengths(gkStore *gkp,
-                    set<uint32> &libToHash, AS_IID &hashMin, AS_IID &hashMax,
-                    set<uint32> &libToRef,  AS_IID &refMin,  AS_IID &refMax) {
-  uint32     numFrags = gkp->gkStore_getNumFragments();
+loadReadLengths(gkStore *gkp,
+                    set<uint32> &libToHash, uint32 &hashMin, uint32 &hashMax,
+                    set<uint32> &libToRef,  uint32 &refMin,  uint32 &refMax) {
+  uint32     numReads = gkp->gkStore_getNumReads();
   uint32     numLibs  = gkp->gkStore_getNumLibraries();
-  uint32    *fragLen  = new uint32 [numFrags + 1];
+  uint32    *readLen  = new uint32 [numReads + 1];
 
   bool testHash = false;
   bool testRef  = false;
 
   if (libToHash.size() > 0) {
     testHash  = true;
-    hashMin   = AS_IID_MAX;
+    hashMin   = UINT32_MAX;
     hashMax   = 0;
   }
 
   if (libToRef.size() > 0) {
     testRef  = true;
-    refMin   = AS_IID_MAX;
+    refMin   = UINT32_MAX;
     refMax   = 0;
   }
 
@@ -107,29 +106,26 @@ loadFragmentLengths(gkStore *gkp,
   }
 
   fprintf(stderr, "Loading lengths of "F_U32" fragments ("F_SIZE_T"mb)\n",
-          numFrags, (numFrags * sizeof(uint32)) >> 20);
+          numReads, (numReads * sizeof(uint32)) >> 20);
 
-  memset(fragLen, 0, sizeof(uint32) * (numFrags + 1));
+  memset(readLen, 0, sizeof(uint32) * (numReads + 1));
 
-  gkFragment  fr;
-  gkStream   *fs = new gkStream(gkp, 0, 0, GKFRAGMENT_INF);
+  for (uint32 ii=1; ii<=numReads; ii++) {
+    gkRead  *read = gkp->gkStore_getRead(ii);
 
-  for (uint32 ii=1; ii<=numFrags; ii++) {
-    fs->next(&fr);
+    assert(read->gkRead_readID() == ii);
 
-    assert(fr.gkFragment_getReadIID() == ii);
+    if (read->gkRead_isDeleted() == false)
+      readLen[ii] = read->gkRead_clearRegionLength();
 
-    if (fr.gkFragment_getIsDeleted() == false)
-      fragLen[ii] = fr.gkFragment_getClearRegionLength();
-
-    if ((testHash == true) && (doHash[fr.gkFragment_getLibraryIID()] == true)) {
+    if ((testHash == true) && (doHash[read->gkRead_libraryID()] == true)) {
       if (ii < hashMin)
         hashMin = ii;
       if (hashMax < ii)
         hashMax = ii;      
     }
 
-    if ((testRef == true) && (doRef[fr.gkFragment_getLibraryIID()] == true)) {
+    if ((testRef == true) && (doRef[read->gkRead_libraryID()] == true)) {
       if (ii < refMin)
         refMin = ii;
       if (refMax < ii)
@@ -137,13 +133,11 @@ loadFragmentLengths(gkStore *gkp,
     }
 
     if ((ii % 1048576) == 0)
-      fprintf(stderr, "Loading lengths at "F_U32" out of "F_U32".  H: "F_IID","F_IID"  R: "F_IID","F_IID"\n",
-              ii, numFrags, hashMin, hashMax, refMin, refMax);
+      fprintf(stderr, "Loading lengths at "F_U32" out of "F_U32".  H: "F_U32","F_U32"  R: "F_U32","F_U32"\n",
+              ii, numReads, hashMin, hashMax, refMin, refMax);
   }
 
-  delete fs;
-
-  return(fragLen);
+  return(readLen);
 }
 
 
@@ -157,34 +151,34 @@ partitionFrags(gkStore      *gkp,
                uint64        ovlRefBlockSize,
                set<uint32>  &libToHash,
                set<uint32>  &libToRef) {
-  AS_IID  hashMin = 1;
-  AS_IID  hashBeg = 1;
-  AS_IID  hashEnd = 0;
-  AS_IID  hashMax = AS_IID_MAX;
+  uint32  hashMin = 1;
+  uint32  hashBeg = 1;
+  uint32  hashEnd = 0;
+  uint32  hashMax = UINT32_MAX;
 
-  AS_IID  refMin = 1;
-  AS_IID  refBeg = 1;
-  AS_IID  refEnd = 0;
-  AS_IID  refMax = AS_IID_MAX;
+  uint32  refMin = 1;
+  uint32  refBeg = 1;
+  uint32  refEnd = 0;
+  uint32  refMax = UINT32_MAX;
 
   uint32  batchSize = 0;
   uint32  batchName = 1;
   uint32  jobName   = 1;
 
-  uint32     numFrags = gkp->gkStore_getNumFragments();
-  uint32    *fragLen  = NULL;
+  uint32  numReads = gkp->gkStore_getNumReads();
+  uint32 *readLen  = NULL;
 
   if ((ovlRefBlockLength > 0) ||
       (libToHash.size() > 0) ||
       (libToRef.size() > 0))
-    fragLen = loadFragmentLengths(gkp, libToHash, hashMin, hashMax, libToRef, refMin, refMax);
+    readLen = loadReadLengths(gkp, libToHash, hashMin, hashMax, libToRef, refMin, refMax);
 
-  if (hashMax > numFrags)
-    hashMax = numFrags;
-  if (refMax > numFrags)
-    refMax = numFrags;
+  if (hashMax > numReads)
+    hashMax = numReads;
+  if (refMax > numReads)
+    refMax = numReads;
 
-  fprintf(stderr, "Partitioning for hash: "F_IID"-"F_IID" ref: "F_IID","F_IID"\n",
+  fprintf(stderr, "Partitioning for hash: "F_U32"-"F_U32" ref: "F_U32","F_U32"\n",
           hashMin, hashMax, refMin, refMax);
 
   hashBeg = hashMin;
@@ -205,7 +199,7 @@ partitionFrags(gkStore      *gkp,
       if (ovlRefBlockLength > 0) {
         do {
           refEnd++;
-          refLen += fragLen[refEnd];
+          refLen += readLen[refEnd];
         } while ((refLen < ovlRefBlockLength) && (refEnd < refMax));
 
       } else {
@@ -240,33 +234,30 @@ partitionLength(gkStore      *gkp,
                 uint64        ovlRefBlockSize,
                 set<uint32>  &libToHash,
                 set<uint32>  &libToRef) {
-  AS_IID  hashMin = 1;
-  AS_IID  hashBeg = 1;
-  AS_IID  hashEnd = 0;
-  AS_IID  hashMax = AS_IID_MAX;
+  uint32  hashMin = 1;
+  uint32  hashBeg = 1;
+  uint32  hashEnd = 0;
+  uint32  hashMax = UINT32_MAX;
 
-  AS_IID  refMin = 1;
-  AS_IID  refBeg = 1;
-  AS_IID  refEnd = 0;
-  AS_IID  refMax = AS_IID_MAX;
+  uint32  refMin = 1;
+  uint32  refBeg = 1;
+  uint32  refEnd = 0;
+  uint32  refMax = UINT32_MAX;
 
   uint32  batchSize = 0;
   uint32  batchName = 1;
   uint32  jobName   = 1;
 
-  uint32     numFrags = gkp->gkStore_getNumFragments();
-  uint32    *fragLen  = loadFragmentLengths(gkp, libToHash, hashMin, hashMax, libToRef, refMin, refMax);
+  uint32  numReads = gkp->gkStore_getNumReads();
+  uint32 *readLen  = loadReadLengths(gkp, libToHash, hashMin, hashMax, libToRef, refMin, refMax);
 
-  if (hashMax > numFrags)
-    hashMax = numFrags;
-  if (refMax > numFrags)
-    refMax = numFrags;
+  if (hashMax > numReads)
+    hashMax = numReads;
+  if (refMax > numReads)
+    refMax = numReads;
 
-  fprintf(stderr, "Partitioning for hash: "F_IID"-"F_IID" ref: "F_IID","F_IID"\n",
+  fprintf(stderr, "Partitioning for hash: "F_U32"-"F_U32" ref: "F_U32","F_U32"\n",
           hashMin, hashMax, refMin, refMax);
-
-  gkFragment  fr;
-  gkStream   *fs = new gkStream(gkp, 0, 0, GKFRAGMENT_INF);
 
   hashBeg = hashMin;
   hashEnd = hashMin - 1;
@@ -280,7 +271,7 @@ partitionLength(gkStore      *gkp,
     //  and every fragment contributes one more byte for the terminating zero.
     do {
       hashEnd++;
-      hashLen += fragLen[hashEnd] + 1;
+      hashLen += readLen[hashEnd] + 1;
     } while ((hashLen < ovlHashBlockLength) && (hashEnd < hashMax));
 
     assert(hashEnd <= hashMax);
@@ -295,7 +286,7 @@ partitionLength(gkStore      *gkp,
       if (ovlRefBlockLength > 0) {
         do {
           refEnd++;
-          refLen += fragLen[refEnd];
+          refLen += readLen[refEnd];
         } while ((refLen < ovlRefBlockLength) && (refEnd < refMax));
 
       } else {
@@ -314,8 +305,6 @@ partitionLength(gkStore      *gkp,
 
     hashBeg = hashEnd + 1;
   }
-
-  delete fs;
 }
 
 
@@ -334,7 +323,6 @@ main(int argc, char **argv) {
   uint64           ovlRefBlockLength   = 0;
   uint64           ovlRefBlockSize     = 0;
   bool             checkAllLibUsed     = true;
-
 
   set<uint32>      libToHash;
   set<uint32>      libToRef;
@@ -392,7 +380,7 @@ main(int argc, char **argv) {
   fprintf(stderr, "HASH: "F_U64" reads or "F_U64" length.\n", ovlHashBlockSize, ovlHashBlockLength);
   fprintf(stderr, "REF:  "F_U64" reads or "F_U64" length.\n", ovlRefBlockSize,  ovlRefBlockLength);
 
-  gkStore   *gkp         = new gkStore(gkpStoreName, FALSE, FALSE, true);
+  gkStore   *gkp         = new gkStore(gkpStoreName);
   uint32     numLibs     = gkp->gkStore_getNumLibraries();
   uint32     invalidLibs = 0;
 
@@ -419,8 +407,6 @@ main(int argc, char **argv) {
   }
   if (invalidLibs > 0)
     fprintf(stderr, "ERROR: one of -H and/or -R are invalid.\n"), exit(1);
-
-  gkp->gkStore_metadataCaching(true);
 
   errno = 0;
 
