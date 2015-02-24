@@ -38,7 +38,6 @@ public:
     memset(c, 0, sizeof(char) * MAXLEN);
     memset(d, 0, sizeof(char) * MAXLEN);
   };
-  ~aRead() {};
 
   bool  read(FILE *F) {
 
@@ -102,16 +101,15 @@ public:
     len  = len1_ + len2_;
   };
 
-  ~anInput() {
-  };
-
-  bool operator<(const anInput &that) const {
-    return(this->len < that.len);
-  };
-
-
   uint64  id;
   uint32  len;
+};
+
+
+inline
+bool
+anInputByLongest(const anInput &a, const anInput &b) {
+  return(a.len > b.len);
 };
 
 
@@ -374,7 +372,7 @@ main(int argc, char **argv) {
 
   if (LONGEST) {
     fprintf(stderr, "Sorting by length\n");
-    sort(ids.end(), ids.begin());
+    sort(ids.begin(), ids.end(), anInputByLongest);
 
   } else {
     fprintf(stderr, "Shuffling sequences\n");
