@@ -23,8 +23,13 @@ const char *mainid = "$Id$";
 
 #include "AS_global.H"
 
-#include "AS_PER_gkpStore.H"
+#include "gkStore.H"
+#include "ovStore.H"
+
+#include "clearRangeFile.H"
+
 #include "intervalList.H"
+
 #include "AS_UTL_decodeRange.H"
 #include "AS_OBT_overlaps.H"
 
@@ -59,7 +64,6 @@ using namespace std;
 #undef DEBUG_ISLINKER
 #undef DEBUG_INTERVAL
 #undef DEBUG_FILTER
-#undef DEBUG_MATES
 
 
 //  Yuck.  Parameters shouldn't be global.
@@ -77,11 +81,6 @@ using namespace std;
 //
 uint32   minInniePair          = 1;
 uint32   minOverhang           = 1000000000;
-bool     confirmWithMatedReads = false;
-
-uint32  *libMean    = NULL;
-uint32  *libStdDev  = NULL;
-uint32  *libOrient  = NULL;
 
 //  Stats for the summary file.
 
@@ -93,7 +92,6 @@ uint32   noCoverage          = 0;
 uint32   fullCoverage        = 0;
 uint32   noSignalNoGap       = 0;
 uint32   noSignalButGap      = 0;
-uint32   gapConfirmedMate    = 0;
 
 uint32   bothFixed           = 0;
 uint32   chimeraFixed        = 0;
@@ -114,7 +112,6 @@ uint32   chimeraDetectedInnie     = 0;   //  Detected chimera
 uint32   chimeraDetectedOverhang  = 0;
 uint32   chimeraDetectedGap       = 0;
 uint32   chimeraDetectedLinker    = 0;
-uint32   chimeraDetectedGapNoMate = 0;
 
 
 #define F_U32W(X)  "%" #X F_U32P
@@ -127,36 +124,35 @@ public:
   uint64   doFixChimera   : 1;
   uint64   doCheckSubRead : 1;
 
-  uint64   length      : AS_READ_MAX_NORMAL_LEN_BITS;
+  uint64   length      : AS_MAX_READLEN_BITS;
 
-  uint64   initL       : AS_READ_MAX_NORMAL_LEN_BITS;
-  uint64   initR       : AS_READ_MAX_NORMAL_LEN_BITS;
-  uint64   mergL       : AS_READ_MAX_NORMAL_LEN_BITS;
-  uint64   mergR       : AS_READ_MAX_NORMAL_LEN_BITS;
+  uint64   initL       : AS_MAX_READLEN_BITS;
+  uint64   initR       : AS_MAX_READLEN_BITS;
+  uint64   mergL       : AS_MAX_READLEN_BITS;
+  uint64   mergR       : AS_MAX_READLEN_BITS;
 
-  uint64   tntBeg      : AS_READ_MAX_NORMAL_LEN_BITS;
-  uint64   tntEnd      : AS_READ_MAX_NORMAL_LEN_BITS;
+  //uint64   tntBeg      : AS_MAX_READLEN_BITS;
+  //uint64   tntEnd      : AS_MAX_READLEN_BITS;
 
-  AS_IID   libraryIID;
-  AS_IID   mateIID;
+  uint32   libraryID;
 };
 
 
 class chimeraBad {
 public:
   chimeraBad() {
-    iid = 0;
+    id = 0;
     bgn = 0;
     end = 0;
   };
-  chimeraBad(uint32 iid_, uint32 bgn_, uint32 end_) {
-    iid = iid_;
+  chimeraBad(uint32 id_, uint32 bgn_, uint32 end_) {
+    id  = id_;
     bgn = bgn_;
     end = end_;
   };
 
 public:
-  uint32    iid;
+  uint32    id;
   uint32    bgn;
   uint32    end;
 };
@@ -177,12 +173,12 @@ public:
     Bbeg      = 0;
     Bend      = 0;
     Brhang    = 0;
-    Aiid      = 0;
-    Biid      = 0;
+    Aid       = 0;
+    Bid       = 0;
   };
 
-  chimeraOvl(uint64 Aiid_, uint32 Alhang_, uint32 Abeg_, uint32 Aend_, uint32 Arhang_,
-             uint64 Biid_, uint32 Blhang_, uint32 Bbeg_, uint32 Bend_, uint32 Brhang_, char ori_, bool isCrap_) {
+  chimeraOvl(uint64 Aid_, uint32 Alhang_, uint32 Abeg_, uint32 Aend_, uint32 Arhang_,
+             uint64 Bid_, uint32 Blhang_, uint32 Bbeg_, uint32 Bend_, uint32 Brhang_, char ori_, bool isCrap_) {
 
     flipped   = (ori_ == 'r');
     ignore    = false;
@@ -196,8 +192,8 @@ public:
     Bbeg      = Bbeg_;
     Bend      = Bend_;
     Brhang    = Brhang_;
-    Aiid      = Aiid_;
-    Biid      = Biid_;
+    Aid      = Aid_;
+    Bid      = Bid_;
 
     assert(Alhang    == Alhang_);
     assert(Abeg      == Abeg_);
@@ -207,8 +203,8 @@ public:
     assert(Bbeg      == Bbeg_);
     assert(Bend      == Bend_);
     assert(Brhang    == Brhang_);
-    assert(Aiid      == Aiid_);
-    assert(Biid      == Biid_);
+    assert(Aid      == Aid_);
+    assert(Bid      == Bid_);
     assert(isCrap    == isCrap_);
 
     //  We used to filter short overlaps in the adjust() function, but we want to use some of them
@@ -284,7 +280,7 @@ public:
     }
 
     fprintf(out, F_U32W(6)" "F_U32W(6)" "F_U64W(2)" "F_U64W(4)" "F_U64W(4)"-"F_U64W(4)" "F_U64W(4)"  "F_U64W(4)" "F_U64W(4)"-"F_U64W(4)" "F_U64W(4)"%s\n",
-            Aiid, Biid, style,
+            Aid, Bid, style,
             Alhang, Abeg, Aend, Arhang,
             Blhang, Bbeg, Bend, Brhang,
             (mark) ? " ****" : "");
@@ -296,24 +292,24 @@ public:
   uint64   ignore    : 1;
   uint64   isCrap    : 1;
   uint64   style     : 4;
-  uint64   Alhang    : AS_READ_MAX_NORMAL_LEN_BITS;
-  uint64   Abeg      : AS_READ_MAX_NORMAL_LEN_BITS;
-  uint64   Aend      : AS_READ_MAX_NORMAL_LEN_BITS;
-  uint64   Arhang    : AS_READ_MAX_NORMAL_LEN_BITS;
-  uint64   Blhang    : AS_READ_MAX_NORMAL_LEN_BITS;
-  uint64   Bbeg      : AS_READ_MAX_NORMAL_LEN_BITS;
-  uint64   Bend      : AS_READ_MAX_NORMAL_LEN_BITS;
-  uint64   Brhang    : AS_READ_MAX_NORMAL_LEN_BITS;
-  uint32   Aiid;
-  uint32   Biid;
+  uint64   Alhang    : AS_MAX_READLEN_BITS;
+  uint64   Abeg      : AS_MAX_READLEN_BITS;
+  uint64   Aend      : AS_MAX_READLEN_BITS;
+  uint64   Arhang    : AS_MAX_READLEN_BITS;
+  uint64   Blhang    : AS_MAX_READLEN_BITS;
+  uint64   Bbeg      : AS_MAX_READLEN_BITS;
+  uint64   Bend      : AS_MAX_READLEN_BITS;
+  uint64   Brhang    : AS_MAX_READLEN_BITS;
+  uint32   Aid;
+  uint32   Bid;
 };
 
 
 
 class chimeraRes {
 public:
-  chimeraRes(uint32 iid_=0, uint32 origBeg_=0, uint32 origEnd_=0) {
-    iid         = iid_;
+  chimeraRes(uint32 id_=0, uint32 origBeg_=0, uint32 origEnd_=0) {
+    id         = id_;
 
     isSpur      = false;
     isChimera   = false;
@@ -332,14 +328,14 @@ public:
     badEnd      = 0;
   };
 
-  chimeraRes(uint32 iid_,
+  chimeraRes(uint32 id_,
              bool   isSpur_,
              bool   isChimera_,
              uint32 origBeg_,
              uint32 origEnd_,
              uint32 intervalBeg_,
              uint32 intervalEnd_) {
-    iid         = iid_;
+    id         = id_;
 
     isSpur      = isSpur_;
     isChimera   = isChimera_;
@@ -359,7 +355,7 @@ public:
   };
 
 public:
-  uint32  iid;
+  uint32  id;
 
   bool    isSpur;
   bool    isChimera;
@@ -386,50 +382,48 @@ public:
 
 
 chimeraClear *
-readClearRanges(gkStore *gkp) {
-  gkStream       *fs    = new gkStream(gkp, 0, 0, GKFRAGMENT_INF);
-  gkFragment      fr;
-  chimeraClear   *clear = new chimeraClear [gkp->gkStore_getNumFragments() + 1];
+readClearRanges(gkStore         *gkp,
+                clearRangeFile  *iniClr,
+                clearRangeFile  *finClr) {
 
-  //  Enable OBTCHIMERA, this will copy the current clear range when we access it.
-  //
-  //  Do NOT enable TNT or the others; we expect those to be invalid unless they're set.  By
-  //  enabling them, we would instead get the current clear range.
-  //
-  gkp->gkStore_enableClearRange(AS_READ_CLEAR_OBTCHIMERA);
+  chimeraClear   *clear = new chimeraClear [gkp->gkStore_getNumReads() + 1];
 
-  while (fs->next(&fr)) {
-    AS_IID       iid  = fr.gkFragment_getReadIID();
-    gkLibrary   *lr   = gkp->gkStore_getLibrary(fr.gkFragment_getLibraryIID());
+  for (uint32 id=1; id<=gkp->gkStore_getNumReads(); id++) {
+    gkRead      *read = gkp->gkStore_getRead(id);
+    gkLibrary   *lr   = gkp->gkStore_getLibrary(read->gkRead_libraryID());
 
-    clear[iid].deleted        = fr.gkFragment_getIsDeleted() ? 1 : 0;
-    clear[iid].doFixChimera   = lr->doRemoveChimericReads;
-    clear[iid].doCheckSubRead = lr->doCheckForSubReads;
+    if (iniClr && finClr)
+      assert(iniClr->isDeleted(id) == finClr->isDeleted(id));
 
-    clear[iid].length        = fr.gkFragment_getSequenceLength();
-    clear[iid].initL         = fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_OBTINITIAL);
-    clear[iid].initR         = fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_OBTINITIAL);
-    clear[iid].mergL         = fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_OBTMERGE);
-    clear[iid].mergR         = fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_OBTMERGE);
+    clear[id].deleted         = finClr->isDeleted(id);
 
-    if ((clear[iid].initL == 1) && (clear[iid].initR == 0)) {
-      clear[iid].initL = 0;
-      clear[iid].initR = clear[iid].length;
+    clear[id].doFixChimera    = lr->gkLibrary_removeChimericReads();
+    clear[id].doCheckSubRead  = lr->gkLibrary_checkForSubReads();
+
+    clear[id].length          = read->gkRead_sequenceLength();
+
+    clear[id].initL           = iniClr->bgn(id);
+    clear[id].initR           = iniClr->end(id);
+    clear[id].mergL           = finClr->bgn(id);
+    clear[id].mergR           = finClr->end(id);
+
+    //  If either isn't defined, reset to the read length.
+
+    if (iniClr->isUndefined(id)) {
+      clear[id].initL = 0;
+      clear[id].initR = clear[id].length;
     }
 
-    if ((clear[iid].mergL == 1) && (clear[iid].mergR == 0)) {
-      clear[iid].mergL = 0;
-      clear[iid].mergR = clear[iid].length;
+    if (finClr->isUndefined(id)) {
+      clear[id].mergL = 0;
+      clear[id].mergR = clear[id].length;
     }
 
-    clear[iid].tntBeg        = fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_TNT);
-    clear[iid].tntEnd        = fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_TNT);
+    //clear[id].tntBeg        = read->gkRead_getClearRegionBegin(AS_READ_CLEAR_TNT);
+    //clear[id].tntEnd        = read->gkRead_getClearRegionEnd  (AS_READ_CLEAR_TNT);
 
-    clear[iid].libraryIID    = fr.gkFragment_getLibraryIID();
-    clear[iid].mateIID       = fr.gkFragment_getMateIID();
+    clear[id].libraryID    = read->gkRead_libraryID();
   }
-
-  delete fs;
 
   return(clear);
 }
@@ -439,7 +433,8 @@ readClearRanges(gkStore *gkp) {
 
 
 void
-adjust(OVSoverlap         *ovl,
+adjust(gkStore            *gkp,
+       ovsOverlap         *ovl,
        uint32              ovlLen,
        const chimeraClear *clear,
        vector<chimeraOvl> &olist,
@@ -458,7 +453,7 @@ adjust(OVSoverlap         *ovl,
 
     //  Grab the clear ranges for each read.
 
-    int32  ori    = (ovl[o].dat.obt.fwd) ? 'f' : 'r';
+    int32  ori    = (ovl[o].flipped() == false) ? 'f' : 'r';
 
     int32 initLa = clear[idA].initL;
     int32 initRa = clear[idA].initR;
@@ -473,15 +468,15 @@ adjust(OVSoverlap         *ovl,
     //  OBT overlaps are relative to the OBTINITIAL clear range.  We convert them to be relative to
     //  the start of the fragment.
 
-    int32 leftA = initLa + ovl[o].dat.obt.a_beg;
-    int32 righA = initLa + ovl[o].dat.obt.a_end;
+    int32 leftA = initLa + ovl[o].a_bgn();
+    int32 righA = initLa + ovl[o].a_end(gkp);
     int32 lenA  = clear[idA].length;
 
-    int32 leftB = initLb + ovl[o].dat.obt.b_beg;
-    int32 righB = initLb + ((ovl[o].dat.obt.b_end_hi << 9) | (ovl[o].dat.obt.b_end_lo));
+    int32 leftB = initLb + ovl[o].b_bgn();
+    int32 righB = initLb + ovl[o].b_end(gkp);
     int32 lenB  = clear[idB].length;
 
-    double error  = AS_OVS_decodeQuality(ovl[o].dat.obt.erate);
+    double error = ovl[o].erate();
 
     if (ori == 'r') {
       int32 t = leftB;
@@ -607,7 +602,7 @@ adjust(OVSoverlap         *ovl,
 
 #ifdef DEBUG_FILTER
     if (reportFile)
-      fprintf(reportFile, "OVERLAP "F_IID" %3d %3d-%3d %3d vs "F_IID" %3d %3d-%3d %3d ori %c len/err %d/%f minLen/maxErr HQ:%d/%f MQ:%d/%f LQ:%d/%f%s\n",
+      fprintf(reportFile, "OVERLAP "F_U32" %3d %3d-%3d %3d vs "F_U32" %3d %3d-%3d %3d ori %c len/err %d/%f minLen/maxErr HQ:%d/%f MQ:%d/%f LQ:%d/%f%s\n",
               idA, lhangA, leftA, righA, rhangA,
               idB, lhangB, leftB, righB, rhangB, ori,
               righA - leftA, error,
@@ -636,146 +631,9 @@ adjust(OVSoverlap         *ovl,
 
 
 
-//  Returns true if mate pairs link all regions in IL together (not chimeric).
-//
-//  For all mate pairs internal to the fragment, a second intervalList is built of the span
-//  if the pair.  The two intervalLists are merged.
-//
-bool
-checkSpanningMates(const AS_IID           iid,
-                   const chimeraClear    *clear,
-                   gkStore               *gkp,
-                   vector<chimeraOvl>    &olist,
-                   intervalList<int32>   &IL) {
-
-  //  Build a list of mated reads internal to this fragment.  We have choice of algorithm:
-  //    N log N -- build a set<> of the IDs for lookup
-  //    N^2 / 2 -- compare all-vs-all
-  //    log N   -- sort, sort, compare
-  //
-  //  The log N solution is to build a list of <mateID, readID, postiion>, sort that by mate id.  A
-  //  second list of <readID, mateID, position>, also sorted.  The two lists are scanned, and
-  //  whenever we find mateID (list 1) == readID (list 2) we have a mate internal to this fragment.
-
-  intervalList<int32>   CC;
-
-  //fprintf(reportFile, "checkSpanningMates()-- for read "F_IID"\n", iid);
-
-  for (uint32 aa=0; aa<olist.size(); aa++) {
-    chimeraOvl  *ovlaa   = &olist[aa];
-    AS_IID       iidaa   =  ovlaa->Biid;
-
-    for (uint32 bb=aa+1; bb<olist.size(); bb++) {
-      chimeraOvl  *ovlbb   = &olist[bb];
-      AS_IID       iidbb   =  ovlbb->Biid;
-
-#if 0
-      fprintf(reportFile, "A "F_IID" ("F_IID") -- B "F_IID" ("F_IID")\n",
-              iidaa, clear[iidaa].mateIID,
-              iidbb, clear[iidbb].mateIID);
-#endif
-
-      if (clear[iidaa].mateIID != iidbb) {
-        assert(clear[iidbb].mateIID != iidaa);
-        continue;
-      }
-
-      assert(clear[iidaa].mateIID == iidbb);
-      assert(clear[iidbb].mateIID == iidaa);
-
-      uint32   mean   = libMean[clear[iidaa].libraryIID];
-      uint32   stddev = libStdDev[clear[iidaa].libraryIID];
-      uint32   orient = libOrient[clear[iidaa].libraryIID];
-
-      uint32   ovlaalo = ovlaa->Abeg;
-      uint32   ovlaahi = ovlaa->Aend;
-
-      uint32   ovlbblo = ovlbb->Abeg;
-      uint32   ovlbbhi = ovlbb->Aend;
-
-      assert(ovlaalo < ovlaahi);
-      assert(ovlbblo < ovlbbhi);
-
-      if ((orient == AS_READ_ORIENT_INNIE) &&
-          (((ovlaalo < ovlbblo) && (ovlaa->flipped == true)) ||
-           ((ovlbblo < ovlaalo) && (ovlbb->flipped == true)) ||
-           (ovlaa->flipped == ovlbb->flipped)))
-        continue;
-
-      if ((orient == AS_READ_ORIENT_OUTTIE) &&
-          (((ovlaalo < ovlbblo) && (ovlaa->flipped == false)) ||
-           ((ovlbblo < ovlaalo) && (ovlbb->flipped == false)) ||
-           (ovlaa->flipped == ovlbb->flipped)))
-        continue;
-
-      if (orient == AS_READ_ORIENT_NORMAL)
-        continue;
-
-      if (orient == AS_READ_ORIENT_ANTINORMAL)
-        continue;
-
-      uint32  bgn = MIN(ovlaalo, ovlbblo);
-      uint32  end = MAX(ovlaahi, ovlbbhi);
-
-      if ((end - bgn < mean - 3 * stddev) ||
-          (mean + 3 * stddev < end - bgn))
-        continue;
-          
-      bool contained = false;
-
-      for (uint32 i=0; i<IL.numberOfIntervals(); i++)
-        if ((IL.lo(i) < bgn) && (end < IL.hi(i))) {
-#ifdef DEBUG_MATES
-          fprintf(reportFile, "MATE: "F_U32","F_U32" -- "F_U32","F_U32" contained in "F_S64","F_S64"\n",
-                  ovlaalo, ovlaahi,
-                  ovlbblo, ovlbbhi,
-                  IL.lo(i), IL.hi(i));
-#endif
-          contained = true;
-        }
-
-      if (contained)
-        continue;
-
-#ifdef DEBUG_MATES
-      fprintf(reportFile, "MATE: "F_U32","F_U32" -- "F_U32","F_U32"\n",
-              ovlaalo, ovlaahi,
-              ovlbblo, ovlbbhi);
-#endif
-
-      CC.add(bgn, end - bgn);
-    }
-  }
-
-  if (CC.numberOfIntervals() == 0)
-    return(false);
-
-  CC.merge();
-
-  for (uint32 i=0; i<CC.numberOfIntervals(); i++) {
-    if (CC.count(i) < 2)
-      continue;
-
-#ifdef DEBUG_MATES
-    fprintf(reportFile, "ADD: "F_S64","F_S64"\n", CC.lo(i), CC.hi(i));
-#endif
-
-    IL.add(CC.lo(i), CC.hi(i) - CC.lo(i));
-  }
-
-  IL.merge();
-
-  if (IL.numberOfIntervals() == 1)
-    return(true);
-  else
-    return(false);
-}
-
-
-
 
 chimeraRes
-processChimera(const AS_IID           iid,
+processChimera(const uint32           iid,
                const chimeraClear    *clear,
                gkStore               *gkp,
                vector<chimeraOvl>    &olist,
@@ -791,9 +649,11 @@ processChimera(const AS_IID           iid,
 
   readsProcessed++;
 
+  bool    isLinker = false;
+
+#if 0
   uint32  loLinker = clear[iid].tntBeg;
   uint32  hiLinker = clear[iid].tntEnd;
-  bool    isLinker = false;
 
   //  If this read has a region marked as a potential chimeric join (Illumina reads from merTrim),
   //  or as potential linker (454 mated reads from sffToCA), decide if that region is supported by
@@ -861,7 +721,7 @@ processChimera(const AS_IID           iid,
     //
     if (isLinker == true) {
 #ifdef DEBUG_ISLINKER
-      fprintf(reportFile, "frag "F_IID" region "F_U32"-"F_U32" isectbefore "F_U32" isect "F_U32" isectafter "F_U32"\n",
+      fprintf(reportFile, "frag "F_U32" region "F_U32"-"F_U32" isectbefore "F_U32" isect "F_U32" isectafter "F_U32"\n",
               iid,
               loLinker, hiLinker, isectbefore, isect, isectafter);
 #endif
@@ -925,7 +785,7 @@ processChimera(const AS_IID           iid,
       }
     }
   }
-
+#endif
 
 
   intervalList<int32>   IL;
@@ -1038,7 +898,7 @@ processChimera(const AS_IID           iid,
 #ifdef REPORT_OVERLAPS
       fprintf(reportFile, "%6d "F_U32W(6)" "F_U64W(2)" "F_U64W(4)" "F_U64W(4)"-"F_U64W(4)" "F_U64W(4)"  "F_U64W(4)" "F_U64W(4)"-"F_U64W(4)" "F_U64W(4)" interval "F_U32W(4)"-"F_U32W(4)"%s\n",
               iid,
-              ovl->Biid,
+              ovl->Bid,
               ovl->style,
               ovl->Alhang, ovl->Abeg, ovl->Aend, ovl->Arhang,
               ovl->Blhang, ovl->Bbeg, ovl->Bend, ovl->Brhang,
@@ -1067,7 +927,7 @@ processChimera(const AS_IID           iid,
 
 #if 0
   if (IL.numberOfIntervals() == 1)
-    fprintf(reportFile, "FULL "F_S64","F_S64" -- iid "F_IID" length "F_U64"\n",
+    fprintf(reportFile, "FULL "F_S64","F_S64" -- iid "F_U32" length "F_U64"\n",
             IL.lo(0), IL.hi(0), iid, clear[iid].length);
 #endif
 
@@ -1216,14 +1076,6 @@ processChimera(const AS_IID           iid,
              (minOverhang  == 0)) {
       chimeraDetectedGap++;
       isChimera = true;
-    }
-
-    else if (confirmWithMatedReads == false) {
-      isChimera = false;
-
-    } else if (checkSpanningMates(iid, clear, gkp, olist, IL) == false) {
-      chimeraDetectedGapNoMate++;
-      isChimera = true;
 
     } else {
       isChimera      = false;
@@ -1265,8 +1117,8 @@ processChimera(const AS_IID           iid,
 
 #define SPUR_PADDING 5
 
-  int32  minOvl = AS_READ_MAX_NORMAL_LEN + 1;
-  int32  maxOvl = 0;
+  int32   minOvl = AS_MAX_READLEN + 1;
+  int32   maxOvl = 0;
   bool    isLeftSpur  = false;
   bool    isRightSpur = false;
   bool    isSpur      = false;
@@ -1354,10 +1206,7 @@ processChimera(const AS_IID           iid,
 
   if ((isChimera == false) &&
       (isSpur    == false)) {
-    if      (isGapConfirmed)
-      gapConfirmedMate++;
-
-    else if (IL.numberOfIntervals() == 1)
+    if (IL.numberOfIntervals() == 1)
       noSignalNoGap++;
 
     else
@@ -1365,9 +1214,6 @@ processChimera(const AS_IID           iid,
 
     return(chimeraRes(iid, ola, ora));
   }
-
-  //if (isSpur && gapConfirmedMate)
-  //  count it how?  here?  below?  too much detail?
 
 
   //  And another pass, this time to find the largest block.  If the fragment is chimeric or a spur,
@@ -1540,7 +1386,7 @@ intervalOverlap(uint32 b1, uint32 e1, uint32 b2, uint32 e2) {
 //  If this read is suspected to contain sub reads, we want to mark the junction region.
 //
 void
-processSubRead(const AS_IID           iid,
+processSubRead(const uint32           iid,
                chimeraClear          *clear,
                gkStore               *gkp,
                vector<chimeraOvl>    &olist,
@@ -1552,23 +1398,23 @@ processSubRead(const AS_IID           iid,
     //  No overlaps, nothing to do.
     return;
 
-  if (clear[olist[0].Aiid].doCheckSubRead == false)
+  if (clear[olist[0].Aid].doCheckSubRead == false)
     //  Not supposed to be checking this read for subreads, nothing to do.
     return;
 
   //  Find the last index for each overlap.
 
-  map<AS_IID, uint32>  secondIdx;
-  map<AS_IID, uint32>  numOlaps;
+  map<uint32, uint32>  secondIdx;
+  map<uint32, uint32>  numOlaps;
 
   bool                 largePalindrome = false;
   intervalList<int32>  BAD;
   intervalList<int32>  BADall;
 
   for (uint32 ii=0; ii<olist.size(); ii++) {
-    //fprintf(stderr, "COUNT OLAPS B %u %u-%u\n", olist[ii].Biid, olist[ii].Bbeg, olist[ii].Bend);
-    secondIdx[olist[ii].Biid] = ii;
-    numOlaps[olist[ii].Biid]++;
+    //fprintf(stderr, "COUNT OLAPS B %u %u-%u\n", olist[ii].Bid, olist[ii].Bbeg, olist[ii].Bend);
+    secondIdx[olist[ii].Bid] = ii;
+    numOlaps[olist[ii].Bid]++;
   }
 
   //  Scan overlaps.  For any pair of b_iid, with overlaps in opposite directions, compute
@@ -1576,45 +1422,45 @@ processSubRead(const AS_IID           iid,
 
   for (uint32 ii=0; ii<olist.size(); ii++) {
 
-    if (numOlaps[olist[ii].Biid] == 1) {
+    if (numOlaps[olist[ii].Bid] == 1) {
       //  Only one overlap, can't indicate sub read!
       if ((subreadFile) && (subreadFileVerbose))
         fprintf(subreadFile, "oneOverlap                 %u (%lu-%lu) %u (%lu-%lu) -- can't indicate subreads\n",
-                olist[ii].Aiid, olist[ii].Abeg, olist[ii].Aend, olist[ii].Biid, olist[ii].Bbeg, olist[ii].Bend);
+                olist[ii].Aid, olist[ii].Abeg, olist[ii].Aend, olist[ii].Bid, olist[ii].Bbeg, olist[ii].Bend);
       continue;
     }
 
     //  We should never get more than two overlaps per read pair.
-    if (numOlaps[olist[ii].Biid] > 2) {
+    if (numOlaps[olist[ii].Bid] > 2) {
       fprintf(stderr, "WARNING: more overlaps than expected for pair %u %u.\n",
-              olist[ii].Aiid, olist[ii].Biid);
+              olist[ii].Aid, olist[ii].Bid);
       continue;
     }
-    assert(numOlaps[olist[ii].Biid] == 2);
+    assert(numOlaps[olist[ii].Bid] == 2);
 
-    uint32 jj = secondIdx[olist[ii].Biid];
+    uint32 jj = secondIdx[olist[ii].Bid];
 
     if (ii == jj) {
       //  Already did this one!
       if ((subreadFile) && (subreadFileVerbose))
         fprintf(subreadFile, "sameOverlap                %u (%lu-%lu) %u (%lu-%lu)\n",
-                olist[ii].Aiid, olist[ii].Abeg, olist[ii].Aend, olist[ii].Biid, olist[ii].Bbeg, olist[ii].Bend);
+                olist[ii].Aid, olist[ii].Abeg, olist[ii].Aend, olist[ii].Bid, olist[ii].Bbeg, olist[ii].Bend);
       continue;
     }
 
-    assert(olist[ii].Aiid == olist[jj].Aiid);
-    assert(olist[ii].Biid == olist[jj].Biid);
+    assert(olist[ii].Aid == olist[jj].Aid);
+    assert(olist[ii].Bid == olist[jj].Bid);
 
     if (olist[ii].flipped == olist[jj].flipped) {
       fprintf(stderr, "WARNING: same orient duplicate overlaps for pair %u %u\n",
-              olist[ii].Aiid, olist[ii].Biid);
+              olist[ii].Aid, olist[ii].Bid);
       continue;
     }
     assert(olist[ii].flipped != olist[jj].flipped);
 
 
-    bool  AcheckSub = (clear[olist[ii].Aiid].doCheckSubRead == true);
-    bool  BcheckSub = (clear[olist[ii].Biid].doCheckSubRead == true);
+    bool  AcheckSub = (clear[olist[ii].Aid].doCheckSubRead == true);
+    bool  BcheckSub = (clear[olist[ii].Bid].doCheckSubRead == true);
 
     assert(AcheckSub == true);  //  Otherwise we wouldn't be in this function!
 
@@ -1638,12 +1484,12 @@ processSubRead(const AS_IID           iid,
     //
     if ((AcheckSub) && (Aoverlap > 1000) &&
         (BcheckSub) && (Boverlap > 1000)) {
-      uint32  dist = (olist[ii].Aiid > olist[ii].Biid) ? (olist[ii].Aiid - olist[ii].Biid) : (olist[ii].Biid - olist[ii].Aiid);
+      uint32  dist = (olist[ii].Aid > olist[ii].Bid) ? (olist[ii].Aid - olist[ii].Bid) : (olist[ii].Bid - olist[ii].Aid);
 
       if (subreadFile)
         fprintf(subreadFile, "Palindrom ignore overlaps  %u (%lu-%lu) %u (%lu-%lu)  %u (%lu-%lu) %u (%lu-%lu)%s\n",
-                olist[ii].Aiid, olist[ii].Abeg, olist[ii].Aend, olist[ii].Biid, olist[ii].Bbeg, olist[ii].Bend,
-                olist[jj].Aiid, olist[jj].Abeg, olist[jj].Aend, olist[jj].Biid, olist[jj].Bbeg, olist[jj].Bend,
+                olist[ii].Aid, olist[ii].Abeg, olist[ii].Aend, olist[ii].Bid, olist[ii].Bbeg, olist[ii].Bend,
+                olist[jj].Aid, olist[jj].Abeg, olist[jj].Aend, olist[jj].Bid, olist[jj].Bbeg, olist[jj].Bend,
                 (dist > 5) ? " WARNING--FAR-IID--WARNING" : "");
       largePalindrome  = true;
     }
@@ -1657,8 +1503,8 @@ processSubRead(const AS_IID           iid,
         (BcheckSub) && (Boverlap > 50)) {
       if (subreadFile)
         fprintf(subreadFile, "BothOv    ignore overlaps  %u (%lu-%lu) %u (%lu-%lu)  %u (%lu-%lu) %u (%lu-%lu)\n",
-                olist[ii].Aiid, olist[ii].Abeg, olist[ii].Aend, olist[ii].Biid, olist[ii].Bbeg, olist[ii].Bend,
-                olist[jj].Aiid, olist[jj].Abeg, olist[jj].Aend, olist[jj].Biid, olist[jj].Bbeg, olist[jj].Bend);
+                olist[ii].Aid, olist[ii].Abeg, olist[ii].Aend, olist[ii].Bid, olist[ii].Bbeg, olist[ii].Bend,
+                olist[jj].Aid, olist[jj].Abeg, olist[jj].Aend, olist[jj].Bid, olist[jj].Bbeg, olist[jj].Bend);
     }
 
     //  Stronger overlap in the A reads.  The B read looks like it has subreads, which is perfectly fine
@@ -1667,8 +1513,8 @@ processSubRead(const AS_IID           iid,
     if ((BcheckSub) && (Boverlap < Aoverlap)) {
       if (subreadFile)
         fprintf(subreadFile, "BcheckSub ignore overlaps  %u (%lu-%lu) %u (%lu-%lu)  %u (%lu-%lu) %u (%lu-%lu)\n",
-                olist[ii].Aiid, olist[ii].Abeg, olist[ii].Aend, olist[ii].Biid, olist[ii].Bbeg, olist[ii].Bend,
-                olist[jj].Aiid, olist[jj].Abeg, olist[jj].Aend, olist[jj].Biid, olist[jj].Bbeg, olist[jj].Bend);
+                olist[ii].Aid, olist[ii].Abeg, olist[ii].Aend, olist[ii].Bid, olist[ii].Bbeg, olist[ii].Bend,
+                olist[jj].Aid, olist[jj].Abeg, olist[jj].Aend, olist[jj].Bid, olist[jj].Bbeg, olist[jj].Bend);
     }
 
     //  We now want to decide if this pair of overlaps is indicating that the A read contains sub reads.
@@ -1692,7 +1538,7 @@ processSubRead(const AS_IID           iid,
     //olist[ii].ignore = true;
     //olist[jj].ignore = true;
 
-    assert(olist[ii].Aiid == olist[jj].Aiid);
+    assert(olist[ii].Aid == olist[jj].Aid);
 
     //  Decide on a region in the read that is suspected to contain the chimer junction.
     //
@@ -1718,8 +1564,8 @@ processSubRead(const AS_IID           iid,
 
     if (subreadFile)
       fprintf(subreadFile, "AcheckSub ignore overlaps  %u (%lu-%lu) %u (%lu-%lu)  %u (%lu-%lu) %u (%lu-%lu)  BAD %u-%u size %u %s\n",
-              olist[ii].Aiid, olist[ii].Abeg, olist[ii].Aend, olist[ii].Biid, olist[ii].Bbeg, olist[ii].Bend,
-              olist[jj].Aiid, olist[jj].Abeg, olist[jj].Aend, olist[jj].Biid, olist[jj].Bbeg, olist[jj].Bend,
+              olist[ii].Aid, olist[ii].Abeg, olist[ii].Aend, olist[ii].Bid, olist[ii].Bbeg, olist[ii].Bend,
+              olist[jj].Aid, olist[jj].Abeg, olist[jj].Aend, olist[jj].Bid, olist[jj].Bbeg, olist[jj].Bend,
               badbgn, badend, badend - badbgn,
               (badend - badbgn <= SUBREAD_LOOP_MAX_SIZE) ? "(EVIDENCE)" : "(too far)");
 
@@ -1772,11 +1618,11 @@ processSubRead(const AS_IID           iid,
 
     for (uint32 ii=0; ii<olist.size(); ii++)
       if ((olist[ii].Abeg + 100 < BAD.lo(bb)) && (BAD.hi(bb) + 100 < olist[ii].Aend))
-        numSpan += (clear[olist[ii].Aiid].doCheckSubRead) ? 1 : 2;
+        numSpan += (clear[olist[ii].Aid].doCheckSubRead) ? 1 : 2;
 
     if (subreadFile)
       fprintf(subreadFile, "AcheckSub region %u ("F_S32"-"F_S32") with %u hits %u bighits - span %u largePalindrome %s\n",
-              olist[0].Aiid, BAD.lo(bb), BAD.hi(bb), BAD.count(bb), allHits,
+              olist[0].Aid, BAD.lo(bb), BAD.hi(bb), BAD.count(bb), allHits,
               numSpan, largePalindrome ? "true" : "false");
 
     if (numSpan > 9)
@@ -1791,7 +1637,7 @@ processSubRead(const AS_IID           iid,
     if (subreadFile)
       fprintf(subreadFile, "CONFIRMED BAD REGION %d-%d\n", BAD.lo(bb), BAD.hi(bb));
 
-    blist.push_back(chimeraBad(olist[0].Aiid, BAD.lo(bb), BAD.hi(bb)));
+    blist.push_back(chimeraBad(olist[0].Aid, BAD.lo(bb), BAD.hi(bb)));
   }
 }
 
@@ -1803,9 +1649,12 @@ main(int argc, char **argv) {
 
   argc = AS_configure(argc, argv);
 
-  gkStore           *gkp                = 0L;
-  OverlapStore      *ovlPrimary         = 0L;
-  OverlapStore      *ovlSecondary       = 0L;
+  char              *gkpName = NULL;
+  char              *ovsName = NULL;
+
+  char              *iniClrName = NULL;
+  char              *finClrName = NULL;
+  char              *outClrName = NULL;
 
   double             errorRate          = AS_OVL_ERROR_RATE;
   double             errorLimit         = 2.5;
@@ -1827,18 +1676,21 @@ main(int argc, char **argv) {
   int err=0;
   while (arg < argc) {
     if        (strncmp(argv[arg], "-G", 2) == 0) {
-      gkp = new gkStore(argv[++arg], FALSE, doUpdate);
-      gkp->gkStore_metadataCaching(true);
+      gkpName = argv[++arg];
 
     } else if (strncmp(argv[arg], "-O", 2) == 0) {
-      if (ovlPrimary == NULL)
-        ovlPrimary = AS_OVS_openOverlapStore(argv[++arg]);
-      else if (ovlSecondary == NULL)
-        ovlSecondary = AS_OVS_openOverlapStore(argv[++arg]);
-      else {
-        fprintf(stderr, "Only two obtStores allowed.\n");
-        err++;
-      }
+      ovsName = argv[++arg];
+
+
+    } else if (strncmp(argv[arg], "-Ci", 2) == 0) {
+      iniClrName = argv[++arg];
+
+    } else if (strncmp(argv[arg], "-Cf", 2) == 0) {
+      finClrName = argv[++arg];
+
+    } else if (strncmp(argv[arg], "-Co", 2) == 0) {
+      outClrName = argv[++arg];
+
 
     } else if (strcmp(argv[arg], "-e") == 0) {
       errorRate = atof(argv[++arg]);
@@ -1851,9 +1703,6 @@ main(int argc, char **argv) {
 
     } else if (strncmp(argv[arg], "-minoverhanging", 5) == 0) {
       minOverhang = atoi(argv[++arg]);
-
-    } else if (strncmp(argv[arg], "-usemates", 5) == 0) {
-      confirmWithMatedReads = true;
 
     } else if (strncmp(argv[arg], "-o", 2) == 0) {
       outputPrefix = argv[++arg];
@@ -1879,7 +1728,7 @@ main(int argc, char **argv) {
   if (errorRate > AS_MAX_ERROR_RATE)
     err++;
 
-  if ((gkp == 0L) || (ovlPrimary == 0L) || (outputPrefix == NULL) || (err)) {
+  if ((gkpName == 0L) || (ovsName == 0L) || (outputPrefix == NULL) || (err)) {
     fprintf(stderr, "usage: %s -G <gkpStore> -O <obtStore> [opts]\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "  -e erate           allow 'erate' percent error (default is AS_OVL_ERROR_RATE environment variable)\n");
@@ -1887,7 +1736,6 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -mininniepair n    trim if at least n pairs of innie frags detect chimer\n");
     fprintf(stderr, "  -minoverhanging n  trim if at least n frags detect chimer\n");
-    fprintf(stderr, "  -usemates          trim if the read is not spanned by overlaps, and not spanned by mates\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -o P               write a logging and a summary of fixes to files with prefix P\n");
     fprintf(stderr, "\n");
@@ -1907,19 +1755,16 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  chimeraClear    *clear = readClearRanges(gkp);
+  gkStore         *gkp = new gkStore(gkpName);
+  ovStore         *ovs = new ovStore(ovsName);
+
+  clearRangeFile  *iniClr = new clearRangeFile(iniClrName, gkp->gkStore_getNumReads());
+  clearRangeFile  *finClr = new clearRangeFile(finClrName, gkp->gkStore_getNumReads());
+  clearRangeFile  *outClr = new clearRangeFile(outClrName, gkp->gkStore_getNumReads());
+
+  chimeraClear    *clear = readClearRanges(gkp, iniClr, finClr);
 
 
-
-  libMean   = new uint32 [gkp->gkStore_getNumLibraries() + 1];
-  libStdDev = new uint32 [gkp->gkStore_getNumLibraries() + 1];
-  libOrient = new uint32 [gkp->gkStore_getNumLibraries() + 1];
-
-  for (uint32 i=0; i<gkp->gkStore_getNumLibraries() + 1; i++) {
-    libMean[i]   = gkp->gkStore_getLibrary(i)->mean;
-    libStdDev[i] = gkp->gkStore_getLibrary(i)->stddev;
-    libOrient[i] = gkp->gkStore_getLibrary(i)->orientation;
-  }
 
 
   sprintf(outputName, "%s.log",         outputPrefix);
@@ -1938,22 +1783,22 @@ main(int argc, char **argv) {
 
   uint32      ovlLen = 0;
   uint32      ovlMax = 64 * 1024;
-  OVSoverlap *ovl    = (OVSoverlap *)safe_malloc(sizeof(OVSoverlap) * ovlMax);
+  ovsOverlap *ovl    = new ovsOverlap [ovlMax];
 
-  memset(ovl, 0, sizeof(OVSoverlap) * ovlMax);
+  memset(ovl, 0, sizeof(ovsOverlap) * ovlMax);
 
   vector<chimeraOvl>  olist;
   vector<chimeraBad>  blist;
 
   if (iidMin < 1)
     iidMin = 1;
-  if (iidMax > gkp->gkStore_getNumFragments())
-    iidMax = gkp->gkStore_getNumFragments();
+  if (iidMax > gkp->gkStore_getNumReads())
+    iidMax = gkp->gkStore_getNumReads();
 
   fprintf(stderr, "Processing from IID "F_U32" to "F_U32" out of "F_U32" reads, using errorRate = %.2f, gkpStore will%s be updated.\n",
           iidMin,
           iidMax,
-          gkp->gkStore_getNumFragments(),
+          gkp->gkStore_getNumReads(),
           errorRate,
           doUpdate ? "" : " NOT");
 
@@ -1967,7 +1812,7 @@ main(int argc, char **argv) {
     //  do that anymore.  The multiple overlaps _should_ be opposite orientation.  In PacBio, these
     //  can indicate subreads.
 
-    loadOverlaps(iid, ovl, ovlLen, ovlMax, ovlPrimary, ovlSecondary);
+    loadOverlaps(iid, ovl, ovlLen, ovlMax, ovs, NULL);
 
     //  If there are no overlaps for this read, do nothing.
 
@@ -1977,7 +1822,7 @@ main(int argc, char **argv) {
 
     //  Otherwise, trim!
 
-    adjust(ovl, ovlLen, clear, olist, errorRate, errorLimit, reportFile);
+    adjust(gkp, ovl, ovlLen, clear, olist, errorRate, errorLimit, reportFile);
 
     processSubRead(ovl[0].a_iid, clear, gkp, olist, blist, subreadFile, true);
 
@@ -1996,14 +1841,14 @@ main(int argc, char **argv) {
             (res.intervalEnd <= blist[bb].bgn)) {
           if (subreadFile)
             fprintf(subreadFile, "BAD iid %u trim %u %u region %u %u GOOD_TRIM\n",
-                    res.iid, res.intervalBeg, res.intervalEnd, blist[bb].bgn, blist[bb].end);
+                    res.id, res.intervalBeg, res.intervalEnd, blist[bb].bgn, blist[bb].end);
         }
 
         if ((blist[bb].bgn <= res.intervalBeg) && (res.intervalBeg <= blist[bb].end)) {
           //  Trim bad interval from the start.
           if (subreadFile)
             fprintf(subreadFile, "BAD iid %u trim %u %u region %u %u TRIM_5'\n",
-                    res.iid, res.intervalBeg, res.intervalEnd, blist[bb].bgn, blist[bb].end);
+                    res.id, res.intervalBeg, res.intervalEnd, blist[bb].bgn, blist[bb].end);
           res.isBadTrim   = true;
           res.intervalBeg = MIN(blist[bb].end, res.intervalEnd);
         }
@@ -2012,7 +1857,7 @@ main(int argc, char **argv) {
           //  Trim bad interval from the end.
           if (subreadFile)
             fprintf(subreadFile, "BAD iid %u trim %u %u region %u %u TRIM_3'\n",
-                    res.iid, res.intervalBeg, res.intervalEnd, blist[bb].bgn, blist[bb].end);
+                    res.id, res.intervalBeg, res.intervalEnd, blist[bb].bgn, blist[bb].end);
           res.isBadTrim   = true;
           res.intervalEnd = MAX(blist[bb].bgn, res.intervalBeg);
         }
@@ -2021,7 +1866,7 @@ main(int argc, char **argv) {
           //  Bad interval completely within the clear range.
           if (subreadFile)
             fprintf(subreadFile, "BAD iid %u trim %u %u region %u %u SUBREAD_JUNCTION\n",
-                    res.iid, res.intervalBeg, res.intervalEnd, blist[bb].bgn, blist[bb].end);
+                    res.id, res.intervalBeg, res.intervalEnd, blist[bb].bgn, blist[bb].end);
           
           res.isBadTrim = true;
           res.deleteMe  = false;  //doDeleteAggressive;
@@ -2036,7 +1881,7 @@ main(int argc, char **argv) {
 
       if (goodRegions.numberOfIntervals() > 1)
         if (subreadFile)
-          fprintf(subreadFile, "WARNING: read %u has %u potential subreads; logging is inaccurate.\n", res.iid, goodRegions.numberOfIntervals() + 1);
+          fprintf(subreadFile, "WARNING: read %u has %u potential subreads; logging is inaccurate.\n", res.id, goodRegions.numberOfIntervals() + 1);
 
       if (goodRegions.numberOfIntervals() > 0) {
         goodRegions.invert(res.intervalBeg, res.intervalEnd);
@@ -2050,7 +1895,7 @@ main(int argc, char **argv) {
 
           if (subreadFile)
             fprintf(subreadFile, "BAD iid %u trim %u %u region %d %d SUBREAD_REGION len %u\n",
-                    res.iid, res.intervalBeg, res.intervalEnd, goodRegions.lo(ii), goodRegions.hi(ii), len);
+                    res.id, res.intervalBeg, res.intervalEnd, goodRegions.lo(ii), goodRegions.hi(ii), len);
 
           if (goodLen < len) {
             goodLen = len;
@@ -2061,7 +1906,7 @@ main(int argc, char **argv) {
 
         if (subreadFile)
           fprintf(subreadFile, "BAD iid %u trim %u %u region %u %u SUBREAD_FINAL\n",
-                  res.iid, res.intervalBeg, res.intervalEnd, goodBeg, goodEnd);
+                  res.id, res.intervalBeg, res.intervalEnd, goodBeg, goodEnd);
 
         res.intervalBeg = goodBeg;
         res.intervalEnd = goodEnd;
@@ -2124,20 +1969,19 @@ main(int argc, char **argv) {
     if ((res.isGood    == false) ||
         (res.isBadTrim == true)  ||
         (res.isBad     == true)) {
-      fprintf(reportFile, F_IID" %s Trimmed from "F_U32W(4)" "F_U32W(4)" to "F_U32W(4)" "F_U32W(4)".  %s.\n",
-              res.iid, typ,
+      fprintf(reportFile, F_U32" %s Trimmed from "F_U32W(4)" "F_U32W(4)" to "F_U32W(4)" "F_U32W(4)".  %s.\n",
+              res.id, typ,
               res.origBeg, res.origEnd,
               res.intervalBeg, res.intervalEnd,
               (msg[0])   ? msg       : "Length OK");
 
       if (doUpdate) {
         if (res.deleteMe == true) {
-          gkp->gkStore_delFragment(res.iid);
+          outClr->setDeleted(res.id);
+
         } else {
-          gkFragment fr;
-          gkp->gkStore_getFragment(res.iid, &fr, GKFRAGMENT_INF);
-          fr.gkFragment_setClearRegion(res.intervalBeg, res.intervalEnd, AS_READ_CLEAR_OBTCHIMERA);
-          gkp->gkStore_setFragment(&fr);
+          outClr->setbgn(res.id) = res.intervalBeg;
+          outClr->setend(res.id) = res.intervalEnd;
         }
       }
     }
@@ -2146,7 +1990,8 @@ main(int argc, char **argv) {
     blist.clear();
   }
 
-  delete gkp;
+  delete [] ovl;
+  delete    gkp;
 
   //  Close log files
 
@@ -2174,7 +2019,6 @@ main(int argc, char **argv) {
   fprintf(summaryFile, "  full coverage         "F_U32"\n", fullCoverage);
   fprintf(summaryFile, "  no signal, no gaps    "F_U32"\n", noSignalNoGap);
   fprintf(summaryFile, "  no signal, gaps       "F_U32"\n", noSignalButGap);
-  fprintf(summaryFile, "  gap spanned by mate   "F_U32"\n", gapConfirmedMate);
   fprintf(summaryFile, "\n");
   fprintf(summaryFile, "TRIMMED\n");
   fprintf(summaryFile, "  both                  "F_U32"\n", bothFixed);
@@ -2194,16 +2038,12 @@ main(int argc, char **argv) {
   fprintf(summaryFile, "  innie pair            "F_U32"\n", chimeraDetectedInnie);
   fprintf(summaryFile, "  overhang              "F_U32"\n", chimeraDetectedOverhang);
   fprintf(summaryFile, "  gap                   "F_U32"\n", chimeraDetectedGap);
-  fprintf(summaryFile, "  gap (no mate)         "F_U32"\n", chimeraDetectedGapNoMate);
   fprintf(summaryFile, "  linker                "F_U32"\n", chimeraDetectedLinker);
 
   if (summaryFile != stdout)
     fclose(summaryFile);
 
   delete [] clear;
-  delete [] libMean;
-  delete [] libStdDev;
-  delete [] libOrient;
 
   exit(0);
 }

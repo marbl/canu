@@ -19,18 +19,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
-#include <math.h>
-#include <time.h>
-#include <errno.h>
-
 #include "AS_global.H"
-#include "AS_PER_gkpStore.H"
+#include "gkStore.H"
 
-void  doTrim(gkFragment *fr,
+
+void  doTrim(gkRead     *read,
+             gkReadData *readData,
              double      minQuality,
              uint32     &left,
              uint32     &right);
@@ -61,4 +55,3 @@ private:
 
 extern
 qualityLookup  qual;
-

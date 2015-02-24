@@ -381,8 +381,8 @@ gkLibrary::gkLibrary_setInitialTrim(char *t) {
   else if (strcasecmp(t, "mer") == 0)
     _initialTrim = INITIALTRIM_MER_BASED;
 
-  else if (strcasecmp(t, "flow") == 0)
-    _initialTrim = INITIALTRIM_FLOW_BASED;
+  //else if (strcasecmp(t, "flow") == 0)
+  //  _initialTrim = INITIALTRIM_FLOW_BASED;
 
   else if (strcasecmp(t, "quality") == 0)
     _initialTrim = INITIALTRIM_QUALITY_BASED;
@@ -402,8 +402,8 @@ gkLibrary::gkLibrary_setFinalTrim(char *t) {
   else if (strcasecmp(t, "largest") == 0)
     _finalTrim = FINALTRIM_LARGEST_COVERED;
 
-  else if (strcasecmp(t, "evidence") == 0)
-    _finalTrim = FINALTRIM_EVIDENCE_BASED;
+  //else if (strcasecmp(t, "evidence") == 0)
+  //  _finalTrim = FINALTRIM_EVIDENCE_BASED;
 
   else if (strcasecmp(t, "bestedge") == 0)
     _finalTrim = FINALTRIM_BEST_EDGE;

@@ -21,30 +21,22 @@
 
 static const char *rcsid = "$Id$";
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
-#include <math.h>
-#include <assert.h>
+#include "finalTrim.H"
 
-#include "AS_global.H"
-#include "AS_PER_gkpStore.H"
-#include "AS_OVS_overlapStore.H"
 #include "intervalList.H"
 
 
 bool
-largestCovered(OVSoverlap  *ovl,
+largestCovered(gkStore     *gkp,
+               ovsOverlap  *ovl,
                uint32       ovlLen,
-               gkFragment  &fr,
+               gkRead      *read,
                uint32       ibgn,
                uint32       iend,
                uint32      &fbgn,
                uint32      &fend,
                char        *logMsg,
                uint32       errorRate,
-               double       errorLimit,
                bool         qvTrimAllowed,
                uint32       minOverlap,
                uint32       minCoverage) {
@@ -53,7 +45,7 @@ largestCovered(OVSoverlap  *ovl,
   fend      = iend;
   logMsg[0] = 0;
 
-  assert(fr.gkFragment_getReadIID() == ovl[0].a_iid);
+  assert(read->gkRead_readID() == ovl[0].a_iid);
 
   //  Guard against invalid initial clear ranges.  These should all be deleted already.
   if (ibgn + AS_READ_MIN_LEN > iend) {
@@ -68,17 +60,16 @@ largestCovered(OVSoverlap  *ovl,
 
   intervalList<uint32>  IL;
   intervalList<uint32>  ID;
-  int32                 iid = fr.gkFragment_getReadIID();
+  int32                 iid = read->gkRead_readID();
 
   for (uint32 i=0; i<ovlLen; i++) {
-    uint32 tbgn = ibgn + ovl[i].dat.obt.a_beg;
-    uint32 tend = ibgn + ovl[i].dat.obt.a_end;
+    uint32 tbgn = ibgn + ovl[i].a_bgn();
+    uint32 tend = ibgn + ovl[i].a_end(gkp);
 
     assert(tbgn < tend);
     assert(iid == ovl[i].a_iid);
 
-    if ((ovl->dat.obt.erate > errorRate) &&
-        (tend - tbgn) * AS_OVS_decodeQuality(ovl[i].dat.obt.erate) > errorLimit)
+    if (ovl[i].evalue() > errorRate)
       //  Overlap is crappy.
       continue;
 
@@ -216,8 +207,7 @@ largestCovered(OVSoverlap  *ovl,
 #if 0
   if (IL.numberOfIntervals() > 1)
     for (uint32 it=0; it<IL.numberOfIntervals(); it++)
-      //fprintf(stderr, "IL[%02d] - iid %d - "F_S64" "F_S64" count "F_U32"\n", it, fr.gkFragment_getReadIID(), IL.lo(it), IL.hi(it), IL.ct(it));
-      fprintf(stderr, "IL[%02d] - iid %d - "F_S64" "F_S64"\n", it, fr.gkFragment_getReadIID(), IL.lo(it), IL.hi(it));
+      fprintf(stderr, "IL[%02d] - iid %d - "F_S64" "F_S64"\n", it, read->gkRead_readID(), IL.lo(it), IL.hi(it));
 #endif
 
   if (IL.numberOfIntervals() == 0) {

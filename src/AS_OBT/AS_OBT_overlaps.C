@@ -28,18 +28,18 @@ static const char *rcsid = "$Id:  $";
 
 uint32
 loadOverlaps(uint32         iid,
-             OVSoverlap   *&ovl,
+             ovsOverlap   *&ovl,
              uint32        &ovlLen,
              uint32        &ovlMax,
-             OverlapStore  *ovlPrimary,
-             OverlapStore  *ovlSecondary) {
+             ovStore       *ovsP,
+             ovStore       *ovsS) {
 
   //  Allocate initial space
 
   if (ovl == NULL) {
     ovlLen = 0;
     ovlMax = 65 * 1024;
-    ovl    = new OVSoverlap [ovlMax];
+    ovl    = new ovsOverlap [ovlMax];
   }
 
 
@@ -56,8 +56,8 @@ loadOverlaps(uint32         iid,
   do {
     //  Count the number of overlaps to load
     ovlLen  = 0;
-    ovlLen += AS_OVS_readOverlapsFromStore(ovlPrimary,   NULL, 0, AS_OVS_TYPE_ANY);
-    ovlLen += AS_OVS_readOverlapsFromStore(ovlSecondary, NULL, 0, AS_OVS_TYPE_ANY);
+    ovlLen += ovsP->readOverlaps(NULL, 0);
+    ovlLen += ovsS->readOverlaps(NULL, 0);
 
     //  Quit now if there are no overlaps.  This simplifies the rest of the loop.
     if (ovlLen == 0) {
@@ -69,13 +69,13 @@ loadOverlaps(uint32         iid,
     while (ovlMax < ovlLen) {
       ovlMax *= 2;
       delete [] ovl;
-      ovl = new OVSoverlap [ovlMax];
+      ovl = new ovsOverlap [ovlMax];
     }
 
     //  Load the overlaps
     ovlLen  = 0;
-    ovlLen += AS_OVS_readOverlapsFromStore(ovlPrimary,   ovl + ovlLen, ovlMax - ovlLen, AS_OVS_TYPE_ANY);
-    ovlLen += AS_OVS_readOverlapsFromStore(ovlSecondary, ovl + ovlLen, ovlMax - ovlLen, AS_OVS_TYPE_ANY);
+    ovlLen += ovsP->readOverlaps(ovl + ovlLen, ovlMax - ovlLen);
+    ovlLen += ovsS->readOverlaps(ovl + ovlLen, ovlMax - ovlLen);
 
     //fprintf(stderr, "LOADED %d overlaps for a_iid %d\n", ovlLen, ovl[0].a_iid);
 
@@ -104,8 +104,8 @@ loadOverlaps(uint32         iid,
     //
     if (50 < iid - ovl[0].a_iid) {
       //fprintf(stderr, "looking for iid %u, read iid %u, skip ahead to iid.\n", iid, ovl[0].a_iid);
-      AS_OVS_setRangeOverlapStore(ovlPrimary,   iid, UINT32_MAX);
-      AS_OVS_setRangeOverlapStore(ovlSecondary, iid, UINT32_MAX);
+      ovsP->setRange(iid, UINT32_MAX);
+      ovsP->setRange(iid, UINT32_MAX);
     //} else {
     //  fprintf(stderr, "looking for iid %u, read iid %u, skip ahead by 1.\n", iid, ovl[0].a_iid);
     }

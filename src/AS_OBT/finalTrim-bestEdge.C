@@ -37,16 +37,16 @@ using namespace std;
 
 
 bool
-bestEdge(OVSoverlap  *ovl,
+bestEdge(gkStore     *gkp,
+         ovsOverlap  *ovl,
          uint32       ovlLen,
-         gkFragment  &fr,
+         gkRead      *read,
          uint32       ibgn,
          uint32       iend,
          uint32      &fbgn,
          uint32      &fend,
          char        *logMsg,
          uint32       errorRate,
-         double       errorLimit,
          bool         qvTrimAllowed,
          uint32       minOverlap,
          uint32       minCoverage) {
@@ -55,7 +55,7 @@ bestEdge(OVSoverlap  *ovl,
   fend      = iend;
   logMsg[0] = 0;
 
-  assert(fr.gkFragment_getReadIID() == ovl[0].a_iid);
+  assert(read->gkRead_readID() == ovl[0].a_iid);
 
   //  Guard against invalid initial clear ranges.  These should all be deleted already.
   if (ibgn + AS_READ_MIN_LEN > iend) {
@@ -76,12 +76,12 @@ bestEdge(OVSoverlap  *ovl,
   uint32  lbgn = 0;
   uint32  lend = 0;
 
-  if (largestCovered(ovl, ovlLen, fr, ibgn, iend, lbgn, lend, logMsg, errorRate, errorLimit, qvTrimAllowed, minOverlap, minCoverage) == false)
+  if (largestCovered(gkp, ovl, ovlLen, read, ibgn, iend, lbgn, lend, logMsg, errorRate, qvTrimAllowed, minOverlap, minCoverage) == false)
     return(false);
 
 #ifdef VERBOSE
   fprintf(stderr, "read %u initial %u %u largestCovered %u %u\n",
-          fr.gkFragment_getReadIID(),
+          read->gkRead_readID(),
           ibgn, iend,
           lbgn, lend);
 #endif
@@ -91,8 +91,8 @@ bestEdge(OVSoverlap  *ovl,
   //  Trim again, to maximize overlap length.
   //
 
-  int32             iid = fr.gkFragment_getReadIID();
-  uint32            len = fr.gkFragment_getSequenceLength();
+  int32             iid = read->gkRead_readID();
+  uint32            len = read->gkRead_sequenceLength();
 
   vector<uint32>    trim5;
   vector<uint32>    trim3;
@@ -107,8 +107,8 @@ bestEdge(OVSoverlap  *ovl,
   //  For each overlap, add potential trim points where the overlap ends.
 
   for (uint32 i=0; i<ovlLen; i++) {
-    uint32 tbgn = ibgn + ovl[i].dat.obt.a_beg;
-    uint32 tend = ibgn + ovl[i].dat.obt.a_end;
+    uint32 tbgn = ibgn + ovl[i].a_bgn();
+    uint32 tend = ibgn + ovl[i].a_end(gkp);
 
     if ((lend <= tbgn) ||
         (tend <= lbgn))
@@ -122,8 +122,7 @@ bestEdge(OVSoverlap  *ovl,
 
     assert(iid == ovl[i].a_iid);
 
-    if ((ovl->dat.obt.erate > errorRate) &&
-        (tend - tbgn) * AS_OVS_decodeQuality(ovl[i].dat.obt.erate) > errorLimit)
+    if (ovl[i].evalue() > errorRate)
       //  Overlap is crappy.
       continue;
 
@@ -218,8 +217,8 @@ bestEdge(OVSoverlap  *ovl,
     //fprintf(stderr, "trim5 pt %u out of %u\n", pt, trim5.size());
 
     for (uint32 i=0; i < ovlLen; i++) {
-      uint32 tbgn = ibgn + ovl[i].dat.obt.a_beg;
-      uint32 tend = ibgn + ovl[i].dat.obt.a_end;
+      uint32 tbgn = ibgn + ovl[i].a_bgn();
+      uint32 tend = ibgn + ovl[i].a_end(gkp);
 
       if ((triml <  tbgn) ||
           (tend  <= triml))
@@ -291,8 +290,8 @@ bestEdge(OVSoverlap  *ovl,
     //fprintf(stderr, "trim3 pt %u out of %u\n", pt, trim3.size());
 
     for (uint32 i=0; i < ovlLen; i++) {
-      uint32 tbgn = ibgn + ovl[i].dat.obt.a_beg;
-      uint32 tend = ibgn + ovl[i].dat.obt.a_end;
+      uint32 tbgn = ibgn + ovl[i].a_bgn();
+      uint32 tend = ibgn + ovl[i].a_end(gkp);
 
       if ((tend < trimr) ||
           (trimr <= tbgn))
@@ -344,9 +343,9 @@ bestEdge(OVSoverlap  *ovl,
 
     FILE *F;
 
-    sprintf(D, "trim-%08d.dat", fr.gkFragment_getReadIID());
-    sprintf(G, "trim-%08d.gp",  fr.gkFragment_getReadIID());
-    sprintf(S, "gnuplot < trim-%08d.gp", fr.gkFragment_getReadIID());
+    sprintf(D, "trim-%08d.dat", read->gkRead_readID());
+    sprintf(G, "trim-%08d.gp",  read->gkRead_readID());
+    sprintf(S, "gnuplot < trim-%08d.gp", read->gkRead_readID());
 
     F = fopen(D, "w");
     for (uint32 i=0; i<MAX(trim5.size(), trim3.size()); i++) {
@@ -372,10 +371,10 @@ bestEdge(OVSoverlap  *ovl,
     F = fopen(G, "w");
     fprintf(F, "set terminal png\n");
     fprintf(F, "set output \"trim-%08d.png\"\n",
-            fr.gkFragment_getReadIID());
+            read->gkRead_readIID());
     fprintf(F, "plot \"trim-%08d.dat\" using 3:5 with linespoints, \"trim-%08d.dat\" using 10:12 with linespoints\n",
-            fr.gkFragment_getReadIID(),
-            fr.gkFragment_getReadIID());
+            read->gkRead_readIID(),
+            read->gkRead_readIID());
     fclose(F);
 
 
@@ -407,7 +406,7 @@ bestEdge(OVSoverlap  *ovl,
 
 #if 1
   if (fend < fbgn) {
-    fprintf(stderr, "iid = %u\n", fr.gkFragment_getReadIID());
+    fprintf(stderr, "iid = %u\n", read->gkRead_readID());
     fbgn = lbgn;
     fend = lend;
   }

@@ -220,9 +220,13 @@ findGoodQuality(double  *qltD,
 //  mergeTrimming.C want.
 //
 void
-doTrim(gkFragment *fr, double minQuality, uint32 &left, uint32 &right) {
-  uint32    qltLen = fr->gkFragment_getQualityLength();
-  char     *qltC   = fr->gkFragment_getQuality();
+doTrim(gkRead      *read,
+       gkReadData  *readData,
+       double       minQuality,
+       uint32      &left,
+       uint32      &right) {
+  uint32    qltLen = read->gkRead_sequenceLength();
+  char     *qltC   = readData->gkReadData_getQualities();
   double   *qltD   = new double [qltLen];
 
   for (uint32 i=0; i<qltLen; i++)

@@ -1,0 +1,110 @@
+#include "AS_global.H"
+#include "AS_UTL_fileIO.H"
+
+class clearRangeFile {
+public:
+
+  //  Create a clear range file.  If the file doesn't exist, maxID must be set to the number
+  //  of reads allowed.  If the file does exist, we don't care and load the number of reads
+  //  from the file.
+
+  clearRangeFile(char *fileName, uint32 maxID=0) {
+    strcpy(_fileName, fileName);
+
+    if (AS_UTL_fileExists(_fileName) == false) {
+      _modified = true;
+
+      _lastID   = maxID;
+      _bgn      = new uint32 [_lastID + 1];
+      _end      = new uint32 [_lastID + 1];
+
+      memset(_bgn, 0, sizeof(uint32) * (_lastID + 1));  //  Every range is undefined
+      memset(_end, 0, sizeof(uint32) * (_lastID + 1));
+    }
+
+    else {
+      _modified = false;
+
+      FILE  *F = fopen(_fileName, "r");
+      if (errno)
+        fprintf(stderr, "clearRangeFile()--  Failed to open '%s' for loading clear ranges: %s\n", _fileName, strerror(errno)), exit(1);
+
+      AS_UTL_safeRead(F, &_lastID, "clearRangeFile::lastID", sizeof(uint32), 1);
+
+      _bgn = new uint32 [_lastID + 1];
+      _end = new uint32 [_lastID + 1];
+
+      AS_UTL_safeRead(F, &_bgn, "clearRangeFile::bgn", sizeof(uint32), _lastID + 1);
+      AS_UTL_safeRead(F, &_end, "clearRangeFile::end", sizeof(uint32), _lastID + 1);
+
+      fclose(F);
+    }
+  };
+
+
+  //  Close the clear range file.
+
+  ~clearRangeFile() {
+    if (_modified == true) {
+      FILE  *F = fopen(_fileName, "w");
+      if (errno)
+        fprintf(stderr, "clearRangeFile()--  Failed to open '%s' for saving clear ranges: %s\n", _fileName, strerror(errno)), exit(1);
+
+      AS_UTL_safeWrite(F, &_lastID, "clearRangeFile::lastID", sizeof(uint32), 1);
+
+      AS_UTL_safeWrite(F, &_bgn, "clearRangeFile::bgn", sizeof(uint32), _lastID + 1);
+      AS_UTL_safeWrite(F, &_end, "clearRangeFile::end", sizeof(uint32), _lastID + 1);
+
+      fclose(F);
+    }
+
+    delete [] _bgn;
+    delete [] _end;      
+  };
+
+
+  uint32    bgn(uint32 id)     { assert(id <= _lastID);  return(_bgn[id]); };
+  uint32    end(uint32 id)     { assert(id <= _lastID);  return(_end[id]); };
+
+  uint32   &setbgn(uint32 id)  { assert(id <= _lastID);  _modified = true;  return(_bgn[id]); };
+  uint32   &setend(uint32 id)  { assert(id <= _lastID);  _modified = true;  return(_end[id]); };
+
+
+
+  bool      isDeleted(uint32 id) {
+    assert(id <= _lastID);
+    return((_bgn[id] == UINT32_MAX) && (_end[id] == UINT32_MAX));
+  };
+
+  void      setDeleted(uint32 id) {
+    assert(id <= _lastID);
+    _bgn[id] = UINT32_MAX;
+    _end[id] = UINT32_MAX;
+  };
+
+
+
+  bool      isUndefined(uint32 id) {
+    assert(id <= _lastID);
+    return((_bgn[id] == 0) && (_end[id] == 0));
+  };
+
+  void      setUndefined(uint32 id) {
+    assert(id <= _lastID);
+    _bgn[id] = 0;
+    _end[id] = 0;
+  };
+
+
+
+
+
+private:
+  bool     _modified;
+
+  char     _fileName[FILENAME_MAX];
+
+  uint32   _lastID;  //  [_lastID] is valid; allocated _lastID+1 spots.
+  uint32  *_bgn;
+  uint32  *_end;
+};

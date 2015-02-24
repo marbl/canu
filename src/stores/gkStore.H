@@ -45,12 +45,12 @@ using namespace std;
 
 #define INITIALTRIM_NONE           0x00
 #define INITIALTRIM_MER_BASED      0x01  //  runs merTrim
-#define INITIALTRIM_FLOW_BASED     0x02  //  rules for 454 reads
+//#define INITIALTRIM_FLOW_BASED     0x02  //  rules for 454 reads -- DOESN'T EXIST
 #define INITIALTRIM_QUALITY_BASED  0x03  //  rules for sanger reads
 
 #define FINALTRIM_NONE             0x00
 #define FINALTRIM_LARGEST_COVERED  0x01  //  largest region covered by good overlaps
-#define FINALTRIM_EVIDENCE_BASED   0x02  //  rules for sanger reads
+//#define FINALTRIM_EVIDENCE_BASED   0x02  //  rules for sanger reads -- DOESN'T EXIST
 #define FINALTRIM_BEST_EDGE        0x03  //  largest region covered by best overlaps (broken)
 
 //  Sequence data storage methods.  This is the format of the in-core structure.

@@ -24,7 +24,7 @@
 
 #include "AS_global.H"
 
-#include "AS_OVS_overlapStore.H"
+#include "ovStore.H"
 
 //  Class to load all ovelaps for some read, optionally adjust to
 //  an updated OBT clear range, and optionally filter out suspected
@@ -37,46 +37,10 @@
 
 uint32
 loadOverlaps(uint32         iid,
-             OVSoverlap   *&ovl,
+             ovsOverlap   *&ovl,
              uint32        &ovlLen,
              uint32        &ovlMax,
-             OverlapStore  *ovlPrimary,
-             OverlapStore  *ovlSecondary);
-
-
-#if 0
-class overlapForOBT {
-public:
-  overlapForOBT();
-
-  overlapForOBT(uint64 Aiid_, uint32 Alhang_, uint32 Abeg_, uint32 Aend_, uint32 Arhang_,
-                uint64 Biid_, uint32 Blhang_, uint32 Bbeg_, uint32 Bend_, uint32 Brhang_, char ori_);
-
-  void   print(FILE *out) const;
-
-
-public:
-  uint64       flipped  : 1;
-  uint64       deleted  : 1;
-  uint64       style    : 4;  //  For chimer/spur detection
-
-  uint64       Alhang   : AS_READ_MAX_NORMAL_LEN_BITS;  //  For chimer/spur detection
-  uint64       Abeg     : AS_READ_MAX_NORMAL_LEN_BITS;
-  uint64       Aend     : AS_READ_MAX_NORMAL_LEN_BITS;
-  uint64       Arhang   : AS_READ_MAX_NORMAL_LEN_BITS;  //  For chimer/spur detection
-
-  uint64       Blhang   : AS_READ_MAX_NORMAL_LEN_BITS;  //  For chimer/spur detection
-  uint64       Bbeg     : AS_READ_MAX_NORMAL_LEN_BITS;
-  uint64       Bend     : AS_READ_MAX_NORMAL_LEN_BITS;
-  uint64       Brhang   : AS_READ_MAX_NORMAL_LEN_BITS;  //  For chimer/spur detection
-
-  uint64       erate    : AS_OVS_ERR_BITS;
-
-  uint32       Aiid;
-  uint32       Biid;
-};
-#endif
-
-
+             ovStore       *ovsPrimary,
+             ovStore       *ovsSecondary);
 
 #endif  //  AS_OBT_OVERLAPS_H

@@ -21,23 +21,22 @@
 
 const char *mainid = "$Id$";
 
-//  Read a fragStore, does quality trimming based on quality scores,
-//  intersects the quality trim with a vector trim, and updates the
-//  original clear range in the store.
-
-#include <stdio.h>
-#include <stdlib.h>
-
-#include "AS_global.H"
-#include "AS_PER_gkpStore.H"
+//  Compute a quality trimming based on quality scores.
+//  Intersect the quality trim with any vector trim.
+//  Output a binary clear range file.
 
 #include "trim.H"
+#include "clearRangeFile.H"
 
 int
 main(int argc, char **argv) {
-  char   *gkpName             = 0L;
-  FILE   *logFile             = 0L;
-  bool    beVerbose           = false;
+  char   *gkpName             = NULL;
+  char   *vecClrName          = NULL;
+  char   *iniClrName          = NULL;
+
+  char   *logFileName         = NULL;
+  FILE   *logFile             = NULL;
+
   bool    doUpdate            = true;
 
   argc = AS_configure(argc, argv);
@@ -46,20 +45,16 @@ main(int argc, char **argv) {
   int err = 0;
   while (arg < argc) {
     if        (strncmp(argv[arg], "-log", 2) == 0) {
-      arg++;
-      logFile = stderr;
-      if (strcmp(argv[arg], "-") != 0) {
-        errno=0;
-        logFile = fopen(argv[arg], "w");
-        if (errno)
-          fprintf(stderr, "Failed to open %s for writing the log: %s\n", argv[arg], strerror(errno)), exit(1);
-      }
+      logFileName = argv[++arg];
 
-    } else if (strncmp(argv[arg], "-frg", 2) == 0) {
+    } else if (strncmp(argv[arg], "-G", 2) == 0) {
       gkpName = argv[++arg];
 
-    } else if (strncmp(argv[arg], "-v", 2) == 0) {
-      beVerbose = true;
+    } else if (strncmp(argv[arg], "-V", 2) == 0) {
+      vecClrName = argv[++arg];
+
+    } else if (strncmp(argv[arg], "-I", 2) == 0) {
+      iniClrName = argv[++arg];
 
     } else if (strncmp(argv[arg], "-n", 2) == 0) {
       doUpdate = false;
@@ -73,177 +68,182 @@ main(int argc, char **argv) {
   if ((err) || (!gkpName)) {
     fprintf(stderr, "usage: %s [-q quality] [-update] [-replace] [-log logfile] -frg some.gkpStore\n", argv[0]);
     fprintf(stderr, "\n");
+    fprintf(stderr, "  -G   gkpStore   Operate on this gkpStore\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -V   vecClr     Load vector clear ranges from this (binary) file\n");
+    fprintf(stderr, "  -I   vecClr     Save initial trimming clear ranges to this (binary) file\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "  -q quality    Find quality trim points using 'quality' as the base.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -log X        Report the iid, original trim and new quality trim\n");
-    fprintf(stderr, "  -frg F        Operate on this gkpStore\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -v            Be uselessly verbose (for debugging)\n");
+    fprintf(stderr, "  -log X        Report the id, original trim and new quality trim\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  A report of the trimming is printed to stdout:\n");
-    fprintf(stderr, "    iid originalBegin originalEnd newBegin newEnd\n");
-    fprintf(stderr, "    iid origBegin origEnd qualBegin qualEnd vecBeg vecEnd newBegin newEnd\n");
+    fprintf(stderr, "    id originalBegin originalEnd newBegin newEnd\n");
+    fprintf(stderr, "    id origBegin origEnd qualBegin qualEnd vecBeg vecEnd newBegin newEnd\n");
     exit(1);
   }
 
-  gkStore  *gkpStore = new gkStore(gkpName, FALSE, TRUE);
+  gkStore  *gkpStore = new gkStore(gkpName);
 
-  gkpStore->gkStore_enableClearRange(AS_READ_CLEAR_OBTINITIAL);
-  gkpStore->gkStore_metadataCaching(true);
+  clearRangeFile  *vecClr = (vecClrName == NULL) ? NULL : new clearRangeFile(vecClrName, gkpStore->gkStore_getNumReads());
+  clearRangeFile  *iniClr = (vecClrName == NULL) ? NULL : new clearRangeFile(iniClrName, gkpStore->gkStore_getNumReads());
 
-  gkFragment    fr;
-  gkLibrary    *lr = NULL;
 
-  uint32        qltL = 0;
-  uint32        qltR = 0;
-  uint32        vecL = 0;
-  uint32        vecR = 0;
-  uint32        finL = 0;
-  uint32        finR = 0;
+  if ((logFileName != NULL) && (strcmp(logFileName, "-") == 0)) {
+    logFile = stdout;
+  }
 
-  //  One per fragment
-  uint32        stat_alreadyDeleted = 0;
-  uint32        stat_noTrimming     = 0;
-  uint32        stat_merBased       = 0;
-  uint32        stat_flowBased      = 0;
-  uint32        stat_qualityBased   = 0;
-  uint32        stat_NOLIBRARY      = 0;  //  DOUBLE COUNTS
+  if ((logFileName != NULL) && (strcmp(logFileName, "-") == 0)) {
+    errno=0;
+    logFile = fopen(logFileName, "w");
+    if (errno)
+      fprintf(stderr, "Failed to open %s for writing the log: %s\n",
+              logFileName, strerror(errno)), exit(1);
+  }
 
-  //  One per fragment
-  uint32        stat_noVecClr       = 0;
-  uint32        stat_noHQnonVec     = 0;
-  uint32        stat_HQtrim5        = 0;
-  uint32        stat_HQtrim3        = 0;
-  uint32        stat_LQtrim5        = 0;
-  uint32        stat_LQtrim3        = 0;
-  uint32        stat_tooShort       = 0;
+  //  One per read
+  uint32       stat_alreadyDeleted = 0;
+  uint32       stat_noTrimming     = 0;
+  uint32       stat_merBased       = 0;
+  uint32       stat_flowBased      = 0;
+  uint32       stat_qualityBased   = 0;
+
+  //  One per read
+  uint32       stat_noVecClr       = 0;
+  uint32       stat_noHQnonVec     = 0;
+  uint32       stat_HQtrim5        = 0;
+  uint32       stat_HQtrim3        = 0;
+  uint32       stat_LQtrim5        = 0;
+  uint32       stat_LQtrim3        = 0;
+  uint32       stat_tooShort       = 0;
 
   //  Used to be a library parameter.
-  double        minQuality = qual.lookupNumber(12);
+  double       minQuality = qual.lookupNumber(12);
+
+  gkReadData   readData;  //  Can be reused.
 
   if (logFile)
-    fprintf(logFile, "iid\torigL\torigR\tqltL\tqltR\tfinalL\tfinalR\tvecL\tvecR\tdeleted?\n");
+    fprintf(logFile, "id\torigL\torigR\tqltL\tqltR\tfinalL\tfinalR\tvecL\tvecR\tdeleted?\n");
 
-  for (AS_IID iid=1; iid<=gkpStore->gkStore_getNumFragments(); iid++) {
-    if (beVerbose)
-      fprintf(stderr, "Loading fragment "F_IID".\n", iid);
-    gkpStore->gkStore_getFragment(iid, &fr, GKFRAGMENT_QLT);
+  for (uint32 id=1; id<=gkpStore->gkStore_getNumReads(); id++) {
+    gkRead     *read = gkpStore->gkStore_getRead(id);
+    gkLibrary  *libr = gkpStore->gkStore_getLibrary(read->gkRead_libraryID());
 
-    lr = gkpStore->gkStore_getLibrary(fr.gkFragment_getLibraryIID());
+    assert(libr != NULL);
 
-    if (fr.gkFragment_getIsDeleted()) {
-      stat_alreadyDeleted++;
-      continue;
+    //  A quality based trimming.  Computed here.
+    uint32  qltL     = 0;
+    uint32  qltR     = read->gkRead_sequenceLength();
+
+    //  A vector based trimming.  Loaded.
+    uint32  vecL     = 0;
+    uint32  vecR     = UINT32_MAX;
+
+    //  The final initial trimming.  Intersection of quality and vector based trimming.
+    //  Initially, unset.
+    uint32  finL     = iniClr->bgn(id);
+    uint32  finR     = iniClr->end(id);
+    bool    updateIt = false;
+    bool    deleteIt = false;
+
+    //  Decide on trimming.
+
+    if ((vecClr) && (vecClr->isDeleted(id) == true)) {
+      stat_alreadyDeleted++;   //  Vector clear exists, and it already deleted the read.
+      deleteIt = true;
+      goto update;
     }
 
-    if ((lr) && (lr->doTrim_initialNone == true)) {
+    if (libr->gkLibrary_initialTrim() == INITIALTRIM_NONE) {
       stat_noTrimming++;
-      continue;
+      goto update;
     }
 
-    if ((lr) && (lr->doTrim_initialMerBased == true)) {
+    if (libr->gkLibrary_initialTrim() == INITIALTRIM_MER_BASED) {
       stat_merBased++;
-      continue;
+      goto update;
     }
 
-    if ((lr) && (lr->doTrim_initialFlowBased == true)) {
-      stat_flowBased++;
-      qltL = 0;
-      qltR = fr.gkFragment_getSequenceLength();
+    //if (libr->gkLibrary_initialTrim() == INITIALTRIM_FLOW_BASED) {
+    //  stat_flowBased++;
+    //  goto update;
+    //}
 
-    } else if ((lr) && (lr->doTrim_initialQualityBased)) {
+    if (libr->gkLibrary_initialTrim() == INITIALTRIM_QUALITY_BASED) {
       stat_qualityBased++;
-      doTrim(&fr, minQuality, qltL, qltR);
 
-    } else {
-      //  We should be aborting here, read not in a library!
-#warning GET RID OF THESE READS NOT IN A LIBRARY
-      stat_qualityBased++;
-      stat_NOLIBRARY++;
-      doTrim(&fr, minQuality, qltL, qltR);
+      gkpStore->gkStore_loadReadData(read, &readData);
+
+      doTrim(read, &readData, minQuality, qltL, qltR);
+      updateIt = true;
     }
 
-    finL = qltL;
-    finR = qltR;
+    //  If no vector clear, we're done.
 
-    //  Intersect with the vector clear range.
-    fr.gkFragment_getClearRegion(vecL, vecR, AS_READ_CLEAR_VEC);
-
-    if (vecL > vecR) {
-      //  No vector clear defined.
+    if ((vecClr == NULL) || (vecClr->isUndefined(id) == true)) {
       stat_noVecClr++;
+
       finL = qltL;
       finR = qltR;
-
-    } else if ((vecL > finR) || (vecR < finL)) {
-      //  No intersection; trust nobody.
-      stat_noHQnonVec++;
-      finL = 0;
-      finR = 0;
-
-    } else {
-      //  They intersect.  Pick the largest begin and the smallest end
-
-      if (finL < vecL) {
-        stat_HQtrim5++;
-        finL = vecL;
-      } else {
-        stat_LQtrim5++;
-      }
-      if (vecR < finR) {
-        stat_HQtrim3++;
-        finR = vecR;
-      } else {
-        stat_LQtrim3++;
-      }
+      goto update;
     }
 
+    //  Otherwise, intersect with the vector clear.
+
+    vecL = vecClr->bgn(id);
+    vecR = vecClr->end(id);
+
+    if ((vecL > finR) || (vecR < finL)) {
+      //  No intersection; trust nobody.  Delete the read.
+      stat_noHQnonVec++;
+
+      deleteIt = true;
+      goto update;
+    }
+
+    //  They intersect.  Pick the largest begin and the smallest end
+
+    if (finL < vecL) {
+      stat_HQtrim5++;
+      finL = vecL;
+    } else {
+      stat_LQtrim5++;
+    }
+
+    if (vecR < finR) {
+      stat_HQtrim3++;
+      finR = vecR;
+    } else {
+      stat_LQtrim3++;
+    }
+ 
+
+
     //  Update the clear ranges
+  update:
 
     if ((finL + AS_READ_MIN_LEN) > finR)
       stat_tooShort++;
 
-    if (beVerbose)
-      fprintf(stderr, "Updating fragment "F_IID".\n", iid);
     if (doUpdate) {
-      fr.gkFragment_setClearRegion(finL, finR, AS_READ_CLEAR_OBTINITIAL);
-      gkpStore->gkStore_setFragment(&fr);
-    }
-
-    if ((finL + AS_READ_MIN_LEN) > finR) {
-      if (beVerbose)
-        fprintf(stderr, "Deleting fragment "F_IID" (mate "F_IID").\n",
-                iid, fr.gkFragment_getMateIID());
-      if (doUpdate)
-        gkpStore->gkStore_delFragment(iid);
+      iniClr->setbgn(id) = finL;
+      iniClr->setend(id) = finR;
     }
 
     if (logFile)
-      fprintf(logFile, F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"%s\n",
-              iid,
-              fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_CLR),
-              fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_CLR),
-              qltL,
-              qltR,
-              fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_VEC),
-              fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_VEC),
-              finL,
-              finR,
-              ((finL + AS_READ_MIN_LEN) > finR) ? " (deleted)" : "");
+      fprintf(logFile, F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\n",
+              id, 0, read->gkRead_sequenceLength(), qltL, qltR, vecL, vecR, finL, finR);
   }
 
   delete gkpStore;
 
-  fprintf(stdout, "Fragments trimmed using:\n");
+  fprintf(stdout, "Reads trimmed using:\n");
   fprintf(stdout, "  alreadyDeleted   "F_U32"\n", stat_alreadyDeleted);
   fprintf(stdout, "  noTrimming       "F_U32"\n", stat_noTrimming);
   fprintf(stdout, "  merBased         "F_U32"\n", stat_merBased);
   fprintf(stdout, "  flowBased        "F_U32"\n", stat_flowBased);
   fprintf(stdout, "  qualityBased     "F_U32"\n", stat_qualityBased);
   
-  fprintf(stdout, "Fragments trimmed using:\n");
-  fprintf(stdout, "  NOLIBRARY        "F_U32"\n", stat_NOLIBRARY);
-
   fprintf(stdout, "Trimming result:\n");
   fprintf(stdout, " no vector clear range known:  "F_U32" (trimed to quality clear)\n", stat_noVecClr);
   fprintf(stdout, " no HQ non-vector sequence:    "F_U32" (deleted)\n", stat_noHQnonVec);

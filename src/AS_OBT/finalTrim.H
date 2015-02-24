@@ -24,19 +24,14 @@
 
 static const char *rcsid_FINALTRIM_H = "$Id$";
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
-#include <math.h>
-#include <assert.h>
+#include "AS_global.H"
+
+#include "gkStore.H"
+#include "ovStore.H"
+
+#include "intervalList.H"
 
 #include "trim.H"
-
-#include "AS_global.H"
-#include "AS_PER_gkpStore.H"
-#include "AS_OVS_overlapStore.H"
-#include "intervalList.H"
 
 
 #define OBT_MODE_WIGGLE      (5)
@@ -54,59 +49,46 @@ static const char *rcsid_FINALTRIM_H = "$Id$";
 
 
 bool
-withoutOverlaps(OVSoverlap  *ovl,
-                uint32       ovlLen,
-                gkFragment  &fr,
-                uint32       ibgn,
-                uint32       iend,
-                uint32      &fbgn,
-                uint32      &fend,
-                char        *logMsg,
-                uint32       errorRate,
-                double       errorLimit,
-                bool         qvTrimAllowed);
-
-bool
-largestCovered(OVSoverlap  *ovl,
+largestCovered(gkStore     *gkp,
+               ovsOverlap  *ovl,
                uint32       ovlLen,
-               gkFragment  &fr,
+               gkRead      *read,
                uint32       ibgn,
                uint32       iend,
                uint32      &fbgn,
                uint32      &fend,
                char        *logMsg,
                uint32       errorRate,
-               double       errorLimit,
                bool         qvTrimAllowed,
                uint32       minOverlap,
                uint32       minCoverage);
 
 bool
-bestEdge(OVSoverlap  *ovl,
+bestEdge(gkStore     *gkp,
+         ovsOverlap  *ovl,
          uint32       ovlLen,
-         gkFragment  &fr,
+         gkRead      *read,
          uint32       ibgn,
          uint32       iend,
          uint32      &fbgn,
          uint32      &fend,
          char        *logMsg,
          uint32       errorRate,
-         double       errorLimit,
          bool         qvTrimAllowed,
          uint32       minOverlap,
          uint32       minCoverage);
 
 bool
-evidenceBased(OVSoverlap  *ovl,
+evidenceBased(gkStore     *gkp,
+              ovsOverlap  *ovl,
               uint32       ovlLen,
-              gkFragment  &fr,
+              gkRead      *read,
               uint32       ibgn,
               uint32       iend,
               uint32      &fbgn,
               uint32      &fend,
               char        *logMsg,
               uint32       errorRate,
-              double       errorLimit,
               bool         qvTrimAllowed);
 
 #endif  //  FINALTRIM_H
