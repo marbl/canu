@@ -10,21 +10,22 @@ endif
 
 TARGET   := libCA.a
 
+#  unitigger uses AS_UTL_alloc, AS_UTL_Var and AS_UTL_Hash
+#  AS_UTL_Hash needs AS_UTL_heap
+
 SOURCES  := AS_global.C \
             \
-            AS_UTL/AS_UTL_GPL.C \
-            AS_UTL/AS_UTL_Hash.C \
-            AS_UTL/AS_UTL_Var.C \
-            AS_UTL/AS_UTL_alloc.C \
             AS_UTL/AS_UTL_decodeRange.C \
             AS_UTL/AS_UTL_fasta.C \
             AS_UTL/AS_UTL_fileIO.C \
-            AS_UTL/AS_UTL_heap.C \
-            AS_UTL/AS_UTL_histo.C \
-            AS_UTL/AS_UTL_interval.C \
-            AS_UTL/AS_UTL_rand.C \
             AS_UTL/AS_UTL_reverseComplement.C \
             AS_UTL/AS_UTL_stackTrace.C \
+            \
+            AS_UTL/AS_UTL_Var.C \
+            AS_UTL/AS_UTL_Hash.C \
+            AS_UTL/AS_UTL_heap.C \
+            AS_UTL/AS_UTL_alloc.C \
+            \
             AS_UTL/bitEncodings.C \
             AS_UTL/bitPackedFile.C \
             AS_UTL/bitPackedArray.C \

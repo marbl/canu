@@ -46,7 +46,7 @@ AS_UTL_writeFastA(FILE *f,
                   char *s, int sl, int bl,
                   char *h, ...) {
   va_list ap;
-  char   *o  = (char *)safe_malloc(sizeof(char) * (sl + sl / 60 + 2));
+  char   *o  = new char [sl + sl / 60 + 2];
   int     si = 0;
   int     oi = 0;
 
@@ -66,7 +66,7 @@ AS_UTL_writeFastA(FILE *f,
 
   AS_UTL_safeWrite(f, o, "AS_UTL_writeFastA", sizeof(char), oi);
 
-  safe_free(o);
+  delete [] o;
 }
 
 
@@ -75,7 +75,7 @@ AS_UTL_writeQVFastA(FILE *f,
                     char *q, int ql, int bl,
                     char *h, ...) {
   va_list ap;
-  char   *o  = (char *)safe_malloc(sizeof(char) * (3*ql + 3*ql / 60 + 2));
+  char   *o  = new char [3*ql + 3*ql / 60 + 2];
   int     qi = 0;
   int     oi = 0;
 
@@ -107,7 +107,7 @@ AS_UTL_writeQVFastA(FILE *f,
 
   AS_UTL_safeWrite(f, o, "AS_UTL_writeQVFastA", sizeof(char), oi);
 
-  safe_free(o);
+  delete [] o;
 }
 
 
@@ -117,7 +117,7 @@ AS_UTL_writeFastQ(FILE *f,
                   char *q, int ql,
                   char *h, ...) {
   va_list ap;
-  char   *o  = (char *)safe_malloc(sizeof(char) * (ql + 1));
+  char   *o  = new char [ql + 1];
   int     qi = 0;
   int     oi = 0;
 
@@ -139,5 +139,5 @@ AS_UTL_writeFastQ(FILE *f,
   AS_UTL_safeWrite(f, o, "AS_UTL_writeFastQ", sizeof(char), ql);
   fprintf(f, "\n");
 
-  safe_free(o);
+  delete [] o;
 }

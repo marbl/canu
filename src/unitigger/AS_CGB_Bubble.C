@@ -29,7 +29,15 @@ static char *rcsid = "$Id$";
 #include "AS_CGB_Bubble_VertexSet.H"
 #include "AS_CGB_Bubble.H"
 #include "AS_CGB_Bubble_Popper.H"
+
+#define OLD_HASH
+
+#ifdef OLD_HASH
 #include "AS_UTL_Hash.H"
+#else
+#include <map>
+using namespace std;
+#endif
 
 // This method uses a depth first search to mark all(*) fragments with
 // the AS_CGB_BUBBLE_V_VALID flag.  As part of the process, the
@@ -47,13 +55,33 @@ static char *rcsid = "$Id$";
 void AS_CGB_Bubble_dfs(BubGraph_t bg);
 
 
+
 typedef struct BVSPair {
-  BubVertexSet_t f, r;
+  BubVertexSet_t f;
+  BubVertexSet_t r;
+
+#ifndef OLD_HASH
+  bool operator<(BVSPair &that) const {
+    int comp = BVS_compare(&f, &that.f);
+
+    if (comp == -1)
+      return(true);
+
+    comp = BVS_compare(&r, &that.r);
+
+    if (comp == -1)
+      return(true);
+
+    return(false);
+  }
+#endif
 } BVSPair;
+
 
 
 #define AS_CGB_BUBBLE_ABS(x) (((x) < 0) ? (-(x)) : (x))
 
+#ifdef OLD_HASH
 int
 _hash_vset_cmp(uint64 vset1, uint64 vset2)
 {
@@ -75,6 +103,7 @@ _hash_vset_hash(uint64 vset, uint32 length)
 
   return (int) (BVS_hash(v->f) + BVS_hash(v->r));
 }
+#endif
 
 
 int
@@ -92,69 +121,90 @@ _is_termination_node(int in_deg, int out_deg)
 }
 
 
+
 AS_CGB_Bubble_List_t
 _collect_bubbles(BubGraph_t bg, BubVertexSet *fwd, BubVertexSet *rvs,
-		 uint32 *top, int num_valid)
+                 uint32 *top, int num_valid)
 {
   uint32 f, bub_start;
-  HashTable_AS *init_nodes = NULL;
   uint32 *i_node = NULL;
   AS_CGB_Bubble_List result;
   AS_CGB_Bubble_List_t *ins_h = &(result.next);
   BVSPair *bp_ins_keys = NULL, bp_find_key;
 
+
   memset(&result,0,sizeof(AS_CGB_Bubble_List));
-  init_nodes  = CreateGenericHashTable_AS(_hash_vset_hash, _hash_vset_cmp);
+
+#ifdef OLD_HASH
+  HashTable_AS *init_nodes  = CreateGenericHashTable_AS(_hash_vset_hash, _hash_vset_cmp);
+#else
+  map<BVSPair, uint32 *> init_nodes;
+#endif
+
   bp_ins_keys = (BVSPair *)safe_malloc(sizeof(BVSPair) * num_valid );
   result.next = NULL;
 
   for (f = 0; f < num_valid; ++f)
     if (_is_initiation_node(BG_inDegree(bg, top[f], AS_CGB_BUBBLE_E_VALID),
-			    BG_outDegree(bg, top[f], AS_CGB_BUBBLE_E_VALID)) &&
-	!BVS_empty(&(fwd[top[f]])) &&
-	!BVS_empty(&(rvs[top[f]]))) {
+                            BG_outDegree(bg, top[f], AS_CGB_BUBBLE_E_VALID)) &&
+        !BVS_empty(&(fwd[top[f]])) &&
+        !BVS_empty(&(rvs[top[f]]))) {
 #if AS_CGB_BUBBLE_VERY_VERBOSE
       fprintf(stderr, "Inserting "F_U32 " ("F_U32 ") into the table.\n", top[f],
-	      get_iid_fragment(BG_vertices(bg), top[f]));
+              get_iid_fragment(BG_vertices(bg), top[f]));
 #endif
       bp_ins_keys[f].f = &(fwd[top[f]]);
       bp_ins_keys[f].r = &(rvs[top[f]]);
+
+#ifdef OLD_HASH
       InsertInHashTable_AS(init_nodes, (uint64)(INTPTR)&bp_ins_keys[f], sizeof(BVSPair), (uint64)(INTPTR)&top[f], 0);
+#else
+      init_nodes[bp_ins_keys[f]] = &top[f];
+#endif
     }
 
   for (f = 0; f < num_valid; ++f)
     if (_is_termination_node(BG_inDegree(bg, top[f], AS_CGB_BUBBLE_E_VALID),
-			     BG_outDegree(bg, top[f], AS_CGB_BUBBLE_E_VALID))&&
-	!BVS_empty(&(fwd[top[f]])) &&
-	!BVS_empty(&(rvs[top[f]]))) {
+                             BG_outDegree(bg, top[f], AS_CGB_BUBBLE_E_VALID))&&
+        !BVS_empty(&(fwd[top[f]])) &&
+        !BVS_empty(&(rvs[top[f]]))) {
 #if AS_CGB_BUBBLE_VERY_VERBOSE
       fprintf(stderr, "Looking for matches for "F_U32 " ("F_U32 ") in the table.  ",
-	      top[f], get_iid_fragment(BG_vertices(bg), top[f]));
+              top[f], get_iid_fragment(BG_vertices(bg), top[f]));
 #endif
       bp_find_key.f = &(fwd[top[f]]);
       bp_find_key.r = &(rvs[top[f]]);
+
+#ifdef OLD_HASH
       i_node = (uint32 *)(INTPTR)LookupValueInHashTable_AS(init_nodes, (uint64)(INTPTR)&bp_find_key, sizeof(BVSPair));
+#else
+      i_node = init_nodes[bp_find_key];
+#endif
+
 #if AS_CGB_BUBBLE_VERY_VERBOSE
       if (!i_node)
-	fprintf(stderr, "None found.\n");
+        fprintf(stderr, "None found.\n");
       else
-	fprintf(stderr, "Found init node = "F_U32 " ("F_U32 ").\n", *i_node,
-		get_iid_fragment(BG_vertices(bg), *i_node));
+        fprintf(stderr, "Found init node = "F_U32 " ("F_U32 ").\n", *i_node,
+                get_iid_fragment(BG_vertices(bg), *i_node));
 #endif
 
       if (i_node) {
-	AS_CGB_Bubble_List_t new_bub = NULL;
-	new_bub = (AS_CGB_Bubble_List *)safe_malloc(sizeof(AS_CGB_Bubble_List));
-	bub_start = *i_node;
-	new_bub->start = bub_start;
-	new_bub->end = top[f];
-	*ins_h = new_bub;
-	ins_h = &(new_bub->next);
-	*ins_h = NULL;
+        AS_CGB_Bubble_List_t new_bub = NULL;
+        new_bub = (AS_CGB_Bubble_List *)safe_malloc(sizeof(AS_CGB_Bubble_List));
+        bub_start = *i_node;
+        new_bub->start = bub_start;
+        new_bub->end = top[f];
+        *ins_h = new_bub;
+        ins_h = &(new_bub->next);
+        *ins_h = NULL;
       }
     }
 
+#ifdef OLD_HASH
   DeleteHashTable_AS(init_nodes);
+#endif
+
   safe_free(bp_ins_keys);
   return result.next;
 }
