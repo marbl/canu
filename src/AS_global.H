@@ -175,7 +175,7 @@ typedef uint64_t uint64;
 #define F_U64    "%"PRIu64
 #define F_U64P      PRIu64
 #define F_U64I  "%*"PRIu64
-#define F_X64    "%"PRIx64
+#define F_X64 "%016"PRIx64
 #define F_X64P      PRIx64
 #define F_X64I  "%*"PRIx64
 
