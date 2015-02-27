@@ -487,8 +487,6 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
     sprintf(name, "%s/blobs", _storePath);
     _blobsMMap     = new memoryMappedFile (name, memoryMappedFile_readOnly);
     _blobs         = (void *)_blobsMMap->get(0);
-
-    fprintf(stderr, "_blobs READONLY at 0x%016p\n", _blobs);
   }
 
   //
@@ -509,8 +507,6 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
     sprintf(name, "%s/blobs", _storePath);
     _blobsMMap     = new memoryMappedFile (name, memoryMappedFile_readWrite);
     _blobs         = (void *)_blobsMMap->get(0);
-
-    fprintf(stderr, "_blobs READWRITE at 0x%016p\n", _blobs);
   }
 
   //
@@ -536,7 +532,7 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
       _librariesMMap = NULL;;
     }
 
-    _readsAlloc     = MAX(1048576, 2 * _info.numReads);
+    _readsAlloc     = MAX(128, 2 * _info.numReads);
     _reads          = new gkRead [_readsAlloc];
 
     sprintf(name, "%s/reads", _storePath);
@@ -602,6 +598,12 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
     _blobs         = (void *)_blobsMMap->get(0);
   }
 
+  //  Info only, no access to reads or libraries.
+
+  else if (mode == gkStore_infoOnly) {
+    fprintf(stderr, "gkStore()--  opening '%s' for info-only access.\n", _storePath);
+  }
+
   else {
     fprintf(stderr, "gkStore::gkStore()-- unknown mode 0x%02x.\n", mode);
     exit(1);
@@ -623,10 +625,10 @@ gkStore::~gkStore() {
 
   //  Write N+1 because we write, but don't count, the [0] element.
   
-  if (_librariesMMap) {
+  if        (_librariesMMap) {
     delete _librariesMMap;
 
-  } else {
+  } else if (_libraries) {
     sprintf(N, "%s/libraries", gkStore_path());
     errno = 0;
     F = fopen(N, "w");
@@ -643,10 +645,10 @@ gkStore::~gkStore() {
   }
 
 
-  if (_readsMMap) {
+  if        (_readsMMap) {
     delete _readsMMap;
 
-  } else {
+  } else if (_reads) {
     sprintf(N, "%s/reads", gkStore_path());
     errno = 0;
     F = fopen(N, "w");
@@ -673,6 +675,18 @@ gkStore::~gkStore() {
 
     AS_UTL_safeWrite(F, &_info, "info", sizeof(gkStoreInfo), 1);
     fclose(F);
+
+
+    sprintf(N, "%s/info.txt", gkStore_path());
+    errno = 0;
+    F = fopen(N, "w");
+    if (errno)
+      fprintf(stderr, "gkStore::~gkStore()-- failed to open '%s' for writing: %s\n",
+              N, strerror(errno)), exit(1);
+
+    _info.writeInfoAsText(F);
+
+    fclose(F);
   }
 
 
@@ -694,10 +708,12 @@ gkStore::gkStore_addEmptyLibrary(char const *name) {
   assert(_librariesMMap == NULL);
   assert(_info.numLibraries <= _librariesAlloc);
 
-  if (_librariesAlloc == _info.numLibraries) {
-    fprintf(stderr, "NEED TO REALLOC LIBRARIES.\n");
-    assert(0);
-  }
+  //  Library[0] doesn't exist, see comments in addEmptyRead below.
+
+  _info.numLibraries++;
+
+  if (_info.numLibraries == _librariesAlloc)
+    increaseArray(_libraries, _info.numLibraries, _librariesAlloc, 128);
 
   //  Bullet proof the library name - so we can make files with this prefix.
 
@@ -737,9 +753,6 @@ gkStore::gkStore_addEmptyLibrary(char const *name) {
     fprintf(stderr, "gkStore_addEmptyLibrary()--  added library '%s'\n",
             libname);
 
-  //  Library[0] doesn't exist, see comments in addEmptyRead below.
-  _info.numLibraries++;
-
   _libraries[_info.numLibraries] = gkLibrary();
 
   strcpy(_libraries[_info.numLibraries]._libraryName, libname);
@@ -756,20 +769,20 @@ gkStore::gkStore_addEmptyRead(gkLibrary *lib) {
   assert(_readsMMap == NULL);
   assert(_info.numReads <= _readsAlloc);
 
-  if (_readsAlloc == _info.numReads) {
-    fprintf(stderr, "NEED TO REALLOC READS.\n");
-    assert(0);
-  }
-
   //  We reserve the zeroth read for "null".  This is easy to accomplish
   //  here, just pre-increment the number of reads.  However, we need to be sure
   //  to iterate up to and including _info.numReads.
 
   _info.numReads++;
 
-  _reads[_info.numReads] = gkRead();
+  if (_info.numReads == _readsAlloc)
+    increaseArray(_reads, _info.numReads, _readsAlloc, _info.numReads/2);
+
+  _reads[_info.numReads]            = gkRead();
   _reads[_info.numReads]._readID    = _info.numReads;
   _reads[_info.numReads]._libraryID = lib->gkLibrary_libraryID();
+
+  fprintf(stderr, "ADD READ %u = %u alloc = %u\n", _info.numReads, _reads[_info.numReads]._readID, _readsAlloc);
 
   return(_reads + _info.numReads);
 }

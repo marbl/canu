@@ -111,9 +111,11 @@ main(int argc, char **argv) {
   bool             dumpAllBases      = true;
   bool             dumpAllReads      = true;
 
+  bool             dumpInfoOnly      = false;
+
   argc = AS_configure(argc, argv);
 
-  int arg = 1;
+  int arg = 2;
   int err = 0;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-l") == 0) {
@@ -130,6 +132,20 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-o") == 0) {
       outPrefix = argv[++arg];
+
+
+    //  Needs a better home.
+    //
+    //  Propose 'gatekeeper <mode> <options>:
+    //    mode - dumpfastq
+    //    mode - dumpfasta
+    //    mode - dumpinfo
+    //
+    //
+    //
+    } else if (strcmp(argv[arg], "-I") == 0) {
+      dumpInfoOnly = true;
+
 
     } else {
       err++;
@@ -158,6 +174,20 @@ main(int argc, char **argv) {
       fprintf(stderr, "ERROR: no output prefix (-o) supplied.\n");
     exit(1);
   }
+
+
+  //  This should be calling _info.dumpInfoAsText(), but thats private.
+  if (dumpInfoOnly) {
+    gkStore    *gkpStore  = new gkStore(gkpStoreName, gkStore_infoOnly);
+
+    fprintf(stderr, "numReads      "F_U32"\n", gkpStore->gkStore_getNumReads());
+    fprintf(stderr, "numLibraries  "F_U32"\n", gkpStore->gkStore_getNumLibraries());
+
+    delete gkpStore;
+
+    exit(0);
+  }
+
 
   gkStore    *gkpStore  = new gkStore(gkpStoreName);
   uint32      numReads  = gkpStore->gkStore_getNumReads();

@@ -47,7 +47,7 @@ loadFASTA(gkStore *gkpStore,
   //  We can either copy L to H now, or use H to read lines and copy H to L at the end.  We're stuck
   //  either way.
 
-  strcpy(H, L);
+  strcpy(H, L + 1);
 
   //  Load sequence.  This is a bit tricky, since we need to peek ahead
   //  and stop reading before the next header is loaded.
@@ -87,8 +87,8 @@ loadFASTA(gkStore *gkpStore,
 
   //  Do NOT clear L, it contains the next header.
 
-  H[0] = 0;
-  S[0] = 0;
+  //H[0] = 0;
+  //S[0] = 0;
 
   return(0);
 }
@@ -105,6 +105,8 @@ loadFASTQ(gkStore *gkpStore,
           compressedFileReader *F) {
 
   //  We've already read the header.  It's in L.
+
+  strcpy(H, L + 1);
 
   //  Load sequence.
   fgets(S, AS_MAX_READLEN, F->file());
@@ -151,10 +153,7 @@ loadFASTQ(gkStore *gkpStore,
 
   //  Populate the read with the appropriate gunk, based on the library type.
 
-  gkReadData *nd = nr->gkRead_encodeSeqQlt(L, S, Q);
-
-  //  Figure out a clear range
-#warning NEED TO PARSE CLEAR RANGE FROM HEADER LINE
+  gkReadData *nd = nr->gkRead_encodeSeqQlt(H, S, Q);
 
   //  Stash the encoded data in the store
 
@@ -167,9 +166,9 @@ loadFASTQ(gkStore *gkpStore,
   //  Clear the lines, so we can load the next one.
 
   L[0] = 0;
-  H[0] = 0;
-  S[0] = 0;
-  Q[0] = 0;
+  //H[0] = 0;
+  //S[0] = 0;
+  //Q[0] = 0;
 
   return(4);  //  FASTQ always reads exactly four lines
 }
@@ -179,7 +178,7 @@ loadFASTQ(gkStore *gkpStore,
 
 
 void
-loadReads(gkStore *gkpStore, gkLibrary *gkpLibrary, char *fileName) {
+loadReads(gkStore *gkpStore, gkLibrary *gkpLibrary, FILE *nameMap, char *fileName) {
   char    *L = new char [AS_MAX_READLEN + 1];
   char    *H = new char [AS_MAX_READLEN + 1];
 
@@ -207,11 +206,15 @@ loadReads(gkStore *gkpStore, gkLibrary *gkpLibrary, char *fileName) {
     if      (L[0] == '>') {
       lineNumber += loadFASTA(gkpStore, gkpLibrary, L, H, S, F);
       nFASTA++;
+
+      fprintf(nameMap, F_U32"\t%s\n", gkpStore->gkStore_getNumReads(), H);
     }
 
     else if (L[0] == '@') {
       lineNumber += loadFASTQ(gkpStore, gkpLibrary, L, H, S, Q, F);
       nFASTQ++;
+
+      fprintf(nameMap, F_U32"\t%s\n", gkpStore->gkStore_getNumReads(), H);
     }
 
     else {
@@ -256,7 +259,7 @@ main(int argc, char **argv) {
   uint32           firstFileArg      = 0;
 
   char             errorLogName[FILENAME_MAX];
-  char             uidMapName[FILENAME_MAX];
+  char             nameMapName[FILENAME_MAX];
 
 
   //argc = AS_configure(argc, argv);
@@ -326,10 +329,10 @@ main(int argc, char **argv) {
   if (errno)
     fprintf(stderr, "ERROR: cannot open error file '%s': %s\n", errorLogName, strerror(errno)), exit(1);
 
-  sprintf(uidMapName,   "%s.fastqUIDmap", gkpStoreName);
-  FILE    *uidMap   = fopen(uidMapName,   "w");
+  sprintf(nameMapName,   "%s/readNames.txt", gkpStoreName);
+  FILE    *nameMap   = fopen(nameMapName,   "w");
   if (errno)
-    fprintf(stderr, "ERROR: cannot open uid map file '%s': %s\n", uidMapName, strerror(errno)), exit(1);
+    fprintf(stderr, "ERROR: cannot open uid map file '%s': %s\n", nameMapName, strerror(errno)), exit(1);
 
 
   for (; firstFileArg < argc; firstFileArg++) {
@@ -385,7 +388,7 @@ main(int argc, char **argv) {
         gkpLibrary->gkLibrary_setCheckForSubReads(keyval.value_bool());
 
       } else if (AS_UTL_fileExists(keyval.key(), false, false)) {
-        loadReads(gkpStore, gkpLibrary, keyval.key());
+        loadReads(gkpStore, gkpLibrary, nameMap, keyval.key());
 
       } else {
         fprintf(stderr, "line '%s' not recognized, and not a file of reads.\n", line);
@@ -401,7 +404,7 @@ main(int argc, char **argv) {
 
   delete gkpStore;
 
-  fclose(uidMap);
+  fclose(nameMap);
   fclose(errorLog);
 
   //return(AS_GKP_summarizeErrors());

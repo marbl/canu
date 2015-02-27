@@ -378,6 +378,22 @@ public:
   ~gkStoreInfo() {
   };
 
+  void      writeInfoAsText(FILE *F) {
+    fprintf(F, "gkMagic            = 0x"F_X64"\n", gkMagic);
+    fprintf(F, "gkVersion          = 0x"F_X64"\n", gkVersion);
+    fprintf(F, "\n");
+    fprintf(F, "gkLibrarySize      = "F_U32"\n", gkLibrarySize);
+    fprintf(F, "gkReadSize         = "F_U32"\n", gkReadSize);
+    fprintf(F, "gkMaxLibrariesBits = "F_U32"\n", gkMaxLibrariesBits);
+    fprintf(F, "gkLibraryNameSize  = "F_U32"\n", gkLibraryNameSize);
+    fprintf(F, "gkMaxReadBits      = "F_U32"\n", gkMaxReadBits);
+    fprintf(F, "gkMaxReadLenBits   = "F_U32"\n", gkMaxReadLenBits);
+    fprintf(F, "gkBlobBlockSize    = "F_U32"\n", gkBlobBlockSize);
+    fprintf(F, "\n");
+    fprintf(F, "numLibraries       = "F_U32"\n", numLibraries);
+    fprintf(F, "numReads           = "F_U32"\n", numReads);
+  };
+
 private:
   uint64    gkMagic;
   uint64    gkVersion;
@@ -406,6 +422,7 @@ typedef enum {
   gkStore_modify      = 0x01,  //  Open for modification
   gkStore_extend      = 0x02,  //  Open for modification and appending new reads/libraries
   gkStore_partitioned = 0x03,  //  Open read only, a partition
+  gkStore_infoOnly    = 0x04   //  Open read only, but only load the info on the store; no access to reads or libraries
 } gkStore_mode;
 
 
