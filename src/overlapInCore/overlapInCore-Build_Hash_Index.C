@@ -46,16 +46,10 @@ Add_Extra_Hash_String(const char *s) {
     sub = String_Ct + Extra_String_Ct;
 
     if (sub >= String_Start_Size) {
-      fprintf(stderr, "NEED TO REALLOC String_Start!\n");
-      exit(1);
-#if 0
-      String_Start_Size *= MEMORY_EXPANSION_FACTOR;
+      uint64  n = max(sub * 1.1, String_Start_Size * 1.5);
 
-      if (sub >= String_Start_Size)
-        String_Start_Size = sub;
-
-      String_Start = (int64 *) s a f e _ r e a l l o c "so grep doesn't hit it" (String_Start, String_Start_Size * sizeof (int64));
-#endif
+      fprintf(stderr, "REALLOC String_Start from "F_U64" to "F_U64"\n", String_Start_Size, n);
+      resizeArray(String_Start, String_Start_Size, String_Start_Size, n);
     }
 
     String_Start[sub] = Used_Data_Len;
@@ -66,14 +60,10 @@ Add_Extra_Hash_String(const char *s) {
   }
 
   if (new_len >= Extra_Data_Len) {
-    fprintf(stderr, "NEED TO REALLOC Extra_Data and Data!\n");
-    exit(1);
-#if 0
-    Extra_Data_Len = (size_t) (Extra_Data_Len * MEMORY_EXPANSION_FACTOR);
-    if (new_len > Extra_Data_Len)
-      Extra_Data_Len = new_len;
-    basesData = (char *) s a f e _ r e a l l o c "so grep doesn't hit it" (basesData, Extra_Data_Len);
-#endif
+    uint64  n = max(new_len * 1.1, Extra_Data_Len * 1.5);
+
+    fprintf(stderr, "REALLOC basesData from "F_U64" to "F_U64"\n", Extra_Data_Len, n);
+    resizeArray(basesData, Extra_Data_Len, Extra_Data_Len, n);
   }
 
   strncpy(basesData + String_Start[sub] + G.Kmer_Len * Extra_String_Subcount, s, G.Kmer_Len + 1);
