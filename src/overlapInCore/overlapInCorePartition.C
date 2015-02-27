@@ -113,6 +113,9 @@ loadReadLengths(gkStore *gkp,
   for (uint32 ii=1; ii<=numReads; ii++) {
     gkRead  *read = gkp->gkStore_getRead(ii);
 
+    if (read->gkRead_readID() != ii)
+      fprintf(stderr, "ERROR: readID=%u != ii=%u\n",
+              read->gkRead_readID(), ii);
     assert(read->gkRead_readID() == ii);
 
     if (read->gkRead_isDeleted() == false)
