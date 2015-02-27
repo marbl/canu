@@ -185,12 +185,13 @@ public:
 
     _type = GKREAD_TYPE_UNKNOWN;
 
-    _seq = NULL;
-    _qlt = NULL;
+    _seq       = NULL;
+    _qlt       = NULL;
+    _seqAlloc  = 0;
 
-    _blobLen = 0;
-    _blobMax = 0;
-    _blob    = NULL;
+    _blobLen   = 0;
+    _blobMax   = 0;
+    _blob      = NULL;
 
     _pacbio._deletionQV     = NULL;
     _pacbio._deletionTag    = NULL;
@@ -233,6 +234,7 @@ private:
 
   char              *_seq;      //  Everyone has sequence
   char              *_qlt;      //    and quality
+  uint32             _seqAlloc;
 
   uint32             _blobLen;
   uint32             _blobMax;

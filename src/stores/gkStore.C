@@ -2,7 +2,7 @@
 #include "gkStore.H"
 
 #include "AS_UTL_fileIO.H"
-
+#include "AS_UTL_alloc.H"
 
 bool
 gkStore::gkStore_loadReadData(uint32  readID, gkReadData *readData) {
@@ -18,11 +18,9 @@ gkRead::gkRead_loadData(gkReadData *readData, void *blobs, bool partitioned) {
 
   readData->_read = this;
 
-  if (readData->_seq == NULL)
-    readData->_seq  = new char [_seqLen + 1];
+  //  The resize will only increase the space.  if the new is less than the max, it returns immediately.
 
-  if (readData->_qlt == NULL)
-    readData->_qlt  = new char [_seqLen + 1];
+  resizeArrayPair(readData->_seq, readData->_qlt, readData->_seqAlloc, readData->_seqAlloc, (uint32)_seqLen+1, resizeArray_doNothing);
 
   //  Where, or where!, is the data?
 
@@ -74,13 +72,14 @@ gkRead::gkRead_loadData(gkReadData *readData, void *blobs, bool partitioned) {
 
     else if (strncmp(chunk, "USEQ", 4) == 0) {
       assert(_seqLen <= chunkLen);
+      assert(_seqLen <= readData->_seqAlloc);
       memcpy(readData->_seq, blob + 8, _seqLen);
       readData->_seq[_seqLen] = 0;
-      //fprintf(stderr, "READ USEQ chunklen "F_U32" len "F_U64" %c%c%c\n", chunkLen, _seqLen, chunk[8], chunk[9], chunk[10]);
     }
 
     else if (strncmp(chunk, "UQLT", 4) == 0) {
       assert(_seqLen <= chunkLen);
+      assert(_seqLen <= readData->_seqAlloc);
       memcpy(readData->_qlt, blob + 8, _seqLen);
       readData->_qlt[_seqLen] = 0;
     }
