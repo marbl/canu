@@ -781,7 +781,7 @@ ovStore::numOverlapsInRange(void) {
   //  human, it runs on ~24 pieces, which cuts this down to < 32MB.
 
   len = _lastIIDrequested - _firstIIDrequested + 1;
-  offsets = (ovStoreOfft *)safe_malloc(sizeof(ovStoreOfft) * len);
+  offsets = new ovStoreOfft [len];
 
   if (len != AS_UTL_safeRead(_offtFile, offsets, "AS_OVS_numOverlapsInRange", sizeof(ovStoreOfft), len)) {
     fprintf(stderr, "AS_OVS_numOverlapsInRange()-- short read on offsets!\n");
@@ -791,7 +791,7 @@ ovStore::numOverlapsInRange(void) {
   for (i=0; i<len; i++)
     numolap += offsets[i]._numOlaps;
 
-  safe_free(offsets);
+  delete [] offsets;
 
   AS_UTL_fseek(_offtFile, originalposition, SEEK_SET);
 

@@ -656,7 +656,7 @@ main(int argc, char **argv) {
 
   assert(overlapIndex[numIIDs] == numOvls);
 
-  safe_free(overlapLen);
+  delete [] overlapLen;
 
   //  Load overlaps.
 
