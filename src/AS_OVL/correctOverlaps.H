@@ -213,11 +213,11 @@ public:
     gkpStorePath = NULL;
     ovlStorePath = NULL;
 
-  //  Input read corrections, output overlap corrections
+    //  Input read corrections, output overlap corrections
     correctionsName = NULL;
     eratesName      = NULL;
 
-  // Range of IDs to process
+    // Range of IDs to process
     bgnID = 0;
     endID = UINT32_MAX;
 

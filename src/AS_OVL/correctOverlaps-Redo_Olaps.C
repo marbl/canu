@@ -220,12 +220,12 @@ Hang_Adjust(int32     hang,
   //  Replacing second test >= with just > didn't change anything.  Both had 14 fails.
 
   for  (int32 i=0; (i < adjust_ct) && (hang >= adjust[i].adjpos); i++) {
-    if (delta != adjust[i].adjust)
-      fprintf(stderr, "hang_adjust i=%d adjust=%d pos=%d\n", i, adjust[i].adjust, adjust[i].adjpos);
+    //if (delta != adjust[i].adjust)
+    //  fprintf(stderr, "hang_adjust i=%d adjust=%d pos=%d\n", i, adjust[i].adjust, adjust[i].adjpos);
     delta = adjust[i].adjust;
   }
 
-  fprintf(stderr, "hang adjust delta %d\n", delta);
+  //fprintf(stderr, "hang adjust delta %d\n", delta);
   return(hang + delta);
 }
 
@@ -310,7 +310,7 @@ Redo_Olaps(coParameters &G, gkStore *gkpStore) {
 
     //  Apply corrections to the B read (also converts to lower case, reverses it, etc)
 
-    fprintf(stderr, "Correcting B read %u at Cpos=%u\n", curID, Cpos);
+    //fprintf(stderr, "Correcting B read %u at Cpos=%u\n", curID, Cpos);
 
     fseqLen = 0;
     rseqLen = 0;
@@ -338,7 +338,7 @@ Redo_Olaps(coParameters &G, gkStore *gkpStore) {
             (G.olaps[thisOvl].b_iid == curID)); thisOvl++) {
       Olap_Info_t  *olap = G.olaps + thisOvl;
 
-      fprintf(stderr, "processing overlap %u - %u\n", olap->a_iid, olap->b_iid);
+      //fprintf(stderr, "processing overlap %u - %u\n", olap->a_iid, olap->b_iid);
 
       //  Find the A segment.  It's always forward.  It's already been corrected.
 
@@ -349,18 +349,17 @@ Redo_Olaps(coParameters &G, gkStore *gkpStore) {
                                G.reads[olap->a_iid - G.bgnID].adjusts,
                                G.reads[olap->a_iid - G.bgnID].adjustsLen);
         a_part += ha;
-        fprintf(stderr, "offset a_part by ha=%d\n", ha);
+        //fprintf(stderr, "offset a_part by ha=%d\n", ha);
       }
 
       //  Find the B segment.
 
       char *b_part = (olap->normal == true) ? fseq : rseq;
 
-      if (olap->normal == true) {
-        fprintf(stderr, "b_part = fseq %40.40s\n", fseq);
-      } else {
-        fprintf(stderr, "b_part = rseq %40.40s\n", rseq);
-      }
+      //if (olap->normal == true)
+      //  fprintf(stderr, "b_part = fseq %40.40s\n", fseq);
+      //else
+      //  fprintf(stderr, "b_part = rseq %40.40s\n", rseq);
 
       if (olap->normal == true)
         olapsFwd++;
@@ -372,7 +371,7 @@ Redo_Olaps(coParameters &G, gkStore *gkpStore) {
         int32 ha = (olap->normal == true) ? Hang_Adjust(-olap->a_hang, fadj, fadjLen) :
                                             Hang_Adjust(-olap->a_hang, radj, fadjLen);
         b_part += ha;
-        fprintf(stderr, "offset b_part by ha=%d normal=%d\n", ha, olap->normal);
+        //fprintf(stderr, "offset b_part by ha=%d normal=%d\n", ha, olap->normal);
         rha=true;
       }
 

@@ -34,10 +34,10 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-O") == 0) {  //  -F?  -S Olap_Path
       G.ovlStorePath = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-C") == 0) {  //  For 'corrections'
+    } else if (strcmp(argv[arg], "-c") == 0) {  //  For 'corrections' file
       G.correctionsName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-E") == 0) {  //  For 'erates'
+    } else if (strcmp(argv[arg], "-o") == 0) {  //  For 'erates'
       G.eratesName = argv[++arg];
 
 
@@ -67,9 +67,9 @@ main(int argc, char **argv) {
   if (G.ovlStorePath == NULL)
     fprintf(stderr, "ERROR: no input overlap store (-O) supplied.\n"), err++;
   if (G.correctionsName == NULL)
-    fprintf(stderr, "ERROR: no input read corrections file (-C) supplied.\n"), err++;
+    fprintf(stderr, "ERROR: no input read corrections file (-c) supplied.\n"), err++;
   if (G.eratesName == NULL)
-    fprintf(stderr, "ERROR: no output erates file (-E) supplied.\n"), err++;
+    fprintf(stderr, "ERROR: no output erates file (-o) supplied.\n"), err++;
 
 
   if (err) {
