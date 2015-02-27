@@ -289,7 +289,7 @@ public:
 
     outputFileName = NULL;
 
-    numThreads     = 1;
+    numThreads     = 4;
 
     //  Parameters
 

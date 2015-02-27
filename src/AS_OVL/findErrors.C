@@ -95,18 +95,22 @@ Extract_Needed_Frags(feParameters *G,
     delete [] fl->readIDs;
     delete [] fl->readBases;
 
-    fprintf(stderr, "realloc reads\n");
+    fprintf(stderr, "realloc reads from "F_U64" to "F_U64"\n", fl->readsMax, 12 * fl->readsLen / 10);
 
-    fl->readIDs   = new uint32 [fl->readsLen];
-    fl->readBases = new char * [fl->readsLen];
+    fl->readIDs   = new uint32 [12 * fl->readsLen / 10];
+    fl->readBases = new char * [12 * fl->readsLen / 10];
+
+    fl->readsMax  = fl->readsLen * 0.2;
   }
 
   if (fl->basesMax < fl->basesLen) {
     delete [] fl->bases;
 
-    fprintf(stderr, "realloc bases\n");
+    fprintf(stderr, "realloc bases from "F_U64" to "F_U64"\n", fl->basesMax, 12 * fl->basesLen / 10);
 
-    fl->bases       = new char [fl->basesLen];
+    fl->bases       = new char [12 * fl->basesLen / 10];
+
+    fl->basesMax    = 12 * fl->basesLen / 10;
   }
 
   //  Load.  This is complicated by loading only the reads that have overlaps we care about.

@@ -39,8 +39,8 @@ Output_Corrections(feParameters *G) {
 
 
   for (uint32 i=0; i<G->readsLen; i++) {
-    if (i == 0)
-      Output_Details(G, i);
+    //if (i == 0)
+    //  Output_Details(G, i);
 
     out.keep_left   = (G->reads[i].left_degree  < G->Degree_Threshold);
     out.keep_right  = (G->reads[i].right_degree < G->Degree_Threshold);
@@ -48,7 +48,7 @@ Output_Corrections(feParameters *G) {
     out.pos         = 0;
     out.readID      = G->bgnID + i;
 
-    fprintf(stderr, "read %d clear_len %d\n", i, G->reads[i].clear_len);
+    //fprintf(stderr, "read %d clear_len %d\n", i, G->reads[i].clear_len);
     AS_UTL_safeWrite(fp, &out, "correction1", sizeof(Correction_Output_t), 1);
 
     if (G->reads[i].sequence == NULL)
@@ -103,29 +103,29 @@ Output_Corrections(feParameters *G) {
         //  A side effect is that we can abort a little earlier in two cases (and we don't even bother).
 
 
-        fprintf(stderr, "TEST   read %d position %d type %d -- ", i, j, vote);
+        //fprintf(stderr, "TEST   read %d position %d type %d -- ", i, j, vote);
 
         //  (total > 1)
         if (total <= 1) {
-          fprintf(stderr, "FEW   total = %d <= 1\n", total);
+          //fprintf(stderr, "FEW   total = %d <= 1\n", total);
           continue;
         }
 
         //  (2 * max > total)
         if (2 * max <= total) {
-          fprintf(stderr, "WEAK  2*max = %d <= total = %d\n", 2*max, total);
+          //fprintf(stderr, "WEAK  2*max = %d <= total = %d\n", 2*max, total);
           continue;
         }
 
         //  (is_change == true)
         if (is_change == false) {
-          fprintf(stderr, "SAME  is_change = %d\n", is_change);
+          //fprintf(stderr, "SAME  is_change = %d\n", is_change);
           continue;
         }
 
         //  ((haplo_ct < 2) || (G->Use_Haplo_Ct == false))
         if ((haplo_ct >= 2) && (G->Use_Haplo_Ct == true)) {
-          fprintf(stderr, "HAPLO haplo_ct=%d >= 2 AND Use_Haplo_Ct = %d\n", haplo_ct, G->Use_Haplo_Ct);
+          //fprintf(stderr, "HAPLO haplo_ct=%d >= 2 AND Use_Haplo_Ct = %d\n", haplo_ct, G->Use_Haplo_Ct);
           continue;
         }
 
@@ -133,7 +133,7 @@ Output_Corrections(feParameters *G) {
         //   ((G->reads[i].vote[j].confirmed == 1) && (max > 6)))
         if ((G->reads[i].vote[j].confirmed > 0) &&
             ((G->reads[i].vote[j].confirmed != 1) || (max <= 6))) {
-          fprintf(stderr, "INDET confirmed = %d max = %d\n", G->reads[i].vote[j].confirmed, max);
+          //fprintf(stderr, "INDET confirmed = %d max = %d\n", G->reads[i].vote[j].confirmed, max);
           continue;
         }
 
@@ -142,7 +142,7 @@ Output_Corrections(feParameters *G) {
         out.type       = vote;
         out.pos        = j;
 
-        fprintf(stderr, "CORRECT!\n");
+        //fprintf(stderr, "CORRECT!\n");
 
         AS_UTL_safeWrite(fp, &out, "correction2", sizeof(Correction_Output_t), 1);
       }  //  confirmed < 2
@@ -177,26 +177,26 @@ Output_Corrections(feParameters *G) {
                            G->reads[i].vote[j].g_insert +
                            G->reads[i].vote[j].t_insert);
 
-        fprintf(stderr, "TEST   read %d position %d type %d (insert) -- ", i, j, ins_vote);
+        //fprintf(stderr, "TEST   read %d position %d type %d (insert) -- ", i, j, ins_vote);
 
         if (ins_total <= 1) {
-          fprintf(stderr, "FEW   ins_total = %d <= 1\n", ins_total);
+          //fprintf(stderr, "FEW   ins_total = %d <= 1\n", ins_total);
           continue;
         }
 
         if (2 * ins_max >= ins_total) {
-          fprintf(stderr, "WEAK  2*ins_max = %d <= ins_total = %d\n", 2*ins_max, ins_total);
+          //fprintf(stderr, "WEAK  2*ins_max = %d <= ins_total = %d\n", 2*ins_max, ins_total);
           continue;
         }
 
         if ((ins_haplo_ct >= 2) && (G->Use_Haplo_Ct == true)) {
-          fprintf(stderr, "HAPLO ins_haplo_ct=%d >= 2 AND Use_Haplo_Ct = %d\n", ins_haplo_ct, G->Use_Haplo_Ct);
+          //fprintf(stderr, "HAPLO ins_haplo_ct=%d >= 2 AND Use_Haplo_Ct = %d\n", ins_haplo_ct, G->Use_Haplo_Ct);
           continue;
         }
 
         if ((G->reads[i].vote[j].no_insert > 0) &&
             ((G->reads[i].vote[j].no_insert != 1) || (ins_max <= 6))) {
-          fprintf(stderr, "INDET no_insert = %d ins_max = %d\n", G->reads[i].vote[j].no_insert, ins_max);
+          //fprintf(stderr, "INDET no_insert = %d ins_max = %d\n", G->reads[i].vote[j].no_insert, ins_max);
           continue;
         }
 
@@ -205,7 +205,7 @@ Output_Corrections(feParameters *G) {
         out.type  = ins_vote;
         out.pos   = j;
 
-        fprintf(stderr, "INSERT!\n");
+        //fprintf(stderr, "INSERT!\n");
 
         AS_UTL_safeWrite(fp, &out, "correction3", sizeof(Correction_Output_t), 1);
       }  //  insert < 2
