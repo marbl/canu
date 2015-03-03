@@ -58,7 +58,7 @@ using namespace std;
 
 //  Most errors in any edit distance computation
 //  KNOWN ONLY AT RUN TIME
-#define  MAX_ERRORS                  (1 + (int) (AS_OVL_ERROR_RATE * AS_MAX_READLEN))
+//#define  MAX_ERRORS                  (1 + (int) (AS_OVL_ERROR_RATE * AS_MAX_READLEN))
 
 //  Highest number of votes before overflow
 #define  MAX_DEGREE                  32767
@@ -206,37 +206,36 @@ public:
     deltaLen = 0;
 
     Edit_Array_Lazy = NULL;
-    Edit_Space_Lazy = NULL;
   };
 
   ~pedWorkArea_t() {
 
-    for (uint32 xx=0; Edit_Space_Lazy[xx]; xx++)
-      delete [] Edit_Space_Lazy[xx];
+    for (uint32 xx=0; xx < alloc.size(); xx++)
+      delete [] alloc[xx];
 
     delete [] Edit_Array_Lazy;
-    delete [] Edit_Space_Lazy;
   };
 
-  void          initialize(feParameters *G_, uint32 maxErrors) {
+  void          initialize(feParameters *G_, double errorRate) {
     G = G_;
 
-    Edit_Array_Lazy = new int32 * [maxErrors];
-    Edit_Space_Lazy = new int32 * [maxErrors];
+    Edit_Array_Max  = 1 + (uint32)(errorRate * AS_MAX_READLEN);
+    Edit_Array_Lazy = new int32 * [Edit_Array_Max];
 
-    memset(Edit_Array_Lazy, 0, sizeof(int32 *) * maxErrors);
-    memset(Edit_Space_Lazy, 0, sizeof(int32 *) * maxErrors);
+    memset(Edit_Array_Lazy, 0, sizeof(int32 *) * Edit_Array_Max);
   };
 
 public:
   feParameters *G;
 
-  int32         delta[AS_MAX_READLEN];  //  Only need ERATE * READLEN
-  int32         deltaStack[AS_MAX_READLEN];
-  int32         deltaLen;
+  int32              delta[AS_MAX_READLEN];  //  Only need ERATE * READLEN
+  int32              deltaStack[AS_MAX_READLEN];
+  int32              deltaLen;
 
-  int32       **Edit_Array_Lazy;
-  int32       **Edit_Space_Lazy;
+  vector<int32 *>    alloc;            //  Allocated blocks, don't use directly.
+
+  int32            **Edit_Array_Lazy;  //  Doled out space.
+  int32              Edit_Array_Max;   //  Former MAX_ERRORS
 };
 
 
@@ -290,6 +289,7 @@ public:
     outputFileName = NULL;
 
     numThreads     = 4;
+    errorRate      = 0.06;
 
     //  Parameters
 
@@ -330,7 +330,7 @@ public:
 
   uint32        numThreads;
 
-
+  double        errorRate;
 
   // This array [e] is the minimum value of Edit_Array [e] [d] to be worth pursuing in edit-distance
   // computations between guides (only MAX_ERRORS needed)

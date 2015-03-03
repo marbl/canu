@@ -1,8 +1,5 @@
 
-
 #include "findErrors.H"
-
-
 
 //  Set  delta  to the entries indicating the insertions/deletions
 //  in the alignment encoded in  edit_array  ending at position
@@ -81,15 +78,12 @@ Allocate_More_Edit_Space(pedWorkArea_t *WA) {
 
   //  Determine the last allocated block, and the last assigned block
 
-  int32  b = 0;  //  Last edit array assigned
-  int32  e = 0;  //  Last edit array assigned more space
-  int32  a = 0;  //  Last allocated block
+  int32  b = 0;                 //  Last edit array assigned
+  int32  e = 0;                 //  Last edit array assigned more space
+  int32  a = WA->alloc.size();  //  First unallocated block
 
   while (WA->Edit_Array_Lazy[b] != NULL)
     b++;
-
-  while (WA->Edit_Space_Lazy[a] != NULL)
-    a++;
 
   //  Fill in the edit space array.  Well, not quite yet.  First, decide the minimum size.
   //
@@ -109,15 +103,17 @@ Allocate_More_Edit_Space(pedWorkArea_t *WA) {
 
   //  Allocate another block
 
-  WA->Edit_Space_Lazy[a] = new int32 [Size];
+  int32  *alloc = new int32 [Size];
+
+  WA->alloc.push_back(alloc);
 
   //  And, now, fill in the edit space array.
 
   e = b;
 
   while ((Offset + Del < Size) &&
-         (e < MAX_ERRORS)) {
-    WA->Edit_Array_Lazy[e++] = WA->Edit_Space_Lazy[a] + Offset;
+         (e < WA->Edit_Array_Max)) {
+    WA->Edit_Array_Lazy[e++] = alloc + Offset;
 
     Offset += Del;
     Del    += 2;
@@ -210,8 +206,7 @@ Prefix_Edit_Dist(char   *A, int32 m,
       while ((Row < m) && (Row + d < n) && (A[Row] == T[Row + d]))
         Row++;
 
-      assert(e < MAX_ERRORS);
-      //assert(d < ??);
+      assert(e < WA->Edit_Array_Max);
 
       WA->Edit_Array_Lazy[e][d] = Row;
 

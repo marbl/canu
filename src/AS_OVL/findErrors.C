@@ -100,7 +100,7 @@ Extract_Needed_Frags(feParameters *G,
     fl->readIDs   = new uint32 [12 * fl->readsLen / 10];
     fl->readBases = new char * [12 * fl->readsLen / 10];
 
-    fl->readsMax  = fl->readsLen * 0.2;
+    fl->readsMax  = 12 * fl->readsLen / 10;
   }
 
   if (fl->basesMax < fl->basesLen) {
@@ -250,7 +250,9 @@ Threaded_Stream_Old_Frags(feParameters *G, gkStore *gkpStore) {
 
     memset(thread_wa[i].rev_seq, 0, sizeof(char) * AS_MAX_READLEN);
 
-    thread_wa[i].ped.initialize(G, MAX_ERRORS);
+    double MAX_ERRORS = 1 + (uint32)(G->errorRate * AS_MAX_READLEN);
+
+    thread_wa[i].ped.initialize(G, G->errorRate);
   }
 
   uint32 loID  = G->olaps[0].b_iid;
@@ -360,9 +362,8 @@ main(int argc, char **argv) {
       G->numThreads = atoi(argv[++arg]);
 
 
-
     } else if (strcmp(argv[arg], "-error") == 0) {
-      AS_OVL_ERROR_RATE = atof(argv[++arg]);
+      G->errorRate = atof(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-d") == 0) {
       G->Degree_Threshold = strtol(argv[++arg], NULL, 10);
@@ -428,20 +429,22 @@ main(int argc, char **argv) {
   //
 
   {
+    double MAX_ERRORS = 1 + (uint32)(G->errorRate * AS_MAX_READLEN);
+
     for  (uint32 i = 0;  i <= ERRORS_FOR_FREE;  i++)
       G->Edit_Match_Limit[i] = 0;
 
     uint32 start = 1;
 
     for  (uint32 e = ERRORS_FOR_FREE + 1;  e < MAX_ERRORS;  e++) {
-      start = Binomial_Bound (e - ERRORS_FOR_FREE, AS_OVL_ERROR_RATE, start);
+      start = Binomial_Bound (e - ERRORS_FOR_FREE, G->errorRate, start);
       G->Edit_Match_Limit[e] = start - 1;
 
       assert(G->Edit_Match_Limit[e] >= G->Edit_Match_Limit[e - 1]);
     }
 
     for  (uint32 i = 0;  i <= AS_MAX_READLEN;  i++)
-      G->Error_Bound[i] = (int) (i * AS_OVL_ERROR_RATE);
+      G->Error_Bound[i] = (int) (i * G->errorRate);
   }
 
   //

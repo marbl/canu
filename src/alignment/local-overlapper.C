@@ -1090,8 +1090,6 @@ Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
   int i;
   int forcenext=0;
 
-  assert((0.0 <= erate) && (erate <= 4 * AS_MAX_ERROR_RATE));
-
   static char *Ausable=NULL, *Busable=NULL;
   static int AuseLen=0, BuseLen=0;
 

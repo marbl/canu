@@ -452,6 +452,7 @@ AS_CGB_Bubble_find_and_remove_bubbles
  Tfragment *frags, Tedge *edges,
  TChunkMesg *chunks, TChunkFrag *cfrgs,
  float gar,
+ double popperErate, uint32 popperMinLen,
  const char * bubblename,
  const char * fileprefix)
 {
@@ -466,7 +467,7 @@ AS_CGB_Bubble_find_and_remove_bubbles
 
   fprintf(stderr, "  * Processing bubbles.\n");
 
-  BP_init(&bp, &bg, chunks, cfrgs, gar, gkpStore, fileprefix);
+  BP_init(&bp, &bg, chunks, cfrgs, gar, popperErate, popperMinLen, gkpStore, fileprefix);
 
   while (NULL != bubs) {
     AS_CGB_Bubble_List_t bptr = NULL;

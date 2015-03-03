@@ -263,9 +263,12 @@ public:
 
 
 bool
-generateMultiAlignment(tgTig                     *tig,
-                       gkStore                   *gkpStore,
-                       uint32                    *failed);
+generateMultiAlignment(tgTig     *tig,
+                       gkStore   *gkpStore,
+                       uint32    *failed,
+                       double     errorRate,     //  AS_CNS_ERROR_RATE
+                       double     errorRateMax,  //  AS_MAX_ERROR_RATE
+                       uint32     minOverlap);   //  AS_OVERLAP_MIN_LEN
 
 
 #endif

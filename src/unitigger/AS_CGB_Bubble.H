@@ -65,6 +65,7 @@ AS_CGB_Bubble_find_and_remove_bubbles
  Tfragment *frags, Tedge *edges,
  TChunkMesg *chunks, TChunkFrag *cfrgs,
  float global_arrival_rate,
+ double popperErate, uint32 popperMinLen,
  const char * bubblename,
  const char * fileprefix);
 

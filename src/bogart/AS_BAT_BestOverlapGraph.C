@@ -540,9 +540,6 @@ BestOverlapGraph::BestOverlapGraph(double               utgErrorRate,
   mismatchCutoff  = utgErrorRate;
   mismatchLimit   = utgErrorLimit;
 
-  assert(mismatchCutoff >= 0.0);
-  assert(mismatchCutoff <= AS_MAX_ERROR_RATE);
-
   //  Initialize parallelism.
 
   uint32  fiLimit    = FI->numFragments();
@@ -640,9 +637,6 @@ BestOverlapGraph::rebuildBestContainsWithoutSingletons(UnitigVector  &unitigs,
 
   mismatchCutoff  = utgErrorRate;
   mismatchLimit   = utgErrorLimit;
-
-  assert(mismatchCutoff >= 0.0);
-  assert(mismatchCutoff <= AS_MAX_ERROR_RATE);
 
   uint32     fiLimit = FI->numFragments();
 
@@ -752,9 +746,6 @@ BestOverlapGraph::BestOverlapGraph(double               utgErrorRate,
 
   mismatchCutoff  = utgErrorRate;
   mismatchLimit   = utgErrorLimit;
-
-  assert(mismatchCutoff >= 0.0);
-  assert(mismatchCutoff <= AS_MAX_ERROR_RATE);
 
   assert(_bestA != NULL);
   assert(_scorA == NULL);

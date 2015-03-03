@@ -61,7 +61,8 @@ largestCovered(gkStore     *gkp,
                uint32       errorRate,
                bool         qvTrimAllowed,
                uint32       minOverlap,
-               uint32       minCoverage);
+               uint32       minCoverage,
+               uint32       minReadLength);
 
 bool
 bestEdge(gkStore     *gkp,
@@ -76,8 +77,10 @@ bestEdge(gkStore     *gkp,
          uint32       errorRate,
          bool         qvTrimAllowed,
          uint32       minOverlap,
-         uint32       minCoverage);
+         uint32       minCoverage,
+         uint32       minReadLength);
 
+#if 0
 bool
 evidenceBased(gkStore     *gkp,
               ovsOverlap  *ovl,
@@ -89,6 +92,8 @@ evidenceBased(gkStore     *gkp,
               uint32      &fend,
               char        *logMsg,
               uint32       errorRate,
-              bool         qvTrimAllowed);
+              bool         qvTrimAllowed,
+              uint32       minReadLength);
+#endif
 
 #endif  //  FINALTRIM_H

@@ -49,7 +49,8 @@ bestEdge(gkStore     *gkp,
          uint32       errorRate,
          bool         qvTrimAllowed,
          uint32       minOverlap,
-         uint32       minCoverage) {
+         uint32       minCoverage,
+         uint32       minReadLength) {
 
   fbgn      = ibgn;
   fend      = iend;
@@ -58,7 +59,7 @@ bestEdge(gkStore     *gkp,
   assert(read->gkRead_readID() == ovl[0].a_iid);
 
   //  Guard against invalid initial clear ranges.  These should all be deleted already.
-  if (ibgn + AS_READ_MIN_LEN > iend) {
+  if (ibgn + minReadLength > iend) {
     strcpy(logMsg, "\tinvalid initial clear range");
     return(false);
   }
@@ -76,7 +77,7 @@ bestEdge(gkStore     *gkp,
   uint32  lbgn = 0;
   uint32  lend = 0;
 
-  if (largestCovered(gkp, ovl, ovlLen, read, ibgn, iend, lbgn, lend, logMsg, errorRate, qvTrimAllowed, minOverlap, minCoverage) == false)
+  if (largestCovered(gkp, ovl, ovlLen, read, ibgn, iend, lbgn, lend, logMsg, errorRate, qvTrimAllowed, minOverlap, minCoverage, minReadLength) == false)
     return(false);
 
 #ifdef VERBOSE

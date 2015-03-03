@@ -112,7 +112,7 @@ unitigConsensus::initialize(gkStore *gkpStore, uint32 *failed) {
     cnspos[i].set(0, 0);
 
     //  Guess a nice ... totally unused value
-    //num_bases   += (int32)ceil( (utgpos[i].max() - utgpos[i].min()) * (1 + 2 * AS_CNS_ERROR_RATE));
+    //num_bases   += (int32)ceil( (utgpos[i].max() - utgpos[i].min()) * (1 + 2 * errorRate));
 
     num_columns  = (utgpos[i].min() > num_columns) ? utgpos[i].min() : num_columns;
     num_columns  = (utgpos[i].max() > num_columns) ? utgpos[i].max() : num_columns;
@@ -352,7 +352,7 @@ unitigConsensus::computePositionFromLayout(void) {
   //  If we have a VALID thickest placement, use that (recompute the placement that is likely
   //  overwritten -- ahang, bhang and piid are still correct).
 
-  if (thickestLen >= AS_OVERLAP_MIN_LEN) {
+  if (thickestLen >= minOverlap) {
     assert(piid != -1);
 
     cnspos[tiid].set(cnspos[piid].min() + utgpos[tiid].min() - utgpos[piid].min(),
@@ -391,7 +391,7 @@ unitigConsensus::computePositionFromAlignment(void) {
 
   ALNoverlap  *O           = NULL;
   double       thresh      = 1e-3;
-  int32        minlen      = AS_OVERLAP_MIN_LEN;
+  int32        minlen      = minOverlap;
   int32        ahanglimit  = -10;
 
   abSequence  *seq         = abacus->getSequence(tiid);
@@ -403,7 +403,7 @@ unitigConsensus::computePositionFromAlignment(void) {
                  ahanglimit, frankensteinLen,  //  ahang bounds
                  frankensteinLen, fragmentLen,   //  length of fragments
                  0,
-                 AS_CNS_ERROR_RATE, thresh, minlen,
+                 errorRate, thresh, minlen,
                  AS_FIND_ALIGN);
 
   if (O == NULL)
@@ -412,7 +412,7 @@ unitigConsensus::computePositionFromAlignment(void) {
                                 ahanglimit, frankensteinLen,  //  ahang bounds
                                 frankensteinLen, fragmentLen,   //  length of fragments
                                 0,
-                                AS_CNS_ERROR_RATE, thresh, minlen,
+                                errorRate, thresh, minlen,
                                 AS_FIND_ALIGN);
 
   if (O == NULL) {
@@ -605,7 +605,6 @@ unitigConsensus::rebuild(bool recomputeFullConsensus) {
 
 int
 unitigConsensus::alignFragment(void) {
-  double        origErate    = AS_CNS_ERROR_RATE;
   int32         bgnExtra     = 0;
   int32         endExtra     = 0;
 
@@ -628,11 +627,11 @@ unitigConsensus::alignFragment(void) {
   //      anchoring fragment   -----------------------------------------    ediff
   //      new fragment           bdiff   ------------------------------------------------
   //
-  //  So we should allow AS_CNS_ERROR_RATE indel in those relative positionings.
+  //  So we should allow errorRate indel in those relative positionings.
   //
 
-  bgnExtra = (int32)ceil(AS_CNS_ERROR_RATE * (cnspos[tiid].min() - cnspos[piid].min()));
-  endExtra = (int32)ceil(AS_CNS_ERROR_RATE * (cnspos[tiid].max() - cnspos[piid].max()));
+  bgnExtra = (int32)ceil(errorRate * (cnspos[tiid].min() - cnspos[piid].min()));
+  endExtra = (int32)ceil(errorRate * (cnspos[tiid].max() - cnspos[piid].max()));
 
   if (bgnExtra < 0)  bgnExtra = -bgnExtra;
   if (endExtra < 0)  endExtra = -endExtra;
@@ -660,7 +659,7 @@ unitigConsensus::alignFragment(void) {
   int32 cnsbgn = (cnspos[tiid].min() < cnspos[tiid].max()) ? cnspos[tiid].min() : cnspos[tiid].max();
   int32 cnsend = (cnspos[tiid].min() < cnspos[tiid].max()) ? cnspos[tiid].max() : cnspos[tiid].min();
 
-  int32 endTrim = (cnsend - frankensteinLen) - (int32)ceil(AS_CNS_ERROR_RATE * (cnsend - cnsbgn));
+  int32 endTrim = (cnsend - frankensteinLen) - (int32)ceil(errorRate * (cnsend - cnsbgn));
 
   if (endTrim < 20)  endTrim = 0;
 
@@ -716,7 +715,7 @@ unitigConsensus::alignFragment(void) {
 
     ALNoverlap  *O           = NULL;
     double       thresh      = 1e-3;
-    int32        minlen      = AS_OVERLAP_MIN_LEN;
+    int32        minlen      = minOverlap;
 
     if (O == NULL) {
       O = Optimal_Overlap_AS_forCNS(aseq,
@@ -724,7 +723,7 @@ unitigConsensus::alignFragment(void) {
                                     0, alen,            //  ahang bounds are unused here
                                     0, 0,               //  ahang, bhang exclusion
                                     0,
-                                    AS_CNS_ERROR_RATE + 0.02, thresh, minlen,
+                                    errorRate + 0.02, thresh, minlen,
                                     AS_FIND_ALIGN);
       if ((O) && (showAlignments())) {
         PrintALNoverlap("Optimal_Overlap", aseq, bseq, O);
@@ -732,7 +731,7 @@ unitigConsensus::alignFragment(void) {
     }
 
     //  At 0.06 error, this equals the previous value of 10.
-    double  pad = AS_CNS_ERROR_RATE * 500.0 / 3;
+    double  pad = errorRate * 500.0 / 3;
 
     if ((O) && (O->begpos < 0) && (frankBgn > 0)) {
       bgnExtra += -O->begpos + pad;
@@ -819,18 +818,18 @@ unitigConsensus::rejectAlignment(bool allowBhang,  //  Allow a positive bhang - 
   }
 
   //  Too noisy?  Nope, don't want it.
-  if (((double)O->diffs / (double)O->length) > AS_CNS_ERROR_RATE) {
+  if (((double)O->diffs / (double)O->length) > errorRate) {
     if (showAlgorithm())
       fprintf(stderr, "rejectAlignment()-- No alignment found -- erate %f > max allowed %f.\n",
-              (double)O->diffs / (double)O->length, AS_CNS_ERROR_RATE);
+              (double)O->diffs / (double)O->length, errorRate);
     return(true);
   }
 
   //  Too short?  Nope, don't want it.
-  if (O->length < AS_OVERLAP_MIN_LEN) {
+  if (O->length < minOverlap) {
     if (showAlgorithm())
       fprintf(stderr, "rejectAlignment()-- No alignment found -- too short %d < min allowed %d.\n",
-              O->length, AS_OVERLAP_MIN_LEN);
+              O->length, minOverlap);
     return(true);
   }
 

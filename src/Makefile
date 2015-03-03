@@ -428,8 +428,8 @@ ifeq (${OSTYPE}, FreeBSD)
 
   ifeq ($(BUILDDEBUG), 1)
     #  Inconveniently fix a problem where gcc46 doesn't work with gdb.
-    CC         = gcc44
-    CXX        = g++44
+    CC         = gcc48
+    CXX        = g++48
     CXXFLAGS  += -g
   else
     ifeq ($(BUILDPROFILE), 1)

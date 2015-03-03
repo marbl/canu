@@ -138,7 +138,7 @@ Initialize_Work_Area(Work_Area_t *WA, int id) {
 
   allocated += sizeof(ovsOverlap) * WA->overlapsMax;
 
-  WA->editDist = new prefixEditDistance(G.Doing_Partial_Overlaps);
+  WA->editDist = new prefixEditDistance(G.Doing_Partial_Overlaps, G.maxErate);
 }
 
 
@@ -380,8 +380,10 @@ main(int argc, char **argv) {
       G.Num_PThreads = strtoull(argv[++arg], NULL, 10);
 
 
-    } else if (strcmp(argv[arg], "-v") == 0) {
-      G.Min_Olap_Len = (int) strtol (argv[++arg], & p, 10);
+    } else if (strcmp(argv[arg], "--minlength") == 0) {
+      G.Min_Olap_Len = strtol (argv[++arg], & p, 10);
+    } else if (strcmp(argv[arg], "--maxerate") == 0) {
+      G.maxErate = strtof (argv[++arg], & p);
 
     } else if (strcmp(argv[arg], "-w") == 0) {
       G.Use_Window_Filter = TRUE;
@@ -405,7 +407,7 @@ main(int argc, char **argv) {
 
   //  Fix up some flags if we're allowing high error rates.
   //
-  if (AS_OVL_ERROR_RATE > 0.06) {
+  if (G.maxErate > 0.06) {
     if (G.Use_Window_Filter)
       fprintf(stderr, "High error rates requested -- window-filter turned off despite -w flag!\n");
     G.Use_Window_Filter  = FALSE;
@@ -449,11 +451,13 @@ main(int argc, char **argv) {
     fprintf(stderr, "-s          ignore screen information with fragments\n");
     fprintf(stderr, "-t <n>      use <n> parallel threads\n");
     fprintf(stderr, "-u          allow only 1 overlap per oriented fragment pair\n");
-    fprintf(stderr, "-v <n>      only output overlaps of <n> or more bases\n");
     fprintf(stderr, "-w          filter out overlaps with too many errors in a window\n");
     fprintf(stderr, "-x          ignore the clear ranges on reads and use the \n");
     fprintf(stderr, "            full sequence\n");
     fprintf(stderr, "-z          skip the hopeless check\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "--maxerror <n>     only output overlaps with fraction <n> or less error (e.g., 0.06 == 6%%)\n");
+    fprintf(stderr, "--minlength <n>    only output overlaps of <n> or more bases\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "--hashbits n       Use n bits for the hash mask.\n");
     fprintf(stderr, "--hashstrings n    Load at most n strings into the hash table at one time.\n");
@@ -519,8 +523,7 @@ main(int argc, char **argv) {
   fprintf(stderr, "Max_Hash_Load         %f\n", G.Max_Hash_Load);
   fprintf(stderr, "Kmer Length           %d\n", G.Kmer_Len);
   fprintf(stderr, "Min Overlap Length    %d\n", G.Min_Olap_Len);
-  fprintf(stderr, "MAX_ERRORS            %d\n", MAX_ERRORS);
-  fprintf(stderr, "ERRORS_FOR_FREE       %d\n", ERRORS_FOR_FREE);
+  fprintf(stderr, "Max Error Rate        %f\n", G.Max_Erate);
   fprintf(stderr, "\n");
   fprintf(stderr, "Num_PThreads          "F_U32"\n", G.Num_PThreads);
   fprintf(stderr, "Max_Reads_Per_Batch   "F_U32"\n", G.Max_Reads_Per_Batch);

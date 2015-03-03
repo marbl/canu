@@ -39,10 +39,6 @@ const char *mainid = "$Id$";
 using namespace std;
 
 
-//  When searching for chimer, each overlap end is trimed back by this amount.
-#define OVLTRIM  ((AS_OVERLAP_MIN_LEN / 2) - 1)
-
-
 //  But then use only overlaps larger than this for some of the more questionable overlaps.
 #define MIN_INTERVAL_OVERLAP  60
 
@@ -178,7 +174,7 @@ public:
   };
 
   chimeraOvl(uint64 Aid_, uint32 Alhang_, uint32 Abeg_, uint32 Aend_, uint32 Arhang_,
-             uint64 Bid_, uint32 Blhang_, uint32 Bbeg_, uint32 Bend_, uint32 Brhang_, char ori_, bool isCrap_) {
+             uint64 Bid_, uint32 Blhang_, uint32 Bbeg_, uint32 Bend_, uint32 Brhang_, char ori_, bool isCrap_, uint32 minOverlap) {
 
     flipped   = (ori_ == 'r');
     ignore    = false;
@@ -211,8 +207,8 @@ public:
     //  for subread detection.  If we don't filter them out, we get invalid intervals in the chimera
     //  processing.  We could check for length at the correct time, or just set the ignore flag
     //  here.
-    if ((Aend - Abeg < AS_OVERLAP_MIN_LEN) ||
-        (Bend - Bbeg < AS_OVERLAP_MIN_LEN))
+    if ((Aend - Abeg < minOverlap) ||
+        (Bend - Bbeg < minOverlap))
       ignore = true;
 
     if (Alhang > 0)  style |= 0x08;
@@ -440,9 +436,10 @@ adjust(gkStore            *gkp,
        vector<chimeraOvl> &olist,
        double              errorRate,
        double              errorLimit,
+       uint32              minOverlap,
        FILE               *reportFile) {
 
-  int32  minOverlap = MAX(40, AS_OVERLAP_MIN_LEN / 2);
+  minOverlap = MAX(40, minOverlap / 2);
 
   for (uint32 o=0; o<ovlLen; o++) {
     int32 idA    = ovl[o].a_iid;
@@ -588,7 +585,7 @@ adjust(gkStore            *gkp,
       minLenLQ = 0.25 * minLen;
     }
 
-    minLenHQ = MAX(minLenHQ, AS_OVERLAP_MIN_LEN);
+    minLenHQ = MAX(minLenHQ, minOverlap);
     minLenMQ = MAX(minLenMQ, 100);
     minLenLQ = MAX(minLenLQ, 200);
 
@@ -624,7 +621,7 @@ adjust(gkStore            *gkp,
     }
 
     olist.push_back(chimeraOvl(idA, lhangA, leftA, righA, rhangA,
-                               idB, lhangB, leftB, righB, rhangB, ori, !isNotCrap));
+                               idB, lhangB, leftB, righB, rhangB, ori, !isNotCrap, minOverlap));
   }
 }
 
@@ -637,7 +634,8 @@ processChimera(const uint32           iid,
                const chimeraClear    *clear,
                gkStore               *gkp,
                vector<chimeraOvl>    &olist,
-               FILE                  *reportFile) {
+               FILE                  *reportFile,
+               uint32                 minOverlap) {
   int32   ola = clear[iid].mergL;
   int32   ora = clear[iid].mergR;
 
@@ -650,6 +648,9 @@ processChimera(const uint32           iid,
   readsProcessed++;
 
   bool    isLinker = false;
+
+  //  When searching for chimer, each overlap end is trimed back by this amount.
+  uint32  ovlTrim = ((minOverlap / 2) - 1);
 
 #if 0
   uint32  loLinker = clear[iid].tntBeg;
@@ -691,15 +692,15 @@ processChimera(const uint32           iid,
         continue;
 
       //  Overlap ends within 5bp of the beginning of the region
-      if ((ovlhi <= loLinker + OVLTRIM) && (loLinker <= ovlhi + OVLTRIM))
+      if ((ovlhi <= loLinker + ovlTrim) && (loLinker <= ovlhi + ovlTrim))
         isectbefore++;
 
       //  Overlap spans 5bp more than both ends of the region
-      if ((ovllo + OVLTRIM <= loLinker) && (hiLinker + OVLTRIM <= ovlhi))
+      if ((ovllo + ovlTrim <= loLinker) && (hiLinker + ovlTrim <= ovlhi))
         isect++;
 
       //  Overlap begins within 5bp of the end of the region
-      if ((ovllo <= hiLinker + OVLTRIM) && (hiLinker <= ovllo + OVLTRIM))
+      if ((ovllo <= hiLinker + ovlTrim) && (hiLinker <= ovllo + ovlTrim))
         isectafter++;
     }
 
@@ -811,15 +812,15 @@ processChimera(const uint32           iid,
       case 7:
         valid = true;
         bgn   = ovl->Abeg;
-        end   = ovl->Aend - OVLTRIM;
+        end   = ovl->Aend - ovlTrim;
         ipc   = true;
         break;
 
       case 13:
         if ((ovl->Aend - ovl->Abeg) >= MIN_INTERVAL_OVERLAP) {
           valid = true;
-          bgn   = ovl->Abeg + OVLTRIM;
-          end   = ovl->Aend - OVLTRIM;
+          bgn   = ovl->Abeg + ovlTrim;
+          end   = ovl->Aend - ovlTrim;
           ipc   = true;
         }
         break;
@@ -827,7 +828,7 @@ processChimera(const uint32           iid,
       case 10:
       case 11:
         valid = true;
-        bgn   = ovl->Abeg + OVLTRIM;
+        bgn   = ovl->Abeg + ovlTrim;
         end   = ovl->Aend;
         ipc   = true;
         break;
@@ -835,8 +836,8 @@ processChimera(const uint32           iid,
       case 14:
         if ((ovl->Aend - ovl->Abeg) >= MIN_INTERVAL_OVERLAP) {
           valid = true;
-          bgn   = ovl->Abeg + OVLTRIM;
-          end   = ovl->Aend - OVLTRIM;
+          bgn   = ovl->Abeg + ovlTrim;
+          end   = ovl->Aend - ovlTrim;
           ipc   = true;
         }
         break;
@@ -844,11 +845,11 @@ processChimera(const uint32           iid,
       case 6:
         valid = true;
         bgn   = ovl->Abeg;
-        end   = ovl->Aend - OVLTRIM;
+        end   = ovl->Aend - ovlTrim;
         break;
       case 9:
         valid = true;
-        bgn   = ovl->Abeg + OVLTRIM;
+        bgn   = ovl->Abeg + ovlTrim;
         end   = ovl->Aend;
         break;
 
@@ -863,18 +864,18 @@ processChimera(const uint32           iid,
       case 4:
         valid = true;
         bgn   = ovl->Abeg;
-        end   = ovl->Aend - OVLTRIM;
+        end   = ovl->Aend - ovlTrim;
         break;
       case 8:
         valid = true;
-        bgn   = ovl->Abeg + OVLTRIM;
+        bgn   = ovl->Abeg + ovlTrim;
         end   = ovl->Aend;
         break;
 
       case 12:
         valid = true;
-        bgn   = ovl->Abeg + OVLTRIM;
-        end   = ovl->Aend - OVLTRIM;
+        bgn   = ovl->Abeg + ovlTrim;
+        end   = ovl->Aend - ovlTrim;
         break;
 
       case 0:
@@ -883,8 +884,8 @@ processChimera(const uint32           iid,
       case 15:
         if ((ovl->Aend - ovl->Abeg) >= MIN_INTERVAL_OVERLAP) {
           valid = true;
-          bgn   = ovl->Abeg + OVLTRIM;
-          end   = ovl->Aend - OVLTRIM;
+          bgn   = ovl->Abeg + ovlTrim;
+          end   = ovl->Aend - ovlTrim;
         }
         break;
     }
@@ -981,7 +982,7 @@ processChimera(const uint32           iid,
           case 5:
           case 7:
             //  These should be to the left of the endGap to count.
-            if (((ovl->Aend - OVLTRIM) < endGap) && (ovl->Aend >= begGap)) {
+            if (((ovl->Aend - ovlTrim) < endGap) && (ovl->Aend >= begGap)) {
               l++;
               assert(interval > 0);
               rightIntervalHang[interval-1] = true;
@@ -991,7 +992,7 @@ processChimera(const uint32           iid,
           case 13:
             if ((ovl->Aend - ovl->Abeg) >= MIN_INTERVAL_OVERLAP) {
               //  These should be to the left of the endGap to count.
-              if (((ovl->Aend - OVLTRIM) < endGap) && (ovl->Aend >= begGap)) {
+              if (((ovl->Aend - ovlTrim) < endGap) && (ovl->Aend >= begGap)) {
                 l++;
                 assert(interval > 0);
                 rightIntervalHang[interval-1] = true;
@@ -1002,7 +1003,7 @@ processChimera(const uint32           iid,
           case 10:
           case 11:
             //  These should be to the right of the begGap to count.
-            if (((ovl->Abeg + OVLTRIM) > begGap) && (ovl->Abeg <= endGap)) {
+            if (((ovl->Abeg + ovlTrim) > begGap) && (ovl->Abeg <= endGap)) {
               r++;
               assert(interval < IL.numberOfIntervals());
               leftIntervalHang[interval] = true;
@@ -1012,7 +1013,7 @@ processChimera(const uint32           iid,
           case 14:
             if ((ovl->Aend - ovl->Abeg) >= MIN_INTERVAL_OVERLAP) {
               //  These should be to the right of the begGap to count.
-              if (((ovl->Abeg + OVLTRIM) > begGap) && (ovl->Abeg <= endGap)) {
+              if (((ovl->Abeg + ovlTrim) > begGap) && (ovl->Abeg <= endGap)) {
                 r++;
                 assert(interval < IL.numberOfIntervals());
                 leftIntervalHang[interval] = true;
@@ -1024,13 +1025,13 @@ processChimera(const uint32           iid,
             //  Repeats.
             if ((ovl->Aend - ovl->Abeg) >= MIN_INTERVAL_OVERLAP) {
               //  These should be to the left of the endGap to count.
-              if (((ovl->Aend - OVLTRIM) < endGap) && (ovl->Aend >= begGap)) {
+              if (((ovl->Aend - ovlTrim) < endGap) && (ovl->Aend >= begGap)) {
                 l++;
                 assert(interval  > 0);
                 rightIntervalHang[interval-1] = true;
               }
               //  These should be to the right of the begGap to count.
-              if (((ovl->Abeg + OVLTRIM) > begGap) && (ovl->Abeg <= endGap)) {
+              if (((ovl->Abeg + ovlTrim) > begGap) && (ovl->Abeg <= endGap)) {
                 r++;
                 assert(interval < IL.numberOfIntervals());
                 leftIntervalHang[interval] = true;
@@ -1656,8 +1657,11 @@ main(int argc, char **argv) {
   char              *finClrName = NULL;
   char              *outClrName = NULL;
 
-  double             errorRate          = AS_OVL_ERROR_RATE;
+  double             errorRate          = 0.06;
   double             errorLimit         = 2.5;
+
+  uint32             minOverlap         = 40;
+  uint32             minReadLength      = 64;
 
   bool               doUpdate           = true;
   bool               doSubreadLogging   = false;
@@ -1698,6 +1702,12 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-E") == 0) {
       errorLimit = atof(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-minoverlap") == 0) {
+      minOverlap = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-minlength") == 0) {
+      minReadLength = atoi(argv[++arg]);
+
     } else if (strncmp(argv[arg], "-mininniepair", 5) == 0) {
       minInniePair = atoi(argv[++arg]);
 
@@ -1725,8 +1735,6 @@ main(int argc, char **argv) {
 
   if (errorRate < 0.0)
     err++;
-  if (errorRate > AS_MAX_ERROR_RATE)
-    err++;
 
   if ((gkpName == 0L) || (ovsName == 0L) || (outputPrefix == NULL) || (err)) {
     fprintf(stderr, "usage: %s -G <gkpStore> -O <obtStore> [opts]\n", argv[0]);
@@ -1748,9 +1756,6 @@ main(int argc, char **argv) {
 
     if (errorRate < 0.0)
       fprintf(stderr, "ERROR: Error rate (-e) value %f too small; must be 'fraction error' and above 0.0\n", errorRate);
-
-    if (errorRate > AS_MAX_ERROR_RATE)
-      fprintf(stderr, "ERROR:  Error rate (-e) value %f too large; must be 'fraction error' and below %f\n", errorRate, AS_MAX_ERROR_RATE);
 
     exit(1);
   }
@@ -1822,11 +1827,11 @@ main(int argc, char **argv) {
 
     //  Otherwise, trim!
 
-    adjust(gkp, ovl, ovlLen, clear, olist, errorRate, errorLimit, reportFile);
+    adjust(gkp, ovl, ovlLen, clear, olist, errorRate, errorLimit, minOverlap, reportFile);
 
     processSubRead(ovl[0].a_iid, clear, gkp, olist, blist, subreadFile, true);
 
-    chimeraRes   res = processChimera(ovl[0].a_iid, clear, gkp, olist, reportFile);
+    chimeraRes   res = processChimera(ovl[0].a_iid, clear, gkp, olist, reportFile, minOverlap);
 
     //  If after chimer trimming a read had a bad interval in the clear, just delete the read.
     //  Evidence said it was both good and bad.
@@ -1925,7 +1930,7 @@ main(int argc, char **argv) {
     if       (res.isSpur && res.isChimera) {
       sprintf(typ, "BOTH");
 
-      if (len < AS_READ_MIN_LEN)
+      if (len < minReadLength)
         bothDeletedSmall++;
       else
         bothFixed++;
@@ -1934,7 +1939,7 @@ main(int argc, char **argv) {
     else if  (res.isSpur) {
       sprintf(typ, "SPUR");
 
-      if (len < AS_READ_MIN_LEN)
+      if (len < minReadLength)
         spurDeletedSmall++;
       else
         spurFixed++;
@@ -1943,7 +1948,7 @@ main(int argc, char **argv) {
     else if  (res.isChimera) {
       sprintf(typ, "CHIMERA");
 
-      if (len < AS_READ_MIN_LEN)
+      if (len < minReadLength)
         chimeraDeletedSmall++;
       else
         chimeraFixed++;
@@ -1958,7 +1963,7 @@ main(int argc, char **argv) {
       badOvlDeleted++;
     }
 
-    if (len < AS_READ_MIN_LEN) {
+    if (len < minReadLength) {
       sprintf(msg, "New length too small, fragment deleted");
 
       res.deleteMe = true;

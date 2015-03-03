@@ -31,9 +31,7 @@ static const char *rcsid__AS_CGB_BUBBLE_POPPER_H_ = "$Id$";
 
 /* The parameters for the Affine_Overlap_AS() function (should
    eventually become a CGB parameters). */
-#define POPPER_ALN_ERATE    AS_OVL_ERROR_RATE
 #define POPPER_ALN_THRESH   1e-6
-#define POPPER_ALN_MIN_LEN  AS_OVERLAP_MIN_LEN
 #define POPPER_ALN_FN       Local_Overlap_AS
 
 #if AS_CGB_BUBBLE_DIST_OUTPUT
@@ -48,6 +46,11 @@ static const char *rcsid__AS_CGB_BUBBLE_POPPER_H_ = "$Id$";
 #define POPPER_MIN_DISCRIMINATOR  0.0
 
 typedef struct BubblePopper {
+
+  /* Parameters */
+
+  double  popperErate;
+  uint32  popperMinLen;
 
   /* Permanent information fields. */
 
@@ -80,16 +83,14 @@ typedef struct BubblePopper {
 
   uint32 curBubSize;
   int *topDistArray;		/* Scratch space for longest path algorithm */
-  BG_E_Iter *dfsStack;	        /* Scratch space for traversals (dfs and
-				   longest path) */
+  BG_E_Iter *dfsStack;	        /* Scratch space for traversals (dfs and longest path) */
   int *vidToBid;	        /* Maps VIDs to IDs in the bubFrags array */
   uint32 *bubFrags;	/* Fragments in bubble */
   InternalFragMesg *bubMesgs;	/* Frags in message form for aligner */
   int *adj;			/* Adjacency array */
   int numOlaps;
   ALNoverlapFull *bubOlaps;     /* Temporary array of generated overlaps */
-  int allocatedByCreate;	/* True if create method was used for
-				   allocation */
+  int allocatedByCreate;	/* True if create method was used for allocation */
 } BubblePopper;
 
 
@@ -101,7 +102,8 @@ typedef struct BubblePopper {
    the create method in "AS_CGB_Bubble.h" really does is generate bg). */
 void
 BP_init(BubblePopper_t bp, BubGraph_t bg, TChunkMesg chunks[],
-	TChunkFrag cfrgs[], float global_arrival_rate,
+        TChunkFrag cfrgs[], float global_arrival_rate,
+        double popperErate, uint32 popperMinLen,
         gkStore *gkpStore,
         const char * fileprefix
         );

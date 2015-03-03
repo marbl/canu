@@ -36,7 +36,8 @@ extern int max_indel_AS_ALN_LOCOLAP_GLOBAL;
 
 void
 BP_init(BubblePopper_t bp, BubGraph_t bg, TChunkMesg *chunks,
-	TChunkFrag cfrgs[], float global_arrival_rate,
+        TChunkFrag cfrgs[], float global_arrival_rate,
+        double popperErate, uint32 popperMinLen,
         gkStore *gkpStore,
         const char * fileprefix)
 {
@@ -47,6 +48,9 @@ BP_init(BubblePopper_t bp, BubGraph_t bg, TChunkMesg *chunks,
 
   for (e = 0; e < GetNumEdges(BG_edges(bg)); ++e)
     BG_E_setFlag(bg, e, AS_CGB_BUBBLE_E_UNUSED);
+
+  bp->popperErate  = popperErate;
+  bp->popperMinLen = popperMinLen;
 
   bp->bg = bg;
   bp->chunks = chunks;
@@ -221,8 +225,6 @@ BP_findOverlap(BubblePopper_t bp, uint32 bid1, uint32 bid2)
 	  bid1, bp->bubFrags[bid1], id1, bid2, bp->bubFrags[bid2], id2);
 #endif
 
-  assert((0.0 <= POPPER_ALN_ERATE) && (POPPER_ALN_ERATE <= AS_MAX_ERROR_RATE));
-
   /* Compute overlap */
   int             orientation = FALSE;
   int             reversed    = FALSE;
@@ -230,17 +232,17 @@ BP_findOverlap(BubblePopper_t bp, uint32 bid1, uint32 bid2)
   int             where       = 0;
 
   aln = POPPER_ALN_FN(if1, if2, -strlen(if2->sequence),
-                          strlen(if1->sequence), FALSE,
-                          POPPER_ALN_ERATE, POPPER_ALN_THRESH,
-                          POPPER_ALN_MIN_LEN, POPPER_ALN_TYPE,
-                          &where);
+                      strlen(if1->sequence), FALSE,
+                      bp->popperErate, POPPER_ALN_THRESH,
+                      bp->popperMinLen, POPPER_ALN_TYPE,
+                      &where);
   if (!aln) {
     orientation = TRUE;
     aln = POPPER_ALN_FN(if1, if2, -strlen(if2->sequence),
-                            strlen(if1->sequence), TRUE,
-                            POPPER_ALN_ERATE, POPPER_ALN_THRESH,
-                            POPPER_ALN_MIN_LEN, POPPER_ALN_TYPE,
-                            &where);
+                        strlen(if1->sequence), TRUE,
+                        bp->popperErate, POPPER_ALN_THRESH,
+                        bp->popperMinLen, POPPER_ALN_TYPE,
+                        &where);
     if (!aln)
       return FALSE;
 
@@ -248,10 +250,10 @@ BP_findOverlap(BubblePopper_t bp, uint32 bid1, uint32 bid2)
       reversed = TRUE;
       orientation = TRUE;
       aln = POPPER_ALN_FN(if2, if1, -strlen(if1->sequence),
-                              strlen(if2->sequence), TRUE,
-                              POPPER_ALN_ERATE, POPPER_ALN_THRESH,
-                              POPPER_ALN_MIN_LEN, POPPER_ALN_TYPE,
-                              &where);
+                          strlen(if2->sequence), TRUE,
+                          bp->popperErate, POPPER_ALN_THRESH,
+                          bp->popperMinLen, POPPER_ALN_TYPE,
+                          &where);
     }
 
   }
@@ -259,10 +261,10 @@ BP_findOverlap(BubblePopper_t bp, uint32 bid1, uint32 bid2)
     reversed = TRUE;
     orientation = FALSE;
     aln = POPPER_ALN_FN(if2, if1, -strlen(if1->sequence),
-                            strlen(if2->sequence), FALSE,
-                            POPPER_ALN_ERATE, POPPER_ALN_THRESH,
-                            POPPER_ALN_MIN_LEN, POPPER_ALN_TYPE,
-                            &where);
+                        strlen(if2->sequence), FALSE,
+                        bp->popperErate, POPPER_ALN_THRESH,
+                        bp->popperMinLen, POPPER_ALN_TYPE,
+                        &where);
   }
 
   if (!aln)

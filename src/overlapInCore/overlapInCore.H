@@ -391,6 +391,7 @@ public:
   ~oicParameters() {};
 
   void   initialize(void) {
+    maxErate               = 0.06;
     Doing_Partial_Overlaps = false;
 
     bgnHashID = 1;
@@ -422,7 +423,8 @@ public:
 
     Num_PThreads = 1;
 
-    Min_Olap_Len = AS_OVERLAP_MIN_LEN;  //  MUST BE SET AFTER AS_configure()
+    Min_Olap_Len = 0;
+    Max_Erate    = 0.06;
 
     Use_Window_Filter  = false;
     Ignore_Clear_Range = false;
@@ -431,6 +433,8 @@ public:
 
     Frag_Store_Path = NULL;
   };
+
+  double maxErate;
 
   //  If set true by the G option (G for Granger)
   //  then allow overlaps that do not extend to the end
@@ -483,7 +487,8 @@ public:
 
   uint32  Num_PThreads;  //  -t
 
-  int32  Min_Olap_Len;  //  -v
+  int32  Min_Olap_Len;  //  --minlength, former -v
+  double Max_Erate;     //  --maxerate
 
   //  Determines whether check for a window containing too many
   //  errors is used to disqualify overlaps.

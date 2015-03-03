@@ -195,7 +195,7 @@ ParseCommandLine(UnitiggerGlobals * rg,
 
   while (!errflg &&
          ((ch = getopt(argc, argv,
-                       "B:F:H:I:S:T:U:W:Y:"
+                       "B:E:F:H:I:L:S:T:U:W:Y:"
                        "d:e:h:j:kl:m:n:o:p:su:w:x:y:z:"
                        "5"
                        )) != EOF)) {
@@ -250,6 +250,13 @@ ParseCommandLine(UnitiggerGlobals * rg,
         rg->dont_count_chimeras = atoi(optarg);
         break;
 
+      case 'E':
+        //  -E - bubble popper error rate (former AS_OVL_ERROR_RATE)
+        rg->popper_error_rate = atof(optarg);
+      case 'L':
+        //  -L - bubble popper minimum length (former AS_OVERLAP_MIN_LEN)
+        rg->popper_min_len = atoi(optarg);
+
       case 'd':
         // -d : De-chord the fragment overlap graph.
         rg->dechord_the_graph = atoi(optarg);
@@ -262,9 +269,9 @@ ParseCommandLine(UnitiggerGlobals * rg,
         // 0.015 means 1.5% error.
         {
           double  er = atof(optarg);
-          if ((er < 0.0) || (AS_MAX_ERROR_RATE < er))
-            fprintf(stderr, "Invalid overlap error threshold %s; must be between 0.00 and %.2f.\n",
-                    optarg, AS_MAX_ERROR_RATE), exit(1);
+          if (er < 0.0)
+            fprintf(stderr, "Invalid overlap error threshold %s; must be at least 0.0.\n",
+                    optarg), exit(1);
 
           rg->overlap_error_threshold = AS_OVS_encodeQuality(er);
 
@@ -456,6 +463,9 @@ main(int argc, char **argv) {
   rg->maxedges = 40000;
   rg->maxtext  = 40000;
 
+  rg->popper_error_rate = 0.06;
+  rg->popper_min_len    = 40;
+
   argc = AS_configure(argc, argv);
 
   ParseCommandLine( rg, argc, argv);
@@ -470,6 +480,8 @@ main(int argc, char **argv) {
   heapva->thechunks         = CreateVA_AChunkMesg(0);
   heapva->nbase_in_genome              = 0;
   heapva->global_fragment_arrival_rate = 0;
+  heapva->popper_error_rate            = rg->popper_error_rate;
+  heapva->popper_min_len               = rg->popper_min_len;
 
   main_fgb(heapva, rg);
   main_cgb(heapva, rg, gkpStore);
@@ -500,6 +512,7 @@ main(int argc, char **argv) {
                                           heapva->frags, heapva->edges,
                                           heapva->thechunks, heapva->chunkfrags,
                                           heapva->global_fragment_arrival_rate,
+                                          heapva->popper_error_rate, heapva->popper_min_len,
                                           rg->bubble_overlaps_filename,
                                           rg->Output_Graph_Store_Prefix);
 

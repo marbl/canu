@@ -252,47 +252,7 @@ typedef uintptr_t INTPTR;
 
 
 
-//  Do not define this.
-#undef OVS_DANGEROUSLY_OVERSIZE
-
-//  AS_OVL controls both overlapper and bubble popping
-
-extern double AS_OVL_ERROR_RATE;
-extern double AS_CGW_ERROR_RATE;
-extern double AS_CNS_ERROR_RATE;
-extern double AS_MAX_ERROR_RATE;
-
-extern uint32 AS_READ_MIN_LEN;
-extern uint32 AS_OVERLAP_MIN_LEN;
-
-
 int AS_configure(int argc, char **argv);
-
-
-
-
-
-
-//  These need to be removed, or placed in a home
-
-#if 0
-
-//  PairOrient -- the orientation between two sequence objects.
-//
-typedef enum {
-  AS_UNKNOWN  = 0,  //    AS_UNKNOWN == XX_XX == 'U'
-  AS_INNIE    = 1,  //    AS_INNIE   == AB_BA == 'I'
-  AS_OUTTIE   = 2,  //    AS_OUTTIE  == BA_AB == 'O'
-  AS_NORMAL   = 3,  //    AS_NORMAL  == AB_AB == 'N'
-  AS_ANTI     = 4   //    AS_ANTI    == BA_BA == 'A'
-} PairOrient;
-
-typedef struct {
-  int32 bgn;
-  int32 end;
-} SeqInterval;
-#endif
-
 
 
 

@@ -35,18 +35,18 @@ const char *mainid = "$Id$";
 
 int
 main(int argc, char **argv) {
-  uint32             errorLimit   = AS_OVS_encodeQuality(DEFAULT_ERATE);
+  uint32  errorLimit   = AS_OVS_encodeQuality(DEFAULT_ERATE);
 
-  char              *gkpName      = NULL;
-  char              *ovsName      = NULL;
+  char   *gkpName      = NULL;
+  char   *ovsName      = NULL;
 
-  char              *iniClrName   = NULL;
-  char              *outClrName   = NULL;
+  char   *iniClrName   = NULL;
+  char   *outClrName   = NULL;
 
-  char              *summaryName  = NULL;
-  char              *logName      = NULL;
+  char   *summaryName  = NULL;
+  char   *logName      = NULL;
 
-  bool               doUpdate     = true;
+  bool    doUpdate     = true;
 
   argc = AS_configure(argc, argv);
 
@@ -69,10 +69,7 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-erate") == 0) {
       double erate = atof(argv[++arg]);
-      if (erate >= AS_MAX_ERROR_RATE)
-        fprintf(stderr, "Error rate %s too large; must be 'fraction error' and below %f\n", argv[arg], AS_MAX_ERROR_RATE), exit(1);
       errorLimit = AS_OVS_encodeQuality(erate);
-
 
     } else if (strcmp(argv[arg], "-summary") == 0) {
       summaryName = argv[++arg];

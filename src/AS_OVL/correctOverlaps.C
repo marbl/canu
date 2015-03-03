@@ -51,7 +51,7 @@ main(int argc, char **argv) {
       G.numThreads = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-error") == 0) {
-      AS_OVL_ERROR_RATE = atof(argv[++arg]);
+      G.errorRate = atof(argv[++arg]);
 
 
 
@@ -102,12 +102,14 @@ main(int argc, char **argv) {
   fprintf(stderr, "Initializing.\n");
 
   {
+    double MAX_ERRORS = 1 + (uint32)(G.errorRate * AS_MAX_READLEN);
+
     for (int32 i=0;  i <= ERRORS_FOR_FREE;  i++)
       G.Edit_Match_Limit[i] = 0;
 
     int32 start = 1;
     for (int32 e = ERRORS_FOR_FREE + 1;  e < MAX_ERRORS;  e++) {
-      start = Binomial_Bound(e - ERRORS_FOR_FREE, AS_OVL_ERROR_RATE, start);
+      start = Binomial_Bound(e - ERRORS_FOR_FREE, G.errorRate, start);
 
       G.Edit_Match_Limit[e] = start - 1;
 
@@ -115,7 +117,7 @@ main(int argc, char **argv) {
     }
 
     for (int32 i=0;  i <= AS_MAX_READLEN;  i++)
-      G.Error_Bound[i] = (int) (i * AS_OVL_ERROR_RATE);
+      G.Error_Bound[i] = (int) (i * G.errorRate);
   }
 
   //

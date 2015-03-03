@@ -34,20 +34,6 @@ static const char *rcsid = "$Id$";
 #include <parallel/settings.h>
 #endif
 
-//  Nonsense values, mostly for making sure everybody that uses an
-//  error rate calls AS_configure() at startup.
-
-double AS_OVL_ERROR_RATE   = -90.0;
-double AS_CGW_ERROR_RATE   = -90.0;
-double AS_CNS_ERROR_RATE   = -90.0;
-double AS_MAX_ERROR_RATE   =   0.40;
-
-//  Historical Sanger defaults.  Seem to work well with 454 and Illumina,
-//  but occasionally they need to be reduced (for, say, 50bp Illumina reads).
-
-uint32 AS_READ_MIN_LEN     = 64;
-uint32 AS_OVERLAP_MIN_LEN  = 40;
-
 //  EVERY main program should define mainid.  The release manager
 //  should fill in releaseid with the release name.
 
@@ -102,85 +88,6 @@ AS_configure(int argc, char **argv) {
   AS_UTL_installCrashCatcher();
 
   //
-  //  Default values
-  //
-
-  AS_OVL_ERROR_RATE  = 0.06;
-  AS_CGW_ERROR_RATE  = 0.10;
-  AS_CNS_ERROR_RATE  = 0.06;
-
-  //
-  //  Environment
-  //
-
-  p = getenv("AS_OVL_ERROR_RATE");
-  if (p)
-    AS_OVL_ERROR_RATE = atof(p);
-
-  p = getenv("AS_CGW_ERROR_RATE");
-  if (p)
-    AS_CGW_ERROR_RATE = atof(p);
-
-  p = getenv("AS_CNS_ERROR_RATE");
-  if (p)
-    AS_CNS_ERROR_RATE = atof(p);
-
-  p = getenv("AS_READ_MIN_LEN");
-  if (p)
-    AS_READ_MIN_LEN = atoi(p);
-
-  p = getenv("AS_OVERLAP_MIN_LEN");
-  if (p)
-    AS_OVERLAP_MIN_LEN = atoi(p);
-
-  //
-  //  Command line
-  //
-
-  for (i=0; i<argc; i++) {
-    if        (strcasecmp(argv[i], "--ovlErrorRate") == 0) {
-      AS_OVL_ERROR_RATE = atof(argv[i+1]);
-      for (j=i+2; j<argc; j++)
-        argv[j-2] = argv[j];
-      argv[--argc] = NULL;
-      argv[--argc] = NULL;
-      i--;
-
-    } else if (strcasecmp(argv[i], "--cgwErrorRate") == 0) {
-      AS_CGW_ERROR_RATE = atof(argv[i+1]);
-      for (j=i+2; j<argc; j++)
-        argv[j-2] = argv[j];
-      argv[--argc] = NULL;
-      argv[--argc] = NULL;
-      i--;
-
-    } else if (strcasecmp(argv[i], "--cnsErrorRate") == 0) {
-      AS_CNS_ERROR_RATE = atof(argv[i+1]);
-      for (j=i+2; j<argc; j++)
-        argv[j-2] = argv[j];
-      argv[--argc] = NULL;
-      argv[--argc] = NULL;
-      i--;
-
-    } else if (strcasecmp(argv[i], "--frgMinLen") == 0) {
-      AS_READ_MIN_LEN = atoi(argv[i+1]);
-      for (j=i+2; j<argc; j++)
-        argv[j-2] = argv[j];
-      argv[--argc] = NULL;
-      argv[--argc] = NULL;
-      i--;
-
-    } else if (strcasecmp(argv[i], "--ovlMinLen") == 0) {
-      AS_OVERLAP_MIN_LEN = atoi(argv[i+1]);
-      for (j=i+2; j<argc; j++)
-        argv[j-2] = argv[j];
-      argv[--argc] = NULL;
-      argv[--argc] = NULL;
-      i--;
-    }
-  }
-
-  //
   //  Et cetera.
   //
 
@@ -190,39 +97,6 @@ AS_configure(int argc, char **argv) {
       exit(0);
     }
   }
-
-  //
-  //  Checking.
-  //
-
-  if ((AS_OVL_ERROR_RATE < 0.0) || (AS_MAX_ERROR_RATE < AS_OVL_ERROR_RATE))
-    fprintf(stderr, "%s: ERROR:  Invalid AS_OVL_ERROR_RATE (%0.2f); should be between 0.0 and %0.2f\n",
-            argv[0], AS_OVL_ERROR_RATE, AS_MAX_ERROR_RATE), exit(1);
-
-  if ((AS_CGW_ERROR_RATE < 0.0) || (AS_MAX_ERROR_RATE < AS_CGW_ERROR_RATE))
-    fprintf(stderr, "%s: ERROR:  Invalid AS_CGW_ERROR_RATE (%0.2f); should be between 0.0 and %0.2f\n",
-            argv[0], AS_CGW_ERROR_RATE, AS_MAX_ERROR_RATE), exit(1);
-
-  if ((AS_CNS_ERROR_RATE < 0.0) || (AS_MAX_ERROR_RATE < AS_CNS_ERROR_RATE))
-    fprintf(stderr, "%s: ERROR:  Invalid AS_CNS_ERROR_RATE (%0.2f); should be between 0.0 and %0.2f\n",
-            argv[0], AS_CNS_ERROR_RATE, AS_MAX_ERROR_RATE), exit(1);
-
-  if (AS_READ_MIN_LEN < 1)
-    AS_READ_MIN_LEN = 1;
-
-  if (AS_OVERLAP_MIN_LEN < 1)
-    AS_OVERLAP_MIN_LEN = 1;
-
-#if 0
-  if (AS_OVL_ERROR_RATE != 0.06)
-    fprintf(stderr, "%s: AS_configure()-- AS_OVL_ERROR_RATE set to %0.2f\n", argv[0], AS_OVL_ERROR_RATE);
-
-  if (AS_CGW_ERROR_RATE != 0.10)
-    fprintf(stderr, "%s: AS_configure()-- AS_CGW_ERROR_RATE set to %0.2f\n", argv[0], AS_CGW_ERROR_RATE);
-
-  if (AS_CNS_ERROR_RATE != 0.06)
-    fprintf(stderr, "%s: AS_configure()-- AS_CNS_ERROR_RATE set to %0.2f\n", argv[0], AS_CNS_ERROR_RATE);
-#endif
 
   //
   //  Logging.
@@ -271,15 +145,6 @@ AS_configure(int argc, char **argv) {
     if ((errno == 0) && (F)) {
       fprintf(F, "CA version %s (%s).\n", releaseid, mainid);
       fprintf(F, "\n");
-
-      fprintf(F, "Error Rates:\n");
-      fprintf(F, "AS_OVL_ERROR_RATE %f\n", AS_OVL_ERROR_RATE);
-      //fprintf(F, "AS_UTG_ERROR_RATE %f\n", AS_UTG_ERROR_RATE);
-      fprintf(F, "AS_CNS_ERROR_RATE %f\n", AS_CNS_ERROR_RATE);
-      fprintf(F, "AS_CGW_ERROR_RATE %f\n", AS_CGW_ERROR_RATE);
-      fprintf(F, "AS_MAX_ERROR_RATE %f\n", AS_MAX_ERROR_RATE);
-      fprintf(F, "\n");
-
       fprintf(F, "Current Working Directory:\n");
       fprintf(F, "%s\n", getcwd(N, FILENAME_MAX));
       fprintf(F, "\n");

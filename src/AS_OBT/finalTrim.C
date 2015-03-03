@@ -27,6 +27,7 @@ const char *mainid = "$Id$";
 #include "AS_OBT_overlaps.H"
 #include "AS_UTL_decodeRange.H"
 
+
 bool
 trimWithoutOverlaps(ovsOverlap  *ovl,
                     uint32       ovlLen,
@@ -149,6 +150,7 @@ main(int argc, char **argv) {
   char             *outClrName = NULL;
 
   uint32            errorRate    = AS_OVS_encodeQuality(0.015);
+  uint32            minLength    = 64;
 
   char             *outputPrefix  = NULL;
   char              logName[FILENAME_MAX] = {0};
@@ -161,10 +163,12 @@ main(int argc, char **argv) {
   uint32            idMin = 1;
   uint32            idMax = UINT32_MAX;
 
-  argc = AS_configure(argc, argv);
+  uint32            minReadLength       = 64;
 
-  uint32            minEvidenceOverlap  = MIN(500, AS_OVERLAP_MIN_LEN);
+  uint32            minEvidenceOverlap  = 40;
   uint32            minEvidenceCoverage = 1;
+
+  argc = AS_configure(argc, argv);
 
   int arg=1;
   int err=0;
@@ -184,12 +188,14 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-e") == 0) {
       double erate = atof(argv[++arg]);
-      if (erate > AS_MAX_ERROR_RATE)
-        fprintf(stderr, "ERROR:  Error rate (-e) %s too large; must be 'fraction error' and below %f\n", argv[arg], AS_MAX_ERROR_RATE), exit(1);
       errorRate = AS_OVS_encodeQuality(erate);
+
+    } else if (strcmp(argv[arg], "-minlength") == 0) {
+      minReadLength = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-ol") == 0) {
       minEvidenceOverlap = atoi(argv[++arg]);
+      //minEvidenceOverlap = min(500, minEvidenceOverlap);
 
     } else if (strcmp(argv[arg], "-oc") == 0) {
       minEvidenceCoverage = atoi(argv[++arg]);
@@ -335,7 +341,8 @@ main(int argc, char **argv) {
                               errorRate,
                               lb->gkLibrary_initialTrim() == INITIALTRIM_QUALITY_BASED,
                               minEvidenceOverlap,
-                              minEvidenceCoverage);
+                              minEvidenceCoverage,
+                              minReadLength);
       assert(fbgn <= fend);
 
     }
@@ -350,7 +357,8 @@ main(int argc, char **argv) {
                         errorRate,
                         lb->gkLibrary_initialTrim() == INITIALTRIM_QUALITY_BASED,
                         minEvidenceOverlap,
-                        minEvidenceCoverage);
+                        minEvidenceCoverage,
+                        minReadLength);
       assert(fbgn <= fend);
 
     }
@@ -390,7 +398,7 @@ main(int argc, char **argv) {
 
     if ((isGood == false) ||
         (fbgn > fend) ||
-        (fend - fbgn < AS_READ_MIN_LEN)) {
+        (fend - fbgn < minReadLength)) {
 
       assert(fbgn <= fend);
 

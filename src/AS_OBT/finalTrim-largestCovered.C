@@ -39,7 +39,8 @@ largestCovered(gkStore     *gkp,
                uint32       errorRate,
                bool         qvTrimAllowed,
                uint32       minOverlap,
-               uint32       minCoverage) {
+               uint32       minCoverage,
+               uint32       minReadLength) {
 
   fbgn      = ibgn;
   fend      = iend;
@@ -48,7 +49,7 @@ largestCovered(gkStore     *gkp,
   assert(read->gkRead_readID() == ovl[0].a_iid);
 
   //  Guard against invalid initial clear ranges.  These should all be deleted already.
-  if (ibgn + AS_READ_MIN_LEN > iend) {
+  if (ibgn + minReadLength > iend) {
     strcpy(logMsg, "\tinvalid initial clear range");
     return(false);
   }

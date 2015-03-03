@@ -935,7 +935,8 @@ markRepeats_computeUnitigCoverage(Unitig *tig) {
 void
 markRepeats_filterIntervalsSpannedByFragment(Unitig                    *target,
                                              intervalList<int32>       &aligned,
-                                             vector<repeatRegion>      &regions) {
+                                             vector<repeatRegion>      &regions,
+                                             uint32                     minOverlap) {
   uint32   tiglen  = target->getLength();
 
   uint32   spuriousNoiseThreshold = SPURIOUS_COVERAGE_THRESHOLD;
@@ -991,7 +992,7 @@ markRepeats_filterIntervalsSpannedByFragment(Unitig                    *target,
       uint32      frgbgn = (frg->position.bgn < frg->position.end) ? frg->position.bgn : frg->position.end;
       uint32      frgend = (frg->position.bgn < frg->position.end) ? frg->position.end : frg->position.bgn;
 
-      if (frgbgn + AS_OVERLAP_MIN_LEN / 2 < intbgn)
+      if (frgbgn + minOverlap / 2 < intbgn)
         //  Anchored.
         continue;
 
@@ -1000,7 +1001,7 @@ markRepeats_filterIntervalsSpannedByFragment(Unitig                    *target,
         break;
       }
 
-      if ((frgbgn <= intbgn) && (intbgn <= frgbgn + AS_OVERLAP_MIN_LEN / 2)) {
+      if ((frgbgn <= intbgn) && (intbgn <= frgbgn + minOverlap / 2)) {
         //  Not anchored, expand the region to this location
 #ifdef VERBOSE_REGION_FITTING
         writeLog("markRepeats()--  region["F_U32"].bgn expands from "F_U32" to "F_U32" at frag "F_U32"\n", i, aligned.lo(i), frgbgn, frg->ident);
@@ -1027,7 +1028,7 @@ markRepeats_filterIntervalsSpannedByFragment(Unitig                    *target,
       uint32      frgbgn = (frg->position.bgn < frg->position.end) ? frg->position.bgn : frg->position.end;
       uint32      frgend = (frg->position.bgn < frg->position.end) ? frg->position.end : frg->position.bgn;
 
-      if (intend + AS_OVERLAP_MIN_LEN / 2 < frgend)
+      if (intend + minOverlap / 2 < frgend)
         //  Anchored.
         continue;
 
@@ -1038,7 +1039,7 @@ markRepeats_filterIntervalsSpannedByFragment(Unitig                    *target,
         break;
       }
 
-      if ((intend < frgend) && (frgend <= intend + AS_OVERLAP_MIN_LEN / 2) && (newexp < frgend)) {
+      if ((intend < frgend) && (frgend <= intend + minOverlap / 2) && (newexp < frgend)) {
         //  Not anchored, expand the region to this location (this will pick the largest expansion)
         newexp   = frgend;
         newexpid = frg->ident;
@@ -1116,7 +1117,7 @@ markRepeats_filterIntervalsSpannedByFragment(Unitig                    *target,
     uint32   rptbgn  = aligned.lo(i);
     uint32   rptend  = aligned.hi(i);
 
-    uint32   unique  = AS_OVERLAP_MIN_LEN / 2;
+    uint32   unique  = minOverlap / 2;
 
     bool     bgnFull = true;
     bool     endFull = true;
@@ -1333,7 +1334,8 @@ void
 markRepeats_findFragsInRegions(Unitig                    *target,
                                vector<repeatRegion>      &regions,
                                set<uint32>               &rptFrags,
-                               set<uint32>               &ejtFrags) {
+                               set<uint32>               &ejtFrags,
+                               uint32                     minOverlap) {
 
   for (uint32 i=0; i<regions.size(); i++) {
     for (uint32 fi=0; fi<target->ufpath.size(); fi++) {
@@ -1351,8 +1353,8 @@ markRepeats_findFragsInRegions(Unitig                    *target,
                                                    FragmentEnd(frg->ident, bgn < end),
                                                    true);
 
-      if ((bgn + AS_OVERLAP_MIN_LEN/2 < regions[i].bgn) ||
-          (regions[i].end + AS_OVERLAP_MIN_LEN/2 < end))
+      if ((bgn + minOverlap/2 < regions[i].bgn) ||
+          (regions[i].end + minOverlap/2 < end))
         continue;
 
       if (regions[i].ejectUnanchored == false) {
@@ -1675,6 +1677,7 @@ markRepeats_shatterRepeats(UnitigVector   &unitigs,
 void
 markRepeats(UnitigVector &unitigs,
             Unitig *target,
+            uint32 minOverlap,
             bool shatterRepeats) {
 
   set<uint32>                     ovlFrags;
@@ -1704,10 +1707,10 @@ markRepeats(UnitigVector &unitigs,
   markRepeats_placeAndProcessOverlaps(unitigs, target, meanError, stddevError, ovlFrags, aligned, evidence);
 
   //  Convert 'aligned' into regions, throwing out weak ones and those contained in a fragment.
-  markRepeats_filterIntervalsSpannedByFragment(target, aligned, regions);
+  markRepeats_filterIntervalsSpannedByFragment(target, aligned, regions, minOverlap);
   markRepeats_filterIntervalsSpannedByMates(target, regions);
 
-  markRepeats_findFragsInRegions(target, regions, covFrags, ejtFrags);
+  markRepeats_findFragsInRegions(target, regions, covFrags, ejtFrags, minOverlap);
 
   //  Discard junctions that are not in a remaining region.
   markRepeats_filterJunctions(target, regions, evidence, breakpoints);
@@ -1739,7 +1742,7 @@ markChimera(UnitigVector &unitigs,
 
 
 void
-mergeSplitJoin(UnitigVector &unitigs, const char *prefix, bool shatterRepeats) {
+mergeSplitJoin(UnitigVector &unitigs, const char *prefix, uint32 minOverlap, bool shatterRepeats) {
 
   //logFileFlags |= LOG_PLACE_FRAG;
   //logFileFlags &= ~LOG_PLACE_FRAG;
@@ -1763,7 +1766,7 @@ mergeSplitJoin(UnitigVector &unitigs, const char *prefix, bool shatterRepeats) {
 
     mergeBubbles(unitigs, target, ilist);
     stealBubbles(unitigs, target, ilist);
-    markRepeats(unitigs, target);
+    markRepeats(unitigs, target, minOverlap, shatterRepeats);
     markChimera(unitigs, target);
     exit(1);
   }
@@ -1822,7 +1825,7 @@ mergeSplitJoin(UnitigVector &unitigs, const char *prefix, bool shatterRepeats) {
     writeLog("repeatDetect()-- WORKING on unitig %d/"F_SIZE_T" of length %u with %ld fragments.\n",
             target->id(), unitigs.size(), target->getLength(), target->ufpath.size());
 
-    markRepeats(unitigs, target, shatterRepeats);
+    markRepeats(unitigs, target, minOverlap, shatterRepeats);
     markChimera(unitigs, target);
   }
 

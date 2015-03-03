@@ -54,7 +54,7 @@ makeNewUnitig(UnitigVector &unitigs,
 
 //  After splitting and ejecting some contains, check for discontinuous unitigs.
 //
-void splitDiscontinuousUnitigs(UnitigVector &unitigs) {
+void splitDiscontinuousUnitigs(UnitigVector &unitigs, uint32 minOverlap) {
 
   writeLog("==> SPLIT DISCONTINUOUS\n");
 
@@ -118,7 +118,7 @@ void splitDiscontinuousUnitigs(UnitigVector &unitigs) {
       int32    bgn = MIN(frg->position.bgn, frg->position.end);
       int32    end = MAX(frg->position.bgn, frg->position.end);
 
-      if (bgn > maxEnd - AS_OVERLAP_MIN_LEN) {
+      if (bgn > maxEnd - minOverlap) {
         isBroken = true;
         break;
       }
@@ -149,7 +149,7 @@ void splitDiscontinuousUnitigs(UnitigVector &unitigs) {
       int32    end = MAX(frg->position.bgn, frg->position.end);
 
       //  Good thick overlap exists to this fragment, save it.
-      if (bgn <= maxEnd - AS_OVERLAP_MIN_LEN) {
+      if (bgn <= maxEnd - minOverlap) {
         assert(splitFragsLen < splitFragsMax);
         splitFrags[splitFragsLen++] = *frg;
         maxEnd = MAX(maxEnd, end);

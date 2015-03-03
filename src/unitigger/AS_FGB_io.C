@@ -606,8 +606,6 @@ void process_ovl_store(char * OVL_Store_Path,
   IntEdge_ID novl_containment = 0;
   IntEdge_ID nedges_delta = 0;
 
-  uint32  overlap_consensus_threshold = AS_OVS_encodeQuality(AS_CNS_ERROR_RATE);
-
   ovs = new ovStore(OVL_Store_Path);
 
   //  Copy the information in  (* olap)  into  (* an_edge)  with

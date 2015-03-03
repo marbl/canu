@@ -39,6 +39,9 @@ main(int argc, char **argv) {
 
   bool    doUpdate            = true;
 
+  double  maxErate            = 0.06;
+  uint32  minReadLength       = 64;
+
   argc = AS_configure(argc, argv);
 
   int arg = 1;
@@ -58,6 +61,11 @@ main(int argc, char **argv) {
 
     } else if (strncmp(argv[arg], "-n", 2) == 0) {
       doUpdate = false;
+
+    } else if (strncmp(argv[arg], "-e", 2) == 0) {
+      maxErate = atof(argv[++arg]);
+    } else if (strncmp(argv[arg], "-l", 2) == 0) {
+      minReadLength = atoi(argv[++arg]);
 
     } else {
       fprintf(stderr, "Invalid option: '%s'\n", argv[arg]);
@@ -222,7 +230,7 @@ main(int argc, char **argv) {
     //  Update the clear ranges
   update:
 
-    if ((finL + AS_READ_MIN_LEN) > finR)
+    if ((finL + minReadLength) > finR)
       stat_tooShort++;
 
     if (doUpdate) {

@@ -9,28 +9,19 @@
 #include "Binomial_Bound.H"
 
 
-//  Most errors in any edit distance computation
-#define  MAX_ERRORS              (1 + (int) (AS_OVL_ERROR_RATE * AS_MAX_READLEN))
-
-//  The number of errors that are ignored in setting probability bound for terminating alignment
-//  extensions in edit distance calculations
-#define  ERRORS_FOR_FREE         1
-
-
-//  Branch points must be at least this many bases from the end of the fragment to be reported
-#define  MIN_BRANCH_END_DIST     20
-
-//  Branch point tails must fall off from the max by at least this rate
-#define  MIN_BRANCH_TAIL_SLOPE   ((AS_OVL_ERROR_RATE > 0.06) ? 1.0 : 0.20)
-
-
 #define Sign(a) ( ((a) > 0) - ((a) < 0) ) 
 
 
 class prefixEditDistance {
 public:
-  prefixEditDistance(bool doingPartialOverlaps_) {
+  prefixEditDistance(bool doingPartialOverlaps_, double maxErate_) {
+    maxErate             = maxErate_;
     doingPartialOverlaps = doingPartialOverlaps_;
+
+    MAX_ERRORS             = (1 + (int) (maxErate * AS_MAX_READLEN));
+    ERRORS_FOR_FREE        = 1;
+    MIN_BRANCH_END_DIST    = 20;
+    MIN_BRANCH_TAIL_SLOPE  = ((maxErate > 0.06) ? 1.0 : 0.20);
 
     Left_Delta  = new int  [MAX_ERRORS];
     Right_Delta = new int  [MAX_ERRORS];
@@ -56,7 +47,7 @@ public:
 
     for (int32 e=ERRORS_FOR_FREE + 1; e<MAX_ERRORS; e++) {
       Start = Binomial_Bound(e - ERRORS_FOR_FREE,
-                             AS_OVL_ERROR_RATE,
+                             maxErate,
                              Start);
       Edit_Match_Limit[e] = Start - 1;
 
@@ -64,13 +55,13 @@ public:
     }
 
     for (int32 i=0; i <= AS_MAX_READLEN; i++) {
-      Error_Bound[i] = (int32) (i * AS_OVL_ERROR_RATE + 0.0000000000001);
+      Error_Bound[i] = (int32) (i * maxErate + 0.0000000000001);
     }
 
 
     //  Value to add for a match in finding branch points.
     //
-    //  ALH: Note that AS_OVL_ERROR_RATE also affects what overlaps get found
+    //  ALH: Note that maxErate also affects what overlaps get found
     //
     //  ALH: Scoring seems to be unusual: given an alignment
     //  of length l with k mismatches, the score seems to be
@@ -90,13 +81,7 @@ public:
     //  Converting to integers didn't make it faster.
     //  Corresponding error value is this value minus 1.0
 
-#define  DEFAULT_BRANCH_MATCH_VAL    ( AS_OVL_ERROR_RATE / (1.+AS_OVL_ERROR_RATE) )
-#define  PARTIAL_BRANCH_MATCH_VAL    DEFAULT_BRANCH_MATCH_VAL
-
-    //  Don't know G here, and we're not doing anything different, so ignore it.
-    //Branch_Match_Value = (G.Doing_Partial_Overlaps) ? PARTIAL_BRANCH_MATCH_VAL : DEFAULT_BRANCH_MATCH_VAL;
-
-    Branch_Match_Value = DEFAULT_BRANCH_MATCH_VAL;
+    Branch_Match_Value = maxErate / (1 + maxErate);
     Branch_Error_Value = Branch_Match_Value - 1.0;
   };
 
@@ -140,6 +125,23 @@ public:
 
 
 public:
+  //  The four below were global #defines, two depended on the error rate which is now local.
+
+  //  Most errors in any edit distance computation
+  uint32  MAX_ERRORS;
+
+  //  The number of errors that are ignored in setting probability bound for terminating alignment
+  //  extensions in edit distance calculations
+  uint32  ERRORS_FOR_FREE;
+
+  //  Branch points must be at least this many bases from the end of the fragment to be reported
+  uint32  MIN_BRANCH_END_DIST;
+
+
+  //  Branch point tails must fall off from the max by at least this rate
+  double  MIN_BRANCH_TAIL_SLOPE;
+
+  double   maxErate;
   bool     doingPartialOverlaps;
 
   uint64   allocated;

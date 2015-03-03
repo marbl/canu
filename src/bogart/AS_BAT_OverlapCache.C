@@ -84,6 +84,7 @@ OverlapCache::OverlapCache(ovStore *ovlStoreUniq,
                            const char *prefix,
                            double erate,
                            double elimit,
+                           uint32 minOverlap,
                            uint64 memlimit,
                            uint32 maxOverlaps,
                            bool onlySave,
@@ -220,7 +221,7 @@ OverlapCache::OverlapCache(ovStore *ovlStoreUniq,
 
   computeOverlapLimit();
   computeErateMaps(erate, elimit);
-  loadOverlaps(erate, elimit, prefix, onlySave, doSave);
+  loadOverlaps(erate, elimit, minOverlap, prefix, onlySave, doSave);
 
   delete [] _ovs;       _ovs    = NULL;
   delete [] _ovsSco;    _ovsSco = NULL;
@@ -465,7 +466,7 @@ OverlapCache::computeErateMaps(double erate, double elimit) {
 
 
 uint32
-OverlapCache::filterOverlaps(uint32 maxOVSerate, uint32 no) {
+OverlapCache::filterOverlaps(uint32 maxOVSerate, uint32 minOverlap, uint32 no) {
   uint32 ns = 0;
 
   //  Score the overlaps.
@@ -489,7 +490,7 @@ OverlapCache::filterOverlaps(uint32 maxOVSerate, uint32 no) {
 
     uint32  olen = FI->overlapLength(_ovs[ii].a_iid, _ovs[ii].b_iid, _ovs[ii].a_hang(), _ovs[ii].b_hang());
 
-    if (olen < AS_OVERLAP_MIN_LEN)
+    if (olen < minOverlap)
       //  Too short.
       continue;
 
@@ -539,7 +540,7 @@ OverlapCache::filterOverlaps(uint32 maxOVSerate, uint32 no) {
 
 
 void
-OverlapCache::loadOverlaps(double erate, double elimit, const char *prefix, bool onlySave, bool doSave) {
+OverlapCache::loadOverlaps(double erate, double elimit, uint32 minOverlap, const char *prefix, bool onlySave, bool doSave) {
   uint64   numTotal    = 0;
   uint64   numLoaded   = 0;
   uint32   numFrags    = 0;
@@ -604,7 +605,7 @@ OverlapCache::loadOverlaps(double erate, double elimit, const char *prefix, bool
 
     //  Actually load the overlaps.
     uint32  no = _ovlStoreUniq->readOverlaps(_ovs, _ovsMax);
-    uint32  ns = filterOverlaps(maxOVSerate, no);
+    uint32  ns = filterOverlaps(maxOVSerate, minOverlap, no);
 
     //  Resize the permament storage space for overlaps.
     if ((_storLen + ns > _storMax) ||

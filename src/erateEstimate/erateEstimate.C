@@ -524,7 +524,7 @@ main(int argc, char **argv) {
 
   argc = AS_configure(argc, argv);
 
-  uint32            minEvidenceOverlap  = MIN(500, AS_OVERLAP_MIN_LEN);
+  uint32            minEvidenceOverlap  = 40;
   uint32            minEvidenceCoverage = 1;
 
   uint32            iidMin   = UINT32_MAX;

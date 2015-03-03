@@ -28,8 +28,8 @@ static const char *rcsid_AS_CGB_UNITIGGER_GLOBALS_INCLUDE = "$Id$";
 #include "aligners.H"  //  <- now defines IntFragment
 
 typedef struct {
-  uint32  avx,bvx;
-  int32           ahg,bhg;
+  uint32    avx,bvx;
+  int32     ahg,bhg;
 
   uint32    quality : 16;  // zero is a perfect overlap
   uint32    nes : 8;      // The edge labeling.
@@ -178,6 +178,8 @@ typedef struct {
   TChunkMesg     *thechunks;
   int64           nbase_in_genome;
   float           global_fragment_arrival_rate;
+  double          popper_error_rate;
+  uint32          popper_min_len;
 } THeapGlobals;
 
 
@@ -210,9 +212,12 @@ typedef struct {
 
   float          cgb_unique_cutoff;
 
-  uint32 maxfrags;
+  uint32         maxfrags;
   IntEdge_ID     maxedges;
   size_t         maxtext;
+
+  double         popper_error_rate;
+  uint32         popper_min_len;
 
   int            work_limit_per_candidate_edge;
   int            dvt_double_sided_threshold_fragment_end_degree;

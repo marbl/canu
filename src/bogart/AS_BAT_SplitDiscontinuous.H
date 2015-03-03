@@ -24,6 +24,6 @@
 
 static const char *rcsid_INCLUDE_AS_BAT_SPLITDISCONTINUOUS = "$Id$";
 
-void splitDiscontinuousUnitigs(UnitigVector &unitigs);
+void splitDiscontinuousUnitigs(UnitigVector &unitigs, uint32 minOverlap);
 
 #endif  //  INCLUDE_AS_BAT_SPLITDISCONTINUOUS

@@ -293,6 +293,10 @@ main (int argc, char **argv) {
 
   bool   forceCompute = false;
 
+  double errorRate    = 0.06;
+  double errorRateMax = 0.40;
+  uint32 minOverlap   = 40;
+
   int32  numFailures = 0;
   int32  numSkipped  = 0;
 
@@ -335,6 +339,15 @@ main (int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-L") == 0) {
       outLayoutsName = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-e") == 0) {
+      errorRate = atof(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-em") == 0) {
+      errorRateMax = atof(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-l") == 0) {
+      minOverlap = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-f") == 0) {
       forceCompute = true;
@@ -380,6 +393,11 @@ main (int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "    -O results      Write computed tigs to binary output file 'results'\n");
     fprintf(stderr, "    -L layouts      Write computed tigs to layout output file 'layouts'\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "    -e e            Expect alignments at up to fraction e error\n");
+    fprintf(stderr, "    -em m           Don't ever allow alignments more than fraction m error\n");
+    fprintf(stderr, "    -l l            Expect alignments of at least l bases\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "    -v              Show multialigns.\n");
@@ -483,7 +501,8 @@ main (int argc, char **argv) {
     e = utgEnd + 1;
   }
 
-  fprintf(stderr, "Computing unitig consensus for b="F_U32" to e="F_U32"\n", b, e);
+  fprintf(stderr, "Computing unitig consensus for b="F_U32" to e="F_U32" with errorRate %0.4f (max %0.4f) and minimum overlap "F_U32"\n",
+          b, e, errorRate, errorRateMax, minOverlap);
 
   //  Now the usual case.  Iterate over all unitigs, compute and update.
 
@@ -526,7 +545,7 @@ main (int argc, char **argv) {
     tig->_utgcns_splitAlleles = false;
     tig->_utgcns_doPhasing    = false;
 
-    if (generateMultiAlignment(tig, gkpStore, NULL)) {
+    if (generateMultiAlignment(tig, gkpStore, NULL, errorRate, errorRateMax, minOverlap)) {
       if (showResult)
         //abacus->getMultiAlign()->printAlignment(abacus, stdout);
         tig->display(stdout, gkpStore, 200, 3);

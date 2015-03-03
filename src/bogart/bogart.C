@@ -92,6 +92,7 @@ main (int argc, char * argv []) {
   bool      enablePromoteToSingleton = true;
 
   uint32    minReadLen               = 0;
+  uint32    minOverlap               = 40;
 
   argc = AS_configure(argc, argv);
 
@@ -176,7 +177,7 @@ main (int argc, char * argv []) {
       elimitMerge = atof(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-el") == 0) {
-      AS_OVERLAP_MIN_LEN = atoi(argv[++arg]);
+      minOverlap = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-M") == 0) {
       ovlCacheMemory  = (uint64)(atof(argv[++arg]) * 1024 * 1024 * 1024);
@@ -246,11 +247,11 @@ main (int argc, char * argv []) {
     arg++;
   }
 
-  if ((erateGraph < 0.0) || (AS_MAX_ERROR_RATE < erateGraph))
+  if (erateGraph < 0.0)
     err++;
   if (elimitGraph < 0.0)
     err++;
-  if ((erateMerge < 0.0) || (AS_MAX_ERROR_RATE < erateMerge))
+  if (erateMerge < 0.0)
     err++;
   if (elimitMerge < 0.0)
     err++;
@@ -305,7 +306,7 @@ main (int argc, char * argv []) {
     fprintf(stderr, "    -Em 4       no more than r errors (useful with short reads)\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  For both, the lower limit on overlap length\n");
-    fprintf(stderr, "    -el 40      no shorter than 40 bases; AS_OVERLAP_MIN_LEN\n");
+    fprintf(stderr, "    -el 40      no shorter than 40 bases\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Overlap Storage\n");
     fprintf(stderr, "\n");
@@ -323,16 +324,14 @@ main (int argc, char * argv []) {
       fprintf(stderr, "               %s\n", logFileFlagNames[l]);
     fprintf(stderr, "\n");
 
-    if ((erateGraph < 0.0) || (AS_MAX_ERROR_RATE < erateGraph))
-      fprintf(stderr, "Invalid overlap error threshold (-eg option); must be between 0.00 and %.2f.\n",
-              AS_MAX_ERROR_RATE);
+    if (erateGraph < 0.0)
+      fprintf(stderr, "Invalid overlap error threshold (-eg option); must be at least 0.0.\n");
 
     if (elimitGraph < 0.0)
       fprintf(stderr, "Invalid overlap error limit (-Eg option); must be above 0.\n");
 
-    if ((erateMerge < 0.0) || (AS_MAX_ERROR_RATE < erateMerge))
-      fprintf(stderr, "Invalid overlap error threshold (-em option); must be between 0.00 and %.2f.\n",
-              AS_MAX_ERROR_RATE);
+    if (erateMerge < 0.0)
+      fprintf(stderr, "Invalid overlap error threshold (-em option); must be at least 0.0.\n");
 
     if (elimitMerge < 0.0)
       fprintf(stderr, "Invalid overlap error limit (-Em option); must be above 0.\n");
@@ -361,7 +360,7 @@ main (int argc, char * argv []) {
   fprintf(stderr, "Merge error threshold  = %.3f (%.3f%%)\n", erateMerge, erateMerge * 100);
   fprintf(stderr, "Merge error limit      = %.3f errors\n", elimitMerge);
   fprintf(stderr, "\n");
-  fprintf(stderr, "Minimum overlap length = %u bases\n", AS_OVERLAP_MIN_LEN);
+  fprintf(stderr, "Minimum overlap length = %u bases\n", minOverlap);
   fprintf(stderr, "\n");
   fprintf(stderr, "SPURIOUS_COVERAGE_THRESHOLD  "F_U32"\n", SPURIOUS_COVERAGE_THRESHOLD);
   fprintf(stderr, "ISECT_NEEDED_TO_BREAK        "F_U32"\n", ISECT_NEEDED_TO_BREAK);
@@ -393,7 +392,7 @@ main (int argc, char * argv []) {
   // Initialize where we've been to nowhere
   Unitig::resetFragUnitigMap(FI->numFragments());
 
-  OC = new OverlapCache(ovlStoreUniq, ovlStoreRept, output_prefix, MAX(erateGraph, erateMerge), MAX(elimitGraph, elimitMerge), ovlCacheMemory, ovlCacheLimit, onlySave, doSave);
+  OC = new OverlapCache(ovlStoreUniq, ovlStoreRept, output_prefix, MAX(erateGraph, erateMerge), MAX(elimitGraph, elimitMerge), minOverlap, ovlCacheMemory, ovlCacheLimit, onlySave, doSave);
   OG = new BestOverlapGraph(erateGraph, elimitGraph, output_prefix, removeWeak, removeSuspicious, removeSpur);
   CG = new ChunkGraph(output_prefix);
   IS = NULL;
@@ -467,7 +466,7 @@ main (int argc, char * argv []) {
 
   setLogFile(output_prefix, "mergeSplitJoin");
 
-  mergeSplitJoin(unitigs, output_prefix, enableShatterRepeats);
+  mergeSplitJoin(unitigs, output_prefix, minOverlap, enableShatterRepeats);
 
   if (enableExtendByMates) {
     assert(enableShatterRepeats);
@@ -495,7 +494,7 @@ main (int argc, char * argv []) {
 
   setLogFile(output_prefix, "cleanup");
 
-  splitDiscontinuousUnitigs(unitigs);       //  Clean up splitting problems.
+  splitDiscontinuousUnitigs(unitigs, minOverlap);       //  Clean up splitting problems.
 
   if (placeContainsUsingBest) {
     placeContainsUsingBestOverlaps(unitigs);

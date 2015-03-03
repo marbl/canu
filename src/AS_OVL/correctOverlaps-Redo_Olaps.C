@@ -292,7 +292,7 @@ Redo_Olaps(coParameters &G, gkStore *gkpStore) {
 
   pedWorkArea_t ped;
 
-  ped.initialize(&G, MAX_ERRORS);
+  ped.initialize(&G, G.errorRate);
 
   //  Process overlaps.  Loop over the B reads, and recompute each overlap.
 

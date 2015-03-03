@@ -31,7 +31,7 @@ static const char *rcsid_MULTIALIGNUNITIG_H = "$Id:  $";
 
 class unitigConsensus {
 public:
-  unitigConsensus(tgTig *tig_) {
+  unitigConsensus(tgTig *tig_, double errorRate_, uint32 minOverlap_) {
     tig          = tig_;
     numfrags     = tig->numberOfChildren();
     //fraglist = tig->_children;
@@ -49,6 +49,9 @@ public:
     frankensteinMax = 0;
     frankenstein    = NULL;
     frankensteinBof = NULL;
+
+    minOverlap      = minOverlap_;
+    errorRate       = errorRate_;
   };
 
   ~unitigConsensus() {
@@ -65,6 +68,9 @@ public:
   };
 
   int32  initialize(gkStore *gkpStore, uint32 *failed); 
+
+  void   setErrorRate(double errorRate_)   { errorRate  = errorRate_;  };
+  void   setMinOverlap(uint32 minOverlap_) { minOverlap = minOverlap_; };
 
   bool   showProgress(void)         { return(tig->_utgcns_verboseLevel >= 1); };
   bool   showAlgorithm(void)        { return(tig->_utgcns_verboseLevel >= 2); };
@@ -125,6 +131,9 @@ private:
   int32           frankensteinMax;
   char           *frankenstein;
   abBeadID       *frankensteinBof;
+
+  uint32          minOverlap;
+  double          errorRate;
 };
 
 

@@ -99,11 +99,13 @@ Local_Overlap_AS_forCNS(char *a, char *b,
   //if (VERBOSE_MULTIALIGN_OUTPUT >= 3)
   //  fprintf(stderr, "Local_Overlap_AS_forCNS()--  Begins\n");
 
+#if 0
   if (erate > AS_MAX_ERROR_RATE) {
     //fprintf(stderr, "Local_Overlap_AS_forCNS()--  erate=%f >= AS_MAX_ERROR_RATE=%f, reset to max\n", erate, (double)AS_MAX_ERROR_RATE);
     erate = AS_MAX_ERROR_RATE;
   }
   assert((0.0 <= erate) && (erate <= 4 * AS_MAX_ERROR_RATE));
+#endif
 
   A.sequence   = safe_copy_Astring_with_preceding_null(a);
   A.quality    = NULL;
@@ -237,11 +239,13 @@ Affine_Overlap_AS_forCNS(char *a, char *b,
   //if (VERBOSE_MULTIALIGN_OUTPUT >= 3)
   //  fprintf(stderr, "Affine_Overlap_AS_forCNS()--  Begins\n");
 
+#if 0
   if (erate > AS_MAX_ERROR_RATE) {
     //fprintf(stderr, "Affine_Overlap_AS_forCNS()--  erate=%f >= AS_MAX_ERROR_RATE=%f, reset to max\n", erate, (double)AS_MAX_ERROR_RATE);
     erate = AS_MAX_ERROR_RATE;
   }
   assert((0.0 <= erate) && (erate <= AS_MAX_ERROR_RATE));
+#endif
 
   orig_TEST_NUM_INDELS = AS_ALN_TEST_NUM_INDELS;
   AS_ALN_TEST_NUM_INDELS = 0;
@@ -365,11 +369,13 @@ Optimal_Overlap_AS_forCNS(char *a, char *b,
   //if (VERBOSE_MULTIALIGN_OUTPUT >= 3)
   //  fprintf(stderr, "Optimal_Overlap_AS_forCNS()--  Begins\n");
 
+#if 0
   if (erate > AS_MAX_ERROR_RATE) {
     //fprintf(stderr, "Optimal_Overlap_AS_forCNS()--  erate=%f >= AS_MAX_ERROR_RATE=%f, reset to max\n", erate, (double)AS_MAX_ERROR_RATE);
     erate = AS_MAX_ERROR_RATE;
   }
   assert((0.0 <= erate) && (erate <= AS_MAX_ERROR_RATE));
+#endif
 
   if (opposite)
     reverseComplementSequence(b, strlen(b));
