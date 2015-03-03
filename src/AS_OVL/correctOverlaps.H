@@ -234,6 +234,7 @@ public:
 
     numThreads = 1;
     errorRate  = 0.06;
+    minOverlap = 0;
   };
   ~coParameters() {
     delete [] bases;
@@ -270,6 +271,7 @@ public:
   uint32        numThreads;  //  Only one thread supported.
 
   double        errorRate;
+  uint32        minOverlap;
 
   pedWorkArea_t ped;
 

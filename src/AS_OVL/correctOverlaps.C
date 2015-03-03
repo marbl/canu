@@ -10,18 +10,18 @@ const char *mainid = "$Id:  $";
 
 
 void
-Read_Olaps(coParameters &G);
+Read_Olaps(coParameters *G);
 
 void
-Correct_Frags(coParameters &G, gkStore *gkpStore);
+Correct_Frags(coParameters *G, gkStore *gkpStore);
 
 void
-Redo_Olaps(coParameters &G, gkStore *gkpStore);
+Redo_Olaps(coParameters *G, gkStore *gkpStore);
 
 
 int
 main(int argc, char **argv) {
-  coParameters  G;
+  coParameters  *G = new coParameters();
 
   argc = AS_configure(argc, argv);
 
@@ -29,31 +29,29 @@ main(int argc, char **argv) {
   int err = 0;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-G") == 0) {
-      G.gkpStorePath = argv[++arg];
+      G->gkpStorePath = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-R") == 0) {
+      G->bgnID = atoi(argv[++arg]);
+      G->endID = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-O") == 0) {  //  -F?  -S Olap_Path
-      G.ovlStorePath = argv[++arg];
+      G->ovlStorePath = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-c") == 0) {  //  For 'corrections' file
-      G.correctionsName = argv[++arg];
-
-    } else if (strcmp(argv[arg], "-o") == 0) {  //  For 'erates'
-      G.eratesName = argv[++arg];
-
-
-    } else if (strcmp(argv[arg], "-b") == 0) {
-      G.bgnID = atoi(argv[++arg]);
     } else if (strcmp(argv[arg], "-e") == 0) {
-      G.endID = atoi(argv[++arg]);
+      G->errorRate = atof(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-l") == 0) {
+      G->minOverlap = atoi(argv[++arg]);
 
-    } else if (strcmp(argv[arg], "-t") == 0) {
-      G.numThreads = atoi(argv[++arg]);
+    } else if (strcmp(argv[arg], "-c") == 0) {  //  For 'corrections' file input
+      G->correctionsName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-error") == 0) {
-      G.errorRate = atof(argv[++arg]);
+    } else if (strcmp(argv[arg], "-o") == 0) {  //  For 'erates' output
+      G->eratesName = argv[++arg];
 
-
+    } else if (strcmp(argv[arg], "-t") == 0) {  //  But we're not threaded!
+      G->numThreads = atoi(argv[++arg]);
 
     } else {
       err++;
@@ -62,13 +60,13 @@ main(int argc, char **argv) {
     arg++;
   }
 
-  if (G.gkpStorePath == NULL)
+  if (G->gkpStorePath == NULL)
     fprintf(stderr, "ERROR: no input gatekeeper store (-G) supplied.\n"), err++;
-  if (G.ovlStorePath == NULL)
+  if (G->ovlStorePath == NULL)
     fprintf(stderr, "ERROR: no input overlap store (-O) supplied.\n"), err++;
-  if (G.correctionsName == NULL)
+  if (G->correctionsName == NULL)
     fprintf(stderr, "ERROR: no input read corrections file (-c) supplied.\n"), err++;
-  if (G.eratesName == NULL)
+  if (G->eratesName == NULL)
     fprintf(stderr, "ERROR: no output erates file (-o) supplied.\n"), err++;
 
 
@@ -102,41 +100,41 @@ main(int argc, char **argv) {
   fprintf(stderr, "Initializing.\n");
 
   {
-    double MAX_ERRORS = 1 + (uint32)(G.errorRate * AS_MAX_READLEN);
+    double MAX_ERRORS = 1 + (uint32)(G->errorRate * AS_MAX_READLEN);
 
     for (int32 i=0;  i <= ERRORS_FOR_FREE;  i++)
-      G.Edit_Match_Limit[i] = 0;
+      G->Edit_Match_Limit[i] = 0;
 
     int32 start = 1;
     for (int32 e = ERRORS_FOR_FREE + 1;  e < MAX_ERRORS;  e++) {
-      start = Binomial_Bound(e - ERRORS_FOR_FREE, G.errorRate, start);
+      start = Binomial_Bound(e - ERRORS_FOR_FREE, G->errorRate, start);
 
-      G.Edit_Match_Limit[e] = start - 1;
+      G->Edit_Match_Limit[e] = start - 1;
 
-      assert(G.Edit_Match_Limit[e] >= G.Edit_Match_Limit[e - 1]);
+      assert(G->Edit_Match_Limit[e] >= G->Edit_Match_Limit[e - 1]);
     }
 
     for (int32 i=0;  i <= AS_MAX_READLEN;  i++)
-      G.Error_Bound[i] = (int) (i * G.errorRate);
+      G->Error_Bound[i] = (int) (i * G->errorRate);
   }
 
   //
   //
   //
 
-  fprintf(stderr, "Opening gkpStore '%s'.\n", G.gkpStorePath);
+  fprintf(stderr, "Opening gkpStore '%s'.\n", G->gkpStorePath);
 
-  gkStore *gkpStore = new gkStore(G.gkpStorePath);
+  gkStore *gkpStore = new gkStore(G->gkpStorePath);
 
-  if (G.bgnID < 1)
-    G.bgnID = 1;
+  if (G->bgnID < 1)
+    G->bgnID = 1;
 
-  if (gkpStore->gkStore_getNumReads() < G.endID)
-    G.endID = gkpStore->gkStore_getNumReads();
+  if (gkpStore->gkStore_getNumReads() < G->endID)
+    G->endID = gkpStore->gkStore_getNumReads();
 
   //  Load the reads for the overlaps we are going to be correcting, and apply corrections to them
 
-  fprintf(stderr, "Correcting reads "F_U32" to "F_U32".\n", G.bgnID, G.endID);
+  fprintf(stderr, "Correcting reads "F_U32" to "F_U32".\n", G->bgnID, G->endID);
 
   Correct_Frags(G, gkpStore);
 
@@ -146,7 +144,7 @@ main(int argc, char **argv) {
  
   //  Now sort them on the B iid.
 
-  sort(G.olaps, G.olaps + G.olapsLen, Olap_Info_t_by_bID());
+  sort(G->olaps, G->olaps + G->olapsLen, Olap_Info_t_by_bID());
 
   //  Recompute overlaps
 
@@ -154,28 +152,28 @@ main(int argc, char **argv) {
 
   //  Sort the overlaps back into the original order
 
-  sort(G.olaps, G.olaps + G.olapsLen, Olap_Info_t_by_Order());
+  sort(G->olaps, G->olaps + G->olapsLen, Olap_Info_t_by_Order());
 
   //  Dump the new erates
 
-  fprintf (stderr, "Saving corrected error rates to file %s\n", G.eratesName);
+  fprintf (stderr, "Saving corrected error rates to file %s\n", G->eratesName);
 
   {
     errno = 0;
-    FILE *fp = fopen(G.eratesName, "w");
+    FILE *fp = fopen(G->eratesName, "w");
     if (errno)
-      fprintf(stderr, "Failed to open '%s': %s\n", G.eratesName, strerror(errno)), exit(1);
+      fprintf(stderr, "Failed to open '%s': %s\n", G->eratesName, strerror(errno)), exit(1);
 
-    AS_UTL_safeWrite(fp, &G.bgnID,    "loid", sizeof(int32),  1);
-    AS_UTL_safeWrite(fp, &G.endID,    "hiid", sizeof(int32),  1);
-    AS_UTL_safeWrite(fp, &G.olapsLen, "num",  sizeof(uint64), 1);
+    AS_UTL_safeWrite(fp, &G->bgnID,    "loid", sizeof(int32),  1);
+    AS_UTL_safeWrite(fp, &G->endID,    "hiid", sizeof(int32),  1);
+    AS_UTL_safeWrite(fp, &G->olapsLen, "num",  sizeof(uint64), 1);
 
-    uint16 *evalue = new uint16 [G.olapsLen];
+    uint16 *evalue = new uint16 [G->olapsLen];
 
-    for (int32 i=0; i<G.olapsLen; i++)
-      evalue[i] = G.olaps[i].evalue;
+    for (int32 i=0; i<G->olapsLen; i++)
+      evalue[i] = G->olaps[i].evalue;
 
-    AS_UTL_safeWrite(fp, evalue, "evalue", sizeof(uint16), G.olapsLen);
+    AS_UTL_safeWrite(fp, evalue, "evalue", sizeof(uint16), G->olapsLen);
 
     delete [] evalue;
 

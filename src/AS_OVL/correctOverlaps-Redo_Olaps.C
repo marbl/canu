@@ -243,20 +243,20 @@ Hang_Adjust(int32     hang,
 //  have overlaps with fragments in  Frag. Recompute the
 //  overlaps, using fragment corrections and output the revised error.
 void
-Redo_Olaps(coParameters &G, gkStore *gkpStore) {
+Redo_Olaps(coParameters *G, gkStore *gkpStore) {
 
   //  Figure out the range of B reads we care about.  We probably could just loop over every read in
   //  the store with minimal penalty.
 
   uint64     thisOvl = 0;
-  uint64     lastOvl = G.olapsLen - 1;
+  uint64     lastOvl = G->olapsLen - 1;
 
-  uint32     loBid   = G.olaps[thisOvl].b_iid;
-  uint32     hiBid   = G.olaps[lastOvl].b_iid;
+  uint32     loBid   = G->olaps[thisOvl].b_iid;
+  uint32     hiBid   = G->olaps[lastOvl].b_iid;
 
   //  Open all the corrections.
 
-  memoryMappedFile     *Cfile = new memoryMappedFile(G.correctionsName);
+  memoryMappedFile     *Cfile = new memoryMappedFile(G->correctionsName);
   Correction_Output_t  *C     = (Correction_Output_t *)Cfile->get();
   uint64                Cpos  = 0;
   uint64                Clen  = Cfile->length() / sizeof(Correction_Output_t);
@@ -292,13 +292,13 @@ Redo_Olaps(coParameters &G, gkStore *gkpStore) {
 
   pedWorkArea_t ped;
 
-  ped.initialize(&G, G.errorRate);
+  ped.initialize(G, G->errorRate);
 
   //  Process overlaps.  Loop over the B reads, and recompute each overlap.
 
   for (uint32 curID=loBid; curID<=hiBid; curID++) {
 
-    if (curID < G.olaps[thisOvl].b_iid)
+    if (curID < G->olaps[thisOvl].b_iid)
       continue;
 
     gkRead *read = gkpStore->gkStore_getRead(curID);
@@ -335,19 +335,19 @@ Redo_Olaps(coParameters &G, gkStore *gkpStore) {
     //  Recompute alignments for all overlaps involving the B read.
 
     for (; ((thisOvl <= lastOvl) &&
-            (G.olaps[thisOvl].b_iid == curID)); thisOvl++) {
-      Olap_Info_t  *olap = G.olaps + thisOvl;
+            (G->olaps[thisOvl].b_iid == curID)); thisOvl++) {
+      Olap_Info_t  *olap = G->olaps + thisOvl;
 
       //fprintf(stderr, "processing overlap %u - %u\n", olap->a_iid, olap->b_iid);
 
       //  Find the A segment.  It's always forward.  It's already been corrected.
 
-      char *a_part = G.reads[olap->a_iid - G.bgnID].bases;
+      char *a_part = G->reads[olap->a_iid - G->bgnID].bases;
 
       if (olap->a_hang > 0) {
         int32 ha = Hang_Adjust(olap->a_hang,
-                               G.reads[olap->a_iid - G.bgnID].adjusts,
-                               G.reads[olap->a_iid - G.bgnID].adjustsLen);
+                               G->reads[olap->a_iid - G->bgnID].adjusts,
+                               G->reads[olap->a_iid - G->bgnID].adjustsLen);
         a_part += ha;
         //fprintf(stderr, "offset a_part by ha=%d\n", ha);
       }
@@ -387,7 +387,7 @@ Redo_Olaps(coParameters &G, gkStore *gkpStore) {
 
       int32 errors = Prefix_Edit_Dist(a_part, a_part_len,
                                       b_part, b_part_len,
-                                      G.Error_Bound[olap_len],
+                                      G->Error_Bound[olap_len],
                                       a_end,
                                       b_end,
                                       match_to_end,
@@ -398,8 +398,8 @@ Redo_Olaps(coParameters &G, gkStore *gkpStore) {
       //  ??  These both occur, but the first is much much more common.
 
 #if 0
-      if ((ped.deltaLen > 0) && (ped.delta[0] == 1) && (0 < G.olaps[thisOvl].a_hang)) {
-        int32  stop = min(ped.deltaLen, (int32)G.olaps[thisOvl].a_hang);  //  a_hang is int32:31!
+      if ((ped.deltaLen > 0) && (ped.delta[0] == 1) && (0 < G->olaps[thisOvl].a_hang)) {
+        int32  stop = min(ped.deltaLen, (int32)G->olaps[thisOvl].a_hang);  //  a_hang is int32:31!
         int32  i = 0;
 
         for  (i=0; (i < stop) && (ped.delta[i] == 1); i++)
@@ -417,8 +417,8 @@ Redo_Olaps(coParameters &G, gkStore *gkpStore) {
         a_part_len -= i;
         errors     -= i;
 
-      } else if ((ped.deltaLen > 0) && (ped.delta[0] == -1) && (G.olaps[thisOvl].a_hang < 0)) {
-        int32  stop = min(ped.deltaLen, - G.olaps[thisOvl].a_hang);
+      } else if ((ped.deltaLen > 0) && (ped.delta[0] == -1) && (G->olaps[thisOvl].a_hang < 0)) {
+        int32  stop = min(ped.deltaLen, - G->olaps[thisOvl].a_hang);
         int32  i = 0;
 
         for  (i=0; (i < stop) && (ped.delta[i] == -1); i++)
@@ -462,10 +462,10 @@ Redo_Olaps(coParameters &G, gkStore *gkpStore) {
         fprintf(stderr, "Redo_Olaps()--  Overlap        a_hang %d b_hang %d innie %d\n",
                 olap->a_hang, olap->b_hang, olap->innie);
         fprintf(stderr, "Redo_Olaps()--  Reads          a_id %u a_length %d b_id %u b_length %d\n",
-                G.olaps[thisOvl].a_iid,
-                G.reads[ G.olaps[thisOvl].a_iid ].basesLen,
-                G.olaps[thisOvl].b_iid,
-                G.reads[ G.olaps[thisOvl].b_iid ].basesLen);
+                G->olaps[thisOvl].a_iid,
+                G->reads[ G->olaps[thisOvl].a_iid ].basesLen,
+                G->olaps[thisOvl].b_iid,
+                G->reads[ G->olaps[thisOvl].b_iid ].basesLen);
         fprintf(stderr, "Redo_Olaps()--  A %s\n", a_part);
         fprintf(stderr, "Redo_Olaps()--  B %s\n", b_part);
 
@@ -482,12 +482,12 @@ Redo_Olaps(coParameters &G, gkStore *gkpStore) {
       if (rha)
         rhaPass++;
 
-      G.olaps[thisOvl].evalue = AS_OVS_encodeQuality(errors / olapLen);
+      G->olaps[thisOvl].evalue = AS_OVS_encodeQuality(errors / olapLen);
 
       //  Ancient, would output an overlap _message_ if the fp was open.  This is the -o option, which runCA doesn't use.
       //if ((quality <= Quality_Threshold) ||
-      //    (G.olaps[thisOvl].a_hang <= 0 && Frag[sub].keep_left) ||
-      //    (G.olaps[thisOvl].b_hang >= 0 && Frag[sub].keep_right))
+      //    (G->olaps[thisOvl].a_hang <= 0 && Frag[sub].keep_left) ||
+      //    (G->olaps[thisOvl].b_hang >= 0 && Frag[sub].keep_right))
       //  Output_OVL(olap, quality);
     }
   }

@@ -248,8 +248,11 @@ main(int argc, char **argv) {
 
   uint32          doFilterOBT  = 0;
 
+#if 0
   double          maxErrorRate = 1.0;
   uint64          maxError     = AS_OVS_encodeQuality(maxErrorRate);
+  uint32          minOverlap   = 0;
+#endif
 
   vector<char *>  fileList;
 
@@ -282,9 +285,14 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-dup") == 0) {
       doFilterOBT = 2;
 
+#if 0
     } else if (strcmp(argv[arg], "-e") == 0) {
       maxError = atof(argv[++arg]);
       maxError = AS_OVS_encodeQuality(maxErrorRate);
+
+    } else if (strcmp(argv[arg], "-e") == 0) {
+      minOverlap = atoi(argv[++arg]);
+#endif
 
     } else if (strcmp(argv[arg], "-L") == 0) {
       errno = 0;
@@ -340,7 +348,10 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -obt                  filter overlaps for OBT\n");
     fprintf(stderr, "  -dup                  filter overlaps for OBT/dedupe\n");
     fprintf(stderr, "\n");
+#if 0
     fprintf(stderr, "  -e e                  filter overlaps above e fraction error\n");
+    fprintf(stderr, "  -l l                  filter overlaps below l bases overlap length (needs gkpStore to get read lengths!)\n");
+#endif
     fprintf(stderr, "  -L fileList           read input filenames from 'flieList'\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -big iid              handle a large number of overlaps in the last library\n");

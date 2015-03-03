@@ -60,15 +60,17 @@ sub readErrorDetectionCompute ($$) {
 
     print F getBinDirectoryShellCode();
 
-    print F "\$bin/findErrors \\\n";
-    print F "  -G $wrk/$asm.gkpStore \\\n";
-    print F "  -O $wrk/$asm.ovlStore \\\n";
-    print F "  -b \$minid -e \$maxid \\\n";
-    print F "  -o $wrk/3-overlapErrorAdjustment/\$jobid.red.WORKING \\\n";
-    print F "  -t $numThreads \\\n";
-    print F "  -error " . getGlobal("ovlErrorRate") . " \\\n";
-    print F "&& \\\n";
-    print F "mv $wrk/3-overlapErrorAdjustment/\$jobid.red.WORKING $wrk/3-overlapErrorAdjustment/\$jobid.red\n";
+    print F "if [ ! -e $wrk/3-overlapErrorAdjustment/\$jobid.red ] ; then\n";
+    print F "  \$bin/findErrors \\\n";
+    print F "    -G $wrk/$asm.gkpStore \\\n";
+    print F "    -O $wrk/$asm.ovlStore \\\n";
+    print F "    -R \$minid \$maxid \\\n";
+    print F "    -e " . getGlobal("ovlErrorRate") . " -l " . getGlobal("ovlMinLen") . " \\\n";
+    print F "    -o $wrk/3-overlapErrorAdjustment/\$jobid.red.WORKING \\\n";
+    print F "    -t $numThreads \\\n";
+    print F "  && \\\n";
+    print F "  mv $wrk/3-overlapErrorAdjustment/\$jobid.red.WORKING $wrk/3-overlapErrorAdjustment/\$jobid.red\n";
+    print F "fi\n";
 
     close(F);
 
@@ -198,7 +200,8 @@ sub overlapErrorAdjustmentCompute ($$) {
     print F "  \$bin/correctOverlaps \\\n";
     print F "    -G $wrk/$asm.gkpStore \\\n";
     print F "    -O $wrk/$asm.ovlStore \\\n";
-    print F "    -b \$minid -e \$maxid \\\n";
+    print F "    -R \$minid \$maxid \\\n";
+    print F "    -e " . getGlobal("ovlErrorRate") . " -l " . getGlobal("ovlMinLen") . " \\\n";
     print F "    -c $wrk/3-overlapErrorAdjustment/red.red \\\n";
     print F "    -o $wrk/3-overlapErrorAdjustment/\$jobid.oea.WORKING \\\n";
     print F "  && \\\n";

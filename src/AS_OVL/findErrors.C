@@ -346,24 +346,24 @@ main(int argc, char **argv) {
     if        (strcmp(argv[arg], "-G") == 0) {
       G->gkpStorePath = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-b") == 0) {
+    } else if (strcmp(argv[arg], "-R") == 0) {
       G->bgnID = atoi(argv[++arg]);
-
-    } else if (strcmp(argv[arg], "-e") == 0) {
       G->endID = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-O") == 0) {
       G->ovlStorePath = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-o") == 0) {
+    } else if (strcmp(argv[arg], "-e") == 0) {
+      G->errorRate = atof(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-l") == 0) {
+      G->minOverlap = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-o") == 0) {  //  For 'corrections' file output
       G->outputFileName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-t") == 0) {
       G->numThreads = atoi(argv[++arg]);
-
-
-    } else if (strcmp(argv[arg], "-error") == 0) {
-      G->errorRate = atof(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-d") == 0) {
       G->Degree_Threshold = strtol(argv[++arg], NULL, 10);

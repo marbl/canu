@@ -356,38 +356,6 @@ sub setParameters ($) {
     caFailure("can't find 'overlapInCore' program in $bin.  Possibly incomplete installation", undef)    if (! -x "$bin/overlapInCore");
     caFailure("can't find 'bogart' program in $bin.  Possibly incomplete installation", undef)           if (! -x "$bin/bogart");
     caFailure("can't find 'utgcns' program in $bin.  Possibly incomplete installation", undef)           if (! -x "$bin/utgcns");
-
-    #
-    #  Set the globally accessible error rates.  Adjust them if they look strange.
-    #
-
-    if (0) {
-    my $ovlER = getGlobal("ovlErrorRate");
-    my $utgER = getGlobal("utgErrorRate");
-    my $cnsER = getGlobal("cnsErrorRate");
-
-    if (($ovlER < 0.0) || (0.40 < $ovlER)) {
-        caFailure("ovlErrorRate is $ovlER, this MUST be between 0.00 and 0.40", undef);
-    }
-    if (($utgER < 0.0) || (0.40 < $utgER)) {
-        caFailure("utgErrorRate is $utgER, this MUST be between 0.00 and 0.40", undef);
-    }
-    if (($cnsER < 0.0) || (0.40 < $cnsER)) {
-        caFailure("cnsErrorRate is $cnsER, this MUST be between 0.00 and 0.40", undef);
-    }
-    if ($utgER > $ovlER) {
-        caFailure("utgErrorRate is $utgER, this MUST be <= ovlErrorRate ($ovlER)", undef);
-    }
-    if ($ovlER > $cnsER) {
-        caFailure("ovlErrorRate is $ovlER, this MUST be <= cnsErrorRate ($cnsER)", undef);
-    }
-
-    $ENV{'AS_OVL_ERROR_RATE'} = $ovlER;
-    $ENV{'AS_CNS_ERROR_RATE'} = $cnsER;
-
-    $ENV{'AS_READ_MIN_LEN'}    = getGlobal("frgMinLen");
-    $ENV{'AS_OVERLAP_MIN_LEN'} = getGlobal("ovlMinLen");
-}
 }
 
 
@@ -523,9 +491,6 @@ sub setDefaults () {
 
     $global{"ovlErrorRate"}                = 0.06;
     $synops{"ovlErrorRate"}                = "Overlaps above this error rate are not computed";
-
-    $global{"obtErrorRate"}                = undef;
-    $synops{"obtErrorRate"}                = "Overlaps at or below this error rate are used for Overlap Based Trimming (OBT)";
 
     $global{"utgErrorRate"}                = 0.030;
     $synops{"utgErrorRate"}                = "Overlaps at or below this error rate are used to construct unitigs (BOG and UTG)";
@@ -871,27 +836,6 @@ sub setDefaults () {
     if (exists($ENV{getGlobal("gridEngineTaskID")})) {
         undef $ENV{getGlobal("gridEngineTaskID")};
         print STDERR "ENV: ", getGlobal("gridEngineTaskID"), " needs to be unset, done.\n";
-    }
-
-
-    if (exists($ENV{'AS_OVL_ERROR_RATE'})) {
-        setGlobal("ovlErrorRate", $ENV{'AS_OVL_ERROR_RATE'});
-        print STDERR "ENV: ovlErrorRate $ENV{'AS_OVL_ERROR_RATE'} (from \$AS_OVL_ERROR_RATE)\n";
-    }
-
-    if (exists($ENV{'AS_CNS_ERROR_RATE'})) {
-        setGlobal("cnsErrorRate", $ENV{'AS_CNS_ERROR_RATE'});
-        print STDERR "ENV: cnsErrorRate $ENV{'AS_CNS_ERROR_RATE'} (from \$AS_CNS_ERROR_RATE)\n";
-    }
-
-    if (exists($ENV{'AS_READ_MIN_LEN'})) {
-        setGlobal("frgMinLen", $ENV{'AS_READ_MIN_LEN'});
-        print STDERR "ENV: frgMinLen $ENV{'AS_READ_MIN_LEN'} (from \$AS_READ_MIN_LEN)\n";
-    }
-
-    if (exists($ENV{'AS_OVERLAP_MIN_LEN'})) {
-        setGlobal("ovlMinLen", $ENV{'AS_OVERLAP_MIN_LEN'});
-        print STDERR "ENV: ovlMinLen $ENV{'AS_OVERLAP_MIN_LEN'} (from \$AS_OVERLAP_MIN_LEN)\n";
     }
 }
 

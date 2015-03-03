@@ -290,6 +290,7 @@ public:
 
     numThreads     = 4;
     errorRate      = 0.06;
+    minOverlap     = 0;
 
     //  Parameters
 
@@ -331,6 +332,7 @@ public:
   uint32        numThreads;
 
   double        errorRate;
+  uint32        minOverlap;
 
   // This array [e] is the minimum value of Edit_Array [e] [d] to be worth pursuing in edit-distance
   // computations between guides (only MAX_ERRORS needed)

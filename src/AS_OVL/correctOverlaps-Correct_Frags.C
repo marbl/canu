@@ -29,7 +29,7 @@ correctRead(uint32 curID,
   //  Find the correct corrections.
 
   while ((Cpos < Clen) && (C[Cpos].readID < curID)) {
-    fprintf(stderr, "SKIP Cpos=%d for read %u, want read %u\n", Cpos, C[Cpos].readID, curID);
+    //fprintf(stderr, "SKIP Cpos=%d for read %u, want read %u\n", Cpos, C[Cpos].readID, curID);
     Cpos++;
   }
 
@@ -156,7 +156,7 @@ correctRead(uint32 curID,
 //  Load reads from gkpStore, and apply corrections.
 
 void
-Correct_Frags(coParameters &G,
+Correct_Frags(coParameters *G,
               gkStore      *gkpStore) {
 
   //  The original converted to lowercase, and made non-acgt be 'a'.
@@ -171,7 +171,7 @@ Correct_Frags(coParameters &G,
 
   //  Open the corrections, as an array.
 
-  memoryMappedFile     *Cfile = new memoryMappedFile(G.correctionsName);
+  memoryMappedFile     *Cfile = new memoryMappedFile(G->correctionsName);
   Correction_Output_t  *C     = (Correction_Output_t *)Cfile->get();
   uint64                Cpos  = 0;
   uint64                Clen  = Cfile->length() / sizeof(Correction_Output_t);
@@ -179,18 +179,18 @@ Correct_Frags(coParameters &G,
   uint64     firstRecord   = 0;
   uint64     currentRecord = 0;
 
-  fprintf(stderr, "Reading "F_U64" corrections from '%s'.\n", Clen, G.correctionsName);
+  fprintf(stderr, "Reading "F_U64" corrections from '%s'.\n", Clen, G->correctionsName);
 
   //  Count the number of bases, so we can do two gigantic allocations for bases and adjustments.
   //  Adjustments are always less than the number of corrections; we could also count exactly.
 
-  G.basesLen   = 0;
-  G.adjustsLen = 0;
+  G->basesLen   = 0;
+  G->adjustsLen = 0;
 
-  for (uint32 curID=G.bgnID; curID<=G.endID; curID++) {
+  for (uint32 curID=G->bgnID; curID<=G->endID; curID++) {
     gkRead *read = gkpStore->gkStore_getRead(curID);
 
-    G.basesLen += read->gkRead_clearRegionLength() + 1;
+    G->basesLen += read->gkRead_clearRegionLength() + 1;
   }
 
   for (uint64 c=0; c<Clen; c++) {
@@ -200,20 +200,20 @@ Correct_Frags(coParameters &G,
     case C_INSERT:
     case G_INSERT:
     case T_INSERT:
-      G.adjustsLen++;
+      G->adjustsLen++;
       break;
     }
   }
 
-  fprintf(stderr, "Correcting "F_U64" bases with "F_U64" indel adjustments.\n", G.basesLen, G.adjustsLen);
+  fprintf(stderr, "Correcting "F_U64" bases with "F_U64" indel adjustments.\n", G->basesLen, G->adjustsLen);
 
-  G.bases        = new char          [G.basesLen];
-  G.adjusts      = new Adjust_t      [G.adjustsLen];
-  G.reads        = new Frag_Info_t   [G.endID - G.bgnID + 1];
-  G.readsLen     = 0;
+  G->bases        = new char          [G->basesLen];
+  G->adjusts      = new Adjust_t      [G->adjustsLen];
+  G->reads        = new Frag_Info_t   [G->endID - G->bgnID + 1];
+  G->readsLen     = 0;
 
-  G.basesLen   = 0;
-  G.adjustsLen = 0;
+  G->basesLen   = 0;
+  G->adjustsLen = 0;
 
   uint64   changes[12] = {0};
 
@@ -221,7 +221,7 @@ Correct_Frags(coParameters &G,
 
   gkReadData  readData;
 
-  for (uint32 curID=G.bgnID; curID<=G.endID; curID++) {
+  for (uint32 curID=G->bgnID; curID<=G->endID; curID++) {
     gkRead *read       = gkpStore->gkStore_getRead(curID);
 
     if (read->gkRead_isDeleted() == true)
@@ -234,10 +234,10 @@ Correct_Frags(coParameters &G,
 
     //  Save pointers to the bases and adjustments.
 
-    G.reads[G.readsLen].bases       = G.bases   + G.basesLen;
-    G.reads[G.readsLen].basesLen    = 0;
-    G.reads[G.readsLen].adjusts     = G.adjusts + G.adjustsLen;
-    G.reads[G.readsLen].adjustsLen  = 0;
+    G->reads[G->readsLen].bases       = G->bases   + G->basesLen;
+    G->reads[G->readsLen].basesLen    = 0;
+    G->reads[G->readsLen].adjusts     = G->adjusts + G->adjustsLen;
+    G->reads[G->readsLen].adjustsLen  = 0;
 
     //  Find the correct corrections.
 
@@ -248,18 +248,18 @@ Correct_Frags(coParameters &G,
 
     assert(C[Cpos].type == IDENT);
 
-    G.reads[G.readsLen].keep_left  = C[Cpos].keep_left;
-    G.reads[G.readsLen].keep_right = C[Cpos].keep_right;
+    G->reads[G->readsLen].keep_left  = C[Cpos].keep_left;
+    G->reads[G->readsLen].keep_right = C[Cpos].keep_right;
 
     //Cpos++;
 
     //  Now do the corrections.
 
     correctRead(curID, 
-                G.reads[G.readsLen].bases,
-                G.reads[G.readsLen].basesLen,
-                G.reads[G.readsLen].adjusts,
-                G.reads[G.readsLen].adjustsLen,
+                G->reads[G->readsLen].bases,
+                G->reads[G->readsLen].basesLen,
+                G->reads[G->readsLen].adjusts,
+                G->reads[G->readsLen].adjustsLen,
                 readData.gkReadData_getSequence(),
                 read->gkRead_clearRegionLength(),
                 C,
@@ -269,15 +269,15 @@ Correct_Frags(coParameters &G,
 
     //  Update the lengths in the globals.
 
-    G.basesLen   += G.reads[G.readsLen].basesLen   + 1;
-    G.adjustsLen += G.reads[G.readsLen].adjustsLen;
-    G.readsLen   += 1;
+    G->basesLen   += G->reads[G->readsLen].basesLen   + 1;
+    G->adjustsLen += G->reads[G->readsLen].adjustsLen;
+    G->readsLen   += 1;
   }
 
   delete Cfile;
 
   fprintf(stderr, "Corrected "F_U64" bases with "F_U64" substitutions, "F_U64" deletions and "F_U64" insertions.\n",
-          G.basesLen,
+          G->basesLen,
           changes[A_SUBST] + changes[C_SUBST] + changes[G_SUBST] + changes[T_SUBST],
           changes[DELETE],
           changes[A_INSERT] + changes[C_INSERT] + changes[G_INSERT] + changes[T_INSERT]);
