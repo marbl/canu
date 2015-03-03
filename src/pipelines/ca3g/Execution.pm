@@ -3,14 +3,19 @@ package ca3g::Execution;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(touch getInstallDirectory getBinDirectory getBinDirectoryShellCode submitScript buildGridJob submitOrRunParallelJob runCommand stopBefore stopAfter);
+@EXPORT = qw(touch getInstallDirectory getBinDirectory getBinDirectoryShellCode submitScript buildGridJob submitOrRunParallelJob runCommand stopBefore stopAfter diskSpace);
 
 use strict;
-use Config;  #  for @signame
+use Config;            #  for @signame
 
 use POSIX ":sys_wait_h";  #  For waitpid(..., &WNOHANG)
 
+#use lib "$FindBin::RealBin";
+#use lib "$FindBin::RealBin/ca3g/lib/perl5";
+
 use ca3g::Defaults;
+use Filesys::Df;  #  for diskSpace()
+
 
 #
 #  Functions for running multiple processes at the same time.  This is private to the module.
@@ -26,12 +31,15 @@ sub schedulerSetNumberOfProcesses {
     $numberOfProcesses = shift @_;
 }
 
-sub schedulerSubmit {
-    chomp @_;
-    push @processQueue, @_;
+sub schedulerSubmit ($) {
+    my $cmd = shift @_;
+
+    chomp $cmd;
+
+    push @processQueue, $cmd;
 }
 
-sub schedulerForkProcess {
+sub schedulerForkProcess ($) {
     my $process = shift @_;
     my $pid;
 
@@ -55,7 +63,7 @@ sub schedulerForkProcess {
     }
 }
 
-sub schedulerReapProcess {
+sub schedulerReapProcess ($) {
     my $pid = shift @_;
 
     if (waitpid($pid, &WNOHANG) > 0) {
@@ -65,7 +73,7 @@ sub schedulerReapProcess {
     }
 }
 
-sub schedulerRun {
+sub schedulerRun () {
     my @newProcesses;
 
     #  Reap any processes that have finished
@@ -89,12 +97,18 @@ sub schedulerRun {
     }
 }
 
-sub schedulerFinish {
+sub schedulerFinish ($) {
+    my $dir = shift @_;
     my $child;
     my @newProcesses;
     my $remain;
 
     $remain = scalar(@processQueue);
+
+    if (defined($dir)) {
+        my $f = diskSpace($dir);
+        print STDERR "----------------------------------------SPACE $f GB\n";
+    }
 
     my $t = localtime();
     my $d = time();
@@ -127,6 +141,11 @@ sub schedulerFinish {
 
     $t = localtime();
     print STDERR "----------------------------------------END CONCURRENT $t (", time() - $d, " seconds)\n";
+
+    if (defined($dir)) {
+        my $f = diskSpace($dir);
+        print STDERR "----------------------------------------SPACE $f GB DANGEROUSLY LOW\n"  if ($f < 1.0);
+    }
 }
 
 
@@ -562,7 +581,7 @@ sub submitOrRunParallelJob ($$$$$$@) {
     }
 
     schedulerSetNumberOfProcesses($nParallel) if (defined($nParallel));
-    schedulerFinish();
+    schedulerFinish($path);
 }
 
 
@@ -587,6 +606,11 @@ sub runCommand ($$) {
         exit(0);
     }
 
+    if (defined($dir)) {
+        my $f = diskSpace($dir);
+        print STDERR "----------------------------------------SPACE $f GB\n";
+    }
+
     my $t = localtime();
     my $d = time();
     print STDERR "----------------------------------------START $t\n$cmd\n";
@@ -595,6 +619,11 @@ sub runCommand ($$) {
 
     $t = localtime();
     print STDERR "----------------------------------------END $t (", time() - $d, " seconds)\n";
+
+    if (defined($dir)) {
+        my $f = diskSpace($dir);
+        print STDERR "----------------------------------------SPACE $f GB DANGEROUSLY LOW\n"  if ($f < 1.0);
+    }
 
     #  Pretty much copied from Programming Perl page 230
 
@@ -638,11 +667,6 @@ sub runCommand ($$) {
 }
 
 
-1;
-
-
-
-
 
 sub stopBefore ($$) {
     my $stopBefore = shift @_;
@@ -660,6 +684,7 @@ sub stopBefore ($$) {
 }
 
 
+
 sub stopAfter ($) {
     my $stopAfter = shift @_;
 
@@ -672,3 +697,57 @@ sub stopAfter ($) {
         exit(0);
     }
 }
+
+
+
+#sub diskSpace ($) {
+#    my $wrk   = shift @_;
+#
+#    my ($bsize, $frsize, $blocks, $bfree, $bavail, $files, $ffree, $favail, $flag, $namemax) = statvfs($wrk);
+#
+#    print STDERR "bsize  $bsize\n";
+#    print STDERR "frsize  $frsize\n";
+#    print STDERR "blocks  $blocks\n";
+#    print STDERR "bfree  $bfree\n";
+#    print STDERR "bavail  $bavail\n";
+#    print STDERR "files  $files\n";
+#    print STDERR "ffree  $ffree\n";
+#    print STDERR "favail  $favail\n";
+#    print STDERR "flag  $flag\n";
+#    print STDERR "namemax  $namemax\n";
+#
+#    my $used = $blocks - $bfree;
+#
+#    #my $total = int($bsize * $blocks / 1048576);
+#    #my $used  = int($bsize * $used   / 1048576);
+#    #my $free  = int($bsize * $bfree  / 1048576);
+#    #my $avail = int($bsize * $bavail / 1048576);
+#
+#    my $total = $bsize * $blocks;
+#    my $used  = $bsize * $used;
+#    my $free  = $bsize * $bfree;
+#    my $avail = $bsize * $bavail;
+#
+#    print STDERR "Disk space: total $total GB, used $used GB, free $free GB, available $avail GB\n";
+#
+#    return (wantarray) ? ($total, $used, $free, $avail) : $avail;
+#}
+
+
+sub diskSpace ($) {
+    my $wrk   = shift @_;
+    my $df    = df($wrk, 1024);
+
+    my $total = int(10 * $df->{blocks} / 1048576) / 10;
+    my $used  = int(10 * $df->{used}   / 1048576) / 10;
+    my $free  = int(10 * $df->{bfree}  / 1048576) / 10;
+    my $avail = int(10 * $df->{bavail} / 1048576) / 10;
+
+    #print STDERR "Disk space: total $total GB, used $used GB, free $free GB, available $avail GB\n";
+
+    return (wantarray) ? ($total, $used, $free, $avail) : $avail;
+}
+
+
+
+1;

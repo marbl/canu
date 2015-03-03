@@ -14,6 +14,9 @@ use POSIX "ceil";
 use POSIX "floor";
 use POSIX "sys_wait_h";  #  waitpid()
 
+use lib "$FindBin::RealBin";
+use lib "$FindBin::RealBin/ca3g/lib/perl5";
+
 use ca3g::Defaults;
 use ca3g::Execution;
 
@@ -194,8 +197,8 @@ gatekeeper($wrk, $asm, @inputFiles);
 
 meryl($wrk, $asm);
 
-overlapConfigure($wrk, $asm);
-overlap($wrk, $asm, "normal");
+overlapConfigure($wrk, $asm, "normal");
+#overlap($wrk, $asm, "normal");
 overlapCheck($wrk, $asm, "normal", 0);
 overlapCheck($wrk, $asm, "normal", 1);
 

@@ -194,7 +194,7 @@ sub overlapErrorAdjustmentCompute ($$) {
 
     print F getBinDirectoryShellCode();
 
-    print F "if [ ! -e $wrk/3-overlapErrorAdjustment/\$jobid.erate ] ; then\n";
+    print F "if [ ! -e $wrk/3-overlapErrorAdjustment/\$jobid.oea ] ; then\n";
     print F "  \$bin/correctOverlaps \\\n";
     print F "    -G $wrk/$asm.gkpStore \\\n";
     print F "    -O $wrk/$asm.ovlStore \\\n";
@@ -202,7 +202,7 @@ sub overlapErrorAdjustmentCompute ($$) {
     print F "    -c $wrk/3-overlapErrorAdjustment/red.red \\\n";
     print F "    -o $wrk/3-overlapErrorAdjustment/\$jobid.oea.WORKING \\\n";
     print F "  && \\\n";
-    print F "  mv $wrk/3-overlapErrorAdjustment/\$jobid.erate.WORKING $wrk/3-overlapErrorAdjustment/\$jobid.erate\n";
+    print F "  mv $wrk/3-overlapErrorAdjustment/\$jobid.oea.WORKING $wrk/3-overlapErrorAdjustment/\$jobid.oea\n";
     print F "fi\n";
 
     close(F);
@@ -233,7 +233,7 @@ sub overlapErrorAdjustmentCheck ($$$) {
 
     for (my $currentJobID=1; $currentJobID <= $numJobs; $currentJobID++) {
         my $ji = substr("0000" . $currentJobID, -4);
-        my $jn = "$wrk/3-overlapErrorAdjustment/$ji.erate";
+        my $jn = "$wrk/3-overlapErrorAdjustment/$ji.oea";
 
         if (! -e $jn) {
             $failureMessage .= "  job $jn FAILED.\n";
