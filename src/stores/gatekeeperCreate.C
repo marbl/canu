@@ -126,7 +126,7 @@ loadFASTQ(gkStore *gkpStore,
       case 'n':   S[i] = 'N';  break;
       case 'N':                break;
       default:
-        fprintf(stderr, "loadFASTQ()-- read '%s' has invalid base '%c' (0x%02x) at position %u.  Converted to 'N'.\n",
+        fprintf(stderr, "-- WARNING:  read '%s' has invalid base '%c' (0x%02x) at position %u.  Converted to 'N'.\n",
                 L, S[i], S[i], i);
         S[i] = 'N';
         Q[i] = '!';
@@ -177,7 +177,7 @@ loadFASTQ(gkStore *gkpStore,
 
 
 
-void
+uint32
 loadReads(gkStore *gkpStore, gkLibrary *gkpLibrary, FILE *nameMap, char *fileName) {
   char    *L = new char [AS_MAX_READLEN + 1];
   char    *H = new char [AS_MAX_READLEN + 1];
@@ -190,7 +190,7 @@ loadReads(gkStore *gkpStore, gkLibrary *gkpLibrary, FILE *nameMap, char *fileNam
 
   uint64   lineNumber = 0;
 
-  fprintf(stderr, "loadReads()-- Loading reads from '%s'\n", fileName);
+  fprintf(stderr, "-- Loading reads from '%s'\n", fileName);
 
   compressedFileReader *F = new compressedFileReader(fileName);
 
@@ -218,7 +218,7 @@ loadReads(gkStore *gkpStore, gkLibrary *gkpLibrary, FILE *nameMap, char *fileNam
     }
 
     else {
-      fprintf(stderr, "loadReads()-- invalid read header '%s' in file '%s' at line "F_U64", skipping.\n",
+      fprintf(stderr, "-- WARNING:  invalid read header '%s' in file '%s' at line "F_U64", skipping.\n",
               L, fileName, lineNumber);
       L[0] = 0;
       nERROR++;
@@ -241,9 +241,11 @@ loadReads(gkStore *gkpStore, gkLibrary *gkpLibrary, FILE *nameMap, char *fileNam
   delete [] L;
 
   if (nFASTA > 0)
-    fprintf(stderr, "loadReads()-- Loaded "F_U32" FASTA format reads from '%s'.\n", nFASTA, fileName);
+    fprintf(stderr, "-- Loaded "F_U32" FASTA format reads from '%s'.\n", nFASTA, fileName);
   if (nFASTQ > 0)
-    fprintf(stderr, "loadReads()-- Loaded "F_U32" FASTQ format reads from '%s'.\n", nFASTQ, fileName);
+    fprintf(stderr, "-- Loaded "F_U32" FASTQ format reads from '%s'.\n", nFASTQ, fileName);
+
+  return(0);
 };
 
 
@@ -264,8 +266,8 @@ main(int argc, char **argv) {
 
   //argc = AS_configure(argc, argv);
 
-  fprintf(stderr, "gkLibrary: %u\n", sizeof(gkLibrary));
-  fprintf(stderr, "gkRead:    %u\n", sizeof(gkRead));
+  //fprintf(stderr, "gkLibrary: %u\n", sizeof(gkLibrary));
+  //fprintf(stderr, "gkRead:    %u\n", sizeof(gkRead));
 
   int arg = 1;
   int err = 0;
@@ -327,13 +329,15 @@ main(int argc, char **argv) {
   sprintf(errorLogName, "%s.errorLog",    gkpStoreName);
   FILE    *errorLog = fopen(errorLogName, "w");
   if (errno)
-    fprintf(stderr, "ERROR: cannot open error file '%s': %s\n", errorLogName, strerror(errno)), exit(1);
+    fprintf(stderr, "ERROR:  cannot open error file '%s': %s\n", errorLogName, strerror(errno)), exit(1);
 
   sprintf(nameMapName,   "%s/readNames.txt", gkpStoreName);
   FILE    *nameMap   = fopen(nameMapName,   "w");
   if (errno)
-    fprintf(stderr, "ERROR: cannot open uid map file '%s': %s\n", nameMapName, strerror(errno)), exit(1);
+    fprintf(stderr, "ERROR:  cannot open uid map file '%s': %s\n", nameMapName, strerror(errno)), exit(1);
 
+  uint32  nErrs  = 0;
+  uint32  nWarns = 0;
 
   for (; firstFileArg < argc; firstFileArg++) {
     fprintf(stderr, "\n");
@@ -388,10 +392,11 @@ main(int argc, char **argv) {
         gkpLibrary->gkLibrary_setCheckForSubReads(keyval.value_bool());
 
       } else if (AS_UTL_fileExists(keyval.key(), false, false)) {
-        loadReads(gkpStore, gkpLibrary, nameMap, keyval.key());
+        nWarns += loadReads(gkpStore, gkpLibrary, nameMap, keyval.key());
 
       } else {
-        fprintf(stderr, "line '%s' not recognized, and not a file of reads.\n", line);
+        fprintf(stderr, "ERROR:  option '%s' not recognized, and not a file of reads.\n", line);
+        nErrs++;
       }
 
       fgets(line, 10240, inFile->file());
@@ -407,6 +412,15 @@ main(int argc, char **argv) {
   fclose(nameMap);
   fclose(errorLog);
 
+  fprintf(stderr, "\n");
+
+  if (nErrs > 0) {
+    fprintf(stderr, "gatekeeperCreate did NOT finish successfully; %u errors and %u warnings.\n", nErrs, nWarns);
+    exit(1);
+  }
+
   //return(AS_GKP_summarizeErrors());
+  fprintf(stderr, "gatekeeperCreate finished successfully; %u errors and %u warnings.\n", nErrs, nWarns);
+
   exit(0);
 }
