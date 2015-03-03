@@ -745,12 +745,14 @@ gkStore::gkStore_addEmptyLibrary(char const *name) {
 
   libname[libnamepos] = 0;
 
+#if 0
   if (modified || truncated)
     fprintf(stderr, "gkStore_addEmptyLibrary()--  added library '%s' (original name '%s')\n",
             libname, name);
   else
     fprintf(stderr, "gkStore_addEmptyLibrary()--  added library '%s'\n",
             libname);
+#endif
 
   _libraries[_info.numLibraries] = gkLibrary();
 
@@ -781,7 +783,7 @@ gkStore::gkStore_addEmptyRead(gkLibrary *lib) {
   _reads[_info.numReads]._readID    = _info.numReads;
   _reads[_info.numReads]._libraryID = lib->gkLibrary_libraryID();
 
-  fprintf(stderr, "ADD READ %u = %u alloc = %u\n", _info.numReads, _reads[_info.numReads]._readID, _readsAlloc);
+  //fprintf(stderr, "ADD READ %u = %u alloc = %u\n", _info.numReads, _reads[_info.numReads]._readID, _readsAlloc);
 
   return(_reads + _info.numReads);
 }
