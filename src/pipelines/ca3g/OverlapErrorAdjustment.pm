@@ -15,6 +15,40 @@ use ca3g::Gatekeeper;
 
 
 
+
+sub concatOutput ($@) {
+    my $outName     = shift @_;
+    my @successJobs =       @_;
+
+    open(O, "> $outName");
+    binmode(O);
+
+    foreach my $f (@successJobs) {
+        open(F, "< $f");
+        binmode(F);
+
+        my $buf;
+        my $len = sysread(F, $buf, 1024 * 1024);
+
+        while ($len > 0) {
+            syswrite(O, $buf, $len);
+
+            $len = sysread(F, $buf, 1024 * 1024);
+        }
+
+        close(F);
+    }
+
+    close(O);
+
+    foreach my $f (@successJobs) {
+        unlink $f;
+    }
+}
+
+
+
+
 sub readErrorDetectionCompute ($$) {
     my $wrk   = shift @_;
     my $asm   = shift @_;
@@ -116,31 +150,7 @@ sub readErrorDetectionCheck ($$$) {
     #  concat; before, the files needed to be parsed to strip off a header.
 
     if (scalar(@failedJobs) == 0) {
-        open(O, "> $wrk/3-overlapErrorAdjustment/red.red");
-        binmode(O);
-
-        foreach my $f (@successJobs) {
-            open(F, "< $f");
-            binmode(F);
-
-            my $buf;
-            my $len = sysread(F, $buf, 1024 * 1024);
-
-            while ($len > 0) {
-                syswrite(O, $buf, $len);
-
-                $len = sysread(F, $buf, 1024 * 1024);
-            }
-
-            close(F);
-        }
-
-        close(O);
-
-        foreach my $f (@successJobs) {
-            unlink $f;
-        }
-
+        concatOutput("$wrk/3-overlapErrorAdjustment/red.red", @successJobs);
         return;
     }
 
@@ -253,15 +263,20 @@ sub overlapErrorAdjustmentCheck ($$$) {
         return;
     }
 
+    if (scalar(@failedJobs) == 0) {
+        concatOutput("$wrk/3-overlapErrorAdjustment/oea.oea", @successJobs);
+        return;
+    }
+
     print STDERR "\n";
-    print STDERR scalar(@failedJobs), " read error detection jobs failed:\n";
+    print STDERR scalar(@failedJobs), " overlap error adjustment jobs failed:\n";
     print STDERR $failureMessage;
     print STDERR "\n";
 
     if ($attempt < 1) {
         submitOrRunParallelJob($wrk, $asm, "oea", "$wrk/3-overlapErrorAdjustment", "oea", getGlobal("oeaConcurrency"), @failedJobs);
     } else {
-        caFailure("failed to detect errors in reads.  Made $attempt attempts, jobs still failed.\n", undef);
+        caFailure("failed to adjust overlap error rates.  Made $attempt attempts, jobs still failed.\n", undef);
     }
 }
 
@@ -296,5 +311,7 @@ sub overlapErrorAdjustment ($$) {
     overlapErrorAdjustmentCompute($wrk, $asm);
     overlapErrorAdjustmentCheck($wrk, $asm, 0);
     overlapErrorAdjustmentCheck($wrk, $asm, 1);
+
+    updateOverlapStore();
 }
 
