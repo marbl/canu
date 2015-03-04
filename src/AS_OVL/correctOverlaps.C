@@ -115,7 +115,7 @@ main(int argc, char **argv) {
     }
 
     for (int32 i=0;  i <= AS_MAX_READLEN;  i++)
-      G->Error_Bound[i] = (int) (i * G->errorRate);
+      G->Error_Bound[i] = (int)ceil(i * G->errorRate);
   }
 
   //

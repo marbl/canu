@@ -101,25 +101,25 @@ Display_Alignment(char    *a,   int32 aLen,
 
 
   for (i = 0;  i < topLen || i < botLen;  i += DISPLAY_WIDTH) {
-    putchar('\n');
+    putc('\n', stderr);
 
-    printf("A: ");
+    fprintf(stderr, "A: ");
     for (j = 0;  j < DISPLAY_WIDTH && i + j < topLen;  j++)
-      putchar(top[i + j]);
-    putchar('\n');
+      putc(top[i + j], stderr);
+    putc('\n', stderr);
 
-    printf("B: ");
+    fprintf(stderr, "B: ");
     for (j = 0;  j < DISPLAY_WIDTH && i + j < botLen;  j++)
-      putchar(bot[i + j]);
-    putchar('\n');
+      putc(bot[i + j], stderr);
+    putc('\n', stderr);
 
-    printf("   ");
+    fprintf(stderr, "   ");
     for (j = 0;  j < DISPLAY_WIDTH && i + j < botLen && i + j < topLen; j++)
       if (top[i + j] != ' ' && bot[i + j] != ' ' && top[i + j] != bot[i + j])
-        putchar('^');
+        putc('^', stderr);
       else
-        putchar(' ');
-    putchar('\n');
+        putc(' ', stderr);
+    putc('\n', stderr);
   }
 
   delete [] top;
@@ -221,7 +221,7 @@ Hang_Adjust(int32     hang,
 
   for  (int32 i=0; (i < adjust_ct) && (hang >= adjust[i].adjpos); i++) {
     //if (delta != adjust[i].adjust)
-    //  fprintf(stderr, "hang_adjust i=%d adjust=%d pos=%d\n", i, adjust[i].adjust, adjust[i].adjpos);
+    //  fprintf(stderr, "hang_adjust i=%d adjust_ct=%d adjust=%d pos=%d\n", i, adjust_ct, adjust[i].adjust, adjust[i].adjpos);
     delta = adjust[i].adjust;
   }
 
@@ -397,7 +397,6 @@ Redo_Olaps(coParameters *G, gkStore *gkpStore) {
 
       //  ??  These both occur, but the first is much much more common.
 
-#if 0
       if ((ped.deltaLen > 0) && (ped.delta[0] == 1) && (0 < G->olaps[thisOvl].a_hang)) {
         int32  stop = min(ped.deltaLen, (int32)G->olaps[thisOvl].a_hang);  //  a_hang is int32:31!
         int32  i = 0;
@@ -405,7 +404,7 @@ Redo_Olaps(coParameters *G, gkStore *gkpStore) {
         for  (i=0; (i < stop) && (ped.delta[i] == 1); i++)
           ;
 
-        fprintf(stderr, "RESET 1 i=%d delta=%d\n", i, ped.delta[i]);
+        //fprintf(stderr, "RESET 1 i=%d delta=%d\n", i, ped.delta[i]);
         assert((i == stop) || (ped.delta[i] != -1));
 
         ped.deltaLen -= i;
@@ -424,7 +423,7 @@ Redo_Olaps(coParameters *G, gkStore *gkpStore) {
         for  (i=0; (i < stop) && (ped.delta[i] == -1); i++)
           ;
 
-        fprintf(stderr, "RESET 2 i=%d delta=%d\n", i, ped.delta[i]);
+        //fprintf(stderr, "RESET 2 i=%d delta=%d\n", i, ped.delta[i]);
         assert((i == stop) || (ped.delta[i] != 1));
 
         ped.deltaLen -= i;
@@ -436,7 +435,7 @@ Redo_Olaps(coParameters *G, gkStore *gkpStore) {
         b_part_len -= i;
         errors     -= i;
       }
-#endif
+
 
       Total_Alignments_Ct++;
 
@@ -455,10 +454,15 @@ Redo_Olaps(coParameters *G, gkStore *gkpStore) {
       if ((match_to_end == false) || (olapLen <= 0)) {
         Failed_Alignments_Ct++;
 
+#if 0
+        //  I can't find any patterns in these errors.  I thought that it was caused by the corrections, but I
+        //  found a case where no corrections were made and the alignment still failed.  Perhaps it is differences
+        //  in the alignment code (the forward vs reverse prefix distance in overlapper vs only the forward here)?
+
         fprintf(stderr, "Redo_Olaps()--\n");
         fprintf(stderr, "Redo_Olaps()--\n");
-        fprintf(stderr, "Redo_Olaps()--  Bad alignment  errors %d  a_end %d  b_end %d\n",
-                errors, a_end, b_end);
+        fprintf(stderr, "Redo_Olaps()--  Bad alignment  errors %d  a_end %d  b_end %d  match_to_end %d  olapLen %d\n",
+                errors, a_end, b_end, match_to_end, olapLen);
         fprintf(stderr, "Redo_Olaps()--  Overlap        a_hang %d b_hang %d innie %d\n",
                 olap->a_hang, olap->b_hang, olap->innie);
         fprintf(stderr, "Redo_Olaps()--  Reads          a_id %u a_length %d b_id %u b_length %d\n",
@@ -472,6 +476,7 @@ Redo_Olaps(coParameters *G, gkStore *gkpStore) {
         Display_Alignment(a_part, a_part_len, b_part, b_part_len, ped.delta, ped.deltaLen);
 
         fprintf(stderr, "\n");
+#endif
 
         if (rha)
           rhaFail++;

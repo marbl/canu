@@ -50,6 +50,7 @@ correctRead(uint32 curID,
 
     //  No more corrections, or no more corrections for this read -- just copy bases till the end.
     if ((Cpos == Clen) || (C[Cpos].readID != curID)) {
+      //fprintf(stderr, "no more corrections at i=%u, copy rest of read as is\n", i);
       while (i < oseqLen)
         fseq[fseqLen++] = filter[oseq[i++]];
       break;
@@ -71,65 +72,73 @@ correctRead(uint32 curID,
       changes[C[Cpos].type]++;
 
     switch (C[Cpos].type) {
+      case DELETE:  //  Delete base
+        //fprintf(stderr, "DELETE %u pos %u adjust %d\n", fadjLen, i+1, adjVal-1);
+        fadj[fadjLen].adjpos = i + 1;
+        fadj[fadjLen].adjust = --adjVal;
+        fadjLen++;
+        break;
 
-    case DELETE:  //  Delete base
-      fadj[fadjLen].adjpos = i + 1;
-      fadj[fadjLen].adjust = --adjVal;
-      fadjLen++;
-      break;
+      case A_SUBST:  fseq[fseqLen++] = 'a';  break;
+      case C_SUBST:  fseq[fseqLen++] = 'c';  break;
+      case G_SUBST:  fseq[fseqLen++] = 'g';  break;
+      case T_SUBST:  fseq[fseqLen++] = 't';  break;
 
-    case A_SUBST:  fseq[fseqLen++] = 'a';  break;
-    case C_SUBST:  fseq[fseqLen++] = 'c';  break;
-    case G_SUBST:  fseq[fseqLen++] = 'g';  break;
-    case T_SUBST:  fseq[fseqLen++] = 't';  break;
+      case A_INSERT:
+        if (i != C[Cpos].pos + 1) {                // Insert not immediately after subst
+          //fprintf(stderr, "A i=%d != C[%d].pos+1=%d\n", i, Cpos, C[Cpos].pos+1);
+          fseq[fseqLen++] = filter[oseq[i++]];
+        }
+        fseq[fseqLen++] = 'a';
 
-    case A_INSERT:
-      if (i != C[Cpos].pos + 1)                             // Insert not immediately after subst
-        fseq[fseqLen++] = filter[oseq[i++]];     //  i++ to undo the 'undo' below
-      fseq[fseqLen++] = 'a';
+        fadj[fadjLen].adjpos = i + 1;
+        fadj[fadjLen].adjust = ++adjVal;
+        fadjLen++;
+        i--;  //  Undo the automagic loop increment
+        break;
 
-      fadj[fadjLen].adjpos = i + 1;
-      fadj[fadjLen].adjust = ++adjVal;
-      fadjLen++;
-      i--;  //  Undo the automagic loop increment
-      break;
+      case C_INSERT:
+        if (i != C[Cpos].pos + 1) {
+          //fprintf(stderr, "C i=%d != C[%d].pos+1=%d\n", i, Cpos, C[Cpos].pos+1);
+          fseq[fseqLen++] = filter[oseq[i++]];
+        }
+        fseq[fseqLen++] = 'c';
 
-    case C_INSERT:
-      if (i != C[Cpos].pos + 1)
-        fseq[fseqLen++] = filter[oseq[i++]];
-      fseq[fseqLen++] = 'c';
+        fadj[fadjLen].adjpos = i + 1;
+        fadj[fadjLen].adjust = ++adjVal;
+        fadjLen++;
+        i--;
+        break;
 
-      fadj[fadjLen].adjpos = i + 1;
-      fadj[fadjLen].adjust = ++adjVal;
-      fadjLen++;
-      i--;
-      break;
+      case G_INSERT:
+        if (i != C[Cpos].pos + 1) {
+          //fprintf(stderr, "G i=%d != C[%d].pos+1=%d\n", i, Cpos, C[Cpos].pos+1);
+          fseq[fseqLen++] = filter[oseq[i++]];
+        }
+        fseq[fseqLen++] = 'g';
 
-    case G_INSERT:
-      if (i != C[Cpos].pos + 1)
-        fseq[fseqLen++] = filter[oseq[i++]];
-      fseq[fseqLen++] = 'g';
+        fadj[fadjLen].adjpos = i + 1;
+        fadj[fadjLen].adjust = ++adjVal;
+        fadjLen++;
+        i--;
+        break;
 
-      fadj[fadjLen].adjpos = i + 1;
-      fadj[fadjLen].adjust = ++adjVal;
-      fadjLen++;
-      i--;
-      break;
+      case T_INSERT:
+        if (i != C[Cpos].pos + 1) {
+          //fprintf(stderr, "T i=%d != C[%d].pos+1=%d\n", i, Cpos, C[Cpos].pos+1);
+          fseq[fseqLen++] = filter[oseq[i++]];
+        }
+        fseq[fseqLen++] = 't';
 
-    case T_INSERT:
-      if (i != C[Cpos].pos + 1)
-        fseq[fseqLen++] = filter[oseq[i++]];
-      fseq[fseqLen++] = 't';
+        fadj[fadjLen].adjpos = i + 1;
+        fadj[fadjLen].adjust = ++adjVal;
+        fadjLen++;
+        i--;
+        break;
 
-      fadj[fadjLen].adjpos = i + 1;
-      fadj[fadjLen].adjust = ++adjVal;
-      fadjLen++;
-      i--;
-      break;
-
-    default:
-      fprintf (stderr, "ERROR:  Illegal vote type\n");
-      break;
+      default:
+        fprintf (stderr, "ERROR:  Illegal vote type\n");
+        break;
     }
 
     Cpos++;
@@ -195,13 +204,13 @@ Correct_Frags(coParameters *G,
 
   for (uint64 c=0; c<Clen; c++) {
     switch (C[c].type) {
-    case DELETE:
-    case A_INSERT:
-    case C_INSERT:
-    case G_INSERT:
-    case T_INSERT:
-      G->adjustsLen++;
-      break;
+      case DELETE:
+      case A_INSERT:
+      case C_INSERT:
+      case G_INSERT:
+      case T_INSERT:
+        G->adjustsLen++;
+        break;
     }
   }
 

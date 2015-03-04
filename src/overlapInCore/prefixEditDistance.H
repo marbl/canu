@@ -55,7 +55,8 @@ public:
     }
 
     for (int32 i=0; i <= AS_MAX_READLEN; i++) {
-      Error_Bound[i] = (int32) (i * maxErate + 0.0000000000001);
+      //Error_Bound[i] = (int32) (i * maxErate + 0.0000000000001);
+      Error_Bound[i] = (int32)ceil(i * maxErate);
     }
 
 
