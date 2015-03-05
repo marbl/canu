@@ -36,7 +36,7 @@ main(int argc, char **argv) {
   if (err) {
     fprintf(stderr, "usage: %s -G gkpStore -P partitionMapFile\n", argv[0]);
     fprintf(stderr, "  -G gkpStore         path to gatekeeper store\n");
-    fprintf(stderr, "  -P gkpStore         file mapping read ID to partiton\n");
+    fprintf(stderr, "  -P partFile         file mapping read ID to partiton\n");
     fprintf(stderr, "                      format: 'readID partition'\n");
     fprintf(stderr, "  \n");
 
