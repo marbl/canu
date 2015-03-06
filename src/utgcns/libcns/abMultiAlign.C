@@ -25,6 +25,10 @@ abMultiAlign::getConsensus(abAbacus *abacus, char *bases, char *quals, uint32 &l
   bases[len] = 0;
   quals[len] = 0;
 
+  if (len >= max) {
+    display(abacus, stderr, 0, len+3);
+    fprintf(stderr, "abMultiAlign::getConsensus()-- len=%u ! < max=%u\n", len, max);
+  }
   assert(len < max);  //  Should be len+1 == max if we just reallocated, but max can be way bigger
 }
 
@@ -32,10 +36,14 @@ abMultiAlign::getConsensus(abAbacus *abacus, char *bases, char *quals, uint32 &l
 void
 abMultiAlign::getConsensus(abAbacus *abacus, tgTig *tig) {
 
-  fprintf(stderr, "abMultiAlign::getConsensus()-- transfering consensus of length %u to tig %u\n", length(), tig->tigID());
+  //fprintf(stderr, "abMultiAlign::getConsensus()-- transfering consensus of length %u to tig %u\n",
+  //        length(), tig->tigID());
 
   //  +1 for the terminating nul byte.
   resizeArrayPair(tig->_gappedBases, tig->_gappedQuals, tig->_gappedLen, tig->_gappedMax, length() + 1, resizeArray_doNothing);
+
+  //fprintf(stderr, "abMultiAlign::getConsensus()-- transfering consensus of length %u to tig %u (_gappedLen %u _gappedMax %u)\n",
+  //        length(), tig->tigID(), tig->_gappedLen, tig->_gappedMax);
 
   getConsensus(abacus, tig->_gappedBases, tig->_gappedQuals, tig->_gappedLen, tig->_gappedMax);
 }

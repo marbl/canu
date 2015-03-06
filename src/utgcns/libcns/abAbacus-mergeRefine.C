@@ -164,7 +164,7 @@ mergeCompatible(abAbacus *abacus, abColID cid) {
 void
 abMultiAlign::mergeRefine(abAbacus *abacus, bool highQuality) {
 
-  fprintf(stderr, "abMultiAlign::mergeRefine()--  legnth %u\n", length());
+  //fprintf(stderr, "abMultiAlign::mergeRefine()--  legnth %u\n", length());
 
   //  Loop over all columns.  If we do not merge, advance to the next column, otherwise, stay here
   //  and merge to the now different next column (mergeCompatible removes the column that gets

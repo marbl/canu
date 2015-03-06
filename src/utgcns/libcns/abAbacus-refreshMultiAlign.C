@@ -34,8 +34,8 @@ abAbacus::refreshMultiAlign(abMultiAlignID  mid,
 
   abMultiAlign *ma = getMultiAlign(mid);
 
-  fprintf(stderr, "abMultiAlign::refreshMultiAlign()--  legnth %u recallBase=%d highQuality=%d\n",
-          ma->length(), recallBase, highQuality);
+  //fprintf(stderr, "abMultiAlign::refreshMultiAlign()--  legnth %u recallBase=%d highQuality=%d\n",
+  //        ma->length(), recallBase, highQuality);
 
   ma->columns().clear();  // columnList
 

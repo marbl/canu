@@ -512,6 +512,7 @@ abAbacus::unalignTrailingGapBeads(abBeadID bid) {
   abBeadID   anchor = bead->prevID();
 
 
+#ifdef DEBUG_UNALIGN_TRAILING
   fprintf(stderr, "unalignTrailingGapBeads()-- bid=%d %c anchor=%d %c\n",
           bead->ident().get(),
           getBase(bead->baseIdx()),
@@ -523,34 +524,43 @@ abAbacus::unalignTrailingGapBeads(abBeadID bid) {
     fprintf(stderr, "unalignTrailingGapBeads()-- next=%d %c\n",
             bead->nextID().get(),
             getBase(getBead(bead->nextID())->baseIdx()));
-
+#endif
 
   while ((bead->nextID().isValid() == true) &&
          (getBase(getBead(bead->nextID())->baseIdx()) == '-')) {
+#ifdef DEBUG_UNALIGN_TRAILING
     fprintf(stderr, "unalignTrailingGapBeads()-- bid=%d next is a gap\n", bead->ident().get());
+#endif
     bead = getBead(bead->nextID());
   }
 
 
+#ifdef DEBUG_UNALIGN_TRAILING
   if (bead->nextID().isValid() == true)
     fprintf(stderr, "unalignTrailingGapBeads()-- next=%d %c\n",
             bead->nextID().get(),
             getBase(getBead(bead->nextID())->baseIdx()));
+#endif
 
 
   if (bead->nextID().isValid()) {
     anchor = bead->nextID();
 
+#ifdef DEBUG_UNALIGN_TRAILING
     fprintf(stderr, "unalignTrailingGapBeads()-- reset anchor to %d\n", anchor.get());
+#endif
 
     while ((bead->prev.isValid() == true) &&
            (getBase(getBead(bead->prevID())->baseIdx()) == '-')) {
+#ifdef DEBUG_UNALIGN_TRAILING
       fprintf(stderr, "unalignTrailingGapBeads()-- bid=%d prev is a gap\n", bead->ident().get());
+#endif
       bead = getBead(bead->prevID());
     }
   }
 
 
+#ifdef DEBUG_UNALIGN_TRAILING
   if ((bead->prevID().isValid() == true) &&
       (bead->nextID().isValid() == true)) {
     fprintf(stderr, "unalignTrailingGapBeads()-- NOT TRAILING GAP BEADS!  Ignored.\n");
@@ -560,10 +570,12 @@ abAbacus::unalignTrailingGapBeads(abBeadID bid) {
   fprintf(stderr, "unalignTrailingGapBeads()-- bead ident=%d %c  anchor ident=%d %c\n",
           bead->ident().get(), getBase(bead->baseIdx()),
           anchor.get(), getBase(getBead(anchor)->baseIdx()));
+#endif
 
   {
     abBead *anch = getBead(anchor);
 
+#ifdef DEBUG_UNALIGN_TRAILING
     fprintf(stderr, "unalignTrailingGapBeads()-- bead %d %d %d  anchor %d %d %d\n",
             bead->prevID().get(), bead->ident().get(), bead->nextID().get(),
             anch->prevID().get(), anch->ident().get(), anch->nextID().get());
@@ -571,6 +583,7 @@ abAbacus::unalignTrailingGapBeads(abBeadID bid) {
     //fprintf(stderr, "unalignTrailingGapBeads()-- bead %c %c %c  anchor %c %c %c\n",
     //        bead->prevID().get(), bead->ident().get(), bead->nextID().get(),
     //        anch->prevID().get(), anch->ident().get(), anch->nextID().get());
+#endif
   }
 
 
@@ -580,9 +593,11 @@ abAbacus::unalignTrailingGapBeads(abBeadID bid) {
 
     char      bchar = getBase(bead->baseIdx());
 
+#ifdef DEBUG_UNALIGN_TRAILING
     fprintf(stderr, "unalignTrailingGapBeads()-- bead ident=%d %c  anchor ident=%d %c (loop)\n",
             bead->ident().get(), getBase(bead->baseIdx()),
             anchor.get(), getBase(getBead(anchor)->baseIdx()));
+#endif
 
     if (bchar != '-')
       fprintf(stderr, "unAlignTrailingGapBeads()-- bead %d %c is not a gap.\n",
@@ -596,7 +611,7 @@ abAbacus::unalignTrailingGapBeads(abBeadID bid) {
 
     column->base_count.DecBaseCount(bchar);
 
-#ifdef DEBUG_ABACUS_ALIGN
+#ifdef DEBUG_UNALIGN_TRAILING
     fprintf(stderr, "UnAlignTrailingGapBeads()-- frag=%d bead=%d leaving column=%d\n",
             bead->seqIdx().get(), bead->ident().get(), bead->colIdx().get());
 #endif

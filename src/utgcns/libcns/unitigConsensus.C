@@ -854,7 +854,7 @@ void
 unitigConsensus::generateConsensus(void) {
   abMultiAlign *ma = abacus->getMultiAlign(multialign);
 
-  fprintf(stderr, "generateConsensus()-- length %u\n", ma->length());
+  //fprintf(stderr, "generateConsensus()-- length %u\n", ma->length());
 
   abacus->refreshMultiAlign(multialign, true, true);
 
@@ -870,8 +870,7 @@ unitigConsensus::generateConsensus(void) {
   //  Why is columnList getting screwed up?
   abacus->refreshMultiAlign(multialign, true, true);
 
-  for (uint32 bb=0; bb<1200; bb += 100)
-    ma->display(abacus, stderr, bb, bb+200);
+  //ma->display(abacus, stderr, 0, 5000);
 
 #if 0
   //  While we have fragments in memory, compute the microhet probability.  Ideally, this would be
