@@ -26,7 +26,7 @@ static const char *rcsid = "$Id$";
 #include "AS_BAT_BestOverlapGraph.H"
 
 //  This provides low level (and usually too much) detail on placing a read using an edge.
-#define DEBUG_PLACE_FRAG
+#undef DEBUG_PLACE_FRAG
 
 
 
