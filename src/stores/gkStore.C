@@ -796,7 +796,7 @@ gkStore::gkStore_loadPartition(uint32 partID) {
   char     path[FILENAME_MAX];
   uint32   nReads = 0;
 
-  sprintf(path, "%s/part", gkStore_path());
+  sprintf(path, "%s/partitions/map", gkStore_path());
 
   if (AS_UTL_fileExists(path, false, false) == false)
     //  Not partitioned.
@@ -838,7 +838,7 @@ gkStore::gkStore_loadPartition(uint32 partID) {
 
   //  We probably want to load the sequence data too, or at least mmap it.
 
-  sprintf(path, "%s/%s.%04u", gkStore_path(), "seqs", _partitionID);
+  sprintf(path, "%s/partitions/%s.%04u", gkStore_path(), "seqs", _partitionID);
 
   _blobsMMap = new memoryMappedFile(path);
   _blobs     = (void *)_blobsMMap->get(0);
@@ -901,10 +901,17 @@ gkStore::gkStore_buildPartitions(uint32 *partitionMap) {
   uint32        *readfileslen = new uint32 [maxPartition + 1];
   uint32        *readIDmap    = new uint32 [gkStore_getNumReads() + 1];
 
+  //  Be nice and put all the partitions in a subdirectory.
+
+  sprintf(name,"%s/partitions", _storePath);
+
+  if (AS_UTL_fileExists(name, true, true) == false)
+    AS_UTL_mkdir(name);
+
   //  Open all the output files -- fail early if we can't open that many files.
 
   for (uint32 i=0; i<=maxPartition; i++) {
-    sprintf(name,"%s/blobs.%04d", _storePath, i);
+    sprintf(name,"%s/partitions/blobs.%04d", _storePath, i);
 
     errno = 0;
     blobfiles[i]    = fopen(name, "w");
@@ -914,7 +921,7 @@ gkStore::gkStore_buildPartitions(uint32 *partitionMap) {
       fprintf(stderr, "gkStore::gkStore_buildPartitions()-- ERROR: failed to open partition %u file '%s' for write: %s\n",
               i, name, strerror(errno)), exit(1);
 
-    sprintf(name,"%s/reads.%04d", _storePath, i);
+    sprintf(name,"%s/partitions/reads.%04d", _storePath, i);
 
     errno = 0;
     readfiles[i]    = fopen(name, "w");
@@ -927,7 +934,7 @@ gkStore::gkStore_buildPartitions(uint32 *partitionMap) {
 
   //  Open the output partition map file -- we might as well fail early if we can't make it.
 
-  sprintf(name,"%s/partitions", _storePath);
+  sprintf(name,"%s/partitions/map", _storePath);
 
   errno = 0;
   FILE *rIDmF = fopen(name, "w");
