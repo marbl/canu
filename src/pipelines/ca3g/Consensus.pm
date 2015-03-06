@@ -261,7 +261,7 @@ sub consensusCheck ($$$) {
     my @failedJobs;
     my $failureMessage = "";
 
-    for (my $job=0; $job < $jobs; $job++) {
+    for (my $job=1; $job <= $jobs; $job++) {
         if      (-e "$path/$currentJobID.cns") {
             push @successJobs, "$path/$currentJobID.cns\n";
 
