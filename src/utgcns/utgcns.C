@@ -315,10 +315,10 @@ main (int argc, char **argv) {
   int arg=1;
   int err=0;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-g") == 0) {
+    if        (strcmp(argv[arg], "-G") == 0) {
       gkpName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-t") == 0) {
+    } else if (strcmp(argv[arg], "-T") == 0) {
       tigName = argv[++arg];
       tigVers = atoi(argv[++arg]);
       tigPart = atoi(argv[++arg]);
@@ -331,7 +331,7 @@ main (int argc, char **argv) {
     } else if (strcmp(argv[arg], "-u") == 0) {
       AS_UTL_decodeRange(argv[++arg], utgBgn, utgEnd);
 
-    } else if (strcmp(argv[arg], "-T") == 0) {
+    } else if (strcmp(argv[arg], "-t") == 0) {
       utgFile = argv[++arg];
 
     } else if (strcmp(argv[arg], "-O") == 0) {
@@ -382,18 +382,20 @@ main (int argc, char **argv) {
   if ((utgFile == NULL) && (tigName == NULL))
     err++;
   if (err) {
-    fprintf(stderr, "usage: %s -g gkpStore -t tigStore version partition [opts]\n", argv[0]);
+    fprintf(stderr, "usage: %s [opts]\n", argv[0]);
     fprintf(stderr, "\n");
-    fprintf(stderr, "    -u b            Compute only unitig ID 'b' (must be in the correct partition!)\n");
-    fprintf(stderr, "    -u b-e          Compute only unitigs from ID 'b' to ID 'e'\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "    -T file         Test the computation of the unitig layout in 'file'\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "    -f              Recompute unitigs that already have a multialignment\n");
+    fprintf(stderr, "    -G gkpStore\n");
+    fprintf(stderr, "    -T tigStore version partition\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "    -O results      Write computed tigs to binary output file 'results'\n");
     fprintf(stderr, "    -L layouts      Write computed tigs to layout output file 'layouts'\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "    -u b            Compute only unitig ID 'b' (must be in the correct partition!)\n");
+    fprintf(stderr, "    -u b-e          Compute only unitigs from ID 'b' to ID 'e'\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "    -t file         Test the computation of the unitig layout in 'file'\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "    -f              Recompute unitigs that already have a multialignment\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "    -e e            Expect alignments at up to fraction e error\n");
     fprintf(stderr, "    -em m           Don't ever allow alignments more than fraction m error\n");
