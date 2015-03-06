@@ -284,6 +284,32 @@ sub overlapErrorAdjustmentCheck ($$$) {
 
 
 
+
+sub updateOverlapStore ($$) {
+    my $wrk  = shift @_;
+    my $asm  = shift @_;
+    my $bin  = getBinDirectory();
+    my $cmd;
+
+    caFailure("didn't find '$wrk/3-overlapErrorAdjustment/oea.files' to add to store", undef)  if (! -e "$wrk/3-overlapErrorAdjustment/oea.files");
+
+    $cmd  = "$bin/ovStoreBuild \\\n";
+    $cmd .= "  -g $wrk/$asm.gkpStore \\\n";
+    $cmd .= "  -o $wrk/$asm.ovlStore \\\n";
+    $cmd .= "  -erates \\\n";
+    $cmd .= "  -L $wrk/3-overlapErrorAdjustment/oea.files \\\n";
+    $cmd .= "> $wrk/3-overlapErrorAdjustment/oea.apply.err 2>&1\n";
+
+    if (runCommand("$wrk/3-overlapERrorAdjustment", $cmd)) {
+        unlink "$wrk/$asm.ovlStore/erates";
+        caFailure("failed to add error rates to overlap store", "$wrk/3-overlapErrorAdjustment/oea.apply.err");
+    }
+}
+
+
+
+
+
 #  overlap error adjustment is two steps:
 #    read error deteciton
 #    recompute each overlap with read errors fixed
@@ -312,6 +338,6 @@ sub overlapErrorAdjustment ($$) {
     overlapErrorAdjustmentCheck($wrk, $asm, 0);
     overlapErrorAdjustmentCheck($wrk, $asm, 1);
 
-    updateOverlapStore();
+    updateOverlapStore($wrk, $asm);
 }
 

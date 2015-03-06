@@ -26,6 +26,7 @@ use ca3g::OverlapInCore;
 use ca3g::OverlapStore;
 use ca3g::OverlapErrorAdjustment;
 use ca3g::Unitig;
+use ca3g::Consensus;
 
 
 my $bin = undef;  #  Path to binaries, set once in main.
@@ -213,9 +214,13 @@ createOverlapStore($wrk, $asm, "sequential");
 
 #readErrorDetection($wrk, $asm);
 
-overlapErrorAdjustment($wrk, $asm);
+#overlapErrorAdjustment($wrk, $asm);
 
 unitig($wrk, $asm);
+
+consensusConfigure($wrk, $asm);
+consensusCheck($wrk, $asm, 0);
+consensusCheck($wrk, $asm, 1);
 
 #utgcns();
 #make_consensus();

@@ -231,7 +231,7 @@ sub overlapCheck ($$$$) {
     print STDERR "overlapCheck() -- attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
 
     if ($attempt < 1) {
-        submitOrRunParallelJob($wrk, $asm, "ovl", $path, $script, getGlobal("ovlConcurrency"), @failedJobs);
+        submitOrRunParallelJob($wrk, $asm, $jobType, $path, $script, getGlobal("ovlConcurrency"), @failedJobs);
     } else {
         caFailure("failed to overlap.  Made $attempt attempts, jobs still failed.\n", undef);
     }

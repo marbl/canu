@@ -276,20 +276,27 @@ sub setParameters ($) {
     #  Check for invalid usage
     #
 
-    if ((getGlobal("doChimeraDetection") ne "off") && (getGlobal("doChimeraDetection") ne "normal") && (getGlobal("doChimeraDetection") ne "aggressive")) {
+    if ((getGlobal("doChimeraDetection") ne "off") &&
+        (getGlobal("doChimeraDetection") ne "normal") &&
+        (getGlobal("doChimeraDetection") ne "aggressive")) {
         caFailure("invalid doChimeraDetection specified (" . getGlobal("doChimeraDetection") . "); must be 'off', 'normal', or 'aggressive'", undef);
     }
-    if ((getGlobal("obtOverlapper") ne "mhap") && (getGlobal("obtOverlapper") ne "ovl")) {
+    if ((getGlobal("obtOverlapper") ne "mhap") &&
+        (getGlobal("obtOverlapper") ne "ovl")) {
         caFailure("invalid obtOverlapper specified (" . getGlobal("obtOverlapper") . "); must be 'mer' or 'ovl' (or DEVEL_ONLY 'ovm')", undef);
     }
-    if ((getGlobal("ovlOverlapper") ne "mhap") && (getGlobal("ovlOverlapper") ne "ovl")) {
+    if ((getGlobal("ovlOverlapper") ne "mhap") &&
+        (getGlobal("ovlOverlapper") ne "ovl")) {
         caFailure("invalid ovlOverlapper specified (" . getGlobal("ovlOverlapper") . "); must be 'mer' or 'ovl' (or DEVEL_ONLY 'ovm')", undef);
     }
     if ((getGlobal("unitigger") ne "unitigger") &&
         (getGlobal("unitigger") ne "bogart")) {
         caFailure("invalid unitigger specified (" . getGlobal("unitigger") . "); must be 'unitigger' or 'bogart'", undef);
     }
-    if ((getGlobal("consensus") ne "cns") && (getGlobal("consensus") ne "seqan") && (getGlobal("consensus") ne "pbdagcon") && (getGlobal("consensus") ne "pbutgcns")) {
+    if ((getGlobal("consensus") ne "utgcns") &&
+        (getGlobal("consensus") ne "seqan") &&
+        (getGlobal("consensus") ne "pbdagcon") &&
+        (getGlobal("consensus") ne "pbutgcns")) {
         caFailure("invalid consensus specified (" . getGlobal("consensus") . "); must be 'cns' or 'seqan' or 'pbdagcon' or 'pbutgcns'", undef);
     }
     if ((getGlobal("cleanup") ne "none") &&
@@ -773,7 +780,7 @@ sub setDefaults () {
     $global{"cnsMaxCoverage"}              = 0;
     $synops{"cnsMaxCoverage"}              = "Limit unitig consensus to to at most this coverage";
 
-    $global{"consensus"}                   = "cns";
+    $global{"consensus"}                   = "utgcns";
     $synops{"consensus"}                   = "Which consensus algorithm to use; currently only 'cns' is supported";
 
     #####  Terminator Options
