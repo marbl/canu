@@ -33,12 +33,13 @@ static char *rcsid = "$Id$";
 //
 abColID
 abAbacus::prependColumn(abColID cid, abBeadID bid) {
-  abColumn *next     = getColumn(cid);
-  abBead   *nextcall = getBead(next->callID());
+  abColID   col      = addColumn(getColumn(cid)->ma_id, bid);  //  Can reallocate column list.
 
-  abColID   col      = addColumn(next->ma_id, bid);
   abColumn *column   = getColumn(col);
+  abColumn *next     = getColumn(cid);
+
   abBead   *call     = getBead(column->callID());
+  abBead   *nextcall = getBead(next->callID());
 
   //fprintf(stderr, "prependColumn()-- adding column for bid %d\n", bid);
 
