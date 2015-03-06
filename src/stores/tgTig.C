@@ -208,7 +208,7 @@ void
 tgTig::saveToStream(FILE *F) {
   tgTigRecord  tr = *this;
 
-  fprintf(stderr, "tgTig::saveToStream()-- at "F_U64" - start\n", AS_UTL_ftell(F));
+  //fprintf(stderr, "tgTig::saveToStream()-- at "F_U64" - start\n", AS_UTL_ftell(F));
 
   AS_UTL_safeWrite(F, &tr, "tgTig::saveToStream::tr", sizeof(tgTigRecord), 1);
 
@@ -222,19 +222,19 @@ tgTig::saveToStream(FILE *F) {
     AS_UTL_safeWrite(F, _ungappedQuals, "tgTig::saveToStream::ungappedQuals", sizeof(char), _ungappedLen);
   }
 
-  fprintf(stderr, "tgTig::saveToStream()-- at "F_U64" - before children, saving "F_U32"\n", AS_UTL_ftell(F), _childrenLen);
+  //fprintf(stderr, "tgTig::saveToStream()-- at "F_U64" - before children, saving "F_U32"\n", AS_UTL_ftell(F), _childrenLen);
 
   if (_childrenLen > 0) {
     AS_UTL_safeWrite(F, _children, "tgTig::saveToStream::children", sizeof(tgPosition), _childrenLen);
   }
 
-  fprintf(stderr, "tgTig::saveToStream()-- at "F_U64" - before deltas, saving "F_U32"\n", AS_UTL_ftell(F), _childDeltasLen);
+  //fprintf(stderr, "tgTig::saveToStream()-- at "F_U64" - before deltas, saving "F_U32"\n", AS_UTL_ftell(F), _childDeltasLen);
 
   if (_childDeltasLen > 0) {
     AS_UTL_safeWrite(F, _childDeltas, "tgTig::saveToStream::childDeltas", sizeof(int32), _childDeltasLen);
   }
 
-  fprintf(stderr, "tgTig::saveToStream()-- at "F_U64" - finsihed\n", AS_UTL_ftell(F));
+  //fprintf(stderr, "tgTig::saveToStream()-- at "F_U64" - finsihed\n", AS_UTL_ftell(F));
 };
 
 
@@ -247,7 +247,7 @@ tgTig::loadFromStream(FILE *F) {
 
   clear();
 
-  fprintf(stderr, "tgTig::loadFromStream()-- Loading at position "F_U64" - start\n", AS_UTL_ftell(F));
+  //fprintf(stderr, "tgTig::loadFromStream()-- Loading at position "F_U64" - start\n", AS_UTL_ftell(F));
 
   AS_UTL_safeRead(F, &tr, "tgTig::loadFromStream::tr", sizeof(tgTigRecord), 1);
 
@@ -263,33 +263,33 @@ tgTig::loadFromStream(FILE *F) {
   resizeArray(_childDeltas, 0, _childDeltasMax, _childDeltasLen, resizeArray_doNothing);
 
   if (_gappedLen > 0) {
-    fprintf(stderr, "tgTig::loadFromStream()-- loading %u gapped bases\n", _gappedLen);
+    //fprintf(stderr, "tgTig::loadFromStream()-- loading %u gapped bases\n", _gappedLen);
     AS_UTL_safeRead(F, _gappedBases, "tgTig::loadFromStream::gappedBases", sizeof(char), _gappedLen);
     AS_UTL_safeRead(F, _gappedQuals, "tgTig::loadFromStream::gappedQuals", sizeof(char), _gappedLen);
   }
 
   if (_ungappedLen > 0) {
-    fprintf(stderr, "tgTig::loadFromStream()-- loading %u ungapped bases\n", _ungappedLen);
+    //fprintf(stderr, "tgTig::loadFromStream()-- loading %u ungapped bases\n", _ungappedLen);
     AS_UTL_safeRead(F, _ungappedBases, "tgTig::loadFromStream::ungappedBases", sizeof(char), _ungappedLen);
     AS_UTL_safeRead(F, _ungappedQuals, "tgTig::loadFromStream::ungappedQuals", sizeof(char), _ungappedLen);
   }
 
-  fprintf(stderr, "tgTig::loadFromStream()-- Loading at position "F_U64" - before children, need to load "F_U32" at "F_U64" bytes each.\n",
-          AS_UTL_ftell(F), _childrenLen, sizeof(tgPosition));
+  //fprintf(stderr, "tgTig::loadFromStream()-- Loading at position "F_U64" - before children, need to load "F_U32" at "F_U64" bytes each.\n",
+  //        AS_UTL_ftell(F), _childrenLen, sizeof(tgPosition));
 
   if (_childrenLen > 0) {
-    fprintf(stderr, "tgTig::loadFromStream()-- loading %u children\n", _childrenLen);
+    //fprintf(stderr, "tgTig::loadFromStream()-- loading %u children\n", _childrenLen);
     AS_UTL_safeRead(F, _children, "tgTig::savetoStream::children", sizeof(tgPosition), _childrenLen);
   }
 
-  fprintf(stderr, "tgTig::loadFromStream()-- Loading at position "F_U64" - before deltas, need to load "F_U32" at "F_U64" bytes each.\n",
-          AS_UTL_ftell(F), _childDeltasLen, sizeof(tgPosition));
+  //fprintf(stderr, "tgTig::loadFromStream()-- Loading at position "F_U64" - before deltas, need to load "F_U32" at "F_U64" bytes each.\n",
+  //        AS_UTL_ftell(F), _childDeltasLen, sizeof(tgPosition));
 
   if (_childDeltasLen > 0) {
     AS_UTL_safeRead(F, _childDeltas, "tgTig::loadFromStream::childDeltas", sizeof(int32), _childDeltasLen);
   }
 
-  fprintf(stderr, "tgTig::loadFromStream()-- Loading at position "F_U64" - finished\n", AS_UTL_ftell(F));
+  //fprintf(stderr, "tgTig::loadFromStream()-- Loading at position "F_U64" - finished\n", AS_UTL_ftell(F));
 };
 
 
