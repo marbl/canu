@@ -46,7 +46,15 @@ ovFile::ovFile(const char  *name,
   _bufferPos  = (bufferSize / (lcm * sizeof(uint32))) * lcm;  //  Forces reload on next read
   _bufferMax  = (bufferSize / (lcm * sizeof(uint32))) * lcm;
   _buffer     = new uint32 [_bufferMax];
+
+  _isOutput   = false;
+  _isSeekable = false;
   _isNormal   = (type == ovFileNormal) || (type == ovFileNormalWrite);
+
+  _reader     = NULL;
+  _writer     = NULL;
+
+  _file       = NULL;
 
   //  The buffer size must hold an integer number of overlaps, otherwise the reader
   //  will read partial overlaps and fail.
@@ -62,18 +70,15 @@ ovFile::ovFile(const char  *name,
   //  Open a file for reading?
   if ((type == ovFileNormal) || (type == ovFileFull)) {
     _reader      = new compressedFileReader(name);
-    _writer      = NULL;
     _file        = _reader->file();
     _isSeekable  = (_reader->isCompressed() == false);
-    _isOutput    = false;
   }
+
 
   //  Open a file for writing?
   else {
-    _reader      = NULL;
     _writer      = new compressedFileWriter(name);
     _file        = _writer->file();
-    _isSeekable  = false;
     _isOutput    = true;
   }
 }
@@ -188,12 +193,11 @@ ovFile::readOverlap(ovsOverlap *overlap) {
 //  the end of the buffer.
 void
 ovFile::seekOverlap(off_t overlap) {
-  off_t   ovlSize = sizeof(uint32) * ((_isNormal) ? 1 : 2) + sizeof(ovsOverlapWORD) * ovsOverlapNWORDS;
 
   if (_isSeekable == false)
     fprintf(stderr, "ovFile::seekOverlap()-- can't seek.\n"), exit(1);
 
-  AS_UTL_fseek(_file, overlap * ovlSize, SEEK_SET);
+  AS_UTL_fseek(_file, overlap * recordSize(), SEEK_SET);
 
-  _bufferPos = _bufferLen;
+  _bufferPos = _bufferLen;  //  We probably need to reload the buffer.
 }

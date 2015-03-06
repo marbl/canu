@@ -222,6 +222,9 @@ enum ovFileType {
   ovFileFullWrite   = 3   //  Writing of a_id+b_id overlaps
 };
 
+
+
+
 class ovFile {
 public:
   ovFile(const char  *name,
@@ -235,6 +238,11 @@ public:
   bool    readOverlap(ovsOverlap *overlap);
 
   void    seekOverlap(off_t overlap);
+
+  //  The size of an overlap record is 1 or 2 IDs + the size of a word times the number of words.
+  uint64  recordSize(void) {
+    return(sizeof(uint32) * ((_isNormal) ? 1 : 2) + sizeof(ovsOverlapWORD) * ovsOverlapNWORDS);
+  };
 
 private:
   uint32                  _bufferLen;    //  length of valid data in the buffer
@@ -251,10 +259,6 @@ private:
 
   FILE                   *_file;
 };
-
-
-
-
 
 
 
@@ -293,18 +297,30 @@ private:
 
 class ovStoreOfft {
 private:
-  uint32    _a_iid;
-  uint32    _fileno;    //  the file that contains this a_iid
-  uint32    _offset;    //  offset to the first overlap for this iid
-  uint32    _numOlaps;  //  number of overlaps for this iid
+  uint32    _a_iid;      //  read ID for this block of overlaps.
+
+  uint32    _fileno;     //  the file that contains this a_iid
+  uint32    _offset;     //  offset to the first overlap for this iid
+  uint32    _numOlaps;   //  number of overlaps for this iid
+
+  uint64    _overlapID;  //  overlapID for the first overlap in this block.  in memory, this is the id of the next overlap.
+
+  void       clear(void) {
+    _a_iid     = 0;
+    _fileno    = 0;
+    _offset    = 0;
+    _numOlaps  = 0;
+    _overlapID = 0;
+  };
 
   friend class ovStore;
 
   friend
-  void       writeOverlaps(char       *storePath,
-                           ovsOverlap *ovls,
-                           uint64      ovlsLen,
-                           uint32      fileID);
+  void
+  writeOverlaps(char       *storePath,
+                ovsOverlap *ovls,
+                uint64      ovlsLen,
+                uint32      fileID);
 
   friend
   bool
@@ -318,31 +334,23 @@ private:
 };
 
 
-//  The default here is to open a read only store.  ovStoreBackup is used when creating a store,
-//  inplace.  The other flags are meaningless here.
-//
-//  With ovStoreWrite, two (dangerous!) flags can be enabled.  Don't.
+//  The default here is to open a read only store.
 //
 enum ovStoreType {
   ovStoreReadOnly  = 0,
-  ovStoreBackup    = 1,  //  Might never be used!
-  ovStoreWrite     = 2,  //  Open for write, fail if one exists already
-  ovStoreOverwrite = 4,  //  Open for write, and obliterate an existing store
-  ovStoreReclaim   = 8,  //  As a store is being rewritten, delete the inputs
+  ovStoreWrite     = 1,  //  Open for write, fail if one exists already
+  ovStoreOverwrite = 2,  //  Open for write, and obliterate an existing store
 };
 
 
 class ovStore {
+private:
+  void       ovStore_read(void);
+  void       ovStore_write(void);
+
 public:
-  
-  //OverlapStore      *AS_OVS_openOverlapStorePrivate(const char *name, int useBackup, int saveSpace);
-  //#define            AS_OVS_openOverlapStore(N)  AS_OVS_openOverlapStorePrivate((N), FALSE, FALSE)
-  //OverlapStore      *AS_OVS_createOverlapStore(const char *name, int failOnExist);
   ovStore(const char *name, ovStoreType cType=ovStoreReadOnly);
-
-  //void               AS_OVS_closeOverlapStore(OverlapStore *ovs);
   ~ovStore();
-
 
   //  Read the next overlap from the store.  Return value is the number of overlaps read.
   uint32     readOverlap(ovsOverlap *overlap);
@@ -355,8 +363,6 @@ public:
 
   uint64     numOverlapsInRange(void);
   uint32 *   numOverlapsPerFrag(uint32 &firstFrag, uint32 &lastFrag);
-
-  //uint32     lastFragInStore(void) { return(_info._largestIID); }
 
   //  The (mostly) private interface for adding overlaps to a store.  Overlaps must be sorted already.
 
@@ -372,39 +378,36 @@ public:
                            uint64      ovlsLen,
                            uint32      fileID);
 
-private:
-  void       renameToBackup  (char const *name, uint32 index=0);
-  void       renameFromBackup(char const *name, uint32 index=0);
-  void       removeBackup    (char const *name, uint32 index=0);
 
-  void       renameToBackup  (uint32 index) { renameToBackup(NULL, index); };
-  void       renameFromBackup(uint32 index) { renameFromBackup(NULL, index); };
-  void       removeBackup    (uint32 index) { removeBackup(NULL, index); };
+  //  Add new erates for reads between bgnID and endID.  No checking of IDs is done, but the number
+  //  of erates must agree.
 
-  void       createBackup    (void);
-  void       restoreBackup   (void);
-  void       removeBackup    (void);
-
+  void       addErates(uint32 bgnID, uint32 endID, uint16 *erates, uint64 eratesLen);
 
 private:
-  char           _storePath[FILENAME_MAX];
+  char               _storePath[FILENAME_MAX];
 
-  bool           _isOutput;
-  bool           _useBackup;
-  bool           _saveSpace;
+  bool               _isOutput;
 
-  ovStoreInfo    _info;
+  ovStoreInfo        _info;
 
-  FILE          *_offtFile;
-  ovStoreOfft    _offt;
-  ovStoreOfft    _offm;       //  An empty offset record, for reads with no overlaps
+  uint32             _firstIIDrequested;
+  uint32             _lastIIDrequested;
 
-  uint32         _firstIIDrequested;
-  uint32         _lastIIDrequested;
+  //memoryMappedFile  *_offtMMap;   //  For reading overlaps, a mapped ovStoreOfft file.
+  //ovStoreOfft       *_offts;      //  For reading overlaps, an array of mapped ovStoreOfft's.
+  //uint64             _offtLength; //  For reading overlaps, the number of ovStoreOfft's.
 
-  uint64         _overlapsThisFile;
-  uint32         _currentFileIndex;
-  ovFile        *_bof;
+  FILE              *_offtFile;   //  For writing overlaps, a place to dump ovStoreOfft's.
+  ovStoreOfft        _offt;       //  For writing overlaps, the current ovStoreOfft.
+  ovStoreOfft        _offm;       //  For writing overlaps, an empty ovStoreOfft, for reads with no overlaps.
+
+  memoryMappedFile  *_eratesMap;
+  uint16            *_erates;
+
+  uint64             _overlapsThisFile;  //  Count of the number of overlaps written so far
+  uint32             _currentFileIndex;
+  ovFile            *_bof;
 };
 
 

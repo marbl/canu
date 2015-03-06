@@ -258,7 +258,9 @@ sub overlapErrorAdjustmentCheck ($$$) {
 
     if (scalar(@failedJobs) == 0) {
         open(L, "> $wrk/3-overlapErrorAdjustment/oea.files") or caFailure("failed to open '$wrk/3-overlapErrorAdjustment/oea.files'", undef);
-        print L @successJobs;
+        foreach my $f (@successJobs) {
+            print L "$f\n";
+        }
         close(L);
         return;
     }
@@ -291,6 +293,8 @@ sub updateOverlapStore ($$) {
     my $bin  = getBinDirectory();
     my $cmd;
 
+    return  if (-e "$wrk/$asm.ovlStore/erates");
+
     caFailure("didn't find '$wrk/3-overlapErrorAdjustment/oea.files' to add to store", undef)  if (! -e "$wrk/3-overlapErrorAdjustment/oea.files");
 
     $cmd  = "$bin/ovStoreBuild \\\n";
@@ -300,7 +304,7 @@ sub updateOverlapStore ($$) {
     $cmd .= "  -L $wrk/3-overlapErrorAdjustment/oea.files \\\n";
     $cmd .= "> $wrk/3-overlapErrorAdjustment/oea.apply.err 2>&1\n";
 
-    if (runCommand("$wrk/3-overlapERrorAdjustment", $cmd)) {
+    if (runCommand("$wrk/3-overlapErrorAdjustment", $cmd)) {
         unlink "$wrk/$asm.ovlStore/erates";
         caFailure("failed to add error rates to overlap store", "$wrk/3-overlapErrorAdjustment/oea.apply.err");
     }

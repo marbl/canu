@@ -214,7 +214,7 @@ createOverlapStore($wrk, $asm, "sequential");
 
 #readErrorDetection($wrk, $asm);
 
-#overlapErrorAdjustment($wrk, $asm);
+overlapErrorAdjustment($wrk, $asm);
 
 unitig($wrk, $asm);
 

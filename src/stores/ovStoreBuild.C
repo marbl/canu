@@ -258,6 +258,9 @@ main(int argc, char **argv) {
 
   uint32          nThreads = 4;
 
+  bool            eRates = false;
+
+
   argc = AS_configure(argc, argv);
 
   int err=0;
@@ -318,6 +321,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-big") == 0) {
       lastLibFirstIID = atoi(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-erates") == 0) {
+      eRates = true;
+
     } else if ((argv[arg][0] == '-') && (argv[arg][1] != 0)) {
       fprintf(stderr, "%s: unknown option '%s'.\n", argv[0], argv[arg]);
       err++;
@@ -357,6 +363,9 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -big iid              handle a large number of overlaps in the last library\n");
     fprintf(stderr, "                        iid is the first read iid in the last library, from\n");
     fprintf(stderr, "                        'gatekeeper -dumpinfo *gkpStore'\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -erates               Input files are erate updates from overlap error adjustment\n");
+    fprintf(stderr, "\n");
 
     if (ovlName == NULL)
       fprintf(stderr, "ERROR: No overlap store (-o) supplied.\n");
@@ -371,20 +380,66 @@ main(int argc, char **argv) {
   }
 
 
+
+
+
+  if (eRates) {
+    ovStore  *ovs = new ovStore(ovlName);
+
+    for (uint32 i=0; i<fileList.size(); i++) {
+      errno = 0;
+      FILE  *fp = fopen(fileList[i], "r");
+      if (errno)
+        fprintf(stderr, "Failed to open erates file '%s': %s\n", fileList[i], strerror(errno));
+
+      uint32        bgnID = 0;
+      uint32        endID = 0;
+      uint64        len   = 0;
+
+      fprintf(stderr, "loading erates from '%s'\n", fileList[i]);
+
+      AS_UTL_safeRead(fp, &bgnID, "loid",   sizeof(uint32), 1);
+      AS_UTL_safeRead(fp, &endID, "hiid",   sizeof(uint32), 1);
+      AS_UTL_safeRead(fp, &len,   "len",    sizeof(uint64), 1);
+
+      uint16 *erates = new uint16 [len];
+
+      AS_UTL_safeRead(fp,  erates, "erates", sizeof(uint16), len);
+
+      fclose(fp);
+
+      fprintf(stderr, "loading erates from '%s' -- ID range "F_U32"-"F_U32" with "F_U64" overlaps\n",
+              fileList[i], bgnID, endID, len);
+
+      ovs->addErates(bgnID, endID, erates, len);
+
+      delete [] erates;
+    }
+
+    delete ovs;
+
+    exit(0);
+  }
+
+
+
+
+
+
   //  We create the store early, allowing it to fail if it already
   //  exists, or just cannot be created.
-  //
-  ovStore *storeFile   = new ovStore(ovlName, ovStoreWrite);
-  gkStore *gkp         = new gkStore(gkpName);
 
-  uint64  maxIID       = gkp->gkStore_getNumReads() + 1;
-  uint64  iidPerBucket = computeIIDperBucket(fileLimit, memoryLimit, maxIID, fileList);
+  ovStore  *storeFile   = new ovStore(ovlName, ovStoreWrite);
+  gkStore  *gkp         = new gkStore(gkpName);
+
+  uint64    maxIID       = gkp->gkStore_getNumReads() + 1;
+  uint64    iidPerBucket = computeIIDperBucket(fileLimit, memoryLimit, maxIID, fileList);
 
   lastLibLastIID       = gkp->gkStore_getNumReads();
 
-  uint32         dumpFileMax  = sysconf(_SC_OPEN_MAX) + 1;
-  ovFile       **dumpFile     = new ovFile * [dumpFileMax];
-  uint64        *dumpLength   = new uint64   [dumpFileMax];
+  uint32    dumpFileMax  = sysconf(_SC_OPEN_MAX) + 1;
+  ovFile  **dumpFile     = new ovFile * [dumpFileMax];
+  uint64   *dumpLength   = new uint64   [dumpFileMax];
 
   memset(dumpFile,   0, sizeof(ovFile *) * dumpFileMax);
   memset(dumpLength, 0, sizeof(uint64)   * dumpFileMax);
