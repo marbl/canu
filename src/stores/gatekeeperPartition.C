@@ -37,7 +37,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "usage: %s -G gkpStore -P partitionMapFile\n", argv[0]);
     fprintf(stderr, "  -G gkpStore         path to gatekeeper store\n");
     fprintf(stderr, "  -P partFile         file mapping read ID to partiton\n");
-    fprintf(stderr, "                      format: 'readID partition'\n");
+    fprintf(stderr, "                      format: 'partition readID'\n");
     fprintf(stderr, "  \n");
 
     if (gkpStoreName == NULL)
@@ -67,7 +67,7 @@ main(int argc, char **argv) {
   while (!feof(F)) {
     uint32  i, p;
 
-    if (2 == fscanf(F, " "F_U32" "F_U32" ", &i, &p))
+    if (2 == fscanf(F, " "F_U32" "F_U32" ", &p, &i))
       partition[i] = p;
   }
   fclose(F);
