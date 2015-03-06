@@ -129,6 +129,11 @@ public:
     return(_length);
   };
 
+  memoryMappedFileType   type(void) {
+    return(_type);
+  };
+
+
 private:
   char                    _name[FILENAME_MAX];
 
