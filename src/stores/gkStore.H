@@ -423,16 +423,31 @@ typedef enum {
   gkStore_readOnly    = 0x00,  //  Open read only
   gkStore_modify      = 0x01,  //  Open for modification
   gkStore_extend      = 0x02,  //  Open for modification and appending new reads/libraries
-  gkStore_partitioned = 0x03,  //  Open read only, a partition
-  gkStore_infoOnly    = 0x04   //  Open read only, but only load the info on the store; no access to reads or libraries
+  gkStore_infoOnly    = 0x03   //  Open read only, but only load the info on the store; no access to reads or libraries
 } gkStore_mode;
+
+
+static
+const
+char *
+toString(gkStore_mode mode) {
+  switch (mode) {
+    case gkStore_readOnly:     return("gkStore_readOnly");     break;
+    case gkStore_modify:       return("gkStore_modify");       break;
+    case gkStore_extend:       return("gkStore_extend");       break;
+    case gkStore_infoOnly:     return("gkStore_infoOnly");     break;
+  }
+
+  return("undefined-mode");
+}
+
 
 
 class gkStore {
 public:
 
   //  Open a full gkpStore.
-  gkStore(char const *path, gkStore_mode = gkStore_readOnly, uint32 partID=0);
+  gkStore(char const *path, gkStore_mode = gkStore_readOnly, uint32 partID=UINT32_MAX);
 
   //  Open a partitioned store, only reading is supported.
   //gkStore(char const *path, uint32 partID);
@@ -449,11 +464,42 @@ public:
   void         gkStore_delete(void);             //  Deletes the files in the store.
   void         gkStore_deletePartitions(void);   //  Deletes the files for a partition.
 
-  uint32       gkStore_getNumLibraries(void)       { return(_info.numLibraries); }
-  uint32       gkStore_getNumReads(void)           { return(_info.numReads); }
+  uint32       gkStore_getNumLibraries(void)       { return(_info.numLibraries); };
+  uint32       gkStore_getNumReads(void)           { return(_info.numReads); };
 
-  gkLibrary   *gkStore_getLibrary(uint32 id)       { return(&_libraries[id]); }
-  gkRead      *gkStore_getRead(uint32 id)          { return(&_reads[id]); }
+  gkLibrary   *gkStore_getLibrary(uint32 id)       { return(&_libraries[id]); };
+
+  //  Returns a read, using the copy in the partition if the partition exists.
+  gkRead      *gkStore_getRead(uint32 id)          {
+    if ((_readIDtoPartitionID)   &&
+        (_readIDtoPartitionID[id] != _partitionID)) {
+      fprintf(stderr, "getRead()--  WARNING: access to read %u in partition %u is slow when partition %u is loaded.\n",
+              id, _readIDtoPartitionID[id], _partitionID);
+      assert(0);
+    }
+
+    if ((_readIDtoPartitionID)   &&
+        (_readIDtoPartitionID[id] == _partitionID)) {
+      //fprintf(stderr, "getRead()-- id=%u mapped=%u mappedid=%u\n",
+      //        id, _readIDtoPartitionIdx[id], _reads[_readIDtoPartitionIdx[id]].gkRead_readID());
+      return(_reads + _readIDtoPartitionIdx[id]);
+    }
+
+    return(_reads + id);
+  };
+
+  //  Returns a read, but only if it is in the currently loaded partition.  If no partition is loaded,
+  //  no reads are ever returned.
+  gkRead      *gkStore_getReadInPartition(uint32 id) {
+    if ((_readIDtoPartitionIdx    == NULL) ||
+        (_readIDtoPartitionID[id] != _partitionID))
+      return(NULL);
+
+    fprintf(stderr, "getRead()--  SUCCESS: access to read %u in partition %u is FAST when partition %u is loaded.\n",
+            id, _readIDtoPartitionID[id], _partitionID);
+
+    return(_reads + _readIDtoPartitionIdx[id]);
+  }
 
   gkLibrary   *gkStore_addEmptyLibrary(char const *name);
   gkRead      *gkStore_addEmptyRead(gkLibrary *lib);
@@ -492,9 +538,9 @@ private:
 
   uint32               _numberOfPartitions;     //  Total number of partitions that exist
   uint32               _partitionID;            //  Which partition this is
-  uint32              *_partitionIDmap;         //  Map from global ID to partition ID
-  //uint32              *_readsPerPartition;      //  Number of reads per partition, probably not useful
-  //uint32              *_readIDsInThisPartition; //  A list of the (global ID) reads in this partition
+  uint32              *_readsPerPartition;      //  Number of reads in each partition, mostly sanity checking
+  uint32              *_readIDtoPartitionIdx;   //  Map from global ID to local partition index
+  uint32              *_readIDtoPartitionID;    //  Map from global ID to partition ID
 };
 
 

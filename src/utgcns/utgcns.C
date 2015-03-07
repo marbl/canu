@@ -511,9 +511,31 @@ main (int argc, char **argv) {
   for (uint32 ti=b; ti<e; ti++) {
     tgTig  *tig = tigStore->loadTig(ti);  //  Store owns the tig
 
+    //fprintf(stderr, "tig %u\n", ti);
+
+    //  Deleted?
+
     if (tig == NULL)
-      //  Not in our partition, or deleted.
       continue;
+
+    //  Are we parittioned?  Is this tig in our partition?
+
+    if (tigPart > 0) {
+      uint32  missingReads = 0;
+
+      for (uint32 ii=0; ii<tig->numberOfChildren(); ii++)
+        if (gkpStore->gkStore_getReadInPartition(tig->getChild(ii)->ident()) == NULL)
+          missingReads++;
+
+      if (missingReads) {
+        //fprintf(stderr, "tig %u has %u reads and %u not in this partition\n",
+        //        ti, tig->numberOfChildren(), missingReads);
+        continue;
+      }
+
+      fprintf(stderr, "tig %u has %u reads and %u not in this partition\n",
+              ti, tig->numberOfChildren(), missingReads);
+    }
 
     bool exists = (tig->gappedLength() > 0);
 

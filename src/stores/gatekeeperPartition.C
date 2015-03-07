@@ -47,7 +47,11 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  gkStore    *gkpStore  = new gkStore(gkpStoreName, gkStore_modify);  //  Open for modify!
+  //  Open a READ ONLY store.  This prevents us from mucking with the non-partitioned reads
+  //  (like, by changing the read ID or pointer to the blob).  We don't need it opened
+  //  for writing anyway.
+
+  gkStore    *gkpStore  = new gkStore(gkpStoreName, gkStore_readOnly);
   uint32      numReads  = gkpStore->gkStore_getNumReads();
 
   uint32     *partition = new uint32 [numReads + 1];
