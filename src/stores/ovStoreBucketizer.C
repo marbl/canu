@@ -327,7 +327,7 @@ main(int argc, char **argv) {
 
   fprintf(stderr, "Bucketizing %s\n", ovlInput);
 
-  inputFile = new ovFile(ovlInput);
+  inputFile = new ovFile(ovlInput, ovFileFull);
 
   //  Do bigger buffers increase performance?  Do small ones hurt?
   //AS_OVS_setBinaryOverlapFileBufferSize(2 * 1024 * 1024);
