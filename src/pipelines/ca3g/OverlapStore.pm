@@ -365,7 +365,6 @@ sub createOverlapStoreParallel ($$$@) {
     #  All done!
 
     rename "$wrk/$asm.${typ}Store.BUILDING", "$wrk/$asm.${typ}Store";
-    exit(1);
 }
 
 
