@@ -29,7 +29,7 @@ sub overlapConfigure ($$$) {
 
     make_path("$wrk/1-overlapper") if (! -d "$wrk/1-overlapper");
     
-    if (! -e "") {
+    if (! -e "$wrk/1-overlapper/ovlopt") {
         my $checkLibrary       = getGlobal("ovlCheckLibrary");
         my $hashLibrary        = getGlobal("ovlHashLibrary");
         my $refLibrary         = getGlobal("ovlRefLibrary");
