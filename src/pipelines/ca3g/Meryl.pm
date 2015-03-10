@@ -105,18 +105,18 @@ sub meryl ($$) {
     #  Build the database.
 
     if (! -e "$ofile.mcdat") {
-        my $merylMemory  = getGlobal("merylMemory");
-        my $merylThreads = getGlobal("merylThreads");
+        my $merylOpts = "-threads " . getGlobal("merylThreads");
 
-        if ($merylMemory !~ m/^-/) {
-            $merylMemory = "-memory $merylMemory";
+        if (defined(getGlobal("merylSegments"))) {
+            $merylOpts .= " -segments " . getGlobal("merylSegments");
+        } else {
+            $merylOpts .= " -memory " . getGlobal("merylMemory");
         }
 
-        $cmd  = "$bin/meryl ";
-        $cmd .= " -B -C -v -m $merSize $merylMemory -threads $merylThreads ";
-        $cmd .= " -L 2 ";
-        $cmd .= " -s $wrk/$asm.gkpStore ";
-        $cmd .= " -o $ofile ";
+        $cmd  = "$bin/meryl \\\n";
+        $cmd .= " -B -C -L 2 -v -m $merSize $merylOpts \\\n";
+        $cmd .= " -s $wrk/$asm.gkpStore \\\n";
+        $cmd .= " -o $ofile \\\n";
         $cmd .= "> $wrk/0-mercounts/meryl.err 2>&1";
 
         stopBefore("meryl", $cmd);
