@@ -201,7 +201,7 @@ main(int argc, char **argv) {
 
     fprintf(stderr, "Loading "F_U64" overlaps from '%s'.\n", bucketSizes[i], name);
 
-    ovFile   *bof = new ovFile(name);
+    ovFile   *bof = new ovFile(name, ovFileFull);
     uint64    num = 0;
 
     while (bof->readOverlap(ovls + ovlsLen)) {
@@ -255,6 +255,8 @@ main(int argc, char **argv) {
   fprintf(stderr, "Writing output.\n");
   writeOverlaps(storePath, ovls, ovlsLen, fileID);
 
+  //  Clean up.
+
   delete [] ovls;
 
   if (deleteIntermediateLate) {
@@ -274,4 +276,17 @@ main(int argc, char **argv) {
   }
 
   delete [] bucketSizes;
+
+  //  Remove the sentinel to show we're done.  The output is in "%s/%04d".
+
+  {
+    char name[FILENAME_MAX];
+    sprintf(name,"%s/%04d.ovs", storePath, fileID);
+
+    unlink(name);
+  }
+
+  //  Success!
+
+  return(0);
 }
