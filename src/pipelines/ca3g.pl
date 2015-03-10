@@ -38,21 +38,9 @@ my %global;       #  Global parameters
 my %synops;       #  Global parameters - description
 my %synnam;       #  Global parameters - case sensitive name
 
-my $specLog            = "";
-
-my @specFiles;
-my @specOpts;
-my @inputFiles;
-
-
-
-#require "./runCA-jobSubmission.pl";
-#require "./runCA-defaults.pl";
-#require "./runCA-gatekeeper.pl";
-
-
-
-
+my @specFiles;    #  Files of specs
+my @specOpts;     #  Command line specs
+my @inputFiles;   #  Command line inputs, later inputs in spec files are added
 
 
 #  Initialize our defaults.
@@ -199,12 +187,10 @@ gatekeeper($wrk, $asm, @inputFiles);
 meryl($wrk, $asm);
 
 overlapConfigure($wrk, $asm, "normal");
-#overlap($wrk, $asm, "normal");
 overlapCheck($wrk, $asm, "normal", 0);
 overlapCheck($wrk, $asm, "normal", 1);
 
-createOverlapStore($wrk, $asm, "sequential");
-#createOverlapStore($wrk, $asm, "parallel");
+createOverlapStore($wrk, $asm, "ovl", getGlobal("ovlStoreMethod"));
 
 #if (0) {
 #    initialTrim($wrk, $asm);

@@ -157,8 +157,10 @@ sub schedulerFinish ($) {
 #  File Management
 #
 
-sub touch ($) {
+sub touch ($@) {
+
     open(F, "> $_[0]") or caFailure("failed to touch file '$_[0]'", undef);
+    print F "$_[1]\n"  if (defined($_[1]));
     close(F);
 }
 
@@ -389,6 +391,22 @@ sub buildGridArray ($$$$) {
 
 
 
+sub buildOutputName ($$$) {
+    my $path   = shift @_;
+    my $script = shift @_;
+    my $tid    = shift @_;
+
+    my $outName = "$path/$script.$tid.out";
+
+    if ((-e "$path/logs") && ($script =~ m/scripts\/(.*)/)) {
+        $outName = "$path/logs/$1.$tid.out";
+    }
+
+    return($outName);
+}
+
+
+
 sub buildGridJob ($$$$$$) {
     my $asm     = shift @_;
     my $jobType = shift @_;
@@ -421,6 +439,7 @@ sub buildGridJob ($$$$$$) {
 
     my $outputOption  = getGlobal("gridEngineOutputOption");
     my $tid           = getGlobal("gridEngineArraySubmitID");
+    my $outName       = buildOutputName($path, $script, $tid);
 
     #  Build the command line.
 
@@ -429,7 +448,7 @@ sub buildGridJob ($$$$$$) {
     $cmd .= "    $gridOpts \\\n"  if ($gridOpts ne " ");
     $cmd .= "    $nameOption \"$jobName\" \\\n";
     $cmd .= "    $arrayOpt \\\n";
-    $cmd .= "    $outputOption $path/$script.$tid.out \\\n";
+    $cmd .= "    $outputOption $outName \\\n";
     $cmd .= "    $path/$script.sh\n";
 
     #  Save it, just because.
@@ -506,17 +525,20 @@ sub convertToJobRange (@) {
 #  If under grid control, submit grid jobs.  Otherwise, run in parallel locally.
 #
 sub submitOrRunParallelJob ($$$$$$@) {
-    my $wrk        = shift @_;
-    my $asm        = shift @_;
+    my $wrk          = shift @_;
+    my $asm          = shift @_;
 
-    my $jobType    = shift @_;  #  E.g., ovl, cns, ... - populates 'gridOptionsXXX and useGridXXX (former XXXOnGrid)
+    my $jobType      = shift @_;  #  E.g., ovl, cns, ... - populates 'gridOptionsXXX and useGridXXX (former XXXOnGrid)
                              #                         - also becomes the grid job name prefix, so three letters suggested
-    my $path       = shift @_;
-    my $script     = shift @_;  #  Runs $path/$script.sh > $path/$script.######.out
+    my $path         = shift @_;
+    my $script       = shift @_;  #  Runs $path/$script.sh > $path/$script.######.out
 
-    my $nParallel  = shift @_;
+    my $nParallel    = shift @_;
 
-    my @jobs       = convertToJobRange(@_);
+    #my $holds        = shift @_;
+    #my $submitScript = shift @_;
+
+    my @jobs         = convertToJobRange(@_);
 
     #  The script MUST be executable.
 
@@ -575,8 +597,9 @@ sub submitOrRunParallelJob ($$$$$$@) {
         }
 
         for (my $i=$st; $i<=$ed; $i++) {
-            my $out = substr("000000" . $i, -6);
-            schedulerSubmit("$path/$script.sh $i > $path/$script.$out.out 2>&1");
+            my $outName  = buildOutputName($path, $script, substr("000000" . $i, -6));
+
+            schedulerSubmit("$path/$script.sh $i > $outName 2>&1");
         }
     }
 

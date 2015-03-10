@@ -629,9 +629,6 @@ sub setDefaults () {
     $global{"ovlOverlapper"}               = "ovl";
     $synops{"ovlOverlapper"}               = "Which overlap algorithm to use for OVL (unitigger) overlaps";
 
-    $global{"ovlStoreMemory"}              = 1024;
-    $synops{"ovlStoreMemory"}              = "How much memory (MB) to use when constructing overlap stores";
-
     $global{"ovlThreads"}                  = 2;
     $synops{"ovlThreads"}                  = "Number of threads to use when computing overlaps";
 
@@ -686,10 +683,30 @@ sub setDefaults () {
     $global{"saveOverlaps"}                = 0;
     $synops{"saveOverlaps"}                = "Save intermediate overlap files";
 
+    ##### Overlap Store
+
+    $global{"ovlStoreMemory"}              = 2048;
+    $synops{"ovlStoreMemory"}              = "How much memory (MB) to use when constructing overlap stores";
+
+    $global{"ovlStoreMethod"}              = "sequential";
+    $synops{"ovlStoreMethod"}              = "Use the 'sequential' or 'parallel' algorithm for constructing an overlap store";
+
+    $global{"ovlStoreSlices"}              = 128;
+    $synops{"ovlStoreSlices"}              = "How many pieces to split the sorting into, for the parallel store build";
+
+    $global{"osbConcurrency"}              = 12;
+    $synops{"osbConcurrency"}              = "How many bucketizing jobs to run concurrently, for the parallel store build";
+
+    $global{"ossConcurrency"}              = 4;
+    $synops{"ossConcurrency"}              = "How many sorting jobs to run concurrently, for the parallel store build";
+
     #####  Mers
 
-    $global{"merylMemory"}                 = 800;
-    $synops{"merylMemory"}                 = "Amount of memory, in MB, to use for mer counting";
+    $global{"merylMemory"}                 = 4096;
+    $synops{"merylMemory"}                 = "Amount of memory, in MB, to use for mer counting (conflicts with merylSegments)";
+
+    $global{"merylSegments"}               = undef;
+    $synops{"merylSegments"}               = "Number of segments to compute (overrides merylMemory)";
 
     $global{"merylThreads"}                = 1;
     $synops{"merylThreads"}                = "Number of threads to use for mer counting";
