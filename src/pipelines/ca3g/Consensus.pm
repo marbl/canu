@@ -21,6 +21,59 @@ use ca3g::Gatekeeper;
 #  falcon_sense
 
 
+#
+#sub findBlasr($) {
+#   my $cns = shift @_;
+#
+#   if ($cns ne "pbdagcon" && $cns ne "pbutgcns") {
+#      return undef;
+#   }
+#
+#   my $CA = getBinDirectory();
+#   my $BLASR = "$CA/../../../smrtanalysis/current/analysis/bin/";
+#
+#   if (! -e "$BLASR/blasr" && $cns eq "pbdagcon") {
+#      if (-e "$CA/blasr") {
+#         $BLASR = $CA;
+#      } else {
+#         # try to use path
+#         my $amosPath = `which blasr`;
+#         chomp $amosPath;
+#         my @t = split '/', "$amosPath";
+#         pop @t;                      #  blasr
+#         $BLASR = join '/', @t;  #  path to the assembler
+#      }
+#      # if we really can't find it just give up
+#      if (! -e "$BLASR/blasr") {
+#         return undef;
+#      }
+#
+#      # check for consensus too
+#      # make sure we have the pb consensus module available if it was requested
+#      if (! -e "$BLASR/blasr" || ! -e "$BLASR/pbdagcon") {
+#         return undef;
+#      }
+#   } elsif (! -e "$BLASR/pbutgcns" && $cns eq "pbutgcns") {
+#      if (-e "$CA/pbutgcns") {
+#         $BLASR = $CA;
+#      } else {
+#         # try to use path
+#         my $amosPath = `which pbutgcns`;
+#         chomp $amosPath;
+#         my @t = split '/', "$amosPath";
+#         pop @t;                      #  pbutgcns
+#         $BLASR = join '/', @t;  #  path to the assembler
+#      }
+#      # if we really can't find it just give up
+#      if (! -e "$BLASR/pbutgcns") {
+#         return undef;
+#      }
+#   }
+#   return $BLASR;
+#}
+#
+
+
 
 sub computeNumberOfConsensusJobs ($$) {
     my $wrk    = shift @_;
