@@ -153,13 +153,8 @@ main(int argc, char **argv) {
   //  Removing indices is easy, beacuse we know how many there are.
 
   for (uint32 i=1; i<=maxJob; i++) {
-    sprintf(name, "%s/%04u.idx", storePath, i);
-    //fprintf(stderr, "unlink %s\n", name);
-    AS_UTL_unlink(name);
-
-    sprintf(name, "%s/%04u.ovs", storePath, i);
-    //fprintf(stderr, "unlink %s\n", name);
-    AS_UTL_unlink(name);
+    sprintf(name, "%s/%04u.index", storePath, i);   AS_UTL_unlink(name);
+    sprintf(name, "%s/%04u.info",  storePath, i);   AS_UTL_unlink(name);
   }
 
   //  We don't know how many buckets there are, so we remove until we fail to find ten
