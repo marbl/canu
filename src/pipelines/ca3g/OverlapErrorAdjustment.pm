@@ -49,7 +49,7 @@ sub concatOutput ($@) {
 
 
 
-sub readErrorDetectionCompute ($$) {
+sub readErrorDetectionConfigure ($$) {
     my $wrk   = shift @_;
     my $asm   = shift @_;
 
@@ -170,7 +170,7 @@ sub readErrorDetectionCheck ($$$) {
 
 
 
-sub overlapErrorAdjustmentCompute ($$) {
+sub overlapErrorAdjustmentConfigure ($$) {
     my $wrk   = shift @_;
     my $asm   = shift @_;
 
@@ -265,10 +265,10 @@ sub overlapErrorAdjustmentCheck ($$$) {
         return;
     }
 
-    if (scalar(@failedJobs) == 0) {
-        concatOutput("$wrk/3-overlapErrorAdjustment/oea.oea", @successJobs);
-        return;
-    }
+    #if (scalar(@failedJobs) == 0) {
+    #    concatOutput("$wrk/3-overlapErrorAdjustment/oea.oea", @successJobs);
+    #    return;
+    #}
 
     print STDERR "\n";
     print STDERR scalar(@failedJobs), " overlap error adjustment jobs failed:\n";
@@ -334,11 +334,11 @@ sub overlapErrorAdjustment ($$) {
 
     make_path("$wrk/3-overlapErrorAdjustment")  if (! -d "$wrk/3-overlapErrorAdjustment");
 
-    readErrorDetectionCompute($wrk, $asm);
+    readErrorDetectionConfigure($wrk, $asm);
     readErrorDetectionCheck($wrk, $asm, 0);
     readErrorDetectionCheck($wrk, $asm, 1);
 
-    overlapErrorAdjustmentCompute($wrk, $asm);
+    overlapErrorAdjustmentConfigure($wrk, $asm);
     overlapErrorAdjustmentCheck($wrk, $asm, 0);
     overlapErrorAdjustmentCheck($wrk, $asm, 1);
 
