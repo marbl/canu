@@ -23,17 +23,6 @@ static const char *rcsid = "$Id$";
 
 #include "ovStore.H"
 
-#if 0
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <assert.h>
-#include <limits.h>
-#endif
-
 const uint64 ovStoreVersion         = 2;
 const uint64 ovStoreMagic           = 0x4c564f3a67336163;   //  == "ca3g:OVS - store complete
 const uint64 ovStoreMagicIncomplete = 0x50564f3a67336163;   //  == "ca3g:OVP - store under construction
@@ -848,7 +837,7 @@ writeOverlaps(char       *storePath,
   //  Create the output file
 
   sprintf(name, "%s/%04d", storePath, fileID);
-  ovFile *bof = new ovFile(name, ovFileFullWrite);
+  ovFile *bof = new ovFile(name, ovFileNormalWrite);
 
   //  Create the index file
 
@@ -1042,12 +1031,12 @@ mergeInfoFiles(char       *storePath,
   ovStoreInfo    infopiece;
   ovStoreInfo    info;
 
-	info._ovsMagic              = 1;
+  info._ovsMagic              = ovStoreMagic;
 	info._ovsVersion            = ovStoreVersion;
   info._smallestIID           = UINT64_MAX;
   info._largestIID            = 0;
   info._numOverlapsTotal      = 0;
-  info._highestFileIndex      = 0;
+  info._highestFileIndex      = nPieces;
 	info._maxReadLenInBits      = AS_MAX_READLEN_BITS;
 
   ovStoreOfft offm;
@@ -1067,8 +1056,6 @@ mergeInfoFiles(char       *storePath,
   FILE  *idx = fopen(name, "w");
   if (errno)
     fprintf(stderr, "ERROR: Failed to open '%s': %s\n", name, strerror(errno)), exit(1);
-
-  info._highestFileIndex = nPieces;
 
   //  Special case, we need an empty index for the zeroth fragment.
 
