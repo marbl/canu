@@ -31,9 +31,6 @@ const char *mainid = "$Id$";
 
 using namespace std;
 
-#undef  DELETE_INTERMEDIATE_EARLY
-#define DELETE_INTERMEDIATE_LATE
-
 
 int
 main(int argc, char **argv) {
