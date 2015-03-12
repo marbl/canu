@@ -143,7 +143,7 @@ main(int argc, char **argv) {
 
   if (deleteIntermediates == false) {
     fprintf(stderr, "\n");
-    fprintf(stderr, "Not removing intermediate files.\n");
+    fprintf(stderr, "Not removing intermediate files.  Finished.\n");
     exit(0);
   }
 
@@ -171,13 +171,13 @@ main(int argc, char **argv) {
     missing = 0;
 
     sprintf(name, "%s/bucket%04d/sliceSizes", storePath, i);
-    //fprintf(stderr, "unlink %s\n", name);
     AS_UTL_unlink(name);
 
     sprintf(name, "%s/bucket%04d", storePath, i);
-    //fprintf(stderr, "rmdir %s\n", name);
     rmdir(name);
   }
+
+  fprintf(stderr, "Finished.\n");
 
   exit(0);
 }
