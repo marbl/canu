@@ -24,9 +24,13 @@ use ca3g::Gatekeeper;
 use ca3g::Meryl;
 use ca3g::OverlapInCore;
 use ca3g::OverlapStore;
+
+use ca3g::OverlapBasedTrimming;
+
 use ca3g::OverlapErrorAdjustment;
 use ca3g::Unitig;
 use ca3g::Consensus;
+use ca3g::Output;
 
 
 my $bin = undef;  #  Path to binaries, set once in main.
@@ -180,7 +184,10 @@ writeLog($wrk);
 
 submitScript($wrk, $asm, undef);
 
-#  Begin
+
+#
+#  Begin pipeline
+#
 
 gatekeeper($wrk, $asm, @inputFiles);
 
@@ -192,14 +199,23 @@ overlapCheck($wrk, $asm, "normal", 1);
 
 createOverlapStore($wrk, $asm, "ovl", getGlobal("ovlStoreMethod"));
 
-#if (0) {
-#    initialTrim($wrk, $asm);
-#    finalTrim($wrk, $asm);
-#    chimeraDetection($wrk, $asm);
-#}
+#
+#  Begin Overlap Based Trimming
+#
+
+if (getGlobal("doOverlapBasedTrimming")) {
+    dedupeReads($wrk, $asm);
+    trimReads($wrk, $asm);
+    splitReads($wrk, $asm);
+    dumpReads($wrk, $asm);
+    exit(0);
+}
+
+#
+#  Begin Assembly
+#
 
 #readErrorDetection($wrk, $asm);
-
 overlapErrorAdjustment($wrk, $asm);
 
 unitig($wrk, $asm);
@@ -208,12 +224,8 @@ consensusConfigure($wrk, $asm);
 consensusCheck($wrk, $asm, 0);
 consensusCheck($wrk, $asm, 1);
 
-#utgcns();
-#make_consensus();
-#pbdagcon();
-#falcon_sense();
-
-#output();
+outputLayout($wrk, $asm);
+outputConsensus($wrk, $asm);
 
 exit(0);
 

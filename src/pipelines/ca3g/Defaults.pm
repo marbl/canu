@@ -453,8 +453,7 @@ sub setGlobal (%$$) {
 
     #  Update aliases.
 
-    $var = "doOverlapBasedTrimming"    if ($var eq "doOBT");
-    $var = "doExtendClearRanges"       if ($var eq "doECR");
+    $var = "dooverlapbasedtrimming"    if ($var eq "doobt");
 
     #  If "help" exists, we're parsing command line options, and will catch this failure in
     #  printHelp().  Otherwise, this is an internal error, and we should bomb now.
@@ -612,10 +611,10 @@ sub setDefaults () {
 
     #####  Overlap Based Trimming
 
-    $global{"doOverlapBasedTrimming"}      = 1;
+    $global{"doOverlapBasedTrimming"}      = 0;
     $synops{"doOverlapBasedTrimming"}      = "Enable the Overlap Based Trimming module (doOBT and doOverlapTrimming are aliases)";
 
-    $global{"doDeDuplication"}             = 1;
+    $global{"doDeDuplication"}             = 0;
     $synops{"doDeDuplication"}             = "Enable the OBT duplication detection and cleaning module for 454 reads, enabled automatically";
 
     $global{"doChimeraDetection"}          = "normal";
