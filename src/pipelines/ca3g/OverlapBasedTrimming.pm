@@ -16,36 +16,6 @@ use ca3g::Execution;
 #  ovlStore (with proper obt filtering) and possibly a dupStore.
 
 
-#  Do an initial overly-permissive quality trimming, intersected with any known vector trimming.
-#  This step also applies any clear range computed by MBT.
-#  This step must be done before gkpStore is constructed.
-#
-#  Initial trimming can't be done anymore.  With no clear ranges in the store, we need to chop
-#  reads.  To do initial trimming, we need to rewrite fastq, before gkpStore is created.
-#
-sub qualTrimReads ($$) {
-    my $wrk    = shift @_;
-    my $asm    = shift @_;
-    my $bin    = getBinDirectory();
-    my $cmd;
-
-    return  if (-e "$wrk/$asm.gkpStore");
-    return  if (-e "$wrk/0-initialtrimming/trimmed.gkp");
-
-    $cmd  = "$bin/initialTrim \\\n";
-    $cmd .= "  -log $wrk/0-overlaptrim/$asm.initialTrim.log \\\n";
-    $cmd .= "  -frg $wrk/$asm.gkpStore \\\n";
-    $cmd .= ">  $wrk/0-overlaptrim/$asm.initialTrim.summary \\\n";
-    $cmd .= "2> $wrk/0-overlaptrim/$asm.initialTrim.err ";
-
-    stopBefore("initialTrim", $cmd);
-
-    if (runCommand("$wrk/0-overlaptrim", $cmd)) {
-        rename "$wrk/0-overlaptrim/$asm.initialTrim.log", "$wrk/0-overlaptrim/$asm.initialTrim.log.FAILED";
-        caFailure("initial trimming failed", "$wrk/0-overlaptrim/$asm.initialTrim.err");
-    }
-}
-
 
 sub dedupeReads ($$) {
     my $wrk    = shift @_;
