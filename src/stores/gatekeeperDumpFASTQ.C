@@ -108,14 +108,15 @@ main(int argc, char **argv) {
   uint32           bgnID             = 1;
   uint32           endID             = AS_MAX_READS;
 
-  bool             dumpInfoOnly      = false;
-
   argc = AS_configure(argc, argv);
 
   int arg = 1;
   int err = 0;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-l") == 0) {
+    if        (strcmp(argv[arg], "-G") == 0) {
+      gkpStoreName = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-l") == 0) {
       libToDump = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-b") == 0) {
@@ -124,25 +125,8 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-e") == 0) {
       endID  = atoi(argv[++arg]);
 
-    } else if (strcmp(argv[arg], "-g") == 0) {
-      gkpStoreName = argv[++arg];
-
     } else if (strcmp(argv[arg], "-o") == 0) {
       outPrefix = argv[++arg];
-
-
-    //  Needs a better home.
-    //
-    //  Propose 'gatekeeper <mode> <options>:
-    //    mode - dumpfastq
-    //    mode - dumpfasta
-    //    mode - dumpinfo
-    //
-    //
-    //
-    } else if (strcmp(argv[arg], "-I") == 0) {
-      dumpInfoOnly = true;
-
 
     } else {
       err++;
@@ -157,34 +141,21 @@ main(int argc, char **argv) {
     err++;
   if (err) {
     fprintf(stderr, "usage: %s [...] -o fastq-prefix -g gkpStore\n", argv[0]);
-    fprintf(stderr, "  -g gkpStore\n");
+    fprintf(stderr, "  -G gkpStore\n");
     fprintf(stderr, "  -o fastq-prefix     write files fastq-prefix.1.fastq, fastq-prefix.2.fastq, fastq-prefix.paired.fastq, fastq-prefix.unmated.fastq\n");
     fprintf(stderr, "  \n");
-    fprintf(stderr, "  -l libToDump        output only fragments in library number libToDump (NOT IMPLEMENTED)\n");
-    fprintf(stderr, "  -b id               output starting at fragment id\n");
-    fprintf(stderr, "  -e id               output stopping after fragment id\n");
+    fprintf(stderr, "  -l libToDump        output only read in library number libToDump (NOT IMPLEMENTED)\n");
+    fprintf(stderr, "  -b id               output starting at read 'id'\n");
+    fprintf(stderr, "  -e id               output stopping after read 'id'\n");
     fprintf(stderr, "  \n");
 
     if (gkpStoreName == NULL)
-      fprintf(stderr, "ERROR: no gkpStore (-g) supplied.\n");
+      fprintf(stderr, "ERROR: no gkpStore (-G) supplied.\n");
     if (outPrefix == NULL)
       fprintf(stderr, "ERROR: no output prefix (-o) supplied.\n");
+
     exit(1);
   }
-
-
-  //  This should be calling _info.dumpInfoAsText(), but thats private.
-  if (dumpInfoOnly) {
-    gkStore    *gkpStore  = new gkStore(gkpStoreName, gkStore_infoOnly);
-
-    fprintf(stderr, "numReads      "F_U32"\n", gkpStore->gkStore_getNumReads());
-    fprintf(stderr, "numLibraries  "F_U32"\n", gkpStore->gkStore_getNumLibraries());
-
-    delete gkpStore;
-
-    exit(0);
-  }
-
 
   gkStore    *gkpStore  = new gkStore(gkpStoreName);
   uint32      numReads  = gkpStore->gkStore_getNumReads();

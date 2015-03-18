@@ -273,14 +273,17 @@ public:
   ~gkRead() {
   };
 
-  uint32    gkRead_readID(void)             { return(_readID);           };
+  uint32      gkRead_readID(void)             { return(_readID);           };
 
-  uint32    gkRead_libraryID(void)          { return(_libraryID);        };
+  uint32      gkRead_libraryID(void)          { return(_libraryID);        };
 
-  uint32    gkRead_sequenceLength(void)     { return(_seqLen);           };
+  uint32      gkRead_sequenceLength(void)     { return(_seqLen);           };
 
-  bool      gkRead_isDeleted(void)          { return(_deleted);          };
-  void      gkRead_isDeleted(bool deleted)  { _deleted = deleted;        };
+  bool        gkRead_isDeleted(void)          { return(_deleted);          };
+  void        gkRead_isDeleted(bool deleted)  { _deleted = deleted;        };
+
+  uint64      gkRead_mPtr(void) { return(_mPtr); };  //  For debugging, in gatekeeperDumpMetatData
+  uint64      gkRead_pID(void)  { return(_pID);  };
 
 public:
   bool        gkRead_loadData(gkReadData *readData, void *blob);

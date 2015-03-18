@@ -91,6 +91,7 @@ SRC_INCDIRS  := . AS_UTL stores alignment overlapInCore/liboverlap utgcns/libcns
 #  update just those objects.  Instead, this must list each binary indifidually.
 SUBMAKEFILES := stores/gatekeeperCreate.mk \
                 stores/gatekeeperDumpFASTQ.mk \
+                stores/gatekeeperDumpMetaData.mk \
                 stores/gatekeeperPartition.mk \
                 stores/ovStoreBuild.mk \
                 stores/ovStoreBucketizer.mk \

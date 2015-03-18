@@ -19,6 +19,7 @@ SOURCES  := gkStore.C \
 SRC_INCDIRS  := .. ../AS_UTL
 SUBMAKEFILES := gatekeeperCreate.mk \
                 gatekeeperDumpFASTQ.mk \
+                gatekeeperDumpMetaData.mk \
                 gatekeeperPartition.mk \
                 ovStoreBuild.mk \
                 ovStoreBucketizer.mk \
