@@ -45,9 +45,7 @@ uint32 blockSize = 1000;
 class readErrorEstimate {
 public:
   readErrorEstimate() {
-    clrBgn = 0;
-    clrEnd = 0;
-    clrLen = 0;
+    seqLen = 0;
 
     errorMeanS      = NULL;  //  Sum of error up to this point
     //errorStdDev     = NULL;
@@ -69,14 +67,12 @@ public:
     if (read->gkRead_isDeleted() == 1)
       return(sizeof(readErrorEstimate));
 
-    clrBgn = read->gkRead_clearRegionBegin();
-    clrEnd = read->gkRead_clearRegionEnd  ();
-    clrLen = clrEnd - clrBgn;
+    seqLen = read->gkRead_sequenceLength();
 
-    errorMeanS      = new uint32 [clrLen + 1];
-    //errorStdDev     = new double [clrLen + 1];
-    //errorConfidence = new double [clrLen + 1];
-    errorMeanU      = new uint16 [clrLen + 1];
+    errorMeanS      = new uint32 [seqLen + 1];
+    //errorStdDev     = new double [seqLen + 1];
+    //errorConfidence = new double [seqLen + 1];
+    errorMeanU      = new uint16 [seqLen + 1];
 
 #if 0
     uint32  err40 = AS_OVS_encodeQuality(0.40);
@@ -87,23 +83,21 @@ public:
     //  instead of this loop, we can build one full (0-max_read_len) array,
     //  then copy the start N elements to each errorMeanS
 
-    for (uint32 ii=1; ii<clrLen; ii++) {
+    for (uint32 ii=1; ii<seqLen; ii++) {
       errorMeanS[ii] = errorMeanS[ii-1] + err40;
       errorMeanU[ii] = 0;
     }
 #endif
 
 #if 0
-    //memset(errorMeanS, 0xff, sizeof(uint32) * (readProfile[iid].clrLen + 1));
-    //memset(errorMeanU, 0x00, sizeof(uint16) * (readProfile[iid].clrLen + 1));
+    //memset(errorMeanS, 0xff, sizeof(uint32) * (readProfile[iid].seqLen + 1));
+    //memset(errorMeanU, 0x00, sizeof(uint16) * (readProfile[iid].seqLen + 1));
 #endif
 
-    return(sizeof(uint16) * (clrLen + 1 + clrLen + 1) + sizeof(readErrorEstimate));
+    return(sizeof(uint16) * (seqLen + 1 + seqLen + 1) + sizeof(readErrorEstimate));
   };
 
-  uint32     clrBgn;
-  uint32     clrEnd;
-  uint32     clrLen;
+  uint32     seqLen;
 
   uint32    *errorMeanS;
   //double    *errorStdDev;
@@ -148,15 +142,15 @@ public:
     obt.a_iid              =  a_iid;
     obt.b_iid              = (b_iid_hi << 14) | (b_iid_lo);
 
-    int32 clrLenA = readProfile[obt.a_iid - iidMin].clrLen;
-    int32 clrLenB = readProfile[obt.b_iid - iidMin].clrLen;
+    int32 seqLenA = readProfile[obt.a_iid - iidMin].seqLen;
+    int32 seqLenB = readProfile[obt.b_iid - iidMin].seqLen;
 
     //  Swiped from AS_OVS_overlap.C
 
     uint32  abgn    = (a_hang < 0) ? (0)                : (a_hang);
-    uint32  aend    = (b_hang < 0) ? (clrLenA + b_hang) : (clrLenA);
+    uint32  aend    = (b_hang < 0) ? (seqLenA + b_hang) : (seqLenA);
     uint32  bbgn    = (a_hang < 0) ? (-a_hang)          : (0);
-    uint32  bend    = (b_hang < 0) ? (clrLenB)          : (clrLenB - b_hang);
+    uint32  bend    = (b_hang < 0) ? (seqLenB)          : (seqLenB - b_hang);
 
     obt.dat.obt.type     =  AS_OVS_TYPE_OBT;
 
@@ -180,15 +174,15 @@ public:
     a_iid              =  ovl.a_iid;
     b_iid              = (ovl.b_iid_hi << 14) | (ovl.b_iid_lo);
 
-    int32 clrLenA = readProfile[a_iid - iidMin].clrLen;
-    int32 clrLenB = readProfile[b_iid - iidMin].clrLen;
+    int32 seqLenA = readProfile[a_iid - iidMin].seqLen;
+    int32 seqLenB = readProfile[b_iid - iidMin].seqLen;
 
     //  Swiped from AS_OVS_overlap.C
 
     uint32  abgn    = (ovl.a_hang < 0) ? (0)                    : (ovl.a_hang);
-    uint32  aend    = (ovl.b_hang < 0) ? (clrLenA + ovl.b_hang) : (clrLenA);
+    uint32  aend    = (ovl.b_hang < 0) ? (seqLenA + ovl.b_hang) : (seqLenA);
     uint32  bbgn    = (ovl.a_hang < 0) ? (-ovl.a_hang)          : (0);
-    uint32  bend    = (ovl.b_hang < 0) ? (clrLenB)              : (clrLenB - ovl.b_hang);
+    uint32  bend    = (ovl.b_hang < 0) ? (seqLenB)              : (seqLenB - ovl.b_hang);
 
     a_beg    = abgn;
     a_end    = aend;
@@ -227,7 +221,7 @@ saveProfile(uint32             iid,
 
   FILE   *F = fopen(N, "w");
 
-  for (uint32 pp=0; pp<readProfile[iid].clrLen; pp++)
+  for (uint32 pp=0; pp<readProfile[iid].seqLen; pp++)
     fprintf(F, "%u %7.4f\n", pp, AS_OVS_decodeQuality(readProfile[iid].errorMeanS[pp]));
 
   fclose(F);
@@ -301,7 +295,7 @@ recomputeErrorProfile(gkStore           *gkpStore,
 
 #pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 iid=0; iid<numIIDs; iid++) {
-    if (readProfile[iid].clrLen == 0)
+    if (readProfile[iid].seqLen == 0)
       //  Deleted read.
       continue;
 
@@ -352,7 +346,7 @@ recomputeErrorProfile(gkStore           *gkpStore,
 
     //  Unpack the list into an array of mean error rate per base
 
-    memset(readProfile[iid].errorMeanU, 0, sizeof(uint16) * (readProfile[iid].clrLen + 1));
+    memset(readProfile[iid].errorMeanU, 0, sizeof(uint16) * (readProfile[iid].seqLen + 1));
 
     for (uint32 ii=0; ii<eRateMap.numberOfIntervals(); ii++) {
       double eVal = (eRateMap.depth(ii) > 0) ? (eRateMap.value(ii) / eRateMap.depth(ii)) : 0;
@@ -360,7 +354,7 @@ recomputeErrorProfile(gkStore           *gkpStore,
       assert(0.0 <= eVal);
       assert(eVal <= 1.0);
 
-      assert(eRateMap.hi(ii) <= readProfile[iid].clrLen);
+      assert(eRateMap.hi(ii) <= readProfile[iid].seqLen);
 
       uint16  eEnc = AS_OVS_encodeQuality(eVal);
 
@@ -378,12 +372,12 @@ recomputeErrorProfile(gkStore           *gkpStore,
   //  summed error per base
 
   for (uint32 iid=0; iid<numIIDs; iid++) {
-    if (readProfile[iid].clrLen == 0)
+    if (readProfile[iid].seqLen == 0)
       continue;
 
     readProfile[iid].errorMeanS[0] = readProfile[iid].errorMeanU[0];
 
-    for (uint32 ii=1; ii<readProfile[iid].clrLen; ii++)
+    for (uint32 ii=1; ii<readProfile[iid].seqLen; ii++)
       readProfile[iid].errorMeanS[ii] = readProfile[iid].errorMeanS[ii-1] + readProfile[iid].errorMeanU[ii];
   }
 
@@ -465,7 +459,7 @@ outputOverlaps(gkStore           *gkpStore,
 
 #if 0
   for (uint32 iid=0; iid<numIIDs; iid++) {
-    if (readProfile[iid].clrLen == 0)
+    if (readProfile[iid].seqLen == 0)
       //  Deleted read.
       continue;
 

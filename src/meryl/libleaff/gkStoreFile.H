@@ -22,7 +22,7 @@ public:
   };
 
   uint32        getSequenceLength(uint32 iid) {
-    return(gkp->gkStore_getRead(iid + 1)->gkRead_clearRegionLength());
+    return(gkp->gkStore_getRead(iid + 1)->gkRead_sequenceLength());
   };
 
   bool          getSequence(uint32 iid,

@@ -266,10 +266,6 @@ public:
     _deleted    = false;
     _flagpad    = 0;
 
-    _clrBgn     = 0;
-    _clrEnd     = 0;
-    _sizepad    = 0;
-
     _mPtr       = 0;
     _pID        = 0;
   };
@@ -285,15 +281,6 @@ public:
 
   bool      gkRead_isDeleted(void)          { return(_deleted);          };
   void      gkRead_isDeleted(bool deleted)  { _deleted = deleted;        };
-
-  uint32    gkRead_clearRegionBegin(void)   { return(_clrBgn);           };
-  uint32    gkRead_clearRegionEnd(void)     { return(_clrEnd);           };
-  uint32    gkRead_clearRegionLength(void)  { return(_clrEnd - _clrBgn); };
-
-  void      gkRead_setClearRegion(uint32 bgn, uint32 end) {
-    _clrBgn = bgn;
-    _clrEnd = end;
-  };
 
 public:
   bool        gkRead_loadData(gkReadData *readData, void *blob);
@@ -328,10 +315,6 @@ private:
                             AS_MAX_READS_BITS -
                             AS_MAX_LIBRARIES_BITS -
                             AS_MAX_READLEN_BITS - 1);
-
-  uint64   _clrBgn       : AS_MAX_READLEN_BITS;
-  uint64   _clrEnd       : AS_MAX_READLEN_BITS;
-  uint64   _sizepad      : 64 - 2 * AS_MAX_READLEN_BITS;
 
   uint64   _mPtr         : 48;      //  Pointer to blob of data in blob file
   uint64   _pID          : 16;      //  Partition file id, 0...1024

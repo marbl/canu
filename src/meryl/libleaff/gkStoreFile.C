@@ -61,7 +61,7 @@ gkStoreFile::getSequence(uint32 iid,
 
   iid++;
 
-  uint32  rLength = gkp->gkStore_getRead(iid)->gkRead_clearRegionLength();
+  uint32  rLength = gkp->gkStore_getRead(iid)->gkRead_sequenceLength();
 
   if (hMax < 32) {
     delete h;
@@ -99,7 +99,7 @@ gkStoreFile::getSequence(uint32 iid,
 
   iid++;
 
-  uint32  rLength = gkp->gkStore_getRead(iid)->gkRead_clearRegionLength();
+  uint32  rLength = gkp->gkStore_getRead(iid)->gkRead_sequenceLength();
 
   //fprintf(stderr, "return ca3g iid %u of length %u\n", iid, rLength);
 

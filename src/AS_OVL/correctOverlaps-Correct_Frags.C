@@ -199,7 +199,7 @@ Correct_Frags(coParameters *G,
   for (uint32 curID=G->bgnID; curID<=G->endID; curID++) {
     gkRead *read = gkpStore->gkStore_getRead(curID);
 
-    G->basesLen += read->gkRead_clearRegionLength() + 1;
+    G->basesLen += read->gkRead_sequenceLength() + 1;
   }
 
   for (uint64 c=0; c<Clen; c++) {
@@ -238,7 +238,7 @@ Correct_Frags(coParameters *G,
 
     gkpStore->gkStore_loadReadData(read, &readData);
 
-    uint32  readLength = read->gkRead_clearRegionLength();
+    uint32  readLength = read->gkRead_sequenceLength();
     char   *readBases  = readData.gkReadData_getSequence();
 
     //  Save pointers to the bases and adjustments.
@@ -270,7 +270,7 @@ Correct_Frags(coParameters *G,
                 G->reads[G->readsLen].adjusts,
                 G->reads[G->readsLen].adjustsLen,
                 readData.gkReadData_getSequence(),
-                read->gkRead_clearRegionLength(),
+                read->gkRead_sequenceLength(),
                 C,
                 Cpos,
                 Clen,

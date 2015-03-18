@@ -173,10 +173,10 @@ public:
   void       b_hang(int32 b)            { dat.ovl.bhg3 = (b < 0) ? 0 : b;  dat.ovl.ahg3 = (b < 0) ? -b : 0; };
 
   uint32     a_bgn(void) const          { return(dat.ovl.ahg5); };
-  uint32     a_end(gkStore *g) const    { return(g->gkStore_getRead(a_iid)->gkRead_clearRegionLength() - dat.ovl.ahg3); };
+  uint32     a_end(gkStore *g) const    { return(g->gkStore_getRead(a_iid)->gkRead_sequenceLength() - dat.ovl.ahg3); };
 
   uint32     b_bgn(void) const          { return(dat.ovl.bhg5); };
-  uint32     b_end(gkStore *g) const    { return(g->gkStore_getRead(b_iid)->gkRead_clearRegionLength() - dat.ovl.bhg3); };
+  uint32     b_end(gkStore *g) const    { return(g->gkStore_getRead(b_iid)->gkRead_sequenceLength() - dat.ovl.bhg3); };
 
   void       flipped(uint32 f)          { dat.ovl.flipped = f; };
   uint32     flipped(void) const        { return(dat.ovl.flipped == true); };

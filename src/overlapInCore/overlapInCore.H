@@ -427,7 +427,6 @@ public:
     Max_Erate    = 0.06;
 
     Use_Window_Filter  = false;
-    Ignore_Clear_Range = false;
 
     Use_Hopeless_Check = true;
 
@@ -493,10 +492,6 @@ public:
   //  Determines whether check for a window containing too many
   //  errors is used to disqualify overlaps.
   bool  Use_Window_Filter;  //  -w
-
-  //  If true will use entire read sequence, ignoring the
-  //  clear range values
-  bool  Ignore_Clear_Range;  //  -x
 
   //  Determines whether check for absence of kmer matches
   //  at the end of a read is used to abort the overlap before

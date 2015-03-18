@@ -553,7 +553,7 @@ process_gkp_store_for_fragments(char *gkpStoreName,
     set_cid_fragment(frags, vid, iid);
     //set_typ_fragment(frags, vid, AS_READ);
     set_del_fragment(frags, vid, FALSE);
-    set_length_fragment(frags, vid, read->gkRead_clearRegionLength());
+    set_length_fragment(frags, vid, read->gkRead_sequenceLength());
 
     // Assume that each fragment spans a chunk.
     set_lab_fragment(frags, vid, AS_CGB_UNLABELED_FRAG);

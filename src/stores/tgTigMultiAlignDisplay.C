@@ -150,15 +150,15 @@ tgTig::display(FILE     *F,
     LaneNode   *node = new LaneNode();
 
     node->read      = _children + i;
-    node->readLen   = read->gkRead_clearRegionLength();
+    node->readLen   = read->gkRead_sequenceLength();
 
     node->bases     = new char [node->readLen + 1];
     node->quals     = new char [node->readLen + 1];
 
     node->delta     = _childDeltas + node->read->deltaOffset();
 
-    memcpy(node->bases, readData.gkReadData_getSequence()  + read->gkRead_clearRegionBegin(), sizeof(char) * node->readLen);
-    memcpy(node->quals, readData.gkReadData_getQualities() + read->gkRead_clearRegionBegin(), sizeof(char) * node->readLen);
+    memcpy(node->bases, readData.gkReadData_getSequence(),  sizeof(char) * node->readLen);
+    memcpy(node->quals, readData.gkReadData_getQualities(), sizeof(char) * node->readLen);
 
     node->bases[node->readLen] = 0;
     node->quals[node->readLen] = 0;

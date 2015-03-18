@@ -181,8 +181,7 @@ abAbacus::addRead(gkStore *gkpStore,
 
   gkpStore->gkStore_loadReadData(read, &readData);
 
-  uint32  bgn = read->gkRead_clearRegionBegin();
-  uint32  end = read->gkRead_clearRegionEnd();
+  uint32  seqLen = read->gkRead_sequenceLength();
 
   //  Tell abacus about it.
 
@@ -190,7 +189,7 @@ abAbacus::addRead(gkStore *gkpStore,
 
   abSequence   *ns = _sequences + _sequencesLen;
 
-  ns->initialize(readID, _sequencesLen++, end-bgn, complemented, _basesLen, _beadsLen);
+  ns->initialize(readID, _sequencesLen++, seqLen, complemented, _basesLen, _beadsLen);
 
   //  Make a complement table
 
@@ -209,11 +208,11 @@ abAbacus::addRead(gkStore *gkpStore,
     char  *seq = readData.gkReadData_getSequence();
     char  *qlt = readData.gkReadData_getQualities();
 
-    while (_basesMax <= _basesLen + end - bgn + 1)
+    while (_basesMax <= _basesLen + seqLen + 1)
       resizeArrayPair(_bases, _quals, _basesLen, _basesMax, 2 * _basesMax);
 
     if (complemented == false)
-      for (uint32 ii=bgn, pp=_basesLen; ii<end; ii++, pp++, _basesLen++) {
+      for (uint32 ii=0, pp=_basesLen; ii<seqLen; ii++, pp++, _basesLen++) {
         _bases[pp] = seq[ii];
         _quals[pp] = qlt[ii];
 
@@ -222,7 +221,7 @@ abAbacus::addRead(gkStore *gkpStore,
       }
 
     else
-      for (uint32 ii=end, pp=_basesLen; ii-->bgn; pp++, _basesLen++) {
+      for (uint32 ii=seqLen, pp=_basesLen; ii-->0; pp++, _basesLen++) {
         _bases[pp] = inv[ seq[ii] ];
         _quals[pp] =      qlt[ii];
 
@@ -238,7 +237,7 @@ abAbacus::addRead(gkStore *gkpStore,
   //  Make beads for each base, set the pointer to the first bead
 
   {
-    increaseArray(_beads, _beadsLen, _beadsMax, end - bgn);
+    increaseArray(_beads, _beadsLen, _beadsMax, seqLen);
 
     for (uint32 bp=0; bp<ns->length(); bp++, _beadsLen++) {
       _beads[_beadsLen].boffset.set(_beadsLen);

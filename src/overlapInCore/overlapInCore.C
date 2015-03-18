@@ -388,9 +388,6 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-w") == 0) {
       G.Use_Window_Filter = TRUE;
 
-    } else if (strcmp(argv[arg], "-x") == 0) {
-      G.Ignore_Clear_Range = TRUE;
-
     } else if (strcmp(argv[arg], "-z") == 0) {
       G.Use_Hopeless_Check = FALSE;
 
@@ -452,8 +449,6 @@ main(int argc, char **argv) {
     fprintf(stderr, "-t <n>      use <n> parallel threads\n");
     fprintf(stderr, "-u          allow only 1 overlap per oriented fragment pair\n");
     fprintf(stderr, "-w          filter out overlaps with too many errors in a window\n");
-    fprintf(stderr, "-x          ignore the clear ranges on reads and use the \n");
-    fprintf(stderr, "            full sequence\n");
     fprintf(stderr, "-z          skip the hopeless check\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "--maxerror <n>     only output overlaps with fraction <n> or less error (e.g., 0.06 == 6%%)\n");

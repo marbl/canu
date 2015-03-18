@@ -75,7 +75,7 @@ Extract_Needed_Frags(feParameters *G,
     gkRead *read = gkpStore->gkStore_getRead(fi);
 
     fl->readsLen += 1;
-    fl->basesLen += read->gkRead_clearRegionLength() + 1;
+    fl->basesLen += read->gkRead_sequenceLength() + 1;
 
     //  Advance to the next overlap
 
@@ -133,11 +133,11 @@ Extract_Needed_Frags(feParameters *G,
 
     fl->readIDs[ii]     = fi;
     fl->readBases[ii]   = fl->bases + fl->basesLen;
-    fl->basesLen       += read->gkRead_clearRegionLength() + 1;
+    fl->basesLen       += read->gkRead_sequenceLength() + 1;
 
     gkpStore->gkStore_loadReadData(read, &readData);
 
-    uint32  readLen    = read->gkRead_clearRegionLength();
+    uint32  readLen    = read->gkRead_sequenceLength();
     char   *readBases  = readData.gkReadData_getSequence();
 
     for (uint32 bb=0; bb<readLen; bb++)

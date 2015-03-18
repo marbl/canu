@@ -119,7 +119,7 @@ loadReadLengths(gkStore *gkp,
     assert(read->gkRead_readID() == ii);
 
     if (read->gkRead_isDeleted() == false)
-      readLen[ii] = read->gkRead_clearRegionLength();
+      readLen[ii] = read->gkRead_sequenceLength();
 
     if ((testHash == true) && (doHash[read->gkRead_libraryID()] == true)) {
       if (ii < hashMin)

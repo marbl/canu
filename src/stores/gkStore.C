@@ -259,9 +259,6 @@ gkRead::gkRead_encodeSeqQlt(char *H, char *S, char *Q) {
 
   _seqLen    = Slen;
 
-  _clrBgn    = 0;
-  _clrEnd    = Slen;
-
   rd->gkReadData_encodeBlobChunk("BLOB",    0,  NULL);
   rd->gkReadData_encodeBlobChunk("TYPE",    4, &blobType);
   rd->gkReadData_encodeBlobChunk("VERS",    4, &blobVers);
@@ -287,9 +284,6 @@ gkRead::gkRead_encodeSeqQlt(char *H, char *S, uint32 qv) {
   uint8  *qseq = NULL;
 
   _seqLen    = Slen;
-
-  _clrBgn    = 0;
-  _clrEnd    = Slen;
 
   rd->gkReadData_encodeBlobChunk("BLOB",    0,  NULL);
   rd->gkReadData_encodeBlobChunk("TYPE",    4, &blobType);

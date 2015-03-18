@@ -171,9 +171,7 @@ dumpPicture(ovsOverlap *overlaps,
   uint32   MHS = 7;  //  Max Hang Size, amount of padding for "+### "
 
   gkRead   *A      = gkpStore->gkStore_getRead(qryID);
-  uint32   clrBgnA = A->gkRead_clearRegionBegin();
-  uint32   clrEndA = A->gkRead_clearRegionEnd();
-  uint32   frgLenA = A->gkRead_clearRegionLength();
+  uint32   frgLenA = A->gkRead_sequenceLength();
 
   for (int32 i=0; i<256; i++)
     ovl[i] = ' ';
@@ -185,16 +183,14 @@ dumpPicture(ovsOverlap *overlaps,
 
   fprintf(stdout, "%8d  A: %5d %5d                                           %s\n",
           qryID,
-          clrBgnA, clrEndA,
+          0, frgLenA,
           ovl);
 
   qsort(overlaps, novl, sizeof(ovsOverlap), sortOBT);
 
   for (uint32 o=0; o<novl; o++) {
     gkRead   *B      = gkpStore->gkStore_getRead(overlaps[o].b_iid);
-    uint32   clrBgnB = B->gkRead_clearRegionBegin();
-    uint32   clrEndB = B->gkRead_clearRegionEnd();
-    uint32   frgLenB = B->gkRead_clearRegionLength();
+    uint32   frgLenB = B->gkRead_sequenceLength();
 
     uint32   ovlBgnA = overlaps[o].a_bgn();
     uint32   ovlEndA = overlaps[o].a_end(gkpStore);
@@ -274,9 +270,7 @@ dumpPicture(char   *ovlName,
   gkStore  *gkpStore = new gkStore(gkpName);
 
   gkRead   *A      = gkpStore->gkStore_getRead(qryID);
-  uint32   clrBgnA = A->gkRead_clearRegionBegin();
-  uint32   clrEndA = A->gkRead_clearRegionBegin();
-  uint32   frgLenA = clrEndA - clrBgnA;
+  uint32   frgLenA = A->gkRead_sequenceLength();
 
   ovlStore->setRange(qryID, qryID);
 

@@ -320,7 +320,7 @@ Redo_Olaps(coParameters *G, gkStore *gkpStore) {
     correctRead(curID,
                 fseq, fseqLen, fadj, fadjLen,
                 readData.gkReadData_getSequence(),
-                read->gkRead_clearRegionLength(),
+                read->gkRead_sequenceLength(),
                 C, Cpos, Clen);
 
     //  Create copies of the sequence for forward and reverse.  There isn't a need for the forward copy (except that

@@ -80,14 +80,14 @@ FragmentInfo::FragmentInfo(const char *gkpStorePath,
     if (read->gkRead_isDeleted()) {
       numDeleted++;
 
-    } else if (read->gkRead_clearRegionLength() < minReadLen) {
+    } else if (read->gkRead_sequenceLength() < minReadLen) {
       numSkipped++;
 
     } else {
       uint32 iid = read->gkRead_readID();
       uint32 lib = read->gkRead_libraryID();
 
-      _fragLength[iid] = read->gkRead_clearRegionLength();
+      _fragLength[iid] = read->gkRead_sequenceLength();
       _mateIID[iid]    = 0;  //read->gkRead_mateIID();;
       _libIID[iid]     = lib;
 

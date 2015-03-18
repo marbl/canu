@@ -65,23 +65,15 @@ Process_Overlaps(void *ptr){
           (read->gkRead_libraryID() > G.maxLibToRef))
         continue;
 
-      uint32 bgn = read->gkRead_clearRegionBegin();
-      uint32 end = read->gkRead_clearRegionEnd();
-      uint32 len = read->gkRead_clearRegionLength();
-
-      if (G.Ignore_Clear_Range == true) {
-        bgn = 0;
-        end = read->gkRead_sequenceLength();
-        len = end;
-      }
+      uint32 len = read->gkRead_sequenceLength();
 
       if (len < G.Min_Olap_Len)
         continue;
 
       WA->gkpStore->gkStore_loadReadData(read, &readData);
 
-      char   *seqptr   = readData.gkReadData_getSequence()  + bgn;
-      char   *qltptr   = readData.gkReadData_getQualities() + bgn;
+      char   *seqptr   = readData.gkReadData_getSequence();
+      char   *qltptr   = readData.gkReadData_getQualities();
 
       for (uint32 i=0; i<len; i++) {
         bases[i] = tolower(seqptr[i]);

@@ -187,6 +187,10 @@ BP_findOverlap(BubblePopper_t bp, uint32 bid1, uint32 bid2)
 
     bp->gkpStore->gkStore_loadReadData(rsp, &bp->rsd);
 
+    memcpy(if1->sequence, bp->rsd.gkReadData_getSequence(), rsp->gkRead_sequenceLength());
+    if1->sequence[rsp->gkRead_sequenceLength()] = 0;
+
+#if 0
     uint32 bgn = rsp->gkRead_clearRegionBegin();
     uint32 end = rsp->gkRead_clearRegionEnd();
 
@@ -197,6 +201,7 @@ BP_findOverlap(BubblePopper_t bp, uint32 bid1, uint32 bid2)
          ++src, ++dst)
       *dst = *src;
     *dst = '\0';
+#endif
   }
 
   int32 id2 = get_iid_fragment(BG_vertices(bp->bg), bp->bubFrags[bid2]);
@@ -208,6 +213,10 @@ BP_findOverlap(BubblePopper_t bp, uint32 bid1, uint32 bid2)
 
     bp->gkpStore->gkStore_loadReadData(rsp, &bp->rsd);
 
+    memcpy(if2->sequence, bp->rsd.gkReadData_getSequence(), rsp->gkRead_sequenceLength());
+    if2->sequence[rsp->gkRead_sequenceLength()] = 0;
+
+#if 0
     uint32 bgn = rsp->gkRead_clearRegionBegin();
     uint32 end = rsp->gkRead_clearRegionEnd();
 
@@ -218,6 +227,7 @@ BP_findOverlap(BubblePopper_t bp, uint32 bid1, uint32 bid2)
          ++src, ++dst)
       *dst = *src;
     *dst = '\0';
+#endif
   }
 
 #if AS_CGB_BUBBLE_VERBOSE

@@ -453,12 +453,7 @@ Build_Hash_Index(gkStore *gkpStore, uint32 bgnID, uint32 endID) {
 
     nLoadable++;
 
-    if (G.Ignore_Clear_Range == true)
-      maxAlloc += read->gkRead_sequenceLength() + 1;
-    else
-      maxAlloc += read->gkRead_clearRegionLength() + 1;
-
-    //fprintf(stderr, F_U64" len "F_U64" "F_U64"\n", maxAlloc, read->gkRead_sequenceLength(), read->gkRead_clearRegionLength());
+    maxAlloc += read->gkRead_sequenceLength() + 1;
   }
 
   fprintf(stderr, "Found "F_U32" reads with length "F_U64" to load; "F_U32" deleted and "F_U32" skipped per library restriction\n",
@@ -501,23 +496,15 @@ Build_Hash_Index(gkStore *gkpStore, uint32 bgnID, uint32 endID) {
         (read->gkRead_libraryID() > G.maxLibToHash))
       continue;
 
-    uint32 bgn = read->gkRead_clearRegionBegin();
-    uint32 end = read->gkRead_clearRegionEnd();
-    uint32 len = read->gkRead_clearRegionLength();
-
-    if (G.Ignore_Clear_Range == true) {
-      bgn = 0;
-      end = read->gkRead_sequenceLength();
-      len = end;
-    }
+    uint32 len = read->gkRead_sequenceLength();
 
     if (len < G.Min_Olap_Len)
       continue;
 
     gkpStore->gkStore_loadReadData(read, &readData);
 
-    char   *seqptr   = readData.gkReadData_getSequence()  + bgn;
-    char   *qltptr   = readData.gkReadData_getQualities() + bgn;
+    char   *seqptr   = readData.gkReadData_getSequence();
+    char   *qltptr   = readData.gkReadData_getQualities();
 
     //  Note where we are going to store the string, and how long it is
 

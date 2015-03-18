@@ -108,9 +108,6 @@ main(int argc, char **argv) {
   uint32           bgnID             = 1;
   uint32           endID             = AS_MAX_READS;
 
-  bool             dumpAllBases      = true;
-  bool             dumpAllReads      = true;
-
   bool             dumpInfoOnly      = false;
 
   argc = AS_configure(argc, argv);
@@ -216,41 +213,29 @@ main(int argc, char **argv) {
     gkRead      *read     = gkpStore->gkStore_getRead(rid);
     gkReadData  *readData = new gkReadData;
 
-    uint32   lclr   = read->gkRead_clearRegionBegin();
-    uint32   rclr   = read->gkRead_clearRegionEnd();
+    //  Eventually, we'll add in dumping from an OBT clear range file, so leave the
+    //  support for it here.
 
-    uint32   ldump  = read->gkRead_clearRegionBegin();
-    uint32   rdump  = read->gkRead_clearRegionEnd();
-
-    if (dumpAllBases) {
-      ldump = 0;
-      rdump = read->gkRead_sequenceLength();
-    }
+    uint32  lclr  = 0;
+    uint32  rclr  = read->gkRead_sequenceLength();
 
     uint32  libID = read->gkRead_libraryID();
-
-    if ((dumpAllReads == false) && (read->gkRead_isDeleted() == true))
-      //  Fragment is deleted, don't dump.
-      continue;
 
     if ((libToDump != 0) && (libID == libToDump))
       //  Fragment isn't marked for dumping, don't dump.
       continue;
 
-    if ((dumpAllBases == false) && (lclr >= rclr))
-      //  Fragment has null or invalid clear range, don't dump.
-      continue;
-
     gkpStore->gkStore_loadReadData(read, readData);
 
-    char *seq = readData->gkReadData_getSequence()  + ldump;
-    char *qlt = readData->gkReadData_getQualities() + ldump;
+    char *seq = readData->gkReadData_getSequence()  + lclr;
+    char *qlt = readData->gkReadData_getQualities() + lclr;
 
-    seq[rdump - ldump] = 0;
-    qlt[rdump - ldump] = 0;
+    seq[rclr - lclr] = 0;
+    qlt[rclr - lclr] = 0;
 
-    //  Soft mask not-clear bases
+    //  Soft mask not-clear bases - oops, removed the option already, add it back....
 
+#if 0
     if (dumpAllBases == true) {
       for (uint32 i=0; i<lclr; i++)
         seq[i] += (seq[i] >= 'A') ? 'a' - 'A' : 0;
@@ -261,12 +246,13 @@ main(int argc, char **argv) {
       for (uint32 i=rclr; seq[i]; i++)
         seq[i] += (seq[i] >= 'A') ? 'a' - 'A' : 0;
     }
+#endif
 
-    AS_UTL_writeFastQ(out[libID]->getFASTQ(), seq, (rdump - ldump), qlt, (rdump - ldump),
+    AS_UTL_writeFastQ(out[libID]->getFASTQ(), seq, (rclr - lclr), qlt, (rclr - lclr),
                       "@"F_U32" clr="F_U32","F_U32"\n",
                       rid, lclr, rclr);
 
-    //AS_UTL_writeFastQ(stdout, seq, (rdump - ldump), qlt, (rdump - ldump),
+    //AS_UTL_writeFastQ(stdout, seq, (rclr - lclr), qlt, (rclr - lclr),
     //                  "@"F_U32" clr="F_U32","F_U32"\n",
     //                  rid, lclr, rclr);
   }
