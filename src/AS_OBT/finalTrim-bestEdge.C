@@ -47,7 +47,6 @@ bestEdge(gkStore     *gkp,
          uint32      &fend,
          char        *logMsg,
          uint32       errorRate,
-         bool         qvTrimAllowed,
          uint32       minOverlap,
          uint32       minCoverage,
          uint32       minReadLength) {
@@ -57,17 +56,7 @@ bestEdge(gkStore     *gkp,
   logMsg[0] = 0;
 
   assert(read->gkRead_readID() == ovl[0].a_iid);
-
-  //  Guard against invalid initial clear ranges.  These should all be deleted already.
-  if (ibgn + minReadLength > iend) {
-    strcpy(logMsg, "\tinvalid initial clear range");
-    return(false);
-  }
-
-  if (ovlLen == 0) {
-    strcpy(logMsg, "\tno overlaps");
-    return(false);
-  }
+  assert(ovlLen > 0);
 
   //
   //  Trim once, using the largest covered rule.  This gets rid of any gaps in overlap coverage,
@@ -77,16 +66,8 @@ bestEdge(gkStore     *gkp,
   uint32  lbgn = 0;
   uint32  lend = 0;
 
-  if (largestCovered(gkp, ovl, ovlLen, read, ibgn, iend, lbgn, lend, logMsg, errorRate, qvTrimAllowed, minOverlap, minCoverage, minReadLength) == false)
+  if (largestCovered(gkp, ovl, ovlLen, read, ibgn, iend, lbgn, lend, logMsg, errorRate, minOverlap, minCoverage, minReadLength) == false)
     return(false);
-
-#ifdef VERBOSE
-  fprintf(stderr, "read %u initial %u %u largestCovered %u %u\n",
-          read->gkRead_readID(),
-          ibgn, iend,
-          lbgn, lend);
-#endif
-
 
   //
   //  Trim again, to maximize overlap length.
@@ -108,8 +89,8 @@ bestEdge(gkStore     *gkp,
   //  For each overlap, add potential trim points where the overlap ends.
 
   for (uint32 i=0; i<ovlLen; i++) {
-    uint32 tbgn = ibgn + ovl[i].a_bgn();
-    uint32 tend = ibgn + ovl[i].a_end(gkp);
+    uint32 tbgn = ovl[i].a_bgn();
+    uint32 tend = ovl[i].a_end(gkp);
 
     if ((lend <= tbgn) ||
         (tend <= lbgn))

@@ -20,6 +20,8 @@ sub overlapConfigure ($$$) {
     my $cmd;
     my $type         = shift @_;
 
+    caFailure("invalid type '$type'", undef)  if (($type ne "partial") && ($type ne "normal"));
+
     return  if  (-d "$wrk/$asm.tigStore");
 
     return  if ((-d "$wrk/$asm.obtStore") && ($type eq "partial"));
@@ -61,9 +63,6 @@ sub overlapConfigure ($$$) {
     }
 
     if (! -e "$wrk/1-overlapper/overlap.sh") {
-        my $ovlOpt       = "-G"  if ($type eq "partial");
-
-        my $ovlOpt       = "";
         my $merSize      = getGlobal("ovlMerSize");
         
         my $hashLibrary  = getGlobal("ovlHashLibrary");
@@ -115,12 +114,16 @@ sub overlapConfigure ($$$) {
 
         print F getBinDirectoryShellCode();
 
-        print F "\$bin/overlapInCore $ovlOpt --hashbits $ovlHashBits --hashload $ovlHashLoad -t $ovlThreads \\\n";
+        print F "\$bin/overlapInCore \\\n";
+        print F "  -G \\\n"  if ($type eq "partial");
+        print F "  -t $ovlThreads \\\n";
+        print F "  -k $merSize \\\n";
+        print F "  -k $wrk/0-mercounts/$asm-ms$merSize.frequentMers.fasta \\\n";
+        print F "  --hashbits $ovlHashBits \\\n";
+        print F "  --hashload $ovlHashLoad \\\n";
         print F "  --maxerate  ", getGlobal("ovlErrorRate"), " \\\n";
         print F "  --minlength ", getGlobal("ovlMinLen"), " \\\n";
         print F "  \$opt \\\n";
-        print F "  -k $merSize \\\n";
-        print F "  -k $wrk/0-mercounts/$asm-ms$merSize.frequentMers.fasta \\\n";
         print F "  -o $wrk/1-overlapper/\$bat/\$job.ovb.WORKING.gz \\\n";
         print F "  -H $hashLibrary \\\n" if ($hashLibrary ne "0");
         print F "  -R $refLibrary \\\n"  if ($refLibrary  ne "0");

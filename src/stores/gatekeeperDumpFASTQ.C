@@ -115,7 +115,7 @@ main(int argc, char **argv) {
 
   argc = AS_configure(argc, argv);
 
-  int arg = 2;
+  int arg = 1;
   int err = 0;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-l") == 0) {

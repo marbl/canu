@@ -38,7 +38,8 @@ typedef uint32 ovsOverlapWORD;
 #define        F_OV   F_U32
 #define        F_OVP  F_U32P
 
-struct ovsOverlapDAT {
+class ovsOverlapDAT {
+public:
   ovsOverlapWORD  ahg5           : AS_MAX_READLEN_BITS;   //  16
   ovsOverlapWORD  ahg3           : AS_MAX_READLEN_BITS;   //  16
 
@@ -48,13 +49,34 @@ struct ovsOverlapDAT {
   ovsOverlapWORD  span           : AS_MAX_READLEN_BITS;   //  16
   ovsOverlapWORD  erate          : AS_MAX_ERATE_BITS;     //  12
   ovsOverlapWORD  flipped        : 1;                     //  1
-  ovsOverlapWORD  extra1         : 1;                     //  1
-  ovsOverlapWORD  extra2         : 2;                     //  1
+
+  ovsOverlapWORD  forOBT         : 1;                     //  1
+  ovsOverlapWORD  forDUP         : 1;                     //  1
+  ovsOverlapWORD  forUTG         : 1;                     //  1
 
   ovsOverlapWORD  alignSwapped   : 1;                     //  Our IDs are opposite those in the alignment
   ovsOverlapWORD  alignFile      : 19;                    //  Which file of overlap alignments
   ovsOverlapWORD  alignPosHi     : 12;                    //  Position in that file (high-order bits)
   ovsOverlapWORD  alignPosLo     : 32;                    //  Position in that file (low-order bits)
+
+#if 0
+  void  clear(double quality) {
+    dat.ovl.ahg5         = 0;
+    dat.ovl.ahg3         = 0;
+    dat.ovl.bhg5         = 0;
+    dat.ovl.bhg3         = 0;
+    dat.ovl.span         = 0;
+    dat.ovl.erate        = AS_OVS_encodeQuality(quality);
+    dat.ovl.flipped      = false;
+    dat.ovl.forOBT       = false;
+    dat.ovl.forDUP       = false;
+    dat.ovl.forUTG       = false;
+    dat.ovl.alignSwapped = false;
+    dat.ovl.alignFile    = 0;
+    dat.ovl.alignPosHi   = 0;
+    dat.ovl.alignPosLo   = 0;
+  };
+#endif
 };
 
 #else
@@ -64,12 +86,16 @@ typedef uint64 ovsOverlapWORD;
 #define        F_OV   F_U64
 #define        F_OVP  F_U64P
 
-struct ovsOverlapDAT {
+class ovsOverlapDAT {
+puublic:
   ovsOverlapWORD  ahg5           : AS_MAX_READLEN_BITS;   //  17-21
   ovsOverlapWORD  ahg3           : AS_MAX_READLEN_BITS;   //  17-21
   ovsOverlapWORD  erate          : AS_MAX_ERATE_BITS;     //  12
   ovsOverlapWORD  flipped        : 1;                     //  1
-  ovsOverlapWORD  extra1         : 64 - 2 * AS_MAX_READLEN_BITS - AS_MAX_ERATE_BITS - 1;  //  Between 17 and 9
+  ovsOverlapWORD  forOBT         : 1;                     //  1
+  ovsOverlapWORD  forDUP         : 1;                     //  1
+  ovsOverlapWORD  forUTG         : 1;                     //  1
+  ovsOverlapWORD  extra1         : 64 - 2 * AS_MAX_READLEN_BITS - AS_MAX_ERATE_BITS - 1 - 1 - 1 - 1;  //  Between 15 and 7
 
   ovsOverlapWORD  bhg5           : AS_MAX_READLEN_BITS;   //  17-21
   ovsOverlapWORD  bhg3           : AS_MAX_READLEN_BITS;   //  17-21
@@ -79,6 +105,27 @@ struct ovsOverlapDAT {
   ovsOverlapWORD  alignSwapped   : 1;                     //  Our IDs are opposite those in the alignment
   ovsOverlapWORD  alignFile      : 19;                    //  Which file of overlap alignments
   ovsOverlapWORD  alignPos       : 44;                    //  Position in that file
+
+#if 0
+  void  clear(double quality) {
+    dat.ovl.ahg5         = 0;
+    dat.ovl.ahg3         = 0;
+    dat.ovl.bhg5         = 0;
+    dat.ovl.bhg3         = 0;
+    dat.ovl.span         = 0;
+    dat.ovl.erate        = AS_OVS_encodeQuality(quality);
+    dat.ovl.flipped      = false;
+    dat.ovl.forOBT       = false;
+    dat.ovl.forDUP       = false;
+    dat.ovl.forUTG       = false;
+    dat.ovl.extra1       = 0;
+    dat.ovl.extra2       = 0;
+    dat.ovl.alignSwapped = false;
+    dat.ovl.alignFile    = 0;
+    dat.ovl.alignPosHi   = 0;
+    dat.ovl.alignPosLo   = 0;
+  };
+#endif
 };
 
 #endif
@@ -88,13 +135,7 @@ struct ovsOverlapDAT {
 class ovsOverlap {
 public:
   ovsOverlap() {
-    dat.dat[0] = 0;
-    dat.dat[1] = 0;
-    dat.dat[2] = 0;
-#if (ovsOverlapNWORDS == 5)
-    dat.dat[3] = 0;
-    dat.dat[4] = 0;
-#endif
+    clear();
   };
   ~ovsOverlap() {
   };
@@ -146,6 +187,11 @@ public:
   void       evalue(uint64 e)           { dat.ovl.erate = e; };
   uint64     evalue(void) const         { return(dat.ovl.erate); };
 
+  bool       forOBT(void)               { return(dat.ovl.forOBT); };
+  bool       forDUP(void)               { return(dat.ovl.forDUP); };
+  bool       forUTG(void)               { return(dat.ovl.forUTG); };
+
+
   uint32     overlapAEndIs5prime(void) const  { return((dat.ovl.bhg5 > 0) && (dat.ovl.ahg3  > 0));  };
   uint32     overlapAEndIs3prime(void) const  { return((dat.ovl.ahg5 > 0) && (dat.ovl.bhg3  > 0));  };
 
@@ -163,6 +209,16 @@ public:
   char      *toString(char *str);
 
   void       swapIDs(ovsOverlap const &orig);
+
+  void       clear(void) {
+    dat.dat[0] = 0;
+    dat.dat[1] = 0;
+    dat.dat[2] = 0;
+#if (ovsOverlapNWORDS == 5)
+    dat.dat[3] = 0;
+    dat.dat[4] = 0;
+#endif
+  };
 
   bool
   operator<(const ovsOverlap &that) const {
@@ -426,5 +482,104 @@ testIndex(char     *storePath,
 void
 mergeInfoFiles(char       *storePath,
                uint32      nPieces);
+
+
+
+
+
+
+
+//  For store construction.  Probably should be in either ovsOverlap or ovStore.
+
+class ovStoreFilter {
+public:
+  ovStoreFilter(gkStore *gkp_, double maxErate) {
+    gkp             = gkp_;
+
+    resetCounters();
+
+    maxID     = gkp->gkStore_getNumReads() + 1;
+    maxEvalue = AS_OVS_encodeQuality(maxErate);
+
+    skipReadOBT     = new char [maxID];
+    skipReadDUP     = new char [maxID];
+
+    memset(skipReadOBT, 0, sizeof(char) * maxID);
+    memset(skipReadDUP, 0, sizeof(char) * maxID);
+
+
+    uint32  numSkipOBT;
+    uint32  numSkipDUP;
+
+    fprintf(stderr, "Marking fragments to skip overlap based trimming.\n");
+
+    fprintf(stderr, "LIB 1 - dup=%d trim=%d spur=%d chimera=%d subreads=%d\n",
+            gkp->gkStore_getLibrary(1)->gkLibrary_removeDuplicateReads(),
+            gkp->gkStore_getLibrary(1)->gkLibrary_finalTrim(),
+            gkp->gkStore_getLibrary(1)->gkLibrary_removeSpurReads(),
+            gkp->gkStore_getLibrary(1)->gkLibrary_removeChimericReads(),
+            gkp->gkStore_getLibrary(1)->gkLibrary_checkForSubReads());
+
+    for (uint64 iid=0; iid<maxID; iid++) {
+      uint32     Lid = gkp->gkStore_getRead(iid)->gkRead_libraryID();
+      gkLibrary *L   = gkp->gkStore_getLibrary(Lid);
+
+      if ((L->gkLibrary_removeDuplicateReads()     == false) &&
+          (L->gkLibrary_finalTrim()                == FINALTRIM_NONE) &&
+          (L->gkLibrary_removeSpurReads()          == false) &&
+          (L->gkLibrary_removeChimericReads()      == false) &&
+          (L->gkLibrary_checkForSubReads()         == false)) {
+        numSkipOBT++;
+        skipReadOBT[iid] = true;
+      }
+
+      if (L->gkLibrary_removeDuplicateReads() == false) {
+        numSkipDUP++;
+        skipReadDUP[iid] = true;
+      }
+    }
+
+    fprintf(stderr, "Marked "F_U64" reads so skip OBT, "F_U64" reads to skip dedupe.\n", numSkipOBT, numSkipDUP);
+  };
+
+  ~ovStoreFilter() {
+    delete [] skipReadOBT;
+    delete [] skipReadDUP;
+  };
+
+
+  void    filterOverlap(ovsOverlap     &foverlap,
+                        ovsOverlap     &roverlap);
+
+  void    reportFate(void);
+  void    resetCounters(void);
+
+public:
+  gkStore *gkp;
+
+  uint32   maxID;
+  uint32   maxEvalue;
+
+  uint64   saveUTG;
+  uint64   saveOBT;
+  uint64   saveDUP;
+
+  uint64   skipERATE;
+
+  uint64   skipOBT;        //  OBT not requested for the A read
+  uint64   skipOBTbad;     //  Overlap too similiar
+  uint64   skipOBTshort;   //  Overlap is too short
+
+  uint64   skipDUP;        //  DUP not requested for the A read
+  uint64   skipDUPdiff;    //  Overlap isn't remotely similar
+  uint64   skipDUPlib;
+
+  //  Not really stats, but global state for the filter.
+
+  char    *skipReadOBT;
+  char    *skipReadDUP;
+};
+
+
 
 #endif

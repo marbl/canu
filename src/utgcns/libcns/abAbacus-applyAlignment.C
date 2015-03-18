@@ -491,8 +491,8 @@ abAbacus::applyAlignment(abSeqID   afid,
     for (abColumn *col = getColumn(ci); col->nextID().isValid(); col=getColumn(col->nextID()))
       fprintf(stderr, "ERROR!  Column ci="F_U32" has a next pointer ("F_U32")\n",
               col->ident().get(), col->nextID().get());
-#warning assert skipped until contig consensus gets fixed
-    //assert(getColumn(ci)->nextID() == -1);
+    //#warning assert skipped until contig consensus gets fixed
+    assert(getColumn(ci)->nextID().isValid() == false);
 
     //  Add on trailing (dovetail) beads from b
     //

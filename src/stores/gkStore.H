@@ -43,11 +43,6 @@ using namespace std;
 #define CORRECTION_CONSENSUS       0x01
 #define CORRECTION_MER             0x02
 
-#define INITIALTRIM_NONE           0x00
-#define INITIALTRIM_MER_BASED      0x01  //  runs merTrim
-//#define INITIALTRIM_FLOW_BASED     0x02  //  rules for 454 reads -- DOESN'T EXIST
-#define INITIALTRIM_QUALITY_BASED  0x03  //  rules for sanger reads
-
 #define FINALTRIM_NONE             0x00
 #define FINALTRIM_LARGEST_COVERED  0x01  //  largest region covered by good overlaps
 //#define FINALTRIM_EVIDENCE_BASED   0x02  //  rules for sanger reads -- DOESN'T EXIST
@@ -93,12 +88,11 @@ public:
     _trustHomopolymerRuns       = 1;
     _doCorrection               = CORRECTION_NONE;
 
-    _initialTrim                = INITIALTRIM_NONE;
     _finalTrim                  = FINALTRIM_LARGEST_COVERED;
-    _removeDuplicateReads       = 0;
+    _removeDuplicateReads       = 1;
     _removeSpurReads            = 1;
     _removeChimericReads        = 1;
-    _checkForSubReads           = 0;
+    _checkForSubReads           = 1;
   };
 
 public:
@@ -109,7 +103,6 @@ public:
   uint32         gkLibrary_isNonRandom(void)           { return(_isNonRandom);          };
   uint32         gkLibrary_trustHomopolymerRuns(void)  { return(_trustHomopolymerRuns); };
   uint32         gkLibrary_correctBases(void)          { return(_doCorrection);         };
-  uint32         gkLibrary_initialTrim(void)           { return(_initialTrim);          };
   uint32         gkLibrary_finalTrim(void)             { return(_finalTrim);            };
   uint32         gkLibrary_removeDuplicateReads(void)  { return(_removeDuplicateReads); };
   uint32         gkLibrary_removeSpurReads(void)       { return(_removeSpurReads);      };
@@ -122,7 +115,6 @@ public:
   void           gkLibrary_setIsNonRandom(bool f)           { _isNonRandom = f;          };
   void           gkLibrary_setTrustHomopolymerRuns(bool f)  { _trustHomopolymerRuns = f; };
   void           gkLibrary_setCorrectBases(bool f)          { _doCorrection = f;         };
-  void           gkLibrary_setInitialTrim(char *t);
   void           gkLibrary_setFinalTrim(char *t);
   void           gkLibrary_setRemoveDuplicateReads(bool f)  { _removeDuplicateReads = f; };
   void           gkLibrary_setRemoveSpurReads(bool f)       { _removeSpurReads = f;      };
@@ -146,9 +138,6 @@ private:
 
   //  Should reads be corrected?  How?
   uint32         _doCorrection;
-
-  //  Should reads be trimmed based on read data alone?  How?
-  uint32         _initialTrim;
 
   //  Should reads be trimmed based on overlaps?  How?
   uint32         _finalTrim;
@@ -283,7 +272,6 @@ public:
 
     _mPtr       = 0;
     _pID        = 0;
-    _pPtr       = 0;
   };
 
   ~gkRead() {
@@ -308,7 +296,7 @@ public:
   };
 
 public:
-  bool        gkRead_loadData(gkReadData *readData, void *blob, bool partitioned);
+  bool        gkRead_loadData(gkReadData *readData, void *blob);
 
   gkReadData *gkRead_encodeSeqQlt(char *H, char *S, char *Q);
   gkReadData *gkRead_encodeSeqQlt(char *H, char *S, uint32 qv);
@@ -345,9 +333,8 @@ private:
   uint64   _clrEnd       : AS_MAX_READLEN_BITS;
   uint64   _sizepad      : 64 - 2 * AS_MAX_READLEN_BITS;
 
-  uint64   _mPtr         : 32;      //  Pointer to blob of data in master blob file (4e9)
-  uint64   _pID          : 10;      //  Partition file id, 0...1024
-  uint64   _pPtr         : 22;      //  Pointer to blob of data in partitioned blob file (4e6)
+  uint64   _mPtr         : 48;      //  Pointer to blob of data in blob file
+  uint64   _pID          : 16;      //  Partition file id, 0...1024
 
   friend class gkStore;
 };
@@ -495,8 +482,8 @@ public:
         (_readIDtoPartitionID[id] != _partitionID))
       return(NULL);
 
-    fprintf(stderr, "getRead()--  SUCCESS: access to read %u in partition %u is FAST when partition %u is loaded.\n",
-            id, _readIDtoPartitionID[id], _partitionID);
+    //fprintf(stderr, "getRead()--  SUCCESS: access to read %u in partition %u is FAST when partition %u is loaded.\n",
+    //        id, _readIDtoPartitionID[id], _partitionID);
 
     return(_reads + _readIDtoPartitionIdx[id]);
   }
@@ -505,9 +492,12 @@ public:
   gkRead      *gkStore_addEmptyRead(gkLibrary *lib);
 
   bool         gkStore_loadReadData(gkRead *read,   gkReadData *readData) {
-    return(gkStore_loadReadData(read->gkRead_readID(), readData));
+    return(read->gkRead_loadData(readData, _blobs));
+    //gkStore_loadReadData(read->gkRead_readID(), readData));
   };
-  bool         gkStore_loadReadData(uint32  readID, gkReadData *readData);
+  bool         gkStore_loadReadData(uint32  readID, gkReadData *readData) {
+    return(gkStore_getRead(readID)->gkRead_loadData(readData, _blobs));
+  };
 
   void         gkStore_stashReadData(gkRead *read, gkReadData *data);
 

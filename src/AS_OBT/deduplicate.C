@@ -29,13 +29,12 @@ const char *mainid = "$Id$";
 #include "clearRangeFile.H"
 
 
-#define FRAG_HANG_SLOP  0
-#define DEFAULT_ERATE   2.0 / 100.0
-
 
 int
 main(int argc, char **argv) {
-  uint32  errorLimit   = AS_OVS_encodeQuality(DEFAULT_ERATE);
+  uint32  evalueLimit  = AS_OVS_encodeQuality(0.02);
+  uint32  diff5        = 0;
+  uint32  diff3        = 0;
 
   char   *gkpName      = NULL;
   char   *ovsName      = NULL;
@@ -43,10 +42,11 @@ main(int argc, char **argv) {
   char   *iniClrName   = NULL;
   char   *outClrName   = NULL;
 
-  char   *summaryName  = NULL;
-  char   *logName      = NULL;
-
-  bool    doUpdate     = true;
+  char   *outputPrefix = NULL;
+  char    logName[FILENAME_MAX] = {0};
+  char    sumName[FILENAME_MAX] = {0};
+  FILE   *logFile = 0L;
+  FILE   *sumFile = 0L;
 
   argc = AS_configure(argc, argv);
 
@@ -60,25 +60,24 @@ main(int argc, char **argv) {
       ovsName = argv[++arg];
 
 
-    } else if (strcmp(argv[arg], "-I") == 0) {
+    } else if (strcmp(argv[arg], "-Ci") == 0) {
       iniClrName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-D") == 0) {
+    } else if (strcmp(argv[arg], "-Co") == 0) {
       outClrName = argv[++arg];
 
 
-    } else if (strcmp(argv[arg], "-erate") == 0) {
+    } else if (strcmp(argv[arg], "-e") == 0) {
       double erate = atof(argv[++arg]);
-      errorLimit = AS_OVS_encodeQuality(erate);
+      evalueLimit = AS_OVS_encodeQuality(erate);
 
-    } else if (strcmp(argv[arg], "-summary") == 0) {
-      summaryName = argv[++arg];
+    } else if (strcmp(argv[arg], "-d5") == 0) {
+      diff5 = atoi(argv[++arg]);
+    } else if (strcmp(argv[arg], "-d3") == 0) {
+      diff3 = atoi(argv[++arg]);
 
-    } else if (strcmp(argv[arg], "-log") == 0) {
-      summaryName = argv[++arg];
-
-    } else if (strcmp(argv[arg], "-n") == 0) {
-      doUpdate = false;
+    } else if (strcmp(argv[arg], "-o") == 0) {
+      outputPrefix = argv[++arg];
 
     } else {
       fprintf(stderr, "%s: unknown option '%s'\n", argv[0], argv[arg]);
@@ -92,58 +91,53 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -G gkpStore     \n");
     fprintf(stderr, "  -O obtStore     \n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -I iniClr       initial clear range input\n");
-    fprintf(stderr, "  -D gkpStore     deduplicated clear ranges output\n");
+    fprintf(stderr, "  -Ci iniClr      initial clear range input (usually not supplied)\n");
+    fprintf(stderr, "  -Co outClr      deduplicated clear ranges output\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -erate E        filter overlaps above this fraction error; default 0.015 (== 1.5%% error)\n");
+    fprintf(stderr, "  -e E            filter overlaps above this fraction error\n");
+    fprintf(stderr, "                    The default is 0.02 (or.0%% error)\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -summary S      write a summary of the fixes to S\n");
-    fprintf(stderr, "  -report R       write a detailed report of the fixes to R\n");
+    fprintf(stderr, "  -d5 diff        overlap position must differ by more than 'diff' bp at the 5' end of the reads\n");
+    fprintf(stderr, "  -d3 diff        overlap position must differ by more than 'diff' bp at the 3' end of the reads\n");
+    fprintf(stderr, "                    e.g., an overlap from bases 3-10 on the A read and from 4-8 on the B read\n");
+    fprintf(stderr, "                          would have a difference of 1 at the 5' end and 2 on the 3' end\n");
+    fprintf(stderr, "                    The default for both is 0\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -o prefix       write logging to prefix.log and prefix.summary\n");
     exit(1);
   }
 
 
-  gkStore   *gkp = new gkStore(gkpName);
-  ovStore   *ovs = new ovStore(ovsName);
+  gkStore         *gkp = new gkStore(gkpName);
+  ovStore         *ovs = new ovStore(ovsName);
 
-  clearRangeFile  *iniClr = (iniClrName == NULL) ? NULL : new clearRangeFile(iniClrName);
-  clearRangeFile  *outClr = (outClrName == NULL) ? NULL : new clearRangeFile(outClrName);
+  //  Output logging outputs.
 
-  FILE  *summaryFile = NULL;
-  FILE  *logFile     = NULL;
+  if (outputPrefix) {
+    sprintf(logName, "%s.log",     outputPrefix);
+    sprintf(sumName, "%s.summary", outputPrefix);
 
-  if (summaryName) {
-    errno = 0;
-    summaryFile = fopen(summaryName, "w");
-    if (errno)
-      fprintf(stderr, "Failed to open summary file '%s' for writing: %s\n", summaryFile, strerror(errno)), exit(1);
-  }
-
-  if (logName) {
     errno = 0;
     logFile = fopen(logName, "w");
     if (errno)
-      fprintf(stderr, "Failed to open log file '%s' for writing: %s\n", logFile, strerror(errno)), exit(1);
+      fprintf(stderr, "Failed to open log file '%s' for writing: %s\n", logName, strerror(errno)), exit(1);
+
+    fprintf(logFile, "evidence -> deleted\n");
+
+    sumFile = fopen(sumName, "w");
+    if (errno)
+      fprintf(stderr, "Failed to open summary file '%s' for writing: %s\n", sumName, strerror(errno)), exit(1);
   }
 
+  //  Open inputs and outputs.  The outClr must always exist, but the code looks so much better this way.
 
+  clearRangeFile  *iniClr = (iniClrName == NULL) ? NULL : new clearRangeFile(iniClrName, gkp->gkStore_getNumReads());
+  clearRangeFile  *outClr = (outClrName == NULL) ? NULL : new clearRangeFile(outClrName, gkp->gkStore_getNumReads());
 
+  //  Copy clear ranges to the output.  The dedup process will only delete reads.
 
+  outClr->copy(iniClr);
 
-  bool            nothingToDo = true;
-
-  for (uint32 i=1; i<=gkp->gkStore_getNumLibraries(); i++) {
-    gkLibrary  *gkl = gkp->gkStore_getLibrary(i);
-
-    if (gkl->gkLibrary_removeDuplicateReads() == true) {
-      if (summaryFile)
-        fprintf(summaryFile, "Checking library %s for duplicates.\n", gkl->gkLibrary_libraryName());
-      nothingToDo = false;
-    } else {
-      if (summaryFile)
-        fprintf(summaryFile, "Ignoring library %s.\n", gkl->gkLibrary_libraryName());
-    }
-  }
 
 #if 0
   //  We never set a range...
@@ -153,16 +147,21 @@ main(int argc, char **argv) {
     nothingToDo = true;
 #endif
 
+
+
   //  Stats on overlaps.
 
   uint64  nFwd  = 0;
   uint64  nRev  = 0;
+
 
   uint64  nLQ   = 0;
   uint64  nDelA = 0;
   uint64  nDelB = 0;
   uint64  nLib  = 0;
   uint64  nNoD  = 0;
+  uint64  nSkipped = 0;
+  uint64  nNotSame = 0;
 
   //  Stats on duplicates.
 
@@ -173,6 +172,35 @@ main(int argc, char **argv) {
   //  Need to skip overlaps for libraries we aren't dedup'ing
   //
 
+#if 0
+  bool            nothingToDo = true;
+
+  for (uint32 i=1; i<=gkp->gkStore_getNumLibraries(); i++) {
+    gkLibrary  *gkl = gkp->gkStore_getLibrary(i);
+
+    if (gkl->gkLibrary_removeDuplicateReads() == true) {
+      if (sumFile)
+        fprintf(sumFile, "Checking library '%s' for duplicates.\n", gkl->gkLibrary_libraryName());
+      nothingToDo = false;
+
+    } else {
+      if (sumFile)
+        fprintf(sumFile, "Ignoring library '%s'.\n", gkl->gkLibrary_libraryName());
+    }
+  }
+
+  if (nothingToDo) {
+    if (sumFile)
+      fprintf(sumFile, "\nAll libraies skipped.  Bye.\n");
+
+    if (logFile)
+      fclose(logFile);
+    if (sumFile)
+      fclose(sumFile);
+
+    exit(0);
+  }
+#endif
 
 
   uint32        ovlLen    = 0;
@@ -181,8 +209,10 @@ main(int argc, char **argv) {
 
   ovlLen = ovs->readOverlaps(ovlBuffer, ovlMax, false);
 
-  while (ovlLen > 0) {
+  //  We don't need all overlaps for a single read.  All overlaps are independent, and can be processed in any ol' order.
+  //  That's the 'false' flag above, just load 4m overlaps.
 
+  while (ovlLen > 0) {
     for (uint32 oo=0; oo<ovlLen; oo++) {
       ovsOverlap *ovl = ovlBuffer + oo;
 
@@ -194,7 +224,7 @@ main(int argc, char **argv) {
 
       nFwd++;
 
-      if (ovl->evalue() > errorLimit) {
+      if (ovl->evalue() > evalueLimit) {
         //  ...and of good quality
         nLQ++;
         continue;
@@ -207,7 +237,7 @@ main(int argc, char **argv) {
       }
 
       if ((iniClr) && (iniClr->isDeleted(ovl->b_iid))) {
-        //  ...and not deleted already
+        //  ...and not deleted already (also)
         nDelB++;
         continue;
       }
@@ -227,6 +257,12 @@ main(int argc, char **argv) {
         continue;
       }
 
+      if (ovl->forDUP() == false) {
+        //  ...and not marked to ignore.  In normal usage, this will catch nothing, as the testa above caught the problem ones.
+        nSkipped++;
+        continue;
+      }
+
       //  Some of these variables might be leftover from the mate-based duplicate detection.
 
       int32  ab        = ovl->a_bgn();
@@ -234,61 +270,35 @@ main(int argc, char **argv) {
       int32  bb        = ovl->b_bgn();
       int32  be        = ovl->b_end(gkp);
 
-      int32  aclrbgn   = (iniClr) ? (iniClr->bgn(ovl->a_iid)) : 0;
-      int32  bclrbgn   = (iniClr) ? (iniClr->bgn(ovl->b_iid)) : 0;
+      int32  begDiff   = (ab < bb) ? (bb - ab) : (ab - bb);
+      int32  endDiff   = (ae < be) ? (be - ae) : (ae - be);
 
-      int32  aclrend   = (iniClr) ? (iniClr->end(ovl->a_iid)) : (gkp->gkStore_getRead(ovl->a_iid)->gkRead_sequenceLength());
-      int32  bclrend   = (iniClr) ? (iniClr->end(ovl->b_iid)) : (gkp->gkStore_getRead(ovl->b_iid)->gkRead_sequenceLength());
+      assert(begDiff >= 0);
+      assert(endDiff >= 0);
 
-      int32  abeg     = ab + aclrbgn;
-      int32  bbeg     = bb + bclrbgn;
-      int32  aend     = ae + aclrbgn;
-      int32  bend     = be + bclrbgn;
+      if ((begDiff > diff5) ||
+          (endDiff > diff3)) {
+        //  ...and the overlap starts at the same point in each read
+        nNotSame++;
+        continue;
+      }
 
-      int32  ahang    = bbeg - abeg;
-      int32  bhang    = bend - aend;
+      //  Otherwise, looks like a duck, quacks like a duck...a witch!
 
-      int32  abegdiff = ab;
-      int32  bbegdiff = bb;
-      int32  aenddiff = aclrend - aclrbgn - ae;
-      int32  benddiff = bclrend - bclrbgn - be;
+      fprintf(logFile, "%u -> %u\n", ovl->b_iid, ovl->a_iid);
 
-      double error    = ovl->erate();
-
-      //  For unmated reads, delete if it is a near perfect prefix of something else.
-      //
-      //  Since these are partial overlaps, we need to check both that the overlap covers about the
-      //  same piece of each fragment, and that it extends to the start of each fragment.
-      //
-      //  To pick the longer fragment, we then want to make sure the overlap extends to the end of
-      //  this fragment, and that this fragment is contained in the other.
-
-      if ((ahang >= -FRAG_HANG_SLOP) && (ahang <= FRAG_HANG_SLOP) &&
-          (abegdiff <= FRAG_HANG_SLOP) &&
-          (bbegdiff <= FRAG_HANG_SLOP) &&
-          (aenddiff <= FRAG_HANG_SLOP) && (bhang >= 0) &&
-          (error    <= 0.025)) {
-        fprintf(logFile, "Delete %u DUPof %u  a %d,%d  b %d,%d  hang %d,%d  diff %d,%d  error %f\n",
-                ovl->a_iid,
-                ovl->b_iid,
-                abeg, aend,
-                bbeg, bend,
-                ahang, bhang,
-                abegdiff, bbegdiff,
-                error);
-
+      if (outClr->isDeleted(ovl->a_iid) == false) {
+        //  Don't overcount duplicates!
         nDups++;
-
-        if ((outClr) && (doUpdate))
-          outClr->setDeleted(ovl->a_iid);
+        outClr->setDeleted(ovl->a_iid);
       }
     }
 
     ovlLen = ovs->readOverlaps(ovlBuffer, ovlMax, false);
   }
 
-  delete    iniClr;
-  delete    outClr;
+  if (logFile)
+    fclose(logFile);
 
   delete [] ovlBuffer;
 
@@ -296,28 +306,43 @@ main(int argc, char **argv) {
   delete    ovs;
 
 
-  if (logFile)
-    fclose(logFile);
+  uint32  nDeld = 0;
+  uint32  nActv = 0;
 
+  for (uint32 ii=1; ii <= gkp->gkStore_getNumReads(); ii++) {
+    if (outClr->isDeleted(ii))
+      nDeld++;
+    else
+      nActv++;
+  }
 
-  if (summaryFile) {
-    fprintf(summaryFile, "READ STATS\n");
-    fprintf(summaryFile, "duplicateReads:    "F_U32"\n", nDups);
-    fprintf(summaryFile, "\n");
-    fprintf(summaryFile, "OVERLAP STATS\n");
-    fprintf(summaryFile, "forward orient      "F_U64" (can indicate duplicates)\n", nFwd);
-    fprintf(summaryFile, "reverse orient      "F_U64" (can't indicate duplicates)\n", nRev);
-    fprintf(summaryFile, "low quality         "F_U64"\n", nLQ);
-    fprintf(summaryFile, "\n");
-    fprintf(summaryFile, "A read deleted (target)         "F_U64"\n", nDelA);
-    fprintf(summaryFile, "B read deleted (evidence)       "F_U64"\n", nDelB);
-    fprintf(summaryFile, "\n");
-    fprintf(summaryFile, "different libraries "F_U64"\n", nLib);
-    fprintf(summaryFile, "dedup not allowed   "F_U64"\n", nNoD);
-    fprintf(summaryFile, "\n");
-    fprintf(summaryFile, "\n");
+  delete    iniClr;
+  delete    outClr;
 
-    fclose(summaryFile);
+  if (sumFile) {
+    fprintf(sumFile, "READ STATS\n");
+    fprintf(sumFile, "\n");
+    fprintf(sumFile, "duplicateReads:     %16"F_U32P" (reads deleted here)\n", nDups);
+    fprintf(sumFile, "\n");
+    fprintf(sumFile, "deletedReads        %16"F_U32P" (final state)\n", nDeld);
+    fprintf(sumFile, "activeReads         %16"F_U32P" (final state)\n", nActv);
+    fprintf(sumFile, "\n");
+    fprintf(sumFile, "OVERLAP STATS\n");
+    fprintf(sumFile, "\n");
+    fprintf(sumFile, "forward orient      %16"F_U64P" (can indicate duplicates)\n", nFwd);
+    fprintf(sumFile, "reverse orient      %16"F_U64P" (can't indicate duplicates)\n", nRev);
+    fprintf(sumFile, "low quality         %16"F_U64P" (error rate too high)\n", nLQ);
+    fprintf(sumFile, "\n");
+    fprintf(sumFile, "A read deleted      %16"F_U64P" (this is the read being tested)\n", nDelA);
+    fprintf(sumFile, "B read deleted      %16"F_U64P" (this is the evidence read)\n", nDelB);
+    fprintf(sumFile, "\n");
+    fprintf(sumFile, "different overlap   %16"F_U64P" (overlap is to different regions on the two reads)\n", nNotSame);
+    fprintf(sumFile, "\n");
+    fprintf(sumFile, "different libraries %16"F_U64P" (overlap is between reads in different libraries)\n", nLib);
+    fprintf(sumFile, "dedup not allowed   %16"F_U64P" (we did a bad job filtering overlaps, and tried to dedupe something we shouldn't have)\n", nNoD);
+    fprintf(sumFile, "\n");
+    fprintf(sumFile, "skipped             %16"F_U64P" (marked not useful for dedupe)\n", nSkipped);
+    fclose(sumFile);
   }
 
   exit(0);

@@ -37,21 +37,13 @@ Output_Overlap(uint32 S_ID, int S_Len, Direction_t S_Dir,
 
   ovsOverlap  *ovs = WA->overlaps + WA->overlapsLen++;
 
-  ovs->a_iid                = 0;
-  ovs->b_iid                = 0;
-  ovs->dat.ovl.ahg5         = 0;
-  ovs->dat.ovl.ahg3         = 0;
-  ovs->dat.ovl.bhg5         = 0;
-  ovs->dat.ovl.bhg3         = 0;
-  ovs->dat.ovl.span         = 0;
-  ovs->dat.ovl.erate        = AS_OVS_encodeQuality(olap->quality);
-  ovs->dat.ovl.flipped      = false;
-  ovs->dat.ovl.extra1       = 0;
-  ovs->dat.ovl.extra2       = 0;
-  ovs->dat.ovl.alignSwapped = false;
-  ovs->dat.ovl.alignFile    = 0;
-  ovs->dat.ovl.alignPosHi   = 0;
-  ovs->dat.ovl.alignPosLo   = 0;
+  //  Overlap is good for UTG only.
+
+  ovs->dat.ovl.forUTG = true;
+  ovs->dat.ovl.forOBT = false;
+  ovs->dat.ovl.forDUP = false;
+
+  //ovs->clear(olap->quality);
 
   assert (S_ID < T_ID);
 
@@ -125,6 +117,8 @@ Output_Overlap(uint32 S_ID, int S_Len, Direction_t S_Dir,
     ahg     = -(T_Right_Hang - S_Right_Hang);
     bhg     = -(olap->s_lo);
   }
+
+  ovs->erate(olap->quality);
 
   switch (orient) {
     case 'N':
@@ -230,22 +224,27 @@ Output_Partial_Overlap(uint32 s_id,
   }
 
   ovsOverlap  *ovl = WA->overlaps + WA->overlapsLen++;
-  ovl->a_iid            = s_id;
-  ovl->b_iid            = t_id;
+
+  //ovs->clear(olap->quality);
+
+  //  Overlap is good for OBT or DUP.  It will be refined more during the store build.
+
+  ovl->dat.ovl.forUTG = false;
+  ovl->dat.ovl.forOBT = true;
+  ovl->dat.ovl.forDUP = true;
+
+  ovl->a_iid                = s_id;
+  ovl->b_iid                = t_id;
 
   ovl->dat.ovl.ahg5         = a;
   ovl->dat.ovl.ahg3         = s_len - b;
   ovl->dat.ovl.bhg5         = c;
   ovl->dat.ovl.bhg3         = t_len - d;
   ovl->dat.ovl.span         = 0;
-  ovl->dat.ovl.erate        = AS_OVS_encodeQuality(p->quality);
+
+  ovl->erate(p->quality);
+
   ovl->dat.ovl.flipped      = (dir != FORWARD);
-  ovl->dat.ovl.extra1       = 0;
-  ovl->dat.ovl.extra2       = 0;
-  ovl->dat.ovl.alignSwapped = false;
-  ovl->dat.ovl.alignFile    = 0;
-  ovl->dat.ovl.alignPosHi   = 0;
-  ovl->dat.ovl.alignPosLo   = 0;
 
   //  We also flush the file at the end of a thread
 

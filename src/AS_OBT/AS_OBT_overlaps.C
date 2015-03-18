@@ -56,8 +56,9 @@ loadOverlaps(uint32         iid,
   do {
     //  Count the number of overlaps to load
     ovlLen  = 0;
-    ovlLen += ovsP->readOverlaps(NULL, 0);
-    ovlLen += ovsS->readOverlaps(NULL, 0);
+
+    if (ovsP)  ovlLen += ovsP->readOverlaps(NULL, 0);
+    if (ovsS)  ovlLen += ovsS->readOverlaps(NULL, 0);
 
     //  Quit now if there are no overlaps.  This simplifies the rest of the loop.
     if (ovlLen == 0) {
@@ -74,8 +75,9 @@ loadOverlaps(uint32         iid,
 
     //  Load the overlaps
     ovlLen  = 0;
-    ovlLen += ovsP->readOverlaps(ovl + ovlLen, ovlMax - ovlLen);
-    ovlLen += ovsS->readOverlaps(ovl + ovlLen, ovlMax - ovlLen);
+
+    if (ovsP)  ovlLen += ovsP->readOverlaps(ovl + ovlLen, ovlMax - ovlLen);
+    if (ovsS)  ovlLen += ovsS->readOverlaps(ovl + ovlLen, ovlMax - ovlLen);
 
     //fprintf(stderr, "LOADED %d overlaps for a_iid %d\n", ovlLen, ovl[0].a_iid);
 
@@ -104,8 +106,8 @@ loadOverlaps(uint32         iid,
     //
     if (50 < iid - ovl[0].a_iid) {
       //fprintf(stderr, "looking for iid %u, read iid %u, skip ahead to iid.\n", iid, ovl[0].a_iid);
-      ovsP->setRange(iid, UINT32_MAX);
-      ovsP->setRange(iid, UINT32_MAX);
+      if (ovsP)  ovsP->setRange(iid, UINT32_MAX);
+      if (ovsS)  ovsP->setRange(iid, UINT32_MAX);
     //} else {
     //  fprintf(stderr, "looking for iid %u, read iid %u, skip ahead by 1.\n", iid, ovl[0].a_iid);
     }

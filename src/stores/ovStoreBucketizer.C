@@ -89,10 +89,10 @@ writeToFile(ovsOverlap    *overlap,
 
 static
 void
-markOBT(gkStore *gkp, uint32 maxIID, char *skipFragment) {
+markOBT(gkStore *gkp, uint32 maxIID, char *skipRead) {
   uint64  numMarked = 0;
 
-  if (skipFragment == NULL)
+  if (skipRead == NULL)
     return;
 
   fprintf(stderr, "Marking fragments to skip overlap based trimming.\n");
@@ -106,11 +106,10 @@ markOBT(gkStore *gkp, uint32 maxIID, char *skipFragment) {
 
     if ((L->gkLibrary_removeDuplicateReads()     == false) &&
         (L->gkLibrary_finalTrim()                != FINALTRIM_LARGEST_COVERED) &&
-        //(L->gkLibrary_finalTrim()                != FINALTRIM_EVIDENCE_BASED) &&
         (L->gkLibrary_removeSpurReads()          == false) &&
         (L->gkLibrary_removeChimericReads()      == false)) {
       numMarked++;
-      skipFragment[iid] = true;
+      skipRead[iid] = true;
     }
   }
 
@@ -120,10 +119,10 @@ markOBT(gkStore *gkp, uint32 maxIID, char *skipFragment) {
 
 static
 void
-markDUP(gkStore *gkp, uint32 maxIID, char *skipFragment) {
+markDUP(gkStore *gkp, uint32 maxIID, char *skipRead) {
   uint64  numMarked = 0;
 
-  if (skipFragment == NULL)
+  if (skipRead == NULL)
     return;
 
   fprintf(stderr, "Marking fragments to skip deduplication.\n");
@@ -137,7 +136,7 @@ markDUP(gkStore *gkp, uint32 maxIID, char *skipFragment) {
 
     if (L->gkLibrary_removeDuplicateReads() == false) {
       numMarked++;
-      skipFragment[iid] = true;
+      skipRead[iid] = true;
     }
   }
 
@@ -153,8 +152,6 @@ main(int argc, char **argv) {
   char           *ovlName      = NULL;
   char           *gkpName      = NULL;
   uint32          fileLimit    = 512;
-
-  uint32          doFilterOBT  = 0;
 
   uint32          jobIndex     = 0;
 
@@ -178,12 +175,6 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-F") == 0) {
       fileLimit = atoi(argv[++arg]);
-
-    } else if (strcmp(argv[arg], "-obt") == 0) {
-      doFilterOBT = 1;
-
-    } else if (strcmp(argv[arg], "-dup") == 0) {
-      doFilterOBT = 2;
 
     } else if (strcmp(argv[arg], "-job") == 0) {
       jobIndex = atoi(argv[++arg]);
@@ -286,113 +277,41 @@ main(int argc, char **argv) {
   memset(sliceFile, 0, sizeof(ovFile *) * (fileLimit + 1));
   memset(sliceSize, 0, sizeof(uint64)   * (fileLimit + 1));
 
-  //  Read the gkStore to determine which fragments we care about.
-  //
-  //  If doFilterOBT == 0, we care about all overlaps (we're not processing for OBT).
-  //
-  //  If doFilterOBT == 1, then we care about overlaps where either fragment is in a doNotOBT == 0
-  //  library.
-  //
-  //  If doFilterOBT == 2, then we care about overlaps where both fragments are in the same
-  //  library, and that library is marked doRemoveDuplicateReads == 1
-
-  char    *skipFragment = NULL;
-
-  uint64   saveTOTAL       = 0;
-  uint64   skipERATE       = 0;
-  uint64   skipOBT1LQ      = 0;
-  uint64   skipOBT2HQ      = 0;
-  uint64   skipOBT2LIB     = 0;
-  uint64   skipOBT2NODEDUP = 0;
-
-  if (doFilterOBT != 0) {
-    skipFragment = new char [maxIID];
-    memset(skipFragment, 0, sizeof(char) * maxIID);
-  }
-
-  if (doFilterOBT == 1)
-    markOBT(gkp, maxIID, skipFragment);
-
-  if (doFilterOBT == 2)
-    markDUP(gkp, maxIID, skipFragment);
-
-  ovFile       *inputFile;
-  ovsOverlap    foverlap;
-  ovsOverlap    roverlap;
-
-  int           df;
-
   fprintf(stderr, "maxError fraction: %.3f percent: %.3f encoded: "F_U64"\n",
           maxErrorRate, maxErrorRate * 100, maxError);
 
   fprintf(stderr, "Bucketizing %s\n", ovlInput);
 
-  inputFile = new ovFile(ovlInput, ovFileFull);
+  ovStoreFilter *filter = new ovStoreFilter(gkp, maxError);
+  ovsOverlap     foverlap;
+  ovsOverlap     roverlap;
+  ovFile        *inputFile = new ovFile(ovlInput, ovFileFull);
 
   //  Do bigger buffers increase performance?  Do small ones hurt?
   //AS_OVS_setBinaryOverlapFileBufferSize(2 * 1024 * 1024);
 
   while (inputFile->readOverlap(&foverlap)) {
+    filter->filterOverlap(foverlap, roverlap);  //  The filter copies f into r
 
-    //  Quick sanity check on IIDs.
-    if ((foverlap.a_iid == 0) ||
-        (foverlap.b_iid == 0) ||
-        (foverlap.a_iid >= maxIID) ||
-        (foverlap.b_iid >= maxIID)) {
-      char ovlstr[256];
+    //  If all are skipped, don't bother writing the overlap.
 
-      fprintf(stderr, "Overlap has IDs out of range (maxIID "F_U64"), possibly corrupt input data.\n", maxIID);
-      fprintf(stderr, "  %s\n", foverlap.toString(ovlstr));
-      exit(1);
-    }
+    if ((foverlap.dat.ovl.forUTG == true) ||
+        (foverlap.dat.ovl.forOBT == true) ||
+        (foverlap.dat.ovl.forDUP == true))
+      writeToFile(&foverlap, sliceFile, fileLimit, sliceSize, iidPerBucket, ovlName, jobIndex, useGzip);
 
-    //  Ignore high error overlaps
-    if ((foverlap.dat.ovl.erate > maxError)) {
-      skipERATE++;
-      continue;
-    }
-
-    //  If filtering for OBT, skip the crap.
-    if ((doFilterOBT == 1) && (AS_OBT_acceptableOverlap(foverlap) == 0)) {
-      skipOBT1LQ++;
-      continue;
-    }
-
-    //  If filtering for OBT, skip overlaps that we're never going to use.
-    //  (for now, we allow everything through -- these are used for just about everything)
-
-    //  If filtering for OBTs dedup, skip the good
-    if ((doFilterOBT == 2) && (AS_OBT_acceptableOverlap(foverlap) == 1)) {
-      skipOBT2HQ++;
-      continue;
-    }
-
-    //  If filtering for OBTs dedup, skip things we don't dedup, and overlaps between libraries.
-    if ((doFilterOBT == 2) &&
-        (gkp->gkStore_getRead(foverlap.a_iid)->gkRead_libraryID() !=
-         gkp->gkStore_getRead(foverlap.b_iid)->gkRead_libraryID())) {
-      skipOBT2LIB++;
-      continue;
-    }
-
-    if ((doFilterOBT == 2) && (skipFragment[foverlap.a_iid])) {
-      skipOBT2NODEDUP++;
-      continue;
-    }
-
-    writeToFile(&foverlap, sliceFile, fileLimit, sliceSize, iidPerBucket, ovlName, jobIndex, useGzip);
-    saveTOTAL++;
-
-    //  flip the overlap -- copy all the dat, then fix whatever
-    //  needs to change for the flip.
-
-    roverlap.swapIDs(foverlap);
-
-    writeToFile(&roverlap, sliceFile, fileLimit, sliceSize, iidPerBucket, ovlName, jobIndex, useGzip);
-    saveTOTAL++;
+    if ((roverlap.dat.ovl.forUTG == true) ||
+        (roverlap.dat.ovl.forOBT == true) ||
+        (roverlap.dat.ovl.forDUP == true))
+      writeToFile(&roverlap, sliceFile, fileLimit, sliceSize, iidPerBucket, ovlName, jobIndex, useGzip);
   }
 
   delete inputFile;
+
+  filter->reportFate();
+  filter->resetCounters();
+
+  delete filter;
 
   for (uint32 i=0; i<=fileLimit; i++)
     delete sliceFile[i];
@@ -423,16 +342,8 @@ main(int argc, char **argv) {
               name, finl, strerror(errno));
   }
 
-  fprintf(stderr, "overlap fate:\n");
-  fprintf(stderr, "%16"F_U64P" SAV - overlaps output\n", saveTOTAL);
-  fprintf(stderr, "%16"F_U64P" ERR - low quality, more than %.3f fraction error\n", skipERATE, maxErrorRate);
-  fprintf(stderr, "%16"F_U64P" OBT - low quality\n", skipOBT1LQ);
-  fprintf(stderr, "%16"F_U64P" DUP - non-duplicate overlap\n", skipOBT2HQ);
-  fprintf(stderr, "%16"F_U64P" DUP - different library\n", skipOBT2LIB);
-  fprintf(stderr, "%16"F_U64P" DUP - dedup not requested\n", skipOBT2NODEDUP);
-
   delete [] sliceFile;
   delete [] sliceSize;
 
-  delete [] skipFragment;  skipFragment = NULL;
+  return(0);
 }

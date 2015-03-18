@@ -57,9 +57,9 @@ dumpStore(char   *ovlName,
           double  dumpERate,
           uint32  dumpType,
           uint32  dumpLength,
-          uint32  bgnIID,
-          uint32  endIID,
-          uint32  qryIID,
+          uint32  bgnID,
+          uint32  endID,
+          uint32  qryID,
           bool    beVerbose) {
   ovStore       *ovlStore = new ovStore(ovlName);
   ovsOverlap     overlap;
@@ -76,7 +76,7 @@ dumpStore(char   *ovlName,
   uint32   obtDumped       = 0;
   uint32   merDumped       = 0;
 
-  ovlStore->setRange(bgnIID, endIID);
+  ovlStore->setRange(bgnID, endID);
 
   //  Length filtering is expensive to compute, need to load both reads to get their length.
   //
@@ -84,7 +84,7 @@ dumpStore(char   *ovlName,
   //  continue;
   
   while (ovlStore->readOverlap(&overlap) == TRUE) {
-    if ((qryIID != 0) && (qryIID != overlap.b_iid))
+    if ((qryID != 0) && (qryID != overlap.b_iid))
       continue;
 
     if (overlap.evalue() > evalue) {
@@ -160,26 +160,20 @@ sortOBT(const void *a, const void *b) {
 
 
 
+
 void
 dumpPicture(ovsOverlap *overlaps,
             uint64      novl,
             gkStore    *gkpStore,
-            uint32      qryIID) {
-  fprintf(stderr, "DUMPING PICTURE not supported\n");
-#if 0
-  char           ovl[256] = {0};
-  gkFragment     A;
-  gkFragment     B;
+            uint32      qryID) {
+  char     ovl[256] = {0};
 
-  uint32         clrBgnA, clrEndA;
+  uint32   MHS = 7;  //  Max Hang Size, amount of padding for "+### "
 
-  uint32         MHS = 7;  //  Max Hang Size, amount of padding for "+### "
-
-  gkpStore->gkStore_getRead(qryIID, &A, GKFRAGMENT_INF);
-
-  A.gkRead_getClearRegion(clrBgnA, clrEndA);
-
-  uint32  frgLenA = clrEndA - clrBgnA;
+  gkRead   *A      = gkpStore->gkStore_getRead(qryID);
+  uint32   clrBgnA = A->gkRead_clearRegionBegin();
+  uint32   clrEndA = A->gkRead_clearRegionEnd();
+  uint32   frgLenA = A->gkRead_clearRegionLength();
 
   for (int32 i=0; i<256; i++)
     ovl[i] = ' ';
@@ -190,28 +184,26 @@ dumpPicture(ovsOverlap *overlaps,
   ovl[100 + MHS] = 0;
 
   fprintf(stdout, "%8d  A: %5d %5d                                           %s\n",
-          qryIID,
+          qryID,
           clrBgnA, clrEndA,
           ovl);
 
   qsort(overlaps, novl, sizeof(ovsOverlap), sortOBT);
 
   for (uint32 o=0; o<novl; o++) {
-    uint32 clrBgnB, clrEndB;
+    gkRead   *B      = gkpStore->gkStore_getRead(overlaps[o].b_iid);
+    uint32   clrBgnB = B->gkRead_clearRegionBegin();
+    uint32   clrEndB = B->gkRead_clearRegionEnd();
+    uint32   frgLenB = B->gkRead_clearRegionLength();
 
-    gkpStore->gkStore_getRead(overlaps[o].b_iid, &B, GKFRAGMENT_INF);
-    B.gkFragment_getClearRegion(clrBgnB, clrEndB, clearRegion);
+    uint32   ovlBgnA = overlaps[o].a_bgn();
+    uint32   ovlEndA = overlaps[o].a_end(gkpStore);
 
-    uint32 frgLenB = clrEndB - clrBgnB;
+    uint32   ovlBgnB = overlaps[o].b_bgn();
+    uint32   ovlEndB = overlaps[o].b_end(gkpStore);
 
-    uint32 ovlBgnA = (overlaps[o].a_bgn());
-    uint32 ovlEndA = (overlaps[o].a_end(gkpStore));
-
-    uint32 ovlBgnB = (overlaps[o].dat.obt.b_beg);
-    uint32 ovlEndB = (overlaps[o].dat.obt.b_end_hi << 9) | (overlaps[o].dat.obt.b_end_lo);
-
-    uint32 ovlStrBgn = (ovlBgnA < ovlEndA) ? ovlBgnA : ovlEndA;
-    uint32 ovlStrEnd = (ovlBgnA < ovlEndA) ? ovlEndA : ovlBgnA;
+    uint32   ovlStrBgn = (ovlBgnA < ovlEndA) ? ovlBgnA : ovlEndA;
+    uint32   ovlStrEnd = (ovlBgnA < ovlEndA) ? ovlEndA : ovlBgnA;
 
     ovlStrBgn = ovlStrBgn * 100 / frgLenA + MHS;
     ovlStrEnd = ovlStrEnd * 100 / frgLenA + MHS;
@@ -259,10 +251,9 @@ dumpPicture(ovsOverlap *overlaps,
             overlaps[o].b_iid,
             ovlBgnA, ovlEndA, frgLenA,
             ovlBgnB, ovlEndB, frgLenB,
-            AS_OVS_decodeQuality(overlaps[o].dat.obt.erate) * 100.0,
+            overlaps[o].erate(),
             ovl);
   }
-#endif
 }
 
 
@@ -271,115 +262,71 @@ dumpPicture(ovsOverlap *overlaps,
 void
 dumpPicture(char   *ovlName,
             char   *gkpName,
-            uint32  clearRegion,
             double  dumpERate,
             uint32  dumpLength,
             uint32  dumpType,
-            uint32  qryIID) {
+            uint32  qryID) {
 
-  fprintf(stderr, "DUMPING PICTURE not supported\n");
-#if 0
-  fprintf(stderr, "DUMPING PICTURE for ID "F_IID" in store %s (gkp %s clear %s)\n",
-          qryIID, ovlName, gkpName, AS_READ_CLEAR_NAMES[clearRegion]);
+  fprintf(stderr, "DUMPING PICTURE for ID "F_U32" in store %s (gkp %s)\n",
+          qryID, ovlName, gkpName);
 
-  ovStore       *ovlStore = new ovStore(ovlName);
-  gkStore       *gkpStore = new gkStore(gkpName);
+  ovStore  *ovlStore = new ovStore(ovlName);
+  gkStore  *gkpStore = new gkStore(gkpName);
 
-  gkFragment     A;
-  gkFragment     B;
+  gkRead   *A      = gkpStore->gkStore_getRead(qryID);
+  uint32   clrBgnA = A->gkRead_clearRegionBegin();
+  uint32   clrEndA = A->gkRead_clearRegionBegin();
+  uint32   frgLenA = clrEndA - clrBgnA;
 
-  uint32  clrBgnA, clrEndA;
-
-  gkpStore->gkStore_getRead(qryIID, &A, GKFRAGMENT_INF);
-  A.gkFragment_getClearRegion(clrBgnA, clrEndA, clearRegion);
-
-  uint32  frgLenA = clrEndA - clrBgnA;
-
-  AS_OVS_setRangeOverlapStore(ovlStore, qryIID, qryIID);
+  ovlStore->setRange(qryID, qryID);
 
   uint64         novl     = 0;
   ovsOverlap     overlap;
-  ovsOverlap    *overlaps = (ovsOverlap *)safe_malloc(sizeof(ovsOverlap) * AS_OVS_numOverlapsInRange(ovlStore));
+  ovsOverlap    *overlaps = (ovsOverlap *)safe_malloc(sizeof(ovsOverlap) * ovlStore->numOverlapsInRange());
   uint64         erate    = AS_OVS_encodeQuality(dumpERate / 100.0);
 
   //  Load all the overlaps so we can sort by the A begin position.
 
-  while (AS_OVS_readOverlapFromStore(ovlStore, &overlap, AS_OVS_TYPE_ANY) == TRUE) {
+  while (ovlStore->readOverlap(&overlap) == TRUE) {
 
-    //  For OBT, the only filter is erate (and length, at the bottom)
+    if (overlap.erate() > erate)
+      continue;
 
-    if (overlap.dat.obt.type == AS_OVS_TYPE_OBT) {
-      if (overlap.dat.obt.erate > erate)
-        continue;
-    }
+    if (((dumpType & DUMP_5p) == 0) &&
+        (overlap.a_hang() < 0) && (overlap.b_hang() < 0))
+      continue;
 
-    //  For OVL, we can also filter on overlap type.
+    if (((dumpType & DUMP_3p) == 0) &&
+        (overlap.a_hang() > 0) && (overlap.b_hang() > 0))
+      continue;
 
-    if (overlap.dat.obt.type == AS_OVS_TYPE_OVL) {
-      if (overlap.dat.ovl.corr_erate > erate)
-        continue;
+    if (((dumpType & DUMP_CONTAINS) == 0) &&
+        (overlap.a_hang() >= 0) && (overlap.b_hang() <= 0))
+      continue;
 
-      if (((dumpType & DUMP_5p) == 0) &&
-          (overlap.dat.ovl.a_hang < 0) && (bhang < 0))
-        continue;
+    if (((dumpType & DUMP_CONTAINED) == 0) &&
+        (overlap.a_hang() <= 0) && (overlap.b_hang() >= 0))
+      continue;
 
-      if (((dumpType & DUMP_3p) == 0) &&
-          (overlap.dat.ovl.a_hang > 0) && (bhang > 0))
-        continue;
+    if (overlap.b_end(gkpStore) - overlap.b_bgn() < dumpLength)
+      continue;
 
-      if (((dumpType & DUMP_CONTAINS) == 0) &&
-          (overlap.dat.ovl.a_hang >= 0) && (bhang <= 0))
-        continue;
-
-      if (((dumpType & DUMP_CONTAINED) == 0) &&
-          (overlap.dat.ovl.a_hang <= 0) && (bhang >= 0))
-        continue;
-    }
-
-    //  Convert the OVL to an OBT overlap, so we can check length.  We need to do it anyway for
-    //  dumpPicture(), so it isn't a horrible waste.
-
-    if (overlap.dat.obt.type == AS_OVS_TYPE_OVL) {
-      uint32  clrBgnB, clrEndB;
-
-      gkpStore->gkStore_getRead(overlap.b_iid, &B, GKFRAGMENT_INF);
-      B.gkFragment_getClearRegion(clrBgnB, clrEndB, clearRegion);
-
-      uint32  frgLenB = clrEndB - clrBgnB;
-
-      //  NOTE!  These aren't proper obt overlaps, the coord shows orientation.
-      AS_OVS_convertOVLoverlapToOBToverlap(overlap, frgLenA, frgLenB);
-    }
-
-    //  Finally, check the length.
-
-    if (overlap.dat.obt.type == AS_OVS_TYPE_OBT) {
-      if ((overlap.dat.obt.b_end_hi << 9 | overlap.dat.obt.b_end_lo) - overlap.dat.obt.b_beg < dumpLength)
-        continue;
-      if (overlap.a_end(gkpStore) - overlap.a_bgn() < dumpLength)
-        continue;
-    }
+    if (overlap.a_end(gkpStore) - overlap.a_bgn() < dumpLength)
+      continue;
 
     overlaps[novl++] = overlap;
   }
 
-  if      (novl == 0)
+
+  if (novl == 0)
     fprintf(stderr, "no overlaps to show.\n");
+  else
+    dumpPicture(overlaps, novl, gkpStore, qryID);
 
-  else if (overlaps[0].dat.ovl.type == AS_OVS_TYPE_MER)
-    fprintf(stderr, "mer overlaps cannot be visualized.\n");
 
-  else if (overlaps[0].dat.obt.type == AS_OVS_TYPE_OBT)
-    dumpPicture(overlaps, novl, gkpStore, clearRegion, qryIID);
-
-  else if (overlaps[0].dat.ovl.type == AS_OVS_TYPE_OVL)
-    dumpPicture(overlaps, novl, gkpStore, clearRegion, qryIID);
-
-  delete ovStore;
-  delete gkStore;
-#endif
+  delete ovlStore;
+  delete gkpStore;
 }
-
 
 
 
@@ -389,8 +336,6 @@ main(int argc, char **argv) {
   uint32          operation   = OP_NONE;
   char           *storeName   = NULL;
   char           *gkpName     = NULL;
-#warning CLEAR REGION NOT SUPPORTED
-  uint32          clearRegion = 0;
 
   uint32          dumpBinary  = FALSE;
   double          dumpERate   = 100.0;
@@ -399,9 +344,9 @@ main(int argc, char **argv) {
 
   char           *erateFile   = NULL;
 
-  uint32          bgnIID      = 0;
-  uint32          endIID      = UINT32_MAX;
-  uint32          qryIID      = 0;
+  uint32          bgnID       = 0;
+  uint32          endID       = UINT32_MAX;
+  uint32          qryID       = 0;
 
   bool            beVerbose   = false;
 
@@ -414,26 +359,25 @@ main(int argc, char **argv) {
     if        (strcmp(argv[arg], "-d") == 0) {
       if (storeName)
         fprintf(stderr, "ERROR: only one of -d, -p, -q may be supplied.\n"), err++;
-      storeName   = argv[++arg];
-      operation   = OP_DUMP;
+      storeName  = argv[++arg];
+      operation  = OP_DUMP;
 
     } else if (strcmp(argv[arg], "-p") == 0) {
       if (storeName)
         fprintf(stderr, "ERROR: only one of -d, -p, -q may be supplied.\n"), err++;
-      qryIID      = atoi(argv[++arg]);
-      storeName   = argv[++arg];
-      gkpName     = argv[++arg];
-      //clearRegion = gkStore_decodeClearRegionLabel(argv[++arg]);
-      operation   = OP_DUMP_PICTURE;
+      qryID      = atoi(argv[++arg]);
+      storeName  = argv[++arg];
+      gkpName    = argv[++arg];
+      operation  = OP_DUMP_PICTURE;
 
     } else if (strcmp(argv[arg], "-q") == 0) {
       if (storeName)
         fprintf(stderr, "ERROR: only one of -d, -p, -q may be supplied.\n"), err++;
-      bgnIID    = atoi(argv[++arg]);
-      endIID    = bgnIID;
-      qryIID    = atoi(argv[++arg]);
-      storeName = argv[++arg];
-      operation = OP_DUMP;
+      bgnID      = atoi(argv[++arg]);
+      endID      = bgnID;
+      qryID      = atoi(argv[++arg]);
+      storeName  = argv[++arg];
+      operation  = OP_DUMP;
 
 
 
@@ -456,10 +400,10 @@ main(int argc, char **argv) {
       dumpType |= DUMP_CONTAINED;
 
     } else if (strcmp(argv[arg], "-b") == 0) {
-      bgnIID = atoi(argv[++arg]);
+      bgnID = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-e") == 0) {
-      endIID = atoi(argv[++arg]);
+      endID = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-B") == 0) {
       dumpBinary = TRUE;
@@ -476,7 +420,7 @@ main(int argc, char **argv) {
     arg++;
   }
   if ((operation == OP_NONE) || (storeName == NULL) || (err)) {
-    fprintf(stderr, "usage: %s -d storeName [-B] [-E erate] [-b beginIID] [-e endIID]\n", argv[0]);
+    fprintf(stderr, "usage: %s -d storeName [-B] [-E erate] [-b beginID] [-e endID]\n", argv[0]);
     fprintf(stderr, "       %s -q aiid biid storeName\n", argv[0]);
     fprintf(stderr, "       %s -p iid storeName gkpStore clr\n", argv[0]);
     fprintf(stderr, "\n");
@@ -493,8 +437,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -d3               Dump only overlaps off the 3' end of the A frag.\n");
     fprintf(stderr, "  -dC               Dump only overlaps that are contained in the A frag (B contained in A).\n");
     fprintf(stderr, "  -dc               Dump only overlaps that are containing the A frag (A contained in B).\n");
-    fprintf(stderr, "  -b beginIID       Start dumping at 'beginIID'.\n");
-    fprintf(stderr, "  -e endIID         Stop dumping after 'endIID'.\n");
+    fprintf(stderr, "  -b beginID        Start dumping at 'beginID'.\n");
+    fprintf(stderr, "  -e endID          Stop dumping after 'endID'.\n");
     fprintf(stderr, "  -v                Report statistics (to stderr) on some dumps (-d).\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "QUERYING - quickly ask if an overlap exists\n");
@@ -514,10 +458,10 @@ main(int argc, char **argv) {
 
   switch (operation) {
     case OP_DUMP:
-      dumpStore(storeName, dumpBinary, dumpERate, dumpLength, dumpType, bgnIID, endIID, qryIID, beVerbose);
+      dumpStore(storeName, dumpBinary, dumpERate, dumpLength, dumpType, bgnID, endID, qryID, beVerbose);
       break;
     case OP_DUMP_PICTURE:
-      dumpPicture(storeName, gkpName, clearRegion, dumpERate, dumpLength, dumpType, qryIID);
+      dumpPicture(storeName, gkpName, dumpERate, dumpLength, dumpType, qryID);
       break;
     default:
       break;

@@ -122,8 +122,6 @@ public:
 
   uint64   length      : AS_MAX_READLEN_BITS;
 
-  uint64   initL       : AS_MAX_READLEN_BITS;
-  uint64   initR       : AS_MAX_READLEN_BITS;
   uint64   mergL       : AS_MAX_READLEN_BITS;
   uint64   mergR       : AS_MAX_READLEN_BITS;
 
@@ -379,7 +377,6 @@ public:
 
 chimeraClear *
 readClearRanges(gkStore         *gkp,
-                clearRangeFile  *iniClr,
                 clearRangeFile  *finClr) {
 
   chimeraClear   *clear = new chimeraClear [gkp->gkStore_getNumReads() + 1];
@@ -388,9 +385,6 @@ readClearRanges(gkStore         *gkp,
     gkRead      *read = gkp->gkStore_getRead(id);
     gkLibrary   *lr   = gkp->gkStore_getLibrary(read->gkRead_libraryID());
 
-    if (iniClr && finClr)
-      assert(iniClr->isDeleted(id) == finClr->isDeleted(id));
-
     clear[id].deleted         = finClr->isDeleted(id);
 
     clear[id].doFixChimera    = lr->gkLibrary_removeChimericReads();
@@ -398,25 +392,15 @@ readClearRanges(gkStore         *gkp,
 
     clear[id].length          = read->gkRead_sequenceLength();
 
-    clear[id].initL           = iniClr->bgn(id);
-    clear[id].initR           = iniClr->end(id);
     clear[id].mergL           = finClr->bgn(id);
     clear[id].mergR           = finClr->end(id);
 
-    //  If either isn't defined, reset to the read length.
-
-    if (iniClr->isUndefined(id)) {
-      clear[id].initL = 0;
-      clear[id].initR = clear[id].length;
-    }
+    //  If not defined, reset to the read length.
 
     if (finClr->isUndefined(id)) {
       clear[id].mergL = 0;
       clear[id].mergR = clear[id].length;
     }
-
-    //clear[id].tntBeg        = read->gkRead_getClearRegionBegin(AS_READ_CLEAR_TNT);
-    //clear[id].tntEnd        = read->gkRead_getClearRegionEnd  (AS_READ_CLEAR_TNT);
 
     clear[id].libraryID    = read->gkRead_libraryID();
   }
@@ -452,25 +436,21 @@ adjust(gkStore            *gkp,
 
     int32  ori    = (ovl[o].flipped() == false) ? 'f' : 'r';
 
-    int32 initLa = clear[idA].initL;
-    int32 initRa = clear[idA].initR;
     int32 mergLa = clear[idA].mergL;
     int32 mergRa = clear[idA].mergR;
 
-    int32 initLb = clear[idB].initL;
-    int32 initRb = clear[idB].initR;
     int32 mergLb = clear[idB].mergL;
     int32 mergRb = clear[idB].mergR;
 
     //  OBT overlaps are relative to the OBTINITIAL clear range.  We convert them to be relative to
-    //  the start of the fragment.
+    //  the start of the fragment.  (obsolete comment - ca3g has no initial clear range)
 
-    int32 leftA = initLa + ovl[o].a_bgn();
-    int32 righA = initLa + ovl[o].a_end(gkp);
+    int32 leftA = ovl[o].a_bgn();
+    int32 righA = ovl[o].a_end(gkp);
     int32 lenA  = clear[idA].length;
 
-    int32 leftB = initLb + ovl[o].b_bgn();
-    int32 righB = initLb + ovl[o].b_end(gkp);
+    int32 leftB = ovl[o].b_bgn();
+    int32 righB = ovl[o].b_end(gkp);
     int32 lenB  = clear[idB].length;
 
     double error = ovl[o].erate();
@@ -521,9 +501,9 @@ adjust(gkStore            *gkp,
 
 #ifdef REPORT_OVERLAPS
     if (reportFile)
-      fprintf(reportFile, "CLR A %d,%d %d,%d  B %d,%d %d,%d  TRIM %d %d %d %d -- ",
-              initLa, initRa, mergLa, mergRa,
-              initLb, initRb, mergLb, mergRb,
+      fprintf(reportFile, "CLR A %d,%d  B %d,%d  TRIM %d %d %d %d -- ",
+              mergLa, mergRa,
+              mergLb, mergRb,
               trimLa, trimRa,
               trimLb, trimRb);
 #endif
@@ -1653,7 +1633,6 @@ main(int argc, char **argv) {
   char              *gkpName = NULL;
   char              *ovsName = NULL;
 
-  char              *iniClrName = NULL;
   char              *finClrName = NULL;
   char              *outClrName = NULL;
 
@@ -1679,20 +1658,17 @@ main(int argc, char **argv) {
   int arg=1;
   int err=0;
   while (arg < argc) {
-    if        (strncmp(argv[arg], "-G", 2) == 0) {
+    if        (strcmp(argv[arg], "-G") == 0) {
       gkpName = argv[++arg];
 
-    } else if (strncmp(argv[arg], "-O", 2) == 0) {
+    } else if (strcmp(argv[arg], "-O") == 0) {
       ovsName = argv[++arg];
 
 
-    } else if (strncmp(argv[arg], "-Ci", 2) == 0) {
-      iniClrName = argv[++arg];
-
-    } else if (strncmp(argv[arg], "-Cf", 2) == 0) {
+    } else if (strcmp(argv[arg], "-Ci") == 0) {
       finClrName = argv[++arg];
 
-    } else if (strncmp(argv[arg], "-Co", 2) == 0) {
+    } else if (strcmp(argv[arg], "-Co") == 0) {
       outClrName = argv[++arg];
 
 
@@ -1708,22 +1684,22 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-minlength") == 0) {
       minReadLength = atoi(argv[++arg]);
 
-    } else if (strncmp(argv[arg], "-mininniepair", 5) == 0) {
+    } else if (strcmp(argv[arg], "-mininniepair") == 0) {
       minInniePair = atoi(argv[++arg]);
 
-    } else if (strncmp(argv[arg], "-minoverhanging", 5) == 0) {
+    } else if (strcmp(argv[arg], "-minoverhanging") == 0) {
       minOverhang = atoi(argv[++arg]);
 
-    } else if (strncmp(argv[arg], "-o", 2) == 0) {
+    } else if (strcmp(argv[arg], "-o") == 0) {
       outputPrefix = argv[++arg];
 
-    } else if (strncmp(argv[arg], "-n", 2) == 0) {
+    } else if (strcmp(argv[arg], "-n") == 0) {
       doUpdate = false;
 
     } else if (strcmp(argv[arg], "-t") == 0) {
       AS_UTL_decodeRange(argv[++arg], iidMin, iidMax);
 
-    } else if (strncmp(argv[arg], "-subreadlog", 2) == 0) {
+    } else if (strcmp(argv[arg], "-subreadlog") == 0) {
       doSubreadLogging = true;
 
     } else {
@@ -1763,12 +1739,10 @@ main(int argc, char **argv) {
   gkStore         *gkp = new gkStore(gkpName);
   ovStore         *ovs = new ovStore(ovsName);
 
-  clearRangeFile  *iniClr = new clearRangeFile(iniClrName, gkp->gkStore_getNumReads());
   clearRangeFile  *finClr = new clearRangeFile(finClrName, gkp->gkStore_getNumReads());
   clearRangeFile  *outClr = new clearRangeFile(outClrName, gkp->gkStore_getNumReads());
 
-  chimeraClear    *clear = readClearRanges(gkp, iniClr, finClr);
-
+  chimeraClear    *clear = readClearRanges(gkp, finClr);
 
 
 
@@ -1998,6 +1972,11 @@ main(int argc, char **argv) {
   delete [] ovl;
   delete    gkp;
 
+  delete    finClr;
+  delete    outClr;
+
+  delete [] clear;
+
   //  Close log files
 
   if (reportFile)
@@ -2047,8 +2026,6 @@ main(int argc, char **argv) {
 
   if (summaryFile != stdout)
     fclose(summaryFile);
-
-  delete [] clear;
 
   exit(0);
 }

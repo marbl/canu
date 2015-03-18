@@ -28,49 +28,6 @@ const char *mainid = "$Id$";
 #include "AS_UTL_decodeRange.H"
 
 
-bool
-trimWithoutOverlaps(ovsOverlap  *ovl,
-                    uint32       ovlLen,
-                    gkRead      *read,
-                    gkReadData  *readData,
-                    uint32       ibgn,
-                    uint32       iend,
-                    uint32      &fbgn,
-                    uint32      &fend,
-                    char        *logMsg,
-                    bool         qvTrimAllowed) {
-
-  fbgn = ibgn;
-  fend = iend;
-
-  if (qvTrimAllowed == false) {
-    strcpy(logMsg, "\tno overlaps, qv trim not allowed");
-    return(true);
-  }
-
-  //gkp->gkStore_getReadData(read, readData);
-
-  doTrim(read,
-         readData,
-         qual.lookupNumber(20),
-         fbgn, fend);
-
-  //  Intersect the two trims, or return failure.
-
-  if ((iend < fbgn) ||
-      (fend < ibgn)) {
-    strcpy(logMsg, "\tno overlaps, qv trim allowed, inconsistent trimming");
-    return(false);
-  } else {
-    fbgn = MAX(fbgn, ibgn);
-    fend = MIN(fend, iend);
-
-    strcpy(logMsg, "\tno overlaps, qv trim allowed");
-    return(true);
-  }
-}
-
-
 //  Enforce any maximum clear range, if it exists (mbgn < mend)
 //
 //  There are six cases:
@@ -221,15 +178,15 @@ main(int argc, char **argv) {
       (outputPrefix  == NULL) ||
       (err)) {
     fprintf(stderr, "usage: %s -G gkpStore -O ovlStore [-O ovlStore] -o outputPrefix\n", argv[0]);
-    fprintf(stderr, "   -e erate       allow 'erate' percent error\n");
-    fprintf(stderr, "   -E elimit      allow 'elimit' errors (only used in 'largestCovered')\n");
+    fprintf(stderr, "  -e erate       allow 'erate' percent error\n");
+    fprintf(stderr, "  -E elimit      allow 'elimit' errors (only used in 'largestCovered')\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "   -ol            for 'largest covered', the minimum evidence overlap length\n");
-    fprintf(stderr, "   -oc            for 'largest covered', the minimum evidence overlap coverage\n");
+    fprintf(stderr, "  -ol            for 'largest covered', the minimum evidence overlap length\n");
+    fprintf(stderr, "  -oc            for 'largest covered', the minimum evidence overlap coverage\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "   -n             do not modify reads in gkpStore\n");
+    fprintf(stderr, "  -n             do not modify reads in gkpStore\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "   -t bgn-end     limit processing to only reads from bgn to end (inclusive)\n");
+    fprintf(stderr, "  -t bgn-end     limit processing to only reads from bgn to end (inclusive)\n");
     fprintf(stderr, "\n");
     exit(1);
   }
@@ -241,18 +198,29 @@ main(int argc, char **argv) {
   clearRangeFile   *maxClr = (maxClrName == NULL) ? NULL : new clearRangeFile(maxClrName, gkp->gkStore_getNumReads());
   clearRangeFile   *outClr = (outClrName == NULL) ? NULL : new clearRangeFile(outClrName, gkp->gkStore_getNumReads());
 
+  if (iniClr && outClr)
+    outClr->copy(iniClr);
 
-  sprintf(logName, "%s.log",     outputPrefix);
-  sprintf(sumName, "%s.summary", outputPrefix);
 
-  logFile = fopen(logName, "w");
-  sumFile = fopen(sumName, "w");
+  if (outputPrefix) {
+    sprintf(logName, "%s.log",     outputPrefix);
+    sprintf(sumName, "%s.summary", outputPrefix);
 
-  fprintf(logFile, "id\tinitL\tinitR\tfinalL\tfinalR\tmessage (DEL=deleted NOC=no change MOD=modified)\n");
+    errno = 0;
+    logFile = fopen(logName, "w");
+    if (errno)
+      fprintf(stderr, "Failed to open log file '%s' for writing: %s\n", logName, strerror(errno)), exit(1);
 
-  fprintf(sumFile, "Overlap error rate     <= %.2f%% error\n", 100.0 * AS_OVS_decodeQuality(errorRate));
-  fprintf(sumFile, "Overlap min overlap    >= %u base%s (for 'largest covered')\n", minEvidenceOverlap,  (minEvidenceOverlap  == 1) ? "" : "s");
-  fprintf(sumFile, "Overlap min coverage   >= %u read%s (for 'largest covered')\n", minEvidenceCoverage, (minEvidenceCoverage == 1) ? "" : "s");
+    sumFile = fopen(sumName, "w");
+    if (errno)
+      fprintf(stderr, "Failed to open summary file '%s' for writing: %s\n", sumName, strerror(errno)), exit(1);
+
+    fprintf(logFile, "id\tinitL\tinitR\tfinalL\tfinalR\tmessage (DEL=deleted NOC=no change MOD=modified)\n");
+
+    fprintf(sumFile, "Overlap error rate     <= %.2f%% error\n", 100.0 * AS_OVS_decodeQuality(errorRate));
+    fprintf(sumFile, "Overlap min overlap    >= %u base%s (for 'largest covered')\n", minEvidenceOverlap,  (minEvidenceOverlap  == 1) ? "" : "s");
+    fprintf(sumFile, "Overlap min coverage   >= %u read%s (for 'largest covered')\n", minEvidenceCoverage, (minEvidenceCoverage == 1) ? "" : "s");
+  }
 
 
   uint32      ovlLen       = 0;
@@ -276,11 +244,6 @@ main(int argc, char **argv) {
   gkReadData  readData;
 
   for (uint32 id=idMin; id<=idMax; id++) {
-
-    //  The QLT is needed ONLY for Sanger reads, and is a total waste of bandwidth for all other
-    //  read types.  Perhaps this can be moved into initialTrim -- compute the strict QV trim there
-    //  too, save it in the OBTMERGE clear range
-    //
     gkRead *read = gkp->gkStore_getRead(id);
 
     logMsg[0] = 0;
@@ -298,48 +261,47 @@ main(int argc, char **argv) {
     //  fragments we skip.
     //
     if ((lb->gkLibrary_finalTrim() == FINALTRIM_LARGEST_COVERED) &&
-        //(lb->gkLibrary_finalTrim() == FINALTRIM_EVIDENCE_BASED) &&
         (lb->gkLibrary_finalTrim() == FINALTRIM_BEST_EDGE))
       continue;
 
-    uint32      ibgn = iniClr->bgn(id);
-    uint32      iend = iniClr->end(id);
+    //  Decide on the initial trimming.
 
-    //  Is the clear range valid?  If we skip initial trim for this read, there is no clear range defined.
-    if ((ibgn == 1) && (iend == 0)) {
-      ibgn = 0;
-      iend = read->gkRead_sequenceLength();
+    uint32      ibgn = 0;
+    uint32      iend = read->gkRead_sequenceLength();
+
+    //  If the iniClr is defined, reset.
+
+    if ((iniClr) && (iniClr->isUndefined(id) == false)) {
+      ibgn = iniClr->bgn(id);
+      iend = iniClr->end(id);
     }
 
-    uint32      fbgn = ibgn;
-    uint32      fend = iend;
+    //  Set the, ahem, initial final trimming, but default to a garbage read.
+
+    bool        isGood = false;
+    uint32      fbgn   = ibgn;
+    uint32      fend   = iend;
+
+    //  Load overlaps.
 
     loadOverlaps(id, ovl, ovlLen, ovlMax, ovs, NULL);
 
-    bool isGood = false;
+    //  Trim!
 
-    //  If there are no overlaps for this read, do nothing.
     if ((id < ovl[0].a_iid) ||
         (ovlLen == 0)) {
-      isGood = trimWithoutOverlaps(ovl, ovlLen,
-                                   read,
-                                   &readData,
-                                   ibgn, iend, fbgn, fend,
-                                   logMsg,
-                                   lb->gkLibrary_initialTrim() == INITIALTRIM_QUALITY_BASED);
-      assert(fbgn <= fend);
-
+      //  No overlaps, so mark it as junk.
+      isGood = false;
     }
 
-    //  Use the largest region covered by overlaps as the trim
-    else if        (lb->gkLibrary_finalTrim() == FINALTRIM_LARGEST_COVERED) {
+    else if (lb->gkLibrary_finalTrim() == FINALTRIM_LARGEST_COVERED) {
+      //  Use the largest region covered by overlaps as the trim
       isGood = largestCovered(gkp,
                               ovl, ovlLen,
                               read,
                               ibgn, iend, fbgn, fend,
                               logMsg,
                               errorRate,
-                              lb->gkLibrary_initialTrim() == INITIALTRIM_QUALITY_BASED,
                               minEvidenceOverlap,
                               minEvidenceCoverage,
                               minReadLength);
@@ -347,15 +309,14 @@ main(int argc, char **argv) {
 
     }
 
-    //  Use the largest region covered by overlaps as the trim
-    else if        (lb->gkLibrary_finalTrim() == FINALTRIM_BEST_EDGE) {
+    else if (lb->gkLibrary_finalTrim() == FINALTRIM_BEST_EDGE) {
+      //  Use the largest region covered by overlaps as the trim
       isGood = bestEdge(gkp,
                         ovl, ovlLen,
                         read,
                         ibgn, iend, fbgn, fend,
                         logMsg,
                         errorRate,
-                        lb->gkLibrary_initialTrim() == INITIALTRIM_QUALITY_BASED,
                         minEvidenceOverlap,
                         minEvidenceCoverage,
                         minReadLength);
@@ -363,29 +324,15 @@ main(int argc, char **argv) {
 
     }
 
-#if 0
-    //  Do Sanger-style heuristics
-    else if (lb->gkLibrary_finalTrim() == FINALTRIM_EVIDENCE_BASED) {
-      isGood = evidenceBased(gkp,
-                             ovl, ovlLen,
-                             read,
-                             ibgn, iend, fbgn, fend,
-                             logMsg,
-                             errorRate,
-                             lb->gkLibrary_initialTrim() == INITIALTRIM_QUALITY_BASED);
-      assert(fbgn <= fend);
-    }
-#endif
-
-    //  Do nothing.  Really shouldn't get here.
     else {
+      //  Do nothing.  Really shouldn't get here.
       assert(0);
       continue;
     }
 
     //  Enforce the maximum clear range
 
-    if (isGood)
+    if ((isGood) && (maxClr))
       isGood = enforceMaximumClearRange(ovl, ovlLen,
                                         read,
                                         ibgn, iend, fbgn, fend,
@@ -447,6 +394,10 @@ main(int argc, char **argv) {
 
   delete gkp;
   delete ovs;
+
+  delete iniClr;
+  delete maxClr;
+  delete outClr;
 
   fclose(logFile);
   fclose(sumFile);

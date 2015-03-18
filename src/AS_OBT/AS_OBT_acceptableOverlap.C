@@ -23,6 +23,10 @@ static const char *rcsid = "$Id$";
 
 #include "AS_OBT_acceptableOverlap.H"
 
+#define OBT_FAR5PRIME        (29)
+#define OBT_MIN_ERATE        (2.0)
+#define OBT_MIN_DIFF         (75)
+
 bool
 AS_OBT_acceptableOverlap(OVSoverlap &ol) {
   int32   minq = AS_OVS_encodeQuality(OBT_MIN_ERATE / 100.0);

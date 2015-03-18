@@ -373,9 +373,6 @@ main(int argc, char **argv) {
       } else if (strcasecmp(keyval.key(), "trustHomopolymerRuns") == 0) {
         gkpLibrary->gkLibrary_setTrustHomopolymerRuns(keyval.value_bool());
 
-      } else if (strcasecmp(keyval.key(), "initialTrim") == 0) {
-        gkpLibrary->gkLibrary_setInitialTrim(keyval.value());
-
       } else if (strcasecmp(keyval.key(), "removeDuplicateReads") == 0) {
         gkpLibrary->gkLibrary_setRemoveDuplicateReads(keyval.value_bool());
 

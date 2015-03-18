@@ -5,13 +5,21 @@
 #include "gkStore.H"
 #include "ovStore.H"
 
+#include <vector>
+
+using namespace std;
+
+
 int
 main(int argc, char **argv) {
-  bool      asCoords = true;
-  bool      asHangs  = true;
+  bool            asCoords = false;
+  bool            asHangs  = false;
 
-  char     *gkpStoreName = NULL;
-  gkStore  *gkpStore = NULL;
+  char           *gkpStoreName = NULL;
+  gkStore        *gkpStore = NULL;
+
+  vector<char *>  files;
+
 
   int32     arg = 1;
   int32     err = 0;
@@ -28,9 +36,10 @@ main(int argc, char **argv) {
       gkpStoreName = argv[++arg];
 
     } else if (AS_UTL_fileExists(argv[arg])) {
-      break;
+      files.push_back(argv[arg]);
 
     } else {
+      fprintf(stderr, "ERROR:  invalid arg '%s'\n", argv[arg]);
       err++;
     }
 
@@ -39,8 +48,10 @@ main(int argc, char **argv) {
 
   if ((gkpStoreName == NULL) && (asCoords == true))
     err++;
+  if ((asCoords == false) && (asHangs == false))
+    err++;
 
-  if ((err) || (arg == argc)) {
+  if ((err) || (files.size() == 0)) {
     fprintf(stderr, "usage: %s [options] file.ovb[.gz]\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "  -G             gkpStore\n");
@@ -53,6 +64,10 @@ main(int argc, char **argv) {
 
     if ((gkpStoreName == NULL) && (asCoords == true))
       fprintf(stderr, "ERROR:  -coords mode requires a gkpStore (-G)\n");
+    if ((asCoords == false) && (asHangs == false))
+      fprintf(stderr, "ERROR:  one of -coords or -hangs must be supplied\n");
+    if (files.size() == 0)
+      fprintf(stderr, "ERROR:  no overlap files supplied\n");
 
     exit(1);
   }
@@ -60,8 +75,8 @@ main(int argc, char **argv) {
   if (gkpStoreName)
     gkpStore = new gkStore(gkpStoreName);
 
-  while (arg < argc) {
-    ovFile      *of = new ovFile(argv[arg], ovFileFull);
+  for (uint32 ff=0; ff<files.size(); ff++) {
+    ovFile      *of = new ovFile(files[ff], ovFileFull);
     ovsOverlap   ov;
 
     while (of->readOverlap(&ov)) {

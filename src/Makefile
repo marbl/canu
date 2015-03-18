@@ -379,7 +379,6 @@ ifeq (${OSTYPE}, Linux)
   #LDFLAGS   +=             -L/usr/local/lib -lunwind -lunwind-x86_64
 
   ifeq ($(BUILDDEBUG), 1)
-    #  Inconveniently fix a problem where gcc46 doesn't work with gdb.
     CXXFLAGS  += -g
   else
     ifeq ($(BUILDPROFILE), 1)
@@ -413,7 +412,7 @@ ifeq (${OSTYPE}, FreeBSD)
   LDFLAGS  := -pthread -lm
 
   CXXFLAGS  += -fopenmp
-  LDFLAGS   += -fopenmp -rpath /usr/local/lib/gcc46
+  LDFLAGS   += -fopenmp -rpath /usr/local/lib/gcc48
 
   ifeq ($(BUILDPROFILE), 1)
     CXXFLAGS  += 
@@ -427,9 +426,6 @@ ifeq (${OSTYPE}, FreeBSD)
   LDFLAGS   +=             -L/usr/local/lib -lunwind -lunwind-x86_64
 
   ifeq ($(BUILDDEBUG), 1)
-    #  Inconveniently fix a problem where gcc46 doesn't work with gdb.
-    CC         = gcc48
-    CXX        = g++48
     CXXFLAGS  += -g
   else
     ifeq ($(BUILDPROFILE), 1)

@@ -193,11 +193,15 @@ gatekeeper($wrk, $asm, @inputFiles);
 
 meryl($wrk, $asm);
 
-overlapConfigure($wrk, $asm, "normal");
-overlapCheck($wrk, $asm, "normal", 0);
-overlapCheck($wrk, $asm, "normal", 1);
+#  Eventually, we'll get a whole other pipeline for obt.
+my $ovlType = (getGlobal("doOverlapBasedTrimming") == 1) ? "partial" : "normal";
 
-createOverlapStore($wrk, $asm, "ovl", getGlobal("ovlStoreMethod"));
+overlapConfigure($wrk, $asm, $ovlType);
+overlapCheck($wrk, $asm, $ovlType, 0);
+overlapCheck($wrk, $asm, $ovlType, 1);
+
+createOverlapStore($wrk, $asm, getGlobal("ovlStoreMethod"));
+
 
 #
 #  Begin Overlap Based Trimming
@@ -210,6 +214,7 @@ if (getGlobal("doOverlapBasedTrimming")) {
     dumpReads($wrk, $asm);
     exit(0);
 }
+
 
 #
 #  Begin Assembly

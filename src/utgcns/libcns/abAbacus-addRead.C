@@ -176,6 +176,9 @@ abAbacus::addRead(gkStore *gkpStore,
   gkRead      *read = gkpStore->gkStore_getRead(readID);
   gkReadData   readData;
 
+  //fprintf(stderr, "abAbacus::addRead()--  want readID=%u, store returned read %u\n",
+  //        readID, read->gkRead_readID());
+
   gkpStore->gkStore_loadReadData(read, &readData);
 
   uint32  bgn = read->gkRead_clearRegionBegin();

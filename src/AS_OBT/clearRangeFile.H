@@ -8,11 +8,13 @@ public:
   //  of reads allowed.  If the file does exist, we don't care and load the number of reads
   //  from the file.
 
-  clearRangeFile(char *fileName, uint32 maxID=0) {
+  clearRangeFile(char *fileName, uint32 maxID) {
     strcpy(_fileName, fileName);
 
     if (AS_UTL_fileExists(_fileName) == false) {
       _modified = true;
+
+      assert(maxID != 0);
 
       _lastID   = maxID;
       _bgn      = new uint32 [_lastID + 1];
@@ -31,11 +33,14 @@ public:
 
       AS_UTL_safeRead(F, &_lastID, "clearRangeFile::lastID", sizeof(uint32), 1);
 
+      if (maxID != 0)
+        assert(maxID == _lastID);
+
       _bgn = new uint32 [_lastID + 1];
       _end = new uint32 [_lastID + 1];
 
-      AS_UTL_safeRead(F, &_bgn, "clearRangeFile::bgn", sizeof(uint32), _lastID + 1);
-      AS_UTL_safeRead(F, &_end, "clearRangeFile::end", sizeof(uint32), _lastID + 1);
+      AS_UTL_safeRead(F,  _bgn, "clearRangeFile::bgn", sizeof(uint32), _lastID + 1);
+      AS_UTL_safeRead(F,  _end, "clearRangeFile::end", sizeof(uint32), _lastID + 1);
 
       fclose(F);
     }
@@ -52,8 +57,8 @@ public:
 
       AS_UTL_safeWrite(F, &_lastID, "clearRangeFile::lastID", sizeof(uint32), 1);
 
-      AS_UTL_safeWrite(F, &_bgn, "clearRangeFile::bgn", sizeof(uint32), _lastID + 1);
-      AS_UTL_safeWrite(F, &_end, "clearRangeFile::end", sizeof(uint32), _lastID + 1);
+      AS_UTL_safeWrite(F,  _bgn, "clearRangeFile::bgn", sizeof(uint32), _lastID + 1);
+      AS_UTL_safeWrite(F,  _end, "clearRangeFile::end", sizeof(uint32), _lastID + 1);
 
       fclose(F);
     }
@@ -96,7 +101,16 @@ public:
   };
 
 
+  void      copy(clearRangeFile *source) {
 
+    if (source == NULL)
+      return;
+
+    assert(_lastID   == source->_lastID);
+
+    memcpy(_bgn, source->_bgn, sizeof(uint32) * (_lastID + 1));
+    memcpy(_bgn, source->_bgn, sizeof(uint32) * (_lastID + 1));
+  };
 
 
 private:

@@ -158,13 +158,10 @@ sub schedulerFinish ($) {
 #
 
 sub touch ($@) {
-
     open(F, "> $_[0]") or caFailure("failed to touch file '$_[0]'", undef);
     print F "$_[1]\n"  if (defined($_[1]));
     close(F);
 }
-
-
 
 
 

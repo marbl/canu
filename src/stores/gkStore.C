@@ -4,17 +4,10 @@
 #include "AS_UTL_fileIO.H"
 #include "AS_UTL_alloc.H"
 
-bool
-gkStore::gkStore_loadReadData(uint32  readID, gkReadData *readData) {
-
-  return(gkStore_getRead(readID)->gkRead_loadData(readData,
-                                                  _blobs,
-                                                  (_numberOfPartitions == 0) ? false : true));
-};
 
 
 bool
-gkRead::gkRead_loadData(gkReadData *readData, void *blobs, bool partitioned) {
+gkRead::gkRead_loadData(gkReadData *readData, void *blobs) {
 
   readData->_read = this;
 
@@ -24,7 +17,7 @@ gkRead::gkRead_loadData(gkReadData *readData, void *blobs, bool partitioned) {
 
   //  Where, or where!, is the data?
 
-  uint64  offset = (partitioned == false) ? (_mPtr * BLOB_BLOCK_SIZE) : (_pPtr * BLOB_BLOCK_SIZE);
+  uint64  offset = _mPtr;
 
   //  One might be tempted to set the readData blob to point to the blob data in the mmap,
   //  but doing so will cause it to be written out again.
@@ -35,9 +28,15 @@ gkRead::gkRead_loadData(gkReadData *readData, void *blobs, bool partitioned) {
 
   //  Instead, we'll use someting horribly similar.
 
-  uint8  *blob    = (uint8 *)blobs + offset;
+  uint8  *blob    = ((uint8 *)blobs) + offset;
   char    chunk[5];
 
+  if ((blob[0] != 'B') && (blob[1] != 'L') && (blob[2] != 'O') && (blob[3] != 'B'))
+    fprintf(stderr, "Index error in read "F_U32" %c mPtr "F_U32" pID "F_U32" expected BLOB, got %c%c%c%c\n",
+            _readID,
+            '?', //(_numberOfPartitions == 0) ? 'm' : 'p',
+            _mPtr, _pID,
+            blob[0], blob[1], blob[2], blob[3]);
   assert(blob[0] == 'B');
   assert(blob[1] == 'L');
   assert(blob[2] == 'O');
@@ -45,11 +44,13 @@ gkRead::gkRead_loadData(gkReadData *readData, void *blobs, bool partitioned) {
 
   uint32  blobLen = *((uint32 *)blob + 1);
 
+  //fprintf(stderr, "BLOB len %u\n", blobLen);
+
   blob += 8;
 
-  while ((blob[0] != 'S') &&
-         (blob[1] != 'T') &&
-         (blob[2] != 'O') &&
+  while ((blob[0] != 'S') ||
+         (blob[1] != 'T') ||
+         (blob[2] != 'O') ||
          (blob[3] != 'P')) {
     chunk[0] = blob[0];
     chunk[1] = blob[1];
@@ -59,6 +60,8 @@ gkRead::gkRead_loadData(gkReadData *readData, void *blobs, bool partitioned) {
 
     uint32   chunkLen = *((uint32 *)blob + 1);
 
+    //fprintf(stderr, "%s len %u\n", chunk, chunkLen);
+
     if      (strncmp(chunk, "TYPE", 4) == 0) {
       readData->_type = *((uint32 *)blob + 2);
     }
@@ -67,7 +70,7 @@ gkRead::gkRead_loadData(gkReadData *readData, void *blobs, bool partitioned) {
     }
 
     else if (strncmp(chunk, "QSEQ", 4) == 0) {
-      fprintf(stderr, "QSEQ not supported.\n");
+      //fprintf(stderr, "QSEQ not supported.\n");
     }
 
     else if (strncmp(chunk, "USEQ", 4) == 0) {
@@ -85,11 +88,11 @@ gkRead::gkRead_loadData(gkReadData *readData, void *blobs, bool partitioned) {
     }
 
     else if (strncmp(chunk, "2SEQ", 4) == 0) {
-      fprintf(stderr, "2SEQ not supported.\n");
+      //fprintf(stderr, "2SEQ not supported.\n");
     }
 
     else if (strncmp(chunk, "3SEQ", 4) == 0) {
-      fprintf(stderr, "3SEQ not supported.\n");
+      //fprintf(stderr, "3SEQ not supported.\n");
     }
 
     else if (strncmp(chunk, "QVAL", 4) == 0) {
@@ -97,6 +100,14 @@ gkRead::gkRead_loadData(gkReadData *readData, void *blobs, bool partitioned) {
 
       for (uint32 ii=0; ii<_seqLen; ii++)
         readData->_qlt[ii] = qval;
+    }
+
+    else if (strncmp(chunk, "IDNT", 4) == 0) {
+      //fprintf(stderr, "IDNT = %u\n", *((uint32 *)blob + 2));
+    }
+
+    else if (strncmp(chunk, "SLEN", 4) == 0) {
+      //fprintf(stderr, "SLEN = %u\n", *((uint32 *)blob + 2));
     }
 
     else {
@@ -161,16 +172,10 @@ gkStore::gkStore_stashReadData(gkRead *read, gkReadData *data) {
 
   assert(_blobsFile != NULL);
 
+  read->_mPtr = AS_UTL_ftell(_blobsFile);
+  read->_pID  = _partitionID;                //  0 if not partitioned
+
   //fprintf(stderr, "STASH read %u at position "F_SIZE_T"\n", read->gkRead_readID(), AS_UTL_ftell(_blobsFile));
-
-  if (_numberOfPartitions == 0) {
-    read->_mPtr = AS_UTL_ftell(_blobsFile);
-
-  } else {
-
-    read->_pID  = _partitionID;
-    read->_pPtr = AS_UTL_ftell(_blobsFile);
-  }
 
   AS_UTL_safeWrite(_blobsFile,
                    data->_blob,
@@ -227,7 +232,7 @@ gkReadData::gkReadData_encodeBlobChunk(char const *tag,
   if (pad > 1)  _blob[_blobLen++] = 0;
   if (pad > 0)  _blob[_blobLen++] = 0;
 
-  //  Finally, update the blob length.
+  //  Finally, update the total blob length.
 
   _blobLen -= 8;
 
@@ -241,6 +246,7 @@ gkReadData *
 gkRead::gkRead_encodeSeqQlt(char *H, char *S, char *Q) {
   gkReadData *rd = new gkReadData;
 
+  uint32  RID  = _readID;    //  Debugging
   uint32  Slen = strlen(S);
   uint32  Qlen = strlen(Q);
 
@@ -259,7 +265,9 @@ gkRead::gkRead_encodeSeqQlt(char *H, char *S, char *Q) {
   rd->gkReadData_encodeBlobChunk("BLOB",    0,  NULL);
   rd->gkReadData_encodeBlobChunk("TYPE",    4, &blobType);
   rd->gkReadData_encodeBlobChunk("VERS",    4, &blobVers);
-  //rd->gkReadData_encodeBlobChunk("QSEQ",    0,  qseq);      //  Encoded sequence and quality
+  rd->gkReadData_encodeBlobChunk("IDNT",    4, &RID);       //  Debugging, the read id we're supposed to be for
+  rd->gkReadData_encodeBlobChunk("SLEN",    4, &Slen);      //  Debugging, the length of the read we're supposed to be for
+  rd->gkReadData_encodeBlobChunk("QSEQ",    0,  qseq);      //  Encoded sequence and quality
   rd->gkReadData_encodeBlobChunk("USEQ", Slen,  S);         //  Unencoded sequence
   rd->gkReadData_encodeBlobChunk("UQLT", Qlen,  Q);         //  Unencoded quality
   rd->gkReadData_encodeBlobChunk("STOP",    0,  NULL);
@@ -368,27 +376,6 @@ gkLibrary::gkLibrary_parsePreset(char *p) {
 
   fprintf(stderr, "gkLibrary::gkLibrary_parsePreset()--  ERROR: unknown preset '%s'\n", p);
   exit(1);
-}
-
-
-void
-gkLibrary::gkLibrary_setInitialTrim(char *t) {
-
-  if      (strcasecmp(t, "none") == 0)
-    _initialTrim = INITIALTRIM_NONE;
-
-  else if (strcasecmp(t, "mer") == 0)
-    _initialTrim = INITIALTRIM_MER_BASED;
-
-  //else if (strcasecmp(t, "flow") == 0)
-  //  _initialTrim = INITIALTRIM_FLOW_BASED;
-
-  else if (strcasecmp(t, "quality") == 0)
-    _initialTrim = INITIALTRIM_QUALITY_BASED;
-
-  else
-    fprintf(stderr, "gkLibrary::gkLibrary_setInitialTrim()--  ERROR: unknown initial trim '%s'\n",
-            t), exit(1);
 }
 
 
@@ -580,35 +567,38 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
     errno = 0;
     FILE *F = fopen(name, "r");
     if (errno)
-      fprintf(stderr, "gkStore::gkStore()-- failed to open '%s' for writing: %s\n",
+      fprintf(stderr, "gkStore::gkStore()-- failed to open '%s' for reading: %s\n",
               name, strerror(errno)), exit(1);
-
-    // guido
 
     AS_UTL_safeRead(F, &_numberOfPartitions, "gkStore::_numberOfPartitions", sizeof(uint32), 1);
 
     _partitionID            = partID;
-    _readsPerPartition      = new uint32 [_numberOfPartitions + 1];  //  No zeroth element in any of these
-    _readIDtoPartitionID    = new uint32 [_info.numReads      + 1];
-    _readIDtoPartitionIdx   = new uint32 [_info.numReads      + 1];
+    _readsPerPartition      = new uint32 [_numberOfPartitions   + 1];  //  No zeroth element in any of these
+    _readIDtoPartitionID    = new uint32 [gkStore_getNumReads() + 1];
+    _readIDtoPartitionIdx   = new uint32 [gkStore_getNumReads() + 1];
 
-    AS_UTL_safeRead(F, _readsPerPartition,    "gkStore::_readsPerPartition",    sizeof(uint32), _numberOfPartitions + 1);
-    AS_UTL_safeRead(F, _readIDtoPartitionID,  "gkStore::_readIDtoPartitionID",  sizeof(uint32), _info.numReads + 1);
-    AS_UTL_safeRead(F, _readIDtoPartitionIdx, "gkStore::_readIDtoPartitionIdx", sizeof(uint32), _info.numReads + 1);
+    //  guido
+
+    AS_UTL_safeRead(F, _readsPerPartition,    "gkStore::_readsPerPartition",    sizeof(uint32), _numberOfPartitions   + 1);
+    AS_UTL_safeRead(F, _readIDtoPartitionID,  "gkStore::_readIDtoPartitionID",  sizeof(uint32), gkStore_getNumReads() + 1);
+    AS_UTL_safeRead(F, _readIDtoPartitionIdx, "gkStore::_readIDtoPartitionIdx", sizeof(uint32), gkStore_getNumReads() + 1);
 
     fclose(F);
 
     sprintf(name, "%s/libraries", _storePath);
     _librariesMMap = new memoryMappedFile (name, memoryMappedFile_readOnly);
     _libraries     = (gkLibrary *)_librariesMMap->get(0);
+    fprintf(stderr, " -- openend '%s' at "F_X64"\n", name, _libraries);
 
     sprintf(name, "%s/partitions/reads.%04lu", _storePath, partID);
     _readsMMap     = new memoryMappedFile (name, memoryMappedFile_readOnly);
     _reads         = (gkRead *)_readsMMap->get(0);
+    fprintf(stderr, " -- openend '%s' at "F_X64"\n", name, _reads);
 
     sprintf(name, "%s/partitions/blobs.%04lu", _storePath, partID);
     _blobsMMap     = new memoryMappedFile (name, memoryMappedFile_readOnly);
     _blobs         = (void *)_blobsMMap->get(0);
+    fprintf(stderr, " -- openend '%s' at "F_X64"\n", name, _blobs);
   }
 
   //  Info only, no access to reads or libraries.
@@ -813,13 +803,24 @@ gkRead::gkRead_copyDataToPartition(void *blobs, FILE **partfiles, uint64 *partfi
 
   //  Stash away the location of the partitioned data
 
-  _pID  = partID;
-  _pPtr = partfileslen[partID];
+  assert(partfileslen[partID] == AS_UTL_ftell(partfiles[partID]));
 
   //  Figure out where the blob actually is, and make sure that it really is a blob
 
   uint8  *blob    = (uint8 *)blobs + _mPtr * BLOB_BLOCK_SIZE;
   uint32  blobLen = 8 + *((uint32 *)blob + 1);
+
+#if 0
+  fprintf(stderr, "blobs "F_X64"\n", blobs);
+  fprintf(stderr, "blobs "F_X64"\n", blobs + 1);
+  fprintf(stderr, "blobs "F_X64"\n", (uint32 *)blobs);
+  fprintf(stderr, "blobs "F_X64"\n", (uint32 *)blobs + 1);
+
+  fprintf(stderr, "blob "F_X64"\n", blob);
+  fprintf(stderr, "blob "F_X64"\n", (uint32 *)blob + 1);
+
+  fprintf(stderr, "copy to partition blob="F_X64" len="F_U32" mPtr="F_U64"\n", blob, blobLen, _mPtr);
+#endif
 
   assert(blob[0] == 'B');
   assert(blob[1] == 'L');
@@ -830,7 +831,17 @@ gkRead::gkRead_copyDataToPartition(void *blobs, FILE **partfiles, uint64 *partfi
 
   AS_UTL_safeWrite(partfiles[partID], blob, "gkRead::gkRead_copyDataToPartition::blob", sizeof(char), blobLen);
 
+  //  Update the read to the new location of the blob in the partitioned data.
+
+  _mPtr = partfileslen[partID];
+  _pID  = partID;
+
+  //  And finalize by remembering the length.
+
   partfileslen[partID] += blobLen;
+
+  assert(partfileslen[partID] == AS_UTL_ftell(partfiles[partID]));
+
 }
 
 
@@ -847,10 +858,20 @@ gkStore::gkStore_buildPartitions(uint32 *partitionMap) {
   //  Figure out what the last partition is
 
   uint32  maxPartition = 0;
+  uint32  unPartitioned = 0;
 
-  for (uint32 fi=0; fi<=gkStore_getNumReads(); fi++)
-    if ((partitionMap[fi] != UINT32_MAX) && (maxPartition < partitionMap[fi]))
+  assert(partitionMap[0] == UINT32_MAX);
+
+  for (uint32 fi=1; fi<=gkStore_getNumReads(); fi++) {
+    if (partitionMap[fi] == UINT32_MAX)
+      unPartitioned++;
+
+    else if (maxPartition < partitionMap[fi])
       maxPartition = partitionMap[fi];
+  }
+
+  fprintf(stderr, "Found "F_U32" unpartitioned reads and maximum partition of "F_U32"\n",
+          unPartitioned, maxPartition);
 
   //  Create the partitions by opening N copies of the data stores,
   //  and writing data to each.
@@ -909,30 +930,30 @@ gkStore::gkStore_buildPartitions(uint32 *partitionMap) {
 
   //  Copy the blob from the master file to the partitioned file, update pointers.
 
-  gkRead  partRead;
+  readIDmap[0] = UINT32_MAX;    //  There isn't a zeroth read, make it bogus.
 
   for (uint32 fi=1; fi<=gkStore_getNumReads(); fi++) {
     uint32  pi = partitionMap[fi];
 
     assert(pi != 0);  //  No zeroth partition, right?
 
-    readIDmap[fi] = UINT32_MAX;
-
     if (pi == UINT32_MAX)
       //  Deleted reads are not assigned a partition; skip them
       continue;
 
     //  Make a copy of the read, then modify it for the partition, then write it to the partition.
+    //  Without the copy, we'd need to update the master record too.
 
-    partRead = *gkStore_getRead(fi);
+    gkRead  partRead = _reads[fi];  //*gkStore_getRead(fi);
+
     partRead.gkRead_copyDataToPartition(_blobs, blobfiles, blobfileslen, pi);
 
 #if 1
-    fprintf(stderr, "read %u=%u blob master "F_U64" -- to part %u new read id %u blob %u/"F_U64" -- at readIdx %u\n",
-            fi,
-            _reads[fi]._readID, _reads[fi]._mPtr,
+    fprintf(stderr, "read %u=%u len %u -- blob master "F_U64" -- to part %u new read id %u blob %u/"F_U64" -- at readIdx %u\n",
+            fi, _reads[fi]._readID, _reads[fi]._seqLen,
+            _reads[fi]._mPtr,
             pi,
-            partRead.gkRead_readID(), partRead._pID, partRead._pPtr,
+            partRead.gkRead_readID(), partRead._pID, partRead._mPtr,
             readfileslen[pi]);
 #endif
 
@@ -941,8 +962,7 @@ gkStore::gkStore_buildPartitions(uint32 *partitionMap) {
     readIDmap[fi] = readfileslen[pi]++;
   }
 
-  //  There isn't a zeroth read, and we use this space to store the number of partitions.
-  //guido
+  //  There isn't a zeroth read.  guido
 
   AS_UTL_safeWrite(rIDmF, &maxPartition,  "gkStore::gkStore_buildPartitions::maxPartition", sizeof(uint32), 1);
   AS_UTL_safeWrite(rIDmF,  readfileslen,  "gkStore::gkStore_buildPartitions::readfileslen", sizeof(uint32), maxPartition + 1);
@@ -955,8 +975,14 @@ gkStore::gkStore_buildPartitions(uint32 *partitionMap) {
 
   for (uint32 i=1; i<=maxPartition; i++) {
     fprintf(stderr, "partition %u has %u reads\n", i, readfileslen[i]);
+
+    errno = 0;
+
     fclose(blobfiles[i]);
     fclose(readfiles[i]);
+
+    if (errno)
+      fprintf(stderr, "  warning: %s\n", strerror(errno));
   }
 
   delete [] readIDmap;
@@ -1075,11 +1101,6 @@ gkStoreStats::init(gkStore *gkp) {
     } else {
       numActiveFrag++;
       numActivePerLib[lid]++;
-
-      //if (fr.gkFragment_getMateID() > 0) {
-      //  numMatedFrag++;
-      //  numMatedPerLib[lid]++;
-      //}
 
       readLength             += fr.gkFragment_getSequenceLength();
       readLengthPerLib[lid]  += fr.gkFragment_getSequenceLength();

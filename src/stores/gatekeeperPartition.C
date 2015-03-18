@@ -71,8 +71,12 @@ main(int argc, char **argv) {
   while (!feof(F)) {
     uint32  i, p;
 
-    if (2 == fscanf(F, " "F_U32" "F_U32" ", &p, &i))
+    if (2 == fscanf(F, " "F_U32" "F_U32" ", &p, &i)) {
+      assert(i            <= numReads);
+      assert(partition[i] == UINT32_MAX);
+
       partition[i] = p;
+    }
   }
   fclose(F);
 

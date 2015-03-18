@@ -495,8 +495,11 @@ sub setDefaults () {
 
     #####  Error Rates
 
-    $global{"ovlErrorRate"}                = 0.06;
+    $global{"ovlErrorRate"}                = 0.060;
     $synops{"ovlErrorRate"}                = "Overlaps above this error rate are not computed";
+
+    $global{"obtErrorRate"}                = 0.060;
+    $synops{"obtErrorRate"}                = "Overlaps at or below this error rate are used to trim reads";
 
     $global{"utgErrorRate"}                = 0.030;
     $synops{"utgErrorRate"}                = "Overlaps at or below this error rate are used to construct unitigs (BOG and UTG)";
@@ -507,7 +510,7 @@ sub setDefaults () {
     $global{"utgMergeErrorRate"}           = 0.045;
     $synops{"utgMergeErrorRate"}           = "Overlaps at or below this error rate are used to construct unitigs (BOGART)";
 
-    $global{"cnsErrorRate"}                = 0.06;
+    $global{"cnsErrorRate"}                = 0.060;
     $synops{"cnsErrorRate"}                = "Consensus expects alignments at about this error rate";
 
     #####  Minimums
@@ -611,10 +614,10 @@ sub setDefaults () {
 
     #####  Overlap Based Trimming
 
-    $global{"doOverlapBasedTrimming"}      = 0;
+    $global{"doOverlapBasedTrimming"}      = 1;
     $synops{"doOverlapBasedTrimming"}      = "Enable the Overlap Based Trimming module (doOBT and doOverlapTrimming are aliases)";
 
-    $global{"doDeDuplication"}             = 0;
+    $global{"doDeDuplication"}             = 1;
     $synops{"doDeDuplication"}             = "Enable the OBT duplication detection and cleaning module for 454 reads, enabled automatically";
 
     $global{"doChimeraDetection"}          = "normal";
