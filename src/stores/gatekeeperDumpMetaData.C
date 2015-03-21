@@ -28,7 +28,7 @@ const char *mainid = "$Id: gatekeeperDumpFASTQ.C 6775 2015-03-18 03:55:15Z bri $
 
 void
 dumpLibs(gkStore *gkp, uint32 bgnID, uint32 endID) {
-  fprintf(stderr, "Dumping libraries from %u to %u (inclusive).\n", bgnID, endID);
+  //fprintf(stderr, "Dumping libraries from %u to %u (inclusive).\n", bgnID, endID);
 
   for (uint32 lid=bgnID; lid<=endID; lid++) {
     gkLibrary  *library = gkp->gkStore_getLibrary(lid);
@@ -51,7 +51,7 @@ dumpLibs(gkStore *gkp, uint32 bgnID, uint32 endID) {
 
 void
 dumpReads(gkStore *gkp, uint32 bgnID, uint32 endID) {
-  fprintf(stderr, "Dumping reads from %u to %u (inclusive).\n", bgnID, endID);
+  //fprintf(stderr, "Dumping reads from %u to %u (inclusive).\n", bgnID, endID);
 
   for (uint32 rid=bgnID; rid<=endID; rid++) {
     gkRead  *read = gkp->gkStore_getRead(rid);
@@ -107,7 +107,7 @@ private:
 
 void
 dumpStats(gkStore *gkp, uint32 bgnID, uint32 endID) {
-  fprintf(stderr, "Dumping read statistics from %u to %u (inclusive).\n", bgnID, endID);
+  //fprintf(stderr, "Dumping read statistics from %u to %u (inclusive).\n", bgnID, endID);
 
   readStats  *rs = new readStats [gkp->gkStore_getNumLibraries() + 1];
 
@@ -127,7 +127,7 @@ dumpStats(gkStore *gkp, uint32 bgnID, uint32 endID) {
   //    length histogram plot
 
   for (uint32 l=0; l<gkp->gkStore_getNumLibraries() + 1; l++) {
-    fprintf(stderr, "library "F_U32"  reads "F_U32" bases: total "F_U64" ave "F_U32" min "F_U32" max "F_U32"\n",
+    fprintf(stdout, "library "F_U32"  reads "F_U32" bases: total "F_U64" ave "F_U32" min "F_U32" max "F_U32"\n",
             l, rs[l].numberOfReads(), rs[l].numberOfBases(), rs[l].numberOfBases() / rs[l].numberOfReads(), rs[l].minBases(), rs[l].maxBases());
   }
 }
@@ -173,6 +173,10 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-e") == 0) {
       endID  = atoi(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-r") == 0) {
+      bgnID  = atoi(argv[++arg]);
+      endID  = bgnID;
+
     } else {
       err++;
       fprintf(stderr, "ERROR: unknown option '%s'\n", argv[arg]);
@@ -186,15 +190,17 @@ main(int argc, char **argv) {
   if (err) {
     fprintf(stderr, "usage: %s [...] -G gkpStore\n", argv[0]);
     fprintf(stderr, "  -G gkpStore\n");
-    fprintf(stderr, "  \n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "  -libs        dump information about libraries\n");
     fprintf(stderr, "  -reads       dump information about reads\n");
-    fprintf(stderr, "  \n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "  -stats       dump summary statistics on reads\n");
-    fprintf(stderr, "  \n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "  -b id        output starting at read/library 'id'\n");
     fprintf(stderr, "  -e id        output stopping after read/library 'id'\n");
-    fprintf(stderr, "  \n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -r id        output only the single read 'id'\n");
+    fprintf(stderr, "\n");
 
     if (gkpStoreName == NULL)
       fprintf(stderr, "ERROR: no gkpStore (-G) supplied.\n");
