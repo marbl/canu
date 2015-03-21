@@ -11,7 +11,7 @@ endif
 TARGET   := gatekeeperDumpFASTQ
 SOURCES  := gatekeeperDumpFASTQ.C
 
-SRC_INCDIRS := .. ../AS_UTL
+SRC_INCDIRS := .. ../stores ../AS_UTL ../AS_OBT
 
 TGT_LDFLAGS := -L${TARGET_DIR}
 TGT_LDLIBS  := -lCA

@@ -26,6 +26,7 @@ const char *mainid = "$Id$";
 #include "AS_UTL_fileIO.H"
 #include "AS_UTL_fasta.H"
 
+#include "clearRangeFile.H"
 
 //  Write sequence in multiple formats.  This used to write to four fastq files, the .1, .2, .paired and .unmated.
 //  It's left around for future expansion to .fastq and .bax.h5.
@@ -103,10 +104,16 @@ main(int argc, char **argv) {
   char            *gkpStoreName      = NULL;
   char            *outPrefix         = NULL;
 
+  char            *clrName           = NULL;
+
   uint32           libToDump         = 0;
 
   uint32           bgnID             = 1;
   uint32           endID             = AS_MAX_READS;
+
+  bool             dumpAllReads      = false;
+  bool             dumpAllBases      = false;
+  bool             dumpOnlyDeleted   = false;
 
   argc = AS_configure(argc, argv);
 
@@ -116,8 +123,17 @@ main(int argc, char **argv) {
     if        (strcmp(argv[arg], "-G") == 0) {
       gkpStoreName = argv[++arg];
 
+    } else if (strcmp(argv[arg], "-o") == 0) {
+      outPrefix = argv[++arg];
+
+
+    } else if (strcmp(argv[arg], "-c") == 0) {
+      clrName = argv[++arg];
+
+
     } else if (strcmp(argv[arg], "-l") == 0) {
       libToDump = atoi(argv[++arg]);
+
 
     } else if (strcmp(argv[arg], "-b") == 0) {
       bgnID = atoi(argv[++arg]);
@@ -125,8 +141,22 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-e") == 0) {
       endID  = atoi(argv[++arg]);
 
-    } else if (strcmp(argv[arg], "-o") == 0) {
-      outPrefix = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-r") == 0) {
+      bgnID  = atoi(argv[++arg]);
+      endID  = bgnID;
+
+
+    } else if (strcmp(argv[arg], "-allreads") == 0) {
+      dumpAllReads    = true;
+
+    } else if (strcmp(argv[arg], "-allbases") == 0) {
+      dumpAllBases    = true;
+
+    } else if (strcmp(argv[arg], "-onlydeleted") == 0) {
+      dumpOnlyDeleted = true;
+      dumpAllReads    = true;  //  Otherwise we won't report the deleted reads!
+
 
     } else {
       err++;
@@ -143,11 +173,18 @@ main(int argc, char **argv) {
     fprintf(stderr, "usage: %s [...] -o fastq-prefix -g gkpStore\n", argv[0]);
     fprintf(stderr, "  -G gkpStore\n");
     fprintf(stderr, "  -o fastq-prefix     write files fastq-prefix.1.fastq, fastq-prefix.2.fastq, fastq-prefix.paired.fastq, fastq-prefix.unmated.fastq\n");
-    fprintf(stderr, "  \n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "  -l libToDump        output only read in library number libToDump (NOT IMPLEMENTED)\n");
     fprintf(stderr, "  -b id               output starting at read 'id'\n");
     fprintf(stderr, "  -e id               output stopping after read 'id'\n");
-    fprintf(stderr, "  \n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -c clearFile        clear range file from OBT modules\n");
+    fprintf(stderr, "  -allreads           if a clear range file, lower case mask the deleted reads\n");
+    fprintf(stderr, "  -allbases           if a clear range file, lower case mask the non-clear bases\n");
+    fprintf(stderr, "  -onlydeleted        if a clear range file, only output deleted reads (the entire read)\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -r id               output only the single read 'id'\n");
+    fprintf(stderr, "\n");
 
     if (gkpStoreName == NULL)
       fprintf(stderr, "ERROR: no gkpStore (-G) supplied.\n");
@@ -157,9 +194,11 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  gkStore    *gkpStore  = new gkStore(gkpStoreName);
-  uint32      numReads  = gkpStore->gkStore_getNumReads();
-  uint32      numLibs   = gkpStore->gkStore_getNumLibraries();
+  gkStore        *gkpStore  = new gkStore(gkpStoreName);
+  uint32          numReads  = gkpStore->gkStore_getNumReads();
+  uint32          numLibs   = gkpStore->gkStore_getNumLibraries();
+
+  clearRangeFile *clrRange  = (clrName == NULL) ? NULL : new clearRangeFile(clrName, gkpStore);
 
   if (bgnID < 1)
     bgnID = 1;
@@ -170,9 +209,12 @@ main(int argc, char **argv) {
   if (endID < bgnID)
     fprintf(stderr, "No reads to dump; reversed ranges make no sense: bgn="F_U32" end="F_U32"??\n", bgnID, endID);
 
+
+
+
   fprintf(stderr, "Dumping reads from %u to %u (inclusive).\n", bgnID, endID);
 
-  libOutput   **out     = new libOutput * [numLibs];
+  libOutput   **out = new libOutput * [numLibs];
 
   out[0] = NULL;  //  There isn't a zeroth library.
 
@@ -184,29 +226,49 @@ main(int argc, char **argv) {
     gkRead      *read     = gkpStore->gkStore_getRead(rid);
     gkReadData  *readData = new gkReadData;
 
-    //  Eventually, we'll add in dumping from an OBT clear range file, so leave the
-    //  support for it here.
+    uint32       libID  = read->gkRead_libraryID();
 
-    uint32  lclr  = 0;
-    uint32  rclr  = read->gkRead_sequenceLength();
+    uint32       lclr   = 0;
+    uint32       rclr   = read->gkRead_sequenceLength();
+    bool         ignore = false;
 
-    uint32  libID = read->gkRead_libraryID();
+    //  If a clear range file is supplied, grab the clear range.  If it hasn't been set, default
+    //  back to the entire read.
 
-    if ((libToDump != 0) && (libID == libToDump))
-      //  Fragment isn't marked for dumping, don't dump.
+    if (clrRange) {
+      lclr   = clrRange->bgn(rid);
+      rclr   = clrRange->end(rid);
+      ignore = clrRange->isDeleted(rid);
+    }
+
+    //  Abort if we're not dumping anything from this read
+    //   - not in a library we care about
+    //   - deleted, and not dumping all reads
+    //   - not deleted, but only reporting deleted reads
+
+    if (((libToDump != 0) && (libID == libToDump)) ||
+        ((dumpAllReads == false) && (ignore == true)) ||
+        ((dumpOnlyDeleted == true) && (ignore == false)))
       continue;
+
+    //  And if we're told to ignore the read, and here, then the read was deleted and we're printing
+    //  all reads.  Reset the clear range to the whole read, the clear range is invalid.
+
+    if (ignore) {
+      rclr = read->gkRead_sequenceLength();
+      lclr = 0;
+    }
+
+    //  Grab the sequence and quality.
 
     gkpStore->gkStore_loadReadData(read, readData);
 
-    char *seq = readData->gkReadData_getSequence()  + lclr;
-    char *qlt = readData->gkReadData_getQualities() + lclr;
+    char   *seq = readData->gkReadData_getSequence();
+    char   *qlt = readData->gkReadData_getQualities();
+    uint32  len = rclr - lclr;
 
-    seq[rclr - lclr] = 0;
-    qlt[rclr - lclr] = 0;
+    //  Soft mask not-clear bases
 
-    //  Soft mask not-clear bases - oops, removed the option already, add it back....
-
-#if 0
     if (dumpAllBases == true) {
       for (uint32 i=0; i<lclr; i++)
         seq[i] += (seq[i] >= 'A') ? 'a' - 'A' : 0;
@@ -216,16 +278,23 @@ main(int argc, char **argv) {
 
       for (uint32 i=rclr; seq[i]; i++)
         seq[i] += (seq[i] >= 'A') ? 'a' - 'A' : 0;
-    }
-#endif
 
-    AS_UTL_writeFastQ(out[libID]->getFASTQ(), seq, (rclr - lclr), qlt, (rclr - lclr),
+      rclr = read->gkRead_sequenceLength();
+      lclr = 0;
+    }
+
+    //  Chop off the ends we're not printing.
+
+    seq += lclr;
+
+    seq[len] = 0;
+    qlt[len] = 0;
+
+    //  And print the read.
+
+    AS_UTL_writeFastQ(out[libID]->getFASTQ(), seq, (len), qlt, (len),
                       "@"F_U32" clr="F_U32","F_U32"\n",
                       rid, lclr, rclr);
-
-    //AS_UTL_writeFastQ(stdout, seq, (rclr - lclr), qlt, (rclr - lclr),
-    //                  "@"F_U32" clr="F_U32","F_U32"\n",
-    //                  rid, lclr, rclr);
   }
 
   delete gkpStore;
