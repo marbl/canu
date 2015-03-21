@@ -111,15 +111,15 @@ stats(char *filename, uint64 refLen) {
   fprintf(stdout, "\n");
   fprintf(stdout, "SPAN (smallest "F_U32" largest "F_U32")\n", Ls[numSeq-1], Ls[0]);
   for (uint32 i=1; i<10; i++)
-    fprintf(stdout, "n"F_U32"      "F_U32" at index "F_U32"\n", 10 * i, n50s[i], l50s[i]);
-  fprintf(stdout, "totLen   %10"F_U64"\n", Ss);
-  fprintf(stdout, "refLen   %10"F_U64"\n", Rs);
+    fprintf(stdout, "n"F_U32"    %10"F_U32P" at index "F_U32"\n", 10 * i, n50s[i], l50s[i]);
+  fprintf(stdout, "totLen %10"F_U64P"\n", Ss);
+  fprintf(stdout, "refLen %10"F_U64P"\n", Rs);
   fprintf(stdout, "\n");
   fprintf(stdout, "BASES (smallest "F_U32" largest "F_U32")\n", Lb[numSeq-1], Lb[0]);
   for (uint32 i=1; i<10; i++)
-    fprintf(stdout, "n"F_U32"      "F_U32" at index "F_U32"\n", 10 * i, n50b[i], l50b[i]);
-  fprintf(stdout, "totLen   %10"F_U64"\n", Sb);
-  fprintf(stdout, "refLen   %10"F_U64"\n", Rb);
+    fprintf(stdout, "n"F_U32"    %10"F_U32P" at index "F_U32"\n", 10 * i, n50b[i], l50b[i]);
+  fprintf(stdout, "totLen %10"F_U64P"\n", Sb);
+  fprintf(stdout, "refLen %10"F_U64P"\n", Rb);
 
   delete [] Ls;
   delete [] Lb;
