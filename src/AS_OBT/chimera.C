@@ -373,8 +373,8 @@ public:
 
 
 
-
-
+//  This needs to go.
+//
 chimeraClear *
 readClearRanges(gkStore         *gkp,
                 clearRangeFile  *finClr) {
@@ -394,13 +394,6 @@ readClearRanges(gkStore         *gkp,
 
     clear[id].mergL           = finClr->bgn(id);
     clear[id].mergR           = finClr->end(id);
-
-    //  If not defined, reset to the read length.
-
-    if (finClr->isUndefined(id)) {
-      clear[id].mergL = 0;
-      clear[id].mergR = clear[id].length;
-    }
 
     clear[id].libraryID    = read->gkRead_libraryID();
   }
@@ -445,21 +438,15 @@ adjust(gkStore            *gkp,
     //  OBT overlaps are relative to the OBTINITIAL clear range.  We convert them to be relative to
     //  the start of the fragment.  (obsolete comment - ca3g has no initial clear range)
 
-    int32 leftA = ovl[o].a_bgn();
+    int32 leftA = ovl[o].a_bgn(gkp);
     int32 righA = ovl[o].a_end(gkp);
     int32 lenA  = clear[idA].length;
 
-    int32 leftB = ovl[o].b_bgn();
-    int32 righB = ovl[o].b_end(gkp);
+    int32 leftB = (ovl[o].flipped() == false) ? (ovl[o].b_bgn(gkp)) : (ovl[o].b_end(gkp));
+    int32 righB = (ovl[o].flipped() == false) ? (ovl[o].b_end(gkp)) : (ovl[o].b_bgn(gkp));
     int32 lenB  = clear[idB].length;
 
     double error = ovl[o].erate();
-
-    if (ori == 'r') {
-      int32 t = leftB;
-      leftB   = righB;
-      righB   = t;
-    }
 
     //if (leftA >= righA)
     //  fprintf(stderr, "ERROR: leftA=%d !< rightA=%d\n", leftA, righA);
@@ -626,6 +613,8 @@ processChimera(const uint32           iid,
     return(chimeraRes(iid, ola, ora));
 
   readsProcessed++;
+
+  //fprintf(stderr, "%u\r", iid);
 
   bool    isLinker = false;
 
@@ -1739,8 +1728,11 @@ main(int argc, char **argv) {
   gkStore         *gkp = new gkStore(gkpName);
   ovStore         *ovs = new ovStore(ovsName);
 
-  clearRangeFile  *finClr = new clearRangeFile(finClrName, gkp->gkStore_getNumReads());
-  clearRangeFile  *outClr = new clearRangeFile(outClrName, gkp->gkStore_getNumReads());
+  clearRangeFile  *finClr = new clearRangeFile(finClrName, gkp);
+  clearRangeFile  *outClr = new clearRangeFile(outClrName, gkp);
+
+  if (finClr)
+    outClr->copy(finClr);
 
   chimeraClear    *clear = readClearRanges(gkp, finClr);
 

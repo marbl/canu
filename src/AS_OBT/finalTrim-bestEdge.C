@@ -89,7 +89,7 @@ bestEdge(gkStore     *gkp,
   //  For each overlap, add potential trim points where the overlap ends.
 
   for (uint32 i=0; i<ovlLen; i++) {
-    uint32 tbgn = ovl[i].a_bgn();
+    uint32 tbgn = ovl[i].a_bgn(gkp);
     uint32 tend = ovl[i].a_end(gkp);
 
     if ((lend <= tbgn) ||
@@ -199,7 +199,7 @@ bestEdge(gkStore     *gkp,
     //fprintf(stderr, "trim5 pt %u out of %u\n", pt, trim5.size());
 
     for (uint32 i=0; i < ovlLen; i++) {
-      uint32 tbgn = ibgn + ovl[i].a_bgn();
+      uint32 tbgn = ibgn + ovl[i].a_bgn(gkp);
       uint32 tend = ibgn + ovl[i].a_end(gkp);
 
       if ((triml <  tbgn) ||
@@ -272,7 +272,7 @@ bestEdge(gkStore     *gkp,
     //fprintf(stderr, "trim3 pt %u out of %u\n", pt, trim3.size());
 
     for (uint32 i=0; i < ovlLen; i++) {
-      uint32 tbgn = ibgn + ovl[i].a_bgn();
+      uint32 tbgn = ibgn + ovl[i].a_bgn(gkp);
       uint32 tend = ibgn + ovl[i].a_end(gkp);
 
       if ((tend < trimr) ||

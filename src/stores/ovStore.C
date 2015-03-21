@@ -1209,10 +1209,10 @@ isOverlapDifferent(ovsOverlap &ol, gkStore *g) {
   bool   isDiff = true;
 
   if (ol.flipped() == false) {
-    if (ol.a_bgn() > ol.b_bgn())
-      isDiff = ((ol.a_bgn() - ol.b_bgn()) > OBT_FAR5PRIME) ? (true) : (false);
+    if (ol.a_bgn(g) > ol.b_bgn(g))
+      isDiff = ((ol.a_bgn(g) - ol.b_bgn(g)) > OBT_FAR5PRIME) ? (true) : (false);
     else
-      isDiff = ((ol.b_bgn() - ol.a_bgn()) > OBT_FAR5PRIME) ? (true) : (false);
+      isDiff = ((ol.b_bgn(g) - ol.a_bgn(g)) > OBT_FAR5PRIME) ? (true) : (false);
   }
 
   return(isDiff);
@@ -1223,9 +1223,9 @@ isOverlapDifferent(ovsOverlap &ol, gkStore *g) {
 static
 bool
 isOverlapLong(ovsOverlap &ol, gkStore *g) {
-  int32 ab    = ol.a_bgn();
+  int32 ab    = ol.a_bgn(g);
   int32 ae    = ol.a_end(g);
-  int32 bb    = ol.b_bgn();
+  int32 bb    = ol.b_bgn(g);
   int32 be    = ol.b_end(g);
 
   int32 Alength = ae - ab;
@@ -1253,7 +1253,8 @@ ovStoreFilter::filterOverlap(ovsOverlap       &foverlap,
     char ovlstr[256];
 
     fprintf(stderr, "Overlap has IDs out of range (maxID "F_U64"), possibly corrupt input data.\n", maxID);
-    fprintf(stderr, "  %s\n", foverlap.toString(ovlstr));
+    fprintf(stderr, "  coords -- %s\n", foverlap.toString(ovlstr, gkp, true));
+    fprintf(stderr, "  hangs  -- %s\n", foverlap.toString(ovlstr, gkp, false));
     exit(1);
   }
 

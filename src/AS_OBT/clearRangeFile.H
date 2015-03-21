@@ -1,4 +1,7 @@
 #include "AS_global.H"
+
+#include "gkStore.H"
+
 #include "AS_UTL_fileIO.H"
 
 class clearRangeFile {
@@ -8,20 +11,26 @@ public:
   //  of reads allowed.  If the file does exist, we don't care and load the number of reads
   //  from the file.
 
-  clearRangeFile(char *fileName, uint32 maxID) {
+  clearRangeFile(char *fileName, gkStore *gkp) {
+
     strcpy(_fileName, fileName);
 
     if (AS_UTL_fileExists(_fileName) == false) {
-      _modified = true;
+      _modified = false;  //  Only gets written if a change is made.
 
-      assert(maxID != 0);
-
-      _lastID   = maxID;
+      _lastID   = gkp->gkStore_getNumReads();
       _bgn      = new uint32 [_lastID + 1];
       _end      = new uint32 [_lastID + 1];
 
       memset(_bgn, 0, sizeof(uint32) * (_lastID + 1));  //  Every range is undefined
       memset(_end, 0, sizeof(uint32) * (_lastID + 1));
+
+      //  Nope, every range is set to fully clear.
+
+      for (uint32 fi=1; fi <= _lastID; fi++) {
+        _bgn[fi] = 0;
+        _end[fi] = gkp->gkStore_getRead(fi)->gkRead_sequenceLength();
+      }
     }
 
     else {
@@ -33,8 +42,7 @@ public:
 
       AS_UTL_safeRead(F, &_lastID, "clearRangeFile::lastID", sizeof(uint32), 1);
 
-      if (maxID != 0)
-        assert(maxID == _lastID);
+      assert(gkp->gkStore_getNumReads() == _lastID);  //  Sane?
 
       _bgn = new uint32 [_lastID + 1];
       _end = new uint32 [_lastID + 1];
@@ -83,12 +91,14 @@ public:
 
   void      setDeleted(uint32 id) {
     assert(id <= _lastID);
-    _bgn[id] = UINT32_MAX;
-    _end[id] = UINT32_MAX;
+    _modified = true;
+    _bgn[id]  = UINT32_MAX;
+    _end[id]  = UINT32_MAX;
   };
 
 
 
+#if 0
   bool      isUndefined(uint32 id) {
     assert(id <= _lastID);
     return((_bgn[id] == 0) && (_end[id] == 0));
@@ -99,7 +109,7 @@ public:
     _bgn[id] = 0;
     _end[id] = 0;
   };
-
+#endif
 
   void      copy(clearRangeFile *source) {
 
@@ -109,7 +119,7 @@ public:
     assert(_lastID   == source->_lastID);
 
     memcpy(_bgn, source->_bgn, sizeof(uint32) * (_lastID + 1));
-    memcpy(_bgn, source->_bgn, sizeof(uint32) * (_lastID + 1));
+    memcpy(_end, source->_end, sizeof(uint32) * (_lastID + 1));
   };
 
 

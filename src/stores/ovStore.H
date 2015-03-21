@@ -172,11 +172,16 @@ public:
   void       a_hang(int32 a)            { dat.ovl.ahg5 = (a < 0) ? 0 : a;  dat.ovl.bhg5 = (a < 0) ? -a : 0; };
   void       b_hang(int32 b)            { dat.ovl.bhg3 = (b < 0) ? 0 : b;  dat.ovl.ahg3 = (b < 0) ? -b : 0; };
 
-  uint32     a_bgn(void) const          { return(dat.ovl.ahg5); };
+  //  These return the actual coordinates on the read.  For reverse B reads, the coordinates are in the reverse-complemented
+  //  sequence, and are returned as bgn > end to show this.
+  uint32     a_bgn(gkStore *g=NULL) const          { return(dat.ovl.ahg5); };
   uint32     a_end(gkStore *g) const    { return(g->gkStore_getRead(a_iid)->gkRead_sequenceLength() - dat.ovl.ahg3); };
 
-  uint32     b_bgn(void) const          { return(dat.ovl.bhg5); };
-  uint32     b_end(gkStore *g) const    { return(g->gkStore_getRead(b_iid)->gkRead_sequenceLength() - dat.ovl.bhg3); };
+  uint32     b_bgn(gkStore *g) const    { return((dat.ovl.flipped) ? (g->gkStore_getRead(b_iid)->gkRead_sequenceLength() - dat.ovl.bhg5) : (dat.ovl.bhg5)); };
+  uint32     b_end(gkStore *g) const    { return((dat.ovl.flipped) ? (dat.ovl.bhg3) : (g->gkStore_getRead(b_iid)->gkRead_sequenceLength() - dat.ovl.bhg3)); };
+
+  uint32     span(void) const           { return(dat.ovl.span); };
+  void       span(uint32 s)             { dat.ovl.span = s; };
 
   void       flipped(uint32 f)          { dat.ovl.flipped = f; };
   uint32     flipped(void) const        { return(dat.ovl.flipped == true); };
@@ -206,7 +211,7 @@ public:
   uint32     overlapAIsContainer(void) const  { return((dat.ovl.bhg5 == 0) && (dat.ovl.bhg3 == 0));  };
   uint32     overlapBIsContained(void) const  { return((dat.ovl.bhg5 == 0) && (dat.ovl.bhg3 == 0));  };
 
-  char      *toString(char *str);
+  char      *toString(char *str, gkStore *gkp, bool asCoords);
 
   void       swapIDs(ovsOverlap const &orig);
 

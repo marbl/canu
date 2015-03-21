@@ -60,9 +60,6 @@ enforceMaximumClearRange(ovsOverlap      *ovl,
   if (maxClr == NULL)
     return(true);
 
-  if (maxClr->isUndefined(read->gkRead_readID()) == true)
-    return(true);
-
   if (fbgn == fend)
     return(true);
 
@@ -115,8 +112,6 @@ main(int argc, char **argv) {
   FILE             *logFile = 0L;
   FILE             *sumFile = 0L;
 
-  bool              doModify = true;  //  Make this false for testing
-
   uint32            idMin = 1;
   uint32            idMax = UINT32_MAX;
 
@@ -160,9 +155,6 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-o") == 0) {
       outputPrefix = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-n") == 0) {
-      doModify = false;
-
     } else if (strcmp(argv[arg], "-t") == 0) {
       AS_UTL_decodeRange(argv[++arg], idMin, idMax);
 
@@ -194,9 +186,9 @@ main(int argc, char **argv) {
   gkStore *gkp = new gkStore(gkpName);
   ovStore *ovs = new ovStore(ovsName);
 
-  clearRangeFile   *iniClr = (iniClrName == NULL) ? NULL : new clearRangeFile(iniClrName, gkp->gkStore_getNumReads());
-  clearRangeFile   *maxClr = (maxClrName == NULL) ? NULL : new clearRangeFile(maxClrName, gkp->gkStore_getNumReads());
-  clearRangeFile   *outClr = (outClrName == NULL) ? NULL : new clearRangeFile(outClrName, gkp->gkStore_getNumReads());
+  clearRangeFile   *iniClr = (iniClrName == NULL) ? NULL : new clearRangeFile(iniClrName, gkp);
+  clearRangeFile   *maxClr = (maxClrName == NULL) ? NULL : new clearRangeFile(maxClrName, gkp);
+  clearRangeFile   *outClr = (outClrName == NULL) ? NULL : new clearRangeFile(outClrName, gkp);
 
   if (iniClr && outClr)
     outClr->copy(iniClr);
@@ -264,17 +256,11 @@ main(int argc, char **argv) {
         (lb->gkLibrary_finalTrim() == FINALTRIM_BEST_EDGE))
       continue;
 
-    //  Decide on the initial trimming.
+    //  Decide on the initial trimming.  We copied any iniClr into outClr above, and if there wasn't
+    //  an iniClr, then outClr is the full read.
 
-    uint32      ibgn = 0;
-    uint32      iend = read->gkRead_sequenceLength();
-
-    //  If the iniClr is defined, reset.
-
-    if ((iniClr) && (iniClr->isUndefined(id) == false)) {
-      ibgn = iniClr->bgn(id);
-      iend = iniClr->end(id);
-    }
+    uint32      ibgn = outClr->bgn(id);
+    uint32      iend = outClr->end(id);
 
     //  Set the, ahem, initial final trimming, but default to a garbage read.
 
@@ -349,17 +335,16 @@ main(int argc, char **argv) {
 
       assert(fbgn <= fend);
 
-      if (doModify) {
-        outClr->setbgn(id) = fbgn;
-        outClr->setend(id) = fend;
-        outClr->setDeleted(id);
-      }
+      outClr->setbgn(id) = fbgn;
+      outClr->setend(id) = fend;
+      outClr->setDeleted(id);  //  Gah, just obliterates the clear range.
 
       fprintf(logFile, F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\tDEL%s\n",
               id,
               ibgn, iend,
               fbgn, fend,
               (logMsg[0] == 0) ? "" : logMsg);
+
       continue;
     }
 
@@ -380,10 +365,8 @@ main(int argc, char **argv) {
 
     //  Clear range changed, and we like it!
 
-    if (doModify) {
-        outClr->setbgn(id) = fbgn;
-        outClr->setend(id) = fend;
-    }
+    outClr->setbgn(id) = fbgn;
+    outClr->setend(id) = fend;
 
     fprintf(logFile, F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\tMOD%s\n",
             id,

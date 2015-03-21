@@ -30,6 +30,82 @@ const char *mainid = "$Id$";
 
 
 
+  //  Adjust the overlap for any trimming done already.  This works by computing a fraction
+  //  trimmed for each read and each end, picking the largest fraction for each end, and
+  //  applying that fraction to the other read.
+bool
+adjustForward(clearRangeFile  *iniClr,
+              ovsOverlap      *ovl,
+              uint32 &aovlbgn,  uint32 &aovlend,  uint32 &bovlbgn,  uint32 &bovlend,
+              uint32 &aclrbgn,  uint32 &aclrend,  uint32 &bclrbgn,  uint32 &bclrend) {
+
+  aclrbgn = iniClr->bgn(ovl->a_iid);
+  bclrbgn = iniClr->bgn(ovl->b_iid);
+  aclrend = iniClr->end(ovl->a_iid);
+  bclrend = iniClr->end(ovl->b_iid);
+
+  assert(aovlbgn < aovlend);
+  assert(bovlbgn < bovlend);
+
+  if ((aclrend <= aovlbgn) || (aovlend <= aclrbgn) ||
+      (bclrend <= bovlbgn) || (bovlend <= bclrbgn))
+    //  Overlap doesn't intersect clear range, fail.
+    return(false);
+
+
+  uint32  alen = aovlend - aovlbgn;
+  uint32  blen = bovlend - bovlbgn;
+
+  double  afracbgn = (double)((aclrbgn < aovlbgn) ? (0) : (aclrbgn - aovlbgn)) / alen;
+  double  bfracbgn = (double)((bclrbgn < bovlbgn) ? (0) : (bclrbgn - bovlbgn)) / blen;
+  double  afracend = (double)((aclrend > aovlend) ? (0) : (aovlend - aclrend)) / alen;
+  double  bfracend = (double)((bclrend > bovlend) ? (0) : (bovlend - bclrend)) / blen;
+
+  //fprintf(stderr, "frac a %.20f %.20f b %.20f %.20f\n", afracbgn, afracend, bfracbgn, bfracend);
+  //fprintf(stderr, "frac a %.20f %.20f b %.20f %.20f\n", afracbgn * alen, afracend * alen, bfracbgn * blen, bfracend * blen);
+
+  double  maxbgn = max(afracbgn, bfracbgn);
+  double  maxend = max(afracend, bfracend);
+
+  //fprintf(stderr, "frac a %.20f %.20f b %.20f %.20f\n", maxbgn * alen, maxend * alen, maxbgn * blen, maxend * blen);
+
+  assert(maxbgn < 1.0);
+  assert(maxend < 1.0);
+
+  uint32  aadjbgn = (uint32)round(maxbgn * alen);
+  uint32  badjbgn = (uint32)round(maxbgn * blen);
+  uint32  aadjend = (uint32)round(maxend * alen);
+  uint32  badjend = (uint32)round(maxend * blen);
+
+  //fprintf(stderr, "frac a %u %u b %u %u alen %u blen %u\n", aadjbgn, aadjend, badjbgn, badjend, alen, blen);
+
+#if 0
+  fprintf(stderr, "Adjusted overlap from %u,%u-%u,%u (adjust %u,%u,%u,%u) to %u,%u-%u,%u  based on clear ranges %u,%u and %u,%u  maxbgn=%f maxend=%f\n",
+          aovlbgn, aovlend,
+          bovlbgn, bovlend,
+          aadjbgn, aadjend, badjbgn, badjend,
+          aovlbgn + aadjbgn, aovlend - aadjend,
+          bovlbgn + badjbgn, bovlend - badjend,
+          aclrbgn, aclrend,
+          bclrbgn, bclrend,
+          maxbgn,
+          maxend);
+#endif
+
+  aovlbgn += aadjbgn;
+  bovlbgn += badjbgn;
+  aovlend -= aadjend;
+  bovlend -= badjend;
+
+  assert(aclrbgn <= aovlbgn);
+  assert(bclrbgn <= bovlbgn);
+  assert(aovlend <= aclrend);
+  assert(bovlend <= bclrend);
+}
+
+
+
+
 int
 main(int argc, char **argv) {
   uint32  evalueLimit  = AS_OVS_encodeQuality(0.02);
@@ -122,7 +198,7 @@ main(int argc, char **argv) {
     if (errno)
       fprintf(stderr, "Failed to open log file '%s' for writing: %s\n", logName, strerror(errno)), exit(1);
 
-    fprintf(logFile, "evidence -> deleted\n");
+    fprintf(logFile, "evidence <= deleted\n");
 
     sumFile = fopen(sumName, "w");
     if (errno)
@@ -131,8 +207,8 @@ main(int argc, char **argv) {
 
   //  Open inputs and outputs.  The outClr must always exist, but the code looks so much better this way.
 
-  clearRangeFile  *iniClr = (iniClrName == NULL) ? NULL : new clearRangeFile(iniClrName, gkp->gkStore_getNumReads());
-  clearRangeFile  *outClr = (outClrName == NULL) ? NULL : new clearRangeFile(outClrName, gkp->gkStore_getNumReads());
+  clearRangeFile  *iniClr = (iniClrName == NULL) ? NULL : new clearRangeFile(iniClrName, gkp);
+  clearRangeFile  *outClr = (outClrName == NULL) ? NULL : new clearRangeFile(outClrName, gkp);
 
   //  Copy clear ranges to the output.  The dedup process will only delete reads.
 
@@ -162,6 +238,7 @@ main(int argc, char **argv) {
   uint64  nNoD  = 0;
   uint64  nSkipped = 0;
   uint64  nNotSame = 0;
+  uint64  nNotEtoE = 0;
 
   //  Stats on duplicates.
 
@@ -216,28 +293,32 @@ main(int argc, char **argv) {
     for (uint32 oo=0; oo<ovlLen; oo++) {
       ovsOverlap *ovl = ovlBuffer + oo;
 
+      //  Dups must be forward...
+
       if (ovl->flipped() == true) {
-        //  Dups must be forward...
         nRev++;
         continue;
       }
 
       nFwd++;
 
+      //  ...and of good quality
+
       if (ovl->evalue() > evalueLimit) {
-        //  ...and of good quality
         nLQ++;
         continue;
       }
 
+      //  ...and not deleted already
+
       if ((iniClr) && (iniClr->isDeleted(ovl->a_iid))) {
-        //  ...and not deleted already
         nDelA++;
         continue;
       }
 
+      //  ...and not deleted already (also)
+
       if ((iniClr) && (iniClr->isDeleted(ovl->b_iid))) {
-        //  ...and not deleted already (also)
         nDelB++;
         continue;
       }
@@ -245,50 +326,93 @@ main(int argc, char **argv) {
       uint32  aLibID = gkp->gkStore_getRead(ovl->a_iid)->gkRead_libraryID();
       uint32  bLibID = gkp->gkStore_getRead(ovl->b_iid)->gkRead_libraryID();
 
+      //  ...and in the same library
+
       if (aLibID != bLibID) {
-        //  ...and in the same library
         nLib++;
         continue;
       }
 
+      //  ...and allowed to be duplicates
+
       if (gkp->gkStore_getLibrary(aLibID)->gkLibrary_removeDuplicateReads() == false) {
-        //  ...and allowed to be duplicates
         nNoD++;
         continue;
       }
 
+      //  ...and not marked to ignore.  In normal usage, this will catch nothing, as the testa above caught the problem ones.
+
       if (ovl->forDUP() == false) {
-        //  ...and not marked to ignore.  In normal usage, this will catch nothing, as the testa above caught the problem ones.
         nSkipped++;
         continue;
       }
 
-      //  Some of these variables might be leftover from the mate-based duplicate detection.
+      //  All overlaps are forward here.  Adjust the overlap by any trimming already done.  If there is no iniClr range
+      //  supplied, there was no trimming, and the overlap isn't adjusted.
 
-      int32  ab        = ovl->a_bgn();
-      int32  ae        = ovl->a_end(gkp);
-      int32  bb        = ovl->b_bgn();
-      int32  be        = ovl->b_end(gkp);
+      uint32  aovlbgn = ovl->a_bgn(gkp);
+      uint32  aovlend = ovl->a_end(gkp);
+      uint32  bovlbgn = ovl->b_bgn(gkp);
+      uint32  bovlend = ovl->b_end(gkp);
 
-      int32  begDiff   = (ab < bb) ? (bb - ab) : (ab - bb);
-      int32  endDiff   = (ae < be) ? (be - ae) : (ae - be);
+      uint32  aclrbgn = 0;
+      uint32  aclrend = gkp->gkStore_getRead(ovl->a_iid)->gkRead_sequenceLength();
+      uint32  bclrbgn = 0;
+      uint32  bclrend = gkp->gkStore_getRead(ovl->b_iid)->gkRead_sequenceLength();
 
-      assert(begDiff >= 0);
-      assert(endDiff >= 0);
+      if ((iniClr) && (adjustForward(iniClr, ovl,
+                                     aovlbgn, aovlend, bovlbgn, bovlend,
+                                     aclrbgn, aclrend, bclrbgn, bclrend) == false)) {
+        //nTrimmed++;
+        continue;
+      }
 
-      if ((begDiff > diff5) ||
-          (endDiff > diff3)) {
-        //  ...and the overlap starts at the same point in each read
+      //  A read is a duplicate if it is contained in the other one, and the other one is contained in it.
+
+      if ((aclrbgn + diff5 <= aovlbgn) ||
+          (bclrbgn + diff5 <= bovlbgn) ||
+          (aovlend + diff3 <= aclrend) ||
+          (bovlend + diff3 <= bclrend)) {
         nNotSame++;
         continue;
       }
 
-      //  Otherwise, looks like a duck, quacks like a duck...a witch!
 
-      fprintf(logFile, "%u -> %u\n", ovl->b_iid, ovl->a_iid);
+#if 0
+      int32  bgnDiff   = (abgn < bbgn) ? (bbgn - abgn) : (abgn - bbgn);
+      int32  endDiff   = (aend < bend) ? (bend - aend) : (aend - bend);
+
+      assert(bgnDiff >= 0);
+      assert(endDiff >= 0);
+
+      //  ...and the overlap starts at the same point in each read
+      //  (which must happen for the next rule to pass)
+
+      if ((bgnDiff > diff5) ||
+          (endDiff > diff3)) {
+        nNotSame++;
+        continue;
+      }
+
+      uint32  alen = aend - abgn;  //gkp->gkStore_getRead(ovl->a_iid)->gkRead_sequenceLength();
+      uint32  blen = bend - bbgn;  //gkp->gkStore_getRead(ovl->b_iid)->gkRead_sequenceLength();
+
+      //  ...and the overlap is end-to-end
+
+      if ((abgn >= bgnDiff) || (aend + bgnDiff >= al) ||
+          (bbgn >= bgnDiff) || (bend + bgnDiff >= bl)) {
+        nNotEtoE++;
+        continue;
+      }
+#endif
+
+
+      //  Otherwise, looks like a duck, quacks like a duck...a witch!
+      //  But don't overcount duplicates!
+
+      fprintf(logFile, "%u <= %u\n", ovl->b_iid, ovl->a_iid);
 
       if (outClr->isDeleted(ovl->a_iid) == false) {
-        //  Don't overcount duplicates!
         nDups++;
         outClr->setDeleted(ovl->a_iid);
       }
@@ -337,6 +461,7 @@ main(int argc, char **argv) {
     fprintf(sumFile, "B read deleted      %16"F_U64P" (this is the evidence read)\n", nDelB);
     fprintf(sumFile, "\n");
     fprintf(sumFile, "different overlap   %16"F_U64P" (overlap is to different regions on the two reads)\n", nNotSame);
+    fprintf(sumFile, "not end-to-end      %16"F_U64P" (overlap doesn't cover both reads fully)\n", nNotEtoE);
     fprintf(sumFile, "\n");
     fprintf(sumFile, "different libraries %16"F_U64P" (overlap is between reads in different libraries)\n", nLib);
     fprintf(sumFile, "dedup not allowed   %16"F_U64P" (we did a bad job filtering overlaps, and tried to dedupe something we shouldn't have)\n", nNoD);

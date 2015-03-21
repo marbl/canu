@@ -58,7 +58,7 @@ writeToFile(ovsOverlap    *overlap,
     
     fprintf(stderr, "\n");
     fprintf(stderr, "Too many bucket files when adding overlap:\n");
-    fprintf(stderr, "  %s\n", overlap->toString(olapstring));
+    fprintf(stderr, "  Aid "F_U32"  Bid "F_U32"\n",  overlap->a_iid, overlap->b_iid);
     fprintf(stderr, "\n");
     fprintf(stderr, "bucket        = "F_U32"\n", df);
     fprintf(stderr, "iidPerBucket  = "F_U32"\n", iidPerBucket);

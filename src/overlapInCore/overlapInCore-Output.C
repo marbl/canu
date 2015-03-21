@@ -202,30 +202,14 @@ Output_Partial_Overlap(uint32 s_id,
                        int t_len,
                        Work_Area_t  *WA) {
 
-  int  a, b, c, d;
-  char  dir_ch;
-
-  Total_Overlaps ++;
-
-  // Convert to canonical form with s forward and use space-based
-  // coordinates
-  if (dir == FORWARD) {
-    a = p->s_lo;
-    b = p->s_hi + 1;
-    c = p->t_lo;
-    d = p->t_hi + 1;
-    dir_ch = 'f';
-  } else {
-    a = s_len - p->s_hi - 1;
-    b = s_len - p->s_lo;
-    c = p->t_hi + 1;
-    d = p->t_lo;
-    dir_ch = 'r';
-  }
+  Total_Overlaps++;
 
   ovsOverlap  *ovl = WA->overlaps + WA->overlapsLen++;
 
-  //ovs->clear(olap->quality);
+  assert(s_id < t_id);
+
+  ovl->a_iid = s_id;
+  ovl->b_iid = t_id;
 
   //  Overlap is good for OBT or DUP.  It will be refined more during the store build.
 
@@ -233,31 +217,52 @@ Output_Partial_Overlap(uint32 s_id,
   ovl->dat.ovl.forOBT = true;
   ovl->dat.ovl.forDUP = true;
 
-  ovl->a_iid                = s_id;
-  ovl->b_iid                = t_id;
 
-  ovl->dat.ovl.ahg5         = a;
-  ovl->dat.ovl.ahg3         = s_len - b;
-  ovl->dat.ovl.bhg5         = c;
-  ovl->dat.ovl.bhg3         = t_len - d;
-  ovl->dat.ovl.span         = 0;
+  // Convert to canonical form with s forward and use space-based
+  // coordinates
+
+  ovl->dat.ovl.span = 0;
+
+  fprintf(stdout, "S: %6u %6d-%6d  T: %6u %6d-%6d  dir %d\n",
+          s_id, p->s_lo, p->s_hi,
+          t_id, p->t_lo, p->t_hi, dir);
+
+  if (dir == FORWARD) {
+    ovl->dat.ovl.ahg5 =         (p->s_lo);
+    ovl->dat.ovl.ahg3 = s_len - (p->s_hi + 1);
+    ovl->dat.ovl.bhg5 =         (p->t_lo);
+    ovl->dat.ovl.bhg3 = t_len - (p->t_hi + 1);
+
+    ovl->dat.ovl.flipped = false;
+
+    //assert(a < b);
+    //assert(c < d);
+
+  } else {
+    ovl->dat.ovl.ahg5 = s_len - (p->s_hi + 1);
+    ovl->dat.ovl.ahg3 =         (p->s_lo);
+    ovl->dat.ovl.bhg5 = t_len - (p->t_hi + 1);
+    ovl->dat.ovl.bhg3 =         (p->t_lo);
+
+    ovl->dat.ovl.flipped = true;
+
+    //assert(a < b);
+    //assert(c > d);  //  Reverse!
+  }
 
   ovl->erate(p->quality);
-
-  ovl->dat.ovl.flipped      = (dir != FORWARD);
 
   //  We also flush the file at the end of a thread
 
   if (WA->overlapsLen >= WA->overlapsMax) {
-    int zz;
+    pthread_mutex_lock(&Write_Proto_Mutex);
 
-    pthread_mutex_lock (& Write_Proto_Mutex);
-
-    for (zz=0; zz<WA->overlapsLen; zz++)
+    for (int32 zz=0; zz<WA->overlapsLen; zz++)
       Out_BOF->writeOverlap(WA->overlaps + zz);
+
     WA->overlapsLen = 0;
 
-    pthread_mutex_unlock (& Write_Proto_Mutex);
+    pthread_mutex_unlock(&Write_Proto_Mutex);
   }
 }
 

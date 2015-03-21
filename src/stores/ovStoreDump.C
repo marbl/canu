@@ -53,15 +53,19 @@ enum dumpFlags {
 
 void
 dumpStore(char   *ovlName,
-          uint32  dumpBinary,
+          char   *gkpName,
+          uint32  asBinary,
           double  dumpERate,
           uint32  dumpType,
           uint32  dumpLength,
           uint32  bgnID,
           uint32  endID,
           uint32  qryID,
+          bool    asCoords,
           bool    beVerbose) {
   ovStore       *ovlStore = new ovStore(ovlName);
+  gkStore       *gkpStore = new gkStore(gkpName);
+
   ovsOverlap     overlap;
   uint64         evalue = AS_OVS_encodeQuality(dumpERate / 100.0);
   char           ovlString[1024];
@@ -119,14 +123,14 @@ dumpStore(char   *ovlName,
     //    With both, 138 seconds.
     //    Without the puts(), 127 seconds.
 
-    if (dumpBinary)
+    if (asBinary)
       AS_UTL_safeWrite(stdout, &overlap, "dumpStore", sizeof(ovsOverlap), 1);
     else
-      //fprintf(stdout, "%s\n", AS_OVS_toString(ovlString, overlap));
-      puts(overlap.toString(ovlString));
+      fputs(overlap.toString(ovlString, gkpStore, asCoords), stdout);
   }
 
   delete ovlStore;
+  delete gkpStore;
 
   if (beVerbose) {
     fprintf(stderr, "ovlTooHighError %u\n",  ovlTooHighError);
@@ -188,21 +192,35 @@ dumpPicture(ovsOverlap *overlaps,
 
   qsort(overlaps, novl, sizeof(ovsOverlap), sortOBT);
 
+  //  Build ascii representations for each overlapping read.
+
   for (uint32 o=0; o<novl; o++) {
     gkRead   *B      = gkpStore->gkStore_getRead(overlaps[o].b_iid);
     uint32   frgLenB = B->gkRead_sequenceLength();
 
-    uint32   ovlBgnA = overlaps[o].a_bgn();
+    //  Find bgn/end points on each read.  If the overlap is reverse complement,
+    //  the B coords are flipped so that bgn > end.
+
+    uint32   ovlBgnA = overlaps[o].a_bgn(gkpStore);
     uint32   ovlEndA = overlaps[o].a_end(gkpStore);
 
-    uint32   ovlBgnB = overlaps[o].b_bgn();
+    uint32   ovlBgnB = overlaps[o].b_bgn(gkpStore);
     uint32   ovlEndB = overlaps[o].b_end(gkpStore);
 
-    uint32   ovlStrBgn = (ovlBgnA < ovlEndA) ? ovlBgnA : ovlEndA;
-    uint32   ovlStrEnd = (ovlBgnA < ovlEndA) ? ovlEndA : ovlBgnA;
+    assert(ovlBgnA < ovlEndA);  //  The A coordiantes are always forward
 
-    ovlStrBgn = ovlStrBgn * 100 / frgLenA + MHS;
-    ovlStrEnd = ovlStrEnd * 100 / frgLenA + MHS;
+    if (overlaps[o].flipped() == false)
+      assert(ovlBgnB < ovlEndB);  //  Forward overlaps are forward
+    else
+      assert(ovlEndB < ovlBgnB);  //  Flipped overlaps are reversed
+
+    //  For the A read, find the points in our string representation where the overlap ends.
+
+    uint32 ovlStrBgn = ovlBgnA * 100 / frgLenA + MHS;
+    uint32 ovlStrEnd = ovlEndA * 100 / frgLenA + MHS;
+
+    //  Fill the string representation with spaces, then fill the string with dashes where the read
+    //  is, add an arrow, and terminate the string.
 
     for (int32 i=0; i<256; i++)
       ovl[i] = ' ';
@@ -210,17 +228,20 @@ dumpPicture(ovsOverlap *overlaps,
     for (uint32 i=ovlStrBgn; i<ovlStrEnd; i++)
       ovl[i] = '-';
 
-    if (ovlBgnB < ovlEndB)
-      ovl[ovlStrEnd-1] = '>';
-    else
+    if (overlaps[o].flipped() == true)
       ovl[ovlStrBgn] = '<';
+    else
+      ovl[ovlStrEnd-1] = '>';
 
     ovl[ovlStrEnd] = 0;
 
-    uint32 ovlBgnHang = 0;
-    uint32 ovlEndHang = 0;
+    //  For the B read, find how much is unaliged on each end.  Though the store directly keeps this information,
+    //  we can't get to it, and have to reverse the compuitation.
 
-    if (ovlBgnB < ovlEndB) {
+    uint32  ovlBgnHang = 0;
+    uint32  ovlEndHang = 0;
+
+    if (overlaps[o].flipped() == false) {
       ovlBgnHang = ovlBgnB;
       ovlEndHang = frgLenB - ovlEndB;
     } else {
@@ -242,6 +263,7 @@ dumpPicture(ovsOverlap *overlaps,
     if (ovlEndHang > 0) {
       sprintf(ovl + ovlStrEnd, " +%d", ovlEndHang);
     }
+
 
     fprintf(stdout, "%8d  A: %5d %5d (%5d)  B: %5d %5d (%5d)  %5.2f%%   %s\n",
             overlaps[o].b_iid,
@@ -302,10 +324,10 @@ dumpPicture(char   *ovlName,
         (overlap.a_hang() <= 0) && (overlap.b_hang() >= 0))
       continue;
 
-    if (overlap.b_end(gkpStore) - overlap.b_bgn() < dumpLength)
+    if (overlap.b_end(gkpStore) - overlap.b_bgn(gkpStore) < dumpLength)
       continue;
 
-    if (overlap.a_end(gkpStore) - overlap.a_bgn() < dumpLength)
+    if (overlap.a_end(gkpStore) - overlap.a_bgn(gkpStore) < dumpLength)
       continue;
 
     overlaps[novl++] = overlap;
@@ -328,10 +350,11 @@ dumpPicture(char   *ovlName,
 int
 main(int argc, char **argv) {
   uint32          operation   = OP_NONE;
-  char           *storeName   = NULL;
-  char           *gkpName     = NULL;
 
-  uint32          dumpBinary  = FALSE;
+  char           *gkpName     = NULL;
+  char           *ovlName     = NULL;
+
+  uint32          asBinary    = false;
   double          dumpERate   = 100.0;
   uint32          dumpLength  = 0;
   uint32          dumpType    = 0;
@@ -344,37 +367,58 @@ main(int argc, char **argv) {
 
   bool            beVerbose   = false;
 
+  bool            asCoords    = true;
+
   argc = AS_configure(argc, argv);
 
   int arg=1;
   int err=0;
   while (arg < argc) {
 
-    if        (strcmp(argv[arg], "-d") == 0) {
-      if (storeName)
-        fprintf(stderr, "ERROR: only one of -d, -p, -q may be supplied.\n"), err++;
-      storeName  = argv[++arg];
-      operation  = OP_DUMP;
+    if        (strcmp(argv[arg], "-G") == 0) {
+      gkpName = argv[++arg];
 
+    } else if (strcmp(argv[arg], "-O") == 0) {
+      ovlName = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-b") == 0) {
+      bgnID = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-e") == 0) {
+      endID = atoi(argv[++arg]);
+
+
+
+      //  Dump as a picture, the next ID
+      //  Should be easy to extend to using -b -e range
     } else if (strcmp(argv[arg], "-p") == 0) {
-      if (storeName)
-        fprintf(stderr, "ERROR: only one of -d, -p, -q may be supplied.\n"), err++;
-      qryID      = atoi(argv[++arg]);
-      storeName  = argv[++arg];
-      gkpName    = argv[++arg];
       operation  = OP_DUMP_PICTURE;
+      bgnID      = atoi(argv[++arg]);
+      endID      = bgnID;
+      qryID      = bgnID;
 
+      //  Query if the overlap for the next two integers exists
     } else if (strcmp(argv[arg], "-q") == 0) {
-      if (storeName)
-        fprintf(stderr, "ERROR: only one of -d, -p, -q may be supplied.\n"), err++;
+      operation  = OP_DUMP;
       bgnID      = atoi(argv[++arg]);
       endID      = bgnID;
       qryID      = atoi(argv[++arg]);
-      storeName  = argv[++arg];
+
+
+      //  Standard bulk dump of overlaps
+    } else if (strcmp(argv[arg], "-d") == 0) {
       operation  = OP_DUMP;
 
+    } else if (strcmp(argv[arg], "-coords") == 0) {
+      asCoords = true;
 
+    } else if (strcmp(argv[arg], "-hangs") == 0) {
+      asCoords = false;
 
+    } else if (strcmp(argv[arg], "-binary") == 0) {
+      asBinary = true;
+
+      //  standard bulk dump options
     } else if (strcmp(argv[arg], "-E") == 0) {
       dumpERate = atof(argv[++arg]);
 
@@ -393,15 +437,6 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-dc") == 0) {
       dumpType |= DUMP_CONTAINED;
 
-    } else if (strcmp(argv[arg], "-b") == 0) {
-      bgnID = atoi(argv[++arg]);
-
-    } else if (strcmp(argv[arg], "-e") == 0) {
-      endID = atoi(argv[++arg]);
-
-    } else if (strcmp(argv[arg], "-B") == 0) {
-      dumpBinary = TRUE;
-
     } else if (strcmp(argv[arg], "-v") == 0) {
       beVerbose = true;
 
@@ -413,10 +448,14 @@ main(int argc, char **argv) {
 
     arg++;
   }
-  if ((operation == OP_NONE) || (storeName == NULL) || (err)) {
+  if ((operation == OP_NONE) || (gkpName == NULL) || (ovlName == NULL) || (err)) {
     fprintf(stderr, "usage: %s -d storeName [-B] [-E erate] [-b beginID] [-e endID]\n", argv[0]);
     fprintf(stderr, "       %s -q aiid biid storeName\n", argv[0]);
     fprintf(stderr, "       %s -p iid storeName gkpStore clr\n", argv[0]);
+    fprintf(stderr, "\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "   NOT UP TO DATE\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "There are three modes of operation, selected by the first option:\n");
     fprintf(stderr, "  -d  dump a store\n");
@@ -435,6 +474,9 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -e endID          Stop dumping after 'endID'.\n");
     fprintf(stderr, "  -v                Report statistics (to stderr) on some dumps (-d).\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "  -coords           default\n");
+    fprintf(stderr, "  -hangs            \n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "QUERYING - quickly ask if an overlap exists\n");
     fprintf(stderr, "  -q aiid biid storeName\n");
     fprintf(stderr, "                    If an overlap between fragments 'aiid' and 'biid' exists, it is printed.\n");
@@ -452,10 +494,11 @@ main(int argc, char **argv) {
 
   switch (operation) {
     case OP_DUMP:
-      dumpStore(storeName, dumpBinary, dumpERate, dumpLength, dumpType, bgnID, endID, qryID, beVerbose);
+      dumpStore(ovlName, gkpName, asBinary, dumpERate, dumpLength, dumpType, bgnID, endID, qryID, asCoords, beVerbose);
       break;
     case OP_DUMP_PICTURE:
-      dumpPicture(storeName, gkpName, dumpERate, dumpLength, dumpType, qryID);
+      for (qryID=bgnID; qryID <= endID; qryID++)
+        dumpPicture(ovlName, gkpName, dumpERate, dumpLength, dumpType, qryID);
       break;
     default:
       break;

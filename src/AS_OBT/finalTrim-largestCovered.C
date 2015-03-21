@@ -51,7 +51,7 @@ largestCovered(gkStore     *gkp,
   int32                 iid = read->gkRead_readID();
 
   for (uint32 i=0; i<ovlLen; i++) {
-    uint32 tbgn = ovl[i].a_bgn();
+    uint32 tbgn = ovl[i].a_bgn(gkp);
     uint32 tend = ovl[i].a_end(gkp);
 
     assert(tbgn < tend);

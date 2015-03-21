@@ -208,10 +208,10 @@ createOverlapStore($wrk, $asm, getGlobal("ovlStoreMethod"));
 #
 
 if (getGlobal("doOverlapBasedTrimming")) {
-    dedupeReads($wrk, $asm);
-    trimReads($wrk, $asm);
-    splitReads($wrk, $asm);
-    dumpReads($wrk, $asm);
+    trimReads(1, $wrk, $asm);
+    dedupeReads(2, $wrk, $asm);
+    splitReads(3, $wrk, $asm);
+    dumpReads(4, $wrk, $asm);
     exit(0);
 }
 
