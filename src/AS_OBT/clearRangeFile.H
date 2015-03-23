@@ -16,7 +16,7 @@ public:
     strcpy(_fileName, fileName);
 
     if (AS_UTL_fileExists(_fileName) == false) {
-      _modified = false;  //  Only gets written if a change is made.
+      _modified = true;   //  Always gets written, regardless of changes
 
       _lastID   = gkp->gkStore_getNumReads();
       _bgn      = new uint32 [_lastID + 1];
