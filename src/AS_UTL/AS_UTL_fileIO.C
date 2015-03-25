@@ -330,8 +330,8 @@ AS_UTL_fseek(FILE *stream, off_t offset, int whence) {
 
 
 compressedFileReader::compressedFileReader(const char *filename) {
-  char  cmd[FILENAME_MAX * 2];
-  int32 len = 0;
+  char    cmd[FILENAME_MAX * 2];
+  int32   len = 0;
 
   _file = NULL;
   _pipe = false;
@@ -359,6 +359,11 @@ compressedFileReader::compressedFileReader(const char *filename) {
     sprintf(cmd, "xz -dc %s", filename);
     _file = popen(cmd, "r");
     _pipe = true;
+
+    if (_file == NULL)    //  popen() returns NULL on error.  It does not reliably set errno.
+      fprintf(stderr, "ERROR:  Failed to open input file '%s': popen() returned NULL\n", filename), exit(1);
+
+    errno = 0;
 
   } else if ((len == 0) || (strcmp(filename, "-") == 0)) {
     _file = stdin;
