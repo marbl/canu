@@ -263,28 +263,21 @@ sub setParameters ($) {
     #  Adjust case on some of them
     #
 
-    fixCase("doChimeraDetection");
-    fixCase("obtOverlapper");
     fixCase("ovlOverlapper");
     fixCase("unitigger");
     fixCase("stopBefore");
     fixCase("stopAfter");
     fixCase("consensus");
-    fixCase("cleanup");
 
     #
     #  Check for invalid usage
     #
 
-    if ((getGlobal("doChimeraDetection") ne "off") &&
-        (getGlobal("doChimeraDetection") ne "normal") &&
-        (getGlobal("doChimeraDetection") ne "aggressive")) {
-        caFailure("invalid doChimeraDetection specified (" . getGlobal("doChimeraDetection") . "); must be 'off', 'normal', or 'aggressive'", undef);
-    }
-    if ((getGlobal("obtOverlapper") ne "mhap") &&
-        (getGlobal("obtOverlapper") ne "ovl")) {
-        caFailure("invalid obtOverlapper specified (" . getGlobal("obtOverlapper") . "); must be 'mer' or 'ovl' (or DEVEL_ONLY 'ovm')", undef);
-    }
+    #if ((getGlobal("doChimeraDetection") ne "off") &&
+    #    (getGlobal("doChimeraDetection") ne "normal") &&
+    #    (getGlobal("doChimeraDetection") ne "aggressive")) {
+    #    caFailure("invalid doChimeraDetection specified (" . getGlobal("doChimeraDetection") . "); must be 'off', 'normal', or 'aggressive'", undef);
+    #}
     if ((getGlobal("ovlOverlapper") ne "mhap") &&
         (getGlobal("ovlOverlapper") ne "ovl")) {
         caFailure("invalid ovlOverlapper specified (" . getGlobal("ovlOverlapper") . "); must be 'mer' or 'ovl' (or DEVEL_ONLY 'ovm')", undef);
@@ -299,12 +292,12 @@ sub setParameters ($) {
         (getGlobal("consensus") ne "pbutgcns")) {
         caFailure("invalid consensus specified (" . getGlobal("consensus") . "); must be 'cns' or 'seqan' or 'pbdagcon' or 'pbutgcns'", undef);
     }
-    if ((getGlobal("cleanup") ne "none") &&
-        (getGlobal("cleanup") ne "light") &&
-        (getGlobal("cleanup") ne "heavy") &&
-        (getGlobal("cleanup") ne "aggressive")) {
-        caFailure("invalid cleaup specified (" . getGlobal("cleanup") . "); must be 'none', 'light', 'heavy' or 'aggressive'", undef);
-    }
+    #if ((getGlobal("cleanup") ne "none") &&
+    #    (getGlobal("cleanup") ne "light") &&
+    #    (getGlobal("cleanup") ne "heavy") &&
+    #    (getGlobal("cleanup") ne "aggressive")) {
+    #    caFailure("invalid cleaup specified (" . getGlobal("cleanup") . "); must be 'none', 'light', 'heavy' or 'aggressive'", undef);
+    #}
 
     if (defined(getGlobal("stopBefore"))) {
         my $ok = 0;
@@ -453,7 +446,6 @@ sub setGlobal (%$$) {
 
     #  Update aliases.
 
-    $var = "dooverlapbasedtrimming"    if ($var eq "doobt");
 
     #  If "help" exists, we're parsing command line options, and will catch this failure in
     #  printHelp().  Otherwise, this is an internal error, and we should bomb now.
@@ -529,36 +521,22 @@ sub setDefaults () {
     $global{"stopAfter"}                   = undef;
     $synops{"stopAfter"}                   = "Tell runCA when to halt execution";
 
-    #####  Grid Engine configuration, how to submit jobs, etc
+    #####  Grid Engine configuration, internal parameters
 
     $global{"gridEngine"}                        = "SGE";
-
     $global{"gridEngineSubmitCommand"}           = "qsub";
-
     $global{"gridEngineHoldOption"}              = "-hold_jid \"WAIT_TAG\"";         # for lsf: -w "done("WAIT_TAG")"
-
     $global{"gridEngineHoldOptionNoArray"}       = undef;
-
     $global{"gridEngineSyncOption"}              = "-sync y";                        # for lsf: -K
-
     $global{"gridEngineNameOption"}              = "-cwd -N";                        # for lsf: -J
-
     $global{"gridEngineArrayOption"}             = "-t ARRAY_JOBS";                  # for lsf: empty ("")
-
     $global{"gridEngineArrayName"}               = "ARRAY_NAME";                     # for lsf: ARRAY_NAME[ARRAY_JOBS]
-
     $global{"gridEngineOutputOption"}            = "-j y -o";                        # for lsf: -o
-
     $global{"gridEnginePropagateCommand"}        = "qalter -hold_jid \"WAIT_TAG\"";  # for lsf: bmodify -w "done(WAIT_TAG)"
-
     $global{"gridEngineNameToJobIDCommand"}      = undef;                            # for lsf: bjobs -J "WAIT_TAG" | grep -v JOBID
-
     $global{"gridEngineNameToJobIDCommandNoArray"} = undef;
-
     $global{"gridEngineTaskID"}                  = "SGE_TASK_ID";                    # for lsf: LSB_JOBINDEX
-
     $global{"gridEngineArraySubmitID"}           = "\\\$TASK_ID";                    # for lsf: %I
-
     $global{"gridEngineJobID"}                   = "JOB_ID";                         # for lsf: LSB_JOBID
 
     #####  Sun Grid Engine
@@ -609,24 +587,7 @@ sub setDefaults () {
     #synnam{"sgePropagateHold"}            = "sgePropagateHold";
     #$synops{"sgePropagateHold"}            = undef;  #  Internal option
 
-    #####  Gatekeeper (was 'Preoverlap')
-
-
-    #####  Overlap Based Trimming
-
-    $global{"doOverlapBasedTrimming"}      = 1;
-    $synops{"doOverlapBasedTrimming"}      = "Enable the Overlap Based Trimming module (doOBT and doOverlapTrimming are aliases)";
-
-    $global{"doDeDuplication"}             = 1;
-    $synops{"doDeDuplication"}             = "Enable the OBT duplication detection and cleaning module for 454 reads, enabled automatically";
-
-    $global{"doChimeraDetection"}          = "normal";
-    $synops{"doChimeraDetection"}          = "Enable the OBT chimera detection and cleaning module; 'off', 'normal' or 'aggressive'";
-
     #####  Overlapper
-
-    $global{"obtOverlapper"}               = "ovl";
-    $synops{"obtOverlapper"}               = "Which overlap algorithm to use for OBT overlaps";
 
     $global{"ovlOverlapper"}               = "ovl";
     $synops{"ovlOverlapper"}               = "Which overlap algorithm to use for OVL (unitigger) overlaps";
@@ -678,9 +639,6 @@ sub setDefaults () {
     $global{"ovlCheckLibrary"}              = 1;
     $synops{"ovlCheckLibrary"}              = "Check that all libraries are used during ovl overlaps";
 
-
-    $global{"merCompression"}              = 1;
-    $synops{"merCompression"}              = "K-mer size";
 
     $global{"saveOverlaps"}                = 0;
     $synops{"saveOverlaps"}                = "Save intermediate overlap files";
@@ -801,32 +759,6 @@ sub setDefaults () {
 
     $global{"consensus"}                   = "utgcns";
     $synops{"consensus"}                   = "Which consensus algorithm to use; currently only 'cns' is supported";
-
-    #####  Terminator Options
-
-    $global{"createAGP"}                   = 0;
-    $synops{"createAGP"}                   = "Create an AGP file for the assembly";
-
-    $global{"createACE"}                   = 0;
-    $synops{"createACE"}                   = "Create an ACE file for the assembly";
-
-    $global{"createPosMap"}                = 1;
-    $synops{"createPosMap"}                = "Create the POSMAP files for the assembly";
-
-    $global{"merQC"}                       = 0;
-    $synops{"merQC"}                       = "Compute a mer-based QC for the assembly";
-
-    $global{"merQCmemory"}                 = 1024;
-    $synops{"merQCmemory"}                 = "Memory to use for the mer-based QC";
-
-    $global{"merQCmerSize"}                = 22;
-    $synops{"merQCmerSize"}                = "Mer size to use for the mer-based QC";
-
-    $global{"cleanup"}                     = "none";
-    $synops{"cleanup"}                     = "At the end of a successful assembly, remove none/some/many/all of the intermediate files";
-
-    $global{"dumpFASTQ"}                   = undef;
-    $synops{"dumpFASTQ"}                   = "At the end of a successful assembly, output final reads in FASTQ format";
 
     #####  Ugly, command line options passed to printHelp()
 

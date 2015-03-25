@@ -41,7 +41,6 @@ sub dedupeReads ($$$) {
     my $cmd;
     my $path   = "$wrk/3-overlapbasedtrimming";
 
-    return  if (getGlobal("doDeDuplication") == 0);
     return  if (-e "$path/deduplicated");
 
     make_path($path)  if (! -d $path);
@@ -53,7 +52,7 @@ sub dedupeReads ($$$) {
     $cmd .= "  -Ci $path/$asm.latest.clear \\\n"  if (-e "$path/$asm.latest.clear");
     $cmd .= "  -Co $path/$asm.$idx.dedupe.clear \\\n";
     $cmd .= "  -o  $path/$asm.$idx.dedupe \\\n";
-    $cmd .= "> $path/$asm.$idx.dedupe.err 2>&1";
+    $cmd .= ">     $path/$asm.$idx.dedupe.err 2>&1";
 
     stopBefore("deDuplication", $cmd);
 
@@ -68,9 +67,9 @@ sub dedupeReads ($$$) {
 
     $cmd  = "$bin/gatekeeperDumpFASTQ \\\n";
     $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
-    $cmd .= "  -o $path/$asm.$idx.dedupe.trimmed \\\n";
     $cmd .= "  -c $path/$asm.$idx.dedupe.clear \\\n";
-    $cmd .= "> $wrk/$asm.$idx.dedupe.trimmed.err 2>&1\n";
+    $cmd .= "  -o $path/$asm.$idx.dedupe.trimmed \\\n";
+    $cmd .= ">    $path/$asm.$idx.dedupe.trimmed.err 2>&1\n";
 
     if (runCommand($wrk, $cmd)) {
         caFailure("dumping trimmed reads failed", "$wrk/$asm.$idx.dedupe.trimmed.err");
@@ -78,10 +77,10 @@ sub dedupeReads ($$$) {
 
     $cmd  = "$bin/gatekeeperDumpFASTQ \\\n";
     $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
-    $cmd .= "  -o $path/$asm.$idx.dedupe.deleted \\\n";
-    $cmd .= "  -onlydeleted \\\n";
     $cmd .= "  -c $path/$asm.$idx.dedupe.clear \\\n";
-    $cmd .= "> $wrk/$asm.$idx.dedupe.trimmed.err 2>&1\n";
+    $cmd .= "  -onlydeleted \\\n";
+    $cmd .= "  -o $path/$asm.$idx.dedupe.deleted \\\n";
+    $cmd .= ">    $path/$asm.$idx.dedupe.deleted.err 2>&1\n";
 
     if (runCommand($wrk, $cmd)) {
         caFailure("dumping trimmed reads failed", "$wrk/$asm.$idx.dedupe.trimmed.err");
@@ -115,7 +114,7 @@ sub trimReads ($$$) {
     $cmd .= "  -Cm $path/$asm.max.clear \\\n"          if (-e "$path/$asm.max.clear");      #  Probably not useful anymore
     $cmd .= "  -Co $path/$asm.$idx.finalTrim.clear \\\n";
     $cmd .= "  -o  $path/$asm.$idx.finalTrim \\\n";
-    $cmd .= "> $path/$asm.$idx.finalTrim.err 2>&1";
+    $cmd .= ">     $path/$asm.$idx.finalTrim.err 2>&1";
 
     stopBefore("finalTrimming", $cmd);
 
@@ -130,9 +129,9 @@ sub trimReads ($$$) {
 
     $cmd  = "$bin/gatekeeperDumpFASTQ \\\n";
     $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
-    $cmd .= "  -o $path/$asm.$idx.finalTrim.trimmed \\\n";
     $cmd .= "  -c $path/$asm.$idx.finalTrim.clear \\\n";
-    $cmd .= "> $wrk/$asm.$idx.finalTrim.trimmed.err 2>&1\n";
+    $cmd .= "  -o $path/$asm.$idx.finalTrim.trimmed \\\n";
+    $cmd .= ">    $path/$asm.$idx.finalTrim.trimmed.err 2>&1\n";
 
     if (runCommand($wrk, $cmd)) {
         caFailure("dumping trimmed reads failed", "$wrk/$asm.$idx.finalTrim.trimmed.err");
@@ -151,12 +150,13 @@ sub splitReads ($$$) {
     my $cmd;
     my $path   = "$wrk/3-overlapbasedtrimming";
 
-    return  if (getGlobal("doChimeraDetection") eq 'off');
     return  if (-e "$path/splitted");  #  Splitted?
 
     make_path($path)  if (! -d $path);
 
     my $erate  = getGlobal("ovlErrorRate");  #  Was this historically
+
+    #$cmd .= "  -mininniepair 0 -minoverhanging 0 \\\n" if (getGlobal("doChimeraDetection") eq "aggressive");
 
     $cmd  = "$bin/chimera \\\n";
     $cmd .= "  -G  $wrk/$asm.gkpStore \\\n";
@@ -166,8 +166,7 @@ sub splitReads ($$$) {
     $cmd .= "  -Ci $path/$asm.latest.clear \\\n"       if (-e "$path/$asm.latest.clear");
     $cmd .= "  -Cm $path/$asm.max.clear \\\n"          if (-e "$path/$asm.max.clear");
     $cmd .= "  -Co $path/$asm.$idx.chimera.clear \\\n";
-    $cmd .= "  -mininniepair 0 -minoverhanging 0 \\\n" if (getGlobal("doChimeraDetection") eq "aggressive");
-    $cmd .= "> $path/$asm.$idx.chimera.err 2>&1";
+    $cmd .= ">     $path/$asm.$idx.chimera.err 2>&1";
 
     stopBefore("chimeraDetection", $cmd);
 
@@ -182,9 +181,9 @@ sub splitReads ($$$) {
 
     $cmd  = "$bin/gatekeeperDumpFASTQ \\\n";
     $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
-    $cmd .= "  -o $path/$asm.$idx.chimera.trimmed \\\n";
     $cmd .= "  -c $path/$asm.$idx.chimera.clear \\\n";
-    $cmd .= "> $wrk/$asm.$idx.chimera.trimmed.err 2>&1\n";
+    $cmd .= "  -o $path/$asm.$idx.chimera.trimmed \\\n";
+    $cmd .= ">    $path/$asm.$idx.chimera.trimmed.err 2>&1\n";
 
     if (runCommand($wrk, $cmd)) {
         caFailure("dumping trimmed reads failed", "$wrk/$asm.$idx.chimera.trimmed.err");
@@ -209,13 +208,11 @@ sub dumpReads ($$$) {
 
     $cmd  = "$bin/gatekeeperDumpFASTQ \\\n";
     $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
-    $cmd .= "  -o $path/$asm.$idx.trimmed \\\n";
     $cmd .= "  -c $path/$asm.latest.clear \\\n";
-    $cmd .= "> $wrk/$asm.$idx.trimmed.err 2>&1\n";
+    $cmd .= "  -o $wrk/$asm..trimmed \\\n";
+    $cmd .= ">    $wrk/$asm.trimmed.err 2>&1\n";
 
     if (runCommand($wrk, $cmd)) {
         caFailure("dumping trimmed reads failed", "$wrk/$asm.trimmed.err");
     }
-
-    #  Make a .gkp file for input to the assembler.
 }

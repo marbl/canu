@@ -51,6 +51,22 @@ my @inputFiles;   #  Command line inputs, later inputs in spec files are added
 
 setDefaults();
 
+#  The first arg must be the mode of operation.  Currently three modes
+#  are supported: correct, trim, assemble.  The modes only affect the
+#  steps taken in the 'pipeline' at the bottom of this file.
+
+my $mode = shift @ARGV;
+
+if (($mode ne "correct") &&
+    ($mode ne "trim") &&
+    ($mode ne "assemble")) {
+    print STDERR "usage: ca3g.pl [correct | trim | assemble] ....\n";
+    print STDERR "\n";
+    print STDERR "  ERROR: first parameter must be the mode of operation.\n";
+    print STDERR "\n";
+    exit(1);
+}
+
 #  Check for the presence of a -options switch BEFORE we do any work.
 #  This lets us print the default values of options.
 
@@ -194,7 +210,7 @@ gatekeeper($wrk, $asm, @inputFiles);
 meryl($wrk, $asm);
 
 #  Eventually, we'll get a whole other pipeline for obt.
-my $ovlType = (getGlobal("doOverlapBasedTrimming") == 1) ? "partial" : "normal";
+my $ovlType = ($mode eq "trim") ? "partial" : "normal";
 
 overlapConfigure($wrk, $asm, $ovlType);
 overlapCheck($wrk, $asm, $ovlType, 0);
@@ -203,37 +219,39 @@ overlapCheck($wrk, $asm, $ovlType, 1);
 createOverlapStore($wrk, $asm, getGlobal("ovlStoreMethod"));
 
 
-#
-#  Begin Overlap Based Trimming
-#
-
-if (getGlobal("doOverlapBasedTrimming")) {
-    trimReads(1, $wrk, $asm);
-    dedupeReads(2, $wrk, $asm);
-    splitReads(3, $wrk, $asm);
-    dumpReads(4, $wrk, $asm);
-    exit(0);
+if ($mode eq "correct") {
 }
 
 
-#
-#  Begin Assembly
-#
+#  Enabling/disabling algorithm features is done through library features
+#  set in the input gkp files.  This is inconvenient, as you cannot easily
+#  change the algorithm without rebuilding gkpStore.  This is flexible, letting
+#  you disable an algorithm, or use different parameters for different reads.
 
-#readErrorDetection($wrk, $asm);
-overlapErrorAdjustment($wrk, $asm);
+if ($mode eq "trim") {
+    my $idx = 1;
 
-unitig($wrk, $asm);
+    trimReads  ($idx++, $wrk, $asm);
+    dedupeReads($idx++, $wrk, $asm);
+    splitReads ($idx++, $wrk, $asm);
+    dumpReads  ($idx++, $wrk, $asm);
 
-consensusConfigure($wrk, $asm);
-consensusCheck($wrk, $asm, 0);
-consensusCheck($wrk, $asm, 1);
+    #summarizeReads();
+}
 
-outputLayout($wrk, $asm);
-outputConsensus($wrk, $asm);
+
+if ($mode eq "assemble") {
+    #readErrorDetection($wrk, $asm);
+    overlapErrorAdjustment($wrk, $asm);
+
+    unitig($wrk, $asm);
+
+    consensusConfigure($wrk, $asm);
+    consensusCheck($wrk, $asm, 0);
+    consensusCheck($wrk, $asm, 1);
+
+    outputLayout($wrk, $asm);
+    outputConsensus($wrk, $asm);
+}
 
 exit(0);
-
-
-
-
