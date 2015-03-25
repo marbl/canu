@@ -316,13 +316,13 @@ main(int argc, char **argv) {
   }
 
 
-  gkStore     *gkpStore = new gkStore(gkpStoreName, gkStore_extend);
-  gkRead      *gkpRead;
+  gkStore     *gkpStore     = new gkStore(gkpStoreName, gkStore_extend);
+  gkRead      *gkpRead      = NULL;
   gkReadData   gkpReadData;
-  gkLibrary   *gkpLibrary;
+  gkLibrary   *gkpLibrary   = NULL;
 
-  uint32       inLineLen = 1024;
-  char         inLine[1024];
+  uint32       inLineLen    = 1024;
+  char         inLine[1024] = { 0 };
 
   errno = 0;
 
@@ -347,21 +347,27 @@ main(int argc, char **argv) {
     char                 *line   = new char [10240];
     KeyAndValue           keyval;
 
-    fgets(line, 10240, inFile->file());
-    chomp(line);
-
-    while (!feof(inFile->file())) {
-      //fprintf(stderr, "LINE '%s'\n", line);
-
+    while (fgets(line, 10240, inFile->file()) != NULL) {
+      chomp(line);
       keyval.find(line);
 
-      if        (keyval.key() == NULL) {
-        //  Just a damn comment line to ignore.
+      if (keyval.key() == NULL) {
+        //  No key, so must be a comment or blank line
+        continue;
+      }
 
-      } else if (strcasecmp(keyval.key(), "name") == 0) {
+      if (strcasecmp(keyval.key(), "name") == 0) {
         gkpLibrary = gkpStore->gkStore_addEmptyLibrary(keyval.value());
+        continue;
+      }
 
-      } else if (strcasecmp(keyval.key(), "preset") == 0) {
+      //  We'd better have a gkpLibrary defined, if not, the .gkp input file is incorrect.
+      if (gkpLibrary == NULL) {
+        fprintf(stderr, "WARNING: no 'name' tag in gkp input; creating library with name 'DEFAULT'.\n");
+        gkpLibrary = gkpStore->gkStore_addEmptyLibrary(keyval.value());
+      }
+
+      if        (strcasecmp(keyval.key(), "preset") == 0) {
         gkpLibrary->gkLibrary_parsePreset(keyval.value());
 
       } else if (strcasecmp(keyval.key(), "qv") == 0) {
@@ -395,9 +401,6 @@ main(int argc, char **argv) {
         fprintf(stderr, "ERROR:  option '%s' not recognized, and not a file of reads.\n", line);
         nErrs++;
       }
-
-      fgets(line, 10240, inFile->file());
-      chomp(line);
     }
 
     delete    inFile;
