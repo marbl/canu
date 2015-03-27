@@ -52,7 +52,7 @@ sub caFailure ($$) {
 
     print STDERR "================================================================================\n";
     print STDERR "\n";
-    print STDERR "runCA failed.\n";
+    print STDERR "ca3g failed.\n";
     print STDERR "\n";
 
     print STDERR "----------------------------------------\n";
@@ -108,7 +108,7 @@ sub printHelp ($) {
     }
 
     if (getGlobal("help") ne "") {
-        print "usage: runCA -d <dir> -p <prefix> [options] <frg> ...\n";
+        print "usage: ca3g -d <dir> -p <prefix> [options] <frg> ...\n";
         print "  -d <dir>          Use <dir> as the working directory.  Required\n";
         print "  -p <prefix>       Use <prefix> as the output prefix.  Required\n";
         print "\n";
@@ -452,7 +452,7 @@ sub setGlobal (%$$) {
     #
     if ((!defined($set)) && (!exists($global{$var}))) {
         if (exists($global{"help"})) {
-            setGlobal("help", getGlobal("help") . "'$var' is not a valid option; see 'runCA -options' for a list of valid options.\n");
+            setGlobal("help", getGlobal("help") . "'$var' is not a valid option; see 'ca3g -options' for a list of valid options.\n");
         } else {
             caFailure("'$var' is not a valid option Global variable.", undef);
         }
@@ -516,10 +516,10 @@ sub setDefaults () {
     #####  Stopping conditions
 
     $global{"stopBefore"}                  = undef;
-    $synops{"stopBefore"}                  = "Tell runCA when to halt execution";
+    $synops{"stopBefore"}                  = "Tell ca3g when to halt execution";
 
     $global{"stopAfter"}                   = undef;
-    $synops{"stopAfter"}                   = "Tell runCA when to halt execution";
+    $synops{"stopAfter"}                   = "Tell ca3g when to halt execution";
 
     #####  Grid Engine configuration, internal parameters
 
@@ -545,7 +545,7 @@ sub setDefaults () {
     $synops{"useGrid"}                     = "Enable SGE globally";
 
     $global{"useGridScript"}               = 0;
-    $synops{"useGridScript"}               = "Enable SGE for runCA (and unitigger, scaffolder, other sequential phases)";
+    $synops{"useGridScript"}               = "Enable SGE for the ca3g pipeline (includes meryl, unitigger and other sequential phases)";
 
     $global{"useGridOVL"}                  = 1;
     $synops{"useGridOVL"}                  = "Enable SGE for overlap computations";
@@ -569,7 +569,7 @@ sub setDefaults () {
     $synops{"gridOptionsJobName"}          = "SGE jobs name suffix";
 
     $global{"gridOptionsScript"}           = undef;
-    $synops{"gridOptionsScript"}           = "SGE options applied to runCA jobs (and unitigger, scaffolder, other sequential phases)";
+    $synops{"gridOptionsScript"}           = "SGE options applied to ca3g jobs (includes meryl, unitigger and other sequential phases)";
 
     $global{"gridOptionsOVL"}              = undef;
     $synops{"gridOptionsOVL"}              = "SGE options applied to overlap computation jobs";
@@ -789,7 +789,7 @@ sub setDefaults () {
     }
 
     #  If this is set, it breaks the consensus.sh and overlap.sh scripts.  Good grief!  Why
-    #  are you running runCA in a task array!?
+    #  are you running this in a task array!?
 
     if (exists($ENV{getGlobal("gridEngineTaskID")})) {
         undef $ENV{getGlobal("gridEngineTaskID")};
