@@ -172,7 +172,7 @@ sub touch ($@) {
 #  When we are running on the grid, the path of this perl script is NOT
 #  always the correct architecture.  If the submission host is
 #  FreeBSD, but the grid is Linux, the BSD box will submit
-#  FreeBSD/bin/runCA.pl to the grid -- unless it knows in advance,
+#  FreeBSD/bin/ca3g.pl to the grid -- unless it knows in advance,
 #  there is no way to pick the correct one.  The grid host then has to
 #  have enough smarts to choose the correct binaries, and that is what
 #  we're doing here.
@@ -190,7 +190,7 @@ sub getInstallDirectory () {
 }
 
 
-#  Used inside runCA to find where binaries are located.  It uses uname to find OS, architecture and
+#  Used inside ca3g to find where binaries are located.  It uses uname to find OS, architecture and
 #  system name, then uses that to construct a path to binaries.  If a "pathMap" is defined, this is
 #  used to hardcode a path to a system name.
 #
@@ -337,30 +337,32 @@ sub submitScript ($$$) {
 
     print F getBinDirectoryShellCode();
 
-    print F "/usr/bin/env perl \$bin/runCA " . getCommandLineOptions() . "\n";
+    #print F "/usr/bin/env perl \$bin/ca3g " . getCommandLineOptions() . "\n";
+    print F "/usr/bin/env perl $0 " . getCommandLineOptions() . "\n";
     close(F);
 
     system("chmod +x $script");
 
-    #  Submit the script to the grid.  If the $jobToWaitOn is defined, make the script wait for that
-    #  to complete.
-
-    my $jobName = "c3g_" . $asm . ((defined(getGlobal("gridJobName"))) ? ("_" . getGlobal("gridJobName")) : (""));
-
-    #  LSF might need to query jobs in the queue and figure out the job ID (or IDs) for the jobToWaitOn.
-    #  Reading LSF docs online (for bsub.1) claim that we can still use jobToWaitOn.
-
-    (my $hold = getGlobal("gridEngineHoldOption")) =~ s/WAIT_TAG/$jobToWaitOn/;
-
     #  Construct a submission command line.
 
+    my $jobName              = "c3g_" . $asm . ((defined(getGlobal("gridOptionsJobName"))) ? ("_" . getGlobal("gridOptionsJobName")) : (""));
+
     my $gridOpts             = getGlobal("gridOptions") . " " . getGlobal("gridOptionsScript");
+
+    #  If the jobToWaitOn is defined, make the script wait for that to complete.  LSF might need to
+    #  query jobs in the queue and figure out the job ID (or IDs) for the jobToWaitOn.  Reading LSF
+    #  docs online (for bsub.1) claim that we can still use jobToWaitOn.
+
+    if (defined($jobToWaitOn)) {
+        (my $hold = getGlobal("gridEngineHoldOption")) =~ s/WAIT_TAG/$jobToWaitOn/;
+        $gridOpts .= $hold;
+    }
 
     my $submitCommand        = getGlobal("gridEngineSubmitCommand");
     my $nameOption           = getGlobal("gridEngineNameOption");
     my $outputOption         = getGlobal("gridEngineOutputOption");
 
-    my $qcmd = "$submitCommand $gridOpts $nameOption \"$jobName\" $hold $outputOption $output $script";
+    my $qcmd = "$submitCommand $gridOpts $nameOption \"$jobName\" $outputOption $output $script";
 
     runCommand($wrk, $qcmd) and caFailure("Failed to submit script.\n", undef);
 
