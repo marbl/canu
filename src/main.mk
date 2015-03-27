@@ -106,6 +106,7 @@ SUBMAKEFILES := stores/gatekeeperCreate.mk \
                 overlapInCore/overlapInCore.mk \
                 overlapInCore/overlapInCorePartition.mk \
                 overlapInCore/overlapConvert.mk \
+                overlapInCore/overlapPair.mk \
                 \
                 AS_OBT/deduplicate.mk \
                 AS_OBT/finalTrim.mk \
