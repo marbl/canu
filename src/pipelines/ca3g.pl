@@ -5,6 +5,10 @@ use strict;
 use FindBin;
 use Cwd;
 
+use lib "$FindBin::RealBin";
+use lib "$FindBin::RealBin/ca3g/lib/perl5";
+use lib "$FindBin::RealBin/ca3g/lib64/perl5";
+
 use File::Path qw(make_path remove_tree);
 
 use Carp;
@@ -13,9 +17,6 @@ use Carp;
 use POSIX "ceil";
 use POSIX "floor";
 use POSIX "sys_wait_h";  #  waitpid()
-
-use lib "$FindBin::RealBin";
-use lib "$FindBin::RealBin/ca3g/lib/perl5";
 
 use ca3g::Defaults;
 use ca3g::Execution;
@@ -66,6 +67,8 @@ if (($mode ne "correct") &&
     print STDERR "\n";
     exit(1);
 }
+
+addCommandLineOption($mode);
 
 #  Check for the presence of a -options switch BEFORE we do any work.
 #  This lets us print the default values of options.
