@@ -508,7 +508,7 @@ sub setDefaults () {
     #####  Minimums
 
     $global{"frgMinLen"}                   = 64;
-    $synops{"frgMinLen"}                   = "Fragments shorter than this length are not loaded into the assembler";
+    $synops{"frgMinLen"}                   = "Reads shorter than this length are not loaded into the assembler";
 
     $global{"ovlMinLen"}                   = 40;
     $synops{"ovlMinLen"}                   = "Overlaps shorter than this length are not computed";
@@ -602,7 +602,7 @@ sub setDefaults () {
     $synops{"ovlHashBlockLength"}          = "Amount of sequence (bp) to load into the overlap hash table";
 
     $global{"ovlRefBlockSize"}             = 2000000;
-    $synops{"ovlRefBlockSize"}             = "Number of fragments to search against the hash table per batch";
+    $synops{"ovlRefBlockSize"}             = "Number of reads to search against the hash table per batch";
 
     $global{"ovlRefBlockLength"}           = 0;
     $synops{"ovlRefBlockLength"}           = "Amount of sequence (bp) to search against the hash table per batch";
@@ -612,6 +612,10 @@ sub setDefaults () {
 
     $global{"ovlHashLoad"}                 = "0.75";
     $synops{"ovlHashLoad"}                 = "Maximum hash table load.  If set too high, table lookups are inefficent; if too low, search overhead dominates run time";
+
+
+    $global{"mhapBlockSize"}               = 20000;
+    $synops{"mhapBlockSize"}               = "Number of reads ....";
 
 
     $global{"ovlMerSize"}                  = 22;
@@ -631,10 +635,10 @@ sub setDefaults () {
 
 
     $global{"ovlHashLibrary"}               = "0";
-    $synops{"ovlHashLibrary"}               = "For ovl overlaps, only load hash fragments from specified lib, 0 means all";
+    $synops{"ovlHashLibrary"}               = "For ovl overlaps, only load hash reads from specified lib, 0 means all";
 
     $global{"ovlRefLibrary"}                = "0";
-    $synops{"ovlRefLibrary"}                = "For ovl overlaps, only load ref fragments from specified lib, 0 means all";
+    $synops{"ovlRefLibrary"}                = "For ovl overlaps, only load ref reads from specified lib, 0 means all";
 
     $global{"ovlCheckLibrary"}              = 1;
     $synops{"ovlCheckLibrary"}              = "Check that all libraries are used during ovl overlaps";
@@ -680,7 +684,7 @@ sub setDefaults () {
     $synops{"useGridRED"}                  = "Use grid engine for read error detection computes";
 
     $global{"redBatchSize"}                = 200000;
-    $synops{"redBatchSize"}                = "Number of fragments per fragment error detection batch, directly affects memory usage";
+    $synops{"redBatchSize"}                = "Number of reads per fragment error detection batch, directly affects memory usage";
 
     $global{"redThreads"}                  = 2;
     $synops{"redThreads"}                  = "Number of threads to use while computing fragment errors";
@@ -692,7 +696,7 @@ sub setDefaults () {
     $synops{"useGridOEA"}                  = "Use grid engine for overlap error adjustment computes";
 
     $global{"oeaBatchSize"}                = 200000;
-    $synops{"oeaBatchSize"}                = "Number of fragments per overlap error correction batch";
+    $synops{"oeaBatchSize"}                = "Number of reads per overlap error correction batch";
 
     $global{"oeaConcurrency"}              = 4;
     $synops{"oeaConcurrency"}              = "If not SGE, number of overlap error correction processes to run at the same time";
@@ -749,7 +753,7 @@ sub setDefaults () {
     $synops{"cnsPartitions"}               = "Partition consensus into N jobs";
 
     $global{"cnsMinFrags"}                 = 75000;
-    $synops{"cnsMinFrags"}                 = "Don't make a consensus partition with fewer than N fragments";
+    $synops{"cnsMinFrags"}                 = "Don't make a consensus partition with fewer than N reads";
 
     $global{"cnsConcurrency"}              = 2;
     $synops{"cnsConcurrency"}              = "If not SGE, number of consensus jobs to run at the same time";

@@ -24,6 +24,7 @@ use ca3g::Execution;
 use ca3g::Gatekeeper;
 use ca3g::Meryl;
 use ca3g::OverlapInCore;
+use ca3g::OverlapMhap;
 use ca3g::OverlapStore;
 
 use ca3g::OverlapBasedTrimming;
@@ -215,14 +216,16 @@ meryl($wrk, $asm);
 #  Eventually, we'll get a whole other pipeline for obt.
 my $ovlType = ($mode eq "trim") ? "partial" : "normal";
 
-overlapConfigure($wrk, $asm, $ovlType);
-overlapCheck($wrk, $asm, $ovlType, 0);
-overlapCheck($wrk, $asm, $ovlType, 1);
-
-createOverlapStore($wrk, $asm, getGlobal("ovlStoreMethod"));
-
-
 if ($mode eq "correct") {
+    mhapConfigure($wrk, $asm, $ovlType);
+    mhapCheck($wrk, $asm, $ovlType, 0);
+    mhapCheck($wrk, $asm, $ovlType, 1);
+} else {
+    overlapConfigure($wrk, $asm, $ovlType);
+    overlapCheck($wrk, $asm, $ovlType, 0);
+    overlapCheck($wrk, $asm, $ovlType, 1);
+
+    createOverlapStore($wrk, $asm, getGlobal("ovlStoreMethod"));
 }
 
 

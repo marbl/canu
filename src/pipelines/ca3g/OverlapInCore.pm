@@ -118,7 +118,7 @@ sub overlapConfigure ($$$) {
         print F "  -G \\\n"  if ($type eq "partial");
         print F "  -t $ovlThreads \\\n";
         print F "  -k $merSize \\\n";
-        print F "  -k $wrk/0-mercounts/$asm-ms$merSize.frequentMers.fasta \\\n";
+        print F "  -k $wrk/0-mercounts/$asm.ms$merSize.frequentMers.fasta \\\n";
         print F "  --hashbits $ovlHashBits \\\n";
         print F "  --hashload $ovlHashLoad \\\n";
         print F "  --maxerate  ", getGlobal("ovlErrorRate"), " \\\n";

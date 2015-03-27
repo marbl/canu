@@ -28,7 +28,7 @@ use ca3g::Execution;
 #  We always compute canonical mers, that are not compressed.
 
 
-#  Generates   $wrk/0-mercounts/$asm-ms$merSize.frequentMers.fasta
+#  Generates   $wrk/0-mercounts/$asm.ms$merSize.frequentMers.fasta
 #  stopBefore  meryl (stops before meryl itself runs)
 #  stopAfter   meryl (stops after output is generated, even if it is just a symlink)
 
@@ -45,8 +45,8 @@ sub meryl ($$) {
     my $merDistinct  = getGlobal("ovlMerDistinct");
     my $merTotal     = getGlobal("ovlMerTotal");
 
-    my $ffile = "$wrk/0-mercounts/$asm-ms$merSize.frequentMers.fasta";   #  The fasta file we should be creating.
-    my $ofile = "$wrk/0-mercounts/$asm-ms$merSize";                      #  The merl database 'intermediate file'.
+    my $ffile = "$wrk/0-mercounts/$asm.ms$merSize.frequentMers.fasta";   #  The fasta file we should be creating.
+    my $ofile = "$wrk/0-mercounts/$asm.ms$merSize";                      #  The merl database 'intermediate file'.
 
     #  If the frequent mer file exists, don't bother running meryl.  We don't really need the
     #  databases.
