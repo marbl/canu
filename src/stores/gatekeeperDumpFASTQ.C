@@ -33,9 +33,16 @@ const char *mainid = "$Id$";
 //
 class libOutput {
 public:
-  libOutput(char const *outPrefix, char const *libName) {
+  libOutput(char const *outPrefix, char const *libName = NULL) {
     strcpy(_p, outPrefix);
-    strcpy(_n, libName);
+
+    if (libName)
+      strcpy(_n, libName);
+    else
+      _n[0] = 0;
+
+    _FASTA = NULL;
+    _FASTQ = NULL;
   };
 
   ~libOutput() {
@@ -56,7 +63,10 @@ public:
   FILE  *openFASTQ(void) {
     char  N[FILENAME_MAX];
 
-    sprintf(N, "%s.%s.fastq", _p, _n);
+    if (_n[0])
+      sprintf(N, "%s.%s.fastq", _p, _n);
+    else
+      sprintf(N, "%s.fastq", _p);
 
     errno = 0;
     _FASTQ = fopen(N, "w");
@@ -78,7 +88,10 @@ public:
   FILE  *openFASTA(void) {
     char  N[FILENAME_MAX];
 
-    sprintf(N, "%s.%s.fasta", _p, _n);
+    if (_n[0])
+      sprintf(N, "%s.%s.fasta", _p, _n);
+    else
+      sprintf(N, "%s.fasta", _p);
 
     errno = 0;
     _FASTA = fopen(N, "w");
@@ -114,6 +127,11 @@ main(int argc, char **argv) {
   bool             dumpAllReads      = false;
   bool             dumpAllBases      = false;
   bool             dumpOnlyDeleted   = false;
+
+  bool             dumpFASTQ         = true;
+  bool             dumpFASTA         = false;
+
+  bool             withLibName       = true;
 
   argc = AS_configure(argc, argv);
 
@@ -158,6 +176,18 @@ main(int argc, char **argv) {
       dumpAllReads    = true;  //  Otherwise we won't report the deleted reads!
 
 
+    } else if (strcmp(argv[arg], "-fastq") == 0) {
+      dumpFASTQ       = true;
+      dumpFASTA       = false;
+
+    } else if (strcmp(argv[arg], "-fasta") == 0) {
+      dumpFASTQ       = false;
+      dumpFASTA       = true;
+
+    } else if (strcmp(argv[arg], "-nolibname") == 0) {
+      withLibName     = false;
+
+
     } else {
       err++;
       fprintf(stderr, "ERROR: unknown option '%s'\n", argv[arg]);
@@ -172,7 +202,7 @@ main(int argc, char **argv) {
   if (err) {
     fprintf(stderr, "usage: %s [...] -o fastq-prefix -g gkpStore\n", argv[0]);
     fprintf(stderr, "  -G gkpStore\n");
-    fprintf(stderr, "  -o fastq-prefix     write files fastq-prefix.1.fastq, fastq-prefix.2.fastq, fastq-prefix.paired.fastq, fastq-prefix.unmated.fastq\n");
+    fprintf(stderr, "  -o fastq-prefix     write files fastq-prefix.(libname).fastq, ...\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -l libToDump        output only read in library number libToDump (NOT IMPLEMENTED)\n");
     fprintf(stderr, "  -b id               output starting at read 'id'\n");
@@ -184,6 +214,11 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -onlydeleted        if a clear range file, only output deleted reads (the entire read)\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -r id               output only the single read 'id'\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -fastq              output is FASTQ format (with extension .fastq, default)\n");
+    fprintf(stderr, "  -fasta              output is FASTA format (with extension .fasta)\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -nolibname          don't include the library name in the output file name\n");
     fprintf(stderr, "\n");
 
     if (gkpStoreName == NULL)
@@ -214,17 +249,17 @@ main(int argc, char **argv) {
 
   fprintf(stderr, "Dumping reads from %u to %u (inclusive).\n", bgnID, endID);
 
-  libOutput   **out = new libOutput * [numLibs];
+  libOutput   **out = new libOutput * [numLibs + 1];
 
   out[0] = NULL;  //  There isn't a zeroth library.
 
   for (uint32 i=1; i<=numLibs; i++)
-    out[i] = new libOutput(outPrefix, gkpStore->gkStore_getLibrary(i)->gkLibrary_libraryName());
+    out[i] = new libOutput(outPrefix, (withLibName == false) ? NULL : gkpStore->gkStore_getLibrary(i)->gkLibrary_libraryName());
 
+  gkReadData   *readData = new gkReadData;
 
   for (uint32 rid=bgnID; rid<=endID; rid++) {
-    gkRead      *read     = gkpStore->gkStore_getRead(rid);
-    gkReadData  *readData = new gkReadData;
+    gkRead      *read   = gkpStore->gkStore_getRead(rid);
 
     uint32       libID  = read->gkRead_libraryID();
 
@@ -291,13 +326,25 @@ main(int argc, char **argv) {
     qlt[len] = 0;
 
     //  And print the read.
+    if (dumpFASTQ)
+      AS_UTL_writeFastQ(out[libID]->getFASTQ(), seq, len, qlt, len,
+                        "@"F_U32" clr="F_U32","F_U32"\n",
+                        rid, lclr, rclr);
 
-    AS_UTL_writeFastQ(out[libID]->getFASTQ(), seq, (len), qlt, (len),
-                      "@"F_U32" clr="F_U32","F_U32"\n",
-                      rid, lclr, rclr);
+    if (dumpFASTA)
+      AS_UTL_writeFastA(out[libID]->getFASTA(), seq, len, 0,
+                        ">"F_U32" clr="F_U32","F_U32"\n",
+                        rid, lclr, rclr);
   }
 
-  delete gkpStore;
+  delete   readData;
+
+  for (uint32 i=1; i<=numLibs; i++)
+    delete out[i];
+
+  delete [] out;
+
+  delete    gkpStore;
 
   exit(0);
 }
