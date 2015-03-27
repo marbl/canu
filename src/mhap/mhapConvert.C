@@ -1,0 +1,114 @@
+
+
+
+#include "AS_global.H"
+#include "ovStore.H"
+#include "splitToWords.H"
+
+#include <vector>
+
+using namespace std;
+
+
+int
+main(int argc, char **argv) {
+  bool            asCoords = true;
+
+  char           *outName     = NULL;
+
+  uint32          baseIDhash  = 0;
+  uint32          numIDhash   = 0;
+  uint32          baseIDquery = 0;
+
+  vector<char *>  files;
+
+
+  int32     arg = 1;
+  int32     err = 0;
+  while (arg < argc) {
+    if        (strcmp(argv[arg], "-o") == 0) {
+      outName = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-h") == 0) {
+      baseIDhash = atoi(argv[++arg]) - 1;
+      numIDhash = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-q") == 0) {
+      baseIDquery = atoi(argv[++arg]) - 1;
+
+    } else if (AS_UTL_fileExists(argv[arg])) {
+      files.push_back(argv[arg]);
+
+    } else {
+      fprintf(stderr, "ERROR:  invalid arg '%s'\n", argv[arg]);
+      err++;
+    }
+
+    arg++;
+  }
+
+  if ((err) || (files.size() == 0)) {
+    fprintf(stderr, "usage: %s [options] file.mhap[.gz]\n", argv[0]);
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  Converts mhap native output to ovb\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -o out.ovb     output file\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -h id num      base id and number of hash table reads\n");
+    fprintf(stderr, "  -n n           number of hash table reads\n");
+
+    if (files.size() == 0)
+      fprintf(stderr, "ERROR:  no overlap files supplied\n");
+
+    exit(1);
+  }
+
+  char        *ovStr = new char [1024];
+
+  ovsOverlap   ov;
+  ovFile      *of = new ovFile(outName, ovFileFullWrite);
+
+  for (uint32 ff=0; ff<files.size(); ff++) {
+    compressedFileReader  *in = new compressedFileReader(files[ff]);
+
+    //  $1    $2   $3       $4  $5  $6  $7   $8   $9  $10 $11  $12
+    //  0     1    2        3   4   5   6    7    8   9   10   11
+    //  26887 4509 87.05933 301 0   479 2305 4328 1   34  1852 3637
+    //  aiid  biid qual     ?   ori bgn end  len  ori bgn end  len
+
+    while (fgets(ovStr, 1024, in->file()) != NULL) {
+      splitToWords  W(ovStr);
+
+      ov.a_iid = W(0) + baseIDquery - numIDhash;
+      ov.b_iid = W(1) + baseIDhash;
+
+      if (ov.a_iid == ov.b_iid)
+        continue;
+
+      assert(W[4][0] == '0');
+
+      ov.dat.ovl.forUTG = true;
+      ov.dat.ovl.forOBT = true;
+      ov.dat.ovl.forDUP = true;
+
+      ov.dat.ovl.ahg5 = W(5);
+      ov.dat.ovl.ahg3 = W(7) - W(6);
+
+      ov.dat.ovl.bhg5 = W(9);
+      ov.dat.ovl.bhg3 = W(11) - W(10);
+
+      ov.flipped(W[8][0] == '1');
+
+      ov.erate(atof(W[2]) / 500.0);
+
+      of->writeOverlap(&ov);
+    }
+
+    arg++;
+  }
+
+  delete    of;
+  delete [] ovStr;
+
+  exit(0);
+}

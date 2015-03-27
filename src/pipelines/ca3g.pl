@@ -218,15 +218,20 @@ my $ovlType = ($mode eq "trim") ? "partial" : "normal";
 
 if ($mode eq "correct") {
     mhapConfigure($wrk, $asm, $ovlType);
+
+    mhapPrecomputeCheck($wrk, $asm, $ovlType, 0);
+    mhapPrecomputeCheck($wrk, $asm, $ovlType, 1);
+
     mhapCheck($wrk, $asm, $ovlType, 0);
     mhapCheck($wrk, $asm, $ovlType, 1);
+
 } else {
     overlapConfigure($wrk, $asm, $ovlType);
     overlapCheck($wrk, $asm, $ovlType, 0);
     overlapCheck($wrk, $asm, $ovlType, 1);
-
-    createOverlapStore($wrk, $asm, getGlobal("ovlStoreMethod"));
 }
+
+createOverlapStore($wrk, $asm, getGlobal("ovlStoreMethod"));
 
 
 #  Enabling/disabling algorithm features is done through library features

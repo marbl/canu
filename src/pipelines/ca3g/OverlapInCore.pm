@@ -20,18 +20,16 @@ sub overlapConfigure ($$$) {
     my $cmd;
     my $type         = shift @_;
 
+    my $path    = "$wrk/1-overlapper";
+
     caFailure("invalid type '$type'", undef)  if (($type ne "partial") && ($type ne "normal"));
 
-    return  if  (-d "$wrk/$asm.tigStore");
+    return  if (-e "$path/ovljob.files");
+    return  if (-e "$path/ovlopt");
 
-    return  if ((-d "$wrk/$asm.obtStore") && ($type eq "partial"));
-    return  if ((-d "$wrk/$asm.ovlStore") && ($type eq "normal"));
-
-    return  if (-e "$wrk/1-overlapper/ovlopt");
-
-    make_path("$wrk/1-overlapper") if (! -d "$wrk/1-overlapper");
+    make_path("$path") if (! -d "$path");
     
-    if (! -e "$wrk/1-overlapper/ovlopt") {
+    if (! -e "$path/ovlopt") {
         my $checkLibrary       = getGlobal("ovlCheckLibrary");
         my $hashLibrary        = getGlobal("ovlHashLibrary");
         my $refLibrary         = getGlobal("ovlRefLibrary");
@@ -54,15 +52,15 @@ sub overlapConfigure ($$$) {
         $cmd .= " -H $hashLibrary \\\n" if ($hashLibrary ne "0");
         $cmd .= " -R $refLibrary \\\n"  if ($refLibrary ne "0");
         $cmd .= " -C \\\n" if (!$checkLibrary);
-        $cmd .= " -o  $wrk/1-overlapper \\\n";
-        $cmd .= "> $wrk/1-overlapper/overlapInCorePartition.err 2>&1";
+        $cmd .= " -o  $path \\\n";
+        $cmd .= "> $path/overlapInCorePartition.err 2>&1";
 
         if (runCommand($wrk, $cmd)) {
             caFailure("failed partition for overlapper", undef);
         }
     }
 
-    if (! -e "$wrk/1-overlapper/overlap.sh") {
+    if (! -e "$path/overlap.sh") {
         my $merSize      = getGlobal("ovlMerSize");
         
         my $hashLibrary  = getGlobal("ovlHashLibrary");
@@ -78,7 +76,7 @@ sub overlapConfigure ($$$) {
         my $taskID            = getGlobal("gridEngineTaskID");
         my $submitTaskID      = getGlobal("gridEngineArraySubmitID");
 
-        open(F, "> $wrk/1-overlapper/overlap.sh") or caFailure("can't open '$wrk/1-overlapper/overlap.sh'", undef);
+        open(F, "> $path/overlap.sh") or caFailure("can't open '$path/overlap.sh'", undef);
         print F "#!" . getGlobal("shell") . "\n";
         print F "\n";
         print F "perl='/usr/bin/env perl'\n";
@@ -92,16 +90,16 @@ sub overlapConfigure ($$$) {
         print F "  exit 1\n";
         print F "fi\n";
         print F "\n";
-        print F "bat=`head -n \$jobid $wrk/1-overlapper/ovlbat | tail -n 1`\n";
-        print F "job=`head -n \$jobid $wrk/1-overlapper/ovljob | tail -n 1`\n";
-        print F "opt=`head -n \$jobid $wrk/1-overlapper/ovlopt | tail -n 1`\n";
+        print F "bat=`head -n \$jobid $path/ovlbat | tail -n 1`\n";
+        print F "job=`head -n \$jobid $path/ovljob | tail -n 1`\n";
+        print F "opt=`head -n \$jobid $path/ovlopt | tail -n 1`\n";
         print F "jid=\$\$\n";
         print F "\n";
-        print F "if [ ! -d $wrk/1-overlapper/\$bat ]; then\n";
-        print F "  mkdir $wrk/1-overlapper/\$bat\n";
+        print F "if [ ! -d $path/\$bat ]; then\n";
+        print F "  mkdir $path/\$bat\n";
         print F "fi\n";
         print F "\n";
-        print F "if [ -e $wrk/1-overlapper/\$bat/\$job.ovb.gz ]; then\n";
+        print F "if [ -e $path/\$bat/\$job.ovb.gz ]; then\n";
         print F "  echo Job previously completed successfully.\n";
         print F "  exit\n";
         print F "fi\n";
@@ -124,28 +122,28 @@ sub overlapConfigure ($$$) {
         print F "  --maxerate  ", getGlobal("ovlErrorRate"), " \\\n";
         print F "  --minlength ", getGlobal("ovlMinLen"), " \\\n";
         print F "  \$opt \\\n";
-        print F "  -o $wrk/1-overlapper/\$bat/\$job.ovb.WORKING.gz \\\n";
+        print F "  -o $path/\$bat/\$job.ovb.WORKING.gz \\\n";
         print F "  -H $hashLibrary \\\n" if ($hashLibrary ne "0");
         print F "  -R $refLibrary \\\n"  if ($refLibrary  ne "0");
         print F "  $wrk/$asm.gkpStore \\\n";
         print F "&& \\\n";
-        print F "mv $wrk/1-overlapper/\$bat/\$job.ovb.WORKING.gz $wrk/1-overlapper/\$bat/\$job.ovb.gz\n";
+        print F "mv $path/\$bat/\$job.ovb.WORKING.gz $path/\$bat/\$job.ovb.gz\n";
         print F "\n";
         print F "exit 0\n";
         close(F);
 
-        system("chmod +x $wrk/1-overlapper/overlap.sh");
+        system("chmod +x $path/overlap.sh");
     }
 
-    caFailure("failed to find overlapInCorePartition output $wrk/1-overlapper/ovlbat", undef)  if (! -e "$wrk/1-overlapper/ovlbat");
-    caFailure("failed to find overlapInCorePartition output $wrk/1-overlapper/ovljob", undef)  if (! -e "$wrk/1-overlapper/ovljob");
-    caFailure("failed to find overlapInCorePartition output $wrk/1-overlapper/ovlopt", undef)  if (! -e "$wrk/1-overlapper/ovlopt");
+    caFailure("failed to find overlapInCorePartition output $path/ovlbat", undef)  if (! -e "$path/ovlbat");
+    caFailure("failed to find overlapInCorePartition output $path/ovljob", undef)  if (! -e "$path/ovljob");
+    caFailure("failed to find overlapInCorePartition output $path/ovlopt", undef)  if (! -e "$path/ovlopt");
 
-    open(F, "< $wrk/1-overlapper/ovlbat") or caFailure("failed partition for overlapper: no ovlbat file found", undef);
+    open(F, "< $path/ovlbat") or caFailure("failed partition for overlapper: no ovlbat file found", undef);
     my @bat = <F>;
     close(F);
 
-    open(F, "< $wrk/1-overlapper/ovljob") or caFailure("failed partition for overlapper: no ovljob file found", undef);
+    open(F, "< $path/ovljob") or caFailure("failed partition for overlapper: no ovljob file found", undef);
     my @job = <F>;
     close(F);
 
@@ -157,7 +155,7 @@ sub overlapConfigure ($$$) {
 
     stopAfter("overlap-configure");
     
-    #submitOrRunParallelJob($wrk, $asm, "ovl", "$wrk/1-overlapper", "overlap", getGlobal("ovlConcurrency"), "1-$jobs");
+    #submitOrRunParallelJob($wrk, $asm, "ovl", "$path", "overlap", getGlobal("ovlConcurrency"), "1-$jobs");
 }
 
 
@@ -176,9 +174,7 @@ sub overlapCheck ($$$$) {
     my $script  = "overlap";
     my $jobType = "ovl";
 
-    return  if ((-d "$wrk/$asm.obtStore") && ($type eq "partial"));
-    return  if ((-d "$wrk/$asm.ovlStore") && ($type eq "normal"));
-    return  if  (-d "$wrk/$asm.tigStore");
+    return  if (-e "$path/ovljob.files");
 
     my $currentJobID   = 1;
     my @successJobs;

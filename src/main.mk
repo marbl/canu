@@ -108,6 +108,8 @@ SUBMAKEFILES := stores/gatekeeperCreate.mk \
                 overlapInCore/overlapConvert.mk \
                 overlapInCore/overlapPair.mk \
                 \
+                mhap/mhapConvert.mk \
+                \
                 AS_OBT/deduplicate.mk \
                 AS_OBT/finalTrim.mk \
                 AS_OBT/chimera.mk \

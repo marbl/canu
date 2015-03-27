@@ -706,8 +706,8 @@ sub setDefaults () {
     $global{"unitigger"}                   = "bogart";
     $synops{"unitigger"}                   = "Which unitig algorithm to use; utg or bogart (defalut)";
 
-    $global{"utgGenomeSize"}               = 0;
-    $synops{"utgGenomeSize"}               = "An estimate of the size of the genome; decides if unitigs are unique or repeats";
+    $global{"genomeSize"}                  = 0;
+    $synops{"genomeSize"}                  = "An estimate of the size of the genome";
 
     $global{"utgBubblePopping"}            = 1;
     $synops{"utgBubblePopping"}            = "Smooth polymorphic regions";
