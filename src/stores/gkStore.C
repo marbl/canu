@@ -956,7 +956,7 @@ gkStore::gkStore_buildPartitions(uint32 *partitionMap) {
     readIDmap[fi] = readfileslen[pi]++;
   }
 
-  //  There isn't a zeroth read.  guido
+  //  There isn't a zeroth read.
 
   AS_UTL_safeWrite(rIDmF, &maxPartition,  "gkStore::gkStore_buildPartitions::maxPartition", sizeof(uint32), 1);
   AS_UTL_safeWrite(rIDmF,  readfileslen,  "gkStore::gkStore_buildPartitions::readfileslen", sizeof(uint32), maxPartition + 1);
