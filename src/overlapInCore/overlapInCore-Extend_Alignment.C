@@ -124,11 +124,11 @@ Extend_Alignment(Match_Node_t  *Match,
 
   else {
     Left_Errors = ed->reverse(T + T_Left_Begin,  T_Left_Begin + 1,
-                                        S + S_Left_Begin,  S_Left_Begin + 1,
-                                        Error_Limit - Right_Errors,
-                                        T_Lo, S_Lo,
-                                        Leftover,
-                                        lMatchToEnd);
+                              S + S_Left_Begin,  S_Left_Begin + 1,
+                              Error_Limit - Right_Errors,
+                              T_Lo, S_Lo,
+                              Leftover,
+                              lMatchToEnd);
   }
 
   for (int32 i=0; i<ed->Left_Delta_Len; i++)
