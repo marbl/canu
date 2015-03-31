@@ -143,8 +143,7 @@ typedef uint64_t uint64;
 
 
 // Pointers
-#define F_P           "%p"
-#define F_PP           "p"
+#define F_PTR    "0x%016p"
 
 // Characters
 #define F_C           "%c"
