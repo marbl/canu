@@ -158,68 +158,73 @@ Merge_Intersecting_Olaps(Olap_Info_t p[], int ct, int deleted[]) {
 
 static
 void
-Add_Overlap(int s_lo, int s_hi, int t_lo, int t_hi, double qual, Olap_Info_t * olap, int * ct, Work_Area_t * WA) {
-  int  i, new_diag;
+Add_Overlap(int s_lo, int s_hi, int t_lo, int t_hi, double qual, Olap_Info_t * olap, int &ct, Work_Area_t * WA) {
 
-  if  (G.Doing_Partial_Overlaps)
-    olap += (* ct);
-  // Don't combine overlaps when doing partials
-  else {
+  //  If not partials, combine overlapping overlaps
 
-    new_diag = t_lo - s_lo;
-    for  (i = 0;  i < (* ct);  i ++) {
-      int  old_diag = olap->t_lo - olap->s_lo;
+  if (G.Doing_Partial_Overlaps == false) {
+    int32 new_diag = t_lo - s_lo;
 
-      if  ((new_diag > 0
-            && old_diag > 0
-            && olap->t_right_boundary - new_diag - olap->s_left_boundary
-            >= MIN_INTERSECTION)
-           || (new_diag <= 0
-               && old_diag <= 0
-               && olap->s_right_boundary + new_diag - olap->t_left_boundary
-               >= MIN_INTERSECTION)) {
-        if  (new_diag < olap->min_diag)
-          olap->min_diag = new_diag;
-        if  (new_diag > olap->max_diag)
-          olap->max_diag = new_diag;
-        if  (s_lo < olap->s_left_boundary)
-          olap->s_left_boundary = s_lo;
-        if  (s_hi > olap->s_right_boundary)
-          olap->s_right_boundary = s_hi;
-        if  (t_lo < olap->t_left_boundary)
-          olap->t_left_boundary = t_lo;
-        if  (t_hi > olap->t_right_boundary)
-          olap->t_right_boundary = t_hi;
-        if  (qual < olap->quality) {      // lower value is better
-          olap->s_lo = s_lo;
-          olap->s_hi = s_hi;
-          olap->t_lo = t_lo;
-          olap->t_hi = t_hi;
-          olap->quality = qual;
-          memcpy (& (olap-> delta), WA->editDist->Left_Delta, WA->editDist->Left_Delta_Len * sizeof (int));
-          olap->delta_ct = WA->editDist->Left_Delta_Len;
+    for (int32 i=0; i < ct; i++) {
+      int32  old_diag = olap[i].t_lo - olap[i].s_lo;
+
+      //  If intersecting, just extend the existing saved overlap.
+
+      if ((new_diag >  0 && old_diag >  0 && olap[i].t_right_boundary - new_diag - olap[i].s_left_boundary >= MIN_INTERSECTION) ||
+          (new_diag <= 0 && old_diag <= 0 && olap[i].s_right_boundary + new_diag - olap[i].t_left_boundary >= MIN_INTERSECTION)) {
+
+        if (new_diag < olap[i].min_diag)   olap[i].min_diag = new_diag;
+        if (new_diag > olap[i].max_diag)   olap[i].max_diag = new_diag;
+
+        if (s_lo < olap[i].s_left_boundary)   olap[i].s_left_boundary  = s_lo;
+        if (s_hi > olap[i].s_right_boundary)  olap[i].s_right_boundary = s_hi;
+        if (t_lo < olap[i].t_left_boundary)   olap[i].t_left_boundary  = t_lo;
+        if (t_hi > olap[i].t_right_boundary)  olap[i].t_right_boundary = t_hi;
+
+        //  If better quality, copy in the new overlap
+        if (qual < olap[i].quality) {
+          olap[i].s_lo = s_lo;
+          olap[i].s_hi = s_hi;
+          olap[i].t_lo = t_lo;
+          olap[i].t_hi = t_hi;
+
+          olap[i].quality = qual;
+
+          //memcpy(& (olap[i].delta), WA->editDist->Left_Delta, WA->editDist->Left_Delta_Len * sizeof (int));
+          memcpy(olap[i].delta, WA->editDist->Left_Delta, WA->editDist->Left_Delta_Len * sizeof(int32));
+
+          olap[i].delta_ct = WA->editDist->Left_Delta_Len;
         }
 
-        //  check for intersections before outputting
         return;
       }
-
-      olap ++;
     }
   }
 
-  if  ((* ct) >= MAX_DISTINCT_OLAPS)
-    return;   // no room for a new entry; this shouldn't happen
+  if (ct >= MAX_DISTINCT_OLAPS) {
+    // no room for a new entry; this shouldn't happen
+    //fprintf(stderr, "SKIP - no space left.\n");
+    return;
+  }
 
-  olap->s_lo = olap->s_left_boundary = s_lo;
-  olap->s_hi = olap->s_right_boundary = s_hi;
-  olap->t_lo = olap->t_left_boundary = t_lo;
-  olap->t_hi = olap->t_right_boundary = t_hi;
-  olap->quality = qual;
-  memcpy (& (olap-> delta), WA->editDist->Left_Delta, WA->editDist->Left_Delta_Len * sizeof (int));
-  olap->delta_ct = WA->editDist->Left_Delta_Len;
-  olap->min_diag = olap->max_diag = t_lo - s_lo;
-  (* ct) ++;
+  //  Add a new overlap
+
+  olap[ct].s_lo = olap[ct].s_left_boundary  = s_lo;
+  olap[ct].s_hi = olap[ct].s_right_boundary = s_hi;
+  olap[ct].t_lo = olap[ct].t_left_boundary  = t_lo;
+  olap[ct].t_hi = olap[ct].t_right_boundary = t_hi;
+
+  olap[ct].quality = qual;
+
+  //memcpy(& (olap[ct].delta), WA->editDist->Left_Delta, WA->editDist->Left_Delta_Len * sizeof (int));
+  memcpy(olap[ct].delta, WA->editDist->Left_Delta, WA->editDist->Left_Delta_Len * sizeof(int32));
+
+  olap[ct].delta_ct = WA->editDist->Left_Delta_Len;
+
+  olap[ct].min_diag = t_lo - s_lo;
+  olap[ct].max_diag = t_lo - s_lo;
+
+  ct++;
 }
 
 
@@ -344,7 +349,7 @@ Process_Matches (int * Start,
                  Work_Area_t * WA,
                  int consistent) {
   int  P, * Ref;
-  Olap_Info_t  distinct_olap[MAX_DISTINCT_OLAPS];
+  Olap_Info_t  *distinct_olap = NULL;
   Match_Node_t  * Longest_Match, * Ptr;
   Overlap_t  Kind_Of_Olap = NONE;
   double  Quality;
@@ -397,6 +402,7 @@ Process_Matches (int * Start,
     }
   }
 
+  distinct_olap    = new Olap_Info_t [MAX_DISTINCT_OLAPS];
   distinct_olap_ct = 0;
 
   while  ((* Start) != 0) {
@@ -421,6 +427,12 @@ Process_Matches (int * Start,
                    && b_hang <= 0));
 
     if  (! hit_limit) {
+      //fprintf(stderr, "Extend_Alignment()- start %d len %d offset %d diag %d - S ID %u %d-%d - T ID %u %d-%d\n",
+      //        Longest_Match->Start,
+      //        Longest_Match->Len,
+      //        Longest_Match->Offset,
+      //        Longest_Match->Start - Longest_Match->Offset,
+      //        S_ID, S_Lo, S_Hi, T_ID, T_Lo, T_Hi);
       Kind_Of_Olap = Extend_Alignment(Longest_Match, S, S_Len, T, t_len, S_Lo, S_Hi, T_Lo, T_Hi, Errors, WA);
 
 
@@ -431,8 +443,8 @@ Process_Matches (int * Start,
           Quality = (double) Errors / Olap_Len;
 
           if  (Errors <= WA->editDist->Error_Bound[Olap_Len]) {
-            Add_Overlap (S_Lo, S_Hi, T_Lo, T_Hi, Quality,
-                         distinct_olap, & distinct_olap_ct, WA);
+            //fprintf(stderr, "Add_Overlap()-        quality %f count %d\n", Quality, distinct_olap_ct);
+            Add_Overlap (S_Lo, S_Hi, T_Lo, T_Hi, Quality, distinct_olap, distinct_olap_ct, WA);
           }
         }
       }
@@ -452,8 +464,7 @@ Process_Matches (int * Start,
                (Ptr->Start, Ptr->Offset,
                 S_Lo, T_Lo, WA)
                ))
-        (* Ref) = Ptr->Next;         // Remove this node, it matches
-      //   the alignment
+        (* Ref) = Ptr->Next;         // Remove this node, it matches the alignment
       else
         Ref = & (Ptr->Next);
     }
@@ -578,6 +589,7 @@ Process_Matches (int * Start,
         WA->Multi_Overlap_Ct++;
     }
 
+  delete [] distinct_olap;
 
   return;
 }
@@ -633,8 +645,7 @@ Process_String_Olaps (char * S,
       root_num = WA->String_Olap_Space[i].String_Num;
       if  (root_num + Hash_String_Num_Offset > ID) {
         if  (WA->String_Olap_Space[i].Match_List == 0) {
-          fprintf (stderr, " Curr_String_Num = %d  root_num  %d have no matches\n",
-                   ID, root_num);
+          fprintf (stderr, " Curr_String_Num = %d  root_num  %d have no matches\n", ID, root_num);
           exit (-2);
         }
         if  (i != ct)
