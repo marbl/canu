@@ -14,10 +14,10 @@ SOURCES  := overlapPair.C \
             prefixEditDistance-forward.C \
             prefixEditDistance-reverse.C
 
-SRC_INCDIRS  := .. ../AS_UTL ../stores liboverlap
+SRC_INCDIRS  := .. ../AS_UTL ../stores ../meryl/libleaff liboverlap
 
 TGT_LDFLAGS := -L${TARGET_DIR}
-TGT_LDLIBS  := -lCA
-TGT_PREREQS := libCA.a
+TGT_LDLIBS  := -lleaff -lCA
+TGT_PREREQS := libleaff.a libCA.a
 
 SUBMAKEFILES :=
