@@ -743,10 +743,10 @@ main (int argc, char **argv) {
   int arg=1;
   int err=0;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-g") == 0) {
+    if        (strcmp(argv[arg], "-G") == 0) {
       gkpName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-t") == 0) {
+    } else if (strcmp(argv[arg], "-T") == 0) {
       tigName = argv[++arg];
       tigVers = atoi(argv[++arg]);
 
