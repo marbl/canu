@@ -217,13 +217,14 @@ meryl($wrk, $asm);
 
 my $ovlType = ($mode eq "assemble") ? "normal" : "partial";
 
+
 if (getGlobal('overlapper') eq "mhap") {
     mhapConfigure($wrk, $asm, $ovlType);
 
     mhapPrecomputeCheck($wrk, $asm, $ovlType, 0);
     mhapPrecomputeCheck($wrk, $asm, $ovlType, 1);
 
-    mhapCheck($wrk, $asm, $ovlType, 0);
+    mhapCheck($wrk, $asm, $ovlType, 0);  #  this also does mhapReAlign
     mhapCheck($wrk, $asm, $ovlType, 1);
 
 } else {
@@ -235,11 +236,6 @@ if (getGlobal('overlapper') eq "mhap") {
 createOverlapStore($wrk, $asm, getGlobal("ovlStoreMethod"));
 
 
-#  Enabling/disabling algorithm features is done through library features
-#  set in the input gkp files.  This is inconvenient, as you cannot easily
-#  change the algorithm without rebuilding gkpStore.  This is flexible, letting
-#  you disable an algorithm, or use different parameters for different reads.
-
 
 if ($mode eq "correct") {
     buildCorrectionLayouts($wrk, $asm);
@@ -249,6 +245,8 @@ if ($mode eq "correct") {
 
     dumpCorrectedReads($wrk, $asm);
 }
+
+
 
 if ($mode eq "trim") {
     my $idx = 1;
@@ -260,6 +258,7 @@ if ($mode eq "trim") {
 
     #summarizeReads();
 }
+
 
 
 if ($mode eq "assemble") {
@@ -275,5 +274,7 @@ if ($mode eq "assemble") {
     outputLayout($wrk, $asm);
     outputConsensus($wrk, $asm);
 }
+
+
 
 exit(0);
