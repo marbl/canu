@@ -12,12 +12,12 @@ using namespace std;
 
 int
 main(int argc, char **argv) {
-  bool            asCoords = true;
+  char                  *gkpStoreName = NULL;
+  gkStore               *gkpStore = NULL;
 
-  char           *gkpStoreName = NULL;
-  gkStore        *gkpStore = NULL;
+  ovOverlapDisplayType   dt = ovOverlapAsCoords;
 
-  vector<char *>  files;
+  vector<char *>         files;
 
 
   int32     arg = 1;
@@ -27,10 +27,13 @@ main(int argc, char **argv) {
       gkpStoreName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-coords") == 0) {
-      asCoords = true;
+      dt = ovOverlapAsCoords;
 
     } else if (strcmp(argv[arg], "-hangs") == 0) {
-      asCoords = false;
+      dt = ovOverlapAsHangs;
+
+    } else if (strcmp(argv[arg], "-raw") == 0) {
+      dt = ovOverlapAsRaw;
 
     } else if (AS_UTL_fileExists(argv[arg])) {
       files.push_back(argv[arg]);
@@ -43,7 +46,7 @@ main(int argc, char **argv) {
     arg++;
   }
 
-  if ((gkpStoreName == NULL) && (asCoords == true))
+  if ((gkpStoreName == NULL) && (dt == ovOverlapAsCoords))
     err++;
 
   if ((err) || (files.size() == 0)) {
@@ -54,7 +57,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -coords        output coordiantes on reads\n");
     fprintf(stderr, "  -hangs         output hangs on reads\n");
 
-    if ((gkpStoreName == NULL) && (asCoords == true))
+    if ((gkpStoreName == NULL) && (dt == ovOverlapAsCoords))
       fprintf(stderr, "ERROR:  -coords mode requires a gkpStore (-G)\n");
 
     if (files.size() == 0)
@@ -73,7 +76,7 @@ main(int argc, char **argv) {
     ovsOverlap   ov;
 
     while (of->readOverlap(&ov))
-      fputs(ov.toString(ovStr, gkpStore, asCoords), stdout);
+      fputs(ov.toString(ovStr, gkpStore, dt), stdout);
 
     delete of;
 

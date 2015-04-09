@@ -45,8 +45,21 @@ sub meryl ($$) {
     my $merDistinct  = getGlobal("ovlMerDistinct");
     my $merTotal     = getGlobal("ovlMerTotal");
 
+    if (getGlobal("overlapper") eq "mhap") {
+        $merSize      = getGlobal('mhapMerSize');
+        $merThresh    = 0.000005;  #  mhapFilterThreshold
+        $merScale     = 1.0;
+        $merDistinct  = undef;
+        $merTotal     = undef;
+    }
+
     my $ffile = "$wrk/0-mercounts/$asm.ms$merSize.frequentMers.fasta";   #  The fasta file we should be creating.
-    my $ofile = "$wrk/0-mercounts/$asm.ms$merSize";                      #  The merl database 'intermediate file'.
+    my $ofile = "$wrk/0-mercounts/$asm.ms$merSize";                      #  The meryl database 'intermediate file'.
+
+    if (getGlobal("overlapper") eq "mhap") {
+        $ffile = "$wrk/0-mercounts/$asm.ms$merSize.frequentMers.mhap_ignore";
+    }    
+
 
     #  If the frequent mer file exists, don't bother running meryl.  We don't really need the
     #  databases.
@@ -250,9 +263,10 @@ sub meryl ($$) {
     runCommand("$wrk/0-mercounts", "gnuplot $ofile.histogram.gp");
 
 
-    #  Generate the frequent mers
+    #  Generate the frequent mers for overlapper
 
-    if (! -e $ffile) {
+    if ((getGlobal("overlapper") eq "ovl") &&
+        (! -e $ffile)) {
         $cmd  = "$bin/meryl -Dt -n $merThresh -s $ofile > $ffile 2> $ffile.err";
 
         if (runCommand("$wrk/0-mercounts", $cmd)) {
@@ -261,6 +275,44 @@ sub meryl ($$) {
         }
 
         unlink "$ffile.err";
+    }
+
+    #  Generate the frequent mers for mhap
+    #
+    #    TTTTGTTTTTTTTTTT        0.0000044602    589     132055862
+    #
+    #  The fraction is just $3/$4.  I assume this is used with "--filter-threshold 0.000005".
+
+    if ((getGlobal("overlapper") eq "mhap") &&
+        (! -e $ffile)) {
+
+        my $totalMers = 0;
+
+        open(F, "< $wrk/0-mercounts/$asm.ms$merSize.histogram.err") or die "Failed to open '$wrk/0-mercounts/$asm.ms$merSize.histogram.err' for reading: $!\n";
+        while (<F>) {
+            if (m/Found\s+(\d+)\s+mers./) {
+                $totalMers = $1;
+            }
+        }
+        close(F);
+
+        $merThresh = int(0.000005 / 2 * $totalMers);
+
+        open(F, "$bin/meryl -Dt -n $merThresh -s $wrk/0-mercounts/$asm.ms$merSize | ") or die "Failed to run meryl to generate frequent mers $!\n";
+        #open(F, "< $ffile") or die "Failed to open '$ffile' for reading frequent mers: $!\n";
+        open(O, "| sort -k2nr > $wrk/0-mercounts/$asm.ms$merSize.frequentMers.mhap_ignore") or die "Failed to open '$wrk/0-mercounts/$asm.ms$merSize.frequentMers.mhap_ignore' for writing: $!\n";
+
+        while (!eof(F)) {
+            my $h = <F>;
+            my $m = <F>;  chomp $m;
+
+            if ($h =~ m/^>(\d+)/) {
+                printf(O "%s\t%.16f\t$1\t$totalMers\n", $m, $1 / $totalMers);
+            }
+        }
+
+        close(O);
+        close(F);
     }
 
     #  Report the new threshold.

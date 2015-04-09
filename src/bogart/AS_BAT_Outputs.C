@@ -57,7 +57,7 @@ unitigToTig(tgTig       *tig,
 
   for (uint32 fi=0; fi<utg->ufpath.size(); fi++) {
     ufNode        *frg = &utg->ufpath[fi];
-    tgPosition    *pos =  tig->addChild(fi);
+    tgPosition    *pos =  tig->addChild();
 
     pos->_objID       = frg->ident;
     pos->_isRead      = true;

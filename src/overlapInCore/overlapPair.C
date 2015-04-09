@@ -229,6 +229,8 @@ uint32            batchEndID = 0;
 #define BATCH_SIZE   512 * 256
 
 
+
+
 bool
 getRange(uint32 &bgnID, uint32 &endID) {
 
@@ -260,11 +262,20 @@ recomputeOverlaps(void *ptr) {
   uint32        bgnID = 0;
   uint32        endID = 0;
 
+  uint32        nPassed = 0;
+  uint32        nFailed = 0;
+
   while (getRange(bgnID, endID)) {
-    fprintf(stderr, "Thread %u computes range %u - %u\n", WA->thread_id, bgnID, endID);
+    //fprintf(stderr, "Thread %u computes range %u - %u\n", WA->thread_id, bgnID, endID);
 
     for (uint32 oo=bgnID; oo<endID; oo++) {
       ovsOverlap  *ovl = WA->overlaps + oo;
+
+      //  Mark this overlap as bad.  If it recomputes, it will be marked good.
+
+      ovl->dat.ovl.forOBT = false;
+      ovl->dat.ovl.forDUP = false;
+      ovl->dat.ovl.forUTG = false;
 
       //  Load A.
 
@@ -291,7 +302,7 @@ recomputeOverlaps(void *ptr) {
 
         bStr = bRev;
 
-        bLo = bLen - ovl->b_bgn(WA->gkpStore);
+        bLo = bLen - ovl->b_bgn(WA->gkpStore);  //  Now correct for the reverse complemented sequence
         bHi = bLen - ovl->b_end(WA->gkpStore);
       }
 
@@ -309,6 +320,14 @@ recomputeOverlaps(void *ptr) {
 
         int32  alignLen = (aALen < bALen) ? bALen : aALen;
 
+        if (alignLen < 40) {
+          fprintf(stderr, "A %6u %5d-%5d ->   B %6u %5d-%5d %s ALIGN LEN %d TOO SHORT.\n",
+                  ovl->a_iid, ovl->a_bgn(WA->gkpStore), ovl->a_end(WA->gkpStore),
+                  ovl->b_iid, ovl->b_bgn(WA->gkpStore), ovl->b_end(WA->gkpStore),
+                  ovl->flipped() ? "<-" : "->", alignLen);
+          continue;
+        }
+
         int32  bgnDiag = aLo - bLo;
         int32  endDiag = aHi - bHi;
 
@@ -321,7 +340,14 @@ recomputeOverlaps(void *ptr) {
           maxDiag = bgnDiag + G.maxErate * alignLen / 2;
         }
 
-        assert(minDiag < maxDiag);
+        //  For very very short overlaps (mhap kindly reports 4 bp overlaps) reset the min/max
+        //  to something a little more permissive.
+        //if (minDiag > -5)  minDiag = -5;
+        //if (maxDiag <  5)  maxDiag =  5;
+
+        if (minDiag > maxDiag)
+          fprintf(stderr, "ERROR: minDiag=%d >= maxDiag=%d\n", minDiag, maxDiag);
+        assert(minDiag <= maxDiag);
       }
 
 
@@ -501,11 +527,7 @@ recomputeOverlaps(void *ptr) {
       }
 #endif
 
-      //  Recompute.  First, mark the overlap as junk.  If we find a new overlap, it is marked as good.
-
-      ovl->dat.ovl.forOBT = false;
-      ovl->dat.ovl.forDUP = false;
-      ovl->dat.ovl.forUTG = false;
+      //  Recompute.
 
       for (uint32 hh=0; hh<hits.size(); hh++) {
         Match_Node_t  match;
@@ -528,22 +550,28 @@ recomputeOverlaps(void *ptr) {
         double quality = (double)errors / olapLen;
 
         if (G.Doing_Partial_Overlaps == true)
-          //  Not set for partial overlaps; just don't set it to 'none'.
+          //  ovltype isn't set for partial overlaps; just don't set it to 'none' so we can get
+          //  through the 'good overlap' check below.
           ovltype = DOVETAIL;
 
         if (olapLen < 40)
           ovltype = NONE;
 
+        if (ovl->dat.ovl.flipped == true) {
+          bLo = bLen - bLo;  //  Now correct for the original forward sequence
+          bHi = bLen - bHi;  //  Done early just for the print below
+        }
+
 #if 0
-        fprintf(stderr, "thread %2u hit %2u  A %6u %5d-%5d %s B %6u %5d-%5d  %s -- ",
+        fprintf(stderr, "thread %2u hit %2u  A %6u %5d-%5d %s B %6u %5d-%5d -- ",
                 WA->thread_id,
                 hh,
                 ovl->a_iid, ovl->a_bgn(WA->gkpStore), ovl->a_end(WA->gkpStore),
                 ovl->flipped() ? "<-" : "->",
                 ovl->b_iid, ovl->b_bgn(WA->gkpStore), ovl->b_end(WA->gkpStore));
-        fprintf(stderr, "type %d A %5d-%5d  B %5d-%5d  errors %4d  quality %6.3f  llen %4d rlen %4d%s\n",
+        fprintf(stderr, "type %d A %5d-%5d (%5d)  B %5d-%5d (%5d)  errors %4d  quality %6.3f  llen %4d rlen %4d%s\n",
                 ovltype,
-                aLo, aHi, bLo, bHi,
+                aLo, aHi, aLen, bLo, bHi, bLen,
                 errors,
                 quality,
                 WA->editDist->Left_Delta_Len,
@@ -551,22 +579,52 @@ recomputeOverlaps(void *ptr) {
                 (ovltype == 0) ? "  FAILED" : "");
 #endif
 
-        if (ovltype != NONE) {
-          ovl->dat.ovl.forOBT = (G.Doing_Partial_Overlaps == false);
-          ovl->dat.ovl.forDUP = (G.Doing_Partial_Overlaps == true);
-          ovl->dat.ovl.forUTG = (G.Doing_Partial_Overlaps == true);
-          //  Need more...
-          break;
+        if (ovltype == NONE)
+          //  Not a good overlap, keep searching for one.
+          continue;
+
+        //  Got a good overlap.  Save it, and get out of this loop.
+
+        if (ovl->dat.ovl.flipped == false) {
+          ovl->dat.ovl.ahg5 =        (aLo);
+          ovl->dat.ovl.ahg3 = aLen - (aHi);  //+1?
+          ovl->dat.ovl.bhg5 =        (bLo);
+          ovl->dat.ovl.bhg3 = bLen - (bHi);  //+1?
+
+        } else {
+          ovl->dat.ovl.ahg5 =        (aLo);
+          ovl->dat.ovl.ahg3 = aLen - (aHi);  //+1?
+          ovl->dat.ovl.bhg5 = bLen - (bLo);  //+1?
+          ovl->dat.ovl.bhg3 =        (bHi);
         }
+
+        ovl->erate(quality);
+
+        //  Good for UTG if we aren't computing partial overlaps, and the overlap came out dovetail
+
+        ovl->dat.ovl.forOBT = (G.Doing_Partial_Overlaps == true);
+        ovl->dat.ovl.forDUP = (G.Doing_Partial_Overlaps == true);
+        ovl->dat.ovl.forUTG = (G.Doing_Partial_Overlaps == false) && (ovl->overlapIsDovetail() == true);
+
+        //  Stop searching the hits for a good overlap.
+
+        break;
       }
+
+      if ((ovl->dat.ovl.forOBT == false) &&
+          (ovl->dat.ovl.forDUP == false) &&
+          (ovl->dat.ovl.forUTG == false))
+        nFailed++;
+      else
+        nPassed++;
     }
   }
 
-  //  Do something.
+  //  All done.
 
-  delete [] bRev;  //  Well, somthing more than that...
+  delete [] bRev;
 
-  fprintf(stderr, "Thread %u finished.\n", WA->thread_id);
+  fprintf(stderr, "Thread %u finished -- %u failed %u passed.\n", WA->thread_id, nFailed, nPassed);
 }
 
 
@@ -579,13 +637,16 @@ recomputeOverlaps(void *ptr) {
 
 int
 main(int argc, char **argv) {
-  char  *gkpName      = NULL;
-  char  *ovlName      = NULL;
-  uint32  bgnID       = 0;
-  uint32  endID       = UINT32_MAX;
-  uint32  numThreads  = 1;
+  char    *gkpName      = NULL;
+  char    *ovlName      = NULL;
+  char    *ovlNameOut   = NULL;
 
-  uint64  memLimit    = 4;
+  uint32   bgnID       = 0;
+  uint32   endID       = UINT32_MAX;
+
+  uint32   numThreads  = 1;
+
+  uint64   memLimit    = 4;
 
   argc = AS_configure(argc, argv);
 
@@ -600,6 +661,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-O") == 0) {
       ovlName = argv[++arg];
 
+    } else if (strcmp(argv[arg], "-o") == 0) {
+      ovlNameOut = argv[++arg];
+
     } else if (strcmp(argv[arg], "-b") == 0) {
       bgnID = atoi(argv[++arg]);
 
@@ -612,7 +676,7 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-erate") == 0) {
       G.maxErate = atof(argv[++arg]);
 
-    } else if (strcmp(argv[arg], "-g") == 0) {
+    } else if (strcmp(argv[arg], "-partial") == 0) {
       G.Doing_Partial_Overlaps = true;
 
     } else if (strcmp(argv[arg], "-memory") == 0) {
@@ -624,18 +688,65 @@ main(int argc, char **argv) {
 
     arg++;
   }
+
+  if (gkpName == NULL)
+    err++;
+  if (ovlName == NULL)
+    err++;
+  if (ovlNameOut == NULL)
+    err++;
+
   if (err) {
+    fprintf(stderr, "usage: %s ...\n", argv[0]);
+    fprintf(stderr, "  -G gkpStore     Mandatory, path to gkpStore\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Inputs can come from either a store or a file.\n");
+    fprintf(stderr, "  -O ovlStore     \n");
+    fprintf(stderr, "  -O ovlFile      \n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "If from an ovlStore, the range of reads processed can be restricted.\n");
+    fprintf(stderr, "  -b bgnID        \n");
+    fprintf(stderr, "  -e endID        \n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Outputs will be written to a store or file, depending on the input type\n");
+    fprintf(stderr, "  -o ovlStore     \n");
+    fprintf(stderr, "  -o ovlFile      \n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -erate e        Overlaps are computed at 'e' fraction error\n");
+    fprintf(stderr, "  -partial        Overlaps are 'overlapInCore -G' partial overlaps\n");
+    fprintf(stderr, "  -memory m       Use up to 'm' GB of memory\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -t n            Use up to 'n' cores\n");
+    fprintf(stderr, "\n");
     exit(1);
   }
 
-  fprintf(stderr, "Opening gkpStore '%s'\n", gkpName);
-  gkStore  *gkpStore = new gkStore(gkpName);
-
-  fprintf(stderr, "Opening ovlStore '%s'\n", ovlName);
-  ovStore  *ovlStore = new ovStore(ovlName);
-
+  gkStore          *gkpStore = new gkStore(gkpName);
   gkRead           *read;
   gkReadData        data;
+
+  ovStore          *ovlStore = NULL,  *ovlStoreOut = NULL;
+  ovFile           *ovlFile  = NULL,  *ovlFileOut  = NULL;
+
+  if (AS_UTL_fileExists(ovlName, true)) {
+    fprintf(stderr, "Reading overlaps from store '%s' and writing to '%s'\n",
+            ovlName, ovlNameOut);
+    ovlStore    = new ovStore(ovlName);
+    ovlStoreOut = new ovStore(ovlNameOut, ovStoreWrite);
+
+    if (bgnID < 1)
+      bgnID = 1;
+    if (endID > gkpStore->gkStore_getNumReads())
+      endID = gkpStore->gkStore_getNumReads();
+
+    ovlStore->setRange(bgnID, endID);
+
+  } else {
+    fprintf(stderr, "Reading overlaps from file '%s' and writing to '%s'\n",
+            ovlName, ovlNameOut);
+    ovlFile     = new ovFile(ovlName,    ovFileFull);
+    ovlFileOut  = new ovFile(ovlNameOut, ovFileFullWrite);
+  }
 
   Work_Area_t      *WA  = new Work_Area_t [numThreads];
   pthread_t        *tID = new pthread_t   [numThreads];
@@ -700,14 +811,19 @@ main(int argc, char **argv) {
 
   //  Load the first batch of overlaps and reads.
 
-  *overlapsLen = ovlStore->readOverlaps(overlaps, overlapsMax, false);
+  if (ovlStore)
+    *overlapsLen = ovlStore->readOverlaps(overlaps, overlapsMax, false);
+  if (ovlFile)
+    *overlapsLen = ovlFile->readOverlaps(overlaps, overlapsMax);
+
   fprintf(stderr, "Loaded %u overlaps.\n", *overlapsLen);
+
 
   cache->loadReads(overlaps, *overlapsLen);
 
   //  Loop over all the overlaps.
 
-  while (*overlapsLen > 0) {
+  while (overlapsALen + overlapsBLen > 0) {
 
     //  Launch next batch of threads
     fprintf(stderr, "LAUNCH THREADS\n");
@@ -737,8 +853,7 @@ main(int argc, char **argv) {
         fprintf(stderr, "pthread_create error:  %s\n", strerror(status)), exit(1);
     }
 
-    //  Load next batch ov overlaps, after flipping to the unused space
-    fprintf(stderr, "LOAD OVERLAPS\n");
+    //  Flip back to the now computed overlaps
 
     if (overlaps == overlapsA) {
       overlapsLen = &overlapsBLen;
@@ -749,7 +864,26 @@ main(int argc, char **argv) {
       overlaps    =  overlapsA;
     }
 
-    *overlapsLen = ovlStore->readOverlaps(overlaps, overlapsMax, false);
+    //  Write recomputed overlaps - if this is the first pass through the loop,
+    //  then overlapsLen will be zero
+    fprintf(stderr, "WRITE OVERLAPS\n");
+
+#warning Should we output overlaps that failed to recompute?
+
+    if (ovlStore)
+      for (uint64 oo=0; oo<*overlapsLen; oo++)
+        ovlStoreOut->writeOverlap(overlaps + oo);
+    if (ovlFile)
+      ovlFileOut->writeOverlaps(overlaps, *overlapsLen);
+
+    //  Load more overlaps
+    fprintf(stderr, "LOAD OVERLAPS\n");
+
+    if (ovlStore)
+      *overlapsLen = ovlStore->readOverlaps(overlaps, overlapsMax, false);
+    if (ovlFile)
+      *overlapsLen = ovlFile->readOverlaps(overlaps, overlapsMax);
+
     fprintf(stderr, "Loaded %u overlaps.\n", *overlapsLen);
 
     //  Load new reads
@@ -773,6 +907,19 @@ main(int argc, char **argv) {
   }
 
   //  Goodbye.
+
+  delete    cache;
+
+  delete    gkpStore;
+
+  delete    ovlStore;
+  delete    ovlStoreOut;
+
+  delete    ovlFile;
+  delete    ovlFileOut;
+
+  delete [] overlapsA;
+  delete [] overlapsB;
 
   return(0);
 }

@@ -147,6 +147,46 @@ ovFile::writeOverlap(ovsOverlap *overlap) {
 
 
 
+void
+ovFile::writeOverlaps(ovsOverlap *overlaps, uint64 overlapsLen) {
+  uint64  nWritten = 0;
+
+  assert(_isOutput == true);
+
+  while (nWritten < overlapsLen) {
+    if (_bufferLen >= _bufferMax) {
+      AS_UTL_safeWrite(_file, _buffer, "ovFile::writeOverlap", sizeof(uint32), _bufferLen);
+      _bufferLen = 0;
+    }
+
+    if (_isNormal == false)
+      _buffer[_bufferLen++] = overlaps[nWritten].a_iid;
+
+    _buffer[_bufferLen++] = overlaps[nWritten].b_iid;
+
+#if (ovsOverlapNWORDS == 5)
+    _buffer[_bufferLen++] = overlaps[nWritten].dat.dat[0];
+    _buffer[_bufferLen++] = overlaps[nWritten].dat.dat[1];
+    _buffer[_bufferLen++] = overlaps[nWritten].dat.dat[2];
+    _buffer[_bufferLen++] = overlaps[nWritten].dat.dat[3];
+    _buffer[_bufferLen++] = overlaps[nWritten].dat.dat[4];
+#else
+    _buffer[_bufferLen++] = (overlaps[nWritten].dat.dat[0] >> 32) & 0xffffffff;
+    _buffer[_bufferLen++] = (overlaps[nWritten].dat.dat[0] >>  0) & 0xffffffff;
+    _buffer[_bufferLen++] = (overlaps[nWritten].dat.dat[1] >> 32) & 0xffffffff;
+    _buffer[_bufferLen++] = (overlaps[nWritten].dat.dat[1] >>  0) & 0xffffffff;
+    _buffer[_bufferLen++] = (overlaps[nWritten].dat.dat[2] >> 32) & 0xffffffff;
+    _buffer[_bufferLen++] = (overlaps[nWritten].dat.dat[2] >>  0) & 0xffffffff;
+#endif
+
+    nWritten++;
+  }
+
+  assert(_bufferLen <= _bufferMax);
+}
+
+
+
 bool
 ovFile::readOverlap(ovsOverlap *overlap) {
 
@@ -185,6 +225,53 @@ ovFile::readOverlap(ovsOverlap *overlap) {
   assert(_bufferPos <= _bufferLen);
 
   return(true);
+}
+
+
+
+uint64
+ovFile::readOverlaps(ovsOverlap *overlaps, uint64 overlapsLen) {
+  uint64  nLoaded = 0;
+
+  assert(_isOutput == false);
+
+  while (nLoaded < overlapsLen) {
+    if (_bufferPos >= _bufferLen) {
+      _bufferLen = AS_UTL_safeRead(_file, _buffer, "ovFile::readOverlaps", sizeof(uint32), _bufferMax);
+      _bufferPos = 0;
+    }
+
+    if (_bufferLen == 0)
+      return(nLoaded);
+
+    assert(_bufferPos < _bufferLen);
+
+    if (_isNormal == FALSE)
+      overlaps[nLoaded].a_iid      = _buffer[_bufferPos++];
+
+    overlaps[nLoaded].b_iid      = _buffer[_bufferPos++];
+
+#if (ovsOverlapNWORDS == 5)
+    overlaps[nLoaded].dat.dat[0] = _buffer[_bufferPos++];
+    overlaps[nLoaded].dat.dat[1] = _buffer[_bufferPos++];
+    overlaps[nLoaded].dat.dat[2] = _buffer[_bufferPos++];
+    overlaps[nLoaded].dat.dat[3] = _buffer[_bufferPos++];
+    overlaps[nLoaded].dat.dat[4] = _buffer[_bufferPos++];
+#else
+    overlaps[nLoaded].dat.dat[0]  = _buffer[_bufferPos++];  overlaps[nLoaded].dat.dat[0] <<= 32;
+    overlaps[nLoaded].dat.dat[0] |= _buffer[_bufferPos++];
+    overlaps[nLoaded].dat.dat[1]  = _buffer[_bufferPos++];  overlaps[nLoaded].dat.dat[1] <<= 32;
+    overlaps[nLoaded].dat.dat[1] |= _buffer[_bufferPos++];
+    overlaps[nLoaded].dat.dat[2]  = _buffer[_bufferPos++];  overlaps[nLoaded].dat.dat[2] <<= 32;
+    overlaps[nLoaded].dat.dat[2] |= _buffer[_bufferPos++];
+#endif
+
+    nLoaded++;
+
+    assert(_bufferPos <= _bufferLen);
+  }
+
+  return(nLoaded);
 }
 
 

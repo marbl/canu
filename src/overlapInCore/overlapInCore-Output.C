@@ -223,9 +223,9 @@ Output_Partial_Overlap(uint32 s_id,
 
   ovl->dat.ovl.span = 0;
 
-  fprintf(stdout, "S: %6u %6d-%6d  T: %6u %6d-%6d  dir %d\n",
-          s_id, p->s_lo, p->s_hi,
-          t_id, p->t_lo, p->t_hi, dir);
+  //fprintf(stdout, "S: %6u %6d-%6d  T: %6u %6d-%6d  dir %d\n",
+  //        s_id, p->s_lo, p->s_hi,
+  //        t_id, p->t_lo, p->t_hi, dir);
 
   if (dir == FORWARD) {
     ovl->dat.ovl.ahg5 =         (p->s_lo);

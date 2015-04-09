@@ -28,263 +28,23 @@ const char *mainid = "$Id$";
 
 #include "AS_UTL_decodeRange.H"
 
+#include "stashContains.H"
+
 #include <map>
 #include <algorithm>
-
-
-
-//  Create a new f_list for the ma that has no contained reads.
-//  The original f_list is returned.
-//
-
-class readLength {
-public:
-  uint32    idx;
-  int32     len;
-
-  bool operator<(const readLength &that) const {
-    return(len < that.len);
-  };
-};
-
-
-class savedChildren {
-public:
-  savedChildren(tgTig *tig) {
-    childrenLen = tig->_childrenLen;
-    childrenMax = tig->_childrenMax;
-    children    = tig->_children;
-  };
-
-  uint32      childrenLen;
-  uint32      childrenMax;
-  tgPosition *children;
-};
-
-
-
-//  Replace the children list in tig with one that has fewer contains.  The original
-//  list is returned.
-savedChildren *
-stashContains(tgTig       *tig,
-              double       maxCov) {
-
-  if (tig->numberOfChildren() == 1)
-    return(NULL);
-
-  //  Stats we report
-  int32  nOrig     = tig->numberOfChildren();
-  int32  nBack     = 0;
-  int32  nCont     = 0;
-  int32  nSave     = 0;
-  int64  nBase     = 0;
-  int64  nBaseDove = 0;
-  int64  nBaseCont = 0;
-  int64  nBaseSave = 0;
-
-  //  Save the original children
-  savedChildren   *saved = new savedChildren(tig);
-
-  bool         *isBack   = new bool       [nOrig];   //  True, we save the child for processing
-  readLength   *posLen   = new readLength [nOrig];   //  Sorting by length of child
-
-  //  Sort the original children by position.
-
-  std::sort(saved->children, saved->children + saved->childrenLen);
-
-  //  The first read is always saved
-
-  int32         loEnd = saved->children[0].min();
-  int32         hiEnd = saved->children[0].max();
-
-  isBack[0]      = 1;
-  nBack          = 1;
-  posLen[0].idx  = 0;
-  posLen[0].len  = hiEnd - loEnd;
-  nBaseDove     += posLen[0].len;
-  nBase         += posLen[0].len;
-
-  //  For the other reads, save it if it extends the backbone sequence.
-
-  for (uint32 fi=1; fi<nOrig; fi++) {
-    int32  lo = saved->children[fi].min();
-    int32  hi = saved->children[fi].max();
-
-    posLen[fi].idx  = fi;
-    posLen[fi].len  = hi - lo;
-    nBase          += posLen[fi].len;
-
-    if (hi <= hiEnd) {
-      isBack[fi] = false;
-      nCont++;
-      nBaseCont += posLen[fi].len;
-
-    } else {
-      isBack[fi] = true;
-      nBack++;
-      nBaseDove += posLen[fi].len;
-    }
-
-    hiEnd = MAX(hi, hiEnd);
-  }
-
-  //  Entertain the user with some statistics
-
-  double percCont = 100.0 * nBaseCont / nBase;
-  double percDove = 100.0 * nBaseDove / nBase;
-  double totlCov  = (double)nBase / hiEnd;
-
-  fprintf(stderr, "  unitig %d detected "F_S32" contains (%.2fx, %.2f%%) "F_S32" dovetail (%.2fx, %.2f%%)\n",
-          tig->tigID(),
-          nCont, (double)nBaseCont / hiEnd, percCont,
-          nBack, (double)nBaseDove / hiEnd, percDove);
-
-  //  If the tig has more coverage than allowed, throw out some of the contained reads.
-
-  if ((totlCov  >= maxCov) &&
-      (maxCov   > 0)) {
-#warning is this really larger first?
-    std::sort(posLen, posLen + nOrig);  //  Sort by length, larger first
-
-    nBaseSave = 0.0;
-
-    for (uint32 ii=0; ((ii < nOrig) && ((double)(nBaseSave + nBaseDove) / hiEnd < maxCov)); ii++) {
-      if (isBack[posLen[ii].idx])
-        //  Already a backbone read.
-        continue;
-
-      isBack[posLen[ii].idx] = true;  //  Save it.
-
-      nSave++;
-      nBaseSave += posLen[ii].len;
-    }
-
-    fprintf(stderr, "    unitig %d removing "F_S32" (%.2fx) contained reads; processing only "F_S32" contained (%.2fx) and "F_S32" dovetail (%.2fx) reads\n",
-            tig->tigID(),
-            nOrig - nBack - nSave,
-            (double)(nBaseCont - nBaseSave) / hiEnd,
-            nSave, (double)nBaseSave / hiEnd,
-            nBack, (double)nBaseDove / hiEnd);
-
-    //  For all the reads we saved, copy them to a new children list in the tig
-
-    tig->_childrenLen = 0;
-    tig->_childrenMax = nBack + nSave;
-    tig->_children    = new tgPosition [tig->_childrenMax];
-
-    for (uint32 fi=0; fi<nOrig; fi++) {
-      if (isBack[fi] == false)
-        continue;
-
-      //fprintf(stderr, "    ident %9d position %6d %6d\n",
-      //        saved->children[fi].ident(), saved->children[fi].bgn(), children[fi].end());
-
-      tig->_children[tig->_childrenLen] = saved->children[fi];
-    }
-  }
-
-  //  Else, the tig coverage is acceptable and we do no filtering.
-  else {
-    delete saved;
-    saved = NULL;
-  }
-
-  delete [] isBack;
-  delete [] posLen;
-
-  return(saved);
-}
-
-
-//  Restores the f_list, and updates the position of non-contained reads.
-//
-void
-unstashContains(tgTig                *tig,
-                savedChildren        *saved) {
-
-  if (saved == NULL)
-    return;
-
-  uint32   oldMax = 0;
-  uint32   newMax = 0;
-
-  //  For fragments not involved in the consensus computation, we'll scale their position linearly
-  //  from the old max to the new max.
-  //
-  //  We probably should do an alignment to the consensus sequence to find the true location, but
-  //  that's (a) expensive and (b) likely overkill for these unitigs.
-
-  //  Find the oldMax
-  for (uint32 fi=0, ci=0; fi<saved->childrenLen; fi++)
-    if (oldMax < saved->children[fi].max())
-      oldMax = saved->children[fi].max();
-
-  //  Find the newMax
-  //  We could have just done: newMax = tig->gappedLength();
-  for (uint32 fi=0, ci=0; fi<tig->numberOfChildren(); fi++)
-    if (newMax < tig->getChild(fi)->max())
-      newMax = tig->getChild(fi)->max();
-
-  double sf = (double)newMax / oldMax;
-
-  //  First, we need a map from the child id to the location in the current tig
-
-  map<int32, tgPosition *>   idmap;
-
-  for (uint32 ci=0; ci < tig->numberOfChildren(); ci++)
-    idmap[tig->getChild(ci)->ident()] = tig->getChild(ci);
-
-  //  Now, over all the reads in the original saved fragment list, update the position.  Either from
-  //  the computed result, or by extrapolating.
-
-  for (uint32 fi=0; fi<saved->childrenLen; fi++) {
-    uint32  iid = saved->children[fi].ident();
-
-    //  Does the ID exist in the new positions?  Copy the new position to the original list.
-    if (idmap.find(iid) != idmap.end()) {
-      saved->children[fi] = *idmap[iid];
-      idmap.erase(iid);
-    }
-
-    //  Otherwise, fudge the positions.
-    else {
-      int32  nmin = sf * saved->children[fi].bgn();
-      int32  nmax = sf * saved->children[fi].end();
-
-      if (nmin > newMax)  nmin = newMax;
-      if (nmax > newMax)  nmax = newMax;
-
-      saved->children[fi].set(nmin, nmax);
-    }
-  }
-
-  if (idmap.empty() == false)
-    fprintf(stderr, "Failed to unstash the contained reads.  Still have "F_SIZE_T" reads unplaced.\n",
-            idmap.size());
-  assert(idmap.empty() == true);
-
-  //  Throw out the reduced list, and restore the original.
-
-  delete [] tig->_children;
-
-  tig->_childrenLen = saved->childrenLen;
-  tig->_childrenMax = saved->childrenMax;
-  tig->_children    = saved->children;
-}
-
 
 
 int
 main (int argc, char **argv) {
   char  *gkpName = NULL;
 
-  char  *tigName = NULL;
-  int32  tigVers = -1;
-  int32  tigPart = -1;
+  char   *tigName = NULL;
+  uint32  tigVers = UINT64_MAX;
+  uint32  tigPart = UINT64_MAX;
 
-  int64  utgBgn = -1;
-  int64  utgEnd = -1;
-  char  *utgFile = NULL;
+  int64   utgBgn  = UINT64_MAX;
+  int64   utgEnd  = UINT64_MAX;
+  char   *utgFile = NULL;
 
   char *outResultsName = NULL;
   char *outLayoutsName = NULL;
@@ -323,10 +83,13 @@ main (int argc, char **argv) {
       tigVers = atoi(argv[++arg]);
       tigPart = atoi(argv[++arg]);
 
-      if (tigVers <= 0)
-        fprintf(stderr, "invalid tigStore version (-t store version partition) '-t %s %s %s'.\n", argv[arg-2], argv[arg-1], argv[arg]), exit(1);
-      if ((tigPart <= 0) && (argv[arg][0] != '.'))
-        fprintf(stderr, "invalid tigStore partition (-t store version partition) '-t %s %s %s'.\n", argv[arg-2], argv[arg-1], argv[arg]), exit(1);
+      if (argv[arg][0] == '.')
+        tigPart = UINT32_MAX;
+
+      if (tigVers == 0)
+        fprintf(stderr, "invalid tigStore version (-T store version partition) '-t %s %s %s'.\n", argv[arg-2], argv[arg-1], argv[arg]), exit(1);
+      if (tigPart == 0)
+        fprintf(stderr, "invalid tigStore partition (-T store version partition) '-t %s %s %s'.\n", argv[arg-2], argv[arg-1], argv[arg]), exit(1);
 
     } else if (strcmp(argv[arg], "-u") == 0) {
       AS_UTL_decodeRange(argv[++arg], utgBgn, utgEnd);
@@ -520,7 +283,7 @@ main (int argc, char **argv) {
 
     //  Are we parittioned?  Is this tig in our partition?
 
-    if (tigPart > 0) {
+    if (tigPart != UINT32_MAX) {
       uint32  missingReads = 0;
 
       for (uint32 ii=0; ii<tig->numberOfChildren(); ii++)
@@ -550,6 +313,12 @@ main (int argc, char **argv) {
 
     if (tig->layoutLength() > maxLen) {
       fprintf(stderr, "SKIP unitig %d of length %d (%d children) - too long, skipped\n",
+              tig->tigID(), tig->layoutLength(), tig->numberOfChildren());
+      continue;
+    }
+
+    if (tig->numberOfChildren() == 0) {
+      fprintf(stderr, "SKIP unitig %d of length %d (%d children) - no children, skipped\n",
               tig->tigID(), tig->layoutLength(), tig->numberOfChildren());
       continue;
     }

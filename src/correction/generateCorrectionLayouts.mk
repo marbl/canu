@@ -7,6 +7,13 @@ ifeq "$(strip ${TARGET_DIR})" ""
   TARGET_DIR   := ../$(OSTYPE)-$(MACHINETYPE)/bin
 endif
 
-TARGET    := mhap-1.5b1.jar
-SOURCES   := mhap-1.5b1.tar
+TARGET   := generateCorrectionLayouts
+SOURCES  := generateCorrectionLayouts.C ../utgcns/stashContains.C
 
+SRC_INCDIRS  := .. ../AS_UTL ../stores ../utgcns
+
+TGT_LDFLAGS := -L${TARGET_DIR}
+TGT_LDLIBS  := -lCA
+TGT_PREREQS := libCA.a
+
+SUBMAKEFILES :=

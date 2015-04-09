@@ -61,7 +61,7 @@ dumpStore(char   *ovlName,
           uint32  bgnID,
           uint32  endID,
           uint32  qryID,
-          bool    asCoords,
+          ovOverlapDisplayType    type,
           bool    beVerbose) {
   ovStore       *ovlStore = new ovStore(ovlName);
   gkStore       *gkpStore = new gkStore(gkpName);
@@ -126,7 +126,7 @@ dumpStore(char   *ovlName,
     if (asBinary)
       AS_UTL_safeWrite(stdout, &overlap, "dumpStore", sizeof(ovsOverlap), 1);
     else
-      fputs(overlap.toString(ovlString, gkpStore, asCoords), stdout);
+      fputs(overlap.toString(ovlString, gkpStore, type), stdout);
   }
 
   delete ovlStore;
@@ -367,7 +367,7 @@ main(int argc, char **argv) {
 
   bool            beVerbose   = false;
 
-  bool            asCoords    = true;
+  ovOverlapDisplayType  type = ovOverlapAsCoords;
 
   argc = AS_configure(argc, argv);
 
@@ -410,10 +410,13 @@ main(int argc, char **argv) {
       operation  = OP_DUMP;
 
     } else if (strcmp(argv[arg], "-coords") == 0) {
-      asCoords = true;
+      type = ovOverlapAsCoords;
 
     } else if (strcmp(argv[arg], "-hangs") == 0) {
-      asCoords = false;
+      type = ovOverlapAsHangs;
+
+    } else if (strcmp(argv[arg], "-raw") == 0) {
+      type = ovOverlapAsRaw;
 
     } else if (strcmp(argv[arg], "-binary") == 0) {
       asBinary = true;
@@ -494,7 +497,7 @@ main(int argc, char **argv) {
 
   switch (operation) {
     case OP_DUMP:
-      dumpStore(ovlName, gkpName, asBinary, dumpERate, dumpLength, dumpType, bgnID, endID, qryID, asCoords, beVerbose);
+      dumpStore(ovlName, gkpName, asBinary, dumpERate, dumpLength, dumpType, bgnID, endID, qryID, type, beVerbose);
       break;
     case OP_DUMP_PICTURE:
       for (qryID=bgnID; qryID <= endID; qryID++)

@@ -17,6 +17,9 @@ tgPosition::tgPosition() {
   _ahang       = INT32_MAX;
   _bhang       = INT32_MAX;
 
+  _askip       = INT32_MAX;
+  _bskip       = INT32_MAX;
+
   _min         = INT32_MIN;
   _max         = INT32_MAX;
 

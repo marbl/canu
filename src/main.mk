@@ -108,7 +108,12 @@ SUBMAKEFILES := stores/gatekeeperCreate.mk \
                 overlapInCore/overlapConvert.mk \
                 overlapInCore/overlapPair.mk \
                 \
+                mhap/mhap.mk \
                 mhap/mhapConvert.mk \
+                \
+                correction/generateCorrectionLayouts.mk \
+                \
+                falcon_sense/createFalconSenseInputs.mk \
                 \
                 AS_OBT/deduplicate.mk \
                 AS_OBT/finalTrim.mk \

@@ -27,6 +27,8 @@ use ca3g::OverlapInCore;
 use ca3g::OverlapMhap;
 use ca3g::OverlapStore;
 
+use ca3g::CorrectReads;
+
 use ca3g::OverlapBasedTrimming;
 
 use ca3g::OverlapErrorAdjustment;
@@ -165,7 +167,7 @@ setParametersFromCommandLine(@specOpts);
 
 #  Finish setting parameters.
 
-setParameters($bin);
+checkParameters($bin);
 
 #  If anything complained, global{'help'} will be defined, and we'll print help (and the error) and
 #  stop.
@@ -213,10 +215,9 @@ gatekeeper($wrk, $asm, @inputFiles);
 
 meryl($wrk, $asm);
 
-#  Eventually, we'll get a whole other pipeline for obt.
-my $ovlType = ($mode eq "trim") ? "partial" : "normal";
+my $ovlType = ($mode eq "assemble") ? "normal" : "partial";
 
-if ($mode eq "correct") {
+if (getGlobal('overlapper') eq "mhap") {
     mhapConfigure($wrk, $asm, $ovlType);
 
     mhapPrecomputeCheck($wrk, $asm, $ovlType, 0);
@@ -238,6 +239,16 @@ createOverlapStore($wrk, $asm, getGlobal("ovlStoreMethod"));
 #  set in the input gkp files.  This is inconvenient, as you cannot easily
 #  change the algorithm without rebuilding gkpStore.  This is flexible, letting
 #  you disable an algorithm, or use different parameters for different reads.
+
+
+if ($mode eq "correct") {
+    buildCorrectionLayouts($wrk, $asm);
+
+    generateCorrectedReads($wrk, $asm, 0);
+    generateCorrectedReads($wrk, $asm, 1);
+
+    dumpCorrectedReads($wrk, $asm);
+}
 
 if ($mode eq "trim") {
     my $idx = 1;

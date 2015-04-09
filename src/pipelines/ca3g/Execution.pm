@@ -244,7 +244,6 @@ sub getBinDirectoryShellCode () {
     my $installDir = getInstallDirectory();
     my $string;
 
-    $string  = "\n";
     $string .= "syst=`uname -s`\n";
     $string .= "arch=`uname -m`\n";
     $string .= "name=`uname -n`\n";
@@ -257,7 +256,6 @@ sub getBinDirectoryShellCode () {
     $string .= "fi\n";
     $string .= "\n";
     $string .= "bin=\"$installDir/\$syst-\$arch/bin\"\n";
-    $string .= "\n";
 
     my $pathMap = getGlobal("pathMap");
     if (defined($pathMap)) {
@@ -364,7 +362,7 @@ sub submitScript ($$$) {
 
     my $qcmd = "$submitCommand $gridOpts $nameOption \"$jobName\" $outputOption $output $script";
 
-    runCommand($wrk, $qcmd) and caFailure("Failed to submit script.\n", undef);
+    runCommand($wrk, $qcmd) and caFailure("Failed to submit script", undef);
 
     exit(0);
 }
@@ -556,7 +554,7 @@ sub submitOrRunParallelJob ($$$$$$@) {
         foreach my $j (@jobs) {
             ($cmd, $jobName) = buildGridJob($asm, $jobType, $path, $script, $j, undef);
 
-            runCommand($path, $cmd) and caFailure("Failed to submit batch jobs.", undef);
+            runCommand($path, $cmd) and caFailure("Failed to submit batch jobs", undef);
         }
 
         submitScript($wrk, $asm, $jobName);
@@ -620,7 +618,7 @@ sub runCommand ($$) {
     my $cmd = shift @_;
 
     if (! -d $dir) {
-        caFailure("Directory '$dir' doesn't exist, can't run command.\n", "");
+        caFailure("Directory '$dir' doesn't exist, can't run command", "");
     }
 
     if (getGlobal('showNext')) {

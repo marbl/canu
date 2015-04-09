@@ -55,7 +55,9 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -o out.ovb     output file\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -h id num      base id and number of hash table reads\n");
-    fprintf(stderr, "  -n n           number of hash table reads\n");
+    fprintf(stderr, "                   (mhap output IDs 1 through 'num')\n");
+    fprintf(stderr, "  -q id          base id of query reads\n");
+    fprintf(stderr, "                   (mhap output IDs 'num+1' and higher)\n");
 
     if (files.size() == 0)
       fprintf(stderr, "ERROR:  no overlap files supplied\n");
@@ -79,8 +81,8 @@ main(int argc, char **argv) {
     while (fgets(ovStr, 1024, in->file()) != NULL) {
       splitToWords  W(ovStr);
 
-      ov.a_iid = W(0) + baseIDquery - numIDhash;
-      ov.b_iid = W(1) + baseIDhash;
+      ov.a_iid = W(0) + baseIDquery - numIDhash;  //  First ID is the query
+      ov.b_iid = W(1) + baseIDhash;               //  Second ID is the hash table
 
       if (ov.a_iid == ov.b_iid)
         continue;
@@ -94,10 +96,15 @@ main(int argc, char **argv) {
       ov.dat.ovl.ahg5 = W(5);
       ov.dat.ovl.ahg3 = W(7) - W(6);
 
-      ov.dat.ovl.bhg5 = W(9);
-      ov.dat.ovl.bhg3 = W(11) - W(10);
-
-      ov.flipped(W[8][0] == '1');
+      if (W[8][0] == '0') {
+        ov.dat.ovl.bhg5 = W(9);
+        ov.dat.ovl.bhg3 = W(11) - W(10);
+        ov.flipped(false);
+      } else {
+        ov.dat.ovl.bhg3 = W(9);
+        ov.dat.ovl.bhg5 = W(11) - W(10);
+        ov.flipped(true);
+      }
 
       ov.erate(atof(W[2]) / 500.0);
 

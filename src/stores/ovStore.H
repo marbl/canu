@@ -132,6 +132,16 @@ puublic:
 
 
 
+enum ovOverlapDisplayType {
+  ovOverlapAsHangs      = 0,  //  Show a and b hang
+  ovOverlapAsCoords     = 1,  //  Show bgn,end for each read
+  ovOverlapAsRaw        = 2,  //  Show all four hangs
+  ovOverlapAsCompat     = 3,  //  Show in a format more-or-less compatible with CA 8.3
+};
+
+
+
+
 class ovsOverlap {
 public:
   ovsOverlap() {
@@ -211,7 +221,7 @@ public:
   uint32     overlapAIsContainer(void) const  { return((dat.ovl.bhg5 == 0) && (dat.ovl.bhg3 == 0));  };
   uint32     overlapBIsContained(void) const  { return((dat.ovl.bhg5 == 0) && (dat.ovl.bhg3 == 0));  };
 
-  char      *toString(char *str, gkStore *gkp, bool asCoords);
+  char      *toString(char *str, gkStore *gkp, ovOverlapDisplayType type);
 
   void       swapIDs(ovsOverlap const &orig);
 
@@ -296,7 +306,10 @@ public:
   void    flushOverlaps(void);
 
   void    writeOverlap(ovsOverlap *overlap);
+  void    writeOverlaps(ovsOverlap *overlaps, uint64 overlapLen);
+
   bool    readOverlap(ovsOverlap *overlap);
+  uint64  readOverlaps(ovsOverlap *overlaps, uint64 overlapMax);
 
   void    seekOverlap(off_t overlap);
 

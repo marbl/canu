@@ -231,8 +231,8 @@ tgTig::display(FILE     *F,
 
       //  Set ID and orientation
 
-      fprintf(stderr, "READ %d minmax %d %d bgnend %d %d orient %d\n",
-              node->read->ident(), node->read->min(), node->read->max(), node->read->bgn(), node->read->end(), orient);
+      //fprintf(stderr, "READ %d minmax %d %d bgnend %d %d orient %d\n",
+      //        node->read->ident(), node->read->min(), node->read->max(), node->read->bgn(), node->read->end(), orient);
 
       for (int32 col=firstcol; col<lastcol; col++) {
         idarray[i][col] = node->read->ident();
@@ -410,25 +410,18 @@ tgTig::display(FILE     *F,
 
   fprintf(F, "\n<<< end Contig %d >>>\n", tigID());
 
-  for (uint32 i=0; i < 2 * lanesLen; i++) {
-    fprintf(stderr, "m %d\n", i);
+  for (uint32 i=0; i < 2 * lanesLen; i++)
     delete [] multia[i];
-  }
 
   delete [] multia;
 
   for (uint32 i=0; i < lanesLen; i++) {
-    fprintf(stderr, "i %d\n", i);
     delete [] idarray[i];
-    fprintf(stderr, "o %d\n", i);
     delete [] oriarray[i];
-    fprintf(stderr, "e\n", i);
   }
 
-    fprintf(stderr, "i\n");
   delete [] idarray;
-    fprintf(stderr, "o\n");
   delete [] oriarray;
 
-  fprintf(stderr, "Return.\n");
+  //fprintf(stderr, "Return.\n");
 }

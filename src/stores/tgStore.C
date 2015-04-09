@@ -307,8 +307,10 @@ tgStore::insertTig(tgTig *tig, bool keepInCache) {
     memset(nr + _tigLen, 0, sizeof(tgStoreEntry) * (_tigMax - _tigLen));
     memset(nc + _tigLen, 0, sizeof(tgTig *)      * (_tigMax - _tigLen));
 
-    for (uint32 xx=_tigLen; xx<_tigMax; xx++)
-      nc[xx] = NULL;
+    for (uint32 xx=_tigLen; xx<_tigMax; xx++) {
+      nr[xx].isDeleted = true;  //  Deleted until it gets added, otherwise we try to load and fail.
+      nc[xx]           = NULL;
+    }
 
     delete [] _tigEntry;
     delete [] _tigCache;
@@ -319,13 +321,11 @@ tgStore::insertTig(tgTig *tig, bool keepInCache) {
 
   _tigLen = MAX(_tigLen, tig->_tigID + 1);
 
-  assert(_tigEntry[tig->_tigID].isDeleted == 0);
-
-  _tigEntry[tig->_tigID].tigRecord        = *tig;
+  _tigEntry[tig->_tigID].tigRecord       = *tig;
 
   _tigEntry[tig->_tigID].unusedFlags     = 0;
-  _tigEntry[tig->_tigID].flushNeeded     = 1;  //  Mark as needing a flush by default
-  _tigEntry[tig->_tigID].isDeleted       = 0;
+  _tigEntry[tig->_tigID].flushNeeded     = true;   //  Mark as needing a flush by default
+  _tigEntry[tig->_tigID].isDeleted       = false;  //  Now really here!
   _tigEntry[tig->_tigID].svID            = _currentVersion;
   _tigEntry[tig->_tigID].fileOffset      = 123456789;
 
@@ -374,19 +374,29 @@ tgTig *
 tgStore::loadTig(uint32 tigID) {
   bool              cantLoad = true;
 
-  //fprintf(stderr, "tgStore::loadTig()-- Loading tig %u out of %u\n", tigID, _tigLen);
-
   if (_tigLen <= tigID)
     fprintf(stderr, "tgStore::loadTig()-- WARNING: invalid out-of-range tigID "F_S32", only "F_S32" ma in store; return NULL.\n",
             tigID, _tigLen);
   assert(tigID < _tigLen);
 
+  //fprintf(stderr, "tgStore::loadTig()-- Loading tig %u (out of %u) from version %u at offest %lu\n",
+  //        tigID, _tigLen,
+  //        _tigEntry[tigID].svID,
+  //        _tigEntry[tigID].fileOffset);
+
   //  This is...and is not...an error.  It does indicate something didn't go according to plan, like
   //  loading a tig that doesn't exist (that should be caught by the above 'tigID < _tigLen'
   //  assert).
 
-  if (_tigEntry[tigID].isDeleted == 1)
+  if (_tigEntry[tigID].isDeleted == true)
     return(NULL);
+
+  //  This _is_ an error.  Every tig should be in a non-zero version!
+
+  if (_tigEntry[tigID].svID == 0) {
+    fprintf(stderr, "WARNING: tried to load tig %u, but it isn't in a non-zero version!\n", tigID);
+    return(NULL);
+  }
 
   //  Otherwise, we can load something.
 
@@ -394,7 +404,7 @@ tgStore::loadTig(uint32 tigID) {
     FILE *FP = openDB(_tigEntry[tigID].svID);
 
     //  Since the tig isn't in the cache, it had better NOT be marked as needing to be flushed!
-    assert(_tigEntry[tigID].flushNeeded == 0);
+    assert(_tigEntry[tigID].flushNeeded == false);
 
     //  Seek to the correct position, and reset the atEOF to indicate we're (with high probability)
     //  not at EOF anymore.

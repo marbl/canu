@@ -54,10 +54,10 @@ sub gatekeeper ($$@) {
     caFailure("no input files specified, and store not already created", undef)
         if (scalar(@inputs) == 0);
 
-    caFailure("incomplete gatekeeper store $wrk/$asm.gkpStore; fix or remove\n", undef)
+    caFailure("incomplete gatekeeper store $wrk/$asm.gkpStore; fix or remove", undef)
         if ((-d "$wrk/$asm.gkpStore") && (! -e "$wrk/$asm.gkpStore/info.txt"));
 
-    caFailure("empty gatekeeper store $wrk/$asm.gkpStore?\n", undef)
+    caFailure("empty gatekeeper store $wrk/$asm.gkpStore", undef)
         if (($numReads == 0) && (-e "$wrk/$asm.gkpStore/info.txt"));
 
     #  Make sure all the inputs are here.

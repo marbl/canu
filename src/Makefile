@@ -71,6 +71,13 @@ define ADD_TARGET_RULE
 	    $$(strip $${AR} $${ARFLAGS} $$@ $${${1}_OBJS})
 	    $${${1}_POSTMAKE}
     else
+    ifeq "$$(suffix ${1})" ".jar"
+        # Add a target for copying files.  Actually, just untars the files, kind
+        # of ugly, but the only way I could discover to get the lib/ files installed.
+        $${TARGET_DIR}/${1}: $${${1}}
+	    @mkdir -p $$(dir $$@)
+	    $$(strip tar -C $$(dir $$@) -xf $${${1}_SOURCES})
+    else
         # Add a target for linking an executable. First, attempt to select the
         # appropriate front-end to use for linking. This might not choose the
         # right one (e.g. if linking with a C++ static library, but all other
@@ -92,6 +99,7 @@ define ADD_TARGET_RULE
 	    $$(strip $${${1}_LINKER} -o $$@ $${LDFLAGS} $${${1}_LDFLAGS} \
 	        $${${1}_OBJS} $${LDLIBS} $${${1}_LDLIBS})
 	    $${${1}_POSTMAKE}
+    endif
     endif
 endef
 
@@ -320,7 +328,8 @@ endif
 # Define the source file extensions that we know how to handle.
 C_SRC_EXTS := %.c
 CXX_SRC_EXTS := %.C %.cc %.cp %.cpp %.CPP %.cxx %.c++
-ALL_SRC_EXTS := ${C_SRC_EXTS} ${CXX_SRC_EXTS}
+JAVA_EXTS    := %.jar %.tar
+ALL_SRC_EXTS := ${C_SRC_EXTS} ${CXX_SRC_EXTS} ${JAVA_EXTS}
 
 # Initialize global variables.
 ALL_TGTS :=

@@ -3,7 +3,7 @@ package ca3g::Defaults;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(getCommandLineOptions addCommandLineOption writeLog caFailure printHelp setParametersFromFile setParametersFromCommandLine setParameters getGlobal setGlobal setDefaults);
+@EXPORT = qw(getCommandLineOptions addCommandLineOption writeLog caFailure printHelp setParametersFromFile setParametersFromCommandLine checkParameters getGlobal setGlobal setDefaults);
 
 use strict;
 use Carp;
@@ -15,6 +15,51 @@ my %synnam;
 
 my $cLineOpts = "";
 my $specLog   = "";
+
+
+
+
+
+#  Return the second argument, unless the first argument is found in
+#  %global, in which case return that.
+#
+sub getGlobal ($) {
+    my $var = shift @_;
+
+    $var =~ tr/A-Z/a-z/;
+
+    caFailure("script error -- parameter '$var' is not known", undef) if (!exists($global{$var}));
+
+    return($global{$var});
+}
+
+
+sub setGlobal ($$) {
+    my $var = shift @_;
+    my $val = shift @_;
+
+    $var =~ tr/A-Z/a-z/;
+    $val = undef  if ($val eq "");  #  Set to undefined, the default for many of the options.
+
+    caFailure("script error -- paramter '$var' is not known", undef) if (!exists($global{$var}));
+
+    $global{$var} = $val;
+}
+
+
+sub setGlobalIfUndef ($$) {
+    my $var = shift @_;
+    my $val = shift @_;
+
+    return  if (defined($global{$var}));
+
+    $var =~ tr/A-Z/a-z/;
+    $val = undef  if ($val eq "");  #  Set to undefined, the default for many of the options.
+
+    $global{$var} = $val;
+}
+
+
 
 sub getCommandLineOptions () {
     return($cLineOpts);
@@ -42,38 +87,23 @@ sub writeLog ($) {
 }
 
 
-
-
-
-
 sub caFailure ($$) {
     my  $msg = shift @_;
     my  $log = shift @_;
 
     print STDERR "================================================================================\n";
-    print STDERR "\n";
-    print STDERR "ca3g failed.\n";
-    print STDERR "\n";
-
-    print STDERR "----------------------------------------\n";
     print STDERR "Stack trace:\n";
     print STDERR "\n";
     carp;
+    print STDERR "\n";
 
     if (-e $log) {
-        print STDERR "\n";
-        print STDERR "----------------------------------------\n";
         print STDERR "Last few lines of the relevant log file ($log):\n";
         print STDERR "\n";
         system("tail -n 50 $log");
     }
-
     print STDERR "\n";
-    print STDERR "----------------------------------------\n";
-    print STDERR "Failure message:\n";
-    print STDERR "\n";
-    print STDERR "$msg\n";
-    print STDERR "\n";
+    print STDERR "ca3g failed with '$msg'.\n";
 
     exit(1);
 }
@@ -242,8 +272,18 @@ sub setParametersFromCommandLine(@) {
 }
 
 
-sub setParameters ($) {
+sub checkParameters ($) {
     my $bin = shift @_;  #  Can't include ca3g::Execution without a loop.
+
+    #
+    #  PIck a nice looking set of binaries, and check them.
+    #
+
+    caFailure("can't find 'gatekeeperCreate' program in $bin.  Possibly incomplete installation", undef) if (! -x "$bin/gatekeeperCreate");
+    caFailure("can't find 'meryl' program in $bin.  Possibly incomplete installation", undef)            if (! -x "$bin/meryl");
+    caFailure("can't find 'overlapInCore' program in $bin.  Possibly incomplete installation", undef)    if (! -x "$bin/overlapInCore");
+    caFailure("can't find 'bogart' program in $bin.  Possibly incomplete installation", undef)           if (! -x "$bin/bogart");
+    caFailure("can't find 'utgcns' program in $bin.  Possibly incomplete installation", undef)           if (! -x "$bin/utgcns");
 
     #
     #  Update obsolete usages.
@@ -263,7 +303,7 @@ sub setParameters ($) {
     #  Adjust case on some of them
     #
 
-    fixCase("ovlOverlapper");
+    fixCase("overlapper");
     fixCase("unitigger");
     fixCase("stopBefore");
     fixCase("stopAfter");
@@ -278,19 +318,19 @@ sub setParameters ($) {
     #    (getGlobal("doChimeraDetection") ne "aggressive")) {
     #    caFailure("invalid doChimeraDetection specified (" . getGlobal("doChimeraDetection") . "); must be 'off', 'normal', or 'aggressive'", undef);
     #}
-    if ((getGlobal("ovlOverlapper") ne "mhap") &&
-        (getGlobal("ovlOverlapper") ne "ovl")) {
-        caFailure("invalid ovlOverlapper specified (" . getGlobal("ovlOverlapper") . "); must be 'mer' or 'ovl' (or DEVEL_ONLY 'ovm')", undef);
+    if ((getGlobal("overlapper") ne "mhap") &&
+        (getGlobal("overlapper") ne "ovl")) {
+        caFailure("invalid 'overlapper' specified (" . getGlobal("overlapper") . "); must be 'mhap' or 'ovl'", undef);
     }
     if ((getGlobal("unitigger") ne "unitigger") &&
         (getGlobal("unitigger") ne "bogart")) {
-        caFailure("invalid unitigger specified (" . getGlobal("unitigger") . "); must be 'unitigger' or 'bogart'", undef);
+        caFailure("invalid 'unitigger' specified (" . getGlobal("unitigger") . "); must be 'unitigger' or 'bogart'", undef);
     }
     if ((getGlobal("consensus") ne "utgcns") &&
-        (getGlobal("consensus") ne "seqan") &&
+        (getGlobal("consensus") ne "falcon") &&
         (getGlobal("consensus") ne "pbdagcon") &&
         (getGlobal("consensus") ne "pbutgcns")) {
-        caFailure("invalid consensus specified (" . getGlobal("consensus") . "); must be 'cns' or 'seqan' or 'pbdagcon' or 'pbutgcns'", undef);
+        caFailure("invalid 'consensus' specified (" . getGlobal("consensus") . "); must be 'utgcns' or 'falcon' or 'pbdagcon' or 'pbutgcns'", undef);
     }
     #if ((getGlobal("cleanup") ne "none") &&
     #    (getGlobal("cleanup") ne "light") &&
@@ -347,119 +387,104 @@ sub setParameters ($) {
         caFailure($failureString, undef) if ($ok == 0);
     }
 
+    if (! defined(getGlobal("errorRate"))) {
+        caFailure("ERROR: 'errorRate' is not set", undef);
+    }
+
+    if (! defined(getGlobal("genomeSize"))) {
+        caFailure("ERROR: 'genomeSize' is not set", undef);
+    }
+
+    setGlobal("genomeSize", $1 * 1000)        if (getGlobal("genomeSize") =~ m/(\d+.*\d+)k/i);
+    setGlobal("genomeSize", $1 * 1000000)     if (getGlobal("genomeSize") =~ m/(\d+.*\d+)m/i);
+    setGlobal("genomeSize", $1 * 1000000000)  if (getGlobal("genomeSize") =~ m/(\d+.*\d+)g/i);
+
     #
-    #  PIck a nice looking set of binaries, and check them.
+    #  Finish grid configuration.  If any of these are set, they were set by the user.
     #
-
-    caFailure("can't find 'gatekeeperCreate' program in $bin.  Possibly incomplete installation", undef) if (! -x "$bin/gatekeeperCreate");
-    caFailure("can't find 'meryl' program in $bin.  Possibly incomplete installation", undef)            if (! -x "$bin/meryl");
-    caFailure("can't find 'overlapInCore' program in $bin.  Possibly incomplete installation", undef)    if (! -x "$bin/overlapInCore");
-    caFailure("can't find 'bogart' program in $bin.  Possibly incomplete installation", undef)           if (! -x "$bin/bogart");
-    caFailure("can't find 'utgcns' program in $bin.  Possibly incomplete installation", undef)           if (! -x "$bin/utgcns");
-}
-
-
-
-
-
-
-#  Return the second argument, unless the first argument is found in
-#  %global, in which case return that.
-#
-sub getGlobal ($) {
-    my $var = shift @_;
-
-    $var =~ tr/A-Z/a-z/;
-
-    caFailure("script error -- global '$var' has no defined value", undef) if (!exists($global{$var}));
-
-    return($global{$var});
-}
-
-
-sub setGlobal (%$$) {
-    my $var = shift @_;
-    my $val = shift @_;
-    my $set = shift @_;
-
-    $var =~ tr/A-Z/a-z/;
-
-    #  If no value, set the field to undefined, the default for many of the options.
-
-    $val = undef  if ($val eq "");
 
     #  Handle special cases.
 
-    if (($var eq "gridEngine") && ($val eq "SGE")) {
-        setGlobal("gridEngineSubmitCommand",      "qsub");
-        setGlobal("gridEngineHoldOption",         "-hold_jid \"WAIT_TAG\"");
-        setGlobal("gridEngineHoldOptionNoArray",  undef);
-        setGlobal("gridEngineSyncOption",         "-sync y");
-        setGlobal("gridEngineNameOption",         "-cwd -N");
-        setGlobal("gridEngineArrayOption",        "-t ARRAY_JOBS");
-        setGlobal("gridEngineArrayName",          "ARRAY_NAME");
-        setGlobal("gridEngineOutputOption",       "-j y -o");
-        setGlobal("gridEnginePropagateCommand",   "qalter -hold_jid \"WAIT_TAG\"");
-        setGlobal("gridEngineNameToJobIDCommand", undef);
-        setGlobal("gridEngineNameToJobIDCommandNoArray", undef);
-        setGlobal("gridEngineTaskID",             "SGE_TASK_ID");
-        setGlobal("gridEngineArraySubmitID",      "\\\$TASK_ID");
-        setGlobal("gridEngineJobID",              "JOB_ID");
+    if (uc(getGlobal("gridEngine")) eq "SGE") {
+        setGlobalIfUndef("gridEngineSubmitCommand",      "qsub");
+        setGlobalIfUndef("gridEngineHoldOption",         "-hold_jid \"WAIT_TAG\"");
+        setGlobalIfUndef("gridEngineHoldOptionNoArray",  undef);
+        setGlobalIfUndef("gridEngineSyncOption",         "-sync y");
+        setGlobalIfUndef("gridEngineNameOption",         "-cwd -N");
+        setGlobalIfUndef("gridEngineArrayOption",        "-t ARRAY_JOBS");
+        setGlobalIfUndef("gridEngineArrayName",          "ARRAY_NAME");
+        setGlobalIfUndef("gridEngineOutputOption",       "-j y -o");
+        setGlobalIfUndef("gridEnginePropagateCommand",   "qalter -hold_jid \"WAIT_TAG\"");
+        setGlobalIfUndef("gridEngineNameToJobIDCommand", undef);
+        setGlobalIfUndef("gridEngineNameToJobIDCommandNoArray", undef);
+        setGlobalIfUndef("gridEngineTaskID",             "SGE_TASK_ID");
+        setGlobalIfUndef("gridEngineArraySubmitID",      "\\\$TASK_ID");
+        setGlobalIfUndef("gridEngineJobID",              "JOB_ID");
     }
 
-    if (($var eq "gridEngine") && ($val eq "PBS")) {
-        setGlobal("gridEngineSubmitCommand",      "qsub");
-        setGlobal("gridEngineHoldOption",         "-W depend=afterany:\"WAIT_TAG\"");
-        setGlobal("gridEngineHoldOptionNoArray",  undef);
-        setGlobal("gridEngineSyncOption",         "");
-        setGlobal("gridEngineNameOption",         "-d `pwd` -N");
-        setGlobal("gridEngineArrayOption",        "-t ARRAY_JOBS");
-        setGlobal("gridEngineArrayName",          "ARRAY_NAME\[ARRAY_JOBS\]");
-        setGlobal("gridEngineOutputOption",       "-j oe -o");
-        setGlobal("gridEnginePropagateCommand",   "qalter -W depend=afterany:\"WAIT_TAG\"");
-        setGlobal("gridEngineNameToJobIDCommand", undef);
-        setGlobal("gridEngineNameToJobIDCommandNoArray", undef);
-        setGlobal("gridEngineTaskID",             "PBS_TASKNUM");
-        setGlobal("gridEngineArraySubmitID",      "\\\$PBS_TASKNUM");
-        setGlobal("gridEngineJobID",              "PBS_JOBID");
+    if (uc(getGlobal("gridEngine")) eq "PBS") {
+        setGlobalIfUndef("gridEngineSubmitCommand",      "qsub");
+        setGlobalIfUndef("gridEngineHoldOption",         "-W depend=afterany:\"WAIT_TAG\"");
+        setGlobalIfUndef("gridEngineHoldOptionNoArray",  undef);
+        setGlobalIfUndef("gridEngineSyncOption",         "");
+        setGlobalIfUndef("gridEngineNameOption",         "-d `pwd` -N");
+        setGlobalIfUndef("gridEngineArrayOption",        "-t ARRAY_JOBS");
+        setGlobalIfUndef("gridEngineArrayName",          "ARRAY_NAME\[ARRAY_JOBS\]");
+        setGlobalIfUndef("gridEngineOutputOption",       "-j oe -o");
+        setGlobalIfUndef("gridEnginePropagateCommand",   "qalter -W depend=afterany:\"WAIT_TAG\"");
+        setGlobalIfUndef("gridEngineNameToJobIDCommand", undef);
+        setGlobalIfUndef("gridEngineNameToJobIDCommandNoArray", undef);
+        setGlobalIfUndef("gridEngineTaskID",             "PBS_TASKNUM");
+        setGlobalIfUndef("gridEngineArraySubmitID",      "\\\$PBS_TASKNUM");
+        setGlobalIfUndef("gridEngineJobID",              "PBS_JOBID");
     }
 
-    if (($var eq "gridEngine") && ($val eq "LSF")) {
-        setGlobal("gridEngineSubmitCommand",      "bsub");
-        setGlobal("gridEngineHoldOption",         "-w \"numended\(\"WAIT_TAG\", \*\)\"");
-        setGlobal("gridEngineHoldOptionNoArray",  "-w \"done\(\"WAIT_TAG\"\)\"");
-        setGlobal("gridEngineSyncOption",         "-K");
-        setGlobal("gridEngineNameOption",         "-J");
-        setGlobal("gridEngineArrayOption",        "");
-        setGlobal("gridEngineArrayName",          "ARRAY_NAME\[ARRAY_JOBS\]");
-        setGlobal("gridEngineOutputOption",       "-o");
-        setGlobal("gridEnginePropagateCommand",   "bmodify -w \"done\(\"WAIT_TAG\"\)\"");
-        setGlobal("gridEngineNameToJobIDCommand", "bjobs -A -J \"WAIT_TAG\" | grep -v JOBID");
-        setGlobal("gridEngineNameToJobIDCommandNoArray", "bjobs -J \"WAIT_TAG\" | grep -v JOBID");
-        setGlobal("gridEngineTaskID",             "LSB_JOBINDEX");
-        setGlobal("gridEngineArraySubmitID",      "%I");
-        setGlobal("gridEngineJobID",              "LSB_JOBID");
+    if (uc(getGlobal("gridEngine")) eq "LSF") {
+        setGlobalIfUndef("gridEngineSubmitCommand",      "bsub");
+        setGlobalIfUndef("gridEngineHoldOption",         "-w \"numended\(\"WAIT_TAG\", \*\)\"");
+        setGlobalIfUndef("gridEngineHoldOptionNoArray",  "-w \"done\(\"WAIT_TAG\"\)\"");
+        setGlobalIfUndef("gridEngineSyncOption",         "-K");
+        setGlobalIfUndef("gridEngineNameOption",         "-J");
+        setGlobalIfUndef("gridEngineArrayOption",        "");
+        setGlobalIfUndef("gridEngineArrayName",          "ARRAY_NAME\[ARRAY_JOBS\]");
+        setGlobalIfUndef("gridEngineOutputOption",       "-o");
+        setGlobalIfUndef("gridEnginePropagateCommand",   "bmodify -w \"done\(\"WAIT_TAG\"\)\"");
+        setGlobalIfUndef("gridEngineNameToJobIDCommand", "bjobs -A -J \"WAIT_TAG\" | grep -v JOBID");
+        setGlobalIfUndef("gridEngineNameToJobIDCommandNoArray", "bjobs -J \"WAIT_TAG\" | grep -v JOBID");
+        setGlobalIfUndef("gridEngineTaskID",             "LSB_JOBINDEX");
+        setGlobalIfUndef("gridEngineArraySubmitID",      "%I");
+        setGlobalIfUndef("gridEngineJobID",              "LSB_JOBID");
     }
 
-    #  Update obsolete usage.
-
-
-    #  Update aliases.
-
-
-    #  If "help" exists, we're parsing command line options, and will catch this failure in
-    #  printHelp().  Otherwise, this is an internal error, and we should bomb now.
     #
-    if ((!defined($set)) && (!exists($global{$var}))) {
-        if (exists($global{"help"})) {
-            setGlobal("help", getGlobal("help") . "'$var' is not a valid option; see 'ca3g -options' for a list of valid options.\n");
-        } else {
-            caFailure("'$var' is not a valid option Global variable.", undef);
-        }
-    }
+    #  Set default error rates based on the per-read error rate.
+    #
 
-    $global{$var} = $val;
+    setGlobalIfUndef("ovlErrorRate",      3.0 * getGlobal("errorRate"));
+    setGlobalIfUndef("obtErrorRate",      3.0 * getGlobal("errorRate"));
+    setGlobalIfUndef("utgErrorRate",      3.0 * getGlobal("errorRate"));
+    setGlobalIfUndef("utgGraphErrorRate", 3.0 * getGlobal("errorRate"));
+    setGlobalIfUndef("utgMergeErrorRate", 3.0 * getGlobal("errorRate"));
+    setGlobalIfUndef("cnsErrorRate",      3.0 * getGlobal("errorRate"));
+
+    #
+    #  Report.
+    #
+
+    print STDERR "genomeSize        = ", getGlobal("genomeSize"), "\n";
+    print STDERR "errorRate         = ", getGlobal("errorRate"), "\n";
+    print STDERR "\n";
+    print STDERR "ovlErrorRate      = ", getGlobal("ovlErrorRate"), "\n";
+    print STDERR "obtErrorRate      = ", getGlobal("obtErrorRate"), "\n";
+    print STDERR "utgErrorRate      = ", getGlobal("utgErrorRate"), "\n";
+    print STDERR "utgGraphErrorRate = ", getGlobal("utgGraphErrorRate"), "\n";
+    print STDERR "utgMergeErrorRate = ", getGlobal("utgMergeErrorRate"), "\n";
+    print STDERR "cnsErrorRate      = ", getGlobal("cnsErrorRate"), "\n";
 }
+
+
+
+
 
 
 
@@ -487,22 +512,25 @@ sub setDefaults () {
 
     #####  Error Rates
 
-    $global{"ovlErrorRate"}                = 0.060;
+    $global{"errorRate"}                   = undef;
+    $synops{"errorRate"}                   = "The expected error rate in the input reads";
+
+    $global{"ovlErrorRate"}                = undef;
     $synops{"ovlErrorRate"}                = "Overlaps above this error rate are not computed";
 
-    $global{"obtErrorRate"}                = 0.060;
+    $global{"obtErrorRate"}                = undef;
     $synops{"obtErrorRate"}                = "Overlaps at or below this error rate are used to trim reads";
 
-    $global{"utgErrorRate"}                = 0.030;
+    $global{"utgErrorRate"}                = undef;
     $synops{"utgErrorRate"}                = "Overlaps at or below this error rate are used to construct unitigs (BOG and UTG)";
 
-    $global{"utgGraphErrorRate"}           = 0.030;
+    $global{"utgGraphErrorRate"}           = undef;
     $synops{"utgGraphErrorRate"}           = "Overlaps at or below this error rate are used to construct unitigs (BOGART)";
 
-    $global{"utgMergeErrorRate"}           = 0.045;
+    $global{"utgMergeErrorRate"}           = undef;
     $synops{"utgMergeErrorRate"}           = "Overlaps at or below this error rate are used to construct unitigs (BOGART)";
 
-    $global{"cnsErrorRate"}                = 0.060;
+    $global{"cnsErrorRate"}                = undef;
     $synops{"cnsErrorRate"}                = "Consensus expects alignments at about this error rate";
 
     #####  Minimums
@@ -523,21 +551,21 @@ sub setDefaults () {
 
     #####  Grid Engine configuration, internal parameters
 
-    $global{"gridEngine"}                        = "SGE";
-    $global{"gridEngineSubmitCommand"}           = "qsub";
-    $global{"gridEngineHoldOption"}              = "-hold_jid \"WAIT_TAG\"";         # for lsf: -w "done("WAIT_TAG")"
-    $global{"gridEngineHoldOptionNoArray"}       = undef;
-    $global{"gridEngineSyncOption"}              = "-sync y";                        # for lsf: -K
-    $global{"gridEngineNameOption"}              = "-cwd -N";                        # for lsf: -J
-    $global{"gridEngineArrayOption"}             = "-t ARRAY_JOBS";                  # for lsf: empty ("")
-    $global{"gridEngineArrayName"}               = "ARRAY_NAME";                     # for lsf: ARRAY_NAME[ARRAY_JOBS]
-    $global{"gridEngineOutputOption"}            = "-j y -o";                        # for lsf: -o
-    $global{"gridEnginePropagateCommand"}        = "qalter -hold_jid \"WAIT_TAG\"";  # for lsf: bmodify -w "done(WAIT_TAG)"
-    $global{"gridEngineNameToJobIDCommand"}      = undef;                            # for lsf: bjobs -J "WAIT_TAG" | grep -v JOBID
-    $global{"gridEngineNameToJobIDCommandNoArray"} = undef;
-    $global{"gridEngineTaskID"}                  = "SGE_TASK_ID";                    # for lsf: LSB_JOBINDEX
-    $global{"gridEngineArraySubmitID"}           = "\\\$TASK_ID";                    # for lsf: %I
-    $global{"gridEngineJobID"}                   = "JOB_ID";                         # for lsf: LSB_JOBID
+    $global{"gridEngine"}                           = "SGE";
+    $global{"gridEngineSubmitCommand"}              = undef;
+    $global{"gridEngineHoldOption"}                 = undef;
+    $global{"gridEngineHoldOptionNoArray"}          = undef;
+    $global{"gridEngineSyncOption"}                 = undef;
+    $global{"gridEngineNameOption"}                 = undef;
+    $global{"gridEngineArrayOption"}                = undef;
+    $global{"gridEngineArrayName"}                  = undef;
+    $global{"gridEngineOutputOption"}               = undef;
+    $global{"gridEnginePropagateCommand"}           = undef;
+    $global{"gridEngineNameToJobIDCommand"}         = undef;
+    $global{"gridEngineNameToJobIDCommandNoArray"}  = undef;
+    $global{"gridEngineTaskID"}                     = undef;
+    $global{"gridEngineArraySubmitID"}              = undef;
+    $global{"gridEngineJobID"}                      = undef;
 
     #####  Sun Grid Engine
 
@@ -589,11 +617,11 @@ sub setDefaults () {
 
     #####  Overlapper
 
-    $global{"ovlOverlapper"}               = "ovl";
-    $synops{"ovlOverlapper"}               = "Which overlap algorithm to use for OVL (unitigger) overlaps";
+    $global{"overlapper"}                  = "ovl";
+    $synops{"overlapper"}                  = "Which overlap algorithm to use for OVL (unitigger) overlaps";
 
     $global{"ovlThreads"}                  = 2;
-    $synops{"ovlThreads"}                  = "Number of threads to use when computing overlaps";
+    $synops{"ovlThreads"}                  = "Number of threads to use when computing overlaps with overlapInCore";
 
     $global{"ovlConcurrency"}              = 1;
     $synops{"ovlConcurrency"}              = "If not SGE, number of overlapper processes to run at the same time";
@@ -614,8 +642,23 @@ sub setDefaults () {
     $synops{"ovlHashLoad"}                 = "Maximum hash table load.  If set too high, table lookups are inefficent; if too low, search overhead dominates run time";
 
 
+    $global{"mhapThreads"}                 = 12;
+    $synops{"mhapThreads"}                 = "Number of threads to use when computing overlaps with mhap";
+
+    $global{"mhapConcurrency"}             = 1;
+    $synops{"mhapConcurrency"}             = "If not SGE, number of mhap processes to run at the same time";
+
     $global{"mhapBlockSize"}               = 20000;
     $synops{"mhapBlockSize"}               = "Number of reads ....";
+
+    $global{"mhapMerSize"}                 = 13;
+    $synops{"mhapMerSize"}                 = "K-mer size for seeds in mhap";
+
+    $global{"mhapReAlign"}                 = 0;
+    $synops{"mhapReAlign"}                 = "Compute actual alignments from mhap overlaps; 'raw' from mhap output, 'final' from overlap store";
+
+    #  PROBLEM: want to define mhap and ovl parameters independently, but then need to duplicate
+    #  all the kmer stuff below for mhap.
 
 
     $global{"ovlMerSize"}                  = 22;
@@ -706,7 +749,7 @@ sub setDefaults () {
     $global{"unitigger"}                   = "bogart";
     $synops{"unitigger"}                   = "Which unitig algorithm to use; utg or bogart (defalut)";
 
-    $global{"genomeSize"}                  = 0;
+    $global{"genomeSize"}                  = undef;
     $synops{"genomeSize"}                  = "An estimate of the size of the genome";
 
     $global{"utgBubblePopping"}            = 1;
@@ -763,6 +806,9 @@ sub setDefaults () {
 
     $global{"consensus"}                   = "utgcns";
     $synops{"consensus"}                   = "Which consensus algorithm to use; currently only 'cns' is supported";
+
+    $global{"falcon"}                      = "/work/software/falcon/install/fc_env/bin/fc_consensus.py ";
+    $synops{"falcon"}                      = "Path to fc_consensus.py";
 
     #####  Ugly, command line options passed to printHelp()
 

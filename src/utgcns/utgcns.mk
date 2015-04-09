@@ -8,7 +8,7 @@ ifeq "$(strip ${TARGET_DIR})" ""
 endif
 
 TARGET   := utgcns
-SOURCES  := utgcns.C
+SOURCES  := utgcns.C stashContains.C
 
 SRC_INCDIRS  := .. ../AS_UTL ../stores libcns
 

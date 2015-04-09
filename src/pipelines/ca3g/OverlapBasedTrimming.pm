@@ -209,7 +209,7 @@ sub dumpReads ($$$) {
     $cmd  = "$bin/gatekeeperDumpFASTQ \\\n";
     $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
     $cmd .= "  -c $path/$asm.latest.clear \\\n";
-    $cmd .= "  -o $wrk/$asm..trimmed \\\n";
+    $cmd .= "  -o $wrk/$asm.trimmed \\\n";
     $cmd .= ">    $wrk/$asm.trimmed.err 2>&1\n";
 
     if (runCommand($wrk, $cmd)) {

@@ -105,16 +105,21 @@ private:
 public:
   uint32              _objID;            //  ID of this object
 
-  uint32              _isRead      : 1;  //  Type of object this position represents, former FragType
+  uint32              _isRead      : 1;  //  A full length read alignment
+  uint32              _isPartial   : 1;  //  A partial read alignment
   uint32              _isUnitig    : 1;  //  
   uint32              _isContig    : 1;  //
+
   uint32              _isReverse   : 1;  //  Child is oriented forward relative to parent, used during consensus.
 
-  uint32              _spare       : 28;
+  uint32              _spare       : 27;
 
   uint32              _anchor;           //  ID of the like-type object we align to
   int32               _ahang;            //  Placement relative to anchor object
   int32               _bhang;            //
+
+  int32               _askip;            //  Amount of sequence to not align on each end
+  int32               _bskip;            //
 
   //  Must be signed, utgcns can push reads negative.
   //int32               _bgn;              //  Coords in the parent object we are part of
@@ -150,7 +155,7 @@ public:
   uint32              _suggestUnique    : 1;
   uint32              _suggestCircular  : 1;
   uint32              _suggestHaploid   : 1;
-  uint32              _spare:28;
+  uint32              _spare            : 28;
 
   uint32              _layoutLen;
   uint32              _gappedLen;       //  Gapped consensus
@@ -186,10 +191,8 @@ public:
     assert(c < _childrenLen);
     return(_children + c);
   };
-  tgPosition          *addChild(uint32 c)      {
-    assert(c == _childrenLen);
-    _childrenLen++;
-    return(_children + c);
+  tgPosition          *addChild(void)          {
+    return(_children + _childrenLen++);
   };
 
   //  Operators

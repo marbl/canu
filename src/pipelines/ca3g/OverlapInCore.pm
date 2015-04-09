@@ -232,7 +232,7 @@ sub overlapCheck ($$$$) {
     if ($attempt < 1) {
         submitOrRunParallelJob($wrk, $asm, $jobType, $path, $script, getGlobal("ovlConcurrency"), @failedJobs);
     } else {
-        caFailure("failed to overlap.  Made $attempt attempts, jobs still failed.\n", undef);
+        caFailure("failed to overlap.  Made $attempt attempts, jobs still failed", undef);
     }
 }
 

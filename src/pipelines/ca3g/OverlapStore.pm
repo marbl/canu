@@ -96,7 +96,7 @@ sub overlapStoreBucketizerCheck ($$$$) {
     #  exists.  The compute is done in a 'create' directory, which is renamed to 'bucket' just
     #  before the job completes.
 
-    open(F, "< $files") or caFailure("failed to open '$files': $0\n", undef);
+    open(F, "< $files") or caFailure("failed to open '$files': $0", undef);
 
     while (<F>) {
         chomp;
@@ -131,7 +131,7 @@ sub overlapStoreBucketizerCheck ($$$$) {
     if ($attempt < 2) {
         submitOrRunParallelJob($wrk, $asm, "ovB", "$wrk/$asm.ovlStore.BUILDING", "scripts/1-bucketize", getGlobal("osbConcurrency"), @failedJobs);
     } else {
-        caFailure("failed to overlapStoreBucketize.  Made $attempt attempts, jobs still failed.\n", undef);
+        caFailure("failed to overlapStoreBucketize.  Made $attempt attempts, jobs still failed", undef);
     }
 }
 
@@ -155,7 +155,7 @@ sub overlapStoreSorterCheck ($$$$) {
 
     my $sortID       = "0001";
 
-    open(F, "< $files") or caFailure("failed to open '$files': $0\n", undef);
+    open(F, "< $files") or caFailure("failed to open '$files': $0", undef);
 
     #  A valid result has three files:
     #    $wrk/$asm.ovlStore.BUILDING/$sortID
@@ -203,7 +203,7 @@ sub overlapStoreSorterCheck ($$$$) {
     if ($attempt < 2) {
         submitOrRunParallelJob($wrk, $asm, "ovS", "$wrk/$asm.ovlStore.BUILDING", "scripts/2-sort", getGlobal("ossConcurrency"), @failedJobs);
     } else {
-        caFailure("failed to overlapStoreSorter.  Made $attempt attempts, jobs still failed.\n", undef);
+        caFailure("failed to overlapStoreSorter.  Made $attempt attempts, jobs still failed", undef);
     }
 }
 
@@ -410,5 +410,70 @@ sub createOverlapStore ($$$) {
   alldone:
     stopAfter("overlapper");
 }
+
+
+#sub realignOverlapStore ($$$) {
+#    my $wrk          = shift @_;
+#    my $asm          = shift @_;
+#    my $type         = shift @_;
+#    my $path         = "$wrk/2-realign";
+#
+#    goto alldone if (-d "$wrk/$asm.ovlStore.original");
+#
+#    make_path("$path") if (! -d "$path");
+#
+#    open(F, "> $path/precompute.sh") or caFailure("can't open '$path/precompute.sh'", undef);
+#    print F "#!" . getGlobal("shell") . "\n";
+#    print F "\n";
+#    print F "jobid=\$$taskID\n";
+#    print F "if [ x\$jobid = x -o x\$jobid = xundefined -o x\$jobid = x0 ]; then\n";
+#    print F "  jobid=\$1\n";
+#    print F "fi\n";
+#    print F "if [ x\$jobid = x ]; then\n";
+#    print F "  echo Error: I need $taskID set, or a job index on the command line.\n";
+#    print F "  exit 1\n";
+#    print F "fi\n";
+#    print F "\n";
+#    print F "if [ x\$job = x ] ; then\n";
+#    print F "  echo Job partitioning error.  jobid \$jobid is invalid.\n";
+#    print F "  exit 1\n";
+#    print F "fi\n";
+#    print F "\n";
+#    print F "if [ ! -d $path/blocks ]; then\n";
+#    print F "  mkdir $path/blocks\n";
+#    print F "fi\n";
+#    print F "\n";
+#    print F "if [ -e $path/blocks/\$job.dat ]; then\n";
+#    print F "  echo Job previously completed successfully.\n";
+#    print F "  exit\n";
+#    print F "fi\n";
+#    print F "\n";
+#    print F "#  If the fasta exists, our job failed, and we should try again.\n";
+#    print F "if [ -e \"$path/blocks/\$job.fasta\" ] ; then\n";
+#    print F "  rm -f $path/blocks/\$job.dat\n";
+#    print F "fi\n";
+#    print F "\n";
+#    print F getBinDirectoryShellCode();
+#    print F "\n";
+#    print F "\$bin/overlapPair \\\n";
+#
+#    #  Hmmm.  we can't write overlapStore in parallel, so we can't run this off a store input without
+#    #  rebuilding the store after all jobs are done.
+#
+#}
+#
+#
+#sub realignOverlapStoreCheck ($$$) {
+#    my $wrk          = shift @_;
+#    my $asm          = shift @_;
+#    my $attempt      = shift @_;
+#
+#    my $path         = "$wrk/2-realign";
+#
+#
+#    goto alldone if (-d "$wrk/$asm.ovlStore.original");
+#}
+
+
 
 1;
