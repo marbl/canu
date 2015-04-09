@@ -390,7 +390,7 @@ sub mhapConfigure ($$$) {
         print F "    -t 12\n";
         print F "fi\n";
     } else {
-        rename "$path/results/\$qry.mhap.ovb.gz", "$path/results/\$qry.ovb.gz";
+        print F "mv -f \"$path/results/\$qry.mhap.ovb.gz\" \"$path/results/\$qry.ovb.gz\"\n";
     }
 
     print F "\n";
