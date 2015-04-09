@@ -5,10 +5,24 @@ const char *mainid = "$Id:  $";
 #include "ovStore.H"
 #include "tgStore.H"
 
+#include "AS_UTL_reverseComplement.H"
+
 #include <vector>
 #include <algorithm>
 
 using namespace std;
+
+//  The falcon consensus format:
+//
+//  name sequence
+//  read sequence
+//  read sequence
+//  read sequence
+//  read sequence
+//  + +            #  generate consensus for the 'name' sequence using 'read' sequences
+//  ...
+//  - -            #  To end processing
+//
 
 int
 main(int argc, char **argv) {
@@ -182,9 +196,20 @@ main(int argc, char **argv) {
     fprintf(partFile[pp], "read"F_U32" %s\n", ti, readData.gkReadData_getSequence());
 
     for (uint32 cc=0; cc<tig->numberOfChildren(); cc++) {
-      gkpStore->gkStore_loadReadData(tig->getChild(cc)->ident(), &readData);
+      tgPosition  *child = tig->getChild(cc);
 
-      fprintf(partFile[pp], "data"F_U32" %s\n", tig->getChild(cc)->ident(), readData.gkReadData_getSequence());
+      gkpStore->gkStore_loadReadData(child->ident(), &readData);
+
+      if (child->isReverse())
+        reverseComplementSequence(readData.gkReadData_getSequence(),
+                                  readData.gkReadData_getRead()->gkRead_sequenceLength());
+
+      //  Should we trim the read, or pass in the whole thing?
+      //char   *seq = readData.gkReadData_getSequence() + child->what?
+
+      fprintf(partFile[pp], "data"F_U32" %s\n",
+              tig->getChild(cc)->ident(),
+              readData.gkReadData_getSequence());
     }
 
     fprintf(partFile[pp], "+ +\n");
