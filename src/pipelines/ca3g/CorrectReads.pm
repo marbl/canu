@@ -148,13 +148,13 @@ sub buildCorrectionLayouts ($$) {
         if (getGlobal("consensus") eq "falcon") {
             print F "\n";
             print F getGlobal("falcon") . " \\\n";
-            print F "  --max_n_read 500 \\\n";
-            print F "  --trim \\\n";
-            print F "  --min_idt 0.50 \\\n";
+            print F "  --max_n_read 200 \\\n";
+            #print F "  --trim \\\n";
+            print F "  --min_idt 0.70 \\\n";
             print F "  --output_multi \\\n";
-            print F "  --local_match_count_threshold 3 \\\n";
+            print F "  --local_match_count_threshold 2 \\\n";
             print F "  --min_cov 4 \\\n";
-            print F "  --n_core 4 \\\n";
+            print F "  --n_core 1 \\\n";
             print F "  < $wrk/2-correction/falcon_inputs/\$jobid \\\n";
             print F "  > $wrk/2-correction/falcon_outputs/\$jobid.fasta.WORKING \\\n";
             print F " 2> $wrk/2-correction/falcon_outputs/\$jobid.err \\\n";
@@ -178,7 +178,7 @@ sub generateCorrectedReads ($$$) {
 
     my $path         = "$wrk/2-correction";
     my $script       = "consensus";
-    my $jobType      = "rcc";
+    my $jobType      = "cns";
 
     return  if (-e "$wrk/correctedReads.fastq");
     return  if (-e "$path/cnsjob.files");
