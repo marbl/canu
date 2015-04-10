@@ -40,7 +40,6 @@ sub mhapConfigure ($$$) {
     #  Constants.
 
     my $merSize       = getGlobal("mhapMerSize");
-    my $ovlThreads    = getGlobal("mhapThreads");
 
     my $taskID        = getGlobal("gridEngineTaskID");
     my $submitTaskID  = getGlobal("gridEngineArraySubmitID");
@@ -213,6 +212,12 @@ sub mhapConfigure ($$$) {
         print STDERR "WARNING: 'genomeSize' not set, using default seed length $seedLength\n";
     }
 
+    #  Mhap parameters
+
+    my $numHashes       = 512;
+    my $minNumMatches   =   3;
+    my $threshold       =   0.04;
+    my $filterThreshold =   0.000005;
 
     #  Create a script to generate precomputed blocks, including extracting the reads from gkpStore.
 
@@ -277,16 +282,16 @@ sub mhapConfigure ($$$) {
     print F "#  So mhap writes its output in the correct spot.\n";
     print F "cd $path/blocks\n";
     print F "\n";
-    print F "$javaPath -XX:+UseG1GC -server -Xmx10g \\\n";
-    print F "  -jar \$bin/mhap-1.5b1.jar \\\n";  #   FastAlignMain
-    print F "  -k $merSize \\\n";
-    print F "  --num-hashes 512 \\\n";
-    print F "  --num-min-matches 3 \\\n";
-    print F "  --threshold 0.04 \\\n";
+    print F "$javaPath -server -Xmx", getGlobal("mhapMemory"), "g \\\n";
+    print F "  -jar \$bin/mhap-1.5b1.jar \\\n";  #  FastAlignMain
+    print F "  --weighted -k $merSize \\\n";
+    print F "  --num-hashes $numHashes \\\n";
+    print F "  --num-min-matches $minNumMatches \\\n";
+    print F "  --threshold $threshold \\\n";
+    print F "  --filter-threshold $filterThreshold \\\n";
     print F "  --min-store-length " . ($seedLength-1) . " \\\n";
-    print F "  --num-threads $ovlThreads \\\n";
-    print F "  --store-full-id \\\n";
-    print F "  -f $wrk/0-mercounts/$asm.ms$merSize.frequentMers.mhap_ignore \\\n"      if (-e "$wrk/0-mercounts/$asm.ms$merSize.frequentMers.mhap_ignore");
+    print F "  --num-threads ", getGlobal("mhapThreads"), " \\\n";
+    print F "  -f $wrk/0-mercounts/$asm.ms$merSize.frequentMers.mhap_ignore \\\n"   if (-e "$wrk/0-mercounts/$asm.ms$merSize.frequentMers.mhap_ignore");
     print F "  -p $path/blocks/\$job.fasta \\\n";
     print F "  -q $path/blocks \\\n";
     print F "|| \\\n";
@@ -348,17 +353,16 @@ sub mhapConfigure ($$$) {
     print F getBinDirectoryShellCode();
     print F "\n";
     print F "if [ ! -e \"$path/results/\$qry.mhap\" ] ; then\n";
-    print F "  $javaPath -server -Xmx10g \\\n";
+    print F "  $javaPath -server -Xmx", getGlobal("mhapMemory"), "g \\\n";
     print F "    -jar \$bin/mhap-1.5b1.jar \\\n";  #  FastAlignMain
     print F "    --weighted -k $merSize \\\n";
-    print F "    --num-hashes 512 \\\n";
-    print F "    --num-min-matches 3 \\\n";
-    print F "    --threshold 0.04 \\\n";
-    print F "    --filter-threshold 0.000005 \\\n";
-    print F "    --min-store-length 16 \\\n";
-    print F "    --num-threads 12 \\\n";
-    print F "    --store-full-id \\\n";
-    print F "    -f $wrk/0-mercounts/$asm.ms$merSize.frequentMers.mhap_ignore \\\n"      if (-e "$wrk/0-mercounts/$asm.ms$merSize.frequentMers.mhap_ignore");
+    print F "    --num-hashes $numHashes \\\n";
+    print F "    --num-min-matches $minNumMatches \\\n";
+    print F "    --threshold $threshold \\\n";
+    print F "    --filter-threshold $filterThreshold \\\n";
+    print F "    --min-store-length " . ($seedLength-1) . " \\\n";
+    print F "    --num-threads ", getGlobal("mhapThreads"), " \\\n";
+    print F "    -f $wrk/0-mercounts/$asm.ms$merSize.frequentMers.mhap_ignore \\\n"   if (-e "$wrk/0-mercounts/$asm.ms$merSize.frequentMers.mhap_ignore");
     print F "    -s $path/blocks/\$blk.dat \$slf \\\n";
     print F "    -q $path/queries/\$qry \\\n";
     print F "  > $path/results/\$qry.mhap.WORKING \\\n";

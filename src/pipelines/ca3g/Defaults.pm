@@ -645,6 +645,9 @@ sub setDefaults () {
     $global{"mhapThreads"}                 = 12;
     $synops{"mhapThreads"}                 = "Number of threads to use when computing overlaps with mhap";
 
+    $global{"mhapMemory"}                  = 12;
+    $synops{"mhapMemory"}                  = "Amount of memory, in gigabytes, to use for mhap overlaps";
+
     $global{"mhapConcurrency"}             = 1;
     $synops{"mhapConcurrency"}             = "If not SGE, number of mhap processes to run at the same time";
 
