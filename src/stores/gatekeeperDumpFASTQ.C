@@ -251,24 +251,31 @@ main(int argc, char **argv) {
 
   libOutput   **out = new libOutput * [numLibs + 1];
 
-  out[0] = NULL;  //  There isn't a zeroth library.
+  //  Allocate outputs.  If withLibName == false, all reads will artificially be in lib zero, the
+  //  other files won't ever be created.  Otherwise, the zeroth file won't ever be created.
+
+  out[0] = new libOutput(outPrefix, NULL);
 
   for (uint32 i=1; i<=numLibs; i++)
-    out[i] = new libOutput(outPrefix, (withLibName == false) ? NULL : gkpStore->gkStore_getLibrary(i)->gkLibrary_libraryName());
+    out[i] = new libOutput(outPrefix, gkpStore->gkStore_getLibrary(i)->gkLibrary_libraryName());
+
+  //  Grab a new readData, and iterate through reads to dump.
 
   gkReadData   *readData = new gkReadData;
 
   for (uint32 rid=bgnID; rid<=endID; rid++) {
     gkRead      *read   = gkpStore->gkStore_getRead(rid);
 
-    uint32       libID  = read->gkRead_libraryID();
+    uint32       libID  = (withLibName == false) ? 0 : read->gkRead_libraryID();
 
     uint32       lclr   = 0;
     uint32       rclr   = read->gkRead_sequenceLength();
     bool         ignore = false;
 
-    //  If a clear range file is supplied, grab the clear range.  If it hasn't been set, default
-    //  back to the entire read.
+    fprintf(stderr, "READ %u claims id %u length %u in lib %u\n", rid, read->gkRead_readID(), read->gkRead_sequenceLength(), libID);
+
+    //  If a clear range file is supplied, grab the clear range.  If it hasn't been set, the default
+    //  is the entire read.
 
     if (clrRange) {
       lclr   = clrRange->bgn(rid);
