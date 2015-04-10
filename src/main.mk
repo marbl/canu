@@ -121,8 +121,8 @@ SUBMAKEFILES := stores/gatekeeperCreate.mk \
                 AS_OBT/finalTrim.mk \
                 AS_OBT/chimera.mk \
                 \
-                AS_OVL/findErrors.mk \
-                AS_OVL/correctOverlaps.mk \
+                overlapErrorAdjustment/findErrors.mk \
+                overlapErrorAdjustment/correctOverlaps.mk \
                 \
                 bogart/bogart.mk \
                 \
