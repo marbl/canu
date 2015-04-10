@@ -87,6 +87,13 @@ foreach my $arg (@ARGV) {
 #  to use these when we resubmit ourself to the grid.  We can't simply dump
 #  all of @ARGV into here, because we need to fix up relative paths.
 
+
+#  Enabling/disabling algorithm features is done through library features
+#  set in the input gkp files.  This is inconvenient, as you cannot easily
+#  change the algorithm without rebuilding gkpStore.  This is flexible, letting
+#  you disable an algorithm, or use different parameters for different reads.
+
+
 while (scalar(@ARGV)) {
     my $arg = shift @ARGV;
 
@@ -108,6 +115,19 @@ while (scalar(@ARGV)) {
     } elsif ($arg eq "-options") {
         #  Do nothing.  Handled above, but we still need to process it here.
         #setGlobal("options", 1);
+
+    } elsif (($arg eq "-pacbio-raw")       ||
+             ($arg eq "-pacbio-corrected") ||
+             ($arg eq "-nanopore-raw")     ||
+             ($arg eq "-nanopore-corrected")) {
+        while (-e $ARGV[0]) {
+            my $file = shift @ARGV;
+
+            $file = "$ENV{'PWD'}/$file"  if ($file !~ m!^/!);
+
+            push @inputFiles, "$arg:$file";
+            addCommandLineOption("$arg \"$file\"");
+        }
 
     } elsif (-e $arg) {
         $arg = "$ENV{'PWD'}/$arg" if ($arg !~ m!^/!);

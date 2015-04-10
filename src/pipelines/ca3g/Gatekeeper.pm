@@ -63,23 +63,63 @@ sub gatekeeper ($$@) {
     #  Make sure all the inputs are here.
 
     my $failedFiles = undef;
-    my $gkpInput = "";
-    foreach my $frg (@inputs) {
-        if (! -e $frg) {
+
+    foreach my $iii (@inputs) {
+        my $file = $iii;  #  This stupid foreach works by reference!
+
+        $file = $2  if ($file =~ m/^(.*):(.*)/);   #  Handle the raw sequence inputs.
+
+        if (! -e $file) {
             if (defined($failedFiles)) {
-                $failedFiles .= "; '$frg' not found";
+                $failedFiles .= "; '$file' not found";
             } else {
-                $failedFiles = "'$frg' not found";
+                $failedFiles = "'$file' not found";
             }
         }
-
-        $gkpInput .= " $frg";
     }
     caFailure($failedFiles, undef) if defined($failedFiles);
 
+    #  Build a gkp file for all the raw sequence inputs.  For simplicity, we just copy in any gkp
+    #  files as is.  This documents what gatekeeper was built with, etc.
+
+    open(F, "> $wrk/$asm.gkpStore.gkp") or caFailure("failed to open '$wrk/$asm.gkpStore.gkp': $0", undef);
+
+    foreach my $iii (@inputs) {
+        if ($iii =~ m/^-(.*):(.*)$/) {
+            my $tech = $1;
+            my $file = $2;
+            my @name = split '/', $2;
+            my $name = $name[scalar(@name)-1];
+
+            print F "########################################\n";
+            print F "#  $tech: $file\n";
+            print F "#\n";
+            print F "name   $name\n";
+            print F "preset $tech\n";
+            print F "$file\n";
+            print F "\n";
+
+        } elsif (-e $iii) {
+            print F "########################################\n";
+            print F "#  $iii\n";
+            print F "#\n";
+            open(I, "< $iii") or caFailure("failed to open gatekeeper input '$iii': $0", undef);
+            while (<I>) {
+                print F $_;
+            }
+            close(I);
+            print F "\n";
+
+        } else {
+            caFailure("don't recognize gatekeeper input '$iii'", undef);
+        }
+    }
+
+    close(F);
+
     #  Load the store.
 
-    my $cmd = "$bin/gatekeeperCreate -o $wrk/$asm.gkpStore.BUILDING $gkpInput > $wrk/$asm.gkpStore.err 2>&1";
+    my $cmd = "$bin/gatekeeperCreate -o $wrk/$asm.gkpStore.BUILDING $wrk/$asm.gkpStore.gkp > $wrk/$asm.gkpStore.err 2>&1";
 
     if (runCommand($wrk, $cmd)) {
         caFailure("gatekeeper failed", "$wrk/$asm.gkpStore.err");
