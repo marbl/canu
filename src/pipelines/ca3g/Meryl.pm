@@ -201,8 +201,6 @@ sub meryl ($$) {
 
     #  Plot the histogram - annotated with the thesholds
 
-    print STDERR "MERYL SHOULD BE PLOTTING A HISTOGRAM.\n";
-
     open(F, "> $ofile.histogram.gp");
     print F "\n";
     print F "\n";
