@@ -9,8 +9,8 @@ endif
 
 TARGET   := overlapPair
 SOURCES  := overlapPair.C \
-            overlapInCore-Extend_Alignment.C \
             prefixEditDistance-allocateMoreSpace.C \
+            prefixEditDistance-extend.C \
             prefixEditDistance-forward.C \
             prefixEditDistance-reverse.C
 

@@ -39,15 +39,13 @@ static const char *rcsid = "$Id$";
 //  a  DOVETAIL  overlap.
 
 Overlap_t
-Extend_Alignment(Match_Node_t  *Match,
-                 char          *S,     int32   S_Len,
-                 char          *T,     int32   T_Len,
-                 int32         &S_Lo,  int32   &S_Hi,
-                 int32         &T_Lo,  int32   &T_Hi,
-                 int32         &Errors,
-                 Work_Area_t   *WA) {
-  prefixEditDistance  *ed = WA->editDist;
-
+prefixEditDistance::Extend_Alignment(Match_Node_t *Match,
+                                     char         *S,     int32   S_Len,
+                                     char          *T,     int32   T_Len,
+                                     int32         &S_Lo,  int32   &S_Hi,
+                                     int32         &T_Lo,  int32   &T_Hi,
+                                     int32         &Errors,
+                                     bool           partialOverlaps) {
   int32  Right_Errors = 0;
   int32  Left_Errors  = 0;
   int32  Leftover     = 0;
@@ -67,10 +65,10 @@ Extend_Alignment(Match_Node_t  *Match,
                        Match->Len + 
                        min(S_Right_Len, T_Right_Len));
 
-  int32  Error_Limit = WA->editDist->Error_Bound[Total_Olap];
+  int32  Error_Limit = Error_Bound[Total_Olap];
 
-  ed->Left_Delta_Len = 0;
-  ed->Right_Delta_Len = 0;
+  Left_Delta_Len = 0;
+  Right_Delta_Len = 0;
 
 
   if ((S_Right_Len == 0) ||
@@ -81,23 +79,23 @@ Extend_Alignment(Match_Node_t  *Match,
   }
 
   else if (S_Right_Len <= T_Right_Len) {
-    Right_Errors = ed->forward(S + S_Right_Begin, S_Right_Len,
-                               T + T_Right_Begin, T_Right_Len,
-                               Error_Limit,
-                               S_Hi, T_Hi,
-                               rMatchToEnd);
+    Right_Errors = forward(S + S_Right_Begin, S_Right_Len,
+                           T + T_Right_Begin, T_Right_Len,
+                           Error_Limit,
+                           S_Hi, T_Hi,
+                           rMatchToEnd);
   }
 
   else {
-    Right_Errors = ed->forward(T + T_Right_Begin, T_Right_Len,
-                               S + S_Right_Begin, S_Right_Len,
-                               Error_Limit,
-                               T_Hi, S_Hi,
-                               rMatchToEnd);
+    Right_Errors = forward(T + T_Right_Begin, T_Right_Len,
+                           S + S_Right_Begin, S_Right_Len,
+                           Error_Limit,
+                           T_Hi, S_Hi,
+                           rMatchToEnd);
   }
-
-  for (int32 i=0; i<ed->Right_Delta_Len; i++)
-    ed->Right_Delta[i] *= -1;
+  
+  for (int32 i=0; i<Right_Delta_Len; i++)
+    Right_Delta[i] *= -1;
 
   S_Hi += S_Right_Begin - 1;
   T_Hi += T_Right_Begin - 1;
@@ -114,25 +112,25 @@ Extend_Alignment(Match_Node_t  *Match,
   }
 
   else if (S_Right_Begin <= T_Right_Begin) {
-    Left_Errors = ed->reverse(S + S_Left_Begin, S_Left_Begin + 1,
-                              T + T_Left_Begin, T_Left_Begin + 1,
-                              Error_Limit - Right_Errors,
-                              S_Lo, T_Lo,
-                              Leftover,
-                              lMatchToEnd);
+    Left_Errors = reverse(S + S_Left_Begin, S_Left_Begin + 1,
+                          T + T_Left_Begin, T_Left_Begin + 1,
+                          Error_Limit - Right_Errors,
+                          S_Lo, T_Lo,
+                          Leftover,
+                          lMatchToEnd);
   }
 
   else {
-    Left_Errors = ed->reverse(T + T_Left_Begin,  T_Left_Begin + 1,
-                              S + S_Left_Begin,  S_Left_Begin + 1,
-                              Error_Limit - Right_Errors,
-                              T_Lo, S_Lo,
-                              Leftover,
-                              lMatchToEnd);
+    Left_Errors = reverse(T + T_Left_Begin,  T_Left_Begin + 1,
+                          S + S_Left_Begin,  S_Left_Begin + 1,
+                          Error_Limit - Right_Errors,
+                          T_Lo, S_Lo,
+                          Leftover,
+                          lMatchToEnd);
   }
 
-  for (int32 i=0; i<ed->Left_Delta_Len; i++)
-    ed->Left_Delta[i] *= -1;
+  for (int32 i=0; i<Left_Delta_Len; i++)
+    Left_Delta[i] *= -1;
 
   S_Lo += S_Left_Begin + 1;
   T_Lo += T_Left_Begin + 1;
@@ -149,26 +147,26 @@ Extend_Alignment(Match_Node_t  *Match,
   //  Clear the left deltas if the overlap is junk - presumabely because only left_deltas is used outside this.
 
   if ((rMatchToEnd == false) &&
-      (G.Doing_Partial_Overlaps == false))
-    ed->Left_Delta_Len = 0;
+      (partialOverlaps == false))
+    Left_Delta_Len = 0;
 
   //  If a good overlap, append the right deltas to the left deltas.
 
   if ((return_type == DOVETAIL) ||
-      (G.Doing_Partial_Overlaps == true)) {
+      (partialOverlaps == true)) {
     Errors = Left_Errors + Right_Errors;
 
     assert(Errors <= Error_Limit);
 
-    if (ed->Right_Delta_Len > 0) {
-      if (ed->Right_Delta[0] > 0)
-        ed->Left_Delta[ed->Left_Delta_Len++] = ed->Right_Delta[0] + Leftover + Match->Len;
+    if (Right_Delta_Len > 0) {
+      if (Right_Delta[0] > 0)
+        Left_Delta[Left_Delta_Len++] = Right_Delta[0] + Leftover + Match->Len;
       else
-        ed->Left_Delta[ed->Left_Delta_Len++] = ed->Right_Delta[0] - Leftover - Match->Len;
+        Left_Delta[Left_Delta_Len++] = Right_Delta[0] - Leftover - Match->Len;
     }
 
-    for (int32 i=1; i<ed->Right_Delta_Len; i++)
-      ed->Left_Delta[ed->Left_Delta_Len++] = ed->Right_Delta[i];
+    for (int32 i=1; i<Right_Delta_Len; i++)
+      Left_Delta[Left_Delta_Len++] = Right_Delta[i];
   }
 
 

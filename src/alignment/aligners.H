@@ -222,6 +222,8 @@ AS_ALN_Aligner     Local_Overlap_AS_forCNS;    //  <- utgcns
 //AS_ALN_Aligner     Affine_Overlap_AS_forCNS;
 AS_ALN_Aligner     Optimal_Overlap_AS_forCNS;  //  <- utgcns
 
+AS_ALN_Aligner     Overlap_forCNS;             //  <- utgcns, derived from overlapper
+
 //AS_ALN_OverlapScorer ScoreOverlap;
 
 

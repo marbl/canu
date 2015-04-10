@@ -209,13 +209,6 @@ typedef  enum Direction_Type {
   REVERSE
 } Direction_t;
 
-typedef  struct Match_Node {
-  int32  Offset;              // To start of exact match in  hash-table frag
-  int32  Len;                 // Of exact match
-  int32  Start;               // Of exact match in current (new) frag
-  int32  Next;                // Subscript of next match in list
-}  Match_Node_t;
-
 typedef  struct String_Olap_Node {
   uint32  String_Num;                // Of hash-table frag that have exact match with
   int32  Match_List;                 // Subscript of start of list of exact matches
@@ -284,8 +277,6 @@ typedef  struct Work_Area {
 typedef  uint32  Check_Vector_t;
 // Bit vector to see if hash bucket could possibly contain a match
 
-typedef  enum Overlap_Type
-  {NONE, LEFT_BRANCH_PT, RIGHT_BRANCH_PT, DOVETAIL}  Overlap_t;
 
 typedef  struct Olap_Info {
   int  s_lo, s_hi;
@@ -527,16 +518,6 @@ Output_Partial_Overlap(uint32 s_id, uint32 t_id, Direction_t dir,
                        const Olap_Info_t * p, int s_len, int t_len,
                        Work_Area_t  *WA);
 
-
-
-Overlap_t
-Extend_Alignment(Match_Node_t  *Match,
-                 char          *S,     int32   S_Len,
-                 char          *T,     int32   T_Len,
-                 int32         &S_Lo,  int32   &S_Hi,
-                 int32         &T_Lo,  int32   &T_Hi,
-                 int32         &Errors,
-                 Work_Area_t   *WA);
 
 int
 Process_String_Olaps (char * S,

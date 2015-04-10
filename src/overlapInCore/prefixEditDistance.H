@@ -12,6 +12,25 @@
 #define Sign(a) ( ((a) > 0) - ((a) < 0) ) 
 
 
+enum Overlap_t {
+  NONE,
+  LEFT_BRANCH_PT,
+  RIGHT_BRANCH_PT,
+  DOVETAIL
+};
+
+
+//  the input to Extend_Alignment.
+struct Match_Node_t {
+  int32  Offset;              // To start of exact match in  hash-table frag
+  int32  Len;                 // Of exact match
+  int32  Start;               // Of exact match in current (new) frag
+  int32  Next;                // Subscript of next match in list
+};
+
+
+
+
 class prefixEditDistance {
 public:
   prefixEditDistance(bool doingPartialOverlaps_, double maxErate_) {
@@ -103,7 +122,6 @@ public:
 
   void  Allocate_More_Edit_Space(void);
 
-
   void  Set_Right_Delta(int32 e, int32 d);
 
   int32  forward(char    *A,   int32 m,
@@ -124,6 +142,15 @@ public:
                  int32   &Leftover,      //  <- novel
                  bool    &Match_To_End);
 
+
+  Overlap_t
+  Extend_Alignment(Match_Node_t *Match,
+                   char         *S,     int32   S_Len,
+                   char          *T,     int32   T_Len,
+                   int32         &S_Lo,  int32   &S_Hi,
+                   int32         &T_Lo,  int32   &T_Hi,
+                   int32         &Errors,
+                   bool           partialOverlaps);
 
 public:
   //  The four below were global #defines, two depended on the error rate which is now local.

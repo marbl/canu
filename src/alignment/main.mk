@@ -16,7 +16,8 @@ SOURCES  := alignment-drivers.C \
             find-local-overlap.C \
             find-local-segments.C \
             fix-overlapping-pieces.C \
-            local-overlapper.C
+            local-overlapper.C \
+            overlap.C
 
 SRC_INCDIRS  := .. ../AS_UTL ../stores
 SUBMAKEFILES := 

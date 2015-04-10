@@ -10,12 +10,12 @@ endif
 TARGET   := overlapInCore
 SOURCES  := overlapInCore.C \
             overlapInCore-Build_Hash_Index.C \
-            overlapInCore-Extend_Alignment.C \
             overlapInCore-Find_Overlaps.C \
             overlapInCore-Output.C \
             overlapInCore-Process_Overlaps.C \
             overlapInCore-Process_String_Overlaps.C \
             prefixEditDistance-allocateMoreSpace.C \
+            prefixEditDistance-extend.C \
             prefixEditDistance-forward.C \
             prefixEditDistance-reverse.C
 

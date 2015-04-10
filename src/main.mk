@@ -60,6 +60,7 @@ SOURCES  := AS_global.C \
             alignment/find-local-segments.C \
             alignment/fix-overlapping-pieces.C \
             alignment/local-overlapper.C \
+            alignment/overlap.C \
             \
             overlapInCore/liboverlap/Binomial_Bound.C \
             \
@@ -85,7 +86,8 @@ SOURCES  := AS_global.C \
 #            AS_UTL/testVar.C
 #            AS_UTL/memoryMappedFileTest.C
 
-SRC_INCDIRS  := . AS_UTL stores alignment overlapInCore/liboverlap utgcns/libcns
+#  The last two are for aligners/overlap.C
+SRC_INCDIRS  := . AS_UTL stores alignment overlapInCore/liboverlap utgcns/libcns   meryl/libleaff overlapInCore
 
 #  Cannot be the 'main.mk' from subdirectories, as that redefines libCA.a to
 #  update just those objects.  Instead, this must list each binary indifidually.

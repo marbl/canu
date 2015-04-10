@@ -6,7 +6,7 @@ const char *mainid = "$Id:  $";
 #include "gkStore.H"
 #include "ovStore.H"
 
-#include "overlapInCore.H"
+#include "prefixEditDistance.H"
 
 #include "AS_UTL_reverseComplement.H"
 
@@ -15,11 +15,53 @@ const char *mainid = "$Id:  $";
 #include "kMer.H"
 #include "merStream.H"
 
+#include "overlapPair-readCache.H"
+
 #include <map>
 #include <vector>
 #include <algorithm>
 
 using namespace std;
+
+
+#define THREAD_SIZE  512
+#define BATCH_SIZE   512 * 256
+
+
+readCache        *cache         = NULL;
+pthread_mutex_t   balanceMutex;
+uint32            batchBgnID    = 0;
+uint32            batchEndID    = 0;
+
+
+
+
+class workSpace {
+public:
+  workSpace() {
+    threadID        = 0;
+    maxErate        = 0;
+    partialOverlaps = false;
+    gkpStore        = NULL;
+    editDist        = NULL;
+    overlapsLen     = 0;
+    overlaps        = NULL;
+  };
+  ~workSpace() {
+    delete editDist;
+  };
+
+public:
+  uint32                 threadID;
+  double                 maxErate;
+  bool                   partialOverlaps;
+
+  gkStore               *gkpStore;
+  prefixEditDistance    *editDist;
+
+  uint32                 overlapsLen;       //  Not used.
+  ovsOverlap            *overlaps;
+};
 
 
 
@@ -42,191 +84,6 @@ public:
     return(tLen > that.tLen);
   };
 };
-
-
-
-class readCache {
-public:
-  readCache(gkStore *gkpStore_, uint64 memLimit) {
-    gkpStore    = gkpStore_;
-    nReads      = gkpStore->gkStore_getNumReads();
-
-    readAge     = new uint32 [nReads + 1];
-    readLen     = new uint32 [nReads + 1];
-
-    memset(readAge, 0, sizeof(uint32) * (nReads + 1));
-    memset(readLen, 0, sizeof(uint32) * (nReads + 1));
-
-    readSeqFwd  = new char * [nReads + 1];
-    //readSeqRev  = new char * [nReads + 1];
-
-    memset(readSeqFwd, 0, sizeof(char *) * (nReads + 1));
-    //memset(readSeqRev, 0, sizeof(char *) * (nReads + 1));
-
-    memoryLimit = memLimit * 1024 * 1024 * 1024;
-  };
-
-  ~readCache() {
-    delete [] readAge;
-    delete [] readLen;
-
-    for (uint32 rr=0; rr<=nReads; rr++) {
-      delete [] readSeqFwd[rr];
-      //delete [] readSeqRev[rr];
-    }
-
-    delete [] readSeqFwd;
-    //delete [] readSeqRev;
-  };
-
-
-  void         loadRead(uint32 id) {
-    gkRead *read = gkpStore->gkStore_getRead(id);
-    gkpStore->gkStore_loadReadData(read, &readdata);
-
-    readLen[id] = read->gkRead_sequenceLength();
-
-    readSeqFwd[id] = new char [readLen[id] + 1];
-    //readSeqRev[id] = new char [readLen[id] + 1];
-
-    memcpy(readSeqFwd[id], readdata.gkReadData_getSequence(), sizeof(char) * readLen[id]);
-
-    readSeqFwd[id][readLen[id]] = 0;
-  };
-
-
-  void         loadReads(ovsOverlap *ovl, uint32 nOvl) {
-    uint32  nLoaded  = 0;
-    uint32  nUpdated = 0;
-    uint64  memUsed  = 0;
-
-    fprintf(stderr, "loadReads()--\n");
-
-    for (uint32 oo=0; oo<nOvl; oo++) {
-      uint32  aid = ovl[oo].a_iid;
-      uint32  bid = ovl[oo].b_iid;
-
-      if (readLen[aid] == 0) {
-        nLoaded++;
-        loadRead(aid);
-      } else {
-        nUpdated++;
-      }
-
-      if (readLen[bid] == 0) {
-        nLoaded++;
-        loadRead(bid);
-      } else {
-        nUpdated++;
-      }
-
-      readAge[aid] = 0;
-      readAge[bid] = 0;
-    }
-
-    //  Age all the reads (also count the space used)
-
-    for (uint32 id=0; id<nReads; id++) {
-      readAge[id]++;
-      memUsed += readLen[id];
-    }
-
-    fprintf(stderr, "loadReads()--  loaded %u updated %u -- %f.3 GB used\n",
-            nLoaded, nUpdated, memUsed / 1024.0 / 1024.0 / 1024.0);
-  };
-
-
-  void         purgeReads(void) {
-    uint32  maxAge     = 0;
-    uint64  memoryUsed = 0;
-
-    //  Find maxAge, and sum memory used
-
-    for (uint32 rr=0; rr<=nReads; rr++) {
-      if (maxAge < readAge[rr])
-        maxAge = readAge[rr];
-
-      memoryUsed += readLen[rr];
-    }
-
-    //  Purge oldest until memory is below watermark
-
-    while (memoryLimit < memoryUsed) {
-      for (uint32 rr=0; rr<=nReads; rr++) {
-        if (maxAge == readAge[rr]) {
-          memoryUsed -= readLen[rr];
-
-          delete [] readSeqFwd[rr];  readSeqFwd[rr] = NULL;
-          //delete [] readSeqRev[rr];  readSeqRev[rr] = NULL;
-
-          readLen[rr] = 0;
-          readAge[rr] = 0;
-        }
-      }
-
-      maxAge--;
-    }
-  };
-
-
-  char        *getRead(uint32 id) {
-    assert(readLen[id] > 0);
-    return(readSeqFwd[id]);
-  };
-
-
-  uint32       getLength(uint32 id) {
-    assert(readLen[id] > 0);
-    return(readLen[id]);
-  };
-
-
-private:
-  gkStore     *gkpStore;
-  uint32       nReads;
-
-  uint32      *readAge;
-  uint32      *readLen;
-  char       **readSeqFwd;
-  //char       **readSeqRev;  //  Save it, or recompute?
-
-  gkReadData   readdata;
-
-  uint64       memoryLimit;
-};
-
-
-
-
-
-
-
-
-Overlap_t
-Extend_Alignment(Match_Node_t  *Match,
-                 char          *S,     int32   S_Len,
-                 char          *T,     int32   T_Len,
-                 int32         &S_Lo,  int32   &S_Hi,
-                 int32         &T_Lo,  int32   &T_Hi,
-                 int32         &Errors,
-                 Work_Area_t   *WA);
-
-
-
-
-//uint32        *overlapsLen  = NULL;
-//ovsOverlap    *overlaps     = NULL;
-
-readCache        *cache        = NULL;
-
-oicParameters     G;
-
-pthread_mutex_t   balanceMutex;
-uint32            batchBgnID = 0;
-uint32            batchEndID = 0;
-
-#define THREAD_SIZE  512
-#define BATCH_SIZE   512 * 256
 
 
 
@@ -255,7 +112,7 @@ getRange(uint32 &bgnID, uint32 &endID) {
 
 void *
 recomputeOverlaps(void *ptr) {
-  Work_Area_t  *WA = (Work_Area_t *)ptr;
+  workSpace    *WA = (workSpace *)ptr;
 
   char         *bRev = new char [AS_MAX_READLEN];
 
@@ -265,8 +122,17 @@ recomputeOverlaps(void *ptr) {
   uint32        nPassed = 0;
   uint32        nFailed = 0;
 
+  //  Lazy allocation of the prefixEditDistance structure; it's slow.
+
+  if (WA->editDist == NULL) {
+    fprintf(stderr, "initi thrad %u\n", WA->threadID);
+    WA->editDist = new prefixEditDistance(WA->partialOverlaps, WA->maxErate);
+    fprintf(stderr, "initi thrad %u -- DONE\n", WA->threadID);
+  }
+
+
   while (getRange(bgnID, endID)) {
-    //fprintf(stderr, "Thread %u computes range %u - %u\n", WA->thread_id, bgnID, endID);
+    //fprintf(stderr, "Thread %u computes range %u - %u\n", WA->threadID, bgnID, endID);
 
     for (uint32 oo=bgnID; oo<endID; oo++) {
       ovsOverlap  *ovl = WA->overlaps + oo;
@@ -332,12 +198,12 @@ recomputeOverlaps(void *ptr) {
         int32  endDiag = aHi - bHi;
 
         if (bgnDiag < endDiag) {
-          minDiag = bgnDiag - G.maxErate * alignLen / 2;
-          maxDiag = endDiag + G.maxErate * alignLen / 2;
+          minDiag = bgnDiag - WA->maxErate * alignLen / 2;
+          maxDiag = endDiag + WA->maxErate * alignLen / 2;
 
         } else {
-          minDiag = endDiag - G.maxErate * alignLen / 2;
-          maxDiag = bgnDiag + G.maxErate * alignLen / 2;
+          minDiag = endDiag - WA->maxErate * alignLen / 2;
+          maxDiag = bgnDiag + WA->maxErate * alignLen / 2;
         }
 
         //  For very very short overlaps (mhap kindly reports 4 bp overlaps) reset the min/max
@@ -538,18 +404,18 @@ recomputeOverlaps(void *ptr) {
         match.Next   = 0;              //  Not used here
 
         int32      errors  = 0;
-        Overlap_t  ovltype = Extend_Alignment(&match,       //  Initial exact match, relative to start of string
-                                              aStr, aLen,
-                                              bStr, bLen,
-                                              aLo,  aHi,    //  Output: Regions which the match extends
-                                              bLo,  bHi,
-                                              errors,
-                                              WA);
+        Overlap_t  ovltype = WA->editDist->Extend_Alignment(&match,       //  Initial exact match, relative to start of string
+                                                            aStr, aLen,
+                                                            bStr, bLen,
+                                                            aLo,  aHi,    //  Output: Regions which the match extends
+                                                            bLo,  bHi,
+                                                            errors,
+                                                            WA->partialOverlaps);
 
         int32  olapLen = 1 + min(aHi - aLo, bHi - bLo);
         double quality = (double)errors / olapLen;
 
-        if (G.Doing_Partial_Overlaps == true)
+        if (WA->partialOverlaps == true)
           //  ovltype isn't set for partial overlaps; just don't set it to 'none' so we can get
           //  through the 'good overlap' check below.
           ovltype = DOVETAIL;
@@ -564,7 +430,7 @@ recomputeOverlaps(void *ptr) {
 
 #if 0
         fprintf(stderr, "thread %2u hit %2u  A %6u %5d-%5d %s B %6u %5d-%5d -- ",
-                WA->thread_id,
+                WA->threadID,
                 hh,
                 ovl->a_iid, ovl->a_bgn(WA->gkpStore), ovl->a_end(WA->gkpStore),
                 ovl->flipped() ? "<-" : "->",
@@ -602,9 +468,9 @@ recomputeOverlaps(void *ptr) {
 
         //  Good for UTG if we aren't computing partial overlaps, and the overlap came out dovetail
 
-        ovl->dat.ovl.forOBT = (G.Doing_Partial_Overlaps == true);
-        ovl->dat.ovl.forDUP = (G.Doing_Partial_Overlaps == true);
-        ovl->dat.ovl.forUTG = (G.Doing_Partial_Overlaps == false) && (ovl->overlapIsDovetail() == true);
+        ovl->dat.ovl.forOBT = (WA->partialOverlaps == true);
+        ovl->dat.ovl.forDUP = (WA->partialOverlaps == true);
+        ovl->dat.ovl.forUTG = (WA->partialOverlaps == false) && (ovl->overlapIsDovetail() == true);
 
         //  Stop searching the hits for a good overlap.
 
@@ -624,7 +490,7 @@ recomputeOverlaps(void *ptr) {
 
   delete [] bRev;
 
-  fprintf(stderr, "Thread %u finished -- %u failed %u passed.\n", WA->thread_id, nFailed, nPassed);
+  fprintf(stderr, "Thread %u finished -- %u failed %u passed.\n", WA->threadID, nFailed, nPassed);
 }
 
 
@@ -637,20 +503,20 @@ recomputeOverlaps(void *ptr) {
 
 int
 main(int argc, char **argv) {
-  char    *gkpName      = NULL;
-  char    *ovlName      = NULL;
-  char    *ovlNameOut   = NULL;
+  char    *gkpName         = NULL;
+  char    *ovlName         = NULL;
+  char    *ovlNameOut      = NULL;
 
-  uint32   bgnID       = 0;
-  uint32   endID       = UINT32_MAX;
+  uint32   bgnID           = 0;
+  uint32   endID           = UINT32_MAX;
 
-  uint32   numThreads  = 1;
+  uint32   numThreads      = 1;
 
-  uint64   memLimit    = 4;
+  double   maxErate        = 0.12;
+  bool     partialOverlaps = false;
+  uint64   memLimit        = 4;
 
   argc = AS_configure(argc, argv);
-
-  G.initialize();
 
   int err=0;
   int arg=1;
@@ -674,10 +540,10 @@ main(int argc, char **argv) {
       numThreads = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-erate") == 0) {
-      G.maxErate = atof(argv[++arg]);
+      maxErate = atof(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-partial") == 0) {
-      G.Doing_Partial_Overlaps = true;
+      partialOverlaps = true;
 
     } else if (strcmp(argv[arg], "-memory") == 0) {
       memLimit = atoi(argv[++arg]);
@@ -748,12 +614,12 @@ main(int argc, char **argv) {
     ovlFileOut  = new ovFile(ovlNameOut, ovFileFullWrite);
   }
 
-  Work_Area_t      *WA  = new Work_Area_t [numThreads];
-  pthread_t        *tID = new pthread_t   [numThreads];
+  workSpace        *WA  = new workSpace [numThreads];
+  pthread_t        *tID = new pthread_t [numThreads];
   pthread_attr_t    attr;
 
   pthread_attr_init(&attr);
-  pthread_attr_setstacksize(&attr, THREAD_STACKSIZE);
+  //pthread_attr_setstacksize(&attr,  THREAD_STACKSIZE);
   pthread_mutex_init(&balanceMutex, NULL);
 
   //  Initialize thread work areas.  Mirrored from overlapInCore.C
@@ -761,25 +627,14 @@ main(int argc, char **argv) {
   for (uint32 tt=0; tt<numThreads; tt++) {
     fprintf(stderr, "Initialize thread %u\n", tt);
 
-    WA[tt].String_Olap_Size  = INIT_STRING_OLAP_SIZE;
-    WA[tt].String_Olap_Space = new String_Olap_t [WA[tt].String_Olap_Size];
 
-    WA[tt].Match_Node_Size   = INIT_MATCH_NODE_SIZE;
-    WA[tt].Match_Node_Space  = new Match_Node_t [WA[tt].Match_Node_Size];
+    WA[tt].threadID         = tt;
+    WA[tt].maxErate         = maxErate;
+    WA[tt].partialOverlaps  = partialOverlaps;
 
-    WA[tt].gkpStore    = gkpStore;
-
-    WA[tt].status      = 0;
-    WA[tt].thread_id   = tt;
-
-    WA[tt].bgnID       = 0;
-    WA[tt].endID       = 0;
-
-    WA[tt].overlapsLen = 0;
-    WA[tt].overlapsMax = 0;
-    WA[tt].overlaps    = NULL;
-
-    WA[tt].editDist    = new prefixEditDistance(G.Doing_Partial_Overlaps, G.maxErate);
+    WA[tt].gkpStore         = gkpStore;
+    WA[tt].editDist         = NULL;
+    WA[tt].overlaps         = NULL;
   }
 
 
@@ -828,8 +683,6 @@ main(int argc, char **argv) {
     //  Launch next batch of threads
     fprintf(stderr, "LAUNCH THREADS\n");
 
-    //uint32  nPerThread = *overlapsLen / numThreads + 1;
-
     //  Globals, ugh.  These limit the threads to the range of overlaps we have loaded.  Each thread
     //  will pull out THREAD_SIZE overlaps at a time to compute, updating batchBgnID as it does so.
     //  Each thread will stop when batchBgnID > batchEndID.
@@ -838,14 +691,8 @@ main(int argc, char **argv) {
     batchEndID = *overlapsLen;
 
     for (uint32 tt=0; tt<numThreads; tt++) {
-      //WA[tt].bgnID = nPerThread * tt;
-      //WA[tt].endID = nPerThread * tt + nPerThread;
-
       WA[tt].overlapsLen = *overlapsLen;
       WA[tt].overlaps    =  overlaps;
-
-      if (WA[tt].endID > *overlapsLen)
-        WA[tt].endID = *overlapsLen;
 
       int32 status = pthread_create(tID + tt, &attr, recomputeOverlaps, WA + tt);
 
