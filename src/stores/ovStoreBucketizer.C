@@ -26,15 +26,6 @@ const char *mainid = "$Id$";
 #include "gkStore.H"
 #include "ovStore.H"
 
-//#include "AS_OBT_acceptableOverlap.H"
-#warning NOT INCLUDING ACCEPTABLE OVERLAP FROM OBT
-bool   AS_OBT_acceptableOverlap(ovsOverlap &ol) {
-  return(true);
-};
-
-//#include <ctype.h>
-//#include <unistd.h>  //  sysconf()
-
 #include <vector>
 #include <algorithm>
 
