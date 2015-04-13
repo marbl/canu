@@ -8,7 +8,7 @@ ifeq "$(strip ${TARGET_DIR})" ""
 endif
 
 TARGET   := deduplicate
-SOURCES  := deduplicate.C
+SOURCES  := deduplicate.C adjustNormal.C adjustFlipped.C
 
 SRC_INCDIRS  := .. ../AS_UTL ../stores
 

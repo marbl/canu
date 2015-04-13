@@ -21,19 +21,47 @@
 
 static const char *rcsid = "$Id$";
 
-#include "trim.H"
+#include "trimReads.H"
 
-//  We're lazy; everyone needs to do quality letter -> quality value
-//  translations.
+
+//  This is mostly historical.
 //
+//  It needs to be updated to use sanger qv encoding, and to take that as input.
+
+
+//  A simple initialized array -- performs a quality letter -> quality
+//  value translation.
+//
+class qualityLookup {
+public:
+  qualityLookup() {
+    for (uint32 i=0; i<='0'; i++)
+      q[i] = 1.0;
+
+    for (uint32 i='1'; i<255; i++)
+      q[i] = 1 / pow(10, (i - '0') / 10.0);
+  };
+  ~qualityLookup() {
+  };
+
+  double lookupChar(char x)      { return(q[(uint32)x]);  };
+  double lookupNumber(uint32 x)  { return(q['0' + x]);    };
+
+private:
+  double   q[255];
+};
+
+
 qualityLookup   qual;
+
+
 
 
 static
 void
 findGoodQuality(double  *qltD,
                 uint32   qltLen,
-                double   minQuality,
+                char     minQualityLetter,
                 uint32  &qltL,
                 uint32  &qltR) {
 
@@ -50,6 +78,8 @@ findGoodQuality(double  *qltD,
 
   uint32   p = 0;
   double   q = 0;
+
+  double   minQuality = qual.lookupChar(minQualityLetter);
 
 
   //  Scan forward, find first base with quality >= 20.

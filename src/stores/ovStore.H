@@ -430,7 +430,20 @@ public:
   uint32     readOverlap(ovsOverlap *overlap);
 
   //  Read ALL remaining overlaps for the current A_iid.  Return value is the number of overlaps read.
-  uint32     readOverlaps(ovsOverlap *overlaps, uint32 maxOverlaps, bool restrictToIID=true);
+  uint32     readOverlaps(ovsOverlap *overlaps,
+                          uint32      maxOverlaps,
+                          bool        restrictToIID=true);
+
+  //  Append ALL remaining overlaps for the current A_iid, as long as A_iid == iid, to the overlaps
+  //  in ovl.  Return value is the number of overlaps in ovl that are for 'iid'.
+  //
+  //  It is up to the client to verify that ovl[0] is the same as iid; ovlLen is the number of
+  //  overlaps in ovl, NOT the number of overlaps in ovl that are the same as iid.
+  //
+  uint32       readOverlaps(uint32       iid,
+                            ovsOverlap *&ovl,
+                            uint32      &ovlLen,
+                            uint32      &ovlMax);
 
   void       setRange(uint32 low, uint32 high);
   void       resetRange(void);

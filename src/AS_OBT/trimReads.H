@@ -19,10 +19,10 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#ifndef FINALTRIM_H
-#define FINALTRIM_H
+#ifndef TRIM_READS_H
+#define TRIM_READS_H
 
-static const char *rcsid_FINALTRIM_H = "$Id$";
+static const char *rcsid_TRIM_READS_H = "$Id$";
 
 #include "AS_global.H"
 
@@ -30,8 +30,6 @@ static const char *rcsid_FINALTRIM_H = "$Id$";
 #include "ovStore.H"
 
 #include "intervalList.H"
-
-#include "trim.H"
 
 
 #define OBT_MODE_WIGGLE      (5)
@@ -78,4 +76,4 @@ bestEdge(gkStore     *gkp,
          uint32       minCoverage,
          uint32       minReadLength);
 
-#endif  //  FINALTRIM_H
+#endif  //  TRIM_READS_H

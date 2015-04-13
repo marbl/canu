@@ -21,7 +21,7 @@
 
 static const char *rcsid = "$Id$";
 
-#include "finalTrim.H"
+#include "trimReads.H"
 
 #include <vector>
 #include <functional>

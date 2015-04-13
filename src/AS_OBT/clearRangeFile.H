@@ -1,3 +1,7 @@
+
+#ifndef CLEAR_RANGE_FILE_H
+#define CLEAR_RANGE_FILE_H
+
 #include "AS_global.H"
 
 #include "gkStore.H"
@@ -132,3 +136,6 @@ private:
   uint32  *_bgn;
   uint32  *_end;
 };
+
+
+#endif // CLEAR_RANGE_FILE_H

@@ -31,7 +31,6 @@ const char *mainid = "$Id$";
 #include "intervalList.H"
 
 #include "AS_UTL_decodeRange.H"
-#include "AS_OBT_overlaps.H"
 
 #include <vector>
 #include <map>
@@ -1783,7 +1782,7 @@ main(int argc, char **argv) {
     //  do that anymore.  The multiple overlaps _should_ be opposite orientation.  In PacBio, these
     //  can indicate subreads.
 
-    loadOverlaps(iid, ovl, ovlLen, ovlMax, ovs, NULL);
+    ovs->readOverlaps(iid, ovl, ovlLen, ovlMax);
 
     //  If there are no overlaps for this read, do nothing.
 

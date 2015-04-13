@@ -118,8 +118,8 @@ SUBMAKEFILES := stores/gatekeeperCreate.mk \
                 falcon_sense/createFalconSenseInputs.mk \
                 \
                 AS_OBT/deduplicate.mk \
-                AS_OBT/finalTrim.mk \
-                AS_OBT/chimera.mk \
+                AS_OBT/trimReads.mk \
+                AS_OBT/splitReads.mk \
                 \
                 overlapErrorAdjustment/findErrors.mk \
                 overlapErrorAdjustment/correctOverlaps.mk \

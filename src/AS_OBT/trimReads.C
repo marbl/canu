@@ -21,10 +21,9 @@
 
 const char *mainid = "$Id$";
 
-#include "finalTrim.H"
+#include "trimReads.H"
 #include "clearRangeFile.H"
 
-#include "AS_OBT_overlaps.H"
 #include "AS_UTL_decodeRange.H"
 
 
@@ -270,7 +269,7 @@ main(int argc, char **argv) {
 
     //  Load overlaps.
 
-    loadOverlaps(id, ovl, ovlLen, ovlMax, ovs, NULL);
+    ovs->readOverlaps(id, ovl, ovlLen, ovlMax);
 
     //  Trim!
 

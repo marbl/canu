@@ -405,6 +405,104 @@ ovStore::readOverlaps(ovsOverlap *overlaps, uint32 maxOverlaps, bool restrictToI
 }
 
 
+
+
+
+
+
+
+
+
+
+uint32
+ovStore::readOverlaps(uint32         iid,
+                      ovsOverlap   *&ovl,
+                      uint32        &ovlLen,
+                      uint32        &ovlMax) {
+
+  //  Allocate initial space if needed.
+
+  if (ovl == NULL) {
+    ovlLen = 0;
+    ovlMax = 65 * 1024;
+    ovl    = new ovsOverlap [ovlMax];
+  }
+
+  if (iid < ovl[0].a_iid)
+    //  Overlaps loaded are for a future read.
+    return(0);
+
+  if (iid == ovl[0].a_iid)
+    //  Overlaps loaded are for this read, YAY!  We assume that ALL overlaps are loaded
+    //  for this iid.
+    return(ovlLen);
+
+  //  Until we load the correct overlap, repeat.
+
+  do {
+    //  Count the number of overlaps we would load
+    ovlLen = readOverlaps(NULL, 0);
+
+    if (ovlLen == 0)
+      //  Quit now if there are no overlaps.  This simplifies the rest of the loop.
+      return(0);
+
+    //  Allocate space for these overlaps.
+    while (ovlMax < ovlLen) {
+      ovlMax *= 2;
+      delete [] ovl;
+      ovl = new ovsOverlap [ovlMax];
+    }
+
+    //  Load the overlaps
+    ovlLen = readOverlaps(ovl, ovlMax);
+
+    //  If we read overlaps for a fragment after 'iid', we're done.  The client will properly save
+    //  these overlaps until the iid becomes active.
+    //
+    if (iid < ovl[0].a_iid)
+      return(0);
+
+    //  If we've found the overlaps, we're still done, we also return the number of overlaps.
+    //
+    if (iid == ovl[0].a_iid)
+      return(ovlLen);
+
+    //  On the otherhand, if we read overlaps for a fragment before 'iid', we can either keep
+    //  reading until we find the overlaps for this fragment, or jump to the correct spot to read
+    //  overlaps.
+    //
+    //  The rule is simple.  If we're within 50 of the correct IID, keep streaming.  Otherwise, make
+    //  a jump.  setRange() seems to ALWAYS close and open a file, which is somewhat expensive,
+    //  especially if the file doesn't actually change.
+    //
+    if (50 < iid - ovl[0].a_iid)
+      setRange(iid, UINT32_MAX);
+
+  } while (ovl[0].a_iid < iid);
+
+  //  Code can't get here.
+  //    If we ran out of overlaps, the first return is used.
+  //    If we read past the iid we're looking for, the second return is used.
+  //    If we found the overlaps we're looking for, the thrd return is used.
+  //    If we didn't find the overlaps, we loop.
+
+  assert(0);
+  return(0);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 void
 ovStore::setRange(uint32 firstIID, uint32 lastIID) {
   char            name[FILENAME_MAX];

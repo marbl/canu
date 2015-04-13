@@ -7,12 +7,8 @@ ifeq "$(strip ${TARGET_DIR})" ""
   TARGET_DIR   := ../$(OSTYPE)-$(MACHINETYPE)/bin
 endif
 
-TARGET   := finalTrim
-SOURCES  := finalTrim.C \
-            finalTrim-bestEdge.C \
-            finalTrim-largestCovered.C \
-            AS_OBT_overlaps.C \
-            trim.C
+TARGET   := splitReads
+SOURCES  := splitReads.C
 
 SRC_INCDIRS  := .. ../AS_UTL ../stores
 

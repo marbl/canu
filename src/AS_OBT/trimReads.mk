@@ -7,8 +7,11 @@ ifeq "$(strip ${TARGET_DIR})" ""
   TARGET_DIR   := ../$(OSTYPE)-$(MACHINETYPE)/bin
 endif
 
-TARGET   := chimera
-SOURCES  := chimera.C AS_OBT_overlaps.C
+TARGET   := trimReads
+SOURCES  := trimReads.C \
+            trimReads-bestEdge.C \
+            trimReads-largestCovered.C \
+            trimReads-quality.C
 
 SRC_INCDIRS  := .. ../AS_UTL ../stores
 
