@@ -458,7 +458,7 @@ INCDIRS := $(addprefix -I,$(call CANONICAL_PATH,${INCDIRS}))
 # Define the "all" target (which simply builds all user-defined targets) as the
 # default goal.
 .PHONY: all
-all: $(addprefix ${TARGET_DIR}/,${ALL_TGTS})
+all: $(addprefix ${TARGET_DIR}/,${ALL_TGTS}) ${TARGET_DIR}/ca3g
 
 # Add a new target rule for each user-defined target.
 $(foreach TGT,${ALL_TGTS},\
@@ -484,3 +484,82 @@ $(foreach TGT,${ALL_TGTS},\
 # Include generated rules that define additional (header) dependencies.
 $(foreach TGT,${ALL_TGTS},\
   $(eval -include ${${TGT}_DEPS}))
+
+.PHONY: ${TARGET_DIR}/ca3g
+${TARGET_DIR}/ca3g: ${TARGET_DIR}/ca3g.pl \
+      ${TARGET_DIR}/ca3g/lib \
+      ${TARGET_DIR}/ca3g/Consensus.pm \
+      ${TARGET_DIR}/ca3g/CorrectReads.pm \
+      ${TARGET_DIR}/ca3g/Defaults.pm \
+      ${TARGET_DIR}/ca3g/Execution.pm \
+      ${TARGET_DIR}/ca3g/Gatekeeper.pm \
+      ${TARGET_DIR}/ca3g/Meryl.pm \
+      ${TARGET_DIR}/ca3g/Output.pm \
+      ${TARGET_DIR}/ca3g/OverlapBasedTrimming.pm \
+      ${TARGET_DIR}/ca3g/OverlapErrorAdjustment.pm \
+      ${TARGET_DIR}/ca3g/OverlapInCore.pm \
+      ${TARGET_DIR}/ca3g/OverlapMhap.pm \
+      ${TARGET_DIR}/ca3g/OverlapStore.pm \
+      ${TARGET_DIR}/ca3g/Unitig.pm
+
+${TARGET_DIR}/ca3g.pl: pipelines/ca3g.pl
+	cp -pf  pipelines/ca3g.pl ${TARGET_DIR}/ca3g.pl
+
+${TARGET_DIR}/ca3g/lib: pipelines/ca3g/lib
+	@if [ ! -e ${TARGET_DIR}/ca3g/ ] ; then mkdir ${TARGET_DIR}/ca3g ; fi
+	cp -pfr pipelines/ca3g/lib ${TARGET_DIR}/ca3g/
+
+${TARGET_DIR}/ca3g/Consensus.pm: pipelines/ca3g/Consensus.pm
+	@if [ ! -e ${TARGET_DIR}/ca3g/ ] ; then mkdir ${TARGET_DIR}/ca3g ; fi
+	cp -pf  pipelines/ca3g/Consensus.pm ${TARGET_DIR}/ca3g/
+
+${TARGET_DIR}/ca3g/CorrectReads.pm: pipelines/ca3g/CorrectReads.pm
+	@if [ ! -e ${TARGET_DIR}/ca3g/ ] ; then mkdir ${TARGET_DIR}/ca3g ; fi
+	cp -pf  pipelines/ca3g/CorrectReads.pm ${TARGET_DIR}/ca3g/
+
+${TARGET_DIR}/ca3g/Defaults.pm: pipelines/ca3g/Defaults.pm
+	@if [ ! -e ${TARGET_DIR}/ca3g/ ] ; then mkdir ${TARGET_DIR}/ca3g ; fi
+	cp -pf  pipelines/ca3g/Defaults.pm ${TARGET_DIR}/ca3g/
+
+${TARGET_DIR}/ca3g/Execution.pm: pipelines/ca3g/Execution.pm
+	@if [ ! -e ${TARGET_DIR}/ca3g/ ] ; then mkdir ${TARGET_DIR}/ca3g ; fi
+	cp -pf  pipelines/ca3g/Execution.pm ${TARGET_DIR}/ca3g/
+
+${TARGET_DIR}/ca3g/Gatekeeper.pm: pipelines/ca3g/Gatekeeper.pm
+	@if [ ! -e ${TARGET_DIR}/ca3g/ ] ; then mkdir ${TARGET_DIR}/ca3g ; fi
+	cp -pf  pipelines/ca3g/Gatekeeper.pm ${TARGET_DIR}/ca3g/
+
+${TARGET_DIR}/ca3g/Meryl.pm: pipelines/ca3g/Meryl.pm
+	@if [ ! -e ${TARGET_DIR}/ca3g/ ] ; then mkdir ${TARGET_DIR}/ca3g ; fi
+	cp -pf  pipelines/ca3g/Meryl.pm ${TARGET_DIR}/ca3g/
+
+${TARGET_DIR}/ca3g/Output.pm: pipelines/ca3g/Output.pm
+	@if [ ! -e ${TARGET_DIR}/ca3g/ ] ; then mkdir ${TARGET_DIR}/ca3g ; fi
+	cp -pf  pipelines/ca3g/Output.pm ${TARGET_DIR}/ca3g/
+
+${TARGET_DIR}/ca3g/OverlapBasedTrimming.pm: pipelines/ca3g/OverlapBasedTrimming.pm
+	@if [ ! -e ${TARGET_DIR}/ca3g/ ] ; then mkdir ${TARGET_DIR}/ca3g ; fi
+	cp -pf  pipelines/ca3g/OverlapBasedTrimming.pm ${TARGET_DIR}/ca3g/
+
+${TARGET_DIR}/ca3g/OverlapErrorAdjustment.pm: pipelines/ca3g/OverlapErrorAdjustment.pm
+	@if [ ! -e ${TARGET_DIR}/ca3g/ ] ; then mkdir ${TARGET_DIR}/ca3g ; fi
+	cp -pf  pipelines/ca3g/OverlapErrorAdjustment.pm ${TARGET_DIR}/ca3g/
+
+${TARGET_DIR}/ca3g/OverlapInCore.pm: pipelines/ca3g/OverlapInCore.pm
+	@if [ ! -e ${TARGET_DIR}/ca3g/ ] ; then mkdir ${TARGET_DIR}/ca3g ; fi
+	cp -pf  pipelines/ca3g/OverlapInCore.pm ${TARGET_DIR}/ca3g/
+
+${TARGET_DIR}/ca3g/OverlapMhap.pm: pipelines/ca3g/OverlapMhap.pm
+	@if [ ! -e ${TARGET_DIR}/ca3g/ ] ; then mkdir ${TARGET_DIR}/ca3g ; fi
+	cp -pf  pipelines/ca3g/OverlapMhap.pm ${TARGET_DIR}/ca3g/
+
+${TARGET_DIR}/ca3g/OverlapStore.pm: pipelines/ca3g/OverlapStore.pm
+	@if [ ! -e ${TARGET_DIR}/ca3g/ ] ; then mkdir ${TARGET_DIR}/ca3g ; fi
+	cp -pf  pipelines/ca3g/OverlapStore.pm ${TARGET_DIR}/ca3g/
+
+${TARGET_DIR}/ca3g/Unitig.pm: pipelines/ca3g/Unitig.pm
+	@if [ ! -e ${TARGET_DIR}/ca3g/ ] ; then mkdir ${TARGET_DIR}/ca3g ; fi
+	cp -pf  pipelines/ca3g/Unitig.pm ${TARGET_DIR}/ca3g/
+
+
+
