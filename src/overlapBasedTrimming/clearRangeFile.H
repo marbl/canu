@@ -26,15 +26,14 @@ public:
       _bgn      = new uint32 [_lastID + 1];
       _end      = new uint32 [_lastID + 1];
 
-      memset(_bgn, 0, sizeof(uint32) * (_lastID + 1));  //  Every range is undefined
+      //  Every range is undefined
+
+      memset(_bgn, 0, sizeof(uint32) * (_lastID + 1));
       memset(_end, 0, sizeof(uint32) * (_lastID + 1));
 
       //  Nope, every range is set to fully clear.
 
-      for (uint32 fi=1; fi <= _lastID; fi++) {
-        _bgn[fi] = 0;
-        _end[fi] = gkp->gkStore_getRead(fi)->gkRead_sequenceLength();
-      }
+      reset(gkp);
     }
 
     else {
@@ -80,18 +79,27 @@ public:
   };
 
 
+  void      reset(gkStore *gkp) {
+    for (uint32 fi=1; fi <= _lastID; fi++) {
+      _bgn[fi] = 0;
+      _end[fi] = gkp->gkStore_getRead(fi)->gkRead_sequenceLength();
+    }
+  };
+
+
   uint32    bgn(uint32 id)     { assert(id <= _lastID);  return(_bgn[id]); };
   uint32    end(uint32 id)     { assert(id <= _lastID);  return(_end[id]); };
 
+
   uint32   &setbgn(uint32 id)  { assert(id <= _lastID);  _modified = true;  return(_bgn[id]); };
   uint32   &setend(uint32 id)  { assert(id <= _lastID);  _modified = true;  return(_end[id]); };
-
 
 
   bool      isDeleted(uint32 id) {
     assert(id <= _lastID);
     return((_bgn[id] == UINT32_MAX) && (_end[id] == UINT32_MAX));
   };
+
 
   void      setDeleted(uint32 id) {
     assert(id <= _lastID);
@@ -101,22 +109,7 @@ public:
   };
 
 
-
-#if 0
-  bool      isUndefined(uint32 id) {
-    assert(id <= _lastID);
-    return((_bgn[id] == 0) && (_end[id] == 0));
-  };
-
-  void      setUndefined(uint32 id) {
-    assert(id <= _lastID);
-    _bgn[id] = 0;
-    _end[id] = 0;
-  };
-#endif
-
   void      copy(clearRangeFile *source) {
-
     if (source == NULL)
       return;
 

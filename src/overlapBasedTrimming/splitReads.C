@@ -197,7 +197,13 @@ main(int argc, char **argv) {
   clearRangeFile  *finClr = new clearRangeFile(finClrName, gkp);
   clearRangeFile  *outClr = new clearRangeFile(outClrName, gkp);
 
-  if (finClr)
+  if (outClr)
+    //  If the outClr file exists, those clear ranges are loaded.  We need to reset them
+    //  back to 'untrimmed' for now.
+    outClr->reset(gkp);
+
+  if (finClr && outClr)
+    //  A finClr file was supplied, so use those as the clear ranges.
     outClr->copy(finClr);
 
 
@@ -250,7 +256,7 @@ main(int argc, char **argv) {
 
     uint32   nLoaded = ovs->readOverlaps(id, ovl, ovlLen, ovlMax);
 
-    fprintf(stderr, "read %7u with %7u overlaps\r", id, nLoaded);
+    //fprintf(stderr, "read %7u with %7u overlaps\r", id, nLoaded);
 
     if (nLoaded == 0)
       //  No overlaps, nothing to check!
@@ -258,6 +264,10 @@ main(int argc, char **argv) {
 
     w->clear(id, finClr->bgn(id), finClr->end(id));
     w->addAndFilterOverlaps(gkp, finClr, ovl, ovlLen);
+
+    if (w->adjLen == 0)
+      //  All overlaps trimmed out!
+      continue;
 
     //  Find bad regions.
 

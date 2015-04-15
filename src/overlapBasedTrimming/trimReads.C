@@ -204,7 +204,13 @@ main(int argc, char **argv) {
   clearRangeFile   *maxClr = (maxClrName == NULL) ? NULL : new clearRangeFile(maxClrName, gkp);
   clearRangeFile   *outClr = (outClrName == NULL) ? NULL : new clearRangeFile(outClrName, gkp);
 
+  if (outClr)
+    //  If the outClr file exists, those clear ranges are loaded.  We need to reset them
+    //  back to 'untrimmed' for now.
+    outClr->reset(gkp);
+
   if (iniClr && outClr)
+    //  An iniClr file was supplied, so use those as the initial clear ranges.
     outClr->copy(iniClr);
 
 

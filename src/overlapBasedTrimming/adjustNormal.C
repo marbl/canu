@@ -2,8 +2,8 @@ static const char *rcsid = "$Id:  $";
 
 #include "adjustOverlaps.H"
 
-//  Adjust the overlap for any trimming done already.  This works by computing a fraction
-//  trimmed for each read and each end, picking the largest fraction for each end, and
+//  Adjust the overlap for any trimming done already.  This works by computing the fraction of the
+//  overlap trimmed for each read and each end, picking the largest fraction for each end, and
 //  applying that fraction to the other read.
 //
 //  It expects only normal overlaps.
@@ -31,9 +31,17 @@ adjustNormal(clearRangeFile  *iniClr,
   assert(bovlbgn < bovlend);
 
   if ((aclrend <= aovlbgn) || (aovlend <= aclrbgn) ||
-      (bclrend <= bovlbgn) || (bovlend <= bclrbgn))
+      (bclrend <= bovlbgn) || (bovlend <= bclrbgn)) {
     //  Overlap doesn't intersect clear range, fail.
+#if 0
+    fprintf(stderr, "Discard  NORM overlap from %u,%u-%u,%u based on clear ranges %u,%u and %u,%u\n",
+            aovlbgn, aovlend,
+            bovlbgn, bovlend,
+            aclrbgn, aclrend,
+            bclrbgn, bclrend);
+#endif
     return(false);
+  }
 
 
   uint32  alen = aovlend - aovlbgn;
@@ -63,7 +71,7 @@ adjustNormal(clearRangeFile  *iniClr,
   //fprintf(stderr, "frac a %u %u b %u %u alen %u blen %u\n", aadjbgn, aadjend, badjbgn, badjend, alen, blen);
 
 #if 0
-  fprintf(stderr, "Adjusted N overlap from %u,%u-%u,%u (adjust %u,%u,%u,%u) to %u,%u-%u,%u  based on clear ranges %u,%u and %u,%u  maxbgn=%f maxend=%f\n",
+  fprintf(stderr, "Adjusted NORM overlap from %u,%u-%u,%u (adjust %u,%u,%u,%u) to %u,%u-%u,%u  based on clear ranges %u,%u and %u,%u  maxbgn=%f maxend=%f\n",
           aovlbgn, aovlend,
           bovlbgn, bovlend,
           aadjbgn, aadjend, badjbgn, badjend,
@@ -84,6 +92,6 @@ adjustNormal(clearRangeFile  *iniClr,
   assert(bclrbgn <= bovlbgn);
   assert(aovlend <= aclrend);
   assert(bovlend <= bclrend);
+
+  return(true);
 }
-
-

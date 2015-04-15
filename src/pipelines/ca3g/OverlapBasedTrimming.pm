@@ -119,7 +119,7 @@ sub trimReads ($$$) {
     stopBefore("trimReads", $cmd);
 
     if (runCommand($path, $cmd)) {
-        caFailure("failed to compute final trimming", "$path/$asm.$idx.trimReads.err");
+        caFailure("trimReads failed", "$path/$asm.$idx.trimReads.err");
     }
 
     caFailure("trimReads finished, but no '$asm.$idx.trimReads.clear' output found", undef)  if (! -e "$path/$asm.$idx.trimReads.clear");
@@ -162,31 +162,31 @@ sub splitReads ($$$) {
     $cmd .= "  -G  $wrk/$asm.gkpStore \\\n";
     $cmd .= "  -O  $wrk/$asm.ovlStore \\\n";
     $cmd .= "  -e  $erate \\\n";
-    $cmd .= "  -o  $path/$asm.$idx.chimera \\\n";
+    $cmd .= "  -o  $path/$asm.$idx.splitReads \\\n";
     $cmd .= "  -Ci $path/$asm.latest.clear \\\n"       if (-e "$path/$asm.latest.clear");
     $cmd .= "  -Cm $path/$asm.max.clear \\\n"          if (-e "$path/$asm.max.clear");
-    $cmd .= "  -Co $path/$asm.$idx.chimera.clear \\\n";
-    $cmd .= ">     $path/$asm.$idx.chimera.err 2>&1";
+    $cmd .= "  -Co $path/$asm.$idx.splitReads.clear \\\n";
+    $cmd .= ">     $path/$asm.$idx.splitReads.err 2>&1";
 
-    stopBefore("chimeraDetection", $cmd);
+    stopBefore("splitReads", $cmd);
 
     if (runCommand($path, $cmd)) {
-        caFailure("chimera cleaning failed", "$path/$asm.$idx.chimera.err");
+        caFailure("splitReads failed", "$path/$asm.$idx.splitReads.err");
     }
 
-    caFailure("chimera finished, but no '$asm.$idx.chimera.clear' output found", undef)  if (! -e "$path/$asm.$idx.chimera.clear");
+    caFailure("splitReads finished, but no '$asm.$idx.splitReads.clear' output found", undef)  if (! -e "$path/$asm.$idx.splitReads.clear");
 
     unlink("$path/$asm.latest.clear");
-    symlink("$path/$asm.$idx.chimera.clear", "$path/$asm.latest.clear");
+    symlink("$path/$asm.$idx.splitReads.clear", "$path/$asm.latest.clear");
 
     $cmd  = "$bin/gatekeeperDumpFASTQ \\\n";
     $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
-    $cmd .= "  -c $path/$asm.$idx.chimera.clear \\\n";
-    $cmd .= "  -o $path/$asm.$idx.chimera.trimmed \\\n";
-    $cmd .= ">    $path/$asm.$idx.chimera.trimmed.err 2>&1\n";
+    $cmd .= "  -c $path/$asm.$idx.splitReads.clear \\\n";
+    $cmd .= "  -o $path/$asm.$idx.splitReads.trimmed \\\n";
+    $cmd .= ">    $path/$asm.$idx.splitReads.trimmed.err 2>&1\n";
 
     if (runCommand($wrk, $cmd)) {
-        caFailure("dumping trimmed reads failed", "$wrk/$asm.$idx.chimera.trimmed.err");
+        caFailure("dumping trimmed reads failed", "$wrk/$asm.$idx.splitReads.trimmed.err");
     }
 
     touch("$path/splitted", "Splitted?  Is that even a word?");

@@ -2,11 +2,12 @@ static const char *rcsid = "$Id:  $";
 
 #include "adjustOverlaps.H"
 
-//  Adjust the overlap for any trimming done already.  This works by computing a fraction
-//  trimmed for each read and each end, picking the largest fraction for each end, and
+//  Adjust the overlap for any trimming done already.  This works by computing the fraction of the
+//  overlap trimmed for each read and each end, picking the largest fraction for each end, and
 //  applying that fraction to the other read.
 //
-//  It expects only flipped overlaps.
+//  It expects only flipped overlaps.  The output coordinates are for a REVERSE COMPLEMENTED
+//  b read.  if you care which end is the actual 5' or 3' end, look at flipped().
 
 bool
 adjustFlipped(clearRangeFile  *iniClr,
@@ -19,23 +20,31 @@ adjustFlipped(clearRangeFile  *iniClr,
 
   uint32  bLen = gkp->gkStore_getRead(ovl->b_iid)->gkRead_sequenceLength();
 
-  aovlbgn = ovl->a_bgn(gkp);
-  bovlbgn = ovl->b_end(gkp);  //  Flipped
-  aovlend = ovl->a_end(gkp);
-  bovlend = ovl->b_bgn(gkp);  //  Flipped
+  aovlbgn =        ovl->a_bgn(gkp);
+  bovlbgn = bLen - ovl->b_bgn(gkp);  //  bgn(), because this is the higher coord
+  aovlend =        ovl->a_end(gkp);
+  bovlend = bLen - ovl->b_end(gkp);
 
-  aclrbgn = iniClr->bgn(ovl->a_iid);
-  bclrbgn = iniClr->bgn(ovl->b_iid);
-  aclrend = iniClr->end(ovl->a_iid);
-  bclrend = iniClr->end(ovl->b_iid);
+  aclrbgn =        iniClr->bgn(ovl->a_iid);
+  bclrbgn = bLen - iniClr->end(ovl->b_iid);  //  end(), because this is the higher coord
+  aclrend =        iniClr->end(ovl->a_iid);
+  bclrend = bLen - iniClr->bgn(ovl->b_iid);
 
   assert(aovlbgn < aovlend);
   assert(bovlbgn < bovlend);
 
   if ((aclrend <= aovlbgn) || (aovlend <= aclrbgn) ||
-      (bclrend <= bovlbgn) || (bovlend <= bclrbgn))
+      (bclrend <= bovlbgn) || (bovlend <= bclrbgn)) {
     //  Overlap doesn't intersect clear range, fail.
+#if 0
+    fprintf(stderr, "Discard  FLIP overlap from %u,%u-%u,%u based on clear ranges %u,%u and %u,%u\n",
+            aovlbgn, aovlend,
+            bovlbgn, bovlend,
+            aclrbgn, aclrend,
+            bclrbgn, bclrend);
+#endif
     return(false);
+  }
 
 
   uint32  alen = aovlend - aovlbgn;
@@ -65,7 +74,7 @@ adjustFlipped(clearRangeFile  *iniClr,
   //fprintf(stderr, "frac a %u %u b %u %u alen %u blen %u\n", aadjbgn, aadjend, badjbgn, badjend, alen, blen);
 
 #if 0
-  fprintf(stderr, "Adjusted F overlap from %u,%u-%u,%u (adjust %u,%u,%u,%u) to %u,%u-%u,%u  based on clear ranges %u,%u and %u,%u  maxbgn=%f maxend=%f\n",
+  fprintf(stderr, "Adjusted FLIP overlap from %u,%u-%u,%u (adjust %u,%u,%u,%u) to %u,%u-%u,%u  based on clear ranges %u,%u and %u,%u  maxbgn=%f maxend=%f\n",
           aovlbgn, aovlend,
           bovlbgn, bovlend,
           aadjbgn, aadjend, badjbgn, badjend,
@@ -86,6 +95,6 @@ adjustFlipped(clearRangeFile  *iniClr,
   assert(bclrbgn <= bovlbgn);
   assert(aovlend <= aclrend);
   assert(bovlend <= bclrend);
+
+  return(true);
 }
-
-
