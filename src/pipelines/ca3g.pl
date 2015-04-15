@@ -269,14 +269,10 @@ if ($mode eq "correct") {
 
 
 if ($mode eq "trim") {
-    my $idx = 1;
-
-    trimReads  ($idx++, $wrk, $asm);
-    #dedupeReads($idx++, $wrk, $asm);
-    splitReads ($idx++, $wrk, $asm);
-    dumpReads  ($idx++, $wrk, $asm);
-
-    #summarizeReads();
+    trimReads  ($wrk, $asm);
+    splitReads ($wrk, $asm);
+    dumpReads  ($wrk, $asm);
+    #summarizeReads($wrk, $asm);
 }
 
 
