@@ -272,7 +272,7 @@ main(int argc, char **argv) {
     uint32       rclr   = read->gkRead_sequenceLength();
     bool         ignore = false;
 
-    fprintf(stderr, "READ %u claims id %u length %u in lib %u\n", rid, read->gkRead_readID(), read->gkRead_sequenceLength(), libID);
+    //fprintf(stderr, "READ %u claims id %u length %u in lib %u\n", rid, read->gkRead_readID(), read->gkRead_sequenceLength(), libID);
 
     //  If a clear range file is supplied, grab the clear range.  If it hasn't been set, the default
     //  is the entire read.
