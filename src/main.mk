@@ -117,8 +117,8 @@ SUBMAKEFILES := stores/gatekeeperCreate.mk \
                 \
                 falcon_sense/createFalconSenseInputs.mk \
                 \
-                AS_OBT/trimReads.mk \
-                AS_OBT/splitReads.mk \
+                overlapBasedTrimming/trimReads.mk \
+                overlapBasedTrimming/splitReads.mk \
                 \
                 overlapErrorAdjustment/findErrors.mk \
                 overlapErrorAdjustment/correctOverlaps.mk \
