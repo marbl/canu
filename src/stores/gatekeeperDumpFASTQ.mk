@@ -11,7 +11,7 @@ endif
 TARGET   := gatekeeperDumpFASTQ
 SOURCES  := gatekeeperDumpFASTQ.C
 
-SRC_INCDIRS := .. ../stores ../AS_UTL ../AS_OBT
+SRC_INCDIRS := .. ../stores ../AS_UTL ../overlapBasedTrimming
 
 TGT_LDFLAGS := -L${TARGET_DIR}
 TGT_LDLIBS  := -lCA
