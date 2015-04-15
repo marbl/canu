@@ -274,17 +274,18 @@ main(int argc, char **argv) {
       //  All overlaps are forward here.  Adjust the overlap by any trimming already done.  If there is no iniClr range
       //  supplied, there was no trimming, and the overlap isn't adjusted.
 
-      uint32  aovlbgn = ovl->a_bgn(gkp);
-      uint32  aovlend = ovl->a_end(gkp);
-      uint32  bovlbgn = ovl->b_bgn(gkp);
-      uint32  bovlend = ovl->b_end(gkp);
+      uint32  aovlbgn = 0;
+      uint32  aovlend = 0;
+      uint32  bovlbgn = 0;
+      uint32  bovlend = 0;
 
       uint32  aclrbgn = 0;
-      uint32  aclrend = gkp->gkStore_getRead(ovl->a_iid)->gkRead_sequenceLength();
+      uint32  aclrend = 0;  //gkp->gkStore_getRead(ovl->a_iid)->gkRead_sequenceLength();
       uint32  bclrbgn = 0;
-      uint32  bclrend = gkp->gkStore_getRead(ovl->b_iid)->gkRead_sequenceLength();
+      uint32  bclrend = 0;  //gkp->gkStore_getRead(ovl->b_iid)->gkRead_sequenceLength();
 
-      if ((iniClr) && (adjustNormal(iniClr, ovl,
+      if ((iniClr) && (adjustNormal(iniClr, gkp,
+                                    ovl,
                                     aovlbgn, aovlend, bovlbgn, bovlend,
                                     aclrbgn, aclrend, bclrbgn, bclrend) == false)) {
         //nTrimmed++;

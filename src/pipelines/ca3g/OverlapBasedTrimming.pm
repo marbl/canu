@@ -106,35 +106,35 @@ sub trimReads ($$$) {
     #  Previously, we'd pick the error rate used by unitigger.  Now, we don't know unitigger here,
     #  and require an obt specific error rate.
 
-    $cmd  = "$bin/finalTrim \\\n";
+    $cmd  = "$bin/trimReads \\\n";
     $cmd .= "  -G  $wrk/$asm.gkpStore \\\n";
     $cmd .= "  -O  $wrk/$asm.ovlStore \\\n";
     $cmd .= "  -e  " . getGlobal("obtErrorRate") . " \\\n";
     $cmd .= "  -Ci $path/$asm.latest.clear \\\n"       if (-e "$path/$asm.latest.clear");
     $cmd .= "  -Cm $path/$asm.max.clear \\\n"          if (-e "$path/$asm.max.clear");      #  Probably not useful anymore
-    $cmd .= "  -Co $path/$asm.$idx.finalTrim.clear \\\n";
-    $cmd .= "  -o  $path/$asm.$idx.finalTrim \\\n";
-    $cmd .= ">     $path/$asm.$idx.finalTrim.err 2>&1";
+    $cmd .= "  -Co $path/$asm.$idx.trimReads.clear \\\n";
+    $cmd .= "  -o  $path/$asm.$idx.trimReads \\\n";
+    $cmd .= ">     $path/$asm.$idx.trimReads.err 2>&1";
 
-    stopBefore("finalTrimming", $cmd);
+    stopBefore("trimReads", $cmd);
 
     if (runCommand($path, $cmd)) {
-        caFailure("failed to compute final trimming", "$path/$asm.$idx.finalTrim.err");
+        caFailure("failed to compute final trimming", "$path/$asm.$idx.trimReads.err");
     }
 
-    caFailure("finalTrim finished, but no '$asm.$idx.finalTrim.clear' output found", undef)  if (! -e "$path/$asm.$idx.finalTrim.clear");
+    caFailure("trimReads finished, but no '$asm.$idx.trimReads.clear' output found", undef)  if (! -e "$path/$asm.$idx.trimReads.clear");
 
     unlink("$path/$asm.latest.clear");
-    symlink("$path/$asm.$idx.finalTrim.clear", "$path/$asm.latest.clear");
+    symlink("$path/$asm.$idx.trimReads.clear", "$path/$asm.latest.clear");
 
     $cmd  = "$bin/gatekeeperDumpFASTQ \\\n";
     $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
-    $cmd .= "  -c $path/$asm.$idx.finalTrim.clear \\\n";
-    $cmd .= "  -o $path/$asm.$idx.finalTrim.trimmed \\\n";
-    $cmd .= ">    $path/$asm.$idx.finalTrim.trimmed.err 2>&1\n";
+    $cmd .= "  -c $path/$asm.$idx.trimReads.clear \\\n";
+    $cmd .= "  -o $path/$asm.$idx.trimReads.trimmed \\\n";
+    $cmd .= ">    $path/$asm.$idx.trimReads.trimmed.err 2>&1\n";
 
     if (runCommand($wrk, $cmd)) {
-        caFailure("dumping trimmed reads failed", "$wrk/$asm.$idx.finalTrim.trimmed.err");
+        caFailure("dumping trimmed reads failed", "$wrk/$asm.$idx.trimReads.trimmed.err");
     }
 
     touch("$path/trimmed");
@@ -158,7 +158,7 @@ sub splitReads ($$$) {
 
     #$cmd .= "  -mininniepair 0 -minoverhanging 0 \\\n" if (getGlobal("doChimeraDetection") eq "aggressive");
 
-    $cmd  = "$bin/chimera \\\n";
+    $cmd  = "$bin/splitReads \\\n";
     $cmd .= "  -G  $wrk/$asm.gkpStore \\\n";
     $cmd .= "  -O  $wrk/$asm.ovlStore \\\n";
     $cmd .= "  -e  $erate \\\n";

@@ -8,7 +8,12 @@ ifeq "$(strip ${TARGET_DIR})" ""
 endif
 
 TARGET   := splitReads
-SOURCES  := splitReads.C
+SOURCES  := splitReads.C \
+            splitReads-workUnit.C \
+            splitReads-subReads.C \
+            splitReads-trimBad.C \
+            adjustNormal.C \
+            adjustFlipped.C
 
 SRC_INCDIRS  := .. ../AS_UTL ../stores
 
