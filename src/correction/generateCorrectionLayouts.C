@@ -5,6 +5,8 @@ const char *mainid = "$Id:  $";
 #include "ovStore.H"
 #include "tgStore.H"
 
+#include "AS_UTL_reverseComplement.H"
+
 #include "stashContains.H"
 
 
@@ -113,12 +115,52 @@ generateLayout(gkStore    *gkpStore,
 
 
 
+//  DUPLICATED!  (see createFalconSenseInputs.C)
+void
+outputFalcon(gkStore      *gkpStore,
+             tgTig        *tig,
+             bool          trimToAlign,
+             FILE         *F,
+             gkReadData   *readData) {
+
+  gkpStore->gkStore_loadReadData(tig->tigID(), readData);
+
+  fprintf(F, "read"F_U32" %s\n", tig->tigID(), readData->gkReadData_getSequence());
+
+  for (uint32 cc=0; cc<tig->numberOfChildren(); cc++) {
+    tgPosition  *child = tig->getChild(cc);
+
+    gkpStore->gkStore_loadReadData(child->ident(), readData);
+
+    if (child->isReverse())
+      reverseComplementSequence(readData->gkReadData_getSequence(),
+                                readData->gkReadData_getRead()->gkRead_sequenceLength());
+
+    //  Trim the read to the aligned bit
+    char   *seq = readData->gkReadData_getSequence();
+
+    if (trimToAlign) {
+      seq += child->_askip;
+      seq[ readData->gkReadData_getRead()->gkRead_sequenceLength() - child->_askip - child->_bskip ] = 0;
+    }
+
+    fprintf(F, "data"F_U32" %s\n", tig->getChild(cc)->ident(), seq);
+  }
+
+  fprintf(F, "+ +\n");
+}
+
+
+
 
 int
 main(int argc, char **argv) {
   char             *gkpName   = 0L;
   char             *ovlName   = 0L;
   char             *tigName   = 0L;
+
+  bool              falconOutput = false;
+  bool              trimToAlign  = false;
 
   uint32            errorRate = AS_OVS_encodeQuality(0.015);
 
@@ -153,6 +195,17 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-T") == 0) {
       tigName = argv[++arg];
 
+    } else if (strcmp(argv[arg], "-F") == 0) {
+      falconOutput = true;
+      trimToAlign  = false;
+
+    } else if (strcmp(argv[arg], "-Ft") == 0) {
+      falconOutput = true;
+      trimToAlign  = true;
+
+    } else if (strcmp(argv[arg], "-Fp") == 0) {
+      falconOutput = true;
+      trimToAlign  = true;
 
     } else if (strcmp(argv[arg], "-b") == 0) {
       iidMin  = atoi(argv[++arg]);
@@ -178,13 +231,28 @@ main(int argc, char **argv) {
 
     arg++;
   }
+  if (gkpName == NULL)
+    err++;
+  if (ovlName == NULL)
+    err++;
+  if ((tigName == NULL) && (falconOutput == false))
+    err++;
   if (err) {
+    fprintf(stderr, "usage: %s ...\n", argv[0]);
+
+    if (gkpName == NULL)
+      fprintf(stderr, "ERROR: no gkpStore input (-G) supplied.\n");
+    if (ovlName == NULL)
+      fprintf(stderr, "ERROR: no ovlStore input (-O) supplied.\n");
+    if ((tigName == NULL) && (falconOutput == false))
+      fprintf(stderr, "ERROR: no tigStore output (-T) supplied.\n");
+
     exit(1);
   }
 
   gkStore  *gkpStore = new gkStore(gkpName);
   ovStore  *ovlStore = new ovStore(ovlName);
-  tgStore  *tigStore = new tgStore(tigName);
+  tgStore  *tigStore = (falconOutput == false) ? new tgStore(tigName) : NULL;
 
   ovlStore->setRange(iidMin, iidMax);
 
@@ -194,17 +262,26 @@ main(int argc, char **argv) {
 
   ovlLen = ovlStore->readOverlaps(ovl, ovlMax, true);
 
+  gkReadData   readData;
+
   while (ovlLen > 0) {
     tgTig *tig = generateLayout(gkpStore, minLen, maxErate, maxCoverage, ovl, ovlLen);
 
-    tigStore->insertTig(tig, false);
+    if (falconOutput)
+      outputFalcon(gkpStore, tig, trimToAlign, stdout, &readData);
+    else
+      tigStore->insertTig(tig, false);
 
     ovlLen = ovlStore->readOverlaps(ovl, ovlMax, true);
 
     delete tig;
   }
 
-  delete tigStore;
+  if (falconOutput)
+    fprintf(stdout, "- -\n");
+  else
+    delete tigStore;
+
   delete ovlStore;
   delete gkpStore;
 

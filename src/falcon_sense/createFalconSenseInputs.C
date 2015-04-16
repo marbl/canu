@@ -24,6 +24,41 @@ using namespace std;
 //  - -            #  To end processing
 //
 
+
+
+//  DUPLICATED!  (see generateCorrectionLayouts.C, but that one is better)
+void
+outputFalcon(gkStore      *gkpStore,
+             tgTig        *tig,
+             FILE         *F,
+             gkReadData   *readData) {
+
+  gkpStore->gkStore_loadReadData(tig->tigID(), readData);
+
+  fprintf(F, "read"F_U32" %s\n", tig->tigID(), readData->gkReadData_getSequence());
+
+  for (uint32 cc=0; cc<tig->numberOfChildren(); cc++) {
+    tgPosition  *child = tig->getChild(cc);
+
+    gkpStore->gkStore_loadReadData(child->ident(), readData);
+
+    if (child->isReverse())
+      reverseComplementSequence(readData->gkReadData_getSequence(),
+                                readData->gkReadData_getRead()->gkRead_sequenceLength());
+
+    //  Should we trim the read to the aligned bit, or pass in the whole thing?
+    //char   *seq = readData->gkReadData_getSequence() + child->what?
+
+    fprintf(F, "data"F_U32" %s\n",
+            tig->getChild(cc)->ident(),
+            readData->gkReadData_getSequence());
+  }
+
+  fprintf(F, "+ +\n");
+}
+
+
+
 int
 main(int argc, char **argv) {
   char             *gkpName   = 0L;
@@ -180,8 +215,6 @@ main(int argc, char **argv) {
 
     assert(pp > 0);
 
-    gkpStore->gkStore_loadReadData(ti, &readData);
-
     if (partFile[pp] == NULL) {
       char  name[FILENAME_MAX];
 
@@ -193,26 +226,7 @@ main(int argc, char **argv) {
         fprintf(stderr, "Failed to open '%s': %s\n", name, strerror(errno)), exit(1);
     }
 
-    fprintf(partFile[pp], "read"F_U32" %s\n", ti, readData.gkReadData_getSequence());
-
-    for (uint32 cc=0; cc<tig->numberOfChildren(); cc++) {
-      tgPosition  *child = tig->getChild(cc);
-
-      gkpStore->gkStore_loadReadData(child->ident(), &readData);
-
-      if (child->isReverse())
-        reverseComplementSequence(readData.gkReadData_getSequence(),
-                                  readData.gkReadData_getRead()->gkRead_sequenceLength());
-
-      //  Should we trim the read, or pass in the whole thing?
-      //char   *seq = readData.gkReadData_getSequence() + child->what?
-
-      fprintf(partFile[pp], "data"F_U32" %s\n",
-              tig->getChild(cc)->ident(),
-              readData.gkReadData_getSequence());
-    }
-
-    fprintf(partFile[pp], "+ +\n");
+    outputFalcon(gkpStore, tig, partFile[pp], &readData);
   }
 
 
