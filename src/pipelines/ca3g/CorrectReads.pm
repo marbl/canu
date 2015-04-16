@@ -27,15 +27,6 @@ sub computeNumberOfCorrectionJobs ($$) {
         close(F);
     }
 
-    #my $jobs = 0;
-    #open(F, "< $wrk/4-unitigger/$asm.partitioningInfo") or caFailure("can't open '$wrk/4-unitigger/$asm.partitioningInfo'", undef);
-    #while (<F>) {
-    #    if (m/Partition\s+(\d+)\s+has\s+(\d+)\s+unitigs\sand\s+(\d+)\s+fragments./) {
-    #        $jobs = $1;
-    #    }
-    #}
-    #close(F);
-
     return($nJobs);
 }
 
@@ -97,7 +88,7 @@ sub buildCorrectionLayouts ($$) {
     my $jobs = computeNumberOfCorrectionJobs($wrk, $asm);
 
 
-    #  And a script to run consensus on those layouts.  If we're doing falcon_sense, dump the layouts first.
+    #  And a script to run consensus on those layouts.
 
     if (! -e "$wrk/2-correction/consensus.sh") {
         my $taskID            = getGlobal("gridEngineTaskID");
