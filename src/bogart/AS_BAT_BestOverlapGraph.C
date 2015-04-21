@@ -747,8 +747,8 @@ BestOverlapGraph::BestOverlapGraph(double               utgErrorRate,
   mismatchCutoff  = utgErrorRate;
   mismatchLimit   = utgErrorLimit;
 
-  assert(_bestA != NULL);
-  assert(_scorA == NULL);
+  _bestA = NULL;
+  _scorA = NULL;
 
   _bestM.clear();
   _scorM.clear();
@@ -1096,7 +1096,7 @@ BestOverlapGraph::isOverlapRestricted(const BAToverlap &olap) {
   if (_restrictEnabled == false)
     return(false);
 
-  assert(0);
+  //assert(0);
 
   //  Previous version would check if the two reads were both unplaced, if _restrict was NULL.
 #if 0
