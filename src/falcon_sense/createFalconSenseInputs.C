@@ -5,58 +5,12 @@ const char *mainid = "$Id:  $";
 #include "ovStore.H"
 #include "tgStore.H"
 
-#include "AS_UTL_reverseComplement.H"
+#include "outputFalcon.H"
 
 #include <vector>
 #include <algorithm>
 
 using namespace std;
-
-//  The falcon consensus format:
-//
-//  name sequence
-//  read sequence
-//  read sequence
-//  read sequence
-//  read sequence
-//  + +            #  generate consensus for the 'name' sequence using 'read' sequences
-//  ...
-//  - -            #  To end processing
-//
-
-
-
-//  DUPLICATED!  (see generateCorrectionLayouts.C, but that one is better)
-void
-outputFalcon(gkStore      *gkpStore,
-             tgTig        *tig,
-             FILE         *F,
-             gkReadData   *readData) {
-
-  gkpStore->gkStore_loadReadData(tig->tigID(), readData);
-
-  fprintf(F, "read"F_U32" %s\n", tig->tigID(), readData->gkReadData_getSequence());
-
-  for (uint32 cc=0; cc<tig->numberOfChildren(); cc++) {
-    tgPosition  *child = tig->getChild(cc);
-
-    gkpStore->gkStore_loadReadData(child->ident(), readData);
-
-    if (child->isReverse())
-      reverseComplementSequence(readData->gkReadData_getSequence(),
-                                readData->gkReadData_getRead()->gkRead_sequenceLength());
-
-    //  Should we trim the read to the aligned bit, or pass in the whole thing?
-    //char   *seq = readData->gkReadData_getSequence() + child->what?
-
-    fprintf(F, "data"F_U32" %s\n",
-            tig->getChild(cc)->ident(),
-            readData->gkReadData_getSequence());
-  }
-
-  fprintf(F, "+ +\n");
-}
-
 
 
 int
@@ -77,6 +31,8 @@ main(int argc, char **argv) {
 
   uint32            numReadsPer   = 0;
   uint32            numPartitions = 128;
+
+  bool              trimToAlign  = true;
 
   int arg=1;
   int err=0;
@@ -188,13 +144,7 @@ main(int argc, char **argv) {
     tigToPart[ti]     = s;
   }
 
-  //  Output falcon input.  The format is:
-  //    readID fastaseq
-  //    mapid1 fastaseq
-  //    mapid2 fastaseq
-  //    ..
-  //    ++                 <- means to call consensus for 'readID' with the fastaseq supplied so far
-  //    --                 <- means to stop processing, end of file
+  //  Output falcon input.
 
   gkRead      *read;
   gkReadData   readData;
@@ -226,7 +176,7 @@ main(int argc, char **argv) {
         fprintf(stderr, "Failed to open '%s': %s\n", name, strerror(errno)), exit(1);
     }
 
-    outputFalcon(gkpStore, tig, partFile[pp], &readData);
+    outputFalcon(gkpStore, tig, trimToAlign, partFile[pp], &readData);
   }
 
 

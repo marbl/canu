@@ -8,7 +8,7 @@ ifeq "$(strip ${TARGET_DIR})" ""
 endif
 
 TARGET   := createFalconSenseInputs
-SOURCES  := createFalconSenseInputs.C
+SOURCES  := createFalconSenseInputs.C outputFalcon.C
 
 SRC_INCDIRS  := .. ../AS_UTL ../stores
 

@@ -5,7 +5,7 @@ const char *mainid = "$Id:  $";
 #include "ovStore.H"
 #include "tgStore.H"
 
-#include "AS_UTL_reverseComplement.H"
+#include "outputFalcon.H"
 
 #include "stashContains.H"
 
@@ -86,7 +86,7 @@ generateLayout(gkStore    *gkpStore,
   //  Use utgcns's stashContains to get rid of extra coverage; we don't care about it, and
   //  just delete it immediately.
 
-  savedChildren *sc = stashContains(layout, maxCoverage, false);
+  savedChildren *sc = stashContains(layout, maxCoverage, true);
 
   if (sc) {
     delete sc->children;
@@ -109,45 +109,6 @@ generateLayout(gkStore    *gkpStore,
 #endif
 
   return(layout);
-}
-
-
-
-
-
-//  DUPLICATED!  (see createFalconSenseInputs.C)
-void
-outputFalcon(gkStore      *gkpStore,
-             tgTig        *tig,
-             bool          trimToAlign,
-             FILE         *F,
-             gkReadData   *readData) {
-
-  gkpStore->gkStore_loadReadData(tig->tigID(), readData);
-
-  fprintf(F, "read"F_U32" %s\n", tig->tigID(), readData->gkReadData_getSequence());
-
-  for (uint32 cc=0; cc<tig->numberOfChildren(); cc++) {
-    tgPosition  *child = tig->getChild(cc);
-
-    gkpStore->gkStore_loadReadData(child->ident(), readData);
-
-    if (child->isReverse())
-      reverseComplementSequence(readData->gkReadData_getSequence(),
-                                readData->gkReadData_getRead()->gkRead_sequenceLength());
-
-    //  Trim the read to the aligned bit
-    char   *seq = readData->gkReadData_getSequence();
-
-    if (trimToAlign) {
-      seq += child->_askip;
-      seq[ readData->gkReadData_getRead()->gkRead_sequenceLength() - child->_askip - child->_bskip ] = 0;
-    }
-
-    fprintf(F, "data"F_U32" %s\n", tig->getChild(cc)->ident(), seq);
-  }
-
-  fprintf(F, "+ +\n");
 }
 
 
@@ -197,14 +158,6 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-F") == 0) {
       falconOutput = true;
-      trimToAlign  = false;
-
-    } else if (strcmp(argv[arg], "-Ft") == 0) {
-      falconOutput = true;
-      trimToAlign  = true;
-
-    } else if (strcmp(argv[arg], "-Fp") == 0) {
-      falconOutput = true;
       trimToAlign  = true;
 
     } else if (strcmp(argv[arg], "-b") == 0) {
@@ -253,6 +206,8 @@ main(int argc, char **argv) {
   gkStore  *gkpStore = new gkStore(gkpName);
   ovStore  *ovlStore = new ovStore(ovlName);
   tgStore  *tigStore = (falconOutput == false) ? new tgStore(tigName) : NULL;
+
+#warning Need to threshold iidMin and iidMax against number of reads
 
   ovlStore->setRange(iidMin, iidMax);
 

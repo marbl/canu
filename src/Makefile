@@ -368,8 +368,8 @@ ${info Building for ${OSTYPE} ${OSVERSION} as ${MACHINETYPE}}
 # (BPW) Set compiler and flags based on discovered hardware
 
 ifeq (${OSTYPE}, Linux)
-  CC        := gcc
-  CXX       := g++
+  CC        ?= gcc
+  CXX       ?= g++
   CXXFLAGS  := -pthread -fPIC -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare # -Wformat -Wall -Wextra 
   LDFLAGS   := -pthread -lm
 
@@ -400,8 +400,8 @@ endif
 
 ifeq (${OSTYPE}, Darwin)
   ifeq (${MACHINETYPE}, amd64)
-    CC       := gcc
-    CXX      := g++
+    CC       ?= gcc
+    CXX      ?= g++
     CFLAGS   := -pthread -fopenmp -D_GLIBCXX_PARALLEL -O3 -fPIC -m64 -Wall -Wextra -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat
     CXXFLAGS := -pthread -fopenmp -D_GLIBCXX_PARALLEL -O3 -fPIC -m64 -Wall -Wextra -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat
     LDFLAGS  := -pthread -fopenmp -lm
@@ -415,8 +415,8 @@ ifeq (${OSTYPE}, Darwin)
 endif
 
 ifeq (${OSTYPE}, FreeBSD)
-  CC       := gcc48
-  CXX      := g++48
+  CC       ?= gcc48
+  CXX      ?= g++48
   CXXFLAGS := -pthread -fPIC -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare # -Wformat -Wall -Wextra 
   LDFLAGS  := -pthread -lm
 

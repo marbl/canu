@@ -120,7 +120,7 @@ sub overlapConfigure ($$$) {
         print F "  --hashbits $ovlHashBits \\\n";
         print F "  --hashload $ovlHashLoad \\\n";
         print F "  --maxerate  ", getGlobal("ovlErrorRate"), " \\\n";
-        print F "  --minlength ", getGlobal("ovlMinLen"), " \\\n";
+        print F "  --minlength ", getGlobal("minOverlapLength"), " \\\n";
         print F "  \$opt \\\n";
         print F "  -o $path/\$bat/\$job.ovb.WORKING.gz \\\n";
         print F "  -H $hashLibrary \\\n" if ($hashLibrary ne "0");

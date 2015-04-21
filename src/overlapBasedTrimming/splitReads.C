@@ -24,57 +24,6 @@ const char *mainid = "$Id$";
 #include "splitReads.H"
 
 
-//  Yuck.  Parameters shouldn't be global.
-//
-//  minInniePair - a gap with at least this many innie pointing fragment pairs indicating a chimera,
-//  is trimmed to the longest confirmed sequence.
-//
-//  minOverhang - a gap with at least this many overhanging fragments indicating a chimera, is
-//  trimmed to the longest confirmed sequence.  Low coverage sequence next to a repeat will have
-//  this pattern.
-//
-//  minInniePair=1  minOverhang=infinity     The historical defaults.
-//  minInniePair=1  minOverhang=4            Trim when any four fragments indicate a chimera.
-//  minInniePair=0  minOverhang=0            Trim on ANY overlap coverage gap.
-//
-uint32   minInniePair        = 1;
-uint32   minOverhang         = 1000000000;
-
-//  Stats for the summary file.
-
-uint32   readsProcessed      = 0;
-
-//  Read fates
-
-uint32   noCoverage          = 0;
-uint32   fullCoverage        = 0;
-uint32   noSignalNoGap       = 0;
-uint32   noSignalButGap      = 0;
-
-uint32   bothFixed           = 0;
-uint32   chimeraFixed        = 0;
-uint32   spurFixed           = 0;
-
-uint32   badOvlDeleted       = 0;
-
-uint32   bothDeletedSmall    = 0;
-uint32   chimeraDeletedSmall = 0;
-uint32   spurDeletedSmall    = 0;
-
-//  Types of fixes
-
-uint32   spurDetectedNormal  = 0;
-uint32   spurDetectedLinker  = 0;
-
-uint32   chimeraDetectedInnie     = 0;   //  Detected chimera
-uint32   chimeraDetectedOverhang  = 0;
-uint32   chimeraDetectedGap       = 0;
-uint32   chimeraDetectedLinker    = 0;
-
-
-#define F_U32W(X)  "%" #X F_U32P
-#define F_U64W(X)  "%" #X F_U64P
-
 
 int
 main(int argc, char **argv) {
@@ -87,10 +36,9 @@ main(int argc, char **argv) {
   char              *finClrName = NULL;
   char              *outClrName = NULL;
 
-  double             errorRate          = 0.06;
-
-  uint32             minOverlap         = 40;
-  uint32             minReadLength      = 64;
+  double             errorRate       = 0.06;
+  uint32             minAlignLength  = 40;
+  uint32             minReadLength   = 64;
 
   uint32             idMin = 1;
   uint32             idMax = UINT32_MAX;
@@ -114,33 +62,25 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-O") == 0) {
       ovsName = argv[++arg];
 
+    } else if (strcmp(argv[arg], "-o") == 0) {
+      outputPrefix = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-t") == 0) {
+      AS_UTL_decodeRange(argv[++arg], idMin, idMax);
 
     } else if (strcmp(argv[arg], "-Ci") == 0) {
       finClrName = argv[++arg];
     } else if (strcmp(argv[arg], "-Co") == 0) {
       outClrName = argv[++arg];
 
-
     } else if (strcmp(argv[arg], "-e") == 0) {
       errorRate = atof(argv[++arg]);
 
-    } else if (strcmp(argv[arg], "-minoverlap") == 0) {
-      minOverlap = atoi(argv[++arg]);
+    } else if (strcmp(argv[arg], "-l") == 0) {
+      minAlignLength = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-minlength") == 0) {
       minReadLength = atoi(argv[++arg]);
-
-    } else if (strcmp(argv[arg], "-mininniepair") == 0) {
-      minInniePair = atoi(argv[++arg]);
-
-    } else if (strcmp(argv[arg], "-minoverhanging") == 0) {
-      minOverhang = atoi(argv[++arg]);
-
-    } else if (strcmp(argv[arg], "-o") == 0) {
-      outputPrefix = argv[++arg];
-
-    } else if (strcmp(argv[arg], "-t") == 0) {
-      AS_UTL_decodeRange(argv[++arg], idMin, idMax);
 
     } else {
       fprintf(stderr, "%s: unknown option '%s'\n", argv[0], argv[arg]);
@@ -163,26 +103,12 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -t bgn-end     limit processing to only reads from bgn to end (inclusive)\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -Ci clearFile  path to input clear ranges (NOT SUPPORTED)\n");
-    fprintf(stderr, "  -Cm clearFile  path to maximal clear ranges\n");
     fprintf(stderr, "  -Co clearFile  path to ouput clear ranges\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -e erate       ignore overlaps with more than 'erate' percent error\n");
-    fprintf(stderr, "  -l length      ignore overlaps shorter than 'l' aligned bases (NOT SUPPORTED)\n");
+    //fprintf(stderr, "  -l length      ignore overlaps shorter than 'l' aligned bases (NOT SUPPORTED)\n");
     fprintf(stderr, "\n");
-
-
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -e erate           allow 'erate' percent error (default is AS_OVL_ERROR_RATE environment variable)\n");
-    fprintf(stderr, "  -E elimit          allow 'elimit' errors\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -mininniepair n    trim if at least n pairs of innie frags detect chimer\n");
-    fprintf(stderr, "  -minoverhanging n  trim if at least n frags detect chimer\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -o P               write a logging and a summary of fixes to files with prefix P\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -n                 compute and log, but don't update the store\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -t bgn-end         limit processing to only reads from bgn to end (inclusive)\n");
+    fprintf(stderr, "  -minlength l   reads trimmed below this many bases are deleted\n");
     fprintf(stderr, "\n");
 
     if (errorRate < 0.0)
@@ -263,7 +189,7 @@ main(int argc, char **argv) {
       continue;
 
     w->clear(id, finClr->bgn(id), finClr->end(id));
-    w->addAndFilterOverlaps(gkp, finClr, ovl, ovlLen);
+    w->addAndFilterOverlaps(gkp, finClr, errorRate, ovl, ovlLen);
 
     if (w->adjLen == 0)
       //  All overlaps trimmed out!
@@ -331,6 +257,7 @@ main(int argc, char **argv) {
     summaryFile = stdout;
   }
 
+#if 0
   fprintf(summaryFile, "READS (= ACEEPTED + TRIMMED + DELETED)\n");
   fprintf(summaryFile, "  total processed       "F_U32"\n", readsProcessed);
   fprintf(summaryFile, "\n");
@@ -359,6 +286,7 @@ main(int argc, char **argv) {
   fprintf(summaryFile, "  overhang              "F_U32"\n", chimeraDetectedOverhang);
   fprintf(summaryFile, "  gap                   "F_U32"\n", chimeraDetectedGap);
   fprintf(summaryFile, "  linker                "F_U32"\n", chimeraDetectedLinker);
+#endif
 
   if (summaryFile != stdout)
     fclose(summaryFile);

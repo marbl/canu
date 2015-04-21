@@ -292,6 +292,7 @@ sub submitScript ($$$) {
 
     #  If not requested to run on the grid, return.
 
+    return if (getGlobal("useGrid")       == 0);
     return if (getGlobal("useGridScript") == 0);
 
     #  If no job to wait on, and we are already on the grid, do NOT resubmit ourself.
@@ -353,7 +354,7 @@ sub submitScript ($$$) {
 
     if (defined($jobToWaitOn)) {
         (my $hold = getGlobal("gridEngineHoldOption")) =~ s/WAIT_TAG/$jobToWaitOn/;
-        $gridOpts .= $hold;
+        $gridOpts .= " " . $hold;
     }
 
     my $submitCommand        = getGlobal("gridEngineSubmitCommand");

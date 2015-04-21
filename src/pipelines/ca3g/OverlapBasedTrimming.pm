@@ -30,9 +30,12 @@ sub trimReads ($$) {
     $cmd  = "$bin/trimReads \\\n";
     $cmd .= "  -G  $wrk/$asm.gkpStore \\\n";
     $cmd .= "  -O  $wrk/$asm.ovlStore \\\n";
-    $cmd .= "  -e  " . getGlobal("obtErrorRate") . " \\\n";
-    #$cmd .= "  -Cm $path/$asm.max.clear \\\n"          if (-e "$path/$asm.max.clear");      #  Probably not useful anymore
     $cmd .= "  -Co $path/$asm.1.trimReads.clear \\\n";
+    $cmd .= "  -e  " . getGlobal("obtErrorRate") . " \\\n";
+    $cmd .= "  -minlength " . getGlobal("minReadLength") . " \\\n";
+    #$cmd .= "  -Cm $path/$asm.max.clear \\\n"          if (-e "$path/$asm.max.clear");
+    $cmd .= "  -ol " . getGlobal("trimReadsOverlap") . " \\\n";
+    $cmd .= "  -oc " . getGlobal("trimReadsCoverage") . " \\\n";
     $cmd .= "  -o  $path/$asm.1.trimReads \\\n";
     $cmd .= ">     $path/$asm.1.trimReads.err 2>&1";
 
@@ -77,11 +80,12 @@ sub splitReads ($$) {
     $cmd  = "$bin/splitReads \\\n";
     $cmd .= "  -G  $wrk/$asm.gkpStore \\\n";
     $cmd .= "  -O  $wrk/$asm.ovlStore \\\n";
-    $cmd .= "  -e  $erate \\\n";
-    $cmd .= "  -o  $path/$asm.2.splitReads \\\n";
     $cmd .= "  -Ci $path/$asm.1.trimReads.clear \\\n"       if (-e "$path/$asm.1.trimReads.clear");
     #$cmd .= "  -Cm $path/$asm.max.clear \\\n"               if (-e "$path/$asm.max.clear");
     $cmd .= "  -Co $path/$asm.2.splitReads.clear \\\n";
+    $cmd .= "  -e  $erate \\\n";
+    $cmd .= "  -minlength " . getGlobal("minReadLength") . " \\\n";
+    $cmd .= "  -o  $path/$asm.2.splitReads \\\n";
     $cmd .= ">     $path/$asm.2.splitReads.err 2>&1";
 
     stopBefore("splitReads", $cmd);

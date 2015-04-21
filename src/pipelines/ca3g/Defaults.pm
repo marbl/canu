@@ -328,9 +328,10 @@ sub checkParameters ($) {
     }
     if ((getGlobal("consensus") ne "utgcns") &&
         (getGlobal("consensus") ne "falcon") &&
+        (getGlobal("consensus") ne "falconpipe") &&
         (getGlobal("consensus") ne "pbdagcon") &&
         (getGlobal("consensus") ne "pbutgcns")) {
-        caFailure("invalid 'consensus' specified (" . getGlobal("consensus") . "); must be 'utgcns' or 'falcon' or 'pbdagcon' or 'pbutgcns'", undef);
+        caFailure("invalid 'consensus' specified (" . getGlobal("consensus") . "); must be 'utgcns' or 'falcon' or 'falconpipe' or 'pbdagcon' or 'pbutgcns'", undef);
     }
     #if ((getGlobal("cleanup") ne "none") &&
     #    (getGlobal("cleanup") ne "light") &&
@@ -535,11 +536,11 @@ sub setDefaults () {
 
     #####  Minimums
 
-    $global{"frgMinLen"}                   = 64;
-    $synops{"frgMinLen"}                   = "Reads shorter than this length are not loaded into the assembler";
+    $global{"minReadLength"}               = 500;
+    $synops{"minReadLength"}               = "Reads shorter than this length are not loaded into the assembler";
 
-    $global{"ovlMinLen"}                   = 40;
-    $synops{"ovlMinLen"}                   = "Overlaps shorter than this length are not computed";
+    $global{"minOverlapLength"}            = 40;
+    $synops{"minOverlapLength"}            = "Overlaps shorter than this length are not computed";
 
     #####  Stopping conditions
 
@@ -572,7 +573,7 @@ sub setDefaults () {
     $global{"useGrid"}                     = 0;
     $synops{"useGrid"}                     = "Enable SGE globally";
 
-    $global{"useGridScript"}               = 0;
+    $global{"useGridScript"}               = 1;
     $synops{"useGridScript"}               = "Enable SGE for the ca3g pipeline (includes meryl, unitigger and other sequential phases)";
 
     $global{"useGridOVL"}                  = 1;
@@ -581,10 +582,10 @@ sub setDefaults () {
     $global{"useGridOVS"}                  = 0;
     $synops{"useGridOVS"}                  = "Enable OverlapStore Build on Grid";
 
-    $global{"useGridFEC"}                  = 0;
+    $global{"useGridFEC"}                  = 1;
     $synops{"useGridFEC"}                  = "Enable SGE for the fragment error correction";
 
-    $global{"useGridOEC"}                  = 0;
+    $global{"useGridOEC"}                  = 1;
     $synops{"useGridOEC"}                  = "Enable SGE for the overlap error correction";
 
     $global{"useGridCNS"}                  = 1;
@@ -663,7 +664,6 @@ sub setDefaults () {
     #  PROBLEM: want to define mhap and ovl parameters independently, but then need to duplicate
     #  all the kmer stuff below for mhap.
 
-
     $global{"ovlMerSize"}                  = 22;
     $synops{"ovlMerSize"}                  = "K-mer size for seeds in overlaps";
 
@@ -720,6 +720,17 @@ sub setDefaults () {
 
     $global{"merylThreads"}                = 1;
     $synops{"merylThreads"}                = "Number of threads to use for mer counting";
+
+    #####  Overlap Based Trimming
+
+    $global{"trimReadsOverlap"}            = 1;
+    $synops{"trimReadsOverlap"}            = "Minimum overlap between evidence to make contiguous trim";
+
+    $global{"trimReadsCoverage"}           = 1;
+    $synops{"trimReadsCoverage"}           = "Minimum depth of evidence to retain bases";
+
+    #$global{"splitReads..."}               = 1;
+    #$synops{"splitReads..."}               = "";
 
     #####  Fragment/Overlap Error Correction
 
@@ -810,8 +821,14 @@ sub setDefaults () {
     $global{"consensus"}                   = "utgcns";
     $synops{"consensus"}                   = "Which consensus algorithm to use; currently only 'cns' is supported";
 
-    $global{"falcon"}                      = "/work/software/falcon/install/fc_env/bin/fc_consensus.py ";
+    $global{"falcon"}                      = undef;
+    $global{"falcon"}                      = "/home/walenzb/ca3g/ca3g-build/src/falcon_sense/falcon_sense.Linux-amd64.bin" if (-e "/home/walenzb/ca3g/ca3g-build/src/falcon_sense/falcon_sense.Linux-amd64.bin");
+    $global{"falcon"}                      = "/nbacc/scratch/bri/ca3g-build/src/falcon_sense/falcon_sense.Linux-amd64.bin" if (-e "/nbacc/scratch/bri/ca3g-build/src/falcon_sense/falcon_sense.Linux-amd64.bin");
+    $global{"falcon"}                      = "/work/software/falcon/install/fc_env/bin/fc_consensus.py"                    if (-e "/work/software/falcon/install/fc_env/bin/fc_consensus.py");
     $synops{"falcon"}                      = "Path to fc_consensus.py";
+
+    $global{"falconThreads"}               = 4;
+    $synops{"falconThreads"}               = "Number of compute threads to use for falcon consensus";
 
     #####  Ugly, command line options passed to printHelp()
 
@@ -849,6 +866,5 @@ sub setDefaults () {
         print STDERR "ENV: ", getGlobal("gridEngineTaskID"), " needs to be unset, done.\n";
     }
 }
-
 
 1;

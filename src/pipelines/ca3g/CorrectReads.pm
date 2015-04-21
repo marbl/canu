@@ -14,6 +14,8 @@ use ca3g::Execution;
 use ca3g::Gatekeeper;
 
 
+#  This needs to return the number of jobs for 'falcon', 'falconpipe' or 'utgcns'
+#
 sub computeNumberOfCorrectionJobs ($$) {
     my $wrk    = shift @_;
     my $asm    = shift @_;
@@ -27,32 +29,36 @@ sub computeNumberOfCorrectionJobs ($$) {
         close(F);
     }
 
+    if (getGlobal("consensus") eq "falconpipe") {
+        $nJobs = getGlobal("cnsPartitions");
+    }
+
+    if (getGlobal("consensus") eq "utgcns") {
+        die;
+        $nJobs = getGlobal("cnsPartitions");
+    }
+
     return($nJobs);
 }
 
 
-sub buildCorrectionLayouts ($$) {
+#  Generate a corStore, dump files for falcon to process, generate a script to run falcon.
+#
+sub buildCorrectionLayouts_falcon ($$) {
     my $wrk          = shift @_;
     my $asm          = shift @_;
     my $bin          = getBinDirectory();
     my $cmd;
     my $path         = "$wrk/2-correction";
 
-    return  if (-e "$wrk/2-correction/consensus.sh");
-    return  if (-e "$wrk/correctedReads.fastq");
-    return  if (-e "$path/cnsjob.files");
-
-    make_path("$path")  if (! -d "$path");
-
-    #  Assumes we have partial overlaps.  If mhap, quality might improve if mhapReAlign=raw is used.
+    return  if (-e "$path/falcon_inputs/consensus.sh");
 
     if (! -e "$wrk/$asm.corStore") {
         $cmd  = "$bin/generateCorrectionLayouts \\\n";
         $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
         $cmd .= "  -O $wrk/$asm.ovlStore \\\n";
         $cmd .= "  -T $wrk/$asm.corStore.WORKING \\\n";
-        $cmd .= "  -L 1000 \\\n";
-        $cmd .= "  -E 0.18 \\\n";
+        $cmd .= "  -C " . getExpectedCoverage($wrk, $asm) * 1.5 . " \\\n";
         $cmd .= "> $wrk/$asm.corStore.err 2>&1";
 
         if (runCommand($wrk, $cmd)) {
@@ -62,100 +68,195 @@ sub buildCorrectionLayouts ($$) {
         rename "$wrk/$asm.corStore.WORKING", "$wrk/$asm.corStore";
     }
 
+    make_path("$path/falcon_inputs")  if (! -d "$path/falcon_inputs");
+    make_path("$path/falcon_outputs")  if (! -d "$path/falcon_outputs");
 
-    #  If we're doing falcon_sense, dump the inputs first.
+    $cmd  = "$bin/createFalconSenseInputs \\\n";
+    $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
+    $cmd .= "  -T $wrk/$asm.corStore 1 \\\n";
+    $cmd .= "  -o $path/falcon_inputs/ \\\n";
+    $cmd .= "  -p " . getGlobal("cnsPartitions") . " \\\n";
+    $cmd .= "> $path/falcon_inputs.err 2>&1";
 
-
-    if ((getGlobal("consensus") eq "falcon") &&
-        (! -e "$path/falcon_inputs/success")) {
-        make_path("$path/falcon_inputs")  if (! -d "$path/falcon_inputs");
-        make_path("$path/falcon_outputs")  if (! -d "$path/falcon_outputs");
-
-        $cmd  = "$bin/createFalconSenseInputs \\\n";
-        $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
-        $cmd .= "  -T $wrk/$asm.corStore 1 \\\n";
-        $cmd .= "  -o $wrk/2-correction/falcon_inputs/ \\\n";
-        $cmd .= "  -p " . getGlobal("cnsPartitions") . " \\\n";
-        $cmd .= "> $wrk/2-correction/falcon_inputs.err 2>&1";
-
-        if (runCommand($wrk, $cmd)) {
-            caFailure("failed to generate falcon inputs", "$wrk/2-correction/falcon_inputs.err");
-        }
-
-        touch("$path/falcon_inputs/success");
+    if (runCommand($wrk, $cmd)) {
+        caFailure("failed to generate falcon inputs", "$path/falcon_inputs.err");
     }
+
 
     my $jobs = computeNumberOfCorrectionJobs($wrk, $asm);
 
+    my $taskID            = getGlobal("gridEngineTaskID");
+    my $submitTaskID      = getGlobal("gridEngineArraySubmitID");
 
-    #  And a script to run consensus on those layouts.
+    open(F, "> $path/consensus.sh") or caFailure("can't open '$path/consensus.sh'", undef);
 
-    if (! -e "$wrk/2-correction/consensus.sh") {
-        my $taskID            = getGlobal("gridEngineTaskID");
-        my $submitTaskID      = getGlobal("gridEngineArraySubmitID");
+    print F "#!" . getGlobal("shell") . "\n";
+    print F "\n";
+    print F "jobid=\$$taskID\n";
+    print F "if [ x\$jobid = x -o x\$jobid = xundefined -o x\$jobid = x0 ]; then\n";
+    print F "  jobid=\$1\n";
+    print F "fi\n";
+    print F "if [ x\$jobid = x ]; then\n";
+    print F "  echo Error: I need $taskID set, or a job index on the command line.\n";
+    print F "  exit 1\n";
+    print F "fi\n";
+    print F "\n";
+    print F "if [ \$jobid -gt $jobs ]; then\n";
+    print F "  echo Error: Only $jobs partitions, you asked for \$jobid.\n";
+    print F "  exit 1\n";
+    print F "fi\n";
+    print F "\n";
+    print F "jobid=`printf %04d \$jobid`\n";
+    print F "\n";
 
-        open(F, "> $wrk/2-correction/consensus.sh") or caFailure("can't open '$wrk/2-correction/consensus.sh'", undef);
+    print F getBinDirectoryShellCode();
 
-        print F "#!" . getGlobal("shell") . "\n";
+    if (getGlobal("consensus") eq "utgcns") {
         print F "\n";
-        print F "jobid=\$$taskID\n";
-        print F "if [ x\$jobid = x -o x\$jobid = xundefined -o x\$jobid = x0 ]; then\n";
-        print F "  jobid=\$1\n";
-        print F "fi\n";
-        print F "if [ x\$jobid = x ]; then\n";
-        print F "  echo Error: I need $taskID set, or a job index on the command line.\n";
-        print F "  exit 1\n";
-        print F "fi\n";
-        print F "\n";
-        print F "if [ \$jobid -gt $jobs ]; then\n";
-        print F "  echo Error: Only $jobs partitions, you asked for \$jobid.\n";
-        print F "  exit 1\n";
-        print F "fi\n";
-        print F "\n";
-        print F "jobid=`printf %04d \$jobid`\n";
-        print F "\n";
-        #print F "if [ -e $wrk/5-consensus/${asm}_\$jobid.success ] ; then\n";
-        #print F "  exit 0\n";
-        #print F "fi\n";
-        print F "\n";
-
-        print F getBinDirectoryShellCode();
-
-        if (getGlobal("consensus") eq "utgcns") {
-            print F "\n";
-            print F "\$bin/utgcns \\\n";
-            print F "  -G $wrk/$asm.gkpStore \\\n";
-            print F "  -T $wrk/$asm.tigStore 1 \$jobid \\\n";
-            print F "  -O $wrk/5-consensus/\$jobid.cns.WORKING \\\n";
-            print F "  -L $wrk/5-consensus/\$jobid.layouts.WORKING \\\n";
-            print F "  -maxcoverage " . getGlobal('cnsMaxCoverage') . " \\\n";
-            print F "> $wrk/5-consensus/\$jobid.cns.err 2>&1 \\\n";
-            print F "&& \\\n";
-            print F "mv $wrk/5-consensus/\$jobid.cns.WORKING $wrk/5-consensus/\$jobid.cns \\\n";
-            print F "&& \\\n";
-            print F "mv $wrk/5-consensus/\$jobid.layouts.WORKING $wrk/5-consensus/\$jobid.layouts \\\n";
-        }
-
-        if (getGlobal("consensus") eq "falcon") {
-            print F "\n";
-            print F getGlobal("falcon") . " \\\n";
-            print F "  --max_n_read 200 \\\n";
-            #print F "  --trim \\\n";
-            print F "  --min_idt 0.70 \\\n";
-            print F "  --output_multi \\\n";
-            print F "  --local_match_count_threshold 2 \\\n";
-            print F "  --min_cov 4 \\\n";
-            print F "  --n_core 1 \\\n";
-            print F "  < $wrk/2-correction/falcon_inputs/\$jobid \\\n";
-            print F "  > $wrk/2-correction/falcon_outputs/\$jobid.fasta.WORKING \\\n";
-            print F " 2> $wrk/2-correction/falcon_outputs/\$jobid.err \\\n";
-            print F "&& \\\n";
-            print F "mv $wrk/2-correction/falcon_outputs/\$jobid.fasta.WORKING $wrk/2-correction/falcon_outputs/\$jobid.fasta \\\n";
-        }
-
-
-        close(F);
+        print F "\$bin/utgcns \\\n";
+        print F "  -G $wrk/$asm.gkpStore \\\n";
+        print F "  -T $wrk/$asm.tigStore 1 \$jobid \\\n";
+        print F "  -O $wrk/5-consensus/\$jobid.cns.WORKING \\\n";
+        print F "  -L $wrk/5-consensus/\$jobid.layouts.WORKING \\\n";
+        print F "  -maxcoverage " . getGlobal('cnsMaxCoverage') . " \\\n";
+        print F "> $wrk/5-consensus/\$jobid.cns.err 2>&1 \\\n";
+        print F "&& \\\n";
+        print F "mv $wrk/5-consensus/\$jobid.cns.WORKING $wrk/5-consensus/\$jobid.cns \\\n";
+        print F "&& \\\n";
+        print F "mv $wrk/5-consensus/\$jobid.layouts.WORKING $wrk/5-consensus/\$jobid.layouts \\\n";
     }
+
+    if (getGlobal("consensus") eq "falcon") {
+        print F "\n";
+        print F getGlobal("falcon") . " \\\n";
+        print F "  --max_n_read 200 \\\n";
+        print F "  --min_idt 0.70 \\\n";
+        print F "  --output_multi \\\n";
+        print F "  --local_match_count_threshold 2 \\\n";
+        print F "  --min_cov 4 \\\n";
+        print F "  --n_core ", getGlobal("falconThreads"), " \\\n";
+        print F "  < $path/falcon_inputs/\$jobid \\\n";
+        print F "  > $path/falcon_outputs/\$jobid.fasta.WORKING \\\n";
+        print F " 2> $path/falcon_outputs/\$jobid.err \\\n";
+        print F "&& \\\n";
+        print F "mv $path/falcon_outputs/\$jobid.fasta.WORKING $path/falcon_outputs/\$jobid.fasta \\\n";
+    }
+
+    close(F);
+}
+
+
+
+#  For falcon_sense, using a pipe and no intermediate files
+#
+sub buildCorrectionLayouts_falconpipe ($$) {
+    my $wrk          = shift @_;
+    my $asm          = shift @_;
+    my $bin          = getBinDirectory();
+    my $cmd;
+    my $path         = "$wrk/2-correction";
+
+    return  if (-e "$path/falcon_inputs/consensus.sh");
+
+    make_path("$path/falcon_inputs")  if (! -d "$path/falcon_inputs");
+    make_path("$path/falcon_outputs")  if (! -d "$path/falcon_outputs");
+
+    my $nJobs    = computeNumberOfCorrectionJobs($wrk, $asm);
+    my $nReads   = getNumberOfReadsInStore($wrk, $asm);
+    my $nPerJob  = int($nReads / $nJobs + 1);
+
+    my $taskID            = getGlobal("gridEngineTaskID");
+    my $submitTaskID      = getGlobal("gridEngineArraySubmitID");
+
+    open(F, "> $path/consensus.sh") or caFailure("can't open '$path/consensus.sh'", undef);
+
+    print F "#!" . getGlobal("shell") . "\n";
+    print F "\n";
+    print F "jobid=\$$taskID\n";
+    print F "if [ x\$jobid = x -o x\$jobid = xundefined -o x\$jobid = x0 ]; then\n";
+    print F "  jobid=\$1\n";
+    print F "fi\n";
+    print F "if [ x\$jobid = x ]; then\n";
+    print F "  echo Error: I need $taskID set, or a job index on the command line.\n";
+    print F "  exit 1\n";
+    print F "fi\n";
+    print F "\n";
+    print F "if [ \$jobid -gt $nJobs ]; then\n";
+    print F "  echo Error: Only $nJobs partitions, you asked for \$jobid.\n";
+    print F "  exit 1\n";
+    print F "fi\n";
+    print F "\n";
+
+    my  $bgnID   = 1;
+    my  $endID   = $bgnID + $nPerJob;
+    my  $jobID   = 1;
+
+    while ($bgnID < $nReads) {
+        $endID  = $bgnID + $nPerJob;
+        $endID  = $nReads  if ($endID > $nReads);
+
+        print F "if [ \$jobid -eq $jobID ] ; then\n";
+        print F "  bgn=$bgnID\n";
+        print F "  end=$endID\n";
+        print F "fi\n";
+
+        $bgnID = $endID;
+        $jobID++;
+    }
+
+    print F "\n";
+    print F "jobid=`printf %04d \$jobid`\n";
+    print F "\n";
+    print F "\n";
+    print F getBinDirectoryShellCode();
+    print F "\n";
+
+    print F "$bin/generateCorrectionLayouts -b \$bgn -e \$end \\\n";
+    print F "  -G $wrk/$asm.gkpStore \\\n";
+    print F "  -O $wrk/$asm.ovlStore \\\n";
+    print F "  -C " . getExpectedCoverage($wrk, $asm) * 1.5 . " \\\n";
+    print F "  -F \\\n";
+    print F "| \\\n";
+    print F getGlobal("falcon") . " \\\n";
+    print F "  --max_n_read 200 \\\n";
+    print F "  --min_idt 0.70 \\\n";
+    print F "  --output_multi \\\n";
+    print F "  --local_match_count_threshold 2 \\\n";
+    print F "  --min_cov 4 \\\n";
+    print F "  --n_core ", getGlobal("falconThreads"), " \\\n";
+    print F "  > $path/falcon_outputs/\$jobid.fasta.WORKING \\\n";
+    print F " 2> $path/falcon_outputs/\$jobid.err \\\n";
+    print F "&& \\\n";
+    print F "mv $path/falcon_outputs/\$jobid.fasta.WORKING $path/falcon_outputs/\$jobid.fasta \\\n";
+    print F "\n";
+    print F "exit 0\n";
+
+    close(F);
+}
+
+
+
+sub buildCorrectionLayouts_utgcns ($$) {
+}
+
+
+
+sub buildCorrectionLayouts ($$) {
+    my $wrk          = shift @_;
+    my $asm          = shift @_;
+    my $bin          = getBinDirectory();
+    my $cmd;
+    my $path         = "$wrk/2-correction";
+
+    return  if (-e "$path/consensus.sh");
+    return  if (-e "$wrk/correctedReads.fastq");
+    return  if (-e "$path/cnsjob.files");
+
+    make_path("$path")  if (! -d "$path");
+
+    buildCorrectionLayouts_falcon($wrk, $asm)      if (getGlobal('consensus') eq "falcon");
+    buildCorrectionLayouts_falconpipe($wrk, $asm)  if (getGlobal('consensus') eq "falconpipe");
+    buildCorrectionLayouts_utgcns($wrk, $asm)      if (getGlobal('consensus') eq "utgcns");
 }
 
 
@@ -173,8 +274,6 @@ sub generateCorrectedReads ($$$) {
 
     return  if (-e "$wrk/correctedReads.fastq");
     return  if (-e "$path/cnsjob.files");
-
-    #  How many partitions?  There should be a classier way...
 
     my $jobs = computeNumberOfCorrectionJobs($wrk, $asm);
 
@@ -200,7 +299,7 @@ sub generateCorrectedReads ($$$) {
         print L @successJobs;
         close(L);
 
-        touch("$wrk/2-correction/success");
+        touch("$path/success");
 
         return;
     }

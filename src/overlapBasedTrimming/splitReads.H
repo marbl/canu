@@ -155,6 +155,7 @@ public:
 
   void          addAndFilterOverlaps(gkStore *gkp,
                                      clearRangeFile *finClr,
+                                     double errorRate,
                                      ovsOverlap *ovl, uint32 ovlLen);
 
 public:

@@ -3,7 +3,7 @@ package ca3g::Gatekeeper;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(getNumberOfReadsInStore gatekeeper);
+@EXPORT = qw(getNumberOfReadsInStore getNumberOfBasesInStore getExpectedCoverage gatekeeper);
 
 use strict;
 
@@ -29,6 +29,46 @@ sub getNumberOfReadsInStore ($$) {
     }
 
     return($nr);
+}
+
+
+
+sub getNumberOfBasesInStore ($$) {
+    my $wrk = shift @_;
+    my $asm = shift @_;
+    my $nb  = 0;
+
+    if (-e "$wrk/$asm.gkpStore/info.txt") {
+        open(F, "< $wrk/$asm.gkpStore/info.txt") or caFailure("failed to open '$wrk/$asm.gkpStore/info.txt'", undef);
+        while (<F>) {
+            if (m/numBases\s+=\s+(\d+)/) {
+                $nb = $1;
+            }
+        }
+        close(F);
+    }
+
+    if ($nb == 0) {
+        my $bin    = getBinDirectory();
+        open(F, "$bin/gatekeeperDumpMetaData -G $wrk/$asm.gkpStore -stats |");
+        while (<F>) {
+            if (m/^library\s+0\s+reads\s+\d+\s+bases:\s+total\s+(\d+)\s+/) {
+                $nb = $1;
+            }
+        }
+        close(F);
+    }
+
+    return($nb);
+}
+
+
+
+sub getExpectedCoverage ($$) {
+    my $wrk = shift @_;
+    my $asm = shift @_;
+
+    return(getNumberOfBasesInStore($wrk, $asm) / getGlobal("genomeSize"));
 }
 
 

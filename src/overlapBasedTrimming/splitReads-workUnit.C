@@ -8,6 +8,7 @@
 void
 workUnit::addAndFilterOverlaps(gkStore *gkp,
                                clearRangeFile *finClr,
+                               double errorRate,
                                ovsOverlap *ovl, uint32 ovlLen) {
 
   if (adjMax < ovlLen) {
