@@ -55,24 +55,6 @@ my @inputFiles;   #  Command line inputs, later inputs in spec files are added
 
 setDefaults();
 
-#  The first arg must be the mode of operation.  Currently three modes
-#  are supported: correct, trim, assemble.  The modes only affect the
-#  steps taken in the 'pipeline' at the bottom of this file.
-
-my $mode = shift @ARGV;
-
-if (($mode ne "correct") &&
-    ($mode ne "trim") &&
-    ($mode ne "assemble")) {
-    print STDERR "usage: ca3g.pl [correct | trim | assemble] ....\n";
-    print STDERR "\n";
-    print STDERR "  ERROR: first parameter must be the mode of operation.\n";
-    print STDERR "\n";
-    exit(1);
-}
-
-addCommandLineOption($mode);
-
 #  Check for the presence of a -options switch BEFORE we do any work.
 #  This lets us print the default values of options.
 
@@ -82,6 +64,24 @@ foreach my $arg (@ARGV) {
         printHelp($bin);
     }
 }
+
+#  The first arg must be the mode of operation.  Currently three modes
+#  are supported: correct, trim, assemble.  The modes only affect the
+#  steps taken in the 'pipeline' at the bottom of this file.
+
+my $mode = shift @ARGV;
+my $step = $mode;
+
+if (($mode ne "run") &&
+    ($mode ne "correct") &&
+    ($mode ne "trim") &&
+    ($mode ne "assemble")) {
+    setGlobal("help", "ERROR: first parameter must be the mode of operation (run, correct, trim or assemble).\n");
+    printHelp($bin);
+    exit(1);
+}
+
+addCommandLineOption($mode);
 
 #  At some pain, we stash the original options for later use.  We need
 #  to use these when we resubmit ourself to the grid.  We can't simply dump
@@ -107,7 +107,13 @@ while (scalar(@ARGV)) {
         addCommandLineOption("-p \"$asm\"");
 
     } elsif ($arg eq "-s") {
-        push @specFiles, shift @ARGV;
+        my $spec = shift @ARGV;
+        $spec = "$ENV{'PWD'}/$spec" if ($spec !~ m!^/!);
+
+        push @specFiles, $spec;
+
+        addCommandLineOption("-s \"$spec\"");
+
 
     } elsif ($arg eq "-version") {
         setGlobal("version", 1);
@@ -151,29 +157,9 @@ setGlobal("help", getGlobal("help") . "ERROR:  Directory not supplied with -d.\n
 
 $bin = getBinDirectory();
 
-@inputFiles = setParametersFromFile("$bin/spec/runCA.default.specFile", @inputFiles)   if (-e "$bin/spec/runCA.default.specFile");
-@inputFiles = setParametersFromFile("$ENV{'HOME'}/.runCA",              @inputFiles)   if (-e "$ENV{'HOME'}/.runCA");
+#@inputFiles = setParametersFromFile("$bin/spec/runCA.default.specFile", @inputFiles)   if (-e "$bin/spec/runCA.default.specFile");
+#@inputFiles = setParametersFromFile("$ENV{'HOME'}/.runCA",              @inputFiles)   if (-e "$ENV{'HOME'}/.runCA");
 
-
-#  For each of the specfiles on the command line, find the actual file and make it an absolute path.
-#  These can be in the current directory (e.g., 'my.spec'), or in the installed directory ('$bin/spec').
-
-foreach my $specFile (@specFiles) {
-    if ((-e "$specFile") && (! -d "$specFile")) {
-        $specFile = "$ENV{'PWD'}/$specFile" if ($specFile !~ m!^/!);
-
-    } elsif ((-e "$bin/spec/$specFile") && (! -d "$bin/spec/$specFile")) {
-        $specFile = "$bin/spec/$specFile";
-
-    } elsif ((-e "$bin/spec/$specFile.specFile") && (! -d "$bin/spec/$specFile.specFile")) {
-        $specFile = "$bin/spec/$specFile.specFile";
-
-    } else {
-        die "specFile '$specFile' not found.\n";
-    }
-
-    addCommandLineOption("-s \"$specFile\"");
-}
 
 #  For each of the spec files, parse it, setting parameters and remembering any input files discovered.
 
@@ -194,21 +180,19 @@ checkParameters($bin);
 
 printHelp($bin);
 
-#  Fail immediately if we run the script on the grid, and the gkpStore
-#  directory doesn't exist and we have no input files.  Without this
-#  check we'd fail only after being scheduled on the grid.
+#  Fail immediately if we run the script on the grid, and the gkpStore directory doesn't exist and
+#  we have no input files.  Without this check we'd fail only after being scheduled on the grid.
 
 if ((! -d "$wrk/$asm.gkpStore") &&
     (scalar(@inputFiles) == 0)) {
     caFailure("no input files specified, and store not already created", undef);
 }
 
-#  Check that we were supplied a work directory, and that it
-#  exists, or we can create it.
+#  Check that we were supplied a work directory, and that it exists, or we can create it.
 
 caFailure("no run directory (-d option) specified", undef)  if (!defined($wrk));
 
-make_path("$wrk")             if (! -d "$wrk/runCA-logs");
+make_path("$wrk")             if (! -d "$wrk");
 make_path("$wrk/runCA-logs")  if (! -d "$wrk/runCA-logs");
 
 caFailure("run directory (-d option) '$wrk' doesn't exist and couldn't be created", undef)  if (! -d $wrk);
@@ -227,57 +211,117 @@ writeLog($wrk);
 submitScript($wrk, $asm, undef);
 
 
+
+
+
+#
+#  When doing 'run', this sets options for each stage.
+#    - overlapper 'mhap' for correction, 'ovl' for trimming and assembly.
+#    - consensus 'falconpipe' for correction, 'utgcns' for assembly.  No consensus in trimming.
+#    - errorRates 15% for correction and 2% for trimming and assembly.  Internally, this is
+#      multiplied by three for obt, ovl, cns, etc.
+#
+
+sub setOptions ($$) {
+    my $mode = shift @_;
+    my $step = shift @_;
+
+    make_path("$wrk/correction")  if ((! -d "$wrk/correction") && ($step eq "correct"));
+    make_path("$wrk/trimming")    if ((! -d "$wrk/trimming")   && ($step eq "trim"));
+
+    return($mode)  if ($mode ne "run");
+
+    if ($step eq "correct") {
+        setGlobal("overlapper", "mhap");
+        setGlobal("consensus",  "falconpipe");
+        setGlobal("errorRate",  "0.15");
+        return($step);
+    }
+
+    if ($step eq "trim") {
+        setGlobal("overlapper", "ovl");
+        setGlobal("errorRate",  "0.02");
+        return($step);
+    }
+
+    if ($step eq "assemble") {
+        setGlobal("overlapper", "ovl");
+        setGlobal("consensus",  "utgcns");
+        setGlobal("errorRate",  "0.02");
+        return($step);
+    }
+}
+
+#
+#  Pipeline piece
+#
+
+sub overlap ($$$) {
+    my $wrk  = shift @_;
+    my $asm  = shift @_;
+    my $mode = shift @_;
+
+    my $ovlType = ($mode eq "assemble") ? "normal" : "partial";
+
+    if (getGlobal('overlapper') eq "mhap") {
+        mhapConfigure($wrk, $asm, $ovlType);
+        
+        mhapPrecomputeCheck($wrk, $asm, $ovlType, 0);
+        mhapPrecomputeCheck($wrk, $asm, $ovlType, 1);
+
+        mhapCheck($wrk, $asm, $ovlType, 0);  #  this also does mhapReAlign
+        mhapCheck($wrk, $asm, $ovlType, 1);
+
+    } else {
+        overlapConfigure($wrk, $asm, $ovlType);
+        overlapCheck($wrk, $asm, $ovlType, 0);
+        overlapCheck($wrk, $asm, $ovlType, 1);
+    }
+
+    createOverlapStore($wrk, $asm, getGlobal("ovlStoreMethod"));
+}
+
 #
 #  Begin pipeline
 #
 
-gatekeeper($wrk, $asm, @inputFiles);
+if (setOptions($mode, "correct") eq "correct") {
+    gatekeeper("$wrk/correction", $asm, @inputFiles);
+    meryl("$wrk/correction", $asm);
+    overlap("$wrk/correction", $asm, "correct");
 
-meryl($wrk, $asm);
+    buildCorrectionLayouts("$wrk/correction", $asm);
 
-my $ovlType = ($mode eq "assemble") ? "normal" : "partial";
+    generateCorrectedReads("$wrk/correction", $asm, 0);
+    generateCorrectedReads("$wrk/correction", $asm, 1);
 
+    dumpCorrectedReads("$wrk/correction", $asm);
 
-if (getGlobal('overlapper') eq "mhap") {
-    mhapConfigure($wrk, $asm, $ovlType);
-
-    mhapPrecomputeCheck($wrk, $asm, $ovlType, 0);
-    mhapPrecomputeCheck($wrk, $asm, $ovlType, 1);
-
-    mhapCheck($wrk, $asm, $ovlType, 0);  #  this also does mhapReAlign
-    mhapCheck($wrk, $asm, $ovlType, 1);
-
-} else {
-    overlapConfigure($wrk, $asm, $ovlType);
-    overlapCheck($wrk, $asm, $ovlType, 0);
-    overlapCheck($wrk, $asm, $ovlType, 1);
-}
-
-createOverlapStore($wrk, $asm, getGlobal("ovlStoreMethod"));
-
-
-
-if ($mode eq "correct") {
-    buildCorrectionLayouts($wrk, $asm);
-
-    generateCorrectedReads($wrk, $asm, 0);
-    generateCorrectedReads($wrk, $asm, 1);
-
-    dumpCorrectedReads($wrk, $asm);
+    undef @inputFiles;
+    push  @inputFiles, "-pacbio-corrected:$wrk/correction/$asm.correctedReads.fastq";
 }
 
 
+if (setOptions($mode, "trim") eq "trim") {
+    gatekeeper("$wrk/trimming", $asm, @inputFiles);
+    meryl("$wrk/trimming", $asm);
+    overlap("$wrk/trimming", $asm, "trim");
 
-if ($mode eq "trim") {
-    trimReads  ($wrk, $asm);
-    splitReads ($wrk, $asm);
-    dumpReads  ($wrk, $asm);
-    #summarizeReads($wrk, $asm);
+    trimReads  ("$wrk/trimming", $asm);
+    splitReads ("$wrk/trimming", $asm);
+    dumpReads  ("$wrk/trimming", $asm);
+    #summarizeReads("$wrk/trimming", $asm);
+
+    undef @inputFiles;
+    push  @inputFiles, "-pacbio-corrected:$wrk/trimming/$asm.trimmedReads.fastq";
 }
 
 
+if (setOptions($mode, "assemble") eq "assemble") {
+    gatekeeper($wrk, $asm, @inputFiles);
+    meryl($wrk, $asm);
+    overlap($wrk, $asm, "assemble");
 
-if ($mode eq "assemble") {
     #readErrorDetection($wrk, $asm);
     overlapErrorAdjustment($wrk, $asm);
 
@@ -290,7 +334,5 @@ if ($mode eq "assemble") {
     outputLayout($wrk, $asm);
     outputConsensus($wrk, $asm);
 }
-
-
 
 exit(0);

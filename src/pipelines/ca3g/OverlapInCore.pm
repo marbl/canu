@@ -30,9 +30,14 @@ sub overlapConfigure ($$$) {
     make_path("$path") if (! -d "$path");
     
     if (! -e "$path/ovlopt") {
-        my $checkLibrary       = getGlobal("ovlCheckLibrary");
-        my $hashLibrary        = getGlobal("ovlHashLibrary");
-        my $refLibrary         = getGlobal("ovlRefLibrary");
+
+        #  These used to be runCA options, but were removed in ca3g.  They were used mostly for illumina-pacbio correction,
+        #  but were also used (or could have been used) during the Salmon assembly when overlaps were computed differently
+        #  depending on the libraries involved (and was run manually).  These are left in for documentation.
+        #
+        #my $checkLibrary       = getGlobal("ovlCheckLibrary");
+        #my $hashLibrary        = getGlobal("ovlHashLibrary");
+        #my $refLibrary         = getGlobal("ovlRefLibrary");
 
         my $ovlHashBlockLength = getGlobal("ovlHashBlockLength");
         my $ovlHashBlockSize   = 0;
@@ -49,9 +54,9 @@ sub overlapConfigure ($$$) {
         $cmd .= " -bs $ovlHashBlockSize \\\n";
         $cmd .= " -rs $ovlRefBlockSize \\\n";
         $cmd .= " -rl $ovlRefBlockLength \\\n";
-        $cmd .= " -H $hashLibrary \\\n" if ($hashLibrary ne "0");
-        $cmd .= " -R $refLibrary \\\n"  if ($refLibrary ne "0");
-        $cmd .= " -C \\\n" if (!$checkLibrary);
+        #$cmd .= " -H $hashLibrary \\\n" if ($hashLibrary ne "0");
+        #$cmd .= " -R $refLibrary \\\n"  if ($refLibrary ne "0");
+        #$cmd .= " -C \\\n" if (!$checkLibrary);
         $cmd .= " -o  $path \\\n";
         $cmd .= "> $path/overlapInCorePartition.err 2>&1";
 
@@ -63,8 +68,8 @@ sub overlapConfigure ($$$) {
     if (! -e "$path/overlap.sh") {
         my $merSize      = getGlobal("ovlMerSize");
         
-        my $hashLibrary  = getGlobal("ovlHashLibrary");
-        my $refLibrary   = getGlobal("ovlRefLibrary");
+        #my $hashLibrary  = getGlobal("ovlHashLibrary");
+        #my $refLibrary   = getGlobal("ovlRefLibrary");
         
         #  Create a script to run overlaps.  We make a giant job array for this -- we need to know
         #  hashBeg, hashEnd, refBeg and refEnd -- from that we compute batchName and jobName.
@@ -123,8 +128,8 @@ sub overlapConfigure ($$$) {
         print F "  --minlength ", getGlobal("minOverlapLength"), " \\\n";
         print F "  \$opt \\\n";
         print F "  -o $path/\$bat/\$job.ovb.WORKING.gz \\\n";
-        print F "  -H $hashLibrary \\\n" if ($hashLibrary ne "0");
-        print F "  -R $refLibrary \\\n"  if ($refLibrary  ne "0");
+        #print F "  -H $hashLibrary \\\n" if ($hashLibrary ne "0");
+        #print F "  -R $refLibrary \\\n"  if ($refLibrary  ne "0");
         print F "  $wrk/$asm.gkpStore \\\n";
         print F "&& \\\n";
         print F "mv $path/\$bat/\$job.ovb.WORKING.gz $path/\$bat/\$job.ovb.gz\n";

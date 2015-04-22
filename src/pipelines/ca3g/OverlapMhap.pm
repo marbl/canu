@@ -214,10 +214,10 @@ sub mhapConfigure ($$$) {
 
     #  Mhap parameters
 
-    my $numHashes       = 512;
-    my $minNumMatches   =   3;
-    my $threshold       =   0.04;
-    my $filterThreshold =   0.000005;
+    my $numHashes       = (getGlobal("mhapSensitivity") eq "normal") ? 512        : 768;
+    my $minNumMatches   = (getGlobal("mhapSensitivity") eq "normal") ?   3        :   2;
+    my $threshold       = (getGlobal("mhapSensitivity") eq "normal") ?   0.04     :   0.04;
+    my $filterThreshold = (getGlobal("mhapSensitivity") eq "normal") ?   0.000005 :   0.000005;  #  Also set in Meryl.pm
 
     #  Create a script to generate precomputed blocks, including extracting the reads from gkpStore.
 
@@ -283,7 +283,7 @@ sub mhapConfigure ($$$) {
     print F "cd $path/blocks\n";
     print F "\n";
     print F "$javaPath -server -Xmx", getGlobal("mhapMemory"), "g \\\n";
-    print F "  -jar \$bin/mhap-1.5b1.jar \\\n";  #  FastAlignMain
+    print F "  -jar \$bin/mhap-1.5b1.jar \\\n";
     print F "  --weighted -k $merSize \\\n";
     print F "  --num-hashes $numHashes \\\n";
     print F "  --num-min-matches $minNumMatches \\\n";
@@ -354,7 +354,7 @@ sub mhapConfigure ($$$) {
     print F "\n";
     print F "if [ ! -e \"$path/results/\$qry.mhap\" ] ; then\n";
     print F "  $javaPath -server -Xmx", getGlobal("mhapMemory"), "g \\\n";
-    print F "    -jar \$bin/mhap-1.5b1.jar \\\n";  #  FastAlignMain
+    print F "    -jar \$bin/mhap-1.5b1.jar \\\n";
     print F "    --weighted -k $merSize \\\n";
     print F "    --num-hashes $numHashes \\\n";
     print F "    --num-min-matches $minNumMatches \\\n";
@@ -415,7 +415,7 @@ sub mhapPrecomputeCheck ($$$$) {
 
     my $path    = "$wrk/1-overlapper";
     my $script  = "precompute";
-    my $jobType = "ovl";
+    my $jobType = "mhap";
 
     return  if (-e "$path/ovljob.files");
 
@@ -475,7 +475,7 @@ sub mhapCheck ($$$$) {
 
     my $path    = "$wrk/1-overlapper";
     my $script  = "mhap";
-    my $jobType = "ovl";
+    my $jobType = "mhap";
 
     return  if (-e "$path/ovljob.files");
 

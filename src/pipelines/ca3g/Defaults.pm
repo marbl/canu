@@ -18,8 +18,6 @@ my $specLog   = "";
 
 
 
-
-
 #  Return the second argument, unless the first argument is found in
 #  %global, in which case return that.
 #
@@ -34,6 +32,7 @@ sub getGlobal ($) {
 }
 
 
+
 sub setGlobal ($$) {
     my $var = shift @_;
     my $val = shift @_;
@@ -45,6 +44,7 @@ sub setGlobal ($$) {
 
     $global{$var} = $val;
 }
+
 
 
 sub setGlobalIfUndef ($$) {
@@ -65,6 +65,8 @@ sub getCommandLineOptions () {
     return($cLineOpts);
 }
 
+
+
 sub addCommandLineOption ($) {
     if ($cLineOpts =~ m/\s$/) {
         $cLineOpts .= "$_[0]";
@@ -72,6 +74,7 @@ sub addCommandLineOption ($) {
         $cLineOpts .= " $_[0]";
     }
 }
+
 
 
 sub writeLog ($) {
@@ -85,6 +88,7 @@ sub writeLog ($) {
     print F $specLog;
     close(F);
 }
+
 
 
 sub caFailure ($$) {
@@ -110,15 +114,14 @@ sub caFailure ($$) {
 
 
 
-
 sub printHelp ($) {
     my $bin = shift @_;  #  Can't include ca3g::Execution without a loop.
 
     if (getGlobal("version")) {
-        system("$bin/gatekeeper    --version");
-        system("$bin/overlapInCore --version");
-        system("$bin/bogart        --version");
-        system("$bin/utgcns        --version");
+        system("$bin/gatekeeperCreate --version");
+        system("$bin/overlapInCore    --version");
+        system("$bin/bogart           --version");
+        system("$bin/utgcns           --version");
         exit(0);
     }
 
@@ -138,20 +141,32 @@ sub printHelp ($) {
     }
 
     if (getGlobal("help") ne "") {
-        print "usage: ca3g -d <dir> -p <prefix> [options] <frg> ...\n";
-        print "  -d <dir>          Use <dir> as the working directory.  Required\n";
-        print "  -p <prefix>       Use <prefix> as the output prefix.  Required\n";
+        print "usage: ca3g.pl [run | correct | trim | assemble] \\\n";
+        print "               -p <assembly-prefix> \\\n";
+        print "               -d <assembly-directory> \\\n";
+        print "               -s <assembly-specifications-file> \\\n";
+        print "               genomeSize=Ng \\\n";
+        print "               errorRate=0.X \\\n";
+        print "               [other-options] \\\n";
+        print "               [read-type] *fastq\n";
         print "\n";
-        print "  -s <specFile>     Read options from the specifications file <specfile>.\n";
-        print "                      <specfile> can also be one of the following key words:\n";
-        print "                      [no]OBT - run with[out] OBT\n";
-        print "                      noVec   - run with OBT but without Vector\n";
+        print "    fully automatic modes:\n";
+        print "      run      - generate an assembly, automagically applying the best correction, trimming\n";
+        print "                 and assembly parameters\n";
         print "\n";
-        print "  -version          Version information\n";
-        print "  -help             This information\n";
-        print "  -options          Describe specFile options, and show default values\n";
+        print "    semi-automatic modes:\n";
+        print "      correct  - generate corrected reads\n";
+        print "      trim     - generate trimmed reads\n";
+        print "      assemble - generate an assembly\n";
         print "\n";
-        print "  <frg>             CA formatted fragment file\n";
+        print "    a full list of options can be printed with '-options'.  All parameters except mode of\n";
+        print "    operation, -p, -d and -s can be supplied in the sepc file.\n";
+        print "\n";
+        print "    reads can be either FASTA or FASTQ format, uncompressed, or compressed with gz, bz2 or xz:\n";
+        print "      -pacbio-raw         \n";
+        print "      -pacbio-corrected   \n";
+        print "      -nanopore-raw       \n";
+        print "      -nanopore-corrected \n";
         print "\n";
         print "Complete documentation at http://wgs-assembler.sourceforge.net/\n";
         print "\n";
@@ -163,11 +178,6 @@ sub printHelp ($) {
     undef $global{"options"};
     undef $global{"help"};
 }
-
-
-
-
-
 
 
 
@@ -187,6 +197,7 @@ sub makeAbsolute ($) {
 }
 
 
+
 sub fixCase ($) {
     my $var = shift @_;
     my $val = getGlobal($var);
@@ -196,6 +207,7 @@ sub fixCase ($) {
         setGlobal($var, $val);
     }
 }
+
 
 
 sub setParametersFromFile ($@) {
@@ -246,6 +258,7 @@ sub setParametersFromFile ($@) {
 }
 
 
+
 sub setParametersFromCommandLine(@) {
     my @specOpts = @_;
 
@@ -270,6 +283,7 @@ sub setParametersFromCommandLine(@) {
         }
     }
 }
+
 
 
 sub checkParameters ($) {
@@ -485,10 +499,6 @@ sub checkParameters ($) {
 
 
 
-
-
-
-
 sub setDefaults () {
 
     #  The rules:
@@ -510,6 +520,11 @@ sub setDefaults () {
 
     $global{"shell"}                       = "/bin/sh";
     $synops{"shell"}                       = "Command interpreter to use; sh-compatible (e.g., bash), NOT C-shell (csh or tcsh)";
+
+    #####  Cleanup options
+
+    $global{"saveOverlaps"}                = 0;
+    $synops{"saveOverlaps"}                = "Save intermediate overlap files, almost never a good idea";
 
     #####  Error Rates
 
@@ -568,16 +583,19 @@ sub setDefaults () {
     $global{"gridEngineArraySubmitID"}              = undef;
     $global{"gridEngineJobID"}                      = undef;
 
-    #####  Sun Grid Engine
+    #####  Grid Engine Pipeline
 
     $global{"useGrid"}                     = 0;
-    $synops{"useGrid"}                     = "Enable SGE globally";
+    $synops{"useGrid"}                     = "Enable SGE; if unset, no grid will be used";
 
-    $global{"useGridScript"}               = 1;
-    $synops{"useGridScript"}               = "Enable SGE for the ca3g pipeline (includes meryl, unitigger and other sequential phases)";
+    $global{"useGridMaster"}               = 1;
+    $synops{"useGridMaster"}               = "Enable SGE for the ca3g pipeline (includes meryl, unitigger and other sequential phases)";
 
     $global{"useGridOVL"}                  = 1;
-    $synops{"useGridOVL"}                  = "Enable SGE for overlap computations";
+    $synops{"useGridOVL"}                  = "Enable SGE for overlap computations with ovl";
+
+    $global{"useGridMHAP"}                 = 1;
+    $synops{"useGridMHAP"}                 = "Enable SGE for overlap computations with mhap";
 
     $global{"useGridOVS"}                  = 0;
     $synops{"useGridOVS"}                  = "Enable OverlapStore Build on Grid";
@@ -589,7 +607,12 @@ sub setDefaults () {
     $synops{"useGridOEC"}                  = "Enable SGE for the overlap error correction";
 
     $global{"useGridCNS"}                  = 1;
-    $synops{"useGridCNS"}                  = "Enable SGE for consensus";
+    $synops{"useGridCNS"}                  = "Enable SGE for utgcns consensus";
+
+    $global{"useGridFALCON"}               = 1;
+    $synops{"useGridFALCON"}               = "Enable SGE for falcon consensus";
+
+    #####  Grid Engine configuration, for each step of the pipeline
 
     $global{"gridOptions"}                 = undef;
     $synops{"gridOptions"}                 = "SGE options applied to all SGE jobs";
@@ -601,10 +624,16 @@ sub setDefaults () {
     $synops{"gridOptionsScript"}           = "SGE options applied to ca3g jobs (includes meryl, unitigger and other sequential phases)";
 
     $global{"gridOptionsOVL"}              = undef;
-    $synops{"gridOptionsOVL"}              = "SGE options applied to overlap computation jobs";
+    $synops{"gridOptionsOVL"}              = "SGE options applied to ovl overlap computation jobs";
+
+    $global{"gridOptionsMHAP"}             = undef;
+    $synops{"gridOptionsMHAP"}             = "SGE options applied to mhap overlap computation jobs";
 
     $global{"gridOptionsCNS"}              = undef;
-    $synops{"gridOptionsCNS"}              = "SGE options applied to consensus jobs";
+    $synops{"gridOptionsCNS"}              = "SGE options applied to utgcns consensus jobs";
+
+    $global{"gridOptionsFALCON"}           = undef;
+    $synops{"gridOptionsFALCON"}           = "SGE options applied to falcon consensus jobs";
 
     $global{"gridOptionsFEC"}              = undef;
     $synops{"gridOptionsCEC"}              = "SGE options applied to fragment error correction jobs";
@@ -612,11 +641,7 @@ sub setDefaults () {
     $global{"gridOptionsOEC"}              = undef;
     $synops{"gridOptionsOEC"}              = "SGE options applied to overlap error correction jobs";
 
-    #$global{"sgePropagateHold"}            = undef;
-    #synnam{"sgePropagateHold"}            = "sgePropagateHold";
-    #$synops{"sgePropagateHold"}            = undef;  #  Internal option
-
-    #####  Overlapper
+    #####  Overlapper, ovl
 
     $global{"overlapper"}                  = "ovl";
     $synops{"overlapper"}                  = "Which overlap algorithm to use for OVL (unitigger) overlaps";
@@ -642,28 +667,6 @@ sub setDefaults () {
     $global{"ovlHashLoad"}                 = "0.75";
     $synops{"ovlHashLoad"}                 = "Maximum hash table load.  If set too high, table lookups are inefficent; if too low, search overhead dominates run time";
 
-
-    $global{"mhapThreads"}                 = 12;
-    $synops{"mhapThreads"}                 = "Number of threads to use when computing overlaps with mhap";
-
-    $global{"mhapMemory"}                  = 12;
-    $synops{"mhapMemory"}                  = "Amount of memory, in gigabytes, to use for mhap overlaps";
-
-    $global{"mhapConcurrency"}             = 1;
-    $synops{"mhapConcurrency"}             = "If not SGE, number of mhap processes to run at the same time";
-
-    $global{"mhapBlockSize"}               = 20000;
-    $synops{"mhapBlockSize"}               = "Number of reads ....";
-
-    $global{"mhapMerSize"}                 = 13;
-    $synops{"mhapMerSize"}                 = "K-mer size for seeds in mhap";
-
-    $global{"mhapReAlign"}                 = 0;
-    $synops{"mhapReAlign"}                 = "Compute actual alignments from mhap overlaps; 'raw' from mhap output, 'final' from overlap store";
-
-    #  PROBLEM: want to define mhap and ovl parameters independently, but then need to duplicate
-    #  all the kmer stuff below for mhap.
-
     $global{"ovlMerSize"}                  = 22;
     $synops{"ovlMerSize"}                  = "K-mer size for seeds in overlaps";
 
@@ -679,19 +682,31 @@ sub setDefaults () {
     $global{"ovlFrequentMers"}             = undef;
     $synops{"ovlFrequentMers"}             = "Do not seed overlaps with these kmers (fasta format)";
 
+    #####  Overlapper, mhap
 
-    $global{"ovlHashLibrary"}               = "0";
-    $synops{"ovlHashLibrary"}               = "For ovl overlaps, only load hash reads from specified lib, 0 means all";
+    $global{"mhapThreads"}                 = 12;
+    $synops{"mhapThreads"}                 = "Number of threads to use when computing overlaps with mhap";
 
-    $global{"ovlRefLibrary"}                = "0";
-    $synops{"ovlRefLibrary"}                = "For ovl overlaps, only load ref reads from specified lib, 0 means all";
+    $global{"mhapMemory"}                  = 12;
+    $synops{"mhapMemory"}                  = "Amount of memory, in gigabytes, to use for mhap overlaps";
 
-    $global{"ovlCheckLibrary"}              = 1;
-    $synops{"ovlCheckLibrary"}              = "Check that all libraries are used during ovl overlaps";
+    $global{"mhapConcurrency"}             = 1;
+    $synops{"mhapConcurrency"}             = "If not SGE, number of mhap processes to run at the same time";
 
+    $global{"mhapBlockSize"}               = 20000;
+    $synops{"mhapBlockSize"}               = "Number of reads ....";
 
-    $global{"saveOverlaps"}                = 0;
-    $synops{"saveOverlaps"}                = "Save intermediate overlap files";
+    $global{"mhapMerSize"}                 = 16;
+    $synops{"mhapMerSize"}                 = "K-mer size for seeds in mhap";
+
+    $global{"mhapReAlign"}                 = 0;
+    $synops{"mhapReAlign"}                 = "Compute actual alignments from mhap overlaps; 'raw' from mhap output, 'final' from overlap store";
+
+    $global{"mhapSensitivity"}             = "normal";
+    $synops{"mhapSensitivity"}             = "Coarse sensitivity level: 'normal' or 'high'";
+
+    #  PROBLEM: want to define mhap and ovl parameters independently, but then need to duplicate
+    #  all the kmer stuff below for mhap.
 
     ##### Overlap Store
 
@@ -712,8 +727,8 @@ sub setDefaults () {
 
     #####  Mers
 
-    $global{"merylMemory"}                 = 4096;
-    $synops{"merylMemory"}                 = "Amount of memory, in MB, to use for mer counting (conflicts with merylSegments)";
+    $global{"merylMemory"}                 = 4;
+    $synops{"merylMemory"}                 = "Amount of memory, in gigabytes, to use for mer counting (conflicts with merylSegments)";
 
     $global{"merylSegments"}               = undef;
     $synops{"merylSegments"}               = "Number of segments to compute (overrides merylMemory)";

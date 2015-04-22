@@ -34,7 +34,7 @@ sub computeNumberOfCorrectionJobs ($$) {
     }
 
     if (getGlobal("consensus") eq "utgcns") {
-        die;
+        caFailure("consensus=utgcns not supported for correction", undef);
         $nJobs = getGlobal("cnsPartitions");
     }
 
@@ -249,7 +249,7 @@ sub buildCorrectionLayouts ($$) {
     my $path         = "$wrk/2-correction";
 
     return  if (-e "$path/consensus.sh");
-    return  if (-e "$wrk/correctedReads.fastq");
+    return  if (-e "$wrk/$asm.correctedReads.fastq");
     return  if (-e "$path/cnsjob.files");
 
     make_path("$path")  if (! -d "$path");
@@ -270,9 +270,9 @@ sub generateCorrectedReads ($$$) {
 
     my $path         = "$wrk/2-correction";
     my $script       = "consensus";
-    my $jobType      = "cns";
+    my $jobType      = (getGlobal('consensus') eq "utgcns") ? "cns" : "falcon";
 
-    return  if (-e "$wrk/correctedReads.fastq");
+    return  if (-e "$wrk/$asm.correctedReads.fastq");
     return  if (-e "$path/cnsjob.files");
 
     my $jobs = computeNumberOfCorrectionJobs($wrk, $asm);
@@ -334,10 +334,10 @@ sub dumpCorrectedReads ($$) {
     my $files = 0;
     my $reads = 0;
 
-    return  if (-e "$wrk/correctedReads.fastq");
+    return  if (-e "$wrk/$asm.correctedReads.fastq");
 
     open(F, "< $path/cnsjob.files") or die;
-    open(O, "> $wrk/correctedReads.fastq") or die;
+    open(O, "> $wrk/$asm.correctedReads.fastq") or die;
 
     while (<F>) {
         chomp;
@@ -368,5 +368,5 @@ sub dumpCorrectedReads ($$) {
     close(O);
     close(F);
 
-    print STDERR "dumpCorrectedReads()-- wrote $reads corrected reads from $files files into '$wrk/correctedReads.fastq'.\n";
+    print STDERR "dumpCorrectedReads()-- wrote $reads corrected reads from $files files into '$wrk/$asm.correctedReads.fastq'.\n";
 }

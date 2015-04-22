@@ -47,7 +47,7 @@ sub meryl ($$) {
 
     if (getGlobal("overlapper") eq "mhap") {
         $merSize      = getGlobal('mhapMerSize');
-        $merThresh    = 0.000005;  #  mhapFilterThreshold
+        $merThresh    = 0.00005;  #  also set in OverlapMhap.pm
         $merScale     = 1.0;
         $merDistinct  = undef;
         $merTotal     = undef;
@@ -123,7 +123,7 @@ sub meryl ($$) {
         if (defined(getGlobal("merylSegments"))) {
             $merylOpts .= " -segments " . getGlobal("merylSegments");
         } else {
-            $merylOpts .= " -memory " . getGlobal("merylMemory");
+            $merylOpts .= " -memory " . getGlobal("merylMemory") * 1024;
         }
 
         $cmd  = "$bin/meryl \\\n";
@@ -297,15 +297,18 @@ sub meryl ($$) {
         $merThresh = int(0.000005 / 2 * $totalMers);
 
         open(F, "$bin/meryl -Dt -n $merThresh -s $wrk/0-mercounts/$asm.ms$merSize | ") or die "Failed to run meryl to generate frequent mers $!\n";
-        #open(F, "< $ffile") or die "Failed to open '$ffile' for reading frequent mers: $!\n";
         open(O, "| sort -k2nr > $wrk/0-mercounts/$asm.ms$merSize.frequentMers.mhap_ignore") or die "Failed to open '$wrk/0-mercounts/$asm.ms$merSize.frequentMers.mhap_ignore' for writing: $!\n";
 
         while (!eof(F)) {
             my $h = <F>;
             my $m = <F>;  chomp $m;
+            my $r = reverse $m;
+
+            $r =~ tr/ACGTacgt/TGCAtgca/;
 
             if ($h =~ m/^>(\d+)/) {
                 printf(O "%s\t%.16f\t$1\t$totalMers\n", $m, $1 / $totalMers);
+                printf(O "%s\t%.16f\t$1\t$totalMers\n", $r, $1 / $totalMers);
             }
         }
 

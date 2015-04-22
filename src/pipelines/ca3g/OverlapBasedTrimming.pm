@@ -119,26 +119,25 @@ sub dumpReads ($$) {
     my $path   = "$wrk/3-overlapbasedtrimming";
     my $inp;
 
-    return  if (-e "$wrk/$asm.trimmed.gkp");
+    return  if (-e "$wrk/$asm.trimmedReads.fastq");
 
     make_path($path)  if (! -d $path);
 
     $inp = "$path/$asm.1.trimReads.clear"   if (-e "$path/$asm.1.trimReads.clear");
     $inp = "$path/$asm.2.splitReads.clear"  if (-e "$path/$asm.2.splitReads.clear");
 
-    caFailure("dumping trimmed reads failed; no 'clear' input", "$wrk/$asm.trimmed.err")  if (!defined($inp));
+    caFailure("dumping trimmed reads failed; no 'clear' input", "$wrk/$asm.trimmedReads.err")  if (!defined($inp));
 
-    $cmd  = "$bin/gatekeeperDumpFASTQ \\\n";
+    $cmd  = "$bin/gatekeeperDumpFASTQ -nolibname \\\n";
     $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
     $cmd .= "  -c $inp \\\n";
-    $cmd .= "  -o $wrk/$asm.trimmed \\\n";
-    $cmd .= ">    $wrk/$asm.trimmed.err 2>&1\n";
+    $cmd .= "  -o $wrk/$asm.trimmedReads \\\n";
+    $cmd .= ">    $wrk/$asm.trimmedReads.err 2>&1\n";
 
     if (runCommand($wrk, $cmd)) {
-        caFailure("dumping trimmed reads failed", "$wrk/$asm.trimmed.err");
+        caFailure("dumping trimmed reads failed", "$wrk/$asm.trimmedReads.err");
     }
 
     #  Need gatekeeperDumpFASTQ to also write a gkp input file
-
-    touch("$wrk/$asm.trimmed.gkp");
+    #touch("$wrk/$asm.trimmedReads.gkp");
 }
