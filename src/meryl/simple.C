@@ -1,3 +1,23 @@
+#include "AS_global.H"
+#include "AS_UTL_fileIO.H"
+
+#include "kMer.H"
+#include "bitPackedFile.H"
+#include "libmeryl.H"
+
+#include "seqStream.H"
+#include "merStream.H"
+#include "speedCounter.H"
+
+#include "speedCounter.H"
+#include "timeAndSize.H"
+
+#include <algorithm>
+
+using namespace std;
+
+
+#if 0
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -12,7 +32,8 @@
 #include "seqStream.H"
 #include "merStream.H"
 
-using namespace std;
+#endif
+
 
 //  A very simple mer counter.  Allocates a gigantic 32-bit array,
 //  populates the array with mers, sorts, writes output.
@@ -24,7 +45,7 @@ main(int argc, char **argv) {
   uint32   merSize        = 22;
   uint32   merCompression = 1;
 
-  bool     doForward      = true;
+  bool     doForward      = false;
   bool     doReverse      = false;
   bool     doCanonical    = false;
 
@@ -34,9 +55,7 @@ main(int argc, char **argv) {
 
   uint64         numMers = 0;
 
-  uint64        *theMers    = 0L;
-  uint64         theMersMax = 0;
-  uint64         theMersLen = 0;
+  bool           algSorting  = false;
 
   int arg = 1;
   int err = 0;
@@ -52,21 +71,21 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-f") == 0) {
       doForward   = true;
-      doReverse   = false;
-      doCanonical = false;
 
     } else if (strcmp(argv[arg], "-r") == 0) {
-      doForward   = false;
       doReverse   = true;
-      doCanonical = false;
 
     } else if (strcmp(argv[arg], "-C") == 0) {
-      doForward   = false;
-      doReverse   = false;
       doCanonical = true;
 
     } else if (strcmp(argv[arg], "-c") == 0) {
       merCompression = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-sort") == 0) {
+      algSorting = true;
+
+    } else if (strcmp(argv[arg], "-direct") == 0) {
+      algSorting = false;
 
     } else {
       fprintf(stderr, "unknown option '%s'\n", argv[arg]);
@@ -87,78 +106,123 @@ main(int argc, char **argv) {
     exit(1);
 
 
-  {
-    M = new merStream(new kMerBuilder(merSize, merCompression),
-                      new seqStream(inName),
-                      true, true);
-    numMers = M->approximateNumberOfMers();
-    delete M;
-  }
-
-  fprintf(stderr, "Guessing "uint64FMT" mers in input '%s'\n", numMers, inName);
-  fprintf(stderr, "Allocating "uint64FMT"MB for mer storage.\n", numMers * 8 >> 20);
-  
-  theMers    = new uint64 [numMers];
-  theMersLen = 0;
-  theMersMax = numMers;
-
-  ////////////////////////////////////////
-
-  C = new speedCounter(" Counting mers in buckets: %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, 1);
   M = new merStream(new kMerBuilder(merSize, merCompression),
                     new seqStream(inName),
                     true, true);
-  //M->setRange(args->mersPerBatch * segment, args->mersPerBatch * segment + args->mersPerBatch);
-
-  while (M->nextMer()) {
-    if (doForward)
-      theMers[theMersLen++] = M->theFMer();
-
-    if (doReverse)
-      theMers[theMersLen++] = M->theRMer();
-
-    if (doCanonical)
-      theMers[theMersLen++] = (M->theFMer() <= M->theRMer()) ? M->theFMer() : M->theRMer();
-
-    C->tick();
-  }
-
-  delete C;
+  numMers = M->approximateNumberOfMers();
   delete M;
 
-  fprintf(stderr, "Found "uint64FMT" mers in input '%s'\n", theMersLen, inName);
+  fprintf(stderr, "Guessing "F_U64" mers in input '%s'\n", numMers, inName);
 
-  if (theMersLen > theMersMax)
-    fprintf(stderr, "ERROR:  too many mers in input!\n"), exit(1);
+  M = new merStream(new kMerBuilder(merSize, merCompression),
+                    new seqStream(inName),
+                    true, true);
 
-  ////////////////////////////////////////
 
-  fprintf(stderr, "sorting\n");
 
-  sort(theMers, theMers + theMersLen);
 
-  ////////////////////////////////////////
 
-  C = new speedCounter(" Writing output:           %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, 1);
-  W = new merylStreamWriter(otName,
-                            merSize, merCompression,
-                            16,
-                            false);
+  if (algSorting) {
+    uint64  theMersLen = 0;
+    uint64  theMersMax = 2 * numMers;  //  for allowing both -f and -r
+    uint64 *theMers    = new uint64 [theMersMax];
 
-  kMer mer(merSize);
+    fprintf(stderr, "Allocating "F_U64"MB for mer storage.\n", numMers * sizeof(uint64) >> 20);
 
-  for (uint64 i=0; i<theMersLen; i++) {
-    mer.setWord(0, theMers[i]);
-    W->addMer(mer, 1, 0L);
-    C->tick();
+    C = new speedCounter(" Filling mer list: %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, 1);
+
+    while (M->nextMer()) {
+      if (doForward)
+        theMers[theMersLen++] = M->theFMer();
+
+      if (doReverse)
+        theMers[theMersLen++] = M->theRMer();
+
+      if (doCanonical)
+        theMers[theMersLen++] = (M->theFMer() <= M->theRMer()) ? M->theFMer() : M->theRMer();
+
+      C->tick();
+    }
+
+    delete C;
+    delete M;
+
+    fprintf(stderr, "Found "F_U64" mers in input '%s'\n", theMersLen, inName);
+    
+    if (theMersLen > theMersMax)
+      fprintf(stderr, "ERROR:  too many mers in input!\n"), exit(1);
+
+    sort(theMers, theMers + theMersLen);
+
+    C = new speedCounter(" Writing output:           %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, 1);
+    W = new merylStreamWriter(otName,
+                              merSize, merCompression,
+                              16,
+                              false);
+
+    kMer mer(merSize);
+
+    for (uint64 i=0; i<theMersLen; i++) {
+      mer.setWord(0, theMers[i]);
+      W->addMer(mer, 1, 0L);
+      C->tick();
+    }
+
+    delete C;
+    delete W;
+
+    delete [] theMers;
   }
 
-  delete C;
-  delete W;
 
-  ////////////////////////////////////////
+  else {
+    uint64  numCounts = ((uint64)1) << (2 * merSize);
+    uint32 *theCounts = new uint32 [numCounts];
 
-  delete [] theMers;
+    fprintf(stderr, "Allocating "F_U64"MB for count storage.\n", numCounts * sizeof(uint32) >> 20);
+
+    memset(theCounts, 0, sizeof(uint32) * numCounts);
+
+    C = new speedCounter(" Filling mer counts: %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, 1);
+
+    while (M->nextMer()) {
+      if (doForward)
+        theCounts[M->theFMer()]++;
+
+      if (doReverse)
+        theCounts[M->theRMer()]++;
+
+      if (doCanonical)
+        theCounts[(M->theFMer() <= M->theRMer()) ? M->theFMer() : M->theRMer()]++;
+
+      C->tick();
+    }
+
+    delete C;
+    delete M;
+
+    C = new speedCounter(" Writing output:           %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, 1);
+    W = new merylStreamWriter(otName,
+                              merSize, merCompression,
+                              16,
+                              false);
+
+    kMer mer(merSize);
+
+    for (uint64 i=0; i<numCounts; i++) {
+      if (theCounts[i] > 0) {
+        mer.setWord(0, i);
+        W->addMer(mer, theCounts[i], 0L);
+        C->tick();
+      }
+    }
+
+    delete C;
+    delete W;
+
+    delete [] theCounts;
+  }
+
 
   exit(0);
 }

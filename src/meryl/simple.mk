@@ -8,16 +8,8 @@ ifeq "$(strip ${TARGET_DIR})" ""
   TARGET_DIR   := ../$(OSTYPE)-$(MACHINETYPE)/bin
 endif
 
-TARGET   := meryl
-SOURCES  := meryl-args.C \
-            meryl-binaryOp.C \
-            meryl-build.C \
-            meryl-build-threads.C \
-            meryl-dump.C \
-            meryl-estimate.C \
-            meryl-merge.C \
-            meryl-unaryOp.C \
-            meryl.C
+TARGET   := simple
+SOURCES  := simple.C
 
 SRC_INCDIRS  := .. ../AS_UTL libleaff
 

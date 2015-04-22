@@ -103,7 +103,11 @@ SUBMAKEFILES := stores/gatekeeperCreate.mk \
                 stores/tgStoreDump.mk \
                 stores/tgTigDisplay.mk \
                 \
-                meryl/main.mk \
+                meryl/libleaff.mk \
+                meryl/leaff.mk \
+                meryl/meryl.mk \
+                meryl/simple.mk \
+                meryl/estimate-mer-threshold.mk \
                 \
                 overlapInCore/overlapInCore.mk \
                 overlapInCore/overlapInCorePartition.mk \
