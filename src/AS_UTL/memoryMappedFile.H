@@ -70,12 +70,14 @@ public:
 
     if (_length == 0)
       fprintf(stderr, "memoryMappedFile()-- File '%s' is empty, can't mmap.\n", _name), exit(1);
-      
+
     //  Map a region that allows reading, or reading and shared writing.  One could add PROT_WRITE
     //  to the readOnly, and modifications will be kept private (if MAP_SHARED is switched to
     //  MAP_PRIVATE) to the process (and discarded at the end).
     //
     //  FreeBSD supports MAP_NOCORE which will exclude the region from any core files generated.  Linux does not support it.
+    //
+    //  Linux supports MAP_NORESERVE which will not reserve swap space for the file.  When reserved, a write is guaranteed to succeed.
     //  
     //  NOTA BENE!!  Even though it is writable, it CANNOT be extended.
 
@@ -86,6 +88,8 @@ public:
       fprintf(stderr, "memoryMappedFile()-- Couldn't mmap '%s': %s\n", _name, strerror(errno)), exit(1);
 
     close(fd);
+
+    //fprintf(stderr, "memoryMappedFile()-- File '%s' of length %lu is mapped.\n", _name, _length);
   };
 
   ~memoryMappedFile() {
