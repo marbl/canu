@@ -504,9 +504,9 @@ $(foreach TGT,${ALL_TGTS},\
 ${TARGET_DIR}/ca3g.pl: pipelines/ca3g.pl
 	cp -pf  pipelines/ca3g.pl ${TARGET_DIR}/ca3g.pl
 
-${TARGET_DIR}/ca3g/lib: pipelines/ca3g/lib
+${TARGET_DIR}/ca3g/lib: pipelines/install-perl-libraries.sh
 	@if [ ! -e ${TARGET_DIR}/ca3g/ ] ; then mkdir ${TARGET_DIR}/ca3g ; fi
-	cp -pfr pipelines/ca3g/lib ${TARGET_DIR}/ca3g/
+	cd pipelines && sh install-perl-libraries.sh ../${TARGET_DIR}
 
 ${TARGET_DIR}/ca3g/Consensus.pm: pipelines/ca3g/Consensus.pm
 	@if [ ! -e ${TARGET_DIR}/ca3g/ ] ; then mkdir ${TARGET_DIR}/ca3g ; fi
