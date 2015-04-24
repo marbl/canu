@@ -414,8 +414,6 @@ sub mhapPrecomputeCheck ($$$$) {
     my $attempt      = shift @_;
 
     my $path    = "$wrk/1-overlapper";
-    my $script  = "precompute";
-    my $jobType = "mhap";
 
     return  if (-e "$path/ovljob.files");
 
@@ -456,7 +454,7 @@ sub mhapPrecomputeCheck ($$$$) {
     print STDERR "mhapPrecomputeCheck() -- attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
 
     if ($attempt < 1) {
-        submitOrRunParallelJob($wrk, $asm, $jobType, $path, $script, getGlobal("ovlConcurrency"), @failedJobs);
+        submitOrRunParallelJob($wrk, $asm, "mhap", $path, "precompute", @failedJobs);
     } else {
         caFailure("failed to precompute mhap indices.  Made $attempt attempts, jobs still failed", undef);
     }
@@ -474,8 +472,6 @@ sub mhapCheck ($$$$) {
     my $attempt      = shift @_;
 
     my $path    = "$wrk/1-overlapper";
-    my $script  = "mhap";
-    my $jobType = "mhap";
 
     return  if (-e "$path/ovljob.files");
 
@@ -526,7 +522,7 @@ sub mhapCheck ($$$$) {
     print STDERR "mhapCheck() -- attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
 
     if ($attempt < 1) {
-        submitOrRunParallelJob($wrk, $asm, $jobType, $path, $script, getGlobal("ovlConcurrency"), @failedJobs);
+        submitOrRunParallelJob($wrk, $asm, "mhap", $path, "mhap", @failedJobs);
     } else {
         caFailure("failed to compute mhap overlaps.  Made $attempt attempts, jobs still failed", undef);
     }

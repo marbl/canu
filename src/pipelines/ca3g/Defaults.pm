@@ -3,7 +3,7 @@ package ca3g::Defaults;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(getCommandLineOptions addCommandLineOption writeLog caFailure printHelp setParametersFromFile setParametersFromCommandLine checkParameters getGlobal setGlobal setDefaults);
+@EXPORT = qw(getCommandLineOptions addCommandLineOption writeLog caFailure printHelp setParametersFromFile setParametersFromCommandLine checkParameters getGlobal setGlobal setErrorRate setDefaults);
 
 use strict;
 use Carp;
@@ -421,54 +421,123 @@ sub checkParameters ($) {
     #  Handle special cases.
 
     if (uc(getGlobal("gridEngine")) eq "SGE") {
-        setGlobalIfUndef("gridEngineSubmitCommand",      "qsub");
-        setGlobalIfUndef("gridEngineHoldOption",         "-hold_jid \"WAIT_TAG\"");
-        setGlobalIfUndef("gridEngineHoldOptionNoArray",  undef);
-        setGlobalIfUndef("gridEngineSyncOption",         "-sync y");
-        setGlobalIfUndef("gridEngineNameOption",         "-cwd -N");
-        setGlobalIfUndef("gridEngineArrayOption",        "-t ARRAY_JOBS");
-        setGlobalIfUndef("gridEngineArrayName",          "ARRAY_NAME");
-        setGlobalIfUndef("gridEngineOutputOption",       "-j y -o");
-        setGlobalIfUndef("gridEnginePropagateCommand",   "qalter -hold_jid \"WAIT_TAG\"");
-        setGlobalIfUndef("gridEngineNameToJobIDCommand", undef);
-        setGlobalIfUndef("gridEngineNameToJobIDCommandNoArray", undef);
-        setGlobalIfUndef("gridEngineTaskID",             "SGE_TASK_ID");
-        setGlobalIfUndef("gridEngineArraySubmitID",      "\\\$TASK_ID");
-        setGlobalIfUndef("gridEngineJobID",              "JOB_ID");
+        setGlobalIfUndef("gridEngineSubmitCommand",              "qsub");
+        setGlobalIfUndef("gridEngineHoldOption",                 "-hold_jid \"WAIT_TAG\"");
+        setGlobalIfUndef("gridEngineHoldOptionNoArray",          undef);
+        setGlobalIfUndef("gridEngineSyncOption",                 "-sync y");
+        setGlobalIfUndef("gridEngineNameOption",                 "-cwd -N");
+        setGlobalIfUndef("gridEngineArrayOption",                "-t ARRAY_JOBS");
+        setGlobalIfUndef("gridEngineArrayName",                  "ARRAY_NAME");
+        setGlobalIfUndef("gridEngineOutputOption",               "-j y -o");
+        setGlobalIfUndef("gridEnginePropagateCommand",           "qalter -hold_jid \"WAIT_TAG\"");
+        setGlobalIfUndef("gridEngineThreadsOption",              undef);  #"-pe threads THREADS");
+        setGlobalIfUndef("gridEngineMemoryOption",               "-l mem=MEMORY");
+        setGlobalIfUndef("gridEngineNameToJobIDCommand",         undef);
+        setGlobalIfUndef("gridEngineNameToJobIDCommandNoArray",  undef);
+        setGlobalIfUndef("gridEngineTaskID",                     "SGE_TASK_ID");
+        setGlobalIfUndef("gridEngineArraySubmitID",              "\\\$TASK_ID");
+        setGlobalIfUndef("gridEngineJobID",                      "JOB_ID");
+
+        #  Try to figure out the name of the threaded job execution environment.
+        #  It's the one with allocation_rule of $pe_slots.
+
+        my @env = `qconf -spl`;  chomp @env;
+        my $thr = undef;
+        my $nth = 0;
+
+        foreach my $env (@env) {
+            open(F, "qconf -sp $env |");
+            while (<F>) {
+                if (m/allocation_rule.*pe_slots/) {
+                    $thr = $env;
+                    $nth++;
+                }
+            }
+            close(F);
+        }
+
+        if ($nth == 1) {
+            print STDERR "-- Detected Grid Engine environment '$thr'.\n";
+
+            setGlobal("gridEngineThreadsOption", "-pe $thr THREADS");
+
+        } else {
+            print STDERR "-- WARNING:  Couldn't determine the SGE parallel environment to run multi-threaded codes.\n";
+            print STDERR "--           Set 'gridEngineThreadsOption' manually; example: '-pe threaded THREADS'.\n";
+        }
+
+        #  Try to figure out the name of the memory resource.
+
+        my $mem = undef;
+        my $nmm = 0;
+
+        open(F, "qconf -sc |");
+        while (<F>) {
+            my @vals = split '\s+', $_;
+
+            next  if ($vals[5] ne "YES");        #  Not a consumable resource.
+            next  if ($vals[2] ne "MEMORY");     #  Not a memory resource.
+            next  if ($vals[0] =~ m/swap/);      #  Don't care about swap.
+            next  if ($vals[0] =~ m/virtual/);   #  Don't care about vm space.
+
+            $mem .= " " if (defined($mem));
+            $mem  = $vals[0];
+            $nmm++;
+        }
+        close(F);
+
+        if      ($nmm == 1) {
+            print STDERR "-- Detected Grid Engine consumable '$mem'.\n";
+
+            setGlobal("gridEngineMemoryOption", "-l $mem=MEMORY");
+
+        } elsif ($nmm > 1) {
+            print STDERR "-- WARNING:  Couldn't determine the SGE resource to request memory.\n";
+            print STDERR "--           Found $nmm choices: $mem\n";
+            print STDERR "--           Set 'gridEngineMemoryOption' manually; example: '-l mem=MEMORY'.\n";
+
+        } else {
+            print STDERR "-- WARNING:  Couldn't determine the SGE resource to request memory.\n";
+            print STDERR "--           Set 'gridEngineMemoryOption' manually; example: '-l mem=MEMORY'.\n";
+        }
     }
 
     if (uc(getGlobal("gridEngine")) eq "PBS") {
-        setGlobalIfUndef("gridEngineSubmitCommand",      "qsub");
-        setGlobalIfUndef("gridEngineHoldOption",         "-W depend=afterany:\"WAIT_TAG\"");
-        setGlobalIfUndef("gridEngineHoldOptionNoArray",  undef);
-        setGlobalIfUndef("gridEngineSyncOption",         "");
-        setGlobalIfUndef("gridEngineNameOption",         "-d `pwd` -N");
-        setGlobalIfUndef("gridEngineArrayOption",        "-t ARRAY_JOBS");
-        setGlobalIfUndef("gridEngineArrayName",          "ARRAY_NAME\[ARRAY_JOBS\]");
-        setGlobalIfUndef("gridEngineOutputOption",       "-j oe -o");
-        setGlobalIfUndef("gridEnginePropagateCommand",   "qalter -W depend=afterany:\"WAIT_TAG\"");
-        setGlobalIfUndef("gridEngineNameToJobIDCommand", undef);
-        setGlobalIfUndef("gridEngineNameToJobIDCommandNoArray", undef);
-        setGlobalIfUndef("gridEngineTaskID",             "PBS_TASKNUM");
-        setGlobalIfUndef("gridEngineArraySubmitID",      "\\\$PBS_TASKNUM");
-        setGlobalIfUndef("gridEngineJobID",              "PBS_JOBID");
+        setGlobalIfUndef("gridEngineSubmitCommand",              "qsub");
+        setGlobalIfUndef("gridEngineHoldOption",                 "-W depend=afterany:\"WAIT_TAG\"");
+        setGlobalIfUndef("gridEngineHoldOptionNoArray",          undef);
+        setGlobalIfUndef("gridEngineSyncOption",                 "");
+        setGlobalIfUndef("gridEngineNameOption",                 "-d `pwd` -N");
+        setGlobalIfUndef("gridEngineArrayOption",                "-t ARRAY_JOBS");
+        setGlobalIfUndef("gridEngineArrayName",                  "ARRAY_NAME\[ARRAY_JOBS\]");
+        setGlobalIfUndef("gridEngineOutputOption",               "-j oe -o");
+        setGlobalIfUndef("gridEnginePropagateCommand",           "qalter -W depend=afterany:\"WAIT_TAG\"");
+        setGlobalIfUndef("gridEngineThreadsOption",              undef);
+        setGlobalIfUndef("gridEngineMemoryOption",               undef);
+        setGlobalIfUndef("gridEngineNameToJobIDCommand",         undef);
+        setGlobalIfUndef("gridEngineNameToJobIDCommandNoArray",  undef);
+        setGlobalIfUndef("gridEngineTaskID",                     "PBS_TASKNUM");
+        setGlobalIfUndef("gridEngineArraySubmitID",              "\\\$PBS_TASKNUM");
+        setGlobalIfUndef("gridEngineJobID",                      "PBS_JOBID");
     }
 
     if (uc(getGlobal("gridEngine")) eq "LSF") {
-        setGlobalIfUndef("gridEngineSubmitCommand",      "bsub");
-        setGlobalIfUndef("gridEngineHoldOption",         "-w \"numended\(\"WAIT_TAG\", \*\)\"");
-        setGlobalIfUndef("gridEngineHoldOptionNoArray",  "-w \"done\(\"WAIT_TAG\"\)\"");
-        setGlobalIfUndef("gridEngineSyncOption",         "-K");
-        setGlobalIfUndef("gridEngineNameOption",         "-J");
-        setGlobalIfUndef("gridEngineArrayOption",        "");
-        setGlobalIfUndef("gridEngineArrayName",          "ARRAY_NAME\[ARRAY_JOBS\]");
-        setGlobalIfUndef("gridEngineOutputOption",       "-o");
-        setGlobalIfUndef("gridEnginePropagateCommand",   "bmodify -w \"done\(\"WAIT_TAG\"\)\"");
-        setGlobalIfUndef("gridEngineNameToJobIDCommand", "bjobs -A -J \"WAIT_TAG\" | grep -v JOBID");
-        setGlobalIfUndef("gridEngineNameToJobIDCommandNoArray", "bjobs -J \"WAIT_TAG\" | grep -v JOBID");
-        setGlobalIfUndef("gridEngineTaskID",             "LSB_JOBINDEX");
-        setGlobalIfUndef("gridEngineArraySubmitID",      "%I");
-        setGlobalIfUndef("gridEngineJobID",              "LSB_JOBID");
+        setGlobalIfUndef("gridEngineSubmitCommand",              "bsub");
+        setGlobalIfUndef("gridEngineHoldOption",                 "-w \"numended\(\"WAIT_TAG\", \*\)\"");
+        setGlobalIfUndef("gridEngineHoldOptionNoArray",          "-w \"done\(\"WAIT_TAG\"\)\"");
+        setGlobalIfUndef("gridEngineSyncOption",                 "-K");
+        setGlobalIfUndef("gridEngineNameOption",                 "-J");
+        setGlobalIfUndef("gridEngineArrayOption",                "");
+        setGlobalIfUndef("gridEngineArrayName",                  "ARRAY_NAME\[ARRAY_JOBS\]");
+        setGlobalIfUndef("gridEngineOutputOption",               "-o");
+        setGlobalIfUndef("gridEnginePropagateCommand",           "bmodify -w \"done\(\"WAIT_TAG\"\)\"");
+        setGlobalIfUndef("gridEngineThreadsOption",              undef);
+        setGlobalIfUndef("gridEngineMemoryOption",               undef);
+        setGlobalIfUndef("gridEngineNameToJobIDCommand",         "bjobs -A -J \"WAIT_TAG\" | grep -v JOBID");
+        setGlobalIfUndef("gridEngineNameToJobIDCommandNoArray",  "bjobs -J \"WAIT_TAG\" | grep -v JOBID");
+        setGlobalIfUndef("gridEngineTaskID",                     "LSB_JOBINDEX");
+        setGlobalIfUndef("gridEngineArraySubmitID",              "%I");
+        setGlobalIfUndef("gridEngineJobID",                      "LSB_JOBID");
     }
 
     #
@@ -486,29 +555,64 @@ sub checkParameters ($) {
     #  Report.
     #
 
-    print STDERR "genomeSize        = ", getGlobal("genomeSize"), "\n";
-    print STDERR "errorRate         = ", getGlobal("errorRate"), "\n";
-    print STDERR "\n";
-    print STDERR "ovlErrorRate      = ", getGlobal("ovlErrorRate"), "\n";
-    print STDERR "obtErrorRate      = ", getGlobal("obtErrorRate"), "\n";
-    print STDERR "utgErrorRate      = ", getGlobal("utgErrorRate"), "\n";
-    print STDERR "utgGraphErrorRate = ", getGlobal("utgGraphErrorRate"), "\n";
-    print STDERR "utgMergeErrorRate = ", getGlobal("utgMergeErrorRate"), "\n";
-    print STDERR "cnsErrorRate      = ", getGlobal("cnsErrorRate"), "\n";
+    print STDERR "-- \n";
+    print STDERR "-- genomeSize        = ", getGlobal("genomeSize"), "\n";
+    print STDERR "-- errorRate         = ", getGlobal("errorRate"), "\n";
+    print STDERR "-- \n";
+    print STDERR "-- ovlErrorRate      = ", getGlobal("ovlErrorRate"), "\n";
+    print STDERR "-- obtErrorRate      = ", getGlobal("obtErrorRate"), "\n";
+    print STDERR "-- utgErrorRate      = ", getGlobal("utgErrorRate"), "\n";
+    print STDERR "-- utgGraphErrorRate = ", getGlobal("utgGraphErrorRate"), "\n";
+    print STDERR "-- utgMergeErrorRate = ", getGlobal("utgMergeErrorRate"), "\n";
+    print STDERR "-- cnsErrorRate      = ", getGlobal("cnsErrorRate"), "\n";
+    print STDERR "-- \n";
+}
+
+
+sub setExecDefaults ($$$$$$) {
+    my $tag         = shift @_;
+    my $name        = shift @_;
+    my $usegrid     = shift @_;
+    my $memory      = shift @_;
+    my $threads     = shift @_;
+    my $concurrent  = shift @_;
+
+    $global{"useGrid${tag}"}       = $usegrid;
+    $synops{"useGrid${tag}"}       = "Use grid engine for $name computes";
+
+    $global{"gridOptions${tag}"}   = undef;
+    $synops{"gridOptions${tag}"}   = "SGE options applied to $name jobs";
+
+    $global{"${tag}Memory"}        = $memory;
+    $synops{"${tag}Memory"}        = "Amount of memory, in gigabytes, to use for $name jobs";
+
+    $global{"${tag}Threads"}       = $threads;
+    $synops{"${tag}Threads"}       = "Number of threads to use for $name jobs";
+
+    $global{"${tag}Concurrency"}   = $concurrent;
+    $synops{"${tag}Concurrency"}   = "If not SGE, number of $name jobs to run at the same time; default is n_proc / n_threads";
 }
 
 
 
-sub setDefaults () {
+sub setErrorRate ($) {
+    my $er = shift @_;
 
-    #  The rules:
-    #
-    #  1) Before changing these defaults, read the (printed) documentation.
-    #  2) After changing, update the documentation.
-    #  3) Add new defaults in the correct section.
-    #  4) Keep defaults in the same order as the documentation.
-    #  5) UPDATE THE DOCUMENTATION.
-    #
+    setGlobal("errorRate",          $er);
+
+    setGlobal("ovlErrorRate",       $er * 3);
+    setGlobal("obtErrorRate",       $er * 3);
+
+    setGlobal("utgGraphErrorRate",  $er * 3);
+    setGlobal("utgBubbleErrorRate", $er * 3 + 0.5 * $er);
+    setGlobal("utgMergeErrorRate",  $er * 3 - 0.5 * $er);
+    setGlobal("utgRepeatErrorRate", $er * 3);
+
+    setGlobal("cnsErrorRate",       $er);
+}
+
+
+sub setDefaults () {
 
     #####  General Configuration Options (aka miscellany)
 
@@ -537,14 +641,20 @@ sub setDefaults () {
     $global{"obtErrorRate"}                = undef;
     $synops{"obtErrorRate"}                = "Overlaps at or below this error rate are used to trim reads";
 
-    $global{"utgErrorRate"}                = undef;
-    $synops{"utgErrorRate"}                = "Overlaps at or below this error rate are used to construct unitigs (BOG and UTG)";
+    #$global{"utgErrorRate"}                = undef;
+    #$synops{"utgErrorRate"}                = "Overlaps at or below this error rate are used to construct unitigs (BOG and UTG)";
 
     $global{"utgGraphErrorRate"}           = undef;
     $synops{"utgGraphErrorRate"}           = "Overlaps at or below this error rate are used to construct unitigs (BOGART)";
 
+    $global{"utgBubbleErrorRate"}          = undef;
+    $synops{"utgBubbleErrorRate"}          = "Overlaps at or below this error rate are used to construct unitigs (BOGART)";
+
     $global{"utgMergeErrorRate"}           = undef;
     $synops{"utgMergeErrorRate"}           = "Overlaps at or below this error rate are used to construct unitigs (BOGART)";
+
+    $global{"utgRepeatErrorRate"}          = undef;
+    $synops{"utgRepeatErrorRate"}          = "Overlaps at or below this error rate are used to construct unitigs (BOGART)";
 
     $global{"cnsErrorRate"}                = undef;
     $synops{"cnsErrorRate"}                = "Consensus expects alignments at about this error rate";
@@ -567,7 +677,7 @@ sub setDefaults () {
 
     #####  Grid Engine configuration, internal parameters
 
-    $global{"gridEngine"}                           = "SGE";
+    $global{"gridEngine"}                           = undef;
     $global{"gridEngineSubmitCommand"}              = undef;
     $global{"gridEngineHoldOption"}                 = undef;
     $global{"gridEngineHoldOptionNoArray"}          = undef;
@@ -577,40 +687,28 @@ sub setDefaults () {
     $global{"gridEngineArrayName"}                  = undef;
     $global{"gridEngineOutputOption"}               = undef;
     $global{"gridEnginePropagateCommand"}           = undef;
+    $global{"gridEngineThreadsOption"}              = undef;
+    $global{"gridEngineMemoryOption"}               = undef;
     $global{"gridEngineNameToJobIDCommand"}         = undef;
     $global{"gridEngineNameToJobIDCommandNoArray"}  = undef;
     $global{"gridEngineTaskID"}                     = undef;
     $global{"gridEngineArraySubmitID"}              = undef;
     $global{"gridEngineJobID"}                      = undef;
 
+    #  Try to decide which grid engine we have.
+
+    if (defined($ENV{'SGE_ROOT'})) {
+        print STDERR "-- Detected Sun Grid Engine in '$ENV{'SGE_ROOT'}/$ENV{'SGE_CELL'}'.\n";
+        $global{"gridEngine"} = "SGE";
+    } else {
+        print STDERR "-- No grid engine detected.\n";
+    }
+
+
     #####  Grid Engine Pipeline
 
     $global{"useGrid"}                     = 0;
     $synops{"useGrid"}                     = "Enable SGE; if unset, no grid will be used";
-
-    $global{"useGridMaster"}               = 1;
-    $synops{"useGridMaster"}               = "Enable SGE for the ca3g pipeline (includes meryl, unitigger and other sequential phases)";
-
-    $global{"useGridOVL"}                  = 1;
-    $synops{"useGridOVL"}                  = "Enable SGE for overlap computations with ovl";
-
-    $global{"useGridMHAP"}                 = 1;
-    $synops{"useGridMHAP"}                 = "Enable SGE for overlap computations with mhap";
-
-    $global{"useGridOVS"}                  = 0;
-    $synops{"useGridOVS"}                  = "Enable OverlapStore Build on Grid";
-
-    $global{"useGridFEC"}                  = 1;
-    $synops{"useGridFEC"}                  = "Enable SGE for the fragment error correction";
-
-    $global{"useGridOEC"}                  = 1;
-    $synops{"useGridOEC"}                  = "Enable SGE for the overlap error correction";
-
-    $global{"useGridCNS"}                  = 1;
-    $synops{"useGridCNS"}                  = "Enable SGE for utgcns consensus";
-
-    $global{"useGridFALCON"}               = 1;
-    $synops{"useGridFALCON"}               = "Enable SGE for falcon consensus";
 
     #####  Grid Engine configuration, for each step of the pipeline
 
@@ -620,37 +718,28 @@ sub setDefaults () {
     $global{"gridOptionsJobName"}          = undef;
     $synops{"gridOptionsJobName"}          = "SGE jobs name suffix";
 
-    $global{"gridOptionsScript"}           = undef;
-    $synops{"gridOptionsScript"}           = "SGE options applied to ca3g jobs (includes meryl, unitigger and other sequential phases)";
+    #$global{"gridEngineCPUs"}              = undef;
+    #$synops{"gridEngineCPUs"}              = "Number of CPUs available per grid host";
 
-    $global{"gridOptionsOVL"}              = undef;
-    $synops{"gridOptionsOVL"}              = "SGE options applied to ovl overlap computation jobs";
+    #$global{"gridEngineMemory"}            = undef;
+    #$synops{"gridEngineMemory"}            = "Amount of memory, in gigabytes, available per grid host";
 
-    $global{"gridOptionsMHAP"}             = undef;
-    $synops{"gridOptionsMHAP"}             = "SGE options applied to mhap overlap computation jobs";
+    #####  Grid Engine configuration and parameters, for each step of the pipeline
 
-    $global{"gridOptionsCNS"}              = undef;
-    $synops{"gridOptionsCNS"}              = "SGE options applied to utgcns consensus jobs";
-
-    $global{"gridOptionsFALCON"}           = undef;
-    $synops{"gridOptionsFALCON"}           = "SGE options applied to falcon consensus jobs";
-
-    $global{"gridOptionsFEC"}              = undef;
-    $synops{"gridOptionsCEC"}              = "SGE options applied to fragment error correction jobs";
-
-    $global{"gridOptionsOEC"}              = undef;
-    $synops{"gridOptionsOEC"}              = "SGE options applied to overlap error correction jobs";
+    setExecDefaults("CNS",    "unitig consensus",           1,  4, 1, undef);  #  Params are useGrid, memory, threads and concurrency
+    setExecDefaults("COR",    "read correction",            1,  4, 1, undef);  #  Default concurrency is n_cpu / n_threads
+    setExecDefaults("RED",    "read error detection",       1,  4, 4, undef);
+    setExecDefaults("OEA",    "overlap error adjustment",   1,  4, 4, undef);
+    setExecDefaults("OVL",    "overlaps",                   1,  4, 4, undef);
+    setExecDefaults("MHAP",   "mhap overlaps",              1, 16, 8, undef);
+    setExecDefaults("OVB",    "overlap store bucketizing",  1,  2, 1, undef);
+    setExecDefaults("OVS",    "overlap store sorting",      1,  4, 1, undef);
+    setExecDefaults("MASTER", "master script",              0, 16, 1, undef);  #  Broken; bogart blows the limits
 
     #####  Overlapper, ovl
 
     $global{"overlapper"}                  = "ovl";
-    $synops{"overlapper"}                  = "Which overlap algorithm to use for OVL (unitigger) overlaps";
-
-    $global{"ovlThreads"}                  = 2;
-    $synops{"ovlThreads"}                  = "Number of threads to use when computing overlaps with overlapInCore";
-
-    $global{"ovlConcurrency"}              = 1;
-    $synops{"ovlConcurrency"}              = "If not SGE, number of overlapper processes to run at the same time";
+    $synops{"overlapper"}                  = "Which overlap algorithm to use for computing overlaps for assembly";
 
     $global{"ovlHashBlockLength"}          = 100000000;
     $synops{"ovlHashBlockLength"}          = "Amount of sequence (bp) to load into the overlap hash table";
@@ -661,10 +750,10 @@ sub setDefaults () {
     $global{"ovlRefBlockLength"}           = 0;
     $synops{"ovlRefBlockLength"}           = "Amount of sequence (bp) to search against the hash table per batch";
 
-    $global{"ovlHashBits"}                 = "22";
+    $global{"ovlHashBits"}                 = 22;
     $synops{"ovlHashBits"}                 = "Width of the kmer hash.  Width 22=1gb, 23=2gb, 24=4gb, 25=8gb.  Plus 10b per ovlHashBlockLength";
 
-    $global{"ovlHashLoad"}                 = "0.75";
+    $global{"ovlHashLoad"}                 = 0.75;
     $synops{"ovlHashLoad"}                 = "Maximum hash table load.  If set too high, table lookups are inefficent; if too low, search overhead dominates run time";
 
     $global{"ovlMerSize"}                  = 22;
@@ -683,15 +772,6 @@ sub setDefaults () {
     $synops{"ovlFrequentMers"}             = "Do not seed overlaps with these kmers (fasta format)";
 
     #####  Overlapper, mhap
-
-    $global{"mhapThreads"}                 = 12;
-    $synops{"mhapThreads"}                 = "Number of threads to use when computing overlaps with mhap";
-
-    $global{"mhapMemory"}                  = 12;
-    $synops{"mhapMemory"}                  = "Amount of memory, in gigabytes, to use for mhap overlaps";
-
-    $global{"mhapConcurrency"}             = 1;
-    $synops{"mhapConcurrency"}             = "If not SGE, number of mhap processes to run at the same time";
 
     $global{"mhapBlockSize"}               = 20000;
     $synops{"mhapBlockSize"}               = "Number of reads ....";
@@ -718,12 +798,6 @@ sub setDefaults () {
 
     $global{"ovlStoreSlices"}              = 128;
     $synops{"ovlStoreSlices"}              = "How many pieces to split the sorting into, for the parallel store build";
-
-    $global{"osbConcurrency"}              = 12;
-    $synops{"osbConcurrency"}              = "How many bucketizing jobs to run concurrently, for the parallel store build";
-
-    $global{"ossConcurrency"}              = 4;
-    $synops{"ossConcurrency"}              = "How many sorting jobs to run concurrently, for the parallel store build";
 
     #####  Mers
 
@@ -752,26 +826,11 @@ sub setDefaults () {
     $global{"enableOEA"}                   = 1;
     $synops{"enableOEA"}                   = "Do overlap error adjustment - comprises two steps: read error detection (RED) and overlap error adjustment (OEA)";
 
-    $global{"useGridRED"}                  = 0;
-    $synops{"useGridRED"}                  = "Use grid engine for read error detection computes";
-
     $global{"redBatchSize"}                = 200000;
     $synops{"redBatchSize"}                = "Number of reads per fragment error detection batch, directly affects memory usage";
 
-    $global{"redThreads"}                  = 2;
-    $synops{"redThreads"}                  = "Number of threads to use while computing fragment errors";
-
-    $global{"redConcurrency"}              = 1;
-    $synops{"redConcurrency"}              = "If not SGE, number of fragment error detection processes to run at the same time";
-
-    $global{"useGridOEA"}                  = 0;
-    $synops{"useGridOEA"}                  = "Use grid engine for overlap error adjustment computes";
-
     $global{"oeaBatchSize"}                = 200000;
     $synops{"oeaBatchSize"}                = "Number of reads per overlap error correction batch";
-
-    $global{"oeaConcurrency"}              = 4;
-    $synops{"oeaConcurrency"}              = "If not SGE, number of overlap error correction processes to run at the same time";
 
     #####  Unitigger & BOG & bogart Options
 
@@ -826,9 +885,6 @@ sub setDefaults () {
 
     $global{"cnsMinFrags"}                 = 75000;
     $synops{"cnsMinFrags"}                 = "Don't make a consensus partition with fewer than N reads";
-
-    $global{"cnsConcurrency"}              = 2;
-    $synops{"cnsConcurrency"}              = "If not SGE, number of consensus jobs to run at the same time";
 
     $global{"cnsMaxCoverage"}              = 0;
     $synops{"cnsMaxCoverage"}              = "Limit unitig consensus to to at most this coverage";

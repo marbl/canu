@@ -269,8 +269,6 @@ sub generateCorrectedReads ($$$) {
     my $bin          = getBinDirectory();
 
     my $path         = "$wrk/2-correction";
-    my $script       = "consensus";
-    my $jobType      = (getGlobal('consensus') eq "utgcns") ? "cns" : "falcon";
 
     return  if (-e "$wrk/$asm.correctedReads.fastq");
     return  if (-e "$path/cnsjob.files");
@@ -314,7 +312,7 @@ sub generateCorrectedReads ($$$) {
     print STDERR "generateCorrectedReads() -- attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
 
     if ($attempt < 1) {
-        submitOrRunParallelJob($wrk, $asm, $jobType, $path, $script, getGlobal("cnsConcurrency"), @failedJobs);
+        submitOrRunParallelJob($wrk, $asm, "cor", $path, "consensus", @failedJobs);
     } else {
         caFailure("failed to generate corrected reads.  Made $attempt attempts, jobs still failed.", undef);
     }

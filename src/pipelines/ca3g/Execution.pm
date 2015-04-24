@@ -3,7 +3,7 @@ package ca3g::Execution;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(touch getInstallDirectory getBinDirectory getBinDirectoryShellCode submitScript buildGridJob submitOrRunParallelJob runCommand stopBefore stopAfter diskSpace);
+@EXPORT = qw(getNumberOfCPUs getPhysicalMemorySize touch getInstallDirectory getBinDirectory getBinDirectoryShellCode submitScript submitOrRunParallelJob runCommand stopBefore stopAfter diskSpace);
 
 use strict;
 use Config;            #  for @signame
@@ -150,6 +150,56 @@ sub schedulerFinish ($) {
 
 
 
+#
+#  Host management
+#
+
+sub getNumberOfCPUs () {
+    my $os   = $^O;
+    my $ncpu = 1;
+
+    #  See http://stackoverflow.com/questions/6481005/obtain-the-number-of-cpus-cores-in-linux
+
+    if ($os eq "freebsd") {
+        $ncpu = int(`sysctl -n hw.ncpu`);
+    }
+
+    if ($os eq "darwin") {
+        $ncpu = int(`getconf _NPROCESSORS_ONLN`);
+    }
+
+    if ($os eq "linux") {
+        $ncpu = int(`getconf _NPROCESSORS_ONLN`);
+    }
+
+    return($ncpu);
+}
+
+
+sub getPhysicalMemorySize () {
+    my $os     = $^O;
+    my $memory = 1;
+
+    if ($os eq "freebsd") {
+        $memory = `sysctl -n hw.physmem` / 1024 / 1024 / 1024;
+    }
+
+    if ($os eq "darwin") {
+        $memory = `sysctl -n hw.memsize` / 1024 / 1024 / 1024;
+    }
+
+    if ($os eq "linux") {
+        open(F, "< /proc/meminfo");        #  Way to go, Linux!  Make it easy on us!
+        while (<F>) {
+            if (m/MemTotal:\s+(\d+)/) {
+                $memory = $1 / 1024 / 1024;
+            }
+        }
+        close(F);
+    }
+
+    return(int($memory + 0.5));  #  Poor man's rounding
+}
 
 
 
@@ -346,7 +396,7 @@ sub submitScript ($$$) {
 
     my $jobName              = "c3g_" . $asm . ((defined(getGlobal("gridOptionsJobName"))) ? ("_" . getGlobal("gridOptionsJobName")) : (""));
 
-    my $gridOpts             = getGlobal("gridOptions") . " " . getGlobal("gridOptionsScript");
+    my $gridOpts             = getGlobal("gridOptions") . " " . getGlobal("gridOptionsMaster");
 
     #  If the jobToWaitOn is defined, make the script wait for that to complete.  LSF might need to
     #  query jobs in the queue and figure out the job ID (or IDs) for the jobToWaitOn.  Reading LSF
@@ -404,12 +454,40 @@ sub buildOutputName ($$$) {
 }
 
 
+sub buildMemoryOption ($$) {
+    my $m = shift @_;
+    my $t = shift @_;
+    my $r;
 
-sub buildGridJob ($$$$$$) {
+    if (getGlobal("gridEngine") eq "SGE") {
+        $m /= $t;
+    }
+
+    $r =  getGlobal("gridEngineMemoryOption");
+    $r =~ s/MEMORY/${m}g/;
+
+    return($r);    
+}
+
+
+sub buildThreadOption ($) {
+    my $t = shift @_;
+    my $r;
+
+    $r =  getGlobal("gridEngineThreadsOption");
+    $r =~ s/THREADS/$t/;
+
+    return($r);    
+}
+
+
+sub buildGridJob ($$$$$$$$) {
     my $asm     = shift @_;
     my $jobType = shift @_;
     my $path    = shift @_;
     my $script  = shift @_;
+    my $mem     = shift @_;
+    my $thr     = shift @_;
     my $bgnJob  = shift @_;
     my $endJob  = shift @_;
 
@@ -427,7 +505,6 @@ sub buildGridJob ($$$$$$) {
     #  Figure out the command and options needed to run the job.
 
     my $submitCommand = getGlobal("gridEngineSubmitCommand");
-    my $gridOpts      = getGlobal("gridOptions") . " " . getGlobal("gridOptions$jobType");
     my $nameOption    = getGlobal("gridEngineNameOption");
 
     my $jobNameT = "${jobType}_" . $asm . ((defined(getGlobal("gridOptionsJobName"))) ? ("_" . getGlobal("gridOptionsJobName")) : (""));
@@ -439,11 +516,24 @@ sub buildGridJob ($$$$$$) {
     my $tid           = getGlobal("gridEngineArraySubmitID");
     my $outName       = buildOutputName($path, $script, $tid);
 
+    my $memOption     = buildMemoryOption($mem, $thr);
+    my $thrOption     = buildThreadOption($thr);
+
+    my $gridOpts;
+
+    $gridOpts  = getGlobal("gridOptions")          if (defined(getGlobal("gridOptions")));
+    $gridOpts .= " "                               if (defined($gridOpts));
+    $gridOpts  = getGlobal("gridOptions$jobType")  if (defined(getGlobal("gridOptions$jobType")));
+    $gridOpts .= " "                               if (defined($gridOpts));
+    $gridOpts .= $memOption                        if (defined($memOption));
+    $gridOpts .= " "                               if (defined($gridOpts));
+    $gridOpts .= $thrOption                        if (defined($thrOption));
+
     #  Build the command line.
 
     my $cmd;
     $cmd  = "  $submitCommand \\\n";
-    $cmd .= "    $gridOpts \\\n"  if ($gridOpts ne " ");
+    $cmd .= "    $gridOpts \\\n"  if (defined($gridOpts));
     $cmd .= "    $nameOption \"$jobName\" \\\n";
     $cmd .= "    $arrayOpt \\\n";
     $cmd .= "    $outputOption $outName \\\n";
@@ -522,7 +612,7 @@ sub convertToJobRange (@) {
 #
 #  If under grid control, submit grid jobs.  Otherwise, run in parallel locally.
 #
-sub submitOrRunParallelJob ($$$$$$@) {
+sub submitOrRunParallelJob ($$$$$@) {
     my $wrk          = shift @_;
     my $asm          = shift @_;
 
@@ -531,7 +621,13 @@ sub submitOrRunParallelJob ($$$$$$@) {
     my $path         = shift @_;
     my $script       = shift @_;  #  Runs $path/$script.sh > $path/$script.######.out
 
-    my $nParallel    = shift @_;
+#    my $mem          = shift @_;  #  Total memory expected
+#    my $thr          = shift @_;  #  Total threads expected
+#    my $nParallel    = shift @_;  #  If running locally, the number to run at once
+
+    my $mem          = getGlobal("${jobType}Memory");
+    my $thr          = getGlobal("${jobType}Threads");
+    my $nParallel    = getGlobal("${jobType}Concurrency");
 
     #my $holds        = shift @_;
     #my $submitScript = shift @_;
@@ -541,6 +637,12 @@ sub submitOrRunParallelJob ($$$$$$@) {
     #  The script MUST be executable.
 
     system("chmod +x \"$path/$script.sh\"");
+
+    #  Report what we're doing.
+
+    #my $t = localtime();
+    #print STDERR "----------------------------------------GRIDSTART $t\n";
+    #print STDERR "$path/$script.sh with $mem gigabytes memory and $thr threads.\n";
 
     #  If 'gridEngineJobID' environment variable exists (SGE: JOB_ID; LSF: LSB_JOBID) then we are
     #  currently running under grid crontrol.  If so, run the grid command to submit more jobs, then
@@ -553,7 +655,7 @@ sub submitOrRunParallelJob ($$$$$$@) {
         my $jobName;
 
         foreach my $j (@jobs) {
-            ($cmd, $jobName) = buildGridJob($asm, $jobType, $path, $script, $j, undef);
+            ($cmd, $jobName) = buildGridJob($asm, $jobType, $path, $script, $mem, $thr, $j, undef);
 
             runCommand($path, $cmd) and caFailure("Failed to submit batch jobs", undef);
         }
@@ -566,11 +668,11 @@ sub submitOrRunParallelJob ($$$$$$@) {
     #  Jobs under grid control, but the user must submit them
 
     if (getGlobal("useGrid") && getGlobal("useGrid$jobType") && (! exists($ENV{getGlobal("gridEngineJobID")}))) {
-        print STDERR "Please submit the following jobs to the grid for execution:\n";
+        print STDERR "Please submit the following jobs to the grid for execution using $mem gigabytes memory and $thr threads:\n";
         print STDERR "\n";
 
         foreach my $j (@jobs) {
-            my ($cmd, $jobName) = buildGridJob($asm, $jobType, $path, $script, $j, undef);
+            my ($cmd, $jobName) = buildGridJob($asm, $jobType, $path, $script, $mem, $thr, $j, undef);
 
             print $cmd;
         }
@@ -609,9 +711,6 @@ sub submitOrRunParallelJob ($$$$$$@) {
 
 
 
-
-
-
 #  Utility to run a command and check the exit status, report time used.
 #
 sub runCommand ($$) {
@@ -623,7 +722,8 @@ sub runCommand ($$) {
     }
 
     if (getGlobal('showNext')) {
-        print STDERR "----------------------------------------NEXT-COMMAND\n$cmd\n";
+        print STDERR "----------------------------------------NEXT-COMMAND\n";
+        print STDERR "$cmd\n";
         exit(0);
     }
 
@@ -634,7 +734,8 @@ sub runCommand ($$) {
 
     my $t = localtime();
     my $d = time();
-    print STDERR "----------------------------------------START $t\n$cmd\n";
+    print STDERR "----------------------------------------START $t\n";
+    print STDERR "$cmd\n";
 
     my $rc = 0xffff & system("cd $dir && $cmd");
 
@@ -718,41 +819,6 @@ sub stopAfter ($) {
         exit(0);
     }
 }
-
-
-
-#sub diskSpace ($) {
-#    my $wrk   = shift @_;
-#
-#    my ($bsize, $frsize, $blocks, $bfree, $bavail, $files, $ffree, $favail, $flag, $namemax) = statvfs($wrk);
-#
-#    print STDERR "bsize  $bsize\n";
-#    print STDERR "frsize  $frsize\n";
-#    print STDERR "blocks  $blocks\n";
-#    print STDERR "bfree  $bfree\n";
-#    print STDERR "bavail  $bavail\n";
-#    print STDERR "files  $files\n";
-#    print STDERR "ffree  $ffree\n";
-#    print STDERR "favail  $favail\n";
-#    print STDERR "flag  $flag\n";
-#    print STDERR "namemax  $namemax\n";
-#
-#    my $used = $blocks - $bfree;
-#
-#    #my $total = int($bsize * $blocks / 1048576);
-#    #my $used  = int($bsize * $used   / 1048576);
-#    #my $free  = int($bsize * $bfree  / 1048576);
-#    #my $avail = int($bsize * $bavail / 1048576);
-#
-#    my $total = $bsize * $blocks;
-#    my $used  = $bsize * $used;
-#    my $free  = $bsize * $bfree;
-#    my $avail = $bsize * $bavail;
-#
-#    print STDERR "Disk space: total $total GB, used $used GB, free $free GB, available $avail GB\n";
-#
-#    return (wantarray) ? ($total, $used, $free, $avail) : $avail;
-#}
 
 
 sub diskSpace ($) {

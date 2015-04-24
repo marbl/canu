@@ -50,6 +50,7 @@ my @specFiles;    #  Files of specs
 my @specOpts;     #  Command line specs
 my @inputFiles;   #  Command line inputs, later inputs in spec files are added
 
+print STDERR "-- Detected ", getNumberOfCPUs(), " CPUs and ", getPhysicalMemorySize(), " gigabytes of memory.\n";
 
 #  Initialize our defaults.
 
@@ -234,20 +235,26 @@ sub setOptions ($$) {
     if ($step eq "correct") {
         setGlobal("overlapper", "mhap");
         setGlobal("consensus",  "falconpipe");
-        setGlobal("errorRate",  "0.15");
+
+        setErrorRate(0.15);
+
         return($step);
     }
 
     if ($step eq "trim") {
         setGlobal("overlapper", "ovl");
-        setGlobal("errorRate",  "0.02");
+
+        setErrorRate(0.02);
+
         return($step);
     }
 
     if ($step eq "assemble") {
         setGlobal("overlapper", "ovl");
         setGlobal("consensus",  "utgcns");
-        setGlobal("errorRate",  "0.02");
+
+        setErrorRate(0.02);
+
         return($step);
     }
 }

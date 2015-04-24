@@ -129,7 +129,7 @@ sub overlapStoreBucketizerCheck ($$$$) {
     print STDERR "overlapStoreBucketizerCheck() -- attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
 
     if ($attempt < 2) {
-        submitOrRunParallelJob($wrk, $asm, "ovB", "$wrk/$asm.ovlStore.BUILDING", "scripts/1-bucketize", getGlobal("osbConcurrency"), @failedJobs);
+        submitOrRunParallelJob($wrk, $asm, "ovB", "$wrk/$asm.ovlStore.BUILDING", "scripts/1-bucketize", @failedJobs);
     } else {
         caFailure("failed to overlapStoreBucketize.  Made $attempt attempts, jobs still failed", undef);
     }
@@ -201,7 +201,7 @@ sub overlapStoreSorterCheck ($$$$) {
     print STDERR "overlapStoreSorterCheck() -- attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
 
     if ($attempt < 2) {
-        submitOrRunParallelJob($wrk, $asm, "ovS", "$wrk/$asm.ovlStore.BUILDING", "scripts/2-sort", getGlobal("ossConcurrency"), @failedJobs);
+        submitOrRunParallelJob($wrk, $asm, "ovS", "$wrk/$asm.ovlStore.BUILDING", "scripts/2-sort", @failedJobs);
     } else {
         caFailure("failed to overlapStoreSorter.  Made $attempt attempts, jobs still failed", undef);
     }

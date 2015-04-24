@@ -159,8 +159,6 @@ sub overlapConfigure ($$$) {
     print STDERR "Created $jobs overlap jobs.  Last batch '$batchName', last job '$jobName'.\n";
 
     stopAfter("overlap-configure");
-    
-    #submitOrRunParallelJob($wrk, $asm, "ovl", "$path", "overlap", getGlobal("ovlConcurrency"), "1-$jobs");
 }
 
 
@@ -174,10 +172,7 @@ sub overlapCheck ($$$$) {
     my $asm          = shift @_;
     my $type         = shift @_;
     my $attempt      = shift @_;
-
-    my $path    = "$wrk/1-overlapper";
-    my $script  = "overlap";
-    my $jobType = "ovl";
+    my $path         = "$wrk/1-overlapper";
 
     return  if (-e "$path/ovljob.files");
 
@@ -235,7 +230,7 @@ sub overlapCheck ($$$$) {
     print STDERR "overlapCheck() -- attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
 
     if ($attempt < 1) {
-        submitOrRunParallelJob($wrk, $asm, $jobType, $path, $script, getGlobal("ovlConcurrency"), @failedJobs);
+        submitOrRunParallelJob($wrk, $asm, "ovl", $path, "overlap", @failedJobs);
     } else {
         caFailure("failed to overlap.  Made $attempt attempts, jobs still failed", undef);
     }

@@ -180,10 +180,7 @@ sub consensusConfigure ($$) {
     my $asm     = shift @_;
     my $bin     = getBinDirectory();
     my $cmd;
-
     my $path    = "$wrk/5-consensus";
-    my $script  = "consensus";
-    my $jobType = "cns";
 
     goto alldone  if (-e "$path/consensus.success");
 
@@ -237,10 +234,7 @@ sub consensusCheck ($$$) {
     my $wrk     = shift @_;
     my $asm     = shift @_;
     my $attempt = shift @_;
-
     my $path    = "$wrk/5-consensus";
-    my $script  = "consensus";
-    my $jobType = "cns";
 
     #  How many partitions?  There should be a classier way...
 
@@ -294,9 +288,9 @@ sub consensusCheck ($$$) {
     print STDERR "consensusCheck() -- attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
 
     if ($attempt < 1) {
-        submitOrRunParallelJob($wrk, $asm, $jobType, $path, $script, getGlobal("cnsConcurrency"), @failedJobs);
+        submitOrRunParallelJob($wrk, $asm, "cns", $path, "consensus", @failedJobs);
     } else {
-        caFailure("failed to overlap.  Made $attempt attempts, jobs still failed", undef);
+        caFailure("failed to generate consensus.  Made $attempt attempts, jobs still failed", undef);
     }
 
     stopAfter("consensus");

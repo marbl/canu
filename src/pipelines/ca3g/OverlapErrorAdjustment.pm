@@ -109,8 +109,6 @@ sub readErrorDetectionConfigure ($$) {
     close(F);
 
     chmod 0755, "$wrk/3-overlapErrorAdjustment/red.sh";
-
-    submitOrRunParallelJob($wrk, $asm, "oea", "$wrk/3-overlapErrorAdjustment", "red", getGlobal("redConcurrency"), "1-$numJobs");
 }
 
 
@@ -160,7 +158,7 @@ sub readErrorDetectionCheck ($$$) {
     print STDERR "\n";
 
     if ($attempt < 1) {
-        submitOrRunParallelJob($wrk, $asm, "oea", "$wrk/3-overlapErrorAdjustment", "red", getGlobal("redConcurrency"), @failedJobs);
+        submitOrRunParallelJob($wrk, $asm, "red", "$wrk/3-overlapErrorAdjustment", "red", @failedJobs);
     } else {
         caFailure("failed to detect errors in reads.  Made $attempt attempts, jobs still failed", undef);
     }
@@ -221,8 +219,6 @@ sub overlapErrorAdjustmentConfigure ($$) {
     close(F);
 
     chmod 0755, "$wrk/3-overlapErrorAdjustment/oea.sh";
-
-    submitOrRunParallelJob($wrk, $asm, "oea", "$wrk/3-overlapErrorAdjustment", "oea", getGlobal("oeaConcurrency"), "1-$numJobs");
 }
 
 
@@ -276,7 +272,7 @@ sub overlapErrorAdjustmentCheck ($$$) {
     print STDERR "\n";
 
     if ($attempt < 1) {
-        submitOrRunParallelJob($wrk, $asm, "oea", "$wrk/3-overlapErrorAdjustment", "oea", getGlobal("oeaConcurrency"), @failedJobs);
+        submitOrRunParallelJob($wrk, $asm, "oea", "$wrk/3-overlapErrorAdjustment", "oea", @failedJobs);
     } else {
         caFailure("failed to adjust overlap error rates.  Made $attempt attempts, jobs still failed", undef);
     }
