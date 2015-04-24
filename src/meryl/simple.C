@@ -125,7 +125,7 @@ main(int argc, char **argv) {
   if (algSorting) {
     uint64  theMersLen = 0;
     uint64  theMersMax = 2 * numMers;  //  for allowing both -f and -r
-    uint64 *theMers    = new uint64 [theMersMax];
+    uint32 *theMers    = new uint32 [theMersMax];
 
     fprintf(stderr, "Allocating "F_U64"MB for mer storage.\n", numMers * sizeof(uint64) >> 20);
 
