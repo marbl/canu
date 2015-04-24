@@ -513,7 +513,6 @@ BestOverlapGraph::removeWeak(double threshold) {
 
 
 BestOverlapGraph::BestOverlapGraph(double               utgErrorRate,
-                                   double               utgErrorLimit,
                                    const char          *prefix,
                                    double               doRemoveWeakThreshold,
                                    bool                 doRemoveSuspicious,
@@ -538,7 +537,6 @@ BestOverlapGraph::BestOverlapGraph(double               utgErrorRate,
   _restrictEnabled = false;
 
   mismatchCutoff  = utgErrorRate;
-  mismatchLimit   = utgErrorLimit;
 
   //  Initialize parallelism.
 
@@ -632,11 +630,9 @@ BestOverlapGraph::BestOverlapGraph(double               utgErrorRate,
 void
 BestOverlapGraph::rebuildBestContainsWithoutSingletons(UnitigVector  &unitigs,
                                                        double         utgErrorRate,
-                                                       double         utgErrorLimit,
                                                        const char    *prefix) {
 
   mismatchCutoff  = utgErrorRate;
-  mismatchLimit   = utgErrorLimit;
 
   uint32     fiLimit = FI->numFragments();
 
@@ -741,11 +737,9 @@ BestOverlapGraph::rebuildBestContainsWithoutSingletons(UnitigVector  &unitigs,
 
 
 BestOverlapGraph::BestOverlapGraph(double               utgErrorRate,
-                                   double               utgErrorLimit,
                                    set<uint32>         *restrict) {
 
   mismatchCutoff  = utgErrorRate;
-  mismatchLimit   = utgErrorLimit;
 
   _bestA = NULL;
   _scorA = NULL;
@@ -1044,44 +1038,22 @@ BestOverlapGraph::isOverlapBadQuality(const BAToverlap& olap) {
                olap.a_hang,
                olap.b_hang,
                olap.error);
+
     return(false);
   }
 
-  //  If we didn't allow fixed-number-of-errors, the overlap is now bad.  Just a slight
-  //  optimization.
-  //
-  if (mismatchLimit <= 0)
-    return(true);
-
-  //  There are a few cases where the orig_erate is _better_ than the corr_erate.  That is, the
-  //  orig erate is 0% but we 'correct' it to something more than 0%.  Regardless, we probably
-  //  want to be using the corrected erate here.
-
-  double olen = FI->overlapLength(olap.a_iid, olap.b_iid, olap.a_hang, olap.b_hang);
-  double nerr = olen * olap.error;
-
-  assert(nerr >= 0);
-
-  if (nerr <= mismatchLimit) {
-    if ((enableLog == true) && (logFileFlags & LOG_OVERLAP_QUALITY))
-      writeLog("isOverlapBadQuality()-- OVERLAP SAVED:    %d %d %c  hangs "F_S32" "F_S32" err %.3f olen %f nerr %f\n",
-               olap.a_iid, olap.b_iid,
-               olap.flipped ? 'A' : 'N',
-               olap.a_hang,
-               olap.b_hang,
-               olap.error,
-               olen, nerr);
-    return(false);
-  }
+  //  CA8.3 would further compute the (expected) number of errors in the alignment, and compare
+  //  against another limit.  This was to allow very short overlaps where one error would push the
+  //  error rate above a few percent.  ca3g doesn't do short overlaps.
 
   if ((enableLog == true) && (logFileFlags & LOG_OVERLAP_QUALITY))
-    writeLog("isOverlapBadQuality()-- OVERLAP REJECTED: %d %d %c  hangs "F_S32" "F_S32" err %.3f olen %f nerr %f\n",
+    writeLog("isOverlapBadQuality()-- OVERLAP REJECTED: %d %d %c  hangs "F_S32" "F_S32" err %.3f\n",
              olap.a_iid, olap.b_iid,
              olap.flipped ? 'A' : 'N',
              olap.a_hang,
              olap.b_hang,
-             olap.error,
-             olen, nerr);
+             olap.error);
+
   return(true);
 }
 

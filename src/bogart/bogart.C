@@ -63,9 +63,9 @@ main (int argc, char * argv []) {
   char      *tigStorePath            = NULL;
 
   double    erateGraph               = 0.020;
-  double    elimitGraph              = 2.0;
+  double    erateBubble              = 0.020;
   double    erateMerge               = 0.045;
-  double    elimitMerge              = 4.0;
+  double    erateRepeat              = 0.045;
 
   int32     numThreads               = 0;
 
@@ -167,14 +167,14 @@ main (int argc, char * argv []) {
     } else if (strcmp(argv[arg], "-eg") == 0) {
       erateGraph = atof(argv[++arg]);
 
-    } else if (strcmp(argv[arg], "-Eg") == 0) {
-      elimitGraph = atof(argv[++arg]);
+    } else if (strcmp(argv[arg], "-eb") == 0) {
+      erateBubble = atof(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-em") == 0) {
       erateMerge = atof(argv[++arg]);
 
-    } else if (strcmp(argv[arg], "-Em") == 0) {
-      elimitMerge = atof(argv[++arg]);
+    } else if (strcmp(argv[arg], "-er") == 0) {
+      erateRepeat = atof(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-el") == 0) {
       minOverlap = atoi(argv[++arg]);
@@ -249,11 +249,11 @@ main (int argc, char * argv []) {
 
   if (erateGraph < 0.0)
     err++;
-  if (elimitGraph < 0.0)
+  if (erateBubble < 0.0)
     err++;
   if (erateMerge < 0.0)
     err++;
-  if (elimitMerge < 0.0)
+  if (erateRepeat < 0.0)
     err++;
   if (output_prefix == NULL)
     err++;
@@ -327,14 +327,14 @@ main (int argc, char * argv []) {
     if (erateGraph < 0.0)
       fprintf(stderr, "Invalid overlap error threshold (-eg option); must be at least 0.0.\n");
 
-    if (elimitGraph < 0.0)
-      fprintf(stderr, "Invalid overlap error limit (-Eg option); must be above 0.\n");
+    if (erateBubble < 0.0)
+      fprintf(stderr, "Invalid overlap error threshold (-eb option); must be at least 0.0.\n");
 
     if (erateMerge < 0.0)
       fprintf(stderr, "Invalid overlap error threshold (-em option); must be at least 0.0.\n");
 
-    if (elimitMerge < 0.0)
-      fprintf(stderr, "Invalid overlap error limit (-Em option); must be above 0.\n");
+    if (erateRepeat < 0.0)
+      fprintf(stderr, "Invalid overlap error threshold (-er option); must be at least 0.0.\n");
 
     if (output_prefix == NULL)
       fprintf(stderr, "No output prefix name (-o option) supplied.\n");
@@ -355,10 +355,10 @@ main (int argc, char * argv []) {
   }
 
   fprintf(stderr, "\n");
-  fprintf(stderr, "Graph error threshold  = %.3f (%.3f%%)\n", erateGraph, erateGraph * 100);
-  fprintf(stderr, "Graph error limit      = %.3f errors\n", elimitGraph);
-  fprintf(stderr, "Merge error threshold  = %.3f (%.3f%%)\n", erateMerge, erateMerge * 100);
-  fprintf(stderr, "Merge error limit      = %.3f errors\n", elimitMerge);
+  fprintf(stderr, "Graph  error threshold  = %.3f (%.3f%%)\n", erateGraph,  erateGraph  * 100);
+  fprintf(stderr, "Bubble error threshold  = %.3f (%.3f%%)\n", erateBubble, erateBubble * 100);
+  fprintf(stderr, "Merge  error threshold  = %.3f (%.3f%%)\n", erateMerge,  erateMerge  * 100);
+  fprintf(stderr, "Repeat error threshold  = %.3f (%.3f%%)\n", erateRepeat, erateRepeat  * 100);
   fprintf(stderr, "\n");
   fprintf(stderr, "Minimum overlap length = %u bases\n", minOverlap);
   fprintf(stderr, "\n");
@@ -392,8 +392,10 @@ main (int argc, char * argv []) {
   // Initialize where we've been to nowhere
   Unitig::resetFragUnitigMap(FI->numFragments());
 
-  OC = new OverlapCache(ovlStoreUniq, ovlStoreRept, output_prefix, MAX(erateGraph, erateMerge), MAX(elimitGraph, elimitMerge), minOverlap, ovlCacheMemory, ovlCacheLimit, onlySave, doSave);
-  OG = new BestOverlapGraph(erateGraph, elimitGraph, output_prefix, removeWeak, removeSuspicious, removeSpur);
+  double erateMax = MAX(MAX(erateGraph, erateBubble), MAX(erateMerge, erateRepeat));
+
+  OC = new OverlapCache(ovlStoreUniq, ovlStoreRept, output_prefix, erateMax, minOverlap, ovlCacheMemory, ovlCacheLimit, onlySave, doSave);
+  OG = new BestOverlapGraph(erateGraph, output_prefix, removeWeak, removeSuspicious, removeSpur);
   CG = new ChunkGraph(output_prefix);
   IS = NULL;
 
@@ -442,7 +444,7 @@ main (int argc, char * argv []) {
   }
 
   if (noContainsInSingletons)
-    OG->rebuildBestContainsWithoutSingletons(unitigs, erateGraph, elimitGraph, output_prefix);
+    OG->rebuildBestContainsWithoutSingletons(unitigs, erateGraph, output_prefix);
 
   if (placeContainsUsingBest) {
     placeContainsUsingBestOverlaps(unitigs);
@@ -457,7 +459,7 @@ main (int argc, char * argv []) {
 
   setLogFile(output_prefix, "placeZombies");
 
-  placeZombies(unitigs, erateMerge, elimitMerge);
+  placeZombies(unitigs, erateMerge);
 
   checkUnitigMembership(unitigs);
   reportOverlapsUsed(unitigs, output_prefix, "placeContainsZombies");
@@ -472,7 +474,7 @@ main (int argc, char * argv []) {
     assert(enableShatterRepeats);
     setLogFile(output_prefix, "extendMates");
 
-    extendByMates(unitigs, erateGraph, elimitGraph);
+    extendByMates(unitigs, erateGraph);
 
     reportOverlapsUsed(unitigs, output_prefix, "extendMates");
     reportUnitigs(unitigs, output_prefix, "extendMates");
@@ -483,7 +485,7 @@ main (int argc, char * argv []) {
     assert(enableShatterRepeats);
     setLogFile(output_prefix, "reconstructRepeats");
 
-    reconstructRepeats(unitigs, erateGraph, elimitGraph);
+    reconstructRepeats(unitigs, erateGraph);
 
     reportOverlapsUsed(unitigs, output_prefix, "reconstructRepeats");
     reportUnitigs(unitigs, output_prefix, "reconstructRepeats");

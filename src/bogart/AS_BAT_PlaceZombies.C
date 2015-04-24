@@ -35,7 +35,7 @@ static const char *rcsid = "$Id$";
 //  Here we detect Zombies, and reset their best container to something that is already placed.
 
 void
-placeZombies(UnitigVector &unitigs, double erate, double elimit) {
+placeZombies(UnitigVector &unitigs, double erate) {
 
   writeLog("==> SEARCHING FOR ZOMBIES\n");
 

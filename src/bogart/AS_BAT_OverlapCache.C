@@ -83,14 +83,13 @@ OverlapCache::OverlapCache(ovStore *ovlStoreUniq,
                            ovStore *ovlStoreRept,
                            const char *prefix,
                            double erate,
-                           double elimit,
                            uint32 minOverlap,
                            uint64 memlimit,
                            uint32 maxOverlaps,
                            bool onlySave,
                            bool doSave) {
 
-  if (load(prefix, erate, elimit, memlimit, maxOverlaps) == true)
+  if (load(prefix, erate, memlimit, maxOverlaps) == true)
     return;
 
   fprintf(stderr, "\n");
@@ -220,15 +219,15 @@ OverlapCache::OverlapCache(ovStore *ovlStoreUniq,
     fprintf(stderr, "OverlapCache()-- ERROR: not enough memory to load ANY overlaps.\n"), exit(1);
 
   computeOverlapLimit();
-  computeErateMaps(erate, elimit);
-  loadOverlaps(erate, elimit, minOverlap, prefix, onlySave, doSave);
+  computeErateMaps(erate);
+  loadOverlaps(erate, minOverlap, prefix, onlySave, doSave);
 
   delete [] _ovs;       _ovs    = NULL;
   delete [] _ovsSco;    _ovsSco = NULL;
   delete [] _ovsTmp;    _ovsTmp = NULL;
 
   if (doSave == true)
-    save(prefix, erate, elimit, memlimit, maxOverlaps);
+    save(prefix, erate, memlimit, maxOverlaps);
 
   if ((doSave == true) && (onlySave == true))
     fprintf(stderr, "Exiting; only requested to build the overlap graph.\n"), exit(0);
@@ -446,7 +445,7 @@ OverlapCache::computeOverlapLimit(void) {
 //  convert to .error, and we create BATerate for all valid OVSerate values.
 //
 void
-OverlapCache::computeErateMaps(double erate, double elimit) {
+OverlapCache::computeErateMaps(double erate) {
   _OVSerate = new uint32 [1 << AS_MAX_ERATE_BITS];
   _BATerate = new double [1 << AS_BAT_ERRBITS];
 
@@ -540,7 +539,7 @@ OverlapCache::filterOverlaps(uint32 maxOVSerate, uint32 minOverlap, uint32 no) {
 
 
 void
-OverlapCache::loadOverlaps(double erate, double elimit, uint32 minOverlap, const char *prefix, bool onlySave, bool doSave) {
+OverlapCache::loadOverlaps(double erate, uint32 minOverlap, const char *prefix, bool onlySave, bool doSave) {
   uint64   numTotal    = 0;
   uint64   numLoaded   = 0;
   uint32   numFrags    = 0;
@@ -795,7 +794,7 @@ OverlapCache::findError(uint32 aIID, uint32 bIID) {
 
 
 bool
-OverlapCache::load(const char *prefix, double erate, double elimit, uint64 memlimit, uint32 maxOverlaps) {
+OverlapCache::load(const char *prefix, double erate, uint64 memlimit, uint32 maxOverlaps) {
   char     name[FILENAME_MAX];
   FILE    *file;
   size_t   numRead;
@@ -947,7 +946,7 @@ OverlapCache::load(const char *prefix, double erate, double elimit, uint64 memli
 
 
 void
-OverlapCache::save(const char *prefix, double erate, double elimit, uint64 memlimit, uint32 maxOverlaps) {
+OverlapCache::save(const char *prefix, double erate, uint64 memlimit, uint32 maxOverlaps) {
   char  name[FILENAME_MAX];
   FILE *file;
 

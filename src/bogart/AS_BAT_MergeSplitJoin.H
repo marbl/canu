@@ -29,13 +29,11 @@ mergeSplitJoin(UnitigVector &unitigs, const char *prefix, uint32 minOverlap, boo
 
 void
 extendByMates(UnitigVector &unitigs,
-              double        erateGraph,
-              double        elimitGraph);
+              double        erateGraph);
 
 void
 reconstructRepeats(UnitigVector &unitigs,
-                   double        erateGraph,
-                   double        elimitGraph);
+                   double        erateGraph);
 
 void
 promoteToSingleton(UnitigVector &unitigs, bool enablePromoteToSingleton);

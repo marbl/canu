@@ -60,14 +60,12 @@ private:
 
 public:
   BestOverlapGraph(double      erate,
-                   double      elimit,
                    const char *prefix,
                    double      doRemoveWeakThreshold,
                    bool        doRemoveSuspicious,
                    bool        doRemoveSpurs);
 
   BestOverlapGraph(double erate,
-                   double elimit,
                    set<uint32> *restrict);
 
   ~BestOverlapGraph() {
@@ -116,7 +114,6 @@ public:
 public:
   void      rebuildBestContainsWithoutSingletons(UnitigVector  &unitigs,
                                                  double         erate,
-                                                 double         elimit,
                                                  const char    *prefix);
 
 private:
@@ -161,7 +158,6 @@ private:
 
 public:
   double                      mismatchCutoff;
-  double                      mismatchLimit;
 }; //BestOverlapGraph
 
 

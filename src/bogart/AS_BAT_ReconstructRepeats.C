@@ -36,8 +36,7 @@ static const char *rcsid = "$Id$";
 
 void
 reconstructRepeats(UnitigVector &unitigs,
-                   double        erateGraph,
-                   double        elimitGraph) {
+                   double        erateGraph) {
 
   //  Similar to mate extension, we build a set<> of all the unplaced fragments, then
   //  construct a new BOG and CG from which we construct unitigs.
@@ -51,7 +50,7 @@ reconstructRepeats(UnitigVector &unitigs,
     if (Unitig::fragIn(fi) == 0)
       unplaced.insert(fi);
 
-  OG = new BestOverlapGraph(erateGraph / 2.0, elimitGraph / 2.0, &unplaced);
+  OG = new BestOverlapGraph(erateGraph / 2.0, &unplaced);
   CG = new ChunkGraph(&unplaced);
 
   writeLog("==> BUILDING REPEAT UNITIGS from %d fragments.\n", unplaced.size());

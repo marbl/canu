@@ -100,7 +100,6 @@ public:
                ovStore *ovlStoreRept,
                const char *prefix,
                double maxErate,
-               double elimit,
                uint32 minOverlap,
                uint64 maxMemory,
                uint32 maxOverlaps,
@@ -109,11 +108,11 @@ public:
   ~OverlapCache();
 
   void         computeOverlapLimit(void);
-  void         computeErateMaps(double erate, double elimit);
+  void         computeErateMaps(double erate);
 
   uint32       filterOverlaps(uint32 maxOVSerate, uint32 minOverlap, uint32 no);
 
-  void         loadOverlaps(double erate, double elimit, uint32 minOverlap, const char *prefix, bool onlySave, bool doSave);
+  void         loadOverlaps(double erate, uint32 minOverlap, const char *prefix, bool onlySave, bool doSave);
 
   BAToverlap  *getOverlaps(uint32 fragIID, uint32 &numOverlaps);
 
@@ -127,8 +126,8 @@ public:
   double       findError(uint32 aIID, uint32 bIID);
 
 private:
-  bool         load(const char *prefix, double erate, double elimit, uint64 memlimit, uint32 maxOverlaps);
-  void         save(const char *prefix, double erate, double elimit, uint64 memlimit, uint32 maxOverlaps);
+  bool         load(const char *prefix, double erate, uint64 memlimit, uint32 maxOverlaps);
+  void         save(const char *prefix, double erate, uint64 memlimit, uint32 maxOverlaps);
 
 private:
   uint64                  _memLimit;

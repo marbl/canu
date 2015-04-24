@@ -33,8 +33,7 @@ static const char *rcsid = "$Id$";
 
 void
 extendByMates(UnitigVector &unitigs,
-              double        erateGraph,
-              double        elimitGraph) {
+              double        erateGraph) {
 
   //logFileFlags |= LOG_CHUNK_GRAPH;
   logFileFlags |= LOG_POPULATE_UNITIG;
@@ -108,7 +107,7 @@ extendByMates(UnitigVector &unitigs,
     BestOverlapGraph  *OGsave = OG;
     ChunkGraph        *CGsave = CG;
 
-    OG = new BestOverlapGraph(erateGraph, elimitGraph, &frags);
+    OG = new BestOverlapGraph(erateGraph, &frags);
     CG = new ChunkGraph(&frags);
 
     uint32  numTigs = unitigs.size();
