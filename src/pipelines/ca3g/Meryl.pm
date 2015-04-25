@@ -102,7 +102,9 @@ sub meryl ($$) {
 
     #  And a special case; if the threshold is zero, we can skip the rest.
 
-    print "$merThresh $merDistinct $merTotal\n";
+    #print "thresh    $merThresh\n";
+    #print "distinct  $merDistinct\n";
+    #print "total     $merTotal\n";
 
     if ((defined($merThresh))    &&
         ($merThresh ne "auto")   &&
@@ -118,13 +120,16 @@ sub meryl ($$) {
     #  Build the database.
 
     if (! -e "$ofile.mcdat") {
-        my $merylOpts = "-threads " . getGlobal("merylThreads");
+        my $mem = getGlobal("merylMemory");
+        my $thr = getGlobal("merylThreads");
+        my $seg = getGlobal("merylSegments");
 
-        if (defined(getGlobal("merylSegments"))) {
-            $merylOpts .= " -segments " . getGlobal("merylSegments");
-        } else {
-            $merylOpts .= " -memory " . getGlobal("merylMemory") * 1024;
-        }
+        $mem  = 2 * getPhysicalMemorySize() / 3   if (!defined($mem));
+        $mem  = int($mem * 1024);  #  Meryl expects memory in megabytes.
+
+        $thr  =     getNumberOfCPUs()             if (!defined($thr));
+
+        my $merylOpts = "-threads $thr " . (defined($seg) ? "-segments $seg" : "-memory $mem");
 
         $cmd  = "$bin/meryl \\\n";
         $cmd .= " -B -C -L 2 -v -m $merSize $merylOpts \\\n";

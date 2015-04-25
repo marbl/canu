@@ -161,11 +161,11 @@ sub getNumberOfCPUs () {
     #  See http://stackoverflow.com/questions/6481005/obtain-the-number-of-cpus-cores-in-linux
 
     if ($os eq "freebsd") {
-        $ncpu = int(`sysctl -n hw.ncpu`);
+        $ncpu = int(`/sbin/sysctl -n hw.ncpu`);
     }
 
     if ($os eq "darwin") {
-        $ncpu = int(`getconf _NPROCESSORS_ONLN`);
+        $ncpu = int(`/usr/bin/getconf _NPROCESSORS_ONLN`);
     }
 
     if ($os eq "linux") {
@@ -181,11 +181,11 @@ sub getPhysicalMemorySize () {
     my $memory = 1;
 
     if ($os eq "freebsd") {
-        $memory = `sysctl -n hw.physmem` / 1024 / 1024 / 1024;
+        $memory = `/sbin/sysctl -n hw.physmem` / 1024 / 1024 / 1024;
     }
 
     if ($os eq "darwin") {
-        $memory = `sysctl -n hw.memsize` / 1024 / 1024 / 1024;
+        $memory = `/usr/sbin/sysctl -n hw.memsize` / 1024 / 1024 / 1024;
     }
 
     if ($os eq "linux") {
@@ -396,7 +396,18 @@ sub submitScript ($$$) {
 
     my $jobName              = "c3g_" . $asm . ((defined(getGlobal("gridOptionsJobName"))) ? ("_" . getGlobal("gridOptionsJobName")) : (""));
 
-    my $gridOpts             = getGlobal("gridOptions") . " " . getGlobal("gridOptionsMaster");
+    my $memOption     = buildMemoryOption(getGlobal("masterMemory"), getGlobal("masterThreads"));
+    my $thrOption     = buildThreadOption(getGlobal("masterThreads"));
+
+    my $gridOpts;
+
+    $gridOpts  = getGlobal("gridOptions")          if (defined(getGlobal("gridOptions")));
+    $gridOpts .= " "                               if (defined($gridOpts));
+    $gridOpts  = getGlobal("gridOptionsMaster")    if (defined(getGlobal("gridOptionsMaster")));
+    $gridOpts .= " "                               if (defined($gridOpts));
+    $gridOpts .= $memOption                        if (defined($memOption));
+    $gridOpts .= " "                               if (defined($gridOpts));
+    $gridOpts .= $thrOption                        if (defined($thrOption));
 
     #  If the jobToWaitOn is defined, make the script wait for that to complete.  LSF might need to
     #  query jobs in the queue and figure out the job ID (or IDs) for the jobToWaitOn.  Reading LSF

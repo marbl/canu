@@ -801,13 +801,13 @@ sub setDefaults () {
 
     #####  Mers
 
-    $global{"merylMemory"}                 = 4;
+    $global{"merylMemory"}                 = undef;
     $synops{"merylMemory"}                 = "Amount of memory, in gigabytes, to use for mer counting (conflicts with merylSegments)";
 
     $global{"merylSegments"}               = undef;
     $synops{"merylSegments"}               = "Number of segments to compute (overrides merylMemory)";
 
-    $global{"merylThreads"}                = 1;
+    $global{"merylThreads"}                = undef;
     $synops{"merylThreads"}                = "Number of threads to use for mer counting";
 
     #####  Overlap Based Trimming
