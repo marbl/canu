@@ -389,6 +389,10 @@ main(int argc, char **argv) {
 
 
 
+      //  Standard bulk dump of overlaps
+    } else if (strcmp(argv[arg], "-d") == 0) {
+      operation  = OP_DUMP;
+
       //  Dump as a picture, the next ID
       //  Should be easy to extend to using -b -e range
     } else if (strcmp(argv[arg], "-p") == 0) {
@@ -405,9 +409,6 @@ main(int argc, char **argv) {
       qryID      = atoi(argv[++arg]);
 
 
-      //  Standard bulk dump of overlaps
-    } else if (strcmp(argv[arg], "-d") == 0) {
-      operation  = OP_DUMP;
 
     } else if (strcmp(argv[arg], "-coords") == 0) {
       type = ovOverlapAsCoords;
@@ -420,6 +421,7 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-binary") == 0) {
       asBinary = true;
+
 
       //  standard bulk dump options
     } else if (strcmp(argv[arg], "-E") == 0) {
@@ -452,43 +454,29 @@ main(int argc, char **argv) {
     arg++;
   }
   if ((operation == OP_NONE) || (gkpName == NULL) || (ovlName == NULL) || (err)) {
-    fprintf(stderr, "usage: %s -d storeName [-B] [-E erate] [-b beginID] [-e endID]\n", argv[0]);
-    fprintf(stderr, "       %s -q aiid biid storeName\n", argv[0]);
-    fprintf(stderr, "       %s -p iid storeName gkpStore clr\n", argv[0]);
+    fprintf(stderr, "usage: %s -G gkpStore -O ovlStore [-b bgnID] [-e endID] ...\n", argv[0]);
     fprintf(stderr, "\n");
+    fprintf(stderr, "There are three modes of operation:\n");
+    fprintf(stderr, "  -d         dump a store (range selected with -b and -e)\n");
+    fprintf(stderr, "  -q a b     report the a,b overlap, if it exists.\n");
+    fprintf(stderr, "  -p a       dump a picture of overlaps to fragment 'a'.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "   NOT UP TO DATE\n");
+    fprintf(stderr, "  FORMAT (for -d)\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "  -coords    dump overlap showing coordinates in the reads (default)\n");
+    fprintf(stderr, "  -hangs     dump overlap showing dovetail hangs unaligned\n");
+    fprintf(stderr, "  -raw       dump overlap showing its raw native format (four hangs)\n");
+    fprintf(stderr, "  -binary    dump overlap as raw binary data\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "There are three modes of operation, selected by the first option:\n");
-    fprintf(stderr, "  -d  dump a store\n");
-    fprintf(stderr, "  -q  report the a,b overlap, if it exists.\n");
-    fprintf(stderr, "  -p  dump a picture of overlaps to fragment 'iid', using clear region 'clr'.\n");
+    fprintf(stderr, "  MODIFIERS (for -d and -p)\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "DUMPING - report overlaps in the store, or in a binary overlap file\n");
-    fprintf(stderr, "  -B                Dump the store as binary, suitable for input to create a new store.\n");
     fprintf(stderr, "  -E erate          Dump only overlaps <= erate error.\n");
     fprintf(stderr, "  -L length         Dump only overlaps that are larger than L bases (only for -p picture mode).\n");
     fprintf(stderr, "  -d5               Dump only overlaps off the 5' end of the A frag.\n");
     fprintf(stderr, "  -d3               Dump only overlaps off the 3' end of the A frag.\n");
     fprintf(stderr, "  -dC               Dump only overlaps that are contained in the A frag (B contained in A).\n");
     fprintf(stderr, "  -dc               Dump only overlaps that are containing the A frag (A contained in B).\n");
-    fprintf(stderr, "  -b beginID        Start dumping at 'beginID'.\n");
-    fprintf(stderr, "  -e endID          Stop dumping after 'endID'.\n");
     fprintf(stderr, "  -v                Report statistics (to stderr) on some dumps (-d).\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -coords           default\n");
-    fprintf(stderr, "  -hangs            \n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "QUERYING - quickly ask if an overlap exists\n");
-    fprintf(stderr, "  -q aiid biid storeName\n");
-    fprintf(stderr, "                    If an overlap between fragments 'aiid' and 'biid' exists, it is printed.\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "PICTURES - draw a multi-alignment-like picture for a single fragment and its overlaps\n");
-    fprintf(stderr, "  -p iid storeName gkpStore clr\n");
-    fprintf(stderr, "                    clr is usually OBTINITIAL for obtStore.\n");
-    fprintf(stderr, "                    clr is usually OBTCHIMERA for ovlStore when OBT is used.\n");
-    fprintf(stderr, "                    clr is usually CLR        for ovlStore when OBT is not used.\n");
     fprintf(stderr, "\n");
     exit(1);
   }
