@@ -81,7 +81,7 @@ sub mhapConfigure ($$$) {
     #  to use num_blocks/4 for that size, unless it is too small.
 
     my $numBlocks = scalar(@blocks);
-    my $qryStride = ($numBlocks < 16) ? (2) : ($numBlocks / 4);
+    my $qryStride = ($numBlocks < 16) ? (2) : int($numBlocks / 4);
 
     print STDERR "For $numBlocks blocks, set stride to $qryStride blocks.\n";
 

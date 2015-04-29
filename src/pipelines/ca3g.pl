@@ -60,7 +60,8 @@ setDefaults();
 #  This lets us print the default values of options.
 
 foreach my $arg (@ARGV) {
-    if ($arg eq "-options") {
+    if (($arg eq "-options") ||
+        ($arg eq "-defaults")) {
         setGlobal("options", 1);
         printHelp($bin);
     }
@@ -119,7 +120,8 @@ while (scalar(@ARGV)) {
     } elsif ($arg eq "-version") {
         setGlobal("version", 1);
 
-    } elsif ($arg eq "-options") {
+    } elsif (($arg eq "-options") ||
+             ($arg eq "-defaults")) {
         #  Do nothing.  Handled above, but we still need to process it here.
         #setGlobal("options", 1);
 

@@ -126,7 +126,7 @@ sub printHelp ($) {
     }
 
     if (getGlobal("options")) {
-        foreach my $k (sort vals %synnam) {
+        foreach my $k (sort values %synnam) {
             my $o = substr("$k                                    ", 0, 35);
             my $d = substr($global{$k}   . "                      ", 0, 20);
             my $u = $synops{$k};
@@ -415,6 +415,30 @@ sub checkParameters ($) {
     setGlobal("genomeSize", $1 * 1000000000)  if (getGlobal("genomeSize") =~ m/(\d+.*\d+)g/i);
 
     #
+    #  Java?  Need JRE 1.8
+    #
+
+    #if (getGlobal("overlapper") eq "mhap") {
+        my $java       = getGlobal("java");
+        my $versionStr = "unknown";
+        my $version    = 0;
+
+        open(F, "$java -showversion 2>&1 |");
+        while (<F>) {
+            #  First word is either "java" or "openjdk" or ...
+            if (m/^.*\s+version\s+\"(\d+.\d+)(.*)\"$/) {
+                $versionStr = "$1$2";
+                $version    =  $1;
+            }
+        }
+        close(F);
+
+        print STDERR "-- Detected Java(TM) Runtime Environment '$versionStr' (from '$java').\n";
+
+        caFailure("overlapper=mhap required java version at least 1.8.0; you have $versionStr", undef)  if ($version < 1.8);
+    #}
+
+    #
     #  Finish grid configuration.  If any of these are set, they were set by the user.
     #
 
@@ -446,14 +470,22 @@ sub checkParameters ($) {
         my $nth = 0;
 
         foreach my $env (@env) {
+            my $ar = 0;
+            my $cs = 0;
+            my $jf = 0;
+
             open(F, "qconf -sp $env |");
             while (<F>) {
-                if (m/allocation_rule.*pe_slots/) {
-                    $thr = $env;
-                    $nth++;
-                }
+                $ar = 1  if (m/allocation_rule.*pe_slots/);
+                $cs = 1  if (m/control_slaves.*FALSE/);
+                $jf = 1  if (m/job_is_first_task.*TRUE/);
             }
             close(F);
+
+            if (($ar == 1) && ($cs == 1) && ($jf == 1)) {
+                $thr = $env;
+                $nth++;
+            }
         }
 
         if ($nth == 1) {
@@ -612,6 +644,64 @@ sub setErrorRate ($) {
 }
 
 
+
+sub setOverlapDefaults ($$$) {
+    my $tag     = shift @_;
+    my $name    = shift @_;
+    my $default = shift @_;
+
+    #  OverlapInCore parameters
+
+    $global{"${tag}Overlapper"}               = $default;
+    $synops{"${tag}Overlapper"}               = "Which overlap algorithm to use for computing overlaps for assembly";
+
+    $global{"${tag}HashBlockLength"}          = ($tag eq "cor") ? 2500000 : 100000000;
+    $synops{"${tag}HashBlockLength"}          = "Amount of sequence (bp) to load into the overlap hash table";
+
+    $global{"${tag}RefBlockSize"}             = ($tag eq "cor") ? 20000 : 2000000;
+    $synops{"${tag}RefBlockSize"}             = "Number of reads to search against the hash table per batch";
+
+    $global{"${tag}RefBlockLength"}           = 0;
+    $synops{"${tag}RefBlockLength"}           = "Amount of sequence (bp) to search against the hash table per batch";
+
+    $global{"${tag}HashBits"}                 = ($tag eq "cor") ? 18 : 22;
+    $synops{"${tag}HashBits"}                 = "Width of the kmer hash.  Width 22=1gb, 23=2gb, 24=4gb, 25=8gb.  Plus 10b per ovlHashBlockLength";
+
+    $global{"${tag}HashLoad"}                 = 0.75;
+    $synops{"${tag}HashLoad"}                 = "Maximum hash table load.  If set too high, table lookups are inefficent; if too low, search overhead dominates run time";
+
+    $global{"${tag}MerSize"}                  = ($tag eq "cor") ? 19 : 22;
+    $synops{"${tag}MerSize"}                  = "K-mer size for seeds in overlaps";
+
+    $global{"${tag}MerThreshold"}             = "auto";
+    $synops{"${tag}MerThreshold"}             = "K-mer frequency threshold; mers more frequent than this count are ignored";
+
+    $global{"${tag}MerDistinct"}              = undef;
+    $synops{"${tag}MerDistinct"}              = "K-mer frequency threshold; the least frequent fraction of distinct mers can seed overlaps";
+
+    $global{"${tag}MerTotal"}                 = undef;
+    $synops{"${tag}MerTotal"}                 = "K-mer frequency threshold; the least frequent fraction of all mers can seed overlaps";
+
+    $global{"${tag}FrequentMers"}             = undef;
+    $synops{"${tag}FrequentMers"}             = "Do not seed overlaps with these kmers (fasta format)";
+
+    #  Mhap parameters
+
+    $global{"${tag}MhapBlockSize"}            = 20000;
+    $synops{"${tag}MhapBlockSize"}            = "Number of reads per block; one block is loaded into memory per job";
+
+    $global{"${tag}MhapMerSize"}              = ($tag eq "cor") ? 16 : 22;
+    $synops{"${tag}MhapMerSize"}              = "K-mer size for seeds in mhap";
+
+    $global{"${tag}MhapReAlign"}              = 0;
+    $synops{"${tag}MhapReAlign"}              = "Compute actual alignments from mhap overlaps; 'raw' from mhap output, 'final' from overlap store";
+
+    $global{"${tag}MhapSensitivity"}          = "normal";
+    $synops{"${tag}MhapSensitivity"}          = "Coarse sensitivity level: 'normal' or 'high'";
+}
+
+
+
 sub setDefaults () {
 
     #####  General Configuration Options (aka miscellany)
@@ -624,6 +714,11 @@ sub setDefaults () {
 
     $global{"shell"}                       = "/bin/sh";
     $synops{"shell"}                       = "Command interpreter to use; sh-compatible (e.g., bash), NOT C-shell (csh or tcsh)";
+
+    $global{"java"}                        = "/usr/bin/java"                               if (-e "/usr/bin/java");
+    $global{"java"}                        = "/usr/local/bin/java"                         if (-e "/usr/local/bin/java");
+    $global{"java"}                        = "/nbacc/local/packages/jdk1.8.0_25/bin/java"  if (-e "/nbacc/local/packages/jdk1.8.0_25/bin/java");
+    $synops{"java"}                        = "Command interpreter to use; sh-compatible (e.g., bash), NOT C-shell (csh or tcsh)";
 
     #####  Cleanup options
 
@@ -664,7 +759,7 @@ sub setDefaults () {
     $global{"minReadLength"}               = 500;
     $synops{"minReadLength"}               = "Reads shorter than this length are not loaded into the assembler";
 
-    $global{"minOverlapLength"}            = 40;
+    $global{"minOverlapLength"}            = 250;
     $synops{"minOverlapLength"}            = "Overlaps shorter than this length are not computed";
 
     #####  Stopping conditions
@@ -727,7 +822,7 @@ sub setDefaults () {
     #####  Grid Engine configuration and parameters, for each step of the pipeline
 
     setExecDefaults("CNS",    "unitig consensus",           1,  4, 1, undef);  #  Params are useGrid, memory, threads and concurrency
-    setExecDefaults("COR",    "read correction",            1,  4, 1, undef);  #  Default concurrency is n_cpu / n_threads
+    setExecDefaults("COR",    "read correction",            1,  4, 4, undef);  #  Default concurrency is n_cpu / n_threads
     setExecDefaults("RED",    "read error detection",       1,  4, 4, undef);
     setExecDefaults("OEA",    "overlap error adjustment",   1,  4, 4, undef);
     setExecDefaults("OVL",    "overlaps",                   1,  4, 4, undef);
@@ -736,57 +831,11 @@ sub setDefaults () {
     setExecDefaults("OVS",    "overlap store sorting",      1,  4, 1, undef);
     setExecDefaults("MASTER", "master script",              0, 16, 1, undef);  #  Broken; bogart blows the limits
 
-    #####  Overlapper, ovl
+    #####  Overlapper
 
-    $global{"overlapper"}                  = "ovl";
-    $synops{"overlapper"}                  = "Which overlap algorithm to use for computing overlaps for assembly";
-
-    $global{"ovlHashBlockLength"}          = 100000000;
-    $synops{"ovlHashBlockLength"}          = "Amount of sequence (bp) to load into the overlap hash table";
-
-    $global{"ovlRefBlockSize"}             = 2000000;
-    $synops{"ovlRefBlockSize"}             = "Number of reads to search against the hash table per batch";
-
-    $global{"ovlRefBlockLength"}           = 0;
-    $synops{"ovlRefBlockLength"}           = "Amount of sequence (bp) to search against the hash table per batch";
-
-    $global{"ovlHashBits"}                 = 22;
-    $synops{"ovlHashBits"}                 = "Width of the kmer hash.  Width 22=1gb, 23=2gb, 24=4gb, 25=8gb.  Plus 10b per ovlHashBlockLength";
-
-    $global{"ovlHashLoad"}                 = 0.75;
-    $synops{"ovlHashLoad"}                 = "Maximum hash table load.  If set too high, table lookups are inefficent; if too low, search overhead dominates run time";
-
-    $global{"ovlMerSize"}                  = 22;
-    $synops{"ovlMerSize"}                  = "K-mer size for seeds in overlaps";
-
-    $global{"ovlMerThreshold"}             = "auto";
-    $synops{"ovlMerThreshold"}             = "K-mer frequency threshold; mers more frequent than this count are ignored";
-
-    $global{"ovlMerDistinct"}              = undef;
-    $synops{"ovlMerDistinct"}              = "K-mer frequency threshold; the least frequent fraction of distinct mers can seed overlaps";
-
-    $global{"ovlMerTotal"}                 = undef;
-    $synops{"ovlMerTotal"}                 = "K-mer frequency threshold; the least frequent fraction of all mers can seed overlaps";
-
-    $global{"ovlFrequentMers"}             = undef;
-    $synops{"ovlFrequentMers"}             = "Do not seed overlaps with these kmers (fasta format)";
-
-    #####  Overlapper, mhap
-
-    $global{"mhapBlockSize"}               = 20000;
-    $synops{"mhapBlockSize"}               = "Number of reads ....";
-
-    $global{"mhapMerSize"}                 = 16;
-    $synops{"mhapMerSize"}                 = "K-mer size for seeds in mhap";
-
-    $global{"mhapReAlign"}                 = 0;
-    $synops{"mhapReAlign"}                 = "Compute actual alignments from mhap overlaps; 'raw' from mhap output, 'final' from overlap store";
-
-    $global{"mhapSensitivity"}             = "normal";
-    $synops{"mhapSensitivity"}             = "Coarse sensitivity level: 'normal' or 'high'";
-
-    #  PROBLEM: want to define mhap and ovl parameters independently, but then need to duplicate
-    #  all the kmer stuff below for mhap.
+    setOverlapDefaults("cor", "correction",             "mhap");  #  Overlaps computed for correction
+    setOverlapDefaults("obt", "overlap based trimming", "ovl");   #  Overlaps computed for trimming
+    setOverlapDefaults("utg", "unitig construction",    "ovl");   #  Overlaps computed for unitigging
 
     ##### Overlap Store
 
@@ -883,23 +932,40 @@ sub setDefaults () {
     $global{"cnsPartitions"}               = 128;
     $synops{"cnsPartitions"}               = "Partition consensus into N jobs";
 
-    $global{"cnsMinFrags"}                 = 75000;
-    $synops{"cnsMinFrags"}                 = "Don't make a consensus partition with fewer than N reads";
+    $global{"cnsPartitionMin"}             = 75000;
+    $synops{"cnsPartitionMin"}             = "Don't make a consensus partition with fewer than N reads";
 
     $global{"cnsMaxCoverage"}              = 0;
-    $synops{"cnsMaxCoverage"}              = "Limit unitig consensus to to at most this coverage";
+    $synops{"cnsMaxCoverage"}              = "Limit unitig consensus to at most this coverage";
 
     $global{"consensus"}                   = "utgcns";
-    $synops{"consensus"}                   = "Which consensus algorithm to use; currently only 'cns' is supported";
+    $synops{"consensus"}                   = "Which consensus algorithm to use; only 'utgcns' is supported";
 
-    $global{"falcon"}                      = undef;
-    $global{"falcon"}                      = "/home/walenzb/ca3g/ca3g-build/src/falcon_sense/falcon_sense.Linux-amd64.bin" if (-e "/home/walenzb/ca3g/ca3g-build/src/falcon_sense/falcon_sense.Linux-amd64.bin");
-    $global{"falcon"}                      = "/nbacc/scratch/bri/ca3g-build/src/falcon_sense/falcon_sense.Linux-amd64.bin" if (-e "/nbacc/scratch/bri/ca3g-build/src/falcon_sense/falcon_sense.Linux-amd64.bin");
-    $global{"falcon"}                      = "/work/software/falcon/install/fc_env/bin/fc_consensus.py"                    if (-e "/work/software/falcon/install/fc_env/bin/fc_consensus.py");
-    $synops{"falcon"}                      = "Path to fc_consensus.py";
+    #####  Correction Options
 
-    $global{"falconThreads"}               = 4;
-    $synops{"falconThreads"}               = "Number of compute threads to use for falcon consensus";
+    $global{"corPartitions"}               = 128;
+    $synops{"corPartitions"}               = "Partition read correction into N jobs";
+
+    $global{"corPartitionMin"}             = 25000;
+    $synops{"corPartitionMin"}             = "Don't make a read correction partition with fewer than N reads";
+
+    $global{"corMinLength"}                = undef;
+    $synops{"corMinLength"}                = "Limit read correction to only overlaps longer than this; default: unlimited";
+    
+    $global{"corMaxErate"}                 = undef;
+    $synops{"corMaxErate"}                 = "Limit read correction to only overlaps at or below this fraction error; default: unlimited";
+    
+    $global{"corMaxCoverage"}              = undef;
+    $synops{"corMaxCoverage"}              = "Limit read correction to at most this coverage; default: 1.5 * estimated coverage";
+    
+    $global{"correction"}                  = "falconpipe";
+    $synops{"correction"}                  = "Which consensus algorithm to use; only 'falcon' and 'falconpipe' are supported";
+
+    $global{"falconSense"}                 = undef;
+    $global{"falconSense"}                 = "/home/walenzb/ca3g/ca3g-build/src/falcon_sense/falcon_sense.Linux-amd64.bin" if (-e "/home/walenzb/ca3g/ca3g-build/src/falcon_sense/falcon_sense.Linux-amd64.bin");
+    $global{"falconSense"}                 = "/nbacc/scratch/bri/ca3g-build/src/falcon_sense/falcon_sense.Linux-amd64.bin" if (-e "/nbacc/scratch/bri/ca3g-build/src/falcon_sense/falcon_sense.Linux-amd64.bin");
+    $global{"falconSense"}                 = "/work/software/falcon/install/fc_env/bin/fc_consensus.py"                    if (-e "/work/software/falcon/install/fc_env/bin/fc_consensus.py");
+    $synops{"falconSense"}                 = "Path to fc_consensus.py or falcon_sense.bin";
 
     #####  Ugly, command line options passed to printHelp()
 
@@ -916,6 +982,10 @@ sub setDefaults () {
 
     foreach my $k (keys %global) {
         (my $l = $k) =~ tr/A-Z/a-z/;
+
+        next  if ($k eq "version");
+        next  if ($k eq "options");
+        next  if ($k eq "help");
 
         if (! exists($synnam{$l})) {
             $synnam{$l} = $k;

@@ -68,7 +68,7 @@ sub getExpectedCoverage ($$) {
     my $wrk = shift @_;
     my $asm = shift @_;
 
-    return(getNumberOfBasesInStore($wrk, $asm) / getGlobal("genomeSize"));
+    return(int(getNumberOfBasesInStore($wrk, $asm) / getGlobal("genomeSize")));
 }
 
 
@@ -159,7 +159,12 @@ sub gatekeeper ($$@) {
 
     #  Load the store.
 
-    my $cmd = "$bin/gatekeeperCreate -o $wrk/$asm.gkpStore.BUILDING $wrk/$asm.gkpStore.gkp > $wrk/$asm.gkpStore.err 2>&1";
+    my $cmd;
+    $cmd .= "$bin/gatekeeperCreate \\\n";
+    $cmd .= "  -minlength " . getGlobal("minReadLength") . " \\\n";
+    $cmd .= "  -o $wrk/$asm.gkpStore.BUILDING \\\n";
+    $cmd .= "  $wrk/$asm.gkpStore.gkp \\\n";
+    $cmd .= "> $wrk/$asm.gkpStore.err 2>&1";
 
     if (runCommand($wrk, $cmd)) {
         caFailure("gatekeeper failed", "$wrk/$asm.gkpStore.err");

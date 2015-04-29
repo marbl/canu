@@ -75,7 +75,7 @@ sub unitig ($$) {
     #  How many reads per partition?  This will change - it'll move to be after unitigs are constructed.
 
     my $perPart = int(getNumberOfReadsInStore($wrk, $asm) / getGlobal("cnsPartitions"));
-    my $minPart = getGlobal("cnsMinFrags");
+    my $minPart = getGlobal("cnsPartitionMin");
 
     $perPart = ($perPart < $minPart) ? ($perPart) : ($minPart);
 

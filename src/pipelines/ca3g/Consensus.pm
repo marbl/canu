@@ -195,7 +195,7 @@ sub consensusConfigure ($$) {
         $cmd .= "> $path/$asm.partitioned.err 2>&1";
 
         if (runCommand("$path", $cmd)) {
-            caFailure("failed to partition the fragStore", "$path/$asm.partitioned.err");
+            caFailure("failed to partition the reads", "$path/$asm.partitioned.err");
         }
     }
 
