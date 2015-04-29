@@ -56,6 +56,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -coords        output coordiantes on reads\n");
     fprintf(stderr, "  -hangs         output hangs on reads\n");
+    fprintf(stderr, "  -raw           output raw hangs on reads\n");
 
     if ((gkpStoreName == NULL) && (dt == ovOverlapAsCoords))
       fprintf(stderr, "ERROR:  -coords mode requires a gkpStore (-G)\n");
