@@ -32,15 +32,22 @@ const char *mainid = "$Id$";
 //  Eventually want to support bax.h5 natively.
 
 
+uint32  validSeq[256] = {0};
 
 
 uint32
-loadFASTA(gkStore *gkpStore,
-          gkLibrary *gkpLibrary,
-          char *L,
-          char *H,
-          char *S,
-          compressedFileReader *F) {
+loadFASTA(gkStore              *gkpStore,
+          gkLibrary            *gkpLibrary,
+          char                 *L,
+          char                 *H,
+          char                 *S,
+          uint32               &Slen,
+          char                 *Q,
+          compressedFileReader *F,
+          FILE                 *errorLog,
+          uint32               &nWARNS) {
+  uint32  nLines = 0;
+  bool    valid  = true;
 
   //  We've already read the header.  It's in L.  But we want to use L to load the sequence, so the
   //  header is copied to H.  We need to do a copy anyway - we need to return the next header in L.
@@ -52,67 +59,93 @@ loadFASTA(gkStore *gkpStore,
   //  Load sequence.  This is a bit tricky, since we need to peek ahead
   //  and stop reading before the next header is loaded.
 
-  //  Load sequence.
 
-  uint32  Slen = 0;
+  S[0] = 0;
+  Slen = 0;
 
-  fgets(L, AS_MAX_READLEN, F->file());
+  fgets(L, AS_MAX_READLEN, F->file());  nLines++;
   chomp(L);
+
+  Q[0] = 0;
   
-  while ((!feof(F->file())) && (L[0] != '>')) {
-    strcat(S + Slen, L);
-    Slen += strlen(L);
+  while ((!feof(F->file())) && (L[0] != '>') && (valid == true)) {
 
-    fgets(L, AS_MAX_READLEN, F->file());
-    chomp(L);
+    //  Copy in the sequence, as long as it is valid sequence.  If any invalid letters
+    //  are found, stop copying, and stop reading sequence.
+
+    bool  bogusBase = false;
+
+    for (uint32 i=0; L[i]; i++) {
+      switch (L[i]) {
+        case 'a':   S[Slen] = 'A';  break;
+        case 'c':   S[Slen] = 'C';  break;
+        case 'g':   S[Slen] = 'G';  break;
+        case 't':   S[Slen] = 'T';  break;
+        case 'A':   S[Slen] = 'A';  break;
+        case 'C':   S[Slen] = 'C';  break;
+        case 'G':   S[Slen] = 'G';  break;
+        case 'T':   S[Slen] = 'T';  break;
+        case 'n':   S[Slen] = 'N';  break;
+        case 'N':   S[Slen] = 'N';  break;
+        default:
+          fprintf(errorLog, "read '%s' has invalid base '%c' (0x%02x) at position %u.  Converted to 'N'.\n",
+                 H, L[i], L[i], i);
+          S[Slen]   = 'N';
+          valid     = false;
+          bogusBase = true;
+          break;
+      }
+
+      Slen++;
+    }
+
+    if (bogusBase)
+      nWARNS++;
+
+    //  If we're still valid, grab the next line; it should be a header.  If not valid, pass the
+    //  last line back so we can fail the header check on the next iteration.
+
+    if (valid) {
+      fgets(L, AS_MAX_READLEN, F->file());  nLines++;
+      chomp(L);
+    }
   }
-
-  //  Add a new read to the store.
-
-  gkRead     *nr = gkpStore->gkStore_addEmptyRead(gkpLibrary);
-
-  //  Populate the read with the appropriate gunk, based on the library type.
-
-  //assert(gkpLibrary->gkLibrary_encoding() == GKREAD_TYPE_SEQ_QLT);
-
-  gkReadData *nd = nr->gkRead_encodeSeqQlt(H, S, gkpLibrary->gkLibrary_defaultQV());
-
-  //  Stash the encoded data in the store
-
-  gkpStore->gkStore_stashReadData(nr, nd);
-
-  //  And then toss it out.
-
-  delete nd;
 
   //  Do NOT clear L, it contains the next header.
 
-  //H[0] = 0;
-  //S[0] = 0;
-
-  return(0);
+  return(nLines);
 }
 
 
 
-uint32
-loadFASTQ(gkStore *gkpStore,
-          gkLibrary *gkpLibrary,
-          char *L,
-          char *H,
-          char *S,
-          char *Q,
-          compressedFileReader *F) {
+uint32          
+loadFASTQ(gkStore              *gkpStore,
+          gkLibrary            *gkpLibrary,
+          char                 *L,
+          char                 *H,
+          char                 *S,
+          uint32               &Slen,
+          char                 *Q,
+          compressedFileReader *F,
+          FILE                 *errorLog,
+          uint32               &nWARNS) {
 
   //  We've already read the header.  It's in L.
 
   strcpy(H, L + 1);
 
   //  Load sequence.
+
+  S[0] = 0;
+  Slen = 0;
+
   fgets(S, AS_MAX_READLEN, F->file());
   chomp(S);
 
   //  Check for and correct invalid bases.
+
+  uint32 baseErrors = 0;
+
   for (uint32 i=0; S[i]; i++) {
     switch (S[i]) {
       case 'a':   S[i] = 'A';  break;
@@ -126,49 +159,55 @@ loadFASTQ(gkStore *gkpStore,
       case 'n':   S[i] = 'N';  break;
       case 'N':                break;
       default:
-        fprintf(stderr, "-- WARNING:  read '%s' has invalid base '%c' (0x%02x) at position %u.  Converted to 'N'.\n",
-                L, S[i], S[i], i);
-        S[i] = 'N';
-        Q[i] = '!';
+        S[i]       = 'N';
+        Q[i]       = '!';
+        baseErrors++;
         break;
     }
+
+    Slen++;
+  }
+
+  if (baseErrors > 0) {
+        fprintf(errorLog, "read '%s' has %u invalid base%s.  Converted to 'N'.\n",
+                L, baseErrors, (baseErrors > 1) ? "s" : "");
+    nWARNS++;
   }
 
   //  Load the qv header, and then load the qvs themselves over the header.
+  Q[0] = 0;
   fgets(Q, AS_MAX_READLEN, F->file());
   fgets(Q, AS_MAX_READLEN, F->file());
   chomp(Q);
 
-  //  Convert from whatever QV encoding they have to the CA encoding
-#warning ASSUMING READS ARE SANGER QV ENCODED
+  //  Convert from the (assumed to be) Sanger QVs to the CA offset '0' QVs.
+
+  uint32 QVerrors = 0;
 
   for (uint32 i=0; Q[i]; i++) {
+    if (Q[i] < '!') {
+      Q[i] = '!';
+      QVerrors++;
+    }
+
+    if (Q[i] > 'Z') {
+      Q[i] = 'Z';
+      QVerrors++;
+    }
+
     Q[i] -= '!';
     Q[i] += '0';
   }
 
-  //  Add a new read to the store.
-
-  gkRead     *nr = gkpStore->gkStore_addEmptyRead(gkpLibrary);
-
-  //  Populate the read with the appropriate gunk, based on the library type.
-
-  gkReadData *nd = nr->gkRead_encodeSeqQlt(H, S, Q);
-
-  //  Stash the encoded data in the store
-
-  gkpStore->gkStore_stashReadData(nr, nd);
-
-  //  And then toss it out.
-
-  delete nd;
+  if (QVerrors > 0) {
+    fprintf(errorLog, "read '%s' has invalid %u QV%s.  Converted to min or max value.\n",
+            L, QVerrors, (QVerrors > 1) ? "s" : "");
+    nWARNS++;
+  }
 
   //  Clear the lines, so we can load the next one.
 
   L[0] = 0;
-  //H[0] = 0;
-  //S[0] = 0;
-  //Q[0] = 0;
 
   return(4);  //  FASTQ always reads exactly four lines
 }
@@ -177,8 +216,17 @@ loadFASTQ(gkStore *gkpStore,
 
 
 
-uint32
-loadReads(gkStore *gkpStore, gkLibrary *gkpLibrary, FILE *nameMap, char *fileName) {
+void
+loadReads(gkStore    *gkpStore,
+          gkLibrary  *gkpLibrary,
+          uint32      minReadLength,
+          FILE       *nameMap,
+          FILE       *errorLog,
+          char       *fileName,
+          uint32     &nFASTA,
+          uint32     &nFASTQ,
+          uint32     &nWARNS,
+          uint32     &nSHORT) {
   char    *L = new char [AS_MAX_READLEN + 1];
   char    *H = new char [AS_MAX_READLEN + 1];
 
@@ -188,15 +236,17 @@ loadReads(gkStore *gkpStore, gkLibrary *gkpLibrary, FILE *nameMap, char *fileNam
   uint32   Qlen = 0;
   char    *Q = new char [AS_MAX_READLEN + 1];
 
-  uint64   lineNumber = 0;
+  uint64   lineNumber = 1;
 
-  fprintf(stderr, "-- Loading reads from '%s'\n", fileName);
+  fprintf(stderr, "\n");
+  fprintf(stderr, "  Loading reads from '%s'\n", fileName);
 
   compressedFileReader *F = new compressedFileReader(fileName);
 
-  uint32   nFASTA = 0;
-  uint32   nFASTQ = 0;
-  uint32   nERROR = 0;
+  uint32   nFASTAlocal = 0;
+  uint32   nFASTQlocal = 0;
+  uint32   nWARNSlocal = 0;
+  uint32   nSHORTlocal = 0;
 
   fgets(L, AS_MAX_READLEN, F->file());
   chomp(L);
@@ -204,31 +254,49 @@ loadReads(gkStore *gkpStore, gkLibrary *gkpLibrary, FILE *nameMap, char *fileNam
   while (!feof(F->file())) {
 
     if      (L[0] == '>') {
-      lineNumber += loadFASTA(gkpStore, gkpLibrary, L, H, S, F);
-      nFASTA++;
-
-      fprintf(nameMap, F_U32"\t%s\n", gkpStore->gkStore_getNumReads(), H);
+      lineNumber += loadFASTA(gkpStore, gkpLibrary, L, H, S, Slen, Q, F, errorLog, nWARNS);
+      nFASTAlocal++;
     }
 
     else if (L[0] == '@') {
-      lineNumber += loadFASTQ(gkpStore, gkpLibrary, L, H, S, Q, F);
-      nFASTQ++;
-
-      fprintf(nameMap, F_U32"\t%s\n", gkpStore->gkStore_getNumReads(), H);
+      lineNumber += loadFASTQ(gkpStore, gkpLibrary, L, H, S, Slen, Q, F, errorLog, nWARNS);
+      nFASTQlocal++;
     }
 
     else {
-      fprintf(stderr, "-- WARNING:  invalid read header '%s' in file '%s' at line "F_U64", skipping.\n",
-              L, fileName, lineNumber);
+      fprintf(errorLog, "invalid read header '%.40s%s' in file '%s' at line "F_U64", skipping.\n",
+              L, (strlen(L) > 80) ? "..." : "", fileName, lineNumber);
       L[0] = 0;
-      nERROR++;
+      nWARNSlocal++;
+    }
+
+    //  If S[0] isn't nul, we loaded a sequence and need to store it.
+
+    if (Slen < minReadLength) {
+      fprintf(errorLog, "read '%s' of length %u in file '%s' at line "F_U64" is too short, skipping.\n",
+              H, Slen, fileName, lineNumber);
+      nSHORTlocal++;
+      S[0] = 0;
+      Q[0] = 0;
+    }
+
+    if (S[0] != 0) {
+      gkRead     *nr = gkpStore->gkStore_addEmptyRead(gkpLibrary);
+      gkReadData *nd = (Q[0] == 0) ? nr->gkRead_encodeSeqQlt(H, S, gkpLibrary->gkLibrary_defaultQV()) :
+                                     nr->gkRead_encodeSeqQlt(H, S, Q);
+
+      gkpStore->gkStore_stashReadData(nr, nd);
+
+      delete nd;
+
+      fprintf(nameMap, F_U32"\t%s\n", gkpStore->gkStore_getNumReads(), H);
     }
 
     //  If L[0] is nul, we need to load the next line.  If not, the next line is the header (from
     //  the fasta loader).
 
     if (L[0] == 0) {
-      fgets(L, AS_MAX_READLEN, F->file());
+      fgets(L, AS_MAX_READLEN, F->file());  lineNumber++;
       chomp(L);
     }
   }
@@ -240,12 +308,24 @@ loadReads(gkStore *gkpStore, gkLibrary *gkpLibrary, FILE *nameMap, char *fileNam
   delete [] H;
   delete [] L;
 
-  if (nFASTA > 0)
-    fprintf(stderr, "-- Loaded "F_U32" FASTA format reads from '%s'.\n", nFASTA, fileName);
-  if (nFASTQ > 0)
-    fprintf(stderr, "-- Loaded "F_U32" FASTQ format reads from '%s'.\n", nFASTQ, fileName);
+  lineNumber--;  //  The last fgets() returns EOF, but we still count the line.
 
-  return(0);
+  fprintf(stderr, "    Processed "F_U32" lines.\n", lineNumber);
+
+  if (nFASTAlocal > 0)
+    fprintf(stderr, "    Loaded "F_U32" FASTA format reads.\n", nFASTAlocal);
+  if (nFASTQlocal > 0)
+    fprintf(stderr, "    Loaded "F_U32" FASTQ format reads.\n", nFASTQlocal);
+  if (nWARNSlocal > 0)
+    fprintf(stderr, "      WARNING: "F_U32" reads issued a warning.\n", nWARNSlocal);
+  if (nSHORTlocal > 0)
+    fprintf(stderr, "      WARNING: "F_U32" reads (%0.4f%%) were too short (< %ubp) and were ignored.\n",
+            nSHORTlocal, 100.0 * nSHORTlocal / (nFASTAlocal + nFASTQlocal), minReadLength);
+
+  nFASTA += nFASTAlocal;
+  nFASTQ += nFASTQlocal;
+  nWARNS += nWARNSlocal;
+  nSHORT += nSHORTlocal;
 };
 
 
@@ -256,7 +336,7 @@ main(int argc, char **argv) {
   char            *gkpStoreName      = NULL;
   char            *outPrefix         = NULL;
 
-  bool             ignoreClear       = true;
+  uint32           minReadLength     = 0;
 
   uint32           firstFileArg      = 0;
 
@@ -266,18 +346,14 @@ main(int argc, char **argv) {
 
   //argc = AS_configure(argc, argv);
 
-  //fprintf(stderr, "gkLibrary: %u\n", sizeof(gkLibrary));
-  //fprintf(stderr, "gkRead:    %u\n", sizeof(gkRead));
-
   int arg = 1;
   int err = 0;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-o") == 0) {
       gkpStoreName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-useclear") == 0) {
-      ignoreClear = false;
-
+    } else if (strcmp(argv[arg], "-minlength") == 0) {
+      minReadLength = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "--") == 0) {
       firstFileArg = arg++;
@@ -303,7 +379,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "usage: %s [...] -o gkpStore\n", argv[0]);
     fprintf(stderr, "  -o gkpStore         create this gkpStore\n");
     fprintf(stderr, "  \n");
-    fprintf(stderr, "  -useclear           enforce clear ranges on the name lines\n");
+    fprintf(stderr, "  -minlength L        discard reads shorter than L\n");
     fprintf(stderr, "  \n");
     fprintf(stderr, "  \n");
 
@@ -324,6 +400,9 @@ main(int argc, char **argv) {
   uint32       inLineLen    = 1024;
   char         inLine[1024] = { 0 };
 
+  validSeq['a'] = validSeq['c'] = validSeq['g'] = validSeq['t'] = validSeq['n'] = 1;
+  validSeq['A'] = validSeq['C'] = validSeq['G'] = validSeq['T'] = validSeq['N'] = 1;
+
   errno = 0;
 
   sprintf(errorLogName, "%s.errorLog",    gkpStoreName);
@@ -336,8 +415,11 @@ main(int argc, char **argv) {
   if (errno)
     fprintf(stderr, "ERROR:  cannot open uid map file '%s': %s\n", nameMapName, strerror(errno)), exit(1);
 
-  uint32  nErrs  = 0;
-  uint32  nWarns = 0;
+  uint32  nERROR = 0;  //  There aren't any errors, we just exit fatally if encountered.
+  uint32  nWARNS = 0;
+  uint32  nSHORT = 0;
+  uint32  nFASTA = 0;
+  uint32  nFASTQ = 0;
 
   for (; firstFileArg < argc; firstFileArg++) {
     fprintf(stderr, "\n");
@@ -365,6 +447,7 @@ main(int argc, char **argv) {
       if (gkpLibrary == NULL) {
         fprintf(stderr, "WARNING: no 'name' tag in gkp input; creating library with name 'DEFAULT'.\n");
         gkpLibrary = gkpStore->gkStore_addEmptyLibrary(keyval.value());
+        nWARNS++;
       }
 
       if        (strcasecmp(keyval.key(), "preset") == 0) {
@@ -395,11 +478,17 @@ main(int argc, char **argv) {
         gkpLibrary->gkLibrary_setCheckForSubReads(keyval.value_bool());
 
       } else if (AS_UTL_fileExists(keyval.key(), false, false)) {
-        nWarns += loadReads(gkpStore, gkpLibrary, nameMap, keyval.key());
+        loadReads(gkpStore,
+                  gkpLibrary,
+                  minReadLength,
+                  nameMap,
+                  errorLog,
+                  keyval.key(),
+                  nFASTA, nFASTQ, nWARNS, nSHORT);
 
       } else {
         fprintf(stderr, "ERROR:  option '%s' not recognized, and not a file of reads.\n", line);
-        nErrs++;
+        exit(1);
       }
     }
 
@@ -413,14 +502,32 @@ main(int argc, char **argv) {
   fclose(errorLog);
 
   fprintf(stderr, "\n");
+  fprintf(stderr, "Finished with:\n");
+  fprintf(stderr, "  %u errors\n", nERROR);
+  fprintf(stderr, "  %u warnings.\n", nERROR, nWARNS);
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Skipped:\n");
+  fprintf(stderr, "  %u short reads (%.4f%%).\n", nSHORT, 100.0 * nSHORT / (nSHORT + nFASTA + nFASTQ));
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Loaded:\n");
+  fprintf(stderr, "  %u FASTA reads.\n", nFASTA);
+  fprintf(stderr, "  %u FASTQ reads.\n", nFASTQ);
+  fprintf(stderr, "\n");
 
-  if (nErrs > 0) {
-    fprintf(stderr, "gatekeeperCreate did NOT finish successfully; %u errors and %u warnings.\n", nErrs, nWarns);
+  if (nERROR > 0)
+    fprintf(stderr, "gatekeeperCreate did NOT finish successfully; too many errors.\n");
+
+  if (nWARNS > 0.10 * (nFASTA + nFASTQ))
+    fprintf(stderr, "gatekeeperCreate did NOT finish successfully; too many warnings.  Check your reads.\n");
+
+  if (nSHORT > 0.25 * (nFASTA + nFASTQ))
+    fprintf(stderr, "gatekeeperCreate did NOT finish successfully; too many short reads.  Check your reads!\n");
+
+  if ((nERROR > 0) ||
+      (nWARNS > 0.10 * (nSHORT + nFASTA + nFASTQ)) ||
+      (nSHORT > 0.25 * (nSHORT + nFASTA + nFASTQ)))
     exit(1);
-  }
 
-  //return(AS_GKP_summarizeErrors());
-  fprintf(stderr, "gatekeeperCreate finished successfully; %u errors and %u warnings.\n", nErrs, nWarns);
-
+  fprintf(stderr, "gatekeeperCreate finished successfully.\n");
   exit(0);
 }
