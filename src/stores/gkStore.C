@@ -250,7 +250,18 @@ gkRead::gkRead_encodeSeqQlt(char *H, char *S, char *Q) {
   uint32  Slen = strlen(S);
   uint32  Qlen = strlen(Q);
 
-  assert(Slen == Qlen);
+  if (Slen < Qlen) {
+    fprintf(stderr, "-- WARNING:  read '%s' sequence length %u != quality length %u; quality bases truncated.\n",
+            H, Slen, Qlen);
+    Q[Slen] = 0;
+  }
+
+  if (Slen > Qlen) {
+    fprintf(stderr, "-- WARNING:  read '%s' sequence length %u != quality length %u; quality bases padded.\n",
+            H, Slen, Qlen);
+    for (uint32 ii=Qlen; ii<Slen; ii++)
+      Q[ii] = Q[Qlen-1];
+  }
 
   uint32  blobType = GKREAD_TYPE_SEQ_QLT;
   uint32  blobVers = 0x00000001;
