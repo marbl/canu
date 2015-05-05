@@ -43,6 +43,16 @@ Read_Frags(feParameters   *G,
     votesLength += read->gkRead_sequenceLength();
   }
 
+  uint64  totAlloc = (sizeof(char)         * basesLength +
+                      sizeof(Vote_Tally_t) * basesLength +
+                      sizeof(Frag_Info_t)  * G->readsLen);
+
+  fprintf(stderr, "Read_Frags()-- allocate %lu MB for bases, votes and info, for %u reads of total length %lu (%.4f bytes/base)\n",
+          totAlloc >> 20,
+          G->endID - G->bgnID + 1,
+          basesLength,
+          (double)totAlloc / basesLength);
+
   G->readBases = new char          [basesLength];
   G->readVotes = new Vote_Tally_t  [votesLength];             //  NO constructor, MUST INIT
   G->readsLen  = G->endID - G->bgnID + 1;
