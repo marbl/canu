@@ -159,7 +159,6 @@ public:
 
   uint32              _layoutLen;
   uint32              _gappedLen;       //  Gapped consensus
-  uint32              _ungappedLen;     //  Ungapped consensus
   uint32              _childrenLen;
   uint32              _childDeltasLen;
 };
@@ -182,9 +181,12 @@ public:
   char                *gappedBases(void)       { return(_gappedBases); }; 
   char                *gappedQuals(void)       { return(_gappedBases); }; 
 
-  uint32               ungappedLength(void)    { return(_ungappedLen);   };
-  char                *ungappedBases(void)     { return(_ungappedBases); }; 
-  char                *ungappedQuals(void)     { return(_ungappedBases); }; 
+private:
+  void                 buildUngapped(void);
+public:
+  uint32               ungappedLength(void)    { buildUngapped();  return(_ungappedLen);   };
+  char                *ungappedBases(void)     { buildUngapped();  return(_ungappedBases); }; 
+  char                *ungappedQuals(void)     { buildUngapped();  return(_ungappedBases); }; 
 
   uint32               numberOfChildren(void)  { return(_childrenLen); };
   tgPosition          *getChild(uint32 c)      {

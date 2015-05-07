@@ -42,7 +42,6 @@ tgTigRecord::tgTigRecord() {
 
   _layoutLen       = 0;
   _gappedLen       = 0;
-  _ungappedLen     = 0;
   _childrenLen     = 0;
   _childDeltasLen  = 0;
 }
@@ -117,7 +116,6 @@ tgTigRecord::operator=(tgTig & tg) {
   _layoutLen           = tg._layoutLen;
 
   _gappedLen           = tg._gappedLen;
-  _ungappedLen         = tg._ungappedLen;
   _childrenLen         = tg._childrenLen;
   _childDeltasLen      = tg._childDeltasLen;
 }
@@ -140,7 +138,6 @@ tgTig::operator=(tgTigRecord & tr) {
 
   _layoutLen           = tr._layoutLen;
   _gappedLen           = tr._gappedLen;
-  _ungappedLen         = tr._ungappedLen;
   _childrenLen         = tr._childrenLen;
   _childDeltasLen      = tr._childDeltasLen;
 }
@@ -183,6 +180,55 @@ tgTig::operator=(tgTig & tg) {
 
 
 
+void
+tgTig::buildUngapped(void) {
+
+  if (_ungappedLen > 0)
+    //  Already computed.  Return what is here.
+    return;
+
+  if (_gappedLen == 0)
+    //  No gapped sequence to convert to ungapped.
+    return;
+
+  //  Allocate more space, if needed.
+
+  if (_ungappedMax < _gappedMax) {
+    delete [] _ungappedBases;
+    delete [] _ungappedQuals;
+
+    _ungappedMax = _gappedMax;
+
+    _ungappedBases = new char [_ungappedMax];
+    _ungappedQuals = new char [_ungappedMax];
+  }
+
+  assert(_gappedLen + 1 < _gappedMax);
+
+  //  Copy all but the gaps.
+
+  _ungappedLen = 0;
+
+  for (uint32 gp=0; gp<_gappedLen; gp++) {
+    if (_gappedBases[gp] == '-')
+      continue;
+
+    _ungappedBases[_ungappedLen] = _gappedBases[gp];
+    _ungappedQuals[_ungappedLen] = _gappedQuals[gp];
+
+    _ungappedLen++;
+  }
+
+  assert(_ungappedLen + 1 < _ungappedMax);
+
+  _ungappedBases[_ungappedLen] = 0;
+  _ungappedQuals[_ungappedLen] = 0;
+}
+
+
+
+
+
 //  Clears the data but doesn't release memory.  The only way to do that is to delete it.
 void
 tgTig::clear(void) {
@@ -202,7 +248,7 @@ tgTig::clear(void) {
   _ungappedLen          = 0;
   _childrenLen          = 0;
   _childDeltasLen       = 0;
-};
+}
 
 
 
@@ -220,11 +266,6 @@ tgTig::saveToStream(FILE *F) {
     AS_UTL_safeWrite(F, _gappedQuals, "tgTig::saveToStream::gappedQuals", sizeof(char), _gappedLen);
   }
 
-  if (_ungappedLen > 0) {
-    AS_UTL_safeWrite(F, _ungappedBases, "tgTig::saveToStream::ungappedBases", sizeof(char), _ungappedLen);
-    AS_UTL_safeWrite(F, _ungappedQuals, "tgTig::saveToStream::ungappedQuals", sizeof(char), _ungappedLen);
-  }
-
   //fprintf(stderr, "tgTig::saveToStream()-- at "F_U64" - before children, saving "F_U32"\n", AS_UTL_ftell(F), _childrenLen);
 
   if (_childrenLen > 0) {
@@ -238,7 +279,7 @@ tgTig::saveToStream(FILE *F) {
   }
 
   //fprintf(stderr, "tgTig::saveToStream()-- at "F_U64" - finsihed\n", AS_UTL_ftell(F));
-};
+}
 
 
 
@@ -259,7 +300,7 @@ tgTig::loadFromStream(FILE *F) {
   //  After that copy, the various Len fields are bigger than the Max fields.  Quick!  Allocate arrays!
 
   resizeArrayPair(_gappedBases,   _gappedQuals,   0, _gappedMax,   _gappedLen,   resizeArray_doNothing);
-  resizeArrayPair(_ungappedBases, _ungappedQuals, 0, _ungappedMax, _ungappedLen, resizeArray_doNothing);
+  //resizeArrayPair(_ungappedBases, _ungappedQuals, 0, _ungappedMax, _ungappedLen, resizeArray_doNothing);
 
   resizeArray(_children, 0, _childrenMax, _childrenLen, resizeArray_doNothing);
 
@@ -271,11 +312,11 @@ tgTig::loadFromStream(FILE *F) {
     AS_UTL_safeRead(F, _gappedQuals, "tgTig::loadFromStream::gappedQuals", sizeof(char), _gappedLen);
   }
 
-  if (_ungappedLen > 0) {
-    //fprintf(stderr, "tgTig::loadFromStream()-- loading %u ungapped bases\n", _ungappedLen);
-    AS_UTL_safeRead(F, _ungappedBases, "tgTig::loadFromStream::ungappedBases", sizeof(char), _ungappedLen);
-    AS_UTL_safeRead(F, _ungappedQuals, "tgTig::loadFromStream::ungappedQuals", sizeof(char), _ungappedLen);
-  }
+  //if (_ungappedLen > 0) {
+  //  //fprintf(stderr, "tgTig::loadFromStream()-- loading %u ungapped bases\n", _ungappedLen);
+  //  AS_UTL_safeRead(F, _ungappedBases, "tgTig::loadFromStream::ungappedBases", sizeof(char), _ungappedLen);
+  //  AS_UTL_safeRead(F, _ungappedQuals, "tgTig::loadFromStream::ungappedQuals", sizeof(char), _ungappedLen);
+  //}
 
   //fprintf(stderr, "tgTig::loadFromStream()-- Loading at position "F_U64" - before children, need to load "F_U32" at "F_U64" bytes each.\n",
   //        AS_UTL_ftell(F), _childrenLen, sizeof(tgPosition));

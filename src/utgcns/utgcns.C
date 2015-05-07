@@ -27,6 +27,7 @@ const char *mainid = "$Id$";
 #include "abAbacus.H"
 
 #include "AS_UTL_decodeRange.H"
+#include "AS_UTL_fasta.C"
 
 #include "stashContains.H"
 
@@ -48,8 +49,11 @@ main (int argc, char **argv) {
 
   char *outResultsName = NULL;
   char *outLayoutsName = NULL;
+  char *outSeqName     = NULL;
+
   FILE *outResultsFile = NULL;
   FILE *outLayoutsFile = NULL;
+  FILE *outSeqFile     = NULL;
 
   bool   forceCompute = false;
 
@@ -103,6 +107,9 @@ main (int argc, char **argv) {
     } else if (strcmp(argv[arg], "-L") == 0) {
       outLayoutsName = argv[++arg];
 
+    } else if (strcmp(argv[arg], "-F") == 0) {
+      outSeqName = argv[++arg];
+
     } else if (strcmp(argv[arg], "-e") == 0) {
       errorRate = atof(argv[++arg]);
 
@@ -152,6 +159,7 @@ main (int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "    -O results      Write computed tigs to binary output file 'results'\n");
     fprintf(stderr, "    -L layouts      Write computed tigs to layout output file 'layouts'\n");
+    fprintf(stderr, "    -F fastq        Write computed tigs to fastq  output file 'fastq'\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "    -u b            Compute only unitig ID 'b' (must be in the correct partition!)\n");
     fprintf(stderr, "    -u b-e          Compute only unitigs from ID 'b' to ID 'e'\n");
@@ -204,7 +212,12 @@ main (int argc, char **argv) {
   if (outLayoutsName)
     outLayoutsFile = fopen(outLayoutsName, "w");
   if (errno)
-    fprintf(stderr, "Failed to open output results file '%s': %s\n", outLayoutsName, strerror(errno)), exit(1);
+    fprintf(stderr, "Failed to open output layout file '%s': %s\n", outLayoutsName, strerror(errno)), exit(1);
+
+  if (outSeqName)
+    outSeqFile = fopen(outSeqName, "w");
+  if (errno)
+    fprintf(stderr, "Failed to open output FASTQ file '%s': %s\n", outSeqName, strerror(errno)), exit(1);
 
   //  Open gatekeeper for read only, and load the partitioned data if tigPart > 0.
 
@@ -352,6 +365,12 @@ main (int argc, char **argv) {
 
       if (outLayoutsFile)
         tig->dumpLayout(outLayoutsFile);
+
+      if (outSeqFile)
+        AS_UTL_writeFastQ(outSeqFile,
+                          tig->ungappedBases(), tig->ungappedLength(),
+                          tig->ungappedQuals(), tig->ungappedLength(),
+                          "@utg%08u\n", tig->tigID());
 
       tigStore->unloadTig(tig->tigID(), true);  //  Tell the store we're done with it
 
