@@ -46,6 +46,9 @@ abMultiAlign::getConsensus(abAbacus *abacus, tgTig *tig) {
   //        length(), tig->tigID(), tig->_gappedLen, tig->_gappedMax);
 
   getConsensus(abacus, tig->_gappedBases, tig->_gappedQuals, tig->_gappedLen, tig->_gappedMax);
+
+  //fprintf(stderr, "abMultiAlign::getConsensus()-- transfering consensus of length %u to tig %u (_gappedLen %u _gappedMax %u)\n",
+  //        length(), tig->tigID(), tig->_gappedLen, tig->_gappedMax);
 }
 
 
