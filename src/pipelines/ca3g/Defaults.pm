@@ -245,16 +245,12 @@ sub getPhysicalMemorySize () {
 sub dirname ($) {
     my $d = shift @_;
 
-    print "dirname - '$d'\n";
-
     return($d)  if (-d $d);
 
     my @d = split '/', $d;
     pop @d;
 
     $d = join('/', @d);
-
-    print "dirname - '$d'\n";
 
     return($d);
 }
