@@ -54,7 +54,10 @@ dumpReads(gkStore *gkp, uint32 bgnID, uint32 endID) {
   //fprintf(stderr, "Dumping reads from %u to %u (inclusive).\n", bgnID, endID);
 
   for (uint32 rid=bgnID; rid<=endID; rid++) {
-    gkRead  *read = gkp->gkStore_getRead(rid);
+    gkRead  *read = gkp->gkStore_getReadInPartition(rid);
+
+    if (read == NULL)
+      continue;
 
     fprintf(stdout, F_U32"\t"F_U32"\t"F_U32"\t%c\t"F_U64"\t"F_U64"\n",
             read->gkRead_readID(),
@@ -112,7 +115,11 @@ dumpStats(gkStore *gkp, uint32 bgnID, uint32 endID) {
   readStats  *rs = new readStats [gkp->gkStore_getNumLibraries() + 1];
 
   for (uint32 rid=bgnID; rid<=endID; rid++) {
-    gkRead  *read = gkp->gkStore_getRead(rid);
+    gkRead  *read = gkp->gkStore_getReadInPartition(rid);
+
+    if (read == NULL)
+      continue;
+
     uint32   l    = read->gkRead_libraryID();
 
     rs[0].addRead(read);
@@ -136,6 +143,7 @@ dumpStats(gkStore *gkp, uint32 bgnID, uint32 endID) {
 int
 main(int argc, char **argv) {
   char            *gkpStoreName      = NULL;
+  uint32           gkpStorePart      = UINT32_MAX;
 
   bool             wantLibs          = false;
   bool             wantReads         = true;
@@ -151,6 +159,9 @@ main(int argc, char **argv) {
   while (arg < argc) {
     if        (strcmp(argv[arg], "-G") == 0) {
       gkpStoreName = argv[++arg];
+
+      if ((arg+1 < argc) && (argv[arg+1][0] != '-'))
+        gkpStorePart = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-libs") == 0) {
       wantLibs  = true;
@@ -188,18 +199,20 @@ main(int argc, char **argv) {
     err++;
 
   if (err) {
-    fprintf(stderr, "usage: %s [...] -G gkpStore\n", argv[0]);
-    fprintf(stderr, "  -G gkpStore\n");
+    fprintf(stderr, "usage: %s -G gkpStore [p] [...]\n", argv[0]);
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -libs        dump information about libraries\n");
-    fprintf(stderr, "  -reads       dump information about reads\n");
+    fprintf(stderr, "  -G gkpStore [p]  dump reads from 'gkpStore', restricted to\n");
+    fprintf(stderr, "                   partition 'p', if supplied.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -stats       dump summary statistics on reads\n");
+    fprintf(stderr, "  -libs            dump information about libraries\n");
+    fprintf(stderr, "  -reads           dump information about reads\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -b id        output starting at read/library 'id'\n");
-    fprintf(stderr, "  -e id        output stopping after read/library 'id'\n");
+    fprintf(stderr, "  -stats           dump summary statistics on reads\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -r id        output only the single read 'id'\n");
+    fprintf(stderr, "  -b id            output starting at read/library 'id'\n");
+    fprintf(stderr, "  -e id            output stopping after read/library 'id'\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -r id            output only the single read 'id'\n");
     fprintf(stderr, "\n");
 
     if (gkpStoreName == NULL)
@@ -208,7 +221,7 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  gkStore    *gkpStore  = new gkStore(gkpStoreName);
+  gkStore    *gkpStore  = new gkStore(gkpStoreName, gkStore_readOnly, gkpStorePart);
   uint32      numReads  = gkpStore->gkStore_getNumReads();
   uint32      numLibs   = gkpStore->gkStore_getNumLibraries();
 
