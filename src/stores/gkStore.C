@@ -467,7 +467,7 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
 
   if ((mode == gkStore_readOnly) &&
       (partID == UINT32_MAX)) {
-    fprintf(stderr, "gkStore()--  opening '%s' for read-only access.\n", _storePath);
+    //fprintf(stderr, "gkStore()--  opening '%s' for read-only access.\n", _storePath);
 
     sprintf(name, "%s/libraries", _storePath);
     _librariesMMap = new memoryMappedFile (name, memoryMappedFile_readOnly);
@@ -488,7 +488,7 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
 
   else if ((mode == gkStore_modify) &&
            (partID == UINT32_MAX)) {
-    fprintf(stderr, "gkStore()--  opening '%s' for read-write access.\n", _storePath);
+    //fprintf(stderr, "gkStore()--  opening '%s' for read-write access.\n", _storePath);
 
     sprintf(name, "%s/libraries", _storePath);
     _librariesMMap = new memoryMappedFile (name, memoryMappedFile_readWrite);
@@ -509,7 +509,7 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
 
   else if ((mode == gkStore_extend) &&
            (partID == UINT32_MAX)) {
-    fprintf(stderr, "gkStore()--  opening '%s' for read-write and append access.\n", _storePath);
+    //fprintf(stderr, "gkStore()--  opening '%s' for read-write and append access.\n", _storePath);
 
     if (AS_UTL_fileExists(_storePath, true, true) == false)
       AS_UTL_mkdir(_storePath);
@@ -560,7 +560,7 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
 
   else if ((mode == gkStore_readOnly) &&
            (partID != UINT32_MAX)) {
-    fprintf(stderr, "gkStore()--  opening '%s' partition '%u' for read-only access.\n", _storePath, partID);
+    //fprintf(stderr, "gkStore()--  opening '%s' partition '%u' for read-only access.\n", _storePath, partID);
 
     //  For partitioned reads, we need to have a uint32 map of readID to partitionReadID so we can
     //  lookup the metadata in the partitoned _reads data.  This is 4 bytes per read, compared to 24
@@ -582,8 +582,6 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
     _readIDtoPartitionID    = new uint32 [gkStore_getNumReads() + 1];
     _readIDtoPartitionIdx   = new uint32 [gkStore_getNumReads() + 1];
 
-    //  guido
-
     AS_UTL_safeRead(F, _readsPerPartition,    "gkStore::_readsPerPartition",    sizeof(uint32), _numberOfPartitions   + 1);
     AS_UTL_safeRead(F, _readIDtoPartitionID,  "gkStore::_readIDtoPartitionID",  sizeof(uint32), gkStore_getNumReads() + 1);
     AS_UTL_safeRead(F, _readIDtoPartitionIdx, "gkStore::_readIDtoPartitionIdx", sizeof(uint32), gkStore_getNumReads() + 1);
@@ -593,29 +591,29 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
     sprintf(name, "%s/libraries", _storePath);
     _librariesMMap = new memoryMappedFile (name, memoryMappedFile_readOnly);
     _libraries     = (gkLibrary *)_librariesMMap->get(0);
-    fprintf(stderr, " -- openend '%s' at "F_X64"\n", name, _libraries);
+    //fprintf(stderr, " -- openend '%s' at "F_X64"\n", name, _libraries);
 
     sprintf(name, "%s/partitions/reads.%04lu", _storePath, partID);
     _readsMMap     = new memoryMappedFile (name, memoryMappedFile_readOnly);
     _reads         = (gkRead *)_readsMMap->get(0);
-    fprintf(stderr, " -- openend '%s' at "F_X64"\n", name, _reads);
+    //fprintf(stderr, " -- openend '%s' at "F_X64"\n", name, _reads);
 
     sprintf(name, "%s/partitions/blobs.%04lu", _storePath, partID);
     _blobsMMap     = new memoryMappedFile (name, memoryMappedFile_readOnly);
     _blobs         = (void *)_blobsMMap->get(0);
-    fprintf(stderr, " -- openend '%s' at "F_X64"\n", name, _blobs);
+    //fprintf(stderr, " -- openend '%s' at "F_X64"\n", name, _blobs);
   }
 
   //  Info only, no access to reads or libraries.
 
   else if (mode == gkStore_infoOnly) {
-    fprintf(stderr, "gkStore()--  opening '%s' for info-only access.\n", _storePath);
+    //fprintf(stderr, "gkStore()--  opening '%s' for info-only access.\n", _storePath);
   }
 
   else {
     fprintf(stderr, "gkStore::gkStore()-- invalid mode '%s' with partition ID %u.\n",
             toString(mode), partID);
-    exit(1);
+    assert(0);
   }
 }
 
