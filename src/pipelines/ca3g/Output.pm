@@ -10,22 +10,59 @@ use strict;
 use ca3g::Defaults;
 use ca3g::Execution;
 
+
 sub outputLayout ($$) {
     my $wrk    = shift @_;
     my $asm    = shift @_;
     my $bin    = getBinDirectory();
     my $cmd;
 
-    $cmd  = "$bin/tigStore \\\n";
-    $cmd .= "  -g $wrk/$asm.gkpStore \\\n";
-    $cmd .= "  -t $wrk/$asm.tigStore 2 \\\n";
-    $cmd .= "  -U -d layout \\\n";
-    $cmd .= ">  $wrk/$asm.layout \\\n";
-    $cmd .= "2> $wrk/$asm.layout.err\n";
+    goto stopAfter   if (skipStage($wrk, $asm, "outputLayout") == 1);
+    goto allDone     if (-e "$wrk/$asm.layout");
+
+    if (-e "$wrk/$asm.tigStore/seqDB.v002.tig") {
+        $cmd  = "$bin/tgStoreDump \\\n";
+        $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
+        $cmd .= "  -T $wrk/$asm.tigStore 2 \\\n";
+        $cmd .= "  -U -d layout \\\n";
+        $cmd .= ">  $wrk/$asm.layout \\\n";
+        $cmd .= "2> $wrk/$asm.layout.err\n";
+
+    } else {
+        open(O, "> $wrk/$asm.layout") or caExit("can't open '$wrk/$asm.layout' for writing: $!", undef);
+        open(F, "< $wrk/5-consensus/cnsjob.files") or caExit("can't open '$wrk/5-consensus/cnsjob.files' for reading: $!", undef);
+        while (<F>) {
+            my $prefix = $1  if (m/^(.*).cns/);
+
+            if (-e "$prefix.layout") {
+                print STDERR "Copying layouts from $prefix.layout\n";
+
+                open(L, "< $prefix.layout") or caExit("can't open '$prefix.layout' for reading: $!", undef);
+                while (<L>) {
+                    next  if (m/^cns\s/);
+                    next  if (m/^qlt\s/);
+
+                    print O $_;
+                }
+                close(L);
+            } else {
+                caExit("can't open '$prefix.layout' for reading: $!", undef);
+            }
+        }
+        close(F);
+        close(O);
+    }
+
+  stopBefore:
+    #stopBefore("outputLayout", $cmd);
 
     if (runCommand($wrk, $cmd)) {
-        caFailure("failed to output layouts", "$wrk/$asm.layout.err");
+        caExit("failed to output layouts", "$wrk/$asm.layout.err");
     }
+
+  allDone:
+    emitStage($wrk, $asm, "outputLayout");
+  stopAfter:
 }
 
 
@@ -35,14 +72,47 @@ sub outputSequence ($$) {
     my $bin    = getBinDirectory();
     my $cmd;
 
-    $cmd  = "$bin/tigStore \\\n";
-    $cmd .= "  -g $wrk/$asm.gkpStore \\\n";
-    $cmd .= "  -t $wrk/$asm.tigStore 2 \\\n";
-    $cmd .= "  -U -d consensus \\\n";
-    $cmd .= ">  $wrk/$asm.consensus.fasta \\\n";
-    $cmd .= "2> $wrk/$asm.consensus.fasta.err\n";
+    goto stopAfter   if (skipStage($wrk, $asm, "outputSequence") == 1);
+    goto allDone     if (-e "$wrk/$asm.fastq");
 
-    if (runCommand("$wrk/0-overlaptrim", $cmd)) {
-        caFailure("failed to output consensus", "$wrk/$asm.consensus.fasta.err");
+    if (-e "$wrk/$asm.tigStore/seqDB.v002.tig") {
+        $cmd  = "$bin/tgStoreDump \\\n";
+        $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
+        $cmd .= "  -T $wrk/$asm.tigStore 2 \\\n";
+        $cmd .= "  -U -d consensus \\\n";
+        $cmd .= ">  $wrk/$asm.consensus.fasta \\\n";
+        $cmd .= "2> $wrk/$asm.consensus.fasta.err\n";
+
+    } else {
+        open(O, "> $wrk/$asm.fastq") or caExit("can't open '$wrk/$asm.fastq' for writing: $!", undef);
+        open(F, "< $wrk/5-consensus/cnsjob.files") or caExit("can't open '$wrk/5-consensus/cnsjob.files' for reading: $!", undef);
+        while (<F>) {
+            my $prefix = $1  if (m/^(.*).cns/);
+
+            if (-e "$prefix.fastq") {
+                print STDERR "Copying sequencess from $prefix.fastq\n";
+
+                open(L, "< $prefix.fastq") or caExit("can't open '$prefix.fastq' for reading: $!", undef);
+                while (<L>) {
+                    print O $_;
+                }
+                close(L);
+            } else {
+                caExit("can't open '$prefix.fastq' for reading: $!", undef);
+            }
+        }
+        close(F);
+        close(O);
     }
+
+  stopBefore:
+    #stopBefore("outputSequence", $cmd);
+
+    if (runCommand($wrk, $cmd)) {
+        caExit("failed to output consensus", "$wrk/$asm.consensus.fasta.err");
+    }
+
+  allDone:
+    emitStage($wrk, $asm, "outputSequence");
+  stopAfter:
 }

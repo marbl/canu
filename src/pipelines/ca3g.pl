@@ -186,19 +186,23 @@ printHelp($bin);
 #  Fail immediately if we run the script on the grid, and the gkpStore directory doesn't exist and
 #  we have no input files.  Without this check we'd fail only after being scheduled on the grid.
 
-if ((! -d "$wrk/$asm.gkpStore") &&
+my $cor = (-e "$wrk/correction/$asm.gkpStore") || (-e "$wrk/$asm.correctedReads.fastq") || (-e "$wrk/$asm.correctedReads.gkp");
+my $obt = (-e "$wrk/trimming/$asm.gkpStore")   || (-e "$wrk/$asm.trimmedReads.fastq")   || (-e "$wrk/$asm.trimmedReads.gkp");
+my $utg = (-e "$wrk/$asm.gkpStore");
+
+if (($cor + $obt + $utg == 0) &&
     (scalar(@inputFiles) == 0)) {
-    caFailure("no input files specified, and store not already created", undef);
+    caExit("no input files specified, and store not already created", undef);
 }
 
 #  Check that we were supplied a work directory, and that it exists, or we can create it.
 
-caFailure("no run directory (-d option) specified", undef)  if (!defined($wrk));
+caExit("no run directory (-d option) specified", undef)  if (!defined($wrk));
 
 make_path("$wrk")             if (! -d "$wrk");
 make_path("$wrk/runCA-logs")  if (! -d "$wrk/runCA-logs");
 
-caFailure("run directory (-d option) '$wrk' doesn't exist and couldn't be created", undef)  if (! -d $wrk);
+caExit("run directory (-d option) '$wrk' doesn't exist and couldn't be created", undef)  if (! -d $wrk);
 
 #  This environment variable tells the binaries to log their execution in runCA-logs/
 
@@ -235,26 +239,18 @@ sub setOptions ($$) {
     return($mode)  if ($mode ne "run");
 
     if ($step eq "correct") {
-        setGlobal("overlapper", "mhap");
-        setGlobal("consensus",  "falconpipe");
-
         setErrorRate(0.15);
 
         return($step);
     }
 
     if ($step eq "trim") {
-        setGlobal("overlapper", "ovl");
-
         setErrorRate(0.02);
 
         return($step);
     }
 
     if ($step eq "assemble") {
-        setGlobal("overlapper", "ovl");
-        setGlobal("consensus",  "utgcns");
-
         setErrorRate(0.02);
 
         return($step);
@@ -268,43 +264,52 @@ sub setOptions ($$) {
 sub overlap ($$$) {
     my $wrk  = shift @_;
     my $asm  = shift @_;
-    my $mode = shift @_;
+    my $tag  = shift @_;
 
-    my $ovlType = ($mode eq "assemble") ? "normal" : "partial";
+    my $ovlType = ($tag eq "utg") ? "normal" : "partial";
 
-    if (getGlobal('overlapper') eq "mhap") {
-        mhapConfigure($wrk, $asm, $ovlType);
-        
-        mhapPrecomputeCheck($wrk, $asm, $ovlType, 0);
-        mhapPrecomputeCheck($wrk, $asm, $ovlType, 1);
+    if (getGlobal("${tag}overlapper") eq "mhap") {
+        mhapConfigure($wrk, $asm, $tag, $ovlType);
 
-        mhapCheck($wrk, $asm, $ovlType, 0);  #  this also does mhapReAlign
-        mhapCheck($wrk, $asm, $ovlType, 1);
+        mhapPrecomputeCheck($wrk, $asm, $tag, $ovlType, 1);
+        mhapPrecomputeCheck($wrk, $asm, $tag, $ovlType, 2);
+        mhapPrecomputeCheck($wrk, $asm, $tag, $ovlType, 3);
+
+        #  this also does mhapReAlign
+
+        mhapCheck($wrk, $asm, $tag, $ovlType, 1);
+        mhapCheck($wrk, $asm, $tag, $ovlType, 2);
+        mhapCheck($wrk, $asm, $tag, $ovlType, 3);
 
     } else {
-        overlapConfigure($wrk, $asm, $ovlType);
-        overlapCheck($wrk, $asm, $ovlType, 0);
-        overlapCheck($wrk, $asm, $ovlType, 1);
+        overlapConfigure($wrk, $asm, $tag, $ovlType);
+
+        overlapCheck($wrk, $asm, $tag, $ovlType, 1);
+        overlapCheck($wrk, $asm, $tag, $ovlType, 2);
+        overlapCheck($wrk, $asm, $tag, $ovlType, 3);
     }
 
-    createOverlapStore($wrk, $asm, getGlobal("ovlStoreMethod"));
+    createOverlapStore($wrk, $asm, $tag, getGlobal("ovlStoreMethod"));
 }
 
 #
 #  Begin pipeline
 #
 
+#my ($stage, $iteration) = loadCheckpoint($wrk, $asm);
+
 if (setOptions($mode, "correct") eq "correct") {
-    gatekeeper("$wrk/correction", $asm, @inputFiles);
-    meryl("$wrk/correction", $asm);
-    overlap("$wrk/correction", $asm, "correct");
+    gatekeeper($wrk, $asm, "cor", @inputFiles);
+    meryl($wrk, $asm, "cor");
+    overlap($wrk, $asm, "cor");
 
-    buildCorrectionLayouts("$wrk/correction", $asm);
+    buildCorrectionLayouts($wrk, $asm);
 
-    generateCorrectedReads("$wrk/correction", $asm, 0);
-    generateCorrectedReads("$wrk/correction", $asm, 1);
+    generateCorrectedReads($wrk, $asm, 1);
+    generateCorrectedReads($wrk, $asm, 2);
+    generateCorrectedReads($wrk, $asm, 3);
 
-    dumpCorrectedReads("$wrk/correction", $asm);
+    dumpCorrectedReads($wrk, $asm);
 
     undef @inputFiles;
     push  @inputFiles, "-pacbio-corrected:$wrk/correction/$asm.correctedReads.fastq";
@@ -312,14 +317,14 @@ if (setOptions($mode, "correct") eq "correct") {
 
 
 if (setOptions($mode, "trim") eq "trim") {
-    gatekeeper("$wrk/trimming", $asm, @inputFiles);
-    meryl("$wrk/trimming", $asm);
-    overlap("$wrk/trimming", $asm, "trim");
+    gatekeeper($wrk, $asm, "obt", @inputFiles);
+    meryl($wrk, $asm, "obt");
+    overlap($wrk, $asm, "obt");
 
-    trimReads  ("$wrk/trimming", $asm);
-    splitReads ("$wrk/trimming", $asm);
-    dumpReads  ("$wrk/trimming", $asm);
-    #summarizeReads("$wrk/trimming", $asm);
+    trimReads  ($wrk, $asm);
+    splitReads ($wrk, $asm);
+    dumpReads  ($wrk, $asm);
+    #summarizeReads($wrk, $asm);
 
     undef @inputFiles;
     push  @inputFiles, "-pacbio-corrected:$wrk/trimming/$asm.trimmedReads.fastq";
@@ -327,21 +332,38 @@ if (setOptions($mode, "trim") eq "trim") {
 
 
 if (setOptions($mode, "assemble") eq "assemble") {
-    gatekeeper($wrk, $asm, @inputFiles);
-    meryl($wrk, $asm);
-    overlap($wrk, $asm, "assemble");
+    gatekeeper($wrk, $asm, "utg", @inputFiles);
+    meryl($wrk, $asm, "utg");
+    overlap($wrk, $asm, "utg");
 
     #readErrorDetection($wrk, $asm);
-    overlapErrorAdjustment($wrk, $asm);
+
+    readErrorDetectionConfigure($wrk, $asm);
+
+    readErrorDetectionCheck($wrk, $asm, 1);
+    readErrorDetectionCheck($wrk, $asm, 2);
+    readErrorDetectionCheck($wrk, $asm, 3);
+
+    overlapErrorAdjustmentConfigure($wrk, $asm);
+
+    overlapErrorAdjustmentCheck($wrk, $asm, 1);
+    overlapErrorAdjustmentCheck($wrk, $asm, 2);
+    overlapErrorAdjustmentCheck($wrk, $asm, 3);
+
+    updateOverlapStore($wrk, $asm);
 
     unitig($wrk, $asm);
 
     consensusConfigure($wrk, $asm);
-    consensusCheck($wrk, $asm, 0);
     consensusCheck($wrk, $asm, 1);
+    consensusCheck($wrk, $asm, 2);
+    consensusCheck($wrk, $asm, 3);
 
+    #consensusLoad($wrk, $asm);
+
+    #outputGraph($wrk, $asm);
     outputLayout($wrk, $asm);
-    outputConsensus($wrk, $asm);
+    outputSequence($wrk, $asm);
 }
 
 exit(0);

@@ -67,8 +67,8 @@ sub unitig ($$) {
     my $wrk    = shift @_;
     my $asm    = shift @_;
 
-    goto alldone  if (-e "$wrk/4-unitigger/unitigger.success");
-    goto alldone  if (-d "$wrk/$asm.tigStore");
+    goto stopAfter  if (skipStage($wrk, $asm, "unitig") == 1);
+    goto allDone    if (-d "$wrk/$asm.tigStore");
 
     make_path("$wrk/4-unitigger")  if (! -d "$wrk/4-unitigger");
 
@@ -94,11 +94,11 @@ sub unitig ($$) {
     stopBefore("unitig", $cmd);
 
     if (runCommand("$wrk/4-unitigger", $cmd)) {
-        caFailure("failed to unitig", "$wrk/4-unitigger/unitigger.err");
+        caExit("failed to unitig", "$wrk/4-unitigger/unitigger.err");
     }
 
-    touch("$wrk/4-unitigger/unitigger.success");
-
-  alldone:
+  allDone:
+    emitStage($wrk, $asm, "unitig");
+  stopAfter:
     stopAfter("unitig");
 }

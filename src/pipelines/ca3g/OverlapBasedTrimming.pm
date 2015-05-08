@@ -14,12 +14,14 @@ use ca3g::Execution;
 
 
 sub trimReads ($$) {
-    my $wrk    = shift @_;
+    my $WRK    = shift @_;
+    my $wrk    = "$WRK/trimming";
     my $asm    = shift @_;
     my $bin    = getBinDirectory();
     my $cmd;
     my $path   = "$wrk/3-overlapbasedtrimming";
 
+    return  if (skipStage($WRK, $asm, "obt-trimReads") == 1);
     return  if (-e "$path/trimmed");
 
     make_path($path)  if (! -d $path);
@@ -58,17 +60,20 @@ sub trimReads ($$) {
     }
 
     touch("$path/trimmed");
+    emitStage($WRK, $asm, "obt-trimReads");
 }
 
 
 
 sub splitReads ($$) {
-    my $wrk    = shift @_;
+    my $WRK    = shift @_;
+    my $wrk    = "$WRK/trimming";
     my $asm    = shift @_;
     my $bin    = getBinDirectory();
     my $cmd;
     my $path   = "$wrk/3-overlapbasedtrimming";
 
+    return  if (skipStage($WRK, $asm, "obt-splitReads") == 1);
     return  if (-e "$path/splitted");  #  Splitted?
 
     make_path($path)  if (! -d $path);
@@ -107,18 +112,21 @@ sub splitReads ($$) {
     }
 
     touch("$path/splitted", "Splitted?  Is that even a word?");
+    emitStage($WRK, $asm, "obt-splitReads");
 }
 
 
 
 sub dumpReads ($$) {
-    my $wrk    = shift @_;
+    my $WRK    = shift @_;
+    my $wrk    = "$WRK/trimming";
     my $asm    = shift @_;
     my $bin    = getBinDirectory();
     my $cmd;
     my $path   = "$wrk/3-overlapbasedtrimming";
     my $inp;
 
+    return  if (skipStage($WRK, $asm, "obt-dumpReads") == 1);
     return  if (-e "$wrk/$asm.trimmedReads.fastq");
 
     make_path($path)  if (! -d $path);
@@ -140,4 +148,6 @@ sub dumpReads ($$) {
 
     #  Need gatekeeperDumpFASTQ to also write a gkp input file
     #touch("$wrk/$asm.trimmedReads.gkp");
+
+    emitStage($WRK, $asm, "obt-dumpReads");
 }

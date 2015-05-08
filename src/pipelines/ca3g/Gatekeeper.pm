@@ -19,7 +19,7 @@ sub getNumberOfReadsInStore ($$) {
     my $nr  = 0;
 
     if (-e "$wrk/$asm.gkpStore/info.txt") {
-        open(F, "< $wrk/$asm.gkpStore/info.txt") or caFailure("failed to open '$wrk/$asm.gkpStore/info.txt'", undef);
+        open(F, "< $wrk/$asm.gkpStore/info.txt") or caExit("can't open '$wrk/$asm.gkpStore/info.txt' for reading: $!", undef);
         while (<F>) {
             if (m/numReads\s+=\s+(\d+)/) {
                 $nr = $1;
@@ -39,7 +39,7 @@ sub getNumberOfBasesInStore ($$) {
     my $nb  = 0;
 
     if (-e "$wrk/$asm.gkpStore/info.txt") {
-        open(F, "< $wrk/$asm.gkpStore/info.txt") or caFailure("failed to open '$wrk/$asm.gkpStore/info.txt'", undef);
+        open(F, "< $wrk/$asm.gkpStore/info.txt") or caExit("can't open '$wrk/$asm.gkpStore/info.txt' for reading: $!", undef);
         while (<F>) {
             if (m/numBases\s+=\s+(\d+)/) {
                 $nb = $1;
@@ -73,32 +73,32 @@ sub getExpectedCoverage ($$) {
 
 
 
-sub gatekeeper ($$@) {
-    my $wrk    = shift @_;
+sub gatekeeper ($$$@) {
+    my $WRK    = shift @_;  #  Root work directory
+    my $wrk    = $WRK;
     my $asm    = shift @_;
+    my $tag    = shift @_;
     my $bin    = getBinDirectory();
     my @inputs = @_;
 
+    $wrk = "$wrk/correction"  if ($tag eq "cor");
+    $wrk = "$wrk/trimming"    if ($tag eq "obt");
+
     my $numReads = getNumberOfReadsInStore($wrk, $asm);
 
-    #  Return if there are fragments in the store, and die if there
-    #  are no fragments and no source files.
-
-    if ($numReads > 0) {
-        stopAfter("gatekeeper");
-        return;
-    }
+    goto stopAfter  if (skipStage($WRK, $asm, "$tag-gatekeeper") == 1);    #  Finished.
+    goto allDone    if ($numReads > 0);                                    #  Store exists, with reads.
 
     #  Check for inputs, or an incomplete or empty store.
 
-    caFailure("no input files specified, and store not already created", undef)
-        if (scalar(@inputs) == 0);
+    caExit("empty gatekeeper store $wrk/$asm.gkpStore", undef)
+        if (($numReads == 0) && (-e "$wrk/$asm.gkpStore/info.txt"));
 
-    caFailure("incomplete gatekeeper store $wrk/$asm.gkpStore; fix or remove", undef)
+    caExit("incomplete gatekeeper store $wrk/$asm.gkpStore; fix or remove", undef)
         if ((-d "$wrk/$asm.gkpStore") && (! -e "$wrk/$asm.gkpStore/info.txt"));
 
-    caFailure("empty gatekeeper store $wrk/$asm.gkpStore", undef)
-        if (($numReads == 0) && (-e "$wrk/$asm.gkpStore/info.txt"));
+    caExit("no input files specified, and store not already created", undef)
+        if (scalar(@inputs) == 0);
 
     #  Make sure all the inputs are here.
 
@@ -117,12 +117,12 @@ sub gatekeeper ($$@) {
             }
         }
     }
-    caFailure($failedFiles, undef) if defined($failedFiles);
+    caExit($failedFiles, undef) if defined($failedFiles);
 
     #  Build a gkp file for all the raw sequence inputs.  For simplicity, we just copy in any gkp
     #  files as is.  This documents what gatekeeper was built with, etc.
 
-    open(F, "> $wrk/$asm.gkpStore.gkp") or caFailure("failed to open '$wrk/$asm.gkpStore.gkp': $0", undef);
+    open(F, "> $wrk/$asm.gkpStore.gkp") or caExit("cant' open '$wrk/$asm.gkpStore.gkp' for writing: $0", undef);
 
     foreach my $iii (@inputs) {
         if ($iii =~ m/^-(.*):(.*)$/) {
@@ -143,7 +143,7 @@ sub gatekeeper ($$@) {
             print F "########################################\n";
             print F "#  $iii\n";
             print F "#\n";
-            open(I, "< $iii") or caFailure("failed to open gatekeeper input '$iii': $0", undef);
+            open(I, "< $iii") or caExit("can't open gatekeeper input '$iii' for reading: $0", undef);
             while (<I>) {
                 print F $_;
             }
@@ -151,7 +151,7 @@ sub gatekeeper ($$@) {
             print F "\n";
 
         } else {
-            caFailure("don't recognize gatekeeper input '$iii'", undef);
+            caExit("unrecognized gatekeeper input file '$iii'", undef);
         }
     }
 
@@ -167,15 +167,14 @@ sub gatekeeper ($$@) {
     $cmd .= "> $wrk/$asm.gkpStore.err 2>&1";
 
     if (runCommand($wrk, $cmd)) {
-        caFailure("gatekeeper failed", "$wrk/$asm.gkpStore.err");
+        caExit("gatekeeper failed", "$wrk/$asm.gkpStore.err");
     }
 
     rename "$wrk/$asm.gkpStore.BUILDING",             "$wrk/$asm.gkpStore";
     rename "$wrk/$asm.gkpStore.BUILDING.errorLog",    "$wrk/$asm.gkpStore.errorLog";
 
- stopafter:
+  allDone:
+    emitStage($WRK, $asm, "$tag-gatekeeper");
+ stopAfter:
     stopAfter("gatekeeper");
 }
-
-1;
-

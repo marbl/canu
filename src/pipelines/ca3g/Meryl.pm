@@ -33,38 +33,51 @@ use ca3g::Execution;
 #  stopAfter   meryl (stops after output is generated, even if it is just a symlink)
 
 
-sub meryl ($$) {
-    my $wrk          = shift @_;
-    my $asm          = shift @_;
-    my $bin          = getBinDirectory();
+sub meryl ($$$) {
+    my $WRK = shift @_;
+    my $wrk = $WRK;
+    my $asm = shift @_;
+    my $tag = shift @_;
+    my $bin = getBinDirectory();
     my $cmd;
 
-    my $merSize      = getGlobal('ovlMerSize');
-    my $merThresh    = getGlobal("ovlMerThreshold");
-    my $merScale     = 1.0;
-    my $merDistinct  = getGlobal("ovlMerDistinct");
-    my $merTotal     = getGlobal("ovlMerTotal");
+    $wrk = "$wrk/correction"  if ($tag eq "cor");
+    $wrk = "$wrk/trimming"    if ($tag eq "obt");
 
-    if (getGlobal("overlapper") eq "mhap") {
-        $merSize      = getGlobal('mhapMerSize');
+    goto stopAfter  if (skipStage($WRK, $asm, "$tag-meryl") == 1);        #  Finished.
+
+    my ($merSize, $merThresh, $merScale, $merDistinct, $merTotal);
+    my ($ffile, $ofile);
+
+    if (getGlobal("${tag}Overlapper") eq "ovl") {
+        $merSize      = getGlobal("${tag}MerSize");
+        $merThresh    = getGlobal("${tag}MerThreshold");
+        $merScale     = 1.0;
+        $merDistinct  = getGlobal("${tag}MerDistinct");
+        $merTotal     = getGlobal("${tag}MerTotal");
+
+        $ffile = "$wrk/0-mercounts/$asm.ms$merSize.frequentMers.fasta";   #  The fasta file we should be creating.
+        $ofile = "$wrk/0-mercounts/$asm.ms$merSize";                      #  The meryl database 'intermediate file'.
+
+    } elsif (getGlobal("${tag}Overlapper") eq "mhap") {
+        $merSize      = getGlobal("${tag}mhapMerSize");
         $merThresh    = 0.00005;  #  also set in OverlapMhap.pm
         $merScale     = 1.0;
         $merDistinct  = undef;
         $merTotal     = undef;
+
+        $ffile = "$wrk/0-mercounts/$asm.ms$merSize.frequentMers.ignore";  #  The mhap-specific file we should be creating.
+        $ofile = "$wrk/0-mercounts/$asm.ms$merSize";                      #  The meryl database 'intermediate file'.
+
+    } else {
+        caFailure("unknown ${tag}Overlapper '" . getGlobal("${tag}Overlapper") . "'", undef);
     }
-
-    my $ffile = "$wrk/0-mercounts/$asm.ms$merSize.frequentMers.fasta";   #  The fasta file we should be creating.
-    my $ofile = "$wrk/0-mercounts/$asm.ms$merSize";                      #  The meryl database 'intermediate file'.
-
-    if (getGlobal("overlapper") eq "mhap") {
-        $ffile = "$wrk/0-mercounts/$asm.ms$merSize.frequentMers.mhap_ignore";
-    }    
 
 
     #  If the frequent mer file exists, don't bother running meryl.  We don't really need the
     #  databases.
 
-    return  if (-e "$ffile");
+    goto allDone    if (-e "$ffile");
 
     #  Make a work space.
 
@@ -72,9 +85,9 @@ sub meryl ($$) {
 
     #  User supplied mers?  Just symlink to them.
 
-    if (defined(getGlobal("ovlFrequentMers"))) {
+    if (defined(getGlobal("${tag}FrequentMers"))) {
         my $ffile = "$wrk/0-mercounts/$asm.frequentMers.fasta";
-        my $sfile = getGlobal("ovlFrequentMers");
+        my $sfile = getGlobal("${tag}FrequentMers");
 
         if (! -e $ffile) {
             caFailure("frequentMers '$sfile' not found", undef)  if (! -e $sfile);
@@ -82,8 +95,7 @@ sub meryl ($$) {
             symlink $sfile, $ffile;
         }
 
-        stopAfter("meryl");
-        return;
+        goto allDone;
     }
 
     #  Otherwise, run meryl, and remember the new threshold.
@@ -113,8 +125,8 @@ sub meryl ($$) {
         (!defined($merTotal))) {
         print STDERR "Threshold zero.  Empty file.\n";
         touch($ffile);
-        stopAfter("meryl");
-        return;
+
+        goto allDone;
     }
 
     #  Build the database.
@@ -206,69 +218,70 @@ sub meryl ($$) {
 
     #  Plot the histogram - annotated with the thesholds
 
-    open(F, "> $ofile.histogram.gp");
-    print F "\n";
-    print F "\n";
-    print F "\n";
-    print F "unset multiplot\n";
-    print F "\n";
-    print F "set terminal png size 1000,800\n";
-    print F "set output \"$ofile.histogram.png\"\n";
-    print F "\n";
-    print F "set multiplot\n";
+    if (! -e "$ofile.histogram.png") {
+        open(F, "> $ofile.histogram.gp");
+        print F "\n";
+        print F "\n";
+        print F "\n";
+        print F "unset multiplot\n";
+        print F "\n";
+        print F "set terminal png size 1000,800\n";
+        print F "set output \"$ofile.histogram.png\"\n";
+        print F "\n";
+        print F "set multiplot\n";
 
-    print F "\n";
-    print F "#  Distinct-vs-total full size plot\n";
-    print F "\n";
-    print F "set origin 0.0,0.0\n";
-    print F "set size   1.0,1.0\n";
-    print F "\n";
-    print F "set xrange [0.5:1.0]\n";
-    print F "set yrange [0.0:1.0]\n";
-    print F "\n";
-    print F "unset ytics\n";
-    print F "set y2tics 0.1\n";
-    #print F "set y2tics add (\"0.6765\" 0.6765)\n";
-    print F "\n";
-    print F "plot [0.5:1.0] \"$ofile.histogram\" using 3:4 with lines title \"Distinct-vs-Total\"\n";
+        print F "\n";
+        print F "#  Distinct-vs-total full size plot\n";
+        print F "\n";
+        print F "set origin 0.0,0.0\n";
+        print F "set size   1.0,1.0\n";
+        print F "\n";
+        print F "set xrange [0.5:1.0]\n";
+        print F "set yrange [0.0:1.0]\n";
+        print F "\n";
+        print F "unset ytics\n";
+        print F "set y2tics 0.1\n";
+        #print F "set y2tics add (\"0.6765\" 0.6765)\n";
+        print F "\n";
+        print F "plot [0.5:1.0] \"$ofile.histogram\" using 3:4 with lines title \"Distinct-vs-Total\"\n";
 
-    print F "\n";
-    print F "#  Distinct-vs-total zoom in lower left corner\n";
-    print F "\n";
-    print F "set origin 0.05,0.10\n";
-    print F "set size   0.40,0.40\n";
-    print F "\n";
-    print F "set xrange [0.975:1.0]\n";
-    print F "set yrange [0.4:0.80]\n";
-    print F "\n";
-    print F "unset ytics\n";     #  ytics on the left of the plot
-    print F "set y2tics 0.1\n";  #  y2tics on the right of the plot
-    #print F "set y2tics add (\"0.6765\" 0.6765)\n";
-    print F "\n";
-    print F "plot [0.975:1.0] \"$ofile.histogram\" using 3:4 with lines title \"Distinct-vs-Total\"\n";
+        print F "\n";
+        print F "#  Distinct-vs-total zoom in lower left corner\n";
+        print F "\n";
+        print F "set origin 0.05,0.10\n";
+        print F "set size   0.40,0.40\n";
+        print F "\n";
+        print F "set xrange [0.975:1.0]\n";
+        print F "set yrange [0.4:0.80]\n";
+        print F "\n";
+        print F "unset ytics\n";     #  ytics on the left of the plot
+        print F "set y2tics 0.1\n";  #  y2tics on the right of the plot
+        #print F "set y2tics add (\"0.6765\" 0.6765)\n";
+        print F "\n";
+        print F "plot [0.975:1.0] \"$ofile.histogram\" using 3:4 with lines title \"Distinct-vs-Total\"\n";
 
-    print F "\n";
-    print F "#  Histogram in upper left corner\n";
-    print F "\n";
-    print F "set origin 0.05,0.55\n";
-    print F "set size   0.40,0.40\n";
-    print F "\n";
-    print F "set xrange [0:200]\n";
-    print F "set yrange [0:30000000]\n";
-    print F "\n";
-    print F "unset ytics\n";      #  ytics on the left of the plot
-    print F "set y2tics 10e6\n";  #  y2tics on the right of the plot
-    print F "unset mytics\n";
-    print F "\n";
-    print F "plot [0:200] \"$ofile.histogram\" using 1:2 with lines title \"Histogram\"\n";
-    close(F);
+        print F "\n";
+        print F "#  Histogram in upper left corner\n";
+        print F "\n";
+        print F "set origin 0.05,0.55\n";
+        print F "set size   0.40,0.40\n";
+        print F "\n";
+        print F "set xrange [0:200]\n";
+        print F "set yrange [0:30000000]\n";
+        print F "\n";
+        print F "unset ytics\n";      #  ytics on the left of the plot
+        print F "set y2tics 10e6\n";  #  y2tics on the right of the plot
+        print F "unset mytics\n";
+        print F "\n";
+        print F "plot [0:200] \"$ofile.histogram\" using 1:2 with lines title \"Histogram\"\n";
+        close(F);
 
-    runCommand("$wrk/0-mercounts", "gnuplot $ofile.histogram.gp");
-
+        runCommand("$wrk/0-mercounts", "gnuplot $ofile.histogram.gp");
+    }
 
     #  Generate the frequent mers for overlapper
 
-    if ((getGlobal("overlapper") eq "ovl") &&
+    if ((getGlobal("${tag}Overlapper") eq "ovl") &&
         (! -e $ffile)) {
         $cmd  = "$bin/meryl -Dt -n $merThresh -s $ofile > $ffile 2> $ffile.err";
 
@@ -286,7 +299,7 @@ sub meryl ($$) {
     #
     #  The fraction is just $3/$4.  I assume this is used with "--filter-threshold 0.000005".
 
-    if ((getGlobal("overlapper") eq "mhap") &&
+    if ((getGlobal("${tag}Overlapper") eq "mhap") &&
         (! -e $ffile)) {
 
         my $totalMers = 0;
@@ -299,10 +312,18 @@ sub meryl ($$) {
         }
         close(F);
 
-        $merThresh = int(0.000005 / 2 * $totalMers);
+        caFailure("didn't find any mers?", "$wrk/0-mercounts/$asm.ms$merSize.histogram.err")  if ($totalMers == 0);
+
+        my $filterThreshold = (getGlobal("${tag}MhapSensitivity") eq "normal") ?   0.000005 :   0.000005;  #  Also set in Meryl.pm
+
+        $merThresh = int($filterThreshold / 2 * $totalMers);
+
+        #print STDERR "totalMers       = $totalMers\n";
+        #print STDERR "filterThreshold = $filterThreshold\n";
+        #print STDERR "merThresh       = $merThresh\n";
 
         open(F, "$bin/meryl -Dt -n $merThresh -s $wrk/0-mercounts/$asm.ms$merSize | ") or die "Failed to run meryl to generate frequent mers $!\n";
-        open(O, "| sort -k2nr > $wrk/0-mercounts/$asm.ms$merSize.frequentMers.mhap_ignore") or die "Failed to open '$wrk/0-mercounts/$asm.ms$merSize.frequentMers.mhap_ignore' for writing: $!\n";
+        open(O, "| sort -k2nr > $wrk/0-mercounts/$asm.ms$merSize.frequentMers.ignore") or die "Failed to open '$wrk/0-mercounts/$asm.ms$merSize.frequentMers.mhap_ignore' for writing: $!\n";
 
         while (!eof(F)) {
             my $h = <F>;
@@ -323,10 +344,13 @@ sub meryl ($$) {
 
     #  Report the new threshold.
 
-    if (($merThresh > 0) && (getGlobal("ovlMerThreshold") ne $merThresh)) {
-        print STDERR "Reset ovlMerThreshold from ", getGlobal("ovlMerThreshold"), " to $merThresh.\n";
-        setGlobal("ovlMerThreshold", $merThresh);
+    if (($merThresh > 0) && (getGlobal("${tag}MerThreshold") ne $merThresh)) {
+        print STDERR "Reset ${tag}MerThreshold from ", getGlobal("${tag}MerThreshold"), " to $merThresh.\n";
+        setGlobal("${tag}MerThreshold", $merThresh);
     }
 
+  allDone:
+    emitStage($WRK, $asm, "$tag-meryl");
+  stopAfter:
     stopAfter("meryl");
 }

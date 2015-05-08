@@ -13,17 +13,24 @@ use ca3g::Defaults;
 use ca3g::Execution;
 
 
-sub overlapConfigure ($$$) {
-    my $wrk          = shift @_;
-    my $asm          = shift @_;
-    my $bin          = getBinDirectory();
-    my $cmd;
-    my $type         = shift @_;
+sub overlapConfigure ($$$$) {
+    my $WRK  = shift @_;
+    my $wrk  = $WRK;
+    my $asm  = shift @_;
+    my $tag  = shift @_;
+    my $type = shift @_;
 
-    my $path    = "$wrk/1-overlapper";
+    my $bin  = getBinDirectory();
+    my $cmd;
+
+    $wrk = "$wrk/correction"  if ($tag eq "cor");
+    $wrk = "$wrk/trimming"    if ($tag eq "obt");
+
+    my $path = "$wrk/1-overlapper";
 
     caFailure("invalid type '$type'", undef)  if (($type ne "partial") && ($type ne "normal"));
 
+    return  if (skipStage($WRK, $asm, "$tag-overlapConfigure") == 1);
     return  if (-e "$path/ovljob.files");
     return  if (-e "$path/ovlopt");
 
@@ -35,17 +42,17 @@ sub overlapConfigure ($$$) {
         #  but were also used (or could have been used) during the Salmon assembly when overlaps were computed differently
         #  depending on the libraries involved (and was run manually).  These are left in for documentation.
         #
-        #my $checkLibrary       = getGlobal("ovlCheckLibrary");
-        #my $hashLibrary        = getGlobal("ovlHashLibrary");
-        #my $refLibrary         = getGlobal("ovlRefLibrary");
+        #my $checkLibrary       = getGlobal("${tag}CheckLibrary");
+        #my $hashLibrary        = getGlobal("${tag}HashLibrary");
+        #my $refLibrary         = getGlobal("${tag}RefLibrary");
 
-        my $ovlHashBlockLength = getGlobal("ovlHashBlockLength");
+        my $ovlHashBlockLength = getGlobal("${tag}HashBlockLength");
         my $ovlHashBlockSize   = 0;
-        my $ovlRefBlockSize    = getGlobal("ovlRefBlockSize");
-        my $ovlRefBlockLength  = getGlobal("ovlRefBlockLength");
+        my $ovlRefBlockSize    = getGlobal("${tag}RefBlockSize");
+        my $ovlRefBlockLength  = getGlobal("${tag}RefBlockLength");
 
         if (($ovlRefBlockSize > 0) && ($ovlRefBlockLength > 0)) {
-            caFailure("can't set both ovlRefBlockSize and ovlRefBlockLength", undef);
+            caExit("can't set both ovlRefBlockSize and ovlRefBlockLength", undef);
         }
 
         $cmd  = "$bin/overlapInCorePartition \\\n";
@@ -61,32 +68,31 @@ sub overlapConfigure ($$$) {
         $cmd .= "> $path/overlapInCorePartition.err 2>&1";
 
         if (runCommand($wrk, $cmd)) {
-            caFailure("failed partition for overlapper", undef);
+            caExit("failed partition for overlapper", undef);
         }
     }
 
     if (! -e "$path/overlap.sh") {
-        my $merSize      = getGlobal("ovlMerSize");
+        my $merSize      = getGlobal("${tag}MerSize");
         
-        #my $hashLibrary  = getGlobal("ovlHashLibrary");
-        #my $refLibrary   = getGlobal("ovlRefLibrary");
+        #my $hashLibrary  = getGlobal("${tag}HashLibrary");
+        #my $refLibrary   = getGlobal("${tag}RefLibrary");
         
         #  Create a script to run overlaps.  We make a giant job array for this -- we need to know
         #  hashBeg, hashEnd, refBeg and refEnd -- from that we compute batchName and jobName.
 
-        my $ovlThreads        = getGlobal("ovlThreads");
-        my $ovlHashBits       = getGlobal("ovlHashBits");
-        my $ovlHashLoad       = getGlobal("ovlHashLoad");
+        my $ovlHashBits       = getGlobal("${tag}HashBits");
+        my $ovlHashLoad       = getGlobal("${tag}HashLoad");
 
         my $taskID            = getGlobal("gridEngineTaskID");
         my $submitTaskID      = getGlobal("gridEngineArraySubmitID");
 
-        open(F, "> $path/overlap.sh") or caFailure("can't open '$path/overlap.sh'", undef);
+        open(F, "> $path/overlap.sh") or caExit("can't open '$path/overlap.sh' for writing: $!", undef);
         print F "#!" . getGlobal("shell") . "\n";
         print F "\n";
         print F "perl='/usr/bin/env perl'\n";
         print F "\n";
-        print F "jobid=\$$taskID\n";
+        print F "jobid=$taskID\n";
         print F "if [ x\$jobid = x -o x\$jobid = xundefined -o x\$jobid = x0 ]; then\n";
         print F "  jobid=\$1\n";
         print F "fi\n";
@@ -119,7 +125,7 @@ sub overlapConfigure ($$$) {
 
         print F "\$bin/overlapInCore \\\n";
         print F "  -G \\\n"  if ($type eq "partial");
-        print F "  -t $ovlThreads \\\n";
+        print F "  -t ", getGlobal("${tag}ovlThreads"), " \\\n";
         print F "  -k $merSize \\\n";
         print F "  -k $wrk/0-mercounts/$asm.ms$merSize.frequentMers.fasta \\\n";
         print F "  --hashbits $ovlHashBits \\\n";
@@ -140,15 +146,15 @@ sub overlapConfigure ($$$) {
         system("chmod +x $path/overlap.sh");
     }
 
-    caFailure("failed to find overlapInCorePartition output $path/ovlbat", undef)  if (! -e "$path/ovlbat");
-    caFailure("failed to find overlapInCorePartition output $path/ovljob", undef)  if (! -e "$path/ovljob");
-    caFailure("failed to find overlapInCorePartition output $path/ovlopt", undef)  if (! -e "$path/ovlopt");
+    caExit("failed to find overlapInCorePartition output $path/ovlbat", undef)  if (! -e "$path/ovlbat");
+    caExit("failed to find overlapInCorePartition output $path/ovljob", undef)  if (! -e "$path/ovljob");
+    caExit("failed to find overlapInCorePartition output $path/ovlopt", undef)  if (! -e "$path/ovlopt");
 
-    open(F, "< $path/ovlbat") or caFailure("failed partition for overlapper: no ovlbat file found", undef);
+    open(F, "< $path/ovlbat") or caExit("can't open '$path/ovlbat' for reading: $!", undef);
     my @bat = <F>;
     close(F);
 
-    open(F, "< $path/ovljob") or caFailure("failed partition for overlapper: no ovljob file found", undef);
+    open(F, "< $path/ovljob") or caExit("can't open '$path/ovljob' for reading: $!", undef);
     my @job = <F>;
     close(F);
 
@@ -167,13 +173,20 @@ sub overlapConfigure ($$$) {
 #  Check that the overlapper jobs properly executed.  If not,
 #  complain, but don't help the user fix things.
 #
-sub overlapCheck ($$$$) {
-    my $wrk          = shift @_;
-    my $asm          = shift @_;
-    my $type         = shift @_;
-    my $attempt      = shift @_;
-    my $path         = "$wrk/1-overlapper";
+sub overlapCheck ($$$$$) {
+    my $WRK     = shift @_;
+    my $wrk     = $WRK;
+    my $asm     = shift @_;
+    my $tag     = shift @_;
+    my $type    = shift @_;
+    my $attempt = shift @_;
 
+    $wrk = "$wrk/correction"  if ($tag eq "cor");
+    $wrk = "$wrk/trimming"    if ($tag eq "obt");
+
+    my $path    = "$wrk/1-overlapper";
+
+    return  if (skipStage($WRK, $asm, "$tag-overlapCheck", $attempt) == 1);
     return  if (-e "$path/ovljob.files");
 
     my $currentJobID   = 1;
@@ -181,8 +194,8 @@ sub overlapCheck ($$$$) {
     my @failedJobs;
     my $failureMessage = "";
 
-    open(B, "< $path/ovlbat")       or caFailure("failed to open '$path/ovlbat'",       undef);
-    open(J, "< $path/ovljob")       or caFailure("failed to open '$path/ovljob'",       undef);
+    open(B, "< $path/ovlbat") or caExit("can't open '$path/ovlbat' for reading: $!", undef);
+    open(J, "< $path/ovljob") or caExit("can't open '$path/ovljob' for reading: $!", undef);
 
     while (!eof(B) && !eof(J)) {
         my $b = <B>;  chomp $b;
@@ -213,26 +226,37 @@ sub overlapCheck ($$$$) {
     close(J);
     close(B);
 
+    #  No failed jobs?  Success!
+
     if (scalar(@failedJobs) == 0) {
-        open(L, "> $path/ovljob.files") or caFailure("failed to open '$path/ovljob.files'", undef);
+        open(L, "> $path/ovljob.files") or caExit("can't open '$path/ovljob.files' for writing: $!", undef);
         print L @successJobs;
         close(L);
+        emitStage($WRK, $asm, "$tag-overlapCheck");
         return;
     }
 
-    if ($attempt > 0) {
+    #  If not the first attempt, report the jobs that failed, and that we're recomputing.
+
+    if ($attempt > 1) {
         print STDERR "\n";
         print STDERR scalar(@failedJobs), " overlapper jobs failed:\n";
         print STDERR $failureMessage;
         print STDERR "\n";
     }
 
+    #  If too many attempts, give up.
+
+    if ($attempt > 2) {
+        caExit("failed to overlap.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
+    }
+
+    #  Otherwise, run some jobs.
+
     print STDERR "overlapCheck() -- attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
 
-    if ($attempt < 1) {
-        submitOrRunParallelJob($wrk, $asm, "ovl", $path, "overlap", @failedJobs);
-    } else {
-        caFailure("failed to overlap.  Made $attempt attempts, jobs still failed", undef);
-    }
+    emitStage($WRK, $asm, "$tag-overlapCheck", $attempt);
+
+    submitOrRunParallelJob($wrk, $asm, "${tag}ovl", $path, "overlap", @failedJobs);
 }
 

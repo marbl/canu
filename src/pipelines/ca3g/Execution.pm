@@ -3,7 +3,7 @@ package ca3g::Execution;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(getNumberOfCPUs getPhysicalMemorySize touch getInstallDirectory getBinDirectory getBinDirectoryShellCode submitScript submitOrRunParallelJob runCommand stopBefore stopAfter diskSpace);
+@EXPORT = qw(stopBefore stopAfter skipStage emitStage touch getInstallDirectory getBinDirectory getBinDirectoryShellCode submitScript submitOrRunParallelJob runCommand);
 
 use strict;
 use Config;            #  for @signame
@@ -14,7 +14,6 @@ use POSIX ":sys_wait_h";  #  For waitpid(..., &WNOHANG)
 #use lib "$FindBin::RealBin/ca3g/lib/perl5";
 
 use ca3g::Defaults;
-use Filesys::Df;  #  for diskSpace()
 
 
 #
@@ -151,59 +150,6 @@ sub schedulerFinish ($) {
 
 
 #
-#  Host management
-#
-
-sub getNumberOfCPUs () {
-    my $os   = $^O;
-    my $ncpu = 1;
-
-    #  See http://stackoverflow.com/questions/6481005/obtain-the-number-of-cpus-cores-in-linux
-
-    if ($os eq "freebsd") {
-        $ncpu = int(`/sbin/sysctl -n hw.ncpu`);
-    }
-
-    if ($os eq "darwin") {
-        $ncpu = int(`/usr/bin/getconf _NPROCESSORS_ONLN`);
-    }
-
-    if ($os eq "linux") {
-        $ncpu = int(`getconf _NPROCESSORS_ONLN`);
-    }
-
-    return($ncpu);
-}
-
-
-sub getPhysicalMemorySize () {
-    my $os     = $^O;
-    my $memory = 1;
-
-    if ($os eq "freebsd") {
-        $memory = `/sbin/sysctl -n hw.physmem` / 1024 / 1024 / 1024;
-    }
-
-    if ($os eq "darwin") {
-        $memory = `/usr/sbin/sysctl -n hw.memsize` / 1024 / 1024 / 1024;
-    }
-
-    if ($os eq "linux") {
-        open(F, "< /proc/meminfo");        #  Way to go, Linux!  Make it easy on us!
-        while (<F>) {
-            if (m/MemTotal:\s+(\d+)/) {
-                $memory = $1 / 1024 / 1024;
-            }
-        }
-        close(F);
-    }
-
-    return(int($memory + 0.5));  #  Poor man's rounding
-}
-
-
-
-#
 #  File Management
 #
 
@@ -213,6 +159,206 @@ sub touch ($@) {
     close(F);
 }
 
+
+
+#
+#  State management
+#
+
+sub stopBefore ($$) {
+    my $stopBefore = shift @_;
+    my $cmd        = shift @_;
+
+    $stopBefore =~ tr/A-Z/a-z/;
+
+    if ((defined($stopBefore)) &&
+        (defined(getGlobal("stopBefore"))) &&
+        (getGlobal("stopBefore") eq $stopBefore)) {
+        print STDERR "Stop requested before '$stopBefore'.\n";
+        print STDERR "Command:\n$cmd\n" if (defined($cmd));
+        exit(0);
+    }
+}
+
+sub stopAfter ($) {
+    my $stopAfter = shift @_;
+
+    $stopAfter =~ tr/A-Z/a-z/;
+
+    if ((defined($stopAfter)) &&
+        (defined(getGlobal("stopAfter"))) &&
+        (getGlobal("stopAfter") eq $stopAfter)) {
+        print STDERR "Stop requested after '$stopAfter'.\n";
+        exit(0);
+    }
+}
+
+
+sub lookupStageLabel ($) {
+    my $label  = shift @_;
+    my %ckp;
+    my $index;
+
+    #  For correction
+
+    $index = 100;
+
+    $ckp{'cor-gatekeeper'}                  = $index++;
+
+    $ckp{'cor-meryl'}                       = $index++;
+
+    $ckp{'cor-mhapConfigure'}               = $index++;
+    $ckp{'cor-mhapPrecomputeCheck'}         = $index++;  # + attempt
+    $ckp{'cor-mhapCheck'}                   = $index++;  # + attempt
+    $ckp{'cor-overlapConfigure'}            = $index++;
+    $ckp{'cor-overlapCheck'}                = $index++;  # + attempt
+
+    $ckp{'cor-overlapStoreConfigure'}       = $index++;
+    $ckp{'cor-overlapStoreBucketizerCheck'} = $index++;
+    $ckp{'cor-overlapStoreSorterCheck'}     = $index++;
+    $ckp{'cor-createOverlapStore'}          = $index++;
+
+    $ckp{'cor-buildCorrectionLayouts'}      = $index++;
+    $ckp{'cor-generateCorrectedReads'}      = $index++;  # + attempt
+    $ckp{'cor-dumpCorrectedReads'}          = $index++;
+
+    #  For trimming
+
+    $index = 200;
+
+    $ckp{'obt-gatekeeper'}                  = $index++;
+
+    $ckp{'obt-meryl'}                       = $index++;
+
+    $ckp{'obt-mhapConfigure'}               = $index++;
+    $ckp{'obt-mhapPrecomputeCheck'}         = $index++;  # + attempt
+    $ckp{'obt-overlapConfigure'}            = $index++;
+    $ckp{'obt-overlapCheck'}                = $index++;  # + attempt
+
+    $ckp{'obt-overlapStoreConfigure'}       = $index++;
+    $ckp{'obt-overlapStoreBucketizerCheck'} = $index++;
+    $ckp{'obt-overlapStoreSorterCheck'}     = $index++;
+    $ckp{'obt-createOverlapStore'}          = $index++;
+
+    $ckp{'obt-trimReads'}                   = $index++;
+    $ckp{'obt-splitReads'}                  = $index++;
+    $ckp{'obt-dumpReads'}                   = $index++;  #  rename this
+
+    #  For assembly
+
+    $index = 300;
+
+    $ckp{'utg-gatekeeper'}                  = $index++;
+
+    $ckp{'utg-meryl'}                       = $index++;
+
+    $ckp{'utg-mhapConfigure'}               = $index++;
+    $ckp{'utg-mhapPrecomputeCheck'}         = $index++;  # + attempt
+    $ckp{'utg-overlapConfigure'}            = $index++;
+    $ckp{'utg-overlapCheck'}                = $index++;  # + attempt
+
+    $ckp{'utg-overlapStoreConfigure'}       = $index++;
+    $ckp{'utg-overlapStoreBucketizerCheck'} = $index++;
+    $ckp{'utg-overlapStoreSorterCheck'}     = $index++;
+    $ckp{'utg-createOverlapStore'}          = $index++;
+
+    $ckp{'overlapFilterDetectConfigure'}    = $index++;
+    $ckp{'overlapFilterDetectCheck'}        = $index++;  # + attempt
+    $ckp{'overlapFilterConfigure'}          = $index++;
+    $ckp{'overlapFilter'}                   = $index++;  # + attempt
+
+    $ckp{'readErrorDetectionConfigure'}     = $index++;
+    $ckp{'readErrorDetectionCheck'}         = $index++;  # + attempt
+    $ckp{'overlapErrorAdjustmentConfigure'} = $index++;
+    $ckp{'overlapErrorAdjustmentCheck'}     = $index++;  # + attempt
+    $ckp{'updateOverlapStore'}              = $index++;
+
+    $ckp{'unitig'}                          = $index++;
+
+    $ckp{'consensusConfigure'}              = $index++;
+    $ckp{'consensusCheck'}                  = $index++;  # + attempt
+
+    $ckp{'outputLabel'}                     = $index++;
+    $ckp{'outputLayout'}                    = $index++;
+    $ckp{'outputSequence'}                  = $index++;
+
+    caFailure("invalid checkpoint label '$label'", undef)  if (!defined($ckp{$label}));
+
+    return($ckp{$label});
+}
+
+
+
+#  Returns true if we should skip this stage.
+#
+sub skipStage ($$$@) {
+    my $wrk         = shift @_;
+    my $asm         = shift @_;
+    my $stage       = shift @_;
+    my $attempt     = shift @_;
+
+    my $ckpstage    = "";
+    my $ckpattempt  = undef;
+
+    return(0)  if (! -e "$wrk/$asm.stage");  #  No checkpoint file exists, must compute!
+
+    open(F, "< $wrk/$asm.stage") or caFailure("failed to open '$wrk/$asm.stage' for reading", undef);
+    while (<F>) {
+        if (m/ca3g\s+at\s+stage\s+(\S*)\s+attempt\s+(\d+)$/) {
+            $ckpstage   = $1;
+            $ckpattempt = $2;
+        }
+        if (m/ca3g\s+at\s+stage\s+(\S*)$/) {
+            $ckpstage = $1;
+        }
+    }
+    close(F);
+
+    caFailure("didn't find stage in '$wrk/$asm.stage'", undef)  if ($ckpstage eq "");
+
+    #  Don't skip it.  The stage to run is after the stage in the checkpoint.
+    return(0)  if (lookupStageLabel($ckpstage) < lookupStageLabel($stage));
+
+    #  Don't skip it.  The stage to run is the stage in the checkpoint, but the attempt is after.
+    return(0)  if ((lookupStageLabel($stage) == lookupStageLabel($ckpstage) &&
+                    (defined($attempt)) &&
+                    (defined($ckpattempt)) &&
+                    ($ckpattempt < $attempt)));
+
+    #print STDERR "skipStage()-- target $stage/" . lookupStageLabel($stage);
+    #print STDERR " attempt $attempt"     if (defined($attempt));
+    #print STDERR " -- checkpoint $ckpstage/" . lookupStageLabel($ckpstage);
+    #print STDERR " attempt $ckpattempt"  if (defined($ckpattempt));
+    #print STDERR " -- from '$wrk/$asm.stage'\n";
+
+    #  Skip it.
+    return(1);
+}
+
+
+sub emitStage ($$$@) {
+    my $wrk         = shift @_;
+    my $asm         = shift @_;
+    my $stage       = shift @_;
+    my $attempt     = shift @_;
+    my $time        = localtime();
+
+    open(F, ">> $wrk/$asm.stage") or caFailure("failed to open '$wrk/$asm.stage' for appending\n", undef);
+
+    if (defined($attempt)) {
+        print F "$time ca3g at stage $stage attempt $attempt\n";
+    } else {
+        print F "$time ca3g at stage $stage\n";
+    }
+
+    close(F);
+
+    if (defined($attempt)) {
+        print "----------------------------------------STAGE $stage (#" . lookupStageLabel($stage) . ") ATTEMPT $attempt FINISHED.\n";
+    } else {
+        print "----------------------------------------STAGE $stage (#" . lookupStageLabel($stage) . ") FINISHED.\n";
+    }
+}
 
 
 
@@ -632,16 +778,8 @@ sub submitOrRunParallelJob ($$$$$@) {
     my $path         = shift @_;
     my $script       = shift @_;  #  Runs $path/$script.sh > $path/$script.######.out
 
-#    my $mem          = shift @_;  #  Total memory expected
-#    my $thr          = shift @_;  #  Total threads expected
-#    my $nParallel    = shift @_;  #  If running locally, the number to run at once
-
     my $mem          = getGlobal("${jobType}Memory");
     my $thr          = getGlobal("${jobType}Threads");
-    my $nParallel    = getGlobal("${jobType}Concurrency");
-
-    #my $holds        = shift @_;
-    #my $submitScript = shift @_;
 
     my @jobs         = convertToJobRange(@_);
 
@@ -714,7 +852,10 @@ sub submitOrRunParallelJob ($$$$$@) {
         }
     }
 
-    schedulerSetNumberOfProcesses($nParallel) if (defined($nParallel));
+    my $nParallel  = getGlobal("${jobType}Concurrency");
+    $nParallel     = int(getNumberOfCPUs() / $thr)  if ((!defined($nParallel)) || ($nParallel == 0));
+      
+    schedulerSetNumberOfProcesses($nParallel);
     schedulerFinish($path);
 }
 
@@ -728,11 +869,13 @@ sub runCommand ($$) {
     my $dir = shift @_;
     my $cmd = shift @_;
 
+    return  if ($cmd eq "");
+
     if (! -d $dir) {
         caFailure("Directory '$dir' doesn't exist, can't run command", "");
     }
 
-    if (getGlobal('showNext')) {
+    if (getGlobal("showNext")) {
         print STDERR "----------------------------------------NEXT-COMMAND\n";
         print STDERR "$cmd\n";
         exit(0);
@@ -798,54 +941,6 @@ sub runCommand ($$) {
 
     return(1);
 }
-
-
-
-sub stopBefore ($$) {
-    my $stopBefore = shift @_;
-    my $cmd        = shift @_;
-
-    $stopBefore =~ tr/A-Z/a-z/;
-
-    if ((defined($stopBefore)) &&
-        (defined(getGlobal('stopBefore'))) &&
-        (getGlobal('stopBefore') eq $stopBefore)) {
-        print STDERR "Stop requested before '$stopBefore'.\n";
-        print STDERR "Command:\n$cmd\n" if (defined($cmd));
-        exit(0);
-    }
-}
-
-
-
-sub stopAfter ($) {
-    my $stopAfter = shift @_;
-
-    $stopAfter =~ tr/A-Z/a-z/;
-
-    if ((defined($stopAfter)) &&
-        (defined(getGlobal('stopAfter'))) &&
-        (getGlobal('stopAfter') eq $stopAfter)) {
-        print STDERR "Stop requested after '$stopAfter'.\n";
-        exit(0);
-    }
-}
-
-
-sub diskSpace ($) {
-    my $wrk   = shift @_;
-    my $df    = df($wrk, 1024);
-
-    my $total = int(10 * $df->{blocks} / 1048576) / 10;
-    my $used  = int(10 * $df->{used}   / 1048576) / 10;
-    my $free  = int(10 * $df->{bfree}  / 1048576) / 10;
-    my $avail = int(10 * $df->{bavail} / 1048576) / 10;
-
-    #print STDERR "Disk space: total $total GB, used $used GB, free $free GB, available $avail GB\n";
-
-    return (wantarray) ? ($total, $used, $free, $avail) : $avail;
-}
-
 
 
 1;

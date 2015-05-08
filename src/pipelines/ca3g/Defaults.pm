@@ -3,11 +3,13 @@ package ca3g::Defaults;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(getCommandLineOptions addCommandLineOption writeLog caFailure printHelp setParametersFromFile setParametersFromCommandLine checkParameters getGlobal setGlobal setErrorRate setDefaults);
+@EXPORT = qw(getCommandLineOptions addCommandLineOption writeLog caExit caFailure getNumberOfCPUs getPhysicalMemorySize diskSpace printHelp setParametersFromFile setParametersFromCommandLine checkParameters getGlobal setGlobal setErrorRate setDefaults);
 
 use strict;
-use Carp;
+use Carp qw(cluck);
 use Sys::Hostname;
+
+use Filesys::Df;  #  for diskSpace()
 
 my %global;
 my %synops;
@@ -26,21 +28,60 @@ sub getGlobal ($) {
 
     $var =~ tr/A-Z/a-z/;
 
-    caFailure("script error -- parameter '$var' is not known", undef) if (!exists($global{$var}));
+    caFailure("parameter '$var' is not known", undef) if (!exists($global{$var}));
 
     return($global{$var});
 }
 
 
+sub setGlobalSpecialization ($@) {
+    my $val = shift @_;
+
+
+    foreach my $var (@_) {
+        #print STDERR "set specialization $var = $val\n";
+        $global{$var} = $val;
+    }
+
+    return(1);
+}
 
 sub setGlobal ($$) {
     my $var = shift @_;
     my $val = shift @_;
+    my $set = 0;
 
     $var =~ tr/A-Z/a-z/;
     $val = undef  if ($val eq "");  #  Set to undefined, the default for many of the options.
 
-    caFailure("script error -- paramter '$var' is not known", undef) if (!exists($global{$var}));
+    #  Translate from generic to specialized var
+
+    foreach my $alg ("ovl", "mhap") {
+        foreach my $opt ("usegrid", "gridoptions") {
+            $set += setGlobalSpecialization($val, ("${opt}cor${alg}", "${opt}obt${alg}", "${opt}utg${alg}"))  if ($var eq "${opt}${alg}");
+        }
+
+        foreach my $opt ("memory", "threads", "concurrency") {
+            $set += setGlobalSpecialization($val, ("cor${alg}${opt}", "obt${alg}${opt}", "utg${alg}${opt}"))  if ($var eq "${alg}${opt}");
+        }
+    }
+
+    foreach my $opt ("overlapper") {
+        $set += setGlobalSpecialization($val, ("cor${opt}", "obt${opt}", "utg${opt}"))  if ($var eq "${opt}");
+    }
+
+    foreach my $opt ("ovlhashblocklength", "ovlrefblocksize", "ovlrefblocklength", "ovlhashbits", "ovlhashload", "ovlmersize", "ovlmerthreshold", "ovlmerdistinct", "ovlmertotal", "ovlfrequentmers") {
+        $set += setGlobalSpecialization($val, ("cor${opt}", "obt${opt}", "utg${opt}"))  if ($var eq "${opt}");
+    }
+
+    foreach my $opt ("mhapblocksize", "mhapmersize", "mhaprealign", "mhapsensitivity") {
+        $set += setGlobalSpecialization($val, ("cor${opt}", "obt${opt}", "utg${opt}"))  if ($var eq "${opt}");
+    }
+
+    #print STDERR "SET!\n"  if ($set > 0);       
+    return  if ($set > 0);
+
+    caFailure("paramter '$var' is not known", undef) if (!exists($global{$var}));
 
     $global{$var} = $val;
 }
@@ -91,14 +132,48 @@ sub writeLog ($) {
 
 
 
-sub caFailure ($$) {
-    my  $msg = shift @_;
-    my  $log = shift @_;
+#  Use caExit() for transient errors, like not opening files, processes that die, etc.
+sub caExit ($$) {
+    my  $msg   = shift @_;
+    my  $log   = shift @_;
 
     print STDERR "================================================================================\n";
+    print STDERR "Don't panic, but a mostly harmless error occurred and ca3g failed.\n";
+    print STDERR "\n";
+
+    #  Really should pass in $wrk
+    if (defined($log)) {
+        my  $df = diskSpace($log);
+
+        print STDERR "Disk space available:  $df GB\n";
+        print STDERR "\n";
+    }
+
+    if (-e $log) {
+        print STDERR "Last 50 lines of the relevant log file ($log):\n";
+        print STDERR "\n";
+        system("tail -n 50 $log");
+        print STDERR "\n";
+    }
+
+    print STDERR "ca3g failed with '$msg'.\n";
+    print STDERR "\n";
+
+    exit(1);
+}
+
+
+#  Use caFailure() for errors that definitely will require code changes to fix.
+sub caFailure ($$) {
+    my  $msg   = shift @_;
+    my  $log   = shift @_;
+
+    print STDERR "================================================================================\n";
+    print STDERR "Please panic.  ca3g failed, and it shouldn't have.\n";
+    print STDERR "\n";
     print STDERR "Stack trace:\n";
     print STDERR "\n";
-    carp;
+    cluck;
     print STDERR "\n";
 
     if (-e $log) {
@@ -106,11 +181,99 @@ sub caFailure ($$) {
         print STDERR "\n";
         system("tail -n 50 $log");
     }
+
     print STDERR "\n";
     print STDERR "ca3g failed with '$msg'.\n";
 
     exit(1);
 }
+
+
+#
+#  Host management - these really belong in 'Execution.pm' (or 'Utilities.pm') but can't go there
+#  (Execution.pm) and be used here too.
+#
+
+sub getNumberOfCPUs () {
+    my $os   = $^O;
+    my $ncpu = 1;
+
+    #  See http://stackoverflow.com/questions/6481005/obtain-the-number-of-cpus-cores-in-linux
+
+    if ($os eq "freebsd") {
+        $ncpu = int(`/sbin/sysctl -n hw.ncpu`);
+    }
+
+    if ($os eq "darwin") {
+        $ncpu = int(`/usr/bin/getconf _NPROCESSORS_ONLN`);
+    }
+
+    if ($os eq "linux") {
+        $ncpu = int(`getconf _NPROCESSORS_ONLN`);
+    }
+
+    return($ncpu);
+}
+
+
+sub getPhysicalMemorySize () {
+    my $os     = $^O;
+    my $memory = 1;
+
+    if ($os eq "freebsd") {
+        $memory = `/sbin/sysctl -n hw.physmem` / 1024 / 1024 / 1024;
+    }
+
+    if ($os eq "darwin") {
+        $memory = `/usr/sbin/sysctl -n hw.memsize` / 1024 / 1024 / 1024;
+    }
+
+    if ($os eq "linux") {
+        open(F, "< /proc/meminfo");        #  Way to go, Linux!  Make it easy on us!
+        while (<F>) {
+            if (m/MemTotal:\s+(\d+)/) {
+                $memory = $1 / 1024 / 1024;
+            }
+        }
+        close(F);
+    }
+
+    return(int($memory + 0.5));  #  Poor man's rounding
+}
+
+
+sub dirname ($) {
+    my $d = shift @_;
+
+    print "dirname - '$d'\n";
+
+    return($d)  if (-d $d);
+
+    my @d = split '/', $d;
+    pop @d;
+
+    $d = join('/', @d);
+
+    print "dirname - '$d'\n";
+
+    return($d);
+}
+
+
+sub diskSpace ($) {
+    my $wrk   = dirname($_[0]);
+    my $df    = df($wrk, 1024);
+
+    my $total = int(10 * $df->{blocks} / 1048576) / 10;
+    my $used  = int(10 * $df->{used}   / 1048576) / 10;
+    my $free  = int(10 * $df->{bfree}  / 1048576) / 10;
+    my $avail = int(10 * $df->{bavail} / 1048576) / 10;
+
+    #print STDERR "Disk space: total $total GB, used $used GB, free $free GB, available $avail GB\n";
+
+    return (wantarray) ? ($total, $used, $free, $avail) : $avail;
+}
+
 
 
 
@@ -223,7 +386,7 @@ sub setParametersFromFile ($@) {
     $specLog .= "###\n";
     $specLog .= "\n";
 
-    open(F, "< $specFile") or caFailure("Couldn't open '$specFile'", undef);
+    open(F, "< $specFile") or caExit("can't open '$specFile' for reading: $!", undef);
 
     while (<F>) {
         $specLog .= $_;
@@ -293,11 +456,11 @@ sub checkParameters ($) {
     #  PIck a nice looking set of binaries, and check them.
     #
 
-    caFailure("can't find 'gatekeeperCreate' program in $bin.  Possibly incomplete installation", undef) if (! -x "$bin/gatekeeperCreate");
-    caFailure("can't find 'meryl' program in $bin.  Possibly incomplete installation", undef)            if (! -x "$bin/meryl");
-    caFailure("can't find 'overlapInCore' program in $bin.  Possibly incomplete installation", undef)    if (! -x "$bin/overlapInCore");
-    caFailure("can't find 'bogart' program in $bin.  Possibly incomplete installation", undef)           if (! -x "$bin/bogart");
-    caFailure("can't find 'utgcns' program in $bin.  Possibly incomplete installation", undef)           if (! -x "$bin/utgcns");
+    caExit("can't find 'gatekeeperCreate' program in $bin.  Possibly incomplete installation", undef) if (! -x "$bin/gatekeeperCreate");
+    caExit("can't find 'meryl' program in $bin.  Possibly incomplete installation", undef)            if (! -x "$bin/meryl");
+    caExit("can't find 'overlapInCore' program in $bin.  Possibly incomplete installation", undef)    if (! -x "$bin/overlapInCore");
+    caExit("can't find 'bogart' program in $bin.  Possibly incomplete installation", undef)           if (! -x "$bin/bogart");
+    caExit("can't find 'utgcns' program in $bin.  Possibly incomplete installation", undef)           if (! -x "$bin/utgcns");
 
     #
     #  Update obsolete usages.
@@ -311,47 +474,56 @@ sub checkParameters ($) {
 
     makeAbsolute("pathMap");
 
-    makeAbsolute("ovlFrequentMers");
+    makeAbsolute("corFrequentMers");
+    makeAbsolute("obtFrequentMers");
+    makeAbsolute("utgFrequentMers");
 
     #
     #  Adjust case on some of them
     #
 
-    fixCase("overlapper");
+    fixCase("corOverlapper");
+    fixCase("obtOverlapper");
+    fixCase("utgOverlapper");
+
+    fixCase("corConsensus");
+    fixCase("cnsConsensus");
+
     fixCase("unitigger");
     fixCase("stopBefore");
     fixCase("stopAfter");
-    fixCase("consensus");
 
     #
     #  Check for invalid usage
     #
 
-    #if ((getGlobal("doChimeraDetection") ne "off") &&
-    #    (getGlobal("doChimeraDetection") ne "normal") &&
-    #    (getGlobal("doChimeraDetection") ne "aggressive")) {
-    #    caFailure("invalid doChimeraDetection specified (" . getGlobal("doChimeraDetection") . "); must be 'off', 'normal', or 'aggressive'", undef);
-    #}
-    if ((getGlobal("overlapper") ne "mhap") &&
-        (getGlobal("overlapper") ne "ovl")) {
-        caFailure("invalid 'overlapper' specified (" . getGlobal("overlapper") . "); must be 'mhap' or 'ovl'", undef);
+    foreach my $tag ("cor", "obt", "utg") {
+        if ((getGlobal("${tag}Overlapper") ne "mhap") &&
+            (getGlobal("${tag}Overlapper") ne "ovl")) {
+            caExit("invalid '${tag}Overlapper' specified (" . getGlobal("${tag}Overlapper") . "); must be 'mhap' or 'ovl'", undef);
+        }
     }
+
     if ((getGlobal("unitigger") ne "unitigger") &&
         (getGlobal("unitigger") ne "bogart")) {
-        caFailure("invalid 'unitigger' specified (" . getGlobal("unitigger") . "); must be 'unitigger' or 'bogart'", undef);
+        caExit("invalid 'unitigger' specified (" . getGlobal("unitigger") . "); must be 'unitigger' or 'bogart'", undef);
     }
-    if ((getGlobal("consensus") ne "utgcns") &&
-        (getGlobal("consensus") ne "falcon") &&
-        (getGlobal("consensus") ne "falconpipe") &&
-        (getGlobal("consensus") ne "pbdagcon") &&
-        (getGlobal("consensus") ne "pbutgcns")) {
-        caFailure("invalid 'consensus' specified (" . getGlobal("consensus") . "); must be 'utgcns' or 'falcon' or 'falconpipe' or 'pbdagcon' or 'pbutgcns'", undef);
+
+    foreach my $tag ("cor", "cns") {
+        if ((getGlobal("${tag}consensus") ne "utgcns") &&
+            (getGlobal("${tag}consensus") ne "falcon") &&
+            (getGlobal("${tag}consensus") ne "falconpipe") &&
+            (getGlobal("${tag}consensus") ne "pbdagcon") &&
+            (getGlobal("${tag}consensus") ne "pbutgcns")) {
+            caExit("invalid 'consensus' specified (" . getGlobal("${tag}consensus") . "); must be 'utgcns' or 'falcon' or 'falconpipe' or 'pbdagcon' or 'pbutgcns'", undef);
+        }
     }
+
     #if ((getGlobal("cleanup") ne "none") &&
     #    (getGlobal("cleanup") ne "light") &&
     #    (getGlobal("cleanup") ne "heavy") &&
     #    (getGlobal("cleanup") ne "aggressive")) {
-    #    caFailure("invalid cleaup specified (" . getGlobal("cleanup") . "); must be 'none', 'light', 'heavy' or 'aggressive'", undef);
+    #    caExit("invalid cleaup specified (" . getGlobal("cleanup") . "); must be 'none', 'light', 'heavy' or 'aggressive'", undef);
     #}
 
     if (defined(getGlobal("stopBefore"))) {
@@ -373,7 +545,7 @@ sub checkParameters ($) {
             }
         }
 
-        caFailure($failureString, undef) if ($ok == 0);
+        caExit($failureString, undef) if ($ok == 0);
     }
 
     if (defined(getGlobal("stopAfter"))) {
@@ -399,16 +571,11 @@ sub checkParameters ($) {
             }
         }
 
-        caFailure($failureString, undef) if ($ok == 0);
+        caExit($failureString, undef) if ($ok == 0);
     }
 
-    if (! defined(getGlobal("errorRate"))) {
-        caFailure("ERROR: 'errorRate' is not set", undef);
-    }
-
-    if (! defined(getGlobal("genomeSize"))) {
-        caFailure("ERROR: 'genomeSize' is not set", undef);
-    }
+    caExit("required parameter 'errorRate' is not set", undef)   if (! defined(getGlobal("errorRate")));
+    caExit("required parameter 'genomeSize' is not set", undef)  if (! defined(getGlobal("genomeSize")));
 
     setGlobal("genomeSize", $1 * 1000)        if (getGlobal("genomeSize") =~ m/(\d+.*\d+)k/i);
     setGlobal("genomeSize", $1 * 1000000)     if (getGlobal("genomeSize") =~ m/(\d+.*\d+)m/i);
@@ -418,7 +585,9 @@ sub checkParameters ($) {
     #  Java?  Need JRE 1.8
     #
 
-    #if (getGlobal("overlapper") eq "mhap") {
+    if ((getGlobal("corOverlapper") eq "mhap") ||
+        (getGlobal("obtOverlapper") eq "mhap") ||
+        (getGlobal("utgOverlapper") eq "mhap")) {
         my $java       = getGlobal("java");
         my $versionStr = "unknown";
         my $version    = 0;
@@ -435,8 +604,8 @@ sub checkParameters ($) {
 
         print STDERR "-- Detected Java(TM) Runtime Environment '$versionStr' (from '$java').\n";
 
-        caFailure("overlapper=mhap required java version at least 1.8.0; you have $versionStr", undef)  if ($version < 1.8);
-    #}
+        caExit("mhap overlapper requires java version at least 1.8.0; you have $versionStr", undef)  if ($version < 1.8);
+    }
 
     #
     #  Finish grid configuration.  If any of these are set, they were set by the user.
@@ -458,7 +627,7 @@ sub checkParameters ($) {
         setGlobalIfUndef("gridEngineMemoryOption",               "-l mem=MEMORY");
         setGlobalIfUndef("gridEngineNameToJobIDCommand",         undef);
         setGlobalIfUndef("gridEngineNameToJobIDCommandNoArray",  undef);
-        setGlobalIfUndef("gridEngineTaskID",                     "SGE_TASK_ID");
+        setGlobalIfUndef("gridEngineTaskID",                     "\$SGE_TASK_ID");
         setGlobalIfUndef("gridEngineArraySubmitID",              "\\\$TASK_ID");
         setGlobalIfUndef("gridEngineJobID",                      "JOB_ID");
 
@@ -548,7 +717,7 @@ sub checkParameters ($) {
         setGlobalIfUndef("gridEngineMemoryOption",               undef);
         setGlobalIfUndef("gridEngineNameToJobIDCommand",         undef);
         setGlobalIfUndef("gridEngineNameToJobIDCommandNoArray",  undef);
-        setGlobalIfUndef("gridEngineTaskID",                     "PBS_TASKNUM");
+        setGlobalIfUndef("gridEngineTaskID",                     "\$PBS_TASKNUM");
         setGlobalIfUndef("gridEngineArraySubmitID",              "\\\$PBS_TASKNUM");
         setGlobalIfUndef("gridEngineJobID",                      "PBS_JOBID");
     }
@@ -567,10 +736,25 @@ sub checkParameters ($) {
         setGlobalIfUndef("gridEngineMemoryOption",               undef);
         setGlobalIfUndef("gridEngineNameToJobIDCommand",         "bjobs -A -J \"WAIT_TAG\" | grep -v JOBID");
         setGlobalIfUndef("gridEngineNameToJobIDCommandNoArray",  "bjobs -J \"WAIT_TAG\" | grep -v JOBID");
-        setGlobalIfUndef("gridEngineTaskID",                     "LSB_JOBINDEX");
+        setGlobalIfUndef("gridEngineTaskID",                     "\$LSB_JOBINDEX");
         setGlobalIfUndef("gridEngineArraySubmitID",              "%I");
         setGlobalIfUndef("gridEngineJobID",                      "LSB_JOBID");
     }
+
+    #
+    #  Expand the generic grid parameters into specialized grid parameters.  The corresponding
+    #  algorithm parameters are handled in setGlobal().
+    #
+    #  NOPE, all are handled in setGlobal().
+    #
+
+    #expandExecDefaults("mhap", "cormhap");
+    #expandExecDefaults("mhap", "obtmhap");
+    #expandExecDefaults("mhap", "utgmhap");
+
+    #expandExecDefaults("ovl",  "corovl");
+    #expandExecDefaults("ovl",  "obtovl");
+    #expandExecDefaults("ovl",  "utgovl");
 
     #
     #  Set default error rates based on the per-read error rate.
@@ -646,14 +830,14 @@ sub setErrorRate ($) {
 
 
 sub setOverlapDefaults ($$$) {
-    my $tag     = shift @_;
+    my $tag     = shift @_;  #  If 'cor', some parameters are loosened for raw pacbio reads
     my $name    = shift @_;
-    my $default = shift @_;
+    my $default = shift @_;  #  Sets ${tag}Overlapper
 
-    #  OverlapInCore parameters
+    #  OverlapInCore parameters - these should probably be ${tag}ovl... to be consistent with mhap below.
 
     $global{"${tag}Overlapper"}               = $default;
-    $synops{"${tag}Overlapper"}               = "Which overlap algorithm to use for computing overlaps for assembly";
+    $synops{"${tag}Overlapper"}               = "Which overlap algorithm to use for $name";
 
     $global{"${tag}HashBlockLength"}          = ($tag eq "cor") ? 2500000 : 100000000;
     $synops{"${tag}HashBlockLength"}          = "Amount of sequence (bp) to load into the overlap hash table";
@@ -665,7 +849,7 @@ sub setOverlapDefaults ($$$) {
     $synops{"${tag}RefBlockLength"}           = "Amount of sequence (bp) to search against the hash table per batch";
 
     $global{"${tag}HashBits"}                 = ($tag eq "cor") ? 18 : 22;
-    $synops{"${tag}HashBits"}                 = "Width of the kmer hash.  Width 22=1gb, 23=2gb, 24=4gb, 25=8gb.  Plus 10b per ovlHashBlockLength";
+    $synops{"${tag}HashBits"}                 = "Width of the kmer hash.  Width 22=1gb, 23=2gb, 24=4gb, 25=8gb.  Plus 10b per ${tag}HashBlockLength";
 
     $global{"${tag}HashLoad"}                 = 0.75;
     $synops{"${tag}HashLoad"}                 = "Maximum hash table load.  If set too high, table lookups are inefficent; if too low, search overhead dominates run time";
@@ -693,8 +877,8 @@ sub setOverlapDefaults ($$$) {
     $global{"${tag}MhapMerSize"}              = ($tag eq "cor") ? 16 : 22;
     $synops{"${tag}MhapMerSize"}              = "K-mer size for seeds in mhap";
 
-    $global{"${tag}MhapReAlign"}              = 0;
-    $synops{"${tag}MhapReAlign"}              = "Compute actual alignments from mhap overlaps; 'raw' from mhap output, 'final' from overlap store";
+    $global{"${tag}MhapReAlign"}              = undef;
+    $synops{"${tag}MhapReAlign"}              = "Compute actual alignments from mhap overlaps; 'raw' from mhap output, 'final' from overlap store; uses either obtErrorRate or ovlErrorRate, depending on which overlaps are computed";
 
     $global{"${tag}MhapSensitivity"}          = "normal";
     $synops{"${tag}MhapSensitivity"}          = "Coarse sensitivity level: 'normal' or 'high'";
@@ -715,10 +899,11 @@ sub setDefaults () {
     $global{"shell"}                       = "/bin/sh";
     $synops{"shell"}                       = "Command interpreter to use; sh-compatible (e.g., bash), NOT C-shell (csh or tcsh)";
 
-    $global{"java"}                        = "/usr/bin/java"                               if (-e "/usr/bin/java");
-    $global{"java"}                        = "/usr/local/bin/java"                         if (-e "/usr/local/bin/java");
+    $global{"java"}                        = "java";
+    #$global{"java"}                        = "/usr/bin/java"                               if (-e "/usr/bin/java");
+    #$global{"java"}                        = "/usr/local/bin/java"                         if (-e "/usr/local/bin/java");
     $global{"java"}                        = "/nbacc/local/packages/jdk1.8.0_25/bin/java"  if (-e "/nbacc/local/packages/jdk1.8.0_25/bin/java");
-    $synops{"java"}                        = "Command interpreter to use; sh-compatible (e.g., bash), NOT C-shell (csh or tcsh)";
+    $synops{"java"}                        = "Java interpreter to use; at least version 1.8";
 
     #####  Cleanup options
 
@@ -821,15 +1006,22 @@ sub setDefaults () {
 
     #####  Grid Engine configuration and parameters, for each step of the pipeline
 
-    setExecDefaults("CNS",    "unitig consensus",           1,  4, 1, undef);  #  Params are useGrid, memory, threads and concurrency
-    setExecDefaults("COR",    "read correction",            1,  4, 4, undef);  #  Default concurrency is n_cpu / n_threads
-    setExecDefaults("RED",    "read error detection",       1,  4, 4, undef);
-    setExecDefaults("OEA",    "overlap error adjustment",   1,  4, 4, undef);
-    setExecDefaults("OVL",    "overlaps",                   1,  4, 4, undef);
-    setExecDefaults("MHAP",   "mhap overlaps",              1, 16, 8, undef);
-    setExecDefaults("OVB",    "overlap store bucketizing",  1,  2, 1, undef);
-    setExecDefaults("OVS",    "overlap store sorting",      1,  4, 1, undef);
-    setExecDefaults("MASTER", "master script",              0, 16, 1, undef);  #  Broken; bogart blows the limits
+    setExecDefaults("cns",    "unitig consensus",                       1,  4, 1, undef);  #  Params are useGrid, memory, threads and concurrency
+    setExecDefaults("cor",    "read correction",                        1,  4, 4, undef);  #    Default concurrency is n_cpu / n_threads
+    setExecDefaults("red",    "read error detection",                   1,  4, 4, undef);  #    Default gridOptions are undef
+    setExecDefaults("oea",    "overlap error adjustment",               1,  4, 1, undef);
+
+    setExecDefaults("corovl",  "overlaps for correction",               1,  4, 4, undef);
+    setExecDefaults("obtovl",  "overlaps for trimming",                 1,  4, 4, undef);
+    setExecDefaults("utgovl",  "overlaps for unitig construction",      1,  4, 4, undef);
+
+    setExecDefaults("cormhap", "mhap overlaps for correction",          1, 16, 8, undef);
+    setExecDefaults("obtmhap", "mhap overlaps for trimming",            1, 16, 8, undef);
+    setExecDefaults("utgmhap", "mhap overlaps for unitig construction", 1, 16, 8, undef);
+
+    setExecDefaults("ovb",    "overlap store bucketizing",              1,  2, 1, undef);
+    setExecDefaults("ovs",    "overlap store sorting",                  1,  4, 1, undef);
+    setExecDefaults("master", "master script",                          0, 16, 1, undef);  #  Broken; bogart blows the limits
 
     #####  Overlapper
 
@@ -878,7 +1070,7 @@ sub setDefaults () {
     $global{"redBatchSize"}                = 200000;
     $synops{"redBatchSize"}                = "Number of reads per fragment error detection batch, directly affects memory usage";
 
-    $global{"oeaBatchSize"}                = 200000;
+    $global{"oeaBatchSize"}                = 50000;
     $synops{"oeaBatchSize"}                = "Number of reads per overlap error correction batch";
 
     #####  Unitigger & BOG & bogart Options
@@ -895,9 +1087,6 @@ sub setDefaults () {
     $global{"utgRecalibrateGAR"}           = 1;
     $synops{"utgRecalibrateGAR"}           = "Use an experimental algorithm to decide unique/repeat";
 
-    $global{"bogBadMateDepth"}             = 7;
-    $synops{"bogBadMateDepth"}             = "EXPERT!";
-
     $global{"batOptions"}                  = undef;
     $synops{"batOptions"}                  = "Advanced options to bogart";
 
@@ -906,9 +1095,6 @@ sub setDefaults () {
 
     $global{"batThreads"}                  = undef;
     $synops{"batThreads"}                  = "Number of threads to use in the Merge/Split/Join phase; default is whatever OpenMP wants";
-
-    $global{"doUnitigSplitting"}           = 1;
-    $synops{"doUnitigSplitting"}           = "Split unitigs based on low coverage and high bad mate evidence";
 
     #####  Unitig Repeat/Unique Options (formerly in scaffolder)
 
@@ -938,8 +1124,8 @@ sub setDefaults () {
     $global{"cnsMaxCoverage"}              = 0;
     $synops{"cnsMaxCoverage"}              = "Limit unitig consensus to at most this coverage";
 
-    $global{"consensus"}                   = "utgcns";
-    $synops{"consensus"}                   = "Which consensus algorithm to use; only 'utgcns' is supported";
+    $global{"cnsConsensus"}                = "utgcns";
+    $synops{"cnsConsensus"}                = "Which consensus algorithm to use; only 'utgcns' is supported";
 
     #####  Correction Options
 
@@ -951,15 +1137,15 @@ sub setDefaults () {
 
     $global{"corMinLength"}                = undef;
     $synops{"corMinLength"}                = "Limit read correction to only overlaps longer than this; default: unlimited";
-    
+
     $global{"corMaxErate"}                 = undef;
     $synops{"corMaxErate"}                 = "Limit read correction to only overlaps at or below this fraction error; default: unlimited";
-    
+
     $global{"corMaxCoverage"}              = undef;
     $synops{"corMaxCoverage"}              = "Limit read correction to at most this coverage; default: 1.5 * estimated coverage";
     
-    $global{"correction"}                  = "falconpipe";
-    $synops{"correction"}                  = "Which consensus algorithm to use; only 'falcon' and 'falconpipe' are supported";
+    $global{"corConsensus"}                = "falconpipe";
+    $synops{"corConsensus"}                = "Which consensus algorithm to use; only 'falcon' and 'falconpipe' are supported";
 
     $global{"falconSense"}                 = undef;
     $global{"falconSense"}                 = "/home/walenzb/ca3g/ca3g-build/src/falcon_sense/falcon_sense.Linux-amd64.bin" if (-e "/home/walenzb/ca3g/ca3g-build/src/falcon_sense/falcon_sense.Linux-amd64.bin");

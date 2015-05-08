@@ -3,7 +3,7 @@ package ca3g::OverlapErrorAdjustment;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(overlapErrorAdjustment);
+@EXPORT = qw(readErrorDetectionConfigure readErrorDetectionCheck overlapErrorAdjustmentConfigure overlapErrorAdjustmentCheck updateOverlapStore);
 
 use strict;
 
@@ -53,7 +53,14 @@ sub readErrorDetectionConfigure ($$) {
     my $wrk   = shift @_;
     my $asm   = shift @_;
 
+    return  if (getGlobal("enableOEA") == 0);
+    return  if (skipStage($wrk, $asm, "readErrorDetectionConfigure") == 1);
     return  if (-e "$wrk/3-overlapErrorAdjustment/red.red");
+
+    return if (-e "$wrk/$asm.ovlStore/adjustedErates");
+    return if (-d "$wrk/$asm.tigStore");
+
+    make_path("$wrk/3-overlapErrorAdjustment")  if (! -d "$wrk/3-overlapErrorAdjustment");
 
     my $batchSize   = getGlobal("redBatchSize");
     my $numThreads  = getGlobal("redThreads");
@@ -61,11 +68,11 @@ sub readErrorDetectionConfigure ($$) {
     my $numReads    = getNumberOfReadsInStore($wrk, $asm);
     my $numJobs     = int($numReads / $batchSize) + (($numReads % $batchSize == 0) ? 0 : 1);
 
-    open(F, "> $wrk/3-overlapErrorAdjustment/red.sh") or caFailure("failed to write to '$wrk/3-overlapErrorAdjustment/red.sh'", undef);
+    open(F, "> $wrk/3-overlapErrorAdjustment/red.sh") or caWarn("can't open '$wrk/3-overlapErrorAdjustment/red.sh' for writing: $!", undef);
 
     print F "#!" . getGlobal("shell") . "\n\n";
     print F "\n";
-    print F "jobid=\$" . getGlobal("gridEngineTaskID") . "\n";
+    print F "jobid=" . getGlobal("gridEngineTaskID") . "\n";
     print F "if [ x\$jobid = x -o x\$jobid = xundefined -o x\$jobid = x0 ]; then\n";
     print F "  jobid=\$1\n";
     print F "fi\n";
@@ -82,7 +89,7 @@ sub readErrorDetectionConfigure ($$) {
     print F "if [ \$maxid -gt $numReads ] ; then\n";
     print F "  maxid=$numReads\n";
     print F "fi\n";
-    print F "if [ \$minid -gt \$maxid ] ; then\n";
+     print F "if [ \$minid -gt \$maxid ] ; then\n";
     print F "  echo Job partitioning error -- minid=\$minid maxid=\$maxid.\n";
     print F "  exit\n";
     print F "fi\n";
@@ -109,6 +116,8 @@ sub readErrorDetectionConfigure ($$) {
     close(F);
 
     chmod 0755, "$wrk/3-overlapErrorAdjustment/red.sh";
+
+    emitStage($wrk, $asm, "readErrorDetectionConfigure");
 }
 
 
@@ -120,7 +129,12 @@ sub readErrorDetectionCheck ($$$) {
     my $asm     = shift @_;
     my $attempt = shift @_;
 
+    return  if (getGlobal("enableOEA") == 0);
+    return  if (skipStage($wrk, $asm, "readErrorDetectionCheck", $attempt) == 1);
     return  if (-e "$wrk/3-overlapErrorAdjustment/red.red");
+
+    return if (-e "$wrk/$asm.ovlStore/adjustedErates");
+    return if (-d "$wrk/$asm.tigStore");
 
     my $batchSize   = getGlobal("redBatchSize");
     my $numReads    = getNumberOfReadsInStore($wrk, $asm);
@@ -143,25 +157,41 @@ sub readErrorDetectionCheck ($$$) {
         }
     }
 
+    #  No failed jobs?  Success!
+
     #  I didn't wan't to concat all the corrections, but it is _vastly_ easier to do so, compared to
     #  hacking correctOverlaps to handle multiple corrections files.  Plus, it is now really just a
     #  concat; before, the files needed to be parsed to strip off a header.
 
     if (scalar(@failedJobs) == 0) {
         concatOutput("$wrk/3-overlapErrorAdjustment/red.red", @successJobs);
+        emitStage($wrk, $asm, "readErrorDetectionCheck");
         return;
     }
 
-    print STDERR "\n";
-    print STDERR scalar(@failedJobs), " read error detection jobs failed:\n";
-    print STDERR $failureMessage;
-    print STDERR "\n";
+    #  If not the first attempt, report the jobs that failed, and that we're recomputing.
 
-    if ($attempt < 1) {
-        submitOrRunParallelJob($wrk, $asm, "red", "$wrk/3-overlapErrorAdjustment", "red", @failedJobs);
-    } else {
-        caFailure("failed to detect errors in reads.  Made $attempt attempts, jobs still failed", undef);
+    if ($attempt > 1) {
+        print STDERR "\n";
+        print STDERR scalar(@failedJobs), " read error detection jobs failed:\n";
+        print STDERR $failureMessage;
+        print STDERR "\n";
     }
+
+
+    #  If too many attempts, give up.
+
+    if ($attempt > 2) {
+        caExit("failed to detect errors in reads.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
+    }
+
+    #  Otherwise, run some jobs.
+
+    print STDERR "readErrorDetectionCheck() -- attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
+
+    emitStage($wrk, $asm, "readErrorDetectionCheck", $attempt);
+
+    submitOrRunParallelJob($wrk, $asm, "red", "$wrk/3-overlapErrorAdjustment", "red", @failedJobs);
 }
 
 
@@ -172,15 +202,22 @@ sub overlapErrorAdjustmentConfigure ($$) {
     my $wrk   = shift @_;
     my $asm   = shift @_;
 
+    return  if (getGlobal("enableOEA") == 0);
+    return  if (skipStage($wrk, $asm, "overlapErrorAdjustmentConfigure") == 1);
+    return  if (-e "$wrk/3-overlapErrorAdjustment/oea.sh");
+
+    return if (-e "$wrk/$asm.ovlStore/adjustedErates");
+    return if (-d "$wrk/$asm.tigStore");
+
     my $batchSize   = getGlobal("oeaBatchSize");
     my $numReads    = getNumberOfReadsInStore($wrk, $asm);
     my $numJobs     = int($numReads / $batchSize) + (($numReads % $batchSize == 0) ? 0 : 1);
 
-    open(F, "> $wrk/3-overlapErrorAdjustment/oea.sh") or caFailure("failed to write '$wrk/3-overlapErrorAdjustment/oea.sh'", undef);
+    open(F, "> $wrk/3-overlapErrorAdjustment/oea.sh") or caExit("can't open '$wrk/3-overlapErrorAdjustment/oea.sh' for writing: $!", undef);
 
     print F "#!" . getGlobal("shell") . "\n\n";
     print F "\n";
-    print F "jobid=\$" . getGlobal("gridEngineTaskID") . "\n";
+    print F "jobid=" . getGlobal("gridEngineTaskID") . "\n";
     print F "if [ x\$jobid = x -o x\$jobid = xundefined -o x\$jobid = x0 ]; then\n";
     print F "  jobid=\$1\n";
     print F "fi\n";
@@ -219,6 +256,8 @@ sub overlapErrorAdjustmentConfigure ($$) {
     close(F);
 
     chmod 0755, "$wrk/3-overlapErrorAdjustment/oea.sh";
+
+    emitStage($wrk, $asm, "overlapErrorAdjustmentConfigure");
 }
 
 
@@ -229,6 +268,10 @@ sub overlapErrorAdjustmentCheck ($$$) {
     my $wrk     = shift @_;
     my $asm     = shift @_;
     my $attempt = shift @_;
+
+    return  if (getGlobal("enableOEA") == 0);
+    return  if (skipStage($wrk, $asm, "overlapErrorAdjustmentCheck", $attempt) == 1);
+    return  if (-e "$wrk/3-overlapErrorAdjustment/oea.files");
 
     my $batchSize   = getGlobal("oeaBatchSize");
     my $failedJobs  = 0;
@@ -252,8 +295,10 @@ sub overlapErrorAdjustmentCheck ($$$) {
         }
     }
 
+    #  No failed jobs?  Success!
+
     if (scalar(@failedJobs) == 0) {
-        open(L, "> $wrk/3-overlapErrorAdjustment/oea.files") or caFailure("failed to open '$wrk/3-overlapErrorAdjustment/oea.files'", undef);
+        open(L, "> $wrk/3-overlapErrorAdjustment/oea.files") or caExit("can't open '$wrk/3-overlapErrorAdjustment/oea.files' for writing: $!", undef);
         foreach my $f (@successJobs) {
             print L "$f\n";
         }
@@ -261,24 +306,29 @@ sub overlapErrorAdjustmentCheck ($$$) {
         return;
     }
 
-    #if (scalar(@failedJobs) == 0) {
-    #    concatOutput("$wrk/3-overlapErrorAdjustment/oea.oea", @successJobs);
-    #    return;
-    #}
+    #  If not the first attempt, report the jobs that failed, and that we're recomputing.
 
-    print STDERR "\n";
-    print STDERR scalar(@failedJobs), " overlap error adjustment jobs failed:\n";
-    print STDERR $failureMessage;
-    print STDERR "\n";
-
-    if ($attempt < 1) {
-        submitOrRunParallelJob($wrk, $asm, "oea", "$wrk/3-overlapErrorAdjustment", "oea", @failedJobs);
-    } else {
-        caFailure("failed to adjust overlap error rates.  Made $attempt attempts, jobs still failed", undef);
+    if ($attempt > 1) {
+        print STDERR "\n";
+        print STDERR scalar(@failedJobs), " overlap error adjustment jobs failed:\n";
+        print STDERR $failureMessage;
+        print STDERR "\n";
     }
+
+    #  If too many attempts, give up.
+
+    if ($attempt > 2) {
+        caExit("failed to adjust overlap error rates.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
+    }
+
+    #  Otherwise, run some jobs.
+
+    print STDERR "overlapErrorAdjustmentCheck() -- attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
+
+    emitStage($wrk, $asm, "overlapErrorAdjustmentCheck", $attempt);
+
+    submitOrRunParallelJob($wrk, $asm, "oea", "$wrk/3-overlapErrorAdjustment", "oea", @failedJobs);
 }
-
-
 
 
 
@@ -289,9 +339,14 @@ sub updateOverlapStore ($$) {
     my $bin  = getBinDirectory();
     my $cmd;
 
+    return  if (getGlobal("enableOEA") == 0);
+    return  if (skipStage($wrk, $asm, "updateOverlapStore") == 1);
     return  if (-e "$wrk/$asm.ovlStore/erates");
 
-    caFailure("didn't find '$wrk/3-overlapErrorAdjustment/oea.files' to add to store", undef)  if (! -e "$wrk/3-overlapErrorAdjustment/oea.files");
+    return if (-e "$wrk/$asm.ovlStore/adjustedErates");
+    return if (-d "$wrk/$asm.tigStore");
+
+    caExit("didn't find '$wrk/3-overlapErrorAdjustment/oea.files' to add to store, yet overlapper finished", undef)  if (! -e "$wrk/3-overlapErrorAdjustment/oea.files");
 
     $cmd  = "$bin/ovStoreBuild \\\n";
     $cmd .= "  -g $wrk/$asm.gkpStore \\\n";
@@ -302,42 +357,8 @@ sub updateOverlapStore ($$) {
 
     if (runCommand("$wrk/3-overlapErrorAdjustment", $cmd)) {
         unlink "$wrk/$asm.ovlStore/erates";
-        caFailure("failed to add error rates to overlap store", "$wrk/3-overlapErrorAdjustment/oea.apply.err");
+        caExit("failed to add error rates to overlap store", "$wrk/3-overlapErrorAdjustment/oea.apply.err");
     }
+
+    emitStage($wrk, $asm, "updateOverlapStore");
 }
-
-
-
-
-
-#  overlap error adjustment is two steps:
-#    read error deteciton
-#    recompute each overlap with read errors fixed
-#
-#  The original version (mostly untouched since Celera) needed to merge the outputs of each step,
-#  and the last step would essentially rewrite the ovlStore to update error rates.  It was ugly.
-#
-sub overlapErrorAdjustment ($$) {
-    my $wrk  = shift @_;
-    my $asm  = shift @_;
-    my $bin  = getBinDirectory();
-    my $cmd;
-
-    return if (getGlobal("enableOEA") == 0);
-
-    return if (-e "$wrk/$asm.ovlStore/adjustedErates");
-    return if (-d "$wrk/$asm.tigStore");
-
-    make_path("$wrk/3-overlapErrorAdjustment")  if (! -d "$wrk/3-overlapErrorAdjustment");
-
-    readErrorDetectionConfigure($wrk, $asm);
-    readErrorDetectionCheck($wrk, $asm, 0);
-    readErrorDetectionCheck($wrk, $asm, 1);
-
-    overlapErrorAdjustmentConfigure($wrk, $asm);
-    overlapErrorAdjustmentCheck($wrk, $asm, 0);
-    overlapErrorAdjustmentCheck($wrk, $asm, 1);
-
-    updateOverlapStore($wrk, $asm);
-}
-

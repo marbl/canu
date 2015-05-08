@@ -22,15 +22,15 @@ sub computeNumberOfCorrectionJobs ($$) {
     my $nJobs   = 0;
     my $nPerJob = 0;
 
-    if (getGlobal("correction") eq "falcon") {
-        open(F, "ls $wrk/2-correction/falcon_inputs/ |") or die;
+    if (getGlobal("corConsensus") eq "falcon") {
+        open(F, "ls $wrk/falcon_inputs/ |") or caExit("can't find list of falcon_inputs: $!", undef);
         while (<F>) {
             $nJobs++  if (m/^\d\d\d\d$/);
         }
         close(F);
     }
 
-    if (getGlobal("correction") eq "falconpipe") {
+    if (getGlobal("corConsensus") eq "falconpipe") {
         my $nPart    = getGlobal("corPartitions");
         my $nReads   = getNumberOfReadsInStore($wrk, $asm);
 
@@ -42,7 +42,7 @@ sub computeNumberOfCorrectionJobs ($$) {
         }
     }
 
-    if (getGlobal("correction") eq "utgcns") {
+    if (getGlobal("corConsensus") eq "utgcns") {
     }
 
     return($nJobs, $nPerJob);
@@ -52,11 +52,12 @@ sub computeNumberOfCorrectionJobs ($$) {
 #  Generate a corStore, dump files for falcon to process, generate a script to run falcon.
 #
 sub buildCorrectionLayouts_falcon ($$) {
-    my $wrk          = shift @_;
-    my $asm          = shift @_;
-    my $bin          = getBinDirectory();
+    my $wrk  = shift @_;
+    my $asm  = shift @_;
+    my $bin  = getBinDirectory();
     my $cmd;
-    my $path         = "$wrk/2-correction";
+
+    my $path = "$wrk/2-correction";
 
     return  if (-e "$wrk/$asm.correctedReads.fastq");  #  Output exists
     return  if (-e "$path/cnsjob.files");              #  Jobs all finished
@@ -74,7 +75,7 @@ sub buildCorrectionLayouts_falcon ($$) {
         $cmd .= "> $wrk/$asm.corStore.err 2>&1";
 
         if (runCommand($wrk, $cmd)) {
-            caFailure("failed to generate layouts for correction", "$wrk/$asm.corStore.err");
+            caExit("failed to generate layouts for correction", "$wrk/$asm.corStore.err");
         }
 
         rename "$wrk/$asm.corStore.WORKING", "$wrk/$asm.corStore";
@@ -91,7 +92,7 @@ sub buildCorrectionLayouts_falcon ($$) {
     $cmd .= "> $path/falcon_inputs.err 2>&1";
 
     if (runCommand($wrk, $cmd)) {
-        caFailure("failed to generate falcon inputs", "$path/falcon_inputs.err");
+        caExit("failed to generate falcon inputs", "$path/falcon_inputs.err");
     }
 
     my ($jobs, undef) = computeNumberOfCorrectionJobs($wrk, $asm);  #  Counts the number of files in falcon_inputs
@@ -99,11 +100,11 @@ sub buildCorrectionLayouts_falcon ($$) {
     my $taskID            = getGlobal("gridEngineTaskID");
     my $submitTaskID      = getGlobal("gridEngineArraySubmitID");
 
-    open(F, "> $path/correctReads.sh") or caFailure("can't open '$path/correctReads.sh'", undef);
+    open(F, "> $path/correctReads.sh") or caExit("can't open '$path/correctReads.sh'", undef);
 
     print F "#!" . getGlobal("shell") . "\n";
     print F "\n";
-    print F "jobid=\$$taskID\n";
+    print F "jobid=$taskID\n";
     print F "if [ x\$jobid = x -o x\$jobid = xundefined -o x\$jobid = x0 ]; then\n";
     print F "  jobid=\$1\n";
     print F "fi\n";
@@ -122,11 +123,11 @@ sub buildCorrectionLayouts_falcon ($$) {
 
     print F getBinDirectoryShellCode();
 
-    if (getGlobal("correction") eq "utgcns") {
-        caFailure("correction=utgcns not supported for correction", undef);
+    if (getGlobal("corConsensus") eq "utgcns") {
+        caFailure("corConsensus=utgcns not supported for correction", undef);
     }
 
-    if (getGlobal("correction") eq "falcon") {
+    if (getGlobal("corConsensus") eq "falcon") {
         print F "\n";
         print F getGlobal("falconSense") . " \\\n";
         print F "  --max_n_read 200 \\\n";
@@ -150,11 +151,11 @@ sub buildCorrectionLayouts_falcon ($$) {
 #  For falcon_sense, using a pipe and no intermediate files
 #
 sub buildCorrectionLayouts_falconpipe ($$) {
-    my $wrk          = shift @_;
-    my $asm          = shift @_;
-    my $bin          = getBinDirectory();
+    my $wrk  = shift @_;
+    my $asm  = shift @_;
+    my $bin  = getBinDirectory();
     my $cmd;
-    my $path         = "$wrk/2-correction";
+    my $path = "$wrk/2-correction";
 
     return  if (-e "$wrk/$asm.correctedReads.fastq");  #  Output exists
     return  if (-e "$path/cnsjob.files");              #  Jobs all finished
@@ -169,11 +170,11 @@ sub buildCorrectionLayouts_falconpipe ($$) {
     my $taskID             = getGlobal("gridEngineTaskID");
     my $submitTaskID       = getGlobal("gridEngineArraySubmitID");
 
-    open(F, "> $path/correctReads.sh") or caFailure("can't open '$path/correctReads.sh'", undef);
+    open(F, "> $path/correctReads.sh") or caExit("can't open '$path/correctReads.sh'", undef);
 
     print F "#!" . getGlobal("shell") . "\n";
     print F "\n";
-    print F "jobid=\$$taskID\n";
+    print F "jobid=$taskID\n";
     print F "if [ x\$jobid = x -o x\$jobid = xundefined -o x\$jobid = x0 ]; then\n";
     print F "  jobid=\$1\n";
     print F "fi\n";
@@ -242,11 +243,11 @@ sub buildCorrectionLayouts_falconpipe ($$) {
 
 
 sub buildCorrectionLayouts_utgcns ($$) {
-    my $wrk          = shift @_;
-    my $asm          = shift @_;
-    my $bin          = getBinDirectory();
+    my $wrk  = shift @_;
+    my $asm  = shift @_;
+    my $bin  = getBinDirectory();
     my $cmd;
-    my $path         = "$wrk/2-correction";
+    my $path = "$wrk/2-correction";
 
     return  if (-e "$wrk/$asm.correctedReads.fastq");  #  Output exists
     return  if (-e "$path/cnsjob.files");              #  Jobs all finished
@@ -257,34 +258,41 @@ sub buildCorrectionLayouts_utgcns ($$) {
 
 
 sub buildCorrectionLayouts ($$) {
-    my $wrk          = shift @_;
-    my $asm          = shift @_;
-    my $bin          = getBinDirectory();
+    my $WRK  = shift @_;
+    my $wrk  = "$WRK/correction";
+    my $asm  = shift @_;
+    my $bin  = getBinDirectory();
     my $cmd;
-    my $path         = "$wrk/2-correction";
 
+    my $path = "$wrk/2-correction";
+
+    return  if (skipStage($WRK, $asm, "cor-buildCorrectionLayouts") == 1);
     return  if (-e "$wrk/$asm.correctedReads.fastq");  #  Output exists
     return  if (-e "$path/cnsjob.files");              #  Jobs all finished
     return  if (-e "$path/correctReads.sh");           #  Jobs created
 
     make_path("$path")  if (! -d "$path");
 
-    buildCorrectionLayouts_falcon($wrk, $asm)      if (getGlobal('correction') eq "falcon");
-    buildCorrectionLayouts_falconpipe($wrk, $asm)  if (getGlobal('correction') eq "falconpipe");
-    buildCorrectionLayouts_utgcns($wrk, $asm)      if (getGlobal('correction') eq "utgcns");
+    buildCorrectionLayouts_falcon($wrk, $asm)      if (getGlobal("corConsensus") eq "falcon");
+    buildCorrectionLayouts_falconpipe($wrk, $asm)  if (getGlobal("corConsensus") eq "falconpipe");
+    buildCorrectionLayouts_utgcns($wrk, $asm)      if (getGlobal("corConsensus") eq "utgcns");
+
+    emitStage($WRK, $asm, "cor-buildCorrectionLayouts");
 }
 
 
 
 
 sub generateCorrectedReads ($$$) {
-    my $wrk          = shift @_;
-    my $asm          = shift @_;
-    my $attempt      = shift @_;
-    my $bin          = getBinDirectory();
+    my $WRK     = shift @_;
+    my $wrk     = "$WRK/correction";
+    my $asm     = shift @_;
+    my $attempt = shift @_;
+    my $bin     = getBinDirectory();
 
-    my $path         = "$wrk/2-correction";
+    my $path    = "$wrk/2-correction";
 
+    return  if (skipStage($WRK, $asm, "cor-generateCorrectedReads", $attempt) == 1);
     return  if (-e "$wrk/$asm.correctedReads.fastq");
 
     my ($jobs, undef) = computeNumberOfCorrectionJobs($wrk, $asm);
@@ -306,55 +314,63 @@ sub generateCorrectedReads ($$$) {
         $currentJobID++;
     }
 
+    #  No failed jobs?  Success!
+
     if (scalar(@failedJobs) == 0) {
-        open(L, "> $path/corjob.files") or caFailure("failed to open '$path/corjob.files'", undef);
+        open(L, "> $path/corjob.files") or caExit("failed to open '$path/corjob.files'", undef);
         print L @successJobs;
         close(L);
-
-        touch("$path/success");
-
+        emitStage($WRK, $asm, "cor-generateCorrectedReads");
         return;
     }
 
-    if ($attempt > 0) {
+    #  If not the first attempt, report the jobs that failed, and that we're recomputing.
+
+    if ($attempt > 1) {
         print STDERR "\n";
         print STDERR scalar(@failedJobs), " read correction jobs failed:\n";
         print STDERR $failureMessage;
         print STDERR "\n";
     }
 
-    print STDERR "generateCorrectedReads() -- attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
+    #  If too many attempts, give up.
 
-    if ($attempt < 1) {
-        submitOrRunParallelJob($wrk, $asm, "cor", $path, "correctReads", @failedJobs);
-    } else {
-        caFailure("failed to generate corrected reads.  Made $attempt attempts, jobs still failed.", undef);
+    if ($attempt > 2) {
+        caExit("failed to generate corrected reads.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
     }
 
-    stopAfter("correctReads");
+    #  Otherwise, run some jobs.
 
+    print STDERR "generateCorrectedReads() -- attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
+
+    emitStage($WRK, $asm, "cor-generateCorrectedReads", $attempt);
+
+    submitOrRunParallelJob($wrk, $asm, "cor", $path, "correctReads", @failedJobs);
 }
 
 
-sub dumpCorrectedReads ($$) {
-    my $wrk          = shift @_;
-    my $asm          = shift @_;
-    my $bin          = getBinDirectory();
 
-    my $path         = "$wrk/2-correction";
+sub dumpCorrectedReads ($$) {
+    my $WRK  = shift @_;
+    my $wrk  = "$WRK/correction";
+    my $asm  = shift @_;
+    my $bin  = getBinDirectory();
+
+    my $path = "$wrk/2-correction";
+
+    return  if (skipStage($WRK, $asm, "cor-dumpCorrectedReads") == 1);
+    return  if (-e "$wrk/$asm.correctedReads.fastq");
 
     my $files = 0;
     my $reads = 0;
 
-    return  if (-e "$wrk/$asm.correctedReads.fastq");
-
-    open(F, "< $path/corjob.files") or die;
-    open(O, "> $wrk/$asm.correctedReads.fastq") or die;
+    open(F, "< $path/corjob.files")             or caExit("can't open '$path/corjob.files' for reading: $!", undef);
+    open(O, "> $wrk/$asm.correctedReads.fastq") or caExit("can't open '$wrk/$asm.correctedReads.fastq' for writing: $!", undef);
 
     while (<F>) {
         chomp;
 
-        open(R, "< $_") or die "Failed to open read correction output '$_': $_\n";
+        open(R, "< $_") or caExit("can't open correction output '$_' for reading: $!\n", undef);
 
         while (!eof(R)) {
             my $n = <R>;
@@ -381,4 +397,6 @@ sub dumpCorrectedReads ($$) {
     close(F);
 
     print STDERR "dumpCorrectedReads()-- wrote $reads corrected reads from $files files into '$wrk/$asm.correctedReads.fastq'.\n";
+
+    emitStage($WRK, $asm, "cor-dumpCorrectedReads");
 }
