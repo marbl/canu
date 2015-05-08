@@ -203,7 +203,9 @@ tgTig::buildUngapped(void) {
     _ungappedQuals = new char [_ungappedMax];
   }
 
-  assert(_gappedLen + 1 < _gappedMax);
+  //  gappedMax could be as small as gappedLen + 1 nul byte.  See abMultiAlign:getConsensus().
+
+  assert(_gappedLen + 1 <= _gappedMax);
 
   //  Copy all but the gaps.
 
@@ -219,7 +221,7 @@ tgTig::buildUngapped(void) {
     _ungappedLen++;
   }
 
-  assert(_ungappedLen + 1 < _ungappedMax);
+  assert(_ungappedLen + 1 <= _ungappedMax);
 
   _ungappedBases[_ungappedLen] = 0;
   _ungappedQuals[_ungappedLen] = 0;
