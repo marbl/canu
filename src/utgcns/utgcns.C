@@ -40,11 +40,11 @@ main (int argc, char **argv) {
   char  *gkpName = NULL;
 
   char   *tigName = NULL;
-  uint32  tigVers = UINT64_MAX;
-  uint32  tigPart = UINT64_MAX;
+  uint32  tigVers = UINT32_MAX;
+  uint32  tigPart = UINT32_MAX;
 
-  int64   utgBgn  = UINT64_MAX;
-  int64   utgEnd  = UINT64_MAX;
+  uint32  utgBgn  = UINT32_MAX;
+  uint32  utgEnd  = UINT32_MAX;
   char   *utgFile = NULL;
 
   char *outResultsName = NULL;
@@ -274,7 +274,7 @@ main (int argc, char **argv) {
   uint32  b = 0;
   uint32  e = tigStore->numTigs();
 
-  if (utgBgn != -1) {
+  if (utgBgn != UINT32_MAX) {
     b = utgBgn;
     e = utgEnd + 1;
   }
@@ -353,7 +353,6 @@ main (int argc, char **argv) {
 
     if (generateMultiAlignment(tig, gkpStore, NULL, errorRate, errorRateMax, minOverlap)) {
       if (showResult)
-        //abacus->getMultiAlign()->printAlignment(abacus, stdout);
         tig->display(stdout, gkpStore, 200, 3);
 
       unstashContains(tig, origChildren);
@@ -407,6 +406,7 @@ main (int argc, char **argv) {
     fprintf(stderr, "WARNING:  Total number of unitig failures = %d\n", numFailures);
     fprintf(stderr, "\n");
     fprintf(stderr, "Consensus did NOT finish successfully.\n");
+
   } else {
     fprintf(stderr, "Consensus finished successfully.  Bye.\n");
   }
