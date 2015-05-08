@@ -464,8 +464,12 @@ public:
   //  Returns a read, but only if it is in the currently loaded partition.  If no partition is loaded,
   //  no reads are ever returned.
   gkRead      *gkStore_getReadInPartition(uint32 id) {
-    if ((_readIDtoPartitionIdx    == NULL) ||
-        (_readIDtoPartitionID[id] != _partitionID))
+    if (_readIDtoPartitionID == NULL)
+      //  Not partitioned, return regular read.
+      return(gkStore_getRead(id));
+
+    if (_readIDtoPartitionID[id] != _partitionID)
+      //  Patitioned, and not in this partition.
       return(NULL);
 
     //fprintf(stderr, "getRead()--  SUCCESS: access to read %u in partition %u is FAST when partition %u is loaded.\n",
