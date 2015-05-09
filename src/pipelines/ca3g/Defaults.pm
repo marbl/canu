@@ -485,6 +485,8 @@ sub checkParameters ($) {
     fixCase("corConsensus");
     fixCase("cnsConsensus");
 
+    fixCase("corFilter");
+
     fixCase("unitigger");
     fixCase("stopBefore");
     fixCase("stopAfter");
@@ -521,6 +523,11 @@ sub checkParameters ($) {
     #    (getGlobal("cleanup") ne "aggressive")) {
     #    caExit("invalid cleaup specified (" . getGlobal("cleanup") . "); must be 'none', 'light', 'heavy' or 'aggressive'", undef);
     #}
+
+    if ((getGlobal("corFilter") ne "quick") &&
+        (getGlobal("corFilter") ne "expensive")) {
+        caExit("invalid 'corFilter' specified (" . getGlobal("corFilter") . "); must be 'quick' or 'expensive'", undef);
+    }
 
     if (defined(getGlobal("stopBefore"))) {
         my $ok = 0;
@@ -1139,6 +1146,12 @@ sub setDefaults () {
 
     $global{"corMaxCoverage"}              = undef;
     $synops{"corMaxCoverage"}              = "Limit read correction to at most this coverage; default: 1.5 * estimated coverage";
+
+    $global{"corOutCoverage"}              = 25;
+    $synops{"corOutCoverage"}              = "Only correct the longest reads up to this coverage; default 25";
+
+    $global{"corFilter"}                   = "expensive";
+    $synops{"corFilter"}                   = "Method to filter short reads from correction; 'quick' or 'expensive'";
     
     $global{"corConsensus"}                = "falconpipe";
     $synops{"corConsensus"}                = "Which consensus algorithm to use; only 'falcon' and 'falconpipe' are supported";

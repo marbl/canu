@@ -9,15 +9,22 @@ const char *mainid = "$Id:  $";
 
 #include "stashContains.H"
 
+#include "splitToWords.H"
+
+#include <set>
+
+using namespace std;
+
 
 //  Generate a layout for the read in ovl[0].a_iid, using most or all of the overlaps
 //  in ovl.
 
 tgTig *
 generateLayout(gkStore    *gkpStore,
-               uint32      minLen,
+               uint32      minEvidenceLength,
                double      maxErate,
-               double      maxCoverage,
+               uint32      minCorLength,
+               double      maxCorCoverage,
                ovsOverlap *ovl,
                uint32      ovlLen) {
   //fprintf(stderr, "Generate layout for read "F_U32" with "F_U32" overlaps.\n",
@@ -47,9 +54,9 @@ generateLayout(gkStore    *gkpStore,
       continue;
     }
 
-    if (ovl[oo].a_end(gkpStore) - ovl[oo].a_bgn(gkpStore) < minLen) {
+    if (ovl[oo].a_end(gkpStore) - ovl[oo].a_bgn(gkpStore) < minEvidenceLength) {
       //fprintf(stderr, "  filter read %9u at position %6u,%6u erate %.3f - too short (threshold %u)\n",
-      //        ovl[oo].b_iid, ovl[oo].a_bgn(gkpStore), ovl[oo].a_end(gkpStore), ovl[oo].erate(), minLen);
+      //        ovl[oo].b_iid, ovl[oo].a_bgn(gkpStore), ovl[oo].a_end(gkpStore), ovl[oo].erate(), minEvidenceLength);
       continue;
     }
 
@@ -86,7 +93,7 @@ generateLayout(gkStore    *gkpStore,
   //  Use utgcns's stashContains to get rid of extra coverage; we don't care about it, and
   //  just delete it immediately.
 
-  savedChildren *sc = stashContains(layout, maxCoverage, true);
+  savedChildren *sc = stashContains(layout, maxCorCoverage);
 
   if (sc) {
     delete sc->children;
@@ -120,61 +127,79 @@ main(int argc, char **argv) {
   char             *ovlName   = 0L;
   char             *tigName   = 0L;
 
-  bool              falconOutput = false;
+  bool              falconOutput = false;  //  To stdout
   bool              trimToAlign  = false;
 
   uint32            errorRate = AS_OVS_encodeQuality(0.015);
 
-  char             *outputPrefix  = NULL;
+  char             *outputPrefix = NULL;
   char              logName[FILENAME_MAX] = {0};
   char              sumName[FILENAME_MAX] = {0};
-  FILE             *logFile = 0L;
-  FILE             *sumFile = 0L;
+  FILE             *logFile      = 0L;
+  FILE             *sumFile      = 0L;
 
   argc = AS_configure(argc, argv);
 
   uint32            minEvidenceOverlap  = 40;
   uint32            minEvidenceCoverage = 1;
 
-  uint32            iidMin   = 0;
-  uint32            iidMax   = UINT32_MAX;
+  uint32            iidMin       = 0;
+  uint32            iidMax       = UINT32_MAX;
+  char             *readListName = NULL;
+  set<uint32>       readList;
 
-  uint32            minLen       = 0;
-  double            maxErate     = 1.0;
-  double            maxCoverage  = DBL_MAX;
+  uint32            minEvidenceLength = 0;
+  double            maxEvidenceErate  = 1.0;
+
+  uint32            minCorLength        = 0;
+  double            maxCorCoverage      = DBL_MAX;
+
+  bool              filterCorLength     = false;
+
 
   int arg=1;
   int err=0;
 
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-G") == 0) {
+    if        (strcmp(argv[arg], "-G") == 0) {  //  Input gkpStore
       gkpName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-O") == 0) {
+    } else if (strcmp(argv[arg], "-O") == 0) {  //  Input ovlStore
       ovlName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-T") == 0) {
+    } else if (strcmp(argv[arg], "-T") == 0) {  //  Ouytput tigStore
       tigName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-F") == 0) {
+    } else if (strcmp(argv[arg], "-F") == 0) {  //  Output directly to falcon, not tigStore
       falconOutput = true;
       trimToAlign  = true;
 
-    } else if (strcmp(argv[arg], "-b") == 0) {
+    } else if (strcmp(argv[arg], "-p") == 0) {  //  Ouytput prefix, just logging and summary
+      outputPrefix = argv[++arg];
+
+
+    } else if (strcmp(argv[arg], "-b") == 0) {  //  Begin read range
       iidMin  = atoi(argv[++arg]);
 
-    } else if (strcmp(argv[arg], "-e") == 0) {
+    } else if (strcmp(argv[arg], "-e") == 0) {  //  End read range
       iidMax  = atoi(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-rl") == 0) {  //  List of reads to correct, will also apply -b/-e range
+      readListName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-L") == 0) {
-      minLen  = atoi(argv[++arg]);
 
-    } else if (strcmp(argv[arg], "-E") == 0) {
-      maxErate = atof(argv[++arg]);
+    } else if (strcmp(argv[arg], "-L") == 0) {  //  Minimum length of evidence overlap
+      minEvidenceLength  = atoi(argv[++arg]);
 
-    } else if (strcmp(argv[arg], "-C") == 0) {
-      maxCoverage = atof(argv[++arg]);
+    } else if (strcmp(argv[arg], "-E") == 0) {  //  Max error rate of evidence overlap
+      maxEvidenceErate = atof(argv[++arg]);
+
+
+    } else if (strcmp(argv[arg], "-M") == 0) {  //  Minimum length of a corrected read
+      minCorLength = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-C") == 0) {  //  Max coverage of evidence reads to emit.
+      maxCorCoverage = atof(argv[++arg]);
 
 
     } else {
@@ -188,8 +213,6 @@ main(int argc, char **argv) {
     err++;
   if (ovlName == NULL)
     err++;
-  if ((tigName == NULL) && (falconOutput == false))
-    err++;
   if (err) {
     fprintf(stderr, "usage: %s ...\n", argv[0]);
 
@@ -197,19 +220,79 @@ main(int argc, char **argv) {
       fprintf(stderr, "ERROR: no gkpStore input (-G) supplied.\n");
     if (ovlName == NULL)
       fprintf(stderr, "ERROR: no ovlStore input (-O) supplied.\n");
-    if ((tigName == NULL) && (falconOutput == false))
-      fprintf(stderr, "ERROR: no tigStore output (-T) supplied.\n");
 
     exit(1);
   }
 
+  //  Open inputs and output tigStore.
+
   gkStore  *gkpStore = new gkStore(gkpName);
   ovStore  *ovlStore = new ovStore(ovlName);
-  tgStore  *tigStore = (falconOutput == false) ? new tgStore(tigName) : NULL;
+  tgStore  *tigStore = (tigName != NULL) ? new tgStore(tigName) : NULL;
 
-#warning Need to threshold iidMin and iidMax against number of reads
+  //  Threshold the range of reads to operate on.
+  
+  if (gkpStore->gkStore_getNumReads() < iidMin) {
+    fprintf(stderr, "ERROR: only "F_U32" reads in the store (IDs 0-"F_U32" inclusive); can't process requested range -b "F_U32" -e "F_U32"\n",
+            gkpStore->gkStore_getNumReads(),
+            gkpStore->gkStore_getNumReads()-1,
+            iidMin, iidMax);
+    exit(1);
+  }
+
+  if (gkpStore->gkStore_getNumReads() < iidMax)
+      iidMax = gkpStore->gkStore_getNumReads();
 
   ovlStore->setRange(iidMin, iidMax);
+
+  //  If a readList is supplied, load it, respecting the iidMin/iidMax (only to cut down on the
+  //  size).
+
+  if (readListName != NULL) {
+    errno = 0;
+
+    char  L[1024];
+    FILE *R = fopen(readListName, "r");
+
+    if (errno)
+      fprintf(stderr, "Failed to open '%s' for reading: %s\n", readListName, strerror(errno)), exit(1);
+
+    fgets(L, 1024, R);
+    while (!feof(R)) {
+      splitToWords W(L);
+      uint32       id = W(0);
+
+      if ((iidMin <= id) &&
+          (id <= iidMax))
+        readList.insert(W(0));
+
+      fgets(L, 1024, R);
+    }
+
+    fclose(R);
+  }
+
+  //  Open logging and summary files
+
+  if (outputPrefix) {
+    sprintf(logName, "%s.log",     outputPrefix);
+    sprintf(sumName, "%s.summary", outputPrefix);
+
+    errno = 0;
+
+    logFile = fopen(logName, "w");
+    if (errno)
+      fprintf(stderr, "Failed to open '%s' for writing: %s\n", logName, strerror(errno)), exit(1);
+
+    sumFile = fopen(sumName, "w");
+    if (errno)
+      fprintf(stderr, "Failed to open '%s' for writing: %s\n", sumName, strerror(errno)), exit(1);
+  }
+
+  if (logFile)
+    fprintf(logFile, "read\torigLen\tnumOlaps\tcorLen\n");
+
+  //  Initialize processing.
 
   uint32       ovlMax = 1024 * 1024;
   uint32       ovlLen = 0;
@@ -219,23 +302,86 @@ main(int argc, char **argv) {
 
   gkReadData   readData;
 
-  while (ovlLen > 0) {
-    tgTig *tig = generateLayout(gkpStore, minLen, maxErate, maxCoverage, ovl, ovlLen);
+  //  And process.
 
-    if (falconOutput)
-      outputFalcon(gkpStore, tig, trimToAlign, stdout, &readData);
-    else
-      tigStore->insertTig(tig, false);
+  while (ovlLen > 0) {
+    bool   skipIt = false;
+    tgTig *layout = generateLayout(gkpStore,
+                                   minEvidenceLength, maxEvidenceErate,
+                                   minCorLength, maxCorCoverage,
+                                   ovl, ovlLen);
+
+    //  If there was a readList, skip anything not in it.
+
+    if ((readListName != NULL) &&
+        (readList.count(layout->tigID()) == 0))
+      skipIt = true;
+
+    //  Possibly filter by the length of the uncorrected read.
+
+    gkRead *read = gkpStore->gkStore_getRead(layout->tigID());
+
+    if (read->gkRead_sequenceLength() < minCorLength)
+      skipIt = true;
+
+    //  Possibly filter by the length of the corrected read.
+
+    uint32  minPos = UINT32_MAX;
+    uint32  maxPos = 0;
+    uint32  corLen = 0;
+
+    for (uint32 ii=0; ii<layout->numberOfChildren(); ii++) {
+      tgPosition *pos = layout->getChild(ii);
+
+      if (pos->_min < minPos)
+        minPos = pos->_min;
+
+      if (maxPos < pos->_max)
+        maxPos = pos->_max;
+    }
+
+    if (minPos != UINT32_MAX)
+      corLen = maxPos - minPos;
+
+    if (corLen < minCorLength)
+      skipIt = true;
+
+    //  Filter out empty tigs - these either have no overlaps, or failed the
+    //  length check in generateLayout.
+
+    if (layout->numberOfChildren() <= 1)
+      skipIt = true;
+
+    //  Output, if not skipped.
+
+    if (logFile)
+      fprintf(logFile, "%u\t%u\t%u\t%u\n",
+              layout->tigID(), read->gkRead_sequenceLength(), layout->numberOfChildren(), corLen);
+
+    if ((skipIt == false) && (tigStore != NULL))
+      tigStore->insertTig(layout, false);
+
+    if ((skipIt == false) && (falconOutput == true))
+      outputFalcon(gkpStore, layout, trimToAlign, stdout, &readData);
+
+    delete layout;
+
+    //  Load next batch of overlaps.
 
     ovlLen = ovlStore->readOverlaps(ovl, ovlMax, true);
-
-    delete tig;
   }
 
   if (falconOutput)
     fprintf(stdout, "- -\n");
-  else
+
+  if (tigStore != NULL)
     delete tigStore;
+
+  if (logFile != NULL)
+    fclose(logFile);
+
+  if (sumFile != NULL)
+    fclose(sumFile);
 
   delete ovlStore;
   delete gkpStore;
