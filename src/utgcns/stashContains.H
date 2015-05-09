@@ -28,18 +28,67 @@ public:
     childrenLen = tig->_childrenLen;
     childrenMax = tig->_childrenMax;
     children    = tig->_children;
+
+    numContains = 0;
+    covContain  = 0.0;
+    percContain = 0.0;
+
+    numContainsRemoved = 0;
+    covContainsRemoved = 0.0;
+
+    numContainsSaved   = 0;
+    covContainsSaved   = 0.0;
+
+    numDovetails = 0;
+    covDovetail  = 0.0;
+    percDovetail = 0.0;
   };
+
+  void   reportDetected(FILE *out, uint32 id) {
+    fprintf(out, "  unitig %d detected "F_S32" contains (%.2fx, %.2f%%) "F_S32" dovetail (%.2fx, %.2f%%)\n",
+            id,
+            numContains,  covContain,  percContain,
+            numDovetails, covDovetail, percDovetail);
+  };
+
+  void   reportRemoved(FILE *out, uint32 id) {
+      fprintf(out, "    unitig %d removing "F_S32" (%.2fx) contained reads; processing only "F_S32" contained (%.2fx) and "F_S32" dovetail (%.2fx) reads\n",
+              id,
+              numContainsRemoved, covContainsRemoved,
+              numContainsSaved,   covContainsSaved,
+              numDovetails,       covDovetail);
+  };
+
+
+  //  The saved children proper.
 
   uint32      childrenLen;
   uint32      childrenMax;
   tgPosition *children;
+
+  //  Stats on the filtering, for logging by the caller
+
+  uint32      numContains;
+  double      covContain;
+  double      percContain;
+
+  uint32      numContainsRemoved;
+  double      covContainsRemoved;
+
+  uint32      numContainsSaved;
+  double      covContainsSaved;
+
+  uint32      numDovetails;
+  double      covDovetail;
+  double      percDovetail;
 };
 
 
 savedChildren *
 stashContains(tgTig  *tig,
               double  maxCov,
-              bool    beVerbose = true);
+              bool    beVerbose = false);
+
 
 void
 unstashContains(tgTig         *tig,

@@ -73,15 +73,18 @@ stashContains(tgTig       *tig,
 
   //  Entertain the user with some statistics
 
-  double percCont = 100.0 * nBaseCont / nBase;
-  double percDove = 100.0 * nBaseDove / nBase;
   double totlCov  = (double)nBase / hiEnd;
 
+  saved->numContains = nCont;
+  saved->covContain  = (double)nBaseCont / hiEnd;
+  saved->percContain = 100.0 * nBaseCont / nBase;;
+
+  saved->numDovetails = nBack;
+  saved->covDovetail  = (double)nBaseDove / hiEnd;
+  saved->percDovetail = 100.0 * nBaseDove / nBase;;
+
   if (beVerbose)
-    fprintf(stderr, "  unitig %d detected "F_S32" contains (%.2fx, %.2f%%) "F_S32" dovetail (%.2fx, %.2f%%)\n",
-            tig->tigID(),
-            nCont, (double)nBaseCont / hiEnd, percCont,
-            nBack, (double)nBaseDove / hiEnd, percDove);
+    saved->reportDetected(stderr, tig->tigID());
 
   //  If the tig has more coverage than allowed, throw out some of the contained reads.
 
@@ -103,13 +106,14 @@ stashContains(tgTig       *tig,
       nBaseSave += posLen[ii].len;
     }
 
+    saved->numContainsRemoved = nOrig - nBack - nSave;
+    saved->covContainsRemoved = (double)(nBaseCont - nBaseSave) / hiEnd;
+
+    saved->numContainsSaved   = nSave;
+    saved->covContainsSaved   = (double)nBaseSave / hiEnd;
+
     if (beVerbose)
-      fprintf(stderr, "    unitig %d removing "F_S32" (%.2fx) contained reads; processing only "F_S32" contained (%.2fx) and "F_S32" dovetail (%.2fx) reads\n",
-              tig->tigID(),
-              nOrig - nBack - nSave,
-              (double)(nBaseCont - nBaseSave) / hiEnd,
-              nSave, (double)nBaseSave / hiEnd,
-              nBack, (double)nBaseDove / hiEnd);
+      saved->reportRemoved(stderr, tig->tigID());
 
     //  For all the reads we saved, copy them to a new children list in the tig
 
