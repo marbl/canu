@@ -590,10 +590,6 @@ sub checkParameters ($) {
     #  Java?  Need JRE 1.8.
     #
 
-    print STDERR "cor - ", getGlobal("corOverlapper"), "\n";
-    print STDERR "obt - ", getGlobal("obtOverlapper"), "\n";
-    print STDERR "utg - ", getGlobal("utgOverlapper"), "\n";
-
     if ((getGlobal("corOverlapper") eq "mhap") ||
         (getGlobal("obtOverlapper") eq "mhap") ||
         (getGlobal("utgOverlapper") eq "mhap")) {
