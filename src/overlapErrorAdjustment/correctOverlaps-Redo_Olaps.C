@@ -487,13 +487,7 @@ Redo_Olaps(coParameters *G, gkStore *gkpStore) {
       if (rha)
         rhaPass++;
 
-      G->olaps[thisOvl].evalue = AS_OVS_encodeQuality(errors / olapLen);
-
-      //  Ancient, would output an overlap _message_ if the fp was open.  This is the -o option, which runCA doesn't use.
-      //if ((quality <= Quality_Threshold) ||
-      //    (G->olaps[thisOvl].a_hang <= 0 && Frag[sub].keep_left) ||
-      //    (G->olaps[thisOvl].b_hang >= 0 && Frag[sub].keep_right))
-      //  Output_OVL(olap, quality);
+      G->olaps[thisOvl].evalue = AS_OVS_encodeEvalue(errors / olapLen);
     }
   }
 

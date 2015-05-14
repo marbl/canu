@@ -139,8 +139,8 @@ ovStore::ovStore_read(void) {
   sprintf(name, "%s/erates", _storePath);
 
   if (AS_UTL_fileExists(name)) {
-    _eratesMap  = new memoryMappedFile(name, memoryMappedFile_readOnly);
-    _erates     = (uint16 *)_eratesMap->get(0);
+    _evaluesMap  = new memoryMappedFile(name, memoryMappedFile_readOnly);
+    _evalues     = (uint16 *)_evaluesMap->get(0);
   }
 
   //_offtMMap   = new memoryMappedFile(name, memoryMappedFile_readOnly);
@@ -180,8 +180,8 @@ ovStore::ovStore(const char *path, ovStoreType cType) {
   _offt.clear();
   _offm.clear();
 
-  _eratesMap         = NULL;
-  _erates            = NULL;
+  _evaluesMap         = NULL;
+  _evalues            = NULL;
 
   _overlapsThisFile  = 0;
   _currentFileIndex  = 0;
@@ -308,8 +308,8 @@ ovStore::readOverlap(ovsOverlap *overlap) {
 
   overlap->a_iid   = _offt._a_iid;
 
-  if (_erates)
-    overlap->evalue(_erates[_offt._overlapID++]);
+  if (_evalues)
+    overlap->evalue(_evalues[_offt._overlapID++]);
 
   _offt._numOlaps--;
 
@@ -375,8 +375,8 @@ ovStore::readOverlaps(ovsOverlap *overlaps, uint32 maxOverlaps, bool restrictToI
     if (_currentFileIndex <= _info._highestFileIndex) {
       overlaps[numOvl].a_iid = _offt._a_iid;
 
-      if (_erates)
-        overlaps[numOvl].evalue(_erates[_offt._overlapID++]);
+      if (_evalues)
+        overlaps[numOvl].evalue(_evalues[_offt._overlapID++]);
 
       numOvl++;
 
@@ -817,39 +817,39 @@ ovStore::numOverlapsPerFrag(uint32 &firstFrag, uint32 &lastFrag) {
 
 
 void
-ovStore::addErates(uint32 bgnID, uint32 endID, uint16 *erates, uint64 eratesLen) {
+ovStore::addEvalues(uint32 bgnID, uint32 endID, uint16 *evalues, uint64 evaluesLen) {
 
   char  name[FILENAME_MAX];
-  sprintf(name, "%s/erates", _storePath);
+  sprintf(name, "%s/evalues", _storePath);
 
   //  If we have an opened memory mapped file, and it isn't open for writing, close it.
 
-  if ((_eratesMap) && (_eratesMap->type() == memoryMappedFile_readOnly)) {
-    fprintf(stderr, "WARNING: closing read-only erates file.\n");
-    delete _eratesMap;
+  if ((_evaluesMap) && (_evaluesMap->type() == memoryMappedFile_readOnly)) {
+    fprintf(stderr, "WARNING: closing read-only evalues file.\n");
+    delete _evaluesMap;
 
-    _eratesMap = NULL;
-    _erates    = NULL;
+    _evaluesMap = NULL;
+    _evalues    = NULL;
   }
 
-  //  Remove a bogus erates file if one exists.
+  //  Remove a bogus evalues file if one exists.
 
   if ((AS_UTL_fileExists(name) == true) &&
       (AS_UTL_sizeOfFile(name) != (sizeof(uint16) * _info._numOverlapsTotal))) {
-    fprintf(stderr, "WARNING: existing erates file is incorrect size: should be "F_U64" bytes, is "F_U64" bytes.  Removing.\n",
+    fprintf(stderr, "WARNING: existing evalues file is incorrect size: should be "F_U64" bytes, is "F_U64" bytes.  Removing.\n",
             (sizeof(uint16) * _info._numOverlapsTotal), AS_UTL_sizeOfFile(name));
     AS_UTL_unlink(name);
   }
   
-  //  Make a new erates file if one doesn't exist.
+  //  Make a new evalues file if one doesn't exist.
 
   if (AS_UTL_fileExists(name) == false) {
-    fprintf(stderr, "Creating erates file for "F_U64" overlaps.\r", _info._numOverlapsTotal);
+    fprintf(stderr, "Creating evalues file for "F_U64" overlaps.\r", _info._numOverlapsTotal);
 
     errno = 0;
     FILE *F = fopen(name, "w");
     if (errno)
-      fprintf(stderr, "Failed to make erates file '%s': %s\n", name, strerror(errno)), exit(1);
+      fprintf(stderr, "Failed to make evalues file '%s': %s\n", name, strerror(errno)), exit(1);
 
     uint16  *Z  = new uint16 [1048576];
     uint64   Zn = 0;
@@ -859,35 +859,35 @@ ovStore::addErates(uint32 bgnID, uint32 endID, uint16 *erates, uint64 eratesLen)
     while (Zn < _info._numOverlapsTotal) {
       uint64  S = (Zn + 1048576 < _info._numOverlapsTotal) ? 1048576 : _info._numOverlapsTotal - Zn;
 
-      AS_UTL_safeWrite(F, Z, "zero erates", sizeof(uint16), S);
+      AS_UTL_safeWrite(F, Z, "zero evalues", sizeof(uint16), S);
 
       Zn += S;
 
-      fprintf(stderr, "Creating erates file for "F_U64" overlaps....%07.3f%%\r",
+      fprintf(stderr, "Creating evalues file for "F_U64" overlaps....%07.3f%%\r",
               _info._numOverlapsTotal, 100.0 * Zn / _info._numOverlapsTotal);
     }
 
-    fprintf(stderr, "Creating erates file for "F_U64" overlaps....%07.3f%%\n",
+    fprintf(stderr, "Creating evalues file for "F_U64" overlaps....%07.3f%%\n",
             _info._numOverlapsTotal, 100.0 * Zn / _info._numOverlapsTotal);
 
     fclose(F);
   }
 
-  //  Open the erates file if it isn't already opened
+  //  Open the evalues file if it isn't already opened
 
-  if (_erates == NULL) {
-    _eratesMap = new memoryMappedFile(name, memoryMappedFile_readWrite);
-    _erates    = (uint16 *)_eratesMap->get(0);
+  if (_evalues == NULL) {
+    _evaluesMap = new memoryMappedFile(name, memoryMappedFile_readWrite);
+    _evalues    = (uint16 *)_evaluesMap->get(0);
   }
 
   //  Figure out the overlap ID for the first overlap associated with bgnID
 
   setRange(bgnID, endID);
 
-  //  Load the erates from 'erates'
+  //  Load the evalues from 'evalues'
 
-  for (uint64 ii=0; ii<eratesLen; ii++)
-    _erates[_offt._overlapID + ii] = erates[ii];
+  for (uint64 ii=0; ii<evaluesLen; ii++)
+    _evalues[_offt._overlapID + ii] = evalues[ii];
 
   //  That's it.  Deleting the ovStore object will close the memoryMappedFile.  It's left open
   //  for more updates.
@@ -1489,7 +1489,7 @@ ovStoreFilter::reportFate(void) {
   fprintf(stderr, "%16"F_U64P" SAVE  - overlaps output (for OBT)\n", saveOBT);
   fprintf(stderr, "%16"F_U64P" SAVE  - overlaps output (for dedupe)\n", saveDUP);
   fprintf(stderr, "\n");
-  fprintf(stderr, "%16"F_U64P" ERATE - low quality, more than %.3f fraction error\n", skipERATE, AS_OVS_decodeQuality(maxEvalue));
+  fprintf(stderr, "%16"F_U64P" ERATE - low quality, more than %.3f fraction error\n", skipERATE, AS_OVS_decodeEvalue(maxEvalue));
   fprintf(stderr, "\n");
   fprintf(stderr, "%16"F_U64P" OBT   - not requested\n", skipOBT);
   fprintf(stderr, "%16"F_U64P" OBT   - too similar\n", skipOBTbad);

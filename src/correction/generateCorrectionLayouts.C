@@ -130,7 +130,7 @@ main(int argc, char **argv) {
   bool              falconOutput = false;  //  To stdout
   bool              trimToAlign  = false;
 
-  uint32            errorRate = AS_OVS_encodeQuality(0.015);
+  uint32            errorRate = AS_OVS_encodeEvalue(0.015);
 
   char             *outputPrefix = NULL;
   char              logName[FILENAME_MAX] = {0};

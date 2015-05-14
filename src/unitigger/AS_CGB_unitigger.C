@@ -273,10 +273,10 @@ ParseCommandLine(UnitiggerGlobals * rg,
             fprintf(stderr, "Invalid overlap error threshold %s; must be at least 0.0.\n",
                     optarg), exit(1);
 
-          rg->overlap_error_threshold = AS_OVS_encodeQuality(er);
+          rg->overlap_error_threshold = AS_OVS_encodeEvalue(er);
 
-          fprintf(stderr, "The overlap error threshold = %.3f%%\n",
-                  AS_OVS_decodeQuality(rg->overlap_error_threshold) * 100.0);
+          fprintf(stderr, "The overlap error threshold = %.3f fraction error\n",
+                  AS_OVS_decodeEvalue(rg->overlap_error_threshold));
         }
         break;
       case 'h':
@@ -453,7 +453,7 @@ main(int argc, char **argv) {
   rg->dechord_the_graph = TRUE;
   rg->cgb_unique_cutoff = CGB_UNIQUE_CUTOFF;
   rg->walk_depth = 100;
-  rg->overlap_error_threshold = AS_OVS_encodeQuality(1.0);
+  rg->overlap_error_threshold = AS_OVS_encodeEvalue(1.0);
   rg->recalibrate_global_arrival_rate = FALSE;
   rg->walk_depth=100;
   rg->output_iterations_flag = TRUE;

@@ -20,7 +20,7 @@ main(int argc, char **argv) {
   char             *tigName   = 0L;
   uint32            tigVers   = 0;
 
-  uint32            errorRate = AS_OVS_encodeQuality(0.015);
+  uint32            errorRate = AS_OVS_encodeEvalue(0.015);
 
   char             *outputPrefix  = NULL;
 

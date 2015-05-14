@@ -147,7 +147,7 @@ main(int argc, char **argv) {
   uint32          jobIndex     = 0;
 
   double          maxErrorRate = 1.0;
-  uint64          maxError     = AS_OVS_encodeQuality(maxErrorRate);
+  uint64          maxError     = AS_OVS_encodeEvalue(maxErrorRate);
 
   char           *ovlInput     = NULL;
 
@@ -175,7 +175,7 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-e") == 0) {
       maxErrorRate = atof(argv[++arg]);
-      maxError     = AS_OVS_encodeQuality(maxErrorRate);
+      maxError     = AS_OVS_encodeEvalue(maxErrorRate);
 
     } else if (strcmp(argv[arg], "-raw") == 0) {
       useGzip = false;

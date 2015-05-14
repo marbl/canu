@@ -184,7 +184,7 @@ main(int argc, char **argv) {
 
   uint32          nThreads = 4;
 
-  bool            eRates = false;
+  bool            eValues = false;
 
 
   argc = AS_configure(argc, argv);
@@ -239,8 +239,8 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-big") == 0) {
       lastLibFirstIID = atoi(argv[++arg]);
 
-    } else if (strcmp(argv[arg], "-erates") == 0) {
-      eRates = true;
+    } else if (strcmp(argv[arg], "-evalues") == 0) {
+      eValues = true;
 
     } else if ((argv[arg][0] == '-') && (argv[arg][1] != 0)) {
       fprintf(stderr, "%s: unknown option '%s'.\n", argv[0], argv[arg]);
@@ -278,7 +278,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "                        iid is the first read iid in the last library, from\n");
     fprintf(stderr, "                        'gatekeeper -dumpinfo *gkpStore'\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -erates               Input files are erate updates from overlap error adjustment\n");
+    fprintf(stderr, "  -evalues              Input files are evalue updates from overlap error adjustment\n");
     fprintf(stderr, "\n");
 
     if (ovlName == NULL)
@@ -297,37 +297,37 @@ main(int argc, char **argv) {
 
 
 
-  if (eRates) {
+  if (eValues) {
     ovStore  *ovs = new ovStore(ovlName);
 
     for (uint32 i=0; i<fileList.size(); i++) {
       errno = 0;
       FILE  *fp = fopen(fileList[i], "r");
       if (errno)
-        fprintf(stderr, "Failed to open erates file '%s': %s\n", fileList[i], strerror(errno));
+        fprintf(stderr, "Failed to open evalues file '%s': %s\n", fileList[i], strerror(errno));
 
       uint32        bgnID = 0;
       uint32        endID = 0;
       uint64        len   = 0;
 
-      fprintf(stderr, "loading erates from '%s'\n", fileList[i]);
+      fprintf(stderr, "loading evalues from '%s'\n", fileList[i]);
 
       AS_UTL_safeRead(fp, &bgnID, "loid",   sizeof(uint32), 1);
       AS_UTL_safeRead(fp, &endID, "hiid",   sizeof(uint32), 1);
       AS_UTL_safeRead(fp, &len,   "len",    sizeof(uint64), 1);
 
-      uint16 *erates = new uint16 [len];
+      uint16 *evalues = new uint16 [len];
 
-      AS_UTL_safeRead(fp,  erates, "erates", sizeof(uint16), len);
+      AS_UTL_safeRead(fp, evalues, "evalues", sizeof(uint16), len);
 
       fclose(fp);
 
-      fprintf(stderr, "loading erates from '%s' -- ID range "F_U32"-"F_U32" with "F_U64" overlaps\n",
+      fprintf(stderr, "loading evalues from '%s' -- ID range "F_U32"-"F_U32" with "F_U64" overlaps\n",
               fileList[i], bgnID, endID, len);
 
-      ovs->addErates(bgnID, endID, erates, len);
+      ovs->addEvalues(bgnID, endID, evalues, len);
 
-      delete [] erates;
+      delete [] evalues;
     }
 
     delete ovs;

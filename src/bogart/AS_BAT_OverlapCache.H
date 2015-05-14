@@ -26,26 +26,26 @@ static const char *rcsid_INCLUDE_AS_BAT_OVERLAPCACHE = "$Id$";
 
 #include "memoryMappedFile.H"
 
-//  AS_BAT_ERRBITS stores a reduced-precision overlap error rate using the same method
+//  AS_BAT_ERR_BITS stores a reduced-precision overlap error rate using the same method
 //  as used by OverlapStore.  It should be at least 7 bits, and never needs to be more
-//  than AS_OVS_ERRBITS.
+//  than AS_OVS_ERR_BITS.
 
-#define AS_BAT_ERRBITS_MIN  7
-#define AS_BAT_ERRBITS_MAX  AS_MAX_ERATE_BITS
+#define AS_BAT_ERR_BITS_MIN  7
+#define AS_BAT_ERR_BITS_MAX  AS_MAX_EVALUE_BITS
 
-#if (AS_OVS_ERRBITS_MIN + AS_MAX_READLEN_BITS+1 + AS_MAX_READLEN_BITS+1 + 1 > 64)
+#if (AS_OVS_ERR_BITS_MIN + AS_MAX_READLEN_BITS+1 + AS_MAX_READLEN_BITS+1 + 1 > 64)
 #error No space for BAToverlapInt.  Decrease read length AS_READ_MAX_NORMAL_LEN_BITS.
 #endif
 
 //  If not enough space for the minimum number of error bits, bump up to a 64-bit word for overlap
 //  storage.
 
-#define AS_BAT_ERRBITS    MIN((64 - AS_MAX_READLEN_BITS+1 - AS_MAX_READLEN_BITS+1 - 1), AS_BAT_ERRBITS_MAX)
-#define AS_BAT_MAX_ERATE  ((1 << AS_BAT_ERRBITS) - 1)
+#define AS_BAT_ERR_BITS     MIN((64 - AS_MAX_READLEN_BITS+1 - AS_MAX_READLEN_BITS+1 - 1), AS_BAT_ERR_BITS_MAX)
+#define AS_BAT_ERR_MAX     ((1 << AS_BAT_ERR_BITS) - 1)
 
 //  For storing overlaps in memory.  12 bytes per overlap.
 struct BAToverlapInt {
-  uint64      error     :AS_BAT_ERRBITS;         //  7 by default
+  uint64      error     :AS_BAT_ERR_BITS;        //  7 by default
   int64       a_hang    :AS_MAX_READLEN_BITS+1;  //  16+1 by default
   int64       b_hang    :AS_MAX_READLEN_BITS+1;  //  16+1 by default
   uint64      flipped   :1;
@@ -63,7 +63,7 @@ struct BAToverlap {
 
   uint32      flipped;
 
-  uint32      errorRaw;  //  Encoded fraction error, 0   -- AS_BAT_MAX_ERATE
+  uint32      errorRaw;  //  Encoded fraction error, 0   -- AS_BAT_MAX_ERR
   double      error;     //  Decoded fraction error, 0.0 -- 1.0
 
   uint32      a_iid;

@@ -67,7 +67,7 @@ dumpStore(char   *ovlName,
   gkStore       *gkpStore = new gkStore(gkpName);
 
   ovsOverlap     overlap;
-  uint64         evalue = AS_OVS_encodeQuality(dumpERate / 100.0);
+  uint64         evalue = AS_OVS_encodeEvalue(dumpERate);
   char           ovlString[1024];
 
   uint32   ovlTooHighError = 0;
@@ -299,7 +299,7 @@ dumpPicture(char   *ovlName,
   uint64         novl     = 0;
   ovsOverlap     overlap;
   ovsOverlap    *overlaps = (ovsOverlap *)safe_malloc(sizeof(ovsOverlap) * ovlStore->numOverlapsInRange());
-  uint64         erate    = AS_OVS_encodeQuality(dumpERate / 100.0);
+  uint64         erate    = AS_OVS_encodeEvalue(dumpERate);
 
   //  Load all the overlaps so we can sort by the A begin position.
 
@@ -355,7 +355,7 @@ main(int argc, char **argv) {
   char           *ovlName     = NULL;
 
   uint32          asBinary    = false;
-  double          dumpERate   = 100.0;
+  double          dumpERate   = 1.0;
   uint32          dumpLength  = 0;
   uint32          dumpType    = 0;
 
@@ -470,7 +470,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  MODIFIERS (for -d and -p)\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -E erate          Dump only overlaps <= erate error.\n");
+    fprintf(stderr, "  -E erate          Dump only overlaps <= erate fraction error.\n");
     fprintf(stderr, "  -L length         Dump only overlaps that are larger than L bases (only for -p picture mode).\n");
     fprintf(stderr, "  -d5               Dump only overlaps off the 5' end of the A frag.\n");
     fprintf(stderr, "  -d3               Dump only overlaps off the 3' end of the A frag.\n");

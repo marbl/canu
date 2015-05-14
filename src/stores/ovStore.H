@@ -15,11 +15,11 @@ static const char *rcsid_ovStore_H = "$Id:  $";
 //  The decoded value is a double representing fraction error -- between 0.0000 and 1.0000.
 //  The encoded value is an integer type (see the ovsOvelrapDAT below).
 
-#define AS_MAX_ERATE_BITS         12
-#define AS_MAX_ERATE              ((1 << AS_MAX_ERATE_BITS) - 1)
+#define AS_MAX_EVALUE_BITS         12
+#define AS_MAX_EVALUE              ((1 << AS_MAX_EVALUE_BITS) - 1)
 
-#define AS_OVS_decodeQuality(E)   ((E) / 10000.0)
-#define AS_OVS_encodeQuality(Q)   (((Q) < AS_OVS_decodeQuality(AS_MAX_ERATE)) ? (int)(10000.0 * (Q) + 0.5) : AS_MAX_ERATE)
+#define AS_OVS_decodeEvalue(E)   ((E) / 10000.0)
+#define AS_OVS_encodeEvalue(Q)   (((Q) < AS_OVS_decodeEvalue(AS_MAX_EVALUE)) ? (int)(10000.0 * (Q) + 0.5) : AS_MAX_EVALUE)
 
 
 //  The old implementation allowed up to 20-bit reads, and used 3 32-bit words.  No alignment was
@@ -47,7 +47,7 @@ public:
   ovsOverlapWORD  bhg3           : AS_MAX_READLEN_BITS;   //  16
 
   ovsOverlapWORD  span           : AS_MAX_READLEN_BITS;   //  16
-  ovsOverlapWORD  erate          : AS_MAX_ERATE_BITS;     //  12
+  ovsOverlapWORD  evalue         : AS_MAX_EVALUE_BITS;    //  12
   ovsOverlapWORD  flipped        : 1;                     //  1
 
   ovsOverlapWORD  forOBT         : 1;                     //  1
@@ -58,25 +58,6 @@ public:
   ovsOverlapWORD  alignFile      : 19;                    //  Which file of overlap alignments
   ovsOverlapWORD  alignPosHi     : 12;                    //  Position in that file (high-order bits)
   ovsOverlapWORD  alignPosLo     : 32;                    //  Position in that file (low-order bits)
-
-#if 0
-  void  clear(double quality) {
-    dat.ovl.ahg5         = 0;
-    dat.ovl.ahg3         = 0;
-    dat.ovl.bhg5         = 0;
-    dat.ovl.bhg3         = 0;
-    dat.ovl.span         = 0;
-    dat.ovl.erate        = AS_OVS_encodeQuality(quality);
-    dat.ovl.flipped      = false;
-    dat.ovl.forOBT       = false;
-    dat.ovl.forDUP       = false;
-    dat.ovl.forUTG       = false;
-    dat.ovl.alignSwapped = false;
-    dat.ovl.alignFile    = 0;
-    dat.ovl.alignPosHi   = 0;
-    dat.ovl.alignPosLo   = 0;
-  };
-#endif
 };
 
 #else
@@ -90,12 +71,12 @@ class ovsOverlapDAT {
 puublic:
   ovsOverlapWORD  ahg5           : AS_MAX_READLEN_BITS;   //  17-21
   ovsOverlapWORD  ahg3           : AS_MAX_READLEN_BITS;   //  17-21
-  ovsOverlapWORD  erate          : AS_MAX_ERATE_BITS;     //  12
+  ovsOverlapWORD  evalue         : AS_MAX_EVALUE_BITS;    //  12
   ovsOverlapWORD  flipped        : 1;                     //  1
   ovsOverlapWORD  forOBT         : 1;                     //  1
   ovsOverlapWORD  forDUP         : 1;                     //  1
   ovsOverlapWORD  forUTG         : 1;                     //  1
-  ovsOverlapWORD  extra1         : 64 - 2 * AS_MAX_READLEN_BITS - AS_MAX_ERATE_BITS - 1 - 1 - 1 - 1;  //  Between 15 and 7
+  ovsOverlapWORD  extra1         : 64 - 2 * AS_MAX_READLEN_BITS - AS_MAX_EVALUE_BITS - 1 - 1 - 1 - 1;  //  Between 15 and 7
 
   ovsOverlapWORD  bhg5           : AS_MAX_READLEN_BITS;   //  17-21
   ovsOverlapWORD  bhg3           : AS_MAX_READLEN_BITS;   //  17-21
@@ -105,27 +86,6 @@ puublic:
   ovsOverlapWORD  alignSwapped   : 1;                     //  Our IDs are opposite those in the alignment
   ovsOverlapWORD  alignFile      : 19;                    //  Which file of overlap alignments
   ovsOverlapWORD  alignPos       : 44;                    //  Position in that file
-
-#if 0
-  void  clear(double quality) {
-    dat.ovl.ahg5         = 0;
-    dat.ovl.ahg3         = 0;
-    dat.ovl.bhg5         = 0;
-    dat.ovl.bhg3         = 0;
-    dat.ovl.span         = 0;
-    dat.ovl.erate        = AS_OVS_encodeQuality(quality);
-    dat.ovl.flipped      = false;
-    dat.ovl.forOBT       = false;
-    dat.ovl.forDUP       = false;
-    dat.ovl.forUTG       = false;
-    dat.ovl.extra1       = 0;
-    dat.ovl.extra2       = 0;
-    dat.ovl.alignSwapped = false;
-    dat.ovl.alignFile    = 0;
-    dat.ovl.alignPosHi   = 0;
-    dat.ovl.alignPosLo   = 0;
-  };
-#endif
 };
 
 #endif
@@ -196,11 +156,11 @@ public:
   void       flipped(uint32 f)          { dat.ovl.flipped = f; };
   uint32     flipped(void) const        { return(dat.ovl.flipped == true); };
 
-  void       erate(double e)            { dat.ovl.erate = AS_OVS_encodeQuality(e); };
-  double     erate(void) const          { return(AS_OVS_decodeQuality(dat.ovl.erate)); };
+  void       erate(double e)            { dat.ovl.evalue = AS_OVS_encodeEvalue(e); };
+  double     erate(void) const          { return(AS_OVS_decodeEvalue(dat.ovl.evalue)); };
 
-  void       evalue(uint64 e)           { dat.ovl.erate = e; };
-  uint64     evalue(void) const         { return(dat.ovl.erate); };
+  void       evalue(uint64 e)           { dat.ovl.evalue = e; };
+  uint64     evalue(void) const         { return(dat.ovl.evalue); };
 
   bool       forOBT(void)               { return(dat.ovl.forOBT); };
   bool       forDUP(void)               { return(dat.ovl.forDUP); };
@@ -466,10 +426,10 @@ public:
                            uint32      fileID);
 
 
-  //  Add new erates for reads between bgnID and endID.  No checking of IDs is done, but the number
-  //  of erates must agree.
+  //  Add new evalues for reads between bgnID and endID.  No checking of IDs is done, but the number
+  //  of evalues must agree.
 
-  void       addErates(uint32 bgnID, uint32 endID, uint16 *erates, uint64 eratesLen);
+  void       addEvalues(uint32 bgnID, uint32 endID, uint16 *evalues, uint64 evaluesLen);
 
 private:
   char               _storePath[FILENAME_MAX];
@@ -489,8 +449,8 @@ private:
   ovStoreOfft        _offt;       //  For writing overlaps, the current ovStoreOfft.
   ovStoreOfft        _offm;       //  For writing overlaps, an empty ovStoreOfft, for reads with no overlaps.
 
-  memoryMappedFile  *_eratesMap;
-  uint16            *_erates;
+  memoryMappedFile  *_evaluesMap;
+  uint16            *_evalues;
 
   uint64             _overlapsThisFile;  //  Count of the number of overlaps written so far
   uint32             _currentFileIndex;
@@ -530,7 +490,7 @@ public:
     resetCounters();
 
     maxID     = gkp->gkStore_getNumReads() + 1;
-    maxEvalue = AS_OVS_encodeQuality(maxErate);
+    maxEvalue = AS_OVS_encodeEvalue(maxErate);
 
     skipReadOBT     = new char [maxID];
     skipReadDUP     = new char [maxID];

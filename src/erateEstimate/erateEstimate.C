@@ -75,7 +75,7 @@ public:
     errorMeanU      = new uint16 [seqLen + 1];
 
 #if 0
-    uint32  err40 = AS_OVS_encodeQuality(0.40);
+    uint32  err40 = AS_OVS_encodeEvalue(0.40);
 
     errorMeanS[0] = err40;
     errorMeanU[0] = 0;
@@ -222,7 +222,7 @@ saveProfile(uint32             iid,
   FILE   *F = fopen(N, "w");
 
   for (uint32 pp=0; pp<readProfile[iid].seqLen; pp++)
-    fprintf(F, "%u %7.4f\n", pp, AS_OVS_decodeQuality(readProfile[iid].errorMeanS[pp]));
+    fprintf(F, "%u %7.4f\n", pp, AS_OVS_decodeEvalue(readProfile[iid].errorMeanS[pp]));
 
   fclose(F);
 
@@ -270,7 +270,7 @@ computeEstimatedErate(uint32 iidMin, ESToverlapSpan &ovl, readErrorEstimate *rea
                (readProfile[ovl.b_iid  - iidMin].errorMeanS[bb]));
 #endif
 
-  return(AS_OVS_decodeQuality((estErrorA / 2) + (estErrorB / 2)));
+  return(AS_OVS_decodeEvalue((estErrorA / 2) + (estErrorB / 2)));
 }
 
 
@@ -320,7 +320,7 @@ recomputeErrorProfile(gkStore           *gkpStore,
       //  Compute the expected erate for this overlap based on our estimated error in both reads,
       //  and filter the overlap if it is higher than this.
 
-      double erate    = AS_OVS_decodeQuality(ovl.erate);
+      double erate    = AS_OVS_decodeEvalue(ovl.erate);
 
       if (iter > 0) {
         double estError = computeEstimatedErate(iidMin, ovl, readProfile);
@@ -356,7 +356,7 @@ recomputeErrorProfile(gkStore           *gkpStore,
 
       assert(eRateMap.hi(ii) <= readProfile[iid].seqLen);
 
-      uint16  eEnc = AS_OVS_encodeQuality(eVal);
+      uint16  eEnc = AS_OVS_encodeEvalue(eVal);
 
       for (uint32 pp=eRateMap.lo(ii); pp < eRateMap.hi(ii); pp++)
         readProfile[iid].errorMeanU[pp] = eEnc;
@@ -507,7 +507,7 @@ main(int argc, char **argv) {
 
   char             *ovlCacheName   = 0L;
 
-  uint32            errorRate      = AS_OVS_encodeQuality(0.015);
+  uint32            errorRate      = AS_OVS_encodeEvalue(0.015);
   double            errorLimit     = 2.5;
 
   char             *outputPrefix  = NULL;

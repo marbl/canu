@@ -208,11 +208,11 @@ BestOverlapGraph::removeFalseBest(void) {
 
   writeLog("BestOverlapGraph()-- detecting false best overlaps.\n");
 
-  uint32    *histo5 = new uint32 [AS_BAT_MAX_ERATE + 1];
-  uint32    *histo3 = new uint32 [AS_BAT_MAX_ERATE + 1];
+  uint32    *histo5 = new uint32 [AS_BAT_ERR_MAX + 1];
+  uint32    *histo3 = new uint32 [AS_BAT_ERR_MAX + 1];
 
-  memset(histo5, 0, sizeof(uint32) * (AS_BAT_MAX_ERATE + 1));
-  memset(histo3, 0, sizeof(uint32) * (AS_BAT_MAX_ERATE + 1));
+  memset(histo5, 0, sizeof(uint32) * (AS_BAT_ERR_MAX + 1));
+  memset(histo3, 0, sizeof(uint32) * (AS_BAT_ERR_MAX + 1));
 
   uint32    *erate5 = new uint32 [fiLimit + 1];
   uint32    *erate3 = new uint32 [fiLimit + 1];
@@ -260,7 +260,7 @@ BestOverlapGraph::removeFalseBest(void) {
     uint64  count5  =   0, count3  =   0;
     double  stddev5 = 100, stddev3 = 100;
 
-    for (uint32 er=0; er <= AS_BAT_MAX_ERATE; er++) {
+    for (uint32 er=0; er <= AS_BAT_ERR_MAX; er++) {
       double ER = OC->decodeError(er) * 100;
 
       if (ER <= 0.0)
@@ -282,7 +282,7 @@ BestOverlapGraph::removeFalseBest(void) {
     mean5 /= count5;
     mean3 /= count3;
 
-    for (uint32 er=0; er <= AS_BAT_MAX_ERATE; er++) {
+    for (uint32 er=0; er <= AS_BAT_ERR_MAX; er++) {
       double ER =  OC->decodeError(er) * 100;
 
       if (ER <= 0.0)
@@ -327,7 +327,7 @@ BestOverlapGraph::removeFalseBest(void) {
     if (errno)
       fprintf(stderr, "BestOverlapGraph()-- failed to open '%s' for writing: %s\n", EN, strerror(errno)), exit(1);
 
-    for (uint32 er=0; er <= AS_BAT_MAX_ERATE; er++) {
+    for (uint32 er=0; er <= AS_BAT_ERR_MAX; er++) {
       double  ER = OC->decodeError(er) * 100;
 
       if (ER <= 0.0)
@@ -1101,11 +1101,11 @@ BestOverlapGraph::scoreOverlap(const BAToverlap& olap) {
   //    The last are the original error rate.
   //
   uint64  leng = 0;
-  uint64  corr = AS_BAT_MAX_ERATE - olap.errorRaw;
-  uint64  orig = AS_BAT_MAX_ERATE - 0;
+  uint64  corr = AS_BAT_ERR_MAX - olap.errorRaw;
+  uint64  orig = AS_BAT_ERR_MAX - 0;
 
   //  Shift AFTER assigning to a 64-bit value to avoid overflows.
-  corr <<= AS_BAT_ERRBITS;
+  corr <<= AS_BAT_ERR_BITS;
 
   //  Containments - the length of the overlaps are all the same.  We return the quality.
   //
@@ -1139,7 +1139,7 @@ BestOverlapGraph::scoreOverlap(const BAToverlap& olap) {
 
   //  And finally shift it to the correct place in the word.
 
-  leng <<= (2 * AS_BAT_ERRBITS);
+  leng <<= (2 * AS_BAT_ERR_BITS);
 
   return(leng | corr | orig);
 }

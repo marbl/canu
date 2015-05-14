@@ -48,8 +48,8 @@ ovsOverlap::toString(char *str, gkStore *gkp, ovOverlapDisplayType type) {
               b_iid,
               dat.ovl.flipped ? 'I' : 'N',
               a_hang(), b_hang(),
-              AS_OVS_decodeQuality(dat.ovl.erate) * 100.0,
-              AS_OVS_decodeQuality(dat.ovl.erate) * 100.0);
+              erate() * 100.0,
+              erate() * 100.0);
       break;
   }
 
