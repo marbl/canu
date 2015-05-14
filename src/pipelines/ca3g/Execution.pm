@@ -788,12 +788,13 @@ sub convertToJobRange (@) {
 #  If under grid control, submit grid jobs.  Otherwise, run in parallel locally.
 #
 sub submitOrRunParallelJob ($$$$$@) {
-    my $wrk          = shift @_;
-    my $asm          = shift @_;
+    my $wrk          = shift @_;  #  Root of the assembly (NOT wrk/correction or wrk/trimming)
+    my $asm          = shift @_;  #  Name of the assembly
 
     my $jobType      = shift @_;  #  E.g., ovl, cns, ... - populates 'gridOptionsXXX and useGridXXX (former XXXOnGrid)
-                             #                         - also becomes the grid job name prefix, so three letters suggested
-    my $path         = shift @_;
+                                  #                      - also becomes the grid job name prefix, so three letters suggested
+
+    my $path         = shift @_;  #  Location of script to run
     my $script       = shift @_;  #  Runs $path/$script.sh > $path/$script.######.out
 
     my $mem          = getGlobal("${jobType}Memory");

@@ -20,7 +20,6 @@ use ca3g::Gatekeeper;
 #    .dat.WORKING, then let the script rename it when the job finishes successfully.  There is no output file name option.
 
 
-my $javaPath = "java";
 
 sub mhapConfigure ($$$$) {
     my $WRK  = shift @_;
@@ -226,6 +225,8 @@ sub mhapConfigure ($$$$) {
     my $filterThreshold = (getGlobal("${tag}MhapSensitivity") eq "normal") ?   0.000005 :   0.000005;  #  Also set in Meryl.pm
 
     #  Create a script to generate precomputed blocks, including extracting the reads from gkpStore.
+
+    my $javaPath = getGlobal("java");
 
     open(F, "> $path/precompute.sh") or caFailure("can't open '$path/precompute.sh' for writing: $!", undef);
 
@@ -486,7 +487,7 @@ sub mhapPrecomputeCheck ($$$$$) {
 
     emitStage($WRK, $asm, "$tag-mhapPrecomputeCheck", $attempt);
 
-    submitOrRunParallelJob($wrk, $asm, "${tag}mhap", $path, "precompute", @failedJobs);
+    submitOrRunParallelJob($WRK, $asm, "${tag}mhap", $path, "precompute", @failedJobs);
 }
 
 
