@@ -429,10 +429,10 @@ sub expensiveFilter ($$) {
     open(FP, "> $path/$asm.estimate.fp.log") or die;
     open(TP, "> $path/$asm.estimate.tp.log") or die;
 
-    my ($tnReads, $tnBasesR, $tnBasesC) = (0, 0);
-    my ($fnReads, $fnBasesR, $fnBasesC) = (0, 0);
-    my ($fpReads, $tpBasesR, $tpBasesC) = (0, 0);
-    my ($tpReads, $fpBasesR, $fpBasesC) = (0, 0);
+    my ($tnReads, $tnBasesR, $tnBasesC, $tnBasesRave, $tnBasesCave) = (0, 0, 0, 0, 0 );
+    my ($fnReads, $fnBasesR, $fnBasesC, $fnBasesRave, $fnBasesCave) = (0, 0, 0, 0, 0 );
+    my ($fpReads, $tpBasesR, $tpBasesC, $tpBasesRave, $tpBasesCave) = (0, 0, 0, 0, 0 );
+    my ($tpReads, $fpBasesR, $fpBasesC, $fpBasesRave, $fpBasesCave) = (0, 0, 0, 0, 0 );
 
     while (<F>) {
         my @v = split '\s+', $_;
@@ -453,6 +453,18 @@ sub expensiveFilter ($$) {
     close(TN);
 
     close(F);
+
+    $tnBasesRave = $tnBasesR / $tnReads  if ($tnReads > 0);
+    $tnBasesCave = $tnBasesC / $tnReads  if ($tnReads > 0);
+
+    $fnBasesRave = $fnBasesR / $fnReads  if ($fnReads > 0);
+    $fnBasesCave = $fnBasesC / $fnReads  if ($fnReads > 0);
+
+    $fpBasesRave = $fpBasesR / $fpReads  if ($fpReads > 0);
+    $fpBasesCave = $fpBasesC / $fpReads  if ($fpReads > 0);
+
+    $tpBasesRave = $tpBasesR / $tpReads  if ($tpReads > 0);
+    $tpBasesCave = $tpBasesC / $tpReads  if ($tpReads > 0);
 
     #  Dump a summary of the filter
 
@@ -476,10 +488,10 @@ sub expensiveFilter ($$) {
     print F "  Mean    $rawFilterMean\n";
     print F "  N50     $rawFilterN50\n";
     print F "\n";
-    printf F "TN %9d reads %13d raw bases (%6d ave) %13d corrected bases (%6d ave)\n", $tnReads, $tnBasesR, $tnBasesR / $tnReads, $tnBasesC, $tnBasesC / $tnReads;
-    printf F "FN %9d reads %13d raw bases (%6d ave) %13d corrected bases (%6d ave)\n", $fnReads, $fnBasesR, $fnBasesR / $fnReads, $fnBasesC, $fnBasesC / $fnReads;
-    printf F "FP %9d reads %13d raw bases (%6d ave) %13d corrected bases (%6d ave)\n", $fpReads, $fpBasesR, $fpBasesR / $fpReads, $fpBasesC, $fpBasesC / $fpReads;
-    printf F "TP %9d reads %13d raw bases (%6d ave) %13d corrected bases (%6d ave)\n", $tpReads, $tpBasesR, $tpBasesR / $tpReads, $tpBasesC, $tpBasesC / $tpReads;
+    printf F "TN %9d reads %13d raw bases (%6d ave) %13d corrected bases (%6d ave)\n", $tnReads, $tnBasesR, $tnBasesRave, $tnBasesC, $tnBasesCave;
+    printf F "FN %9d reads %13d raw bases (%6d ave) %13d corrected bases (%6d ave)\n", $fnReads, $fnBasesR, $fnBasesRave, $fnBasesC, $fnBasesCave;
+    printf F "FP %9d reads %13d raw bases (%6d ave) %13d corrected bases (%6d ave)\n", $fpReads, $fpBasesR, $fpBasesRave, $fpBasesC, $fpBasesCave;
+    printf F "TP %9d reads %13d raw bases (%6d ave) %13d corrected bases (%6d ave)\n", $tpReads, $tpBasesR, $tpBasesRave, $tpBasesC, $tpBasesCave;
     close(F);
 
     if (! -e "$path/$asm.estimate.original-x-correctedLength.png") {
