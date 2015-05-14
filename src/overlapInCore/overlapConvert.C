@@ -80,11 +80,10 @@ main(int argc, char **argv) {
       fputs(ov.toString(ovStr, gkpStore, dt), stdout);
 
     delete of;
-
-    arg++;
   }
 
   delete [] ovStr;
+  delete    gkpStore;
 
   exit(0);
 }
