@@ -13,6 +13,8 @@ use POSIX ":sys_wait_h";  #  For waitpid(..., &WNOHANG)
 #use lib "$FindBin::RealBin";
 #use lib "$FindBin::RealBin/ca3g/lib/perl5";
 
+use File::Path qw(make_path remove_tree);
+
 use ca3g::Defaults;
 
 
@@ -304,11 +306,11 @@ sub skipStage ($$$@) {
 
     open(F, "< $wrk/$asm.stage") or caFailure("failed to open '$wrk/$asm.stage' for reading", undef);
     while (<F>) {
-        if (m/ca3g\s+at\s+stage\s+(\S*)\s+attempt\s+(\d+)$/) {
+        if (m/ca3g\s+at\s+stage\s+(\S*)\s+\(#\d+\)\sattempt\s+(\d+)$/) {
             $ckpstage   = $1;
             $ckpattempt = $2;
         }
-        if (m/ca3g\s+at\s+stage\s+(\S*)$/) {
+        if (m/ca3g\s+at\s+stage\s+(\S*)\s+\(#\d+\)$/) {
             $ckpstage = $1;
         }
     }
@@ -343,20 +345,36 @@ sub emitStage ($$$@) {
     my $attempt     = shift @_;
     my $time        = localtime();
 
+    my $label       = lookupStageLabel($stage);
+    my $label1      = $label - 1;
+    my $attempt     = (defined($attempt)) ? " attempt $attempt" : "";
+    my $ATTEMPT     = (defined($attempt)) ? " ATTEMPT $attempt" : "";
+
     open(F, ">> $wrk/$asm.stage") or caFailure("failed to open '$wrk/$asm.stage' for appending\n", undef);
-
-    if (defined($attempt)) {
-        print F "$time ca3g at stage $stage attempt $attempt\n";
-    } else {
-        print F "$time ca3g at stage $stage\n";
-    }
-
+    print F "$time -- ca3g at stage $stage (#$label)$attempt\n";
     close(F);
 
-    if (defined($attempt)) {
-        print "----------------------------------------STAGE $stage (#" . lookupStageLabel($stage) . ") ATTEMPT $attempt FINISHED.\n";
+    print "----------------------------------------STAGE $stage (#$label)$ATTEMPT FINISHED.\n";
+
+    make_path("$wrk/$asm.stage.fileLists")  if (! -d "$wrk/$asm.stage.fileLists");
+
+    #  Find all files created since the last checkpoint, or accessed since the last.  Linux claims either -anewer or -newera will work
+    #
+    #  Format is: access-time -- modification-time -- status-change-time -- filename
+
+    #  Problem - label-1 doesn't always exist because we occasionally reset the label to 200, 300.  Fixed by not doing that.
+
+    while (($label1 > 100) && (! -e "$wrk/$asm.stage.fileLists/stage.$label1.created")) {
+        $label1--;
+    }
+
+    print STDERR "-- $label $label1\n";
+
+    if (-e "$wrk/$asm.stage.fileLists/stage.$label1.created") {
+        runCommand($wrk, "find . -type f -and -newer  $wrk/$asm.stage.fileLists/stage.$label1.created -printf '%a -- %t -- %c -- %p\\n' > $wrk/$asm.stage.fileLists/stage.$label.created");
+        runCommand($wrk, "find . -type f -and -anewer $wrk/$asm.stage.fileLists/stage.$label1.created -printf '%a -- %t -- %c -- %p\\n' > $wrk/$asm.stage.fileLists/stage.$label.accessed");
     } else {
-        print "----------------------------------------STAGE $stage (#" . lookupStageLabel($stage) . ") FINISHED.\n";
+        runCommand($wrk, "find . -type f -printf '%a -- %t -- %c -- %p\\n' > $wrk/$asm.stage.fileLists/stage.$label.created");
     }
 }
 
