@@ -340,7 +340,7 @@ compressedFileReader::compressedFileReader(const char *filename) {
   if (filename != NULL)
     len = strlen(filename);
 
-  if ((len > 0) && (AS_UTL_fileExists(filename, FALSE, FALSE) == FALSE))
+  if ((len > 0) && (strcmp(filename, "-") != 0) && (AS_UTL_fileExists(filename, FALSE, FALSE) == FALSE))
     fprintf(stderr, "ERROR:  Failed to open input file '%s': %s\n", filename, strerror(errno)), exit(1);
 
   errno = 0;
