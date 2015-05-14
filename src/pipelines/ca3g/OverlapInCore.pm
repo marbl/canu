@@ -46,21 +46,23 @@ sub overlapConfigure ($$$$) {
         #my $hashLibrary        = getGlobal("${tag}HashLibrary");
         #my $refLibrary         = getGlobal("${tag}RefLibrary");
 
-        my $ovlHashBlockLength = getGlobal("${tag}HashBlockLength");
-        my $ovlHashBlockSize   = 0;
-        my $ovlRefBlockSize    = getGlobal("${tag}RefBlockSize");
-        my $ovlRefBlockLength  = getGlobal("${tag}RefBlockLength");
+        my $hashBlockLength = getGlobal("${tag}OvlHashBlockLength");
+        my $hashBlockSize   = 0;
+        my $refBlockSize    = getGlobal("${tag}OvlRefBlockSize");
+        my $refBlockLength  = getGlobal("${tag}OvlRefBlockLength");
 
-        if (($ovlRefBlockSize > 0) && ($ovlRefBlockLength > 0)) {
-            caExit("can't set both ovlRefBlockSize and ovlRefBlockLength", undef);
+        if (($refBlockSize > 0) && ($refBlockLength > 0)) {
+            caExit("can't set both ${tag}OvlRefBlockSize and ${tag}OvlRefBlockLength", undef);
         }
+
+        print STDERR "PARTITION for '$tag'\n";
 
         $cmd  = "$bin/overlapInCorePartition \\\n";
         $cmd .= " -g  $wrk/$asm.gkpStore \\\n";
-        $cmd .= " -bl $ovlHashBlockLength \\\n";
-        $cmd .= " -bs $ovlHashBlockSize \\\n";
-        $cmd .= " -rs $ovlRefBlockSize \\\n";
-        $cmd .= " -rl $ovlRefBlockLength \\\n";
+        $cmd .= " -bl $hashBlockLength \\\n";
+        $cmd .= " -bs $hashBlockSize \\\n";
+        $cmd .= " -rs $refBlockSize \\\n";
+        $cmd .= " -rl $refBlockLength \\\n";
         #$cmd .= " -H $hashLibrary \\\n" if ($hashLibrary ne "0");
         #$cmd .= " -R $refLibrary \\\n"  if ($refLibrary ne "0");
         #$cmd .= " -C \\\n" if (!$checkLibrary);
@@ -73,16 +75,16 @@ sub overlapConfigure ($$$$) {
     }
 
     if (! -e "$path/overlap.sh") {
-        my $merSize      = getGlobal("${tag}MerSize");
+        my $merSize      = getGlobal("${tag}OvlMerSize");
         
-        #my $hashLibrary  = getGlobal("${tag}HashLibrary");
-        #my $refLibrary   = getGlobal("${tag}RefLibrary");
+        #my $hashLibrary  = getGlobal("${tag}OvlHashLibrary");
+        #my $refLibrary   = getGlobal("${tag}OvlRefLibrary");
         
         #  Create a script to run overlaps.  We make a giant job array for this -- we need to know
         #  hashBeg, hashEnd, refBeg and refEnd -- from that we compute batchName and jobName.
 
-        my $ovlHashBits       = getGlobal("${tag}HashBits");
-        my $ovlHashLoad       = getGlobal("${tag}HashLoad");
+        my $hashBits       = getGlobal("${tag}OvlHashBits");
+        my $hashLoad       = getGlobal("${tag}OvlHashLoad");
 
         my $taskID            = getGlobal("gridEngineTaskID");
         my $submitTaskID      = getGlobal("gridEngineArraySubmitID");
@@ -125,12 +127,12 @@ sub overlapConfigure ($$$$) {
 
         print F "\$bin/overlapInCore \\\n";
         print F "  -G \\\n"  if ($type eq "partial");
-        print F "  -t ", getGlobal("${tag}ovlThreads"), " \\\n";
+        print F "  -t ", getGlobal("${tag}OvlThreads"), " \\\n";
         print F "  -k $merSize \\\n";
         print F "  -k $wrk/0-mercounts/$asm.ms$merSize.frequentMers.fasta \\\n";
-        print F "  --hashbits $ovlHashBits \\\n";
-        print F "  --hashload $ovlHashLoad \\\n";
-        print F "  --maxerate  ", getGlobal("ovlErrorRate"), " \\\n";
+        print F "  --hashbits $hashBits \\\n";
+        print F "  --hashload $hashLoad \\\n";
+        print F "  --maxerate  ", getGlobal("${tag}OvlErrorRate"), " \\\n";
         print F "  --minlength ", getGlobal("minOverlapLength"), " \\\n";
         print F "  \$opt \\\n";
         print F "  -o $path/\$bat/\$job.ovb.WORKING.gz \\\n";

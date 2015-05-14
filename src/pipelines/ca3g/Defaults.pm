@@ -70,10 +70,12 @@ sub setGlobal ($$) {
         $set += setGlobalSpecialization($val, ("cor${opt}", "obt${opt}", "utg${opt}"))  if ($var eq "${opt}");
     }
 
+    #  e.g., corOvlHashBlockLength
     foreach my $opt ("ovlhashblocklength", "ovlrefblocksize", "ovlrefblocklength", "ovlhashbits", "ovlhashload", "ovlmersize", "ovlmerthreshold", "ovlmerdistinct", "ovlmertotal", "ovlfrequentmers") {
         $set += setGlobalSpecialization($val, ("cor${opt}", "obt${opt}", "utg${opt}"))  if ($var eq "${opt}");
     }
 
+    #  e.g., corMhapBlockSize
     foreach my $opt ("mhapblocksize", "mhapmersize", "mhaprealign", "mhapsensitivity") {
         $set += setGlobalSpecialization($val, ("cor${opt}", "obt${opt}", "utg${opt}"))  if ($var eq "${opt}");
     }
@@ -470,9 +472,9 @@ sub checkParameters ($) {
 
     makeAbsolute("pathMap");
 
-    makeAbsolute("corFrequentMers");
-    makeAbsolute("obtFrequentMers");
-    makeAbsolute("utgFrequentMers");
+    makeAbsolute("corOvlFrequentMers");
+    makeAbsolute("obtOvlFrequentMers");
+    makeAbsolute("utgOvlFrequentMers");
 
     #
     #  Adjust case on some of them
@@ -587,6 +589,10 @@ sub checkParameters ($) {
     #
     #  Java?  Need JRE 1.8
     #
+
+    print STDERR "cor - ", getGlobal("corOverlapper"), "\n";
+    print STDERR "obt - ", getGlobal("obtOverlapper"), "\n";
+    print STDERR "utg - ", getGlobal("utgOverlapper"), "\n";
 
     if ((getGlobal("corOverlapper") eq "mhap") ||
         (getGlobal("obtOverlapper") eq "mhap") ||
@@ -763,27 +769,35 @@ sub checkParameters ($) {
     #  Set default error rates based on the per-read error rate.
     #
 
-    setGlobalIfUndef("ovlErrorRate",      3.0 * getGlobal("errorRate"));
-    setGlobalIfUndef("obtErrorRate",      3.0 * getGlobal("errorRate"));
-    setGlobalIfUndef("utgErrorRate",      3.0 * getGlobal("errorRate"));
-    setGlobalIfUndef("utgGraphErrorRate", 3.0 * getGlobal("errorRate"));
-    setGlobalIfUndef("utgMergeErrorRate", 3.0 * getGlobal("errorRate"));
-    setGlobalIfUndef("cnsErrorRate",      3.0 * getGlobal("errorRate"));
+    setGlobalIfUndef("corOvlErrorRate",      3.0 * getGlobal("errorRate"));
+    setGlobalIfUndef("obtOvlErrorRate",      3.0 * getGlobal("errorRate"));
+    setGlobalIfUndef("utgOvlErrorRate",      3.0 * getGlobal("errorRate"));
+
+    setGlobalIfUndef("utgGraphErrorRate",    3.0 * getGlobal("errorRate"));
+    setGlobalIfUndef("utgBubbleErrorRate",   3.0 * getGlobal("errorRate") + 0.5 * getGlobal("errorRate"));
+    setGlobalIfUndef("utgMergeErrorRate",    3.0 * getGlobal("errorRate") - 0.5 * getGlobal("errorRate"));
+    setGlobalIfUndef("utgRepeatErrorRate",   3.0 * getGlobal("errorRate"));
+
+    setGlobalIfUndef("cnsErrorRate",         3.0 * getGlobal("errorRate"));
 
     #
     #  Report.
     #
 
     print STDERR "-- \n";
-    print STDERR "-- genomeSize        = ", getGlobal("genomeSize"), "\n";
-    print STDERR "-- errorRate         = ", getGlobal("errorRate"), "\n";
+    print STDERR "-- genomeSize          = ", getGlobal("genomeSize"), "\n";
+    print STDERR "-- errorRate           = ", getGlobal("errorRate"), "\n";
     print STDERR "-- \n";
-    print STDERR "-- ovlErrorRate      = ", getGlobal("ovlErrorRate"), "\n";
-    print STDERR "-- obtErrorRate      = ", getGlobal("obtErrorRate"), "\n";
-    print STDERR "-- utgErrorRate      = ", getGlobal("utgErrorRate"), "\n";
-    print STDERR "-- utgGraphErrorRate = ", getGlobal("utgGraphErrorRate"), "\n";
-    print STDERR "-- utgMergeErrorRate = ", getGlobal("utgMergeErrorRate"), "\n";
-    print STDERR "-- cnsErrorRate      = ", getGlobal("cnsErrorRate"), "\n";
+    print STDERR "-- corOvlErrorRate     = ", getGlobal("corOvlErrorRate"), "\n";
+    print STDERR "-- obtOvlErrorRate     = ", getGlobal("obtOvlErrorRate"), "\n";
+    print STDERR "-- utgOvlErrorRate     = ", getGlobal("utgOvlErrorRate"), "\n";
+    print STDERR "-- \n";
+    print STDERR "-- utgGraphErrorRate   = ", getGlobal("utgGraphErrorRate"), "\n";
+    print STDERR "-- utgBubbleErrorRate  = ", getGlobal("utgBubbleErrorRate"), "\n";
+    print STDERR "-- utgMergeErrorRate   = ", getGlobal("utgMergeErrorRate"), "\n";
+    print STDERR "-- utgRepeatErrorRate  = ", getGlobal("utgRepeatErrorRate"), "\n";
+    print STDERR "-- \n";
+    print STDERR "-- cnsErrorRate        = ", getGlobal("cnsErrorRate"), "\n";
     print STDERR "-- \n";
 }
 
@@ -819,8 +833,9 @@ sub setErrorRate ($) {
 
     setGlobal("errorRate",          $er);
 
-    setGlobal("ovlErrorRate",       $er * 3);
-    setGlobal("obtErrorRate",       $er * 3);
+    setGlobal("corOvlErrorRate",    $er * 3);
+    setGlobal("obtOvlErrorRate",    $er * 3);
+    setGlobal("utgOvlErrorRate",    $er * 3);
 
     setGlobal("utgGraphErrorRate",  $er * 3);
     setGlobal("utgBubbleErrorRate", $er * 3 + 0.5 * $er);
@@ -837,42 +852,44 @@ sub setOverlapDefaults ($$$) {
     my $name    = shift @_;
     my $default = shift @_;  #  Sets ${tag}Overlapper
 
-    #  OverlapInCore parameters - these should probably be ${tag}ovl... to be consistent with mhap below.
+    #  Which overlapper to use.
 
-    $global{"${tag}Overlapper"}               = $default;
-    $synops{"${tag}Overlapper"}               = "Which overlap algorithm to use for $name";
+    $global{"${tag}Overlapper"}                  = $default;
+    $synops{"${tag}Overlapper"}                  = "Which overlap algorithm to use for $name";
 
-    $global{"${tag}HashBlockLength"}          = ($tag eq "cor") ? 2500000 : 100000000;
-    $synops{"${tag}HashBlockLength"}          = "Amount of sequence (bp) to load into the overlap hash table";
+    #  OverlapInCore parameters.
 
-    $global{"${tag}RefBlockSize"}             = ($tag eq "cor") ? 20000 : 2000000;
-    $synops{"${tag}RefBlockSize"}             = "Number of reads to search against the hash table per batch";
+    $global{"${tag}OvlHashBlockLength"}          = ($tag eq "cor") ? 2500000 : 100000000;
+    $synops{"${tag}OvlHashBlockLength"}          = "Amount of sequence (bp) to load into the overlap hash table";
 
-    $global{"${tag}RefBlockLength"}           = 0;
-    $synops{"${tag}RefBlockLength"}           = "Amount of sequence (bp) to search against the hash table per batch";
+    $global{"${tag}OvlRefBlockSize"}             = ($tag eq "cor") ? 20000 : 2000000;
+    $synops{"${tag}OvlRefBlockSize"}             = "Number of reads to search against the hash table per batch";
 
-    $global{"${tag}HashBits"}                 = ($tag eq "cor") ? 18 : 22;
-    $synops{"${tag}HashBits"}                 = "Width of the kmer hash.  Width 22=1gb, 23=2gb, 24=4gb, 25=8gb.  Plus 10b per ${tag}HashBlockLength";
+    $global{"${tag}OvlRefBlockLength"}           = 0;
+    $synops{"${tag}OvlRefBlockLength"}           = "Amount of sequence (bp) to search against the hash table per batch";
 
-    $global{"${tag}HashLoad"}                 = 0.75;
-    $synops{"${tag}HashLoad"}                 = "Maximum hash table load.  If set too high, table lookups are inefficent; if too low, search overhead dominates run time";
+    $global{"${tag}OvlHashBits"}                 = ($tag eq "cor") ? 18 : 22;
+    $synops{"${tag}OvlHashBits"}                 = "Width of the kmer hash.  Width 22=1gb, 23=2gb, 24=4gb, 25=8gb.  Plus 10b per ${tag}OvlHashBlockLength";
 
-    $global{"${tag}MerSize"}                  = ($tag eq "cor") ? 19 : 22;
-    $synops{"${tag}MerSize"}                  = "K-mer size for seeds in overlaps";
+    $global{"${tag}OvlHashLoad"}                 = 0.75;
+    $synops{"${tag}OvlHashLoad"}                 = "Maximum hash table load.  If set too high, table lookups are inefficent; if too low, search overhead dominates run time";
 
-    $global{"${tag}MerThreshold"}             = "auto";
-    $synops{"${tag}MerThreshold"}             = "K-mer frequency threshold; mers more frequent than this count are ignored";
+    $global{"${tag}OvlMerSize"}                  = ($tag eq "cor") ? 19 : 22;
+    $synops{"${tag}OvlMerSize"}                  = "K-mer size for seeds in overlaps";
 
-    $global{"${tag}MerDistinct"}              = undef;
-    $synops{"${tag}MerDistinct"}              = "K-mer frequency threshold; the least frequent fraction of distinct mers can seed overlaps";
+    $global{"${tag}OvlMerThreshold"}             = "auto";
+    $synops{"${tag}OvlMerThreshold"}             = "K-mer frequency threshold; mers more frequent than this count are ignored";
 
-    $global{"${tag}MerTotal"}                 = undef;
-    $synops{"${tag}MerTotal"}                 = "K-mer frequency threshold; the least frequent fraction of all mers can seed overlaps";
+    $global{"${tag}OvlMerDistinct"}              = undef;
+    $synops{"${tag}OvlMerDistinct"}              = "K-mer frequency threshold; the least frequent fraction of distinct mers can seed overlaps";
 
-    $global{"${tag}FrequentMers"}             = undef;
-    $synops{"${tag}FrequentMers"}             = "Do not seed overlaps with these kmers (fasta format)";
+    $global{"${tag}OvlMerTotal"}                 = undef;
+    $synops{"${tag}OvlMerTotal"}                 = "K-mer frequency threshold; the least frequent fraction of all mers can seed overlaps";
 
-    #  Mhap parameters
+    $global{"${tag}OvlFrequentMers"}             = undef;
+    $synops{"${tag}OvlFrequentMers"}             = "Do not seed overlaps with these kmers (fasta format)";
+
+    #  Mhap parameters.
 
     $global{"${tag}MhapBlockSize"}            = 20000;
     $synops{"${tag}MhapBlockSize"}            = "Number of reads per block; one block is loaded into memory per job";
@@ -918,11 +935,14 @@ sub setDefaults () {
     $global{"errorRate"}                   = undef;
     $synops{"errorRate"}                   = "The expected error rate in the input reads";
 
-    $global{"ovlErrorRate"}                = undef;
-    $synops{"ovlErrorRate"}                = "Overlaps above this error rate are not computed";
+    $global{"corOvlErrorRate"}             = undef;
+    $synops{"corOvlErrorRate"}             = "Overlaps above this error rate are not computed";
 
-    $global{"obtErrorRate"}                = undef;
-    $synops{"obtErrorRate"}                = "Overlaps at or below this error rate are used to trim reads";
+    $global{"obtOvlErrorRate"}             = undef;
+    $synops{"obtOvlErrorRate"}             = "Overlaps at or below this error rate are used to trim reads";
+
+    $global{"utgOvlErrorRate"}             = undef;
+    $synops{"utgOvlErrorRate"}             = "Overlaps at or below this error rate are used to trim reads";
 
     #$global{"utgErrorRate"}                = undef;
     #$synops{"utgErrorRate"}                = "Overlaps at or below this error rate are used to construct unitigs (BOG and UTG)";

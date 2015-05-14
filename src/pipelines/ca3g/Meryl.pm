@@ -50,11 +50,11 @@ sub meryl ($$$) {
     my ($ffile, $ofile);
 
     if (getGlobal("${tag}Overlapper") eq "ovl") {
-        $merSize      = getGlobal("${tag}MerSize");
-        $merThresh    = getGlobal("${tag}MerThreshold");
+        $merSize      = getGlobal("${tag}OvlMerSize");
+        $merThresh    = getGlobal("${tag}OvlMerThreshold");
         $merScale     = 1.0;
-        $merDistinct  = getGlobal("${tag}MerDistinct");
-        $merTotal     = getGlobal("${tag}MerTotal");
+        $merDistinct  = getGlobal("${tag}OvlMerDistinct");
+        $merTotal     = getGlobal("${tag}OvlMerTotal");
 
         $ffile = "$wrk/0-mercounts/$asm.ms$merSize.frequentMers.fasta";   #  The fasta file we should be creating.
         $ofile = "$wrk/0-mercounts/$asm.ms$merSize";                      #  The meryl database 'intermediate file'.
@@ -85,12 +85,12 @@ sub meryl ($$$) {
 
     #  User supplied mers?  Just symlink to them.
 
-    if (defined(getGlobal("${tag}FrequentMers"))) {
+    if (defined(getGlobal("${tag}OvlFrequentMers"))) {
         my $ffile = "$wrk/0-mercounts/$asm.frequentMers.fasta";
-        my $sfile = getGlobal("${tag}FrequentMers");
+        my $sfile = getGlobal("${tag}OvlFrequentMers");
 
         if (! -e $ffile) {
-            caFailure("frequentMers '$sfile' not found", undef)  if (! -e $sfile);
+            caFailure("${tag}OvlFrequentMers '$sfile' not found", undef)  if (! -e $sfile);
             print STDERR "Using frequent mers in '$sfile'\n";
             symlink $sfile, $ffile;
         }
@@ -344,9 +344,9 @@ sub meryl ($$$) {
 
     #  Report the new threshold.
 
-    if (($merThresh > 0) && (getGlobal("${tag}MerThreshold") ne $merThresh)) {
-        print STDERR "Reset ${tag}MerThreshold from ", getGlobal("${tag}MerThreshold"), " to $merThresh.\n";
-        setGlobal("${tag}MerThreshold", $merThresh);
+    if ((getGlobal("${tag}Overlapper") eq "ovl") && ($merThresh > 0) && (getGlobal("${tag}OvlMerThreshold") ne $merThresh)) {
+        print STDERR "Reset ${tag}OvlMerThreshold from ", getGlobal("${tag}OvlMerThreshold"), " to $merThresh.\n";
+        setGlobal("${tag}OvlMerThreshold", $merThresh);
     }
 
   allDone:

@@ -13,6 +13,7 @@ use ca3g::Defaults;
 use ca3g::Execution;
 use ca3g::Gatekeeper;
 
+#  Hardcoded to use utgOvlErrorRate
 
 
 
@@ -57,7 +58,7 @@ sub readErrorDetectionConfigure ($$) {
     return  if (skipStage($wrk, $asm, "readErrorDetectionConfigure") == 1);
     return  if (-e "$wrk/3-overlapErrorAdjustment/red.red");
 
-    return if (-e "$wrk/$asm.ovlStore/adjustedErates");
+    return if (-e "$wrk/$asm.ovlStore/adjustedEvalues");
     return if (-d "$wrk/$asm.tigStore");
 
     make_path("$wrk/3-overlapErrorAdjustment")  if (! -d "$wrk/3-overlapErrorAdjustment");
@@ -106,7 +107,7 @@ sub readErrorDetectionConfigure ($$) {
     print F "    -G $wrk/$asm.gkpStore \\\n";
     print F "    -O $wrk/$asm.ovlStore \\\n";
     print F "    -R \$minid \$maxid \\\n";
-    print F "    -e " . getGlobal("ovlErrorRate") . " -l " . getGlobal("minOverlapLength") . " \\\n";
+    print F "    -e " . getGlobal("utgOvlErrorRate") . " -l " . getGlobal("minOverlapLength") . " \\\n";
     print F "    -o $wrk/3-overlapErrorAdjustment/\$jobid.red.WORKING \\\n";
     print F "    -t $numThreads \\\n";
     print F "  && \\\n";
@@ -133,7 +134,7 @@ sub readErrorDetectionCheck ($$$) {
     return  if (skipStage($wrk, $asm, "readErrorDetectionCheck", $attempt) == 1);
     return  if (-e "$wrk/3-overlapErrorAdjustment/red.red");
 
-    return if (-e "$wrk/$asm.ovlStore/adjustedErates");
+    return if (-e "$wrk/$asm.ovlStore/adjustedEvalues");
     return if (-d "$wrk/$asm.tigStore");
 
     my $batchSize   = getGlobal("redBatchSize");
@@ -206,7 +207,7 @@ sub overlapErrorAdjustmentConfigure ($$) {
     return  if (skipStage($wrk, $asm, "overlapErrorAdjustmentConfigure") == 1);
     return  if (-e "$wrk/3-overlapErrorAdjustment/oea.sh");
 
-    return if (-e "$wrk/$asm.ovlStore/adjustedErates");
+    return if (-e "$wrk/$asm.ovlStore/adjustedEvalues");
     return if (-d "$wrk/$asm.tigStore");
 
     my $batchSize   = getGlobal("oeaBatchSize");
@@ -246,7 +247,7 @@ sub overlapErrorAdjustmentConfigure ($$) {
     print F "    -G $wrk/$asm.gkpStore \\\n";
     print F "    -O $wrk/$asm.ovlStore \\\n";
     print F "    -R \$minid \$maxid \\\n";
-    print F "    -e " . getGlobal("ovlErrorRate") . " -l " . getGlobal("minOverlapLength") . " \\\n";
+    print F "    -e " . getGlobal("utgOvlErrorRate") . " -l " . getGlobal("minOverlapLength") . " \\\n";
     print F "    -c $wrk/3-overlapErrorAdjustment/red.red \\\n";
     print F "    -o $wrk/3-overlapErrorAdjustment/\$jobid.oea.WORKING \\\n";
     print F "  && \\\n";
@@ -341,9 +342,9 @@ sub updateOverlapStore ($$) {
 
     return  if (getGlobal("enableOEA") == 0);
     return  if (skipStage($wrk, $asm, "updateOverlapStore") == 1);
-    return  if (-e "$wrk/$asm.ovlStore/erates");
+    return  if (-e "$wrk/$asm.ovlStore/evalues");
 
-    return if (-e "$wrk/$asm.ovlStore/adjustedErates");
+    return if (-e "$wrk/$asm.ovlStore/adjustedEvalues");
     return if (-d "$wrk/$asm.tigStore");
 
     caExit("didn't find '$wrk/3-overlapErrorAdjustment/oea.files' to add to store, yet overlapper finished", undef)  if (! -e "$wrk/3-overlapErrorAdjustment/oea.files");
@@ -351,12 +352,12 @@ sub updateOverlapStore ($$) {
     $cmd  = "$bin/ovStoreBuild \\\n";
     $cmd .= "  -g $wrk/$asm.gkpStore \\\n";
     $cmd .= "  -o $wrk/$asm.ovlStore \\\n";
-    $cmd .= "  -erates \\\n";
+    $cmd .= "  -evalues \\\n";
     $cmd .= "  -L $wrk/3-overlapErrorAdjustment/oea.files \\\n";
     $cmd .= "> $wrk/3-overlapErrorAdjustment/oea.apply.err 2>&1\n";
 
     if (runCommand("$wrk/3-overlapErrorAdjustment", $cmd)) {
-        unlink "$wrk/$asm.ovlStore/erates";
+        unlink "$wrk/$asm.ovlStore/evalues";
         caExit("failed to add error rates to overlap store", "$wrk/3-overlapErrorAdjustment/oea.apply.err");
     }
 
