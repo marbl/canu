@@ -296,8 +296,6 @@ sub overlap ($$$) {
 #  Begin pipeline
 #
 
-#my ($stage, $iteration) = loadCheckpoint($wrk, $asm);
-
 if (setOptions($mode, "correct") eq "correct") {
     gatekeeper($wrk, $asm, "cor", @inputFiles);
     meryl($wrk, $asm, "cor");
