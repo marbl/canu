@@ -56,24 +56,34 @@ loadFASTA(gkStore              *gkpStore,
 
   strcpy(H, L + 1);
 
-  //  Load sequence.  This is a bit tricky, since we need to peek ahead
-  //  and stop reading before the next header is loaded.
-
+  //  Clear the sequence.
 
   S[0] = 0;
+  Q[0] = 0;
+
   Slen = 0;
+
+  //  Load sequence.  This is a bit tricky, since we need to peek ahead
+  //  and stop reading before the next header is loaded.  Instead, we read the
+  //  next line into what we'd read the header into outside here.
 
   fgets(L, AS_MAX_READLEN, F->file());  nLines++;
   chomp(L);
 
-  Q[0] = 0;
+  //  Catch empty reads - reads with no sequence line at all.
+
+  if (L[0] == '>') {
+    fprintf(errorLog, "read '%s' is empty.\n", H);
+    nWARNS++;
+    return(nLines);
+  }
   
-  while ((!feof(F->file())) && (L[0] != '>') && (valid == true)) {
+  while ((!feof(F->file())) && (L[0] != '>')) {
 
     //  Copy in the sequence, as long as it is valid sequence.  If any invalid letters
     //  are found, stop copying, and stop reading sequence.
 
-    bool  bogusBase = false;
+    uint32  baseErrors = 0;
 
     for (uint32 i=0; L[i]; i++) {
       switch (L[i]) {
@@ -88,27 +98,39 @@ loadFASTA(gkStore              *gkpStore,
         case 'n':   S[Slen] = 'N';  break;
         case 'N':   S[Slen] = 'N';  break;
         default:
-          fprintf(errorLog, "read '%s' has invalid base '%c' (0x%02x) at position %u.  Converted to 'N'.\n",
-                 H, L[i], L[i], i);
+          baseErrors++;
           S[Slen]   = 'N';
-          valid     = false;
-          bogusBase = true;
           break;
       }
 
       Slen++;
     }
 
-    if (bogusBase)
+    if (baseErrors > 0) {
+      fprintf(errorLog, "read '%s' has %u invalid base%s.  Converted to 'N'.\n",
+              H, baseErrors, (baseErrors > 1) ? "s" : "");
       nWARNS++;
-
-    //  If we're still valid, grab the next line; it should be a header.  If not valid, pass the
-    //  last line back so we can fail the header check on the next iteration.
-
-    if (valid) {
-      fgets(L, AS_MAX_READLEN, F->file());  nLines++;
-      chomp(L);
     }
+
+    //  Grab the next line.  It should be more sequence, or the next header, or eof.
+    //  The last two are stop conditions for the while loop.
+
+    L[0] = 0;
+
+    fgets(L, AS_MAX_READLEN, F->file());  nLines++;
+    chomp(L);
+  }
+
+  //  Terminate the sequence.
+
+  S[Slen] = 0;
+
+  //  Catch empty reads - reads with a line for sequence, but the line was empty.
+
+  if (Slen == 0) {
+    fprintf(errorLog, "read '%s' is empty.\n", H);
+    nWARNS++;
+    return(nLines);
   }
 
   //  Do NOT clear L, it contains the next header.
@@ -160,7 +182,7 @@ loadFASTQ(gkStore              *gkpStore,
       case 'N':                break;
       default:
         S[i]       = 'N';
-        Q[i]       = '!';
+        Q[i]       = '!';  //  QV=0, ASCII=33
         baseErrors++;
         break;
     }
@@ -185,13 +207,13 @@ loadFASTQ(gkStore              *gkpStore,
   uint32 QVerrors = 0;
 
   for (uint32 i=0; Q[i]; i++) {
-    if (Q[i] < '!') {
+    if (Q[i] < '!') {  //  QV=0, ASCII=33
       Q[i] = '!';
       QVerrors++;
     }
 
-    if (Q[i] > 'Z') {
-      Q[i] = 'Z';
+    if (Q[i] > '!' + 60) {  //  QV=60, ASCII=93=']'
+      Q[i] = '!' + 60;
       QVerrors++;
     }
 
@@ -200,7 +222,7 @@ loadFASTQ(gkStore              *gkpStore,
   }
 
   if (QVerrors > 0) {
-    fprintf(errorLog, "read '%s' has invalid %u QV%s.  Converted to min or max value.\n",
+    fprintf(errorLog, "read '%s' has %u invalid QV%s.  Converted to min or max value.\n",
             L, QVerrors, (QVerrors > 1) ? "s" : "");
     nWARNS++;
   }
@@ -254,12 +276,12 @@ loadReads(gkStore    *gkpStore,
   while (!feof(F->file())) {
 
     if      (L[0] == '>') {
-      lineNumber += loadFASTA(gkpStore, gkpLibrary, L, H, S, Slen, Q, F, errorLog, nWARNS);
+      lineNumber += loadFASTA(gkpStore, gkpLibrary, L, H, S, Slen, Q, F, errorLog, nWARNSlocal);
       nFASTAlocal++;
     }
 
     else if (L[0] == '@') {
-      lineNumber += loadFASTQ(gkpStore, gkpLibrary, L, H, S, Slen, Q, F, errorLog, nWARNS);
+      lineNumber += loadFASTQ(gkpStore, gkpLibrary, L, H, S, Slen, Q, F, errorLog, nWARNSlocal);
       nFASTQlocal++;
     }
 
@@ -504,7 +526,7 @@ main(int argc, char **argv) {
   fprintf(stderr, "\n");
   fprintf(stderr, "Finished with:\n");
   fprintf(stderr, "  %u errors\n", nERROR);
-  fprintf(stderr, "  %u warnings.\n", nERROR, nWARNS);
+  fprintf(stderr, "  %u warnings.\n", nWARNS);
   fprintf(stderr, "\n");
   fprintf(stderr, "Skipped:\n");
   fprintf(stderr, "  %u short reads (%.4f%%).\n", nSHORT, 100.0 * nSHORT / (nSHORT + nFASTA + nFASTQ));
