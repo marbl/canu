@@ -93,6 +93,8 @@ public:
     _removeSpurReads            = 1;
     _removeChimericReads        = 1;
     _checkForSubReads           = 1;
+
+    _defaultQV                  = '0' + 20;
   };
 
 public:
@@ -156,9 +158,6 @@ private:
 
   //  For reads with no QVs, use this.
   uint32         _defaultQV;
-
-  //  How is this read encoded in core?
-  uint32         _type;
 
   friend class gkStore;
 };
