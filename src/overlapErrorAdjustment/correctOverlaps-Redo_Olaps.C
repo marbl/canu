@@ -385,6 +385,9 @@ Redo_Olaps(coParameters *G, gkStore *gkpStore) {
       int32   b_end        = 0;
       bool    match_to_end = false;
 
+      //fprintf(stderr, ">A\n%s\n", a_part);
+      //fprintf(stderr, ">B\n%s\n", b_part);
+
       int32 errors = Prefix_Edit_Dist(a_part, a_part_len,
                                       b_part, b_part_len,
                                       G->Error_Bound[olap_len],
@@ -487,7 +490,9 @@ Redo_Olaps(coParameters *G, gkStore *gkpStore) {
       if (rha)
         rhaPass++;
 
-      G->olaps[thisOvl].evalue = AS_OVS_encodeEvalue(errors / olapLen);
+      G->olaps[thisOvl].evalue = AS_OVS_encodeEvalue((double)errors / olapLen);
+
+      //fprintf(stderr, "REDO - errors = %u / olapLep = %u -- %f\n", errors, olapLen, AS_OVS_decodeEvalue(G->olaps[thisOvl].evalue));
     }
   }
 
