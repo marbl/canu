@@ -39,6 +39,13 @@ outputFalcon(gkStore      *gkpStore,
       reverseComplementSequence(readData->gkReadData_getSequence(),
                                 readData->gkReadData_getRead()->gkRead_sequenceLength());
 
+    //  For debugging/testing, skip one orientation of overlap.
+    //
+    //if (child->isReverse() == false)
+    //  continue;
+    //if (child->isReverse() == true)
+    //  continue;
+
     //  Trim the read to the aligned bit
     char   *seq = readData->gkReadData_getSequence();
 
