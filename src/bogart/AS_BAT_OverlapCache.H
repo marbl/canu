@@ -45,7 +45,7 @@ static const char *rcsid_INCLUDE_AS_BAT_OVERLAPCACHE = "$Id$";
 
 //  For storing overlaps in memory.  12 bytes per overlap.
 struct BAToverlapInt {
-  uint64      error     :AS_BAT_ERR_BITS;        //  7 by default
+  uint64      evalue    :AS_BAT_ERR_BITS;        //  12 by default (same as AS_MAX_EVALUE_BITS)
   int64       a_hang    :AS_MAX_READLEN_BITS+1;  //  16+1 by default
   int64       b_hang    :AS_MAX_READLEN_BITS+1;  //  16+1 by default
   uint64      flipped   :1;
@@ -63,8 +63,8 @@ struct BAToverlap {
 
   uint32      flipped;
 
-  uint32      errorRaw;  //  Encoded fraction error, 0   -- AS_BAT_MAX_ERR
-  double      error;     //  Decoded fraction error, 0.0 -- 1.0
+  uint32      evalue;    //  Encoded fraction error, 0   -- AS_BAT_MAX_ERR
+  double      erate;     //  Decoded fraction error, 0.0 -- 1.0
 
   uint32      a_iid;
   uint32      b_iid;
@@ -74,7 +74,14 @@ struct BAToverlap {
 inline
 bool
 BAToverlap_sortByErate(BAToverlap const &a, BAToverlap const &b) {
-  return(a.error > b.error);
+  return(a.erate > b.erate);
+}
+
+
+inline
+bool
+BAToverlap_sortByEvalue(BAToverlap const &a, BAToverlap const &b) {
+  return(a.evalue > b.evalue);
 }
 
 
@@ -116,14 +123,14 @@ public:
 
   BAToverlap  *getOverlaps(uint32 fragIID, uint32 &numOverlaps);
 
-  void         removeWeakOverlaps(uint32 *minErate5p,
-                                  uint32 *minErate3p);
+  void         removeWeakOverlaps(uint32 *minEvalue5p,
+                                  uint32 *minEvalue3p);
 
-  double       decodeError(uint32 error) {
-    return(_BATerate[error]);
+  double       decodeEvalue(uint32 evalue) {
+    return(_BATerate[evalue]);
   };
 
-  double       findError(uint32 aIID, uint32 bIID);
+  double       findErate(uint32 aIID, uint32 bIID);
 
 private:
   bool         load(const char *prefix, double erate, uint64 memlimit, uint32 maxOverlaps);

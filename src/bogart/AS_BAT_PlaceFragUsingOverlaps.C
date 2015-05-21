@@ -67,7 +67,7 @@ placeAcontainsB(Unitig *utg, ufNode &frag, BAToverlap &ovl, overlapPlacement &op
   op.refID       = ovl.b_iid;
   op.tigID       = utg->id();
   op.position    = frag.position;
-  op.errors      = FI->fragmentLength(ovl.b_iid) * ovl.error;
+  op.errors      = FI->fragmentLength(ovl.b_iid) * ovl.erate;
   op.covered.bgn = MIN(parent.position.bgn, parent.position.end);  //  Adjusted by hang later
   op.covered.end = MAX(parent.position.bgn, parent.position.end);
   op.aligned     = op.covered.end - op.covered.bgn;
@@ -166,7 +166,7 @@ placeBcontainsA(Unitig *utg, ufNode &frag, BAToverlap &ovl, overlapPlacement &op
   op.refID       = ovl.b_iid;
   op.tigID       = utg->id();
   op.position    = frag.position;
-  op.errors      = FI->fragmentLength(ovl.a_iid) * ovl.error;
+  op.errors      = FI->fragmentLength(ovl.a_iid) * ovl.erate;
   op.covered.bgn = 0;
   op.covered.end = FI->fragmentLength(ovl.a_iid);
   op.aligned     = op.covered.end - op.covered.bgn;
@@ -221,7 +221,7 @@ placeDovetail(Unitig *utg, ufNode &frag, BAToverlap &ovl, overlapPlacement &op) 
   op.refID       = ovl.b_iid;
   op.tigID       = utg->id();
   op.position    = frag.position;
-  op.errors      = olen * ovl.error;
+  op.errors      = olen * ovl.erate;
   op.covered.bgn = (ovl.a_hang < 0) ?    0 : ovl.a_hang;
   op.covered.end = (ovl.b_hang > 0) ? flen : ovl.b_hang + flen;
   op.aligned     = op.covered.end - op.covered.bgn;

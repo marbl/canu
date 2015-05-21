@@ -442,23 +442,45 @@ OverlapCache::computeOverlapLimit(void) {
 //    _OVSerate[4] = 21
 //
 //  The holes shouldn't hurt (and are valgrind clean) since we use OVSerate to
-//  convert to .error, and we create BATerate for all valid OVSerate values.
+//  convert to .erate, and we create BATerate for all valid OVSerate values.
 //
 void
 OverlapCache::computeErateMaps(double erate) {
+
   _OVSerate = new uint32 [1 << AS_MAX_EVALUE_BITS];
   _BATerate = new double [1 << AS_BAT_ERR_BITS];
 
   _memUsed += (1 << AS_MAX_EVALUE_BITS) * sizeof(uint32);
-  _memUsed += (1 << AS_BAT_ERR_BITS) * sizeof(double);
+  _memUsed += (1 << AS_BAT_ERR_BITS)    * sizeof(double);
 
-  for (uint32 i=0; i<1 << AS_MAX_EVALUE_BITS; i++)
-    _OVSerate[i] = (uint32)floor((1 << AS_BAT_ERR_BITS) * log(i) / log(1 << AS_MAX_EVALUE_BITS));
+  fprintf(stderr, "OverlapCache::computeErateMaps()-- AS_MAX_EVALUE_BITS   = %u\n", AS_MAX_EVALUE_BITS);
+  fprintf(stderr, "OverlapCache::computeErateMaps()-- AS_BAT_ERR_BITS      = %u\n", AS_BAT_ERR_BITS);
+
+  //  If bits are the same, we can use an exact encoding.  If not, use a lossy -- and probably
+  //  broken -- encoding.
+
+  if (AS_MAX_EVALUE_BITS == AS_BAT_ERR_BITS)
+    for (uint32 i=0; i<1 << AS_MAX_EVALUE_BITS; i++)
+      _OVSerate[i] = i;
+
+  else
+    for (uint32 i=0; i<1 << AS_MAX_EVALUE_BITS; i++)
+      _OVSerate[i] = (uint32)floor((1 << AS_BAT_ERR_BITS) * log(i) / log(1 << AS_MAX_EVALUE_BITS));
 
   assert(_OVSerate[(1 << AS_MAX_EVALUE_BITS) - 1] < 1 << AS_BAT_ERR_BITS);
 
-  for (uint32 i=1 << AS_MAX_EVALUE_BITS; i--; )
+  for (uint32 i=0; i<1 << AS_MAX_EVALUE_BITS; i++)
     _BATerate[_OVSerate[i]] = AS_OVS_decodeEvalue(i);
+
+#if 0
+  for (uint32 i=0; i<1 << AS_MAX_EVALUE_BITS; i++)
+    fprintf(stderr, "OVSerate[%5d] = %5d == %.4f\n",
+            i,
+            _OVSerate[i],
+            _BATerate[_OVSerate[i]]);
+
+  exit(1);
+#endif
 }
 
 
@@ -636,7 +658,7 @@ OverlapCache::loadOverlaps(double erate, uint32 minOverlap, const char *prefix, 
       if (_ovsSco[ii] == 0)
         continue;
 
-      _stor[_storLen].error   = _OVSerate[_ovs[ii].evalue()];
+      _stor[_storLen].evalue  = _OVSerate[_ovs[ii].evalue()];
       _stor[_storLen].a_hang  = _ovs[ii].a_hang();
       _stor[_storLen].b_hang  = _ovs[ii].b_hang();
       _stor[_storLen].flipped = _ovs[ii].flipped();
@@ -690,8 +712,8 @@ OverlapCache::getOverlaps(uint32 fragIID, uint32 &numOverlaps) {
 
     _thread[tid]._bat[pos].flipped  = ptr[pos].flipped;
 
-    _thread[tid]._bat[pos].errorRaw = ptr[pos].error;
-    _thread[tid]._bat[pos].error    = decodeError(ptr[pos].error);
+    _thread[tid]._bat[pos].evalue   = ptr[pos].evalue;
+    _thread[tid]._bat[pos].erate    = decodeEvalue(ptr[pos].evalue);
 
     _thread[tid]._bat[pos].a_iid    = fragIID;
     _thread[tid]._bat[pos].b_iid    = ptr[pos].b_iid;
@@ -704,8 +726,8 @@ OverlapCache::getOverlaps(uint32 fragIID, uint32 &numOverlaps) {
 
 
 void
-OverlapCache::removeWeakOverlaps(uint32 *minErate5p,
-                                 uint32 *minErate3p) {
+OverlapCache::removeWeakOverlaps(uint32 *minEvalue5p,
+                                 uint32 *minEvalue3p) {
 
   uint32  fiLimit    = FI->numFragments();
 
@@ -718,9 +740,9 @@ OverlapCache::removeWeakOverlaps(uint32 *minErate5p,
     BAToverlapInt *ptr         = _cachePtr[fi];
 
     for (uint32 pos=0; pos < numOverlaps; pos++) {
-      uint32  aiid  = fi;
-      uint32  biid  = ptr[pos].b_iid;
-      uint32  erate = ptr[pos].error;
+      uint32  aiid   = fi;
+      uint32  biid   = ptr[pos].b_iid;
+      uint32  evalue = ptr[pos].evalue;
 
       //  Ignore contained overlaps.
 
@@ -736,30 +758,30 @@ OverlapCache::removeWeakOverlaps(uint32 *minErate5p,
       uint32  tb = 0;
 
       if (ptr[pos].a_hang > 0)
-        ta = minErate3p[aiid];
+        ta = minEvalue3p[aiid];
       else
-        ta = minErate5p[aiid];
+        ta = minEvalue5p[aiid];
 
       if (ptr[pos].flipped == false) {
         if (ptr[pos].b_hang > 0)
-          tb = minErate5p[biid];
+          tb = minEvalue5p[biid];
         else
-          tb = minErate3p[biid];
+          tb = minEvalue3p[biid];
 
       } else {
         if (ptr[pos].b_hang > 0)
-          tb = minErate3p[biid];
+          tb = minEvalue3p[biid];
         else
-          tb = minErate5p[biid];
+          tb = minEvalue5p[biid];
       }
 
       //  If the erate is more than the threshold, 'remove' the overlap by maxing out the erate.
 
-      if ((erate > ta) ||
-          (erate > tb)) {
-        //fprintf(stdout, "OverlapCache::removeWeakOverlaps()--  remove %7d %7d at %.3f\n", aiid, biid, OC->decodeError(erate));
+      if ((evalue > ta) ||
+          (evalue > tb)) {
+        //fprintf(stdout, "OverlapCache::removeWeakOverlaps()--  remove %7d %7d at %.3f\n", aiid, biid, OC->decodeEvalue(evalue));
         removed++;
-        ptr[pos].error = AS_BAT_ERR_MAX;
+        ptr[pos].evalue = AS_BAT_ERR_MAX;
       } else {
         saved++;
       }
@@ -775,15 +797,15 @@ OverlapCache::removeWeakOverlaps(uint32 *minErate5p,
 
 
 double
-OverlapCache::findError(uint32 aIID, uint32 bIID) {
+OverlapCache::findErate(uint32 aIID, uint32 bIID) {
 
   for (uint32 pos=0; pos < _cacheLen[aIID]; pos++)
     if (_cachePtr[aIID][pos].b_iid == bIID)
-      return(decodeError(_cachePtr[aIID][pos].error));
+      return(decodeEvalue(_cachePtr[aIID][pos].evalue));
 
   for (uint32 pos=0; pos < _cacheLen[bIID]; pos++)
     if (_cachePtr[bIID][pos].b_iid == aIID)
-      return(decodeError(_cachePtr[bIID][pos].error));
+      return(decodeEvalue(_cachePtr[bIID][pos].evalue));
 
   return(1.0);
 }

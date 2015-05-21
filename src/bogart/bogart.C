@@ -366,6 +366,9 @@ main (int argc, char * argv []) {
   fprintf(stderr, "ISECT_NEEDED_TO_BREAK        "F_U32"\n", ISECT_NEEDED_TO_BREAK);
   fprintf(stderr, "REGION_END_WEIGHT            "F_U32"\n", REGION_END_WEIGHT);
   fprintf(stderr, "\n");
+  fprintf(stderr, "AS_BAT_ERR_BITS              "F_U32"\n", AS_BAT_ERR_BITS);
+  fprintf(stderr, "AS_BAT_ERR_MAX               "F_U32"\n", AS_BAT_ERR_MAX);
+  fprintf(stderr, "\n");
 
   if (numThreads > 0) {
     omp_set_num_threads(numThreads);

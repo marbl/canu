@@ -208,6 +208,9 @@ BestOverlapGraph::removeFalseBest(void) {
 
   writeLog("BestOverlapGraph()-- detecting false best overlaps.\n");
 
+  //  WARNING!  This code was quite confused about erate and evalue (back when they were called
+  //  error and errorValue or somethihng confusing like that).  Use with caution.
+
   uint32    *histo5 = new uint32 [AS_BAT_ERR_MAX + 1];
   uint32    *histo3 = new uint32 [AS_BAT_ERR_MAX + 1];
 
@@ -239,13 +242,13 @@ BestOverlapGraph::removeFalseBest(void) {
       assert(fi == olaps[oo].a_iid);
 
       if (ovl5->fragId() == olaps[oo].b_iid) {
-        histo5[olaps[oo].errorRaw]++;
-        erate5[fi] = olaps[oo].error * 100;
+        histo5[olaps[oo].evalue]++;
+        erate5[fi] = olaps[oo].erate;
       }
 
       if (ovl3->fragId() == olaps[oo].b_iid) {
-        histo3[olaps[oo].errorRaw]++;
-        erate3[fi] = olaps[oo].error * 100;
+        histo3[olaps[oo].evalue]++;
+        erate3[fi] = olaps[oo].erate;
       }
     }
   }
@@ -261,7 +264,7 @@ BestOverlapGraph::removeFalseBest(void) {
     double  stddev5 = 100, stddev3 = 100;
 
     for (uint32 er=0; er <= AS_BAT_ERR_MAX; er++) {
-      double ER = OC->decodeError(er) * 100;
+      double ER = OC->decodeEvalue(er) * 100;
 
       if (ER <= 0.0)
         continue;
@@ -283,7 +286,7 @@ BestOverlapGraph::removeFalseBest(void) {
     mean3 /= count3;
 
     for (uint32 er=0; er <= AS_BAT_ERR_MAX; er++) {
-      double ER =  OC->decodeError(er) * 100;
+      double ER =  OC->decodeEvalue(er) * 100;
 
       if (ER <= 0.0)
         continue;
@@ -315,7 +318,7 @@ BestOverlapGraph::removeFalseBest(void) {
   }  //  xx 10 times to stabilize
 
 
-  //  Output the erate histogram
+  //  Output the evalue histogram
 
   {
     char  EN[FILENAME_MAX];
@@ -328,14 +331,14 @@ BestOverlapGraph::removeFalseBest(void) {
       fprintf(stderr, "BestOverlapGraph()-- failed to open '%s' for writing: %s\n", EN, strerror(errno)), exit(1);
 
     for (uint32 er=0; er <= AS_BAT_ERR_MAX; er++) {
-      double  ER = OC->decodeError(er) * 100;
+      double  ER = OC->decodeEvalue(er);
 
       if (ER <= 0.0)
         continue;
 
       fprintf(EH, "%.4f\t%u\t%u\t%f\t%f\n",
               ER,
-              histo5[er],
+              histo5[er],  //  HUH?!?!  This used to output decodedEvalue() of the histogram...nonsense!
               histo3[er],
               fabs(m5 - ER) / s5,   //  Grubb's test
               fabs(m3 - ER) / s3);
@@ -442,17 +445,17 @@ BestOverlapGraph::removeWeak(double threshold) {
   //  For each read, mark an overlap as bad if it falls in the lower
   //  X% of overlaps sorted by identity.
 
-  uint32  *minErate5p = new uint32 [fiLimit + 1];
-  uint32  *minErate3p = new uint32 [fiLimit + 1];
+  uint32  *minEvalue5p = new uint32 [fiLimit + 1];
+  uint32  *minEvalue3p = new uint32 [fiLimit + 1];
 
-  memset(minErate5p, 0, sizeof(uint32) * (fiLimit + 1));
-  memset(minErate3p, 0, sizeof(uint32) * (fiLimit + 1));
+  memset(minEvalue5p, 0, sizeof(uint32) * (fiLimit + 1));
+  memset(minEvalue3p, 0, sizeof(uint32) * (fiLimit + 1));
 
-  uint32   eratesMax  = 1048576;
-  uint32   erates5len = 0;
-  uint32  *erates5    = new uint32 [eratesMax];
-  uint32   erates3len = 0;
-  uint32  *erates3    = new uint32 [eratesMax];
+  uint32   evaluesMax  = 1048576;
+  uint32   evalues5len = 0;
+  uint32  *evalues5    = new uint32 [evaluesMax];
+  uint32   evalues3len = 0;
+  uint32  *evalues3    = new uint32 [evaluesMax];
 
   for (uint32 fi=1; fi <= fiLimit; fi++) {
     uint32            olapsLen = 0;
@@ -464,50 +467,50 @@ BestOverlapGraph::removeWeak(double threshold) {
     uint64            ovl3sum = 0;
     uint32            ovl3cnt = 0;
 
-    erates5len = 0;
-    erates5[0] = 0;
+    evalues5len = 0;
+    evalues5[0] = 0;
 
-    erates3len = 0;
-    erates3[0] = 0;
+    evalues3len = 0;
+    evalues3[0] = 0;
 
     //  Find the error rate histogram for each end.
 
     for (uint32 oo=0; oo<olapsLen; oo++) {
       assert(fi == olaps[oo].a_iid);
 
-      if ((AS_BAT_overlapAEndIs5prime(olaps[oo])) && (erates5len < eratesMax))
-        erates5[erates5len++] = olaps[oo].errorRaw;
+      if ((AS_BAT_overlapAEndIs5prime(olaps[oo])) && (evalues5len < evaluesMax))
+        evalues5[evalues5len++] = olaps[oo].evalue;
 
-      if ((AS_BAT_overlapAEndIs3prime(olaps[oo])) && (erates5len < eratesMax))
-        erates3[erates3len++] = olaps[oo].errorRaw;
+      if ((AS_BAT_overlapAEndIs3prime(olaps[oo])) && (evalues5len < evaluesMax))
+        evalues3[evalues3len++] = olaps[oo].evalue;
     }
 
     //  Sort by increasing error rate.
 
-    sort(erates5, erates5 + erates5len);
-    sort(erates3, erates3 + erates3len);
+    sort(evalues5, evalues5 + evalues5len);
+    sort(evalues3, evalues3 + evalues3len);
 
     //  Pick a min erate for each end.
 
-    minErate5p[fi] = erates5[(int32)(erates5len - erates5len * threshold)];
-    minErate3p[fi] = erates3[(int32)(erates3len - erates3len * threshold)];
+    minEvalue5p[fi] = evalues5[(int32)(evalues5len - evalues5len * threshold)];
+    minEvalue3p[fi] = evalues3[(int32)(evalues3len - evalues3len * threshold)];
 
     if ((fi % 1000) == 0) {
-      fprintf(stderr, "len %d %d t %f vals %d %f %d %f\n", erates5len, erates3len, threshold,
-              minErate5p[fi], OC->decodeError(minErate5p[fi]),
-              minErate3p[fi], OC->decodeError(minErate3p[fi]));
+      fprintf(stderr, "len %d %d t %f vals %d %f %d %f\n", evalues5len, evalues3len, threshold,
+              minEvalue5p[fi], OC->decodeEvalue(minEvalue5p[fi]),
+              minEvalue3p[fi], OC->decodeEvalue(minEvalue3p[fi]));
     }
   }
 
-  delete [] erates5;
-  delete [] erates3;
+  delete [] evalues5;
+  delete [] evalues3;
 
   //  Throw this at the OverlapCache, so it can remove overlaps.
 
-  OC->removeWeakOverlaps(minErate5p, minErate3p);
+  OC->removeWeakOverlaps(minEvalue5p, minEvalue3p);
 
-  delete [] minErate5p;
-  delete [] minErate3p;
+  delete [] minEvalue5p;
+  delete [] minEvalue3p;
 }
 
 
@@ -850,20 +853,20 @@ BestOverlapGraph::reportBestEdges(void) {
       BestEdgeOverlap *bestedge3 = getBestEdgeOverlap(id, true);
 
       if (bestcont->isContained) {
-        double  error = 100.0 * OC->findError(id, bestcont->container);
+        double  erate = 100.0 * OC->findErate(id, bestcont->container);
 
         fprintf(BC, "%u\t%u\t%c\t%u\t%.2f\n", id, FI->libraryIID(id),
-                (FI->mateIID(id) > 0) ? 'm' : 'f', bestcont->container, error);
+                (FI->mateIID(id) > 0) ? 'm' : 'f', bestcont->container, erate);
       }
 
       else if ((bestedge5->fragId() > 0) || (bestedge3->fragId() > 0)) {
-        double  error5 = 100.0 * OC->findError(id, bestedge5->fragId());
-        double  error3 = 100.0 * OC->findError(id, bestedge3->fragId());
+        double  erate5 = 100.0 * OC->findErate(id, bestedge5->fragId());
+        double  erate3 = 100.0 * OC->findErate(id, bestedge3->fragId());
 
         fprintf(BE, "%u\t%u\t%u\t%c'\t%u\t%c'\t%.2f\t%.2f\n", id, FI->libraryIID(id),
                 bestedge5->fragId(), bestedge5->frag3p() ? '3' : '5',
                 bestedge3->fragId(), bestedge3->frag3p() ? '3' : '5',
-                error5, error3);
+                erate5, erate3);
       }
 
       else {
@@ -954,7 +957,7 @@ BestOverlapGraph::scoreEdge(const BAToverlap& olap) {
     //  Yuck.  Don't want to use this crud.
     if ((enableLog == true) && ((enableLog == true) && (logFileFlags & LOG_OVERLAP_QUALITY)))
       writeLog("scoreEdge()-- OVERLAP BADQ:     %d %d %c  hangs "F_S32" "F_S32" err %.3f -- bad quality\n",
-               olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.error);
+               olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.erate);
     return;
   }
 
@@ -962,7 +965,7 @@ BestOverlapGraph::scoreEdge(const BAToverlap& olap) {
     //  Whoops, don't want this overlap for this BOG
     if ((enableLog == true) && (logFileFlags & LOG_OVERLAP_QUALITY))
       writeLog("scoreEdge()-- OVERLAP REST:     %d %d %c  hangs "F_S32" "F_S32" err %.3f -- restricted\n",
-               olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.error);
+               olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.erate);
     return;
   }
 
@@ -970,7 +973,7 @@ BestOverlapGraph::scoreEdge(const BAToverlap& olap) {
     //  Whoops, don't want this overlap for this BOG
     if ((enableLog == true) && (logFileFlags & LOG_OVERLAP_QUALITY))
       writeLog("scoreEdge()-- OVERLAP SUSP:     %d %d %c  hangs "F_S32" "F_S32" err %.3f -- suspicious\n",
-               olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.error);
+               olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.erate);
     return;
   }
 
@@ -979,7 +982,7 @@ BestOverlapGraph::scoreEdge(const BAToverlap& olap) {
     //  Skip containment overlaps.
     if ((enableLog == true) && (logFileFlags & LOG_OVERLAP_QUALITY))
       writeLog("scoreEdge()-- OVERLAP CONT:     %d %d %c  hangs "F_S32" "F_S32" err %.3f -- container read\n",
-               olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.error);
+               olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.erate);
     return;
   }
 
@@ -988,7 +991,7 @@ BestOverlapGraph::scoreEdge(const BAToverlap& olap) {
     //  Skip contained fragments.
     if ((enableLog == true) && (logFileFlags & LOG_OVERLAP_QUALITY))
       writeLog("scoreEdge()-- OVERLAP CONT:     %d %d %c  hangs "F_S32" "F_S32" err %.3f -- contained read\n",
-               olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.error);
+               olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.erate);
     return;
   }
 
@@ -1008,7 +1011,7 @@ BestOverlapGraph::scoreEdge(const BAToverlap& olap) {
 
   if ((enableLog == true) && (logFileFlags & LOG_OVERLAP_QUALITY))
     writeLog("OVERLAP GOOD:     %d %d %c  hangs "F_S32" "F_S32" err %.3f -- NOW BEST\n",
-             olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.error);
+             olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.erate);
 }
 
 
@@ -1030,14 +1033,14 @@ BestOverlapGraph::isOverlapBadQuality(const BAToverlap& olap) {
   //  The overlap is GOOD (false == not bad) if the corrected error rate is below the requested
   //  erate.
   //
-  if (olap.error <= mismatchCutoff) {
+  if (olap.erate <= mismatchCutoff) {
     if ((enableLog == true) && (logFileFlags & LOG_OVERLAP_QUALITY))
       writeLog("isOverlapBadQuality()-- OVERLAP GOOD:     %d %d %c  hangs "F_S32" "F_S32" err %.3f\n",
                olap.a_iid, olap.b_iid,
                olap.flipped ? 'A' : 'N',
                olap.a_hang,
                olap.b_hang,
-               olap.error);
+               olap.erate);
 
     return(false);
   }
@@ -1052,7 +1055,7 @@ BestOverlapGraph::isOverlapBadQuality(const BAToverlap& olap) {
              olap.flipped ? 'A' : 'N',
              olap.a_hang,
              olap.b_hang,
-             olap.error);
+             olap.erate);
 
   return(true);
 }
@@ -1101,7 +1104,7 @@ BestOverlapGraph::scoreOverlap(const BAToverlap& olap) {
   //    The last are the original error rate.
   //
   uint64  leng = 0;
-  uint64  corr = AS_BAT_ERR_MAX - olap.errorRaw;
+  uint64  corr = AS_BAT_ERR_MAX - olap.evalue;
   uint64  orig = AS_BAT_ERR_MAX - 0;
 
   //  Shift AFTER assigning to a 64-bit value to avoid overflows.
@@ -1133,8 +1136,8 @@ BestOverlapGraph::scoreOverlap(const BAToverlap& olap) {
   //  Convert the length into an expected number of matches.
 
 #if 0
-  assert(olap.error <= 1.0);
-  leng  -= leng * olap.error;
+  assert(olap.erate <= 1.0);
+  leng  -= leng * olap.erate;
 #endif
 
   //  And finally shift it to the correct place in the word.
