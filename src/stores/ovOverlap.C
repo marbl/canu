@@ -11,7 +11,7 @@ ovsOverlap::toString(char *str, gkStore *gkp, ovOverlapDisplayType type) {
 
   switch (type) {
     case ovOverlapAsHangs:
-      sprintf(str, "%10"F_U32P" %10"F_U32P"  %c  %6"F_S32P" %6"F_S32P" %6"F_S32P"  %6.3f%s\n",
+      sprintf(str, "%10"F_U32P" %10"F_U32P"  %c  %6"F_S32P" %6"F_S32P" %6"F_S32P"  %7.6f%s\n",
               a_iid, b_iid,
               flipped() ? 'I' : 'N',
               a_hang(), span(), b_hang(),
@@ -20,7 +20,7 @@ ovsOverlap::toString(char *str, gkStore *gkp, ovOverlapDisplayType type) {
       break;
 
     case ovOverlapAsCoords:
-      sprintf(str, "%10"F_U32P" %10"F_U32P"  %c  %6"F_S32P"  %6"F_U32P" %6"F_U32P"  %6"F_U32P" %6"F_U32P"  %6.3f\n",
+      sprintf(str, "%10"F_U32P" %10"F_U32P"  %c  %6"F_S32P"  %6"F_U32P" %6"F_U32P"  %6"F_U32P" %6"F_U32P"  %7.6f\n",
               a_iid, b_iid,
               flipped() ? 'I' : 'N',
               span(),
@@ -30,7 +30,7 @@ ovsOverlap::toString(char *str, gkStore *gkp, ovOverlapDisplayType type) {
       break;
 
     case ovOverlapAsRaw:
-      sprintf(str, "%10"F_U32P" %10"F_U32P"  %c  %6"F_S32P"  %6"F_U32P" %6"F_U32P"  %6"F_U32P" %6"F_U32P"  %6.3f %s %s %s\n",
+      sprintf(str, "%10"F_U32P" %10"F_U32P"  %c  %6"F_S32P"  %6"F_U32P" %6"F_U32P"  %6"F_U32P" %6"F_U32P"  %7.6f %s %s %s\n",
               a_iid, b_iid,
               flipped() ? 'I' : 'N',
               span(),
@@ -43,7 +43,7 @@ ovsOverlap::toString(char *str, gkStore *gkp, ovOverlapDisplayType type) {
       break;
 
     case ovOverlapAsCompat:
-      sprintf(str, "%8"F_U32P" %8"F_U32P"  %c  %6d  %6d  %4.2f  %4.2f",
+      sprintf(str, "%8"F_U32P" %8"F_U32P"  %c  %6d  %6d  %5.2f  %5.2f",
               a_iid,
               b_iid,
               dat.ovl.flipped ? 'I' : 'N',
