@@ -41,6 +41,10 @@ enum dumpFlags {
 };
 
 
+//  Gah, need this to access the end point in an overlap during sorting.
+gkStore  *gkpStoreForSorting = NULL;
+
+
 //
 //  Also accept a single ovStoreFile (output from overlapper) and dump.
 //
@@ -155,9 +159,14 @@ sortOBT(const void *a, const void *b) {
   if (A->a_bgn() < B->a_bgn())  return(-1);
   if (A->a_bgn() > B->a_bgn())  return(1);
 
-  //  Don't know gkpStore here, dang.
-  //if (A->a_end(gkpStore) < B->a_end(gkpStore))  return(-1);
-  //if (A->a_end(gkpStore) > B->a_end(gkpStore))  return(1);
+  //  For overlaps off the 5' end, put the thinnest ones first.  Sadly, we don't know
+  //  gkpStore here, and can't actually get the end coordinate.
+  //
+  //if (A->b_bgn() > B->b_bgn())  return(-1);
+  //if (A->b_bgn() < B->b_bgn())  return(1);
+
+  if (A->a_end(gkpStoreForSorting) < B->a_end(gkpStoreForSorting))  return(-1);
+  if (A->a_end(gkpStoreForSorting) > B->a_end(gkpStoreForSorting))  return(1);
 
   return(0);
 }
@@ -269,7 +278,7 @@ dumpPicture(ovsOverlap *overlaps,
             overlaps[o].b_iid,
             ovlBgnA, ovlEndA, frgLenA,
             ovlBgnB, ovlEndB, frgLenB,
-            overlaps[o].erate(),
+            overlaps[o].erate() * 100.0,
             ovl);
   }
 }
@@ -291,6 +300,8 @@ dumpPicture(char   *ovlName,
   ovStore  *ovlStore = new ovStore(ovlName);
   gkStore  *gkpStore = new gkStore(gkpName);
 
+  gkpStoreForSorting = gkpStore;
+
   gkRead   *A      = gkpStore->gkStore_getRead(qryID);
   uint32   frgLenA = A->gkRead_sequenceLength();
 
@@ -299,13 +310,13 @@ dumpPicture(char   *ovlName,
   uint64         novl     = 0;
   ovsOverlap     overlap;
   ovsOverlap    *overlaps = (ovsOverlap *)safe_malloc(sizeof(ovsOverlap) * ovlStore->numOverlapsInRange());
-  uint64         erate    = AS_OVS_encodeEvalue(dumpERate);
+  uint64         evalue   = AS_OVS_encodeEvalue(dumpERate);
 
   //  Load all the overlaps so we can sort by the A begin position.
 
   while (ovlStore->readOverlap(&overlap) == TRUE) {
 
-    if (overlap.erate() > erate)
+    if (overlap.evalue() > evalue)
       continue;
 
     if (((dumpType & DUMP_5p) == 0) &&
