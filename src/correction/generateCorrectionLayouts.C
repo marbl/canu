@@ -22,9 +22,9 @@ using namespace std;
 tgTig *
 generateLayout(gkStore    *gkpStore,
                uint32      minEvidenceLength,
-               double      maxErate,
+               double      maxEvidenceErate,
+               double      maxEvidenceCoverage,
                uint32      minCorLength,
-               double      maxCorCoverage,
                ovsOverlap *ovl,
                uint32      ovlLen) {
   //fprintf(stderr, "Generate layout for read "F_U32" with "F_U32" overlaps.\n",
@@ -48,9 +48,9 @@ generateLayout(gkStore    *gkpStore,
   resizeArray(layout->_children, layout->_childrenLen, layout->_childrenMax, ovlLen, resizeArray_doNothing);
 
   for (uint32 oo=0; oo<ovlLen; oo++) {
-    if (ovl[oo].erate() > maxErate) {
+    if (ovl[oo].erate() > maxEvidenceErate) {
       //fprintf(stderr, "  filter read %9u at position %6u,%6u erate %.3f - low quality (threshold %.2f)\n",
-      //        ovl[oo].b_iid, ovl[oo].a_bgn(gkpStore), ovl[oo].a_end(gkpStore), ovl[oo].erate(), maxErate);
+      //        ovl[oo].b_iid, ovl[oo].a_bgn(gkpStore), ovl[oo].a_end(gkpStore), ovl[oo].erate(), maxEvidenceErate);
       continue;
     }
 
@@ -93,7 +93,7 @@ generateLayout(gkStore    *gkpStore,
   //  Use utgcns's stashContains to get rid of extra coverage; we don't care about it, and
   //  just delete it immediately.
 
-  savedChildren *sc = stashContains(layout, maxCorCoverage);
+  savedChildren *sc = stashContains(layout, maxEvidenceCoverage);
 
   if (sc) {
     delete sc->children;
@@ -148,11 +148,11 @@ main(int argc, char **argv) {
   char             *readListName = NULL;
   set<uint32>       readList;
 
-  uint32            minEvidenceLength = 0;
-  double            maxEvidenceErate  = 1.0;
+  uint32            minEvidenceLength   = 0;
+  double            maxEvidenceErate    = 1.0;
+  double            maxEvidenceCoverage = DBL_MAX;
 
   uint32            minCorLength        = 0;
-  double            maxCorCoverage      = DBL_MAX;
 
   bool              filterCorLength     = false;
 
@@ -194,12 +194,12 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-E") == 0) {  //  Max error rate of evidence overlap
       maxEvidenceErate = atof(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-C") == 0) {  //  Max coverage of evidence reads to emit.
+      maxEvidenceCoverage = atof(argv[++arg]);
+
 
     } else if (strcmp(argv[arg], "-M") == 0) {  //  Minimum length of a corrected read
       minCorLength = atoi(argv[++arg]);
-
-    } else if (strcmp(argv[arg], "-C") == 0) {  //  Max coverage of evidence reads to emit.
-      maxCorCoverage = atof(argv[++arg]);
 
 
     } else {
@@ -305,24 +305,30 @@ main(int argc, char **argv) {
   //  And process.
 
   while (ovlLen > 0) {
-    bool   skipIt = false;
+    bool   skipIt        = false;
+    char   skipMsg[1024] = {0};
+
     tgTig *layout = generateLayout(gkpStore,
-                                   minEvidenceLength, maxEvidenceErate,
-                                   minCorLength, maxCorCoverage,
+                                   minEvidenceLength, maxEvidenceErate, maxEvidenceCoverage,
+                                   minCorLength,
                                    ovl, ovlLen);
 
     //  If there was a readList, skip anything not in it.
 
     if ((readListName != NULL) &&
-        (readList.count(layout->tigID()) == 0))
+        (readList.count(layout->tigID()) == 0)) {
+      strcat(skipMsg, "\tnot_in_readList");
       skipIt = true;
+    }
 
     //  Possibly filter by the length of the uncorrected read.
 
     gkRead *read = gkpStore->gkStore_getRead(layout->tigID());
 
-    if (read->gkRead_sequenceLength() < minCorLength)
+    if (read->gkRead_sequenceLength() < minCorLength) {
+      strcat(skipMsg, "\tread_too_short");
       skipIt = true;
+    }
 
     //  Possibly filter by the length of the corrected read.
 
@@ -343,20 +349,26 @@ main(int argc, char **argv) {
     if (minPos != UINT32_MAX)
       corLen = maxPos - minPos;
 
-    if (corLen < minCorLength)
+    if (corLen < minCorLength) {
+      strcat(skipMsg, "\tcorrection_too_short");
       skipIt = true;
+    }
 
     //  Filter out empty tigs - these either have no overlaps, or failed the
     //  length check in generateLayout.
 
-    if (layout->numberOfChildren() <= 1)
+    if (layout->numberOfChildren() <= 1) {
+      strcat(skipMsg, "\tno_children");
       skipIt = true;
+    }
 
     //  Output, if not skipped.
 
     if (logFile)
-      fprintf(logFile, "%u\t%u\t%u\t%u\n",
-              layout->tigID(), read->gkRead_sequenceLength(), layout->numberOfChildren(), corLen);
+      fprintf(logFile, "%u\t%u\t%u\t%u%s\n",
+              layout->tigID(), read->gkRead_sequenceLength(), layout->numberOfChildren(), corLen, skipMsg);
+    fprintf(stderr, "%u\t%u\t%u\t%u%s\n",
+            layout->tigID(), read->gkRead_sequenceLength(), layout->numberOfChildren(), corLen, skipMsg);
 
     if ((skipIt == false) && (tigStore != NULL))
       tigStore->insertTig(layout, false);
