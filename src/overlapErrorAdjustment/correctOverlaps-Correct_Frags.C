@@ -255,6 +255,15 @@ Correct_Frags(coParameters *G,
 
     //  We should be at the IDENT message.
 
+    if (C[Cpos].type != IDENT) {
+      fprintf(stderr, "ERROR: didn't find IDENT at Cpos=%u for read %u\n", Cpos, curID);
+      fprintf(stderr, "       C[Cpos] = keep_left=%u keep_right=%u type=%u pos=%u readID=%u\n",
+              C[Cpos].keep_left,
+              C[Cpos].keep_right,
+              C[Cpos].type,
+              C[Cpos].pos,
+              C[Cpos].readID);
+    }
     assert(C[Cpos].type == IDENT);
 
     G->reads[G->readsLen].keep_left  = C[Cpos].keep_left;
