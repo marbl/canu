@@ -136,7 +136,7 @@ ovStore::ovStore_read(void) {
 
   //  Open erates
 
-  sprintf(name, "%s/erates", _storePath);
+  sprintf(name, "%s/evalues", _storePath);
 
   if (AS_UTL_fileExists(name)) {
     _evaluesMap  = new memoryMappedFile(name, memoryMappedFile_readOnly);
