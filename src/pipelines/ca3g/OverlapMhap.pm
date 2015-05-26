@@ -400,8 +400,8 @@ sub mhapConfigure ($$$$) {
         print F "    -O $path/results/\$qry.mhap.ovb.gz \\\n";
         print F "    -o $path/results/\$qry.ovb.gz \\\n";
         print F "    -partial \\\n"  if ($typ eq "partial");
-        print F "    -erate ", getGlobal("obtErrorRate"), " \\\n"  if ($typ eq "partial");
-        print F "    -erate ", getGlobal("ovlErrorRate"), " \\\n"  if ($typ eq "normal");
+        print F "    -erate ", getGlobal("obtOvlErrorRate"), " \\\n"  if ($typ eq "partial");
+        print F "    -erate ", getGlobal("utgOvlErrorRate"), " \\\n"  if ($typ eq "normal");
         print F "    -memory 10 \\\n";
         print F "    -t 12\n";
         print F "fi\n";

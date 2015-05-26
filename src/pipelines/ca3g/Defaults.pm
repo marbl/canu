@@ -3,7 +3,7 @@ package ca3g::Defaults;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(getCommandLineOptions addCommandLineOption writeLog caExit caFailure getNumberOfCPUs getPhysicalMemorySize diskSpace printHelp setParametersFromFile setParametersFromCommandLine checkParameters getGlobal setGlobal setErrorRate setDefaults);
+@EXPORT = qw(getCommandLineOptions addCommandLineOption writeLog caExit caFailure getNumberOfCPUs getPhysicalMemorySize diskSpace printHelp setParametersFromFile setParametersFromCommandLine checkParameters getGlobal setGlobal showErrorRates setErrorRate setDefaults);
 
 use strict;
 use Carp qw(cluck);
@@ -94,10 +94,10 @@ sub setGlobalIfUndef ($$) {
     my $var = shift @_;
     my $val = shift @_;
 
-    return  if (defined($global{$var}));
-
     $var =~ tr/A-Z/a-z/;
     $val = undef  if ($val eq "");  #  Set to undefined, the default for many of the options.
+
+    return  if (defined($global{$var}));
 
     $global{$var} = $val;
 }
@@ -792,6 +792,7 @@ sub checkParameters ($) {
     #  Report.
     #
 
+    showErrorRates();
     print STDERR "-- \n";
     print STDERR "-- genomeSize          = ", getGlobal("genomeSize"), "\n";
     print STDERR "-- errorRate           = ", getGlobal("errorRate"), "\n";
@@ -836,14 +837,42 @@ sub setExecDefaults ($$$$$$) {
 
 
 
+sub showErrorRates () {
+    print STDERR "\n";
+    print STDERR "genomeSize          -- ", getGlobal("genomeSize"), "\n";
+    print STDERR "errorRate           -- ", getGlobal("errorRate"), "\n";
+    print STDERR "\n";
+    print STDERR "corOvlErrorRate     -- ", getGlobal("corOvlErrorRate"), "\n";
+    print STDERR "obtOvlErrorRate     -- ", getGlobal("obtOvlErrorRate"), "\n";
+    print STDERR "utgOvlErrorRate     -- ", getGlobal("utgOvlErrorRate"), "\n";
+    print STDERR "\n";
+    print STDERR "obtErrorRate        -- ", getGlobal("obtErrorRate"), "\n";
+    print STDERR "\n";
+    print STDERR "utgGraphErrorRate   -- ", getGlobal("utgGraphErrorRate"), "\n";
+    print STDERR "utgBubbleErrorRate  -- ", getGlobal("utgBubbleErrorRate"), "\n";
+    print STDERR "utgMergeErrorRate   -- ", getGlobal("utgMergeErrorRate"), "\n";
+    print STDERR "utgRepeatErrorRate  -- ", getGlobal("utgRepeatErrorRate"), "\n";
+    print STDERR "\n";
+    print STDERR "cnsErrorRate        -- ", getGlobal("cnsErrorRate"), "\n";
+    print STDERR "\n";
+}
+
 sub setErrorRate ($) {
     my $er = shift @_;
+
+    print STDERR "\n";
+    print STDERR "SET ERROR RATE TO $er\n";
+    print STDERR "\n";
+
+    #showErrorRates();
 
     setGlobal("errorRate",          $er);
 
     setGlobal("corOvlErrorRate",    $er * 3);
-    setGlobal("obtOvlErrorRate",    $er * 3);
+    setGlobal("obtOvlErrorRate",    $er * 3);  #  Generally must be smaller than utgGraphErrorRate
     setGlobal("utgOvlErrorRate",    $er * 3);
+
+    setGlobal("obtErrorRate",       $er * 3);
 
     setGlobal("utgGraphErrorRate",  $er * 3);
     setGlobal("utgBubbleErrorRate", $er * 3 + 0.5 * $er);
@@ -1012,7 +1041,7 @@ sub setDefaults () {
         print STDERR "-- Detected Sun Grid Engine in '$ENV{'SGE_ROOT'}/$ENV{'SGE_CELL'}'.\n";
         $global{"gridEngine"} = "SGE";
     } else {
-        print STDERR "-- No grid engine detected.\n";
+        print STDERR "-- No grid engine detected, grid disabled.\n";
     }
 
 
@@ -1084,6 +1113,9 @@ sub setDefaults () {
 
     #####  Overlap Based Trimming
 
+    $global{"obtErrorRate"}                = undef;
+    $synops{"obtErrorRate"}                = "Stringency of overlaps to use for trimming";
+
     $global{"trimReadsOverlap"}            = 1;
     $synops{"trimReadsOverlap"}            = "Minimum overlap between evidence to make contiguous trim";
 
@@ -1098,11 +1130,17 @@ sub setDefaults () {
     $global{"enableOEA"}                   = 1;
     $synops{"enableOEA"}                   = "Do overlap error adjustment - comprises two steps: read error detection (RED) and overlap error adjustment (OEA)";
 
-    $global{"redBatchSize"}                = 200000;
-    $synops{"redBatchSize"}                = "Number of reads per fragment error detection batch, directly affects memory usage";
+    $global{"redBatchSize"}                = 0;
+    $synops{"redBatchSize"}                = "Number of reads per fragment error detection batch";
 
-    $global{"oeaBatchSize"}                = 50000;
+    $global{"redBatchLength"}              = 0;
+    $synops{"redBatchLength"}              = "Number of bases per fragment error detection batch";
+
+    $global{"oeaBatchSize"}                = 0;
     $synops{"oeaBatchSize"}                = "Number of reads per overlap error correction batch";
+
+    $global{"oeaBatchLength"}              = 0;
+    $synops{"oeaBatchLength"}              = "Number of bases per overlap error correction batch";
 
     #####  Unitigger & BOG & bogart Options
 
@@ -1166,14 +1204,14 @@ sub setDefaults () {
     $global{"corPartitionMin"}             = 25000;
     $synops{"corPartitionMin"}             = "Don't make a read correction partition with fewer than N reads";
 
-    $global{"corMinLength"}                = undef;
-    $synops{"corMinLength"}                = "Limit read correction to only overlaps longer than this; default: unlimited";
+    $global{"corMinEvidenceLength"}        = undef;
+    $synops{"corMinEvidenceLength"}        = "Limit read correction to only overlaps longer than this; default: unlimited";
 
-    $global{"corMaxErate"}                 = undef;
-    $synops{"corMaxErate"}                 = "Limit read correction to only overlaps at or below this fraction error; default: unlimited";
+    $global{"corMaxEvidenceErate"}         = undef;
+    $synops{"corMaxEvidenceErate"}         = "Limit read correction to only overlaps at or below this fraction error; default: unlimited";
 
-    $global{"corMaxCoverage"}              = undef;
-    $synops{"corMaxCoverage"}              = "Limit read correction to at most this coverage; default: 1.5 * estimated coverage";
+    $global{"corMaxEvidenceCoverage"}      = undef;
+    $synops{"corMaxEvidenceCoverage"}      = "Limit read correction to at most this coverage; default: 1.5 * estimated coverage";
 
     $global{"corOutCoverage"}              = 25;
     $synops{"corOutCoverage"}              = "Only correct the longest reads up to this coverage; default 25";

@@ -368,13 +368,14 @@ sub emitStage ($$$@) {
         $label1--;
     }
 
-    print STDERR "-- $label $label1\n";
-
     if (-e "$wrk/$asm.stage.fileLists/stage.$label1.created") {
-        runCommand($wrk, "find . -type f -and -newer  $wrk/$asm.stage.fileLists/stage.$label1.created -printf '%a -- %t -- %c -- %p\\n' > $wrk/$asm.stage.fileLists/stage.$label.created");
-        runCommand($wrk, "find . -type f -and -anewer $wrk/$asm.stage.fileLists/stage.$label1.created -printf '%a -- %t -- %c -- %p\\n' > $wrk/$asm.stage.fileLists/stage.$label.accessed");
+        #runCommandSilently($wrk, "find . -type f -and -newer  $wrk/$asm.stage.fileLists/stage.$label1.created -printf '%a -- %t -- %c -- %p\\n' > $wrk/$asm.stage.fileLists/stage.$label.created");
+        #runCommandSilently($wrk, "find . -type f -and -anewer $wrk/$asm.stage.fileLists/stage.$label1.created -printf '%a -- %t -- %c -- %p\\n' > $wrk/$asm.stage.fileLists/stage.$label.accessed");
+        runCommandSilently($wrk, "find . -type f -and -newer  $wrk/$asm.stage.fileLists/stage.$label1.created -print > $wrk/$asm.stage.fileLists/stage.$label.created");
+        runCommandSilently($wrk, "find . -type f -and -anewer $wrk/$asm.stage.fileLists/stage.$label1.created -print > $wrk/$asm.stage.fileLists/stage.$label.accessed");
     } else {
-        runCommand($wrk, "find . -type f -printf '%a -- %t -- %c -- %p\\n' > $wrk/$asm.stage.fileLists/stage.$label.created");
+        #runCommandSilently($wrk, "find . -type f -printf '%a -- %t -- %c -- %p\\n' > $wrk/$asm.stage.fileLists/stage.$label.created");
+        runCommandSilently($wrk, "find . -type f -print > $wrk/$asm.stage.fileLists/stage.$label.created");
     }
 }
 
@@ -508,6 +509,10 @@ sub submitScript ($$$) {
 
     return if (getGlobal("useGrid")       == 0);
     return if (getGlobal("useGridMaster") == 0);
+
+    #  If can't run on grid, return.
+
+    return  if (getGlobal("gridEngine") eq undef);
 
     #  If no job to wait on, and we are already on the grid, do NOT resubmit ourself.
     #
@@ -818,7 +823,7 @@ sub submitOrRunParallelJob ($$$$$@) {
 
     #  Jobs under grid control, and we submit them
 
-    if (getGlobal("useGrid") && getGlobal("useGrid$jobType") && (exists($ENV{getGlobal("gridEngineJobID")}))) {
+    if (getGlobal("gridEngine") && getGlobal("useGrid") && getGlobal("useGrid$jobType") && (exists($ENV{getGlobal("gridEngineJobID")}))) {
         my $cmd;
         my $jobName;
 
@@ -835,7 +840,7 @@ sub submitOrRunParallelJob ($$$$$@) {
 
     #  Jobs under grid control, but the user must submit them
 
-    if (getGlobal("useGrid") && getGlobal("useGrid$jobType") && (! exists($ENV{getGlobal("gridEngineJobID")}))) {
+    if (getGlobal("gridEngine") && getGlobal("useGrid") && getGlobal("useGrid$jobType") && (! exists($ENV{getGlobal("gridEngineJobID")}))) {
         print STDERR "Please submit the following jobs to the grid for execution using $mem gigabytes memory and $thr threads:\n";
         print STDERR "\n";
 
@@ -960,6 +965,62 @@ sub runCommand ($$) {
 
     return(1);
 }
+
+
+
+sub runCommandSilently ($$) {
+    my $dir = shift @_;
+    my $cmd = shift @_;
+
+    return  if ($cmd eq "");
+
+    if (! -d $dir) {
+        caFailure("Directory '$dir' doesn't exist, can't run command", "");
+    }
+
+    my $rc = 0xffff & system("cd $dir && $cmd");
+
+    #  Pretty much copied from Programming Perl page 230
+
+    return(0) if ($rc == 0);
+
+    #  Bunch of busy work to get the names of signals.  Is it really worth it?!
+    #
+    my @signame;
+    if (defined($Config{sig_name})) {
+        my $i = 0;
+        foreach my $n (split('\s+', $Config{sig_name})) {
+            $signame[$i] = $n;
+            $i++;
+        }
+    }
+
+    my $error = "ERROR: Failed with ";
+
+    if ($rc == 0xff00) {
+        $error .= "$!\n";
+    } else {
+        if ($rc & 0x80) {
+            $error .= "coredump from ";
+        }
+
+        if ($rc > 0x80) {
+            $rc >>= 8;
+        }
+        $rc &= 127;
+
+        if (defined($signame[$rc])) {
+            $error .= "signal $signame[$rc] ($rc)\n";
+        } else {
+            $error .= "signal $rc\n";
+        }
+    }
+
+    print STDERR $error;
+
+    return(1);
+}
+
 
 
 1;

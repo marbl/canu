@@ -33,7 +33,7 @@ sub trimReads ($$) {
     $cmd .= "  -G  $wrk/$asm.gkpStore \\\n";
     $cmd .= "  -O  $wrk/$asm.ovlStore \\\n";
     $cmd .= "  -Co $path/$asm.1.trimReads.clear \\\n";
-    $cmd .= "  -e  " . getGlobal("obtOvlErrorRate") . " \\\n";
+    $cmd .= "  -e  " . getGlobal("obtErrorRate") . " \\\n";
     $cmd .= "  -minlength " . getGlobal("minReadLength") . " \\\n";
     #$cmd .= "  -Cm $path/$asm.max.clear \\\n"          if (-e "$path/$asm.max.clear");
     $cmd .= "  -ol " . getGlobal("trimReadsOverlap") . " \\\n";
@@ -53,7 +53,7 @@ sub trimReads ($$) {
     $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
     $cmd .= "  -c $path/$asm.1.trimReads.clear \\\n";
     $cmd .= "  -o $path/$asm.1.trimReads.trimmed \\\n";
-    $cmd .= ">    $path/$asm.1.trimReads.trimmed.err 2>&1\n";
+    $cmd .= ">    $path/$asm.1.trimReads.trimmed.err 2>&1";
 
     if (runCommand($path, $cmd)) {
         caFailure("dumping trimmed reads failed", "$wrk/$asm.1.trimReads.trimmed.err");
@@ -78,7 +78,7 @@ sub splitReads ($$) {
 
     make_path($path)  if (! -d $path);
 
-    my $erate  = getGlobal("obtOvlErrorRate");  #  Was this historically
+    my $erate  = getGlobal("obtErrorRate");  #  Was this historically
 
     #$cmd .= "  -mininniepair 0 -minoverhanging 0 \\\n" if (getGlobal("doChimeraDetection") eq "aggressive");
 
@@ -105,7 +105,7 @@ sub splitReads ($$) {
     $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
     $cmd .= "  -c $path/$asm.2.splitReads.clear \\\n";
     $cmd .= "  -o $path/$asm.2.splitReads.trimmed \\\n";
-    $cmd .= ">    $path/$asm.2.splitReads.trimmed.err 2>&1\n";
+    $cmd .= ">    $path/$asm.2.splitReads.trimmed.err 2>&1";
 
     if (runCommand($path, $cmd)) {
         caFailure("dumping trimmed reads failed", "$wrk/$asm.2.splitReads.trimmed.err");
@@ -140,7 +140,7 @@ sub dumpReads ($$) {
     $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
     $cmd .= "  -c $inp \\\n";
     $cmd .= "  -o $wrk/$asm.trimmedReads \\\n";
-    $cmd .= ">    $wrk/$asm.trimmedReads.err 2>&1\n";
+    $cmd .= ">    $wrk/$asm.trimmedReads.err 2>&1";
 
     if (runCommand($wrk, $cmd)) {
         caFailure("dumping trimmed reads failed", "$wrk/$asm.trimmedReads.err");
