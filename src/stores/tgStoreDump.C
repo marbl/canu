@@ -860,8 +860,7 @@ main (int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -D <operation>        Dump something about the store\n");
-    fprintf(stderr, "     unitiglist         ...a list of the unitigs in the store\n");
-    fprintf(stderr, "     contiglist         ...a list of the contigs in the store\n");
+    fprintf(stderr, "     list               ...a list of the unitigs in the store (NOT IMPLEMENTED)\n");
     fprintf(stderr, "     properties         ...a list of properties for ALL multialigns in the store (for -E)\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -u id[-id]            Unitig to dump (for -d option); if A-B, dump tigs from id A to id B, inclusive\n");
