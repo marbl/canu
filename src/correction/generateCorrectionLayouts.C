@@ -367,8 +367,6 @@ main(int argc, char **argv) {
     if (logFile)
       fprintf(logFile, "%u\t%u\t%u\t%u%s\n",
               layout->tigID(), read->gkRead_sequenceLength(), layout->numberOfChildren(), corLen, skipMsg);
-    fprintf(stderr, "%u\t%u\t%u\t%u%s\n",
-            layout->tigID(), read->gkRead_sequenceLength(), layout->numberOfChildren(), corLen, skipMsg);
 
     if ((skipIt == false) && (tigStore != NULL))
       tigStore->insertTig(layout, false);
