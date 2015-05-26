@@ -245,13 +245,13 @@ sub setOptions ($$) {
     }
 
     if ($step eq "trim") {
-        setErrorRate(0.02);
+        setErrorRate(0.005);
 
         return($step);
     }
 
     if ($step eq "assemble") {
-        setErrorRate(0.02);
+        setErrorRate(0.005);
 
         return($step);
     }
@@ -295,6 +295,8 @@ sub overlap ($$$) {
 #
 #  Begin pipeline
 #
+
+showErrorRates();
 
 if (setOptions($mode, "correct") eq "correct") {
     gatekeeper($wrk, $asm, "cor", @inputFiles);
