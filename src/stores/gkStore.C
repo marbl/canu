@@ -425,18 +425,19 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
 
   sprintf(name, "%s/info", _storePath);
 
-  //  If the info file exists, load it, otherwise, initialize a new empty store.
+  //  If the info file exists, load it.
 
   if (AS_UTL_fileExists(name, false, false) == true) {
     errno = 0;
     FILE *I = fopen(name, "r");
     AS_UTL_safeRead(I, &_info, "gkStore::_info", sizeof(gkStoreInfo), 1);
     fclose(I);
-  } else {
-    //  already initialized.
-    assert(_info.gkLibrarySize == sizeof(gkLibrary));
-    assert(_info.gkReadSize    == sizeof(gkRead));
   }
+
+  //  Check sizes are correct.
+
+  assert(_info.gkLibrarySize == sizeof(gkLibrary));
+  assert(_info.gkReadSize    == sizeof(gkRead));
 
   //  Clear ourself, to make valgrind happier.
 
@@ -469,6 +470,11 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
       (partID == UINT32_MAX)) {
     //fprintf(stderr, "gkStore()--  opening '%s' for read-only access.\n", _storePath);
 
+    if (AS_UTL_fileExists(_storePath, true, false) == false) {
+      fprintf(stderr, "gkStore()--  failed to open '%s' for read-only access: store doesn't exist.\n", _storePath);
+      exit(1);
+    }
+
     sprintf(name, "%s/libraries", _storePath);
     _librariesMMap = new memoryMappedFile (name, memoryMappedFile_readOnly);
     _libraries     = (gkLibrary *)_librariesMMap->get(0);
@@ -489,6 +495,11 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
   else if ((mode == gkStore_modify) &&
            (partID == UINT32_MAX)) {
     //fprintf(stderr, "gkStore()--  opening '%s' for read-write access.\n", _storePath);
+
+    if (AS_UTL_fileExists(_storePath, true, false) == false) {
+      fprintf(stderr, "gkStore()--  failed to open '%s' for read-write access: store doesn't exist.\n", _storePath);
+      exit(1);
+    }
 
     sprintf(name, "%s/libraries", _storePath);
     _librariesMMap = new memoryMappedFile (name, memoryMappedFile_readWrite);
