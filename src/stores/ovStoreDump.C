@@ -56,19 +56,18 @@ gkStore  *gkpStoreForSorting = NULL;
 //
 
 void
-dumpStore(char   *ovlName,
-          char   *gkpName,
-          uint32  asBinary,
-          double  dumpERate,
-          uint32  dumpType,
-          uint32  dumpLength,
-          uint32  bgnID,
-          uint32  endID,
-          uint32  qryID,
+dumpStore(ovStore *ovlStore,
+          gkStore *gkpStore,
+          bool     asBinary,
+          bool     asCounts,
+          double   dumpERate,
+          uint32   dumpType,
+          uint32   dumpLength,
+          uint32   bgnID,
+          uint32   endID,
+          uint32   qryID,
           ovOverlapDisplayType    type,
-          bool    beVerbose) {
-  ovStore       *ovlStore = new ovStore(ovlName);
-  gkStore       *gkpStore = new gkStore(gkpName);
+          bool     beVerbose) {
 
   ovsOverlap     overlap;
   uint64         evalue = AS_OVS_encodeEvalue(dumpERate);
@@ -83,6 +82,12 @@ dumpStore(char   *ovlName,
   uint32   obtTooHighError = 0;
   uint32   obtDumped       = 0;
   uint32   merDumped       = 0;
+
+  uint32  *counts          = (asCounts) ? new uint32 [endID - bgnID + 1] : NULL;
+
+  if (asCounts)
+    for (uint32 ii=bgnID; ii<=endID; ii++)
+      counts[ii - bgnID] = 0;
 
   ovlStore->setRange(bgnID, endID);
 
@@ -107,14 +112,17 @@ dumpStore(char   *ovlName,
       ovlNot5p++;
       continue;
     }
+
     if (((dumpType & DUMP_3p) == 1) && (ahang > 0) && (bhang > 0)) {
       ovlNot3p++;
       continue;
     }
+
     if (((dumpType & DUMP_CONTAINS) == 1) && (ahang >= 0) && (bhang <= 0)) {
       ovlNotContainer++;
       continue;
     }
+
     if (((dumpType & DUMP_CONTAINED) == 1) && (ahang <= 0) && (bhang >= 0)) {
       ovlNotContainee++;
       continue;
@@ -122,19 +130,26 @@ dumpStore(char   *ovlName,
 
     ovlDumped++;
 
-    //  All the slow for this dump is in sprintf() within AS_OVS_toString().
-    //    Without both the puts() and AS_OVS_toString(), a dump ran in 3 seconds.
+    //  The toString() method is quite slow, all from sprintf().
+    //    Without both the puts() and AtoString(), a dump ran in 3 seconds.
     //    With both, 138 seconds.
     //    Without the puts(), 127 seconds.
 
-    if (asBinary)
+    if (asCounts)
+      counts[overlap.a_iid - bgnID]++;
+
+    else if (asBinary)
       AS_UTL_safeWrite(stdout, &overlap, "dumpStore", sizeof(ovsOverlap), 1);
+
     else
       fputs(overlap.toString(ovlString, gkpStore, type), stdout);
   }
 
-  delete ovlStore;
-  delete gkpStore;
+  if (asCounts)
+    for (uint32 ii=bgnID; ii<=endID; ii++)
+      fprintf(stdout, "%u\t%u\n", ii + bgnID, counts[ii]);
+
+  delete [] counts;
 
   if (beVerbose) {
     fprintf(stderr, "ovlTooHighError %u\n",  ovlTooHighError);
@@ -287,20 +302,15 @@ dumpPicture(ovsOverlap *overlaps,
 
 
 void
-dumpPicture(char   *ovlName,
-            char   *gkpName,
-            double  dumpERate,
-            uint32  dumpLength,
-            uint32  dumpType,
-            uint32  qryID) {
+dumpPicture(ovStore  *ovlStore,
+            gkStore  *gkpStore,
+            double    dumpERate,
+            uint32    dumpLength,
+            uint32    dumpType,
+            uint32    qryID) {
 
-  fprintf(stderr, "DUMPING PICTURE for ID "F_U32" in store %s (gkp %s)\n",
-          qryID, ovlName, gkpName);
-
-  ovStore  *ovlStore = new ovStore(ovlName);
-  gkStore  *gkpStore = new gkStore(gkpName);
-
-  gkpStoreForSorting = gkpStore;
+  //fprintf(stderr, "DUMPING PICTURE for ID "F_U32" in store %s (gkp %s)\n",
+  //        qryID, ovlName, gkpName);
 
   gkRead   *A      = gkpStore->gkStore_getRead(qryID);
   uint32   frgLenA = A->gkRead_sequenceLength();
@@ -309,7 +319,7 @@ dumpPicture(char   *ovlName,
 
   uint64         novl     = 0;
   ovsOverlap     overlap;
-  ovsOverlap    *overlaps = (ovsOverlap *)safe_malloc(sizeof(ovsOverlap) * ovlStore->numOverlapsInRange());
+  ovsOverlap    *overlaps = new ovsOverlap [ovlStore->numOverlapsInRange()];
   uint64         evalue   = AS_OVS_encodeEvalue(dumpERate);
 
   //  Load all the overlaps so we can sort by the A begin position.
@@ -350,10 +360,10 @@ dumpPicture(char   *ovlName,
   else
     dumpPicture(overlaps, novl, gkpStore, qryID);
 
-
-  delete ovlStore;
-  delete gkpStore;
+  delete [] overlaps;
 }
+
+
 
 
 
@@ -365,7 +375,9 @@ main(int argc, char **argv) {
   char           *gkpName     = NULL;
   char           *ovlName     = NULL;
 
-  uint32          asBinary    = false;
+  bool            asBinary    = false;
+  bool            asCounts    = false;
+
   double          dumpERate   = 1.0;
   uint32          dumpLength  = 0;
   uint32          dumpType    = 0;
@@ -386,78 +398,82 @@ main(int argc, char **argv) {
   int err=0;
   while (arg < argc) {
 
-    if        (strcmp(argv[arg], "-G") == 0) {
+    if        (strcmp(argv[arg], "-G") == 0)
       gkpName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-O") == 0) {
+    else if (strcmp(argv[arg], "-O") == 0)
       ovlName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-b") == 0) {
+    else if (strcmp(argv[arg], "-b") == 0)
       bgnID = atoi(argv[++arg]);
 
-    } else if (strcmp(argv[arg], "-e") == 0) {
+    else if (strcmp(argv[arg], "-e") == 0)
       endID = atoi(argv[++arg]);
 
 
-
-      //  Standard bulk dump of overlaps
-    } else if (strcmp(argv[arg], "-d") == 0) {
+    //  Standard bulk dump of overlaps
+    else if (strcmp(argv[arg], "-d") == 0)
       operation  = OP_DUMP;
 
-      //  Dump as a picture, the next ID
-      //  Should be easy to extend to using -b -e range
-    } else if (strcmp(argv[arg], "-p") == 0) {
+    //  Dump as a picture, the next ID
+    //  Should be easy to extend to using -b -e range
+    else if (strcmp(argv[arg], "-p") == 0) {
       operation  = OP_DUMP_PICTURE;
       bgnID      = atoi(argv[++arg]);
       endID      = bgnID;
       qryID      = bgnID;
+    }
 
-      //  Query if the overlap for the next two integers exists
-    } else if (strcmp(argv[arg], "-q") == 0) {
+    //  Query if the overlap for the next two integers exists
+    else if (strcmp(argv[arg], "-q") == 0) {
       operation  = OP_DUMP;
       bgnID      = atoi(argv[++arg]);
       endID      = bgnID;
       qryID      = atoi(argv[++arg]);
+    }
 
 
-
-    } else if (strcmp(argv[arg], "-coords") == 0) {
+    //  Format of the dump
+    else if (strcmp(argv[arg], "-coords") == 0)
       type = ovOverlapAsCoords;
 
-    } else if (strcmp(argv[arg], "-hangs") == 0) {
+    else if (strcmp(argv[arg], "-hangs") == 0)
       type = ovOverlapAsHangs;
 
-    } else if (strcmp(argv[arg], "-raw") == 0) {
+    else if (strcmp(argv[arg], "-raw") == 0)
       type = ovOverlapAsRaw;
 
-    } else if (strcmp(argv[arg], "-binary") == 0) {
+    else if (strcmp(argv[arg], "-binary") == 0)
       asBinary = true;
 
+    else if (strcmp(argv[arg], "-counts") == 0)
+      asCounts = true;
 
-      //  standard bulk dump options
-    } else if (strcmp(argv[arg], "-E") == 0) {
+
+    //  standard bulk dump options
+    else if (strcmp(argv[arg], "-E") == 0)
       dumpERate = atof(argv[++arg]);
 
-    } else if (strcmp(argv[arg], "-L") == 0) {
+    else if (strcmp(argv[arg], "-L") == 0)
       dumpLength = atoi(argv[++arg]);
 
-    } else if (strcmp(argv[arg], "-d5") == 0) {
+    else if (strcmp(argv[arg], "-d5") == 0)
       dumpType |= DUMP_5p;
 
-    } else if (strcmp(argv[arg], "-d3") == 0) {
+    else if (strcmp(argv[arg], "-d3") == 0)
       dumpType |= DUMP_3p;
 
-    } else if (strcmp(argv[arg], "-dC") == 0) {
+    else if (strcmp(argv[arg], "-dC") == 0)
       dumpType |= DUMP_CONTAINS;
 
-    } else if (strcmp(argv[arg], "-dc") == 0) {
+    else if (strcmp(argv[arg], "-dc") == 0)
       dumpType |= DUMP_CONTAINED;
 
-    } else if (strcmp(argv[arg], "-v") == 0) {
+    else if (strcmp(argv[arg], "-v") == 0)
       beVerbose = true;
 
 
-    } else {
+    else {
       fprintf(stderr, "%s: unknown option '%s'.\n", argv[0], argv[arg]);
       err++;
     }
@@ -478,6 +494,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -hangs     dump overlap showing dovetail hangs unaligned\n");
     fprintf(stderr, "  -raw       dump overlap showing its raw native format (four hangs)\n");
     fprintf(stderr, "  -binary    dump overlap as raw binary data\n");
+    fprintf(stderr, "  -counts    dump the number of overlaps per read\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  MODIFIERS (for -d and -p)\n");
     fprintf(stderr, "\n");
@@ -494,17 +511,31 @@ main(int argc, char **argv) {
   if (dumpType == 0)
     dumpType = DUMP_5p | DUMP_3p | DUMP_CONTAINED | DUMP_CONTAINS;
 
+  ovStore  *ovlStore = new ovStore(ovlName);
+  gkStore  *gkpStore = new gkStore(gkpName);
+
+  gkpStoreForSorting = gkpStore;
+
+  if (endID > gkpStore->gkStore_getNumReads())
+    endID = gkpStore->gkStore_getNumReads();
+
+  if (endID < bgnID)
+    fprintf(stderr, "ERROR: invalid bgn/end range bgn=%u end=%u; only %u reads in the store\n", bgnID, endID, gkpStore->gkStore_getNumReads()), exit(1);
+
   switch (operation) {
     case OP_DUMP:
-      dumpStore(ovlName, gkpName, asBinary, dumpERate, dumpLength, dumpType, bgnID, endID, qryID, type, beVerbose);
+      dumpStore(ovlStore, gkpStore, asBinary, asCounts, dumpERate, dumpLength, dumpType, bgnID, endID, qryID, type, beVerbose);
       break;
     case OP_DUMP_PICTURE:
       for (qryID=bgnID; qryID <= endID; qryID++)
-        dumpPicture(ovlName, gkpName, dumpERate, dumpLength, dumpType, qryID);
+        dumpPicture(ovlStore, gkpStore, dumpERate, dumpLength, dumpType, qryID);
       break;
     default:
       break;
   }
+
+  delete ovlStore;
+  delete gkpStore;
 
   exit(0);
 }
