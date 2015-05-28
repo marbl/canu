@@ -157,3 +157,20 @@ AS_UTL_decodeRange(char *range, int32 &lo, int32 &hi) {
   }
 }
 
+
+void
+AS_UTL_decodeRange(char *range, double &lo, double &hi) {
+  char    *ap = range;
+
+  lo = hi = strtod(ap, &ap);
+
+  if (*ap == '-') {
+    ap++;
+    hi = strtod(ap, &ap);
+
+  } else if (*ap != 0) {
+    fprintf(stderr, "ERROR: invalid range '%s'\n", range);
+    exit(1);
+  }
+}
+

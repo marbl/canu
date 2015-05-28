@@ -36,4 +36,6 @@ void  AS_UTL_decodeRange(char *range,  int64 &lo,  int64 &hi);
 void  AS_UTL_decodeRange(char *range, uint32 &lo, uint32 &hi);
 void  AS_UTL_decodeRange(char *range,  int32 &lo,  int32 &hi);
 
+void  AS_UTL_decodeRange(char *range, double &lo, double &hi);
+
 #endif  //  AS_UTL_DECODERANGE_H
