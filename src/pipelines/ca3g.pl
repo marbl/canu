@@ -296,7 +296,7 @@ sub overlap ($$$) {
 #  Begin pipeline
 #
 
-showErrorRates();
+showErrorRates("-- ");
 
 if (setOptions($mode, "correct") eq "correct") {
     gatekeeper($wrk, $asm, "cor", @inputFiles);

@@ -792,7 +792,6 @@ sub checkParameters ($) {
     #  Report.
     #
 
-    showErrorRates();
     print STDERR "-- \n";
     print STDERR "-- genomeSize          = ", getGlobal("genomeSize"), "\n";
     print STDERR "-- errorRate           = ", getGlobal("errorRate"), "\n";
@@ -837,24 +836,26 @@ sub setExecDefaults ($$$$$$) {
 
 
 
-sub showErrorRates () {
-    print STDERR "\n";
-    print STDERR "genomeSize          -- ", getGlobal("genomeSize"), "\n";
-    print STDERR "errorRate           -- ", getGlobal("errorRate"), "\n";
-    print STDERR "\n";
-    print STDERR "corOvlErrorRate     -- ", getGlobal("corOvlErrorRate"), "\n";
-    print STDERR "obtOvlErrorRate     -- ", getGlobal("obtOvlErrorRate"), "\n";
-    print STDERR "utgOvlErrorRate     -- ", getGlobal("utgOvlErrorRate"), "\n";
-    print STDERR "\n";
-    print STDERR "obtErrorRate        -- ", getGlobal("obtErrorRate"), "\n";
-    print STDERR "\n";
-    print STDERR "utgGraphErrorRate   -- ", getGlobal("utgGraphErrorRate"), "\n";
-    print STDERR "utgBubbleErrorRate  -- ", getGlobal("utgBubbleErrorRate"), "\n";
-    print STDERR "utgMergeErrorRate   -- ", getGlobal("utgMergeErrorRate"), "\n";
-    print STDERR "utgRepeatErrorRate  -- ", getGlobal("utgRepeatErrorRate"), "\n";
-    print STDERR "\n";
-    print STDERR "cnsErrorRate        -- ", getGlobal("cnsErrorRate"), "\n";
-    print STDERR "\n";
+sub showErrorRates ($) {
+    my $prefix = shift @_;
+
+    print STDERR "${prefix}\n";
+    print STDERR "${prefix}genomeSize          -- ", getGlobal("genomeSize"), "\n";
+    print STDERR "${prefix}errorRate           -- ", getGlobal("errorRate"), "\n";
+    print STDERR "${prefix}\n";
+    print STDERR "${prefix}corOvlErrorRate     -- ", getGlobal("corOvlErrorRate"), "\n";
+    print STDERR "${prefix}obtOvlErrorRate     -- ", getGlobal("obtOvlErrorRate"), "\n";
+    print STDERR "${prefix}utgOvlErrorRate     -- ", getGlobal("utgOvlErrorRate"), "\n";
+    print STDERR "${prefix}\n";
+    print STDERR "${prefix}obtErrorRate        -- ", getGlobal("obtErrorRate"), "\n";
+    print STDERR "${prefix}\n";
+    print STDERR "${prefix}utgGraphErrorRate   -- ", getGlobal("utgGraphErrorRate"), "\n";
+    print STDERR "${prefix}utgBubbleErrorRate  -- ", getGlobal("utgBubbleErrorRate"), "\n";
+    print STDERR "${prefix}utgMergeErrorRate   -- ", getGlobal("utgMergeErrorRate"), "\n";
+    print STDERR "${prefix}utgRepeatErrorRate  -- ", getGlobal("utgRepeatErrorRate"), "\n";
+    print STDERR "${prefix}\n";
+    print STDERR "${prefix}cnsErrorRate        -- ", getGlobal("cnsErrorRate"), "\n";
+    print STDERR "${prefix}\n";
 }
 
 sub setErrorRate ($) {
@@ -864,7 +865,7 @@ sub setErrorRate ($) {
     print STDERR "SET ERROR RATE TO $er\n";
     print STDERR "\n";
 
-    #showErrorRates();
+    #showErrorRates("");
 
     setGlobal("errorRate",          $er);
 
