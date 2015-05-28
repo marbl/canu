@@ -147,7 +147,6 @@ sub readErrorDetectionConfigure ($$) {
     my $numThreads  = getGlobal("redThreads");
 
     my $numReads    = getNumberOfReadsInStore($wrk, $asm);
-    my $numJobs     = int($numReads / $batchSize) + (($numReads % $batchSize == 0) ? 0 : 1);
 
     open(F, "> $path/red.sh") or caWarn("can't open '$path/red.sh' for writing: $!", undef);
 
@@ -300,10 +299,6 @@ sub overlapErrorAdjustmentConfigure ($$) {
 
     return if (-e "$wrk/$asm.ovlStore/adjustedEvalues");
     return if (-d "$wrk/$asm.tigStore");
-
-    #my $batchSize   = getGlobal("oeaBatchSize");
-    #my $numReads    = getNumberOfReadsInStore($wrk, $asm);
-    #my $numJobs     = int($numReads / $batchSize) + (($numReads % $batchSize == 0) ? 0 : 1);
 
     #  OEA uses 1 byte/base + 8 bytes/adjustment + 28 bytes/overlap.  We don't know the number of adjustments, but that's
     #  basically error rate.  No adjustment is output for mismatches.
