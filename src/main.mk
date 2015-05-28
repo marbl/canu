@@ -118,6 +118,7 @@ SUBMAKEFILES := stores/gatekeeperCreate.mk \
                 mhap/mhap.mk \
                 mhap/mhapConvert.mk \
                 \
+                correction/filterCorrectionOverlaps.mk \
                 correction/generateCorrectionLayouts.mk \
                 \
                 falcon_sense/createFalconSenseInputs.mk \

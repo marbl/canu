@@ -21,14 +21,17 @@ using namespace std;
 
 tgTig *
 generateLayout(gkStore    *gkpStore,
+               uint32     *readScores,
                uint32      minEvidenceLength,
                double      maxEvidenceErate,
                double      maxEvidenceCoverage,
                uint32      minCorLength,
                ovsOverlap *ovl,
                uint32      ovlLen) {
-  //fprintf(stderr, "Generate layout for read "F_U32" with "F_U32" overlaps.\n",
-  //        ovl[0].a_iid, ovlLen);
+#ifdef LOG
+  fprintf(stderr, "Generate layout for read "F_U32" with "F_U32" overlaps.\n",
+          ovl[0].a_iid, ovlLen);
+#endif
 
   tgTig  *layout = new tgTig;
 
@@ -48,15 +51,31 @@ generateLayout(gkStore    *gkpStore,
   resizeArray(layout->_children, layout->_childrenLen, layout->_childrenMax, ovlLen, resizeArray_doNothing);
 
   for (uint32 oo=0; oo<ovlLen; oo++) {
+    uint32   ovlLength = ovl[oo].b_end(gkpStore) - ovl[oo].b_bgn(gkpStore);
+    uint32   ovlScore  = ovlLength * ovl[oo].erate() * 100;
+
     if (ovl[oo].erate() > maxEvidenceErate) {
-      //fprintf(stderr, "  filter read %9u at position %6u,%6u erate %.3f - low quality (threshold %.2f)\n",
-      //        ovl[oo].b_iid, ovl[oo].a_bgn(gkpStore), ovl[oo].a_end(gkpStore), ovl[oo].erate(), maxEvidenceErate);
+#ifdef LOG
+      fprintf(stderr, "  filter read %9u at position %6u,%6u erate %.3f - low quality (threshold %.2f)\n",
+              ovl[oo].b_iid, ovl[oo].a_bgn(gkpStore), ovl[oo].a_end(gkpStore), ovl[oo].erate(), maxEvidenceErate);
+#endif
       continue;
     }
 
     if (ovl[oo].a_end(gkpStore) - ovl[oo].a_bgn(gkpStore) < minEvidenceLength) {
-      //fprintf(stderr, "  filter read %9u at position %6u,%6u erate %.3f - too short (threshold %u)\n",
-      //        ovl[oo].b_iid, ovl[oo].a_bgn(gkpStore), ovl[oo].a_end(gkpStore), ovl[oo].erate(), minEvidenceLength);
+#ifdef LOG
+      fprintf(stderr, "  filter read %9u at position %6u,%6u erate %.3f - too short (threshold %u)\n",
+              ovl[oo].b_iid, ovl[oo].a_bgn(gkpStore), ovl[oo].a_end(gkpStore), ovl[oo].erate(), minEvidenceLength);
+#endif
+      continue;
+    }
+
+    if ((readScores != NULL) &&
+        (ovlScore < readScores[ovl[oo].b_iid])) {
+#ifdef LOG
+      fprintf(stderr, "  filter read %9u at position %6u,%6u erate %.3f - filtered by global filter (threshold %u)\n",
+              ovl[oo].b_iid, ovl[oo].a_bgn(gkpStore), ovl[oo].a_end(gkpStore), ovl[oo].erate(), readScores[ovl[oo].b_iid]);
+#endif
       continue;
     }
 
@@ -95,6 +114,11 @@ generateLayout(gkStore    *gkpStore,
 
   savedChildren *sc = stashContains(layout, maxEvidenceCoverage);
 
+#ifdef LOG
+  if (sc)
+    sc->reportRemoved(stderr, layout->tigID());
+#endif
+
   if (sc) {
     delete sc->children;
     delete sc;
@@ -125,6 +149,7 @@ int
 main(int argc, char **argv) {
   char             *gkpName   = 0L;
   char             *ovlName   = 0L;
+  char             *scoreName = 0L;
   char             *tigName   = 0L;
 
   bool              falconOutput = false;  //  To stdout
@@ -167,14 +192,17 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-O") == 0) {  //  Input ovlStore
       ovlName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-T") == 0) {  //  Ouytput tigStore
+    } else if (strcmp(argv[arg], "-S") == 0) {  //  Input scores
+      scoreName = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-T") == 0) {  //  Output tigStore
       tigName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-F") == 0) {  //  Output directly to falcon, not tigStore
       falconOutput = true;
       trimToAlign  = true;
 
-    } else if (strcmp(argv[arg], "-p") == 0) {  //  Ouytput prefix, just logging and summary
+    } else if (strcmp(argv[arg], "-p") == 0) {  //  Output prefix, just logging and summary
       outputPrefix = argv[++arg];
 
 
@@ -229,6 +257,23 @@ main(int argc, char **argv) {
   gkStore  *gkpStore = new gkStore(gkpName);
   ovStore  *ovlStore = new ovStore(ovlName);
   tgStore  *tigStore = (tigName != NULL) ? new tgStore(tigName) : NULL;
+
+  //  Load read scores, if supplied.
+
+  uint32   *readScores = NULL;
+
+  if (scoreName) {
+    readScores = new uint32 [gkpStore->gkStore_getNumReads() + 1];
+
+    errno = 0;
+    FILE *scoreFile = fopen(scoreName, "r");
+    if (errno)
+      fprintf(stderr, "failed to open '%s' for reading: %s\n", scoreName, strerror(errno)), exit(1);
+
+    AS_UTL_safeRead(scoreFile, readScores, "scores", sizeof(uint32), gkpStore->gkStore_getNumReads() + 1);
+
+    fclose(scoreFile);
+  }
 
   //  Threshold the range of reads to operate on.
   
@@ -309,6 +354,7 @@ main(int argc, char **argv) {
     char   skipMsg[1024] = {0};
 
     tgTig *layout = generateLayout(gkpStore,
+                                   readScores,
                                    minEvidenceLength, maxEvidenceErate, maxEvidenceCoverage,
                                    minCorLength,
                                    ovl, ovlLen);

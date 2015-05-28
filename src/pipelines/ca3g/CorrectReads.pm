@@ -67,6 +67,7 @@ sub buildCorrectionLayouts_direct ($$) {
         $cmd .= "  -rl $path/$asm.readsToCorrect \\\n"         if (-e "$path/$asm.readsToCorrect");
         $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
         $cmd .= "  -O $wrk/$asm.ovlStore \\\n";
+        $cmd .= "  -S $path/$asm.globalScores \\\n"            if (-e "$path/$asm.globalScores");
         $cmd .= "  -T $wrk/$asm.corStore.WORKING \\\n";
         $cmd .= "  -L " . getGlobal("corMinEvidenceLength") . " \\\n"  if (defined(getGlobal("corMinEvidenceLength")));
         $cmd .= "  -E " . getGlobal("corMaxEvidenceErate")  . " \\\n"  if (defined(getGlobal("corMaxEvidenceErate")));
@@ -245,6 +246,7 @@ sub buildCorrectionLayouts_piped ($$) {
     print F "  -rl $path/$asm.readsToCorrect \\\n"         if (-e "$path/$asm.readsToCorrect");
     print F "  -G $wrk/$asm.gkpStore \\\n";
     print F "  -O $wrk/$asm.ovlStore \\\n";
+    print F "  -S $path/$asm.globalScores \\\n"            if (-e "$path/$asm.globalScores");
     print F "  -L " . getGlobal("corMinEvidenceLength") . " \\\n"  if (defined(getGlobal("corMinEvidenceLength")));
     print F "  -E " . getGlobal("corMaxEvidenceErate")  . " \\\n"  if (defined(getGlobal("corMaxEvidenceErate")));
     print F "  -C $maxCov \\\n";
@@ -583,6 +585,26 @@ sub buildCorrectionLayouts ($$) {
     return  if (-e "$path/correctReads.sh");           #  Jobs created
 
     make_path("$path")  if (! -d "$path");
+
+    #  This will eventually get rolled into overlap store creation.  Generate a list of scores for
+    #  'global' overlap filtering.
+
+    if (! -e "$path/$asm.globalScores") {
+        my $maxCov = (defined(getGlobal("corMaxEvidenceCoverage"))) ? getGlobal("corMaxEvidenceCoverage") : int(getExpectedCoverage($wrk, $asm) * 1.5);
+        my $minLen = (defined(getGlobal("corMinEvidenceLength")))   ? getGlobal("corMinEvidenceLength")   : 0;
+
+        $cmd  = "$bin/filterCorrectionOverlaps \\\n";
+        $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
+        $cmd .= "  -O $wrk/$asm.ovlStore \\\n";
+        $cmd .= "  -S $path/$asm.globalScores \\\n";
+        $cmd .= "  -c $maxCov \\\n";
+        $cmd .= "  -l $minLen \\\n";
+        $cmd .= "> $path/$asm.globalScores.err 2>&1";
+
+        if (runCommand($path, $cmd)) {
+            caExit("failed to globally filter overlaps for correction", "$path/$asm.globalScores.err");
+        }
+    }
 
     #  For 'quick' filtering, but more reads to correct, sort the reads by length, and correct the
     #  longest Nx of reads.
