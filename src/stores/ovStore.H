@@ -394,11 +394,12 @@ public:
                           uint32      maxOverlaps,
                           bool        restrictToIID=true);
 
-  //  Append ALL remaining overlaps for the current A_iid, as long as A_iid == iid, to the overlaps
-  //  in ovl.  Return value is the number of overlaps in ovl that are for 'iid'.
+  //  Append ALL remaining overlaps for the current A_iid to the overlaps in ovl.  Return value is
+  //  the number of overlaps in ovl that are for A_iid == iid.
   //
-  //  It is up to the client to verify that ovl[0] is the same as iid; ovlLen is the number of
-  //  overlaps in ovl, NOT the number of overlaps in ovl that are the same as iid.
+  //  It is up to the client to verify that ovl[0] is the same as iid (e.g., that the return value
+  //  is not zero); ovlLen is the number of overlaps in ovl, NOT the number of overlaps in ovl that
+  //  are the same as iid.
   //
   uint32       readOverlaps(uint32       iid,
                             ovsOverlap *&ovl,
