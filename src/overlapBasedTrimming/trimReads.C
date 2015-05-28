@@ -102,7 +102,7 @@ main(int argc, char **argv) {
   char             *maxClrName = NULL;
   char             *outClrName = NULL;
 
-  uint32            errorRate      = AS_OVS_encodeEvalue(0.015);
+  uint32            errorValue     = AS_OVS_encodeEvalue(0.015);
   uint32            minAlignLength = 40;
   uint32            minReadLength  = 64;
 
@@ -138,7 +138,7 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-e") == 0) {
       double erate = atof(argv[++arg]);
-      errorRate = AS_OVS_encodeEvalue(erate);
+      errorValue = AS_OVS_encodeEvalue(erate);
 
     } else if (strcmp(argv[arg], "-l") == 0) {
       minAlignLength = atoi(argv[++arg]);
@@ -227,7 +227,7 @@ main(int argc, char **argv) {
 
     fprintf(logFile, "id\tinitL\tinitR\tfinalL\tfinalR\tmessage (DEL=deleted NOC=no change MOD=modified)\n");
 
-    fprintf(sumFile, "Overlap error rate     <= %.4f%% fraction error\n", AS_OVS_decodeEvalue(errorRate));
+    fprintf(sumFile, "Overlap error rate     <= %.4f fraction error\n", AS_OVS_decodeEvalue(errorValue));
     fprintf(sumFile, "Overlap min overlap    >= %u base%s (for 'largest covered')\n", minEvidenceOverlap,  (minEvidenceOverlap  == 1) ? "" : "s");
     fprintf(sumFile, "Overlap min coverage   >= %u read%s (for 'largest covered')\n", minEvidenceCoverage, (minEvidenceCoverage == 1) ? "" : "s");
   }
@@ -307,7 +307,7 @@ main(int argc, char **argv) {
                               read,
                               ibgn, iend, fbgn, fend,
                               logMsg,
-                              errorRate,
+                              errorValue,
                               minEvidenceOverlap,
                               minEvidenceCoverage,
                               minReadLength);
@@ -326,7 +326,7 @@ main(int argc, char **argv) {
                         read,
                         ibgn, iend, fbgn, fend,
                         logMsg,
-                        errorRate,
+                        errorValue,
                         minEvidenceOverlap,
                         minEvidenceCoverage,
                         minReadLength);

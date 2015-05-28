@@ -36,7 +36,7 @@ largestCovered(gkStore     *gkp,
                uint32      &fbgn,
                uint32      &fend,
                char        *logMsg,
-               uint32       errorRate,
+               uint32       errorValue,
                uint32       minOverlap,
                uint32       minCoverage,
                uint32       minReadLength) {
@@ -50,6 +50,9 @@ largestCovered(gkStore     *gkp,
   intervalList<uint32>  ID;
   int32                 iid = read->gkRead_readID();
 
+  uint32                nSkip = 0;
+  uint32                nUsed = 0;
+
   for (uint32 i=0; i<ovlLen; i++) {
     uint32 tbgn = ovl[i].a_bgn(gkp);
     uint32 tend = ovl[i].a_end(gkp);
@@ -57,9 +60,15 @@ largestCovered(gkStore     *gkp,
     assert(tbgn < tend);
     assert(iid == ovl[i].a_iid);
 
-    if (ovl[i].evalue() > errorRate)
+    if (ovl[i].evalue() > errorValue) {
       //  Overlap is crappy.
+      //fprintf(stderr, "skip %2u\n", i);
+      nSkip++;
       continue;
+    }
+
+    //fprintf(stderr, "save %2u\n", i);
+    nUsed++;
 
     IL.add(tbgn, tend - tbgn);
   }
@@ -205,6 +214,8 @@ largestCovered(gkStore     *gkp,
 
   fbgn = IL.lo(0);
   fend = IL.hi(0);
+
+  sprintf(logMsg, "\tskipped %u overlaps; used %u overlaps", nSkip, nUsed);
 
   for (uint32 it=0; it<IL.numberOfIntervals(); it++) {
     if (IL.hi(it) - IL.lo(it) > fend - fbgn) {

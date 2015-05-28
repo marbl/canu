@@ -46,7 +46,7 @@ bestEdge(gkStore     *gkp,
          uint32      &fbgn,
          uint32      &fend,
          char        *logMsg,
-         uint32       errorRate,
+         uint32       errorValue,
          uint32       minOverlap,
          uint32       minCoverage,
          uint32       minReadLength) {
@@ -66,7 +66,7 @@ bestEdge(gkStore     *gkp,
   uint32  lbgn = 0;
   uint32  lend = 0;
 
-  if (largestCovered(gkp, ovl, ovlLen, read, ibgn, iend, lbgn, lend, logMsg, errorRate, minOverlap, minCoverage, minReadLength) == false)
+  if (largestCovered(gkp, ovl, ovlLen, read, ibgn, iend, lbgn, lend, logMsg, errorValue, minOverlap, minCoverage, minReadLength) == false)
     return(false);
 
   //
@@ -104,7 +104,7 @@ bestEdge(gkStore     *gkp,
 
     assert(iid == ovl[i].a_iid);
 
-    if (ovl[i].evalue() > errorRate)
+    if (ovl[i].evalue() > errorValue)
       //  Overlap is crappy.
       continue;
 
