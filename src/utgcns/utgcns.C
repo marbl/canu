@@ -272,11 +272,14 @@ main (int argc, char **argv) {
   //  Decide on what to compute.  Either all unitigs, or a single unitig, or a special case test.
 
   uint32  b = 0;
-  uint32  e = tigStore->numTigs();
+  uint32  e = tigStore->numTigs() - 1;
+
+  if (utgEnd > e)
+    utgEnd = e;
 
   if (utgBgn != UINT32_MAX) {
     b = utgBgn;
-    e = utgEnd + 1;
+    e = utgEnd;
   }
 
   fprintf(stderr, "Computing unitig consensus for b="F_U32" to e="F_U32" with errorRate %0.4f (max %0.4f) and minimum overlap "F_U32"\n",
@@ -284,7 +287,7 @@ main (int argc, char **argv) {
 
   //  Now the usual case.  Iterate over all unitigs, compute and update.
 
-  for (uint32 ti=b; ti<e; ti++) {
+  for (uint32 ti=b; ti<=e; ti++) {
     tgTig  *tig = tigStore->loadTig(ti);  //  Store owns the tig
 
     //fprintf(stderr, "tig %u\n", ti);

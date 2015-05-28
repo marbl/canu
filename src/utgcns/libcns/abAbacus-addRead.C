@@ -169,6 +169,7 @@ abAbacus::addContig() {
 abSeqID
 abAbacus::addRead(gkStore *gkpStore,
                   uint32   readID,
+                  uint32   askip, uint32 bskip,
                   bool     complemented) {
 
   //  Grab the read
@@ -181,7 +182,7 @@ abAbacus::addRead(gkStore *gkpStore,
 
   gkpStore->gkStore_loadReadData(read, &readData);
 
-  uint32  seqLen = read->gkRead_sequenceLength();
+  uint32  seqLen = read->gkRead_sequenceLength() - askip - bskip;
 
   //  Tell abacus about it.
 
@@ -205,8 +206,8 @@ abAbacus::addRead(gkStore *gkpStore,
   //  Stash the bases/quals
 
   {
-    char  *seq = readData.gkReadData_getSequence();
-    char  *qlt = readData.gkReadData_getQualities();
+    char  *seq = readData.gkReadData_getSequence()  + ((complemented == false) ? askip : bskip);
+    char  *qlt = readData.gkReadData_getQualities() + ((complemented == false) ? askip : bskip);
 
     while (_basesMax <= _basesLen + seqLen + 1)
       resizeArrayPair(_bases, _quals, _basesLen, _basesMax, 2 * _basesMax);

@@ -178,7 +178,7 @@ public:
   //  Constructors
   //
 
-  abSeqID         addRead  (gkStore *gkpStore, uint32 readID, bool complemented);  //  Adds gkpStore read 'readID' to the abacus; former AppendFragToLocalStore
+  abSeqID         addRead  (gkStore *gkpStore, uint32 readID, uint32 askip, uint32 bskip, bool complemented);  //  Adds gkpStore read 'readID' to the abacus; former AppendFragToLocalStore
   abSeqID         addUnitig(gkStore *gkpStore, uint32 readID, bool complemented);  //  NOT SUPPORTED
   
   abBeadID        addBead(char base=0, char qual=0);

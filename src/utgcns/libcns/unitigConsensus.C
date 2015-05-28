@@ -120,7 +120,10 @@ unitigConsensus::initialize(gkStore *gkpStore, uint32 *failed) {
     //  Allocate and initialize the beads for each fragment.  Beads are not
     //  inserted in the abacus here.
 
-    abSeqID fid = abacus->addRead(gkpStore, utgpos[i].ident(), utgpos[i].isReverse());
+    abSeqID fid = abacus->addRead(gkpStore,
+                                  utgpos[i].ident(),
+                                  utgpos[i]._askip, utgpos[i]._bskip,
+                                  utgpos[i].isReverse());
 
     //  If this is violated, then the implicit map from utgpos[] and cnspos[] to the unitig child
     //  list is incorrect.
