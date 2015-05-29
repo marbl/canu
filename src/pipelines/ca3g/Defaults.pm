@@ -1104,10 +1104,7 @@ sub setDefaults () {
     #####  Mers
 
     $global{"merylMemory"}                 = undef;
-    $synops{"merylMemory"}                 = "Amount of memory, in gigabytes, to use for mer counting (conflicts with merylSegments)";
-
-    $global{"merylSegments"}               = undef;
-    $synops{"merylSegments"}               = "Number of segments to compute (overrides merylMemory)";
+    $synops{"merylMemory"}                 = "Amount of memory, in gigabytes, to use for mer counting";
 
     $global{"merylThreads"}                = undef;
     $synops{"merylThreads"}                = "Number of threads to use for mer counting";

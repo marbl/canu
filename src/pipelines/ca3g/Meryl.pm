@@ -132,19 +132,14 @@ sub meryl ($$$) {
     #  Build the database.
 
     if (! -e "$ofile.mcdat") {
-        my $mem = getGlobal("merylMemory");
+        my $mem = getGlobal("merylMemory")  * 1024;
         my $thr = getGlobal("merylThreads");
-        my $seg = getGlobal("merylSegments");
 
-        $mem  = 2 * getPhysicalMemorySize() / 3   if (!defined($mem));
-        $mem  = int($mem * 1024);  #  Meryl expects memory in megabytes.
-
-        $thr  =     getNumberOfCPUs()             if (!defined($thr));
-
-        my $merylOpts = "-threads $thr " . (defined($seg) ? "-segments $seg" : "-memory $mem");
+        $mem  = int(2048 * getPhysicalMemorySize() / 3)   if (!defined($mem));
+        $thr  =            getNumberOfCPUs()              if (!defined($thr));
 
         $cmd  = "$bin/meryl \\\n";
-        $cmd .= " -B -C -L 2 -v -m $merSize $merylOpts \\\n";
+        $cmd .= " -B -C -L 2 -v -m $merSize -threads $thr -memory $mem \\\n";
         $cmd .= " -s $wrk/$asm.gkpStore \\\n";
         $cmd .= " -o $ofile \\\n";
         $cmd .= "> $wrk/0-mercounts/meryl.err 2>&1";
