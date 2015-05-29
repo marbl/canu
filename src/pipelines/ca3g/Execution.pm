@@ -555,8 +555,7 @@ sub submitScript ($$$) {
 
     print F getBinDirectoryShellCode();
 
-    #print F "/usr/bin/env perl \$bin/ca3g " . getCommandLineOptions() . "\n";
-    print F "/usr/bin/env perl $0 " . getCommandLineOptions() . "\n";
+    print F "/usr/bin/env perl \$bin/ca3g.pl " . getCommandLineOptions() . "\n";
     close(F);
 
     system("chmod +x $script");
