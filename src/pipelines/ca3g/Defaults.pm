@@ -858,25 +858,31 @@ sub showErrorRates ($) {
     print STDERR "${prefix}\n";
 }
 
+
+
+#  Defaults are set for yeast:
+#    trimming   errorRate = 0.009  obtOvlErrorRate = 0.06  obtErrorRate = 0.035
+#    assembly   errorRate = 0.009  utgOvlErrorRate = 0.06  bogart 0.035
+#
 sub setErrorRate ($) {
     my $er = shift @_;
 
-    print STDERR "\n";
-    print STDERR "SET ERROR RATE TO $er\n";
-    print STDERR "\n";
+    #print STDERR "\n";
+    #print STDERR "SET ERROR RATE TO $er\n";
+    #print STDERR "\n";
 
     #showErrorRates("");
 
     setGlobal("errorRate",          $er);
 
-    setGlobal("corOvlErrorRate",    $er * 3);
-    setGlobal("obtOvlErrorRate",    $er * 3);  #  Generally must be smaller than utgGraphErrorRate
-    setGlobal("utgOvlErrorRate",    $er * 3);
+    setGlobal("corOvlErrorRate",    $er * 6);  #  Not used, except for realigning
+    setGlobal("obtOvlErrorRate",    $er * 6);  #  Generally must be smaller than utgGraphErrorRate
+    setGlobal("utgOvlErrorRate",    $er * 6);
 
     setGlobal("obtErrorRate",       $er * 3);
 
     setGlobal("utgGraphErrorRate",  $er * 3);
-    setGlobal("utgBubbleErrorRate", $er * 3 + 0.5 * $er);
+    setGlobal("utgBubbleErrorRate", $er * 3 + 0.5 * $er);  #  Not tested!
     setGlobal("utgMergeErrorRate",  $er * 3 - 0.5 * $er);
     setGlobal("utgRepeatErrorRate", $er * 3);
 
