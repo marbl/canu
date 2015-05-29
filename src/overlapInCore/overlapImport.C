@@ -77,20 +77,22 @@ main(int argc, char **argv) {
     err++;
 
   if ((err) || (files.size() == 0)) {
-    fprintf(stderr, "usage: %s [options] ascii-ovl-file.[.gz]\n", argv[0]);
+    fprintf(stderr, "usage: %s [options] ascii-ovl-file-input.[.gz]\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "Required:\n");
     fprintf(stderr, "  -G name.gkpStore   path to valid gatekeeper store\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Output options:\n");
     fprintf(stderr, "  -o file.ovb        output file name\n");
-    fprintf(stderr, "  -O name.ovlStore   output overlap store (not implemented)");
+    fprintf(stderr, "  -O name.ovlStore   output overlap store");
     fprintf(stderr, "\n");
     fprintf(stderr, "Format options:\n");
     fprintf(stderr, "  -legacy            'CA8 overlapStore -d' format\n");
     fprintf(stderr, "  -coords            'overlapConvert -coords' format\n");
     fprintf(stderr, "  -hangs             'overlapConvert -hangs' format\n");
     fprintf(stderr, "  -raw               'overlapConvert -raw' format\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Input file can be stdin ('-') or a gz/bz2/xz compressed file.\n");
     fprintf(stderr, "\n");
 
     if (gkpStoreName == NULL)
