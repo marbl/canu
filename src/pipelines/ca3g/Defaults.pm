@@ -1002,10 +1002,10 @@ sub setDefaults () {
 
     #####  Minimums
 
-    $global{"minReadLength"}               = 500;
+    $global{"minReadLength"}               = 1000;
     $synops{"minReadLength"}               = "Reads shorter than this length are not loaded into the assembler";
 
-    $global{"minOverlapLength"}            = 250;
+    $global{"minOverlapLength"}            = 500;
     $synops{"minOverlapLength"}            = "Overlaps shorter than this length are not computed";
 
     #####  Stopping conditions
