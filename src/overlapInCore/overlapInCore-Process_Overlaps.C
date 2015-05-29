@@ -58,9 +58,6 @@ Process_Overlaps(void *ptr){
 
       gkRead   *read = WA->gkpStore->gkStore_getRead(fi);
 
-      if (read->gkRead_isDeleted())
-        continue;
-
       if ((read->gkRead_libraryID() < G.minLibToRef) ||
           (read->gkRead_libraryID() > G.maxLibToRef))
         continue;

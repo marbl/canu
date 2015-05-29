@@ -1072,7 +1072,6 @@ gkStoreStats::init(gkStore *gkp) {
   gkStream     *fs = new gkStream(gkp, 0, 0, GKFRAGMENT_INF);
 
   numActiveFrag     = 0;
-  numDeletedFrag    = 0;
   numMatedFrag      = 0;
   readLength        = 0;
   clearLength       = 0;
@@ -1081,7 +1080,6 @@ gkStoreStats::init(gkStore *gkp) {
   highestID         = new uint32 [gkp->gkStore_getNumLibraries() + 1];
 
   numActivePerLib   = new uint32 [gkp->gkStore_getNumLibraries() + 1];
-  numDeletedPerLib  = new uint32 [gkp->gkStore_getNumLibraries() + 1];
   numMatedPerLib    = new uint32 [gkp->gkStore_getNumLibraries() + 1];
   readLengthPerLib  = new uint64 [gkp->gkStore_getNumLibraries() + 1];
   clearLengthPerLib = new uint64 [gkp->gkStore_getNumLibraries() + 1];
@@ -1091,7 +1089,6 @@ gkStoreStats::init(gkStore *gkp) {
     highestID[i]         = 0;
 
     numActivePerLib[i]   = 0;
-    numDeletedPerLib[i]  = 0;
     numMatedPerLib[i]    = 0;
     readLengthPerLib[i]  = 0;
     clearLengthPerLib[i] = 0;
@@ -1109,19 +1106,14 @@ gkStoreStats::init(gkStore *gkp) {
       highestID[lid] = rid;
     }
 
-    if (fr.gkFragment_getIsDeleted()) {
-      numDeletedFrag++;
-      numDeletedPerLib[lid]++;
-    } else {
-      numActiveFrag++;
-      numActivePerLib[lid]++;
+    numActiveFrag++;
+    numActivePerLib[lid]++;
 
-      readLength             += fr.gkFragment_getSequenceLength();
-      readLengthPerLib[lid]  += fr.gkFragment_getSequenceLength();
+    readLength             += fr.gkFragment_getSequenceLength();
+    readLengthPerLib[lid]  += fr.gkFragment_getSequenceLength();
 
-      clearLength            += fr.gkFragment_getClearRegionLength();
-      clearLengthPerLib[lid] += fr.gkFragment_getClearRegionLength();
-    }
+    clearLength            += fr.gkFragment_getClearRegionLength();
+    clearLengthPerLib[lid] += fr.gkFragment_getClearRegionLength();
   }
 
   delete fs;

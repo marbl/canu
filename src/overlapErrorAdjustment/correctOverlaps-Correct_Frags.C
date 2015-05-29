@@ -233,9 +233,6 @@ Correct_Frags(coParameters *G,
   for (uint32 curID=G->bgnID; curID<=G->endID; curID++) {
     gkRead *read       = gkpStore->gkStore_getRead(curID);
 
-    if (read->gkRead_isDeleted() == true)
-      continue;
-
     gkpStore->gkStore_loadReadData(read, &readData);
 
     uint32  readLength = read->gkRead_sequenceLength();

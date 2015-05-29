@@ -128,9 +128,6 @@ Extract_Needed_Frags(feParameters *G,
   while (fi <= hiID) {
     gkRead *read       = gkpStore->gkStore_getRead(fi);
 
-    //  Reads with overlaps shouldn't be deleted.  Actually, we no longer have deleted reads, yay!
-    assert(read->gkRead_isDeleted() == false);
-
     fl->readIDs[ii]     = fi;
     fl->readBases[ii]   = fl->bases + fl->basesLen;
     fl->basesLen       += read->gkRead_sequenceLength() + 1;

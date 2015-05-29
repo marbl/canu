@@ -428,7 +428,6 @@ Build_Hash_Index(gkStore *gkpStore, uint32 bgnID, uint32 endID) {
   //  can't be computed here, so the real loop below could end earlier than expected - and we
   //  don't use a little bit of memory.
 
-  uint32  nDeleted  = 0;
   uint32  nSkipped  = 0;
   uint32  nLoadable = 0;
 
@@ -439,11 +438,6 @@ Build_Hash_Index(gkStore *gkpStore, uint32 bgnID, uint32 endID) {
                      (total_len <  G.Max_Hash_Data_Len) &&
                      (curID     <= endID)); curID++) {
     gkRead *read = gkpStore->gkStore_getRead(curID);
-
-    if (read->gkRead_isDeleted() == true) {
-      nDeleted++;
-      continue;
-    }
 
     if ((read->gkRead_libraryID() < G.minLibToHash) ||
         (read->gkRead_libraryID() > G.maxLibToHash)) {
@@ -456,8 +450,8 @@ Build_Hash_Index(gkStore *gkpStore, uint32 bgnID, uint32 endID) {
     maxAlloc += read->gkRead_sequenceLength() + 1;
   }
 
-  fprintf(stderr, "Found "F_U32" reads with length "F_U64" to load; "F_U32" deleted and "F_U32" skipped per library restriction\n",
-          nLoadable, maxAlloc, nDeleted, nSkipped);
+  fprintf(stderr, "Found "F_U32" reads with length "F_U64" to load; "F_U32" skipped per library restriction\n",
+          nLoadable, maxAlloc, nSkipped);
 
   //  This should be less than what the user requested on the command line
 
@@ -488,9 +482,6 @@ Build_Hash_Index(gkStore *gkpStore, uint32 bgnID, uint32 endID) {
     //  Duplicated in Process_Overlaps().
 
     gkRead  *read = gkpStore->gkStore_getRead(curID);
-
-    if (read->gkRead_isDeleted() == true)
-      continue;
 
     if ((read->gkRead_libraryID() < G.minLibToHash) ||
         (read->gkRead_libraryID() > G.maxLibToHash))

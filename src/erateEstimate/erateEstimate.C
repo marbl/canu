@@ -64,9 +64,6 @@ public:
     //uint32      lid = read->gkRead_getLibraryIID();
     //gkLibrary  *lb  = gkpStore->gkStore_getLibrary(lid);
 
-    if (read->gkRead_isDeleted() == 1)
-      return(sizeof(readErrorEstimate));
-
     seqLen = read->gkRead_sequenceLength();
 
     errorMeanS      = new uint32 [seqLen + 1];

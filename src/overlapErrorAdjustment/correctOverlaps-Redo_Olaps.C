@@ -303,9 +303,6 @@ Redo_Olaps(coParameters *G, gkStore *gkpStore) {
 
     gkRead *read = gkpStore->gkStore_getRead(curID);
 
-    if (read->gkRead_isDeleted() == true)
-      continue;
-
     gkpStore->gkStore_loadReadData(read, &readData);
 
     //  Apply corrections to the B read (also converts to lower case, reverses it, etc)

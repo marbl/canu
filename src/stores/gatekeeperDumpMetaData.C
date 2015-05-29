@@ -59,11 +59,10 @@ dumpReads(gkStore *gkp, uint32 bgnID, uint32 endID) {
     if (read == NULL)
       continue;
 
-    fprintf(stdout, F_U32"\t"F_U32"\t"F_U32"\t%c\t"F_U64"\t"F_U64"\n",
+    fprintf(stdout, F_U32"\t"F_U32"\t"F_U32"\t"F_U64"\t"F_U64"\n",
             read->gkRead_readID(),
             read->gkRead_libraryID(),
             read->gkRead_sequenceLength(),
-            read->gkRead_isDeleted() ? 'D' : 'v',
             read->gkRead_mPtr(),
             read->gkRead_pID());
   }

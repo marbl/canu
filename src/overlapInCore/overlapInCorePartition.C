@@ -118,8 +118,7 @@ loadReadLengths(gkStore *gkp,
               read->gkRead_readID(), ii);
     assert(read->gkRead_readID() == ii);
 
-    if (read->gkRead_isDeleted() == false)
-      readLen[ii] = read->gkRead_sequenceLength();
+    readLen[ii] = read->gkRead_sequenceLength();
 
     if ((testHash == true) && (doHash[read->gkRead_libraryID()] == true)) {
       if (ii < hashMin)
@@ -270,8 +269,9 @@ partitionLength(gkStore      *gkp,
 
     assert(hashEnd == hashBeg - 1);
 
-    //  Non deleted fragments contribute one byte per untrimmed base,
-    //  and every fragment contributes one more byte for the terminating zero.
+    //  Non deleted reads contribute one byte per untrimmed base, and every fragment contributes one
+    //  more byte for the terminating zero.  In 3g, there are no deleted reads.
+
     do {
       hashEnd++;
       hashLen += readLen[hashEnd] + 1;

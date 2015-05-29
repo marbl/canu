@@ -70,17 +70,13 @@ FragmentInfo::FragmentInfo(const char *gkpStorePath,
     _numMatesInLib[i] = 0;
   }
 
-  uint32 numDeleted = 0;
   uint32 numSkipped = 0;
   uint32 numLoaded  = 0;
 
   for (uint32 fi=1; fi<=_numFragments; fi++) {
     gkRead  *read = gkp->gkStore_getRead(fi);
 
-    if (read->gkRead_isDeleted()) {
-      numDeleted++;
-
-    } else if (read->gkRead_sequenceLength() < minReadLen) {
+    if (read->gkRead_sequenceLength() < minReadLen) {
       numSkipped++;
 
     } else {
@@ -99,9 +95,9 @@ FragmentInfo::FragmentInfo(const char *gkpStorePath,
       numLoaded++;
     }
 
-    if (((numDeleted + numSkipped + numLoaded) % 10000000) == 0)
-      writeLog("FragmentInfo()-- Loading fragment information deleted:%9d skipped:%9d active:%9d\n",
-               numDeleted, numSkipped, numLoaded);
+    if (((numSkipped + numLoaded) % 10000000) == 0)
+      writeLog("FragmentInfo()-- Loading fragment information: skipped:%9d active:%9d\n",
+               numSkipped, numLoaded);
   }
 
   delete gkp;
@@ -131,8 +127,8 @@ FragmentInfo::FragmentInfo(const char *gkpStorePath,
   if (numBroken > 0)
     writeLog("FragmentInfo()-- WARNING!  Removed "F_U32" mate relationships.\n", numBroken);
     
-  writeLog("FragmentInfo()-- Loaded %d alive fragments, skipped %d short and %d dead fragments.\n",
-           numLoaded, numSkipped, numDeleted);
+  writeLog("FragmentInfo()-- Loaded %d alive reads, skipped %d short reads.\n",
+           numLoaded, numSkipped);
 
   save(prefix);
 }

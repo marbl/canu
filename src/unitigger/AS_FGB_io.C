@@ -539,9 +539,6 @@ process_gkp_store_for_fragments(char *gkpStoreName,
   for (uint32 fi=1; fi<=gkp->gkStore_getNumReads(); fi++) {
     gkRead *read = gkp->gkStore_getRead(fi);
 
-    if (read->gkRead_isDeleted())
-      continue;
-
     uint32 iid = read->gkRead_readID();
 
     //  Argh!  This needs to be here, other code depends on the

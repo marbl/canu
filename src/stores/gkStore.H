@@ -24,7 +24,8 @@ using namespace std;
 #define AS_MAX_READS               ((1 << AS_MAX_READS_BITS) - 1)
 
 //  Be aware that overlapper does not work well at large sizes.  Consensus allocates excessive
-//  amounts of memory too.
+//  amounts of memory too.  The current maximum is 21.  Changes to ovsOverlapDAT are needed
+//  to use larger.
 //
 #define AS_MAX_READLEN_BITS        16
 #define AS_MAX_READLEN             ((1 << AS_MAX_READLEN_BITS) - 1)
@@ -262,7 +263,6 @@ public:
     _readID     = 0;
     _libraryID  = 0;
     _seqLen     = 0;
-    _deleted    = false;
     _flagpad    = 0;
 
     _mPtr       = 0;
@@ -277,9 +277,6 @@ public:
   uint32      gkRead_libraryID(void)          { return(_libraryID);        };
 
   uint32      gkRead_sequenceLength(void)     { return(_seqLen);           };
-
-  bool        gkRead_isDeleted(void)          { return(_deleted);          };
-  void        gkRead_isDeleted(bool deleted)  { _deleted = deleted;        };
 
   uint64      gkRead_mPtr(void) { return(_mPtr); };  //  For debugging, in gatekeeperDumpMetatData
   uint64      gkRead_pID(void)  { return(_pID);  };
@@ -312,11 +309,10 @@ private:
   uint64   _readID       : AS_MAX_READS_BITS;       //  Up to 128 million reads
   uint64   _libraryID    : AS_MAX_LIBRARIES_BITS;   //  Up to 256 libraries
   uint64   _seqLen       : AS_MAX_READLEN_BITS;     //  Up to 128 kilobases
-  uint64   _deleted      :  1;                      //  Deleted?
   uint64   _flagpad      : (64 -
                             AS_MAX_READS_BITS -
                             AS_MAX_LIBRARIES_BITS -
-                            AS_MAX_READLEN_BITS - 1);
+                            AS_MAX_READLEN_BITS);
 
   uint64   _mPtr         : 48;      //  Pointer to blob of data in blob file
   uint64   _pID          : 16;      //  Partition file id, 0...1024
@@ -542,7 +538,6 @@ public:
     delete [] highestID;
 
     delete [] numActivePerLib;
-    delete [] numDeletedPerLib;
 
     for (uint32 i=0; i<GKREAD_TYPE_NUM; i++)
       delete [] numByEncPerLib[i];
@@ -556,7 +551,6 @@ public:
   //  Global stats over the whole store
 
   uint32  numActiveFrag;
-  uint32  numDeletedFrag;
   uint32  numByEnc[GKREAD_TYPE_NUM];
   uint64  readLength;
   uint64  clearLength;
@@ -567,7 +561,6 @@ public:
   uint32  *highestID;
 
   uint32  *numActivePerLib;
-  uint32  *numDeletedPerLib;
   uint32 **numByEncPerLib;
   uint64  *readLengthPerLib;
   uint64  *clearLengthPerLib;
