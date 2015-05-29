@@ -112,9 +112,14 @@ public:
 
 uint64
 estimateNumMersInMemorySize(uint32 merSize,
-                            uint32 mem,
+                            uint64 mem,
                             bool   positionsEnabled,
                             bool   beVerbose);
+
+uint64
+estimateMemory(uint32 merSize,
+               uint64 numMers,
+               bool   positionsEnabled);
 
 uint32
 optimalNumberOfBuckets(uint32 merSize,

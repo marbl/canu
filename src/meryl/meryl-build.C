@@ -4,9 +4,6 @@
 #include "merStream.H"
 #include "speedCounter.H"
 
-//#include "../../kmer/libseq/seqStream.H"
-//#include "../../kmer/libseq/merStream.H"
-
 void runThreaded(merylArgs *args);
 
 //  You probably want this to be the same as KMER_WORDS, but in rare
@@ -211,22 +208,12 @@ prepareBatch(merylArgs *args) {
   if (fatalError)
     exit(1);
 
-  if (args->numThreads > 0) {
-    //  If we were given no segment or memory limit, but threads, we
-    //  really want to create n segments.
-    //
-    if ((args->segmentLimit == 0) && (args->memoryLimit == 0)) {
-      args->segmentLimit = args->numThreads;
-    }
+  //  If we were given no segment or memory limit, but threads, we
+  //  really want to create n segments.
+  //
+  if ((args->numThreads > 0) && (args->segmentLimit == 0) && (args->memoryLimit == 0))
+    args->segmentLimit = args->numThreads;
 
-    //  If we are given a memory limit and threads, we want to use that much memory
-    //  total, not per thread.
-    //
-    if ((args->memoryLimit > 0) && (args->numThreads > 0)) {
-      args->segmentLimit = 0;
-      args->memoryLimit /= args->numThreads;
-    }
-  }
 
   {
     seqStream *seqstr = new seqStream(args->inputFile);
@@ -256,53 +243,45 @@ prepareBatch(merylArgs *args) {
 #endif
 
 
-  //  If there is a memory limit, ignore the total number of mers and
-  //  pick a value that fits in memory.
+  //  If there is a memory limit, figure out how to divide the work into an integer multiple of
+  //  numThreads segments.
   //
-  //  Otherwise, if there is a segment limit, split the total number
-  //  of mers into n pieces.  Remember, there cannot be both a
-  //  memoryLimit and a segmentLimit.
+  //  Otherwise, if there is a segment limit, split the total number of mers into n pieces.
   //
   //  Otherwise, we must be doing it all in one fell swoop.
   //
   if (args->memoryLimit) {
     args->mersPerBatch = estimateNumMersInMemorySize(args->merSize, args->memoryLimit, args->positionsEnabled, args->beVerbose);
+
     if (args->mersPerBatch > args->numMersActual)
       args->mersPerBatch = args->numMersActual;
+
+    args->mersPerBatch = (uint64)ceil((double)args->mersPerBatch  / (double)args->numThreads);
     args->segmentLimit = (uint64)ceil((double)args->numMersActual / (double)args->mersPerBatch);
-    if (args->beVerbose)
-      fprintf(stderr, "Have a memory limit: mersPerBatch="F_U64" segmentLimit="F_U64"\n", args->mersPerBatch, args->segmentLimit);
+
+    args->segmentLimit = args->numThreads * (uint32)ceil((double)args->segmentLimit / (double)args->numThreads);
+
   } else if (args->segmentLimit) {
     args->mersPerBatch = (uint64)ceil((double)args->numMersActual / (double)args->segmentLimit);
-    if (args->beVerbose)
-      fprintf(stderr, "Have a segment limit: mersPerBatch="F_U64" segmentLimit="F_U64"\n", args->mersPerBatch, args->segmentLimit);
+
   } else {
     args->mersPerBatch = args->numMersActual;
     args->segmentLimit = 1;
-    if (args->beVerbose)
-      fprintf(stderr, "Have NO LIMITS!: mersPerBatch="F_U64" segmentLimit="F_U64"\n", args->mersPerBatch, args->segmentLimit);
   }
 
   args->basesPerBatch = (uint64)ceil((double)args->numBasesActual / (double)args->segmentLimit);
-  if (args->beVerbose)
-    fprintf(stderr, "basesPerBatch = "F_U64"\n", args->basesPerBatch);
 
-  //  Choose the optimal number of buckets to reduce memory usage.
-  //  Yes, this is already done in estimateNumMersInMemorySize() (but
-  //  not saved) and we need to do it for the other cases anyway.
+  //  Choose the optimal number of buckets to reduce memory usage.  Yes, this is already done in
+  //  estimateNumMersInMemorySize() (but not saved) and we need to do it for the other cases anyway.
   //
-  //  We use the number of mers per batch + 1 because we need to store
-  //  the first position after the last mer.  That is, if there are
-  //  two mers, we will store that the first mer is at position 0, the
-  //  second mer is at position 1, and the end of the second mer is at
-  //  position 2.
+  //  We use the number of mers per batch + 1 because we need to store the first position after the
+  //  last mer.  That is, if there are two mers, we will store that the first mer is at position 0,
+  //  the second mer is at position 1, and the end of the second mer is at position 2.
   //
   args->bucketPointerWidth = logBaseTwo64(args->basesPerBatch + 1);
   args->numBuckets_log2    = optimalNumberOfBuckets(args->merSize, args->basesPerBatch, args->positionsEnabled);
   args->numBuckets         = (uint64ONE << args->numBuckets_log2);
   args->merDataWidth       = args->merSize * 2 - args->numBuckets_log2;
-  //args->bucketPointerMask  = uint64MASK(args->numBuckets_log2);
-
 
   if (args->merDataWidth > SORTED_LIST_WIDTH * 64) {
     fprintf(stderr, "  numMersActual      = "F_U64"\n", args->numMersActual);
@@ -317,11 +296,15 @@ prepareBatch(merylArgs *args) {
 
   if (args->beVerbose) {
     if (args->memoryLimit)
-      fprintf(stderr, "Computing "F_U64" segments using "F_U64"MB memory each.\n",
-              args->segmentLimit, args->memoryLimit);
+      fprintf(stderr, "Computing "F_U64" segments using "F_U32" threads and "F_U64"MB memory ("F_U64"MB if in one batch).\n",
+              args->segmentLimit, args->numThreads,
+              estimateMemory(args->merSize, args->mersPerBatch, args->positionsEnabled) * args->numThreads,
+              estimateMemory(args->merSize, args->numMersActual, args->positionsEnabled));
     else
-      fprintf(stderr, "Computing "F_U64" segments using AS MUCH MEMORY AS NEEDED.\n",
-              args->segmentLimit);
+      fprintf(stderr, "Computing "F_U64" segments using "F_U32" threads and "F_U64"MB memory ("F_U64"MB if in one batch).\n",
+              estimateMemory(args->merSize, args->mersPerBatch, args->positionsEnabled) * args->numThreads,
+              estimateMemory(args->merSize, args->numMersActual, args->positionsEnabled));
+
     fprintf(stderr, "  numMersActual      = "F_U64"\n", args->numMersActual);
     fprintf(stderr, "  mersPerBatch       = "F_U64"\n", args->mersPerBatch);
     fprintf(stderr, "  basesPerBatch      = "F_U64"\n", args->basesPerBatch);

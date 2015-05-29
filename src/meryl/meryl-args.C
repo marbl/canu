@@ -424,7 +424,7 @@ merylArgs::merylArgs(int argc, char **argv) {
       personality = 'h';
     } else if (strcmp(argv[arg], "-memory") == 0) {
       arg++;
-      memoryLimit = strtouint64(argv[arg]);
+      memoryLimit = strtouint64(argv[arg]) * 1024 * 1024;
     } else if (strcmp(argv[arg], "-segments") == 0) {
       arg++;
       segmentLimit = strtouint64(argv[arg]);
