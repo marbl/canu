@@ -97,6 +97,6 @@ fi
 
 #  Remove the junk
 
-#rm -rf File-Path-2.09
-#rm -rf Filesys-Df-0.92
+rm -rf File-Path-2.09
+rm -rf Filesys-Df-0.92
 
