@@ -60,7 +60,7 @@ public:
   ovsOverlapWORD  alignPosLo     : 32;                    //  Position in that file (low-order bits)
 };
 
-#else
+#elif AS_MAX_READLEN_BITS < 22
 
 #define        ovsOverlapNWORDS  3
 typedef uint64 ovsOverlapWORD;
@@ -68,7 +68,7 @@ typedef uint64 ovsOverlapWORD;
 #define        F_OVP  F_U64P
 
 class ovsOverlapDAT {
-puublic:
+public:
   ovsOverlapWORD  ahg5           : AS_MAX_READLEN_BITS;   //  17-21
   ovsOverlapWORD  ahg3           : AS_MAX_READLEN_BITS;   //  17-21
   ovsOverlapWORD  evalue         : AS_MAX_EVALUE_BITS;    //  12
@@ -81,11 +81,39 @@ puublic:
   ovsOverlapWORD  bhg5           : AS_MAX_READLEN_BITS;   //  17-21
   ovsOverlapWORD  bhg3           : AS_MAX_READLEN_BITS;   //  17-21
   ovsOverlapWORD  span           : AS_MAX_READLEN_BITS;   //  17-21
-  ovsOverlapWORD  extra2         : 64 - 3 * AS_MAX_READLEN_BITS;                          //  Between 13 and 1
+  ovsOverlapWORD  extra2         : 64 - 3 * AS_MAX_READLEN_BITS;  //  Between 13 and 1
 
   ovsOverlapWORD  alignSwapped   : 1;                     //  Our IDs are opposite those in the alignment
   ovsOverlapWORD  alignFile      : 19;                    //  Which file of overlap alignments
   ovsOverlapWORD  alignPos       : 44;                    //  Position in that file
+};
+
+#else
+
+#define        ovsOverlapNWORDS  8
+typedef uint32 ovsOverlapWORD;
+#define        F_OV   F_U32
+#define        F_OVP  F_U32P
+
+class ovsOverlapDAT {
+public:
+  ovsOverlapWORD  ahg5;
+  ovsOverlapWORD  ahg3;
+  ovsOverlapWORD  bhg5;
+  ovsOverlapWORD  bhg3;
+  ovsOverlapWORD  span;
+
+  ovsOverlapWORD  evalue         : AS_MAX_EVALUE_BITS;    //  12
+  ovsOverlapWORD  flipped        : 1;                     //  1
+  ovsOverlapWORD  forOBT         : 1;                     //  1
+  ovsOverlapWORD  forDUP         : 1;                     //  1
+  ovsOverlapWORD  forUTG         : 1;                     //  1
+  ovsOverlapWORD  extra          : 32 - AS_MAX_EVALUE_BITS - 1 - 1 - 1 - 1;  //  Between 15 and 7
+
+  ovsOverlapWORD  alignSwapped   : 1;                     //  Our IDs are opposite those in the alignment
+  ovsOverlapWORD  alignFile      : 19;                    //  Which file of overlap alignments
+  ovsOverlapWORD  alignPosHi     : 12;                    //  Position in that file (high-order bits)
+  ovsOverlapWORD  alignPosLo     : 32;                    //  Position in that file (low-order bits)
 };
 
 #endif

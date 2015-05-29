@@ -11,24 +11,40 @@ using namespace std;
 
 //  The number of library IIDs we can handle.
 //
-#define AS_MAX_LIBRARIES_BITS      8
-#define AS_MAX_LIBRARIES           ((1 << AS_MAX_LIBRARIES_BITS) - 1)
+#define AS_MAX_LIBRARIES_BITS      6
+#define AS_MAX_LIBRARIES           (((uint32)1 << AS_MAX_LIBRARIES_BITS) - 1)
 
 #define LIBRARY_NAME_SIZE          128
 #define LIBRARY_NAME_DEFAULT      "UNDEFINED"
 
-//  The number of read IDs we can handle.  This has more implications for
-//  ovlStore than gkpStore.  The default of 27 = 134.2 million reads.
+//  Maximum length of reads.
 //
-#define AS_MAX_READS_BITS          27
-#define AS_MAX_READS               ((1 << AS_MAX_READS_BITS) - 1)
+//  If 16, an overlap is only 20 bytes.  (5x 32 bit words)
+//  If 17-21, an overlap is 24 bytes.    (3x 64 bit words)
+//  If 22-32, an overlap is 32 bytes.    (4x 64 bit words)
+//
+//  If 28, alignment/alignment-drivers.C won't link
+//  If 29, alignment/alignment-drivers.C won't link
+//  If 30, alignment/alignment-drivers.C won't link
+//  If 31, alignment/alignment-drivers.C won't compile, len+len+2 == 0
+//  If 32, it won't compile because of shifting (uint32)1 << 32 == 0.
+//
+#define AS_MAX_READLEN_BITS        21
+#define AS_MAX_READLEN             (((uint32)1 << AS_MAX_READLEN_BITS) - 1)
 
-//  Be aware that overlapper does not work well at large sizes.  Consensus allocates excessive
-//  amounts of memory too.  The current maximum is 21.  Changes to ovsOverlapDAT are needed
-//  to use larger.
+//  The number of read IDs we can handle.  Longer reads implies fewer reads.
+//    readLen 32 + numLibs 6 -> numReads 26 ( 64  million)
+//    readLen 30 + numLibs 6 -> numReads 28 (256  million)
+//    readLen 28 + numLibs 6 -> numReads 30 (1024 million)
+//    readLen 26 + numLibs 6 -> numReads 32 (4096 million)  //  limited elsewhere!
+//    readLen 24 + numLibs 6 -> numReads 34 (4096 million)  //  limited elsewhere!
+//    readLen 22 + numLibs 6 -> numReads 36 (4096 million)  //  limited elsewhere!
+//    readLen 21 + numLibs 6 -> numReads 37 (4096 million)  //  limited elsewhere!
+//    readLen 20 + numLibs 6 -> numReads 38 (4096 million)  //  limited elsewhere!
 //
-#define AS_MAX_READLEN_BITS        16
-#define AS_MAX_READLEN             ((1 << AS_MAX_READLEN_BITS) - 1)
+#define AS_MAX_READS_BITS          64 - AS_MAX_READLEN_BITS - AS_MAX_LIBRARIES_BITS
+#define AS_MAX_READS               (((uint64)1 << AS_MAX_READS_BITS) - 1)
+
 
 //  This indirectly controls how much sequence can be loaded, in that the store
 //  can address 2^32 blocks of this many bytes.  QVs are stored in 5/8 of a byte,
@@ -263,7 +279,6 @@ public:
     _readID     = 0;
     _libraryID  = 0;
     _seqLen     = 0;
-    _flagpad    = 0;
 
     _mPtr       = 0;
     _pID        = 0;
@@ -306,13 +321,10 @@ private:
   void     gkRead_copyDataToPartition(void *blobs, FILE **partfiles, uint64 *partfileslen, uint32 partID);
 
 private:
-  uint64   _readID       : AS_MAX_READS_BITS;       //  Up to 128 million reads
-  uint64   _libraryID    : AS_MAX_LIBRARIES_BITS;   //  Up to 256 libraries
-  uint64   _seqLen       : AS_MAX_READLEN_BITS;     //  Up to 128 kilobases
-  uint64   _flagpad      : (64 -
-                            AS_MAX_READS_BITS -
-                            AS_MAX_LIBRARIES_BITS -
-                            AS_MAX_READLEN_BITS);
+
+  uint64   _readID       : AS_MAX_READS_BITS;
+  uint64   _libraryID    : AS_MAX_LIBRARIES_BITS;
+  uint64   _seqLen       : AS_MAX_READLEN_BITS;
 
   uint64   _mPtr         : 48;      //  Pointer to blob of data in blob file
   uint64   _pID          : 16;      //  Partition file id, 0...1024
