@@ -8,11 +8,7 @@ ifeq "$(strip ${TARGET_DIR})" ""
 endif
 
 TARGET   := overlapPair
-SOURCES  := overlapPair.C \
-            prefixEditDistance-allocateMoreSpace.C \
-            prefixEditDistance-extend.C \
-            prefixEditDistance-forward.C \
-            prefixEditDistance-reverse.C
+SOURCES  := overlapPair.C
 
 SRC_INCDIRS  := .. ../AS_UTL ../stores ../meryl/libleaff liboverlap
 

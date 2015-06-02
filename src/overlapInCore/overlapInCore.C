@@ -138,7 +138,11 @@ Initialize_Work_Area(Work_Area_t *WA, int id) {
 
   allocated += sizeof(ovsOverlap) * WA->overlapsMax;
 
+  fprintf(stderr, "Initialize_Work_Area()-- new prefixEditDistance\n");
+
   WA->editDist = new prefixEditDistance(G.Doing_Partial_Overlaps, G.maxErate);
+
+  fprintf(stderr, "Initialize_Work_Area()-- done\n");
 }
 
 
@@ -156,9 +160,13 @@ Delete_Work_Area(Work_Area_t *WA) {
 int
 OverlapDriver(void) {
 
+  fprintf(stderr, "OverlapDriver()--\n");
+
   pthread_t      *thread_id = new pthread_t   [G.Num_PThreads];
+  fprintf(stderr, "OverlapDriver()--  WA\n");
   Work_Area_t    *thread_wa = new Work_Area_t [G.Num_PThreads];
 
+  fprintf(stderr, "OverlapDriver()--  gkpStore\n");
   gkStore        *gkpStore  = new gkStore(G.Frag_Store_Path);
 
   pthread_attr_t  attr;
@@ -168,9 +176,12 @@ OverlapDriver(void) {
   pthread_mutex_init(&Write_Proto_Mutex, NULL);
 
   for (uint32 i=0;  i<G.Num_PThreads;  i++) {
+    fprintf(stderr, "OverlapDriver()--  Initialize_Work_Area %u\n", i);
     Initialize_Work_Area(thread_wa+i, i);
     thread_wa[i].gkpStore = gkpStore;
   }
+
+  fprintf(stderr, "OverlapDriver()--  Initialized\n");
 
   //  Command line options are Lo_Hash_Frag and Hi_Hash_Frag
   //  Command line options are Lo_Old_Frag and Hi_Old_Frag
@@ -189,6 +200,8 @@ OverlapDriver(void) {
 
   //  Iterate over read blocks, build a hash table, then search in threads.
 
+  fprintf(stderr, "OverlapDriver()--  Loop top\n");
+
   while (bgnHashID < G.endHashID) {
     if (endHashID > G.endHashID)
       endHashID = G.endHashID;
@@ -199,6 +212,8 @@ OverlapDriver(void) {
 
     //  Load as much as we can.  If we load less than expected, the endHashID is updated to reflect
     //  the last read loaded.
+
+  fprintf(stderr, "OverlapDriver()--  Build_Hash_Index\n");
 
     endHashID = Build_Hash_Index(gkpStore, bgnHashID, endHashID);
 
@@ -295,7 +310,6 @@ OverlapDriver(void) {
 int
 main(int argc, char **argv) {
   int  illegal;
-  char  * p;
 
   argc = AS_configure(argc, argv);
 
@@ -381,9 +395,9 @@ main(int argc, char **argv) {
 
 
     } else if (strcmp(argv[arg], "--minlength") == 0) {
-      G.Min_Olap_Len = strtol (argv[++arg], & p, 10);
+      G.Min_Olap_Len = strtol (argv[++arg], NULL, 10);
     } else if (strcmp(argv[arg], "--maxerate") == 0) {
-      G.maxErate = strtof (argv[++arg], & p);
+      G.maxErate = ceil(strtof(argv[++arg], NULL));
 
     } else if (strcmp(argv[arg], "-w") == 0) {
       G.Use_Window_Filter = TRUE;
@@ -451,7 +465,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "-w          filter out overlaps with too many errors in a window\n");
     fprintf(stderr, "-z          skip the hopeless check\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "--maxerror <n>     only output overlaps with fraction <n> or less error (e.g., 0.06 == 6%%)\n");
+    fprintf(stderr, "--maxerate <n>     only output overlaps with fraction <n> or less error (e.g., 0.06 == 6%%)\n");
     fprintf(stderr, "--minlength <n>    only output overlaps of <n> or more bases\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "--hashbits n       Use n bits for the hash mask.\n");

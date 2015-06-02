@@ -13,16 +13,13 @@
 
 
 //  Return the smallest  n >= Start  s.t.
-//    prob [>= e  errors in  n  binomial trials (p = error prob)] > Limit
+//    prob [>= e  errors in  n  binomial trials (p = error prob)] > EDIT_DIST_PROB_BOUND
 //
 int
 Binomial_Bound(int e, double p, int Start) {
   double  Normal_Z, Mu_Power, Factorial, Poisson_Coeff;
   double  q, Sum, P_Power, Q_Power, X;
   int  k, n, Bin_Coeff, Ct;
-
-  //  Was a parameter, but always set to this value.
-  double Limit = EDIT_DIST_PROB_BOUND;
 
   q = 1.0 - p;
   if (Start < e)
@@ -36,7 +33,7 @@ Binomial_Bound(int e, double p, int Start) {
       P_Power = 1.0;
       Q_Power = pow (q, n);
 
-      for (k = 0;  k < e && 1.0 - Sum > Limit;  k ++) {
+      for (k = 0;  k < e && 1.0 - Sum > EDIT_DIST_PROB_BOUND;  k ++) {
         X = Bin_Coeff * P_Power * Q_Power;
         Sum += X;
         Bin_Coeff *= n - Ct;
@@ -45,7 +42,7 @@ Binomial_Bound(int e, double p, int Start) {
         Q_Power /= q;
       }
 
-      if (1.0 - Sum > Limit)
+      if (1.0 - Sum > EDIT_DIST_PROB_BOUND)
         return(n);
 
     } else {
@@ -75,7 +72,7 @@ Binomial_Bound(int e, double p, int Start) {
       }
 #endif
 
-      if (1.0 - Sum > Limit)
+      if (1.0 - Sum > EDIT_DIST_PROB_BOUND)
         return(n);
     }
   }
