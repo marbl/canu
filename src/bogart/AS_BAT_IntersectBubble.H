@@ -24,8 +24,8 @@
 
 static const char *rcsid_INCLUDE_AS_BAT_INTERSECTBUBBLE = "$Id$";
 
-void popIntersectionBubbles(UnitigVector &unitigs);
-void popMateBubbles(UnitigVector &unitigs);
-void popOverlapBubbles(UnitigVector &unitigs);
+void popIntersectionBubbles(UnitigVector &unitigs, double erateBubble);
+void popMateBubbles(UnitigVector &unitigs, double erateBubble);
+void popOverlapBubbles(UnitigVector &unitigs, double erateBubble);
 
 #endif  //  INCLUDE_AS_BAT_INTERSECTBUBBLE

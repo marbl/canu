@@ -206,9 +206,6 @@ OverlapCache::OverlapCache(ovStore *ovlStoreUniq,
   //_threadMax = omp_get_max_threads();
   //_thread    = new OverlapCacheThreadData [_threadMax];
 
-  _OVSerate     = NULL;
-  _BATerate     = NULL;
-
   _ovlStoreUniq = ovlStoreUniq;
   _ovlStoreRept = ovlStoreRept;
 
@@ -219,7 +216,6 @@ OverlapCache::OverlapCache(ovStore *ovlStoreUniq,
     fprintf(stderr, "OverlapCache()-- ERROR: not enough memory to load ANY overlaps.\n"), exit(1);
 
   computeOverlapLimit();
-  computeErateMaps(erate);
   loadOverlaps(erate, minOverlap, prefix, onlySave, doSave);
 
   delete [] _ovs;       _ovs    = NULL;
@@ -240,9 +236,6 @@ OverlapCache::~OverlapCache() {
     _stor = NULL;
     delete _cacheMMF;
   }
-
-  delete [] _BATerate;
-  delete [] _OVSerate;
 
   delete [] _ovs;
 
@@ -424,70 +417,11 @@ OverlapCache::computeOverlapLimit(void) {
 }
 
 
-//  Compute erate the scaling maps.
-//
-//  OVSerate converts a 12-bit OVS error rate to a log-scaled 7-bit error rate.  We can set this
-//  in any order.
-//
-//  BATerate converts the log-scaled 7-bit error rate to a floating point 'fraction error'.
-//  This needs to be set high-to-low -- otherwise BATerate[0] = 0.0001.  This isn't critical;
-//  as far as I remember, this is only used for relative scoring of overlap-based placement.
-//
-//  THERE ARE HOLES in this encoding.  By about _OVSerate[16] the holes go away -- value 42.
-//
-//    _OVSerate[0] = 0
-//    _OVSerate[1] = 0
-//    _OVSerate[2] = 10
-//    _OVSerate[3] = 16
-//    _OVSerate[4] = 21
-//
-//  The holes shouldn't hurt (and are valgrind clean) since we use OVSerate to
-//  convert to .erate, and we create BATerate for all valid OVSerate values.
-//
-void
-OverlapCache::computeErateMaps(double erate) {
-
-  _OVSerate = new uint32 [1 << AS_MAX_EVALUE_BITS];
-  _BATerate = new double [1 << AS_BAT_ERR_BITS];
-
-  _memUsed += (1 << AS_MAX_EVALUE_BITS) * sizeof(uint32);
-  _memUsed += (1 << AS_BAT_ERR_BITS)    * sizeof(double);
-
-  fprintf(stderr, "OverlapCache::computeErateMaps()-- AS_MAX_EVALUE_BITS   = %u\n", AS_MAX_EVALUE_BITS);
-  fprintf(stderr, "OverlapCache::computeErateMaps()-- AS_BAT_ERR_BITS      = %u\n", AS_BAT_ERR_BITS);
-
-  //  If bits are the same, we can use an exact encoding.  If not, use a lossy -- and probably
-  //  broken -- encoding.
-
-  if (AS_MAX_EVALUE_BITS == AS_BAT_ERR_BITS)
-    for (uint32 i=0; i<1 << AS_MAX_EVALUE_BITS; i++)
-      _OVSerate[i] = i;
-
-  else
-    for (uint32 i=0; i<1 << AS_MAX_EVALUE_BITS; i++)
-      _OVSerate[i] = (uint32)floor((1 << AS_BAT_ERR_BITS) * log(i) / log(1 << AS_MAX_EVALUE_BITS));
-
-  assert(_OVSerate[(1 << AS_MAX_EVALUE_BITS) - 1] < 1 << AS_BAT_ERR_BITS);
-
-  for (uint32 i=0; i<1 << AS_MAX_EVALUE_BITS; i++)
-    _BATerate[_OVSerate[i]] = AS_OVS_decodeEvalue(i);
-
-#if 0
-  for (uint32 i=0; i<1 << AS_MAX_EVALUE_BITS; i++)
-    fprintf(stderr, "OVSerate[%5d] = %5d == %.4f\n",
-            i,
-            _OVSerate[i],
-            _BATerate[_OVSerate[i]]);
-
-  exit(1);
-#endif
-}
-
 
 
 
 uint32
-OverlapCache::filterOverlaps(uint32 maxOVSerate, uint32 minOverlap, uint32 no) {
+OverlapCache::filterOverlaps(uint32 maxEvalue, uint32 minOverlap, uint32 no) {
   uint32 ns = 0;
 
   //  Score the overlaps.
@@ -505,7 +439,7 @@ OverlapCache::filterOverlaps(uint32 maxOVSerate, uint32 minOverlap, uint32 no) {
       //  At least one read deleted in the overlap
       continue;
 
-    if (_ovs[ii].evalue() > maxOVSerate)
+    if (_ovs[ii].evalue() > maxEvalue)
       //  Too noisy.
       continue;
 
@@ -562,11 +496,11 @@ OverlapCache::filterOverlaps(uint32 maxOVSerate, uint32 minOverlap, uint32 no) {
 
 void
 OverlapCache::loadOverlaps(double erate, uint32 minOverlap, const char *prefix, bool onlySave, bool doSave) {
-  uint64   numTotal    = 0;
-  uint64   numLoaded   = 0;
-  uint32   numFrags    = 0;
-  uint32   numOvl      = 0;
-  uint32   maxOVSerate = AS_OVS_encodeEvalue(erate);
+  uint64   numTotal     = 0;
+  uint64   numLoaded    = 0;
+  uint32   numFrags     = 0;
+  uint32   numOvl       = 0;
+  uint32   maxEvalue    = AS_OVS_encodeEvalue(erate);
 
   FILE    *ovlDat = NULL;
 
@@ -626,7 +560,7 @@ OverlapCache::loadOverlaps(double erate, uint32 minOverlap, const char *prefix, 
 
     //  Actually load the overlaps.
     uint32  no = _ovlStoreUniq->readOverlaps(_ovs, _ovsMax);
-    uint32  ns = filterOverlaps(maxOVSerate, minOverlap, no);
+    uint32  ns = filterOverlaps(maxEvalue, minOverlap, no);
 
     //  Resize the permament storage space for overlaps.
     if ((_storLen + ns > _storMax) ||
@@ -658,7 +592,7 @@ OverlapCache::loadOverlaps(double erate, uint32 minOverlap, const char *prefix, 
       if (_ovsSco[ii] == 0)
         continue;
 
-      _stor[_storLen].evalue  = _OVSerate[_ovs[ii].evalue()];
+      _stor[_storLen].evalue  = _ovs[ii].evalue();
       _stor[_storLen].a_hang  = _ovs[ii].a_hang();
       _stor[_storLen].b_hang  = _ovs[ii].b_hang();
       _stor[_storLen].flipped = _ovs[ii].flipped();
@@ -693,30 +627,36 @@ OverlapCache::loadOverlaps(double erate, uint32 minOverlap, const char *prefix, 
 
 
 BAToverlap *
-OverlapCache::getOverlaps(uint32 fragIID, uint32 &numOverlaps) {
+OverlapCache::getOverlaps(uint32 fragIID, double maxErate, uint32 &numOverlaps) {
   uint32 tid = omp_get_thread_num();
 
-  numOverlaps = _cacheLen[fragIID];
-
-  while (_thread[tid]._batMax <= numOverlaps) {
+  while (_thread[tid]._batMax <= _cacheLen[fragIID]) {
     _thread[tid]._batMax *= 2;
     delete [] _thread[tid]._bat;
     _thread[tid]._bat = new BAToverlap [_thread[tid]._batMax];
   }
 
-  BAToverlapInt *ptr = _cachePtr[fragIID];
+  BAToverlapInt *ptr       = _cachePtr[fragIID];
+  uint32         maxEvalue = AS_OVS_encodeEvalue(maxErate);
 
-  for (uint32 pos=0; pos < numOverlaps; pos++) {
-    _thread[tid]._bat[pos].a_hang   = ptr[pos].a_hang;
-    _thread[tid]._bat[pos].b_hang   = ptr[pos].b_hang;
+  numOverlaps = 0;
 
-    _thread[tid]._bat[pos].flipped  = ptr[pos].flipped;
+  for (uint32 pos=0; pos < _cacheLen[fragIID]; pos++) {
+    if (ptr[pos].evalue > maxEvalue)
+      continue;
 
-    _thread[tid]._bat[pos].evalue   = ptr[pos].evalue;
-    _thread[tid]._bat[pos].erate    = decodeEvalue(ptr[pos].evalue);
+    _thread[tid]._bat[numOverlaps].a_hang   = ptr[pos].a_hang;
+    _thread[tid]._bat[numOverlaps].b_hang   = ptr[pos].b_hang;
 
-    _thread[tid]._bat[pos].a_iid    = fragIID;
-    _thread[tid]._bat[pos].b_iid    = ptr[pos].b_iid;
+    _thread[tid]._bat[numOverlaps].flipped  = ptr[pos].flipped;
+
+    _thread[tid]._bat[numOverlaps].evalue   = ptr[pos].evalue;
+    _thread[tid]._bat[numOverlaps].erate    = AS_OVS_decodeEvalue(ptr[pos].evalue);
+
+    _thread[tid]._bat[numOverlaps].a_iid    = fragIID;
+    _thread[tid]._bat[numOverlaps].b_iid    = ptr[pos].b_iid;
+
+    numOverlaps++;
   }
 
   return(_thread[tid]._bat);
@@ -779,9 +719,9 @@ OverlapCache::removeWeakOverlaps(uint32 *minEvalue5p,
 
       if ((evalue > ta) ||
           (evalue > tb)) {
-        //fprintf(stdout, "OverlapCache::removeWeakOverlaps()--  remove %7d %7d at %.3f\n", aiid, biid, OC->decodeEvalue(evalue));
+        //fprintf(stdout, "OverlapCache::removeWeakOverlaps()--  remove %7d %7d at %.3f\n", aiid, biid, AS_OVS_decodeEvalue(evalue));
         removed++;
-        ptr[pos].evalue = AS_BAT_ERR_MAX;
+        ptr[pos].evalue = AS_MAX_EVALUE;
       } else {
         saved++;
       }
@@ -801,11 +741,11 @@ OverlapCache::findErate(uint32 aIID, uint32 bIID) {
 
   for (uint32 pos=0; pos < _cacheLen[aIID]; pos++)
     if (_cachePtr[aIID][pos].b_iid == bIID)
-      return(decodeEvalue(_cachePtr[aIID][pos].evalue));
+      return(AS_OVS_decodeEvalue(_cachePtr[aIID][pos].evalue));
 
   for (uint32 pos=0; pos < _cacheLen[bIID]; pos++)
     if (_cachePtr[bIID][pos].b_iid == aIID)
-      return(decodeEvalue(_cachePtr[bIID][pos].evalue));
+      return(AS_OVS_decodeEvalue(_cachePtr[bIID][pos].evalue));
 
   return(1.0);
 }
@@ -834,12 +774,10 @@ OverlapCache::load(const char *prefix, double erate, uint64 memlimit, uint32 max
     fprintf(stderr, "OverlapCache()-- Failed to open '%s' for reading: %s\n", name, strerror(errno)), exit(1);
 
   uint64   magic      = ovlCacheMagic;
-  uint32   baterrbits = AS_BAT_ERR_BITS;
   uint32   ovserrbits = AS_MAX_EVALUE_BITS;
   uint32   ovshngbits = AS_MAX_READLEN_BITS + 1;
 
   AS_UTL_safeRead(file, &magic,      "overlapCache_magic",      sizeof(uint64), 1);
-  AS_UTL_safeRead(file, &baterrbits, "overlapCache_baterrbits", sizeof(uint32), 1);
   AS_UTL_safeRead(file, &ovserrbits, "overlapCache_ovserrbits", sizeof(uint32), 1);
   AS_UTL_safeRead(file, &ovshngbits, "overlapCache_ovshngbits", sizeof(uint32), 1);
 
@@ -856,12 +794,6 @@ OverlapCache::load(const char *prefix, double erate, uint64 memlimit, uint32 max
 
   _threadMax = omp_get_max_threads();
   _thread    = new OverlapCacheThreadData [_threadMax];
-
-  _OVSerate = new uint32 [1 << AS_MAX_EVALUE_BITS];
-  _BATerate = new double [1 << AS_BAT_ERR_BITS];
-
-  AS_UTL_safeRead(file,  _OVSerate, "overlapCache_OVSerate", sizeof(uint32), 1 << AS_MAX_EVALUE_BITS);
-  AS_UTL_safeRead(file,  _BATerate, "overlapCache_BATerate", sizeof(double), 1 << AS_BAT_ERR_BITS);
 
   _cachePtr = new BAToverlapInt * [FI->numFragments() + 1];
   _cacheLen = new uint32          [FI->numFragments() + 1];
@@ -983,12 +915,10 @@ OverlapCache::save(const char *prefix, double erate, uint64 memlimit, uint32 max
     fprintf(stderr, "OverlapCache()-- Failed to open '%s' for writing: %s\n", name, strerror(errno)), exit(1);
 
   uint64   magic      = ovlCacheMagic;
-  uint32   baterrbits = AS_BAT_ERR_BITS;
   uint32   ovserrbits = AS_MAX_EVALUE_BITS;
   uint32   ovshngbits = AS_MAX_READLEN_BITS + 1;
 
   AS_UTL_safeWrite(file, &magic,      "overlapCache_magic",      sizeof(uint64), 1);
-  AS_UTL_safeWrite(file, &baterrbits, "overlapCache_baterrbits", sizeof(uint32), 1);
   AS_UTL_safeWrite(file, &ovserrbits, "overlapCache_ovserrbits", sizeof(uint32), 1);
   AS_UTL_safeWrite(file, &ovshngbits, "overlapCache_ovshngbits", sizeof(uint32), 1);
 
@@ -997,9 +927,6 @@ OverlapCache::save(const char *prefix, double erate, uint64 memlimit, uint32 max
 
   AS_UTL_safeWrite(file, &_maxPer, "overlapCache_maxPer", sizeof(uint32), 1);
   AS_UTL_safeWrite(file, &_maxPer, "overlapCache_batMax", sizeof(uint32), 1);  //  COMPATIBILITY, REMOVE
-
-  AS_UTL_safeWrite(file,  _OVSerate, "overlapCache_OVSerate", sizeof(uint32), 1 << AS_MAX_EVALUE_BITS);
-  AS_UTL_safeWrite(file,  _BATerate, "overlapCache_BATerate", sizeof(double), 1 << AS_BAT_ERR_BITS);
 
   AS_UTL_safeWrite(file,  _cacheLen, "overlapCache_cacheLen", sizeof(uint32), FI->numFragments() + 1);
 

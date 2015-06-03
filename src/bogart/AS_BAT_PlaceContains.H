@@ -30,7 +30,8 @@ void placeContainsUsingBestOverlaps(Unitig      *target,
                                     set<uint32> *fragments);
 
 void placeContainsUsingAllOverlaps(UnitigVector &unitigs,
-                                   bool   withMatesToNonContained,
-                                   bool   withMatesToUnambiguousContain);
+                                   double        erate,
+                                   bool          withMatesToNonContained,
+                                   bool          withMatesToUnambiguousContain);
 
 #endif  //  INCLUDE_AS_BAT_PLACECONTAINS

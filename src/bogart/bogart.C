@@ -62,10 +62,11 @@ main (int argc, char * argv []) {
   char      *ovlStoreReptPath        = NULL;
   char      *tigStorePath            = NULL;
 
-  double    erateGraph               = 0.020;
-  double    erateBubble              = 0.020;
-  double    erateMerge               = 0.045;
-  double    erateRepeat              = 0.045;
+  double    erateGraph               = 0.030;
+  double    erateBubble              = 0.035;
+  double    erateMerge               = 0.025;
+  double    erateRepeat              = 0.030;
+  double    erateMax                 = 0.0;    //  Computed
 
   int32     numThreads               = 0;
 
@@ -175,6 +176,9 @@ main (int argc, char * argv []) {
 
     } else if (strcmp(argv[arg], "-er") == 0) {
       erateRepeat = atof(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-eM") == 0) {
+      erateMax = atof(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-el") == 0) {
       minOverlap = atoi(argv[++arg]);
@@ -294,18 +298,26 @@ main (int argc, char * argv []) {
     fprintf(stderr, "               0 - use OpenMP default (default)\n");
     fprintf(stderr, "               1 - use one thread\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "Overlap Selection - an overlap will be considered for use in a unitig if either of\n");
-    fprintf(stderr, "                    the following conditions hold:\n");
+    fprintf(stderr, "Overlap Selection - an overlap will be considered for use in a unitig under\n");
+    fprintf(stderr, "                    the following conditions:\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  When constructing the Best Overlap Graph and Promiscuous Unitigs ('g'raph):\n");
     fprintf(stderr, "    -eg 0.020   no more than 0.020 fraction (2.0%%) error\n");
-    fprintf(stderr, "    -Eg 2       no more than 2 errors (useful with short reads)\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  When popping bubbles and splitting repeat/unique junctions ('m'erging):\n");
-    fprintf(stderr, "    -em 0.045   no more than 0.045 fraction (4.5%%) error when bubble popping and repeat splitting\n");
-    fprintf(stderr, "    -Em 4       no more than r errors (useful with short reads)\n");
+    fprintf(stderr, "  When popping bubbles ('b'ubbles):\n");
+    fprintf(stderr, "    -eb 0.045   no more than 0.045 fraction (4.5%%) error when bubble popping\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  For both, the lower limit on overlap length\n");
+    fprintf(stderr, "  When merging unitig ends ('m'erging):\n");
+    fprintf(stderr, "    -em 0.045   no more than 0.045 fraction (4.5%%) error when merging unitig ends\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  When detecting repeats ('r'epeats):\n");
+    fprintf(stderr, "    -er 0.045   no more than 0.045 fraction (4.5%%) error when detecting repeats\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  When loading overlaps, an inflated maximum (to allow reruns with different error rates):\n");
+    fprintf(stderr, "    -eM 0.05   no more than 0.05 fraction (5.0%%) error in any overlap loaded into bogart\n");
+    fprintf(stderr, "               the maximum used will ALWAYS be at leeast the maximum of the four error rates\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  For all, the lower limit on overlap length\n");
     fprintf(stderr, "    -el 40      no shorter than 40 bases\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Overlap Storage\n");
@@ -366,9 +378,6 @@ main (int argc, char * argv []) {
   fprintf(stderr, "ISECT_NEEDED_TO_BREAK        "F_U32"\n", ISECT_NEEDED_TO_BREAK);
   fprintf(stderr, "REGION_END_WEIGHT            "F_U32"\n", REGION_END_WEIGHT);
   fprintf(stderr, "\n");
-  fprintf(stderr, "AS_BAT_ERR_BITS              "F_U32"\n", AS_BAT_ERR_BITS);
-  fprintf(stderr, "AS_BAT_ERR_MAX               "F_U32"\n", AS_BAT_ERR_MAX);
-  fprintf(stderr, "\n");
 
   if (numThreads > 0) {
     omp_set_num_threads(numThreads);
@@ -395,7 +404,10 @@ main (int argc, char * argv []) {
   // Initialize where we've been to nowhere
   Unitig::resetFragUnitigMap(FI->numFragments());
 
-  double erateMax = MAX(MAX(erateGraph, erateBubble), MAX(erateMerge, erateRepeat));
+  erateMax = MAX(erateMax, erateGraph);
+  erateMax = MAX(erateMax, erateBubble);
+  erateMax = MAX(erateMax, erateMerge);
+  erateMax = MAX(erateMax, erateRepeat);
 
   OC = new OverlapCache(ovlStoreUniq, ovlStoreRept, output_prefix, erateMax, minOverlap, ovlCacheMemory, ovlCacheLimit, onlySave, doSave);
   OG = new BestOverlapGraph(erateGraph, output_prefix, removeWeak, removeSuspicious, removeSpur);
@@ -456,8 +468,8 @@ main (int argc, char * argv []) {
     bool withMatesToNonContained       = false;  //  Resolve ambiguous contained placements using mates to dovetail reads
     bool withMatesToUnambiguousContain = false;  //  Resolve ambiguous contained placements using mates
 
-    assert(0);  //  Doesn't work
-    placeContainsUsingAllOverlaps(unitigs, withMatesToNonContained, withMatesToUnambiguousContain);
+    assert(0);  //  Doesn't work                vvvvvv- bubble?
+    placeContainsUsingAllOverlaps(unitigs, erateBubble, withMatesToNonContained, withMatesToUnambiguousContain);
   }
 
   setLogFile(output_prefix, "placeZombies");
@@ -471,7 +483,11 @@ main (int argc, char * argv []) {
 
   setLogFile(output_prefix, "mergeSplitJoin");
 
-  mergeSplitJoin(unitigs, output_prefix, minOverlap, enableShatterRepeats);
+  mergeSplitJoin(unitigs,
+                 erateGraph, erateBubble, erateMerge, erateRepeat,
+                 output_prefix,
+                 minOverlap,
+                 enableShatterRepeats);
 
   if (enableExtendByMates) {
     assert(enableShatterRepeats);
@@ -508,8 +524,8 @@ main (int argc, char * argv []) {
     bool withMatesToNonContained       = false;  //  Resolve ambiguous contained placements using mates to dovetail reads
     bool withMatesToUnambiguousContain = false;  //  Resolve ambiguous contained placements using mates
 
-    assert(0);  //  Doesn't work
-    placeContainsUsingAllOverlaps(unitigs, withMatesToNonContained, withMatesToUnambiguousContain);
+    assert(0);  //  Doesn't work                vvvvvv- bubble?
+    placeContainsUsingAllOverlaps(unitigs, erateBubble, withMatesToNonContained, withMatesToUnambiguousContain);
   }
 
   promoteToSingleton(unitigs, enablePromoteToSingleton);

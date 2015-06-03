@@ -157,7 +157,7 @@ private:
   bool                       _restrictEnabled;
 
 public:
-  double                      mismatchCutoff;
+  double                     _erate;
 }; //BestOverlapGraph
 
 

@@ -148,6 +148,7 @@ placeContainsUsingBestOverlaps(Unitig *target, set<uint32> *fragments) {
 
 void
 placeContainsUsingAllOverlaps(UnitigVector &unitigs,
+                              double        erate,
                               bool          withMatesToNonContained,
                               bool          withMatesToUnambiguousContain) {
 
@@ -177,7 +178,7 @@ placeContainsUsingAllOverlaps(UnitigVector &unitigs,
 
     //  Place the read.
 
-    placeFragUsingOverlaps(unitigs, NULL, frg.ident, placements);
+    placeFragUsingOverlaps(unitigs, erate, NULL, frg.ident, placements);
 
     //  Search the placements for the highest expect identity placement using all overlaps in the unitig.
 

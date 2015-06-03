@@ -75,6 +75,7 @@ static const char *rcsid = "$Id$";
 static
 bool
 validateBubbleWithEdges(UnitigVector &unitigs,
+                        double erateBubble,
                         Unitig *bubble,
                         ufNode &lFrg, BestEdgeOverlap *lEnd,
                         ufNode &rFrg, BestEdgeOverlap *rEnd,
@@ -127,7 +128,7 @@ validateBubbleWithEdges(UnitigVector &unitigs,
 
   placements.clear();
 
-  placeFragUsingOverlaps(unitigs, larger, lFrg.ident, placements);
+  placeFragUsingOverlaps(unitigs, erateBubble, larger, lFrg.ident, placements);
   for (uint32 i=0; i<placements.size(); i++) {
     assert(placements[i].tigID == larger->id());
     if (placements[i].tigID != larger->id()) continue;
@@ -156,7 +157,7 @@ validateBubbleWithEdges(UnitigVector &unitigs,
 
   placements.clear();
 
-  placeFragUsingOverlaps(unitigs, larger, rFrg.ident, placements);
+  placeFragUsingOverlaps(unitigs, erateBubble, larger, rFrg.ident, placements);
   for (uint32 i=0; i<placements.size(); i++) {
     assert(placements[i].tigID == larger->id());
     if (placements[i].tigID != larger->id()) continue;
@@ -267,6 +268,7 @@ validateBubbleWithEdges(UnitigVector &unitigs,
 static
 bool
 validateBubbleFragmentsWithOverlaps(UnitigVector &unitigs,
+                                    double erateBubble,
                                     Unitig *bubble,
                                     ufNode &lFrg,
                                     ufNode &rFrg,
@@ -293,7 +295,7 @@ validateBubbleFragmentsWithOverlaps(UnitigVector &unitigs,
   for (uint32 fi=0; fi<bubble->ufpath.size(); fi++) {
     ufNode *frg = &bubble->ufpath[fi];
 
-    placeFragUsingOverlaps(unitigs, larger, frg->ident, placements[fi]);
+    placeFragUsingOverlaps(unitigs, erateBubble, larger, frg->ident, placements[fi]);
 
     //  Initialize the final placement to be bad, so we can pick the best.
     correctPlace[fi].fCoverage = 0.0;
@@ -437,6 +439,7 @@ validateBubbleFragmentsWithOverlaps(UnitigVector &unitigs,
 static
 bool
 popIntersectionBubble(UnitigVector &unitigs, 
+                      double        erateBubble,
                       Unitig       *shortTig) {
 
   //  Search for edges.  For a bubble to exist, either the first or last non-contained fragment
@@ -536,13 +539,13 @@ popIntersectionBubble(UnitigVector &unitigs,
 
   Unitig *mergeTig = (fUtg == 0) ? unitigs[lUtg] : unitigs[fUtg];
 
-  if (validateBubbleWithEdges(unitigs, shortTig, fFrg, fEdge, lFrg, lEdge, mergeTig) == false) {
+  if (validateBubbleWithEdges(unitigs, erateBubble, shortTig, fFrg, fEdge, lFrg, lEdge, mergeTig) == false) {
     writeLog("popBubbles()-- failed to validate edges for bubble unitig %d into larger unitig %d\n",
             shortTig->id(), mergeTig->id());
     return(false);
   }
 
-  if (validateBubbleFragmentsWithOverlaps(unitigs, shortTig, fFrg, lFrg, mergeTig) == false) {
+  if (validateBubbleFragmentsWithOverlaps(unitigs, erateBubble, shortTig, fFrg, lFrg, mergeTig) == false) {
     writeLog("popBubbles()-- failed to validate fragments for bubble unitig %d into larger unitig %d\n",
             shortTig->id(), mergeTig->id());
     return(false);
@@ -558,7 +561,7 @@ popIntersectionBubble(UnitigVector &unitigs,
 
 
 void
-popIntersectionBubbles(UnitigVector &unitigs) {
+popIntersectionBubbles(UnitigVector &unitigs, double erateBubble) {
   uint32          nFrgToMerge      = 1;
   uint32          nFrgToMergeMax   = 500;
 
@@ -590,7 +593,7 @@ popIntersectionBubbles(UnitigVector &unitigs) {
         //  popIntersectionBubble() returns false if the shortTig cannot be merged.  It returns true
         //  if the shortTig was merged, or might be merged after some other merge.
         //
-        if (popIntersectionBubble(unitigs, shortTig)) {
+        if (popIntersectionBubble(unitigs, erateBubble, shortTig)) {
           if (unitigs[ti]) {
             tryAgain.push_back(ti);
           } else {
@@ -622,7 +625,7 @@ popIntersectionBubbles(UnitigVector &unitigs) {
         if (shortTig == NULL)
           continue;
 
-        if (popIntersectionBubble(unitigs, shortTig)) {
+        if (popIntersectionBubble(unitigs, erateBubble, shortTig)) {
           if (unitigs[tryAgain[ta]] == NULL) {
             nBubblePopped++;
             nBubbleFixed++;

@@ -26,32 +26,25 @@ static const char *rcsid_INCLUDE_AS_BAT_OVERLAPCACHE = "$Id$";
 
 #include "memoryMappedFile.H"
 
-//  AS_BAT_ERR_BITS stores a reduced-precision overlap error rate using the same method
-//  as used by OverlapStore.  It should be at least 7 bits, and never needs to be more
-//  than AS_OVS_ERR_BITS.
-
-#define AS_BAT_ERR_BITS_MIN  7
-#define AS_BAT_ERR_BITS_MAX  AS_MAX_EVALUE_BITS
-
-#if (AS_OVS_ERR_BITS_MIN + AS_MAX_READLEN_BITS+1 + AS_MAX_READLEN_BITS+1 + 1 > 64)
-#error No space for BAToverlapInt.  Decrease read length AS_READ_MAX_NORMAL_LEN_BITS.
-#endif
+//  CA8 used to re-encode the error rate into a smaller-precision number.  This was
+//  confusing and broken (it tried to use a log-based encoding to give more precision
+//  to the smaller values).  CA3g gives up and uses all 12 bits of precision.
 
 //  If not enough space for the minimum number of error bits, bump up to a 64-bit word for overlap
 //  storage.
 
-#define AS_BAT_ERR_BITS     MIN((64 - AS_MAX_READLEN_BITS+1 - AS_MAX_READLEN_BITS+1 - 1), AS_BAT_ERR_BITS_MAX)
-#define AS_BAT_ERR_MAX     ((1 << AS_BAT_ERR_BITS) - 1)
-
 //  For storing overlaps in memory.  12 bytes per overlap.
 struct BAToverlapInt {
-  uint64      evalue    :AS_BAT_ERR_BITS;        //  12 by default (same as AS_MAX_EVALUE_BITS)
-  int64       a_hang    :AS_MAX_READLEN_BITS+1;  //  16+1 by default
-  int64       b_hang    :AS_MAX_READLEN_BITS+1;  //  16+1 by default
+  uint64      evalue    :AS_MAX_EVALUE_BITS;     //  12 by default (same as AS_MAX_EVALUE_BITS)
+  int64       a_hang    :AS_MAX_READLEN_BITS+1;  //  21+1 by default
+  int64       b_hang    :AS_MAX_READLEN_BITS+1;  //  21+1 by default
   uint64      flipped   :1;
   uint32      b_iid;
 };
 
+#if (AS_MAX_EVALUE_BITS + AS_MAX_READLEN_BITS + 1 + AS_MAX_READLEN_BITS + 1 + 1 > 64)
+#error not enough bits to store overlaps.  decrease AS_MAX_EVALUE_BITS or AS_MAX_READLEN_BITS.
+#endif
 
 
 //  For working with overlaps, 32 bytes per overlap.  This data is copied
@@ -63,8 +56,8 @@ struct BAToverlap {
 
   uint32      flipped;
 
-  uint32      evalue;    //  Encoded fraction error, 0   -- AS_BAT_MAX_ERR
-  double      erate;     //  Decoded fraction error, 0.0 -- 1.0
+  uint32      evalue;    //  Encoded fraction error
+  double      erate;     //  Decoded fraction error
 
   uint32      a_iid;
   uint32      b_iid;
@@ -115,20 +108,15 @@ public:
   ~OverlapCache();
 
   void         computeOverlapLimit(void);
-  void         computeErateMaps(double erate);
 
   uint32       filterOverlaps(uint32 maxOVSerate, uint32 minOverlap, uint32 no);
 
   void         loadOverlaps(double erate, uint32 minOverlap, const char *prefix, bool onlySave, bool doSave);
 
-  BAToverlap  *getOverlaps(uint32 fragIID, uint32 &numOverlaps);
+  BAToverlap  *getOverlaps(uint32 fragIID, double maxErate, uint32 &numOverlaps);
 
   void         removeWeakOverlaps(uint32 *minEvalue5p,
                                   uint32 *minEvalue3p);
-
-  double       decodeEvalue(uint32 evalue) {
-    return(_BATerate[evalue]);
-  };
 
   double       findErate(uint32 aIID, uint32 bIID);
 
@@ -160,9 +148,6 @@ private:
 
   uint64                  _threadMax;
   OverlapCacheThreadData *_thread;
-
-  uint32                 *_OVSerate; //  Map from OVS erate to BAT erate
-  double                 *_BATerate; //  Map from BAT erate to fraction error
 
   ovStore                *_ovlStoreUniq;  //  Pointers to input stores
   ovStore                *_ovlStoreRept;

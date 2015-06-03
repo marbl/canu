@@ -43,7 +43,7 @@ BestOverlapGraph::removeSuspicious(void) {
 #pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 fi=1; fi <= fiLimit; fi++) {
     uint32               no  = 0;
-    BAToverlap          *ovl = OC->getOverlaps(fi, no);
+    BAToverlap          *ovl = OC->getOverlaps(fi, AS_MAX_EVALUE, no);
 
     bool                 verified = false;
     intervalList<int32>  IL;
@@ -106,7 +106,7 @@ BestOverlapGraph::examineOnlyTopN(void) {
     uint32      no  = 0;
     uint32      n5  = 0;
     uint32      n3  = 0;
-    BAToverlap *ovl = OC->getOverlaps(fi, no);
+    BAToverlap *ovl = OC->getOverlaps(fi, AS_MAX_EVALUE, no);
 
     sort(ovl, ovl + no, BAToverlap_sortByErate);
 
@@ -175,7 +175,7 @@ BestOverlapGraph::removeSpurs(void) {
 #pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 fi=1; fi <= fiLimit; fi++) {
     uint32      no  = 0;
-    BAToverlap *ovl = OC->getOverlaps(fi, no);
+    BAToverlap *ovl = OC->getOverlaps(fi, AS_MAX_EVALUE, no);
 
     for (uint32 ii=0; ii<no; ii++)
       if (isSpur[ovl[ii].b_iid] == false)
@@ -189,7 +189,7 @@ BestOverlapGraph::removeSpurs(void) {
 #pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 fi=1; fi <= fiLimit; fi++) {
     uint32      no  = 0;
-    BAToverlap *ovl = OC->getOverlaps(fi, no);
+    BAToverlap *ovl = OC->getOverlaps(fi, AS_MAX_EVALUE, no);
 
     for (uint32 ii=0; ii<no; ii++)
       if (isSpur[ovl[ii].b_iid] == false)
@@ -211,11 +211,11 @@ BestOverlapGraph::removeFalseBest(void) {
   //  WARNING!  This code was quite confused about erate and evalue (back when they were called
   //  error and errorValue or somethihng confusing like that).  Use with caution.
 
-  uint32    *histo5 = new uint32 [AS_BAT_ERR_MAX + 1];
-  uint32    *histo3 = new uint32 [AS_BAT_ERR_MAX + 1];
+  uint32    *histo5 = new uint32 [AS_MAX_EVALUE + 1];
+  uint32    *histo3 = new uint32 [AS_MAX_EVALUE + 1];
 
-  memset(histo5, 0, sizeof(uint32) * (AS_BAT_ERR_MAX + 1));
-  memset(histo3, 0, sizeof(uint32) * (AS_BAT_ERR_MAX + 1));
+  memset(histo5, 0, sizeof(uint32) * (AS_MAX_EVALUE + 1));
+  memset(histo3, 0, sizeof(uint32) * (AS_MAX_EVALUE + 1));
 
   uint32    *erate5 = new uint32 [fiLimit + 1];
   uint32    *erate3 = new uint32 [fiLimit + 1];
@@ -233,7 +233,7 @@ BestOverlapGraph::removeFalseBest(void) {
 
   for (uint32 fi=1; fi <= fiLimit; fi++) {
     uint32            olapsLen = 0;
-    BAToverlap       *olaps    = OC->getOverlaps(fi, olapsLen);
+    BAToverlap       *olaps    = OC->getOverlaps(fi, AS_MAX_EVALUE, olapsLen);
 
     BestEdgeOverlap  *ovl5 = getBestEdgeOverlap(fi, false);
     BestEdgeOverlap  *ovl3 = getBestEdgeOverlap(fi, true);
@@ -263,8 +263,8 @@ BestOverlapGraph::removeFalseBest(void) {
     uint64  count5  =   0, count3  =   0;
     double  stddev5 = 100, stddev3 = 100;
 
-    for (uint32 er=0; er <= AS_BAT_ERR_MAX; er++) {
-      double ER = OC->decodeEvalue(er) * 100;
+    for (uint32 er=0; er <= AS_MAX_EVALUE; er++) {
+      double ER = AS_OVS_decodeEvalue(er) * 100;
 
       if (ER <= 0.0)
         continue;
@@ -285,8 +285,8 @@ BestOverlapGraph::removeFalseBest(void) {
     mean5 /= count5;
     mean3 /= count3;
 
-    for (uint32 er=0; er <= AS_BAT_ERR_MAX; er++) {
-      double ER =  OC->decodeEvalue(er) * 100;
+    for (uint32 er=0; er <= AS_MAX_EVALUE; er++) {
+      double ER =  AS_OVS_decodeEvalue(er) * 100;
 
       if (ER <= 0.0)
         continue;
@@ -330,8 +330,8 @@ BestOverlapGraph::removeFalseBest(void) {
     if (errno)
       fprintf(stderr, "BestOverlapGraph()-- failed to open '%s' for writing: %s\n", EN, strerror(errno)), exit(1);
 
-    for (uint32 er=0; er <= AS_BAT_ERR_MAX; er++) {
-      double  ER = OC->decodeEvalue(er);
+    for (uint32 er=0; er <= AS_MAX_EVALUE; er++) {
+      double  ER = AS_OVS_decodeEvalue(er);
 
       if (ER <= 0.0)
         continue;
@@ -387,7 +387,7 @@ BestOverlapGraph::removeFalseBest(void) {
 #pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 fi=1; fi <= fiLimit; fi++) {
     uint32      no  = 0;
-    BAToverlap *ovl = OC->getOverlaps(fi, no);
+    BAToverlap *ovl = OC->getOverlaps(fi, AS_MAX_EVALUE, no);
 
     for (uint32 ii=0; ii<no; ii++)
       assert(ovl[ii].a_iid == fi);
@@ -404,7 +404,7 @@ BestOverlapGraph::removeFalseBest(void) {
 #pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 fi=1; fi <= fiLimit; fi++) {
     uint32      no  = 0;
-    BAToverlap *ovl = OC->getOverlaps(fi, no);
+    BAToverlap *ovl = OC->getOverlaps(fi, AS_MAX_EVALUE, no);
 
     if (isBad[ovl[fi].a_iid] == true)
       continue;
@@ -459,7 +459,7 @@ BestOverlapGraph::removeWeak(double threshold) {
 
   for (uint32 fi=1; fi <= fiLimit; fi++) {
     uint32            olapsLen = 0;
-    BAToverlap       *olaps    = OC->getOverlaps(fi, olapsLen);
+    BAToverlap       *olaps    = OC->getOverlaps(fi, AS_MAX_EVALUE, olapsLen);
 
     uint64            ovl5sum = 0;
     uint32            ovl5cnt = 0;
@@ -497,8 +497,8 @@ BestOverlapGraph::removeWeak(double threshold) {
 
     if ((fi % 1000) == 0) {
       fprintf(stderr, "len %d %d t %f vals %d %f %d %f\n", evalues5len, evalues3len, threshold,
-              minEvalue5p[fi], OC->decodeEvalue(minEvalue5p[fi]),
-              minEvalue3p[fi], OC->decodeEvalue(minEvalue3p[fi]));
+              minEvalue5p[fi], AS_OVS_decodeEvalue(minEvalue5p[fi]),
+              minEvalue3p[fi], AS_OVS_decodeEvalue(minEvalue3p[fi]));
     }
   }
 
@@ -515,7 +515,7 @@ BestOverlapGraph::removeWeak(double threshold) {
 
 
 
-BestOverlapGraph::BestOverlapGraph(double               utgErrorRate,
+BestOverlapGraph::BestOverlapGraph(double               erate,
                                    const char          *prefix,
                                    double               doRemoveWeakThreshold,
                                    bool                 doRemoveSuspicious,
@@ -539,7 +539,7 @@ BestOverlapGraph::BestOverlapGraph(double               utgErrorRate,
   _restrict        = NULL;
   _restrictEnabled = false;
 
-  mismatchCutoff  = utgErrorRate;
+  _erate = erate;
 
   //  Initialize parallelism.
 
@@ -568,7 +568,7 @@ BestOverlapGraph::BestOverlapGraph(double               utgErrorRate,
 #pragma omp parallel for schedule(dynamic, blockSize)
     for (uint32 fi=1; fi <= fiLimit; fi++) {
       uint32      no  = 0;
-      BAToverlap *ovl = OC->getOverlaps(fi, no);
+      BAToverlap *ovl = OC->getOverlaps(fi, AS_MAX_EVALUE, no);
 
       for (uint32 ii=0; ii<no; ii++)
         scoreContainment(ovl[ii]);
@@ -587,7 +587,7 @@ BestOverlapGraph::BestOverlapGraph(double               utgErrorRate,
 #pragma omp parallel for schedule(dynamic, blockSize)
     for (uint32 fi=1; fi <= fiLimit; fi++) {
       uint32      no  = 0;
-      BAToverlap *ovl = OC->getOverlaps(fi, no);
+      BAToverlap *ovl = OC->getOverlaps(fi, AS_MAX_EVALUE, no);
 
       for (uint32 ii=0; ii<no; ii++)
         scoreEdge(ovl[ii]);
@@ -632,10 +632,10 @@ BestOverlapGraph::BestOverlapGraph(double               utgErrorRate,
 
 void
 BestOverlapGraph::rebuildBestContainsWithoutSingletons(UnitigVector  &unitigs,
-                                                       double         utgErrorRate,
+                                                       double         erate,
                                                        const char    *prefix) {
 
-  mismatchCutoff  = utgErrorRate;
+  _erate = erate;
 
   uint32     fiLimit = FI->numFragments();
 
@@ -682,7 +682,7 @@ BestOverlapGraph::rebuildBestContainsWithoutSingletons(UnitigVector  &unitigs,
     if (bestCold[fi].isContained == false)
       continue;
 
-    BAToverlap *ovl  = OC->getOverlaps(fi, no);
+    BAToverlap *ovl  = OC->getOverlaps(fi, AS_MAX_EVALUE, no);
 
     for (uint32 ii=0; ii<no; ii++) {
       uint32     autg = Unitig::fragIn(ovl[ii].a_iid);
@@ -739,10 +739,10 @@ BestOverlapGraph::rebuildBestContainsWithoutSingletons(UnitigVector  &unitigs,
 
 
 
-BestOverlapGraph::BestOverlapGraph(double               utgErrorRate,
+BestOverlapGraph::BestOverlapGraph(double               erate,
                                    set<uint32>         *restrict) {
 
-  mismatchCutoff  = utgErrorRate;
+  _erate = erate;
 
   _bestA = NULL;
   _scorA = NULL;
@@ -771,7 +771,7 @@ BestOverlapGraph::BestOverlapGraph(double               utgErrorRate,
   for (set<uint32>::iterator it=_restrict->begin(); it != _restrict->end(); it++) {
     uint32      fi  = *it;
     uint32      no  = 0;
-    BAToverlap *ovl = OC->getOverlaps(fi, no);
+    BAToverlap *ovl = OC->getOverlaps(fi, AS_MAX_EVALUE, no);
 
     for (uint32 ii=0; ii<no; ii++)
       scoreContainment(ovl[ii]);
@@ -782,7 +782,7 @@ BestOverlapGraph::BestOverlapGraph(double               utgErrorRate,
   for (set<uint32>::iterator it=_restrict->begin(); it != _restrict->end(); it++) {
     uint32      fi  = *it;
     uint32      no  = 0;
-    BAToverlap *ovl = OC->getOverlaps(fi, no);
+    BAToverlap *ovl = OC->getOverlaps(fi, AS_MAX_EVALUE, no);
 
     for (uint32 ii=0; ii<no; ii++)
       scoreEdge(ovl[ii]);
@@ -1033,7 +1033,7 @@ BestOverlapGraph::isOverlapBadQuality(const BAToverlap& olap) {
   //  The overlap is GOOD (false == not bad) if the corrected error rate is below the requested
   //  erate.
   //
-  if (olap.erate <= mismatchCutoff) {
+  if (olap.erate <= _erate) {
     if ((enableLog == true) && (logFileFlags & LOG_OVERLAP_QUALITY))
       writeLog("isOverlapBadQuality()-- OVERLAP GOOD:     %d %d %c  hangs "F_S32" "F_S32" err %.3f\n",
                olap.a_iid, olap.b_iid,
@@ -1104,11 +1104,11 @@ BestOverlapGraph::scoreOverlap(const BAToverlap& olap) {
   //    The last are the original error rate.
   //
   uint64  leng = 0;
-  uint64  corr = AS_BAT_ERR_MAX - olap.evalue;
-  uint64  orig = AS_BAT_ERR_MAX - 0;
+  uint64  corr = AS_MAX_EVALUE - olap.evalue;
+  uint64  orig = AS_MAX_EVALUE - 0;
 
   //  Shift AFTER assigning to a 64-bit value to avoid overflows.
-  corr <<= AS_BAT_ERR_BITS;
+  corr <<= AS_MAX_EVALUE_BITS;
 
   //  Containments - the length of the overlaps are all the same.  We return the quality.
   //
@@ -1142,7 +1142,7 @@ BestOverlapGraph::scoreOverlap(const BAToverlap& olap) {
 
   //  And finally shift it to the correct place in the word.
 
-  leng <<= (2 * AS_BAT_ERR_BITS);
+  leng <<= (2 * AS_MAX_EVALUE_BITS);
 
   return(leng | corr | orig);
 }

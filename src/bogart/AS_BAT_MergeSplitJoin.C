@@ -55,6 +55,7 @@ omp_lock_t  markRepeat_breakUnitigs_Lock;
 
 bool
 mergeBubbles_findEnds(UnitigVector &unitigs,
+                      double erateBubble,
                       Unitig *bubble,
                       ufNode &fFrg,
                       ufNode &lFrg,
@@ -186,6 +187,7 @@ mergeBubbles_findEnds(UnitigVector &unitigs,
 
 bool
 mergeBubbles_checkEnds(UnitigVector &unitigs,
+                       double erateBubble,
                        Unitig *bubble,
                        ufNode &fFrg,
                        ufNode &lFrg,
@@ -209,7 +211,7 @@ mergeBubbles_checkEnds(UnitigVector &unitigs,
 
   placements.clear();
 
-  placeFragUsingOverlaps(unitigs, target, fFrg.ident, placements);
+  placeFragUsingOverlaps(unitigs, erateBubble, target, fFrg.ident, placements);
 
 #ifdef LOG_BUBBLE_TESTS
   writeLog("popBubbles()-- fFrg %u has %u potential placements in unitig %u.\n",
@@ -277,7 +279,7 @@ mergeBubbles_checkEnds(UnitigVector &unitigs,
 
   placements.clear();
 
-  placeFragUsingOverlaps(unitigs, target, lFrg.ident, placements);
+  placeFragUsingOverlaps(unitigs, erateBubble, target, lFrg.ident, placements);
 
 #ifdef LOG_BUBBLE_TESTS
   writeLog("popBubbles()-- lFrg %u has %u potential placements.\n", lFrg.ident, placements.size());
@@ -424,6 +426,7 @@ mergeBubbles_checkEnds(UnitigVector &unitigs,
 static
 bool
 mergeBubbles_checkFrags(UnitigVector &unitigs,
+                        double erateBubble,
                         Unitig *bubble,
                         ufNode &fFrg,
                         ufNode &lFrg,
@@ -448,7 +451,7 @@ mergeBubbles_checkFrags(UnitigVector &unitigs,
   for (uint32 fi=0; fi<bubble->ufpath.size(); fi++) {
     ufNode *frg = &bubble->ufpath[fi];
 
-    placeFragUsingOverlaps(unitigs, target, frg->ident, placements[fi]);
+    placeFragUsingOverlaps(unitigs, erateBubble, target, frg->ident, placements[fi]);
 
     //  Initialize the final placement to be bad, so we can pick the best.
     correctPlace[fi].fCoverage = 0.0;
@@ -600,7 +603,7 @@ mergeBubbles_checkFrags(UnitigVector &unitigs,
 
 
 void
-mergeBubbles(UnitigVector &unitigs, Unitig *target, intersectionList *ilist) {
+mergeBubbles(UnitigVector &unitigs, double erateBubble, Unitig *target, intersectionList *ilist) {
 
   for (uint32 fi=0; fi<target->ufpath.size(); fi++) {
     ufNode             *frg   = &target->ufpath[fi];
@@ -651,13 +654,13 @@ mergeBubbles(UnitigVector &unitigs, Unitig *target, intersectionList *ilist) {
       //  if the two end reads are consistent implying that we'd double test a bubble if the
       //  placements are different, and that we'd fail both times.
 
-      if (mergeBubbles_findEnds(unitigs, bubble, fFrg, lFrg, target) == false)
+      if (mergeBubbles_findEnds(unitigs, erateBubble, bubble, fFrg, lFrg, target) == false)
         continue;
 
-      if (mergeBubbles_checkEnds(unitigs, bubble, fFrg, lFrg, target) == false)
+      if (mergeBubbles_checkEnds(unitigs, erateBubble, bubble, fFrg, lFrg, target) == false)
         continue;
 
-      if (mergeBubbles_checkFrags(unitigs, bubble, fFrg, lFrg, target) == false)
+      if (mergeBubbles_checkFrags(unitigs, erateBubble, bubble, fFrg, lFrg, target) == false)
         continue;
 
       //  Merged!
@@ -680,7 +683,7 @@ mergeBubbles(UnitigVector &unitigs, Unitig *target, intersectionList *ilist) {
 
 
 void
-stealBubbles(UnitigVector &unitigs, Unitig *target, intersectionList *ilist) {
+stealBubbles(UnitigVector &unitigs, double erateBubble, Unitig *target, intersectionList *ilist) {
 }
 
 
@@ -688,14 +691,14 @@ stealBubbles(UnitigVector &unitigs, Unitig *target, intersectionList *ilist) {
 
 
 void
-markRepeats_buildOverlapList(Unitig *target, set<uint32> &ovlFrags) {
+markRepeats_buildOverlapList(Unitig *target, double erateRepeat, set<uint32> &ovlFrags) {
 
   ovlFrags.clear();
 
   for (uint32 fi=0; fi<target->ufpath.size(); fi++) {
     ufNode     *frg   = &target->ufpath[fi];
     uint32      ovlLen = 0;
-    BAToverlap *ovl    = OC->getOverlaps(frg->ident, ovlLen);
+    BAToverlap *ovl    = OC->getOverlaps(frg->ident, erateRepeat, ovlLen);
 
     for (uint32 i=0; i<ovlLen; i++) {
       if (Unitig::fragIn(ovl[i].b_iid) != target->id())
@@ -709,6 +712,7 @@ markRepeats_buildOverlapList(Unitig *target, set<uint32> &ovlFrags) {
 
 void
 markRepeats_computeUnitigErrorRate(UnitigVector &unitigs,
+                                   double        erateRepeat,
                                    Unitig       *target,
                                    double       &meanError,
                                    double       &stddevError) {
@@ -731,7 +735,7 @@ markRepeats_computeUnitigErrorRate(UnitigVector &unitigs,
     uint32      bgn   = (frg->position.bgn < frg->position.end) ? frg->position.bgn : frg->position.end;
     uint32      end   = (frg->position.bgn < frg->position.end) ? frg->position.end : frg->position.bgn;
 
-    placeFragUsingOverlaps(unitigs, target, frg->ident, op);
+    placeFragUsingOverlaps(unitigs, erateRepeat, target, frg->ident, op);
 
     if (op.size() == 0)
       //  Huh?  Couldn't be placed in my own unitig?
@@ -793,6 +797,7 @@ markRepeats_computeUnitigErrorRate(UnitigVector &unitigs,
 
 void
 markRepeats_placeAndProcessOverlaps(UnitigVector                     &unitigs,
+                                    double                            erateRepeat,
                                     Unitig                           *target,
                                     double                           meanError,
                                     double                           stddevError,
@@ -808,7 +813,7 @@ markRepeats_placeAndProcessOverlaps(UnitigVector                     &unitigs,
 
     vector<overlapPlacement>  op;
 
-    placeFragUsingOverlaps(unitigs, target, iid, op);
+    placeFragUsingOverlaps(unitigs, erateRepeat, target, iid, op);
 
     //  placeFragUsingOverlaps() returns the expected placement for this fragment in 'position', and
     //  the amount of the fragment covered by evidence in 'covered'.
@@ -1482,6 +1487,7 @@ markRepeats_filterJunctions(Unitig                          *target,
 
 void
 markRepeats_breakUnitigs(UnitigVector                    &unitigs,
+                         double                           erateRepeat,
                          Unitig                          *target,
                          vector<overlapPlacement>        &places,
                          vector<repeatUniqueBreakPoint>  &breakpoints,
@@ -1602,7 +1608,7 @@ markRepeats_breakUnitigs(UnitigVector                    &unitigs,
 
   for (set<uint32>::iterator it=ejtFrags.begin(); it!=ejtFrags.end(); it++) {
     writeLog("markRepeats()-- EJECT frag "F_U32"\n", *it);
-    placeFragInBestLocation(unitigs, *it);
+    placeFragInBestLocation(unitigs, erateRepeat, *it);
   }
 
   writeLog("markRepeats()-- FINISHED.\n");
@@ -1676,6 +1682,7 @@ markRepeats_shatterRepeats(UnitigVector   &unitigs,
 //
 void
 markRepeats(UnitigVector &unitigs,
+            double erateRepeat,
             Unitig *target,
             uint32 minOverlap,
             bool shatterRepeats) {
@@ -1698,13 +1705,13 @@ markRepeats(UnitigVector &unitigs,
   vector<repeatUniqueBreakPoint>  breakpoints;
 
   //  Build a list of all the fragments that have overlaps to this unitig.
-  markRepeats_buildOverlapList(target, ovlFrags);
+  markRepeats_buildOverlapList(target, erateRepeat, ovlFrags);
 
   //  Decide what a decent alignment should look like.
-  markRepeats_computeUnitigErrorRate(unitigs, target, meanError, stddevError);
+  markRepeats_computeUnitigErrorRate(unitigs, erateRepeat, target, meanError, stddevError);
 
   //  For each overlapping fragment, place it and process.
-  markRepeats_placeAndProcessOverlaps(unitigs, target, meanError, stddevError, ovlFrags, aligned, evidence);
+  markRepeats_placeAndProcessOverlaps(unitigs, erateRepeat, target, meanError, stddevError, ovlFrags, aligned, evidence);
 
   //  Convert 'aligned' into regions, throwing out weak ones and those contained in a fragment.
   markRepeats_filterIntervalsSpannedByFragment(target, aligned, regions, minOverlap);
@@ -1723,7 +1730,7 @@ markRepeats(UnitigVector &unitigs,
   //#pragma omp critical
 
   omp_set_lock(&markRepeat_breakUnitigs_Lock);
-  markRepeats_breakUnitigs(unitigs, target, places, breakpoints, jctFrags, ejtFrags);
+  markRepeats_breakUnitigs(unitigs, erateRepeat, target, places, breakpoints, jctFrags, ejtFrags);
   omp_unset_lock(&markRepeat_breakUnitigs_Lock);
 
   //  For each repeat unitig, shatter into fragments (not singleton unitigs) so we can later re-BOG.
@@ -1736,13 +1743,18 @@ markRepeats(UnitigVector &unitigs,
 
 void
 markChimera(UnitigVector &unitigs,
+            double erateRepeat,
             Unitig *target) {
 }
 
 
 
 void
-mergeSplitJoin(UnitigVector &unitigs, const char *prefix, uint32 minOverlap, bool shatterRepeats) {
+mergeSplitJoin(UnitigVector &unitigs,
+               double erateGraph, double erateBubble, double erateMerge, double erateRepeat,
+               const char *prefix,
+               uint32 minOverlap,
+               bool shatterRepeats) {
 
   //logFileFlags |= LOG_PLACE_FRAG;
   //logFileFlags &= ~LOG_PLACE_FRAG;
@@ -1764,10 +1776,10 @@ mergeSplitJoin(UnitigVector &unitigs, const char *prefix, uint32 minOverlap, boo
     writeLog("popBubbles()-- WORKING on unitig %d/"F_SIZE_T" with %ld fragments.\n",
             target->id(), unitigs.size(), target->ufpath.size());
 
-    mergeBubbles(unitigs, target, ilist);
-    stealBubbles(unitigs, target, ilist);
-    markRepeats(unitigs, target, minOverlap, shatterRepeats);
-    markChimera(unitigs, target);
+    mergeBubbles(unitigs, erateBubble, target, ilist);
+    stealBubbles(unitigs, erateBubble, target, ilist);
+    markRepeats(unitigs, erateRepeat, target, minOverlap, shatterRepeats);
+    markChimera(unitigs, erateRepeat, target);
     exit(1);
   }
 #endif
@@ -1792,8 +1804,8 @@ mergeSplitJoin(UnitigVector &unitigs, const char *prefix, uint32 minOverlap, boo
     writeLog("popBubbles()-- WORKING on unitig %d/"F_SIZE_T" of length %u with %ld fragments.\n",
             target->id(), unitigs.size(), target->getLength(), target->ufpath.size());
 
-    mergeBubbles(unitigs, target, ilist);
-    stealBubbles(unitigs, target, ilist);
+    mergeBubbles(unitigs, erateBubble, target, ilist);
+    stealBubbles(unitigs, erateBubble, target, ilist);
   }
 
   reportOverlapsUsed(unitigs, prefix, "popBubbles");
@@ -1825,8 +1837,8 @@ mergeSplitJoin(UnitigVector &unitigs, const char *prefix, uint32 minOverlap, boo
     writeLog("repeatDetect()-- WORKING on unitig %d/"F_SIZE_T" of length %u with %ld fragments.\n",
             target->id(), unitigs.size(), target->getLength(), target->ufpath.size());
 
-    markRepeats(unitigs, target, minOverlap, shatterRepeats);
-    markChimera(unitigs, target);
+    markRepeats(unitigs, erateRepeat, target, minOverlap, shatterRepeats);
+    markChimera(unitigs, erateRepeat, target);
   }
 
   omp_destroy_lock(&markRepeat_breakUnitigs_Lock);

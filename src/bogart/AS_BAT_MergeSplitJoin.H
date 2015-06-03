@@ -25,7 +25,11 @@
 static const char *rcsid_INCLUDE_AS_BAT_MERGESPLITJOIN = "$Id$";
 
 void
-mergeSplitJoin(UnitigVector &unitigs, const char *prefix, uint32 minOverlap, bool shatterRepeats);
+mergeSplitJoin(UnitigVector &unitigs,
+               double erateGraph, double erateBubble, double erateMerge, double erateRepeat,
+               const char *prefix,
+               uint32 minOverlap,
+               bool shatterRepeats);
 
 void
 extendByMates(UnitigVector &unitigs,

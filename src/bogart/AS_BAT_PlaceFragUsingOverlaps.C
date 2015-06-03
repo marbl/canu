@@ -280,6 +280,7 @@ placeDovetail(Unitig *utg, ufNode &frag, BAToverlap &ovl, overlapPlacement &op) 
 
 bool
 placeFragUsingOverlaps(UnitigVector             &unitigs,
+                       double                    erate,
                        Unitig                   *target,
                        uint32                    fid,
                        vector<overlapPlacement> &placements) {
@@ -306,7 +307,7 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
   placements.clear();
 
   uint32      ovlLen = 0;
-  BAToverlap *ovl    = OC->getOverlaps(frag.ident, ovlLen);
+  BAToverlap *ovl    = OC->getOverlaps(frag.ident, erate, ovlLen);
 
   overlapPlacement   *ovlPlace = new overlapPlacement[ovlLen];
   uint32              nFragmentsNotPlaced = 0;
@@ -760,6 +761,7 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
 
 void
 placeUnmatedFragInBestLocation(UnitigVector   &unitigs,
+                               double          erate,
                                uint32          fid) {
   ufNode                    frg;
   vector<overlapPlacement>  op;
@@ -773,7 +775,7 @@ placeUnmatedFragInBestLocation(UnitigVector   &unitigs,
   frg.position.end      = FI->fragmentLength(fid);
   frg.containment_depth = 0;
 
-  placeFragUsingOverlaps(unitigs, NULL, fid, op);
+  placeFragUsingOverlaps(unitigs, erate, NULL, fid, op);
 
   //  Pick the lowest error placement, and of those lowest, the least aligned region.
 
@@ -817,14 +819,16 @@ placeUnmatedFragInBestLocation(UnitigVector   &unitigs,
 
 void
 placeMatedFragInBestLocation(UnitigVector   &unitigs,
+                             double          erate,
                              uint32          fid,
                              uint32          mid) {
-  placeUnmatedFragInBestLocation(unitigs, fid);
+  placeUnmatedFragInBestLocation(unitigs, erate, fid);
 }
 
 
 void
 placeFragInBestLocation(UnitigVector   &unitigs,
+                        double          erate,
                         uint32          fid) {
 
   if (Unitig::fragIn(fid) != 0)
@@ -834,7 +838,7 @@ placeFragInBestLocation(UnitigVector   &unitigs,
   uint32  mid = FI->mateIID(fid);
 
   if (mid == 0)
-    placeUnmatedFragInBestLocation(unitigs, fid);
+    placeUnmatedFragInBestLocation(unitigs, erate, fid);
   else
-    placeMatedFragInBestLocation(unitigs, fid, mid);
+    placeMatedFragInBestLocation(unitigs, erate, fid, mid);
 }
