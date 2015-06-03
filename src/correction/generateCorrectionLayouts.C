@@ -81,32 +81,28 @@ generateLayout(gkStore    *gkpStore,
 
     tgPosition   *pos = layout->addChild();
 
-    pos->_objID       = ovl[oo].b_iid;
-    pos->_isRead      = true;
-    pos->_isUnitig    = false;
-    pos->_isContig    = false;
-
-    pos->_askip       = ovl[oo].dat.ovl.bhg5;
-    pos->_bskip       = ovl[oo].dat.ovl.bhg3;
-
     //  Set the read.  Parent is always the read we're building for, hangs and position come from
     //  the overlap.  Easy as pie!
 
-    //  Well, except the hangs are abused here to indicate the amount of the read that
-    //  doesn't align.
-
     if (ovl[oo].flipped() == false) {
-      pos->set(ovl[oo].a_iid,
+      pos->set(ovl[oo].b_iid,
+               ovl[oo].a_iid,
                ovl[oo].a_hang(),
                ovl[oo].b_hang(),
                ovl[oo].a_bgn(gkpStore), ovl[oo].a_end(gkpStore));
 
     } else {
-      pos->set(ovl[oo].a_iid,
+      pos->set(ovl[oo].b_iid,
+               ovl[oo].a_iid,
                ovl[oo].a_hang(),
                ovl[oo].b_hang(),
                ovl[oo].a_end(gkpStore), ovl[oo].a_bgn(gkpStore));
     }
+
+    //  Remember the unaligned bit!
+
+    pos->_askip = ovl[oo].dat.ovl.bhg5;
+    pos->_bskip = ovl[oo].dat.ovl.bhg3;
   }
 
   //  Use utgcns's stashContains to get rid of extra coverage; we don't care about it, and
@@ -345,7 +341,7 @@ main(int argc, char **argv) {
 
   ovlLen = ovlStore->readOverlaps(ovl, ovlMax, true);
 
-  gkReadData   readData;
+  gkReadData   *readData = new gkReadData;
 
   //  And process.
 
@@ -418,7 +414,7 @@ main(int argc, char **argv) {
       tigStore->insertTig(layout, false);
 
     if ((skipIt == false) && (falconOutput == true))
-      outputFalcon(gkpStore, layout, trimToAlign, stdout, &readData);
+      outputFalcon(gkpStore, layout, trimToAlign, stdout, readData);
 
     delete layout;
 
@@ -429,6 +425,8 @@ main(int argc, char **argv) {
 
   if (falconOutput)
     fprintf(stdout, "- -\n");
+
+  delete readData;
 
   if (tigStore != NULL)
     delete tigStore;
