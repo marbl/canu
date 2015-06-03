@@ -245,13 +245,13 @@ sub setOptions ($$) {
     }
 
     if ($step eq "trim") {
-        setErrorRate(0.005);
+        setErrorRate(0.01);
 
         return($step);
     }
 
     if ($step eq "assemble") {
-        setErrorRate(0.005);
+        setErrorRate(0.01);
 
         return($step);
     }
@@ -295,6 +295,9 @@ sub overlap ($$$) {
 #
 #  Begin pipeline
 #
+
+print STDERR "--\n";
+print STDERR "-- Final error rates before starting pipeline:\n";
 
 showErrorRates("-- ");
 
