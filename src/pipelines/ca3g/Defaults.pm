@@ -37,7 +37,6 @@ sub getGlobal ($) {
 sub setGlobalSpecialization ($@) {
     my $val = shift @_;
 
-
     foreach my $var (@_) {
         #print STDERR "set specialization $var = $val\n";
         $global{$var} = $val;
@@ -80,8 +79,12 @@ sub setGlobal ($$) {
         $set += setGlobalSpecialization($val, ("cor${opt}", "obt${opt}", "utg${opt}"))  if ($var eq "${opt}");
     }
 
-    #print STDERR "SET!\n"  if ($set > 0);       
     return  if ($set > 0);
+
+    if ($var eq "errorrate") {
+        setErrorRate($val);
+        return;
+    }
 
     caFailure("paramter '$var' is not known", undef) if (!exists($global{$var}));
 
@@ -759,21 +762,6 @@ sub checkParameters ($) {
     }
 
     #
-    #  Expand the generic grid parameters into specialized grid parameters.  The corresponding
-    #  algorithm parameters are handled in setGlobal().
-    #
-    #  NOPE, all are handled in setGlobal().
-    #
-
-    #expandExecDefaults("mhap", "cormhap");
-    #expandExecDefaults("mhap", "obtmhap");
-    #expandExecDefaults("mhap", "utgmhap");
-
-    #expandExecDefaults("ovl",  "corovl");
-    #expandExecDefaults("ovl",  "obtovl");
-    #expandExecDefaults("ovl",  "utgovl");
-
-    #
     #  Set default error rates based on the per-read error rate.
     #
 
@@ -787,26 +775,6 @@ sub checkParameters ($) {
     setGlobalIfUndef("utgRepeatErrorRate",   3.0 * getGlobal("errorRate"));
 
     setGlobalIfUndef("cnsErrorRate",         3.0 * getGlobal("errorRate"));
-
-    #
-    #  Report.
-    #
-
-    print STDERR "-- \n";
-    print STDERR "-- genomeSize          = ", getGlobal("genomeSize"), "\n";
-    print STDERR "-- errorRate           = ", getGlobal("errorRate"), "\n";
-    print STDERR "-- \n";
-    print STDERR "-- corOvlErrorRate     = ", getGlobal("corOvlErrorRate"), "\n";
-    print STDERR "-- obtOvlErrorRate     = ", getGlobal("obtOvlErrorRate"), "\n";
-    print STDERR "-- utgOvlErrorRate     = ", getGlobal("utgOvlErrorRate"), "\n";
-    print STDERR "-- \n";
-    print STDERR "-- utgGraphErrorRate   = ", getGlobal("utgGraphErrorRate"), "\n";
-    print STDERR "-- utgBubbleErrorRate  = ", getGlobal("utgBubbleErrorRate"), "\n";
-    print STDERR "-- utgMergeErrorRate   = ", getGlobal("utgMergeErrorRate"), "\n";
-    print STDERR "-- utgRepeatErrorRate  = ", getGlobal("utgRepeatErrorRate"), "\n";
-    print STDERR "-- \n";
-    print STDERR "-- cnsErrorRate        = ", getGlobal("cnsErrorRate"), "\n";
-    print STDERR "-- \n";
 }
 
 
@@ -864,16 +832,14 @@ sub showErrorRates ($) {
 #    trimming   errorRate = 0.009  obtOvlErrorRate = 0.06  obtErrorRate = 0.035
 #    assembly   errorRate = 0.009  utgOvlErrorRate = 0.06  bogart 0.035
 #
-sub setErrorRate ($) {
-    my $er = shift @_;
+sub setErrorRate ($@) {
+    my $er      = shift @_;
+    my $verbose = shift @_;
 
-    #print STDERR "\n";
-    #print STDERR "SET ERROR RATE TO $er\n";
-    #print STDERR "\n";
+    print STDERR "-- Set errorRate to $er (verbose='$verbose')\n"  if (defined($verbose));
 
-    #showErrorRates("");
-
-    setGlobal("errorRate",          $er);
+    #  Can NOT call setGlobal() for this, because it calls setErrorRate()!.
+    $global{"errorrate"} = $er;
 
     setGlobal("corOvlErrorRate",    $er * 6);  #  Not used, except for realigning
     setGlobal("obtOvlErrorRate",    $er * 6);  #  Generally must be smaller than utgGraphErrorRate
@@ -887,6 +853,8 @@ sub setErrorRate ($) {
     setGlobal("utgRepeatErrorRate", $er * 3);
 
     setGlobal("cnsErrorRate",       $er);
+
+    showErrorRates("-- ")  if (defined($verbose));
 }
 
 
@@ -1271,6 +1239,10 @@ sub setDefaults () {
         undef $ENV{getGlobal("gridEngineTaskID")};
         print STDERR "ENV: ", getGlobal("gridEngineTaskID"), " needs to be unset, done.\n";
     }
+
+    #  Finally, set the global default error rate
+
+    setErrorRate(0.01);
 }
 
 1;
