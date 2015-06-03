@@ -107,7 +107,7 @@ loadFASTA(gkStore              *gkpStore,
     }
 
     if (baseErrors > 0) {
-      fprintf(errorLog, "read '%s' has %u invalid base%s.  Converted to 'N'.\n",
+      fprintf(errorLog, "read '%s' has "F_U32" invalid base%s.  Converted to 'N'.\n",
               H, baseErrors, (baseErrors > 1) ? "s" : "");
       nWARNS++;
     }
@@ -191,7 +191,7 @@ loadFASTQ(gkStore              *gkpStore,
   }
 
   if (baseErrors > 0) {
-        fprintf(errorLog, "read '%s' has %u invalid base%s.  Converted to 'N'.\n",
+        fprintf(errorLog, "read '%s' has "F_U32" invalid base%s.  Converted to 'N'.\n",
                 L, baseErrors, (baseErrors > 1) ? "s" : "");
     nWARNS++;
   }
@@ -222,7 +222,7 @@ loadFASTQ(gkStore              *gkpStore,
   }
 
   if (QVerrors > 0) {
-    fprintf(errorLog, "read '%s' has %u invalid QV%s.  Converted to min or max value.\n",
+    fprintf(errorLog, "read '%s' has "F_U32" invalid QV%s.  Converted to min or max value.\n",
             L, QVerrors, (QVerrors > 1) ? "s" : "");
     nWARNS++;
   }
@@ -248,7 +248,9 @@ loadReads(gkStore    *gkpStore,
           uint32     &nFASTA,
           uint32     &nFASTQ,
           uint32     &nWARNS,
-          uint32     &nSHORT) {
+          uint32     &nSHORT,
+          uint64     &bLOADED,
+          uint64     &bSKIPPED) {
   char    *L = new char [AS_MAX_READLEN + 1];
   char    *H = new char [AS_MAX_READLEN + 1];
 
@@ -269,6 +271,9 @@ loadReads(gkStore    *gkpStore,
   uint32   nFASTQlocal = 0;
   uint32   nWARNSlocal = 0;
   uint32   nSHORTlocal = 0;
+
+  uint64   bLOADEDlocal = 0;
+  uint64   bSKIPPEDlocal = 0;
 
   fgets(L, AS_MAX_READLEN, F->file());
   chomp(L);
@@ -295,9 +300,10 @@ loadReads(gkStore    *gkpStore,
     //  If S[0] isn't nul, we loaded a sequence and need to store it.
 
     if (Slen < minReadLength) {
-      fprintf(errorLog, "read '%s' of length %u in file '%s' at line "F_U64" is too short, skipping.\n",
+      fprintf(errorLog, "read '%s' of length "F_U32" in file '%s' at line "F_U64" is too short, skipping.\n",
               H, Slen, fileName, lineNumber);
       nSHORTlocal++;
+      bSKIPPEDlocal += Slen;
       S[0] = 0;
       Q[0] = 0;
     }
@@ -310,6 +316,8 @@ loadReads(gkStore    *gkpStore,
       gkpStore->gkStore_stashReadData(nr, nd);
 
       delete nd;
+
+      bLOADEDlocal += Slen;
 
       fprintf(nameMap, F_U32"\t%s\n", gkpStore->gkStore_getNumReads(), H);
     }
@@ -334,20 +342,27 @@ loadReads(gkStore    *gkpStore,
 
   fprintf(stderr, "    Processed "F_U32" lines.\n", lineNumber);
 
+  fprintf(stderr, "    Loaded "F_U64" bp from:\n", bLOADEDlocal);
   if (nFASTAlocal > 0)
-    fprintf(stderr, "    Loaded "F_U32" FASTA format reads.\n", nFASTAlocal);
+    fprintf(stderr, "      "F_U32" FASTA format reads.\n", nFASTAlocal);
   if (nFASTQlocal > 0)
-    fprintf(stderr, "    Loaded "F_U32" FASTQ format reads.\n", nFASTQlocal);
+    fprintf(stderr, "      "F_U32" FASTQ format reads.\n", nFASTQlocal);
+
   if (nWARNSlocal > 0)
     fprintf(stderr, "      WARNING: "F_U32" reads issued a warning.\n", nWARNSlocal);
+
   if (nSHORTlocal > 0)
-    fprintf(stderr, "      WARNING: "F_U32" reads (%0.4f%%) were too short (< %ubp) and were ignored.\n",
-            nSHORTlocal, 100.0 * nSHORTlocal / (nFASTAlocal + nFASTQlocal), minReadLength);
+    fprintf(stderr, "      WARNING: "F_U32" reads (%0.4f%%) with "F_U64" bp (%0.4f%%) were too short (< "F_U32"bp) and were ignored.\n",
+            nSHORTlocal, 100.0 * nSHORTlocal / (nFASTAlocal + nFASTQlocal),
+            bSKIPPEDlocal, 100.0 * bSKIPPED / (bSKIPPED + bLOADED), minReadLength);
 
   nFASTA += nFASTAlocal;
   nFASTQ += nFASTQlocal;
   nWARNS += nWARNSlocal;
   nSHORT += nSHORTlocal;
+
+  bLOADED  += bLOADEDlocal;
+  bSKIPPED += bSKIPPEDlocal;
 };
 
 
@@ -442,6 +457,9 @@ main(int argc, char **argv) {
   uint32  nFASTA = 0;
   uint32  nFASTQ = 0;
 
+  uint64  bLOADED  = 0;  //  Bases loaded
+  uint64  bSKIPPED = 0;  //  Bases not loaded, too short
+
   for (; firstFileArg < argc; firstFileArg++) {
     fprintf(stderr, "\n");
     fprintf(stderr, "Starting file '%s'.\n", argv[firstFileArg]);
@@ -505,7 +523,7 @@ main(int argc, char **argv) {
                   nameMap,
                   errorLog,
                   keyval.key(),
-                  nFASTA, nFASTQ, nWARNS, nSHORT);
+                  nFASTA, nFASTQ, nWARNS, nSHORT, bLOADED, bSKIPPED);
 
       } else {
         fprintf(stderr, "ERROR:  option '%s' not recognized, and not a file of reads.\n", line);
@@ -524,29 +542,35 @@ main(int argc, char **argv) {
 
   fprintf(stderr, "\n");
   fprintf(stderr, "Finished with:\n");
-  fprintf(stderr, "  %u errors\n", nERROR);
-  fprintf(stderr, "  %u warnings.\n", nWARNS);
+  fprintf(stderr, "  "F_U32" errors\n", nERROR);
+  fprintf(stderr, "  "F_U32" warnings.\n", nWARNS);
   fprintf(stderr, "\n");
   fprintf(stderr, "Skipped:\n");
-  fprintf(stderr, "  %u short reads (%.4f%%).\n", nSHORT, 100.0 * nSHORT / (nSHORT + nFASTA + nFASTQ));
+  fprintf(stderr, "  "F_U64" bp (%.4f%%).\n", bSKIPPED, 100.0 * bSKIPPED / (bSKIPPED + bLOADED));
+  fprintf(stderr, "  "F_U32" short reads (%.4f%%).\n", nSHORT, 100.0 * nSHORT / (nSHORT + nFASTA + nFASTQ));
   fprintf(stderr, "\n");
   fprintf(stderr, "Loaded:\n");
-  fprintf(stderr, "  %u FASTA reads.\n", nFASTA);
-  fprintf(stderr, "  %u FASTQ reads.\n", nFASTQ);
+  fprintf(stderr, "  "F_U64" bp.\n", bLOADED);
+  fprintf(stderr, "  "F_U32" FASTA reads.\n", nFASTA);
+  fprintf(stderr, "  "F_U32" FASTQ reads.\n", nFASTQ);
   fprintf(stderr, "\n");
 
   if (nERROR > 0)
     fprintf(stderr, "gatekeeperCreate did NOT finish successfully; too many errors.\n");
 
-  if (nWARNS > 0.10 * (nFASTA + nFASTQ))
+  if (bSKIPPED > 0.25 * (bSKIPPED + bLOADED))
+    fprintf(stderr, "gatekeeperCreate did NOT finish successfully; too many bases skipped.  Check your reads.\n");
+
+  if (nWARNS > 0.25 * (nFASTA + nFASTQ))
     fprintf(stderr, "gatekeeperCreate did NOT finish successfully; too many warnings.  Check your reads.\n");
 
-  if (nSHORT > 0.25 * (nFASTA + nFASTQ))
+  if (nSHORT > 0.5 * (nFASTA + nFASTQ))
     fprintf(stderr, "gatekeeperCreate did NOT finish successfully; too many short reads.  Check your reads!\n");
 
   if ((nERROR > 0) ||
-      (nWARNS > 0.10 * (nSHORT + nFASTA + nFASTQ)) ||
-      (nSHORT > 0.25 * (nSHORT + nFASTA + nFASTQ)))
+      (bSKIPPED > 0.25 * (bSKIPPED + bLOADED)) ||
+      (nWARNS > 0.25 * (nSHORT + nFASTA + nFASTQ)) ||
+      (nSHORT > 0.50 * (nSHORT + nFASTA + nFASTQ)))    
     exit(1);
 
   fprintf(stderr, "gatekeeperCreate finished successfully.\n");
