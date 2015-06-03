@@ -57,10 +57,20 @@ public:
   };
 
   //  Set everything.  This is to be used by unitigger.
-  void                 set(uint32 anchor, int32 ahang, int32 bhang, int32  bgn, int32  end) {
+  void                 set(uint32 id, uint32 anchor, int32 ahang, int32 bhang, int32  bgn, int32  end) {
+
+    _objID     = id;
+
+    _isRead    = true;
+    _isUnitig  = false;
+    _isContig  = false;
+
     _anchor    = anchor;
     _ahang     = ahang;
     _bhang     = bhang;
+
+    _askip     = 0;
+    _bskip     = 0;
 
     if (bgn < end) {
       _min       = bgn;
@@ -71,6 +81,9 @@ public:
       _max       = bgn;
       _isReverse = true;
     }
+
+    _deltaOffset = 0;
+    _deltaLen    = 0;
   };
 
   //  Set the coords, ignoring orientation.
@@ -106,13 +119,12 @@ public:
   uint32              _objID;            //  ID of this object
 
   uint32              _isRead      : 1;  //  A full length read alignment
-  uint32              _isPartial   : 1;  //  A partial read alignment
   uint32              _isUnitig    : 1;  //  
   uint32              _isContig    : 1;  //
 
   uint32              _isReverse   : 1;  //  Child is oriented forward relative to parent, used during consensus.
 
-  uint32              _spare       : 27;
+  uint32              _spare       : 28;
 
   uint32              _anchor;           //  ID of the like-type object we align to
   int32               _ahang;            //  Placement relative to anchor object

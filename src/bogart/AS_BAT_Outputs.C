@@ -59,12 +59,7 @@ unitigToTig(tgTig       *tig,
     ufNode        *frg = &utg->ufpath[fi];
     tgPosition    *pos =  tig->addChild();
 
-    pos->_objID       = frg->ident;
-    pos->_isRead      = true;
-    pos->_isUnitig    = false;
-    pos->_isContig    = false;
-
-    pos->set(frg->parent, frg->ahang, frg->bhang, frg->position.bgn, frg->position.end);
+    pos->set(frg->ident, frg->parent, frg->ahang, frg->bhang, frg->position.bgn, frg->position.end);
   }
 
   fprintf(stderr, "unitigToTig()--  tig %u has %u children\n", tig->_tigID, tig->_childrenLen);
