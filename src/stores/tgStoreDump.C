@@ -853,10 +853,10 @@ main (int argc, char **argv) {
     arg++;
   }
   if ((err) || (gkpName == NULL) || (tigName == NULL)) {
-    fprintf(stderr, "usage: %s -g <gkpStore> -t <tigStore> <v> [opts]\n", argv[0]);
+    fprintf(stderr, "usage: %s -G <gkpStore> -T <tigStore> <v> [opts]\n", argv[0]);
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -g <gkpStore>         Path to the gatekeeper store\n");
-    fprintf(stderr, "  -t <tigStore> <v>     Path to the tigStore, version, to use\n");
+    fprintf(stderr, "  -G <gkpStore>         Path to the gatekeeper store\n");
+    fprintf(stderr, "  -T <tigStore> <v>     Path to the tigStore, version, to use\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -D <operation>        Dump something about the store\n");
