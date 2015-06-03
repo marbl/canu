@@ -346,6 +346,15 @@ Affine_Overlap_AS_forCNS(char *a, char *b,
 #endif
 
 
+class Optimal_Overlap_Data {
+public:
+  char         h_alignA[AS_MAX_READLEN + AS_MAX_READLEN + 2];
+  char         h_alignB[AS_MAX_READLEN + AS_MAX_READLEN + 2];
+  int          h_trace[AS_MAX_READLEN + AS_MAX_READLEN + 2];
+  ALNoverlap   o;
+};
+
+
 ALNoverlap *
 Optimal_Overlap_AS_forCNS(char *a, char *b,
                           int begUNUSED, int endUNUSED,
@@ -353,16 +362,14 @@ Optimal_Overlap_AS_forCNS(char *a, char *b,
                           int opposite,
                           double erate, double thresh, int minlen,
                           CompareOptions what) {
+  static Optimal_Overlap_Data  *ood = NULL;
 
-  static char     h_alignA[AS_MAX_READLEN + AS_MAX_READLEN + 2] = {0};
-  static char     h_alignB[AS_MAX_READLEN + AS_MAX_READLEN + 2] = {0};
-  static int      h_trace[AS_MAX_READLEN + AS_MAX_READLEN + 2]  = {0};
+  if (ood == NULL)
+    ood = new Optimal_Overlap_Data;
 
-  static ALNoverlap   o;
-
-  memset(h_alignA, 0, sizeof(char) * (AS_MAX_READLEN + AS_MAX_READLEN + 2));
-  memset(h_alignB, 0, sizeof(char) * (AS_MAX_READLEN + AS_MAX_READLEN + 2));
-  memset(h_trace,  0, sizeof(int)  * (AS_MAX_READLEN + AS_MAX_READLEN + 2));
+  memset(ood->h_alignA, 0, sizeof(char) * (AS_MAX_READLEN + AS_MAX_READLEN + 2));
+  memset(ood->h_alignB, 0, sizeof(char) * (AS_MAX_READLEN + AS_MAX_READLEN + 2));
+  memset(ood->h_trace,  0, sizeof(int)  * (AS_MAX_READLEN + AS_MAX_READLEN + 2));
 
   alignLinker_s   al;
 
@@ -385,8 +392,8 @@ Optimal_Overlap_AS_forCNS(char *a, char *b,
   //  fprintf(stderr, "ALIGN %s\n", b);
   //}
 
-  alignLinker(h_alignA,
-              h_alignB,
+  alignLinker(ood->h_alignA,
+              ood->h_alignB,
               a,
               b,
               &al,
@@ -399,15 +406,15 @@ Optimal_Overlap_AS_forCNS(char *a, char *b,
 
    //if (VERBOSE_MULTIALIGN_OUTPUT >= 3) {
    //  fprintf(stderr, "ALIGN %d %d-%d %d-%d opposite=%d\n", al.alignLen, al.begI, al.endI, al.begJ, al.endJ, opposite);
-   //  fprintf(stderr, "ALIGN '%s'\n", h_alignA);
-   //  fprintf(stderr, "ALIGN '%s'\n", h_alignB);
+   //  fprintf(stderr, "ALIGN '%s'\n", ood->h_alignA);
+   //  fprintf(stderr, "ALIGN '%s'\n", ood->h_alignB);
    //}
 
   if (opposite) {
     reverseComplementSequence(b, strlen(b));
 
-    reverseComplementSequence(h_alignA, al.alignLen);
-    reverseComplementSequence(h_alignB, al.alignLen);
+    reverseComplementSequence(ood->h_alignA, al.alignLen);
+    reverseComplementSequence(ood->h_alignB, al.alignLen);
 
     int x = al.begJ;
     al.begJ = al.lenB - al.endJ;
@@ -431,12 +438,12 @@ Optimal_Overlap_AS_forCNS(char *a, char *b,
   if ((al.begJ != 0) && (al.begI != 0))
     return(NULL);
 
-  o.begpos  = (al.begI           > 0) ? (al.begI)           : -(al.begJ);
-  o.endpos  = (al.lenB - al.endJ > 0) ? (al.lenB - al.endJ) : -(al.lenA - al.endI);
-  o.length  = al.alignLen;
-  o.diffs   = 0;
-  o.comp    = opposite;
-  o.trace   = h_trace;
+  ood->o.begpos  = (al.begI           > 0) ? (al.begI)           : -(al.begJ);
+  ood->o.endpos  = (al.lenB - al.endJ > 0) ? (al.lenB - al.endJ) : -(al.lenA - al.endI);
+  ood->o.length  = al.alignLen;
+  ood->o.diffs   = 0;
+  ood->o.comp    = opposite;
+  ood->o.trace   = ood->h_trace;
 
   {
     int x=0;
@@ -446,12 +453,12 @@ Optimal_Overlap_AS_forCNS(char *a, char *b,
     int bp = al.begJ;
 
     for (x=0; x<al.alignLen; x++) {
-      if (h_alignA[x] == '-') {
-        h_trace[tp++] = -(ap + 1);
+      if (ood->h_alignA[x] == '-') {
+        ood->h_trace[tp++] = -(ap + 1);
         ap--;
       }
-      if (h_alignB[x] == '-') {
-        h_trace[tp++] = bp + 1;
+      if (ood->h_alignB[x] == '-') {
+        ood->h_trace[tp++] = bp + 1;
         bp--;
       }
 
@@ -464,42 +471,42 @@ Optimal_Overlap_AS_forCNS(char *a, char *b,
       bool  diff   = false;
       bool  ignore = false;
 
-      if (toupper(h_alignA[x]) != toupper(h_alignB[x]))
+      if (toupper(ood->h_alignA[x]) != toupper(ood->h_alignB[x]))
         diff = true;
 
-      if ((h_alignA[x] == 'N') || (h_alignA[x] == 'n') ||
-          (h_alignB[x] == 'N') || (h_alignB[x] == 'n'))
+      if ((ood->h_alignA[x] == 'N') || (ood->h_alignA[x] == 'n') ||
+          (ood->h_alignB[x] == 'N') || (ood->h_alignB[x] == 'n'))
         ignore = true;
 
-      if (islower(h_alignA[x]) && (h_alignB[x] == '-'))
+      if (islower(ood->h_alignA[x]) && (ood->h_alignB[x] == '-'))
         ignore = true;
 
       if ((diff == true) && (ignore == false))
-        o.diffs++;
+        ood->o.diffs++;
 
       bp++;
       ap++;
     }
 
-    h_trace[tp] = 0;
+    ood->h_trace[tp] = 0;
 
     //if (VERBOSE_MULTIALIGN_OUTPUT >= 4) {
     //  fprintf(stderr, "trace");
     //  for (x=0; x<tp; x++)
-    //    fprintf(stderr, " %d", h_trace[x]);
+    //    fprintf(stderr, " %d", ood->h_trace[x]);
     //  fprintf(stderr, "\n");
-    //  fprintf(stderr, "A: %4d-%4d %4d %s\n", al.begI, al.endI, al.lenA, h_alignA);
-    //  fprintf(stderr, "B: %4d-%4d %4d %s\n", al.begJ, al.endJ, al.lenB, h_alignB);
+    //  fprintf(stderr, "A: %4d-%4d %4d %s\n", al.begI, al.endI, al.lenA, ood->h_alignA);
+    //  fprintf(stderr, "B: %4d-%4d %4d %s\n", al.begJ, al.endJ, al.lenB, ood->h_alignB);
     //}
   }
 
   //if (VERBOSE_MULTIALIGN_OUTPUT >= 3) {
-  //  fprintf(stderr, "ERATE:   diffs=%d / length=%d = %f\n", o.diffs, o.length, (double)o.diffs / o.length);
+  //  fprintf(stderr, "ERATE:   diffs=%d / length=%d = %f\n", ood->o.diffs, ood->o.length, (double)ood->o.diffs / ood->o.length);
   //  fprintf(stderr, "Optimal_Overlap_AS_forCNS()--  Ends\n");
   //}
 
-  if ((double)o.diffs / o.length <= erate)
-    return(&o);
+  if ((double)ood->o.diffs / ood->o.length <= erate)
+    return(&ood->o);
 
   return(NULL);
 }

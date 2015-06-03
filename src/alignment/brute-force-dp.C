@@ -150,19 +150,20 @@ alignLinker(char           *alignA,
 
   dpActions  ACT;
 
-  uint32     SCO[4][AS_MAX_READLEN * 2];
-
-  memset(SCO, 0, sizeof(uint32) * AS_MAX_READLEN * 2);
-
-  uint32    *lastCol = SCO[0];
-  uint32    *thisCol = SCO[1];
-  uint32    *iFinal  = SCO[2];
-  uint32    *jFinal  = SCO[3];
-
   if ((lenA > AS_MAX_READLEN) || (lenB > AS_MAX_READLEN)) {
     fprintf(stderr, "alignLinker()-- Reads too long.  %d or %d > %d\n", lenA, lenB, AS_MAX_READLEN);
     return;
   }
+
+  uint32    *lastCol = new uint32 [AS_MAX_READLEN * 2];
+  uint32    *thisCol = new uint32 [AS_MAX_READLEN * 2];
+  uint32    *iFinal  = new uint32 [AS_MAX_READLEN * 2];
+  uint32    *jFinal  = new uint32 [AS_MAX_READLEN * 2];
+
+  //memset(lastCol, 0, sizeof(uint32) * AS_MAX_READLEN * 2);
+  //memset(thisCol, 0, sizeof(uint32) * AS_MAX_READLEN * 2);
+  //memset(iFinal,  0, sizeof(uint32) * AS_MAX_READLEN * 2);
+  //memset(jFinal,  0, sizeof(uint32) * AS_MAX_READLEN * 2);
 
   //  Definition of the box we want to do dynamic programming in.
   int32 ibgn = 1;
@@ -420,4 +421,9 @@ alignLinker(char           *alignA,
   a->pIdentity  = (double)(nMatch) / (double)(nGapA + nGapB + nMatch + nMismatch);
   a->pCoverageA = (double)(a->endI - a->begI) / (double)(lenA);
   a->pCoverageB = (double)(a->endJ - a->begJ) / (double)(lenB);
+
+  delete [] lastCol;
+  delete [] thisCol;
+  delete [] iFinal;
+  delete [] jFinal;
 }
