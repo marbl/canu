@@ -416,7 +416,6 @@ main(int argc, char **argv) {
 
   gkStore     *gkpStore     = new gkStore(gkpStoreName, gkStore_extend);
   gkRead      *gkpRead      = NULL;
-  gkReadData   gkpReadData;
   gkLibrary   *gkpLibrary   = NULL;
 
   uint32       inLineLen    = 1024;

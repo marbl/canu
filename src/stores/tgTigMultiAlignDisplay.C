@@ -141,11 +141,12 @@ tgTig::display(FILE     *F,
 
   //  Load into lanes.
 
+  gkReadData *readData  = new gkReadData;
+
   for (int32 i=0; i<_childrenLen; i++) {
     gkRead     *read      = gkp->gkStore_getRead(_children[i].ident());  //  Too many reads in this code.
-    gkReadData  readData;
 
-    gkp->gkStore_loadReadData(read, &readData);
+    gkp->gkStore_loadReadData(read, readData);
 
     LaneNode   *node = new LaneNode();
 
@@ -157,8 +158,8 @@ tgTig::display(FILE     *F,
 
     node->delta     = _childDeltas + node->read->deltaOffset();
 
-    memcpy(node->bases, readData.gkReadData_getSequence(),  sizeof(char) * node->readLen);
-    memcpy(node->quals, readData.gkReadData_getQualities(), sizeof(char) * node->readLen);
+    memcpy(node->bases, readData->gkReadData_getSequence(),  sizeof(char) * node->readLen);
+    memcpy(node->quals, readData->gkReadData_getQualities(), sizeof(char) * node->readLen);
 
     node->bases[node->readLen] = 0;
     node->quals[node->readLen] = 0;
@@ -183,6 +184,8 @@ tgTig::display(FILE     *F,
     if (lanesPos == lanesLen)
       lanesLen++;
   }
+
+  delete readData;
 
   //  Allocate space.
 

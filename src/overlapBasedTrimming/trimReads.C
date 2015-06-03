@@ -251,8 +251,6 @@ main(int argc, char **argv) {
           idMax,
           gkp->gkStore_getNumReads());
 
-  gkReadData  readData;
-
   for (uint32 id=idMin; id<=idMax; id++) {
     gkRead     *read = gkp->gkStore_getRead(id);
     gkLibrary  *libr = gkp->gkStore_getLibrary(read->gkRead_libraryID());

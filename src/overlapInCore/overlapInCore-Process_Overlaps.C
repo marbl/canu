@@ -42,7 +42,7 @@ Process_Overlaps(void *ptr){
   WA->Kmer_Hits_With_Olap_Ct     = 0;
   WA->Multi_Overlap_Ct           = 0;
 
-  gkReadData    readData;
+  gkReadData   *readData = new gkReadData;
 
   char         *bases = new char [AS_MAX_READLEN + 1];
   char         *quals = new char [AS_MAX_READLEN + 1];
@@ -67,10 +67,10 @@ Process_Overlaps(void *ptr){
       if (len < G.Min_Olap_Len)
         continue;
 
-      WA->gkpStore->gkStore_loadReadData(read, &readData);
+      WA->gkpStore->gkStore_loadReadData(read, readData);
 
-      char   *seqptr   = readData.gkReadData_getSequence();
-      char   *qltptr   = readData.gkReadData_getQualities();
+      char   *seqptr   = readData->gkReadData_getSequence();
+      char   *qltptr   = readData->gkReadData_getQualities();
 
       for (uint32 i=0; i<len; i++) {
         bases[i] = tolower(seqptr[i]);
@@ -92,9 +92,12 @@ Process_Overlaps(void *ptr){
     //  Write out this block of overlaps, no need to keep them in core!
     //  While we have a mutex, also find the next block of things to process.
 
+    fprintf(stderr, "Thread %02u writes    reads "F_U32"-"F_U32" (pre lock)\n",
+            WA->thread_id, WA->bgnID, WA->endID);
+
     pthread_mutex_lock(& Write_Proto_Mutex);
 
-    fprintf(stderr, "Thread %02u writes    reads "F_U32"-"F_U32"\n",
+    fprintf(stderr, "Thread %02u writes    reads "F_U32"-"F_U32" (post lock)\n",
             WA->thread_id, WA->bgnID, WA->endID);
 
     for (int zz=0; zz<WA->overlapsLen; zz++)
@@ -118,12 +121,19 @@ Process_Overlaps(void *ptr){
     if (WA->endID > G.endRefID)
       WA->endID = G.endRefID;
 
+    fprintf(stderr, "Thread %02u finished  reads "F_U32"-"F_U32" (pre unlock)\n",
+            WA->thread_id, WA->bgnID, WA->endID);
+
     pthread_mutex_unlock(& Write_Proto_Mutex);
+
+    fprintf(stderr, "Thread %02u finished  reads "F_U32"-"F_U32" (post unlock)\n",
+            WA->thread_id, WA->bgnID, WA->endID);
   }
+
+  delete readData;
 
   delete [] bases;
   delete [] quals;
-
 
   return(ptr);
 }

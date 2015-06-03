@@ -174,13 +174,13 @@ abAbacus::addRead(gkStore *gkpStore,
 
   //  Grab the read
 
-  gkRead      *read = gkpStore->gkStore_getRead(readID);
-  gkReadData   readData;
+  gkRead      *read     = gkpStore->gkStore_getRead(readID);
+  gkReadData  *readData = new gkReadData;
 
   //fprintf(stderr, "abAbacus::addRead()--  want readID=%u, store returned read %u\n",
   //        readID, read->gkRead_readID());
 
-  gkpStore->gkStore_loadReadData(read, &readData);
+  gkpStore->gkStore_loadReadData(read, readData);
 
   uint32  seqLen = read->gkRead_sequenceLength() - askip - bskip;
 
@@ -206,8 +206,8 @@ abAbacus::addRead(gkStore *gkpStore,
   //  Stash the bases/quals
 
   {
-    char  *seq = readData.gkReadData_getSequence()  + ((complemented == false) ? askip : bskip);
-    char  *qlt = readData.gkReadData_getQualities() + ((complemented == false) ? askip : bskip);
+    char  *seq = readData->gkReadData_getSequence()  + ((complemented == false) ? askip : bskip);
+    char  *qlt = readData->gkReadData_getQualities() + ((complemented == false) ? askip : bskip);
 
     while (_basesMax <= _basesLen + seqLen + 1)
       resizeArrayPair(_bases, _quals, _basesLen, _basesMax, 2 * _basesMax);
@@ -234,6 +234,8 @@ abAbacus::addRead(gkStore *gkpStore,
     _quals[_basesLen] = 0;
     _basesLen++;
   }
+
+  delete readData;
 
   //  Make beads for each base, set the pointer to the first bead
 

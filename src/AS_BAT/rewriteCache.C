@@ -41,7 +41,6 @@ main(int argc, char **argv) {
     fprintf(stderr, "OverlapCache()-- Failed to open '%s' for reading: %s\n", name, strerror(errno)), exit(1);
 
   uint64   magic      = ovlCacheMagic;
-  uint32   baterrbits = AS_BAT_ERRBITS;
   uint32   ovserrbits = AS_OVS_ERRBITS;
   uint32   ovshngbits = AS_OVS_HNGBITS;
 
@@ -63,14 +62,6 @@ main(int argc, char **argv) {
 
   AS_UTL_safeRead(file, &_maxPer, "overlapCache_maxPer", sizeof(uint32), 1);
   AS_UTL_safeRead(file, &_batMax, "overlapCache_batMax", sizeof(uint32), 1);
-
-  //_bat = new BAToverlap [_batMax];
-
-  uint32 *_OVSerate = new uint32 [1 << AS_OVS_ERRBITS];
-  double *_BATerate = new double [1 << AS_BAT_ERRBITS];
-
-  AS_UTL_safeRead(file,  _OVSerate, "overlapCache_OVSerate", sizeof(uint32), 1 << AS_OVS_ERRBITS);
-  AS_UTL_safeRead(file,  _BATerate, "overlapCache_BATerate", sizeof(double), 1 << AS_BAT_ERRBITS);
 
   uint32 *_cacheLen = new uint32          [FI->numFragments() + 1];
 
@@ -179,12 +170,10 @@ main(int argc, char **argv) {
     fprintf(stderr, "OverlapCache()-- Failed to open '%s' for writing: %s\n", name, strerror(errno)), exit(1);
 
   uint64   magic      = ovlCacheMagic;
-  uint32   baterrbits = AS_BAT_ERRBITS;
   uint32   ovserrbits = AS_OVS_ERRBITS;
   uint32   ovshngbits = AS_OVS_HNGBITS;
 
   AS_UTL_safeWrite(file, &magic,      "overlapCache_magic",      sizeof(uint64), 1);
-  AS_UTL_safeWrite(file, &baterrbits, "overlapCache_baterrbits", sizeof(uint32), 1);
   AS_UTL_safeWrite(file, &ovserrbits, "overlapCache_ovserrbits", sizeof(uint32), 1);
   AS_UTL_safeWrite(file, &ovshngbits, "overlapCache_ovshngbits", sizeof(uint32), 1);
 
@@ -195,7 +184,6 @@ main(int argc, char **argv) {
   AS_UTL_safeWrite(file, &_batMax, "overlapCache_batMax", sizeof(uint32), 1);
 
   AS_UTL_safeWrite(file,  _OVSerate, "overlapCache_OVSerate", sizeof(uint32), 1 << AS_OVS_ERRBITS);
-  AS_UTL_safeWrite(file,  _BATerate, "overlapCache_BATerate", sizeof(double), 1 << AS_BAT_ERRBITS);
 
   AS_UTL_safeWrite(file,  _cacheLen, "overlapCache_cacheLen", sizeof(uint32), FI->numFragments() + 1);
 

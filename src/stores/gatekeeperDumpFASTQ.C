@@ -122,7 +122,7 @@ main(int argc, char **argv) {
   uint32           libToDump         = 0;
 
   uint32           bgnID             = 1;
-  uint32           endID             = AS_MAX_READS;
+  uint32           endID             = UINT32_MAX;
 
   bool             dumpAllReads      = false;
   bool             dumpAllBases      = false;

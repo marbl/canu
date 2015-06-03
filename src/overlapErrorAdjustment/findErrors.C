@@ -118,7 +118,7 @@ Extract_Needed_Frags(feParameters *G,
   fl->readsLen = 0;
   fl->basesLen = 0;
 
-  gkReadData  readData;
+  gkReadData *readData = new gkReadData;
 
   ii = 0;
   fi = G->olaps[nextOlap].b_iid;
@@ -132,10 +132,10 @@ Extract_Needed_Frags(feParameters *G,
     fl->readBases[ii]   = fl->bases + fl->basesLen;
     fl->basesLen       += read->gkRead_sequenceLength() + 1;
 
-    gkpStore->gkStore_loadReadData(read, &readData);
+    gkpStore->gkStore_loadReadData(read, readData);
 
     uint32  readLen    = read->gkRead_sequenceLength();
-    char   *readBases  = readData.gkReadData_getSequence();
+    char   *readBases  = readData->gkReadData_getSequence();
 
     for (uint32 bb=0; bb<readLen; bb++)
       fl->readBases[ii][bb] = filter[readBases[bb]];
@@ -151,6 +151,8 @@ Extract_Needed_Frags(feParameters *G,
       nextOlap++;
     fi = (nextOlap < G->olapsLen) ? G->olaps[nextOlap].b_iid : hiID + 1;
   }
+
+  delete readData;
 
   fl->readsLen = ii;
 

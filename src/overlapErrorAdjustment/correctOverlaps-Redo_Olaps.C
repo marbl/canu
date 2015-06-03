@@ -263,36 +263,35 @@ Redo_Olaps(coParameters *G, gkStore *gkpStore) {
 
   //  Allocate some temporary work space for the forward and reverse corrected B reads.
 
-  char         *fseq    = new char     [AS_MAX_READLEN + AS_MAX_READLEN];
-  uint32        fseqLen = 0;
+  char          *fseq    = new char     [AS_MAX_READLEN + AS_MAX_READLEN];
+  uint32         fseqLen = 0;
+
+  char          *rseq    = new char     [AS_MAX_READLEN + AS_MAX_READLEN];
+  uint32         rseqLen = 0;
+
+  Adjust_t      *fadj    = new Adjust_t [AS_MAX_READLEN];
+  Adjust_t      *radj    = new Adjust_t [AS_MAX_READLEN];
+  uint32         fadjLen  = 0;  //  radj is the same length
+
+  gkReadData    *readData = new gkReadData;
+  pedWorkArea_t *ped      = new pedWorkArea_t;
+
+  uint64         Total_Alignments_Ct           = 0;
+
+  uint64         Failed_Alignments_Ct          = 0;
+  uint64         Failed_Alignments_Both_Ct     = 0;
+  uint64         Failed_Alignments_End_Ct      = 0;
+  uint64         Failed_Alignments_Length_Ct   = 0;
+
+  uint32         rhaFail = 0;
+  uint32         rhaPass = 0;
+
+  uint64         olapsFwd = 0;
+  uint64         olapsRev = 0;
 
 
-  char         *rseq    = new char     [AS_MAX_READLEN + AS_MAX_READLEN];
-  uint32        rseqLen = 0;
 
-  Adjust_t     *fadj    = new Adjust_t [AS_MAX_READLEN];
-  Adjust_t     *radj    = new Adjust_t [AS_MAX_READLEN];
-  uint32        fadjLen  = 0;  //  radj is the same length
-
-  gkReadData    readData;
-
-  uint64        Total_Alignments_Ct           = 0;
-
-  uint64        Failed_Alignments_Ct          = 0;
-  uint64        Failed_Alignments_Both_Ct     = 0;
-  uint64        Failed_Alignments_End_Ct      = 0;
-  uint64        Failed_Alignments_Length_Ct   = 0;
-
-  uint32  rhaFail = 0;
-  uint32  rhaPass = 0;
-
-  uint64        olapsFwd = 0;
-  uint64        olapsRev = 0;
-
-
-  pedWorkArea_t ped;
-
-  ped.initialize(G, G->errorRate);
+  ped->initialize(G, G->errorRate);
 
   //  Process overlaps.  Loop over the B reads, and recompute each overlap.
 
@@ -303,7 +302,7 @@ Redo_Olaps(coParameters *G, gkStore *gkpStore) {
 
     gkRead *read = gkpStore->gkStore_getRead(curID);
 
-    gkpStore->gkStore_loadReadData(read, &readData);
+    gkpStore->gkStore_loadReadData(read, readData);
 
     //  Apply corrections to the B read (also converts to lower case, reverses it, etc)
 
@@ -316,7 +315,7 @@ Redo_Olaps(coParameters *G, gkStore *gkpStore) {
 
     correctRead(curID,
                 fseq, fseqLen, fadj, fadjLen,
-                readData.gkReadData_getSequence(),
+                readData->gkReadData_getSequence(),
                 read->gkRead_sequenceLength(),
                 C, Cpos, Clen);
 
@@ -391,44 +390,44 @@ Redo_Olaps(coParameters *G, gkStore *gkpStore) {
                                       a_end,
                                       b_end,
                                       match_to_end,
-                                      &ped);
+                                      ped);
 
-      //  ped.delta isn't used.
+      //  ped->delta isn't used.
 
       //  ??  These both occur, but the first is much much more common.
 
-      if ((ped.deltaLen > 0) && (ped.delta[0] == 1) && (0 < G->olaps[thisOvl].a_hang)) {
-        int32  stop = min(ped.deltaLen, (int32)G->olaps[thisOvl].a_hang);  //  a_hang is int32:31!
+      if ((ped->deltaLen > 0) && (ped->delta[0] == 1) && (0 < G->olaps[thisOvl].a_hang)) {
+        int32  stop = min(ped->deltaLen, (int32)G->olaps[thisOvl].a_hang);  //  a_hang is int32:31!
         int32  i = 0;
 
-        for  (i=0; (i < stop) && (ped.delta[i] == 1); i++)
+        for  (i=0; (i < stop) && (ped->delta[i] == 1); i++)
           ;
 
-        //fprintf(stderr, "RESET 1 i=%d delta=%d\n", i, ped.delta[i]);
-        assert((i == stop) || (ped.delta[i] != -1));
+        //fprintf(stderr, "RESET 1 i=%d delta=%d\n", i, ped->delta[i]);
+        assert((i == stop) || (ped->delta[i] != -1));
 
-        ped.deltaLen -= i;
+        ped->deltaLen -= i;
 
-        memmove(ped.delta, ped.delta + i, ped.deltaLen * sizeof (int));
+        memmove(ped->delta, ped->delta + i, ped->deltaLen * sizeof (int));
 
         a_part     += i;
         a_end      -= i;
         a_part_len -= i;
         errors     -= i;
 
-      } else if ((ped.deltaLen > 0) && (ped.delta[0] == -1) && (G->olaps[thisOvl].a_hang < 0)) {
-        int32  stop = min(ped.deltaLen, - G->olaps[thisOvl].a_hang);
+      } else if ((ped->deltaLen > 0) && (ped->delta[0] == -1) && (G->olaps[thisOvl].a_hang < 0)) {
+        int32  stop = min(ped->deltaLen, - G->olaps[thisOvl].a_hang);
         int32  i = 0;
 
-        for  (i=0; (i < stop) && (ped.delta[i] == -1); i++)
+        for  (i=0; (i < stop) && (ped->delta[i] == -1); i++)
           ;
 
-        //fprintf(stderr, "RESET 2 i=%d delta=%d\n", i, ped.delta[i]);
-        assert((i == stop) || (ped.delta[i] != 1));
+        //fprintf(stderr, "RESET 2 i=%d delta=%d\n", i, ped->delta[i]);
+        assert((i == stop) || (ped->delta[i] != 1));
 
-        ped.deltaLen -= i;
+        ped->deltaLen -= i;
 
-        memmove(ped.delta, ped.delta + i, ped.deltaLen * sizeof (int));
+        memmove(ped->delta, ped->delta + i, ped->deltaLen * sizeof (int));
 
         b_part     += i;
         b_end      -= i;
@@ -473,7 +472,7 @@ Redo_Olaps(coParameters *G, gkStore *gkpStore) {
         fprintf(stderr, "Redo_Olaps()--  A %s\n", a_part);
         fprintf(stderr, "Redo_Olaps()--  B %s\n", b_part);
 
-        Display_Alignment(a_part, a_part_len, b_part, b_part_len, ped.delta, ped.deltaLen);
+        Display_Alignment(a_part, a_part_len, b_part, b_part_len, ped->delta, ped->deltaLen);
 
         fprintf(stderr, "\n");
 #endif
@@ -492,6 +491,9 @@ Redo_Olaps(coParameters *G, gkStore *gkpStore) {
       //fprintf(stderr, "REDO - errors = %u / olapLep = %u -- %f\n", errors, olapLen, AS_OVS_decodeEvalue(G->olaps[thisOvl].evalue));
     }
   }
+
+  delete ped;
+  delete readData;
 
   fprintf(stderr, "Olaps Fwd "F_U64"\n", olapsFwd);
   fprintf(stderr, "Olaps Rev "F_U64"\n", olapsRev);

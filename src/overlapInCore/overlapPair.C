@@ -588,8 +588,6 @@ main(int argc, char **argv) {
   }
 
   gkStore          *gkpStore = new gkStore(gkpName);
-  gkRead           *read;
-  gkReadData        data;
 
   ovStore          *ovlStore = NULL,  *ovlStoreOut = NULL;
   ovFile           *ovlFile  = NULL,  *ovlFileOut  = NULL;

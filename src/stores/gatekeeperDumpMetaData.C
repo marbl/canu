@@ -149,7 +149,7 @@ main(int argc, char **argv) {
   bool             wantStats         = false;  //  Useful only for reads
 
   uint32           bgnID             = 1;
-  uint32           endID             = AS_MAX_READS;
+  uint32           endID             = UINT32_MAX;
 
   argc = AS_configure(argc, argv);
 

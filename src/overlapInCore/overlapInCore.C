@@ -200,7 +200,7 @@ OverlapDriver(void) {
 
   //  Iterate over read blocks, build a hash table, then search in threads.
 
-  fprintf(stderr, "OverlapDriver()--  Loop top\n");
+  //fprintf(stderr, "OverlapDriver()--  Loop top\n");
 
   while (bgnHashID < G.endHashID) {
     if (endHashID > G.endHashID)
@@ -213,11 +213,11 @@ OverlapDriver(void) {
     //  Load as much as we can.  If we load less than expected, the endHashID is updated to reflect
     //  the last read loaded.
 
-  fprintf(stderr, "OverlapDriver()--  Build_Hash_Index\n");
+    //fprintf(stderr, "OverlapDriver()--  Build_Hash_Index\n");
 
     endHashID = Build_Hash_Index(gkpStore, bgnHashID, endHashID);
 
-    fprintf(stderr, "Index built.\n");
+    //fprintf(stderr, "Index built.\n");
 
     //  Decide the range of reads to process.  No more than what is loaded in the table.
 
@@ -397,7 +397,8 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "--minlength") == 0) {
       G.Min_Olap_Len = strtol (argv[++arg], NULL, 10);
     } else if (strcmp(argv[arg], "--maxerate") == 0) {
-      G.maxErate = ceil(strtof(argv[++arg], NULL));
+      G.maxErate = ceil(strtof(argv[++arg], NULL) * 100) / 100;
+      fprintf(stderr, "maxErate %f\n", G.maxErate);
 
     } else if (strcmp(argv[arg], "-w") == 0) {
       G.Use_Window_Filter = TRUE;

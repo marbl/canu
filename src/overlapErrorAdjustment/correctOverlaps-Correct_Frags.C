@@ -228,15 +228,15 @@ Correct_Frags(coParameters *G,
 
   //  Load reads and apply corrections for each one.
 
-  gkReadData  readData;
+  gkReadData *readData = new gkReadData;
 
   for (uint32 curID=G->bgnID; curID<=G->endID; curID++) {
     gkRead *read       = gkpStore->gkStore_getRead(curID);
 
-    gkpStore->gkStore_loadReadData(read, &readData);
+    gkpStore->gkStore_loadReadData(read, readData);
 
     uint32  readLength = read->gkRead_sequenceLength();
-    char   *readBases  = readData.gkReadData_getSequence();
+    char   *readBases  = readData->gkReadData_getSequence();
 
     //  Save pointers to the bases and adjustments.
 
@@ -275,7 +275,7 @@ Correct_Frags(coParameters *G,
                 G->reads[G->readsLen].basesLen,
                 G->reads[G->readsLen].adjusts,
                 G->reads[G->readsLen].adjustsLen,
-                readData.gkReadData_getSequence(),
+                readData->gkReadData_getSequence(),
                 read->gkRead_sequenceLength(),
                 C,
                 Cpos,
@@ -289,6 +289,7 @@ Correct_Frags(coParameters *G,
     G->readsLen   += 1;
   }
 
+  delete readData;
   delete Cfile;
 
   fprintf(stderr, "Corrected "F_U64" bases with "F_U64" substitutions, "F_U64" deletions and "F_U64" insertions.\n",

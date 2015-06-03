@@ -147,7 +147,7 @@ main(int argc, char **argv) {
   //  Output falcon input.
 
   gkRead      *read;
-  gkReadData   readData;
+  gkReadData  *readData = new gkReadData;
 
   FILE       **partFile = new FILE * [numPartitions + 1];
   memset(partFile, 0, sizeof(FILE *) * (numPartitions + 1));
@@ -176,9 +176,10 @@ main(int argc, char **argv) {
         fprintf(stderr, "Failed to open '%s': %s\n", name, strerror(errno)), exit(1);
     }
 
-    outputFalcon(gkpStore, tig, trimToAlign, partFile[pp], &readData);
+    outputFalcon(gkpStore, tig, trimToAlign, partFile[pp], readData);
   }
 
+  delete readData;
 
   for (uint32 pp=0; pp<numPartitions; pp++) {
     if (partFile[pp] == NULL)

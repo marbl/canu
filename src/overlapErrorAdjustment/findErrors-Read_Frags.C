@@ -64,15 +64,15 @@ Read_Frags(feParameters   *G,
   basesLength = 0;
   votesLength = 0;
 
-  gkReadData  readData;
+  gkReadData  *readData = new gkReadData;
 
   for (uint32 curID=G->bgnID; curID<=G->endID; curID++) {
     gkRead *read       = gkpStore->gkStore_getRead(curID);
 
-    gkpStore->gkStore_loadReadData(read, &readData);
+    gkpStore->gkStore_loadReadData(read, readData);
 
     uint32  readLength = read->gkRead_sequenceLength();
-    char   *readBases  = readData.gkReadData_getSequence();
+    char   *readBases  = readData->gkReadData_getSequence();
 
     G->reads[curID - G->bgnID].sequence = G->readBases + basesLength;
     G->reads[curID - G->bgnID].vote     = G->readVotes + votesLength;
@@ -92,6 +92,8 @@ Read_Frags(feParameters   *G,
     G->reads[curID - G->bgnID].left_degree  = 0;
     G->reads[curID - G->bgnID].right_degree = 0;
   }
+
+  delete readData;
 
   fprintf(stderr, "Read_Frags()-- from "F_U32" through "F_U32" -- loaded "F_U64" bases in "F_U64" reads.\n",
           G->bgnID, G->endID-1, basesLength, readsLoaded);

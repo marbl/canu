@@ -470,8 +470,7 @@ Build_Hash_Index(gkStore *gkpStore, uint32 bgnID, uint32 endID) {
 
   memset(nextRef, 0xff, sizeof(String_Ref_t) * nextRef_Len);
 
-#warning gkReadData wants to be persistent, but isnt implemented as such.
-  gkReadData    readData;
+  gkReadData   *readData = new gkReadData;
 
   for (curID=bgnID; ((String_Ct    <  G.Max_Hash_Strings) &&
                      (total_len    <  G.Max_Hash_Data_Len) &&
@@ -492,10 +491,10 @@ Build_Hash_Index(gkStore *gkpStore, uint32 bgnID, uint32 endID) {
     if (len < G.Min_Olap_Len)
       continue;
 
-    gkpStore->gkStore_loadReadData(read, &readData);
+    gkpStore->gkStore_loadReadData(read, readData);
 
-    char   *seqptr   = readData.gkReadData_getSequence();
-    char   *qltptr   = readData.gkReadData_getQualities();
+    char   *seqptr   = readData->gkReadData_getSequence();
+    char   *qltptr   = readData->gkReadData_getQualities();
 
     //  Note where we are going to store the string, and how long it is
 
@@ -548,6 +547,8 @@ Build_Hash_Index(gkStore *gkpStore, uint32 bgnID, uint32 endID) {
   }
 
   curID--;  //  We always stop on the read after we loaded.
+
+  delete readData;
 
   fprintf(stderr, "HASH LOADING STOPPED: strings  %12"F_U64P" out of %12"F_U32P" max.\n", String_Ct, G.Max_Hash_Strings);
   fprintf(stderr, "HASH LOADING STOPPED: length   %12"F_U64P" out of %12"F_U64P" max.\n", total_len, G.Max_Hash_Data_Len);
