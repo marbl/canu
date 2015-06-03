@@ -63,6 +63,7 @@ SOURCES  := AS_global.C \
             alignment/overlap.C \
             \
             overlapInCore/liboverlap/Binomial_Bound.C \
+            overlapInCore/liboverlap/prefixEditDistance.C \
             overlapInCore/liboverlap/prefixEditDistance-allocateMoreSpace.C \
             overlapInCore/liboverlap/prefixEditDistance-extend.C \
             overlapInCore/liboverlap/prefixEditDistance-forward.C \
