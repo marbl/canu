@@ -146,14 +146,20 @@ prefixEditDistance::prefixEditDistance(bool doingPartialOverlaps_, double maxEra
   assert(0 <= dataIndex);
   assert(dataIndex < 50);
 
-  Edit_Match_Limit = Edit_Match_Limit_Data[dataIndex];
+#if 0
+
+  Edit_Match_Limit_Allocation = NULL;
+  Edit_Match_Limit            = Edit_Match_Limit_Data[dataIndex];
 
   fprintf(stderr, "prefixEditDistance()-- Set Edit_Match_Limit to %p; dataIndex=%d 6 = %p\n",
           Edit_Match_Limit, dataIndex, Edit_Match_Limit_0600);
 
-#if 0
+#else
+
+  Edit_Match_Limit_Allocation = new int32 [MAX_ERRORS + 1];
+
   for (int32 e=0;  e<= ERRORS_FOR_FREE; e++)
-    Edit_Match_Limit[e] = 0;
+    Edit_Match_Limit_Allocation[e] = 0;
 
   int Start = 1;
 
@@ -161,10 +167,13 @@ prefixEditDistance::prefixEditDistance(bool doingPartialOverlaps_, double maxEra
     Start = Binomial_Bound(e - ERRORS_FOR_FREE,
                            maxErate,
                            Start);
-    Edit_Match_Limit[e] = Start - 1;
+    Edit_Match_Limit_Allocation[e] = Start - 1;
 
-    assert(Edit_Match_Limit[e] >= Edit_Match_Limit[e-1]);
+    assert(Edit_Match_Limit_Allocation[e] >= Edit_Match_Limit_Allocation[e-1]);
   }
+
+  Edit_Match_Limit = Edit_Match_Limit_Allocation;
+
 #endif
 
   for (int32 i=0; i <= AS_MAX_READLEN; i++) {
@@ -213,5 +222,7 @@ prefixEditDistance::~prefixEditDistance() {
 
   delete [] Edit_Space_Lazy;
   delete [] Edit_Array_Lazy;
+
+  delete [] Edit_Match_Limit_Allocation;
 };
 

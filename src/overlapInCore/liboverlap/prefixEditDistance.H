@@ -107,6 +107,7 @@ public:
   //  to be worth pursuing in edit-distance computations between reads
   const
   int32   *Edit_Match_Limit;
+  int32   *Edit_Match_Limit_Allocation;
 
   //  The maximum number of errors allowed in a match between reads of length i,
   //  which is i * AS_OVL_ERROR_RATE.
