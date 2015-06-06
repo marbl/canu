@@ -23,6 +23,7 @@ using namespace std;
 //  If 17-21, an overlap is 24 bytes.    (3x 64 bit words)
 //  If 22-32, an overlap is 32 bytes.    (4x 64 bit words)
 //
+//  If 21, overlapErrorCorrection (both programs) take a long time to initialize
 //  if 26, bogart has issues with storing the error rate
 //  If 28, alignment/alignment-drivers.C won't link
 //  If 29, alignment/alignment-drivers.C won't link
@@ -30,7 +31,7 @@ using namespace std;
 //  If 31, alignment/alignment-drivers.C won't compile, len+len+2 == 0
 //  If 32, it won't compile because of shifting (uint32)1 << 32 == 0.
 //
-#define AS_MAX_READLEN_BITS        21
+#define AS_MAX_READLEN_BITS        17
 #define AS_MAX_READLEN             (((uint32)1 << AS_MAX_READLEN_BITS) - 1)
 
 //  The number of read IDs we can handle.  Longer reads implies fewer reads.
