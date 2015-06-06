@@ -27,11 +27,8 @@ generateLayout(gkStore    *gkpStore,
                double      maxEvidenceCoverage,
                uint32      minCorLength,
                ovsOverlap *ovl,
-               uint32      ovlLen) {
-#ifdef LOG
-  fprintf(stderr, "Generate layout for read "F_U32" with "F_U32" overlaps.\n",
-          ovl[0].a_iid, ovlLen);
-#endif
+               uint32      ovlLen,
+               FILE       *logFile) {
 
   tgTig  *layout = new tgTig;
 
@@ -50,34 +47,49 @@ generateLayout(gkStore    *gkpStore,
 
   resizeArray(layout->_children, layout->_childrenLen, layout->_childrenMax, ovlLen, resizeArray_doNothing);
 
+  if (logFile)
+    fprintf(logFile, "Generate layout for read "F_U32" length "F_U32" using up to "F_U32" overlaps.\n",
+            layout->_tigID, layout->_layoutLen, ovlLen);
+
   for (uint32 oo=0; oo<ovlLen; oo++) {
-    uint32   ovlLength = ovl[oo].b_end(gkpStore) - ovl[oo].b_bgn(gkpStore);
+
+    //  ovlLength, in filterCorrectionOverlaps, is computed on the a read.  That is now the b read here.
+    uint32   ovlLength = ((ovl[oo].b_bgn(gkpStore) < ovl[oo].b_end(gkpStore)) ?
+                          ovl[oo].b_end(gkpStore) - ovl[oo].b_bgn(gkpStore) :
+                          ovl[oo].b_bgn(gkpStore) - ovl[oo].b_end(gkpStore));
     uint32   ovlScore  = ovlLength * ovl[oo].erate() * 100;
 
+    if (ovlLength > AS_MAX_READLEN) {
+      char ovlString[1024];
+      fprintf(stderr, "ERROR: bogus overlap '%s'\n", ovl[oo].toString(ovlString, gkpStore, ovOverlapAsCoords, false));
+    }
+    assert(ovlLength < AS_MAX_READLEN);
+
     if (ovl[oo].erate() > maxEvidenceErate) {
-#ifdef LOG
-      fprintf(stderr, "  filter read %9u at position %6u,%6u erate %.3f - low quality (threshold %.2f)\n",
-              ovl[oo].b_iid, ovl[oo].a_bgn(gkpStore), ovl[oo].a_end(gkpStore), ovl[oo].erate(), maxEvidenceErate);
-#endif
+      if (logFile)
+        fprintf(logFile, "  filter read %9u at position %6u,%6u length %5u erate %.3f - low quality (threshold %.2f)\n",
+                ovl[oo].b_iid, ovl[oo].a_bgn(gkpStore), ovl[oo].a_end(gkpStore), ovlLength, ovl[oo].erate(), maxEvidenceErate);
       continue;
     }
 
     if (ovl[oo].a_end(gkpStore) - ovl[oo].a_bgn(gkpStore) < minEvidenceLength) {
-#ifdef LOG
-      fprintf(stderr, "  filter read %9u at position %6u,%6u erate %.3f - too short (threshold %u)\n",
-              ovl[oo].b_iid, ovl[oo].a_bgn(gkpStore), ovl[oo].a_end(gkpStore), ovl[oo].erate(), minEvidenceLength);
-#endif
+      if (logFile)
+        fprintf(logFile, "  filter read %9u at position %6u,%6u length %5u erate %.3f - too short (threshold %u)\n",
+                ovl[oo].b_iid, ovl[oo].a_bgn(gkpStore), ovl[oo].a_end(gkpStore), ovlLength, ovl[oo].erate(), minEvidenceLength);
       continue;
     }
 
     if ((readScores != NULL) &&
         (ovlScore < readScores[ovl[oo].b_iid])) {
-#ifdef LOG
-      fprintf(stderr, "  filter read %9u at position %6u,%6u erate %.3f - filtered by global filter (threshold %u)\n",
-              ovl[oo].b_iid, ovl[oo].a_bgn(gkpStore), ovl[oo].a_end(gkpStore), ovl[oo].erate(), readScores[ovl[oo].b_iid]);
-#endif
+      if (logFile)
+        fprintf(logFile, "  filter read %9u at position %6u,%6u length %5u erate %.3f - filtered by global filter (threshold %u)\n",
+                ovl[oo].b_iid, ovl[oo].a_bgn(gkpStore), ovl[oo].a_end(gkpStore), ovlLength, ovl[oo].erate(), readScores[ovl[oo].b_iid]);
       continue;
     }
+
+    if (logFile)
+      fprintf(logFile, "  allow  read %9u at position %6u,%6u length %5u erate %.3f\n",
+              ovl[oo].b_iid, ovl[oo].a_bgn(gkpStore), ovl[oo].a_end(gkpStore), ovlLength, ovl[oo].erate());
 
     tgPosition   *pos = layout->addChild();
 
@@ -110,10 +122,8 @@ generateLayout(gkStore    *gkpStore,
 
   savedChildren *sc = stashContains(layout, maxEvidenceCoverage);
 
-#ifdef LOG
-  if (sc)
-    sc->reportRemoved(stderr, layout->tigID());
-#endif
+  if ((logFile) && (sc))
+    sc->reportRemoved(logFile, layout->tigID());
 
   if (sc) {
     delete sc->children;
@@ -123,16 +133,17 @@ generateLayout(gkStore    *gkpStore,
   //  stashContains also sorts by position, so we're done.
 
 #if 0
-  for (uint32 ii=0; ii<layout->numberOfChildren(); ii++) {
-    tgPosition *pos = layout->getChild(ii);
-
-    fprintf(stderr, "  read %9u at position %6u,%6u hangs %6d %6d %c unAl %5d %5d\n",
-            pos->_objID,
-            pos->_min, pos->_max,
-            pos->_ahang, pos->_bhang,
-            pos->isForward() ? 'F' : 'R',
-            pos->_askip, pos->_bskip);
-  }
+  if (logFile)
+    for (uint32 ii=0; ii<layout->numberOfChildren(); ii++)
+      fprintf(logFile, "  read %9u at position %6u,%6u hangs %6d %6d %c unAl %5d %5d\n",
+              layout->getChild(ii)->_objID,
+              layout->getChild(ii)->_min,
+              layout->getChild(ii)->_max,
+              layout->getChild(ii)->_ahang,
+              layout->getChild(ii)->_bhang,
+              layout->getChild(ii)->isForward() ? 'F' : 'R',
+              layout->getChild(ii)->_askip,
+              layout->getChild(ii)->_bskip);
 #endif
 
   return(layout);
@@ -156,8 +167,10 @@ main(int argc, char **argv) {
   char             *outputPrefix = NULL;
   char              logName[FILENAME_MAX] = {0};
   char              sumName[FILENAME_MAX] = {0};
-  FILE             *logFile      = 0L;
-  FILE             *sumFile      = 0L;
+  char              flgName[FILENAME_MAX] = {0};
+  FILE             *logFile       = 0L;
+  FILE             *sumFile       = 0L;
+  FILE             *flgFile = 0L;
 
   argc = AS_configure(argc, argv);
 
@@ -318,6 +331,7 @@ main(int argc, char **argv) {
   if (outputPrefix) {
     sprintf(logName, "%s.log",     outputPrefix);
     sprintf(sumName, "%s.summary", outputPrefix);
+    sprintf(flgName, "%s.filter.log",     outputPrefix);
 
     errno = 0;
 
@@ -328,6 +342,10 @@ main(int argc, char **argv) {
     sumFile = fopen(sumName, "w");
     if (errno)
       fprintf(stderr, "Failed to open '%s' for writing: %s\n", sumName, strerror(errno)), exit(1);
+
+    flgFile = fopen(flgName, "w");
+    if (errno)
+      fprintf(stderr, "Failed to open '%s' for writing: %s\n", flgName, strerror(errno)), exit(1);
   }
 
   if (logFile)
@@ -353,7 +371,8 @@ main(int argc, char **argv) {
                                    readScores,
                                    minEvidenceLength, maxEvidenceErate, maxEvidenceCoverage,
                                    minCorLength,
-                                   ovl, ovlLen);
+                                   ovl, ovlLen,
+                                   flgFile);
 
     //  If there was a readList, skip anything not in it.
 

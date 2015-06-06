@@ -17,7 +17,8 @@ int
 main(int argc, char **argv) {
   char           *gkpStoreName     = NULL;
   char           *ovlStoreName     = NULL;
-  char           *scoreFileName      = NULL;
+  char           *scoreFileName    = NULL;
+  char           *logFileName      = NULL;
 
   uint32          expectedCoverage = 25;
 
@@ -54,6 +55,10 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-e") == 0) {
       AS_UTL_decodeRange(argv[++arg], minErate, maxErate);
+
+
+    } else if (strcmp(argv[arg], "-logfile") == 0) {
+      logFileName = argv[++arg];
 
 
     } else if (strcmp(argv[arg], "-nocontain") == 0) {
@@ -99,6 +104,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "                    example:  -e 0.05-0.20     filter overlaps below 5%% error\n");
     fprintf(stderr, "                                                            or above 20%% error\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "  -logfile L      write detailed per-read logging to file L\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "The following are not implemented:\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -nocontain      filter overlaps that are contained in the target read\n");
@@ -135,10 +142,17 @@ main(int argc, char **argv) {
 
   uint32   *scores    = new uint32 [gkpStore->gkStore_getNumReads() + 1];
 
+
   errno = 0;
-  FILE     *scoreFile   = fopen(scoreFileName, "w");
+  FILE     *scoreFile   = (scoreFileName == NULL) ? NULL : fopen(scoreFileName, "w");
   if (errno)
     fprintf(stderr, "ERROR: failed to open '%s' for writing: %s\n", scoreFileName, strerror(errno)), exit(1);
+
+
+  errno = 0;
+  FILE     *logFile     = (logFileName == NULL) ? NULL : fopen(logFileName, "w");
+  if (errno)
+    fprintf(stderr, "ERROR: failed to open '%s' for writing: %s\n", logFileName, strerror(errno)), exit(1);
 
 
   uint32      ovlLen = 0;
@@ -223,6 +237,8 @@ main(int argc, char **argv) {
 
       totalOverlaps++;
 
+      //  First, count the filtering done above.
+
       if (ovl[oo].evalue() < minEvalue) {
         lowErate++;
         skipIt = true;
@@ -243,12 +259,6 @@ main(int argc, char **argv) {
         skipIt = true;
       }
 
-      if (ovlLength < scores[id]) {
-        belowCutoff++;
-        belowCutoffLocal++;
-        skipIt = true;
-      }
-
       if ((isC == true) && (noContain  == true)) {
         isContain++;
         skipIt = true;
@@ -259,29 +269,39 @@ main(int argc, char **argv) {
         skipIt = true;
       }
 
+      //  Now, apply the global filter cutoff, only if the overlap wasn't already tossed out.
+
+      if ((skipIt == false) &&
+          (ovlScore < scores[id])) {
+        belowCutoff++;
+        belowCutoffLocal++;
+        skipIt = true;
+      }
+
       if (skipIt)
         continue;
 
       retained++;
     }
 
-
-#if 0
     if (logFile) {
       if (histLen <= expectedCoverage)
-        fprintf(logFile, "%9u %10u - %8u overlaps - (no filtering)\n",
-                id, UINT32_MAX, histLen);
+        fprintf(logFile, "%9u - %6u overlaps - %6u scored - %6u filtered - %4u saved (no filtering)\n",
+                id, ovlLen, histLen, 0, histLen);
       else
-        fprintf(logFile, "%9u %10u - %8u overlaps - %8u filtered (lowest score of the longest %4u overlaps)\n",
-                id, hist[histLen - expectedCoverage], histLen, belowCutoffLocal, expectedCoverage);
+        fprintf(logFile, "%9u - %6u overlaps - %6u scored - %6u filtered - %4u saved (length * erate cutoff %.2f)\n",
+                id, ovlLen, histLen, belowCutoffLocal, histLen - belowCutoffLocal, scores[id] / 100.0);
     }
-#endif
   }
 
   if (scoreFile)
     AS_UTL_safeWrite(scoreFile, scores, "scores", sizeof(uint32), gkpStore->gkStore_getNumReads() + 1);
 
-  fclose(scoreFile);
+  if (scoreFile)
+    fclose(scoreFile);
+
+  if (logFile)
+    fclose(logFile);
 
   delete [] scores;
 

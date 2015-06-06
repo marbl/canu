@@ -341,6 +341,7 @@ sub expensiveFilter ($$) {
         $cmd  = "$bin/generateCorrectionLayouts \\\n";
         $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
         $cmd .= "  -O $wrk/$asm.ovlStore \\\n";
+        $cmd .= "  -S $path/$asm.globalScores \\\n"                    if (-e "$path/$asm.globalScores");
         $cmd .= "  -L " . getGlobal("corMinEvidenceLength") . " \\\n"  if (defined(getGlobal("corMinEvidenceLength")));
         $cmd .= "  -E " . getGlobal("corMaxEvidenceErate")  . " \\\n"  if (defined(getGlobal("corMaxEvidenceErate")));
         $cmd .= "  -C $maxCov \\\n";
@@ -599,6 +600,7 @@ sub buildCorrectionLayouts ($$) {
         $cmd .= "  -S $path/$asm.globalScores \\\n";
         $cmd .= "  -c $maxCov \\\n";
         $cmd .= "  -l $minLen \\\n";
+        $cmd .= "  -logfile $path/$asm.globalScores.log \\\n";
         $cmd .= "> $path/$asm.globalScores.err 2>&1";
 
         if (runCommand($path, $cmd)) {
