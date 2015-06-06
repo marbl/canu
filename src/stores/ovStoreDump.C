@@ -142,7 +142,7 @@ dumpStore(ovStore *ovlStore,
       AS_UTL_safeWrite(stdout, &overlap, "dumpStore", sizeof(ovsOverlap), 1);
 
     else
-      fputs(overlap.toString(ovlString, gkpStore, type), stdout);
+      fputs(overlap.toString(ovlString, gkpStore, type, true), stdout);
   }
 
   if (asCounts)

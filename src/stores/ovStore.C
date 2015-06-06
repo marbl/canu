@@ -1351,8 +1351,8 @@ ovStoreFilter::filterOverlap(ovsOverlap       &foverlap,
     char ovlstr[256];
 
     fprintf(stderr, "Overlap has IDs out of range (maxID "F_U64"), possibly corrupt input data.\n", maxID);
-    fprintf(stderr, "  coords -- %s\n", foverlap.toString(ovlstr, gkp, ovOverlapAsCoords));
-    fprintf(stderr, "  hangs  -- %s\n", foverlap.toString(ovlstr, gkp, ovOverlapAsHangs));
+    fprintf(stderr, "  coords -- %s\n", foverlap.toString(ovlstr, gkp, ovOverlapAsCoords, false));
+  fprintf(stderr, "  hangs  -- %s\n", foverlap.toString(ovlstr, gkp, ovOverlapAsHangs, false));
     exit(1);
   }
 

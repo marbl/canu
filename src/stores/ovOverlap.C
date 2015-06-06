@@ -7,30 +7,35 @@
 //  of combining them doesn't appear to be 64-bit.  The cast is necessary.
 
 char *
-ovsOverlap::toString(char *str, gkStore *gkp, ovOverlapDisplayType type) {
+ovsOverlap::toString(char                  *str,
+                     gkStore               *gkp,
+                     ovOverlapDisplayType   type,
+                     bool                   newLine) {
 
   switch (type) {
     case ovOverlapAsHangs:
-      sprintf(str, "%10"F_U32P" %10"F_U32P"  %c  %6"F_S32P" %6"F_S32P" %6"F_S32P"  %7.6f%s\n",
+      sprintf(str, "%10"F_U32P" %10"F_U32P"  %c  %6"F_S32P" %6"F_S32P" %6"F_S32P"  %7.6f%s%s",
               a_iid, b_iid,
               flipped() ? 'I' : 'N',
               a_hang(), span(), b_hang(),
               erate(),
-              (overlapIsDovetail()) ? "" : "  PARTIAL");
+              (overlapIsDovetail()) ? "" : "  PARTIAL",
+              (newLine) ? "\n" : "");
       break;
 
     case ovOverlapAsCoords:
-      sprintf(str, "%10"F_U32P" %10"F_U32P"  %c  %6"F_S32P"  %6"F_U32P" %6"F_U32P"  %6"F_U32P" %6"F_U32P"  %7.6f\n",
+      sprintf(str, "%10"F_U32P" %10"F_U32P"  %c  %6"F_S32P"  %6"F_U32P" %6"F_U32P"  %6"F_U32P" %6"F_U32P"  %7.6f%s",
               a_iid, b_iid,
               flipped() ? 'I' : 'N',
               span(),
               a_bgn(gkp), a_end(gkp),
               b_bgn(gkp), b_end(gkp),
-              erate());
+              erate(),
+              (newLine) ? "\n" : "");
       break;
 
     case ovOverlapAsRaw:
-      sprintf(str, "%10"F_U32P" %10"F_U32P"  %c  %6"F_S32P"  %6"F_U32P" %6"F_U32P"  %6"F_U32P" %6"F_U32P"  %7.6f %s %s %s\n",
+      sprintf(str, "%10"F_U32P" %10"F_U32P"  %c  %6"F_S32P"  %6"F_U32P" %6"F_U32P"  %6"F_U32P" %6"F_U32P"  %7.6f %s %s %s%s",
               a_iid, b_iid,
               flipped() ? 'I' : 'N',
               span(),
@@ -39,17 +44,19 @@ ovsOverlap::toString(char *str, gkStore *gkp, ovOverlapDisplayType type) {
               erate(),
               dat.ovl.forOBT ? "OBT" : "   ",
               dat.ovl.forDUP ? "DUP" : "   ",
-              dat.ovl.forUTG ? "UTG" : "   ");
+              dat.ovl.forUTG ? "UTG" : "   ",
+              (newLine) ? "\n" : "");
       break;
 
     case ovOverlapAsCompat:
-      sprintf(str, "%8"F_U32P" %8"F_U32P"  %c  %6d  %6d  %5.2f  %5.2f",
+      sprintf(str, "%8"F_U32P" %8"F_U32P"  %c  %6d  %6d  %5.2f  %5.2f%s",
               a_iid,
               b_iid,
               dat.ovl.flipped ? 'I' : 'N',
               a_hang(), b_hang(),
               erate() * 100.0,
-              erate() * 100.0);
+              erate() * 100.0,
+              (newLine) ? "\n" : "");
       break;
   }
 

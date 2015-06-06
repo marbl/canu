@@ -209,7 +209,7 @@ public:
   uint32     overlapAIsContainer(void) const  { return((dat.ovl.bhg5 == 0) && (dat.ovl.bhg3 == 0));  };
   uint32     overlapBIsContained(void) const  { return((dat.ovl.bhg5 == 0) && (dat.ovl.bhg3 == 0));  };
 
-  char      *toString(char *str, gkStore *gkp, ovOverlapDisplayType type);
+  char      *toString(char *str, gkStore *gkp, ovOverlapDisplayType type, bool newLine);
 
   void       swapIDs(ovsOverlap const &orig);
 
