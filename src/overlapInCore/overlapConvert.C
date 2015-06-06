@@ -77,7 +77,7 @@ main(int argc, char **argv) {
     ovsOverlap   ov;
 
     while (of->readOverlap(&ov))
-      fputs(ov.toString(ovStr, gkpStore, dt), stdout);
+      fputs(ov.toString(ovStr, gkpStore, dt, true), stdout);
 
     delete of;
   }
