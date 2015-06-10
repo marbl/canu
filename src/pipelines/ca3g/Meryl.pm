@@ -132,11 +132,13 @@ sub meryl ($$$) {
     #  Build the database.
 
     if (! -e "$ofile.mcdat") {
-        my $mem = getGlobal("merylMemory")  * 1024;
+        my $mem = getGlobal("merylMemory");
         my $thr = getGlobal("merylThreads");
 
-        $mem  = int(2048 * getPhysicalMemorySize() / 3)   if (!defined($mem));
-        $thr  =            getNumberOfCPUs()              if (!defined($thr));
+        $mem  = int(2 * getPhysicalMemorySize() / 3)   if (!defined($mem));
+        $thr  =         getNumberOfCPUs()              if (!defined($thr));
+
+        $mem *= 1024;  #  Because meryl expects megabytes, not gigabytes.
 
         $cmd  = "$bin/meryl \\\n";
         $cmd .= " -B -C -L 2 -v -m $merSize -threads $thr -memory $mem \\\n";
