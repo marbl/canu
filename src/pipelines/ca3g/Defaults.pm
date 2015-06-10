@@ -1182,8 +1182,11 @@ sub setDefaults () {
     $global{"corMaxEvidenceErate"}         = undef;
     $synops{"corMaxEvidenceErate"}         = "Limit read correction to only overlaps at or below this fraction error; default: unlimited";
 
-    $global{"corMaxEvidenceCoverage"}      = undef;
-    $synops{"corMaxEvidenceCoverage"}      = "Limit read correction to at most this coverage; default: 1.5 * estimated coverage";
+    $global{"corMaxEvidenceCoverageGlobal"}= "1.0x";
+    $synops{"corMaxEvidenceCoverageGlobal"}= "Limit reads used for correction to supporting at most this coverage; default: 1.0 * estimated coverage";
+
+    $global{"corMaxEvidenceCoverageLocal"} = "1.5x";
+    $synops{"corMaxEvidenceCoverageLocal"} = "Limit reads being corrected to at most this much evidence coverage; default: 1.5 * estimated coverage";
 
     $global{"corOutCoverage"}              = 25;
     $synops{"corOutCoverage"}              = "Only correct the longest reads up to this coverage; default 25";

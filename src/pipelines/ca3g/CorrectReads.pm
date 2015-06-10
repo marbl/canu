@@ -13,6 +13,27 @@ use ca3g::Defaults;
 use ca3g::Execution;
 use ca3g::Gatekeeper;
 
+#  Returns a coverage:
+#    If $cov not defined, default to expected coverage * 1.0.
+#    Otherwise, if defined but ends in an 'x', that's expected coverage * whatever
+#    Otherwise, the coverage is as defined.
+#
+sub getCorCov ($$$) {
+    my $wrk = shift @_;
+    my $asm = shift @_;
+    my $typ = shift @_;
+    my $cov = getGlobal("corMaxEvidenceCoverage$typ");
+
+    if (!defined($cov)) {
+        $cov = int(getExpectedCoverage($wrk, $asm) * 1.0);
+    } elsif ($cov =~ m/(.*)x/) {
+        $cov = int(getExpectedCoverage($wrk, $asm) * $1);
+    }
+
+    return($cov);
+}
+
+
 
 #  Return the number of jobs for 'falcon', 'falconpipe' or 'utgcns'
 #
@@ -60,7 +81,7 @@ sub buildCorrectionLayouts_direct ($$) {
     return  if (-e "$wrk/$asm.correctedReads.fastq");  #  Output exists
     return  if (-e "$path/cnsjob.files");              #  Jobs all finished
 
-    my $maxCov = (defined(getGlobal("corMaxEvidenceCoverage"))) ? getGlobal("corMaxEvidenceCoverage") : int(getExpectedCoverage($wrk, $asm) * 1.5);
+    my $maxCov = getCorCov($wrk, $asm, "Local");
 
     if (! -e "$wrk/$asm.corStore") {
         $cmd  = "$bin/generateCorrectionLayouts \\\n";
@@ -240,7 +261,7 @@ sub buildCorrectionLayouts_piped ($$) {
     print F getBinDirectoryShellCode();
     print F "\n";
 
-    my $maxCov   = (defined(getGlobal("corMaxEvidenceCoverage"))) ? getGlobal("corMaxEvidenceCoverage") : int(getExpectedCoverage($wrk, $asm) * 1.5);
+    my $maxCov   = getCorCov($wrk, $asm, "Local");
 
     print F "$bin/generateCorrectionLayouts -b \$bgn -e \$end \\\n";
     print F "  -rl $path/$asm.readsToCorrect \\\n"         if (-e "$path/$asm.readsToCorrect");
@@ -335,7 +356,9 @@ sub expensiveFilter ($$) {
     my $cmd;
     my $path = "$wrk/2-correction";
 
-    my $maxCov = (defined(getGlobal("corMaxEvidenceCoverage"))) ? getGlobal("corMaxEvidenceCoverage") : int(getExpectedCoverage($wrk, $asm) * 1.5);
+    my $maxCov = getCorCov($wrk, $asm, "Local");
+
+    #  Generate correction layouts, but only save the lengths (both the original read length, and the expected corrected read length).
 
     if (! -e "$path/$asm.estimate.log") {
         $cmd  = "$bin/generateCorrectionLayouts \\\n";
@@ -353,8 +376,12 @@ sub expensiveFilter ($$) {
         }
     }
 
-    runCommand($path, "sort -k4nr -k2nr < $path/$asm.estimate.log > $path/$asm.estimate.correctedLength.log");
+    #  Sort the lengths by:
+    #    The original length, breaking ties by the corrected length
+    #    The corrected length, breaking ties by the original length
+
     runCommand($path, "sort -k2nr -k4nr < $path/$asm.estimate.log > $path/$asm.estimate.originalLength.log");
+    runCommand($path, "sort -k4nr -k2nr < $path/$asm.estimate.log > $path/$asm.estimate.correctedLength.log");
 
     my $totRawLengthIn    = 0;  #  Bases in raw reads we correct
     my $totRawLengthOut   = 0;  #  Expected bases in corrected reads
@@ -377,26 +404,26 @@ sub expensiveFilter ($$) {
     my @corLengthRawFilter;
     my @corLengthCorFilter;
 
-    #  Filter!
+    #  Filter!  Load an array with the corected read lengths.  This is needed....where?
 
-    open(F, "< $path/$asm.estimate.originalLength.log");
+    open(F, "< $path/$asm.estimate.log");
     while (<F>) {
         my @v = split '\s+', $_;
-        next if ($v[0] eq "read");
+        next if ($v[0] eq "read");  #  Skip the header
 
         $corReadLen{$v[0]} = $v[3];
     }
     close(F);
 
+    #  Compute a filter threshold based on the original read lengths.
+
     open(F, "< $path/$asm.estimate.originalLength.log");
     while (<F>) {
         my @v = split '\s+', $_;
-        next if ($v[0] eq "read");
+        next if ($v[0] eq "read");  #  Skip the header
 
         $totRawLengthIn  += $v[1];
         $totRawLengthOut += $v[3];
-
-        #print O "$v[0]\t$v[1]\t$v[3]\n";
 
         $rawReads{$v[0]} = 1;
 
@@ -408,6 +435,8 @@ sub expensiveFilter ($$) {
         }
     }
 
+    #  Compute a filter based on the expected corrected read lengths.
+
     open(O, "> $path/$asm.readsToCorrect.WORKING") or caExit("can't open '$path/$asm.readsToCorrect.WORKING' for writing: $!\n", undef);
     open(F, "< $path/$asm.estimate.correctedLength.log");
 
@@ -415,7 +444,7 @@ sub expensiveFilter ($$) {
 
     while (<F>) {
         my @v = split '\s+', $_;
-        next if ($v[0] eq "read");
+        next if ($v[0] eq "read");  #  Skip the header
 
         $totCorLengthIn  += $v[1];
         $totCorLengthOut += $v[3];
@@ -435,7 +464,6 @@ sub expensiveFilter ($$) {
     close(O);
 
     rename "$path/$asm.readsToCorrect.WORKING", "$path/$asm.readsToCorrect";
-
 
     #  Generate true/false positive/negative lists.
 
@@ -591,8 +619,8 @@ sub buildCorrectionLayouts ($$) {
     #  'global' overlap filtering.
 
     if (! -e "$path/$asm.globalScores") {
-        my $maxCov = (defined(getGlobal("corMaxEvidenceCoverage"))) ? getGlobal("corMaxEvidenceCoverage") : int(getExpectedCoverage($wrk, $asm) * 1.5);
-        my $minLen = (defined(getGlobal("corMinEvidenceLength")))   ? getGlobal("corMinEvidenceLength")   : 0;
+        my $maxCov = getCorCov($wrk, $asm, "Global");
+        my $minLen = (defined(getGlobal("corMinEvidenceLength"))) ? getGlobal("corMinEvidenceLength") : 0;
 
         $cmd  = "$bin/filterCorrectionOverlaps \\\n";
         $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
