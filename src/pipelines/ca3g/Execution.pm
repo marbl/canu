@@ -3,7 +3,7 @@ package ca3g::Execution;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(stopBefore stopAfter skipStage emitStage touch getInstallDirectory getBinDirectory getBinDirectoryShellCode submitScript submitOrRunParallelJob runCommand);
+@EXPORT = qw(stopBefore stopAfter skipStage emitStage touch getInstallDirectory getBinDirectory getBinDirectoryShellCode submitScript submitOrRunParallelJob runCommand runCommandSilently);
 
 use strict;
 use Config;            #  for @signame

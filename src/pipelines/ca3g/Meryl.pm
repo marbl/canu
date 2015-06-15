@@ -61,7 +61,7 @@ sub meryl ($$$) {
 
     } elsif (getGlobal("${tag}Overlapper") eq "mhap") {
         $merSize      = getGlobal("${tag}mhapMerSize");
-        $merThresh    = 0.00005;  #  also set in OverlapMhap.pm
+        $merThresh    = undef;
         $merScale     = 1.0;
         $merDistinct  = undef;
         $merTotal     = undef;
@@ -292,7 +292,8 @@ sub meryl ($$$) {
 
     #  Generate the frequent mers for mhap
     #
-    #    TTTTGTTTTTTTTTTT        0.0000044602    589     132055862
+    #    mer                     value           numInstances  totalKmers
+    #    TTTTGTTTTTTTTTTT        0.0000044602    589           132055862
     #
     #  The fraction is just $3/$4.  I assume this is used with "--filter-threshold 0.000005".
 
@@ -301,10 +302,13 @@ sub meryl ($$$) {
 
         my $totalMers = 0;
 
+        #  Meryl reports number of distinct canonical mers, we multiply by two to get the
+        #  (approximate) number of distinct mers.  Palindromes are counted twice, oh well.
+
         open(F, "< $wrk/0-mercounts/$asm.ms$merSize.histogram.err") or die "Failed to open '$wrk/0-mercounts/$asm.ms$merSize.histogram.err' for reading: $!\n";
         while (<F>) {
             if (m/Found\s+(\d+)\s+mers./) {
-                $totalMers = $1;
+                $totalMers = 2 * $1;
             }
         }
         close(F);
@@ -312,15 +316,10 @@ sub meryl ($$$) {
         caFailure("didn't find any mers?", "$wrk/0-mercounts/$asm.ms$merSize.histogram.err")  if ($totalMers == 0);
 
         my $filterThreshold = (getGlobal("${tag}MhapSensitivity") eq "normal") ?   0.000005 :   0.000005;  #  Also set in Meryl.pm
+        my $minCount        = int($filterThreshold * $totalMers);
 
-        $merThresh = int($filterThreshold / 2 * $totalMers);
-
-        #print STDERR "totalMers       = $totalMers\n";
-        #print STDERR "filterThreshold = $filterThreshold\n";
-        #print STDERR "merThresh       = $merThresh\n";
-
-        open(F, "$bin/meryl -Dt -n $merThresh -s $wrk/0-mercounts/$asm.ms$merSize | ") or die "Failed to run meryl to generate frequent mers $!\n";
-        open(O, "| sort -k2nr > $wrk/0-mercounts/$asm.ms$merSize.frequentMers.ignore") or die "Failed to open '$wrk/0-mercounts/$asm.ms$merSize.frequentMers.mhap_ignore' for writing: $!\n";
+        open(F, "$bin/meryl -Dt -n $minCount -s $wrk/0-mercounts/$asm.ms$merSize | ")  or die "Failed to run meryl to generate frequent mers $!\n";
+        open(O, "> $wrk/0-mercounts/$asm.ms$merSize.frequentMers.ignore")              or die "Failed to open '$wrk/0-mercounts/$asm.ms$merSize.frequentMers.mhap_ignore' for writing: $!\n";
 
         while (!eof(F)) {
             my $h = <F>;

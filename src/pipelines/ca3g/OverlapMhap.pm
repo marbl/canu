@@ -183,10 +183,11 @@ sub mhapConfigure ($$$$) {
 
 
     #  The seed length is the shortest read such that all reads longer than this sum to 50x genome size.
+    #  genomeSize must be set (ca3g should be failing early if it isn't).
 
     my $seedLength = 500;
 
-    if (getGlobal("genomeSize") > 0) {
+    {
         my @readLengths;
 
         open(F, "$bin/gatekeeperDumpMetaData -reads -G $wrk/$asm.gkpStore 2> /dev/null |") or caExit("failed to get read lengths from store", undef);
@@ -199,7 +200,7 @@ sub mhapConfigure ($$$$) {
         @readLengths = sort { $b <=> $a } @readLengths;
 
         my $readLengthSum = 0;
-        my $targetSum     = 50 * getGlobal("genomeSize");
+        my $targetSum     = getGlobal("corOutCoverage") * getGlobal("genomeSize");
 
         foreach my $l (@readLengths) {
             $readLengthSum += $l;
@@ -210,19 +211,15 @@ sub mhapConfigure ($$$$) {
             }
         }
 
-        undef @readLengths;
-
-        print STDERR "Computed seed length $seedLength from genome size ", getGlobal("genomeSize"), "\n";
-    } else {
-        print STDERR "WARNING: 'genomeSize' not set, using default seed length $seedLength\n";
+        print STDERR "Computed seed length $seedLength from desired output coverage ", getGlobal("corOutCoverage"), " and genome size ", getGlobal("genomeSize"), "\n";
     }
 
-    #  Mhap parameters
+    #  Mhap parameters - filterThreshold needs to be a string, else it is printed as 5e-06.
 
-    my $numHashes       = (getGlobal("${tag}MhapSensitivity") eq "normal") ? 512        : 768;
-    my $minNumMatches   = (getGlobal("${tag}MhapSensitivity") eq "normal") ?   3        :   2;
-    my $threshold       = (getGlobal("${tag}MhapSensitivity") eq "normal") ?   0.04     :   0.04;
-    my $filterThreshold = (getGlobal("${tag}MhapSensitivity") eq "normal") ?   0.000005 :   0.000005;  #  Also set in Meryl.pm
+    my $numHashes       = (getGlobal("${tag}MhapSensitivity") eq "normal") ? "512"        : "768";
+    my $minNumMatches   = (getGlobal("${tag}MhapSensitivity") eq "normal") ?   "3"        :   "2";
+    my $threshold       = (getGlobal("${tag}MhapSensitivity") eq "normal") ?   "0.04"     :   "0.04";
+    my $filterThreshold = (getGlobal("${tag}MhapSensitivity") eq "normal") ?   "0.000005" :   "0.000005";  #  Also set in Meryl.pm
 
     #  Create a script to generate precomputed blocks, including extracting the reads from gkpStore.
 

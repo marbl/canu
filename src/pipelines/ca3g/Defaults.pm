@@ -1188,8 +1188,8 @@ sub setDefaults () {
     $global{"corMaxEvidenceCoverageLocal"} = "1.5x";
     $synops{"corMaxEvidenceCoverageLocal"} = "Limit reads being corrected to at most this much evidence coverage; default: 1.5 * estimated coverage";
 
-    $global{"corOutCoverage"}              = 25;
-    $synops{"corOutCoverage"}              = "Only correct the longest reads up to this coverage; default 25";
+    $global{"corOutCoverage"}              = 40;
+    $synops{"corOutCoverage"}              = "Only correct the longest reads up to this coverage; default 40";
 
     $global{"corFilter"}                   = "expensive";
     $synops{"corFilter"}                   = "Method to filter short reads from correction; 'quick' or 'expensive'";

@@ -358,8 +358,6 @@ sub expensiveFilter ($$) {
 
     my $maxCov = getCorCov($wrk, $asm, "Local");
 
-    #  Generate correction layouts, but only save the lengths (both the original read length, and the expected corrected read length).
-
     if (! -e "$path/$asm.estimate.log") {
         $cmd  = "$bin/generateCorrectionLayouts \\\n";
         $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
@@ -376,12 +374,8 @@ sub expensiveFilter ($$) {
         }
     }
 
-    #  Sort the lengths by:
-    #    The original length, breaking ties by the corrected length
-    #    The corrected length, breaking ties by the original length
-
-    runCommand($path, "sort -k2nr -k4nr < $path/$asm.estimate.log > $path/$asm.estimate.originalLength.log");
-    runCommand($path, "sort -k4nr -k2nr < $path/$asm.estimate.log > $path/$asm.estimate.correctedLength.log");
+    runCommandSilently($path, "sort -k4nr -k2nr < $path/$asm.estimate.log > $path/$asm.estimate.correctedLength.log");
+    runCommandSilently($path, "sort -k2nr -k4nr < $path/$asm.estimate.log > $path/$asm.estimate.originalLength.log");
 
     my $totRawLengthIn    = 0;  #  Bases in raw reads we correct
     my $totRawLengthOut   = 0;  #  Expected bases in corrected reads
@@ -404,26 +398,26 @@ sub expensiveFilter ($$) {
     my @corLengthRawFilter;
     my @corLengthCorFilter;
 
-    #  Filter!  Load an array with the corected read lengths.  This is needed....where?
+    #  Filter!
 
-    open(F, "< $path/$asm.estimate.log");
+    open(F, "< $path/$asm.estimate.originalLength.log");
     while (<F>) {
         my @v = split '\s+', $_;
-        next if ($v[0] eq "read");  #  Skip the header
+        next if ($v[0] eq "read");
 
         $corReadLen{$v[0]} = $v[3];
     }
     close(F);
 
-    #  Compute a filter threshold based on the original read lengths.
-
     open(F, "< $path/$asm.estimate.originalLength.log");
     while (<F>) {
         my @v = split '\s+', $_;
-        next if ($v[0] eq "read");  #  Skip the header
+        next if ($v[0] eq "read");
 
         $totRawLengthIn  += $v[1];
         $totRawLengthOut += $v[3];
+
+        #print O "$v[0]\t$v[1]\t$v[3]\n";
 
         $rawReads{$v[0]} = 1;
 
@@ -435,8 +429,6 @@ sub expensiveFilter ($$) {
         }
     }
 
-    #  Compute a filter based on the expected corrected read lengths.
-
     open(O, "> $path/$asm.readsToCorrect.WORKING") or caExit("can't open '$path/$asm.readsToCorrect.WORKING' for writing: $!\n", undef);
     open(F, "< $path/$asm.estimate.correctedLength.log");
 
@@ -444,7 +436,7 @@ sub expensiveFilter ($$) {
 
     while (<F>) {
         my @v = split '\s+', $_;
-        next if ($v[0] eq "read");  #  Skip the header
+        next if ($v[0] eq "read");
 
         $totCorLengthIn  += $v[1];
         $totCorLengthOut += $v[3];
@@ -464,6 +456,7 @@ sub expensiveFilter ($$) {
     close(O);
 
     rename "$path/$asm.readsToCorrect.WORKING", "$path/$asm.readsToCorrect";
+
 
     #  Generate true/false positive/negative lists.
 
@@ -553,7 +546,7 @@ sub expensiveFilter ($$) {
         print F "     '$path/$asm.estimate.tp.log' using 2:4 title 'tp'\n";
         close(F);
 
-        runCommand($path, "gnuplot < $path/$asm.estimate.original-x-correctedLength.gp");
+        runCommandSilently($path, "gnuplot < $path/$asm.estimate.original-x-correctedLength.gp > /dev/null 2>&1");
     }
 
     #  These not so interesting
@@ -567,7 +560,7 @@ sub expensiveFilter ($$) {
     #    print F "plot '$path/$asm.estimate.correctedLength.log' using 2 title 'original length', '$path/$asm.estimate.correctedLength.log' using 4 with lines title 'corrected length'\n";
     #    close(F);
     #
-    #    runCommand($path, "gnuplot < $path/$asm.estimate.correctedLength.gp");
+    #    runCommandSilently($path, "gnuplot < $path/$asm.estimate.correctedLength.gp > /dev/null 2>&1");
     #}
 
     #if (! -e "$path/$asm.estimate.originalLength.png") {
@@ -579,7 +572,7 @@ sub expensiveFilter ($$) {
     #    print F "plot '$path/$asm.estimate.originalLength.log' using 4 title 'corrected length', '$path/$asm.estimate.originalLength.log' using 2 with lines title 'original length'\n";
     #    close(F);
     #
-    #    runCommand($path, "gnuplot < $path/$asm.estimate.originalLength.gp");
+    #    runCommandSilently($path, "gnuplot < $path/$asm.estimate.originalLength.gp > /dev/null 2>&1");
     #}
 }
 
