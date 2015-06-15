@@ -57,7 +57,7 @@ generateLayout(gkStore    *gkpStore,
     uint32   ovlLength = ((ovl[oo].b_bgn(gkpStore) < ovl[oo].b_end(gkpStore)) ?
                           ovl[oo].b_end(gkpStore) - ovl[oo].b_bgn(gkpStore) :
                           ovl[oo].b_bgn(gkpStore) - ovl[oo].b_end(gkpStore));
-    uint32   ovlScore  = ovlLength * ovl[oo].erate() * 100;
+    uint32   ovlScore  = 100 * ovlLength * (1 - ovl[oo].erate());
 
     if (ovlLength > AS_MAX_READLEN) {
       char ovlString[1024];

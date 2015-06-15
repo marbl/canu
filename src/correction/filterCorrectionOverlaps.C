@@ -198,7 +198,7 @@ main(int argc, char **argv) {
 
     for (uint32 oo=0; oo<ovlLen; oo++) {
       uint32  ovlLength  = ovl[oo].a_end(gkpStore) - ovl[oo].a_bgn(gkpStore);
-      uint32  ovlScore   = ovlLength * ovl[oo].erate() * 100;
+      uint32  ovlScore   = 100 * ovlLength * (1 - ovl[oo].erate());
       bool    isC        = false;
       bool    isD        = false;
 
@@ -230,7 +230,7 @@ main(int argc, char **argv) {
 
     for (uint32 oo=0; oo<ovlLen; oo++) {
       uint32  ovlLength  = ovl[oo].a_end(gkpStore) - ovl[oo].a_bgn(gkpStore);
-      uint32  ovlScore   = ovlLength * ovl[oo].erate() * 100;
+      uint32  ovlScore   = 100 * ovlLength * (1 - ovl[oo].erate());
       bool    isC        = false;
       bool    isD        = false;
       bool    skipIt     = false;
