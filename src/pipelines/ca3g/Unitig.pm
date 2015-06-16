@@ -45,18 +45,27 @@ sub bogart ($$$) {
     my $cmd;
 
     my $eg = getGlobal("utgGraphErrorRate");
+    my $eb = getGlobal("utgBubbleErrorRate");
     my $em = getGlobal("utgMergeErrorRate");
+    my $er = getGlobal("utgRepeatErrorRate");
 
     my $t  = " -threads " . getGlobal("batThreads")  if defined(getGlobal("batThreads"));
     my $m  = " -M "       . getGlobal("batMemory")   if defined(getGlobal("batMemory"));
     my $o  = " "          . getGlobal("batOptions")  if defined(getGlobal("batOptions"));
 
     $cmd  = "$bin/bogart \\\n";
-    $cmd .= " -O $wrk/$asm.ovlStore \\\n";
     $cmd .= " -G $wrk/$asm.gkpStore \\\n";
+    $cmd .= " -O $wrk/$asm.ovlStore \\\n";
     $cmd .= " -T $wrk/$asm.tigStore \\\n";
     $cmd .= " -o $wrk/4-unitigger/$asm \\\n";
-    $cmd .= " -B $per -eg $eg -em $em$t$m$o \\\n";
+    $cmd .= " -B $per \\\n";
+    $cmd .= " -eg $eg \\\n";
+    $cmd .= " -eb $eb \\\n";
+    $cmd .= " -em $em \\\n";
+    $cmd .= " -er $er \\\n";
+    $cmd .= " $t \\\n";
+    $cmd .= " $m \\\n";
+    $cmd .= " $o \\\n";
     $cmd .= " > $wrk/4-unitigger/unitigger.err 2>&1";
 
     return($cmd);
