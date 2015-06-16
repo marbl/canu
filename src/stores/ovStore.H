@@ -10,7 +10,7 @@ static const char *rcsid_ovStore_H = "$Id:  $";
 
 //  Error rates are encoded as a 12-bit fixed-point value.  This gives us up to 40.95% error, with
 //  0.01% resolution.  Changing the number of bits WILL break the carefully structured
-//  ovsOverlapDAT.
+//  ovOverlapDAT.
 //
 //  The decoded value is a double representing fraction error -- between 0.0000 and 1.0000.
 //  The encoded value is an integer type (see the ovsOvelrapDAT below).
@@ -33,87 +33,87 @@ static const char *rcsid_ovStore_H = "$Id:  $";
 
 #if AS_MAX_READLEN_BITS < 17
 
-#define        ovsOverlapNWORDS  5
-typedef uint32 ovsOverlapWORD;
+#define        ovOverlapNWORDS  5
+typedef uint32 ovOverlapWORD;
 #define        F_OV   F_U32
 #define        F_OVP  F_U32P
 
-class ovsOverlapDAT {
+class ovOverlapDAT {
 public:
-  ovsOverlapWORD  ahg5           : AS_MAX_READLEN_BITS;   //  16
-  ovsOverlapWORD  ahg3           : AS_MAX_READLEN_BITS;   //  16
+  ovOverlapWORD  ahg5           : AS_MAX_READLEN_BITS;   //  16
+  ovOverlapWORD  ahg3           : AS_MAX_READLEN_BITS;   //  16
 
-  ovsOverlapWORD  bhg5           : AS_MAX_READLEN_BITS;   //  16
-  ovsOverlapWORD  bhg3           : AS_MAX_READLEN_BITS;   //  16
+  ovOverlapWORD  bhg5           : AS_MAX_READLEN_BITS;   //  16
+  ovOverlapWORD  bhg3           : AS_MAX_READLEN_BITS;   //  16
 
-  ovsOverlapWORD  span           : AS_MAX_READLEN_BITS;   //  16
-  ovsOverlapWORD  evalue         : AS_MAX_EVALUE_BITS;    //  12
-  ovsOverlapWORD  flipped        : 1;                     //  1
+  ovOverlapWORD  span           : AS_MAX_READLEN_BITS;   //  16
+  ovOverlapWORD  evalue         : AS_MAX_EVALUE_BITS;    //  12
+  ovOverlapWORD  flipped        : 1;                     //  1
 
-  ovsOverlapWORD  forOBT         : 1;                     //  1
-  ovsOverlapWORD  forDUP         : 1;                     //  1
-  ovsOverlapWORD  forUTG         : 1;                     //  1
+  ovOverlapWORD  forOBT         : 1;                     //  1
+  ovOverlapWORD  forDUP         : 1;                     //  1
+  ovOverlapWORD  forUTG         : 1;                     //  1
 
-  ovsOverlapWORD  alignSwapped   : 1;                     //  Our IDs are opposite those in the alignment
-  ovsOverlapWORD  alignFile      : 19;                    //  Which file of overlap alignments
-  ovsOverlapWORD  alignPosHi     : 12;                    //  Position in that file (high-order bits)
-  ovsOverlapWORD  alignPosLo     : 32;                    //  Position in that file (low-order bits)
+  ovOverlapWORD  alignSwapped   : 1;                     //  Our IDs are opposite those in the alignment
+  ovOverlapWORD  alignFile      : 19;                    //  Which file of overlap alignments
+  ovOverlapWORD  alignPosHi     : 12;                    //  Position in that file (high-order bits)
+  ovOverlapWORD  alignPosLo     : 32;                    //  Position in that file (low-order bits)
 };
 
 #elif AS_MAX_READLEN_BITS < 22
 
-#define        ovsOverlapNWORDS  3
-typedef uint64 ovsOverlapWORD;
+#define        ovOverlapNWORDS  3
+typedef uint64 ovOverlapWORD;
 #define        F_OV   F_U64
 #define        F_OVP  F_U64P
 
-class ovsOverlapDAT {
+class ovOverlapDAT {
 public:
-  ovsOverlapWORD  ahg5           : AS_MAX_READLEN_BITS;   //  17-21
-  ovsOverlapWORD  ahg3           : AS_MAX_READLEN_BITS;   //  17-21
-  ovsOverlapWORD  evalue         : AS_MAX_EVALUE_BITS;    //  12
-  ovsOverlapWORD  flipped        : 1;                     //  1
-  ovsOverlapWORD  forOBT         : 1;                     //  1
-  ovsOverlapWORD  forDUP         : 1;                     //  1
-  ovsOverlapWORD  forUTG         : 1;                     //  1
-  ovsOverlapWORD  extra1         : 64 - 2 * AS_MAX_READLEN_BITS - AS_MAX_EVALUE_BITS - 1 - 1 - 1 - 1;  //  Between 15 and 7
+  ovOverlapWORD  ahg5           : AS_MAX_READLEN_BITS;   //  17-21
+  ovOverlapWORD  ahg3           : AS_MAX_READLEN_BITS;   //  17-21
+  ovOverlapWORD  evalue         : AS_MAX_EVALUE_BITS;    //  12
+  ovOverlapWORD  flipped        : 1;                     //  1
+  ovOverlapWORD  forOBT         : 1;                     //  1
+  ovOverlapWORD  forDUP         : 1;                     //  1
+  ovOverlapWORD  forUTG         : 1;                     //  1
+  ovOverlapWORD  extra1         : 64 - 2 * AS_MAX_READLEN_BITS - AS_MAX_EVALUE_BITS - 1 - 1 - 1 - 1;  //  Between 15 and 7
 
-  ovsOverlapWORD  bhg5           : AS_MAX_READLEN_BITS;   //  17-21
-  ovsOverlapWORD  bhg3           : AS_MAX_READLEN_BITS;   //  17-21
-  ovsOverlapWORD  span           : AS_MAX_READLEN_BITS;   //  17-21
-  ovsOverlapWORD  extra2         : 64 - 3 * AS_MAX_READLEN_BITS;  //  Between 13 and 1
+  ovOverlapWORD  bhg5           : AS_MAX_READLEN_BITS;   //  17-21
+  ovOverlapWORD  bhg3           : AS_MAX_READLEN_BITS;   //  17-21
+  ovOverlapWORD  span           : AS_MAX_READLEN_BITS;   //  17-21
+  ovOverlapWORD  extra2         : 64 - 3 * AS_MAX_READLEN_BITS;  //  Between 13 and 1
 
-  ovsOverlapWORD  alignSwapped   : 1;                     //  Our IDs are opposite those in the alignment
-  ovsOverlapWORD  alignFile      : 19;                    //  Which file of overlap alignments
-  ovsOverlapWORD  alignPos       : 44;                    //  Position in that file
+  ovOverlapWORD  alignSwapped   : 1;                     //  Our IDs are opposite those in the alignment
+  ovOverlapWORD  alignFile      : 19;                    //  Which file of overlap alignments
+  ovOverlapWORD  alignPos       : 44;                    //  Position in that file
 };
 
 #else
 
-#define        ovsOverlapNWORDS  8
-typedef uint32 ovsOverlapWORD;
+#define        ovOverlapNWORDS  8
+typedef uint32 ovOverlapWORD;
 #define        F_OV   F_U32
 #define        F_OVP  F_U32P
 
-class ovsOverlapDAT {
+class ovOverlapDAT {
 public:
-  ovsOverlapWORD  ahg5;
-  ovsOverlapWORD  ahg3;
-  ovsOverlapWORD  bhg5;
-  ovsOverlapWORD  bhg3;
-  ovsOverlapWORD  span;
+  ovOverlapWORD  ahg5;
+  ovOverlapWORD  ahg3;
+  ovOverlapWORD  bhg5;
+  ovOverlapWORD  bhg3;
+  ovOverlapWORD  span;
 
-  ovsOverlapWORD  evalue         : AS_MAX_EVALUE_BITS;    //  12
-  ovsOverlapWORD  flipped        : 1;                     //  1
-  ovsOverlapWORD  forOBT         : 1;                     //  1
-  ovsOverlapWORD  forDUP         : 1;                     //  1
-  ovsOverlapWORD  forUTG         : 1;                     //  1
-  ovsOverlapWORD  extra          : 32 - AS_MAX_EVALUE_BITS - 1 - 1 - 1 - 1;  //  Between 15 and 7
+  ovOverlapWORD  evalue         : AS_MAX_EVALUE_BITS;    //  12
+  ovOverlapWORD  flipped        : 1;                     //  1
+  ovOverlapWORD  forOBT         : 1;                     //  1
+  ovOverlapWORD  forDUP         : 1;                     //  1
+  ovOverlapWORD  forUTG         : 1;                     //  1
+  ovOverlapWORD  extra          : 32 - AS_MAX_EVALUE_BITS - 1 - 1 - 1 - 1;  //  Between 15 and 7
 
-  ovsOverlapWORD  alignSwapped   : 1;                     //  Our IDs are opposite those in the alignment
-  ovsOverlapWORD  alignFile      : 19;                    //  Which file of overlap alignments
-  ovsOverlapWORD  alignPosHi     : 12;                    //  Position in that file (high-order bits)
-  ovsOverlapWORD  alignPosLo     : 32;                    //  Position in that file (low-order bits)
+  ovOverlapWORD  alignSwapped   : 1;                     //  Our IDs are opposite those in the alignment
+  ovOverlapWORD  alignFile      : 19;                    //  Which file of overlap alignments
+  ovOverlapWORD  alignPosHi     : 12;                    //  Position in that file (high-order bits)
+  ovOverlapWORD  alignPosLo     : 32;                    //  Position in that file (low-order bits)
 };
 
 #endif
@@ -130,12 +130,12 @@ enum ovOverlapDisplayType {
 
 
 
-class ovsOverlap {
+class ovOverlap {
 public:
-  ovsOverlap() {
+  ovOverlap() {
     clear();
   };
-  ~ovsOverlap() {
+  ~ovOverlap() {
   };
 
   //  Dovetail if any of the following are true:
@@ -211,20 +211,20 @@ public:
 
   char      *toString(char *str, gkStore *gkp, ovOverlapDisplayType type, bool newLine);
 
-  void       swapIDs(ovsOverlap const &orig);
+  void       swapIDs(ovOverlap const &orig);
 
   void       clear(void) {
     dat.dat[0] = 0;
     dat.dat[1] = 0;
     dat.dat[2] = 0;
-#if (ovsOverlapNWORDS == 5)
+#if (ovOverlapNWORDS == 5)
     dat.dat[3] = 0;
     dat.dat[4] = 0;
 #endif
   };
 
   bool
-  operator<(const ovsOverlap &that) const {
+  operator<(const ovOverlap &that) const {
     if (a_iid      < that.a_iid)       return(true);
     if (a_iid      > that.a_iid)       return(false);
     if (b_iid      < that.b_iid)       return(true);
@@ -235,7 +235,7 @@ public:
     if (dat.dat[1] > that.dat.dat[1])  return(false);
     if (dat.dat[2] < that.dat.dat[2])  return(true);
     if (dat.dat[2] > that.dat.dat[2])  return(false);
-#if (ovsOverlapNWORDS == 5)
+#if (ovOverlapNWORDS == 5)
     if (dat.dat[3] < that.dat.dat[3])  return(true);
     if (dat.dat[3] > that.dat.dat[3])  return(false);
     if (dat.dat[4] < that.dat.dat[4])  return(true);
@@ -250,15 +250,15 @@ public:
   uint32               b_iid;
 
   union {
-    ovsOverlapWORD     dat[ovsOverlapNWORDS];
-    ovsOverlapDAT      ovl;
+    ovOverlapWORD     dat[ovOverlapNWORDS];
+    ovOverlapDAT      ovl;
   } dat;
 };
 
 
-//  If ovsOverlapWORD is uint32, we have no problems.
+//  If ovOverlapWORD is uint32, we have no problems.
 
-//  If ovsOverlapWORD is uint64, and we are internal, then we have a problem with the internal format.
+//  If ovOverlapWORD is uint64, and we are internal, then we have a problem with the internal format.
 //  We want to store just one uint32 id and 3 uint64's, but our buffer wants to be uint64.
 
 
@@ -293,17 +293,17 @@ public:
 
   void    flushOverlaps(void);
 
-  void    writeOverlap(ovsOverlap *overlap);
-  void    writeOverlaps(ovsOverlap *overlaps, uint64 overlapLen);
+  void    writeOverlap(ovOverlap *overlap);
+  void    writeOverlaps(ovOverlap *overlaps, uint64 overlapLen);
 
-  bool    readOverlap(ovsOverlap *overlap);
-  uint64  readOverlaps(ovsOverlap *overlaps, uint64 overlapMax);
+  bool    readOverlap(ovOverlap *overlap);
+  uint64  readOverlaps(ovOverlap *overlaps, uint64 overlapMax);
 
   void    seekOverlap(off_t overlap);
 
   //  The size of an overlap record is 1 or 2 IDs + the size of a word times the number of words.
   uint64  recordSize(void) {
-    return(sizeof(uint32) * ((_isNormal) ? 1 : 2) + sizeof(ovsOverlapWORD) * ovsOverlapNWORDS);
+    return(sizeof(uint32) * ((_isNormal) ? 1 : 2) + sizeof(ovOverlapWORD) * ovOverlapNWORDS);
   };
 
 private:
@@ -341,7 +341,7 @@ private:
 
   friend
   void       writeOverlaps(char       *storePath,
-                           ovsOverlap *ovls,
+                           ovOverlap *ovls,
                            uint64      ovlsLen,
                            uint32      fileID);
 
@@ -380,7 +380,7 @@ private:
   friend
   void
   writeOverlaps(char       *storePath,
-                ovsOverlap *ovls,
+                ovOverlap *ovls,
                 uint64      ovlsLen,
                 uint32      fileID);
 
@@ -415,10 +415,10 @@ public:
   ~ovStore();
 
   //  Read the next overlap from the store.  Return value is the number of overlaps read.
-  uint32     readOverlap(ovsOverlap *overlap);
+  uint32     readOverlap(ovOverlap *overlap);
 
   //  Read ALL remaining overlaps for the current A_iid.  Return value is the number of overlaps read.
-  uint32     readOverlaps(ovsOverlap *overlaps,
+  uint32     readOverlaps(ovOverlap *overlaps,
                           uint32      maxOverlaps,
                           bool        restrictToIID=true);
 
@@ -430,7 +430,7 @@ public:
   //  are the same as iid.
   //
   uint32       readOverlaps(uint32       iid,
-                            ovsOverlap *&ovl,
+                            ovOverlap *&ovl,
                             uint32      &ovlLen,
                             uint32      &ovlMax);
 
@@ -442,15 +442,15 @@ public:
 
   //  The (mostly) private interface for adding overlaps to a store.  Overlaps must be sorted already.
 
-  void       writeOverlap(ovsOverlap *olap);
-  void       writeOverlap(ovsOverlap *overlap, uint32 maxOverlapsThisFile);
+  void       writeOverlap(ovOverlap *olap);
+  void       writeOverlap(ovOverlap *overlap, uint32 maxOverlapsThisFile);
 
   //  Write a block of sorted overlaps to store file 'fileID', saving the info and index into
   //  'fileID.info' and 'fileID.index'
 
   friend
   void       writeOverlaps(char       *storePath,
-                           ovsOverlap *ovls,
+                           ovOverlap *ovls,
                            uint64      ovlsLen,
                            uint32      fileID);
 
@@ -491,7 +491,7 @@ private:
 //  have a store opened.
 void
 writeOverlaps(char       *storePath,
-              ovsOverlap *ovls,
+              ovOverlap *ovls,
               uint64      ovlsLen,
               uint32      fileID);
 
@@ -509,7 +509,7 @@ mergeInfoFiles(char       *storePath,
 
 
 
-//  For store construction.  Probably should be in either ovsOverlap or ovStore.
+//  For store construction.  Probably should be in either ovOverlap or ovStore.
 
 class ovStoreFilter {
 public:
@@ -568,8 +568,8 @@ public:
   };
 
 
-  void    filterOverlap(ovsOverlap     &foverlap,
-                        ovsOverlap     &roverlap);
+  void    filterOverlap(ovOverlap     &foverlap,
+                        ovOverlap     &roverlap);
 
   void    reportFate(void);
   void    resetCounters(void);

@@ -273,7 +273,7 @@ ovStore::~ovStore() {
 
 
 uint32
-ovStore::readOverlap(ovsOverlap *overlap) {
+ovStore::readOverlap(ovOverlap *overlap) {
 
   assert(_isOutput == FALSE);
 
@@ -319,7 +319,7 @@ ovStore::readOverlap(ovsOverlap *overlap) {
 
 
 uint32
-ovStore::readOverlaps(ovsOverlap *overlaps, uint32 maxOverlaps, bool restrictToIID) {
+ovStore::readOverlaps(ovOverlap *overlaps, uint32 maxOverlaps, bool restrictToIID) {
   int    numOvl = 0;
 
   assert(_isOutput == FALSE);
@@ -416,7 +416,7 @@ ovStore::readOverlaps(ovsOverlap *overlaps, uint32 maxOverlaps, bool restrictToI
 
 uint32
 ovStore::readOverlaps(uint32         iid,
-                      ovsOverlap   *&ovl,
+                      ovOverlap   *&ovl,
                       uint32        &ovlLen,
                       uint32        &ovlMax) {
 
@@ -425,7 +425,7 @@ ovStore::readOverlaps(uint32         iid,
   if (ovl == NULL) {
     ovlLen = 0;
     ovlMax = 65 * 1024;
-    ovl    = new ovsOverlap [ovlMax];
+    ovl    = new ovOverlap [ovlMax];
   }
 
   if (iid < ovl[0].a_iid)
@@ -451,7 +451,7 @@ ovStore::readOverlaps(uint32         iid,
     while (ovlMax < ovlLen) {
       ovlMax *= 2;
       delete [] ovl;
-      ovl = new ovsOverlap [ovlMax];
+      ovl = new ovOverlap [ovlMax];
     }
 
     //  Load the overlaps
@@ -576,7 +576,7 @@ ovStore::resetRange(void) {
 
 
 void
-ovStore::writeOverlap(ovsOverlap *overlap) {
+ovStore::writeOverlap(ovOverlap *overlap) {
   char            name[FILENAME_MAX];
 
   assert(_isOutput == TRUE);
@@ -661,7 +661,7 @@ ovStore::writeOverlap(ovsOverlap *overlap) {
 // Assumes that overlaps are presorted by a_iid
 
 void
-ovStore::writeOverlap(ovsOverlap *overlap, uint32 maxOverlapsThisFile) {
+ovStore::writeOverlap(ovOverlap *overlap, uint32 maxOverlapsThisFile) {
 	char            name[FILENAME_MAX];
 
 	assert(_isOutput == TRUE);
@@ -907,7 +907,7 @@ ovStore::addEvalues(uint32 bgnID, uint32 endID, uint16 *evalues, uint64 evaluesL
 
 void
 writeOverlaps(char       *storePath,
-              ovsOverlap *ovls,
+              ovOverlap *ovls,
               uint64      ovlsLen,
               uint32      fileID) {
 
@@ -1303,7 +1303,7 @@ mergeInfoFiles(char       *storePath,
 //  Are the 5' end points very different?  If the overlap is flipped, then, yes, they are.
 static
 bool
-isOverlapDifferent(ovsOverlap &ol, gkStore *g) {
+isOverlapDifferent(ovOverlap &ol, gkStore *g) {
   bool   isDiff = true;
 
   if (ol.flipped() == false) {
@@ -1320,7 +1320,7 @@ isOverlapDifferent(ovsOverlap &ol, gkStore *g) {
 //  Is the overlap long?
 static
 bool
-isOverlapLong(ovsOverlap &ol, gkStore *g) {
+isOverlapLong(ovOverlap &ol, gkStore *g) {
   int32 ab    = ol.a_bgn(g);
   int32 ae    = ol.a_end(g);
   int32 bb    = ol.b_bgn(g);
@@ -1339,8 +1339,8 @@ isOverlapLong(ovsOverlap &ol, gkStore *g) {
 
 
 void
-ovStoreFilter::filterOverlap(ovsOverlap       &foverlap,
-                             ovsOverlap       &roverlap) {
+ovStoreFilter::filterOverlap(ovOverlap       &foverlap,
+                             ovOverlap       &roverlap) {
 
   //  Quick sanity check on IIDs.
 

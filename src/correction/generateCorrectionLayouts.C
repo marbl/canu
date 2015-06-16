@@ -26,7 +26,7 @@ generateLayout(gkStore    *gkpStore,
                double      maxEvidenceErate,
                double      maxEvidenceCoverage,
                uint32      minCorLength,
-               ovsOverlap *ovl,
+               ovOverlap *ovl,
                uint32      ovlLen,
                FILE       *logFile) {
 
@@ -355,7 +355,7 @@ main(int argc, char **argv) {
 
   uint32       ovlMax = 1024 * 1024;
   uint32       ovlLen = 0;
-  ovsOverlap  *ovl    = new ovsOverlap [ovlMax];
+  ovOverlap  *ovl    = new ovOverlap [ovlMax];
 
   ovlLen = ovlStore->readOverlaps(ovl, ovlMax, true);
 

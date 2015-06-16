@@ -133,10 +133,10 @@ Initialize_Work_Area(Work_Area_t *WA, int id) {
   WA->thread_id  = id;
 
   WA->overlapsLen = 0;
-  WA->overlapsMax = 1024 * 1024 / sizeof(ovsOverlap);
-  WA->overlaps    = new ovsOverlap [WA->overlapsMax];
+  WA->overlapsMax = 1024 * 1024 / sizeof(ovOverlap);
+  WA->overlaps    = new ovOverlap [WA->overlapsMax];
 
-  allocated += sizeof(ovsOverlap) * WA->overlapsMax;
+  allocated += sizeof(ovOverlap) * WA->overlapsMax;
 
   fprintf(stderr, "Initialize_Work_Area()-- new prefixEditDistance\n");
 

@@ -9,7 +9,7 @@ void
 workUnit::addAndFilterOverlaps(gkStore *gkp,
                                clearRangeFile *finClr,
                                double errorRate,
-                               ovsOverlap *ovl, uint32 ovlLen) {
+                               ovOverlap *ovl, uint32 ovlLen) {
 
   if (adjMax < ovlLen) {
     delete [] adj;
@@ -21,7 +21,7 @@ workUnit::addAndFilterOverlaps(gkStore *gkp,
   adjLen = 0;
 
   for (uint32 oo=0; oo<ovlLen; oo++) {
-    ovsOverlap *o = ovl + oo;
+    ovOverlap *o = ovl + oo;
     adjOverlap *a = adj + adjLen;
 
     int32 idA    = o->a_iid;

@@ -255,7 +255,7 @@ typedef  struct Work_Area {
   //  buffer them and output blocks of overlaps.
   uint64         overlapsLen;
   uint64         overlapsMax;
-  ovsOverlap    *overlaps;
+  ovOverlap     *overlaps;
 
   //  Various stats that used to be global and updated whenever we
   //  output an overlap or finished processing a set of hits.

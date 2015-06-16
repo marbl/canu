@@ -142,7 +142,7 @@ private:
   uint32                  _maxPer;   //  Maximum number of overlaps to load for a single fragment
 
   uint32                  _ovsMax;   //  For loading overlaps
-  ovsOverlap             *_ovs;      //  
+  ovOverlap              *_ovs;      //  
   uint64                 *_ovsSco;   //  For scoring overlaps during the load
   uint64                 *_ovsTmp;   //  For picking out a score threshold
 

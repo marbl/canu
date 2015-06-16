@@ -69,7 +69,7 @@ dumpStore(ovStore *ovlStore,
           ovOverlapDisplayType    type,
           bool     beVerbose) {
 
-  ovsOverlap     overlap;
+  ovOverlap     overlap;
   uint64         evalue = AS_OVS_encodeEvalue(dumpERate);
   char           ovlString[1024];
 
@@ -139,7 +139,7 @@ dumpStore(ovStore *ovlStore,
       counts[overlap.a_iid - bgnID]++;
 
     else if (asBinary)
-      AS_UTL_safeWrite(stdout, &overlap, "dumpStore", sizeof(ovsOverlap), 1);
+      AS_UTL_safeWrite(stdout, &overlap, "dumpStore", sizeof(ovOverlap), 1);
 
     else
       fputs(overlap.toString(ovlString, gkpStore, type, true), stdout);
@@ -168,8 +168,8 @@ dumpStore(ovStore *ovlStore,
 
 int
 sortOBT(const void *a, const void *b) {
-  ovsOverlap const *A = (ovsOverlap const *)a;
-  ovsOverlap const *B = (ovsOverlap const *)b;
+  ovOverlap const *A = (ovOverlap const *)a;
+  ovOverlap const *B = (ovOverlap const *)b;
 
   if (A->a_bgn() < B->a_bgn())  return(-1);
   if (A->a_bgn() > B->a_bgn())  return(1);
@@ -190,7 +190,7 @@ sortOBT(const void *a, const void *b) {
 
 
 void
-dumpPicture(ovsOverlap *overlaps,
+dumpPicture(ovOverlap *overlaps,
             uint64      novl,
             gkStore    *gkpStore,
             uint32      qryID) {
@@ -214,7 +214,7 @@ dumpPicture(ovsOverlap *overlaps,
           0, frgLenA,
           ovl);
 
-  qsort(overlaps, novl, sizeof(ovsOverlap), sortOBT);
+  qsort(overlaps, novl, sizeof(ovOverlap), sortOBT);
 
   //  Build ascii representations for each overlapping read.
 
@@ -318,8 +318,8 @@ dumpPicture(ovStore  *ovlStore,
   ovlStore->setRange(qryID, qryID);
 
   uint64         novl     = 0;
-  ovsOverlap     overlap;
-  ovsOverlap    *overlaps = new ovsOverlap [ovlStore->numOverlapsInRange()];
+  ovOverlap     overlap;
+  ovOverlap    *overlaps = new ovOverlap [ovlStore->numOverlapsInRange()];
   uint64         evalue   = AS_OVS_encodeEvalue(dumpERate);
 
   //  Load all the overlaps so we can sort by the A begin position.

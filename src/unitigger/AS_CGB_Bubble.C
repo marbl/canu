@@ -476,7 +476,7 @@ AS_CGB_Bubble_find_and_remove_bubbles
     ALNoverlapFull *ovl = AS_CGB_Bubble_pop_bubble(&bp, bubs->start, bubs->start_sx, bubs->end, bubs->end_sx, &num_ovl);
 
     for (int32 o=0; o<num_ovl; ++o) {
-      ovsOverlap   olap;
+      ovOverlap   olap;
 
 #if 0
       fprintf(stderr, "ALNoverlapFull: ID %d %d HG %d %d orient %c type %c qual %f\n",

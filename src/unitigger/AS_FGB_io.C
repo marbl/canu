@@ -597,7 +597,7 @@ void process_ovl_store(char * OVL_Store_Path,
                        const int intrude_with_non_blessed_overlaps_flag,
                        const uint32 overlap_error_threshold) {
   ovStore       *ovs;
-  ovsOverlap     olap;
+  ovOverlap     olap;
 
   IntEdge_ID novl_dovetail = 0;
   IntEdge_ID novl_containment = 0;
@@ -724,7 +724,7 @@ void input_messages_from_a_file(ovFile *bof,
   /* It is assumed that in the overlap records that new fragments
      point to old fragments.  */
 
-  ovsOverlap    olap;
+  ovOverlap    olap;
 
   while (bof->readOverlap(&olap)) {
 

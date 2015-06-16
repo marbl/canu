@@ -67,7 +67,7 @@ main(int argc, char **argv) {
 
   char        *ovStr = new char [1024];
 
-  ovsOverlap   ov;
+  ovOverlap   ov;
   ovFile      *of = new ovFile(outName, ovFileFullWrite);
 
   for (uint32 ff=0; ff<files.size(); ff++) {

@@ -157,8 +157,8 @@ main(int argc, char **argv) {
 
   uint32      ovlLen = 0;
   uint32      ovlMax = 131072;
-  ovsOverlap *ovl    = new ovsOverlap [ovlMax];
-  ovsOverlap  swapped;
+  ovOverlap *ovl    = new ovOverlap [ovlMax];
+  ovOverlap  swapped;
 
   uint32      histLen = 0;
   uint32      histMax = ovlMax;

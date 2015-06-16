@@ -33,7 +33,7 @@ using namespace std;
 
 static
 void
-writeToFile(ovsOverlap    *overlap,
+writeToFile(ovOverlap    *overlap,
             ovFile       **sliceFile,
             uint32         sliceFileMax,
             uint64        *sliceSize,
@@ -274,8 +274,8 @@ main(int argc, char **argv) {
   fprintf(stderr, "Bucketizing %s\n", ovlInput);
 
   ovStoreFilter *filter = new ovStoreFilter(gkp, maxError);
-  ovsOverlap     foverlap;
-  ovsOverlap     roverlap;
+  ovOverlap     foverlap;
+  ovOverlap     roverlap;
   ovFile        *inputFile = new ovFile(ovlInput, ovFileFull);
 
   //  Do bigger buffers increase performance?  Do small ones hurt?

@@ -12,7 +12,7 @@ static const char *rcsid = "$Id:  $";
 bool
 adjustFlipped(clearRangeFile  *iniClr,
               gkStore         *gkp,
-              ovsOverlap      *ovl,
+              ovOverlap      *ovl,
               uint32 &aovlbgn,  uint32 &aovlend,  uint32 &bovlbgn,  uint32 &bovlend,
               uint32 &aclrbgn,  uint32 &aclrend,  uint32 &bclrbgn,  uint32 &bclrend) {
 

@@ -35,7 +35,7 @@ Output_Overlap(uint32 S_ID, int S_Len, Direction_t S_Dir,
                uint32 T_ID, int T_Len, Olap_Info_t *olap,
                Work_Area_t *WA) {
 
-  ovsOverlap  *ovs = WA->overlaps + WA->overlapsLen++;
+  ovOverlap  *ovs = WA->overlaps + WA->overlapsLen++;
 
   //  Overlap is good for UTG only.
 
@@ -204,7 +204,7 @@ Output_Partial_Overlap(uint32 s_id,
 
   Total_Overlaps++;
 
-  ovsOverlap  *ovl = WA->overlaps + WA->overlapsLen++;
+  ovOverlap  *ovl = WA->overlaps + WA->overlapsLen++;
 
   assert(s_id < t_id);
 

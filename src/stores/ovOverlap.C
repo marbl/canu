@@ -7,7 +7,7 @@
 //  of combining them doesn't appear to be 64-bit.  The cast is necessary.
 
 char *
-ovsOverlap::toString(char                  *str,
+ovOverlap::toString(char                  *str,
                      gkStore               *gkp,
                      ovOverlapDisplayType   type,
                      bool                   newLine) {
@@ -66,14 +66,14 @@ ovsOverlap::toString(char                  *str,
 
 
 void
-ovsOverlap::swapIDs(ovsOverlap const &orig) {
+ovOverlap::swapIDs(ovOverlap const &orig) {
 
   a_iid = orig.b_iid;
   b_iid = orig.a_iid;
 
   //  Copy the overlap as is, then fix it for the ID swap.
 
-#if (ovsOverlapNWORDS == 5)
+#if (ovOverlapNWORDS == 5)
   dat.dat[0] = orig.dat.dat[0];
   dat.dat[1] = orig.dat.dat[1];
   dat.dat[2] = orig.dat.dat[2];

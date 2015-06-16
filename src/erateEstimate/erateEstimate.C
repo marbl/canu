@@ -116,7 +116,7 @@ public:
   uint32   flipped    : 1;
   uint32   discarded  : 1;   //  31 bits
 
-  void     populate(ovsOverlap &ovl) {
+  void     populate(ovOverlap &ovl) {
     a_iid     =  ovl.a_iid;
     b_iid_hi  = (ovl.b_iid >> 14) & 0x000001ff;
     b_iid_lo  = (ovl.b_iid >>  0) & 0x00003fff;
@@ -135,7 +135,7 @@ public:
   };
 
 #if 0
-  void     populateOBT(ovsOverlap &obt, readErrorEstimate *readProfile, uint32 iidMin) {
+  void     populateOBT(ovOverlap &obt, readErrorEstimate *readProfile, uint32 iidMin) {
     obt.a_iid              =  a_iid;
     obt.b_iid              = (b_iid_hi << 14) | (b_iid_lo);
 
@@ -423,7 +423,7 @@ outputOverlaps(gkStore           *gkpStore,
   //  walk down each.
 
   uint32            overlapblock = 100000000;
-  ovsOverlap       *overlapsload = new ovsOverlap [overlapblock];
+  ovOverlap       *overlapsload = new ovOverlap [overlapblock];
 
   for (uint64 no=0; no<numOvls; ) {
     uint64 nLoad  = inpStore->readOverlaps(overlapsload, overlapblock, false);
@@ -461,7 +461,7 @@ outputOverlaps(gkStore           *gkpStore,
       continue;
 
     for (uint64 oo=overlapIndex[iid]; oo<overlapIndex[iid+1]; oo++) {
-      ovsOverlap  obt;
+      ovOverlap  obt;
 
       if (overlaps[oo].discarded == true) {
         continue;
@@ -604,7 +604,7 @@ main(int argc, char **argv) {
   fprintf(stderr, "  partNum = %9u\n", partNum);
   fprintf(stderr, "  partMax = %9u\n", partMax);
 
-  //fprintf(stderr, "ovsOverlap %lu\n", sizeof(ovsOverlap));
+  //fprintf(stderr, "ovOverlap %lu\n", sizeof(ovOverlap));
   //fprintf(stderr, "ESToverlap %lu\n", sizeof(ESToverlap));
 
   //  Load read metadata, clear ranges, read lengths, and deleted status.
@@ -654,7 +654,7 @@ main(int argc, char **argv) {
   fprintf(stderr, "Loading overlaps\n");
   fprintf(stderr, "  number   %lu overlaps\n",           numOvls);
   fprintf(stderr, "  index    %lu GB\n",                 (sizeof(uint64)     * numIIDs) >> 30);
-  fprintf(stderr, "  overlaps %lu GB (previous size)\n", (sizeof(ovsOverlap) * numOvls) >> 30);
+  fprintf(stderr, "  overlaps %lu GB (previous size)\n", (sizeof(ovOverlap) * numOvls) >> 30);
   fprintf(stderr, "  overlaps %lu GB\n",                 (sizeof(ESToverlap) * numOvls) >> 30);
 
   ESToverlap       *overlaps     = NULL;
@@ -669,7 +669,7 @@ main(int argc, char **argv) {
   } else {
     FILE             *ESTcache     = NULL;
     uint32            overlapblock = 100000000;
-    ovsOverlap       *overlapsload = new ovsOverlap [overlapblock];
+    ovOverlap       *overlapsload = new ovOverlap [overlapblock];
 
     overlaps       = new ESToverlap [numOvls];
 

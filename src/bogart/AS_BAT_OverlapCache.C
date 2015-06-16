@@ -122,7 +122,7 @@ OverlapCache::OverlapCache(ovStore *ovlStoreUniq,
   uint64 memUT = FI->numFragments() * sizeof(uint32) / 16;      //  For unitigs (assumes 32 frag / unitig)
   uint64 memID = FI->numFragments() * sizeof(uint32) * 2;       //  For maps of fragment id to unitig id
   uint64 memC1 = (FI->numFragments() + 1) * (sizeof(BAToverlapInt *) + sizeof(uint32));
-  uint64 memC2 = _ovsMax * (sizeof(ovsOverlap) + sizeof(uint64) + sizeof(uint64));
+  uint64 memC2 = _ovsMax * (sizeof(ovOverlap) + sizeof(uint64) + sizeof(uint64));
   uint64 memC3 = _threadMax * _thread[0]._batMax * sizeof(BAToverlap);
   uint64 memC4 = (FI->numFragments() + 1) * sizeof(uint32);
   uint64 memOS = (_memLimit == getMemorySize()) ? (0.1 * getMemorySize()) : 0.0;
@@ -199,7 +199,7 @@ OverlapCache::OverlapCache(ovStore *ovlStoreUniq,
 
   _maxPer  = maxOverlaps;
 
-  _ovs     = new ovsOverlap [_ovsMax];
+  _ovs     = new ovOverlap [_ovsMax];
   _ovsSco  = new uint64     [_ovsMax];
   _ovsTmp  = new uint64     [_ovsMax];
 
@@ -544,16 +544,16 @@ OverlapCache::loadOverlaps(double erate, uint32 minOverlap, const char *prefix, 
 
     //  Resize temporary storage space to hold all these overlaps.
     while (_ovsMax <= numOvl) {
-      _memUsed -= (_ovsMax) * sizeof(ovsOverlap);
+      _memUsed -= (_ovsMax) * sizeof(ovOverlap);
       _memUsed -= (_ovsMax) * sizeof(uint64);
       _ovsMax *= 2;
       delete [] _ovs;
       delete [] _ovsSco;
       delete [] _ovsTmp;
-      _ovs    = new ovsOverlap [_ovsMax];
+      _ovs    = new ovOverlap [_ovsMax];
       _ovsSco = new uint64     [_ovsMax];
       _ovsTmp = new uint64     [_ovsMax];
-      _memUsed += (_ovsMax) * sizeof(ovsOverlap);
+      _memUsed += (_ovsMax) * sizeof(ovOverlap);
       _memUsed += (_ovsMax) * sizeof(uint64);
       _memUsed += (_ovsMax) * sizeof(uint64);
     }

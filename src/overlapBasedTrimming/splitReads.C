@@ -148,9 +148,9 @@ main(int argc, char **argv) {
 
   uint32      ovlLen = 0;
   uint32      ovlMax = 64 * 1024;
-  ovsOverlap *ovl    = new ovsOverlap [ovlMax];
+  ovOverlap *ovl    = new ovOverlap [ovlMax];
 
-  memset(ovl, 0, sizeof(ovsOverlap) * ovlMax);
+  memset(ovl, 0, sizeof(ovOverlap) * ovlMax);
 
   workUnit *w = new workUnit;
 

@@ -162,9 +162,9 @@ main(int argc, char **argv) {
   delete [] sliceSizes;
   sliceSizes = NULL;
 
-  if (sizeof(ovsOverlap) * totOvl > maxMemory) {
+  if (sizeof(ovOverlap) * totOvl > maxMemory) {
     fprintf(stderr, "ERROR:  Overlaps need %.2f GB memory, but process limited (via -M) to "F_U64" GB.\n",
-            sizeof(ovsOverlap) * totOvl / (1024.0 * 1024.0 * 1024.0), maxMemory >> 30);
+            sizeof(ovOverlap) * totOvl / (1024.0 * 1024.0 * 1024.0), maxMemory >> 30);
 
     char name[FILENAME_MAX];
     sprintf(name,"%s/%04d.ovs", storePath, fileID);
@@ -175,9 +175,9 @@ main(int argc, char **argv) {
   }
 
   fprintf(stderr, "Overlaps need %.2f GB memory, allowed to use up to (via -M) "F_U64" GB.\n",
-          sizeof(ovsOverlap) * totOvl / (1024.0 * 1024.0 * 1024.0), maxMemory >> 30);
+          sizeof(ovOverlap) * totOvl / (1024.0 * 1024.0 * 1024.0), maxMemory >> 30);
 
-  ovsOverlap *ovls = new ovsOverlap [totOvl];
+  ovOverlap *ovls = new ovOverlap [totOvl];
 
   //  Load all overlaps - we're guaranteed that either 'name.gz' or 'name' exists (we checked above)
   //  or funny business is happening with our files.

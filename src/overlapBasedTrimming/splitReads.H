@@ -156,7 +156,7 @@ public:
   void          addAndFilterOverlaps(gkStore *gkp,
                                      clearRangeFile *finClr,
                                      double errorRate,
-                                     ovsOverlap *ovl, uint32 ovlLen);
+                                     ovOverlap *ovl, uint32 ovlLen);
 
 public:
   uint32        id;         //  Read ID

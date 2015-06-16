@@ -28,7 +28,7 @@ static const char *rcsid = "$Id$";
 
 bool
 largestCovered(gkStore     *gkp,
-               ovsOverlap  *ovl,
+               ovOverlap  *ovl,
                uint32       ovlLen,
                gkRead      *read,
                uint32       ibgn,

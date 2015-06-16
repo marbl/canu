@@ -54,7 +54,7 @@ public:
   };
 
 
-  void         loadReads(ovsOverlap *ovl, uint32 nOvl) {
+  void         loadReads(ovOverlap *ovl, uint32 nOvl) {
     uint32  nLoaded  = 0;
     uint32  nUpdated = 0;
     uint64  memUsed  = 0;

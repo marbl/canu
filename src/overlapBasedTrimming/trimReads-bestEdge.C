@@ -38,7 +38,7 @@ using namespace std;
 
 bool
 bestEdge(gkStore     *gkp,
-         ovsOverlap  *ovl,
+         ovOverlap  *ovl,
          uint32       ovlLen,
          gkRead      *read,
          uint32       ibgn,

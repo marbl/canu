@@ -48,7 +48,7 @@ static const char *rcsid_TRIM_READS_H = "$Id$";
 
 bool
 largestCovered(gkStore     *gkp,
-               ovsOverlap  *ovl,
+               ovOverlap   *ovl,
                uint32       ovlLen,
                gkRead      *read,
                uint32       ibgn,
@@ -63,7 +63,7 @@ largestCovered(gkStore     *gkp,
 
 bool
 bestEdge(gkStore     *gkp,
-         ovsOverlap  *ovl,
+         ovOverlap   *ovl,
          uint32       ovlLen,
          gkRead      *read,
          uint32       ibgn,

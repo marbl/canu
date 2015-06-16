@@ -46,7 +46,7 @@ const char *mainid = "$Id$";
 //  the original clear range was completely outside the max range.
 //
 bool
-enforceMaximumClearRange(ovsOverlap      *ovl,
+enforceMaximumClearRange(ovOverlap      *ovl,
                          uint32           ovlLen,
                          gkRead          *read,
                          uint32           ibgn,
@@ -235,9 +235,9 @@ main(int argc, char **argv) {
 
   uint32      ovlLen       = 0;
   uint32      ovlMax       = 64 * 1024;
-  ovsOverlap *ovl          = new ovsOverlap [ovlMax];
+  ovOverlap *ovl          = new ovOverlap [ovlMax];
 
-  memset(ovl, 0, sizeof(ovsOverlap) * ovlMax);
+  memset(ovl, 0, sizeof(ovOverlap) * ovlMax);
 
   char        logMsg[1024] = {0};
 

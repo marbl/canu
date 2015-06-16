@@ -60,7 +60,7 @@ public:
   prefixEditDistance    *editDist;
 
   uint32                 overlapsLen;       //  Not used.
-  ovsOverlap            *overlaps;
+  ovOverlap            *overlaps;
 };
 
 
@@ -135,7 +135,7 @@ recomputeOverlaps(void *ptr) {
     //fprintf(stderr, "Thread %u computes range %u - %u\n", WA->threadID, bgnID, endID);
 
     for (uint32 oo=bgnID; oo<endID; oo++) {
-      ovsOverlap  *ovl = WA->overlaps + oo;
+      ovOverlap  *ovl = WA->overlaps + oo;
 
       //  Mark this overlap as bad.  If it recomputes, it will be marked good.
 
@@ -652,13 +652,13 @@ main(int argc, char **argv) {
 
   uint32       overlapsALen = 0;
   uint32       overlapsBLen = 0;
-  ovsOverlap  *overlapsA    = new ovsOverlap [overlapsMax];
-  ovsOverlap  *overlapsB    = new ovsOverlap [overlapsMax];
+  ovOverlap  *overlapsA    = new ovOverlap [overlapsMax];
+  ovOverlap  *overlapsB    = new ovOverlap [overlapsMax];
 
   //  Set the globals
 
   uint32      *overlapsLen  = &overlapsALen;
-  ovsOverlap  *overlaps     =  overlapsA;
+  ovOverlap  *overlaps     =  overlapsA;
 
   cache        =  new readCache(gkpStore, memLimit);
 

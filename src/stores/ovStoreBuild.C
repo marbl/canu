@@ -65,7 +65,7 @@ computeIIDperBucket(uint32 fileLimit, uint64 memoryLimit, uint32 maxIID, vector<
     if (no == 0)
       fprintf(stderr, "WARNING:  No overlaps found (or file not found) in '%s'.\n", fileList[i]);
 
-    numOverlaps += 2 * no / sizeof(ovsOverlap);
+    numOverlaps += 2 * no / sizeof(ovOverlap);
   }
 
   fprintf(stderr, "Found %.3f million overlaps.\n", numOverlaps / 1000000.0);
@@ -76,7 +76,7 @@ computeIIDperBucket(uint32 fileLimit, uint64 memoryLimit, uint32 maxIID, vector<
   //  and making it too large means we'll get maybe one more bucket and the buckets will be smaller.
   //  Yeah, we probably could have just used ceil.
   //
-  double  overlapsPerBucket   = (double)memoryLimit / (double)sizeof(ovsOverlap);
+  double  overlapsPerBucket   = (double)memoryLimit / (double)sizeof(ovOverlap);
   double  overlapsPerIID      = (double)numOverlaps / (double)maxIID;
 
   uint64  iidPerBucket        = (uint64)(overlapsPerBucket / overlapsPerIID) + 1;
@@ -99,7 +99,7 @@ computeIIDperBucket(uint32 fileLimit, uint64 memoryLimit, uint32 maxIID, vector<
 
 static
 void
-writeToDumpFile(ovsOverlap       *overlap,
+writeToDumpFile(ovOverlap       *overlap,
                 ovFile          **dumpFile,
                 uint32            dumpFileMax,
                 uint64           *dumpLength,
@@ -372,8 +372,8 @@ main(int argc, char **argv) {
   ovStoreFilter *filter = new ovStoreFilter(gkp, maxError);
 
   for (uint32 i=0; i<fileList.size(); i++) {
-    ovsOverlap    foverlap;
-    ovsOverlap    roverlap;
+    ovOverlap    foverlap;
+    ovOverlap    roverlap;
 
     fprintf(stderr, "bucketizing %s\n", fileList[i]);
 
@@ -421,7 +421,7 @@ main(int argc, char **argv) {
     if (dumpLengthMax < dumpLength[i])
       dumpLengthMax = dumpLength[i];
 
-  ovsOverlap  *overlapsort = new ovsOverlap [dumpLengthMax];
+  ovOverlap  *overlapsort = new ovOverlap [dumpLengthMax];
 
   time_t  beginTime = time(NULL);
 
