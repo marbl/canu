@@ -65,9 +65,8 @@ sub utgcns ($$$) {
     print F "  exit 0\n";
     print F "fi\n";
     print F "\n";
-
     print F getBinDirectoryShellCode();
-
+    print F "\n";
     print F "\$bin/utgcns \\\n";
     print F "  -G $wrk/$asm.gkpStore \\\n";
     print F "  -T $wrk/$asm.tigStore 1 \$jobid \\\n";
@@ -151,9 +150,8 @@ sub pbdagcon ($$$) {
     print F "  exit 0\n";
     print F "fi\n";
     print F "\n";
-
     print F getBinDirectoryShellCode();
-
+    print F "\n";
     print F "cat $wrk/4-unitigger/$asm.partitioning | awk -v JOB=\$jobid '{if (\$1 == JOB) print \$NF}' > $wrk/5-consensus/$asm.\$jobid.iid\n";
     print F "\n";
     print F "\$bin/gatekeeper -dumpfasta $wrk/5-consensus/$asm.\$jobid -iid $wrk/5-consensus/$asm.\$jobid.iid $wrk/$asm.gkpStore\n";

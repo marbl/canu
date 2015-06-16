@@ -145,9 +145,8 @@ sub overlapConfigure ($$$$) {
         print F "  exit\n";
         print F "fi\n";
         print F "\n";
-
         print F getBinDirectoryShellCode();
-
+        print F "\n";
         print F "\$bin/overlapInCore \\\n";
         print F "  -G \\\n"  if ($type eq "partial");
         print F "  -t ", getGlobal("${tag}OvlThreads"), " \\\n";

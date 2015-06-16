@@ -656,10 +656,11 @@ sub submitScript ($$$) {
     print F "#  On the off chance that there is a pathMap, and the host we\n";
     print F "#  eventually get scheduled on doesn't see other hosts, we decide\n";
     print F "#  at run time where the binary is.\n";
-
+    print F "\n";
     print F getBinDirectoryShellCode();
-
-    print F "/usr/bin/env perl \$bin/ca3g.pl " . getCommandLineOptions() . " ca3gIteration=$iteration\n";
+    print F "\n";
+    print F "/usr/bin/env perl \\n";
+    print F "\$bin/ca3g.pl " . getCommandLineOptions() . " ca3gIteration=$iteration\n";
     close(F);
 
     system("chmod +x $script");
