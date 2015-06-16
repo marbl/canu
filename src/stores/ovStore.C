@@ -151,7 +151,7 @@ ovStore::ovStore_read(void) {
 
 
 
-ovStore::ovStore(const char *path, ovStoreType cType) {
+ovStore::ovStore(const char *path, gkStore *gkp, ovStoreType cType) {
 
   if (path == NULL)
     fprintf(stderr, "ovStore::ovStore()-- ERROR: no name supplied.\n"), exit(1);
@@ -198,6 +198,8 @@ ovStore::ovStore(const char *path, ovStoreType cType) {
 
   _firstIIDrequested      = _info._smallestIID;
   _lastIIDrequested       = _info._largestIID;
+
+  _gkp = gkp;
 }
 
 
@@ -306,12 +308,14 @@ ovStore::readOverlap(ovOverlap *overlap) {
     _bof = new ovFile(name, ovFileNormal);
   }
 
-  overlap->a_iid   = _offt._a_iid;
+  overlap->a_iid = _offt._a_iid;
+  overlap->g     = _gkp;
 
   if (_evalues)
     overlap->evalue(_evalues[_offt._overlapID++]);
 
   _offt._numOlaps--;
+
 
   return(1);
 }
@@ -374,6 +378,7 @@ ovStore::readOverlaps(ovOverlap *overlaps, uint32 maxOverlaps, bool restrictToII
 
     if (_currentFileIndex <= _info._highestFileIndex) {
       overlaps[numOvl].a_iid = _offt._a_iid;
+      overlaps[numOvl].g     = _gkp;
 
       if (_evalues)
         overlaps[numOvl].evalue(_evalues[_offt._overlapID++]);
@@ -1303,14 +1308,14 @@ mergeInfoFiles(char       *storePath,
 //  Are the 5' end points very different?  If the overlap is flipped, then, yes, they are.
 static
 bool
-isOverlapDifferent(ovOverlap &ol, gkStore *g) {
+isOverlapDifferent(ovOverlap &ol) {
   bool   isDiff = true;
 
   if (ol.flipped() == false) {
-    if (ol.a_bgn(g) > ol.b_bgn(g))
-      isDiff = ((ol.a_bgn(g) - ol.b_bgn(g)) > OBT_FAR5PRIME) ? (true) : (false);
+    if (ol.a_bgn() > ol.b_bgn())
+      isDiff = ((ol.a_bgn() - ol.b_bgn()) > OBT_FAR5PRIME) ? (true) : (false);
     else
-      isDiff = ((ol.b_bgn(g) - ol.a_bgn(g)) > OBT_FAR5PRIME) ? (true) : (false);
+      isDiff = ((ol.b_bgn() - ol.a_bgn()) > OBT_FAR5PRIME) ? (true) : (false);
   }
 
   return(isDiff);
@@ -1320,11 +1325,11 @@ isOverlapDifferent(ovOverlap &ol, gkStore *g) {
 //  Is the overlap long?
 static
 bool
-isOverlapLong(ovOverlap &ol, gkStore *g) {
-  int32 ab    = ol.a_bgn(g);
-  int32 ae    = ol.a_end(g);
-  int32 bb    = ol.b_bgn(g);
-  int32 be    = ol.b_end(g);
+isOverlapLong(ovOverlap &ol) {
+  int32 ab    = ol.a_bgn();
+  int32 ae    = ol.a_end();
+  int32 bb    = ol.b_bgn();
+  int32 be    = ol.b_end();
 
   int32 Alength = ae - ab;
   int32 Blength = be - bb;
@@ -1351,8 +1356,8 @@ ovStoreFilter::filterOverlap(ovOverlap       &foverlap,
     char ovlstr[256];
 
     fprintf(stderr, "Overlap has IDs out of range (maxID "F_U64"), possibly corrupt input data.\n", maxID);
-    fprintf(stderr, "  coords -- %s\n", foverlap.toString(ovlstr, gkp, ovOverlapAsCoords, false));
-  fprintf(stderr, "  hangs  -- %s\n", foverlap.toString(ovlstr, gkp, ovOverlapAsHangs, false));
+    fprintf(stderr, "  coords -- %s\n", foverlap.toString(ovlstr, ovOverlapAsCoords, false));
+    fprintf(stderr, "  hangs  -- %s\n", foverlap.toString(ovlstr, ovOverlapAsHangs, false));
     exit(1);
   }
 
@@ -1394,8 +1399,8 @@ ovStoreFilter::filterOverlap(ovOverlap       &foverlap,
   //  If either overlap is good for either obt or dup, compute if it is different and long.  These
   //  are the same for both foverlap and roverlap.
 
-  bool  isDiff = isOverlapDifferent(foverlap, gkp);
-  bool  isLong = isOverlapLong(foverlap, gkp);
+  bool  isDiff = isOverlapDifferent(foverlap);
+  bool  isLong = isOverlapLong(foverlap);
 
   //  Remove the bad-for-OBT overlaps.
 

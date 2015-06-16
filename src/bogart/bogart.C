@@ -392,14 +392,15 @@ main (int argc, char * argv []) {
     if (logFileFlagSet(j))
       fprintf(stderr, "DEBUG                 = %s\n", logFileFlagNames[i]);
 
-  ovStore          *ovlStoreUniq = new ovStore(ovlStoreUniqPath);
-  ovStore          *ovlStoreRept = ovlStoreReptPath ? new ovStore(ovlStoreReptPath) : NULL;
+  gkStore          *gkpStore     = new gkStore(gkpStorePath);
+  ovStore          *ovlStoreUniq = new ovStore(ovlStoreUniqPath, gkpStore);
+  ovStore          *ovlStoreRept = ovlStoreReptPath ? new ovStore(ovlStoreReptPath, gkpStore) : NULL;
 
   UnitigVector      unitigs;
 
   setLogFile(output_prefix, NULL);
 
-  FI = new FragmentInfo(gkpStorePath, output_prefix, minReadLen);
+  FI = new FragmentInfo(gkpStore, output_prefix, minReadLen);
 
   // Initialize where we've been to nowhere
   Unitig::resetFragUnitigMap(FI->numFragments());
@@ -416,8 +417,7 @@ main (int argc, char * argv []) {
 
   delete ovlStoreUniq;  ovlStoreUniq = NULL;
   delete ovlStoreRept;  ovlStoreRept = NULL;
-
-
+  delete gkpStore;      gkpStore     = NULL;
 
 
   ////////////////////////////////////////////////////////////////////////////////

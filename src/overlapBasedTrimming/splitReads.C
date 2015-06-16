@@ -118,7 +118,7 @@ main(int argc, char **argv) {
   }
 
   gkStore         *gkp = new gkStore(gkpName);
-  ovStore         *ovs = new ovStore(ovsName);
+  ovStore         *ovs = new ovStore(ovsName, gkp);
 
   clearRangeFile  *finClr = new clearRangeFile(finClrName, gkp);
   clearRangeFile  *outClr = new clearRangeFile(outClrName, gkp);

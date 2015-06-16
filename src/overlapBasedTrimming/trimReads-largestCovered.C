@@ -27,8 +27,7 @@ static const char *rcsid = "$Id$";
 
 
 bool
-largestCovered(gkStore     *gkp,
-               ovOverlap  *ovl,
+largestCovered(ovOverlap  *ovl,
                uint32       ovlLen,
                gkRead      *read,
                uint32       ibgn,
@@ -54,8 +53,8 @@ largestCovered(gkStore     *gkp,
   uint32                nUsed = 0;
 
   for (uint32 i=0; i<ovlLen; i++) {
-    uint32 tbgn = ovl[i].a_bgn(gkp);
-    uint32 tend = ovl[i].a_end(gkp);
+    uint32 tbgn = ovl[i].a_bgn();
+    uint32 tend = ovl[i].a_end();
 
     assert(tbgn < tend);
     assert(iid == ovl[i].a_iid);

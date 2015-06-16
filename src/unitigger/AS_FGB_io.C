@@ -603,7 +603,7 @@ void process_ovl_store(char * OVL_Store_Path,
   IntEdge_ID novl_containment = 0;
   IntEdge_ID nedges_delta = 0;
 
-  ovs = new ovStore(OVL_Store_Path);
+  ovs = new ovStore(OVL_Store_Path, NULL);  //  Only used here to get hangs, and so doesn't need gkp.
 
   //  Copy the information in  (* olap)  into  (* an_edge)  with
   //  appropriate conversions.

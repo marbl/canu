@@ -41,10 +41,6 @@ enum dumpFlags {
 };
 
 
-//  Gah, need this to access the end point in an overlap during sorting.
-gkStore  *gkpStoreForSorting = NULL;
-
-
 //
 //  Also accept a single ovStoreFile (output from overlapper) and dump.
 //
@@ -142,7 +138,7 @@ dumpStore(ovStore *ovlStore,
       AS_UTL_safeWrite(stdout, &overlap, "dumpStore", sizeof(ovOverlap), 1);
 
     else
-      fputs(overlap.toString(ovlString, gkpStore, type, true), stdout);
+      fputs(overlap.toString(ovlString, type, true), stdout);
   }
 
   if (asCounts)
@@ -180,8 +176,8 @@ sortOBT(const void *a, const void *b) {
   //if (A->b_bgn() > B->b_bgn())  return(-1);
   //if (A->b_bgn() < B->b_bgn())  return(1);
 
-  if (A->a_end(gkpStoreForSorting) < B->a_end(gkpStoreForSorting))  return(-1);
-  if (A->a_end(gkpStoreForSorting) > B->a_end(gkpStoreForSorting))  return(1);
+  if (A->a_end() < B->a_end())  return(-1);
+  if (A->a_end() > B->a_end())  return(1);
 
   return(0);
 }
@@ -225,11 +221,11 @@ dumpPicture(ovOverlap *overlaps,
     //  Find bgn/end points on each read.  If the overlap is reverse complement,
     //  the B coords are flipped so that bgn > end.
 
-    uint32   ovlBgnA = overlaps[o].a_bgn(gkpStore);
-    uint32   ovlEndA = overlaps[o].a_end(gkpStore);
+    uint32   ovlBgnA = overlaps[o].a_bgn();
+    uint32   ovlEndA = overlaps[o].a_end();
 
-    uint32   ovlBgnB = overlaps[o].b_bgn(gkpStore);
-    uint32   ovlEndB = overlaps[o].b_end(gkpStore);
+    uint32   ovlBgnB = overlaps[o].b_bgn();
+    uint32   ovlEndB = overlaps[o].b_end();
 
     assert(ovlBgnA < ovlEndA);  //  The A coordiantes are always forward
 
@@ -345,10 +341,10 @@ dumpPicture(ovStore  *ovlStore,
         (overlap.a_hang() <= 0) && (overlap.b_hang() >= 0))
       continue;
 
-    if (overlap.b_end(gkpStore) - overlap.b_bgn(gkpStore) < dumpLength)
+    if (overlap.b_end() - overlap.b_bgn() < dumpLength)
       continue;
 
-    if (overlap.a_end(gkpStore) - overlap.a_bgn(gkpStore) < dumpLength)
+    if (overlap.a_end() - overlap.a_bgn() < dumpLength)
       continue;
 
     overlaps[novl++] = overlap;
@@ -511,10 +507,8 @@ main(int argc, char **argv) {
   if (dumpType == 0)
     dumpType = DUMP_5p | DUMP_3p | DUMP_CONTAINED | DUMP_CONTAINS;
 
-  ovStore  *ovlStore = new ovStore(ovlName);
   gkStore  *gkpStore = new gkStore(gkpName);
-
-  gkpStoreForSorting = gkpStore;
+  ovStore  *ovlStore = new ovStore(ovlName, gkpStore);
 
   if (endID > gkpStore->gkStore_getNumReads())
     endID = gkpStore->gkStore_getNumReads();

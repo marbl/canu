@@ -172,11 +172,11 @@ public:
 
   //  These return the actual coordinates on the read.  For reverse B reads, the coordinates are in the reverse-complemented
   //  sequence, and are returned as bgn > end to show this.
-  uint32     a_bgn(gkStore *g=NULL) const          { return(dat.ovl.ahg5); };
-  uint32     a_end(gkStore *g) const    { return(g->gkStore_getRead(a_iid)->gkRead_sequenceLength() - dat.ovl.ahg3); };
+  uint32     a_bgn(void) const          { return(dat.ovl.ahg5); };
+  uint32     a_end(void) const          { return(g->gkStore_getRead(a_iid)->gkRead_sequenceLength() - dat.ovl.ahg3); };
 
-  uint32     b_bgn(gkStore *g) const    { return((dat.ovl.flipped) ? (g->gkStore_getRead(b_iid)->gkRead_sequenceLength() - dat.ovl.bhg5) : (dat.ovl.bhg5)); };
-  uint32     b_end(gkStore *g) const    { return((dat.ovl.flipped) ? (dat.ovl.bhg3) : (g->gkStore_getRead(b_iid)->gkRead_sequenceLength() - dat.ovl.bhg3)); };
+  uint32     b_bgn(void) const          { return((dat.ovl.flipped) ? (g->gkStore_getRead(b_iid)->gkRead_sequenceLength() - dat.ovl.bhg5) : (dat.ovl.bhg5)); };
+  uint32     b_end(void) const          { return((dat.ovl.flipped) ? (dat.ovl.bhg3) : (g->gkStore_getRead(b_iid)->gkRead_sequenceLength() - dat.ovl.bhg3)); };
 
   uint32     span(void) const           { return(dat.ovl.span); };
   void       span(uint32 s)             { dat.ovl.span = s; };
@@ -209,7 +209,7 @@ public:
   uint32     overlapAIsContainer(void) const  { return((dat.ovl.bhg5 == 0) && (dat.ovl.bhg3 == 0));  };
   uint32     overlapBIsContained(void) const  { return((dat.ovl.bhg5 == 0) && (dat.ovl.bhg3 == 0));  };
 
-  char      *toString(char *str, gkStore *gkp, ovOverlapDisplayType type, bool newLine);
+  char      *toString(char *str, ovOverlapDisplayType type, bool newLine);
 
   void       swapIDs(ovOverlap const &orig);
 
@@ -222,6 +222,9 @@ public:
     dat.dat[4] = 0;
 #endif
   };
+
+  //gkStore    *gkpStore(void)          { return(g); };
+  //void        gkpStore(gkStore *g_)   { g = g_;    };
 
   bool
   operator<(const ovOverlap &that) const {
@@ -244,7 +247,9 @@ public:
     return(false);
   };
 
-private:
+public:
+  gkStore             *g;
+
 public:
   uint32               a_iid;
   uint32               b_iid;
@@ -411,7 +416,7 @@ private:
   void       ovStore_write(void);
 
 public:
-  ovStore(const char *name, ovStoreType cType=ovStoreReadOnly);
+  ovStore(const char *name, gkStore *gkp, ovStoreType cType=ovStoreReadOnly);
   ~ovStore();
 
   //  Read the next overlap from the store.  Return value is the number of overlaps read.
@@ -430,29 +435,29 @@ public:
   //  are the same as iid.
   //
   uint32       readOverlaps(uint32       iid,
-                            ovOverlap *&ovl,
+                            ovOverlap  *&ovl,
                             uint32      &ovlLen,
                             uint32      &ovlMax);
 
-  void       setRange(uint32 low, uint32 high);
-  void       resetRange(void);
+  void         setRange(uint32 low, uint32 high);
+  void         resetRange(void);
 
-  uint64     numOverlapsInRange(void);
-  uint32 *   numOverlapsPerFrag(uint32 &firstFrag, uint32 &lastFrag);
+  uint64       numOverlapsInRange(void);
+  uint32 *     numOverlapsPerFrag(uint32 &firstFrag, uint32 &lastFrag);
 
   //  The (mostly) private interface for adding overlaps to a store.  Overlaps must be sorted already.
 
-  void       writeOverlap(ovOverlap *olap);
-  void       writeOverlap(ovOverlap *overlap, uint32 maxOverlapsThisFile);
+  void         writeOverlap(ovOverlap *olap);
+  void         writeOverlap(ovOverlap *overlap, uint32 maxOverlapsThisFile);
 
   //  Write a block of sorted overlaps to store file 'fileID', saving the info and index into
   //  'fileID.info' and 'fileID.index'
 
   friend
-  void       writeOverlaps(char       *storePath,
-                           ovOverlap *ovls,
-                           uint64      ovlsLen,
-                           uint32      fileID);
+  void         writeOverlaps(char       *storePath,
+                             ovOverlap *ovls,
+                             uint64      ovlsLen,
+                             uint32      fileID);
 
 
   //  Add new evalues for reads between bgnID and endID.  No checking of IDs is done, but the number
@@ -484,6 +489,8 @@ private:
   uint64             _overlapsThisFile;  //  Count of the number of overlaps written so far
   uint32             _currentFileIndex;
   ovFile            *_bof;
+
+  gkStore           *_gkp;
 };
 
 

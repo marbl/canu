@@ -74,7 +74,7 @@ workUnit::addAndFilterOverlaps(gkStore *gkp,
 
       if ((a->aovlbgn < adjust) || (a->bovlbgn < adjust))
         fprintf(stderr, "ovl %u %u-%u %u %u-%u -> clr %u-%u %u-%u adj %u-%u %u-%u\n",
-                o->a_iid, o->a_bgn(gkp), o->a_end(gkp), o->b_iid, o->b_bgn(gkp), o->b_end(gkp),
+                o->a_iid, o->a_bgn(), o->a_end(), o->b_iid, o->b_bgn(), o->b_end(),
                 a->aclrbgn, a->aclrend, a->bclrbgn, a->bclrend,
                 a->aovlbgn, a->aovlend, a->bovlbgn, a->bovlend);
       assert(a->aovlbgn >= adjust);

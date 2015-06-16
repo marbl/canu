@@ -10,7 +10,7 @@ const char *mainid = "$Id:  $";
 
 
 void
-Read_Olaps(coParameters *G);
+Read_Olaps(coParameters *G, gkStore *gkpStore);
 
 void
 Correct_Frags(coParameters *G, gkStore *gkpStore);
@@ -140,7 +140,7 @@ main(int argc, char **argv) {
 
   //  Load overlaps we're going to correct
 
-  Read_Olaps(G);
+  Read_Olaps(G, gkpStore);
  
   //  Now sort them on the B iid.
 

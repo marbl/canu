@@ -138,7 +138,7 @@ main(int argc, char **argv) {
 
   gkStore  *gkpStore  = new gkStore(gkpStoreName);
 
-  ovStore  *inpStore  = new ovStore(ovlStoreName);
+  ovStore  *inpStore  = new ovStore(ovlStoreName, gkpStore);
 
   uint32   *scores    = new uint32 [gkpStore->gkStore_getNumReads() + 1];
 
@@ -197,7 +197,7 @@ main(int argc, char **argv) {
     //  Figure out which overlaps are good enough to consider and save their length.
 
     for (uint32 oo=0; oo<ovlLen; oo++) {
-      uint32  ovlLength  = ovl[oo].a_end(gkpStore) - ovl[oo].a_bgn(gkpStore);
+      uint32  ovlLength  = ovl[oo].a_end() - ovl[oo].a_bgn();
       uint32  ovlScore   = 100 * ovlLength * (1 - ovl[oo].erate());
       bool    isC        = false;
       bool    isD        = false;
@@ -229,7 +229,7 @@ main(int argc, char **argv) {
     uint32 belowCutoffLocal = 0;
 
     for (uint32 oo=0; oo<ovlLen; oo++) {
-      uint32  ovlLength  = ovl[oo].a_end(gkpStore) - ovl[oo].a_bgn(gkpStore);
+      uint32  ovlLength  = ovl[oo].a_end() - ovl[oo].a_bgn();
       uint32  ovlScore   = 100 * ovlLength * (1 - ovl[oo].erate());
       bool    isC        = false;
       bool    isD        = false;

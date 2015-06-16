@@ -148,8 +148,8 @@ recomputeOverlaps(void *ptr) {
       char   *aStr = cache->getRead  (ovl->a_iid);
       uint32  aLen = cache->getLength(ovl->a_iid);
 
-      int32   aLo = ovl->a_bgn(WA->gkpStore);
-      int32   aHi = ovl->a_end(WA->gkpStore);
+      int32   aLo = ovl->a_bgn();
+      int32   aHi = ovl->a_end();
 
       assert(aLo < aHi);
 
@@ -158,8 +158,8 @@ recomputeOverlaps(void *ptr) {
       char   *bStr = cache->getRead  (ovl->b_iid);
       uint32  bLen = cache->getLength(ovl->b_iid);
 
-      int32   bLo = ovl->b_bgn(WA->gkpStore);
-      int32   bHi = ovl->b_end(WA->gkpStore);
+      int32   bLo = ovl->b_bgn();
+      int32   bHi = ovl->b_end();
 
       if (ovl->flipped() == true) {
         memcpy(bRev, bStr, sizeof(char) * (bLen + 1));
@@ -168,8 +168,8 @@ recomputeOverlaps(void *ptr) {
 
         bStr = bRev;
 
-        bLo = bLen - ovl->b_bgn(WA->gkpStore);  //  Now correct for the reverse complemented sequence
-        bHi = bLen - ovl->b_end(WA->gkpStore);
+        bLo = bLen - ovl->b_bgn();  //  Now correct for the reverse complemented sequence
+        bHi = bLen - ovl->b_end();
       }
 
       assert(bLo < bHi);
@@ -188,8 +188,8 @@ recomputeOverlaps(void *ptr) {
 
         if (alignLen < 40) {
           fprintf(stderr, "A %6u %5d-%5d ->   B %6u %5d-%5d %s ALIGN LEN %d TOO SHORT.\n",
-                  ovl->a_iid, ovl->a_bgn(WA->gkpStore), ovl->a_end(WA->gkpStore),
-                  ovl->b_iid, ovl->b_bgn(WA->gkpStore), ovl->b_end(WA->gkpStore),
+                  ovl->a_iid, ovl->a_bgn(), ovl->a_end(),
+                  ovl->b_iid, ovl->b_bgn(), ovl->b_end(),
                   ovl->flipped() ? "<-" : "->", alignLen);
           continue;
         }
@@ -323,8 +323,8 @@ recomputeOverlaps(void *ptr) {
 
       if (bMap.size() == 0) {
         fprintf(stderr, "A %6u %5d-%5d ->   B %6u %5d-%5d %s NO SEEDS.\n",
-                ovl->a_iid, ovl->a_bgn(WA->gkpStore), ovl->a_end(WA->gkpStore),
-                ovl->b_iid, ovl->b_bgn(WA->gkpStore), ovl->b_end(WA->gkpStore),
+                ovl->a_iid, ovl->a_bgn(), ovl->a_end(),
+                ovl->b_iid, ovl->b_bgn(), ovl->b_end(),
                 ovl->flipped() ? "<-" : "->");
         continue;
       }
@@ -432,9 +432,9 @@ recomputeOverlaps(void *ptr) {
         fprintf(stderr, "thread %2u hit %2u  A %6u %5d-%5d %s B %6u %5d-%5d -- ",
                 WA->threadID,
                 hh,
-                ovl->a_iid, ovl->a_bgn(WA->gkpStore), ovl->a_end(WA->gkpStore),
+                ovl->a_iid, ovl->a_bgn(), ovl->a_end(),
                 ovl->flipped() ? "<-" : "->",
-                ovl->b_iid, ovl->b_bgn(WA->gkpStore), ovl->b_end(WA->gkpStore));
+                ovl->b_iid, ovl->b_bgn(), ovl->b_end());
         fprintf(stderr, "type %d A %5d-%5d (%5d)  B %5d-%5d (%5d)  errors %4d  quality %6.3f  llen %4d rlen %4d%s\n",
                 ovltype,
                 aLo, aHi, aLen, bLo, bHi, bLen,
@@ -505,7 +505,7 @@ int
 main(int argc, char **argv) {
   char    *gkpName         = NULL;
   char    *ovlName         = NULL;
-  char    *ovlNameOut      = NULL;
+  char    *outName         = NULL;
 
   uint32   bgnID           = 0;
   uint32   endID           = UINT32_MAX;
@@ -528,7 +528,7 @@ main(int argc, char **argv) {
       ovlName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-o") == 0) {
-      ovlNameOut = argv[++arg];
+      outName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-b") == 0) {
       bgnID = atoi(argv[++arg]);
@@ -559,7 +559,7 @@ main(int argc, char **argv) {
     err++;
   if (ovlName == NULL)
     err++;
-  if (ovlNameOut == NULL)
+  if (outName == NULL)
     err++;
 
   if (err) {
@@ -594,9 +594,9 @@ main(int argc, char **argv) {
 
   if (AS_UTL_fileExists(ovlName, true)) {
     fprintf(stderr, "Reading overlaps from store '%s' and writing to '%s'\n",
-            ovlName, ovlNameOut);
-    ovlStore    = new ovStore(ovlName);
-    ovlStoreOut = new ovStore(ovlNameOut, ovStoreWrite);
+            ovlName, outName);
+    ovlStore    = new ovStore(ovlName, gkpStore);
+    ovlStoreOut = new ovStore(outName, gkpStore, ovStoreWrite);
 
     if (bgnID < 1)
       bgnID = 1;
@@ -607,9 +607,9 @@ main(int argc, char **argv) {
 
   } else {
     fprintf(stderr, "Reading overlaps from file '%s' and writing to '%s'\n",
-            ovlName, ovlNameOut);
-    ovlFile     = new ovFile(ovlName,    ovFileFull);
-    ovlFileOut  = new ovFile(ovlNameOut, ovFileFullWrite);
+            ovlName, outName);
+    ovlFile     = new ovFile(ovlName, ovFileFull);
+    ovlFileOut  = new ovFile(outName, ovFileFullWrite);
   }
 
   workSpace        *WA  = new workSpace [numThreads];

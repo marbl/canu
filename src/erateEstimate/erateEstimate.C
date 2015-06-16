@@ -407,8 +407,8 @@ outputOverlaps(gkStore           *gkpStore,
   //  Open the original and output stores.  We copy overlaps from the original to the copy, instead
   //  of recreating overlaps from our cache.  The cache doesn't have all the overlap information.
 
-  ovStore *inpStore = new ovStore(ovlStoreName);
-  ovStore *outStore = new ovStore(outputName, ovStoreWrite);
+  ovStore *inpStore = new ovStore(ovlStoreName, gkpStore);
+  ovStore *outStore = new ovStore(outputName,   gkpStore, ovStoreWrite);
 
   uint64    numOvls = inpStore->numOverlapsInRange();
 
@@ -627,7 +627,7 @@ main(int argc, char **argv) {
   //  Open overlap stores
 
   fprintf(stderr, "Opening '%s'\n", ovlStoreName);
-  ovlStore = new ovStore(ovlStoreName);
+  ovlStore = new ovStore(ovlStoreName, gkpStore);
 
   fprintf(stderr, "Finding number of overlaps\n");
 

@@ -20,10 +20,10 @@ adjustFlipped(clearRangeFile  *iniClr,
 
   uint32  bLen = gkp->gkStore_getRead(ovl->b_iid)->gkRead_sequenceLength();
 
-  aovlbgn =        ovl->a_bgn(gkp);
-  bovlbgn = bLen - ovl->b_bgn(gkp);  //  bgn(), because this is the higher coord
-  aovlend =        ovl->a_end(gkp);
-  bovlend = bLen - ovl->b_end(gkp);
+  aovlbgn =        ovl->a_bgn();
+  bovlbgn = bLen - ovl->b_bgn();  //  bgn(), because this is the higher coord
+  aovlend =        ovl->a_end();
+  bovlend = bLen - ovl->b_end();
 
   aclrbgn =        iniClr->bgn(ovl->a_iid);
   bclrbgn = bLen - iniClr->end(ovl->b_iid);  //  end(), because this is the higher coord

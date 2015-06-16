@@ -54,28 +54,28 @@ generateLayout(gkStore    *gkpStore,
   for (uint32 oo=0; oo<ovlLen; oo++) {
 
     //  ovlLength, in filterCorrectionOverlaps, is computed on the a read.  That is now the b read here.
-    uint32   ovlLength = ((ovl[oo].b_bgn(gkpStore) < ovl[oo].b_end(gkpStore)) ?
-                          ovl[oo].b_end(gkpStore) - ovl[oo].b_bgn(gkpStore) :
-                          ovl[oo].b_bgn(gkpStore) - ovl[oo].b_end(gkpStore));
+    uint32   ovlLength = ((ovl[oo].b_bgn() < ovl[oo].b_end()) ?
+                          ovl[oo].b_end() - ovl[oo].b_bgn() :
+                          ovl[oo].b_bgn() - ovl[oo].b_end());
     uint32   ovlScore  = 100 * ovlLength * (1 - ovl[oo].erate());
 
     if (ovlLength > AS_MAX_READLEN) {
       char ovlString[1024];
-      fprintf(stderr, "ERROR: bogus overlap '%s'\n", ovl[oo].toString(ovlString, gkpStore, ovOverlapAsCoords, false));
+      fprintf(stderr, "ERROR: bogus overlap '%s'\n", ovl[oo].toString(ovlString, ovOverlapAsCoords, false));
     }
     assert(ovlLength < AS_MAX_READLEN);
 
     if (ovl[oo].erate() > maxEvidenceErate) {
       if (logFile)
         fprintf(logFile, "  filter read %9u at position %6u,%6u length %5u erate %.3f - low quality (threshold %.2f)\n",
-                ovl[oo].b_iid, ovl[oo].a_bgn(gkpStore), ovl[oo].a_end(gkpStore), ovlLength, ovl[oo].erate(), maxEvidenceErate);
+                ovl[oo].b_iid, ovl[oo].a_bgn(), ovl[oo].a_end(), ovlLength, ovl[oo].erate(), maxEvidenceErate);
       continue;
     }
 
-    if (ovl[oo].a_end(gkpStore) - ovl[oo].a_bgn(gkpStore) < minEvidenceLength) {
+    if (ovl[oo].a_end() - ovl[oo].a_bgn() < minEvidenceLength) {
       if (logFile)
         fprintf(logFile, "  filter read %9u at position %6u,%6u length %5u erate %.3f - too short (threshold %u)\n",
-                ovl[oo].b_iid, ovl[oo].a_bgn(gkpStore), ovl[oo].a_end(gkpStore), ovlLength, ovl[oo].erate(), minEvidenceLength);
+                ovl[oo].b_iid, ovl[oo].a_bgn(), ovl[oo].a_end(), ovlLength, ovl[oo].erate(), minEvidenceLength);
       continue;
     }
 
@@ -83,13 +83,13 @@ generateLayout(gkStore    *gkpStore,
         (ovlScore < readScores[ovl[oo].b_iid])) {
       if (logFile)
         fprintf(logFile, "  filter read %9u at position %6u,%6u length %5u erate %.3f - filtered by global filter (threshold %u)\n",
-                ovl[oo].b_iid, ovl[oo].a_bgn(gkpStore), ovl[oo].a_end(gkpStore), ovlLength, ovl[oo].erate(), readScores[ovl[oo].b_iid]);
+                ovl[oo].b_iid, ovl[oo].a_bgn(), ovl[oo].a_end(), ovlLength, ovl[oo].erate(), readScores[ovl[oo].b_iid]);
       continue;
     }
 
     if (logFile)
       fprintf(logFile, "  allow  read %9u at position %6u,%6u length %5u erate %.3f\n",
-              ovl[oo].b_iid, ovl[oo].a_bgn(gkpStore), ovl[oo].a_end(gkpStore), ovlLength, ovl[oo].erate());
+              ovl[oo].b_iid, ovl[oo].a_bgn(), ovl[oo].a_end(), ovlLength, ovl[oo].erate());
 
     tgPosition   *pos = layout->addChild();
 
@@ -101,14 +101,14 @@ generateLayout(gkStore    *gkpStore,
                ovl[oo].a_iid,
                ovl[oo].a_hang(),
                ovl[oo].b_hang(),
-               ovl[oo].a_bgn(gkpStore), ovl[oo].a_end(gkpStore));
+               ovl[oo].a_bgn(), ovl[oo].a_end());
 
     } else {
       pos->set(ovl[oo].b_iid,
                ovl[oo].a_iid,
                ovl[oo].a_hang(),
                ovl[oo].b_hang(),
-               ovl[oo].a_end(gkpStore), ovl[oo].a_bgn(gkpStore));
+               ovl[oo].a_end(), ovl[oo].a_bgn());
     }
 
     //  Remember the unaligned bit!
@@ -264,7 +264,7 @@ main(int argc, char **argv) {
   //  Open inputs and output tigStore.
 
   gkStore  *gkpStore = new gkStore(gkpName);
-  ovStore  *ovlStore = new ovStore(ovlName);
+  ovStore  *ovlStore = new ovStore(ovlName, gkpStore);
   tgStore  *tigStore = (tigName != NULL) ? new tgStore(tigName) : NULL;
 
   //  Load read scores, if supplied.

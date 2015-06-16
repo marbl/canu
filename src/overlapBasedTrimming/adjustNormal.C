@@ -17,10 +17,10 @@ adjustNormal(clearRangeFile  *iniClr,
 
   assert(ovl->flipped() == false);
 
-  aovlbgn = ovl->a_bgn(gkp);
-  bovlbgn = ovl->b_bgn(gkp);
-  aovlend = ovl->a_end(gkp);
-  bovlend = ovl->b_end(gkp);
+  aovlbgn = ovl->a_bgn();
+  bovlbgn = ovl->b_bgn();
+  aovlend = ovl->a_end();
+  bovlend = ovl->b_end();
 
   aclrbgn = iniClr->bgn(ovl->a_iid);
   bclrbgn = iniClr->bgn(ovl->b_iid);

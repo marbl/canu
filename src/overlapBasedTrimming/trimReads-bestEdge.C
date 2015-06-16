@@ -37,8 +37,7 @@ using namespace std;
 
 
 bool
-bestEdge(gkStore     *gkp,
-         ovOverlap  *ovl,
+bestEdge(ovOverlap  *ovl,
          uint32       ovlLen,
          gkRead      *read,
          uint32       ibgn,
@@ -66,7 +65,7 @@ bestEdge(gkStore     *gkp,
   uint32  lbgn = 0;
   uint32  lend = 0;
 
-  if (largestCovered(gkp, ovl, ovlLen, read, ibgn, iend, lbgn, lend, logMsg, errorValue, minOverlap, minCoverage, minReadLength) == false)
+  if (largestCovered(ovl, ovlLen, read, ibgn, iend, lbgn, lend, logMsg, errorValue, minOverlap, minCoverage, minReadLength) == false)
     return(false);
 
   //
@@ -89,8 +88,8 @@ bestEdge(gkStore     *gkp,
   //  For each overlap, add potential trim points where the overlap ends.
 
   for (uint32 i=0; i<ovlLen; i++) {
-    uint32 tbgn = ovl[i].a_bgn(gkp);
-    uint32 tend = ovl[i].a_end(gkp);
+    uint32 tbgn = ovl[i].a_bgn();
+    uint32 tend = ovl[i].a_end();
 
     if ((lend <= tbgn) ||
         (tend <= lbgn))
@@ -199,8 +198,8 @@ bestEdge(gkStore     *gkp,
     //fprintf(stderr, "trim5 pt %u out of %u\n", pt, trim5.size());
 
     for (uint32 i=0; i < ovlLen; i++) {
-      uint32 tbgn = ibgn + ovl[i].a_bgn(gkp);
-      uint32 tend = ibgn + ovl[i].a_end(gkp);
+      uint32 tbgn = ibgn + ovl[i].a_bgn();
+      uint32 tend = ibgn + ovl[i].a_end();
 
       if ((triml <  tbgn) ||
           (tend  <= triml))
@@ -272,8 +271,8 @@ bestEdge(gkStore     *gkp,
     //fprintf(stderr, "trim3 pt %u out of %u\n", pt, trim3.size());
 
     for (uint32 i=0; i < ovlLen; i++) {
-      uint32 tbgn = ibgn + ovl[i].a_bgn(gkp);
-      uint32 tend = ibgn + ovl[i].a_end(gkp);
+      uint32 tbgn = ibgn + ovl[i].a_bgn();
+      uint32 tend = ibgn + ovl[i].a_end();
 
       if ((tend < trimr) ||
           (trimr <= tbgn))

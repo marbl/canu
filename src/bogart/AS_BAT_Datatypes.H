@@ -249,7 +249,7 @@ public:
 
 class FragmentInfo {
 public:
-  FragmentInfo(const char *gkpStorePath, const char *prefix, uint32 minReadLen);
+  FragmentInfo(gkStore *gkp, const char *prefix, uint32 minReadLen);
   ~FragmentInfo();
 
   uint64  memoryUsage(void) {

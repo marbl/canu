@@ -17,7 +17,8 @@ Read_Frags(feParameters   *G,
            gkStore        *gkpStore);
 
 void
-Read_Olaps(feParameters *G);
+Read_Olaps(feParameters   *G,
+           gkStore        *gkpStore);
 
 void 
 Output_Corrections(feParameters *G);
@@ -459,7 +460,7 @@ main(int argc, char **argv) {
     G->endID = gkpStore->gkStore_getNumReads();
 
   Read_Frags(G, gkpStore);
-  Read_Olaps(G);
+  Read_Olaps(G, gkpStore);
 
   //  Now sort them!
 

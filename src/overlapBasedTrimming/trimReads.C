@@ -196,7 +196,7 @@ main(int argc, char **argv) {
   }
 
   gkStore          *gkp = new gkStore(gkpName);
-  ovStore          *ovs = new ovStore(ovsName);
+  ovStore          *ovs = new ovStore(ovsName, gkp);
 
   clearRangeFile   *iniClr = (iniClrName == NULL) ? NULL : new clearRangeFile(iniClrName, gkp);
   clearRangeFile   *maxClr = (maxClrName == NULL) ? NULL : new clearRangeFile(maxClrName, gkp);
@@ -300,8 +300,7 @@ main(int argc, char **argv) {
       assert(ovlLen > 0);
       assert(id == ovl[0].a_iid);
 
-      isGood = largestCovered(gkp,
-                              ovl, ovlLen,
+      isGood = largestCovered(ovl, ovlLen,
                               read,
                               ibgn, iend, fbgn, fend,
                               logMsg,
@@ -319,8 +318,7 @@ main(int argc, char **argv) {
       assert(ovlLen > 0);
       assert(id == ovl[0].a_iid);
 
-      isGood = bestEdge(gkp,
-                        ovl, ovlLen,
+      isGood = bestEdge(ovl, ovlLen,
                         read,
                         ibgn, iend, fbgn, fend,
                         logMsg,

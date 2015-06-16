@@ -8,10 +8,9 @@
 
 char *
 ovOverlap::toString(char                  *str,
-                     gkStore               *gkp,
-                     ovOverlapDisplayType   type,
-                     bool                   newLine) {
-
+                    ovOverlapDisplayType   type,
+                    bool                   newLine) {
+  
   switch (type) {
     case ovOverlapAsHangs:
       sprintf(str, "%10"F_U32P" %10"F_U32P"  %c  %6"F_S32P" %6"F_S32P" %6"F_S32P"  %7.6f%s%s",
@@ -28,8 +27,8 @@ ovOverlap::toString(char                  *str,
               a_iid, b_iid,
               flipped() ? 'I' : 'N',
               span(),
-              a_bgn(gkp), a_end(gkp),
-              b_bgn(gkp), b_end(gkp),
+              a_bgn(), a_end(),
+              b_bgn(), b_end(),
               erate(),
               (newLine) ? "\n" : "");
       break;

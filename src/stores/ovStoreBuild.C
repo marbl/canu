@@ -298,7 +298,7 @@ main(int argc, char **argv) {
 
 
   if (eValues) {
-    ovStore  *ovs = new ovStore(ovlName);
+    ovStore  *ovs = new ovStore(ovlName, NULL);
 
     for (uint32 i=0; i<fileList.size(); i++) {
       errno = 0;
@@ -343,8 +343,8 @@ main(int argc, char **argv) {
   //  We create the store early, allowing it to fail if it already
   //  exists, or just cannot be created.
 
-  ovStore  *storeFile   = new ovStore(ovlName, ovStoreWrite);
   gkStore  *gkp         = new gkStore(gkpName);
+  ovStore  *storeFile   = new ovStore(ovlName, gkp, ovStoreWrite);
 
   uint64    maxIID       = gkp->gkStore_getNumReads() + 1;
   uint64    iidPerBucket = computeIIDperBucket(fileLimit, memoryLimit, maxIID, fileList);

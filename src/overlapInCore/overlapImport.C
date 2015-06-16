@@ -111,7 +111,7 @@ main(int argc, char **argv) {
   ovOverlap    ov;
 
   ovFile       *of    = (ovlFileName  == NULL) ? NULL : new ovFile(ovlFileName, ovFileFullWrite);
-  ovStore      *os    = (ovlStoreName == NULL) ? NULL : new ovStore(ovlStoreName, ovStoreWrite);
+  ovStore      *os    = (ovlStoreName == NULL) ? NULL : new ovStore(ovlStoreName, gkpStore, ovStoreWrite);
 
   for (uint32 ff=0; ff<files.size(); ff++) {
     compressedFileReader   *in = new compressedFileReader(files[ff]);

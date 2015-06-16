@@ -9,9 +9,9 @@
 //  Overlaps can be unsorted.
 
 void
-Read_Olaps(coParameters *G) {
+Read_Olaps(coParameters *G, gkStore *gkpStore) {
 
-  ovStore *ovs = new ovStore(G->ovlStorePath);
+  ovStore *ovs = new ovStore(G->ovlStorePath, gkpStore);
 
   ovs->setRange(G->bgnID, G->endID);
   

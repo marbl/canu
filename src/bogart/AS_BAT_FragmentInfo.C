@@ -27,7 +27,7 @@ const uint64 fiMagicNumber   = 0x6f666e4967617266llu;  //  'fragInfo' until it g
 const uint64 fiVersionNumber = 1;
 
 
-FragmentInfo::FragmentInfo(const char *gkpStorePath,
+FragmentInfo::FragmentInfo(gkStore    *gkp,
                            const char *prefix,
                            uint32      minReadLen) {
 
@@ -39,8 +39,6 @@ FragmentInfo::FragmentInfo(const char *gkpStorePath,
   if (minReadLen > 0)
     writeLog("FragmentInfo()-- Reads shorter than "F_U32" bases are forced to be singleton.\n",
              minReadLen);
-
-  gkStore     *gkp = new gkStore(gkpStorePath);
 
   _numLibraries = gkp->gkStore_getNumLibraries();
   _numFragments = gkp->gkStore_getNumReads();
@@ -99,8 +97,6 @@ FragmentInfo::FragmentInfo(const char *gkpStorePath,
       writeLog("FragmentInfo()-- Loading fragment information: skipped:%9d active:%9d\n",
                numSkipped, numLoaded);
   }
-
-  delete gkp;
 
   for (uint32 i=0; i<_numLibraries + 1; i++)
     _numMatesInLib[i] /= 2;
