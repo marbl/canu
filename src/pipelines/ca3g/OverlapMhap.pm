@@ -36,9 +36,29 @@ sub mhapConfigure ($$$$) {
 
     caFailure("invalid type '$typ'", undef)  if (($typ ne "partial") && ($typ ne "normal"));
 
-    return  if (skipStage($WRK, $asm, "$tag-mhapConfigure") == 1);
-    return  if (-e "$path/ovljob.files");
-    return  if (-e "$path/mhap.sh");
+    if (-e "$path/precompute.sh") {
+        my $numJobs = 0;
+        open(F, "< $path/precompute.sh") or caFailure("can't open '$path/precompute.sh' for reading: $!", undef);
+        while (<F>) {
+            $numJobs++   if (m/^\s+job=/);
+        }
+        close(F);
+        print STDERR "--  Configured $numJobs mhap precompute jobs.\n";
+    }
+
+    if (-e "$path/mhap.sh") {
+        my $numJobs = 0;
+        open(F, "< $path/mhap.sh") or caFailure("can't open '$path/mhap.sh' for reading: $!", undef);
+        while (<F>) {
+            $numJobs++  if (m/^\s+qry=\"(\d+)\"$/);
+        }
+        close(F);
+        print STDERR "--  Configured $numJobs mhap overlap jobs.\n";
+    }
+
+    goto stopAfter  if (skipStage($WRK, $asm, "$tag-mhapConfigure") == 1);
+    goto allDone    if (-e "$path/precompute.sh") && (-e "$path/mhap.sh");
+    goto allDone    if (-e "$path/ovljob.files");
 
     make_path("$path") if (! -d "$path");
 
@@ -414,7 +434,12 @@ sub mhapConfigure ($$$$) {
 
     close(F);
 
+  purgeIntermediates:
+    ;
+  allDone:
     emitStage($WRK, $asm, "$tag-mhapConfigure");
+  stopAfter:
+    stopAfter("mhapConfigure");
 }
 
 
@@ -432,6 +457,16 @@ sub mhapPrecomputeCheck ($$$$$) {
     $wrk = "$wrk/trimming"    if ($tag eq "obt");
 
     my $path    = "$wrk/1-overlapper";
+
+    if ((-e "$path/ovljob.files") && ($attempt == 3)) {
+        my $results = 0;
+        open(F, "< $path/ovljob.files") or caFailure("can't open '$path/ovljob.files' for reading: $!\n", undef);
+        while (<F>) {
+            $results++;
+        }
+        close(F);
+        print STDERR "--  Found $results mhap precomute output files.\n";
+    }
 
     return  if (skipStage($WRK, $asm, "$tag-mhapPrecomputeCheck", $attempt) == 1);
     return  if (-e "$path/ovljob.files");
@@ -459,6 +494,7 @@ sub mhapPrecomputeCheck ($$$$$) {
     #  No failed jobs?  Success!
 
     if (scalar(@failedJobs) == 0) {
+        setGlobal("ca3gIteration", 0);
         emitStage($WRK, $asm, "$tag-mhapPrecomputeCheck");
         return;
     }
@@ -505,6 +541,16 @@ sub mhapCheck ($$$$$) {
 
     my $path    = "$wrk/1-overlapper";
 
+    if ((-e "$path/ovljob.files") && ($attempt == 3)) {
+        my $results = 0;
+        open(F, "< $path/ovljob.files") or caFailure("can't open '$path/ovljob.files' for reading: $!\n", undef);
+        while (<F>) {
+            $results++;
+        }
+        close(F);
+        print STDERR "--  Found $results mhap overlap output files.\n";
+    }
+
     return  if (skipStage($WRK, $asm, "$tag-mhapCheck", $attempt) == 1);
     return  if (-e "$path/ovljob.files");
 
@@ -544,6 +590,7 @@ sub mhapCheck ($$$$$) {
         open(L, "> $path/ovljob.files") or caExit("failed to open '$path/ovljob.files'", undef);
         print L @successJobs;
         close(L);
+        setGlobal("ca3gIteration", 0);
         emitStage($WRK, $asm, "$tag-mhapCheck");
         return;
     }

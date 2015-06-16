@@ -44,8 +44,6 @@ sub meryl ($$$) {
     $wrk = "$wrk/correction"  if ($tag eq "cor");
     $wrk = "$wrk/trimming"    if ($tag eq "obt");
 
-    goto stopAfter  if (skipStage($WRK, $asm, "$tag-meryl") == 1);        #  Finished.
-
     my ($merSize, $merThresh, $merScale, $merDistinct, $merTotal);
     my ($ffile, $ofile);
 
@@ -73,10 +71,30 @@ sub meryl ($$$) {
         caFailure("unknown ${tag}Overlapper '" . getGlobal("${tag}Overlapper") . "'", undef);
     }
 
-
     #  If the frequent mer file exists, don't bother running meryl.  We don't really need the
     #  databases.
 
+    my $numTotal    = 0;
+    my $numDistinct = 0;
+    my $numUnique   = 0;
+    my $largest     = 0;
+
+    if (-e "$ofile.histogram.info") {
+        open(F, "< $ofile.histogram.info") or caFailure("can't open meryl histogram information file '$ofile.histogram.info' for reading: $!\n", undef);
+        while (<F>) {
+            $numTotal    = $1   if (m/Found\s(\d+)\s+mers./);
+            $numDistinct = $1   if (m/Found\s(\d+)\s+distinct\smers./);
+            $numUnique   = $1   if (m/Found\s(\d+)\s+unique\smers./);
+            $largest     = $1   if (m/Largest\smercount\sis\s(\d+)/);
+        }
+        close(F);
+    }
+
+    if ($numTotal > 0) {
+        print STDERR "--  Found $numTotal $merSize-mers; $numDistinct distinct and $numUnique unique.  Largest count $largest.\n";
+    }
+
+    goto stopAfter  if (skipStage($WRK, $asm, "$tag-meryl") == 1);        #  Finished.
     goto allDone    if (-e "$ffile");
 
     #  Make a work space.
@@ -157,11 +175,11 @@ sub meryl ($$$) {
     #  Dump a histogram.
 
     if (! -e "$ofile.histogram") {
-        $cmd  = "$bin/meryl -Dh -s $ofile > $ofile.histogram 2> $ofile.histogram.err";
+        $cmd  = "$bin/meryl -Dh -s $ofile > $ofile.histogram 2> $ofile.histogram.info";
 
         if (runCommand("$wrk/0-mercounts", $cmd)) {
             rename "$ofile.histogram", "$ofile.histogram.FAILED";
-            caFailure("meryl histogram failed", "$ofile.histogram.err");
+            caFailure("meryl histogram failed", "$ofile.histogram.info");
         }
     }
 
@@ -273,7 +291,7 @@ sub meryl ($$$) {
         print F "plot [0:200] \"$ofile.histogram\" using 1:2 with lines title \"Histogram\"\n";
         close(F);
 
-        runCommand("$wrk/0-mercounts", "gnuplot $ofile.histogram.gp");
+        runCommandSilently("$wrk/0-mercounts", "gnuplot $ofile.histogram.gp > /dev/null 2>&1");
     }
 
     #  Generate the frequent mers for overlapper
@@ -305,7 +323,7 @@ sub meryl ($$$) {
         #  Meryl reports number of distinct canonical mers, we multiply by two to get the
         #  (approximate) number of distinct mers.  Palindromes are counted twice, oh well.
 
-        open(F, "< $wrk/0-mercounts/$asm.ms$merSize.histogram.err") or die "Failed to open '$wrk/0-mercounts/$asm.ms$merSize.histogram.err' for reading: $!\n";
+        open(F, "< $ofile.histogram.info") or die "Failed to open '$ofile.histogram.info' for reading: $!\n";
         while (<F>) {
             if (m/Found\s+(\d+)\s+mers./) {
                 $totalMers = 2 * $1;
@@ -313,13 +331,13 @@ sub meryl ($$$) {
         }
         close(F);
 
-        caFailure("didn't find any mers?", "$wrk/0-mercounts/$asm.ms$merSize.histogram.err")  if ($totalMers == 0);
+        caFailure("didn't find any mers?", "$ofile.histogram.info")  if ($totalMers == 0);
 
         my $filterThreshold = (getGlobal("${tag}MhapSensitivity") eq "normal") ?   0.000005 :   0.000005;  #  Also set in Meryl.pm
         my $minCount        = int($filterThreshold * $totalMers);
 
-        open(F, "$bin/meryl -Dt -n $minCount -s $wrk/0-mercounts/$asm.ms$merSize | ")  or die "Failed to run meryl to generate frequent mers $!\n";
-        open(O, "> $wrk/0-mercounts/$asm.ms$merSize.frequentMers.ignore")              or die "Failed to open '$wrk/0-mercounts/$asm.ms$merSize.frequentMers.mhap_ignore' for writing: $!\n";
+        open(F, "$bin/meryl -Dt -n $minCount -s $ofile | ")  or die "Failed to run meryl to generate frequent mers $!\n";
+        open(O, "> $ofile.frequentMers.ignore")              or die "Failed to open '$ofile.frequentMers.mhap_ignore' for writing: $!\n";
 
         while (!eof(F)) {
             my $h = <F>;
@@ -344,6 +362,10 @@ sub meryl ($$$) {
         print STDERR "Reset ${tag}OvlMerThreshold from ", getGlobal("${tag}OvlMerThreshold"), " to $merThresh.\n";
         setGlobal("${tag}OvlMerThreshold", $merThresh);
     }
+
+  purgeIntermediates:
+    unlink "$ofile.mcidx"  if (getGlobal("saveMerCounts") == 0);
+    unlink "$ofile.mcdat"  if (getGlobal("saveMerCounts") == 0);
 
   allDone:
     emitStage($WRK, $asm, "$tag-meryl");

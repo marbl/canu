@@ -305,6 +305,7 @@ sub printHelp ($) {
     }
 
     if (getGlobal("help") ne "") {
+        print "\n";
         print "usage: ca3g.pl [run | correct | trim | assemble] \\\n";
         print "               -p <assembly-prefix> \\\n";
         print "               -d <assembly-directory> \\\n";
@@ -312,7 +313,7 @@ sub printHelp ($) {
         print "               genomeSize=Ng \\\n";
         print "               errorRate=0.X \\\n";
         print "               [other-options] \\\n";
-        print "               [read-type] *fastq\n";
+        print "               [read-type *fastq]\n";
         print "\n";
         print "    fully automatic modes:\n";
         print "      run      - generate an assembly, automagically applying the best correction, trimming\n";
@@ -922,6 +923,9 @@ sub setDefaults () {
 
     #####  General Configuration Options (aka miscellany)
 
+    $global{"ca3gIteration"}               = 0;  #  See documentation in Execution.pm
+    $global{"ca3gIterationMax"}            = 2;
+
     $global{"showNext"}                    = undef;
     $synops{"showNext"}                    = "Don't run any commands, just report what would run";
 
@@ -941,6 +945,9 @@ sub setDefaults () {
 
     $global{"saveOverlaps"}                = 0;
     $synops{"saveOverlaps"}                = "Save intermediate overlap files, almost never a good idea";
+
+    $global{"saveMerCounts"}               = 0;
+    $synops{"saveMerCounts"}               = "Save full mer counting results, sometimes useful";
 
     #####  Error Rates
 
@@ -1018,7 +1025,6 @@ sub setDefaults () {
     } else {
         print STDERR "-- No grid engine detected, grid disabled.\n";
     }
-
 
     #####  Grid Engine Pipeline
 

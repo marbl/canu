@@ -254,6 +254,7 @@ sub readErrorDetectionCheck ($$$) {
 
     if (scalar(@failedJobs) == 0) {
         concatOutput("$path/red.red", @successJobs);
+        setGlobal("ca3gIteration", 0);
         emitStage($wrk, $asm, "readErrorDetectionCheck");
         return;
     }
@@ -477,6 +478,7 @@ sub overlapErrorAdjustmentCheck ($$$) {
             print L "$f\n";
         }
         close(L);
+        setGlobal("ca3gIteration", 0);
         return;
     }
 

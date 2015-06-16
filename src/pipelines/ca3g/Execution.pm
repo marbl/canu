@@ -291,7 +291,8 @@ sub lookupStageLabel ($) {
 
 
 
-#  Returns true if we should skip this stage.
+#  Returns true if we should skip this stage.  No used, but left in for possible use in cleaning up things.  Signals that we're
+#  at the start of some stage, and we could clean up earlier stages.
 #
 sub skipStage ($$$@) {
     my $wrk         = shift @_;
@@ -302,7 +303,14 @@ sub skipStage ($$$@) {
     my $ckpstage    = "";
     my $ckpattempt  = undef;
 
-    return(0)  if (! -e "$wrk/$asm.stage");  #  No checkpoint file exists, must compute!
+    #  DISABLED.
+    return(0);
+
+    if (! -e "$wrk/$asm.stage") {
+        #  No checkpoint file exists, must compute!
+        print STDERR "No $wrk/$asm.stage file, compute it all!\n";
+        return(0);
+    }
 
     open(F, "< $wrk/$asm.stage") or caFailure("failed to open '$wrk/$asm.stage' for reading", undef);
     while (<F>) {
@@ -319,13 +327,22 @@ sub skipStage ($$$@) {
     caFailure("didn't find stage in '$wrk/$asm.stage'", undef)  if ($ckpstage eq "");
 
     #  Don't skip it.  The stage to run is after the stage in the checkpoint.
-    return(0)  if (lookupStageLabel($ckpstage) < lookupStageLabel($stage));
+    if (lookupStageLabel($ckpstage) < lookupStageLabel($stage)) {
+        #print STDERR "PURGE at stage $stage (ignored attempt $attempt)\n";
+        purgeRecomputable($wrk, $asm, $stage);
+        return(0);
+    };
 
-    #  Don't skip it.  The stage to run is the stage in the checkpoint, but the attempt is after.
-    return(0)  if ((lookupStageLabel($stage) == lookupStageLabel($ckpstage) &&
-                    (defined($attempt)) &&
-                    (defined($ckpattempt)) &&
-                    ($ckpattempt < $attempt)));
+    #  Don't skip it.  The stage to run is the stage in the checkpoint, but the attempt we're trying
+    #  is after.
+    if ((lookupStageLabel($stage) == lookupStageLabel($ckpstage) &&
+         (defined($attempt)) &&
+         (defined($ckpattempt)) &&
+         ($ckpattempt < $attempt))) {
+        #print STDERR "PURGE at stage $stage attempt $attempt\n";
+        purgeRecomputable($wrk, $asm, $stage);
+        return(0);
+    };
 
     #print STDERR "skipStage()-- target $stage/" . lookupStageLabel($stage);
     #print STDERR " attempt $attempt"     if (defined($attempt));
@@ -333,11 +350,17 @@ sub skipStage ($$$@) {
     #print STDERR " attempt $ckpattempt"  if (defined($ckpattempt));
     #print STDERR " -- from '$wrk/$asm.stage'\n";
 
-    #  Skip it.
+    #  Skip it.  But first, purge any files we'll never need again.
+
+    print STDERR "PURGE extraneous before stage $stage attempt $attempt\n";
+    purgeExtraneous($wrk, $asm, $stage);
+
     return(1);
 }
 
 
+#  Same as skipStage(), left in for future use cleaning up.  Signals that we're done with a stage.
+#
 sub emitStage ($$$@) {
     my $wrk         = shift @_;
     my $asm         = shift @_;
@@ -350,11 +373,13 @@ sub emitStage ($$$@) {
     my $attempt     = (defined($attempt)) ? " attempt $attempt" : "";
     my $ATTEMPT     = (defined($attempt)) ? " ATTEMPT $attempt" : "";
 
+    return;
+
     open(F, ">> $wrk/$asm.stage") or caFailure("failed to open '$wrk/$asm.stage' for appending\n", undef);
     print F "$time -- ca3g at stage $stage (#$label)$attempt\n";
     close(F);
 
-    print "----------------------------------------STAGE $stage (#$label)$ATTEMPT FINISHED.\n";
+    #print "----------------------------------------STAGE $stage (#$label)$ATTEMPT FINISHED.\n";
 
     make_path("$wrk/$asm.stage.fileLists")  if (! -d "$wrk/$asm.stage.fileLists");
 
@@ -369,17 +394,98 @@ sub emitStage ($$$@) {
     }
 
     if (-e "$wrk/$asm.stage.fileLists/stage.$label1.created") {
-        #runCommandSilently($wrk, "find . -type f -and -newer  $wrk/$asm.stage.fileLists/stage.$label1.created -printf '%a -- %t -- %c -- %p\\n' > $wrk/$asm.stage.fileLists/stage.$label.created");
-        #runCommandSilently($wrk, "find . -type f -and -anewer $wrk/$asm.stage.fileLists/stage.$label1.created -printf '%a -- %t -- %c -- %p\\n' > $wrk/$asm.stage.fileLists/stage.$label.accessed");
         runCommandSilently($wrk, "find . -type f -and -newer  $wrk/$asm.stage.fileLists/stage.$label1.created -print > $wrk/$asm.stage.fileLists/stage.$label.created");
         runCommandSilently($wrk, "find . -type f -and -anewer $wrk/$asm.stage.fileLists/stage.$label1.created -print > $wrk/$asm.stage.fileLists/stage.$label.accessed");
     } else {
-        #runCommandSilently($wrk, "find . -type f -printf '%a -- %t -- %c -- %p\\n' > $wrk/$asm.stage.fileLists/stage.$label.created");
         runCommandSilently($wrk, "find . -type f -print > $wrk/$asm.stage.fileLists/stage.$label.created");
     }
 }
 
 
+#
+#my %firstAccessed;
+#my %lastAccessed;
+#
+#
+#sub readAccessed ($$$$) {
+#    my $wrk   = shift @_;
+#    my $asm   = shift @_;
+#    my $stage = shift @_;
+#    my $file  = shift @_;
+#
+#    open(G, "< $file") or die "Failed to open '$file' for reading: $!\n";
+#    while (<G>) {
+#        chomp;
+#
+#        s!^\.\/!!;
+#        s!$asm\.!PREFIX.!;
+#        #s!\d\d\d\d\d\d\.out!TASKID.out!;
+#        s!\d\d\d\d\d\d\.!TASKID.!;
+#
+#        next  if (m/PREFIX.stage.fileLists/);
+#        next  if (m/PREFIX.stage/);
+#        next  if (m/runCA-logs/);
+#
+#        $firstAccessed{$_} = $stage  if (!exists($firstAccessed{$_}));
+#        $lastAccessed{$_}  = $stage;
+#    }
+#    close(G);
+#}
+#
+#
+##  Remove files we won't ever need again.
+#sub purgeExtraneous ($$$$) {
+#    my $wrk         = shift @_;
+#    my $asm         = shift @_;
+#    my $stage       = shift @_;
+#
+#    open(F, "ls $wrk/$asm.stage.fileLists/ |");
+#    while (<F>) {
+#        my $file = $_;  chomp $file;
+#
+#        if ($file =~ m/stage.(\d+).accessed/) {
+#            readAccessed($wrk, $asm, $1, "$wrk/test.stage.fileLists/$file");
+#        }
+#    }
+#    close(F);
+#
+#    foreach my $f (keys %lastAccessed) {
+#        next  if ($lastAccessed{$f} < $stage);
+#
+#        #print STDERR "AT stage $stage REMOVE extraneous file $f last needed in stage $lastAccessed{$f}\n";
+#    }
+#}
+#
+#
+#
+##  Remove files we'll be computing again.  This is based on knowing the current stage we're at,
+##  then examining the sge.fileLists directory for future stages and removing those files.
+##
+##  If any are detected, we emit a new stage (to find files between the last stage and the last stop),
+##  then delete those files.
+##
+#sub purgeRecomputable ($$$) {
+#    my $wrk         = shift @_;
+#    my $asm         = shift @_;
+#    my $stage       = shift @_;
+#
+#    open(F, "ls $wrk/$asm.stage.fileLists/ |");
+#    while (<F>) {
+#        my $file = $_;  chomp $file;
+#
+#        if ($file =~ m/stage.(\d+).accessed/) {
+#            readAccessed($wrk, $asm, $1, "$wrk/test.stage.fileLists/$file");
+#        }
+#    }
+#    close(F);
+#
+#    foreach my $f (keys %firstAccessed) {
+#        next  if ($stage < $firstAccessed{$f});
+#
+#        print STDERR "AT stage $stage REMOVE premature file $f first needed in stage $firstAccessed{$f}\n";
+#    }
+#}
+#
 
 
 #  Decide what bin directory to use.
@@ -505,14 +611,11 @@ sub submitScript ($$$) {
     my $asm         = shift @_;
     my $jobToWaitOn = shift @_;
 
-    #  If not requested to run on the grid, return.
+    #  If not requested to run on the grid, or can't run on the grid, fail.
 
-    return if (getGlobal("useGrid")       == 0);
-    return if (getGlobal("useGridMaster") == 0);
-
-    #  If can't run on grid, return.
-
-    return  if (getGlobal("gridEngine") eq undef);
+    return   if (getGlobal("useGrid")       == 0);
+    return   if (getGlobal("useGridMaster") == 0);
+    return   if (getGlobal("gridEngine")    eq undef);
 
     #  If no job to wait on, and we are already on the grid, do NOT resubmit ourself.
     #
@@ -521,7 +624,7 @@ sub submitScript ($$$) {
     #  but this time, the envorinment variable is set, we we can skip the resubmission, and continue
     #  with ca3g execution.
 
-    return if (($jobToWaitOn eq undef) && (exists($ENV{getGlobal("gridEngineJobID")})));
+    return   if (($jobToWaitOn eq undef) && (exists($ENV{getGlobal("gridEngineJobID")})));
 
     #  Find the next available output file.
 
@@ -531,8 +634,9 @@ sub submitScript ($$$) {
         $idx++;
     }
 
-    my $output = "$wrk/ca3g.$idx.out";
-    my $script = "$wrk/ca3g.$idx.sh";
+    my $output    = "$wrk/ca3g.$idx.out";
+    my $script    = "$wrk/ca3g.$idx.sh";
+    my $iteration = getGlobal("ca3gIteration") + 1;
 
     #  Make a script for us to submit.
 
@@ -555,19 +659,19 @@ sub submitScript ($$$) {
 
     print F getBinDirectoryShellCode();
 
-    print F "/usr/bin/env perl \$bin/ca3g.pl " . getCommandLineOptions() . "\n";
+    print F "/usr/bin/env perl \$bin/ca3g.pl " . getCommandLineOptions() . " ca3gIteration=$iteration\n";
     close(F);
 
     system("chmod +x $script");
 
     #  Construct a submission command line.
 
-    my $jobName              = "c3g_" . $asm . ((defined(getGlobal("gridOptionsJobName"))) ? ("_" . getGlobal("gridOptionsJobName")) : (""));
+    my ($jobName, $memOption, $thrOption, $gridOpts);
 
-    my $memOption     = buildMemoryOption(getGlobal("masterMemory"), getGlobal("masterThreads"));
-    my $thrOption     = buildThreadOption(getGlobal("masterThreads"));
+    $jobName   = "c3g_" . $asm . ((defined(getGlobal("gridOptionsJobName"))) ? ("_" . getGlobal("gridOptionsJobName")) : (""));
 
-    my $gridOpts;
+    $memOption = buildMemoryOption(getGlobal("masterMemory"), getGlobal("masterThreads"));
+    $thrOption = buildThreadOption(getGlobal("masterThreads"));
 
     $gridOpts  = getGlobal("gridOptions")          if (defined(getGlobal("gridOptions")));
     $gridOpts .= " "                               if (defined($gridOpts));
@@ -816,6 +920,26 @@ sub submitOrRunParallelJob ($$$$$@) {
     #print STDERR "----------------------------------------GRIDSTART $t\n";
     #print STDERR "$path/$script.sh with $mem gigabytes memory and $thr threads.\n";
 
+    #  Break infinite loops.  If the grid jobs keep failing, give up after a few attempts.
+    #
+    #  If useGridMaster = 0, this has no impact; ca3gIteration is incremented in submitScript() and
+    #  the initial value is zero.  It is reset during the Check() operation on each parallel step.
+    #
+    #  submitScript() will increment ca3gIteration on each call.  It is reset to zero if the Check()
+    #  for any parallel step succeeds.
+    #
+    #  Assuming grid jobs die on each attempt:
+    #    Iteration 0 - the one run on the command line; submits iteration 1
+    #    Iteration 1 - run on the grid, submits parallel jobs and iteration 2
+    #    Iteration 2 - run on the grid, submits parallel jobs and iteration 3
+    #    Iteration 3 - run on the grid, fails
+    #
+    #  If the jobs succeed in Iteration 2, the ca3g in iteration 3 will pass the Check(), and
+    #  continue the pipeline.
+
+    caExit("ca3g iteration count too high, stopping pipeline (most likely a problem in the grid-based computes)", undef)
+        if (getGlobal("ca3gIteration") > getGlobal("ca3gIterationMax"));
+
     #  If 'gridEngineJobID' environment variable exists (SGE: JOB_ID; LSF: LSB_JOBID) then we are
     #  currently running under grid crontrol.  If so, run the grid command to submit more jobs, then
     #  submit ourself back to the grid.  If not, tell the user to run the grid command by hand.
@@ -834,12 +958,15 @@ sub submitOrRunParallelJob ($$$$$@) {
 
         submitScript($wrk, $asm, $jobName);
 
-        exit(0);
+        #  submitScript() should never return.  If it does, then a parallel step was attempted too many time.
+
+        caExit("Too many attempts to run a parallel stage on the grid.  Stop.", undef);
     }
 
     #  Jobs under grid control, but the user must submit them
 
     if (getGlobal("gridEngine") && getGlobal("useGrid") && getGlobal("useGrid$jobType") && (! exists($ENV{getGlobal("gridEngineJobID")}))) {
+        print STDERR "\n";
         print STDERR "Please submit the following jobs to the grid for execution using $mem gigabytes memory and $thr threads:\n";
         print STDERR "\n";
 

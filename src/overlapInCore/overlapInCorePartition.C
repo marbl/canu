@@ -413,17 +413,17 @@ main(int argc, char **argv) {
 
   errno = 0;
 
-  sprintf(outputName, "%s/ovlbat", outputPrefix);
+  sprintf(outputName, "%s.ovlbat", outputPrefix);
   FILE *BAT = fopen(outputName, "w");
   if (errno)
     fprintf(stderr, "Failed to open '%s': %s\n", outputName, strerror(errno)), exit(1);
 
-  sprintf(outputName, "%s/ovljob", outputPrefix);
+  sprintf(outputName, "%s.ovljob", outputPrefix);
   FILE *JOB = fopen(outputName, "w");
   if (errno)
     fprintf(stderr, "Failed to open '%s': %s\n", outputName, strerror(errno)), exit(1);
 
-  sprintf(outputName, "%s/ovlopt", outputPrefix);
+  sprintf(outputName, "%s.ovlopt", outputPrefix);
   FILE *OPT = fopen(outputName, "w");
   if (errno)
     fprintf(stderr, "Failed to open '%s': %s\n", outputName, strerror(errno)), exit(1);

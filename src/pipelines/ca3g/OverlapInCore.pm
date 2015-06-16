@@ -30,13 +30,23 @@ sub overlapConfigure ($$$$) {
 
     caFailure("invalid type '$type'", undef)  if (($type ne "partial") && ($type ne "normal"));
 
+    if (-e "$path/overlap.sh") {
+        my $numJobs = 0;
+        open(F, "< $path/overlap.sh") or caExit("can't open '$path/overlap.sh' for reading: $!", undef);
+        while (<F>) {
+            $numJobs++  if (m/^\s+job=/);
+        }
+        close(F);
+        print STDERR "--  Configured $numJobs overlapInCore jobs.\n";
+    }
+
     return  if (skipStage($WRK, $asm, "$tag-overlapConfigure") == 1);
     return  if (-e "$path/ovljob.files");
     return  if (-e "$path/ovlopt");
 
     make_path("$path") if (! -d "$path");
-    
-    if (! -e "$path/ovlopt") {
+
+    if (! -e "$path/$asm.partition.ovlopt") {
 
         #  These used to be runCA options, but were removed in ca3g.  They were used mostly for illumina-pacbio correction,
         #  but were also used (or could have been used) during the Salmon assembly when overlaps were computed differently
@@ -66,13 +76,25 @@ sub overlapConfigure ($$$$) {
         #$cmd .= " -H $hashLibrary \\\n" if ($hashLibrary ne "0");
         #$cmd .= " -R $refLibrary \\\n"  if ($refLibrary ne "0");
         #$cmd .= " -C \\\n" if (!$checkLibrary);
-        $cmd .= " -o  $path \\\n";
-        $cmd .= "> $path/overlapInCorePartition.err 2>&1";
+        $cmd .= " -o  $path/$asm.partition \\\n";
+        $cmd .= "> $path/$asm.partition.err 2>&1";
 
         if (runCommand($wrk, $cmd)) {
             caExit("failed partition for overlapper", undef);
         }
     }
+
+    open(BAT, "< $path/$asm.partition.ovlbat") or caExit("can't open '$path/$asm.partition.ovlbat' for reading: $!", undef);
+    open(JOB, "< $path/$asm.partition.ovljob") or caExit("can't open '$path/$asm.partition.ovljob' for reading: $!", undef);
+    open(OPT, "< $path/$asm.partition.ovlopt") or caExit("can't open '$path/$asm.partition.ovlopt' for reading: $!", undef);
+
+    my @bat = <BAT>;  chomp @bat;
+    my @job = <JOB>;  chomp @job;
+    my @opt = <OPT>;  chomp @opt;
+
+    close(BAT);
+    close(JOB);
+    close(OPT);
 
     if (! -e "$path/overlap.sh") {
         my $merSize      = getGlobal("${tag}OvlMerSize");
@@ -103,23 +125,24 @@ sub overlapConfigure ($$$$) {
         print F "  exit 1\n";
         print F "fi\n";
         print F "\n";
-        print F "bat=`head -n \$jobid $path/ovlbat | tail -n 1`\n";
-        print F "job=`head -n \$jobid $path/ovljob | tail -n 1`\n";
-        print F "opt=`head -n \$jobid $path/ovlopt | tail -n 1`\n";
-        print F "jid=\$\$\n";
+
+        for (my $ii=1; $ii<=scalar(@bat); $ii++) {
+            print F "if [ \$jobid -eq $ii ] ; then\n";
+            print F "  bat=\"$bat[$ii-1]\"\n";            #  Needed to mkdir.
+            print F "  job=\"$bat[$ii-1]/$job[$ii-1]\"\n";  #  Needed to simplify overlapCheck() below.
+            print F "  opt=\"$opt[$ii-1]\"\n";
+            print F "fi\n";
+            print F "\n";
+        }
+
         print F "\n";
         print F "if [ ! -d $path/\$bat ]; then\n";
         print F "  mkdir $path/\$bat\n";
         print F "fi\n";
         print F "\n";
-        print F "if [ -e $path/\$bat/\$job.ovb.gz ]; then\n";
+        print F "if [ -e $path/\$job.ovb.gz ]; then\n";
         print F "  echo Job previously completed successfully.\n";
         print F "  exit\n";
-        print F "fi\n";
-        print F "\n";
-        print F "if [ x\$bat = x ]; then\n";
-        print F "  echo Error: Job index out of range.\n";
-        print F "  exit 1\n";
         print F "fi\n";
         print F "\n";
 
@@ -135,30 +158,18 @@ sub overlapConfigure ($$$$) {
         print F "  --maxerate  ", getGlobal("${tag}OvlErrorRate"), " \\\n";
         print F "  --minlength ", getGlobal("minOverlapLength"), " \\\n";
         print F "  \$opt \\\n";
-        print F "  -o $path/\$bat/\$job.ovb.WORKING.gz \\\n";
+        print F "  -o $path/\$job.ovb.WORKING.gz \\\n";
         #print F "  -H $hashLibrary \\\n" if ($hashLibrary ne "0");
         #print F "  -R $refLibrary \\\n"  if ($refLibrary  ne "0");
         print F "  $wrk/$asm.gkpStore \\\n";
         print F "&& \\\n";
-        print F "mv $path/\$bat/\$job.ovb.WORKING.gz $path/\$bat/\$job.ovb.gz\n";
+        print F "mv $path/\$job.ovb.WORKING.gz $path/\$job.ovb.gz\n";
         print F "\n";
         print F "exit 0\n";
         close(F);
 
         system("chmod +x $path/overlap.sh");
     }
-
-    caExit("failed to find overlapInCorePartition output $path/ovlbat", undef)  if (! -e "$path/ovlbat");
-    caExit("failed to find overlapInCorePartition output $path/ovljob", undef)  if (! -e "$path/ovljob");
-    caExit("failed to find overlapInCorePartition output $path/ovlopt", undef)  if (! -e "$path/ovlopt");
-
-    open(F, "< $path/ovlbat") or caExit("can't open '$path/ovlbat' for reading: $!", undef);
-    my @bat = <F>;
-    close(F);
-
-    open(F, "< $path/ovljob") or caExit("can't open '$path/ovljob' for reading: $!", undef);
-    my @job = <F>;
-    close(F);
 
     my $jobs      = scalar(@job);
     my $batchName = $bat[$jobs-1];  chomp $batchName;
@@ -188,6 +199,16 @@ sub overlapCheck ($$$$$) {
 
     my $path    = "$wrk/1-overlapper";
 
+    if ((-e "$path/ovljob.files") && ($attempt == 3)) {
+        my $results = 0;
+        open(F, "< $path/ovljob.files") or caExit("can't open '$path/ovljob.files' for reading: $!\n", undef);
+        while (<F>) {
+            $results++;
+        }
+        close(F);
+        print STDERR "--  Found $results overlapInCore output files.\n";
+    }
+
     return  if (skipStage($WRK, $asm, "$tag-overlapCheck", $attempt) == 1);
     return  if (-e "$path/ovljob.files");
 
@@ -196,37 +217,32 @@ sub overlapCheck ($$$$$) {
     my @failedJobs;
     my $failureMessage = "";
 
-    open(B, "< $path/ovlbat") or caExit("can't open '$path/ovlbat' for reading: $!", undef);
-    open(J, "< $path/ovljob") or caExit("can't open '$path/ovljob' for reading: $!", undef);
+    open(F, "< $path/overlap.sh") or caExit("can't open '$path/overlap.sh' for reading: $!", undef);
 
-    while (!eof(B) && !eof(J)) {
-        my $b = <B>;  chomp $b;
-        my $j = <J>;  chomp $j;
+    while (<F>) {
+        if (m/^\s+job=\"(\d+\/\d+)\"$/) {
+            if      (-e "$path/$1.ovb.gz") {
+                push @successJobs, "$path/$1.ovb.gz\n";
+                
+            } elsif (-e "$path/$1.ovb") {
+                push @successJobs, "$path/$1.ovb\n";
+                
+            } elsif (-e "$path/$1.ovb.bz2") {
+                push @successJobs, "$path/$1.ovb.bz2\n";
+                
+            } elsif (-e "$path/$1.ovb.xz") {
+                push @successJobs, "$path/$1.ovb.xz\n";
+                
+            } else {
+                $failureMessage .= "  job $path/$1 FAILED.\n";
+                push @failedJobs, $currentJobID;
+            }
 
-        if      (-e "$path/$b/$j.ovb.gz") {
-            push @successJobs, "$path/$b/$j.ovb.gz\n";
-
-        } elsif (-e "$path/$b/$j.ovb") {
-            push @successJobs, "$path/$b/$j.ovb\n";
-
-        } elsif (-e "$path/$b/$j.ovb.bz2") {
-            push @successJobs, "$path/$b/$j.ovb.bz2\n";
-
-        } elsif (-e "$path/$b/$j.ovb.xz") {
-            push @successJobs, "$path/$b/$j.ovb.xz\n";
-
-        } else {
-            $failureMessage .= "  job $path/$b/$j FAILED.\n";
-            push @failedJobs, $currentJobID;
+            $currentJobID++;
         }
-
-        $currentJobID++;
     }
 
-    print STDERR "Partitioning error; '$path/ovlbat' and '$path/ovljob' have an inconsistent number of lines.\n"  if (!eof(B) || !eof(J));
-
-    close(J);
-    close(B);
+    close(F);
 
     #  No failed jobs?  Success!
 
@@ -234,6 +250,7 @@ sub overlapCheck ($$$$$) {
         open(L, "> $path/ovljob.files") or caExit("can't open '$path/ovljob.files' for writing: $!", undef);
         print L @successJobs;
         close(L);
+        setGlobal("ca3gIteration", 0);
         emitStage($WRK, $asm, "$tag-overlapCheck");
         return;
     }

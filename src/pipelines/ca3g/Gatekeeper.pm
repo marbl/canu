@@ -86,18 +86,30 @@ sub gatekeeper ($$$@) {
 
     my $numReads = getNumberOfReadsInStore($wrk, $asm);
 
-    goto stopAfter  if (skipStage($WRK, $asm, "$tag-gatekeeper") == 1);    #  Finished.
-    goto allDone    if ($numReads > 0);                                    #  Store exists, with reads.
+    #  Store with reads?  Yay!  Report it, then skip.
 
-    #  Check for inputs, or an incomplete or empty store.
+    if ($numReads > 0) {
+        print STDERR "--  Found $numReads reads in gatekeeper store `$wrk/$asm.gkpStore`.\n";
+    }
 
-    caExit("empty gatekeeper store $wrk/$asm.gkpStore", undef)
-        if (($numReads == 0) && (-e "$wrk/$asm.gkpStore/info.txt"));
+    goto stopAfter  if (skipStage($WRK, $asm, "$tag-gatekeeper") == 1);    #  Finished, don't emit stage.
+    goto allDone    if ($numReads > 0);                                    #  Finished, but need to emit the stage still.
 
-    caExit("incomplete gatekeeper store $wrk/$asm.gkpStore; fix or remove", undef)
-        if ((-d "$wrk/$asm.gkpStore") && (! -e "$wrk/$asm.gkpStore/info.txt"));
+    #  An empty store?  Remove it and try again.
 
-    caExit("no input files specified, and store not already created", undef)
+    if (($numReads == 0) && (-e "$wrk/$asm.gkpStore/info.txt")) {
+        print STDERR "--  Removing empty gkpStore `$wrk/$asm.gkpStore`\n";
+        runmCommandSilently($wrk, "rm -rf $wrk/$asm.gkpStore");
+    }
+
+    #  An inomplete store (how?)?  Remove it and try again.
+
+    if ((-d "$wrk/$asm.gkpStore") && (! -e "$wrk/$asm.gkpStore/info.txt")) {
+        print STDERR "--  Removing incomplete gkpStore `$wrk/$asm.gkpStore`\n";
+        runmCommandSilently($wrk, "rm -rf $wrk/$asm.gkpStore");
+    }
+
+    caExit("no input files specified, and store not already created, I have nothing to work on!", undef)
         if (scalar(@inputs) == 0);
 
     #  Make sure all the inputs are here.
@@ -173,8 +185,10 @@ sub gatekeeper ($$$@) {
     rename "$wrk/$asm.gkpStore.BUILDING",             "$wrk/$asm.gkpStore";
     rename "$wrk/$asm.gkpStore.BUILDING.errorLog",    "$wrk/$asm.gkpStore.errorLog";
 
+  purgeIntermediates:
+    ;
   allDone:
     emitStage($WRK, $asm, "$tag-gatekeeper");
- stopAfter:
+  stopAfter:
     stopAfter("gatekeeper");
 }

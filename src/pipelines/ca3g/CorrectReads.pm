@@ -696,6 +696,7 @@ sub generateCorrectedReads ($$$) {
         open(L, "> $path/corjob.files") or caExit("failed to open '$path/corjob.files'", undef);
         print L @successJobs;
         close(L);
+        setGlobal("ca3gIteration", 0);
         emitStage($WRK, $asm, "cor-generateCorrectedReads");
         return;
     }

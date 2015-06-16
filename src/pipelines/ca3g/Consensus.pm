@@ -284,6 +284,7 @@ sub consensusCheck ($$$) {
         open(L, "> $path/cnsjob.files") or caExit("can't open '$path/cnsjob.files' for writing: $!", undef);
         print L @successJobs;
         close(L);
+        setGlobal("ca3gIteration", 0);
         emitStage($wrk, $asm, "consensusCheck");
         return;
     }

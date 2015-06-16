@@ -139,9 +139,8 @@ while (scalar(@ARGV)) {
         }
 
     } elsif (-e $arg) {
-        $arg = "$ENV{'PWD'}/$arg" if ($arg !~ m!^/!);
-        push @inputFiles, $arg;
-        addCommandLineOption("\"$arg\"");
+        setGlobal("help",
+                  getGlobal("help") . "ERROR:  File supplied on command line; use -s, -pacbio-raw, -pacbio-corrected, -nanopore-raw, or -nanopore-corrected.\n");
 
     } elsif ($arg =~ m/=/) {
         push @specOpts, $arg;
@@ -149,7 +148,7 @@ while (scalar(@ARGV)) {
 
     } else {
         setGlobal("help",
-                  getGlobal("help") . "File not found or invalid command line option '$arg'\n");
+                  getGlobal("help") . "ERROR:  Invalid command line option '$arg'\n");
     }
 }
 
@@ -297,11 +296,15 @@ sub overlap ($$$) {
 #
 
 print STDERR "--\n";
+print STDERR "-- This is ca3g parallel iteration #" . getGlobal("ca3gIteration") . ", out of a maximum of " . getGlobal("ca3gIterationMax") . " attempts.\n";
+print STDERR "--\n";
 print STDERR "-- Final error rates before starting pipeline:\n";
 
 showErrorRates("-- ");
 
 if (setOptions($mode, "correct") eq "correct") {
+    print STDERR "----------------------------------------BEGIN CORRECTION\n";
+
     gatekeeper($wrk, $asm, "cor", @inputFiles);
     meryl($wrk, $asm, "cor");
     overlap($wrk, $asm, "cor");
@@ -320,6 +323,8 @@ if (setOptions($mode, "correct") eq "correct") {
 
 
 if (setOptions($mode, "trim") eq "trim") {
+    print STDERR "----------------------------------------BEGIN TRIMMING\n";
+
     gatekeeper($wrk, $asm, "obt", @inputFiles);
     meryl($wrk, $asm, "obt");
     overlap($wrk, $asm, "obt");
@@ -335,6 +340,8 @@ if (setOptions($mode, "trim") eq "trim") {
 
 
 if (setOptions($mode, "assemble") eq "assemble") {
+    print STDERR "----------------------------------------BEGIN ASSEMBLY\n";
+
     gatekeeper($wrk, $asm, "utg", @inputFiles);
     meryl($wrk, $asm, "utg");
     overlap($wrk, $asm, "utg");

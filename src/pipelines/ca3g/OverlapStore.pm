@@ -275,6 +275,7 @@ sub overlapStoreBucketizerCheck ($$$$$) {
 
     if (scalar(@failedJobs) == 0) {
         print STDERR "overlap store bucketizer finished.\n";
+        setGlobal("ca3gIteration", 0);
         emitStage($WRK, $asm, "$tag-overlapStoreBucketizerCheck");
         return;
     }
@@ -364,6 +365,7 @@ sub overlapStoreSorterCheck ($$$$$) {
 
     if (scalar(@failedJobs) == 0) {
         print STDERR "overlap store sorter finished.\n";
+        setGlobal("ca3gIteration", 0);
         emitStage($WRK, $asm, "$tag-overlapStoreSorterCheck");
         return;
     }
