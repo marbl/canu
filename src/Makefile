@@ -503,6 +503,7 @@ $(foreach TGT,${ALL_TGTS},\
 
 ${TARGET_DIR}/ca3g.pl: pipelines/ca3g.pl
 	cp -pf  pipelines/ca3g.pl ${TARGET_DIR}/ca3g.pl
+	chmod +x ${TARGET_DIR}/ca3g.pl
 
 ${TARGET_DIR}/ca3g/lib: pipelines/install-perl-libraries.sh
 	@if [ ! -e ${TARGET_DIR}/ca3g/ ] ; then mkdir ${TARGET_DIR}/ca3g ; fi
