@@ -129,6 +129,11 @@ while (scalar(@ARGV)) {
              ($arg eq "-pacbio-corrected") ||
              ($arg eq "-nanopore-raw")     ||
              ($arg eq "-nanopore-corrected")) {
+        
+        setGlobal("help",
+                  getGlobal("help") . "ERROR:  $arg file '$ARGV[0]' not found\n")
+            if (! -e $ARGV[0]);
+
         while (-e $ARGV[0]) {
             my $file = shift @ARGV;
 
