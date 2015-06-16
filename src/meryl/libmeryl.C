@@ -12,24 +12,27 @@ static char *DmagicX = "merylStreamDvXX\n";
 static char *PmagicV = "merylStreamPv03\n";
 static char *PmagicX = "merylStreamPvXX\n";
 
-merylStreamReader::merylStreamReader(const char *fn, uint32 ms) {
+merylStreamReader::merylStreamReader(const char *fn_, uint32 ms_) {
 
-  if (fn == 0L) {
+  if (fn_ == 0L) {
     fprintf(stderr, "ERROR - no counted database file specified.\n");
     exit(1);
   }
 
+  memset(_filename, 0, sizeof(char) * FILENAME_MAX);
+  strcpy(_filename, fn_);
+
   //  Open the files
   //
-  char *inpath = new char [strlen(fn) + 8];
+  char *inpath = new char [strlen(_filename) + 8];
 
-  sprintf(inpath, "%s.mcidx", fn);
+  sprintf(inpath, "%s.mcidx", _filename);
   _IDX = new bitPackedFile(inpath);
 
-  sprintf(inpath, "%s.mcdat", fn);
+  sprintf(inpath, "%s.mcdat", _filename);
   _DAT = new bitPackedFile(inpath);
 
-  sprintf(inpath, "%s.mcpos", fn);
+  sprintf(inpath, "%s.mcpos", _filename);
   if (AS_UTL_fileExists(inpath))
     _POS = new bitPackedFile(inpath);
   else
@@ -50,28 +53,41 @@ merylStreamReader::merylStreamReader(const char *fn, uint32 ms) {
     if (_POS)
       Pmagic[i] = _POS->getBits(8);
   }
+
   if (strncmp(Imagic, ImagicX, 16) == 0) {
-    fprintf(stderr, "merylStreamReader()-- ERROR: %s.mcidx is an INCOMPLETE merylStream index file!\n", fn);
+    fprintf(stderr, "merylStreamReader()-- ERROR: %s.mcidx is an INCOMPLETE merylStream index file!\n", _filename);
     fail = true;
   }
   if (strncmp(Imagic, ImagicX, 13) != 0) {
-    fprintf(stderr, "merylStreamReader()-- ERROR: %s.mcidx is not a merylStream index file!\n", fn);
+    fprintf(stderr, "merylStreamReader()-- ERROR: %s.mcidx is not a merylStream index file!\n", _filename);
     fail = true;
   }
+
   if (strncmp(Dmagic, DmagicX, 16) == 0) {
-    fprintf(stderr, "merylStreamReader()-- ERROR: %s.mcdat is an INCOMPLETE merylStream data file!\n", fn);
+    fprintf(stderr, "merylStreamReader()-- ERROR: %s.mcdat is an INCOMPLETE merylStream data file!\n", _filename);
     fail = true;
   }
   if (strncmp(Dmagic, DmagicX, 13) != 0) {
-    fprintf(stderr, "merylStreamReader()-- ERROR: %s.mcdat is not a merylStream data file!\n", fn);
+    fprintf(stderr, "merylStreamReader()-- ERROR: %s.mcdat is not a merylStream data file!\n", _filename);
     fail = true;
   }
+
   if ((Imagic[13] != Dmagic[13]) ||
       (Imagic[14] != Dmagic[14])) {
-    fprintf(stderr, "merylStreamReader()-- ERROR: %s.mcidx and %s.mcdat are different versions!\n", fn, fn);
+    fprintf(stderr, "merylStreamReader()-- ERROR: %s.mcidx and %s.mcdat are different versions!\n", _filename, _filename);
     fail = true;
   }
-#warning not checking pmagic
+
+  if (_POS) {
+    if (strncmp(Pmagic, PmagicX, 16) == 0) {
+      fprintf(stderr, "merylStreamReader()-- ERROR: %s.mcpos is an INCOMPLETE merylStream data file!\n", _filename);
+      fail = true;
+    }
+    if (strncmp(Pmagic, PmagicX, 13) != 0) {
+      fprintf(stderr, "merylStreamReader()-- ERROR: %s.mcpos is not a merylStream data file!\n", _filename);
+      fail = true;
+    }
+  }
 
   if (fail)
     exit(1);
@@ -132,9 +148,9 @@ merylStreamReader::merylStreamReader(const char *fn, uint32 ms) {
   fprintf(stderr, "_thisMerCount   = "F_U64"\n", _thisMerCount);
 #endif
 
-  if ((ms > 0) && (_merSizeInBits >> 1 != ms)) {
+  if ((ms_ > 0) && (_merSizeInBits >> 1 != ms_)) {
     fprintf(stderr, "merylStreamReader()-- ERROR: User requested mersize "F_U32" but '%s' is mersize "F_U32"\n",
-            ms, fn, _merSizeInBits >> 1);
+            ms_, _filename, _merSizeInBits >> 1);
     exit(1);
   }
 }
@@ -194,22 +210,25 @@ merylStreamReader::nextMer(void) {
 
 
 
-merylStreamWriter::merylStreamWriter(const char *fn,
+merylStreamWriter::merylStreamWriter(const char *fn_,
                                      uint32 merSize,
                                      uint32 merComp,
                                      uint32 prefixSize,
                                      bool   positionsEnabled) {
 
-  char *outpath = new char [strlen(fn) + 17];
+  memset(_filename, 0, sizeof(char) * FILENAME_MAX);
+  strcpy(_filename, fn_);
 
-  sprintf(outpath, "%s.mcidx", fn);
+  char *outpath = new char [FILENAME_MAX];
+
+  sprintf(outpath, "%s.mcidx.creating", _filename);
   _IDX = new bitPackedFile(outpath, 0, true);
 
-  sprintf(outpath, "%s.mcdat", fn);
+  sprintf(outpath, "%s.mcdat.creating", _filename);
   _DAT = new bitPackedFile(outpath, 0, true);
 
   if (positionsEnabled) {
-    sprintf(outpath, "%s.mcpos", fn);
+    sprintf(outpath, "%s.mcpos.creating", _filename);
     _POS = new bitPackedFile(outpath, 0, true);
   } else {
     _POS = 0L;
@@ -341,6 +360,26 @@ merylStreamWriter::~merylStreamWriter() {
       _POS->putBits(PmagicV[i], 8);
     delete _POS;
   }
+
+  char *outpath = new char [FILENAME_MAX];
+  char *finpath = new char [FILENAME_MAX];
+
+  sprintf(outpath, "%s.mcidx.creating", _filename);
+  sprintf(finpath, "%s.mcidx", _filename);
+  rename(outpath, finpath);
+
+  sprintf(outpath, "%s.mcdat.creating", _filename);
+  sprintf(finpath, "%s.mcdat", _filename);
+  rename(outpath, finpath);
+
+  if (_POS) {
+    sprintf(outpath, "%s.mcpos.creating", _filename);
+    sprintf(finpath, "%s.mcpos", _filename);
+    rename(outpath, finpath);
+  }
+
+  delete [] finpath;
+  delete [] outpath;
 }
 
 

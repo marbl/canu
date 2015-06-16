@@ -45,6 +45,8 @@ public:
   bool            nextMer(void);
   bool            validMer(void) { return(_validMer); };
 private:
+  char                   _filename[FILENAME_MAX];
+
   bitPackedFile         *_IDX;
   bitPackedFile         *_DAT;
   bitPackedFile         *_POS;
@@ -142,6 +144,7 @@ private:
     }
   };
 
+  char                   _filename[FILENAME_MAX];
 
   bitPackedFile         *_IDX;
   bitPackedFile         *_DAT;
