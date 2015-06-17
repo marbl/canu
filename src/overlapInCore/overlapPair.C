@@ -6,22 +6,12 @@ const char *mainid = "$Id:  $";
 #include "gkStore.H"
 #include "ovStore.H"
 
-#include "prefixEditDistance.H"
+#include "overlapAlign.H"
 
 #include "AS_UTL_reverseComplement.H"
 
-#include "Binomial_Bound.H"  //  liboverlap
-
-#include "kMer.H"
-#include "merStream.H"
-
 #include "overlapPair-readCache.H"
 
-#include <map>
-#include <vector>
-#include <algorithm>
-
-using namespace std;
 
 
 #define THREAD_SIZE  512
@@ -43,12 +33,12 @@ public:
     maxErate        = 0;
     partialOverlaps = false;
     gkpStore        = NULL;
-    editDist        = NULL;
+    align           = NULL;
     overlapsLen     = 0;
     overlaps        = NULL;
   };
   ~workSpace() {
-    delete editDist;
+    delete align;
   };
 
 public:
@@ -57,32 +47,10 @@ public:
   bool                   partialOverlaps;
 
   gkStore               *gkpStore;
-  prefixEditDistance    *editDist;
+  overlapAlign           *align;
 
   uint32                 overlapsLen;       //  Not used.
   ovOverlap            *overlaps;
-};
-
-
-
-class exactMatch {
-public:
-  exactMatch(int32 a, int32 b, int32 l) {
-    aBgn = a;
-    bBgn = b;
-    tLen = l;
-  };
-
-  int32  aBgn;  //  Signed to allow for easy compute of diagonal
-  int32  bBgn;
-  int32  tLen;
-
-  bool operator<(exactMatch const that) const {
-    if (tLen == that.tLen)
-      return(aBgn < that.aBgn);
-
-    return(tLen > that.tLen);
-  };
 };
 
 
@@ -124,12 +92,8 @@ recomputeOverlaps(void *ptr) {
 
   //  Lazy allocation of the prefixEditDistance structure; it's slow.
 
-  if (WA->editDist == NULL) {
-    fprintf(stderr, "initi thrad %u\n", WA->threadID);
-    WA->editDist = new prefixEditDistance(WA->partialOverlaps, WA->maxErate);
-    fprintf(stderr, "initi thrad %u -- DONE\n", WA->threadID);
-  }
-
+  if (WA->align == NULL)
+    WA->align = new overlapAlign(WA->partialOverlaps, WA->maxErate, 18);
 
   while (getRange(bgnID, endID)) {
     //fprintf(stderr, "Thread %u computes range %u - %u\n", WA->threadID, bgnID, endID);
@@ -137,11 +101,11 @@ recomputeOverlaps(void *ptr) {
     for (uint32 oo=bgnID; oo<endID; oo++) {
       ovOverlap  *ovl = WA->overlaps + oo;
 
-      //  Mark this overlap as bad.  If it recomputes, it will be marked good.
-
-      ovl->dat.ovl.forOBT = false;
-      ovl->dat.ovl.forDUP = false;
-      ovl->dat.ovl.forUTG = false;
+#if 0
+#warning SKIPPING SOME
+      if ((ovl->a_iid != 1) || (ovl->b_iid != 34025))
+        continue;
+#endif
 
       //  Load A.
 
@@ -161,6 +125,8 @@ recomputeOverlaps(void *ptr) {
       int32   bLo = ovl->b_bgn();
       int32   bHi = ovl->b_end();
 
+      //  Make B the correct orientation, and adjust coordinates.
+
       if (ovl->flipped() == true) {
         memcpy(bRev, bStr, sizeof(char) * (bLen + 1));
 
@@ -174,154 +140,22 @@ recomputeOverlaps(void *ptr) {
 
       assert(bLo < bHi);
 
-      //  Set the min/max diagonal we will accept seeds for.  It's just the min/max diagonal for the
-      //  two endpoints extended by half the erate times the align length.
+      //  Compute the overlap
 
-      int32  minDiag = 0;
-      int32  maxDiag = 0;
+      //fprintf(stderr, "START %d vs %d\n", ovl->a_iid, ovl->b_iid);
 
-      {
-        int32  aALen = aHi - aLo;
-        int32  bALen = bHi - bLo;
+      WA->align->initialize(aStr, aLen, aLo, aHi,
+                            bStr, bLen, bLo, bHi);
 
-        int32  alignLen = (aALen < bALen) ? bALen : aALen;
-
-        if (alignLen < 40) {
-          fprintf(stderr, "A %6u %5d-%5d ->   B %6u %5d-%5d %s ALIGN LEN %d TOO SHORT.\n",
-                  ovl->a_iid, ovl->a_bgn(), ovl->a_end(),
-                  ovl->b_iid, ovl->b_bgn(), ovl->b_end(),
-                  ovl->flipped() ? "<-" : "->", alignLen);
-          continue;
-        }
-
-        int32  bgnDiag = aLo - bLo;
-        int32  endDiag = aHi - bHi;
-
-        if (bgnDiag < endDiag) {
-          minDiag = bgnDiag - WA->maxErate * alignLen / 2;
-          maxDiag = endDiag + WA->maxErate * alignLen / 2;
-
-        } else {
-          minDiag = endDiag - WA->maxErate * alignLen / 2;
-          maxDiag = bgnDiag + WA->maxErate * alignLen / 2;
-        }
-
-        //  For very very short overlaps (mhap kindly reports 4 bp overlaps) reset the min/max
-        //  to something a little more permissive.
-        //if (minDiag > -5)  minDiag = -5;
-        //if (maxDiag <  5)  maxDiag =  5;
-
-        if (minDiag > maxDiag)
-          fprintf(stderr, "ERROR: minDiag=%d >= maxDiag=%d\n", minDiag, maxDiag);
-        assert(minDiag <= maxDiag);
+      if (WA->align->findMinMaxDiagonal(40) == false) {
+        fprintf(stderr, "A %6u %5d-%5d ->   B %6u %5d-%5d %s ALIGN LENGTH TOO SHORT.\n",
+                ovl->a_iid, ovl->a_bgn(), ovl->a_end(),
+                ovl->b_iid, ovl->b_bgn(), ovl->b_end(),
+                ovl->flipped() ? "<-" : "->");
+        continue;
       }
 
-
-      //  Find seeds - hash the kmer and position from the first read, then lookup
-      //  each kmer in the second read.  For unique hits, save the diagonal.  Then what?
-      //  If the diagonal is too far from the expected diagonal (based on the overlap),
-      //  ignore the seed.
-
-      map<uint64,int32>   aMap;  //  Signed, to allow for easy compute of diagonal
-      map<uint64,int32>   bMap;
-
-      uint32 merSize   = 18;
-      bool   dupIgnore = false;  //  Ignore dups?  Otherwise, use the first occurrence
-
-      //  Find mers in A
-    findMersAgain:
-
-      //fprintf(stderr, "Finding mers of size %u; dupIgnore=%s\n", merSize, dupIgnore ? "true" : "false");
-
-      {
-        kMerBuilder *kb = new kMerBuilder(merSize);
-        seqStream   *ss = new seqStream(aStr, aLen);
-        merStream   *ms = new merStream(kb, ss, true, true);
-
-        while (ms->nextMer() == true) {
-          uint64  kmer = ms->theFMer();
-
-          if (aMap.find(kmer) != aMap.end()) {
-            if (dupIgnore == true)
-              aMap[kmer] = INT32_MAX;  //  Duplicate mer, now ignored!
-          } else {
-            aMap[kmer] = (int32)ms->thePositionInSequence();
-          }
-        }
-
-        delete ms;
-      }
-
-      if (aMap.size() == 0) {
-        aMap.clear();
-        bMap.clear();
-
-        merSize--;
-
-        if ((merSize < 8) && (dupIgnore == true)) {
-          merSize   = 20;
-          dupIgnore =  false;
-        }
-
-        if (merSize >= 8)
-          goto findMersAgain;
-      }
-
-      //  Find mers in B
-
-      {
-        kMerBuilder *kb = new kMerBuilder(merSize);
-        seqStream   *ss = new seqStream(bStr, bLen);
-        merStream   *ms = new merStream(kb, ss, true, true);
-
-        while (ms->nextMer() == true) {
-          uint64  kmer = ms->theFMer();
-
-          if (aMap.find(kmer) == aMap.end())
-            //  Doesn't exist in aSeq, don't care about it.
-            continue;
-
-          int32  apos = aMap[kmer];
-          int32  bpos = (int32)ms->thePositionInSequence();
-
-          if (apos == INT32_MAX)
-            //  Exists too many times in aSeq, don't care about it.
-            continue;
-
-          if ((apos - bpos < minDiag) ||
-              (apos - bpos > maxDiag))
-            //  Too different.
-            continue;
-
-          if (bMap.find(kmer) != bMap.end()) {
-            if (dupIgnore == true)
-              bMap[kmer] = INT32_MAX;  //  Duplicate mer, now ignored!
-          } else {
-            bMap[kmer] = bpos;
-          }
-        }
-
-        delete ms;
-      }
-
-      if (bMap.size() == 0) {
-        aMap.clear();
-        bMap.clear();
-
-        merSize--;
-
-        if ((merSize < 8) && (dupIgnore == true)) {
-          merSize   = 20;
-          dupIgnore =  false;
-        }
-
-        if (merSize >= 8)
-          goto findMersAgain;
-      }
-
-      //  Still zero?  Didn't find any unique seeds anywhere.
-
-      if (bMap.size() == 0) {
+      if (WA->align->findSeeds(false) == false) {
         fprintf(stderr, "A %6u %5d-%5d ->   B %6u %5d-%5d %s NO SEEDS.\n",
                 ovl->a_iid, ovl->a_bgn(), ovl->a_end(),
                 ovl->b_iid, ovl->b_bgn(), ovl->b_end(),
@@ -329,160 +163,13 @@ recomputeOverlaps(void *ptr) {
         continue;
       }
 
-      //  For unique mers in B, if the mer is also unique in A, add a hit.
+      WA->align->findHits();
+      WA->align->chainHits();
 
-      vector<exactMatch>   rawhits;
-      vector<exactMatch>   hits;
-
-      {
-        for (map<uint64,int32>::iterator bit=bMap.begin(); bit != bMap.end(); bit++) {
-          uint64  kmer = bit->first;
-          int32   bpos = bit->second;
-
-          if (bpos == INT32_MAX)
-            //  Exists too many times in bSeq, don't care about it.
-            continue;
-
-          int32   apos = aMap[kmer];
-
-          assert(apos != INT32_MAX);       //  Should never get a bMap for these
-
-          assert(apos - bpos >= minDiag);  //  ...these too.
-          assert(apos - bpos <= maxDiag);
-
-          rawhits.push_back(exactMatch(apos, bpos, merSize));
-        }
-      }
-
-      //  Sort by aPos (actually by length, then by aPos, but length is constant here).
-
-      sort(rawhits.begin(), rawhits.end());
-
-#if 0
-      for (uint32 rr=0; rr<rawhits.size(); rr++)
-        fprintf(stderr, "HIT: %d - %d diag %d\n", rawhits[rr].aBgn, rawhits[rr].bBgn, rawhits[rr].aBgn - rawhits[rr].bBgn);
-#endif
-
-      //  Chain the hits.
-
-      hits.push_back(rawhits[0]);
-
-      for (uint32 rr=1; rr<rawhits.size(); rr++) {
-        uint32  hh = hits.size() - 1;
-
-        int32   da = rawhits[rr].aBgn - hits[hh].aBgn;
-        int32   db = rawhits[rr].bBgn - hits[hh].bBgn;
-
-        if ((da > 0) && (da < 2 * merSize) && (da == db))
-          hits[hh].tLen += da;
-        else
-          hits.push_back(rawhits[rr]);
-      }
-
-      //  Sort by longest
-
-      sort(hits.begin(), hits.end());
-
-#if 0
-      for (uint32 hh=0; hh<hits.size(); hh++) {
-        fprintf(stderr, "hit %02u %5d-%5d diag %d len %3u\n",
-                hh,
-                hits[hh].aBgn, hits[hh].bBgn,
-                hits[hh].aBgn - hits[hh].bBgn,
-                hits[hh].tLen);
-      }
-#endif
-
-      //  Recompute.
-
-      for (uint32 hh=0; hh<hits.size(); hh++) {
-        Match_Node_t  match;
-
-        match.Start  = hits[0].aBgn;   //  Begin position in a
-        match.Offset = hits[0].bBgn;   //  Begin position in b
-        match.Len    = merSize;        //  tLen can include mismatches
-        match.Next   = 0;              //  Not used here
-
-        int32      errors  = 0;
-        Overlap_t  ovltype = WA->editDist->Extend_Alignment(&match,       //  Initial exact match, relative to start of string
-                                                            aStr, aLen,
-                                                            bStr, bLen,
-                                                            aLo,  aHi,    //  Output: Regions which the match extends
-                                                            bLo,  bHi,
-                                                            errors,
-                                                            WA->partialOverlaps);
-
-        int32  olapLen = 1 + min(aHi - aLo, bHi - bLo);
-        double quality = (double)errors / olapLen;
-
-        if (WA->partialOverlaps == true)
-          //  ovltype isn't set for partial overlaps; just don't set it to 'none' so we can get
-          //  through the 'good overlap' check below.
-          ovltype = DOVETAIL;
-
-        if (olapLen < 40)
-          ovltype = NONE;
-
-        if (ovl->dat.ovl.flipped == true) {
-          bLo = bLen - bLo;  //  Now correct for the original forward sequence
-          bHi = bLen - bHi;  //  Done early just for the print below
-        }
-
-#if 0
-        fprintf(stderr, "thread %2u hit %2u  A %6u %5d-%5d %s B %6u %5d-%5d -- ",
-                WA->threadID,
-                hh,
-                ovl->a_iid, ovl->a_bgn(), ovl->a_end(),
-                ovl->flipped() ? "<-" : "->",
-                ovl->b_iid, ovl->b_bgn(), ovl->b_end());
-        fprintf(stderr, "type %d A %5d-%5d (%5d)  B %5d-%5d (%5d)  errors %4d  quality %6.3f  llen %4d rlen %4d%s\n",
-                ovltype,
-                aLo, aHi, aLen, bLo, bHi, bLen,
-                errors,
-                quality,
-                WA->editDist->Left_Delta_Len,
-                WA->editDist->Right_Delta_Len,
-                (ovltype == 0) ? "  FAILED" : "");
-#endif
-
-        if (ovltype == NONE)
-          //  Not a good overlap, keep searching for one.
-          continue;
-
-        //  Got a good overlap.  Save it, and get out of this loop.
-
-        if (ovl->dat.ovl.flipped == false) {
-          ovl->dat.ovl.ahg5 =        (aLo);
-          ovl->dat.ovl.ahg3 = aLen - (aHi);  //+1?
-          ovl->dat.ovl.bhg5 =        (bLo);
-          ovl->dat.ovl.bhg3 = bLen - (bHi);  //+1?
-
-        } else {
-          ovl->dat.ovl.ahg5 =        (aLo);
-          ovl->dat.ovl.ahg3 = aLen - (aHi);  //+1?
-          ovl->dat.ovl.bhg5 = bLen - (bLo);  //+1?
-          ovl->dat.ovl.bhg3 =        (bHi);
-        }
-
-        ovl->erate(quality);
-
-        //  Good for UTG if we aren't computing partial overlaps, and the overlap came out dovetail
-
-        ovl->dat.ovl.forOBT = (WA->partialOverlaps == true);
-        ovl->dat.ovl.forDUP = (WA->partialOverlaps == true);
-        ovl->dat.ovl.forUTG = (WA->partialOverlaps == false) && (ovl->overlapIsDovetail() == true);
-
-        //  Stop searching the hits for a good overlap.
-
-        break;
-      }
-
-      if ((ovl->dat.ovl.forOBT == false) &&
-          (ovl->dat.ovl.forDUP == false) &&
-          (ovl->dat.ovl.forUTG == false))
-        nFailed++;
-      else
+      if (WA->align->processHits(ovl) == true)
         nPassed++;
+      else
+        nFailed++;
     }
   }
 
@@ -490,7 +177,10 @@ recomputeOverlaps(void *ptr) {
 
   delete [] bRev;
 
-  fprintf(stderr, "Thread %u finished -- %u failed %u passed.\n", WA->threadID, nFailed, nPassed);
+  //  Report.  The last batch has no work to do.
+
+  if (nFailed + nPassed > 0)
+    fprintf(stderr, "Thread %u finished -- %u failed %u passed.\n", WA->threadID, nFailed, nPassed);
 }
 
 
@@ -578,7 +268,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -o ovlStore     \n");
     fprintf(stderr, "  -o ovlFile      \n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -erate e        Overlaps are computed at 'e' fraction error\n");
+    fprintf(stderr, "  -erate e        Overlaps are computed at 'e' fraction error; must be larger than the original erate\n");
     fprintf(stderr, "  -partial        Overlaps are 'overlapInCore -G' partial overlaps\n");
     fprintf(stderr, "  -memory m       Use up to 'm' GB of memory\n");
     fprintf(stderr, "\n");
@@ -631,7 +321,7 @@ main(int argc, char **argv) {
     WA[tt].partialOverlaps  = partialOverlaps;
 
     WA[tt].gkpStore         = gkpStore;
-    WA[tt].editDist         = NULL;
+    WA[tt].align            = NULL;
     WA[tt].overlaps         = NULL;
   }
 
@@ -671,7 +361,6 @@ main(int argc, char **argv) {
 
   fprintf(stderr, "Loaded %u overlaps.\n", *overlapsLen);
 
-
   cache->loadReads(overlaps, *overlapsLen);
 
   //  Loop over all the overlaps.
@@ -679,7 +368,7 @@ main(int argc, char **argv) {
   while (overlapsALen + overlapsBLen > 0) {
 
     //  Launch next batch of threads
-    fprintf(stderr, "LAUNCH THREADS\n");
+    //fprintf(stderr, "LAUNCH THREADS\n");
 
     //  Globals, ugh.  These limit the threads to the range of overlaps we have loaded.  Each thread
     //  will pull out THREAD_SIZE overlaps at a time to compute, updating batchBgnID as it does so.
@@ -711,9 +400,8 @@ main(int argc, char **argv) {
 
     //  Write recomputed overlaps - if this is the first pass through the loop,
     //  then overlapsLen will be zero
-    fprintf(stderr, "WRITE OVERLAPS\n");
-
-#warning Should we output overlaps that failed to recompute?
+    //
+    //  Should we output overlaps that failed to recompute?
 
     if (ovlStore)
       for (uint64 oo=0; oo<*overlapsLen; oo++)
@@ -722,7 +410,6 @@ main(int argc, char **argv) {
       ovlFileOut->writeOverlaps(overlaps, *overlapsLen);
 
     //  Load more overlaps
-    fprintf(stderr, "LOAD OVERLAPS\n");
 
     if (ovlStore)
       *overlapsLen = ovlStore->readOverlaps(overlaps, overlapsMax, false);
@@ -731,13 +418,9 @@ main(int argc, char **argv) {
 
     fprintf(stderr, "Loaded %u overlaps.\n", *overlapsLen);
 
-    //  Load new reads
-    fprintf(stderr, "LOAD READS\n");
-
     cache->loadReads(overlaps, *overlapsLen);
 
     //  Wait for threads to finish
-    fprintf(stderr, "WAIT\n");
 
     for (uint32 tt=0; tt<numThreads; tt++) {
       int32 status = pthread_join(tID[tt], NULL);
