@@ -198,28 +198,7 @@ overlapAlign::findSeeds(bool dupIgnore) {
 
  findMersAgain:
 
-#if 1
   fastFindMersA(dupIgnore);
-#else
-  {
-    kMerBuilder *kb = new kMerBuilder(_merSize);
-    seqStream   *ss = new seqStream(_aStr, _aLen);
-    merStream   *ms = new merStream(kb, ss, true, true);
-
-    while (ms->nextMer() == true) {
-      uint64  kmer = ms->theFMer();
-
-      if (_aMap.find(kmer) != _aMap.end()) {
-        if (dupIgnore == true)
-          _aMap[kmer] = INT32_MAX;  //  Duplicate mer, now ignored!
-      } else {
-        _aMap[kmer] = (int32)ms->thePositionInSequence();
-      }
-    }
-
-    delete ms;
-  }
-#endif
 
   if (_aMap.size() == 0) {
     _aMap.clear();
@@ -240,47 +219,7 @@ overlapAlign::findSeeds(bool dupIgnore) {
 
   //  Find mers in B
 
-#if 1
   fastFindMersB(dupIgnore);
-#else
-  {
-    kMerBuilder *kb = new kMerBuilder(_merSize);
-    seqStream   *ss = new seqStream(_bStr, _bLen);
-    merStream   *ms = new merStream(kb, ss, true, true);
-
-    while (ms->nextMer() == true) {
-      uint64  kmer = ms->theFMer();
-
-      if (_aMap.find(kmer) == _aMap.end())
-        //  Doesn't exist in aSeq, don't care about it.
-        continue;
-
-      int32  apos = _aMap[kmer];
-      int32  bpos = (int32)ms->thePositionInSequence();
-
-      if (apos == INT32_MAX)
-        //  Exists too many times in aSeq, don't care about it.
-        continue;
-
-      if ((apos - bpos < _minDiag) ||
-          (apos - bpos > _maxDiag))
-        //  Too different.
-        continue;
-
-      if (_bMap.find(kmer) != _bMap.end()) {
-        if (dupIgnore == true)
-          _bMap[kmer] = INT32_MAX;  //  Duplicate mer, now ignored!
-      } else {
-        _bMap[kmer] = bpos;
-      }
-
-      //fprintf(stderr, "kmer "F_X64" merSize %d apos %d bpos %d -- %d -- min/max %d/%d\n",
-      //        kmer, _merSize, apos, bpos, apos - bpos, _minDiag, _maxDiag);
-    }
-
-    delete ms;
-  }
-#endif
 
   if (_bMap.size() == 0) {
     _aMap.clear();
@@ -416,7 +355,7 @@ overlapAlign::processHits(ovOverlap *result) {
       _bHi = _bLen - _bHi;  //  Done early just for the print below
     }
 
-#if 1
+#if 0
     fprintf(stdout, "hit %2u -- ORIG A %6u %5d-%5d %s B %6u %5d-%5d  %.4f -- REALIGN type %d A %5d-%5d (%5d)  B %5d-%5d (%5d)  errors %4d  erate %6.4f  llen %4d rlen %4d%s\n",
             hh,
             result->a_iid, result->a_bgn(), result->a_end(),
