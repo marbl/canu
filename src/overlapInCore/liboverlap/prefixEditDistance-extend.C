@@ -41,11 +41,11 @@ static const char *rcsid = "$Id$";
 Overlap_t
 prefixEditDistance::Extend_Alignment(Match_Node_t *Match,
                                      char         *S,     int32   S_Len,
-                                     char          *T,     int32   T_Len,
-                                     int32         &S_Lo,  int32   &S_Hi,
-                                     int32         &T_Lo,  int32   &T_Hi,
-                                     int32         &Errors,
-                                     bool           partialOverlaps) {
+                                     char         *T,     int32   T_Len,
+                                     int32        &S_Lo,  int32   &S_Hi,
+                                     int32        &T_Lo,  int32   &T_Hi,
+                                     int32        &Errors,
+                                     bool          partialOverlaps) {
   int32  Right_Errors = 0;
   int32  Left_Errors  = 0;
   int32  Leftover     = 0;
@@ -66,6 +66,9 @@ prefixEditDistance::Extend_Alignment(Match_Node_t *Match,
                        min(S_Right_Len, T_Right_Len));
 
   int32  Error_Limit = Error_Bound[Total_Olap];
+
+  //fprintf(stderr, "prefixEditDistance::Extend_Alignment()--  limit olap of %u bases to %u errors - %f%%\n",
+  //        Total_Olap, Error_Limit, 100.0 * Error_Limit / Total_Olap);
 
   Left_Delta_Len = 0;
   Right_Delta_Len = 0;
@@ -167,6 +170,8 @@ prefixEditDistance::Extend_Alignment(Match_Node_t *Match,
 
     for (int32 i=1; i<Right_Delta_Len; i++)
       Left_Delta[Left_Delta_Len++] = Right_Delta[i];
+
+    Right_Delta_Len = 0;  //  Copied into left_delta!
   }
 
 
