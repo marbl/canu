@@ -118,6 +118,17 @@ private:
 
   vector<exactMatch>  _rawhits;
   vector<exactMatch>  _hits;
+
+  //  Constants
+
+  uint64  acgtToBit[256];
+  uint64  acgtToVal[256];
+  uint64  merMask[33];
+
+  void    initializeConstants(void);
+
+  void    fastFindMersA(bool dupIgnore);
+  void    fastFindMersB(bool dupIgnore);
 };
 
 

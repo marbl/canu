@@ -50,6 +50,133 @@ overlapAlign::findMinMaxDiagonal(int32  minLength) {
 
 
 
+void
+overlapAlign::initializeConstants(void) {
+
+  if (merMask[32] == 0xffffffffffffffffllu)
+    return;
+
+  for (uint32 ii=0; ii<256; ii++) {
+    acgtToBit[ii] = 0x00;
+    acgtToVal[ii] = 0x03;
+  }
+
+  acgtToBit['a'] = acgtToBit['A'] = 0x00;  //  Bit encoding of ACGT
+  acgtToBit['c'] = acgtToBit['C'] = 0x01;
+  acgtToBit['g'] = acgtToBit['G'] = 0x02;
+  acgtToBit['t'] = acgtToBit['T'] = 0x03;
+
+  acgtToVal['a'] = acgtToVal['A'] = 0x00;  //  Word is valid if zero
+  acgtToVal['c'] = acgtToVal['C'] = 0x00;
+  acgtToVal['g'] = acgtToVal['G'] = 0x00;
+  acgtToVal['t'] = acgtToVal['T'] = 0x00;
+
+  merMask[0] = 0x0000000000000000llu;
+  merMask[1] = 0x0000000000000003llu;
+
+  for (uint32 ii=2; ii<33; ii++)
+    merMask[ii] = (merMask[ii-1] << 2) | 0x03;
+
+  assert(merMask[ 6] == 0x0000000000000fffllu);
+  assert(merMask[17] == 0x00000003ffffffffllu);
+  assert(merMask[26] == 0x000fffffffffffffllu);
+  assert(merMask[32] == 0xffffffffffffffffllu);
+}
+
+
+void
+overlapAlign::fastFindMersA(bool dupIgnore) {
+
+  uint64   mer = 0x0000000000000000llu;
+  uint64   val = 0xffffffffffffffffllu;
+
+  uint64   mask = merMask[_merSize];
+
+  //  Create mers.  Since 'val' was initialized as invalid until the first _merSize things
+  //  are pushed on, no special case is needed to load the mer.  It costs us two extra &'s
+  //  and the test for saving the valid mer while we initialize.
+
+  for (int32 seqpos=0; _aStr[seqpos] != 0; seqpos++) {
+    mer <<= 2;
+    val <<= 2;
+
+    mer |= acgtToBit[_aStr[seqpos]];
+    val |= acgtToVal[_aStr[seqpos]];
+
+    mer &= merMask[_merSize];
+    val &= merMask[_merSize];
+
+    if (val != 0x0000000000000000)
+      //  Not a valid mer.
+      continue;
+
+    //  +1 - consider a 1-mer.  The first time through we have a valid mer, but seqpos == 0.
+    //  To get an aMap position of zero (the true position) we need to add one.
+
+    if (_aMap.find(mer) != _aMap.end()) {
+      if (dupIgnore == true)
+        _aMap[mer] = INT32_MAX;  //  Duplicate mer, now ignored!
+    } else {
+      _aMap[mer] = seqpos + 1 - _merSize;
+    }
+  }
+}
+
+
+void
+overlapAlign::fastFindMersB(bool dupIgnore) {
+
+  uint64   mer = 0x0000000000000000llu;
+  uint64   val = 0xffffffffffffffffllu;
+
+  uint64   mask = merMask[_merSize];
+
+  //  Create mers.  Since 'val' was initialized as invalid until the first _merSize things
+  //  are pushed on, no special case is needed to load the mer.  It costs us two extra &'s
+  //  and the test for saving the valid mer while we initialize.
+
+  for (int32 seqpos=0; _bStr[seqpos] != 0; seqpos++) {
+    mer <<= 2;
+    val <<= 2;
+
+    mer |= acgtToBit[_bStr[seqpos]];
+    val |= acgtToVal[_bStr[seqpos]];
+
+    mer &= merMask[_merSize];
+    val &= merMask[_merSize];
+
+    if (val != 0x0000000000000000)
+      //  Not a valid mer.
+      continue;
+
+    if (_aMap.find(mer) == _aMap.end())
+      //  Not in the A sequence, don't care.
+      continue;
+
+    int32  apos = _aMap[mer];
+    int32  bpos = seqpos + 1 - _merSize;
+
+    if (apos == INT32_MAX)
+      //  Exists too many times in aSeq, don't care.
+      continue;
+
+    if ((apos - bpos < _minDiag) ||
+        (apos - bpos > _maxDiag))
+      //  Too different.
+      continue;
+
+    if (_bMap.find(mer) != _bMap.end()) {
+      if (dupIgnore == true)
+        _bMap[mer] = INT32_MAX;  //  Duplicate mer, now ignored!
+    } else {
+      _bMap[mer] = bpos;
+    }
+  }
+}
+
+
+
+
 
 //  Find seeds - hash the kmer and position from the first read, then lookup
 //  each kmer in the second read.  For unique hits, save the diagonal.  Then what?
@@ -65,10 +192,15 @@ overlapAlign::findSeeds(bool dupIgnore) {
 
   _merSize = _merSizeInitial;
 
+  initializeConstants();
+
   //  Find mers in A
 
  findMersAgain:
 
+#if 1
+  fastFindMersA(dupIgnore);
+#else
   {
     kMerBuilder *kb = new kMerBuilder(_merSize);
     seqStream   *ss = new seqStream(_aStr, _aLen);
@@ -87,6 +219,7 @@ overlapAlign::findSeeds(bool dupIgnore) {
 
     delete ms;
   }
+#endif
 
   if (_aMap.size() == 0) {
     _aMap.clear();
@@ -107,6 +240,9 @@ overlapAlign::findSeeds(bool dupIgnore) {
 
   //  Find mers in B
 
+#if 1
+  fastFindMersB(dupIgnore);
+#else
   {
     kMerBuilder *kb = new kMerBuilder(_merSize);
     seqStream   *ss = new seqStream(_bStr, _bLen);
@@ -144,6 +280,7 @@ overlapAlign::findSeeds(bool dupIgnore) {
 
     delete ms;
   }
+#endif
 
   if (_bMap.size() == 0) {
     _aMap.clear();
@@ -170,7 +307,6 @@ overlapAlign::findSeeds(bool dupIgnore) {
 
   return(true);
 }
-
 
 
 //  For unique mers in B, if the mer is also unique in A, add a hit.
@@ -280,8 +416,8 @@ overlapAlign::processHits(ovOverlap *result) {
       _bHi = _bLen - _bHi;  //  Done early just for the print below
     }
 
-#if 0
-    fprintf(stderr, "hit %2u -- ORIG A %6u %5d-%5d %s B %6u %5d-%5d  %.4f -- REALIGN type %d A %5d-%5d (%5d)  B %5d-%5d (%5d)  errors %4d  erate %6.4f  llen %4d rlen %4d%s\n",
+#if 1
+    fprintf(stdout, "hit %2u -- ORIG A %6u %5d-%5d %s B %6u %5d-%5d  %.4f -- REALIGN type %d A %5d-%5d (%5d)  B %5d-%5d (%5d)  errors %4d  erate %6.4f  llen %4d rlen %4d%s\n",
             hh,
             result->a_iid, result->a_bgn(), result->a_end(),
             result->flipped() ? "<-" : "->",
