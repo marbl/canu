@@ -74,7 +74,6 @@ sub utgcns ($$$) {
     print F "  -L $wrk/5-consensus/\$jobid.layout.WORKING \\\n";
     print F "  -F $wrk/5-consensus/\$jobid.fastq.WORKING \\\n";
     print F "  -maxcoverage " . getGlobal('cnsMaxCoverage') . " \\\n";
-    print F "> $wrk/5-consensus/\$jobid.cns.err 2>&1 \\\n";
     #print F "&& \\\n";
     #print F "\$bin/utgcnsfix \\\n";
     #print F "  -G $wrk/$asm.gkpStore \\\n";
