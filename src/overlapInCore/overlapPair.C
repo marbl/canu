@@ -3,25 +3,38 @@ const char *mainid = "$Id:  $";
 
 #include "AS_global.H"
 
+#include <pthread.h>
+
 #include "gkStore.H"
 #include "ovStore.H"
 
 #include "overlapAlign.H"
+#include "overlapPair-readCache.H"
 
 #include "AS_UTL_reverseComplement.H"
 
-#include "overlapPair-readCache.H"
+#include "timeAndSize.H" //  getTime();
+
+//  The process will load BATCH_SIZE overlaps into memory, then load all the reads referenced by
+//  those overlaps.  Once all data is loaded, compute threads are spawned.  Each thread will reserve
+//  THREAD_SIZE overlaps to compute.  A small THREAD_SIZE relative to BATCH_SIZE will result in
+//  better load balancing, but too small and the overhead of reserving overlaps will dominate (too
+//  small is on the order of 1).  While threads are computing, the next batch of overlaps and reads
+//  is loaded.
+//
+//  A large BATCH_SIZE will make startup cost large - no computes are started until the initial load
+//  is finished.  To alleivate this (a little bit), the initial load is only 1/8 of the full
+//  BATCH_SIZE.
+
+#define BATCH_SIZE   1024 * 1024
+#define THREAD_SIZE  128
 
 
-
-#define THREAD_SIZE  512
-#define BATCH_SIZE   512 * 256
-
-
-readCache        *cache         = NULL;
+readCache        *rcache        = NULL;  //  Used to be just 'cache', but that conflicted with -pg: /usr/lib/libc_p.a(msgcat.po):(.bss+0x0): multiple definition of `cache'
+uint32            batchPrtID    = 0;  //  When to report progress
+uint32            batchPosID    = 0;  //  The current position of the batch
+uint32            batchEndID    = 0;  //  The end of the batch
 pthread_mutex_t   balanceMutex;
-uint32            batchBgnID    = 0;
-uint32            batchEndID    = 0;
 
 
 
@@ -61,16 +74,21 @@ getRange(uint32 &bgnID, uint32 &endID) {
 
   pthread_mutex_lock(&balanceMutex);
 
-  bgnID       = batchBgnID;
-  batchBgnID += THREAD_SIZE;         //  Supposed to overflow.
-  endID       = batchBgnID;
+  bgnID       = batchPosID;
+  batchPosID += THREAD_SIZE;         //  Supposed to overflow.
+  endID       = batchPosID;
 
   if (endID > batchEndID)
     endID = batchEndID;
 
+  if (batchPosID >= batchPrtID) {
+    fprintf(stderr, "getRange()--  at %u out of %u -- %6.2f%%\n", batchPosID, batchEndID, 100.0 * batchPosID / batchEndID);
+    batchPrtID += batchEndID / 32;
+  }
+
   pthread_mutex_unlock(&balanceMutex);
 
-  //  If we're out of overlaps, batchBgnID is more than batchEndID (from the last call to this
+  //  If we're out of overlaps, batchPosID is more than batchEndID (from the last call to this
   //  function), which makes bgnID > endID (in this call).
 
   return(bgnID < endID);
@@ -93,24 +111,20 @@ recomputeOverlaps(void *ptr) {
   //  Lazy allocation of the prefixEditDistance structure; it's slow.
 
   if (WA->align == NULL)
-    WA->align = new overlapAlign(WA->partialOverlaps, WA->maxErate, 18);
+    WA->align = new overlapAlign(WA->partialOverlaps, WA->maxErate, 15);
 
   while (getRange(bgnID, endID)) {
-    //fprintf(stderr, "Thread %u computes range %u - %u\n", WA->threadID, bgnID, endID);
+    //fprintf(stderr, "Thread %2u computes overlaps %7u - %7u\n", WA->threadID, bgnID, endID);
+
+    double  startTime = getTime();
 
     for (uint32 oo=bgnID; oo<endID; oo++) {
       ovOverlap  *ovl = WA->overlaps + oo;
 
-#if 0
-#warning SKIPPING SOME
-      if ((ovl->a_iid != 1) || (ovl->b_iid != 34025))
-        continue;
-#endif
-
       //  Load A.
 
-      char   *aStr = cache->getRead  (ovl->a_iid);
-      uint32  aLen = cache->getLength(ovl->a_iid);
+      char   *aStr = rcache->getRead  (ovl->a_iid);
+      uint32  aLen = rcache->getLength(ovl->a_iid);
 
       int32   aLo = ovl->a_bgn();
       int32   aHi = ovl->a_end();
@@ -119,8 +133,8 @@ recomputeOverlaps(void *ptr) {
 
       //  Load B.
 
-      char   *bStr = cache->getRead  (ovl->b_iid);
-      uint32  bLen = cache->getLength(ovl->b_iid);
+      char   *bStr = rcache->getRead  (ovl->b_iid);
+      uint32  bLen = rcache->getLength(ovl->b_iid);
 
       int32   bLo = ovl->b_bgn();
       int32   bHi = ovl->b_end();
@@ -141,8 +155,6 @@ recomputeOverlaps(void *ptr) {
       assert(bLo < bHi);
 
       //  Compute the overlap
-
-      //fprintf(stderr, "START %d vs %d\n", ovl->a_iid, ovl->b_iid);
 
       WA->align->initialize(aStr, aLen, aLo, aHi,
                             bStr, bLen, bLo, bHi);
@@ -170,6 +182,12 @@ recomputeOverlaps(void *ptr) {
         nPassed++;
       else
         nFailed++;
+    }
+
+    if (0) {
+      double  deltaTime = getTime() - startTime;
+      fprintf(stderr, "Thread %2u computed overlaps %7u - %7u in %7.3f seconds - %6.2f olaps per second (%8u fail %8u pass)\n",
+              WA->threadID, bgnID, endID, deltaTime, (endID - bgnID) / deltaTime, nFailed, nPassed);
     }
   }
 
@@ -307,14 +325,13 @@ main(int argc, char **argv) {
   pthread_attr_t    attr;
 
   pthread_attr_init(&attr);
-  //pthread_attr_setstacksize(&attr,  THREAD_STACKSIZE);
+  pthread_attr_setstacksize(&attr,  12 * 131072);
   pthread_mutex_init(&balanceMutex, NULL);
 
   //  Initialize thread work areas.  Mirrored from overlapInCore.C
 
   for (uint32 tt=0; tt<numThreads; tt++) {
     fprintf(stderr, "Initialize thread %u\n", tt);
-
 
     WA[tt].threadID         = tt;
     WA[tt].maxErate         = maxErate;
@@ -348,20 +365,20 @@ main(int argc, char **argv) {
   //  Set the globals
 
   uint32      *overlapsLen  = &overlapsALen;
-  ovOverlap  *overlaps     =  overlapsA;
+  ovOverlap  *overlaps      =  overlapsA;
 
-  cache        =  new readCache(gkpStore, memLimit);
+  rcache = new readCache(gkpStore, memLimit);
 
   //  Load the first batch of overlaps and reads.
 
   if (ovlStore)
-    *overlapsLen = ovlStore->readOverlaps(overlaps, overlapsMax, false);
+    *overlapsLen = ovlStore->readOverlaps(overlaps, overlapsMax / 8, false);
   if (ovlFile)
-    *overlapsLen = ovlFile->readOverlaps(overlaps, overlapsMax);
+    *overlapsLen = ovlFile->readOverlaps(overlaps, overlapsMax / 8);
 
   fprintf(stderr, "Loaded %u overlaps.\n", *overlapsLen);
 
-  cache->loadReads(overlaps, *overlapsLen);
+  rcache->loadReads(overlaps, *overlapsLen);
 
   //  Loop over all the overlaps.
 
@@ -371,10 +388,11 @@ main(int argc, char **argv) {
     //fprintf(stderr, "LAUNCH THREADS\n");
 
     //  Globals, ugh.  These limit the threads to the range of overlaps we have loaded.  Each thread
-    //  will pull out THREAD_SIZE overlaps at a time to compute, updating batchBgnID as it does so.
-    //  Each thread will stop when batchBgnID > batchEndID.
+    //  will pull out THREAD_SIZE overlaps at a time to compute, updating batchPosID as it does so.
+    //  Each thread will stop when batchPosID > batchEndID.
 
-    batchBgnID =  0;
+    batchPrdID =  0;
+    batchPosID =  0;
     batchEndID = *overlapsLen;
 
     for (uint32 tt=0; tt<numThreads; tt++) {
@@ -418,12 +436,14 @@ main(int argc, char **argv) {
 
     fprintf(stderr, "Loaded %u overlaps.\n", *overlapsLen);
 
-    cache->loadReads(overlaps, *overlapsLen);
+    rcache->loadReads(overlaps, *overlapsLen);
 
     //  Wait for threads to finish
 
     for (uint32 tt=0; tt<numThreads; tt++) {
+      //fprintf(stderr, "wait for thread %u\n", tt);
       int32 status = pthread_join(tID[tt], NULL);
+      //fprintf(stderr, "joined thread %u\n", tt);
 
       if (status != 0)
         fprintf(stderr, "pthread_join error: %s\n", strerror(status)), exit(1);
@@ -431,12 +451,12 @@ main(int argc, char **argv) {
 
     //  Expire old reads
 
-    cache->purgeReads();
+    rcache->purgeReads();
   }
 
   //  Goodbye.
 
-  delete    cache;
+  delete    rcache;
 
   delete    gkpStore;
 

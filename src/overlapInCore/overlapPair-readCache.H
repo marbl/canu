@@ -3,6 +3,12 @@
 #include "AS_global.H"
 #include "gkStore.H"
 
+#include <set>
+#include <vector>
+#include <algorithm>
+
+using namespace std;
+
 
 class readCache {
 public:
@@ -59,22 +65,27 @@ public:
     uint32  nUpdated = 0;
     uint64  memUsed  = 0;
 
-    //fprintf(stderr, "loadReads()--  begins\n");
+    fprintf(stderr, "loadReads()--  begins\n");
+
+    set<uint32>     readsToLoadS;
+    vector<uint32>  readsToLoadV;
 
     for (uint32 oo=0; oo<nOvl; oo++) {
       uint32  aid = ovl[oo].a_iid;
       uint32  bid = ovl[oo].b_iid;
 
-      if (readLen[aid] == 0) {
+      if ((readLen[aid] == 0) && (readsToLoadS.count(aid) == 0)) {
         nLoaded++;
-        loadRead(aid);
+        readsToLoadS.insert(aid);
+        //loadRead(aid);
       } else {
         nUpdated++;
       }
 
-      if (readLen[bid] == 0) {
+      if ((readLen[bid] == 0) && (readsToLoadS.count(bid) == 0)) {
         nLoaded++;
-        loadRead(bid);
+        readsToLoadS.insert(bid);
+        //loadRead(bid);
       } else {
         nUpdated++;
       }
@@ -82,6 +93,20 @@ public:
       readAge[aid] = 0;
       readAge[bid] = 0;
     }
+
+    fprintf(stderr, "loadReads()--  Need to load %u reads (nLoaded = %u).\n", readsToLoadS.size(), nLoaded);
+
+    uint32  nn = 0;
+    uint32  nc = readsToLoadS.size() / 25;
+
+    for (set<uint32>::iterator it=readsToLoadS.begin(); it != readsToLoadS.end(); ++it) {
+      if ((++nn % nc) == 0)
+        fprintf(stderr, "loadReads()-- %6.2f%% finished.\n", 100.0 * nn / readsToLoadS.size());
+
+      loadRead(*it);
+    }
+
+    fprintf(stderr, "loadReads()-- %6.2f%% finished.\n", 100.0);
 
     //  Age all the reads (also count the space used)
 
@@ -100,6 +125,8 @@ public:
     uint32  maxAge     = 0;
     uint64  memoryUsed = 0;
 
+    //fprintf(stderr, "purgeReads()--  begins\n");
+
     //  Find maxAge, and sum memory used
 
     for (uint32 rr=0; rr<=nReads; rr++) {
@@ -111,7 +138,10 @@ public:
 
     //  Purge oldest until memory is below watermark
 
+
     while (memoryLimit < memoryUsed) {
+      fprintf(stderr, "purgeReads()--  used %uMB limit %uMB\n", memoryUsed >> 20, memoryLimit >> 20);
+
       for (uint32 rr=0; rr<=nReads; rr++) {
         if (maxAge == readAge[rr]) {
           memoryUsed -= readLen[rr];
