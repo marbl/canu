@@ -62,6 +62,8 @@ SOURCES  := AS_global.C \
             alignment/local-overlapper.C \
             alignment/overlap.C \
             \
+            overlapErrorAdjustment/analyzeAlignment.C \
+            \
             overlapInCore/liboverlap/Binomial_Bound.C \
             overlapInCore/liboverlap/prefixEditDistance.C \
             overlapInCore/liboverlap/prefixEditDistance-allocateMoreSpace.C \
