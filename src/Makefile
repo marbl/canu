@@ -423,6 +423,14 @@ ifeq (${OSTYPE}, FreeBSD)
   CXXFLAGS  += -fopenmp
   LDFLAGS   += -fopenmp -rpath /usr/local/lib/gcc48
 
+  #  Google Performance Tools malloc and heapchecker (HEAPCHECK=normal)
+  #CXXFLAGS  += 
+  #LDFLAGS   += -ltcmalloc
+
+  #  Google Performance Tools cpu profiler (CPUPROFILE=/path)
+  #CXXFLAGS  += 
+  #LDFLAGS   += -lprofiler
+
   ifeq ($(BUILDPROFILE), 1)
     CXXFLAGS  += 
     LDFLAGS   += -pg
@@ -438,9 +446,9 @@ ifeq (${OSTYPE}, FreeBSD)
     CXXFLAGS  += -g
   else
     ifeq ($(BUILDPROFILE), 1)
-      CXXFLAGS   += -O4 -funroll-loops -fexpensive-optimizations -finline-functions
+      CXXFLAGS   += -g3 -O4 -funroll-loops -fexpensive-optimizations -finline-functions -fno-omit-frame-pointer
     else
-      CXXFLAGS   += -O4 -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+      CXXFLAGS   +=     -O4 -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
     endif
   endif
 endif
