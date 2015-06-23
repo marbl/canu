@@ -44,6 +44,8 @@ overlapAlign::findMinMaxDiagonal(int32  minLength) {
     fprintf(stderr, "ERROR: _minDiag=%d >= _maxDiag=%d\n", _minDiag, _maxDiag);
   assert(_minDiag <= _maxDiag);
 
+  //fprintf(stderr, "findMinMaxDiagonal()--  min %d max %d -- span %d -- alignLen %d\n", _minDiag, _maxDiag, _maxDiag-_minDiag, alignLen);
+
   return(true);
 }
 
@@ -92,11 +94,22 @@ overlapAlign::fastFindMersA(bool dupIgnore) {
 
   uint64   mask = merMask[_merSize];
 
+  //  Restict the mers we seed with the those in the overlap (plus a little wiggle room).  If this
+  //  isn't done, overlaps in repeats are sometimes lost.  In the A read, mers will drop out (e.g.,
+  //  if a repeat at both the 5' and 3' end, and we have an overlap on one end only).  In the B
+  //  read, the mers can now be on the wrong diagonal.
+
+  int32  bgn = _aLo - _merSize - _merSize;
+  int32  end = _aHi + _merSize;
+
+  if (bgn < 0)
+    bgn = 0;
+
   //  Create mers.  Since 'val' was initialized as invalid until the first _merSize things
   //  are pushed on, no special case is needed to load the mer.  It costs us two extra &'s
   //  and the test for saving the valid mer while we initialize.
 
-  for (int32 seqpos=0; _aStr[seqpos] != 0; seqpos++) {
+  for (int32 seqpos=bgn; (seqpos < end) && (_aStr[seqpos] != 0); seqpos++) {
     mer <<= 2;
     val <<= 2;
 
@@ -120,6 +133,8 @@ overlapAlign::fastFindMersA(bool dupIgnore) {
       _aMap[mer] = seqpos + 1 - _merSize;
     }
   }
+
+  //fprintf(stderr, "Found %u hits in A at mersize %u dupIgnore %u t %u %u\n", _aMap.size(), _merSize, dupIgnore, t[0], t[1]);
 }
 
 
@@ -131,11 +146,21 @@ overlapAlign::fastFindMersB(bool dupIgnore) {
 
   uint64   mask = merMask[_merSize];
 
+  //  Like the A read, we limit to mers in the overlap region.
+
+  assert(_bLo < _bHi);
+
+  int32  bgn = _bLo - _merSize - _merSize;
+  int32  end = _bHi + _merSize;
+
+  if (bgn < 0)
+    bgn = 0;
+
   //  Create mers.  Since 'val' was initialized as invalid until the first _merSize things
   //  are pushed on, no special case is needed to load the mer.  It costs us two extra &'s
   //  and the test for saving the valid mer while we initialize.
 
-  for (int32 seqpos=0; _bStr[seqpos] != 0; seqpos++) {
+  for (int32 seqpos=bgn; (seqpos < end) && (_bStr[seqpos] != 0); seqpos++) {
     mer <<= 2;
     val <<= 2;
 
@@ -172,6 +197,8 @@ overlapAlign::fastFindMersB(bool dupIgnore) {
       _bMap[mer] = bpos;
     }
   }
+
+  //fprintf(stderr, "Found %u hits in B at mersize %u dupIgnore %u t %u %u %u %u %u\n", _bMap.size(), _merSize, dupIgnore, t[0], t[1], t[2], t[3], t[4]);
 }
 
 
@@ -204,11 +231,9 @@ overlapAlign::findSeeds(bool dupIgnore) {
     _aMap.clear();
     _bMap.clear();
 
-    //fprintf(stderr, "A Drop merSize from %d to %d\n", _merSize, _merSize-1);
     _merSize--;
 
     if ((_merSize < 8) && (dupIgnore == true)) {
-      //fprintf(stderr, "A Reset merSize from %d to %d, dupIgnore = false\n", _merSize, _merSizeInitial + 2);
       _merSize   = _merSizeInitial + 2;
       dupIgnore =  false;
     }
@@ -225,12 +250,9 @@ overlapAlign::findSeeds(bool dupIgnore) {
     _aMap.clear();
     _bMap.clear();
 
-    //fprintf(stderr, "B Drop merSize from %d to %d\n", _merSize, _merSize-1);
-
     _merSize--;
 
     if ((_merSize < 8) && (dupIgnore == true)) {
-      //fprintf(stderr, "B Reset merSize from %d to %d, dupIgnore = false\n", _merSize, _merSizeInitial + 2);
       _merSize   = _merSizeInitial + 2;
       dupIgnore =  false;
     }
@@ -286,23 +308,53 @@ overlapAlign::chainHits(void) {
 
 #if 0
   for (uint32 rr=0; rr<_rawhits.size(); rr++)
-    fprintf(stderr, "HIT: %d - %d diag %d\n", _rawhits[rr].aBgn, _rawhits[rr].bBgn, _rawhits[rr].aBgn - _rawhits[rr].bBgn);
+    if (_rawhits[rr].aBgn - _rawhits[rr].bBgn == 2289)
+      fprintf(stderr, "HIT: %d - %d diag %d\n", _rawhits[rr].aBgn, _rawhits[rr].bBgn, _rawhits[rr].aBgn - _rawhits[rr].bBgn);
 #endif
 
-  //  Chain the _hits.
+  //  Chain the _hits.  This chains hits that are on the same diagonal and contiguous.
 
   _hits.push_back(_rawhits[0]);
 
   for (uint32 rr=1; rr<_rawhits.size(); rr++) {
-    uint32  hh = _hits.size() - 1;
+    uint32  hh    = _hits.size() - 1;
+    bool    merge = false;
 
-    int32   da = _rawhits[rr].aBgn - _hits[hh].aBgn;
-    int32   db = _rawhits[rr].bBgn - _hits[hh].bBgn;
+    assert(_rawhits[rr-1].aBgn < _rawhits[rr].aBgn);
 
-    if ((da > 0) && (da < 2 * _merSize) && (da == db))
-      _hits[hh].tLen += da;
-    else
+#if 0
+    //  Allows non-overlapping (mismatch only) hits - but breaks seeding of alignment
+    //           --------- end of next hit -----------   ----- end of existing hit -----
+    int32   da = _rawhits[rr].aBgn + _rawhits[rr].tLen - _hits[hh].aBgn - _hits[hh].tLen;
+    int32   db = _rawhits[rr].bBgn + _rawhits[rr].tLen - _hits[hh].bBgn - _hits[hh].tLen;
+
+    assert(da > 0);
+
+    if (da == db)
+      merge = true;
+#endif
+
+#if 1
+    //  Requires overlapping hits - full block of identity
+    //           - start of next -   ------- end of existing -------
+    int32   da = _rawhits[rr].aBgn - _hits[hh].aBgn - _hits[hh].tLen;
+    int32   db = _rawhits[rr].bBgn - _hits[hh].bBgn - _hits[hh].tLen;
+
+    if ((da < 0) && (da == db))
+      merge = true;
+#endif
+
+    if (merge) {
+#if 0
+      fprintf(stderr, "MERGE HIT: %d - %d diag %d  da=%d db=%d\n", _rawhits[rr].aBgn, _rawhits[rr].bBgn, _rawhits[rr].aBgn - _rawhits[rr].bBgn, da, db);
+#endif
+      _hits[hh].tLen = _rawhits[rr].aBgn + _rawhits[rr].tLen - _hits[hh].aBgn;
+    } else {
+#if 0
+      fprintf(stderr, "NEW   HIT: %d - %d diag %d  da=%d db=%d\n", _rawhits[rr].aBgn, _rawhits[rr].bBgn, _rawhits[rr].aBgn - _rawhits[rr].bBgn, da, db);
+#endif
       _hits.push_back(_rawhits[rr]);
+    }
   }
 
   //  Sort by longest
@@ -313,9 +365,9 @@ overlapAlign::chainHits(void) {
   for (uint32 hh=0; hh<_hits.size(); hh++) {
     fprintf(stderr, "hit %02u %5d-%5d diag %d len %3u\n",
             hh,
-            hits[hh].aBgn, hits[hh].bBgn,
-            hits[hh].aBgn - hits[hh].bBgn,
-            hits[hh].tLen);
+            _hits[hh].aBgn, _hits[hh].bBgn,
+            _hits[hh].aBgn - _hits[hh].bBgn,
+            _hits[hh].tLen);
   }
 #endif
 }
@@ -332,7 +384,7 @@ overlapAlign::processHits(ovOverlap *result) {
 
     match.Start  = _hits[hh].aBgn;    //  Begin position in a
     match.Offset = _hits[hh].bBgn;    //  Begin position in b
-    match.Len    = _merSize;          //  tLen can include mismatches
+    match.Len    = _hits[hh].tLen;    //  tLen can include mismatches if alternate scoring is used!
     match.Next   = 0;                 //  Not used here
 
     int32      errors  = 0;
@@ -344,75 +396,64 @@ overlapAlign::processHits(ovOverlap *result) {
                                                      errors,
                                                      _partialOverlaps);
 
-    int32  olapLen = 1 + min(_aHi - _aLo, _bHi - _bLo);
-    double quality = (double)errors / olapLen;
+    _aHi++;  //  Add one to the end point because Extend_Alignment returns the base-based coordinate.
+    _bHi++;
 
-    if (olapLen < 40)
+    _olapLen  = min(_aHi - _aLo, _bHi - _bLo);
+    _olapQual = (double)errors / _olapLen;
+
+    if (_olapLen < 40)
       ovltype = NONE;
 
-    if (result->dat.ovl.flipped == true) {
+    if (_bFlipped == true) {
       _bLo = _bLen - _bLo;  //  Now correct for the original forward sequence
       _bHi = _bLen - _bHi;  //  Done early just for the print below
     }
 
 #if 0
-    fprintf(stdout, "hit %2u -- ORIG A %6u %5d-%5d %s B %6u %5d-%5d  %.4f -- REALIGN type %d A %5d-%5d (%5d)  B %5d-%5d (%5d)  errors %4d  erate %6.4f  llen %4d rlen %4d%s\n",
-            hh,
-            result->a_iid, result->a_bgn(), result->a_end(),
-            result->flipped() ? "<-" : "->",
-            result->b_iid, result->b_bgn(), result->b_end(),
-            result->erate(),
+    fprintf(stdout, "hit %2u a %5d b %5d -- ORIG A %6u %5d-%5d %s B %6u %5d-%5d  %.4f -- REALIGN type %d A %5d-%5d (%5d)  B %5d-%5d (%5d)  errors %4d  erate %6.4f = %6u / %6u deltas %d %d %d %d %d%s\n",
+            hh, _hits[hh].aBgn, _hits[hh].bBgn,
+            _aID, _aLoOrig, _aHiOrig,
+            _bFlipped ? "<-" : "->",
+            _bID, _bLoOrig, _bHiOrig,
+            erate(),
             ovltype,
-            _aLo, _aHi+1, _aLen,
-            _bLo, _bHi+1, _bLen,
+            _aLo, _aHi, _aLen,
+            _bLo, _bHi, _bLen,
             errors,
-            quality,
-            _editDist->Left_Delta_Len,
-            _editDist->Right_Delta_Len,
+            _olapQual, errors, _olapLen,
+            _editDist->Left_Delta[0],
+            _editDist->Left_Delta[1],
+            _editDist->Left_Delta[2],
+            _editDist->Left_Delta[3],
+            _editDist->Left_Delta[4],
             ((ovltype != DOVETAIL) && (_partialOverlaps == false)) ? "  FAILED" : "");
 #endif
 
-    //  Not a good overlap, keep searching for one.  If partial overlaps, ovltype isn't set, and we
-    //  need to do something else to reject.
+    //  If not a good overlap, keep searching for one.  If partial overlaps, ovltype isn't set, and
+    //  we need to do something else to reject.
+
     if ((ovltype != DOVETAIL) && (_partialOverlaps == false))
       continue;
 
-    //  Got a good overlap.  Save it, and get out of this loop.  The -1's are beacuse
-    //  Extend_Alignment returns the base of the last aligned position.
+    //  A good overlap.  Stop searching and return what we found.
 
-    if (result->dat.ovl.flipped == false) {
-      result->dat.ovl.ahg5 =         (_aLo);
-      result->dat.ovl.ahg3 = _aLen - (_aHi) - 1;
-      result->dat.ovl.bhg5 =         (_bLo);
-      result->dat.ovl.bhg3 = _bLen - (_bHi) - 1;
+    assert(_editDist->Right_Delta_Len == 0);
 
-    } else {
-      result->dat.ovl.ahg5 =         (_aLo);
-      result->dat.ovl.ahg3 = _aLen - (_aHi) - 1;
-      result->dat.ovl.bhg5 = _bLen - (_bLo) - 1;
-      result->dat.ovl.bhg3 =         (_bHi);
+    _deltaLen = _editDist->Left_Delta_Len;
+
+    if (_deltaMax < _deltaLen) {
+      delete [] _delta;
+      _deltaMax = _deltaLen + 4096;
+      _delta    = new int32 [_deltaMax];
     }
 
-    result->erate(quality);
-
-    //  Good for UTG if we aren't computing partial overlaps, and the overlap came out dovetail
-
-    result->dat.ovl.forOBT = (_partialOverlaps == true);
-    result->dat.ovl.forDUP = (_partialOverlaps == true);
-    result->dat.ovl.forUTG = (_partialOverlaps == false) && (result->overlapIsDovetail() == true);
-
-    //  Stop searching the hits for a good overlap.
+    memcpy(_delta, _editDist->Left_Delta, sizeof(int32) * _deltaLen);
 
     return(true);
   }
 
-  //  We fail.  No overlap found.
-
-  result->dat.ovl.forOBT = false;
-  result->dat.ovl.forDUP = false;
-  result->dat.ovl.forUTG = false;
-  result->evalue(AS_MAX_EVALUE);
-
+  //  We ran out of seeds to align.  No overlap found.
   return(false);
 }
 

@@ -9,7 +9,7 @@ const char *mainid = "$Id:  $";
 #include "ovStore.H"
 
 #include "overlapAlign.H"
-#include "overlapPair-readCache.H"
+#include "overlapReadCache.H"
 
 #include "AS_UTL_reverseComplement.H"
 
@@ -30,11 +30,11 @@ const char *mainid = "$Id:  $";
 #define THREAD_SIZE  128
 
 
-readCache        *rcache        = NULL;  //  Used to be just 'cache', but that conflicted with -pg: /usr/lib/libc_p.a(msgcat.po):(.bss+0x0): multiple definition of `cache'
-uint32            batchPrtID    = 0;  //  When to report progress
-uint32            batchPosID    = 0;  //  The current position of the batch
-uint32            batchEndID    = 0;  //  The end of the batch
-pthread_mutex_t   balanceMutex;
+overlapReadCache  *rcache        = NULL;  //  Used to be just 'cache', but that conflicted with -pg: /usr/lib/libc_p.a(msgcat.po):(.bss+0x0): multiple definition of `cache'
+uint32             batchPrtID    = 0;  //  When to report progress
+uint32             batchPosID    = 0;  //  The current position of the batch
+uint32             batchEndID    = 0;  //  The end of the batch
+pthread_mutex_t    balanceMutex;
 
 
 
@@ -47,11 +47,13 @@ public:
     partialOverlaps = false;
     gkpStore        = NULL;
     align           = NULL;
+    //analyze         = NULL;
     overlapsLen     = 0;
     overlaps        = NULL;
   };
   ~workSpace() {
     delete align;
+    //delete analyze;
   };
 
 public:
@@ -60,10 +62,12 @@ public:
   bool                   partialOverlaps;
 
   gkStore               *gkpStore;
+
   overlapAlign           *align;
+  //analyzeAlignment       *analyze;
 
   uint32                 overlapsLen;       //  Not used.
-  ovOverlap            *overlaps;
+  ovOverlap             *overlaps;
 };
 
 
@@ -81,10 +85,12 @@ getRange(uint32 &bgnID, uint32 &endID) {
   if (endID > batchEndID)
     endID = batchEndID;
 
+#if 0
   if (batchPosID >= batchPrtID) {
     fprintf(stderr, "getRange()--  at %u out of %u -- %6.2f%%\n", batchPosID, batchEndID, 100.0 * batchPosID / batchEndID);
     batchPrtID += batchEndID / 32;
   }
+#endif
 
   pthread_mutex_unlock(&balanceMutex);
 
@@ -113,6 +119,9 @@ recomputeOverlaps(void *ptr) {
   if (WA->align == NULL)
     WA->align = new overlapAlign(WA->partialOverlaps, WA->maxErate, 15);
 
+  //if (WA->analyze == NULL)
+  //  WA->analyze = new analyzeAlignment();
+
   while (getRange(bgnID, endID)) {
     //fprintf(stderr, "Thread %2u computes overlaps %7u - %7u\n", WA->threadID, bgnID, endID);
 
@@ -121,10 +130,22 @@ recomputeOverlaps(void *ptr) {
     for (uint32 oo=bgnID; oo<endID; oo++) {
       ovOverlap  *ovl = WA->overlaps + oo;
 
+      //  This closely follows readConsensus
+
+#if 0
+      if (ovl->b_iid != 64)
+        continue;
+#endif
+
+      //  Invalidate the overlap.
+
+      ovl->evalue(AS_MAX_EVALUE);
+
       //  Load A.
 
-      char   *aStr = rcache->getRead  (ovl->a_iid);
-      uint32  aLen = rcache->getLength(ovl->a_iid);
+      uint32  aID  = ovl->a_iid;
+      char   *aStr = rcache->getRead  (aID);
+      uint32  aLen = rcache->getLength(aID);
 
       int32   aLo = ovl->a_bgn();
       int32   aHi = ovl->a_end();
@@ -133,44 +154,30 @@ recomputeOverlaps(void *ptr) {
 
       //  Load B.
 
-      char   *bStr = rcache->getRead  (ovl->b_iid);
-      uint32  bLen = rcache->getLength(ovl->b_iid);
+      uint32  bID  = ovl->b_iid;
+      char   *bStr = rcache->getRead  (bID);
+      uint32  bLen = rcache->getLength(bID);
 
       int32   bLo = ovl->b_bgn();
       int32   bHi = ovl->b_end();
 
-      //  Make B the correct orientation, and adjust coordinates.
-
-      if (ovl->flipped() == true) {
-        memcpy(bRev, bStr, sizeof(char) * (bLen + 1));
-
-        reverseComplementSequence(bRev, bLen);
-
-        bStr = bRev;
-
-        bLo = bLen - ovl->b_bgn();  //  Now correct for the reverse complemented sequence
-        bHi = bLen - ovl->b_end();
-      }
-
-      assert(bLo < bHi);
-
       //  Compute the overlap
 
-      WA->align->initialize(aStr, aLen, aLo, aHi,
-                            bStr, bLen, bLo, bHi);
+      WA->align->initialize(aID, aStr, aLen, aLo, aHi,
+                            bID, bStr, bLen, bLo, bHi, ovl->flipped());
 
       if (WA->align->findMinMaxDiagonal(40) == false) {
         fprintf(stderr, "A %6u %5d-%5d ->   B %6u %5d-%5d %s ALIGN LENGTH TOO SHORT.\n",
-                ovl->a_iid, ovl->a_bgn(), ovl->a_end(),
-                ovl->b_iid, ovl->b_bgn(), ovl->b_end(),
+                aID, ovl->a_bgn(), ovl->a_end(),
+                bID, ovl->b_bgn(), ovl->b_end(),
                 ovl->flipped() ? "<-" : "->");
         continue;
       }
 
-      if (WA->align->findSeeds(false) == false) {
+      if (WA->align->findSeeds(true) == false) {
         fprintf(stderr, "A %6u %5d-%5d ->   B %6u %5d-%5d %s NO SEEDS.\n",
-                ovl->a_iid, ovl->a_bgn(), ovl->a_end(),
-                ovl->b_iid, ovl->b_bgn(), ovl->b_end(),
+                aID, ovl->a_bgn(), ovl->a_end(),
+                bID, ovl->b_bgn(), ovl->b_end(),
                 ovl->flipped() ? "<-" : "->");
         continue;
       }
@@ -178,10 +185,28 @@ recomputeOverlaps(void *ptr) {
       WA->align->findHits();
       WA->align->chainHits();
 
-      if (WA->align->processHits(ovl) == true)
+      if (WA->align->processHits(ovl) == true) {
         nPassed++;
-      else
+
+        ovl->dat.ovl.ahg5 = WA->align->ahg5();
+        ovl->dat.ovl.ahg3 = WA->align->ahg3();
+        ovl->dat.ovl.bhg5 = WA->align->bhg5();
+        ovl->dat.ovl.bhg3 = WA->align->bhg3();
+
+        ovl->erate(WA->align->erate());
+
+        ovl->dat.ovl.forOBT = (WA->partialOverlaps == true);
+        ovl->dat.ovl.forDUP = (WA->partialOverlaps == true);
+        ovl->dat.ovl.forUTG = (WA->partialOverlaps == false) && (ovl->overlapIsDovetail() == true);
+      } else {
         nFailed++;
+
+        ovl->evalue(AS_MAX_EVALUE);
+
+        ovl->dat.ovl.forOBT = false;
+        ovl->dat.ovl.forDUP = false;
+        ovl->dat.ovl.forUTG = false;
+      }
     }
 
     if (0) {
@@ -205,9 +230,6 @@ recomputeOverlaps(void *ptr) {
 
 
 
-
-
-#define MAX_LEN 40960
 
 int
 main(int argc, char **argv) {
@@ -367,7 +389,7 @@ main(int argc, char **argv) {
   uint32      *overlapsLen  = &overlapsALen;
   ovOverlap  *overlaps      =  overlapsA;
 
-  rcache = new readCache(gkpStore, memLimit);
+  rcache = new overlapReadCache(gkpStore, memLimit);
 
   //  Load the first batch of overlaps and reads.
 
@@ -391,7 +413,7 @@ main(int argc, char **argv) {
     //  will pull out THREAD_SIZE overlaps at a time to compute, updating batchPosID as it does so.
     //  Each thread will stop when batchPosID > batchEndID.
 
-    batchPrdID =  0;
+    batchPrtID =  0;
     batchPosID =  0;
     batchEndID = *overlapsLen;
 

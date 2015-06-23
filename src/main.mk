@@ -62,7 +62,12 @@ SOURCES  := AS_global.C \
             alignment/local-overlapper.C \
             alignment/overlap.C \
             \
+            overlapInCore/overlapReadCache.C \
+            \
+            \
             overlapErrorAdjustment/analyzeAlignment.C \
+            \
+            overlapInCore/overlapAlign.C \
             \
             overlapInCore/liboverlap/Binomial_Bound.C \
             overlapInCore/liboverlap/prefixEditDistance.C \
@@ -179,6 +184,7 @@ SUBMAKEFILES := stores/gatekeeperCreate.mk \
                 \
                 correction/filterCorrectionOverlaps.mk \
                 correction/generateCorrectionLayouts.mk \
+                correction/readConsensus.mk \
                 \
                 falcon_sense/createFalconSenseInputs.mk \
                 \

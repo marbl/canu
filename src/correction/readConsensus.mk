@@ -7,13 +7,13 @@ ifeq "$(strip ${TARGET_DIR})" ""
   TARGET_DIR   := ../$(OSTYPE)-$(MACHINETYPE)/bin
 endif
 
-TARGET   := overlapPair
-SOURCES  := overlapPair.C
+TARGET   := readConsensus
+SOURCES  := readConsensus.C
 
-SRC_INCDIRS  := .. ../AS_UTL ../stores ../meryl/libleaff liboverlap
+SRC_INCDIRS  := .. ../AS_UTL ../stores ../overlapInCore ../overlapInCore/liboverlap ../overlapErrorAdjustment
 
 TGT_LDFLAGS := -L${TARGET_DIR}
-TGT_LDLIBS  := -lleaff -lCA
-TGT_PREREQS := libleaff.a libCA.a
+TGT_LDLIBS  := -lCA
+TGT_PREREQS := libCA.a
 
 SUBMAKEFILES :=

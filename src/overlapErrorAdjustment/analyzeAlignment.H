@@ -45,6 +45,7 @@ struct Adjust_t {
 
 
 class analyzeAlignment {
+public:
   analyzeAlignment() {
     Degree_Threshold   = 2;       //  ??
     Use_Haplo_Ct       = true;    //  Use haplotype counts to correct

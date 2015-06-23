@@ -3,6 +3,27 @@
 
 
 
+//  Return the substitution vote corresponding to  Ch .
+static
+Vote_Value_t
+Matching_Vote(char ch) {
+
+  switch  (ch) {
+    case 'a':  return(A_SUBST);  break;
+    case 'c':  return(C_SUBST);  break;
+    case 'g':  return(G_SUBST);  break;
+    case 't':  return(T_SUBST);  break;
+  }
+
+  fprintf(stderr, "Matching_Vote()-- invalid letter '%c'\n", ch);
+
+  return(NO_VOTE);
+}
+
+
+
+
+
 void
 analyzeAlignment::analyze(char  *aSeq, int32 aLen,  int32 aOffset,
                           char  *bSeq, int32 bLen,
