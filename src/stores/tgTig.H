@@ -43,6 +43,9 @@ public:
   int32                min(void) const       { return(_min); };
   int32                max(void) const       { return(_max); };
 
+  int32                askip(void) const       { return(_askip); };
+  int32                bskip(void) const       { return(_bskip); };
+
   //uint32               min(void) const       { return((_bgn < _end) ? _bgn : _end); };
   //uint32               max(void) const       { return((_bgn < _end) ? _end : _bgn); };
 
