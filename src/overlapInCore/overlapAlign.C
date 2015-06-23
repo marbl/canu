@@ -375,7 +375,7 @@ overlapAlign::chainHits(void) {
 
 
 bool
-overlapAlign::processHits(ovOverlap *result) {
+overlapAlign::processHits(void) {
 
   //  Recompute.
 

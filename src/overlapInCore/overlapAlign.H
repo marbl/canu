@@ -93,7 +93,7 @@ public:
   bool  findSeeds(bool dupIgnore);
   void  findHits(void);
   void  chainHits(void);
-  bool  processHits(ovOverlap *result);
+  bool  processHits(void);
 
   //  Result reporting
 

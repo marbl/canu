@@ -185,7 +185,7 @@ recomputeOverlaps(void *ptr) {
       WA->align->findHits();
       WA->align->chainHits();
 
-      if (WA->align->processHits(ovl) == true) {
+      if (WA->align->processHits() == true) {
         nPassed++;
 
         ovl->dat.ovl.ahg5 = WA->align->ahg5();
