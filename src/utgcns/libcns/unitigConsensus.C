@@ -720,7 +720,24 @@ unitigConsensus::alignFragment(void) {
     double       thresh      = 1e-3;
     int32        minlen      = minOverlap;
 
+#if 0
     if (O == NULL) {
+      O = Local_Overlap_AS_forCNS(aseq,
+                                  bseq,
+                                  0, alen,            //  ahang bounds are unused here
+                                  0, 0,               //  ahang, bhang exclusion
+                                  0,
+                                  errorRate + 0.02, thresh, minlen,
+                                  AS_FIND_ALIGN);
+      //if (O)
+      //  fprintf(stderr, "Local_Overlap_AS_forCNS() succeeded.\n");
+      if ((O) && (showAlignments()))
+        PrintALNoverlap("Optimal_Overlap", aseq, bseq, O);
+    }
+#endif    
+
+    if (O == NULL) {
+      //fprintf(stderr, "Local_Overlap_AS_forCNS() failed.\n");
       O = Optimal_Overlap_AS_forCNS(aseq,
                                     bseq,
                                     0, alen,            //  ahang bounds are unused here
@@ -728,9 +745,8 @@ unitigConsensus::alignFragment(void) {
                                     0,
                                     errorRate + 0.02, thresh, minlen,
                                     AS_FIND_ALIGN);
-      if ((O) && (showAlignments())) {
+      if ((O) && (showAlignments()))
         PrintALNoverlap("Optimal_Overlap", aseq, bseq, O);
-      }
     }
 
     //  At 0.06 error, this equals the previous value of 10.
