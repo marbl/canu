@@ -25,7 +25,7 @@ Read_Olaps(coParameters *G, gkStore *gkpStore) {
   G->olaps    = new Olap_Info_t [numolaps];
   G->olapsLen = 0;
 
-  ovOverlap  olap;
+  ovOverlap  olap(gkpStore);
 
   while (ovs->readOverlap(&olap)) {
     G->olaps[G->olapsLen].a_iid  =  olap.a_iid;

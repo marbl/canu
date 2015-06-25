@@ -274,8 +274,8 @@ main(int argc, char **argv) {
   fprintf(stderr, "Bucketizing %s\n", ovlInput);
 
   ovStoreFilter *filter = new ovStoreFilter(gkp, maxError);
-  ovOverlap     foverlap;
-  ovOverlap     roverlap;
+  ovOverlap     foverlap(gkp);
+  ovOverlap     roverlap(gkp);
   ovFile        *inputFile = new ovFile(ovlInput, ovFileFull);
 
   //  Do bigger buffers increase performance?  Do small ones hurt?

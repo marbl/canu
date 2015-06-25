@@ -381,8 +381,8 @@ main(int argc, char **argv) {
 
   uint32       overlapsALen = 0;
   uint32       overlapsBLen = 0;
-  ovOverlap  *overlapsA    = new ovOverlap [overlapsMax];
-  ovOverlap  *overlapsB    = new ovOverlap [overlapsMax];
+  ovOverlap  *overlapsA    = ovOverlap::allocateOverlaps(gkpStore, overlapsMax);
+  ovOverlap  *overlapsB    = ovOverlap::allocateOverlaps(gkpStore, overlapsMax);
 
   //  Set the globals
 

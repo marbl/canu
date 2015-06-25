@@ -148,7 +148,7 @@ main(int argc, char **argv) {
 
   uint32      ovlLen = 0;
   uint32      ovlMax = 64 * 1024;
-  ovOverlap *ovl    = new ovOverlap [ovlMax];
+  ovOverlap  *ovl    = ovOverlap::allocateOverlaps(gkp, ovlMax);
 
   memset(ovl, 0, sizeof(ovOverlap) * ovlMax);
 

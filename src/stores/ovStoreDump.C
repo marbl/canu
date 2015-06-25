@@ -65,7 +65,7 @@ dumpStore(ovStore *ovlStore,
           ovOverlapDisplayType    type,
           bool     beVerbose) {
 
-  ovOverlap     overlap;
+  ovOverlap     overlap(gkpStore);
   uint64         evalue = AS_OVS_encodeEvalue(dumpERate);
   char           ovlString[1024];
 
@@ -314,8 +314,8 @@ dumpPicture(ovStore  *ovlStore,
   ovlStore->setRange(qryID, qryID);
 
   uint64         novl     = 0;
-  ovOverlap     overlap;
-  ovOverlap    *overlaps = new ovOverlap [ovlStore->numOverlapsInRange()];
+  ovOverlap     overlap(gkpStore);
+  ovOverlap    *overlaps = ovOverlap::allocateOverlaps(gkpStore, ovlStore->numOverlapsInRange());
   uint64         evalue   = AS_OVS_encodeEvalue(dumpERate);
 
   //  Load all the overlaps so we can sort by the A begin position.

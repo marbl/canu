@@ -35,11 +35,13 @@ using namespace std;
 int
 main(int argc, char **argv) {
   char           *storePath      = NULL;
-  uint32          fileLimit    = 512;   //  Number of 'slices' from bucketizer
-  uint32          fileID     = 0;     //  'slice' that we are going to be sorting
-  uint32          jobIdxMax    = 0;     //  Number of 'buckets' from bucketizer
+  char           *gkpName        = NULL;
 
-  uint64          maxMemory    = UINT64_MAX;
+  uint32          fileLimit      = 512;   //  Number of 'slices' from bucketizer
+  uint32          fileID         = 0;     //  'slice' that we are going to be sorting
+  uint32          jobIdxMax      = 0;     //  Number of 'buckets' from bucketizer
+
+  uint64          maxMemory      = UINT64_MAX;
 
   bool            deleteIntermediateEarly = false;
   bool            deleteIntermediateLate  = false;
@@ -55,8 +57,7 @@ main(int argc, char **argv) {
       storePath = argv[++arg];
 
     } else if (strcmp(argv[arg], "-g") == 0) {
-      //unused gkpName = argv[++arg];
-      ++arg;
+      gkpName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-F") == 0) {
       fileLimit = atoi(argv[++arg]);
@@ -177,7 +178,7 @@ main(int argc, char **argv) {
   fprintf(stderr, "Overlaps need %.2f GB memory, allowed to use up to (via -M) "F_U64" GB.\n",
           sizeof(ovOverlap) * totOvl / (1024.0 * 1024.0 * 1024.0), maxMemory >> 30);
 
-  ovOverlap *ovls = new ovOverlap [totOvl];
+  ovOverlap *ovls = ovOverlap::allocateOverlaps(NULL, totOvl);
 
   //  Load all overlaps - we're guaranteed that either 'name.gz' or 'name' exists (we checked above)
   //  or funny business is happening with our files.

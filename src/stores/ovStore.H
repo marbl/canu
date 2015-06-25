@@ -131,12 +131,30 @@ enum ovOverlapDisplayType {
 
 
 class ovOverlap {
-public:
+private:
   ovOverlap() {
     clear();
   };
+
+public:
+  ovOverlap(gkStore *gkp) {
+    g = gkp;
+    clear();
+  };
+
   ~ovOverlap() {
   };
+
+  static
+  ovOverlap  *allocateOverlaps(gkStore *gkp, uint64 num) {
+    ovOverlap *r = new ovOverlap [num];
+
+    for (uint32 ii=0; ii<num; ii++)
+      r[ii].g = gkp;
+
+    return(r);
+  };
+
 
   //  Dovetail if any of the following are true:
   //    ahg3 == 0  &&  ahg5 == 0  (a is contained)
@@ -223,9 +241,6 @@ public:
 #endif
   };
 
-  //gkStore    *gkpStore(void)          { return(g); };
-  //void        gkpStore(gkStore *g_)   { g = g_;    };
-
   bool
   operator<(const ovOverlap &that) const {
     if (a_iid      < that.a_iid)       return(true);
@@ -259,6 +274,7 @@ public:
     ovOverlapDAT      ovl;
   } dat;
 };
+
 
 
 //  If ovOverlapWORD is uint32, we have no problems.

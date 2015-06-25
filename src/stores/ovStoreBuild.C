@@ -372,8 +372,8 @@ main(int argc, char **argv) {
   ovStoreFilter *filter = new ovStoreFilter(gkp, maxError);
 
   for (uint32 i=0; i<fileList.size(); i++) {
-    ovOverlap    foverlap;
-    ovOverlap    roverlap;
+    ovOverlap    foverlap(gkp);
+    ovOverlap    roverlap(gkp);
 
     fprintf(stderr, "bucketizing %s\n", fileList[i]);
 
@@ -421,7 +421,7 @@ main(int argc, char **argv) {
     if (dumpLengthMax < dumpLength[i])
       dumpLengthMax = dumpLength[i];
 
-  ovOverlap  *overlapsort = new ovOverlap [dumpLengthMax];
+  ovOverlap  *overlapsort = ovOverlap::allocateOverlaps(gkp, dumpLengthMax);
 
   time_t  beginTime = time(NULL);
 

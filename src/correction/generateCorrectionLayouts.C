@@ -355,7 +355,7 @@ main(int argc, char **argv) {
 
   uint32       ovlMax = 1024 * 1024;
   uint32       ovlLen = 0;
-  ovOverlap  *ovl    = new ovOverlap [ovlMax];
+  ovOverlap   *ovl    = ovOverlap::allocateOverlaps(gkpStore, ovlMax);
 
   ovlLen = ovlStore->readOverlaps(ovl, ovlMax, true);
 

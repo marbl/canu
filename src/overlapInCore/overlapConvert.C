@@ -74,7 +74,7 @@ main(int argc, char **argv) {
 
   for (uint32 ff=0; ff<files.size(); ff++) {
     ovFile      *of = new ovFile(files[ff], ovFileFull);
-    ovOverlap   ov;
+    ovOverlap   ov(gkpStore);
 
     while (of->readOverlap(&ov))
       fputs(ov.toString(ovStr, dt, true), stdout);

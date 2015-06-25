@@ -157,8 +157,8 @@ main(int argc, char **argv) {
 
   uint32      ovlLen = 0;
   uint32      ovlMax = 131072;
-  ovOverlap *ovl    = new ovOverlap [ovlMax];
-  ovOverlap  swapped;
+  ovOverlap  *ovl    = ovOverlap::allocateOverlaps(gkpStore, ovlMax);
+  ovOverlap  swapped(gkpStore);
 
   uint32      histLen = 0;
   uint32      histMax = ovlMax;

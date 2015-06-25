@@ -554,7 +554,7 @@ main(int argc, char **argv) {
   sprintf(bon, "%s.edges.blessed", rg->Output_Graph_Store_Prefix);
 
   ovFile    *bof = new ovFile(bon, ovFileFullWrite);
-  ovOverlap overlap;
+  ovOverlap overlap(NULL);  //  We could keep the gkpStore around, but we don't call bgn/end in unitigger.
 
   for (ie=0; ie < nedge; ie ++) {
     Tnes nes = get_nes_edge(heapva->edges,ie);

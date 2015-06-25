@@ -423,7 +423,7 @@ outputOverlaps(gkStore           *gkpStore,
   //  walk down each.
 
   uint32            overlapblock = 100000000;
-  ovOverlap       *overlapsload = new ovOverlap [overlapblock];
+  ovOverlap        *overlapsload = ovOverlap::allocateOverlaps(gkpStore, overlapblock);
 
   for (uint64 no=0; no<numOvls; ) {
     uint64 nLoad  = inpStore->readOverlaps(overlapsload, overlapblock, false);
@@ -669,7 +669,7 @@ main(int argc, char **argv) {
   } else {
     FILE             *ESTcache     = NULL;
     uint32            overlapblock = 100000000;
-    ovOverlap       *overlapsload = new ovOverlap [overlapblock];
+    ovOverlap        *overlapsload = ovOverlap::allocateOverlaps(gkpStore, overlapblock);
 
     overlaps       = new ESToverlap [numOvls];
 

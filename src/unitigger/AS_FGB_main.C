@@ -94,7 +94,7 @@ static void output_mesgs(Tfragment          frags[],
   const IntEdge_ID  nedge = GetNumEdges(edges);
   IntEdge_ID ie;
   for(ie=0;ie<nedge;ie++){
-    ovOverlap overlap;
+    ovOverlap overlap(NULL);  //  Don't call bgn/end!
 
     const uint32 avx = get_avx_edge(edges,ie);
     const int asx = get_asx_edge(edges,ie);

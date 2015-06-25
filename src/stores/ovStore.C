@@ -430,7 +430,7 @@ ovStore::readOverlaps(uint32         iid,
   if (ovl == NULL) {
     ovlLen = 0;
     ovlMax = 65 * 1024;
-    ovl    = new ovOverlap [ovlMax];
+    ovl    = ovOverlap::allocateOverlaps(_gkp, ovlMax);
   }
 
   if (iid < ovl[0].a_iid)
@@ -456,7 +456,7 @@ ovStore::readOverlaps(uint32         iid,
     while (ovlMax < ovlLen) {
       ovlMax *= 2;
       delete [] ovl;
-      ovl = new ovOverlap [ovlMax];
+      ovl = ovOverlap::allocateOverlaps(_gkp, ovlMax);
     }
 
     //  Load the overlaps

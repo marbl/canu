@@ -108,7 +108,7 @@ main(int argc, char **argv) {
 
   char         *S     = new char [1024];
   splitToWords  W;
-  ovOverlap    ov;
+  ovOverlap    ov(gkpStore);
 
   ovFile       *of    = (ovlFileName  == NULL) ? NULL : new ovFile(ovlFileName, ovFileFullWrite);
   ovStore      *os    = (ovlStoreName == NULL) ? NULL : new ovStore(ovlStoreName, gkpStore, ovStoreWrite);

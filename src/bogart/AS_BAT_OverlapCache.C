@@ -199,7 +199,7 @@ OverlapCache::OverlapCache(ovStore *ovlStoreUniq,
 
   _maxPer  = maxOverlaps;
 
-  _ovs     = new ovOverlap [_ovsMax];
+  _ovs     = ovOverlap::allocateOverlaps(NULL, _ovsMax);  //  So can't call bgn or end.
   _ovsSco  = new uint64     [_ovsMax];
   _ovsTmp  = new uint64     [_ovsMax];
 
@@ -550,7 +550,7 @@ OverlapCache::loadOverlaps(double erate, uint32 minOverlap, const char *prefix, 
       delete [] _ovs;
       delete [] _ovsSco;
       delete [] _ovsTmp;
-      _ovs    = new ovOverlap [_ovsMax];
+      _ovs    = ovOverlap::allocateOverlaps(NULL, _ovsMax);  //  So can't call bgn or end.
       _ovsSco = new uint64     [_ovsMax];
       _ovsTmp = new uint64     [_ovsMax];
       _memUsed += (_ovsMax) * sizeof(ovOverlap);
