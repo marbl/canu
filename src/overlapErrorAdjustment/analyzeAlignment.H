@@ -113,6 +113,9 @@ public:
       _voteMax  = _seqLen + 2000;
       _vote     = new Vote_Tally_t [_voteMax];
     }
+
+    //  Seems like overkill, but I don't know where to put it
+    memset(_vote, 0, sizeof(Vote_Tally_t) * _voteMax);
   };
 
   void   analyze(char  *a, int32 aLen,  int32 aOffset,
@@ -122,10 +125,10 @@ public:
 
   void   outputDetails(void);
 
-  void   generateCorrections(FILE *corFile);
+  void   generateCorrections(FILE *corFile=NULL);
 
-  void   generateCorrectedRead(Adjust_t *fadj, uint32 &fadjLen,
-                               uint64   *changes);
+  void   generateCorrectedRead(Adjust_t *fadj=NULL, uint32 *fadjLen=NULL,
+                               uint64   *changes=NULL);
 
 
 private:
@@ -172,10 +175,12 @@ private:
   uint32                 _seqLen;
   char                  *_seq;
 
+public:
   uint32                 _corSeqLen;
   uint32                 _corSeqMax;
   char                  *_corSeq;
 
+private:
   uint32                 _voteMax;
   Vote_Tally_t          *_vote;
 

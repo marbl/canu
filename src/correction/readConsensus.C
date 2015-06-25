@@ -14,6 +14,8 @@ const char *mainid = "$Id:  $";
 #include "overlapAlign.H"
 #include "analyzeAlignment.H"
 
+#include "Display_Alignment.H"
+
 #include "AS_UTL_reverseComplement.H"
 
 #include "timeAndSize.H" //  getTime();
@@ -32,15 +34,6 @@ public:
                       char   *fastqName,
                       uint64 memLimit_) {
 
-    //  Parameters
-
-    maxErate   = maxErate_;
-    memLimit   = memLimit_;
-
-    bgnID = bgnID_;
-    curID = bgnID_;
-    endID = endID_;
-
     //  Inputs
 
     gkpStore  = new gkStore(gkpName);
@@ -49,6 +42,23 @@ public:
 
     ovlStore  = (ovlName) ? new ovStore(ovlName, gkpStore) : NULL;
     tigStore  = (tigName) ? new tgStore(tigName, tigVers)  : NULL;
+
+    if (ovlStore)
+      fprintf(stderr, "consensusGlobalData()--  opened ovlStore '%s'\n", ovlName);
+    if (tigStore)
+      fprintf(stderr, "consensusGlobalData()--  opened tigStore '%s'\n", tigName);
+
+    //  Parameters
+
+    maxErate   = maxErate_;
+    memLimit   = memLimit_;
+
+    if (bgnID_ == 0)                                bgnID_ = 1;
+    if (endID_  > gkpStore->gkStore_getNumReads())  endID_ = gkpStore->gkStore_getNumReads() + 1;
+
+    bgnID = bgnID_;
+    curID = bgnID_;
+    endID = endID_;
 
     //  Outputs
 
@@ -125,6 +135,10 @@ class consensusThreadData {
 public:
   consensusThreadData(consensusGlobalData *g, uint32 tid) {
     threadID = tid;
+
+    nPassed  = 0;
+    nFailed  = 0;
+
     align    = new overlapAlign(true, g->maxErate, 15);  //  partial aligns, maxErate, seedSize
     analyze  = new analyzeAlignment();
   };
@@ -133,7 +147,10 @@ public:
     delete analyze;
   };
 
-  uint32                 threadID;
+  uint32                  threadID;
+
+  uint64                  nPassed;
+  uint64                  nFailed;
 
   char                    bRev[AS_MAX_READLEN];
 
@@ -156,27 +173,26 @@ class consensusComputation {
 public:
   consensusComputation(tgTig  *tig) {
     _tig    = tig;
-    _corCns = NULL;
+    _corLen = 0;
+    _corSeq = NULL;
     _corQlt = NULL;
-    _corLen = NULL;
   };
 
   ~consensusComputation() {
-    delete [] _corCns;
+    delete [] _corSeq;
     delete [] _corQlt;
-    delete [] _corLen;
   };
   
 
 public:
   tgTig      *_tig;          //  Input
 
-  ovOverlap  *_overlaps;     //  Input, we convert this to a tig...
-  uint32      _overlapsLen;
+  //ovOverlap  *_overlaps;     //  Input, we convert this to a tig...
+  //uint32      _overlapsLen;
 
-  char       *_corCns;       //  Output sequence
+  uint32      _corLen;
+  char       *_corSeq;       //  Output sequence
   char       *_corQlt;
-  char       *_corLen;
 };
 
 
@@ -191,7 +207,16 @@ consensusReaderOverlaps(consensusGlobalData *g) {
 //  Simple, just load the tig and call it a day.
 consensusComputation *
 consensusReaderTigs(consensusGlobalData *g) {
-  return(new consensusComputation(g->tigStore->loadTig(g->curID++)));
+  tgTig                 *t = NULL;
+  consensusComputation  *s = NULL;
+
+  while ((t == NULL) && (g->curID < g->endID))
+    t = g->tigStore->loadTig(g->curID++);
+
+  if (t)
+    s = new consensusComputation(t);
+
+  return(s);
 }
 
 
@@ -219,7 +244,13 @@ consensusWorker(void *G, void *T, void *S) {
   consensusThreadData    *t = (consensusThreadData  *)T;
   consensusComputation   *s = (consensusComputation *)S;
 
-  fprintf(stderr, "WORKING on tig %u\n", s->_tig->tigID());
+  uint32  rID = s->_tig->tigID();
+
+  //fprintf(stderr, "THREAD %u working on tig %u\n", t->threadID, rID);
+
+  t->analyze->reset(rID,
+                    g->readCache->getRead(rID),
+                    g->readCache->getLength(rID));
 
   for (uint32 oo=0; oo<s->_tig->numberOfChildren(); oo++) {
     if (s->_tig->getChild(oo)->isRead() == false)
@@ -240,79 +271,77 @@ consensusWorker(void *G, void *T, void *S) {
     int32   aLo = pos->min() - 100;
     int32   aHi = pos->max() + 100;
 
+    assert(aID == rID);
     assert(aLo < aHi);
 
-    //  Load B.
+    //  Load B.  If reversed, we need to reverse the coordinates to meet the overlap spec.
 
     uint32  bID  = pos->ident();
     char   *bStr = g->readCache->getRead  (bID);
     uint32  bLen = g->readCache->getLength(bID);
 
-    int32   bLo =        pos->askip();
-    int32   bHi = bLen - pos->bskip();
-
-    //  Make B the correct orientation, and adjust coordinates.
-
-#if 0
-    if (pos->isReverse()) {
-      memcpy(t->bRev, bStr, sizeof(char) * (bLen + 1));
-
-      reverseComplementSequence(t->bRev, bLen);
-
-      bStr = t->bRev;
-
-      //bLo =
-      //bHi =
-    }
-
-    assert(bLo < bHi);
-#endif
+    int32   bLo = (pos->isReverse() == false) ? (       pos->askip()) : (bLen - pos->askip());
+    int32   bHi = (pos->isReverse() == false) ? (bLen - pos->bskip()) : (       pos->bskip());
 
     //  Compute the overlap
 
     t->align->initialize(aID, aStr, aLen, aLo, aHi,
                          bID, bStr, bLen, bLo, bHi, pos->isReverse());
 
-    if (t->align->findMinMaxDiagonal(40) == false) {
-      //fprintf(stderr, "A %6u %5d-%5d ->   B %6u %5d-%5d %s ALIGN LENGTH TOO SHORT.\n",
-      //        aID, ovl->a_bgn(), ovl->a_end(),
-      //        bID, ovl->b_bgn(), ovl->b_end(),
-      //        ovl->flipped() ? "<-" : "->");
+    if (t->align->findMinMaxDiagonal(40) == false)
       continue;
-    }
 
-    if (t->align->findSeeds(false) == false) {
-      //fprintf(stderr, "A %6u %5d-%5d ->   B %6u %5d-%5d %s NO SEEDS.\n",
-      //        aID, ovl->a_bgn(), ovl->a_end(),
-      //        bID, ovl->b_bgn(), ovl->b_end(),
-      //        ovl->flipped() ? "<-" : "->");
+    if (t->align->findSeeds(false) == false)
       continue;
-    }
 
     t->align->findHits();
     t->align->chainHits();
 
-
-#if 0
     if (t->align->processHits() == true) {
-      //analyze->analyze(aStr, aLen, aOffset,
-      //                 bStr, bLen,
-      //                 deltaLen,
-      //                 delta);
+      t->nPassed++;
+
+      int32  aLo = t->align->abgn();
+      int32  aHi = t->align->aend();
+
+      int32  bLo = t->align->bbgn();
+      int32  bHi = t->align->bend();
+
+      if (bLo > bHi) {
+        bLo = t->align->bend();
+        bHi = t->align->bbgn();
+      }
+
+      //fprintf(stderr, "ANALYZE a %u %u b %u %u\n", aLo, aHi, bLo, bHi);
+
+      //Display_Alignment(t->align->astr() + aLo, aHi - aLo,
+      //                  t->align->bstr() + bLo, bHi - bLo,
+      //                  t->align->delta(),
+      //                  t->align->deltaLen(),
+      //                  0);
+
+      t->analyze->analyze(t->align->astr() + aLo, aHi - aLo, 0,
+                          t->align->bstr() + bLo, bHi - bLo,
+                          t->align->deltaLen(),
+                          t->align->delta());
     } else {
+      t->nFailed++;
     }
-#endif
   }
 
-  //analyze->generateCorrections(NULL);
-  //analyze->generateCorrectedRead(NULL, NULL, NULL);
+  //fprintf(stderr, "THREAD %2u finished with tig %5u -- passed %12u -- failed %12u\n", t->threadID, s->_tig->tigID(), t->nPassed, t->nFailed);
 
-  //
-  //  END of following
-  //
+  t->analyze->generateCorrections();
+  t->analyze->generateCorrectedRead();
 
+  s->_corLen = t->analyze->_corSeqLen;
+  s->_corSeq = new char [s->_corLen + 1];
+  s->_corQlt = new char [s->_corLen + 1];
 
+  memcpy(s->_corSeq, t->analyze->_corSeq, sizeof(char) * (s->_corLen + 1));
+  memcpy(s->_corQlt, t->analyze->_corSeq, sizeof(char) * (s->_corLen + 1));
 
+  for (uint32 ii=0; ii<s->_corLen; ii++)
+    s->_corQlt[ii] = '!' + 10;
 }
 
 
@@ -325,6 +354,10 @@ consensusWriter(void *G, void *S) {
   }
 
   if (g->fastqFile) {
+    fprintf(g->fastqFile, "@read%08u\n", s->_tig->tigID());
+    fprintf(g->fastqFile, "%s\n", s->_corSeq);
+    fprintf(g->fastqFile, "+\n");
+    fprintf(g->fastqFile, "%s\n", s->_corQlt);
   }
 
   delete s;
@@ -346,7 +379,7 @@ main(int argc, char **argv) {
   char    *cnsName         = NULL;
   char    *fastqName       = NULL;
 
-  uint32   bgnID           = 0;
+  uint32   bgnID           = 1;
   uint32   endID           = UINT32_MAX;
 
   uint32   numThreads      = 1;
@@ -401,7 +434,7 @@ main(int argc, char **argv) {
 
   if (gkpName == NULL)
     err++;
-  if ((ovlName == NULL) || (tigName == NULL))
+  if ((ovlName == NULL) && (tigName == NULL))
     err++;
   if ((ovlName != NULL) && (tigName != NULL))
     err++;
@@ -432,7 +465,7 @@ main(int argc, char **argv) {
 
     if (gkpName == NULL)
       fprintf(stderr, "ERROR: no gatekeeper (-G) supplied.\n");
-    if ((ovlName == NULL) || (tigName == NULL))
+    if ((ovlName == NULL) && (tigName == NULL))
       fprintf(stderr, "ERROR: no inputs (-O or -T) supplied.\n");
     if ((ovlName != NULL) && (tigName != NULL))
       fprintf(stderr, "ERROR: only one input (-O or -T) may be supplied.\n");
@@ -452,6 +485,14 @@ main(int argc, char **argv) {
                                                     fastqName,
                                                     memLimit);
 
+#if 0
+
+  consensusThreadData  *t = new consensusThreadData(g, 0);
+  consensusComputation *c = (consensusComputation *)consensusReader(g);
+  consensusWorker(g, t, c);
+
+#else
+
   sweatShop  *ss = new sweatShop(consensusReader, consensusWorker, consensusWriter);
 
   ss->setLoaderQueueSize(16384);
@@ -462,15 +503,15 @@ main(int argc, char **argv) {
   for (uint32 w=0; w<numThreads; w++)
     ss->setThreadData(w, new consensusThreadData(g, w));  //  these leak
 
-  ss->run(g, false);
+  ss->run(g, true);
 
   delete ss;
+
+#endif
+
   delete g;
 
   fprintf(stderr, "\nSuccess!  Bye.\n");
 
   return(0);
 }
-
- 
-

@@ -3,6 +3,8 @@
 #include "kMer.H"
 #include "merStream.H"
 
+#undef DEBUG_HITS
+
 
 //  Set the min/max diagonal we will accept seeds for.  It's just the min/max diagonal for the
 //  two endpoints extended by half the erate times the align length.
@@ -50,40 +52,6 @@ overlapAlign::findMinMaxDiagonal(int32  minLength) {
 }
 
 
-
-
-void
-overlapAlign::initializeConstants(void) {
-
-  if (merMask[32] == 0xffffffffffffffffllu)
-    return;
-
-  for (uint32 ii=0; ii<256; ii++) {
-    acgtToBit[ii] = 0x00;
-    acgtToVal[ii] = 0x03;
-  }
-
-  acgtToBit['a'] = acgtToBit['A'] = 0x00;  //  Bit encoding of ACGT
-  acgtToBit['c'] = acgtToBit['C'] = 0x01;
-  acgtToBit['g'] = acgtToBit['G'] = 0x02;
-  acgtToBit['t'] = acgtToBit['T'] = 0x03;
-
-  acgtToVal['a'] = acgtToVal['A'] = 0x00;  //  Word is valid if zero
-  acgtToVal['c'] = acgtToVal['C'] = 0x00;
-  acgtToVal['g'] = acgtToVal['G'] = 0x00;
-  acgtToVal['t'] = acgtToVal['T'] = 0x00;
-
-  merMask[0] = 0x0000000000000000llu;
-  merMask[1] = 0x0000000000000003llu;
-
-  for (uint32 ii=2; ii<33; ii++)
-    merMask[ii] = (merMask[ii-1] << 2) | 0x03;
-
-  assert(merMask[ 6] == 0x0000000000000fffllu);
-  assert(merMask[17] == 0x00000003ffffffffllu);
-  assert(merMask[26] == 0x000fffffffffffffllu);
-  assert(merMask[32] == 0xffffffffffffffffllu);
-}
 
 
 void
@@ -219,8 +187,6 @@ overlapAlign::findSeeds(bool dupIgnore) {
 
   _merSize = _merSizeInitial;
 
-  initializeConstants();
-
   //  Find mers in A
 
  findMersAgain:
@@ -306,7 +272,7 @@ overlapAlign::chainHits(void) {
 
   sort(_rawhits.begin(), _rawhits.end());
 
-#if 0
+#ifdef DEBUG_HITS
   for (uint32 rr=0; rr<_rawhits.size(); rr++)
     if (_rawhits[rr].aBgn - _rawhits[rr].bBgn == 2289)
       fprintf(stderr, "HIT: %d - %d diag %d\n", _rawhits[rr].aBgn, _rawhits[rr].bBgn, _rawhits[rr].aBgn - _rawhits[rr].bBgn);
@@ -345,12 +311,12 @@ overlapAlign::chainHits(void) {
 #endif
 
     if (merge) {
-#if 0
+#ifdef DEBUG_HITS
       fprintf(stderr, "MERGE HIT: %d - %d diag %d  da=%d db=%d\n", _rawhits[rr].aBgn, _rawhits[rr].bBgn, _rawhits[rr].aBgn - _rawhits[rr].bBgn, da, db);
 #endif
       _hits[hh].tLen = _rawhits[rr].aBgn + _rawhits[rr].tLen - _hits[hh].aBgn;
     } else {
-#if 0
+#ifdef DEBUG_HITS
       fprintf(stderr, "NEW   HIT: %d - %d diag %d  da=%d db=%d\n", _rawhits[rr].aBgn, _rawhits[rr].bBgn, _rawhits[rr].aBgn - _rawhits[rr].bBgn, da, db);
 #endif
       _hits.push_back(_rawhits[rr]);
@@ -361,7 +327,7 @@ overlapAlign::chainHits(void) {
 
   sort(_hits.begin(), _hits.end());
 
-#if 0
+#ifdef DEBUG_HITS
   for (uint32 hh=0; hh<_hits.size(); hh++) {
     fprintf(stderr, "hit %02u %5d-%5d diag %d len %3u\n",
             hh,
@@ -387,6 +353,10 @@ overlapAlign::processHits(void) {
     match.Len    = _hits[hh].tLen;    //  tLen can include mismatches if alternate scoring is used!
     match.Next   = 0;                 //  Not used here
 
+#ifdef DEBUG_HITS
+    fprintf(stderr, "Extend_Alignment Astart %d Bstart %d length %d\n", match.Start, match.Offset, match.Len);
+#endif
+
     int32      errors  = 0;
     Overlap_t  ovltype = _editDist->Extend_Alignment(&match,         //  Initial exact match, relative to start of string
                                                      _aStr, _aLen,
@@ -410,7 +380,7 @@ overlapAlign::processHits(void) {
       _bHi = _bLen - _bHi;  //  Done early just for the print below
     }
 
-#if 0
+#ifdef DEBUG_HITS
     fprintf(stdout, "hit %2u a %5d b %5d -- ORIG A %6u %5d-%5d %s B %6u %5d-%5d  %.4f -- REALIGN type %d A %5d-%5d (%5d)  B %5d-%5d (%5d)  errors %4d  erate %6.4f = %6u / %6u deltas %d %d %d %d %d%s\n",
             hh, _hits[hh].aBgn, _hits[hh].bBgn,
             _aID, _aLoOrig, _aHiOrig,

@@ -9,10 +9,10 @@ Vote_Value_t
 Matching_Vote(char ch) {
 
   switch  (ch) {
-    case 'a':  return(A_SUBST);  break;
-    case 'c':  return(C_SUBST);  break;
-    case 'g':  return(G_SUBST);  break;
-    case 't':  return(T_SUBST);  break;
+    case 'A':  return(A_SUBST);  break;
+    case 'C':  return(C_SUBST);  break;
+    case 'G':  return(G_SUBST);  break;
+    case 'T':  return(T_SUBST);  break;
   }
 
   fprintf(stderr, "Matching_Vote()-- invalid letter '%c'\n", ch);
@@ -23,7 +23,12 @@ Matching_Vote(char ch) {
 
 
 
-
+//  This is expecting:
+//    aSeq and bSeq to be pointers to the start of the sequence that was aligned with Prefix_Edit_Distance
+//    aLen and bLen to be the strlen of those strings
+//    aOffset to be the offset from base zero of the read
+//    deltaLen and delta as passed back from the aligner
+//
 void
 analyzeAlignment::analyze(char  *aSeq, int32 aLen,  int32 aOffset,
                           char  *bSeq, int32 bLen,
@@ -47,21 +52,35 @@ analyzeAlignment::analyze(char  *aSeq, int32 aLen,  int32 aOffset,
   int32  j = 0;
   int32  p = 0;
 
+  uint32  nMatch    = 0;
+  uint32  nMismatch = 0;
+  uint32  nInsert   = 0;
+  uint32  nDelete   = 0;
+
   for (int32 k=0; k<deltaLen; k++) {
-    //fprintf(stderr, "k=%d deltalen=%d  i=%d our of %d   j=%d out of %d\n", k, deltaLen, i, aLen, j, bLen);
+#ifdef DEBUG
+    fprintf(stderr, "#0\n");
+    fprintf(stderr, "#1  k=%d deltalen=%d delta=%d  i=%d out of %d   j=%d out of %d\n",
+            k, deltaLen, delta[k], i, aLen, j, bLen);
+#endif
 
     //  Add delta[k] matches or mismatches
 
     for (int32 m=1; m<abs(delta[k]); m++) {
+      if (aSeq[i] != bSeq[j])
+        nMismatch++;
+      else
+        nMatch++;
+
       if (aSeq[i] != bSeq[j]) {
         _readSub[ct] = i;
         _algnSub[ct] = p;
 
         switch (bSeq[j]) {
-          case 'a':  _voteValue[ct] = A_SUBST;  break;
-          case 'c':  _voteValue[ct] = C_SUBST;  break;
-          case 'g':  _voteValue[ct] = G_SUBST;  break;
-          case 't':  _voteValue[ct] = T_SUBST;  break;
+          case 'A':  _voteValue[ct] = A_SUBST;  break;
+          case 'C':  _voteValue[ct] = C_SUBST;  break;
+          case 'G':  _voteValue[ct] = G_SUBST;  break;
+          case 'T':  _voteValue[ct] = T_SUBST;  break;
           default :
             fprintf(stderr, "ERROR:[1] Bad sequence '%c' 0x%02x)\n", bSeq[j], bSeq[j]);
             assert(0);
@@ -70,10 +89,14 @@ analyzeAlignment::analyze(char  *aSeq, int32 aLen,  int32 aOffset,
         ct++;
       }
 
-      i++;  //assert(i <= aLen);
-      j++;  //assert(j <= bLen);
+      i++;  assert(i <= aLen);
+      j++;  assert(j <= bLen);
       p++;
     }
+
+#ifdef DEBUG
+    fprintf(stderr, "#2  match %u mismatch %u insert %u delete %u\n", nMatch, nMismatch, nInsert, nDelete);
+#endif
 
     //  If a negative delta, insert a base.
 
@@ -81,13 +104,16 @@ analyzeAlignment::analyze(char  *aSeq, int32 aLen,  int32 aOffset,
       _readSub[ct] = i - 1;
       _algnSub[ct] = p;
 
-      //fprintf(stderr, "INSERT %c at %d #%d\n", bSeq[j], i-1, p);
+#ifdef DEBUG
+      fprintf(stderr, "INSERT %c at %d #%d\n", bSeq[j], i-1, p);
+#endif
+      nInsert++;
 
       switch (bSeq[j]) {
-        case 'a':  _voteValue[ct] = A_INSERT;  break;
-        case 'c':  _voteValue[ct] = C_INSERT;  break;
-        case 'g':  _voteValue[ct] = G_INSERT;  break;
-        case 't':  _voteValue[ct] = T_INSERT;  break;
+        case 'A':  _voteValue[ct] = A_INSERT;  break;
+        case 'C':  _voteValue[ct] = C_INSERT;  break;
+        case 'G':  _voteValue[ct] = G_INSERT;  break;
+        case 'T':  _voteValue[ct] = T_INSERT;  break;
         default :
           fprintf(stderr, "ERROR:[2] Bad sequence '%c' 0x%02x)\n", bSeq[j], bSeq[j]);
           assert(0);
@@ -95,9 +121,13 @@ analyzeAlignment::analyze(char  *aSeq, int32 aLen,  int32 aOffset,
 
       ct++;
 
-      j++;  //assert(j <= bLen);
+      j++;  assert(j <= bLen);
       p++;
     }
+
+#ifdef DEBUG
+    fprintf(stderr, "#3  match %u mismatch %u insert %u delete %u\n", nMatch, nMismatch, nInsert, nDelete);
+#endif
 
     //  If a positive deta, delete the base.
 
@@ -106,31 +136,46 @@ analyzeAlignment::analyze(char  *aSeq, int32 aLen,  int32 aOffset,
       _algnSub[ct] = p;
       _voteValue[ct]  = DELETE;
 
-      //fprintf(stderr, "DELETE %c at %d #%d\n", aSeq[i], i, p);
+#ifdef DEBUG
+      fprintf(stderr, "DELETE %c at %d #%d\n", aSeq[i], i, p);
+#endif
+      nDelete++;
 
       ct++;
 
       i++;  assert(i <= aLen);
       p++;
     }
+
+#ifdef DEBUG
+    fprintf(stderr, "#4  match %u mismatch %u insert %u delete %u\n", nMatch, nMismatch, nInsert, nDelete);
+#endif
   }
 
   // No more deltas.  While there is still sequence, add matches or mismatches.
 
-  //fprintf(stderr, "k=done   i=%d our of %d   j=%d out of %d\n", i, aLen, j, bLen);
+#ifdef DEBUG
+  fprintf(stderr, "#5  match %u mismatch %u insert %u delete %u\n", nMatch, nMismatch, nInsert, nDelete);
+  fprintf(stderr, "#5  k=DONE   i=%d out of %d   j=%d out of %d\n", i, aLen, j, bLen);
+#endif
 
   while (i < aLen) {
-    //fprintf(stderr, "k=done   i=%d our of %d   j=%d out of %d\n", i, aLen, j, bLen);
+    //fprintf(stderr, "k=DONE   i=%d out of %d   j=%d out of %d\n", i, aLen, j, bLen);
+
+    if (aSeq[i] != bSeq[j])
+      nMismatch++;
+    else
+      nMatch++;
 
     if (aSeq[i] != bSeq[j]) {
       _readSub[ct] = i;
       _algnSub[ct] = p;
 
       switch (bSeq[j]) {
-        case 'a':  _voteValue[ct] = A_SUBST;  break;
-        case 'c':  _voteValue[ct] = C_SUBST;  break;
-        case 'g':  _voteValue[ct] = G_SUBST;  break;
-        case 't':  _voteValue[ct] = T_SUBST;  break;
+        case 'A':  _voteValue[ct] = A_SUBST;  break;
+        case 'C':  _voteValue[ct] = C_SUBST;  break;
+        case 'G':  _voteValue[ct] = G_SUBST;  break;
+        case 'T':  _voteValue[ct] = T_SUBST;  break;
         default :
           fprintf(stderr, "ERROR:[3] Bad sequence '%c' 0x%02x)\n", bSeq[j], bSeq[j]);
           assert(0);
@@ -139,10 +184,14 @@ analyzeAlignment::analyze(char  *aSeq, int32 aLen,  int32 aOffset,
       ct++;
     }
 
-    i++;  //assert(i <= aLen);  //  Guaranteed, we're looping on this
-    j++;  //assert(j <= bLen);
+    i++;  assert(i <= aLen);  //  Guaranteed, we're looping on this
+    j++;  assert(j <= bLen);
     p++;
   }
+
+#ifdef DEBUG
+  fprintf(stderr, "#6  match %u mismatch %u insert %u delete %u\n", nMatch, nMismatch, nInsert, nDelete);
+#endif
 
   _readSub[ct] = i;
   _algnSub[ct] = p;
@@ -243,25 +292,25 @@ analyzeAlignment::generateCorrections(FILE *corFile) {
       if  (_vote[j].a_subst > max) {
         vval      = A_SUBST;
         max       = _vote[j].a_subst;
-        is_change = (_seq[j] != 'a');
+        is_change = (_seq[j] != 'A');
       }
 
       if  (_vote[j].c_subst > max) {
         vval      = C_SUBST;
         max       = _vote[j].c_subst;
-        is_change = (_seq[j] != 'c');
+        is_change = (_seq[j] != 'C');
       }
 
       if  (_vote[j].g_subst > max) {
         vval      = G_SUBST;
         max       = _vote[j].g_subst;
-        is_change = (_seq[j] != 'g');
+        is_change = (_seq[j] != 'G');
       }
 
       if  (_vote[j].t_subst > max) {
         vval      = T_SUBST;
         max       = _vote[j].t_subst;
-        is_change = (_seq[j] != 't');
+        is_change = (_seq[j] != 'T');
       }
 
       int32 haplo_ct  =  ((_vote[j].deletes >= Min_Haplo_Occurs) +
@@ -404,7 +453,7 @@ analyzeAlignment::generateCorrections(FILE *corFile) {
 
 
 void
-analyzeAlignment::generateCorrectedRead(Adjust_t *fadj, uint32 &fadjLen,
+analyzeAlignment::generateCorrectedRead(Adjust_t *fadj, uint32 *fadjLen,
                                         uint64   *changes) {
 
   //  oseq = original sequence
@@ -444,30 +493,30 @@ analyzeAlignment::generateCorrectedRead(Adjust_t *fadj, uint32 &fadjLen,
 
     switch (_cor[corPos].type) {
       case DELETE:  //  Delete base
-        //fprintf(stderr, "DELETE %u pos %u adjust %d\n", fadjLen, i+1, adjVal-1);
+        //fprintf(stderr, "DELETE %u pos %u adjust %d\n", (*fadjLen), i+1, adjVal-1);
         if (fadj) {
-          fadj[fadjLen].adjpos = i + 1;
-          fadj[fadjLen].adjust = --adjVal;
-          fadjLen++;
+          fadj[(*fadjLen)].adjpos = i + 1;
+          fadj[(*fadjLen)].adjust = --adjVal;
+          (*fadjLen)++;
         }
         break;
 
-      case A_SUBST:  _corSeq[_corSeqLen++] = 'a';  break;
-      case C_SUBST:  _corSeq[_corSeqLen++] = 'c';  break;
-      case G_SUBST:  _corSeq[_corSeqLen++] = 'g';  break;
-      case T_SUBST:  _corSeq[_corSeqLen++] = 't';  break;
+      case A_SUBST:  _corSeq[_corSeqLen++] = 'A';  break;
+      case C_SUBST:  _corSeq[_corSeqLen++] = 'C';  break;
+      case G_SUBST:  _corSeq[_corSeqLen++] = 'G';  break;
+      case T_SUBST:  _corSeq[_corSeqLen++] = 'T';  break;
 
       case A_INSERT:
         if (i != _cor[corPos].pos + 1) {                // Insert not immediately after subst
           //fprintf(stderr, "A i=%d != _cor[%d].pos+1=%d\n", i, corPos, _cor[corPos].pos+1);
           _corSeq[_corSeqLen++] = _filter[_seq[i++]];
         }
-        _corSeq[_corSeqLen++] = 'a';
+        _corSeq[_corSeqLen++] = 'A';
 
         if (fadj) {
-          fadj[fadjLen].adjpos = i + 1;
-          fadj[fadjLen].adjust = ++adjVal;
-          fadjLen++;
+          fadj[(*fadjLen)].adjpos = i + 1;
+          fadj[(*fadjLen)].adjust = ++adjVal;
+          (*fadjLen)++;
         }
         i--;  //  Undo the automagic loop increment
         break;
@@ -477,12 +526,12 @@ analyzeAlignment::generateCorrectedRead(Adjust_t *fadj, uint32 &fadjLen,
           //fprintf(stderr, "C i=%d != _cor[%d].pos+1=%d\n", i, corPos, _cor[corPos].pos+1);
           _corSeq[_corSeqLen++] = _filter[_seq[i++]];
         }
-        _corSeq[_corSeqLen++] = 'c';
+        _corSeq[_corSeqLen++] = 'C';
 
         if (fadj) {
-          fadj[fadjLen].adjpos = i + 1;
-          fadj[fadjLen].adjust = ++adjVal;
-          fadjLen++;
+          fadj[(*fadjLen)].adjpos = i + 1;
+          fadj[(*fadjLen)].adjust = ++adjVal;
+          (*fadjLen)++;
         }
         i--;
         break;
@@ -492,12 +541,12 @@ analyzeAlignment::generateCorrectedRead(Adjust_t *fadj, uint32 &fadjLen,
           //fprintf(stderr, "G i=%d != _cor[%d].pos+1=%d\n", i, corPos, _cor[corPos].pos+1);
           _corSeq[_corSeqLen++] = _filter[_seq[i++]];
         }
-        _corSeq[_corSeqLen++] = 'g';
+        _corSeq[_corSeqLen++] = 'G';
 
         if (fadj) {
-          fadj[fadjLen].adjpos = i + 1;
-          fadj[fadjLen].adjust = ++adjVal;
-          fadjLen++;
+          fadj[(*fadjLen)].adjpos = i + 1;
+          fadj[(*fadjLen)].adjust = ++adjVal;
+          (*fadjLen)++;
         }
         i--;
         break;
@@ -507,12 +556,12 @@ analyzeAlignment::generateCorrectedRead(Adjust_t *fadj, uint32 &fadjLen,
           //fprintf(stderr, "T i=%d != _cor[%d].pos+1=%d\n", i, corPos, _cor[corPos].pos+1);
           _corSeq[_corSeqLen++] = _filter[_seq[i++]];
         }
-        _corSeq[_corSeqLen++] = 't';
+        _corSeq[_corSeqLen++] = 'T';
 
         if (fadj) {
-          fadj[fadjLen].adjpos = i + 1;
-          fadj[fadjLen].adjust = ++adjVal;
-          fadjLen++;
+          fadj[(*fadjLen)].adjpos = i + 1;
+          fadj[(*fadjLen)].adjust = ++adjVal;
+          (*fadjLen)++;
         }
         i--;
         break;

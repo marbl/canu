@@ -70,8 +70,11 @@ prefixEditDistance::Extend_Alignment(Match_Node_t *Match,
   //fprintf(stderr, "prefixEditDistance::Extend_Alignment()--  limit olap of %u bases to %u errors - %f%%\n",
   //        Total_Olap, Error_Limit, 100.0 * Error_Limit / Total_Olap);
 
-  Left_Delta_Len = 0;
+  Left_Delta_Len  = 0;
   Right_Delta_Len = 0;
+
+  bool   invertLeftDeltas  = false;
+  bool   invertRightDeltas = false;
 
 
   if ((S_Right_Len == 0) ||
@@ -87,6 +90,8 @@ prefixEditDistance::Extend_Alignment(Match_Node_t *Match,
                            Error_Limit,
                            S_Hi, T_Hi,
                            rMatchToEnd);
+    for (int32 i=0; i<Right_Delta_Len; i++)
+      Right_Delta[i] *= -1;
   }
 
   else {
@@ -95,10 +100,10 @@ prefixEditDistance::Extend_Alignment(Match_Node_t *Match,
                            Error_Limit,
                            T_Hi, S_Hi,
                            rMatchToEnd);
+    //for (int32 i=0; i<Right_Delta_Len; i++)
+    //  Right_Delta[i] *= -1;
   }
   
-  for (int32 i=0; i<Right_Delta_Len; i++)
-    Right_Delta[i] *= -1;
 
   S_Hi += S_Right_Begin - 1;
   T_Hi += T_Right_Begin - 1;
@@ -121,6 +126,8 @@ prefixEditDistance::Extend_Alignment(Match_Node_t *Match,
                           S_Lo, T_Lo,
                           Leftover,
                           lMatchToEnd);
+    //for (int32 i=0; i<Left_Delta_Len; i++)
+    //  Left_Delta[i] *= -1;
   }
 
   else {
@@ -130,10 +137,10 @@ prefixEditDistance::Extend_Alignment(Match_Node_t *Match,
                           T_Lo, S_Lo,
                           Leftover,
                           lMatchToEnd);
+    for (int32 i=0; i<Left_Delta_Len; i++)
+      Left_Delta[i] *= -1;
   }
 
-  for (int32 i=0; i<Left_Delta_Len; i++)
-    Left_Delta[i] *= -1;
 
   S_Lo += S_Left_Begin + 1;
   T_Lo += T_Left_Begin + 1;
@@ -153,7 +160,8 @@ prefixEditDistance::Extend_Alignment(Match_Node_t *Match,
       (partialOverlaps == false))
     Left_Delta_Len = 0;
 
-  //  If a good overlap, append the right deltas to the left deltas.
+  //  If a good overlap, append the right deltas to the left deltas.  BPW negated all these on 24 June 2015,
+  //  while trying to get readConsensus working.
 
   if ((return_type == DOVETAIL) ||
       (partialOverlaps == true)) {
@@ -163,13 +171,13 @@ prefixEditDistance::Extend_Alignment(Match_Node_t *Match,
 
     if (Right_Delta_Len > 0) {
       if (Right_Delta[0] > 0)
-        Left_Delta[Left_Delta_Len++] = Right_Delta[0] + Leftover + Match->Len;
+        Left_Delta[Left_Delta_Len++] = -(Right_Delta[0] + Leftover + Match->Len);
       else
-        Left_Delta[Left_Delta_Len++] = Right_Delta[0] - Leftover - Match->Len;
+        Left_Delta[Left_Delta_Len++] = -(Right_Delta[0] - Leftover - Match->Len);
     }
 
     for (int32 i=1; i<Right_Delta_Len; i++)
-      Left_Delta[Left_Delta_Len++] = Right_Delta[i];
+      Left_Delta[Left_Delta_Len++] = -Right_Delta[i];
 
     Right_Delta_Len = 0;  //  Copied into left_delta!
   }

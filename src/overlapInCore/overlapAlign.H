@@ -22,15 +22,69 @@ public:
     _partialOverlaps  = partialOverlaps;
     _maxErate         = maxErate;
     _merSizeInitial   = merSize;
-    _editDist         = new prefixEditDistance(_partialOverlaps, _maxErate);
+
+    _aID              = UINT32_MAX;
+    _aStr             = NULL;
+    _aLen = _aLenOrig = 0;
+    _aLo  = _aLoOrig  = 0;
+    _aHi  = _aHiOrig  = 0;
+
+    _bID              = UINT32_MAX;
+    _bStr             = NULL;
+    _bLen = _bLenOrig = 0;
+    _bLo  = _bLoOrig  = 0;
+    _bHi  = _bHiOrig  = 0;
+
+    _bFlipped         = false;
+    _bRevMax          = 0;
+    _bRev             = NULL;
+
+    _olapLen          = 0;
+    _olapQual         = 0;
 
     _deltaMax         = 16384;
     _deltaLen         = 0;
     _delta            = new int32 [_deltaMax];
+
+    _editDist         = new prefixEditDistance(_partialOverlaps, _maxErate);
+
+    _minDiag          = 0;
+    _maxDiag          = 0;
+
+    _merSize          = 0;
+
+    //  Initialize Constants
+
+    for (uint32 ii=0; ii<256; ii++) {
+      acgtToBit[ii] = 0x00;
+      acgtToVal[ii] = 0x03;
+    }
+
+    acgtToBit['a'] = acgtToBit['A'] = 0x00;  //  Bit encoding of ACGT
+    acgtToBit['c'] = acgtToBit['C'] = 0x01;
+    acgtToBit['g'] = acgtToBit['G'] = 0x02;
+    acgtToBit['t'] = acgtToBit['T'] = 0x03;
+
+    acgtToVal['a'] = acgtToVal['A'] = 0x00;  //  Word is valid if zero
+    acgtToVal['c'] = acgtToVal['C'] = 0x00;
+    acgtToVal['g'] = acgtToVal['G'] = 0x00;
+    acgtToVal['t'] = acgtToVal['T'] = 0x00;
+
+    merMask[0] = 0x0000000000000000llu;
+    merMask[1] = 0x0000000000000003llu;
+
+    for (uint32 ii=2; ii<33; ii++)
+      merMask[ii] = (merMask[ii-1] << 2) | 0x03;
+
+    assert(merMask[ 6] == 0x0000000000000fffllu);
+    assert(merMask[17] == 0x00000003ffffffffllu);
+    assert(merMask[26] == 0x000fffffffffffffllu);
+    assert(merMask[32] == 0xffffffffffffffffllu);
   };
 
   ~overlapAlign() {
     delete    _editDist;
+    delete [] _bRev;
     delete [] _delta;
   };
 
@@ -55,7 +109,7 @@ public:
 
     if (_bFlipped == true) {
       if (_bRevMax < _bLen) {
-        delete _bRev;
+        delete [] _bRev;
         _bRevMax = _bLen + 1000;
         _bRev    = new char [_bRevMax];
       }
@@ -97,6 +151,9 @@ public:
 
   //  Result reporting
 
+  char   *astr(void)    { return(_aStr); };
+  char   *bstr(void)    { return(_bStr); };
+
   int32   abgn(void)    { return(_aLo); };
   int32   aend(void)    { return(_aHi); };
   int32   bbgn(void)    { return((_bFlipped == false) ? (_bLo) : (_bLo)); };
@@ -112,8 +169,11 @@ public:
   //result->dat.ovl.bhg5   = (_bFlipped == false) ? (        _bLo    ) : (_bLen - _bLo - 1);
   //result->dat.ovl.bhg3   = (_bFlipped == false) ? (_bLen - _bHi - 1) : (        _bHi    );
 
-  int32   length(void)  { return(_olapLen);  };
-  double  erate(void)   { return(_olapQual); };
+  int32   length(void)   { return(_olapLen);  };
+  double  erate(void)    { return(_olapQual); };
+
+  int32   deltaLen(void) { return(_deltaLen); };
+  int32  *delta(void)    { return(_delta);    };
 
 private:
 
@@ -190,8 +250,6 @@ private:
   uint64  acgtToBit[256];
   uint64  acgtToVal[256];
   uint64  merMask[33];
-
-  void    initializeConstants(void);
 
   void    fastFindMersA(bool dupIgnore);
   void    fastFindMersB(bool dupIgnore);
