@@ -17,8 +17,8 @@ using namespace std;
 class overlapAlign {
 public:
   overlapAlign(bool    partialOverlaps,
-              double  maxErate,
-              int32   merSize) {
+               double  maxErate,
+               int32   merSize) {
     _partialOverlaps  = partialOverlaps;
     _maxErate         = maxErate;
     _merSizeInitial   = merSize;
