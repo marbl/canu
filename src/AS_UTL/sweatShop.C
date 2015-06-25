@@ -380,7 +380,7 @@ sweatShop::status(void) {
     cpuPerSec = _numberComputed / (thisTime - startTime);
 
     if (_showStatus) {
-      fprintf(stderr, " %6.1f/s - %8"F_U64P" loaded; %8"F_U64P" queued for compute; %08"F_U64P" finished; %8"F_U64" written; %8"F_U64" queued for output)\r",
+      fprintf(stderr, " %6.1f/s - %8"F_U64P" loaded; %8"F_U64P" queued for compute; %08"F_U64P" finished; %8"F_U64P" written; %8"F_U64P" queued for output)\r",
               cpuPerSec, _numberLoaded, deltaCPU, _numberComputed, _numberOutput, deltaOut);
       fflush(stderr);
     }
