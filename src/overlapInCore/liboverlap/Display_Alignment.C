@@ -77,31 +77,36 @@ Display_Alignment(char  *a,    int32   a_len,
 
   bot[bot_len] = '\0';
 
+  uint32 diffs = 0;
 
   for (int32 i=0; (i < top_len) || (i < bot_len); i += DISPLAY_WIDTH) {
-    printf("%d\n", i);
-    printf("A: ");
+    fprintf(stderr, "%d\n", i);
+    fprintf(stderr, "A: ");
 
     for (int32 j=0;  (j < DISPLAY_WIDTH) && (i+j < top_len);  j++)
-      putchar(top[i+j]);
+      putc(top[i+j], stderr);
 
-    printf("\n");
-    printf("B: ");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "B: ");
 
     for (int32 j=0; (j < DISPLAY_WIDTH) && (i+j < bot_len); j++)
-      putchar (bot[i+j]);
+      putc(bot[i+j], stderr);
 
-    printf("\n");
-    printf("   ");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "   ");
 
     for (int32 j=0; (j<DISPLAY_WIDTH) && (i+j < bot_len) && (i+j < top_len); j++)
-      if ((top[i+j] != ' ') && (bot[i+j] != ' ') && (tolower(top[i+j]) != tolower(bot[i+j])))
-        putchar('^');
-      else
-        putchar(' ');
+      if ((top[i+j] != ' ') && (bot[i+j] != ' ') && (tolower(top[i+j]) != tolower(bot[i+j]))) {
+        diffs++;
+        putc('^', stderr);
+      } else {
+        putc(' ', stderr);
+      }
 
-    putchar('\n');
+    putc('\n', stderr);
   }
+
+  fprintf(stderr, "differences: %u\n", diffs);
 
   delete [] top;
   delete [] bot;
