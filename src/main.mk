@@ -70,6 +70,7 @@ SOURCES  := AS_global.C \
             overlapInCore/overlapAlign.C \
             \
             overlapInCore/liboverlap/Binomial_Bound.C \
+            overlapInCore/liboverlap/Display_Alignment.C \
             overlapInCore/liboverlap/prefixEditDistance.C \
             overlapInCore/liboverlap/prefixEditDistance-allocateMoreSpace.C \
             overlapInCore/liboverlap/prefixEditDistance-extend.C \

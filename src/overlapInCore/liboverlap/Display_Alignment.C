@@ -1,19 +1,21 @@
 #include "Display_Alignment.H"
+#include "gkStore.H"
 
-#define  DISPLAY_WIDTH   60
+#define  DISPLAY_WIDTH   250
 
 //  Show (to  stdout ) the alignment encoded in  delta [0 .. (delta_ct - 1)]
 //  between strings  a [0 .. (a_len - 1)]  and  b [0 .. (b_len - 1)] .
 //  Capitialize  a  characters for positions at and after  capitalize_start .
 
 void
-Display_Alignment(char * a, int a_len,
-                  char * b, int b_len,
-                  int delta [],
-                  int delta_ct,
-                  int capitalize_start) {
-  char  top[AS_READ_MAX_NORMAL_LEN+1];
-  char  bot[AS_READ_MAX_NORMAL_LEN+1];
+Display_Alignment(char  *a,    int32   a_len,
+                  char  *b,    int32   b_len,
+                  int32 *delta,
+                  int32  delta_ct,
+                  int32  capitalize_start) {
+
+  char  *top = new char [AS_MAX_READLEN + 1];
+  char  *bot = new char [AS_MAX_READLEN + 1];
 
   int32 i          = 0;
   int32 j          = 0;
@@ -77,17 +79,20 @@ Display_Alignment(char * a, int a_len,
 
 
   for (int32 i=0; (i < top_len) || (i < bot_len); i += DISPLAY_WIDTH) {
-    printf("\nA: ");
+    printf("%d\n", i);
+    printf("A: ");
 
     for (int32 j=0;  (j < DISPLAY_WIDTH) && (i+j < top_len);  j++)
       putchar(top[i+j]);
 
-    printf("\nB: ");
+    printf("\n");
+    printf("B: ");
 
     for (int32 j=0; (j < DISPLAY_WIDTH) && (i+j < bot_len); j++)
       putchar (bot[i+j]);
 
-    printf("\n   ");
+    printf("\n");
+    printf("   ");
 
     for (int32 j=0; (j<DISPLAY_WIDTH) && (i+j < bot_len) && (i+j < top_len); j++)
       if ((top[i+j] != ' ') && (bot[i+j] != ' ') && (tolower(top[i+j]) != tolower(bot[i+j])))
@@ -97,4 +102,7 @@ Display_Alignment(char * a, int a_len,
 
     putchar('\n');
   }
+
+  delete [] top;
+  delete [] bot;
 }

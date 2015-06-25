@@ -4,10 +4,10 @@
 #include "AS_global.H"
 
 void
-Display_Alignment(char * a, int a_len,
-                  char * b, int b_len,
-                  int delta [],
-                  int delta_ct,
-                  int capitalize_start);
+Display_Alignment(char  *a,    int32   a_len,
+                  char  *b,    int32   b_len,
+                  int32 *delta,
+                  int32  delta_ct,
+                  int32  capitalize_start);
 
 #endif
