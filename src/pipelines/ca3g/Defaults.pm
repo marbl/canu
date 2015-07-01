@@ -1204,7 +1204,7 @@ sub setDefaults () {
     $synops{"corConsensus"}                = "Which consensus algorithm to use; only 'falcon' and 'falconpipe' are supported";
 
     $global{"falconSense"}                 = undef;
-    $global{"falconSense"}                 = "/home/walenzb/ca3g/ca3g-build/src/falcon_sense/falcon_sense.Linux-amd64.bin"      if (-e "/home/walenzb/ca3g/ca3g-build/src/falcon_sense/falcon_sense.Linux-amd64.bin");
+    $global{"falconSense"}                 = "/home/walenzb/ca3g/src/falcon_sense/falcon_sense.Linux-amd64.bin"                 if (-e "/home/walenzb/ca3g/src/falcon_sense/falcon_sense.Linux-amd64.bin");
     $global{"falconSense"}                 = "/nbacc/scratch/bri/ca3g/ca3g-build/src/falcon_sense/falcon_sense.Linux-amd64.bin" if (-e "/nbacc/scratch/bri/ca3g/ca3g-build/src/falcon_sense/falcon_sense.Linux-amd64.bin");
     $global{"falconSense"}                 = "/work/software/falcon/install/fc_env/bin/fc_consensus.py"                         if (-e "/work/software/falcon/install/fc_env/bin/fc_consensus.py");
     $synops{"falconSense"}                 = "Path to fc_consensus.py or falcon_sense.bin";
