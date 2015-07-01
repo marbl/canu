@@ -32,8 +32,8 @@ gkRead::gkRead_loadData(gkReadData *readData, void *blobs) {
   char    chunk[5];
 
   if ((blob[0] != 'B') && (blob[1] != 'L') && (blob[2] != 'O') && (blob[3] != 'B'))
-    fprintf(stderr, "Index error in read "F_U32" %c mPtr "F_U32" pID "F_U32" expected BLOB, got %c%c%c%c\n",
-            _readID,
+    fprintf(stderr, "Index error in read "F_U32" %c mPtr "F_U64" pID "F_U64" expected BLOB, got %c%c%c%c\n",
+            gkRead_readID(),
             '?', //(_numberOfPartitions == 0) ? 'm' : 'p',
             _mPtr, _pID,
             blob[0], blob[1], blob[2], blob[3]);
@@ -604,12 +604,12 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
     _libraries     = (gkLibrary *)_librariesMMap->get(0);
     //fprintf(stderr, " -- openend '%s' at "F_X64"\n", name, _libraries);
 
-    sprintf(name, "%s/partitions/reads.%04lu", _storePath, partID);
+    sprintf(name, "%s/partitions/reads.%04"F_U32P"", _storePath, partID);
     _readsMMap     = new memoryMappedFile (name, memoryMappedFile_readOnly);
     _reads         = (gkRead *)_readsMMap->get(0);
     //fprintf(stderr, " -- openend '%s' at "F_X64"\n", name, _reads);
 
-    sprintf(name, "%s/partitions/blobs.%04lu", _storePath, partID);
+    sprintf(name, "%s/partitions/blobs.%04"F_U32P"", _storePath, partID);
     _blobsMMap     = new memoryMappedFile (name, memoryMappedFile_readOnly);
     _blobs         = (void *)_blobsMMap->get(0);
     //fprintf(stderr, " -- openend '%s' at "F_X64"\n", name, _blobs);
@@ -963,8 +963,8 @@ gkStore::gkStore_buildPartitions(uint32 *partitionMap) {
     partRead.gkRead_copyDataToPartition(_blobs, blobfiles, blobfileslen, pi);
 
 #if 1
-    fprintf(stderr, "read %u=%u len %u -- blob master "F_U64" -- to part %u new read id %u blob %u/"F_U64" -- at readIdx %u\n",
-            fi, _reads[fi]._readID, _reads[fi]._seqLen,
+    fprintf(stderr, "read "F_U32"="F_U32" len "F_U32" -- blob master "F_U64" -- to part "F_U32" new read id "F_U32" blob "F_U64"/"F_U64" -- at readIdx "F_U32"\n",
+            fi, _reads[fi].gkRead_readID(), _reads[fi].gkRead_sequenceLength(),
             _reads[fi]._mPtr,
             pi,
             partRead.gkRead_readID(), partRead._pID, partRead._mPtr,
@@ -988,7 +988,7 @@ gkStore::gkStore_buildPartitions(uint32 *partitionMap) {
   fclose(rIDmF);
 
   for (uint32 i=1; i<=maxPartition; i++) {
-    fprintf(stderr, "partition %u has %u reads\n", i, readfileslen[i]);
+    fprintf(stderr, "partition "F_U32" has "F_U32" reads\n", i, readfileslen[i]);
 
     errno = 0;
 

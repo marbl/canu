@@ -582,7 +582,7 @@ public:
       }
     }
 
-    fprintf(stderr, "Marked "F_U64" reads so skip OBT, "F_U64" reads to skip dedupe.\n", numSkipOBT, numSkipDUP);
+    fprintf(stderr, "Marked "F_U32" reads so skip OBT, "F_U32" reads to skip dedupe.\n", numSkipOBT, numSkipDUP);
   };
 
   ~ovStoreFilter() {

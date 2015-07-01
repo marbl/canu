@@ -279,7 +279,7 @@ Overlap_forCNS(char  *aStr, uint32  aLen,
 
     if (quality < erate)
       return(&O);
-
-    return(NULL);
   }
+
+  return(NULL);
 }

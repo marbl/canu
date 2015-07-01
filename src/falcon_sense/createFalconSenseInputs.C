@@ -104,7 +104,7 @@ main(int argc, char **argv) {
   if (numReadsPer > 0)
     numPartitions = nReadsInTigs / numReadsPer + 1;
 
-  fprintf(stderr, "Will partition "F_U32" total child reads into "F_U32" partitions.\n",
+  fprintf(stderr, "Will partition "F_U64" total child reads into "F_U32" partitions.\n",
           nReadsInTigs, numPartitions);
 
   //  Decide on a partitioning, based on total reads per tig.

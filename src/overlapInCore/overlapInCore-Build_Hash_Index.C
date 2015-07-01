@@ -48,7 +48,7 @@ Add_Extra_Hash_String(const char *s) {
     if (sub >= String_Start_Size) {
       uint64  n = max(sub * 1.1, String_Start_Size * 1.5);
 
-      fprintf(stderr, "REALLOC String_Start from "F_U64" to "F_U64"\n", String_Start_Size, n);
+      //fprintf(stderr, "REALLOC String_Start from "F_U64" to "F_U64"\n", String_Start_Size, n);
       resizeArray(String_Start, String_Start_Size, String_Start_Size, n);
     }
 
@@ -62,7 +62,7 @@ Add_Extra_Hash_String(const char *s) {
   if (new_len >= Extra_Data_Len) {
     uint64  n = max(new_len * 1.1, Extra_Data_Len * 1.5);
 
-    fprintf(stderr, "REALLOC basesData from "F_U64" to "F_U64"\n", Extra_Data_Len, n);
+    //fprintf(stderr, "REALLOC basesData from "F_U64" to "F_U64"\n", Extra_Data_Len, n);
     resizeArray(basesData, Extra_Data_Len, Extra_Data_Len, n);
   }
 
@@ -530,7 +530,7 @@ Build_Hash_Index(gkStore *gkpStore, uint32 bgnID, uint32 endID) {
     //  This was computed ahead of time!
 
     if (total_len > maxAlloc)
-      fprintf(stderr, "total_len="F_U32"  len="F_U32"  maxAlloc="F_U64"\n", total_len, len, maxAlloc);
+      fprintf(stderr, "total_len="F_U64"  len="F_U32"  maxAlloc="F_U64"\n", total_len, len, maxAlloc);
     assert(total_len <= maxAlloc);
 
     //  What is Extra_Data_Len?  It's set to Data_Len if we would have reallocated here.

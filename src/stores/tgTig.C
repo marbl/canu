@@ -118,6 +118,8 @@ tgTigRecord::operator=(tgTig & tg) {
   _gappedLen           = tg._gappedLen;
   _childrenLen         = tg._childrenLen;
   _childDeltasLen      = tg._childDeltasLen;
+
+  return(*this);
 }
 
 
@@ -140,6 +142,8 @@ tgTig::operator=(tgTigRecord & tr) {
   _gappedLen           = tr._gappedLen;
   _childrenLen         = tr._childrenLen;
   _childDeltasLen      = tr._childDeltasLen;
+
+  return(*this);
 }
 
 
@@ -175,6 +179,8 @@ tgTig::operator=(tgTig & tg) {
 
   _childDeltasLen = tg._childDeltasLen;
   duplicateArray(_childDeltas, _childDeltasLen, _childDeltasMax, tg._childDeltas, tg._childDeltasLen, tg._childDeltasMax);
+
+  return(*this);
 }
 
 
@@ -452,7 +458,7 @@ tgTig::loadLayout(FILE *F) {
         fprintf(stderr, "tgTig::loadLayout()-- '%s' line "F_U64" invalid: '%s'\n", W[0], LINEnum, LINE), exit(1);
 
       if (nChildren >= _childrenLen) {
-        fprintf(stderr, "tgTig::loadLayout()-- '%s' line "F_U64" invalid: more children than claimed, adjusting\n", W[0], LINEnum, LINE);
+        fprintf(stderr, "tgTig::loadLayout()-- '%s' line "F_U64" invalid: more children than claimed, adjusting\n", W[0], LINEnum);
         resizeArray(_children, _childrenLen, _childrenMax, _childrenLen + 1, resizeArray_copyData);
         _childrenLen++;
       }

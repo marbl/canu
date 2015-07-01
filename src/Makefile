@@ -376,6 +376,8 @@ ifeq (${OSTYPE}, Linux)
   CXXFLAGS  += -D_GLIBCXX_PARALLEL -fopenmp
   LDFLAGS   +=                     -fopenmp
 
+  CXXFLAGS  += -Wall -Wextra -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat
+
   ifeq ($(BUILDPROFILE), 1)
     CXXFLAGS  += 
     LDFLAGS   += -pg
@@ -422,6 +424,8 @@ ifeq (${OSTYPE}, FreeBSD)
 
   CXXFLAGS  += -fopenmp
   LDFLAGS   += -fopenmp -rpath /usr/local/lib/gcc48
+
+  #CXXFLAGS  += -Wall -Wextra -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat
 
   #  Google Performance Tools malloc and heapchecker (HEAPCHECK=normal)
   #CXXFLAGS  += 

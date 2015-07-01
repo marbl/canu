@@ -295,15 +295,10 @@ prepareBatch(merylArgs *args) {
   }
 
   if (args->beVerbose) {
-    if (args->memoryLimit)
-      fprintf(stderr, "Computing "F_U64" segments using "F_U32" threads and "F_U64"MB memory ("F_U64"MB if in one batch).\n",
-              args->segmentLimit, args->numThreads,
-              estimateMemory(args->merSize, args->mersPerBatch, args->positionsEnabled) * args->numThreads,
-              estimateMemory(args->merSize, args->numMersActual, args->positionsEnabled));
-    else
-      fprintf(stderr, "Computing "F_U64" segments using "F_U32" threads and "F_U64"MB memory ("F_U64"MB if in one batch).\n",
-              estimateMemory(args->merSize, args->mersPerBatch, args->positionsEnabled) * args->numThreads,
-              estimateMemory(args->merSize, args->numMersActual, args->positionsEnabled));
+    fprintf(stderr, "Computing "F_U64" segments using "F_U32" threads and "F_U64"MB memory ("F_U64"MB if in one batch).\n",
+            args->segmentLimit, args->numThreads,
+            estimateMemory(args->merSize, args->mersPerBatch, args->positionsEnabled) * args->numThreads,
+            estimateMemory(args->merSize, args->numMersActual, args->positionsEnabled));
 
     fprintf(stderr, "  numMersActual      = "F_U64"\n", args->numMersActual);
     fprintf(stderr, "  mersPerBatch       = "F_U64"\n", args->mersPerBatch);

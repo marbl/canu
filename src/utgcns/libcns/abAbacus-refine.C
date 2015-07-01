@@ -1189,9 +1189,11 @@ IdentifyWindow(abAbacus               *abacus,
   //  SSSSS SSSSS => SSSSS .SSSS+ => SSSSS  .SSSS+
   //  SSSSS SSSSS    SSSSS .SSSS+    SSSSS  .SSSS+
   //  SSSSS_SSSSS    SSSSS_.SSSS+    SSSSS__.SSSS+
-  //  |               \                                                 \
-  //  |\_______________\_______________\______ growing 'gappy' window
+  //  |              |               | 
+  //  |\_____________|_______________|____ growing 'gappy' window
+  //  |
   //  start_column
+
   if (level == abAbacus_Indel) {  //  4
     int32 cum_mm=0;
     int32 stab_mm=0;

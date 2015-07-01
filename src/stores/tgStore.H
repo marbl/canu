@@ -157,14 +157,12 @@ private:
 inline
 bool
 tgStore::isDeleted(uint32 tigID) {
-  assert(tigID >= 0);
   return(_tigEntry[tigID].isDeleted);
 }
 
 inline
 double
 tgStore::getCoverageStat(uint32 tigID) {
-  assert(tigID >= 0);
   assert(tigID < _tigLen);
   return(_tigEntry[tigID].tigRecord._coverageStat);
 }
@@ -172,7 +170,6 @@ tgStore::getCoverageStat(uint32 tigID) {
 inline
 double
 tgStore::getMicroHetProb(uint32 tigID) {
-  assert(tigID >= 0);
   assert(tigID < _tigLen);
   return(_tigEntry[tigID].tigRecord._microhetProb);
 }
@@ -180,7 +177,6 @@ tgStore::getMicroHetProb(uint32 tigID) {
 inline
 bool
 tgStore::getSuggestRepeat(uint32 tigID) {
-  assert(tigID >= 0);
   assert(tigID < _tigLen);
   return(_tigEntry[tigID].tigRecord._suggestRepeat);
 }
@@ -188,7 +184,6 @@ tgStore::getSuggestRepeat(uint32 tigID) {
 inline
 bool
 tgStore::getSuggestUnique(uint32 tigID) {
-  assert(tigID >= 0);
   assert(tigID < _tigLen);
   return(_tigEntry[tigID].tigRecord._suggestUnique);
 }
@@ -196,7 +191,6 @@ tgStore::getSuggestUnique(uint32 tigID) {
 inline
 bool
 tgStore::getSuggestCircular(uint32 tigID) {
-  assert(tigID >= 0);
   assert(tigID < _tigLen);
   return(_tigEntry[tigID].tigRecord._suggestCircular);
 }
@@ -204,7 +198,6 @@ tgStore::getSuggestCircular(uint32 tigID) {
 inline
 bool
 tgStore::getSuggestHaploid(uint32 tigID) {
-  assert(tigID >= 0);
   assert(tigID < _tigLen);
   return(_tigEntry[tigID].tigRecord._suggestHaploid);
 }
@@ -212,14 +205,12 @@ tgStore::getSuggestHaploid(uint32 tigID) {
 inline
 uint32
 tgStore::getNumChildren(uint32 tigID) {
-  assert(tigID >= 0);
   return(_tigEntry[tigID].tigRecord._childrenLen);
 }
 
 inline
 void
 tgStore::setCoverageStat(uint32 tigID, double cs) {
-  assert(tigID >= 0);
   assert(tigID < _tigLen);
   _tigEntry[tigID].tigRecord._coverageStat = cs;
   if (_tigCache[tigID])
@@ -229,7 +220,6 @@ tgStore::setCoverageStat(uint32 tigID, double cs) {
 inline
 void
 tgStore::setMicroHetProb(uint32 tigID, double mp) {
-  assert(tigID >= 0);
   assert(tigID < _tigLen);
   _tigEntry[tigID].tigRecord._microhetProb = mp;
   if (_tigCache[tigID])
@@ -239,7 +229,6 @@ tgStore::setMicroHetProb(uint32 tigID, double mp) {
 inline
 void
 tgStore::setSuggestRepeat(uint32 tigID, bool enable) {
-  assert(tigID >= 0);
   assert(tigID < _tigLen);
   _tigEntry[tigID].tigRecord._suggestRepeat = enable;
   if (_tigCache[tigID])
@@ -249,7 +238,6 @@ tgStore::setSuggestRepeat(uint32 tigID, bool enable) {
 inline
 void
 tgStore::setSuggestUnique(uint32 tigID, bool enable) {
-  assert(tigID >= 0);
   assert(tigID < _tigLen);
   _tigEntry[tigID].tigRecord._suggestUnique = enable;
   if (_tigCache[tigID])
@@ -259,7 +247,6 @@ tgStore::setSuggestUnique(uint32 tigID, bool enable) {
 inline
 void
 tgStore::setSuggestCircular(uint32 tigID, bool enable) {
-  assert(tigID >= 0);
   assert(tigID < _tigLen);
   _tigEntry[tigID].tigRecord._suggestCircular = enable;
   if (_tigCache[tigID])
@@ -269,7 +256,6 @@ tgStore::setSuggestCircular(uint32 tigID, bool enable) {
 inline
 void
 tgStore::setSuggestHaploid(uint32 tigID, bool enable) {
-  assert(tigID >= 0);
   assert(tigID < _tigLen);
   _tigEntry[tigID].tigRecord._suggestHaploid = enable;
   if (_tigCache[tigID])
@@ -279,7 +265,6 @@ tgStore::setSuggestHaploid(uint32 tigID, bool enable) {
 inline
 uint32
 tgStore::getVersion(uint32 tigID) {
-  assert(tigID >= 0);
   assert(tigID < _tigLen);
   return(_tigEntry[tigID].svID);
 }

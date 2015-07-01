@@ -17,9 +17,8 @@ public:
   uint32 IncBaseCount(char c) {
     uint32 r = baseToIndex[c];
 
-    if ((r < 0) || (r > 5))
+    if (r > 5)
       fprintf(stderr, "IncBaseCount c=%d '%c' r=%u out of range.\n", c, c, r);
-    assert(0 <= r);
     assert(r <= 5);
 
     _depth++;
@@ -30,9 +29,8 @@ public:
   uint32 DecBaseCount(char c) {
     uint32 r = baseToIndex[c];
 
-    if ((r < 0) || (r > 5))
+    if (r > 5)
       fprintf(stderr, "DecBaseCount c=%d '%c' r=%u out of range.\n", c, c, r);
-    assert(0 <= r);
     assert(r <= 5);
 
     _depth--;
@@ -43,9 +41,8 @@ public:
   uint32 GetBaseCount(char c) {
     uint32 r = baseToIndex[c];
 
-    if ((r < 0) || (r > 5))
+    if (r > 5)
       fprintf(stderr, "GetBaseCount c=%d '%c' r=%u out of range.\n", c, c, r);
-    assert(0 <= r);
     assert(r <= 5);
 
     return(_count[r]);

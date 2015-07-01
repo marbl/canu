@@ -289,11 +289,11 @@ public:
   ~gkRead() {
   };
 
-  uint32      gkRead_readID(void)             { return(_readID);           };
+  uint32      gkRead_readID(void)             { return((uint32)_readID);           };
 
-  uint32      gkRead_libraryID(void)          { return(_libraryID);        };
+  uint32      gkRead_libraryID(void)          { return((uint32)_libraryID);        };
 
-  uint32      gkRead_sequenceLength(void)     { return(_seqLen);           };
+  uint32      gkRead_sequenceLength(void)     { return((uint32)_seqLen);           };
 
   uint64      gkRead_mPtr(void) { return(_mPtr); };  //  For debugging, in gatekeeperDumpMetatData
   uint64      gkRead_pID(void)  { return(_pID);  };

@@ -106,7 +106,7 @@ ovStore::ovStore_read(void) {
             _storePath), exit(1);
 
   if (_info._ovsVersion != ovStoreVersion)
-    fprintf(stderr, "ERROR:  overlapStore '%s' is version "F_U64"; this code supports only version %d.\n",
+    fprintf(stderr, "ERROR:  overlapStore '%s' is version "F_U64"; this code supports only version "F_U64".\n",
             _storePath, _info._ovsVersion, ovStoreVersion), exit(1);
 
   if (_info._maxReadLenInBits != AS_MAX_READLEN_BITS)
@@ -1355,7 +1355,7 @@ ovStoreFilter::filterOverlap(ovOverlap       &foverlap,
       (foverlap.b_iid >= maxID)) {
     char ovlstr[256];
 
-    fprintf(stderr, "Overlap has IDs out of range (maxID "F_U64"), possibly corrupt input data.\n", maxID);
+    fprintf(stderr, "Overlap has IDs out of range (maxID "F_U32"), possibly corrupt input data.\n", maxID);
     fprintf(stderr, "  coords -- %s\n", foverlap.toString(ovlstr, ovOverlapAsCoords, false));
     fprintf(stderr, "  hangs  -- %s\n", foverlap.toString(ovlstr, ovOverlapAsHangs, false));
     exit(1);

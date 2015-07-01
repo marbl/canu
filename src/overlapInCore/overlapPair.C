@@ -217,6 +217,8 @@ recomputeOverlaps(void *ptr) {
 
   if (nFailed + nPassed > 0)
     fprintf(stderr, "Thread %u finished -- %u failed %u passed.\n", WA->threadID, nFailed, nPassed);
+
+  return(NULL);
 }
 
 

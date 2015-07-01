@@ -353,7 +353,6 @@ tgStore::insertTig(tgTig *tig, bool keepInCache) {
 
 void
 tgStore::deleteTig(uint32 tigID) {
-  assert(tigID >= 0);
   assert(tigID <  _tigLen);
 
   flushDisk(tigID);
@@ -418,12 +417,6 @@ tgStore::loadTig(uint32 tigID) {
     _tigCache[tigID] = new tgTig;
     _tigCache[tigID]->loadFromStream(FP);
 
-#warning not detecting failure in loadFromStream()
-    if (_tigCache[tigID] == NULL)
-      fprintf(stderr,"loadTig()-- FAILED for tig "F_S32" in file "F_U64" at offset "F_U64"\n",
-              tigID, _tigEntry[tigID].svID, _tigEntry[tigID].fileOffset);
-    assert(_tigCache[tigID] != NULL);
-
     //  ALWAYS assume the incore record is more up to date
     *_tigCache[tigID] = _tigEntry[tigID].tigRecord;
 
@@ -454,7 +447,6 @@ tgStore::unloadTig(uint32 tigID, bool discard) {
 void
 tgStore::copyTig(uint32 tigID, tgTig *tigcopy) {
 
-  assert(tigID >= 0);
   assert(tigID <  _tigLen);
 
   //  Deleted?  Clear it and return.

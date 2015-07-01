@@ -30,6 +30,7 @@ Matching_Char(Vote_Value_t vv) {
     case C_SUBST:  return('C');  break;
     case G_SUBST:  return('G');  break;
     case T_SUBST:  return('T');  break;
+    default:       return('?');  break;
   }
 
   return('?');
@@ -267,7 +268,7 @@ analyzeAlignment::analyze(char  *aSeq, int32 aLen,  int32 aOffset,
 
 void
 analyzeAlignment::outputDetails(uint32 j) {
-  fprintf(stderr, "%3d: %c  conf %3d  deletes %3d | subst %3d %3d %3d %3d | no_insert %3d insert %3d %3d %3d %3d\n",
+  fprintf(stderr, "%3"F_U32P": %c  conf %3"F_U64P"  deletes %3"F_U64P" | subst %3"F_U64P" %3"F_U64P" %3"F_U64P" %3"F_U64P" | no_insert %3"F_U64P" insert %3"F_U64P" %3"F_U64P" %3"F_U64P" %3"F_U64P"\n",
           j,
           _seq[j],
           _vote[j].confirmed,
@@ -330,7 +331,7 @@ analyzeAlignment::generateCorrections(FILE *corFile) {
 
     if  (_vote[j].confirmed < 2) {
       Vote_Value_t  vval      = DELETE;
-      int32         max       = _vote[j].deletes;
+      uint64        max       = _vote[j].deletes;
       bool          is_change = true;
 
       passedLowConfirmed++;
@@ -359,17 +360,17 @@ analyzeAlignment::generateCorrections(FILE *corFile) {
         is_change = (_seq[j] != 'T');
       }
 
-      int32 haplo_ct  =  ((_vote[j].deletes >= Min_Haplo_Occurs) +
-                          (_vote[j].a_subst >= Min_Haplo_Occurs) +
-                          (_vote[j].c_subst >= Min_Haplo_Occurs) +
-                          (_vote[j].g_subst >= Min_Haplo_Occurs) +
-                          (_vote[j].t_subst >= Min_Haplo_Occurs));
+      uint64 haplo_ct  =  ((_vote[j].deletes >= Min_Haplo_Occurs) +
+                           (_vote[j].a_subst >= Min_Haplo_Occurs) +
+                           (_vote[j].c_subst >= Min_Haplo_Occurs) +
+                           (_vote[j].g_subst >= Min_Haplo_Occurs) +
+                           (_vote[j].t_subst >= Min_Haplo_Occurs));
 
-      int32 total  = (_vote[j].deletes +
-                      _vote[j].a_subst +
-                      _vote[j].c_subst +
-                      _vote[j].g_subst +
-                      _vote[j].t_subst);
+      uint64 total  = (_vote[j].deletes +
+                       _vote[j].a_subst +
+                       _vote[j].c_subst +
+                       _vote[j].g_subst +
+                       _vote[j].t_subst);
 
       //  The original had a gargantuan if test (five clauses, all had to be true) to decide if a
       //  record should be output.  It was negated into many small tests if we should skip the
@@ -378,28 +379,28 @@ analyzeAlignment::generateCorrections(FILE *corFile) {
 
       //  (total > 1)
       if (total <= 1) {
-        fprintf(stderr, "FEW   total = %d <= 1\n", total);
+        fprintf(stderr, "FEW   total = "F_U64" <= 1\n", total);
         skippedTooFew++;
         continue;
       }
 
       //  (2 * max > total)
       if (2 * max <= total) {
-        fprintf(stderr, "WEAK  2*max = %d <= total = %d\n", 2*max, total);
+        fprintf(stderr, "WEAK  2*max = "F_U64" <= total = "F_U64"\n", 2*max, total);
         skippedTooWeak++;
         continue;
       }
 
       //  (is_change == true)
       if (is_change == false) {
-        fprintf(stderr, "SAME  is_change = %d\n", is_change);
+        fprintf(stderr, "SAME  is_change = %s\n", (is_change) ? "true" : "false");
         skippedNoChange++;
         continue;
       }
 
       //  ((haplo_ct < 2) || (Use_Haplo_Ct == false))
       if ((haplo_ct >= 2) && (Use_Haplo_Ct == true)) {
-        fprintf(stderr, "HAPLO haplo_ct=%d >= 2 AND Use_Haplo_Ct = %d\n", haplo_ct, Use_Haplo_Ct);
+        fprintf(stderr, "HAPLO haplo_ct="F_U64" >= 2 AND Use_Haplo_Ct = %s\n", haplo_ct, (Use_Haplo_Ct) ? "true" : "false");
         skippedHaplo++;
         continue;
       }
@@ -408,7 +409,7 @@ analyzeAlignment::generateCorrections(FILE *corFile) {
       //   ((_vote[j].confirmed == 1) && (max > 6)))
       if ((_vote[j].confirmed > 0) &&
           ((_vote[j].confirmed != 1) || (max <= 6))) {
-        fprintf(stderr, "INDET confirmed = %d max = %d\n", _vote[j].confirmed, max);
+        fprintf(stderr, "INDET confirmed = "F_U64" max = "F_U64"\n", _vote[j].confirmed, max);
         skippedConfirmed++;
         continue;
       }
@@ -417,7 +418,7 @@ analyzeAlignment::generateCorrections(FILE *corFile) {
 
       substitutions++;
 
-      fprintf(stderr, "SUBSTITUTE position %d to %c\n", j, Matching_Char(vval));
+      fprintf(stderr, "SUBSTITUTE position "F_U32" to %c\n", j, Matching_Char(vval));
 
       _cor[_corLen].type       = vval;
       _cor[_corLen].pos        = j;
@@ -430,7 +431,7 @@ analyzeAlignment::generateCorrections(FILE *corFile) {
 
     if  (_vote[j].no_insert < 2) {
       Vote_Value_t  ins_vote = A_INSERT;
-      int32         ins_max  = _vote[j].a_insert;
+      uint64        ins_max  = _vote[j].a_insert;
 
       passedInsert++;
 
@@ -449,37 +450,37 @@ analyzeAlignment::generateCorrections(FILE *corFile) {
         ins_max  = _vote[j].t_insert;
       }
 
-      int32 ins_haplo_ct = ((_vote[j].a_insert >= Min_Haplo_Occurs) +
-                            (_vote[j].c_insert >= Min_Haplo_Occurs) +
-                            (_vote[j].g_insert >= Min_Haplo_Occurs) +
-                            (_vote[j].t_insert >= Min_Haplo_Occurs));
+      uint64 ins_haplo_ct = ((_vote[j].a_insert >= Min_Haplo_Occurs) +
+                             (_vote[j].c_insert >= Min_Haplo_Occurs) +
+                             (_vote[j].g_insert >= Min_Haplo_Occurs) +
+                             (_vote[j].t_insert >= Min_Haplo_Occurs));
 
-      int32 ins_total = (_vote[j].a_insert +
-                         _vote[j].c_insert +
-                         _vote[j].g_insert +
-                         _vote[j].t_insert);
+      uint64 ins_total = (_vote[j].a_insert +
+                          _vote[j].c_insert +
+                          _vote[j].g_insert +
+                          _vote[j].t_insert);
 
       if (ins_total <= 1) {
-        fprintf(stderr, "FEW   ins_total = %d <= 1\n", ins_total);
+        fprintf(stderr, "FEW   ins_total = "F_U64" <= 1\n", ins_total);
         skippedInsTotal++;
         continue;
       }
 
       if (2 * ins_max >= ins_total) {
-        fprintf(stderr, "WEAK  2*ins_max = %d <= ins_total = %d\n", 2*ins_max, ins_total);
+        fprintf(stderr, "WEAK  2*ins_max = "F_U64" <= ins_total = "F_U64"\n", 2*ins_max, ins_total);
         skippedInsMax++;
         continue;
       }
 
       if ((ins_haplo_ct >= 2) && (Use_Haplo_Ct == true)) {
-        fprintf(stderr, "HAPLO ins_haplo_ct=%d >= 2 AND Use_Haplo_Ct = %d\n", ins_haplo_ct, Use_Haplo_Ct);
+        fprintf(stderr, "HAPLO ins_haplo_ct="F_U64" >= 2 AND Use_Haplo_Ct = %s\n", ins_haplo_ct, (Use_Haplo_Ct) ? "true" : "false");
         skippedInsHaplo++;
         continue;
       }
 
       if ((_vote[j].no_insert > 0) &&
           ((_vote[j].no_insert != 1) || (ins_max <= 6))) {
-        fprintf(stderr, "INDET no_insert = %d ins_max = %d\n", _vote[j].no_insert, ins_max);
+        fprintf(stderr, "INDET no_insert = "F_U64" ins_max = "F_U64"\n", _vote[j].no_insert, ins_max);
         skippedInsTooMany++;
         continue;
       }
@@ -488,7 +489,7 @@ analyzeAlignment::generateCorrections(FILE *corFile) {
 
       insertions++;
 
-      fprintf(stderr, "INSERT position %d to %c\n", j, Matching_Char(ins_vote));
+      fprintf(stderr, "INSERT position "F_U32" to %c\n", j, Matching_Char(ins_vote));
 
       _cor[_corLen].type       = ins_vote;
       _cor[_corLen].pos        = j;

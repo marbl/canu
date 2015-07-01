@@ -446,7 +446,7 @@ outputOverlaps(gkStore           *gkpStore,
       }
 
       if ((no & 0x000fffff) == 0)
-        fprintf(stderr, "  overlap %10"F_U64P" %8"F_U32P"-%8"F_U32P"\r", a_iid, b_iid);
+        fprintf(stderr, "  overlap %10"F_U64P" %8"F_U32P"-%8"F_U32P"\r", no, a_iid, b_iid);
     }
   }
 

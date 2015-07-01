@@ -88,7 +88,7 @@ Extract_Needed_Frags(feParameters *G,
 
   fprintf(stderr, "Extract_Needed_Frags()--  Loading reads for overlaps "F_U64" to "F_U64"\n",
           nextOlap, lastOlap);
-  fprintf(stderr, "Extract_Needed_Frags()--  reads %u bases %u\n", fl->readsLen, fl->basesLen);
+  fprintf(stderr, "Extract_Needed_Frags()--  reads "F_U32" bases "F_U64"\n", fl->readsLen, fl->basesLen);
 
   //  Ensure there is space.
 
@@ -96,7 +96,7 @@ Extract_Needed_Frags(feParameters *G,
     delete [] fl->readIDs;
     delete [] fl->readBases;
 
-    fprintf(stderr, "realloc reads from "F_U64" to "F_U64"\n", fl->readsMax, 12 * fl->readsLen / 10);
+    fprintf(stderr, "realloc reads from "F_U32" to "F_U32"\n", fl->readsMax, 12 * fl->readsLen / 10);
 
     fl->readIDs   = new uint32 [12 * fl->readsLen / 10];
     fl->readBases = new char * [12 * fl->readsLen / 10];

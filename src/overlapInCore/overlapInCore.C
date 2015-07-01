@@ -531,7 +531,7 @@ main(int argc, char **argv) {
   fprintf(stderr, "Max_Hash_Strings      "F_U32"\n", G.Max_Hash_Strings);
   fprintf(stderr, "Max_Hash_Data_Len     "F_U64"\n", G.Max_Hash_Data_Len);
   fprintf(stderr, "Max_Hash_Load         %f\n", G.Max_Hash_Load);
-  fprintf(stderr, "Kmer Length           %d\n", G.Kmer_Len);
+  fprintf(stderr, "Kmer Length           "F_U64"\n", G.Kmer_Len);
   fprintf(stderr, "Min Overlap Length    %d\n", G.Min_Olap_Len);
   fprintf(stderr, "Max Error Rate        %f\n", G.Max_Erate);
   fprintf(stderr, "\n");

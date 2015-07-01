@@ -298,7 +298,7 @@ dumpConsensus(tgStore *tigStore,
   //  useful info with the sequence.
 
   if (minCoverage == 0) {
-    fprintf(stdout, ">tig%d len="F_U64" reads="F_U32" microHet=%.2f covStat=%.2f\n%s\n",
+    fprintf(stdout, ">tig"F_U32" len="F_U32" reads="F_U32" microHet=%.2f covStat=%.2f\n%s\n",
             tig->tigID(),
             len,
             tig->numberOfChildren(),
@@ -1005,12 +1005,12 @@ main (int argc, char **argv) {
   if (opType == OPERATION_PROPERTIES) {
     for (uint32 i=0; i<tigStore->numTigs(); i++) {
       if (tigStore->isDeleted(i) == false) {
-        fprintf(stdout, "coverageStat     %8u %d\n", i, tigStore->getCoverageStat(i));
-        fprintf(stdout, "microhetProb     %8u %f\n", i, tigStore->getMicroHetProb(i));
-        fprintf(stdout, "suggestRepeat    %8u %c\n", i, tigStore->getSuggestRepeat(i)   ? 'T' : 'F');
-        fprintf(stdout, "suggestUnique    %8u %c\n", i, tigStore->getSuggestUnique(i)   ? 'T' : 'F');
-        fprintf(stdout, "suggestCircular  %8u %c\n", i, tigStore->getSuggestCircular(i) ? 'T' : 'F');
-        fprintf(stdout, "suggestHaploid   %8u %c\n", i, tigStore->getSuggestHaploid(i)  ? 'T' : 'F');
+        fprintf(stdout, "coverageStat     %8"F_U32P" %f\n", i, tigStore->getCoverageStat(i));
+        fprintf(stdout, "microhetProb     %8"F_U32P" %f\n", i, tigStore->getMicroHetProb(i));
+        fprintf(stdout, "suggestRepeat    %8"F_U32P" %c\n", i, tigStore->getSuggestRepeat(i)   ? 'T' : 'F');
+        fprintf(stdout, "suggestUnique    %8"F_U32P" %c\n", i, tigStore->getSuggestUnique(i)   ? 'T' : 'F');
+        fprintf(stdout, "suggestCircular  %8"F_U32P" %c\n", i, tigStore->getSuggestCircular(i) ? 'T' : 'F');
+        fprintf(stdout, "suggestHaploid   %8"F_U32P" %c\n", i, tigStore->getSuggestHaploid(i)  ? 'T' : 'F');
       }
     }
   }

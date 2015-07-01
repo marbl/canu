@@ -9,18 +9,18 @@ public:
   ~abSequence() {
   };
 
-  uint32     const      gkpIdent(void)  { return(_iid);        };
-  abSeqID    const      ident(void)     { return(_lid);        };
+  uint32                gkpIdent(void)  { return(_iid);        };
+  abSeqID               ident(void)     { return(_lid);        };
 
-  abBeadID   const      firstBead(void)   { return(_firstbead);  };
-  abBaseID   const      firstBase(void)   { return(_firstbase);  };
-  //abColID    const      firstColumn(void) { needs abacus to get columns };
+  abBeadID              firstBead(void)   { return(_firstbead);  };
+  abBaseID              firstBase(void)   { return(_firstbase);  };
+  //abColID               firstColumn(void) { needs abacus to get columns };
 
-  //abBeadID    const     lastBead(void)    { return(_firstbead + _length - 1);  };
-  //abBaseID    const     lastBase(void)    { return(_firstbase + _length - 1);  };
-  abBeadID    const     lastBead(void)    { return(_lastbead);  };
-  abBaseID    const     lastBase(void)    { return(_lastbase);  };
-  //abColID     const     lastColumn(void)  { needs avacus to get columns };
+  //abBeadID              lastBead(void)    { return(_firstbead + _length - 1);  };
+  //abBaseID              lastBase(void)    { return(_firstbase + _length - 1);  };
+  abBeadID              lastBead(void)    { return(_lastbead);  };
+  abBaseID              lastBase(void)    { return(_lastbase);  };
+  //abColID               lastColumn(void)  { needs avacus to get columns };
 
   bool             isRead(void)    { return(_is_read);    };
 

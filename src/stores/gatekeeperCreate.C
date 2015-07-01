@@ -340,7 +340,7 @@ loadReads(gkStore    *gkpStore,
 
   lineNumber--;  //  The last fgets() returns EOF, but we still count the line.
 
-  fprintf(stderr, "    Processed "F_U32" lines.\n", lineNumber);
+  fprintf(stderr, "    Processed "F_U64" lines.\n", lineNumber);
 
   fprintf(stderr, "    Loaded "F_U64" bp from:\n", bLOADEDlocal);
   if (nFASTAlocal > 0)

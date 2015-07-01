@@ -137,7 +137,6 @@ IntEdge_ID find_overlap_edge_mate
   // For the uninitialized variable finder "man third".
   // I have cheated the accessor function rule here.
 
-  assert(0 <= ie0);
   assert(ie0 < nedge);
 
   reflect_Aedge( &test_edge, &test_edge);

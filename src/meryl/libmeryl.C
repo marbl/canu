@@ -506,8 +506,8 @@ merylStreamWriter::addMer(uint64 prefix,  uint32 prefixBits,
   assert(merBits              == _thisMerMerSize);
   assert(prefixBits + merBits == _merSizeInBits);
 
-  if ((prefix <  _thisMerPre) ||
-      (prefix <= _thisMerPre) && (mer < _thisMerMer)) {
+  if (((prefix <  _thisMerPre)) ||
+      ((prefix <= _thisMerPre) && (mer < _thisMerMer))) {
     assert(0);
   }
 

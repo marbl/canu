@@ -37,8 +37,8 @@ public:
   //int32               &bgnset(void)             { return(_bgn); };
   //int32               &endset(void)             { return(_end); };
 
-  int32          const bgn(void) const       { return((_isReverse == false) ? _min : _max); };
-  int32          const end(void) const       { return((_isReverse == false) ? _max : _min); };
+  int32                bgn(void) const       { return((_isReverse == false) ? _min : _max); };
+  int32                end(void) const       { return((_isReverse == false) ? _max : _min); };
 
   int32                min(void) const       { return(_min); };
   int32                max(void) const       { return(_max); };

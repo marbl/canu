@@ -11,8 +11,8 @@ const char *mainid = "$Id: tgStoreDump.C 6665 2015-01-13 16:48:09Z bri $";
 int
 main(int argc, char **argv) {
   tgTig  tig;
-  char  *gkpName;
-  char  *tigFileName;
+  char  *gkpName     = NULL;
+  char  *tigFileName = NULL;
 
   argc = AS_configure(argc, argv);
 

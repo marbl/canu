@@ -13,7 +13,7 @@ ovOverlap::toString(char                  *str,
   
   switch (type) {
     case ovOverlapAsHangs:
-      sprintf(str, "%10"F_U32P" %10"F_U32P"  %c  %6"F_S32P" %6"F_S32P" %6"F_S32P"  %7.6f%s%s",
+      sprintf(str, "%10"F_U32P" %10"F_U32P"  %c  %6"F_S32P" %6"F_U32P" %6"F_S32P"  %7.6f%s%s",
               a_iid, b_iid,
               flipped() ? 'I' : 'N',
               a_hang(), span(), b_hang(),
@@ -23,7 +23,7 @@ ovOverlap::toString(char                  *str,
       break;
 
     case ovOverlapAsCoords:
-      sprintf(str, "%10"F_U32P" %10"F_U32P"  %c  %6"F_S32P"  %6"F_U32P" %6"F_U32P"  %6"F_U32P" %6"F_U32P"  %7.6f%s",
+      sprintf(str, "%10"F_U32P" %10"F_U32P"  %c  %6"F_U32P"  %6"F_U32P" %6"F_U32P"  %6"F_U32P" %6"F_U32P"  %7.6f%s",
               a_iid, b_iid,
               flipped() ? 'I' : 'N',
               span(),
@@ -34,7 +34,7 @@ ovOverlap::toString(char                  *str,
       break;
 
     case ovOverlapAsRaw:
-      sprintf(str, "%10"F_U32P" %10"F_U32P"  %c  %6"F_S32P"  %6"F_U32P" %6"F_U32P"  %6"F_U32P" %6"F_U32P"  %7.6f %s %s %s%s",
+      sprintf(str, "%10"F_U32P" %10"F_U32P"  %c  %6"F_U32P"  %6"F_U64P" %6"F_U64P"  %6"F_U64P" %6"F_U64P"  %7.6f %s %s %s%s",
               a_iid, b_iid,
               flipped() ? 'I' : 'N',
               span(),
