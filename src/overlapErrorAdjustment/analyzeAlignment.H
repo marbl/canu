@@ -100,6 +100,7 @@ public:
 
 public:
   void   reset(uint32 id, char *seq, uint32 seqLen) {
+    fprintf(stderr, "reset() for read id %u of length %u\n", id, seqLen);
     _readID    = id;
 
     _seqLen    = seqLen;
@@ -123,6 +124,7 @@ public:
                  int32  deltaLen,
                  int32 *delta);
 
+  void   outputDetails(uint32 j);
   void   outputDetails(void);
 
   void   generateCorrections(FILE *corFile=NULL);

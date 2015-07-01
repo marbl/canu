@@ -21,6 +21,21 @@ Matching_Vote(char ch) {
 }
 
 
+static
+char
+Matching_Char(Vote_Value_t vv) {
+
+  switch  (vv) {
+    case A_SUBST:  return('A');  break;
+    case C_SUBST:  return('C');  break;
+    case G_SUBST:  return('G');  break;
+    case T_SUBST:  return('T');  break;
+  }
+
+  return('?');
+}
+
+
 
 
 //  This is expecting:
@@ -39,9 +54,6 @@ analyzeAlignment::analyze(char  *aSeq, int32 aLen,  int32 aOffset,
   assert(bLen >= 0);
 
   int32  ct = 0;
-
-  //  Necessary??
-  //memset(wa->globalvote, 0, sizeof(Vote_t) * AS_MAX_READLEN);
 
   _readSub[ct]   = -1;
   _algnSub[ct]   = -1;
@@ -199,6 +211,7 @@ analyzeAlignment::analyze(char  *aSeq, int32 aLen,  int32 aOffset,
 
   //  For each identified change, add votes for some region around the change.
 
+  //fprintf(stderr, "Found %u changes.\n", ct);
 
   for (int32 i=1; i<=ct; i++) {
     int32  prev_match = _algnSub[i] - _algnSub[i-1] - 1;
@@ -206,11 +219,17 @@ analyzeAlignment::analyze(char  *aSeq, int32 aLen,  int32 aOffset,
     int32  p_hi = (i == ct ? prev_match : prev_match - End_Exclude_Len);
 
     //  If distance to previous match is bigger than 'kmer' size, make a new vote.
+    //  This operates one ahead of where votes are added - we add votes for _readSub[i-1] when at [i].
 
     if (prev_match >= Kmer_Len) {
-      for (int32 p=0;  p<p_lo;  p++)
-        castVote(Matching_Vote(aSeq[_readSub[i-1] + p + 1]), aOffset + _readSub[i-1] + p + 1);
+      fprintf(stderr, "adjust ct %d pos %d - lo %d hi %d\n", i, _readSub[i-1], p_lo, p_hi);
 
+      fprintf(stderr, "  match vote %u to %u\n", aOffset + _readSub[i-1] + 1, aOffset + _readSub[i-1] + p_lo + 1);
+      for (int32 p=0;  p<p_lo;  p++) {
+        castVote(Matching_Vote(aSeq[_readSub[i-1] + p + 1]), aOffset + _readSub[i-1] + p + 1);
+      }
+
+      fprintf(stderr, "  no insert %u to %u\n", aOffset + _readSub[i-1] + p_lo + 1, aOffset + _readSub[i-1] + p_hi + 1);
       for (int32 p=p_lo;  p<p_hi;  p++) {
         int32 k = aOffset + _readSub[i-1] + p + 1;
 
@@ -222,8 +241,10 @@ analyzeAlignment::analyze(char  *aSeq, int32 aLen,  int32 aOffset,
           _vote[k].no_insert++;
       }
 
-      for (int32 p=p_hi; p<prev_match; p++)
+      fprintf(stderr, "  match vote %u to %u\n", aOffset + _readSub[i-1] + p_hi + 1, aOffset + _readSub[i-1] + prev_match + 1);
+      for (int32 p=p_hi; p<prev_match; p++) {
         castVote(Matching_Vote(aSeq[_readSub[i-1] + p + 1]), aOffset + _readSub[i-1] + p + 1);
+      }
     }
 
     //  Don't allow consecutive inserts.  If we aren't the last change, and there is non-adjacent
@@ -245,25 +266,29 @@ analyzeAlignment::analyze(char  *aSeq, int32 aLen,  int32 aOffset,
 
 
 void
+analyzeAlignment::outputDetails(uint32 j) {
+  fprintf(stderr, "%3d: %c  conf %3d  deletes %3d | subst %3d %3d %3d %3d | no_insert %3d insert %3d %3d %3d %3d\n",
+          j,
+          _seq[j],
+          _vote[j].confirmed,
+          _vote[j].deletes,
+          _vote[j].a_subst,
+          _vote[j].c_subst,
+          _vote[j].g_subst,
+          _vote[j].t_subst,
+          _vote[j].no_insert,
+          _vote[j].a_insert,
+          _vote[j].c_insert,
+          _vote[j].g_insert,
+          _vote[j].t_insert);
+};
+
+
+void
 analyzeAlignment::outputDetails(void) {
-
   fprintf(stderr, ">%d\n", _readID);
-
   for (uint32 j=0; _seq[j] != '\0'; j++)
-    fprintf(stderr, "%3d: %c  conf %3d  deletes %3d | subst %3d %3d %3d %3d | no_insert %3d insert %3d %3d %3d %3d\n",
-            j,
-            _seq[j],
-            _vote[j].confirmed,
-            _vote[j].deletes,
-            _vote[j].a_subst,
-            _vote[j].c_subst,
-            _vote[j].g_subst,
-            _vote[j].t_subst,
-            _vote[j].no_insert,
-            _vote[j].a_insert,
-            _vote[j].c_insert,
-            _vote[j].g_insert,
-            _vote[j].t_insert);
+    outputDetails(j);
 };
 
 
@@ -283,11 +308,32 @@ analyzeAlignment::generateCorrections(FILE *corFile) {
   _corLen++;
   resizeArray(_cor, _corLen, _corMax, _corLen+1);
 
+  uint32   passedLowConfirmed = 0;
+  uint32   substitutions      = 0;
+  uint32   skippedTooFew      = 0;   //  0 or 1 votes
+  uint32   skippedTooWeak     = 0;   //  No vote more than 50%
+  uint32   skippedNoChange    = 0;   //  Is a substitution vote, but it's the same as the base that is there
+  uint32   skippedHaplo       = 0;   //  More than one significant vote, and we're not correcting haplotypes
+  uint32   skippedConfirmed   = 0;   //  ??
+
+
+  uint32   passedInsert       = 0;
+  uint32   insertions         = 0;
+  uint32   skippedInsTotal    = 0;
+  uint32   skippedInsMax      = 0;
+  uint32   skippedInsHaplo    = 0;
+  uint32   skippedInsTooMany  = 0;
+
   for (uint32 j=0; j<_seqLen; j++) {
+
+    outputDetails(j);
+
     if  (_vote[j].confirmed < 2) {
       Vote_Value_t  vval      = DELETE;
       int32         max       = _vote[j].deletes;
       bool          is_change = true;
+
+      passedLowConfirmed++;
 
       if  (_vote[j].a_subst > max) {
         vval      = A_SUBST;
@@ -325,34 +371,36 @@ analyzeAlignment::generateCorrections(FILE *corFile) {
                       _vote[j].g_subst +
                       _vote[j].t_subst);
 
-      //  The original had a gargantuajn if test (five clauses, all had to be true) to decide if a record should be output.
-      //  It was negated into many small tests if we should skip the output.
-      //  A side effect is that we can abort a little earlier in two cases (and we don't even bother).
-
-
-      //fprintf(stderr, "TEST   read %d position %d type %d -- ", i, j, vval);
+      //  The original had a gargantuan if test (five clauses, all had to be true) to decide if a
+      //  record should be output.  It was negated into many small tests if we should skip the
+      //  output.  A side effect is that we can abort a little earlier (skipping the two clauses
+      //  above)....but we don't bother.
 
       //  (total > 1)
       if (total <= 1) {
-        //fprintf(stderr, "FEW   total = %d <= 1\n", total);
+        fprintf(stderr, "FEW   total = %d <= 1\n", total);
+        skippedTooFew++;
         continue;
       }
 
       //  (2 * max > total)
       if (2 * max <= total) {
-        //fprintf(stderr, "WEAK  2*max = %d <= total = %d\n", 2*max, total);
+        fprintf(stderr, "WEAK  2*max = %d <= total = %d\n", 2*max, total);
+        skippedTooWeak++;
         continue;
       }
 
       //  (is_change == true)
       if (is_change == false) {
-        //fprintf(stderr, "SAME  is_change = %d\n", is_change);
+        fprintf(stderr, "SAME  is_change = %d\n", is_change);
+        skippedNoChange++;
         continue;
       }
 
       //  ((haplo_ct < 2) || (Use_Haplo_Ct == false))
       if ((haplo_ct >= 2) && (Use_Haplo_Ct == true)) {
-        //fprintf(stderr, "HAPLO haplo_ct=%d >= 2 AND Use_Haplo_Ct = %d\n", haplo_ct, Use_Haplo_Ct);
+        fprintf(stderr, "HAPLO haplo_ct=%d >= 2 AND Use_Haplo_Ct = %d\n", haplo_ct, Use_Haplo_Ct);
+        skippedHaplo++;
         continue;
       }
 
@@ -360,14 +408,20 @@ analyzeAlignment::generateCorrections(FILE *corFile) {
       //   ((_vote[j].confirmed == 1) && (max > 6)))
       if ((_vote[j].confirmed > 0) &&
           ((_vote[j].confirmed != 1) || (max <= 6))) {
-        //fprintf(stderr, "INDET confirmed = %d max = %d\n", _vote[j].confirmed, max);
+        fprintf(stderr, "INDET confirmed = %d max = %d\n", _vote[j].confirmed, max);
+        skippedConfirmed++;
         continue;
       }
 
       //  Otherwise, output.
 
+      substitutions++;
+
+      fprintf(stderr, "SUBSTITUTE position %d to %c\n", j, Matching_Char(vval));
+
       _cor[_corLen].type       = vval;
       _cor[_corLen].pos        = j;
+      _cor[_corLen].readID     = _readID;
 
       _corLen++;
       resizeArray(_cor, _corLen, _corMax, _corLen+1);
@@ -377,6 +431,8 @@ analyzeAlignment::generateCorrections(FILE *corFile) {
     if  (_vote[j].no_insert < 2) {
       Vote_Value_t  ins_vote = A_INSERT;
       int32         ins_max  = _vote[j].a_insert;
+
+      passedInsert++;
 
       if  (ins_max < _vote[j].c_insert) {
         ins_vote = C_INSERT;
@@ -403,38 +459,60 @@ analyzeAlignment::generateCorrections(FILE *corFile) {
                          _vote[j].g_insert +
                          _vote[j].t_insert);
 
-      //fprintf(stderr, "TEST   read %d position %d type %d (insert) -- ", i, j, ins_vote);
-
       if (ins_total <= 1) {
-        //fprintf(stderr, "FEW   ins_total = %d <= 1\n", ins_total);
+        fprintf(stderr, "FEW   ins_total = %d <= 1\n", ins_total);
+        skippedInsTotal++;
         continue;
       }
 
       if (2 * ins_max >= ins_total) {
-        //fprintf(stderr, "WEAK  2*ins_max = %d <= ins_total = %d\n", 2*ins_max, ins_total);
+        fprintf(stderr, "WEAK  2*ins_max = %d <= ins_total = %d\n", 2*ins_max, ins_total);
+        skippedInsMax++;
         continue;
       }
 
       if ((ins_haplo_ct >= 2) && (Use_Haplo_Ct == true)) {
-        //fprintf(stderr, "HAPLO ins_haplo_ct=%d >= 2 AND Use_Haplo_Ct = %d\n", ins_haplo_ct, Use_Haplo_Ct);
+        fprintf(stderr, "HAPLO ins_haplo_ct=%d >= 2 AND Use_Haplo_Ct = %d\n", ins_haplo_ct, Use_Haplo_Ct);
+        skippedInsHaplo++;
         continue;
       }
 
       if ((_vote[j].no_insert > 0) &&
           ((_vote[j].no_insert != 1) || (ins_max <= 6))) {
-        //fprintf(stderr, "INDET no_insert = %d ins_max = %d\n", _vote[j].no_insert, ins_max);
+        fprintf(stderr, "INDET no_insert = %d ins_max = %d\n", _vote[j].no_insert, ins_max);
+        skippedInsTooMany++;
         continue;
       }
 
       //  Otherwise, output.
 
-      _cor[_corLen].type  = ins_vote;
-      _cor[_corLen].pos   = j;
+      insertions++;
+
+      fprintf(stderr, "INSERT position %d to %c\n", j, Matching_Char(ins_vote));
+
+      _cor[_corLen].type       = ins_vote;
+      _cor[_corLen].pos        = j;
+      _cor[_corLen].readID     = _readID;
 
       _corLen++;
       resizeArray(_cor, _corLen, _corMax, _corLen+1);
     }  //  insert < 2
   }
+
+  fprintf(stderr, "Processed corrections: made %6u subs and %6u inserts - possible %6u (few %6u weak %6u same %6u haplo %6u confirmed %6u) inserts %6u (total %6u max %6u haplo %6u confirmed %6u)\n",
+          substitutions,
+          insertions,
+          passedLowConfirmed,
+          skippedTooFew,
+          skippedTooWeak,
+          skippedNoChange,
+          skippedHaplo,
+          skippedConfirmed,
+          passedInsert,
+          skippedInsTotal,
+          skippedInsMax,
+          skippedInsHaplo,
+          skippedInsTooMany);
 
   if (corFile)
     AS_UTL_safeWrite(corFile, _cor, "corrections", sizeof(Correction_Output_t), _corLen);
@@ -467,6 +545,7 @@ analyzeAlignment::generateCorrectedRead(Adjust_t *fadj, uint32 *fadjLen,
   for (uint32 i=0; i<_seqLen; i++) {
 
     //  No more corrections, or no more corrections for this read -- just copy bases till the end.
+
     if ((corPos == _corLen) || (_cor[corPos].readID != _readID)) {
       //fprintf(stderr, "no more corrections at i=%u, copy rest of read as is\n", i);
       while (i < _seqLen)
@@ -485,8 +564,6 @@ analyzeAlignment::generateCorrectedRead(Adjust_t *fadj, uint32 *fadjLen,
       fprintf(stderr, "i=%d corPos=%d _cor[corPos].pos=%d\n", i, corPos, _cor[corPos].pos);
     assert((i == _cor[corPos].pos) ||
            (i == _cor[corPos].pos + 1));
-
-    //  uint64  changes[12] 
 
     if (changes)
       changes[_cor[corPos].type]++;

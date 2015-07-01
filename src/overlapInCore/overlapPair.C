@@ -130,6 +130,13 @@ recomputeOverlaps(void *ptr) {
     for (uint32 oo=bgnID; oo<endID; oo++) {
       ovOverlap  *ovl = WA->overlaps + oo;
 
+
+#if 0
+      fprintf(stderr, "BEGIN overlap A %5u %5u-%5u B %5u %5u-%5u\n",
+              ovl->a_iid, ovl->a_bgn(), ovl->b_end(),
+              ovl->a_iid, ovl->b_bgn(), ovl->b_end());
+#endif
+
       //  This closely follows readConsensus
 
 #if 0
@@ -141,30 +148,14 @@ recomputeOverlaps(void *ptr) {
 
       ovl->evalue(AS_MAX_EVALUE);
 
-      //  Load A.
-
       uint32  aID  = ovl->a_iid;
-      char   *aStr = rcache->getRead  (aID);
-      uint32  aLen = rcache->getLength(aID);
-
-      int32   aLo = ovl->a_bgn();
-      int32   aHi = ovl->a_end();
-
-      assert(aLo < aHi);
-
-      //  Load B.
-
       uint32  bID  = ovl->b_iid;
-      char   *bStr = rcache->getRead  (bID);
-      uint32  bLen = rcache->getLength(bID);
-
-      int32   bLo = ovl->b_bgn();
-      int32   bHi = ovl->b_end();
 
       //  Compute the overlap
 
-      WA->align->initialize(aID, aStr, aLen, aLo, aHi,
-                            bID, bStr, bLen, bLo, bHi, ovl->flipped());
+      WA->align->initialize(aID, rcache->getRead(aID), rcache->getLength(aID), ovl->a_bgn(), ovl->a_end(),
+                            bID, rcache->getRead(bID), rcache->getLength(bID), ovl->b_bgn(), ovl->b_end(),
+                            ovl->flipped());
 
       if (WA->align->findMinMaxDiagonal(40) == false) {
         fprintf(stderr, "A %6u %5d-%5d ->   B %6u %5d-%5d %s ALIGN LENGTH TOO SHORT.\n",
@@ -187,6 +178,8 @@ recomputeOverlaps(void *ptr) {
 
       if (WA->align->processHits() == true) {
         nPassed++;
+
+        //WA->align->display();
 
         ovl->dat.ovl.ahg5 = WA->align->ahg5();
         ovl->dat.ovl.ahg3 = WA->align->ahg3();

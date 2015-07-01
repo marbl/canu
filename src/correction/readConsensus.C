@@ -87,6 +87,7 @@ public:
 
   ~consensusGlobalData() {
     delete gkpStore;
+    delete readCache;
     delete ovlStore;
     delete tigStore;
 
@@ -139,7 +140,7 @@ public:
     nPassed  = 0;
     nFailed  = 0;
 
-    align    = new overlapAlign(true, g->maxErate, 15);  //  partial aligns, maxErate, seedSize
+    align    = new overlapAlign(false, g->maxErate, 15);  //  true = partial aligns, maxErate, seedSize
     analyze  = new analyzeAlignment();
   };
   ~consensusThreadData() {
@@ -246,7 +247,7 @@ consensusWorker(void *G, void *T, void *S) {
 
   uint32  rID = s->_tig->tigID();
 
-  //fprintf(stderr, "THREAD %u working on tig %u\n", t->threadID, rID);
+  fprintf(stderr, "THREAD %u working on tig %u\n", t->threadID, rID);
 
   t->analyze->reset(rID,
                     g->readCache->getRead(rID),
@@ -268,7 +269,7 @@ consensusWorker(void *G, void *T, void *S) {
     char   *aStr = g->readCache->getRead  (aID);
     uint32  aLen = g->readCache->getLength(aID);
 
-    int32   aLo = pos->min() - 100;
+    int32   aLo = pos->min() - 100;    if (aLo < 0)  aLo = 0;
     int32   aHi = pos->max() + 100;
 
     assert(aID == rID);
@@ -285,6 +286,14 @@ consensusWorker(void *G, void *T, void *S) {
 
     //  Compute the overlap
 
+#if 0
+      fprintf(stderr, "aligned  %6u %s %6u -- %5u-%5u %5u-%5u\n",
+              aID,
+              pos->isReverse() ? "<--" : "-->",
+              bID,
+              aLo,  aHi,  bLo,  bHi);
+#endif
+
     t->align->initialize(aID, aStr, aLen, aLo, aHi,
                          bID, bStr, bLen, bLo, bHi, pos->isReverse());
 
@@ -300,31 +309,46 @@ consensusWorker(void *G, void *T, void *S) {
     if (t->align->processHits() == true) {
       t->nPassed++;
 
-      int32  aLo = t->align->abgn();
-      int32  aHi = t->align->aend();
+      int32  aLoO = t->align->abgn();
+      int32  aHiO = t->align->aend();
 
-      int32  bLo = t->align->bbgn();
-      int32  bHi = t->align->bend();
+      int32  bLoO = t->align->bbgn();
+      int32  bHiO = t->align->bend();
 
-      if (bLo > bHi) {
-        bLo = t->align->bend();
-        bHi = t->align->bbgn();
+      if (bLoO > bHiO) {
+        bLoO = t->align->bend();
+        bHiO = t->align->bbgn();
       }
 
-      //fprintf(stderr, "ANALYZE a %u %u b %u %u\n", aLo, aHi, bLo, bHi);
+#if 0
+      fprintf(stderr, "aligned  %6u %s %6u -- %5u-%5u %5u-%5u -- %5u-%5u %5u-%5u -- %6.2f\n",
+              aID,
+              pos->isReverse() ? "<--" : "-->",
+              bID,
+              aLo,  aHi,  bLo,  bHi,
+              aLoO, aHiO, bLoO, bHiO,
+              100.0 * (aHiO - aLoO) / (aHi - aLo));
+      //t->align->display();
+#endif
 
-      //Display_Alignment(t->align->astr() + aLo, aHi - aLo,
-      //                  t->align->bstr() + bLo, bHi - bLo,
-      //                  t->align->delta(),
-      //                  t->align->deltaLen(),
-      //                  0);
-
-      t->analyze->analyze(t->align->astr() + aLo, aHi - aLo, 0,
-                          t->align->bstr() + bLo, bHi - bLo,
+      //  This wants pointers to the start of the strings that align, and the offset to the full read.
+      t->analyze->analyze(t->align->astr() + aLoO, aHiO - aLoO, aLoO,
+                          t->align->bstr() + bLoO, bHiO - bLoO,
                           t->align->deltaLen(),
                           t->align->delta());
     } else {
       t->nFailed++;
+
+#if 1
+      fprintf(stderr, "FAILED   %6u %s %6u -- %5u-%5u %5u-%5u -- %5u-%5u %5u-%5u -- %6.2f\n",
+              aID,
+              pos->isReverse() ? "<--" : "-->",
+              bID,
+              aLo,  aHi,  bLo,  bHi,
+              0, 0, 0, 0,
+              0.0);
+      //t->align->display();
+#endif
     }
   }
 
@@ -384,7 +408,7 @@ main(int argc, char **argv) {
 
   uint32   numThreads      = 1;
 
-  double   maxErate        = 0.12;
+  double   maxErate        = 0.02;
   uint64   memLimit        = 4;
 
   argc = AS_configure(argc, argv);
@@ -485,15 +509,26 @@ main(int argc, char **argv) {
                                                     fastqName,
                                                     memLimit);
 
-#if 0
+#if 1
 
   consensusThreadData  *t = new consensusThreadData(g, 0);
-  consensusComputation *c = (consensusComputation *)consensusReader(g);
-  consensusWorker(g, t, c);
+
+  while (1) {
+    consensusComputation *c = (consensusComputation *)consensusReader(g);
+
+    if (c == NULL)
+      break;
+
+    consensusWorker(g, t, c);
+    consensusWriter(g, c);
+  }
+
+  delete t;
 
 #else
 
-  sweatShop  *ss = new sweatShop(consensusReader, consensusWorker, consensusWriter);
+  consensusThreadData **td = new consensusThreadData * [numThreads];
+  sweatShop            *ss = new sweatShop(consensusReader, consensusWorker, consensusWriter);
 
   ss->setLoaderQueueSize(16384);
   ss->setWriterQueueSize(1024);
@@ -501,11 +536,14 @@ main(int argc, char **argv) {
   ss->setNumberOfWorkers(numThreads);
 
   for (uint32 w=0; w<numThreads; w++)
-    ss->setThreadData(w, new consensusThreadData(g, w));  //  these leak
+    ss->setThreadData(w, td[w] = new consensusThreadData(g, w));  //  these leak
 
   ss->run(g, true);
 
   delete ss;
+
+  for (uint32 w=0; w<numThreads; w++)
+    delete td[w];
 
 #endif
 

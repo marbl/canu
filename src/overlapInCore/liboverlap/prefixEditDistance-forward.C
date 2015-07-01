@@ -80,11 +80,9 @@ prefixEditDistance::forward(char    *A,   int32 m,
                             int32   &A_End,
                             int32   &T_End,
                             bool    &Match_To_End) {
-  double  Score, Max_Score;
+  double  Score;
   int  Max_Score_Len = 0, Max_Score_Best_d = 0, Max_Score_Best_e = 0;
-  int  Tail_Len;
   int  Best_d, Best_e, From, Last, Longest, Max, Row;
-  int  Left, Right;
   int  d, e, i, j, k;
 
   assert (m <= n);
@@ -93,8 +91,8 @@ prefixEditDistance::forward(char    *A,   int32 m,
 
   for (Row = 0;  Row < m
           && (A[Row] == T[Row]
-              || A[Row] == 'n'
-              || T[Row] == 'n');  Row++)
+              || A[Row] == 'N'
+              || T[Row] == 'N');  Row++)
     ;
 
   if (Edit_Array_Lazy[0] == NULL)
@@ -106,82 +104,114 @@ prefixEditDistance::forward(char    *A,   int32 m,
     // Exact match
     A_End = T_End = m;
     Match_To_End = TRUE;
+#ifdef DEBUG
+    fprintf(stderr, "forward()- exact match\n");
+#endif
     return  0;
   }
 
-  Left = Right = 0;
-  Max_Score = 0.0;
+  int32 Left  = 0;
+  int32 Right = 0;
+
+  double Max_Score = 0.0;
+
   for (e = 1;  e <= Error_Limit;  e++) {
     if (Edit_Array_Lazy[e] == NULL)
       Allocate_More_Edit_Space();
 
-    Left = MAX (Left - 1, -e);
-    Right = MIN (Right + 1, e);
-    Edit_Array_Lazy[e - 1][Left] = -2;
-    Edit_Array_Lazy[e - 1][Left - 1] = -2;
-    Edit_Array_Lazy[e - 1][Right] = -2;
+    Left  = MAX (Left  - 1, -e);
+    Right = MIN (Right + 1,  e);
+
+    Edit_Array_Lazy[e - 1][Left     ] = -2;
+    Edit_Array_Lazy[e - 1][Left  - 1] = -2;
+    Edit_Array_Lazy[e - 1][Right    ] = -2;
     Edit_Array_Lazy[e - 1][Right + 1] = -2;
 
     for (d = Left;  d <= Right;  d++) {
       Row = 1 + Edit_Array_Lazy[e - 1][d];
+
       if ((j = Edit_Array_Lazy[e - 1][d - 1]) > Row)
         Row = j;
+
       if ((j = 1 + Edit_Array_Lazy[e - 1][d + 1]) > Row)
         Row = j;
-      while  (Row < m && Row + d < n
-              && (A[Row] == T[Row + d]
-                  || A[Row] == 'n'
-                  || T[Row + d] == 'n'))
+
+      while  (Row < m && Row + d < n && (A[Row] == T[Row + d] || A[Row] == 'N' || T[Row + d] == 'N'))
         Row++;
 
       Edit_Array_Lazy[e][d] = Row;
 
       if (Row == m || Row + d == n) {
-        //  Check for branch point here caused by uneven
-        //  distribution of errors
-        Score = Row * Branch_Match_Value - e;
-        // Assumes  Branch_Match_Value
-        //             - Branch_Error_Value == 1.0
-        Tail_Len = Row - Max_Score_Len;
-        if ((doingPartialOverlaps && Score < Max_Score)
-             ||  (e > MIN_BRANCH_END_DIST / 2
-                  && Tail_Len >= MIN_BRANCH_END_DIST
-                  && (Max_Score - Score) / Tail_Len >= MIN_BRANCH_TAIL_SLOPE)) {
+        //  Check for branch point here caused by uneven distribution of errors
+        Score = Row * Branch_Match_Value - e;  //  Assumes Branch_Match_Value - Branch_Error_Value == 1.0
+
+        int32 Tail_Len = Row - Max_Score_Len;
+        bool  abort = false;
+
+        if ((doingPartialOverlaps == true) && (Score < Max_Score))
+          abort = true;
+
+#ifdef DEBUG 
+       fprintf(stderr, "prefixEditDistance()-- e=%d MIN=%d Tail_Len=%d Max_Score=%d Score=%d slope=%d SLOPE=%d\n",
+                e, MIN_BRANCH_END_DIST, Tail_Len, Max_Score, Score, (Max_Score - Score) / Tail_Len, MIN_BRANCH_TAIL_SLOPE);
+#endif
+
+        if ((e > MIN_BRANCH_END_DIST / 2) &&
+            (Tail_Len >= MIN_BRANCH_END_DIST) &&
+            ((Max_Score - Score) / Tail_Len >= MIN_BRANCH_TAIL_SLOPE))
+          abort = true;
+
+        if (abort) {
           A_End = Max_Score_Len;
           T_End = Max_Score_Len + Max_Score_Best_d;
+
           Set_Right_Delta (Max_Score_Best_e, Max_Score_Best_d);
+
           Match_To_End = FALSE;
-          return  Max_Score_Best_e;
+
+#ifdef DEBUG
+          fprintf(stderr, "forward()- ABORT alignment\n");
+#endif
+          return(Max_Score_Best_e);
         }
 
         // Force last error to be mismatch rather than insertion
-        if (Row == m && 1 + Edit_Array_Lazy[e - 1][d + 1] == Edit_Array_Lazy[e][d] && d < Right) {
+        if ((Row == m) &&
+            (1 + Edit_Array_Lazy[e - 1][d + 1] == Edit_Array_Lazy[e][d]) &&
+            (d < Right)) {
           d++;
           Edit_Array_Lazy[e][d] = Edit_Array_Lazy[e][d - 1];
         }
 
         A_End = Row;           // One past last align position
         T_End = Row + d;
+
         Set_Right_Delta (e, d);
+
         Match_To_End = TRUE;
-        return  e;
+
+#ifdef DEBUG
+        fprintf(stderr, "forward()- END alignment\n");
+#endif
+        return(e);
       }
     }
 
-    while  (Left <= Right && Left < 0
-            && Edit_Array_Lazy[e][Left] < Edit_Match_Limit[e])
+    while  ((Left <= Right) && (Left < 0) && (Edit_Array_Lazy[e][Left] < Edit_Match_Limit[e]))
       Left++;
 
     if (Left >= 0)
-      while  (Left <= Right
-              && Edit_Array_Lazy[e][Left] + Left < Edit_Match_Limit[e])
+      while  ((Left <= Right) && (Edit_Array_Lazy[e][Left] + Left < Edit_Match_Limit[e]))
         Left++;
 
-    if (Left > Right)
+    if (Left > Right) {
+#ifdef DEBUG
+      fprintf(stderr, "reverse()- Left=%d Right=%d BREAK\n", Left, Right);
+#endif
       break;
+    }
 
-    while  (Right > 0
-            && Edit_Array_Lazy[e][Right] + Right < Edit_Match_Limit[e])
+    while  ((Right > 0) && (Edit_Array_Lazy[e][Right] + Right < Edit_Match_Limit[e]))
       Right--;
 
     if (Right <= 0)
@@ -207,6 +237,11 @@ prefixEditDistance::forward(char    *A,   int32 m,
       Max_Score_Best_e = Best_e;
     }
   }
+
+#ifdef DEBUG
+  fprintf(stderr, "forward()- return e=%d Error_Limit=%d\n",
+          e, Error_Limit);
+#endif
 
   A_End = Max_Score_Len;
   T_End = Max_Score_Len + Max_Score_Best_d;

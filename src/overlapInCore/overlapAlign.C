@@ -3,7 +3,141 @@
 #include "kMer.H"
 #include "merStream.H"
 
-#undef DEBUG_HITS
+#include "Display_Alignment.H"
+
+#undef  DEBUG_HITS
+
+#undef  SEED_NON_OVERLAPPING
+#define SEED_OVERLAPPING
+
+
+overlapAlign::overlapAlign(bool    partialOverlaps,
+                           double  maxErate,
+                           int32   merSize) {
+  _partialOverlaps  = partialOverlaps;
+  _maxErate         = maxErate;
+  _merSizeInitial   = merSize;
+
+  _aID      = UINT32_MAX;
+  _aStr     = NULL;
+  _aLen     = 0;
+  _aLoOrig  = 0;
+  _aHiOrig  = 0;
+
+  _bID      = UINT32_MAX;
+  _bStr     = NULL;
+  _bLen     = 0;
+  _bLoOrig  = 0;
+  _bHiOrig  = 0;
+
+  _bFlipped = false;
+  _bRevMax  = 0;
+  _bRev     = NULL;
+
+  _editDist = new prefixEditDistance(_partialOverlaps, _maxErate);
+
+  _minDiag  = 0;
+  _maxDiag  = 0;
+
+  _merSize  = 0;
+
+  //  Initialize Constants
+
+  for (uint32 ii=0; ii<256; ii++) {
+    acgtToBit[ii] = 0x00;
+    acgtToVal[ii] = 0x03;
+  }
+
+  acgtToBit['a'] = acgtToBit['A'] = 0x00;  //  Bit encoding of ACGT
+  acgtToBit['c'] = acgtToBit['C'] = 0x01;
+  acgtToBit['g'] = acgtToBit['G'] = 0x02;
+  acgtToBit['t'] = acgtToBit['T'] = 0x03;
+
+  acgtToVal['a'] = acgtToVal['A'] = 0x00;  //  Word is valid if zero
+  acgtToVal['c'] = acgtToVal['C'] = 0x00;
+  acgtToVal['g'] = acgtToVal['G'] = 0x00;
+  acgtToVal['t'] = acgtToVal['T'] = 0x00;
+
+  merMask[0] = 0x0000000000000000llu;
+  merMask[1] = 0x0000000000000003llu;
+
+  for (uint32 ii=2; ii<33; ii++)
+    merMask[ii] = (merMask[ii-1] << 2) | 0x03;
+
+  assert(merMask[ 6] == 0x0000000000000fffllu);
+  assert(merMask[17] == 0x00000003ffffffffllu);
+  assert(merMask[26] == 0x000fffffffffffffllu);
+  assert(merMask[32] == 0xffffffffffffffffllu);
+}
+
+
+
+overlapAlign::~overlapAlign() {
+  delete    _editDist;
+  delete [] _bRev;
+}
+
+
+
+void
+overlapAlign::initialize(uint32 aID, char *aStr, int32 aLen, int32 aLo, int32 aHi,
+                         uint32 bID, char *bStr, int32 bLen, int32 bLo, int32 bHi, bool bFlipped) {
+
+  //fprintf(stderr, "INIT1  A %5u %5u - %5u  B %5u %5u - %5u\n", aID, aLo, aHi, bID, bLo, bHi);
+
+  _aID      = aID;
+  _aStr     = aStr;
+  _aLen     = aLen;
+  _aLoOrig  = aLo;
+  _aHiOrig  = aHi;
+
+  _bID      = bID;
+  _bStr     = bStr;
+  _bLen     = bLen;
+  _bLoOrig  = bLo;
+  _bHiOrig  = bHi;
+
+  _bFlipped  = bFlipped;
+
+  if (_bFlipped == true) {
+    if (_bRevMax < _bLen) {
+      delete [] _bRev;
+      _bRevMax = _bLen + 1000;
+      _bRev    = new char [_bRevMax];
+    }
+
+    memcpy(_bRev, bStr, sizeof(char) * (_bLen + 1));
+
+    reverseComplementSequence(_bRev, _bLen);
+
+    _bStr = _bRev;
+
+    _bLoOrig = _bLen - bLo;  //  Now correct for the reverse complemented sequence
+    _bHiOrig = _bLen - bHi;
+  }
+
+  //fprintf(stderr, "INIT2  A %5u %5u - %5u  B %5u %5u - %5u\n", aID, _aLoOrig, _aHiOrig, bID, _bLoOrig, _bHiOrig);
+
+  assert(_aLoOrig < _aHiOrig);
+  assert(_bLoOrig < _bHiOrig);
+
+  //_editDist doesn't need to be cleared.
+
+  _minDiag = 0;
+  _maxDiag = 0;
+
+  _merSize = 0;
+
+  _aMap.clear();
+  _bMap.clear();
+
+  _rawhits.clear();
+  _hits.clear();
+
+  _bestResult.clear();
+}
+
+
 
 
 //  Set the min/max diagonal we will accept seeds for.  It's just the min/max diagonal for the
@@ -17,16 +151,16 @@ overlapAlign::findMinMaxDiagonal(int32  minLength) {
   _minDiag = 0;
   _maxDiag = 0;
 
-  int32  aALen = _aHi - _aLo;
-  int32  bALen = _bHi - _bLo;
+  int32  aALen = _aHiOrig - _aLoOrig;
+  int32  bALen = _bHiOrig - _bLoOrig;
 
   int32  alignLen = (aALen < bALen) ? bALen : aALen;
 
   if (alignLen < minLength)
     return(false);
 
-  int32  bgnDiag = _aLo - _bLo;
-  int32  endDiag = _aHi - _bHi;
+  int32  bgnDiag = _aLoOrig - _bLoOrig;
+  int32  endDiag = _aHiOrig - _bHiOrig;
 
   if (bgnDiag < endDiag) {
     _minDiag = bgnDiag - _maxErate * alignLen / 2;
@@ -67,8 +201,8 @@ overlapAlign::fastFindMersA(bool dupIgnore) {
   //  if a repeat at both the 5' and 3' end, and we have an overlap on one end only).  In the B
   //  read, the mers can now be on the wrong diagonal.
 
-  int32  bgn = _aLo - _merSize - _merSize;
-  int32  end = _aHi + _merSize;
+  int32  bgn = _aLoOrig - _merSize - _merSize;
+  int32  end = _aHiOrig + _merSize;
 
   if (bgn < 0)
     bgn = 0;
@@ -116,10 +250,8 @@ overlapAlign::fastFindMersB(bool dupIgnore) {
 
   //  Like the A read, we limit to mers in the overlap region.
 
-  assert(_bLo < _bHi);
-
-  int32  bgn = _bLo - _merSize - _merSize;
-  int32  end = _bHi + _merSize;
+  int32  bgn = _bLoOrig - _merSize - _merSize;
+  int32  end = _bHiOrig + _merSize;
 
   if (bgn < 0)
     bgn = 0;
@@ -288,7 +420,7 @@ overlapAlign::chainHits(void) {
 
     assert(_rawhits[rr-1].aBgn < _rawhits[rr].aBgn);
 
-#if 0
+#ifdef SEED_NON_OVERLAPPING
     //  Allows non-overlapping (mismatch only) hits - but breaks seeding of alignment
     //           --------- end of next hit -----------   ----- end of existing hit -----
     int32   da = _rawhits[rr].aBgn + _rawhits[rr].tLen - _hits[hh].aBgn - _hits[hh].tLen;
@@ -300,7 +432,7 @@ overlapAlign::chainHits(void) {
       merge = true;
 #endif
 
-#if 1
+#ifdef SEED_OVERLAPPING
     //  Requires overlapping hits - full block of identity
     //           - start of next -   ------- end of existing -------
     int32   da = _rawhits[rr].aBgn - _hits[hh].aBgn - _hits[hh].tLen;
@@ -311,14 +443,10 @@ overlapAlign::chainHits(void) {
 #endif
 
     if (merge) {
-#ifdef DEBUG_HITS
-      fprintf(stderr, "MERGE HIT: %d - %d diag %d  da=%d db=%d\n", _rawhits[rr].aBgn, _rawhits[rr].bBgn, _rawhits[rr].aBgn - _rawhits[rr].bBgn, da, db);
-#endif
+      //fprintf(stderr, "MERGE HIT: %d - %d diag %d  da=%d db=%d\n", _rawhits[rr].aBgn, _rawhits[rr].bBgn, _rawhits[rr].aBgn - _rawhits[rr].bBgn, da, db);
       _hits[hh].tLen = _rawhits[rr].aBgn + _rawhits[rr].tLen - _hits[hh].aBgn;
     } else {
-#ifdef DEBUG_HITS
-      fprintf(stderr, "NEW   HIT: %d - %d diag %d  da=%d db=%d\n", _rawhits[rr].aBgn, _rawhits[rr].bBgn, _rawhits[rr].aBgn - _rawhits[rr].bBgn, da, db);
-#endif
+      //fprintf(stderr, "NEW   HIT: %d - %d diag %d  da=%d db=%d\n", _rawhits[rr].aBgn, _rawhits[rr].bBgn, _rawhits[rr].aBgn - _rawhits[rr].bBgn, da, db);
       _hits.push_back(_rawhits[rr]);
     }
   }
@@ -343,7 +471,15 @@ overlapAlign::chainHits(void) {
 bool
 overlapAlign::processHits(void) {
 
-  //  Recompute.
+  //  The expected worst score, in numer of matches.
+  double   expectedScore = (1 - _maxErate) * min(_aHiOrig - _aLoOrig, _bHiOrig - _bLoOrig);
+
+  //  Scratch space for finding alignments
+
+  int32  aLo=0, aHi=0;
+  int32  bLo=0, bHi=0;
+
+  //  Go!
 
   for (uint32 hh=0; hh<_hits.size(); hh++) {
     Match_Node_t  match;
@@ -353,7 +489,12 @@ overlapAlign::processHits(void) {
     match.Len    = _hits[hh].tLen;    //  tLen can include mismatches if alternate scoring is used!
     match.Next   = 0;                 //  Not used here
 
+#ifdef SEED_NON_OVERLAPPING
+    match.Offset = _merSize;  //  Really should track this in the hits, oh well.
+#endif
+
 #ifdef DEBUG_HITS
+    fprintf(stderr, "\n");
     fprintf(stderr, "Extend_Alignment Astart %d Bstart %d length %d\n", match.Start, match.Offset, match.Len);
 #endif
 
@@ -361,37 +502,32 @@ overlapAlign::processHits(void) {
     Overlap_t  ovltype = _editDist->Extend_Alignment(&match,         //  Initial exact match, relative to start of string
                                                      _aStr, _aLen,
                                                      _bStr, _bLen,
-                                                     _aLo,  _aHi,    //  Output: Regions which the match extends
-                                                     _bLo,  _bHi,
+                                                     aLo,   aHi,    //  Output: Regions which the match extends
+                                                     bLo,   bHi,
                                                      errors,
                                                      _partialOverlaps);
 
-    _aHi++;  //  Add one to the end point because Extend_Alignment returns the base-based coordinate.
-    _bHi++;
+    aHi++;  //  Add one to the end point because Extend_Alignment returns the base-based coordinate.
+    bHi++;
 
-    _olapLen  = min(_aHi - _aLo, _bHi - _bLo);
-    _olapQual = (double)errors / _olapLen;
-
-    if (_olapLen < 40)
-      ovltype = NONE;
-
-    if (_bFlipped == true) {
-      _bLo = _bLen - _bLo;  //  Now correct for the original forward sequence
-      _bHi = _bLen - _bHi;  //  Done early just for the print below
-    }
+    int32  olapLen   = min(aHi - aLo, bHi - bLo);
+    double olapQual  = (double)errors / olapLen;
+    double olapScore = olapLen * (1 - olapQual);
 
 #ifdef DEBUG_HITS
-    fprintf(stdout, "hit %2u a %5d b %5d -- ORIG A %6u %5d-%5d %s B %6u %5d-%5d  %.4f -- REALIGN type %d A %5d-%5d (%5d)  B %5d-%5d (%5d)  errors %4d  erate %6.4f = %6u / %6u deltas %d %d %d %d %d%s\n",
+    fprintf(stderr, "hit %2u at a=%5d b=%5d -- ORIG A %6u %5d-%5d (%5d) %s B %6u %5d-%5d (%5d)  %.4f -- REALIGN type %d A %5d-%5d  B %5d-%5d  errors %4d  erate %6.4f = %6u / %6u deltas %d %d %d %d %d%s\n",
             hh, _hits[hh].aBgn, _hits[hh].bBgn,
-            _aID, _aLoOrig, _aHiOrig,
+            _aID, _aLoOrig, _aHiOrig, _aLen,
             _bFlipped ? "<-" : "->",
-            _bID, _bLoOrig, _bHiOrig,
+            _bID, _bLoOrig, _bHiOrig, _bLen,
             erate(),
             ovltype,
-            _aLo, _aHi, _aLen,
-            _bLo, _bHi, _bLen,
+            aLo,
+            aHi,
+            (_bFlipped == false) ? bLo : bHi,
+            (_bFlipped == false) ? bHi : bLo,
             errors,
-            _olapQual, errors, _olapLen,
+            olapQual, errors, olapLen,
             _editDist->Left_Delta[0],
             _editDist->Left_Delta[1],
             _editDist->Left_Delta[2],
@@ -400,30 +536,62 @@ overlapAlign::processHits(void) {
             ((ovltype != DOVETAIL) && (_partialOverlaps == false)) ? "  FAILED" : "");
 #endif
 
-    //  If not a good overlap, keep searching for one.  If partial overlaps, ovltype isn't set, and
-    //  we need to do something else to reject.
+    //  Is this a better overlap than what we have?
 
-    if ((ovltype != DOVETAIL) && (_partialOverlaps == false))
-      continue;
-
-    //  A good overlap.  Stop searching and return what we found.
-
-    assert(_editDist->Right_Delta_Len == 0);
-
-    _deltaLen = _editDist->Left_Delta_Len;
-
-    if (_deltaMax < _deltaLen) {
-      delete [] _delta;
-      _deltaMax = _deltaLen + 4096;
-      _delta    = new int32 [_deltaMax];
+    if (_bestResult.score() < olapScore) {
+      _bestResult.saveCoords(aLo, aHi, bLo, bHi, olapLen, olapQual);
+      _bestResult.saveDelta(_editDist->Left_Delta_Len, _editDist->Left_Delta);
     }
 
-    memcpy(_delta, _editDist->Left_Delta, sizeof(int32) * _deltaLen);
+    //  If pretty crappy, keep looking.
 
-    return(true);
+    if (_bestResult.score() < 0.5 * expectedScore)
+      continue;
+
+    //  If this IS a dovetail, and we're looking for dovetails, we're done.
+
+    if ((ovltype == DOVETAIL) && (_partialOverlaps == false)) {
+      fprintf(stderr, "DOVETAIL return - score %f expected %f\n", _bestResult.score(), expectedScore);
+      return(true);
+    }
+
+    //  Is this still a decent overlap?  Continue on to the next seeds.  Decent if olapScore
+    //  is at least 1/2 of the bestScore.
+
+    if (0.5 * _bestResult.score() < olapScore)
+      continue;
+
+    //  Nope, this overlap is crap.  Assume that the rest of the seeds are crap too and give up.
+
+    fprintf(stderr, "REST_CRAP return - score %f expected %f\n", _bestResult.score(), expectedScore);
+    return(_bestResult.score() >= 0.5 * expectedScore);
   }
 
   //  We ran out of seeds to align.  No overlap found.
-  return(false);
+
+  fprintf(stderr, "NO_SEEDS return - score %f expected %f\n", _bestResult.score(), expectedScore);
+  return(_bestResult.score() >= 0.5 * expectedScore);
 }
 
+
+
+void
+overlapAlign::display(void) {
+
+  int32  aLo = _bestResult._aLo;
+  int32  aHi = _bestResult._aHi;
+
+  int32  bLo = _bestResult._bLo;
+  int32  bHi = _bestResult._bHi;
+
+  fprintf(stderr, "A %5u - %5u %s B %5u - %5u\n",
+          aLo, aHi,
+          _bFlipped ? "<--" : "-->",
+          bLo, bHi);
+
+  Display_Alignment(astr() + aLo, aHi - aLo,
+                    bstr() + bLo, bHi - bLo,
+                    _bestResult.delta(),
+                    _bestResult.deltaLen(),
+                    0);
+}
