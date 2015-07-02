@@ -190,9 +190,10 @@ abMultiAlign::display(abAbacus  *abacus,
   uint32                 *end       = new uint32              [numSeqs];
 
 
-
   for (uint32 i=0; i<numSeqs; i++) {
-    abSequence  *seq = abacus->getSequence(i);
+    abSequence  *seq       = abacus->getSequence(i);
+    abColumn    *bgnColumn = abacus->getColumn(seq->firstBead());
+    abColumn    *endColumn = abacus->getColumn(seq->lastBead());
 
     //if (seq->multiAlignID() != ident()) {
     //  fprintf(stderr, "abMultiAlign::display()-- seq %d multialign %d != multialign %d\n", seq->ident().get(), seq->multiAlignID().get(), ident().get());
@@ -200,16 +201,22 @@ abMultiAlign::display(abAbacus  *abacus,
     //}
     //assert(seq->multiAlignID() == ident());
 
-    fid[i]  = seq->gkpIdent();
-    fit[i]  = NULL;
-    type[i] = (seq->isRead() == true) ? 'R' : '?';
-
-    abColumn   *bgnColumn = abacus->getColumn(seq->firstBead());
-    abColumn   *endColumn = abacus->getColumn(seq->lastBead());
-
-    bgn[i] = bgnColumn->position();
-    end[i] = endColumn->position();
+    if ((bgnColumn == NULL) ||
+        (endColumn == NULL)) {
+      fid[i]  = 0;
+      fit[i]  = NULL;
+      type[i] = '?';
+      bgn[i]  = 0;
+      end[i]  = 0;
+    } else {
+      fid[i]  = seq->gkpIdent();
+      fit[i]  = NULL;
+      type[i] = (seq->isRead() == true) ? 'R' : '?';
+      bgn[i]  = bgnColumn->position();
+      end[i]  = endColumn->position();
+    }
   }
+
 
   uint32 window_start = from;
 
