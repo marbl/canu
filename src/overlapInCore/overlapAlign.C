@@ -7,7 +7,7 @@
 
 #undef  DEBUG_HITS
 
-#undef  SEED_NON_OVERLAPPING
+#undef  SEED_NON_OVERLAPPING   //  Allow mismatches in seeds
 #define SEED_OVERLAPPING
 
 
@@ -370,7 +370,7 @@ overlapAlign::findSeeds(bool dupIgnore) {
 
 //  For unique mers in B, if the mer is also unique in A, add a hit.
 
-void
+bool
 overlapAlign::findHits(void) {
 
   for (map<uint64,int32>::iterator bit=_bMap.begin(); bit != _bMap.end(); bit++) {
@@ -394,10 +394,12 @@ overlapAlign::findHits(void) {
     
     _rawhits.push_back(exactMatch(apos, bpos, _merSize));
   }
+
+  return(true);
 }
 
 
-void
+bool
 overlapAlign::chainHits(void) {
 
   //  Sort by aPos (actually by length, then by aPos, but length is constant here).
@@ -464,6 +466,8 @@ overlapAlign::chainHits(void) {
             _hits[hh].tLen);
   }
 #endif
+
+  return(true);
 }
 
 
@@ -538,45 +542,64 @@ overlapAlign::processHits(void) {
 
     //  Is this a better overlap than what we have?
 
-    if (_bestResult.score() < olapScore) {
+    if (_bestResult.score() <= olapScore) {
+#ifdef DEBUG_HITS
+      fprintf(stderr, " - save best! - score %f previous %f expected %f\n", olapScore, _bestResult.score(), expectedScore);
+#endif
       _bestResult.saveCoords(aLo, aHi, bLo, bHi, olapLen, olapQual);
       _bestResult.saveDelta(_editDist->Left_Delta_Len, _editDist->Left_Delta);
     }
 
     //  If pretty crappy, keep looking.
 
-    if (_bestResult.score() < 0.5 * expectedScore)
+    if (_bestResult.score() < 0.5 * expectedScore) {
+#ifdef DEBUG_HITS
+      fprintf(stderr, " - too short: score %f < 0.5 * expected = %f\n",
+              _bestResult.score(), 0.5 * expectedScore);
+#endif
       continue;
+    }
 
     //  If this IS a dovetail, and we're looking for dovetails, we're done.
 
     if ((ovltype == DOVETAIL) && (_partialOverlaps == false)) {
+#ifdef DEBUG_HITS
       fprintf(stderr, "DOVETAIL return - score %f expected %f\n", _bestResult.score(), expectedScore);
+#endif
       return(true);
     }
 
-    //  Is this still a decent overlap?  Continue on to the next seeds.  Decent if olapScore
+    //  Is this still a decent overlap?  Continue on to the next seed.  Decent if olapScore
     //  is at least 1/2 of the bestScore.
 
-    if (0.5 * _bestResult.score() < olapScore)
+    if (0.5 * _bestResult.score() < olapScore) {
+#ifdef DEBUG_HITS
+      fprintf(stderr, " - decent score, keep looking: score %f > 0.5 * expected = %f\n",
+              _bestResult.score(), 0.5 * expectedScore);
+#endif
       continue;
+    }
 
     //  Nope, this overlap is crap.  Assume that the rest of the seeds are crap too and give up.
 
+#ifdef DEBUG_HITS
     fprintf(stderr, "REST_CRAP return - score %f expected %f\n", _bestResult.score(), expectedScore);
+#endif
     return(_bestResult.score() >= 0.5 * expectedScore);
   }
 
   //  We ran out of seeds to align.  No overlap found.
 
+#ifdef DEBUG_HITS
   fprintf(stderr, "NO_SEEDS return - score %f expected %f\n", _bestResult.score(), expectedScore);
+#endif
   return(_bestResult.score() >= 0.5 * expectedScore);
 }
 
 
 
 void
-overlapAlign::display(void) {
+overlapAlign::display(bool withAlign) {
 
   int32  aLo = _bestResult._aLo;
   int32  aHi = _bestResult._aHi;
@@ -589,9 +612,9 @@ overlapAlign::display(void) {
           _bFlipped ? "<--" : "-->",
           bLo, bHi);
 
-  Display_Alignment(astr() + aLo, aHi - aLo,
-                    bstr() + bLo, bHi - bLo,
-                    _bestResult.delta(),
-                    _bestResult.deltaLen(),
-                    0);
+  if (withAlign)
+    Display_Alignment(astr() + aLo, aHi - aLo,
+                      bstr() + bLo, bHi - bLo,
+                      _bestResult.delta(),
+                      _bestResult.deltaLen());
 }

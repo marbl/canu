@@ -1,4 +1,7 @@
 
+#ifndef OVERLAPALIGN_H
+#define OVERLAPALIGN_H
+
 #include "AS_global.H"
 
 #include "ovStore.H"
@@ -100,13 +103,13 @@ public:
 
   bool  findMinMaxDiagonal(int32 minLength);
   bool  findSeeds(bool dupIgnore);
-  void  findHits(void);
-  void  chainHits(void);
+  bool  findHits(void);
+  bool  chainHits(void);
   bool  processHits(void);
 
   //  Diagnostic
 
-  void    display(void);
+  void    display(bool withAlign=true);
 
   //  Result reporting
 
@@ -206,5 +209,4 @@ private:
   void    fastFindMersB(bool dupIgnore);
 };
 
-
-
+#endif  //  OVERLAPALIGN_H
