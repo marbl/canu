@@ -60,7 +60,6 @@ SOURCES  := AS_global.C \
             alignment/find-local-segments.C \
             alignment/fix-overlapping-pieces.C \
             alignment/local-overlapper.C \
-            alignment/overlap.C \
             \
             overlapInCore/overlapReadCache.C \
             \
