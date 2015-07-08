@@ -113,10 +113,18 @@ abAbacus::~abAbacus() {
 
 abBeadID
 abAbacus::addBead(char base, char qual) {
+
+#if 0
+  fprintf(stderr, "addBead()-- adding bead %u/%u base idx %u/%u %c/%d\n",
+          _beadsLen, _beadsMax,
+          _basesLen, _basesMax, base, base);
+#endif
+
   increaseArray(_beads, _beadsLen, _beadsMax, 1);
 
   _beads[_beadsLen].boffset.set(_beadsLen);
   _beads[_beadsLen].soffset.set(_basesLen);
+
   _beads[_beadsLen].foffset       = UINT32_MAX;
   _beads[_beadsLen].prev          = abBeadID();
   _beads[_beadsLen].next          = abBeadID();
@@ -126,18 +134,16 @@ abAbacus::addBead(char base, char qual) {
   _beads[_beadsLen].column_index  = abColID();
 
   //  Add a base/qual for the bead
-  if (base != 0) {
-    increaseArrayPair(_bases, _quals, _basesLen, _basesMax, 1);
 
-    _bases[_basesLen] = base;
-    _quals[_basesLen] = qual;
+  increaseArrayPair(_bases, _quals, _basesLen, _basesMax, 1);
 
-    assert(CNS_MIN_QV + '0' <= _quals[_basesLen]);
-    assert(_quals[_basesLen] <= CNS_MAX_QV + '0');
+  _bases[_basesLen] = base;
+  _quals[_basesLen] = qual;
 
-    _basesLen++;
-  }
+  assert(CNS_MIN_QV + '0' <= _quals[_basesLen]);
+  assert(_quals[_basesLen] <= CNS_MAX_QV + '0');
 
+  _basesLen++;
   _beadsLen++;
 
   return(_beads[_beadsLen-1].ident());
@@ -167,6 +173,12 @@ abAbacus::appendGapBead(abBeadID bid) {
 #warning this really should be using addBead()
 
   //  Make space for the new bead, and grab it.  And then regrab the prev.
+
+#if 0
+  fprintf(stderr, "appendGapBead()-- adding bead %u/%u base idx %u/%u\n",
+          _beadsLen, _beadsMax,
+          _basesLen, _basesMax);
+#endif
 
   increaseArray(_beads, _beadsLen, _beadsMax, 1);
 
@@ -486,7 +498,7 @@ abAbacus::unalignBeadFromColumn(abBeadID bid) {
 
 #ifdef DEBUG_ABACUS_ALIGN
   fprintf(stderr, "UnAlignBeadFromColumn()-- frag=%d bead=%d leaving column=%d\n",
-          bead->frag_index, bead->ident().get(), bead->column_index);
+          bead->frag_index.get(), bead->ident().get(), bead->column_index.get());
 #endif
 
   bead->up           = abBeadID();

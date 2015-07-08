@@ -31,6 +31,8 @@ const char *mainid = "$Id$";
 
 #include "stashContains.H"
 
+#include "unitigConsensus.H"
+
 #include <map>
 #include <algorithm>
 
@@ -354,7 +356,9 @@ main (int argc, char **argv) {
     tig->_utgcns_splitAlleles = false;
     tig->_utgcns_doPhasing    = false;
 
-    if (generateMultiAlignment(tig, gkpStore, NULL, errorRate, errorRateMax, minOverlap)) {
+    unitigConsensus  *uc = new unitigConsensus(gkpStore, errorRate, errorRateMax, minOverlap);
+
+    if (uc->generate(tig, NULL)) {
       if (showResult)
         tig->display(stdout, gkpStore, 200, 3);
 
@@ -380,6 +384,8 @@ main (int argc, char **argv) {
       fprintf(stderr, "unitigConsensus()-- unitig %d failed.\n", tig->tigID());
       numFailures++;
     }
+
+    delete uc;
   }
 
  finish:

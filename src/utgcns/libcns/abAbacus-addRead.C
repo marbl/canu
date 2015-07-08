@@ -212,6 +212,12 @@ abAbacus::addRead(gkStore *gkpStore,
     while (_basesMax <= _basesLen + seqLen + 1)
       resizeArrayPair(_bases, _quals, _basesLen, _basesMax, 2 * _basesMax);
 
+    for (uint32 ii=0; ii<seqLen; ii++)
+      assert((seq[ii] == 'A') ||
+             (seq[ii] == 'C') ||
+             (seq[ii] == 'G') ||
+             (seq[ii] == 'T'));
+
     if (complemented == false)
       for (uint32 ii=0, pp=_basesLen; ii<seqLen; ii++, pp++, _basesLen++) {
         _bases[pp] = seq[ii];
@@ -242,12 +248,18 @@ abAbacus::addRead(gkStore *gkpStore,
   {
     increaseArray(_beads, _beadsLen, _beadsMax, seqLen);
 
+    uint32  firstBead = _beadsLen;
+
     for (uint32 bp=0; bp<ns->length(); bp++, _beadsLen++) {
-      _beads[_beadsLen].boffset.set(_beadsLen);
-      _beads[_beadsLen].soffset.set(ns->firstBase().get() + bp);
-      _beads[_beadsLen].foffset = bp;
+      _beads[_beadsLen].boffset.set(_beadsLen);                   //  Offset into the beads array
+      _beads[_beadsLen].soffset.set(ns->firstBase().get() + bp);  //  Offset into the sequence array
+      _beads[_beadsLen].foffset = bp;                             //  Offset into the read itself
+
+      //  Check that nothing odd happened with the ident.
 
       assert(_beads[_beadsLen].ident().get() == ns->firstBead().get() + bp);
+
+      //  Set previous/next bead appropriately.
 
       if (_beads[_beadsLen].foffset == 0)
         _beads[_beadsLen].prev = abBeadID();
@@ -259,17 +271,25 @@ abAbacus::addRead(gkStore *gkpStore,
       else
         _beads[_beadsLen].next.set(_beads[_beadsLen].ident().get() + 1);
 
-      _beads[_beadsLen].up           = abBeadID();
-      _beads[_beadsLen].down         = abBeadID();
+      _beads[_beadsLen].up           = abBeadID();   //  No up bead yet.
+      _beads[_beadsLen].down         = abBeadID();   //  No down bead yet.
 
-      _beads[_beadsLen].frag_index   = ns->ident();
-      _beads[_beadsLen].column_index = abColID();
+      _beads[_beadsLen].frag_index   = ns->ident();  //  Bead is for this read idx.
+      _beads[_beadsLen].column_index = abColID();    //  Isn't in a column yet.
     }
   }
 
   assert(_beads[_beadsLen-1].ident() == ns->lastBead());
 
   //  Return the (internal) index we saved this read at.
+
+#if 0
+  fprintf(stderr, "read %d firstBead %d lastBead %d _basesLen %u\n",
+          ns->ident().get(),
+          ns->firstBead().get(),
+          ns->lastBead().get(),
+          _basesLen);
+#endif
 
   return(ns->ident());
 }

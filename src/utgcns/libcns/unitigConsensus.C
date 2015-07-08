@@ -22,6 +22,9 @@
 static char *rcsid = "$Id$";
 
 #include "unitigConsensus.H"
+#include "aligners.H"
+
+#include "overlapAlign.H"
 
 #include <set>
 
@@ -33,6 +36,54 @@ using namespace std;
 
 //  If defined, skip ALL contained reads.  This will cause problems in scaffolding.
 #undef SKIP_CONTAINS
+
+
+
+
+unitigConsensus::unitigConsensus(gkStore  *gkpStore_,
+                                 double    errorRate_,
+                                 double    errorRateMax_,
+                                 uint32    minOverlap_) {
+
+  gkpStore        = gkpStore_;
+
+  tig             = NULL;
+  numfrags        = 0;
+  trace           = NULL;
+  abacus          = NULL;
+  multialign      = abMultiAlignID();
+  utgpos          = NULL;
+  cnspos          = NULL;
+  tiid            = 0;
+  piid            = -1;
+
+  frankensteinLen = 0;
+  frankensteinMax = 0;
+  frankenstein    = NULL;
+  frankensteinBof = NULL;
+
+  minOverlap      = minOverlap_;
+  errorRate       = errorRate_;
+  errorRateMax    = errorRateMax_;
+
+  oaPartial       = NULL;
+  oaFull          = NULL;
+}
+
+
+unitigConsensus::~unitigConsensus() {
+  delete [] trace;
+  delete    abacus;
+
+  delete [] utgpos;
+  delete [] cnspos;
+  delete [] frankenstein;
+  delete [] frankensteinBof;
+
+  delete    oaPartial;
+  delete    oaFull;
+}
+
 
 
 
@@ -78,8 +129,136 @@ unitigConsensus::reportSuccess(uint32 *failed) {
 }
 
 
+
+
+
+bool
+unitigConsensus::generate(tgTig     *tig_,
+                          uint32    *failed_) {
+  bool               failuresToFix      = false;
+
+  tig      = tig_;
+  numfrags = tig->numberOfChildren();
+
+  if (initialize(failed_) == FALSE) {
+    fprintf(stderr, "generateMultiAlignment()--  Failed to initialize for tig %u with %u children\n", tig->tigID(), tig->numberOfChildren());
+    goto returnFailure;
+  }
+
+  while (moreFragments()) {
+    reportStartingWork();
+
+    //  First attempt, all default parameters
+
+    if (computePositionFromAnchor()    && alignFragment())  goto applyAlignment;
+    if (computePositionFromLayout()    && alignFragment())  goto applyAlignment;
+    if (computePositionFromAlignment() && alignFragment())  goto applyAlignment;
+
+    //  Second attempt, higher error rate.
+
+    if (showAlgorithm())
+      fprintf(stderr, "generateMultiAlignment()-- increase allowed error rate from %f to %f\n", errorRate, MIN(errorRateMax, 2.0 * errorRate));
+
+    setErrorRate(MIN(errorRateMax, 2.0 * errorRate));
+
+    if (computePositionFromAnchor()    && alignFragment())  goto applyAlignment;
+    if (computePositionFromLayout()    && alignFragment())  goto applyAlignment;
+    if (computePositionFromAlignment() && alignFragment())  goto applyAlignment;
+
+    setErrorRate(errorRate);
+
+    //  Third attempt, thinner overlaps.  These come from bogart repeat splitting, it apanchorly
+    //  doesn't enforce the minimum overlap length in those unitugs.
+
+    while (minOverlap > 40) {
+      if (showAlgorithm())
+        fprintf(stderr, "generateMultiAlignment()-- decrease minimum overlap from %d to %d\n", minOverlap, MAX(40, minOverlap / 2));
+
+      setMinOverlap(MAX(40, minOverlap / 2));
+
+      if (computePositionFromAnchor()    && alignFragment())  goto applyAlignment;
+      if (computePositionFromLayout()    && alignFragment())  goto applyAlignment;
+      if (computePositionFromAlignment() && alignFragment())  goto applyAlignment;
+    }
+
+    setMinOverlap(minOverlap);
+
+    //  Fourth attempt, default parameters after recomputing consensus sequence.
+
+    if (showAlgorithm())
+      fprintf(stderr, "generateMultiAlignment()-- recompute full consensus\n");
+
+    rebuild(true);
+
+    if (computePositionFromAnchor()    && alignFragment())  goto applyAlignment;
+    if (computePositionFromLayout()    && alignFragment())  goto applyAlignment;
+    if (computePositionFromAlignment() && alignFragment())  goto applyAlignment;
+
+    //  Final attempt, higher error rate.
+
+    if (showAlgorithm())
+      fprintf(stderr, "generateMultiAlignment()-- increase allowed error rate from %f to %f\n", errorRate, MIN(errorRateMax, 4.0 * errorRate));
+
+    setErrorRate(MIN(errorRateMax, 4.0 * errorRate));
+
+    if (computePositionFromAnchor()    && alignFragment())  goto applyAlignment;
+    if (computePositionFromLayout()    && alignFragment())  goto applyAlignment;
+    if (computePositionFromAlignment() && alignFragment())  goto applyAlignment;
+
+    //  Failed to align the fragment.  Dang.
+
+    setErrorRate(errorRate);
+
+#ifdef FAILURE_IS_FATAL
+    fprintf(stderr, "FAILED TO ALIGN FRAG.  DIE.\n");
+    assert(0);
+#endif
+
+    reportFailure(failed_);
+    failuresToFix = true;
+    continue;
+
+  applyAlignment:
+    setErrorRate(errorRate);
+    setMinOverlap(minOverlap);
+
+    reportSuccess(failed_);
+    applyAlignment();
+    rebuild(false);
+
+#if 0
+    {
+      abMultiAlign *ma = abacus->getMultiAlign(multialign);
+      //abacus->refreshMultiAlign(multialign, true, true);
+      ma->display(abacus, stderr);
+    }
+#endif
+
+  }
+
+  if (failuresToFix)
+    goto returnFailure;
+
+  generateConsensus();
+  exportToTig();
+
+  //  NEED TO UPDATE THE tgTig
+
+  return(true);
+
+ returnFailure:
+  fprintf(stderr, "generateMultiAlignment()-- unitig %d FAILED.\n", tig->tigID());
+
+  //  tgTig should have no changes.
+
+  return(false);
+}
+
+
+
+
 int
-unitigConsensus::initialize(gkStore *gkpStore, uint32 *failed) {
+unitigConsensus::initialize(uint32 *failed) {
 
   int32 num_columns = 0;
   //int32 num_bases   = 0;
@@ -95,8 +274,11 @@ unitigConsensus::initialize(gkStore *gkpStore, uint32 *failed) {
   memcpy(utgpos, tig->getChild(0), sizeof(tgPosition) * numfrags);
   memcpy(cnspos, tig->getChild(0), sizeof(tgPosition) * numfrags);
 
+  traceLen   = 0;
   trace      = new int32 [2 * AS_MAX_READLEN];
-  traceBgn   = 0;
+
+  traceABgn  = 0;
+  traceBBgn  = 0;
 
   memset(trace, 0, sizeof(int32) * 2 * AS_MAX_READLEN);
 
@@ -392,8 +574,6 @@ unitigConsensus::computePositionFromAlignment(void) {
 
   assert(piid == -1);
 
-  ALNoverlap  *O           = NULL;
-  double       thresh      = 1e-3;
   int32        minlen      = minOverlap;
   int32        ahanglimit  = -10;
 
@@ -401,41 +581,90 @@ unitigConsensus::computePositionFromAlignment(void) {
   char        *fragment    = abacus->getBases(seq);
   int32        fragmentLen = seq->length();
 
-  O = DP_Compare(frankenstein,
-                 fragment,
-                 ahanglimit, frankensteinLen,  //  ahang bounds
-                 frankensteinLen, fragmentLen,   //  length of fragments
-                 0,
-                 errorRate, thresh, minlen,
-                 AS_FIND_ALIGN);
+  bool         foundAlign  = false;
 
-  if (O == NULL)
-    O = Local_Overlap_AS_forCNS(frankenstein,
-                                fragment,
-                                ahanglimit, frankensteinLen,  //  ahang bounds
-                                frankensteinLen, fragmentLen,   //  length of fragments
-                                0,
-                                errorRate, thresh, minlen,
-                                AS_FIND_ALIGN);
+  //
+  //  Try overlapAlign.
+  //
 
-  if (O == NULL) {
+  if (foundAlign == false) {
+
+    if (oaPartial == false)
+      oaPartial = new overlapAlign(true, errorRate, 17);  //  partial allowed!
+
+    oaPartial->initialize(0, frankenstein, frankensteinLen, 0, frankensteinLen,
+                          1, fragment,     fragmentLen,     0, fragmentLen,
+                          false);
+
+    if ((oaPartial->findMinMaxDiagonal(minOverlap) == true) &&
+        (oaPartial->findSeeds(false)               == true) &&
+        (oaPartial->findHits()                     == true) &&
+        (oaPartial->chainHits()                    == true) &&
+        (oaPartial->processHits()                  == true)) {
+
+      cnspos[tiid].set(oaPartial->abgn(), oaPartial->aend());
+      fprintf(stderr, "cnspos[%3d] mid %d %d,%d (from overlapAlign)\n", tiid, utgpos[tiid].ident(), cnspos[tiid].min(), cnspos[tiid].max());
+
+      foundAlign = true;
+    }
+  }
+
+  //
+  //  Try DP_Compare.
+  //
+
+  if (foundAlign == false) {
+    ALNoverlap *O = DP_Compare(frankenstein,
+                               fragment,
+                               ahanglimit, frankensteinLen,  //  ahang bounds
+                               frankensteinLen, fragmentLen,   //  length of fragments
+                               0,
+                               errorRate, 1e-3, minlen,
+                               AS_FIND_ALIGN);
+    if (O) {
+      foundAlign = true;
+      cnspos[tiid].set(O->begpos, O->endpos + frankensteinLen);
+      fprintf(stderr, "cnspos[%3d] mid %d %d,%d (from DP_Compare)\n", tiid, utgpos[tiid].ident(), cnspos[tiid].min(), cnspos[tiid].max());
+    }
+  }
+
+  //
+  //  Try Local_Overlap_AS_forCNS.
+  //
+
+  if (foundAlign == false) {
+    ALNoverlap *O = Local_Overlap_AS_forCNS(frankenstein,
+                                            fragment,
+                                            ahanglimit, frankensteinLen,  //  ahang bounds
+                                            frankensteinLen, fragmentLen,   //  length of fragments
+                                            0,
+                                            errorRate, 1e-3, minlen,
+                                            AS_FIND_ALIGN);
+    if (O) {
+      foundAlign = true;
+      cnspos[tiid].set(O->begpos, O->endpos + frankensteinLen);
+      fprintf(stderr, "cnspos[%3d] mid %d %d,%d (from Local_Overlap_AS_forCNS)\n", tiid, utgpos[tiid].ident(), cnspos[tiid].min(), cnspos[tiid].max());
+    }
+  }
+
+  //
+  //  Fail.
+  //
+
+  if (foundAlign == false) {
     cnspos[tiid].set(0, 0);
-
     piid = -1;
 
     if (showAlgorithm())
-      fprintf(stderr, "computePositionFromAlignment()-- Returns fail.\n");
+      fprintf(stderr, "computePositionFromAlignment()-- Returns fail (no alignment).\n");
     return(false);
   }
 
   //  From the overlap and existing placements, find the thickest overlap, to set the piid and
   //  hangs, then reset the original placement based on that anchors original placement.
   //
-  //  To work with fixFailures(), we need to scan the entire fragment list.  This isn't so
-  //  bad, really, since before we were scanning (on average) half of it.
-  //
-  cnspos[tiid].set(O->begpos, O->endpos + frankensteinLen);
-  //fprintf(stderr, "cnspos[%3d] mid %d %d,%d\n", tiid, utgpos[tiid].ident(), cnspos[tiid].min(), cnspos[tiid].max());
+  //  To work with fixFailures(), we need to scan the entire fragment list.  This isn't so bad,
+  //  really, since before we were scanning (on average) half of it.
 
   assert(cnspos[tiid].min() < cnspos[tiid].max());
 
@@ -460,24 +689,28 @@ unitigConsensus::computePositionFromAlignment(void) {
     }
   }
 
-  if (thickestLen > 0) {
-    assert(piid != -1);
+  //  No thickest?  Dang.
 
-    if (showPlacement())
-      fprintf(stderr, "computePositionFromAlignment()-- layout %d at %d,%d --> beg,end %d,%d (fLen %d)\n",
-              utgpos[piid].ident(),
-              cnspos[piid].min(), cnspos[piid].max(),
-              cnspos[tiid].min(), cnspos[tiid].max(),
-              frankensteinLen);
-
-    return(true);
+  if (thickestLen == 0) {
+    cnspos[tiid].set(0, 0);
+    piid = -1;
+    if (showAlgorithm())
+      fprintf(stderr, "computePositionFromAlignment()-- Returns fail (no thickest).\n");
+    return(false);
   }
 
-  cnspos[tiid].set(0, 0);
+  //  Success, yay!
 
-  piid = -1;
+  assert(piid != -1);
 
-  return(false);
+  if (showPlacement())
+    fprintf(stderr, "computePositionFromAlignment()-- layout %d at %d,%d --> beg,end %d,%d (fLen %d)\n",
+            utgpos[piid].ident(),
+            cnspos[piid].min(), cnspos[piid].max(),
+            cnspos[tiid].min(), cnspos[tiid].max(),
+            frankensteinLen);
+
+  return(true);
 }
 
 
@@ -666,18 +899,17 @@ unitigConsensus::alignFragment(void) {
 
   if (endTrim < 20)  endTrim = 0;
 
-
  alignFragmentAgain:
   int32 frankBgn     = MAX(0, cnspos[tiid].min() - bgnExtra);   //  Start position in frankenstein
-  int32 frankEnd     = frankensteinLen;                       //  Truncation of frankenstein
-  char  frankEndBase = 0;                                     //  Saved base from frankenstein
+  int32 frankEnd     = frankensteinLen;                         //  Truncation of frankenstein
+  char  frankEndBase = 0;                                       //  Saved base from frankenstein
 
   bool  allowAhang   = false;
   bool  allowBhang   = true;
   bool  tryAgain     = false;
 
   if (showAlgorithm())
-    fprintf(stderr, "alignFragment()-- Allow bgnExtra=%d and endExtra=%d (frankBgn=%d frankEnd=%d) and endTrim=%d\n",
+    fprintf(stderr, "\nalignFragment()-- Allow bgnExtra=%d and endExtra=%d (frankBgn=%d frankEnd=%d) and endTrim=%d\n\n",
             bgnExtra, endExtra, frankBgn, frankEnd, endTrim);
 
   //  If the expected fragment begin position plus any extra slop is still the begin of the
@@ -697,7 +929,7 @@ unitigConsensus::alignFragment(void) {
   }
 
   char       *aseq  = frankenstein + frankBgn;
-  int32       alen  = frankEnd - frankBgn;
+  int32       alen  = frankEnd     - frankBgn;
 
   abSequence *bSEQ  = abacus->getSequence(tiid);
   char       *bseq  = abacus->getBases(bSEQ);
@@ -708,6 +940,106 @@ unitigConsensus::alignFragment(void) {
   if (endTrim < 0)
     fprintf(stderr, "alignFragment()-- ERROR -- negative endTrim %d\n", endTrim);
 
+  //
+  //  Try overlapAlign
+  //
+
+#if 1
+  if ((endTrim <  blen) &&
+      (0       <= endTrim)) {
+    int32 fragBgn      = 0;
+    int32 fragEnd      = blen - endTrim;
+    char  fragEndBase  = bseq[fragEnd];
+
+    bseq[fragEnd] = 0;  //  Terminate the bseq early for alignment.
+
+    if (oaFull == false)
+      oaFull = new overlapAlign(false, errorRate, 17);  //  partial NOT allowed
+
+    fprintf(stderr, "overlapAlign()--  A %d-%d  B %d-%d (before)\n", 0, alen, 0, blen);
+
+    oaFull->initialize(0, aseq, alen, 0, alen,
+                   1, bseq, blen, 0, blen,
+                   false);
+
+    bool  alignFound = ((oaFull->findMinMaxDiagonal(minOverlap) == true) &&
+                        (oaFull->findSeeds(false)               == true) &&
+                        (oaFull->findHits()                     == true) &&
+                        (oaFull->chainHits()                    == true) &&
+                        (oaFull->processHits()                  == true));
+
+    //  Done with alignment, restore the bases we might have removed.
+
+    if (frankEndBase)   frankenstein[frankEnd] = frankEndBase;
+    if (fragEndBase)    bseq[fragEnd]          = fragEndBase;
+
+    //  Process the alignment, or continue.
+
+    if (alignFound == true) {
+      fprintf(stderr, "overlapAlign()--  A %d-%d  B %d-%d (after)\n", oaFull->abgn(), oaFull->aend(), oaFull->bbgn(), oaFull->bend());
+      oaFull->display(false);
+
+      //  Process the trace
+
+      traceLen = 0;
+
+      traceABgn = frankBgn + oaFull->abgn();  //  Used in the call to applyAlignment()
+      traceBBgn =            oaFull->bbgn();
+
+      int32   apos = 0;
+      int32   bpos = 0;
+
+      for (uint32 ii=0; ii<oaFull->deltaLen(); ii++, traceLen++) {
+
+        //  Overlap encoding:
+        //    Add N matches or mismatches.  If negative, insert a base in the first sequence.  If
+        //    positive, delete a base in the first sequence.
+        //
+        //  Consensus encoding:
+        //    If negative, align (-trace - apos) bases, then add a gap in A.
+        //    If positive, align ( trace - bpos) bases, then add a gap in B.
+        //
+        if (oaFull->delta()[ii] < 0) {
+          apos += -oaFull->delta()[ii] - 1;
+          bpos += -oaFull->delta()[ii];
+
+          //  +2 
+          //  +1 two bases early on A, B seems ok.
+          //  +0 ?
+          //  -1 ?
+          
+          trace[traceLen] = -apos - frankBgn - 1;
+
+        } else {
+          apos +=  oaFull->delta()[ii];
+          bpos +=  oaFull->delta()[ii] - 1;  // critical
+
+          //  +2 - one base late, both a and b, but get messed up later
+          //  +1 - works
+          //  +0 - crashes
+          //  -1 - gap is two bases early
+
+          trace[traceLen] = bpos + 1;
+        }
+
+        //fprintf(stderr, "delta[%3d] = %d from %d\n", traceLen, trace[traceLen], oaFull->delta()[ii]);
+      }
+
+      trace[traceLen] = 0;
+
+      if (showAlgorithm())
+        fprintf(stderr, "alignFragment()-- Alignment succeeded.\n");
+
+      return(true);
+    }
+  }
+#endif
+
+  //
+  //  Try Optimal_Overlap_AS_forCNS
+  //
+
+#if 0
   if ((endTrim <  blen) &&
       (0       <= endTrim)) {
     int32 fragBgn      = 0;
@@ -717,7 +1049,6 @@ unitigConsensus::alignFragment(void) {
     bseq[fragEnd] = 0;
 
     ALNoverlap  *O           = NULL;
-    double       thresh      = 1e-3;
     int32        minlen      = minOverlap;
 
 #if 0
@@ -727,7 +1058,7 @@ unitigConsensus::alignFragment(void) {
                                   0, alen,            //  ahang bounds are unused here
                                   0, 0,               //  ahang, bhang exclusion
                                   0,
-                                  errorRate + 0.02, thresh, minlen,
+                                  errorRate + 0.02, 1e-3, minlen,
                                   AS_FIND_ALIGN);
       //if (O)
       //  fprintf(stderr, "Local_Overlap_AS_forCNS() succeeded.\n");
@@ -743,7 +1074,7 @@ unitigConsensus::alignFragment(void) {
                                     0, alen,            //  ahang bounds are unused here
                                     0, 0,               //  ahang, bhang exclusion
                                     0,
-                                    errorRate + 0.02, thresh, minlen,
+                                    errorRate + 0.02, 1e-3, minlen,
                                     AS_FIND_ALIGN);
       if ((O) && (showAlignments()))
         PrintALNoverlap("Optimal_Overlap", aseq, bseq, O);
@@ -779,7 +1110,8 @@ unitigConsensus::alignFragment(void) {
     if (O) {
       traceLen = 0;
 
-      traceBgn = frankBgn + O->begpos;
+      traceABgn = frankBgn + O->begpos;
+      traceBBgn = 0;
 
       for (int32 *t = O->trace; (t != NULL) && (*t != 0); t++) {
         if (*t < 0)
@@ -798,10 +1130,11 @@ unitigConsensus::alignFragment(void) {
     if (tryAgain)
       goto alignFragmentAgain;
   }
+#endif
 
   //  No alignment.  Dang.  (Should already be 0,0, but just in case...)
-  cnspos[tiid].set(0, 0);
 
+  cnspos[tiid].set(0, 0);
   piid = -1;
 
   if (showAlgorithm())
@@ -865,7 +1198,7 @@ unitigConsensus::applyAlignment(void) {
   abacus->applyAlignment(abSeqID(),
                          frankensteinLen, frankensteinBof,
                          tiid,
-                         traceBgn, trace);
+                         traceABgn, traceBBgn, trace);
 }
 
 

@@ -47,7 +47,6 @@ SOURCES  := AS_global.C \
             stores/tgStore.C \
             stores/tgTig.C \
             stores/tgTigSizeAnalysis.C \
-            stores/tgTigMultiAlignment.C \
             stores/tgTigMultiAlignDisplay.C \
             \
             meryl/libmeryl.C \

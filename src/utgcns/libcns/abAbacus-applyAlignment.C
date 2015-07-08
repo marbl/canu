@@ -23,10 +23,10 @@ static char *rcsid = "$Id$";
 
 #include "abAbacus.H"
 
-#undef  DEBUG_FIND_BEAD
-#undef  DEBUG_ALIGN_GAPS
-#undef  DEBUG_ALIGN_POSITION
-#undef  DEBUG_ABACUS_ALIGN
+#undef   DEBUG_FIND_BEAD
+#undef   DEBUG_ALIGN_GAPS
+#undef   DEBUG_ALIGN_POSITION
+#undef   DEBUG_ABACUS_ALIGN
 
 
 //  Add a column before cid, seeded with bead bid.
@@ -128,7 +128,7 @@ findBeadInColumn(abAbacus *abacus, abBeadID bi, abBeadID fi) {
   while (b->downID().isValid()) {
     b = abacus->getBead(b->downID());
 #ifdef DEBUG_FIND_BEAD
-    fprintf(stderr, "findBeadInColumn down bead="F_U64" ff=%d\n", b->ident().get(), b->seqIdx());
+    fprintf(stderr, "findBeadInColumn down bead="F_U64" ff=%d\n", b->ident().get(), b->seqIdx().get());
 #endif
     if (b->seqIdx() == ff)
       return(b->ident());
@@ -256,9 +256,10 @@ abAbacus::applyAlignment(abSeqID   afid,
                          int32     alen, abBeadID *aindex,
                          abSeqID   bfid,
                          int32     ahang,
+                         int32     bhang,
                          int32    *trace) {
 
-  int32     bpos   = 0;
+  int32     bpos   = 0;  //MAX(bhang, 0);
   int32     blen   = 0;
 
   int32     apos   = MAX(ahang,0);
@@ -491,17 +492,25 @@ abAbacus::applyAlignment(abSeqID   afid,
     for (abColumn *col = getColumn(ci); col->nextID().isValid(); col=getColumn(col->nextID()))
       fprintf(stderr, "ERROR!  Column ci="F_U32" has a next pointer ("F_U32")\n",
               col->ident().get(), col->nextID().get());
-    //#warning assert skipped until contig consensus gets fixed
+
     assert(getColumn(ci)->nextID().isValid() == false);
 
     //  Add on trailing (dovetail) beads from b
     //
     for (int32 rem=blen-bpos; rem > 0; rem--) {
+
 #ifdef DEBUG_ALIGN_POSITION
       abBead *bead = getBead(bindex[bpos]);
-      fprintf(stderr, "alignPosition()-- add %c to column %d\n",
-              getBase(bead->baseIdx()), bead->colIdx().get());
+      fprintf(stderr, "alignPosition()-- add %c (bead %d seqIdx %d pos %d baseIdx %d) to column %d rem=%d bpos=%d blen=%d\n",
+              getBase(bead->baseIdx()),
+              bead->ident().get(),
+              bead->seqIdx().get(),
+              bead->foffset,
+              bead->baseIdx().get(),
+              bead->colIdx().get(),
+              rem, bpos, blen);
 #endif
+
       ci = appendColumn(ci, bindex[bpos++]);
     }
   }

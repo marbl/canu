@@ -32,7 +32,7 @@ static char *rcsid = "$Id$";
 //#include "MicroHetREZ.H"
 #include "AS_UTL_reverseComplement.H"
 
-
+THIS IS ALL DEAD
 
 //external -- unused, but looks handy
 #if 0

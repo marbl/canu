@@ -162,13 +162,15 @@ abMultiAlign::display(abAbacus  *abacus,
                       uint32     from,
                       uint32     to) {
 
+  //  If called from unitigConsensus, this needs a rebuild() first.
+
   if (to > length())
     to = length();
 
   if (from > to)
     return;
 
-  int32   pageWidth = to - from;
+  int32   pageWidth = 250;  //to - from;
 
   char   *sequence = new char [length() + 1];
   char   *quality  = new char [length() + 1];
@@ -178,8 +180,6 @@ abMultiAlign::display(abAbacus  *abacus,
 
   if (len != length())
     fprintf(stderr, "abMultiAlign::display()-- len=%d != length=%d\n", len, length());
-  //assert(len == length());
-
 
   uint32 numSeqs = abacus->numberOfSequences();
 
@@ -195,12 +195,6 @@ abMultiAlign::display(abAbacus  *abacus,
     abColumn    *bgnColumn = abacus->getColumn(seq->firstBead());
     abColumn    *endColumn = abacus->getColumn(seq->lastBead());
 
-    //if (seq->multiAlignID() != ident()) {
-    //  fprintf(stderr, "abMultiAlign::display()-- seq %d multialign %d != multialign %d\n", seq->ident().get(), seq->multiAlignID().get(), ident().get());
-    //  continue;
-    //}
-    //assert(seq->multiAlignID() == ident());
-
     if ((bgnColumn == NULL) ||
         (endColumn == NULL)) {
       fid[i]  = 0;
@@ -208,6 +202,7 @@ abMultiAlign::display(abAbacus  *abacus,
       type[i] = '?';
       bgn[i]  = 0;
       end[i]  = 0;
+
     } else {
       fid[i]  = seq->gkpIdent();
       fit[i]  = NULL;
@@ -217,14 +212,13 @@ abMultiAlign::display(abAbacus  *abacus,
     }
   }
 
-
   uint32 window_start = from;
 
   fprintf(F,"\n==================== abMultiAlign::display %d ====================\n", ident().get());
 
   while (window_start < to) {
     fprintf(F,"\n");
-    fprintf(F,"%d\n", window_start);
+    fprintf(F,"%d - %d (max %d length %d)\n", window_start, window_start + pageWidth, to, length());
     fprintf(F,"%-*.*s <<< consensus\n", pageWidth, pageWidth, sequence + window_start);
     fprintf(F,"%-*.*s <<< quality\n\n", pageWidth, pageWidth, quality  + window_start);
 
@@ -233,7 +227,6 @@ abMultiAlign::display(abAbacus  *abacus,
         continue;
 
       for (uint32 wi=window_start; wi<window_start + pageWidth; wi++) {
-
 
         //  If no valid iterator, 
         if (fit[i] == NULL) {

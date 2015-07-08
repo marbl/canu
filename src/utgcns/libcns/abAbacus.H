@@ -181,7 +181,7 @@ public:
   abSeqID         addRead  (gkStore *gkpStore, uint32 readID, uint32 askip, uint32 bskip, bool complemented);  //  Adds gkpStore read 'readID' to the abacus; former AppendFragToLocalStore
   abSeqID         addUnitig(gkStore *gkpStore, uint32 readID, bool complemented);  //  NOT SUPPORTED
   
-  abBeadID        addBead(char base=0, char qual=0);
+  abBeadID        addBead(char base, char qual);
 
   abBeadID        appendGapBead(abBeadID bid);
   abBeadID        prependGapBead(abBeadID bid);
@@ -229,6 +229,7 @@ public:
                                  int32    alen, abBeadID *aindex,
                                  abSeqID  bfid,
                                  int32    ahang,
+                                 int32    bhang,
                                  int32   *trace);
 
 
@@ -252,7 +253,6 @@ public:
 private:
   uint32            _basesLen;
   uint32            _basesMax;
-  //abBase           *_bases;      //  VA_TYPE(char) *sequenceStore, *qualityStore
   char             *_bases;      //  Used to be a tuple-type, but then we couldn't grab a pointer to the
   char             *_quals;      //  read for use in alignment - we would have had to copy it first
 
