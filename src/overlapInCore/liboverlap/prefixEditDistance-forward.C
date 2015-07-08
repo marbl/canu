@@ -1,5 +1,6 @@
 #include "prefixEditDistance.H"
 
+#undef DEBUG
 
 
 
@@ -145,20 +146,22 @@ prefixEditDistance::forward(char    *A,   int32 m,
         //  Check for branch point here caused by uneven distribution of errors
         Score = Row * Branch_Match_Value - e;  //  Assumes Branch_Match_Value - Branch_Error_Value == 1.0
 
-        int32 Tail_Len = Row - Max_Score_Len;
-        bool  abort = false;
+        int32  Tail_Len = Row - Max_Score_Len;
+        bool   abort    = false;
+
+        double slope    = (double)(Max_Score - Score) / Tail_Len;
 
         if ((doingPartialOverlaps == true) && (Score < Max_Score))
           abort = true;
 
 #ifdef DEBUG 
-       fprintf(stderr, "prefixEditDistance()-- e=%d MIN=%d Tail_Len=%d Max_Score=%d Score=%d slope=%d SLOPE=%d\n",
-                e, MIN_BRANCH_END_DIST, Tail_Len, Max_Score, Score, (Max_Score - Score) / Tail_Len, MIN_BRANCH_TAIL_SLOPE);
+       fprintf(stderr, "prefixEditDistance()-- e=%d MIN=%d Tail_Len=%d Max_Score=%d Score=%d slope=%f SLOPE=%f\n",
+                e, MIN_BRANCH_END_DIST, Tail_Len, Max_Score, Score, slope, MIN_BRANCH_TAIL_SLOPE);
 #endif
 
         if ((e > MIN_BRANCH_END_DIST / 2) &&
             (Tail_Len >= MIN_BRANCH_END_DIST) &&
-            ((Max_Score - Score) / Tail_Len >= MIN_BRANCH_TAIL_SLOPE))
+            (slope >= MIN_BRANCH_TAIL_SLOPE))
           abort = true;
 
         if (abort) {

@@ -24,6 +24,7 @@ static const char *rcsid = "$Id$";
 #include "overlapInCore.H"
 #include "prefixEditDistance.H"
 
+#undef DEBUG
 
 
 //  See how far the exact match in  Match  extends.  The match
