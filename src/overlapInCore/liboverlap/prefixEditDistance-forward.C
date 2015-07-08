@@ -151,18 +151,30 @@ prefixEditDistance::forward(char    *A,   int32 m,
 
         double slope    = (double)(Max_Score - Score) / Tail_Len;
 
-        if ((doingPartialOverlaps == true) && (Score < Max_Score))
-          abort = true;
-
 #ifdef DEBUG 
-       fprintf(stderr, "prefixEditDistance()-- e=%d MIN=%d Tail_Len=%d Max_Score=%d Score=%d slope=%f SLOPE=%f\n",
+        fprintf(stderr, "prefixEditDistance()-- e=%d MIN=%d Tail_Len=%d Max_Score=%d Score=%d slope=%f SLOPE=%f\n",
                 e, MIN_BRANCH_END_DIST, Tail_Len, Max_Score, Score, slope, MIN_BRANCH_TAIL_SLOPE);
 #endif
 
-        if ((e > MIN_BRANCH_END_DIST / 2) &&
-            (Tail_Len >= MIN_BRANCH_END_DIST) &&
-            (slope >= MIN_BRANCH_TAIL_SLOPE))
+        //  If we're looking for local (former partial) overlaps, stop as soon as the score decreases.
+
+        if ((alignType == pedLocal) &&
+            (Score < Max_Score))
           abort = true;
+
+        //  If we're looking for overlaps, use a more complicated rule that....does something.
+
+        if ((alignType == pedOverlap) &&
+            (e        >  MIN_BRANCH_END_DIST / 2) &&  //  e == number of errors in the current alignment?
+            (Tail_Len >= MIN_BRANCH_END_DIST) &&      //  tail_len == amount extended since last best alignment
+            (slope    >= MIN_BRANCH_TAIL_SLOPE))      //  slope == rate of score drop in the extenstion
+          abort = true;
+
+        //  If we're looking for global overlaps, don't stop.
+
+        if ((alignType == pedGlobal))
+          abort = false;
+
 
         if (abort) {
           A_End = Max_Score_Len;

@@ -46,11 +46,12 @@ public:
 
     _olapLen  = 0;
     _olapQual = 0;
+    _olapType = pedBothBranch;
 
     _deltaLen = 0;
   };
 
-  void       saveCoords(int32 aLo, int32 aHi, int32 bLo, int32 bHi, int32 olapLen, double olapQual) {
+  void       save(int32 aLo, int32 aHi, int32 bLo, int32 bHi, int32 olapLen, double olapQual, pedOverlapType olapType, int32 dl, int32 *d) {
     _aLo      = aLo;
     _aHi      = aHi;
 
@@ -59,9 +60,8 @@ public:
 
     _olapLen  = olapLen;
     _olapQual = olapQual;
-  };
+    _olapType = olapType;
 
-  void       saveDelta(int32 dl, int32 *d) {
     _deltaLen = dl;
 
     if (_deltaMax < _deltaLen) {
@@ -81,6 +81,7 @@ public:
 
   int32               _olapLen;
   double              _olapQual;
+  pedOverlapType      _olapType;
 
   int32               _deltaMax;
   int32               _deltaLen;
@@ -91,46 +92,48 @@ public:
 
 class overlapAlign {
 public:
-  overlapAlign(bool    partialOverlaps,
-               double  maxErate,
-               int32   merSize);
+  overlapAlign(pedAlignType  alignType,
+               double        maxErate,
+               int32         merSize);
   ~overlapAlign();
 
-  void  initialize(uint32 aID, char *aStr, int32 aLen, int32 aLo, int32 aHi,
-                   uint32 bID, char *bStr, int32 bLen, int32 bLo, int32 bHi, bool bFlipped);
+  void             initialize(uint32 aID, char *aStr, int32 aLen, int32 aLo, int32 aHi,
+                              uint32 bID, char *bStr, int32 bLen, int32 bLo, int32 bHi, bool bFlipped);
 
   //  Algorithm
 
-  bool  findMinMaxDiagonal(int32 minLength);
-  bool  findSeeds(bool dupIgnore);
-  bool  findHits(void);
-  bool  chainHits(void);
-  bool  processHits(void);
+  bool             findMinMaxDiagonal(int32 minLength);
+  bool             findSeeds(bool dupIgnore);
+  bool             findHits(void);
+  bool             chainHits(void);
+  bool             processHits(void);
 
   //  Diagnostic
 
-  void    display(bool withAlign=true);
+  void             display(bool withAlign=true);
 
   //  Result reporting
 
-  char   *astr(void)    { return(_aStr); };
-  char   *bstr(void)    { return(_bStr); };
+  char            *astr(void)     { return(_aStr); };
+  char            *bstr(void)     { return(_bStr); };
 
-  int32   abgn(void)    { return(_bestResult._aLo); };
-  int32   aend(void)    { return(_bestResult._aHi); };
-  int32   bbgn(void)    { return((_bFlipped == false) ? (_bestResult._bLo) : (_bestResult._bLo)); };
-  int32   bend(void)    { return((_bFlipped == false) ? (_bestResult._bHi) : (_bestResult._bHi)); };
+  int32            abgn(void)     { return(_bestResult._aLo); };
+  int32            aend(void)     { return(_bestResult._aHi); };
+  int32            bbgn(void)     { return((_bFlipped == false) ? (_bestResult._bLo) : (_bestResult._bLo)); };
+  int32            bend(void)     { return((_bFlipped == false) ? (_bestResult._bHi) : (_bestResult._bHi)); };
 
-  int32   ahg5(void)    { return(        _bestResult._aLo); };
-  int32   ahg3(void)    { return(_aLen - _bestResult._aHi); };
-  int32   bhg5(void)    { return((_bFlipped == false) ? (        _bestResult._bLo) : (_bLen - _bestResult._bLo)); };
-  int32   bhg3(void)    { return((_bFlipped == false) ? (_bLen - _bestResult._bHi) : (        _bestResult._bHi)); };
+  int32            ahg5(void)     { return(        _bestResult._aLo); };
+  int32            ahg3(void)     { return(_aLen - _bestResult._aHi); };
+  int32            bhg5(void)     { return((_bFlipped == false) ? (        _bestResult._bLo) : (_bLen - _bestResult._bLo)); };
+  int32            bhg3(void)     { return((_bFlipped == false) ? (_bLen - _bestResult._bHi) : (        _bestResult._bHi)); };
 
-  int32   length(void)   { return(_bestResult._olapLen);  };
-  double  erate(void)    { return(_bestResult._olapQual); };
+  int32            length(void)   { return(_bestResult._olapLen);  };
+  double           erate(void)    { return(_bestResult._olapQual); };
 
-  int32   deltaLen(void) { return(_bestResult.deltaLen()); };
-  int32  *delta(void)    { return(_bestResult.delta());    };
+  pedOverlapType   type(void)     { return(_bestResult._olapType); };
+
+  int32            deltaLen(void) { return(_bestResult.deltaLen()); };
+  int32           *delta(void)    { return(_bestResult.delta());    };
 
 private:
 
@@ -156,7 +159,7 @@ private:
 
   //  Parameters of the alignment
 
-  bool                _partialOverlaps;
+  pedAlignType        _alignType;
   double              _maxErate;
   int32               _merSizeInitial;
 

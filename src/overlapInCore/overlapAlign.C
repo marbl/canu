@@ -11,10 +11,10 @@
 #define SEED_OVERLAPPING
 
 
-overlapAlign::overlapAlign(bool    partialOverlaps,
-                           double  maxErate,
-                           int32   merSize) {
-  _partialOverlaps  = partialOverlaps;
+overlapAlign::overlapAlign(pedAlignType   alignType,
+                           double         maxErate,
+                           int32          merSize) {
+  _alignType        = alignType;
   _maxErate         = maxErate;
   _merSizeInitial   = merSize;
 
@@ -34,7 +34,7 @@ overlapAlign::overlapAlign(bool    partialOverlaps,
   _bRevMax  = 0;
   _bRev     = NULL;
 
-  _editDist = new prefixEditDistance(_partialOverlaps, _maxErate);
+  _editDist = new prefixEditDistance(_alignType, _maxErate);
 
   _minDiag  = 0;
   _maxDiag  = 0;
@@ -502,14 +502,13 @@ overlapAlign::processHits(void) {
     fprintf(stderr, "Extend_Alignment Astart %d Bstart %d length %d\n", match.Start, match.Offset, match.Len);
 #endif
 
-    int32      errors  = 0;
-    Overlap_t  ovltype = _editDist->Extend_Alignment(&match,         //  Initial exact match, relative to start of string
-                                                     _aStr, _aLen,
-                                                     _bStr, _bLen,
-                                                     aLo,   aHi,    //  Output: Regions which the match extends
-                                                     bLo,   bHi,
-                                                     errors,
-                                                     _partialOverlaps);
+    int32           errors  = 0;
+    pedOverlapType  olapType = _editDist->Extend_Alignment(&match,         //  Initial exact match, relative to start of string
+                                                           _aStr, _aLen,
+                                                           _bStr, _bLen,
+                                                           aLo,   aHi,    //  Output: Regions which the match extends
+                                                           bLo,   bHi,
+                                                           errors);
 
     aHi++;  //  Add one to the end point because Extend_Alignment returns the base-based coordinate.
     bHi++;
@@ -519,13 +518,13 @@ overlapAlign::processHits(void) {
     double olapScore = olapLen * (1 - olapQual);
 
 #ifdef DEBUG_HITS
-    fprintf(stderr, "hit %2u at a=%5d b=%5d -- ORIG A %6u %5d-%5d (%5d) %s B %6u %5d-%5d (%5d)  %.4f -- REALIGN type %d A %5d-%5d  B %5d-%5d  errors %4d  erate %6.4f = %6u / %6u deltas %d %d %d %d %d%s\n",
+    fprintf(stderr, "hit %2u at a=%5d b=%5d -- ORIG A %6u %5d-%5d (%5d) %s B %6u %5d-%5d (%5d)  %.4f -- REALIGN %s A %5d-%5d  B %5d-%5d  errors %4d  erate %6.4f = %6u / %6u deltas %d %d %d %d %d%s\n",
             hh, _hits[hh].aBgn, _hits[hh].bBgn,
             _aID, _aLoOrig, _aHiOrig, _aLen,
             _bFlipped ? "<-" : "->",
             _bID, _bLoOrig, _bHiOrig, _bLen,
             erate(),
-            ovltype,
+            toString(olapType),
             aLo,
             aHi,
             (_bFlipped == false) ? bLo : bHi,
@@ -537,7 +536,7 @@ overlapAlign::processHits(void) {
             _editDist->Left_Delta[2],
             _editDist->Left_Delta[3],
             _editDist->Left_Delta[4],
-            ((ovltype != DOVETAIL) && (_partialOverlaps == false)) ? "  FAILED" : "");
+            ((olapType != pedDovetail) && (_partialOverlaps == false)) ? "  FAILED" : "");
 #endif
 
     //  Is this a better overlap than what we have?
@@ -546,8 +545,8 @@ overlapAlign::processHits(void) {
 #ifdef DEBUG_HITS
       fprintf(stderr, " - save best! - score %f previous %f expected %f\n", olapScore, _bestResult.score(), expectedScore);
 #endif
-      _bestResult.saveCoords(aLo, aHi, bLo, bHi, olapLen, olapQual);
-      _bestResult.saveDelta(_editDist->Left_Delta_Len, _editDist->Left_Delta);
+
+      _bestResult.save(aLo, aHi, bLo, bHi, olapLen, olapQual, olapType, _editDist->Left_Delta_Len, _editDist->Left_Delta);
     }
 
     //  If pretty crappy, keep looking.
@@ -560,9 +559,9 @@ overlapAlign::processHits(void) {
       continue;
     }
 
-    //  If this IS a dovetail, and we're looking for dovetails, we're done.
+    //  If this IS a dovetail, we're done in all cases.
 
-    if ((ovltype == DOVETAIL) && (_partialOverlaps == false)) {
+    if (olapType == pedDovetail) {
 #ifdef DEBUG_HITS
       fprintf(stderr, "DOVETAIL return - score %f expected %f\n", _bestResult.score(), expectedScore);
 #endif
@@ -601,20 +600,15 @@ overlapAlign::processHits(void) {
 void
 overlapAlign::display(bool withAlign) {
 
-  int32  aLo = _bestResult._aLo;
-  int32  aHi = _bestResult._aHi;
-
-  int32  bLo = _bestResult._bLo;
-  int32  bHi = _bestResult._bHi;
-
-  fprintf(stderr, "A %5u - %5u %s B %5u - %5u\n",
-          aLo, aHi,
+  fprintf(stderr, "A %5u - %5u %s B %5u - %5u  olap length %d erate %6.4f type %s\n",
+          _bestResult._aLo, _bestResult._aHi,
           _bFlipped ? "<--" : "-->",
-          bLo, bHi);
+          _bestResult._bLo, _bestResult._bHi,
+          length(), erate(), toString(type()));
 
   if (withAlign)
-    Display_Alignment(astr() + aLo, aHi - aLo,
-                      bstr() + bLo, bHi - bLo,
-                      _bestResult.delta(),
-                      _bestResult.deltaLen());
+    Display_Alignment(astr() + _bestResult._aLo, _bestResult._aHi - _bestResult._aLo,
+                      bstr() + _bestResult._bLo, _bestResult._bHi - _bestResult._bLo,
+                      delta(),
+                      deltaLen());
 }

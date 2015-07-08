@@ -140,7 +140,7 @@ Initialize_Work_Area(Work_Area_t *WA, int id) {
 
   fprintf(stderr, "Initialize_Work_Area()-- new prefixEditDistance\n");
 
-  WA->editDist = new prefixEditDistance(G.Doing_Partial_Overlaps, G.maxErate);
+  WA->editDist = new prefixEditDistance(G.Doing_Partial_Overlaps ? pedLocal : pedOverlap, G.maxErate);
 
   fprintf(stderr, "Initialize_Work_Area()-- done\n");
 }

@@ -12,13 +12,21 @@
 #define Sign(a) ( ((a) > 0) - ((a) < 0) ) 
 
 
-
-enum Overlap_t {
-  NONE,
-  LEFT_BRANCH_PT,
-  RIGHT_BRANCH_PT,
-  DOVETAIL
+enum pedAlignType {
+  pedOverlap     = 0,  //  Former normal overlap
+  pedLocal       = 1,  //  Former partial overlap
+  pedGlobal      = 2   //  New forced global overlap
 };
+
+enum pedOverlapType {
+  pedBothBranch  = 0,
+  pedLeftBranch  = 1,
+  pedRightBranch = 2,
+  pedDovetail    = 3
+};
+
+const char *toString(pedAlignType at);
+const char *toString(pedOverlapType ot);
 
 
 //  the input to Extend_Alignment.
@@ -34,7 +42,7 @@ struct Match_Node_t {
 
 class prefixEditDistance {
 public:
-  prefixEditDistance(bool doingPartialOverlaps_, double maxErate_);
+  prefixEditDistance(pedAlignType alignType_, double maxErate_);
   ~prefixEditDistance();
 
 
@@ -61,61 +69,60 @@ public:
                  bool    &Match_To_End);
 
 
-  Overlap_t
+  pedOverlapType
   Extend_Alignment(Match_Node_t *Match,
                    char         *S,     int32   S_Len,
                    char          *T,     int32   T_Len,
                    int32         &S_Lo,  int32   &S_Hi,
                    int32         &T_Lo,  int32   &T_Hi,
-                   int32         &Errors,
-                   bool           partialOverlaps);
+                   int32         &Errors);
 
 public:
   //  The four below were global #defines, two depended on the error rate which is now local.
 
   //  Most errors in any edit distance computation
-  uint32  MAX_ERRORS;
+  uint32                  MAX_ERRORS;
 
   //  The number of errors that are ignored in setting probability bound for terminating alignment
   //  extensions in edit distance calculations
-  uint32  ERRORS_FOR_FREE;
+  uint32                  ERRORS_FOR_FREE;
 
   //  Branch points must be at least this many bases from the end of the fragment to be reported
-  uint32  MIN_BRANCH_END_DIST;
-
+  uint32                  MIN_BRANCH_END_DIST;
 
   //  Branch point tails must fall off from the max by at least this rate
-  double  MIN_BRANCH_TAIL_SLOPE;
+  double                  MIN_BRANCH_TAIL_SLOPE;
 
-  double   maxErate;
-  bool     doingPartialOverlaps;
 
-  uint64   allocated;
+  pedAlignType            alignType;
+  double                  maxErate;
 
-  int32    Left_Delta_Len;
-  int32   *Left_Delta;
+  uint64                  allocated;
 
-  int32    Right_Delta_Len;
-  int32   *Right_Delta;
+  int32                   Left_Delta_Len;
+  int32                  *Left_Delta;
 
-  int32   *Delta_Stack;
+  int32                   Right_Delta_Len;
+  int32                  *Right_Delta;
 
-  int32  **Edit_Space_Lazy;        //  Array of pointers, if set, it was a new'd allocation
-  int32  **Edit_Array_Lazy;        //  Array of pointers, some are not new'd allocations
+  int32                  *Delta_Stack;
+
+  int32                 **Edit_Space_Lazy;        //  Array of pointers, if set, it was a new'd allocation
+  int32                 **Edit_Array_Lazy;        //  Array of pointers, some are not new'd allocations
 
   //  This array [e] is the minimum value of  Edit_Array[e][d]
   //  to be worth pursuing in edit-distance computations between reads
   const
-  int32   *Edit_Match_Limit;
-  int32   *Edit_Match_Limit_Allocation;
+  int32                  *Edit_Match_Limit;
+  int32                  *Edit_Match_Limit_Allocation;
 
   //  The maximum number of errors allowed in a match between reads of length i,
   //  which is i * AS_OVL_ERROR_RATE.
-  int32  Error_Bound[AS_MAX_READLEN + 1];
+  int32                   Error_Bound[AS_MAX_READLEN + 1];
 
   //  Scores of matches and mismatches in alignments.  Alignment ends at maximum score.
-  double  Branch_Match_Value;
-  double  Branch_Error_Value;
+  double                  Branch_Match_Value;
+  double                  Branch_Error_Value;
   
 };
 

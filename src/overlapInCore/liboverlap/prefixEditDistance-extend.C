@@ -39,14 +39,13 @@ static const char *rcsid = "$Id$";
 //  Set  Errors  to the number of errors in the alignment if it is
 //  a  DOVETAIL  overlap.
 
-Overlap_t
+pedOverlapType
 prefixEditDistance::Extend_Alignment(Match_Node_t *Match,
                                      char         *S,     int32   S_Len,
                                      char         *T,     int32   T_Len,
                                      int32        &S_Lo,  int32   &S_Hi,
                                      int32        &T_Lo,  int32   &T_Hi,
-                                     int32        &Errors,
-                                     bool          partialOverlaps) {
+                                     int32        &Errors) {
   int32  Right_Errors = 0;
   int32  Left_Errors  = 0;
   int32  Leftover     = 0;
@@ -146,6 +145,7 @@ prefixEditDistance::Extend_Alignment(Match_Node_t *Match,
   S_Lo += S_Left_Begin + 1;
   T_Lo += T_Left_Begin + 1;
 
+  //  Check the result.
 
   assert(Right_Errors <= Error_Limit);
   assert(Left_Errors <= Error_Limit);
@@ -154,15 +154,7 @@ prefixEditDistance::Extend_Alignment(Match_Node_t *Match,
 
   assert(Errors <= Error_Limit);
 
-
-  //  No overlap if both right and left don't match to end, otherwise a branch point if only one.
-  //  If both match to end, a dovetail overlap.  Indenting is all screwed up here.
-
-  Overlap_t return_type = (rMatchToEnd == false) ? ((lMatchToEnd == false) ? NONE : RIGHT_BRANCH_PT) :
-                                                   ((lMatchToEnd == false) ? LEFT_BRANCH_PT : DOVETAIL);
-
-  //  Merge the deltas.  Previously, this wouldn't be done if the overlap wasn't dovetail (and not partial).
-
+  //  Merge the deltas.
 
   if (Right_Delta_Len > 0) {
     if (Right_Delta[0] > 0)
@@ -179,6 +171,7 @@ prefixEditDistance::Extend_Alignment(Match_Node_t *Match,
 
   //  Return.
 
-  return(return_type);
+  return((rMatchToEnd == false) ? ((lMatchToEnd == false) ? pedBothBranch : pedRightBranch) :
+                                  ((lMatchToEnd == false) ? pedLeftBranch : pedDovetail));
 }
 

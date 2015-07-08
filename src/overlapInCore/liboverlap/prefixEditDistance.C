@@ -111,11 +111,44 @@ Edit_Match_Limit_Data[50] = {
 };
 
 
+const char *
+toString(pedAlignType at) {
+  const char *ret = NULL;
+
+  switch (at) {
+    case pedOverlap:  ret = "full-overlap";      break;
+    case pedLocal:    ret = "local-overlap";     break;
+    case pedGlobal:   ret = "global-alignment";  break;
+    default:
+      assert(0);
+      break;
+  }
+
+  return(ret);
+}
 
 
-prefixEditDistance::prefixEditDistance(bool doingPartialOverlaps_, double maxErate_) {
+const char *
+toString(pedOverlapType ot) {
+  const char *ret = NULL;
+
+  switch (ot) {
+    case pedBothBranch:   ret = "both-branch";       break;
+    case pedLeftBranch:   ret = "left-branch";       break;
+    case pedRightBranch:  ret = "right-branch";      break;
+    case pedDovetail:     ret = "dovetail-overlap";  break;
+    default:
+      assert(0);
+      break;
+  }
+
+  return(ret);
+}
+
+
+prefixEditDistance::prefixEditDistance(pedAlignType alignType_, double maxErate_) {
+  alignType            = alignType_;
   maxErate             = maxErate_;
-  doingPartialOverlaps = doingPartialOverlaps_;
 
   MAX_ERRORS             = (1 + (int)ceil(maxErate * AS_MAX_READLEN));
   ERRORS_FOR_FREE        = 1;
@@ -148,6 +181,8 @@ prefixEditDistance::prefixEditDistance(bool doingPartialOverlaps_, double maxEra
 
 #if 0
 
+  //  Use the precomputed values.
+
   Edit_Match_Limit_Allocation = NULL;
   Edit_Match_Limit            = Edit_Match_Limit_Data[dataIndex];
 
@@ -155,6 +190,8 @@ prefixEditDistance::prefixEditDistance(bool doingPartialOverlaps_, double maxEra
           Edit_Match_Limit, dataIndex, Edit_Match_Limit_0600);
 
 #else
+
+  //  Compute values on the fly.
 
   Edit_Match_Limit_Allocation = new int32 [MAX_ERRORS + 1];
 
@@ -186,14 +223,11 @@ prefixEditDistance::prefixEditDistance(bool doingPartialOverlaps_, double maxEra
   //
   //  ALH: Note that maxErate also affects what overlaps get found
   //
-  //  ALH: Scoring seems to be unusual: given an alignment
-  //  of length l with k mismatches, the score seems to be
-  //  computed as l + k * error value and NOT (l-k)*match+k*error
+  //  ALH: Scoring seems to be unusual: given an alignment of length l with k mismatches, the score
+  //  seems to be computed as l + k * error value and NOT (l-k)*match+k*error
   //
-  //  I.e. letting x := DEFAULT_BRANCH_MATCH_VAL,
-  //  the max mismatch fraction p to give a non-negative score
-  //  would be p = x/(1-x); conversely, to compute x for a
-  //  goal p, we have x = p/(1+p).  E.g.
+  //  I.e. letting x := DEFAULT_BRANCH_MATCH_VAL, the max mismatch fraction p to give a non-negative
+  //  score would be p = x/(1-x); conversely, to compute x for a goal p, we have x = p/(1+p).  E.g.
   //
   //  for p=0.06, x = .06 / (1.06) = .0566038
   //  for p=0.35, x = .35 / (1.35) = .259259
@@ -201,7 +235,9 @@ prefixEditDistance::prefixEditDistance(bool doingPartialOverlaps_, double maxEra
   //  for p=0.15, x = .15 / (1.15) = .130435
   //
   //  Value was for 6% vs 35% error discrimination.
+  //
   //  Converting to integers didn't make it faster.
+  //
   //  Corresponding error value is this value minus 1.0
 
   Branch_Match_Value = maxErate / (1 + maxErate);

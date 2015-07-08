@@ -117,7 +117,7 @@ recomputeOverlaps(void *ptr) {
   //  Lazy allocation of the prefixEditDistance structure; it's slow.
 
   if (WA->align == NULL)
-    WA->align = new overlapAlign(WA->partialOverlaps, WA->maxErate, 15);
+    WA->align = new overlapAlign(WA->partialOverlaps ? pedLocal : pedOverlap, WA->maxErate, 15);
 
   //if (WA->analyze == NULL)
   //  WA->analyze = new analyzeAlignment();

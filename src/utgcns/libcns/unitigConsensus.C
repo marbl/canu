@@ -590,7 +590,7 @@ unitigConsensus::computePositionFromAlignment(void) {
   if (foundAlign == false) {
 
     if (oaPartial == false)
-      oaPartial = new overlapAlign(true, errorRate, 17);  //  partial allowed!
+      oaPartial = new overlapAlign(pedLocal, errorRate, 17);  //  partial allowed!
 
     oaPartial->initialize(0, frankenstein, frankensteinLen, 0, frankensteinLen,
                           1, fragment,     fragmentLen,     0, fragmentLen,
@@ -954,9 +954,9 @@ unitigConsensus::alignFragment(void) {
     bseq[fragEnd] = 0;  //  Terminate the bseq early for alignment.
 
     if (oaFull == false)
-      oaFull = new overlapAlign(false, errorRate, 17);  //  partial NOT allowed
+      oaFull = new overlapAlign(pedGlobal, errorRate, 17);  //  partial NOT allowed
 
-    fprintf(stderr, "overlapAlign()--  A %d-%d  B %d-%d (before)\n", 0, alen, 0, blen);
+    //fprintf(stderr, "overlapAlign()--  A %d-%d  B %d-%d (before)\n", 0, alen, 0, blen);
 
     oaFull->initialize(0, aseq, alen, 0, alen,
                    1, bseq, blen, 0, blen,
@@ -973,11 +973,14 @@ unitigConsensus::alignFragment(void) {
     if (frankEndBase)   frankenstein[frankEnd] = frankEndBase;
     if (fragEndBase)    bseq[fragEnd]          = fragEndBase;
 
-    //  Process the alignment, or continue.
+    //  Is it a good alignment?
 
-    if (alignFound == true) {
-      fprintf(stderr, "overlapAlign()--  A %d-%d  B %d-%d (after)\n", oaFull->abgn(), oaFull->aend(), oaFull->bbgn(), oaFull->bend());
-      oaFull->display(false);
+    oaFull->display(false);
+
+    if ((alignFound == true) &&
+        (oaFull->type() == pedDovetail)) {
+
+      //oaFull->display(false);
 
       //  Process the trace
 

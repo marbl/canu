@@ -128,8 +128,8 @@ public:
 
   FILE              *cnsFile;
   FILE              *fastqFile;
-
 };
+
 
 
 class consensusThreadData {
@@ -140,7 +140,7 @@ public:
     nPassed  = 0;
     nFailed  = 0;
 
-    align    = new overlapAlign(false, g->maxErate, 15);  //  true = partial aligns, maxErate, seedSize
+    align    = new overlapAlign(pedGlobal, g->maxErate, 15);  //  true = partial aligns, maxErate, seedSize
     analyze  = new analyzeAlignment();
   };
   ~consensusThreadData() {
@@ -162,13 +162,12 @@ public:
 
 
 
-  //  The overlap compute needs both strings in the correct orientation.
-  //  This loaded just loads the tig/overlaps, and converts to a common format.
-  //  It ensures that the overlapReadCache is loaded.
+//  The overlap compute needs both strings in the correct orientation.
+//  This loaded just loads the tig/overlaps, and converts to a common format.
+//  It ensures that the overlapReadCache is loaded.
 
-  //  aID aBgn aEnd
-  //  bID bBgn bEnd bFlip
-
+//  aID aBgn aEnd
+//  bID bBgn bEnd bFlip
 
 class consensusComputation {
 public:
