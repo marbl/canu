@@ -13,44 +13,50 @@
 //  Used in Prefix_Edit_Distance
 //
 void
-prefixEditDistance::Set_Right_Delta (int e, int d) {
-  int  from, last, max;
-  int  i, j, k;
+prefixEditDistance::Set_Right_Delta (int32 e, int32 d) {
 
-  assert(Edit_Array_Lazy[e] != NULL);
-
-  last = Edit_Array_Lazy[e][d];
   Right_Delta_Len = 0;
 
-  for (k = e;  k > 0;  k--) {
+  int32  last = Edit_Array_Lazy[e][d];
+
+  for (int32 k=e; k>0; k--) {
     assert(Edit_Array_Lazy[k] != NULL);
 
-    from = d;
-    max = 1 + Edit_Array_Lazy[k - 1][d];
-    if ((j = Edit_Array_Lazy[k - 1][d - 1]) > max) {
+    int32  from = d;
+    int32  max  = 1 + Edit_Array_Lazy[k - 1][d];
+
+    //  Figure out which sequence has the insertion, if any.
+
+    if (Edit_Array_Lazy[k-1][d-1] > max) {
       from = d - 1;
-      max = j;
+      max  = Edit_Array_Lazy[k-1][d-1];
     }
-    if ((j = 1 + Edit_Array_Lazy[k - 1][d + 1]) > max) {
+
+    if (1 + Edit_Array_Lazy[k-1][d+1] > max) {
       from = d + 1;
-      max = j;
+      max  = 1 + Edit_Array_Lazy[k-1][d+1];
     }
+
+    //  And make an insertion.  
+
     if (from == d - 1) {
       Delta_Stack[Right_Delta_Len++] = max - last - 1;
       d--;
-      last = Edit_Array_Lazy[k - 1][from];
-    } else if (from == d + 1) {
+      last = Edit_Array_Lazy[k-1][from];
+    }
+
+    else if (from == d + 1) {
       Delta_Stack[Right_Delta_Len++] = last - (max - 1);
       d++;
-      last = Edit_Array_Lazy[k - 1][from];
+      last = Edit_Array_Lazy[k-1][from];
     }
   }
+
   Delta_Stack[Right_Delta_Len++] = last + 1;
 
-  k = 0;
-  for (i = Right_Delta_Len - 1;  i > 0;  i--)
-    Right_Delta[k++]
-      = abs (Delta_Stack[i]) * Sign (Delta_Stack[i - 1]);
+  for (int32 k=0, i=Right_Delta_Len-1; i>0; i--)
+    Right_Delta[k++] = abs(Delta_Stack[i]) * Sign(Delta_Stack[i-1]);
+
   Right_Delta_Len--;
 }
 
@@ -75,76 +81,88 @@ prefixEditDistance::Set_Right_Delta (int e, int d) {
 //  a branch point.
 
 int32
-prefixEditDistance::forward(char    *A,   int32 m,
-                            char    *T,   int32 n,
+prefixEditDistance::forward(char    *A,   int32 Alen,
+                            char    *T,   int32 Tlen,
                             int32    Error_Limit,
                             int32   &A_End,
                             int32   &T_End,
                             bool    &Match_To_End) {
-  double  Score;
-  int  Max_Score_Len = 0, Max_Score_Best_d = 0, Max_Score_Best_e = 0;
-  int  Best_d, Best_e, From, Last, Longest, Max, Row;
-  int  d, e, i, j, k;
 
-  assert (m <= n);
-  Best_d = Best_e = Longest = 0;
+  assert (Alen <= Tlen);
+
+  int32  Best_d  = 0;
+  int32  Best_e  = 0;
+  int32  Longest = 0;
+
   Right_Delta_Len = 0;
 
-  for (Row = 0;  Row < m
-          && (A[Row] == T[Row]
-              || A[Row] == 'N'
-              || T[Row] == 'N');  Row++)
-    ;
+  int32  Row = 0;
+  int32  Max = 0;
+
+  //  Skip ahead over matches.  The original used to also skip if either sequence was N.
+  while ((Row < Alen) && (A[Row] == T[Row]))
+    Row++;
 
   if (Edit_Array_Lazy[0] == NULL)
     Allocate_More_Edit_Space();
 
   Edit_Array_Lazy[0][0] = Row;
 
-  if (Row == m) {
-    // Exact match
-    A_End = T_End = m;
-    Match_To_End = TRUE;
+  // Exact match?
+
+  if (Row == Alen) {
+    A_End        = Alen;
+    T_End        = Alen;
+    Match_To_End = true;
 #ifdef DEBUG
     fprintf(stderr, "forward()- exact match\n");
 #endif
-    return  0;
+    return(0);
   }
 
   int32 Left  = 0;
   int32 Right = 0;
 
-  double Max_Score = 0.0;
+  double Max_Score         = 0.0;
+  int32  Max_Score_Len     = 0;
+  int32  Max_Score_Best_d  = 0;
+  int32  Max_Score_Best_e  = 0;
 
-  for (e = 1;  e <= Error_Limit;  e++) {
+  for (int32 e = 1;  e <= Error_Limit;  e++) {
     if (Edit_Array_Lazy[e] == NULL)
       Allocate_More_Edit_Space();
 
     Left  = MAX (Left  - 1, -e);
     Right = MIN (Right + 1,  e);
 
-    Edit_Array_Lazy[e - 1][Left     ] = -2;
-    Edit_Array_Lazy[e - 1][Left  - 1] = -2;
-    Edit_Array_Lazy[e - 1][Right    ] = -2;
-    Edit_Array_Lazy[e - 1][Right + 1] = -2;
+    Edit_Array_Lazy[e-1][Left     ] = -2;
+    Edit_Array_Lazy[e-1][Left  - 1] = -2;
+    Edit_Array_Lazy[e-1][Right    ] = -2;
+    Edit_Array_Lazy[e-1][Right + 1] = -2;
 
-    for (d = Left;  d <= Right;  d++) {
-      Row = 1 + Edit_Array_Lazy[e - 1][d];
+    for (int32 d = Left;  d <= Right;  d++) {
 
-      if ((j = Edit_Array_Lazy[e - 1][d - 1]) > Row)
-        Row = j;
+      Row = 1 + Edit_Array_Lazy[e-1][d];
 
-      if ((j = 1 + Edit_Array_Lazy[e - 1][d + 1]) > Row)
-        Row = j;
+      if (Edit_Array_Lazy[e-1][d - 1] > Row)
+        Row = Edit_Array_Lazy[e-1][d - 1];
 
-      while  (Row < m && Row + d < n && (A[Row] == T[Row + d] || A[Row] == 'N' || T[Row + d] == 'N'))
+      if (1 + Edit_Array_Lazy[e-1][d+1] > Row)
+        Row = 1 + Edit_Array_Lazy[e-1][d+1];
+
+      //  If A or B is N, that isn't a mismatch.
+      //  If A is lowercase and T is uppercase, it's a match.
+      //  If A is lowercase and T doesn't match, ignore the cost of the gap in B
+
+      while ((Row < Alen) && (Row + d < Tlen) && (A[Row] == T[Row + d]))
         Row++;
 
       Edit_Array_Lazy[e][d] = Row;
 
-      if (Row == m || Row + d == n) {
+
+      if (Row == Alen || Row + d == Tlen) {
         //  Check for branch point here caused by uneven distribution of errors
-        Score = Row * Branch_Match_Value - e;  //  Assumes Branch_Match_Value - Branch_Error_Value == 1.0
+        double Score = Row * Branch_Match_Value - e;  //  Assumes Branch_Match_Value - Branch_Error_Value == 1.0
 
         int32  Tail_Len = Row - Max_Score_Len;
         bool   abort    = false;
@@ -191,8 +209,8 @@ prefixEditDistance::forward(char    *A,   int32 m,
         }
 
         // Force last error to be mismatch rather than insertion
-        if ((Row == m) &&
-            (1 + Edit_Array_Lazy[e - 1][d + 1] == Edit_Array_Lazy[e][d]) &&
+        if ((Row == Alen) &&
+            (1 + Edit_Array_Lazy[e-1][d+1] == Edit_Array_Lazy[e][d]) &&
             (d < Right)) {
           d++;
           Edit_Array_Lazy[e][d] = Edit_Array_Lazy[e][d - 1];
@@ -235,19 +253,17 @@ prefixEditDistance::forward(char    *A,   int32 m,
 
     assert (Left <= Right);
 
-    for (d = Left;  d <= Right;  d++)
+    for (int32 d = Left;  d <= Right;  d++)
       if (Edit_Array_Lazy[e][d] > Longest) {
         Best_d = d;
         Best_e = e;
         Longest = Edit_Array_Lazy[e][d];
       }
 
-    Score = Longest * Branch_Match_Value - e;
 
-    // Assumes  Branch_Match_Value - Branch_Error_Value == 1.0
-    if (Score > Max_Score) {
-      Max_Score = Score;
-      Max_Score_Len = Longest;
+    if (Longest * Branch_Match_Value - e > Max_Score) {
+      Max_Score        = Longest * Branch_Match_Value - e;
+      Max_Score_Len    = Longest;
       Max_Score_Best_d = Best_d;
       Max_Score_Best_e = Best_e;
     }
@@ -260,8 +276,11 @@ prefixEditDistance::forward(char    *A,   int32 m,
 
   A_End = Max_Score_Len;
   T_End = Max_Score_Len + Max_Score_Best_d;
+
   Set_Right_Delta (Max_Score_Best_e, Max_Score_Best_d);
+
   Match_To_End = FALSE;
+
   return  Max_Score_Best_e;
 }
 
