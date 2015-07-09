@@ -173,10 +173,12 @@ recomputeOverlaps(void *ptr) {
         continue;
       }
 
-      WA->align->findHits();
-      WA->align->chainHits();
+      if ((WA->align->findHits()    == true) &&
+          (WA->align->chainHits()   == true) &&
+          (WA->align->processHits() == true)) {
 
-      if (WA->align->processHits() == true) {
+        WA->align->display(true);
+
         nPassed++;
 
         //WA->align->display();
