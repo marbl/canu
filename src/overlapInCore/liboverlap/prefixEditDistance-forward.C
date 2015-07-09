@@ -144,8 +144,8 @@ prefixEditDistance::forward(char    *A,   int32 Alen,
 
       Row = 1 + Edit_Array_Lazy[e-1][d];
 
-      if (Edit_Array_Lazy[e-1][d - 1] > Row)
-        Row = Edit_Array_Lazy[e-1][d - 1];
+      if (Edit_Array_Lazy[e-1][d-1] > Row)
+        Row = Edit_Array_Lazy[e-1][d-1];
 
       if (1 + Edit_Array_Lazy[e-1][d+1] > Row)
         Row = 1 + Edit_Array_Lazy[e-1][d+1];
@@ -213,7 +213,7 @@ prefixEditDistance::forward(char    *A,   int32 Alen,
             (1 + Edit_Array_Lazy[e-1][d+1] == Edit_Array_Lazy[e][d]) &&
             (d < Right)) {
           d++;
-          Edit_Array_Lazy[e][d] = Edit_Array_Lazy[e][d - 1];
+          Edit_Array_Lazy[e][d] = Edit_Array_Lazy[e][d-1];
         }
 
         A_End = Row;           // One past last align position

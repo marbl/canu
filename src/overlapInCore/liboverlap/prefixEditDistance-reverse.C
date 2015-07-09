@@ -163,8 +163,8 @@ prefixEditDistance::reverse(char    *A,   int32 Alen,   //  first sequence and l
 
       Row = 1 + Edit_Array_Lazy[e-1][d];
 
-      if  (Edit_Array_Lazy[e-1][d - 1] > Row)
-        Row = Edit_Array_Lazy[e-1][d - 1];
+      if  (Edit_Array_Lazy[e-1][d-1] > Row)
+        Row = Edit_Array_Lazy[e-1][d-1];
 
       if  (1 + Edit_Array_Lazy[e-1][d+1] > Row)
         Row = 1 + Edit_Array_Lazy[e-1][d+1];
