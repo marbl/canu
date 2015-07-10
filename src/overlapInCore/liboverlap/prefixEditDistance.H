@@ -39,6 +39,12 @@ struct Match_Node_t {
 
 
 
+struct pedEdit {
+  int32  row;
+  int32  score;
+};
+
+
 
 class prefixEditDistance {
 public:
@@ -107,8 +113,8 @@ public:
 
   int32                  *Delta_Stack;
 
-  int32                 **Edit_Space_Lazy;        //  Array of pointers, if set, it was a new'd allocation
-  int32                 **Edit_Array_Lazy;        //  Array of pointers, some are not new'd allocations
+  pedEdit               **Edit_Space_Lazy;        //  Array of pointers, if set, it was a new'd allocation
+  pedEdit               **Edit_Array_Lazy;        //  Array of pointers, some are not new'd allocations
 
   //  This array [e] is the minimum value of  Edit_Array[e][d]
   //  to be worth pursuing in edit-distance computations between reads

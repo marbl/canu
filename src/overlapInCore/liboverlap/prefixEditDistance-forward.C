@@ -17,42 +17,54 @@ prefixEditDistance::Set_Right_Delta (int32 e, int32 d) {
 
   Right_Delta_Len = 0;
 
-  int32  last = Edit_Array_Lazy[e][d];
+  int32  lastr = Edit_Array_Lazy[e][d].row;
+  int32  lasts = Edit_Array_Lazy[e][d].score;
 
   for (int32 k=e; k>0; k--) {
     assert(Edit_Array_Lazy[k] != NULL);
 
     int32  from = d;
-    int32  max  = 1 + Edit_Array_Lazy[k - 1][d];
+    int32  maxs = 1 + Edit_Array_Lazy[k-1][d].score;
+    int32  maxr = 1 + Edit_Array_Lazy[k-1][d].row;
 
     //  Figure out which sequence has the insertion, if any.
 
-    if (Edit_Array_Lazy[k-1][d-1] > max) {
+    if (0 + Edit_Array_Lazy[k-1][d-1].row > maxr) {
       from = d - 1;
-      max  = Edit_Array_Lazy[k-1][d-1];
+      maxs = 0 +  Edit_Array_Lazy[k-1][d-1].score;
+      maxr = 0 + Edit_Array_Lazy[k-1][d-1].row;
     }
 
-    if (1 + Edit_Array_Lazy[k-1][d+1] > max) {
+    if (1 + Edit_Array_Lazy[k-1][d+1].row > maxr) {
       from = d + 1;
-      max  = 1 + Edit_Array_Lazy[k-1][d+1];
+      maxs = 1 + Edit_Array_Lazy[k-1][d+1].score;
+      maxr = 1 + Edit_Array_Lazy[k-1][d+1].row;
     }
 
     //  And make an insertion.  
 
     if (from == d - 1) {
-      Delta_Stack[Right_Delta_Len++] = max - last - 1;
+      fprintf(stderr, "RightDelta: insert gap in A at %d max=%d last=%d\n", maxr - lastr - 1, maxr, lastr);
+      Delta_Stack[Right_Delta_Len++] = maxr - lastr - 1;
       d--;
-      last = Edit_Array_Lazy[k-1][from];
+      lastr = Edit_Array_Lazy[k-1][from].row;
+      lasts = Edit_Array_Lazy[k-1][from].score;
     }
 
     else if (from == d + 1) {
-      Delta_Stack[Right_Delta_Len++] = last - (max - 1);
+      fprintf(stderr, "RightDelta: insert gap in T at %d max=%d last=%d\n", lastr - (maxr - 1), maxr, lastr);
+      Delta_Stack[Right_Delta_Len++] = lastr - (maxr - 1);
       d++;
-      last = Edit_Array_Lazy[k-1][from];
+      lastr = Edit_Array_Lazy[k-1][from].row;
+      lasts = Edit_Array_Lazy[k-1][from].score;
+    }
+
+    else {
+      fprintf(stderr, "RightDelta: mismatch        at %d max=%d last=%d\n", maxr - lastr - 1, maxr, lastr);
     }
   }
 
-  Delta_Stack[Right_Delta_Len++] = last + 1;
+  Delta_Stack[Right_Delta_Len++] = lastr + 1;
 
   for (int32 k=0, i=Right_Delta_Len-1; i>0; i--)
     Right_Delta[k++] = abs(Delta_Stack[i]) * Sign(Delta_Stack[i-1]);
@@ -97,6 +109,7 @@ prefixEditDistance::forward(char    *A,   int32 Alen,
   Right_Delta_Len = 0;
 
   int32  Row = 0;
+  int32  Sco = 0;
   int32  Max = 0;
 
   //  Skip ahead over matches.  The original used to also skip if either sequence was N.
@@ -106,7 +119,8 @@ prefixEditDistance::forward(char    *A,   int32 Alen,
   if (Edit_Array_Lazy[0] == NULL)
     Allocate_More_Edit_Space();
 
-  Edit_Array_Lazy[0][0] = Row;
+  Edit_Array_Lazy[0][0].score = Row;
+  Edit_Array_Lazy[0][0].row   = Row;
 
   // Exact match?
 
@@ -135,29 +149,38 @@ prefixEditDistance::forward(char    *A,   int32 Alen,
     Left  = MAX (Left  - 1, -e);
     Right = MIN (Right + 1,  e);
 
-    Edit_Array_Lazy[e-1][Left     ] = -2;
-    Edit_Array_Lazy[e-1][Left  - 1] = -2;
-    Edit_Array_Lazy[e-1][Right    ] = -2;
-    Edit_Array_Lazy[e-1][Right + 1] = -2;
+    Edit_Array_Lazy[e-1][Left     ].row = -2;    Edit_Array_Lazy[e-1][Left     ].score = INT32_MIN;
+    Edit_Array_Lazy[e-1][Left  - 1].row = -2;    Edit_Array_Lazy[e-1][Left  - 1].score = INT32_MIN;
+    Edit_Array_Lazy[e-1][Right    ].row = -2;    Edit_Array_Lazy[e-1][Right    ].score = INT32_MIN;
+    Edit_Array_Lazy[e-1][Right + 1].row = -2;    Edit_Array_Lazy[e-1][Right + 1].score = INT32_MIN;
 
     for (int32 d = Left;  d <= Right;  d++) {
 
-      Row = 1 + Edit_Array_Lazy[e-1][d];
+      //  A match.
+      Row = 1 + Edit_Array_Lazy[e-1][d].row;
+      Sco = 1 + Edit_Array_Lazy[e-1][d].score;
 
-      if (Edit_Array_Lazy[e-1][d-1] > Row)
-        Row = Edit_Array_Lazy[e-1][d-1];
+      //  Insert a gap in A.  (opposite of the 'reverse')
+      if (Edit_Array_Lazy[e-1][d-1].row > Row) {
+        Row = Edit_Array_Lazy[e-1][d-1].row;
+        Sco = Edit_Array_Lazy[e-1][d-1].score;
+      }
 
-      if (1 + Edit_Array_Lazy[e-1][d+1] > Row)
-        Row = 1 + Edit_Array_Lazy[e-1][d+1];
+      //  Insert a gap in T.  (opposite of the 'reverse')
+      if (1 + Edit_Array_Lazy[e-1][d+1].row > Row) {
+        Row = 1 + Edit_Array_Lazy[e-1][d+1].row;
+        Sco = 1 + Edit_Array_Lazy[e-1][d+1].score;
+      }
 
       //  If A or B is N, that isn't a mismatch.
       //  If A is lowercase and T is uppercase, it's a match.
-      //  If A is lowercase and T doesn't match, ignore the cost of the gap in B
+      //  If A is lowercase and T is an insertion, ignore the cost.
 
       while ((Row < Alen) && (Row + d < Tlen) && (A[Row] == T[Row + d]))
         Row++;
 
-      Edit_Array_Lazy[e][d] = Row;
+      Edit_Array_Lazy[e][d].row   = Row;
+      Edit_Array_Lazy[e][d].score = Sco;
 
 
       if (Row == Alen || Row + d == Tlen) {
@@ -210,10 +233,11 @@ prefixEditDistance::forward(char    *A,   int32 Alen,
 
         // Force last error to be mismatch rather than insertion
         if ((Row == Alen) &&
-            (1 + Edit_Array_Lazy[e-1][d+1] == Edit_Array_Lazy[e][d]) &&
+            (1 + Edit_Array_Lazy[e-1][d+1].row == Edit_Array_Lazy[e][d].row) &&
             (d < Right)) {
           d++;
-          Edit_Array_Lazy[e][d] = Edit_Array_Lazy[e][d-1];
+          Edit_Array_Lazy[e][d].score = Edit_Array_Lazy[e][d-1].score;
+          Edit_Array_Lazy[e][d].row   = Edit_Array_Lazy[e][d-1].row;
         }
 
         A_End = Row;           // One past last align position
@@ -230,11 +254,13 @@ prefixEditDistance::forward(char    *A,   int32 Alen,
       }
     }
 
-    while  ((Left <= Right) && (Left < 0) && (Edit_Array_Lazy[e][Left] < Edit_Match_Limit[e]))
+    //  Reset the band
+
+    while  ((Left <= Right) && (Left < 0) && (Edit_Array_Lazy[e][Left].row < Edit_Match_Limit[e]))
       Left++;
 
     if (Left >= 0)
-      while  ((Left <= Right) && (Edit_Array_Lazy[e][Left] + Left < Edit_Match_Limit[e]))
+      while  ((Left <= Right) && (Edit_Array_Lazy[e][Left].row + Left < Edit_Match_Limit[e]))
         Left++;
 
     if (Left > Right) {
@@ -244,20 +270,20 @@ prefixEditDistance::forward(char    *A,   int32 Alen,
       break;
     }
 
-    while  ((Right > 0) && (Edit_Array_Lazy[e][Right] + Right < Edit_Match_Limit[e]))
+    while  ((Right > 0) && (Edit_Array_Lazy[e][Right].row + Right < Edit_Match_Limit[e]))
       Right--;
 
     if (Right <= 0)
-      while  (Edit_Array_Lazy[e][Right] < Edit_Match_Limit[e])
+      while  (Edit_Array_Lazy[e][Right].row < Edit_Match_Limit[e])
         Right--;
 
     assert (Left <= Right);
 
     for (int32 d = Left;  d <= Right;  d++)
-      if (Edit_Array_Lazy[e][d] > Longest) {
+      if (Edit_Array_Lazy[e][d].row > Longest) {
         Best_d = d;
         Best_e = e;
-        Longest = Edit_Array_Lazy[e][d];
+        Longest = Edit_Array_Lazy[e][d].row;
       }
 
 

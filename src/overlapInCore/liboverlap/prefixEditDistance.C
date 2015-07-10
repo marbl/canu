@@ -150,26 +150,26 @@ prefixEditDistance::prefixEditDistance(pedAlignType alignType_, double maxErate_
   alignType            = alignType_;
   maxErate             = maxErate_;
 
-  MAX_ERRORS             = (1 + (int)ceil(maxErate * AS_MAX_READLEN));
+  MAX_ERRORS             = (1 + (int32)ceil(maxErate * AS_MAX_READLEN));
   ERRORS_FOR_FREE        = 1;
   MIN_BRANCH_END_DIST    = 20;
   MIN_BRANCH_TAIL_SLOPE  = ((maxErate > 0.06) ? 1.0 : 0.20);
 
-  Left_Delta  = new int  [MAX_ERRORS];
-  Right_Delta = new int  [MAX_ERRORS];
+  Left_Delta  = new int32  [MAX_ERRORS];
+  Right_Delta = new int32  [MAX_ERRORS];
 
-  allocated += 3 * MAX_ERRORS * sizeof(int);
+  allocated += 3 * MAX_ERRORS * sizeof(int32);
 
-  Delta_Stack = new int  [MAX_ERRORS];
+  Delta_Stack = new int32  [MAX_ERRORS];
 
-  Edit_Space_Lazy = new int *  [MAX_ERRORS];
-  Edit_Array_Lazy = new int *  [MAX_ERRORS];
+  Edit_Space_Lazy = new pedEdit *  [MAX_ERRORS];
+  Edit_Array_Lazy = new pedEdit *  [MAX_ERRORS];
 
-  memset(Edit_Space_Lazy, 0, sizeof(int *) * MAX_ERRORS);
-  memset(Edit_Array_Lazy, 0, sizeof(int *) * MAX_ERRORS);
+  memset(Edit_Space_Lazy, 0, sizeof(pedEdit *) * MAX_ERRORS);
+  memset(Edit_Array_Lazy, 0, sizeof(pedEdit *) * MAX_ERRORS);
 
-  allocated += MAX_ERRORS * sizeof (int);
-  allocated += MAX_ERRORS * sizeof (int);
+  allocated += MAX_ERRORS * sizeof (pedEdit);
+  allocated += MAX_ERRORS * sizeof (pedEdit);
 
   int32   dataIndex = (int)ceil(maxErate * 100) - 1;
 

@@ -47,7 +47,7 @@ prefixEditDistance::Allocate_More_Edit_Space(void) {
 
   //  Allocate another block
 
-  Edit_Space_Lazy[a] = new int [Size];
+  Edit_Space_Lazy[a] = new pedEdit [Size];
 
   //  And, now, fill in the edit space array.
 
