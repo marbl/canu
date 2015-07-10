@@ -241,7 +241,6 @@ prefixEditDistance::prefixEditDistance(pedAlignType alignType_, double maxErate_
   //  Corresponding error value is this value minus 1.0
 
   Branch_Match_Value = maxErate / (1 + maxErate);
-  Branch_Error_Value = Branch_Match_Value - 1.0;
 };
 
 
