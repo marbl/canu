@@ -61,7 +61,7 @@ prefixEditDistance::Set_Left_Delta(int32 e, int32 d, int32 &leftover, int32 &t_e
     //  And make an insertion.  
 
     if (from == d - 1) {
-      fprintf(stderr, "LeftDelta:  insert gap in T at %d max=%d last=%d\n", maxr - lastr - 1, maxr, lastr);
+      //fprintf(stderr, "LeftDelta:  insert gap in T at %d max=%d last=%d\n", maxr - lastr - 1, maxr, lastr);
       Left_Delta[Left_Delta_Len++] = maxr - lastr - 1;
       d--;
       lastr = Edit_Array_Lazy[k-1][from].row;
@@ -69,7 +69,7 @@ prefixEditDistance::Set_Left_Delta(int32 e, int32 d, int32 &leftover, int32 &t_e
     }
 
     else if (from == d + 1) {
-      fprintf(stderr, "LeftDelta:  insert gap in A at %d max=%d last=%d\n", lastr - (maxr - 1), maxr, lastr);
+      //fprintf(stderr, "LeftDelta:  insert gap in A at %d max=%d last=%d\n", lastr - (maxr - 1), maxr, lastr);
       Left_Delta[Left_Delta_Len++] = lastr - (maxr - 1);
       d++;
       lastr = Edit_Array_Lazy[k-1][from].row;
@@ -77,7 +77,7 @@ prefixEditDistance::Set_Left_Delta(int32 e, int32 d, int32 &leftover, int32 &t_e
     }
 
     else {
-      fprintf(stderr, "LeftDelta:  mismatch        at %d max=%d last=%d\n", maxr - lastr - 1, maxr, lastr);
+      //fprintf(stderr, "LeftDelta:  mismatch        at %d max=%d last=%d\n", maxr - lastr - 1, maxr, lastr);
     }
   }
 

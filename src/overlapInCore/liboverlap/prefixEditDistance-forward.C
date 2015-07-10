@@ -56,7 +56,7 @@ prefixEditDistance::Set_Right_Delta (int32 e, int32 d) {
     //  And make an insertion.  
 
     if (from == d - 1) {
-      fprintf(stderr, "RightDelta: insert gap in A at %d max=%d last=%d\n", maxr - lastr - 1, maxr, lastr);
+      //fprintf(stderr, "RightDelta: insert gap in A at %d max=%d last=%d\n", maxr - lastr - 1, maxr, lastr);
       Delta_Stack[Right_Delta_Len++] = maxr - lastr - 1;
       d--;
       lastr = Edit_Array_Lazy[k-1][from].row;
@@ -64,7 +64,7 @@ prefixEditDistance::Set_Right_Delta (int32 e, int32 d) {
     }
 
     else if (from == d + 1) {
-      fprintf(stderr, "RightDelta: insert gap in T at %d max=%d last=%d\n", lastr - (maxr - 1), maxr, lastr);
+      //fprintf(stderr, "RightDelta: insert gap in T at %d max=%d last=%d\n", lastr - (maxr - 1), maxr, lastr);
       Delta_Stack[Right_Delta_Len++] = lastr - (maxr - 1);
       d++;
       lastr = Edit_Array_Lazy[k-1][from].row;
@@ -72,7 +72,7 @@ prefixEditDistance::Set_Right_Delta (int32 e, int32 d) {
     }
 
     else {
-      fprintf(stderr, "RightDelta: mismatch        at %d max=%d last=%d\n", maxr - lastr - 1, maxr, lastr);
+      //fprintf(stderr, "RightDelta: mismatch        at %d max=%d last=%d\n", maxr - lastr - 1, maxr, lastr);
     }
   }
 
