@@ -24,7 +24,7 @@ static const char *rcsid = "$Id$";
 #include "overlapInCore.H"
 #include "prefixEditDistance.H"
 
-#undef DEBUG
+#define DEBUG
 
 
 //  See how far the exact match in  Match  extends.  The match
@@ -90,6 +90,7 @@ prefixEditDistance::Extend_Alignment(Match_Node_t *Match,
   }
 
   else if (S_Right_Len <= T_Right_Len) {
+    fprintf(stderr, "FORWARD S T\n");
     Right_Errors = forward(S + S_Right_Begin, S_Right_Len,
                            T + T_Right_Begin, T_Right_Len,
                            Error_Limit,
@@ -100,6 +101,7 @@ prefixEditDistance::Extend_Alignment(Match_Node_t *Match,
   }
 
   else {
+    fprintf(stderr, "FORWARD T S\n");
     Right_Errors = forward(T + T_Right_Begin, T_Right_Len,
                            S + S_Right_Begin, S_Right_Len,
                            Error_Limit,
@@ -121,6 +123,7 @@ prefixEditDistance::Extend_Alignment(Match_Node_t *Match,
   }
 
   else if (S_Right_Begin <= T_Right_Begin) {
+    fprintf(stderr, "REVERSE S T\n");
     Left_Errors = reverse(S + S_Left_Begin, S_Left_Begin + 1,
                           T + T_Left_Begin, T_Left_Begin + 1,
                           Error_Limit - Right_Errors,
@@ -132,7 +135,8 @@ prefixEditDistance::Extend_Alignment(Match_Node_t *Match,
   }
 
   else {
-    Left_Errors = reverse(T + T_Left_Begin,  T_Left_Begin + 1,
+    fprintf(stderr, "REVERSE T S\n");
+     Left_Errors = reverse(T + T_Left_Begin,  T_Left_Begin + 1,
                           S + S_Left_Begin,  S_Left_Begin + 1,
                           Error_Limit - Right_Errors,
                           T_Lo, S_Lo,
@@ -164,6 +168,7 @@ prefixEditDistance::Extend_Alignment(Match_Node_t *Match,
   }
 
   //  WHY?!  Does this mean the invesion on the forward() calls is backwards?
+  //  But note interaction with the if test just above here!
   for (int32 i=1; i<Right_Delta_Len; i++)
     Left_Delta[Left_Delta_Len++] = -Right_Delta[i];
 

@@ -5,7 +5,8 @@
 
 #include "Display_Alignment.H"
 
-#undef  DEBUG_HITS
+#define DEBUG_ALGORTHM         //  Some details.
+#define DEBUG_HITS             //  Lots of details.
 
 #undef  SEED_NON_OVERLAPPING   //  Allow mismatches in seeds
 #define SEED_OVERLAPPING
@@ -83,7 +84,9 @@ void
 overlapAlign::initialize(uint32 aID, char *aStr, int32 aLen, int32 aLo, int32 aHi,
                          uint32 bID, char *bStr, int32 bLen, int32 bLo, int32 bHi, bool bFlipped) {
 
-  //fprintf(stderr, "INIT1  A %5u %5u - %5u  B %5u %5u - %5u\n", aID, aLo, aHi, bID, bLo, bHi);
+#ifdef DEBUG_ALGORITHM
+  fprintf(stderr, "overlapAlign::initialize()--  A %5u %5u - %5u  B %5u %5u - %5u\n", aID, aLo, aHi, bID, bLo, bHi);
+#endif
 
   _aID      = aID;
   _aStr     = aStr;
@@ -116,7 +119,9 @@ overlapAlign::initialize(uint32 aID, char *aStr, int32 aLen, int32 aLo, int32 aH
     _bHiOrig = _bLen - bHi;
   }
 
-  //fprintf(stderr, "INIT2  A %5u %5u - %5u  B %5u %5u - %5u\n", aID, _aLoOrig, _aHiOrig, bID, _bLoOrig, _bHiOrig);
+#ifdef DEBUG_ALGORITHM
+  //fprintf(stderr, "overlapAlign:initialize()--  A %5u %5u - %5u  B %5u %5u - %5u\n", aID, _aLoOrig, _aHiOrig, bID, _bLoOrig, _bHiOrig);
+#endif
 
   assert(_aLoOrig < _aHiOrig);
   assert(_bLoOrig < _bHiOrig);
@@ -180,7 +185,9 @@ overlapAlign::findMinMaxDiagonal(int32  minLength) {
     fprintf(stderr, "ERROR: _minDiag=%d >= _maxDiag=%d\n", _minDiag, _maxDiag);
   assert(_minDiag <= _maxDiag);
 
-  //fprintf(stderr, "findMinMaxDiagonal()--  min %d max %d -- span %d -- alignLen %d\n", _minDiag, _maxDiag, _maxDiag-_minDiag, alignLen);
+#ifdef DEBUG_ALGORITHM
+  fprintf(stderr, "overlapAlign::findMinMaxDiagonal()--  min %d max %d -- span %d -- alignLen %d\n", _minDiag, _maxDiag, _maxDiag-_minDiag, alignLen);
+#endif
 
   return(true);
 }
@@ -361,9 +368,16 @@ overlapAlign::findSeeds(bool dupIgnore) {
 
   //  Still zero?  Didn't find any unique seeds anywhere.
 
-  if (_bMap.size() == 0)
+  if (_bMap.size() == 0) {
+#ifdef DEBUG_ALGORITHM
+    fprintf(stderr, "overlapAlign::findSeeds()--  No seeds found.\n");
+#endif
     return(false);
+  }
 
+#ifdef DEBUG_ALGORITHM
+    fprintf(stderr, "overlapAlign::findSeeds()--  Found %u seeds.\n", _bMap.size());
+#endif
   return(true);
 }
 
@@ -394,6 +408,10 @@ overlapAlign::findHits(void) {
     
     _rawhits.push_back(exactMatch(apos, bpos, _merSize));
   }
+
+#ifdef DEBUG_ALGORITHM
+  fprintf(stderr, "overlapAlign::findHits()--  Found %u hits.\n", _rawhits.size());
+#endif
 
   return(true);
 }
@@ -467,6 +485,10 @@ overlapAlign::chainHits(void) {
   }
 #endif
 
+#ifdef DEBUG_ALGORITHM
+  fprintf(stderr, "overlapAlign::chainHits()--  Found %u chains of hits.\n", _hits.size());
+#endif
+
   return(true);
 }
 
@@ -499,7 +521,7 @@ overlapAlign::processHits(void) {
 
 #ifdef DEBUG_HITS
     fprintf(stderr, "\n");
-    fprintf(stderr, "Extend_Alignment Astart %d Bstart %d length %d\n", match.Start, match.Offset, match.Len);
+    fprintf(stderr, "overlapAlign::processHits()-- Extend_Alignment Astart %d Bstart %d length %d\n", match.Start, match.Offset, match.Len);
 #endif
 
     int32           errors  = 0;
@@ -518,7 +540,7 @@ overlapAlign::processHits(void) {
     double olapScore = olapLen * (1 - olapQual);
 
 #ifdef DEBUG_HITS
-    fprintf(stderr, "hit %2u at a=%5d b=%5d -- ORIG A %6u %5d-%5d (%5d) %s B %6u %5d-%5d (%5d)  %.4f -- REALIGN %s A %5d-%5d  B %5d-%5d  errors %4d  erate %6.4f = %6u / %6u deltas %d %d %d %d %d%s\n",
+    fprintf(stderr, "overlapAlign::processHits()-- hit %2u at a=%5d b=%5d -- ORIG A %6u %5d-%5d (%5d) %s B %6u %5d-%5d (%5d)  %.4f -- REALIGN %s A %5d-%5d  B %5d-%5d  errors %4d  erate %6.4f = %6u / %6u deltas %d %d %d %d %d\n",
             hh, _hits[hh].aBgn, _hits[hh].bBgn,
             _aID, _aLoOrig, _aHiOrig, _aLen,
             _bFlipped ? "<-" : "->",
@@ -535,15 +557,14 @@ overlapAlign::processHits(void) {
             _editDist->Left_Delta[1],
             _editDist->Left_Delta[2],
             _editDist->Left_Delta[3],
-            _editDist->Left_Delta[4],
-            ((olapType != pedDovetail) && (_partialOverlaps == false)) ? "  FAILED" : "");
+            _editDist->Left_Delta[4]);
 #endif
 
     //  Is this a better overlap than what we have?
 
     if (_bestResult.score() <= olapScore) {
 #ifdef DEBUG_HITS
-      fprintf(stderr, " - save best! - score %f previous %f expected %f\n", olapScore, _bestResult.score(), expectedScore);
+      fprintf(stderr, "overlapAlign::processHits()--  - save best! - score %f previous %f expected %f\n", olapScore, _bestResult.score(), expectedScore);
 #endif
 
       _bestResult.save(aLo, aHi, bLo, bHi, olapLen, olapQual, olapType, _editDist->Left_Delta_Len, _editDist->Left_Delta);
@@ -553,7 +574,7 @@ overlapAlign::processHits(void) {
 
     if (_bestResult.score() < 0.5 * expectedScore) {
 #ifdef DEBUG_HITS
-      fprintf(stderr, " - too short: score %f < 0.5 * expected = %f\n",
+      fprintf(stderr, "overlapAlign::processHits()--  - too short: score %f < 0.5 * expected = %f\n",
               _bestResult.score(), 0.5 * expectedScore);
 #endif
       continue;
@@ -563,7 +584,7 @@ overlapAlign::processHits(void) {
 
     if (olapType == pedDovetail) {
 #ifdef DEBUG_HITS
-      fprintf(stderr, "DOVETAIL return - score %f expected %f\n", _bestResult.score(), expectedScore);
+      fprintf(stderr, "overlapAlign::processHits()-- DOVETAIL return - score %f expected %f\n", _bestResult.score(), expectedScore);
 #endif
       return(true);
     }
@@ -572,8 +593,8 @@ overlapAlign::processHits(void) {
     //  is at least 1/2 of the bestScore.
 
     if (0.5 * _bestResult.score() < olapScore) {
-#ifdef DEBUG_HITS
-      fprintf(stderr, " - decent score, keep looking: score %f > 0.5 * expected = %f\n",
+#ifdef DEBUG_ALGORITHM
+      fprintf(stderr, "overlapAlign::processHits()--  - decent score, keep looking: score %f > 0.5 * expected = %f\n",
               _bestResult.score(), 0.5 * expectedScore);
 #endif
       continue;
@@ -581,16 +602,16 @@ overlapAlign::processHits(void) {
 
     //  Nope, this overlap is crap.  Assume that the rest of the seeds are crap too and give up.
 
-#ifdef DEBUG_HITS
-    fprintf(stderr, "REST_CRAP return - score %f expected %f\n", _bestResult.score(), expectedScore);
+#ifdef DEBUG_ALGORITHM
+    fprintf(stderr, "overlapAlign::processHits()-- REST_CRAP return - score %f expected %f\n", _bestResult.score(), expectedScore);
 #endif
     return(_bestResult.score() >= 0.5 * expectedScore);
   }
 
   //  We ran out of seeds to align.  No overlap found.
 
-#ifdef DEBUG_HITS
-  fprintf(stderr, "NO_SEEDS return - score %f expected %f\n", _bestResult.score(), expectedScore);
+#ifdef DEBUG_ALGORITHM
+  fprintf(stderr, "overlapAlign::processHits()-- NO_SEEDS return - score %f expected %f\n", _bestResult.score(), expectedScore);
 #endif
   return(_bestResult.score() >= 0.5 * expectedScore);
 }

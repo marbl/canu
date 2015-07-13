@@ -11,7 +11,8 @@
 //  delta entries.
 //
 void
-prefixEditDistance::Set_Right_Delta (int32 e, int32 d) {
+prefixEditDistance::Set_Right_Delta(char  *A, char  *T,
+                                    int32  e, int32  d) {
 
   Right_Delta_Len = 0;
 
@@ -22,7 +23,7 @@ prefixEditDistance::Set_Right_Delta (int32 e, int32 d) {
     assert(Edit_Array_Lazy[k] != NULL);
 
     int32  from = d;
-    int32  maxs =     Edit_Array_Lazy[k-1][d].score + PEDMISMATCH;
+    int32  maxs =     Edit_Array_Lazy[k-1][d].score;// + PEDMISMATCH;
     int32  maxr = 1 + Edit_Array_Lazy[k-1][d].row;
 
     //  Figure out which sequence has the insertion, if any.
@@ -30,7 +31,7 @@ prefixEditDistance::Set_Right_Delta (int32 e, int32 d) {
 #ifndef USE_SCORE
     if (0 + Edit_Array_Lazy[k-1][d-1].row > maxr) {
       from = d - 1;
-      maxs = 0 +  Edit_Array_Lazy[k-1][d-1].score;
+      maxs = 0 + Edit_Array_Lazy[k-1][d-1].score;
       maxr = 0 + Edit_Array_Lazy[k-1][d-1].row;
     }
 
@@ -40,15 +41,15 @@ prefixEditDistance::Set_Right_Delta (int32 e, int32 d) {
       maxr = 1 + Edit_Array_Lazy[k-1][d+1].row;
     }
 #else
-    if (    Edit_Array_Lazy[k-1][d-1].score + PEDGAP > maxs) {
+    if (    Edit_Array_Lazy[k-1][d-1].score /*+ PEDGAP*/ > maxs) {
       from = d - 1;
-      maxs =      Edit_Array_Lazy[k-1][d-1].score + PEDGAP;
+      maxs =     Edit_Array_Lazy[k-1][d-1].score;// + PEDGAP;
       maxr = 0 + Edit_Array_Lazy[k-1][d-1].row;
     }
 
-    if (    Edit_Array_Lazy[k-1][d+1].score + PEDGAP > maxs) {
+    if (    Edit_Array_Lazy[k-1][d+1].score /*+ PEDGAP*/ > maxs) {
       from = d + 1;
-      maxs =     Edit_Array_Lazy[k-1][d+1].score + PEDGAP;
+      maxs =     Edit_Array_Lazy[k-1][d+1].score;// + PEDGAP;
       maxr = 1 + Edit_Array_Lazy[k-1][d+1].row;
     }
 #endif
@@ -114,19 +115,22 @@ prefixEditDistance::forward(char    *A,   int32 Alen,
 
   assert (Alen <= Tlen);
 
-  int32  Best_d     = 0;
-  int32  Best_e     = 0;
-  int32  Best_row   = 0;
-  int32  Best_score = 0;
+  int32  Best_d      = 0;
+  int32  Best_e      = 0;
+  int32  Best_row    = 0;
+  int32  Best_score  = 0;
 
   Right_Delta_Len = 0;
 
   int32  Row = 0;
+  int32  Dst = 0;
+  int32  Err = 0;
   int32  Sco = 0;
-  int32  Max = 0;
+
+  //int32  Max = 0;
 
   //  Skip ahead over matches.  The original used to also skip if either sequence was N.
-  while ((Row < Alen) && (A[Row] == T[Row])) {
+  while ((Row < Alen) && (isMatch(A[Row], T[Row]))) {
     Row++;
     Sco += PEDMATCH;
   }
@@ -134,8 +138,10 @@ prefixEditDistance::forward(char    *A,   int32 Alen,
   if (Edit_Array_Lazy[0] == NULL)
     Allocate_More_Edit_Space();
 
-  Edit_Array_Lazy[0][0].score = Sco;
-  Edit_Array_Lazy[0][0].row   = Row;
+  Edit_Array_Lazy[0][0].score  = Sco;
+  Edit_Array_Lazy[0][0].dist   = Dst;
+  Edit_Array_Lazy[0][0].errs   = 0;
+  Edit_Array_Lazy[0][0].row    = Row;
 
   // Exact match?
 
@@ -161,52 +167,69 @@ prefixEditDistance::forward(char    *A,   int32 Alen,
   int32  Max_Score_Best_d  = 0;
   int32  Max_Score_Best_e  = 0;
 
-  for (int32 e = 1;  e <= Error_Limit;  e++) {
+  for (int32 e=1; e <= Error_Limit; e++) {
     if (Edit_Array_Lazy[e] == NULL)
       Allocate_More_Edit_Space();
 
     Left  = MAX (Left  - 1, -e);
     Right = MIN (Right + 1,  e);
 
-    Edit_Array_Lazy[e-1][Left  - 1].row = -2;    Edit_Array_Lazy[e-1][Left  - 1].score = PEDMINSCORE;
-    Edit_Array_Lazy[e-1][Left     ].row = -2;    Edit_Array_Lazy[e-1][Left     ].score = PEDMINSCORE;
+    Edit_Array_Lazy[e-1][Left  - 1].init();
+    Edit_Array_Lazy[e-1][Left     ].init();
     //  Of note, [0][0] on the first iteration is not reset here.
-    Edit_Array_Lazy[e-1][Right    ].row = -2;    Edit_Array_Lazy[e-1][Right    ].score = PEDMINSCORE;
-    Edit_Array_Lazy[e-1][Right + 1].row = -2;    Edit_Array_Lazy[e-1][Right + 1].score = PEDMINSCORE;
+    Edit_Array_Lazy[e-1][Right    ].init();
+    Edit_Array_Lazy[e-1][Right + 1].init();
 
     for (int32 d = Left;  d <= Right;  d++) {
 
 #ifndef USE_SCORE
       //  A mismatch.
       Row = 1 + Edit_Array_Lazy[e-1][d].row;
+      Dst =     Edit_Array_Lazy[e-1][d].dist  + 1;
+      Err =     Edit_Array_Lazy[e-1][d].errs  + 1;
       Sco =     Edit_Array_Lazy[e-1][d].score + PEDMISMATCH;
 
-      //  Insert a gap in A.  (opposite of the 'reverse')
+      //  Insert a gap in A.
       if (0 + Edit_Array_Lazy[e-1][d-1].row > Row) {
-        Row = 0 + Edit_Array_Lazy[e-1][d-1].row;
+        Row = 0 + Edit_Array_Lazy[e-1][d-1].row;  //  +0 because row is the index into A, and the A base doesn't change.
+        Dst =     Edit_Array_Lazy[e-1][d-1].dist  + 0;
+        Err =     Edit_Array_Lazy[e-1][d-1].errs  + 0;
         Sco =     Edit_Array_Lazy[e-1][d-1].score + PEDGAP;
       }
 
-      //  Insert a gap in T.  (opposite of the 'reverse')
+      //  Insert a gap in T.
       if (1 + Edit_Array_Lazy[e-1][d+1].row > Row) {
-        Row = 1 + Edit_Array_Lazy[e-1][d+1].row;
+        Row = 1 + Edit_Array_Lazy[e-1][d+1].row;  //  +1 because we ate up a base in A.
+        Dst =     Edit_Array_Lazy[e-1][d+1].dist  + 1;
+        Err =     Edit_Array_Lazy[e-1][d+1].errs  + 1;
         Sco =     Edit_Array_Lazy[e-1][d+1].score + PEDGAP;
       }
 #else
       //  A mismatch.
       Row = 1 + Edit_Array_Lazy[e-1][d].row;
+      Dst =     Edit_Array_Lazy[e-1][d].dist  + 1;
+      Err =     Edit_Array_Lazy[e-1][d].errs  + 1;
       Sco =     Edit_Array_Lazy[e-1][d].score + PEDMISMATCH;
 
-      //  Insert a gap in A.  (opposite of the 'reverse')
-      if (    Edit_Array_Lazy[e-1][d-1].score + PEDGAP > Sco) {
-        Row = 0 + Edit_Array_Lazy[e-1][d-1].row;
-        Sco =     Edit_Array_Lazy[e-1][d-1].score + PEDGAP;
+      //  Insert a gap in A.  Check the other sequence to see if this is a zero-cost gap.  Note
+      //  agreement with future value of Row and what is used in isMatch() below.
+      int32  aGapCost = isFreeGap( T[0 + Edit_Array_Lazy[e-1][d-1].row + d] ) ? 0 : PEDGAP;
+
+      if (Edit_Array_Lazy[e-1][d-1].score + aGapCost > Sco) {
+        Row =     Edit_Array_Lazy[e-1][d-1].row;
+        Dst =     Edit_Array_Lazy[e-1][d-1].dist  + (aGapCost == 0) ? 0 : 0;
+        Err =     Edit_Array_Lazy[e-1][d-1].errs  + (aGapCost == 0) ? 0 : 0;
+        Sco =     Edit_Array_Lazy[e-1][d-1].score +  aGapCost;
       }
 
-      //  Insert a gap in T.  (opposite of the 'reverse')
-      if (    Edit_Array_Lazy[e-1][d+1].score + PEDGAP > Sco) {
+      //  Insert a gap in T.
+      int32  tGapCost = isFreeGap( A[1 + Edit_Array_Lazy[e-1][d+1].row    ] ) ? 0 : PEDGAP;
+
+      if (Edit_Array_Lazy[e-1][d+1].score + tGapCost > Sco) {
         Row = 1 + Edit_Array_Lazy[e-1][d+1].row;
-        Sco =     Edit_Array_Lazy[e-1][d+1].score + PEDGAP;
+        Dst =     Edit_Array_Lazy[e-1][d+1].dist  + (tGapCost == 0) ? 0 : 1;
+        Err =     Edit_Array_Lazy[e-1][d+1].errs  + (tGapCost == 0) ? 0 : 1;
+        Sco =     Edit_Array_Lazy[e-1][d+1].score +  tGapCost;
       }
 #endif
 
@@ -214,12 +237,16 @@ prefixEditDistance::forward(char    *A,   int32 Alen,
       //  If A is lowercase and T is uppercase, it's a match.
       //  If A is lowercase and T doesn't match, ignore the cost of the gap in B
 
-      while ((Row < Alen) && (Row + d < Tlen) && (A[Row] == T[Row + d])) {
-        Row++;
+      while ((Row < Alen) && (Row + d < Tlen) && (isMatch(A[Row], T[Row + d]))) {
+        Row += 1;
+        Dst += 1;
+        Err += 0;
         Sco += PEDMATCH;
       }
 
       Edit_Array_Lazy[e][d].row   = Row;
+      Edit_Array_Lazy[e][d].dist  = Dst;
+      Edit_Array_Lazy[e][d].errs  = Err;
       Edit_Array_Lazy[e][d].score = Sco;
 
 
@@ -263,7 +290,7 @@ prefixEditDistance::forward(char    *A,   int32 Alen,
           A_End = Max_Score_Len;
           T_End = Max_Score_Len + Max_Score_Best_d;
 
-          Set_Right_Delta (Max_Score_Best_e, Max_Score_Best_d);
+          Set_Right_Delta(A, T, Max_Score_Best_e, Max_Score_Best_d);
 
           Match_To_End = FALSE;
 
@@ -278,14 +305,15 @@ prefixEditDistance::forward(char    *A,   int32 Alen,
             (1 + Edit_Array_Lazy[e-1][d+1].row == Edit_Array_Lazy[e][d].row) &&
             (d < Right)) {
           d++;
-          Edit_Array_Lazy[e][d].score = Edit_Array_Lazy[e][d-1].score;
-          Edit_Array_Lazy[e][d].row   = Edit_Array_Lazy[e][d-1].row;
+          Edit_Array_Lazy[e][d].score  = Edit_Array_Lazy[e][d-1].score;   //  ??
+          Edit_Array_Lazy[e][d].dist   = Edit_Array_Lazy[e][d-1].dist;    //  ??
+          Edit_Array_Lazy[e][d].row    = Edit_Array_Lazy[e][d-1].row;
         }
 
         A_End = Row;           // One past last align position
         T_End = Row + d;
 
-        Set_Right_Delta (e, d);
+        Set_Right_Delta(A, T, e, d);
 
         Match_To_End = TRUE;
 
@@ -294,40 +322,51 @@ prefixEditDistance::forward(char    *A,   int32 Alen,
 #endif
         return(e);
       }
-    }
+    }  //  Over all diagonals.
 
     //  Reset the band
+    //
+    //  The .dist used to be .row.
 
-    while  ((Left <= Right) && (Left < 0) && (Edit_Array_Lazy[e][Left].row < Edit_Match_Limit[e]))
-      Left++;
+    if (1) {
+#ifdef DEBUG
+      fprintf(stderr, "forward()- Left=%d Right=%d e=%d row=%d limit=%d\n",
+              Left, Right, Edit_Array_Lazy[e][Left].errs, Edit_Array_Lazy[e][Left].dist, Edit_Match_Limit[ Edit_Array_Lazy[e][Left].errs ]);
+#endif
 
-    if (Left >= 0)
-      while  ((Left <= Right) && (Edit_Array_Lazy[e][Left].row + Left < Edit_Match_Limit[e]))
+      while  ((Left <= Right) && (Left < 0) && (Edit_Array_Lazy[e][Left].dist < Edit_Match_Limit[ Edit_Array_Lazy[e][Left].errs ]))
         Left++;
 
-    if (Left > Right) {
+      if (Left >= 0)
+        while  ((Left <= Right) && (Edit_Array_Lazy[e][Left].dist + Left < Edit_Match_Limit[ Edit_Array_Lazy[e][Left].errs ]))
+          Left++;
+
+      if (Left > Right)
+        break;
+
 #ifdef DEBUG
-      fprintf(stderr, "reverse()- Left=%d Right=%d BREAK\n", Left, Right);
+      fprintf(stderr, "forward()- Left=%d Right=%d e=%d row=%d limit=%d\n",
+              Left, Right, Edit_Array_Lazy[e][Left].errs, Edit_Array_Lazy[e][Left].dist, Edit_Match_Limit[ Edit_Array_Lazy[e][Left].errs ]);
 #endif
-      break;
-    }
 
-    while  ((Right > 0) && (Edit_Array_Lazy[e][Right].row + Right < Edit_Match_Limit[e]))
-      Right--;
-
-    if (Right <= 0)
-      while  (Edit_Array_Lazy[e][Right].row < Edit_Match_Limit[e])
+      while  ((Right > 0) && (Edit_Array_Lazy[e][Right].dist + Right < Edit_Match_Limit[ Edit_Array_Lazy[e][Right].errs ]))
         Right--;
 
-    assert (Left <= Right);
+      if (Right <= 0)
+        while  (Edit_Array_Lazy[e][Right].dist < Edit_Match_Limit[ Edit_Array_Lazy[e][Right].errs ])
+          Right--;
+
+      assert (Left <= Right);
+    }
+
 
 #ifndef USE_SCORE
     for (int32 d = Left;  d <= Right;  d++)
       if (Edit_Array_Lazy[e][d].row > Best_row) {
-        Best_d     = d;
-        Best_e     = e;
-        Best_row   = Edit_Array_Lazy[e][d].row;
-        Best_score = Edit_Array_Lazy[e][d].score;
+        Best_d      = d;
+        Best_e      = e;
+        Best_row    = Edit_Array_Lazy[e][d].row;
+        Best_score  = Edit_Array_Lazy[e][d].score;
       }
 
     if (Best_row * Branch_Match_Value - e > Max_Score) {
@@ -339,10 +378,10 @@ prefixEditDistance::forward(char    *A,   int32 Alen,
 #else
     for (int32 d = Left;  d <= Right;  d++)
       if (Edit_Array_Lazy[e][d].score > Best_score) {
-        Best_d     = d;
-        Best_e     = e;
-        Best_row   = Edit_Array_Lazy[e][d].row;
-        Best_score = Edit_Array_Lazy[e][d].score;
+        Best_d      = d;
+        Best_e      = e;
+        Best_row    = Edit_Array_Lazy[e][d].row;
+        Best_score  = Edit_Array_Lazy[e][d].score;
       }
 
     if (Best_score > Max_Score) {
@@ -353,19 +392,14 @@ prefixEditDistance::forward(char    *A,   int32 Alen,
     }
 #endif
 
-  }
-
-#ifdef DEBUG
-  fprintf(stderr, "forward()- return e=%d Error_Limit=%d\n",
-          e, Error_Limit);
-#endif
+  }  //  Over all possible number of errors
 
   A_End = Max_Score_Len;
   T_End = Max_Score_Len + Max_Score_Best_d;
 
-  Set_Right_Delta (Max_Score_Best_e, Max_Score_Best_d);
+  Set_Right_Delta(A, T, Max_Score_Best_e, Max_Score_Best_d);
 
-  Match_To_End = FALSE;
+  Match_To_End = false;
 
-  return  Max_Score_Best_e;
+  return(Max_Score_Best_e);
 }

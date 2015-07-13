@@ -241,6 +241,9 @@ prefixEditDistance::prefixEditDistance(pedAlignType alignType_, double maxErate_
   //  Corresponding error value is this value minus 1.0
 
   Branch_Match_Value = maxErate / (1 + maxErate);
+
+  for (uint32 ii=0; ii<256; ii++)
+    tolower[ii] = ::tolower(ii);
 };
 
 

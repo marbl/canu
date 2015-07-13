@@ -968,6 +968,12 @@ unitigConsensus::alignFragment(void) {
                         (oaFull->chainHits()                    == true) &&
                         (oaFull->processHits()                  == true));
 
+    if (alignFound) {
+      fprintf(stderr, "FOUND!\n");
+    } else {
+      fprintf(stderr, "NOT FOUND!\n");
+    }
+
     //  Done with alignment, restore the bases we might have removed.
 
     if (frankEndBase)   frankenstein[frankEnd] = frankEndBase;
@@ -975,7 +981,8 @@ unitigConsensus::alignFragment(void) {
 
     //  Is it a good alignment?
 
-    oaFull->display(false);
+    if (alignFound)
+      oaFull->display(true);
 
     if ((alignFound == true) &&
         (oaFull->type() == pedDovetail)) {

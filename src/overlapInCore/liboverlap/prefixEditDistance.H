@@ -16,12 +16,13 @@
 //  suffices to set this just slightly higher than the minimum, since it should never be picked as a
 //  maximum, and thus never see more than one insert.  Just to be safe, we give it lots of space.
 //
-#define PEDMATCH       1
-#define PEDMISMATCH   -2
-#define PEDGAP        -3
+#define PEDMATCH        1
+#define PEDMISMATCH    -2
+#define PEDGAP         -3
 
 #define PEDMINSCORE   (INT32_MIN - PEDGAP * 32768)
 
+#undef  USE_SCORE
 #define USE_SCORE
 
 enum pedAlignType {
@@ -42,7 +43,8 @@ const char *toString(pedOverlapType ot);
 
 
 //  the input to Extend_Alignment.
-struct Match_Node_t {
+class Match_Node_t {
+public:
   int32  Offset;              // To start of exact match in  hash-table frag
   int32  Len;                 // Of exact match
   int32  Start;               // Of exact match in current (new) frag
@@ -51,9 +53,18 @@ struct Match_Node_t {
 
 
 
-struct pedEdit {
-  int32  row;
-  int32  score;
+class pedEdit {
+public:
+  int32  row;     //  Position in the A sequence; was previously the score too
+  int32  dist;    //  The number of non-free bases in the alignment, used to decide band
+  int32  errs;    //  The number of non-free errors in the alignment
+  int32  score;   //  The dynamic programming score, used to decide best align
+
+  void   init(void) {
+    row   = -2;
+    dist  = -2;
+    score =  PEDMINSCORE;
+  };
 };
 
 
@@ -64,9 +75,10 @@ public:
   ~prefixEditDistance();
 
 
-  void  Allocate_More_Edit_Space(void);
+  void   Allocate_More_Edit_Space(void);
 
-  void  Set_Right_Delta(int32 e, int32 d);
+  void   Set_Right_Delta(char  *A, char  *T,
+                         int32  e, int32  d);
 
   int32  forward(char    *A,   int32 m,
                  char    *T,   int32 n,
@@ -76,7 +88,12 @@ public:
                  bool    &Match_To_End);
 
 
-  void  Set_Left_Delta(int32 e, int32 d, int32 &leftover, int32 &t_end, int32 t_len);
+  void   Set_Left_Delta(char  *A, char *T,
+                        int32  e, int32 d,
+                        int32 &leftover,
+                        int32 &t_end,
+                        int32  t_len);
+
 
   int32  reverse(char    *A,   int32 m,
                  char    *T,   int32 n,
@@ -85,6 +102,29 @@ public:
                  int32   &T_End,
                  int32   &Leftover,      //  <- novel
                  bool    &Match_To_End);
+
+
+  //  Returns true if letter 'a' from sequence A matches letter 't' from sequence T:
+  //    regardless of case, the same letter is a match.
+  //    regardless of 't', lowercase 'a' matches anything.
+  //
+  bool   isMatch(char a, char t) {
+    return((tolower[a] == tolower[t]) ||
+           (tolower[a] == a));
+  };
+
+  //  Returns true if the gap we'd be adding to T is zero cost:
+  //    lower case 'a' is a don't case position in sequence A
+  //
+#warning we still get NUL bytes in isFreeGap()
+  bool   isFreeGap(char a) {
+    if (a == 0) {
+      fprintf(stderr, "WARNING: isFreeGap hit 0.\n");
+      return(false);
+    }
+
+    return(a == tolower[a]);
+  }
 
 
   pedOverlapType
@@ -140,6 +180,8 @@ public:
 
   //  Scores of matches and mismatches in alignments.  Alignment ends at maximum score.
   double                  Branch_Match_Value;
+
+  char                    tolower[256];
 };
 
 
