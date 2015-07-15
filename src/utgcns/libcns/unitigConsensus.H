@@ -44,7 +44,7 @@ public:
   int32  computePositionFromLayout(void);
   int32  computePositionFromAlignment(void);
 
-  void   rebuild(bool recomputeFullConsensus);
+  void   rebuild(bool recomputeFullConsensus, bool display);
 
   bool   rejectAlignment(bool allowBhang, bool allowAhang, ALNoverlap *O);
 

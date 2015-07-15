@@ -188,7 +188,7 @@ unitigConsensus::generate(tgTig     *tig_,
     if (showAlgorithm())
       fprintf(stderr, "generateMultiAlignment()-- recompute full consensus\n");
 
-    rebuild(true);
+    rebuild(true, false);
 
     if (computePositionFromAnchor()    && alignFragment())  goto applyAlignment;
     if (computePositionFromLayout()    && alignFragment())  goto applyAlignment;
@@ -224,16 +224,7 @@ unitigConsensus::generate(tgTig     *tig_,
 
     reportSuccess(failed_);
     applyAlignment();
-    rebuild(false);
-
-#if 0
-    {
-      abMultiAlign *ma = abacus->getMultiAlign(multialign);
-      //abacus->refreshMultiAlign(multialign, true, true);
-      ma->display(abacus, stderr);
-    }
-#endif
-
+    rebuild(false, true);
   }
 
   if (failuresToFix)
@@ -715,7 +706,7 @@ unitigConsensus::computePositionFromAlignment(void) {
 
 
 void
-unitigConsensus::rebuild(bool recomputeFullConsensus) {
+unitigConsensus::rebuild(bool recomputeFullConsensus, bool display) {
   abMultiAlign *ma = abacus->getMultiAlign(multialign);
 
   //  Run abacus to rebuild an intermediate consensus sequence.  VERY expensive.
@@ -832,10 +823,8 @@ unitigConsensus::rebuild(bool recomputeFullConsensus) {
 
   piid = -1;
 
-  //fprintf(stderr, "FRANK %s\n", frankenstein);
-
-  //if (showAlignments())
-  //  PrintAlignment(stderr, manode->lid, 0, -1);
+  if (display)
+    abacus->getMultiAlign(multialign)->display(abacus, stderr);
 }
 
 
@@ -1033,7 +1022,7 @@ unitigConsensus::alignFragment(void) {
   //  Try Optimal_Overlap_AS_forCNS
   //
 
-#if 0
+#if 1
   if ((endTrim <  blen) &&
       (0       <= endTrim)) {
     int32 fragBgn      = 0;
@@ -1056,8 +1045,8 @@ unitigConsensus::alignFragment(void) {
                                   AS_FIND_ALIGN);
       //if (O)
       //  fprintf(stderr, "Local_Overlap_AS_forCNS() succeeded.\n");
-      if ((O) && (showAlignments()))
-        PrintALNoverlap("Optimal_Overlap", aseq, bseq, O);
+      //if ((O) && (showAlignments()))
+      //  PrintALNoverlap("Optimal_Overlap", aseq, bseq, O);
     }
 #endif    
 
@@ -1070,8 +1059,8 @@ unitigConsensus::alignFragment(void) {
                                     0,
                                     errorRate + 0.02, 1e-3, minlen,
                                     AS_FIND_ALIGN);
-      if ((O) && (showAlignments()))
-        PrintALNoverlap("Optimal_Overlap", aseq, bseq, O);
+      //if ((O) && (showAlignments()))
+      //  PrintALNoverlap("Optimal_Overlap", aseq, bseq, O);
     }
 
     //  At 0.06 error, this equals the previous value of 10.

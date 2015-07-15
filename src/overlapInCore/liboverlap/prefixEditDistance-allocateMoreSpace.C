@@ -54,7 +54,7 @@ prefixEditDistance::Allocate_More_Edit_Space(void) {
   e = b;
 
   while ((Offset + Del < Size) &&
-         (e < MAX_ERRORS)) {
+         (e < Edit_Space_Max)) {
     Edit_Array_Lazy[e++] = Edit_Space_Lazy[a] + Offset;
 
     Offset += Del;

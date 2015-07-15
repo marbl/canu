@@ -229,7 +229,7 @@ prefixEditDistance::reverse(char    *A,   int32 Alen,   //  first sequence and l
   int32  Max_Score_Best_d  = 0;
   int32  Max_Score_Best_e  = 0;
 
-  for (int32 ei=1; ei <= Error_Limit; ei++) {
+  for (int32 ei=1; ei <= Edit_Space_Max; ei++) {
     if (Edit_Array_Lazy[ei] == NULL)
       Allocate_More_Edit_Space();
 

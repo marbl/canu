@@ -209,7 +209,7 @@ prefixEditDistance::forward(char    *A,   int32 Alen,
   int32  Max_Score_Best_d  = 0;
   int32  Max_Score_Best_e  = 0;
 
-  for (int32 ei=1; ei <= Error_Limit; ei++) {
+  for (int32 ei=1; ei <= Edit_Space_Max; ei++) {
     if (Edit_Array_Lazy[ei] == NULL)
       Allocate_More_Edit_Space();
 
@@ -392,75 +392,74 @@ prefixEditDistance::forward(char    *A,   int32 Alen,
     //        Left, Right, Edit_Array_Lazy[ei][Left].errs, Edit_Array_Lazy[ei][Left].dist, Edit_Match_Limit[ Edit_Array_Lazy[ei][Left].errs ]);
 #endif
 
-  while  ((Left <= Right) && (Left < 0) && (Edit_Array_Lazy[ei][Left].dist < Edit_Match_Limit[ Edit_Array_Lazy[ei][Left].errs ]))
-    Left++;
-
-  if (Left >= 0)
-    while  ((Left <= Right) && (Edit_Array_Lazy[ei][Left].dist + Left < Edit_Match_Limit[ Edit_Array_Lazy[ei][Left].errs ]))
+    while  ((Left <= Right) && (Left < 0) && (Edit_Array_Lazy[ei][Left].dist < Edit_Match_Limit[ Edit_Array_Lazy[ei][Left].errs ]))
       Left++;
 
-  if (Left > Right)
-    break;
+    if (Left >= 0)
+      while  ((Left <= Right) && (Edit_Array_Lazy[ei][Left].dist + Left < Edit_Match_Limit[ Edit_Array_Lazy[ei][Left].errs ]))
+        Left++;
+
+    if (Left > Right)
+      break;
 
 #ifdef DEBUG
-  //fprintf(stderr, "prefixEditDistance::forward()- Left=%d Right=%d e=%d row=%d limit=%d\n",
-  //        Left, Right, Edit_Array_Lazy[ei][Left].errs, Edit_Array_Lazy[ei][Left].dist, Edit_Match_Limit[ Edit_Array_Lazy[ei][Left].errs ]);
+    //fprintf(stderr, "prefixEditDistance::forward()- Left=%d Right=%d e=%d row=%d limit=%d\n",
+    //        Left, Right, Edit_Array_Lazy[ei][Left].errs, Edit_Array_Lazy[ei][Left].dist, Edit_Match_Limit[ Edit_Array_Lazy[ei][Left].errs ]);
 #endif
 
-  while  ((Right > 0) && (Edit_Array_Lazy[ei][Right].dist + Right < Edit_Match_Limit[ Edit_Array_Lazy[ei][Right].errs ]))
-    Right--;
-
-  if (Right <= 0)
-    while  (Edit_Array_Lazy[ei][Right].dist < Edit_Match_Limit[ Edit_Array_Lazy[ei][Right].errs ])
+    while  ((Right > 0) && (Edit_Array_Lazy[ei][Right].dist + Right < Edit_Match_Limit[ Edit_Array_Lazy[ei][Right].errs ]))
       Right--;
 
-  assert (Left <= Right);
+    if (Right <= 0)
+      while  (Edit_Array_Lazy[ei][Right].dist < Edit_Match_Limit[ Edit_Array_Lazy[ei][Right].errs ])
+        Right--;
 
+    assert (Left <= Right);
 
 #ifndef USE_SCORE
-  for (int32 d = Left;  d <= Right;  d++)
-    if (Edit_Array_Lazy[ei][d].row > Best_row) {
-      Best_d      = d;
-      Best_e      = ei;
-      Best_row    = Edit_Array_Lazy[ei][d].row;
-      Best_score  = Edit_Array_Lazy[ei][d].score;
-    }
+    for (int32 d = Left;  d <= Right;  d++)
+      if (Edit_Array_Lazy[ei][d].row > Best_row) {
+        Best_d      = d;
+        Best_e      = ei;
+        Best_row    = Edit_Array_Lazy[ei][d].row;
+        Best_score  = Edit_Array_Lazy[ei][d].score;
+      }
 
-  if (Best_row * Branch_Match_Value - e > Max_Score) {
-    Max_Score_Best_d = Best_d;
-    Max_Score_Best_e = Best_e;
-    Max_Score        = Best_row * Branch_Match_Value - e;
-    Max_Score_Len    = Best_row;
-  }
+    if (Best_row * Branch_Match_Value - e > Max_Score) {
+      Max_Score_Best_d = Best_d;
+      Max_Score_Best_e = Best_e;
+      Max_Score        = Best_row * Branch_Match_Value - e;
+      Max_Score_Len    = Best_row;
+    }
 #else
-  for (int32 d = Left;  d <= Right;  d++)
-    if (Edit_Array_Lazy[ei][d].score > Best_score) {
-      Best_d      = d;
-      Best_e      = ei;
-      Best_row    = Edit_Array_Lazy[ei][d].row;
-      Best_score  = Edit_Array_Lazy[ei][d].score;
-    }
+    for (int32 d = Left;  d <= Right;  d++)
+      if (Edit_Array_Lazy[ei][d].score > Best_score) {
+        Best_d      = d;
+        Best_e      = ei;
+        Best_row    = Edit_Array_Lazy[ei][d].row;
+        Best_score  = Edit_Array_Lazy[ei][d].score;
+      }
 
-  if (Best_score > Max_Score) {
-    Max_Score_Best_d = Best_d;
-    Max_Score_Best_e = Best_e;
-    Max_Score        = Best_score;
-    Max_Score_Len    = Best_row;
-  }
+    if (Best_score > Max_Score) {
+      Max_Score_Best_d = Best_d;
+      Max_Score_Best_e = Best_e;
+      Max_Score        = Best_score;
+      Max_Score_Len    = Best_row;
+    }
 #endif
 
-}  //  Over all possible number of errors
+  }  //  Over all possible number of errors
 
 #ifdef DEBUG
-fprintf(stderr, "prefixEditDistance::forward()- iterated over all errors, return best found\n");
+  fprintf(stderr, "prefixEditDistance::forward()- iterated over all errors, return best found\n");
 #endif
 
-A_End = Max_Score_Len;
-T_End = Max_Score_Len + Max_Score_Best_d;
+  A_End = Max_Score_Len;
+  T_End = Max_Score_Len + Max_Score_Best_d;
 
-Set_Right_Delta(A, T, Max_Score_Best_e, Max_Score_Best_d);
+  Set_Right_Delta(A, T, Max_Score_Best_e, Max_Score_Best_d);
 
-Match_To_End = false;
+  Match_To_End = false;
 
-return(Max_Score_Best_e);
+  return(Max_Score_Best_e);
 }

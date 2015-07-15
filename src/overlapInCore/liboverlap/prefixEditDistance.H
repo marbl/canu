@@ -17,8 +17,8 @@
 //  maximum, and thus never see more than one insert.  Just to be safe, we give it lots of space.
 //
 #define PEDMATCH        1    //  Match from UPPERCASE to UPPERCASE
-#define PEDMISMATCH    -3    //  Mismatch
-#define PEDGAP         -5    //  Gap
+#define PEDMISMATCH    -2    //  Mismatch
+#define PEDGAP         -4    //  Gap
 
 #define PEDMINSCORE   (INT32_MIN - PEDGAP * 32768)
 
@@ -153,7 +153,7 @@ public:
   //  The four below were global #defines, two depended on the error rate which is now local.
 
   //  Most errors in any edit distance computation
-  uint32                  MAX_ERRORS;
+  //uint32                  MAX_ERRORS;
 
   //  The number of errors that are ignored in setting probability bound for terminating alignment
   //  extensions in edit distance calculations
@@ -179,6 +179,7 @@ public:
 
   int32                  *Delta_Stack;
 
+  int32                   Edit_Space_Max;
   pedEdit               **Edit_Space_Lazy;        //  Array of pointers, if set, it was a new'd allocation
   pedEdit               **Edit_Array_Lazy;        //  Array of pointers, some are not new'd allocations
 
