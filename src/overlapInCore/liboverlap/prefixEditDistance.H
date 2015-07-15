@@ -16,9 +16,9 @@
 //  suffices to set this just slightly higher than the minimum, since it should never be picked as a
 //  maximum, and thus never see more than one insert.  Just to be safe, we give it lots of space.
 //
-#define PEDMATCH        1
-#define PEDMISMATCH    -3
-#define PEDGAP         -5
+#define PEDMATCH        1    //  Match from UPPERCASE to UPPERCASE
+#define PEDMISMATCH    -3    //  Mismatch
+#define PEDGAP         -5    //  Gap
 
 #define PEDMINSCORE   (INT32_MIN - PEDGAP * 32768)
 
@@ -107,14 +107,25 @@ public:
                  bool    &Match_To_End);
 
 
-  //  Returns true if letter 'a' from sequence A matches letter 't' from sequence T:
-  //    regardless of case, the same letter is a match.
-  //    regardless of 't', lowercase 'a' matches anything.
+  //  Returns true if letter 'a' from sequence A matches letter 't' from sequence T.
+  //  Wanted to allow lowercase as free matches, but the O(ND) algorithm doesn't support that.
   //
   bool   isMatch(char a, char t) {
-    return((tolower[a] == tolower[t]) ||
-           (tolower[a] == a));
+    return(a == t);
   };
+
+  //  Returns the score of a match.
+  //
+  int32  matchScore(char a, char t) {
+
+    if (isMatch(a, t))
+      return(PEDMATCH);
+
+    fprintf(stderr, "ERROR: a=%c/%d does not match t=%c/%d\n",
+            a, a, t, t);
+    assert(isMatch(a, t) == true);
+  };
+
 
   //  Returns true if the gap we'd be adding to T is zero cost:
   //    lower case 'a' is a don't case position in sequence A

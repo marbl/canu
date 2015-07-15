@@ -90,7 +90,7 @@ prefixEditDistance::Extend_Alignment(Match_Node_t *Match,
   }
 
   else if (S_Right_Len <= T_Right_Len) {
-    fprintf(stderr, "FORWARD S T\n");
+    fprintf(stderr, "prefixEditDistance::Extend_Alignment()--  FORWARD S T\n");
     Right_Errors = forward(S + S_Right_Begin, S_Right_Len,
                            T + T_Right_Begin, T_Right_Len,
                            Error_Limit,
@@ -101,7 +101,7 @@ prefixEditDistance::Extend_Alignment(Match_Node_t *Match,
   }
 
   else {
-    fprintf(stderr, "FORWARD T S\n");
+    fprintf(stderr, "prefixEditDistance::Extend_Alignment()--  FORWARD T S\n");
     Right_Errors = forward(T + T_Right_Begin, T_Right_Len,
                            S + S_Right_Begin, S_Right_Len,
                            Error_Limit,
@@ -123,7 +123,7 @@ prefixEditDistance::Extend_Alignment(Match_Node_t *Match,
   }
 
   else if (S_Right_Begin <= T_Right_Begin) {
-    fprintf(stderr, "REVERSE S T\n");
+    fprintf(stderr, "prefixEditDistance::Extend_Alignment()--  REVERSE S T\n");
     Left_Errors = reverse(S + S_Left_Begin, S_Left_Begin + 1,
                           T + T_Left_Begin, T_Left_Begin + 1,
                           Error_Limit - Right_Errors,
@@ -135,7 +135,7 @@ prefixEditDistance::Extend_Alignment(Match_Node_t *Match,
   }
 
   else {
-    fprintf(stderr, "REVERSE T S\n");
+    fprintf(stderr, "prefixEditDistance::Extend_Alignment()--  REVERSE T S\n");
      Left_Errors = reverse(T + T_Left_Begin,  T_Left_Begin + 1,
                           S + S_Left_Begin,  S_Left_Begin + 1,
                           Error_Limit - Right_Errors,
@@ -148,6 +148,14 @@ prefixEditDistance::Extend_Alignment(Match_Node_t *Match,
 
   S_Lo += S_Left_Begin + 1;
   T_Lo += T_Left_Begin + 1;
+
+  //  Report.
+
+#ifdef DEBUG
+  fprintf(stderr, "prefixEditDistance::Extend_Alignment()--  LEFT errors %d deltaLen %d matchToEnd %s leftover %d -- RIGHT errors %d deltaLen %d matchToEnd %s\n",
+          Left_Errors,  Left_Delta_Len,  lMatchToEnd ? "true" : "false", Leftover,
+          Right_Errors, Right_Delta_Len, rMatchToEnd ? "true" : "false");
+#endif
 
   //  Check the result.
 
