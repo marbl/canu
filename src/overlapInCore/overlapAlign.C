@@ -6,7 +6,7 @@
 #include "Display_Alignment.H"
 
 #define DEBUG_ALGORTHM         //  Some details.
-#define DEBUG_HITS             //  Lots of details.
+#undef  DEBUG_HITS             //  Lots of details.
 
 #undef  SEED_NON_OVERLAPPING   //  Allow mismatches in seeds
 #define SEED_OVERLAPPING
@@ -519,7 +519,7 @@ overlapAlign::processHits(void) {
     match.Offset = _merSize;  //  Really should track this in the hits, oh well.
 #endif
 
-#ifdef DEBUG_HITS
+#ifdef DEBUG_ALGORITHM
     fprintf(stderr, "\n");
     fprintf(stderr, "overlapAlign::processHits()-- Extend_Alignment Astart %d Bstart %d length %d\n", match.Start, match.Offset, match.Len);
 #endif
@@ -539,7 +539,7 @@ overlapAlign::processHits(void) {
     double olapQual  = (double)errors / olapLen;
     double olapScore = olapLen * (1 - olapQual);
 
-#ifdef DEBUG_HITS
+#ifdef DEBUG_ALGORITHM
     fprintf(stderr, "overlapAlign::processHits()-- hit %2u at a=%5d b=%5d -- ORIG A %6u %5d-%5d (%5d) %s B %6u %5d-%5d (%5d)  %.4f -- REALIGN %s A %5d-%5d  B %5d-%5d  errors %4d  erate %6.4f = %6u / %6u deltas %d %d %d %d %d\n",
             hh, _hits[hh].aBgn, _hits[hh].bBgn,
             _aID, _aLoOrig, _aHiOrig, _aLen,
@@ -563,7 +563,7 @@ overlapAlign::processHits(void) {
     //  Is this a better overlap than what we have?
 
     if (_bestResult.score() <= olapScore) {
-#ifdef DEBUG_HITS
+#ifdef DEBUG_ALGORITHM
       fprintf(stderr, "overlapAlign::processHits()--  - save best! - score %f previous %f expected %f\n", olapScore, _bestResult.score(), expectedScore);
 #endif
 
@@ -573,7 +573,7 @@ overlapAlign::processHits(void) {
     //  If pretty crappy, keep looking.
 
     if (_bestResult.score() < 0.5 * expectedScore) {
-#ifdef DEBUG_HITS
+#ifdef DEBUG_ALGORITHM
       fprintf(stderr, "overlapAlign::processHits()--  - too short: score %f < 0.5 * expected = %f\n",
               _bestResult.score(), 0.5 * expectedScore);
 #endif
@@ -583,7 +583,7 @@ overlapAlign::processHits(void) {
     //  If this IS a dovetail, we're done in all cases.
 
     if (olapType == pedDovetail) {
-#ifdef DEBUG_HITS
+#ifdef DEBUG_ALGORITHM
       fprintf(stderr, "overlapAlign::processHits()-- DOVETAIL return - score %f expected %f\n", _bestResult.score(), expectedScore);
 #endif
       return(true);
