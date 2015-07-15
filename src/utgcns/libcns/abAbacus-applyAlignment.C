@@ -23,10 +23,10 @@ static char *rcsid = "$Id$";
 
 #include "abAbacus.H"
 
-#undef   DEBUG_FIND_BEAD
-#undef   DEBUG_ALIGN_GAPS
-#undef   DEBUG_ALIGN_POSITION
-#undef   DEBUG_ABACUS_ALIGN
+#undef  DEBUG_FIND_BEAD
+#undef  DEBUG_ALIGN_GAPS
+#undef  DEBUG_ALIGN_POSITION
+#undef  DEBUG_ABACUS_ALIGN
 
 
 //  Add a column before cid, seeded with bead bid.
@@ -268,6 +268,11 @@ abAbacus::applyAlignment(abSeqID   afid,
 
   abBeadID  lasta;
   abBeadID  lastb;
+
+#ifdef DEBUG_ABACUS_ALIGN
+  fprintf(stderr, "abAbacus::applyAlignment()-- ahang=%d bhang=%d trace=%d %d %d %d\n",
+          ahang, bhang, trace[0], trace[1], trace[2], trace[3], trace[4]);
+#endif
 
   if (afid.isValid()) {
     abSequence *afrag = getSequence(afid);
