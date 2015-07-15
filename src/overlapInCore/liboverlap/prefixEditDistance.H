@@ -17,8 +17,8 @@
 //  maximum, and thus never see more than one insert.  Just to be safe, we give it lots of space.
 //
 #define PEDMATCH        1
-#define PEDMISMATCH    -2
-#define PEDGAP         -3
+#define PEDMISMATCH    -3
+#define PEDGAP         -5
 
 #define PEDMINSCORE   (INT32_MIN - PEDGAP * 32768)
 
@@ -57,13 +57,16 @@ class pedEdit {
 public:
   int32  row;     //  Position in the A sequence; was previously the score too
   int32  dist;    //  The number of non-free bases in the alignment, used to decide band
-  int32  errs;    //  The number of non-free errors in the alignment
+  int32  errs;    //  The number of non-free errors in the alignment, used to decide band
   int32  score;   //  The dynamic programming score, used to decide best align
+  int32  fromd;   //  For backtracking, where we came from
 
   void   init(void) {
     row   = -2;
     dist  = -2;
+    errs  =  0;
     score =  PEDMINSCORE;
+    fromd = INT32_MAX;
   };
 };
 
