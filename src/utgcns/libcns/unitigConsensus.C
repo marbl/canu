@@ -224,7 +224,7 @@ unitigConsensus::generate(tgTig     *tig_,
 
     reportSuccess(failed_);
     applyAlignment();
-    rebuild(false, true);
+    rebuild(false, false);
   }
 
   if (failuresToFix)
@@ -964,8 +964,8 @@ unitigConsensus::alignFragment(void) {
 
     //  Is it a good alignment?
 
-    if (alignFound)
-      oaFull->display(true);
+    //if (alignFound)
+    //  oaFull->display(true);
 
     if ((alignFound == true) &&
         (oaFull->type() != pedDovetail)) {
@@ -981,7 +981,7 @@ unitigConsensus::alignFragment(void) {
       traceABgn = frankBgn + oaFull->abgn();  //  Used in the call to applyAlignment()
       traceBBgn =            oaFull->bbgn();
 
-      int32   apos = 0;
+      int32   apos = oaFull->abgn();
       int32   bpos = 0;
 
       for (uint32 ii=0; ii<oaFull->deltaLen(); ii++, traceLen++) {
@@ -1175,8 +1175,8 @@ unitigConsensus::rejectAlignment(bool allowBhang,  //  Allow a positive bhang - 
 void
 unitigConsensus::applyAlignment(void) {
 
-  //if (showAlgorithm())
-  //  fprintf(stderr, "applyAlignment()-- aligned to frankenstein\n");
+  if (showAlgorithm())
+    fprintf(stderr, "applyAlignment()-- aligned to frankenstein\n");
 
   abacus->applyAlignment(abSeqID(),
                          frankensteinLen, frankensteinBof,
