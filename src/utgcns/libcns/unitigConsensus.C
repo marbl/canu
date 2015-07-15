@@ -968,12 +968,6 @@ unitigConsensus::alignFragment(void) {
                         (oaFull->chainHits()                    == true) &&
                         (oaFull->processHits()                  == true));
 
-    if (alignFound) {
-      fprintf(stderr, "FOUND!\n");
-    } else {
-      fprintf(stderr, "NOT FOUND!\n");
-    }
-
     //  Done with alignment, restore the bases we might have removed.
 
     if (frankEndBase)   frankenstein[frankEnd] = frankEndBase;
@@ -985,9 +979,11 @@ unitigConsensus::alignFragment(void) {
       oaFull->display(true);
 
     if ((alignFound == true) &&
-        (oaFull->type() == pedDovetail)) {
+        (oaFull->type() != pedDovetail)) {
+    }
 
-      //oaFull->display(false);
+    if ((alignFound == true) &&
+        (oaFull->type() == pedDovetail)) {
 
       //  Process the trace
 
@@ -1013,26 +1009,14 @@ unitigConsensus::alignFragment(void) {
           apos += -oaFull->delta()[ii] - 1;
           bpos += -oaFull->delta()[ii];
 
-          //  +2 
-          //  +1 two bases early on A, B seems ok.
-          //  +0 ?
-          //  -1 ?
-          
           trace[traceLen] = -apos - frankBgn - 1;
 
         } else {
           apos +=  oaFull->delta()[ii];
           bpos +=  oaFull->delta()[ii] - 1;  // critical
 
-          //  +2 - one base late, both a and b, but get messed up later
-          //  +1 - works
-          //  +0 - crashes
-          //  -1 - gap is two bases early
-
           trace[traceLen] = bpos + 1;
         }
-
-        //fprintf(stderr, "delta[%3d] = %d from %d\n", traceLen, trace[traceLen], oaFull->delta()[ii]);
       }
 
       trace[traceLen] = 0;
