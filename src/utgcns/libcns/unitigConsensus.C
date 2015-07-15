@@ -1010,8 +1010,8 @@ unitigConsensus::alignFragment(void) {
 
       trace[traceLen] = 0;
 
-      if (showAlgorithm())
-        fprintf(stderr, "alignFragment()-- Alignment succeeded.\n");
+      //if (showAlgorithm())
+      //  fprintf(stderr, "alignFragment()-- Alignment succeeded.\n");
 
       return(true);
     }
@@ -1043,15 +1043,12 @@ unitigConsensus::alignFragment(void) {
                                   0,
                                   errorRate + 0.02, 1e-3, minlen,
                                   AS_FIND_ALIGN);
-      //if (O)
-      //  fprintf(stderr, "Local_Overlap_AS_forCNS() succeeded.\n");
       //if ((O) && (showAlignments()))
       //  PrintALNoverlap("Optimal_Overlap", aseq, bseq, O);
     }
 #endif    
 
     if (O == NULL) {
-      //fprintf(stderr, "Local_Overlap_AS_forCNS() failed.\n");
       O = Optimal_Overlap_AS_forCNS(aseq,
                                     bseq,
                                     0, alen,            //  ahang bounds are unused here
@@ -1175,8 +1172,8 @@ unitigConsensus::rejectAlignment(bool allowBhang,  //  Allow a positive bhang - 
 void
 unitigConsensus::applyAlignment(void) {
 
-  if (showAlgorithm())
-    fprintf(stderr, "applyAlignment()-- aligned to frankenstein\n");
+  //if (showAlgorithm())
+  //  fprintf(stderr, "applyAlignment()-- aligned to frankenstein\n");
 
   abacus->applyAlignment(abSeqID(),
                          frankensteinLen, frankensteinBof,

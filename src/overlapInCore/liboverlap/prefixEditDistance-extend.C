@@ -24,7 +24,7 @@ static const char *rcsid = "$Id$";
 #include "overlapInCore.H"
 #include "prefixEditDistance.H"
 
-#define DEBUG
+#undef DEBUG
 
 
 //  See how far the exact match in  Match  extends.  The match
@@ -90,7 +90,9 @@ prefixEditDistance::Extend_Alignment(Match_Node_t *Match,
   }
 
   else if (S_Right_Len <= T_Right_Len) {
+#ifdef DEBUG
     fprintf(stderr, "prefixEditDistance::Extend_Alignment()--  FORWARD S T\n");
+#endif
     Right_Errors = forward(S + S_Right_Begin, S_Right_Len,
                            T + T_Right_Begin, T_Right_Len,
                            Error_Limit,
@@ -101,7 +103,9 @@ prefixEditDistance::Extend_Alignment(Match_Node_t *Match,
   }
 
   else {
+#ifdef DEBUG
     fprintf(stderr, "prefixEditDistance::Extend_Alignment()--  FORWARD T S\n");
+#endif
     Right_Errors = forward(T + T_Right_Begin, T_Right_Len,
                            S + S_Right_Begin, S_Right_Len,
                            Error_Limit,
@@ -123,7 +127,9 @@ prefixEditDistance::Extend_Alignment(Match_Node_t *Match,
   }
 
   else if (S_Right_Begin <= T_Right_Begin) {
+#ifdef DEBUG
     fprintf(stderr, "prefixEditDistance::Extend_Alignment()--  REVERSE S T\n");
+#endif
     Left_Errors = reverse(S + S_Left_Begin, S_Left_Begin + 1,
                           T + T_Left_Begin, T_Left_Begin + 1,
                           Error_Limit - Right_Errors,
@@ -135,8 +141,10 @@ prefixEditDistance::Extend_Alignment(Match_Node_t *Match,
   }
 
   else {
+#ifdef DEBUG
     fprintf(stderr, "prefixEditDistance::Extend_Alignment()--  REVERSE T S\n");
-     Left_Errors = reverse(T + T_Left_Begin,  T_Left_Begin + 1,
+#endif
+    Left_Errors = reverse(T + T_Left_Begin,  T_Left_Begin + 1,
                           S + S_Left_Begin,  S_Left_Begin + 1,
                           Error_Limit - Right_Errors,
                           T_Lo, S_Lo,
@@ -157,14 +165,13 @@ prefixEditDistance::Extend_Alignment(Match_Node_t *Match,
           Right_Errors, Right_Delta_Len, rMatchToEnd ? "true" : "false");
 #endif
 
-  //  Check the result.
-
-  assert(Right_Errors <= Error_Limit);
-  assert(Left_Errors <= Error_Limit);
+  //  Check the result.  Just checking for overflow, not quality.
 
   Errors = Left_Errors + Right_Errors;
 
-  assert(Errors <= Error_Limit);
+  assert(Right_Errors <= AS_MAX_READLEN);
+  assert(Left_Errors  <= AS_MAX_READLEN);
+  assert(Errors       <= AS_MAX_READLEN);
 
   //  Merge the deltas.
 

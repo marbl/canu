@@ -5,7 +5,7 @@
 
 #include "Display_Alignment.H"
 
-#define DEBUG_ALGORTHM         //  Some details.
+#undef  DEBUG_ALGORTHM         //  Some details.
 #undef  DEBUG_HITS             //  Lots of details.
 
 #undef  SEED_NON_OVERLAPPING   //  Allow mismatches in seeds

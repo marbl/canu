@@ -1,6 +1,6 @@
 #include "prefixEditDistance.H"
 
-#define DEBUG
+#undef DEBUG
 
 
 
