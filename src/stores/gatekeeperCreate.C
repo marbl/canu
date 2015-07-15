@@ -27,6 +27,9 @@ const char *mainid = "$Id$";
 #include "AS_UTL_fileIO.H"
 
 
+#undef  UPCASE  //  Don't convert lowercase to uppercase, special case for testing alignments.
+#define UPCASE  //  Convert lowercase to uppercase.  Probably needed.
+
 
 //  Support fastq of fasta, even in the same file.
 //  Eventually want to support bax.h5 natively.
@@ -87,10 +90,17 @@ loadFASTA(gkStore              *gkpStore,
 
     for (uint32 i=0; L[i]; i++) {
       switch (L[i]) {
+#ifdef UPCASE
         case 'a':   S[Slen] = 'A';  break;
         case 'c':   S[Slen] = 'C';  break;
         case 'g':   S[Slen] = 'G';  break;
         case 't':   S[Slen] = 'T';  break;
+#else
+        case 'a':   S[Slen] = 'a';  break;
+        case 'c':   S[Slen] = 'c';  break;
+        case 'g':   S[Slen] = 'g';  break;
+        case 't':   S[Slen] = 't';  break;
+#endif
         case 'A':   S[Slen] = 'A';  break;
         case 'C':   S[Slen] = 'C';  break;
         case 'G':   S[Slen] = 'G';  break;
@@ -170,10 +180,17 @@ loadFASTQ(gkStore              *gkpStore,
 
   for (uint32 i=0; S[i]; i++) {
     switch (S[i]) {
+#ifdef UPCASE
       case 'a':   S[i] = 'A';  break;
       case 'c':   S[i] = 'C';  break;
       case 'g':   S[i] = 'G';  break;
       case 't':   S[i] = 'T';  break;
+#else
+      case 'a':                break;
+      case 'c':                break;
+      case 'g':                break;
+      case 't':                break;
+#endif
       case 'A':                break;
       case 'C':                break;
       case 'G':                break;
