@@ -34,9 +34,12 @@ using namespace std;
 //  If defined, failure to align a read causes immediate crash.
 #undef FAILURE_IS_FATAL
 
-//  If defined, skip ALL contained reads.  This will cause problems in scaffolding.
-#undef SKIP_CONTAINS
 
+//  Define this.  Use the faster aligner from overlapper.  If not defined,
+//  a full O(n^2) DP is computed.
+//
+#undef  WITH_OVERLAPALIGN
+#define WITH_OVERLAPALIGN
 
 
 
@@ -915,17 +918,18 @@ unitigConsensus::alignFragment(void) {
     frankEndBase = frankenstein[frankEnd];
     frankenstein[frankEnd] = 0;
     allowBhang   = false;
+
+  } else {
+    endExtra = 0;
   }
 
   char       *aseq  = frankenstein + frankBgn;
-  int32       alen  = frankEnd     - frankBgn;
 
   abSequence *bSEQ  = abacus->getSequence(tiid);
   char       *bseq  = abacus->getBases(bSEQ);
-  int32       blen  = bSEQ->length();
 
-  if (endTrim >= blen)
-    fprintf(stderr, "alignFragment()-- ERROR -- excessive endTrim %d >= length %d\n", endTrim, blen);
+  if (endTrim >= bSEQ->length())
+    fprintf(stderr, "alignFragment()-- ERROR -- excessive endTrim %d >= length %d\n", endTrim, bSEQ->length());
   if (endTrim < 0)
     fprintf(stderr, "alignFragment()-- ERROR -- negative endTrim %d\n", endTrim);
 
@@ -933,48 +937,51 @@ unitigConsensus::alignFragment(void) {
   //  Try overlapAlign
   //
 
-#if 1
-  if ((endTrim <  blen) &&
+#ifdef WITH_OVERLAPALIGN
+  if ((endTrim <  bSEQ->length()) &&
       (0       <= endTrim)) {
     int32 fragBgn      = 0;
-    int32 fragEnd      = blen - endTrim;
+    int32 fragEnd      = bSEQ->length() - endTrim;
     char  fragEndBase  = bseq[fragEnd];
 
     bseq[fragEnd] = 0;  //  Terminate the bseq early for alignment.
 
+    //  Create new aligner object.  'Global' in this case just means to not stop early, not a true global alignment.
+
     if (oaFull == false)
-      oaFull = new overlapAlign(pedGlobal, errorRate, 17);  //  partial NOT allowed
+      oaFull = new overlapAlign(pedGlobal, errorRate, 17);
 
-    //fprintf(stderr, "overlapAlign()--  A %d-%d  B %d-%d (before)\n", 0, alen, 0, blen);
+    oaFull->initialize(0, aseq, frankEnd - frankBgn, 0, frankEnd - frankBgn,
+                       1, bseq, fragEnd  - fragBgn,  0, fragEnd  - fragBgn,
+                       false);
 
-    oaFull->initialize(0, aseq, alen, 0, alen,
-                   1, bseq, blen, 0, blen,
-                   false);
+    //  Generate seeds and prepare for alignment.
 
-    bool  alignFound = ((oaFull->findMinMaxDiagonal(minOverlap) == true) &&
-                        (oaFull->findSeeds(false)               == true) &&
-                        (oaFull->findHits()                     == true) &&
-                        (oaFull->chainHits()                    == true) &&
-                        (oaFull->processHits()                  == true));
+    bool  alignFound = ((oaFull->findMinMaxDiagonal(minOverlap, bgnExtra, endExtra) == true) &&
+                        (oaFull->findSeeds(false)                                   == true) &&
+                        (oaFull->findHits()                                         == true) &&
+                        (oaFull->chainHits()                                        == true));
 
-    //  Done with alignment, restore the bases we might have removed.
+    //  While we find alignments, decide if they're any good, and stop on the first good one.
 
-    if (frankEndBase)   frankenstein[frankEnd] = frankEndBase;
-    if (fragEndBase)    bseq[fragEnd]          = fragEndBase;
+    while ((alignFound            == true) &&
+           (oaFull->processHits() == true)) {
 
-    //  Is it a good alignment?
+      //oaFull->display(true);
 
-    //if (alignFound)
-    //  oaFull->display(true);
+      //  Fix up non-dovetail alignments?  Nope, just skip them for now.  Eventually, we'll want to
+      //  accept these (if long enough) by trimming the read.  To keep the unitig connected, we
+      //  probably can only trim on the 5' end.
 
-    if ((alignFound == true) &&
-        (oaFull->type() != pedDovetail)) {
-    }
+      if (oaFull->type() != pedDovetail)
+        continue;
 
-    if ((alignFound == true) &&
-        (oaFull->type() == pedDovetail)) {
+      //  Bad alignment if low quality.
 
-      //  Process the trace
+      if (oaFull->erate() > errorRate)
+        continue;
+
+      //  Otherwise, its a good alignment.  Process the trace to the 'consensus-format' and return true.
 
       traceLen = 0;
 
@@ -984,16 +991,15 @@ unitigConsensus::alignFragment(void) {
       int32   apos = oaFull->abgn();
       int32   bpos = 0;
 
+      //  Overlap encoding:
+      //    Add N matches or mismatches.  If negative, insert a base in the first sequence.  If
+      //    positive, delete a base in the first sequence.
+      //
+      //  Consensus encoding:
+      //    If negative, align (-trace - apos) bases, then add a gap in A.
+      //    If positive, align ( trace - bpos) bases, then add a gap in B.
+      //
       for (uint32 ii=0; ii<oaFull->deltaLen(); ii++, traceLen++) {
-
-        //  Overlap encoding:
-        //    Add N matches or mismatches.  If negative, insert a base in the first sequence.  If
-        //    positive, delete a base in the first sequence.
-        //
-        //  Consensus encoding:
-        //    If negative, align (-trace - apos) bases, then add a gap in A.
-        //    If positive, align ( trace - bpos) bases, then add a gap in B.
-        //
         if (oaFull->delta()[ii] < 0) {
           apos += -oaFull->delta()[ii] - 1;
           bpos += -oaFull->delta()[ii];
@@ -1010,11 +1016,16 @@ unitigConsensus::alignFragment(void) {
 
       trace[traceLen] = 0;
 
-      //if (showAlgorithm())
-      //  fprintf(stderr, "alignFragment()-- Alignment succeeded.\n");
+      if (frankEndBase)   frankenstein[frankEnd] = frankEndBase;  //  Restore bases we removed for alignment
+      if (fragEndBase)    bseq[fragEnd]          = fragEndBase;
 
       return(true);
     }
+
+    //  Well, shucks, we failed to find any decent alignment.
+
+    if (frankEndBase)   frankenstein[frankEnd] = frankEndBase;  //  Restore bases we removed for alignment
+    if (fragEndBase)    bseq[fragEnd]          = fragEndBase;
   }
 #endif
 
@@ -1023,10 +1034,10 @@ unitigConsensus::alignFragment(void) {
   //
 
 #if 1
-  if ((endTrim <  blen) &&
+  if ((endTrim <  bSEQ->length()) &&
       (0       <= endTrim)) {
     int32 fragBgn      = 0;
-    int32 fragEnd      = blen - endTrim;
+    int32 fragEnd      = bSEQ->length() - endTrim;
     char  fragEndBase  = bseq[fragEnd];
 
     bseq[fragEnd] = 0;
@@ -1038,8 +1049,8 @@ unitigConsensus::alignFragment(void) {
     if (O == NULL) {
       O = Local_Overlap_AS_forCNS(aseq,
                                   bseq,
-                                  0, alen,            //  ahang bounds are unused here
-                                  0, 0,               //  ahang, bhang exclusion
+                                  0, frankEnd - frankBgn,     //  ahang bounds are unused here
+                                  0, 0,                       //  ahang, bhang exclusion
                                   0,
                                   errorRate + 0.02, 1e-3, minlen,
                                   AS_FIND_ALIGN);
@@ -1051,13 +1062,13 @@ unitigConsensus::alignFragment(void) {
     if (O == NULL) {
       O = Optimal_Overlap_AS_forCNS(aseq,
                                     bseq,
-                                    0, alen,            //  ahang bounds are unused here
-                                    0, 0,               //  ahang, bhang exclusion
+                                    0, frankEnd - frankBgn,   //  ahang bounds are unused here
+                                    0, 0,                     //  ahang, bhang exclusion
                                     0,
                                     errorRate + 0.02, 1e-3, minlen,
                                     AS_FIND_ALIGN);
-      //if ((O) && (showAlignments()))
-      //  PrintALNoverlap("Optimal_Overlap", aseq, bseq, O);
+      if ((O)) // && (showAlignments()))
+        PrintALNoverlap("Optimal_Overlap", aseq, bseq, O);
     }
 
     //  At 0.06 error, this equals the previous value of 10.
