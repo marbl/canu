@@ -43,8 +43,11 @@ class workSpace {
 public:
   workSpace() {
     threadID        = 0;
+
     maxErate        = 0;
     partialOverlaps = false;
+    invertOverlaps  = false;
+
     gkpStore        = NULL;
     align           = NULL;
     //analyze         = NULL;
@@ -60,6 +63,7 @@ public:
   uint32                 threadID;
   double                 maxErate;
   bool                   partialOverlaps;
+  bool                   invertOverlaps;
 
   gkStore               *gkpStore;
 
@@ -130,6 +134,11 @@ recomputeOverlaps(void *ptr) {
     for (uint32 oo=bgnID; oo<endID; oo++) {
       ovOverlap  *ovl = WA->overlaps + oo;
 
+      if (WA->invertOverlaps) {
+        ovOverlap  swapped = WA->overlaps[oo];
+
+        WA->overlaps[oo].swapIDs(swapped);  //  Needs to be from a temporary!
+      }
 
 #if 0
       fprintf(stderr, "BEGIN overlap A %5u %5u-%5u B %5u %5u-%5u\n",
@@ -241,6 +250,8 @@ main(int argc, char **argv) {
 
   double   maxErate        = 0.12;
   bool     partialOverlaps = false;
+  bool     invertOverlaps  = false;
+
   uint64   memLimit        = 4;
 
   argc = AS_configure(argc, argv);
@@ -271,6 +282,9 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-partial") == 0) {
       partialOverlaps = true;
+
+    } else if (strcmp(argv[arg], "-invert") == 0) {
+      invertOverlaps = true;
 
     } else if (strcmp(argv[arg], "-memory") == 0) {
       memLimit = atoi(argv[++arg]);
@@ -310,6 +324,10 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -memory m       Use up to 'm' GB of memory\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -t n            Use up to 'n' cores\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Advanced options:\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -invert         Invert the overlap A <-> B before aligning (they are not re-inverted before output)\n");
     fprintf(stderr, "\n");
     exit(1);
   }
@@ -355,6 +373,7 @@ main(int argc, char **argv) {
     WA[tt].threadID         = tt;
     WA[tt].maxErate         = maxErate;
     WA[tt].partialOverlaps  = partialOverlaps;
+    WA[tt].invertOverlaps   = invertOverlaps;
 
     WA[tt].gkpStore         = gkpStore;
     WA[tt].align            = NULL;
