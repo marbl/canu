@@ -71,7 +71,6 @@ main (int argc, char **argv) {
   double maxCov = 0.0;
   uint32 maxLen = UINT32_MAX;
 
-  bool   inplace  = false;
   bool   loadall  = false;
 
   uint32 verbosity = 0;
@@ -136,9 +135,6 @@ main (int argc, char **argv) {
     } else if (strcmp(argv[arg], "-maxlength") == 0) {
       maxLen   = atof(argv[++arg]);
 
-    } else if (strcmp(argv[arg], "-inplace") == 0) {
-      inplace = true;
-
     } else if (strcmp(argv[arg], "-loadall") == 0) {
       loadall = true;
 
@@ -187,8 +183,6 @@ main (int argc, char **argv) {
     fprintf(stderr, "                    use all reads.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "    -maxlength l    Do not compute consensus for unitigs longer than l bases.\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "    -inplace        Write the updated unitig to the same version it was read from.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "    -t S V P        If 'partition' is '.', use an unpartitioned tigStore/gkpStore.\n");
     fprintf(stderr, "    -loadall        Load ALL reads into memory.  Ignores partition if it exists.\n");
