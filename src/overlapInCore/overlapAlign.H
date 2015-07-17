@@ -102,7 +102,10 @@ public:
 
   //  Algorithm
 
-  bool             findMinMaxDiagonal(int32 minLength);
+  bool             findMinMaxDiagonal(int32 minLength,
+                                      uint32 AbgnAdj=0, uint32 AendAdj=0,
+                                      uint32 BbgnAdj=0, uint32 BendAdj=0);
+
   bool             findSeeds(bool dupIgnore);
   bool             findHits(void);
   bool             chainHits(void);
@@ -197,6 +200,8 @@ private:
 
   vector<exactMatch>  _rawhits;
   vector<exactMatch>  _hits;
+
+  uint32              _hitr;
 
   //  The result.
 

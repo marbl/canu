@@ -5,10 +5,10 @@
 
 #include "Display_Alignment.H"
 
-#undef  DEBUG_ALGORTHM         //  Some details.
-#undef  DEBUG_HITS             //  Lots of details.
+#undef  DEBUG_ALGORITHM         //  Some details.
+#undef  DEBUG_HITS              //  Lots of details.
 
-#undef  SEED_NON_OVERLAPPING   //  Allow mismatches in seeds
+#undef  SEED_NON_OVERLAPPING    //  Allow mismatches in seeds
 #define SEED_OVERLAPPING
 
 
@@ -49,6 +49,16 @@ overlapAlign::overlapAlign(pedAlignType   alignType,
     acgtToVal[ii] = 0x03;
   }
 
+  //  Do NOT include lowercase letters here.  These are 'don't care' matches
+  //  in consensus, and are usually matches we want to be skipping.
+  //
+  //  ATGtTTgaTGACC vs ATGtTTgaTGACC
+  //  ATG-TT--TGACC    ATGTTT---GACC
+  //
+  //  While, yes, the second form is simpler (and would be correct had the last T been
+  //  optional) the first is what consensus is expecting to find.
+
+#if 0
   acgtToBit['a'] = acgtToBit['A'] = 0x00;  //  Bit encoding of ACGT
   acgtToBit['c'] = acgtToBit['C'] = 0x01;
   acgtToBit['g'] = acgtToBit['G'] = 0x02;
@@ -58,6 +68,17 @@ overlapAlign::overlapAlign(pedAlignType   alignType,
   acgtToVal['c'] = acgtToVal['C'] = 0x00;
   acgtToVal['g'] = acgtToVal['G'] = 0x00;
   acgtToVal['t'] = acgtToVal['T'] = 0x00;
+#else
+  acgtToBit['A'] = 0x00;  //  Bit encoding of ACGT
+  acgtToBit['C'] = 0x01;
+  acgtToBit['G'] = 0x02;
+  acgtToBit['T'] = 0x03;
+
+  acgtToVal['A'] = 0x00;  //  Word is valid if zero
+  acgtToVal['C'] = 0x00;
+  acgtToVal['G'] = 0x00;
+  acgtToVal['T'] = 0x00;
+#endif
 
   merMask[0] = 0x0000000000000000llu;
   merMask[1] = 0x0000000000000003llu;
@@ -139,6 +160,8 @@ overlapAlign::initialize(uint32 aID, char *aStr, int32 aLen, int32 aLo, int32 aH
   _rawhits.clear();
   _hits.clear();
 
+  _hitr = UINT32_MAX;
+
   _bestResult.clear();
 }
 
@@ -150,22 +173,28 @@ overlapAlign::initialize(uint32 aID, char *aStr, int32 aLen, int32 aLo, int32 aH
 //
 //  Returns false if there is no chance of an overlap - the computed alignment length is too small.
 //
+//  The adjusts change the sequence start and end position (bgn + bgnAdj, end - endAdj),
+//  and are intended to compensate for supplying sequences larger than absolutely necessary
+//  (for when the exact boundaries aren't known).
+
 bool
-overlapAlign::findMinMaxDiagonal(int32  minLength) {
+overlapAlign::findMinMaxDiagonal(int32  minLength,
+                                 uint32 AbgnAdj, uint32 AendAdj,
+                                 uint32 BbgnAdj, uint32 BendAdj) {
 
   _minDiag = 0;
   _maxDiag = 0;
 
-  int32  aALen = _aHiOrig - _aLoOrig;
-  int32  bALen = _bHiOrig - _bLoOrig;
+  int32  aALen = (_aHiOrig - AendAdj) - (_aLoOrig + AbgnAdj);
+  int32  bALen = (_bHiOrig - BendAdj) - (_bLoOrig + BbgnAdj);
 
   int32  alignLen = (aALen < bALen) ? bALen : aALen;
 
   if (alignLen < minLength)
     return(false);
 
-  int32  bgnDiag = _aLoOrig - _bLoOrig;
-  int32  endDiag = _aHiOrig - _bHiOrig;
+  int32  bgnDiag = (_aLoOrig + AbgnAdj) - (_bLoOrig + BbgnAdj);
+  int32  endDiag = (_aHiOrig - AendAdj) - (_bHiOrig - BendAdj);
 
   if (bgnDiag < endDiag) {
     _minDiag = bgnDiag - _maxErate * alignLen / 2;
@@ -186,6 +215,8 @@ overlapAlign::findMinMaxDiagonal(int32  minLength) {
   assert(_minDiag <= _maxDiag);
 
 #ifdef DEBUG_ALGORITHM
+  fprintf(stderr, "overlapAlign::findMinMaxDiagonal()--  A: _aLoOrig %d + AbgnAdj %d -- _aHiOrig %d - AendAdj %d\n", _aLoOrig, AbgnAdj, _aHiOrig, AendAdj);
+  fprintf(stderr, "overlapAlign::findMinMaxDiagonal()--  B: _bLoOrig %d + BbgnAdj %d -- _bHiOrig %d - BendAdj %d\n", _bLoOrig, BbgnAdj, _bHiOrig, BendAdj);
   fprintf(stderr, "overlapAlign::findMinMaxDiagonal()--  min %d max %d -- span %d -- alignLen %d\n", _minDiag, _maxDiag, _maxDiag-_minDiag, alignLen);
 #endif
 
@@ -500,19 +531,29 @@ overlapAlign::processHits(void) {
   //  The expected worst score, in numer of matches.
   double   expectedScore = (1 - _maxErate) * min(_aHiOrig - _aLoOrig, _bHiOrig - _bLoOrig);
 
-  //  Scratch space for finding alignments
+  //  If the first time here, set the hit iterator to zero, otherwise move to the next one.
+  //  And then return if there are no more hits to iterate over.
 
-  int32  aLo=0, aHi=0;
-  int32  bLo=0, bHi=0;
+  if (_hitr == UINT32_MAX)
+    _hitr = 0;
+  else
+    _hitr++;
 
-  //  Go!
+  if (_hitr >= _hits.size())
+    return(false);
 
-  for (uint32 hh=0; hh<_hits.size(); hh++) {
+  //  While hits, process them.
+  //
+  //  If a good hit is found, return, leaving hitr as is.  The next time we enter this function,
+  //  we'll increment hitr and process the next hit.  If no good hit is found, we iterate the loop
+  //  until a good one is found, or we run out of hits.
+
+  for (; _hitr < _hits.size(); _hitr++) {
     Match_Node_t  match;
 
-    match.Start  = _hits[hh].aBgn;    //  Begin position in a
-    match.Offset = _hits[hh].bBgn;    //  Begin position in b
-    match.Len    = _hits[hh].tLen;    //  tLen can include mismatches if alternate scoring is used!
+    match.Start  = _hits[_hitr].aBgn;    //  Begin position in a
+    match.Offset = _hits[_hitr].bBgn;    //  Begin position in b
+    match.Len    = _hits[_hitr].tLen;    //  tLen can include mismatches if alternate scoring is used!
     match.Next   = 0;                 //  Not used here
 
 #ifdef SEED_NON_OVERLAPPING
@@ -524,7 +565,10 @@ overlapAlign::processHits(void) {
     fprintf(stderr, "overlapAlign::processHits()-- Extend_Alignment Astart %d Bstart %d length %d\n", match.Start, match.Offset, match.Len);
 #endif
 
-    int32           errors  = 0;
+    int32  aLo=0, aHi=0;
+    int32  bLo=0, bHi=0;
+    int32  errors = 0;
+
     pedOverlapType  olapType = _editDist->Extend_Alignment(&match,         //  Initial exact match, relative to start of string
                                                            _aStr, _aLen,
                                                            _bStr, _bLen,
@@ -541,7 +585,7 @@ overlapAlign::processHits(void) {
 
 #ifdef DEBUG_ALGORITHM
     fprintf(stderr, "overlapAlign::processHits()-- hit %2u at a=%5d b=%5d -- ORIG A %6u %5d-%5d (%5d) %s B %6u %5d-%5d (%5d)  %.4f -- REALIGN %s A %5d-%5d  B %5d-%5d  errors %4d  erate %6.4f = %6u / %6u deltas %d %d %d %d %d\n",
-            hh, _hits[hh].aBgn, _hits[hh].bBgn,
+            _hitr, _hits[_hitr].aBgn, _hits[_hitr].bBgn,
             _aID, _aLoOrig, _aHiOrig, _aLen,
             _bFlipped ? "<-" : "->",
             _bID, _bLoOrig, _bHiOrig, _bLen,
@@ -570,43 +614,16 @@ overlapAlign::processHits(void) {
       _bestResult.save(aLo, aHi, bLo, bHi, olapLen, olapQual, olapType, _editDist->Left_Delta_Len, _editDist->Left_Delta);
     }
 
-    //  If pretty crappy, keep looking.
-
-    if (_bestResult.score() < 0.5 * expectedScore) {
-#ifdef DEBUG_ALGORITHM
-      fprintf(stderr, "overlapAlign::processHits()--  - too short: score %f < 0.5 * expected = %f\n",
-              _bestResult.score(), 0.5 * expectedScore);
-#endif
-      continue;
-    }
-
-    //  If this IS a dovetail, we're done in all cases.
+    //  If a dovetail, we're done.  Let the client figure out if the quality is good.
 
     if (olapType == pedDovetail) {
 #ifdef DEBUG_ALGORITHM
       fprintf(stderr, "overlapAlign::processHits()-- DOVETAIL return - score %f expected %f\n", _bestResult.score(), expectedScore);
 #endif
+
       return(true);
     }
-
-    //  Is this still a decent overlap?  Continue on to the next seed.  Decent if olapScore
-    //  is at least 1/2 of the bestScore.
-
-    if (0.5 * _bestResult.score() < olapScore) {
-#ifdef DEBUG_ALGORITHM
-      fprintf(stderr, "overlapAlign::processHits()--  - decent score, keep looking: score %f > 0.5 * expected = %f\n",
-              _bestResult.score(), 0.5 * expectedScore);
-#endif
-      continue;
-    }
-
-    //  Nope, this overlap is crap.  Assume that the rest of the seeds are crap too and give up.
-
-#ifdef DEBUG_ALGORITHM
-    fprintf(stderr, "overlapAlign::processHits()-- REST_CRAP return - score %f expected %f\n", _bestResult.score(), expectedScore);
-#endif
-    return(_bestResult.score() >= 0.5 * expectedScore);
-  }
+  }  //  Over all seeds.
 
   //  We ran out of seeds to align.  No overlap found.
 
