@@ -17,52 +17,17 @@ prefixEditDistance::Set_Right_Delta(char  *A, char  *T,
   Right_Delta_Len = 0;
 
   int32  lastr = Edit_Array_Lazy[e][d].row;
-  int32  fromd = Edit_Array_Lazy[e][d].fromd;  //   The cell that we're moving to in [e-1].
 
-#if 0
-  fprintf(stderr, "prefixEditDistance::Set_Right_Delta()-- e=%11d d=%11d lastr=%11d - r=%11d s=%11d d=%11d - r=%11d s=%11d d=%11d - r=%11d s=%11d d=%11d\n",
-          e, d, lastr,
-          Edit_Array_Lazy[e][d-1].row, Edit_Array_Lazy[e][d-1].score, Edit_Array_Lazy[e][d-1].fromd,
-          Edit_Array_Lazy[e][d+0].row, Edit_Array_Lazy[e][d+0].score, Edit_Array_Lazy[e][d+0].fromd,
-          Edit_Array_Lazy[e][d+1].row, Edit_Array_Lazy[e][d+1].score, Edit_Array_Lazy[e][d+1].fromd);
-#endif
+  //fprintf(stderr, "prefixEditDistance::Set_Right_Delta()-- e  =%5d d=%5d lastr=%5d\n",
+  //        e, d, lastr);
 
   for (int32 k=e; k>0; k--) {
     assert(Edit_Array_Lazy[k] != NULL);
 
     //  Analyze cells at errors = k-1 for the maximum -- no analysis needed, since we stored this cell as fromd.
 
-#if 0
-    fprintf(stderr, "prefixEditDistance::Set_Right_Delta()-- e=%11d d=%11d lastr=%11d - r=%11d s=%11d d=%11d - r=%11d s=%11d d=%11d - r=%11d s=%11d d=%11d\n",
-            k-1, d, lastr,
-            Edit_Array_Lazy[k-1][d-1].row, Edit_Array_Lazy[k-1][d-1].score, Edit_Array_Lazy[k-1][d-1].fromd,
-            Edit_Array_Lazy[k-1][d+0].row, Edit_Array_Lazy[k-1][d+0].score, Edit_Array_Lazy[k-1][d+0].fromd,
-            Edit_Array_Lazy[k-1][d+1].row, Edit_Array_Lazy[k-1][d+1].score, Edit_Array_Lazy[k-1][d+1].fromd);
-#endif
+#ifndef USE_SCORE
 
-
-#if 1
-    int32   from = Edit_Array_Lazy[k][d].fromd;
-
-    if (from == d - 1) {
-      Delta_Stack[Right_Delta_Len++] = Edit_Array_Lazy[k-1][d-1].row - lastr - 1;
-      d--;
-      lastr = Edit_Array_Lazy[k-1][from].row;
-    }
-
-    else if (from == d + 1) {
-      Delta_Stack[Right_Delta_Len++] = lastr - Edit_Array_Lazy[k-1][d+1].row;
-      d++;
-      lastr = Edit_Array_Lazy[k-1][from].row;
-    }
-
-    else {
-      //fprintf(stderr, "LeftDelta:  mismatch        at %d max=%d last=%d\n", maxr - lastr - 1, maxr, lastr);
-    }
-#endif
-
-
-#if 0
     //  Original
     int32  from = d;
     int32  maxs =     Edit_Array_Lazy[k-1][d].score;// + PEDMISMATCH;
@@ -70,7 +35,6 @@ prefixEditDistance::Set_Right_Delta(char  *A, char  *T,
 
     //  Figure out which sequence has the insertion, if any.
 
-#ifndef USE_SCORE
     if (0 + Edit_Array_Lazy[k-1][d-1].row > maxr) {
       from = d - 1;
       maxs = 0 + Edit_Array_Lazy[k-1][d-1].score;
@@ -82,19 +46,6 @@ prefixEditDistance::Set_Right_Delta(char  *A, char  *T,
       maxs = 1 + Edit_Array_Lazy[k-1][d+1].score;
       maxr = 1 + Edit_Array_Lazy[k-1][d+1].row;
     }
-#else
-    if (    Edit_Array_Lazy[k-1][d-1].score /*+ PEDGAP*/ > maxs) {
-      from = d - 1;
-      maxs =     Edit_Array_Lazy[k-1][d-1].score;// + PEDGAP;
-      maxr = 0 + Edit_Array_Lazy[k-1][d-1].row;
-    }
-
-    if (    Edit_Array_Lazy[k-1][d+1].score /*+ PEDGAP*/ > maxs) {
-      from = d + 1;
-      maxs =     Edit_Array_Lazy[k-1][d+1].score;// + PEDGAP;
-      maxr = 1 + Edit_Array_Lazy[k-1][d+1].row;
-    }
-#endif
 
     //  And make an insertion.  
 
@@ -115,6 +66,31 @@ prefixEditDistance::Set_Right_Delta(char  *A, char  *T,
     else {
       //fprintf(stderr, "RightDelta: mismatch        at %d max=%d last=%d\n", maxr - lastr - 1, maxr, lastr);
     }
+
+#else
+
+    int32   from = Edit_Array_Lazy[k][d].fromd;
+
+    //fprintf(stderr, "prefixEditDistance::Set_Right_Delta()-- k-1=%5d d=%5d from=%5d lastr=%5d - r=%5d s=%5d d=%5d\n",
+    //        k-1, d, from, lastr,
+    //        Edit_Array_Lazy[k-1][from].row, Edit_Array_Lazy[k-1][from].score, Edit_Array_Lazy[k-1][from].fromd);
+
+    if (from == d - 1) {
+      Delta_Stack[Right_Delta_Len++] = Edit_Array_Lazy[k-1][d-1].row - lastr - 1;
+      d--;
+      lastr = Edit_Array_Lazy[k-1][from].row;
+    }
+
+    else if (from == d + 1) {
+      Delta_Stack[Right_Delta_Len++] = lastr - Edit_Array_Lazy[k-1][d+1].row;
+      d++;
+      lastr = Edit_Array_Lazy[k-1][from].row;
+    }
+
+    else {
+      //fprintf(stderr, "LeftDelta:  mismatch        at %d max=%d last=%d\n", maxr - lastr - 1, maxr, lastr);
+    }
+
 #endif
 
   }
@@ -171,6 +147,21 @@ prefixEditDistance::forward(char    *A,   int32 Alen,
 
   int32  fromd = 0;
 
+#if 0
+  {
+    int32  nAlc = 0;
+    int32  nTlc = 0;
+
+    for (int32 a=0; a<Alen; a++)
+      if (islower(A[a]))  nAlc++;
+
+    for (int32 t=0; t<Tlen; t++)
+      if (islower(T[t]))  nTlc++;
+
+    fprintf(stderr, "LOWERCASE: A %d T %d\n", nAlc, nTlc);
+  }
+#endif
+
   //  Skip ahead over matches.  The original used to also skip if either sequence was N.
   while ((Row < Alen) && (isMatch(A[Row], T[Row]))) {
     Sco += matchScore(A[Row], T[Row]);  //PEDMATCH;
@@ -222,6 +213,8 @@ prefixEditDistance::forward(char    *A,   int32 Alen,
     Edit_Array_Lazy[ei-1][Right    ].init();
     Edit_Array_Lazy[ei-1][Right + 1].init();
 
+    //fprintf(stderr, "LOOP: left=%d <= right=%d\n", Left, Right);
+
     for (int32 d = Left;  d <= Right;  d++) {
 
 #ifndef USE_SCORE
@@ -251,19 +244,39 @@ prefixEditDistance::forward(char    *A,   int32 Alen,
       }
 #else
       //  A mismatch.
-      Row   = 1 + Edit_Array_Lazy[ei-1][d].row;
-      Dst   =     Edit_Array_Lazy[ei-1][d].dist  + 1;
-      Err   =     Edit_Array_Lazy[ei-1][d].errs  + 1;
-      Sco   =     Edit_Array_Lazy[ei-1][d].score + PEDMISMATCH;
-      fromd =     d;
+      {
+        int32  aPos         =  (1 + Edit_Array_Lazy[ei-1][d].row)     - 1;  //  -1 because we need to compare the base we are at,
+        int32  tPos         =  (1 + Edit_Array_Lazy[ei-1][d].row) + d - 1;  //  not the base we will be at after the mismatch
+        int32  mismatchCost = PEDMISMATCH;
+
+        if ((aPos >= 0) && (tPos >= 0)) {  //  If positive, we have a pointer into valid sequence.  If not, this mismatch
+          assert( aPos <= Alen);           //  doesn't make sense, and the row/score are set to bogus values.
+          assert( tPos <= Tlen);
+
+          assert(A[aPos] != T[tPos]);
+
+          mismatchCost = mismatchScore(A[aPos], T[tPos]);
+        }
+
+        Row   = 1 + Edit_Array_Lazy[ei-1][d].row;
+        Dst   =     Edit_Array_Lazy[ei-1][d].dist  + 1;
+        Err   =     Edit_Array_Lazy[ei-1][d].errs  + 1;
+        Sco   =     Edit_Array_Lazy[ei-1][d].score + mismatchCost;
+        fromd =     d;
+      }
 
       //  Insert a gap in A.  Check the other sequence to see if this is a zero-cost gap.  Note
       //  agreement with future value of Row and what is used in isMatch() below.
+
       {
-        int32  tPos     = 0 + Edit_Array_Lazy[ei-1][d-1].row + d;
-        assert(tPos <= Tlen);
+        int32  tPos    = 0 + Edit_Array_Lazy[ei-1][d-1].row + d;
+        assert( tPos <= Tlen);
+        assert(-tPos <= Tlen);
 
         int32  gapCost = isFreeGap( T[tPos] ) ? 0 : PEDGAP;
+
+        //if (gapCost == 0)
+        //  fprintf(stderr, "prefixEditDistance::forward()--  free A gap for aPos=%d tPos=%d t=%c/%d\n", tPos - d, tPos, T[tPos], T[tPos]);
 
         if (Edit_Array_Lazy[ei-1][d-1].score + gapCost > Sco) {
           Row   =     Edit_Array_Lazy[ei-1][d-1].row;
@@ -275,11 +288,17 @@ prefixEditDistance::forward(char    *A,   int32 Alen,
       }
 
       //  Insert a gap in T.
+      //  Testcase test-st-ts shows this works.
+
       {
-        int32  aPos = 1 + Edit_Array_Lazy[ei-1][d+1].row;
-        assert(aPos <= Alen);
+        int32  aPos    = 1 + Edit_Array_Lazy[ei-1][d+1].row;
+        assert( aPos <= Alen);
+        assert(-aPos <= Alen);
 
         int32  gapCost = isFreeGap( A[aPos] ) ? 0 : PEDGAP;
+
+        //if (gapCost == 0)
+        //  fprintf(stderr, "prefixEditDistance::forward()--  free T gap for aPos=%d tPos=%d a=%c/%d\n", aPos, aPos + d, A[aPos], A[aPos]);
 
         if (Edit_Array_Lazy[ei-1][d+1].score + gapCost > Sco) {
           Row   = 1 + Edit_Array_Lazy[ei-1][d+1].row;

@@ -16,7 +16,7 @@
 //  suffices to set this just slightly higher than the minimum, since it should never be picked as a
 //  maximum, and thus never see more than one insert.  Just to be safe, we give it lots of space.
 //
-#define PEDMATCH        1    //  Match from UPPERCASE to UPPERCASE
+#define PEDMATCH        8    //  Match from UPPERCASE to UPPERCASE
 #define PEDMISMATCH    -2    //  Mismatch
 #define PEDGAP         -4    //  Gap
 
@@ -66,7 +66,7 @@ public:
     dist  = -2;
     errs  =  0;
     score =  PEDMINSCORE;
-    fromd = INT32_MAX;
+    fromd =  INT32_MAX;
   };
 };
 
@@ -114,7 +114,8 @@ public:
     return(a == t);
   };
 
-  //  Returns the score of a match.
+  //  Returns the score of a match.  Pretty basic, was written to support 'a' == 'A' matches, but
+  //  the O(ND) algorithm cannot support that.
   //
   int32  matchScore(char a, char t) {
 
@@ -125,6 +126,24 @@ public:
             a, a, t, t);
     assert(isMatch(a, t) == true);
   };
+
+  //  Returns the score of a mismatch.  As with gaps, we can get free mismatches to lower case letters,
+  //  which should prevent alignments such as:
+  //
+  //  A: GtTTgaTGACCTGG  (the scoring should be 2 mismatches then 3 gaps)
+  //  B: GTTTGA---CCTGG
+  //
+  //  Favoring instead
+  //
+  //  A: GtTTgaTGACCTGG  (the scoring should be 2 free gaps, 1 gap and 2 matches)
+  //  B: GTTT---GACCTGG
+  //
+  int32  mismatchScore(char a, char t) {
+    if ((a == tolower[a]) || (t == tolower[t]))
+      return(PEDMISMATCH/2);
+
+    return(PEDMISMATCH);
+  }
 
 
   //  Returns true if the gap we'd be adding to T is zero cost:
