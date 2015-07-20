@@ -985,11 +985,19 @@ unitigConsensus::alignFragment(void) {
 
       traceLen = 0;
 
-      traceABgn = frankBgn + oaFull->abgn();  //  Used in the call to applyAlignment()
+      //  Set the begn points of the trace.  We probably need at least one of abgn and bbgn to be
+      //  zero.  If both are nonzero, then we have a branch in the alignment.
+      //
+      //  If traceABgn is negative, we insert gaps into A before it starts, but I'm not sure how that works.
+
+      assert((oaFull->abgn() == 0) ||
+             (oaFull->bbgn() == 0));
+
+      traceABgn = frankBgn + oaFull->abgn() - oaFull->bbgn();
       traceBBgn =            oaFull->bbgn();
 
       int32   apos = oaFull->abgn();
-      int32   bpos = 0;
+      int32   bpos = oaFull->bbgn();
 
       //  Overlap encoding:
       //    Add N matches or mismatches.  If negative, insert a base in the first sequence.  If
@@ -1183,13 +1191,18 @@ unitigConsensus::rejectAlignment(bool allowBhang,  //  Allow a positive bhang - 
 void
 unitigConsensus::applyAlignment(void) {
 
-  //if (showAlgorithm())
-  //  fprintf(stderr, "applyAlignment()-- aligned to frankenstein\n");
+  //fprintf(stderr, "traceLen %d traceABgn %d traceBBgn %d --", traceLen, traceABgn, traceBBgn);
+  //for (uint32 ii=0; ii<32; ii++)
+  //  fprintf(stderr, " %d", trace[ii]);
+  //fprintf(stderr, "\n");
 
   abacus->applyAlignment(abSeqID(),
                          frankensteinLen, frankensteinBof,
                          tiid,
                          traceABgn, traceBBgn, trace);
+
+  //  Doesn't show latest read added.
+  //abacus->getMultiAlign(multialign)->display(abacus, stderr);
 }
 
 
