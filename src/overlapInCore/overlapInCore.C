@@ -547,14 +547,14 @@ main(int argc, char **argv) {
   Bit_Equivalent['g'] = Bit_Equivalent['G'] = 2;
   Bit_Equivalent['t'] = Bit_Equivalent['T'] = 3;
 
-  for  (int i = 0;  i < 256;  i ++) {
-    char  ch = tolower ((char) i);
+  for (int32 i=0;  i<256;  i++)
+    Char_Is_Bad[i] = 1;
 
-    if  (ch == 'a' || ch == 'c' || ch == 'g' || ch == 't')
-      Char_Is_Bad[i] = 0;
-    else
-      Char_Is_Bad[i] = 1;
-  }
+  Char_Is_Bad['a'] = Char_Is_Bad['A'] = 0;
+  Char_Is_Bad['c'] = Char_Is_Bad['C'] = 0;
+  Char_Is_Bad['g'] = Char_Is_Bad['G'] = 0;
+  Char_Is_Bad['t'] = Char_Is_Bad['T'] = 0;
+
 
   fprintf(stderr, "\n");
   fprintf(stderr, "HASH_TABLE_SIZE         "F_U32"\n",     HASH_TABLE_SIZE);
