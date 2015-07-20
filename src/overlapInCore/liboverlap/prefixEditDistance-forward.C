@@ -14,9 +14,12 @@ void
 prefixEditDistance::Set_Right_Delta(char  *A, char  *T,
                                     int32  e, int32  d) {
 
-  Right_Delta_Len = 0;
+  Right_Errors      = e;
+  Right_Differences = e;
+  Right_Delta_Len   = 0;
 
   int32  lastr = Edit_Array_Lazy[e][d].row;
+  int32  lasts = Edit_Array_Lazy[e][d].score;
 
   //fprintf(stderr, "prefixEditDistance::Set_Right_Delta()-- e  =%5d d=%5d lastr=%5d\n",
   //        e, d, lastr);
@@ -91,6 +94,10 @@ prefixEditDistance::Set_Right_Delta(char  *A, char  *T,
       //fprintf(stderr, "LeftDelta:  mismatch        at %d max=%d last=%d\n", maxr - lastr - 1, maxr, lastr);
     }
 
+    if (Edit_Array_Lazy[k-1][from].score == lasts)
+      Right_Errors--;
+
+    lasts = Edit_Array_Lazy[k-1][from].score;
 #endif
 
   }
@@ -123,7 +130,7 @@ prefixEditDistance::Set_Right_Delta(char  *A, char  *T,
 //  of at least one string; otherwise, set it false to indicate
 //  a branch point.
 
-int32
+void
 prefixEditDistance::forward(char    *A,   int32 Alen,
                             char    *T,   int32 Tlen,
                             int32    Error_Limit,
@@ -138,7 +145,6 @@ prefixEditDistance::forward(char    *A,   int32 Alen,
   int32  Best_row    = 0;
   int32  Best_score  = 0;
 
-  Right_Delta_Len = 0;
 
   int32  Row = 0;
   int32  Dst = 0;
@@ -185,7 +191,12 @@ prefixEditDistance::forward(char    *A,   int32 Alen,
 #ifdef DEBUG
     fprintf(stderr, "prefixEditDistance::forward()- exact match\n");
 #endif
-    return(0);
+
+    Right_Errors      = 0;
+    Right_Differences = 0;
+    Right_Delta_Len   = 0;
+
+    return;
   }
 
   int32  Left  = 0;
@@ -222,7 +233,7 @@ prefixEditDistance::forward(char    *A,   int32 Alen,
       Row   = 1 + Edit_Array_Lazy[ei-1][d].row;
       Dst   =     Edit_Array_Lazy[ei-1][d].dist  + 1;
       Err   =     Edit_Array_Lazy[ei-1][d].errs  + 1;
-      Sco   =     Edit_Array_Lazy[ei-1][d].score + PEDMISMATCH;
+      Sco   =     Row * Branch_Match_Value - ei;
       fromd =     d;
 
       //  Insert a gap in A.
@@ -230,7 +241,7 @@ prefixEditDistance::forward(char    *A,   int32 Alen,
         Row   = 0 + Edit_Array_Lazy[ei-1][d-1].row;  //  +0 because row is the index into A, and the A base doesn't change.
         Dst   =     Edit_Array_Lazy[ei-1][d-1].dist  + 0;
         Err   =     Edit_Array_Lazy[ei-1][d-1].errs  + 0;
-        Sco   =     Edit_Array_Lazy[ei-1][d-1].score + PEDGAP;
+        Sco   =     Row * Branch_Match_Value - ei;
         fromd =     d-1;
       }
 
@@ -239,7 +250,7 @@ prefixEditDistance::forward(char    *A,   int32 Alen,
         Row   = 1 + Edit_Array_Lazy[ei-1][d+1].row;  //  +1 because we ate up a base in A.
         Dst   =     Edit_Array_Lazy[ei-1][d+1].dist  + 1;
         Err   =     Edit_Array_Lazy[ei-1][d+1].errs  + 1;
-        Sco   =     Edit_Array_Lazy[ei-1][d+1].score + PEDGAP;
+        Sco   =     Row * Branch_Match_Value - ei;
         fromd =     d+1;
       }
 #else
@@ -331,8 +342,11 @@ prefixEditDistance::forward(char    *A,   int32 Alen,
       if (Row == Alen || Row + d == Tlen) {
 
         //  Check for branch point here caused by uneven distribution of errors
-        //double Score = Row * Branch_Match_Value - e;
+#ifndef USE_SCORE
+        double Score = Row * Branch_Match_Value - ei;
+#else
         int32  Score = Sco;
+#endif
 
         int32  Tail_Len = Row - Max_Score_Len;
         bool   abort    = false;
@@ -375,7 +389,7 @@ prefixEditDistance::forward(char    *A,   int32 Alen,
 #ifdef DEBUG
           fprintf(stderr, "prefixEditDistance::forward()- ABORT alignment\n");
 #endif
-          return(Max_Score_Best_e);
+          return;  //return(Max_Score_Best_e);
         }
 
         // Force last error to be mismatch rather than insertion
@@ -398,18 +412,13 @@ prefixEditDistance::forward(char    *A,   int32 Alen,
 #ifdef DEBUG
         fprintf(stderr, "prefixEditDistance::forward()- END alignment\n");
 #endif
-        return(ei);
+        return;  //return(ei);
       }
     }  //  Over all diagonals.
 
     //  Reset the band
     //
     //  The .dist used to be .row.
-
-#ifdef DEBUG
-    //fprintf(stderr, "prefixEditDistance::forward()- Left=%d Right=%d e=%d row=%d limit=%d\n",
-    //        Left, Right, Edit_Array_Lazy[ei][Left].errs, Edit_Array_Lazy[ei][Left].dist, Edit_Match_Limit[ Edit_Array_Lazy[ei][Left].errs ]);
-#endif
 
     while  ((Left <= Right) && (Left < 0) && (Edit_Array_Lazy[ei][Left].dist < Edit_Match_Limit[ Edit_Array_Lazy[ei][Left].errs ]))
       Left++;
@@ -420,11 +429,6 @@ prefixEditDistance::forward(char    *A,   int32 Alen,
 
     if (Left > Right)
       break;
-
-#ifdef DEBUG
-    //fprintf(stderr, "prefixEditDistance::forward()- Left=%d Right=%d e=%d row=%d limit=%d\n",
-    //        Left, Right, Edit_Array_Lazy[ei][Left].errs, Edit_Array_Lazy[ei][Left].dist, Edit_Match_Limit[ Edit_Array_Lazy[ei][Left].errs ]);
-#endif
 
     while  ((Right > 0) && (Edit_Array_Lazy[ei][Right].dist + Right < Edit_Match_Limit[ Edit_Array_Lazy[ei][Right].errs ]))
       Right--;
@@ -444,10 +448,10 @@ prefixEditDistance::forward(char    *A,   int32 Alen,
         Best_score  = Edit_Array_Lazy[ei][d].score;
       }
 
-    if (Best_row * Branch_Match_Value - e > Max_Score) {
+    if (Best_row * Branch_Match_Value - ei > Max_Score) {
       Max_Score_Best_d = Best_d;
       Max_Score_Best_e = Best_e;
-      Max_Score        = Best_row * Branch_Match_Value - e;
+      Max_Score        = Best_row * Branch_Match_Value - ei;
       Max_Score_Len    = Best_row;
     }
 #else
@@ -480,5 +484,5 @@ prefixEditDistance::forward(char    *A,   int32 Alen,
 
   Match_To_End = false;
 
-  return(Max_Score_Best_e);
+  return;  //return(Max_Score_Best_e);
 }

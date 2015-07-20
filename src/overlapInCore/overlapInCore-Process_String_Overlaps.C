@@ -360,6 +360,7 @@ Process_Matches (int * Start,
   int  t_len;
   int  Done_S_Left, Done_S_Right;
   int  Errors;
+  int  Differences;
 
   Done_S_Left = Done_S_Right = FALSE;
   t_len = t_info.length;
@@ -433,7 +434,7 @@ Process_Matches (int * Start,
       //        Longest_Match->Offset,
       //        Longest_Match->Start - Longest_Match->Offset,
       //        S_ID, S_Lo, S_Hi, T_ID, T_Lo, T_Hi);
-      Kind_Of_Olap = WA->editDist->Extend_Alignment(Longest_Match, S, S_Len, T, t_len, S_Lo, S_Hi, T_Lo, T_Hi, Errors);
+      Kind_Of_Olap = WA->editDist->Extend_Alignment(Longest_Match, S, S_Len, T, t_len, S_Lo, S_Hi, T_Lo, T_Hi, Errors, Differences);
 
 
       if  (Kind_Of_Olap == pedDovetail || G.Doing_Partial_Overlaps) {

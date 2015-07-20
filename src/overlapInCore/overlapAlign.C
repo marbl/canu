@@ -11,7 +11,6 @@
 #undef  SEED_NON_OVERLAPPING    //  Allow mismatches in seeds
 #define SEED_OVERLAPPING
 
-
 overlapAlign::overlapAlign(pedAlignType   alignType,
                            double         maxErate,
                            int32          merSize) {
@@ -568,13 +567,15 @@ overlapAlign::processHits(void) {
     int32  aLo=0, aHi=0;
     int32  bLo=0, bHi=0;
     int32  errors = 0;
+    int32  differences = 0;
 
     pedOverlapType  olapType = _editDist->Extend_Alignment(&match,         //  Initial exact match, relative to start of string
                                                            _aStr, _aLen,
                                                            _bStr, _bLen,
                                                            aLo,   aHi,    //  Output: Regions which the match extends
                                                            bLo,   bHi,
-                                                           errors);
+                                                           errors,
+                                                           differences);
 
     aHi++;  //  Add one to the end point because Extend_Alignment returns the base-based coordinate.
     bHi++;

@@ -45,7 +45,8 @@ prefixEditDistance::Extend_Alignment(Match_Node_t *Match,
                                      char         *T,     int32   T_Len,
                                      int32        &S_Lo,  int32   &S_Hi,
                                      int32        &T_Lo,  int32   &T_Hi,
-                                     int32        &Errors) {
+                                     int32        &Errors,
+                                     int32        &Differences) {
   int32  Right_Errors = 0;
   int32  Left_Errors  = 0;
   int32  Leftover     = 0;
@@ -93,11 +94,11 @@ prefixEditDistance::Extend_Alignment(Match_Node_t *Match,
 #ifdef DEBUG
     fprintf(stderr, "prefixEditDistance::Extend_Alignment()--  FORWARD S T\n");
 #endif
-    Right_Errors = forward(S + S_Right_Begin, S_Right_Len,
-                           T + T_Right_Begin, T_Right_Len,
-                           Error_Limit,
-                           S_Hi, T_Hi,
-                           rMatchToEnd);
+    forward(S + S_Right_Begin, S_Right_Len,
+            T + T_Right_Begin, T_Right_Len,
+            Error_Limit,
+            S_Hi, T_Hi,
+            rMatchToEnd);
     for (int32 i=0; i<Right_Delta_Len; i++)
       Right_Delta[i] *= -1;
   }
@@ -106,11 +107,11 @@ prefixEditDistance::Extend_Alignment(Match_Node_t *Match,
 #ifdef DEBUG
     fprintf(stderr, "prefixEditDistance::Extend_Alignment()--  FORWARD T S\n");
 #endif
-    Right_Errors = forward(T + T_Right_Begin, T_Right_Len,
-                           S + S_Right_Begin, S_Right_Len,
-                           Error_Limit,
-                           T_Hi, S_Hi,
-                           rMatchToEnd);
+    forward(T + T_Right_Begin, T_Right_Len,
+            S + S_Right_Begin, S_Right_Len,
+            Error_Limit,
+            T_Hi, S_Hi,
+            rMatchToEnd);
     //for (int32 i=0; i<Right_Delta_Len; i++)
     //  Right_Delta[i] *= -1;
   }
@@ -130,12 +131,12 @@ prefixEditDistance::Extend_Alignment(Match_Node_t *Match,
 #ifdef DEBUG
     fprintf(stderr, "prefixEditDistance::Extend_Alignment()--  REVERSE S T\n");
 #endif
-    Left_Errors = reverse(S + S_Left_Begin, S_Left_Begin + 1,
-                          T + T_Left_Begin, T_Left_Begin + 1,
-                          Error_Limit - Right_Errors,
-                          S_Lo, T_Lo,
-                          Leftover,
-                          lMatchToEnd);
+    reverse(S + S_Left_Begin, S_Left_Begin + 1,
+            T + T_Left_Begin, T_Left_Begin + 1,
+            Error_Limit - Right_Errors,
+            S_Lo, T_Lo,
+            Leftover,
+            lMatchToEnd);
     //for (int32 i=0; i<Left_Delta_Len; i++)
     //  Left_Delta[i] *= -1;
   }
@@ -144,12 +145,12 @@ prefixEditDistance::Extend_Alignment(Match_Node_t *Match,
 #ifdef DEBUG
     fprintf(stderr, "prefixEditDistance::Extend_Alignment()--  REVERSE T S\n");
 #endif
-    Left_Errors = reverse(T + T_Left_Begin,  T_Left_Begin + 1,
-                          S + S_Left_Begin,  S_Left_Begin + 1,
-                          Error_Limit - Right_Errors,
-                          T_Lo, S_Lo,
-                          Leftover,
-                          lMatchToEnd);
+    reverse(T + T_Left_Begin,  T_Left_Begin + 1,
+            S + S_Left_Begin,  S_Left_Begin + 1,
+            Error_Limit - Right_Errors,
+            T_Lo, S_Lo,
+            Leftover,
+            lMatchToEnd);
     for (int32 i=0; i<Left_Delta_Len; i++)
       Left_Delta[i] *= -1;
   }
@@ -167,11 +168,16 @@ prefixEditDistance::Extend_Alignment(Match_Node_t *Match,
 
   //  Check the result.  Just checking for overflow, not quality.
 
-  Errors = Left_Errors + Right_Errors;
+  Errors      = Left_Errors      + Right_Errors;
+  Differences = Left_Differences + Right_Differences;
 
   assert(Right_Errors <= AS_MAX_READLEN);
   assert(Left_Errors  <= AS_MAX_READLEN);
   assert(Errors       <= AS_MAX_READLEN);
+
+  assert(Right_Differences <= AS_MAX_READLEN);
+  assert(Left_Differences  <= AS_MAX_READLEN);
+  assert(Differences       <= AS_MAX_READLEN);
 
   //  Merge the deltas.
 

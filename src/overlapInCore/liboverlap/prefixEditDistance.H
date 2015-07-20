@@ -22,7 +22,7 @@
 
 #define PEDMINSCORE   (INT32_MIN - PEDGAP * 32768)
 
-#undef  USE_SCORE
+#undef  USE_SCORE  //  Doesn't work; -reverse and -forward diverged too much.  ".dist used to be .row"
 #define USE_SCORE
 
 enum pedAlignType {
@@ -77,13 +77,13 @@ public:
   prefixEditDistance(pedAlignType alignType_, double maxErate_);
   ~prefixEditDistance();
 
-
+private:
   void   Allocate_More_Edit_Space(void);
 
   void   Set_Right_Delta(char  *A, char  *T,
                          int32  e, int32  d);
 
-  int32  forward(char    *A,   int32 m,
+  void   forward(char    *A,   int32 m,
                  char    *T,   int32 n,
                  int32    Error_Limit,
                  int32   &A_End,
@@ -97,8 +97,7 @@ public:
                         int32 &t_end,
                         int32  t_len);
 
-
-  int32  reverse(char    *A,   int32 m,
+  void   reverse(char    *A,   int32 m,
                  char    *T,   int32 n,
                  int32    Error_Limit,
                  int32   &A_End,
@@ -149,30 +148,25 @@ public:
   //  Returns true if the gap we'd be adding to T is zero cost:
   //    lower case 'a' is a don't case position in sequence A
   //
-#warning we still get NUL bytes in isFreeGap()
   bool   isFreeGap(char a) {
-    if (a == 0) {
-      fprintf(stderr, "WARNING: isFreeGap hit 0.\n");
+    if (a == 0)
       return(false);
-    }
 
     return(a == tolower[a]);
   }
 
-
+public:
   pedOverlapType
   Extend_Alignment(Match_Node_t *Match,
                    char         *S,     int32   S_Len,
                    char          *T,     int32   T_Len,
                    int32         &S_Lo,  int32   &S_Hi,
                    int32         &T_Lo,  int32   &T_Hi,
-                   int32         &Errors);
+                   int32         &Errors,
+                   int32         &Differences);
 
 public:
-  //  The four below were global #defines, two depended on the error rate which is now local.
-
-  //  Most errors in any edit distance computation
-  //uint32                  MAX_ERRORS;
+  //  The three below were global #defines, two depended on the error rate which is now local.
 
   //  The number of errors that are ignored in setting probability bound for terminating alignment
   //  extensions in edit distance calculations
@@ -190,9 +184,13 @@ public:
 
   uint64                  allocated;
 
+  int32                   Left_Errors;       //  Differences - freeGaps
+  int32                   Left_Differences;  //  Differences
   int32                   Left_Delta_Len;
   int32                  *Left_Delta;
 
+  int32                   Right_Errors;
+  int32                   Right_Differences;
   int32                   Right_Delta_Len;
   int32                  *Right_Delta;
 

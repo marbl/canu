@@ -22,9 +22,12 @@ prefixEditDistance::Set_Left_Delta(char  *A, char *T,
                                    int32 &t_end,
                                    int32  t_len) {
 
-  Left_Delta_Len = 0;
+  Left_Errors      = e;
+  Left_Differences = e;
+  Left_Delta_Len   = 0;
 
   int32  lastr = Edit_Array_Lazy[e][d].row;
+  int32  lasts = Edit_Array_Lazy[e][d].score;
 
   //fprintf(stderr, "prefixEditDistance::Set_Left_Delta()-- e  =%5d d=%5d lastr=%5d fromd=%5d\n",
   //        e, d, lastr);
@@ -96,6 +99,10 @@ prefixEditDistance::Set_Left_Delta(char  *A, char *T,
       //fprintf(stderr, "LeftDelta:  mismatch        at %d max=%d last=%d\n", maxr - lastr - 1, maxr, lastr);
     }
 
+    if (Edit_Array_Lazy[k-1][from].score == lasts)
+      Left_Errors--;
+
+    lasts = Edit_Array_Lazy[k-1][from].score;
 #endif
 
   }
@@ -142,7 +149,7 @@ prefixEditDistance::Set_Left_Delta(char  *A, char *T,
 //  of at least one string; otherwise, set it false to indicate
 //  a branch point.
 
-int32
+void
 prefixEditDistance::reverse(char    *A,   int32 Alen,   //  first sequence and length
                             char    *T,   int32 Tlen,   //  second sequence and length
                             int32    Error_Limit,
@@ -158,7 +165,6 @@ prefixEditDistance::reverse(char    *A,   int32 Alen,   //  first sequence and l
   int32  Best_row    = 0;
   int32  Best_score  = 0;
 
-  Left_Delta_Len = 0;
 
   int32  Row = 0;
   int32  Dst = 0;
@@ -205,7 +211,12 @@ prefixEditDistance::reverse(char    *A,   int32 Alen,   //  first sequence and l
 #ifdef DEBUG
     fprintf(stderr, "prefixEditDistance::reverse()-- exact match\n");
 #endif
-    return(0);
+
+    Left_Errors      = 0;
+    Left_Differences = 0;
+    Left_Delta_Len   = 0;
+
+    return;
   }
 
   int32  Left  = 0;
@@ -240,7 +251,7 @@ prefixEditDistance::reverse(char    *A,   int32 Alen,   //  first sequence and l
       Row   = 1 + Edit_Array_Lazy[ei-1][d].row;
       Dst   =     Edit_Array_Lazy[ei-1][d].dist  + 1;
       Err   =     Edit_Array_Lazy[ei-1][d].errs  + 1;
-      Sco   =     Edit_Array_Lazy[ei-1][d].score + PEDMISMATCH;
+      Sco   =     Row * Branch_Match_Value - ei;
       fromd =     d;
 
       //  Insert a gap in A.
@@ -248,7 +259,7 @@ prefixEditDistance::reverse(char    *A,   int32 Alen,   //  first sequence and l
         Row   = 0 + Edit_Array_Lazy[ei-1][d-1].row;  //  +0 because row is the index into A, and the A base doesn't change.
         Dst   =     Edit_Array_Lazy[ei-1][d-1].dist  + 0;
         Err   =     Edit_Array_Lazy[ei-1][d-1].errs  + 0;
-        Sco   =     Edit_Array_Lazy[ei-1][d-1].score + PEDGAP;
+        Sco   =     Row * Branch_Match_Value - ei;
         fromd =     d-1;
       }
 
@@ -257,7 +268,7 @@ prefixEditDistance::reverse(char    *A,   int32 Alen,   //  first sequence and l
         Row   = 1 + Edit_Array_Lazy[ei-1][d+1].row;  //  +1 because we ate up a base in A.
         Dst   =     Edit_Array_Lazy[ei-1][d+1].dist  + 1;
         Err   =     Edit_Array_Lazy[ei-1][d+1].errs  + 1;
-        Sco   =     Edit_Array_Lazy[ei-1][d+1].score + PEDGAP;
+        Sco   =     Row * Branch_Match_Value - ei;
         fromd =     d+1;
       }
 #else
@@ -347,8 +358,11 @@ prefixEditDistance::reverse(char    *A,   int32 Alen,   //  first sequence and l
       if (Row == Alen || Row + d == Tlen) {
 
         //  Check for branch point here caused by uneven distribution of errors
-        //double Score = Row * Branch_Match_Value - e;
+#ifndef USE_SCORE
+        double Score = Row * Branch_Match_Value - ei;
+#else
         int32  Score = Sco;
+#endif
 
         int32  Tail_Len = Row - Max_Score_Len;
         bool   abort    = false;
@@ -391,7 +405,7 @@ prefixEditDistance::reverse(char    *A,   int32 Alen,   //  first sequence and l
 #ifdef DEBUG
           fprintf(stderr, "prefixEditDistance::reverse()-- ABORT alignment\n");
 #endif
-          return(Max_Score_Best_e);
+          return;  //return(Max_Score_Best_e);
         }
 
         A_End = - Row;           // One past last align position
@@ -404,18 +418,13 @@ prefixEditDistance::reverse(char    *A,   int32 Alen,   //  first sequence and l
 #ifdef DEBUG
         fprintf(stderr, "prefixEditDistance::reverse()-- END alignment\n");
 #endif
-        return(ei);
+        return;  //return(ei);
       }
     }  //  Over all diagonals.
 
     //  Reset the band
     //
     //  The .dist used to be .row.
-
-#ifdef DEBUG
-    //fprintf(stderr, "prefixEditDistance::reverse()-- Left=%d Right=%d e=%d row=%d limit=%d\n",
-    //        Left, Right, Edit_Array_Lazy[ei][Left].errs, Edit_Array_Lazy[ei][Left].dist, Edit_Match_Limit[ Edit_Array_Lazy[ei][Left].errs ]);
-#endif
 
     while  ((Left <= Right) && (Left < 0) && (Edit_Array_Lazy[ei][Left].dist < Edit_Match_Limit[ Edit_Array_Lazy[ei][Left].errs ]))
       Left++;
@@ -426,11 +435,6 @@ prefixEditDistance::reverse(char    *A,   int32 Alen,   //  first sequence and l
 
     if (Left > Right)
       break;
-
-#ifdef DEBUG
-    //fprintf(stderr, "prefixEditDistance::reverse()-- Left=%d Right=%d e=%d row=%d limit=%d\n",
-    //        Left, Right, Edit_Array_Lazy[ei][Right].errs, Edit_Array_Lazy[ei][Left].dist, Edit_Match_Limit[ Edit_Array_Lazy[ei][Right].errs ]);
-#endif
 
     while  ((Right > 0) && (Edit_Array_Lazy[ei][Right].dist + Right < Edit_Match_Limit[ Edit_Array_Lazy[ei][Right].errs ]))
       Right--;
@@ -450,10 +454,10 @@ prefixEditDistance::reverse(char    *A,   int32 Alen,   //  first sequence and l
         Best_score  = Edit_Array_Lazy[ei][d].score;
       }
 
-    if (Best_row * Branch_Match_Value - e > Max_Score) {
+    if (Best_row * Branch_Match_Value - ei > Max_Score) {
       Max_Score_Best_d = Best_d;
       Max_Score_Best_e = Best_e;
-      Max_Score        = Best_row * Branch_Match_Value - e;
+      Max_Score        = Best_row * Branch_Match_Value - ei;
       Max_Score_Len    = Best_row;
     }
 #else
@@ -486,5 +490,5 @@ prefixEditDistance::reverse(char    *A,   int32 Alen,   //  first sequence and l
 
   Match_To_End = false;
 
-  return(Max_Score_Best_e);
+  return;  //return(Max_Score_Best_e);
 }
