@@ -8,7 +8,11 @@ const char *mainid = "$Id:  $";
 #include "gkStore.H"
 #include "ovStore.H"
 
+#define BUSTED
+
+#ifndef BUSTED
 #include "overlapAlign.H"
+#endif
 #include "overlapReadCache.H"
 
 #include "AS_UTL_reverseComplement.H"
@@ -49,13 +53,17 @@ public:
     invertOverlaps  = false;
 
     gkpStore        = NULL;
+#ifndef BUSTED
     align           = NULL;
+#endif
     //analyze         = NULL;
     overlapsLen     = 0;
     overlaps        = NULL;
   };
   ~workSpace() {
+#ifndef BUSTED
     delete align;
+#endif
     //delete analyze;
   };
 
@@ -67,7 +75,9 @@ public:
 
   gkStore               *gkpStore;
 
+#ifndef BUSTED
   overlapAlign           *align;
+#endif
   //analyzeAlignment       *analyze;
 
   uint32                 overlapsLen;       //  Not used.
@@ -120,8 +130,10 @@ recomputeOverlaps(void *ptr) {
 
   //  Lazy allocation of the prefixEditDistance structure; it's slow.
 
+#ifndef BUSTED
   if (WA->align == NULL)
     WA->align = new overlapAlign(WA->partialOverlaps ? pedLocal : pedOverlap, WA->maxErate, 15);
+#endif
 
   //if (WA->analyze == NULL)
   //  WA->analyze = new analyzeAlignment();
@@ -162,6 +174,7 @@ recomputeOverlaps(void *ptr) {
 
       //  Compute the overlap
 
+#ifndef BUSTED
       WA->align->initialize(aID, rcache->getRead(aID), rcache->getLength(aID), ovl->a_bgn(), ovl->a_end(),
                             bID, rcache->getRead(bID), rcache->getLength(bID), ovl->b_bgn(), ovl->b_end(),
                             ovl->flipped());
@@ -211,6 +224,7 @@ recomputeOverlaps(void *ptr) {
         ovl->dat.ovl.forDUP = false;
         ovl->dat.ovl.forUTG = false;
       }
+#endif
     }
 
     if (0) {
@@ -376,7 +390,9 @@ main(int argc, char **argv) {
     WA[tt].invertOverlaps   = invertOverlaps;
 
     WA[tt].gkpStore         = gkpStore;
+#ifndef BUSTED
     WA[tt].align            = NULL;
+#endif
     WA[tt].overlaps         = NULL;
   }
 

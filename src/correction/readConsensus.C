@@ -11,7 +11,7 @@ const char *mainid = "$Id:  $";
 
 #include "overlapReadCache.H"
 
-#include "overlapAlign.H"
+#include "NDalign.H"
 #include "analyzeAlignment.H"
 
 #include "Display_Alignment.H"
@@ -140,7 +140,7 @@ public:
     nPassed  = 0;
     nFailed  = 0;
 
-    align    = new overlapAlign(pedGlobal, g->maxErate, 15);  //  true = partial aligns, maxErate, seedSize
+    align    = new NDalign(pedGlobal, g->maxErate, 15);  //  true = partial aligns, maxErate, seedSize
     analyze  = new analyzeAlignment();
   };
   ~consensusThreadData() {
@@ -155,7 +155,7 @@ public:
 
   char                    bRev[AS_MAX_READLEN];
 
-  overlapAlign           *align;
+  NDalign                *align;
   analyzeAlignment       *analyze;
 };
 

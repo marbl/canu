@@ -10,7 +10,7 @@ static const char *rcsid_MULTIALIGNUNITIG_H = "$Id:  $";
 #include "abAbacus.H"
 
 class ALNoverlap;
-class overlapAlign;
+class NDalign;
 
 class unitigConsensus {
 public:
@@ -88,8 +88,8 @@ private:
   double          errorRate;
   double          errorRateMax;
 
-  overlapAlign   *oaPartial;
-  overlapAlign   *oaFull;
+  NDalign        *oaPartial;
+  NDalign        *oaFull;
 };
 
 

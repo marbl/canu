@@ -10,7 +10,7 @@ endif
 TARGET   := readConsensus
 SOURCES  := readConsensus.C
 
-SRC_INCDIRS  := .. ../AS_UTL ../stores ../overlapInCore ../overlapInCore/liboverlap ../overlapErrorAdjustment
+SRC_INCDIRS  := .. ../AS_UTL ../stores ../overlapInCore ../utgcns/libNDalign ../overlapErrorAdjustment
 
 TGT_LDFLAGS := -L${TARGET_DIR}
 TGT_LDLIBS  := -lCA

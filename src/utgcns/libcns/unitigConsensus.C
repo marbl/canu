@@ -24,7 +24,7 @@ static char *rcsid = "$Id$";
 #include "unitigConsensus.H"
 #include "aligners.H"
 
-#include "overlapAlign.H"
+#include "NDalign.H"
 
 #include <set>
 
@@ -38,8 +38,8 @@ using namespace std;
 //  Define this.  Use the faster aligner from overlapper.  If not defined,
 //  a full O(n^2) DP is computed.
 //
-#undef  WITH_OVERLAPALIGN
-#define WITH_OVERLAPALIGN
+#undef  WITH_NDALIGN
+#define WITH_NDALIGN
 
 
 
@@ -578,13 +578,13 @@ unitigConsensus::computePositionFromAlignment(void) {
   bool         foundAlign  = false;
 
   //
-  //  Try overlapAlign.
+  //  Try NDalign.
   //
 
   if (foundAlign == false) {
 
     if (oaPartial == false)
-      oaPartial = new overlapAlign(pedLocal, errorRate, 17);  //  partial allowed!
+      oaPartial = new NDalign(pedLocal, errorRate, 17);  //  partial allowed!
 
     oaPartial->initialize(0, frankenstein, frankensteinLen, 0, frankensteinLen,
                           1, fragment,     fragmentLen,     0, fragmentLen,
@@ -597,7 +597,7 @@ unitigConsensus::computePositionFromAlignment(void) {
         (oaPartial->processHits()                  == true)) {
 
       cnspos[tiid].set(oaPartial->abgn(), oaPartial->aend());
-      fprintf(stderr, "cnspos[%3d] mid %d %d,%d (from overlapAlign)\n", tiid, utgpos[tiid].ident(), cnspos[tiid].min(), cnspos[tiid].max());
+      fprintf(stderr, "cnspos[%3d] mid %d %d,%d (from NDalign)\n", tiid, utgpos[tiid].ident(), cnspos[tiid].min(), cnspos[tiid].max());
 
       foundAlign = true;
     }
@@ -934,10 +934,10 @@ unitigConsensus::alignFragment(void) {
     fprintf(stderr, "alignFragment()-- ERROR -- negative endTrim %d\n", endTrim);
 
   //
-  //  Try overlapAlign
+  //  Try NDalign
   //
 
-#ifdef WITH_OVERLAPALIGN
+#ifdef WITH_NDALIGN
   if ((endTrim <  bSEQ->length()) &&
       (0       <= endTrim)) {
     int32 fragBgn      = 0;
@@ -949,7 +949,7 @@ unitigConsensus::alignFragment(void) {
     //  Create new aligner object.  'Global' in this case just means to not stop early, not a true global alignment.
 
     if (oaFull == false)
-      oaFull = new overlapAlign(pedGlobal, errorRate, 17);
+      oaFull = new NDalign(pedGlobal, errorRate, 17);
 
     oaFull->initialize(0, aseq, frankEnd - frankBgn, 0, frankEnd - frankBgn,
                        1, bseq, fragEnd  - fragBgn,  0, fragEnd  - fragBgn,
