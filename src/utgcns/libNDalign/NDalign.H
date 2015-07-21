@@ -5,7 +5,7 @@
 
 #include "ovStore.H"
 
-#include "prefixEditDistance.H"
+#include "NDalgorithm.H"
 
 #include "AS_UTL_reverseComplement.H"
 
@@ -187,7 +187,7 @@ private:
 
   //  Computed stuff, for each alignment.
 
-  prefixEditDistance *_editDist;
+  NDalgorithm        *_editDist;
 
   int32               _minDiag;
   int32               _maxDiag;

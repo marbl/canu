@@ -127,61 +127,11 @@ SOURCES  := AS_global.C \
             \
             utgcns/libNDalign/Binomial_Bound.C \
             utgcns/libNDalign/Display_Alignment.C \
-            utgcns/libNDalign/prefixEditDistance.C \
-            utgcns/libNDalign/prefixEditDistance-allocateMoreSpace.C \
-            utgcns/libNDalign/prefixEditDistance-extend.C \
-            utgcns/libNDalign/prefixEditDistance-forward.C \
-            utgcns/libNDalign/prefixEditDistance-reverse.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-5000.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-4900.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-4800.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-4700.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-4600.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-4500.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-4400.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-4300.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-4200.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-4100.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-4000.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-3900.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-3800.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-3700.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-3600.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-3500.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-3400.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-3300.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-3200.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-3100.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-3000.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-2900.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-2800.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-2700.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-2600.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-2500.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-2400.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-2300.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-2200.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-2100.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-2000.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-1900.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-1800.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-1700.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-1600.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-1500.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-1400.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-1300.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-1200.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-1100.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-1000.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-0900.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-0800.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-0700.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-0600.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-0500.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-0400.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-0300.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-0200.C \
-            utgcns/libNDalign/prefixEditDistance-matchLimit-0100.C \
+            utgcns/libNDalign/NDalgorithm.C \
+            utgcns/libNDalign/NDalgorithm-allocateMoreSpace.C \
+            utgcns/libNDalign/NDalgorithm-extend.C \
+            utgcns/libNDalign/NDalgorithm-forward.C \
+            utgcns/libNDalign/NDalgorithm-reverse.C \
             \
             utgcns/libcns/abAbacus-addRead.C \
             utgcns/libcns/abAbacus-applyAlignment.C \
@@ -205,8 +155,7 @@ SOURCES  := AS_global.C \
 #            AS_UTL/testVar.C
 #            AS_UTL/memoryMappedFileTest.C
 
-#  The last two are for aligners/overlap.C
-SRC_INCDIRS  := . AS_UTL stores alignment utgcns/libNDalign utgcns/libcns   meryl/libleaff overlapInCore
+SRC_INCDIRS  := . AS_UTL stores alignment utgcns/libNDalign utgcns/libcns   meryl/libleaff overlapInCore overlapInCore/liboverlap
 
 #  Cannot be the 'main.mk' from subdirectories, as that redefines libCA.a to
 #  update just those objects.  Instead, this must list each binary indifidually.
@@ -235,8 +184,6 @@ SUBMAKEFILES := stores/gatekeeperCreate.mk \
                 overlapInCore/overlapPair.mk \
                 \
                 overlapInCore/liboverlap/prefixEditDistance-matchLimitGenerate.mk \
-                \
-                utgcns/libNDalign/prefixEditDistance-matchLimitGenerate.mk \
                 \
                 mhap/mhap.mk \
                 mhap/mhapConvert.mk \

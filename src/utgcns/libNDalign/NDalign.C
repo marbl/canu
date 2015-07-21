@@ -34,7 +34,7 @@ NDalign::NDalign(pedAlignType   alignType,
   _bRevMax  = 0;
   _bRev     = NULL;
 
-  _editDist = new prefixEditDistance(_alignType, _maxErate);
+  _editDist = new NDalgorithm(_alignType, _maxErate);
 
   _minDiag  = 0;
   _maxDiag  = 0;
