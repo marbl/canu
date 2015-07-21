@@ -111,64 +111,32 @@ Edit_Match_Limit_Data[50] = {
 };
 
 
-const char *
-toString(pedAlignType at) {
-  const char *ret = NULL;
-
-  switch (at) {
-    case pedOverlap:  ret = "full-overlap";      break;
-    case pedLocal:    ret = "local-overlap";     break;
-    case pedGlobal:   ret = "global-alignment";  break;
-    default:
-      assert(0);
-      break;
-  }
-
-  return(ret);
-}
 
 
-const char *
-toString(pedOverlapType ot) {
-  const char *ret = NULL;
-
-  switch (ot) {
-    case pedBothBranch:   ret = "both-branch";       break;
-    case pedLeftBranch:   ret = "left-branch";       break;
-    case pedRightBranch:  ret = "right-branch";      break;
-    case pedDovetail:     ret = "dovetail-overlap";  break;
-    default:
-      assert(0);
-      break;
-  }
-
-  return(ret);
-}
-
-
-prefixEditDistance::prefixEditDistance(pedAlignType alignType_, double maxErate_) {
-  alignType            = alignType_;
+prefixEditDistance::prefixEditDistance(bool doingPartialOverlaps_, double maxErate_) {
   maxErate             = maxErate_;
+  doingPartialOverlaps = doingPartialOverlaps_;
 
+  MAX_ERRORS             = (1 + (int)ceil(maxErate * AS_MAX_READLEN));
   ERRORS_FOR_FREE        = 1;
   MIN_BRANCH_END_DIST    = 20;
   MIN_BRANCH_TAIL_SLOPE  = ((maxErate > 0.06) ? 1.0 : 0.20);
 
-  Left_Delta  = new int32  [AS_MAX_READLEN];
-  Right_Delta = new int32  [AS_MAX_READLEN];
-  Delta_Stack = new int32  [AS_MAX_READLEN];
+  Left_Delta  = new int  [MAX_ERRORS];
+  Right_Delta = new int  [MAX_ERRORS];
 
-  allocated += 3 * AS_MAX_READLEN * sizeof(int32);
+  allocated += 3 * MAX_ERRORS * sizeof(int);
 
-  Edit_Space_Max  = (alignType == pedGlobal) ? (AS_MAX_READLEN) : (1 + (int32)ceil(maxErate * AS_MAX_READLEN));
-  Edit_Space_Lazy = new pedEdit *  [Edit_Space_Max];
-  Edit_Array_Lazy = new pedEdit *  [Edit_Space_Max];
+  Delta_Stack = new int  [MAX_ERRORS];
 
-  memset(Edit_Space_Lazy, 0, sizeof(pedEdit *) * Edit_Space_Max);
-  memset(Edit_Array_Lazy, 0, sizeof(pedEdit *) * Edit_Space_Max);
+  Edit_Space_Lazy = new int *  [MAX_ERRORS];
+  Edit_Array_Lazy = new int *  [MAX_ERRORS];
 
-  allocated += Edit_Space_Max * sizeof (pedEdit *);
-  allocated += Edit_Space_Max * sizeof (pedEdit *);
+  memset(Edit_Space_Lazy, 0, sizeof(int *) * MAX_ERRORS);
+  memset(Edit_Array_Lazy, 0, sizeof(int *) * MAX_ERRORS);
+
+  allocated += MAX_ERRORS * sizeof (int);
+  allocated += MAX_ERRORS * sizeof (int);
 
   int32   dataIndex = (int)ceil(maxErate * 100) - 1;
 
@@ -180,44 +148,33 @@ prefixEditDistance::prefixEditDistance(pedAlignType alignType_, double maxErate_
 
 #if 0
 
-  //  Use the precomputed values.
-  {
-    Edit_Match_Limit_Allocation = NULL;
-    Edit_Match_Limit            = Edit_Match_Limit_Data[dataIndex];
+  Edit_Match_Limit_Allocation = NULL;
+  Edit_Match_Limit            = Edit_Match_Limit_Data[dataIndex];
 
-    fprintf(stderr, "prefixEditDistance()-- Set Edit_Match_Limit to %p; dataIndex=%d 6 = %p\n",
-            Edit_Match_Limit, dataIndex, Edit_Match_Limit_0600);
-  }
+  fprintf(stderr, "prefixEditDistance()-- Set Edit_Match_Limit to %p; dataIndex=%d 6 = %p\n",
+          Edit_Match_Limit, dataIndex, Edit_Match_Limit_0600);
 
 #else
 
-  //  Compute values on the fly.
+  Edit_Match_Limit_Allocation = new int32 [MAX_ERRORS + 1];
 
-  {
-    int32 MAX_ERRORS = (1 + (int32)ceil(maxErate * AS_MAX_READLEN));
+  for (int32 e=0;  e<= ERRORS_FOR_FREE; e++)
+    Edit_Match_Limit_Allocation[e] = 0;
 
-    Edit_Match_Limit_Allocation = new int32 [MAX_ERRORS + 1];
+  int Start = 1;
 
-    for (int32 e=0;  e<= ERRORS_FOR_FREE; e++)
-      Edit_Match_Limit_Allocation[e] = 0;
+  for (int32 e=ERRORS_FOR_FREE + 1; e<MAX_ERRORS; e++) {
+    Start = Binomial_Bound(e - ERRORS_FOR_FREE,
+                           maxErate,
+                           Start);
+    Edit_Match_Limit_Allocation[e] = Start - 1;
 
-    int Start = 1;
-
-    for (int32 e=ERRORS_FOR_FREE + 1; e<MAX_ERRORS; e++) {
-      Start = Binomial_Bound(e - ERRORS_FOR_FREE,
-                             maxErate,
-                             Start);
-      Edit_Match_Limit_Allocation[e] = Start - 1;
-
-      assert(Edit_Match_Limit_Allocation[e] >= Edit_Match_Limit_Allocation[e-1]);
-    }
-
-    Edit_Match_Limit = Edit_Match_Limit_Allocation;
+    assert(Edit_Match_Limit_Allocation[e] >= Edit_Match_Limit_Allocation[e-1]);
   }
 
+  Edit_Match_Limit = Edit_Match_Limit_Allocation;
+
 #endif
-
-
 
   for (int32 i=0; i <= AS_MAX_READLEN; i++) {
     //Error_Bound[i] = (int32) (i * maxErate + 0.0000000000001);
@@ -229,11 +186,14 @@ prefixEditDistance::prefixEditDistance(pedAlignType alignType_, double maxErate_
   //
   //  ALH: Note that maxErate also affects what overlaps get found
   //
-  //  ALH: Scoring seems to be unusual: given an alignment of length l with k mismatches, the score
-  //  seems to be computed as l + k * error value and NOT (l-k)*match+k*error
+  //  ALH: Scoring seems to be unusual: given an alignment
+  //  of length l with k mismatches, the score seems to be
+  //  computed as l + k * error value and NOT (l-k)*match+k*error
   //
-  //  I.e. letting x := DEFAULT_BRANCH_MATCH_VAL, the max mismatch fraction p to give a non-negative
-  //  score would be p = x/(1-x); conversely, to compute x for a goal p, we have x = p/(1+p).  E.g.
+  //  I.e. letting x := DEFAULT_BRANCH_MATCH_VAL,
+  //  the max mismatch fraction p to give a non-negative score
+  //  would be p = x/(1-x); conversely, to compute x for a
+  //  goal p, we have x = p/(1+p).  E.g.
   //
   //  for p=0.06, x = .06 / (1.06) = .0566038
   //  for p=0.35, x = .35 / (1.35) = .259259
@@ -241,15 +201,11 @@ prefixEditDistance::prefixEditDistance(pedAlignType alignType_, double maxErate_
   //  for p=0.15, x = .15 / (1.15) = .130435
   //
   //  Value was for 6% vs 35% error discrimination.
-  //
   //  Converting to integers didn't make it faster.
-  //
   //  Corresponding error value is this value minus 1.0
 
   Branch_Match_Value = maxErate / (1 + maxErate);
-
-  for (uint32 ii=0; ii<256; ii++)
-    tolower[ii] = ::tolower(ii);
+  Branch_Error_Value = Branch_Match_Value - 1.0;
 };
 
 
@@ -260,7 +216,7 @@ prefixEditDistance::~prefixEditDistance() {
 
   delete [] Delta_Stack;
 
-  for (uint32 i=0; i<Edit_Space_Max; i++)
+  for (uint32 i=0; i<MAX_ERRORS; i++)
     if (Edit_Space_Lazy[i])
       delete [] Edit_Space_Lazy[i];
 

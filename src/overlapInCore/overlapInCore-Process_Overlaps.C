@@ -73,7 +73,7 @@ Process_Overlaps(void *ptr){
       char   *qltptr   = readData->gkReadData_getQualities();
 
       for (uint32 i=0; i<len; i++) {
-        bases[i] = seqptr[i];
+        bases[i] = tolower(seqptr[i]);
         quals[i] = qltptr[i] - QUALITY_BASE_CHAR;
       }
 

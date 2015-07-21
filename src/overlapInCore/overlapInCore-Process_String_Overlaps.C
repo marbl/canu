@@ -351,7 +351,7 @@ Process_Matches (int * Start,
   int  P, * Ref;
   Olap_Info_t  *distinct_olap = NULL;
   Match_Node_t  * Longest_Match, * Ptr;
-  pedOverlapType  Kind_Of_Olap = pedBothBranch;
+  Overlap_t  Kind_Of_Olap = NONE;
   double  Quality;
   int  Olap_Len;
   int  overlaps_output = 0;
@@ -360,7 +360,6 @@ Process_Matches (int * Start,
   int  t_len;
   int  Done_S_Left, Done_S_Right;
   int  Errors;
-  int  Differences;
 
   Done_S_Left = Done_S_Right = FALSE;
   t_len = t_info.length;
@@ -434,10 +433,10 @@ Process_Matches (int * Start,
       //        Longest_Match->Offset,
       //        Longest_Match->Start - Longest_Match->Offset,
       //        S_ID, S_Lo, S_Hi, T_ID, T_Lo, T_Hi);
-      Kind_Of_Olap = WA->editDist->Extend_Alignment(Longest_Match, S, S_Len, T, t_len, S_Lo, S_Hi, T_Lo, T_Hi, Errors, Differences);
+      Kind_Of_Olap = WA->editDist->Extend_Alignment(Longest_Match, S, S_Len, T, t_len, S_Lo, S_Hi, T_Lo, T_Hi, Errors, G.Doing_Partial_Overlaps);
 
 
-      if  (Kind_Of_Olap == pedDovetail || G.Doing_Partial_Overlaps) {
+      if  (Kind_Of_Olap == DOVETAIL || G.Doing_Partial_Overlaps) {
         if  (1 + S_Hi - S_Lo >= G.Min_Olap_Len
              && 1 + T_Hi - T_Lo >= G.Min_Olap_Len) {
           Olap_Len = 1 + MIN (S_Hi - S_Lo, T_Hi - T_Lo);
@@ -457,7 +456,7 @@ Process_Matches (int * Start,
     for  (Ref = Start;  (* Ref) != 0;  ) {
       Ptr = WA->Match_Node_Space + (* Ref);
       if  (Ptr == Longest_Match
-           || ((Kind_Of_Olap == pedDovetail || G.Doing_Partial_Overlaps)
+           || ((Kind_Of_Olap == DOVETAIL || G.Doing_Partial_Overlaps)
                && S_Lo - SHIFT_SLACK <= Ptr->Start
                && Ptr->Start + Ptr->Len
                <= (S_Hi + 1) + SHIFT_SLACK - 1
