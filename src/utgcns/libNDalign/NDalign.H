@@ -1,6 +1,5 @@
-
-#ifndef OVERLAPALIGN_H
-#define OVERLAPALIGN_H
+#ifndef NDALIGN_H
+#define NDALIGN_H
 
 #include "AS_global.H"
 
@@ -217,4 +216,4 @@ private:
   void    fastFindMersB(bool dupIgnore);
 };
 
-#endif  //  OVERLAPALIGN_H
+#endif  //  NDALIGN_H
