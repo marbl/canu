@@ -97,16 +97,11 @@ main(int argc, char **argv) {
 
     //  with counts, report mean, mode, median, min, max for each frag.
     if (operation == OP_STATS) {
+
       Clen = 0;
-      for (uint32 i=0; i<Cmax; i++)
-        C[i] = 0;
 
-      while (MS->nextMer()) {
-        uint64   cnt = E->count(MS->theFMer()) + E->count(MS->theRMer());
-
-        if (cnt > 0)
-          C[Clen++] = cnt;
-      }
+      while (MS->nextMer())
+        C[Clen++] = E->count(MS->theFMer()) + E->count(MS->theRMer());
 
       uint64         mean     = uint64ZERO;
       uint64         min      = ~uint64ZERO;
@@ -118,7 +113,7 @@ main(int argc, char **argv) {
       for (uint32 i=0; i<Clen; i++) {
         mean += C[i];
 
-        if ((min > C[i]) && (C[i] > 1))
+        if (min > C[i])
           min = C[i];
         if (max < C[i])
           max = C[i];
@@ -126,7 +121,14 @@ main(int argc, char **argv) {
         hist[ logBaseTwo64(C[i]) ]++;
       }
 
-      mean /= Clen;
+      if (Clen > 0) {
+        mean /= Clen;
+
+      } else {
+        mean = uint64ZERO;
+        min  = uint64ZERO;
+        max  = uint64ZERO;
+      }
 
       fprintf(stdout,
               "%s\t"
