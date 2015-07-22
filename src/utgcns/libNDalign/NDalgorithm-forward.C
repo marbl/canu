@@ -29,50 +29,9 @@ NDalgorithm::Set_Right_Delta(char  *A, char  *T,
 
     //  Analyze cells at errors = k-1 for the maximum -- no analysis needed, since we stored this cell as fromd.
 
-#ifndef USE_SCORE
-
-    //  Original
-    int32  from = d;
-    int32  maxs =     Edit_Array_Lazy[k-1][d].score;// + PEDMISMATCH;
-    int32  maxr = 1 + Edit_Array_Lazy[k-1][d].row;
-
-    //  Figure out which sequence has the insertion, if any.
-
-    if (0 + Edit_Array_Lazy[k-1][d-1].row > maxr) {
-      from = d - 1;
-      maxs = 0 + Edit_Array_Lazy[k-1][d-1].score;
-      maxr = 0 + Edit_Array_Lazy[k-1][d-1].row;
-    }
-
-    if (1 + Edit_Array_Lazy[k-1][d+1].row > maxr) {
-      from = d + 1;
-      maxs = 1 + Edit_Array_Lazy[k-1][d+1].score;
-      maxr = 1 + Edit_Array_Lazy[k-1][d+1].row;
-    }
-
-    //  And make an insertion.  
-
-    if (from == d - 1) {
-      //fprintf(stderr, "RightDelta: insert gap in A at %d max=%d last=%d\n", maxr - lastr - 1, maxr, lastr);
-      Delta_Stack[Right_Delta_Len++] = maxr - lastr - 1;
-      d--;
-      lastr = Edit_Array_Lazy[k-1][from].row;
-    }
-
-    else if (from == d + 1) {
-      //fprintf(stderr, "RightDelta: insert gap in T at %d max=%d last=%d\n", lastr - (maxr - 1), maxr, lastr);
-      Delta_Stack[Right_Delta_Len++] = lastr - (maxr - 1);
-      d++;
-      lastr = Edit_Array_Lazy[k-1][from].row;
-    }
-
-    else {
-      //fprintf(stderr, "RightDelta: mismatch        at %d max=%d last=%d\n", maxr - lastr - 1, maxr, lastr);
-    }
-
-#else
-
     int32   from = Edit_Array_Lazy[k][d].fromd;
+
+    //Edit_Array_Lazy[k-1][from].display(k-1, from);
 
     //fprintf(stderr, "NDalgorithm::Set_Right_Delta()-- k-1=%5d d=%5d from=%5d lastr=%5d - r=%5d s=%5d d=%5d\n",
     //        k-1, d, from, lastr,
@@ -98,8 +57,6 @@ NDalgorithm::Set_Right_Delta(char  *A, char  *T,
       Right_Errors--;
 
     lasts = Edit_Array_Lazy[k-1][from].score;
-#endif
-
   }
 
   Delta_Stack[Right_Delta_Len++] = lastr + 1;
@@ -177,10 +134,11 @@ NDalgorithm::forward(char    *A,   int32 Alen,
   if (Edit_Array_Lazy[0] == NULL)
     Allocate_More_Edit_Space();
 
-  Edit_Array_Lazy[0][0].score  = Sco;
+  Edit_Array_Lazy[0][0].row    = Row;
   Edit_Array_Lazy[0][0].dist   = Dst;
   Edit_Array_Lazy[0][0].errs   = 0;
-  Edit_Array_Lazy[0][0].row    = Row;
+  Edit_Array_Lazy[0][0].score  = Sco;
+  Edit_Array_Lazy[0][0].fromd  = INT32_MAX;
 
   // Exact match?
 
@@ -202,11 +160,7 @@ NDalgorithm::forward(char    *A,   int32 Alen,
   int32  Left  = 0;
   int32  Right = 0;
 
-#ifndef USE_SCORE
-  double Max_Score         = 0.0;
-#else
   int32  Max_Score         = PEDMINSCORE;
-#endif
   int32  Max_Score_Len     = 0;
   int32  Max_Score_Best_d  = 0;
   int32  Max_Score_Best_e  = 0;
@@ -218,62 +172,40 @@ NDalgorithm::forward(char    *A,   int32 Alen,
     Left  = MAX (Left  - 1, -ei);
     Right = MIN (Right + 1,  ei);
 
+    //fprintf(stderr, "FORWARD ei=%d Left=%d Right=%d\n", ei, Left, Right);
+
     Edit_Array_Lazy[ei-1][Left  - 1].init();
     Edit_Array_Lazy[ei-1][Left     ].init();
     //  Of note, [0][0] on the first iteration is not reset here.
     Edit_Array_Lazy[ei-1][Right    ].init();
     Edit_Array_Lazy[ei-1][Right + 1].init();
 
-    //fprintf(stderr, "LOOP: left=%d <= right=%d\n", Left, Right);
-
     for (int32 d = Left;  d <= Right;  d++) {
 
-#ifndef USE_SCORE
-      //  A mismatch.
-      Row   = 1 + Edit_Array_Lazy[ei-1][d].row;
-      Dst   =     Edit_Array_Lazy[ei-1][d].dist  + 1;
-      Err   =     Edit_Array_Lazy[ei-1][d].errs  + 1;
-      Sco   =     Row * Branch_Match_Value - ei;
-      fromd =     d;
-
-      //  Insert a gap in A.
-      if (0 + Edit_Array_Lazy[ei-1][d-1].row > Row) {
-        Row   = 0 + Edit_Array_Lazy[ei-1][d-1].row;  //  +0 because row is the index into A, and the A base doesn't change.
-        Dst   =     Edit_Array_Lazy[ei-1][d-1].dist  + 0;
-        Err   =     Edit_Array_Lazy[ei-1][d-1].errs  + 0;
-        Sco   =     Row * Branch_Match_Value - ei;
-        fromd =     d-1;
-      }
-
-      //  Insert a gap in T.
-      if (1 + Edit_Array_Lazy[ei-1][d+1].row > Row) {
-        Row   = 1 + Edit_Array_Lazy[ei-1][d+1].row;  //  +1 because we ate up a base in A.
-        Dst   =     Edit_Array_Lazy[ei-1][d+1].dist  + 1;
-        Err   =     Edit_Array_Lazy[ei-1][d+1].errs  + 1;
-        Sco   =     Row * Branch_Match_Value - ei;
-        fromd =     d+1;
-      }
-#else
       //  A mismatch.
       {
         int32  aPos         =  (1 + Edit_Array_Lazy[ei-1][d].row)     - 1;  //  -1 because we need to compare the base we are at,
         int32  tPos         =  (1 + Edit_Array_Lazy[ei-1][d].row) + d - 1;  //  not the base we will be at after the mismatch
-        int32  mismatchCost = PEDMISMATCH;
-
-        if ((aPos >= 0) && (tPos >= 0)) {  //  If positive, we have a pointer into valid sequence.  If not, this mismatch
-          assert( aPos <= Alen);           //  doesn't make sense, and the row/score are set to bogus values.
-          assert( tPos <= Tlen);
-
-          assert(A[aPos] != T[tPos]);
-
-          mismatchCost = mismatchScore(A[aPos], T[tPos]);
-        }
 
         Row   = 1 + Edit_Array_Lazy[ei-1][d].row;
         Dst   =     Edit_Array_Lazy[ei-1][d].dist  + 1;
         Err   =     Edit_Array_Lazy[ei-1][d].errs  + 1;
-        Sco   =     Edit_Array_Lazy[ei-1][d].score + mismatchCost;
         fromd =     d;
+
+        //  If positive, we have a pointer into valid sequence.  If not, this mismatch
+        //  doesn't make sense, and the row/score are set to bogus values.
+
+        if ((aPos >= 0) && (tPos >= 0)) {
+          assert (aPos <= Alen);
+          assert( tPos <= Tlen);
+
+          assert(A[aPos] != T[tPos]);
+
+          Sco = Edit_Array_Lazy[ei-1][d].score + mismatchScore(A[aPos], T[tPos]);
+
+        } else {
+          Sco = PEDMINSCORE;
+        }
       }
 
       //  Insert a gap in A.  Check the other sequence to see if this is a zero-cost gap.  Note
@@ -319,7 +251,6 @@ NDalgorithm::forward(char    *A,   int32 Alen,
           fromd =     d+1;
         }
       }
-#endif
 
       //  If A or B is N, that isn't a mismatch.
       //  If A is lowercase and T is uppercase, it's a match.
@@ -338,70 +269,9 @@ NDalgorithm::forward(char    *A,   int32 Alen,
       Edit_Array_Lazy[ei][d].score = Sco;
       Edit_Array_Lazy[ei][d].fromd = fromd;
 
+      //fprintf(stderr, "SET ei=%d d=%d -- row=%d dist=%d errs=%d score=%d fromd=%d\n", ei, d, Row, Dst, Err, Sco, fromd);
 
       if (Row == Alen || Row + d == Tlen) {
-
-        //  Check for branch point here caused by uneven distribution of errors
-#ifndef USE_SCORE
-        double Score = Row * Branch_Match_Value - ei;
-#else
-        int32  Score = Sco;
-#endif
-
-        int32  Tail_Len = Row - Max_Score_Len;
-        bool   abort    = false;
-
-        double slope    = (double)(Max_Score - Score) / Tail_Len;
-
-#ifdef DEBUG 
-        fprintf(stderr, "NDalgorithm::forward()-- e=%d MIN=%d Tail_Len=%d Max_Score=%d Score=%d slope=%f SLOPE=%f\n",
-                ei, MIN_BRANCH_END_DIST, Tail_Len, Max_Score, Score, slope, MIN_BRANCH_TAIL_SLOPE);
-#endif
-
-        //  If we're looking for local (former partial) overlaps, stop as soon as the score decreases.
-
-        if ((alignType == pedLocal) &&
-            (Score < Max_Score))
-          abort = true;
-
-        //  If we're looking for overlaps, use a more complicated rule that....does something.
-
-        if ((alignType == pedOverlap) &&
-            (ei       >  MIN_BRANCH_END_DIST / 2) &&  //  e == number of errors in the current alignment?
-            (Tail_Len >= MIN_BRANCH_END_DIST) &&      //  tail_len == amount extended since last best alignment
-            (slope    >= MIN_BRANCH_TAIL_SLOPE))      //  slope == rate of score drop in the extenstion
-          abort = true;
-
-        //  If we're looking for global overlaps, don't stop.
-
-        if ((alignType == pedGlobal))
-          abort = false;
-
-
-        if (abort) {
-          A_End = Max_Score_Len;
-          T_End = Max_Score_Len + Max_Score_Best_d;
-
-          Set_Right_Delta(A, T, Max_Score_Best_e, Max_Score_Best_d);
-
-          Match_To_End = FALSE;
-
-#ifdef DEBUG
-          fprintf(stderr, "NDalgorithm::forward()- ABORT alignment\n");
-#endif
-          return;  //return(Max_Score_Best_e);
-        }
-
-        // Force last error to be mismatch rather than insertion
-        if ((Row == Alen) &&
-            (1 + Edit_Array_Lazy[ei-1][d+1].row == Edit_Array_Lazy[ei][d].row) &&
-            (d < Right)) {
-          d++;
-          Edit_Array_Lazy[ei][d].score  = Edit_Array_Lazy[ei][d-1].score;   //  ??
-          Edit_Array_Lazy[ei][d].dist   = Edit_Array_Lazy[ei][d-1].dist;    //  ??
-          Edit_Array_Lazy[ei][d].row    = Edit_Array_Lazy[ei][d-1].row;
-        }
-
         A_End = Row;           // One past last align position
         T_End = Row + d;
 
@@ -409,9 +279,6 @@ NDalgorithm::forward(char    *A,   int32 Alen,
 
         Match_To_End = TRUE;
 
-#ifdef DEBUG
-        fprintf(stderr, "NDalgorithm::forward()- END alignment\n");
-#endif
         return;  //return(ei);
       }
     }  //  Over all diagonals.
@@ -439,22 +306,6 @@ NDalgorithm::forward(char    *A,   int32 Alen,
 
     assert (Left <= Right);
 
-#ifndef USE_SCORE
-    for (int32 d = Left;  d <= Right;  d++)
-      if (Edit_Array_Lazy[ei][d].row > Best_row) {
-        Best_d      = d;
-        Best_e      = ei;
-        Best_row    = Edit_Array_Lazy[ei][d].row;
-        Best_score  = Edit_Array_Lazy[ei][d].score;
-      }
-
-    if (Best_row * Branch_Match_Value - ei > Max_Score) {
-      Max_Score_Best_d = Best_d;
-      Max_Score_Best_e = Best_e;
-      Max_Score        = Best_row * Branch_Match_Value - ei;
-      Max_Score_Len    = Best_row;
-    }
-#else
     for (int32 d = Left;  d <= Right;  d++)
       if (Edit_Array_Lazy[ei][d].score > Best_score) {
         Best_d      = d;
@@ -469,8 +320,6 @@ NDalgorithm::forward(char    *A,   int32 Alen,
       Max_Score        = Best_score;
       Max_Score_Len    = Best_row;
     }
-#endif
-
   }  //  Over all possible number of errors
 
 #ifdef DEBUG

@@ -22,9 +22,6 @@
 
 #define PEDMINSCORE   (INT32_MIN - PEDGAP * 32768)
 
-#undef  USE_SCORE  //  Doesn't work; -reverse and -forward diverged too much.  ".dist used to be .row"
-#define USE_SCORE
-
 enum pedAlignType {
   pedOverlap     = 0,  //  Former normal overlap
   pedLocal       = 1,  //  Former partial overlap
@@ -67,6 +64,15 @@ public:
     errs  =  0;
     score =  PEDMINSCORE;
     fromd =  INT32_MAX;
+  };
+
+  void   display(int32 e, int32 d) {
+    fprintf(stderr, "e=%d d=%d - ptr %p - ", e, d, this);
+    fprintf(stderr, "row=%d ", row);
+    fprintf(stderr, "dist=%d ", dist);
+    fprintf(stderr, "errs=%d ", errs);
+    fprintf(stderr, "score=%d ", score);
+    fprintf(stderr, "fromd=%d\n", fromd);
   };
 };
 

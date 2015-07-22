@@ -75,8 +75,13 @@ NDalgorithm::Extend_Alignment(Match_Node_t *Match,
           0, T_Left_Begin, T_Right_Begin, T_Right_Begin + T_Right_Len);
 #endif
 
-  Left_Delta_Len  = 0;
-  Right_Delta_Len = 0;
+  Right_Errors      = 0;
+  Right_Differences = 0;
+  Right_Delta_Len   = 0;
+
+  Left_Errors      = 0;
+  Left_Differences = 0;
+  Left_Delta_Len   = 0;
 
   bool   invertLeftDeltas  = false;
   bool   invertRightDeltas = false;
