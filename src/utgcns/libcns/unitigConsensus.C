@@ -1075,8 +1075,8 @@ unitigConsensus::alignFragment(void) {
                                     0,
                                     errorRate + 0.02, 1e-3, minlen,
                                     AS_FIND_ALIGN);
-      if ((O)) // && (showAlignments()))
-        PrintALNoverlap("Optimal_Overlap", aseq, bseq, O);
+      //if ((O)) // && (showAlignments()))
+      //  PrintALNoverlap("Optimal_Overlap", aseq, bseq, O);
     }
 
     //  At 0.06 error, this equals the previous value of 10.
