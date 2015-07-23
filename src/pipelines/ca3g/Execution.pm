@@ -659,7 +659,7 @@ sub submitScript ($$$) {
     print F "\n";
     print F getBinDirectoryShellCode();
     print F "\n";
-    print F "/usr/bin/env perl \\n";
+    print F "/usr/bin/env perl \\\n";
     print F "\$bin/ca3g.pl " . getCommandLineOptions() . " ca3gIteration=$iteration\n";
     close(F);
 
