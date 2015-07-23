@@ -3,6 +3,8 @@
 #include "kMer.H"
 #include "merStream.H"
 
+#include "stddev.H"
+
 #include "Display_Alignment.H"
 
 #undef  DEBUG_ALGORITHM         //  Some details.
@@ -527,9 +529,6 @@ NDalign::chainHits(void) {
 bool
 NDalign::processHits(void) {
 
-  //  The expected worst score, in numer of matches.
-  double   expectedScore = (1 - _maxErate) * min(_aHiOrig - _aLoOrig, _bHiOrig - _bLoOrig);
-
   //  If the first time here, set the hit iterator to zero, otherwise move to the next one.
   //  And then return if there are no more hits to iterate over.
 
@@ -607,37 +606,178 @@ NDalign::processHits(void) {
 
     //  Is this a better overlap than what we have?
 
-    if (_bestResult.score() <= olapScore) {
-#ifdef DEBUG_ALGORITHM
-      fprintf(stderr, "NDalign::processHits()--  - save best! - score %f previous %f expected %f\n", olapScore, _bestResult.score(), expectedScore);
-#endif
-
+    if (_bestResult.score() <= olapScore)
       _bestResult.save(aLo, aHi, bLo, bHi, olapLen, olapQual, olapType, _editDist->Left_Delta_Len, _editDist->Left_Delta);
-    }
 
     //  If a dovetail, we're done.  Let the client figure out if the quality is good.
 
-    if (olapType == pedDovetail) {
-#ifdef DEBUG_ALGORITHM
-      fprintf(stderr, "NDalign::processHits()-- DOVETAIL return - score %f expected %f\n", _bestResult.score(), expectedScore);
-#endif
-
+    if (olapType == pedDovetail)
       return(true);
-    }
+
   }  //  Over all seeds.
 
-  //  We ran out of seeds to align.  No overlap found.
+  //  No more seeds to align, but we have an alignment saved (otherwise, we would have returned false above when no seeds are left).
 
-#ifdef DEBUG_ALGORITHM
-  fprintf(stderr, "NDalign::processHits()-- NO_SEEDS return - score %f expected %f\n", _bestResult.score(), expectedScore);
-#endif
-  return(_bestResult.score() >= 0.5 * expectedScore);
+  return(true);
+}
+
+
+#define ABS(x)  (((x) < 0) ? -(x) : (x))
+
+
+//  A simple scan for blocks of gaps.  The delta values here are relative to the last gap,
+//  so a block of too much gap will have N delta values with small values.
+//
+bool
+NDalign::scanDeltaForBadness(bool verbose) {
+  int32   blockSize = 25;
+  int32   blockSum  = 0;
+  int32   badBlocks = 0;
+
+  if (deltaLen() < 4 * blockSize)
+    return(false);
+
+  vector<double>  blockAverages;
+
+  uint32  bi = 0;
+
+  for (; (bi < blockSize) && (bi < deltaLen()); bi++)
+    blockSum += ABS(delta()[bi]);
+
+  for (; bi < deltaLen(); bi++) {
+    blockSum -= ABS(delta()[bi - blockSize]);
+    blockSum += ABS(delta()[bi]);
+
+    blockAverages.push_back((double)blockSum / blockSize);
+  }
+
+  double  mean   = 0.0;
+  double  stddev = 0.0;
+
+  computeStdDev(blockAverages, mean, stddev);
+
+  for (uint32 ii=0; ii<blockAverages.size(); ii++) {
+    if (blockAverages[ii] < 4.0) {
+      //if (verbose)
+      //  fprintf(stderr, "NDalign::scanForDeltaBadness()--  Block %d bad - block %.2f < allowed %.2f\n", ii, blockAverages[ii], 4.0);
+      badBlocks++;
+    }
+  }
+
+  if ((verbose == true) && ((mean < 10.0) || (badBlocks > 50))) {
+    fprintf(stderr, "NDalign::scanForDeltaBadness()--  Potential bad alignment: found %d bad out of "F_U64" blocks (mean %.2f stddev %.2f blockSize %d)\n",
+            badBlocks, blockAverages.size(), mean, stddev, blockSize);
+    display(true);
+  }
+
+  return((mean < 10.0) || (badBlocks > 0));
 }
 
 
 
 void
-NDalign::display(bool withAlign) {
+NDalign::realignForward(bool verbose, bool displayAlgn) {
+  Match_Node_t  match;
+
+  match.Start  = abgn();    //  Begin position in a
+  match.Offset = bbgn();    //  Begin position in b
+  match.Len    = 0;
+  match.Next   = 0;         //  Not used here
+
+  int32  aLo=0, aHi=0;
+  int32  bLo=0, bHi=0;
+  int32  errors = 0;
+  int32  differences = 0;
+
+  pedOverlapType  olapType = _editDist->Extend_Alignment(&match,         //  Initial exact match, relative to start of string
+                                                         _aStr, _aLen,
+                                                         _bStr, _bLen,
+                                                         aLo,   aHi,    //  Output: Regions which the match extends
+                                                         bLo,   bHi,
+                                                         errors,
+                                                         differences);
+
+  aHi++;  //  Add one to the end point because Extend_Alignment returns the base-based coordinate.
+  bHi++;
+
+  int32  olapLen   = min(aHi - aLo, bHi - bLo);
+  double olapQual  = (double)errors / olapLen;
+  double olapScore = olapLen * (1 - olapQual);
+
+  //  Is this a better overlap than what we have?
+
+  if (verbose)
+    fprintf(stderr, "realignForward()-- From %d-%d / %d-%d to %d-%d / %d-%d\n",
+            abgn(), aend(), bbgn(), bend(),
+            aLo, aHi, bLo, bHi);
+
+  if (_bestResult.score() <= olapScore) {
+    _bestResult.save(aLo, aHi, bLo, bHi, olapLen, olapQual, olapType, _editDist->Left_Delta_Len, _editDist->Left_Delta);
+
+    if (verbose)
+      fprintf(stderr, "realignForward()-- Save better alignment.\n");
+
+    if (displayAlgn)
+      display(true);
+  }
+}
+
+
+
+void
+NDalign::realignBackward(bool verbose, bool displayAlgn) {
+  Match_Node_t  match;
+
+  match.Start  = aend();    //  Begin position in a
+  match.Offset = bend();    //  Begin position in b
+  match.Len    = 0;
+  match.Next   = 0;         //  Not used here
+
+  int32  aLo=0, aHi=0;
+  int32  bLo=0, bHi=0;
+  int32  errors = 0;
+  int32  differences = 0;
+
+  pedOverlapType  olapType = _editDist->Extend_Alignment(&match,         //  Initial exact match, relative to start of string
+                                                         _aStr, _aLen,
+                                                         _bStr, _bLen,
+                                                         aLo,   aHi,    //  Output: Regions which the match extends
+                                                         bLo,   bHi,
+                                                         errors,
+                                                         differences);
+
+  aHi++;  //  Add one to the end point because Extend_Alignment returns the base-based coordinate.
+  bHi++;
+
+  int32  olapLen   = min(aHi - aLo, bHi - bLo);
+  double olapQual  = (double)errors / olapLen;
+  double olapScore = olapLen * (1 - olapQual);
+
+  //  Is this a better overlap than what we have?
+
+  if (verbose)
+    fprintf(stderr, "realignForward()-- From %d-%d / %d-%d to %d-%d / %d-%d\n",
+            abgn(), aend(), bbgn(), bend(),
+            aLo, aHi, bLo, bHi);
+
+  if (_bestResult.score() <= olapScore) {
+    _bestResult.save(aLo, aHi, bLo, bHi, olapLen, olapQual, olapType, _editDist->Left_Delta_Len, _editDist->Left_Delta);
+
+    if (verbose)
+      fprintf(stderr, "realignBackward()-- Save better alignment.\n");
+
+    if (displayAlgn)
+      display(true);
+  }
+}
+
+
+
+
+
+
+void
+NDalign::display(bool displayAlgn) {
 
   fprintf(stderr, "A %5u - %5u %s B %5u - %5u  olap length %d erate %6.4f type %s\n",
           _bestResult._aLo, _bestResult._aHi,
@@ -645,7 +785,7 @@ NDalign::display(bool withAlign) {
           _bestResult._bLo, _bestResult._bHi,
           length(), erate(), toString(type()));
 
-  if (withAlign)
+  if (displayAlgn)
     Display_Alignment(astr() + _bestResult._aLo, _bestResult._aHi - _bestResult._aLo,
                       bstr() + _bestResult._bLo, _bestResult._bHi - _bestResult._bLo,
                       delta(),

@@ -112,7 +112,11 @@ public:
 
   //  Diagnostic
 
-  void             display(bool withAlign=true);
+  bool             scanDeltaForBadness(bool verbose=false);
+  void             realignForward(bool verbose=false, bool displayAlign=false);
+  void             realignBackward(bool verbose=false, bool displayAlign=false);
+
+  void             display(bool displayAlign=true);
 
   //  Result reporting
 

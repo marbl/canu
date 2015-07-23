@@ -213,20 +213,23 @@ NDalgorithm::forward(char    *A,   int32 Alen,
 
       {
         int32  tPos    = 0 + Edit_Array_Lazy[ei-1][d-1].row + d;
-        assert( tPos <= Tlen);
-        assert(-tPos <= Tlen);
 
-        int32  gapCost = isFreeGap( T[tPos] ) ? 0 : PEDGAP;
+        //assert(tPos >= 0);
+        //assert(tPos < Tlen);
 
-        //if (gapCost == 0)
-        //  fprintf(stderr, "NDalgorithm::forward()--  free A gap for aPos=%d tPos=%d t=%c/%d\n", tPos - d, tPos, T[tPos], T[tPos]);
+        if ((tPos >= 0) && (tPos <= Tlen)) {
+          int32  gapCost = isFreeGap( T[tPos] ) ? 0 : PEDGAP;
 
-        if (Edit_Array_Lazy[ei-1][d-1].score + gapCost > Sco) {
-          Row   =     Edit_Array_Lazy[ei-1][d-1].row;
-          Dst   =     Edit_Array_Lazy[ei-1][d-1].dist  + (gapCost == 0) ? 0 : 0;
-          Err   =     Edit_Array_Lazy[ei-1][d-1].errs  + (gapCost == 0) ? 0 : 0;
-          Sco   =     Edit_Array_Lazy[ei-1][d-1].score +  gapCost;
-          fromd =     d-1;
+          //if (gapCost == 0)
+          //  fprintf(stderr, "NDalgorithm::forward()--  free A gap for aPos=%d tPos=%d t=%c/%d\n", tPos - d, tPos, T[tPos], T[tPos]);
+
+          if (Edit_Array_Lazy[ei-1][d-1].score + gapCost > Sco) {
+            Row   =     Edit_Array_Lazy[ei-1][d-1].row;
+            Dst   =     Edit_Array_Lazy[ei-1][d-1].dist  + (gapCost == 0) ? 0 : 0;
+            Err   =     Edit_Array_Lazy[ei-1][d-1].errs  + (gapCost == 0) ? 0 : 0;
+            Sco   =     Edit_Array_Lazy[ei-1][d-1].score +  gapCost;
+            fromd =     d-1;
+          }
         }
       }
 
@@ -235,20 +238,23 @@ NDalgorithm::forward(char    *A,   int32 Alen,
 
       {
         int32  aPos    = 1 + Edit_Array_Lazy[ei-1][d+1].row;
-        assert( aPos <= Alen);
-        assert(-aPos <= Alen);
 
-        int32  gapCost = isFreeGap( A[aPos] ) ? 0 : PEDGAP;
+        //assert(aPos >= 0);
+        //assert(aPos < Tlen);
 
-        //if (gapCost == 0)
-        //  fprintf(stderr, "NDalgorithm::forward()--  free T gap for aPos=%d tPos=%d a=%c/%d\n", aPos, aPos + d, A[aPos], A[aPos]);
+        if ((aPos >= 0) && (aPos <= Alen)) {
+          int32  gapCost = isFreeGap( A[aPos] ) ? 0 : PEDGAP;
 
-        if (Edit_Array_Lazy[ei-1][d+1].score + gapCost > Sco) {
-          Row   = 1 + Edit_Array_Lazy[ei-1][d+1].row;
-          Dst   =     Edit_Array_Lazy[ei-1][d+1].dist  + (gapCost == 0) ? 0 : 1;
-          Err   =     Edit_Array_Lazy[ei-1][d+1].errs  + (gapCost == 0) ? 0 : 1;
-          Sco   =     Edit_Array_Lazy[ei-1][d+1].score +  gapCost;
-          fromd =     d+1;
+          //if (gapCost == 0)
+          //  fprintf(stderr, "NDalgorithm::forward()--  free T gap for aPos=%d tPos=%d a=%c/%d\n", aPos, aPos + d, A[aPos], A[aPos]);
+
+          if (Edit_Array_Lazy[ei-1][d+1].score + gapCost > Sco) {
+            Row   = 1 + Edit_Array_Lazy[ei-1][d+1].row;
+            Dst   =     Edit_Array_Lazy[ei-1][d+1].dist  + (gapCost == 0) ? 0 : 1;
+            Err   =     Edit_Array_Lazy[ei-1][d+1].errs  + (gapCost == 0) ? 0 : 1;
+            Sco   =     Edit_Array_Lazy[ei-1][d+1].score +  gapCost;
+            fromd =     d+1;
+          }
         }
       }
 
