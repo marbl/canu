@@ -191,7 +191,7 @@ unitigConsensus::generate(tgTig     *tig_,
     if (showAlgorithm())
       fprintf(stderr, "generateMultiAlignment()-- recompute full consensus\n");
 
-    rebuild(true, false);
+    rebuild(true, showMultiAlignments());
 
     if (computePositionFromAnchor()    && alignFragment())  goto applyAlignment;
     if (computePositionFromLayout()    && alignFragment())  goto applyAlignment;
@@ -227,7 +227,7 @@ unitigConsensus::generate(tgTig     *tig_,
 
     reportSuccess(failed_);
     applyAlignment();
-    rebuild(false, false);
+    rebuild(false, showMultiAlignments());
   }
 
   if (failuresToFix)
@@ -901,7 +901,7 @@ unitigConsensus::alignFragment(void) {
   bool  tryAgain     = false;
 
   if (showAlgorithm())
-    fprintf(stderr, "\nalignFragment()-- Allow bgnExtra=%d and endExtra=%d (frankBgn=%d frankEnd=%d) and endTrim=%d\n\n",
+    fprintf(stderr, "alignFragment()-- Allow bgnExtra=%d and endExtra=%d (frankBgn=%d frankEnd=%d) and endTrim=%d\n",
             bgnExtra, endExtra, frankBgn, frankEnd, endTrim);
 
   //  If the expected fragment begin position plus any extra slop is still the begin of the
@@ -967,19 +967,40 @@ unitigConsensus::alignFragment(void) {
     while ((alignFound            == true) &&
            (oaFull->processHits() == true)) {
 
-      //oaFull->display(true);
+      if (showAlignments())
+        oaFull->display(true);
 
       //  Fix up non-dovetail alignments?  Nope, just skip them for now.  Eventually, we'll want to
       //  accept these (if long enough) by trimming the read.  To keep the unitig connected, we
       //  probably can only trim on the 5' end.
 
-      if (oaFull->type() != pedDovetail)
+      if (oaFull->type() != pedDovetail) {
+        if (showAlgorithm())
+          fprintf(stderr, "unitigConsensus::alignFragment()-- alignment not dovetail, continue to next seed\n");
         continue;
+      }
+
+      //  Realign, from both endpoints, and save the better of the two.
+
+      if (oaFull->scanDeltaForBadness(showAlgorithm()) == true)
+        oaFull->realignForward(showAlgorithm(), showAlignments());
+
+      if (oaFull->scanDeltaForBadness(showAlgorithm()) == true)
+        oaFull->realignBackward(showAlgorithm(), showAlignments());
+
+      if (oaFull->scanDeltaForBadness(showAlgorithm()) == true) {
+        if (showAlgorithm())
+          fprintf(stderr, "unitigConsensus::alignFragment()-- alignment still bad, continue to next seed\n");
+        continue;
+      }
 
       //  Bad alignment if low quality.
 
-      if (oaFull->erate() > errorRate)
+      if (oaFull->erate() > errorRate) {
+        if (showAlgorithm())
+          fprintf(stderr, "unitigConsensus::alignFragment()-- alignment is low quality, continue to next seed\n");
         continue;
+      }
 
       //  Otherwise, its a good alignment.  Process the trace to the 'consensus-format' and return true.
 
@@ -1053,20 +1074,6 @@ unitigConsensus::alignFragment(void) {
     ALNoverlap  *O           = NULL;
     int32        minlen      = minOverlap;
 
-#if 0
-    if (O == NULL) {
-      O = Local_Overlap_AS_forCNS(aseq,
-                                  bseq,
-                                  0, frankEnd - frankBgn,     //  ahang bounds are unused here
-                                  0, 0,                       //  ahang, bhang exclusion
-                                  0,
-                                  errorRate + 0.02, 1e-3, minlen,
-                                  AS_FIND_ALIGN);
-      //if ((O) && (showAlignments()))
-      //  PrintALNoverlap("Optimal_Overlap", aseq, bseq, O);
-    }
-#endif    
-
     if (O == NULL) {
       O = Optimal_Overlap_AS_forCNS(aseq,
                                     bseq,
@@ -1075,8 +1082,8 @@ unitigConsensus::alignFragment(void) {
                                     0,
                                     errorRate + 0.02, 1e-3, minlen,
                                     AS_FIND_ALIGN);
-      //if ((O)) // && (showAlignments()))
-      //  PrintALNoverlap("Optimal_Overlap", aseq, bseq, O);
+      if ((O) && (showAlignments()))
+        PrintALNoverlap("Optimal_Overlap", aseq, bseq, O);
     }
 
     //  At 0.06 error, this equals the previous value of 10.

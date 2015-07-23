@@ -28,11 +28,12 @@ public:
   void   setErrorRate(double errorRate_)   { errorRate  = errorRate_;  };
   void   setMinOverlap(uint32 minOverlap_) { minOverlap = minOverlap_; };
 
-  bool   showProgress(void)         { return(tig->_utgcns_verboseLevel >= 1); };
-  bool   showAlgorithm(void)        { return(tig->_utgcns_verboseLevel >= 2); };
+  bool   showProgress(void)         { return(tig->_utgcns_verboseLevel >= 1); };  //  One -V, displays which reads are processing
+  bool   showAlgorithm(void)        { return(tig->_utgcns_verboseLevel >= 2); };  //  
   bool   showPlacementBefore(void)  { return(tig->_utgcns_verboseLevel >= 3); };
   bool   showPlacement(void)        { return(tig->_utgcns_verboseLevel >= 3); };
   bool   showAlignments(void)       { return(tig->_utgcns_verboseLevel >= 4); };
+  bool   showMultiAlignments(void)  { return(tig->_utgcns_verboseLevel >= 4); };
 
   void   reportStartingWork(void);
   void   reportFailure(uint32 *failed);
