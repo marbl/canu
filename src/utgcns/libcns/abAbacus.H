@@ -70,6 +70,18 @@ class abColBeadIterator;
 #include "abColumn.H"
 #include "abMultiAlign.H"
 
+//
+//  The abacus stores an two-dimensional linked list of beads.  The beads represent
+//  the current template sequence (frankenstein, in unitigConsensus language),
+//  and the aligned reads (with gaps).
+//
+//        prev <- column -> next
+//                  |
+//  (bead) prev <- call (bead) -> next (bead)
+//                   |
+//  (bead) prev <- down (bead) -> next
+//                   |
+//
 
 
 class abAbacus {
