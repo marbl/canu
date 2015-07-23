@@ -34,6 +34,7 @@ SOURCES  := AS_global.C \
             AS_UTL/mt19937ar.C \
             AS_UTL/readBuffer.C \
             AS_UTL/speedCounter.C \
+            AS_UTL/stddev.C \
             AS_UTL/sweatShop.C \
             AS_UTL/timeAndSize.C \
             AS_UTL/kMer.C \

@@ -1,7 +1,9 @@
 
 static const char *rcsid = "$Id$";
 
+#include "stddev.H"
 
+#include <algorithm>
 
 void
 computeStdDev(vector<double> dist, double &mean, double &stddev) {
@@ -19,7 +21,7 @@ computeStdDev(vector<double> dist, double &mean, double &stddev) {
   double oneThird   = dist[dist.size() * 1 / 3];
   double twoThird   = dist[dist.size() * 2 / 3];
 
-  double approxStd  = MAX(median - oneThird, twoThird - median);
+  double approxStd  = max(median - oneThird, twoThird - median);
 
   double biggest    = median + approxStd * 5;
   double smallest   = median - approxStd * 5;
