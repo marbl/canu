@@ -22,12 +22,10 @@ NDalgorithm::Set_Left_Delta(char  *A, char *T,
                             int32 &t_end,
                             int32  t_len) {
 
-  Left_Errors      = e;
-  Left_Differences = e;
+  Left_Score       = Edit_Array_Lazy[e][d].score;
   Left_Delta_Len   = 0;
 
   int32  lastr = Edit_Array_Lazy[e][d].row;
-  int32  lasts = Edit_Array_Lazy[e][d].score;
 
   //fprintf(stderr, "NDalgorithm::Set_Left_Delta()-- e  =%5d d=%5d lastr=%5d fromd=%5d\n",
   //        e, d, lastr);
@@ -35,7 +33,8 @@ NDalgorithm::Set_Left_Delta(char  *A, char *T,
   for (int32 k=e; k>0; k--) {
     assert(Edit_Array_Lazy[k] != NULL);
 
-    int32   from = Edit_Array_Lazy[k][d].fromd;
+    int32   from  = Edit_Array_Lazy[k][d].fromd;
+    int32   lasts = Edit_Array_Lazy[k][d].score;
 
     //Edit_Array_Lazy[k-1][from].display(k-1, from);
 
@@ -58,11 +57,6 @@ NDalgorithm::Set_Left_Delta(char  *A, char *T,
     else {
       //fprintf(stderr, "LeftDelta:  mismatch        at %d max=%d last=%d\n", maxr - lastr - 1, maxr, lastr);
     }
-
-    if (Edit_Array_Lazy[k-1][from].score == lasts)
-      Left_Errors--;
-
-    lasts = Edit_Array_Lazy[k-1][from].score;
   }
 
   leftover = lastr;
@@ -110,7 +104,6 @@ NDalgorithm::Set_Left_Delta(char  *A, char *T,
 void
 NDalgorithm::reverse(char    *A,   int32 Alen,   //  first sequence and length
                      char    *T,   int32 Tlen,   //  second sequence and length
-                     int32    Error_Limit,
                      int32   &A_End,
                      int32   &T_End,
                      int32   &Leftover,      //  <- novel
@@ -130,24 +123,9 @@ NDalgorithm::reverse(char    *A,   int32 Alen,   //  first sequence and length
   int32  Sco = 0;
   int32  fromd = 0;
 
-#if 0
-  {
-    int32  nAlc = 0;
-    int32  nTlc = 0;
-
-    for (int32 a=0; a<Alen; a++)
-      if (islower(A[-a]))  nAlc++;
-
-    for (int32 t=0; t<Tlen; t++)
-      if (islower(T[-t]))  nTlc++;
-
-    fprintf(stderr, "LOWERCASE: A %d T %d\n", nAlc, nTlc);
-  }
-#endif
-
   //  Skip ahead over matches.  The original used to also skip if either sequence was N.
   while ((Row < Alen) && (isMatch(A[-Row], T[-Row]))) {
-    Sco += matchScore(A[-Row], T[-Row]);  //PEDMATCH;
+    Sco += matchScore(A[-Row], T[-Row]);
     Row++;
   }
 
@@ -171,8 +149,7 @@ NDalgorithm::reverse(char    *A,   int32 Alen,   //  first sequence and length
     fprintf(stderr, "NDalgorithm::reverse()-- exact match\n");
 #endif
 
-    Left_Errors      = 0;
-    Left_Differences = 0;
+    Left_Score       = Sco;
     Left_Delta_Len   = 0;
 
     return;
@@ -213,6 +190,8 @@ NDalgorithm::reverse(char    *A,   int32 Alen,   //  first sequence and length
         Err   =     Edit_Array_Lazy[ei-1][d].errs  + 1;
         fromd =     d;
 
+        //fprintf(stderr, "aPos %d tPos %d\n", aPos, tPos);
+
         //  If negative, we have a pointer into valid sequence.  If not, this mismatch
         //  doesn't make sense, and the row/score are set to bogus values.
 
@@ -240,15 +219,15 @@ NDalgorithm::reverse(char    *A,   int32 Alen,   //  first sequence and length
         //assert(-tPos < Tlen);
 
         if ((tPos <= 0) && (-tPos < Tlen)) {
-          int32  gapCost = isFreeGap( T[tPos] ) ? 0 : PEDGAP;
+          int32  gapCost = isFreeGap( T[tPos] ) ? PEDFREEGAP : PEDGAP;
 
           //if (gapCost == 0)
           //  fprintf(stderr, "NDalgorithm::reverse()--  free A gap for aPos=%d tPos=%d t=%c/%d\n", tPos + d, tPos, T[tPos], T[tPos]);
 
           if (Edit_Array_Lazy[ei-1][d-1].score + gapCost > Sco) {
             Row   =     Edit_Array_Lazy[ei-1][d-1].row;
-            Dst   =     Edit_Array_Lazy[ei-1][d-1].dist  + (gapCost == 0) ? 0 : 0;
-            Err   =     Edit_Array_Lazy[ei-1][d-1].errs  + (gapCost == 0) ? 0 : 0;
+            Dst   =     Edit_Array_Lazy[ei-1][d-1].dist  + (gapCost == PEDFREEGAP) ? 0 : 0;
+            Err   =     Edit_Array_Lazy[ei-1][d-1].errs  + (gapCost == PEDFREEGAP) ? 0 : 0;
             Sco   =     Edit_Array_Lazy[ei-1][d-1].score +  gapCost;
             fromd =     d-1;
           }
@@ -271,8 +250,8 @@ NDalgorithm::reverse(char    *A,   int32 Alen,   //  first sequence and length
 
           if (Edit_Array_Lazy[ei-1][d+1].score + gapCost > Sco) {
             Row   = 1 + Edit_Array_Lazy[ei-1][d+1].row;
-            Dst   =     Edit_Array_Lazy[ei-1][d+1].dist  + (gapCost == 0) ? 0 : 1;
-            Err   =     Edit_Array_Lazy[ei-1][d+1].errs  + (gapCost == 0) ? 0 : 1;
+            Dst   =     Edit_Array_Lazy[ei-1][d+1].dist  + (gapCost == PEDFREEGAP) ? 0 : 1;
+            Err   =     Edit_Array_Lazy[ei-1][d+1].errs  + (gapCost == PEDFREEGAP) ? 0 : 1;
             Sco   =     Edit_Array_Lazy[ei-1][d+1].score +  gapCost;
             fromd =     d+1;
           }
@@ -284,7 +263,7 @@ NDalgorithm::reverse(char    *A,   int32 Alen,   //  first sequence and length
       //  If A is lowercase and T doesn't match, ignore the cost of the gap in B
 
       while ((Row < Alen) && (Row + d < Tlen) && (isMatch(A[-Row], T[-Row - d]))) {
-        Sco += matchScore(A[-Row], T[-Row - d]);  //PEDMATCH;
+        Sco += matchScore(A[-Row], T[-Row - d]);
         Row += 1;
         Dst += 1;
         Err += 0;

@@ -93,7 +93,8 @@ unitigConsensus::~unitigConsensus() {
 void
 unitigConsensus::reportStartingWork(void) {
   if (showProgress())
-    fprintf(stderr, "unitigConsensus()-- processing fragment mid %d pos %d,%d anchor %d,%d,%d -- length %u\n",
+    fprintf(stderr, "unitigConsensus()-- processing read %u/%u id %d pos %d,%d anchor %d,%d,%d -- length %u\n",
+            tiid+1, numfrags,
             utgpos[tiid].ident(),
             utgpos[tiid].min(),
             utgpos[tiid].max(),
@@ -159,6 +160,7 @@ unitigConsensus::generate(tgTig     *tig_,
 
     //  Second attempt, higher error rate.
 
+#if 0
     if (showAlgorithm())
       fprintf(stderr, "generateMultiAlignment()-- increase allowed error rate from %f to %f\n", errorRate, MIN(errorRateMax, 2.0 * errorRate));
 
@@ -185,6 +187,7 @@ unitigConsensus::generate(tgTig     *tig_,
     }
 
     setMinOverlap(minOverlap);
+#endif
 
     //  Fourth attempt, default parameters after recomputing consensus sequence.
 
@@ -199,6 +202,7 @@ unitigConsensus::generate(tgTig     *tig_,
 
     //  Final attempt, higher error rate.
 
+#if 0
     if (showAlgorithm())
       fprintf(stderr, "generateMultiAlignment()-- increase allowed error rate from %f to %f\n", errorRate, MIN(errorRateMax, 4.0 * errorRate));
 
@@ -211,6 +215,8 @@ unitigConsensus::generate(tgTig     *tig_,
     //  Failed to align the fragment.  Dang.
 
     setErrorRate(errorRate);
+#endif
+
 
 #ifdef FAILURE_IS_FATAL
     fprintf(stderr, "FAILED TO ALIGN FRAG.  DIE.\n");
@@ -826,8 +832,9 @@ unitigConsensus::rebuild(bool recomputeFullConsensus, bool display) {
 
   piid = -1;
 
-  if (display)
-    abacus->getMultiAlign(multialign)->display(abacus, stderr);
+#warning NOT DISPLAYING
+  //if (display)
+  //  abacus->getMultiAlign(multialign)->display(abacus, stderr);
 }
 
 
@@ -891,18 +898,19 @@ unitigConsensus::alignFragment(void) {
 
   if (endTrim < 20)  endTrim = 0;
 
+  bool  tryAgain     = false;
+
  alignFragmentAgain:
   int32 frankBgn     = MAX(0, cnspos[tiid].min() - bgnExtra);   //  Start position in frankenstein
   int32 frankEnd     = frankensteinLen;                         //  Truncation of frankenstein
   char  frankEndBase = 0;                                       //  Saved base from frankenstein
 
-  bool  allowAhang   = false;
-  bool  allowBhang   = true;
-  bool  tryAgain     = false;
-
   if (showAlgorithm())
     fprintf(stderr, "alignFragment()-- Allow bgnExtra=%d and endExtra=%d (frankBgn=%d frankEnd=%d) and endTrim=%d\n",
             bgnExtra, endExtra, frankBgn, frankEnd, endTrim);
+
+  bool  allowAhang = false;
+  bool  allowBhang = true;
 
   //  If the expected fragment begin position plus any extra slop is still the begin of the
   //  consensus sequence, we allow the fragment to hang over the end.
@@ -956,19 +964,29 @@ unitigConsensus::alignFragment(void) {
                        false);
 
     //  Generate seeds and prepare for alignment.
+    //
+    //  If not using seeds, we need to realign, at least backwards.
 
+#undef  WITH_SEEDS
+
+#ifdef WITH_SEEDS
     bool  alignFound = ((oaFull->findMinMaxDiagonal(minOverlap, bgnExtra, endExtra) == true) &&
                         (oaFull->findSeeds(false)                                   == true) &&
                         (oaFull->findHits()                                         == true) &&
                         (oaFull->chainHits()                                        == true));
+#else
+    bool  alignFound = oaFull->makeNullHit();
+#endif
 
-    //  While we find alignments, decide if they're any good, and stop on the first good one.
+    //  While we find alignments, decide if they're any good, and stop on the first good one.  Try up
+    //  to four seeds, then give up and fall back to dynamic programming.
 
-    while ((alignFound            == true) &&
-           (oaFull->processHits() == true)) {
+    for (uint32 na=0; ((na                    <  1) &&
+                       (alignFound            == true) &&
+                       (oaFull->processHits() == true)); na++) {
 
-      if (showAlignments())
-        oaFull->display(true);
+      //if (showAlignments())
+      //  oaFull->display(true);
 
       //  Fix up non-dovetail alignments?  Nope, just skip them for now.  Eventually, we'll want to
       //  accept these (if long enough) by trimming the read.  To keep the unitig connected, we
@@ -982,13 +1000,18 @@ unitigConsensus::alignFragment(void) {
 
       //  Realign, from both endpoints, and save the better of the two.
 
-      if (oaFull->scanDeltaForBadness(showAlgorithm()) == true)
-        oaFull->realignForward(showAlgorithm(), showAlignments());
-
+#ifdef WITH_SEEDS
       if (oaFull->scanDeltaForBadness(showAlgorithm()) == true)
         oaFull->realignBackward(showAlgorithm(), showAlignments());
 
-      if (oaFull->scanDeltaForBadness(showAlgorithm()) == true) {
+      if (oaFull->scanDeltaForBadness(showAlgorithm()) == true)
+        oaFull->realignForward(showAlgorithm(), showAlignments());
+#else
+      oaFull->realignBackward(showAlgorithm(), showAlignments());
+      oaFull->realignForward(showAlgorithm(), showAlignments());
+#endif
+
+      if (oaFull->scanDeltaForBadness(true /*showAlgorithm()*/ ) == true) {
         if (showAlgorithm())
           fprintf(stderr, "unitigConsensus::alignFragment()-- alignment still bad, continue to next seed\n");
         continue;
@@ -997,8 +1020,11 @@ unitigConsensus::alignFragment(void) {
       //  Bad alignment if low quality.
 
       if (oaFull->erate() > errorRate) {
-        if (showAlgorithm())
-          fprintf(stderr, "unitigConsensus::alignFragment()-- alignment is low quality, continue to next seed\n");
+        if (showAlgorithm()) {
+          fprintf(stderr, "unitigConsensus::alignFragment()-- alignment is low quality: %f > %f, continue to next seed\n",
+                  oaFull->erate(), errorRate);
+          oaFull->display("unitigConsensus::alignFragment()-- ", true);
+        }
         continue;
       }
 
@@ -1062,7 +1088,6 @@ unitigConsensus::alignFragment(void) {
   //  Try Optimal_Overlap_AS_forCNS
   //
 
-#if 1
   if ((endTrim <  bSEQ->length()) &&
       (0       <= endTrim)) {
     int32 fragBgn      = 0;
@@ -1073,6 +1098,8 @@ unitigConsensus::alignFragment(void) {
 
     ALNoverlap  *O           = NULL;
     int32        minlen      = minOverlap;
+
+    fprintf(stderr, "Begin Optimal_Overlap_AS_forCNS\n");
 
     if (O == NULL) {
       O = Optimal_Overlap_AS_forCNS(aseq,
@@ -1087,18 +1114,28 @@ unitigConsensus::alignFragment(void) {
     }
 
     //  At 0.06 error, this equals the previous value of 10.
+#if 0
     double  pad = errorRate * 500.0 / 3;
+
+
+    //  If a negative ahang, extend the frankenstein and try again.
 
     if ((O) && (O->begpos < 0) && (frankBgn > 0)) {
       bgnExtra += -O->begpos + pad;
       tryAgain = true;
       O = NULL;
     }
+
+    //  If ....what, extend the frankenstein and try again.
+
     if ((O) && (O->endpos > 0) && (allowBhang == false)) {
       endExtra += O->endpos + pad;
       tryAgain = true;
       O = NULL;
     }
+
+    //  If postive bhang, trim the read and try again.
+
     if ((O) && (O->endpos < 0) && (endTrim > 0)) {
       endTrim -= -O->endpos + pad;
       if (endTrim < 20)
@@ -1106,8 +1143,25 @@ unitigConsensus::alignFragment(void) {
       tryAgain = true;
       O = NULL;
     }
-    if (rejectAlignment(allowBhang, allowAhang, O))
+
+    //  Too noisy?  Nope, don't want it.
+
+    if (((double)O->diffs / (double)O->length) > errorRate) {
+      //if (showAlgorithm())
+      //  fprintf(stderr, "rejectAlignment()-- No alignment found -- erate %f > max allowed %f.\n",
+      //          (double)O->diffs / (double)O->length, errorRate);
       O = NULL;
+    }
+
+    //  Too short?  Nope, don't want it.
+
+    if (O->length < minOverlap) {
+      //if (showAlgorithm())
+      //  fprintf(stderr, "rejectAlignment()-- No alignment found -- too short %d < min allowed %d.\n",
+      //          O->length, minOverlap);
+      O = NULL;
+    }
+#endif
 
     //  Restore the bases we might have removed.
     if (frankEndBase)   frankenstein[frankEnd] = frankEndBase;
@@ -1136,7 +1190,6 @@ unitigConsensus::alignFragment(void) {
     if (tryAgain)
       goto alignFragmentAgain;
   }
-#endif
 
   //  No alignment.  Dang.  (Should already be 0,0, but just in case...)
 
@@ -1150,49 +1203,6 @@ unitigConsensus::alignFragment(void) {
 }
 
 
-bool
-unitigConsensus::rejectAlignment(bool allowBhang,  //  Allow a positive bhang - fragment extends past what we align to
-                                 bool allowAhang,  //  Allow a negative ahang - fragment extends past what we align to
-                                 ALNoverlap *O) {
-
-  if (O == NULL) {
-    if (showAlgorithm())
-      fprintf(stderr, "rejectAlignment()-- No alignment found.\n");
-    return(true);
-  }
-
-  //  Negative ahang?  Nope, don't want it.
-  if ((O->begpos < 0) && (allowAhang == false)) {
-    if (showAlgorithm())
-      fprintf(stderr, "rejectAlignment()-- No alignment found -- begpos = %d (negative ahang not allowed).\n", O->begpos);
-    return(true);
-  }
-
-  //  Positive bhang and not the last fragment?  Nope, don't want it.
-  if ((O->endpos > 0) && (allowBhang == false)) {
-    if (showAlgorithm())
-      fprintf(stderr, "rejectAlignment()-- No alignment found -- endpos = %d (positive bhang not allowed).\n", O->endpos);
-    return(true);
-  }
-
-  //  Too noisy?  Nope, don't want it.
-  if (((double)O->diffs / (double)O->length) > errorRate) {
-    if (showAlgorithm())
-      fprintf(stderr, "rejectAlignment()-- No alignment found -- erate %f > max allowed %f.\n",
-              (double)O->diffs / (double)O->length, errorRate);
-    return(true);
-  }
-
-  //  Too short?  Nope, don't want it.
-  if (O->length < minOverlap) {
-    if (showAlgorithm())
-      fprintf(stderr, "rejectAlignment()-- No alignment found -- too short %d < min allowed %d.\n",
-              O->length, minOverlap);
-    return(true);
-  }
-
-  return(false);
-}
 
 
 void

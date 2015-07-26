@@ -43,11 +43,7 @@ NDalgorithm::Extend_Alignment(Match_Node_t *Match,
                               char         *S,     int32   S_Len,
                               char         *T,     int32   T_Len,
                               int32        &S_Lo,  int32   &S_Hi,
-                              int32        &T_Lo,  int32   &T_Hi,
-                              int32        &Errors,
-                              int32        &Differences) {
-  int32  Right_Errors = 0;
-  int32  Left_Errors  = 0;
+                              int32        &T_Lo,  int32   &T_Hi) {
   int32  Leftover     = 0;
 
   bool   rMatchToEnd = true;
@@ -65,23 +61,17 @@ NDalgorithm::Extend_Alignment(Match_Node_t *Match,
                        Match->Len + 
                        min(S_Right_Len, T_Right_Len));
 
-  int32  Error_Limit = Error_Bound[Total_Olap];
-
 #ifdef DEBUG
-  fprintf(stderr, "NDalgorithm::Extend_Alignment()--  limit olap of %u bases to %u errors - %f%%\n",
-          Total_Olap, Error_Limit, 100.0 * Error_Limit / Total_Olap);
   fprintf(stderr, "NDalgorithm::Extend_Alignment()--  S: %d-%d and %d-%d  T: %d-%d and %d-%d\n",
           0, S_Left_Begin, S_Right_Begin, S_Right_Begin + S_Right_Len,
           0, T_Left_Begin, T_Right_Begin, T_Right_Begin + T_Right_Len);
 #endif
 
-  Right_Errors      = 0;
-  Right_Differences = 0;
+  Right_Score       = 0;
   Right_Delta_Len   = 0;
 
-  Left_Errors      = 0;
-  Left_Differences = 0;
-  Left_Delta_Len   = 0;
+  Left_Score        = 0;
+  Left_Delta_Len    = 0;
 
   bool   invertLeftDeltas  = false;
   bool   invertRightDeltas = false;
@@ -100,7 +90,6 @@ NDalgorithm::Extend_Alignment(Match_Node_t *Match,
 #endif
     forward(S + S_Right_Begin, S_Right_Len,
             T + T_Right_Begin, T_Right_Len,
-            Error_Limit,
             S_Hi, T_Hi,
             rMatchToEnd);
     for (int32 i=0; i<Right_Delta_Len; i++)
@@ -113,7 +102,6 @@ NDalgorithm::Extend_Alignment(Match_Node_t *Match,
 #endif
     forward(T + T_Right_Begin, T_Right_Len,
             S + S_Right_Begin, S_Right_Len,
-            Error_Limit,
             T_Hi, S_Hi,
             rMatchToEnd);
     //for (int32 i=0; i<Right_Delta_Len; i++)
@@ -137,7 +125,6 @@ NDalgorithm::Extend_Alignment(Match_Node_t *Match,
 #endif
     reverse(S + S_Left_Begin, S_Left_Begin + 1,
             T + T_Left_Begin, T_Left_Begin + 1,
-            Error_Limit - Right_Errors,
             S_Lo, T_Lo,
             Leftover,
             lMatchToEnd);
@@ -151,7 +138,6 @@ NDalgorithm::Extend_Alignment(Match_Node_t *Match,
 #endif
     reverse(T + T_Left_Begin,  T_Left_Begin + 1,
             S + S_Left_Begin,  S_Left_Begin + 1,
-            Error_Limit - Right_Errors,
             T_Lo, S_Lo,
             Leftover,
             lMatchToEnd);
@@ -165,23 +151,12 @@ NDalgorithm::Extend_Alignment(Match_Node_t *Match,
   //  Report.
 
 #ifdef DEBUG
-  fprintf(stderr, "NDalgorithm::Extend_Alignment()--  LEFT errors %d deltaLen %d matchToEnd %s leftover %d -- RIGHT errors %d deltaLen %d matchToEnd %s\n",
-          Left_Errors,  Left_Delta_Len,  lMatchToEnd ? "true" : "false", Leftover,
-          Right_Errors, Right_Delta_Len, rMatchToEnd ? "true" : "false");
+  fprintf(stderr, "NDalgorithm::Extend_Alignment()--  LEFT deltaLen %d matchToEnd %s leftover %d -- RIGHT deltaLen %d matchToEnd %s\n",
+          Left_Delta_Len,  lMatchToEnd ? "true" : "false", Leftover,
+          Right_Delta_Len, rMatchToEnd ? "true" : "false");
 #endif
 
   //  Check the result.  Just checking for overflow, not quality.
-
-  Errors      = Left_Errors      + Right_Errors;
-  Differences = Left_Differences + Right_Differences;
-
-  assert(Right_Errors <= AS_MAX_READLEN);
-  assert(Left_Errors  <= AS_MAX_READLEN);
-  assert(Errors       <= AS_MAX_READLEN);
-
-  assert(Right_Differences <= AS_MAX_READLEN);
-  assert(Left_Differences  <= AS_MAX_READLEN);
-  assert(Differences       <= AS_MAX_READLEN);
 
   //  Merge the deltas.
 

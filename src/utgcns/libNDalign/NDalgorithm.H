@@ -16,9 +16,11 @@
 //  suffices to set this just slightly higher than the minimum, since it should never be picked as a
 //  maximum, and thus never see more than one insert.  Just to be safe, we give it lots of space.
 //
-#define PEDMATCH        8    //  Match from UPPERCASE to UPPERCASE
-#define PEDMISMATCH    -2    //  Mismatch
-#define PEDGAP         -4    //  Gap
+#define PEDMATCH        2    //  Match from UPPERCASE to UPPERCASE
+#define PEDGAPMATCH     1    //  Match from LOWERCASE to UPPERCASE
+#define PEDMISMATCH    -1    //  Mismatch
+#define PEDFREEGAP      1    //  Gap from LOWERCASE
+#define PEDGAP         -2    //  Gap
 
 #define PEDMINSCORE   (INT32_MIN - PEDGAP * 32768)
 
@@ -91,7 +93,6 @@ private:
 
   void   forward(char    *A,   int32 m,
                  char    *T,   int32 n,
-                 int32    Error_Limit,
                  int32   &A_End,
                  int32   &T_End,
                  bool    &Match_To_End);
@@ -105,7 +106,6 @@ private:
 
   void   reverse(char    *A,   int32 m,
                  char    *T,   int32 n,
-                 int32    Error_Limit,
                  int32   &A_End,
                  int32   &T_End,
                  int32   &Leftover,      //  <- novel
@@ -145,7 +145,7 @@ private:
   //
   int32  mismatchScore(char a, char t) {
     if ((a == tolower[a]) || (t == tolower[t]))
-      return(PEDMISMATCH/2);
+      return(PEDGAPMATCH);
 
     return(PEDMISMATCH);
   }
@@ -162,14 +162,13 @@ private:
   }
 
 public:
-  pedOverlapType
-  Extend_Alignment(Match_Node_t *Match,
-                   char         *S,     int32   S_Len,
-                   char          *T,     int32   T_Len,
-                   int32         &S_Lo,  int32   &S_Hi,
-                   int32         &T_Lo,  int32   &T_Hi,
-                   int32         &Errors,
-                   int32         &Differences);
+  pedOverlapType  Extend_Alignment(Match_Node_t *Match,
+                                   char         *S,     int32   S_Len,
+                                   char          *T,     int32   T_Len,
+                                   int32         &S_Lo,  int32   &S_Hi,
+                                   int32         &T_Lo,  int32   &T_Hi);
+
+  int32           score(void) {  return(Left_Score + Right_Score);  };
 
 public:
   //  The three below were global #defines, two depended on the error rate which is now local.
@@ -190,13 +189,11 @@ public:
 
   uint64                  allocated;
 
-  int32                   Left_Errors;       //  Differences - freeGaps
-  int32                   Left_Differences;  //  Differences
+  int32                   Left_Score;
   int32                   Left_Delta_Len;
   int32                  *Left_Delta;
 
-  int32                   Right_Errors;
-  int32                   Right_Differences;
+  int32                   Right_Score;
   int32                   Right_Delta_Len;
   int32                  *Right_Delta;
 

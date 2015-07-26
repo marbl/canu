@@ -446,6 +446,9 @@ abAbacus::applyAlignment(abSeqID   afid,
       //  The negative ahang triggers code above, which adds a new
       //  column.  lasta is still invalid because there is no last column
       //  for a.
+      //
+      //  As of July 2015, this is still a problem if the alignment starts with a bunch of gaps
+      //  in the read.
 
       lasta = (lasta.isInvalid()) ? aindex[apos] : getBead(lasta)->nextID();
       lastb = appendGapBead(lastb);

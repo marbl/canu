@@ -29,7 +29,7 @@ public:
 
   //  Accessors
 
-  double  score(void)    { return(_olapLen * (1 - _olapQual)); };
+  double  score(void)    { return(_olapScore); };
 
   int32   deltaLen(void) { return(_deltaLen); };
   int32  *delta(void)    { return(_delta);    };
@@ -37,29 +37,31 @@ public:
   //  Setters
 
   void       clear(void) {
-    _aLo      = 0;
-    _aHi      = 0;
+    _aLo       = 0;
+    _aHi       = 0;
 
-    _bLo      = 0;
-    _bHi      = 0;
+    _bLo       = 0;
+    _bHi       = 0;
 
-    _olapLen  = 0;
-    _olapQual = 0;
-    _olapType = pedBothBranch;
+    _olapLen   = 0;
+    _olapScore = 0;
+    _olapErate = 0;
+    _olapType  = pedBothBranch;
 
     _deltaLen = 0;
   };
 
-  void       save(int32 aLo, int32 aHi, int32 bLo, int32 bHi, int32 olapLen, double olapQual, pedOverlapType olapType, int32 dl, int32 *d) {
-    _aLo      = aLo;
-    _aHi      = aHi;
+  void       save(int32 aLo, int32 aHi, int32 bLo, int32 bHi, int32 score, pedOverlapType type, int32 dl, int32 *d) {
+    _aLo       = aLo;
+    _aHi       = aHi;
 
-    _bLo      = bLo;
-    _bHi      = bHi;
+    _bLo       = bLo;
+    _bHi       = bHi;
 
-    _olapLen  = olapLen;
-    _olapQual = olapQual;
-    _olapType = olapType;
+    _olapLen   = ((aHi - aLo) + (bHi - bLo) + dl) / 2;
+    _olapScore = score;
+    _olapErate = DBL_MAX;
+    _olapType  = type;
 
     _deltaLen = dl;
 
@@ -70,7 +72,11 @@ public:
     }
 
     memcpy(_delta, d, sizeof(int32) * _deltaLen);
-  }
+  };
+
+  void       setErate(double olapErate) {
+    _olapErate = olapErate;
+  };
   
   int32               _aLo;
   int32               _aHi;
@@ -79,7 +85,8 @@ public:
   int32               _bHi;
 
   int32               _olapLen;
-  double              _olapQual;
+  double              _olapScore;
+  double              _olapErate;
   pedOverlapType      _olapType;
 
   int32               _deltaMax;
@@ -104,10 +111,12 @@ public:
   bool             findMinMaxDiagonal(int32 minLength,
                                       uint32 AbgnAdj=0, uint32 AendAdj=0,
                                       uint32 BbgnAdj=0, uint32 BendAdj=0);
-
   bool             findSeeds(bool dupIgnore);
   bool             findHits(void);
   bool             chainHits(void);
+
+  bool             makeNullHit(void);
+
   bool             processHits(void);
 
   //  Diagnostic
@@ -116,7 +125,7 @@ public:
   void             realignForward(bool verbose=false, bool displayAlign=false);
   void             realignBackward(bool verbose=false, bool displayAlign=false);
 
-  void             display(bool displayAlign=true);
+  void             display(char *prefix, bool displayIt=true);
 
   //  Result reporting
 
@@ -134,7 +143,8 @@ public:
   int32            bhg3(void)     { return((_bFlipped == false) ? (_bLen - _bestResult._bHi) : (        _bestResult._bHi)); };
 
   int32            length(void)   { return(_bestResult._olapLen);  };
-  double           erate(void)    { return(_bestResult._olapQual); };
+  double           erate(void)    { return(_bestResult._olapErate); };
+  int32            score(void)    { return(_bestResult._olapScore); };
 
   pedOverlapType   type(void)     { return(_bestResult._olapType); };
 
@@ -208,7 +218,18 @@ private:
 
   //  The result.
 
-  NDalignResult  _bestResult;
+  NDalignResult       _bestResult;
+
+  //  For displaying and stats.
+
+  char               *_topDisplay;
+  char               *_botDisplay;
+  char               *_resDisplay;
+
+  uint32              _matches;
+  uint32              _errors;
+  uint32              _gapmatches;
+  uint32              _freegaps;
 
   //  Constants
 

@@ -14,12 +14,10 @@ void
 NDalgorithm::Set_Right_Delta(char  *A, char  *T,
                              int32  e, int32  d) {
 
-  Right_Errors      = e;
-  Right_Differences = e;
+  Right_Score       = Edit_Array_Lazy[e][d].score;
   Right_Delta_Len   = 0;
 
   int32  lastr = Edit_Array_Lazy[e][d].row;
-  int32  lasts = Edit_Array_Lazy[e][d].score;
 
   //fprintf(stderr, "NDalgorithm::Set_Right_Delta()-- e  =%5d d=%5d lastr=%5d\n",
   //        e, d, lastr);
@@ -29,7 +27,8 @@ NDalgorithm::Set_Right_Delta(char  *A, char  *T,
 
     //  Analyze cells at errors = k-1 for the maximum -- no analysis needed, since we stored this cell as fromd.
 
-    int32   from = Edit_Array_Lazy[k][d].fromd;
+    int32   from  = Edit_Array_Lazy[k][d].fromd;
+    int32   lasts = Edit_Array_Lazy[k][d].score;
 
     //Edit_Array_Lazy[k-1][from].display(k-1, from);
 
@@ -52,11 +51,6 @@ NDalgorithm::Set_Right_Delta(char  *A, char  *T,
     else {
       //fprintf(stderr, "LeftDelta:  mismatch        at %d max=%d last=%d\n", maxr - lastr - 1, maxr, lastr);
     }
-
-    if (Edit_Array_Lazy[k-1][from].score == lasts)
-      Right_Errors--;
-
-    lasts = Edit_Array_Lazy[k-1][from].score;
   }
 
   Delta_Stack[Right_Delta_Len++] = lastr + 1;
@@ -90,7 +84,6 @@ NDalgorithm::Set_Right_Delta(char  *A, char  *T,
 void
 NDalgorithm::forward(char    *A,   int32 Alen,
                      char    *T,   int32 Tlen,
-                     int32    Error_Limit,
                      int32   &A_End,
                      int32   &T_End,
                      bool    &Match_To_End) {
@@ -110,24 +103,9 @@ NDalgorithm::forward(char    *A,   int32 Alen,
 
   int32  fromd = 0;
 
-#if 0
-  {
-    int32  nAlc = 0;
-    int32  nTlc = 0;
-
-    for (int32 a=0; a<Alen; a++)
-      if (islower(A[a]))  nAlc++;
-
-    for (int32 t=0; t<Tlen; t++)
-      if (islower(T[t]))  nTlc++;
-
-    fprintf(stderr, "LOWERCASE: A %d T %d\n", nAlc, nTlc);
-  }
-#endif
-
   //  Skip ahead over matches.  The original used to also skip if either sequence was N.
   while ((Row < Alen) && (isMatch(A[Row], T[Row]))) {
-    Sco += matchScore(A[Row], T[Row]);  //PEDMATCH;
+    Sco += matchScore(A[Row], T[Row]);
     Row++;
   }
 
@@ -150,8 +128,7 @@ NDalgorithm::forward(char    *A,   int32 Alen,
     fprintf(stderr, "NDalgorithm::forward()- exact match\n");
 #endif
 
-    Right_Errors      = 0;
-    Right_Differences = 0;
+    Right_Score       = Sco;
     Right_Delta_Len   = 0;
 
     return;
@@ -218,15 +195,15 @@ NDalgorithm::forward(char    *A,   int32 Alen,
         //assert(tPos < Tlen);
 
         if ((tPos >= 0) && (tPos <= Tlen)) {
-          int32  gapCost = isFreeGap( T[tPos] ) ? 0 : PEDGAP;
+          int32  gapCost = isFreeGap( T[tPos] ) ? PEDFREEGAP : PEDGAP;
 
           //if (gapCost == 0)
           //  fprintf(stderr, "NDalgorithm::forward()--  free A gap for aPos=%d tPos=%d t=%c/%d\n", tPos - d, tPos, T[tPos], T[tPos]);
 
           if (Edit_Array_Lazy[ei-1][d-1].score + gapCost > Sco) {
             Row   =     Edit_Array_Lazy[ei-1][d-1].row;
-            Dst   =     Edit_Array_Lazy[ei-1][d-1].dist  + (gapCost == 0) ? 0 : 0;
-            Err   =     Edit_Array_Lazy[ei-1][d-1].errs  + (gapCost == 0) ? 0 : 0;
+            Dst   =     Edit_Array_Lazy[ei-1][d-1].dist  + (gapCost == PEDFREEGAP) ? 0 : 0;
+            Err   =     Edit_Array_Lazy[ei-1][d-1].errs  + (gapCost == PEDFREEGAP) ? 0 : 0;
             Sco   =     Edit_Array_Lazy[ei-1][d-1].score +  gapCost;
             fromd =     d-1;
           }
@@ -250,8 +227,8 @@ NDalgorithm::forward(char    *A,   int32 Alen,
 
           if (Edit_Array_Lazy[ei-1][d+1].score + gapCost > Sco) {
             Row   = 1 + Edit_Array_Lazy[ei-1][d+1].row;
-            Dst   =     Edit_Array_Lazy[ei-1][d+1].dist  + (gapCost == 0) ? 0 : 1;
-            Err   =     Edit_Array_Lazy[ei-1][d+1].errs  + (gapCost == 0) ? 0 : 1;
+            Dst   =     Edit_Array_Lazy[ei-1][d+1].dist  + (gapCost == PEDFREEGAP) ? 0 : 1;
+            Err   =     Edit_Array_Lazy[ei-1][d+1].errs  + (gapCost == PEDFREEGAP) ? 0 : 1;
             Sco   =     Edit_Array_Lazy[ei-1][d+1].score +  gapCost;
             fromd =     d+1;
           }
@@ -263,7 +240,7 @@ NDalgorithm::forward(char    *A,   int32 Alen,
       //  If A is lowercase and T doesn't match, ignore the cost of the gap in B
 
       while ((Row < Alen) && (Row + d < Tlen) && (isMatch(A[Row], T[Row + d]))) {
-        Sco += matchScore(A[Row], T[Row + d]);  //PEDMATCH;
+        Sco += matchScore(A[Row], T[Row + d]);
         Row += 1;
         Dst += 1;
         Err += 0;
