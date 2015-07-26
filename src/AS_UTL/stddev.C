@@ -52,3 +52,12 @@ computeStdDev(vector<double> dist, double &mean, double &stddev) {
     stddev = sqrt(stddev / (numSamples - 1));
 }
 
+
+double
+computeExponentialMovingAverage(double alpha, double ema, double value) {
+
+  assert(0.0   <= alpha);
+  assert(alpha <= 1.0);
+
+  return(alpha * value + (1 - alpha) * ema);
+}
