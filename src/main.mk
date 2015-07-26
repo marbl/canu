@@ -127,7 +127,6 @@ SOURCES  := AS_global.C \
             utgcns/libNDalign/NDalign.C \
             \
             utgcns/libNDalign/Binomial_Bound.C \
-            utgcns/libNDalign/Display_Alignment.C \
             utgcns/libNDalign/NDalgorithm.C \
             utgcns/libNDalign/NDalgorithm-allocateMoreSpace.C \
             utgcns/libNDalign/NDalgorithm-extend.C \

@@ -14,8 +14,6 @@ const char *mainid = "$Id:  $";
 #include "NDalign.H"
 #include "analyzeAlignment.H"
 
-#include "Display_Alignment.H"
-
 #include "AS_UTL_reverseComplement.H"
 
 #include "timeAndSize.H" //  getTime();
