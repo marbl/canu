@@ -60,27 +60,6 @@ NDalgorithm::Set_Left_Delta(char  *A, char *T,
   }
 
   leftover = lastr;
-
-  // Don't allow first delta to be +1 or -1.  -1 is flat out not allowed (we crash) but +1 is fixable.
-
-  assert((Left_Delta_Len == 0) || (Left_Delta[0] != -1));
-
-  if ((Left_Delta_Len > 1) && (Left_Delta[0] == 1) && (t_end + t_len > 0)) {
-    if (Left_Delta[1] > 0)
-      Left_Delta[0] = Left_Delta[1] + 1;
-    else
-      Left_Delta[0] = Left_Delta[1] - 1;
-
-    for (int32 i=2; i<Left_Delta_Len; i++)
-      Left_Delta[i-1] = Left_Delta[i];
-
-    Left_Delta_Len--;
-
-    t_end--;
-
-    if (Left_Delta_Len == 0)
-      leftover++;
-  }
 }
 
 
