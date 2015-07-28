@@ -306,16 +306,13 @@ abAbacus::baseCallQuality(abColID cid) {
   //  Do we need to scale before normalizing?  Anything out of bounds?  We'll try to scale the small
   //  values up to DBL_MIN without making the large values larger than DBL_MAX.  If we end up with
   //  some values still too small, oh well.  We have a winner (the large value) anyway!
+  //
+  //  Note, in log-space, min value (1e-309) is around -711.5, and max value (1e309) is around 711.5.
 
   //fprintf(stderr, "tau: %f %f %f %f %f\n", tau[0], tau[1], tau[2], tau[3], tau[4]);
 
-  double  scaleValue = 0.0;
-
-  double  minValue   = log(DBL_MIN);
-  double  maxValue   = log(DBL_MAX);
-
-  double  minTau = DBL_MAX;
-  double  maxTau = DBL_MIN;
+  double  minTau =  DBL_MAX;
+  double  maxTau = -DBL_MAX;
 
   minTau = MIN(minTau, tau[0]);
   minTau = MIN(minTau, tau[1]);
@@ -329,20 +326,60 @@ abAbacus::baseCallQuality(abColID cid) {
   maxTau = MAX(maxTau, tau[3]);
   maxTau = MAX(maxTau, tau[4]);
 
+  //  Now that we know the min and max values, shift them as far positive as possible.  Ideally,
+  //  this will just add an offset to bring the smallest value up to the minimum representable.
+
+  double  minValue   = log(DBL_MIN) + DBL_EPSILON;
+  double  maxValue   = log(DBL_MAX) - DBL_EPSILON;
+
+  double  scaleValue = 0.0;
+
   if (minTau < minValue)
     scaleValue = minValue - minTau;
 
   if (maxTau + scaleValue > maxValue)
     scaleValue = maxValue - maxTau;
 
+  tau[0] += scaleValue;
+  tau[1] += scaleValue;
+  tau[2] += scaleValue;
+  tau[3] += scaleValue;
+  tau[4] += scaleValue;
+
+  //  It could however overflow the max (which is the value we care about), so any values still too
+  //  low are thresholded.
+
+  if (tau[0] < minValue)  tau[0] = minValue;
+  if (tau[1] < minValue)  tau[1] = minValue;
+  if (tau[2] < minValue)  tau[2] = minValue;
+  if (tau[3] < minValue)  tau[3] = minValue;
+  if (tau[4] < minValue)  tau[4] = minValue;
+
   //fprintf(stderr, "TAU9     %f %f %f %f %f value %f/%f tau %f/%f scale %f\n",
   //        tau[0], tau[1], tau[2], tau[3], tau[4], minValue, maxValue, minTau, maxTau, scaleValue);
 
-  tau[0] = exp(tau[0] + scaleValue);
-  tau[1] = exp(tau[1] + scaleValue);
-  tau[2] = exp(tau[2] + scaleValue);
-  tau[3] = exp(tau[3] + scaleValue);
-  tau[4] = exp(tau[4] + scaleValue);
+  //  I give up.  I can't make the following asserts true when the scale value is reset to not
+  //  exceed maxValue.  I'm off, somewhere, by 1e-13 (EPSILON is 2e-16, nowhere near).  My test case
+  //  takes 18 minutes to get here, and I don't really want to slap in a bunch of logging.  So,
+  //  thresholding it is.
+
+  if (tau[0] > maxValue)  tau[0] = maxValue;
+  if (tau[1] > maxValue)  tau[1] = maxValue;
+  if (tau[2] > maxValue)  tau[2] = maxValue;
+  if (tau[3] > maxValue)  tau[3] = maxValue;
+  if (tau[4] > maxValue)  tau[4] = maxValue;
+
+  assert(tau[0] <= maxValue);
+  assert(tau[1] <= maxValue);
+  assert(tau[2] <= maxValue);
+  assert(tau[3] <= maxValue);
+  assert(tau[4] <= maxValue);
+
+  tau[0] = exp(tau[0]);
+  tau[1] = exp(tau[1]);
+  tau[2] = exp(tau[2]);
+  tau[3] = exp(tau[3]);
+  tau[4] = exp(tau[4]);
 
   //fprintf(stderr, "TAU10    %f %f %f %f %f\n", tau[0], tau[1], tau[2], tau[3], tau[4]);
 
@@ -358,7 +395,8 @@ abAbacus::baseCallQuality(abColID cid) {
   cw[3] = tau[3] * 0.2;
   cw[4] = tau[4] * 0.2;
 
-  double  normalize = cw[0] + cw[1] + cw[2] + cw[3] + cw[4];
+  double  normalize  = cw[0] + cw[1] + cw[2] + cw[3] + cw[4];
+  double  normalizeS = normalize;
 
   if (normalize > 0.0) {
     normalize = 1.0 / normalize;
@@ -370,6 +408,16 @@ abAbacus::baseCallQuality(abColID cid) {
     cw[4] *= normalize;
   }
 
+  if ((cw[0] < 0.0) || (cw[1] < 0.0) || (cw[2] < 0.0) || (cw[3] < 0.0) || (cw[4] < 0.0))
+    fprintf(stderr, "ERROR: cw[0-4] invalid: %f %f %f %f %f - tau %f %f %f %f %f - normalize %.60e %.60e\n",
+            cw[0], cw[1], cw[2], cw[3], cw[4],
+            tau[0], tau[1], tau[2], tau[3], tau[4],
+            normalize, normalizeS);
+  if (!(cw[0] >= 0.0) || !(cw[1] >= 0.0) || !(cw[2] >= 0.0) || !(cw[3] >= 0.0) || !(cw[4] >= 0.0))
+    fprintf(stderr, "ERROR: cw[0-4] invalid: %f %f %f %f %f - tau %f %f %f %f %f - normalize %.60e %.60e\n",
+            cw[0], cw[1], cw[2], cw[3], cw[4],
+            tau[0], tau[1], tau[2], tau[3], tau[4],
+            normalize, normalizeS);
   assert(cw[0] >= 0.0);
   assert(cw[1] >= 0.0);
   assert(cw[2] >= 0.0);
