@@ -832,9 +832,8 @@ unitigConsensus::rebuild(bool recomputeFullConsensus, bool display) {
 
   piid = -1;
 
-#warning NOT DISPLAYING
-  //if (display)
-  //  abacus->getMultiAlign(multialign)->display(abacus, stderr);
+  if (display)
+    abacus->getMultiAlign(multialign)->display(abacus, stderr);
 }
 
 
@@ -985,8 +984,8 @@ unitigConsensus::alignFragment(void) {
                        (alignFound            == true) &&
                        (oaFull->processHits() == true)); na++) {
 
-      //if (showAlignments())
-      //  oaFull->display(true);
+      if (showAlignments())
+        oaFull->display("unitigConsensus::alignFragment()--", true);
 
       //  Fix up non-dovetail alignments?  Nope, just skip them for now.  Eventually, we'll want to
       //  accept these (if long enough) by trimming the read.  To keep the unitig connected, we
@@ -1008,10 +1007,10 @@ unitigConsensus::alignFragment(void) {
         oaFull->realignForward(showAlgorithm(), showAlignments());
 #else
       oaFull->realignBackward(showAlgorithm(), showAlignments());
-      oaFull->realignForward(showAlgorithm(), showAlignments());
+      oaFull->realignForward (showAlgorithm(), showAlignments());
 #endif
 
-      if (oaFull->scanDeltaForBadness(true /*showAlgorithm()*/ ) == true) {
+      if (oaFull->scanDeltaForBadness(showAlgorithm(), showAlignments()) == true) {
         if (showAlgorithm())
           fprintf(stderr, "unitigConsensus::alignFragment()-- alignment still bad, continue to next seed\n");
         continue;
@@ -1099,7 +1098,8 @@ unitigConsensus::alignFragment(void) {
     ALNoverlap  *O           = NULL;
     int32        minlen      = minOverlap;
 
-    fprintf(stderr, "Begin Optimal_Overlap_AS_forCNS\n");
+    if (showAlgorithm())
+      fprintf(stderr, "unitigConsensus::alignFragment()-- Fall back to Optimal_Overlap_AS_forCNS\n");
 
     if (O == NULL) {
       O = Optimal_Overlap_AS_forCNS(aseq,
