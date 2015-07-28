@@ -381,6 +381,18 @@ abAbacus::applyAlignment(abSeqID   afid,
     goto loadInitial;
 
 
+  //  Skip any positive traces at the start.  These are template sequence aligned to gaps in the
+  //  read, but we don't care because there isn't any read aligned yet.
+
+  while ((trace != NULL) && (*trace != 0) && (*trace == 1)) {
+#ifdef DEBUG_ABACUS_ALIGN
+    fprintf(stderr, "trace=%d  apos=%d alen=%d bpos=%d blen=%d - SKIP INITIAL GAP IN READ\n", *trace, apos, alen, bpos, blen);
+#endif
+    apos++;
+    trace++;
+  }
+
+
   while ((trace != NULL) && (*trace != 0)) {
 
 #ifdef DEBUG_ABACUS_ALIGN
@@ -399,8 +411,8 @@ abAbacus::applyAlignment(abSeqID   afid,
       assert(apos < alen);
       assert(bpos < blen);
 
-      //  Hmmm.  Occasionally we don't do alignPositions() above on the first thing -- the alignment
-      //  starts with a gap??!  See below for an example.
+      //  Handle an initial -1 trace.  This bypasses the alignPosition above, which results in an
+      //  invalid lasta.
 
       if ((lasta.isInvalid()) || (bpos == 0)) {
         assert(lasta.isInvalid());
@@ -416,8 +428,6 @@ abAbacus::applyAlignment(abSeqID   afid,
         lasta = getBead(lasta)->nextID();
         lastb = bindex[bpos];
       }
-
-      //  lasta should be 'aindex[apos]->prev'.
 
       assert(lasta == getBead(aindex[apos])->prev);
 
@@ -437,20 +447,12 @@ abAbacus::applyAlignment(abSeqID   afid,
       assert(apos < alen);
       assert(bpos < blen);
 
-      //  Hmmm.  Occasionally we don't do alignPositions() above on the first thing -- the alignment
-      //  starts with a gap??!  Sure:
-      //
-      //   ttaaaat.....
-      //  n-taaaat.....
-      //
-      //  The negative ahang triggers code above, which adds a new
-      //  column.  lasta is still invalid because there is no last column
-      //  for a.
-      //
-      //  As of July 2015, this is still a problem if the alignment starts with a bunch of gaps
-      //  in the read.
+      //  Unlike the *trace < 0 case, we have already removed the initial +1 trace elements, so
+      //  alignPosition() is always called, and lasta is always valid.
 
-      lasta = (lasta.isInvalid()) ? aindex[apos] : getBead(lasta)->nextID();
+      assert(lasta.isInvalid() == false);
+
+      lasta = getBead(lasta)->nextID();
       lastb = appendGapBead(lastb);
 
       assert(lasta == aindex[apos]);
@@ -462,7 +464,7 @@ abAbacus::applyAlignment(abSeqID   afid,
       apos++;
 
       //  Continue aligning to existing gap columns in A.  Duplication from alignPosition.
-      //
+
       alignGaps(this, aindex, apos, alen, bindex, bpos, blen, lasta, lastb);
     }
 
