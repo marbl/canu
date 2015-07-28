@@ -156,8 +156,6 @@ NDalgorithm::Extend_Alignment(Match_Node_t *Match,
           Right_Delta_Len, rMatchToEnd ? "true" : "false");
 #endif
 
-  //  Check the result.  Just checking for overflow, not quality.
-
   //  Merge the deltas.
 
   if (Right_Delta_Len > 0) {
