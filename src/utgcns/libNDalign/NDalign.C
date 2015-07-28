@@ -635,7 +635,7 @@ NDalign::processHits(void) {
 //  so a block of too much gap will have N delta values with small values.
 //
 bool
-NDalign::scanDeltaForBadness(bool verbose) {
+NDalign::scanDeltaForBadness(bool verbose, bool showAlign) {
   double  ema       = 0.0;
   double  alpha     = 0.001;  //  Smaller will increase the averaging length
 
@@ -659,7 +659,9 @@ NDalign::scanDeltaForBadness(bool verbose) {
   if ((verbose == true) && (badBlocks > 0)) {
     fprintf(stderr, "NDalign::scanForDeltaBadness()--  Potential bad alignment: found %d bad out of "F_U64" blocks (alpha %f)\n",
             badBlocks, blockAverages.size(), alpha);
-    display("NDalign::scanForDeltaBadness()-- ", true);
+
+    if (showAlign == true)
+      display("NDalign::scanForDeltaBadness()-- ", true);
   }
 
   return(badBlocks > 0);
@@ -716,6 +718,7 @@ NDalign::realignForward(bool verbose, bool displayAlign) {
             length(), erate(), score(), abgn(), aend(), bbgn(), bend());
     fprintf(stderr, "NDalign::realignForward()-- Alignment no better   - NEW length %u erate %f score %u (%d-%d %d-%d)\n",
             ((aHi - aLo) + (bHi - bLo) + _editDist->Left_Delta_Len) / 2, 0.0, _editDist->score(), aLo, aHi, bLo, bHi);
+    display("NDalign::realignForward(NB)--", aLo, aHi, bLo, bHi, _editDist->Left_Delta, _editDist->Left_Delta_Len, true, false);
   }
 }
 
@@ -769,6 +772,7 @@ NDalign::realignBackward(bool verbose, bool displayAlign) {
             length(), erate(), score(), abgn(), aend(), bbgn(), bend());
     fprintf(stderr, "NDalign::realignBackward()-- Alignment no better   - NEW length %u erate %f score %u (%d-%d %d-%d)\n",
             ((aHi - aLo) + (bHi - bLo) + _editDist->Left_Delta_Len) / 2, 0.0, _editDist->score(), aLo, aHi, bLo, bHi);
+    display("NDalign::realignBackward(NB)--", aLo, aHi, bLo, bHi, _editDist->Left_Delta, _editDist->Left_Delta_Len, true, false);
   }
 }
 
@@ -778,12 +782,17 @@ NDalign::realignBackward(bool verbose, bool displayAlign) {
 
 
 void
-NDalign::display(char *prefix, bool displayIt) {
+NDalign::display(char    *prefix,
+                 int32    aLo,   int32   aHi,
+                 int32    bLo,   int32   bHi,
+                 int32   *delta, int32   deltaLen,
+                 bool     displayIt,
+                 bool     saveStats) {
 
-  _matches    = 0;
-  _errors     = 0;
-  _gapmatches = 0;
-  _freegaps   = 0;
+  uint32 matches    = 0;
+  uint32 errors     = 0;
+  uint32 gapmatches = 0;
+  uint32 freegaps   = 0;
 
   if (_topDisplay == NULL) {
     _topDisplay = new char [2 * AS_MAX_READLEN + 1];
@@ -791,11 +800,11 @@ NDalign::display(char *prefix, bool displayIt) {
     _resDisplay = new char [2 * AS_MAX_READLEN + 1];
   }
 
-  char *a      = astr() + _bestResult._aLo;
-  int32 a_len = _bestResult._aHi - _bestResult._aLo;
+  char *a      = astr() + aLo;
+  int32 a_len = aHi - aLo;
 
-  char *b      = bstr() + _bestResult._bLo;
-  int32 b_len = _bestResult._bHi - _bestResult._bLo;
+  char *b      = bstr() + bLo;
+  int32 b_len = bHi - bLo;
 
   int32 top_len = 0;
 
@@ -803,13 +812,13 @@ NDalign::display(char *prefix, bool displayIt) {
     int32 i = 0;
     int32 j = 0;
 
-    for (int32 k = 0;  k < deltaLen();  k++) {
-      for (int32 m = 1;  m < abs (delta()[k]);  m++) {
+    for (int32 k = 0;  k < deltaLen;  k++) {
+      for (int32 m = 1;  m < abs (delta[k]);  m++) {
         _topDisplay[top_len++] = a[i++];
         j++;
       }
 
-      if (delta()[k] < 0) {
+      if (delta[k] < 0) {
         _topDisplay[top_len++] = '-';
         j++;
 
@@ -833,13 +842,13 @@ NDalign::display(char *prefix, bool displayIt) {
     int32 i = 0;
     int32 j = 0;
 
-    for (int32 k = 0;  k < deltaLen();  k++) {
-      for (int32 m = 1;  m < abs (delta()[k]);  m++) {
+    for (int32 k = 0;  k < deltaLen;  k++) {
+      for (int32 m = 1;  m < abs (delta[k]);  m++) {
         _botDisplay[bot_len++] = b[j++];
         i++;
       }
 
-      if (delta()[k] > 0) {
+      if (delta[k] > 0) {
         _botDisplay[bot_len++] = '-';
         i++;
         
@@ -869,55 +878,73 @@ NDalign::display(char *prefix, bool displayIt) {
       //  A minor-allele match if the lower case matches, but upper case doesn't
       if      ((t == b) && (T != B)) {
         _resDisplay[i] = '\'';
-        _gapmatches++;
+        gapmatches++;
       }
 
       //  A free-gap if either is lowercase
       else if (((t == T) && (b == '-')) ||  //  T is lowercase, B is a gap
                ((b == B) && (t == '-'))) {  //  B is lowercase, T is a gap
         _resDisplay[i] = '-';
-        _freegaps++;
+        freegaps++;
       }
 
       //  A match if the originals match
       else if ((t == b) && (T == B)) {
         _resDisplay[i] = ' ';
-        _matches++;
+        matches++;
       }
 
       //  Otherwise, an error
       else {
         _resDisplay[i] = '^';
-        _errors++;
+        errors++;
       }
     }
 
     _resDisplay[ max(top_len, bot_len) ] = 0;
   }
 
-  //  Not showing?  Done.
+  //  Really display it?
 
-  if (displayIt == false)
-    return;
+  if (displayIt == true) {
+    for (int32 i=0; (i < top_len) || (i < bot_len); i += DISPLAY_WIDTH) {
+      fprintf(stderr, "%s%d\n", prefix, i);
 
-  //  We're displaying, so show it.
+      fprintf(stderr, "%sA: ", prefix);
+      for (int32 j=0;  (j < DISPLAY_WIDTH) && (i+j < top_len);  j++)
+        putc(_topDisplay[i+j], stderr);
+      fprintf(stderr, "\n");
 
-  for (int32 i=0; (i < top_len) || (i < bot_len); i += DISPLAY_WIDTH) {
-    fprintf(stderr, "%s%d\n", prefix, i);
+      fprintf(stderr, "%sB: ", prefix);
+      for (int32 j=0; (j < DISPLAY_WIDTH) && (i+j < bot_len); j++)
+        putc(_botDisplay[i+j], stderr);
+      fprintf(stderr, "\n");
 
-    fprintf(stderr, "%sA: ", prefix);
-    for (int32 j=0;  (j < DISPLAY_WIDTH) && (i+j < top_len);  j++)
-      putc(_topDisplay[i+j], stderr);
-    fprintf(stderr, "\n");
-
-    fprintf(stderr, "%sB: ", prefix);
-    for (int32 j=0; (j < DISPLAY_WIDTH) && (i+j < bot_len); j++)
-      putc(_botDisplay[i+j], stderr);
-    fprintf(stderr, "\n");
-
-    fprintf(stderr, "%s   ", prefix);
-    for (int32 j=0; (j<DISPLAY_WIDTH) && (i+j < bot_len) && (i+j < top_len); j++)
-      putc(_resDisplay[i+j], stderr);
-    fprintf(stderr, "\n");
+      fprintf(stderr, "%s   ", prefix);
+      for (int32 j=0; (j<DISPLAY_WIDTH) && (i+j < bot_len) && (i+j < top_len); j++)
+        putc(_resDisplay[i+j], stderr);
+      fprintf(stderr, "\n");
+    }
   }
+
+  //  Update statistics?  Avoid a whole ton of if statements by always counting then changing only here.
+
+  if (saveStats) {
+    _matches    = matches;
+    _errors     = errors;
+    _gapmatches = gapmatches;
+    _freegaps   = freegaps;
+  }
+}
+
+
+
+void
+NDalign::display(char *prefix, bool displayIt) {
+  display(prefix,
+          _bestResult._aLo,   _bestResult._aHi,
+          _bestResult._bLo,   _bestResult._bHi,
+          _bestResult._delta, _bestResult._deltaLen,
+          displayIt,
+          true);
 }
