@@ -61,7 +61,7 @@ sub utgcns ($$$) {
     print F "\n";
     print F "jobid=`printf %04d \$jobid`\n";
     print F "\n";
-    print F "if [ -e $wrk/5-consensus/${asm}_\$jobid.cns ] ; then\n";
+    print F "if [ -e $wrk/5-consensus/\$jobid.cns ] ; then\n";
     print F "  exit 0\n";
     print F "fi\n";
     print F "\n";
@@ -74,13 +74,6 @@ sub utgcns ($$$) {
     print F "  -L $wrk/5-consensus/\$jobid.layout.WORKING \\\n";
     print F "  -F $wrk/5-consensus/\$jobid.fastq.WORKING \\\n";
     print F "  -maxcoverage " . getGlobal('cnsMaxCoverage') . " \\\n";
-    #print F "&& \\\n";
-    #print F "\$bin/utgcnsfix \\\n";
-    #print F "  -G $wrk/$asm.gkpStore \\\n";
-    #print F "  -T $wrk/$asm.tigStore 2 \$jobid \\\n";
-    #print F "  -O $wrk/5-consensus/${asm}_\$jobid.fixes \\\n";
-    #print F "  -L $wrk/5-consensus/${asm}_\$jobid.fixes \\\n";
-    #print F "> $wrk/5-consensus/${asm}_\$jobid.fix.err 2>&1";
     print F "&& \\\n";
     print F "mv $wrk/5-consensus/\$jobid.cns.WORKING $wrk/5-consensus/\$jobid.cns \\\n";
     print F "&& \\\n";
@@ -145,7 +138,7 @@ sub pbdagcon ($$$) {
     print F "\n";
     print F "jobid=`printf %04d \$jobid`\n";
     print F "\n";
-    print F "if [ -e $wrk/5-consensus/${asm}_\$jobid.cns ] ; then\n";
+    print F "if [ -e $wrk/5-consensus/\$jobid.cns ] ; then\n";
     print F "  exit 0\n";
     print F "fi\n";
     print F "\n";
