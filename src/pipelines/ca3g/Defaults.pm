@@ -1191,8 +1191,8 @@ sub setDefaults () {
     $global{"corMaxEvidenceCoverageGlobal"}= "1.0x";
     $synops{"corMaxEvidenceCoverageGlobal"}= "Limit reads used for correction to supporting at most this coverage; default: 1.0 * estimated coverage";
 
-    $global{"corMaxEvidenceCoverageLocal"} = "1.5x";
-    $synops{"corMaxEvidenceCoverageLocal"} = "Limit reads being corrected to at most this much evidence coverage; default: 1.5 * estimated coverage";
+    $global{"corMaxEvidenceCoverageLocal"} = "10x";
+    $synops{"corMaxEvidenceCoverageLocal"} = "Limit reads being corrected to at most this much evidence coverage; default: 10 * estimated coverage";
 
     $global{"corOutCoverage"}              = 40;
     $synops{"corOutCoverage"}              = "Only correct the longest reads up to this coverage; default 40";
