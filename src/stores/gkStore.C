@@ -436,8 +436,47 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
 
   //  Check sizes are correct.
 
-  assert(_info.gkLibrarySize == sizeof(gkLibrary));
-  assert(_info.gkReadSize    == sizeof(gkRead));
+  uint32  failed = 0;
+
+  if (_info.gkLibrarySize      != sizeof(gkLibrary))
+    failed += fprintf(stderr, "ERROR:  gkLibrary size in store = %u, differs from executable = %u\n",
+                      _info.gkLibrarySize, sizeof(gkLibrary));
+
+  if (_info.gkReadSize         != sizeof(gkRead))
+    failed += fprintf(stderr, "ERROR:  gkRead size in store = %u, differs from executable = %u\n",
+                      _info.gkReadSize, sizeof(gkRead));
+
+  if (_info.gkMaxLibrariesBits != AS_MAX_LIBRARIES_BITS)
+    failed += fprintf(stderr, "ERROR:  AS_MAX_LIBRARIES_BITS in store = %u, differs from executable = %u\n",
+                      _info.gkMaxLibrariesBits, AS_MAX_LIBRARIES_BITS);
+
+  if (_info.gkLibraryNameSize  != LIBRARY_NAME_SIZE)
+    failed += fprintf(stderr, "ERROR:  LIBRARY_NAME_SIZE in store = %u, differs from executable = %u\n",
+                      _info.gkLibraryNameSize, LIBRARY_NAME_SIZE);
+
+  if (_info.gkMaxReadBits      != AS_MAX_READS_BITS)
+    failed += fprintf(stderr, "ERROR:  AS_MAX_READS_BITS in store = %u, differs from executable = %u\n",
+                      _info.gkMaxReadBits, AS_MAX_READS_BITS);
+
+  if (_info.gkMaxReadLenBits   != AS_MAX_READLEN_BITS)
+    failed += fprintf(stderr, "ERROR:  AS_MAX_READLEN_BITS in store = %u, differs from executable = %u\n",
+                      _info.gkMaxReadLenBits, AS_MAX_READLEN_BITS);
+
+  if (_info.gkBlobBlockSize    != BLOB_BLOCK_SIZE)
+    failed += fprintf(stderr, "ERROR:  BLOB_BLOCK_SIZE in store = %u, differs from executable = %u\n",
+                      _info.gkBlobBlockSize, BLOB_BLOCK_SIZE);
+
+  if (failed)
+    fprintf(stderr, "ERROR:\nERROR:  Can't open store '%s': parameters in src/AS_global.H are incompatible with the store.\n", _storePath), exit(1);
+
+  assert(_info.gkLibrarySize      == sizeof(gkLibrary));
+  assert(_info.gkReadSize         == sizeof(gkRead));
+
+  assert(_info.gkMaxLibrariesBits == AS_MAX_LIBRARIES_BITS);
+  assert(_info.gkLibraryNameSize  == LIBRARY_NAME_SIZE);
+  assert(_info.gkMaxReadBits      == AS_MAX_READS_BITS);
+  assert(_info.gkMaxReadLenBits   == AS_MAX_READLEN_BITS);
+  assert(_info.gkBlobBlockSize    == BLOB_BLOCK_SIZE);
 
   //  Clear ourself, to make valgrind happier.
 
