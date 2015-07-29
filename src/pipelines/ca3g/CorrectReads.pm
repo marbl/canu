@@ -85,14 +85,14 @@ sub buildCorrectionLayouts_direct ($$) {
 
     if (! -e "$wrk/$asm.corStore") {
         $cmd  = "$bin/generateCorrectionLayouts \\\n";
-        $cmd .= "  -rl $path/$asm.readsToCorrect \\\n"         if (-e "$path/$asm.readsToCorrect");
+        $cmd .= "  -rl $path/$asm.readsToCorrect \\\n"                 if (-e "$path/$asm.readsToCorrect");
         $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
         $cmd .= "  -O $wrk/$asm.ovlStore \\\n";
-        $cmd .= "  -S $path/$asm.globalScores \\\n"            if (-e "$path/$asm.globalScores");
+        $cmd .= "  -S $path/$asm.globalScores \\\n"                    if (-e "$path/$asm.globalScores");
         $cmd .= "  -T $wrk/$asm.corStore.WORKING \\\n";
         $cmd .= "  -L " . getGlobal("corMinEvidenceLength") . " \\\n"  if (defined(getGlobal("corMinEvidenceLength")));
         $cmd .= "  -E " . getGlobal("corMaxEvidenceErate")  . " \\\n"  if (defined(getGlobal("corMaxEvidenceErate")));
-        $cmd .= "  -C $maxCov \\\n";
+        $cmd .= "  -C $maxCov \\\n"                                    if (defined($maxCov));
         $cmd .= "> $wrk/$asm.corStore.err 2>&1";
 
         if (runCommand($wrk, $cmd)) {
@@ -264,13 +264,13 @@ sub buildCorrectionLayouts_piped ($$) {
     my $maxCov   = getCorCov($wrk, $asm, "Local");
 
     print F "$bin/generateCorrectionLayouts -b \$bgn -e \$end \\\n";
-    print F "  -rl $path/$asm.readsToCorrect \\\n"         if (-e "$path/$asm.readsToCorrect");
+    print F "  -rl $path/$asm.readsToCorrect \\\n"                 if (-e "$path/$asm.readsToCorrect");
     print F "  -G $wrk/$asm.gkpStore \\\n";
     print F "  -O $wrk/$asm.ovlStore \\\n";
-    print F "  -S $path/$asm.globalScores \\\n"            if (-e "$path/$asm.globalScores");
+    print F "  -S $path/$asm.globalScores \\\n"                    if (-e "$path/$asm.globalScores");
     print F "  -L " . getGlobal("corMinEvidenceLength") . " \\\n"  if (defined(getGlobal("corMinEvidenceLength")));
     print F "  -E " . getGlobal("corMaxEvidenceErate")  . " \\\n"  if (defined(getGlobal("corMaxEvidenceErate")));
-    print F "  -C $maxCov \\\n";
+    print F "  -C $maxCov \\\n"                                    if (defined($maxCov));
     print F "  -F \\\n";
     print F "| \\\n";
     print F getGlobal("falconSense") . " \\\n";
@@ -365,7 +365,7 @@ sub expensiveFilter ($$) {
         $cmd .= "  -S $path/$asm.globalScores \\\n"                    if (-e "$path/$asm.globalScores");
         $cmd .= "  -L " . getGlobal("corMinEvidenceLength") . " \\\n"  if (defined(getGlobal("corMinEvidenceLength")));
         $cmd .= "  -E " . getGlobal("corMaxEvidenceErate")  . " \\\n"  if (defined(getGlobal("corMaxEvidenceErate")));
-        $cmd .= "  -C $maxCov \\\n";
+        $cmd .= "  -C $maxCov \\\n"                                    if (defined($maxCov));
         $cmd .= "  -p $path/$asm.estimate";
 
         if (runCommand($wrk, $cmd)) {
