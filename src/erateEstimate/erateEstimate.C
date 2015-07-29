@@ -280,9 +280,9 @@ recomputeErrorProfile(gkStore           *gkpStore,
                       ESToverlap        *overlaps,
                       readErrorEstimate *readProfile,
                       uint32             iter) {
-  uint32      nDiscarded   = 0;
-  uint32      nDiscard     = 0;
-  uint32      nRemain      = 0;
+  uint64      nDiscarded   = 0;
+  uint64      nDiscard     = 0;
+  uint64      nRemain      = 0;
 
   fprintf(stderr, "Processing from IID "F_U32" to "F_U32" out of "F_U32" reads, iteration %u.\n",
           iidMin,
@@ -381,9 +381,9 @@ recomputeErrorProfile(gkStore           *gkpStore,
   //  Report stats.
 
   fprintf(stderr, "\n");
-  fprintf(stderr, "nDiscarded %u (in previous iterations)\n", nDiscarded);
-  fprintf(stderr, "nDiscard   %u (in this iteration)\n", nDiscard);
-  fprintf(stderr, "nRemain    %u\n", nRemain);
+  fprintf(stderr, "nDiscarded "F_U64" (in previous iterations)\n", nDiscarded);
+  fprintf(stderr, "nDiscard   "F_U64" (in this iteration)\n", nDiscard);
+  fprintf(stderr, "nRemain    "F_U64"\n", nRemain);
 }
 
 
@@ -401,8 +401,8 @@ outputOverlaps(gkStore           *gkpStore,
                ESToverlap        *overlaps,
                readErrorEstimate *readProfile,
                char              *outputName) {
-  uint32      nDiscarded   = 0;
-  uint32      nRemain      = 0;
+  uint64      nDiscarded   = 0;
+  uint64      nRemain      = 0;
 
   //  Open the original and output stores.  We copy overlaps from the original to the copy, instead
   //  of recreating overlaps from our cache.  The cache doesn't have all the overlap information.
@@ -484,8 +484,8 @@ outputOverlaps(gkStore           *gkpStore,
   delete inpStore;
 
   fprintf(stderr, "\n");
-  fprintf(stderr, "nDiscarded %u (in previous iterations)\n", nDiscarded);
-  fprintf(stderr, "nRemain    %u\n", nRemain);
+  fprintf(stderr, "nDiscarded "F_U64" (in previous iterations)\n", nDiscarded);
+  fprintf(stderr, "nRemain    "F_U64"\n", nRemain);
 }
 
 
