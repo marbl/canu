@@ -853,17 +853,17 @@ BestOverlapGraph::reportBestEdges(void) {
       BestEdgeOverlap *bestedge3 = getBestEdgeOverlap(id, true);
 
       if (bestcont->isContained) {
-        double  erate = 100.0 * OC->findErate(id, bestcont->container);
+        double  erate = OC->findErate(id, bestcont->container);
 
-        fprintf(BC, "%u\t%u\t%c\t%u\t%.2f\n", id, FI->libraryIID(id),
+        fprintf(BC, "%u\t%u\t%c\t%u\t%6.4f\n", id, FI->libraryIID(id),
                 (FI->mateIID(id) > 0) ? 'm' : 'f', bestcont->container, erate);
       }
 
       else if ((bestedge5->fragId() > 0) || (bestedge3->fragId() > 0)) {
-        double  erate5 = 100.0 * OC->findErate(id, bestedge5->fragId());
-        double  erate3 = 100.0 * OC->findErate(id, bestedge3->fragId());
+        double  erate5 = OC->findErate(id, bestedge5->fragId());
+        double  erate3 = OC->findErate(id, bestedge3->fragId());
 
-        fprintf(BE, "%u\t%u\t%u\t%c'\t%u\t%c'\t%.2f\t%.2f\n", id, FI->libraryIID(id),
+        fprintf(BE, "%u\t%u\t%u\t%c'\t%u\t%c'\t%6.4f\t%6.4f\n", id, FI->libraryIID(id),
                 bestedge5->fragId(), bestedge5->frag3p() ? '3' : '5',
                 bestedge3->fragId(), bestedge3->frag3p() ? '3' : '5',
                 erate5, erate3);
