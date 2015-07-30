@@ -31,9 +31,6 @@ static char *rcsid = "$Id$";
 using namespace std;
 
 
-//  If defined, failure to align a read causes immediate crash.
-#undef FAILURE_IS_FATAL
-
 
 //  Define this.  Use the faster aligner from overlapper.  If not defined,
 //  a full O(n^2) DP is computed.
@@ -139,7 +136,7 @@ unitigConsensus::reportSuccess(uint32 *failed) {
 bool
 unitigConsensus::generate(tgTig     *tig_,
                           uint32    *failed_) {
-  bool               failuresToFix      = false;
+  //bool  failuresToFix = false;
 
   tig      = tig_;
   numfrags = tig->numberOfChildren();
@@ -158,38 +155,7 @@ unitigConsensus::generate(tgTig     *tig_,
     if (computePositionFromLayout()    && alignFragment())  goto applyAlignment;
     if (computePositionFromAlignment() && alignFragment())  goto applyAlignment;
 
-    //  Second attempt, higher error rate.
-
-#if 0
-    if (showAlgorithm())
-      fprintf(stderr, "generateMultiAlignment()-- increase allowed error rate from %f to %f\n", errorRate, MIN(errorRateMax, 2.0 * errorRate));
-
-    setErrorRate(MIN(errorRateMax, 2.0 * errorRate));
-
-    if (computePositionFromAnchor()    && alignFragment())  goto applyAlignment;
-    if (computePositionFromLayout()    && alignFragment())  goto applyAlignment;
-    if (computePositionFromAlignment() && alignFragment())  goto applyAlignment;
-
-    setErrorRate(errorRate);
-
-    //  Third attempt, thinner overlaps.  These come from bogart repeat splitting, it apanchorly
-    //  doesn't enforce the minimum overlap length in those unitugs.
-
-    while (minOverlap > 40) {
-      if (showAlgorithm())
-        fprintf(stderr, "generateMultiAlignment()-- decrease minimum overlap from %d to %d\n", minOverlap, MAX(40, minOverlap / 2));
-
-      setMinOverlap(MAX(40, minOverlap / 2));
-
-      if (computePositionFromAnchor()    && alignFragment())  goto applyAlignment;
-      if (computePositionFromLayout()    && alignFragment())  goto applyAlignment;
-      if (computePositionFromAlignment() && alignFragment())  goto applyAlignment;
-    }
-
-    setMinOverlap(minOverlap);
-#endif
-
-    //  Fourth attempt, default parameters after recomputing consensus sequence.
+    //  Second attempt, default parameters after recomputing consensus sequence.
 
     if (showAlgorithm())
       fprintf(stderr, "generateMultiAlignment()-- recompute full consensus\n");
@@ -200,31 +166,10 @@ unitigConsensus::generate(tgTig     *tig_,
     if (computePositionFromLayout()    && alignFragment())  goto applyAlignment;
     if (computePositionFromAlignment() && alignFragment())  goto applyAlignment;
 
-    //  Final attempt, higher error rate.
-
-#if 0
-    if (showAlgorithm())
-      fprintf(stderr, "generateMultiAlignment()-- increase allowed error rate from %f to %f\n", errorRate, MIN(errorRateMax, 4.0 * errorRate));
-
-    setErrorRate(MIN(errorRateMax, 4.0 * errorRate));
-
-    if (computePositionFromAnchor()    && alignFragment())  goto applyAlignment;
-    if (computePositionFromLayout()    && alignFragment())  goto applyAlignment;
-    if (computePositionFromAlignment() && alignFragment())  goto applyAlignment;
-
-    //  Failed to align the fragment.  Dang.
-
-    setErrorRate(errorRate);
-#endif
-
-
-#ifdef FAILURE_IS_FATAL
-    fprintf(stderr, "FAILED TO ALIGN FRAG.  DIE.\n");
-    assert(0);
-#endif
+    //  Nope, failed to align.
 
     reportFailure(failed_);
-    failuresToFix = true;
+    //failuresToFix = true;
     continue;
 
   applyAlignment:
@@ -234,10 +179,14 @@ unitigConsensus::generate(tgTig     *tig_,
     reportSuccess(failed_);
     applyAlignment();
     rebuild(false, showMultiAlignments());
+
+    //  As long as the last read aligns, we aren't a failure.  Not the greatest way to detect if a
+    //  unitig became disconnected, but easy.
+    //failuresToFix = false;
   }
 
-  if (failuresToFix)
-    goto returnFailure;
+  //if (failuresToFix)
+  //  goto returnFailure;
 
   generateConsensus();
   exportToTig();
@@ -743,12 +692,13 @@ unitigConsensus::rebuild(bool recomputeFullConsensus, bool display) {
 
   frankensteinLen = 0;
 
-#warning why are we rebuilding columnList here?
-
   while (cid.isValid()) {
     abColumn *column = abacus->getColumn(cid);
 
-    column->CheckBaseCounts(abacus);
+    //  This is massively expensive!  It iterates over every bead in the column,
+    //  summing the counts.  Really, it does what it says: it recomputes the base
+    //  counts and compares against the saved version.
+    //column->CheckBaseCounts(abacus);
 
     int32   nA = column->GetColumnBaseCount('A');
     int32   nC = column->GetColumnBaseCount('C');
@@ -767,31 +717,23 @@ unitigConsensus::rebuild(bool recomputeFullConsensus, bool display) {
     if (nC > nn) { nn = nC;  call = 'C'; }
     if (nG > nn) { nn = nG;  call = 'G'; }
     if (nT > nn) { nn = nT;  call = 'T'; }
-    //if (nN > nn) { nn = nN;  call = 'N'; }
-    //if (n_ > nn) { nn = n_;  call = 'N'; }
 
     //  Call should have been a gap, but we'll instead pick the most prevalant base, but lowercase
     //  it.  This is used by the dynamic programming alignment.
     if (n_ > nn)
       call = tolower(call);
 
-    assert(call != '-');
-
     abacus->setBase(bead->baseIdx(), call);
 
-    while (frankensteinLen >= frankensteinMax) {
+    while (frankensteinLen >= frankensteinMax)
       resizeArrayPair(frankenstein, frankensteinBof, frankensteinLen, frankensteinMax, frankensteinMax * 2);
-      //frankensteinMax *= 2;
-      //frankenstein     = (char    *)safe_realloc(frankenstein,    sizeof(char)    * frankensteinMax);
-      //frankensteinBof  = (beadIdx *)safe_realloc(frankensteinBof, sizeof(beadIdx) * frankensteinMax);
-    }
+
     assert(frankensteinLen < frankensteinMax);
 
     frankenstein   [frankensteinLen] = call;
     frankensteinBof[frankensteinLen] = bead->ident();
     frankensteinLen++;
 
-    //  This is extracted from RefreshMANode()
     column->position() = index++;
 
     ma->columns().push_back(cid);
