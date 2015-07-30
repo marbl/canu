@@ -703,7 +703,7 @@ NDalign::realignForward(bool verbose, bool displayAlign) {
 
     _bestResult.save(aLo, aHi, bLo, bHi, _editDist->score(), olapType, _editDist->Left_Delta_Len, _editDist->Left_Delta);
 
-    display("NDalign::realignForward()-- ", displayAlign);
+    display("NDalign::realignForward()-- ", false);
     
     _bestResult.setErate(1.0 - (double)(_matches + _gapmatches) / (length() - _freegaps));
 
@@ -718,7 +718,7 @@ NDalign::realignForward(bool verbose, bool displayAlign) {
             length(), erate(), score(), abgn(), aend(), bbgn(), bend());
     fprintf(stderr, "NDalign::realignForward()-- Alignment no better   - NEW length %u erate %f score %u (%d-%d %d-%d)\n",
             ((aHi - aLo) + (bHi - bLo) + _editDist->Left_Delta_Len) / 2, 0.0, _editDist->score(), aLo, aHi, bLo, bHi);
-    display("NDalign::realignForward(NB)--", aLo, aHi, bLo, bHi, _editDist->Left_Delta, _editDist->Left_Delta_Len, true, false);
+    //display("NDalign::realignForward(NB)--", aLo, aHi, bLo, bHi, _editDist->Left_Delta, _editDist->Left_Delta_Len, true, false);
   }
 }
 
@@ -758,8 +758,8 @@ NDalign::realignBackward(bool verbose, bool displayAlign) {
 
     _bestResult.save(aLo, aHi, bLo, bHi, _editDist->score(), olapType, _editDist->Left_Delta_Len, _editDist->Left_Delta);
 
-    display("NDalign::realignBackward()-- ", displayAlign);
-    
+    display("NDalign::realignBackward()-- ", false);
+
     _bestResult.setErate(1.0 - (double)(_matches + _gapmatches) / (length() - _freegaps));
 
     if (displayAlign)
@@ -772,7 +772,7 @@ NDalign::realignBackward(bool verbose, bool displayAlign) {
             length(), erate(), score(), abgn(), aend(), bbgn(), bend());
     fprintf(stderr, "NDalign::realignBackward()-- Alignment no better   - NEW length %u erate %f score %u (%d-%d %d-%d)\n",
             ((aHi - aLo) + (bHi - bLo) + _editDist->Left_Delta_Len) / 2, 0.0, _editDist->score(), aLo, aHi, bLo, bHi);
-    display("NDalign::realignBackward(NB)--", aLo, aHi, bLo, bHi, _editDist->Left_Delta, _editDist->Left_Delta_Len, true, false);
+    //display("NDalign::realignBackward(NB)--", aLo, aHi, bLo, bHi, _editDist->Left_Delta, _editDist->Left_Delta_Len, true, false);
   }
 }
 
