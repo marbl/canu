@@ -414,5 +414,5 @@ main (int argc, char **argv) {
     fprintf(stderr, "Consensus finished successfully.  Bye.\n");
   }
 
-  return(0);
+  return(numFailures != 0);
 }
