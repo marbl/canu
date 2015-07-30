@@ -110,31 +110,28 @@ abMultiAlign::getPositions(abAbacus *abacus, tgTig *tig) {
   tig->_childDeltasLen = 0;
 
   for (abSeqID si=0; si.get()<abacus->numberOfSequences(); ++si) {
-    abSequence *seq = abacus->getSequence(si);
-
-    //if (seq->multiAlignID() == abMultiAlignID())
-    //  //  Not placed in the multialign??
-    //  continue;
-    //assert(seq->multiAlignID() == ident());
-
-    int32 bgn = abacus->getColumn( (abacus->getBead( seq->firstBead() ))->colIdx())->position();
-    int32 end = abacus->getColumn( (abacus->getBead( seq->lastBead()  ))->colIdx())->position();  // + seq->length() - 1))->colIdx())->position() + 1;
-
+    abSequence *seq   = abacus->getSequence(si);
     tgPosition *child = tig->getChild(si.get());  //  Assumes one-to-one map of seqs to children;
 
     assert(seq->gkpIdent() == child->ident());
 
+    abBead  *fBead = abacus->getBead(seq->firstBead());
+    abBead  *lBead = abacus->getBead(seq->lastBead());
+
+    abColumn *fCol = abacus->getColumn(fBead->colIdx());
+    abColumn *lCol = abacus->getColumn(lBead->colIdx());
+
+    if ((fCol == NULL) || (lCol == NULL)) {
+      fprintf(stderr, "WARNING: read %u not in multialignment; position set to 0,0.\n", seq->gkpIdent());
+      child->set(0, 0);
+      continue;
+    }
+
+    int32 bgn = fCol->position();
+    int32 end = lCol->position();
+
     if (seq->isRead() == true) {
-      //child->anchor()      = 0;
-      //child->aHang()       = 0;
-      //child->bHang()       = 0;
-      //child->bgnset()      = (seq->isForward() == true) ? bgn : end;
-      //child->endset()      = (seq->isForward() == true) ? end : bgn;
-
-      //child->_isReverse    = (seq->isForward() == false);
-
-      //  The child remembers its orientation, and sets min/max appropriately.
-      child->set(bgn, end);
+      child->set(bgn, end);      //  The child remembers its orientation, and sets min/max appropriately.
 
       //  Grab the deltas for real now, and set the deltaLen to one less than the number returned
       //  (we don't care about the terminating zero!)
