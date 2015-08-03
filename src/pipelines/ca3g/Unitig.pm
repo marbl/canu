@@ -72,6 +72,49 @@ sub bogart ($$$) {
 }
 
 
+
+sub reportSizes ($$) {
+    my $wrk  = shift @_;
+    my $asm  = shift @_;
+    my $bin   = getBinDirectory();
+    my $cmd   = "";
+
+    my $asmnum   = 0;
+    my $asmbases = 0;
+    my $asmsizes = "";
+
+    my $singnum   = 0;
+    my $singbases = 0;
+
+    $cmd  = "$bin/tgStoreDump \\\n";
+    $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
+    $cmd .= "  -T $wrk/$asm.tigStore 1 \\\n";
+    $cmd .= "  -U \\\n";
+    $cmd .= "  -d sizes \\\n";
+    $cmd .= " -s " . getGlobal("genomeSize") . "\\\n";
+    $cmd .= "> $wrk/$asm.tigStore.sizes.1.beforeConsensus\n";
+
+    if (runCommand($wrk, $cmd)) {
+        caExit("failed to generate unitig sizes", undef);
+    }
+
+    open(F, "< $wrk/$asm.tigStore.sizes.1.beforeConsensus") or caExit("failed to open '$wrk/$asm.tigStore.sizes.1.beforeConsensus' for reading: $!\n", undef);
+    while (<F>) {
+        $singbases = $1  if (m/lenSingleton\s+sum\s+(\d+)/);
+        $singnum   = $1  if (m/lenSingleton\s+num\s+(\d+)/);
+        $asmbases  = $1  if (m/lenAssembled\s+sum\s+(\d+)/);
+        $asmnum    = $1  if (m/lenAssembled\s+num\s+(\d+)/);
+
+        $asmsizes .= "--    $_"  if (m/lenAssembled\s+(n\d+)\s+siz/);
+    }
+    close(F);
+
+    print STDERR "--  Found $asmnum unitigs with total size $asmbases.  $singnum singletons with total size $singbases.\n";
+    print STDERR "$asmsizes";
+}
+
+
+
 sub unitig ($$) {
     my $wrk    = shift @_;
     my $asm    = shift @_;
@@ -107,6 +150,7 @@ sub unitig ($$) {
     }
 
   allDone:
+    reportSizes($wrk, $asm);
     emitStage($wrk, $asm, "unitig");
   stopAfter:
     stopAfter("unitig");
