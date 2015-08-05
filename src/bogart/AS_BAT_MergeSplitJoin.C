@@ -282,7 +282,8 @@ mergeBubbles_checkEnds(UnitigVector &unitigs,
   placeFragUsingOverlaps(unitigs, erateBubble, target, lFrg.ident, placements);
 
 #ifdef LOG_BUBBLE_TESTS
-  writeLog("popBubbles()-- lFrg %u has %u potential placements.\n", lFrg.ident, placements.size());
+  writeLog("popBubbles()-- lFrg %u has %u potential placements in unitig %u.\n",
+           lFrg.ident, placements.size(), target->id());
 #endif
 
   for (uint32 i=0; i<placements.size(); i++) {
@@ -290,35 +291,39 @@ mergeBubbles_checkEnds(UnitigVector &unitigs,
 
     if (placements[i].fCoverage < 0.99) {
 #ifdef LOG_BUBBLE_FAILURE
-      writeLog("popBubbles()-- lFrg %u low coverage %f at %u,%u\n",
-              lFrg.ident,
-              placements[i].fCoverage,
-              placements[i].position.bgn, placements[i].position.end);
+      writeLog("popBubbles()-- lFrg %u low coverage %f at unitig %u %u,%u\n",
+               lFrg.ident,
+               placements[i].fCoverage,
+               placements[i].tigID,
+               placements[i].position.bgn, placements[i].position.end);
 #endif
       continue;
     } else {
 #ifdef LOG_BUBBLE_FAILURE
-      writeLog("popBubbles()-- lFrg %u GOOD coverage %f at %u,%u\n",
-              lFrg.ident,
-              placements[i].fCoverage,
-              placements[i].position.bgn, placements[i].position.end);
+      writeLog("popBubbles()-- lFrg %u GOOD coverage %f at unitig %u %u,%u\n",
+               lFrg.ident,
+               placements[i].fCoverage,
+               placements[i].tigID,
+               placements[i].position.bgn, placements[i].position.end);
 #endif
     }
 
     if (placements[i].errors / placements[i].aligned < lFrgPlacement.errors / lFrgPlacement.aligned) {
 #ifdef LOG_BUBBLE_FAILURE
-      writeLog("popBubbles()-- lFrg %u GOOD identity %f at %u,%u\n",
-              lFrg.ident,
-              placements[i].errors / placements[i].aligned,
-              placements[i].position.bgn, placements[i].position.end);
+      writeLog("popBubbles()-- lFrg %u GOOD identity %f at unitig %u %u,%u\n",
+               lFrg.ident,
+               placements[i].errors / placements[i].aligned,
+               placements[i].tigID,
+               placements[i].position.bgn, placements[i].position.end);
 #endif
       lFrgPlacement = placements[i];
     } else {
 #ifdef LOG_BUBBLE_FAILURE
-      writeLog("popBubbles()-- lFrg %u low identity %f at %u,%u\n",
-              lFrg.ident,
-              placements[i].errors / placements[i].aligned,
-              placements[i].position.bgn, placements[i].position.end);
+      writeLog("popBubbles()-- lFrg %u low identity %f at unitig %u %u,%u\n",
+               lFrg.ident,
+               placements[i].errors / placements[i].aligned,
+               placements[i].tigID,
+               placements[i].position.bgn, placements[i].position.end);
 #endif
     }
   }
