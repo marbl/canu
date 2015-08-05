@@ -30,7 +30,7 @@ static const char *rcsid = "$Id$";
 #include "intervalList.H"
 
 //  Report LOTS of details on placement, including evidence.
-#undef VERBOSE_PLACEMENT
+#undef  VERBOSE_PLACEMENT
 
 
 //  Given an implicit fragment -- a ufNode with only the 'ident' set -- this will compute the
@@ -312,8 +312,12 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
   overlapPlacement   *ovlPlace = new overlapPlacement[ovlLen];
   uint32              nFragmentsNotPlaced = 0;
 
+  //  Initialize placements to nowhere.
+
   for (uint32 i=0; i<ovlLen; i++)
     ovlPlace[i] = overlapPlacement();
+
+  //  Compute placements.  Anything that doesn't get placed is left as 'nowhere', in particular, unitig == 0.
 
   for (uint32 i=0; i<ovlLen; i++) {
     int32             utgID = Unitig::fragIn(ovl[i].b_iid);
@@ -353,8 +357,8 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
   }  //  Over all overlaps.
 
 
-  //  For whatever reason, the fragment placement routines failed to place a fragment using an overlap.
-  //  This shouldn't happen, but if it does, it is hardly fatal.
+  //  Report if any of the placement routines fail.  This shouldn't happen, but if it does, it is
+  //  hardly fatal.
 
 #ifdef VERBOSE_PLACEMENT
   if (nFragmentsNotPlaced > 0)
@@ -388,31 +392,32 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
   //  that is good enough to be a clear winner, we'll ignore the 1,3 overlap and compute position
   //  based on the other two overlaps.
 
-
-
   uint32         bgn = 0;  //  Range of overlaps with the same unitig/orientation
   uint32         end = 1;
 
+  //  Skip overlaps that didn't generate a placement
+
   while ((bgn < ovlLen) && (ovlPlace[bgn].tigID == 0))
-    //  Skip overlaps that didn't generate a placement
     bgn++;
 
-
   //  Process all placements.
+
   while (bgn < ovlLen) {
 
     //  Find the last placement with the same unitig/orientation as the 'bgn' fragment.
+    //  Orientation of 'position' and 'verified' is the same, asserted above.
+
     end = bgn + 1;
     while ((end < ovlLen) &&
            (ovlPlace[bgn].tigID == ovlPlace[end].tigID) &&
-           (isReverse(ovlPlace[bgn].position) == isReverse(ovlPlace[end].position)))
+           (isReverse(ovlPlace[bgn].verified) == isReverse(ovlPlace[end].verified)))
       end++;
 
-    //  Over all placements with the same unitig/orientation, build interval lists for the begin
-    //  point and the end point.  Remember, this is all fragments to a single unitig (the whole
-    //  picture above), not just the overlapping fragment sets (left or right in the above picture
-    //  above).
-    //
+    //  Over all placements with the same unitig/orientation (that'd be from bgn to end), build
+    //  interval lists for the begin point and the end point.  Remember, this is all fragments to a
+    //  single unitig (the whole picture above), not just the overlapping fragment sets (left or
+    //  right blocks).
+
     intervalList<int32>   bgnPoints;
     intervalList<int32>   endPoints;
 
@@ -424,10 +429,10 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
     for (uint32 oo=bgn; oo<end; oo++) {
       assert(ovlPlace[oo].tigID > 0);
 
-      int32   b  = ovlPlace[oo].position.bgn;
-      int32   be = ovlPlace[oo].position.bgn + windowSlop;
-      int32   e  = ovlPlace[oo].position.end;
-      int32   ee = ovlPlace[oo].position.end + windowSlop;
+      int32   b  = ovlPlace[oo].verified.bgn;
+      int32   be = ovlPlace[oo].verified.bgn + windowSlop;
+      int32   e  = ovlPlace[oo].verified.end;
+      int32   ee = ovlPlace[oo].verified.end + windowSlop;
 
       b = (b < windowSlop) ? 0 : b - windowSlop;
       e = (e < windowSlop) ? 0 : e - windowSlop;
@@ -451,8 +456,8 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
     int32   numEndPoints = endPoints.numberOfIntervals();
 
     for (uint32 oo=bgn; oo<end; oo++) {
-      int32   b = ovlPlace[oo].position.bgn;
-      int32   e = ovlPlace[oo].position.end;
+      int32   b = ovlPlace[oo].verified.bgn;  //  WAS expected position of read in tig!
+      int32   e = ovlPlace[oo].verified.end;
       int32   c = 0;
 
       ovlPlace[oo].clusterID = 0;
