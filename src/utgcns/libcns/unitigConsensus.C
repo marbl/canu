@@ -166,6 +166,10 @@ unitigConsensus::generate(tgTig     *tig_,
     if (computePositionFromLayout()    && alignFragment())  goto applyAlignment;
     if (computePositionFromAlignment() && alignFragment())  goto applyAlignment;
 
+    //  Third attempot, use whatever aligns.
+
+    if (computePositionFromAlignment() && alignFragment(true))  goto applyAlignment;
+
     //  Nope, failed to align.
 
     reportFailure(failed_);
@@ -561,7 +565,7 @@ unitigConsensus::computePositionFromAlignment(void) {
   //
   //  Try DP_Compare.
   //
-
+#if 0
   if (foundAlign == false) {
     ALNoverlap *O = DP_Compare(frankenstein,
                                fragment,
@@ -595,6 +599,7 @@ unitigConsensus::computePositionFromAlignment(void) {
       fprintf(stderr, "cnspos[%3d] mid %d %d,%d (from Local_Overlap_AS_forCNS)\n", tiid, utgpos[tiid].ident(), cnspos[tiid].min(), cnspos[tiid].max());
     }
   }
+#endif
 
   //
   //  Fail.
@@ -780,7 +785,7 @@ unitigConsensus::rebuild(bool recomputeFullConsensus, bool display) {
 
 
 int
-unitigConsensus::alignFragment(void) {
+unitigConsensus::alignFragment(bool forceAlignment) {
   int32         bgnExtra     = 0;
   int32         endExtra     = 0;
 
@@ -952,7 +957,8 @@ unitigConsensus::alignFragment(void) {
       oaFull->realignForward (showAlgorithm(), showAlignments());
 #endif
 
-      if (oaFull->scanDeltaForBadness(showAlgorithm(), showAlignments()) == true) {
+      if ((forceAlignment == false) &&
+          (oaFull->scanDeltaForBadness(showAlgorithm(), showAlignments()) == true)) {
         if (showAlgorithm())
           fprintf(stderr, "unitigConsensus::alignFragment()-- alignment still bad, continue to next seed\n");
         continue;
@@ -960,7 +966,8 @@ unitigConsensus::alignFragment(void) {
 
       //  Bad alignment if low quality.
 
-      if (oaFull->erate() > errorRate) {
+      if ((forceAlignment == false) &&
+          (oaFull->erate() > errorRate)) {
         if (showAlgorithm()) {
           fprintf(stderr, "unitigConsensus::alignFragment()-- alignment is low quality: %f > %f, continue to next seed\n",
                   oaFull->erate(), errorRate);
@@ -1029,6 +1036,7 @@ unitigConsensus::alignFragment(void) {
   //  Try Optimal_Overlap_AS_forCNS
   //
 
+#if 0
   if ((endTrim <  bSEQ->length()) &&
       (0       <= endTrim)) {
     int32 fragBgn      = 0;
@@ -1131,7 +1139,8 @@ unitigConsensus::alignFragment(void) {
 
     if (tryAgain)
       goto alignFragmentAgain;
-  }
+  }  //  end of optimal
+#endif
 
   //  No alignment.  Dang.  (Should already be 0,0, but just in case...)
 
