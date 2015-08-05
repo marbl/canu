@@ -110,7 +110,7 @@ NDalgorithm::forward(char    *A,   int32 Alen,
   }
 
   if (Edit_Array_Lazy[0] == NULL)
-    Allocate_More_Edit_Space();
+    allocateMoreEditSpace();
 
   Edit_Array_Lazy[0][0].row    = Row;
   Edit_Array_Lazy[0][0].dist   = Dst;
@@ -144,7 +144,10 @@ NDalgorithm::forward(char    *A,   int32 Alen,
 
   for (int32 ei=1; ei <= Edit_Space_Max; ei++) {
     if (Edit_Array_Lazy[ei] == NULL)
-      Allocate_More_Edit_Space();
+      if (allocateMoreEditSpace() == false) {
+        //  FAIL
+        return;
+      }
 
     Left  = MAX (Left  - 1, -ei);
     Right = MIN (Right + 1,  ei);
@@ -260,7 +263,7 @@ NDalgorithm::forward(char    *A,   int32 Alen,
 
         Set_Right_Delta(A, T, ei, d);
 
-        Match_To_End = TRUE;
+        Match_To_End = true;
 
         return;  //return(ei);
       }

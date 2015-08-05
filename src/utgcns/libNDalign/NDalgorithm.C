@@ -52,7 +52,7 @@ NDalgorithm::NDalgorithm(pedAlignType alignType_, double maxErate_) {
 
   allocated += 3 * AS_MAX_READLEN * sizeof(int32);
 
-  Edit_Space_Max  = (alignType == pedGlobal) ? (AS_MAX_READLEN) : (1 + (int32)ceil(maxErate * AS_MAX_READLEN));
+  Edit_Space_Max  = AS_MAX_READLEN;  //(alignType == pedGlobal) ? (AS_MAX_READLEN) : (1 + (int32)ceil(maxErate * AS_MAX_READLEN));
   Edit_Space_Lazy = new pedEdit *  [Edit_Space_Max];
   Edit_Array_Lazy = new pedEdit *  [Edit_Space_Max];
 

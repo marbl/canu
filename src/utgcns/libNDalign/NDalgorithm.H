@@ -86,7 +86,7 @@ public:
   ~NDalgorithm();
 
 private:
-  void   Allocate_More_Edit_Space(void);
+  bool   allocateMoreEditSpace(void);
 
   void   Set_Right_Delta(char  *A, char  *T,
                          int32  e, int32  d);

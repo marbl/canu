@@ -14,8 +14,8 @@
 
 uint32  EDIT_SPACE_SIZE  = 1 * 1024 * 1024;
 
-void
-NDalgorithm::Allocate_More_Edit_Space(void) {
+bool
+NDalgorithm::allocateMoreEditSpace(void) {
 
   //  Determine the last allocated block, and the last assigned block
 
@@ -61,10 +61,13 @@ NDalgorithm::Allocate_More_Edit_Space(void) {
     Del    += 2;
   }
 
-  if (e == b)
+  if (e == b) {
     fprintf(stderr, "Allocate_More_Edit_Space()-- ERROR: couldn't allocate enough space for even one more entry!  e=%d\n", e);
+    return(false);
+  }
   assert(e != b);
 
+  return(true);
   //fprintf(stderr, "WorkArea %d allocates space %d of size %d for array %d through %d\n", thread_id, a, Size, b, e-1);
 }
 
