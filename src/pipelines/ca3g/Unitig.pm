@@ -91,7 +91,7 @@ sub reportSizes ($$) {
     $cmd .= "  -T $wrk/$asm.tigStore 1 \\\n";
     $cmd .= "  -U \\\n";
     $cmd .= "  -d sizes \\\n";
-    $cmd .= " -s " . getGlobal("genomeSize") . "\\\n";
+    $cmd .= "  -s " . getGlobal("genomeSize") . " \\\n";
     $cmd .= "> $wrk/$asm.tigStore.sizes.1.beforeConsensus\n";
 
     if (runCommand($wrk, $cmd)) {
@@ -109,8 +109,12 @@ sub reportSizes ($$) {
     }
     close(F);
 
-    print STDERR "--  Found $asmnum unitigs with total size $asmbases.  $singnum singletons with total size $singbases.\n";
+    print STDERR "--  Found:\n";
+    print STDERR "--    unitigs:     $asmnum sequences, total length $asmbases bp.\n";
+    print STDERR "--    singletons:  $singnum sequences, total length $singbases bp.\n";
+    print STDERR "--\n";
     print STDERR "$asmsizes";
+    print STDERR "--\n";
 }
 
 
