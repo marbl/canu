@@ -27,7 +27,6 @@ const char *mainid = "$Id$";
 #include "abAbacus.H"
 
 #include "AS_UTL_decodeRange.H"
-#include "AS_UTL_fasta.C"
 
 #include "stashContains.H"
 
@@ -35,6 +34,7 @@ const char *mainid = "$Id$";
 
 #include <map>
 #include <algorithm>
+
 
 
 int
@@ -45,9 +45,10 @@ main (int argc, char **argv) {
   uint32  tigVers = UINT32_MAX;
   uint32  tigPart = UINT32_MAX;
 
+  char   *tigFileName = NULL;
+
   uint32  utgBgn  = UINT32_MAX;
   uint32  utgEnd  = UINT32_MAX;
-  char   *utgFile = NULL;
 
   char *outResultsName = NULL;
   char *outLayoutsName = NULL;
@@ -64,14 +65,11 @@ main (int argc, char **argv) {
   uint32 minOverlap   = 40;
 
   int32  numFailures = 0;
-  int32  numSkipped  = 0;
 
   bool   showResult = false;
 
   double maxCov = 0.0;
   uint32 maxLen = UINT32_MAX;
-
-  bool   loadall  = false;
 
   uint32 verbosity = 0;
 
@@ -100,7 +98,7 @@ main (int argc, char **argv) {
       AS_UTL_decodeRange(argv[++arg], utgBgn, utgEnd);
 
     } else if (strcmp(argv[arg], "-t") == 0) {
-      utgFile = argv[++arg];
+      tigFileName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-O") == 0) {
       outResultsName = argv[++arg];
@@ -135,9 +133,6 @@ main (int argc, char **argv) {
     } else if (strcmp(argv[arg], "-maxlength") == 0) {
       maxLen   = atof(argv[++arg]);
 
-    } else if (strcmp(argv[arg], "-loadall") == 0) {
-      loadall = true;
-
     } else {
       fprintf(stderr, "%s: Unknown option '%s'\n", argv[0], argv[arg]);
       err++;
@@ -145,53 +140,57 @@ main (int argc, char **argv) {
 
     arg++;
   }
+
   if (gkpName == NULL)
     err++;
-  if ((utgFile == NULL) && (tigName == NULL))
+
+  if ((tigFileName == NULL) && (tigName == NULL))
     err++;
+
   if (err) {
     fprintf(stderr, "usage: %s [opts]\n", argv[0]);
     fprintf(stderr, "\n");
-    fprintf(stderr, "    -G gkpStore\n");
-    fprintf(stderr, "    -T tigStore version partition\n");
+    fprintf(stderr, "  INPUT\n");
+    fprintf(stderr, "    -G g            Load reads from gkStore 'g'\n");
+    fprintf(stderr, "    -T t v p        Load unitigs from tgStore 't', version 'v', partition 'p'.\n");
+    fprintf(stderr, "                      Expects reads will be in gkStore partition 'p' as well\n");
+    fprintf(stderr, "                      Use p='.' to specify no partition\n");
+    fprintf(stderr, "    -t file         Test the computation of the unitig layout in 'file'\n");
+    fprintf(stderr, "                      'file' can be from:\n");
+    fprintf(stderr, "                        'tgStoreDump -d layout' (human readable layout format)\n");
+    fprintf(stderr, "                        'utgcns -L'             (human readable layout format)\n");
+    fprintf(stderr, "                        'utgcns -O'             (binary multialignment format)\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "  OUTPUT\n");
     fprintf(stderr, "    -O results      Write computed tigs to binary output file 'results'\n");
     fprintf(stderr, "    -L layouts      Write computed tigs to layout output file 'layouts'\n");
     fprintf(stderr, "    -F fastq        Write computed tigs to fastq  output file 'fastq'\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "  TIG SELECTION (if -T input is used)\n");
     fprintf(stderr, "    -u b            Compute only unitig ID 'b' (must be in the correct partition!)\n");
     fprintf(stderr, "    -u b-e          Compute only unitigs from ID 'b' to ID 'e'\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "    -t file         Test the computation of the unitig layout in 'file'\n");
-    fprintf(stderr, "\n");
     fprintf(stderr, "    -f              Recompute unitigs that already have a multialignment\n");
+    fprintf(stderr, "    -maxlength l    Do not compute consensus for unitigs longer than l bases.\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "  PARAMETERS\n");
     fprintf(stderr, "    -e e            Expect alignments at up to fraction e error\n");
     fprintf(stderr, "    -em m           Don't ever allow alignments more than fraction m error\n");
     fprintf(stderr, "    -l l            Expect alignments of at least l bases\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "    -v              Show multialigns.\n");
-    fprintf(stderr, "    -V              Enable debugging option 'verbosemultialign'.\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  ADVANCED OPTIONS\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "    -n              Do not update the store after computing consensus.\n");
-    fprintf(stderr, "\n");
     fprintf(stderr, "    -maxcoverage c  Use non-contained reads and the longest contained reads, up to\n");
     fprintf(stderr, "                    C coverage, for consensus generation.  The default is 0, and will\n");
     fprintf(stderr, "                    use all reads.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "    -maxlength l    Do not compute consensus for unitigs longer than l bases.\n");
+    fprintf(stderr, "  LOGGING\n");
+    fprintf(stderr, "    -v              Show multialigns.\n");
+    fprintf(stderr, "    -V              Enable debugging option 'verbosemultialign'.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "    -t S V P        If 'partition' is '.', use an unpartitioned tigStore/gkpStore.\n");
-    fprintf(stderr, "    -loadall        Load ALL reads into memory.  Ignores partition if it exists.\n");
+
 
     if (gkpName == NULL)
-      fprintf(stderr, "ERROR:  No gkpStore (-g) supplied.\n");
+      fprintf(stderr, "ERROR:  No gkpStore (-G) supplied.\n");
 
-    if ((utgFile == NULL) && (tigName == NULL))
-      fprintf(stderr, "ERROR:  No tigStore (-t) OR no test unitig (-T) supplied.\n");
+    if ((tigFileName == NULL) && (tigName == NULL))
+      fprintf(stderr, "ERROR:  No tigStore (-T) OR no test unitig (-t) supplied.\n");
 
     exit(1);
   }
@@ -217,78 +216,76 @@ main (int argc, char **argv) {
 
   //  Open gatekeeper for read only, and load the partitioned data if tigPart > 0.
 
-  fprintf(stderr, "Opening gkpStore.\n");
+  fprintf(stderr, "-- Opening gkpStore '%s' partition %u.\n", gkpName, tigPart);
+
   gkStore   *gkpStore = new gkStore(gkpName, gkStore_readOnly, tigPart);
+  tgStore   *tigStore = NULL;
+  FILE      *tigFile  = NULL;
 
-  //  Create a consensus object.
-
-  fprintf(stderr, "Creating abacus.\n");
-  abAbacus  *abacus   = new abAbacus(gkpStore);
-
-  //  If we are testing a unitig, do that.
-
-  if (utgFile != NULL) {
-    fprintf(stderr, "utgFile not supported.\n");
-    exit(1);
-#if 0
-    errno = 0;
-    FILE  *F = fopen(utgFile, "r");
-    if (errno)
-      fprintf(stderr, "Failed to open input unitig file '%s': %s\n", utgFile, strerror(errno)), exit(1);
-
-    MultiAlignT  *ma       = CreateEmptyMultiAlignT();
-    bool          isUnitig = false;
-
-    while (LoadMultiAlignFromHuman(tig, isUnitig, F) == true) {
-      if (generateMultiAlignment(tig, gkpStore, NULL)) {
-        if (showResult)
-          abacus->getMultiAlignment()->printAlignment(abacus, stdout);
-
-      } else {
-        fprintf(stderr, "tig %d failed.\n", tig->tigID());
-        numFailures++;
-      }
-    }
-
-    DeleteMultiAlignT(ma);
-#endif
-
-    delete abacus;
-    delete gkpStore;
-
-    exit(0);
+  if (tigName) {
+    fprintf(stderr, "-- Opening tigStore '%s' version %u.\n", tigName, tigVers);
+    tigStore = new tgStore(tigName, tigVers);
   }
 
-  //  Otherwise, we're computing unitigs from the store.  Open it for read only.
-  //  Outputs get written to a single output file.
+  if (tigFileName) {
+    fprintf(stderr, "-- Opening tigFile '%s'.\n", tigFileName);
 
-  fprintf(stderr, "Opening tigStore.\n");
-  tgStore *tigStore = new tgStore(tigName, tigVers);
+    errno = 0;
+    tigFile = fopen(tigFileName, "r");
+    if (errno)
+      fprintf(stderr, "Failed to open input tig file '%s': %s\n", tigFileName, strerror(errno)), exit(1);
+  }
 
   //  Decide on what to compute.  Either all unitigs, or a single unitig, or a special case test.
 
   uint32  b = 0;
-  uint32  e = tigStore->numTigs() - 1;
+  uint32  e = UINT32_MAX;
 
-  if (utgEnd > e)
-    utgEnd = e;
+  if (tigStore) {
+    if (utgEnd > tigStore->numTigs() - 1)
+      utgEnd = tigStore->numTigs() - 1;
 
-  if (utgBgn != UINT32_MAX) {
-    b = utgBgn;
-    e = utgEnd;
+    if (utgBgn != UINT32_MAX) {
+      b = utgBgn;
+      e = utgEnd;
+
+    } else {
+      b = 0;
+      e = utgEnd;
+    }
+
+    fprintf(stderr, "-- Computing unitig consensus for b="F_U32" to e="F_U32" with errorRate %0.4f (max %0.4f) and minimum overlap "F_U32"\n",
+            b, e, errorRate, errorRateMax, minOverlap);
   }
 
-  fprintf(stderr, "Computing unitig consensus for b="F_U32" to e="F_U32" with errorRate %0.4f (max %0.4f) and minimum overlap "F_U32"\n",
-          b, e, errorRate, errorRateMax, minOverlap);
+  else {
+    fprintf(stderr, "-- Computing unitig consensus with errorRate %0.4f (max %0.4f) and minimum overlap "F_U32"\n",
+            b, e, errorRate, errorRateMax, minOverlap);
+  }
 
-  //  Now the usual case.  Iterate over all unitigs, compute and update.
+  fprintf(stderr, "\n");
 
-  for (uint32 ti=b; ti<=e; ti++) {
-    tgTig  *tig = tigStore->loadTig(ti);  //  Store owns the tig
+  //  Create a consensus object.
 
-    //fprintf(stderr, "tig %u\n", ti);
+  abAbacus  *abacus   = new abAbacus(gkpStore);
 
-    //  Deleted?
+
+  //  I don't like this loop control.
+
+  for (uint32 ti=b; (e == UINT32_MAX) || (ti <= e); ti++) {
+    tgTig  *tig = NULL;
+
+    if (tigStore)
+      tig = tigStore->loadTig(ti);  //  Store owns the tig
+
+    if (tigFile) {
+      tig = new tgTig();  //  We own the tig
+
+      if (tig->loadFromStreamOrLayout(tigFile) == false) {
+        delete tig;
+        break;
+      }
+    }
 
     if (tig == NULL)
       continue;
@@ -302,25 +299,8 @@ main (int argc, char **argv) {
         if (gkpStore->gkStore_getReadInPartition(tig->getChild(ii)->ident()) == NULL)
           missingReads++;
 
-      if (missingReads) {
-        //fprintf(stderr, "tig %u has %u reads and %u not in this partition\n",
-        //        ti, tig->numberOfChildren(), missingReads);
+      if (missingReads)
         continue;
-      }
-
-      fprintf(stderr, "tig %u has %u reads and %u not in this partition\n",
-              ti, tig->numberOfChildren(), missingReads);
-    }
-
-    bool exists = (tig->gappedLength() > 0);
-
-    if ((forceCompute == false) && (exists == true)) {
-      //  Already finished unitig consensus.
-      if (tig->numberOfChildren() > 1)
-        fprintf(stderr, "Working on unitig %d of length %d (%d children) - already computed, skipped\n",
-                tig->tigID(), tig->layoutLength(), tig->numberOfChildren());
-      numSkipped++;
-      continue;
     }
 
     if (tig->layoutLength() > maxLen) {
@@ -335,30 +315,39 @@ main (int argc, char **argv) {
       continue;
     }
 
-    if (tig->numberOfChildren() > 1)
-      fprintf(stderr, "Working on unitig %d of length %d (%d children)%s\n",
-              tig->tigID(), tig->layoutLength(), tig->numberOfChildren(),
-              (exists) ? " - already computed, recomputing" : "");
+    bool exists = (tig->gappedLength() > 0);
 
-    //  Build a new ma if we're ignoring contains.  We'll need to put back the reads we remove
+    if (tig->numberOfChildren() > 1)
+      fprintf(stderr, "Working on unitig %d of length %d (%d children)%s%s\n",
+              tig->tigID(), tig->layoutLength(), tig->numberOfChildren(),
+              ((exists == true)  && (forceCompute == false)) ? " - already computed"              : "",
+              ((exists == true)  && (forceCompute == true))  ? " - already computed, recomputing" : "");
+
+    //  Process the tig.  Remove deep coverage, create a consensus object, process it, and report the results.
     //  before we add it to the store.
 
-    savedChildren *origChildren = stashContains(tig, maxCov);
+    savedChildren    *origChildren = NULL;
+    unitigConsensus  *utgcns       = NULL;
+    bool              success      = exists;
 
-    tig->_utgcns_verboseLevel = verbosity;
-    tig->_utgcns_smoothWindow = 11;
-    tig->_utgcns_splitAlleles = false;
-    tig->_utgcns_doPhasing    = false;
+    //  Compute consensus if it doesn't exist, or if we're forcing a recompute.
 
-    unitigConsensus  *uc = new unitigConsensus(gkpStore, errorRate, errorRateMax, minOverlap);
+    if ((exists == false) || (forceCompute == true)) {
+      tig->_utgcns_verboseLevel = verbosity;
 
-    if (uc->generate(tig, NULL)) {
+      origChildren = stashContains(tig, maxCov);
+      utgcns       = new unitigConsensus(gkpStore, errorRate, errorRateMax, minOverlap);
+
+      success = utgcns->generate(tig, NULL);
+    }
+
+    //  If it was successful (or existed already), output.
+
+    if (success) {
       if (showResult)
         tig->display(stdout, gkpStore, 200, 3);
 
       unstashContains(tig, origChildren);
-
-      //tigStore->insertTig(tig, true);           //  Store owns the tig still.
 
       if (outResultsFile)
         tig->saveToStream(outResultsFile);
@@ -367,19 +356,26 @@ main (int argc, char **argv) {
         tig->dumpLayout(outLayoutsFile);
 
       if (outSeqFile)
-        AS_UTL_writeFastQ(outSeqFile,
-                          tig->ungappedBases(), tig->ungappedLength(),
-                          tig->ungappedQuals(), tig->ungappedLength(),
-                          "@utg%08u\n", tig->tigID());
+        tig->dumpFASTQ(outSeqFile);
+    }
 
-      tigStore->unloadTig(tig->tigID(), true);  //  Tell the store we're done with it
+    //  Report failures.
 
-    } else {
+    if (success == false) {
       fprintf(stderr, "unitigConsensus()-- unitig %d failed.\n", tig->tigID());
       numFailures++;
     }
 
-    delete uc;
+    //  Clean up, unloading or deleting the tig.
+
+    delete utgcns;        //  No real reason to keep this until here.
+    delete origChildren;  //  Need to keep it until after we display() above.
+
+    if (tigStore)
+      tigStore->unloadTig(tig->tigID(), true);  //  Tell the store we're done with it
+
+    if (tigFile)
+      delete tig;
   }
 
  finish:
@@ -387,23 +383,9 @@ main (int argc, char **argv) {
   delete tigStore;
   delete gkpStore;
 
+  if (tigFile)         fclose(tigFile);
   if (outResultsFile)  fclose(outResultsFile);
   if (outLayoutsFile)  fclose(outLayoutsFile);
-
-#if 0
-  fprintf(stderr, "\n");
-  fprintf(stderr, "NumColumnsInUnitigs             = %d\n", NumColumnsInUnitigs);
-  fprintf(stderr, "NumGapsInUnitigs                = %d\n", NumGapsInUnitigs);
-  fprintf(stderr, "NumRunsOfGapsInUnitigReads      = %d\n", NumRunsOfGapsInUnitigReads);
-  fprintf(stderr, "NumColumnsInContigs             = %d\n", NumColumnsInContigs);
-  fprintf(stderr, "NumGapsInContigs                = %d\n", NumGapsInContigs);
-  fprintf(stderr, "NumRunsOfGapsInContigReads      = %d\n", NumRunsOfGapsInContigReads);
-  fprintf(stderr, "NumAAMismatches                 = %d\n", NumAAMismatches);
-  fprintf(stderr, "NumVARRecords                   = %d\n", NumVARRecords);
-  fprintf(stderr, "NumVARStringsWithFlankingGaps   = %d\n", NumVARStringsWithFlankingGaps);
-  fprintf(stderr, "NumUnitigRetrySuccess           = %d\n", NumUnitigRetrySuccess);
-  fprintf(stderr, "\n");
-#endif
 
   if (numFailures) {
     fprintf(stderr, "WARNING:  Total number of unitig failures = %d\n", numFailures);
