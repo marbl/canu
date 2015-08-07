@@ -97,8 +97,8 @@ main (int argc, char * argv []) {
 
   argc = AS_configure(argc, argv);
 
-  int err = 0;
-  int arg = 1;
+  vector<char *>  err;
+  int             arg = 1;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-B") == 0) {
       fragment_count_target = atoi(argv[++arg]);
@@ -115,7 +115,7 @@ main (int argc, char * argv []) {
       else if (ovlStoreReptPath == NULL)
         ovlStoreReptPath = argv[++arg];
       else
-        err++;
+        err.push_back(NULL);
 
     } else if (strcmp(argv[arg], "-RS") == 0) {
       removeSpur = true;
@@ -225,8 +225,9 @@ main (int argc, char * argv []) {
         fnd = true;
       }
       if (fnd == false) {
-        fprintf(stderr, "ERROR:  Unknown '-D' option '%s'.\n", argv[arg]);
-        err++;
+        char *s = new char [1024];
+        sprintf(s, "Unknown '-D' option '%s'.\n", argv[arg]);
+        err.push_back(s);
       }
 
     } else if (strcmp(argv[arg], "-d") == 0) {
@@ -240,35 +241,38 @@ main (int argc, char * argv []) {
         }
       }
       if (fnd == false) {
-        fprintf(stderr, "ERROR:  Unknown '-d' option '%s'.\n", argv[arg]);
-        err++;
+        char *s = new char [1024];
+        sprintf(s, "Unknown '-d' option '%s'.\n", argv[arg]);
+        err.push_back(s);
       }
 
     } else {
-      err++;
+      char *s = new char [1024];
+      sprintf(s, "Unknown option '%s'.\n", argv[arg]);
+      err.push_back(s);
     }
 
     arg++;
   }
 
   if (erateGraph < 0.0)
-    err++;
+    err.push_back(NULL);
   if (erateBubble < 0.0)
-    err++;
+    err.push_back(NULL);
   if (erateMerge < 0.0)
-    err++;
+    err.push_back(NULL);
   if (erateRepeat < 0.0)
-    err++;
+    err.push_back(NULL);
   if (output_prefix == NULL)
-    err++;
+    err.push_back(NULL);
   if (gkpStorePath == NULL)
-    err++;
+    err.push_back(NULL);
   if (ovlStoreUniqPath == NULL)
-    err++;
+    err.push_back(NULL);
   if (tigStorePath == NULL)
-    err++;
+    err.push_back(NULL);
 
-  if (err) {
+  if (err.size() > 0) {
     fprintf(stderr, "usage: %s -o outputName -O ovlStore -G gkpStore -T tigStore\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "  -O         Mandatory path to an ovlStore.\n");
@@ -362,6 +366,10 @@ main (int argc, char * argv []) {
 
     if (tigStorePath == NULL)
       fprintf(stderr, "No output tigStore (-T option) supplied.\n");
+
+    for (uint32 ii=0; ii<err.size(); ii++)
+      if (err[ii])
+        fputs(err[ii], stderr);
 
     exit(1);
   }
