@@ -44,28 +44,19 @@ sub bogart ($$$) {
     my $bin  = getBinDirectory();
     my $cmd;
 
-    my $eg = getGlobal("utgGraphErrorRate");
-    my $eb = getGlobal("utgBubbleErrorRate");
-    my $em = getGlobal("utgMergeErrorRate");
-    my $er = getGlobal("utgRepeatErrorRate");
-
-    my $t  = " -threads " . getGlobal("batThreads")  if defined(getGlobal("batThreads"));
-    my $m  = " -M "       . getGlobal("batMemory")   if defined(getGlobal("batMemory"));
-    my $o  = " "          . getGlobal("batOptions")  if defined(getGlobal("batOptions"));
-
     $cmd  = "$bin/bogart \\\n";
     $cmd .= " -G $wrk/$asm.gkpStore \\\n";
     $cmd .= " -O $wrk/$asm.ovlStore \\\n";
     $cmd .= " -T $wrk/$asm.tigStore \\\n";
     $cmd .= " -o $wrk/4-unitigger/$asm \\\n";
     $cmd .= " -B $per \\\n";
-    $cmd .= " -eg $eg \\\n";
-    $cmd .= " -eb $eb \\\n";
-    $cmd .= " -em $em \\\n";
-    $cmd .= " -er $er \\\n";
-    $cmd .= " $t \\\n";
-    $cmd .= " $m \\\n";
-    $cmd .= " $o \\\n";
+    $cmd .= " -eg "      . getGlobal("utgGraphErrorRate")  . " \\\n";
+    $cmd .= " -eb "      . getGlobal("utgBubbleErrorRate") . " \\\n";
+    $cmd .= " -em "      . getGlobal("utgMergeErrorRate")  . " \\\n";
+    $cmd .= " -er "      . getGlobal("utgRepeatErrorRate") . " \\\n";
+    $cmd .= " -threads " . getGlobal("batThreads")         . " \\\n"   if defined(getGlobal("batThreads"));
+    $cmd .= " -M "       . getGlobal("batMemory")          . " \\\n"   if defined(getGlobal("batMemory"));
+    $cmd .= " "          . getGlobal("batOptions")         . " \\\n"   if defined(getGlobal("batOptions"));
     $cmd .= " > $wrk/4-unitigger/unitigger.err 2>&1";
 
     return($cmd);
