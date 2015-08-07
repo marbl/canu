@@ -1,7 +1,11 @@
 
 #include "tgTig.H"
+
 #include "AS_UTL_fileIO.H"
+#include "AS_UTL_fasta.C"
+
 #include "splitToWords.H"
+
 
 tgPosition::tgPosition() {
   _objID       = UINT32_MAX;
@@ -55,10 +59,7 @@ tgTig::tgTig() {
   _coverageStat         = 0;
   _microhetProb         = 0;
 
-  _utgcns_verboseLevel  = 0;      //  extern uint32 VERBOSE_MULTIALIGN_OUTPUT;
-  _utgcns_smoothWindow  = 11;     //  #define CNS_OPTIONS_MIN_ANCHOR_DEFAULT    11
-  _utgcns_splitAlleles  = true;   //  #define CNS_OPTIONS_SPLIT_ALLELES_DEFAULT  1
-  _utgcns_doPhasing     = true;   //  #define CNS_OPTIONS_DO_PHASING_DEFAULT     1
+  _utgcns_verboseLevel  = 0;
 
   _suggestRepeat        = 0;
   _suggestUnique        = 0;
@@ -260,88 +261,103 @@ tgTig::clear(void) {
 
 
 
+bool
+tgTig::loadFromStreamOrLayout(FILE *F) {
+
+  //  Decide if the file contains an ASCII layout or a binary stream.  It's probably rather fragile,
+  //  testing if the first byte is 't' (from 'tig') or 'T' (from 'TIGR').
+
+  char ch = getc(F);
+
+  ungetc(ch, F);
+
+  if (ch == 't')
+    return(loadLayout(F));
+
+  else if (ch == 'T')
+    return(loadFromStream(F));
+
+  else
+    return(false);
+}
+
+
 
 void
 tgTig::saveToStream(FILE *F) {
   tgTigRecord  tr = *this;
+  char         tag[4] = {'T', 'I', 'G', 'R', };  //  That's tigRecord, not TIGR
 
-  //fprintf(stderr, "tgTig::saveToStream()-- at "F_U64" - start\n", AS_UTL_ftell(F));
-
-  AS_UTL_safeWrite(F, &tr, "tgTig::saveToStream::tr", sizeof(tgTigRecord), 1);
+  AS_UTL_safeWrite(F,  tag, "tgTig::saveToStream::tigr", sizeof(char), 4);
+  AS_UTL_safeWrite(F, &tr,  "tgTig::saveToStream::tr",   sizeof(tgTigRecord), 1);
 
   if (_gappedLen > 0) {
     AS_UTL_safeWrite(F, _gappedBases, "tgTig::saveToStream::gappedBases", sizeof(char), _gappedLen);
     AS_UTL_safeWrite(F, _gappedQuals, "tgTig::saveToStream::gappedQuals", sizeof(char), _gappedLen);
   }
 
-  //fprintf(stderr, "tgTig::saveToStream()-- at "F_U64" - before children, saving "F_U32"\n", AS_UTL_ftell(F), _childrenLen);
-
-  if (_childrenLen > 0) {
+  if (_childrenLen > 0)
     AS_UTL_safeWrite(F, _children, "tgTig::saveToStream::children", sizeof(tgPosition), _childrenLen);
-  }
 
-  //fprintf(stderr, "tgTig::saveToStream()-- at "F_U64" - before deltas, saving "F_U32"\n", AS_UTL_ftell(F), _childDeltasLen);
-
-  if (_childDeltasLen > 0) {
+  if (_childDeltasLen > 0)
     AS_UTL_safeWrite(F, _childDeltas, "tgTig::saveToStream::childDeltas", sizeof(int32), _childDeltasLen);
-  }
-
-  //fprintf(stderr, "tgTig::saveToStream()-- at "F_U64" - finsihed\n", AS_UTL_ftell(F));
 }
 
 
 
 
 
-void
+bool
 tgTig::loadFromStream(FILE *F) {
-  tgTigRecord  tr;
+  char    tag[4];
 
   clear();
 
-  //fprintf(stderr, "tgTig::loadFromStream()-- Loading at position "F_U64" - start\n", AS_UTL_ftell(F));
+  //  Read the tgTigRecord from disk and copy it into our tgTig.
 
-  AS_UTL_safeRead(F, &tr, "tgTig::loadFromStream::tr", sizeof(tgTigRecord), 1);
+  tgTigRecord  tr;
+
+  if (4 != AS_UTL_safeRead(F, tag, "tgTig::saveToStream::tigr", sizeof(char), 4)) {
+    return(false);
+  }
+
+  if ((tag[0] != 'T') ||
+      (tag[1] != 'I') ||
+      (tag[2] != 'G') ||
+      (tag[3] != 'R')) {
+    return(false);
+  }
+
+  if (0 == AS_UTL_safeRead(F, &tr, "tgTig::loadFromStream::tr", sizeof(tgTigRecord), 1)) {
+    //  Nothing loaded, end of file.
+    return(false);
+  }
 
   *this = tr;
 
-  //  After that copy, the various Len fields are bigger than the Max fields.  Quick!  Allocate arrays!
+  //  Allocate space for bases/quals and load them.
 
-  resizeArrayPair(_gappedBases,   _gappedQuals,   0, _gappedMax,   _gappedLen,   resizeArray_doNothing);
-  //resizeArrayPair(_ungappedBases, _ungappedQuals, 0, _ungappedMax, _ungappedLen, resizeArray_doNothing);
-
-  resizeArray(_children, 0, _childrenMax, _childrenLen, resizeArray_doNothing);
-
-  resizeArray(_childDeltas, 0, _childDeltasMax, _childDeltasLen, resizeArray_doNothing);
+  resizeArrayPair(_gappedBases, _gappedQuals, 0, _gappedMax, _gappedLen, resizeArray_doNothing);
 
   if (_gappedLen > 0) {
-    //fprintf(stderr, "tgTig::loadFromStream()-- loading %u gapped bases\n", _gappedLen);
     AS_UTL_safeRead(F, _gappedBases, "tgTig::loadFromStream::gappedBases", sizeof(char), _gappedLen);
     AS_UTL_safeRead(F, _gappedQuals, "tgTig::loadFromStream::gappedQuals", sizeof(char), _gappedLen);
   }
 
-  //if (_ungappedLen > 0) {
-  //  //fprintf(stderr, "tgTig::loadFromStream()-- loading %u ungapped bases\n", _ungappedLen);
-  //  AS_UTL_safeRead(F, _ungappedBases, "tgTig::loadFromStream::ungappedBases", sizeof(char), _ungappedLen);
-  //  AS_UTL_safeRead(F, _ungappedQuals, "tgTig::loadFromStream::ungappedQuals", sizeof(char), _ungappedLen);
-  //}
+  //  Allocate space for reads and alignments, and load them.
 
-  //fprintf(stderr, "tgTig::loadFromStream()-- Loading at position "F_U64" - before children, need to load "F_U32" at "F_U64" bytes each.\n",
-  //        AS_UTL_ftell(F), _childrenLen, sizeof(tgPosition));
+  resizeArray(_children,    0, _childrenMax,    _childrenLen,    resizeArray_doNothing);
+  resizeArray(_childDeltas, 0, _childDeltasMax, _childDeltasLen, resizeArray_doNothing);
 
-  if (_childrenLen > 0) {
-    //fprintf(stderr, "tgTig::loadFromStream()-- loading %u children\n", _childrenLen);
+  if (_childrenLen > 0)
     AS_UTL_safeRead(F, _children, "tgTig::savetoStream::children", sizeof(tgPosition), _childrenLen);
-  }
 
-  //fprintf(stderr, "tgTig::loadFromStream()-- Loading at position "F_U64" - before deltas, need to load "F_U32" at "F_U64" bytes each.\n",
-  //        AS_UTL_ftell(F), _childDeltasLen, sizeof(tgPosition));
-
-  if (_childDeltasLen > 0) {
+  if (_childDeltasLen > 0)
     AS_UTL_safeRead(F, _childDeltas, "tgTig::loadFromStream::childDeltas", sizeof(int32), _childDeltasLen);
-  }
 
-  //fprintf(stderr, "tgTig::loadFromStream()-- Loading at position "F_U64" - finished\n", AS_UTL_ftell(F));
+  //  Return success.
+
+  return(true);
 };
 
 
@@ -502,3 +518,11 @@ tgTig::loadLayout(FILE *F) {
   return(true);
 }
 
+
+
+void
+tgTig::dumpFASTQ(FILE *F) {
+  AS_UTL_writeFastQ(F,
+                    ungappedBases(), ungappedLength(),
+                    ungappedQuals(), ungappedLength(), "@utg%08u\n", tigID());
+}

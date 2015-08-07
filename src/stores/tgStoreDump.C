@@ -813,18 +813,6 @@ main (int argc, char **argv) {
       opType = OPERATION_EDIT;
       editName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-B") == 0) {
-      opType = OPERATION_BUILD;
-      buildName = argv[++arg];
-
-
-    } else if (strcmp(argv[arg], "-R") == 0) {
-      opType = OPERATION_REPLACE;
-      replaceName = argv[++arg];
-
-    } else if (strcmp(argv[arg], "-N") == 0) {
-      sameVersion = false;
-
     } else if (strcmp(argv[arg], "-A") == 0) {
        append = true;
 
@@ -889,16 +877,6 @@ main (int argc, char **argv) {
     fprintf(stderr, "  -E <editFile>         Change properties of multialigns\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -B <layout-file>      Construct a new store with unitigs in 'layout-file'.  Store versions\n");
-    fprintf(stderr, "                        before that specified on the '-t' option are created but are empty.\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -R <layout>           Replace a multialign with this one (type and id are from the layout)\n");
-    fprintf(stderr, "                        The multialign is replaced in version <v> from -t.\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -N                    Replace a multialign in the next version of the store.  This option is\n");
-    fprintf(stderr, "                        needed if the version of the store to add a multialign does not exist.\n");
-    fprintf(stderr, "                        The multialign is replaced in version <v>+1 from -t.\n");
-    fprintf(stderr, "\n");
     fprintf(stderr, "  -compress             Move tigs from earlier versions into the specified version.  This removes\n");
     fprintf(stderr, "                        historical versions of unitigs/contigs, and can save tremendous storage space,\n");
     fprintf(stderr, "                        but makes it impossible to back up the assembly past the specified versions\n");
@@ -916,19 +894,6 @@ main (int argc, char **argv) {
     exit(1);
   }
 
-  //  To add a new multialign: In the layout, assign an id of -1 to the multialign (e.g., "unitig
-  //  -1" or "contig -1").  Use -R to 'replace' this unitig in the store.  The store will assign the
-  //  next unitig/contig ID to this new multialign.  WARNING!  The new multialign MUST be added to
-  //  the latest version.
-  //
-  //  To delete a multialign: Remove ALL FRG and UTG lines, and set data.num_frags and
-  //  data.num_unitigs to zero.  Use -R to 'replae' this unitig in the store.
-  //  EXCEPT the code below will ignore treat these as EOF.
-
-  if ((opType == OPERATION_BUILD) && (buildName != NULL)) {
-    operationBuild(buildName, tigName, tigVers);
-    exit(0);
-  }
 
 
   if (opType == OPERATION_COMPRESS) {
@@ -951,48 +916,6 @@ main (int argc, char **argv) {
   }
 
 
-  if ((opType == OPERATION_REPLACE) && (replaceName != NULL)) {
-    if (tigIDset) {
-      fprintf(stderr, "ERROR:  -R is incompatible with -c, -u, -C and -U.  Did you mean -cp or -up instead?\n");
-      exit(1);
-    }
-
-    errno = 0;
-    FILE         *F = fopen(replaceName, "r");
-    if (errno)
-      fprintf(stderr, "Failed to open '%s': %s\n", replaceName, strerror(errno)), exit(1);
-
-    fprintf(stderr, "Reading layouts from '%s'.\n", replaceName);
-
-    delete tigStore;
-
-    if (sameVersion)
-      tigStore = new tgStore(tigName, tigVers, true, true, false);  //  default
-    else
-      tigStore = new tgStore(tigName, tigVers, true, false, append);
-
-    tgTig  *tig = new tgTig;
-
-    while (tig->loadLayout(F) == true) {
-      if (tig->numberOfChildren() == 0) {
-        if (tigStore->isDeleted(tig->tigID()) == true) {
-          fprintf(stderr, "DELETING tig %d -- ALREADY DELETED\n", tig->tigID());
-        } else {
-          fprintf(stderr, "DELETING tig %d\n", tig->tigID());
-          tigStore->deleteTig(tig->tigID());
-        }
-      } else {
-        tigStore->insertTig(tig, false);
-        fprintf(stderr, "INSERTING tig %d\n", tig->tigID());
-      }
-    }
-
-    fprintf(stderr, "Reading layouts from '%s' completed.\n", replaceName);
-
-    delete tig;
-
-    fclose(F);
-  }
 
 
   if (opType == OPERATION_LIST) {

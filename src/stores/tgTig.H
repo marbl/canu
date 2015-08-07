@@ -219,11 +219,15 @@ public:
   tgTig               &operator=(tgTigRecord & tr);
   tgTig               &operator=(tgTig &tg);
 
+  bool                 loadFromStreamOrLayout(FILE *F);
+
   void                 saveToStream(FILE *F);
-  void                 loadFromStream(FILE *F);
+  bool                 loadFromStream(FILE *F);
 
   void                 dumpLayout(FILE *F);
   bool                 loadLayout(FILE *F);
+
+  void                 dumpFASTQ(FILE *F);
 
   //  There are two multiAlign displays; this one, and one in abMultiAlign.
   void                 display(FILE     *F,
@@ -248,9 +252,6 @@ public:
   //  Flags for computing consensus/multialignments
 
   uint32              _utgcns_verboseLevel;
-  uint32              _utgcns_smoothWindow;
-  bool                _utgcns_splitAlleles;
-  bool                _utgcns_doPhasing;
 
   //  A variety of flags to suggest what type of unitig this is
 
