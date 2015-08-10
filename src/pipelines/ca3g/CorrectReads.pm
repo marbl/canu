@@ -14,8 +14,8 @@ use ca3g::Execution;
 use ca3g::Gatekeeper;
 
 #  Returns a coverage:
-#    If $cov not defined, default to expected coverage * 1.0.
-#    Otherwise, if defined but ends in an 'x', that's expected coverage * whatever
+#    If $cov not defined, default to desired output coverage * 1.0.
+#    Otherwise, if defined but ends in an 'x', that's desired output coverage * whatever
 #    Otherwise, the coverage is as defined.
 #
 sub getCorCov ($$$) {
@@ -24,10 +24,13 @@ sub getCorCov ($$$) {
     my $typ = shift @_;
     my $cov = getGlobal("corMaxEvidenceCoverage$typ");
 
+    my $exp = getExpectedCoverage($wrk, $asm);
+    my $des = getGlobal("corOutCoverage");
+
     if (!defined($cov)) {
-        $cov = int(getExpectedCoverage($wrk, $asm) * 1.0);
+        $cov = $des;
     } elsif ($cov =~ m/(.*)x/) {
-        $cov = int(getExpectedCoverage($wrk, $asm) * $1);
+        $cov = int($des * $1);
     }
 
     return($cov);
@@ -385,7 +388,7 @@ sub expensiveFilter ($$) {
     my $totCorLengthOut   = 0;  #  Expected bases in corrected reads
     my $minCorLength      = 0;
 
-    my $minTotal        = getGlobal("genomeSize") * getGlobal("corOutCoverage");
+    my $minTotal          = getGlobal("genomeSize") * getGlobal("corOutCoverage");
 
     #  Lists of reads to correct if we use the raw length or the corrected length as a filter.
 
