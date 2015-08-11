@@ -503,8 +503,6 @@ main(int argc, char **argv) {
   if (errno)
     fprintf(stderr, "ERROR:  cannot open uid map file '%s': %s\n", nameMapName, strerror(errno)), exit(1);
 
-  uint32  nFASTA   = 0;
-  uint32  nFASTQ   = 0;
   uint32  nERROR   = 0;  //  There aren't any errors, we just exit fatally if encountered.
   uint32  nWARNS   = 0;
 
@@ -599,13 +597,18 @@ main(int argc, char **argv) {
   fprintf(stderr, "  "F_U32" errors (failed to read sequence)\n",   nERROR);
   fprintf(stderr, "  "F_U32" warnings (bad base or qv)\n", nWARNS);
   fprintf(stderr, "\n");
+  fprintf(stderr, "Read from inputs:\n");
+  fprintf(stderr, "  "F_U64" bp.\n",    bLOADED);
+  fprintf(stderr, "  "F_U32" reads.\n", nLOADED);
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Loaded into store:\n");
+  fprintf(stderr, "  "F_U64" bp.\n",    bLOADED);
+  fprintf(stderr, "  "F_U32" reads.\n", nLOADED);
+  fprintf(stderr, "\n");
   fprintf(stderr, "Skipped (too short):\n");
   fprintf(stderr, "  "F_U64" bp (%.4f%%).\n",    bSKIPPED, 100.0 * bSKIPPED / (bSKIPPED + bLOADED));
   fprintf(stderr, "  "F_U32" reads (%.4f%%).\n", nSKIPPED, 100.0 * nSKIPPED / (nSKIPPED + nLOADED));
   fprintf(stderr, "\n");
-  fprintf(stderr, "Loaded:\n");
-  fprintf(stderr, "  "F_U64" bp.\n",    bLOADED);
-  fprintf(stderr, "  "F_U32" reads.\n", nLOADED);
   fprintf(stderr, "\n");
 
   if (nERROR > 0)
@@ -614,16 +617,16 @@ main(int argc, char **argv) {
   if (bSKIPPED > 0.25 * (bSKIPPED + bLOADED))
     fprintf(stderr, "gatekeeperCreate did NOT finish successfully; too many bases skipped.  Check your reads.\n");
 
-  if (nWARNS > 0.25 * (nFASTA + nFASTQ))
+  if (nWARNS > 0.25 * (nLOADED))
     fprintf(stderr, "gatekeeperCreate did NOT finish successfully; too many warnings.  Check your reads.\n");
 
-  if (nSKIPPED > 0.5 * (nFASTA + nFASTQ))
+  if (nSKIPPED > 0.50 * (nLOADED))
     fprintf(stderr, "gatekeeperCreate did NOT finish successfully; too many short reads.  Check your reads!\n");
 
   if ((nERROR > 0) ||
       (bSKIPPED > 0.25 * (bSKIPPED + bLOADED)) ||
-      (nWARNS   > 0.25 * (nSKIPPED + nFASTA + nFASTQ)) ||
-      (nSKIPPED > 0.50 * (nSKIPPED + nFASTA + nFASTQ)))    
+      (nWARNS   > 0.25 * (nSKIPPED + nLOADED)) ||
+      (nSKIPPED > 0.50 * (nSKIPPED + nLOADED)))    
     exit(1);
 
   fprintf(stderr, "gatekeeperCreate finished successfully.\n");
