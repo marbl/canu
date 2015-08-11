@@ -22,7 +22,6 @@
 static char *rcsid = "$Id$";
 
 #include "unitigConsensus.H"
-#include "aligners.H"
 
 #include "NDalign.H"
 
@@ -563,45 +562,6 @@ unitigConsensus::computePositionFromAlignment(void) {
   }
 
   //
-  //  Try DP_Compare.
-  //
-#if 0
-  if (foundAlign == false) {
-    ALNoverlap *O = DP_Compare(frankenstein,
-                               fragment,
-                               ahanglimit, frankensteinLen,  //  ahang bounds
-                               frankensteinLen, fragmentLen,   //  length of fragments
-                               0,
-                               errorRate, 1e-3, minlen,
-                               AS_FIND_ALIGN);
-    if (O) {
-      foundAlign = true;
-      cnspos[tiid].set(O->begpos, O->endpos + frankensteinLen);
-      fprintf(stderr, "cnspos[%3d] mid %d %d,%d (from DP_Compare)\n", tiid, utgpos[tiid].ident(), cnspos[tiid].min(), cnspos[tiid].max());
-    }
-  }
-
-  //
-  //  Try Local_Overlap_AS_forCNS.
-  //
-
-  if (foundAlign == false) {
-    ALNoverlap *O = Local_Overlap_AS_forCNS(frankenstein,
-                                            fragment,
-                                            ahanglimit, frankensteinLen,  //  ahang bounds
-                                            frankensteinLen, fragmentLen,   //  length of fragments
-                                            0,
-                                            errorRate, 1e-3, minlen,
-                                            AS_FIND_ALIGN);
-    if (O) {
-      foundAlign = true;
-      cnspos[tiid].set(O->begpos, O->endpos + frankensteinLen);
-      fprintf(stderr, "cnspos[%3d] mid %d %d,%d (from Local_Overlap_AS_forCNS)\n", tiid, utgpos[tiid].ident(), cnspos[tiid].min(), cnspos[tiid].max());
-    }
-  }
-#endif
-
-  //
   //  Fail.
   //
 
@@ -909,20 +869,8 @@ unitigConsensus::alignFragment(bool forceAlignment) {
                        1, bseq, fragEnd  - fragBgn,  0, fragEnd  - fragBgn,
                        false);
 
-    //  Generate seeds and prepare for alignment.
-    //
-    //  If not using seeds, we need to realign, at least backwards.
-
-#undef  WITH_SEEDS
-
-#ifdef WITH_SEEDS
-    bool  alignFound = ((oaFull->findMinMaxDiagonal(minOverlap, bgnExtra, endExtra) == true) &&
-                        (oaFull->findSeeds(false)                                   == true) &&
-                        (oaFull->findHits()                                         == true) &&
-                        (oaFull->chainHits()                                        == true));
-#else
+    //  Don't use seeds.
     bool  alignFound = oaFull->makeNullHit();
-#endif
 
     //  While we find alignments, decide if they're any good, and stop on the first good one.  Try up
     //  to four seeds, then give up and fall back to dynamic programming.
@@ -946,16 +894,8 @@ unitigConsensus::alignFragment(bool forceAlignment) {
 
       //  Realign, from both endpoints, and save the better of the two.
 
-#ifdef WITH_SEEDS
-      if (oaFull->scanDeltaForBadness(showAlgorithm()) == true)
-        oaFull->realignBackward(showAlgorithm(), showAlignments());
-
-      if (oaFull->scanDeltaForBadness(showAlgorithm()) == true)
-        oaFull->realignForward(showAlgorithm(), showAlignments());
-#else
       oaFull->realignBackward(showAlgorithm(), showAlignments());
       oaFull->realignForward (showAlgorithm(), showAlignments());
-#endif
 
       if ((forceAlignment == false) &&
           (oaFull->scanDeltaForBadness(showAlgorithm(), showAlignments()) == true)) {

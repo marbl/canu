@@ -52,17 +52,7 @@ SOURCES  := AS_global.C \
             \
             meryl/libmeryl.C \
             \
-            alignment/alignment-drivers.C \
-            alignment/analyze-affine-overlap.C \
-            alignment/brute-force-dp.C \
-            alignment/dp-align.C \
-            alignment/find-local-overlap.C \
-            alignment/find-local-segments.C \
-            alignment/fix-overlapping-pieces.C \
-            alignment/local-overlapper.C \
-            \
             overlapInCore/overlapReadCache.C \
-            \
             \
             overlapErrorAdjustment/analyzeAlignment.C \
             \
@@ -205,8 +195,6 @@ SUBMAKEFILES := stores/gatekeeperCreate.mk \
                 bogus/bogus.mk \
                 \
                 erateEstimate/erateEstimate.mk \
-                \
-                unitigger/unitigger.mk \
                 \
                 utgcns/utgcns.mk \
                 \
