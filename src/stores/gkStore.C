@@ -62,11 +62,7 @@ gkRead::gkRead_loadData(gkReadData *readData, void *blobs) {
 
     //fprintf(stderr, "%s len %u\n", chunk, chunkLen);
 
-    if      (strncmp(chunk, "TYPE", 4) == 0) {
-      readData->_type = *((uint32 *)blob + 2);
-    }
-
-    else if (strncmp(chunk, "VERS", 4) == 0) {
+    if      (strncmp(chunk, "VERS", 4) == 0) {
     }
 
     else if (strncmp(chunk, "QSEQ", 4) == 0) {
@@ -102,14 +98,6 @@ gkRead::gkRead_loadData(gkReadData *readData, void *blobs) {
         readData->_qlt[ii] = qval;
     }
 
-    else if (strncmp(chunk, "IDNT", 4) == 0) {
-      //fprintf(stderr, "IDNT = %u\n", *((uint32 *)blob + 2));
-    }
-
-    else if (strncmp(chunk, "SLEN", 4) == 0) {
-      //fprintf(stderr, "SLEN = %u\n", *((uint32 *)blob + 2));
-    }
-
     else {
       fprintf(stderr, "gkRead::gkRead_loadData()--  unknown chunk type '%s' skipped\n", chunk);
     }
@@ -117,56 +105,14 @@ gkRead::gkRead_loadData(gkReadData *readData, void *blobs) {
     blob += 4 + 4 + chunkLen;
   }
 
-#if 0
-  switch (_type) {
-  case GKREAD_ENC_UNKNOWN:
-    fprintf(stderr, "gkRead::gkRead_loadData()-- encoding not set.\n");
-    assert(0);
-    break;
-  case GKREAD_ENC_TYPE_QLT:
-    return (gkRead_decodeSeqQlt(readData, (char *)blobs + offset));
-    break;
-  case GKREAD_TYPE_PACBIO:
-    return (gkRead_decodePacBio(readData, (char *)blobs + offset));
-    break;
-  case GKREAD_TYPE_MINION:
-    return (gkRead_decodeMinION(readData, (char *)blobs + offset));
-    break;
-  default:
-    fprintf(stderr, "gkRead()-- ERROR: no known technology for type 0x%02lx.\n", _encoding);
-    return(false);
-    exit(1);
-  }
-#endif
-
   return(true);
 };
 
-
-bool
-gkRead::gkRead_decodeSeqQlt(gkReadData *readData, void *blob) {
-  //assert(_encoding == GKREAD_ENC_SEQ_QLT);
-
-  return(true);
-};
-
-bool
-gkRead::gkRead_decodePacBio(gkReadData *readData, void *blob) {
-  //assert(_encoding == GKREAD_ENC_PACBIO);
-
-  return(true);
-};
-
-bool
-gkRead::gkRead_decodeMinION(gkReadData *readData, void *blob) {
-  //assert(_encoding == GKREAD_ENC_MINION);
-
-  return(true);
-};
 
 
 
 //  Dump a block of encoded data to disk, then update the gkRead to point to it.
+//
 void
 gkStore::gkStore_stashReadData(gkRead *read, gkReadData *data) {
 
@@ -185,6 +131,9 @@ gkStore::gkStore_stashReadData(gkRead *read, gkReadData *data) {
 }
 
 
+//  Store the 'len' bytes of data in 'dat' into the class-managed _blob data block.
+//  Ensures that the _blob block is appropriately padded to maintain 32-bit alignment.
+//
 void
 gkReadData::gkReadData_encodeBlobChunk(char const *tag,
                                        uint32      len,
@@ -263,7 +212,6 @@ gkRead::gkRead_encodeSeqQlt(char *H, char *S, char *Q) {
       Q[ii] = Q[Qlen-1];
   }
 
-  uint32  blobType = GKREAD_TYPE_SEQ_QLT;
   uint32  blobVers = 0x00000001;
 
   uint8  *qseq = NULL;
@@ -271,11 +219,8 @@ gkRead::gkRead_encodeSeqQlt(char *H, char *S, char *Q) {
   _seqLen    = Slen;
 
   rd->gkReadData_encodeBlobChunk("BLOB",    0,  NULL);
-  rd->gkReadData_encodeBlobChunk("TYPE",    4, &blobType);
   rd->gkReadData_encodeBlobChunk("VERS",    4, &blobVers);
-  rd->gkReadData_encodeBlobChunk("IDNT",    4, &RID);       //  Debugging, the read id we're supposed to be for
-  rd->gkReadData_encodeBlobChunk("SLEN",    4, &Slen);      //  Debugging, the length of the read we're supposed to be for
-  rd->gkReadData_encodeBlobChunk("QSEQ",    0,  qseq);      //  Encoded sequence and quality
+  //rd->gkReadData_encodeBlobChunk("QSEQ",    0,  qseq);      //  Encoded sequence and quality
   rd->gkReadData_encodeBlobChunk("USEQ", Slen,  S);         //  Unencoded sequence
   rd->gkReadData_encodeBlobChunk("UQLT", Qlen,  Q);         //  Unencoded quality
   rd->gkReadData_encodeBlobChunk("STOP",    0,  NULL);
@@ -289,7 +234,6 @@ gkRead::gkRead_encodeSeqQlt(char *H, char *S, uint32 qv) {
 
   uint32  Slen = strlen(S);
 
-  uint32  blobType = GKREAD_TYPE_SEQ_QLT;
   uint32  blobVers = 0x00000002;
 
   uint8  *qseq = NULL;
@@ -297,12 +241,11 @@ gkRead::gkRead_encodeSeqQlt(char *H, char *S, uint32 qv) {
   _seqLen    = Slen;
 
   rd->gkReadData_encodeBlobChunk("BLOB",    0,  NULL);
-  rd->gkReadData_encodeBlobChunk("TYPE",    4, &blobType);
   rd->gkReadData_encodeBlobChunk("VERS",    4, &blobVers);
   //rd->gkReadData_encodeBlobChunk("2SEQ",    0,  qseq);      //  Two-bit encoded sequence (ACGT only)
   //rd->gkReadData_encodeBlobChunk("3SEQ",    0,  qseq);      //  Three-bit encoded sequence (ACGTN)
   rd->gkReadData_encodeBlobChunk("USEQ", Slen,  S);         //  Unencoded sequence
-  rd->gkReadData_encodeBlobChunk("QVAL",    4, &qv);        //  QV for every base
+  rd->gkReadData_encodeBlobChunk("QVAL",    4, &qv);        //  Constant QV for every base
   rd->gkReadData_encodeBlobChunk("STOP",    0,  NULL);
 
   return(rd);

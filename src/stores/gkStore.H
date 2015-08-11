@@ -67,18 +67,6 @@ using namespace std;
 //#define FINALTRIM_EVIDENCE_BASED   0x02  //  rules for sanger reads -- DOESN'T EXIST
 #define FINALTRIM_BEST_EDGE        0x03  //  largest region covered by best overlaps (broken)
 
-//  Sequence data storage methods.  This is the format of the in-core structure.
-//  The on-disk structure is decoded automagically.
-//
-#define GKREAD_TYPE_UNKNOWN    0x00
-#define GKREAD_TYPE_SEQ_QLT    0x01
-#define GKREAD_TYPE_PACBIO     0x02
-#define GKREAD_TYPE_MINION     0x03
-#define GKREAD_TYPE_1          0x04
-#define GKREAD_TYPE_2          0x05
-#define GKREAD_TYPE_3          0x06
-#define GKREAD_TYPE_4          0x07
-#define GKREAD_TYPE_NUM        8
 
 
 class gkLibrary {
@@ -190,8 +178,6 @@ public:
   gkReadData() {
     _read = NULL;
 
-    _type = GKREAD_TYPE_UNKNOWN;
-
     _seq       = NULL;
     _qlt       = NULL;
     _seqAlloc  = 0;
@@ -226,8 +212,6 @@ public:
 
   gkRead  *gkReadData_getRead(void)         { return(_read); };
 
-  uint32   gkReadData_getType(void)         { return(_type); };
-
   bool     gkReadData_hasSequence(void)     { return(_seq != NULL); };
   bool     gkReadData_hasQualities(void)    { return(_qlt != NULL); };
 
@@ -236,8 +220,6 @@ public:
 
 private:
   gkRead            *_read;     //  Pointer to the mmap'd read
-
-  uint32             _type;
 
   char              *_seq;      //  Everyone has sequence
   char              *_qlt;      //    and quality
@@ -305,11 +287,6 @@ public:
   gkReadData *gkRead_encodeSeqQlt(char *H, char *S, uint32 qv);
   gkReadData *gkRead_encodePacBio(char *H, char *S, char *Q);
   gkReadData *gkRead_encodeMinION(char *H, char *S, char *Q);
-
-private:
-  bool        gkRead_decodeSeqQlt(gkReadData *readData, void *blob);
-  bool        gkRead_decodePacBio(gkReadData *readData, void *blob);
-  bool        gkRead_decodeMinION(gkReadData *readData, void *blob);
 
 private:
   char       *gkRead_encodeSequence(char *sequence, char *encoded);
@@ -553,9 +530,6 @@ public:
 
     delete [] numActivePerLib;
 
-    for (uint32 i=0; i<GKREAD_TYPE_NUM; i++)
-      delete [] numByEncPerLib[i];
-
     delete [] readLengthPerLib;
     delete [] clearLengthPerLib;
   };
@@ -565,7 +539,6 @@ public:
   //  Global stats over the whole store
 
   uint32  numActiveFrag;
-  uint32  numByEnc[GKREAD_TYPE_NUM];
   uint64  readLength;
   uint64  clearLength;
 
@@ -575,7 +548,6 @@ public:
   uint32  *highestID;
 
   uint32  *numActivePerLib;
-  uint32 **numByEncPerLib;
   uint64  *readLengthPerLib;
   uint64  *clearLengthPerLib;
 };
