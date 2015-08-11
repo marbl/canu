@@ -216,7 +216,8 @@ abAbacus::addRead(gkStore *gkpStore,
       assert((seq[ii] == 'A') ||
              (seq[ii] == 'C') ||
              (seq[ii] == 'G') ||
-             (seq[ii] == 'T'));
+             (seq[ii] == 'T') ||
+             (seq[ii] == 'N'));
 
     if (complemented == false)
       for (uint32 ii=0, pp=_basesLen; ii<seqLen; ii++, pp++, _basesLen++) {
