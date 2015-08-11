@@ -139,6 +139,8 @@ output_the_chunks(Tfragment     *frags,
 
     tig->_childrenLen = ch->num_frags;
 
+    int32 maxlen = 0;
+
     for (int32 ivc=0; ivc<ch->num_frags; ivc++) {
       uint32 vid = *GetVA_AChunkFrag(chunkfrags, ch->f_list + ivc);
 
@@ -148,7 +150,14 @@ output_the_chunks(Tfragment     *frags,
                               0, 0, 0, 
                               get_o5p_fragment(frags, vid),
                               get_o3p_fragment(frags, vid));
+
+      if (maxlen < get_o5p_fragment(frags, vid))
+        maxlen = get_o5p_fragment(frags, vid);
+      if (maxlen < get_o3p_fragment(frags, vid))
+        maxlen = get_o3p_fragment(frags, vid);
     }
+
+    tig->_layoutLen = maxlen;
 
     MAS->insertTig(tig, false);
   }
