@@ -214,6 +214,14 @@ gkRead::gkRead_encodeSeqQlt(char *H, char *S, char *Q) {
 
   uint32  blobVers = 0x00000001;
 
+  //  Sequence is 2-bit encoded
+  //  QVs are 5-bit encoded. (0-31 inclusive)
+  //
+  //  From the FASTQ wikipedia: "Sanger format can encode a Phred quality score from 0 to 93 using
+  //  ASCII 33 to 126 (although in raw read data the Phred quality score rarely exceeds 60, higher
+  //  scores are possible in assemblies or read maps)."
+  //  The encoding starts at ! and ends with ~
+
   uint8  *qseq = NULL;
 
   _seqLen    = Slen;
@@ -405,10 +413,6 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
     failed += fprintf(stderr, "ERROR:  AS_MAX_READLEN_BITS in store = %u, differs from executable = %u\n",
                       _info.gkMaxReadLenBits, AS_MAX_READLEN_BITS);
 
-  if (_info.gkBlobBlockSize    != BLOB_BLOCK_SIZE)
-    failed += fprintf(stderr, "ERROR:  BLOB_BLOCK_SIZE in store = %u, differs from executable = %u\n",
-                      _info.gkBlobBlockSize, BLOB_BLOCK_SIZE);
-
   if (failed)
     fprintf(stderr, "ERROR:\nERROR:  Can't open store '%s': parameters in src/AS_global.H are incompatible with the store.\n", _storePath), exit(1);
 
@@ -419,7 +423,6 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
   assert(_info.gkLibraryNameSize  == LIBRARY_NAME_SIZE);
   assert(_info.gkMaxReadBits      == AS_MAX_READS_BITS);
   assert(_info.gkMaxReadLenBits   == AS_MAX_READLEN_BITS);
-  assert(_info.gkBlobBlockSize    == BLOB_BLOCK_SIZE);
 
   //  Clear ourself, to make valgrind happier.
 
@@ -803,20 +806,8 @@ gkRead::gkRead_copyDataToPartition(void *blobs, FILE **partfiles, uint64 *partfi
 
   //  Figure out where the blob actually is, and make sure that it really is a blob
 
-  uint8  *blob    = (uint8 *)blobs + _mPtr * BLOB_BLOCK_SIZE;
+  uint8  *blob    = (uint8 *)blobs + _mPtr;
   uint32  blobLen = 8 + *((uint32 *)blob + 1);
-
-#if 0
-  fprintf(stderr, "blobs "F_X64"\n", blobs);
-  fprintf(stderr, "blobs "F_X64"\n", blobs + 1);
-  fprintf(stderr, "blobs "F_X64"\n", (uint32 *)blobs);
-  fprintf(stderr, "blobs "F_X64"\n", (uint32 *)blobs + 1);
-
-  fprintf(stderr, "blob "F_X64"\n", blob);
-  fprintf(stderr, "blob "F_X64"\n", (uint32 *)blob + 1);
-
-  fprintf(stderr, "copy to partition blob="F_X64" len="F_U32" mPtr="F_U64"\n", blob, blobLen, _mPtr);
-#endif
 
   assert(blob[0] == 'B');
   assert(blob[1] == 'L');

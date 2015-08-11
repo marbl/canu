@@ -48,14 +48,6 @@ using namespace std;
 #define AS_MAX_READS               (((uint64)1 << AS_MAX_READS_BITS) - 1)
 
 
-//  This indirectly controls how much sequence can be loaded, in that the store
-//  can address 2^32 blocks of this many bytes.  QVs are stored in 5/8 of a byte,
-//  so with the default of 64, the store can hold at most
-//    2^32 * 64 * 5 / 8 = 171.8 Gbp.
-//  With the default 134.2 million reads, that's only 1280 bp/read.
-//
-#define BLOB_BLOCK_SIZE            1
-
 //  Per-library algorithm options.
 //
 #define CORRECTION_NONE            0x00
@@ -305,8 +297,8 @@ private:
   uint64   _libraryID    : AS_MAX_LIBRARIES_BITS;
   uint64   _seqLen       : AS_MAX_READLEN_BITS;
 
-  uint64   _mPtr         : 48;      //  Pointer to blob of data in blob file
-  uint64   _pID          : 16;      //  Partition file id, 0...1024
+  uint64   _mPtr         : 48;      //  Pointer to blob of data in blob file, 0..256 TB
+  uint64   _pID          : 16;      //  Partition file id, 0...65536
 
   friend class gkStore;
 };
@@ -331,7 +323,7 @@ public:
     gkLibraryNameSize  = LIBRARY_NAME_SIZE;
     gkMaxReadBits      = AS_MAX_READS_BITS;
     gkMaxReadLenBits   = AS_MAX_READLEN_BITS;
-    gkBlobBlockSize    = BLOB_BLOCK_SIZE;
+    gkUNUSED           = 0;
 
     numLibraries       = 0;
     numReads           = 0;
@@ -349,7 +341,6 @@ public:
     fprintf(F, "gkLibraryNameSize  = "F_U32"\n", gkLibraryNameSize);
     fprintf(F, "gkMaxReadBits      = "F_U32"\n", gkMaxReadBits);
     fprintf(F, "gkMaxReadLenBits   = "F_U32"\n", gkMaxReadLenBits);
-    fprintf(F, "gkBlobBlockSize    = "F_U32"\n", gkBlobBlockSize);
     fprintf(F, "\n");
     fprintf(F, "numLibraries       = "F_U32"\n", numLibraries);
     fprintf(F, "numReads           = "F_U32"\n", numReads);
@@ -365,7 +356,7 @@ private:
   uint32    gkLibraryNameSize;
   uint32    gkMaxReadBits;
   uint32    gkMaxReadLenBits;
-  uint32    gkBlobBlockSize;
+  uint32    gkUNUSED;           //  Used to hold a blob block size that was never implemented
 
   uint32    numLibraries;       //  Counts of types of things we have loaded
   uint32    numReads;
