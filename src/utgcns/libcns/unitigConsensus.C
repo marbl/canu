@@ -1169,12 +1169,4 @@ unitigConsensus::exportToTig(void) {
 
   ma->getConsensus(abacus, tig);
   ma->getPositions(abacus, tig);
-
-  //  Although we generally don't care about delta values during assembly, we need them for the
-  //  output, and this is the only time we compute them.  So, we've gotta hang on to them.
-  //
-  //for (int32 i=0; i<numfrags; i++) {
-  //  utgpos[i].delta_length = 0;
-  //  utgpos[i].delta        = NULL;
-  //}
 }
