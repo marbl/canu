@@ -77,7 +77,7 @@ public:
       //  all spaces be string terminators, and declare that we are
       //  at the start of a word.
       //
-      if ((*cmdI != ' ') && (*cmdI != '\t')) {
+      if ((*cmdI != ' ') && (*cmdI != '\t') && (*cmdI != '\n') && (*cmdI != '\r')) {
         *cmdO = *cmdI;
 
         if (isFirst) {
