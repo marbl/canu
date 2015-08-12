@@ -172,7 +172,7 @@ public:
   uint32              _suggestHaploid   : 1;
   uint32              _spare            : 28;
 
-  uint32              _layoutLen;
+  uint32              _layoutLen;       //  Max coord
   uint32              _gappedLen;       //  Gapped consensus
   uint32              _childrenLen;
   uint32              _childDeltasLen;
@@ -263,10 +263,10 @@ public:
 
   uint32              _layoutLen;       //  The max coord in the layout.  Same as gappedLen if it exists.
 
-  char               *_gappedBases;     //  Gapped consensus - used by the multialignment
+  char               *_gappedBases;     //  Gapped consensus - used by the multialignment.  NUL terminated.
   char               *_gappedQuals;
-  uint32              _gappedLen;
-  uint32              _gappedMax;
+  uint32              _gappedLen;       //  Doesn't include the NUL.
+  uint32              _gappedMax;       //  Does    include the NUL.
 
   char               *_ungappedBases;   //  Ungapped consensus - not used by the assember, only output.
   char               *_ungappedQuals;

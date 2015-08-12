@@ -29,19 +29,28 @@ static const char *rcsid_TGSTORE_H = "$Id$";
 //
 //  The tgStore is a disk-resident (with memory cache) database of tgTig structures.
 //
+//  There are two basic modes of operation:
+//    open a store for reading version v
+//    open a store for reading version v, and writing to version v+1, erasing v+1 before starting
+//    open a store for reading version v, and writing to version v+1, preserving the contents
+//    open a store for reading version v, and writing to version v,   preserving the contents
+//
+
+enum tgStoreType {       //  writable  inplace  append
+  tgStoreCreate    = 0,  //  Make a new one, then become tgStoreWrite
+  tgStoreReadOnly  = 1,  //     false        *       * - open version v   for reading; inplace=append=false in the code
+  tgStoreWrite     = 2,  //      true    false   false - open version v+1 for writing, purge contents of v+1; standard open for writing
+  tgStoreAppend    = 3,  //      true    false    true - open version v+1 for writing, do not purge contents
+  tgStoreModify    = 4,  //      true     true   false - open version v   for writing, do not purge contents
+};
+
+
 
 class tgStore {
 public:
-
-  //  Create a tgStore (first constructor).
-  //  Open a tgStore (second constructor).
-  //
-  tgStore(const char *path);
   tgStore(const char *path,
-          uint32      version,
-          bool        writable=false,
-          bool        inplace=false,
-          bool        append=false);
+          uint32      version = 0,
+          tgStoreType type    = tgStoreReadOnly);
   ~tgStore();
 
   //  Update to the next version.
@@ -108,18 +117,16 @@ private:
     uint64       unusedFlags : 12;  //  One whole bit for future use.
     uint64       flushNeeded : 1;   //  If true, this MAR and associated tig are NOT saved to disk.
     uint64       isDeleted   : 1;   //  If true, this MAR has been deleted from the assembly.
-    uint64       svID        : 10;  //  10 -> 1024 versions
+    uint64       svID        : 10;  //  10 -> 1024 versions (HARDCODED in tgStore.C)
     uint64       fileOffset  : 40;  //  40 -> 1 TB file size; offset in file where MA is stored
   };
-
-  void                    init(const char *path_, uint32 version_, bool writable_, bool inplace_, bool append_);
 
   void                    writeTigToDisk(tgTig *ma, tgStoreEntry *maRecord);
 
   uint32                  numTigsInMASRfile(char *name);
 
   void                    dumpMASR(tgStoreEntry* &R, uint32& L, uint32& M, uint32 V);
-  void                    loadMASR(tgStoreEntry* &R, uint32& L, uint32& M, uint32 V, bool onlyThisV);
+  void                    loadMASR(tgStoreEntry* &R, uint32& L, uint32& M, uint32 V);
 
   void                    purgeVersion(uint32 version);
   void                    purgeCurrentVersion(void);
@@ -128,12 +135,10 @@ private:
 
   FILE                   *openDB(uint32 V);
 
-  char                    _path[FILENAME_MAX];
-  char                    _name[FILENAME_MAX];
+  char                    _path[FILENAME_MAX];     //  Path to the store.
+  char                    _name[FILENAME_MAX];     //  Name of the currently opened file, and other uses.
 
-  bool                    _writable;               //  We are able to write
-  bool                    _inplace;                //  We read and write to the same version
-  bool                    _append;                 //  Do not nuke an existing version
+  tgStoreType             _type;
 
   bool                    _newTigs;                //  internal flag, set if tigs were added
 

@@ -171,9 +171,21 @@ tgTig::operator=(tgTig & tg) {
   duplicateArray(_gappedBases, _gappedLen, _gappedMax, tg._gappedBases, tg._gappedLen, tg._gappedMax);
   duplicateArray(_gappedQuals, _gappedLen, _gappedMax, tg._gappedQuals, tg._gappedLen, tg._gappedMax, true);
 
+  if (_gappedLen > 0) {
+    assert(_gappedMax > _gappedLen);
+    _gappedBases[_gappedLen] = 0;
+    _gappedQuals[_gappedLen] = 0;
+  }
+
   _ungappedLen = tg._ungappedLen;
   duplicateArray(_ungappedBases, _ungappedLen, _ungappedMax, tg._ungappedBases, tg._ungappedLen, tg._ungappedMax);
   duplicateArray(_ungappedQuals, _ungappedLen, _ungappedMax, tg._ungappedQuals, tg._ungappedLen, tg._ungappedMax, true);
+
+  if (_ungappedLen > 0) {
+    assert(_ungappedMax > _ungappedLen);
+    _ungappedBases[_ungappedLen] = 0;
+    _ungappedQuals[_ungappedLen] = 0;
+  }
 
   _childrenLen = tg._childrenLen;
   duplicateArray(_children, _childrenLen, _childrenMax, tg._children, tg._childrenLen, tg._childrenMax);
@@ -198,21 +210,17 @@ tgTig::buildUngapped(void) {
     //  No gapped sequence to convert to ungapped.
     return;
 
-  //  Allocate more space, if needed.
+  //  Allocate more space, if needed.  We'll need no more than gappedMax.
 
-  if (_ungappedMax < _gappedMax) {
-    delete [] _ungappedBases;
-    delete [] _ungappedQuals;
+  resizeArrayPair(_ungappedBases, _ungappedQuals, 0, _ungappedMax, _gappedMax, resizeArray_doNothing);
 
-    _ungappedMax = _gappedMax;
+  //  gappedLen doesn't include the terminating null, but gappedMax does.
+  //  See abMultiAlign.C, among other places.
 
-    _ungappedBases = new char [_ungappedMax];
-    _ungappedQuals = new char [_ungappedMax];
-  }
-
-  //  gappedMax could be as small as gappedLen + 1 nul byte.  See abMultiAlign:getConsensus().
-
-  assert(_gappedLen + 1 <= _gappedMax);
+  if (_gappedLen >= _gappedMax)
+    fprintf(stderr, "ERROR: gappedLen = %u >= gappedMax = %u\n",
+            _gappedLen+1, _gappedMax);
+  assert(_gappedLen < _gappedMax);
 
   //  Copy all but the gaps.
 
@@ -228,7 +236,9 @@ tgTig::buildUngapped(void) {
     _ungappedLen++;
   }
 
-  assert(_ungappedLen + 1 <= _ungappedMax);
+  assert(_ungappedLen < _ungappedMax);
+
+  //  Terminate it.  Lots of work just for printf.
 
   _ungappedBases[_ungappedLen] = 0;
   _ungappedQuals[_ungappedLen] = 0;
@@ -291,6 +301,8 @@ tgTig::saveToStream(FILE *F) {
   AS_UTL_safeWrite(F,  tag, "tgTig::saveToStream::tigr", sizeof(char), 4);
   AS_UTL_safeWrite(F, &tr,  "tgTig::saveToStream::tr",   sizeof(tgTigRecord), 1);
 
+  //  We could save the null byte too, but don't.  It's explicitly added during the load.
+
   if (_gappedLen > 0) {
     AS_UTL_safeWrite(F, _gappedBases, "tgTig::saveToStream::gappedBases", sizeof(char), _gappedLen);
     AS_UTL_safeWrite(F, _gappedQuals, "tgTig::saveToStream::gappedQuals", sizeof(char), _gappedLen);
@@ -335,13 +347,16 @@ tgTig::loadFromStream(FILE *F) {
 
   *this = tr;
 
-  //  Allocate space for bases/quals and load them.
+  //  Allocate space for bases/quals and load them.  Be sure to terminate them, too.
 
-  resizeArrayPair(_gappedBases, _gappedQuals, 0, _gappedMax, _gappedLen, resizeArray_doNothing);
+  resizeArrayPair(_gappedBases, _gappedQuals, 0, _gappedMax, _gappedLen + 1, resizeArray_doNothing);
 
   if (_gappedLen > 0) {
     AS_UTL_safeRead(F, _gappedBases, "tgTig::loadFromStream::gappedBases", sizeof(char), _gappedLen);
     AS_UTL_safeRead(F, _gappedQuals, "tgTig::loadFromStream::gappedQuals", sizeof(char), _gappedLen);
+
+    _gappedBases[_gappedLen] = 0;
+    _gappedQuals[_gappedLen] = 0;
   }
 
   //  Allocate space for reads and alignments, and load them.
@@ -369,10 +384,22 @@ tgTig::loadFromStream(FILE *F) {
 void
 tgTig::dumpLayout(FILE *F) {
 
+  if (_gappedLen > 0)
+    assert(_gappedLen == _layoutLen);
+
   fprintf(F, "tig "F_U32"\n", _tigID);
   fprintf(F, "len %d\n",      _layoutLen);
-  fprintf(F, "cns %s\n",     (_gappedLen > 0) ? _gappedBases : "");
-  fprintf(F, "qlt %s\n",     (_gappedLen > 0) ? _gappedQuals : "");
+
+  if (_gappedLen == 0) {
+    fputs("cns\n", F);
+    fputs("qlt\n", F);
+  } else {
+    //fputs("cns ", F);  fwrite(_gappedBases, sizeof(char), _gappedLen, F);  fputs("\n", F);
+    //fputs("qlt ", F);  fwrite(_gappedQuals, sizeof(char), _gappedLen, F);  fputs("\n", F);
+    fputs("cns ", F);  fputs(_gappedBases, F);  fputs("\n", F);  //  strings are null terminated now, but expected to be long.
+    fputs("qlt ", F);  fputs(_gappedQuals, F);  fputs("\n", F);
+  }
+
   fprintf(F, "coverageStat    %f\n", _coverageStat);
   fprintf(F, "microhetProb    %f\n", _microhetProb);
   fprintf(F, "suggestRepeat   %c\n", _suggestRepeat   ? 'T' : 'F');
@@ -432,17 +459,19 @@ tgTig::loadLayout(FILE *F) {
       _layoutLen = strtouint32(W[1]);
       resizeArray(LINE, LINElen, LINEmax, _layoutLen + 1, resizeArray_doNothing);
 
-    } else if (strcmp(W[0], "cns") == 0) {
-      if (W.numWords() > 1) {
-        resizeArrayPair(_gappedBases, _gappedQuals, _gappedLen, _gappedMax, _layoutLen, resizeArray_doNothing);
-        _gappedLen = _layoutLen;
-        memcpy(_gappedBases, W[1], sizeof(char) * (_gappedLen + 1));
-      }
+    } else if (((strcmp(W[0], "cns") == 0) || (strcmp(W[0], "qlt") == 0)) && (W.numWords() == 1)) {
+      _gappedLen = 0;
 
-    } else if (strcmp(W[0], "qlt") == 0) {
-      if (W.numWords() > 1) {
+    } else if (((strcmp(W[0], "cns") == 0) || (strcmp(W[0], "qlt") == 0)) && (W.numWords() == 2)) {
+      _gappedLen = strlen(W[1]);
+      _layoutLen = _gappedLen;    //  Must be enforced, probably should be an explicit error.
+
+      resizeArrayPair(_gappedBases, _gappedQuals, 0, _gappedMax, _gappedLen+1, resizeArray_doNothing);
+
+      if (W[0][0] == 'c')
+        memcpy(_gappedBases, W[1], sizeof(char) * (_gappedLen + 1));  //  W[1] is null terminated, and we just copy it in
+      else
         memcpy(_gappedQuals, W[1], sizeof(char) * (_gappedLen + 1));
-      }
 
     } else if (strcmp(W[0], "coverageStat") == 0) {
       _coverageStat = strtodouble(W[1]);
@@ -470,7 +499,7 @@ tgTig::loadLayout(FILE *F) {
                (strcmp(W[0], "unitig") == 0) ||
                (strcmp(W[0], "contig") == 0)) {
 
-      if (W.numWords() != 10)
+      if (W.numWords() < 10)
         fprintf(stderr, "tgTig::loadLayout()-- '%s' line "F_U64" invalid: '%s'\n", W[0], LINEnum, LINE), exit(1);
 
       if (nChildren >= _childrenLen) {

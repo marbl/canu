@@ -28,16 +28,30 @@ static const char *rcsid = "$Id$";
 uint32  MASRmagic   = 0x5253414d;  //  'MASR', as a big endian integer
 uint32  MASRversion = 1;
 
-#define MAX_VERS   1024
+#define MAX_VERS   1024  //  Linked to 10 bits in the header file.
 
-void
-tgStore::init(const char *path_, uint32 version_, bool writable_, bool inplace_, bool append_) {
+
+tgStore::tgStore(const char *path_,
+                 uint32      version_,
+                 tgStoreType type_) {
+
+  //  Handle goofy default parameters.  These let us retain the previous behavior (before tgStoreType):
+  //    new tgStore("path")    - to create a new store
+  //    new tgStore("path", v) - to open an existing store
+  //
+  //  And still allow
+  //    new tgStore("path", v, tgStoreCreate) - create new store, make v the current version
+
+  if (version_ == 0) {
+    version_ = 1;
+    type_    = tgStoreCreate;
+  }
+
+  //  Initialize the object.
+
+  _type = type_;
 
   strcpy(_path, path_);
-
-  _writable          = writable_;
-  _inplace           = inplace_;
-  _append            = append_;
 
   _newTigs           = false;
 
@@ -55,43 +69,24 @@ tgStore::init(const char *path_, uint32 version_, bool writable_, bool inplace_,
     _dataFile[i].FP = NULL;
     _dataFile[i].atEOF = false;
   }
-}
 
+  //  Create a new one?
 
-tgStore::tgStore(const char *path_) {
-  init(path_, 1, true, false, false);
-  AS_UTL_mkdir(_path);     //  Create the directory, if needed.
-  purgeCurrentVersion();  //  Purge any data there currently.
-}
+  if (type_ == tgStoreCreate) {
+    AS_UTL_mkdir(_path);                 //  Create the directory, if needed.
+    purgeCurrentVersion();               //  Purge any data there currently.
 
+    for (int32 vv=1; vv<version_; vv++)  //  Move to the requested version.
+      nextVersion();
 
-tgStore::tgStore(const char *path_,
-                 uint32      version_,
-                 bool        writable_,
-                 bool        inplace_,
-                 bool        append_) {
+    _type = tgStoreWrite;                //  Created, ready for action!
 
-  if (writable_ == false)
-    inplace_ = append_ = false;
-
-  init(path_, version_, writable_, inplace_, append_);
-
-  if ((_inplace == true) && (_append == true))
-    fprintf(stderr, "tgStore::tgStore()-- ERROR, cannot both append and be inplace.\n"), exit(1);
+    return;  //  No tigs to load, se we can't do the rest.
+  }
 
   //  Load the tgStoreEntrys for the current version.
 
-  loadMASR(_tigEntry, _tigLen, _tigMax, _currentVersion, false);
-
-  //  Check that there are tigs.
-
-  if ((_tigLen == 0) && (_append == false)) {
-    fprintf(stderr, "tgStore::tgStore()-- ERROR, didn't find any tigs in the store.\n");
-    fprintf(stderr, "tgStore::tgStore()--        asked for store '%s', correct?\n", _path);
-    fprintf(stderr, "tgStore::tgStore()--        asked for version '%d', correct?\n", _originalVersion);
-    fprintf(stderr, "tgStore::tgStore()--        asked for writable=%d inplace=%d append=%d, correct?\n", _writable, _inplace, _append);
-    exit(1);
-  }
+  loadMASR(_tigEntry, _tigLen, _tigMax, _currentVersion);
 
   //  Allocate the cache to the proper size
 
@@ -99,20 +94,6 @@ tgStore::tgStore(const char *path_,
 
   for (uint32 xx=0; xx<_tigMax; xx++)
     _tigCache[xx] = NULL;
-  //memset(_tigCache, 0xff, sizeof(tgTig *) * _tigMax);
-
-  //  Open the next version for writing, and remove what is currently there.
-
-  if ((_writable == true) && (_inplace == false) && (_append == false)) {
-    _currentVersion++;
-
-    purgeCurrentVersion();
-  }
-
-  //  Open the next version for writing, and keep the data that is currently there.
-
-  if (_append == true)
-    _currentVersion++;
 
   //  Check that nothing is marked for flushing, if so, clear the flag.  This shouldn't ever trigger.
 
@@ -122,12 +103,45 @@ tgStore::tgStore(const char *path_,
       _tigEntry[xx].flushNeeded = 0;
     }
 
+  //  Set the version for writing.
+
+  switch (type_) {
+    case tgStoreCreate:
+      break;
+
+    case tgStoreReadOnly:
+      if (_tigLen == 0) {
+        fprintf(stderr, "tgStore::tgStore()-- ERROR, didn't find any tigs in the store.\n");
+        fprintf(stderr, "tgStore::tgStore()--        asked for store '%s', correct?\n", _path);
+        fprintf(stderr, "tgStore::tgStore()--        asked for version '%d', correct?\n", _originalVersion);
+        exit(1);
+      }
+      break;
+
+    case tgStoreWrite:
+      _currentVersion++;      //  Writes go to the next version.
+      purgeCurrentVersion();  //  And clear it.
+      break;
+
+    case tgStoreAppend:
+      _currentVersion++;      //  Writes go to the next version.
+      break;
+
+    case tgStoreModify:
+      break;
+
+    default:
+      assert(0);
+      break;
+  }
+
+
   //  Fail (again?) if there are no tigs loaded.
 
-  if (_tigLen == 0) {
-    fprintf(stderr, "tgStore::tgStore()-- ERROR, didn't find any tigs in the store.  Correct version?\n");
-    exit(1);
-  }
+  //if (_tigLen == 0) {
+  //  fprintf(stderr, "tgStore::tgStore()-- ERROR, didn't find any tigs in the store.  Correct version?\n");
+  //  exit(1);
+  //}
 }
 
 
@@ -137,7 +151,9 @@ tgStore::~tgStore() {
 
   //  If writable, write the data.
 
-  if (_writable)
+  if ((_type == tgStoreWrite) ||
+      (_type == tgStoreAppend) ||
+      (_type == tgStoreModify))
     dumpMASR(_tigEntry, _tigLen, _tigMax, _currentVersion);
 
   //  Now just trash ourself.
@@ -173,9 +189,6 @@ tgStore::purgeCurrentVersion(void) {
 void
 tgStore::nextVersion(void) {
 
-  assert(_writable == true);
-  assert(_inplace == false);
-
   //  Write out any tigs that are cached
 
   flushDisk();
@@ -203,6 +216,11 @@ tgStore::nextVersion(void) {
 
   _currentVersion++;
 
+  if (_currentVersion == MAX_VERS) {
+    fprintf(stderr, "Too many version, I can't proceed.\n");
+    exit(1);
+  }
+
   //  Remove any existing files at that version level.
 
   purgeCurrentVersion();
@@ -212,6 +230,8 @@ tgStore::nextVersion(void) {
 
 void
 tgStore::writeTigToDisk(tgTig *tig, tgStoreEntry *te) {
+
+  assert(_type != tgStoreReadOnly);
 
   FILE *FP = openDB(te->svID);
 
@@ -244,7 +264,7 @@ tgStore::insertTig(tgTig *tig, bool keepInCache) {
 
   //  Check that the components do not exceed the bound.
   //
-  if (tig->_gappedBases > 0) {
+  if (tig->_gappedLen > 0) {
     uint32  len = tig->_gappedLen;
     uint32  swp = 0;
     uint32  neg = 0;
@@ -254,41 +274,38 @@ tgStore::insertTig(tgTig *tig, bool keepInCache) {
       tgPosition *read = tig->_children + i;
 
       if ((read->_max < read->_min))
-        fprintf(stderr, "tgStore::insertTig()-- ERROR: tig %d read %d at (%d,%d) has swapped min/max coordinates\n",
+        fprintf(stderr, "tgStore::insertTig()-- ERROR:   tig %d read %d at (%d,%d) has swapped min/max coordinates\n",
                 tig->_tigID, read->_objID, read->_min, read->_max), swp++;
-      //  Could fix, but we currently just fail
+      //  Could fix, but we currently just fail.  This is an algorithmic problem that should be fixed.
 
       if ((read->_min < 0) || (read->_max < 0))
-        fprintf(stderr, "tgStore::insertTig()-- ERROR: tig %d read %d at (%d,%d) has negative position\n",
+        fprintf(stderr, "tgStore::insertTig()-- WARNING: tig %d read %d at (%d,%d) has negative position\n",
                 tig->_tigID, read->_objID, read->_min, read->_max), neg++;
       if (read->_min < 0)  read->_min = 0;
       if (read->_max < 0)  read->_max = 0;
 
       if ((read->_min > len) || (read->_max > len))
-        fprintf(stderr, "tgStore::insertTig()-- ERROR: tig %d read %d at (%d,%d) exceeded multialign length %d\n",
+        fprintf(stderr, "tgStore::insertTig()-- WARNING: tig %d read %d at (%d,%d) exceeded multialign length %d\n",
                 tig->_tigID, read->_objID, read->_min, read->_max, len), pos++;
       if (read->_min > len)  read->_min = len;
       if (read->_max > len)  read->_max = len;
     }
 
-    if (neg + pos + swp > 0) {
+#if 0
+    if (swp + neg + pos > 0) {
       tig->dumpLayout(stderr);
       fprintf(stderr, "tgStore::insertTig()-- ERROR: tig %d has invalid layout, exceeds bounds of consensus sequence (length %d) -- neg=%d pos=%d -- swp=%d.\n",
               tig->_tigID, len, neg, pos, swp);
     }
-
-    assert(neg == 0);
-    assert(pos == 0);
+#endif
     assert(swp == 0);
+    //assert(neg == 0);
+    //assert(pos == 0);
   }
 
   if (tig->_tigID == UINT32_MAX) {
     tig->_tigID = _tigLen;
     _newTigs  = true;
-
-    //  Make sure that the UTG line (if present) agrees with our new tigID
-    //if (GetNumIntUnitigPoss(tig->u_list) == 1)
-    //  GetIntUnitigPos(tig->u_list, 0)->_id = tig->_tigID;
 
     fprintf(stderr, "tgStore::insertTig()-- Added new tig %d\n", tig->_tigID);
   }
@@ -333,7 +350,7 @@ tgStore::insertTig(tgTig *tig, bool keepInCache) {
   //  Write to disk RIGHT NOW unless we're keeping it in cache.  If it is written, the flushNeeded
   //  flag is cleared.
   //
-  if (keepInCache == false)
+  if ((keepInCache == false) && (_type != tgStoreReadOnly))
     writeTigToDisk(tig, _tigEntry + tig->_tigID);
 
   //  If the cache is different from this tig, delete the cache.  Not sure why this happens --
@@ -390,12 +407,11 @@ tgStore::loadTig(uint32 tigID) {
   if (_tigEntry[tigID].isDeleted == true)
     return(NULL);
 
-  //  This _is_ an error.  Every tig should be in a non-zero version!
+  //  This _is_ an error.  If a tig is in version zero, it isn't in the store at all.
+  //  Someone did something stupid when adding tigs.
 
-  if (_tigEntry[tigID].svID == 0) {
-    fprintf(stderr, "WARNING: tried to load tig %u, but it isn't in a non-zero version!\n", tigID);
+  if (_tigEntry[tigID].svID == 0)
     return(NULL);
-  }
 
   //  Otherwise, we can load something.
 
@@ -586,7 +602,7 @@ tgStore::dumpMASR(tgStoreEntry* &R, uint32& L, uint32& M, uint32 V) {
 
 
 void
-tgStore::loadMASR(tgStoreEntry* &R, uint32& L, uint32& M, uint32 V, bool onlyThisV) {
+tgStore::loadMASR(tgStoreEntry* &R, uint32& L, uint32& M, uint32 V) {
 
   //  Allocate space for the data.  Search for the latest version, ask it how many tigs are in the
   //  store.
@@ -607,6 +623,14 @@ tgStore::loadMASR(tgStoreEntry* &R, uint32& L, uint32& M, uint32 V, bool onlyThi
   }
 
   sprintf(_name, "%s/seqDB.v%03d.tig", _path, V);
+
+  while ((AS_UTL_fileExists(_name) == false) && (V > 0))  {
+    V--;
+    sprintf(_name, "%s/seqDB.v%03d.tig", _path, V);
+  }
+
+  if (V == 0)
+    fprintf(stderr, "tgStore::loadMASR()-- Failed to find any tigs in store '%s'.\n", _path), exit(1);
 
   errno = 0;
   FILE *F = fopen(_name, "r");
@@ -667,7 +691,7 @@ tgStore::openDB(uint32 version) {
 
   errno = 0;
 
-  if ((_writable) && (version == _currentVersion)) {
+  if ((_type != tgStoreReadOnly) && (version == _currentVersion)) {
     _dataFile[version].FP    = fopen(_name, "a+");
     _dataFile[version].atEOF = false;
   } else {

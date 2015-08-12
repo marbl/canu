@@ -77,9 +77,11 @@ operationBuild(char   *buildName,
 
 int
 main (int argc, char **argv) {
-  char         *gkpName        = NULL;
-  char         *tigName        = NULL;
-  int           tigVers        = -1;
+  char            *gkpName   = NULL;
+  char            *tigName   = NULL;
+  int32            tigVers   = -1;
+  vector<char *>   tigInputs;
+  tgStoreType      tigType   = tgStoreModify;
 
   argc = AS_configure(argc, argv);
 
@@ -93,25 +95,12 @@ main (int argc, char **argv) {
       tigName = argv[++arg];
       tigVers = atoi(argv[++arg]);
 
-    } else if (strcmp(argv[arg], "-r") == 0) {
-      AS_UTL_decodeRange(argv[++arg], tigIDbgn, tigIDend);
-      tigIDset    = true;
-
-
-
-    } else if (strcmp(argv[arg], "-B") == 0) {
-      opType = OPERATION_BUILD;
-      buildName = argv[++arg];
-
-
     } else if (strcmp(argv[arg], "-R") == 0) {
-      opType = OPERATION_REPLACE;
-      replaceName = argv[++arg];
+      while (AS_UTL_fileExists(argv[++arg]))
+        tigInputs.push_back(argv[arg]);
 
-    } else if (strcmp(argv[arg], "-N") == 0) {
-      sameVersion = false;
-
-
+    } else if (strcmp(argv[arg], "-n") == 0) {
+      tigType = tgStoreReadOnly;
 
     } else {
       fprintf(stderr, "%s: Unknown option '%s'\n", argv[0], argv[arg]);
@@ -120,94 +109,92 @@ main (int argc, char **argv) {
 
     arg++;
   }
-  if ((err) || (gkpName == NULL) || (tigName == NULL)) {
+  if ((err) || (gkpName == NULL) || (tigName == NULL) || (tigInputs.size() == 0)) {
     fprintf(stderr, "usage: %s -G <gkpStore> -T <tigStore> <v> [opts]\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "  -G <gkpStore>         Path to the gatekeeper store\n");
-    fprintf(stderr, "  -T <tigStore> <v>     Path to the tigStore, version, to use\n");
+    fprintf(stderr, "  -T <tigStore> <v>     Path to the tigStore and version to add tigs to\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -R <file>             Load the tig(s) in 'file', replacing whatever is in the store\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -n                    Don't replace, just report what would have happened\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -r <file>             Load the tig(s) in 'file', replacing whatever is in the store\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  A new store is created if one doesn't exist, otherwise, whatever tigs are there are\n");
+    fprintf(stderr, "  replaced with those in the -R file.  If version 'v' doesn't exist, it is created.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  Even if -n is supplied, a new store is created if one doesn't exist.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  To add a new tig, give it a tig id of -1.  New tigs must be added to the latest version.\n");
+    fprintf(stderr, "  To delete a tig, remove all children, and set the number of them to zero.\n");
+    fprintf(stderr, "\n");
 
-    fprintf(stderr, "  -B <layout-file>      Construct a new store with unitigs in 'layout-file'.  Store versions\n");
-    fprintf(stderr, "                        before that specified on the '-t' option are created but are empty.\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -R <layout>           Replace a multialign with this one (type and id are from the layout)\n");
-    fprintf(stderr, "                        The multialign is replaced in version <v> from -t.\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -N                    Replace a multialign in the next version of the store.  This option is\n");
-    fprintf(stderr, "                        needed if the version of the store to add a multialign does not exist.\n");
-    fprintf(stderr, "                        The multialign is replaced in version <v>+1 from -t.\n");
-    fprintf(stderr, "\n");
+    if (gkpName == NULL)
+      fprintf(stderr, "ERROR:  no gatekeeper store (-G) supplied.\n");
+    if (tigName == NULL)
+      fprintf(stderr, "ERROR:  no tig store (-T) supplied.\n");
+    if (tigInputs.size() == 0)
+      fprintf(stderr, "ERROR:  no input tigs (-R) supplied.\n");
 
     exit(1);
   }
 
-  //  To add a new multialign: In the layout, assign an id of -1 to the multialign (e.g., "unitig
-  //  -1" or "contig -1").  Use -R to 'replace' this unitig in the store.  The store will assign the
-  //  next unitig/contig ID to this new multialign.  WARNING!  The new multialign MUST be added to
-  //  the latest version.
-  //
-  //  To delete a multialign: Remove ALL FRG and UTG lines, and set data.num_frags and
-  //  data.num_unitigs to zero.  Use -R to 'replae' this unitig in the store.
-  //  EXCEPT the code below will ignore treat these as EOF.
+  //  If the store doesn't exist, create one, and make a bunch of versions
+  if (AS_UTL_fileExists(tigName, true, false) == false) {
+    fprintf(stderr, "Creating tig store '%s' version %d\n", tigName, tigVers);
 
-  if ((opType == OPERATION_BUILD) && (buildName != NULL)) {
-    operationBuild(buildName, tigName, tigVers);
-    exit(0);
-  }
+    tgStore *tigStore = new tgStore(tigName);
 
-
-
-  gkStore *gkpStore = new gkStore(gkpName);
-  tgStore *tigStore = new tgStore(tigName, tigVers);
-
-
-  if ((opType == OPERATION_REPLACE) && (replaceName != NULL)) {
-    if (tigIDset) {
-      fprintf(stderr, "ERROR:  -R is incompatible with -c, -u, -C and -U.  Did you mean -cp or -up instead?\n");
-      exit(1);
-    }
-
-    errno = 0;
-    FILE         *F = fopen(replaceName, "r");
-    if (errno)
-      fprintf(stderr, "Failed to open '%s': %s\n", replaceName, strerror(errno)), exit(1);
-
-    fprintf(stderr, "Reading layouts from '%s'.\n", replaceName);
+    for (int32 vv=1; vv<tigVers; vv++)
+      tigStore->nextVersion();
 
     delete tigStore;
-
-    if (sameVersion)
-      tigStore = new tgStore(tigName, tigVers, true, true, false);  //  default
-    else
-      tigStore = new tgStore(tigName, tigVers, true, false, append);
-
-    tgTig  *tig = new tgTig;
-
-    while (tig->loadLayout(F) == true) {
-      if (tig->numberOfChildren() == 0) {
-        if (tigStore->isDeleted(tig->tigID()) == true) {
-          fprintf(stderr, "DELETING tig %d -- ALREADY DELETED\n", tig->tigID());
-        } else {
-          fprintf(stderr, "DELETING tig %d\n", tig->tigID());
-          tigStore->deleteTig(tig->tigID());
-        }
-      } else {
-        tigStore->insertTig(tig, false);
-        fprintf(stderr, "INSERTING tig %d\n", tig->tigID());
-      }
-    }
-
-    fprintf(stderr, "Reading layouts from '%s' completed.\n", replaceName);
-
-    delete tig;
-
-    fclose(F);
   }
 
-  delete gkpStore;
+  gkStore *gkpStore = new gkStore(gkpName);
+  tgStore *tigStore = new tgStore(tigName, tigVers, tigType);
+  tgTig   *tig      = new tgTig;
+
+  for (uint32 ff=0; ff<tigInputs.size(); ff++) {
+    errno = 0;
+    FILE *TI = fopen(tigInputs[ff], "r");
+    if (errno)
+      fprintf(stderr, "Failed to open '%s': %s\n", tigInputs[ff], strerror(errno)), exit(1);
+
+    fprintf(stderr, "Reading layouts from '%s'.\n", tigInputs[ff]);
+
+    while (tig->loadFromStreamOrLayout(TI) == true) {
+
+      //  Handle insertion.
+
+      if (tig->numberOfChildren() > 0) {
+        fprintf(stderr, "INSERTING tig %d\n", tig->tigID());
+        tigStore->insertTig(tig, false);
+        continue;
+      }
+
+      //  Deleted already?
+
+      if (tigStore->isDeleted(tig->tigID()) == true) {
+        fprintf(stderr, "DELETING tig %d -- ALREADY DELETED\n", tig->tigID());
+        continue;
+      }
+
+      //  Really delete it then.
+
+      fprintf(stderr, "DELETING tig %d\n", tig->tigID());
+      tigStore->deleteTig(tig->tigID());
+    }
+
+    fclose(TI);
+
+    fprintf(stderr, "Reading layouts from '%s' completed.\n", tigInputs[ff]);
+  }
+
+  delete tig;
   delete tigStore;
+  delete gkpStore;
 
   exit(0);
 }

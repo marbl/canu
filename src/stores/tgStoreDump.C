@@ -561,53 +561,8 @@ dumpThinOverlap(tgStore *tigStore,
 
 
 void
-operationBuild(char   *buildName,
-               char   *tigName,
-               uint32  tigVers) {
-
-  errno = 0;
-  FILE *F = fopen(buildName, "r");
-  if (errno)
-    fprintf(stderr, "Failed to open '%s' for reading: %s\n", buildName, strerror(errno)), exit(1);
-
-  if (AS_UTL_fileExists(tigName, TRUE, TRUE)) {
-    fprintf(stderr, "ERROR: '%s' exists, and I will not clobber an existing store.\n", tigName);
-    exit(1);
-  }
-
-  tgStore *tigStore = new tgStore(tigName);
-  tgTig    *tig      = new tgTig();
-
-  for (int32 v=1; v<tigVers; v++)
-    tigStore->nextVersion();
-
-  while (tig->loadLayout(F) == true) {
-    if (tig->numberOfChildren() == 0)
-      continue;
-
-    //  The log isn't correct.  For new tigs (all of these are) we don't know the
-    //  id until after it is added.  Further, if these come with id's already set,
-    //  they can't be added to a new store -- they don't exist.
-
-#if 0
-    fprintf(stderr, "INSERTING tig %d (%d children) (originally ID %d)\n",
-            tig->tigID(), tig->numberOfChildren(), oID);
-#endif
-
-    tigStore->insertTig(tig, false);
-  }
-
-  fclose(F);
-
-  delete tig;
-  delete tigStore;
-}
-
-
-
-void
 operationCompress(char *tigName, int tigVers) {
-  tgStore    *tigStore  = new tgStore(tigName, tigVers, false, false, false);
+  tgStore    *tigStore  = new tgStore(tigName, tigVers);
   uint32      nErrors   = 0;
   uint32      nCompress = 0;
 
@@ -642,7 +597,7 @@ operationCompress(char *tigName, int tigVers) {
 
   if (nCompress > 0) {
     delete tigStore;
-    tigStore = new tgStore(tigName, tigVers, true, true, false);
+    tigStore = new tgStore(tigName, tigVers, tgStoreModify);
   }
 
   if (nCompress > 0) {
@@ -911,7 +866,7 @@ main (int argc, char **argv) {
 
   if ((opType == OPERATION_EDIT) && (editName != NULL)) {
     delete tigStore;
-    tigStore = new tgStore(tigName, tigVers, true, true);
+    tigStore = new tgStore(tigName, tigVers, tgStoreModify);
     changeProperties(tigStore, editName);
   }
 

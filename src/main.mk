@@ -159,6 +159,7 @@ SUBMAKEFILES := stores/gatekeeperCreate.mk \
                 stores/ovStoreIndexer.mk \
                 stores/ovStoreDump.mk \
                 stores/tgStoreDump.mk \
+                stores/tgStoreLoad.mk \
                 stores/tgTigDisplay.mk \
                 \
                 meryl/libleaff.mk \
