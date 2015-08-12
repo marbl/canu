@@ -22,6 +22,8 @@ abMultiAlign::getConsensus(abAbacus *abacus, char *bases, char *quals, uint32 &l
     len++;
   }
 
+  //  Terminate the string.
+
   bases[len] = 0;
   quals[len] = 0;
 
@@ -36,19 +38,13 @@ abMultiAlign::getConsensus(abAbacus *abacus, char *bases, char *quals, uint32 &l
 void
 abMultiAlign::getConsensus(abAbacus *abacus, tgTig *tig) {
 
-  //fprintf(stderr, "abMultiAlign::getConsensus()-- transfering consensus of length %u to tig %u\n",
-  //        length(), tig->tigID());
+  //  Resize the bases/quals storage to include a NUL byte.
 
-  //  +1 for the terminating nul byte.
-  resizeArrayPair(tig->_gappedBases, tig->_gappedQuals, tig->_gappedLen, tig->_gappedMax, length() + 1, resizeArray_doNothing);
+  resizeArrayPair(tig->_gappedBases, tig->_gappedQuals, 0, tig->_gappedMax, length() + 1, resizeArray_doNothing);
 
-  //fprintf(stderr, "abMultiAlign::getConsensus()-- transfering consensus of length %u to tig %u (_gappedLen %u _gappedMax %u)\n",
-  //        length(), tig->tigID(), tig->_gappedLen, tig->_gappedMax);
+  //  Copy in the bases.
 
   getConsensus(abacus, tig->_gappedBases, tig->_gappedQuals, tig->_gappedLen, tig->_gappedMax);
-
-  //fprintf(stderr, "abMultiAlign::getConsensus()-- transfering consensus of length %u to tig %u (_gappedLen %u _gappedMax %u)\n",
-  //        length(), tig->tigID(), tig->_gappedLen, tig->_gappedMax);
 }
 
 
@@ -109,6 +105,8 @@ abMultiAlign::getPositions(abAbacus *abacus, tgTig *tig) {
 
   tig->_childDeltasLen = 0;
 
+  int32  maxPos = 0;
+
   for (abSeqID si=0; si.get()<abacus->numberOfSequences(); ++si) {
     abSequence *seq   = abacus->getSequence(si);
     tgPosition *child = tig->getChild(si.get());  //  Assumes one-to-one map of seqs to children;
@@ -127,8 +125,13 @@ abMultiAlign::getPositions(abAbacus *abacus, tgTig *tig) {
       continue;
     }
 
+    //  Positions are zero-based and inclusive.  The end position gets one added to it to make it true space-based.
+
     int32 bgn = fCol->position();
-    int32 end = lCol->position();
+    int32 end = lCol->position() + 1;
+
+    if (maxPos < bgn)   maxPos = bgn;
+    if (maxPos < end)   maxPos = end;
 
     if (seq->isRead() == true) {
       child->set(bgn, end);      //  The child remembers its orientation, and sets min/max appropriately.
@@ -147,6 +150,13 @@ abMultiAlign::getPositions(abAbacus *abacus, tgTig *tig) {
       //        si.get(), child->_deltaLen, child->_deltaOffset);
     }
   }
+
+  //  Hopefully, maxPos and _gappedLen agree.  If not....?  Note that positions are space-based
+
+  if (maxPos != tig->_gappedLen)
+    fprintf(stderr, "WARNING:  maxPos=%d differs from gappedLen=%d.  Huh?\n", maxPos, tig->_gappedLen);
+
+  tig->_layoutLen = tig->_gappedLen;
 }
 
 
