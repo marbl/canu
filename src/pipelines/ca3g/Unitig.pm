@@ -64,29 +64,34 @@ sub bogart ($$$) {
 
 
 
-sub reportSizes ($$) {
-    my $wrk  = shift @_;
-    my $asm  = shift @_;
-    my $bin   = getBinDirectory();
-    my $cmd   = "";
+sub reportSizes ($$$$) {
+    my $wrk       = shift @_;
+    my $asm       = shift @_;
+    my $version   = shift @_;
+    my $label     = shift @_;
 
-    my $asmnum   = 0;
-    my $asmbases = 0;
-    my $asmsizes = "";
+    my $bin       = getBinDirectory();
+    my $cmd       = "";
+
+    my $asmnum    = 0;
+    my $asmbases  = 0;
+    my $asmsizes  = "";
 
     my $singnum   = 0;
     my $singbases = 0;
 
-    $cmd  = "$bin/tgStoreDump \\\n";
-    $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
-    $cmd .= "  -T $wrk/$asm.tigStore 1 \\\n";
-    $cmd .= "  -U \\\n";
-    $cmd .= "  -d sizes \\\n";
-    $cmd .= "  -s " . getGlobal("genomeSize") . " \\\n";
-    $cmd .= "> $wrk/$asm.tigStore.sizes.1.beforeConsensus\n";
+    if (! -e "$wrk/$asm.tigStore.sizes.1.beforeConsensus") {
+        $cmd  = "$bin/tgStoreDump \\\n";
+        $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
+        $cmd .= "  -T $wrk/$asm.tigStore $version \\\n";
+        $cmd .= "  -U \\\n";
+        $cmd .= "  -d sizes \\\n";
+        $cmd .= "  -s " . getGlobal("genomeSize") . " \\\n";
+        $cmd .= "> $wrk/$asm.tigStore.sizes.1.beforeConsensus\n";
 
-    if (runCommand($wrk, $cmd)) {
-        caExit("failed to generate unitig sizes", undef);
+        if (runCommand($wrk, $cmd)) {
+            caExit("failed to generate unitig sizes", undef);
+        }
     }
 
     open(F, "< $wrk/$asm.tigStore.sizes.1.beforeConsensus") or caExit("failed to open '$wrk/$asm.tigStore.sizes.1.beforeConsensus' for reading: $!\n", undef);
@@ -100,7 +105,7 @@ sub reportSizes ($$) {
     }
     close(F);
 
-    print STDERR "--  Found:\n";
+    print STDERR "--  Found, in version $version, $label:\n";
     print STDERR "--    unitigs:     $asmnum sequences, total length $asmbases bp.\n";
     print STDERR "--    singletons:  $singnum sequences, total length $singbases bp.\n";
     print STDERR "--\n";
@@ -145,7 +150,7 @@ sub unitig ($$) {
     }
 
   allDone:
-    reportSizes($wrk, $asm);
+    reportSizes($wrk, $asm, 1, "after unitig construction");
     emitStage($wrk, $asm, "unitig");
   stopAfter:
     stopAfter("unitig");
