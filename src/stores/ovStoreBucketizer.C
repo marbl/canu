@@ -26,10 +26,6 @@ const char *mainid = "$Id$";
 #include "gkStore.H"
 #include "ovStore.H"
 
-#include <vector>
-#include <algorithm>
-
-using namespace std;
 
 static
 void
