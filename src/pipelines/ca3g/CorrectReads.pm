@@ -776,7 +776,9 @@ sub dumpCorrectedReads ($$) {
     close(O);
     close(F);
 
-    print STDERR "dumpCorrectedReads()-- wrote $reads corrected reads from $files files into '$wrk/$asm.correctedReads.fastq'.\n";
+    print STDERR "--\n";
+    print STDERR "-- wrote $reads corrected reads from $files files into '$wrk/$asm.correctedReads.fastq'.\n";
+    print STDERR "--\n";
 
     emitStage($WRK, $asm, "cor-dumpCorrectedReads");
 }

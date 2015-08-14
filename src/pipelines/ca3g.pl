@@ -374,9 +374,10 @@ if (setOptions($mode, "assemble") eq "assemble") {
     consensusCheck($wrk, $asm, 2);
     consensusCheck($wrk, $asm, 3);
 
-    #consensusLoad($wrk, $asm);
+    consensusLoad($wrk, $asm);
+    consensusFilter($wrk, $asm);
 
-    #outputGraph($wrk, $asm);
+    outputGraph($wrk, $asm);
     outputLayout($wrk, $asm);
     outputSequence($wrk, $asm);
 }

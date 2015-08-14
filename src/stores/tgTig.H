@@ -164,7 +164,7 @@ public:
   uint32              _tigID;
 
   double              _coverageStat;
-  double              _microhetProb;
+  double              _microhetProb;   //  placeholder for some future multialignment based uniqueness probability
 
   uint32              _suggestRepeat    : 1;
   uint32              _suggestUnique    : 1;
@@ -244,10 +244,10 @@ public:
   uint32              _tigID;           //  ID in the store, or UINT32_MAX if not set
 
   double              coverageStat(void)  { return(_coverageStat); };
-  double              microhetProb(void)  { return(_microhetProb); };
+  //double              microhetProb(void)  { return(_microhetProb); };
 
   double              _coverageStat;
-  double              _microhetProb;
+  double              _microhetProb;  //  Placeholder.
 
   //  Flags for computing consensus/multialignments
 

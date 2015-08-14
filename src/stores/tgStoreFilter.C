@@ -20,11 +20,9 @@
 const char *mainid = "$Id:  $";
 
 #include "AS_global.H"
-#include "AS_PER_gkpStore.H"
-#include "MultiAlign.H"
-#include "MultiAlignStore.H"
 
-#include "AS_CGB_histo.H"
+#include "gkStore.H"
+#include "tgStore.H"
 
 #include "intervalList.H"
 
@@ -55,7 +53,6 @@ public:
 ruLabelStat  repeat_LowReads;
 ruLabelStat  repeat_LowCovStat;
 ruLabelStat  repeat_Short;
-ruLabelStat  repeat_MicroHet;
 ruLabelStat  repeat_SingleSpan;
 ruLabelStat  repeat_LowCov;
 
@@ -68,18 +65,13 @@ ruLabelStat  repeat_IsRepeat;
 
 
 intervalList<int32> *
-computeCoverage(MultiAlignT *ma) {
-  uint32                 maNum = GetNumIntMultiPoss(ma->f_list);
+computeCoverage(tgTig *tig) {
   intervalList<int32>    IL;
 
-  for (uint32 ii=0; ii<maNum; ii++) {
-    IntMultiPos *imp = GetIntMultiPos(ma->f_list, ii);
+  for (uint32 ii=0; ii<tig->numberOfChildren(); ii++) {
+    tgPosition  *pos = tig->getChild(ii);
 
-    int32   bgn = MIN(imp->position.bgn, imp->position.end);
-    int32   end = MAX(imp->position.bgn, imp->position.end);
-    int32   len = end - bgn;
-
-    IL.add(bgn, len);
+    IL.add(pos->min(), pos->max() - pos->min());
   }
 
   return(new intervalList<int32>(IL));
@@ -105,11 +97,6 @@ main(int argc, char **argv) {
   FILE             *outLOG = NULL;
   FILE             *outSTA = NULL;
 
-  //  MicroHet probability is actually the probability of the sequence being UNIQUE, based on
-  //  microhet considerations.  Falling below threshhold makes something a repeat.
-  double            cgbApplyMicrohetCutoff    = -1;     //  Basically turns it off, unless enabled
-  double            cgbMicrohetProb           = 1.e-5;  //  Scores less than this are considered repeats
-
   double            cgbUniqueCutoff           = CGB_UNIQUE_CUTOFF;
   double            cgbDefinitelyUniqueCutoff = CGB_UNIQUE_CUTOFF;
   double            singleReadMaxCoverage     = 1.0;    //  Reads covering more than this will demote the unitig
@@ -120,25 +107,24 @@ main(int argc, char **argv) {
   uint32            minReads                  = 2;
   double            minPopulous               = 0;
 
-  AS_IID            bgnID = 0;
-  AS_IID            endID = 0;
-  AS_IID            maxID = 0;
+  uint32            bgnID = 0;
+  uint32            endID = 0;
+  uint32            maxID = 0;
 
-  MultiAlignStore  *tigStore = NULL;
   gkStore          *gkpStore = NULL;
+  tgStore          *tigStore = NULL;
+  tgStoreType       tigMode  = tgStoreModify;
 
-  bool              doUpdate = true;
-  const bool        isUnitig = true; // Required for tigStore accessor
 
   argc = AS_configure(argc, argv);
 
   int err = 0;
   int arg = 1;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-g") == 0) {
+    if        (strcmp(argv[arg], "-G") == 0) {
       gkpName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-t") == 0) {
+    } else if (strcmp(argv[arg], "-T") == 0) {
       tigName = argv[++arg];
       tigVers = atoi(argv[++arg]);
 
@@ -146,14 +132,8 @@ main(int argc, char **argv) {
       outPrefix = argv[++arg];
 
     } else if (strcmp(argv[arg], "-n") == 0) {
-      doUpdate = false;
+      tigMode  = tgStoreReadOnly;
 
-
-    } else if (strcmp(argv[arg], "-e") == 0) {
-      cgbMicrohetProb = atof(argv[++arg]);
-
-    } else if (strcmp(argv[arg], "-i") == 0) {
-      cgbApplyMicrohetCutoff = atof(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-j") == 0) {
       cgbUniqueCutoff = atof(argv[++arg]);
@@ -199,11 +179,8 @@ main(int argc, char **argv) {
   if (err) {
     fprintf(stderr, "usage: %s -g gkpStore -t tigStore version\n", argv[0]);
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -g <G>       Mandatory, path G to a gkpStore directory.\n");
-    fprintf(stderr, "  -t <T> <v>   Mandatory, path T to a tigStore, and version V.\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -e P         Microhet probability (default 1e-5)\n");
-    fprintf(stderr, "  -i C         Microhet cutoff (default -1)\n");
+    fprintf(stderr, "  -G <G>       Mandatory, path G to a gkpStore directory.\n");
+    fprintf(stderr, "  -T <T> <v>   Mandatory, path T to a tigStore, and version V.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -j J         Unitig is not unique if astat is below J (cgbUniqueCutoff)\n");
     fprintf(stderr, "  -k K         (unused) (cgbDefinitelyUniqueCutoff)\n");
@@ -226,16 +203,15 @@ main(int argc, char **argv) {
     fprintf(stderr, "  3)  A unitig with a single read spanning fraction F (-span) of the unitig is NOT unique.\n");
     fprintf(stderr, "  4)  A unitig longer than L (-length) bases IS unique.\n");
     fprintf(stderr, "  5)  A unitig with astat less than J (-j) is NOT unique.\n");
-    fprintf(stderr, "  6)  A unitig with microhet probability P (-e) and astat below C (-i) is NOT unique.\n");
-    fprintf(stderr, "  7)  A unitig with fraction F below coverage D (-lowcov) is NOT unique.\n");
-    fprintf(stderr, "  8)  A unitig shorter than S (-short) bases long is NOT unique.\n");
-    fprintf(stderr, "  9)  Otherwise, the unitig IS unique.\n");
+    fprintf(stderr, "  6)  A unitig with fraction F below coverage D (-lowcov) is NOT unique.\n");
+    fprintf(stderr, "  7)  A unitig shorter than S (-short) bases long is NOT unique.\n");
+    fprintf(stderr, "  8)  Otherwise, the unitig IS unique.\n");
 
     if (gkpName == NULL)
-      fprintf(stderr, "No gatekeeper store (-g option) supplied.\n");
+      fprintf(stderr, "No gatekeeper store (-G option) supplied.\n");
 
     if (tigName == NULL)
-      fprintf(stderr, "No input tigStore (-t option) supplied.\n");
+      fprintf(stderr, "No input tigStore (-T option) supplied.\n");
 
     if (outPrefix == NULL)
       fprintf(stderr, "No output prefix (-o option) supplied.\n");
@@ -243,13 +219,13 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  gkpStore     = new gkStore(gkpName, false, false);
-  tigStore     = new MultiAlignStore(tigName, tigVers, 0, 0, doUpdate, doUpdate, false);
+  gkpStore     = new gkStore(gkpName, gkStore_readOnly);
+  tigStore     = new tgStore(tigName, tigVers, tgStoreReadOnly);
 
   if (endID == 0)
-    endID = tigStore->numUnitigs();
+    endID = tigStore->numTigs();
 
-  maxID = tigStore->numUnitigs();
+  maxID = tigStore->numTigs();
 
   errno = 0;
 
@@ -285,24 +261,17 @@ main(int argc, char **argv) {
 
   double      globalRate     = 0;
 
-  bool       *isNonRandom = new bool   [gkpStore->gkStore_getNumFragments() + 1];
-  uint32     *fragLength  = new uint32 [gkpStore->gkStore_getNumFragments() + 1];
+  bool       *isNonRandom = new bool   [gkpStore->gkStore_getNumReads() + 1];
+  uint32     *fragLength  = new uint32 [gkpStore->gkStore_getNumReads() + 1];
 
-  gkStream   *fs = new gkStream(gkpStore, 0, 0, GKFRAGMENT_INF);
-  gkFragment  fr;
+  for (uint32 fi=1; fi <= gkpStore->gkStore_getNumReads(); fi++) {
+    gkRead     *read = gkpStore->gkStore_getRead(fi);
+    gkLibrary  *libr = gkpStore->gkStore_getLibrary(read->gkRead_libraryID());
 
-  while(fs->next(&fr)) {
-    uint32 iid = fr.gkFragment_getReadIID();
-
-    isNonRandom[iid] = fr.gkFragment_getIsNonRandom();
-    fragLength[iid]  = fr.gkFragment_getClearRegionLength(AS_READ_CLEAR_OBTCHIMERA);
-
-    if ((iid % 10000000) == 0)
-      fprintf(stderr, "Loading fragment information %9d out of %9d\n", iid, gkpStore->gkStore_getNumFragments());
+    isNonRandom[fi] = libr->gkLibrary_isNonRandom();
+    fragLength[fi]  = read->gkRead_sequenceLength();
   }
   
-  delete fs;
-
   //
   //  Compute:
   //    global coverage histogram
@@ -333,31 +302,24 @@ main(int argc, char **argv) {
   memset(numReadsPerUnitig, 0, sizeof(uint32) * numReadsPerUnitigMax);
 
   for (uint32 uu=0; uu<maxID; uu++) {
-    MultiAlignT  *ma    = tigStore->loadMultiAlign(uu, isUnitig);
+    tgTig  *tig    = tigStore->loadTig(uu);
+    uint32  tigLen = tig->layoutLength();
 
-    if (ma == NULL)
+    if (tig == NULL)
       continue;
 
-    utgCovHistogram[ma->maID] = utgCovData + ma->maID * lowCovDepth;
+    utgCovHistogram[tig->tigID()] = utgCovData + tig->tigID() * lowCovDepth;
 
-    if (GetNumIntMultiPoss(ma->f_list) == 1)
+    if (tig->numberOfChildren() == 1)
       continue;
-
-    //  This MUST use gapped lengths, otherwise we'd need to translate all the read coords from
-    //  gapped to ungapped.
-
-    uint32        maLen = GetMultiAlignLength(ma);
-    uint32        maNum = GetNumIntMultiPoss(ma->f_list);
-
-    assert(ma->data.num_frags == GetNumIntMultiPoss(ma->f_list));
 
     //  Global coverage histogram.
 
-    intervalList<int32>  *ID = computeCoverage(ma);
+    intervalList<int32>  *ID = computeCoverage(tig);
 
     for (uint32 ii=0; ii<ID->numberOfIntervals(); ii++) {
       if (ID->depth(ii) < lowCovDepth)
-        utgCovHistogram[ma->maID][ID->depth(ii)] += ID->hi(ii) - ID->lo(ii) + 1;
+        utgCovHistogram[tig->tigID()][ID->depth(ii)] += ID->hi(ii) - ID->lo(ii) + 1;
 
       if (ID->depth(ii) < covHistogramMax)
         covHistogram[ID->depth(ii)] += ID->hi(ii) - ID->lo(ii) + 1;
@@ -368,13 +330,10 @@ main(int argc, char **argv) {
     uint32  covMax = 0;
     uint32  cov;
 
-    for (uint32 ff=0; ff<maNum; ff++) {
-      IntMultiPos  *frg = GetIntMultiPos(ma->f_list, ff);
+    for (uint32 ff=0; ff<tig->numberOfChildren(); ff++) {
+      tgPosition *pos = tig->getChild(ff);
 
-      if (frg->position.bgn < frg->position.end)
-        cov = 1000 * (frg->position.end - frg->position.bgn) / maLen;
-      else
-        cov = 1000 * (frg->position.bgn - frg->position.end) / maLen;
+      cov = 1000 * (pos->max() - pos->min()) / tigLen;
 
       if (covMax < cov)
         covMax = cov;
@@ -382,13 +341,13 @@ main(int argc, char **argv) {
 
     singleReadCoverageHistogram[covMax]++;
 
-    singleReadCoverage[ma->maID] = covMax / 1000.0;
+    singleReadCoverage[tig->tigID()] = covMax / 1000.0;
 
     //  Number of reads per unitig
 
-    numReadsPerUnitig[uu] = maNum;
+    numReadsPerUnitig[uu] = tig->numberOfChildren();
 
-    //fprintf(stderr, "unitig %u covMax %f\n", ma->maID, covMax / 1000.0);
+    //fprintf(stderr, "unitig %u covMax %f\n", tig->tigID(), covMax / 1000.0);
   }
 
   //
@@ -451,79 +410,68 @@ main(int argc, char **argv) {
   fprintf(stderr, "Processing unitigs.\n");
 
   for (uint32 uu=bgnID; uu<endID; uu++) {
-    MultiAlignT  *ma = tigStore->loadMultiAlign(uu, isUnitig);
+    tgTig  *tig = tigStore->loadTig(uu);
 
-    if (ma == NULL) {
+    if (tig == NULL) {
       fprintf(outLOG, "unitig %d not present\n", uu);
       continue;
     }
 
     //  This uses UNGAPPED lengths, because they make more sense to humans.
 
-    uint32        maLen = GetMultiAlignUngappedLength(ma);
-    uint32        maNum = GetNumIntMultiPoss(ma->f_list);
+    uint32        tigLen = tig->ungappedLength();
 
     uint32  lowCovBases = 0;
     for (uint32 ll=0; ll<lowCovDepth; ll++)
-      lowCovBases += utgCovHistogram[ma->maID][ll];
+      lowCovBases += utgCovHistogram[tig->tigID()][ll];
 
     bool          isUnique    = true;
     bool          isSingleton = false;
 
 
-    if (maNum == 1) {
+    if (tig->numberOfChildren() == 1) {
       fprintf(outLOG, "unitig %d not unique -- singleton\n",
-              ma->maID);
+              tig->tigID());
       isUnique    = false;
       isSingleton = true;
     }
 
-    else if (maNum < minReads) {
+    else if (tig->numberOfChildren() < minReads) {
       fprintf(outLOG, "unitig %d not unique -- %u reads, need at least %d\n",
-              ma->maID, maNum, minReads);
-      repeat_LowReads += maLen;
+              tig->tigID(), tig->numberOfChildren(), minReads);
+      repeat_LowReads += tigLen;
       isUnique = false;
     }
 
-    else if (singleReadCoverage[ma->maID] > singleReadMaxCoverage) {
+    else if (singleReadCoverage[tig->tigID()] > singleReadMaxCoverage) {
       fprintf(outLOG, "unitig %d not unique -- single read spans fraction %f of unitig (>= %f)\n",
-              ma->maID,
-              singleReadCoverage[ma->maID],
+              tig->tigID(),
+              singleReadCoverage[tig->tigID()],
               singleReadMaxCoverage);
-      repeat_SingleSpan += maLen;
+      repeat_SingleSpan += tigLen;
       isUnique = false;
     }
 
-    else if (maLen >= tooLong) {
+    else if (tigLen >= tooLong) {
       fprintf(outLOG, "unitig %d IS unique -- too long to be repeat, %u > allowed %u\n",
-              ma->maID,
-              maLen, tooLong);
+              tig->tigID(),
+              tigLen, tooLong);
       isUnique = true;
     }
 
-    else if (tigStore->getUnitigCoverageStat(ma->maID) < cgbUniqueCutoff) {
-      fprintf(outLOG, "unitig %d not unique -- coverage stat %d, needs to be at least %f\n",
-              ma->maID, tigStore->getUnitigCoverageStat(ma->maID), cgbUniqueCutoff);
-      repeat_LowCovStat += maLen;
+    else if (tigStore->getCoverageStat(tig->tigID()) < cgbUniqueCutoff) {
+      fprintf(outLOG, "unitig %d not unique -- coverage stat %f, needs to be at least %f\n",
+              tig->tigID(), tigStore->getCoverageStat(tig->tigID()), cgbUniqueCutoff);
+      repeat_LowCovStat += tigLen;
       isUnique = false;
     }
 
-    else if ((tigStore->getUnitigMicroHetProb(ma->maID) < cgbMicrohetProb) &&
-             (tigStore->getUnitigCoverageStat(ma->maID) < cgbApplyMicrohetCutoff)) {
-      fprintf(outLOG, "unitig %d not unique -- low microhetprob %f (< %f) and low coverage stat %d (< %f)\n",
-              ma->maID,
-              tigStore->getUnitigMicroHetProb(ma->maID), cgbMicrohetProb,
-              tigStore->getUnitigCoverageStat(ma->maID), cgbApplyMicrohetCutoff);
-      repeat_MicroHet += maLen;
-      isUnique = false;
-    }
-
-    else if ((double)lowCovBases / maLen > lowCovFractionAllowed) {
+    else if ((double)lowCovBases / tigLen > lowCovFractionAllowed) {
       fprintf(outLOG, "unitig %d not unique -- too many low coverage bases, %u out of %u bases, fraction %f > allowed %f\n",
-              ma->maID,
-              lowCovBases, maLen,
-              (double)lowCovBases / maLen, lowCovFractionAllowed);
-      repeat_LowCov += maLen;
+              tig->tigID(),
+              lowCovBases, tigLen,
+              (double)lowCovBases / tigLen, lowCovFractionAllowed);
+      repeat_LowCov += tigLen;
       isUnique = false;
     }
 
@@ -531,25 +479,25 @@ main(int argc, char **argv) {
     //  well in initial limited testing.  The threshold is arbitrary; older versions used
     //  cgbDefinitelyUniqueCutoff.  If used, be sure to disable the real check after this!
 #if 0
-    else if ((tigStore->getUnitigCoverageStat(ma->maID) < cgbUniqueCutoff * 10) &&
-             (maLen < CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH)) {
+    else if ((tigStore->getCoverageStat(tig->tigID()) < cgbUniqueCutoff * 10) &&
+             (tigLen < CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH)) {
       fprintf(outLOG, "unitig %d not unique -- length %d too short, need to be at least %d AND coverage stat %d must be larger than %d\n",
-              ma->maID, maLen, CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH,
-              tigStore->getUnitigCoverageStat(ma->maID), cgbUniqueCutoff * 10);
-      repeat_Short += maLen;
+              tig->tigID(), tigLen, CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH,
+              tigStore->getCoverageStat(tig->tigID()), cgbUniqueCutoff * 10);
+      repeat_Short += tigLen;
       isUnique = false;
     }
 #endif
 
-    else if (maLen < tooShort) {
+    else if (tigLen < tooShort) {
       fprintf(outLOG, "unitig %d not unique -- length %d too short, need to be at least %d\n",
-              ma->maID, maLen, tooShort);
-      repeat_Short += maLen;
+              tig->tigID(), tigLen, tooShort);
+      repeat_Short += tigLen;
       isUnique = false;
     }
 
     else {
-      fprintf(outLOG, "unitig %d not repeat -- no test failed\n", ma->maID);
+      fprintf(outLOG, "unitig %d not repeat -- no test failed\n", tig->tigID());
     }
 
     //
@@ -557,19 +505,19 @@ main(int argc, char **argv) {
     //
 
     if (isUnique) {
-      repeat_IsUnique += maLen;
-      tigStore->setUnitigSuggestUnique(ma->maID);
-      tigStore->setUnitigSuggestRepeat(ma->maID, false);
+      repeat_IsUnique += tigLen;
+      tigStore->setSuggestUnique(tig->tigID());
+      tigStore->setSuggestRepeat(tig->tigID(), false);
 
     } else if (isSingleton) {
-      repeat_IsSingleton += maLen;
-      tigStore->setUnitigSuggestUnique(ma->maID, false);
-      tigStore->setUnitigSuggestRepeat(ma->maID);
+      repeat_IsSingleton += tigLen;
+      tigStore->setSuggestUnique(tig->tigID(), false);
+      tigStore->setSuggestRepeat(tig->tigID());
 
     } else {
-      repeat_IsRepeat += maLen;
-      tigStore->setUnitigSuggestUnique(ma->maID, false);
-      tigStore->setUnitigSuggestRepeat(ma->maID);
+      repeat_IsRepeat += tigLen;
+      tigStore->setSuggestUnique(tig->tigID(), false);
+      tigStore->setSuggestRepeat(tig->tigID());
     }
   }
 
@@ -584,7 +532,6 @@ main(int argc, char **argv) {
   fprintf(stderr, "    too few reads: %17"F_U32P"  %14"F_U64P"\n", repeat_LowReads.num,     repeat_LowReads.len);
   fprintf(stderr, "    low cov stat:  %17"F_U32P"  %14"F_U64P"\n", repeat_LowCovStat.num,   repeat_LowCovStat.len);
   fprintf(stderr, "    too short:     %17"F_U32P"  %14"F_U64P"\n", repeat_Short.num,        repeat_Short.len);
-  fprintf(stderr, "    microhet:      %17"F_U32P"  %14"F_U64P"\n", repeat_MicroHet.num,     repeat_MicroHet.len);
   fprintf(stderr, "    spanning read: %17"F_U32P"  %14"F_U64P"\n", repeat_SingleSpan.num,   repeat_SingleSpan.len);
   fprintf(stderr, "    low coverage:  %17"F_U32P"  %14"F_U64P"\n", repeat_LowCov.num,       repeat_LowCov.len);
 

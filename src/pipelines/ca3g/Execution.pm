@@ -279,9 +279,11 @@ sub lookupStageLabel ($) {
 
     $ckp{'consensusConfigure'}              = $index++;
     $ckp{'consensusCheck'}                  = $index++;  # + attempt
+    $ckp{'consensusLoad'}                   = $index++;
+    $ckp{'consensusFilter'}                 = $index++;
 
-    $ckp{'outputLabel'}                     = $index++;
     $ckp{'outputLayout'}                    = $index++;
+    $ckp{'outputGraph'}                     = $index++;
     $ckp{'outputSequence'}                  = $index++;
 
     caFailure("invalid checkpoint label '$label'", undef)  if (!defined($ckp{$label}));

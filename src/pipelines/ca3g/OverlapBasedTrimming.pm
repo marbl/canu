@@ -149,7 +149,9 @@ sub dumpReads ($$) {
     #  Need gatekeeperDumpFASTQ to also write a gkp input file
     #touch("$wrk/$asm.trimmedReads.gkp");
 
-    print STDERR "dumpReads()-- wrote trimmed reads into '$wrk/$asm.trimmedReads.fastq'\n";
+    print STDERR "--\n";
+    print STDERR "-- Wrote trimmed reads into '$wrk/$asm.trimmedReads.fastq'\n";
+    print STDERR "--\n";
 
     emitStage($WRK, $asm, "obt-dumpReads");
 }

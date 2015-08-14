@@ -160,6 +160,8 @@ SUBMAKEFILES := stores/gatekeeperCreate.mk \
                 stores/ovStoreDump.mk \
                 stores/tgStoreDump.mk \
                 stores/tgStoreLoad.mk \
+                stores/tgStoreFilter.mk \
+                stores/tgStoreCoverageStat.mk \
                 stores/tgTigDisplay.mk \
                 \
                 meryl/libleaff.mk \

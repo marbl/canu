@@ -3,7 +3,7 @@ package ca3g::Consensus;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(consensusConfigure consensusCheck);
+@EXPORT = qw(consensusConfigure consensusCheck consensusLoad consensusFilter);
 
 use strict;
 
@@ -12,6 +12,7 @@ use File::Path qw(make_path remove_tree);
 use ca3g::Defaults;
 use ca3g::Execution;
 use ca3g::Gatekeeper;
+use ca3g::Unitig;
 
 
 
@@ -179,6 +180,7 @@ sub consensusConfigure ($$) {
     my $path    = "$wrk/5-consensus";
 
     goto stopBefore  if (skipStage($wrk, $asm, "consensusConfigure") == 1);
+    goto stopAfter   if (-e "$wrk/$asm.tigStore/seqDB.v002.tig");
 
     make_path("$path")  if (! -d "$path");
 
@@ -195,11 +197,7 @@ sub consensusConfigure ($$) {
         }
     }
 
-    #  How many partitions?  There should be a classier way...
-
     my $jobs = computeNumberOfConsensusJobs($wrk, $asm);
-
-    #  Run consensus
 
     if      (getGlobal("cnsConsensus") eq "utgcns") {
         utgcns($wrk, $asm, $jobs);
@@ -220,7 +218,7 @@ sub consensusConfigure ($$) {
   allDone:
     emitStage($wrk, $asm, "consensusConfigure");
   stopBefore:
-    stopBefore("consensus", $cmd);
+    stopBefore("consensusConfigure", $cmd);
 }
 
 
@@ -235,10 +233,9 @@ sub consensusCheck ($$$) {
     my $attempt = shift @_;
     my $path    = "$wrk/5-consensus";
 
-    return  if (skipStage($wrk, $asm, "consensusCheck", $attempt) == 1);
-    return  if (-e "$path/cnsjob.files");
-
-    #  How many partitions?  There should be a classier way...
+    goto stopAfter  if (skipStage($wrk, $asm, "consensusCheck", $attempt) == 1);
+    goto stopAfter  if (-e "$path/cnsjob.files");
+    goto stopAfter  if (-e "$wrk/$asm.tigStore/seqDB.v002.tig");
 
     my $jobs = computeNumberOfConsensusJobs($wrk, $asm);
 
@@ -301,4 +298,136 @@ sub consensusCheck ($$$) {
     emitStage($wrk, $asm, "consensusCheck", $attempt);
 
     submitOrRunParallelJob($wrk, $asm, "cns", $path, "consensus", @failedJobs);
+
+  allDone:
+    emitStage($wrk, $asm, "consensusCheck");
+  stopAfter:
+    stopAfter("consensusCheck");
+}
+
+
+
+
+sub consensusLoad ($$) {
+    my $wrk     = shift @_;
+    my $asm     = shift @_;
+    my $bin     = getBinDirectory();
+    my $cmd;
+    my $path    = "$wrk/5-consensus";
+
+    goto stopAfter  if (skipStage($wrk, $asm, "consensusLoad") == 1);
+    goto allDone    if (-e "$wrk/$asm.tigStore/seqDB.v002.tig");
+
+    #  Expects to have a cnsjob.files list of output files from the consensusCheck() function.
+
+    caExit("can't find '$path/cnsjob.files' for loading tigs into store: $!", undef)  if (! -e "$path/cnsjob.files");
+
+    #  Now just load them.
+
+    $cmd  = "$bin/tgStoreLoad \\\n";
+    $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
+    $cmd .= "  -T $wrk/$asm.tigStore 2 \\\n";
+    $cmd .= "  -L $path/cnsjob.files \\\n";
+    $cmd .= "> $path/cnsjobs.files.tigStoreLoad.err 2>&1";
+
+    if (runCommand($path, $cmd)) {
+        caExit("failed to load unitig consensus into tigStore", "$path/cnsjobs.files.tigStoreLoad.err");
+    }
+
+    #  Remvoe consensus outputs
+
+    if (-e "$path/cnsjob.files") {
+        print STDERR "--  Purging consensus output after loading to tigStore.\n";
+
+        my $Ncns    = 0;
+        my $Nfastq  = 0;
+        my $Nlayout = 0;
+        my $Nlog    = 0;
+
+        open(F, "< $path/cnsjob.files") or caExit("can't open '$path/cnsjob.files' for reading: $!\n", undef);
+        while (<F>) {
+            chomp;
+            if (m/^(.*)\/0*(\d+).cns$/) {
+                my $ID6 = substr("00000" . $2, -6);
+                my $ID4 = substr("000"   . $2, -4);
+                my $ID0 = $2;
+
+                if (-e "$1/$ID4.cns") {
+                    $Ncns++;
+                    unlink "$1/$ID4.cns";
+                }
+                if (-e "$1/$ID4.fastq") {
+                    $Nfastq++;
+                    unlink "$1/$ID4.fastq";
+                }
+                if (-e "$1/$ID4.layout") {
+                    $Nlayout++;
+                    unlink "$1/$ID4.layout";
+                }
+                if (-e "$1/consensus.$ID6.out") {
+                    $Nlog++;
+                    unlink "$1/consensus.$ID6.out";
+                }
+                if (-e "$1/consensus.$ID0.out") {
+                    $Nlog++;
+                    unlink "$1/consensus.$ID0.out";
+                }
+
+            } else {
+                caExit("unknown consensus job name '$_'\n", undef);
+            }
+        }
+        close(F);
+
+        print STDERR "--  Purged $Ncns .cns outputs.\n"        if ($Ncns > 0);
+        print STDERR "--  Purged $Nfastq .fastq outputs.\n"    if ($Nfastq > 0);
+        print STDERR "--  Purged $Nlayout .layout outputs.\n"  if ($Nlayout > 0);
+        print STDERR "--  Purged $Nlog .err log outputs.\n"    if ($Nlog > 0);
+    }
+
+  allDone:
+    emitStage($wrk, $asm, "consensusLoad");
+  stopAfter:
+    reportUnitigSizes($wrk, $asm, 2, "after consenss generation");
+    stopAfter("consensusLoad");
+}
+
+
+
+
+sub consensusFilter ($$) {
+    my $wrk     = shift @_;
+    my $asm     = shift @_;
+    my $bin     = getBinDirectory();
+    my $cmd;
+    my $path    = "$wrk/5-consensus";
+
+    goto stopAfter  if (skipStage($wrk, $asm, "consensusFilter") == 1);
+
+    my $msrs = getGlobal("maxSingleReadSpan");
+    my $lca  = getGlobal("lowCoverageAllowed");  #  checkParameters() ensures that this and
+    my $lcd  = getGlobal("lowCoverageDepth");    #  this are both set or both unset
+    my $mru  = getGlobal("minReadsUnique");
+    my $mul  = getGlobal("minUniqueLength");
+    my $mrl  = getGlobal("maxRepeatLength");
+
+    $cmd  = "$bin/tgStoreFilter \\\n";
+    $cmd .= "  -G       $wrk/$asm.gkpStore \\\n";
+    $cmd .= "  -T       $wrk/$asm.tigStore 2 \\\n";
+    $cmd .= "  -o       $wrk/$asm.tigStore.filter \\\n";
+    $cmd .= "  -span    $msrs \\\n"       if (defined($msrs));;
+    $cmd .= "  -lowcov  $lca $lcd \\\n"   if (defined($lca) && defined($lcd));;
+    $cmd .= "  -reads   $mru \\\n"        if (defined($mru));
+    $cmd .= "  -long    $mul \\\n"        if (defined($mul));
+    $cmd .= "  -short   $mrl \\\n"        if (defined($mrl));
+    $cmd .= "> $wrk/$asm.tigStore.filter.err 2>&1";
+
+    if (runCommand($path, $cmd)) {
+        caExit("failed to filter unitigs", "$wrk/$asm.tigStore.filter.err");
+    }
+
+  allDone:
+    emitStage($wrk, $asm, "consensusFilter");
+  stopAfter:
+    stopAfter("consensusFilter");
 }

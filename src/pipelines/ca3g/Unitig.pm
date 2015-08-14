@@ -3,7 +3,7 @@ package ca3g::Unitig;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(unitig);
+@EXPORT = qw(unitig outputGraph reportUnitigSizes);
 
 use strict;
 
@@ -12,29 +12,6 @@ use File::Path qw(make_path remove_tree);
 use ca3g::Defaults;
 use ca3g::Execution;
 use ca3g::Gatekeeper;
-
-
-sub unitigger ($$$) {
-    my $wrk  = shift @_;
-    my $asm  = shift @_;
-    my $per  = shift @_;
-    my $bin  = getBinDirectory();
-    my $cmd;
-
-    my $e = " -e" .   getGlobal("utgErrorRate");
-    my $u = " -U" .   getGlobal("utgBubblePopping");
-    my $k = " -k" if (getGlobal("utgRecalibrateGAR") == 1);
-
-    $cmd  = "$bin/unitigger \\\n";
-    $cmd .= " -I $wrk/$asm.ovlStore \\\n";
-    $cmd .= " -F $wrk/$asm.gkpStore \\\n";
-    $cmd .= " -T $wrk/$asm.tigStore \\\n";
-    $cmd .= " -o $wrk/4-unitigger/$asm \\\n";
-    $cmd .= " -B $per -d 1 -x 1 -z 10 -j 5 $e$u$k \\\n";  #  $k comes with a space if it is needed
-    $cmd .= " > $wrk/4-unitigger/unitigger.err 2>&1";
-
-    return($cmd);
-}
 
 
 sub bogart ($$$) {
@@ -64,7 +41,7 @@ sub bogart ($$$) {
 
 
 
-sub reportSizes ($$$$) {
+sub reportUnitigSizes ($$$$) {
     my $wrk       = shift @_;
     my $asm       = shift @_;
     my $version   = shift @_;
@@ -80,21 +57,24 @@ sub reportSizes ($$$$) {
     my $singnum   = 0;
     my $singbases = 0;
 
-    if (! -e "$wrk/$asm.tigStore.sizes.1.beforeConsensus") {
+    my $V = substr("000000" . $version, -3);
+    my $N = "$wrk/$asm.tigStore/seqDB.v$V.sizes.txt";
+
+    if (! -e $N) {
         $cmd  = "$bin/tgStoreDump \\\n";
         $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
         $cmd .= "  -T $wrk/$asm.tigStore $version \\\n";
         $cmd .= "  -U \\\n";
         $cmd .= "  -d sizes \\\n";
         $cmd .= "  -s " . getGlobal("genomeSize") . " \\\n";
-        $cmd .= "> $wrk/$asm.tigStore.sizes.1.beforeConsensus\n";
+        $cmd .= "> $N\n";
 
         if (runCommand($wrk, $cmd)) {
             caExit("failed to generate unitig sizes", undef);
         }
     }
 
-    open(F, "< $wrk/$asm.tigStore.sizes.1.beforeConsensus") or caExit("failed to open '$wrk/$asm.tigStore.sizes.1.beforeConsensus' for reading: $!\n", undef);
+    open(F, "< $N") or caExit("failed to open '$N' for reading: $!\n", undef);
     while (<F>) {
         $singbases = $1  if (m/lenSingleton\s+sum\s+(\d+)/);
         $singnum   = $1  if (m/lenSingleton\s+num\s+(\d+)/);
@@ -136,9 +116,6 @@ sub unitig ($$) {
     if      (getGlobal("unitigger") eq "bogart") {
         $cmd = bogart($wrk, $asm, $perPart);
 
-    } elsif (getGlobal("unitigger") eq "unitigger") {
-        $cmd = unitigger($wrk, $asm, $perPart);
-
     } else {
         caFailure("unknown unitigger '" . getGlobal("unitigger") . "'", undef);
     }
@@ -150,8 +127,8 @@ sub unitig ($$) {
     }
 
   allDone:
-    reportSizes($wrk, $asm, 1, "after unitig construction");
     emitStage($wrk, $asm, "unitig");
   stopAfter:
+    reportUnitigSizes($wrk, $asm, 1, "after unitig construction");
     stopAfter("unitig");
 }

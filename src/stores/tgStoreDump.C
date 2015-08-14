@@ -105,8 +105,8 @@ changeProperties(tgStore *tigStore,
     if        (strncmp(op, "unitig_coverage_stat", 20) == 0) {
       tigStore->setUnitigCoverageStat(tid, atof(vp));
 
-    } else if (strncmp(op, "unitig_microhet_prob", 20) == 0) {
-      tigStore->setUnitigMicroHetProb(tid, atof(vp));
+    //} else if (strncmp(op, "unitig_microhet_prob", 20) == 0) {
+    //tigStore->setUnitigMicroHetProb(tid, atof(vp));
 
     } else if (strncmp(op, "unitig_status", 13) == 0) {
       UnitigStatus  st = tigStore->getUnitigStatus(tid);
@@ -193,7 +193,7 @@ dumpProperties(tgStore *tigStore,
 
   fprintf(stdout, "tigID            "F_U32"\n", tig->_tigID);
   fprintf(stdout, "coverageStat     %f\n",      tig->_coverageStat);
-  fprintf(stdout, "microhetProb     %f\n",      tig->_microhetProb);
+  //fprintf(stdout, "microhetProb     %f\n",      tig->_microhetProb);
   fprintf(stdout, "suggestRepeat    %d\n",      tig->_suggestRepeat);
   fprintf(stdout, "suggestUnique    %d\n",      tig->_suggestUnique);
   fprintf(stdout, "suggestCircular  %d\n",      tig->_suggestCircular);
@@ -298,11 +298,11 @@ dumpConsensus(tgStore *tigStore,
   //  useful info with the sequence.
 
   if (minCoverage == 0) {
-    fprintf(stdout, ">tig"F_U32" len="F_U32" reads="F_U32" microHet=%.2f covStat=%.2f\n%s\n",
+    fprintf(stdout, ">tig"F_U32" len="F_U32" reads="F_U32" covStat=%.2f\n%s\n",
             tig->tigID(),
             len,
             tig->numberOfChildren(),
-            tig->microhetProb(),
+            //tig->microhetProb(),
             tig->coverageStat(),
             cns);
     return;
@@ -884,7 +884,7 @@ main (int argc, char **argv) {
     for (uint32 i=0; i<tigStore->numTigs(); i++) {
       if (tigStore->isDeleted(i) == false) {
         fprintf(stdout, "coverageStat     %8"F_U32P" %f\n", i, tigStore->getCoverageStat(i));
-        fprintf(stdout, "microhetProb     %8"F_U32P" %f\n", i, tigStore->getMicroHetProb(i));
+        //fprintf(stdout, "microhetProb     %8"F_U32P" %f\n", i, tigStore->getMicroHetProb(i));
         fprintf(stdout, "suggestRepeat    %8"F_U32P" %c\n", i, tigStore->getSuggestRepeat(i)   ? 'T' : 'F');
         fprintf(stdout, "suggestUnique    %8"F_U32P" %c\n", i, tigStore->getSuggestUnique(i)   ? 'T' : 'F');
         fprintf(stdout, "suggestCircular  %8"F_U32P" %c\n", i, tigStore->getSuggestCircular(i) ? 'T' : 'F');

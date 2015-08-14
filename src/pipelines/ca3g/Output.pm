@@ -3,7 +3,7 @@ package ca3g::Output;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(outputLayout outputSequence);
+@EXPORT = qw(outputLayout outputGraph outputSequence);
 
 use strict;
 
@@ -35,8 +35,6 @@ sub outputLayout ($$) {
             my $prefix = $1  if (m/^(.*).cns/);
 
             if (-e "$prefix.layout") {
-                print STDERR "Copying layouts from $prefix.layout\n";
-
                 open(L, "< $prefix.layout") or caExit("can't open '$prefix.layout' for reading: $!", undef);
                 while (<L>) {
                     next  if (m/^cns\s/);
@@ -63,7 +61,45 @@ sub outputLayout ($$) {
   allDone:
     emitStage($wrk, $asm, "outputLayout");
   stopAfter:
+
+    print STDERR "--\n";
+    print STDERR "-- wrote unitig layouts to '$wrk/$asm.layout'.\n";
+    print STDERR "--\n";
 }
+
+
+
+
+sub outputGraph ($$) {
+    my $wrk    = shift @_;
+    my $asm    = shift @_;
+    my $bin    = getBinDirectory();
+    my $cmd;
+
+    goto stopAfter   if (skipStage($wrk, $asm, "outputGraph") == 1);
+    goto allDone     if (-e "$wrk/$asm.graph");
+
+    #
+    #  Stuff here.
+    #
+
+  stopBefore:
+    #stopBefore("outputSequence", $cmd);
+
+    if (runCommand($wrk, $cmd)) {
+        caExit("failed to output consensus", "$wrk/$asm.graph.err");
+    }
+
+  allDone:
+    emitStage($wrk, $asm, "outputGraph");
+  stopAfter:
+
+    print STDERR "--\n";
+    print STDERR "-- wrote unitig graph to (nowhere, yet).\n";
+    print STDERR "--\n";
+}
+
+
 
 
 sub outputSequence ($$) {
@@ -115,4 +151,8 @@ sub outputSequence ($$) {
   allDone:
     emitStage($wrk, $asm, "outputSequence");
   stopAfter:
+
+    print STDERR "--\n";
+    print STDERR "-- wrote unitig sequence to $wrk/$asm.consensus.f''.\n";
+    print STDERR "--\n";
 }

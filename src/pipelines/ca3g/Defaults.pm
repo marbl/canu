@@ -523,6 +523,13 @@ sub checkParameters ($) {
         }
     }
 
+
+    if ((!defined("lowCoverageAllowed") &&  defined("lowCoverageDepth")) ||
+        ( defined("lowCoverageAllowed") && !defined("lowCoverageDepth"))) {
+        caExit("invalid 'lowCoverageAllowed' and 'lowCoverageDepth' specified; both must be set", undef);
+    }
+
+
     #if ((getGlobal("cleanup") ne "none") &&
     #    (getGlobal("cleanup") ne "light") &&
     #    (getGlobal("cleanup") ne "heavy") &&
@@ -1128,12 +1135,6 @@ sub setDefaults () {
     $global{"genomeSize"}                  = undef;
     $synops{"genomeSize"}                  = "An estimate of the size of the genome";
 
-    $global{"utgBubblePopping"}            = 1;
-    $synops{"utgBubblePopping"}            = "Smooth polymorphic regions";
-
-    $global{"utgRecalibrateGAR"}           = 1;
-    $synops{"utgRecalibrateGAR"}           = "Use an experimental algorithm to decide unique/repeat";
-
     $global{"batOptions"}                  = undef;
     $synops{"batOptions"}                  = "Advanced options to bogart";
 
@@ -1143,21 +1144,28 @@ sub setDefaults () {
     $global{"batThreads"}                  = undef;
     $synops{"batThreads"}                  = "Number of threads to use in the Merge/Split/Join phase; default is whatever OpenMP wants";
 
+    #####  Unitig Filtering Options
+
+
+
     #####  Unitig Repeat/Unique Options (formerly in scaffolder)
 
-    $global{"maxSingleReadSpan"}           = undef;
+    $global{"maxSingleReadSpan"}           = undef;  #  1.0 (default as in the binary)
     $synops{"maxSingleReadSpan"}           = "Unitigs with a single read spanning more than this fraction of the unitig are never labeled unique";
 
-    $global{"lowCoverageDepth"}            = undef;
-    $synops{"lowCoverageDepth"}            = "See lowCoverageAllowed";
+    $global{"lowCoverageAllowed"}          = undef;  #  1.0
+    $synops{"lowCoverageAllowed"}          = "Unitigs with more than fraction lowCoverageAllowed bases at depth at most lowCoverageDepth bases are never labeled unique";
 
-    $global{"lowCoverageAllowed"}          = undef;
-    $synops{"lowCoverageAllowed"}          = "Unitigs with more than this fraction lowCoverageDepth bases are never labeled unique";
+    $global{"lowCoverageDepth"}            = undef;  #  2
+    $synops{"lowCoverageDepth"}            = "Unitigs with more than fraction lowCoverageAllowed bases at depth at most lowCoverageDepth bases are never labeled unique";
 
-    $global{"minReadsUnique"}              = undef;
+    $global{"minReadsUnique"}              = undef;  #  2
     $synops{"minReadsUnique"}              = "Unitigs with fewer reads that this are never labeled unique";
 
-    $global{"maxRepeatLength"}             = undef;
+    $global{"minUniqueLength"}             = undef;  #  1000
+    $synops{"minUniqueLength"}             = "Unitigs shorter than this are always labeled non-unique";
+
+    $global{"maxRepeatLength"}             = undef;  #  max_int
     $synops{"maxRepeatLength"}             = "Unitigs longer than this are always labeled unique";
 
     #####  Consensus Options
@@ -1208,6 +1216,9 @@ sub setDefaults () {
     $global{"falconSense"}                 = "/nbacc/scratch/bri/ca3g/ca3g-build/src/falcon_sense/falcon_sense.Linux-amd64.bin" if (-e "/nbacc/scratch/bri/ca3g/ca3g-build/src/falcon_sense/falcon_sense.Linux-amd64.bin");
     $global{"falconSense"}                 = "/work/software/falcon/install/fc_env/bin/fc_consensus.py"                         if (-e "/work/software/falcon/install/fc_env/bin/fc_consensus.py");
     $synops{"falconSense"}                 = "Path to fc_consensus.py or falcon_sense.bin";
+
+
+
 
     #####  Ugly, command line options passed to printHelp()
 

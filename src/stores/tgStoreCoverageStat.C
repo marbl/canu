@@ -20,15 +20,14 @@
 const char *mainid = "$Id$";
 
 #include "AS_global.H"
-#include "AS_PER_gkpStore.H"
-#include "MultiAlign.H"
-#include "MultiAlignStore.H"
 
-#include "AS_CGB_histo.H"
+#include "gkStore.H"
+#include "tgStore.H"
 
 #include <algorithm>
 
 using namespace std;
+
 
 //  This program will recompute the coverage statistic for all unitigs in the tigStore.
 //  It replaces at least four implementations (AS_CGB, AS_BOG, AS_BAT, AS_CGW).
@@ -74,7 +73,7 @@ double    ln2 = 0.69314718055994530941723212145818;
 double    globalArrivalRate = 0.0;
 
 bool     *isNonRandom = NULL;
-uint32   *fragLength  = NULL;
+uint32   *readLength  = NULL;
 
 bool      leniant = false;
 
@@ -83,7 +82,7 @@ bool      leniant = false;
 //  One frag -> 1
 
 double
-computeRho(MultiAlignT *ma) {
+computeRho(tgTig *tig) {
   int32  minBgn  = INT32_MAX;
   int32  maxEnd  = INT32_MIN;
   int32  fwdRho  = INT32_MIN;
@@ -93,31 +92,19 @@ computeRho(MultiAlignT *ma) {
   //  and last fragment arrival.  This changes based on the orientation of the unitig, so we
   //  return the average of those two.
 
-  for (uint32 i=0; i<GetNumIntMultiPoss(ma->f_list); i++) {
-    IntMultiPos  *frg = GetIntMultiPos(ma->f_list, i);
+  for (uint32 i=0; i<tig->numberOfChildren(); i++) {
+    tgPosition  *pos = tig->getChild(i);
 
-    if (frg->position.bgn < frg->position.end) {
-      minBgn = MIN(minBgn, frg->position.bgn);
-      maxEnd = MAX(maxEnd, frg->position.end);
+    minBgn = MIN(minBgn, pos->min());
+    maxEnd = MAX(maxEnd, pos->max());
 
-      fwdRho = MAX(fwdRho, frg->position.bgn);  //  largest begin coord
-      revRho = MIN(revRho, frg->position.end);  //  smallest end coord
-    } else {
-      minBgn = MIN(minBgn, frg->position.end);
-      maxEnd = MAX(maxEnd, frg->position.bgn);
-      
-      fwdRho = MAX(fwdRho, frg->position.end);
-      revRho = MIN(revRho, frg->position.bgn);
-    }
+    fwdRho = MAX(fwdRho, pos->min());  //  largest begin coord
+    revRho = MIN(revRho, pos->max());  //  smallest end coord
   }
 
-  if (minBgn != 0) {
-    fprintf(stderr, "unitig %d doesn't begin at zero.  Layout:\n", ma->maID);
-    for (uint32 i=0; i<GetNumIntMultiPoss(ma->f_list); i++) {
-      IntMultiPos  *frg = GetIntMultiPos(ma->f_list, i);
-      fprintf(stderr, "  %10"F_IIDP" %5"F_U32P" %5"F_U32P"\n",
-              frg->ident, frg->position.bgn, frg->position.end);
-    }
+  if ((leniant == false) && (minBgn != 0)) {
+    fprintf(stderr, "tig %d doesn't begin at zero.  Layout:\n", tig->tigID());
+    tig->dumpLayout(stderr);
   }
   if (leniant == false)
     assert(minBgn == 0);
@@ -134,16 +121,13 @@ computeRho(MultiAlignT *ma) {
 }
 
 
-int32
-numRandomFragments(MultiAlignT *ma) {
-  int32  numRand = 0;
+uint32
+numRandomFragments(tgTig *tig) {
+  uint32  numRand = 0;
 
-  for (uint32 i=0; i<GetNumIntMultiPoss(ma->f_list); i++) {
-    IntMultiPos  *frg = GetIntMultiPos(ma->f_list, i);
-
-    if (isNonRandom[frg->ident] == false)
+  for (uint32 ii=0; ii<tig->numberOfChildren(); ii++)
+    if (isNonRandom[tig->getChild(ii)->ident()] == false)
       numRand++;
-  }
 
   return(numRand);
 }
@@ -151,7 +135,7 @@ numRandomFragments(MultiAlignT *ma) {
 
 
 double
-getGlobalArrivalRate(MultiAlignStore *tigStore,
+getGlobalArrivalRate(tgStore         *tigStore,
                      FILE            *outSTA,
                      uint64           genomeSize,
 		     bool            useN50) {
@@ -162,7 +146,6 @@ getGlobalArrivalRate(MultiAlignStore *tigStore,
 
   int32    arLen   = 0;
   double  *ar      = NULL;
-  uint32    numUnitigs    = 0;
   uint32   *allRho  = NULL;
   uint32   NF;
   uint64   totalRandom = 0;
@@ -170,23 +153,26 @@ getGlobalArrivalRate(MultiAlignStore *tigStore,
   int32    BIG_SPAN    = 10000;
   int32    big_spans_in_unitigs   = 0; // formerly arMax
 
-  const bool  isUnitig = true; // Required for tigStore accessor                                         
-
   // Go through all the unitigs to sum rho and unitig arrival frags
   
-  numUnitigs = tigStore->numUnitigs();
-  allRho = new uint32 [numUnitigs];
-  for (uint32 i=0; i<numUnitigs; i++) {
-    MultiAlignT  *ma = tigStore->loadMultiAlign(i, isUnitig);
-    allRho[i]=0;
-    if (ma == NULL)
+  allRho = new uint32 [tigStore->numTigs()];
+
+  for (uint32 i=0; i<tigStore->numTigs(); i++) {
+    tgTig  *tig = tigStore->loadTig(i);
+
+    allRho[i] = 0;
+
+    if (tig == NULL)
       continue;
-    double rho       = computeRho(ma);
-    int32  numRandom = numRandomFragments(ma);
-    sumRho  += rho;
+
+    double rho       = computeRho(tig);
+    int32  numRandom = numRandomFragments(tig);
+
+    sumRho                 += rho;
     big_spans_in_unitigs   += (int32) (rho / BIG_SPAN);  // Keep integral portion of fraction.
-    totalRandom += numRandom;
-    totalNF     +=  (numRandom == 0) ? (0) : (numRandom - 1);
+    totalRandom            += numRandom;
+    totalNF                +=  (numRandom == 0) ? (0) : (numRandom - 1);
+
     allRho[i] = rho;
   }
 
@@ -197,6 +183,7 @@ getGlobalArrivalRate(MultiAlignStore *tigStore,
 
   if (genomeSize > 0) {
     globalRate = totalRandom / (double)genomeSize;
+
   } else {
     if (sumRho > 0)
       globalRate = totalNF / sumRho;
@@ -213,7 +200,7 @@ getGlobalArrivalRate(MultiAlignStore *tigStore,
   // *) If user suppled a genome size, we are done.
   // *) No unitigs.
 
-  if (genomeSize > 0 || numUnitigs==0) {
+  if (genomeSize > 0 || tigStore->numTigs()==0) {
     delete [] allRho;
     return(globalRate);
   } 
@@ -224,8 +211,8 @@ getGlobalArrivalRate(MultiAlignStore *tigStore,
   if (useN50) {
     uint32 growUntil = sumRho / 2; // half is 50%, needed for N50
     uint64 growRho = 0;
-    sort (allRho, allRho+numUnitigs);
-    for (uint32 i=numUnitigs; i>0; i--) { // from largest to smallest unitig...
+    sort (allRho, allRho+tigStore->numTigs());
+    for (uint32 i=tigStore->numTigs(); i>0; i--) { // from largest to smallest unitig...
       rhoN50 = allRho[i-1];
       growRho += rhoN50;
       if (growRho >= growUntil)
@@ -239,17 +226,23 @@ getGlobalArrivalRate(MultiAlignStore *tigStore,
   if (useN50) {
     double keepRho = 0;
     double keepNF = 0;
-    for (uint32 i=0; i<numUnitigs; i++) {
-      MultiAlignT  *ma = tigStore->loadMultiAlign(i, isUnitig);
-      if (ma == NULL)
-	continue;
-      double  rho = computeRho(ma);
+    for (uint32 i=0; i<tigStore->numTigs(); i++) {
+      tgTig  *tig = tigStore->loadTig(i);
+
+      if (tig == NULL)
+        continue;
+
+      double  rho = computeRho(tig);
+
       if (rho < rhoN50)
-	continue; // keep only rho from unitigs > N50
-      int32 numRandom =   numRandomFragments(ma);
+        continue; // keep only rho from unitigs > N50
+
+      int32 numRandom =   numRandomFragments(tig);
+
       keepNF     +=  (numRandom == 0) ? (0) : (numRandom - 1);
-      keepRho  +=  rho;
+      keepRho    +=  rho;
     }
+
     fprintf(outSTA, "BASED ON UNITIGS > N50:\n");
     fprintf(outSTA, "rho N50:                          %.0f\n", rhoN50);
     if (keepRho > 1) {   // the cutoff 1 is arbitrary but larger than 0.0f
@@ -281,18 +274,18 @@ getGlobalArrivalRate(MultiAlignStore *tigStore,
 
   ar = new double [big_spans_in_unitigs];
 
-  for (uint32 i=0; i<numUnitigs; i++) {
-    MultiAlignT  *ma = tigStore->loadMultiAlign(i, isUnitig);
+  for (uint32 i=0; i<tigStore->numTigs(); i++) {
+    tgTig  *tig = tigStore->loadTig(i);
 
-    if (ma == NULL)
+    if (tig == NULL)
       continue;
 
-    double  rho = computeRho(ma);
+    double  rho = computeRho(tig);
 
     if (rho <= BIG_SPAN)
       continue;
 
-    int32   numRandom        = numRandomFragments(ma);
+    int32   numRandom        = numRandomFragments(tig);
     double  localArrivalRate = numRandom / rho;
     uint32  rhoDiv10k        = rho / BIG_SPAN;
 
@@ -365,37 +358,31 @@ getGlobalArrivalRate(MultiAlignStore *tigStore,
 
 int
 main(int argc, char **argv) {
-  char             *gkpName      = NULL;
-  char             *tigName      = NULL;
-  int32             tigVers      = -1;
+  char             *gkpName    = NULL;
+  char             *tigName    = NULL;
+  int32             tigVers    = -1;
 
-  int64             genomeSize   = 0;
+  int64             genomeSize = 0;
 
-  char              outName[FILENAME_MAX];
-  char             *outPrefix = NULL;
-  FILE             *outCGA = NULL;
-  FILE             *outLOG = NULL;
-  FILE             *outSTA = NULL;
+  char             *outPrefix  = NULL;
+  FILE             *outLOG     = NULL;
+  FILE             *outSTA     = NULL;
 
-  AS_IID            bgnID = 0;
-  AS_IID            endID = 0;
+  uint32            bgnID      = 0;
+  uint32            endID      = 0;
 
-  MultiAlignStore  *tigStore = NULL;
-  gkStore          *gkpStore = NULL;
-
-  bool              doUpdate = true;
-  bool              use_N50  = true;
-  const bool        isUnitig = true; // Required for tigStore accessor
+  bool              doUpdate   = true;
+  bool              use_N50    = true;
 
   argc = AS_configure(argc, argv);
 
   int err = 0;
   int arg = 1;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-g") == 0) {
+    if        (strcmp(argv[arg], "-G") == 0) {
       gkpName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-t") == 0) {
+    } else if (strcmp(argv[arg], "-T") == 0) {
       tigName = argv[++arg];
       tigVers = atoi(argv[++arg]);
 
@@ -450,34 +437,29 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  gkpStore     = new gkStore(gkpName, FALSE, FALSE);
-  tigStore     = new MultiAlignStore(tigName, tigVers, 0, 0, TRUE, TRUE, FALSE);
+  gkStore *gkpStore     = new gkStore(gkpName, gkStore_readOnly);
+  tgStore *tigStore     = new tgStore(tigName, tigVers, tgStoreReadOnly);
 
   if (endID == 0)
-    endID = tigStore->numUnitigs();
+    endID = tigStore->numTigs();
 
-  errno = 0;
+  {
+    char  outName[FILENAME_MAX];
 
-  sprintf(outName, "%s.cga.0", outPrefix);
+    errno = 0;
 
-  outCGA = fopen(outName, "w");
-  if (errno)
-    fprintf(stderr, "Failed to open '%s': %s\n", outName, strerror(errno)), exit(1);
+    sprintf(outName, "%s.log", outPrefix);
 
-  sprintf(outName, "%s.log", outPrefix);
+    outLOG = fopen(outName, "w");
+    if (errno)
+      fprintf(stderr, "Failed to open '%s': %s\n", outName, strerror(errno)), exit(1);
 
-  outLOG = fopen(outName, "w");
-  if (errno)
-    fprintf(stderr, "Failed to open '%s': %s\n", outName, strerror(errno)), exit(1);
+    sprintf(outName, "%s.stats", outPrefix);
 
-  fprintf(outLOG, "tigID\trho\tcovStat\tarrDist\n");
-
-  sprintf(outName, "%s.stats", outPrefix);
-
-  outSTA = fopen(outName, "w");
-  if (errno)
-    fprintf(stderr, "Failed to open '%s': %s\n", outName, strerror(errno)), exit(1);
-
+    outSTA = fopen(outName, "w");
+    if (errno)
+      fprintf(stderr, "Failed to open '%s': %s\n", outName, strerror(errno)), exit(1);
+  }
 
 
   //
@@ -486,24 +468,17 @@ main(int argc, char **argv) {
 
   double  globalRate     = 0;
 
-  isNonRandom = new bool   [gkpStore->gkStore_getNumFragments() + 1];
-  fragLength  = new uint32 [gkpStore->gkStore_getNumFragments() + 1];
+  isNonRandom = new bool   [gkpStore->gkStore_getNumReads() + 1];
+  readLength  = new uint32 [gkpStore->gkStore_getNumReads() + 1];
 
-  gkStream   *fs = new gkStream(gkpStore, 0, 0, GKFRAGMENT_INF);
-  gkFragment  fr;
+  for (uint32 ii=0; ii<gkpStore->gkStore_getNumReads(); ii++) {
+    gkRead      *read = gkpStore->gkStore_getRead(ii);
+    gkLibrary   *libr = gkpStore->gkStore_getLibrary(read->gkRead_libraryID());
 
-  while(fs->next(&fr)) {
-    uint32 iid = fr.gkFragment_getReadIID();
-
-    isNonRandom[iid] = fr.gkFragment_getIsNonRandom();
-    fragLength[iid]  = fr.gkFragment_getClearRegionLength(AS_READ_CLEAR_OBTCHIMERA);
-
-    if ((iid % 10000000) == 0)
-      fprintf(stderr, "Loading fragment information %9d out of %9d\n", iid, gkpStore->gkStore_getNumFragments());
+    isNonRandom[ii] = libr->gkLibrary_isNonRandom();
+    readLength[ii]  = read->gkRead_sequenceLength();
   }
   
-  delete fs;
-
   //
   //  Compute global arrival rate.  This ain't cheap.
   //
@@ -514,29 +489,29 @@ main(int argc, char **argv) {
   //  Compute coverage stat for each unitig, populate histograms, write logging.
   //
 
-  MyHistoDataType  z;
-
-  memset(&z, 0, sizeof(MyHistoDataType));
-
-  Histogram_t *len = create_histogram(500, 500, 0, TRUE);
-  Histogram_t *cvg = create_histogram(500, 500, 0, TRUE);
-  Histogram_t *arv = create_histogram(500, 500, 0, TRUE);
-
-  extend_histogram(len, sizeof(MyHistoDataType), myindexdata, mysetdata, myaggregate, myprintdata);
-  extend_histogram(cvg, sizeof(MyHistoDataType), myindexdata, mysetdata, myaggregate, myprintdata);
-  extend_histogram(arv, sizeof(MyHistoDataType), myindexdata, mysetdata, myaggregate, myprintdata);
+  //  Three histograms were made, one for length, coverage stat and arrival distance.  The
+  //  histograms included
+  //
+  //      columns: sum, cumulative_sum, cumulative_fraction, min, average, max
+  //      rows:    reads, rs reads, nr reads, bases, rho, arrival, discriminator
+  //
+  //  Most of those are not defined or null (nr reads? currently zero), and the histograms
+  //  in general aren't useful anymore.  They were used to help decide if the genome size
+  //  was incorrect, causing too many non-unique unitigs.
+  //
+  //  They were removed 13 Aug 2015.
 
   for (uint32 i=bgnID; i<endID; i++) {
-    MultiAlignT  *ma = tigStore->loadMultiAlign(i, isUnitig);
+    tgTig  *tig = tigStore->loadTig(i);
 
-    if (ma == NULL)
+    if (tig == NULL)
       continue;
 
-    int32   tigLength = GetMultiAlignLength(ma);
-    int32   numFrags  = GetNumIntMultiPoss(ma->f_list);
-    int32   numRandom = numRandomFragments(ma);
+    int32   tigLength = tig->layoutLength();
+    int32   numFrags  = tig->numberOfChildren();
+    int32   numRandom = numRandomFragments(tig);
 
-    double  rho       = computeRho(ma);
+    double  rho       = computeRho(tig);
 
     double  covStat   = 0.0;
     double  arrDist   = 0.0;
@@ -548,7 +523,9 @@ main(int argc, char **argv) {
         (globalRate > 0.0))
       covStat = (rho * globalRate) - (ln2 * (numRandom - 1));
 
-    fprintf(outLOG, F_U32"\t%.2f\t%.2f\t%.2f\n", ma->maID, rho, covStat, arrDist);
+    if (i == bgnID)
+      fprintf(outLOG, "     tigID        rho    covStat    arrDist\n");
+    fprintf(outLOG, "%10u %10.2f %10.2f %10.2f\n", tig->tigID(), rho, covStat, arrDist);
 
 #undef ADJUST_FOR_PARTIAL_EXCESS
 #ifdef ADJUST_FOR_PARTIAL_EXCESS
@@ -567,57 +544,15 @@ main(int argc, char **argv) {
     }
 #endif
 
-    z.nsamples     = 1;
-    z.sum_frags    = z.min_frags    = z.max_frags    = numFrags;
-    z.sum_bp       = z.min_bp       = z.max_bp       = tigLength;
-    z.sum_rho      = z.min_rho      = z.max_rho      = rho;
-    z.sum_discr    = z.min_discr    = z.max_discr    = covStat;
-    z.sum_arrival  = z.min_arrival  = z.max_arrival  = arrDist;
-    z.sum_rs_frags = z.min_rs_frags = z.max_rs_frags = numRandom;
-    z.sum_nr_frags = z.min_nr_frags = z.max_nr_frags = 0;
-
-    add_to_histogram(len, tigLength, &z);
-    add_to_histogram(cvg, covStat,   &z);
-    add_to_histogram(arv, arrDist,   &z);
-
     if (doUpdate)
-      tigStore->setUnitigCoverageStat(ma->maID, covStat);
+      tigStore->setCoverageStat(tig->tigID(), covStat);
   }
 
 
-  fprintf(outCGA, "\n");
-  fprintf(outCGA, "\n");
-  fprintf(outCGA, "Unitig Length\n");
-  fprintf(outCGA, "label\tsum\tcummulative\tcummulative   min  average  max\n");
-  fprintf(outCGA, "     \t   \t sum       \t fraction\n");
-  print_histogram(outCGA, len, 0, 1);
-
-  fprintf(outCGA, "\n");
-  fprintf(outCGA, "\n");
-  fprintf(outCGA, "Unitig Coverage Stat\n");
-  fprintf(outCGA, "label\tsum\tcummulative\tcummulative   min  average  max\n");
-  fprintf(outCGA, "     \t   \t sum       \t fraction\n");
-  print_histogram(outCGA, cvg, 0, 1);
-
-  fprintf(outCGA, "\n");
-  fprintf(outCGA, "\n");
-  fprintf(outCGA, "Unitig Arrival Distance\n");
-  fprintf(outCGA, "label\tsum\tcummulative\tcummulative   min  average  max\n");
-  fprintf(outCGA, "     \t   \t sum       \t fraction\n");
-  print_histogram(outCGA, arv, 0, 1);
-
-  free_histogram(len);
-  free_histogram(cvg);
-  free_histogram(arv);
-
-
-
-  fclose(outCGA);
   fclose(outLOG);
 
-
   delete [] isNonRandom;
-  delete [] fragLength;
+  delete [] readLength;
 
   delete gkpStore;
   delete tigStore;
