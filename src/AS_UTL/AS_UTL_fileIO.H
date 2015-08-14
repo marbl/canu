@@ -26,6 +26,11 @@ static const char *rcsid_AS_UTL_FILEIO_H = "$Id$";
 
 #include "AS_global.H"
 
+#include <vector>
+
+using namespace std;
+
+
 //  Provides a safe and reliable mechanism for reading / writing
 //  binary data.
 //
@@ -49,6 +54,9 @@ off_t   AS_UTL_sizeOfFile(const char *path);
 
 off_t   AS_UTL_ftell(FILE *stream);
 void    AS_UTL_fseek(FILE *stream, off_t offset, int whence);
+
+//  Read a file-of-files into a vector
+void    AS_UTL_loadFileList(char *fileName, vector<char *> &fileList);
 
 class compressedFileReader {
 public:

@@ -214,27 +214,8 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-e") == 0) {
       minOverlap = atoi(argv[++arg]);
 
-
     } else if (strcmp(argv[arg], "-L") == 0) {
-      errno = 0;
-      FILE *F = fopen(argv[++arg], "r");
-      if (errno)
-        fprintf(stderr, "Can't open '%s': %s\n", argv[arg], strerror(errno)), exit(1);
-
-      char *line = new char [FILENAME_MAX];
-
-      fgets(line, FILENAME_MAX, F);
-
-      while (!feof(F)) {
-        chomp(line);
-        fileList.push_back(line);
-        line = new char [FILENAME_MAX];
-        fgets(line, FILENAME_MAX, F);
-      }
-
-      delete [] line;
-
-      fclose(F);
+      AS_UTL_loadFileList(argv[++arg], fileList);
 
     } else if (strcmp(argv[arg], "-big") == 0) {
       lastLibFirstIID = atoi(argv[++arg]);
@@ -246,9 +227,13 @@ main(int argc, char **argv) {
       fprintf(stderr, "%s: unknown option '%s'.\n", argv[0], argv[arg]);
       err++;
 
-    } else {
+    } else if (AS_UTL_fileExists(argv[arg])) {
       //  Assume it's an input file
       fileList.push_back(argv[arg]);
+
+    } else {
+      fprintf(stderr, "%s: unknown option '%s'.\n", argv[0], argv[arg]);
+      err++;
     }
 
     arg++;

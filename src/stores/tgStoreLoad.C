@@ -95,31 +95,35 @@ main (int argc, char **argv) {
       tigName = argv[++arg];
       tigVers = atoi(argv[++arg]);
 
-    } else if (strcmp(argv[arg], "-R") == 0) {
-      while (AS_UTL_fileExists(argv[++arg]))
-        tigInputs.push_back(argv[arg]);
+    } else if (strcmp(argv[arg], "-L") == 0) {
+      AS_UTL_loadFileList(argv[++arg], tigInputs);
 
     } else if (strcmp(argv[arg], "-n") == 0) {
       tigType = tgStoreReadOnly;
 
+    } else if (AS_UTL_fileExists(argv[arg])) {
+      tigInputs.push_back(argv[arg]);
+
     } else {
-      fprintf(stderr, "%s: Unknown option '%s'\n", argv[0], argv[arg]);
+      fprintf(stderr, "%s: unknown option '%s'\n", argv[0], argv[arg]);
       err++;
     }
 
     arg++;
   }
   if ((err) || (gkpName == NULL) || (tigName == NULL) || (tigInputs.size() == 0)) {
-    fprintf(stderr, "usage: %s -G <gkpStore> -T <tigStore> <v> [opts]\n", argv[0]);
+    fprintf(stderr, "usage: %s -G <gkpStore> -T <tigStore> <v> [input.cns]\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "  -G <gkpStore>         Path to the gatekeeper store\n");
     fprintf(stderr, "  -T <tigStore> <v>     Path to the tigStore and version to add tigs to\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -R <file>             Load the tig(s) in 'file', replacing whatever is in the store\n");
+    fprintf(stderr, "  -L <file-of-files>    Load the tig(s) from files listed in 'file-of-files'\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -n                    Don't replace, just report what would have happened\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "\n");
+    fprintf(stderr, "  The primary operation is to replace tigs in the store with ones in a set of input files.\n");
+    fprintf(stderr, "  The input files can be either supplied directly on the command line or listed in\n");
+    fprintf(stderr, "  a text file (-L).\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  A new store is created if one doesn't exist, otherwise, whatever tigs are there are\n");
     fprintf(stderr, "  replaced with those in the -R file.  If version 'v' doesn't exist, it is created.\n");

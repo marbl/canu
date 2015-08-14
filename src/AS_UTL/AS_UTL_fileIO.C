@@ -329,6 +329,37 @@ AS_UTL_fseek(FILE *stream, off_t offset, int whence) {
 
 
 
+
+void
+AS_UTL_loadFileList(char *fileName, vector<char *> &fileList) {
+
+  errno = 0;
+  FILE *F = fopen(fileName, "r");
+  if (errno)
+    fprintf(stderr, "Can't open '%s': %s\n", fileName, strerror(errno)), exit(1);
+
+  char *line = new char [FILENAME_MAX];
+
+  fgets(line, FILENAME_MAX, F);
+
+  while (!feof(F)) {
+    chomp(line);
+    fileList.push_back(line);
+    line = new char [FILENAME_MAX];
+    fgets(line, FILENAME_MAX, F);
+  }
+
+  delete [] line;
+
+  fclose(F);
+}
+
+
+
+
+
+
+
 compressedFileReader::compressedFileReader(const char *filename) {
   char    cmd[FILENAME_MAX * 2];
   int32   len = 0;
