@@ -168,7 +168,7 @@ main(int argc, char **argv) {
     if (partFile[pp] == NULL) {
       char  name[FILENAME_MAX];
 
-      sprintf(name, "%s%04d", outputPrefix, pp);  //  Sync'd with ca3g/CorrectReads.pm
+      sprintf(name, "%s%04d", outputPrefix, pp);  //  Sync'd with canu/CorrectReads.pm
 
       errno = 0;
       partFile[pp] = fopen(name, "w");

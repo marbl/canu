@@ -1047,7 +1047,7 @@ BestOverlapGraph::isOverlapBadQuality(const BAToverlap& olap) {
 
   //  CA8.3 would further compute the (expected) number of errors in the alignment, and compare
   //  against another limit.  This was to allow very short overlaps where one error would push the
-  //  error rate above a few percent.  ca3g doesn't do short overlaps.
+  //  error rate above a few percent.  canu doesn't do short overlaps.
 
   if ((enableLog == true) && (logFileFlags & LOG_OVERLAP_QUALITY))
     writeLog("isOverlapBadQuality()-- OVERLAP REJECTED: %d %d %c  hangs "F_S32" "F_S32" err %.3f\n",

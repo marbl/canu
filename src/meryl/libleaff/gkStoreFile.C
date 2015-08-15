@@ -101,7 +101,7 @@ gkStoreFile::getSequence(uint32 iid,
 
   uint32  rLength = gkp->gkStore_getRead(iid)->gkRead_sequenceLength();
 
-  //fprintf(stderr, "return ca3g iid %u of length %u\n", iid, rLength);
+  //fprintf(stderr, "return canu iid %u of length %u\n", iid, rLength);
 
   assert(bgn <  end);
   assert(bgn <= rLength);

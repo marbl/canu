@@ -24,8 +24,8 @@ static const char *rcsid = "$Id$";
 #include "ovStore.H"
 
 const uint64 ovStoreVersion         = 2;
-const uint64 ovStoreMagic           = 0x4c564f3a67336163;   //  == "ca3g:OVS - store complete
-const uint64 ovStoreMagicIncomplete = 0x50564f3a67336163;   //  == "ca3g:OVP - store under construction
+const uint64 ovStoreMagic           = 0x53564f3a756e6163;   //  == "canu:OVS - store complete
+const uint64 ovStoreMagicIncomplete = 0x50564f3a756e6163;   //  == "canu:OVP - store under construction
 
 
 void

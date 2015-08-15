@@ -1,4 +1,4 @@
-package ca3g::OverlapMhap;
+package canu::OverlapMhap;
 
 require Exporter;
 
@@ -9,9 +9,9 @@ use strict;
 
 use File::Path qw(make_path remove_tree);
 
-use ca3g::Defaults;
-use ca3g::Execution;
-use ca3g::Gatekeeper;
+use canu::Defaults;
+use canu::Execution;
+use canu::Gatekeeper;
 
 #  Map long reads to long reads with mhap.
 
@@ -203,7 +203,7 @@ sub mhapConfigure ($$$$) {
 
 
     #  The seed length is the shortest read such that all reads longer than this sum to 50x genome size.
-    #  genomeSize must be set (ca3g should be failing early if it isn't).
+    #  genomeSize must be set (canu should be failing early if it isn't).
 
     my $seedLength = 500;
 
@@ -494,7 +494,7 @@ sub mhapPrecomputeCheck ($$$$$) {
     #  No failed jobs?  Success!
 
     if (scalar(@failedJobs) == 0) {
-        setGlobal("ca3gIteration", 0);
+        setGlobal("canuIteration", 0);
         emitStage($WRK, $asm, "$tag-mhapPrecomputeCheck");
         return;
     }
@@ -590,7 +590,7 @@ sub mhapCheck ($$$$$) {
         open(L, "> $path/ovljob.files") or caExit("failed to open '$path/ovljob.files'", undef);
         print L @successJobs;
         close(L);
-        setGlobal("ca3gIteration", 0);
+        setGlobal("canuIteration", 0);
         emitStage($WRK, $asm, "$tag-mhapCheck");
         return;
     }

@@ -471,21 +471,21 @@ INCDIRS := $(addprefix -I,$(call CANONICAL_PATH,${INCDIRS}))
 # default goal.
 .PHONY: all
 all: $(addprefix ${TARGET_DIR}/,${ALL_TGTS}) \
-     ${TARGET_DIR}/ca3g.pl \
-     ${TARGET_DIR}/ca3g/lib \
-     ${TARGET_DIR}/ca3g/Consensus.pm \
-     ${TARGET_DIR}/ca3g/CorrectReads.pm \
-     ${TARGET_DIR}/ca3g/Defaults.pm \
-     ${TARGET_DIR}/ca3g/Execution.pm \
-     ${TARGET_DIR}/ca3g/Gatekeeper.pm \
-     ${TARGET_DIR}/ca3g/Meryl.pm \
-     ${TARGET_DIR}/ca3g/Output.pm \
-     ${TARGET_DIR}/ca3g/OverlapBasedTrimming.pm \
-     ${TARGET_DIR}/ca3g/OverlapErrorAdjustment.pm \
-     ${TARGET_DIR}/ca3g/OverlapInCore.pm \
-     ${TARGET_DIR}/ca3g/OverlapMhap.pm \
-     ${TARGET_DIR}/ca3g/OverlapStore.pm \
-     ${TARGET_DIR}/ca3g/Unitig.pm
+     ${TARGET_DIR}/canu \
+     ${TARGET_DIR}/lib/canu \
+     ${TARGET_DIR}/lib/canu/Consensus.pm \
+     ${TARGET_DIR}/lib/canu/CorrectReads.pm \
+     ${TARGET_DIR}/lib/canu/Defaults.pm \
+     ${TARGET_DIR}/lib/canu/Execution.pm \
+     ${TARGET_DIR}/lib/canu/Gatekeeper.pm \
+     ${TARGET_DIR}/lib/canu/Meryl.pm \
+     ${TARGET_DIR}/lib/canu/Output.pm \
+     ${TARGET_DIR}/lib/canu/OverlapBasedTrimming.pm \
+     ${TARGET_DIR}/lib/canu/OverlapErrorAdjustment.pm \
+     ${TARGET_DIR}/lib/canu/OverlapInCore.pm \
+     ${TARGET_DIR}/lib/canu/OverlapMhap.pm \
+     ${TARGET_DIR}/lib/canu/OverlapStore.pm \
+     ${TARGET_DIR}/lib/canu/Unitig.pm
 
 # Add a new target rule for each user-defined target.
 $(foreach TGT,${ALL_TGTS},\
@@ -513,65 +513,65 @@ $(foreach TGT,${ALL_TGTS},\
   $(eval -include ${${TGT}_DEPS}))
 
 
-${TARGET_DIR}/ca3g.pl: pipelines/ca3g.pl
-	cp -pf  pipelines/ca3g.pl ${TARGET_DIR}/ca3g.pl
-	chmod +x ${TARGET_DIR}/ca3g.pl
+${TARGET_DIR}/canu: pipelines/canu.pl
+	cp -pf  pipelines/canu.pl ${TARGET_DIR}/canu
+	chmod +x ${TARGET_DIR}/canu
 
-${TARGET_DIR}/ca3g/lib: pipelines/install-perl-libraries.sh
-	@if [ ! -e ${TARGET_DIR}/ca3g/ ] ; then mkdir ${TARGET_DIR}/ca3g ; fi
-	cd pipelines && sh install-perl-libraries.sh ../${TARGET_DIR}
+${TARGET_DIR}/lib/canu: pipelines/install-perl-libraries.sh
+	@if [ ! -e ${TARGET_DIR}/lib/canu ] ; then mkdir ${TARGET_DIR}/lib/canu ; fi
+	cd pipelines && sh install-perl-libraries.sh ../${TARGET_DIR}/lib/canu
 
-${TARGET_DIR}/ca3g/Consensus.pm: pipelines/ca3g/Consensus.pm
-	@if [ ! -e ${TARGET_DIR}/ca3g/ ] ; then mkdir ${TARGET_DIR}/ca3g ; fi
-	cp -pf  pipelines/ca3g/Consensus.pm ${TARGET_DIR}/ca3g/
+${TARGET_DIR}/lib/canu/Consensus.pm: pipelines/canu/Consensus.pm
+	@if [ ! -e ${TARGET_DIR}/lib/canu/ ] ; then mkdir ${TARGET_DIR}/lib/canu ; fi
+	cp -pf  pipelines/canu/Consensus.pm ${TARGET_DIR}/lib/canu/
 
-${TARGET_DIR}/ca3g/CorrectReads.pm: pipelines/ca3g/CorrectReads.pm
-	@if [ ! -e ${TARGET_DIR}/ca3g/ ] ; then mkdir ${TARGET_DIR}/ca3g ; fi
-	cp -pf  pipelines/ca3g/CorrectReads.pm ${TARGET_DIR}/ca3g/
+${TARGET_DIR}/lib/canu/CorrectReads.pm: pipelines/canu/CorrectReads.pm
+	@if [ ! -e ${TARGET_DIR}/lib/canu/ ] ; then mkdir ${TARGET_DIR}/lib/canu ; fi
+	cp -pf  pipelines/canu/CorrectReads.pm ${TARGET_DIR}/lib/canu/
 
-${TARGET_DIR}/ca3g/Defaults.pm: pipelines/ca3g/Defaults.pm
-	@if [ ! -e ${TARGET_DIR}/ca3g/ ] ; then mkdir ${TARGET_DIR}/ca3g ; fi
-	cp -pf  pipelines/ca3g/Defaults.pm ${TARGET_DIR}/ca3g/
+${TARGET_DIR}/lib/canu/Defaults.pm: pipelines/canu/Defaults.pm
+	@if [ ! -e ${TARGET_DIR}/lib/canu/ ] ; then mkdir ${TARGET_DIR}/lib/canu ; fi
+	cp -pf  pipelines/canu/Defaults.pm ${TARGET_DIR}/lib/canu/
 
-${TARGET_DIR}/ca3g/Execution.pm: pipelines/ca3g/Execution.pm
-	@if [ ! -e ${TARGET_DIR}/ca3g/ ] ; then mkdir ${TARGET_DIR}/ca3g ; fi
-	cp -pf  pipelines/ca3g/Execution.pm ${TARGET_DIR}/ca3g/
+${TARGET_DIR}/lib/canu/Execution.pm: pipelines/canu/Execution.pm
+	@if [ ! -e ${TARGET_DIR}/lib/canu/ ] ; then mkdir ${TARGET_DIR}/lib/canu ; fi
+	cp -pf  pipelines/canu/Execution.pm ${TARGET_DIR}/lib/canu/
 
-${TARGET_DIR}/ca3g/Gatekeeper.pm: pipelines/ca3g/Gatekeeper.pm
-	@if [ ! -e ${TARGET_DIR}/ca3g/ ] ; then mkdir ${TARGET_DIR}/ca3g ; fi
-	cp -pf  pipelines/ca3g/Gatekeeper.pm ${TARGET_DIR}/ca3g/
+${TARGET_DIR}/lib/canu/Gatekeeper.pm: pipelines/canu/Gatekeeper.pm
+	@if [ ! -e ${TARGET_DIR}/lib/canu/ ] ; then mkdir ${TARGET_DIR}/lib/canu ; fi
+	cp -pf  pipelines/canu/Gatekeeper.pm ${TARGET_DIR}/lib/canu/
 
-${TARGET_DIR}/ca3g/Meryl.pm: pipelines/ca3g/Meryl.pm
-	@if [ ! -e ${TARGET_DIR}/ca3g/ ] ; then mkdir ${TARGET_DIR}/ca3g ; fi
-	cp -pf  pipelines/ca3g/Meryl.pm ${TARGET_DIR}/ca3g/
+${TARGET_DIR}/lib/canu/Meryl.pm: pipelines/canu/Meryl.pm
+	@if [ ! -e ${TARGET_DIR}/lib/canu/ ] ; then mkdir ${TARGET_DIR}/lib/canu ; fi
+	cp -pf  pipelines/canu/Meryl.pm ${TARGET_DIR}/lib/canu/
 
-${TARGET_DIR}/ca3g/Output.pm: pipelines/ca3g/Output.pm
-	@if [ ! -e ${TARGET_DIR}/ca3g/ ] ; then mkdir ${TARGET_DIR}/ca3g ; fi
-	cp -pf  pipelines/ca3g/Output.pm ${TARGET_DIR}/ca3g/
+${TARGET_DIR}/lib/canu/Output.pm: pipelines/canu/Output.pm
+	@if [ ! -e ${TARGET_DIR}/lib/canu/ ] ; then mkdir ${TARGET_DIR}/lib/canu ; fi
+	cp -pf  pipelines/canu/Output.pm ${TARGET_DIR}/lib/canu/
 
-${TARGET_DIR}/ca3g/OverlapBasedTrimming.pm: pipelines/ca3g/OverlapBasedTrimming.pm
-	@if [ ! -e ${TARGET_DIR}/ca3g/ ] ; then mkdir ${TARGET_DIR}/ca3g ; fi
-	cp -pf  pipelines/ca3g/OverlapBasedTrimming.pm ${TARGET_DIR}/ca3g/
+${TARGET_DIR}/lib/canu/OverlapBasedTrimming.pm: pipelines/canu/OverlapBasedTrimming.pm
+	@if [ ! -e ${TARGET_DIR}/lib/canu/ ] ; then mkdir ${TARGET_DIR}/lib/canu ; fi
+	cp -pf  pipelines/canu/OverlapBasedTrimming.pm ${TARGET_DIR}/lib/canu/
 
-${TARGET_DIR}/ca3g/OverlapErrorAdjustment.pm: pipelines/ca3g/OverlapErrorAdjustment.pm
-	@if [ ! -e ${TARGET_DIR}/ca3g/ ] ; then mkdir ${TARGET_DIR}/ca3g ; fi
-	cp -pf  pipelines/ca3g/OverlapErrorAdjustment.pm ${TARGET_DIR}/ca3g/
+${TARGET_DIR}/lib/canu/OverlapErrorAdjustment.pm: pipelines/canu/OverlapErrorAdjustment.pm
+	@if [ ! -e ${TARGET_DIR}/lib/canu/ ] ; then mkdir ${TARGET_DIR}/lib/canu ; fi
+	cp -pf  pipelines/canu/OverlapErrorAdjustment.pm ${TARGET_DIR}/lib/canu/
 
-${TARGET_DIR}/ca3g/OverlapInCore.pm: pipelines/ca3g/OverlapInCore.pm
-	@if [ ! -e ${TARGET_DIR}/ca3g/ ] ; then mkdir ${TARGET_DIR}/ca3g ; fi
-	cp -pf  pipelines/ca3g/OverlapInCore.pm ${TARGET_DIR}/ca3g/
+${TARGET_DIR}/lib/canu/OverlapInCore.pm: pipelines/canu/OverlapInCore.pm
+	@if [ ! -e ${TARGET_DIR}/lib/canu/ ] ; then mkdir ${TARGET_DIR}/lib/canu ; fi
+	cp -pf  pipelines/canu/OverlapInCore.pm ${TARGET_DIR}/lib/canu/
 
-${TARGET_DIR}/ca3g/OverlapMhap.pm: pipelines/ca3g/OverlapMhap.pm
-	@if [ ! -e ${TARGET_DIR}/ca3g/ ] ; then mkdir ${TARGET_DIR}/ca3g ; fi
-	cp -pf  pipelines/ca3g/OverlapMhap.pm ${TARGET_DIR}/ca3g/
+${TARGET_DIR}/lib/canu/OverlapMhap.pm: pipelines/canu/OverlapMhap.pm
+	@if [ ! -e ${TARGET_DIR}/lib/canu/ ] ; then mkdir ${TARGET_DIR}/lib/canu ; fi
+	cp -pf  pipelines/canu/OverlapMhap.pm ${TARGET_DIR}/lib/canu/
 
-${TARGET_DIR}/ca3g/OverlapStore.pm: pipelines/ca3g/OverlapStore.pm
-	@if [ ! -e ${TARGET_DIR}/ca3g/ ] ; then mkdir ${TARGET_DIR}/ca3g ; fi
-	cp -pf  pipelines/ca3g/OverlapStore.pm ${TARGET_DIR}/ca3g/
+${TARGET_DIR}/lib/canu/OverlapStore.pm: pipelines/canu/OverlapStore.pm
+	@if [ ! -e ${TARGET_DIR}/lib/canu/ ] ; then mkdir ${TARGET_DIR}/lib/canu ; fi
+	cp -pf  pipelines/canu/OverlapStore.pm ${TARGET_DIR}/lib/canu/
 
-${TARGET_DIR}/ca3g/Unitig.pm: pipelines/ca3g/Unitig.pm
-	@if [ ! -e ${TARGET_DIR}/ca3g/ ] ; then mkdir ${TARGET_DIR}/ca3g ; fi
-	cp -pf  pipelines/ca3g/Unitig.pm ${TARGET_DIR}/ca3g/
+${TARGET_DIR}/lib/canu/Unitig.pm: pipelines/canu/Unitig.pm
+	@if [ ! -e ${TARGET_DIR}/lib/canu/ ] ; then mkdir ${TARGET_DIR}/lib/canu ; fi
+	cp -pf  pipelines/canu/Unitig.pm ${TARGET_DIR}/lib/canu/
 
 
 

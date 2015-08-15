@@ -1,4 +1,4 @@
-package ca3g::Meryl;
+package canu::Meryl;
 
 require Exporter;
 
@@ -7,8 +7,8 @@ require Exporter;
 
 use strict;
 
-use ca3g::Defaults;
-use ca3g::Execution;
+use canu::Defaults;
+use canu::Execution;
 
 
 #  Generates

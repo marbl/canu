@@ -1,4 +1,4 @@
-package ca3g::CorrectReads;
+package canu::CorrectReads;
 
 require Exporter;
 
@@ -9,9 +9,9 @@ use strict;
 
 use File::Path qw(make_path remove_tree);
 
-use ca3g::Defaults;
-use ca3g::Execution;
-use ca3g::Gatekeeper;
+use canu::Defaults;
+use canu::Execution;
+use canu::Gatekeeper;
 
 #  Returns a coverage:
 #    If $cov not defined, default to desired output coverage * 1.0.
@@ -699,7 +699,7 @@ sub generateCorrectedReads ($$$) {
         open(L, "> $path/corjob.files") or caExit("failed to open '$path/corjob.files'", undef);
         print L @successJobs;
         close(L);
-        setGlobal("ca3gIteration", 0);
+        setGlobal("canuIteration", 0);
         emitStage($WRK, $asm, "cor-generateCorrectedReads");
         return;
     }

@@ -7,7 +7,7 @@
 
 //  For testing:
 //    ca83 - 18
-//    ca3g - 21
+//    canu - 21
 //
 //#undef AS_MAX_READLEN_BITS
 //#undef AS_MAX_READLEN

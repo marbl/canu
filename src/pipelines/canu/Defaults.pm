@@ -1,4 +1,4 @@
-package ca3g::Defaults;
+package canu::Defaults;
 
 require Exporter;
 
@@ -130,7 +130,7 @@ sub writeLog ($) {
     my $host = hostname();
     my $pid  = $$;
 
-    open(F, "> $wrk/runCA-logs/${time}_${host}_${pid}_ca3g");
+    open(F, "> $wrk/runCA-logs/${time}_${host}_${pid}_canu");
     print F $specLog;
     close(F);
 }
@@ -143,7 +143,7 @@ sub caExit ($$) {
     my  $log   = shift @_;
 
     print STDERR "================================================================================\n";
-    print STDERR "Don't panic, but a mostly harmless error occurred and ca3g failed.\n";
+    print STDERR "Don't panic, but a mostly harmless error occurred and canu failed.\n";
     print STDERR "\n";
 
     #  Really should pass in $wrk
@@ -161,7 +161,7 @@ sub caExit ($$) {
         print STDERR "\n";
     }
 
-    print STDERR "ca3g failed with '$msg'.\n";
+    print STDERR "canu failed with '$msg'.\n";
     print STDERR "\n";
 
     exit(1);
@@ -174,7 +174,7 @@ sub caFailure ($$) {
     my  $log   = shift @_;
 
     print STDERR "================================================================================\n";
-    print STDERR "Please panic.  ca3g failed, and it shouldn't have.\n";
+    print STDERR "Please panic.  canu failed, and it shouldn't have.\n";
     print STDERR "\n";
     print STDERR "Stack trace:\n";
     print STDERR "\n";
@@ -188,7 +188,7 @@ sub caFailure ($$) {
     }
 
     print STDERR "\n";
-    print STDERR "ca3g failed with '$msg'.\n";
+    print STDERR "canu failed with '$msg'.\n";
 
     exit(1);
 }
@@ -279,7 +279,7 @@ sub diskSpace ($) {
 
 
 sub printHelp ($) {
-    my $bin = shift @_;  #  Can't include ca3g::Execution without a loop.
+    my $bin = shift @_;  #  Can't include canu::Execution without a loop.
 
     if (getGlobal("version")) {
         system("$bin/gatekeeperCreate --version");
@@ -306,7 +306,7 @@ sub printHelp ($) {
 
     if (getGlobal("help") ne "") {
         print "\n";
-        print "usage: ca3g.pl [run | correct | trim | assemble] \\\n";
+        print "usage: canu [run | correct | trim | assemble] \\\n";
         print "               -p <assembly-prefix> \\\n";
         print "               -d <assembly-directory> \\\n";
         print "               -s <assembly-specifications-file> \\\n";
@@ -452,7 +452,7 @@ sub setParametersFromCommandLine(@) {
 
 
 sub checkParameters ($) {
-    my $bin = shift @_;  #  Can't include ca3g::Execution without a loop.
+    my $bin = shift @_;  #  Can't include canu::Execution without a loop.
 
     #
     #  PIck a nice looking set of binaries, and check them.
@@ -930,8 +930,8 @@ sub setDefaults () {
 
     #####  General Configuration Options (aka miscellany)
 
-    $global{"ca3gIteration"}               = 0;  #  See documentation in Execution.pm
-    $global{"ca3gIterationMax"}            = 2;
+    $global{"canuIteration"}               = 0;  #  See documentation in Execution.pm
+    $global{"canuIterationMax"}            = 2;
 
     $global{"showNext"}                    = undef;
     $synops{"showNext"}                    = "Don't run any commands, just report what would run";
@@ -999,10 +999,10 @@ sub setDefaults () {
     #####  Stopping conditions
 
     $global{"stopBefore"}                  = undef;
-    $synops{"stopBefore"}                  = "Tell ca3g when to halt execution";
+    $synops{"stopBefore"}                  = "Tell canu when to halt execution";
 
     $global{"stopAfter"}                   = undef;
-    $synops{"stopAfter"}                   = "Tell ca3g when to halt execution";
+    $synops{"stopAfter"}                   = "Tell canu when to halt execution";
 
     #####  Grid Engine configuration, internal parameters
 
@@ -1212,8 +1212,8 @@ sub setDefaults () {
     $synops{"corConsensus"}                = "Which consensus algorithm to use; only 'falcon' and 'falconpipe' are supported";
 
     $global{"falconSense"}                 = undef;
-    $global{"falconSense"}                 = "/home/walenzb/ca3g/src/falcon_sense/falcon_sense.Linux-amd64.bin"                 if (-e "/home/walenzb/ca3g/src/falcon_sense/falcon_sense.Linux-amd64.bin");
-    $global{"falconSense"}                 = "/nbacc/scratch/bri/ca3g/ca3g-build/src/falcon_sense/falcon_sense.Linux-amd64.bin" if (-e "/nbacc/scratch/bri/ca3g/ca3g-build/src/falcon_sense/falcon_sense.Linux-amd64.bin");
+    $global{"falconSense"}                 = "/home/walenzb/canu/src/falcon_sense/falcon_sense.Linux-amd64.bin"                 if (-e "/home/walenzb/canu/src/falcon_sense/falcon_sense.Linux-amd64.bin");
+    $global{"falconSense"}                 = "/nbacc/scratch/bri/canu/canu-build/src/falcon_sense/falcon_sense.Linux-amd64.bin" if (-e "/nbacc/scratch/bri/canu/canu-build/src/falcon_sense/falcon_sense.Linux-amd64.bin");
     $global{"falconSense"}                 = "/work/software/falcon/install/fc_env/bin/fc_consensus.py"                         if (-e "/work/software/falcon/install/fc_env/bin/fc_consensus.py");
     $synops{"falconSense"}                 = "Path to fc_consensus.py or falcon_sense.bin";
 

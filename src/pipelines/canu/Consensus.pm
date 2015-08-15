@@ -1,4 +1,4 @@
-package ca3g::Consensus;
+package canu::Consensus;
 
 require Exporter;
 
@@ -9,10 +9,10 @@ use strict;
 
 use File::Path qw(make_path remove_tree);
 
-use ca3g::Defaults;
-use ca3g::Execution;
-use ca3g::Gatekeeper;
-use ca3g::Unitig;
+use canu::Defaults;
+use canu::Execution;
+use canu::Gatekeeper;
+use canu::Unitig;
 
 
 
@@ -271,7 +271,7 @@ sub consensusCheck ($$$) {
         open(L, "> $path/cnsjob.files") or caExit("can't open '$path/cnsjob.files' for writing: $!", undef);
         print L @successJobs;
         close(L);
-        setGlobal("ca3gIteration", 0);
+        setGlobal("canuIteration", 0);
         emitStage($wrk, $asm, "consensusCheck");
         return;
     }

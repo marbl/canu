@@ -1,4 +1,4 @@
-package ca3g::OverlapErrorAdjustment;
+package canu::OverlapErrorAdjustment;
 
 require Exporter;
 
@@ -9,9 +9,9 @@ use strict;
 
 use File::Path qw(make_path remove_tree);
 
-use ca3g::Defaults;
-use ca3g::Execution;
-use ca3g::Gatekeeper;
+use canu::Defaults;
+use canu::Execution;
+use canu::Gatekeeper;
 
 #  Hardcoded to use utgOvlErrorRate
 
@@ -254,7 +254,7 @@ sub readErrorDetectionCheck ($$$) {
 
     if (scalar(@failedJobs) == 0) {
         concatOutput("$path/red.red", @successJobs);
-        setGlobal("ca3gIteration", 0);
+        setGlobal("canuIteration", 0);
         emitStage($wrk, $asm, "readErrorDetectionCheck");
         return;
     }
@@ -478,7 +478,7 @@ sub overlapErrorAdjustmentCheck ($$$) {
             print L "$f\n";
         }
         close(L);
-        setGlobal("ca3gIteration", 0);
+        setGlobal("canuIteration", 0);
         return;
     }
 

@@ -35,8 +35,8 @@ if [ $perlversion = "old" ] ; then
   cd File-Path-2.09
 
   echo \
-  perl Makefile.PL PREFIX=../$installdir/ca3g
-  perl Makefile.PL PREFIX=../$installdir/ca3g > make.maker.err 2>&1
+  perl Makefile.PL PREFIX=../$installdir
+  perl Makefile.PL PREFIX=../$installdir > make.maker.err 2>&1
 
   echo \
   make install
@@ -52,8 +52,8 @@ if [ $perlversion = "old" ] ; then
   cd Filesys-Df-0.92
 
   echo \
-  perl Makefile.PL PREFIX=../$installdir/ca3g
-  perl Makefile.PL PREFIX=../$installdir/ca3g > make.maker.err 2>&1
+  perl Makefile.PL PREFIX=../$installdir
+  perl Makefile.PL PREFIX=../$installdir > make.maker.err 2>&1
 
   echo \
   make install
@@ -62,16 +62,16 @@ if [ $perlversion = "old" ] ; then
   cd ..
 
   echo \
-  mv $installdir/ca3g/lib64/perl5/site_perl/5*/*/Filesys      $installdir/ca3g/lib64/perl5/5*/*/
-  mv $installdir/ca3g/lib64/perl5/site_perl/5*/*/Filesys      $installdir/ca3g/lib64/perl5/5*/*/
+  mv $installdir/lib64/perl5/site_perl/5*/*/Filesys      $installdir/lib64/perl5/5*/*/
+  mv $installdir/lib64/perl5/site_perl/5*/*/Filesys      $installdir/lib64/perl5/5*/*/
 
   echo \
-  mv $installdir/ca3g/lib64/perl5/site_perl/5*/*/auto/Filesys $installdir/ca3g/lib64/perl5/5*/*/auto/
-  mv $installdir/ca3g/lib64/perl5/site_perl/5*/*/auto/Filesys $installdir/ca3g/lib64/perl5/5*/*/auto/
+  mv $installdir/lib64/perl5/site_perl/5*/*/auto/Filesys $installdir/lib64/perl5/5*/*/auto/
+  mv $installdir/lib64/perl5/site_perl/5*/*/auto/Filesys $installdir/lib64/perl5/5*/*/auto/
 
   echo \
-  rm -rf $installdir/ca3g/lib64/perl5/site_perl
-  rm -rf $installdir/ca3g/lib64/perl5/site_perl
+  rm -rf $installdir/lib64/perl5/site_perl
+  rm -rf $installdir/lib64/perl5/site_perl
 
 else
 
@@ -84,8 +84,8 @@ else
   cd Filesys-Df-0.92
 
   echo \
-  perl Makefile.PL INSTALL_BASE=../$installdir/ca3g
-  perl Makefile.PL INSTALL_BASE=../$installdir/ca3g > make.maker.err 2>& 1
+  perl Makefile.PL INSTALL_BASE=../$installdir
+  perl Makefile.PL INSTALL_BASE=../$installdir > make.maker.err 2>& 1
 
   echo \
   make install

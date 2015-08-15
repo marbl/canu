@@ -1,4 +1,4 @@
-package ca3g::OverlapBasedTrimming;
+package canu::OverlapBasedTrimming;
 
 require Exporter;
 
@@ -9,8 +9,8 @@ use strict;
 
 use File::Path qw(make_path remove_tree);
 
-use ca3g::Defaults;
-use ca3g::Execution;
+use canu::Defaults;
+use canu::Execution;
 
 
 sub trimReads ($$) {

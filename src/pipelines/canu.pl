@@ -5,9 +5,9 @@ use strict;
 use FindBin;
 use Cwd;
 
-use lib "$FindBin::RealBin";
-use lib "$FindBin::RealBin/ca3g/lib/perl5";
-use lib "$FindBin::RealBin/ca3g/lib64/perl5";
+use lib "$FindBin::RealBin/lib";
+use lib "$FindBin::RealBin/lib/canu/lib/perl5";
+use lib "$FindBin::RealBin/lib/canu/lib64/perl5";
 
 use File::Path qw(make_path remove_tree);
 
@@ -18,23 +18,23 @@ use POSIX "ceil";
 use POSIX "floor";
 use POSIX "sys_wait_h";  #  waitpid()
 
-use ca3g::Defaults;
-use ca3g::Execution;
+use canu::Defaults;
+use canu::Execution;
 
-use ca3g::Gatekeeper;
-use ca3g::Meryl;
-use ca3g::OverlapInCore;
-use ca3g::OverlapMhap;
-use ca3g::OverlapStore;
+use canu::Gatekeeper;
+use canu::Meryl;
+use canu::OverlapInCore;
+use canu::OverlapMhap;
+use canu::OverlapStore;
 
-use ca3g::CorrectReads;
+use canu::CorrectReads;
 
-use ca3g::OverlapBasedTrimming;
+use canu::OverlapBasedTrimming;
 
-use ca3g::OverlapErrorAdjustment;
-use ca3g::Unitig;
-use ca3g::Consensus;
-use ca3g::Output;
+use canu::OverlapErrorAdjustment;
+use canu::Unitig;
+use canu::Consensus;
+use canu::Output;
 
 
 my $bin = undef;  #  Path to binaries, set once in main.
@@ -301,7 +301,7 @@ sub overlap ($$$) {
 #
 
 print STDERR "--\n";
-print STDERR "-- This is ca3g parallel iteration #" . getGlobal("ca3gIteration") . ", out of a maximum of " . getGlobal("ca3gIterationMax") . " attempts.\n";
+print STDERR "-- This is canu parallel iteration #" . getGlobal("canuIteration") . ", out of a maximum of " . getGlobal("canuIterationMax") . " attempts.\n";
 print STDERR "--\n";
 print STDERR "-- Final error rates before starting pipeline:\n";
 

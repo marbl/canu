@@ -1,4 +1,4 @@
-package ca3g::Unitig;
+package canu::Unitig;
 
 require Exporter;
 
@@ -9,9 +9,9 @@ use strict;
 
 use File::Path qw(make_path remove_tree);
 
-use ca3g::Defaults;
-use ca3g::Execution;
-use ca3g::Gatekeeper;
+use canu::Defaults;
+use canu::Execution;
+use canu::Gatekeeper;
 
 
 sub bogart ($$$) {

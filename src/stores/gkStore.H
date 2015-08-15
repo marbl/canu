@@ -313,8 +313,7 @@ private:
 class gkStoreInfo {
 public:
   gkStoreInfo() {
-    //                      63 61 33 67 3a 47 4b 50
-    gkMagic            = 0x636133673a474b50llu;
+    gkMagic            = 0x504b473a756e6163llu;  //  canu:GKP
     gkVersion          = 0x0000000000000001llu;
 
     gkLibrarySize      = sizeof(gkLibrary);

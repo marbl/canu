@@ -277,7 +277,7 @@ abAbacusWork::abAbacusWork(abAbacus        *abacus,
   //  results (except for allowing one partition to finish....).  You
   //  can revert to the original behavior by undef'ing the following.
 
-  //  For ca3g, we add new columns every 512 bases.  The original logic was convoluted and probably
+  //  For canu, we add new columns every 512 bases.  The original logic was convoluted and probably
   //  broken -- it added a new column every MAX_READ_LEN/2 (every 1k), which conflicts with the
   //  above comment.
 

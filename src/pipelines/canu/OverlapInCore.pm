@@ -1,4 +1,4 @@
-package ca3g::OverlapInCore;
+package canu::OverlapInCore;
 
 require Exporter;
 
@@ -9,8 +9,8 @@ use strict;
 
 use File::Path qw(make_path remove_tree);
 
-use ca3g::Defaults;
-use ca3g::Execution;
+use canu::Defaults;
+use canu::Execution;
 
 
 sub overlapConfigure ($$$$) {
@@ -48,7 +48,7 @@ sub overlapConfigure ($$$$) {
 
     if (! -e "$path/$asm.partition.ovlopt") {
 
-        #  These used to be runCA options, but were removed in ca3g.  They were used mostly for illumina-pacbio correction,
+        #  These used to be runCA options, but were removed in canu.  They were used mostly for illumina-pacbio correction,
         #  but were also used (or could have been used) during the Salmon assembly when overlaps were computed differently
         #  depending on the libraries involved (and was run manually).  These are left in for documentation.
         #
@@ -249,7 +249,7 @@ sub overlapCheck ($$$$$) {
         open(L, "> $path/ovljob.files") or caExit("can't open '$path/ovljob.files' for writing: $!", undef);
         print L @successJobs;
         close(L);
-        setGlobal("ca3gIteration", 0);
+        setGlobal("canuIteration", 0);
         emitStage($WRK, $asm, "$tag-overlapCheck");
         return;
     }

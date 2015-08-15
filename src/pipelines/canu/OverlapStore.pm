@@ -1,4 +1,4 @@
-package ca3g::OverlapStore;
+package canu::OverlapStore;
 
 require Exporter;
 
@@ -7,8 +7,8 @@ require Exporter;
 
 use strict;
 
-use ca3g::Defaults;
-use ca3g::Execution;
+use canu::Defaults;
+use canu::Execution;
 
 
 #  Parallel documentation:
@@ -275,7 +275,7 @@ sub overlapStoreBucketizerCheck ($$$$$) {
 
     if (scalar(@failedJobs) == 0) {
         print STDERR "overlap store bucketizer finished.\n";
-        setGlobal("ca3gIteration", 0);
+        setGlobal("canuIteration", 0);
         emitStage($WRK, $asm, "$tag-overlapStoreBucketizerCheck");
         return;
     }
@@ -365,7 +365,7 @@ sub overlapStoreSorterCheck ($$$$$) {
 
     if (scalar(@failedJobs) == 0) {
         print STDERR "overlap store sorter finished.\n";
-        setGlobal("ca3gIteration", 0);
+        setGlobal("canuIteration", 0);
         emitStage($WRK, $asm, "$tag-overlapStoreSorterCheck");
         return;
     }

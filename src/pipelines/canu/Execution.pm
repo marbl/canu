@@ -1,4 +1,4 @@
-package ca3g::Execution;
+package canu::Execution;
 
 require Exporter;
 
@@ -10,12 +10,9 @@ use Config;            #  for @signame
 
 use POSIX ":sys_wait_h";  #  For waitpid(..., &WNOHANG)
 
-#use lib "$FindBin::RealBin";
-#use lib "$FindBin::RealBin/ca3g/lib/perl5";
-
 use File::Path qw(make_path remove_tree);
 
-use ca3g::Defaults;
+use canu::Defaults;
 
 
 #
@@ -316,11 +313,11 @@ sub skipStage ($$$@) {
 
     open(F, "< $wrk/$asm.stage") or caFailure("failed to open '$wrk/$asm.stage' for reading", undef);
     while (<F>) {
-        if (m/ca3g\s+at\s+stage\s+(\S*)\s+\(#\d+\)\sattempt\s+(\d+)$/) {
+        if (m/canu\s+at\s+stage\s+(\S*)\s+\(#\d+\)\sattempt\s+(\d+)$/) {
             $ckpstage   = $1;
             $ckpattempt = $2;
         }
-        if (m/ca3g\s+at\s+stage\s+(\S*)\s+\(#\d+\)$/) {
+        if (m/canu\s+at\s+stage\s+(\S*)\s+\(#\d+\)$/) {
             $ckpstage = $1;
         }
     }
@@ -378,7 +375,7 @@ sub emitStage ($$$@) {
     return;
 
     open(F, ">> $wrk/$asm.stage") or caFailure("failed to open '$wrk/$asm.stage' for appending\n", undef);
-    print F "$time -- ca3g at stage $stage (#$label)$attempt\n";
+    print F "$time -- canu at stage $stage (#$label)$attempt\n";
     close(F);
 
     #print "----------------------------------------STAGE $stage (#$label)$ATTEMPT FINISHED.\n";
@@ -495,7 +492,7 @@ sub emitStage ($$$@) {
 #  When we are running on the grid, the path of this perl script is NOT
 #  always the correct architecture.  If the submission host is
 #  FreeBSD, but the grid is Linux, the BSD box will submit
-#  FreeBSD/bin/ca3g.pl to the grid -- unless it knows in advance,
+#  FreeBSD/bin/canu.pl to the grid -- unless it knows in advance,
 #  there is no way to pick the correct one.  The grid host then has to
 #  have enough smarts to choose the correct binaries, and that is what
 #  we're doing here.
@@ -513,7 +510,7 @@ sub getInstallDirectory () {
 }
 
 
-#  Used inside ca3g to find where binaries are located.  It uses uname to find OS, architecture and
+#  Used inside canu to find where binaries are located.  It uses uname to find OS, architecture and
 #  system name, then uses that to construct a path to binaries.  If a "pathMap" is defined, this is
 #  used to hardcode a path to a system name.
 #
@@ -621,10 +618,10 @@ sub submitScript ($$$) {
 
     #  If no job to wait on, and we are already on the grid, do NOT resubmit ourself.
     #
-    #  When the user launches ca3g on the head node, a call to submitScript() is made to launch ca3g
-    #  under grid control.  That results in a restart of ca3g, and another call to submitScript(),
+    #  When the user launches canu on the head node, a call to submitScript() is made to launch canu
+    #  under grid control.  That results in a restart of canu, and another call to submitScript(),
     #  but this time, the envorinment variable is set, we we can skip the resubmission, and continue
-    #  with ca3g execution.
+    #  with canu execution.
 
     return   if (($jobToWaitOn eq undef) && (exists($ENV{getGlobal("gridEngineJobID")})));
 
@@ -632,13 +629,13 @@ sub submitScript ($$$) {
 
     my $idx = "01";
 
-    while (-e "$wrk/ca3g.$idx.out") {
+    while (-e "$wrk/canu.$idx.out") {
         $idx++;
     }
 
-    my $output    = "$wrk/ca3g.$idx.out";
-    my $script    = "$wrk/ca3g.$idx.sh";
-    my $iteration = getGlobal("ca3gIteration") + 1;
+    my $output    = "$wrk/canu.$idx.out";
+    my $script    = "$wrk/canu.$idx.sh";
+    my $iteration = getGlobal("canuIteration") + 1;
 
     #  Make a script for us to submit.
 
@@ -662,7 +659,7 @@ sub submitScript ($$$) {
     print F getBinDirectoryShellCode();
     print F "\n";
     print F "/usr/bin/env perl \\\n";
-    print F "\$bin/ca3g.pl " . getCommandLineOptions() . " ca3gIteration=$iteration\n";
+    print F "\$bin/canu.pl " . getCommandLineOptions() . " canuIteration=$iteration\n";
     close(F);
 
     system("chmod +x $script");
@@ -925,10 +922,10 @@ sub submitOrRunParallelJob ($$$$$@) {
 
     #  Break infinite loops.  If the grid jobs keep failing, give up after a few attempts.
     #
-    #  If useGridMaster = 0, this has no impact; ca3gIteration is incremented in submitScript() and
+    #  If useGridMaster = 0, this has no impact; canuIteration is incremented in submitScript() and
     #  the initial value is zero.  It is reset during the Check() operation on each parallel step.
     #
-    #  submitScript() will increment ca3gIteration on each call.  It is reset to zero if the Check()
+    #  submitScript() will increment canuIteration on each call.  It is reset to zero if the Check()
     #  for any parallel step succeeds.
     #
     #  Assuming grid jobs die on each attempt:
@@ -937,11 +934,11 @@ sub submitOrRunParallelJob ($$$$$@) {
     #    Iteration 2 - run on the grid, submits parallel jobs and iteration 3
     #    Iteration 3 - run on the grid, fails
     #
-    #  If the jobs succeed in Iteration 2, the ca3g in iteration 3 will pass the Check(), and
+    #  If the jobs succeed in Iteration 2, the canu in iteration 3 will pass the Check(), and
     #  continue the pipeline.
 
-    caExit("ca3g iteration count too high, stopping pipeline (most likely a problem in the grid-based computes)", undef)
-        if (getGlobal("ca3gIteration") > getGlobal("ca3gIterationMax"));
+    caExit("canu iteration count too high, stopping pipeline (most likely a problem in the grid-based computes)", undef)
+        if (getGlobal("canuIteration") > getGlobal("canuIterationMax"));
 
     #  If 'gridEngineJobID' environment variable exists (SGE: JOB_ID; LSF: LSB_JOBID) then we are
     #  currently running under grid crontrol.  If so, run the grid command to submit more jobs, then
@@ -980,7 +977,7 @@ sub submitOrRunParallelJob ($$$$$@) {
         }
 
         print STDERR "\n";
-        print STDERR "When all jobs complete, restart ca3g as before.\n";
+        print STDERR "When all jobs complete, restart canu as before.\n";
 
         exit(0);
     }
