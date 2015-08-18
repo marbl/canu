@@ -18,7 +18,6 @@ SOURCES      := AS_global.C \
                 AS_UTL/AS_UTL_reverseComplement.C \
                 AS_UTL/AS_UTL_stackTrace.C \
                 \
-                AS_UTL/AS_UTL_Hash.C \
                 AS_UTL/AS_UTL_heap.C \
                 AS_UTL/AS_UTL_alloc.C \
                 \
