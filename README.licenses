@@ -4,6 +4,16 @@ authors are subject to different licenses.  Contributions and licenses are
 listed in the applicable source files, with specific details on each individual
 contribution captured in the revision control system.
 
+This software is based on RELEASE_1-3_2004-03-17 of the 'Celera Assembler'
+(http://wgs-assembler.sourceforge.net) as distributed by Applera Corporation
+under the GNU General Public License, version 2.  Canu branched from Celera
+Assembler at revision 4587.
+
+This software is based on the 'kmer package' (http://kmer.sourceforge.net) as
+distributed by Applera Corporation under the GNU General Public License, version 2.
+Canu branched from the kmer project at revision 1994.
+
+
 
 For the full software distribution and modifications made under the GNU General
 Public License version 2:
