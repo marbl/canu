@@ -2,121 +2,44 @@
 
 use strict;
 
+my @dateStrings = ( "???", "JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC" );
 
-sub loadFile ($@) {
-    my $file  = shift @_;
-    my @lines = @_;
 
-    my $start = 1;
-
-    open(F, "< $file") or die "Failed to open '$file' for reading: $!\n";
-    while (<F>) {
-        s/\s+$//;
-
-        if ($start == 0) {
-            push @lines, "$_\n";
-            next;
-        }
-
-        if (($_ eq "") || ($_ =~ m/^[\/\s]\*/)) {
-            #print STDERR "$file -- $_\n";
-            next;
-        }
-
-        push @lines, "$_\n";
-
-        $start = 0;
-    }
-    close(F);
-
-    return(@lines);
-}
 
 
 sub getName ($) {
     my $a = $_[0];
     my $A;
 
-    if      ($a eq "adelcher") {
-        $A = "Art Delcher";
-
-    } elsif ($a eq "ahalpern") {
-        $A = "Aaron Halpern";
-
-    } elsif ($a eq "andreyto") {
-
-    } elsif ($a eq "florea") {
-        $A = "Liliana Florea";
-    } elsif ($a eq "cmobarry") {
-        $A = "Clark Mobarry";
-
-    } elsif ($a eq "walenz") {
-        $A = "Brian P. Walenz";
-
-    } elsif ($a eq "bri") {
-        $A = "Brian P. Walenz";
-
-    } elsif ($a eq "brianwalenz") {
-        $A = "Brian P. Walenz";
-
-    } elsif ($a eq "catmandew") {
-        $A = "Ian Dew";
-
-    } elsif ($a eq "eliv") {
-        $A = "Eli Venter";
-
-    } elsif ($a eq "gdenisov") {
-        $A = "Gennady Denisov";
-
-    } elsif ($a eq "gesims") {
-        $A = "Gregory Sims";
-
-    } elsif ($a eq "granger_sutton") {
-        $A = "Granger Sutton";
-
-    } elsif ($a eq "jason_miller") {
-        $A = "Jason Miller";
-
-    } elsif ($a eq "jasonmiller9704") {
-        $A = "Jason Miller";
-
-    } elsif ($a eq "kli1000") {
-        $A = "Kelvin Li";
-
-    } elsif ($a eq "mcschatz") {
-        $A = "Michael Schatz";
-
-    } elsif ($a eq "mhayton") {
-
-    } elsif ($a eq "mkotelbajcvi") {
-
-    } elsif ($a eq "moweis") {
-
-    } elsif ($a eq "edwardnj") {
-        #  kmer build system
-
-    } elsif ($a eq "root") {
-        #  Really?  possibly me on os-x
-
-    } elsif ($a eq "halldobv") {
-
-    } elsif ($a eq "fasulodp") {
-        #  kmer build system
-
-    } elsif ($a eq "rbolanos") {
-        #  kmer build system
-
-    } elsif ($a eq "ripper") {
-        #  kmer build system
-
-    } elsif ($a eq "skoren") {
-        $A = "Sergey Koren";
-
-    } elsif ($a eq "vrainish") {
-
-    } elsif ($a eq "walenzb") {
-        $A = "Brian P. Walenz";
-
+    if      ($a eq "adelcher")        {  $A = "Art Delcher";
+    } elsif ($a eq "ahalpern")        {  $A = "Aaron Halpern";
+    } elsif ($a eq "andreyto")        {
+    } elsif ($a eq "florea")          {  $A = "Liliana Florea";
+    } elsif ($a eq "cmobarry")        {  $A = "Clark Mobarry";
+    } elsif ($a eq "walenz")          {  $A = "Brian P. Walenz";
+    } elsif ($a eq "bri")             {  $A = "Brian P. Walenz";
+    } elsif ($a eq "brianwalenz")     {  $A = "Brian P. Walenz";
+    } elsif ($a eq "catmandew")       {  $A = "Ian Dew";
+    } elsif ($a eq "eliv")            {  $A = "Eli Venter";
+    } elsif ($a eq "gdenisov")        {  $A = "Gennady Denisov";
+    } elsif ($a eq "gesims")          {  $A = "Gregory Sims";
+    } elsif ($a eq "granger_sutton")  {  $A = "Granger Sutton";
+    } elsif ($a eq "jason_miller")    {  $A = "Jason Miller";
+    } elsif ($a eq "jasonmiller9704") {  $A = "Jason Miller";
+    } elsif ($a eq "kli1000")         {  $A = "Kelvin Li";
+    } elsif ($a eq "mcschatz")        {  $A = "Michael Schatz";
+    } elsif ($a eq "mhayton")         {
+    } elsif ($a eq "mkotelbajcvi")    {
+    } elsif ($a eq "moweis")          {
+    } elsif ($a eq "edwardnj")        {  #  kmer build system
+    } elsif ($a eq "root")            {  #  Really?  possibly me on os-x
+    } elsif ($a eq "halldobv")        {
+    } elsif ($a eq "fasulodp")        {  #  kmer build system
+    } elsif ($a eq "rbolanos")        {  #  kmer build system
+    } elsif ($a eq "ripper")          {  #  kmer build system
+    } elsif ($a eq "skoren")          {  $A = "Sergey Koren";
+    } elsif ($a eq "vrainish")        {
+    } elsif ($a eq "walenzb")         {  $A = "Brian P. Walenz";
     } else {
         die "Unknown a '$a'";
     }
@@ -131,24 +54,26 @@ sub getCopyright ($$$$) {
     my $y = shift @_;
     my $m = shift @_;
     my $d = shift @_;
-
     my $C;
 
-    if      ($a eq "adelcher") {
-        $C = "jcvi$y$m$d";
+    if      (($a eq "catmandew") && ($y eq "2004")) {         #  This is the initial commit.
 
-    } elsif ($a eq "ahalpern") {
-        $C = "jcvi$y$m$d";
+    } elsif  ($a eq "adelcher")        {  $C = "jcvi$y$m$d";
+    } elsif  ($a eq "ahalpern")        {  $C = "jcvi$y$m$d";
+    } elsif  ($a eq "florea")          {  $C = "none$y$m$d";  #  Earliest 2010-07-08, Latest 2011-11-16
+    } elsif  ($a eq "cmobarry")        {  $C = "craa$y$m$d";
+    } elsif  ($a eq "catmandew")       {  $C = "jcvi$y$m$d";
+    } elsif  ($a eq "eliv")            {  $C = "jcvi$y$m$d";
+    } elsif  ($a eq "gdenisov")        {  $C = "jcvi$y$m$d";
+    } elsif  ($a eq "gesims")          {  $C = "jcvi$y$m$d";
+    } elsif  ($a eq "granger_sutton")  {  $C = "jcvi$y$m$d";
+    } elsif  ($a eq "jason_miller")    {  $C = "tigr$y$m$d";
+    } elsif  ($a eq "jasonmiller9704") {  $C = "jcvi$y$m$d";
+    } elsif  ($a eq "kli1000")         {  $C = "jcvi$y$m$d";
+    } elsif  ($a eq "mcschatz")        {  $C = "tigr$y$m$d";
 
-    } elsif ($a eq "florea") {
-        #  Earliest 2010-07-08
-        #  Latest   2011-11-16
-        $C = "none$y$m$d";
-
-    } elsif ($a eq "cmobarry") {
-        #  Earliest 2010-07-08
-        #  Latest   2011-11-16
-        $C = "craa$y$m$d";
+    } elsif (($a eq "skoren") && ($y <  "2011")) {  $C = "jcvi$y$m$d";
+    } elsif (($a eq "skoren") && ($y >= "2011")) {  $C = "bnbi$y$m$d";
 
     } elsif (($a eq "brianwalenz") || ($a eq "walenz") || ($a eq "bri") || ($a eq "walenzb")) {
         if      (($y < 2004) || (($y == 2004) && ($m < 10) && ($d < 9))) {
@@ -161,45 +86,6 @@ sub getCopyright ($$$$) {
             $C = "bnbi$y$m$d";
         }
 
-    } elsif (($a eq "catmandew") && ($y eq "2004")) {
-        #  This is the initial commit.
-        #$C = "craa$y$m$d";
-
-    } elsif ($a eq "catmandew") {
-        $C = "jcvi$y$m$d";
-
-    } elsif ($a eq "eliv") {
-        $C = "jcvi$y$m$d";
-
-    } elsif ($a eq "gdenisov") {
-        $C = "jcvi$y$m$d";
-
-    } elsif ($a eq "gesims") {
-        $C = "jcvi$y$m$d";
-
-    } elsif ($a eq "granger_sutton") {
-        $C = "jcvi$y$m$d";
-
-    } elsif ($a eq "jason_miller") {
-        $C = "tigr$y$m$d";
-
-    } elsif ($a eq "jasonmiller9704") {
-        $C = "jcvi$y$m$d";
-
-    } elsif ($a eq "kli1000") {
-        $C = "jcvi$y$m$d";
-
-    } elsif ($a eq "mcschatz") {
-        $C = "tigr$y$m$d";
-
-    } elsif ($a eq "skoren") {
-        if ($y < "2011") {
-            $C = "jcvi$y$m$d";
-        } else {
-            $C = "bnbi$y$m$d";
-        }
-
-        #  Ignores
     } elsif ($a eq "mkotelbajcvi") {
     } elsif ($a eq "moweis") {
     } elsif ($a eq "andreyto") {
@@ -265,103 +151,9 @@ sub toList (@) {
 
 
 
-
-sub splitA (@) {
-    my @A = @_;
-    my %A;
-    my @Alist;
-
-    foreach my $a (@A) {
-        $A{$a}++;
-    }
-    foreach my $a (keys %A) {
-        my $com = ($A{$a} == 1) ? "commit" : "commits";
-
-        my $c = substr(" *   $a ($A{$a} $com)                                                                                ", 0, 98) . "*\n";
-        push @Alist, $c;
-    }
-
-    return(@Alist);
-}
-
-
-
-sub splitC (@) {
-    my @C = @_;
-
-    my %CRAAcounts;
-    my %TIGRcounts;
-    my %JCVIcounts;
-    my %BNBIcounts;
-
-    foreach my $c (@C) {
-        if ($c =~ m/^(....)(\d\d\d\d)\d\d\d\d$/) {
-            if      ($1 eq "craa") {
-                $CRAAcounts{$2}++;
-
-            } elsif ($1 eq "tigr") {
-                $TIGRcounts{$2}++;
-
-            } elsif ($1 eq "jcvi") {
-                $JCVIcounts{$2}++;
-
-            } elsif ($1 eq "bnbi") {
-                $BNBIcounts{$2}++;
-
-            } else {
-                die "$c name\n";
-            }
-        } else {
-            die "$c match\n";
-        }
-
-        #$C{$c}++;
-    }
-
-    my @Clist;
-
-    if (scalar(keys %CRAAcounts) > 0) {
-        my $d = toList(keys %CRAAcounts);
-        my $c = " * Copyright (C) $d, Applera Corporation.";
-        $c = substr($c . "                                                                                ", 0, 98) . "*\n";
-        push @Clist, $c;
-    }
-
-    if (scalar(keys %TIGRcounts) > 0) {
-        my $d = toList(keys %TIGRcounts);
-        my $c = " * Copyright (C) $d, The Institute for Genomics Research.";
-        $c = substr($c . "                                                                                ", 0, 98) . "*\n";
-        push @Clist, $c;
-    }
-
-    if (scalar(keys %JCVIcounts) > 0) {
-        my $d = toList(keys %JCVIcounts);
-        my $c = " * Copyright (C) $d, J. Craig Venter Institute.";
-        $c = substr($c . "                                                                                ", 0, 98) . "*\n";
-        push @Clist, $c;
-    }
-
-    if (scalar(keys %BNBIcounts) > 0) {
-        my $d = toList(keys %BNBIcounts);
-        my $c = " * Copyright (C) $d, Battelle National Biodefense Institute.";
-        $c = substr($c . "                                                                                ", 0, 98) . "*\n";
-        push @Clist, $c;
-    }
-
-    return(@Clist);
-}
-
-
-#  Returns
-#    Modifications by BPW from date-date are Copyright 2014-2019 J. Craig Venter Institute, and are covered under the General Public License
-#
-#  needs to build list of {name}{place} with the dates mods were made, then for each {name}{place} to find the min/max.
-#
-
-my @dateStrings = ( "???", "JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC" );
-
 sub splitAC (@) {
     my @AC = @_;
+    my @AClist;
 
     my %dates;
 
@@ -373,31 +165,11 @@ sub splitAC (@) {
         }
     }
 
-    #  Figure out the longest year string, so we can keep columns
-
-    #my $yearlen = 0;
-    #
-    #foreach my $ac (keys %dates) {
-    #    my @dates = split '\n', $dates{$ac};
-    #
-    #    @dates = sort { $a <=> $b } @dates;
-    #
-    #    my $years = toList(@dates);
-    #
-    #    if ($yearlen < length($years)) {
-    #        $yearlen = length($years);
-    #    }
-    #}
-
-
-    my @AClist;
-
     foreach my $ac (keys %dates) {
         my @dates = split '\n', $dates{$ac};
 
         @dates = sort { $a <=> $b } @dates;
 
-        #my $years = substr(toList(@dates) . " " x $yearlen, 0, $yearlen);
         my $years = toList(@dates);
 
         my $ord = $dates[0];
@@ -416,72 +188,60 @@ sub splitAC (@) {
             die "bgn date $end\n";
         }
 
-
         my $org;
         my $nam;
         if ($ac =~ m/^(....)(.*)$/) {
             $org = $1;
-            #$nam = substr("$2               ", 0, 15);
             $nam = $2;
         } else {
             die "$ac match\n";
         }
 
-
         my $dates = "from $bgn to $end";
         if ($bgn eq $end) {
-            #$dates = "on   $bgn               ";
             $dates = "on $bgn";
         }
-
 
         if ($org eq "bnbi") {
             $dates = "beginning on $bgn";
         }
 
-
         my $str;
 
         if      ($org eq "craa") {
-            #$str .= " *   $nam $dates are Copyright $years Applera Corporation                    and are subject to the GNU General Public License version 2\n";
-            $str .= " *   $nam $dates\n";
-            $str .= " *     are Copyright $years Applera Corporation, and\n";
-            $str .= " *     are subject to the GNU General Public License version 2\n";
+            $str .= " *    $nam $dates\n";
+            $str .= " *      are Copyright $years Applera Corporation, and\n";
+            $str .= " *      are subject to the GNU General Public License version 2\n";
             $str .= " *\n";
 
         } elsif ($org eq "tigr") {
-            #$str .= " *   $nam $dates are Copyright $years The Institute for Genomics Research    and are subject to the GNU General Public License version 2\n";
-            $str .= " *   $nam $dates\n";
-            $str .= " *     are Copyright $years The Institute for Genomics Research, and\n";
-            $str .= " *     are subject to the GNU General Public License version 2\n";
+            $str .= " *    $nam $dates\n";
+            $str .= " *      are Copyright $years The Institute for Genomics Research, and\n";
+            $str .= " *      are subject to the GNU General Public License version 2\n";
             $str .= " *\n";
 
         } elsif ($org eq "jcvi") {
-            #$str .= " *   $nam $dates are Copyright $years J. Craig Venter Institute              and are subject to the GNU General Public License version 2\n";
-            $str .= " *   $nam $dates\n";
-            $str .= " *     are Copyright $years J. Craig Venter Institute, and\n";
-            $str .= " *     are subject to the GNU General Public License version 2\n";
+            $str .= " *    $nam $dates\n";
+            $str .= " *      are Copyright $years J. Craig Venter Institute, and\n";
+            $str .= " *      are subject to the GNU General Public License version 2\n";
             $str .= " *\n";
 
         } elsif ($org eq "bnbi") {
-            #$str .= " *   $nam $dates are Copyright $years Battelle National Biodefense Institute and are subject to the BSD 3-Clause License\n";
-            $str .= " *   $nam $dates\n";
-            $str .= " *     are Copyright $years Battelle National Biodefense Institute, and\n";
-            $str .= " *     are subject to the BSD 3-Clause License\n";
+            $str .= " *    $nam $dates\n";
+            $str .= " *      are Copyright $years Battelle National Biodefense Institute, and\n";
+            $str .= " *      are subject to the BSD 3-Clause License\n";
             $str .= " *\n";
 
         } elsif ($org eq "nihh") {
-            #$str .= " *   $nam $dates are a 'United States Government Work'                       and are released in the public domain\n";
-            $str .= " *   $nam $dates\n";
-            $str .= " *     are a 'United States Government Work', and\n";
-            $str .= " *     are released in the public domain\n";
+            $str .= " *    $nam $dates\n";
+            $str .= " *      are a 'United States Government Work', and\n";
+            $str .= " *      are released in the public domain\n";
             $str .= " *\n";
 
         } elsif ($org eq "none") {
-            #$str .= " *   $nam $dates are a 'United States Government Work'                       and are released in the public domain\n";
-            $str .= " *   $nam $dates\n";
-            $str .= " *     are Copyright $years $nam, and\n";
-            $str .= " *     are subject to the GNU General Public License version 2\n";
+            $str .= " *    $nam $dates\n";
+            $str .= " *      are Copyright $years $nam, and\n";
+            $str .= " *      are subject to the GNU General Public License version 2\n";
             $str .= " *\n";
 
         } else {
@@ -523,7 +283,8 @@ if (! -e "logs") {
     close(L);
 }
 
-
+#  Build a mapping from original file name -> new file name.  Because I didn't use svn copy to
+#  branch files, and because some files exploded into smaller pieces.
 
 my %authors;
 my %copyrights;
@@ -734,19 +495,86 @@ my %derived;
 
 
 
-foreach my $file (@ARGV) {
+
+
+#  Process each file.
+
+open(FIN, "find kmer src -type f -print |") or die "Failed to launch 'find'\n";
+
+while (<FIN>) {
+    chomp;
+
+    my $file = $_;
+
+    $file = $1  if ($_ =~ m/^\.\/(.*)$/);  #  Remove leading ./ added by find.
+
     my @lines;
 
-    $file = $1  if ($file =~ m/^\.\/(.*)$/);  #  Remove leading ./ added by find.
 
-    #my @A  = split '\n', $authors{$file};
-    #my @C  = split '\n', $copyrights{$file};
-    my @AC = split '\n', $authcopy{$file};
+    next if ($file =~ m/\.mk$/);
+    next if ($file =~ m/\.pl$/);
+    next if ($file =~ m/\.pm$/);
+    next if ($file =~ m/\.sh$/);
 
-    #print STDERR "$file -- a ", scalar(@A), " c ", scalar(@C), "\n";
+    next if ($file =~ m/\.jar$/);
+    next if ($file =~ m/\.tar$/);
+    next if ($file =~ m/\.bin$/);  #  falcon_sense
 
-    #my @Alist  = splitA(@A);
-    #my @Clist  = splitC(@C);
+    next if ($file =~ m/\.gz$/);
+
+    next if ($file =~ m/\.json$/);
+    next if ($file =~ m/\.json.README$/);
+    next if ($file =~ m/\.css$/);
+
+    next if ($file =~ m/\.fasta$/);  #  meryl test
+
+    next if ($file =~ m/Makefile/);
+
+    next if ($file =~ m/dat/);  #  src/overlapInCore/liboverlap/prefixEditDistance-matchLimitData/prefixEditDistance-matchLimit-*.dat
+
+    next if ($file =~ m/md5/);
+    next if ($file =~ m/mt19937ar/);
+
+    my $iskmer   = 0;
+    my $isextern = 0;
+
+    $iskmer = 1    if ($file =~ m/^kmer/);
+    $iskmer = 1    if ($file =~ m/meryl/);
+
+    $iskmer = 1    if ($file =~ m/bitEncodings/);
+    $iskmer = 1    if ($file =~ m/bitOperations/);
+    $iskmer = 1    if ($file =~ m/bitPackedArray/);
+    $iskmer = 1    if ($file =~ m/bitPackedFile/);
+    $iskmer = 1    if ($file =~ m/bitPacking/);
+    $iskmer = 1    if ($file =~ m/decodeBooleanString/);
+    $iskmer = 1    if ($file =~ m/dnaAlphabets/);
+    $iskmer = 1    if ($file =~ m/intervalList/);
+    $iskmer = 1    if ($file =~ m/kMer/);
+    $iskmer = 1    if ($file =~ m/kMerHuge/);
+    $iskmer = 1    if ($file =~ m/kMerTiny/);
+    $iskmer = 1    if ($file =~ m/memoryMappedFile/);
+    $iskmer = 1    if ($file =~ m/memoryMappedFileTest/);
+    $iskmer = 1    if ($file =~ m/readBuffer/);
+    $iskmer = 1    if ($file =~ m/speedCounter/);
+    $iskmer = 1    if ($file =~ m/splitToWords/);
+    $iskmer = 1    if ($file =~ m/sweatShop/);
+    $iskmer = 1    if ($file =~ m/testHashTable/);
+    $iskmer = 1    if ($file =~ m/testRand/);
+    $iskmer = 1    if ($file =~ m/testVar/);
+    $iskmer = 1    if ($file =~ m/timeAndSize/);
+
+    $isextern = 1  if ($file =~ m/md5/);
+    $isextern = 1  if ($file =~ m/md5/);
+
+    $isextern = 1  if ($file =~ m/mt19937ar/);
+    $isextern = 1  if ($file =~ m/mt19937ar/);
+
+
+
+    die "Can't process '$file'\n"  if (($file !~ m/\.C$/) && ($file !~ m/\.H$/) && ($file !~ m/\.c$/) && ($file !~ m/\.h$/));
+
+    my @AC     = split '\n', $authcopy{$file};
+
     my @AClist = splitAC(@AC);
 
     my %DElist;
@@ -763,119 +591,87 @@ foreach my $file (@ARGV) {
 
     if (scalar(keys %DElist) > 0) {
         foreach my $d (keys %DElist) {
-            push @DElist, " *   $d\n";
+            push @DElist, " *    $d\n";
         }
 
         @DElist = sort @DElist;
 
         unshift @DElist, " *\n";
-        unshift @DElist, " * This file is derived from:\n";
+        unshift @DElist, " *  This file is derived from:\n";
 
         push    @DElist, " *\n";
     }
-    
-
 
     push @lines, "\n";
     push @lines, "/******************************************************************************\n"; 
     push @lines, " *\n";
-    push @lines, " * This file is part of Harly, a software program that assembles whole-genome\n";
-    push @lines, " * sequencing reads into contigs.\n";
+    push @lines, " *  This file is part of canu, a software program that assembles whole-genome\n";
+    push @lines, " *  sequencing reads into contigs.\n";
     push @lines, " *\n";
-    push @lines, " * This software is based on RELEASE_1-3_2004-03-17 of the Celera Assembler as\n";
-    push @lines, " * distributed by Applera Corporation under the GNU General Public License,\n";
-    push @lines, " * version 2.\n";
+
+    if      ($iskmer) {
+        push @lines, " *  This software is based on the 'kmer package' (http://kmer.sourceforge.net)\n";
+        push @lines, " *  as distributed by Applera Corporation under the GNU General Public\n";
+        push @lines, " *  License, version 2.\n";
+        push @lines, " *\n";
+        push @lines, " *  Canu branched from the kmer project at revision 1994.\n";
+
+    } elsif ($isextern) {
+        push @lines, " *  This software is based on ....\n";
+
+    } else {
+        push @lines, " *  This software is based on RELEASE_1-3_2004-03-17 of the 'Celera Assembler'\n";
+        push @lines, " *  (http://wgs-assembler.sourceforge.net) distributed by Applera Corporation\n";
+        push @lines, " *  under the GNU General Public License, version 2.\n";
+        push @lines, " *\n";
+        push @lines, " *  Canu branched from Celera Assembler at revision 4587.\n";
+    }
+
     push @lines, " *\n";
     push @lines, @DElist;
-    push @lines, " * Modifications by:\n";
+    push @lines, " *  Modifications by:\n";
     push @lines, " *\n";
     push @lines, @AClist;
-    push @lines, " * File 'README.licenses' in the root directory of this distribution contains\n";
-    push @lines, " * full conditions and disclaimers for each license.\n";
+    push @lines, " *  File 'README.licenses' in the root directory of this distribution contains\n";
+    push @lines, " *  full conditions and disclaimers for each license.\n";
     push @lines, " */\n";
     push @lines, "\n";
 
+    my $start = 1;  #  To skip comment lines at the start of the file (the previous copyright block).
 
+    open(F, "< $file") or die "Failed to open '$file' for reading: $!\n";
+    while (<F>) {
+        s/\s+$//;
 
-    if (0) {
-    push @lines, " * For modifications covered by the General Public License (GPL):                                 *\n";
-    push @lines, " *                                                                                                *\n";
-    push @lines, " *     This program is free software; you can redistribute it and/or modify it under              *\n";
-    push @lines, " *     the terms of the GNU General Public License as published by the Free Software              *\n";
-    push @lines, " *     Foundation; either version 2 of the License, or (at your option) any later                 *\n";
-    push @lines, " *     version.                                                                                   *\n";
-    push @lines, " *                                                                                                *\n";
-    push @lines, " *     This program is distributed in the hope that it will be useful, but WITHOUT ANY            *\n";
-    push @lines, " *     WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A            *\n";
-    push @lines, " *     PARTICULAR PURPOSE.  See the GNU General Public License for more details.                  *\n";
-    push @lines, " *                                                                                                *\n";
-    push @lines, " *     You should have received (LICENSE.txt) a copy of the GNU General Public License            *\n";
-    push @lines, " *     along with this program; if not, write to the Free Software Foundation, Inc., 59           *\n";
-    push @lines, " *     Temple Place, Suite 330, Boston, MA 02111-1307 USA                                         *\n";
-    push @lines, " *                                                                                                *\n";
-    push @lines, " *                                                                                                *\n";
-    push @lines, " * For modifications made by the Battelle National Biodefense Institute:                          *\n";
-    push @lines, " *                                                                                                *\n";
-    push @lines, " *      This Software was prepared for the Department of Homeland Security (DHS) by the           *\n";
-    push @lines, " *      Battelle National Biodefense Institute, LLC (BNBI) as part of contract                    *\n";
-    push @lines, " *      HSHQDC-07-C-00020 to manage and operate the National Biodefense Analysis and              *\n";
-    push @lines, " *      Countermeasures Center (NBACC), a Federally Funded Research and Development               *\n";
-    push @lines, " *      Center.                                                                                   *\n";
-    push @lines, " *                                                                                                *\n";
-    push @lines, " *      Redistribution and use in source and binary forms, with or without modification,          *\n";
-    push @lines, " *      are permitted provided that the following conditions are met:                             *\n";
-    push @lines, " *                                                                                                *\n";
-    push @lines, " *      * Redistributions of source code must retain the above copyright notice, this             *\n";
-    push @lines, " *        list of conditions and the following disclaimer.                                        *\n";
-    push @lines, " *                                                                                                *\n";
-    push @lines, " *      * Redistributions in binary form must reproduce the above copyright notice, this          *\n";
-    push @lines, " *        list of conditions and the following disclaimer in the documentation and/or             *\n";
-    push @lines, " *        other materials provided with the distribution.                                         *\n";
-    push @lines, " *                                                                                                *\n";
-    push @lines, " *      * Neither the name of the Battelle National Biodefense Institute nor the names            *\n";
-    push @lines, " *        of its contributors may be used to endorse or promote products derived from             *\n";
-    push @lines, " *        this software without specific prior written permission.                                *\n";
-    push @lines, " *                                                                                                *\n";
-    push @lines, " *      THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 'AS IS' AND           *\n";
-    push @lines, " *      ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED             *\n";
-    push @lines, " *      WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE                    *\n";
-    push @lines, " *      DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR          *\n";
-    push @lines, " *      ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES            *\n";
-    push @lines, " *      (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;              *\n";
-    push @lines, " *      LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON            *\n";
-    push @lines, " *      ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT                   *\n";
-    push @lines, " *      (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS             *\n";
-    push @lines, " *      SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.                              *\n";
-    push @lines, " *                                                                                                *\n";
-    push @lines, " *                                                                                                *\n";
-    push @lines, " * For modifications made by the National Human Genomics Research Institute:                      *\n";
-    push @lines, " *                                                                                                *\n";
-    push @lines, " *                                  PUBLIC DOMAIN NOTICE                                          *\n";
-    push @lines, " *                     National Center for Biotechnology Information                              *\n";
-    push @lines, " *                                                                                                *\n";
-    push @lines, " *      This software/database is a 'United States Government Work' under the terms of            *\n";
-    push @lines, " *      the United States Copyright Act.  It was written as part of the author's                  *\n";
-    push @lines, " *      official duties as a United States Government employee and thus cannot be                 *\n";
-    push @lines, " *      copyrighted.  This software/database is freely available to the public for                *\n";
-    push @lines, " *      use. The National Library of Medicine and the U.S.  Government have not placed            *\n";
-    push @lines, " *      any restriction on its use or reproduction.                                               *\n";
-    push @lines, " *                                                                                                *\n";
-    push @lines, " *      Although all reasonable efforts have been taken to ensure the accuracy and                *\n";
-    push @lines, " *      reliability of the software and data, the NLM and the U.S.  Government do not             *\n";
-    push @lines, " *      and cannot warrant the performance or results that may be obtained by using               *\n";
-    push @lines, " *      this software or data. The NLM and the U.S.  Government disclaim all                      *\n";
-    push @lines, " *      warranties, express or implied, including warranties of performance,                      *\n";
-    push @lines, " *      merchantability or fitness for any particular purpose.                                    *\n";
-    push @lines, " *                                                                                                *\n";
-    push @lines, " *      Please cite the author in any work or product based on this material.                     *\n";
+        #  If not at the start, add the line.
+
+        if ($start == 0) {
+            push @lines, "$_\n";
+            next;
+        }
+
+        #  Else, we're at the start; if blank or a comment, skip it.  Only C-style comments are skipped.
+
+        if (($_ eq "") || ($_ =~ m/^[\/\s]\*/)) {
+            next;
+        }
+
+        #  Else, add the line, and declare that we're no longer at the start.
+
+        push @lines, "$_\n";
+
+        $start = 0;
     }
+    close(F);
 
+    #rename "$file", "$file.ORIG";
+    #open(F, "> $file") or die "Failed to open '$file' for writing: $!\n";
+    #print F @lines;
+    #close(F);
 
-    #  Scan logs for dates of changes and authors
-
-    @lines = loadFile($file, @lines);
-
-    open(F, "> $file.TEST") or die "Failed to open '$file.TEST' for writing: $!\n";
+    open(F, "> $file.MODIFIED") or die "Failed to open '$file.MODIFIED' for writing: $!\n";
     print F @lines;
     close(F);
 }
+
+close(FIN);
