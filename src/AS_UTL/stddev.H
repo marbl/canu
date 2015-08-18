@@ -7,11 +7,106 @@
 
 using namespace std;
 
+
+
+template<typename TT>
 void
-computeStdDev(vector<double> dist, double &mean, double &stddev);
+computeStdDev(vector<TT> dist, TT &mean, TT &median, TT &mode, double &stddev) {
+  mean   = 0;
+  median = 0;
+  mode   = 0;
+  stddev = 0;
 
-double
-computeExponentialMovingAverage(double alpha, double ema, double value);
+  if (dist.size() == 0)
+    return;
 
-#endif
+  //  Sort the values.  Lets us approximate the stddev for filtering out outliers,
+  //  and makes finding the mode simple.
 
+  sort(dist.begin(), dist.end());
+
+  //  Approximate the stddev to filter out outliers.  This is done by assuming we're normally
+  //  distributed, finding the values that would represent 1 standard deviation (about 68.27% of the
+  //  data), and using that to find the 5 std.dev. limits.
+
+  median        = dist[dist.size() * 1 / 2];
+
+  TT oneThird   = dist[dist.size() * 1 / 3];
+  TT twoThird   = dist[dist.size() * 2 / 3];
+
+  TT approxStd  = max(median - oneThird, twoThird - median);
+
+  TT biggest    = median + approxStd * 5;
+  TT smallest   = median - approxStd * 5;
+
+  //  Now, compute the number of samples within our bounts.  And find the mean, too.
+
+  size_t  numSamples = 0;
+
+  for (size_t x=0; x<dist.size(); x++)
+    if ((smallest  <= dist[x]) &&
+        (dist[x]   <= biggest)) {
+      numSamples += 1;
+      mean       += dist[x];
+    }
+
+  if (numSamples == 0)
+    return;
+
+  mean   = mean / numSamples;
+
+  //  Use the standard std.dev. algorithm, tossing out the outliers.
+
+  for (uint64 x=0; x<dist.size(); x++)
+    if ((smallest  <= dist[x]) &&
+        (dist[x]   <= biggest))
+      stddev += (dist[x] - mean) * (dist[x] - mean);
+          
+  if (numSamples > 1)
+    stddev = sqrt(stddev / (numSamples - 1));
+
+  //  And the mode.  The values are sorted, so we just need to scan the list and remember the
+  //  most common value.
+
+  uint32  modeCnt = 0;
+  TT      modeVal = 0;
+
+  uint32  modeTmpCnt = 0;
+  TT      modeTmpVal = 0;
+
+  for (uint64 x=0; x<dist.size(); x++) {
+    if (dist[x] != modeTmpVal) {
+      if (modeCnt < modeTmpCnt) {
+        modeCnt = modeTmpCnt;
+        modeVal = modeTmpVal;
+      }
+
+      modeTmpCnt = 1;
+      modeTmpVal = dist[x];
+    }
+
+    modeTmpCnt++;
+  }
+
+  if (modeCnt < modeTmpCnt) {
+    modeCnt = modeTmpCnt;
+    modeVal = modeTmpVal;
+  }
+
+  mode = modeVal;
+};
+
+
+
+template<typename TT>
+TT
+computeExponentialMovingAverage(TT alpha, TT ema, TT value) {
+  assert(0.0   <= alpha);
+  assert(alpha <= 1.0);
+
+  return(alpha * value + (1 - alpha) * ema);
+};
+
+
+
+#endif  //  STDDEV_H
