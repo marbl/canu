@@ -620,8 +620,8 @@ A	src/AS_UTL/dnaAlphabets.H	none20040528Brian P. Walenz
 A	src/AS_UTL/dnaAlphabets.H	craa20031021Brian P. Walenz
 A	src/AS_UTL/dnaAlphabets.H	craa20031016Brian P. Walenz
 A	src/AS_UTL/dnaAlphabets.H	craa20030506Brian P. Walenz
-D	src/AS_UTL/dnaAlphabets.H	kmer/libbio/dnaAlphabets.H
 D	src/AS_UTL/dnaAlphabets.H	kmer/libbio/alphabet-generate.c
+D	src/AS_UTL/dnaAlphabets.H	kmer/libbio/dnaAlphabets.H
 A	src/AS_UTL/sweatShop.H	bnbi20141208Brian P. Walenz
 A	src/AS_UTL/sweatShop.H	bnbi20141205Brian P. Walenz
 A	src/AS_UTL/sweatShop.H	jcvi20140411Brian P. Walenz
@@ -1289,9 +1289,9 @@ A	src/overlapInCore/liboverlap/prefixEditDistance-extend.C	jcvi20050616Brian P. 
 A	src/overlapInCore/liboverlap/prefixEditDistance-extend.C	tigr20050322Jason Miller
 A	src/overlapInCore/liboverlap/prefixEditDistance-extend.C	tigr20050322Jason Miller
 A	src/overlapInCore/liboverlap/prefixEditDistance-extend.C	tigr20040923Michael Schatz
-D	src/overlapInCore/liboverlap/prefixEditDistance-extend.C	src/overlapInCore/overlapInCore-Extend_Alignment.C
-D	src/overlapInCore/liboverlap/prefixEditDistance-extend.C	src/AS_OVM/overlapInCore-Extend_Alignment.C
 D	src/overlapInCore/liboverlap/prefixEditDistance-extend.C	src/AS_OVL/AS_OVL_overlap_common.h
+D	src/overlapInCore/liboverlap/prefixEditDistance-extend.C	src/AS_OVM/overlapInCore-Extend_Alignment.C
+D	src/overlapInCore/liboverlap/prefixEditDistance-extend.C	src/overlapInCore/overlapInCore-Extend_Alignment.C
 D	src/overlapInCore/liboverlap/prefixEditDistance-extend.C	src/overlapInCore/prefixEditDistance-extend.C
 A	src/overlapInCore/liboverlap/prefixEditDistance-matchLimit-2100.C	bnbi20150603Brian P. Walenz
 A	src/overlapInCore/liboverlap/prefixEditDistance-matchLimit-2100.C	bnbi20150602Brian P. Walenz
@@ -1608,8 +1608,8 @@ A	src/overlapInCore/overlapInCore-Output.C	jcvi20050616Brian P. Walenz
 A	src/overlapInCore/overlapInCore-Output.C	tigr20050322Jason Miller
 A	src/overlapInCore/overlapInCore-Output.C	tigr20050322Jason Miller
 A	src/overlapInCore/overlapInCore-Output.C	tigr20040923Michael Schatz
-D	src/overlapInCore/overlapInCore-Output.C	src/AS_OVM/overlapInCore-Output.C
 D	src/overlapInCore/overlapInCore-Output.C	src/AS_OVL/AS_OVL_overlap_common.h
+D	src/overlapInCore/overlapInCore-Output.C	src/AS_OVM/overlapInCore-Output.C
 A	src/overlapInCore/overlapInCorePartition.C	bnbi20150616Brian P. Walenz
 A	src/overlapInCore/overlapInCorePartition.C	bnbi20150529Brian P. Walenz
 A	src/overlapInCore/overlapInCorePartition.C	bnbi20150317Brian P. Walenz
@@ -1823,8 +1823,8 @@ A	src/overlapInCore/overlapInCore-Process_Overlaps.C	jcvi20050616Brian P. Walenz
 A	src/overlapInCore/overlapInCore-Process_Overlaps.C	tigr20050322Jason Miller
 A	src/overlapInCore/overlapInCore-Process_Overlaps.C	tigr20050322Jason Miller
 A	src/overlapInCore/overlapInCore-Process_Overlaps.C	tigr20040923Michael Schatz
-D	src/overlapInCore/overlapInCore-Process_Overlaps.C	src/AS_OVM/overlapInCore-Process_Overlaps.C
 D	src/overlapInCore/overlapInCore-Process_Overlaps.C	src/AS_OVL/AS_OVL_overlap_common.h
+D	src/overlapInCore/overlapInCore-Process_Overlaps.C	src/AS_OVM/overlapInCore-Process_Overlaps.C
 A	src/overlapInCore/overlapInCore.H	bnbi20150616Brian P. Walenz
 A	src/overlapInCore/overlapInCore.H	bnbi20150410Brian P. Walenz
 A	src/overlapInCore/overlapInCore.H	bnbi20150317Brian P. Walenz
@@ -2140,8 +2140,8 @@ A	src/bogus/bogusUtil.C	jcvi20101206Brian P. Walenz
 A	src/bogus/bogusUtil.C	jcvi20101206Brian P. Walenz
 A	src/bogus/bogusUtil.C	jcvi20101202Brian P. Walenz
 A	src/bogus/bogusUtil.C	jcvi20101123Brian P. Walenz
-D	src/bogus/bogusUtil.C	src/bogart/AS_BAT_bogusUtil.C
 D	src/bogus/bogusUtil.C	src/AS_BAT/AS_BAT_bogusUtil.C
+D	src/bogus/bogusUtil.C	src/bogart/AS_BAT_bogusUtil.C
 A	src/bogus/bogusness-run.pl	bnbi20141219Brian P. Walenz
 A	src/bogus/bogusness-run.pl	jcvi20130801Brian P. Walenz
 A	src/bogus/bogusness-run.pl	jcvi20110606Brian P. Walenz
@@ -2449,10 +2449,10 @@ A	src/pipelines/canu/Execution.pm	craa20031111Brian P. Walenz
 A	src/pipelines/canu/Execution.pm	craa20030807Brian P. Walenz
 A	src/pipelines/canu/Execution.pm	craa20030729Brian P. Walenz
 A	src/pipelines/canu/Execution.pm	craa20030103Brian P. Walenz
-D	src/pipelines/canu/Execution.pm	kmer/scripts/scheduler.pm
 D	src/pipelines/canu/Execution.pm	kmer/ESTmapper/scheduler.pm
-D	src/pipelines/canu/Execution.pm	src/pipelines/ca3g/Execution.pm
 D	src/pipelines/canu/Execution.pm	kmer/scripts/libBri.pm
+D	src/pipelines/canu/Execution.pm	kmer/scripts/scheduler.pm
+D	src/pipelines/canu/Execution.pm	src/pipelines/ca3g/Execution.pm
 A	src/pipelines/canu/OverlapErrorAdjustment.pm	bnbi20150814Brian P. Walenz
 A	src/pipelines/canu/OverlapErrorAdjustment.pm	bnbi20150616Brian P. Walenz
 A	src/pipelines/canu/OverlapErrorAdjustment.pm	bnbi20150528Brian P. Walenz
@@ -4039,8 +4039,8 @@ A	src/stores/ovStoreDump.C	jcvi20070309Brian P. Walenz
 A	src/stores/ovStoreDump.C	jcvi20070309Brian P. Walenz
 A	src/stores/ovStoreDump.C	jcvi20070308Brian P. Walenz
 A	src/stores/ovStoreDump.C	jcvi20070308Brian P. Walenz
-D	src/stores/ovStoreDump.C	src/AS_OVS/overlapStore.c
 D	src/stores/ovStoreDump.C	src/AS_OVS/overlapStore.C
+D	src/stores/ovStoreDump.C	src/AS_OVS/overlapStore.c
 A	src/stores/tgTig.H	bnbi20150814Brian P. Walenz
 A	src/stores/tgTig.H	bnbi20150811Brian P. Walenz
 A	src/stores/tgTig.H	bnbi20150807Brian P. Walenz
@@ -4126,8 +4126,8 @@ A	src/stores/ovStore.C	jcvi20070309Brian P. Walenz
 A	src/stores/ovStore.C	jcvi20070309Brian P. Walenz
 A	src/stores/ovStore.C	jcvi20070308Brian P. Walenz
 A	src/stores/ovStore.C	jcvi20070308Brian P. Walenz
-D	src/stores/ovStore.C	src/AS_OVS/AS_OVS_overlapStore.c
 D	src/stores/ovStore.C	src/AS_OVS/AS_OVS_overlapStore.C
+D	src/stores/ovStore.C	src/AS_OVS/AS_OVS_overlapStore.c
 A	src/stores/gkStore.H	bnbi20150814Brian P. Walenz
 A	src/stores/gkStore.H	bnbi20150810Brian P. Walenz
 A	src/stores/gkStore.H	bnbi20150810Brian P. Walenz
@@ -4316,8 +4316,8 @@ A	src/stores/tgStore.H	jcvi20091119Brian P. Walenz
 A	src/stores/tgStore.H	jcvi20091007Brian P. Walenz
 A	src/stores/tgStore.H	jcvi20091005Brian P. Walenz
 A	src/stores/tgStore.H	jcvi20091005Brian P. Walenz
-D	src/stores/tgStore.H	src/AS_CNS/MultiAlignStore.h
 D	src/stores/tgStore.H	src/AS_CNS/MultiAlignStore.H
+D	src/stores/tgStore.H	src/AS_CNS/MultiAlignStore.h
 A	src/stores/ovStoreBucketizer.C	bnbi20150814Brian P. Walenz
 A	src/stores/ovStoreBucketizer.C	bnbi20150625Brian P. Walenz
 A	src/stores/ovStoreBucketizer.C	bnbi20150616Brian P. Walenz
@@ -4415,15 +4415,15 @@ A	src/utgcns/libNNalign/NNalign.H	bnbi20141223Brian P. Walenz
 A	src/utgcns/libNNalign/NNalign.H	bnbi20141223Brian P. Walenz
 A	src/utgcns/libNNalign/NNalign.H	bnbi20141223Brian P. Walenz
 A	src/utgcns/libNNalign/NNalign.H	bnbi20141223Brian P. Walenz
-D	src/utgcns/libNNalign/NNalign.H	src/alignment/aligners.H
 D	src/utgcns/libNNalign/NNalign.H	src/alignment/AS_ALN_aligners.H
+D	src/utgcns/libNNalign/NNalign.H	src/alignment/aligners.H
 A	src/utgcns/libNNalign/NNalgorithm.C	bnbi20150810Brian P. Walenz
 A	src/utgcns/libNNalign/NNalgorithm.C	bnbi20150603Brian P. Walenz
 A	src/utgcns/libNNalign/NNalgorithm.C	bnbi20141223Brian P. Walenz
 A	src/utgcns/libNNalign/NNalgorithm.C	bnbi20141223Brian P. Walenz
 A	src/utgcns/libNNalign/NNalgorithm.C	bnbi20141223Brian P. Walenz
-D	src/utgcns/libNNalign/NNalgorithm.C	src/alignment/brute-force-dp.C
 D	src/utgcns/libNNalign/NNalgorithm.C	src/alignment/AS_ALN_bruteforcedp.C
+D	src/utgcns/libNNalign/NNalgorithm.C	src/alignment/brute-force-dp.C
 A	src/utgcns/libNNalign/NNalign.C	bnbi20150810Brian P. Walenz
 A	src/utgcns/libNNalign/NNalign.C	bnbi20150617Brian P. Walenz
 A	src/utgcns/libNNalign/NNalign.C	bnbi20150603Brian P. Walenz
@@ -4579,9 +4579,9 @@ A	src/utgcns/libcns/abIterators.H	jcvi20050629Gennady Denisov
 A	src/utgcns/libcns/abIterators.H	jcvi20050614Gennady Denisov
 A	src/utgcns/libcns/abIterators.H	jcvi20050612Gennady Denisov
 A	src/utgcns/libcns/abIterators.H	jcvi20050523Gennady Denisov
-D	src/utgcns/libcns/abIterators.H	src/AS_CNS/MultiAlignment_CNS_private.h
-D	src/utgcns/libcns/abIterators.H	src/AS_CNS/MultiAlignment_CNS_private.H
 D	src/utgcns/libcns/abIterators.H	src/AS_CNS/MultiAlignment_CNS.h
+D	src/utgcns/libcns/abIterators.H	src/AS_CNS/MultiAlignment_CNS_private.H
+D	src/utgcns/libcns/abIterators.H	src/AS_CNS/MultiAlignment_CNS_private.h
 D	src/utgcns/libcns/abIterators.H	src/utgcns/libcns/MultiAlignment_CNS_private.H
 A	src/utgcns/libcns/abAbacus.C	bnbi20150708Brian P. Walenz
 A	src/utgcns/libcns/abAbacus.C	bnbi20150306Brian P. Walenz
@@ -4871,8 +4871,8 @@ A	src/utgcns/libcns/abAbacus.C	jcvi20050330Eli Venter
 A	src/utgcns/libcns/abAbacus.C	tigr20050322Jason Miller
 A	src/utgcns/libcns/abAbacus.C	tigr20050322Jason Miller
 A	src/utgcns/libcns/abAbacus.C	tigr20040923Michael Schatz
-D	src/utgcns/libcns/abAbacus.C	src/AS_CNS/MultiAlignment_CNS.c
 D	src/utgcns/libcns/abAbacus.C	src/AS_CNS/MultiAlignment_CNS.C
+D	src/utgcns/libcns/abAbacus.C	src/AS_CNS/MultiAlignment_CNS.c
 D	src/utgcns/libcns/abAbacus.C	src/utgcns/libcns/MultiAlignment_CNS.C
 A	src/utgcns/libcns/abAbacus-refreshMultiAlign.C	bnbi20150306Brian P. Walenz
 A	src/utgcns/libcns/abAbacus-refreshMultiAlign.C	bnbi20150127Brian P. Walenz
@@ -5159,9 +5159,9 @@ A	src/utgcns/libcns/abAbacus-refreshMultiAlign.C	jcvi20050330Eli Venter
 A	src/utgcns/libcns/abAbacus-refreshMultiAlign.C	tigr20050322Jason Miller
 A	src/utgcns/libcns/abAbacus-refreshMultiAlign.C	tigr20050322Jason Miller
 A	src/utgcns/libcns/abAbacus-refreshMultiAlign.C	tigr20040923Michael Schatz
+D	src/utgcns/libcns/abAbacus-refreshMultiAlign.C	src/AS_CNS/MultiAlignment_CNS.c
 D	src/utgcns/libcns/abAbacus-refreshMultiAlign.C	src/AS_CNS/RefreshMANode.C
 D	src/utgcns/libcns/abAbacus-refreshMultiAlign.C	src/AS_CNS/RefreshMANode.c
-D	src/utgcns/libcns/abAbacus-refreshMultiAlign.C	src/AS_CNS/MultiAlignment_CNS.c
 D	src/utgcns/libcns/abAbacus-refreshMultiAlign.C	src/utgcns/libcns/RefreshMANode.C
 A	src/utgcns/libcns/unitigConsensus.C	bnbi20150811Brian P. Walenz
 A	src/utgcns/libcns/unitigConsensus.C	bnbi20150810Brian P. Walenz
@@ -5527,10 +5527,10 @@ A	src/utgcns/libcns/unitigConsensus.C	jcvi20050330Eli Venter
 A	src/utgcns/libcns/unitigConsensus.C	tigr20050322Jason Miller
 A	src/utgcns/libcns/unitigConsensus.C	tigr20050322Jason Miller
 A	src/utgcns/libcns/unitigConsensus.C	tigr20040923Michael Schatz
+D	src/utgcns/libcns/unitigConsensus.C	src/AS_CNS/MultiAlignUnitig.C
+D	src/utgcns/libcns/unitigConsensus.C	src/AS_CNS/MultiAlignUnitig.c
 D	src/utgcns/libcns/unitigConsensus.C	src/AS_CNS/MultiAlignment_CNS.c
 D	src/utgcns/libcns/unitigConsensus.C	src/utgcns/libcns/MultiAlignUnitig.C
-D	src/utgcns/libcns/unitigConsensus.C	src/AS_CNS/MultiAlignUnitig.c
-D	src/utgcns/libcns/unitigConsensus.C	src/AS_CNS/MultiAlignUnitig.C
 A	src/utgcns/libcns/abColumn.C	bnbi20150121Brian P. Walenz
 A	src/utgcns/libcns/abColumn.C	bnbi20150113Brian P. Walenz
 A	src/utgcns/libcns/abColumn.C	bnbi20150107Brian P. Walenz
@@ -5804,8 +5804,8 @@ A	src/utgcns/libcns/abColumn.C	jcvi20050330Eli Venter
 A	src/utgcns/libcns/abColumn.C	tigr20050322Jason Miller
 A	src/utgcns/libcns/abColumn.C	tigr20050322Jason Miller
 A	src/utgcns/libcns/abColumn.C	tigr20040923Michael Schatz
-D	src/utgcns/libcns/abColumn.C	src/AS_CNS/MultiAlignment_CNS.c
 D	src/utgcns/libcns/abColumn.C	src/AS_CNS/MultiAlignment_CNS.C
+D	src/utgcns/libcns/abColumn.C	src/AS_CNS/MultiAlignment_CNS.c
 D	src/utgcns/libcns/abColumn.C	src/utgcns/libcns/MultiAlignment_CNS.C
 A	src/utgcns/libcns/abMultiAlign.H	bnbi20150708Brian P. Walenz
 A	src/utgcns/libcns/abMultiAlign.H	bnbi20150127Brian P. Walenz
@@ -5909,10 +5909,10 @@ A	src/utgcns/libcns/abMultiAlign.H	jcvi20050629Gennady Denisov
 A	src/utgcns/libcns/abMultiAlign.H	jcvi20050614Gennady Denisov
 A	src/utgcns/libcns/abMultiAlign.H	jcvi20050612Gennady Denisov
 A	src/utgcns/libcns/abMultiAlign.H	jcvi20050523Gennady Denisov
-D	src/utgcns/libcns/abMultiAlign.H	src/utgcns/libcns/MultiAlignment_CNS_private.H
 D	src/utgcns/libcns/abMultiAlign.H	src/AS_CNS/MultiAlignment_CNS.h
 D	src/utgcns/libcns/abMultiAlign.H	src/AS_CNS/MultiAlignment_CNS_private.H
 D	src/utgcns/libcns/abMultiAlign.H	src/AS_CNS/MultiAlignment_CNS_private.h
+D	src/utgcns/libcns/abMultiAlign.H	src/utgcns/libcns/MultiAlignment_CNS_private.H
 A	src/utgcns/libcns/abBead.H	bnbi20150127Brian P. Walenz
 A	src/utgcns/libcns/abBead.H	bnbi20150121Brian P. Walenz
 A	src/utgcns/libcns/abBead.H	bnbi20150108Brian P. Walenz
@@ -6010,9 +6010,9 @@ A	src/utgcns/libcns/abBead.H	jcvi20050629Gennady Denisov
 A	src/utgcns/libcns/abBead.H	jcvi20050614Gennady Denisov
 A	src/utgcns/libcns/abBead.H	jcvi20050612Gennady Denisov
 A	src/utgcns/libcns/abBead.H	jcvi20050523Gennady Denisov
-D	src/utgcns/libcns/abBead.H	src/AS_CNS/MultiAlignment_CNS_private.h
-D	src/utgcns/libcns/abBead.H	src/AS_CNS/MultiAlignment_CNS_private.H
 D	src/utgcns/libcns/abBead.H	src/AS_CNS/MultiAlignment_CNS.h
+D	src/utgcns/libcns/abBead.H	src/AS_CNS/MultiAlignment_CNS_private.H
+D	src/utgcns/libcns/abBead.H	src/AS_CNS/MultiAlignment_CNS_private.h
 D	src/utgcns/libcns/abBead.H	src/utgcns/libcns/MultiAlignment_CNS_private.H
 A	src/utgcns/libcns/abAbacus-applyAlignment.C	bnbi20150728Brian P. Walenz
 A	src/utgcns/libcns/abAbacus-applyAlignment.C	bnbi20150726Brian P. Walenz
@@ -6307,10 +6307,10 @@ A	src/utgcns/libcns/abAbacus-applyAlignment.C	jcvi20050330Eli Venter
 A	src/utgcns/libcns/abAbacus-applyAlignment.C	tigr20050322Jason Miller
 A	src/utgcns/libcns/abAbacus-applyAlignment.C	tigr20050322Jason Miller
 A	src/utgcns/libcns/abAbacus-applyAlignment.C	tigr20040923Michael Schatz
+D	src/utgcns/libcns/abAbacus-applyAlignment.C	src/AS_CNS/ApplyAlignment.C
+D	src/utgcns/libcns/abAbacus-applyAlignment.C	src/AS_CNS/ApplyAlignment.c
 D	src/utgcns/libcns/abAbacus-applyAlignment.C	src/AS_CNS/MultiAlignment_CNS.c
 D	src/utgcns/libcns/abAbacus-applyAlignment.C	src/utgcns/libcns/ApplyAlignment.C
-D	src/utgcns/libcns/abAbacus-applyAlignment.C	src/AS_CNS/ApplyAlignment.c
-D	src/utgcns/libcns/abAbacus-applyAlignment.C	src/AS_CNS/ApplyAlignment.C
 A	src/utgcns/libcns/abSequence.H	bnbi20150701Brian P. Walenz
 A	src/utgcns/libcns/abSequence.H	bnbi20150127Brian P. Walenz
 A	src/utgcns/libcns/abSequence.H	bnbi20150121Brian P. Walenz
@@ -6411,9 +6411,9 @@ A	src/utgcns/libcns/abSequence.H	jcvi20050629Gennady Denisov
 A	src/utgcns/libcns/abSequence.H	jcvi20050614Gennady Denisov
 A	src/utgcns/libcns/abSequence.H	jcvi20050612Gennady Denisov
 A	src/utgcns/libcns/abSequence.H	jcvi20050523Gennady Denisov
-D	src/utgcns/libcns/abSequence.H	src/AS_CNS/MultiAlignment_CNS_private.h
-D	src/utgcns/libcns/abSequence.H	src/AS_CNS/MultiAlignment_CNS_private.H
 D	src/utgcns/libcns/abSequence.H	src/AS_CNS/MultiAlignment_CNS.h
+D	src/utgcns/libcns/abSequence.H	src/AS_CNS/MultiAlignment_CNS_private.H
+D	src/utgcns/libcns/abSequence.H	src/AS_CNS/MultiAlignment_CNS_private.h
 D	src/utgcns/libcns/abSequence.H	src/utgcns/libcns/MultiAlignment_CNS_private.H
 A	src/utgcns/libcns/abIDs.H	bnbi20150127Brian P. Walenz
 A	src/utgcns/libcns/abIDs.H	bnbi20150112Brian P. Walenz
@@ -6512,10 +6512,10 @@ A	src/utgcns/libcns/abIDs.H	jcvi20050629Gennady Denisov
 A	src/utgcns/libcns/abIDs.H	jcvi20050614Gennady Denisov
 A	src/utgcns/libcns/abIDs.H	jcvi20050612Gennady Denisov
 A	src/utgcns/libcns/abIDs.H	jcvi20050523Gennady Denisov
-D	src/utgcns/libcns/abIDs.H	src/AS_CNS/MultiAlignment_CNS_private.H
 D	src/utgcns/libcns/abIDs.H	src/AS_CNS/MultiAlignment_CNS.h
-D	src/utgcns/libcns/abIDs.H	src/utgcns/libcns/MultiAlignment_CNS_private.H
+D	src/utgcns/libcns/abIDs.H	src/AS_CNS/MultiAlignment_CNS_private.H
 D	src/utgcns/libcns/abIDs.H	src/AS_CNS/MultiAlignment_CNS_private.h
+D	src/utgcns/libcns/abIDs.H	src/utgcns/libcns/MultiAlignment_CNS_private.H
 A	src/utgcns/libcns/abAbacus-addRead.C	bnbi20150811Brian P. Walenz
 A	src/utgcns/libcns/abAbacus-addRead.C	bnbi20150708Brian P. Walenz
 A	src/utgcns/libcns/abAbacus-addRead.C	bnbi20150603Brian P. Walenz
@@ -6800,10 +6800,10 @@ A	src/utgcns/libcns/abAbacus-addRead.C	jcvi20050330Eli Venter
 A	src/utgcns/libcns/abAbacus-addRead.C	tigr20050322Jason Miller
 A	src/utgcns/libcns/abAbacus-addRead.C	tigr20050322Jason Miller
 A	src/utgcns/libcns/abAbacus-addRead.C	tigr20040923Michael Schatz
-D	src/utgcns/libcns/abAbacus-addRead.C	src/AS_CNS/MultiAlignment_CNS.c
 D	src/utgcns/libcns/abAbacus-addRead.C	src/AS_CNS/MultiAlignment_CNS.C
-D	src/utgcns/libcns/abAbacus-addRead.C	src/utgcns/libcns/abacus-addRead.C
+D	src/utgcns/libcns/abAbacus-addRead.C	src/AS_CNS/MultiAlignment_CNS.c
 D	src/utgcns/libcns/abAbacus-addRead.C	src/utgcns/libcns/MultiAlignment_CNS.C
+D	src/utgcns/libcns/abAbacus-addRead.C	src/utgcns/libcns/abacus-addRead.C
 A	src/utgcns/libcns/abAbacus.H	bnbi20150723Brian P. Walenz
 A	src/utgcns/libcns/abAbacus.H	bnbi20150708Brian P. Walenz
 A	src/utgcns/libcns/abAbacus.H	bnbi20150528Brian P. Walenz
@@ -6915,9 +6915,9 @@ A	src/utgcns/libcns/abAbacus.H	jcvi20050629Gennady Denisov
 A	src/utgcns/libcns/abAbacus.H	jcvi20050614Gennady Denisov
 A	src/utgcns/libcns/abAbacus.H	jcvi20050612Gennady Denisov
 A	src/utgcns/libcns/abAbacus.H	jcvi20050523Gennady Denisov
-D	src/utgcns/libcns/abAbacus.H	src/AS_CNS/MultiAlignment_CNS_private.h
-D	src/utgcns/libcns/abAbacus.H	src/AS_CNS/MultiAlignment_CNS_private.H
 D	src/utgcns/libcns/abAbacus.H	src/AS_CNS/MultiAlignment_CNS.h
+D	src/utgcns/libcns/abAbacus.H	src/AS_CNS/MultiAlignment_CNS_private.H
+D	src/utgcns/libcns/abAbacus.H	src/AS_CNS/MultiAlignment_CNS_private.h
 D	src/utgcns/libcns/abAbacus.H	src/utgcns/libcns/MultiAlignment_CNS_private.H
 A	src/utgcns/libcns/abMultiAlign.C	bnbi20150811Brian P. Walenz
 A	src/utgcns/libcns/abMultiAlign.C	bnbi20150730Brian P. Walenz
@@ -7204,8 +7204,8 @@ A	src/utgcns/libcns/abMultiAlign.C	jcvi20050330Eli Venter
 A	src/utgcns/libcns/abMultiAlign.C	tigr20050322Jason Miller
 A	src/utgcns/libcns/abMultiAlign.C	tigr20050322Jason Miller
 A	src/utgcns/libcns/abMultiAlign.C	tigr20040923Michael Schatz
-D	src/utgcns/libcns/abMultiAlign.C	src/AS_CNS/MultiAlignment_CNS.c
 D	src/utgcns/libcns/abMultiAlign.C	src/AS_CNS/MultiAlignment_CNS.C
+D	src/utgcns/libcns/abMultiAlign.C	src/AS_CNS/MultiAlignment_CNS.c
 D	src/utgcns/libcns/abMultiAlign.C	src/utgcns/libcns/MultiAlignment_CNS.C
 A	src/utgcns/libcns/unitigConsensus.H	bnbi20150805Brian P. Walenz
 A	src/utgcns/libcns/unitigConsensus.H	bnbi20150723Brian P. Walenz
@@ -7312,9 +7312,9 @@ A	src/utgcns/libcns/unitigConsensus.H	jcvi20050629Gennady Denisov
 A	src/utgcns/libcns/unitigConsensus.H	jcvi20050614Gennady Denisov
 A	src/utgcns/libcns/unitigConsensus.H	jcvi20050612Gennady Denisov
 A	src/utgcns/libcns/unitigConsensus.H	jcvi20050523Gennady Denisov
-D	src/utgcns/libcns/unitigConsensus.H	src/AS_CNS/MultiAlignment_CNS_private.h
-D	src/utgcns/libcns/unitigConsensus.H	src/AS_CNS/MultiAlignment_CNS_private.H
 D	src/utgcns/libcns/unitigConsensus.H	src/AS_CNS/MultiAlignment_CNS.h
+D	src/utgcns/libcns/unitigConsensus.H	src/AS_CNS/MultiAlignment_CNS_private.H
+D	src/utgcns/libcns/unitigConsensus.H	src/AS_CNS/MultiAlignment_CNS_private.h
 D	src/utgcns/libcns/unitigConsensus.H	src/utgcns/libcns/MultiAlignment_CNS_private.H
 A	src/utgcns/libcns/abAbacus-mergeRefine.C	bnbi20150306Brian P. Walenz
 A	src/utgcns/libcns/abAbacus-mergeRefine.C	bnbi20150127Brian P. Walenz
@@ -7594,10 +7594,10 @@ A	src/utgcns/libcns/abAbacus-mergeRefine.C	jcvi20050330Eli Venter
 A	src/utgcns/libcns/abAbacus-mergeRefine.C	tigr20050322Jason Miller
 A	src/utgcns/libcns/abAbacus-mergeRefine.C	tigr20050322Jason Miller
 A	src/utgcns/libcns/abAbacus-mergeRefine.C	tigr20040923Michael Schatz
-D	src/utgcns/libcns/abAbacus-mergeRefine.C	src/utgcns/libcns/MergeRefine.C
 D	src/utgcns/libcns/abAbacus-mergeRefine.C	src/AS_CNS/MergeRefine.C
-D	src/utgcns/libcns/abAbacus-mergeRefine.C	src/AS_CNS/MultiAlignment_CNS.c
 D	src/utgcns/libcns/abAbacus-mergeRefine.C	src/AS_CNS/MergeRefine.c
+D	src/utgcns/libcns/abAbacus-mergeRefine.C	src/AS_CNS/MultiAlignment_CNS.c
+D	src/utgcns/libcns/abAbacus-mergeRefine.C	src/utgcns/libcns/MergeRefine.C
 A	src/utgcns/libcns/abColumn.H	bnbi20150701Brian P. Walenz
 A	src/utgcns/libcns/abColumn.H	bnbi20150127Brian P. Walenz
 A	src/utgcns/libcns/abColumn.H	bnbi20150121Brian P. Walenz
@@ -7700,9 +7700,9 @@ A	src/utgcns/libcns/abColumn.H	jcvi20050629Gennady Denisov
 A	src/utgcns/libcns/abColumn.H	jcvi20050614Gennady Denisov
 A	src/utgcns/libcns/abColumn.H	jcvi20050612Gennady Denisov
 A	src/utgcns/libcns/abColumn.H	jcvi20050523Gennady Denisov
-D	src/utgcns/libcns/abColumn.H	src/AS_CNS/MultiAlignment_CNS_private.h
-D	src/utgcns/libcns/abColumn.H	src/AS_CNS/MultiAlignment_CNS_private.H
 D	src/utgcns/libcns/abColumn.H	src/AS_CNS/MultiAlignment_CNS.h
+D	src/utgcns/libcns/abColumn.H	src/AS_CNS/MultiAlignment_CNS_private.H
+D	src/utgcns/libcns/abColumn.H	src/AS_CNS/MultiAlignment_CNS_private.h
 D	src/utgcns/libcns/abColumn.H	src/utgcns/libcns/MultiAlignment_CNS_private.H
 A	src/utgcns/libcns/abAbacus-baseCall.C	bnbi20150728Brian P. Walenz
 A	src/utgcns/libcns/abAbacus-baseCall.C	bnbi20150131Brian P. Walenz
@@ -7994,10 +7994,10 @@ A	src/utgcns/libcns/abAbacus-baseCall.C	jcvi20050330Eli Venter
 A	src/utgcns/libcns/abAbacus-baseCall.C	tigr20050322Jason Miller
 A	src/utgcns/libcns/abAbacus-baseCall.C	tigr20050322Jason Miller
 A	src/utgcns/libcns/abAbacus-baseCall.C	tigr20040923Michael Schatz
-D	src/utgcns/libcns/abAbacus-baseCall.C	src/utgcns/libcns/BaseCall.C
 D	src/utgcns/libcns/abAbacus-baseCall.C	src/AS_CNS/BaseCall.C
-D	src/utgcns/libcns/abAbacus-baseCall.C	src/AS_CNS/MultiAlignment_CNS.c
 D	src/utgcns/libcns/abAbacus-baseCall.C	src/AS_CNS/BaseCall.c
+D	src/utgcns/libcns/abAbacus-baseCall.C	src/AS_CNS/MultiAlignment_CNS.c
+D	src/utgcns/libcns/abAbacus-baseCall.C	src/utgcns/libcns/BaseCall.C
 A	src/utgcns/libcns/abAbacus-refine.C	bnbi20150814Brian P. Walenz
 A	src/utgcns/libcns/abAbacus-refine.C	bnbi20150701Brian P. Walenz
 A	src/utgcns/libcns/abAbacus-refine.C	bnbi20150131Brian P. Walenz
@@ -8286,9 +8286,9 @@ A	src/utgcns/libcns/abAbacus-refine.C	tigr20050322Jason Miller
 A	src/utgcns/libcns/abAbacus-refine.C	tigr20050322Jason Miller
 A	src/utgcns/libcns/abAbacus-refine.C	tigr20040923Michael Schatz
 D	src/utgcns/libcns/abAbacus-refine.C	src/AS_CNS/AbacusRefine.C
-D	src/utgcns/libcns/abAbacus-refine.C	src/utgcns/libcns/AbacusRefine.C
 D	src/utgcns/libcns/abAbacus-refine.C	src/AS_CNS/AbacusRefine.c
 D	src/utgcns/libcns/abAbacus-refine.C	src/AS_CNS/MultiAlignment_CNS.c
+D	src/utgcns/libcns/abAbacus-refine.C	src/utgcns/libcns/AbacusRefine.C
 A	src/utgcns/stashContains.H	bnbi20150509Brian P. Walenz
 A	src/utgcns/stashContains.H	bnbi20150409Brian P. Walenz
 A	src/utgcns/libNDalign/NDalgorithm-extend.C	bnbi20150728Brian P. Walenz

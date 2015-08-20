@@ -284,6 +284,8 @@ if (! -e "logs") {
     for (my $x=$rev; $x > 0; $x--) {
         print STDERR "$x\r";
 
+        next if ($x == 7097);  #  Skip the big commit that added copyrights.
+
         open(I, "svn log -v -r $x |");
         while (<I>) {
             print L $_;
@@ -634,10 +636,17 @@ while (<FIN>) {
     if (scalar(keys %DElist) > 0) {
         foreach my $d (keys %DElist) {
             push @DElist, " $cc    $d\n";
-            print OUT "D\t$file\t$d\n";
         }
 
         @DElist = sort @DElist;
+
+        foreach my $d (@DElist) {
+            if ($d =~ m/^\s*\S\s*(\S+)$/) {
+                print OUT "D\t$file\t$1\n";
+            } else {
+                die "Failed to match DElist line '$d'\n";
+            }
+        }
 
         unshift @DElist, " $cc\n";
         unshift @DElist, " $cc  This file is derived from:\n";
@@ -690,7 +699,7 @@ while (<FIN>) {
 
         #  Else, we're at the start; if blank or a comment, skip it.  Only C-style comments are skipped.
 
-        if (($_ eq "") || ($_ =~ m/^[\/\s]\*/) || (($_ =~ m/^\s*#/) && ($_ !~ m/^#include/))) {
+        if (($_ eq "") || ($_ =~ m/^[\/\s]\*/) || ($_ =~ m/^\s*##/) || ($_ =~ m/^\s*#$/) || ($_ =~ m/^\s*#\s/)) {
             next;
         }
 
@@ -702,7 +711,7 @@ while (<FIN>) {
     }
     close(F);
 
-    rename "$file", "$file.ORIG";
+    #rename "$file", "$file.ORIG";
 
     open(F, "> $file") or die "Failed to open '$file' for writing: $!\n";
     print F @lines;
