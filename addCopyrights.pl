@@ -151,7 +151,8 @@ sub toList (@) {
 
 
 
-sub splitAC (@) {
+sub splitAC ($@) {
+    my $cc = shift @_;
     my @AC = @_;
     my @AClist;
 
@@ -209,40 +210,40 @@ sub splitAC (@) {
         my $str;
 
         if      ($org eq "craa") {
-            $str .= " *    $nam $dates\n";
-            $str .= " *      are Copyright $years Applera Corporation, and\n";
-            $str .= " *      are subject to the GNU General Public License version 2\n";
-            $str .= " *\n";
+            $str .= " $cc    $nam $dates\n";
+            $str .= " $cc      are Copyright $years Applera Corporation, and\n";
+            $str .= " $cc      are subject to the GNU General Public License version 2\n";
+            $str .= " $cc\n";
 
         } elsif ($org eq "tigr") {
-            $str .= " *    $nam $dates\n";
-            $str .= " *      are Copyright $years The Institute for Genomics Research, and\n";
-            $str .= " *      are subject to the GNU General Public License version 2\n";
-            $str .= " *\n";
+            $str .= " $cc    $nam $dates\n";
+            $str .= " $cc      are Copyright $years The Institute for Genomics Research, and\n";
+            $str .= " $cc      are subject to the GNU General Public License version 2\n";
+            $str .= " $cc\n";
 
         } elsif ($org eq "jcvi") {
-            $str .= " *    $nam $dates\n";
-            $str .= " *      are Copyright $years J. Craig Venter Institute, and\n";
-            $str .= " *      are subject to the GNU General Public License version 2\n";
-            $str .= " *\n";
+            $str .= " $cc    $nam $dates\n";
+            $str .= " $cc      are Copyright $years J. Craig Venter Institute, and\n";
+            $str .= " $cc      are subject to the GNU General Public License version 2\n";
+            $str .= " $cc\n";
 
         } elsif ($org eq "bnbi") {
-            $str .= " *    $nam $dates\n";
-            $str .= " *      are Copyright $years Battelle National Biodefense Institute, and\n";
-            $str .= " *      are subject to the BSD 3-Clause License\n";
-            $str .= " *\n";
+            $str .= " $cc    $nam $dates\n";
+            $str .= " $cc      are Copyright $years Battelle National Biodefense Institute, and\n";
+            $str .= " $cc      are subject to the BSD 3-Clause License\n";
+            $str .= " $cc\n";
 
         } elsif ($org eq "nihh") {
-            $str .= " *    $nam $dates\n";
-            $str .= " *      are a 'United States Government Work', and\n";
-            $str .= " *      are released in the public domain\n";
-            $str .= " *\n";
+            $str .= " $cc    $nam $dates\n";
+            $str .= " $cc      are a 'United States Government Work', and\n";
+            $str .= " $cc      are released in the public domain\n";
+            $str .= " $cc\n";
 
         } elsif ($org eq "none") {
-            $str .= " *    $nam $dates\n";
-            $str .= " *      are Copyright $years $nam, and\n";
-            $str .= " *      are subject to the GNU General Public License version 2\n";
-            $str .= " *\n";
+            $str .= " $cc    $nam $dates\n";
+            $str .= " $cc      are Copyright $years $nam, and\n";
+            $str .= " $cc      are subject to the GNU General Public License version 2\n";
+            $str .= " $cc\n";
 
         } else {
             die "$ac org\n";
@@ -268,9 +269,19 @@ sub splitAC (@) {
 #  Generate logs
 
 if (! -e "logs") {
+    my $rev = 0;
+
+    open(F, "svn info |");
+    while (<F>) {
+        if (m/Revision:\s+(\d+)$/) {
+            $rev = $1;
+        }
+    }
+    close(F);
+
     open(L, "> logs");
 
-    for (my $x=7057; $x > 0; $x--) {
+    for (my $x=$rev; $x > 0; $x--) {
         print STDERR "$x\r";
 
         open(I, "svn log -v -r $x |");
@@ -286,8 +297,6 @@ if (! -e "logs") {
 #  Build a mapping from original file name -> new file name.  Because I didn't use svn copy to
 #  branch files, and because some files exploded into smaller pieces.
 
-my %authors;
-my %copyrights;
 my %authcopy;
 my %derived;
 
@@ -330,6 +339,27 @@ my %derived;
     $filemap{"src/AS_ALN/CA_ALN_local.H"}         = "src/aligners/CA_ALN_local.H";
     $filemap{"src/AS_ALN/CA_ALN_overlap.C"}       = "src/aligners/CA_ALN_overlap.C";
     $filemap{"src/AS_ALN/aligners.H"}             = "src/aligners/aligners.H";
+
+    #  Deleted a directory, didn't get tracked using the 'from' notation.  Evil.
+    $filemap{"src/pipelines/ca3g/Consensus.pm"}              = "src/pipelines/canu/Consensus.pm";
+    $filemap{"src/pipelines/ca3g/CorrectReads.pm"}           = "src/pipelines/canu/CorrectReads.pm";
+    $filemap{"src/pipelines/ca3g/Defaults.pm"}               = "src/pipelines/canu/Defaults.pm";
+    $filemap{"src/pipelines/ca3g/Execution.pm"}              = "src/pipelines/canu/Execution.pm";
+    $filemap{"src/pipelines/ca3g/Gatekeeper.pm"}             = "src/pipelines/canu/Gatekeeper.pm";
+    $filemap{"src/pipelines/ca3g/Meryl.pm"}                  = "src/pipelines/canu/Meryl.pm";
+    $filemap{"src/pipelines/ca3g/Output.pm"}                 = "src/pipelines/canu/Output.pm";
+    $filemap{"src/pipelines/ca3g/OverlapBasedTrimming.pm"}   = "src/pipelines/canu/OverlapBasedTrimming.pm";
+    $filemap{"src/pipelines/ca3g/OverlapErrorAdjustment.pm"} = "src/pipelines/canu/OverlapErrorAdjustment.pm";
+    $filemap{"src/pipelines/ca3g/OverlapInCore.pm"}          = "src/pipelines/canu/OverlapInCore.pm";
+    $filemap{"src/pipelines/ca3g/OverlapMhap.pm"}            = "src/pipelines/canu/OverlapMhap.pm";
+    $filemap{"src/pipelines/ca3g/OverlapStore.pm"}           = "src/pipelines/canu/OverlapStore.pm";
+    $filemap{"src/pipelines/ca3g/Unitig.pm"}                 = "src/pipelines/canu/Unitig.pm";
+
+    #  Just a tiny bit of the executive survived, but it's basically in every file.
+    #  Execution.pm has a significant chunk from ESTmapper/scheduler.pm (and then in runCA.pl)
+    $filemap{"src/AS_RUN/runCA.pl"}          = "src/pipelines/canu/Execution.pl";
+    $filemap{"kmer/ESTmapper/scheduler.pm"} .= "\0src/pipelines/canu/Execution.pm";
+    $filemap{"kmer/scripts/libBri.pm"}      .= "\0src/pipelines/canu/Execution.pm";
 
     #  Branch ovl into ovm, on 2011-07-29
     $filemap{"src/AS_OVL/AS_OVL_overlap_common.h"}  = "src/AS_OVM/overlapInCore-Build_Hash_Index.C";
@@ -480,10 +510,8 @@ my %derived;
 
             if ((defined($A) && (defined($C)))) {
                 foreach my $f (keys %files) {
-                    $authors{$f}    .= "$A\n";
-                    $copyrights{$f} .= "$C\n";
                     $authcopy{$f}   .= "$C$A\n";
-                    $derived{$f}    .= "\0$fn";    #  Whatever file we end up with, it was derived from the one we're reading the log for.
+                    $derived{$f}    .= "$fn\n";    #  Whatever file we end up with, it was derived from the one we're reading the log for.
                 }
             }
         } else {
@@ -500,6 +528,7 @@ my %derived;
 #  Process each file.
 
 open(FIN, "find kmer src -type f -print |") or die "Failed to launch 'find'\n";
+open(OUT, "> addCopyrights.dat") or die "Failed to open 'addCopyrights.dat' for writing: $!\n";
 
 while (<FIN>) {
     chomp;
@@ -512,8 +541,8 @@ while (<FIN>) {
 
 
     next if ($file =~ m/\.mk$/);
-    next if ($file =~ m/\.pl$/);
-    next if ($file =~ m/\.pm$/);
+    next if ($file =~ m/Makefile/);
+
     next if ($file =~ m/\.sh$/);
 
     next if ($file =~ m/\.jar$/);
@@ -528,12 +557,23 @@ while (<FIN>) {
 
     next if ($file =~ m/\.fasta$/);  #  meryl test
 
-    next if ($file =~ m/Makefile/);
-
-    next if ($file =~ m/dat/);  #  src/overlapInCore/liboverlap/prefixEditDistance-matchLimitData/prefixEditDistance-matchLimit-*.dat
+    next if ($file =~ m/\.dat$/);  #  src/overlapInCore/liboverlap/prefixEditDistance-matchLimitData/prefixEditDistance-matchLimit-*.dat
 
     next if ($file =~ m/md5/);
     next if ($file =~ m/mt19937ar/);
+
+
+    my $cb = "/";
+    my $cc = "*";
+    my $ce = "/";
+
+    if ($file =~ m/\.p[lm]$/) {
+        $cb = "#";
+        $cc = "#";
+        $ce = "#";
+    }
+
+
 
     my $iskmer   = 0;
     my $isextern = 0;
@@ -570,19 +610,21 @@ while (<FIN>) {
     $isextern = 1  if ($file =~ m/mt19937ar/);
 
 
-
-    die "Can't process '$file'\n"  if (($file !~ m/\.C$/) && ($file !~ m/\.H$/) && ($file !~ m/\.c$/) && ($file !~ m/\.h$/));
+    die "Can't process '$file'\n"  if (($file !~ m/\.[CHch]$/) && ($file !~ m/\.p[lm]/));
 
     my @AC     = split '\n', $authcopy{$file};
 
-    my @AClist = splitAC(@AC);
+    foreach my $ac (@AC) {
+        print OUT "A\t$file\t$ac\n";
+    }
+
+    my @AClist = splitAC($cc, @AC);
 
     my %DElist;
-    my @DElist = split '\0', $derived{$file};
+    my @DElist = split '\n', $derived{$file};
 
     foreach my $d (@DElist) {
         next if ($d eq "");
-        #next if ($d eq $file);
         next if (lc $d eq lc $file);
         $DElist{$d}++;
     }
@@ -591,50 +633,46 @@ while (<FIN>) {
 
     if (scalar(keys %DElist) > 0) {
         foreach my $d (keys %DElist) {
-            push @DElist, " *    $d\n";
+            push @DElist, " $cc    $d\n";
+            print OUT "D\t$file\t$d\n";
         }
 
         @DElist = sort @DElist;
 
-        unshift @DElist, " *\n";
-        unshift @DElist, " *  This file is derived from:\n";
+        unshift @DElist, " $cc\n";
+        unshift @DElist, " $cc  This file is derived from:\n";
 
-        push    @DElist, " *\n";
+        push    @DElist, " $cc\n";
     }
+
+    if ($file =~ m/\.pl$/) {
+        push @lines, "#!perl\n";
+    }
+    
 
     push @lines, "\n";
-    push @lines, "/******************************************************************************\n"; 
-    push @lines, " *\n";
-    push @lines, " *  This file is part of canu, a software program that assembles whole-genome\n";
-    push @lines, " *  sequencing reads into contigs.\n";
-    push @lines, " *\n";
-
-    if      ($iskmer) {
-        push @lines, " *  This software is based on the 'kmer package' (http://kmer.sourceforge.net)\n";
-        push @lines, " *  as distributed by Applera Corporation under the GNU General Public\n";
-        push @lines, " *  License, version 2.\n";
-        push @lines, " *\n";
-        push @lines, " *  Canu branched from the kmer project at revision 1994.\n";
-
-    } elsif ($isextern) {
-        push @lines, " *  This software is based on ....\n";
-
-    } else {
-        push @lines, " *  This software is based on RELEASE_1-3_2004-03-17 of the 'Celera Assembler'\n";
-        push @lines, " *  (http://wgs-assembler.sourceforge.net) distributed by Applera Corporation\n";
-        push @lines, " *  under the GNU General Public License, version 2.\n";
-        push @lines, " *\n";
-        push @lines, " *  Canu branched from Celera Assembler at revision 4587.\n";
-    }
-
-    push @lines, " *\n";
+    push @lines, "$cb" . $cc x 78 . "\n"; 
+    push @lines, " $cc\n";
+    push @lines, " $cc  This file is part of canu, a software program that assembles whole-genome\n";
+    push @lines, " $cc  sequencing reads into contigs.\n";
+    push @lines, " $cc\n";
+    push @lines, " $cc  This software is based on:\n";
+    #push @lines, " $cc    RELEASE_1-3_2004-03-17 of the 'Celera Assembler' (http://wgs-assembler.sourceforge.net)\n";
+    push @lines, " $cc    'Celera Assembler' (http://wgs-assembler.sourceforge.net)\n";
+    push @lines, " $cc    the 'kmer package' (http://kmer.sourceforge.net)\n";
+    push @lines, " $cc  both originally distributed by Applera Corporation under the GNU General\n";
+    push @lines, " $cc  Public License, version 2.\n";
+    push @lines, " $cc\n";
+    push @lines, " $cc  Canu branched from Celera Assembler at its revision 4587.\n";
+    push @lines, " $cc  Canu branched from the kmer project at its revision 1994.\n";
+    push @lines, " $cc\n";
     push @lines, @DElist;
-    push @lines, " *  Modifications by:\n";
-    push @lines, " *\n";
+    push @lines, " $cc  Modifications by:\n";
+    push @lines, " $cc\n";
     push @lines, @AClist;
-    push @lines, " *  File 'README.licenses' in the root directory of this distribution contains\n";
-    push @lines, " *  full conditions and disclaimers for each license.\n";
-    push @lines, " */\n";
+    push @lines, " $cc  File 'README.licenses' in the root directory of this distribution contains\n";
+    push @lines, " $cc  full conditions and disclaimers for each license.\n";
+    push @lines, " $cc$ce\n";
     push @lines, "\n";
 
     my $start = 1;  #  To skip comment lines at the start of the file (the previous copyright block).
@@ -652,7 +690,7 @@ while (<FIN>) {
 
         #  Else, we're at the start; if blank or a comment, skip it.  Only C-style comments are skipped.
 
-        if (($_ eq "") || ($_ =~ m/^[\/\s]\*/)) {
+        if (($_ eq "") || ($_ =~ m/^[\/\s]\*/) || (($_ =~ m/^\s*#/) && ($_ !~ m/^#include/))) {
             next;
         }
 
@@ -664,14 +702,15 @@ while (<FIN>) {
     }
     close(F);
 
-    #rename "$file", "$file.ORIG";
-    #open(F, "> $file") or die "Failed to open '$file' for writing: $!\n";
-    #print F @lines;
-    #close(F);
+    rename "$file", "$file.ORIG";
 
-    open(F, "> $file.MODIFIED") or die "Failed to open '$file.MODIFIED' for writing: $!\n";
+    open(F, "> $file") or die "Failed to open '$file' for writing: $!\n";
     print F @lines;
     close(F);
+
+    #open(F, "> $file.MODIFIED") or die "Failed to open '$file.MODIFIED' for writing: $!\n";
+    #print F @lines;
+    #close(F);
 }
 
 close(FIN);
