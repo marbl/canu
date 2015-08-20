@@ -1,3 +1,28 @@
+
+/******************************************************************************
+ *
+ *  This file is part of canu, a software program that assembles whole-genome
+ *  sequencing reads into contigs.
+ *
+ *  This software is based on:
+ *    'Celera Assembler' (http://wgs-assembler.sourceforge.net)
+ *    the 'kmer package' (http://kmer.sourceforge.net)
+ *  both originally distributed by Applera Corporation under the GNU General
+ *  Public License, version 2.
+ *
+ *  Canu branched from Celera Assembler at its revision 4587.
+ *  Canu branched from the kmer project at its revision 1994.
+ *
+ *  Modifications by:
+ *
+ *    Brian P. Walenz beginning on 2015-FEB-04
+ *      are Copyright 2015 Battelle National Biodefense Institute, and
+ *      are subject to the BSD 3-Clause License
+ *
+ *  File 'README.licenses' in the root directory of this distribution contains
+ *  full conditions and disclaimers for each license.
+ */
+
 #include "gkStoreFile.H"
 //#include "AS_UTL_fileIO.H"
 
@@ -37,12 +62,12 @@ gkStoreFile::openFile(const char *name) {
 
   sprintf(infoName, "%s/info",  name);
   sprintf(readName, "%s/reads", name);
-  
+
   if ((AS_UTL_fileExists(name, true) == false) &&
       (AS_UTL_fileExists(infoName) == false) &&
       (AS_UTL_fileExists(readName) == false))
     return(0L);
-      
+
   //  Yup, probably a gkStore.  If it isn't, the gkStore() constructor blows up.
 
   return(new gkStoreFile(name));

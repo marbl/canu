@@ -1,17 +1,50 @@
+
+/******************************************************************************
+ *
+ *  This file is part of canu, a software program that assembles whole-genome
+ *  sequencing reads into contigs.
+ *
+ *  This software is based on:
+ *    'Celera Assembler' (http://wgs-assembler.sourceforge.net)
+ *    the 'kmer package' (http://kmer.sourceforge.net)
+ *  both originally distributed by Applera Corporation under the GNU General
+ *  Public License, version 2.
+ *
+ *  Canu branched from Celera Assembler at its revision 4587.
+ *  Canu branched from the kmer project at its revision 1994.
+ *
+ *  This file is derived from:
+ *
+ *    kmer/libbio/kmer.H
+ *
+ *  Modifications by:
+ *
+ *    Brian P. Walenz from 2005-MAY-19 to 2014-APR-11
+ *      are Copyright 2005-2008,2010-2011,2014 J. Craig Venter Institute, and
+ *      are subject to the GNU General Public License version 2
+ *
+ *    Brian P. Walenz beginning on 2014-DEC-05
+ *      are Copyright 2014 Battelle National Biodefense Institute, and
+ *      are subject to the BSD 3-Clause License
+ *
+ *  File 'README.licenses' in the root directory of this distribution contains
+ *  full conditions and disclaimers for each license.
+ */
+
 // Copyright (c) 2005 J. Craig Venter Institute
 // Author: Brian Walenz
-// 
+//
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
-// You should have received (LICENSE.txt) a copy of the GNU General Public 
+//
+// You should have received (LICENSE.txt) a copy of the GNU General Public
 // License along with this program; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 

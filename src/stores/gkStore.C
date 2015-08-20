@@ -1,4 +1,28 @@
 
+/******************************************************************************
+ *
+ *  This file is part of canu, a software program that assembles whole-genome
+ *  sequencing reads into contigs.
+ *
+ *  This software is based on:
+ *    'Celera Assembler' (http://wgs-assembler.sourceforge.net)
+ *    the 'kmer package' (http://kmer.sourceforge.net)
+ *  both originally distributed by Applera Corporation under the GNU General
+ *  Public License, version 2.
+ *
+ *  Canu branched from Celera Assembler at its revision 4587.
+ *  Canu branched from the kmer project at its revision 1994.
+ *
+ *  Modifications by:
+ *
+ *    Brian P. Walenz beginning on 2014-NOV-26
+ *      are Copyright 2014-2015 Battelle National Biodefense Institute, and
+ *      are subject to the BSD 3-Clause License
+ *
+ *  File 'README.licenses' in the root directory of this distribution contains
+ *  full conditions and disclaimers for each license.
+ */
+
 #include "gkStore.H"
 
 #include "AS_UTL_fileIO.H"
@@ -165,7 +189,7 @@ gkReadData::gkReadData_encodeBlobChunk(char const *tag,
     pad = 0;
 
   //  Copy in the chunk id and padded length
-  
+
   len += pad;
 
   memcpy(_blob + _blobLen,  tag, sizeof(char) * 4);     _blobLen += sizeof(char) * 4;
@@ -627,7 +651,7 @@ gkStore::~gkStore() {
   bool   needsInfoUpdate = false;
 
   //  Write N+1 because we write, but don't count, the [0] element.
-  
+
   if        (_librariesMMap) {
     delete _librariesMMap;
 

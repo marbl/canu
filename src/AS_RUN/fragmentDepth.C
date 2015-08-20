@@ -1,23 +1,35 @@
 
-/**************************************************************************
- * This file is part of Celera Assembler, a software program that
- * assembles whole-genome shotgun reads into contigs and scaffolds.
- * Copyright (C) 2007, J. Craig Venter Institute.
+/******************************************************************************
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ *  This file is part of canu, a software program that assembles whole-genome
+ *  sequencing reads into contigs.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ *  This software is based on:
+ *    'Celera Assembler' (http://wgs-assembler.sourceforge.net)
+ *    the 'kmer package' (http://kmer.sourceforge.net)
+ *  both originally distributed by Applera Corporation under the GNU General
+ *  Public License, version 2.
  *
- * You should have received (LICENSE.txt) a copy of the GNU General Public
- * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *************************************************************************/
+ *  Canu branched from Celera Assembler at its revision 4587.
+ *  Canu branched from the kmer project at its revision 1994.
+ *
+ *  Modifications by:
+ *
+ *    Brian P. Walenz from 2007-MAR-28 to 2013-AUG-01
+ *      are Copyright 2007-2008,2010,2012-2013 J. Craig Venter Institute, and
+ *      are subject to the GNU General Public License version 2
+ *
+ *    Sergey Koren from 2007-SEP-04 to 2009-AUG-14
+ *      are Copyright 2007-2009 J. Craig Venter Institute, and
+ *      are subject to the GNU General Public License version 2
+ *
+ *    Brian P. Walenz beginning on 2014-NOV-21
+ *      are Copyright 2014 Battelle National Biodefense Institute, and
+ *      are subject to the BSD 3-Clause License
+ *
+ *  File 'README.licenses' in the root directory of this distribution contains
+ *  full conditions and disclaimers for each license.
+ */
 
 const char *mainid = "$Id$";
 
@@ -124,11 +136,11 @@ computeStuff(uint32 *V, uint32 N,
 }
 
 void outputResult(AS_IID lastiid,
-                  intDep *id, 
-                  uint32 idlen, 
-                  int mode, 
-                  uint32 *histogram, 
-                  uint32 *histmax, 
+                  intDep *id,
+                  uint32 idlen,
+                  int mode,
+                  uint32 *histogram,
+                  uint32 *histmax,
                   int stepSize) {
    uint32 i = 0;
    uint32 lastpos = 0;
@@ -143,7 +155,7 @@ void outputResult(AS_IID lastiid,
             if ((id[i].lo - lastpos) > 0) {
                histogram[0] += id[i].lo - lastpos;
             }
-            
+
             histogram[id[i].de] += id[i].hi - id[i].lo;
             if ((*histmax) < id[i].de)
                (*histmax) = id[i].de;
@@ -216,11 +228,11 @@ void outputResult(AS_IID lastiid,
 }
 
 void processScaffold(AS_IID lastiid,
-                     intDep *in, 
-                     uint32 inlen, 
-                     int mode, 
-                     uint32 *histogram, 
-                     uint32 *histmax, 
+                     intDep *in,
+                     uint32 inlen,
+                     int mode,
+                     uint32 *histogram,
+                     uint32 *histmax,
                      int stepSize) {
    uint32           i      = 0;
    uint32           idlen  = 0;
@@ -429,7 +441,7 @@ main(int argc, char **argv) {
     if (lastend < end)
       lastend = end;
   }
-  
+
   // process last scaffold
   if ((lastiid != NO_IID) && (inlen > 0)) {
 
@@ -440,7 +452,7 @@ main(int argc, char **argv) {
        processScaffold(lastiid, in, inlen, mode, histogram, &histmax, stepSize);
     }
   }
-  
+
 
   if (mode == MODE_HISTOGRAM)
     for (i=0; i<=histmax; i++)

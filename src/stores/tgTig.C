@@ -1,4 +1,28 @@
 
+/******************************************************************************
+ *
+ *  This file is part of canu, a software program that assembles whole-genome
+ *  sequencing reads into contigs.
+ *
+ *  This software is based on:
+ *    'Celera Assembler' (http://wgs-assembler.sourceforge.net)
+ *    the 'kmer package' (http://kmer.sourceforge.net)
+ *  both originally distributed by Applera Corporation under the GNU General
+ *  Public License, version 2.
+ *
+ *  Canu branched from Celera Assembler at its revision 4587.
+ *  Canu branched from the kmer project at its revision 1994.
+ *
+ *  Modifications by:
+ *
+ *    Brian P. Walenz beginning on 2014-DEC-22
+ *      are Copyright 2014-2015 Battelle National Biodefense Institute, and
+ *      are subject to the BSD 3-Clause License
+ *
+ *  File 'README.licenses' in the root directory of this distribution contains
+ *  full conditions and disclaimers for each license.
+ */
+
 #include "tgTig.H"
 
 #include "AS_UTL_fileIO.H"
@@ -104,7 +128,7 @@ tgTig::~tgTig() {
 tgTigRecord &
 tgTigRecord::operator=(tgTig & tg) {
   _tigID               = tg._tigID;
- 
+
   _coverageStat        = tg._coverageStat;
   _microhetProb        = tg._microhetProb;
 
@@ -129,7 +153,7 @@ tgTigRecord::operator=(tgTig & tg) {
 tgTig &
 tgTig::operator=(tgTigRecord & tr) {
   _tigID               = tr._tigID;
- 
+
   _coverageStat        = tr._coverageStat;
   _microhetProb        = tr._microhetProb;
 
@@ -155,7 +179,7 @@ tgTig::operator=(tgTigRecord & tr) {
 tgTig &
 tgTig::operator=(tgTig & tg) {
   _tigID               = tg._tigID;
- 
+
   _coverageStat        = tg._coverageStat;
   _microhetProb        = tg._microhetProb;
 

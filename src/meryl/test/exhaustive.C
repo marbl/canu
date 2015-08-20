@@ -1,3 +1,24 @@
+
+/******************************************************************************
+ *
+ *  This file is part of canu, a software program that assembles whole-genome
+ *  sequencing reads into contigs.
+ *
+ *  This software is based on:
+ *    'Celera Assembler' (http://wgs-assembler.sourceforge.net)
+ *    the 'kmer package' (http://kmer.sourceforge.net)
+ *  both originally distributed by Applera Corporation under the GNU General
+ *  Public License, version 2.
+ *
+ *  Canu branched from Celera Assembler at its revision 4587.
+ *  Canu branched from the kmer project at its revision 1994.
+ *
+ *  Modifications by:
+ *
+ *  File 'README.licenses' in the root directory of this distribution contains
+ *  full conditions and disclaimers for each license.
+ */
+
 #include "bio++.H"
 #include "libmeryl.H"
 #include "kmerlite.H"
@@ -147,7 +168,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "STEP 3 BATCH "uint32FMTW(2)":  Check\n", batch);
     nod = dict_first(merDict);
     while (nod) {
-      int32           val = (int32)dnode_get(nod); 
+      int32           val = (int32)dnode_get(nod);
       kMerLite const  *nodmer = (kMerLite const *)dnode_getkey(nod);
 
       if (val != 0) {

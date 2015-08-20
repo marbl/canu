@@ -1,3 +1,25 @@
+#!perl
+
+###############################################################################
+ #
+ #  This file is part of canu, a software program that assembles whole-genome
+ #  sequencing reads into contigs.
+ #
+ #  This software is based on:
+ #    'Celera Assembler' (http://wgs-assembler.sourceforge.net)
+ #    the 'kmer package' (http://kmer.sourceforge.net)
+ #  both originally distributed by Applera Corporation under the GNU General
+ #  Public License, version 2.
+ #
+ #  Canu branched from Celera Assembler at its revision 4587.
+ #  Canu branched from the kmer project at its revision 1994.
+ #
+ #  Modifications by:
+ #
+ #  File 'README.licenses' in the root directory of this distribution contains
+ #  full conditions and disclaimers for each license.
+ ##
+
 #!/usr/bin/perl
 #
 #  Checkout and tar up src for each commit.
@@ -104,7 +126,7 @@ foreach my $wgsrev (@keys) {
         $kmerev = $1  if (m/^Revision:\s+(\d+)/);
     }
     close(L);
- 
+
     die "Didn't find a kmer revision in $wgsbyd/$dirdate/kmer/kmer.err.\n"  if ($kmerev eq "0000");
 
     if (! -e "$wgsbyd/kmer$kmerev") {
@@ -134,7 +156,7 @@ foreach my $wgsrev (@keys) {
 
     if (! -e "$wgsbyd/$dirdate/src/build.err") {
         print "$dirdate -- $wgsrev COMPILE\n";
-    
+
         open(F, "> $wgsbyd/$dirdate/src/build.err");
         print F "Waiting to compile.\n";
         close(F);

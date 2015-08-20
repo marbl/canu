@@ -1,22 +1,31 @@
-/**************************************************************************
- * This file is part of Celera Assembler, a software program that
- * assembles whole-genome shotgun reads into contigs and scaffolds.
- * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
+
+/******************************************************************************
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ *  This file is part of canu, a software program that assembles whole-genome
+ *  sequencing reads into contigs.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ *  This software is based on:
+ *    'Celera Assembler' (http://wgs-assembler.sourceforge.net)
+ *    the 'kmer package' (http://kmer.sourceforge.net)
+ *  both originally distributed by Applera Corporation under the GNU General
+ *  Public License, version 2.
  *
- * You should have received (LICENSE.txt) a copy of the GNU General Public
- * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *************************************************************************/
+ *  Canu branched from Celera Assembler at its revision 4587.
+ *  Canu branched from the kmer project at its revision 1994.
+ *
+ *  Modifications by:
+ *
+ *    Brian P. Walenz from 2007-NOV-02 to 2013-AUG-01
+ *      are Copyright 2007-2008,2010,2012-2013 J. Craig Venter Institute, and
+ *      are subject to the GNU General Public License version 2
+ *
+ *    Sergey Koren from 2008-OCT-29 to 2009-MAR-31
+ *      are Copyright 2008-2009 J. Craig Venter Institute, and
+ *      are subject to the GNU General Public License version 2
+ *
+ *  File 'README.licenses' in the root directory of this distribution contains
+ *  full conditions and disclaimers for each license.
+ */
 
 #ifndef AS_UTL_FASTA_H
 #define AS_UTL_FASTA_H
@@ -61,11 +70,11 @@ AS_UTL_getSpaceArray() {
    return AS_UTL_isspacearray;
 }
 
-int 
+int
 AS_UTL_isValidSequence(char *s, int sl);
 
 //  Writes sequence as fasta, with at most 'bl' letters per line (unlimited if 0).
-void 
+void
 AS_UTL_writeFastA(FILE *f,
                   char *s, int sl, int bl,
                   char *h, ...);

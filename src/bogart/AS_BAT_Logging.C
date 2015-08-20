@@ -1,23 +1,35 @@
 
-/**************************************************************************
- * This file is part of Celera Assembler, a software program that
- * assembles whole-genome shotgun reads into contigs and scaffolds.
- * Copyright (C) 1999-2004, The Venter Institute. All rights reserved.
+/******************************************************************************
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ *  This file is part of canu, a software program that assembles whole-genome
+ *  sequencing reads into contigs.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ *  This software is based on:
+ *    'Celera Assembler' (http://wgs-assembler.sourceforge.net)
+ *    the 'kmer package' (http://kmer.sourceforge.net)
+ *  both originally distributed by Applera Corporation under the GNU General
+ *  Public License, version 2.
  *
- * You should have received (LICENSE.txt) a copy of the GNU General Public
- * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *************************************************************************/
+ *  Canu branched from Celera Assembler at its revision 4587.
+ *  Canu branched from the kmer project at its revision 1994.
+ *
+ *  This file is derived from:
+ *
+ *    src/AS_BAT/AS_BAT_Logging.C
+ *
+ *  Modifications by:
+ *
+ *    Brian P. Walenz from 2012-JUL-29 to 2013-AUG-01
+ *      are Copyright 2012-2013 J. Craig Venter Institute, and
+ *      are subject to the GNU General Public License version 2
+ *
+ *    Brian P. Walenz beginning on 2014-DEC-19
+ *      are Copyright 2014 Battelle National Biodefense Institute, and
+ *      are subject to the BSD 3-Clause License
+ *
+ *  File 'README.licenses' in the root directory of this distribution contains
+ *  full conditions and disclaimers for each license.
+ */
 
 static const char *rcsid = "$Id$";
 
@@ -106,9 +118,9 @@ uint64 LOG_OVERLAPS_USED               = 0x0000000000000002;  //  Report overlap
 uint64 LOG_CHUNK_GRAPH                 = 0x0000000000000004;  //  Report the chunk graph as we build it
 uint64 LOG_INTERSECTIONS               = 0x0000000000000008;  //  Report intersections found when building initial unitigs
 uint64 LOG_POPULATE_UNITIG             = 0x0000000000000010;  //  Report building of initial unitigs (both unitig creation and fragment placement)
-uint64 LOG_INTERSECTION_BREAKING       = 0x0000000000000020;  //  
-uint64 LOG_INTERSECTION_BUBBLES        = 0x0000000000000040;  //  
-uint64 LOG_INTERSECTION_BUBBLES_DEBUG  = 0x0000000000000080;  //  
+uint64 LOG_INTERSECTION_BREAKING       = 0x0000000000000020;  //
+uint64 LOG_INTERSECTION_BUBBLES        = 0x0000000000000040;  //
+uint64 LOG_INTERSECTION_BUBBLES_DEBUG  = 0x0000000000000080;  //
 uint64 LOG_INTERSECTION_JOINING        = 0x0000000000000100;  //
 uint64 LOG_INTERSECTION_JOINING_DEBUG  = 0x0000000000000200;  //
 uint64 LOG_INITIAL_CONTAINED_PLACEMENT = 0x0000000000000400;  //

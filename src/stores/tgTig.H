@@ -1,4 +1,27 @@
 
+/******************************************************************************
+ *
+ *  This file is part of canu, a software program that assembles whole-genome
+ *  sequencing reads into contigs.
+ *
+ *  This software is based on:
+ *    'Celera Assembler' (http://wgs-assembler.sourceforge.net)
+ *    the 'kmer package' (http://kmer.sourceforge.net)
+ *  both originally distributed by Applera Corporation under the GNU General
+ *  Public License, version 2.
+ *
+ *  Canu branched from Celera Assembler at its revision 4587.
+ *  Canu branched from the kmer project at its revision 1994.
+ *
+ *  Modifications by:
+ *
+ *    Brian P. Walenz beginning on 2014-DEC-22
+ *      are Copyright 2014-2015 Battelle National Biodefense Institute, and
+ *      are subject to the BSD 3-Clause License
+ *
+ *  File 'README.licenses' in the root directory of this distribution contains
+ *  full conditions and disclaimers for each license.
+ */
 
 #ifndef TG_TIG_H
 #define TG_TIG_H
@@ -122,7 +145,7 @@ public:
   uint32              _objID;            //  ID of this object
 
   uint32              _isRead      : 1;  //  A full length read alignment
-  uint32              _isUnitig    : 1;  //  
+  uint32              _isUnitig    : 1;  //
   uint32              _isContig    : 1;  //
 
   uint32              _isReverse   : 1;  //  Child is oriented forward relative to parent, used during consensus.
@@ -193,15 +216,15 @@ public:
   uint32               layoutLength(void)      { return(_layoutLen); };
 
   uint32               gappedLength(void)      { return(_gappedLen);   };
-  char                *gappedBases(void)       { return(_gappedBases); }; 
-  char                *gappedQuals(void)       { return(_gappedBases); }; 
+  char                *gappedBases(void)       { return(_gappedBases); };
+  char                *gappedQuals(void)       { return(_gappedBases); };
 
 private:
   void                 buildUngapped(void);
 public:
   uint32               ungappedLength(void)    { buildUngapped();  return(_ungappedLen);   };
-  char                *ungappedBases(void)     { buildUngapped();  return(_ungappedBases); }; 
-  char                *ungappedQuals(void)     { buildUngapped();  return(_ungappedBases); }; 
+  char                *ungappedBases(void)     { buildUngapped();  return(_ungappedBases); };
+  char                *ungappedQuals(void)     { buildUngapped();  return(_ungappedBases); };
 
   uint32               numberOfChildren(void)  { return(_childrenLen); };
   tgPosition          *getChild(uint32 c)      {

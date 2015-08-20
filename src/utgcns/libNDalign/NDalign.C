@@ -1,3 +1,32 @@
+
+/******************************************************************************
+ *
+ *  This file is part of canu, a software program that assembles whole-genome
+ *  sequencing reads into contigs.
+ *
+ *  This software is based on:
+ *    'Celera Assembler' (http://wgs-assembler.sourceforge.net)
+ *    the 'kmer package' (http://kmer.sourceforge.net)
+ *  both originally distributed by Applera Corporation under the GNU General
+ *  Public License, version 2.
+ *
+ *  Canu branched from Celera Assembler at its revision 4587.
+ *  Canu branched from the kmer project at its revision 1994.
+ *
+ *  This file is derived from:
+ *
+ *    src/overlapInCore/overlapAlign.C
+ *
+ *  Modifications by:
+ *
+ *    Brian P. Walenz beginning on 2015-JUN-17
+ *      are Copyright 2015 Battelle National Biodefense Institute, and
+ *      are subject to the BSD 3-Clause License
+ *
+ *  File 'README.licenses' in the root directory of this distribution contains
+ *  full conditions and disclaimers for each license.
+ */
+
 #include "NDalign.H"
 
 #include "kMer.H"
@@ -444,7 +473,7 @@ NDalign::findHits(void) {
               kmer, apos-bpos, _minDiag, _maxDiag);
     assert(apos - bpos >= _minDiag);  //  ...these too.
     assert(apos - bpos <= _maxDiag);
-    
+
     _rawhits.push_back(exactMatch(apos, bpos, _merSize));
   }
 
@@ -597,7 +626,7 @@ NDalign::processHits(void) {
 
     if (((score() <  _editDist->score())) ||
         ((score() <= _editDist->score()) && (length() > ((aHi - aLo) + (bHi - bLo) + _editDist->Left_Delta_Len) / 2))) {
-        
+
 #ifdef DEBUG_ALGORITHM
       fprintf(stderr, "NDalign::processHits()-- Save better alignment - OLD length %u erate %f score %u (%d-%d %d-%d) ",
               length(), erate(), score(), abgn(), aend(), bbgn(), bend());
@@ -606,7 +635,7 @@ NDalign::processHits(void) {
       _bestResult.save(aLo, aHi, bLo, bHi, _editDist->score(), olapType, _editDist->Left_Delta_Len, _editDist->Left_Delta);
 
       display("NDalign::processHits()-- ", false);
-    
+
       _bestResult.setErate(1.0 - (double)(_matches + _gapmatches) / (length() - _freegaps));
 
 #ifdef DEBUG_ALGORITHM
@@ -704,14 +733,14 @@ NDalign::realignForward(bool verbose, bool displayAlign) {
     _bestResult.save(aLo, aHi, bLo, bHi, _editDist->score(), olapType, _editDist->Left_Delta_Len, _editDist->Left_Delta);
 
     display("NDalign::realignForward()-- ", false);
-    
+
     _bestResult.setErate(1.0 - (double)(_matches + _gapmatches) / (length() - _freegaps));
 
     if (displayAlign)
       fprintf(stderr, "NDalign::realignForward()-- Save better alignment - NEW length %u erate %f score %u (%d-%d %d-%d)\n",
               length(), erate(), score(), abgn(), aend(), bbgn(), bend());
-    
-  } 
+
+  }
 
   else if (displayAlign) {
     fprintf(stderr, "NDalign::realignForward()-- Alignment no better   - OLD length %u erate %f score %u (%d-%d %d-%d)\n",
@@ -851,7 +880,7 @@ NDalign::display(char    *prefix,
       if (delta[k] > 0) {
         _botDisplay[bot_len++] = '-';
         i++;
-        
+
       } else {
         _botDisplay[bot_len++] = b[j++];
       }

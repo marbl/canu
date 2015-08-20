@@ -1,3 +1,44 @@
+
+/******************************************************************************
+ *
+ *  This file is part of canu, a software program that assembles whole-genome
+ *  sequencing reads into contigs.
+ *
+ *  This software is based on:
+ *    'Celera Assembler' (http://wgs-assembler.sourceforge.net)
+ *    the 'kmer package' (http://kmer.sourceforge.net)
+ *  both originally distributed by Applera Corporation under the GNU General
+ *  Public License, version 2.
+ *
+ *  Canu branched from Celera Assembler at its revision 4587.
+ *  Canu branched from the kmer project at its revision 1994.
+ *
+ *  This file is derived from:
+ *
+ *    kmer/libutil/bitPackedFile.C
+ *
+ *  Modifications by:
+ *
+ *    Brian P. Walenz from 2003-JAN-02 to 2004-APR-01
+ *      are Copyright 2003-2004 Applera Corporation, and
+ *      are subject to the GNU General Public License version 2
+ *
+ *    Brian P. Walenz from 2004-MAR-29 to 2004-OCT-10
+ *      are Copyright 2004 Brian P. Walenz, and
+ *      are subject to the GNU General Public License version 2
+ *
+ *    Brian P. Walenz from 2005-MAR-16 to 2014-APR-11
+ *      are Copyright 2005-2008,2012,2014 J. Craig Venter Institute, and
+ *      are subject to the GNU General Public License version 2
+ *
+ *    Brian P. Walenz beginning on 2014-DEC-05
+ *      are Copyright 2014 Battelle National Biodefense Institute, and
+ *      are subject to the BSD 3-Clause License
+ *
+ *  File 'README.licenses' in the root directory of this distribution contains
+ *  full conditions and disclaimers for each license.
+ */
+
 #include "AS_global.H"
 #include "bitPackedFile.H"
 #include "AS_UTL_fileIO.H"
@@ -315,7 +356,7 @@ bitPackedFile::seekBzip2(uint64 bitpos) {
   if (endianess_flipped)
     for (uint32 i=lastlen; i<wordsread; i++)
       _bfr[i] = uint64Swap(_bfr[i]);
-  
+
   //  Clear any words that we didn't read (supposedly, because we hit
   //  EOF).
   //
@@ -410,7 +451,7 @@ bitPackedFile::seek(uint64 bitpos) {
   //
   if (_forceFirstLoad == false) {
     uint64 np = bitpos >> 6;
-    
+
     if ((_pos <= np) && (np <= _pos + _bfrmax - 32)) {
       _bit = bitpos - (_pos << 6);
       stat_seekInside++;

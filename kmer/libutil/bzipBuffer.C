@@ -1,3 +1,28 @@
+
+/******************************************************************************
+ *
+ *  This file is part of canu, a software program that assembles whole-genome
+ *  sequencing reads into contigs.
+ *
+ *  This software is based on:
+ *    'Celera Assembler' (http://wgs-assembler.sourceforge.net)
+ *    the 'kmer package' (http://kmer.sourceforge.net)
+ *  both originally distributed by Applera Corporation under the GNU General
+ *  Public License, version 2.
+ *
+ *  Canu branched from Celera Assembler at its revision 4587.
+ *  Canu branched from the kmer project at its revision 1994.
+ *
+ *  Modifications by:
+ *
+ *    Brian P. Walenz from 2006-JUN-23 to 2014-APR-11
+ *      are Copyright 2006,2014 J. Craig Venter Institute, and
+ *      are subject to the GNU General Public License version 2
+ *
+ *  File 'README.licenses' in the root directory of this distribution contains
+ *  full conditions and disclaimers for each license.
+ */
+
 #include "util++.H"
 
 #include <stdio.h>
@@ -185,7 +210,7 @@ bzipBuffer::read(char *buf, size_t len) {
     //  We fill the buffer again if it is empty.
     //
     //  The number of bytes actually put into buf is returned.
-      
+
     size_t   bCopied = 0;   //  Number of bytes copied into the buffer
     size_t   bRead   = 0;   //  Number of bytes read into the buffer
     size_t   bAct    = 0;   //  Number of bytes actually read from disk

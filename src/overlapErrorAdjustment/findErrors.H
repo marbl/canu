@@ -1,4 +1,23 @@
 
+/******************************************************************************
+ *
+ *  This file is part of canu, a software program that assembles whole-genome
+ *  sequencing reads into contigs.
+ *
+ *  This software is based on:
+ *    'Celera Assembler' (http://wgs-assembler.sourceforge.net)
+ *    the 'kmer package' (http://kmer.sourceforge.net)
+ *  both originally distributed by Applera Corporation under the GNU General
+ *  Public License, version 2.
+ *
+ *  Canu branched from Celera Assembler at its revision 4587.
+ *  Canu branched from the kmer project at its revision 1994.
+ *
+ *  Modifications by:
+ *
+ *  File 'README.licenses' in the root directory of this distribution contains
+ *  full conditions and disclaimers for each license.
+ */
 
 #include "AS_global.H"
 
@@ -22,7 +41,7 @@ using namespace std;
 
 
 
-#define Sign(a) ( ((a) > 0) - ((a) < 0) ) 
+#define Sign(a) ( ((a) > 0) - ((a) < 0) )
 
 
 
@@ -247,7 +266,7 @@ struct Thread_Work_Area_t {
   uint64        nextOlap;
 
   feParameters *G;
-  
+
   Frag_List_t  *frag_list;
 
   char          rev_seq[AS_MAX_READLEN + 1];  //  Used in Process_Olap to hold RC of the B read

@@ -1,3 +1,37 @@
+#!perl
+
+###############################################################################
+ #
+ #  This file is part of canu, a software program that assembles whole-genome
+ #  sequencing reads into contigs.
+ #
+ #  This software is based on:
+ #    'Celera Assembler' (http://wgs-assembler.sourceforge.net)
+ #    the 'kmer package' (http://kmer.sourceforge.net)
+ #  both originally distributed by Applera Corporation under the GNU General
+ #  Public License, version 2.
+ #
+ #  Canu branched from Celera Assembler at its revision 4587.
+ #  Canu branched from the kmer project at its revision 1994.
+ #
+ #  This file is derived from:
+ #
+ #    src/AS_GKP/fastqSimulate-perfectSep.pl
+ #
+ #  Modifications by:
+ #
+ #    Brian P. Walenz from 2011-DEC-28 to 2013-AUG-01
+ #      are Copyright 2011,2013 J. Craig Venter Institute, and
+ #      are subject to the GNU General Public License version 2
+ #
+ #    Brian P. Walenz beginning on 2015-JAN-13
+ #      are Copyright 2015 Battelle National Biodefense Institute, and
+ #      are subject to the BSD 3-Clause License
+ #
+ #  File 'README.licenses' in the root directory of this distribution contains
+ #  full conditions and disclaimers for each license.
+ ##
+
 #!/usr/bin/perl
 
 use strict;
@@ -113,7 +147,7 @@ while (!eof(MP1) && !eof(MP2)) {
             print tMP2 "$a2\n$b2\n$c2\n$d2\n";
             print tMPi "$a1\n$b1\n$c1\n$d1\n";
             print tMPi "$a2\n$b2\n$c2\n$d2\n";
-            
+
         } elsif ($typ eq "fPE") {
             print fPE1 "$a1\n$b1\n$c1\n$d1\n";
             print fPE2 "$a2\n$b2\n$c2\n$d2\n";

@@ -1,3 +1,40 @@
+
+/******************************************************************************
+ *
+ *  This file is part of canu, a software program that assembles whole-genome
+ *  sequencing reads into contigs.
+ *
+ *  This software is based on:
+ *    'Celera Assembler' (http://wgs-assembler.sourceforge.net)
+ *    the 'kmer package' (http://kmer.sourceforge.net)
+ *  both originally distributed by Applera Corporation under the GNU General
+ *  Public License, version 2.
+ *
+ *  Canu branched from Celera Assembler at its revision 4587.
+ *  Canu branched from the kmer project at its revision 1994.
+ *
+ *  Modifications by:
+ *
+ *    Brian P. Walenz from 2003-JAN-02 to 2003-OCT-20
+ *      are Copyright 2003 Applera Corporation, and
+ *      are subject to the GNU General Public License version 2
+ *
+ *    Brian P. Walenz from 2004-APR-21 to 2004-OCT-10
+ *      are Copyright 2004 Brian P. Walenz, and
+ *      are subject to the GNU General Public License version 2
+ *
+ *    Brian P. Walenz from 2005-MAR-20 to 2014-APR-11
+ *      are Copyright 2005,2007,2012-2014 J. Craig Venter Institute, and
+ *      are subject to the GNU General Public License version 2
+ *
+ *    Liliana Florea on 2010-DEC-06
+ *      are Copyright 2010 Liliana Florea, and
+ *      are subject to the GNU General Public License version 2
+ *
+ *  File 'README.licenses' in the root directory of this distribution contains
+ *  full conditions and disclaimers for each license.
+ */
+
 #ifndef EXISTDB_H
 #define EXISTDB_H
 

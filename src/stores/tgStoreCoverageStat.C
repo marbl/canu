@@ -1,21 +1,39 @@
 
-/**************************************************************************
- * Copyright (C) 2011, J Craig Venter Institute. All rights reserved.
+/******************************************************************************
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ *  This file is part of canu, a software program that assembles whole-genome
+ *  sequencing reads into contigs.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ *  This software is based on:
+ *    'Celera Assembler' (http://wgs-assembler.sourceforge.net)
+ *    the 'kmer package' (http://kmer.sourceforge.net)
+ *  both originally distributed by Applera Corporation under the GNU General
+ *  Public License, version 2.
  *
- * You should have received (LICENSE.txt) a copy of the GNU General Public
- * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *************************************************************************/
+ *  Canu branched from Celera Assembler at its revision 4587.
+ *  Canu branched from the kmer project at its revision 1994.
+ *
+ *  This file is derived from:
+ *
+ *    src/AS_BAT/computeCoverageStat.C
+ *
+ *  Modifications by:
+ *
+ *    Brian P. Walenz from 2011-DEC-20 to 2013-AUG-01
+ *      are Copyright 2011-2013 J. Craig Venter Institute, and
+ *      are subject to the GNU General Public License version 2
+ *
+ *    Jason Miller on 2012-JUL-18
+ *      are Copyright 2012 J. Craig Venter Institute, and
+ *      are subject to the GNU General Public License version 2
+ *
+ *    Brian P. Walenz beginning on 2015-AUG-14
+ *      are Copyright 2015 Battelle National Biodefense Institute, and
+ *      are subject to the BSD 3-Clause License
+ *
+ *  File 'README.licenses' in the root directory of this distribution contains
+ *  full conditions and disclaimers for each license.
+ */
 
 const char *mainid = "$Id$";
 
@@ -154,7 +172,7 @@ getGlobalArrivalRate(tgStore         *tigStore,
   int32    big_spans_in_unitigs   = 0; // formerly arMax
 
   // Go through all the unitigs to sum rho and unitig arrival frags
-  
+
   allRho = new uint32 [tigStore->numTigs()];
 
   for (uint32 i=0; i<tigStore->numTigs(); i++) {
@@ -203,9 +221,9 @@ getGlobalArrivalRate(tgStore         *tigStore,
   if (genomeSize > 0 || tigStore->numTigs()==0) {
     delete [] allRho;
     return(globalRate);
-  } 
+  }
 
-  //  Calculate rho N50 
+  //  Calculate rho N50
 
   double rhoN50 = 0;
   if (useN50) {
@@ -258,7 +276,7 @@ getGlobalArrivalRate(tgStore         *tigStore,
   }
 
   //  Recompute based on just big unitigs. Big is 10Kbp.
-  double BIG_THRESHOLD = 0.5; 
+  double BIG_THRESHOLD = 0.5;
   int32 big_spans_in_rho = (int32) (sumRho / BIG_SPAN);
   fprintf(outSTA, "Size of big spans is %d\n", BIG_SPAN);
   fprintf(outSTA, "Number of big spans in unitigs is %d\n", big_spans_in_unitigs);
@@ -478,7 +496,7 @@ main(int argc, char **argv) {
     isNonRandom[ii] = libr->gkLibrary_isNonRandom();
     readLength[ii]  = read->gkRead_sequenceLength();
   }
-  
+
   //
   //  Compute global arrival rate.  This ain't cheap.
   //

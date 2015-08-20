@@ -1,21 +1,35 @@
 
-/**************************************************************************
- * Copyright (C) 2011, J Craig Venter Institute. All rights reserved.
+/******************************************************************************
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ *  This file is part of canu, a software program that assembles whole-genome
+ *  sequencing reads into contigs.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ *  This software is based on:
+ *    'Celera Assembler' (http://wgs-assembler.sourceforge.net)
+ *    the 'kmer package' (http://kmer.sourceforge.net)
+ *  both originally distributed by Applera Corporation under the GNU General
+ *  Public License, version 2.
  *
- * You should have received (LICENSE.txt) a copy of the GNU General Public
- * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *************************************************************************/
+ *  Canu branched from Celera Assembler at its revision 4587.
+ *  Canu branched from the kmer project at its revision 1994.
+ *
+ *  This file is derived from:
+ *
+ *    src/AS_BAT/memoryMappedFile.H
+ *
+ *  Modifications by:
+ *
+ *    Brian P. Walenz from 2012-FEB-16 to 2013-AUG-01
+ *      are Copyright 2012-2013 J. Craig Venter Institute, and
+ *      are subject to the GNU General Public License version 2
+ *
+ *    Brian P. Walenz beginning on 2014-NOV-26
+ *      are Copyright 2014-2015 Battelle National Biodefense Institute, and
+ *      are subject to the BSD 3-Clause License
+ *
+ *  File 'README.licenses' in the root directory of this distribution contains
+ *  full conditions and disclaimers for each license.
+ */
 
 #ifndef AS_UTL_MEMORYMAPPEDFILE_H
 #define AS_UTL_MEMORYMAPPEDFILE_H
@@ -78,7 +92,7 @@ public:
     //  FreeBSD supports MAP_NOCORE which will exclude the region from any core files generated.  Linux does not support it.
     //
     //  Linux supports MAP_NORESERVE which will not reserve swap space for the file.  When reserved, a write is guaranteed to succeed.
-    //  
+    //
     //  NOTA BENE!!  Even though it is writable, it CANNOT be extended.
 
     _data = (_type == memoryMappedFile_readOnly) ? mmap(0L, _length, PROT_READ,              MAP_FILE | MAP_SHARED, fd, 0)

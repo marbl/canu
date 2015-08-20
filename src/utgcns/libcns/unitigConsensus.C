@@ -1,23 +1,66 @@
 
-/**************************************************************************
- * This file is part of Celera Assembler, a software program that
- * assembles whole-genome shotgun reads into contigs and scaffolds.
- * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
+/******************************************************************************
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ *  This file is part of canu, a software program that assembles whole-genome
+ *  sequencing reads into contigs.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ *  This software is based on:
+ *    'Celera Assembler' (http://wgs-assembler.sourceforge.net)
+ *    the 'kmer package' (http://kmer.sourceforge.net)
+ *  both originally distributed by Applera Corporation under the GNU General
+ *  Public License, version 2.
  *
- * You should have received (LICENSE.txt) a copy of the GNU General Public
- * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *************************************************************************/
+ *  Canu branched from Celera Assembler at its revision 4587.
+ *  Canu branched from the kmer project at its revision 1994.
+ *
+ *  This file is derived from:
+ *
+ *    src/AS_CNS/MultiAlignUnitig.C
+ *    src/AS_CNS/MultiAlignUnitig.c
+ *    src/AS_CNS/MultiAlignment_CNS.c
+ *    src/utgcns/libcns/MultiAlignUnitig.C
+ *
+ *  Modifications by:
+ *
+ *    Michael Schatz on 2004-SEP-23
+ *      are Copyright 2004 The Institute for Genomics Research, and
+ *      are subject to the GNU General Public License version 2
+ *
+ *    Jason Miller on 2005-MAR-22
+ *      are Copyright 2005 The Institute for Genomics Research, and
+ *      are subject to the GNU General Public License version 2
+ *
+ *    Eli Venter from 2005-MAR-30 to 2008-FEB-13
+ *      are Copyright 2005-2006,2008 J. Craig Venter Institute, and
+ *      are subject to the GNU General Public License version 2
+ *
+ *    Gennady Denisov from 2005-MAY-09 to 2008-JUN-06
+ *      are Copyright 2005-2008 J. Craig Venter Institute, and
+ *      are subject to the GNU General Public License version 2
+ *
+ *    Brian P. Walenz from 2005-JUN-16 to 2013-OCT-04
+ *      are Copyright 2005-2013 J. Craig Venter Institute, and
+ *      are subject to the GNU General Public License version 2
+ *
+ *    Aaron Halpern from 2005-SEP-29 to 2006-OCT-03
+ *      are Copyright 2005-2006 J. Craig Venter Institute, and
+ *      are subject to the GNU General Public License version 2
+ *
+ *    Sergey Koren from 2008-FEB-27 to 2009-JUN-05
+ *      are Copyright 2008-2009 J. Craig Venter Institute, and
+ *      are subject to the GNU General Public License version 2
+ *
+ *    Sergey Koren beginning on 2011-OCT-27
+ *      are Copyright 2011 Battelle National Biodefense Institute, and
+ *      are subject to the BSD 3-Clause License
+ *
+ *    Brian P. Walenz beginning on 2014-NOV-17
+ *      are Copyright 2014-2015 Battelle National Biodefense Institute, and
+ *      are subject to the BSD 3-Clause License
+ *
+ *  File 'README.licenses' in the root directory of this distribution contains
+ *  full conditions and disclaimers for each license.
+ */
 
 static char *rcsid = "$Id$";
 
@@ -652,7 +695,7 @@ unitigConsensus::rebuild(bool recomputeFullConsensus, bool display) {
 
   abColID cid   = ma->firstColumn();
   int32   index = 0;
-    
+
   ma->columns().clear();
 
   frankensteinLen = 0;

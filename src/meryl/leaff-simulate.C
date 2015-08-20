@@ -1,3 +1,40 @@
+
+/******************************************************************************
+ *
+ *  This file is part of canu, a software program that assembles whole-genome
+ *  sequencing reads into contigs.
+ *
+ *  This software is based on:
+ *    'Celera Assembler' (http://wgs-assembler.sourceforge.net)
+ *    the 'kmer package' (http://kmer.sourceforge.net)
+ *  both originally distributed by Applera Corporation under the GNU General
+ *  Public License, version 2.
+ *
+ *  Canu branched from Celera Assembler at its revision 4587.
+ *  Canu branched from the kmer project at its revision 1994.
+ *
+ *  This file is derived from:
+ *
+ *    kmer/leaff/simseq.C
+ *
+ *  Modifications by:
+ *
+ *    Brian P. Walenz from 2004-JUN-24 to 2004-OCT-10
+ *      are Copyright 2004 Brian P. Walenz, and
+ *      are subject to the GNU General Public License version 2
+ *
+ *    Brian P. Walenz from 2008-SEP-22 to 2009-JUN-13
+ *      are Copyright 2008-2009 J. Craig Venter Institute, and
+ *      are subject to the GNU General Public License version 2
+ *
+ *    Brian P. Walenz beginning on 2014-DEC-08
+ *      are Copyright 2014 Battelle National Biodefense Institute, and
+ *      are subject to the BSD 3-Clause License
+ *
+ *  File 'README.licenses' in the root directory of this distribution contains
+ *  full conditions and disclaimers for each license.
+ */
+
 #include "AS_global.H"
 #include "mt19937ar.H"
 
@@ -62,9 +99,9 @@ insert(Align_t *aln, int in_pos, int in_optype) {
     switch (optype) {
       case INS:
         if (in_pos==i+1) {
-          if (tp) 
+          if (tp)
             tp->next = new_script(in_optype, 1, tp->next);
-          else 
+          else
             aln->script = new_script(in_optype, 1, aln->script);
           return;
         }
@@ -75,7 +112,7 @@ insert(Align_t *aln, int in_pos, int in_optype) {
         break;
 
       case SUB:
-            
+
       case MOV:
         if (i<in_pos && in_pos<=i+num) {
           int l = (in_optype==INS) ? (in_pos-i) : (in_pos-i-1);
@@ -88,7 +125,7 @@ insert(Align_t *aln, int in_pos, int in_optype) {
           } else if (!l) {
             if (tp)
               tp->next = new_script(in_optype, 1, t);
-            else 
+            else
               aln->script = new_script(in_optype, 1, aln->script);
             if (in_optype!=INS) t->num -= 1;
           } else {
@@ -132,7 +169,7 @@ print_simseq(char *seq, char *hdr, Align_t *aln, double P, int CUT, int COPY) {
   s = seq + aln->offset-1;
 
   for (t=aln->script; t; t=t->next) {
-    if (*s == 0) 
+    if (*s == 0)
       break;
 
     switch (t->optype) {
@@ -161,7 +198,7 @@ print_simseq(char *seq, char *hdr, Align_t *aln, double P, int CUT, int COPY) {
           s++;
         }
         break;
-                     
+
       case MOV:
         for (k=0; k<t->num; k++) {
           if (*s == 0) {
@@ -176,10 +213,10 @@ print_simseq(char *seq, char *hdr, Align_t *aln, double P, int CUT, int COPY) {
       default:
         fprintf(stderr, "Unrecognized optype (%d).\n", t->optype);
         break;
-    } 
+    }
   }
   fprintf(stdout, "\n");
-}    
+}
 
 
 
@@ -195,7 +232,7 @@ simseq(char *seq, char *hdr, int len, int N, int L, int C, double P) {
     /* generate a new sequence of length min(len,N) */
     start = RAND((len-L+1),1);
 
-    /* now create in_C non-identical copies */ 
+    /* now create in_C non-identical copies */
     for (j=0; j<C; j++) {
       /* generate a 'trivial' script for the sequence */
 

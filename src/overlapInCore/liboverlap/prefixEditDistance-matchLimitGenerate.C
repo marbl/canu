@@ -1,3 +1,28 @@
+
+/******************************************************************************
+ *
+ *  This file is part of canu, a software program that assembles whole-genome
+ *  sequencing reads into contigs.
+ *
+ *  This software is based on:
+ *    'Celera Assembler' (http://wgs-assembler.sourceforge.net)
+ *    the 'kmer package' (http://kmer.sourceforge.net)
+ *  both originally distributed by Applera Corporation under the GNU General
+ *  Public License, version 2.
+ *
+ *  Canu branched from Celera Assembler at its revision 4587.
+ *  Canu branched from the kmer project at its revision 1994.
+ *
+ *  Modifications by:
+ *
+ *    Brian P. Walenz beginning on 2015-JUN-02
+ *      are Copyright 2015 Battelle National Biodefense Institute, and
+ *      are subject to the BSD 3-Clause License
+ *
+ *  File 'README.licenses' in the root directory of this distribution contains
+ *  full conditions and disclaimers for each license.
+ */
+
 #include "AS_global.H"
 #include "gkStore.H"
 
@@ -103,7 +128,7 @@ main(int argc, char **argv) {
       fwrite(&MAX_ERRORS, sizeof(int32),  1,          F);
       fwrite(&erate,      sizeof(double), 1,          F);
       fwrite( starts,     sizeof(int32),  MAX_ERRORS, F);
-      
+
       fclose(F);
     }
 

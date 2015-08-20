@@ -1,3 +1,32 @@
+
+###############################################################################
+ #
+ #  This file is part of canu, a software program that assembles whole-genome
+ #  sequencing reads into contigs.
+ #
+ #  This software is based on:
+ #    'Celera Assembler' (http://wgs-assembler.sourceforge.net)
+ #    the 'kmer package' (http://kmer.sourceforge.net)
+ #  both originally distributed by Applera Corporation under the GNU General
+ #  Public License, version 2.
+ #
+ #  Canu branched from Celera Assembler at its revision 4587.
+ #  Canu branched from the kmer project at its revision 1994.
+ #
+ #  This file is derived from:
+ #
+ #    src/pipelines/ca3g/CorrectReads.pm
+ #
+ #  Modifications by:
+ #
+ #    Brian P. Walenz beginning on 2015-APR-09
+ #      are Copyright 2015 Battelle National Biodefense Institute, and
+ #      are subject to the BSD 3-Clause License
+ #
+ #  File 'README.licenses' in the root directory of this distribution contains
+ #  full conditions and disclaimers for each license.
+ ##
+
 package canu::CorrectReads;
 
 require Exporter;
@@ -308,7 +337,7 @@ sub lengthStats (@) {
     }
 
     $mean = int($total / scalar(@v) + 0.5);
-    
+
     return($mean, $n50);
 }
 
@@ -447,7 +476,7 @@ sub expensiveFilter ($$) {
         print O "$v[0]\t$v[1]\t$v[3]\n";
 
         $corReads{$v[0]} = 1;
-        
+
         push @corLengthCorFilter, $v[3];
 
         if ($totCorLengthOut >= $minTotal) {  #  Compare against corrected bases

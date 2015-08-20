@@ -1,23 +1,35 @@
 
-/**************************************************************************
- * This file is part of Celera Assembler, a software program that
- * assembles whole-genome shotgun reads into contigs and scaffolds.
- * Copyright (C) 1999-2004, The Venter Institute. All rights reserved.
+/******************************************************************************
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ *  This file is part of canu, a software program that assembles whole-genome
+ *  sequencing reads into contigs.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ *  This software is based on:
+ *    'Celera Assembler' (http://wgs-assembler.sourceforge.net)
+ *    the 'kmer package' (http://kmer.sourceforge.net)
+ *  both originally distributed by Applera Corporation under the GNU General
+ *  Public License, version 2.
  *
- * You should have received (LICENSE.txt) a copy of the GNU General Public
- * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *************************************************************************/
+ *  Canu branched from Celera Assembler at its revision 4587.
+ *  Canu branched from the kmer project at its revision 1994.
+ *
+ *  This file is derived from:
+ *
+ *    src/AS_BAT/AS_BAT_MergeSplitJoin.C
+ *
+ *  Modifications by:
+ *
+ *    Brian P. Walenz from 2011-FEB-15 to 2014-MAY-03
+ *      are Copyright 2011-2014 J. Craig Venter Institute, and
+ *      are subject to the GNU General Public License version 2
+ *
+ *    Brian P. Walenz beginning on 2014-OCT-09
+ *      are Copyright 2014-2015 Battelle National Biodefense Institute, and
+ *      are subject to the BSD 3-Clause License
+ *
+ *  File 'README.licenses' in the root directory of this distribution contains
+ *  full conditions and disclaimers for each license.
+ */
 
 static const char *rcsid = "$Id$";
 
@@ -444,7 +456,7 @@ mergeBubbles_checkFrags(UnitigVector &unitigs,
   //  * Isolate down to one 'best' placement for each fragment.
   //    * Must be within fFrg/lFrg.
   //    * Resolve ties with
-  //      * Placement in the original unitig       
+  //      * Placement in the original unitig
   //      * Error rates on overlaps
   //      * Mate pairs
 
@@ -573,7 +585,7 @@ mergeBubbles_checkFrags(UnitigVector &unitigs,
   //  Explicitly DO NOT propagate the contained, parent, ahang or bhang from the bubble here.  We
   //  could figure all this stuff out, but it definitely is NOT just a simple copy from the bubble
   //  unitig (for example, we could add the bubble unitig reversed).
-  //  
+  //
   //
   for (uint32 fi=0; fi<bubble->ufpath.size(); fi++) {
     ufNode  nFrg;
@@ -897,14 +909,14 @@ markRepeats_computeUnitigCoverage(Unitig *tig) {
   }
 
   coverage.merge();
-  
+
   intervalDepth  depth(coverage);
 
   uint64   minCov = 0;           //  Probably 1 or 2
-  uint64   medCov = 0;           //  
+  uint64   medCov = 0;           //
   uint64   aveCov = 0;           //  If repeats present, might be high
   uint64   modCov = 0;           //  Probably not useful, due to read bias
-  uint64   maxCov = UINT32_MAX;  //  
+  uint64   maxCov = UINT32_MAX;  //
 
   for (uint32 dd=0; dd<depth.numberOfIntervals(); dd++)
     maxCov = MAX(maxCov, depth.de(dd));
@@ -1076,7 +1088,7 @@ markRepeats_filterIntervalsSpannedByFragment(Unitig                    *target,
 #endif
       aligned.hi(i) = newexp;
     }
-  
+
     else if (newcntid != UINT32_MAX) {
 #ifdef VERBOSE_REGION_FITTING
       writeLog("markRepeats()--  region["F_U32"].end contracts from "F_U32" to "F_U32" at frag "F_U32"\n", i, aligned.hi(i), newcnt, newcntid);
@@ -1532,7 +1544,7 @@ markRepeats_breakUnitigs(UnitigVector                    &unitigs,
 
       //  If the fragment ends after the next junction, this fragment goes to the next
       //  unitig.  Otherwise, to the current one.
-      //  
+      //
       if ((nextBreakPoint < breakpoints.size()) &&
           (breakpoints[nextBreakPoint].point < end) &&
           (breakpoints[nextBreakPoint].rptLeft == true))
@@ -1671,10 +1683,10 @@ markRepeats_shatterRepeats(UnitigVector   &unitigs,
 //
 //    o Fragment is fully contained in this unitig.  Why isn't it a bubble?  It could be contained
 //      completely in a repeat, and the repeat is in two different unitigs.
-//  
+//
 //    o Fragment is partially aligned.  This could be indicating a repeat or chimera that we should
 //      be splitting.  We save the location of the break, and direction of the unaligned piece.
-//  
+//
 //  After all fragments are 'placed' the list of breaks is examined.
 //
 //    o A chimer will induce about as many breaks as the local depth.  Breaks will be on both
@@ -1829,7 +1841,7 @@ mergeSplitJoin(UnitigVector &unitigs,
   writeLog("repeatDetect()-- working on "F_U32" unitigs, with "F_U32" threads.\n", tiLimit, numThreads);
 
   omp_init_lock(&markRepeat_breakUnitigs_Lock);
- 
+
 #pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 ti=0; ti<tiLimit; ti++) {
     Unitig        *target = unitigs[ti];
@@ -1857,9 +1869,9 @@ mergeSplitJoin(UnitigVector &unitigs,
 
   //  do we need to re-mark repeats after joining?
 
-  //  SPLIT MARKED REPEATS - 
+  //  SPLIT MARKED REPEATS -
 
-  //  SPLIT MARKED CHIMERA - 
+  //  SPLIT MARKED CHIMERA -
 
   //  MERGE LEFTOVERS - these are the leftover pieces after repeats/chimera are split.  Hopefully
   //  they'll just be low coverage spurs

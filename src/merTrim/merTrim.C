@@ -1,23 +1,39 @@
 
-/**************************************************************************
- * This file is part of Celera Assembler, a software program that
- * assembles whole-genome shotgun reads into contigs and scaffolds.
- * Copyright (C) 2010, J. Craig Venter Institute
+/******************************************************************************
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ *  This file is part of canu, a software program that assembles whole-genome
+ *  sequencing reads into contigs.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ *  This software is based on:
+ *    'Celera Assembler' (http://wgs-assembler.sourceforge.net)
+ *    the 'kmer package' (http://kmer.sourceforge.net)
+ *  both originally distributed by Applera Corporation under the GNU General
+ *  Public License, version 2.
  *
- * You should have received (LICENSE.txt) a copy of the GNU General Public
- * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *************************************************************************/
+ *  Canu branched from Celera Assembler at its revision 4587.
+ *  Canu branched from the kmer project at its revision 1994.
+ *
+ *  This file is derived from:
+ *
+ *    src/AS_MER/merTrim.C
+ *
+ *  Modifications by:
+ *
+ *    Brian P. Walenz from 2010-FEB-22 to 2014-APR-11
+ *      are Copyright 2010-2014 J. Craig Venter Institute, and
+ *      are subject to the GNU General Public License version 2
+ *
+ *    Sergey Koren on 2010-JUL-12
+ *      are Copyright 2010 J. Craig Venter Institute, and
+ *      are subject to the GNU General Public License version 2
+ *
+ *    Brian P. Walenz beginning on 2014-DEC-05
+ *      are Copyright 2014 Battelle National Biodefense Institute, and
+ *      are subject to the BSD 3-Clause License
+ *
+ *  File 'README.licenses' in the root directory of this distribution contains
+ *  full conditions and disclaimers for each license.
+ */
 
 const char *mainid = "$Id$";
 
@@ -733,7 +749,7 @@ public:
 
 
 //  Scan the sequence, counting the number of kmers verified.  If we find all of them, we're done.
-//  
+//
 uint32
 mertrimComputation::evaluate(void) {
 
@@ -765,7 +781,7 @@ mertrimComputation::evaluate(void) {
 
     nMersTested++;
 
-    //log.add("pos %d count %d\n", 
+    //log.add("pos %d count %d\n",
     //        rMS->thePositionInSequence() + g->merSize - 1,
     //        eDB->count(rMS->theCMer()));
 
@@ -780,7 +796,7 @@ mertrimComputation::evaluate(void) {
 
   if (VERBOSE > 0)
     log.add("INITIAL read %u %s len %u has %u mers, %u correct and %u trusted.\n",
-            readIID, readName, seqLen, nMersTested, nMersCorrect, nMersFound);          
+            readIID, readName, seqLen, nMersTested, nMersCorrect, nMersFound);
 
   if (nMersCorrect == nMersExpected)
     //  All mers correct, read is 100% verified!
@@ -1576,7 +1592,7 @@ mertrimComputation::attemptTrimming(bool doTrimming, char endTrimQV) {
     else
       //  End is bigger
       clrBgn = containsAdapterEnd;
-    
+
     if (clrBgn >= clrEnd) {
       clrBgn = 0;
       clrEnd = 0;
@@ -2301,13 +2317,13 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-f") == 0) {
       g->forceCorrection = true;
- 
+
     } else if (strcmp(argv[arg], "-NM") == 0) {
       g->correctMismatch = false;
- 
+
     } else if (strcmp(argv[arg], "-NI") == 0) {
       g->correctIndel = false;
- 
+
     } else if (strcmp(argv[arg], "-o") == 0) {
       g->fqOutputPath = argv[++arg];
       g->resPath      = argv[arg];

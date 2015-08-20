@@ -1,3 +1,48 @@
+
+/******************************************************************************
+ *
+ *  This file is part of canu, a software program that assembles whole-genome
+ *  sequencing reads into contigs.
+ *
+ *  This software is based on:
+ *    'Celera Assembler' (http://wgs-assembler.sourceforge.net)
+ *    the 'kmer package' (http://kmer.sourceforge.net)
+ *  both originally distributed by Applera Corporation under the GNU General
+ *  Public License, version 2.
+ *
+ *  Canu branched from Celera Assembler at its revision 4587.
+ *  Canu branched from the kmer project at its revision 1994.
+ *
+ *  This file is derived from:
+ *
+ *    kmer/leaff/leaff.C
+ *
+ *  Modifications by:
+ *
+ *    Brian P. Walenz from 2003-JAN-02 to 2003-OCT-14
+ *      are Copyright 2003 Applera Corporation, and
+ *      are subject to the GNU General Public License version 2
+ *
+ *    Brian P. Walenz from 2004-FEB-20 to 2004-OCT-10
+ *      are Copyright 2004 Brian P. Walenz, and
+ *      are subject to the GNU General Public License version 2
+ *
+ *    Brian P. Walenz from 2005-MAR-06 to 2014-APR-11
+ *      are Copyright 2005-2009,2011-2012,2014 J. Craig Venter Institute, and
+ *      are subject to the GNU General Public License version 2
+ *
+ *    Liliana Florea on 2011-NOV-16
+ *      are Copyright 2011 Liliana Florea, and
+ *      are subject to the GNU General Public License version 2
+ *
+ *    Brian P. Walenz beginning on 2014-AUG-22
+ *      are Copyright 2014-2015 Battelle National Biodefense Institute, and
+ *      are subject to the BSD 3-Clause License
+ *
+ *  File 'README.licenses' in the root directory of this distribution contains
+ *  full conditions and disclaimers for each license.
+ */
+
 #include "AS_global.H"
 
 #include "seqCache.H"
@@ -441,13 +486,13 @@ processArray(int argc, char **argv) {
 
         delete S;
       }
-          
+
     } else if (strcmp(argv[arg], "-W") == 0) {
       failIfNoSource();
 
       for (uint32 s=0; s<fasta->getNumberOfSequences(); s++)
         printSequence(s);
-          
+
     } else if (strcmp(argv[arg], "-G") == 0) {
       uint32 n = strtouint32(argv[++arg]);
       uint32 s = strtouint32(argv[++arg]);
@@ -467,7 +512,7 @@ processArray(int argc, char **argv) {
         uint32 p = 0;
 
         while (p < j)
-          seq[p++] = bases[MT.mtRandom32() & 0x3];            
+          seq[p++] = bases[MT.mtRandom32() & 0x3];
         seq[p] = 0;
 
         sprintf(def, "random%06"F_U32P, i);
@@ -524,17 +569,17 @@ processArray(int argc, char **argv) {
         printSequence(seqs[i]);
 
       delete [] seqs;
-          
+
     } else if (strcmp(argv[arg], "-q") == 0) {
       failIfNoSource();
       failIfNotRandomAccess();  //  Impossible to fix, or load whole thing into memory
       printIDsFromFile(argv[++arg]);
-          
+
     } else if (strcmp(argv[arg], "-6") == 0) {
       withLineBreaks = 60;
       if ((argv[arg+1] != 0L) && (argv[arg+1][0] != '-'))
         withLineBreaks = strtouint32(argv[++arg]);
-          
+
     } else if (strcmp(argv[arg], "-w") == 0) {
       toUppercase = !toUppercase;
       for (int z=0; z<256; z++)
@@ -542,18 +587,18 @@ processArray(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-R") == 0) {
       doReverse = !doReverse;
-          
+
     } else if (strcmp(argv[arg], "-C") == 0) {
       doComplement = !doComplement;
-          
+
     } else if (strcmp(argv[arg], "-H") == 0) {
       withDefLine    = !withDefLine;
       specialDefLine = 0L;
-          
+
     } else if (strcmp(argv[arg], "-h") == 0) {
       withDefLine    = true;
       specialDefLine = argv[++arg];
-          
+
     } else if (strcmp(argv[arg], "-e") == 0) {
       begPos = strtouint32(argv[++arg]);
       endPos = strtouint32(argv[++arg]);
@@ -782,7 +827,7 @@ processFile(char  *filename) {
     while ((data[pos] != 0) && (pos < len))
       pos++;
   }
- 
+
   processArray(argc, argv);
 
   delete [] argv;

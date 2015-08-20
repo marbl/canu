@@ -1,23 +1,48 @@
 
-/**************************************************************************
- * This file is part of Celera Assembler, a software program that
- * assembles whole-genome shotgun reads into contigs and scaffolds.
- * Copyright (C) 2007, J. Craig Venter Institute. All rights reserved.
+/******************************************************************************
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ *  This file is part of canu, a software program that assembles whole-genome
+ *  sequencing reads into contigs.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ *  This software is based on:
+ *    'Celera Assembler' (http://wgs-assembler.sourceforge.net)
+ *    the 'kmer package' (http://kmer.sourceforge.net)
+ *  both originally distributed by Applera Corporation under the GNU General
+ *  Public License, version 2.
  *
- * You should have received (LICENSE.txt) a copy of the GNU General Public
- * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *************************************************************************/
+ *  Canu branched from Celera Assembler at its revision 4587.
+ *  Canu branched from the kmer project at its revision 1994.
+ *
+ *  This file is derived from:
+ *
+ *    src/AS_OVS/AS_OVS_overlapStore.C
+ *    src/AS_OVS/AS_OVS_overlapStore.c
+ *
+ *  Modifications by:
+ *
+ *    Brian P. Walenz from 2007-MAR-08 to 2013-AUG-01
+ *      are Copyright 2007-2013 J. Craig Venter Institute, and
+ *      are subject to the GNU General Public License version 2
+ *
+ *    Sergey Koren on 2007-MAY-08
+ *      are Copyright 2007 J. Craig Venter Institute, and
+ *      are subject to the GNU General Public License version 2
+ *
+ *    Sergey Koren beginning on 2011-JUN-02
+ *      are Copyright 2011 Battelle National Biodefense Institute, and
+ *      are subject to the BSD 3-Clause License
+ *
+ *    Gregory Sims from 2012-FEB-01 to 2012-FEB-14
+ *      are Copyright 2012 J. Craig Venter Institute, and
+ *      are subject to the GNU General Public License version 2
+ *
+ *    Brian P. Walenz beginning on 2014-DEC-09
+ *      are Copyright 2014-2015 Battelle National Biodefense Institute, and
+ *      are subject to the BSD 3-Clause License
+ *
+ *  File 'README.licenses' in the root directory of this distribution contains
+ *  full conditions and disclaimers for each license.
+ */
 
 static const char *rcsid = "$Id$";
 
@@ -362,7 +387,7 @@ ovStore::readOverlaps(ovOverlap *overlaps, uint32 maxOverlaps, bool restrictToII
       //  We read no overlap, open the next file and try again.
 
       delete _bof;
-      
+
       _currentFileIndex++;
 
       if (_currentFileIndex > _info._highestFileIndex)
@@ -680,7 +705,7 @@ ovStore::writeOverlap(ovOverlap *overlap, uint32 maxOverlapsThisFile) {
 			fprintf(stderr, "LAST:  a:"F_U32"\n", _offt._a_iid);
 			fprintf(stderr, "THIS:  a:"F_U32" b:"F_U32"\n", overlap[i].a_iid, overlap[i].b_iid);
 		}
-  		
+
 		assert(_offt._a_iid <= overlap[i].a_iid);
 
 		if (_info._smallestIID > overlap[i].a_iid)
@@ -845,7 +870,7 @@ ovStore::addEvalues(uint32 bgnID, uint32 endID, uint16 *evalues, uint64 evaluesL
             (sizeof(uint16) * _info._numOverlapsTotal), AS_UTL_sizeOfFile(name));
     AS_UTL_unlink(name);
   }
-  
+
   //  Make a new evalues file if one doesn't exist.
 
   if (AS_UTL_fileExists(name) == false) {
@@ -922,7 +947,7 @@ writeOverlaps(char       *storePath,
   uint64                      overlapsThisFile = 0;
 
 	ovStoreInfo    info;
- 
+
 	info._ovsMagic              = 1;
 	info._ovsVersion            = ovStoreVersion;
   info._smallestIID           = UINT64_MAX;
@@ -931,7 +956,7 @@ writeOverlaps(char       *storePath,
   info._highestFileIndex      = 0;
 	info._maxReadLenInBits      = AS_MAX_READLEN_BITS;
 
-	ovStoreOfft    offt; 
+	ovStoreOfft    offt;
   ovStoreOfft    offm;
 
   offt._a_iid     = offm._a_iid    = ovls[0].a_iid;
@@ -1041,7 +1066,7 @@ writeOverlaps(char       *storePath,
 
   AS_UTL_safeWrite(F, &info, "Partition ovs file", sizeof(ovStoreInfo), 1);
 
-  fclose(F);	
+  fclose(F);
 
   fprintf(stderr, "Wrote "F_U64" overlaps into '%s'\n", info._numOverlapsTotal, name);
   fprintf(stderr, "  Smallest "F_U64"\n", info._smallestIID);
@@ -1463,7 +1488,7 @@ ovStoreFilter::filterOverlap(ovOverlap       &foverlap,
       (gkp->gkStore_getRead(foverlap.a_iid)->gkRead_libraryID() != gkp->gkStore_getRead(foverlap.b_iid)->gkRead_libraryID())) {
 
     if ((foverlap.dat.ovl.forDUP == true)) {
-      foverlap.dat.ovl.forDUP = false; 
+      foverlap.dat.ovl.forDUP = false;
       skipDUPlib++;
     }
 

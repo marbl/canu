@@ -1,3 +1,40 @@
+
+/******************************************************************************
+ *
+ *  This file is part of canu, a software program that assembles whole-genome
+ *  sequencing reads into contigs.
+ *
+ *  This software is based on:
+ *    'Celera Assembler' (http://wgs-assembler.sourceforge.net)
+ *    the 'kmer package' (http://kmer.sourceforge.net)
+ *  both originally distributed by Applera Corporation under the GNU General
+ *  Public License, version 2.
+ *
+ *  Canu branched from Celera Assembler at its revision 4587.
+ *  Canu branched from the kmer project at its revision 1994.
+ *
+ *  Modifications by:
+ *
+ *    Brian P. Walenz from 2003-JAN-02 to 2004-APR-05
+ *      are Copyright 2003-2004 Applera Corporation, and
+ *      are subject to the GNU General Public License version 2
+ *
+ *    Brian P. Walenz from 2004-JAN-21 to 2004-OCT-10
+ *      are Copyright 2004 Brian P. Walenz, and
+ *      are subject to the GNU General Public License version 2
+ *
+ *    Clark Mobarry on 2004-FEB-12
+ *      are Copyright 2004 Applera Corporation, and
+ *      are subject to the GNU General Public License version 2
+ *
+ *    Brian P. Walenz from 2005-MAY-19 to 2014-APR-11
+ *      are Copyright 2005-2008,2012,2014 J. Craig Venter Institute, and
+ *      are subject to the GNU General Public License version 2
+ *
+ *  File 'README.licenses' in the root directory of this distribution contains
+ *  full conditions and disclaimers for each license.
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
@@ -954,11 +991,11 @@ positionDB::build(merStream          *MS,
       if (beVerbose)
         fprintf(stderr, "    Rebuilding the hash table, from "uint32FMT" bits wide to "uint32FMT" bits wide.\n",
                 _hashWidth, newHashWidth);
-      
+
       for (uint64 z=0; z<_tableSizeInEntries+1; z++) {
         setDecodedValue(_hashTable_BP,
                         npos,
-                        newHashWidth, 
+                        newHashWidth,
                         getDecodedValue(_hashTable_BP, opos, _hashWidth));
         npos += newHashWidth;
         opos += _hashWidth;

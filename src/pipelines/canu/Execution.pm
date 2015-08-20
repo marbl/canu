@@ -1,3 +1,47 @@
+
+###############################################################################
+ #
+ #  This file is part of canu, a software program that assembles whole-genome
+ #  sequencing reads into contigs.
+ #
+ #  This software is based on:
+ #    'Celera Assembler' (http://wgs-assembler.sourceforge.net)
+ #    the 'kmer package' (http://kmer.sourceforge.net)
+ #  both originally distributed by Applera Corporation under the GNU General
+ #  Public License, version 2.
+ #
+ #  Canu branched from Celera Assembler at its revision 4587.
+ #  Canu branched from the kmer project at its revision 1994.
+ #
+ #  This file is derived from:
+ #
+ #    kmer/ESTmapper/scheduler.pm
+ #    kmer/scripts/libBri.pm
+ #    kmer/scripts/scheduler.pm
+ #    src/pipelines/ca3g/Execution.pm
+ #
+ #  Modifications by:
+ #
+ #    Brian P. Walenz from 2003-JAN-03 to 2003-NOV-11
+ #      are Copyright 2003 Applera Corporation, and
+ #      are subject to the GNU General Public License version 2
+ #
+ #    Brian P. Walenz on 2004-MAR-22
+ #      are Copyright 2004 Brian P. Walenz, and
+ #      are subject to the GNU General Public License version 2
+ #
+ #    Brian P. Walenz from 2006-APR-07 to 2011-DEC-28
+ #      are Copyright 2006,2008-2009,2011 J. Craig Venter Institute, and
+ #      are subject to the GNU General Public License version 2
+ #
+ #    Brian P. Walenz beginning on 2015-FEB-27
+ #      are Copyright 2015 Battelle National Biodefense Institute, and
+ #      are subject to the BSD 3-Clause License
+ #
+ #  File 'README.licenses' in the root directory of this distribution contains
+ #  full conditions and disclaimers for each license.
+ ##
+
 package canu::Execution;
 
 require Exporter;
@@ -749,7 +793,7 @@ sub buildMemoryOption ($$) {
     $r =  getGlobal("gridEngineMemoryOption");
     $r =~ s/MEMORY/${m}g/;
 
-    return($r);    
+    return($r);
 }
 
 
@@ -760,7 +804,7 @@ sub buildThreadOption ($) {
     $r =  getGlobal("gridEngineThreadsOption");
     $r =~ s/THREADS/$t/;
 
-    return($r);    
+    return($r);
 }
 
 
@@ -1004,7 +1048,7 @@ sub submitOrRunParallelJob ($$$$$@) {
 
     my $nParallel  = getGlobal("${jobType}Concurrency");
     $nParallel     = int(getNumberOfCPUs() / $thr)  if ((!defined($nParallel)) || ($nParallel == 0));
-      
+
     schedulerSetNumberOfProcesses($nParallel);
     schedulerFinish($path);
 }
