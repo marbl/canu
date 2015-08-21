@@ -1,6 +1,8 @@
-# ![logo](https://raw.githubusercontent.com/marbl/canu/master/logo.jpg) 
+# Canu
 
-Canu is a fork of the [Celera Assembler](http://wgs-assembler.sourceforge.net/wiki/index.php?title=Main_Page "Celera Assembler") designed for high-noise single-molecule sequencing (such as the PacBio RSII or Oxford Nanopore MinION). The software is currently alpha level, feel free to use and report issues encountered. 
+<p><img style="float: right; margin: 0px 15px 15px 0px;" src="https://raw.githubusercontent.com/marbl/canu/master/logo.jpg" width="100" /> Canu is a fork of the [Celera Assembler](http://wgs-assembler.sourceforge.net/wiki/index.php?title=Main_Page "Celera Assembler") designed for high-noise single-molecule sequencing (such as the PacBio RSII or Oxford Nanopore MinION). The software is currently alpha level, feel free to use and report issues encountered.
+<br style="clear: both;" />
+</p>
 
 ## Build
 
