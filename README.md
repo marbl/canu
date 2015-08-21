@@ -6,7 +6,7 @@
 
     git clone https://github.com/marbl/canu.git
     cd canu/src
-    make
+    make -j <number of threads>
     
 For a quick user-quide, run:
 
@@ -14,6 +14,7 @@ For a quick user-quide, run:
     
 
 For full list of options, run:
+
     ../<architecture>/bin/canu -options
     
 ## Docs
