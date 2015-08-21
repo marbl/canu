@@ -18,10 +18,11 @@ For full list of options, run:
     ../<architecture>/bin/canu -options
     
 ## Docs
-Canu is a hierachical assembly pipeline which runs in three steps:
+Canu is a hierachical assembly pipeline which runs in four steps:
 
-* Detect overlap in high-noise sequences using [MHAP](https://github.com/marbl/MHAP "MHAP")
+* Detect overlaps in high-noise sequences using [MHAP](https://github.com/marbl/MHAP "MHAP")
 * Generate corrected sequence consensus
-* Assemble corrected sequences
+* Trim corrected sequences
+* Assemble trimmed corrected sequences
 
 Stay tuned, more coming soon.
