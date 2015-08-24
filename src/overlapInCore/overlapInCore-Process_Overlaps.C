@@ -73,22 +73,22 @@ void *
 Process_Overlaps(void *ptr){
   Work_Area_t  *WA = (Work_Area_t *)ptr;
 
-  WA->overlapsLen                = 0;
-
-  WA->Total_Overlaps             = 0;
-  WA->Contained_Overlap_Ct       = 0;
-  WA->Dovetail_Overlap_Ct        = 0;
-
-  WA->Kmer_Hits_Without_Olap_Ct  = 0;
-  WA->Kmer_Hits_With_Olap_Ct     = 0;
-  WA->Multi_Overlap_Ct           = 0;
-
   gkReadData   *readData = new gkReadData;
 
   char         *bases = new char [AS_MAX_READLEN + 1];
   char         *quals = new char [AS_MAX_READLEN + 1];
 
   while (WA->bgnID < G.endRefID) {
+    WA->overlapsLen                = 0;
+
+    WA->Total_Overlaps             = 0;
+    WA->Contained_Overlap_Ct       = 0;
+    WA->Dovetail_Overlap_Ct        = 0;
+
+    WA->Kmer_Hits_Without_Olap_Ct  = 0;
+    WA->Kmer_Hits_With_Olap_Ct     = 0;
+    WA->Multi_Overlap_Ct           = 0;
+
     fprintf(stderr, "Thread %02u processes reads "F_U32"-"F_U32"\n",
             WA->thread_id, WA->bgnID, WA->endID);
 
@@ -133,13 +133,10 @@ Process_Overlaps(void *ptr){
     //  Write out this block of overlaps, no need to keep them in core!
     //  While we have a mutex, also find the next block of things to process.
 
-    fprintf(stderr, "Thread %02u writes    reads "F_U32"-"F_U32" (pre lock)\n",
-            WA->thread_id, WA->bgnID, WA->endID);
+    fprintf(stderr, "Thread %02u writes    reads "F_U32"-"F_U32" (%u overlaps)\n",
+            WA->thread_id, WA->bgnID, WA->endID, WA->overlapsLen);
 
     pthread_mutex_lock(& Write_Proto_Mutex);
-
-    fprintf(stderr, "Thread %02u writes    reads "F_U32"-"F_U32" (post lock)\n",
-            WA->thread_id, WA->bgnID, WA->endID);
 
     for (int zz=0; zz<WA->overlapsLen; zz++)
       Out_BOF->writeOverlap(WA->overlaps + zz);
@@ -162,12 +159,9 @@ Process_Overlaps(void *ptr){
     if (WA->endID > G.endRefID)
       WA->endID = G.endRefID;
 
-    fprintf(stderr, "Thread %02u finished  reads "F_U32"-"F_U32" (pre unlock)\n",
-            WA->thread_id, WA->bgnID, WA->endID);
-
     pthread_mutex_unlock(& Write_Proto_Mutex);
 
-    fprintf(stderr, "Thread %02u finished  reads "F_U32"-"F_U32" (post unlock)\n",
+    fprintf(stderr, "Thread %02u finished  reads "F_U32"-"F_U32"\n",
             WA->thread_id, WA->bgnID, WA->endID);
   }
 
