@@ -28,8 +28,6 @@
  #  full conditions and disclaimers for each license.
  ##
 
-#!/usr/bin/perl
-
 use strict;
 
 use FindBin;
@@ -42,11 +40,10 @@ use lib "$FindBin::RealBin/lib/canu/lib64/perl5";
 use File::Path qw(make_path remove_tree);
 
 use Carp;
-#use FileHandle;
 
-use POSIX "ceil";
-use POSIX "floor";
-use POSIX "sys_wait_h";  #  waitpid()
+#use POSIX "ceil";
+#use POSIX "floor";
+#use POSIX "sys_wait_h";  #  waitpid()
 
 use canu::Defaults;
 use canu::Execution;
