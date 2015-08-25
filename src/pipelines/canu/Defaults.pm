@@ -526,6 +526,17 @@ sub checkParameters ($) {
     fixCase("stopBefore");
     fixCase("stopAfter");
 
+    if (getGlobal("minReadLength") < getGlobal("minOverlapLength")) {
+        my $mr = getGlobal("minReadLength");
+        my $mo = getGlobal("minOverlapLength");
+
+        caExit("minReadLength=$mr must be at least minOverlapLength=$mo", undef);
+
+        print STDERR "-- WARNING: minReadLength reset from $mr to $mo (limited by minOverlapLength)\n";
+
+        setGlobal("minOverlapLength", $mo);
+    }
+
     #
     #  Check for invalid usage
     #
