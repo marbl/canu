@@ -121,8 +121,8 @@ sub overlapStoreConfigure ($$$$) {
     $wrk = "$wrk/correction"  if ($tag eq "cor");
     $wrk = "$wrk/trimming"    if ($tag eq "obt");
 
-    return  if (skipStage($WRK, $asm, "$tag-overlapStoreConfigure") == 1);
-    return  if (-d "$wrk/$asm.ovlStore");
+    goto allDone   if (skipStage($WRK, $asm, "$tag-overlapStoreConfigure") == 1);
+    goto allDone   if (-d "$wrk/$asm.ovlStore");
 
     my $numInputs  = countOverlapStoreInputs($files);
     my $numSlices  = getGlobal("ovlStoreSlices");
@@ -251,7 +251,11 @@ sub overlapStoreConfigure ($$$$) {
     system("chmod +x $wrk/$asm.ovlStore.BUILDING/scripts/2-sort.sh");
     system("chmod +x $wrk/$asm.ovlStore.BUILDING/scripts/3-index.sh");
 
+  finishStage:
     emitStage($WRK, $asm, "$tag-overlapStoreConfigure");
+    stopAfter("overlapStoreConfigure");
+
+  allDone:
 }
 
 
@@ -267,8 +271,8 @@ sub overlapStoreBucketizerCheck ($$$$$) {
     $wrk = "$wrk/correction"  if ($tag eq "cor");
     $wrk = "$wrk/trimming"    if ($tag eq "obt");
 
-    return  if (skipStage($WRK, $asm, "$tag-overlapStoreBucketizerCheck", $attempt) == 1);
-    return  if (-d "$wrk/$asm.ovlStore");
+    goto allDone   if (skipStage($WRK, $asm, "$tag-overlapStoreBucketizerCheck", $attempt) == 1);
+    goto allDone   if (-d "$wrk/$asm.ovlStore");
 
     my $numInputs      = countOverlapStoreInputs($files);
     my $currentJobID   = 1;
@@ -329,9 +333,10 @@ sub overlapStoreBucketizerCheck ($$$$$) {
 
     print STDERR "overlapStoreBucketizerCheck() -- attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
 
+  finishStage:
     emitStage($WRK, $asm, "$tag-overlapStoreBucketizerCheck", $attempt);
-
     submitOrRunParallelJob($wrk, $asm, "ovB", "$wrk/$asm.ovlStore.BUILDING", "scripts/1-bucketize", @failedJobs);
+  allDone:
 }
 
 
@@ -349,8 +354,8 @@ sub overlapStoreSorterCheck ($$$$$) {
     $wrk = "$wrk/correction"  if ($tag eq "cor");
     $wrk = "$wrk/trimming"    if ($tag eq "obt");
 
-    return  if (skipStage($WRK, $asm, "$tag-overlapStoreSorterCheck", $attempt) == 1);
-    return  if (-d "$wrk/$asm.ovlStore");
+    goto allDone   if (skipStage($WRK, $asm, "$tag-overlapStoreSorterCheck", $attempt) == 1);
+    goto allDone   if (-d "$wrk/$asm.ovlStore");
 
     my $numSlices      = getGlobal("ovlStoreSlices");
     my $currentJobID   = 1;
@@ -418,9 +423,10 @@ sub overlapStoreSorterCheck ($$$$$) {
 
     print STDERR "overlapStoreSorterCheck() -- attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
 
+  finishStage:
     emitStage($WRK, $asm, "$tag-overlapStoreSorterCheck", $attempt);
-
     submitOrRunParallelJob($wrk, $asm, "ovS", "$wrk/$asm.ovlStore.BUILDING", "scripts/2-sort", @failedJobs);
+  allDone:
 }
 
 
@@ -467,9 +473,9 @@ sub createOverlapStore ($$$$) {
 
     my $path  = "$wrk/1-overlapper";
 
-    goto stopAfter  if (skipStage($WRK, $asm, "$tag-createOverlapStore") == 1);
-    goto allDone    if (-d "$wrk/$asm.ovlStore");
-    goto allDone    if (-d "$wrk/$asm.tigStore");
+    goto allDone   if (skipStage($WRK, $asm, "$tag-createOverlapStore") == 1);
+    goto allDone   if (-d "$wrk/$asm.ovlStore");
+    goto allDone   if (-d "$wrk/$asm.tigStore");
 
     #  Did we _really_ complete?
 
@@ -507,8 +513,9 @@ sub createOverlapStore ($$$$) {
 
     #  Now all done!
 
-  allDone:
+  finishStage:
     emitStage($WRK, $asm, "$tag-createOverlapStore");
-  stopAfter:
-    stopAfter("overlapper");
+    stopAfter("overlapStore");
+  allDone:
+    print STDERR "-- Found ", "(not-counted)", " overlaps in overlp store '$wrk/$asm.ovlStore'.\n";
 }

@@ -50,8 +50,8 @@ sub trimReads ($$) {
     my $cmd;
     my $path   = "$wrk/3-overlapbasedtrimming";
 
-    return  if (skipStage($WRK, $asm, "obt-trimReads") == 1);
-    return  if (-e "$path/trimmed");
+    goto allDone   if (skipStage($WRK, $asm, "obt-trimReads") == 1);
+    goto allDone   if (-e "$path/trimmed");
 
     make_path($path)  if (! -d $path);
 
@@ -88,8 +88,11 @@ sub trimReads ($$) {
         caFailure("dumping trimmed reads failed", "$wrk/$asm.1.trimReads.trimmed.err");
     }
 
+  finishStage:
     touch("$path/trimmed");
     emitStage($WRK, $asm, "obt-trimReads");
+
+  allDone:
 }
 
 
@@ -102,8 +105,8 @@ sub splitReads ($$) {
     my $cmd;
     my $path   = "$wrk/3-overlapbasedtrimming";
 
-    return  if (skipStage($WRK, $asm, "obt-splitReads") == 1);
-    return  if (-e "$path/splitted");  #  Splitted?
+    goto allDone   if (skipStage($WRK, $asm, "obt-splitReads") == 1);
+    goto allDone   if (-e "$path/splitted");  #  Splitted?
 
     make_path($path)  if (! -d $path);
 
@@ -140,8 +143,11 @@ sub splitReads ($$) {
         caFailure("dumping trimmed reads failed", "$wrk/$asm.2.splitReads.trimmed.err");
     }
 
+  finishStage:
     touch("$path/splitted", "Splitted?  Is that even a word?");
     emitStage($WRK, $asm, "obt-splitReads");
+
+  allDone:
 }
 
 
@@ -155,8 +161,8 @@ sub dumpReads ($$) {
     my $path   = "$wrk/3-overlapbasedtrimming";
     my $inp;
 
-    return  if (skipStage($WRK, $asm, "obt-dumpReads") == 1);
-    return  if (-e "$wrk/$asm.trimmedReads.fastq");
+    goto allDone   if (skipStage($WRK, $asm, "obt-dumpReads") == 1);
+    goto allDone   if (-e "$wrk/$asm.trimmedReads.fastq");
 
     make_path($path)  if (! -d $path);
 
@@ -178,9 +184,10 @@ sub dumpReads ($$) {
     #  Need gatekeeperDumpFASTQ to also write a gkp input file
     #touch("$wrk/$asm.trimmedReads.gkp");
 
-    print STDERR "--\n";
-    print STDERR "-- Wrote trimmed reads into '$wrk/$asm.trimmedReads.fastq'\n";
-    print STDERR "--\n";
-
+  finishStage:
     emitStage($WRK, $asm, "obt-dumpReads");
+
+  allDone:
+    print STDERR "-- Trimmed reads saved in '$wrk/$asm.trimmedReads.fastq'\n";
+
 }

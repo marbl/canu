@@ -110,8 +110,8 @@ sub buildCorrectionLayouts_direct ($$) {
 
     my $path = "$wrk/2-correction";
 
-    return  if (-e "$wrk/$asm.correctedReads.fastq");  #  Output exists
-    return  if (-e "$path/cnsjob.files");              #  Jobs all finished
+    goto allDone   if (-e "$wrk/$asm.correctedReads.fastq");  #  Output exists
+    goto allDone   if (-e "$path/cnsjob.files");              #  Jobs all finished
 
     my $maxCov = getCorCov($wrk, $asm, "Local");
 
@@ -222,6 +222,10 @@ sub buildCorrectionLayouts_direct ($$) {
     }
 
     close(F);
+
+  finishStage:
+    ;
+  allDone:
 }
 
 
@@ -237,8 +241,8 @@ sub buildCorrectionLayouts_piped ($$) {
     my $cmd;
     my $path = "$wrk/2-correction";
 
-    return  if (-e "$wrk/$asm.correctedReads.fastq");  #  Output exists
-    return  if (-e "$path/cnsjob.files");              #  Jobs all finished
+    goto allDone   if (-e "$wrk/$asm.correctedReads.fastq");  #  Output exists
+    goto allDone   if (-e "$path/cnsjob.files");              #  Jobs all finished
 
     make_path("$path/correction_inputs")  if (! -d "$path/correction_inputs");
     make_path("$path/correction_outputs")  if (! -d "$path/correction_outputs");
@@ -320,6 +324,10 @@ sub buildCorrectionLayouts_piped ($$) {
     print F "exit 0\n";
 
     close(F);
+
+  finishStage:
+    ;
+  allDone:
 }
 
 
@@ -633,10 +641,10 @@ sub buildCorrectionLayouts ($$) {
     #  A one-pass algorithm would write layouts to tigStore, computing stats as before, then delete
     #  tigs that shouldn't be corrected.  I suspect this will be slower.
 
-    return  if (skipStage($WRK, $asm, "cor-buildCorrectionLayouts") == 1);
-    return  if (-e "$wrk/$asm.correctedReads.fastq");  #  Output exists
-    return  if (-e "$path/cnsjob.files");              #  Jobs all finished
-    return  if (-e "$path/correctReads.sh");           #  Jobs created
+    goto allDone   if (skipStage($WRK, $asm, "cor-buildCorrectionLayouts") == 1);
+    goto allDone   if (-e "$wrk/$asm.correctedReads.fastq");  #  Output exists
+    goto allDone   if (-e "$path/cnsjob.files");              #  Jobs all finished
+    goto allDone   if (-e "$path/correctReads.sh");           #  Jobs created
 
     make_path("$path")  if (! -d "$path");
 
@@ -685,7 +693,10 @@ sub buildCorrectionLayouts ($$) {
     buildCorrectionLayouts_direct($wrk, $asm)      if (getGlobal("corConsensus") eq "falcon");
     buildCorrectionLayouts_piped($wrk, $asm)       if (getGlobal("corConsensus") eq "falconpipe");
 
+  finishStage:
     emitStage($WRK, $asm, "cor-buildCorrectionLayouts");
+
+  allDone:
 }
 
 
@@ -700,8 +711,8 @@ sub generateCorrectedReads ($$$) {
 
     my $path    = "$wrk/2-correction";
 
-    return  if (skipStage($WRK, $asm, "cor-generateCorrectedReads", $attempt) == 1);
-    return  if (-e "$wrk/$asm.correctedReads.fastq");
+    goto allDone   if (skipStage($WRK, $asm, "cor-generateCorrectedReads", $attempt) == 1);
+    goto allDone   if (-e "$wrk/$asm.correctedReads.fastq");
 
     my ($jobs, undef) = computeNumberOfCorrectionJobs($wrk, $asm);
 
@@ -752,9 +763,11 @@ sub generateCorrectedReads ($$$) {
 
     print STDERR "generateCorrectedReads() -- attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
 
+  finishStage:
     emitStage($WRK, $asm, "cor-generateCorrectedReads", $attempt);
-
     submitOrRunParallelJob($wrk, $asm, "cor", $path, "correctReads", @failedJobs);
+
+  allDone:
 }
 
 
@@ -767,8 +780,8 @@ sub dumpCorrectedReads ($$) {
 
     my $path = "$wrk/2-correction";
 
-    return  if (skipStage($WRK, $asm, "cor-dumpCorrectedReads") == 1);
-    return  if (-e "$wrk/$asm.correctedReads.fastq");
+    goto allDone   if (skipStage($WRK, $asm, "cor-dumpCorrectedReads") == 1);
+    goto allDone   if (-e "$wrk/$asm.correctedReads.fastq");
 
     my $files = 0;
     my $reads = 0;
@@ -805,9 +818,9 @@ sub dumpCorrectedReads ($$) {
     close(O);
     close(F);
 
-    print STDERR "--\n";
-    print STDERR "-- wrote $reads corrected reads from $files files into '$wrk/$asm.correctedReads.fastq'.\n";
-    print STDERR "--\n";
-
+  finishStage:
     emitStage($WRK, $asm, "cor-dumpCorrectedReads");
+
+  allDone:
+    print STDERR "--  Corrected reads saved in '$wrk/$asm.correctedReads.fastq'.\n";
 }

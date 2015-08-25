@@ -589,8 +589,12 @@ sub checkParameters ($) {
 
         my $failureString = "Invalid stopBefore specified (" . getGlobal("stopBefore") . "); must be one of:\n";
 
-        my @stopBefore = ("meryl",
-                          "unitig");
+        my @stopBefore = ("gatekeeper",
+                          "meryl",
+                          "trimReads",
+                          "splitReads",
+                          "unitig",
+                          "consensusConfigure");
 
         foreach my $sb (@stopBefore) {
             $failureString .= "    '$sb'\n";
@@ -613,10 +617,14 @@ sub checkParameters ($) {
 
         my @stopAfter = ("gatekeeper",
                          "meryl",
-                         "overlap-configure",
-                         "overlap",
+                         "mhapConfigure",
+                         "overlapStoreConfigure",
+                         "overlapStore",
                          "unitig",
-                         "utgcns");
+                         "consensusConfigure",
+                         "consensusCheck",
+                         "consensusLoad",
+                         "consensusFilter");
 
         foreach my $sa (@stopAfter) {
             $failureString .= "    '$sa'\n";

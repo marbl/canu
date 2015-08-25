@@ -59,19 +59,9 @@ sub overlapConfigure ($$$$) {
 
     caFailure("invalid type '$type'", undef)  if (($type ne "partial") && ($type ne "normal"));
 
-    if (-e "$path/overlap.sh") {
-        my $numJobs = 0;
-        open(F, "< $path/overlap.sh") or caExit("can't open '$path/overlap.sh' for reading: $!", undef);
-        while (<F>) {
-            $numJobs++  if (m/^\s+job=/);
-        }
-        close(F);
-        print STDERR "--  Configured $numJobs overlapInCore jobs.\n";
-    }
-
-    return  if (skipStage($WRK, $asm, "$tag-overlapConfigure") == 1);
-    return  if (-e "$path/ovljob.files");
-    return  if (-e "$path/ovlopt");
+    goto allDone   if (skipStage($WRK, $asm, "$tag-overlapConfigure") == 1);
+    goto allDone   if (-e "$path/ovljob.files");
+    goto allDone   if (-e "$path/ovlopt");
 
     make_path("$path") if (! -d "$path");
 
@@ -94,8 +84,6 @@ sub overlapConfigure ($$$$) {
         if (($refBlockSize > 0) && ($refBlockLength > 0)) {
             caExit("can't set both ${tag}OvlRefBlockSize and ${tag}OvlRefBlockLength", undef);
         }
-
-        print STDERR "PARTITION for '$tag'\n";
 
         $cmd  = "$bin/overlapInCorePartition \\\n";
         $cmd .= " -g  $wrk/$asm.gkpStore \\\n";
@@ -205,9 +193,22 @@ sub overlapConfigure ($$$$) {
     my $batchName = $bat[$jobs-1];  chomp $batchName;
     my $jobName   = $job[$jobs-1];  chomp $jobName;
 
-    print STDERR "Created $jobs overlap jobs.  Last batch '$batchName', last job '$jobName'.\n";
+    #print STDERR "Created $jobs overlap jobs.  Last batch '$batchName', last job '$jobName'.\n";
 
-    stopAfter("overlap-configure");
+  finishStage:
+    emitStage($WRK, $asm, "$tag-overlapConfigure");
+    stopAfter("overlapConfigure");
+
+  allDone:
+    if (-e "$path/overlap.sh") {
+        my $numJobs = 0;
+        open(F, "< $path/overlap.sh") or caExit("can't open '$path/overlap.sh' for reading: $!", undef);
+        while (<F>) {
+            $numJobs++  if (m/^\s+job=/);
+        }
+        close(F);
+        print STDERR "--  Configured $numJobs overlapInCore jobs.\n";
+    }
 }
 
 
@@ -229,18 +230,8 @@ sub overlapCheck ($$$$$) {
 
     my $path    = "$wrk/1-overlapper";
 
-    if ((-e "$path/ovljob.files") && ($attempt == 3)) {
-        my $results = 0;
-        open(F, "< $path/ovljob.files") or caExit("can't open '$path/ovljob.files' for reading: $!\n", undef);
-        while (<F>) {
-            $results++;
-        }
-        close(F);
-        print STDERR "--  Found $results overlapInCore output files.\n";
-    }
-
-    return  if (skipStage($WRK, $asm, "$tag-overlapCheck", $attempt) == 1);
-    return  if (-e "$path/ovljob.files");
+    goto allDone   if (skipStage($WRK, $asm, "$tag-overlapCheck", $attempt) == 1);
+    goto allDone   if (-e "$path/ovljob.files");
 
     my $currentJobID   = 1;
     my @successJobs;
@@ -304,8 +295,19 @@ sub overlapCheck ($$$$$) {
 
     print STDERR "overlapCheck() -- attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
 
+  finishStage:
     emitStage($WRK, $asm, "$tag-overlapCheck", $attempt);
-
     submitOrRunParallelJob($wrk, $asm, "${tag}ovl", $path, "overlap", @failedJobs);
+
+  allDone:
+    if ((-e "$path/ovljob.files") && ($attempt == 3)) {
+        my $results = 0;
+        open(F, "< $path/ovljob.files") or caExit("can't open '$path/ovljob.files' for reading: $!\n", undef);
+        while (<F>) {
+            $results++;
+        }
+        close(F);
+        print STDERR "--  Found $results overlapInCore output files.\n";
+    }
 }
 

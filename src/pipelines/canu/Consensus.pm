@@ -208,8 +208,8 @@ sub consensusConfigure ($$) {
     my $cmd;
     my $path    = "$wrk/5-consensus";
 
-    goto stopBefore  if (skipStage($wrk, $asm, "consensusConfigure") == 1);
-    goto stopAfter   if (-e "$wrk/$asm.tigStore/seqDB.v002.tig");
+    goto allDone   if (skipStage($wrk, $asm, "consensusConfigure") == 1);
+    goto allDone   if (-e "$wrk/$asm.tigStore/seqDB.v002.tig");
 
     make_path("$path")  if (! -d "$path");
 
@@ -220,6 +220,8 @@ sub consensusConfigure ($$) {
         $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
         $cmd .= "  -P $wrk/4-unitigger/$asm.partitioning \\\n";
         $cmd .= "> $path/$asm.partitioned.err 2>&1";
+
+        stopBefore("consensusConfigure", $cmd);
 
         if (runCommand("$path", $cmd)) {
             caExit("failed to partition the reads", "$path/$asm.partitioned.err");
@@ -244,10 +246,12 @@ sub consensusConfigure ($$) {
         caFailure("unknown consensus style '" . getGlobal("cnsConsensus") . "'", undef);
     }
 
-  allDone:
+  finishStage:
     emitStage($wrk, $asm, "consensusConfigure");
-  stopBefore:
-    stopBefore("consensusConfigure", $cmd);
+    stopAfter("consensusConfigure");
+
+  allDone:
+    print STDERR "--  Configured ", computeNumberOfConsensusJobs($wrk, $asm), " consensus jobs.\n";
 }
 
 
@@ -262,9 +266,9 @@ sub consensusCheck ($$$) {
     my $attempt = shift @_;
     my $path    = "$wrk/5-consensus";
 
-    goto stopAfter  if (skipStage($wrk, $asm, "consensusCheck", $attempt) == 1);
-    goto stopAfter  if (-e "$path/cnsjob.files");
-    goto stopAfter  if (-e "$wrk/$asm.tigStore/seqDB.v002.tig");
+    goto allDone  if (skipStage($wrk, $asm, "consensusCheck", $attempt) == 1);
+    goto allDone  if (-e "$path/cnsjob.files");
+    goto allDone  if (-e "$wrk/$asm.tigStore/seqDB.v002.tig");
 
     my $jobs = computeNumberOfConsensusJobs($wrk, $asm);
 
@@ -322,16 +326,17 @@ sub consensusCheck ($$$) {
 
     #  Otherwise, run some jobs.
 
-    print STDERR "consensusCheck() -- attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
+    print STDERR "--  Consensus attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
 
     emitStage($wrk, $asm, "consensusCheck", $attempt);
 
     submitOrRunParallelJob($wrk, $asm, "cns", $path, "consensus", @failedJobs);
 
-  allDone:
+  finishStage:
     emitStage($wrk, $asm, "consensusCheck");
-  stopAfter:
     stopAfter("consensusCheck");
+  allDone:
+    print STDERR "--  All ", computeNumberOfConsensusJobs($wrk, $asm), " consensus jobs finished successfully.\n";
 }
 
 
@@ -344,7 +349,7 @@ sub consensusLoad ($$) {
     my $cmd;
     my $path    = "$wrk/5-consensus";
 
-    goto stopAfter  if (skipStage($wrk, $asm, "consensusLoad") == 1);
+    goto allDone    if (skipStage($wrk, $asm, "consensusLoad") == 1);
     goto allDone    if (-e "$wrk/$asm.tigStore/seqDB.v002.tig");
 
     #  Expects to have a cnsjob.files list of output files from the consensusCheck() function.
@@ -414,11 +419,11 @@ sub consensusLoad ($$) {
         print STDERR "--  Purged $Nlog .err log outputs.\n"    if ($Nlog > 0);
     }
 
-  allDone:
+  finishStage:
     emitStage($wrk, $asm, "consensusLoad");
-  stopAfter:
-    reportUnitigSizes($wrk, $asm, 2, "after consenss generation");
     stopAfter("consensusLoad");
+  allDone:
+    reportUnitigSizes($wrk, $asm, 2, "after consenss generation");
 }
 
 
@@ -431,7 +436,7 @@ sub consensusFilter ($$) {
     my $cmd;
     my $path    = "$wrk/5-consensus";
 
-    goto stopAfter  if (skipStage($wrk, $asm, "consensusFilter") == 1);
+    goto allDone   if (skipStage($wrk, $asm, "consensusFilter") == 1);
 
     my $msrs = getGlobal("maxSingleReadSpan");
     my $lca  = getGlobal("lowCoverageAllowed");  #  checkParameters() ensures that this and
@@ -455,8 +460,8 @@ sub consensusFilter ($$) {
         caExit("failed to filter unitigs", "$wrk/$asm.tigStore.filter.err");
     }
 
-  allDone:
+  finishStage:
     emitStage($wrk, $asm, "consensusFilter");
-  stopAfter:
     stopAfter("consensusFilter");
+  allDone:
 }

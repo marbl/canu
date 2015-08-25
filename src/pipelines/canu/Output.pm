@@ -46,8 +46,8 @@ sub outputLayout ($$) {
     my $bin    = getBinDirectory();
     my $cmd;
 
-    goto stopAfter   if (skipStage($wrk, $asm, "outputLayout") == 1);
-    goto allDone     if (-e "$wrk/$asm.layout");
+    goto allDone   if (skipStage($wrk, $asm, "outputLayout") == 1);
+    goto allDone   if (-e "$wrk/$asm.layout");
 
     if (-e "$wrk/$asm.tigStore/seqDB.v002.tig") {
         $cmd  = "$bin/tgStoreDump \\\n";
@@ -56,6 +56,10 @@ sub outputLayout ($$) {
         $cmd .= "  -U -d layout \\\n";
         $cmd .= ">  $wrk/$asm.layout \\\n";
         $cmd .= "2> $wrk/$asm.layout.err\n";
+
+        if (runCommand($wrk, $cmd)) {
+            caExit("failed to output layouts", "$wrk/$asm.layout.err");
+        }
 
     } else {
         open(O, "> $wrk/$asm.layout") or caExit("can't open '$wrk/$asm.layout' for writing: $!", undef);
@@ -80,20 +84,11 @@ sub outputLayout ($$) {
         close(O);
     }
 
-  stopBefore:
-    #stopBefore("outputLayout", $cmd);
-
-    if (runCommand($wrk, $cmd)) {
-        caExit("failed to output layouts", "$wrk/$asm.layout.err");
-    }
+  finishStage:
+    emitStage($wrk, $asm, "outputLayout");
 
   allDone:
-    emitStage($wrk, $asm, "outputLayout");
-  stopAfter:
-
-    print STDERR "--\n";
-    print STDERR "-- wrote unitig layouts to '$wrk/$asm.layout'.\n";
-    print STDERR "--\n";
+    print STDERR "--  Unitig layouts saved in '$wrk/$asm.layout'.\n";
 }
 
 
@@ -105,27 +100,23 @@ sub outputGraph ($$) {
     my $bin    = getBinDirectory();
     my $cmd;
 
-    goto stopAfter   if (skipStage($wrk, $asm, "outputGraph") == 1);
+    goto allDone   if (skipStage($wrk, $asm, "outputGraph") == 1);
     goto allDone     if (-e "$wrk/$asm.graph");
 
     #
     #  Stuff here.
     #
 
-  stopBefore:
-    #stopBefore("outputSequence", $cmd);
-
     if (runCommand($wrk, $cmd)) {
         caExit("failed to output consensus", "$wrk/$asm.graph.err");
     }
 
-  allDone:
-    emitStage($wrk, $asm, "outputGraph");
-  stopAfter:
 
-    print STDERR "--\n";
-    print STDERR "-- wrote unitig graph to (nowhere, yet).\n";
-    print STDERR "--\n";
+  finishStage:
+    emitStage($wrk, $asm, "outputGraph");
+
+  allDone:
+    print STDERR "-- Unitig graph saved in (nowhere, yet).\n";
 }
 
 
@@ -137,16 +128,20 @@ sub outputSequence ($$) {
     my $bin    = getBinDirectory();
     my $cmd;
 
-    goto stopAfter   if (skipStage($wrk, $asm, "outputSequence") == 1);
-    goto allDone     if (-e "$wrk/$asm.fastq");
+    goto allDone   if (skipStage($wrk, $asm, "outputSequence") == 1);
+    goto allDone   if (-e "$wrk/$asm.fastq");
 
     if (-e "$wrk/$asm.tigStore/seqDB.v002.tig") {
         $cmd  = "$bin/tgStoreDump \\\n";
         $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
         $cmd .= "  -T $wrk/$asm.tigStore 2 \\\n";
         $cmd .= "  -U -d consensus \\\n";
-        $cmd .= ">  $wrk/$asm.consensus.fasta \\\n";
-        $cmd .= "2> $wrk/$asm.consensus.fasta.err\n";
+        $cmd .= ">  $wrk/$asm.consensus.fastq \\\n";
+        $cmd .= "2> $wrk/$asm.consensus.fastq.err\n";
+
+        if (runCommand($wrk, $cmd)) {
+            caExit("failed to output consensus", "$wrk/$asm.consensus.fastq.err");
+        }
 
     } else {
         open(O, "> $wrk/$asm.fastq") or caExit("can't open '$wrk/$asm.fastq' for writing: $!", undef);
@@ -170,18 +165,9 @@ sub outputSequence ($$) {
         close(O);
     }
 
-  stopBefore:
-    #stopBefore("outputSequence", $cmd);
-
-    if (runCommand($wrk, $cmd)) {
-        caExit("failed to output consensus", "$wrk/$asm.consensus.fasta.err");
-    }
+  finishStage:
+    emitStage($wrk, $asm, "outputSequence");
 
   allDone:
-    emitStage($wrk, $asm, "outputSequence");
-  stopAfter:
-
-    print STDERR "--\n";
-    print STDERR "-- wrote unitig sequence to $wrk/$asm.consensus.f''.\n";
-    print STDERR "--\n";
+    print STDERR "--  Unitig sequences saved in '$wrk/$asm.consensus.fastq'.\n";
 }

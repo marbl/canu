@@ -103,28 +103,8 @@ sub meryl ($$$) {
     #  If the frequent mer file exists, don't bother running meryl.  We don't really need the
     #  databases.
 
-    my $numTotal    = 0;
-    my $numDistinct = 0;
-    my $numUnique   = 0;
-    my $largest     = 0;
-
-    if (-e "$ofile.histogram.info") {
-        open(F, "< $ofile.histogram.info") or caFailure("can't open meryl histogram information file '$ofile.histogram.info' for reading: $!\n", undef);
-        while (<F>) {
-            $numTotal    = $1   if (m/Found\s(\d+)\s+mers./);
-            $numDistinct = $1   if (m/Found\s(\d+)\s+distinct\smers./);
-            $numUnique   = $1   if (m/Found\s(\d+)\s+unique\smers./);
-            $largest     = $1   if (m/Largest\smercount\sis\s(\d+)/);
-        }
-        close(F);
-    }
-
-    if ($numTotal > 0) {
-        print STDERR "--  Found $numTotal $merSize-mers; $numDistinct distinct and $numUnique unique.  Largest count $largest.\n";
-    }
-
-    goto stopAfter  if (skipStage($WRK, $asm, "$tag-meryl") == 1);        #  Finished.
-    goto allDone    if (-e "$ffile");
+    goto allDone   if (skipStage($WRK, $asm, "$tag-meryl") == 1);
+    goto allDone   if (-e "$ffile");
 
     #  Make a work space.
 
@@ -392,12 +372,29 @@ sub meryl ($$$) {
         setGlobal("${tag}OvlMerThreshold", $merThresh);
     }
 
-  purgeIntermediates:
-    unlink "$ofile.mcidx"  if (getGlobal("saveMerCounts") == 0);
-    unlink "$ofile.mcdat"  if (getGlobal("saveMerCounts") == 0);
+  finishStage:
+    unlink "$ofile.mcidx"   if (getGlobal("saveMerCounts") == 0);
+    unlink "$ofile.mcdat"   if (getGlobal("saveMerCounts") == 0);
+
+    emitStage($WRK, $asm, "$tag-meryl");
+    stopAfter("meryl");
 
   allDone:
-    emitStage($WRK, $asm, "$tag-meryl");
-  stopAfter:
-    stopAfter("meryl");
+    my $numTotal    = 0;
+    my $numDistinct = 0;
+    my $numUnique   = 0;
+    my $largest     = 0;
+
+    if (-e "$ofile.histogram.info") {
+        open(F, "< $ofile.histogram.info") or caFailure("can't open meryl histogram information file '$ofile.histogram.info' for reading: $!\n", undef);
+        while (<F>) {
+            $numTotal    = $1   if (m/Found\s(\d+)\s+mers./);
+            $numDistinct = $1   if (m/Found\s(\d+)\s+distinct\smers./);
+            $numUnique   = $1   if (m/Found\s(\d+)\s+unique\smers./);
+            $largest     = $1   if (m/Largest\smercount\sis\s(\d+)/);
+        }
+        close(F);
+
+        print STDERR "--  Found $numTotal $merSize-mers; $numDistinct distinct and $numUnique unique.  Largest count $largest.\n";
+    }
 }

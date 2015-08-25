@@ -128,7 +128,7 @@ sub unitig ($$) {
     my $wrk    = shift @_;
     my $asm    = shift @_;
 
-    goto stopAfter  if (skipStage($wrk, $asm, "unitig") == 1);
+    goto allDone    if (skipStage($wrk, $asm, "unitig") == 1);
     goto allDone    if (-d "$wrk/$asm.tigStore");
 
     make_path("$wrk/4-unitigger")  if (! -d "$wrk/4-unitigger");
@@ -155,9 +155,10 @@ sub unitig ($$) {
         caExit("failed to unitig", "$wrk/4-unitigger/unitigger.err");
     }
 
-  allDone:
+  finishStage:
     emitStage($wrk, $asm, "unitig");
-  stopAfter:
-    reportUnitigSizes($wrk, $asm, 1, "after unitig construction");
     stopAfter("unitig");
+
+  allDone:
+    reportUnitigSizes($wrk, $asm, 1, "after unitig construction");
 }

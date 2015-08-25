@@ -41,21 +41,33 @@ use canu::Execution;
 
 
 
+sub storeExists ($$) {
+    my $wrk = shift @_;
+    my $asm = shift @_;
+
+    return (-e "$wrk/$asm.gkpStore");
+}
+
+
 
 sub getNumberOfReadsInStore ($$) {
     my $wrk = shift @_;
     my $asm = shift @_;
     my $nr  = 0;
 
-    if (-e "$wrk/$asm.gkpStore/info.txt") {
-        open(F, "< $wrk/$asm.gkpStore/info.txt") or caExit("can't open '$wrk/$asm.gkpStore/info.txt' for reading: $!", undef);
-        while (<F>) {
-            if (m/numReads\s+=\s+(\d+)/) {
-                $nr = $1;
-            }
+    #  No file, no reads.
+
+    return($nr)   if (! -e "$wrk/$asm.gkpStore/info.txt");
+
+    #  Read the info file.  gatekeeperCreate creates this at the end.
+
+    open(F, "< $wrk/$asm.gkpStore/info.txt") or caExit("can't open '$wrk/$asm.gkpStore/info.txt' for reading: $!", undef);
+    while (<F>) {
+        if (m/numReads\s+=\s+(\d+)/) {
+            $nr = $1;
         }
-        close(F);
     }
+    close(F);
 
     return($nr);
 }
@@ -67,26 +79,19 @@ sub getNumberOfBasesInStore ($$) {
     my $asm = shift @_;
     my $nb  = 0;
 
-    if (-e "$wrk/$asm.gkpStore/info.txt") {
-        open(F, "< $wrk/$asm.gkpStore/info.txt") or caExit("can't open '$wrk/$asm.gkpStore/info.txt' for reading: $!", undef);
-        while (<F>) {
-            if (m/numBases\s+=\s+(\d+)/) {
-                $nb = $1;
-            }
-        }
-        close(F);
-    }
+    #  No file, no bases.
 
-    if ($nb == 0) {
-        my $bin    = getBinDirectory();
-        open(F, "$bin/gatekeeperDumpMetaData -G $wrk/$asm.gkpStore -stats |");
-        while (<F>) {
-            if (m/^library\s+0\s+reads\s+\d+\s+bases:\s+total\s+(\d+)\s+/) {
-                $nb = $1;
-            }
+    return($nb)   if (! -e "$wrk/$asm.gkpStore/info.txt");
+
+    #  Read the info file.  gatekeeperCreate creates this at the end.
+
+    open(F, "< $wrk/$asm.gkpStore/info.txt") or caExit("can't open '$wrk/$asm.gkpStore/info.txt' for reading: $!", undef);
+    while (<F>) {
+        if (m/numBases\s+=\s+(\d+)/) {
+            $nb = $1;
         }
-        close(F);
     }
+    close(F);
 
     return($nb);
 }
@@ -113,30 +118,18 @@ sub gatekeeper ($$$@) {
     $wrk = "$wrk/correction"  if ($tag eq "cor");
     $wrk = "$wrk/trimming"    if ($tag eq "obt");
 
-    my $numReads = getNumberOfReadsInStore($wrk, $asm);
+    #  An empty store?  Remove it and try again.
+
+    if ((storeExists($wrk, $asm)) && (getNumberOfReadsInStore($wrk, $asm) == 0)) {
+        print STDERR "--  Removing empty or incomplate gkpStore `$wrk/$asm.gkpStore`\n";
+        runmCommandSilently($wrk, "rm -rf $wrk/$asm.gkpStore");
+    }
 
     #  Store with reads?  Yay!  Report it, then skip.
 
-    if ($numReads > 0) {
-        print STDERR "--  Found $numReads reads in gatekeeper store `$wrk/$asm.gkpStore`.\n";
-    }
+    goto allDone    if (skipStage($WRK, $asm, "$tag-gatekeeper") == 1);
+    goto allDone    if (getNumberOfReadsInStore($wrk, $asm) > 0);
 
-    goto stopAfter  if (skipStage($WRK, $asm, "$tag-gatekeeper") == 1);    #  Finished, don't emit stage.
-    goto allDone    if ($numReads > 0);                                    #  Finished, but need to emit the stage still.
-
-    #  An empty store?  Remove it and try again.
-
-    if (($numReads == 0) && (-e "$wrk/$asm.gkpStore/info.txt")) {
-        print STDERR "--  Removing empty gkpStore `$wrk/$asm.gkpStore`\n";
-        runmCommandSilently($wrk, "rm -rf $wrk/$asm.gkpStore");
-    }
-
-    #  An inomplete store (how?)?  Remove it and try again.
-
-    if ((-d "$wrk/$asm.gkpStore") && (! -e "$wrk/$asm.gkpStore/info.txt")) {
-        print STDERR "--  Removing incomplete gkpStore `$wrk/$asm.gkpStore`\n";
-        runmCommandSilently($wrk, "rm -rf $wrk/$asm.gkpStore");
-    }
 
     caExit("no input files specified, and store not already created, I have nothing to work on!", undef)
         if (scalar(@inputs) == 0);
@@ -207,6 +200,8 @@ sub gatekeeper ($$$@) {
     $cmd .= "  $wrk/$asm.gkpStore.gkp \\\n";
     $cmd .= "> $wrk/$asm.gkpStore.err 2>&1";
 
+    stopBefore("gatekeeper", $cmd);
+
     if (runCommand($wrk, $cmd)) {
         caExit("gatekeeper failed", "$wrk/$asm.gkpStore.err");
     }
@@ -214,10 +209,10 @@ sub gatekeeper ($$$@) {
     rename "$wrk/$asm.gkpStore.BUILDING",             "$wrk/$asm.gkpStore";
     rename "$wrk/$asm.gkpStore.BUILDING.errorLog",    "$wrk/$asm.gkpStore.errorLog";
 
-  purgeIntermediates:
-    ;
-  allDone:
+  finishStage:
     emitStage($WRK, $asm, "$tag-gatekeeper");
-  stopAfter:
     stopAfter("gatekeeper");
+
+  allDone:
+    print STDERR "--  Found ", getNumberOfReadsInStore($wrk, $asm), " reads and ", getNumberOfBasesInStore($wrk, $asm), " bases in gatekeeper store `$wrk/$asm.gkpStore`.\n";
 }

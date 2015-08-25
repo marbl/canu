@@ -54,8 +54,6 @@ sub concatOutput ($@) {
     binmode(O);
 
     foreach my $f (@successJobs) {
-        print STDERR "OverlapErrorAdjustment::concatOutput() $f -->\n";
-
         open(F, "< $f");
         binmode(F);
 
@@ -73,11 +71,9 @@ sub concatOutput ($@) {
 
     close(O);
 
-    print STDERR "OverlapErrorAdjustment::concatOutput() --> $outName\n";
-
-    #foreach my $f (@successJobs) {
-    #    unlink $f;
-    #}
+    foreach my $f (@successJobs) {
+        unlink $f;
+    }
 }
 
 
@@ -89,12 +85,13 @@ sub readErrorDetectionConfigure ($$) {
     my $bin   = getBinDirectory();
     my $path  = "$wrk/3-overlapErrorAdjustment";
 
-    return  if (getGlobal("enableOEA") == 0);
-    return  if (skipStage($wrk, $asm, "readErrorDetectionConfigure") == 1);
-    return  if (-e "$path/red.red");
+    return         if (getGlobal("enableOEA") == 0);
 
-    return if (-e "$wrk/$asm.ovlStore/adjustedEvalues");
-    return if (-d "$wrk/$asm.tigStore");
+    goto allDone   if (skipStage($wrk, $asm, "readErrorDetectionConfigure") == 1);
+    goto allDone   if (-e "$path/red.red");
+
+    goto allDone   if (-e "$wrk/$asm.ovlStore/adjustedEvalues");
+    goto allDone   if (-d "$wrk/$asm.tigStore");
 
     make_path("$path")  if (! -d "$path");
 
@@ -103,7 +100,7 @@ sub readErrorDetectionConfigure ($$) {
     my @readLengths;
     my @numOlaps;
 
-    print STDERR "$bin/gatekeeperDumpMetaData -G $wrk/$asm.gkpStore -reads\n";
+    #print STDERR "$bin/gatekeeperDumpMetaData -G $wrk/$asm.gkpStore -reads\n";
     open(F, "$bin/gatekeeperDumpMetaData -G $wrk/$asm.gkpStore -reads |");
     while (<F>) {
         my @v = split '\s+', $_;
@@ -111,7 +108,7 @@ sub readErrorDetectionConfigure ($$) {
     }
     close(F);
 
-    print STDERR "$bin/ovStoreDump -G $wrk/$asm.gkpStore -O $wrk/$asm.ovlStore -d -counts\n";
+    #print STDERR "$bin/ovStoreDump -G $wrk/$asm.gkpStore -O $wrk/$asm.ovlStore -d -counts\n";
     open(F, "$bin/ovStoreDump -G $wrk/$asm.gkpStore -O $wrk/$asm.ovlStore -d -counts |");
     while (<F>) {
         my @v = split '\s+', $_;
@@ -154,11 +151,11 @@ sub readErrorDetectionConfigure ($$) {
             (($id == $maxID - 1))) {
             push @end, $id;
 
-            printf(STDERR "RED job %3u from read %9u to read %9u using %7.3f GB for %7u reads, %7.3f GB for %9u olaps and %7.3f GB for evidence\n",
-                   $nj + 1, $bgn[$nj], $end[$nj], $reads,
-                   13 * $bases / 1024 / 1024 / 1024, $bases,
-                   12 * $olaps / 1024 / 1024 / 1024, $olaps,
-                   2 * $bases * $coverage / 1024 / 1024 / 1024);
+            #printf(STDERR "RED job %3u from read %9u to read %9u using %7.3f GB for %7u reads, %7.3f GB for %9u olaps and %7.3f GB for evidence\n",
+            #       $nj + 1, $bgn[$nj], $end[$nj], $reads,
+            #       13 * $bases / 1024 / 1024 / 1024, $bases,
+            #       12 * $olaps / 1024 / 1024 / 1024, $olaps,
+            #       2 * $bases * $coverage / 1024 / 1024 / 1024);
 
             $nj++;
 
@@ -223,7 +220,10 @@ sub readErrorDetectionConfigure ($$) {
 
     chmod 0755, "$path/red.sh";
 
+  finishStage:
     emitStage($wrk, $asm, "readErrorDetectionConfigure");
+
+  allDone:
 }
 
 
@@ -236,12 +236,12 @@ sub readErrorDetectionCheck ($$$) {
     my $attempt = shift @_;
     my $path    = "$wrk/3-overlapErrorAdjustment";
 
-    return  if (getGlobal("enableOEA") == 0);
-    return  if (skipStage($wrk, $asm, "readErrorDetectionCheck", $attempt) == 1);
-    return  if (-e "$path/red.red");
+    return         if (getGlobal("enableOEA") == 0);
+    goto allDone   if (skipStage($wrk, $asm, "readErrorDetectionCheck", $attempt) == 1);
+    goto allDone   if (-e "$path/red.red");
 
-    return if (-e "$wrk/$asm.ovlStore/adjustedEvalues");
-    return if (-d "$wrk/$asm.tigStore");
+    goto allDone   if (-e "$wrk/$asm.ovlStore/adjustedEvalues");
+    goto allDone   if (-d "$wrk/$asm.tigStore");
 
     my $numReads    = getNumberOfReadsInStore($wrk, $asm);
     my $numJobs     = 0;
@@ -308,9 +308,11 @@ sub readErrorDetectionCheck ($$$) {
 
     print STDERR "readErrorDetectionCheck() -- attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
 
+  finishStage:
     emitStage($wrk, $asm, "readErrorDetectionCheck", $attempt);
-
     submitOrRunParallelJob($wrk, $asm, "red", "$path", "red", @failedJobs);
+
+  allDone:
 }
 
 
@@ -323,12 +325,13 @@ sub overlapErrorAdjustmentConfigure ($$) {
     my $bin   = getBinDirectory();
     my $path  = "$wrk/3-overlapErrorAdjustment";
 
-    return  if (getGlobal("enableOEA") == 0);
-    return  if (skipStage($wrk, $asm, "overlapErrorAdjustmentConfigure") == 1);
-    return  if (-e "$path/oea.sh");
+    return         if (getGlobal("enableOEA") == 0);
 
-    return if (-e "$wrk/$asm.ovlStore/adjustedEvalues");
-    return if (-d "$wrk/$asm.tigStore");
+    goto allDone   if (skipStage($wrk, $asm, "overlapErrorAdjustmentConfigure") == 1);
+    goto allDone   if (-e "$path/oea.sh");
+
+    goto allDone   if (-e "$wrk/$asm.ovlStore/adjustedEvalues");
+    goto allDone   if (-d "$wrk/$asm.tigStore");
 
     #  OEA uses 1 byte/base + 8 bytes/adjustment + 28 bytes/overlap.  We don't know the number of adjustments, but that's
     #  basically error rate.  No adjustment is output for mismatches.
@@ -336,7 +339,7 @@ sub overlapErrorAdjustmentConfigure ($$) {
     my @readLengths;
     my @numOlaps;
 
-    print STDERR "$bin/gatekeeperDumpMetaData -G $wrk/$asm.gkpStore -reads\n";
+    #print STDERR "$bin/gatekeeperDumpMetaData -G $wrk/$asm.gkpStore -reads\n";
     open(F, "$bin/gatekeeperDumpMetaData -G $wrk/$asm.gkpStore -reads |");
     while (<F>) {
         my @v = split '\s+', $_;
@@ -344,7 +347,7 @@ sub overlapErrorAdjustmentConfigure ($$) {
     }
     close(F);
 
-    print STDERR "$bin/ovStoreDump -G $wrk/$asm.gkpStore -O $wrk/$asm.ovlStore -d -counts\n";
+    #print STDERR "$bin/ovStoreDump -G $wrk/$asm.gkpStore -O $wrk/$asm.ovlStore -d -counts\n";
     open(F, "$bin/ovStoreDump -G $wrk/$asm.gkpStore -O $wrk/$asm.ovlStore -d -counts |");
     while (<F>) {
         my @v = split '\s+', $_;
@@ -384,11 +387,11 @@ sub overlapErrorAdjustmentConfigure ($$) {
             (($id == $maxID - 1))) {
             push @end, $id;
 
-            printf(STDERR "OEA job %3u from read %9u to read %9u using %7.3f GB for reads, %7.3f GB for olaps and %7.3f GB for adjustments\n",
-                   $nj + 1, $bgn[$nj], $end[$nj],
-                   1 * $bases / 1024 / 1024 / 1024,
-                   12 * $olaps / 1024 / 1024 / 1024,
-                   8 * $bases * getGlobal("errorRate") / 1024 / 1024 / 1024);
+            #printf(STDERR "OEA job %3u from read %9u to read %9u using %7.3f GB for reads, %7.3f GB for olaps and %7.3f GB for adjustments\n",
+            #       $nj + 1, $bgn[$nj], $end[$nj],
+            #       1 * $bases / 1024 / 1024 / 1024,
+            #       12 * $olaps / 1024 / 1024 / 1024,
+            #       8 * $bases * getGlobal("errorRate") / 1024 / 1024 / 1024);
 
             $nj++;
 
@@ -448,7 +451,10 @@ sub overlapErrorAdjustmentConfigure ($$) {
 
     chmod 0755, "$path/oea.sh";
 
+  finishStage:
     emitStage($wrk, $asm, "overlapErrorAdjustmentConfigure");
+
+  allDone:
 }
 
 
@@ -461,9 +467,10 @@ sub overlapErrorAdjustmentCheck ($$$) {
     my $attempt = shift @_;
     my $path    = "$wrk/3-overlapErrorAdjustment";
 
-    return  if (getGlobal("enableOEA") == 0);
-    return  if (skipStage($wrk, $asm, "overlapErrorAdjustmentCheck", $attempt) == 1);
-    return  if (-e "$path/oea.files");
+    return         if (getGlobal("enableOEA") == 0);
+
+    goto allDone   if (skipStage($wrk, $asm, "overlapErrorAdjustmentCheck", $attempt) == 1);
+    goto allDone   if (-e "$path/oea.files");
 
     my $batchSize   = getGlobal("oeaBatchSize");
     my $failedJobs  = 0;
@@ -530,9 +537,11 @@ sub overlapErrorAdjustmentCheck ($$$) {
 
     print STDERR "overlapErrorAdjustmentCheck() -- attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
 
+  finishStage:
     emitStage($wrk, $asm, "overlapErrorAdjustmentCheck", $attempt);
-
     submitOrRunParallelJob($wrk, $asm, "oea", "$path", "oea", @failedJobs);
+
+  allDone:
 }
 
 
@@ -545,12 +554,13 @@ sub updateOverlapStore ($$) {
     my $cmd;
     my $path = "$wrk/3-overlapErrorAdjustment";
 
-    return  if (getGlobal("enableOEA") == 0);
-    return  if (skipStage($wrk, $asm, "updateOverlapStore") == 1);
-    return  if (-e "$wrk/$asm.ovlStore/evalues");
+    return         if (getGlobal("enableOEA") == 0);
 
-    return if (-e "$wrk/$asm.ovlStore/adjustedEvalues");
-    return if (-d "$wrk/$asm.tigStore");
+    goto allDone   if (skipStage($wrk, $asm, "updateOverlapStore") == 1);
+    goto allDone   if (-e "$wrk/$asm.ovlStore/evalues");
+
+    goto allDone   if (-e "$wrk/$asm.ovlStore/adjustedEvalues");
+    goto allDone   if (-d "$wrk/$asm.tigStore");
 
     caExit("didn't find '$path/oea.files' to add to store, yet overlapper finished", undef)  if (! -e "$path/oea.files");
 
@@ -566,5 +576,8 @@ sub updateOverlapStore ($$) {
         caExit("failed to add error rates to overlap store", "$path/oea.apply.err");
     }
 
+  finishStage:
     emitStage($wrk, $asm, "updateOverlapStore");
+
+  allDone:
 }
