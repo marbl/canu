@@ -89,6 +89,7 @@ sub overlapConfigure ($$$$) {
         my $hashBlockSize   = 0;
         my $refBlockSize    = getGlobal("${tag}OvlRefBlockSize");
         my $refBlockLength  = getGlobal("${tag}OvlRefBlockLength");
+        my $minOlapLength   = getGlobal("minOverlapLength");
 
         if (($refBlockSize > 0) && ($refBlockLength > 0)) {
             caExit("can't set both ${tag}OvlRefBlockSize and ${tag}OvlRefBlockLength", undef);
@@ -105,6 +106,7 @@ sub overlapConfigure ($$$$) {
         #$cmd .= " -H $hashLibrary \\\n" if ($hashLibrary ne "0");
         #$cmd .= " -R $refLibrary \\\n"  if ($refLibrary ne "0");
         #$cmd .= " -C \\\n" if (!$checkLibrary);
+        $cmd .= " -ol $minOlapLength \\\n";
         $cmd .= " -o  $path/$asm.partition \\\n";
         $cmd .= "> $path/$asm.partition.err 2>&1";
 

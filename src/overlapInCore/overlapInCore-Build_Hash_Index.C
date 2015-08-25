@@ -355,16 +355,16 @@ Hash_Insert(String_Ref_t Ref, uint64 Key, char * S) {
 //  global variables  basesData, String_Start, String_Info, ....
 static
 void
-Put_String_In_Hash(int i) {
+Put_String_In_Hash(uint32 curID, uint32 i) {
   String_Ref_t  ref = 0;
-  int           kmers_inserted = 0;
   int           skip_ct;
   uint64        key;
   uint64        key_is_bad;
   int           j;
 
-  if (String_Info[i].length < G.Kmer_Len)
-    return;
+  uint32        kmers_skipped  = 0;
+  uint32        kmers_bad      = 0;
+  uint32        kmers_inserted = 0;
 
   char *p      = basesData + String_Start[i];
   char *window = basesData + String_Start[i];
@@ -390,6 +390,9 @@ Put_String_In_Hash(int i) {
   if (key_is_bad == false) {
     Hash_Insert(ref, key, window);
     kmers_inserted++;
+
+  } else {
+    kmers_bad++;
   }
 
   while (*p != 0) {
@@ -409,11 +412,22 @@ Put_String_In_Hash(int i) {
     key >>= 2;
     key  |= (uint64) (Bit_Equivalent[(int) * (p ++)]) << (2 * (G.Kmer_Len - 1));
 
-    if ((skip_ct == 0) && (key_is_bad == false)) {
-      Hash_Insert (ref, key, window);
-      kmers_inserted++;
+    if (skip_ct > 0) {
+      kmers_skipped++;
+      continue;
     }
+
+    if (key_is_bad) {
+      kmers_bad++;
+      continue;
+    }
+
+    Hash_Insert(ref, key, window);
+    kmers_inserted++;
   }
+
+  //fprintf(stderr, "STRING %u skipped %u bad %u inserted %u\n",
+  //        curID, kmers_skipped, kmers_bad, kmers_inserted);
 }
 
 
@@ -470,6 +484,7 @@ Build_Hash_Index(gkStore *gkpStore, uint32 bgnID, uint32 endID) {
   //  don't use a little bit of memory.
 
   uint32  nSkipped  = 0;
+  uint32  nShort    = 0;
   uint32  nLoadable = 0;
 
   uint64  maxAlloc = 0;
@@ -486,13 +501,18 @@ Build_Hash_Index(gkStore *gkpStore, uint32 bgnID, uint32 endID) {
       continue;
     }
 
+    if (read->gkRead_sequenceLength() < G.Min_Olap_Len) {
+      nShort++;
+      continue;
+    }
+
     nLoadable++;
 
     maxAlloc += read->gkRead_sequenceLength() + 1;
   }
 
-  fprintf(stderr, "Found "F_U32" reads with length "F_U64" to load; "F_U32" skipped per library restriction\n",
-          nLoadable, maxAlloc, nSkipped);
+  fprintf(stderr, "Found "F_U32" reads with length "F_U64" to load; "F_U32" skipped by being too short; "F_U32" skipped per library restriction\n",
+          nLoadable, maxAlloc, nShort, nSkipped);
 
   //  This should be less than what the user requested on the command line
 
@@ -516,10 +536,16 @@ Build_Hash_Index(gkStore *gkpStore, uint32 bgnID, uint32 endID) {
   for (curID=bgnID; ((String_Ct    <  G.Max_Hash_Strings) &&
                      (total_len    <  G.Max_Hash_Data_Len) &&
                      (Hash_Entries <  hash_entry_limit) &&
-                     (curID        <= endID)); curID++) {
+                     (curID        <= endID)); curID++, String_Ct++) {
 
     //  Load sequence if it exists, otherwise, add an empty read.
     //  Duplicated in Process_Overlaps().
+
+    String_Start[String_Ct]                    = UINT64_MAX;
+
+    String_Info[String_Ct].length              = 0;
+    String_Info[String_Ct].lfrag_end_screened  = TRUE;
+    String_Info[String_Ct].rfrag_end_screened  = TRUE;
 
     gkRead  *read = gkpStore->gkStore_getRead(curID);
 
@@ -576,7 +602,7 @@ Build_Hash_Index(gkStore *gkpStore, uint32 bgnID, uint32 endID) {
 
     //  What is Extra_Data_Len?  It's set to Data_Len if we would have reallocated here.
 
-    Put_String_In_Hash(String_Ct++);
+    Put_String_In_Hash(curID, String_Ct);
 
     if ((String_Ct % 100000) == 0)
       fprintf (stderr, "String_Ct:%12"F_U64P"/%12"F_U32P"  totalLen:%12"F_U64P"/%12"F_U64P"  Hash_Entries:%12"F_U64P"/%12"F_U64P"  Load: %.2f%%\n",

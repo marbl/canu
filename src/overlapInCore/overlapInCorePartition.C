@@ -164,6 +164,7 @@ partitionFrags(gkStore      *gkp,
                FILE         *BAT,
                FILE         *JOB,
                FILE         *OPT,
+               uint32        minOverlapLength,
                uint64        ovlHashBlockSize,
                uint64        ovlRefBlockLength,
                uint64        ovlRefBlockSize,
@@ -217,6 +218,10 @@ partitionFrags(gkStore      *gkp,
       if (ovlRefBlockLength > 0) {
         do {
           refEnd++;
+
+          if (readLen[refEnd] < minOverlapLength)
+            continue;
+
           refLen += readLen[refEnd];
         } while ((refLen < ovlRefBlockLength) && (refEnd < refMax));
 
@@ -247,6 +252,7 @@ partitionLength(gkStore      *gkp,
                 FILE         *BAT,
                 FILE         *JOB,
                 FILE         *OPT,
+                uint32        minOverlapLength,
                 uint64        ovlHashBlockLength,
                 uint64        ovlRefBlockLength,
                 uint64        ovlRefBlockSize,
@@ -286,10 +292,14 @@ partitionLength(gkStore      *gkp,
     assert(hashEnd == hashBeg - 1);
 
     //  Non deleted reads contribute one byte per untrimmed base, and every fragment contributes one
-    //  more byte for the terminating zero.  In 3g, there are no deleted reads.
+    //  more byte for the terminating zero.  In canu, there are no deleted reads.
 
     do {
       hashEnd++;
+
+      if (readLen[hashEnd] < minOverlapLength)
+        continue;
+
       hashLen += readLen[hashEnd] + 1;
     } while ((hashLen < ovlHashBlockLength) && (hashEnd < hashMax));
 
@@ -305,6 +315,10 @@ partitionLength(gkStore      *gkp,
       if (ovlRefBlockLength > 0) {
         do {
           refEnd++;
+
+          if (readLen[refEnd] < minOverlapLength)
+            continue;
+
           refLen += readLen[refEnd];
         } while ((refLen < ovlRefBlockLength) && (refEnd < refMax));
 
@@ -341,6 +355,9 @@ main(int argc, char **argv) {
   uint64           ovlHashBlockSize    = 0;
   uint64           ovlRefBlockLength   = 0;
   uint64           ovlRefBlockSize     = 0;
+
+  uint32           minOverlapLength    = 0;
+
   bool             checkAllLibUsed     = true;
 
   set<uint32>      libToHash;
@@ -365,6 +382,9 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-rs") == 0) {
       ovlRefBlockSize    = strtoull(argv[++arg], NULL, 10);
+
+    } else if (strcmp(argv[arg], "-ol") == 0) {
+      minOverlapLength   = strtoull(argv[++arg], NULL, 10);
 
     } else if (strcmp(argv[arg], "-H") == 0) {
       AS_UTL_decodeRange(argv[++arg], libToHash);
@@ -445,9 +465,9 @@ main(int argc, char **argv) {
     fprintf(stderr, "Failed to open '%s': %s\n", outputName, strerror(errno)), exit(1);
 
   if (ovlHashBlockLength == 0)
-    partitionFrags(gkp, BAT, JOB, OPT, ovlHashBlockSize, ovlRefBlockLength, ovlRefBlockSize, libToHash, libToRef);
+    partitionFrags(gkp, BAT, JOB, OPT, minOverlapLength, ovlHashBlockSize, ovlRefBlockLength, ovlRefBlockSize, libToHash, libToRef);
   else
-    partitionLength(gkp, BAT, JOB, OPT, ovlHashBlockLength, ovlRefBlockLength, ovlRefBlockSize, libToHash, libToRef);
+    partitionLength(gkp, BAT, JOB, OPT, minOverlapLength, ovlHashBlockLength, ovlRefBlockLength, ovlRefBlockSize, libToHash, libToRef);
 
   fclose(BAT);
   fclose(JOB);
