@@ -251,13 +251,10 @@ OverlapDriver(void) {
     G.curRefID = G.bgnRefID;
 
     //  The old version used to further divide the ref range into blocks of at most
-    //  Max_Reads_Per_Batch so that those reads could be loaded into core.  We don't need to do that
-    //  anymore.
+    //  Max_Reads_Per_Batch so that those reads could be loaded into core.  We don't
+    //  need to do that anymore.
 
-    G.perThread = (G.endRefID - G.bgnRefID) / G.Num_PThreads / 8;
-
-    if (G.perThread < 1)
-      G.perThread = 1;
+    G.perThread = 1 + (G.endRefID - G.bgnRefID) / G.Num_PThreads / 8;
 
     fprintf(stderr, "\n");
     fprintf(stderr, "Range: %u-%u.  Store has %u reads.\n",
@@ -402,12 +399,6 @@ main(int argc, char **argv) {
 
       MAX_STRING_NUM        = STRING_NUM_MASK;
 
-    } else if (strcmp(argv[arg], "--readsperbatch") == 0) {
-      G.Max_Reads_Per_Batch = strtoul(argv[++arg], NULL, 10);
-
-    } else if (strcmp(argv[arg], "--readsperthread") == 0) {
-      G.Max_Reads_Per_Thread = strtoul(argv[++arg], NULL, 10);
-
     } else if (strcmp(argv[arg], "-o") == 0) {
       G.Outfile_Name = argv[++arg];
 
@@ -512,26 +503,6 @@ main(int argc, char **argv) {
 
   Out_BOF = new ovFile(G.Outfile_Name, ovFileFullWrite);
 
-  //  Adjust the number of reads to load into memory at once (for processing, not the hash table),
-
-  if (G.Max_Reads_Per_Batch == 0)
-    G.Max_Reads_Per_Batch = (G.Max_Hash_Strings < 100000) ? G.Max_Hash_Strings : 100000;
-
-  //if (Max_Hash_Strings < Max_Reads_Per_Batch)
-  //  Max_Reads_Per_Batch = Max_Hash_Strings;
-
-  //  Adjust the number of reads processed per thread.  Default to having four blocks per thread,
-  //  but make sure that (a) all threads have work to do, and (b) batches are not minuscule.
-
-  if (G.Max_Reads_Per_Thread == 0)
-    G.Max_Reads_Per_Thread = G.Max_Reads_Per_Batch / (4 * G.Num_PThreads);
-
-  if (G.Max_Reads_Per_Thread * G.Num_PThreads > G.Max_Reads_Per_Batch)
-    G.Max_Reads_Per_Thread = G.Max_Reads_Per_Batch / G.Num_PThreads + 1;
-
-  if (G.Max_Reads_Per_Thread < 10)
-    G.Max_Reads_Per_Thread = 10;
-
   //  We know enough now to set the hash function variables, and some other random variables.
 
   HSF1 = G.Kmer_Len - (G.Hash_Mask_Bits / 2);
@@ -540,6 +511,7 @@ main(int argc, char **argv) {
   SV2  = (HSF1 + HSF2) / 2;
   SV3  = HSF2 - 2;
 
+  //  Log parameters.
 
   fprintf(stderr, "\n");
   fprintf(stderr, "STRING_NUM_BITS       "F_U32"\n", STRING_NUM_BITS);
@@ -557,11 +529,8 @@ main(int argc, char **argv) {
   fprintf(stderr, "Max Error Rate        %f\n", G.Max_Erate);
   fprintf(stderr, "\n");
   fprintf(stderr, "Num_PThreads          "F_U32"\n", G.Num_PThreads);
-  fprintf(stderr, "Max_Reads_Per_Batch   "F_U32"\n", G.Max_Reads_Per_Batch);
-  fprintf(stderr, "Max_Reads_Per_Thread  "F_U32"\n", G.Max_Reads_Per_Thread);
 
   assert (8 * sizeof (uint64) > 2 * G.Kmer_Len);
-
 
   Bit_Equivalent['a'] = Bit_Equivalent['A'] = 0;
   Bit_Equivalent['c'] = Bit_Equivalent['C'] = 1;

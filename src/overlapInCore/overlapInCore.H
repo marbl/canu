@@ -435,13 +435,10 @@ public:
 
     Unique_Olap_Per_Pair = true;
 
-    Hash_Mask_Bits            = 22;
-    Max_Hash_Load             = 0.6;
-    Max_Hash_Strings          = 100000000 / 800;
-    Max_Hash_Data_Len         = 100000000;
-
-    Max_Reads_Per_Batch  = 0;
-    Max_Reads_Per_Thread = 0;
+    Hash_Mask_Bits       = 22;
+    Max_Hash_Load        = 0.6;
+    Max_Hash_Strings     = 10000;
+    Max_Hash_Data_Len    = 100000000;
 
     Outfile_Name = NULL;
 
@@ -502,9 +499,6 @@ public:
   double  Max_Hash_Load;  //  --hashload
 
   //  --maxreadlen sets OFFSET_BITS, STRING_NUM_BITS, STRING_NUM_MASK and MAX_STRING_NUM.
-
-  uint32  Max_Reads_Per_Batch;   //  --readsperbatch,  The number of reads loaded in a single batch.
-  uint32  Max_Reads_Per_Thread;  //  --readsperthread, The number of reads processed per thread.
 
   char  *Outfile_Name;  //  -o
 
