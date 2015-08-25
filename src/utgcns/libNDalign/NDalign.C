@@ -642,6 +642,18 @@ NDalign::processHits(void) {
       fprintf(stderr, "NDalign::processHits()-- NEW length %u erate %f score %u (%d-%d %d-%d)\n",
               length(), erate(), score(), abgn(), aend(), bbgn(), bend());
 #endif
+
+    } else {
+      olapType = pedBothBranch;
+
+#ifdef DEBUG_ALGORITHM
+      fprintf(stderr, "NDalign::processHits()-- DON'T save alignment - OLD length %u erate %f score %u (%d-%d %d-%d) ",
+              length(), erate(), score(), abgn(), aend(), bbgn(), bend());
+      fprintf(stderr, "NDalign::processHits()--  NEW length %u score %u coords %u-%u %u-%u\n",
+              ((aHi - aLo) + (bHi - bLo) + _editDist->Left_Delta_Len) / 2,
+              _editDist->score(),
+              aLo, aHi, bLo, bHi);
+#endif
     }
 
     //  If a dovetail, we're done.  Let the client figure out if the quality is good.
@@ -651,9 +663,9 @@ NDalign::processHits(void) {
 
   }  //  Over all seeds.
 
-  //  No more seeds to align, but we have an alignment saved (otherwise, we would have returned false above when no seeds are left).
+  //  No more seeds to align.  Did we save an alignment?
 
-  return(true);
+  return(score() > 0);
 }
 
 

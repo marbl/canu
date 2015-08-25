@@ -73,7 +73,7 @@ public:
     _bHi       = 0;
 
     _olapLen   = 0;
-    _olapScore = 0;
+    _olapScore = DBL_MIN;
     _olapErate = 0;
     _olapType  = pedBothBranch;
 
