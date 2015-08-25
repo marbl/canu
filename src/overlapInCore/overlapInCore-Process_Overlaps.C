@@ -133,15 +133,20 @@ Process_Overlaps(void *ptr){
     //  Write out this block of overlaps, no need to keep them in core!
     //  While we have a mutex, also find the next block of things to process.
 
-    fprintf(stderr, "Thread %02u writes    reads "F_U32"-"F_U32" (%u overlaps)\n",
-            WA->thread_id, WA->bgnID, WA->endID, WA->overlapsLen);
+    fprintf(stderr, "Thread %02u writes    reads "F_U32"-"F_U32" (%u overlaps %u/%u kmer hits with/without overlap)\n",
+            WA->thread_id, WA->bgnID, WA->endID,
+            WA->overlapsLen,
+            WA->Kmer_Hits_With_Olap_Ct, WA->Kmer_Hits_Without_Olap_Ct);
 
     pthread_mutex_lock(& Write_Proto_Mutex);
 
+    //  Flush any remaining overlaps.
+
     for (int zz=0; zz<WA->overlapsLen; zz++)
       Out_BOF->writeOverlap(WA->overlaps + zz);
-
     WA->overlapsLen = 0;
+
+    //  Update stats
 
     Total_Overlaps            += WA->Total_Overlaps;
     Contained_Overlap_Ct      += WA->Contained_Overlap_Ct;
@@ -154,15 +159,13 @@ Process_Overlaps(void *ptr){
     WA->bgnID = G.curRefID;
     WA->endID = G.curRefID + G.perThread - 1;
 
-    G.curRefID = WA->endID + 1;
-
     if (WA->endID > G.endRefID)
       WA->endID = G.endRefID;
 
+    G.curRefID = WA->endID + 1;
+
     pthread_mutex_unlock(& Write_Proto_Mutex);
 
-    fprintf(stderr, "Thread %02u finished  reads "F_U32"-"F_U32"\n",
-            WA->thread_id, WA->bgnID, WA->endID);
   }
 
   delete readData;
