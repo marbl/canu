@@ -32,7 +32,7 @@ package canu::Unitig;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(unitig outputGraph reportUnitigSizes);
+@EXPORT = qw(unitig reportUnitigSizes);
 
 use strict;
 
