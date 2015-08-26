@@ -41,10 +41,6 @@ use File::Path qw(make_path remove_tree);
 
 use Carp;
 
-#use POSIX "ceil";
-#use POSIX "floor";
-#use POSIX "sys_wait_h";  #  waitpid()
-
 use canu::Defaults;
 use canu::Execution;
 
