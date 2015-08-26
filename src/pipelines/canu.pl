@@ -75,7 +75,7 @@ my @inputFiles;   #  Command line inputs, later inputs in spec files are added
 
 print STDERR "-- Detected ", getNumberOfCPUs(), " CPUs and ", getPhysicalMemorySize(), " gigabytes of memory.\n";
 
-#  Initialize our defaults.
+#  Initialize our defaults.  Must be done before defaults are reported in printHelp() below.
 
 setDefaults();
 
@@ -90,34 +90,22 @@ foreach my $arg (@ARGV) {
     }
 }
 
-#  The first arg must be the mode of operation.  Currently three modes
-#  are supported: correct, trim, assemble.  The modes only affect the
-#  steps taken in the 'pipeline' at the bottom of this file.
+#  Print usage if no arguments
 
-my $mode = shift @ARGV;
-my $step = $mode;
-
-if (($mode ne "run") &&
-    ($mode ne "correct") &&
-    ($mode ne "trim") &&
-    ($mode ne "assemble")) {
-    setGlobal("help", "ERROR: first parameter must be the mode of operation (run, correct, trim or assemble).\n");
+if (scalar(@ARGV) == 0) {
+    setGlobal("help", 1);
     printHelp($bin);
-    exit(1);
 }
 
-addCommandLineOption($mode);
+#  By default, all three steps are run.  Options -correct, -trim and -assemble
+#  can limit the pipeline to just that stage.
 
 #  At some pain, we stash the original options for later use.  We need
 #  to use these when we resubmit ourself to the grid.  We can't simply dump
-#  all of @ARGV into here, because we need to fix up relative paths.
+#  all of @ARGV into here, because we need to fix up relative paths first.
 
-
-#  Enabling/disabling algorithm features is done through library features
-#  set in the input gkp files.  This is inconvenient, as you cannot easily
-#  change the algorithm without rebuilding gkpStore.  This is flexible, letting
-#  you disable an algorithm, or use different parameters for different reads.
-
+my $mode = "run";
+my $step = "run";
 
 while (scalar(@ARGV)) {
     my $arg = shift @ARGV;
@@ -138,6 +126,19 @@ while (scalar(@ARGV)) {
         push @specFiles, $spec;
 
         addCommandLineOption("-s \"$spec\"");
+
+
+    } elsif ($arg eq "-correct") {
+        $mode = $step = "correct";
+        addCommandLineOption("-correct");
+
+    } elsif ($arg eq "-trim") {
+        $mode = $step = "trim";
+        addCommandLineOption("-trim");
+
+    } elsif ($arg eq "-assemble") {
+        $mode = $step = "assemble";
+        addCommandLineOption("-assemble");
 
 
     } elsif ($arg eq "-version") {
