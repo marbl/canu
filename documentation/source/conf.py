@@ -112,6 +112,18 @@ html_theme = 'default'
 # Add any paths that contain custom themes here, relative to this directory.
 #html_theme_path = []
 
+#  Build using the RTD theme, if not on RTD.
+#    https://read-the-docs.readthedocs.org/en/latest/theme.html
+#    https://github.com/snide/sphinx_rtd_theme
+#
+on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
+
+if not on_rtd:  # only import and set the theme if we're building docs locally
+    import sphinx_rtd_theme
+    html_theme = 'sphinx_rtd_theme'
+    html_theme_path = [ "/usr/local/lib/python2.7/site-packages", ]
+
+
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
 #html_title = None
