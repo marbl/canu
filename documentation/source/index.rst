@@ -36,7 +36,6 @@ Canu
    pipeline
    parameter-reference
    command-reference
-   index
 
 
 Canu is a fork of the Celera Assembler designed for high-noise single-molecule sequencing (such as
@@ -49,14 +48,3 @@ and report issues encountered.
 
 *  :ref:`Canu Parameter Reference  <parameter-reference>` - all the paramters, grouped by function.
 *  :ref:`Canu Command Reference    <command-reference>` - all the commands that canu runs for you.
-
-..
- *  :ref:`Canu Index                <index>` - who needs google?  Well, we do, because this doesn't exist yet.
-
-
-..
- `Link <www.walenz.org>`_
-
-..
- A section label is ".. _quickstart"
-
