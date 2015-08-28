@@ -712,7 +712,7 @@ sub submitScript ($$$) {
 
     my ($jobName, $memOption, $thrOption, $gridOpts);
 
-    $jobName   = "c3g_" . $asm . ((defined(getGlobal("gridOptionsJobName"))) ? ("_" . getGlobal("gridOptionsJobName")) : (""));
+    $jobName   = "canu_" . $asm . ((defined(getGlobal("gridOptionsJobName"))) ? ("_" . getGlobal("gridOptionsJobName")) : (""));
 
     $memOption = buildMemoryOption(getGlobal("masterMemory"), getGlobal("masterThreads"));
     $thrOption = buildThreadOption(getGlobal("masterThreads"));
