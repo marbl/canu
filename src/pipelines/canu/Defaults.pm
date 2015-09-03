@@ -677,7 +677,7 @@ sub checkParameters ($) {
         (getGlobal("corConsensus") eq "falconpipe")) {
         my $falcon = getGlobal("falconSense");
 
-        caExit("didn't find falcon program with option falconSense='$falcon'", undef)  if (! -e $falcon);
+        caExit("didn't find falcon program with option falconSense='$falcon'", undef)  if ((defined($falcon)) && (! -e $falcon));
     }
 
 
@@ -1258,9 +1258,6 @@ sub setDefaults () {
     $synops{"corConsensus"}                = "Which consensus algorithm to use; only 'falcon' and 'falconpipe' are supported";
 
     $global{"falconSense"}                 = undef;
-    $global{"falconSense"}                 = "/home/walenzb/canu/src/falcon_sense/falcon_sense.Linux-amd64.bin"                 if (-e "/home/walenzb/canu/src/falcon_sense/falcon_sense.Linux-amd64.bin");
-    $global{"falconSense"}                 = "/nbacc/scratch/bri/canu/canu-build/src/falcon_sense/falcon_sense.Linux-amd64.bin" if (-e "/nbacc/scratch/bri/canu/canu-build/src/falcon_sense/falcon_sense.Linux-amd64.bin");
-    $global{"falconSense"}                 = "/work/software/falcon/install/fc_env/bin/fc_consensus.py"                         if (-e "/work/software/falcon/install/fc_env/bin/fc_consensus.py");
     $synops{"falconSense"}                 = "Path to fc_consensus.py or falcon_sense.bin";
 
 

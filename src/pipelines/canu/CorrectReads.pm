@@ -207,7 +207,8 @@ sub buildCorrectionLayouts_direct ($$) {
 
     if (getGlobal("corConsensus") eq "falcon") {
         print F "\n";
-        print F getGlobal("falconSense") . " \\\n";
+        print F getGlobal("falconSense") . " \\\n"  if ( defined(getGlobal("falconSense")));
+        print F "\$bin/falcon_sense \\\n"           if (!defined(getGlobal("falconSense")));
         print F "  --max_n_read 200 \\\n";
         print F "  --min_idt 0.70 \\\n";
         print F "  --output_multi \\\n";
@@ -309,7 +310,8 @@ sub buildCorrectionLayouts_piped ($$) {
     print F "  -C $maxCov \\\n"                                    if (defined($maxCov));
     print F "  -F \\\n";
     print F "| \\\n";
-    print F getGlobal("falconSense") . " \\\n";
+    print F getGlobal("falconSense") . " \\\n"  if ( defined(getGlobal("falconSense")));
+    print F "\$bin/falcon_sense \\\n"           if (!defined(getGlobal("falconSense")));
     print F "  --max_n_read 200 \\\n";
     print F "  --min_idt 0.70 \\\n";
     print F "  --output_multi \\\n";
