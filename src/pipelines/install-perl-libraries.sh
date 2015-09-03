@@ -87,6 +87,14 @@ else
   perl Makefile.PL INSTALL_BASE=../$installdir
   perl Makefile.PL INSTALL_BASE=../$installdir > make.maker.err 2>& 1
 
+  #  The toplevel GNU make is setting MAKEFLAGS to be "-j --jobserver-fds=3,4".  The BSD make
+  #  invoked below (on FreeBSD and probably OS X) requires a value for -j.  So we just remove it.
+  #  In GNU make, '-j' says to run as many tasks in parallel as possible; this isn't heavy lifting,
+  #  so won't matter if it's sequential.  The jobserver-fds baloney is to track jobs in parallel,
+  #  again, we don't care.
+
+  export MAKEFLAGS=
+
   echo \
   make install
   make install > make.install.err 2>&1
