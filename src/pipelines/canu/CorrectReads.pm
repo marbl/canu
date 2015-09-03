@@ -188,7 +188,7 @@ sub buildCorrectionLayouts_direct ($$) {
 
     if (getGlobal("corConsensus") eq "utgcns") {
         print F "\n";
-        print F "$bin/utgcns \\\n";
+        print F "\$bin/utgcns \\\n";
         print F "  -u \$bgn-\$end \\\n";
         print F "  -e 0.30 \\\n";
         print F "  -G $wrk/$asm.gkpStore \\\n";
@@ -299,7 +299,7 @@ sub buildCorrectionLayouts_piped ($$) {
 
     my $maxCov   = getCorCov($wrk, $asm, "Local");
 
-    print F "$bin/generateCorrectionLayouts -b \$bgn -e \$end \\\n";
+    print F "\$bin/generateCorrectionLayouts -b \$bgn -e \$end \\\n";
     print F "  -rl $path/$asm.readsToCorrect \\\n"                 if (-e "$path/$asm.readsToCorrect");
     print F "  -G $wrk/$asm.gkpStore \\\n";
     print F "  -O $wrk/$asm.ovlStore \\\n";
