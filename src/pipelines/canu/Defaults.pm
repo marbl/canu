@@ -639,9 +639,9 @@ sub checkParameters ($) {
     caExit("required parameter 'errorRate' is not set", undef)   if (! defined(getGlobal("errorRate")));
     caExit("required parameter 'genomeSize' is not set", undef)  if (! defined(getGlobal("genomeSize")));
 
-    setGlobal("genomeSize", $1 * 1000)        if (getGlobal("genomeSize") =~ m/(\d+.*\d+)k/i);
-    setGlobal("genomeSize", $1 * 1000000)     if (getGlobal("genomeSize") =~ m/(\d+.*\d+)m/i);
-    setGlobal("genomeSize", $1 * 1000000000)  if (getGlobal("genomeSize") =~ m/(\d+.*\d+)g/i);
+    setGlobal("genomeSize", $1 * 1000)        if (getGlobal("genomeSize") =~ m/(\d+.*\d*)k/i);
+    setGlobal("genomeSize", $1 * 1000000)     if (getGlobal("genomeSize") =~ m/(\d+.*\d*)m/i);
+    setGlobal("genomeSize", $1 * 1000000000)  if (getGlobal("genomeSize") =~ m/(\d+.*\d*)g/i);
 
     #
     #  Java?  Need JRE 1.8.
