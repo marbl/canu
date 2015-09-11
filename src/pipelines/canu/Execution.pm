@@ -533,16 +533,13 @@ sub emitStage ($$$@) {
 
 #  Decide what bin directory to use.
 #
-#  When we are running on the grid, the path of this perl script is NOT
-#  always the correct architecture.  If the submission host is
-#  FreeBSD, but the grid is Linux, the BSD box will submit
-#  FreeBSD/bin/canu.pl to the grid -- unless it knows in advance,
-#  there is no way to pick the correct one.  The grid host then has to
-#  have enough smarts to choose the correct binaries, and that is what
-#  we're doing here.
+#  When we are running on the grid, the path of this perl script is NOT always the correct
+#  architecture.  If the submission host is FreeBSD, but the grid is Linux, the BSD box will submit
+#  FreeBSD/bin/canu to the grid.  Unless it knows which grid host it will run on in advance, there
+#  is no way to pick the correct one.  The grid host then has to have enough smarts to choose the
+#  correct binaries, and that is what we're doing here.
 #
-#  To make it more trouble, shell scripts need to do all this by
-#  themselves.
+#  To make it more trouble, shell scripts need to do all this by themselves.
 #
 sub getInstallDirectory () {
     my @t = split '/', "$FindBin::RealBin";
@@ -703,7 +700,7 @@ sub submitScript ($$$) {
     print F getBinDirectoryShellCode();
     print F "\n";
     print F "/usr/bin/env perl \\\n";
-    print F "\$bin/canu.pl " . getCommandLineOptions() . " canuIteration=$iteration\n";
+    print F "\$bin/canu " . getCommandLineOptions() . " canuIteration=$iteration\n";
     close(F);
 
     system("chmod +x $script");
