@@ -482,7 +482,7 @@ sub checkParameters ($) {
     my $bin = shift @_;  #  Can't include canu::Execution without a loop.
 
     #
-    #  PIck a nice looking set of binaries, and check them.
+    #  Pick a nice looking set of binaries, and check them.
     #
 
     caExit("can't find 'gatekeeperCreate' program in $bin.  Possibly incomplete installation", undef) if (! -x "$bin/gatekeeperCreate");
@@ -490,12 +490,6 @@ sub checkParameters ($) {
     caExit("can't find 'overlapInCore' program in $bin.  Possibly incomplete installation", undef)    if (! -x "$bin/overlapInCore");
     caExit("can't find 'bogart' program in $bin.  Possibly incomplete installation", undef)           if (! -x "$bin/bogart");
     caExit("can't find 'utgcns' program in $bin.  Possibly incomplete installation", undef)           if (! -x "$bin/utgcns");
-
-    #
-    #  Update obsolete usages.
-    #
-
-    setGlobal("unitigger", "unitigger")  if (getGlobal("unitigger") eq "utg");
 
     #
     #  Fiddle with filenames to make them absolute paths.
@@ -524,6 +518,10 @@ sub checkParameters ($) {
     fixCase("stopBefore");
     fixCase("stopAfter");
 
+    #
+    #  Check for inconsistent parameters
+    #
+
     if (getGlobal("minReadLength") < getGlobal("minOverlapLength")) {
         my $mr = getGlobal("minReadLength");
         my $mo = getGlobal("minOverlapLength");
@@ -533,6 +531,23 @@ sub checkParameters ($) {
         print STDERR "-- WARNING: minReadLength reset from $mr to $mo (limited by minOverlapLength)\n";
 
         setGlobal("minOverlapLength", $mo);
+    }
+
+    #
+    #  Adjust memory to be gigabytes.
+    #
+
+    foreach my $key (keys %global) {
+        next  if ($key =~ m/gridEngineMemoryOption/i);
+        next  if ($key !~ m/Memory/i);
+
+        my $val = getGlobal($key);
+
+        $val = $1                if ($val =~ m/(\d+.*\d*)g/);
+        $val = $1 / 1024         if ($val =~ m/(\d+.*\d*)m/);
+        $val = $1 / 1024 / 1024  if ($val =~ m/(\d+.*\d*)k/);
+
+        setGlobal($key, $val);
     }
 
     #
