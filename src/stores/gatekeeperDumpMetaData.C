@@ -54,7 +54,7 @@ dumpLibs(gkStore *gkp, uint32 bgnID, uint32 endID) {
 
 
 void
-dumpReads(gkStore *gkp, uint32 bgnID, uint32 endID) {
+dumpReads(gkStore *gkp, uint32 bgnID, uint32 endID, bool fullDump) {
   //fprintf(stderr, "Dumping reads from %u to %u (inclusive).\n", bgnID, endID);
 
   for (uint32 rid=bgnID; rid<=endID; rid++) {
@@ -63,12 +63,18 @@ dumpReads(gkStore *gkp, uint32 bgnID, uint32 endID) {
     if (read == NULL)
       continue;
 
-    fprintf(stdout, F_U32"\t"F_U32"\t"F_U32"\t"F_U64"\t"F_U64"\n",
-            read->gkRead_readID(),
-            read->gkRead_libraryID(),
-            read->gkRead_sequenceLength(),
-            read->gkRead_mPtr(),
-            read->gkRead_pID());
+    if (fullDump == false)
+      fprintf(stdout, F_U32"\t"F_U32"\t"F_U32"\n",
+              read->gkRead_readID(),
+              read->gkRead_libraryID(),
+              read->gkRead_sequenceLength());
+    else
+      fprintf(stdout, F_U32"\t"F_U32"\t"F_U32"\t"F_U64"\t"F_U64"\n",
+              read->gkRead_readID(),
+              read->gkRead_libraryID(),
+              read->gkRead_sequenceLength(),
+              read->gkRead_mPtr(),
+              read->gkRead_pID());
   }
 }
 
@@ -247,7 +253,7 @@ main(int argc, char **argv) {
     dumpLibs(gkpStore, bgnID, endID);
 
   if (wantReads)
-    dumpReads(gkpStore, bgnID, endID);
+    dumpReads(gkpStore, bgnID, endID, false);
 
   if (wantStats)
     dumpStats(gkpStore, bgnID, endID);
