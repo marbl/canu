@@ -276,7 +276,28 @@ main(int argc, char **argv) {
   if (ovlName == NULL)
     err++;
   if (err) {
-    fprintf(stderr, "usage: %s ...\n", argv[0]);
+    fprintf(stderr, "usage: %s -G gkpStore -O ovlStore [ -T tigStore | -F ] ...\n", argv[0]);
+    fprintf(stderr, "  -G gkpStore   mandatory path to gkpStore\n");
+    fprintf(stderr, "  -O ovlStore   mandatory path to ovlStore\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -S file       global score (binary) input file\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -T corStore   output layouts to tigStore corStore\n");
+    fprintf(stderr, "  -F            output falconsense-style input directly to stdout\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -p  name      output prefix name, for logging and summary\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -b  bgnID     \n");
+    fprintf(stderr, "  -e  endID     \n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -rl file      \n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -L  length    minimum length of evidence overlaps\n");
+    fprintf(stderr, "  -E  erate     maxerror rate of evidence overlaps\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -C  coverage  maximum coverage of evidence reads to emit\n");
+    fprintf(stderr, "  -M  length    minimum length of a corrected read\n");
+    fprintf(stderr, "\n");
 
     if (gkpName == NULL)
       fprintf(stderr, "ERROR: no gkpStore input (-G) supplied.\n");
@@ -472,15 +493,13 @@ main(int argc, char **argv) {
 
   delete readData;
 
-  if (tigStore != NULL)
-    delete tigStore;
-
   if (logFile != NULL)
     fclose(logFile);
 
   if (sumFile != NULL)
     fclose(sumFile);
 
+  delete tigStore;
   delete ovlStore;
   delete gkpStore;
 
