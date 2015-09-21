@@ -163,6 +163,7 @@ prefixEditDistance::prefixEditDistance(bool doingPartialOverlaps_, double maxEra
   allocated += MAX_ERRORS * sizeof (int);
   allocated += MAX_ERRORS * sizeof (int);
 
+#if 0
   int32   dataIndex = (int)ceil(maxErate * 100) - 1;
 
   if ((dataIndex < 0) || (50 <= dataIndex))
@@ -170,8 +171,6 @@ prefixEditDistance::prefixEditDistance(bool doingPartialOverlaps_, double maxEra
             maxErate, dataIndex);
   assert(0 <= dataIndex);
   assert(dataIndex < 50);
-
-#if 0
 
   Edit_Match_Limit_Allocation = NULL;
   Edit_Match_Limit            = Edit_Match_Limit_Data[dataIndex];
