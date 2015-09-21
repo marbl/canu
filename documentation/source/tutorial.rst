@@ -316,10 +316,10 @@ tags in this instance are 'cor', 'obt' and 'utg'.
 
 For example:
 
-To change the k-mer size for all instances of the ovl overlapper, 'merSize=23' would be used.
-To change the k-mer size for just the ovl overlapper used during correction, 'corMerSize=16' would be used.
-To change the mhap k-mer size for all instances, 'mhapMerSize=18' would be used.
-To change the mhap k-mer size just during correction, 'corMhapMerSize=15' would be used.
+- To change the k-mer size for all instances of the ovl overlapper, 'merSize=23' would be used.
+- To change the k-mer size for just the ovl overlapper used during correction, 'corMerSize=16' would be used.
+- To change the mhap k-mer size for all instances, 'mhapMerSize=18' would be used.
+- To change the mhap k-mer size just during correction, 'corMhapMerSize=15' would be used.
 
 Ovl Overlapper Configuration
 ============================
