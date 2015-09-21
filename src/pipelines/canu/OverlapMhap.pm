@@ -219,7 +219,7 @@ sub mhapConfigure ($$$$) {
     {
         my @readLengths;
 
-        open(F, "$bin/gatekeeperDumpMetaData -reads -G $wrk/$asm.gkpStore 2> /dev/null |") or caExit("failed to get read lengths from store", undef);
+        open(F, "< $wrk/$asm.gkpStore/reads.txt") or caExit("can't open '$wrk/$asm.gkpStore/reads.txt' for reading: $!", undef);
         while (<F>) {
             my @v = split '\s+', $_;
             push @readLengths, $v[2];
@@ -240,7 +240,7 @@ sub mhapConfigure ($$$$) {
             }
         }
 
-        print STDERR "Computed seed length $seedLength from desired output coverage ", getGlobal("corOutCoverage"), " and genome size ", getGlobal("genomeSize"), "\n";
+        print STDERR "-- Computed seed length $seedLength from desired output coverage ", getGlobal("corOutCoverage"), " and genome size ", getGlobal("genomeSize"), "\n";
     }
 
     #  Mhap parameters - filterThreshold needs to be a string, else it is printed as 5e-06.
