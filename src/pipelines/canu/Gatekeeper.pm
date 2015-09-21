@@ -42,8 +42,8 @@ use canu::Execution;
 
 
 sub storeExists ($$) {
-    my $wrk = shift @_;
-    my $asm = shift @_;
+    my $wrk    = shift @_;
+    my $asm    = shift @_;
 
     return (-e "$wrk/$asm.gkpStore");
 }
@@ -51,9 +51,9 @@ sub storeExists ($$) {
 
 
 sub getNumberOfReadsInStore ($$) {
-    my $wrk = shift @_;
-    my $asm = shift @_;
-    my $nr  = 0;
+    my $wrk    = shift @_;
+    my $asm    = shift @_;
+    my $nr     = 0;
 
     #  No file, no reads.
 
@@ -75,21 +75,25 @@ sub getNumberOfReadsInStore ($$) {
 
 
 sub getNumberOfBasesInStore ($$) {
-    my $wrk = shift @_;
-    my $asm = shift @_;
-    my $nb  = 0;
+    my $wrk    = shift @_;
+    my $asm    = shift @_;
+    my $nb     = 0;
+    my $bin    = getBinDirectory();
 
     #  No file, no bases.
 
     return($nb)   if (! -e "$wrk/$asm.gkpStore/info.txt");
 
+    if (! -e "$wrk/$asm.gkpStore/reads.txt") {
+        runCommandSilently("$wrk/$asm.gkpStore", "$bin/gatekeeperDumpMetaData -G . -reads > reads.txt 2> /dev/null");
+    }
+
     #  Read the info file.  gatekeeperCreate creates this at the end.
 
-    open(F, "< $wrk/$asm.gkpStore/info.txt") or caExit("can't open '$wrk/$asm.gkpStore/info.txt' for reading: $!", undef);
+    open(F, "< $wrk/$asm.gkpStore/reads.txt") or caExit("can't open '$wrk/$asm.gkpStore/reads.txt' for reading: $!", undef);
     while (<F>) {
-        if (m/numBases\s+=\s+(\d+)/) {
-            $nb = $1;
-        }
+        my @v = split '\s+', $_;
+        $nb += $v[2];
     }
     close(F);
 
@@ -209,10 +213,94 @@ sub gatekeeper ($$$@) {
     rename "$wrk/$asm.gkpStore.BUILDING",             "$wrk/$asm.gkpStore";
     rename "$wrk/$asm.gkpStore.BUILDING.errorLog",    "$wrk/$asm.gkpStore.errorLog";
 
+    #  Generate some statistics.
+
+    if (! -e "$wrk/$asm.gkpStore/reads.txt") {
+        runCommandSilently("$wrk/$asm.gkpStore", "$bin/gatekeeperDumpMetaData -G . -reads > reads.txt 2> /dev/null");
+    }
+
+    if (! -e "$wrk/$asm.gkpStore/readlengths.txt") {
+        my $nb = 0;
+        my @rl;
+        my @hi;
+        my $mm;
+
+        open(F, "< $wrk/$asm.gkpStore/reads.txt") or caExit("can't open '$wrk/$asm.gkpStore/reads.txt' for reading: $!", undef);
+        while (<F>) {
+            my @v = split '\s+', $_;
+
+            push @rl, $v[2];           #  Save the length
+            $nb += $v[2];              #  Sum the bases
+            $hi[int($v[2] / 1000)]++;  #  Add to the histogram (int truncates)
+        }
+        close(F);
+
+        @rl = sort { $a <=> $b } @rl;
+        $mm = int($rl[scalar(@rl)-1] / 1000);  #  max histogram value
+
+        open(F, "> $wrk/$asm.gkpStore/readlengths.txt") or caExit("can't open '$wrk/$asm.gkpStore/readlengths.txt' for writing: $!", undef);
+        foreach my $rl (@rl) {
+            print F "$rl\n";
+        }
+        close(F);
+
+        open(F, "> $wrk/$asm.gkpStore/readlengthhistogram.txt") or caExit("can't open '$wrk/$asm.gkpStore/readlengthhistogram.txt' for writing: $!", undef);
+        for (my $ii=0; $ii<=$mm; $ii++) {
+            my $s = $ii * 1000;
+            my $e = $ii * 1000 + 999;
+
+            $hi[$ii] += 0;  #  Otherwise, cells with no count print as null.
+
+            print F "$s\t$e\t$hi[$ii]\n";
+        }
+        close(F);
+    }
+
+    if (! -e "$wrk/$asm.gkpStore/readlengths.png") {
+        open(F, "> $wrk/$asm.gkpStore/readlengths.gp") or caExit("can't open '$wrk/$asm.gkpStore/readlengths.gp' for writing: $!", undef);
+
+        print F "set title 'sorted read lengths'\n";
+        #print F "set xlabel 'original read length'\n";
+        print F "set ylabel 'read length'\n";
+        print F "set pointsize 0.25\n";
+        print F "set terminal png size 1024,1024\n";
+        print F "set output '$wrk/$asm.gkpStore/readlengths.png'\n";
+        print F "plot '$wrk/$asm.gkpStore/readlengths.txt' title 'sorted read length' with lines\n";
+        close(F);
+        runCommandSilently("$wrk/$asm.gkpStore", "gnuplot < $wrk/$asm.gkpStore/readlengths.gp > /dev/null 2>&1");
+    }
+
+
   finishStage:
     emitStage($WRK, $asm, "$tag-gatekeeper");
     stopAfter("gatekeeper");
 
   allDone:
-    print STDERR "--  Found ", getNumberOfReadsInStore($wrk, $asm), " reads and ", getNumberOfBasesInStore($wrk, $asm), " bases in gatekeeper store `$wrk/$asm.gkpStore`.\n";
+    my $reads    = getNumberOfReadsInStore($wrk, $asm);
+    my $bases    = getNumberOfBasesInStore($wrk, $asm);
+    my $coverage = int(100 * $bases / getGlobal("genomeSize")) / 100;
+    my $maxhist  = 0;
+
+    open(F, "< $wrk/$asm.gkpStore/readlengthhistogram.txt") or caExit("can't open '$wrk/$asm.gkpStore/readlengthhistogram.txt' for reading: $!", undef);
+    while (<F>) {
+        my @v = split '\s+', $_;
+        $maxhist = ($maxhist < $v[2]) ? $v[2] : $maxhist;
+    }
+    close(F);
+
+    my $scale = $maxhist / 70;
+
+    print STDERR "--  In gatekeeper store `$wrk/$asm.gkpStore`:\n";
+    print STDERR "--    Found $reads reads.\n";
+    print STDERR "--    Found $bases bases ($coverage times coverage).\n";
+    print STDERR "--\n";
+    print STDERR "--    Read length histogram (one '*' equals ", int(100 * $scale) / 100, " reads):\n";
+
+    open(F, "< $wrk/$asm.gkpStore/readlengthhistogram.txt") or caExit("can't open '$wrk/$asm.gkpStore/readlengthhistogram.txt' for reading: $!", undef);
+    while (<F>) {
+        my @v = split '\s+', $_;
+
+        printf STDERR "--    %6d %6d %6d %s\n", $v[0], $v[1], $v[2], "*" x int($v[2] / $scale);
+    }
+    close(F);
 }
