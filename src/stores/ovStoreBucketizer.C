@@ -166,10 +166,10 @@ main(int argc, char **argv) {
   int err=0;
   int arg=1;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-o") == 0) {
+    if        (strcmp(argv[arg], "-O") == 0) {
       ovlName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-g") == 0) {
+    } else if (strcmp(argv[arg], "-G") == 0) {
       gkpName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-F") == 0) {
@@ -206,9 +206,9 @@ main(int argc, char **argv) {
     err++;
 
   if (err) {
-    fprintf(stderr, "usage: %s -c asm.ovlStore -g asm.gkpStore -i file.ovb.gz -job j [opts]\n", argv[0]);
-    fprintf(stderr, "  -c asm.ovlStore       path to store to create\n");
-    fprintf(stderr, "  -g asm.gkpStore       path to gkpStore for this assembly\n");
+    fprintf(stderr, "usage: %s -O asm.ovlStore -G asm.gkpStore -i file.ovb.gz -job j [opts]\n", argv[0]);
+    fprintf(stderr, "  -O asm.ovlStore       path to store to create\n");
+    fprintf(stderr, "  -G asm.gkpStore       path to gkpStore for this assembly\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -i file.ovb.gz        input overlaps\n");
     fprintf(stderr, "  -job j                index of this overlap input file\n");
@@ -221,11 +221,19 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -e e                  filter overlaps above e fraction error\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -raw                  write uncompressed buckets\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "    DANGER    DO NOT USE     DO NOT USE     DO NOT USE    DANGER\n");
+    fprintf(stderr, "    DANGER                                                DANGER\n");
+    fprintf(stderr, "    DANGER   This command is difficult to run by hand.    DANGER\n");
+    fprintf(stderr, "    DANGER          Use ovStoreCreate instead.            DANGER\n");
+    fprintf(stderr, "    DANGER                                                DANGER\n");
+    fprintf(stderr, "    DANGER    DO NOT USE     DO NOT USE     DO NOT USE    DANGER\n");
+    fprintf(stderr, "\n");
 
     if (ovlName == NULL)
-      fprintf(stderr, "ERROR: No overlap store (-o) supplied.\n");
+      fprintf(stderr, "ERROR: No overlap store (-O) supplied.\n");
     if (gkpName == NULL)
-      fprintf(stderr, "ERROR: No gatekeeper store (-g) supplied.\n");
+      fprintf(stderr, "ERROR: No gatekeeper store (-G) supplied.\n");
     if (ovlInput == NULL)
       fprintf(stderr, "ERROR: No input (-i) supplied.\n");
     if (jobIndex == 0)

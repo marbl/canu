@@ -565,8 +565,8 @@ sub updateOverlapStore ($$) {
     caExit("didn't find '$path/oea.files' to add to store, yet overlapper finished", undef)  if (! -e "$path/oea.files");
 
     $cmd  = "$bin/ovStoreBuild \\\n";
-    $cmd .= "  -g $wrk/$asm.gkpStore \\\n";
-    $cmd .= "  -o $wrk/$asm.ovlStore \\\n";
+    $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
+    $cmd .= "  -O $wrk/$asm.ovlStore \\\n";
     $cmd .= "  -evalues \\\n";
     $cmd .= "  -L $path/oea.files \\\n";
     $cmd .= "> $path/oea.apply.err 2>&1\n";

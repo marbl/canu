@@ -72,8 +72,8 @@ sub createOverlapStoreSequential ($$$$) {
     $wrk = "$wrk/trimming"    if ($tag eq "obt");
 
     $cmd  = "$bin/ovStoreBuild \\\n";
-    $cmd .= " -o $wrk/$asm.ovlStore.BUILDING \\\n";
-    $cmd .= " -g $wrk/$asm.gkpStore \\\n";
+    $cmd .= " -O $wrk/$asm.ovlStore.BUILDING \\\n";
+    $cmd .= " -G $wrk/$asm.gkpStore \\\n";
     $cmd .= " -M " . getGlobal("ovlStoreMemory") . " \\\n";
     $cmd .= " -L $files \\\n";
     $cmd .= " > $wrk/$asm.ovlStore.err 2>&1";
@@ -184,8 +184,8 @@ sub overlapStoreConfigure ($$$$) {
         print F getBinDirectoryShellCode();
         print F "\n";
         print F "\$bin/ovStoreBucketizer \\\n";
-        print F "  -o $wrk/$asm.ovlStore.BUILDING \\\n";
-        print F "  -g $wrk/$asm.gkpStore \\\n";
+        print F "  -O $wrk/$asm.ovlStore.BUILDING \\\n";
+        print F "  -G $wrk/$asm.gkpStore \\\n";
         print F "  -F $numSlices \\\n";
         #print F "  -e " . getGlobal("") . " \\\n"  if (defined(getGlobal("")));
         print F "  -job \$jobid \\\n";
@@ -213,8 +213,8 @@ sub overlapStoreConfigure ($$$$) {
         print F "\$bin/ovStoreSorter \\\n";
         print F "  -deletelate \\\n";  #  Choices -deleteearly -deletelate or nothing
         print F "  -M " . getGlobal("ovlStoreMemory") . " \\\n";
-        print F "  -o $wrk/$asm.ovlStore.BUILDING \\\n";
-        print F "  -g $wrk/$asm.gkpStore \\\n";
+        print F "  -O $wrk/$asm.ovlStore.BUILDING \\\n";
+        print F "  -G $wrk/$asm.gkpStore \\\n";
         print F "  -F $numSlices \\\n";
         print F "  -job \$jobid $numInputs\n";
         print F "\n";
@@ -236,7 +236,7 @@ sub overlapStoreConfigure ($$$$) {
         print F "\n";
         print F "\$bin/ovStoreIndexer \\\n";
         #print F "  -nodelete \\\n";  #  Choices -nodelete or nothing
-        print F "  -o $wrk/$asm.ovlStore.BUILDING \\\n";
+        print F "  -O $wrk/$asm.ovlStore.BUILDING \\\n";
         print F "  -F $numSlices\n";
         print F "\n";
         print F "if [ \$? = 0 ] ; then\n";

@@ -204,10 +204,10 @@ main(int argc, char **argv) {
   int err=0;
   int arg=1;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-o") == 0) {
+    if        (strcmp(argv[arg], "-O") == 0) {
       ovlName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-g") == 0) {
+    } else if (strcmp(argv[arg], "-G") == 0) {
       gkpName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-F") == 0) {
@@ -259,9 +259,9 @@ main(int argc, char **argv) {
   if (fileLimit > sysconf(_SC_OPEN_MAX) - 16)
     err++;
   if (err) {
-    fprintf(stderr, "usage: %s -o asm.ovlStore -g asm.gkpStore [opts] [-L fileList | *.ovb.gz]\n", argv[0]);
-    fprintf(stderr, "  -o asm.ovlStore       path to store to create\n");
-    fprintf(stderr, "  -g asm.gkpStore       path to gkpStore for this assembly\n");
+    fprintf(stderr, "usage: %s -O asm.ovlStore -G asm.gkpStore [opts] [-L fileList | *.ovb.gz]\n", argv[0]);
+    fprintf(stderr, "  -O asm.ovlStore       path to store to create\n");
+    fprintf(stderr, "  -G asm.gkpStore       path to gkpStore for this assembly\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -F f                  use up to 'f' files for store creation\n");
     fprintf(stderr, "  -M m                  use up to 'm' MB memory for store creation\n");

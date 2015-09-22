@@ -65,10 +65,10 @@ main(int argc, char **argv) {
   int err=0;
   int arg=1;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-o") == 0) {
+    if        (strcmp(argv[arg], "-O") == 0) {
       storePath = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-g") == 0) {
+    } else if (strcmp(argv[arg], "-G") == 0) {
       gkpName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-F") == 0) {
@@ -105,7 +105,37 @@ main(int argc, char **argv) {
     err++;
   if (jobIdxMax == 0)
     err++;
+
   if (err) {
+    fprintf(stderr, "usage: %s ...\n", argv[0]);
+    fprintf(stderr, "  -O x.ovlStore    path to overlap store to build the final index for\n");
+    fprintf(stderr, "  -G asm.gkpStore  path to gkpStore for this assembly\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -F s             number of slices used in bucketizing/sorting\n");
+    fprintf(stderr, "  -job j m         index of this overlap input file, and max number of files\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -M m             maximum memory to use, in gigabytes\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -deleteearly     remove intermediates as soon as possible (unsafe)\n");
+    fprintf(stderr, "  -deletelate      remove intermediates when outputs exist (safe)\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -force           force a recompute, even if the output exists\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "    DANGER    DO NOT USE     DO NOT USE     DO NOT USE    DANGER\n");
+    fprintf(stderr, "    DANGER                                                DANGER\n");
+    fprintf(stderr, "    DANGER   This command is difficult to run by hand.    DANGER\n");
+    fprintf(stderr, "    DANGER          Use ovStoreCreate instead.            DANGER\n");
+    fprintf(stderr, "    DANGER                                                DANGER\n");
+    fprintf(stderr, "    DANGER    DO NOT USE     DO NOT USE     DO NOT USE    DANGER\n");
+    fprintf(stderr, "\n");
+
+    if (storePath == NULL)
+      fprintf(stderr, "ERROR: No overlap store (-O) supplied.\n");
+    if (fileID == 0)
+      fprintf(stderr, "ERROR: no slice number (-F) supplied.\n");
+    if (jobIdxMax == 0)
+      fprintf(stderr, "ERROR: no max job ID (-job) supplied.\n");
+
     exit(1);
   }
 

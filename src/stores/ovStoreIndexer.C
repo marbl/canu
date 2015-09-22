@@ -42,7 +42,7 @@ const char *mainid = "$Id$";
 
 int
 main(int argc, char **argv) {
-  char           *storePath    = NULL;
+  char           *ovlName      = NULL;
   uint32          maxJob       = 0;
 
   bool            deleteIntermediates = true;
@@ -57,8 +57,8 @@ main(int argc, char **argv) {
   int err=0;
   int arg=1;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-o") == 0) {
-      storePath = argv[++arg];
+    if        (strcmp(argv[arg], "-O") == 0) {
+      ovlName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-F") == 0) {
       maxJob = atoi(argv[++arg]);
@@ -68,7 +68,7 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-t") == 0) {
       doExplicitTest = true;
-      storePath = argv[++arg];
+      ovlName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-nodelete") == 0) {
       deleteIntermediates = false;
@@ -79,13 +79,14 @@ main(int argc, char **argv) {
 
     arg++;
   }
-  if (storePath == NULL)
+  if (ovlName == NULL)
     err++;
   if ((maxJob == 0) && (doExplicitTest == false))
     err++;
+
   if (err) {
     fprintf(stderr, "usage: %s ...\n", argv[0]);
-    fprintf(stderr, "  -o x.ovlStore    path to overlap store to build the final index for\n");
+    fprintf(stderr, "  -O x.ovlStore    path to overlap store to build the final index for\n");
     fprintf(stderr, "  -F s             number of slices used in bucketizing/sorting\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -t x.ovlStore    explicitly test a previously constructed index\n");
@@ -94,13 +95,27 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -nodelete        do not remove intermediate files when the index is\n");
     fprintf(stderr, "                   successfully created\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "    DANGER    DO NOT USE     DO NOT USE     DO NOT USE    DANGER\n");
+    fprintf(stderr, "    DANGER                                                DANGER\n");
+    fprintf(stderr, "    DANGER   This command is difficult to run by hand.    DANGER\n");
+    fprintf(stderr, "    DANGER          Use ovStoreCreate instead.            DANGER\n");
+    fprintf(stderr, "    DANGER                                                DANGER\n");
+    fprintf(stderr, "    DANGER    DO NOT USE     DO NOT USE     DO NOT USE    DANGER\n");
+    fprintf(stderr, "\n");
+
+    if (ovlName == NULL)
+      fprintf(stderr, "ERROR: No overlap store (-O) supplied.\n");
+    if ((maxJob == 0) && (doExplicitTest == false))
+      fprintf(stderr, "ERROR: One of -F (number of slices) or -t (test a store) must be supplied.\n");
+
     exit(1);
   }
 
   //  Do the test, and maybe fix things up.
 
   if (doExplicitTest == true) {
-    bool passed = testIndex(storePath, doFixes);
+    bool passed = testIndex(ovlName, doFixes);
 
     exit((passed == true) ? 0 : 1);
   }
@@ -112,19 +127,19 @@ main(int argc, char **argv) {
   for (uint32 i=1; i<=maxJob; i++) {
     uint32  complete = 0;
 
-    sprintf(name, "%s/%04d", storePath, i);
+    sprintf(name, "%s/%04d", ovlName, i);
     if (AS_UTL_fileExists(name, FALSE, FALSE) == true)
       complete++;
     else
       fprintf(stderr, "ERROR: Segment "F_U32" data not present  (%s)\n", i, name);
 
-    sprintf(name, "%s/%04d.info", storePath, i);
+    sprintf(name, "%s/%04d.info", ovlName, i);
     if (AS_UTL_fileExists(name, FALSE, FALSE) == true)
       complete++;
     else
       fprintf(stderr, "ERROR: Segment "F_U32" info not present (%s)\n", i, name);
 
-    sprintf(name, "%s/%04d.index", storePath, i);
+    sprintf(name, "%s/%04d.index", ovlName, i);
     if (AS_UTL_fileExists(name, FALSE, FALSE) == true)
       complete++;
     else
@@ -141,11 +156,11 @@ main(int argc, char **argv) {
 
   //  Merge the stuff.
 
-  mergeInfoFiles(storePath, maxJob);
+  mergeInfoFiles(ovlName, maxJob);
 
   //  Diagnostics.
 
-  if (testIndex(storePath, false) == false) {
+  if (testIndex(ovlName, false) == false) {
     fprintf(stderr, "ERROR: index failed tests.\n");
     exit(1);
   }
@@ -165,15 +180,15 @@ main(int argc, char **argv) {
   //  Removing indices is easy, beacuse we know how many there are.
 
   for (uint32 i=1; i<=maxJob; i++) {
-    sprintf(name, "%s/%04u.index", storePath, i);   AS_UTL_unlink(name);
-    sprintf(name, "%s/%04u.info",  storePath, i);   AS_UTL_unlink(name);
+    sprintf(name, "%s/%04u.index", ovlName, i);   AS_UTL_unlink(name);
+    sprintf(name, "%s/%04u.info",  ovlName, i);   AS_UTL_unlink(name);
   }
 
   //  We don't know how many buckets there are, so we remove until we fail to find ten
   //  buckets in a row.
 
   for (uint32 missing=0, i=1; missing<10; i++) {
-    sprintf(name, "%s/bucket%04d", storePath, i);
+    sprintf(name, "%s/bucket%04d", ovlName, i);
 
     if (AS_UTL_fileExists(name, TRUE, FALSE) == FALSE) {
       missing++;
@@ -182,10 +197,10 @@ main(int argc, char **argv) {
 
     missing = 0;
 
-    sprintf(name, "%s/bucket%04d/sliceSizes", storePath, i);
+    sprintf(name, "%s/bucket%04d/sliceSizes", ovlName, i);
     AS_UTL_unlink(name);
 
-    sprintf(name, "%s/bucket%04d", storePath, i);
+    sprintf(name, "%s/bucket%04d", ovlName, i);
     rmdir(name);
   }
 
