@@ -32,58 +32,6 @@
 
 static const char *rcsid_AS_UTL_ALLOC_H = "$Id$";
 
-//
-//  The safe_*alloc routines are the same as the normal routines,
-//  except they print a standard message and assert if memory cannot
-//  be allocated.
-//
-//  safe_free is somewhat useless.  It frees the memory, then sets the
-//  pointer to NULL.  It's useless because many times the pointer we
-//  set to NULL is a local copy, e.g.:
-//
-//     void freeSomeStructure(SomeStructure *p) {
-//       safe_free(p->data);
-//       safe_free(p);
-//     }
-//
-
-void *safe_calloc(size_t num, size_t len);
-void *safe_malloc(size_t len);
-void *safe_realloc(void *q, size_t len);
-void  safe_free2(void *);
-
-#define safe_free(Q) { safe_free2(Q); Q = NULL; }
-
-//  And, thanks, GNU.  strdup() (and, sigh, probably lots others) are
-//  implemented as a macro that calls free(), which then gets expanded
-//  into our bogus function.
-//
-//  And, thanks, Apple.  Your iostream implementation uses malloc. (!)
-//
-#ifndef BROKEN_CLANG_OpenMP
-#ifndef X86_GCC_LINUX
-
-#define malloc(X)     use_safe_malloc_instead(X)
-#define calloc(X,Y)   use_safe_calloc_instead(X,Y)
-#define realloc(X,Y)  use_safe_realloc_instead(X,Y)
-#define free(X)       use_safe_free_instead(X)
-
-#endif
-#endif
-
-#if 0
-template<class T>
-inline void zero(T* ptr, size_t num)
-{
-	for (size_t a = 0; a < num; a++)
-	{
-		ptr[a] = NULL;
-	}
-}
-#endif
-
-
-
 
 template<typename TT, typename LL>
 void
