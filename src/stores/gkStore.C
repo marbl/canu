@@ -155,6 +155,84 @@ gkStore::gkStore_stashReadData(gkRead *read, gkReadData *data) {
 }
 
 
+
+//  Load read metadata and data from a stream.
+//
+void
+gkStore::gkStore_loadReadFromStream(FILE *S, gkRead *read, gkReadData *readData) {
+  char    tag[5];
+  uint32  size;
+
+  //  Mark this as a read.  Needed for tgTig::loadFromStreamOrLayout(), and loading this stuff in
+  //  utgcns.
+
+  AS_UTL_safeRead(S, tag, "gkStore::gkStore_loadReadFromStream::tag", sizeof(char), 4);
+
+  if (strncmp(tag, "READ", 4) != 0)
+    fprintf(stderr, "Failed to load gkRead, got tag '%c%c%c%c' (0x%02x 0x%02x 0x%02x 0x%02x), expected 'READ'.\n",
+            tag[0], tag[1], tag[2], tag[3],
+            tag[0], tag[1], tag[2], tag[3]), exit(1);
+
+  //  Load the read metadata
+
+  AS_UTL_safeRead(S, read, "gkStore::gkStore_loadReadFromStream::read", sizeof(gkRead), 1);
+
+  //  With some pain, we read the BLOB and its length, then allocate space for the blob
+  //  and finsh reading it.
+
+  AS_UTL_safeRead(S,  tag,  "gkStore::gkStore_loadReadFromStream::blob", sizeof(int8),   4);
+  AS_UTL_safeRead(S, &size, "gkStore::gkStore_loadReadFromStream::size", sizeof(uint32), 1);
+
+  uint8 *blob = new uint8 [8 + size];
+
+  memcpy(blob,    tag,  sizeof(uint8)  * 4);
+  memcpy(blob+4, &size, sizeof(uint32) * 1);
+
+  AS_UTL_safeRead(S, blob+8, "gkStore::gkStore_loadReadFromStream::blob", sizeof(char), size);
+
+  //  Unpack the blob into a readData
+
+  read->_mPtr = 0;
+  read->gkRead_loadData(readData, blob);
+
+  //  And, that's it!  Sweet!
+}
+
+
+//  Dump the read metadata and read data to a stream.
+//
+void
+gkStore::gkStore_saveReadToStream(FILE *S, uint32 id) {
+
+  //  Mark this as a read.  Needed for tgTig::loadFromStreamOrLayout(), and loading this stuff in
+  //  utgcns.
+
+  fprintf(S, "READ");
+
+  //  Dump the read metadata
+
+  gkRead  *read = gkStore_getRead(id);
+
+  AS_UTL_safeWrite(S, read, "gkStore::gkStore_saveReadToStream::read", sizeof(gkRead), 1);
+
+  //  Figure out where the blob actually is, and make sure that it really is a blob
+
+  uint8  *blob    = (uint8 *)_blobs + read->_mPtr;
+  uint32  blobLen = 8 + *((uint32 *)blob + 1);
+
+  assert(blob[0] == 'B');
+  assert(blob[1] == 'L');
+  assert(blob[2] == 'O');
+  assert(blob[3] == 'B');
+
+  //  Write the blob to the stream
+
+  AS_UTL_safeWrite(S, blob, "gkStore::gkStore_saveReadToStream::blob", sizeof(char), blobLen);
+}
+
+
+
+
 //  Store the 'len' bytes of data in 'dat' into the class-managed _blob data block.
 //  Ensures that the _blob block is appropriately padded to maintain 32-bit alignment.
 //

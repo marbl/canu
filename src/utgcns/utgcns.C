@@ -48,42 +48,45 @@ const char *mainid = "$Id$";
 #include <algorithm>
 
 
-
 int
 main (int argc, char **argv) {
-  char  *gkpName = NULL;
+  char    *gkpName = NULL;
 
-  char   *tigName = NULL;
-  uint32  tigVers = UINT32_MAX;
-  uint32  tigPart = UINT32_MAX;
+  char    *tigName = NULL;
+  uint32   tigVers = UINT32_MAX;
+  uint32   tigPart = UINT32_MAX;
 
-  char   *tigFileName = NULL;
+  char    *tigFileName = NULL;
 
-  uint32  utgBgn  = UINT32_MAX;
-  uint32  utgEnd  = UINT32_MAX;
+  uint32   utgBgn  = UINT32_MAX;
+  uint32   utgEnd  = UINT32_MAX;
 
-  char *outResultsName = NULL;
-  char *outLayoutsName = NULL;
-  char *outSeqName     = NULL;
+  char    *outResultsName = NULL;
+  char    *outLayoutsName = NULL;
+  char    *outSeqName     = NULL;
+  char    *outPackageName = NULL;
 
-  FILE *outResultsFile = NULL;
-  FILE *outLayoutsFile = NULL;
-  FILE *outSeqFile     = NULL;
+  FILE     *outResultsFile = NULL;
+  FILE     *outLayoutsFile = NULL;
+  FILE     *outSeqFile     = NULL;
+  FILE     *outPackageFile = NULL;
 
-  bool   forceCompute = false;
+  char    *inPackageName  = NULL;
 
-  double errorRate    = 0.06;
-  double errorRateMax = 0.40;
-  uint32 minOverlap   = 40;
+  bool      forceCompute = false;
 
-  int32  numFailures = 0;
+  double    errorRate    = 0.06;
+  double    errorRateMax = 0.40;
+  uint32    minOverlap   = 40;
 
-  bool   showResult = false;
+  int32     numFailures = 0;
 
-  double maxCov = 0.0;
-  uint32 maxLen = UINT32_MAX;
+  bool      showResult = false;
 
-  uint32 verbosity = 0;
+  double    maxCov = 0.0;
+  uint32    maxLen = UINT32_MAX;
+
+  uint32    verbosity = 0;
 
   argc = AS_configure(argc, argv);
 
@@ -112,6 +115,9 @@ main (int argc, char **argv) {
     } else if (strcmp(argv[arg], "-t") == 0) {
       tigFileName = argv[++arg];
 
+    } else if (strcmp(argv[arg], "-p") == 0) {
+      inPackageName = argv[++arg];
+
     } else if (strcmp(argv[arg], "-O") == 0) {
       outResultsName = argv[++arg];
 
@@ -120,6 +126,9 @@ main (int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-F") == 0) {
       outSeqName = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-P") == 0) {
+      outPackageName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-e") == 0) {
       errorRate = atof(argv[++arg]);
@@ -153,10 +162,10 @@ main (int argc, char **argv) {
     arg++;
   }
 
-  if (gkpName == NULL)
+  if ((gkpName == NULL) && (inPackageName == NULL))
     err++;
 
-  if ((tigFileName == NULL) && (tigName == NULL))
+  if ((tigFileName == NULL) && (tigName == NULL) && (inPackageName == NULL))
     err++;
 
   if (err) {
@@ -173,10 +182,19 @@ main (int argc, char **argv) {
     fprintf(stderr, "                        'utgcns -L'             (human readable layout format)\n");
     fprintf(stderr, "                        'utgcns -O'             (binary multialignment format)\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "    -p package      Load unitig and read from 'package' created with -P.  This\n");
+    fprintf(stderr, "                    is usually used by developers.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "  OUTPUT\n");
     fprintf(stderr, "    -O results      Write computed tigs to binary output file 'results'\n");
     fprintf(stderr, "    -L layouts      Write computed tigs to layout output file 'layouts'\n");
     fprintf(stderr, "    -F fastq        Write computed tigs to fastq  output file 'fastq'\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "    -P package      Create a copy of the inputs needed to compute the unitigs.  This\n");
+    fprintf(stderr, "                    file can then be sent to the developers for debugging.  The unitig(s)\n");
+    fprintf(stderr, "                    are not processed and no other outputs are created.  Ideally,\n");
+    fprintf(stderr, "                    only one unitig is selected (-u, below).\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  TIG SELECTION (if -T input is used)\n");
     fprintf(stderr, "    -u b            Compute only unitig ID 'b' (must be in the correct partition!)\n");
@@ -198,41 +216,52 @@ main (int argc, char **argv) {
     fprintf(stderr, "\n");
 
 
-    if (gkpName == NULL)
-      fprintf(stderr, "ERROR:  No gkpStore (-G) supplied.\n");
+    if ((gkpName == NULL) && (inPackageName == NULL))
+      fprintf(stderr, "ERROR:  No gkpStore (-G) and no package (-p) supplied.\n");
 
-    if ((tigFileName == NULL) && (tigName == NULL))
-      fprintf(stderr, "ERROR:  No tigStore (-T) OR no test unitig (-t) supplied.\n");
+    if ((tigFileName == NULL) && (tigName == NULL)  && (inPackageName == NULL))
+      fprintf(stderr, "ERROR:  No tigStore (-T) OR no test unitig (-t) OR no package (-p)  supplied.\n");
 
     exit(1);
   }
 
   errno = 0;
 
-  //  Open output files
+  //  Open output files.  If we're creating a package, the usual output files are not opened.
 
-  if (outResultsName)
+  if (outPackageName)
+    outPackageFile = fopen(outPackageName, "w");
+  if (errno)
+    fprintf(stderr, "Failed to open output package file '%s': %s\n", outPackageName, strerror(errno)), exit(1);
+
+  if ((outResultsName) && (outPackageName == NULL))
     outResultsFile = fopen(outResultsName, "w");
   if (errno)
     fprintf(stderr, "Failed to open output results file '%s': %s\n", outResultsName, strerror(errno)), exit(1);
 
-  if (outLayoutsName)
+  if ((outLayoutsName) && (outPackageName == NULL))
     outLayoutsFile = fopen(outLayoutsName, "w");
   if (errno)
     fprintf(stderr, "Failed to open output layout file '%s': %s\n", outLayoutsName, strerror(errno)), exit(1);
 
-  if (outSeqName)
+  if ((outSeqName) && (outPackageName == NULL))
     outSeqFile = fopen(outSeqName, "w");
   if (errno)
     fprintf(stderr, "Failed to open output FASTQ file '%s': %s\n", outSeqName, strerror(errno)), exit(1);
 
   //  Open gatekeeper for read only, and load the partitioned data if tigPart > 0.
 
-  fprintf(stderr, "-- Opening gkpStore '%s' partition %u.\n", gkpName, tigPart);
+  gkStore                   *gkpStore      = NULL;
+  tgStore                   *tigStore      = NULL;
+  FILE                      *tigFile       = NULL;
+  FILE                      *inPackageFile = NULL;
+  map<uint32, gkRead *>      inPackageRead;
+  map<uint32, gkReadData *>  inPackageReadData;
 
-  gkStore   *gkpStore = new gkStore(gkpName, gkStore_readOnly, tigPart);
-  tgStore   *tigStore = NULL;
-  FILE      *tigFile  = NULL;
+  if (gkpName) {
+    fprintf(stderr, "-- Opening gkpStore '%s' partition %u.\n", gkpName, tigPart);
+    gkpStore = new gkStore(gkpName, gkStore_readOnly, tigPart);
+  }
 
   if (tigName) {
     fprintf(stderr, "-- Opening tigStore '%s' version %u.\n", tigName, tigVers);
@@ -246,6 +275,15 @@ main (int argc, char **argv) {
     tigFile = fopen(tigFileName, "r");
     if (errno)
       fprintf(stderr, "Failed to open input tig file '%s': %s\n", tigFileName, strerror(errno)), exit(1);
+  }
+
+  if (inPackageName) {
+    fprintf(stderr, "-- Opening package file '%s'.\n", inPackageName);
+
+    errno = 0;
+    inPackageFile = fopen(inPackageName, "r");
+    if (errno)
+      fprintf(stderr, "Failed to open input package file '%s': %s\n", inPackageName, strerror(errno)), exit(1);
   }
 
   //  Decide on what to compute.  Either all unitigs, or a single unitig, or a special case test.
@@ -272,7 +310,7 @@ main (int argc, char **argv) {
 
   else {
     fprintf(stderr, "-- Computing unitig consensus with errorRate %0.4f (max %0.4f) and minimum overlap "F_U32"\n",
-            b, e, errorRate, errorRateMax, minOverlap);
+            errorRate, errorRateMax, minOverlap);
   }
 
   fprintf(stderr, "\n");
@@ -281,26 +319,53 @@ main (int argc, char **argv) {
 
   abAbacus  *abacus   = new abAbacus(gkpStore);
 
-
   //  I don't like this loop control.
 
   for (uint32 ti=b; (e == UINT32_MAX) || (ti <= e); ti++) {
     tgTig  *tig = NULL;
 
+    //  If a tigStore, load the tig.  The tig is the owner; it cannot be deleted by us.
     if (tigStore)
-      tig = tigStore->loadTig(ti);  //  Store owns the tig
+      tig = tigStore->loadTig(ti);
 
-    if (tigFile) {
-      tig = new tgTig();  //  We own the tig
+    //  If a tigFile or a package, create a new tig and fill it.  Obviously, we own it.
+    if (tigFile || inPackageFile) {
+      tig = new tgTig();
 
-      if (tig->loadFromStreamOrLayout(tigFile) == false) {
+      if (tig->loadFromStreamOrLayout((tigFile != NULL) ? tigFile : inPackageFile) == false) {
         delete tig;
         break;
       }
     }
 
+    //  No tig loaded, keep going.
+
     if (tig == NULL)
       continue;
+
+    //  If a package, populate the read and readData maps with data from the package.
+
+    if (inPackageFile) {
+      for (int32 ii=0; ii<tig->numberOfChildren(); ii++) {
+        uint32   readID = tig->getChild(ii)->ident();
+
+        inPackageRead[readID]     = new gkRead;
+        inPackageReadData[readID] = new gkReadData;
+
+        gkStore::gkStore_loadReadFromStream(inPackageFile,
+                                            inPackageRead[readID],
+                                            inPackageReadData[readID]);
+
+        if (inPackageRead[readID]->gkRead_readID() != readID)
+          fprintf(stderr, "ERROR: inPackageRead[readID]->gkRead_readID() = %u  readID = %u\n",
+                  inPackageRead[readID]->gkRead_readID(), readID);
+        assert(inPackageRead[readID]->gkRead_readID() == readID);
+      }
+    }
+
+    //  More 'not liking' - set the verbosity level for logging.
+
+    tig->_utgcns_verboseLevel = verbosity;
 
     //  Are we parittioned?  Is this tig in our partition?
 
@@ -327,7 +392,7 @@ main (int argc, char **argv) {
       continue;
     }
 
-    bool exists = (tig->gappedLength() > 0);
+    bool exists   = (tig->gappedLength() > 0);
 
     if (tig->numberOfChildren() > 1)
       fprintf(stderr, "Working on unitig %d of length %d (%d children)%s%s\n",
@@ -338,25 +403,40 @@ main (int argc, char **argv) {
     //  Process the tig.  Remove deep coverage, create a consensus object, process it, and report the results.
     //  before we add it to the store.
 
+    unitigConsensus  *utgcns       = new unitigConsensus(gkpStore, errorRate, errorRateMax, minOverlap);
     savedChildren    *origChildren = NULL;
-    unitigConsensus  *utgcns       = NULL;
     bool              success      = exists;
 
-    //  Compute consensus if it doesn't exist, or if we're forcing a recompute.
+    //  Save the tig in the package?
+    //
+    //  The original idea was to dump the tig and all the reads, then load the tig and process as normal.
+    //  Sadly, stashContains() rearranges the order of the reads even if it doesn't remove any.  The rearranged
+    //  tig couldn't be saved (otherwise it would be rearranged again).  So, we were in the position of
+    //  needing to save the original tig and the rearranged reads.  Impossible.
+    //
+    //  Instead, we save the origianl tig and original reads -- including any that get stashed -- then
+    //  load them all back into a map for use in consensus proper.  It's a bit of a pain, and could
+    //  have way more reads saved than necessary.
 
-    if ((exists == false) || (forceCompute == true)) {
-      tig->_utgcns_verboseLevel = verbosity;
-
-      origChildren = stashContains(tig, maxCov);
-      utgcns       = new unitigConsensus(gkpStore, errorRate, errorRateMax, minOverlap);
-
-      success = utgcns->generate(tig, NULL);
+    if (outPackageFile) {
+      utgcns->savePackage(outPackageFile, tig);
+      fprintf(stderr, "  Packaged unitig %u into '%s'\n", tig->tigID(), outPackageName);
     }
 
-    //  If it was successful (or existed already), output.
+    //  Compute consensus if it doesn't exist, or if we're forcing a recompute.  But only if we
+    //  didn't just package it.
 
-    if (success) {
-      if (showResult)
+    if ((outPackageFile == NULL) &&
+        ((exists == false) || (forceCompute == true))) {
+      origChildren = stashContains(tig, maxCov, true);
+      success      = utgcns->generate(tig, NULL, &inPackageRead, &inPackageReadData);
+    }
+
+    //  If it was successful (or existed already), output.  Success is always false if the unitig
+    //  was packaged, regardless of if it existed already.
+
+    if (success == true) {
+      if ((showResult) && (gkpStore))  //  No gkpStore if we're from a package.  Dang.
         tig->display(stdout, gkpStore, 200, 3);
 
       unstashContains(tig, origChildren);
@@ -373,7 +453,7 @@ main (int argc, char **argv) {
 
     //  Report failures.
 
-    if (success == false) {
+    if ((success == false) && (outPackageFile == NULL)) {
       fprintf(stderr, "unitigConsensus()-- unitig %d failed.\n", tig->tigID());
       numFailures++;
     }
@@ -398,6 +478,8 @@ main (int argc, char **argv) {
   if (tigFile)         fclose(tigFile);
   if (outResultsFile)  fclose(outResultsFile);
   if (outLayoutsFile)  fclose(outLayoutsFile);
+  if (outPackageFile)  fclose(outPackageFile);
+  if (inPackageFile)   fclose(inPackageFile);
 
   if (numFailures) {
     fprintf(stderr, "WARNING:  Total number of unitig failures = %d\n", numFailures);

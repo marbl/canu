@@ -491,6 +491,10 @@ public:
 
   void         gkStore_stashReadData(gkRead *read, gkReadData *data);
 
+  static
+  void         gkStore_loadReadFromStream(FILE *S, gkRead *read, gkReadData *readData);
+  void         gkStore_saveReadToStream(FILE *S, uint32 id);
+
 private:
   gkStoreInfo          _info;  //  All the stuff stored on disk.
 

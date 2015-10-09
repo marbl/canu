@@ -71,10 +71,17 @@ public:
                   uint32    minOverlap_);
   ~unitigConsensus();
 
-  bool   generate(tgTig     *tig,
-                  uint32    *failed);
+  bool   savePackage(FILE   *outPackageFile,
+                     tgTig  *tig);
 
-  int32  initialize(uint32 *failed);
+  bool   generate(tgTig                     *tig,
+                  uint32                    *failed            = NULL,
+                  map<uint32, gkRead *>     *inPackageRead     = NULL,
+                  map<uint32, gkReadData *> *inPackageReadData = NULL);
+
+  int32  initialize(uint32                    *failed,
+                    map<uint32, gkRead *>     *inPackageRead,
+                    map<uint32, gkReadData *> *inPackageReadData);
 
   void   setErrorRate(double errorRate_)   { errorRate  = errorRate_;  };
   void   setMinOverlap(uint32 minOverlap_) { minOverlap = minOverlap_; };

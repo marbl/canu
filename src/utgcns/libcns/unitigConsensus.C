@@ -173,17 +173,39 @@ unitigConsensus::reportSuccess(uint32 *failed) {
 
 
 
+//  Dump the unitig and reads to a single file.  We should also probably save any parameters,
+//  but then it's not clear what to do with them.
+//
+bool
+unitigConsensus::savePackage(FILE   *outPackageFile,
+                             tgTig  *tig) {
+
+  //  Saving the tig is easy, just use the standard dump.
+
+  tig->saveToStream(outPackageFile);
+
+  //  Saving the reads is also easy, but it's a non-standard dump.
+
+  for (uint32 ii=0; ii<tig->numberOfChildren(); ii++)
+    gkpStore->gkStore_saveReadToStream(outPackageFile, tig->getChild(ii)->ident());
+
+  return(true);
+}
+
 
 
 bool
-unitigConsensus::generate(tgTig     *tig_,
-                          uint32    *failed_) {
+unitigConsensus::generate(tgTig                     *tig_,
+                          uint32                    *failed_,
+                          map<uint32, gkRead *>     *inPackageRead_,
+                          map<uint32, gkReadData *> *inPackageReadData_) {
+
   //bool  failuresToFix = false;
 
   tig      = tig_;
   numfrags = tig->numberOfChildren();
 
-  if (initialize(failed_) == FALSE) {
+  if (initialize(failed_, inPackageRead_, inPackageReadData_) == FALSE) {
     fprintf(stderr, "generateMultiAlignment()--  Failed to initialize for tig %u with %u children\n", tig->tigID(), tig->numberOfChildren());
     goto returnFailure;
   }
@@ -202,7 +224,7 @@ unitigConsensus::generate(tgTig     *tig_,
     if (showAlgorithm())
       fprintf(stderr, "generateMultiAlignment()-- recompute full consensus\n");
 
-    rebuild(true, showMultiAlignments());
+     rebuild(true, showMultiAlignments());
 
     if (computePositionFromAnchor()    && alignFragment())  goto applyAlignment;
     if (computePositionFromLayout()    && alignFragment())  goto applyAlignment;
@@ -253,7 +275,9 @@ unitigConsensus::generate(tgTig     *tig_,
 
 
 int
-unitigConsensus::initialize(uint32 *failed) {
+unitigConsensus::initialize(uint32                    *failed,
+                            map<uint32, gkRead *>     *inPackageRead,
+                            map<uint32, gkReadData *> *inPackageReadData) {
 
   int32 num_columns = 0;
   //int32 num_bases   = 0;
@@ -300,7 +324,9 @@ unitigConsensus::initialize(uint32 *failed) {
     abSeqID fid = abacus->addRead(gkpStore,
                                   utgpos[i].ident(),
                                   utgpos[i]._askip, utgpos[i]._bskip,
-                                  utgpos[i].isReverse());
+                                  utgpos[i].isReverse(),
+                                  inPackageRead,
+                                  inPackageReadData);
 
     //  If this is violated, then the implicit map from utgpos[] and cnspos[] to the unitig child
     //  list is incorrect.

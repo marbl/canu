@@ -241,8 +241,16 @@ public:
   //  Constructors
   //
 
-  abSeqID         addRead  (gkStore *gkpStore, uint32 readID, uint32 askip, uint32 bskip, bool complemented);  //  Adds gkpStore read 'readID' to the abacus; former AppendFragToLocalStore
-  abSeqID         addUnitig(gkStore *gkpStore, uint32 readID, bool complemented);  //  NOT SUPPORTED
+  //  Adds gkpStore read 'readID' to the abacus; former AppendFragToLocalStore
+  abSeqID         addRead(gkStore *gkpStore,
+                          uint32 readID,
+                          uint32 askip, uint32 bskip,
+                          bool complemented,
+                          map<uint32, gkRead *>     *inPackageRead,
+                          map<uint32, gkReadData *> *inPackageReadData);
+
+  //  NOT SUPPORTED
+  abSeqID         addUnitig(gkStore *gkpStore, uint32 readID, bool complemented);
 
   abBeadID        addBead(char base, char qual);
 

@@ -230,17 +230,33 @@ abSeqID
 abAbacus::addRead(gkStore *gkpStore,
                   uint32   readID,
                   uint32   askip, uint32 bskip,
-                  bool     complemented) {
+                  bool     complemented,
+                  map<uint32, gkRead *>     *inPackageRead,
+                  map<uint32, gkReadData *> *inPackageReadData) {
 
   //  Grab the read
 
-  gkRead      *read     = gkpStore->gkStore_getRead(readID);
-  gkReadData  *readData = new gkReadData;
+  gkRead      *read     = NULL;
+  gkReadData  *readData = NULL;
 
-  //fprintf(stderr, "abAbacus::addRead()--  want readID=%u, store returned read %u\n",
-  //        readID, read->gkRead_readID());
+  //  If no package, load the read from the store.  Otherwise, load the read from the package.  This
+  //  REQUIRES that the package be in-sync with the unitig.  We fail otherwise.  Hey, it's used for
+  //  debugging only...
 
-  gkpStore->gkStore_loadReadData(read, readData);
+  if (inPackageRead == NULL) {
+    read     = gkpStore->gkStore_getRead(readID);
+    readData = new gkReadData;
+
+    gkpStore->gkStore_loadReadData(read, readData);
+  }
+
+  else {
+    read     = (*inPackageRead)[readID];
+    readData = (*inPackageReadData)[readID];
+  }
+
+  assert(read     != NULL);
+  assert(readData != NULL);
 
   uint32  seqLen = read->gkRead_sequenceLength() - askip - bskip;
 
