@@ -452,7 +452,7 @@ sub createOverlapStoreParallel ($$$$) {
     overlapStoreSorterCheck($WRK, $asm, $tag, $files, 2);
     overlapStoreSorterCheck($WRK, $asm, $tag, $files, 3);
 
-    if (runCommand("$wrk/$asm.ovlStore.BUILDING", "scripts/3-index.sh > scripts/3-index.err 2>&1")) {
+    if (runCommand("$wrk/$asm.ovlStore.BUILDING", "$wrk/$asm.ovlStore.BUILDING/scripts/3-index.sh > $wrk/$asm.ovlStore.BUILDING/scripts/3-index.err 2>&1")) {
         caExit("failed to build index for overlap store", "$wrk/$asm.ovlStore.BUILDING/scripts/3-index.err");
     }
 
