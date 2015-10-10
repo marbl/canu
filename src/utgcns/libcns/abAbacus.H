@@ -165,6 +165,10 @@ public:
     return(getBase(getBead(bid)->baseIdx()));  //  Crashes if bid is not valid.
   };
 
+  char          getBase(abColumn *col) {                 //  Returns the base of the call for the column
+    return(getBase(getBead(col->callID())->baseIdx()));  //  Crashes if cid is not valid.
+  };
+
   char         *getBases(abSequence *seq) {
     return(_bases + seq->firstBase().get());
   };

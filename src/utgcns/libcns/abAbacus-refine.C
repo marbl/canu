@@ -1152,13 +1152,13 @@ IdentifyWindow(abAbacus               *abacus,
     int32 gap_count  = start_column->GetColumnBaseCount('-');
     int32 win_length = 1;
 
-    char  poly       =  abacus->getBase(abacus->getBead(start_column->callID())->baseIdx());
-    char  cb;
+    char  poly  = abacus->getBase(start_column);
+    char  cb    = abacus->getBase(stab);
 
     if (poly == '-')
       return(0);
 
-    while ((cb = abacus->getBase(abacus->getBead(stab->callID())->baseIdx())) == poly || cb == '-' )  {
+    while ((cb == poly) || (cb == '-'))  {
       if (stab->nextID().isValid() == false)
         break;
 
@@ -1169,6 +1169,8 @@ IdentifyWindow(abAbacus               *abacus,
 
       stab_bgn    = stab->nextID();
       stab        = abacus->getColumn(stab_bgn);
+
+      cb          = abacus->getBase(stab);
     }
 
     if (win_length <= 2)
@@ -1176,7 +1178,7 @@ IdentifyWindow(abAbacus               *abacus,
 
     // capture trailing gap-called columns
 
-    while (abacus->getBase(abacus->getBead(stab->callID())->baseIdx()) == '-' )  {
+    while (abacus->getBase(stab) == '-' )  {
       if (stab->GetMaxBaseCountBase(true) != poly )
         break;
 
@@ -1196,8 +1198,9 @@ IdentifyWindow(abAbacus               *abacus,
 
     while (pre_start->prevID().isValid()) {
       pre_start = abacus->getColumn(pre_start->prevID());
+      cb        = abacus->getBase(pre_start);
 
-      if ((cb = abacus->getBase(abacus->getBead(pre_start->callID())->baseIdx())) != '-' && cb != poly )
+      if ((cb != '-') && (cb != poly))
         break;
 
       start_column = pre_start;
