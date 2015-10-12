@@ -251,12 +251,12 @@ main (int argc, char **argv) {
 
   //  Open gatekeeper for read only, and load the partitioned data if tigPart > 0.
 
-  gkStore                   *gkpStore      = NULL;
-  tgStore                   *tigStore      = NULL;
-  FILE                      *tigFile       = NULL;
-  FILE                      *inPackageFile = NULL;
-  map<uint32, gkRead *>      inPackageRead;
-  map<uint32, gkReadData *>  inPackageReadData;
+  gkStore                   *gkpStore          = NULL;
+  tgStore                   *tigStore          = NULL;
+  FILE                      *tigFile           = NULL;
+  FILE                      *inPackageFile     = NULL;
+  map<uint32, gkRead *>     *inPackageRead     = NULL;
+  map<uint32, gkReadData *> *inPackageReadData = NULL;
 
   if (gkpName) {
     fprintf(stderr, "-- Opening gkpStore '%s' partition %u.\n", gkpName, tigPart);
@@ -346,20 +346,20 @@ main (int argc, char **argv) {
     //  If a package, populate the read and readData maps with data from the package.
 
     if (inPackageFile) {
+      inPackageRead      = new map<uint32, gkRead *>;
+      inPackageReadData  = new map<uint32, gkReadData *>;
+
       for (int32 ii=0; ii<tig->numberOfChildren(); ii++) {
-        uint32   readID = tig->getChild(ii)->ident();
+        uint32       readID = tig->getChild(ii)->ident();
+        gkRead      *read   = (*inPackageRead)[readID]     = new gkRead;
+        gkReadData  *data   = (*inPackageReadData)[readID] = new gkReadData;
 
-        inPackageRead[readID]     = new gkRead;
-        inPackageReadData[readID] = new gkReadData;
+        gkStore::gkStore_loadReadFromStream(inPackageFile, read, data);
 
-        gkStore::gkStore_loadReadFromStream(inPackageFile,
-                                            inPackageRead[readID],
-                                            inPackageReadData[readID]);
-
-        if (inPackageRead[readID]->gkRead_readID() != readID)
-          fprintf(stderr, "ERROR: inPackageRead[readID]->gkRead_readID() = %u  readID = %u\n",
-                  inPackageRead[readID]->gkRead_readID(), readID);
-        assert(inPackageRead[readID]->gkRead_readID() == readID);
+        if (read->gkRead_readID() != readID)
+          fprintf(stderr, "ERROR: package not in sync with tig.  package readID = %u  tig readID = %u\n",
+                  read->gkRead_readID(), readID);
+        assert(read->gkRead_readID() == readID);
       }
     }
 
@@ -429,7 +429,7 @@ main (int argc, char **argv) {
     if ((outPackageFile == NULL) &&
         ((exists == false) || (forceCompute == true))) {
       origChildren = stashContains(tig, maxCov, true);
-      success      = utgcns->generate(tig, NULL, &inPackageRead, &inPackageReadData);
+      success      = utgcns->generate(tig, NULL, inPackageRead, inPackageReadData);
     }
 
     //  If it was successful (or existed already), output.  Success is always false if the unitig
