@@ -690,7 +690,7 @@ main (int argc, char **argv) {
   char         *editName       = NULL;
   char         *replaceName    = NULL;
   bool          sameVersion    = true;
-  bool	        append         = false;
+  bool          append         = false;
   char         *buildName      = NULL;
 
   uint32        minNreads      = 0;

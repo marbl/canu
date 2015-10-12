@@ -87,7 +87,7 @@ Binomial_Bound(int e, double p, int Start) {
       Factorial = 0.0;
       Poisson_Coeff = - n * p;
       for (k = 0;  k < e;  k ++) {
-	      Sum += exp(Mu_Power + Poisson_Coeff - Factorial);
+        Sum += exp(Mu_Power + Poisson_Coeff - Factorial);
         Mu_Power += log(n * p);
         Factorial = lgamma(k + 1);
       }

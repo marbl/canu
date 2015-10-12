@@ -64,10 +64,10 @@ extern mtRandom MT;
 #define max(x,y) ((x)>=(y) ? (x):(y))
 #define min(x,y) ((x)<=(y) ? (x):(y))
 
-#define MOV	3
-#define SUB	2
-#define INS	1
-#define DEL	0
+#define MOV 3
+#define SUB 2
+#define INS 1
+#define DEL 0
 
 
 

@@ -238,7 +238,7 @@ vector<breakPoint> *computeMateCoverage(Unitig* tig,
             if (logFileFlagSet(LOG_MATE_SPLIT_ANALYSIS))
               writeLog("Skip rev bad range %d %d due to contained in fwd %d %d\n",
                       bad.bgn, bad.end, fwdIter->bgn, fwdIter->end);
-      	    revIter++;
+            revIter++;
             continue;
           }
 

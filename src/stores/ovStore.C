@@ -680,60 +680,60 @@ ovStore::writeOverlap(ovOverlap *overlap) {
 
 void
 ovStore::writeOverlap(ovOverlap *overlap, uint32 maxOverlapsThisFile) {
-	char            name[FILENAME_MAX];
+  char            name[FILENAME_MAX];
 
-	assert(_isOutput == TRUE);
+  assert(_isOutput == TRUE);
 
   _currentFileIndex++;
   _overlapsThisFile = 0;
 
-	for (uint64 i=0; i < maxOverlapsThisFile; i++ ) {
+  for (uint64 i=0; i < maxOverlapsThisFile; i++ ) {
     //  All overlaps will be sorted by a_iid
     if (_offt._a_iid > overlap[i].a_iid) {
-			fprintf(stderr, "LAST:  a:"F_U32"\n", _offt._a_iid);
-			fprintf(stderr, "THIS:  a:"F_U32" b:"F_U32"\n", overlap[i].a_iid, overlap[i].b_iid);
-		}
+      fprintf(stderr, "LAST:  a:"F_U32"\n", _offt._a_iid);
+      fprintf(stderr, "THIS:  a:"F_U32" b:"F_U32"\n", overlap[i].a_iid, overlap[i].b_iid);
+    }
 
-		assert(_offt._a_iid <= overlap[i].a_iid);
+    assert(_offt._a_iid <= overlap[i].a_iid);
 
-		if (_info._smallestIID > overlap[i].a_iid)
-			_info._smallestIID = overlap[i].a_iid;
-		if (_info._largestIID < overlap[i].a_iid)
+    if (_info._smallestIID > overlap[i].a_iid)
+      _info._smallestIID = overlap[i].a_iid;
+    if (_info._largestIID < overlap[i].a_iid)
       _info._largestIID = overlap[i].a_iid;
 
 
-		//  Put the index to disk, filling any gaps
-		if ((_offt._numOlaps != 0) && (_offt._a_iid != overlap[i].a_iid)) {
+    //  Put the index to disk, filling any gaps
+    if ((_offt._numOlaps != 0) && (_offt._a_iid != overlap[i].a_iid)) {
 
-			while (_offm._a_iid < _offt._a_iid) {
-				_offm._fileno    = _offt._fileno;
-				_offm._offset    = _offt._offset;
+      while (_offm._a_iid < _offt._a_iid) {
+        _offm._fileno    = _offt._fileno;
+        _offm._offset    = _offt._offset;
         _offm._overlapID = _offt._overlapID;  //  Not needed, but makes life easier
 
-				AS_UTL_safeWrite(_offtFile, &_offm, "AS_OVS_writeOverlapToStore offset", sizeof(ovStoreOfft), 1);
+        AS_UTL_safeWrite(_offtFile, &_offm, "AS_OVS_writeOverlapToStore offset", sizeof(ovStoreOfft), 1);
 
-				_offm._a_iid++;
-			}
+        _offm._a_iid++;
+      }
 
       _offm._a_iid++;  //  One more, since this iid is not missing -- we write it next!
 
-			AS_UTL_safeWrite(_offtFile, &_offt, "AS_OVS_writeOverlapToStore offset", sizeof(ovStoreOfft), 1);
+      AS_UTL_safeWrite(_offtFile, &_offt, "AS_OVS_writeOverlapToStore offset", sizeof(ovStoreOfft), 1);
 
-			_offt._numOlaps  = 0;    //  Reset; this new id has no overlaps yet.
-		}
+      _offt._numOlaps  = 0;    //  Reset; this new id has no overlaps yet.
+    }
 
-		//  Update the index if this is the first overlap for this a_iid
-		if (_offt._numOlaps == 0) {
-			_offt._a_iid     = overlap[i].a_iid;
-			_offt._fileno    = _currentFileIndex;
-			_offt._offset    = _overlapsThisFile;
+    //  Update the index if this is the first overlap for this a_iid
+    if (_offt._numOlaps == 0) {
+      _offt._a_iid     = overlap[i].a_iid;
+      _offt._fileno    = _currentFileIndex;
+      _offt._offset    = _overlapsThisFile;
       _offt._overlapID = _info._numOverlapsTotal;
-		}
+    }
 
-		_offt._numOlaps++;
-		_info._numOverlapsTotal++;
-		_overlapsThisFile++;
-	}
+    _offt._numOlaps++;
+    _info._numOverlapsTotal++;
+    _overlapsThisFile++;
+  }
 
   fprintf(stderr,"Done building index for dumpfile %d.\n",_currentFileIndex);
 }
@@ -923,27 +923,27 @@ writeOverlaps(char       *storePath,
               uint64      ovlsLen,
               uint32      fileID) {
 
-	char                        name[FILENAME_MAX];
+  char                        name[FILENAME_MAX];
 
   uint32                      currentFileIndex = fileID;
   uint64                      overlapsThisFile = 0;
 
-	ovStoreInfo    info;
+  ovStoreInfo    info;
 
-	info._ovsMagic              = 1;
-	info._ovsVersion            = ovStoreVersion;
+  info._ovsMagic              = 1;
+  info._ovsVersion            = ovStoreVersion;
   info._UNUSED                = 0;
   info._smallestIID           = UINT64_MAX;
   info._largestIID            = 0;
   info._numOverlapsTotal      = 0;
   info._highestFileIndex      = 0;
-	info._maxReadLenInBits      = AS_MAX_READLEN_BITS;
+  info._maxReadLenInBits      = AS_MAX_READLEN_BITS;
 
-	ovStoreOfft    offt;
+  ovStoreOfft    offt;
   ovStoreOfft    offm;
 
   offt._a_iid     = offm._a_iid     = ovls[0].a_iid;
-	offt._fileno    = offm._fileno    = fileID;
+  offt._fileno    = offm._fileno    = fileID;
   offt._offset    = offm._offset    = 0;
   offt._numOlaps  = offm._numOlaps  = 0;
   offt._overlapID = offm._overlapID = 0;
@@ -955,7 +955,7 @@ writeOverlaps(char       *storePath,
 
   //  Create the index file
 
-	sprintf(name,"%s/%04d.index", storePath, fileID);
+  sprintf(name,"%s/%04d.index", storePath, fileID);
 
   errno = 0;
   FILE *offtFile=fopen(name,"w");
@@ -966,54 +966,54 @@ writeOverlaps(char       *storePath,
 
   fprintf(stderr, "Writing "F_U64" overlaps.\n", ovlsLen);
 
-	for (uint64 i=0; i<ovlsLen; i++ ) {
+  for (uint64 i=0; i<ovlsLen; i++ ) {
     bof->writeOverlap(ovls + i);
 
     if (offt._a_iid > ovls[i].a_iid) {
-			fprintf(stderr, "LAST:  a:"F_U32"\n", offt._a_iid);
-			fprintf(stderr, "THIS:  a:"F_U32" b:"F_U32"\n", ovls[i].a_iid, ovls[i].b_iid);
-		}
+      fprintf(stderr, "LAST:  a:"F_U32"\n", offt._a_iid);
+      fprintf(stderr, "THIS:  a:"F_U32" b:"F_U32"\n", ovls[i].a_iid, ovls[i].b_iid);
+    }
     assert(offt._a_iid <= ovls[i].a_iid);
 
     info._smallestIID = MIN(info._smallestIID, ovls[i].a_iid);
     info._largestIID  = MAX(info._largestIID,  ovls[i].a_iid);
 
-		//  Put the index to disk, filling any gaps
+    //  Put the index to disk, filling any gaps
 
-		if ((offt._numOlaps != 0) && (offt._a_iid != ovls[i].a_iid)) {
-			while (offm._a_iid < offt._a_iid) {
-				offm._fileno     = offt._fileno;
-				offm._offset     = offt._offset;
+    if ((offt._numOlaps != 0) && (offt._a_iid != ovls[i].a_iid)) {
+      while (offm._a_iid < offt._a_iid) {
+        offm._fileno     = offt._fileno;
+        offm._offset     = offt._offset;
         offm._overlapID  = offt._overlapID;  //  Not needed, but makes life easier
-				offm._numOlaps   = 0;
+        offm._numOlaps   = 0;
 
-				AS_UTL_safeWrite(offtFile, &offm, "AS_OVS_writeOverlapToStore offt", sizeof(ovStoreOfft), 1);
-				offm._a_iid++;
-			}
+        AS_UTL_safeWrite(offtFile, &offm, "AS_OVS_writeOverlapToStore offt", sizeof(ovStoreOfft), 1);
+        offm._a_iid++;
+      }
 
-			//  One more, since this iid is not offm -- we write it next!
-			offm._a_iid++;
+      //  One more, since this iid is not offm -- we write it next!
+      offm._a_iid++;
 
-			AS_UTL_safeWrite(offtFile, &offt, "AS_OVS_writeOverlapToStore offt", sizeof(ovStoreOfft), 1);
+      AS_UTL_safeWrite(offtFile, &offt, "AS_OVS_writeOverlapToStore offt", sizeof(ovStoreOfft), 1);
 
       offt._overlapID += offt._numOlaps;  //  The next block of overlaps starts with this ID
-			offt._numOlaps   = 0;               //  The next block has no overlaps yet.
-		}
+      offt._numOlaps   = 0;               //  The next block has no overlaps yet.
+    }
 
-		//  Update the index if this is the first overlap for this a_iid
+    //  Update the index if this is the first overlap for this a_iid
 
-		if (offt._numOlaps == 0) {
-			offt._a_iid   = ovls[i].a_iid;
-			offt._fileno  = currentFileIndex;
-			offt._offset  = overlapsThisFile;
-		}
+    if (offt._numOlaps == 0) {
+      offt._a_iid   = ovls[i].a_iid;
+      offt._fileno  = currentFileIndex;
+      offt._offset  = overlapsThisFile;
+    }
 
-		offt._numOlaps++;
+    offt._numOlaps++;
 
-		info._numOverlapsTotal++;
+    info._numOverlapsTotal++;
 
-		overlapsThisFile++;
-	}
+    overlapsThisFile++;
+  }
 
   //  Close the output file.
 
@@ -1021,22 +1021,22 @@ writeOverlaps(char       *storePath,
 
   //  Write the final (empty) index entries.
 
-	while (offm._a_iid < offt._a_iid) {
-		offm._fileno     = offt._fileno;
-		offm._offset     = offt._offset;
+  while (offm._a_iid < offt._a_iid) {
+    offm._fileno     = offt._fileno;
+    offm._offset     = offt._offset;
     offm._overlapID  = offt._overlapID;  //  Not needed, but makes life easier
-		offm._numOlaps   = 0;
+    offm._numOlaps   = 0;
 
-		AS_UTL_safeWrite(offtFile, &offm, "AS_OVS_writeOverlapToStore offt", sizeof(ovStoreOfft), 1);
-		offm._a_iid++;
-	}
+    AS_UTL_safeWrite(offtFile, &offm, "AS_OVS_writeOverlapToStore offt", sizeof(ovStoreOfft), 1);
+    offm._a_iid++;
+  }
 
   //  And the final (real) index entry.  We could, but don't need to, update overlapID with the
   //  number of overlaps in this block.
 
-	AS_UTL_safeWrite(offtFile, &offt, "AS_OVS_writeOverlapToStore offt", sizeof(ovStoreOfft), 1);
+  AS_UTL_safeWrite(offtFile, &offt, "AS_OVS_writeOverlapToStore offt", sizeof(ovStoreOfft), 1);
 
-	fclose(offtFile);
+  fclose(offtFile);
 
   //  In the nasty case that there were no overlaps in this slice, set meaningful smallest and
   //  largest.  Well, at least, set non-nonsense smallest and largest.
@@ -1153,12 +1153,12 @@ mergeInfoFiles(char       *storePath,
   ovStoreInfo    info;
 
   info._ovsMagic              = ovStoreMagic;
-	info._ovsVersion            = ovStoreVersion;
+  info._ovsVersion            = ovStoreVersion;
   info._smallestIID           = UINT64_MAX;
   info._largestIID            = 0;
   info._numOverlapsTotal      = 0;
   info._highestFileIndex      = nPieces;
-	info._maxReadLenInBits      = AS_MAX_READLEN_BITS;
+  info._maxReadLenInBits      = AS_MAX_READLEN_BITS;
 
   ovStoreOfft offm;
 
@@ -1277,7 +1277,7 @@ mergeInfoFiles(char       *storePath,
 
         //  Write the records, read next batch
 
-				AS_UTL_safeWrite(idx, recs, "ovStore::mergeInfoFiles::offsetsWrite", sizeof(ovStoreOfft), recsLen);
+        AS_UTL_safeWrite(idx, recs, "ovStore::mergeInfoFiles::offsetsWrite", sizeof(ovStoreOfft), recsLen);
 
         recsLen = AS_UTL_safeRead(F, recs, "ovStore::mergeInfoFiles::offsetsReLoad", sizeof(ovStoreOfft), recsMax);
       }

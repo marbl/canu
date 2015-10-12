@@ -58,7 +58,7 @@ int main(void){
 
   fprintf(stderr,"***** Normalized Gaussian *****");
   fprintf(stderr,"* avg = %f  avg2 = %f  avg3 = %f\n",
-	  sumx/num, sumx2/num, sumx3/num);
+          sumx/num, sumx2/num, sumx3/num);
 
 
 
@@ -84,7 +84,7 @@ int main(void){
   sumx3 = pow(sumx3/num, 0.33);
   fprintf(stderr,"*****  Gaussian with STDEV 5.0 *****");
   fprintf(stderr,"* avg = %f  sqrt avg2 = %f  curt avg3 = %f\n",
-	  sumx, sumx2, sumx3);
+          sumx, sumx2, sumx3);
 
 
   return 0;

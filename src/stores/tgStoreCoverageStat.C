@@ -156,7 +156,7 @@ double
 getGlobalArrivalRate(tgStore         *tigStore,
                      FILE            *outSTA,
                      uint64           genomeSize,
-		     bool            useN50) {
+                     bool            useN50) {
   double   globalRate = 0;
   double   recalRate  = 0;
 
@@ -234,7 +234,7 @@ getGlobalArrivalRate(tgStore         *tigStore,
       rhoN50 = allRho[i-1];
       growRho += rhoN50;
       if (growRho >= growUntil)
-	break; // break when sum of rho > 50%
+        break; // break when sum of rho > 50%
     }
   }
   delete [] allRho;
