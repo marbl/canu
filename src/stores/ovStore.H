@@ -374,7 +374,7 @@ class ovStoreInfo {
 private:
   uint64    _ovsMagic;
   uint64    _ovsVersion;
-  uint64    _numOverlapsPerFile;  //  on create, how big to make each file
+  uint64    _UNUSED;
   uint64    _smallestIID;         //  smallest frag iid in the store
   uint64    _largestIID;          //  largest frag iid in the store
   uint64    _numOverlapsTotal;    //  number of overlaps in the store
@@ -513,10 +513,6 @@ private:
 
   uint32             _firstIIDrequested;
   uint32             _lastIIDrequested;
-
-  //memoryMappedFile  *_offtMMap;   //  For reading overlaps, a mapped ovStoreOfft file.
-  //ovStoreOfft       *_offts;      //  For reading overlaps, an array of mapped ovStoreOfft's.
-  //uint64             _offtLength; //  For reading overlaps, the number of ovStoreOfft's.
 
   FILE              *_offtFile;   //  For writing overlaps, a place to dump ovStoreOfft's.
   ovStoreOfft        _offt;       //  For writing overlaps, the current ovStoreOfft.
