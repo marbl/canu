@@ -1,4 +1,4 @@
-#!perl
+#!/usr/bin/env perl
 
 ###############################################################################
  #
@@ -31,8 +31,6 @@
  #  File 'README.licenses' in the root directory of this distribution contains
  #  full conditions and disclaimers for each license.
  ##
-
-#!/usr/bin/perl
 
 use strict;
 

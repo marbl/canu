@@ -1,4 +1,4 @@
-#!perl
+#!/usr/bin/env perl
 
 ###############################################################################
  #
@@ -19,8 +19,6 @@
  #  File 'README.licenses' in the root directory of this distribution contains
  #  full conditions and disclaimers for each license.
  ##
-
-#!/usr/bin/perl
 
 #  Analyzes a single overlapStore, reports reads that have a gap in overlap.  Assumes reads are ordered in
 #  reference order.

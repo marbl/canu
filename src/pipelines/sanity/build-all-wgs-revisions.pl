@@ -1,4 +1,4 @@
-#!perl
+#!/usr/bin/env perl
 
 ###############################################################################
  #
@@ -20,8 +20,7 @@
  #  full conditions and disclaimers for each license.
  ##
 
-#!/usr/bin/perl
-#
+
 #  Checkout and tar up src for each commit.
 #
 #  The first half comes from get-commit-logs.pl.
