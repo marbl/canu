@@ -29,8 +29,6 @@
 
 #include "NDalgorithm.H"
 
-#undef DEBUG
-
 
 
 //  Put the delta encoding of the alignment represented in Edit_Array
@@ -153,9 +151,6 @@ NDalgorithm::forward(char    *A,   int32 Alen,
     A_End        = Alen;
     T_End        = Alen;
     Match_To_End = true;
-#ifdef DEBUG
-    fprintf(stderr, "NDalgorithm::forward()- exact match\n");
-#endif
 
     Right_Score       = Sco;
     Right_Delta_Len   = 0;
@@ -337,9 +332,7 @@ NDalgorithm::forward(char    *A,   int32 Alen,
     }
   }  //  Over all possible number of errors
 
-#ifdef DEBUG
-  fprintf(stderr, "NDalgorithm::forward()- iterated over all errors, return best found\n");
-#endif
+  //fprintf(stderr, "NDalgorithm::forward()- iterated over all errors, return best found\n");
 
   A_End = Max_Score_Len;
   T_End = Max_Score_Len + Max_Score_Best_d;
