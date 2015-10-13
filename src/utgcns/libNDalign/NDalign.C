@@ -39,6 +39,8 @@
 #undef  DEBUG_ALGORITHM         //  Some details.
 #undef  DEBUG_HITS              //  Lots of details.
 
+#define DISPLAY_REALIGN  false  //  Show the successful realignments?
+
 #undef  SEED_NON_OVERLAPPING    //  Allow mismatches in seeds
 #define SEED_OVERLAPPING
 
@@ -744,7 +746,7 @@ NDalign::realignForward(bool verbose, bool displayAlign) {
 
     _bestResult.save(aLo, aHi, bLo, bHi, _editDist->score(), olapType, _editDist->Left_Delta_Len, _editDist->Left_Delta);
 
-    display("NDalign::realignForward()-- ", false);
+    display("NDalign::realignForward()-- ", DISPLAY_REALIGN);
 
     _bestResult.setErate(1.0 - (double)(_matches + _gapmatches) / (length() - _freegaps));
 
@@ -799,7 +801,7 @@ NDalign::realignBackward(bool verbose, bool displayAlign) {
 
     _bestResult.save(aLo, aHi, bLo, bHi, _editDist->score(), olapType, _editDist->Left_Delta_Len, _editDist->Left_Delta);
 
-    display("NDalign::realignBackward()-- ", false);
+    display("NDalign::realignBackward()-- ", DISPLAY_REALIGN);
 
     _bestResult.setErate(1.0 - (double)(_matches + _gapmatches) / (length() - _freegaps));
 
