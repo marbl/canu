@@ -298,14 +298,14 @@ abAbacus::applyAlignment(abSeqID   afid,
                          int32     bhang,
                          int32    *trace) {
 
-  int32     bpos   = 0;  //MAX(bhang, 0);
-  int32     blen   = 0;
+  int32     apos   = MAX(ahang,0);  //  The aindex index for the current column we're processing
+  int32     bpos   = 0;
 
-  int32     apos   = MAX(ahang,0);
+  int32     blen   = 0;
 
   abBeadID *bindex = NULL;
 
-  abBeadID  lasta;
+  abBeadID  lasta;  //  The beadID of the bases in the last column aligned
   abBeadID  lastb;
 
 #ifdef DEBUG_ABACUS_ALIGN
@@ -313,15 +313,15 @@ abAbacus::applyAlignment(abSeqID   afid,
           ahang, bhang, trace[0], trace[1], trace[2], trace[3], trace[4]);
 #endif
 
+  //  These loops really abuses the fact that all the beads for the bases in this read are
+  //  contiguous.  They're contiguous because CreateMANode() (I think it's in there) allocated them
+  //  in one block.
+
   if (afid.isValid()) {
     abSequence *afrag = getSequence(afid);
     alen              = afrag->length();
     aindex            = new abBeadID [alen];
 
-    //  The loop really abuses the fact that all the beads for the bases in this read are
-    //  contiguous.  They're contiguous because CreateMANode() (I think it's in there) allocated
-    //  them in one block.
-    //
     for (uint32 ai=0; ai<alen; ai++)
       aindex[ai].set(afrag->firstBead().get() + ai);
 
@@ -338,7 +338,6 @@ abAbacus::applyAlignment(abSeqID   afid,
     for (uint32 bi=0; bi<blen; bi++)
       bindex[bi].set(bfrag->firstBead().get() + bi);
 
-    //bfrag->multiAlignID() = abMultiAlignID();  //  USED?
   } else {
     assert(0);
   }
@@ -349,9 +348,8 @@ abAbacus::applyAlignment(abSeqID   afid,
   //
   //  All the a beads should be in a column.  All the b beads should not.
   //
-  //sanityCheck((afid >= 0) ? getFragment(afid)->firstbead : abBeadID(),
-  //            (bfid >= 0) ? getFragment(bfid)->firstbead : abBeadID());
 
+#ifdef DEBUG_ABACUS_ALIGN
   {
     uint32    columnErrors = 0;
 
@@ -383,10 +381,16 @@ abAbacus::applyAlignment(abSeqID   afid,
 
     assert(columnErrors == 0);
   }
+#endif
 
 
+  //
+  //  Catch two nasty cases: negative ahang (so unaligned bases in the B read) and
+  //  initial gaps in the B read.
+  //
 
-  //  Negative ahang?  push these things onto the start of abacus.  Fail if we get a negative ahang,
+
+  //  Negative ahang?  Push these things onto the start of abacus.  Fail if we get a negative ahang,
   //  but there is a column already before the first one (which implies we aligned to something not
   //  full-length, possibly because we trimmed frankenstein wrong).
   //
@@ -394,40 +398,36 @@ abAbacus::applyAlignment(abSeqID   afid,
     abBead  *bead = getBead(aindex[0]);
     abColID  colp = bead->colIdx();
 
-    //abacus->getBead(aindex[apos])->column_index
-
     assert(bead->prev.isInvalid());
 
     while (bpos < -ahang) {
-      bead = getBead(bindex[bpos]);
-
 #ifdef DEBUG_ABACUS_ALIGN
       fprintf(stderr, "ApplyAlignment()-- Prepend column for ahang bead=%d,%c\n",
-              bead->ident().get(),
-              getBase(bead->baseIdx()));
+              getBead(bindex[bpos])->ident().get(),
+              getBase(getBead(bindex[bpos])->baseIdx()));
 #endif
+
       prependColumn(colp, bindex[bpos++]);
     }
 
-    lasta = getBead(aindex[0])->prev;
-    lastb = bindex[bpos - 1];
+    //  Why are these set?
+
+    lasta = getBead(aindex[0])->prev;  //  Probably still invalid, there isn't any A-read aligned yet.
+    lastb = bindex[bpos - 1];          //  But this should be valid; it's pointing into the B-read
   }
 
 
-  //  trace is NULL for the first fragment, all we want to do there is load the initial abacus.
-  //
-  if (trace == NULL)
-    goto loadInitial;
-
-
-  //  Skip any positive traces at the start.  These are template sequence aligned to gaps in the
-  //  read, but we don't care because there isn't any read aligned yet.
+  //  Skip any positive traces at the start.  These are template sequence (A-read) aligned to gaps
+  //  in the B-read, but we don't care because there isn't any B-read aligned yet.
 
   while ((trace != NULL) && (*trace != 0) && (*trace == 1)) {
 #ifdef DEBUG_ABACUS_ALIGN
     fprintf(stderr, "trace=%d  apos=%d alen=%d bpos=%d blen=%d - SKIP INITIAL GAP IN READ\n", *trace, apos, alen, bpos, blen);
 #endif
-    apos++;
+
+    //lasta = aindex[apos];  //  NEW, untested
+
+    apos++;  //  lasta isn't set, it is reset to aindex[apos] in alignPosition().
     trace++;
   }
 
@@ -454,16 +454,15 @@ abAbacus::applyAlignment(abSeqID   afid,
       //  invalid lasta.
 
       if ((lasta.isInvalid()) || (bpos == 0)) {
-        assert(lasta.isInvalid());
-        assert(bpos  == 0);
-
         prependColumn(getBead(aindex[apos])->column_index, bindex[bpos]);
 
         lasta = getBead(aindex[apos])->prev;
         lastb = bindex[bpos];
       } else {
         assert(lasta == getBead(aindex[apos])->prev);
+
         appendColumn(getBead(lasta)->colIdx(), bindex[bpos]);
+
         lasta = getBead(lasta)->nextID();
         lastb = bindex[bpos];
       }
@@ -488,11 +487,26 @@ abAbacus::applyAlignment(abSeqID   afid,
 
       //  Unlike the *trace < 0 case, we have already removed the initial +1 trace elements, so
       //  alignPosition() is always called, and lasta is always valid.
+      //
+      //  Well, that's what was supposed to happen.  It is possible for the read to come with
+      //  unaligned bases at the start (so the 'prepend column' 'negative ahang' case is applied),
+      //  then to have gaps inserted in the B read immediately after.  In effect, it looks like
+      //  there are +1 trace elements that should have been removed, but aren't.
+      //
+      //  In one example, bpos=20 and *trace=21, and so alignPosition() was never called.
 
-      assert(lasta.isInvalid() == false);
+      //  guido
 
-      lasta = getBead(lasta)->nextID();
-      lastb = appendGapBead(lastb);
+      assert(lastb.isValid());
+
+      if ((lasta.isInvalid())) {
+        lasta = aindex[apos];          //  Not actually 'last' until after the apos++ below
+        lastb = appendGapBead(lastb);  //  Same.
+
+      } else {
+        lasta = getBead(lasta)->nextID();  //  Is now 'thisa', util apos++.
+        lastb = appendGapBead(lastb);      //  Same.
+      }
 
       assert(lasta == aindex[apos]);
 
@@ -501,6 +515,7 @@ abAbacus::applyAlignment(abSeqID   afid,
                         "ApplyAlignment(6)");
 
       apos++;
+
 
       //  Continue aligning to existing gap columns in A.  Duplication from alignPosition.
 
@@ -513,7 +528,7 @@ abAbacus::applyAlignment(abSeqID   afid,
   //
   //  Remaining alignment contains no indels
   //
- loadInitial:
+
 #ifdef DEBUG_ABACUS_ALIGN
   fprintf(stderr, "Align the remaining:  bpos=%d blen=%d apos=%d alen=%d\n",
           bpos, blen, apos, alen);

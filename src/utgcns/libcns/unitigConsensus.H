@@ -107,7 +107,8 @@ public:
 
   bool   rejectAlignment(bool allowBhang, bool allowAhang, ALNoverlap *O);
 
-  int32  alignFragment(bool forceAlignment=false);
+  bool   alignFragmentFailure(void);
+  bool   alignFragment(bool forceAlignment=false);
   void   applyAlignment(void);
 
   void   generateConsensus(void);

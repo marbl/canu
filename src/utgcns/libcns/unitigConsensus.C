@@ -813,35 +813,60 @@ unitigConsensus::rebuild(bool recomputeFullConsensus, bool display) {
 }
 
 
-int
+
+//  This stub lets alignFragmnet() cleanup and return on alignment failures.  The original
+//  implementation did the same thing with a goto to the end of the function.  Opening up the if
+//  statements exposed variable declarations that prevented the goto from compiling.
+//
+bool
+unitigConsensus::alignFragmentFailure(void) {
+  cnspos[tiid].set(0, 0);
+  piid = -1;
+
+  if (showAlgorithm())
+    fprintf(stderr, "alignFragment()-- No alignment found.\n");
+
+  return(false);
+}
+
+
+bool
 unitigConsensus::alignFragment(bool forceAlignment) {
-  int32         bgnExtra     = 0;
-  int32         endExtra     = 0;
 
   assert((cnspos[tiid].min() != 0) || (cnspos[tiid].max() != 0));
   assert(piid != -1);
 
   assert(cnspos[tiid].min() < cnspos[tiid].max());
 
-  //  Compute how much extra consensus sequence to align to.  If we allow too much, we risk placing
-  //  the fragment in an incorrect location -- worst case is that we find a longer higher scoring
-  //  alignment, but lower identity that is rejected.  If we allow too little, we leave unaligned
-  //  bits on the end of the fragment -- worst case, we have 1 extra base which might add an
-  //  unnecessary gap.
-  //
-  //  The default used to be 100bp, which made sense for Sanger reads (maybe) but makes no sense for
-  //  short reads of length say 100bp.
-  //
-  //  We are placing this read relative to some other read:
-  //
-  //      anchoring fragment   -----------------------------------------    ediff
-  //      new fragment           bdiff   ------------------------------------------------
-  //
-  //  So we should allow errorRate indel in those relative positionings.
-  //
+  abSequence *bSEQ  = abacus->getSequence(tiid);
 
-  bgnExtra = (int32)ceil(errorRate * (cnspos[tiid].min() - cnspos[piid].min()));
-  endExtra = (int32)ceil(errorRate * (cnspos[tiid].max() - cnspos[piid].max()));
+  //  The bgnExtra and endExtra values are how much of the frankenstein to align to.  Ideally, we'd
+  //  know exactly where the new read goes in frankenstein, based on its overlap to a read that is
+  //  already in frankenstein.  Two issues prevent us from knowing:
+  //
+  //  1) The unaligned portion (unaligned in the pairwise overlap) of the new read can have up to
+  //     errorRate indel.  The unaligned portion of the read could align to a larger than expected
+  //     portion of the frankenstein sequence.
+  //
+  //  2) Frankenstein itself can have any amount of indel in it.
+  //
+  //  Neither of these can be computed.  The previous version of this used to compute the first and
+  //  use that.  It wasn't enough for some PacBio reads.  To correct, the bgnExtra value was
+  //  multiplied by 100....but on the same read, the endExtra value then became 3000.
+  //
+  //  With Illumina (and short reads in general), having a too-large extra value could result in the
+  //  read being mis-aligned.  This isn't much of a concern anymore, because (a) the reads are
+  //  significantly longer and (b) the reads are not mated (so exact placement isn't as critical).
+  //
+  //  This version starts with reasonably leniant values based on the read length, then allows the
+  //  code to extend these based on the alignment.  The only drawback is more time to recompute
+  //  alignments.
+  //
+  //  It's possible that a smaller region could lead to a better alignment, but this is an alignment
+  //  problem - the aligner shouldn't be returning higher-scoring-but-gappier alignments.
+
+  int32 bgnExtra = bSEQ->length() / 8;
+  int32 endExtra = bSEQ->length() / 8;
 
   if (bgnExtra < 0)  bgnExtra = -bgnExtra;
   if (endExtra < 0)  endExtra = -endExtra;
@@ -849,31 +874,28 @@ unitigConsensus::alignFragment(bool forceAlignment) {
   if (bgnExtra < 10) bgnExtra = 10;
   if (endExtra < 10) endExtra = 10;
 
-  //  And compute how much extra fragment sequence to align to.  We want to trim off some
-  //  of the bhang sequence to prevent false alignments.  We trim off all of the bhang sequence,
-  //  except for 6% of the aligned length.
-  //
-  //  Actual example:  the real alignment should be this:
-  //
-  //  CGGCAGCCACCCCATCCGGGAGGGAGATGGGGGGGTCAGCCCCCCGCCCGGCCAGCCG
-  //            CCCATCCGGGAGGGAGGTGGGGGGGTCAGCCCCCCGCCCCGCCAGCCGCTCCGTCCGGGAGGGAGGTGGGGGGGTCAGCCCCCCGCCCGGCCAGCCGCCCC
-  //
-  //  Instead, this higher scoring (longer) and noiser alignment was found.
-  //
-  //                                                   CGGCAGCCACCCCATCCGGGAGGGAGATGGGGGGGTCAGCCCCCCGCCCGGCCAGCCG
-  //            CCCATCCGGGAGGGAGGTGGGGGGGTCAGCCCCCCGCCCCGCCAGCCGCTCCGTCCGGGAGGGAGGTGGGGGGGTCAGCCCCCCGCCCGGCCAGCCGCCCC
-  //
+  //  Similarily, we need to trim off the end of the read that will never align to frankenstein.
+  //  This too is allowed to change based on the alignment.
 
   assert(cnspos[tiid].min() < cnspos[tiid].max());
 
-  int32 cnsbgn = (cnspos[tiid].min() < cnspos[tiid].max()) ? cnspos[tiid].min() : cnspos[tiid].max();
-  int32 cnsend = (cnspos[tiid].min() < cnspos[tiid].max()) ? cnspos[tiid].max() : cnspos[tiid].min();
+  int32 endTrim = (cnspos[tiid].max() - frankensteinLen) - (int32)ceil(errorRate * (cnspos[tiid].max() - cnspos[tiid].min()));
 
-  int32 endTrim = (cnsend - frankensteinLen) - (int32)ceil(errorRate * (cnsend - cnsbgn));
+  if (endTrim < 20)
+    endTrim = 0;
 
-  if (endTrim < 20)  endTrim = 0;
+  if (endTrim >= bSEQ->length()) {
+    fprintf(stderr, "alignFragment()-- ERROR -- excessive endTrim %d >= length %d\n", endTrim, bSEQ->length());
+    return(alignFragmentFailure());
+  }
 
-  bool  tryAgain     = false;
+  if (endTrim < 0) {
+    fprintf(stderr, "alignFragment()-- ERROR -- negative endTrim %d\n", endTrim);
+    return(alignFragmentFailure());
+  }
+
+
+  //  Find an alignment!
 
  alignFragmentAgain:
   int32 frankBgn     = MAX(0, cnspos[tiid].min() - bgnExtra);   //  Start position in frankenstein
@@ -884,282 +906,148 @@ unitigConsensus::alignFragment(bool forceAlignment) {
     fprintf(stderr, "alignFragment()-- Allow bgnExtra=%d and endExtra=%d (frankBgn=%d frankEnd=%d) and endTrim=%d\n",
             bgnExtra, endExtra, frankBgn, frankEnd, endTrim);
 
-  bool  allowAhang = false;
-  bool  allowBhang = true;
-
-  //  If the expected fragment begin position plus any extra slop is still the begin of the
-  //  consensus sequence, we allow the fragment to hang over the end.
-  //
-  if (frankBgn == 0)
-    allowAhang = true;
-
   //  If the expected fragment end position plus any extra slop are less than the consensus length,
   //  we need to truncate the frankenstein so we don't incorrectly align to that.
   //
-  if (cnspos[tiid].max() + endExtra < frankEnd) {
+  if (cnspos[tiid].max() + endExtra < frankensteinLen) {
     frankEnd     = cnspos[tiid].max() + endExtra;
     frankEndBase = frankenstein[frankEnd];
     frankenstein[frankEnd] = 0;
-    allowBhang   = false;
 
   } else {
     endExtra = 0;
   }
 
   char       *aseq  = frankenstein + frankBgn;
-
-  abSequence *bSEQ  = abacus->getSequence(tiid);
   char       *bseq  = abacus->getBases(bSEQ);
 
-  if (endTrim >= bSEQ->length())
-    fprintf(stderr, "alignFragment()-- ERROR -- excessive endTrim %d >= length %d\n", endTrim, bSEQ->length());
-  if (endTrim < 0)
-    fprintf(stderr, "alignFragment()-- ERROR -- negative endTrim %d\n", endTrim);
+  int32 fragBgn      = 0;
+  int32 fragEnd      = bSEQ->length() - endTrim;
+  char  fragEndBase  = bseq[fragEnd];
 
-  //
-  //  Try NDalign
-  //
+  bseq[fragEnd] = 0;  //  Terminate the bseq early for alignment.
 
-#ifdef WITH_NDALIGN
-  if ((endTrim <  bSEQ->length()) &&
-      (0       <= endTrim)) {
-    int32 fragBgn      = 0;
-    int32 fragEnd      = bSEQ->length() - endTrim;
-    char  fragEndBase  = bseq[fragEnd];
+  //  Create new aligner object.  'Global' in this case just means to not stop early, not a true global alignment.
 
-    bseq[fragEnd] = 0;  //  Terminate the bseq early for alignment.
+  if (oaFull == false)
+    oaFull = new NDalign(pedGlobal, errorRate, 17);
 
-    //  Create new aligner object.  'Global' in this case just means to not stop early, not a true global alignment.
+  oaFull->initialize(0, aseq, frankEnd - frankBgn, 0, frankEnd - frankBgn,
+                     1, bseq, fragEnd  - fragBgn,  0, fragEnd  - fragBgn,
+                     false);
 
-    if (oaFull == false)
-      oaFull = new NDalign(pedGlobal, errorRate, 17);
+  //  Generate a null hit, then align it and finally refine the alignment.
 
-    oaFull->initialize(0, aseq, frankEnd - frankBgn, 0, frankEnd - frankBgn,
-                       1, bseq, fragEnd  - fragBgn,  0, fragEnd  - fragBgn,
-                       false);
+  if ((oaFull->makeNullHit() == false) ||
+      (oaFull->processHits() == false))
+    return(alignFragmentFailure());
 
-    //  Don't use seeds.
-    bool  alignFound = oaFull->makeNullHit();
+  if (showAlignments())
+    oaFull->display("unitigConsensus::alignFragment()--", true);
 
-    //  While we find alignments, decide if they're any good, and stop on the first good one.  Try up
-    //  to four seeds, then give up and fall back to dynamic programming.
+  //  Realign, from both endpoints, and save the better of the two.
 
-    for (uint32 na=0; ((na                    <  1) &&
-                       (alignFound            == true) &&
-                       (oaFull->processHits() == true)); na++) {
+  oaFull->realignBackward(showAlgorithm(), showAlignments());
+  oaFull->realignForward (showAlgorithm(), showAlignments());
 
-      if (showAlignments())
-        oaFull->display("unitigConsensus::alignFragment()--", true);
+  //  Restore the bases we removed to end the strings early.
 
-      //  Fix up non-dovetail alignments?  Nope, just skip them for now.  Eventually, we'll want to
-      //  accept these (if long enough) by trimming the read.  To keep the unitig connected, we
-      //  probably can only trim on the 5' end.
+  if (frankEndBase)   frankenstein[frankEnd] = frankEndBase;
+  if (fragEndBase)    bseq[fragEnd]          = fragEndBase;
 
-      if (oaFull->type() != pedDovetail) {
-        if (showAlgorithm())
-          fprintf(stderr, "unitigConsensus::alignFragment()-- alignment not dovetail, continue to next seed\n");
-        continue;
-      }
+  //  Check quality and fail if it sucks.
 
-      //  Realign, from both endpoints, and save the better of the two.
-
-      oaFull->realignBackward(showAlgorithm(), showAlignments());
-      oaFull->realignForward (showAlgorithm(), showAlignments());
-
-      if ((forceAlignment == false) &&
-          (oaFull->scanDeltaForBadness(showAlgorithm(), showAlignments()) == true)) {
-        if (showAlgorithm())
-          fprintf(stderr, "unitigConsensus::alignFragment()-- alignment still bad, continue to next seed\n");
-        continue;
-      }
-
-      //  Bad alignment if low quality.
-
-      if ((forceAlignment == false) &&
-          (oaFull->erate() > errorRate)) {
-        if (showAlgorithm()) {
-          fprintf(stderr, "unitigConsensus::alignFragment()-- alignment is low quality: %f > %f, continue to next seed\n",
-                  oaFull->erate(), errorRate);
-          oaFull->display("unitigConsensus::alignFragment()-- ", true);
-        }
-        continue;
-      }
-
-      //  Otherwise, its a good alignment.  Process the trace to the 'consensus-format' and return true.
-
-      traceLen = 0;
-
-      //  Set the begn points of the trace.  We probably need at least one of abgn and bbgn to be
-      //  zero.  If both are nonzero, then we have a branch in the alignment.
-      //
-      //  If traceABgn is negative, we insert gaps into A before it starts, but I'm not sure how that works.
-
-      assert((oaFull->abgn() == 0) ||
-             (oaFull->bbgn() == 0));
-
-      traceABgn = frankBgn + oaFull->abgn() - oaFull->bbgn();
-      traceBBgn =            oaFull->bbgn();
-
-      int32   apos = oaFull->abgn();
-      int32   bpos = oaFull->bbgn();
-
-      //  Overlap encoding:
-      //    Add N matches or mismatches.  If negative, insert a base in the first sequence.  If
-      //    positive, delete a base in the first sequence.
-      //
-      //  Consensus encoding:
-      //    If negative, align (-trace - apos) bases, then add a gap in A.
-      //    If positive, align ( trace - bpos) bases, then add a gap in B.
-      //
-      for (uint32 ii=0; ii<oaFull->deltaLen(); ii++, traceLen++) {
-        if (oaFull->delta()[ii] < 0) {
-          apos += -oaFull->delta()[ii] - 1;
-          bpos += -oaFull->delta()[ii];
-
-          trace[traceLen] = -apos - frankBgn - 1;
-
-        } else {
-          apos +=  oaFull->delta()[ii];
-          bpos +=  oaFull->delta()[ii] - 1;  // critical
-
-          trace[traceLen] = bpos + 1;
-        }
-      }
-
-      trace[traceLen] = 0;
-
-      if (frankEndBase)   frankenstein[frankEnd] = frankEndBase;  //  Restore bases we removed for alignment
-      if (fragEndBase)    bseq[fragEnd]          = fragEndBase;
-
-      return(true);
-    }
-
-    //  Well, shucks, we failed to find any decent alignment.
-
-    if (frankEndBase)   frankenstein[frankEnd] = frankEndBase;  //  Restore bases we removed for alignment
-    if (fragEndBase)    bseq[fragEnd]          = fragEndBase;
-  }
-#endif
-
-  //
-  //  Try Optimal_Overlap_AS_forCNS
-  //
-
-#if 0
-  if ((endTrim <  bSEQ->length()) &&
-      (0       <= endTrim)) {
-    int32 fragBgn      = 0;
-    int32 fragEnd      = bSEQ->length() - endTrim;
-    char  fragEndBase  = bseq[fragEnd];
-
-    bseq[fragEnd] = 0;
-
-    ALNoverlap  *O           = NULL;
-    int32        minlen      = minOverlap;
-
+  if ((forceAlignment == false) &&
+      (oaFull->scanDeltaForBadness(showAlgorithm(), showAlignments()) == true)) {
     if (showAlgorithm())
-      fprintf(stderr, "unitigConsensus::alignFragment()-- Fall back to Optimal_Overlap_AS_forCNS\n");
+      fprintf(stderr, "unitigConsensus::alignFragment()-- alignment bad after realigning\n");
+    return(alignFragmentFailure());
+  }
 
-    if (O == NULL) {
-      O = Optimal_Overlap_AS_forCNS(aseq,
-                                    bseq,
-                                    0, frankEnd - frankBgn,   //  ahang bounds are unused here
-                                    0, 0,                     //  ahang, bhang exclusion
-                                    0,
-                                    errorRate + 0.02, 1e-3, minlen,
-                                    AS_FIND_ALIGN);
-      if ((O) && (showAlignments()))
-        PrintALNoverlap("Optimal_Overlap", aseq, bseq, O);
+  //  Bad alignment if low quality.
+
+  if ((forceAlignment == false) &&
+      (oaFull->erate() > errorRate)) {
+    if (showAlgorithm()) {
+      fprintf(stderr, "unitigConsensus::alignFragment()-- alignment is low quality: %f > %f\n",
+              oaFull->erate(), errorRate);
+      oaFull->display("unitigConsensus::alignFragment()-- ", true);
     }
+    return(alignFragmentFailure());
+  }
 
-    //  At 0.06 error, this equals the previous value of 10.
-#if 0
-    double  pad = errorRate * 500.0 / 3;
+  //  Check for bad trimming of input sequences.  Bad if:
+  //     we don't hit the start of the read, and we chopped the start of frankenstein.
+  //     we don't hit the end   of the read, and we chopped the end   of frankenstein.
+  //     we do    hit the end   of the read, and we chopped the end   of the read.
+  //     (we don't chop the start of the read, so the fourth possible case never happens)
 
+  if ((oaFull->bhg5() > 0) && (frankBgn > 0)) {
+    if (showAlgorithm())
+      fprintf(stderr, "unitigConsensus::alignFragment()-- alignment bad, hit the trimmed start of frankenstein, increase bgnExtra from %u to %u\n", bgnExtra, bgnExtra + 4 * oaFull->bhg5());
+    bgnExtra += 4 * oaFull->bhg5();
+    goto alignFragmentAgain;
+  }
 
-    //  If a negative ahang, extend the frankenstein and try again.
+  if ((oaFull->bhg3() > 0) && (frankEnd < frankensteinLen)) {
+    if (showAlgorithm())
+      fprintf(stderr, "unitigConsensus::alignFragment()-- alignment bad, hit the trimmed end of frankenstein, increase endExtra from %u to %u\n", endExtra, endExtra + 4 * oaFull->bhg3());
+    endExtra += 4 * oaFull->bhg3();
+    goto alignFragmentAgain;
+  }
 
-    if ((O) && (O->begpos < 0) && (frankBgn > 0)) {
-      bgnExtra += -O->begpos + pad;
-      tryAgain = true;
-      O = NULL;
+  if ((oaFull->bhg3() == 0) && (endTrim > 0)) {
+    if (showAlgorithm())
+      fprintf(stderr, "unitigConsensus::alignFragment()-- alignment bad, hit the trimmed end of the read, decrease endTrim from %u to %u\n", endTrim, endTrim - 2 * oaFull->bhg3());
+    endTrim -= 2 * oaFull->bhg3();
+    goto alignFragmentAgain;
+  }
+
+  //  Otherwise, its a good alignment.  Process the trace to the 'consensus-format' and return true.
+  //
+  //  Set the begin points of the trace.  We probably need at least one of abgn and bbgn to be
+  //  zero.  If both are nonzero, then we have a branch in the alignment.
+  //
+  //  If traceABgn is negative, we insert gaps into A before it starts, but I'm not sure how that works.
+  //
+  //  Overlap encoding:
+  //    Add N matches or mismatches.  If negative, insert a base in the first sequence.  If
+  //    positive, delete a base in the first sequence.
+  //
+  //  Consensus encoding:
+  //    If negative, align (-trace - apos) bases, then add a gap in A.
+  //    If positive, align ( trace - bpos) bases, then add a gap in B.
+  //
+
+  assert((oaFull->abgn() == 0) ||
+         (oaFull->bbgn() == 0));
+
+  traceABgn = frankBgn + oaFull->abgn() - oaFull->bbgn();
+  traceBBgn =            oaFull->bbgn();
+
+  int32   apos = oaFull->abgn();
+  int32   bpos = oaFull->bbgn();
+    
+  traceLen = 0;
+
+  for (uint32 ii=0; ii<oaFull->deltaLen(); ii++, traceLen++) {
+    if (oaFull->delta()[ii] < 0) {
+      apos += -oaFull->delta()[ii] - 1;
+      bpos += -oaFull->delta()[ii];
+
+      trace[traceLen] = -apos - frankBgn - 1;
+
+    } else {
+      apos +=  oaFull->delta()[ii];
+      bpos +=  oaFull->delta()[ii] - 1;  // critical
+
+      trace[traceLen] = bpos + 1;
     }
+  }
 
-    //  If ....what, extend the frankenstein and try again.
+  trace[traceLen] = 0;
 
-    if ((O) && (O->endpos > 0) && (allowBhang == false)) {
-      endExtra += O->endpos + pad;
-      tryAgain = true;
-      O = NULL;
-    }
-
-    //  If postive bhang, trim the read and try again.
-
-    if ((O) && (O->endpos < 0) && (endTrim > 0)) {
-      endTrim -= -O->endpos + pad;
-      if (endTrim < 20)
-        endTrim = 0;
-      tryAgain = true;
-      O = NULL;
-    }
-
-    //  Too noisy?  Nope, don't want it.
-
-    if (((double)O->diffs / (double)O->length) > errorRate) {
-      //if (showAlgorithm())
-      //  fprintf(stderr, "rejectAlignment()-- No alignment found -- erate %f > max allowed %f.\n",
-      //          (double)O->diffs / (double)O->length, errorRate);
-      O = NULL;
-    }
-
-    //  Too short?  Nope, don't want it.
-
-    if (O->length < minOverlap) {
-      //if (showAlgorithm())
-      //  fprintf(stderr, "rejectAlignment()-- No alignment found -- too short %d < min allowed %d.\n",
-      //          O->length, minOverlap);
-      O = NULL;
-    }
-#endif
-
-    //  Restore the bases we might have removed.
-    if (frankEndBase)   frankenstein[frankEnd] = frankEndBase;
-    if (fragEndBase)    bseq[fragEnd]          = fragEndBase;
-
-    if (O) {
-      traceLen = 0;
-
-      traceABgn = frankBgn + O->begpos;
-      traceBBgn = 0;
-
-      for (int32 *t = O->trace; (t != NULL) && (*t != 0); t++) {
-        if (*t < 0)
-          *t -= frankBgn;
-        trace[traceLen++] = *t;
-      }
-
-      trace[traceLen] = 0;
-
-      if (showAlgorithm())
-        fprintf(stderr, "alignFragment()-- Alignment succeeded.\n");
-
-      return(true);
-    }
-
-    if (tryAgain)
-      goto alignFragmentAgain;
-  }  //  end of optimal
-#endif
-
-  //  No alignment.  Dang.  (Should already be 0,0, but just in case...)
-
-  cnspos[tiid].set(0, 0);
-  piid = -1;
-
-  if (showAlgorithm())
-    fprintf(stderr, "alignFragment()-- No alignment found.\n");
-
-  return(false);
+  return(true);
 }
 
 

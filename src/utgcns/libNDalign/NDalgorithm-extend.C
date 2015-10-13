@@ -31,7 +31,7 @@ static const char *rcsid = "$Id$";
 
 #include "NDalgorithm.H"
 
-#undef DEBUG
+#undef  DEBUG
 
 
 //  See how far the exact match in  Match  extends.  The match
