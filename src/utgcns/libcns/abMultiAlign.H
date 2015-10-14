@@ -128,5 +128,5 @@ private:
   abColID                last;
   vector<abColID>        columnList;  //  Used in AbacusRefine to get random access to specific column
 
-  //friend class abAbacus;
+  friend class abAbacus;  //  Just so refreshMultiAlign() can update 'last'.
 };

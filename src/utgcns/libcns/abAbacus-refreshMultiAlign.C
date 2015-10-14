@@ -76,45 +76,45 @@ abAbacus::refreshMultiAlign(abMultiAlignID  mid,
   //fprintf(stderr, "abMultiAlign::refreshMultiAlign()--  legnth %u recallBase=%d highQuality=%d\n",
   //        ma->length(), recallBase, highQuality);
 
-  ma->columns().clear();  // columnList
+  ma->columns().clear();
 
-  uint32   index = 0;
-  abColID  cid   = ma->firstColumn();
+  //  The first column MUST be correct, but we can then update everything else.
+  abColID  cid = ma->firstColumn();
 
-  while (cid.isValid()) {
+  for (uint32 index=0; (cid.isValid() == true); index++) {
     abColumn  *column = getColumn(cid);
 
     if (recallBase == true)
       baseCall(cid, highQuality);
 
-    column->ma_position = index;
+    column->ma_position = index;                      //  Position of the column in the gapped consensus.
+    ma->columns().push_back(column->ident());         //  Just a vector of columns, for random access.
+    ma->last = cid;                                   //  Wherever it ends, it ends.
 
-    ma->columns().push_back(column->ident());
-
-    assert(ma->columns()[index] == column->ident());  //  That the thing we just pushed on is at the correct spot
+    assert(ma->columns()[column->ma_position] == column->ident());
 
     cid = column->next;
-    index++;
   }
 
-  //  Check column pointers
+  //  Check column pointers - first/last have no prev/next, and all the other prev/next agree.
 
-  {
-    abColID   pid = ma->firstColumn();  //  Previous column
-    abColumn *pol = getColumn(pid);
+  assert(getColumn(ma->firstColumn())->prevID() == abColID());
+  assert(getColumn(ma->lastColumn())->nextID()  == abColID());
 
-    abColID   cid = pol->next;          //  Next column
-    abColumn *col = getColumn(cid);
+  abColID   pid = ma->firstColumn();  //  Previous column
+  abColumn *pol = getColumn(pid);
 
-    while (cid.isValid()) {
-      assert(pol->next == cid);  //  We're iterating over this, must be true.
-      assert(pid == col->prev);  //  What we're testing
+  abColID   nid = pol->next;          //  Next column
+  abColumn *nol = getColumn(nid);
 
-      pid = cid;
-      pol = col;
+  while (nid.isValid()) {
+    assert(pol->next == nid);  //  We're iterating over this, must be true.
+    assert(pid == nol->prev);  //  What we're testing
 
-      cid = pol->next;          //  Next column
-      col = getColumn(cid);
-    }
+    pid = nid;
+    pol = nol;
+
+    nid = pol->next;          //  Next column
+    nol = getColumn(nid);
   }
 }
