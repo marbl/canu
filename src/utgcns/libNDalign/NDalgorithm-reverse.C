@@ -248,7 +248,7 @@ NDalgorithm::reverse(char    *A,   int32 Alen,   //  first sequence and length
         //assert( aPos <= 0);
         //assert(-aPos < Tlen);
 
-        if ((aPos <= 0) && (-aPos <= Alen)) {
+        if ((aPos <= 0) && (-aPos < Alen)) {
           int32  gapCost = isFreeGap( A[aPos] ) ? 0 : PEDGAP;
 
           //if (gapCost == 0)
