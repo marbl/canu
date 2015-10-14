@@ -269,8 +269,13 @@ alignPosition(abAbacus *abacus,
   abBead *bead = abacus->getBead(aindex[apos]);
 
 #ifdef DEBUG_ALIGN_POSITION
-  fprintf(stderr, "alignPosition()-- add %c to column %d apos=%d bpos=%d lasta=%d lastb=%d\n",
-          abacus->getBase(bead->baseIdx()), bead->colIdx().get(), apos, bpos, lasta.get(), lastb.get());
+  fprintf(stderr, "alignPosition()-- add %c to column %d (prev=%d next=%d) apos=%d bpos=%d lasta=%d lastb=%d\n",
+          abacus->getBase(bead->baseIdx()),
+          bead->colIdx().get(),
+          abacus->getColumn(bead->colIdx())->prevID().get(),
+          abacus->getColumn(bead->colIdx())->nextID().get(),
+          apos, bpos,
+          lasta.get(), lastb.get());
 #endif
 
   abacus->alignBeadToColumn(bead->colIdx(), bindex[bpos], label);
@@ -565,13 +570,15 @@ abAbacus::applyAlignment(abSeqID   afid,
 
 #ifdef DEBUG_ALIGN_POSITION
       abBead *bead = getBead(bindex[bpos]);
-      fprintf(stderr, "alignPosition()-- add %c (bead %d seqIdx %d pos %d baseIdx %d) to column %d rem=%d bpos=%d blen=%d\n",
+      fprintf(stderr, "alignPosition()-- add %c (bead %d seqIdx %d pos %d baseIdx %d) to column %d (prev=%d next=%d) rem=%d bpos=%d blen=%d\n",
               getBase(bead->baseIdx()),
               bead->ident().get(),
               bead->seqIdx().get(),
               bead->foffset,
               bead->baseIdx().get(),
               bead->colIdx().get(),
+              getColumn(bead->colIdx())->prevID().get(),
+              getColumn(bead->colIdx())->nextID().get(),
               rem, bpos, blen);
 #endif
 

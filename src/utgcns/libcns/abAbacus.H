@@ -298,7 +298,7 @@ private:
   void            baseCallQuality(abColID  cid);
 public:
   char            baseCall(abColID      cid,
-                           bool         highQuality);      //
+                           bool         highQuality);
 
   void            applyAlignment(abSeqID  afid,
                                  int32    alen, abBeadID *aindex,

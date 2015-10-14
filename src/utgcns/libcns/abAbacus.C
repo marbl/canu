@@ -385,11 +385,6 @@ abAbacus::appendColumn(abColID cid, abBeadID bid) {
   abBead   *prevcall = getBead(prevCol->call);
   abBead   *nextcall = getBead(nextCol->call);
 
-#ifdef DEBUG_ABACUS_ALIGN
-  fprintf(stderr, "ColumnAppend()-- adding column "F_U32" for bid="F_U32" after column cid=%d\n",
-          nextCol->ident().get(), bid.get(), cid.get());
-#endif
-
   //  Add the column to the list
 
   nextCol->next = prevCol->next;  //  Us into the list
@@ -399,6 +394,15 @@ abAbacus::appendColumn(abColID cid, abBeadID bid) {
 
   if (nextCol->next.isValid())    //  Next (if it exists) points to us
     getColumn(nextCol->next)->prev = nextCol->lid;
+
+#ifdef DEBUG_ABACUS_ALIGN
+  fprintf(stderr, "ColumnAppend()-- adding column "F_U32" (prev "F_U32" next "F_U32") for bid="F_U32" after column cid=%d\n",
+          nextCol->ident().get(),
+          nextCol->prev.get(),
+          nextCol->next.get(),
+          bid.get(),
+          cid.get());
+#endif
 
   //  Add the call to the list
 
@@ -430,24 +434,7 @@ abAbacus::appendColumn(abColID cid, abBeadID bid) {
 
   nextCol->ma_position =  prevCol->ma_position + 1;
 
-  //AddColumnToMANode(nextCol->ma_id, *column);
   getMultiAlign(nextCol->ma_id)->addColumnToMultiAlign(nextCol);  //  columnList
-
-#if 0
-  abMultiAlign  *ma = getMultiAlign(nextCol->ma_id);
-
-  ma->columnsList.push_back(nextCol->ident());
-
-  if (nextCol->prev.isValid() == false) {
-    fprintf(stderr, "abAbacus::appendColumn()-- set first from %u to %u\n", ma->first.get(), nextCol->ident().get());
-    ma->first = nextCol->ident();
-  }
-
-  if (nextCol->next.isValid() == false) {
-    fprintf(stderr, "abAbacus::appendColumn()-- set last  from %u to %u\n", ma->last.get(), nextCol->ident().get());
-    ma->last = nextCol->ident();
-  }
-#endif
 
   return(nextCol->lid);
 }
@@ -494,8 +481,12 @@ abAbacus::addColumn(abMultiAlignID mid, abBeadID bid) {
   col->base_count.IncBaseCount(getBase(bead->soffset));
 
 #ifdef DEBUG_ABACUS_ALIGN
-  fprintf(stderr, "addColumn()-- Added consensus call bead="F_U32" to column="F_U32" for existing bead="F_U32"\n",
-          call->ident().get(), col->ident().get(), bead->ident().get());
+  fprintf(stderr, "addColumn()-- Added consensus call bead="F_U32" to new column="F_U32" for existing bead="F_U32"\n",
+          call->ident().get(),
+          col->ident().get(),
+          col->prev.get(),
+          col->next.get(),
+          bead->ident().get());
 #endif
 
   return(col->lid);
@@ -515,9 +506,15 @@ abAbacus::alignBeadToColumn(abColID cid, abBeadID bid, char *label) {
   abBead    *align   = getBead(bid);
 
   //  Fails if called from appendColumn() because the baseIdx isn't valid
+
 #ifdef DEBUG_ABACUS_ALIGN
-  fprintf(stderr, "AlignBeadToColumn()-- %s frag=%d bead=%d,%c moving from column=%d to column=%d\n",
-          label, align->seqIdx().get(), bid.get(), getBase(align->baseIdx()), align->colIdx().get(), cid.get());
+  fprintf(stderr, "AlignBeadToColumn()-- %s frag=%d bead=%d,%c moving from column=%d (prev=N/A next=N/A) to column=%d (prev=%d next=%d)\n",
+          label,
+          align->seqIdx().get(),
+          bid.get(),
+          getBase(align->baseIdx()),
+          align->colIdx().get(),
+          column->ident().get(), column->prevID().get(), column->nextID().get());
 #endif
 
   align->down         = first->ident();
@@ -553,8 +550,12 @@ abAbacus::unalignBeadFromColumn(abBeadID bid) {
   column->base_count.DecBaseCount(bchar);
 
 #ifdef DEBUG_ABACUS_ALIGN
-  fprintf(stderr, "UnAlignBeadFromColumn()-- frag=%d bead=%d leaving column=%d\n",
-          bead->frag_index.get(), bead->ident().get(), bead->column_index.get());
+  fprintf(stderr, "unAlignBeadFromColumn()-- frag=%d bead=%d leaving column=%d (prev=%d next=%d)\n",
+          bead->frag_index.get(),
+          bead->ident().get(),
+          bead->column_index.get(),
+          getColumn(bead->column_index)->prevID().get(),
+          getColumn(bead->column_index)->nextID().get());
 #endif
 
   bead->up           = abBeadID();
@@ -717,7 +718,7 @@ abAbacus::unalignTrailingGapBeads(abBeadID bid) {
 //  This function swaps the contents of two beads, ensuring that
 //  there are only gaps between them.
 //
-//  HORRIBLY complicated because ApplyAbacus() and MergeCompatible()
+//  HORRIBLY complicated because applyAbacus() and mergeCompatible()
 //  hold on to pointers to beads.  It would have been much simpler
 //  to just swap the soffset and foffset, leaving EVERYTHING ELSE
 //  exactly the same.
@@ -792,7 +793,7 @@ abAbacus::lateralExchangeBead(abBeadID lid, abBeadID rid) {
   if (leftbead->nextID().isValid())  (getBead(leftbead->nextID()))->prevID() = lid;
 
   // now, handle separately cases of a) left and right are adjacent, and b) gaps intervene
-  if ( rtmp.prev == lid) {
+  if ( rtmp.prevID() == lid) {
     rightbead->nextID() = lid;
     leftbead->prevID() = rid;
   } else {
@@ -852,12 +853,6 @@ abAbacus::addMultiAlign(abSeqID sid) {
   assert(column->nextID().isValid() == false);
 
   ma->addColumnToMultiAlign(column);
-#if 0
-  ma->first = cid;
-  ma->last  = cid;
-
-  ma->columnList.push_back(cid);
-#endif
 
   bid = fi.next();
 
