@@ -1103,200 +1103,229 @@ abAbacusWork::applyAbacus(abAbacus *abacus) {
   }
 }
 
+
+
+//
+//  In this case, we just look for a string of gaps in the consensus sequence
+//
 static
 int32
-IdentifyWindow(abAbacus               *abacus,
-               abColumn              *&start_column,
-               abColID                &stab_bgn,
-               abAbacusRefineLevel     level) {
-  int32   rc = 0;
+IdentifyWindow_Smooth(abAbacus  *abacus,
+                      abColumn *&start_column,
+                      abColID   &stab_bgn) {
 
-  //uint32 win_length = 1;
-  //uint32 gap_count  = 0;
+  stab_bgn = start_column->nextID();
+
+  abColumn *stab = abacus->getColumn(stab_bgn);
+  int32  win_length = 0;
+
+#ifdef DEBUG_IDENTIFY_WINDOW
+  fprintf(stderr, "identifyWindow()-- bgn=%d level=%d\n", stab_bgn.get(), level);
+#endif
+
+  if (abacus->getBase( start_column->callID() ) != '-')
+    //  Consensus not a gap, nothing to do.
+    return(win_length);
+
+  //  Consensus is a gap.  Expand it to the maximum gap.
+
+  while ((abacus->getBase( stab->callID()) == '-') &&
+         (stab->nextID().isValid())) {
+    stab_bgn = stab->nextID();
+    stab     = abacus->getColumn(stab_bgn);
+
+    win_length++;
+  }
+  
+#ifdef DEBUG_IDENTIFY_WINDOW
+  fprintf(stderr, "identifyWindow()-- gap at %d to %d  win_length=%d (return)\n",
+          start_column->position(), stab->position(), win_length);
+#endif
+
+  return(win_length);
+}
+
+
+
+
+//
+//  Here, we're looking for a string of the same character
+//
+static
+int32
+IdentifyWindow_Poly_X(abAbacus  *abacus,
+                      abColumn *&start_column,
+                      abColID   &stab_bgn) {
 
   stab_bgn = start_column->nextID();
 
   abColumn *stab = abacus->getColumn(stab_bgn);
 
-  //fprintf(stderr, "identifyWindow()-- bgn=%d level=%d\n", stab_bgn.get(), level);
+#ifdef DEBUG_IDENTIFY_WINDOW
+  fprintf(stderr, "identifyWindow()-- bgn=%d level=%d\n", stab_bgn.get(), level);
+#endif
 
-  //  In this case, we just look for a string of gaps in the consensus sequence
-  //
-  if (level == abAbacus_Smooth) {  //  1
-    int32  win_length = 0;
+  int32 gap_count  = start_column->GetColumnBaseCount('-');
+  int32 win_length = 1;
 
-    if (abacus->getBase( start_column->callID() ) != '-')
-      //  Consensus not a gap, nothing to do.
-      return(win_length);
+  char  poly  = abacus->getBase(start_column);
+  char  cb    = abacus->getBase(stab);
 
-    //  Consensus is a gap.  Expand it to the maximum gap.
+  if (poly == '-')
+    return(0);
 
-    while ((abacus->getBase( stab->callID()) == '-') &&
-           (stab->nextID().isValid())) {
-      stab_bgn = stab->nextID();
-      stab     = abacus->getColumn(stab_bgn);
+  while ((cb == poly) || (cb == '-'))  {
+    if (stab->nextID().isValid() == false)
+      break;
 
-      win_length++;
-    }
+    // move stab column ahead
 
-    //fprintf(stderr, "identifyWindow()-- gap at %d to %d\n", start_column->position(), stab->position());
+    gap_count  += stab->GetColumnBaseCount('-');
+    win_length += 1;
 
+    stab_bgn    = stab->nextID();
+    stab        = abacus->getColumn(stab_bgn);
+
+    cb          = abacus->getBase(stab);
+  }
+
+  if (win_length <= 2)
+    return(0);
+
+  // capture trailing gap-called columns
+
+  while (abacus->getBase(stab) == '-' )  {
+    if (stab->GetMaxBaseCountBase(true) != poly )
+      break;
+
+    if (stab->nextID().isValid() == false)
+      break;
+
+    gap_count  += stab->GetColumnBaseCount('-');
+    win_length += 1;
+
+    stab_bgn    = stab->nextID();
+    stab        = abacus->getColumn(stab_bgn);
+  }
+
+  // now that a poly run with trailing gaps is established, look for leading gaps
+
+  abColumn *pre_start = start_column;
+
+  while (pre_start->prevID().isValid()) {
+    pre_start = abacus->getColumn(pre_start->prevID());
+    cb        = abacus->getBase(pre_start);
+
+    if ((cb != '-') && (cb != poly))
+      break;
+
+    start_column = pre_start;
+
+    gap_count  += pre_start->GetColumnBaseCount('-');
+    win_length += 1;
+  }
+
+  //fprintf(stderr,"POLYX candidate (%c) at column %d stab %d , width %d, gapcount %d\n",
+  //        poly, start_column->position(), stab_bgn.get(), win_length, gap_count);
+
+  if ((start_column->prevID().isValid() == true) &&
+      (win_length > 2) &&
+      (gap_count  > 0))
     return(win_length);
-  }
+
+  return(0);
+}
 
 
 
-  //  Here, we're looking for a string of the same character
-  //
-  if (level == abAbacus_Poly_X) {  //  2
-    int32 gap_count  = start_column->GetColumnBaseCount('-');
-    int32 win_length = 1;
 
-    char  poly  = abacus->getBase(start_column);
-    char  cb    = abacus->getBase(stab);
 
-    if (poly == '-')
+//
+//  In this case, we look for a string mismatches, indicating a poor alignment region
+//  which might benefit from Abacus refinement
+//
+//  heuristics:
+//
+//  > stable border on either side of window of width:  STABWIDTH
+//  > fewer than STABMISMATCH in stable border
+//
+//  _              __              ___
+//  SSSSS SSSSS    SSSSS .SSSS+    SSSSS  .SSSS+
+//  SSSSS SSSSS    SSSSS .SSSS+    SSSSS  .SSSS+
+//  SSSSS SSSSS => SSSSS .SSSS+ => SSSSS  .SSSS+
+//  SSSSS SSSSS    SSSSS .SSSS+    SSSSS  .SSSS+
+//  SSSSS_SSSSS    SSSSS_.SSSS+    SSSSS__.SSSS+
+//  |              |               |
+//  |\_____________|_______________|____ growing 'gappy' window
+//  |
+//  start_column
+//
+static
+int32
+IdentifyWindow_Indel(abAbacus  *abacus,
+                     abColumn *&start_column,
+                     abColID   &stab_bgn) {
+
+  stab_bgn = start_column->nextID();
+
+  abColumn *stab = abacus->getColumn(stab_bgn);
+
+#ifdef DEBUG_IDENTIFY_WINDOW
+  fprintf(stderr, "identifyWindow()-- bgn=%d level=%d\n", stab_bgn.get(), level);
+#endif
+
+  int32 cum_mm=0;
+  int32 stab_mm=0;
+  int32 stab_gaps=0;
+  int32 stab_width=0;
+  int32 stab_bases=0;
+  abColumn *stab_end;
+  int32 win_length = 0;
+
+  cum_mm = start_column->mismatch();
+  if (cum_mm > 0 && start_column->GetColumnBaseCount('-') > 0) {
+    stab = start_column;
+    stab = abacus->getColumn(start_column->nextID());
+    stab_end = stab;
+    while (stab_end->nextID().isValid() && stab_width < STABWIDTH) {
+      stab_mm+=stab_end->mismatch();
+      stab_gaps+=stab_end->GetColumnBaseCount('-');
+      stab_bases+=stab_end->GetDepth();
+      stab_end = abacus->getColumn(stab_end->nextID());
+      stab_width++;
+    }
+
+    if (stab_bases == 0 )
       return(0);
 
-    while ((cb == poly) || (cb == '-'))  {
-      if (stab->nextID().isValid() == false)
-        break;
-
+    //  Floating point 'instability' here?
+    while ((double)stab_mm/(double)stab_bases > 0.02 ||  //  CNS_SEQUENCING_ERROR_EST
+           (double)stab_gaps/(double)stab_bases > .25  ){
+      int32 mm=stab->mismatch();
+      int32 gp=stab->GetColumnBaseCount('-');
+      int32 bps=stab->GetDepth();
       // move stab column ahead
-
-      gap_count  += stab->GetColumnBaseCount('-');
-      win_length += 1;
-
-      stab_bgn    = stab->nextID();
-      stab        = abacus->getColumn(stab_bgn);
-
-      cb          = abacus->getBase(stab);
-    }
-
-    if (win_length <= 2)
-      return(0);
-
-    // capture trailing gap-called columns
-
-    while (abacus->getBase(stab) == '-' )  {
-      if (stab->GetMaxBaseCountBase(true) != poly )
-        break;
-
-      if (stab->nextID().isValid() == false)
-        break;
-
-      gap_count  += stab->GetColumnBaseCount('-');
-      win_length += 1;
-
-      stab_bgn    = stab->nextID();
-      stab        = abacus->getColumn(stab_bgn);
-    }
-
-    // now that a poly run with trailing gaps is established, look for leading gaps
-
-    abColumn *pre_start = start_column;
-
-    while (pre_start->prevID().isValid()) {
-      pre_start = abacus->getColumn(pre_start->prevID());
-      cb        = abacus->getBase(pre_start);
-
-      if ((cb != '-') && (cb != poly))
-        break;
-
-      start_column = pre_start;
-
-      gap_count  += pre_start->GetColumnBaseCount('-');
-      win_length += 1;
-    }
-
-    //fprintf(stderr,"POLYX candidate (%c) at column %d stab %d , width %d, gapcount %d\n",
-    //        poly, start_column->position(), stab_bgn.get(), win_length, gap_count);
-
-    if ((start_column->prevID().isValid() == true) &&
-        (win_length > 2) &&
-        (gap_count  > 0))
-      return(win_length);
-
-    return(0);
-  }
-
-
-  //  in this case, we look for a string mismatches, indicating a poor alignment region
-  //  which might benefit from Abacus refinement
-  //
-  //  heuristics:
-  //
-  //  > stable border on either side of window of width:  STABWIDTH
-  //  > fewer than STABMISMATCH in stable border
-  //
-  //  _              __              ___
-  //  SSSSS SSSSS    SSSSS .SSSS+    SSSSS  .SSSS+
-  //  SSSSS SSSSS    SSSSS .SSSS+    SSSSS  .SSSS+
-  //  SSSSS SSSSS => SSSSS .SSSS+ => SSSSS  .SSSS+
-  //  SSSSS SSSSS    SSSSS .SSSS+    SSSSS  .SSSS+
-  //  SSSSS_SSSSS    SSSSS_.SSSS+    SSSSS__.SSSS+
-  //  |              |               |
-  //  |\_____________|_______________|____ growing 'gappy' window
-  //  |
-  //  start_column
-
-  if (level == abAbacus_Indel) {  //  4
-    int32 cum_mm=0;
-    int32 stab_mm=0;
-    int32 stab_gaps=0;
-    int32 stab_width=0;
-    int32 stab_bases=0;
-    abColumn *stab_end;
-    int32 win_length = 0;
-
-    cum_mm = start_column->mismatch();
-    if (cum_mm > 0 && start_column->GetColumnBaseCount('-') > 0) {
-      stab = start_column;
-      stab = abacus->getColumn(start_column->nextID());
-      stab_end = stab;
-      while (stab_end->nextID().isValid() && stab_width < STABWIDTH) {
+      if (stab_end->nextID().isValid() ) {
         stab_mm+=stab_end->mismatch();
-        stab_gaps+=stab_end->GetColumnBaseCount('-');
         stab_bases+=stab_end->GetDepth();
+        stab_gaps+=stab_end->GetColumnBaseCount('-');
         stab_end = abacus->getColumn(stab_end->nextID());
-        stab_width++;
+        stab_mm-=mm;
+        stab_gaps-=gp;
+        stab_bases-=bps;
+        cum_mm+=mm;
+        stab = abacus->getColumn(stab->nextID());
+        win_length++;
+      } else {
+        break;
       }
-
-      if (stab_bases == 0 )
-        return(0);
-
-      //  Floating point 'instability' here?
-      while ((double)stab_mm/(double)stab_bases > 0.02 ||  //  CNS_SEQUENCING_ERROR_EST
-             (double)stab_gaps/(double)stab_bases > .25  ){
-        int32 mm=stab->mismatch();
-        int32 gp=stab->GetColumnBaseCount('-');
-        int32 bps=stab->GetDepth();
-        // move stab column ahead
-        if (stab_end->nextID().isValid() ) {
-          stab_mm+=stab_end->mismatch();
-          stab_bases+=stab_end->GetDepth();
-          stab_gaps+=stab_end->GetColumnBaseCount('-');
-          stab_end = abacus->getColumn(stab_end->nextID());
-          stab_mm-=mm;
-          stab_gaps-=gp;
-          stab_bases-=bps;
-          cum_mm+=mm;
-          stab = abacus->getColumn(stab->nextID());
-          win_length++;
-        } else {
-          break;
-        }
-      }
-      stab_bgn = stab->ident();
     }
-    if (win_length > 1)
-      return(win_length);
-
-    return(0);
+    stab_bgn = stab->ident();
   }
 
+  if (win_length > 1)
+    return(win_length);
 
-  assert(0);
   return(0);
 }
 
@@ -1308,63 +1337,36 @@ abMultiAlign::refineWindow(abAbacus     *abacus,
                            abColumn     *start_column,
                            abColID       stab_bgn) {
 
-  int32  orig_columns  = 0;
-  int32  left_columns  = 0;
-  int32  right_columns = 0;
-  int32  best_columns  = 0;
-
-  // Mismatch, gap and total scores:
-  int32   orig_mm_score     = 0;
-  int32   left_mm_score     = 0;
-  int32   right_mm_score    = 0;
-  int32   best_mm_score     = 0;
-  int32   orig_gap_score    = 0;
-  int32   left_gap_score    = 0;
-  int32   right_gap_score   = 0;
-  int32   best_gap_score    = 0;
-  int32   orig_total_score  = 0;
-  int32   left_total_score  = 0;
-  int32   right_total_score = 0;
-  int32   best_total_score  = 0;
-  int32   max_element       = 0;
-  int32   score_reduction   = 0;
-
   abBaseCount    abacus_count;
-  abAbacusWork  *orig_abacus   = new abAbacusWork(abacus, ident(), start_column->ident(), stab_bgn);
-  abAbacusWork  *left_abacus   = NULL;
-  abAbacusWork  *right_abacus  = NULL;
-  abAbacusWork  *best_abacus   = NULL;
+  abAbacusWork  *orig_abacus     = new abAbacusWork(abacus, ident(), start_column->ident(), stab_bgn);
+  int32          orig_columns    = 0;
 
-  //fprintf(stderr, "refineWindow()-- orig abacus:\n");
-  //orig_abacus->show();
+  int32          orig_mm_score   = orig_abacus->scoreAbacus(orig_columns);
 
-  orig_mm_score = orig_abacus->scoreAbacus(orig_columns);
+  abAbacusWork  *left_abacus     = orig_abacus->clone();
+  int32          left_columns    = 0;
+  abAbacusWork  *right_abacus    = orig_abacus->clone();
+  int32          right_columns   = 0;
 
-  //orig_abacus->refineOrigAbacus();  // No longer applies; variants removed
-  //orig_mm_score = orig_abacus->scoreAbacus(orig_columns);
-
-  //fprintf(stderr, "CLONE ABACUS\n");
-
-  left_abacus = orig_abacus->clone();
-  right_abacus = orig_abacus->clone();
-
-  left_mm_score  = left_abacus->leftShift(left_columns);
-  right_mm_score = right_abacus->rightShift(right_columns);
+  int32          left_mm_score   = left_abacus->leftShift(left_columns);
+  int32          right_mm_score  = right_abacus->rightShift(right_columns);
 
   // determine best score and apply abacus to real columns
-  orig_gap_score  = orig_abacus->affineScoreAbacus();
-  left_gap_score  = left_abacus->affineScoreAbacus();
-  right_gap_score = right_abacus->affineScoreAbacus();
+  int32          orig_gap_score  = orig_abacus->affineScoreAbacus();
+  int32          left_gap_score  = left_abacus->affineScoreAbacus();
+  int32          right_gap_score = right_abacus->affineScoreAbacus();
 
-  best_abacus     = orig_abacus;
-  best_columns    = orig_columns;
-  best_gap_score  = orig_gap_score;
-  best_mm_score   = orig_mm_score;
+  abAbacusWork  *best_abacus     = orig_abacus;
+  int32          best_columns    = orig_columns;
+  int32          best_gap_score  = orig_gap_score;
+  int32          best_mm_score   = orig_mm_score;
 
-  orig_total_score  = orig_mm_score  + orig_columns  + orig_gap_score;
-  left_total_score  = left_mm_score  + left_columns  + left_gap_score;
-  right_total_score = right_mm_score + right_columns + right_gap_score;
-  best_total_score  = orig_total_score;
+  int32 orig_total_score  = orig_mm_score  + orig_columns  + orig_gap_score;
+  int32 left_total_score  = left_mm_score  + left_columns  + left_gap_score;
+  int32 right_total_score = right_mm_score + right_columns + right_gap_score;
+  int32 best_total_score  = orig_total_score;
+
+  int32 score_reduction   = 0;
 
   // Use the total score to refine the abacus
   if (left_total_score < orig_total_score || right_total_score < orig_total_score ) {
@@ -1426,7 +1428,7 @@ abMultiAlign::refine(abAbacus            *abacus,
                      uint32               from,    // from and to are in ma's column coordinates
                      uint32               to) {
 
-  if (length() < to)
+  if (to > length())
     to = length();
 
   abColID sid = columnList[from];      // id of the starting column
@@ -1442,37 +1444,47 @@ abMultiAlign::refine(abAbacus            *abacus,
 
 
   while (start_column->ident() != eid) {
-    int32 window_width = IdentifyWindow(abacus, start_column, stab_bgn, level);
+    int32 window_width = 0;
 
-    // start_column stands as the candidate for first column in window
-    // look for window start and stop
+    switch (level) {
+      case abAbacus_Smooth:
+        IdentifyWindow_Smooth(abacus, start_column, stab_bgn);
+        break;
+      case abAbacus_Poly_X:
+        IdentifyWindow_Poly_X(abacus, start_column, stab_bgn);
+        break;
+      case abAbacus_Indel:
+        IdentifyWindow_Indel(abacus, start_column, stab_bgn);
+        break;
+      default:
+        break;
+    }
 
-    if (window_width > 0) {
 
-      //  If the first column, insert a gap column for maneuvering room
+    //  If the window is too big, there's likely a polymorphism that won't respond well to abacus,
+    //  so skip it.
+    //
+    if ((window_width > 0) &&
+        (window_width < MAX_WINDOW_FOR_ABACUS_REFINE)) {
+
+      //  Insert a gap column for maneuvering room if the window starts in the first.  This used to
+      //  be logged, and BPW can't remember EVER seeing the message.
+      //
       if (start_column->prevID().isValid() == false) {
         abBeadID   firstbeadID = abacus->getBead(start_column->callID() )->downID();
         abBeadID   newbeadID   = abacus->appendGapBead(abacus->getBead(firstbeadID)->ident());
 
-        fprintf(stderr, "Adding gapbead "F_U32" after "F_U32" to add abacus room for abutting left of multialignment\n",
+        fprintf(stderr, "abMultiAlign::refine()-- Adding gap bead "F_U32" after first bead "F_U32" to add abacus room for abutting left of multialignment\n",
                 newbeadID.get(), firstbeadID.get());
 
         abacus->appendColumn(abacus->getBead(firstbeadID)->colIdx(), newbeadID);
       }
 
-      //  if the window is too big, there's likely a polymorphism that won't respond well to abacus,
-      //  so skip it.
-      //
-      //  BPW saw crashes with large window_width's (1333, 3252, 1858, 675, 855, 1563, 601, 1102).
-      //  The longest window_width that worked was 573.  Previous versions used 100 here.  Not sure
-      //  what it should be.
-      //
-      if (window_width < MAX_WINDOW_FOR_ABACUS_REFINE)
-        score_reduction += refineWindow(abacus, start_column, stab_bgn);
-
-      start_column = abacus->getColumn(stab_bgn);
+      //  Actually do the refinements.
+      score_reduction += refineWindow(abacus, start_column, stab_bgn);
     }
 
+    //  Move to the column after the window we just examined.
     start_column = abacus->getColumn(stab_bgn);
   }
 
