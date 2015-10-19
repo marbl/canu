@@ -38,17 +38,19 @@
 //  Used in -forward and -reverse
 #define Sign(a) ( ((a) > 0) - ((a) < 0) )
 
-//  Scores used in the dynamic programming.  PEDMINSCORE wants to be INT32_MIN, except that it will
-//  underflow, and wrap around to the highest score possible, on the first insert.  I think it
-//  suffices to set this just slightly higher than the minimum, since it should never be picked as a
-//  maximum, and thus never see more than one insert.  Just to be safe, we give it lots of space.
+//  Scores used in the dynamic programming.
 //
 #define PEDMATCH        2    //  Match from UPPERCASE to UPPERCASE
 #define PEDGAPMATCH     1    //  Match from LOWERCASE to UPPERCASE
-#define PEDMISMATCH    -1    //  Mismatch
+#define PEDMISMATCH    -2    //  Mismatch
 #define PEDFREEGAP      1    //  Gap from LOWERCASE
-#define PEDGAP         -2    //  Gap
+#define PEDGAP         -3    //  Gap
 
+//  PEDMINSCORE wants to be INT32_MIN, except that it will underflow, and wrap around to the highest
+//  score possible, on the first insert.  I think it suffices to set this just slightly higher than
+//  the minimum, since it should never be picked as a maximum, and thus never see more than one
+//  insert.  Just to be safe, we give it lots of space.
+//
 #define PEDMINSCORE   (INT32_MIN - PEDGAP * 32768)
 
 enum pedAlignType {
