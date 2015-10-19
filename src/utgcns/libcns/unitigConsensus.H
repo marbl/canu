@@ -86,12 +86,12 @@ public:
   void   setErrorRate(double errorRate_)   { errorRate  = errorRate_;  };
   void   setMinOverlap(uint32 minOverlap_) { minOverlap = minOverlap_; };
 
-  bool   showProgress(void)         { return(tig->_utgcns_verboseLevel >= 1); };  //  One -V, displays which reads are processing
-  bool   showAlgorithm(void)        { return(tig->_utgcns_verboseLevel >= 2); };  //
-  bool   showPlacementBefore(void)  { return(tig->_utgcns_verboseLevel >= 3); };
-  bool   showPlacement(void)        { return(tig->_utgcns_verboseLevel >= 3); };
-  bool   showAlignments(void)       { return(tig->_utgcns_verboseLevel >= 4); };
-  bool   showMultiAlignments(void)  { return(tig->_utgcns_verboseLevel >= 4); };
+  bool   showProgress(void)         { return(tig->_utgcns_verboseLevel >= 1); };  //  -V          displays which reads are processing
+  bool   showAlgorithm(void)        { return(tig->_utgcns_verboseLevel >= 2); };  //  -V -V       displays some details on the algorithm
+  bool   showPlacementBefore(void)  { return(tig->_utgcns_verboseLevel >= 3); };  //  -V -V -V    displays placement info before each read
+  bool   showPlacement(void)        { return(tig->_utgcns_verboseLevel >= 3); };  //
+  bool   showAlignments(void)       { return(tig->_utgcns_verboseLevel >= 4); };  //  -V -V -V -V displays aligns and multialigns
+  bool   showMultiAlignments(void)  { return(tig->_utgcns_verboseLevel >= 4); };  //
 
   void   reportStartingWork(void);
   void   reportFailure(uint32 *failed);
