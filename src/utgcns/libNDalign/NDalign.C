@@ -37,7 +37,7 @@
 #include "Display_Alignment.H"
 
 #undef  DEBUG_ALGORITHM         //  Some details.
-#undef  DEBUG_HITS              //  Lots of details.
+#undef  DEBUG_HITS              //  Lots of details (chainHits())
 
 #define DISPLAY_REALIGN  false  //  Show the successful realignments?
 
@@ -149,7 +149,7 @@ NDalign::initialize(uint32 aID, char *aStr, int32 aLen, int32 aLo, int32 aHi,
                     uint32 bID, char *bStr, int32 bLen, int32 bLo, int32 bHi, bool bFlipped) {
 
 #ifdef DEBUG_ALGORITHM
-  fprintf(stderr, "NDalign::initialize()--  A %u %d-%d  B %u %d- %d\n", aID, aLo, aHi, bID, bLo, bHi);
+  fprintf(stderr, "NDalign::initialize()--  A %u %d-%d  B %u %d-%d\n", aID, aLo, aHi, bID, bLo, bHi);
 #endif
 
   _aID      = aID;
@@ -608,12 +608,23 @@ NDalign::processHits(void) {
 #endif
 
 #ifdef DEBUG_ALGORITHM
-    fprintf(stderr, "\n");
+    fprintf(stderr, "NDalign::processHits()--\n");
     fprintf(stderr, "NDalign::processHits()-- Extend_Alignment Astart %d Bstart %d length %d\n", match.Start, match.Offset, match.Len);
+    fprintf(stderr, "NDalign::processHits()--\n");
+
+    fprintf(stderr, ">A\n");
+    fwrite(_aStr, sizeof(char), _aLen, stderr);
+    fprintf(stderr, "\n");
+
+    fprintf(stderr, ">B\n");
+    fwrite(_bStr, sizeof(char), _bLen, stderr);
+    fprintf(stderr, "\n");
 #endif
 
     int32  aLo=0, aHi=0;
     int32  bLo=0, bHi=0;
+
+    char   origScore[1024];
 
     pedOverlapType  olapType = _editDist->Extend_Alignment(&match,         //  Initial exact match, relative to start of string
                                                            _aStr, _aLen,
@@ -630,7 +641,11 @@ NDalign::processHits(void) {
         ((score() <= _editDist->score()) && (length() > ((aHi - aLo) + (bHi - bLo) + _editDist->Left_Delta_Len) / 2))) {
 
 #ifdef DEBUG_ALGORITHM
-      fprintf(stderr, "NDalign::processHits()-- Save better alignment - OLD length %u erate %f score %u (%d-%d %d-%d) ",
+      fprintf(stderr, "NDalign::processHits()--\n");
+      fprintf(stderr, "NDalign::processHits()-- %s\n", (length() > 0) ? "Save better alignment" : "First alignment");
+      fprintf(stderr, "NDalign::processHits()--\n");
+
+      sprintf(origScore, "NDalign::processHits()--  OLD length %u erate %f score %u (%d-%d %d-%d)\n",
               length(), erate(), score(), abgn(), aend(), bbgn(), bend());
 #endif
 
@@ -641,7 +656,8 @@ NDalign::processHits(void) {
       _bestResult.setErate(1.0 - (double)(_matches + _gapmatches) / (length() - _freegaps));
 
 #ifdef DEBUG_ALGORITHM
-      fprintf(stderr, "NDalign::processHits()-- NEW length %u erate %f score %u (%d-%d %d-%d)\n",
+      fprintf(stderr, "%sNDalign::processHits()--  NEW length %u erate %f score %u (%d-%d %d-%d)\n",
+              origScore,
               length(), erate(), score(), abgn(), aend(), bbgn(), bend());
 #endif
 
@@ -649,7 +665,7 @@ NDalign::processHits(void) {
       olapType = pedBothBranch;
 
 #ifdef DEBUG_ALGORITHM
-      fprintf(stderr, "NDalign::processHits()-- DON'T save alignment - OLD length %u erate %f score %u (%d-%d %d-%d) ",
+      fprintf(stderr, "NDalign::processHits()--  DON'T save alignment - OLD length %u erate %f score %u (%d-%d %d-%d) ",
               length(), erate(), score(), abgn(), aend(), bbgn(), bend());
       fprintf(stderr, "NDalign::processHits()--  NEW length %u score %u coords %u-%u %u-%u\n",
               ((aHi - aLo) + (bHi - bLo) + _editDist->Left_Delta_Len) / 2,
@@ -724,10 +740,12 @@ NDalign::realignForward(bool verbose, bool displayAlign) {
   int32  aLo=0, aHi=0;
   int32  bLo=0, bHi=0;
 
+  char   origScore[1024];
+
   if (displayAlign)
     fprintf(stderr, "NDalign::realignForward()--\n");
 
-  pedOverlapType  olapType = _editDist->Extend_Alignment(&match,         //  Initial exact match, relative to start of string
+  pedOverlapType  olapType = _editDist->Extend_Alignment(&match,        //  Initial exact match, relative to start of string
                                                          _aStr, _aLen,
                                                          _bStr, _bLen,
                                                          aLo,   aHi,    //  Output: Regions which the match extends
@@ -740,9 +758,15 @@ NDalign::realignForward(bool verbose, bool displayAlign) {
 
   if (((score() <  _editDist->score())) ||
       ((score() <= _editDist->score()) && (length() > ((aHi - aLo) + (bHi - bLo) + _editDist->Left_Delta_Len) / 2))) {
-    if (displayAlign)
-      fprintf(stderr, "NDalign::realignForward()-- Save better alignment - OLD length %u erate %f score %u (%d-%d %d-%d)\n",
+
+    if (displayAlign) {
+      fprintf(stderr, "NDalign::realignForward()--\n");
+      fprintf(stderr, "NDalign::realignForward()--  Save better alignment\n");
+      fprintf(stderr, "NDalign::realignForward()--\n");
+
+      sprintf(origScore, "NDalign::realignForward()--  OLD length %u erate %f score %u (%d-%d %d-%d)\n",
               length(), erate(), score(), abgn(), aend(), bbgn(), bend());
+    }
 
     _bestResult.save(aLo, aHi, bLo, bHi, _editDist->score(), olapType, _editDist->Left_Delta_Len, _editDist->Left_Delta);
 
@@ -750,10 +774,11 @@ NDalign::realignForward(bool verbose, bool displayAlign) {
 
     _bestResult.setErate(1.0 - (double)(_matches + _gapmatches) / (length() - _freegaps));
 
-    if (displayAlign)
-      fprintf(stderr, "NDalign::realignForward()-- Save better alignment - NEW length %u erate %f score %u (%d-%d %d-%d)\n",
+    if (displayAlign) {
+      fprintf(stderr, "%sNDalign::realignForward()--  NEW length %u erate %f score %u (%d-%d %d-%d)\n",
+              origScore,
               length(), erate(), score(), abgn(), aend(), bbgn(), bend());
-
+    }
   }
 
   else if (displayAlign) {
@@ -779,10 +804,12 @@ NDalign::realignBackward(bool verbose, bool displayAlign) {
   int32  aLo=0, aHi=0;
   int32  bLo=0, bHi=0;
 
+  char   origScore[1024];
+
   if (displayAlign)
     fprintf(stderr, "NDalign::realignBackward()--\n");
 
-  pedOverlapType  olapType = _editDist->Extend_Alignment(&match,         //  Initial exact match, relative to start of string
+  pedOverlapType  olapType = _editDist->Extend_Alignment(&match,        //  Initial exact match, relative to start of string
                                                          _aStr, _aLen,
                                                          _bStr, _bLen,
                                                          aLo,   aHi,    //  Output: Regions which the match extends
@@ -795,9 +822,15 @@ NDalign::realignBackward(bool verbose, bool displayAlign) {
 
   if (((score() <  _editDist->score())) ||
       ((score() <= _editDist->score()) && (length() > ((aHi - aLo) + (bHi - bLo) + _editDist->Left_Delta_Len) / 2))) {
-    if (displayAlign)
-      fprintf(stderr, "NDalign::realignBackward()-- Save better alignment - OLD length %u erate %f score %u (%d-%d %d-%d)\n",
+
+    if (displayAlign) {
+      fprintf(stderr, "NDalign::realignBackward()--\n");
+      fprintf(stderr, "NDalign::realignBackward()--  Save better alignment\n");
+      fprintf(stderr, "NDalign::realignBackward()--\n");
+
+      sprintf(origScore, "NDalign::realignBackward()--  OLD length %u erate %f score %u (%d-%d %d-%d)\n",
               length(), erate(), score(), abgn(), aend(), bbgn(), bend());
+    }
 
     _bestResult.save(aLo, aHi, bLo, bHi, _editDist->score(), olapType, _editDist->Left_Delta_Len, _editDist->Left_Delta);
 
@@ -805,9 +838,11 @@ NDalign::realignBackward(bool verbose, bool displayAlign) {
 
     _bestResult.setErate(1.0 - (double)(_matches + _gapmatches) / (length() - _freegaps));
 
-    if (displayAlign)
-      fprintf(stderr, "NDalign::realignBackward()-- Save better alignment - NEW length %u erate %f score %u (%d-%d %d-%d)\n",
+    if (displayAlign) {
+      fprintf(stderr, "%sNDalign::realignBackward()--  NEW length %u erate %f score %u (%d-%d %d-%d)\n",
+              origScore,
               length(), erate(), score(), abgn(), aend(), bbgn(), bend());
+    }
   }
 
   else if (displayAlign) {
