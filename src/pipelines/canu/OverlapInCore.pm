@@ -297,7 +297,7 @@ sub overlapCheck ($$$$$) {
 
   finishStage:
     emitStage($WRK, $asm, "$tag-overlapCheck", $attempt);
-    submitOrRunParallelJob($wrk, $asm, "${tag}ovl", $path, "overlap", @failedJobs);
+    submitOrRunParallelJob($WRK, $asm, "${tag}ovl", $path, "overlap", @failedJobs);
 
   allDone:
     if ((-e "$path/ovljob.files") && ($attempt == 3)) {

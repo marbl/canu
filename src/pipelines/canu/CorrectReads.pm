@@ -767,7 +767,7 @@ sub generateCorrectedReads ($$$) {
 
   finishStage:
     emitStage($WRK, $asm, "cor-generateCorrectedReads", $attempt);
-    submitOrRunParallelJob($wrk, $asm, "cor", $path, "correctReads", @failedJobs);
+    submitOrRunParallelJob($WRK, $asm, "cor", $path, "correctReads", @failedJobs);
 
   allDone:
 }
