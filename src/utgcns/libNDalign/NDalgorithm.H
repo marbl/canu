@@ -42,9 +42,9 @@
 //
 #define PEDMATCH        2    //  Match from UPPERCASE to UPPERCASE
 #define PEDGAPMATCH     1    //  Match from LOWERCASE to UPPERCASE
-#define PEDMISMATCH    -2    //  Mismatch
+#define PEDMISMATCH    -3    //  Mismatch
 #define PEDFREEGAP      1    //  Gap from LOWERCASE
-#define PEDGAP         -3    //  Gap
+#define PEDGAP         -5    //  Gap
 
 //  PEDMINSCORE wants to be INT32_MIN, except that it will underflow, and wrap around to the highest
 //  score possible, on the first insert.  I think it suffices to set this just slightly higher than
