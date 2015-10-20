@@ -224,7 +224,7 @@ unitigConsensus::generate(tgTig                     *tig_,
     if (showAlgorithm())
       fprintf(stderr, "generateMultiAlignment()-- recompute full consensus\n");
 
-     rebuild(true, showMultiAlignments());
+    rebuild(true, showMultiAlignments());
 
     if (computePositionFromAnchor()    && alignFragment())  goto applyAlignment;
     if (computePositionFromLayout()    && alignFragment())  goto applyAlignment;
@@ -283,7 +283,7 @@ unitigConsensus::initialize(uint32                    *failed,
   //int32 num_bases   = 0;
 
   if (numfrags == 0) {
-    fprintf(stderr, "unitigConsensus::initialize()-- unitig has no children.\n");
+    fprintf(stderr, "utgCns::initialize()-- unitig has no children.\n");
     return(false);
   }
 
@@ -624,7 +624,8 @@ unitigConsensus::computePositionFromAlignment(void) {
         (oaPartial->processHits()                  == true)) {
 
       cnspos[tiid].set(oaPartial->abgn(), oaPartial->aend());
-      fprintf(stderr, "cnspos[%3d] mid %d %d,%d (from NDalign)\n", tiid, utgpos[tiid].ident(), cnspos[tiid].min(), cnspos[tiid].max());
+
+      //fprintf(stderr, "computePositionFromAlignment()-- cnspos[%3d] mid %d %d,%d (from NDalign)\n", tiid, utgpos[tiid].ident(), cnspos[tiid].min(), cnspos[tiid].max());
 
       foundAlign = true;
     }
@@ -839,93 +840,70 @@ unitigConsensus::alignFragment(bool forceAlignment) {
   assert(cnspos[tiid].min() < cnspos[tiid].max());
 
   abSequence *bSEQ  = abacus->getSequence(tiid);
+  char       *fragSeq = abacus->getBases(bSEQ);
+  int32       fragLen = bSEQ->length();
 
-  //  The bgnExtra and endExtra values are how much of the frankenstein to align to.  Ideally, we'd
-  //  know exactly where the new read goes in frankenstein, based on its overlap to a read that is
-  //  already in frankenstein.  Two issues prevent us from knowing:
+  //  Decide on how much to align.  Pick too little of frankenstein, and we leave some of the read
+  //  unaligned.  Pick too much, and the read aligns poorly.
   //
-  //  1) The unaligned portion (unaligned in the pairwise overlap) of the new read can have up to
-  //     errorRate indel.  The unaligned portion of the read could align to a larger than expected
-  //     portion of the frankenstein sequence.
+  //  endTrim is trimmed from the 3' of the read.  This is the stuff we don't expect to align to frankenstein.
+  //  bgnExtra is trimmed from the 5' of frankenstein.  Same idea as endTrim.
+  //  endExtra is trimmed from the 3' of frankenstein.  Only for contained reads.
   //
-  //  2) Frankenstein itself can have any amount of indel in it.
+  //  These values are adjusted later, in trimStep increments, based on the alignments returned.
   //
-  //  Neither of these can be computed.  The previous version of this used to compute the first and
-  //  use that.  It wasn't enough for some PacBio reads.  To correct, the bgnExtra value was
-  //  multiplied by 100....but on the same read, the endExtra value then became 3000.
+  //  Of the two choices, making the two Extra's small at the start is probably safer.  That case is
+  //  easy to detect, and easy to fix.
   //
-  //  With Illumina (and short reads in general), having a too-large extra value could result in the
-  //  read being mis-aligned.  This isn't much of a concern anymore, because (a) the reads are
-  //  significantly longer and (b) the reads are not mated (so exact placement isn't as critical).
-  //
-  //  This version starts with reasonably leniant values based on the read length, then allows the
-  //  code to extend these based on the alignment.  The only drawback is more time to recompute
-  //  alignments.
-  //
-  //  It's possible that a smaller region could lead to a better alignment, but this is an alignment
-  //  problem - the aligner shouldn't be returning higher-scoring-but-gappier alignments.
 
-  int32 bgnExtra = bSEQ->length() / 8;
-  int32 endExtra = bSEQ->length() / 8;
+  //  The expectedAlignLen is almost always an underestimate.  Any gaps inserted will make the real
+  //  alignment length longer.  This used to be multiplied by the error rate.
+  int32  expectedAlignLen = cnspos[tiid].max() - cnspos[tiid].min();
 
-  if (bgnExtra < 0)  bgnExtra = -bgnExtra;
-  if (endExtra < 0)  endExtra = -endExtra;
+  //  If the read is contained, the full read is aligned.
+  //  Otherwise, an extra 1/32 of the align length is added for padding.
+  int32  fragBgn = 0;
+  int32  fragEnd = (cnspos[tiid].max() < frankensteinLen) ? (fragLen) : (33 * expectedAlignLen / 32);
 
-  if (bgnExtra < 10) bgnExtra = 10;
-  if (endExtra < 10) endExtra = 10;
+  if (fragEnd > fragLen)
+    fragEnd = fragLen;
 
-  //  Similarily, we need to trim off the end of the read that will never align to frankenstein.
-  //  This too is allowed to change based on the alignment.
+  int32  bgnExtra = expectedAlignLen / 32;  //  Start with a small 'extra' allowance, easy to make bigger.
+  int32  endExtra = expectedAlignLen / 32;
 
-  assert(cnspos[tiid].min() < cnspos[tiid].max());
-
-  int32 endTrim = (cnspos[tiid].max() - frankensteinLen) - (int32)ceil(errorRate * (cnspos[tiid].max() - cnspos[tiid].min()));
-
-  if (endTrim < 20)
-    endTrim = 0;
-
-  if (endTrim >= bSEQ->length()) {
-    fprintf(stderr, "alignFragment()-- ERROR -- excessive endTrim %d >= length %d\n", endTrim, bSEQ->length());
-    return(alignFragmentFailure());
-  }
-
-  if (endTrim < 0) {
-    fprintf(stderr, "alignFragment()-- ERROR -- negative endTrim %d\n", endTrim);
-    return(alignFragmentFailure());
-  }
-
+  int32  trimStep = expectedAlignLen / 32;
 
   //  Find an alignment!
 
+  bool  allowedToTrim = true;
+
+  assert(frankenstein[frankensteinLen]          == 0);  //  Frankenstein must be NUL terminated
+  assert(fragSeq[fragLen] == 0);  //  The read must be NUL terminated
+
  alignFragmentAgain:
+
+  //  Truncate frankenstein and the read to prevent false alignments.
+
+  if (cnspos[tiid].max() + endExtra > frankensteinLen)
+    endExtra = frankensteinLen - cnspos[tiid].max();
+
   int32 frankBgn     = MAX(0, cnspos[tiid].min() - bgnExtra);   //  Start position in frankenstein
-  int32 frankEnd     = frankensteinLen;                         //  Truncation of frankenstein
-  char  frankEndBase = 0;                                       //  Saved base from frankenstein
+  int32 frankEnd     = cnspos[tiid].max() + endExtra;           //  Truncation of frankenstein
+  int32 frankEndBase = frankenstein[frankEnd];                  //  Saved base (if not truncated, it's the NUL byte at the end)
+
+  char *aseq         = frankenstein + frankBgn;
+  char *bseq         = fragSeq;
+
+  char  fragEndBase  = bseq[fragEnd];                           //  Saved base
+
+  frankenstein[frankEnd] = 0;  //  Do the truncations.
+  bseq[fragEnd]          = 0;
+
+  //  Report!
 
   if (showAlgorithm())
-    fprintf(stderr, "alignFragment()-- Allow bgnExtra=%d and endExtra=%d (frankBgn=%d frankEnd=%d) and endTrim=%d\n",
-            bgnExtra, endExtra, frankBgn, frankEnd, endTrim);
-
-  //  If the expected fragment end position plus any extra slop are less than the consensus length,
-  //  we need to truncate the frankenstein so we don't incorrectly align to that.
-  //
-  if (cnspos[tiid].max() + endExtra < frankensteinLen) {
-    frankEnd     = cnspos[tiid].max() + endExtra;
-    frankEndBase = frankenstein[frankEnd];
-    frankenstein[frankEnd] = 0;
-
-  } else {
-    endExtra = 0;
-  }
-
-  char       *aseq  = frankenstein + frankBgn;
-  char       *bseq  = abacus->getBases(bSEQ);
-
-  int32 fragBgn      = 0;
-  int32 fragEnd      = bSEQ->length() - endTrim;
-  char  fragEndBase  = bseq[fragEnd];
-
-  bseq[fragEnd] = 0;  //  Terminate the bseq early for alignment.
+    fprintf(stderr, "alignFragment()-- Allow bgnExtra=%d and endExtra=%d (frankBgn=%d frankEnd=%d frankLen=%d) (fragBgn=0 fragEnd=%d fragLen=%d)\n",
+            bgnExtra, endExtra, frankBgn, frankEnd, frankensteinLen, fragEnd, fragLen);
 
   //  Create new aligner object.  'Global' in this case just means to not stop early, not a true global alignment.
 
@@ -943,7 +921,7 @@ unitigConsensus::alignFragment(bool forceAlignment) {
     return(alignFragmentFailure());
 
   if (showAlignments())
-    oaFull->display("unitigConsensus::alignFragment()--", true);
+    oaFull->display("utgCns::alignFragment()--", true);
 
   //  Realign, from both endpoints, and save the better of the two.
 
@@ -955,52 +933,91 @@ unitigConsensus::alignFragment(bool forceAlignment) {
   if (frankEndBase)   frankenstein[frankEnd] = frankEndBase;
   if (fragEndBase)    bseq[fragEnd]          = fragEndBase;
 
+  //
   //  Check quality and fail if it sucks.
+  //
 
-  if ((forceAlignment == false) &&
-      (oaFull->scanDeltaForBadness(showAlgorithm(), showAlignments()) == true)) {
+  bool  isBad = oaFull->scanDeltaForBadness(showAlgorithm(), showAlignments());
+
+  //  Check for bad (under) trimming of input sequences.
+  //
+  //  If the alignment is bad, and we hit the start of the frankenstein sequence (or the end of
+  //  same), chances are good that the aligner returned a (higher scoring) global alignment instead
+  //  of a (lower scoring) local alignment.  Trim off some of the extension and try again.
+
+  if ((allowedToTrim == true) && (isBad == true) && (oaFull->ahg5() == 0) && (bgnExtra > 0)) {
+    int32  adj = (bgnExtra < trimStep) ? 0 : bgnExtra - trimStep;
+
     if (showAlgorithm())
-      fprintf(stderr, "unitigConsensus::alignFragment()-- alignment bad after realigning\n");
-    return(alignFragmentFailure());
+      fprintf(stderr, "utgCns::alignFragment()-- alignment is bad, hit the trimmed start of frankenstein, decrease bgnExtra from %u to %u\n", bgnExtra, adj);
+
+    bgnExtra = adj;
+    goto alignFragmentAgain;
   }
 
-  //  Bad alignment if low quality.
+  if ((allowedToTrim == true) && (isBad == true) && (oaFull->ahg3() == 0) && (endExtra > 0)) {
+    int32  adj = (endExtra < trimStep) ? 0 : endExtra - trimStep;
 
-  if ((forceAlignment == false) &&
-      (oaFull->erate() > errorRate)) {
-    if (showAlgorithm()) {
-      fprintf(stderr, "unitigConsensus::alignFragment()-- alignment is low quality: %f > %f\n",
-              oaFull->erate(), errorRate);
-      oaFull->display("unitigConsensus::alignFragment()-- ", true);
-    }
-    return(alignFragmentFailure());
+    if (showAlgorithm())
+      fprintf(stderr, "utgCns::alignFragment()-- alignment is bad, hit the trimmed end of frankenstein, decrease endExtra from %u to %u\n", endExtra, adj);
+
+    endExtra = adj;
+    goto alignFragmentAgain;
   }
 
-  //  Check for bad trimming of input sequences.  Bad if:
+  //  Check for bad (over) trimming of input sequences.  Bad if:
   //     we don't hit the start of the read, and we chopped the start of frankenstein.
   //     we don't hit the end   of the read, and we chopped the end   of frankenstein.
   //     we do    hit the end   of the read, and we chopped the end   of the read.
   //     (we don't chop the start of the read, so the fourth possible case never happens)
 
+  allowedToTrim = false;  //  No longer allowed to reduce bgnExtra or endExtra.  We'd hit infinite loops otherwise.
+
   if ((oaFull->bhg5() > 0) && (frankBgn > 0)) {
+    int32  adj = bgnExtra + 2 * oaFull->bhg5();
+
     if (showAlgorithm())
-      fprintf(stderr, "unitigConsensus::alignFragment()-- alignment bad, hit the trimmed start of frankenstein, increase bgnExtra from %u to %u\n", bgnExtra, bgnExtra + 4 * oaFull->bhg5());
-    bgnExtra += 4 * oaFull->bhg5();
+      fprintf(stderr, "utgCns::alignFragment()-- hit the trimmed start of frankenstein, increase bgnExtra from %u to %u\n", bgnExtra, adj);
+
+    bgnExtra = adj;
     goto alignFragmentAgain;
   }
 
   if ((oaFull->bhg3() > 0) && (frankEnd < frankensteinLen)) {
+    int32  adj = endExtra + 2 * oaFull->bhg3();
+
     if (showAlgorithm())
-      fprintf(stderr, "unitigConsensus::alignFragment()-- alignment bad, hit the trimmed end of frankenstein, increase endExtra from %u to %u\n", endExtra, endExtra + 4 * oaFull->bhg3());
-    endExtra += 4 * oaFull->bhg3();
+      fprintf(stderr, "utgCns::alignFragment()-- hit the trimmed end of frankenstein, increase endExtra from %u to %u\n", endExtra, adj);
+
+    endExtra = adj;
     goto alignFragmentAgain;
   }
 
-  if ((oaFull->bhg3() == 0) && (endTrim > 0)) {
+  if ((oaFull->bhg3() == 0) && (fragEnd < fragLen)) {
+    int32  adj = (fragEnd + trimStep < fragLen) ? fragEnd + trimStep : fragLen;
+
     if (showAlgorithm())
-      fprintf(stderr, "unitigConsensus::alignFragment()-- alignment bad, hit the trimmed end of the read, decrease endTrim from %u to %u\n", endTrim, endTrim - 2 * oaFull->bhg3());
-    endTrim -= 2 * oaFull->bhg3();
+      fprintf(stderr, "utgCns::alignFragment()-- hit the trimmed end of the read, increase fragEnd from %d to %d\n", fragEnd, adj);
+
+    fragEnd = adj;
     goto alignFragmentAgain;
+  }
+
+  //  If we get here, and it's still bad, well, not much we can do.
+
+  if ((forceAlignment == false) && (isBad == true)) {
+    if (showAlgorithm())
+      fprintf(stderr, "utgCns::alignFragment()-- alignment bad after realigning\n");
+    return(alignFragmentFailure());
+  }
+
+  if ((forceAlignment == false) && (oaFull->erate() > errorRate)) {
+    if (showAlgorithm()) {
+      fprintf(stderr, "utgCns::alignFragment()-- alignment is low quality: %f > %f\n",
+              oaFull->erate(), errorRate);
+      oaFull->display("utgCns::alignFragment()-- ", true);
+    }
+    return(alignFragmentFailure());
   }
 
   //  Otherwise, its a good alignment.  Process the trace to the 'consensus-format' and return true.
