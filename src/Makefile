@@ -364,6 +364,7 @@ ifeq (${OSTYPE}, SunOS)
 endif
 
 ${info Building for ${OSTYPE} ${OSVERSION} as ${MACHINETYPE}}
+${info Using LD_RUN_PATH ${LD_RUN_PATH}}
 
 # (BPW) Set compiler and flags based on discovered hardware
 
@@ -576,6 +577,3 @@ ${TARGET_DIR}/lib/canu/OverlapStore.pm: ${TARGET_DIR}/lib/canu pipelines/canu/Ov
 
 ${TARGET_DIR}/lib/canu/Unitig.pm: ${TARGET_DIR}/lib/canu pipelines/canu/Unitig.pm
 	cp -pf pipelines/canu/Unitig.pm ${TARGET_DIR}/lib/canu/
-
-
-
