@@ -415,7 +415,7 @@ main(int argc, char **argv) {
   int err=0;
   while (arg < argc) {
 
-    if        (strcmp(argv[arg], "-G") == 0)
+    if      (strcmp(argv[arg], "-G") == 0)
       gkpName = argv[++arg];
 
     else if (strcmp(argv[arg], "-O") == 0)
@@ -497,7 +497,15 @@ main(int argc, char **argv) {
 
     arg++;
   }
-  if ((operation == OP_NONE) || (gkpName == NULL) || (ovlName == NULL) || (err)) {
+
+  if (operation == OP_NONE)
+    err++;
+  if (gkpName == NULL)
+    err++;
+  if (ovlName == NULL)
+    err++;
+
+  if (err) {
     fprintf(stderr, "usage: %s -G gkpStore -O ovlStore [-b bgnID] [-e endID] ...\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "There are three modes of operation:\n");
@@ -523,8 +531,17 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -dc               Dump only overlaps that are containing the A frag (A contained in B).\n");
     fprintf(stderr, "  -v                Report statistics (to stderr) on some dumps (-d).\n");
     fprintf(stderr, "\n");
+
+    if (operation == OP_NONE)
+      fprintf(stderr, "ERROR: no operation (-d, -q or -p) supplied.\n");
+    if (gkpName == NULL)
+      fprintf(stderr, "ERROR: no input gkpStore (-G) supplied.\n");
+    if (ovlName == NULL)
+      fprintf(stderr, "ERROR: no input ovlStore (-O) supplied.\n");
+
     exit(1);
   }
+
   if (dumpType == 0)
     dumpType = DUMP_5p | DUMP_3p | DUMP_CONTAINED | DUMP_CONTAINS;
 
