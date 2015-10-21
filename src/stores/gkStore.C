@@ -405,7 +405,6 @@ gkLibrary::gkLibrary_parsePreset(char *p) {
   }
 
 
-
   //  Specializations of raw PacBio.
   if (strcasecmp(p, "pacbio-raw-p4c2") == 0) {
     _checkForSubReads = true;
@@ -423,7 +422,11 @@ gkLibrary::gkLibrary_parsePreset(char *p) {
   }
 
 
-  if (strcasecmp(p, "minion") == 0) {
+  if (strcasecmp(p, "nanopore-raw") == 0) {
+    return;
+  }
+
+  if (strcasecmp(p, "nanopore-corrected") == 0) {
     return;
   }
 
