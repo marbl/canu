@@ -713,7 +713,7 @@ sub checkParameters ($) {
         setGlobalIfUndef("gridEngineOutputOption",               "-j y -o");
         setGlobalIfUndef("gridEnginePropagateCommand",           "qalter -hold_jid \"WAIT_TAG\"");
         setGlobalIfUndef("gridEngineThreadsOption",              undef);  #"-pe threads THREADS");
-        setGlobalIfUndef("gridEngineMemoryOption",               "-l mem=MEMORY");
+        setGlobalIfUndef("gridEngineMemoryOption",               undef);  #"-l mem=MEMORY");
         setGlobalIfUndef("gridEngineNameToJobIDCommand",         undef);
         setGlobalIfUndef("gridEngineNameToJobIDCommandNoArray",  undef);
         setGlobalIfUndef("gridEngineTaskID",                     "\$SGE_TASK_ID");
@@ -723,72 +723,88 @@ sub checkParameters ($) {
         #  Try to figure out the name of the threaded job execution environment.
         #  It's the one with allocation_rule of $pe_slots.
 
-        my @env = `qconf -spl`;  chomp @env;
-        my $thr = undef;
-        my $nth = 0;
+        if (!defined(getGlobal("gridEngineThreadsOption"))) {
+            my @env = `qconf -spl`;  chomp @env;
+            my $thr = undef;
+            my $nth = 0;
 
-        foreach my $env (@env) {
-            my $ar = 0;
-            my $cs = 0;
-            my $jf = 0;
+            foreach my $env (@env) {
+                my $ar = 0;
+                my $cs = 0;
+                my $jf = 0;
 
-            open(F, "qconf -sp $env |");
-            while (<F>) {
-                $ar = 1  if (m/allocation_rule.*pe_slots/);
-                $cs = 1  if (m/control_slaves.*FALSE/);
-                $jf = 1  if (m/job_is_first_task.*TRUE/);
+                open(F, "qconf -sp $env |");
+                while (<F>) {
+                    $ar = 1  if (m/allocation_rule.*pe_slots/);
+                    $cs = 1  if (m/control_slaves.*FALSE/);
+                    $jf = 1  if (m/job_is_first_task.*TRUE/);
+                }
+                close(F);
+
+                if (($ar == 1) && ($cs == 1) && ($jf == 1)) {
+                    $thr = $env;
+                    $nth++;
+                }
             }
-            close(F);
 
-            if (($ar == 1) && ($cs == 1) && ($jf == 1)) {
-                $thr = $env;
-                $nth++;
+            if ($nth == 1) {
+                print STDERR "-- Detected Grid Engine environment '$thr'.\n";
+
+                setGlobal("gridEngineThreadsOption", "-pe $thr THREADS");
+
+            } else {
+                print STDERR "-- WARNING:  Couldn't determine the SGE parallel environment to run multi-threaded codes.\n";
+                print STDERR "--           Set 'gridEngineThreadsOption' manually; example: '-pe threaded THREADS'.\n";
             }
-        }
-
-        if ($nth == 1) {
-            print STDERR "-- Detected Grid Engine environment '$thr'.\n";
-
-            setGlobal("gridEngineThreadsOption", "-pe $thr THREADS");
-
         } else {
-            print STDERR "-- WARNING:  Couldn't determine the SGE parallel environment to run multi-threaded codes.\n";
-            print STDERR "--           Set 'gridEngineThreadsOption' manually; example: '-pe threaded THREADS'.\n";
+            if (getGlobal("gridEngineThreadsOption") =~ m/^-pe\s+(.*)$/) {
+                print STDERR "-- User supplied Grid Engine environment '$1'.\n";
+            } else {
+                caFailure("Couldn't parse gridEngineThreadsOption='" . getGlobal("gridEngineThreadsOption") . "'", undef);
+            }
         }
 
         #  Try to figure out the name of the memory resource.
 
-        my $mem = undef;
-        my $nmm = 0;
+        if (!defined(getGlobal("gridEngineMemoryOption"))) {
+            my $mem = undef;
+            my $nmm = 0;
 
-        open(F, "qconf -sc |");
-        while (<F>) {
-            my @vals = split '\s+', $_;
+            open(F, "qconf -sc |");
+            while (<F>) {
+                my @vals = split '\s+', $_;
 
-            next  if ($vals[5] ne "YES");        #  Not a consumable resource.
-            next  if ($vals[2] ne "MEMORY");     #  Not a memory resource.
-            next  if ($vals[0] =~ m/swap/);      #  Don't care about swap.
-            next  if ($vals[0] =~ m/virtual/);   #  Don't care about vm space.
+                next  if ($vals[5] ne "YES");        #  Not a consumable resource.
+                next  if ($vals[2] ne "MEMORY");     #  Not a memory resource.
+                next  if ($vals[0] =~ m/swap/);      #  Don't care about swap.
+                next  if ($vals[0] =~ m/virtual/);   #  Don't care about vm space.
 
-            $mem .= " " if (defined($mem));
-            $mem  = $vals[0];
-            $nmm++;
-        }
-        close(F);
+                $mem .= " " if (defined($mem));
+                $mem .= $vals[0];
+                $nmm++;
+            }
+            close(F);
 
-        if      ($nmm == 1) {
-            print STDERR "-- Detected Grid Engine consumable '$mem'.\n";
+            if      ($nmm == 1) {
+                print STDERR "-- Detected Grid Engine consumable '$mem'.\n";
 
-            setGlobal("gridEngineMemoryOption", "-l $mem=MEMORY");
+                setGlobal("gridEngineMemoryOption", "-l $mem=MEMORY");
 
-        } elsif ($nmm > 1) {
-            print STDERR "-- WARNING:  Couldn't determine the SGE resource to request memory.\n";
-            print STDERR "--           Found $nmm choices: $mem\n";
-            print STDERR "--           Set 'gridEngineMemoryOption' manually; example: '-l mem=MEMORY'.\n";
+            } elsif ($nmm > 1) {
+                print STDERR "-- WARNING:  Couldn't determine the SGE resource to request memory.\n";
+                print STDERR "--           Found $nmm choices: $mem\n";
+                print STDERR "--           Set 'gridEngineMemoryOption' manually; example: '-l mem=MEMORY'.\n";
 
+            } else {
+                print STDERR "-- WARNING:  Couldn't determine the SGE resource to request memory.\n";
+                print STDERR "--           Set 'gridEngineMemoryOption' manually; example: '-l mem=MEMORY'.\n";
+            }
         } else {
-            print STDERR "-- WARNING:  Couldn't determine the SGE resource to request memory.\n";
-            print STDERR "--           Set 'gridEngineMemoryOption' manually; example: '-l mem=MEMORY'.\n";
+            if (getGlobal("gridEngineMemoryOption") =~ m/^-l\s+(.*)=MEMORY$/) {
+                print STDERR "-- User supplied Grid Engine consumable '$1'.\n";
+            } else {
+                caFailure("Couldn't parse gridEngineMemoryOption='" . getGlobal("gridEngineMemoryOption") . "'", undef);
+            }
         }
     }
 
@@ -1274,7 +1290,6 @@ sub setDefaults () {
 
     $global{"falconSense"}                 = undef;
     $synops{"falconSense"}                 = "Path to fc_consensus.py or falcon_sense.bin";
-
 
 
 
