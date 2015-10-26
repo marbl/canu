@@ -222,6 +222,23 @@ public:
   uint32     span(void) const           { return(dat.ovl.span); };
   void       span(uint32 s)             { dat.ovl.span = s; };
 
+#if 0
+  //  Return an approximate span as the average of the read span aligned.
+  uint32     span(void) const {
+    if (dat.ovl.span > 0)
+      return(dat.ovl.span);
+    else {
+      uint32 ab = a_bgn(), ae = a_end();
+      uint32 bb = b_bgn(), be = b_end();
+
+      if (bb < be)
+        return(((ae - ab) + (be - bb)) / 2);
+      else
+        return(((ae - ab) + (bb - be)) / 2);
+    }
+  }
+#endif
+
   void       flipped(uint32 f)          { dat.ovl.flipped = f; };
   uint32     flipped(void) const        { return(dat.ovl.flipped == true); };
 
