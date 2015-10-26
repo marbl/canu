@@ -84,7 +84,13 @@ Output_Overlap(uint32 S_ID, int S_Len, Direction_t S_Dir,
   ovs->dat.ovl.forOBT = false;
   ovs->dat.ovl.forDUP = false;
 
-  //ovs->clear(olap->quality);
+  //  Set the span of the alignment.
+
+  ovs->dat.ovl.span  = (olap->s_hi - olap->s_lo);
+  ovs->dat.ovl.span += (olap->t_hi - olap->t_lo);
+  ovs->dat.ovl.span += (olap->delta_ct);
+  assert((ovs->dat.ovl.span % 2) == 0);
+  ovs->dat.ovl.span /= 2;
 
   assert (S_ID < T_ID);
 
@@ -97,9 +103,13 @@ Output_Overlap(uint32 S_ID, int S_Len, Direction_t S_Dir,
   int32   ahg    = 0;
   int32   bhg    = 0;
 
-  //fprintf(stderr, "S %d %d %d T %d %d %d\n",
-  //        olap->s_lo, olap->s_hi, S_Len,
-  //        olap->t_lo, olap->t_hi, T_Len);
+  //fprintf(stderr, "S %d %d = %d len %d T %d %d = %d len %d delta_ct %d delta %d\n",
+  //        olap->s_lo, olap->s_hi, olap->s_hi - olap->s_lo, S_Len,
+  //        olap->t_lo, olap->t_hi, olap->t_hi - olap->t_lo, T_Len,
+  //        olap->delta_ct, olap->delta[0]);
+
+  assert(olap->s_lo < olap->s_hi);
+  assert(olap->t_lo < olap->t_hi);
 
   //  Ensure this is a dovetail or contained overlap.
   assert((olap->s_lo == 0)         || (olap->t_lo == 0));
@@ -187,8 +197,6 @@ Output_Overlap(uint32 S_ID, int S_Len, Direction_t S_Dir,
       break;
   }
 
-
-
 #if  OUTPUT_OVERLAP_DELTAS
   signed char deltas[2 * AS_READ_MAX_NORMAL_LEN];
   signed char *deltaCursor = deltas;
@@ -238,7 +246,7 @@ void
 Output_Partial_Overlap(uint32 s_id,
                        uint32 t_id,
                        Direction_t dir,
-                       const Olap_Info_t *p,
+                       const Olap_Info_t *olap,
                        int s_len,
                        int t_len,
                        Work_Area_t  *WA) {
@@ -258,21 +266,22 @@ Output_Partial_Overlap(uint32 s_id,
   ovl->dat.ovl.forOBT = true;
   ovl->dat.ovl.forDUP = true;
 
+  //  Set the span of the alignment.
+
+  ovl->dat.ovl.span  = (olap->s_hi - olap->s_lo);
+  ovl->dat.ovl.span += (olap->t_hi - olap->t_lo);
+  ovl->dat.ovl.span += (olap->delta_ct);
+  assert((ovl->dat.ovl.span % 2) == 0);
+  ovl->dat.ovl.span /= 2;
 
   // Convert to canonical form with s forward and use space-based
   // coordinates
 
-  ovl->dat.ovl.span = 0;
-
-  //fprintf(stdout, "S: %6u %6d-%6d  T: %6u %6d-%6d  dir %d\n",
-  //        s_id, p->s_lo, p->s_hi,
-  //        t_id, p->t_lo, p->t_hi, dir);
-
   if (dir == FORWARD) {
-    ovl->dat.ovl.ahg5 =         (p->s_lo);
-    ovl->dat.ovl.ahg3 = s_len - (p->s_hi + 1);
-    ovl->dat.ovl.bhg5 =         (p->t_lo);
-    ovl->dat.ovl.bhg3 = t_len - (p->t_hi + 1);
+    ovl->dat.ovl.ahg5 =         (olap->s_lo);
+    ovl->dat.ovl.ahg3 = s_len - (olap->s_hi + 1);
+    ovl->dat.ovl.bhg5 =         (olap->t_lo);
+    ovl->dat.ovl.bhg3 = t_len - (olap->t_hi + 1);
 
     ovl->dat.ovl.flipped = false;
 
@@ -280,10 +289,10 @@ Output_Partial_Overlap(uint32 s_id,
     //assert(c < d);
 
   } else {
-    ovl->dat.ovl.ahg5 = s_len - (p->s_hi + 1);
-    ovl->dat.ovl.ahg3 =         (p->s_lo);
-    ovl->dat.ovl.bhg5 = t_len - (p->t_hi + 1);
-    ovl->dat.ovl.bhg3 =         (p->t_lo);
+    ovl->dat.ovl.ahg5 = s_len - (olap->s_hi + 1);
+    ovl->dat.ovl.ahg3 =         (olap->s_lo);
+    ovl->dat.ovl.bhg5 = t_len - (olap->t_hi + 1);
+    ovl->dat.ovl.bhg3 =         (olap->t_lo);
 
     ovl->dat.ovl.flipped = true;
 
@@ -291,7 +300,7 @@ Output_Partial_Overlap(uint32 s_id,
     //assert(c > d);  //  Reverse!
   }
 
-  ovl->erate(p->quality);
+  ovl->erate(olap->quality);
 
   //  We also flush the file at the end of a thread
 
