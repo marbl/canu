@@ -39,84 +39,35 @@ const char *mainid = "$Id$";
 #include "intervalList.H"
 
 
-#define PLOT_READ_LENGTH      0x01
-#define PLOT_OVERLAP_LENGTH   0x02
-#define PLOT_OVERLAP_ERROR    0x04
-
 #define OVL_5                 0x01
 #define OVL_3                 0x02
 #define OVL_CONTAINED         0x04
 #define OVL_CONTAINER         0x08
 #define OVL_PARTIAL           0x10
 
-#define READ_FULL_COVERAGE    0x01
-#define READ_MISSING_5        0x02
-#define READ_MISSING_3        0x04
-#define READ_MISSING_MIDDLE   0x08
-#define READ_CONTAINED        0x10
-#define READ_CONTAINER        0x20
-#define READ_PARTIAL          0x40
 
+//  Should count unique-contained and repeat-contained separately from unique and repeat
+//  uniq-anchor is also 'plausible chimera'
 
-
-
-void
-plotCoverageHistogram(intervalList<uint32> &depth, uint32 numReads, char *outPrefix, char *label) {
-  char  N[FILENAME_MAX];
-  FILE *F;
-
-  sprintf(N, "%s.coverage%s.histogram", outPrefix, label);
-  errno = 0;
-
-  F = fopen(N, "w");
-  if (errno)
-    fprintf(stderr, "Failed to open '%s' for writing: %s\n", N, strerror(errno)), exit(1);
-  
-  for (uint32 ii=0; ii<depth.numberOfIntervals(); ii++)
-    for (uint32 xx=depth.lo(ii); xx<depth.hi(ii); xx++)
-      fprintf(F, "%u\t%.2f\n", xx, (double)depth.depth(ii) / numReads);
-
-  fclose(F);
-
-  sprintf(N, "%s.coverage%s.gp", outPrefix, label);
-  errno = 0;
-
-  F = fopen(N, "w");
-  if (errno)
-    fprintf(stderr, "Failed to open '%s' for writing: %s\n", N, strerror(errno)), exit(1);
-
-  fprintf(F, "set terminal 'png'\n");
-  fprintf(F, "set output '%s.coverage%s.png'\n", outPrefix, label);
-  fprintf(F, "plot '%s.coverage%s.histogram' using 1:2 with lines\n", outPrefix, label);
-
-  fclose(F);
-
-  sprintf(N, "gnuplot < %s.coverage%s.gp", outPrefix, label);
-  system(N);
-}
-
-
-
-
+//  no-5-prime includes things that entirely cover the read, just no overhang
 
 int
 main(int argc, char **argv) {
-  char           *gkpName      = NULL;
-  char           *ovlName      = NULL;
+  char           *gkpName        = NULL;
+  char           *ovlName        = NULL;
+  char           *outPrefix      = NULL;
 
-  char           *outPrefix    = NULL;
+  uint32          bgnID          = 0;
+  uint32          endID          = UINT32_MAX;
 
-  uint32          bgnID        = 0;
-  uint32          endID        = UINT32_MAX;
-  uint32          qryID        = 0;
+  uint32          ovlSelect      = 0;
+  double          ovlAtMost      = AS_OVS_encodeEvalue(1.0);
+  double          ovlAtLeast     = AS_OVS_encodeEvalue(0.0);
 
-  uint32          plotType     = 0;
-  uint32          ovlSelect    = 0;
-  double          ovlAtMost    = AS_OVS_encodeEvalue(1.0);
-  double          ovlAtLeast   = AS_OVS_encodeEvalue(0.0);
-  uint32          readSelect   = 0;
+  double          expectedMean   = 30.0;
+  double          expectedStdDev =  7.0;
 
-  bool            verbose      = false;
+  bool            verbose        = false;
 
   argc = AS_configure(argc, argv);
 
@@ -144,25 +95,6 @@ main(int argc, char **argv) {
 
     else if (strcmp(argv[arg], "-v") == 0)
       verbose = true;
-
-
-    else if (strcmp(argv[arg], "-plot") == 0) {
-      arg++;
-
-      if      (strcmp(argv[arg], "read-length") == 0)
-        plotType |= PLOT_READ_LENGTH;
-
-      else if (strcmp(argv[arg], "overlap-length") == 0)
-        plotType |= PLOT_OVERLAP_LENGTH;
-      
-      else if (strcmp(argv[arg], "overlap-error") == 0)
-        plotType |= PLOT_OVERLAP_ERROR;
-
-      else {
-        fprintf(stderr, "ERROR: unknown -plot '%s'\n", argv[arg]);
-        exit(1);
-      }
-    }
 
 
     else if (strcmp(argv[arg], "-overlap") == 0) {
@@ -196,37 +128,6 @@ main(int argc, char **argv) {
     }
 
 
-    else if (strcmp(argv[arg], "-read") == 0) {
-      arg++;
-
-      if      (strcmp(argv[arg], "full-coverage") == 0)
-        readSelect |= READ_FULL_COVERAGE;
-
-      else if (strcmp(argv[arg], "missing-5") == 0)
-        readSelect |= READ_MISSING_5;
-      
-      else if (strcmp(argv[arg], "missing-3") == 0)
-        readSelect |= READ_MISSING_3;
-
-      else if (strcmp(argv[arg], "missing-middle") == 0)
-        readSelect |= READ_MISSING_MIDDLE;
-
-      else if (strcmp(argv[arg], "contained") == 0)
-        readSelect |= READ_CONTAINED;
-
-      else if (strcmp(argv[arg], "container") == 0)
-        readSelect |= READ_CONTAINER;
-
-      else if (strcmp(argv[arg], "partial") == 0)
-        readSelect |= READ_PARTIAL;
-
-      else {
-        fprintf(stderr, "ERROR: unknown -read '%s'\n", argv[arg]);
-        exit(1);
-      }
-    }
-
-
     else {
       fprintf(stderr, "%s: unknown option '%s'.\n", argv[0], argv[arg]);
       err++;
@@ -251,14 +152,6 @@ main(int argc, char **argv) {
     fprintf(stderr, "Logging\n");
     fprintf(stderr, "  -v                       For each read included in the statistics, report....stuff.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "Data to Plot:\n");
-    fprintf(stderr, "  -plot read-length        read length\n");
-    fprintf(stderr, "  -plot overlap-length     overlap length\n");
-    fprintf(stderr, "  -plot overlap-error      overlap error rate\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  What type of plot to generate.  Multiple types can be supplied.\n");
-    fprintf(stderr, "  The plot type is appended to the outPrefix -- 'outPrefix.read-length.png'\n");
-    fprintf(stderr, "\n");
     fprintf(stderr, "Overlap Selection:\n");
     fprintf(stderr, "  -overlap 5               5' overlaps only\n");
     fprintf(stderr, "  -overlap 3               3' overlaps only\n");
@@ -277,25 +170,6 @@ main(int argc, char **argv) {
     fprintf(stderr, "  Overlaps can be further filtered by fraction error.  Usually, this will be an\n");
     fprintf(stderr, "  'atmost' filtering to use only the higher qualtiy overlaps.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "Read Selection\n");
-    fprintf(stderr, "  -read full-coverage      reads with full coverage in overlaps\n");
-    fprintf(stderr, "  -read missing-5          reads with no 5' overlaps\n");
-    fprintf(stderr, "  -read missing-3          reads with no 3' overlaps\n");
-    fprintf(stderr, "  -read missing-middle     reads with no interior overlaps (implies both ends are covered)\n");
-    fprintf(stderr, "                           (the bogart 'suspicious' reads)\n");
-    fprintf(stderr, "  -read contained          reads that are contained in at least one other read\n");
-    fprintf(stderr, "  -read container          reads that contain at least one other read\n");
-    fprintf(stderr, "  -read partial            reads with overlaps that are not valid for assembly\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  By default, all reads are used.  Specifying any of these options will restrict\n");
-    fprintf(stderr, "  reads to just those categories.  The decision is made after 'overlap selection' is\n");
-    fprintf(stderr, "  performed.  Some of these are nonsense - '-overlap 5 -read full-coverage' will retain\n");
-    fprintf(stderr, "  overlaps and reads that have full coverage in overlaps extending off the 5' end of the\n");
-    fprintf(stderr, "  read (meaning that one of those overlaps must end exactly at the 3' end of the read).\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -read contained          contained reads\n");
-    fprintf(stderr, "  -read container          container reads\n");
-    fprintf(stderr, "\n");
     fprintf(stderr, "  A contained read has at least one container overlap.  Container read    -> ---------------\n");
     fprintf(stderr, "  A container read has at least one contained overlap.  Contained overlap ->      -----\n");
     fprintf(stderr, "\n");
@@ -305,14 +179,8 @@ main(int argc, char **argv) {
 
   //  Set the default to 'all' if nothing set.
 
-  if (plotType == 0)
-    plotType = 0xff;
-
   if (ovlSelect == 0)
     ovlSelect = 0xff;
-
-  if (readSelect == 0)
-    readSelect = 0xff;
 
   //  Open inputs, find limits.
 
@@ -327,19 +195,41 @@ main(int argc, char **argv) {
 
   ovlStore->setRange(bgnID, endID);
 
-  //  Allocate histograms.
+  //  Allocate output histograms.
 
-  histogramStatistics   *readLength    = new histogramStatistics;
-  histogramStatistics   *overlapLength = new histogramStatistics;
-  histogramStatistics   *overlapError  = new histogramStatistics;
+  histogramStatistics   *readNoOlaps     = new histogramStatistics;  //  Bad reads!  (read length)
+  histogramStatistics   *readHole        = new histogramStatistics;
+  histogramStatistics   *readHump        = new histogramStatistics;
+  histogramStatistics   *readNo5         = new histogramStatistics;
+  histogramStatistics   *readNo3         = new histogramStatistics;
+
+  histogramStatistics   *olapHole        = new histogramStatistics;  //  Hole size (sum of holes if more than one)
+  histogramStatistics   *olapHump        = new histogramStatistics;  //  Hump size (sum of humps if more than one)
+  histogramStatistics   *olapNo5         = new histogramStatistics;  //  5' uncovered size
+  histogramStatistics   *olapNo3         = new histogramStatistics;  //  3' uncovered size
+
+  histogramStatistics   *readLowCov      = new histogramStatistics;  //  Good reads!  (read length)
+  histogramStatistics   *readUnique      = new histogramStatistics;
+  histogramStatistics   *readRepeat      = new histogramStatistics;
+  histogramStatistics   *readSpanRepeat  = new histogramStatistics;
+  histogramStatistics   *readUniqRepeat  = new histogramStatistics;
+  histogramStatistics   *readUniqAnchor  = new histogramStatistics;
+
+  histogramStatistics   *covrLowCov      = new histogramStatistics;  //  Good reads!  (overlap length)
+  histogramStatistics   *covrUnique      = new histogramStatistics;
+  histogramStatistics   *covrRepeat      = new histogramStatistics;
+  histogramStatistics   *covrSpanRepeat  = new histogramStatistics;
+  histogramStatistics   *covrUniqRepeat  = new histogramStatistics;
+  histogramStatistics   *covrUniqAnchor  = new histogramStatistics;
+
+  histogramStatistics   *olapLowCov      = new histogramStatistics;  //  Good reads!  (overlap length)
+  histogramStatistics   *olapUnique      = new histogramStatistics;
+  histogramStatistics   *olapRepeat      = new histogramStatistics;
+  histogramStatistics   *olapSpanRepeat  = new histogramStatistics;
+  histogramStatistics   *olapUniqRepeat  = new histogramStatistics;
+  histogramStatistics   *olapUniqAnchor  = new histogramStatistics;
 
   //  Coverage interval lists, of all overlaps selected.
-
-  intervalList<uint32>   coverage5;
-  intervalList<uint32>   coverage3;
-  intervalList<uint32>   coverageC;
-
-  uint32                 numReads = 0;
 
   //  Open outputs.
 
@@ -352,34 +242,34 @@ main(int argc, char **argv) {
 
   //  Compute!
 
-  uint32        overlapsMax = 1024 * 1024;
-  uint32        overlapsLen = 0;
-  ovOverlap    *overlaps    = ovOverlap::allocateOverlaps(gkpStore, overlapsMax);
+  uint32                 overlapsMax = 1024 * 1024;
+
+  uint32                 overlapsLen = 0;
+  ovOverlap             *overlaps    = ovOverlap::allocateOverlaps(gkpStore, overlapsMax);
 
   overlapsLen = ovlStore->readOverlaps(overlaps, overlapsMax);
 
   while (overlapsLen > 0) {
+    uint32  readID  = overlaps[0].a_iid;
+    uint32  readLen = gkpStore->gkStore_getRead(readID)->gkRead_sequenceLength();
+
     intervalList<uint32>   cov;
     uint32                 covID = 0;
 
-    bool    readFullCoverage  = true;
-    bool    readMissingMiddle = true;
-
-    bool    readCoverage5     = false;  //  Opposite of the user flag missing5
+    bool    readCoverage5     = false;
     bool    readCoverage3     = false;
     bool    readContained     = false;
     bool    readContainer     = false;
     bool    readPartial       = false;
 
-    uint32  readID  = overlaps[0].a_iid;
-    uint32  readLen = gkpStore->gkStore_getRead(readID)->gkRead_sequenceLength();
-
     for (uint32 oo=0; oo<overlapsLen; oo++) {
-      bool  is5prime    = (overlaps[oo].overlapAEndIs5prime()  == true) && (ovlSelect & OVL_5);
-      bool  is3prime    = (overlaps[oo].overlapAEndIs3prime()  == true) && (ovlSelect & OVL_3);
+      bool  is5prime    = (overlaps[oo].overlapAEndIs5prime()  == true) && (ovlSelect & OVL_5)         && (overlaps[oo].overlap5primeIsPartial() == false);
+      bool  is3prime    = (overlaps[oo].overlapAEndIs3prime()  == true) && (ovlSelect & OVL_3)         && (overlaps[oo].overlap3primeIsPartial() == false);
       bool  isContained = (overlaps[oo].overlapAIsContained()  == true) && (ovlSelect & OVL_CONTAINED);
       bool  isContainer = (overlaps[oo].overlapAIsContainer()  == true) && (ovlSelect & OVL_CONTAINER);
       bool  isPartial   = (overlaps[oo].overlapIsPartial()     == true) && (ovlSelect & OVL_PARTIAL);
+
+      //  Ignore the overlap?
 
       if ((is5prime    == false) &&
           (is3prime    == false) &&
@@ -407,233 +297,296 @@ main(int argc, char **argv) {
     //  but cleaner than sticking an if block around the rest of the loop.
 
     if (cov.numberOfIntervals() == 0) {
+      readNoOlaps->add(readLen);
+
       overlapsLen = ovlStore->readOverlaps(overlaps, overlapsMax);
       continue;
     }
+
+    //  Generate a depth-of-coverage map, then merge intervals
+
+    intervalList<uint32>  depth(cov);
 
     cov.merge();
 
     //  Analyze the intervals, save per-read information to the log.
 
+    uint32  lastInt           = cov.numberOfIntervals() - 1;
+    uint32  bgn               = cov.lo(0);
+    uint32  end               = cov.hi(lastInt);
+    bool    contiguous        = (lastInt == 0) ? true : false;
 
-    uint32  lastInt    = cov.numberOfIntervals() - 1;
-    uint32  bgn        = cov.lo(0);
-    uint32  end        = cov.hi(lastInt);
-    bool    contiguous = (lastInt == 0) ? true : false;
+    bool    readFullCoverage  = (lastInt == 0) && (bgn == 0) && (end == readLen);
+    bool    readMissingMiddle = (lastInt != 0);
 
-    readFullCoverage  = (lastInt == 0) && (bgn == 0) && (end == readLen);
-    readMissingMiddle = (lastInt != 0);
+    uint32  holeSize          = 0;
+    uint32  no5Size           = bgn;
+    uint32  no3Size           = readLen - end;
 
-    //  Check our analysis.  Well, we were going to assert that readCoverage5==false implies
-    //  that bgn>0, but it is quite possible to have overlaps covering the whole read with
-    //  no dovetail overlaps extending off (which is what the readCoverage flags indicate).
-    //
-    //assert((bgn > 0)         == (readCoverage5 == false));
-    //assert((end < readLen-1) == (readCoverage3 == false));
+    for (uint32 ii=1; ii<cov.numberOfIntervals(); ii++)
+      holeSize += cov.lo(ii) - cov.hi(ii-1);
 
-    //  Report the read
+    //  Handle bad cases.  If it's a partial overlap, ignore the is5prime and is3prime markings.
 
-    //  Classify the read, possibly skip output.
 
-    if (false == (((readFullCoverage  == true)  && (readSelect & READ_FULL_COVERAGE)) ||
-                  ((readCoverage5     == false) && (readSelect & READ_MISSING_5)) ||
-                  ((readCoverage3     == false) && (readSelect & READ_MISSING_3)) ||
-                  ((readMissingMiddle == true)  && (readSelect & READ_MISSING_MIDDLE)) ||
-                  ((readContained     == false) && (readSelect & READ_CONTAINED)) ||
-                  ((readContainer     == false) && (readSelect & READ_CONTAINER)) ||
-                  ((readPartial       == false) && (readSelect & READ_PARTIAL)))) {
+    if (readMissingMiddle == true) {
+      fprintf(LOG, "%u\t%u\t%s\n", readID, readLen, "middle-missing");
+      readHole->add(readLen);
+      olapHole->add(holeSize);
+
       overlapsLen = ovlStore->readOverlaps(overlaps, overlapsMax);
       continue;
     }
 
-    fprintf(LOG, "%u\tlen\t%u\trange\t%u\t%u\tregions\t%u",
-            readID, readLen,
-            bgn, end, cov.numberOfIntervals());
+    if ((readCoverage5 == false) && (readCoverage3 == false) && (readContained == false) && (readPartial == false)) {
+      fprintf(LOG, "%u\t%u\t%s\n", readID, readLen, "middle-only");
+      readHump->add(readLen);
+      olapHump->add(no5Size + no3Size);
 
-    if (cov.numberOfIntervals() > 1)
-      for (uint32 ii=0; ii<cov.numberOfIntervals(); ii++)
-        fprintf(LOG, "\t%u\t%u", cov.lo(ii), cov.hi(ii));
+      overlapsLen = ovlStore->readOverlaps(overlaps, overlapsMax);
+      continue;
+    }
 
-    fprintf(LOG, "\n");
+    if ((readCoverage5 == false) && (readContained == false) && (readPartial == false)) {
+      fprintf(LOG, "%u\t%u\t%s\n", readID, readLen, "no-5-prime");
+      readNo5->add(readLen);
+      olapNo5->add(no5Size);
 
-    //  If we made it here, the read has overlaps we care about.  If we're plotting read length, add
-    //  one point to the readLength data set.
+      overlapsLen = ovlStore->readOverlaps(overlaps, overlapsMax);
+      continue;
+    }
 
-    if (plotType | PLOT_READ_LENGTH)
-      readLength->add(readLen);
+    if ((readCoverage3 == false) && (readContained == false) && (readPartial == false)) {
+      fprintf(LOG, "%u\t%u\t%s\n", readID, readLen, "no-3-prime");
+      readNo3->add(readLen);
+      olapNo3->add(no3Size);
 
-    numReads++;
+      overlapsLen = ovlStore->readOverlaps(overlaps, overlapsMax);
+      continue;
+    }
 
-    //  For the other plot types, we need to run through all the overlaps again, classifying them
-    //  again, then saving the overlap length.
+    //  Handle good cases.  For partial overlaps, bgn and end are not the extent of the read.
 
-    for (uint32 oo=0; oo<overlapsLen; oo++) {
-      bool  is5prime    = (overlaps[oo].overlapAEndIs5prime()  == true) && (ovlSelect & OVL_5);
-      bool  is3prime    = (overlaps[oo].overlapAEndIs3prime()  == true) && (ovlSelect & OVL_3);
-      bool  isContained = (overlaps[oo].overlapAIsContained()  == true) && (ovlSelect & OVL_CONTAINED);
-      bool  isContainer = (overlaps[oo].overlapAIsContainer()  == true) && (ovlSelect & OVL_CONTAINER);
-      bool  isPartial   = (overlaps[oo].overlapIsPartial()     == true) && (ovlSelect & OVL_PARTIAL);
+    if (readPartial == false) {
+      assert(bgn == 0);
+      assert(end == readLen);
+      assert(contiguous == true);
+      assert(readFullCoverage == true);
+    }
 
-      if ((is5prime    == false) &&
-          (is3prime    == false) &&
-          (isContained == false) &&
-          (isContainer == false) &&
-          (isPartial   == false))
-        continue;
+    //  Compute mean and std.dev of coverage.  From this, we decide if the read is 'unique',
+    //  'repeat' or 'mixed'.  If 'mixed', we then need to decide if the read spans a repeat, or
+    //  joins unique and repeat.
 
-      if (overlaps[oo].evalue() < ovlAtLeast)
-        continue;
+    double  covMean   = 0;
+    double  covStdDev = 0;
 
-      if (overlaps[oo].evalue() > ovlAtMost)
-        continue;
+    for (uint32 ii=0; ii<depth.numberOfIntervals(); ii++)
+      covMean += (depth.hi(ii) - depth.lo(ii)) * depth.depth(ii);
 
-      //  No changes for 5' overlaps, plot from bgn==0 to end==whatever.
-      if (is5prime) {
-        coverage5.add(overlaps[oo].a_bgn(), overlaps[oo].a_end() - overlaps[oo].a_bgn());
-      }
+    covMean /= readLen;
 
-      //  For 3' overlaps, we need to reverse-complement, so the 3' end becomes position 0.
-      if (is3prime) {
-        uint32  bgn = readLen - overlaps[oo].a_end();
-        uint32  end = readLen - overlaps[oo].a_bgn();
+    for (uint32 ii=0; ii<depth.numberOfIntervals(); ii++)
+      covStdDev += (depth.hi(ii) - depth.lo(ii)) * (depth.depth(ii) - covMean) * (depth.depth(ii) - covMean);
 
-        coverage3.add(bgn, end - bgn);
-      }
+    covStdDev = sqrt(covStdDev / (readLen - 1));
 
-      //  For container reads (showing the location of contained reads
-      //  in the container), normalize the A read length to 0..1.
-      if (isContainer) {
-        uint32  bgn = overlaps[oo].a_bgn();
-        uint32  end = overlaps[oo].a_end();
+    //  Classify each interval as either 'l'owcoverage, 'u'nique or 'r'epeat.
 
-        coverageC.add(bgn, end-bgn);
-      }
+    char *classification = new char [depth.numberOfIntervals()];
 
+    for (uint32 ii=0; ii<depth.numberOfIntervals(); ii++) {
+      if        (depth.depth(ii) < expectedMean - 3 * expectedStdDev) {
+        classification[ii] = 'l';
 
-      if (plotType | PLOT_OVERLAP_LENGTH) {
-        overlapLength->add(overlaps[oo].span());
-      }
+      } else if (depth.depth(ii) < expectedMean + 3 * expectedStdDev) {
+        classification[ii] = 'u';
 
-      if (plotType | PLOT_OVERLAP_ERROR) {
-        overlapError->add(overlaps[oo].evalue());
+      } else {
+        classification[ii] = 'r';
       }
     }
+
+    //  Try to detect if a read is part unique and part repeat.
+
+    bool   isLowCov     = false;
+    bool   isUnique     = false;
+    bool   isRepeat     = false;
+    bool   isSpanRepeat = false;
+    bool   isUniqRepeat = false;
+    bool   isUniqAnchor = false;
+
+    int32  bgni = 0;
+    int32  endi = depth.numberOfIntervals() - 1;
+
+    char   type5 = classification[bgni];
+    char   typem = 0;
+    char   type3 = classification[endi];
+
+    while ((bgni <= endi) && (type5 == classification[bgni]))
+      bgni++;
+    bgni--;
+
+    while ((bgni <= endi) && (type3 == classification[endi]))
+      endi--;
+    endi++;
+
+    //  All the same classification?
+
+    if (bgni == endi) {
+      isLowCov = (type5 == 'l');
+      isUnique = (type5 == 'u');
+      isRepeat = (type5 == 'r');
+    }
+
+    //  Nope, if we aren't the same, assume it is uniqRepeat.
+
+    else if (type5 != type3) {
+      isUniqRepeat = true;
+    }
+
+    //  Nope, the same on both ends.  Assume we're just flipped.
+
+    else {
+      if (type5 == 'r')
+        isUniqAnchor = true;
+      else
+        isSpanRepeat = true;
+    }
+
+    //  Now, do something with it.
+
+    //  LOG - readID readLen classification
+
+    if (isLowCov) {
+      fprintf(LOG, "%u\t%u\t%s\n", readID, readLen, "low-cov");
+      readLowCov->add(readLen);
+
+      for (uint32 ii=0; ii<depth.numberOfIntervals(); ii++)
+        covrLowCov->add(depth.depth(ii), depth.hi(ii) - depth.lo(ii));
+    }
+
+    if (isUnique) {
+      fprintf(LOG, "%u\t%u\t%s\n", readID, readLen, "unique");
+      readUnique->add(readLen);
+
+      for (uint32 ii=0; ii<depth.numberOfIntervals(); ii++)
+        covrUnique->add(depth.depth(ii), depth.hi(ii) - depth.lo(ii));
+    }
+
+    if (isRepeat) {
+      fprintf(LOG, "%u\t%u\t%s\n", readID, readLen, "repeat");
+      readRepeat->add(readLen);
+
+      for (uint32 ii=0; ii<depth.numberOfIntervals(); ii++)
+        covrRepeat->add(depth.depth(ii), depth.hi(ii) - depth.lo(ii));
+    }
+
+    if (isSpanRepeat) {
+      fprintf(LOG, "%u\t%u\t%s\n", readID, readLen, "span-repeat");
+      readSpanRepeat->add(readLen);
+      olapSpanRepeat->add(depth.lo(endi) - depth.hi(bgni));
+    }
+
+    if (isUniqRepeat) {
+      fprintf(LOG, "%u\t%u\t%s\n", readID, readLen, "uniq-repeat");
+      readUniqRepeat->add(readLen);
+    }
+
+    if (isUniqAnchor) {
+      fprintf(LOG, "%u\t%u\t%s\n", readID, readLen, "uniq-anchor");
+      readUniqAnchor->add(readLen);
+      olapUniqAnchor->add(depth.lo(endi) - depth.hi(bgni));
+    }
+
+    //  Done.  Read more data.
 
     overlapsLen = ovlStore->readOverlaps(overlaps, overlapsMax);
   }
 
   fclose(LOG);  //  Done with logging.
 
+  readHole->finalizeData();
+  olapHole->finalizeData();
 
-  readLength->finalizeData();
-  overlapLength->finalizeData();
-  overlapError->finalizeData();
+  readHump->finalizeData();
+  olapHump->finalizeData();
 
-  intervalList<uint32>  depth3(coverage3);  //  Convert the list of overlap intervals to depths.
-  intervalList<uint32>  depth5(coverage5);
-  intervalList<uint32>  depthC(coverageC);
+  readNo5->finalizeData();
+  olapNo5->finalizeData();
 
-
-  //char  N[FILENAME_MAX];
-  FILE *F;
-
-  fprintf(stderr, "\n\n");
-
-  if (plotType | PLOT_READ_LENGTH) {
-    fprintf(stderr, "readLength:     %9"F_U64P" objs  %8.2f +- %8.2f  median %8"F_U64P" mad %8"F_U64P"\n",
-            readLength->numberOfObjects(),
-            readLength->mean(),   readLength->stddev(),
-            readLength->median(), readLength->mad());
-
-    sprintf(N, "%s.read-length.histogram", outPrefix);
-    errno = 0;
-    F = fopen(N, "w");
-    if (errno)
-      fprintf(stderr, "Failed to open '%s' for writing: %s\n", N, strerror(errno)), exit(1);
-    readLength->writeHistogram(F, "read-length");
-    fclose(F);
-
-    sprintf(N, "%s.read-length.gp", outPrefix);
-    errno = 0;
-    F = fopen(N, "w");
-    if (errno)
-      fprintf(stderr, "Failed to open '%s' for writing: %s\n", N, strerror(errno)), exit(1);
-    fprintf(F, "set terminal 'png'\n");
-    fprintf(F, "set output '%s.read-length.png'\n", outPrefix);
-    fprintf(F, "plot '%s.read-length.histogram' using 1:2 with lines\n", outPrefix);
-    fclose(F);
-
-    sprintf(N, "gnuplot < %s.read-length.gp", outPrefix);
-    system(N);
-  }
+  readNo3->finalizeData();
+  olapNo3->finalizeData();
 
 
-  if (plotType | PLOT_OVERLAP_LENGTH) {
-    fprintf(stderr, "overlapLength:  %9"F_U64P" objs  %8.2f +- %8.2f  median %8"F_U64P" mad %8"F_U64P"\n",
-            overlapLength->numberOfObjects(),
-            overlapLength->mean(),   overlapLength->stddev(),
-            overlapLength->median(), overlapLength->mad());
+  readLowCov->finalizeData();
+  olapLowCov->finalizeData();
+  covrLowCov->finalizeData();
 
-    sprintf(N, "%s.overlap-length.histogram", outPrefix);
-    errno = 0;
-    F = fopen(N, "w");
-    if (errno)
-      fprintf(stderr, "Failed to open '%s' for writing: %s\n", N, strerror(errno)), exit(1);
-    overlapLength->writeHistogram(F, "overlap-length");
-    fclose(F);
+  readUnique->finalizeData();
+  olapUnique->finalizeData();
+  covrUnique->finalizeData();
 
-    sprintf(N, "%s.overlap-length.gp", outPrefix);
-    errno = 0;
-    F = fopen(N, "w");
-    if (errno)
-      fprintf(stderr, "Failed to open '%s' for writing: %s\n", N, strerror(errno)), exit(1);
-    fprintf(F, "set terminal 'png'\n");
-    fprintf(F, "set output '%s.overlap-length.png'\n", outPrefix);
-    fprintf(F, "plot '%s.overlap-length.histogram' using 1:2 with lines\n", outPrefix);
-    fclose(F);
-
-    sprintf(N, "gnuplot < %s.overlap-length.gp", outPrefix);
-    system(N);
-  }
+  readRepeat->finalizeData();
+  olapRepeat->finalizeData();
+  covrRepeat->finalizeData();
 
 
-  if (plotType | PLOT_OVERLAP_ERROR) {
-    fprintf(stderr, "overlapError:   %9"F_U64P" objs  %8.4f +- %8.4f  median %8.4f mad %8.4f\n",
-            overlapError->numberOfObjects(),
-            AS_OVS_decodeEvalue(overlapError->mean()),   AS_OVS_decodeEvalue(overlapError->stddev()),
-            AS_OVS_decodeEvalue(overlapError->median()), AS_OVS_decodeEvalue(overlapError->mad()));
+  readSpanRepeat->finalizeData();
+  olapSpanRepeat->finalizeData();
 
-    sprintf(N, "%s.overlap-error.histogram", outPrefix);
-    errno = 0;
-    F = fopen(N, "w");
-    if (errno)
-      fprintf(stderr, "Failed to open '%s' for writing: %s\n", N, strerror(errno)), exit(1);
-    overlapError->writeHistogram(F, "overlap-error");
-    fclose(F);
+  readUniqRepeat->finalizeData();
+  olapUniqRepeat->finalizeData();
 
-    sprintf(N, "%s.overlap-error.gp", outPrefix);
-    errno = 0;
-    F = fopen(N, "w");
-    if (errno)
-      fprintf(stderr, "Failed to open '%s' for writing: %s\n", N, strerror(errno)), exit(1);
-    fprintf(F, "set terminal 'png'\n");
-    fprintf(F, "set output '%s.overlap-error.png'\n", outPrefix);
-    fprintf(F, "plot '%s.overlap-error.histogram' using 1:2 with lines\n", outPrefix);
-    fclose(F);
+  readUniqAnchor->finalizeData();
+  olapUniqAnchor->finalizeData();
 
-    sprintf(N, "gnuplot < %s.overlap-error.gp", outPrefix);
-    system(N);
-  }
+  fprintf(stderr, "BAD READS:\n");
+  fprintf(stderr, "middle-missing:    %6u reads length %10.2f +- %8.2f hole-size %10.2f +- %8.2f\n",
+          readHole->numberOfObjects(),
+          readHole->mean(), readHole->stddev(),
+          olapHole->mean(), olapHole->stddev());
+  fprintf(stderr, "middle-hump:       %6u reads length %10.2f +- %8.2f hole-size %10.2f +- %8.2f\n",
+          readHump->numberOfObjects(),
+          readHump->mean(), readHump->stddev(),
+          olapHump->mean(), olapHump->stddev());
+  fprintf(stderr, "no-5-prime:        %6u reads length %10.2f +- %8.2f uncovered %10.2f +- %8.2f\n",
+          readNo5->numberOfObjects(),
+          readNo5->mean(), readNo5->stddev(),
+          olapNo5->mean(), olapNo5->stddev());
+  fprintf(stderr, "no-3-prime:        %6u reads length %10.2f +- %8.2f uncovered %10.2f +- %8.2f\n",
+          readNo3->numberOfObjects(),
+          readNo3->mean(), readNo3->stddev(),
+          olapNo3->mean(), olapNo3->stddev());
+
+  fprintf(stderr, "UNIFORM READS:\n");
+  fprintf(stderr, "low-cov:           %6u reads length %10.2f +- %8.2f coverage  %10.2f +- %8.2f\n",
+          readLowCov->numberOfObjects(),
+          readLowCov->mean(), readLowCov->stddev(),
+          covrLowCov->mean(), covrLowCov->stddev());
+  fprintf(stderr, "unique:            %6u reads length %10.2f +- %8.2f coverage  %10.2f +- %8.2f\n",
+          readUnique->numberOfObjects(),
+          readUnique->mean(), readUnique->stddev(),
+          covrUnique->mean(), covrUnique->stddev());
+  fprintf(stderr, "repeat:            %6u reads length %10.2f +- %8.2f coverage  %10.2f +- %8.2f\n",
+          readRepeat->numberOfObjects(),
+          readRepeat->mean(), readRepeat->stddev(),
+          covrRepeat->mean(), covrRepeat->stddev());
+
+  fprintf(stderr, "ANCHORING READS:\n");
+  fprintf(stderr, "span-repeat:       %6u reads length %10.2f +- %8.2f span-size %10.2f +- %8.2f\n",
+          readSpanRepeat->numberOfObjects(),
+          readSpanRepeat->mean(), readSpanRepeat->stddev(),
+          olapSpanRepeat->mean(), olapSpanRepeat->stddev());
+  fprintf(stderr, "uniq-repeat:       %6u reads length %10.2f +- %8.2f\n",
+          readUniqRepeat->numberOfObjects(),
+          readUniqRepeat->mean(), readUniqRepeat->stddev());
+  fprintf(stderr, "uniq-anchor:       %6u reads length %10.2f +- %8.2f span-size %10.2f +- %8.2f\n",
+          readUniqAnchor->numberOfObjects(),
+          readUniqAnchor->mean(), readUniqAnchor->stddev(),
+          olapUniqAnchor->mean(), olapUniqAnchor->stddev());
 
 
-  plotCoverageHistogram(depth5, numReads, outPrefix, "5prime");
-  plotCoverageHistogram(depth3, numReads, outPrefix, "3prime");
-  plotCoverageHistogram(depthC, numReads, outPrefix, "contained");
-
-
-  delete overlapError;
-  delete overlapLength;
-  delete readLength;
 
   delete ovlStore;
   delete gkpStore;
