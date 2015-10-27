@@ -441,6 +441,7 @@ public:
     Max_Hash_Data_Len    = 100000000;
 
     Outfile_Name = NULL;
+    Outstat_Name = NULL;
 
     Num_PThreads = 1;
 
@@ -501,6 +502,7 @@ public:
   //  --maxreadlen sets OFFSET_BITS, STRING_NUM_BITS, STRING_NUM_MASK and MAX_STRING_NUM.
 
   char  *Outfile_Name;  //  -o
+  char  *Outstat_Name;  //  -s
 
   uint32  Num_PThreads;  //  -t
 

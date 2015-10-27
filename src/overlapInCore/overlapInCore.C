@@ -402,6 +402,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-o") == 0) {
       G.Outfile_Name = argv[++arg];
 
+    } else if (strcmp(argv[arg], "-s") == 0) {
+      G.Outstat_Name = argv[++arg];
+
     } else if (strcmp(argv[arg], "-t") == 0) {
       G.Num_PThreads = strtoull(argv[++arg], NULL, 10);
 
@@ -472,7 +475,6 @@ main(int argc, char **argv) {
     fprintf(stderr, "-o          specify output file name\n");
     fprintf(stderr, "-P          write protoIO output (if not -G)\n");
     fprintf(stderr, "-r <range>  specify old fragments to overlap\n");
-    fprintf(stderr, "-s          ignore screen information with fragments\n");
     fprintf(stderr, "-t <n>      use <n> parallel threads\n");
     fprintf(stderr, "-u          allow only 1 overlap per oriented fragment pair\n");
     fprintf(stderr, "-w          filter out overlaps with too many errors in a window\n");
@@ -584,16 +586,30 @@ main(int argc, char **argv) {
   delete [] Hash_Check_Array;
   delete [] Hash_Table;
 
-  fprintf (stderr, " Kmer hits without olaps = "F_S64"\n", Kmer_Hits_Without_Olap_Ct);
-  fprintf (stderr, "    Kmer hits with olaps = "F_S64"\n", Kmer_Hits_With_Olap_Ct);
-  fprintf (stderr, "  Multiple overlaps/pair = "F_S64"\n", Multi_Overlap_Ct);
-  fprintf (stderr, " Total overlaps produced = "F_S64"\n", Total_Overlaps);
-  fprintf (stderr, "      Contained overlaps = "F_S64"\n", Contained_Overlap_Ct);
-  fprintf (stderr, "       Dovetail overlaps = "F_S64"\n", Dovetail_Overlap_Ct);
-  fprintf (stderr, "Rejected by short window = "F_S64"\n", Bad_Short_Window_Ct);
-  fprintf (stderr, " Rejected by long window = "F_S64"\n", Bad_Long_Window_Ct);
-
   delete Out_BOF;
+
+  FILE *stats = stderr;
+
+  if (G.Outstat_Name != NULL) {
+    errno = 0;
+    stats = fopen(G.Outstat_Name, "w");
+    if (errno) {
+      fprintf(stderr, "WARNING: failed to open '%s' for writing: %s\n", G.Outstat_Name, strerror(errno));
+      stats = stderr;
+    }
+  }
+
+  fprintf(stats, " Kmer hits without olaps = "F_S64"\n", Kmer_Hits_Without_Olap_Ct);
+  fprintf(stats, "    Kmer hits with olaps = "F_S64"\n", Kmer_Hits_With_Olap_Ct);
+  fprintf(stats, "  Multiple overlaps/pair = "F_S64"\n", Multi_Overlap_Ct);
+  fprintf(stats, " Total overlaps produced = "F_S64"\n", Total_Overlaps);
+  fprintf(stats, "      Contained overlaps = "F_S64"\n", Contained_Overlap_Ct);
+  fprintf(stats, "       Dovetail overlaps = "F_S64"\n", Dovetail_Overlap_Ct);
+  fprintf(stats, "Rejected by short window = "F_S64"\n", Bad_Short_Window_Ct);
+  fprintf(stats, " Rejected by long window = "F_S64"\n", Bad_Long_Window_Ct);
+
+  if (stats != stderr)
+    fclose(stats);
 
   return(0);
 }
