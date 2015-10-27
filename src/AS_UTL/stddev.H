@@ -305,14 +305,14 @@ public:
     delete [] _histogram;
   };
 
-  void               add(uint64 data) {
+  void               add(uint64 data, uint32 count=1) {
     if (_histogramAlloc < data)
       resizeArray(_histogram, _histogramMax+1, _histogramAlloc, _histogramAlloc * 2, resizeArray_copyData | resizeArray_clearNew);
 
     if (_histogramMax < data)
       _histogramMax = data;
 
-    _histogram[data]++;
+    _histogram[data] += count;
     _finalized = false;
   };
 
@@ -366,7 +366,8 @@ public:
     for (uint64 ii=0; ii <= _histogramMax; ii++)
       _mean += ii * _histogram[ii];
 
-    _mean /= _numObjs;
+    if (_numObjs > 1)
+      _mean /= _numObjs;
 
     for (uint64 ii=0; ii <= _histogramMax; ii++)
       _stddev += _histogram[ii] * (ii - _mean) * (ii - _mean);
