@@ -252,6 +252,7 @@ public:
   bool       forDUP(void)               { return(dat.ovl.forDUP); };
   bool       forUTG(void)               { return(dat.ovl.forUTG); };
 
+  //  These are true only if the overlap is dovetail, which is the usual case, and isn't checked.
 
   uint32     overlapAEndIs5prime(void) const  { return((dat.ovl.bhg5 > 0) && (dat.ovl.ahg3  > 0));  };
   uint32     overlapAEndIs3prime(void) const  { return((dat.ovl.ahg5 > 0) && (dat.ovl.bhg3  > 0));  };
@@ -266,6 +267,8 @@ public:
 
   uint32     overlapAIsContainer(void) const  { return((dat.ovl.bhg5 == 0) && (dat.ovl.bhg3 == 0));  };
   uint32     overlapBIsContained(void) const  { return((dat.ovl.bhg5 == 0) && (dat.ovl.bhg3 == 0));  };
+
+  //  Test if the overlap is dovetail or partial.
 
   uint32     overlap5primeIsPartial(void) const { return((dat.ovl.ahg5 > 0) && (dat.ovl.bhg5 > 0)); };
   uint32     overlap3primeIsPartial(void) const { return((dat.ovl.ahg3 > 0) && (dat.ovl.bhg3 > 0)); };
