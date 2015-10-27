@@ -267,6 +267,11 @@ public:
   uint32     overlapAIsContainer(void) const  { return((dat.ovl.bhg5 == 0) && (dat.ovl.bhg3 == 0));  };
   uint32     overlapBIsContained(void) const  { return((dat.ovl.bhg5 == 0) && (dat.ovl.bhg3 == 0));  };
 
+  uint32     overlap5primeIsPartial(void) const { return((dat.ovl.ahg5 > 0) && (dat.ovl.bhg5 > 0)); };
+  uint32     overlap3primeIsPartial(void) const { return((dat.ovl.ahg3 > 0) && (dat.ovl.bhg3 > 0)); };
+
+  uint32     overlapIsPartial(void)       const { return(overlap5primeIsPartial() || overlap3primeIsPartial()); };
+
   char      *toString(char *str, ovOverlapDisplayType type, bool newLine);
 
   void       swapIDs(ovOverlap const &orig);
