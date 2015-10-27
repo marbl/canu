@@ -125,7 +125,7 @@ sub gatekeeper ($$$@) {
     #  An empty store?  Remove it and try again.
 
     if ((storeExists($wrk, $asm)) && (getNumberOfReadsInStore($wrk, $asm) == 0)) {
-        print STDERR "--  Removing empty or incomplate gkpStore `$wrk/$asm.gkpStore`\n";
+        print STDERR "--  Removing empty or incomplate gkpStore '$wrk/$asm.gkpStore'\n";
         runmCommandSilently($wrk, "rm -rf $wrk/$asm.gkpStore");
     }
 
@@ -290,7 +290,7 @@ sub gatekeeper ($$$@) {
 
     my $scale = $maxhist / 70;
 
-    print STDERR "--  In gatekeeper store `$wrk/$asm.gkpStore`:\n";
+    print STDERR "--  In gatekeeper store '$wrk/$asm.gkpStore':\n";
     print STDERR "--    Found $reads reads.\n";
     print STDERR "--    Found $bases bases ($coverage times coverage).\n";
     print STDERR "--\n";
