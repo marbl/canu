@@ -177,6 +177,7 @@ sub overlapConfigure ($$$$) {
         print F "  --minlength ", getGlobal("minOverlapLength"), " \\\n";
         print F "  \$opt \\\n";
         print F "  -o $path/\$job.ovb.WORKING.gz \\\n";
+        print F "  -s $path/\$job.stats \\\n";
         #print F "  -H $hashLibrary \\\n" if ($hashLibrary ne "0");
         #print F "  -R $refLibrary \\\n"  if ($refLibrary  ne "0");
         print F "  $wrk/$asm.gkpStore \\\n";
@@ -213,6 +214,72 @@ sub overlapConfigure ($$$$) {
 
 
 
+sub reportSumMeanStdDev (@) {
+    my $sum    = 0;
+    my $mean   = 0;
+    my $stddev = 0;
+    my $n      = scalar(@_);
+    my $formatted;
+
+    $sum += $_  foreach (@_);
+
+    $mean = $sum / $n;
+
+    $stddev += ($_ - $mean) * ($_ - $mean)  foreach (@_);
+    $stddev  = int(1000 * sqrt($stddev / ($n-1))) / 1000  if ($n > 1);
+
+    $formatted  = substr("         $mean", -10) . " +- $stddev";
+
+    return($sum, $formatted);
+}
+
+
+sub reportOverlapStats ($$@) {
+    my $wrk       = shift @_;
+    my $asm       = shift @_;
+    my @statsJobs = @_;
+
+    my @hitsWithoutOlaps;
+    my @hitsWithOlaps;
+    my @multiOlaps;
+    my @totalOlaps;
+    my @containedOlaps;
+    my @dovetailOlaps;
+    my @shortReject;
+    my @longReject;
+
+    foreach my $s (@statsJobs) {
+        open(F, "< $s") or caExit("can't open '$s' for reading: $!", undef);
+
+        $_ = <F>;  push @hitsWithoutOlaps, $1  if (m/^\s*Kmer\shits\swithout\solaps\s=\s(\d+)$/);
+        $_ = <F>;  push @hitsWithOlaps, $1     if (m/^\s*Kmer\shits\swith\solaps\s=\s(\d+)$/);
+        $_ = <F>;  push @multiOlaps, $1        if (m/^\s*Multiple\soverlaps\/pair\s=\s(\d+)$/);
+        $_ = <F>;  push @totalOlaps, $1        if (m/^\s*Total\soverlaps\sproduced\s=\s(\d+)$/);
+        $_ = <F>;  push @containedOlaps, $1    if (m/^\s*Contained\soverlaps\s=\s(\d+)$/);
+        $_ = <F>;  push @dovetailOlaps, $1     if (m/^\s*Dovetail\soverlaps\s=\s(\d+)$/);
+        $_ = <F>;  push @shortReject, $1       if (m/^\s*Rejected\sby\sshort\swindow\s=\s(\d+)$/);
+        $_ = <F>;  push @longReject, $1        if (m/^\s*Rejected\sby\slong\swindow\s=\s(\d+)$/);
+
+        close(F);
+    }
+
+    printf STDERR "--\n";
+    printf STDERR "--  overlapInCore compute '$wrk/1-overlapper':\n";
+    printf STDERR "--  kmer hits\n";
+    printf STDERR "--    with no overlap     %12d  %s\n", reportSumMeanStdDev(@hitsWithoutOlaps);
+    printf STDERR "--    with an overlap     %12d  %s\n", reportSumMeanStdDev(@hitsWithOlaps);
+    printf STDERR "--\n";
+    printf STDERR "--  overlaps              %12d  %s\n", reportSumMeanStdDev(@totalOlaps);
+    printf STDERR "--    contained           %12d  %s\n", reportSumMeanStdDev(@containedOlaps);
+    printf STDERR "--    dovetail            %12d  %s\n", reportSumMeanStdDev(@dovetailOlaps);
+    printf STDERR "--\n";
+    printf STDERR "--  overlaps rejected\n";
+    printf STDERR "--    multiple per pair   %12d  %s\n", reportSumMeanStdDev(@multiOlaps);
+    printf STDERR "--    bad short window    %12d  %s\n", reportSumMeanStdDev(@shortReject);
+    printf STDERR "--    bad long window     %12d  %s\n", reportSumMeanStdDev(@longReject);
+    printf STDERR "--\n";
+}
+
 
 #  Check that the overlapper jobs properly executed.  If not,
 #  complain, but don't help the user fix things.
@@ -235,6 +302,7 @@ sub overlapCheck ($$$$$) {
 
     my $currentJobID   = 1;
     my @successJobs;
+    my @statsJobs;
     my @failedJobs;
     my $failureMessage = "";
 
@@ -243,16 +311,20 @@ sub overlapCheck ($$$$$) {
     while (<F>) {
         if (m/^\s+job=\"(\d+\/\d+)\"$/) {
             if      (-e "$path/$1.ovb.gz") {
-                push @successJobs, "$path/$1.ovb.gz\n";
+                push @successJobs, "$path/$1.ovb.gz\n";   #  Dumped to a file, so include \n
+                push @statsJobs,   "$path/$1.stats";      #  Used here, don't include \n
 
             } elsif (-e "$path/$1.ovb") {
                 push @successJobs, "$path/$1.ovb\n";
+                push @statsJobs,   "$path/$1.stats";
 
             } elsif (-e "$path/$1.ovb.bz2") {
                 push @successJobs, "$path/$1.ovb.bz2\n";
+                push @statsJobs,   "$path/$1.stats";
 
             } elsif (-e "$path/$1.ovb.xz") {
                 push @successJobs, "$path/$1.ovb.xz\n";
+                push @statsJobs,   "$path/$1.stats";
 
             } else {
                 $failureMessage .= "  job $path/$1 FAILED.\n";
@@ -268,6 +340,7 @@ sub overlapCheck ($$$$$) {
     #  No failed jobs?  Success!
 
     if (scalar(@failedJobs) == 0) {
+        reportOverlapStats($wrk, $asm, @statsJobs);
         open(L, "> $path/ovljob.files") or caExit("can't open '$path/ovljob.files' for writing: $!", undef);
         print L @successJobs;
         close(L);
