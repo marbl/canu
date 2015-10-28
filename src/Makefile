@@ -423,7 +423,7 @@ ifeq (${OSTYPE}, FreeBSD)
   CXXFLAGS := -pthread -fPIC -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare # -Wformat -Wall -Wextra 
   LDFLAGS  := -pthread -lm
 
-  CXXFLAGS  += -fopenmp
+  CXXFLAGS  += -fopenmp  -Wall -Wextra -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat
   LDFLAGS   += -fopenmp -rpath /usr/local/lib/gcc48
 
   #CXXFLAGS  += -Wall -Wextra -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat
