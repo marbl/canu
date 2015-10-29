@@ -301,8 +301,8 @@ public:
 
   gkReadData *gkRead_encodeSeqQlt(char *H, char *S, char *Q);
   gkReadData *gkRead_encodeSeqQlt(char *H, char *S, uint32 qv);
-  gkReadData *gkRead_encodePacBio(char *H, char *S, char *Q);
-  gkReadData *gkRead_encodeMinION(char *H, char *S, char *Q);
+  //gkReadData *gkRead_encodePacBio(char *H, char *S, char *Q);  //  Not implemented.
+  //gkReadData *gkRead_encodeMinION(char *H, char *S, char *Q);
 
 private:
   char       *gkRead_encodeSequence(char *sequence, char *encoded);

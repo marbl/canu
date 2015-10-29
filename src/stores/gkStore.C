@@ -339,7 +339,7 @@ gkRead::gkRead_encodeSeqQlt(char *H, char *S, char *Q) {
 }
 
 gkReadData *
-gkRead::gkRead_encodeSeqQlt(char *H, char *S, uint32 qv) {
+gkRead::gkRead_encodeSeqQlt(char *UNUSED(H), char *S, uint32 qv) {
   gkReadData *rd = new gkReadData;
 
   uint32  Slen = strlen(S);
@@ -361,6 +361,8 @@ gkRead::gkRead_encodeSeqQlt(char *H, char *S, uint32 qv) {
   return(rd);
 }
 
+#if 0
+//  Not implemented.
 gkReadData *
 gkRead::gkRead_encodePacBio(char *H, char *S, char *Q) {
   gkReadData *rd = new gkReadData;
@@ -368,12 +370,14 @@ gkRead::gkRead_encodePacBio(char *H, char *S, char *Q) {
   return(rd);
 }
 
+//  Not implemented.
 gkReadData *
 gkRead::gkRead_encodeMinION(char *H, char *S, char *Q) {
   gkReadData *rd = new gkReadData;
 
   return(rd);
 }
+#endif
 
 
 ////////////////////////////////////////
@@ -495,27 +499,27 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
   uint32  failed = 0;
 
   if (_info.gkLibrarySize      != sizeof(gkLibrary))
-    failed += fprintf(stderr, "ERROR:  gkLibrary size in store = %u, differs from executable = %u\n",
+    failed += fprintf(stderr, "ERROR:  gkLibrary size in store = "F_U32", differs from executable = "F_SIZE_T"\n",
                       _info.gkLibrarySize, sizeof(gkLibrary));
 
   if (_info.gkReadSize         != sizeof(gkRead))
-    failed += fprintf(stderr, "ERROR:  gkRead size in store = %u, differs from executable = %u\n",
+    failed += fprintf(stderr, "ERROR:  gkRead size in store = "F_U32", differs from executable = "F_SIZE_T"\n",
                       _info.gkReadSize, sizeof(gkRead));
 
   if (_info.gkMaxLibrariesBits != AS_MAX_LIBRARIES_BITS)
-    failed += fprintf(stderr, "ERROR:  AS_MAX_LIBRARIES_BITS in store = %u, differs from executable = %u\n",
+    failed += fprintf(stderr, "ERROR:  AS_MAX_LIBRARIES_BITS in store = "F_U32", differs from executable = "F_U32"\n",
                       _info.gkMaxLibrariesBits, AS_MAX_LIBRARIES_BITS);
 
   if (_info.gkLibraryNameSize  != LIBRARY_NAME_SIZE)
-    failed += fprintf(stderr, "ERROR:  LIBRARY_NAME_SIZE in store = %u, differs from executable = %u\n",
+    failed += fprintf(stderr, "ERROR:  LIBRARY_NAME_SIZE in store = "F_U32", differs from executable = "F_U32"\n",
                       _info.gkLibraryNameSize, LIBRARY_NAME_SIZE);
 
   if (_info.gkMaxReadBits      != AS_MAX_READS_BITS)
-    failed += fprintf(stderr, "ERROR:  AS_MAX_READS_BITS in store = %u, differs from executable = %u\n",
+    failed += fprintf(stderr, "ERROR:  AS_MAX_READS_BITS in store = "F_U32", differs from executable = "F_U32"\n",
                       _info.gkMaxReadBits, AS_MAX_READS_BITS);
 
   if (_info.gkMaxReadLenBits   != AS_MAX_READLEN_BITS)
-    failed += fprintf(stderr, "ERROR:  AS_MAX_READLEN_BITS in store = %u, differs from executable = %u\n",
+    failed += fprintf(stderr, "ERROR:  AS_MAX_READLEN_BITS in store = "F_U32", differs from executable = "F_U32"\n",
                       _info.gkMaxReadLenBits, AS_MAX_READLEN_BITS);
 
   if (failed)
@@ -1143,7 +1147,7 @@ gkStore::gkStore_deletePartitions(void) {
 
 
 void
-gkStoreStats::init(gkStore *gkp) {
+gkStoreStats::init(gkStore *UNUSED(gkp)) {
 
 #if 0
   gkFragment    fr;
