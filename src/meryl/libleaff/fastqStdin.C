@@ -103,7 +103,7 @@ fastqStdin::getNumberOfSequences(void) {
 
 uint32
 fastqStdin::find(const char *sequencename) {
-  fprintf(stderr, "fastqStdin::find()-- ERROR!  Used for random access.\n");
+  fprintf(stderr, "fastqStdin::find()-- ERROR!  Used for random access on sequence '%s'.\n", sequencename);
   assert(0);
   return(~uint32ZERO);
 }
@@ -178,7 +178,7 @@ fastqStdin::getSequence(uint32 iid,
 #ifdef DEBUG
   fprintf(stderr, "fastqStdin::getSequence(part)-- "uint32FMT"\n", iid);
 #endif
-  fprintf(stderr, "fastqStdin::getSequence(part)-- ERROR!  Used for random access.\n");
+  fprintf(stderr, "fastqStdin::getSequence(part)-- ERROR!  Used for random access on iid "F_U32" from position "F_U32"-"F_U32".\n", iid, bgn, end);
   assert(0);
   return(false);
 }

@@ -42,6 +42,7 @@ protected:
 
 public:
   uint32        find(const char *sequencename) {
+    fprintf(stderr, "gkStoreFile::find()--  Lookup of sequencename '%s' not supported.\n", sequencename);
     assert(0);
     return(0);
   };
