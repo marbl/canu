@@ -333,18 +333,18 @@ main(int argc, char **argv) {
 
 
   fprintf(stderr, "\n");
-  fprintf(stderr, "Processed  %lu overlaps.\n", totalOverlaps);
+  fprintf(stderr, "Processed  "F_U64" overlaps.\n", totalOverlaps);
   fprintf(stderr, "\n");
-  fprintf(stderr, "lowErate   %lu (< %6.4f fraction error)\n", lowErate,  AS_OVS_decodeEvalue(minEvalue));
-  fprintf(stderr, "highErate  %lu (> %6.4f fraction error)\n", highErate, AS_OVS_decodeEvalue(maxEvalue));
-  fprintf(stderr, "tooShort   %lu (< %u bases)\n", tooShort,  minOvlLength);
-  fprintf(stderr, "tooLong    %lu (> %u bases)\n", tooLong,   maxOvlLength);
+  fprintf(stderr, "lowErate   "F_U64" (< %6.4f fraction error)\n", lowErate,  AS_OVS_decodeEvalue(minEvalue));
+  fprintf(stderr, "highErate  "F_U64" (> %6.4f fraction error)\n", highErate, AS_OVS_decodeEvalue(maxEvalue));
+  fprintf(stderr, "tooShort   "F_U64" (< %u bases)\n", tooShort,  minOvlLength);
+  fprintf(stderr, "tooLong    "F_U64" (> %u bases)\n", tooLong,   maxOvlLength);
   fprintf(stderr, "\n");
-  fprintf(stderr, "isContain  %lu (evidence contained in target)\n", isContain);
-  fprintf(stderr, "isDovetail %lu (evidence dovetail to target)\n", isDovetail);
+  fprintf(stderr, "isContain  "F_U64" (evidence contained in target)\n", isContain);
+  fprintf(stderr, "isDovetail "F_U64" (evidence dovetail to target)\n", isDovetail);
   fprintf(stderr, "\n");
-  fprintf(stderr, "filtered   %lu (shortest overlaps, not filtered above)\n", belowCutoff);
-  fprintf(stderr, "retained   %lu (longest overlaps)\n",  retained);
+  fprintf(stderr, "filtered   "F_U64" (shortest overlaps, not filtered above)\n", belowCutoff);
+  fprintf(stderr, "retained   "F_U64" (longest overlaps)\n",  retained);
   fprintf(stderr, "\n");
 
   exit(0);

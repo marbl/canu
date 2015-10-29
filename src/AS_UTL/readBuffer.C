@@ -205,7 +205,7 @@ readBuffer::seek(uint64 pos) {
     errno = 0;
     lseek(_file, pos, SEEK_SET);
     if (errno)
-      fprintf(stderr, "readBuffer()-- '%s' couldn't seek to position "F_SIZE_T": %s\n",
+      fprintf(stderr, "readBuffer()-- '%s' couldn't seek to position "F_U64": %s\n",
               _filename, pos, strerror(errno)), exit(1);
 
     _bufferLen = 0;
