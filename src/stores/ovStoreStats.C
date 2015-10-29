@@ -67,7 +67,7 @@ main(int argc, char **argv) {
   double          expectedMean   = 30.0;
   double          expectedStdDev =  7.0;
 
-  bool            verbose        = false;
+  bool            toFile         = true;
 
   argc = AS_configure(argc, argv);
 
@@ -86,15 +86,20 @@ main(int argc, char **argv) {
       outPrefix = argv[++arg];
 
 
+    else if (strcmp(argv[arg], "-C") == 0) {
+      expectedMean   = atof(argv[++arg]);
+      expectedStdDev = atof(argv[++arg]);
+    }
+
+    else if (strcmp(argv[arg], "-c") == 0)
+      toFile = false;
+
+
     else if (strcmp(argv[arg], "-b") == 0)
       bgnID = atoi(argv[++arg]);
 
     else if (strcmp(argv[arg], "-e") == 0)
       endID = atoi(argv[++arg]);
-
-
-    else if (strcmp(argv[arg], "-v") == 0)
-      verbose = true;
 
 
     else if (strcmp(argv[arg], "-overlap") == 0) {
@@ -149,8 +154,13 @@ main(int argc, char **argv) {
     fprintf(stderr, "Generates statistics for an overlap store.  By default all possible classes\n");
     fprintf(stderr, "are generated, options can disable specific classes.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "Logging\n");
-    fprintf(stderr, "  -v                       For each read included in the statistics, report....stuff.\n");
+    fprintf(stderr, "  -C mean stddev           Expect coverage at mean +- stddev\n");
+    fprintf(stderr, "  -c                       Write stats to stdout, not to a file\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Outputs:\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  outPrefix.per-read.log   One line per read, giving readID, read length and classification.\n");
+    fprintf(stderr, "  outPrefix.summary        The primary statistical output.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Overlap Selection:\n");
     fprintf(stderr, "  -overlap 5               5' overlaps only\n");
@@ -197,37 +207,43 @@ main(int argc, char **argv) {
 
   //  Allocate output histograms.
 
-  histogramStatistics   *readNoOlaps     = new histogramStatistics;  //  Bad reads!  (read length)
-  histogramStatistics   *readHole        = new histogramStatistics;
-  histogramStatistics   *readHump        = new histogramStatistics;
-  histogramStatistics   *readNo5         = new histogramStatistics;
-  histogramStatistics   *readNo3         = new histogramStatistics;
+  histogramStatistics   *readNoOlaps         = new histogramStatistics;  //  Bad reads!  (read length)
+  histogramStatistics   *readHole            = new histogramStatistics;
+  histogramStatistics   *readHump            = new histogramStatistics;
+  histogramStatistics   *readNo5             = new histogramStatistics;
+  histogramStatistics   *readNo3             = new histogramStatistics;
 
-  histogramStatistics   *olapHole        = new histogramStatistics;  //  Hole size (sum of holes if more than one)
-  histogramStatistics   *olapHump        = new histogramStatistics;  //  Hump size (sum of humps if more than one)
-  histogramStatistics   *olapNo5         = new histogramStatistics;  //  5' uncovered size
-  histogramStatistics   *olapNo3         = new histogramStatistics;  //  3' uncovered size
+  histogramStatistics   *olapHole            = new histogramStatistics;  //  Hole size (sum of holes if more than one)
+  histogramStatistics   *olapHump            = new histogramStatistics;  //  Hump size (sum of humps if more than one)
+  histogramStatistics   *olapNo5             = new histogramStatistics;  //  5' uncovered size
+  histogramStatistics   *olapNo3             = new histogramStatistics;  //  3' uncovered size
 
-  histogramStatistics   *readLowCov      = new histogramStatistics;  //  Good reads!  (read length)
-  histogramStatistics   *readUnique      = new histogramStatistics;
-  histogramStatistics   *readRepeat      = new histogramStatistics;
-  histogramStatistics   *readSpanRepeat  = new histogramStatistics;
-  histogramStatistics   *readUniqRepeat  = new histogramStatistics;
-  histogramStatistics   *readUniqAnchor  = new histogramStatistics;
+  histogramStatistics   *readLowCov          = new histogramStatistics;  //  Good reads!  (read length)
+  histogramStatistics   *readUnique          = new histogramStatistics;
+  histogramStatistics   *readRepeatCont      = new histogramStatistics;
+  histogramStatistics   *readRepeatDove      = new histogramStatistics;
+  histogramStatistics   *readSpanRepeat      = new histogramStatistics;
+  histogramStatistics   *readUniqRepeatCont  = new histogramStatistics;
+  histogramStatistics   *readUniqRepeatDove  = new histogramStatistics;
+  histogramStatistics   *readUniqAnchor      = new histogramStatistics;
 
-  histogramStatistics   *covrLowCov      = new histogramStatistics;  //  Good reads!  (overlap length)
-  histogramStatistics   *covrUnique      = new histogramStatistics;
-  histogramStatistics   *covrRepeat      = new histogramStatistics;
-  histogramStatistics   *covrSpanRepeat  = new histogramStatistics;
-  histogramStatistics   *covrUniqRepeat  = new histogramStatistics;
-  histogramStatistics   *covrUniqAnchor  = new histogramStatistics;
+  histogramStatistics   *covrLowCov          = new histogramStatistics;  //  Good reads!  (overlap length)
+  histogramStatistics   *covrUnique          = new histogramStatistics;
+  histogramStatistics   *covrRepeatCont      = new histogramStatistics;
+  histogramStatistics   *covrRepeatDove      = new histogramStatistics;
+  histogramStatistics   *covrSpanRepeat      = new histogramStatistics;
+  histogramStatistics   *covrUniqRepeatCont  = new histogramStatistics;
+  histogramStatistics   *covrUniqRepeatDove  = new histogramStatistics;
+  histogramStatistics   *covrUniqAnchor      = new histogramStatistics;
 
-  histogramStatistics   *olapLowCov      = new histogramStatistics;  //  Good reads!  (overlap length)
-  histogramStatistics   *olapUnique      = new histogramStatistics;
-  histogramStatistics   *olapRepeat      = new histogramStatistics;
-  histogramStatistics   *olapSpanRepeat  = new histogramStatistics;
-  histogramStatistics   *olapUniqRepeat  = new histogramStatistics;
-  histogramStatistics   *olapUniqAnchor  = new histogramStatistics;
+  histogramStatistics   *olapLowCov          = new histogramStatistics;  //  Good reads!  (overlap length)
+  histogramStatistics   *olapUnique          = new histogramStatistics;
+  histogramStatistics   *olapRepeatCont      = new histogramStatistics;
+  histogramStatistics   *olapRepeatDove      = new histogramStatistics;
+  histogramStatistics   *olapSpanRepeat      = new histogramStatistics;
+  histogramStatistics   *olapUniqRepeatCont  = new histogramStatistics;
+  histogramStatistics   *olapUniqRepeatDove  = new histogramStatistics;
+  histogramStatistics   *olapUniqAnchor      = new histogramStatistics;
 
   //  Coverage interval lists, of all overlaps selected.
 
@@ -474,12 +490,20 @@ main(int argc, char **argv) {
         covrUnique->add(depth.depth(ii), depth.hi(ii) - depth.lo(ii));
     }
 
-    if (isRepeat) {
-      fprintf(LOG, "%u\t%u\t%s\n", readID, readLen, "repeat");
-      readRepeat->add(readLen);
+    if ((isRepeat) && (readContained == true)) {
+      fprintf(LOG, "%u\t%u\t%s\n", readID, readLen, "contained-repeat");
+      readRepeatCont->add(readLen);
 
       for (uint32 ii=0; ii<depth.numberOfIntervals(); ii++)
-        covrRepeat->add(depth.depth(ii), depth.hi(ii) - depth.lo(ii));
+        covrRepeatCont->add(depth.depth(ii), depth.hi(ii) - depth.lo(ii));
+    }
+
+    if ((isRepeat) && (readContained == false)) {
+      fprintf(LOG, "%u\t%u\t%s\n", readID, readLen, "dovetail-repeat");
+      readRepeatDove->add(readLen);
+
+      for (uint32 ii=0; ii<depth.numberOfIntervals(); ii++)
+        covrRepeatDove->add(depth.depth(ii), depth.hi(ii) - depth.lo(ii));
     }
 
     if (isSpanRepeat) {
@@ -488,9 +512,14 @@ main(int argc, char **argv) {
       olapSpanRepeat->add(depth.lo(endi) - depth.hi(bgni));
     }
 
-    if (isUniqRepeat) {
-      fprintf(LOG, "%u\t%u\t%s\n", readID, readLen, "uniq-repeat");
-      readUniqRepeat->add(readLen);
+    if ((isUniqRepeat) && (readContained == true)) {
+      fprintf(LOG, "%u\t%u\t%s\n", readID, readLen, "uniq-repeat-cont");
+      readUniqRepeatCont->add(readLen);
+    }
+
+    if ((isUniqRepeat) && (readContained == false)) {
+      fprintf(LOG, "%u\t%u\t%s\n", readID, readLen, "uniq-repeat-dove");
+      readUniqRepeatDove->add(readLen);
     }
 
     if (isUniqAnchor) {
@@ -527,65 +556,57 @@ main(int argc, char **argv) {
   olapUnique->finalizeData();
   covrUnique->finalizeData();
 
-  readRepeat->finalizeData();
-  olapRepeat->finalizeData();
-  covrRepeat->finalizeData();
+  readRepeatCont->finalizeData();
+  olapRepeatCont->finalizeData();
+  covrRepeatCont->finalizeData();
+
+  readRepeatDove->finalizeData();
+  olapRepeatDove->finalizeData();
+  covrRepeatDove->finalizeData();
 
 
   readSpanRepeat->finalizeData();
   olapSpanRepeat->finalizeData();
 
-  readUniqRepeat->finalizeData();
-  olapUniqRepeat->finalizeData();
+  readUniqRepeatCont->finalizeData();
+  olapUniqRepeatCont->finalizeData();
+
+  readUniqRepeatDove->finalizeData();
+  olapUniqRepeatDove->finalizeData();
 
   readUniqAnchor->finalizeData();
   olapUniqAnchor->finalizeData();
 
-  fprintf(stderr, "BAD READS:\n");
-  fprintf(stderr, "middle-missing:    %6u reads length %10.2f +- %8.2f hole-size %10.2f +- %8.2f\n",
-          readHole->numberOfObjects(),
-          readHole->mean(), readHole->stddev(),
-          olapHole->mean(), olapHole->stddev());
-  fprintf(stderr, "middle-hump:       %6u reads length %10.2f +- %8.2f hole-size %10.2f +- %8.2f\n",
-          readHump->numberOfObjects(),
-          readHump->mean(), readHump->stddev(),
-          olapHump->mean(), olapHump->stddev());
-  fprintf(stderr, "no-5-prime:        %6u reads length %10.2f +- %8.2f uncovered %10.2f +- %8.2f\n",
-          readNo5->numberOfObjects(),
-          readNo5->mean(), readNo5->stddev(),
-          olapNo5->mean(), olapNo5->stddev());
-  fprintf(stderr, "no-3-prime:        %6u reads length %10.2f +- %8.2f uncovered %10.2f +- %8.2f\n",
-          readNo3->numberOfObjects(),
-          readNo3->mean(), readNo3->stddev(),
-          olapNo3->mean(), olapNo3->stddev());
 
-  fprintf(stderr, "UNIFORM READS:\n");
-  fprintf(stderr, "low-cov:           %6u reads length %10.2f +- %8.2f coverage  %10.2f +- %8.2f\n",
-          readLowCov->numberOfObjects(),
-          readLowCov->mean(), readLowCov->stddev(),
-          covrLowCov->mean(), covrLowCov->stddev());
-  fprintf(stderr, "unique:            %6u reads length %10.2f +- %8.2f coverage  %10.2f +- %8.2f\n",
-          readUnique->numberOfObjects(),
-          readUnique->mean(), readUnique->stddev(),
-          covrUnique->mean(), covrUnique->stddev());
-  fprintf(stderr, "repeat:            %6u reads length %10.2f +- %8.2f coverage  %10.2f +- %8.2f\n",
-          readRepeat->numberOfObjects(),
-          readRepeat->mean(), readRepeat->stddev(),
-          covrRepeat->mean(), covrRepeat->stddev());
+  LOG = stdout;
 
-  fprintf(stderr, "ANCHORING READS:\n");
-  fprintf(stderr, "span-repeat:       %6u reads length %10.2f +- %8.2f span-size %10.2f +- %8.2f\n",
-          readSpanRepeat->numberOfObjects(),
-          readSpanRepeat->mean(), readSpanRepeat->stddev(),
-          olapSpanRepeat->mean(), olapSpanRepeat->stddev());
-  fprintf(stderr, "uniq-repeat:       %6u reads length %10.2f +- %8.2f\n",
-          readUniqRepeat->numberOfObjects(),
-          readUniqRepeat->mean(), readUniqRepeat->stddev());
-  fprintf(stderr, "uniq-anchor:       %6u reads length %10.2f +- %8.2f span-size %10.2f +- %8.2f\n",
-          readUniqAnchor->numberOfObjects(),
-          readUniqAnchor->mean(), readUniqAnchor->stddev(),
-          olapUniqAnchor->mean(), olapUniqAnchor->stddev());
+  if (toFile == true) {
+    sprintf(N, "%s.summary", outPrefix);
 
+    LOG = fopen(N, "w");
+    if (errno)
+      fprintf(stderr, "Failed to open '%s' for writing: %s\n", N, strerror(errno)), exit(1);
+  }
+
+  fprintf(LOG, "    category        reads       read length        feature size or coverage        analysis\n");
+  fprintf(LOG, "----------------  -------  ----------------------  ------------------------  --------------------\n");
+  fprintf(LOG, "middle-missing    %7"F_U64P"  %10.2f +- %-8.2f   %10.2f +- %-8.2f   (bad trimming)\n", readHole->numberOfObjects(), readHole->mean(), readHole->stddev(), olapHole->mean(), olapHole->stddev());
+  fprintf(LOG, "middle-hump       %7"F_U64P"  %10.2f +- %-8.2f   %10.2f +- %-8.2f   (bad trimming)\n", readHump->numberOfObjects(), readHump->mean(), readHump->stddev(), olapHump->mean(), olapHump->stddev());
+  fprintf(LOG, "no-5-prime        %7"F_U64P"  %10.2f +- %-8.2f   %10.2f +- %-8.2f   (bad trimming)\n", readNo5->numberOfObjects(), readNo5->mean(), readNo5->stddev(), olapNo5->mean(), olapNo5->stddev());
+  fprintf(LOG, "no-3-prime        %7"F_U64P"  %10.2f +- %-8.2f   %10.2f +- %-8.2f   (bad trimming)\n", readNo3->numberOfObjects(), readNo3->mean(), readNo3->stddev(), olapNo3->mean(), olapNo3->stddev());
+  fprintf(LOG, "\n");
+  fprintf(LOG, "low-coverage      %7"F_U64P"  %10.2f +- %-8.2f   %10.2f +- %-8.2f   (easy to assemble, potential for lower quality consensus)\n", readLowCov->numberOfObjects(), readLowCov->mean(), readLowCov->stddev(), covrLowCov->mean(), covrLowCov->stddev());
+  fprintf(LOG, "unique            %7"F_U64P"  %10.2f +- %-8.2f   %10.2f +- %-8.2f   (easy to assemble, perfect, yay)\n", readUnique->numberOfObjects(), readUnique->mean(), readUnique->stddev(), covrUnique->mean(), covrUnique->stddev());
+  fprintf(LOG, "repeat-cont       %7"F_U64P"  %10.2f +- %-8.2f   %10.2f +- %-8.2f   (potential for consensus errors, no impact on assembly)\n", readRepeatCont->numberOfObjects(), readRepeatCont->mean(), readRepeatCont->stddev(), covrRepeatCont->mean(), covrRepeatCont->stddev());
+  fprintf(LOG, "repeat-dove       %7"F_U64P"  %10.2f +- %-8.2f   %10.2f +- %-8.2f   (hard to assemble, likely won't assemble correctly or even at all)\n", readRepeatDove->numberOfObjects(), readRepeatDove->mean(), readRepeatDove->stddev(), covrRepeatDove->mean(), covrRepeatDove->stddev());
+  fprintf(LOG, "\n");
+  fprintf(LOG, "span-repeat       %7"F_U64P"  %10.2f +- %-8.2f   %10.2f +- %-8.2f   (read spans a large repeat, usually easy to assemble)\n", readSpanRepeat->numberOfObjects(), readSpanRepeat->mean(), readSpanRepeat->stddev(), olapSpanRepeat->mean(), olapSpanRepeat->stddev());
+  fprintf(LOG, "uniq-repeat-cont  %7"F_U64P"  %10.2f +- %-8.2f                            (should be uniquely placed, low potential for consensus errors, no impact on assembly)\n", readUniqRepeatCont->numberOfObjects(), readUniqRepeatCont->mean(), readUniqRepeatCont->stddev());
+  fprintf(LOG, "uniq-repeat-dove  %7"F_U64P"  %10.2f +- %-8.2f                            (will end contigs, potential to misassemble)\n", readUniqRepeatDove->numberOfObjects(), readUniqRepeatDove->mean(), readUniqRepeatDove->stddev());
+  fprintf(LOG, "uniq-anchor       %7"F_U64P"  %10.2f +- %-8.2f   %10.2f +- %-8.2f   (repeat read, with unique section, probable bad read)\n", readUniqAnchor->numberOfObjects(), readUniqAnchor->mean(), readUniqAnchor->stddev(), olapUniqAnchor->mean(), olapUniqAnchor->stddev());
+
+  if (toFile == true)
+    fclose(LOG);
 
 
   delete ovlStore;

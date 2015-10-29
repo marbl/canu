@@ -460,6 +460,24 @@ sub createOverlapStoreParallel ($$$$) {
 }
 
 
+sub generateOverlapStoreStats ($$) {
+    my $wrk   = shift @_;
+    my $asm   = shift @_;
+
+    my $bin   = getBinDirectory();
+    my $cmd;
+
+    $cmd  = "$bin/ovStoreStats \\\n";
+    $cmd .= " -G $wrk/$asm.gkpStore \\\n";
+    $cmd .= " -O $wrk/$asm.ovlStore \\\n";
+    $cmd .= " -o $wrk/$asm.ovlStore \\\n";
+    $cmd .= " > $wrk/$asm.ovlStore.summary.err 2>&1";
+
+    if (runCommand($wrk, $cmd)) {
+        caExit("failed to generate statistics for the overlap store", "$wrk/$asm.ovlStore.summary.err");
+    }
+}
+
 
 sub createOverlapStore ($$$$) {
     my $WRK   = shift @_;
@@ -486,7 +504,7 @@ sub createOverlapStore ($$$$) {
     createOverlapStoreSequential($WRK, $asm, $tag, "$path/ovljob.files")  if ($seq eq "sequential");
     createOverlapStoreParallel  ($WRK, $asm, $tag, "$path/ovljob.files")  if ($seq eq "parallel");
 
-    goto allDone    if (getGlobal("saveOverlaps"));
+    goto finishStage  if (getGlobal("saveOverlaps"));
 
     #  Delete the inputs and directories.
 
@@ -514,8 +532,22 @@ sub createOverlapStore ($$$$) {
     #  Now all done!
 
   finishStage:
+    generateOverlapStoreStats($wrk, $asm);
     emitStage($WRK, $asm, "$tag-createOverlapStore");
     stopAfter("overlapStore");
+
   allDone:
-    print STDERR "-- Found ", "(not-counted)", " overlaps in overlp store '$wrk/$asm.ovlStore'.\n";
+    if (-e "$wrk/$asm.ovlStore.summary") {
+        print STDERR "--  Overlap store '$wrk/$asm.ovlStore' constructed.\n";
+        print STDERR "--\n";
+        open(F, "< $wrk/$asm.ovlStore.summary") or caExit("Failed to open overlap store statistics in '$wrk/$asm.ovlStore': $!", undef);
+        while (<F>) {
+            print STDERR "--    $_";
+        }
+        close(F);
+        print STDERR "--\n";
+
+    } else {
+        print STDERR "--  Overlap store '$wrk/$asm.ovlStore' constructed.  Statistics not available.\n";
+    }
 }
