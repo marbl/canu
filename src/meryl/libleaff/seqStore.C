@@ -484,13 +484,17 @@ constructSeqStore(char *filename, seqCache *inputseq) {
               INDX[nSequences]._block);
 #endif
 
+#if SEQSTOREBLOCK_MAXPOS < uint64MASK(32)
       if (sic->sequenceLength() > SEQSTOREBLOCK_MAXPOS)
         fprintf(stderr, "constructSeqStore()-- sequence %s too long, must be shorter than "F_U64" Gbp.\n",
                 sic->header(), SEQSTOREBLOCK_MAXPOS / 1024 / 1024 / 1024), exit(1);
+#endif
 
+#if SEQSTOREBLOCK_MAXIID < uint64MASK(32)
       if (sic->getIID() > SEQSTOREBLOCK_MAXPOS)
         fprintf(stderr, "constructSeqStore()-- too many sequences, must be fewer than "F_U64".\n",
                 SEQSTOREBLOCK_MAXIID), exit(1);
+#endif
 
       if (NAMElen + sic->headerLength() + 1 > NAMEmax) {
         NAMEmax += 32 * 1024 * 1024;
