@@ -43,11 +43,8 @@
 //   t_len .
 //
 void
-NDalgorithm::Set_Left_Delta(char  *A, char *T,
-                            int32  e, int32 d,
-                            int32 &leftover,
-                            int32 &t_end,
-                            int32  t_len) {
+NDalgorithm::Set_Left_Delta(int32  e, int32 d,
+                            int32 &leftover) {
 
   Left_Score       = Edit_Array_Lazy[e][d].score;
   Left_Delta_Len   = 0;
@@ -286,7 +283,7 @@ NDalgorithm::reverse(char    *A,   int32 Alen,   //  first sequence and length
         A_End = - Row;           // One past last align position
         T_End = - Row - d;
 
-        Set_Left_Delta(A, T, ei, d, Leftover, T_End, Tlen);
+        Set_Left_Delta(ei, d, Leftover);
 
         Match_To_End = true;
 
@@ -338,7 +335,7 @@ NDalgorithm::reverse(char    *A,   int32 Alen,   //  first sequence and length
   A_End = - Max_Score_Len;
   T_End = - Max_Score_Len - Max_Score_Best_d;
 
-  Set_Left_Delta(A, T, Max_Score_Best_e, Max_Score_Best_d, Leftover, T_End, Tlen);
+  Set_Left_Delta(Max_Score_Best_e, Max_Score_Best_d, Leftover);
 
   Match_To_End = false;
 

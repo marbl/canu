@@ -38,8 +38,7 @@
 //  delta entries.
 //
 void
-NDalgorithm::Set_Right_Delta(char  *A, char  *T,
-                             int32  e, int32  d) {
+NDalgorithm::Set_Right_Delta(int32  e, int32  d) {
 
   Right_Score       = Edit_Array_Lazy[e][d].score;
   Right_Delta_Len   = 0;
@@ -285,7 +284,7 @@ NDalgorithm::forward(char    *A,   int32 Alen,
         A_End = Row;           // One past last align position
         T_End = Row + d;
 
-        Set_Right_Delta(A, T, ei, d);
+        Set_Right_Delta(ei, d);
 
         Match_To_End = true;
 
@@ -337,7 +336,7 @@ NDalgorithm::forward(char    *A,   int32 Alen,
   A_End = Max_Score_Len;
   T_End = Max_Score_Len + Max_Score_Best_d;
 
-  Set_Right_Delta(A, T, Max_Score_Best_e, Max_Score_Best_d);
+  Set_Right_Delta(Max_Score_Best_e, Max_Score_Best_d);
 
   Match_To_End = false;
 

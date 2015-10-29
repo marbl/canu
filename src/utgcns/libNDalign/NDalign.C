@@ -39,8 +39,6 @@
 #undef  DEBUG_ALGORITHM         //  Some details.
 #undef  DEBUG_HITS              //  Lots of details (chainHits())
 
-#define DISPLAY_REALIGN  false  //  Show the successful realignments?
-
 #undef  SEED_NON_OVERLAPPING    //  Allow mismatches in seeds
 #define SEED_OVERLAPPING
 
@@ -716,7 +714,7 @@ NDalign::scanDeltaForBadness(bool verbose, bool showAlign) {
   }
 
   if ((verbose == true) && (badBlocks > 0)) {
-    fprintf(stderr, "NDalign::scanForDeltaBadness()--  Potential bad alignment: found %d bad out of "F_U64" blocks (alpha %f)\n",
+    fprintf(stderr, "NDalign::scanForDeltaBadness()--  Potential bad alignment: found %d bad out of "F_SIZE_T" blocks (alpha %f)\n",
             badBlocks, blockAverages.size(), alpha);
 
     if (showAlign == true)
@@ -729,7 +727,7 @@ NDalign::scanDeltaForBadness(bool verbose, bool showAlign) {
 
 
 void
-NDalign::realignForward(bool verbose, bool displayAlign) {
+NDalign::realignForward(bool displayAlgorithm, bool displayAlign) {
   Match_Node_t  match;
 
   match.Start  = abgn();    //  Begin position in a
@@ -742,7 +740,7 @@ NDalign::realignForward(bool verbose, bool displayAlign) {
 
   char   origScore[1024];
 
-  if (displayAlign)
+  if (displayAlgorithm)
     fprintf(stderr, "NDalign::realignForward()--\n");
 
   pedOverlapType  olapType = _editDist->Extend_Alignment(&match,        //  Initial exact match, relative to start of string
@@ -759,7 +757,7 @@ NDalign::realignForward(bool verbose, bool displayAlign) {
   if (((score() <  _editDist->score())) ||
       ((score() <= _editDist->score()) && (length() > ((aHi - aLo) + (bHi - bLo) + _editDist->Left_Delta_Len) / 2))) {
 
-    if (displayAlign) {
+    if (displayAlgorithm) {
       fprintf(stderr, "NDalign::realignForward()--\n");
       fprintf(stderr, "NDalign::realignForward()--  Save better alignment\n");
       fprintf(stderr, "NDalign::realignForward()--\n");
@@ -770,18 +768,18 @@ NDalign::realignForward(bool verbose, bool displayAlign) {
 
     _bestResult.save(aLo, aHi, bLo, bHi, _editDist->score(), olapType, _editDist->Left_Delta_Len, _editDist->Left_Delta);
 
-    display("NDalign::realignForward()-- ", DISPLAY_REALIGN);
+    display("NDalign::realignForward()-- ", displayAlign);
 
     _bestResult.setErate(1.0 - (double)(_matches + _gapmatches) / (length() - _freegaps));
 
-    if (displayAlign) {
+    if (displayAlgorithm) {
       fprintf(stderr, "%sNDalign::realignForward()--  NEW length %u erate %f score %u (%d-%d %d-%d)\n",
               origScore,
               length(), erate(), score(), abgn(), aend(), bbgn(), bend());
     }
   }
 
-  else if (displayAlign) {
+  else if (displayAlgorithm) {
     fprintf(stderr, "NDalign::realignForward()-- Alignment no better   - OLD length %u erate %f score %u (%d-%d %d-%d)\n",
             length(), erate(), score(), abgn(), aend(), bbgn(), bend());
     fprintf(stderr, "NDalign::realignForward()-- Alignment no better   - NEW length %u erate %f score %u (%d-%d %d-%d)\n",
@@ -793,7 +791,7 @@ NDalign::realignForward(bool verbose, bool displayAlign) {
 
 
 void
-NDalign::realignBackward(bool verbose, bool displayAlign) {
+NDalign::realignBackward(bool displayAlgorithm, bool displayAlign) {
   Match_Node_t  match;
 
   match.Start  = aend();    //  Begin position in a
@@ -806,7 +804,7 @@ NDalign::realignBackward(bool verbose, bool displayAlign) {
 
   char   origScore[1024];
 
-  if (displayAlign)
+  if (displayAlgorithm)
     fprintf(stderr, "NDalign::realignBackward()--\n");
 
   pedOverlapType  olapType = _editDist->Extend_Alignment(&match,        //  Initial exact match, relative to start of string
@@ -834,7 +832,7 @@ NDalign::realignBackward(bool verbose, bool displayAlign) {
 
     _bestResult.save(aLo, aHi, bLo, bHi, _editDist->score(), olapType, _editDist->Left_Delta_Len, _editDist->Left_Delta);
 
-    display("NDalign::realignBackward()-- ", DISPLAY_REALIGN);
+    display("NDalign::realignBackward()-- ", displayAlign);
 
     _bestResult.setErate(1.0 - (double)(_matches + _gapmatches) / (length() - _freegaps));
 

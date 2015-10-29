@@ -117,8 +117,7 @@ public:
 private:
   bool   allocateMoreEditSpace(void);
 
-  void   Set_Right_Delta(char  *A, char  *T,
-                         int32  e, int32  d);
+  void   Set_Right_Delta(int32  e, int32  d);
 
   void   forward(char    *A,   int32 m,
                  char    *T,   int32 n,
@@ -127,11 +126,8 @@ private:
                  bool    &Match_To_End);
 
 
-  void   Set_Left_Delta(char  *A, char *T,
-                        int32  e, int32 d,
-                        int32 &leftover,
-                        int32 &t_end,
-                        int32  t_len);
+  void   Set_Left_Delta(int32  e, int32 d,
+                        int32 &leftover);
 
   void   reverse(char    *A,   int32 m,
                  char    *T,   int32 n,
@@ -156,9 +152,9 @@ private:
     if (isMatch(a, t))
       return(PEDMATCH);
 
-    fprintf(stderr, "ERROR: a=%c/%d does not match t=%c/%d\n",
-            a, a, t, t);
+    fprintf(stderr, "ERROR: a=%c/%d does not match t=%c/%d\n", a, a, t, t);
     assert(isMatch(a, t) == true);
+    return(0);
   };
 
   //  Returns the score of a mismatch.  As with gaps, we can get free mismatches to lower case letters,
