@@ -120,28 +120,16 @@ typedef uint64_t uint64;
 #define  uint64ONE       uint64NUMBER(0x0000000000000001)
 #define  uint64MAX       uint64NUMBER(0xffffffffffffffff)
 #define  uint64MASK(X)   ((~uint64ZERO) >> (64 - (X)))
-//#define  uint64FMTW(X)   "%" #X PRIu64
-//#define  uint64FMT       "%"PRIu64
-//#define  uint64HEX       "0x%016"PRIx64
-//#define  int64FMTW(X)    "%" #X PRId64
-//#define  int64FMT        "%"PRId64
 
 #define  uint32ZERO      uint32NUMBER(0x00000000)
 #define  uint32ONE       uint32NUMBER(0x00000001)
 #define  uint32MAX       uint32NUMBER(0xffffffff)
 #define  uint32MASK(X)   ((~uint32ZERO) >> (32 - (X)))
-//#define  uint32FMTW(X)   "%" #X PRIu32
-//#define  uint32FMT       "%"PRIu32
-//#define  uint32HEX       "0x%08"PRIx32
-//#define  int32FMTW(X)    "%" #X PRId32
-//#define  int32FMT        "%"PRId32
 
 #define  uint16ZERO      (0x0000)
 #define  uint16ONE       (0x0001)
 #define  uint16MAX       (0xffff)
 #define  uint16MASK(X)   ((~uint16ZERO) >> (16 - (X)))
-//#define  uint16FMTW(X)   "%" #X PRIu16
-//#define  uint16FMT       "%"PRIu16
 
 #define  uint8ZERO       (0x00)
 #define  uint8ONE        (0x01)
@@ -283,15 +271,20 @@ int AS_configure(int argc, char **argv);
 #define INT_EQ_DBL(I,D) (fabs((double)(I)-(D)) < 16.0*DBL_EPSILON  )
 #define DBL_EQ_DBL(A,B) (fabs((A)-(B))<16.0*DBL_EPSILON)
 
-// cgw and cns use NULLINDEX for a NULL index value
-//#define NULLINDEX (-1)
 
-// A convenient assert for testing whether ptrs are null
-// without bothering lint
-//#define AssertPtr(ptr) (assert((ptr) != NULL))
+
+//  Tell gcc (and others, maybe) about unused parameters.  This is important for gcc (especially
+//  newer ones) that complain about unused parameters.  Thanks to ideasman42 at
+//  http://stackoverflow.com/questions/3599160/unused-parameter-warnings-in-c-code.
+#ifdef __GNUC__
+#define UNUSED(x) UNUSED_ ## x __attribute__((__unused__))
+#else
+#define UNUSED(x) UNUSED_ ## x
+#endif
 
 
 #include "AS_UTL_alloc.H"
+
 
 
 //  Stubs for ignoring OpenMP on clang.
