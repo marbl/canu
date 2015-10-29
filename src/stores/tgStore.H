@@ -138,7 +138,7 @@ private:
 
   uint32                  numTigsInMASRfile(char *name);
 
-  void                    dumpMASR(tgStoreEntry* &R, uint32& L, uint32& M, uint32 V);
+  void                    dumpMASR(tgStoreEntry* &R, uint32& L,            uint32 V);
   void                    loadMASR(tgStoreEntry* &R, uint32& L, uint32& M, uint32 V);
 
   void                    purgeVersion(uint32 version);

@@ -170,7 +170,7 @@ tgStore::~tgStore() {
   if ((_type == tgStoreWrite) ||
       (_type == tgStoreAppend) ||
       (_type == tgStoreModify))
-    dumpMASR(_tigEntry, _tigLen, _tigMax, _currentVersion);
+    dumpMASR(_tigEntry, _tigLen, _currentVersion);
 
   //  Now just trash ourself.
 
@@ -211,7 +211,7 @@ tgStore::nextVersion(void) {
 
   //  Dump the MASR's.
 
-  dumpMASR(_tigEntry, _tigLen, _tigMax, _currentVersion);
+  dumpMASR(_tigEntry, _tigLen, _currentVersion);
 
   //  Close the current version; we'll reopen on demand.
 
@@ -592,7 +592,7 @@ tgStore::numTigsInMASRfile(char *name) {
 }
 
 void
-tgStore::dumpMASR(tgStoreEntry* &R, uint32& L, uint32& M, uint32 V) {
+tgStore::dumpMASR(tgStoreEntry* &R, uint32& L, uint32 V) {
 
   sprintf(_name, "%s/seqDB.v%03d.tig", _path, V);
 
@@ -609,8 +609,10 @@ tgStore::dumpMASR(tgStoreEntry* &R, uint32& L, uint32& M, uint32 V) {
 
   //fprintf(stderr, "tgStore::dumpMASR()-- Writing '%s' (indxLen=%d masrLen=%d).\n", _name, indxLen, L);
 
-  AS_UTL_safeWrite(F, &indxLen, "MASRindexLen", sizeof(uint32),      1);
-  AS_UTL_safeWrite(F, &L,       "MASRlen",      sizeof(uint32),      1);
+  //  The max isn't written.  On load, max is set to length.
+
+  AS_UTL_safeWrite(F, &indxLen, "MASRindexLen", sizeof(uint32),       1);
+  AS_UTL_safeWrite(F, &L,       "MASRlen",      sizeof(uint32),       1);
   AS_UTL_safeWrite(F,  R,       "MASR",         sizeof(tgStoreEntry), L);
 
   fclose(F);
