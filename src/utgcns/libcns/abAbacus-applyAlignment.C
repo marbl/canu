@@ -196,7 +196,6 @@ static
 void
 alignGaps(abAbacus *abacus,
           abBeadID *aindex, int32 &apos, int32  alen,
-          abBeadID *bindex, int32 &bpos, int32  blen,
           abBeadID &lasta,
           abBeadID &lastb) {
 
@@ -213,11 +212,6 @@ alignGaps(abAbacus *abacus,
   //  We're at the last * on the second row, the next bead we align to is the first * on the first
   //  row.  There might be gaps already in abacus that we need to add.  We move to the 'x', then
   //  walk along this 'a' fragment adding gaps.
-
-  //#ifdef DEBUG_ALIGN_GAPS
-  //  fprintf(stderr, "alignGaps()-- apos=%d alen=%d  bpos=%d blen=%d  lasta=%d  lastb=%d\n",
-  //          apos, alen, bpos, blen, lasta.get(), lastb.get());
-  //#endif
 
   if (apos >= alen)
     return;
@@ -286,7 +280,7 @@ alignPosition(abAbacus *abacus,
   apos++;
   bpos++;
 
-  alignGaps(abacus, aindex, apos, alen, bindex, bpos, blen, lasta, lastb);
+  alignGaps(abacus, aindex, apos, alen, lasta, lastb);
 
   //assert(abacus->getBead(aindex[apos])->prev == bead->bindex);
   //assert(abacus->getBead(bindex[bpos])->prev == lastb);
@@ -524,7 +518,7 @@ abAbacus::applyAlignment(abSeqID   afid,
 
       //  Continue aligning to existing gap columns in A.  Duplication from alignPosition.
 
-      alignGaps(this, aindex, apos, alen, bindex, bpos, blen, lasta, lastb);
+      alignGaps(this, aindex, apos, alen, lasta, lastb);
     }
 
     trace++;
