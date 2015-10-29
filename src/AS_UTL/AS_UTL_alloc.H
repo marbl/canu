@@ -35,7 +35,7 @@ static const char *rcsid_AS_UTL_ALLOC_H = "$Id$";
 
 template<typename TT, typename LL>
 void
-duplicateArray(TT*& to, LL &toLen, LL &toMax, TT *fr, LL frLen, LL frMax, bool forceAlloc=false) {
+duplicateArray(TT*& to, LL &toLen, LL &toMax, TT *fr, LL frLen, LL UNUSED(frMax), bool forceAlloc=false) {
 
   if ((toMax < frLen) || (forceAlloc)) {
     delete [] to;

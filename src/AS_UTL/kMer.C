@@ -523,7 +523,7 @@ kMerBuilder::addBaseSpaced(uint64 cf, uint64 cr) {
 
 
 bool
-kMerBuilder::addBaseCompressedSpaced(uint64 cf, uint64 cr) {
+kMerBuilder::addBaseCompressedSpaced(uint64 UNUSED(cf), uint64 UNUSED(cr)) {
   fprintf(stderr, "kMerBuilder::addBaseCompressedSpace()--  Compressed and spaced mers not supported.\n");
   exit(1);
 }

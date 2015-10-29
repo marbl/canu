@@ -292,7 +292,7 @@ bitPackedFile::flushDirty(void) {
 
 
 void
-bitPackedFile::seekBzip2(uint64 bitpos) {
+bitPackedFile::seekBzip2(uint64 UNUSED(bitpos)) {
 
 #ifdef WITH_BZIP2
   //  All we can do here is check that bitpos is

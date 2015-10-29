@@ -532,10 +532,10 @@ merylStreamWriter::addMer(kMer &mer, uint32 count, uint32 *positions) {
 
 
 void
-merylStreamWriter::addMer(uint64 prefix,  uint32 prefixBits,
-                          uint64 mer,     uint32 merBits,
-                          uint32 count,
-                          uint32 *positions) {
+merylStreamWriter::addMer(uint64  prefix,  uint32 prefixBits,
+                          uint64  mer,     uint32 merBits,
+                          uint32  count,
+                          uint32 *UNUSED(positions)) {
 
   if (_thisMerIsBits == false) {
     _thisMerIsBits = true;

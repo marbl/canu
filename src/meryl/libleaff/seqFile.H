@@ -39,7 +39,7 @@
 
 class seqFile {
 protected:
-  seqFile(const char *filename) {};
+  seqFile(const char *UNUSED(filename)) {};
   seqFile() {};
 
 public:

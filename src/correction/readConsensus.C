@@ -223,7 +223,7 @@ public:
 
 //  Complicated.  Load the overlaps, filter, and convert to a tig.
 consensusComputation *
-consensusReaderOverlaps(consensusGlobalData *g) {
+consensusReaderOverlaps(consensusGlobalData *UNUSED(g)) {
   return(NULL);
 }
 

@@ -120,10 +120,10 @@ public:
   operator uint64 () const {return(_md);};
 
 public:
-  void   writeToBitPackedFile(bitPackedFile *BPF, uint32 numBits=0) const {
+  void   writeToBitPackedFile(bitPackedFile *BPF, uint32 UNUSED(numBits)=0) const {
     BPF->putBits(_md, _merSize << 1);
   };
-  void   readFromBitPackedFile(bitPackedFile *BPF, uint32 numBits=0) {
+  void   readFromBitPackedFile(bitPackedFile *BPF, uint32 UNUSED(numBits)=0) {
     _md = BPF->getBits(_merSize << 1);
   };
 
@@ -146,8 +146,8 @@ public:
   };
 
 public:
-  uint64   getWord(uint32 wrd) const        { return(_md); };
-  void     setWord(uint32 wrd, uint64 val)  { _md = val;   };
+  uint64   getWord(uint32 UNUSED(wrd)) const        { return(_md); };
+  void     setWord(uint32 UNUSED(wrd), uint64 val)  { _md = val;   };
 
 public:
   char    *merToString(char *instr) const;
