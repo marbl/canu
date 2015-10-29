@@ -90,8 +90,7 @@ public:
                               char          *T,     int32    T_Len,
                               int32         &S_Lo,  int32   &S_Hi,
                               int32         &T_Lo,  int32   &T_Hi,
-                              int32         &Errors,
-                              bool           partialOverlaps);
+                              int32         &Errors);
 
 public:
   //  The four below were global #defines, two depended on the error rate which is now local.

@@ -88,8 +88,7 @@ prefixEditDistance::Extend_Alignment(Match_Node_t *Match,
                                      char         *T,     int32   T_Len,
                                      int32        &S_Lo,  int32   &S_Hi,
                                      int32        &T_Lo,  int32   &T_Hi,
-                                     int32        &Errors,
-                                     bool          partialOverlaps) {
+                                     int32        &Errors) {
   int32  Right_Errors = 0;
   int32  Left_Errors  = 0;
   int32  Leftover     = 0;
