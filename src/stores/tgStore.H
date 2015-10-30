@@ -83,7 +83,7 @@ public:
   //  copy() will load and copy the MA.  It will not cache.  YOU OWN THIS OBJECT.
   //
   tgTig         *loadTig(uint32 tigID);
-  void           unloadTig(uint32 tigID, bool discard=false);
+  void           unloadTig(uint32 tigID, bool discardChanges=false);
 
   void           copyTig(uint32 tigID, tgTig *ma);
 

@@ -462,9 +462,9 @@ tgStore::loadTig(uint32 tigID) {
 
 
 void
-tgStore::unloadTig(uint32 tigID, bool discard) {
+tgStore::unloadTig(uint32 tigID, bool discardChanges) {
 
-  if (discard)
+  if (discardChanges)
     _tigEntry[tigID].flushNeeded = 0;
 
   flushDisk(tigID);
