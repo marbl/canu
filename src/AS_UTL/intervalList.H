@@ -617,25 +617,13 @@ intervalList<iNum, iVal>::computeDepth(intervalDepthRegions<iNum, iVal> *id, uin
   //  Sort by coordinate.
 
 #ifdef _GLIBCXX_PARALLEL
-    //  Don't use the parallel sort, not with the expense of starting threads.
-    __gnu_sequential::sort(id, id + idlen);
+  //  Don't use the parallel sort, not with the expense of starting threads.
+  __gnu_sequential::sort(id, id + idlen);
 #else
-    std::sort(id, id + idlen);
+  std::sort(id, id + idlen);
 #endif
 
-  //  Scan the list, counting how many times we change depth.
-
-#if 0
-  uint32  lm = 1;
-
-  for (uint32 i=1; i<idlen; i++)
-    if (id[i-1].pos != id[i].pos)
-      lm++;
-#endif
-
-  //  But then admit we don't really know how many, and reset to the maximum possible.
-
-  //  Allocate the real depth of coverage intervals
+  //  Allocate the (maximum possible) depth of coverage intervals
 
   if (_listMax < idlen) {
     delete [] _list;
@@ -697,7 +685,7 @@ intervalList<iNum, iVal>::computeDepth(intervalDepthRegions<iNum, iVal> *id, uin
     }
 
 #if 0
-    fprintf(stderr, "id[%2d] - list[%u] = lo=%u hi=%u ct=%u va=%f\n",
+    fprintf(stderr, "id[%2d] - list[%u] = lo=%u hi=%u ct=%u va=%d\n",
             i,
             _listLen,
             _list[_listLen].lo,
