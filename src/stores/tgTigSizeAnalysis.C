@@ -53,17 +53,13 @@ tgTigSizeAnalysis::~tgTigSizeAnalysis() {
 }
 
 void
-tgTigSizeAnalysis::evaluateTig(tgTig *tig) {
+tgTigSizeAnalysis::evaluateTig(tgTig *tig, bool useGapped) {
 
   //  Try to get the ungapped length.
   //  But revert to the gapped length if that doesn't exist.  This should
   //  only occur for pre-consensus unitigs.
 
-  uint32 length = tig->ungappedLength();
-
-  if (length == 0)
-    length = tig->layoutLength();
-
+  uint32  length = tig->length(useGapped);
 
   if (tig->_suggestRepeat)
     lenSuggestRepeat.push_back(length);

@@ -48,7 +48,7 @@ public:
   tgTigSizeAnalysis(uint64 genomeSize);
   ~tgTigSizeAnalysis();
 
-  void         evaluateTig(tgTig *tig);
+  void         evaluateTig(tgTig *tig, bool useGapped=true);
   void         finalize(void);
 
   void         printSummary(FILE *out, char *description, vector<uint32> &data);

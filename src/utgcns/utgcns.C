@@ -380,23 +380,23 @@ main (int argc, char **argv) {
         continue;
     }
 
-    if (tig->layoutLength() > maxLen) {
+    if (tig->length(true) > maxLen) {
       fprintf(stderr, "SKIP unitig %d of length %d (%d children) - too long, skipped\n",
-              tig->tigID(), tig->layoutLength(), tig->numberOfChildren());
+              tig->tigID(), tig->length(true), tig->numberOfChildren());
       continue;
     }
 
     if (tig->numberOfChildren() == 0) {
       fprintf(stderr, "SKIP unitig %d of length %d (%d children) - no children, skipped\n",
-              tig->tigID(), tig->layoutLength(), tig->numberOfChildren());
+              tig->tigID(), tig->length(true), tig->numberOfChildren());
       continue;
     }
 
-    bool exists   = (tig->gappedLength() > 0);
+    bool exists   = tig->consensusExists();
 
     if (tig->numberOfChildren() > 1)
       fprintf(stderr, "Working on unitig %d of length %d (%d children)%s%s\n",
-              tig->tigID(), tig->layoutLength(), tig->numberOfChildren(),
+              tig->tigID(), tig->length(true), tig->numberOfChildren(),
               ((exists == true)  && (forceCompute == false)) ? " - already computed"              : "",
               ((exists == true)  && (forceCompute == true))  ? " - already computed, recomputing" : "");
 

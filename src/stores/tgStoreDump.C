@@ -263,11 +263,11 @@ dumpConsensus(tgStore *tigStore,
               bool     withGaps,
               uint32   minCoverage) {
 
-  if (tig->gappedLength() == 0)
+  if (tig->consensusExists() == 0)
     return;
 
-  char   *cns = tig->gappedBases();
-  uint32  len = tig->gappedLength();
+  char   *cns = tig->bases(true);
+  uint32  len = tig->length(true);
 
   //  If a minCoverage is specified, convert the low coverage bases to underscores, which will be
   //  filtered later.
@@ -371,7 +371,7 @@ dumpCoverage(tgStore  *tigStore,
              char     *outPrefix) {
   intervalList<int32>  allL;
 
-  uint32        maxPos = tig->layoutLength();
+  uint32        maxPos = tig->length(true);
 
   for (uint32 i=0; i<tig->numberOfChildren(); i++) {
     tgPosition *imp = tig->getChild(i);
@@ -504,7 +504,7 @@ dumpThinOverlap(tgStore *tigStore,
   intervalList<int32>  allL;
   intervalList<int32>  ovlL;
 
-  uint32        maxPos = tig->layoutLength();
+  uint32        maxPos = tig->length(true);
 
   for (uint32 i=0; i<tig->numberOfChildren(); i++) {
     tgPosition *imp = tig->getChild(i);

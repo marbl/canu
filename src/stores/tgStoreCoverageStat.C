@@ -525,7 +525,7 @@ main(int argc, char **argv) {
     if (tig == NULL)
       continue;
 
-    int32   tigLength = tig->layoutLength();
+    int32   tigLength = tig->length(true);
     int32   numFrags  = tig->numberOfChildren();
     int32   numRandom = numRandomFragments(tig);
 

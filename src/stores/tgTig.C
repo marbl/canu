@@ -103,6 +103,8 @@ tgTig::tgTig() {
   _ungappedLen          = 0;
   _ungappedMax          = 0;
 
+  _gappedToUngapped     = NULL;
+
   _children             = NULL;
   _childrenLen          = 0;
   _childrenMax          = 0;
@@ -117,6 +119,7 @@ tgTig::~tgTig() {
   delete [] _gappedQuals;
   delete [] _ungappedBases;
   delete [] _ungappedQuals;
+  delete [] _gappedToUngapped;
   delete [] _children;
   delete [] _childDeltas;
 }
@@ -211,6 +214,8 @@ tgTig::operator=(tgTig & tg) {
     _ungappedQuals[_ungappedLen] = 0;
   }
 
+  duplicateArray(_gappedToUngapped, _gappedLen, _gappedMax, tg._gappedToUngapped, tg._gappedLen, tg._gappedMax, true);
+
   _childrenLen = tg._childrenLen;
   duplicateArray(_children, _childrenLen, _childrenMax, tg._children, tg._childrenLen, tg._childrenMax);
 
@@ -230,13 +235,19 @@ tgTig::buildUngapped(void) {
     //  Already computed.  Return what is here.
     return;
 
-  if (_gappedLen == 0)
+  if (_gappedLen == 0) {
     //  No gapped sequence to convert to ungapped.
+    fprintf(stderr, "tgTig::buildUngapped()--  WARNING: tried to build ungapped sequence for tigID %u before consensus exists.\n", tigID());
     return;
+  }
 
-  //  Allocate more space, if needed.  We'll need no more than gappedMax.
+  //  Allocate more space, if needed.  We'll need no more than gappedMax.  We need to stash away the
+  //  max size so we can call two resizeArray() functions.
+
+  uint64  ugMax = _ungappedMax;
 
   resizeArrayPair(_ungappedBases, _ungappedQuals, 0, _ungappedMax, _gappedMax, resizeArray_doNothing);
+  resizeArray(_gappedToUngapped, 0, ugMax, _gappedMax, resizeArray_doNothing);
 
   //  gappedLen doesn't include the terminating null, but gappedMax does.
   //  See abMultiAlign.C, among other places.
@@ -251,6 +262,8 @@ tgTig::buildUngapped(void) {
   _ungappedLen = 0;
 
   for (uint32 gp=0; gp<_gappedLen; gp++) {
+    _gappedToUngapped[gp] = _ungappedLen;
+
     if (_gappedBases[gp] == '-')
       continue;
 
