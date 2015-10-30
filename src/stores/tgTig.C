@@ -275,7 +275,9 @@ tgTig::buildUngapped(void) {
 
   assert(_ungappedLen < _ungappedMax);
 
-  //  Terminate it.  Lots of work just for printf.
+  //  Terminate it.  Lots of work just for printf...and getting rid of gaps.
+
+  _gappedToUngapped[_gappedLen] = _ungappedLen;
 
   _ungappedBases[_ungappedLen] = 0;
   _ungappedQuals[_ungappedLen] = 0;
