@@ -363,8 +363,8 @@ ifeq (${OSTYPE}, SunOS)
   endif
 endif
 
-${info Building for ${OSTYPE} ${OSVERSION} as ${MACHINETYPE}}
-${info Using LD_RUN_PATH ${LD_RUN_PATH}}
+${info Building for '${OSTYPE}' '${OSVERSION}' as '${MACHINETYPE}'}
+${info Using LD_RUN_PATH '${LD_RUN_PATH}'}
 
 # (BPW) Set compiler and flags based on discovered hardware
 
