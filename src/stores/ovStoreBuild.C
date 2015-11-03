@@ -168,25 +168,11 @@ writeToDumpFile(ovOverlap       *overlap,
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 int
 main(int argc, char **argv) {
   char           *ovlName      = NULL;
   char           *gkpName      = NULL;
-  uint32          fileLimit    = 512;
+  uint32          fileLimit    = sysconf(_SC_OPEN_MAX) - 16;
   uint64          memoryLimit  = 0;
 
   double          maxError     = 1.0;
