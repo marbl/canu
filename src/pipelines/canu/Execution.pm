@@ -405,6 +405,9 @@ sub skipStage ($$$@) {
 #  Same as skipStage(), left in for future use cleaning up.  Signals that we're done with a stage.
 #
 sub emitStage ($$$@) {
+
+    return;
+
     my $wrk         = shift @_;
     my $asm         = shift @_;
     my $stage       = shift @_;
@@ -415,8 +418,6 @@ sub emitStage ($$$@) {
     my $label1      = $label - 1;
     my $attempt     = (defined($attempt)) ? " attempt $attempt" : "";
     my $ATTEMPT     = (defined($attempt)) ? " ATTEMPT $attempt" : "";
-
-    return;
 
     open(F, ">> $wrk/$asm.stage") or caFailure("failed to open '$wrk/$asm.stage' for appending\n", undef);
     print F "$time -- canu at stage $stage (#$label)$attempt\n";
