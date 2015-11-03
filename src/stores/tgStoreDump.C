@@ -265,8 +265,10 @@ dumpConsensus(gkStore *UNUSED(gkpStore), tgStore *tigStore, tgFilter &filter, bo
 
     tgTig  *tig = tigStore->loadTig(ti);
 
-    if (tig->consensusExists() == false)
+    if (tig->consensusExists() == false) {
+      tigStore->unloadTig(ti);
       continue;
+    }
 
     if (filter.ignore(tig, useGapped) == true) {
       tigStore->unloadTig(ti);
@@ -973,7 +975,7 @@ main (int argc, char **argv) {
 
   bool          useGapped         = false;
 
-  bool          cnsFormat         = 'A';  //  Or 'Q' for FASTQ
+  char          cnsFormat         = 'A';  //  Or 'Q' for FASTQ
 
   bool          maWithQV          = false;
   bool          maWithDots        = true;
