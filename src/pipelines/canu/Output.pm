@@ -131,38 +131,15 @@ sub outputSequence ($$) {
     goto allDone   if (skipStage($wrk, $asm, "outputSequence") == 1);
     goto allDone   if (-e "$wrk/$asm.fastq");
 
-    if (-e "$wrk/$asm.tigStore/seqDB.v002.tig") {
-        $cmd  = "$bin/tgStoreDump \\\n";
-        $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
-        $cmd .= "  -T $wrk/$asm.tigStore 2 \\\n";
-        $cmd .= "  -o $wrk/$asm \\\n";
-        $cmd .= "  -consensus -fasta \\\n";
-        $cmd .= "2> $wrk/$asm.consensus.err\n";
+    $cmd  = "$bin/tgStoreDump \\\n";
+    $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
+    $cmd .= "  -T $wrk/$asm.tigStore 2 \\\n";
+    $cmd .= "  -consensus -fasta \\\n";
+    $cmd .= "> $wrk/$asm.consensus.fasta\n";
+    $cmd .= "2> $wrk/$asm.consensus.err\n";
 
-        if (runCommand($wrk, $cmd)) {
-            caExit("failed to output consensus", "$wrk/$asm.consensus.fastq.err");
-        }
-
-    } else {
-        open(O, "> $wrk/$asm.fastq") or caExit("can't open '$wrk/$asm.fastq' for writing: $!", undef);
-        open(F, "< $wrk/5-consensus/cnsjob.files") or caExit("can't open '$wrk/5-consensus/cnsjob.files' for reading: $!", undef);
-        while (<F>) {
-            my $prefix = $1  if (m/^(.*).cns/);
-
-            if (-e "$prefix.fastq") {
-                print STDERR "Copying sequencess from $prefix.fastq\n";
-
-                open(L, "< $prefix.fastq") or caExit("can't open '$prefix.fastq' for reading: $!", undef);
-                while (<L>) {
-                    print O $_;
-                }
-                close(L);
-            } else {
-                caExit("can't open '$prefix.fastq' for reading: $!", undef);
-            }
-        }
-        close(F);
-        close(O);
+    if (runCommand($wrk, $cmd)) {
+        caExit("failed to output consensus", "$wrk/$asm.consensus.err");
     }
 
   finishStage:
