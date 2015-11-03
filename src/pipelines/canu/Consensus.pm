@@ -32,7 +32,7 @@ package canu::Consensus;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(consensusConfigure consensusCheck consensusLoad consensusFilter);
+@EXPORT = qw(consensusConfigure consensusCheck consensusLoad consensusAnalyze consensusFilter);
 
 use strict;
 
@@ -427,6 +427,34 @@ sub consensusLoad ($$) {
 }
 
 
+
+
+sub consensusAnalyze ($$) {
+    my $wrk     = shift @_;
+    my $asm     = shift @_;
+    my $bin     = getBinDirectory();
+    my $cmd;
+    my $path    = "$wrk/5-consensus";
+
+    goto allDone   if (skipStage($wrk, $asm, "consensusAnalyze") == 1);
+
+
+    $cmd  = "$bin/tgStoreCoverageStat \\\n";
+    $cmd .= "  -G       $wrk/$asm.gkpStore \\\n";
+    $cmd .= "  -T       $wrk/$asm.tigStore 2 \\\n";
+    $cmd .= "  -s       " . getGlobal("genomeSize") . " \\\n";
+    $cmd .= "  -o       $wrk/$asm.tigStore.coverageStat \\\n";
+    $cmd .= "> $wrk/$asm.tigStore.coverageStat.err 2>&1";
+
+    if (runCommand($path, $cmd)) {
+        caExit("failed to compute coverage statistics", "$wrk/$asm.tigStore.coverageStat.err");
+    }
+
+  finishStage:
+    emitStage($wrk, $asm, "consensusAnalyze");
+    stopAfter("consensusAnalyze");
+  allDone:
+}
 
 
 sub consensusFilter ($$) {
