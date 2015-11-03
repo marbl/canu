@@ -430,24 +430,28 @@ main(int argc, char **argv) {
     err++;
   if (tigName == NULL)
     err++;
+  if (outPrefix == NULL)
+    err++;
 
   if (err) {
-    fprintf(stderr, "usage: %s -g gkpStore -t tigStore version\n", argv[0]);
+    fprintf(stderr, "usage: %s -G gkpStore -T tigStore version -o output-prefix [-s genomeSize] ...\n", argv[0]);
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -g <G>     Mandatory, path G to a gkpStore directory.\n");
-    fprintf(stderr, "  -t <T> <v> Mandatory, path T to a tigStore, and version V.\n");
+    fprintf(stderr, "  -G <G>     Mandatory, path G to a gkpStore directory.\n");
+    fprintf(stderr, "  -T <T> <v> Mandatory, path T to a tigStore, and version V.\n");
+    fprintf(stderr, "  -o <name>  Mandatory, prefix for output files.\n");
     fprintf(stderr, "  -s <S>     Optional, assume genome size S.\n");
-    fprintf(stderr, "  -o <name>  Recommended, prefix for output files.\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "  -n         Do not update the tigStore (default = do update).\n");
     fprintf(stderr, "  -u         Do not estimate based on N50 (default = use N50).\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -L         Be leniant; don't require reads start at position zero.\n");
+    fprintf(stderr, "\n");
 
     if (gkpName == NULL)
-      fprintf(stderr, "No gatekeeper store (-g option) supplied.\n");
+      fprintf(stderr, "No gatekeeper store (-G option) supplied.\n");
 
     if (tigName == NULL)
-      fprintf(stderr, "No input tigStore (-t option) supplied.\n");
+      fprintf(stderr, "No input tigStore (-T option) supplied.\n");
 
     if (outPrefix == NULL)
       fprintf(stderr, "No output prefix (-o option) supplied.\n");
@@ -456,7 +460,7 @@ main(int argc, char **argv) {
   }
 
   gkStore *gkpStore     = new gkStore(gkpName, gkStore_readOnly);
-  tgStore *tigStore     = new tgStore(tigName, tigVers, tgStoreReadOnly);
+  tgStore *tigStore     = new tgStore(tigName, tigVers, tgStoreModify);
 
   if (endID == 0)
     endID = tigStore->numTigs();
