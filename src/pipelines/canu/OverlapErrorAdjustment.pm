@@ -268,7 +268,7 @@ sub readErrorDetectionCheck ($$$) {
         my $jn = "$path/$ji.red";
 
         if (! -e $jn) {
-            $failureMessage .= "  job $jn FAILED.\n";
+            $failureMessage .= "--    job $jn FAILED.\n";
             push @failedJobs, $currentJobID;
         } else {
             push @successJobs, $jn;
@@ -291,10 +291,10 @@ sub readErrorDetectionCheck ($$$) {
     #  If not the first attempt, report the jobs that failed, and that we're recomputing.
 
     if ($attempt > 1) {
-        print STDERR "\n";
-        print STDERR scalar(@failedJobs), " read error detection jobs failed:\n";
+        print STDERR "--\n";
+        print STDERR "--  ", scalar(@failedJobs), " read error detection jobs failed:\n";
         print STDERR $failureMessage;
-        print STDERR "\n";
+        print STDERR "--\n";
     }
 
 
@@ -306,7 +306,7 @@ sub readErrorDetectionCheck ($$$) {
 
     #  Otherwise, run some jobs.
 
-    print STDERR "readErrorDetectionCheck() -- attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
+    print STDERR "--  read error detection attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
 
   finishStage:
     emitStage($wrk, $asm, "readErrorDetectionCheck", $attempt);
@@ -499,7 +499,7 @@ sub overlapErrorAdjustmentCheck ($$$) {
         my $jn = "$path/$ji.oea";
 
         if (! -e $jn) {
-            $failureMessage .= "  job $jn FAILED.\n";
+            $failureMessage .= "--    job $jn FAILED.\n";
             push @failedJobs, $currentJobID;
         } else {
             push @successJobs, $jn;
@@ -521,10 +521,10 @@ sub overlapErrorAdjustmentCheck ($$$) {
     #  If not the first attempt, report the jobs that failed, and that we're recomputing.
 
     if ($attempt > 1) {
-        print STDERR "\n";
-        print STDERR scalar(@failedJobs), " overlap error adjustment jobs failed:\n";
+        print STDERR "--\n";
+        print STDERR "--  ", scalar(@failedJobs), " overlap error adjustment jobs failed:\n";
         print STDERR $failureMessage;
-        print STDERR "\n";
+        print STDERR "--\n";
     }
 
     #  If too many attempts, give up.
@@ -535,7 +535,7 @@ sub overlapErrorAdjustmentCheck ($$$) {
 
     #  Otherwise, run some jobs.
 
-    print STDERR "overlapErrorAdjustmentCheck() -- attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
+    print STDERR "--  overlap error adjustment attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
 
   finishStage:
     emitStage($wrk, $asm, "overlapErrorAdjustmentCheck", $attempt);

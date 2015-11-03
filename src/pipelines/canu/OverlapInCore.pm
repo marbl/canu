@@ -194,7 +194,7 @@ sub overlapConfigure ($$$$) {
     my $batchName = $bat[$jobs-1];  chomp $batchName;
     my $jobName   = $job[$jobs-1];  chomp $jobName;
 
-    #print STDERR "Created $jobs overlap jobs.  Last batch '$batchName', last job '$jobName'.\n";
+    #print STDERR "--  Created $jobs overlap jobs.  Last batch '$batchName', last job '$jobName'.\n";
 
   finishStage:
     emitStage($WRK, $asm, "$tag-overlapConfigure");
@@ -327,7 +327,7 @@ sub overlapCheck ($$$$$) {
                 push @statsJobs,   "$path/$1.stats";
 
             } else {
-                $failureMessage .= "  job $path/$1 FAILED.\n";
+                $failureMessage .= "--    job $path/$1 FAILED.\n";
                 push @failedJobs, $currentJobID;
             }
 
@@ -352,10 +352,10 @@ sub overlapCheck ($$$$$) {
     #  If not the first attempt, report the jobs that failed, and that we're recomputing.
 
     if ($attempt > 1) {
-        print STDERR "\n";
-        print STDERR scalar(@failedJobs), " overlapper jobs failed:\n";
+        print STDERR "--\n";
+        print STDERR "--  ", scalar(@failedJobs), " overlapper jobs failed:\n";
         print STDERR $failureMessage;
-        print STDERR "\n";
+        print STDERR "--\n";
     }
 
     #  If too many attempts, give up.
@@ -366,7 +366,7 @@ sub overlapCheck ($$$$$) {
 
     #  Otherwise, run some jobs.
 
-    print STDERR "overlapCheck() -- attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
+    print STDERR "--  overlapInCore attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
 
   finishStage:
     emitStage($WRK, $asm, "$tag-overlapCheck", $attempt);

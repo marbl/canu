@@ -292,7 +292,7 @@ sub overlapStoreBucketizerCheck ($$$$$) {
         chomp;
 
         if (! -e "$wrk/$asm.ovlStore.BUILDING/bucket$bucketID") {
-            $failureMessage .= "  job $wrk/$asm.ovlStore.BUILDING/bucket$bucketID FAILED.\n";
+            $failureMessage .= "--    job $wrk/$asm.ovlStore.BUILDING/bucket$bucketID FAILED.\n";
             push @failedJobs, $currentJobID;
         } else {
             push @successJobs, $currentJobID;
@@ -307,7 +307,7 @@ sub overlapStoreBucketizerCheck ($$$$$) {
     #  No failed jobs?  Success!
 
     if (scalar(@failedJobs) == 0) {
-        print STDERR "overlap store bucketizer finished.\n";
+        print STDERR "--  Overlap store bucketizer finished.\n";
         setGlobal("canuIteration", 0);
         emitStage($WRK, $asm, "$tag-overlapStoreBucketizerCheck");
         return;
@@ -316,10 +316,10 @@ sub overlapStoreBucketizerCheck ($$$$$) {
     #  If not the first attempt, report the jobs that failed, and that we're recomputing.
 
     if ($attempt > 1) {
-        print STDERR "\n";
-        print STDERR scalar(@failedJobs), " overlapStoreBucketizer jobs failed:\n";
+        print STDERR "--\n";
+        print STDERR "--  ", scalar(@failedJobs), " overlap store bucketizer jobs failed:\n";
         print STDERR $failureMessage;
-        print STDERR "\n";
+        print STDERR "--\n";
     }
 
 
@@ -331,7 +331,7 @@ sub overlapStoreBucketizerCheck ($$$$$) {
 
     #  Otherwise, run some jobs.
 
-    print STDERR "overlapStoreBucketizerCheck() -- attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
+    print STDERR "--  overlap store bucketizer attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
 
   finishStage:
     emitStage($WRK, $asm, "$tag-overlapStoreBucketizerCheck", $attempt);
@@ -382,7 +382,7 @@ sub overlapStoreSorterCheck ($$$$$) {
         if ((! -e "$wrk/$asm.ovlStore.BUILDING/$sortID") ||
             (! -e "$wrk/$asm.ovlStore.BUILDING/$sortID.info") ||
             (  -e "$wrk/$asm.ovlStore.BUILDING/$sortID.ovs")) {
-            $failureMessage .= "  job $wrk/$asm.ovlStore.BUILDING/$sortID FAILED.\n";
+            $failureMessage .= "--    job $wrk/$asm.ovlStore.BUILDING/$sortID FAILED.\n";
             unlink "$wrk/$asm.ovlStore.BUILDING/$sortID.ovs";
             push @failedJobs, $currentJobID;
         } else {
@@ -398,7 +398,7 @@ sub overlapStoreSorterCheck ($$$$$) {
     #  No failed jobs?  Success!
 
     if (scalar(@failedJobs) == 0) {
-        print STDERR "overlap store sorter finished.\n";
+        print STDERR "--  Overlap store sorter finished.\n";
         setGlobal("canuIteration", 0);
         emitStage($WRK, $asm, "$tag-overlapStoreSorterCheck");
         return;
@@ -407,10 +407,10 @@ sub overlapStoreSorterCheck ($$$$$) {
     #  If not the first attempt, report the jobs that failed, and that we're recomputing.
 
     if ($attempt > 1) {
-        print STDERR "\n";
-        print STDERR scalar(@failedJobs), " overlapStoreSorter jobs failed:\n";
+        print STDERR "--\n";
+        print STDERR "--  ", scalar(@failedJobs), " overlap store sorter jobs failed:\n";
         print STDERR $failureMessage;
-        print STDERR "\n";
+        print STDERR "--\n";
     }
 
     #  If too many attempts, give up.
@@ -421,7 +421,7 @@ sub overlapStoreSorterCheck ($$$$$) {
 
     #  Otherwise, run some jobs.
 
-    print STDERR "overlapStoreSorterCheck() -- attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
+    print STDERR "--  overlap store sorter attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
 
   finishStage:
     emitStage($WRK, $asm, "$tag-overlapStoreSorterCheck", $attempt);

@@ -291,7 +291,7 @@ sub consensusCheck ($$$) {
             push @successJobs, "$path/$currentJobID.cns.xz\n";
 
         } else {
-            $failureMessage .= "  job $path/$currentJobID.cns FAILED.\n";
+            $failureMessage .= "--    job $path/$currentJobID.cns FAILED.\n";
             push @failedJobs, $job;
         }
 
@@ -312,10 +312,10 @@ sub consensusCheck ($$$) {
     #  If not the first attempt, report the jobs that failed, and that we're recomputing.
 
     if ($attempt > 1) {
-        print STDERR "\n";
-        print STDERR scalar(@failedJobs), " consensus jobs failed:\n";
+        print STDERR "--\n";
+        print STDERR "--  ", scalar(@failedJobs), " consensus jobs failed:\n";
         print STDERR $failureMessage;
-        print STDERR "\n";
+        print STDERR "--\n";
     }
 
     #  If too many attempts, give up.
