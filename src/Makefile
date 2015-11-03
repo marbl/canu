@@ -366,7 +366,9 @@ endif
 ${info Building for '${OSTYPE}' '${OSVERSION}' as '${MACHINETYPE}'}
 ${info Using LD_RUN_PATH '${LD_RUN_PATH}'}
 
+
 # (BPW) Set compiler and flags based on discovered hardware
+
 
 ifeq (${OSTYPE}, Linux)
   CC        ?= gcc
@@ -401,21 +403,35 @@ ifeq (${OSTYPE}, Linux)
   endif
 endif
 
+
 ifeq (${OSTYPE}, Darwin)
-  ifeq (${MACHINETYPE}, amd64)
-    CC       ?= gcc
-    CXX      ?= g++
-    CFLAGS   := -pthread -fopenmp -D_GLIBCXX_PARALLEL -O3 -fPIC -m64 -Wall -Wextra -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat
-    CXXFLAGS := -pthread -fopenmp -D_GLIBCXX_PARALLEL -O3 -fPIC -m64 -Wall -Wextra -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat
-    LDFLAGS  := -pthread -fopenmp -lm
+  CC       ?= gcc
+  CXX      ?= g++
+  CXXFLAGS := -pthread -fopenmp -fPIC -m64 -Wall -Wextra -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat
+  LDFLAGS  := -pthread -fopenmp -lm
+
+  ifeq ($(BUILDPROFILE), 1)
+    CXXFLAGS  += 
+    LDFLAGS   += -pg
   else
-    CC       := gcc
-    CXX      := g++
-    CFLAGS   := -pthread -D_GLIBCXX_PARALLEL -O3 -fPIC -m64 -Wall -Wextra -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat
-    CXXFLAGS := -pthread -D_GLIBCXX_PARALLEL -O3 -fPIC -m64 -Wall -Wextra -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat
-    LDFLAGS  := -pthread -lm
+    CXXFLAGS  += -D_GLIBCXX_PARALLEL
+    LDFLAGS   += -D_GLIBCXX_PARALLEL
+  endif
+
+  CXXFLAGS  += 
+  LDFLAGS   += 
+
+  ifeq ($(BUILDDEBUG), 1)
+    CXXFLAGS  += -g -fno-omit-frame-pointer
+  else
+    ifeq ($(BUILDPROFILE), 1)
+      CXXFLAGS   += -g3 -O4 -funroll-loops -fexpensive-optimizations -finline-functions -fno-omit-frame-pointer
+    else
+      CXXFLAGS   +=     -O4 -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+    endif
   endif
 endif
+
 
 ifeq (${OSTYPE}, FreeBSD)
   CC       ?= gcc48
