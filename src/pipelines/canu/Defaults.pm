@@ -82,6 +82,11 @@ sub setGlobal ($$) {
     $var =~ tr/A-Z/a-z/;
     $val = undef  if ($val eq "");  #  Set to undefined, the default for many of the options.
 
+    #  Map 'true'/'false' et al. to 0/1.
+
+    $val = 0  if (($val =~ m/^false$/i) || ($val =~ m/^f$/i));
+    $val = 1  if (($val =~ m/^true$/i)  || ($val =~ m/^t$/i));
+
     #  Translate from generic to specialized var
 
     foreach my $alg ("ovl", "mhap") {
