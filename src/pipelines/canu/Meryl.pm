@@ -118,7 +118,7 @@ sub meryl ($$$) {
 
         if (! -e $ffile) {
             caFailure("${tag}OvlFrequentMers '$sfile' not found", undef)  if (! -e $sfile);
-            print STDERR "Using frequent mers in '$sfile'\n";
+            print STDERR "--  Using frequent mers in '$sfile'\n";
             symlink $sfile, $ffile;
         }
 
@@ -150,7 +150,7 @@ sub meryl ($$$) {
         ($merThresh == 0)        &&
         (!defined($merDistinct)) &&
         (!defined($merTotal))) {
-        print STDERR "Threshold zero.  Empty file.\n";
+        print STDERR "--  Threshold zero.  Empty file.\n";
         touch($ffile);
 
         goto allDone;
@@ -221,19 +221,19 @@ sub meryl ($$$) {
             my ($threshold, $num, $distinct, $total) = split '\s+', $_;
 
             if (($merThresh > 0) && ($merThresh < $threshold)) {
-                print STDERR "Supplied merThreshold $merThresh is the smallest.\n";
+                print STDERR "--  Supplied merThreshold $merThresh is the smallest.\n";
                 last;
             }
 
             if ((defined($merDistinct)) && ($merDistinct <= $distinct)) {
                 $merThresh = (($merThresh > 0) && ($merThresh < $threshold)) ? $merThresh : $threshold;
-                print STDERR "Supplied merDistinct $merDistinct with threshold $threshold is the smallest.\n";
+                print STDERR "--  Supplied merDistinct $merDistinct with threshold $threshold is the smallest.\n";
                 last;
             }
 
             if ((defined($merTotal)) && ($merTotal <= $total)) {
                 $merThresh = (($merThresh > 0) && ($merThresh < $threshold)) ? $merThresh : $threshold;
-                print STDERR "Supplied merTotal $merTotal with threshold $threshold is the smallest.\n";
+                print STDERR "--  Supplied merTotal $merTotal with threshold $threshold is the smallest.\n";
                 last;
             }
         }
@@ -368,7 +368,7 @@ sub meryl ($$$) {
     #  Report the new threshold.
 
     if ((getGlobal("${tag}Overlapper") eq "ovl") && ($merThresh > 0) && (getGlobal("${tag}OvlMerThreshold") ne $merThresh)) {
-        print STDERR "Reset ${tag}OvlMerThreshold from ", getGlobal("${tag}OvlMerThreshold"), " to $merThresh.\n";
+        print STDERR "--  Reset ${tag}OvlMerThreshold from ", getGlobal("${tag}OvlMerThreshold"), " to $merThresh.\n";
         setGlobal("${tag}OvlMerThreshold", $merThresh);
     }
 
