@@ -147,14 +147,14 @@ sub schedulerFinish ($) {
 
     $remain = scalar(@processQueue);
 
-    if (defined($dir)) {
-        my $f = diskSpace($dir);
-        print STDERR "----------------------------------------SPACE $f GB\n";
-    }
+    my $startsecs = time();
+    my $diskfree  = (defined($dir)) ? (diskSpace($dir)) : (0);
 
-    my $t = localtime();
-    my $d = time();
-    print STDERR "----------------------------------------START CONCURRENT $t ($remain processes; $numberOfProcesses concurrently)\n";
+    print STDERR "--\n";
+    print STDERR "--\n";
+    print STDERR "--  Starting concurrent execution on ", scalar(localtime()), " with $diskfree GB free disk space ($remain processes; $numberOfProcesses concurrently)\n"  if  (defined($dir));
+    print STDERR "--  Starting concurrent execution on ", scalar(localtime()), " ($remain processes; $numberOfProcesses concurrently)\n"                                    if (!defined($dir));
+    print STDERR "--\n";
 
     #  Run all submitted jobs
     #
@@ -181,13 +181,12 @@ sub schedulerFinish ($) {
         waitpid(shift @processesRunning, 0);
     }
 
-    $t = localtime();
-    print STDERR "----------------------------------------END CONCURRENT $t (", time() - $d, " seconds)\n";
+    $diskfree = (defined($dir)) ? (diskSpace($dir)) : (0);
 
-    if (defined($dir)) {
-        my $f = diskSpace($dir);
-        print STDERR "----------------------------------------SPACE $f GB DANGEROUSLY LOW\n"  if ($f < 1.0);
-    }
+    my $warning = "  !!! WARNING !!!" if ($diskfree < 10);
+    print STDERR "--\n";
+    print STDERR "--  Finished on ", scalar(localtime()), " (", time() - $startsecs, " seconds) with $diskfree GB free disk space$warning\n";
+    print STDERR "--\n";
 }
 
 
@@ -1060,38 +1059,63 @@ sub submitOrRunParallelJob ($$$$$@) {
 sub runCommand ($$) {
     my $dir = shift @_;
     my $cmd = shift @_;
+    my $dis = $cmd;
 
     return  if ($cmd eq "");
+
+    #  Pretty-ify the command.  If there are no newlines already in it, break
+    #  before every switch and before file redirects.
+
+    if (($dis =~ tr/\n/\n/) == 0) {
+        $dis =~ s/\s-/ \\\n  -/g;
+        $dis =~ s/\s>\s/ \\\n> /;
+        $dis =~ s/\s2>\s/ \\\n2> /;
+
+        print STDERR "FORMATTED\n";
+        #print STDERR "BEFORE\n--\n$cmd\n--\n";
+        #print STDERR "AFTER\n--\n$dis\n--\n";
+    }
+
+    #  Add four spaces to the start of every command.
+    #  I don't like it.
+    #
+    #$dis =  "    " . $dis;
+    #$dis =~ s/\n/\n    /g;
+
+    #  Check if the directory exists.
 
     if (! -d $dir) {
         caFailure("Directory '$dir' doesn't exist, can't run command", "");
     }
 
+    #  If only showing the next command, show it and stop.
+
     if (getGlobal("showNext")) {
-        print STDERR "----------------------------------------NEXT-COMMAND\n";
-        print STDERR "$cmd\n";
+        print STDERR "--NEXT-COMMAND\n";
+        print STDERR "$dis\n";
         exit(0);
     }
 
-    if (defined($dir)) {
-        my $f = diskSpace($dir);
-        print STDERR "----------------------------------------SPACE $f GB\n";
-    }
+    #  Log that we're starting, and show the pretty-ified command.
 
-    my $t = localtime();
-    my $d = time();
-    print STDERR "----------------------------------------START $t\n";
-    print STDERR "$cmd\n";
+    my $startsecs = time();
+    my $diskfree  = (defined($dir)) ? (diskSpace($dir)) : (0);
+
+    print STDERR "--\n";
+    print STDERR "--\n";
+    print STDERR "--  Starting command on ", scalar(localtime()), " with $diskfree GB free disk space\n"  if  (defined($dir));
+    print STDERR "--  Starting command on ", scalar(localtime()), "\n"                                    if (!defined($dir));
+    print STDERR "--\n";
+    print STDERR "$dis\n";
 
     my $rc = 0xffff & system("cd $dir && $cmd");
 
-    $t = localtime();
-    print STDERR "----------------------------------------END $t (", time() - $d, " seconds)\n";
+    $diskfree = (defined($dir)) ? (diskSpace($dir)) : (0);
 
-    if (defined($dir)) {
-        my $f = diskSpace($dir);
-        print STDERR "----------------------------------------SPACE $f GB DANGEROUSLY LOW\n"  if ($f < 1.0);
-    }
+    my $warning = "  !!! WARNING !!!" if ($diskfree < 10);
+    print STDERR "--\n";
+    print STDERR "--  Finished on ", scalar(localtime()), " (", time() - $startsecs, " seconds) with $diskfree GB free disk space$warning\n";
+    print STDERR "--\n";
 
     #  Pretty much copied from Programming Perl page 230
 
