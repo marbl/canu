@@ -93,9 +93,7 @@ sub reportUnitigSizes ($$$$) {
         $cmd  = "$bin/tgStoreDump \\\n";
         $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
         $cmd .= "  -T $wrk/$asm.tigStore $version \\\n";
-        $cmd .= "  -U \\\n";
-        $cmd .= "  -d sizes \\\n";
-        $cmd .= "  -s " . getGlobal("genomeSize") . " \\\n";
+        $cmd .= "  -sizes -s " . getGlobal("genomeSize") . " \\\n";
         $cmd .= "> $N\n";
 
         if (runCommand($wrk, $cmd)) {

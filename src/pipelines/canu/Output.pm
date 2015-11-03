@@ -53,9 +53,9 @@ sub outputLayout ($$) {
         $cmd  = "$bin/tgStoreDump \\\n";
         $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
         $cmd .= "  -T $wrk/$asm.tigStore 2 \\\n";
-        $cmd .= "  -U -d layout \\\n";
-        $cmd .= ">  $wrk/$asm.layout \\\n";
-        $cmd .= "2> $wrk/$asm.layout.err\n";
+        $cmd .= "  -o $wrk/$asm \\\n";
+        $cmd .= "  -layout \\\n";
+        $cmd .= "> $wrk/$asm.layout.err 2>&1\n";
 
         if (runCommand($wrk, $cmd)) {
             caExit("failed to output layouts", "$wrk/$asm.layout.err");
@@ -135,9 +135,9 @@ sub outputSequence ($$) {
         $cmd  = "$bin/tgStoreDump \\\n";
         $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
         $cmd .= "  -T $wrk/$asm.tigStore 2 \\\n";
-        $cmd .= "  -U -d consensus \\\n";
-        $cmd .= ">  $wrk/$asm.consensus.fastq \\\n";
-        $cmd .= "2> $wrk/$asm.consensus.fastq.err\n";
+        $cmd .= "  -o $wrk/$asm \\\n";
+        $cmd .= "  -consensus -fasta \\\n";
+        $cmd .= "2> $wrk/$asm.consensus.err\n";
 
         if (runCommand($wrk, $cmd)) {
             caExit("failed to output consensus", "$wrk/$asm.consensus.fastq.err");
