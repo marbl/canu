@@ -540,21 +540,15 @@ main(int argc, char **argv) {
     }
   }
 
-
-  fprintf(stderr, "\n");
-  //fprintf(stderr, "Processed %d unitigs with %d fragments.\n", 0, 0);
-  fprintf(stderr, "\n");
-  fprintf(stderr, "classification     number of unitigs    total length\n");
-  fprintf(stderr, "  unique:          %17"F_U32P"  %14"F_U64P"\n", repeat_IsUnique.num,     repeat_IsUnique.len);
-  fprintf(stderr, "  singleton:       %17"F_U32P"  %14"F_U64P"\n", repeat_IsSingleton.num,  repeat_IsSingleton.len);
-  fprintf(stderr, "  repeat:          %17"F_U32P"  %14"F_U64P"\n", repeat_IsRepeat.num,     repeat_IsRepeat.len);
-  fprintf(stderr, "    too few reads: %17"F_U32P"  %14"F_U64P"\n", repeat_LowReads.num,     repeat_LowReads.len);
-  fprintf(stderr, "    low cov stat:  %17"F_U32P"  %14"F_U64P"\n", repeat_LowCovStat.num,   repeat_LowCovStat.len);
-  fprintf(stderr, "    too short:     %17"F_U32P"  %14"F_U64P"\n", repeat_Short.num,        repeat_Short.len);
-  fprintf(stderr, "    spanning read: %17"F_U32P"  %14"F_U64P"\n", repeat_SingleSpan.num,   repeat_SingleSpan.len);
-  fprintf(stderr, "    low coverage:  %17"F_U32P"  %14"F_U64P"\n", repeat_LowCov.num,       repeat_LowCov.len);
-
-
+  fprintf(outSTA, "classification     number of unitigs    total length\n");
+  fprintf(outSTA, "  unique:          %17"F_U32P"  %14"F_U64P"\n", repeat_IsUnique.num,     repeat_IsUnique.len);
+  fprintf(outSTA, "  singleton:       %17"F_U32P"  %14"F_U64P"\n", repeat_IsSingleton.num,  repeat_IsSingleton.len);
+  fprintf(outSTA, "  repeat:          %17"F_U32P"  %14"F_U64P"\n", repeat_IsRepeat.num,     repeat_IsRepeat.len);
+  fprintf(outSTA, "    too few reads: %17"F_U32P"  %14"F_U64P"\n", repeat_LowReads.num,     repeat_LowReads.len);
+  fprintf(outSTA, "    low cov stat:  %17"F_U32P"  %14"F_U64P"\n", repeat_LowCovStat.num,   repeat_LowCovStat.len);
+  fprintf(outSTA, "    too short:     %17"F_U32P"  %14"F_U64P"\n", repeat_Short.num,        repeat_Short.len);
+  fprintf(outSTA, "    spanning read: %17"F_U32P"  %14"F_U64P"\n", repeat_SingleSpan.num,   repeat_SingleSpan.len);
+  fprintf(outSTA, "    low coverage:  %17"F_U32P"  %14"F_U64P"\n", repeat_LowCov.num,       repeat_LowCov.len);
 
   fclose(outLOG);
   fclose(outSTA);
@@ -564,4 +558,6 @@ main(int argc, char **argv) {
 
   delete gkpStore;
   delete tigStore;
+
+  exit(0);
 }
