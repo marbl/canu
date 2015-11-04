@@ -437,7 +437,7 @@ sub consensusAnalyze ($$) {
     my $path    = "$wrk/5-consensus";
 
     goto allDone   if (skipStage($wrk, $asm, "consensusAnalyze") == 1);
-
+    goto allDone   if (-e "$wrk/$asm.tigStore/status.coverageStat");
 
     $cmd  = "$bin/tgStoreCoverageStat \\\n";
     $cmd .= "  -G       $wrk/$asm.gkpStore \\\n";
@@ -450,8 +450,11 @@ sub consensusAnalyze ($$) {
         caExit("failed to compute coverage statistics", "$wrk/$asm.tigStore.coverageStat.err");
     }
 
+    unlink "$wrk/$asm.tigStore.coverageStat.err";
+
   finishStage:
     emitStage($wrk, $asm, "consensusAnalyze");
+    touch("$wrk/$asm.tigStore/status.coverageStat");
     stopAfter("consensusAnalyze");
   allDone:
 }
@@ -465,6 +468,7 @@ sub consensusFilter ($$) {
     my $path    = "$wrk/5-consensus";
 
     goto allDone   if (skipStage($wrk, $asm, "consensusFilter") == 1);
+    goto allDone   if (-e "$wrk/$asm.tigStore/status.filter");
 
     my $msrs = getGlobal("maxSingleReadSpan");
     my $lca  = getGlobal("lowCoverageAllowed");  #  checkParameters() ensures that this and
@@ -488,8 +492,11 @@ sub consensusFilter ($$) {
         caExit("failed to filter unitigs", "$wrk/$asm.tigStore.filter.err");
     }
 
+    unlink "$wrk/$asm.tigStore.filter.err";
+
   finishStage:
     emitStage($wrk, $asm, "consensusFilter");
+    touch("$wrk/$asm.tigStore/status.filter");
     stopAfter("consensusFilter");
   allDone:
 }

@@ -82,6 +82,8 @@ sub createOverlapStoreSequential ($$$$) {
         caExit("failed to create the overlap store", "$wrk/$asm.ovlStore.err");
     }
 
+    unlink "$wrk/$asm.ovlStore.err";
+
     rename "$wrk/$asm.ovlStore.BUILDING", "$wrk/$asm.ovlStore";
 }
 
