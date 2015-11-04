@@ -327,9 +327,9 @@ dumpLayout(gkStore *UNUSED(gkpStore), tgStore *tigStore, tgFilter &filter, bool 
     char R[FILENAME_MAX];  int32 Rerr = 0;
     char L[FILENAME_MAX];  int32 Lerr = 0;
 
-    sprintf(T, "%s.tigInfo",    outPrefix);
-    sprintf(R, "%s.readLayout", outPrefix);
-    sprintf(L, "%s.layouts",    outPrefix);
+    sprintf(T, "%s.layout.tigInfo",   outPrefix);
+    sprintf(R, "%s.layout.readToTig", outPrefix);
+    sprintf(L, "%s.layout",           outPrefix);
 
     errno = 0;
 
