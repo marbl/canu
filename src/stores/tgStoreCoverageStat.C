@@ -578,4 +578,6 @@ main(int argc, char **argv) {
 
   delete gkpStore;
   delete tigStore;
+
+  exit(0);
 }
