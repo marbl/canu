@@ -213,7 +213,21 @@ sub consensusConfigure ($$) {
 
     make_path("$path")  if (! -d "$path");
 
-    #  Make sure the gkpStore is partitioned.
+    #  If the gkpStore partitions are older than the tigStore unitig output, assume the unitigs have
+    #  changed and remove the gkpStore partition.  -M is (annoyingly) 'file age', so we need to
+    #  rebuild if gkp is newer (smaller) than tig.
+
+    if (-e "$wrk/$asm.gkpStore/partitions/map") {
+        my $gkpTime = -M "$wrk/$asm.gkpStore/partitions/map";
+        my $tigTime = -M "$wrk/$asm.tigStore/seqDB.v001.tig";
+
+        if ($gkpTime < $tigTime) {
+            print STDERR "-- Partitioned gkpStore is older than tigs, rebuild partitioning.\n";
+            runmCommandSilently($wrk, "rm -rf $wrk/$asm.gkpStore/partitions");
+        }
+    }
+
+    #  Partition gkpStore if needed.
 
     if (! -e "$wrk/$asm.gkpStore/partitions/map") {
         $cmd  = "$bin/gatekeeperPartition \\\n";
@@ -227,6 +241,8 @@ sub consensusConfigure ($$) {
             caExit("failed to partition the reads", "$path/$asm.partitioned.err");
         }
     }
+
+    #  Set up the consensus compute.
 
     my $jobs = computeNumberOfConsensusJobs($wrk, $asm);
 
