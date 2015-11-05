@@ -728,7 +728,7 @@ sub generateCorrectedReads ($$$) {
             push @successJobs, "$path/correction_outputs/$currentJobID.fasta\n";
 
         } else {
-            $failureMessage .= "--    job $path/correction_outputs/$currentJobID.fasta FAILED.\n";
+            $failureMessage .= "--   job $path/correction_outputs/$currentJobID.fasta FAILED.\n";
             push @failedJobs, $job;
         }
 
@@ -750,9 +750,8 @@ sub generateCorrectedReads ($$$) {
 
     if ($attempt > 1) {
         print STDERR "--\n";
-        print STDERR "--  ", scalar(@failedJobs), " read correction jobs failed:\n";
+        print STDERR "-- ", scalar(@failedJobs), " read correction jobs failed:\n";
         print STDERR $failureMessage;
-        print STDERR "--\n";
     }
 
     #  If too many attempts, give up.
@@ -763,7 +762,7 @@ sub generateCorrectedReads ($$$) {
 
     #  Otherwise, run some jobs.
 
-    print STDERR "--  generate corrected reads attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
+    print STDERR "-- generate corrected reads attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
 
   finishStage:
     emitStage($WRK, $asm, "cor-generateCorrectedReads", $attempt);
@@ -824,5 +823,6 @@ sub dumpCorrectedReads ($$) {
     emitStage($WRK, $asm, "cor-dumpCorrectedReads");
 
   allDone:
-    print STDERR "--  Corrected reads saved in '$wrk/$asm.correctedReads.fastq'.\n";
+    print STDERR "--\n";
+    print STDERR "-- Corrected reads saved in '$wrk/$asm.correctedReads.fastq'.\n";
 }

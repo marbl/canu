@@ -108,13 +108,13 @@ sub reportUnitigSizes ($$$$) {
         $asmbases  = $1  if (m/lenAssembled\s+sum\s+(\d+)/);
         $asmnum    = $1  if (m/lenAssembled\s+num\s+(\d+)/);
 
-        $asmsizes .= "--    $_"  if (m/lenAssembled\s+(n\d+)\s+siz/);
+        $asmsizes .= "--   $_"  if (m/lenAssembled\s+(n\d+)\s+siz/);
     }
     close(F);
 
-    print STDERR "--  Found, in version $version, $label:\n";
-    print STDERR "--    unitigs:     $asmnum sequences, total length $asmbases bp.\n";
-    print STDERR "--    singletons:  $singnum sequences, total length $singbases bp.\n";
+    print STDERR "-- Found, in version $version, $label:\n";
+    print STDERR "--   unitigs:     $asmnum sequences, total length $asmbases bp.\n";
+    print STDERR "--   singletons:  $singnum sequences, total length $singbases bp.\n";
     print STDERR "--\n";
     print STDERR "$asmsizes";
     print STDERR "--\n";

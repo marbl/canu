@@ -588,7 +588,7 @@ main(int argc, char **argv) {
       fprintf(stderr, "Failed to open '%s' for writing: %s\n", N, strerror(errno)), exit(1);
   }
 
-  fprintf(LOG, "    category        reads       read length        feature size or coverage        analysis\n");
+  fprintf(LOG, "category            reads       read length        feature size or coverage  analysis\n");
   fprintf(LOG, "----------------  -------  ----------------------  ------------------------  --------------------\n");
   fprintf(LOG, "middle-missing    %7"F_U64P"  %10.2f +- %-8.2f   %10.2f +- %-8.2f   (bad trimming)\n", readHole->numberOfObjects(), readHole->mean(), readHole->stddev(), olapHole->mean(), olapHole->stddev());
   fprintf(LOG, "middle-hump       %7"F_U64P"  %10.2f +- %-8.2f   %10.2f +- %-8.2f   (bad trimming)\n", readHump->numberOfObjects(), readHump->mean(), readHump->stddev(), olapHump->mean(), olapHump->stddev());

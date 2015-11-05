@@ -770,7 +770,7 @@ sub checkParameters ($) {
 
             } else {
                 print STDERR "-- WARNING:  Couldn't determine the SGE parallel environment to run multi-threaded codes.\n";
-                print STDERR "--           Set 'gridEngineThreadsOption' manually; example: '-pe threaded THREADS'.\n";
+                print STDERR "--          Set 'gridEngineThreadsOption' manually; example: '-pe threaded THREADS'.\n";
             }
         } else {
             if (getGlobal("gridEngineThreadsOption") =~ m/^-pe\s+(.*)$/) {
@@ -808,12 +808,12 @@ sub checkParameters ($) {
 
             } elsif ($nmm > 1) {
                 print STDERR "-- WARNING:  Couldn't determine the SGE resource to request memory.\n";
-                print STDERR "--           Found $nmm choices: $mem\n";
-                print STDERR "--           Set 'gridEngineMemoryOption' manually; example: '-l mem=MEMORY'.\n";
+                print STDERR "--          Found $nmm choices: $mem\n";
+                print STDERR "--          Set 'gridEngineMemoryOption' manually; example: '-l mem=MEMORY'.\n";
 
             } else {
                 print STDERR "-- WARNING:  Couldn't determine the SGE resource to request memory.\n";
-                print STDERR "--           Set 'gridEngineMemoryOption' manually; example: '-l mem=MEMORY'.\n";
+                print STDERR "--          Set 'gridEngineMemoryOption' manually; example: '-l mem=MEMORY'.\n";
             }
         } else {
             if (getGlobal("gridEngineMemoryOption") =~ m/^-l\s+(.*)=MEMORY$/) {
@@ -924,7 +924,6 @@ sub showErrorRates ($) {
     print STDERR "${prefix}utgRepeatErrorRate  -- ", getGlobal("utgRepeatErrorRate"), "\n";
     print STDERR "${prefix}\n";
     print STDERR "${prefix}cnsErrorRate        -- ", getGlobal("cnsErrorRate"), "\n";
-    print STDERR "${prefix}\n";
 }
 
 
@@ -955,7 +954,7 @@ sub setErrorRate ($@) {
 
     setGlobal("cnsErrorRate",       $er);
 
-    showErrorRates("-- ")  if (defined($verbose));
+    showErrorRates("--  ")  if (defined($verbose));
 }
 
 

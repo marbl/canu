@@ -294,7 +294,7 @@ sub overlapStoreBucketizerCheck ($$$$$) {
         chomp;
 
         if (! -e "$wrk/$asm.ovlStore.BUILDING/bucket$bucketID") {
-            $failureMessage .= "--    job $wrk/$asm.ovlStore.BUILDING/bucket$bucketID FAILED.\n";
+            $failureMessage .= "--   job $wrk/$asm.ovlStore.BUILDING/bucket$bucketID FAILED.\n";
             push @failedJobs, $currentJobID;
         } else {
             push @successJobs, $currentJobID;
@@ -309,7 +309,7 @@ sub overlapStoreBucketizerCheck ($$$$$) {
     #  No failed jobs?  Success!
 
     if (scalar(@failedJobs) == 0) {
-        print STDERR "--  Overlap store bucketizer finished.\n";
+        print STDERR "-- Overlap store bucketizer finished.\n";
         setGlobal("canuIteration", 0);
         emitStage($WRK, $asm, "$tag-overlapStoreBucketizerCheck");
         return;
@@ -319,7 +319,7 @@ sub overlapStoreBucketizerCheck ($$$$$) {
 
     if ($attempt > 1) {
         print STDERR "--\n";
-        print STDERR "--  ", scalar(@failedJobs), " overlap store bucketizer jobs failed:\n";
+        print STDERR "-- ", scalar(@failedJobs), " overlap store bucketizer jobs failed:\n";
         print STDERR $failureMessage;
         print STDERR "--\n";
     }
@@ -333,7 +333,7 @@ sub overlapStoreBucketizerCheck ($$$$$) {
 
     #  Otherwise, run some jobs.
 
-    print STDERR "--  overlap store bucketizer attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
+    print STDERR "-- overlap store bucketizer attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
 
   finishStage:
     emitStage($WRK, $asm, "$tag-overlapStoreBucketizerCheck", $attempt);
@@ -384,7 +384,7 @@ sub overlapStoreSorterCheck ($$$$$) {
         if ((! -e "$wrk/$asm.ovlStore.BUILDING/$sortID") ||
             (! -e "$wrk/$asm.ovlStore.BUILDING/$sortID.info") ||
             (  -e "$wrk/$asm.ovlStore.BUILDING/$sortID.ovs")) {
-            $failureMessage .= "--    job $wrk/$asm.ovlStore.BUILDING/$sortID FAILED.\n";
+            $failureMessage .= "--   job $wrk/$asm.ovlStore.BUILDING/$sortID FAILED.\n";
             unlink "$wrk/$asm.ovlStore.BUILDING/$sortID.ovs";
             push @failedJobs, $currentJobID;
         } else {
@@ -400,7 +400,7 @@ sub overlapStoreSorterCheck ($$$$$) {
     #  No failed jobs?  Success!
 
     if (scalar(@failedJobs) == 0) {
-        print STDERR "--  Overlap store sorter finished.\n";
+        print STDERR "-- Overlap store sorter finished.\n";
         setGlobal("canuIteration", 0);
         emitStage($WRK, $asm, "$tag-overlapStoreSorterCheck");
         return;
@@ -410,7 +410,7 @@ sub overlapStoreSorterCheck ($$$$$) {
 
     if ($attempt > 1) {
         print STDERR "--\n";
-        print STDERR "--  ", scalar(@failedJobs), " overlap store sorter jobs failed:\n";
+        print STDERR "-- ", scalar(@failedJobs), " overlap store sorter jobs failed:\n";
         print STDERR $failureMessage;
         print STDERR "--\n";
     }
@@ -423,7 +423,7 @@ sub overlapStoreSorterCheck ($$$$$) {
 
     #  Otherwise, run some jobs.
 
-    print STDERR "--  overlap store sorter attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
+    print STDERR "-- overlap store sorter attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
 
   finishStage:
     emitStage($WRK, $asm, "$tag-overlapStoreSorterCheck", $attempt);
@@ -531,6 +531,9 @@ sub createOverlapStore ($$$$) {
 
     unlink "$path/ovljob.files";
 
+    print STDERR "--\n";
+    print STDERR "-- Overlap store '$wrk/$asm.ovlStore' successfully constructed.\n";
+
     #  Now all done!
 
   finishStage:
@@ -540,16 +543,17 @@ sub createOverlapStore ($$$$) {
 
   allDone:
     if (-e "$wrk/$asm.ovlStore.summary") {
-        print STDERR "--  Overlap store '$wrk/$asm.ovlStore' constructed.\n";
         print STDERR "--\n";
-        open(F, "< $wrk/$asm.ovlStore.summary") or caExit("Failed to open overlap store statistics in '$wrk/$asm.ovlStore': $!", undef);
-        while (<F>) {
-            print STDERR "--    $_";
-        }
-        close(F);
+        print STDERR "-- Overlap store '$wrk/$asm.ovlStore' contains:\n";
         print STDERR "--\n";
 
+        open(F, "< $wrk/$asm.ovlStore.summary") or caExit("Failed to open overlap store statistics in '$wrk/$asm.ovlStore': $!", undef);
+        while (<F>) {
+            print STDERR "--   $_";
+        }
+        close(F);
+
     } else {
-        print STDERR "--  Overlap store '$wrk/$asm.ovlStore' constructed.  Statistics not available.\n";
+        print STDERR "-- Overlap store '$wrk/$asm.ovlStore' statistics not available.\n";
     }
 }

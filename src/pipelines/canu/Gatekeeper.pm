@@ -125,7 +125,7 @@ sub gatekeeper ($$$@) {
     #  An empty store?  Remove it and try again.
 
     if ((storeExists($wrk, $asm)) && (getNumberOfReadsInStore($wrk, $asm) == 0)) {
-        print STDERR "--  Removing empty or incomplate gkpStore '$wrk/$asm.gkpStore'\n";
+        print STDERR "-- Removing empty or incomplate gkpStore '$wrk/$asm.gkpStore'\n";
         runmCommandSilently($wrk, "rm -rf $wrk/$asm.gkpStore");
     }
 
@@ -134,6 +134,11 @@ sub gatekeeper ($$$@) {
     goto allDone    if (skipStage($WRK, $asm, "$tag-gatekeeper") == 1);
     goto allDone    if (getNumberOfReadsInStore($wrk, $asm) > 0);
 
+    print STDERR "--\n";
+    print STDERR "-- GATEKEEPER (correction)\n"  if ($tag eq "cor");
+    print STDERR "-- GATEKEEPER (trimming)\n"    if ($tag eq "obt");
+    print STDERR "-- GATEKEEPER (assembly)\n"    if ($tag eq "utg");
+    print STDERR "--\n";
 
     caExit("no input files specified, and store not already created, I have nothing to work on!", undef)
         if (scalar(@inputs) == 0);
@@ -290,17 +295,18 @@ sub gatekeeper ($$$@) {
 
     my $scale = $maxhist / 70;
 
-    print STDERR "--  In gatekeeper store '$wrk/$asm.gkpStore':\n";
-    print STDERR "--    Found $reads reads.\n";
-    print STDERR "--    Found $bases bases ($coverage times coverage).\n";
     print STDERR "--\n";
-    print STDERR "--    Read length histogram (one '*' equals ", int(100 * $scale) / 100, " reads):\n";
+    print STDERR "-- In gatekeeper store '$wrk/$asm.gkpStore':\n";
+    print STDERR "--   Found $reads reads.\n";
+    print STDERR "--   Found $bases bases ($coverage times coverage).\n";
+    print STDERR "--\n";
+    print STDERR "--   Read length histogram (one '*' equals ", int(100 * $scale) / 100, " reads):\n";
 
     open(F, "< $wrk/$asm.gkpStore/readlengthhistogram.txt") or caExit("can't open '$wrk/$asm.gkpStore/readlengthhistogram.txt' for reading: $!", undef);
     while (<F>) {
         my @v = split '\s+', $_;
 
-        printf STDERR "--    %6d %6d %6d %s\n", $v[0], $v[1], $v[2], "*" x int($v[2] / $scale);
+        printf STDERR "--   %6d %6d %6d %s\n", $v[0], $v[1], $v[2], "*" x int($v[2] / $scale);
     }
     close(F);
 }

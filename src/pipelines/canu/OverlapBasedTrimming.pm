@@ -188,6 +188,7 @@ sub dumpReads ($$) {
     emitStage($WRK, $asm, "obt-dumpReads");
 
   allDone:
+    print STDERR "--\n";
     print STDERR "-- Trimmed reads saved in '$wrk/$asm.trimmedReads.fastq'\n";
 
 }

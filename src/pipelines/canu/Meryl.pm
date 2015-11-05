@@ -106,6 +106,10 @@ sub meryl ($$$) {
     goto allDone   if (skipStage($WRK, $asm, "$tag-meryl") == 1);
     goto allDone   if (-e "$ffile");
 
+    print STDERR "-- MERYL (correction)\n"  if ($tag eq "cor");
+    print STDERR "-- MERYL (trimming)\n"    if ($tag eq "obt");
+    print STDERR "-- MERYL (assembly)\n"    if ($tag eq "utg");
+
     #  Make a work space.
 
     system("mkdir $wrk/0-mercounts")  if (! -d "$wrk/0-mercounts");
@@ -118,7 +122,6 @@ sub meryl ($$$) {
 
         if (! -e $ffile) {
             caFailure("${tag}OvlFrequentMers '$sfile' not found", undef)  if (! -e $sfile);
-            print STDERR "--  Using frequent mers in '$sfile'\n";
             symlink $sfile, $ffile;
         }
 
@@ -150,9 +153,7 @@ sub meryl ($$$) {
         ($merThresh == 0)        &&
         (!defined($merDistinct)) &&
         (!defined($merTotal))) {
-        print STDERR "--  Threshold zero.  Empty file.\n";
         touch($ffile);
-
         goto allDone;
     }
 
@@ -221,19 +222,19 @@ sub meryl ($$$) {
             my ($threshold, $num, $distinct, $total) = split '\s+', $_;
 
             if (($merThresh > 0) && ($merThresh < $threshold)) {
-                print STDERR "--  Supplied merThreshold $merThresh is the smallest.\n";
+                print STDERR "-- Supplied merThreshold $merThresh is the smallest.\n";
                 last;
             }
 
             if ((defined($merDistinct)) && ($merDistinct <= $distinct)) {
                 $merThresh = (($merThresh > 0) && ($merThresh < $threshold)) ? $merThresh : $threshold;
-                print STDERR "--  Supplied merDistinct $merDistinct with threshold $threshold is the smallest.\n";
+                print STDERR "-- Supplied merDistinct $merDistinct with threshold $threshold is the smallest.\n";
                 last;
             }
 
             if ((defined($merTotal)) && ($merTotal <= $total)) {
                 $merThresh = (($merThresh > 0) && ($merThresh < $threshold)) ? $merThresh : $threshold;
-                print STDERR "--  Supplied merTotal $merTotal with threshold $threshold is the smallest.\n";
+                print STDERR "-- Supplied merTotal $merTotal with threshold $threshold is the smallest.\n";
                 last;
             }
         }
@@ -368,7 +369,7 @@ sub meryl ($$$) {
     #  Report the new threshold.
 
     if ((getGlobal("${tag}Overlapper") eq "ovl") && ($merThresh > 0) && (getGlobal("${tag}OvlMerThreshold") ne $merThresh)) {
-        print STDERR "--  Reset ${tag}OvlMerThreshold from ", getGlobal("${tag}OvlMerThreshold"), " to $merThresh.\n";
+        print STDERR "-- Reset ${tag}OvlMerThreshold from ", getGlobal("${tag}OvlMerThreshold"), " to $merThresh.\n";
         setGlobal("${tag}OvlMerThreshold", $merThresh);
     }
 
@@ -380,12 +381,13 @@ sub meryl ($$$) {
     stopAfter("meryl");
 
   allDone:
-    my $numTotal    = 0;
-    my $numDistinct = 0;
-    my $numUnique   = 0;
-    my $largest     = 0;
 
     if (-e "$ofile.histogram.info") {
+        my $numTotal    = 0;
+        my $numDistinct = 0;
+        my $numUnique   = 0;
+        my $largest     = 0;
+
         open(F, "< $ofile.histogram.info") or caFailure("can't open meryl histogram information file '$ofile.histogram.info' for reading: $!\n", undef);
         while (<F>) {
             $numTotal    = $1   if (m/Found\s(\d+)\s+mers./);
@@ -395,6 +397,15 @@ sub meryl ($$$) {
         }
         close(F);
 
-        print STDERR "--  Found $numTotal $merSize-mers; $numDistinct distinct and $numUnique unique.  Largest count $largest.\n";
+        print STDERR "--\n";
+        print STDERR "-- Found $numTotal $merSize-mers; $numDistinct distinct and $numUnique unique.  Largest count $largest.\n";
+
+    } elsif (-z $ffile) {
+        print STDERR "--\n";
+        print STDERR "-- Threshold zero.  No mers will be to find.\n";
+
+    } else {
+        print STDERR "--\n";
+        print STDERR "-- Using frequent mers in '", getGlobal("${tag}OvlFrequentMers"), "'\n";
     }
 }

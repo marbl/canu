@@ -251,7 +251,7 @@ sub consensusConfigure ($$) {
     stopAfter("consensusConfigure");
 
   allDone:
-    print STDERR "--  Configured ", computeNumberOfConsensusJobs($wrk, $asm), " consensus jobs.\n";
+    print STDERR "-- Configured ", computeNumberOfConsensusJobs($wrk, $asm), " consensus jobs.\n";
 }
 
 
@@ -291,7 +291,7 @@ sub consensusCheck ($$$) {
             push @successJobs, "$path/$currentJobID.cns.xz\n";
 
         } else {
-            $failureMessage .= "--    job $path/$currentJobID.cns FAILED.\n";
+            $failureMessage .= "--   job $path/$currentJobID.cns FAILED.\n";
             push @failedJobs, $job;
         }
 
@@ -313,7 +313,7 @@ sub consensusCheck ($$$) {
 
     if ($attempt > 1) {
         print STDERR "--\n";
-        print STDERR "--  ", scalar(@failedJobs), " consensus jobs failed:\n";
+        print STDERR "-- ", scalar(@failedJobs), " consensus jobs failed:\n";
         print STDERR $failureMessage;
         print STDERR "--\n";
     }
@@ -326,7 +326,7 @@ sub consensusCheck ($$$) {
 
     #  Otherwise, run some jobs.
 
-    print STDERR "--  Consensus attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
+    print STDERR "-- Consensus attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
 
     emitStage($wrk, $asm, "consensusCheck", $attempt);
 
@@ -336,7 +336,9 @@ sub consensusCheck ($$$) {
     emitStage($wrk, $asm, "consensusCheck");
     stopAfter("consensusCheck");
   allDone:
-    print STDERR "--  All ", computeNumberOfConsensusJobs($wrk, $asm), " consensus jobs finished successfully.\n";
+    if ($attempt == 3) {
+        print STDERR "-- All ", computeNumberOfConsensusJobs($wrk, $asm), " consensus jobs finished successfully.\n";
+    }
 }
 
 
@@ -371,7 +373,7 @@ sub consensusLoad ($$) {
     #  Remvoe consensus outputs
 
     if (-e "$path/cnsjob.files") {
-        print STDERR "--  Purging consensus output after loading to tigStore.\n";
+        print STDERR "-- Purging consensus output after loading to tigStore.\n";
 
         my $Ncns    = 0;
         my $Nfastq  = 0;
@@ -413,10 +415,10 @@ sub consensusLoad ($$) {
         }
         close(F);
 
-        print STDERR "--  Purged $Ncns .cns outputs.\n"        if ($Ncns > 0);
-        print STDERR "--  Purged $Nfastq .fastq outputs.\n"    if ($Nfastq > 0);
-        print STDERR "--  Purged $Nlayout .layout outputs.\n"  if ($Nlayout > 0);
-        print STDERR "--  Purged $Nlog .err log outputs.\n"    if ($Nlog > 0);
+        print STDERR "-- Purged $Ncns .cns outputs.\n"        if ($Ncns > 0);
+        print STDERR "-- Purged $Nfastq .fastq outputs.\n"    if ($Nfastq > 0);
+        print STDERR "-- Purged $Nlayout .layout outputs.\n"  if ($Nlayout > 0);
+        print STDERR "-- Purged $Nlog .err log outputs.\n"    if ($Nlog > 0);
     }
 
   finishStage:

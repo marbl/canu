@@ -66,7 +66,7 @@ sub outputLayout ($$) {
     emitStage($wrk, $asm, "outputLayout");
 
   allDone:
-    print STDERR "--  Unitig layouts saved in '$wrk/$asm.layout'.\n";
+    print STDERR "-- Unitig layouts saved in '$wrk/$asm.layout'.\n";
 }
 
 
@@ -129,5 +129,5 @@ sub outputSequence ($$) {
     emitStage($wrk, $asm, "outputSequence");
 
   allDone:
-    print STDERR "--  Unitig sequences saved in '$wrk/$asm.consensus.$type'.\n";
+    print STDERR "-- Unitig sequences saved in '$wrk/$asm.consensus.$type'.\n";
 }

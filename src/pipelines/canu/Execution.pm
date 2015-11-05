@@ -151,10 +151,8 @@ sub schedulerFinish ($) {
     my $diskfree  = (defined($dir)) ? (diskSpace($dir)) : (0);
 
     print STDERR "--\n";
-    print STDERR "--\n";
-    print STDERR "--  Starting concurrent execution on ", scalar(localtime()), " with $diskfree GB free disk space ($remain processes; $numberOfProcesses concurrently)\n"  if  (defined($dir));
-    print STDERR "--  Starting concurrent execution on ", scalar(localtime()), " ($remain processes; $numberOfProcesses concurrently)\n"                                    if (!defined($dir));
-    print STDERR "--\n";
+    print STDERR "-- Starting concurrent execution on ", scalar(localtime()), " with $diskfree GB free disk space ($remain processes; $numberOfProcesses concurrently)\n"  if  (defined($dir));
+    print STDERR "-- Starting concurrent execution on ", scalar(localtime()), " ($remain processes; $numberOfProcesses concurrently)\n"                                    if (!defined($dir));
 
     #  Run all submitted jobs
     #
@@ -185,8 +183,7 @@ sub schedulerFinish ($) {
 
     my $warning = "  !!! WARNING !!!" if ($diskfree < 10);
     print STDERR "--\n";
-    print STDERR "--  Finished on ", scalar(localtime()), " (", time() - $startsecs, " seconds) with $diskfree GB free disk space$warning\n";
-    print STDERR "--\n";
+    print STDERR "-- Finished on ", scalar(localtime()), " (", time() - $startsecs, " seconds) with $diskfree GB free disk space$warning\n";
 }
 
 
@@ -1070,17 +1067,7 @@ sub runCommand ($$) {
         $dis =~ s/\s-/ \\\n  -/g;
         $dis =~ s/\s>\s/ \\\n> /;
         $dis =~ s/\s2>\s/ \\\n2> /;
-
-        print STDERR "FORMATTED\n";
-        #print STDERR "BEFORE\n--\n$cmd\n--\n";
-        #print STDERR "AFTER\n--\n$dis\n--\n";
     }
-
-    #  Add four spaces to the start of every command.
-    #  I don't like it.
-    #
-    #$dis =  "    " . $dis;
-    #$dis =~ s/\n/\n    /g;
 
     #  Check if the directory exists.
 
@@ -1102,9 +1089,8 @@ sub runCommand ($$) {
     my $diskfree  = (defined($dir)) ? (diskSpace($dir)) : (0);
 
     print STDERR "--\n";
-    print STDERR "--\n";
-    print STDERR "--  Starting command on ", scalar(localtime()), " with $diskfree GB free disk space\n"  if  (defined($dir));
-    print STDERR "--  Starting command on ", scalar(localtime()), "\n"                                    if (!defined($dir));
+    print STDERR "-- Starting command on ", scalar(localtime()), " with $diskfree GB free disk space\n"  if  (defined($dir));
+    print STDERR "-- Starting command on ", scalar(localtime()), "\n"                                    if (!defined($dir));
     print STDERR "--\n";
     print STDERR "$dis\n";
 
@@ -1114,8 +1100,7 @@ sub runCommand ($$) {
 
     my $warning = "  !!! WARNING !!!" if ($diskfree < 10);
     print STDERR "--\n";
-    print STDERR "--  Finished on ", scalar(localtime()), " (", time() - $startsecs, " seconds) with $diskfree GB free disk space$warning\n";
-    print STDERR "--\n";
+    print STDERR "-- Finished on ", scalar(localtime()), " (", time() - $startsecs, " seconds) with $diskfree GB free disk space$warning\n";
 
     #  Pretty much copied from Programming Perl page 230
 

@@ -69,6 +69,12 @@ sub mhapConfigure ($$$$) {
     goto allDone   if (-e "$path/precompute.sh") && (-e "$path/mhap.sh");
     goto allDone   if (-e "$path/ovljob.files");
 
+    print STDERR "--\n";
+    print STDERR "-- OVERLAPPER (mhap) (correction)\n"  if ($tag eq "cor");
+    print STDERR "-- OVERLAPPER (mhap) (trimming)\n"    if ($tag eq "obt");
+    print STDERR "-- OVERLAPPER (mhap) (assembly)\n"    if ($tag eq "utg");
+    print STDERR "--\n";
+
     make_path("$path") if (! -d "$path");
 
     #  Constants.
@@ -117,7 +123,7 @@ sub mhapConfigure ($$$$) {
     my $numBlocks = scalar(@blocks);
     my $qryStride = ($numBlocks < 16) ? (2) : int($numBlocks / 4);
 
-    print STDERR "--  For $numBlocks blocks, set stride to $qryStride blocks.\n";
+    print STDERR "-- For $numBlocks blocks, set stride to $qryStride blocks.\n";
 
     #  Make queries.  Each hask block needs to search against all blocks less than or equal to it.
     #  Each job will search at most $qryStride blocks at once.  So, queries could be:
@@ -175,7 +181,7 @@ sub mhapConfigure ($$$$) {
             make_path("$path/queries/$job");
 
             if ($qbgn < $numBlocks) {
-                print STDERR "--  Job ", scalar(@hashes), " computes block $bid vs blocks $qbgn-$qend$andSelf,\n";
+                print STDERR "-- Job ", scalar(@hashes), " computes block $bid vs blocks $qbgn-$qend$andSelf,\n";
 
                 for (my $qid=$qbgn; $qid <= $qend; $qid++) {
                     my $qry = substr("000000" . $qid, -6);             #  Name for the query block
@@ -184,7 +190,7 @@ sub mhapConfigure ($$$$) {
                 }
 
             } else {
-                print STDERR "--  Job ", scalar(@hashes), " computes block $bid vs itself.\n";
+                print STDERR "-- Job ", scalar(@hashes), " computes block $bid vs itself.\n";
                 $qbgn = $bid;  #  Otherwise, the @convert -q value is bogus
             }
 
@@ -202,7 +208,7 @@ sub mhapConfigure ($$$$) {
             }
 
 
-            #print STDERR " --    $hashes[scalar(@hashes)-1] $convert[scalar(@convert)-1]\n";
+            #print STDERR " --   $hashes[scalar(@hashes)-1] $convert[scalar(@convert)-1]\n";
             #print STDERR "\n";
         }
     }
@@ -240,7 +246,7 @@ sub mhapConfigure ($$$$) {
             }
         }
 
-        print STDERR "--  Computed seed length $seedLength from desired output coverage ", getGlobal("corOutCoverage"), " and genome size ", getGlobal("genomeSize"), "\n";
+        print STDERR "-- Computed seed length $seedLength from desired output coverage ", getGlobal("corOutCoverage"), " and genome size ", getGlobal("genomeSize"), "\n";
     }
 
     #  Mhap parameters - filterThreshold needs to be a string, else it is printed as 5e-06.
@@ -443,11 +449,6 @@ sub mhapConfigure ($$$$) {
 
     close(F);
 
-  finishStage:
-    emitStage($WRK, $asm, "$tag-mhapConfigure");
-    stopAfter("mhapConfigure");
-
-  allDone:
     if (-e "$path/precompute.sh") {
         my $numJobs = 0;
         open(F, "< $path/precompute.sh") or caFailure("can't open '$path/precompute.sh' for reading: $!", undef);
@@ -455,7 +456,9 @@ sub mhapConfigure ($$$$) {
             $numJobs++   if (m/^\s+job=/);
         }
         close(F);
-        print STDERR "--  Configured $numJobs mhap precompute jobs.\n";
+
+        print STDERR "--\n";
+        print STDERR "-- Configured $numJobs mhap precompute jobs.\n";
     }
 
     if (-e "$path/mhap.sh") {
@@ -465,8 +468,16 @@ sub mhapConfigure ($$$$) {
             $numJobs++  if (m/^\s+qry=\"(\d+)\"$/);
         }
         close(F);
-        print STDERR "--  Configured $numJobs mhap overlap jobs.\n";
+
+        print STDERR "--\n";
+        print STDERR "-- Configured $numJobs mhap overlap jobs.\n";
     }
+
+  finishStage:
+    emitStage($WRK, $asm, "$tag-mhapConfigure");
+    stopAfter("mhapConfigure");
+
+  allDone:
 }
 
 
@@ -499,7 +510,7 @@ sub mhapPrecomputeCheck ($$$$$) {
             if (-e "$path/blocks/$1.dat") {
                 push @successJobs, $1;
             } else {
-                $failureMessage .= "--    job $path/blocks/$1.dat FAILED.\n";
+                $failureMessage .= "--   job $path/blocks/$1.dat FAILED.\n";
                 push @failedJobs, $currentJobID;
             }
 
@@ -520,7 +531,7 @@ sub mhapPrecomputeCheck ($$$$$) {
 
     if ($attempt > 1) {
         print STDERR "--\n";
-        print STDERR "--  ", scalar(@failedJobs), " mhap precompute jobs failed:\n";
+        print STDERR "-- ", scalar(@failedJobs), " mhap precompute jobs failed:\n";
         print STDERR $failureMessage;
         print STDERR "--\n";
     }
@@ -533,7 +544,7 @@ sub mhapPrecomputeCheck ($$$$$) {
 
     #  Otherwise, run some jobs.
 
-    print STDERR "--  mhap precompute attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
+    print STDERR "-- mhap precompute attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
 
   finishStage:
     emitStage($WRK, $asm, "$tag-mhapPrecomputeCheck", $attempt);
@@ -547,7 +558,9 @@ sub mhapPrecomputeCheck ($$$$$) {
             $results++;
         }
         close(F);
-        print STDERR "--  Found $results mhap precomute output files.\n";
+
+        print STDERR "--\n";
+        print STDERR "-- Found $results mhap precomute output files.\n";
     }
 }
 
@@ -593,7 +606,7 @@ sub mhapCheck ($$$$$) {
                 push @successJobs, "$path/results/$1.ovb.xz\n";
 
             } else {
-                $failureMessage .= "--    job $path/results/$1.ovb FAILED.\n";
+                $failureMessage .= "--   job $path/results/$1.ovb FAILED.\n";
                 push @failedJobs, $currentJobID;
             }
 
@@ -617,7 +630,7 @@ sub mhapCheck ($$$$$) {
 
     if ($attempt > 1) {
         print STDERR "--\n";
-        print STDERR "--  ", scalar(@failedJobs), " mhap jobs failed:\n";
+        print STDERR "-- ", scalar(@failedJobs), " mhap jobs failed:\n";
         print STDERR $failureMessage;
         print STDERR "--\n";
     }
@@ -630,7 +643,7 @@ sub mhapCheck ($$$$$) {
 
     #  Otherwise, run some jobs.
 
-    print STDERR "--  mhap attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
+    print STDERR "-- mhap attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
 
   finishStage:
     emitStage($WRK, $asm, "$tag-mhapCheck", $attempt);
@@ -644,7 +657,9 @@ sub mhapCheck ($$$$$) {
             $results++;
         }
         close(F);
-        print STDERR "--  Found $results mhap overlap output files.\n";
+
+        print STDERR "--\n";
+        print STDERR "-- Found $results mhap overlap output files.\n";
     }
 }
 

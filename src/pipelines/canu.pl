@@ -324,15 +324,21 @@ sub overlap ($$$) {
 #  Begin pipeline
 #
 
-print STDERR "--\n";
-print STDERR "-- This is canu parallel iteration #" . getGlobal("canuIteration") . ", out of a maximum of " . getGlobal("canuIterationMax") . " attempts.\n";
+if (getGlobal("canuIteration") > 0) {
+    print STDERR "--\n";
+    print STDERR "-- This is canu parallel iteration #" . getGlobal("canuIteration") . ", out of a maximum of " . getGlobal("canuIterationMax") . " attempts.\n";
+}
+
 print STDERR "--\n";
 print STDERR "-- Final error rates before starting pipeline:\n";
 
-showErrorRates("-- ");
+showErrorRates("--   ");
 
 if (setOptions($mode, "correct") eq "correct") {
-    print STDERR "----------------------------------------BEGIN CORRECTION\n";
+    print STDERR "--\n";
+    print STDERR "--\n";
+    print STDERR "-- BEGIN CORRECTION\n";
+    print STDERR "--\n";
 
     gatekeeper($wrk, $asm, "cor", @inputFiles);
     meryl($wrk, $asm, "cor");
@@ -352,7 +358,10 @@ if (setOptions($mode, "correct") eq "correct") {
 
 
 if (setOptions($mode, "trim") eq "trim") {
-    print STDERR "----------------------------------------BEGIN TRIMMING\n";
+    print STDERR "--\n";
+    print STDERR "--\n";
+    print STDERR "-- BEGIN TRIMMING\n";
+    print STDERR "--\n";
 
     gatekeeper($wrk, $asm, "obt", @inputFiles);
     meryl($wrk, $asm, "obt");
@@ -369,7 +378,10 @@ if (setOptions($mode, "trim") eq "trim") {
 
 
 if (setOptions($mode, "assemble") eq "assemble") {
-    print STDERR "----------------------------------------BEGIN ASSEMBLY\n";
+    print STDERR "--\n";
+    print STDERR "--\n";
+    print STDERR "-- BEGIN ASSEMBLY\n";
+    print STDERR "--\n";
 
     gatekeeper($wrk, $asm, "utg", @inputFiles);
     meryl($wrk, $asm, "utg");

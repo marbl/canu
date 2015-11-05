@@ -63,6 +63,12 @@ sub overlapConfigure ($$$$) {
     goto allDone   if (-e "$path/ovljob.files");
     goto allDone   if (-e "$path/ovlopt");
 
+    print STDERR "--\n";
+    print STDERR "-- OVERLAPPER (normal) (correction)\n"  if ($tag eq "cor");
+    print STDERR "-- OVERLAPPER (normal) (trimming)\n"    if ($tag eq "obt");
+    print STDERR "-- OVERLAPPER (normal) (assembly)\n"    if ($tag eq "utg");
+    print STDERR "--\n";
+
     make_path("$path") if (! -d "$path");
 
     if (! -e "$path/$asm.partition.ovlopt") {
@@ -194,13 +200,6 @@ sub overlapConfigure ($$$$) {
     my $batchName = $bat[$jobs-1];  chomp $batchName;
     my $jobName   = $job[$jobs-1];  chomp $jobName;
 
-    #print STDERR "--  Created $jobs overlap jobs.  Last batch '$batchName', last job '$jobName'.\n";
-
-  finishStage:
-    emitStage($WRK, $asm, "$tag-overlapConfigure");
-    stopAfter("overlapConfigure");
-
-  allDone:
     if (-e "$path/overlap.sh") {
         my $numJobs = 0;
         open(F, "< $path/overlap.sh") or caExit("can't open '$path/overlap.sh' for reading: $!", undef);
@@ -208,8 +207,15 @@ sub overlapConfigure ($$$$) {
             $numJobs++  if (m/^\s+job=/);
         }
         close(F);
-        print STDERR "--  Configured $numJobs overlapInCore jobs.\n";
+        print STDERR "--\n";
+        print STDERR "-- Configured $numJobs overlapInCore jobs.\n";
     }
+
+  finishStage:
+    emitStage($WRK, $asm, "$tag-overlapConfigure");
+    stopAfter("overlapConfigure");
+
+  allDone:
 }
 
 
@@ -264,20 +270,19 @@ sub reportOverlapStats ($$@) {
     }
 
     printf STDERR "--\n";
-    printf STDERR "--  overlapInCore compute '$wrk/1-overlapper':\n";
-    printf STDERR "--  kmer hits\n";
-    printf STDERR "--    with no overlap     %12d  %s\n", reportSumMeanStdDev(@hitsWithoutOlaps);
-    printf STDERR "--    with an overlap     %12d  %s\n", reportSumMeanStdDev(@hitsWithOlaps);
+    printf STDERR "-- overlapInCore compute '$wrk/1-overlapper':\n";
+    printf STDERR "--   kmer hits\n";
+    printf STDERR "--     with no overlap     %12d  %s\n", reportSumMeanStdDev(@hitsWithoutOlaps);
+    printf STDERR "--     with an overlap     %12d  %s\n", reportSumMeanStdDev(@hitsWithOlaps);
     printf STDERR "--\n";
-    printf STDERR "--  overlaps              %12d  %s\n", reportSumMeanStdDev(@totalOlaps);
-    printf STDERR "--    contained           %12d  %s\n", reportSumMeanStdDev(@containedOlaps);
-    printf STDERR "--    dovetail            %12d  %s\n", reportSumMeanStdDev(@dovetailOlaps);
+    printf STDERR "--   overlaps              %12d  %s\n", reportSumMeanStdDev(@totalOlaps);
+    printf STDERR "--     contained           %12d  %s\n", reportSumMeanStdDev(@containedOlaps);
+    printf STDERR "--     dovetail            %12d  %s\n", reportSumMeanStdDev(@dovetailOlaps);
     printf STDERR "--\n";
-    printf STDERR "--  overlaps rejected\n";
-    printf STDERR "--    multiple per pair   %12d  %s\n", reportSumMeanStdDev(@multiOlaps);
-    printf STDERR "--    bad short window    %12d  %s\n", reportSumMeanStdDev(@shortReject);
-    printf STDERR "--    bad long window     %12d  %s\n", reportSumMeanStdDev(@longReject);
-    printf STDERR "--\n";
+    printf STDERR "--   overlaps rejected\n";
+    printf STDERR "--     multiple per pair   %12d  %s\n", reportSumMeanStdDev(@multiOlaps);
+    printf STDERR "--     bad short window    %12d  %s\n", reportSumMeanStdDev(@shortReject);
+    printf STDERR "--     bad long window     %12d  %s\n", reportSumMeanStdDev(@longReject);
 }
 
 
@@ -327,7 +332,7 @@ sub overlapCheck ($$$$$) {
                 push @statsJobs,   "$path/$1.stats";
 
             } else {
-                $failureMessage .= "--    job $path/$1 FAILED.\n";
+                $failureMessage .= "--   job $path/$1 FAILED.\n";
                 push @failedJobs, $currentJobID;
             }
 
@@ -353,7 +358,7 @@ sub overlapCheck ($$$$$) {
 
     if ($attempt > 1) {
         print STDERR "--\n";
-        print STDERR "--  ", scalar(@failedJobs), " overlapper jobs failed:\n";
+        print STDERR "-- ", scalar(@failedJobs), " overlapper jobs failed:\n";
         print STDERR $failureMessage;
         print STDERR "--\n";
     }
@@ -366,7 +371,7 @@ sub overlapCheck ($$$$$) {
 
     #  Otherwise, run some jobs.
 
-    print STDERR "--  overlapInCore attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
+    print STDERR "-- overlapInCore attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
 
   finishStage:
     emitStage($WRK, $asm, "$tag-overlapCheck", $attempt);
@@ -380,7 +385,7 @@ sub overlapCheck ($$$$$) {
             $results++;
         }
         close(F);
-        print STDERR "--  Found $results overlapInCore output files.\n";
+        print STDERR "-- Found $results overlapInCore output files.\n";
     }
 }
 
