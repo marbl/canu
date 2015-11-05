@@ -54,7 +54,7 @@ sub outputLayout ($$) {
     $cmd .= "  -T $wrk/$asm.tigStore 2 \\\n";
     $cmd .= "  -o $wrk/$asm \\\n";
     $cmd .= "  -layout \\\n";
-    $cmd .= "> $wrk/$asm.layout.err 2>&1\n";
+    $cmd .= "> $wrk/$asm.layout.err 2>&1";
 
     if (runCommand($wrk, $cmd)) {
         caExit("failed to output layouts", "$wrk/$asm.layout.err");
@@ -117,7 +117,7 @@ sub outputSequence ($$) {
     $cmd .= "  -T $wrk/$asm.tigStore 2 \\\n";
     $cmd .= "  -consensus -$type \\\n";
     $cmd .= "> $wrk/$asm.consensus.$type\n";
-    $cmd .= "2> $wrk/$asm.consensus.err\n";
+    $cmd .= "2> $wrk/$asm.consensus.err";
 
     if (runCommand($wrk, $cmd)) {
         caExit("failed to output consensus", "$wrk/$asm.consensus.err");

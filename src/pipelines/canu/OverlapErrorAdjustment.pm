@@ -569,7 +569,7 @@ sub updateOverlapStore ($$) {
     $cmd .= "  -O $wrk/$asm.ovlStore \\\n";
     $cmd .= "  -evalues \\\n";
     $cmd .= "  -L $path/oea.files \\\n";
-    $cmd .= "> $path/oea.apply.err 2>&1\n";
+    $cmd .= "> $path/oea.apply.err 2>&1";
 
     if (runCommand("$path", $cmd)) {
         unlink "$wrk/$asm.ovlStore/evalues";

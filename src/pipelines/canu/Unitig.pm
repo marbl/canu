@@ -94,7 +94,7 @@ sub reportUnitigSizes ($$$$) {
         $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
         $cmd .= "  -T $wrk/$asm.tigStore $version \\\n";
         $cmd .= "  -sizes -s " . getGlobal("genomeSize") . " \\\n";
-        $cmd .= "> $N\n";
+        $cmd .= "> $N";
 
         if (runCommand($wrk, $cmd)) {
             caExit("failed to generate unitig sizes", undef);
