@@ -202,8 +202,8 @@ sub pbdagcon ($$$) {
 
 
 sub consensusConfigure ($$) {
-    my $WRK    = shift @_;  #  Root work directory
-    my $wrk    = $WRK;      #  Local work directory
+    my $WRK    = shift @_;           #  Root work directory
+    my $wrk    = "$WRK/unitigging";  #  Local work directory
     my $asm    = shift @_;
     my $bin    = getBinDirectory();
     my $cmd;
@@ -264,7 +264,7 @@ sub consensusConfigure ($$) {
     }
 
   finishStage:
-    emitStage($wrk, $asm, "consensusConfigure");
+    emitStage($WRK, $asm, "consensusConfigure");
     buildHTML($WRK, $asm, "utg");
     stopAfter("consensusConfigure");
 
@@ -279,8 +279,8 @@ sub consensusConfigure ($$) {
 #  Checks that all consensus jobs are complete, loads them into the store.
 #
 sub consensusCheck ($$$) {
-    my $WRK     = shift @_;  #  Root work directory
-    my $wrk     = $WRK;      #  Local work directory
+    my $WRK     = shift @_;           #  Root work directory
+    my $wrk     = "$WRK/unitigging";  #  Local work directory
     my $asm     = shift @_;
     my $attempt = shift @_;
     my $path    = "$wrk/5-consensus";
@@ -324,7 +324,7 @@ sub consensusCheck ($$$) {
         print L @successJobs;
         close(L);
         setGlobal("canuIteration", 0);
-        emitStage($wrk, $asm, "consensusCheck");
+        emitStage($WRK, $asm, "consensusCheck");
         buildHTML($WRK, $asm, "utg");
         return;
     }
@@ -348,13 +348,13 @@ sub consensusCheck ($$$) {
 
     print STDERR "-- Consensus attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
 
-    emitStage($wrk, $asm, "consensusCheck", $attempt);
+    emitStage($WRK, $asm, "consensusCheck", $attempt);
     buildHTML($WRK, $asm, "utg");
 
     submitOrRunParallelJob($wrk, $asm, "cns", $path, "consensus", @failedJobs);
 
   finishStage:
-    emitStage($wrk, $asm, "consensusCheck");
+    emitStage($WRK, $asm, "consensusCheck");
     buildHTML($WRK, $asm, "utg");
     stopAfter("consensusCheck");
   allDone:
@@ -367,8 +367,8 @@ sub consensusCheck ($$$) {
 
 
 sub consensusLoad ($$) {
-    my $WRK     = shift @_;  #  Root work directory
-    my $wrk     = $WRK;      #  Local work directory
+    my $WRK     = shift @_;           #  Root work directory
+    my $wrk     = "$WRK/unitigging";  #  Local work directory
     my $asm     = shift @_;
     my $bin     = getBinDirectory();
     my $cmd;
@@ -445,7 +445,7 @@ sub consensusLoad ($$) {
     }
 
   finishStage:
-    emitStage($wrk, $asm, "consensusLoad");
+    emitStage($WRK, $asm, "consensusLoad");
     buildHTML($WRK, $asm, "utg");
     stopAfter("consensusLoad");
   allDone:
@@ -456,8 +456,8 @@ sub consensusLoad ($$) {
 
 
 sub consensusAnalyze ($$) {
-    my $WRK     = shift @_;  #  Root work directory
-    my $wrk     = $WRK;      #  Local work directory
+    my $WRK     = shift @_;           #  Root work directory
+    my $wrk     = "$WRK/unitigging";  #  Local work directory
     my $asm     = shift @_;
     my $bin     = getBinDirectory();
     my $cmd;
@@ -480,7 +480,7 @@ sub consensusAnalyze ($$) {
     unlink "$wrk/$asm.tigStore.coverageStat.err";
 
   finishStage:
-    emitStage($wrk, $asm, "consensusAnalyze");
+    emitStage($WRK, $asm, "consensusAnalyze");
     buildHTML($WRK, $asm, "utg");
     touch("$wrk/$asm.tigStore/status.coverageStat");
     stopAfter("consensusAnalyze");
@@ -489,8 +489,8 @@ sub consensusAnalyze ($$) {
 
 
 sub consensusFilter ($$) {
-    my $WRK     = shift @_;  #  Root work directory
-    my $wrk     = $WRK;      #  Local work directory
+    my $WRK     = shift @_;           #  Root work directory
+    my $wrk     = "$WRK/unitigging";  #  Local work directory
     my $asm     = shift @_;
     my $bin     = getBinDirectory();
     my $cmd;
@@ -524,7 +524,7 @@ sub consensusFilter ($$) {
     unlink "$wrk/$asm.tigStore.filter.err";
 
   finishStage:
-    emitStage($wrk, $asm, "consensusFilter");
+    emitStage($WRK, $asm, "consensusFilter");
     buildHTML($WRK, $asm, "utg");
     touch("$wrk/$asm.tigStore/status.filter");
     stopAfter("consensusFilter");

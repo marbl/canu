@@ -121,6 +121,7 @@ sub gatekeeper ($$$@) {
 
     $wrk = "$wrk/correction"  if ($tag eq "cor");
     $wrk = "$wrk/trimming"    if ($tag eq "obt");
+    $wrk = "$wrk/unitigging"  if ($tag eq "utg");
 
     #  An empty store?  Remove it and try again.
 

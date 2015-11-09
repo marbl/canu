@@ -404,6 +404,7 @@ sub buildHTML ($$$) {
 
     $wrk = "$wrk/correction"  if ($tag eq "cor");
     $wrk = "$wrk/trimming"    if ($tag eq "obt");
+    $wrk = "$wrk/unitigging"  if ($tag eq "utg");
 
     #  For correction runs
     if ($tag eq "cor") {

@@ -165,23 +165,23 @@ sub dumpReads ($$) {
     my $inp;
 
     goto allDone   if (skipStage($WRK, $asm, "obt-dumpReads") == 1);
-    goto allDone   if (-e "$wrk/$asm.trimmedReads.fastq");
+    goto allDone   if (-e "$WRK/$asm.trimmedReads.fastq");
 
     make_path($path)  if (! -d $path);
 
     $inp = "$path/$asm.1.trimReads.clear"   if (-e "$path/$asm.1.trimReads.clear");
     $inp = "$path/$asm.2.splitReads.clear"  if (-e "$path/$asm.2.splitReads.clear");
 
-    caFailure("dumping trimmed reads failed; no 'clear' input", "$wrk/$asm.trimmedReads.err")  if (!defined($inp));
+    caFailure("dumping trimmed reads failed; no 'clear' input", "$WRK/$asm.trimmedReads.err")  if (!defined($inp));
 
     $cmd  = "$bin/gatekeeperDumpFASTQ -nolibname \\\n";
     $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
     $cmd .= "  -c $inp \\\n";
-    $cmd .= "  -o $wrk/$asm.trimmedReads \\\n";
-    $cmd .= ">    $wrk/$asm.trimmedReads.err 2>&1";
+    $cmd .= "  -o $WRK/$asm.trimmedReads \\\n";
+    $cmd .= ">    $WRK/$asm.trimmedReads.err 2>&1";
 
     if (runCommand($wrk, $cmd)) {
-        caFailure("dumping trimmed reads failed", "$wrk/$asm.trimmedReads.err");
+        caFailure("dumping trimmed reads failed", "$WRK/$asm.trimmedReads.err");
     }
 
     #  Need gatekeeperDumpFASTQ to also write a gkp input file
@@ -193,5 +193,5 @@ sub dumpReads ($$) {
 
   allDone:
     print STDERR "--\n";
-    print STDERR "-- Trimmed reads saved in '$wrk/$asm.trimmedReads.fastq'\n";
+    print STDERR "-- Trimmed reads saved in '$WRK/$asm.trimmedReads.fastq'\n";
 }

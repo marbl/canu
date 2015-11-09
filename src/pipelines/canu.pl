@@ -218,7 +218,7 @@ printHelp($bin);
 
 my $cor = (-e "$wrk/correction/$asm.gkpStore") || (-e "$wrk/$asm.correctedReads.fastq") || (-e "$wrk/$asm.correctedReads.gkp");
 my $obt = (-e "$wrk/trimming/$asm.gkpStore")   || (-e "$wrk/$asm.trimmedReads.fastq")   || (-e "$wrk/$asm.trimmedReads.gkp");
-my $utg = (-e "$wrk/$asm.gkpStore");
+my $utg = (-e "$wrk/unitigging/$asm.gkpStore");
 
 if (($cor + $obt + $utg == 0) &&
     (scalar(@inputFiles) == 0)) {
@@ -265,6 +265,7 @@ sub setOptions ($$) {
 
     make_path("$wrk/correction")  if ((! -d "$wrk/correction") && ($step eq "correct"));
     make_path("$wrk/trimming")    if ((! -d "$wrk/trimming")   && ($step eq "trim"));
+    make_path("$wrk/unitigging")  if ((! -d "$wrk/unitigging") && ($step eq "assemble"));
 
     return($mode)  if ($mode ne "run");
 
@@ -357,7 +358,7 @@ if (setOptions($mode, "correct") eq "correct") {
     buildHTML($wrk, $asm, "cor");
 
     undef @inputFiles;
-    push  @inputFiles, "-pacbio-corrected:$wrk/correction/$asm.correctedReads.fastq";
+    push  @inputFiles, "-pacbio-corrected:$wrk/$asm.correctedReads.fastq";
 }
 
 
@@ -371,15 +372,15 @@ if (setOptions($mode, "trim") eq "trim") {
     meryl($wrk, $asm, "obt");
     overlap($wrk, $asm, "obt");
 
-    trimReads  ($wrk, $asm);
-    splitReads ($wrk, $asm);
-    dumpReads  ($wrk, $asm);
+    trimReads ($wrk, $asm);
+    splitReads($wrk, $asm);
+    dumpReads ($wrk, $asm);
     #summarizeReads($wrk, $asm);
 
     buildHTML($wrk, $asm, "obt");
 
     undef @inputFiles;
-    push  @inputFiles, "-pacbio-corrected:$wrk/trimming/$asm.trimmedReads.fastq";
+    push  @inputFiles, "-pacbio-corrected:$wrk/$asm.trimmedReads.fastq";
 }
 
 

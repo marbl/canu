@@ -111,8 +111,7 @@ sub buildCorrectionLayouts_direct ($$) {
 
     my $path = "$wrk/2-correction";
 
-    goto allDone   if (-e "$wrk/$asm.correctedReads.fastq");  #  Output exists
-    goto allDone   if (-e "$path/cnsjob.files");              #  Jobs all finished
+    #  Outer level buildCorrectionLayouts() ensures the task is not finished.
 
     my $maxCov = getCorCov($wrk, $asm, "Local");
 
@@ -243,8 +242,7 @@ sub buildCorrectionLayouts_piped ($$) {
     my $cmd;
     my $path = "$wrk/2-correction";
 
-    goto allDone   if (-e "$wrk/$asm.correctedReads.fastq");  #  Output exists
-    goto allDone   if (-e "$path/cnsjob.files");              #  Jobs all finished
+    #  Outer level buildCorrectionLayouts() ensures the task is not finished.
 
     make_path("$path/correction_inputs")  if (! -d "$path/correction_inputs");
     make_path("$path/correction_outputs")  if (! -d "$path/correction_outputs");
@@ -645,7 +643,7 @@ sub buildCorrectionLayouts ($$) {
     #  tigs that shouldn't be corrected.  I suspect this will be slower.
 
     goto allDone   if (skipStage($WRK, $asm, "cor-buildCorrectionLayouts") == 1);
-    goto allDone   if (-e "$wrk/$asm.correctedReads.fastq");  #  Output exists
+    goto allDone   if (-e "$WRK/$asm.correctedReads.fastq");  #  Output exists
     goto allDone   if (-e "$path/cnsjob.files");              #  Jobs all finished
     goto allDone   if (-e "$path/correctReads.sh");           #  Jobs created
 
@@ -716,7 +714,7 @@ sub generateCorrectedReads ($$$) {
     my $path    = "$wrk/2-correction";
 
     goto allDone   if (skipStage($WRK, $asm, "cor-generateCorrectedReads", $attempt) == 1);
-    goto allDone   if (-e "$wrk/$asm.correctedReads.fastq");
+    goto allDone   if (-e "$WRK/$asm.correctedReads.fastq");
 
     my ($jobs, undef) = computeNumberOfCorrectionJobs($wrk, $asm);
 
@@ -786,13 +784,13 @@ sub dumpCorrectedReads ($$) {
     my $path = "$wrk/2-correction";
 
     goto allDone   if (skipStage($WRK, $asm, "cor-dumpCorrectedReads") == 1);
-    goto allDone   if (-e "$wrk/$asm.correctedReads.fastq");
+    goto allDone   if (-e "$WRK/$asm.correctedReads.fastq");
 
     my $files = 0;
     my $reads = 0;
 
     open(F, "< $path/corjob.files")             or caExit("can't open '$path/corjob.files' for reading: $!", undef);
-    open(O, "> $wrk/$asm.correctedReads.fastq") or caExit("can't open '$wrk/$asm.correctedReads.fastq' for writing: $!", undef);
+    open(O, "> $WRK/$asm.correctedReads.fastq") or caExit("can't open '$WRK/$asm.correctedReads.fastq' for writing: $!", undef);
 
     while (<F>) {
         chomp;
@@ -829,5 +827,5 @@ sub dumpCorrectedReads ($$) {
 
   allDone:
     print STDERR "--\n";
-    print STDERR "-- Corrected reads saved in '$wrk/$asm.correctedReads.fastq'.\n";
+    print STDERR "-- Corrected reads saved in '$WRK/$asm.correctedReads.fastq'.\n";
 }

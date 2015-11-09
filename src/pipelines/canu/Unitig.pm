@@ -124,9 +124,9 @@ sub reportUnitigSizes ($$$$) {
 
 
 sub unitig ($$) {
-    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
-    my $wrk     = $WRK;      #  Local work directory
-   my $asm     = shift @_;
+    my $WRK     = shift @_;           #  Root work directory (the -d option to canu)
+    my $wrk     = "$WRK/unitigging";  #  Local work directory
+    my $asm     = shift @_;
 
     goto allDone    if (skipStage($wrk, $asm, "unitig") == 1);
     goto allDone    if (-d "$wrk/$asm.tigStore");
@@ -156,7 +156,7 @@ sub unitig ($$) {
     }
 
   finishStage:
-    emitStage($wrk, $asm, "unitig");
+    emitStage($WRK, $asm, "unitig");
     buildHTML($WRK, $asm, "utg");
     stopAfter("unitig");
 

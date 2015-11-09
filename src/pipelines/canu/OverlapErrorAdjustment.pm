@@ -81,8 +81,8 @@ sub concatOutput ($@) {
 
 
 sub readErrorDetectionConfigure ($$) {
-    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
-    my $wrk     = $WRK;      #  Local work directory
+    my $WRK     = shift @_;           #  Root work directory (the -d option to canu)
+    my $wrk     = "$WRK/unitigging";  #  Local work directory
     my $asm     = shift @_;
     my $bin     = getBinDirectory();
     my $path    = "$wrk/3-overlapErrorAdjustment";
@@ -223,7 +223,7 @@ sub readErrorDetectionConfigure ($$) {
     chmod 0755, "$path/red.sh";
 
   finishStage:
-    emitStage($wrk, $asm, "readErrorDetectionConfigure");
+    emitStage($WRK, $asm, "readErrorDetectionConfigure");
     buildHTML($WRK, $asm, "utg");
 
   allDone:
@@ -234,8 +234,8 @@ sub readErrorDetectionConfigure ($$) {
 
 
 sub readErrorDetectionCheck ($$$) {
-    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
-    my $wrk     = $WRK;      #  Local work directory
+    my $WRK     = shift @_;           #  Root work directory (the -d option to canu)
+    my $wrk     = "$WRK/unitigging";  #  Local work directory
     my $asm     = shift @_;
     my $attempt = shift @_;
     my $path    = "$wrk/3-overlapErrorAdjustment";
@@ -288,7 +288,7 @@ sub readErrorDetectionCheck ($$$) {
     if (scalar(@failedJobs) == 0) {
         concatOutput("$path/red.red", @successJobs);
         setGlobal("canuIteration", 0);
-        emitStage($wrk, $asm, "readErrorDetectionCheck");
+        emitStage($WRK, $asm, "readErrorDetectionCheck");
         buildHTML($WRK, $asm, "utg");
         return;
     }
@@ -314,7 +314,7 @@ sub readErrorDetectionCheck ($$$) {
     print STDERR "-- read error detection attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
 
   finishStage:
-    emitStage($wrk, $asm, "readErrorDetectionCheck", $attempt);
+    emitStage($WRK, $asm, "readErrorDetectionCheck", $attempt);
     buildHTML($WRK, $asm, "utg");
     submitOrRunParallelJob($wrk, $asm, "red", "$path", "red", @failedJobs);
 
@@ -326,8 +326,8 @@ sub readErrorDetectionCheck ($$$) {
 
 
 sub overlapErrorAdjustmentConfigure ($$) {
-    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
-    my $wrk     = $WRK;      #  Local work directory
+    my $WRK     = shift @_;           #  Root work directory (the -d option to canu)
+    my $wrk     = "$WRK/unitigging";  #  Local work directory
     my $asm     = shift @_;
     my $bin     = getBinDirectory();
     my $path    = "$wrk/3-overlapErrorAdjustment";
@@ -459,7 +459,7 @@ sub overlapErrorAdjustmentConfigure ($$) {
     chmod 0755, "$path/oea.sh";
 
   finishStage:
-    emitStage($wrk, $asm, "overlapErrorAdjustmentConfigure");
+    emitStage($WRK, $asm, "overlapErrorAdjustmentConfigure");
     buildHTML($WRK, $asm, "utg");
 
   allDone:
@@ -470,8 +470,8 @@ sub overlapErrorAdjustmentConfigure ($$) {
 
 
 sub overlapErrorAdjustmentCheck ($$$) {
-    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
-    my $wrk     = $WRK;      #  Local work directory
+    my $WRK     = shift @_;           #  Root work directory (the -d option to canu)
+    my $wrk     = "$WRK/unitigging";  #  Local work directory
     my $asm     = shift @_;
     my $attempt = shift @_;
     my $path    = "$wrk/3-overlapErrorAdjustment";
@@ -547,7 +547,7 @@ sub overlapErrorAdjustmentCheck ($$$) {
     print STDERR "-- overlap error adjustment attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
 
   finishStage:
-    emitStage($wrk, $asm, "overlapErrorAdjustmentCheck", $attempt);
+    emitStage($WRK, $asm, "overlapErrorAdjustmentCheck", $attempt);
     buildHTML($WRK, $asm, "utg");
     submitOrRunParallelJob($wrk, $asm, "oea", "$path", "oea", @failedJobs);
 
@@ -558,8 +558,8 @@ sub overlapErrorAdjustmentCheck ($$$) {
 
 
 sub updateOverlapStore ($$) {
-    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
-    my $wrk     = $WRK;      #  Local work directory
+    my $WRK     = shift @_;           #  Root work directory (the -d option to canu)
+    my $wrk     = "$WRK/unitigging";  #  Local work directory
     my $asm     = shift @_;
     my $bin     = getBinDirectory();
     my $cmd;
@@ -588,7 +588,7 @@ sub updateOverlapStore ($$) {
     }
 
   finishStage:
-    emitStage($wrk, $asm, "updateOverlapStore");
+    emitStage($WRK, $asm, "updateOverlapStore");
     buildHTML($WRK, $asm, "utg");
 
   allDone:

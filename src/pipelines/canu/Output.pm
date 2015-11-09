@@ -41,35 +41,40 @@ use canu::Execution;
 use canu::HTML;
 
 
+#  In this module, the inputs are read from $wrk (the local work directory), and the output are
+#  written to $WRK (the root work directory).  This is a change from CA8 where outputs
+#  were written to the 9-terminator directory.
+
+
 sub outputLayout ($$) {
-    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
-    my $wrk     = $WRK;      #  Local work directory
+    my $WRK     = shift @_;           #  Root work directory (the -d option to canu)
+    my $wrk     = "$WRK/unitigging";  #  Local work directory
     my $asm     = shift @_;
     my $bin     = getBinDirectory();
     my $cmd;
 
-    goto allDone   if (skipStage($wrk, $asm, "outputLayout") == 1);
-    goto allDone   if (-e "$wrk/$asm.layout");
+    goto allDone   if (skipStage($WRK, $asm, "outputLayout") == 1);
+    goto allDone   if (-e "$WRK/$asm.layout");
 
     $cmd  = "$bin/tgStoreDump \\\n";
     $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
     $cmd .= "  -T $wrk/$asm.tigStore 2 \\\n";
-    $cmd .= "  -o $wrk/$asm \\\n";
+    $cmd .= "  -o $WRK/$asm \\\n";
     $cmd .= "  -layout \\\n";
-    $cmd .= "> $wrk/$asm.layout.err 2>&1";
+    $cmd .= "> $WRK/$asm.layout.err 2>&1";
 
     if (runCommand($wrk, $cmd)) {
-        caExit("failed to output layouts", "$wrk/$asm.layout.err");
+        caExit("failed to output layouts", "$WRK/$asm.layout.err");
     }
 
-    unlink "$wrk/$asm.layout.err";
+    unlink "$WRK/$asm.layout.err";
 
   finishStage:
-    emitStage($wrk, $asm, "outputLayout");
+    emitStage($WRK, $asm, "outputLayout");
     buildHTML($WRK, $asm, "utg");
 
   allDone:
-    print STDERR "-- Unitig layouts saved in '$wrk/$asm.layout'.\n";
+    print STDERR "-- Unitig layouts saved in '$WRK/$asm.layout'.\n";
 }
 
 
@@ -82,21 +87,21 @@ sub outputGraph ($$) {
     my $bin     = getBinDirectory();
     my $cmd;
 
-    goto allDone   if (skipStage($wrk, $asm, "outputGraph") == 1);
-    goto allDone     if (-e "$wrk/$asm.graph");
+    goto allDone   if (skipStage($WRK, $asm, "outputGraph") == 1);
+    goto allDone   if (-e "$WRK/$asm.graph");
 
     #
     #  Stuff here.
     #
 
     if (runCommand($wrk, $cmd)) {
-        caExit("failed to output consensus", "$wrk/$asm.graph.err");
+        caExit("failed to output consensus", "$WRK/$asm.graph.err");
     }
 
-    unlink "$wrk/$asm.graph.err";
+    unlink "$WRK/$asm.graph.err";
 
   finishStage:
-    emitStage($wrk, $asm, "outputGraph");
+    emitStage($WRK, $asm, "outputGraph");
     buildHTML($WRK, $asm, "utg");
 
   allDone:
@@ -115,28 +120,28 @@ sub outputSequence ($$) {
 
     my $type = "fasta";  #  Should probably be an option.
 
-    goto allDone   if (skipStage($wrk, $asm, "outputSequence") == 1);
-    goto allDone   if (-e "$wrk/$asm.consensus.$type");
+    goto allDone   if (skipStage($WRK, $asm, "outputSequence") == 1);
+    goto allDone   if (-e "$WRK/$asm.consensus.$type");
 
     $cmd  = "$bin/tgStoreDump \\\n";
     $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
     $cmd .= "  -T $wrk/$asm.tigStore 2 \\\n";
     $cmd .= "  -consensus -$type \\\n";
-    $cmd .= "> $wrk/$asm.consensus.$type\n";
-    $cmd .= "2> $wrk/$asm.consensus.err";
+    $cmd .= "> $WRK/$asm.consensus.$type\n";
+    $cmd .= "2> $WRK/$asm.consensus.err";
 
-    if (runCommand($wrk, $cmd)) {
-        caExit("failed to output consensus", "$wrk/$asm.consensus.err");
+    if (runCommand($WRK, $cmd)) {
+        caExit("failed to output consensus", "$WRK/$asm.consensus.err");
     }
 
-    unlink "$wrk/$asm.consensus.err";
+    unlink "$WRK/$asm.consensus.err";
 
   finishStage:
-    emitStage($wrk, $asm, "outputSequence");
+    emitStage($WRK, $asm, "outputSequence");
     buildHTML($WRK, $asm, "utg");
 
   allDone:
-    print STDERR "-- Unitig sequences saved in '$wrk/$asm.consensus.$type'.\n";
+    print STDERR "-- Unitig sequences saved in '$WRK/$asm.consensus.$type'.\n";
 }
 
 
@@ -148,16 +153,16 @@ sub outputSummary ($$) {
     my $bin     = getBinDirectory();
     my $cmd;
 
-    goto allDone   if (skipStage($wrk, $asm, "outputSummary") == 1);
-    goto allDone   if (-e "$wrk/$asm.html");
+    goto allDone   if (skipStage($WRK, $asm, "outputSummary") == 1);
+    goto allDone   if (-e "$WRK/$asm.html");
 
     #  Write a basic html file with all the summary statistics we can find, links to images, and links to outputs.
 
 
   finishStage:
-    emitStage($wrk, $asm, "outputSummary");
+    emitStage($WRK, $asm, "outputSummary");
     buildHTML($WRK, $asm, "utg");
 
   allDone:
-    print STDERR "-- Summary saved in '$wrk/$asm.html'.\n";
+    print STDERR "-- Summary saved in '$WRK/$asm.html'.\n";
 }

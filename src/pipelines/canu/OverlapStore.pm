@@ -71,6 +71,7 @@ sub createOverlapStoreSequential ($$$$) {
 
     $wrk = "$wrk/correction"  if ($tag eq "cor");
     $wrk = "$wrk/trimming"    if ($tag eq "obt");
+    $wrk = "$wrk/unitigging"  if ($tag eq "utg");
 
     $cmd  = "$bin/ovStoreBuild \\\n";
     $cmd .= " -O $wrk/$asm.ovlStore.BUILDING \\\n";
@@ -123,6 +124,7 @@ sub overlapStoreConfigure ($$$$) {
 
     $wrk = "$wrk/correction"  if ($tag eq "cor");
     $wrk = "$wrk/trimming"    if ($tag eq "obt");
+    $wrk = "$wrk/unitigging"  if ($tag eq "utg");
 
     goto allDone   if (skipStage($WRK, $asm, "$tag-overlapStoreConfigure") == 1);
     goto allDone   if (-d "$wrk/$asm.ovlStore");
@@ -274,6 +276,7 @@ sub overlapStoreBucketizerCheck ($$$$$) {
 
     $wrk = "$wrk/correction"  if ($tag eq "cor");
     $wrk = "$wrk/trimming"    if ($tag eq "obt");
+    $wrk = "$wrk/unitigging"  if ($tag eq "utg");
 
     goto allDone   if (skipStage($WRK, $asm, "$tag-overlapStoreBucketizerCheck", $attempt) == 1);
     goto allDone   if (-d "$wrk/$asm.ovlStore");
@@ -359,6 +362,7 @@ sub overlapStoreSorterCheck ($$$$$) {
 
     $wrk = "$wrk/correction"  if ($tag eq "cor");
     $wrk = "$wrk/trimming"    if ($tag eq "obt");
+    $wrk = "$wrk/unitigging"  if ($tag eq "utg");
 
     goto allDone   if (skipStage($WRK, $asm, "$tag-overlapStoreSorterCheck", $attempt) == 1);
     goto allDone   if (-d "$wrk/$asm.ovlStore");
@@ -449,6 +453,7 @@ sub createOverlapStoreParallel ($$$$) {
 
     $wrk = "$wrk/correction"  if ($tag eq "cor");
     $wrk = "$wrk/trimming"    if ($tag eq "obt");
+    $wrk = "$wrk/unitigging"  if ($tag eq "utg");
 
     overlapStoreConfigure($WRK, $asm, $tag, $files);
 
@@ -497,6 +502,7 @@ sub createOverlapStore ($$$$) {
 
     $wrk = "$wrk/correction"  if ($tag eq "cor");
     $wrk = "$wrk/trimming"    if ($tag eq "obt");
+    $wrk = "$wrk/unitigging"  if ($tag eq "utg");
 
     my $path  = "$wrk/1-overlapper";
 
