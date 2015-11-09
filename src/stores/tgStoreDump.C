@@ -491,7 +491,7 @@ plotDepthHistogram(char *N, uint64 *cov, uint32 covMax) {
   //  Plot!
 
   F = popen("gnuplot > /dev/null 2>&1", "w");
-   
+
   if (F) {
     fprintf(F, "set terminal 'png'\n");
     fprintf(F, "set output '%s.png'\n", N);
