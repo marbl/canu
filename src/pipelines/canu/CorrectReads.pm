@@ -41,6 +41,7 @@ use File::Path qw(make_path remove_tree);
 use canu::Defaults;
 use canu::Execution;
 use canu::Gatekeeper;
+use canu::HTML;
 
 #  Returns a coverage:
 #    If $cov not defined, default to desired output coverage * 1.0.
@@ -48,10 +49,10 @@ use canu::Gatekeeper;
 #    Otherwise, the coverage is as defined.
 #
 sub getCorCov ($$$) {
-    my $wrk = shift @_;
-    my $asm = shift @_;
-    my $typ = shift @_;
-    my $cov = getGlobal("corMaxEvidenceCoverage$typ");
+    my $wrk     = shift @_;  #  Local work directory
+    my $asm     = shift @_;
+    my $typ     = shift @_;
+    my $cov     = getGlobal("corMaxEvidenceCoverage$typ");
 
     my $exp = getExpectedCoverage($wrk, $asm);
     my $des = getGlobal("corOutCoverage");
@@ -70,7 +71,7 @@ sub getCorCov ($$$) {
 #  Return the number of jobs for 'falcon', 'falconpipe' or 'utgcns'
 #
 sub computeNumberOfCorrectionJobs ($$) {
-    my $wrk     = shift @_;
+    my $wrk     = shift @_;  #  Local work directory
     my $asm     = shift @_;
     my $nJobs   = 0;
     my $nPerJob = 0;
@@ -103,7 +104,7 @@ sub computeNumberOfCorrectionJobs ($$) {
 #  Generate a corStore, dump files for falcon to process, generate a script to run falcon.
 #
 sub buildCorrectionLayouts_direct ($$) {
-    my $wrk  = shift @_;
+    my $wrk  = shift @_;  #  Local work directory
     my $asm  = shift @_;
     my $bin  = getBinDirectory();
     my $cmd;
@@ -236,7 +237,7 @@ sub buildCorrectionLayouts_direct ($$) {
 #  For falcon_sense, using a pipe and no intermediate files
 #
 sub buildCorrectionLayouts_piped ($$) {
-    my $wrk  = shift @_;
+    my $wrk  = shift @_;  #  Local work directory
     my $asm  = shift @_;
     my $bin  = getBinDirectory();
     my $cmd;
@@ -353,7 +354,7 @@ sub lengthStats (@) {
 
 
 sub quickFilter ($$) {
-    my $wrk  = shift @_;
+    my $wrk  = shift @_;  #  Local work directory
     my $asm  = shift @_;
     my $bin  = getBinDirectory();
     my $path = "$wrk/2-correction";
@@ -392,7 +393,7 @@ sub quickFilter ($$) {
 
 
 sub expensiveFilter ($$) {
-    my $wrk  = shift @_;
+    my $wrk  = shift @_;  #  Local work directory
     my $asm  = shift @_;
     my $bin  = getBinDirectory();
     my $cmd;
@@ -623,10 +624,10 @@ sub expensiveFilter ($$) {
 
 
 sub buildCorrectionLayouts ($$) {
-    my $WRK  = shift @_;
-    my $wrk  = "$WRK/correction";
-    my $asm  = shift @_;
-    my $bin  = getBinDirectory();
+    my $WRK     = shift @_;           #  Root work directory (the -d option to canu)
+    my $wrk     = "$WRK/correction";  #  Local work directory
+    my $asm     = shift @_;
+    my $bin     = getBinDirectory();
     my $cmd;
 
     my $path = "$wrk/2-correction";
@@ -697,6 +698,7 @@ sub buildCorrectionLayouts ($$) {
 
   finishStage:
     emitStage($WRK, $asm, "cor-buildCorrectionLayouts");
+    buildHTML($WRK, $asm, "cor");
 
   allDone:
 }
@@ -705,8 +707,8 @@ sub buildCorrectionLayouts ($$) {
 
 
 sub generateCorrectedReads ($$$) {
-    my $WRK     = shift @_;
-    my $wrk     = "$WRK/correction";
+    my $WRK     = shift @_;           #  Root work directory (the -d option to canu)
+    my $wrk     = "$WRK/correction";  #  Local work directory
     my $asm     = shift @_;
     my $attempt = shift @_;
     my $bin     = getBinDirectory();
@@ -743,6 +745,7 @@ sub generateCorrectedReads ($$$) {
         close(L);
         setGlobal("canuIteration", 0);
         emitStage($WRK, $asm, "cor-generateCorrectedReads");
+        buildHTML($WRK, $asm, "cor");
         return;
     }
 
@@ -766,6 +769,7 @@ sub generateCorrectedReads ($$$) {
 
   finishStage:
     emitStage($WRK, $asm, "cor-generateCorrectedReads", $attempt);
+    buildHTML($WRK, $asm, "cor");
     submitOrRunParallelJob($WRK, $asm, "cor", $path, "correctReads", @failedJobs);
 
   allDone:
@@ -774,10 +778,10 @@ sub generateCorrectedReads ($$$) {
 
 
 sub dumpCorrectedReads ($$) {
-    my $WRK  = shift @_;
-    my $wrk  = "$WRK/correction";
-    my $asm  = shift @_;
-    my $bin  = getBinDirectory();
+    my $WRK     = shift @_;           #  Root work directory (the -d option to canu)
+    my $wrk     = "$WRK/correction";  #  Local work directory
+    my $asm     = shift @_;
+    my $bin     = getBinDirectory();
 
     my $path = "$wrk/2-correction";
 
@@ -821,6 +825,7 @@ sub dumpCorrectedReads ($$) {
 
   finishStage:
     emitStage($WRK, $asm, "cor-dumpCorrectedReads");
+    buildHTML($WRK, $asm, "cor");
 
   allDone:
     print STDERR "--\n";

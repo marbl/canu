@@ -41,6 +41,7 @@ use File::Path qw(make_path remove_tree);
 use canu::Defaults;
 use canu::Execution;
 use canu::Gatekeeper;
+use canu::HTML;
 
 #  Hardcoded to use utgOvlErrorRate
 
@@ -80,10 +81,11 @@ sub concatOutput ($@) {
 
 
 sub readErrorDetectionConfigure ($$) {
-    my $wrk   = shift @_;
-    my $asm   = shift @_;
-    my $bin   = getBinDirectory();
-    my $path  = "$wrk/3-overlapErrorAdjustment";
+    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
+    my $wrk     = $WRK;      #  Local work directory
+    my $asm     = shift @_;
+    my $bin     = getBinDirectory();
+    my $path    = "$wrk/3-overlapErrorAdjustment";
 
     return         if (getGlobal("enableOEA") == 0);
 
@@ -222,6 +224,7 @@ sub readErrorDetectionConfigure ($$) {
 
   finishStage:
     emitStage($wrk, $asm, "readErrorDetectionConfigure");
+    buildHTML($WRK, $asm, "utg");
 
   allDone:
 }
@@ -231,7 +234,8 @@ sub readErrorDetectionConfigure ($$) {
 
 
 sub readErrorDetectionCheck ($$$) {
-    my $wrk     = shift @_;
+    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
+    my $wrk     = $WRK;      #  Local work directory
     my $asm     = shift @_;
     my $attempt = shift @_;
     my $path    = "$wrk/3-overlapErrorAdjustment";
@@ -285,6 +289,7 @@ sub readErrorDetectionCheck ($$$) {
         concatOutput("$path/red.red", @successJobs);
         setGlobal("canuIteration", 0);
         emitStage($wrk, $asm, "readErrorDetectionCheck");
+        buildHTML($WRK, $asm, "utg");
         return;
     }
 
@@ -310,6 +315,7 @@ sub readErrorDetectionCheck ($$$) {
 
   finishStage:
     emitStage($wrk, $asm, "readErrorDetectionCheck", $attempt);
+    buildHTML($WRK, $asm, "utg");
     submitOrRunParallelJob($wrk, $asm, "red", "$path", "red", @failedJobs);
 
   allDone:
@@ -320,10 +326,11 @@ sub readErrorDetectionCheck ($$$) {
 
 
 sub overlapErrorAdjustmentConfigure ($$) {
-    my $wrk   = shift @_;
-    my $asm   = shift @_;
-    my $bin   = getBinDirectory();
-    my $path  = "$wrk/3-overlapErrorAdjustment";
+    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
+    my $wrk     = $WRK;      #  Local work directory
+    my $asm     = shift @_;
+    my $bin     = getBinDirectory();
+    my $path    = "$wrk/3-overlapErrorAdjustment";
 
     return         if (getGlobal("enableOEA") == 0);
 
@@ -453,6 +460,7 @@ sub overlapErrorAdjustmentConfigure ($$) {
 
   finishStage:
     emitStage($wrk, $asm, "overlapErrorAdjustmentConfigure");
+    buildHTML($WRK, $asm, "utg");
 
   allDone:
 }
@@ -462,7 +470,8 @@ sub overlapErrorAdjustmentConfigure ($$) {
 
 
 sub overlapErrorAdjustmentCheck ($$$) {
-    my $wrk     = shift @_;
+    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
+    my $wrk     = $WRK;      #  Local work directory
     my $asm     = shift @_;
     my $attempt = shift @_;
     my $path    = "$wrk/3-overlapErrorAdjustment";
@@ -539,6 +548,7 @@ sub overlapErrorAdjustmentCheck ($$$) {
 
   finishStage:
     emitStage($wrk, $asm, "overlapErrorAdjustmentCheck", $attempt);
+    buildHTML($WRK, $asm, "utg");
     submitOrRunParallelJob($wrk, $asm, "oea", "$path", "oea", @failedJobs);
 
   allDone:
@@ -548,11 +558,12 @@ sub overlapErrorAdjustmentCheck ($$$) {
 
 
 sub updateOverlapStore ($$) {
-    my $wrk  = shift @_;
-    my $asm  = shift @_;
-    my $bin  = getBinDirectory();
+    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
+    my $wrk     = $WRK;      #  Local work directory
+    my $asm     = shift @_;
+    my $bin     = getBinDirectory();
     my $cmd;
-    my $path = "$wrk/3-overlapErrorAdjustment";
+    my $path    = "$wrk/3-overlapErrorAdjustment";
 
     return         if (getGlobal("enableOEA") == 0);
 
@@ -578,6 +589,7 @@ sub updateOverlapStore ($$) {
 
   finishStage:
     emitStage($wrk, $asm, "updateOverlapStore");
+    buildHTML($WRK, $asm, "utg");
 
   allDone:
 }

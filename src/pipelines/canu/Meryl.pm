@@ -38,6 +38,7 @@ use strict;
 
 use canu::Defaults;
 use canu::Execution;
+use canu::HTML;
 
 
 #  Generates
@@ -63,11 +64,11 @@ use canu::Execution;
 
 
 sub meryl ($$$) {
-    my $WRK = shift @_;
-    my $wrk = $WRK;
-    my $asm = shift @_;
-    my $tag = shift @_;
-    my $bin = getBinDirectory();
+    my $WRK    = shift @_;  #  Root work directory (the -d option to canu)
+    my $wrk    = $WRK;      #  Local work directory
+    my $asm    = shift @_;
+    my $tag    = shift @_;
+    my $bin    = getBinDirectory();
     my $cmd;
 
     $wrk = "$wrk/correction"  if ($tag eq "cor");
@@ -83,7 +84,7 @@ sub meryl ($$$) {
         $merDistinct  = getGlobal("${tag}OvlMerDistinct");
         $merTotal     = getGlobal("${tag}OvlMerTotal");
 
-        $ffile = "$wrk/0-mercounts/$asm.ms$merSize.frequentMers.fasta";   #  The fasta file we should be creating.
+        $ffile = "$wrk/0-mercounts/$asm.ms$merSize.frequentMers.fasta";   #  The fasta file we should be creating (ends in FASTA).
         $ofile = "$wrk/0-mercounts/$asm.ms$merSize";                      #  The meryl database 'intermediate file'.
 
     } elsif (getGlobal("${tag}Overlapper") eq "mhap") {
@@ -93,7 +94,7 @@ sub meryl ($$$) {
         $merDistinct  = undef;
         $merTotal     = undef;
 
-        $ffile = "$wrk/0-mercounts/$asm.ms$merSize.frequentMers.ignore";  #  The mhap-specific file we should be creating.
+        $ffile = "$wrk/0-mercounts/$asm.ms$merSize.frequentMers.ignore";  #  The mhap-specific file we should be creating (ends in IGNORE).
         $ofile = "$wrk/0-mercounts/$asm.ms$merSize";                      #  The meryl database 'intermediate file'.
 
     } else {
@@ -378,6 +379,7 @@ sub meryl ($$$) {
     unlink "$ofile.mcdat"   if (getGlobal("saveMerCounts") == 0);
 
     emitStage($WRK, $asm, "$tag-meryl");
+    buildHTML($WRK, $asm, $tag);
     stopAfter("meryl");
 
   allDone:

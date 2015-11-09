@@ -38,7 +38,7 @@ use strict;
 
 use canu::Defaults;
 use canu::Execution;
-
+use canu::HTML;
 
 
 sub storeExists ($$) {
@@ -51,7 +51,7 @@ sub storeExists ($$) {
 
 
 sub getNumberOfReadsInStore ($$) {
-    my $wrk    = shift @_;
+    my $wrk    = shift @_;  #  Local work directory
     my $asm    = shift @_;
     my $nr     = 0;
 
@@ -75,7 +75,7 @@ sub getNumberOfReadsInStore ($$) {
 
 
 sub getNumberOfBasesInStore ($$) {
-    my $wrk    = shift @_;
+    my $wrk    = shift @_;  #  Local work directory
     my $asm    = shift @_;
     my $nb     = 0;
     my $bin    = getBinDirectory();
@@ -103,7 +103,7 @@ sub getNumberOfBasesInStore ($$) {
 
 
 sub getExpectedCoverage ($$) {
-    my $wrk = shift @_;
+    my $wrk = shift @_;  #  Local work directory
     my $asm = shift @_;
 
     return(int(getNumberOfBasesInStore($wrk, $asm) / getGlobal("genomeSize")));
@@ -112,8 +112,8 @@ sub getExpectedCoverage ($$) {
 
 
 sub gatekeeper ($$$@) {
-    my $WRK    = shift @_;  #  Root work directory
-    my $wrk    = $WRK;
+    my $WRK    = shift @_;  #  Root work directory (the -d option to canu)
+    my $wrk    = $WRK;      #  Local work directory
     my $asm    = shift @_;
     my $tag    = shift @_;
     my $bin    = getBinDirectory();
@@ -263,21 +263,23 @@ sub gatekeeper ($$$@) {
 
     if (! -e "$wrk/$asm.gkpStore/readlengths.png") {
         open(F, "> $wrk/$asm.gkpStore/readlengths.gp") or caExit("can't open '$wrk/$asm.gkpStore/readlengths.gp' for writing: $!", undef);
-
-        print F "set title 'sorted read lengths'\n";
-        #print F "set xlabel 'original read length'\n";
-        print F "set ylabel 'read length'\n";
-        print F "set pointsize 0.25\n";
         print F "set terminal png size 1024,1024\n";
         print F "set output '$wrk/$asm.gkpStore/readlengths.png'\n";
-        print F "plot '$wrk/$asm.gkpStore/readlengths.txt' title 'sorted read length' with lines\n";
+        print F "set title 'read length'\n";
+        print F "set xlabel 'binwidth=250'\n";
+        print F "set ylabel 'number of reads'\n";
+        print F "binwidth=250\n";
+        print F "set boxwidth binwidth\n";
+        print F "bin(x,width) = width*floor(x/width) + binwidth/2.0\n";
+        print F "plot [] '$wrk/$asm.gkpStore/readlengths.txt' using (bin(\$1,binwidth)):(1.0) smooth freq with boxes title ''\n";
         close(F);
+
         runCommandSilently("$wrk/$asm.gkpStore", "gnuplot < $wrk/$asm.gkpStore/readlengths.gp > /dev/null 2>&1");
     }
 
-
   finishStage:
     emitStage($WRK, $asm, "$tag-gatekeeper");
+    buildHTML($WRK, $asm, $tag);
     stopAfter("gatekeeper");
 
   allDone:

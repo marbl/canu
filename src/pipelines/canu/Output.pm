@@ -32,18 +32,20 @@ package canu::Output;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(outputLayout outputGraph outputSequence);
+@EXPORT = qw(outputLayout outputGraph outputSequence outputSummary);
 
 use strict;
 
 use canu::Defaults;
 use canu::Execution;
+use canu::HTML;
 
 
 sub outputLayout ($$) {
-    my $wrk    = shift @_;
-    my $asm    = shift @_;
-    my $bin    = getBinDirectory();
+    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
+    my $wrk     = $WRK;      #  Local work directory
+    my $asm     = shift @_;
+    my $bin     = getBinDirectory();
     my $cmd;
 
     goto allDone   if (skipStage($wrk, $asm, "outputLayout") == 1);
@@ -64,6 +66,7 @@ sub outputLayout ($$) {
 
   finishStage:
     emitStage($wrk, $asm, "outputLayout");
+    buildHTML($WRK, $asm, "utg");
 
   allDone:
     print STDERR "-- Unitig layouts saved in '$wrk/$asm.layout'.\n";
@@ -73,9 +76,10 @@ sub outputLayout ($$) {
 
 
 sub outputGraph ($$) {
-    my $wrk    = shift @_;
-    my $asm    = shift @_;
-    my $bin    = getBinDirectory();
+    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
+    my $wrk     = $WRK;      #  Local work directory
+    my $asm     = shift @_;
+    my $bin     = getBinDirectory();
     my $cmd;
 
     goto allDone   if (skipStage($wrk, $asm, "outputGraph") == 1);
@@ -93,6 +97,7 @@ sub outputGraph ($$) {
 
   finishStage:
     emitStage($wrk, $asm, "outputGraph");
+    buildHTML($WRK, $asm, "utg");
 
   allDone:
     print STDERR "-- Unitig graph saved in (nowhere, yet).\n";
@@ -102,9 +107,10 @@ sub outputGraph ($$) {
 
 
 sub outputSequence ($$) {
-    my $wrk    = shift @_;
-    my $asm    = shift @_;
-    my $bin    = getBinDirectory();
+    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
+    my $wrk     = $WRK;      #  Local work directory
+    my $asm     = shift @_;
+    my $bin     = getBinDirectory();
     my $cmd;
 
     my $type = "fasta";  #  Should probably be an option.
@@ -127,7 +133,31 @@ sub outputSequence ($$) {
 
   finishStage:
     emitStage($wrk, $asm, "outputSequence");
+    buildHTML($WRK, $asm, "utg");
 
   allDone:
     print STDERR "-- Unitig sequences saved in '$wrk/$asm.consensus.$type'.\n";
+}
+
+
+
+sub outputSummary ($$) {
+    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
+    my $wrk     = $WRK;      #  Local work directory
+    my $asm     = shift @_;
+    my $bin     = getBinDirectory();
+    my $cmd;
+
+    goto allDone   if (skipStage($wrk, $asm, "outputSummary") == 1);
+    goto allDone   if (-e "$wrk/$asm.html");
+
+    #  Write a basic html file with all the summary statistics we can find, links to images, and links to outputs.
+
+
+  finishStage:
+    emitStage($wrk, $asm, "outputSummary");
+    buildHTML($WRK, $asm, "utg");
+
+  allDone:
+    print STDERR "-- Summary saved in '$wrk/$asm.html'.\n";
 }

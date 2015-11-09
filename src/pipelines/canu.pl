@@ -59,6 +59,8 @@ use canu::Unitig;
 use canu::Consensus;
 use canu::Output;
 
+use canu::HTML;
+
 
 my $bin = undef;  #  Path to binaries, set once in main.
 my $cmd = undef;  #  Temporary string passed to system().
@@ -352,6 +354,8 @@ if (setOptions($mode, "correct") eq "correct") {
 
     dumpCorrectedReads($wrk, $asm);
 
+    buildHTML($wrk, $asm, "cor");
+
     undef @inputFiles;
     push  @inputFiles, "-pacbio-corrected:$wrk/correction/$asm.correctedReads.fastq";
 }
@@ -371,6 +375,8 @@ if (setOptions($mode, "trim") eq "trim") {
     splitReads ($wrk, $asm);
     dumpReads  ($wrk, $asm);
     #summarizeReads($wrk, $asm);
+
+    buildHTML($wrk, $asm, "obt");
 
     undef @inputFiles;
     push  @inputFiles, "-pacbio-corrected:$wrk/trimming/$asm.trimmedReads.fastq";
@@ -417,6 +423,7 @@ if (setOptions($mode, "assemble") eq "assemble") {
     outputGraph($wrk, $asm);
     outputLayout($wrk, $asm);
     outputSequence($wrk, $asm);
+    outputSummary($wrk, $asm);
 }
 
 exit(0);

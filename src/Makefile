@@ -496,6 +496,7 @@ all: $(addprefix ${TARGET_DIR}/,${ALL_TGTS}) \
      ${TARGET_DIR}/lib/canu/Defaults.pm \
      ${TARGET_DIR}/lib/canu/Execution.pm \
      ${TARGET_DIR}/lib/canu/Gatekeeper.pm \
+     ${TARGET_DIR}/lib/canu/HTML.pm \
      ${TARGET_DIR}/lib/canu/Meryl.pm \
      ${TARGET_DIR}/lib/canu/Output.pm \
      ${TARGET_DIR}/lib/canu/OverlapBasedTrimming.pm \
@@ -569,6 +570,9 @@ ${TARGET_DIR}/lib/canu/Execution.pm: ${TARGET_DIR}/lib/canu pipelines/canu/Execu
 
 ${TARGET_DIR}/lib/canu/Gatekeeper.pm: ${TARGET_DIR}/lib/canu pipelines/canu/Gatekeeper.pm
 	cp -pf pipelines/canu/Gatekeeper.pm ${TARGET_DIR}/lib/canu/
+
+${TARGET_DIR}/lib/canu/HTML.pm: ${TARGET_DIR}/lib/canu pipelines/canu/HTML.pm
+	cp -pf pipelines/canu/HTML.pm ${TARGET_DIR}/lib/canu/
 
 ${TARGET_DIR}/lib/canu/Meryl.pm: ${TARGET_DIR}/lib/canu pipelines/canu/Meryl.pm
 	cp -pf pipelines/canu/Meryl.pm ${TARGET_DIR}/lib/canu/

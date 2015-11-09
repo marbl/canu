@@ -38,6 +38,7 @@ use strict;
 
 use canu::Defaults;
 use canu::Execution;
+use canu::HTML;
 
 
 #  Parallel documentation:
@@ -60,12 +61,12 @@ use canu::Execution;
 
 
 sub createOverlapStoreSequential ($$$$) {
-    my $WRK          = shift @_;
-    my $wrk          = $WRK;
-    my $asm          = shift @_;
-    my $tag          = shift @_;
-    my $files        = shift @_;
-    my $bin          = getBinDirectory();
+    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
+    my $wrk     = $WRK;      #  Local work directory
+    my $asm     = shift @_;
+    my $tag     = shift @_;
+    my $files   = shift @_;
+    my $bin     = getBinDirectory();
     my $cmd;
 
     $wrk = "$wrk/correction"  if ($tag eq "cor");
@@ -112,12 +113,12 @@ sub countOverlapStoreInputs ($) {
 
 
 sub overlapStoreConfigure ($$$$) {
-    my $WRK          = shift @_;
-    my $wrk          = $WRK;
-    my $asm          = shift @_;
-    my $tag          = shift @_;
-    my $files        = shift @_;
-    my $bin          = getBinDirectory();
+    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
+    my $wrk     = $WRK;      #  Local work directory
+    my $asm     = shift @_;
+    my $tag     = shift @_;
+    my $files   = shift @_;
+    my $bin     = getBinDirectory();
     my $cmd;
 
     $wrk = "$wrk/correction"  if ($tag eq "cor");
@@ -255,6 +256,7 @@ sub overlapStoreConfigure ($$$$) {
 
   finishStage:
     emitStage($WRK, $asm, "$tag-overlapStoreConfigure");
+    buildHTML($WRK, $asm, $tag);
     stopAfter("overlapStoreConfigure");
 
   allDone:
@@ -263,12 +265,12 @@ sub overlapStoreConfigure ($$$$) {
 
 
 sub overlapStoreBucketizerCheck ($$$$$) {
-    my $WRK          = shift @_;
-    my $wrk          = $WRK;
-    my $asm          = shift @_;
-    my $tag          = shift @_;
-    my $files        = shift @_;
-    my $attempt      = shift @_;
+    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
+    my $wrk     = $WRK;      #  Local work directory
+    my $asm     = shift @_;
+    my $tag     = shift @_;
+    my $files   = shift @_;
+    my $attempt = shift @_;
 
     $wrk = "$wrk/correction"  if ($tag eq "cor");
     $wrk = "$wrk/trimming"    if ($tag eq "obt");
@@ -312,6 +314,7 @@ sub overlapStoreBucketizerCheck ($$$$$) {
         print STDERR "-- Overlap store bucketizer finished.\n";
         setGlobal("canuIteration", 0);
         emitStage($WRK, $asm, "$tag-overlapStoreBucketizerCheck");
+        buildHTML($WRK, $asm, $tag);
         return;
     }
 
@@ -337,6 +340,7 @@ sub overlapStoreBucketizerCheck ($$$$$) {
 
   finishStage:
     emitStage($WRK, $asm, "$tag-overlapStoreBucketizerCheck", $attempt);
+    buildHTML($WRK, $asm, $tag);
     submitOrRunParallelJob($wrk, $asm, "ovB", "$wrk/$asm.ovlStore.BUILDING", "scripts/1-bucketize", @failedJobs);
   allDone:
 }
@@ -346,12 +350,12 @@ sub overlapStoreBucketizerCheck ($$$$$) {
 
 
 sub overlapStoreSorterCheck ($$$$$) {
-    my $WRK          = shift @_;
-    my $wrk          = $WRK;
-    my $asm          = shift @_;
-    my $tag          = shift @_;
-    my $files        = shift @_;
-    my $attempt      = shift @_;
+    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
+    my $wrk     = $WRK;      #  Local work directory
+    my $asm     = shift @_;
+    my $tag     = shift @_;
+    my $files   = shift @_;
+    my $attempt = shift @_;
 
     $wrk = "$wrk/correction"  if ($tag eq "cor");
     $wrk = "$wrk/trimming"    if ($tag eq "obt");
@@ -403,6 +407,7 @@ sub overlapStoreSorterCheck ($$$$$) {
         print STDERR "-- Overlap store sorter finished.\n";
         setGlobal("canuIteration", 0);
         emitStage($WRK, $asm, "$tag-overlapStoreSorterCheck");
+        buildHTML($WRK, $asm, $tag);
         return;
     }
 
@@ -427,6 +432,7 @@ sub overlapStoreSorterCheck ($$$$$) {
 
   finishStage:
     emitStage($WRK, $asm, "$tag-overlapStoreSorterCheck", $attempt);
+    buildHTML($WRK, $asm, $tag);
     submitOrRunParallelJob($wrk, $asm, "ovS", "$wrk/$asm.ovlStore.BUILDING", "scripts/2-sort", @failedJobs);
   allDone:
 }
@@ -435,11 +441,11 @@ sub overlapStoreSorterCheck ($$$$$) {
 
 
 sub createOverlapStoreParallel ($$$$) {
-    my $WRK          = shift @_;
-    my $wrk          = $WRK;
-    my $asm          = shift @_;
-    my $tag          = shift @_;
-    my $files        = shift @_;
+    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
+    my $wrk     = $WRK;      #  Local work directory
+    my $asm     = shift @_;
+    my $tag     = shift @_;
+    my $files   = shift @_;
 
     $wrk = "$wrk/correction"  if ($tag eq "cor");
     $wrk = "$wrk/trimming"    if ($tag eq "obt");
@@ -463,8 +469,9 @@ sub createOverlapStoreParallel ($$$$) {
 
 
 sub generateOverlapStoreStats ($$) {
-    my $wrk   = shift @_;
-    my $asm   = shift @_;
+    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
+    my $wrk     = $WRK;      #  Local work directory
+    my $asm     = shift @_;
 
     my $bin   = getBinDirectory();
     my $cmd;
@@ -482,11 +489,11 @@ sub generateOverlapStoreStats ($$) {
 
 
 sub createOverlapStore ($$$$) {
-    my $WRK   = shift @_;
-    my $wrk   = $WRK;
-    my $asm   = shift @_;
-    my $tag   = shift @_;
-    my $seq   = shift @_;
+    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
+    my $wrk     = $WRK;      #  Local work directory
+    my $asm     = shift @_;
+    my $tag     = shift @_;
+    my $seq     = shift @_;
 
     $wrk = "$wrk/correction"  if ($tag eq "cor");
     $wrk = "$wrk/trimming"    if ($tag eq "obt");
@@ -539,6 +546,7 @@ sub createOverlapStore ($$$$) {
   finishStage:
     generateOverlapStoreStats($wrk, $asm);
     emitStage($WRK, $asm, "$tag-createOverlapStore");
+    buildHTML($WRK, $asm, $tag);
     stopAfter("overlapStore");
 
   allDone:

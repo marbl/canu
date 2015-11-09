@@ -42,11 +42,11 @@ use canu::Defaults;
 use canu::Execution;
 use canu::Gatekeeper;
 use canu::Unitig;
-
+use canu::HTML;
 
 
 sub computeNumberOfConsensusJobs ($$) {
-    my $wrk    = shift @_;
+    my $wrk    = shift @_;  #  Local work directory
     my $asm    = shift @_;
 
     my $jobs = 0;
@@ -64,7 +64,7 @@ sub computeNumberOfConsensusJobs ($$) {
 
 
 sub utgcns ($$$) {
-    my $wrk    = shift @_;
+    my $wrk    = shift @_;  #  Local work directory
     my $asm    = shift @_;
     my $jobs   = shift @_;
 
@@ -119,7 +119,7 @@ sub utgcns ($$$) {
 
 
 sub make_consensus ($$$) {
-    my $wrk    = shift @_;
+    my $wrk    = shift @_;  #  Local work directory
     my $asm    = shift @_;
     my $jobs   = shift @_;
 
@@ -129,7 +129,7 @@ sub make_consensus ($$$) {
 
 
 sub falcon_sense ($$$) {
-    my $wrk    = shift @_;
+    my $wrk    = shift @_;  #  Local work directory
     my $asm    = shift @_;
     my $jobs   = shift @_;
 
@@ -139,7 +139,7 @@ sub falcon_sense ($$$) {
 
 
 sub pbdagcon ($$$) {
-    my $wrk    = shift @_;
+    my $wrk    = shift @_;  #  Local work directory
     my $asm    = shift @_;
     my $jobs   = shift @_;
 
@@ -202,13 +202,14 @@ sub pbdagcon ($$$) {
 
 
 sub consensusConfigure ($$) {
-    my $wrk     = shift @_;
-    my $asm     = shift @_;
-    my $bin     = getBinDirectory();
+    my $WRK    = shift @_;  #  Root work directory
+    my $wrk    = $WRK;      #  Local work directory
+    my $asm    = shift @_;
+    my $bin    = getBinDirectory();
     my $cmd;
-    my $path    = "$wrk/5-consensus";
+    my $path   = "$wrk/5-consensus";
 
-    goto allDone   if (skipStage($wrk, $asm, "consensusConfigure") == 1);
+    goto allDone   if (skipStage($WRK, $asm, "consensusConfigure") == 1);
     goto allDone   if (-e "$wrk/$asm.tigStore/seqDB.v002.tig");
 
     make_path("$path")  if (! -d "$path");
@@ -264,6 +265,7 @@ sub consensusConfigure ($$) {
 
   finishStage:
     emitStage($wrk, $asm, "consensusConfigure");
+    buildHTML($WRK, $asm, "utg");
     stopAfter("consensusConfigure");
 
   allDone:
@@ -277,12 +279,13 @@ sub consensusConfigure ($$) {
 #  Checks that all consensus jobs are complete, loads them into the store.
 #
 sub consensusCheck ($$$) {
-    my $wrk     = shift @_;
+    my $WRK     = shift @_;  #  Root work directory
+    my $wrk     = $WRK;      #  Local work directory
     my $asm     = shift @_;
     my $attempt = shift @_;
     my $path    = "$wrk/5-consensus";
 
-    goto allDone  if (skipStage($wrk, $asm, "consensusCheck", $attempt) == 1);
+    goto allDone  if (skipStage($WRK, $asm, "consensusCheck", $attempt) == 1);
     goto allDone  if (-e "$path/cnsjob.files");
     goto allDone  if (-e "$wrk/$asm.tigStore/seqDB.v002.tig");
 
@@ -322,6 +325,7 @@ sub consensusCheck ($$$) {
         close(L);
         setGlobal("canuIteration", 0);
         emitStage($wrk, $asm, "consensusCheck");
+        buildHTML($WRK, $asm, "utg");
         return;
     }
 
@@ -345,11 +349,13 @@ sub consensusCheck ($$$) {
     print STDERR "-- Consensus attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
 
     emitStage($wrk, $asm, "consensusCheck", $attempt);
+    buildHTML($WRK, $asm, "utg");
 
     submitOrRunParallelJob($wrk, $asm, "cns", $path, "consensus", @failedJobs);
 
   finishStage:
     emitStage($wrk, $asm, "consensusCheck");
+    buildHTML($WRK, $asm, "utg");
     stopAfter("consensusCheck");
   allDone:
     if ($attempt == 3) {
@@ -361,13 +367,14 @@ sub consensusCheck ($$$) {
 
 
 sub consensusLoad ($$) {
-    my $wrk     = shift @_;
+    my $WRK     = shift @_;  #  Root work directory
+    my $wrk     = $WRK;      #  Local work directory
     my $asm     = shift @_;
     my $bin     = getBinDirectory();
     my $cmd;
     my $path    = "$wrk/5-consensus";
 
-    goto allDone    if (skipStage($wrk, $asm, "consensusLoad") == 1);
+    goto allDone    if (skipStage($WRK, $asm, "consensusLoad") == 1);
     goto allDone    if (-e "$wrk/$asm.tigStore/seqDB.v002.tig");
 
     #  Expects to have a cnsjob.files list of output files from the consensusCheck() function.
@@ -439,6 +446,7 @@ sub consensusLoad ($$) {
 
   finishStage:
     emitStage($wrk, $asm, "consensusLoad");
+    buildHTML($WRK, $asm, "utg");
     stopAfter("consensusLoad");
   allDone:
     reportUnitigSizes($wrk, $asm, 2, "after consenss generation");
@@ -448,13 +456,14 @@ sub consensusLoad ($$) {
 
 
 sub consensusAnalyze ($$) {
-    my $wrk     = shift @_;
+    my $WRK     = shift @_;  #  Root work directory
+    my $wrk     = $WRK;      #  Local work directory
     my $asm     = shift @_;
     my $bin     = getBinDirectory();
     my $cmd;
     my $path    = "$wrk/5-consensus";
 
-    goto allDone   if (skipStage($wrk, $asm, "consensusAnalyze") == 1);
+    goto allDone   if (skipStage($WRK, $asm, "consensusAnalyze") == 1);
     goto allDone   if (-e "$wrk/$asm.tigStore/status.coverageStat");
 
     $cmd  = "$bin/tgStoreCoverageStat \\\n";
@@ -472,6 +481,7 @@ sub consensusAnalyze ($$) {
 
   finishStage:
     emitStage($wrk, $asm, "consensusAnalyze");
+    buildHTML($WRK, $asm, "utg");
     touch("$wrk/$asm.tigStore/status.coverageStat");
     stopAfter("consensusAnalyze");
   allDone:
@@ -479,13 +489,14 @@ sub consensusAnalyze ($$) {
 
 
 sub consensusFilter ($$) {
-    my $wrk     = shift @_;
+    my $WRK     = shift @_;  #  Root work directory
+    my $wrk     = $WRK;      #  Local work directory
     my $asm     = shift @_;
     my $bin     = getBinDirectory();
     my $cmd;
     my $path    = "$wrk/5-consensus";
 
-    goto allDone   if (skipStage($wrk, $asm, "consensusFilter") == 1);
+    goto allDone   if (skipStage($WRK, $asm, "consensusFilter") == 1);
     goto allDone   if (-e "$wrk/$asm.tigStore/status.filter");
 
     my $msrs = getGlobal("maxSingleReadSpan");
@@ -514,6 +525,7 @@ sub consensusFilter ($$) {
 
   finishStage:
     emitStage($wrk, $asm, "consensusFilter");
+    buildHTML($WRK, $asm, "utg");
     touch("$wrk/$asm.tigStore/status.filter");
     stopAfter("consensusFilter");
   allDone:

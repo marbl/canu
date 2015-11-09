@@ -40,11 +40,12 @@ use File::Path qw(make_path remove_tree);
 
 use canu::Defaults;
 use canu::Execution;
+use canu::HTML;
 
 
 sub trimReads ($$) {
-    my $WRK    = shift @_;
-    my $wrk    = "$WRK/trimming";
+    my $WRK    = shift @_;         #  Root work directory (the -d option to canu)
+    my $wrk    = "$WRK/trimming";  #  Local work directory
     my $asm    = shift @_;
     my $bin    = getBinDirectory();
     my $cmd;
@@ -91,6 +92,7 @@ sub trimReads ($$) {
   finishStage:
     touch("$path/trimmed");
     emitStage($WRK, $asm, "obt-trimReads");
+    buildHTML($WRK, $asm, "obt");
 
   allDone:
 }
@@ -98,8 +100,8 @@ sub trimReads ($$) {
 
 
 sub splitReads ($$) {
-    my $WRK    = shift @_;
-    my $wrk    = "$WRK/trimming";
+    my $WRK    = shift @_;         #  Root work directory (the -d option to canu)
+    my $wrk    = "$WRK/trimming";  #  Local work directory
     my $asm    = shift @_;
     my $bin    = getBinDirectory();
     my $cmd;
@@ -146,6 +148,7 @@ sub splitReads ($$) {
   finishStage:
     touch("$path/splitted", "Splitted?  Is that even a word?");
     emitStage($WRK, $asm, "obt-splitReads");
+    buildHTML($WRK, $asm, "obt");
 
   allDone:
 }
@@ -153,8 +156,8 @@ sub splitReads ($$) {
 
 
 sub dumpReads ($$) {
-    my $WRK    = shift @_;
-    my $wrk    = "$WRK/trimming";
+    my $WRK    = shift @_;         #  Root work directory (the -d option to canu)
+    my $wrk    = "$WRK/trimming";  #  Local work directory
     my $asm    = shift @_;
     my $bin    = getBinDirectory();
     my $cmd;
@@ -186,9 +189,9 @@ sub dumpReads ($$) {
 
   finishStage:
     emitStage($WRK, $asm, "obt-dumpReads");
+    buildHTML($WRK, $asm, "obt");
 
   allDone:
     print STDERR "--\n";
     print STDERR "-- Trimmed reads saved in '$wrk/$asm.trimmedReads.fastq'\n";
-
 }

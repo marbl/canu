@@ -41,6 +41,7 @@ use File::Path qw(make_path remove_tree);
 use canu::Defaults;
 use canu::Execution;
 use canu::Gatekeeper;
+use canu::HTML;
 
 
 sub bogart ($$$) {
@@ -123,8 +124,9 @@ sub reportUnitigSizes ($$$$) {
 
 
 sub unitig ($$) {
-    my $wrk    = shift @_;
-    my $asm    = shift @_;
+    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
+    my $wrk     = $WRK;      #  Local work directory
+   my $asm     = shift @_;
 
     goto allDone    if (skipStage($wrk, $asm, "unitig") == 1);
     goto allDone    if (-d "$wrk/$asm.tigStore");
@@ -155,6 +157,7 @@ sub unitig ($$) {
 
   finishStage:
     emitStage($wrk, $asm, "unitig");
+    buildHTML($WRK, $asm, "utg");
     stopAfter("unitig");
 
   allDone:

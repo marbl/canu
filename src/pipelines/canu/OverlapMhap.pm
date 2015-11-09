@@ -41,6 +41,7 @@ use File::Path qw(make_path remove_tree);
 use canu::Defaults;
 use canu::Execution;
 use canu::Gatekeeper;
+use canu::HTML;
 
 #  Map long reads to long reads with mhap.
 
@@ -51,12 +52,12 @@ use canu::Gatekeeper;
 
 
 sub mhapConfigure ($$$$) {
-    my $WRK  = shift @_;
-    my $wrk  = $WRK;
-    my $asm  = shift @_;
-    my $tag  = shift @_;
-    my $typ  = shift @_;
-    my $bin  = getBinDirectory();
+    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
+    my $wrk     = $WRK;      #  Local work directory
+    my $asm     = shift @_;
+    my $tag     = shift @_;
+    my $typ     = shift @_;
+    my $bin     = getBinDirectory();
 
     $wrk = "$wrk/correction"  if ($tag eq "cor");
     $wrk = "$wrk/trimming"    if ($tag eq "obt");
@@ -475,6 +476,7 @@ sub mhapConfigure ($$$$) {
 
   finishStage:
     emitStage($WRK, $asm, "$tag-mhapConfigure");
+    buildHTML($WRK, $asm, $tag);
     stopAfter("mhapConfigure");
 
   allDone:
@@ -484,8 +486,8 @@ sub mhapConfigure ($$$$) {
 
 
 sub mhapPrecomputeCheck ($$$$$) {
-    my $WRK     = shift @_;
-    my $wrk     = $WRK;
+    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
+    my $wrk     = $WRK;      #  Local work directory
     my $asm     = shift @_;
     my $tag     = shift @_;
     my $typ     = shift @_;
@@ -524,6 +526,7 @@ sub mhapPrecomputeCheck ($$$$$) {
     if (scalar(@failedJobs) == 0) {
         setGlobal("canuIteration", 0);
         emitStage($WRK, $asm, "$tag-mhapPrecomputeCheck");
+        buildHTML($WRK, $asm, $tag);
         return;
     }
 
@@ -548,6 +551,7 @@ sub mhapPrecomputeCheck ($$$$$) {
 
   finishStage:
     emitStage($WRK, $asm, "$tag-mhapPrecomputeCheck", $attempt);
+    buildHTML($WRK, $asm, $tag);
     submitOrRunParallelJob($WRK, $asm, "${tag}mhap", $path, "precompute", @failedJobs);
 
   allDone:
@@ -570,8 +574,8 @@ sub mhapPrecomputeCheck ($$$$$) {
 
 
 sub mhapCheck ($$$$$) {
-    my $WRK     = shift @_;
-    my $wrk     = $WRK;
+    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
+    my $wrk     = $WRK;      #  Local work directory
     my $asm     = shift @_;
     my $tag     = shift @_;
     my $typ     = shift @_;
@@ -623,6 +627,7 @@ sub mhapCheck ($$$$$) {
         close(L);
         setGlobal("canuIteration", 0);
         emitStage($WRK, $asm, "$tag-mhapCheck");
+        buildHTML($WRK, $asm, $tag);
         return;
     }
 
@@ -647,6 +652,7 @@ sub mhapCheck ($$$$$) {
 
   finishStage:
     emitStage($WRK, $asm, "$tag-mhapCheck", $attempt);
+    buildHTML($WRK, $asm, $tag);
     submitOrRunParallelJob($WRK, $asm, "${tag}mhap", $path, "mhap", @failedJobs);
 
   allDone:

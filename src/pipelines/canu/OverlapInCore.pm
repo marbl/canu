@@ -40,14 +40,15 @@ use File::Path qw(make_path remove_tree);
 
 use canu::Defaults;
 use canu::Execution;
+use canu::HTML;
 
 
 sub overlapConfigure ($$$$) {
-    my $WRK  = shift @_;
-    my $wrk  = $WRK;
-    my $asm  = shift @_;
-    my $tag  = shift @_;
-    my $type = shift @_;
+    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
+    my $wrk     = $WRK;      #  Local work directory
+    my $asm     = shift @_;
+    my $tag     = shift @_;
+    my $type    = shift @_;
 
     my $bin  = getBinDirectory();
     my $cmd;
@@ -213,6 +214,7 @@ sub overlapConfigure ($$$$) {
 
   finishStage:
     emitStage($WRK, $asm, "$tag-overlapConfigure");
+    buildHTML($WRK, $asm, $tag);
     stopAfter("overlapConfigure");
 
   allDone:
@@ -241,7 +243,7 @@ sub reportSumMeanStdDev (@) {
 
 
 sub reportOverlapStats ($$@) {
-    my $wrk       = shift @_;
+    my $wrk       = shift @_;  #  Local work directory
     my $asm       = shift @_;
     my @statsJobs = @_;
 
@@ -290,8 +292,8 @@ sub reportOverlapStats ($$@) {
 #  complain, but don't help the user fix things.
 #
 sub overlapCheck ($$$$$) {
-    my $WRK     = shift @_;
-    my $wrk     = $WRK;
+    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
+    my $wrk     = $WRK;      #  Local work directory
     my $asm     = shift @_;
     my $tag     = shift @_;
     my $type    = shift @_;
@@ -351,6 +353,7 @@ sub overlapCheck ($$$$$) {
         close(L);
         setGlobal("canuIteration", 0);
         emitStage($WRK, $asm, "$tag-overlapCheck");
+        buildHTML($WRK, $asm, $tag);
         return;
     }
 
@@ -375,6 +378,7 @@ sub overlapCheck ($$$$$) {
 
   finishStage:
     emitStage($WRK, $asm, "$tag-overlapCheck", $attempt);
+    buildHTML($WRK, $asm, $tag);
     submitOrRunParallelJob($WRK, $asm, "${tag}ovl", $path, "overlap", @failedJobs);
 
   allDone:
