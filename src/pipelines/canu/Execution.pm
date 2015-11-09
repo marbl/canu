@@ -464,7 +464,7 @@ sub emitStage ($$$@) {
 #
 #        next  if (m/PREFIX.stage.fileLists/);
 #        next  if (m/PREFIX.stage/);
-#        next  if (m/runCA-logs/);
+#        next  if (m/canu-logs/);
 #
 #        $firstAccessed{$_} = $stage  if (!exists($firstAccessed{$_}));
 #        $lastAccessed{$_}  = $stage;

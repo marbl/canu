@@ -164,7 +164,7 @@ sub writeLog ($) {
     my $host = hostname();
     my $pid  = $$;
 
-    open(F, "> $wrk/runCA-logs/${time}_${host}_${pid}_canu");
+    open(F, "> $wrk/canu-logs/${time}_${host}_${pid}_canu");
     print F $specLog;
     close(F);
 }

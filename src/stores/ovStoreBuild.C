@@ -149,7 +149,7 @@ writeToDumpFile(ovOverlap       *overlap,
     fprintf(stderr, "\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "This might be a corrupt input file, or maybe you simply need to supply more\n");
-    fprintf(stderr, "memory with the runCA option ovlStoreMemory.\n");
+    fprintf(stderr, "memory with the canu option ovlStoreMemory.\n");
     fprintf(stderr, "\n");
     exit(1);
   }

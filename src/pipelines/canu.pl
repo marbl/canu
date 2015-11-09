@@ -230,7 +230,7 @@ if (($cor + $obt + $utg == 0) &&
 caExit("no run directory (-d option) specified", undef)  if (!defined($wrk));
 
 make_path("$wrk")             if (! -d "$wrk");
-make_path("$wrk/runCA-logs")  if (! -d "$wrk/runCA-logs");
+make_path("$wrk/canu-logs")   if (! -d "$wrk/canu-logs");
 
 caExit("run directory (-d option) '$wrk' doesn't exist and couldn't be created", undef)  if (! -d $wrk);
 

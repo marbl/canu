@@ -125,7 +125,7 @@ AS_configure(int argc, char **argv) {
     //  Make a directory for logs.  Allow all errors, in particular,
     //  the error of "directory already exists".
     //
-    sprintf(D, "%s/runCA-logs", p);
+    sprintf(D, "%s/canu-logs", p);
     mkdir(D, S_IRWXU | S_IRWXG | S_IRWXO);
 
     //  Our hostname is part of our unique filename.
