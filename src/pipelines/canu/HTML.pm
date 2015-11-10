@@ -144,7 +144,7 @@ sub buildGatekeeperHTML ($$$$$$) {
     close(F);
 
     push @$body, "<h3>Read Length Histogram</h3>\n";
-    push @$body, "<img src='$wrk/$asm.gkpStore/readlengths.png'></img>\n";
+    push @$body, "<a href='$wrk/$asm.gkpStore/readlengths.lg.png'><img src='$wrk/$asm.gkpStore/readlengths.sm.png'></img></a>\n";
 }
 
 
@@ -190,9 +190,9 @@ sub buildMerylHTML ($$$$$$) {
             }
             close(F);
 
-            if (-e "$wrk/0-mercounts/$asm.ms$ms.histogram.png") {
+            if (-e "$wrk/0-mercounts/$asm.ms$ms.histogram.sm.png") {
                 push @$body, "<figure>\n";
-                push @$body, "<img src='$wrk/0-mercounts/$asm.ms$ms.histogram.png'>\n";
+                push @$body, "<a href='$wrk/0-mercounts/$asm.ms$ms.histogram.lg.png'><img src='$wrk/0-mercounts/$asm.ms$ms.histogram.sm.png'></a>\n";
                 push @$body, "<figcaption>\n";
                 push @$body, "Histogram for k=$ms with $numTotal mers, $numDistinct distinct mers and $numUnique single-copy mers.  Largest count is $largest.\n";
                 push @$body, "</figcaption>\n";
@@ -439,7 +439,7 @@ sub buildHTML ($$$) {
     }
 
 
-    print STDERR "WRITING '$wrk/$asm-summary.html'\n";
+    #print STDERR "WRITING '$wrk/$asm-summary.html'\n";
 
     open(F, "> $wrk/$asm-summary.html") or die "can't open '$wrk/$asm-summary.html' for writing: $!\n";
 
@@ -450,7 +450,6 @@ sub buildHTML ($$$) {
     print F "<head>\n";
     print F "<title>canu analysis for assembly '$asm' in directory '$wrk'</title>\n";
     print F "<style type='text/css'>\n";
-
     print F "body       { font-family: Helvetica, Verdana, sans-serif; }\n";
     print F "h1, h2, h3 { color: #ee3e80; }\n";
     print F "p          { color: #665544; }\n";

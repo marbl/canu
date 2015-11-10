@@ -264,14 +264,19 @@ sub gatekeeper ($$$@) {
 
     if (! -e "$wrk/$asm.gkpStore/readlengths.png") {
         open(F, "> $wrk/$asm.gkpStore/readlengths.gp") or caExit("can't open '$wrk/$asm.gkpStore/readlengths.gp' for writing: $!", undef);
-        print F "set terminal png size 1024,1024\n";
-        print F "set output '$wrk/$asm.gkpStore/readlengths.png'\n";
         print F "set title 'read length'\n";
         print F "set xlabel 'binwidth=250'\n";
         print F "set ylabel 'number of reads'\n";
         print F "binwidth=250\n";
         print F "set boxwidth binwidth\n";
         print F "bin(x,width) = width*floor(x/width) + binwidth/2.0\n";
+        print F "\n";
+        print F "set terminal png size 1024,1024\n";
+        print F "set output '$wrk/$asm.gkpStore/readlengths.lg.png'\n";
+        print F "plot [] '$wrk/$asm.gkpStore/readlengths.txt' using (bin(\$1,binwidth)):(1.0) smooth freq with boxes title ''\n";
+        print F "\n";
+        print F "set terminal png size 256,256\n";
+        print F "set output '$wrk/$asm.gkpStore/readlengths.sm.png'\n";
         print F "plot [] '$wrk/$asm.gkpStore/readlengths.txt' using (bin(\$1,binwidth)):(1.0) smooth freq with boxes title ''\n";
         close(F);
 
