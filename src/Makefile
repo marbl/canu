@@ -389,9 +389,6 @@ ifeq (${OSTYPE}, Linux)
     LDFLAGS   += -D_GLIBCXX_PARALLEL
   endif
 
-  #CXXFLAGS  += -DLIBUNWIND -I/usr/local/include
-  #LDFLAGS   +=             -L/usr/local/lib -lunwind -lunwind-x86_64
-
   ifeq ($(BUILDDEBUG), 1)
     CXXFLAGS  += -g
   else
@@ -459,6 +456,9 @@ ifeq (${OSTYPE}, FreeBSD)
     CXXFLAGS  += -D_GLIBCXX_PARALLEL
     LDFLAGS   += -D_GLIBCXX_PARALLEL
   endif
+
+  CXXFLAGS  +=             -I/usr/local/include
+  LDFLAGS   +=             -L/usr/local/lib
 
   CXXFLAGS  += -DLIBUNWIND -I/usr/local/include
   LDFLAGS   +=             -L/usr/local/lib -lunwind -lunwind-x86_64
