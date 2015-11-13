@@ -184,6 +184,8 @@ sub dumpReads ($$) {
         caFailure("dumping trimmed reads failed", "$WRK/$asm.trimmedReads.err");
     }
 
+    unlink("$WRK/$asm.trimmedReads.err");
+
     #  Need gatekeeperDumpFASTQ to also write a gkp input file
     #touch("$wrk/$asm.trimmedReads.gkp");
 
