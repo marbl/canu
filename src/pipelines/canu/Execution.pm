@@ -660,7 +660,6 @@ sub makeUniqueJobName ($$) {
 
     #  For all other jobs, we need to ensure the name is unique.  We do this by adding digits at the end.
 
-    my $jobIdx  = makeRandomSuffix(2);
     my $jobName = "${jobType}_" . $asm . ((defined(getGlobal("gridOptionsJobName"))) ? ("_" . getGlobal("gridOptionsJobName")) : (""));
     my %jobs;
 
@@ -680,7 +679,13 @@ sub makeUniqueJobName ($$) {
     if (getGlobal("gridEngine") eq "LSF") {
     }
 
-    #  With the list of existing jobs in hand, find the first one that doesn't exist.
+    #  If the jobName doesn't exist, we can use it.
+
+    return($jobName)  if (! exists($jobs{$jobName}));
+
+    #  Otherwise, find a unique random 2-letter suffix.
+
+    my $jobIdx  = makeRandomSuffix(2);
 
     while (exists($jobs{"${jobName}_$jobIdx"})) {
         $jobIdx = makeRandomSuffix(2);
