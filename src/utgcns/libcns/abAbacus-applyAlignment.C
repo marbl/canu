@@ -309,6 +309,8 @@ abAbacus::applyAlignment(abSeqID   afid,
   abBeadID  lasta;  //  The beadID of the bases in the last column aligned
   abBeadID  lastb;
 
+  assert(trace != NULL);  //  The original (Celera) version of this could be called without a trace
+
 #if 0
   for (uint32 ii=0; trace[ii]; ii++)
     fprintf(stderr, "trace[%u] %d\n", ii, trace[ii]);
@@ -436,7 +438,7 @@ abAbacus::applyAlignment(abSeqID   afid,
   //  Skip any positive traces at the start.  These are template sequence (A-read) aligned to gaps
   //  in the B-read, but we don't care because there isn't any B-read aligned yet.
 
-  while ((trace != NULL) && (*trace != 0) && (*trace == 1)) {
+  while ((traceLen > 0) && (*trace != 0) && (*trace == 1)) {
 #ifdef DEBUG_ABACUS_ALIGN
     fprintf(stderr, "trace=%d  apos=%d alen=%d bpos=%d blen=%d - SKIP INITIAL GAP IN READ\n", *trace, apos, alen, bpos, blen);
 #endif
@@ -450,7 +452,7 @@ abAbacus::applyAlignment(abSeqID   afid,
   //  Similarly, remove negative traces at the end.  These are read sequence (B-read) aligned to gaps
   //  in the A-read (template).  The A-read extent should be reduced by one for each  gap.
 
-  while ((trace != NULL) && (trace[traceLen-1] > blen)) {
+  while ((traceLen > 0) && (trace[traceLen-1] > blen)) {
 #ifdef DEBUG_ABACUS_ALIGN
     fprintf(stderr, "trace=%d  apos=%d alen=%d bpos=%d blen=%d - SKIP TERMINAL GAP IN READ\n", *trace, apos, alen, bpos, blen);
 #endif
@@ -460,7 +462,7 @@ abAbacus::applyAlignment(abSeqID   afid,
   
 
 
-  while ((trace != NULL) && (*trace != 0)) {
+  while ((traceLen > 0) && (*trace != 0)) {
 
 #ifdef DEBUG_ABACUS_ALIGN
     fprintf(stderr, "trace=%d  apos=%d alen=%d bpos=%d blen=%d\n", *trace, apos, alen, bpos, blen);
