@@ -632,6 +632,66 @@ sub getBinDirectoryShellCode () {
 
 
 
+#  Spend too much effort ensuring that the name is unique in the system.  For 'canu' jobs, we don't
+#  care.
+
+sub makeRandomSuffix ($) {
+    my $length = shift @_;
+    my @chars  = +('0'..'9', 'a'..'k', 'm'..'z', 'A'..'H', 'J'..'N', 'P'..'Z');    #  Remove 'l', 'I' and 'O'
+    my $suffix;
+
+    while ($length-- > 0) {
+        $suffix .= @chars[int(rand(59))];
+    }
+
+    return($suffix);
+}
+
+
+sub makeUniqueJobName ($$) {
+    my $jobType = shift @_;
+    my $asm     = shift @_;
+
+    #  If a canu job, just return the standard name.  No uniquification needed.
+
+    if ($jobType eq "canu") {
+        return("canu_" . $asm . ((defined(getGlobal("gridOptionsJobName"))) ? ("_" . getGlobal("gridOptionsJobName")) : ("")));
+    }
+
+    #  For all other jobs, we need to ensure the name is unique.  We do this by adding digits at the end.
+
+    my $jobIdx  = makeRandomSuffix(2);
+    my $jobName = "${jobType}_" . $asm . ((defined(getGlobal("gridOptionsJobName"))) ? ("_" . getGlobal("gridOptionsJobName")) : (""));
+    my %jobs;
+
+    #  First, find the list of all jobs that exist.
+
+    if (getGlobal("gridEngine") eq "SGE") {
+        open(F, "qstat -xml |");
+        while (<F>) {
+            $jobs{$1}++  if (m/^\s*<JB_name>(.*)<\/JB_name>$/);
+        }
+        close(F);
+    }
+
+    if (getGlobal("gridEngine") eq "PBS") {
+    }
+
+    if (getGlobal("gridEngine") eq "LSF") {
+    }
+
+    #  With the list of existing jobs in hand, find the first one that doesn't exist.
+
+    while (exists($jobs{"${jobName}_$jobIdx"})) {
+        $jobIdx = makeRandomSuffix(2);
+    }
+
+    #  And return it!  Simple!
+
+    return("${jobName}_$jobIdx");
+}
+
+
 
 
 #  Submit ourself back to the grid.  If the one argument is defined, make us hold on jobs with that
@@ -703,7 +763,7 @@ sub submitScript ($$$) {
 
     my ($jobName, $memOption, $thrOption, $gridOpts);
 
-    $jobName   = "canu_" . $asm . ((defined(getGlobal("gridOptionsJobName"))) ? ("_" . getGlobal("gridOptionsJobName")) : (""));
+    $jobName   = makeUniqueJobName("canu", $asm);
 
     $memOption = buildMemoryOption(getGlobal("masterMemory"), getGlobal("masterThreads"));
     $thrOption = buildThreadOption(getGlobal("masterThreads"));
@@ -825,7 +885,7 @@ sub buildGridJob ($$$$$$$$) {
     my $submitCommand = getGlobal("gridEngineSubmitCommand");
     my $nameOption    = getGlobal("gridEngineNameOption");
 
-    my $jobNameT = "${jobType}_" . $asm . ((defined(getGlobal("gridOptionsJobName"))) ? ("_" . getGlobal("gridOptionsJobName")) : (""));
+    my $jobNameT      = makeUniqueJobName($jobType, $asm);
 
     my $jobName       = buildGridArray($jobNameT, $bgnJob, $endJob, getGlobal("gridEngineArrayName"));
     my $arrayOpt      = buildGridArray($jobNameT, $bgnJob, $endJob, getGlobal("gridEngineArrayOption"));
