@@ -224,7 +224,7 @@ sub consensusConfigure ($$) {
 
         if ($gkpTime < $tigTime) {
             print STDERR "-- Partitioned gkpStore is older than tigs, rebuild partitioning.\n";
-            runmCommandSilently($wrk, "rm -rf $wrk/$asm.gkpStore/partitions");
+            runCommandSilently($wrk, "rm -rf $wrk/$asm.gkpStore/partitions");
         }
     }
 
