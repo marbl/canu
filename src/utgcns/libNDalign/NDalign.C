@@ -698,24 +698,19 @@ NDalign::scanDeltaForBadness(bool verbose, bool showAlign) {
 
   int32   badBlocks = 0;
 
-  vector<double>  blockAverages;
-
   for (uint32 ii=0; _resDisplay[ii]; ii++) {
     if (_resDisplay[ii] == '^')
       ema = computeExponentialMovingAverage(alpha, ema, 1.0);
     else
       ema = computeExponentialMovingAverage(alpha, ema, 0.0);
 
-    if (ema > 0.25) {
-      //if (verbose)
-      //  fprintf(stderr, "NDalign::scanForDeltaBadness()--  Block %d bad - exponential moving average %.2f > allowed %.2f\n", blockAverages.size(), ema, 0.25);
+    if (ema > 0.25)
       badBlocks++;
-    }
   }
 
   if ((verbose == true) && (badBlocks > 0)) {
-    fprintf(stderr, "NDalign::scanForDeltaBadness()--  Potential bad alignment: found %d bad out of "F_SIZE_T" blocks (alpha %f)\n",
-            badBlocks, blockAverages.size(), alpha);
+    fprintf(stderr, "NDalign::scanForDeltaBadness()--  Potential bad alignment: found %d bad blocks (alpha %f)\n",
+            badBlocks, alpha);
 
     if (showAlign == true)
       display("NDalign::scanForDeltaBadness()-- ", true);
