@@ -59,8 +59,7 @@ public:
   bool                 isForward(void) const { return(_isReverse == false); };
   bool                 isReverse(void) const { return(_isReverse == true);  };
 
-  //int32               &bgnset(void)             { return(_bgn); };
-  //int32               &endset(void)             { return(_end); };
+  //  Position in the parent, both oriented (bgn/end) and unoriented (min/max).
 
   int32                bgn(void) const       { return((_isReverse == false) ? _min : _max); };
   int32                end(void) const       { return((_isReverse == false) ? _max : _min); };
@@ -68,11 +67,12 @@ public:
   int32                min(void) const       { return(_min); };
   int32                max(void) const       { return(_max); };
 
+  //  Amount of this object to ignore; e.g., trim from the ends.
+
   int32                askip(void) const       { return(_askip); };
   int32                bskip(void) const       { return(_bskip); };
 
-  //uint32               min(void) const       { return((_bgn < _end) ? _bgn : _end); };
-  //uint32               max(void) const       { return((_bgn < _end) ? _end : _bgn); };
+  //  Delta values for the alignment to the parent.
 
   uint32               deltaOffset(void)     { return(_deltaOffset); };
   uint32               deltaLength(void)     { return(_deltaLen);    };

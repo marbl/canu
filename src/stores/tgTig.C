@@ -422,6 +422,8 @@ tgTig::loadFromStream(FILE *F) {
 
 void
 tgTig::dumpLayout(FILE *F) {
+  char  deltaString[128] = {0};
+  char  trimString[128]  = {0};
 
   if (_gappedLen > 0)
     assert(_gappedLen == _layoutLen);
@@ -450,17 +452,24 @@ tgTig::dumpLayout(FILE *F) {
   for (uint32 i=0; i<_childrenLen; i++) {
     tgPosition *imp = _children + i;
 
+    if (imp->_askip + imp->_bskip > 0)
+      sprintf(trimString,  " trim %6u %6u", imp->_askip, imp->_bskip);
+
+    if (imp->_deltaLen > 0)
+      sprintf(deltaString, " delta %5u at %u", imp->_deltaLen, imp->_deltaOffset);
+
+
     if (imp->_isRead)
-      fprintf(F, "read   %9"F_U32P" anchor %9"F_U32P" hang %6"F_S32P" %6"F_S32P" position %6"F_U32P" %6"F_U32P" deltas %u at %u\n",
-              imp->ident(), imp->anchor(), imp->aHang(), imp->bHang(), imp->bgn(), imp->end(), imp->_deltaLen, imp->_deltaOffset);
+      fprintf(F, "read   %9"F_U32P" anchor %9"F_U32P" hang %6"F_S32P" %6"F_S32P" position %6"F_U32P" %6"F_U32P"%s%s\n",
+              imp->ident(), imp->anchor(), imp->aHang(), imp->bHang(), imp->bgn(), imp->end(), trimString, deltaString);
 
     if (imp->_isUnitig)
-      fprintf(F, "unitig %9"F_U32P" anchor %9"F_U32P" hang %6"F_S32P" %6"F_S32P" position %6"F_U32P" %6"F_U32P" deltas %u at %u\n",
-              imp->ident(), imp->anchor(), imp->aHang(), imp->bHang(), imp->bgn(), imp->end(), imp->_deltaLen, imp->_deltaOffset);
+      fprintf(F, "unitig %9"F_U32P" anchor %9"F_U32P" hang %6"F_S32P" %6"F_S32P" position %6"F_U32P" %6"F_U32P"%s%s\n",
+              imp->ident(), imp->anchor(), imp->aHang(), imp->bHang(), imp->bgn(), imp->end(), trimString, deltaString);
 
     if (imp->_isContig)
-      fprintf(F, "contig %9"F_U32P" anchor %9"F_U32P" hang %6"F_S32P" %6"F_S32P" position %6"F_U32P" %6"F_U32P" deltas %u at %u\n",
-              imp->ident(), imp->anchor(), imp->aHang(), imp->bHang(), imp->bgn(), imp->end(), imp->_deltaLen, imp->_deltaOffset);
+      fprintf(F, "contig %9"F_U32P" anchor %9"F_U32P" hang %6"F_S32P" %6"F_S32P" position %6"F_U32P" %6"F_U32P"%s%s\n",
+              imp->ident(), imp->anchor(), imp->aHang(), imp->bHang(), imp->bgn(), imp->end(), trimString, deltaString);
   }
 
   fprintf(F, "tigend\n");
@@ -531,8 +540,8 @@ tgTig::loadLayout(FILE *F) {
       _suggestHaploid = strtouint32(W[1]);
 
     } else if (strcmp(W[0], "numChildren") == 0) {
-      _childrenLen = strtouint32(W[1]);
-      resizeArray(_children, 0, _childrenMax, _childrenLen, resizeArray_doNothing);
+      //_numChildren = strtouint32(W[1]);
+      //resizeArray(_children, 0, _childrenMax, _childrenLen, resizeArray_doNothing);
 
     } else if ((strcmp(W[0], "read")   == 0) ||
                (strcmp(W[0], "unitig") == 0) ||
@@ -542,7 +551,6 @@ tgTig::loadLayout(FILE *F) {
         fprintf(stderr, "tgTig::loadLayout()-- '%s' line "F_U64" invalid: '%s'\n", W[0], LINEnum, LINE), exit(1);
 
       if (nChildren >= _childrenLen) {
-        fprintf(stderr, "tgTig::loadLayout()-- '%s' line "F_U64" invalid: more children than claimed, adjusting\n", W[0], LINEnum);
         resizeArray(_children, _childrenLen, _childrenMax, _childrenLen + 1, resizeArray_copyData);
         _childrenLen++;
       }
@@ -556,6 +564,8 @@ tgTig::loadLayout(FILE *F) {
       _children[nChildren]._anchor      = strtouint32(W[3]);
       _children[nChildren]._ahang       = strtouint32(W[5]);
       _children[nChildren]._bhang       = strtouint32(W[6]);
+      _children[nChildren]._askip       = 0;
+      _children[nChildren]._bskip       = 0;
       _children[nChildren]._min         = strtouint32(W[8]);
       _children[nChildren]._max         = strtouint32(W[9]);
       _children[nChildren]._deltaOffset = 0;
@@ -565,6 +575,22 @@ tgTig::loadLayout(FILE *F) {
         _children[nChildren]._min       = strtouint32(W[9]);
         _children[nChildren]._max       = strtouint32(W[8]);
         _children[nChildren]._isReverse = true;
+      }
+
+
+      for (uint32 pos=10; (pos < W.numWords()); pos++) {
+        if (strcmp(W[pos], "delta") == 0) {
+          _children[nChildren]._deltaLen    = strtouint32(W[++pos]);
+          pos++;  //  "at"
+          _children[nChildren]._deltaOffset = strtouint32(W[++pos]);
+        }
+
+        if (strcmp(W[pos], "trim") == 0) {
+          _children[nChildren]._askip = strtouint32(W[++pos]);
+          _children[nChildren]._bskip = strtouint32(W[++pos]);
+        }
+
+        pos++;
       }
 
       nChildren++;
