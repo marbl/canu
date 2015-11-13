@@ -1116,7 +1116,10 @@ sub setDefaults () {
     $global{"gridEngineArraySubmitID"}              = undef;
     $global{"gridEngineJobID"}                      = undef;
 
-    #  Try to decide which grid engine we have.
+    #  Try to decide which grid engine we have.  If this isn't set, the execution methods
+    #  submitScript() and submitOrRunParallelJob() will return without submitting, or run locally
+    #  (respectively).  This means that we can just trivially change the defaults for useGrid and
+    #  useGridMaster to 'enabled' and it'll do the right thing when SGE isn't present.
 
     if (defined($ENV{'SGE_ROOT'})) {
         print STDERR "-- Detected Sun Grid Engine in '$ENV{'SGE_ROOT'}/$ENV{'SGE_CELL'}'.\n";
@@ -1127,7 +1130,7 @@ sub setDefaults () {
 
     #####  Grid Engine Pipeline
 
-    $global{"useGrid"}                     = 0;
+    $global{"useGrid"}                     = 1;
     $synops{"useGrid"}                     = "Enable SGE; if unset, no grid will be used";
 
     #####  Grid Engine configuration, for each step of the pipeline
@@ -1161,7 +1164,7 @@ sub setDefaults () {
 
     setExecDefaults("ovb",    "overlap store bucketizing",              1,  2, 1, undef);
     setExecDefaults("ovs",    "overlap store sorting",                  1,  4, 1, undef);
-    setExecDefaults("master", "master script",                          0, 16, 1, undef);  #  Broken; bogart blows the limits
+    setExecDefaults("master", "master script",                          1, 16, 1, undef);  #  Broken; bogart blows the limits
 
     #####  Overlapper
 
