@@ -116,21 +116,18 @@ sub schedulerReapProcess ($) {
 }
 
 sub schedulerRun () {
-    my @newProcesses;
+    my @running;
 
     #  Reap any processes that have finished
-    #
-    undef @newProcesses;
+
     foreach my $i (@processesRunning) {
-        if (schedulerReapProcess($i) == 0) {
-            push @newProcesses, $i;
-        }
+        push @running, $i  if (schedulerReapProcess($i) == 0);
     }
-    undef @processesRunning;
-    @processesRunning = @newProcesses;
+
+    @processesRunning = @running;
 
     #  Run processes in any available slots
-    #
+
     while ((scalar(@processesRunning) < $numberOfProcesses) &&
            (scalar(@processQueue) > 0)) {
         my $process = shift @processQueue;
@@ -1040,8 +1037,11 @@ sub submitOrRunParallelJob ($$$$$@) {
         }
     }
 
+    print STDERR "-- WARNING: '${jobType}' requested $thr threads, but only ", getNumberOfCPUs(), " CPUs available.\n";
+
     my $nParallel  = getGlobal("${jobType}Concurrency");
     $nParallel     = int(getNumberOfCPUs() / $thr)  if ((!defined($nParallel)) || ($nParallel == 0));
+    $nParallel     = 1                              if ((!defined($nParallel)) || ($nParallel == 0));
 
     schedulerSetNumberOfProcesses($nParallel);
     schedulerFinish($path);
