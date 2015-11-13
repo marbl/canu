@@ -1260,6 +1260,9 @@ IdentifyWindow_Poly_X(abAbacus  *abacus,
 //  |
 //  start_column
 //
+
+#define STABWIDTH  6
+
 static
 int32
 IdentifyWindow_Indel(abAbacus  *abacus,

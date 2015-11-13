@@ -65,34 +65,6 @@ static const char *rcsid_ABACUS_H = "$Id:  $";
 #define CNS_MIN_QV 0
 #define CNS_MAX_QV 60
 
-//  Probably can change these
-
-#define ALT_QV_THRESH                      30
-#define DONT_SHOW_OLAP                      0
-#define SHOW_OLAP                           1
-#define MIN_AVE_QV_FOR_VARIATION           21
-#define MIN_SUM_QVS_FOR_VARIATION          60
-#define QV_FOR_MULTI_GAP                   14
-
-#define CNS_DP_THRESH                       1e-6
-#define CNS_DP_MINLEN                      30
-
-#define CNS_NEG_AHANG_CUTOFF               -5
-
-#define INITIAL_NR                        100
-#define MAX_WINDOW_FOR_ABACUS_REFINE      100
-#define STABWIDTH                           6
-
-#undef DEBUG_ABACUS
-#undef DEBUG_ABACUS_ALIGN
-#undef DEBUG_VAR_RECORDS  //  BROKEN!
-#undef DEBUG_GET_ALIGNMENT_TRACE
-
-#define MSTRING_SIZE                        3
-#define MAX_SIZE_OF_ADJUSTED_REGION         5
-
-
-
 //  Tables and other static data - needs to be global so subclasses can access it
 
 extern bool    DATAINITIALIZED;
