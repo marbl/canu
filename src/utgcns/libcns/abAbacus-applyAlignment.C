@@ -62,10 +62,12 @@ static char *rcsid = "$Id$";
 
 #include "abAbacus.H"
 
-#undef  DEBUG_FIND_BEAD
-#undef  DEBUG_ALIGN_GAPS
-#undef  DEBUG_ALIGN_POSITION
-#undef  DEBUG_ABACUS_ALIGN
+#undef  DEBUG_FIND_BEAD       //  Was useful for tracking down matrix structure issues
+#undef  DEBUG_ALIGN_GAPS      //  Reports calls to alignGaps()
+#undef  DEBUG_ALIGN_POSITION  //  Shows when and where an unaligned bead is added to the multialignment
+#undef  DEBUG_ABACUS_ALIGN    //  Primary debug output, shows progress of the algorithm
+
+#undef  TEST_ABACUS_ALIGN     //  Check that all the beads are properly in columns.  Expensive.
 
 
 //  Add a column before cid, seeded with bead bid.
@@ -295,7 +297,7 @@ abAbacus::applyAlignment(abSeqID   afid,
                          abSeqID   bfid,
                          int32     ahang,
                          int32     bhang,
-                         int32    *trace) {
+                         int32    *trace, uint32 traceLen) {
 
   int32     apos   = MAX(ahang,0);  //  The aindex index for the current column we're processing
   int32     bpos   = 0;
@@ -307,9 +309,24 @@ abAbacus::applyAlignment(abSeqID   afid,
   abBeadID  lasta;  //  The beadID of the bases in the last column aligned
   abBeadID  lastb;
 
+#if 0
+  for (uint32 ii=0; trace[ii]; ii++)
+    fprintf(stderr, "trace[%u] %d\n", ii, trace[ii]);
+#endif
+
 #ifdef DEBUG_ABACUS_ALIGN
-  fprintf(stderr, "abAbacus::applyAlignment()-- ahang=%d bhang=%d trace=%d %d %d %d\n",
-          ahang, bhang, trace[0], trace[1], trace[2], trace[3], trace[4]);
+  fprintf(stderr, "abAbacus::applyAlignment()-- ahang=%d bhang=%d traceLen=%u trace=%d %d %d %d %d ... %d %d %d %d %d\n",
+          ahang, bhang, traceLen,
+          (traceLen > 0) ? trace[0] : 0,
+          (traceLen > 1) ? trace[1] : 0,
+          (traceLen > 2) ? trace[2] : 0,
+          (traceLen > 3) ? trace[3] : 0,
+          (traceLen > 4) ? trace[4] : 0,
+          (traceLen > 4) ? trace[traceLen-5] : 0,
+          (traceLen > 3) ? trace[traceLen-4] : 0,
+          (traceLen > 2) ? trace[traceLen-3] : 0,
+          (traceLen > 1) ? trace[traceLen-2] : 0,
+          (traceLen > 0) ? trace[traceLen-1] : 0);
 #endif
 
   //  These loops really abuses the fact that all the beads for the bases in this read are
@@ -345,10 +362,10 @@ abAbacus::applyAlignment(abSeqID   afid,
   assert(bpos < blen);
 
   //
-  //  All the a beads should be in a column.  All the b beads should not.
+  //  All the a beads should be in a column.  All the b beads should not.  This is expensive.
   //
 
-#ifdef DEBUG_ABACUS_ALIGN
+#ifdef TEST_ABACUS_ALIGN
   {
     uint32    columnErrors = 0;
 
@@ -429,6 +446,18 @@ abAbacus::applyAlignment(abSeqID   afid,
     apos++;  //  lasta isn't set, it is reset to aindex[apos] in alignPosition().
     trace++;
   }
+
+  //  Similarly, remove negative traces at the end.  These are read sequence (B-read) aligned to gaps
+  //  in the A-read (template).  The A-read extent should be reduced by one for each  gap.
+
+  while ((trace != NULL) && (trace[traceLen-1] > blen)) {
+#ifdef DEBUG_ABACUS_ALIGN
+    fprintf(stderr, "trace=%d  apos=%d alen=%d bpos=%d blen=%d - SKIP TERMINAL GAP IN READ\n", *trace, apos, alen, bpos, blen);
+#endif
+
+    trace[--traceLen] = 0;
+  }
+  
 
 
   while ((trace != NULL) && (*trace != 0)) {

@@ -923,6 +923,13 @@ unitigConsensus::alignFragment(bool forceAlignment) {
   if (showAlignments())
     oaFull->display("utgCns::alignFragment()--", true);
 
+#if 1
+  //
+  //  Should check that we didn't hit the end, and adjust boundaries if so.  Do this before
+  //  realigning could save a little bit of time.
+  //
+#endif
+
   //  Realign, from both endpoints, and save the better of the two.
 
   oaFull->realignBackward(showAlgorithm(), showAlignments());
@@ -1073,18 +1080,10 @@ unitigConsensus::alignFragment(bool forceAlignment) {
 void
 unitigConsensus::applyAlignment(void) {
 
-  //fprintf(stderr, "traceLen %d traceABgn %d traceBBgn %d --", traceLen, traceABgn, traceBBgn);
-  //for (uint32 ii=0; ii<32; ii++)
-  //  fprintf(stderr, " %d", trace[ii]);
-  //fprintf(stderr, "\n");
-
   abacus->applyAlignment(abSeqID(),
                          frankensteinLen, frankensteinBof,
                          tiid,
-                         traceABgn, traceBBgn, trace);
-
-  //  Doesn't show latest read added.
-  //abacus->getMultiAlign(multialign)->display(abacus, stderr);
+                         traceABgn, traceBBgn, trace, traceLen);
 }
 
 

@@ -277,7 +277,7 @@ public:
                                  abSeqID  bfid,
                                  int32    ahang,
                                  int32    bhang,
-                                 int32   *trace);
+                                 int32   *trace, uint32 traceLen);
 
 
 public:
