@@ -344,7 +344,7 @@ sub overlapStoreBucketizerCheck ($$$$$) {
   finishStage:
     emitStage($WRK, $asm, "$tag-overlapStoreBucketizerCheck", $attempt);
     buildHTML($WRK, $asm, $tag);
-    submitOrRunParallelJob($wrk, $asm, "ovB", "$wrk/$asm.ovlStore.BUILDING", "scripts/1-bucketize", @failedJobs);
+    submitOrRunParallelJob($WRK, $asm, "ovB", "$wrk/$asm.ovlStore.BUILDING", "scripts/1-bucketize", @failedJobs);
   allDone:
 }
 
@@ -437,7 +437,7 @@ sub overlapStoreSorterCheck ($$$$$) {
   finishStage:
     emitStage($WRK, $asm, "$tag-overlapStoreSorterCheck", $attempt);
     buildHTML($WRK, $asm, $tag);
-    submitOrRunParallelJob($wrk, $asm, "ovS", "$wrk/$asm.ovlStore.BUILDING", "scripts/2-sort", @failedJobs);
+    submitOrRunParallelJob($WRK, $asm, "ovS", "$wrk/$asm.ovlStore.BUILDING", "scripts/2-sort", @failedJobs);
   allDone:
 }
 

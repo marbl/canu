@@ -351,7 +351,7 @@ sub consensusCheck ($$$) {
     emitStage($WRK, $asm, "consensusCheck", $attempt);
     buildHTML($WRK, $asm, "utg");
 
-    submitOrRunParallelJob($wrk, $asm, "cns", $path, "consensus", @failedJobs);
+    submitOrRunParallelJob($WRK, $asm, "cns", $path, "consensus", @failedJobs);
 
   finishStage:
     emitStage($WRK, $asm, "consensusCheck");

@@ -316,7 +316,7 @@ sub readErrorDetectionCheck ($$$) {
   finishStage:
     emitStage($WRK, $asm, "readErrorDetectionCheck", $attempt);
     buildHTML($WRK, $asm, "utg");
-    submitOrRunParallelJob($wrk, $asm, "red", "$path", "red", @failedJobs);
+    submitOrRunParallelJob($WRK, $asm, "red", "$path", "red", @failedJobs);
 
   allDone:
 }
@@ -549,7 +549,7 @@ sub overlapErrorAdjustmentCheck ($$$) {
   finishStage:
     emitStage($WRK, $asm, "overlapErrorAdjustmentCheck", $attempt);
     buildHTML($WRK, $asm, "utg");
-    submitOrRunParallelJob($wrk, $asm, "oea", "$path", "oea", @failedJobs);
+    submitOrRunParallelJob($WRK, $asm, "oea", "$path", "oea", @failedJobs);
 
   allDone:
 }
