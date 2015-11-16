@@ -373,7 +373,7 @@ ${info Using LD_RUN_PATH '${LD_RUN_PATH}'}
 ifeq (${OSTYPE}, Linux)
   CC        ?= gcc
   CXX       ?= g++
-  CXXFLAGS  := -pthread -fPIC -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare # -Wformat -Wall -Wextra 
+  CXXFLAGS  := -pthread -fPIC -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare # -Wformat -Wall -Wextra
   LDFLAGS   := -pthread -lm
 
   CXXFLAGS  += -D_GLIBCXX_PARALLEL -fopenmp
@@ -382,7 +382,7 @@ ifeq (${OSTYPE}, Linux)
   CXXFLAGS  += -Wall -Wextra -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat
 
   ifeq ($(BUILDPROFILE), 1)
-    CXXFLAGS  += 
+    CXXFLAGS  +=
     LDFLAGS   += -pg
   else
     CXXFLAGS  += -D_GLIBCXX_PARALLEL
@@ -408,15 +408,15 @@ ifeq (${OSTYPE}, Darwin)
   LDFLAGS  := -pthread -fopenmp -lm
 
   ifeq ($(BUILDPROFILE), 1)
-    CXXFLAGS  += 
+    CXXFLAGS  +=
     LDFLAGS   += -pg
   else
     CXXFLAGS  += -D_GLIBCXX_PARALLEL
     LDFLAGS   += -D_GLIBCXX_PARALLEL
   endif
 
-  CXXFLAGS  += 
-  LDFLAGS   += 
+  CXXFLAGS  +=
+  LDFLAGS   +=
 
   ifeq ($(BUILDDEBUG), 1)
     CXXFLAGS  += -g -fno-omit-frame-pointer
@@ -433,7 +433,7 @@ endif
 ifeq (${OSTYPE}, FreeBSD)
   CC       ?= gcc48
   CXX      ?= g++48
-  CXXFLAGS := -pthread -fPIC -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare # -Wformat -Wall -Wextra 
+  CXXFLAGS := -pthread -fPIC -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare # -Wformat -Wall -Wextra
   LDFLAGS  := -pthread -lm
 
   CXXFLAGS  += -fopenmp  -Wall -Wextra -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat
@@ -442,15 +442,15 @@ ifeq (${OSTYPE}, FreeBSD)
   #CXXFLAGS  += -Wall -Wextra -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat
 
   #  Google Performance Tools malloc and heapchecker (HEAPCHECK=normal)
-  #CXXFLAGS  += 
+  #CXXFLAGS  +=
   #LDFLAGS   += -ltcmalloc
 
   #  Google Performance Tools cpu profiler (CPUPROFILE=/path)
-  #CXXFLAGS  += 
+  #CXXFLAGS  +=
   #LDFLAGS   += -lprofiler
 
   ifeq ($(BUILDPROFILE), 1)
-    CXXFLAGS  += 
+    CXXFLAGS  +=
     LDFLAGS   += -pg
   else
     CXXFLAGS  += -D_GLIBCXX_PARALLEL
