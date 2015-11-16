@@ -142,6 +142,10 @@ while (scalar(@ARGV)) {
         $mode = $step = "assemble";
         addCommandLineOption("-assemble");
 
+    } elsif ($arg eq "-trim-assemble") {
+        $mode = $step = "trim-assemble";
+        addCommandLineOption("-trim-assemble");
+
 
     } elsif ($arg eq "-version") {
         setGlobal("version", 1);
@@ -155,6 +159,8 @@ while (scalar(@ARGV)) {
              ($arg eq "-pacbio-corrected") ||
              ($arg eq "-nanopore-raw")     ||
              ($arg eq "-nanopore-corrected")) {
+
+        $mode = "trim-assemble"  if ($arg =~ m/corrected/);
 
         setGlobal("help",
                   getGlobal("help") . "ERROR:  $arg file '$ARGV[0]' not found\n")
@@ -260,32 +266,42 @@ submitScript($wrk, $asm, undef);
 #
 
 sub setOptions ($$) {
-    my $mode = shift @_;
-    my $step = shift @_;
+    my $mode = shift @_;  #  E.g,. "run" or "trim-assemble" or just plain ol' "trim"
+    my $step = shift @_;  #  Step we're setting options for.
+
+    #  Decide if we care about running this step in this mode.  I almost applied
+    #  De Morgan's Laws to this.  I don't think it would have been any clearer.
+
+    if (($mode eq $step) ||
+        ($mode eq "run") ||
+        (($mode eq "trim-assemble") && ($step eq "trim")) ||
+        (($mode eq "trim-assemble") && ($step eq "assemble"))) {
+        #  Do run this.
+    } else {
+        return("don't run this");
+    }
+
+    #  Create directories for the step, if needed.
 
     make_path("$wrk/correction")  if ((! -d "$wrk/correction") && ($step eq "correct"));
     make_path("$wrk/trimming")    if ((! -d "$wrk/trimming")   && ($step eq "trim"));
     make_path("$wrk/unitigging")  if ((! -d "$wrk/unitigging") && ($step eq "assemble"));
 
-    return($mode)  if ($mode ne "run");
+    #  Now, set options for this step.
 
     if ($step eq "correct") {
         setErrorRate(0.15);
-
-        return($step);
     }
-
     if ($step eq "trim") {
         setErrorRate(0.01);
-
-        return($step);
     }
-
     if ($step eq "assemble") {
         setErrorRate(0.01);
-
-        return($step);
     }
+
+    #  And return that we want to run this step.
+
+    return($step);
 }
 
 #
