@@ -801,7 +801,7 @@ sub dumpCorrectedReads ($$) {
             my $n = <R>;
             my $s = "";
             # read Sequence until we hit the next starting line
-            while (1 == 1) {
+            while (!eof(R)) {
                my $pos = tell R;
                my $next = <R>;
                if ($next !~ m/^>/) {
