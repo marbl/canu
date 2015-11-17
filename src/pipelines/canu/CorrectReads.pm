@@ -812,6 +812,7 @@ sub dumpCorrectedReads ($$) {
                   last;
                }
             }
+            my $q = $s;
             $n =~ s/^>/\@/;
             $q =~ tr/[A-Z][a-z]/*/;
 
