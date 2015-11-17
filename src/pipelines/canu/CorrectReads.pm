@@ -799,17 +799,26 @@ sub dumpCorrectedReads ($$) {
 
         while (!eof(R)) {
             my $n = <R>;
-            my $s = <R>;
-            my $q = $s;
-
+            my $s = "";
+            # read Sequence until we hit the next starting line
+            while (1 == 1) {
+               my $pos = tell R;
+               my $next = <R>;
+               if ($next !~ m/^>/) {
+                  chomp $next;
+                  $s = $s . $next;
+               } else {
+                  seek R, $pos, 0;
+                  last;
+               }
+            }
             $n =~ s/^>/\@/;
-
             $q =~ tr/[A-Z][a-z]/*/;
 
             print O $n;
-            print O $s;
+            print O $s . "\n";
             print O "+\n";
-            print O $q;
+            print O $q . "\n";
 
             $reads++;
         }
