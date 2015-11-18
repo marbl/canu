@@ -396,15 +396,18 @@ sub buildOutputHTML ($$$$$$) {
 sub buildHTML ($$$) {
     my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
     my $wrk     = $WRK;      #  Local work directory
+    my $dir;
     my $asm     = shift @_;
     my $tag     = shift @_;
     my @css;
     my @body;
     my @scripts;
 
-    $wrk = "$wrk/correction"  if ($tag eq "cor");
-    $wrk = "$wrk/trimming"    if ($tag eq "obt");
-    $wrk = "$wrk/unitigging"  if ($tag eq "utg");
+    $dir = "correction"  if ($tag eq "cor");
+    $dir = "trimming"    if ($tag eq "obt");
+    $dir = "unitigging"  if ($tag eq "utg");
+
+    $wrk = "$WRK/$dir";
 
     #  For correction runs
     if ($tag eq "cor") {
@@ -441,7 +444,7 @@ sub buildHTML ($$$) {
 
     #print STDERR "WRITING '$wrk/$asm-summary.html'\n";
 
-    open(F, "> $wrk/$asm-summary.html") or die "can't open '$wrk/$asm-summary.html' for writing: $!\n";
+    open(F, "> $WRK/$dir.html") or die "can't open '$WRK/$dir.html' for writing: $!\n";
 
     print F "<!DOCTYPE html>\n";
     print F "\n";
