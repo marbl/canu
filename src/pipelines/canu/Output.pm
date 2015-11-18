@@ -81,8 +81,8 @@ sub outputLayout ($$) {
 
 
 sub outputGraph ($$) {
-    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
-    my $wrk     = $WRK;      #  Local work directory
+    my $WRK     = shift @_;           #  Root work directory (the -d option to canu)
+    my $wrk     = "$WRK/unitigging";  #  Local work directory
     my $asm     = shift @_;
     my $bin     = getBinDirectory();
     my $cmd;
@@ -112,8 +112,8 @@ sub outputGraph ($$) {
 
 
 sub outputSequence ($$) {
-    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
-    my $wrk     = $WRK;      #  Local work directory
+    my $WRK     = shift @_;           #  Root work directory (the -d option to canu)
+    my $wrk     = "$WRK/unitigging";  #  Local work directory
     my $asm     = shift @_;
     my $bin     = getBinDirectory();
     my $cmd;
@@ -147,8 +147,8 @@ sub outputSequence ($$) {
 
 
 sub outputSummary ($$) {
-    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
-    my $wrk     = $WRK;      #  Local work directory
+    my $WRK     = shift @_;           #  Root work directory (the -d option to canu)
+    my $wrk     = "$WRK/unitigging";  #  Local work directory
     my $asm     = shift @_;
     my $bin     = getBinDirectory();
     my $cmd;
