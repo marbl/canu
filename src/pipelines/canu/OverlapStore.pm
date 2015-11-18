@@ -217,7 +217,7 @@ sub overlapStoreConfigure ($$$$) {
         print F "\n";
         print F "\$bin/ovStoreSorter \\\n";
         print F "  -deletelate \\\n";  #  Choices -deleteearly -deletelate or nothing
-        print F "  -M " . getGlobal("ovlStoreMemory") . " \\\n";
+        print F "  -M " . getGlobal("ovsMemory") . " \\\n";
         print F "  -O $wrk/$asm.ovlStore.BUILDING \\\n";
         print F "  -G $wrk/$asm.gkpStore \\\n";
         print F "  -F $numSlices \\\n";
