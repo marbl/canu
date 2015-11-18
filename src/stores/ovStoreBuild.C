@@ -205,6 +205,7 @@ main(int argc, char **argv) {
       memoryLimit  = atoi(argv[++arg]);
       memoryLimit *= 1024;
       memoryLimit *= 1024;
+      memoryLimit *= 1024;
 
     } else if (strcmp(argv[arg], "-e") == 0) {
       maxError = atof(argv[++arg]);
@@ -250,7 +251,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -G asm.gkpStore       path to gkpStore for this assembly\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -F f                  use up to 'f' files for store creation\n");
-    fprintf(stderr, "  -M m                  use up to 'm' MB memory for store creation\n");
+    fprintf(stderr, "  -M m                  use up to 'm' gigabytes memory for store creation\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -e e                  filter overlaps above e fraction error\n");
     fprintf(stderr, "  -l l                  filter overlaps below l bases overlap length (needs gkpStore to get read lengths!)\n");

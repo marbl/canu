@@ -1174,8 +1174,8 @@ sub setDefaults () {
 
     ##### Overlap Store
 
-    $global{"ovlStoreMemory"}              = 2048;
-    $synops{"ovlStoreMemory"}              = "How much memory (MB) to use when constructing overlap stores";
+    $global{"ovlStoreMemory"}              = 4;
+    $synops{"ovlStoreMemory"}              = "How much memory, in gigabytes, to use when constructing overlap stores";
 
     $global{"ovlStoreMethod"}              = "sequential";
     $synops{"ovlStoreMethod"}              = "Use the 'sequential' or 'parallel' algorithm for constructing an overlap store";
