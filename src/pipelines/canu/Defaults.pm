@@ -1156,11 +1156,13 @@ sub checkParameters ($) {
     setGlobalIfUndef("obtOvlErrorRate",      3.0 * getGlobal("errorRate"));
     setGlobalIfUndef("utgOvlErrorRate",      3.0 * getGlobal("errorRate"));
 
-    setGlobalIfUndef("utgGraphErrorRate",    3.0 * getGlobal("errorRate"));
-    setGlobalIfUndef("utgBubbleErrorRate",   3.0 * getGlobal("errorRate") + 0.5 * getGlobal("errorRate"));
-    setGlobalIfUndef("utgMergeErrorRate",    3.0 * getGlobal("errorRate") - 0.5 * getGlobal("errorRate"));
-    setGlobalIfUndef("utgRepeatErrorRate",   3.0 * getGlobal("errorRate"));
+    setGlobalIfUndef("ovlErrorRate",	     2.5 * getGlobal("errorRate"));
+    setGlobalIfUndef("utgGraphErrorRate",    2.0 * getGlobal("errorRate"));
+    setGlobalIfUndef("utgBubbleErrorRate",   2.0 * getGlobal("errorRate") + 0.5 * getGlobal("errorRate"));
+    setGlobalIfUndef("utgMergeErrorRate",    2.0 * getGlobal("errorRate") - 0.5 * getGlobal("errorRate"));
+    setGlobalIfUndef("utgRepeatErrorRate",   1.0 * getGlobal("errorRate"));
 
+    setGlobalIfUndef("corsErrorRate",        8.0 * getGlobal("errorRate"));
     setGlobalIfUndef("cnsErrorRate",         3.0 * getGlobal("errorRate"));
 
     #
@@ -1239,6 +1241,7 @@ sub showErrorRates ($) {
     print STDERR "${prefix}utgMergeErrorRate   -- ", getGlobal("utgMergeErrorRate"), "\n";
     print STDERR "${prefix}utgRepeatErrorRate  -- ", getGlobal("utgRepeatErrorRate"), "\n";
     print STDERR "${prefix}\n";
+    print STDERR "${prefix}corErrorRate        -- ", getGlobal("corErrorRate"), "\n";
     print STDERR "${prefix}cnsErrorRate        -- ", getGlobal("cnsErrorRate"), "\n";
 }
 
@@ -1256,18 +1259,18 @@ sub setErrorRate ($@) {
 
     #  Can NOT call setGlobal() for this, because it calls setErrorRate()!.
     $global{"errorrate"} = $er;
+    setGlobal("corOvlErrorRate",    $er * 3);  #  Not used, except for realigning
+    setGlobal("obtOvlErrorRate",    $er * 3);  #  Generally must be smaller than utgGraphErrorRate
+    setGlobal("utgOvlErrorRate",    $er * 3);
 
-    setGlobal("corOvlErrorRate",    $er * 6);  #  Not used, except for realigning
-    setGlobal("obtOvlErrorRate",    $er * 6);  #  Generally must be smaller than utgGraphErrorRate
-    setGlobal("utgOvlErrorRate",    $er * 6);
+    setGlobal("obtErrorRate",       $er * 2.5);
 
-    setGlobal("obtErrorRate",       $er * 3);
+    setGlobal("utgGraphErrorRate",  $er * 2);
+    setGlobal("utgBubbleErrorRate", $er * 2 + 0.5 * $er);  #  Not tested!
+    setGlobal("utgMergeErrorRate",  $er * 2 - 0.5 * $er);
+    setGlobal("utgRepeatErrorRate", $er * 2);
 
-    setGlobal("utgGraphErrorRate",  $er * 3);
-    setGlobal("utgBubbleErrorRate", $er * 3 + 0.5 * $er);  #  Not tested!
-    setGlobal("utgMergeErrorRate",  $er * 3 - 0.5 * $er);
-    setGlobal("utgRepeatErrorRate", $er * 3);
-
+    setGlobal("corErrorRate",       $er * 10);  #  Erorr rate used for raw sequence alignment/consensus
     setGlobal("cnsErrorRate",       $er);
 
     showErrorRates("--  ")  if (defined($verbose));
@@ -1392,6 +1395,9 @@ sub setDefaults () {
 
     $global{"utgRepeatErrorRate"}          = undef;
     $synops{"utgRepeatErrorRate"}          = "Overlaps at or below this error rate are used to construct unitigs (BOGART)";
+
+    $global{"corErrorRate"}                = undef;
+    $synops{"corErrorRate"}                = "Only use raw alignments below this error rate to construct corrected reads";
 
     $global{"cnsErrorRate"}                = undef;
     $synops{"cnsErrorRate"}                = "Consensus expects alignments at about this error rate";
@@ -1641,6 +1647,9 @@ sub setDefaults () {
 
     $global{"corOutCoverage"}              = 40;
     $synops{"corOutCoverage"}              = "Only correct the longest reads up to this coverage; default 40";
+
+    $global{"corMinCoverage"}              = 4;
+    $synops{"corMinCoverage"}              = "Minimum number of bases supporting each corrected base, if less than this sequences are split";
 
     $global{"corFilter"}                   = "expensive";
     $synops{"corFilter"}                   = "Method to filter short reads from correction; 'quick' or 'expensive'";
