@@ -379,7 +379,7 @@ sub meryl ($$$) {
 
         close(O);
         close(F);
-        runCommandSilently("$wrk/0-mercounts", "cat $ofile.frequentMers.ignore.unsorted |sort -rgk2 > $ofile.frequentMers.ignore"); 
+        runCommandSilently("$wrk/0-mercounts", "cat $ofile.frequentMers.ignore.unsorted |sort -T . -rgk2 > $ofile.frequentMers.ignore"); 
     }
 
     #  Report the new threshold.
