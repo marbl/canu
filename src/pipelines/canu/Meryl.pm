@@ -362,7 +362,7 @@ sub meryl ($$$) {
         my $minCount        = int($filterThreshold * $totalMers);
 
         open(F, "$bin/meryl -Dt -n $minCount -s $ofile | ")  or die "Failed to run meryl to generate frequent mers $!\n";
-        open(O, "> $ofile.frequentMers.ignore")              or die "Failed to open '$ofile.frequentMers.mhap_ignore' for writing: $!\n";
+        open(O, "> $ofile.frequentMers.ignore.unsorted")              or die "Failed to open '$ofile.frequentMers.mhap_ignore' for writing: $!\n";
 
         while (!eof(F)) {
             my $h = <F>;
@@ -379,6 +379,7 @@ sub meryl ($$$) {
 
         close(O);
         close(F);
+        runCommandSilently("$wrk/0-mercounts", "cat $ofile.frequentMers.ignore.unsorted |sort -rgk2 > $ofile.frequentMers.ignore"); 
     }
 
     #  Report the new threshold.
