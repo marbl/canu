@@ -32,7 +32,7 @@ package canu::Defaults;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(getCommandLineOptions addCommandLineOption writeLog caExit caFailure getNumberOfCPUs getPhysicalMemorySize diskSpace printHelp setParametersFromFile setParametersFromCommandLine checkParameters getGlobal setGlobal showErrorRates setErrorRate setDefaults);
+@EXPORT = qw(getCommandLineOptions addCommandLineOption writeLog caExit caFailure getNumberOfCPUs getPhysicalMemorySize getAllowedResources diskSpace printHelp setParametersFromFile setParametersFromCommandLine checkParameters getGlobal setGlobal showErrorRates setErrorRate setDefaults);
 
 use strict;
 use Carp qw(cluck);
@@ -60,6 +60,15 @@ sub getGlobal ($) {
     caFailure("parameter '$var' is not known", undef) if (!exists($global{$var}));
 
     return($global{$var});
+}
+
+
+sub globalExists ($) {
+    my $var = shift @_;
+
+    $var =~ tr/A-Z/a-z/;
+
+    return(exists($global{$var}));
 }
 
 
@@ -281,6 +290,228 @@ sub getPhysicalMemorySize () {
 }
 
 
+
+#  Side effect!  This will RESET the $global{} parameters to the computed value.  This lets
+#  the rest of canu - in particular, the part that runs the jobs - use the correct value.  Without
+#  resetting, I'd be making code changes all over the place to support the values returned.
+
+sub getAllowedResources ($$$$) {
+    my $tag  = shift @_;  #  Variant, e.g., "cor", "utg"
+    my $alg  = shift @_;  #  Algorithm, e.g., "mhap", "ovl"
+    my $cls  = undef;     #  Class, "grid" or "master"
+    my $nam  = undef;     #  Human readable name
+    my $err  = shift @_;  #  Report of things we can't run.
+    my $all  = shift @_;  #  Report of things we can run.
+
+    #  Decide if the task is 'grid' or 'master'.
+
+    if    ($alg eq "master")   {  $cls = "master";  $nam = "sequential stages"; }
+    elsif ($alg eq "bat")      {  $cls = "master";  $nam = "bogart (unitigger)"; }
+    elsif ($alg eq "cns")      {  $cls = "grid";    $nam = "utgcns (consensus"; }
+    elsif ($alg eq "cor")      {  $cls = "grid";    $nam = "falcon_sense (read correction)"; }
+    elsif ($alg eq "meryl")    {  $cls = "master";  $nam = "meryl (k-mer counting)"; }
+    elsif ($alg eq "oea")      {  $cls = "grid";    $nam = "overlap error adjustment"; }
+    elsif ($alg eq "ovb")      {  $cls = "grid";    $nam = "overlap store parallel bucketizer"; }
+    elsif ($alg eq "ovlStore") {  $cls = "master";  $nam = "overlap store sequential building"; }
+    elsif ($alg eq "ovs")      {  $cls = "grid";    $nam = "overlap store parallel sorting"; }
+    elsif ($alg eq "red")      {  $cls = "grid";    $nam = "read error detection (overlap error adjustment)"; }
+    elsif ($alg eq "mhap")     {  $cls = "grid";    $nam = "mhap (overlapper)"; }
+    elsif ($alg eq "ovl")      {  $cls = "grid";    $nam = "overlapper"; }
+    else {
+        caFailure("unknown task '$alg' in getAllowedResources().", undef);
+    }
+
+    #  If no grid, or grid not enabled, everything falls under 'master'.
+
+    $cls = "master"  if ((getGlobal("useGrid") == 0) || (getGlobal("gridEngine") eq undef));
+
+    #  Figure out limits.
+
+    my $hostMemory   = getGlobal("${cls}Memory");       #  Host limit, "gridMemory", "masterThreads", etc.
+    my $hostThreads  = getGlobal("${cls}Threads");      #
+
+    my $taskMemory   = getGlobal("${tag}${alg}Memory");   #  Algorithm limit, "utgovlMemory", etc.
+    my $taskThreads  = getGlobal("${tag}${alg}Threads");  #
+
+    #  If the host limits aren't set, default to 'unlimited' (for the grid; we'll effectively filter
+    #  by the number of jobs we can fit on the hosts) or to the current hardware limits.
+
+    $hostMemory  = (($cls eq "grid") ? 1024 * 1024 : getPhysicalMemorySize())  if (!defined($hostMemory));    #  1 PB memory!
+    $hostThreads = (($cls eq "grid") ? 1024        : getNumberOfCPUs())        if (!defined($hostThreads));   #  1 k  cores!
+
+    #  If the two task parameters is undefined, they are left up to the algorithm.  This causes
+    #  problems here.  They should only be undefined for 'master' jobs (bogart and meryl).  We reset
+    #  to the limits.  To be safe, ALL types are reset.
+
+    $taskMemory  = $hostMemory    if (!defined($taskMemory));
+    $taskThreads = $hostThreads   if (!defined($taskThreads));
+
+    #  Build a list of the available hardware configurations we can run on.
+
+    my @gridCor;  #  Number of cores
+    my @gridMem;  #  GB's of memory
+    my @gridNum;  #  Number of nodes
+
+    if ($cls eq "grid") {
+        my @grid = split '\0', getGlobal("availableHosts");
+
+        foreach my $g (@grid) {
+            my ($cpu, $mem, $num) = split '-', $g;
+
+            push @gridCor, $cpu;
+            push @gridMem, $mem;
+            push @gridNum, $num;
+        }
+    } else {
+        push @gridCor, $hostThreads;
+        push @gridMem, $hostMemory;
+        push @gridNum, 1;
+    }
+
+    #  If the task has multiple choices, we have a little optimization problem to solve.  Foreach
+    #  pair of memory/threads, compute three things:
+    #    a) how many processes we can get running
+    #    b) how many cores we can get running
+    #    c) how much memory we can consume
+    #  We then (typically) want to maximize the number of cores we can get running.
+    #  Other options would be number of cores * amount of memory.
+
+    #  Filter out task settings that can't be run based on the gridMemory/gridThreads or masterMemory/masterThreads setting.
+    #  (actually, this just reports those that would be filtered; the actual filtering is inline in the algorithm)
+
+    my @taskMemory  = split ',', $taskMemory;
+    my @taskThreads = split ',', $taskThreads;
+
+    my $ignoreM;
+    my $ignoreT;
+
+    foreach my $m (@taskMemory) {
+        $m = adjustMemoryValue($m);
+    }
+
+    foreach my $m (@taskMemory) {
+        next  if ($m <= $hostMemory);
+        $ignoreM .= ","  if (defined($ignoreM));
+        $ignoreM .= "${m}g";
+    }
+    foreach my $t (@taskThreads) {
+        next  if ($t <= $hostThreads);
+        $ignoreT .= ","  if (defined($ignoreT));
+        $ignoreT .= "$t";
+    }
+
+    if      (defined($ignoreM) && defined($ignoreT)) {
+        $err .= "-- Can't use ${tag}${alg}Memory=$ignoreM and ${tag}${alg}Threads=$ignoreT because of ${cls}Memory=" . getGlobal("${cls}Memory") . "g and ${cls}Threads=" . getGlobal("${cls}Threads") . " limits.\n";
+
+    } elsif (defined($ignoreM)) {
+        $err .= "-- Can't use ${tag}${alg}Memory=$ignoreM because of ${cls}Memory=" . getGlobal("${cls}Memory") . "g limit.\n";
+
+    } elsif (defined($ignoreT)) {
+        $err .= "-- Can't use ${tag}${alg}Threads=$ignoreT because of ${cls}Threads=" . getGlobal("${cls}Threads") . " limit.\n";
+    }
+
+    #  Find task memory/thread settings that will maximize the number of cores running.  This used
+    #  to also compute best as 'cores * memory' but that is better handled by ordering the task
+    #  settings parameters.  The example below will pick the largest (last) configuration that
+    #  maximizes core utilization:
+    #
+    #    taskThreads = 4,8,32,64
+    #    taskMemory  = 16g,32g,64g
+
+    my ($bestCores,  $bestCoresM,  $bestCoresT)  = (0, undef, undef);
+
+    foreach my $m (@taskMemory) {
+        foreach my $t (@taskThreads) {
+
+            next  if ($m > $hostMemory);   #  Bail if either of the suggest settings are
+            next  if ($t > $hostThreads);  #  larger than the maximum allowed.
+
+            my $processes = 0;
+            my $cores     = 0;
+            my $memory    = 0;
+
+            #  For a job using $m GB memory and $t threads, we can compute how many processes will
+            #  fit on each node in our set of available machines.  The smaller of the two is then
+            #  the number of processes we can run on this node.
+
+            for (my $ii=0; $ii<scalar(@gridCor); $ii++) {
+                my $np_cpu = $gridNum[$ii] * int($gridCor[$ii] / $t);  #  Each process uses $t cores, node has $gridCor[$ii] cores available.
+                my $np_mem = $gridNum[$ii] * int($gridMem[$ii] / $m);  #  Same idea.
+
+                my $np = ($np_cpu < $np_mem) ? $np_cpu : $np_mem;
+
+                $processes += $np;
+                $cores     += $np * $t;
+                $memory    += $np * $m;
+            }
+
+            #  Save the best one seen so far.
+
+            if ($bestCores <= $cores) {
+                $bestCores  = $cores;
+                $bestCoresM = $m;
+                $bestCoresT = $t;
+            }
+        }
+    }
+
+    if (!defined($bestCoresM)) {
+        print STDERR "--\n";
+        print STDERR "-- Task $tag$alg can't run on any available machines.\n";
+        print STDERR "-- It is requesting ", getGlobal("${tag}${alg}Memory"), " GB memory and ", getGlobal("${tag}${alg}Threads"), " threads.\n";
+        print STDERR "-- See above for hardware limits.\n";
+        print STDERR "--\n";
+
+        caExit("task $tag$alg failed to find a configuration to run on", undef);
+    }
+
+    $taskMemory  = $bestCoresM;
+    $taskThreads = $bestCoresT;
+
+    #  Check for stupidity.
+
+    $taskThreads = $hostThreads   if ($taskThreads > $hostThreads);
+    $taskMemory  = $hostMemory    if ($taskMemory  > $hostMemory);
+
+    #  Reset the global values for later use.
+
+    setGlobal("${tag}${alg}Memory",  $taskMemory);
+    setGlobal("${tag}${alg}Threads", $taskThreads);
+
+    #  Finally, reset the concurrency (if we're master) so we don't swamp our poor workstation.
+
+    my $concurrent = undef;
+
+    if (($cls eq "master") &&
+        (globalExists("${tag}${alg}Concurrency"))) {
+        my $nc = int($hostThreads / $taskThreads);
+
+        if (($taskThreads * getGlobal("${tag}${alg}Concurrency") > $hostThreads)) {
+            $err .= "-- Reset concurrency from ", getGlobal("${tag}${alg}Concurrency"), " to $nc.\n";
+            setGlobal("${tag}${alg}Concurrency", $nc);
+        }
+
+        if (!defined(getGlobal("${tag}${alg}Concurrency"))) {
+            setGlobal("${tag}${alg}Concurrency", $nc);
+        }
+
+        $concurrent = getGlobal("${tag}${alg}Concurrency");
+    }
+
+    #  And report.
+
+    $all .= "-- Allowed to";
+    $all .= " run " . substr("   $concurrent", -3) . " job" . (($concurrent == 1) ? " " : "s") . " concurrently,"  if (defined($concurrent));
+    $all .= " run    under grid control,"                                                                          if (!defined($concurrent));
+    $all .= " and use up to " . substr("   $taskThreads", -3) . " compute thread" . (($taskThreads == 1) ? " " : "s");
+    $all .= " and " . substr("   $taskMemory", -4) . " GB memory for stage '$nam'.\n";
+
+    return($err, $all);
+}
+
+
+
+
 sub dirname ($) {
     my $d = shift @_;
 
@@ -494,6 +725,17 @@ sub setParametersFromCommandLine(@) {
 
 
 
+sub adjustMemoryValue ($) {
+    my $val = shift @_;
+
+    $val = $1                if ($val =~ m/(\d+.*\d*)g/);
+    $val = $1 / 1024         if ($val =~ m/(\d+.*\d*)m/);
+    $val = $1 / 1024 / 1024  if ($val =~ m/(\d+.*\d*)k/);
+
+    return($val);
+}
+
+
 sub checkParameters ($) {
     my $bin = shift @_;  #  Can't include canu::Execution without a loop.
 
@@ -557,13 +799,7 @@ sub checkParameters ($) {
         next  if ($key =~ m/gridEngineMemoryOption/i);
         next  if ($key !~ m/Memory/i);
 
-        my $val = getGlobal($key);
-
-        $val = $1                if ($val =~ m/(\d+.*\d*)g/);
-        $val = $1 / 1024         if ($val =~ m/(\d+.*\d*)m/);
-        $val = $1 / 1024 / 1024  if ($val =~ m/(\d+.*\d*)k/);
-
-        setGlobal($key, $val);
+        setGlobal($key, adjustMemoryValue(getGlobal($key)));
     }
 
     #
@@ -822,6 +1058,52 @@ sub checkParameters ($) {
                 caFailure("Couldn't parse gridEngineMemoryOption='" . getGlobal("gridEngineMemoryOption") . "'", undef);
             }
         }
+
+        #  Build a list of the resources available in the grid.  This will contain a list with keys
+        #  of "#CPUs-#GBs" and values of the number of nodes With such a config.  Later on, we'll use this
+        #  to figure out what specific settings to use for each algorithm.
+        #
+        #  The list is saved in global{"availableHosts"}
+
+        my %hosts;
+        my $hosts = "";
+
+        open(F, "qhost |");
+        $_ = <F>;  #  Header
+        $_ = <F>;  #  Table bar
+        while (<F>) {
+            my @v = split '\s+', $_;
+
+            next if ($v[3] eq "-");  #  Node disabled or otherwise not available
+
+            my $cpus = $v[2];
+            my $mem  = $v[4];
+
+            $mem  = $1 * 1024  if ($mem =~ m/(\d+.*\d+)[tT]/);
+            $mem  = $1 * 1     if ($mem =~ m/(\d+.*\d+)[gG]/);
+            $mem  = $1 / 1024  if ($mem =~ m/(\d+.*\d+)[mM]/);
+            $mem  = int($mem);
+
+            $hosts{"$cpus-$mem"}++;
+        }
+        close(F);
+
+        print STDERR "--\n";
+
+        foreach my $c (keys %hosts) {
+            my ($cpus, $mem) = split '-', $c;
+            my  $nodes       = $hosts{$c};
+
+            printf(STDERR "-- Found %3d host%s with %3d core%s and %4d GB memory under Sun Grid Engine control.\n",
+                   $nodes, ($nodes == 1) ? " " : "s",
+                   $cpus,  ($cpus  == 1) ? " " : "s",
+                   $mem);
+
+            $hosts .= "\0"                  if (defined($hosts));
+            $hosts .= "$cpus-$mem-$nodes";
+        }
+
+        setGlobal("availableHosts", $hosts);
     }
 
     if (uc(getGlobal("gridEngine")) eq "PBS") {
@@ -876,22 +1158,52 @@ sub checkParameters ($) {
     setGlobalIfUndef("utgRepeatErrorRate",   3.0 * getGlobal("errorRate"));
 
     setGlobalIfUndef("cnsErrorRate",         3.0 * getGlobal("errorRate"));
+
+    #
+    #  Finally, process all the memory/thread settings to make them compatible with our
+    #  hardware.  These wanted to be closer to their use (like right before the various
+    #  scripts are written), but it needs to be done everytime canu starts, otherwise,
+    #  the canu invocation that writes scripts get the fixes, and the canu invocation
+    #  that runs the scripts does not.
+    #
+
+    my $err;
+    my $all;
+
+    ($err, $all) = getAllowedResources("",    "bat",      $err, $all);
+    ($err, $all) = getAllowedResources("cor", "mhap",     $err, $all);
+    ($err, $all) = getAllowedResources("obt", "mhap",     $err, $all);
+    ($err, $all) = getAllowedResources("utg", "mhap",     $err, $all);
+    ($err, $all) = getAllowedResources("",    "red",      $err, $all);
+    ($err, $all) = getAllowedResources("",    "oea",      $err, $all);
+    ($err, $all) = getAllowedResources("",    "cns",      $err, $all);
+    ($err, $all) = getAllowedResources("",    "ovlStore", $err, $all);
+    ($err, $all) = getAllowedResources("",    "ovb",      $err, $all);
+    ($err, $all) = getAllowedResources("",    "ovs",      $err, $all);
+    ($err, $all) = getAllowedResources("cor", "ovl",      $err, $all);
+    ($err, $all) = getAllowedResources("obt", "ovl",      $err, $all);
+    ($err, $all) = getAllowedResources("utg", "ovl",      $err, $all);
+    ($err, $all) = getAllowedResources("",    "meryl",    $err, $all);
+    ($err, $all) = getAllowedResources("",    "cor",      $err, $all);
+
+    print STDERR "--\n" if (defined($err));
+    print STDERR $err   if (defined($err));
+    print STDERR "--\n";
+    print STDERR $all;
 }
 
 
-sub setExecDefaults ($$$$$$) {
+sub setExecDefaults ($$$$) {
     my $tag         = shift @_;
     my $name        = shift @_;
-    my $usegrid     = shift @_;
     my $memory      = shift @_;
     my $threads     = shift @_;
-    my $concurrent  = shift @_;
 
-    $global{"useGrid${tag}"}       = $usegrid;
+    $global{"useGrid${tag}"}       = 1;
     $synops{"useGrid${tag}"}       = "Use grid engine for $name computes";
 
     $global{"gridOptions${tag}"}   = undef;
-    $synops{"gridOptions${tag}"}   = "SGE options applied to $name jobs";
+    $synops{"gridOptions${tag}"}   = "Grid engine options applied to $name jobs";
 
     $global{"${tag}Memory"}        = $memory;
     $synops{"${tag}Memory"}        = "Amount of memory, in gigabytes, to use for $name jobs";
@@ -899,8 +1211,8 @@ sub setExecDefaults ($$$$$$) {
     $global{"${tag}Threads"}       = $threads;
     $synops{"${tag}Threads"}       = "Number of threads to use for $name jobs";
 
-    $global{"${tag}Concurrency"}   = $concurrent;
-    $synops{"${tag}Concurrency"}   = "If not SGE, number of $name jobs to run at the same time; default is n_proc / n_threads";
+    $global{"${tag}Concurrency"}   = undef;
+    $synops{"${tag}Concurrency"}   = "If grid not enabled, number of $name jobs to run at the same time; default is n_proc / n_threads";
 }
 
 
@@ -1098,6 +1410,8 @@ sub setDefaults () {
 
     #####  Grid Engine configuration, internal parameters
 
+    $global{"availableHosts"}                       = undef;  #  Internal list of cpus-memory-nodes describing the grid
+
     $global{"gridEngine"}                           = undef;
     $global{"gridEngineSubmitCommand"}              = undef;
     $global{"gridEngineHoldOption"}                 = undef;
@@ -1136,35 +1450,47 @@ sub setDefaults () {
     #####  Grid Engine configuration, for each step of the pipeline
 
     $global{"gridOptions"}                 = undef;
-    $synops{"gridOptions"}                 = "SGE options applied to all SGE jobs";
+    $synops{"gridOptions"}                 = "Grid engine options applied to all jobs";
+
+    $global{"gridOptionsMaster"}           = undef;
+    $synops{"gridOptionsMaster"}           = "Grid engine options applied to sequential (usually high memory) jobs";
 
     $global{"gridOptionsJobName"}          = undef;
-    $synops{"gridOptionsJobName"}          = "SGE jobs name suffix";
+    $synops{"gridOptionsJobName"}          = "Grid jobs job-name suffix";
 
-    #$global{"gridEngineCPUs"}              = undef;
-    #$synops{"gridEngineCPUs"}              = "Number of CPUs available per grid host";
+    #####  Grid Engine configuration and parameters, for each step of the pipeline (memory, threads)
 
-    #$global{"gridEngineMemory"}            = undef;
-    #$synops{"gridEngineMemory"}            = "Amount of memory, in gigabytes, available per grid host";
+    setExecDefaults("cns",    "unitig consensus",                       "4,6,8,10,12,14,16",  "1");
+    setExecDefaults("cor",    "read correction",                        "4,6,8",              "2,4,6,8");
+    setExecDefaults("red",    "read error detection",                   "4,6,8,10,12,14,16",  "2,4,6,8");
+    setExecDefaults("oea",    "overlap error adjustment",               "4,6,8,10,12,14,16",  "1");
 
-    #####  Grid Engine configuration and parameters, for each step of the pipeline
+    setExecDefaults("corovl",  "overlaps for correction",               "4,6,8,12", "2,4,6");
+    setExecDefaults("obtovl",  "overlaps for trimming",                 "4,6,8,12", "2,4,6");
+    setExecDefaults("utgovl",  "overlaps for unitig construction",      "4,6,8,12", "2,4,6");
 
-    setExecDefaults("cns",    "unitig consensus",                       1,  4, 1, undef);  #  Params are useGrid, memory, threads and concurrency
-    setExecDefaults("cor",    "read correction",                        1,  4, 4, undef);  #    Default concurrency is n_cpu / n_threads
-    setExecDefaults("red",    "read error detection",                   1,  4, 4, undef);  #    Default gridOptions are undef
-    setExecDefaults("oea",    "overlap error adjustment",               1,  4, 1, undef);
+    setExecDefaults("cormhap", "mhap overlaps for correction",          "8,12,14,16,20,24,28,32", "4,8,12,16");
+    setExecDefaults("obtmhap", "mhap overlaps for trimming",            "8,12,14,16,20,24,28,32", "4,8,12,16");
+    setExecDefaults("utgmhap", "mhap overlaps for unitig construction", "8,12,14,16,20,24,28,32", "4,8,12,16");
 
-    setExecDefaults("corovl",  "overlaps for correction",               1,  4, 4, undef);
-    setExecDefaults("obtovl",  "overlaps for trimming",                 1,  4, 4, undef);
-    setExecDefaults("utgovl",  "overlaps for unitig construction",      1,  4, 4, undef);
+    setExecDefaults("ovb",    "overlap store bucketizing",              "2,4",   "1");
+    setExecDefaults("ovs",    "overlap store sorting",                  "4,6,8", "1");
 
-    setExecDefaults("cormhap", "mhap overlaps for correction",          1, 16, 8, undef);
-    setExecDefaults("obtmhap", "mhap overlaps for trimming",            1, 16, 8, undef);
-    setExecDefaults("utgmhap", "mhap overlaps for unitig construction", 1, 16, 8, undef);
+    setExecDefaults("grid",   "parallel jobs",                          undef, undef);  #  gridThreads and gridMemory, other settingss are unused
+    setExecDefaults("master", "master script",                          undef, undef);  #  masterThreads and masterMemory and masterConcurrency
 
-    setExecDefaults("ovb",    "overlap store bucketizing",              1,  2, 1, undef);
-    setExecDefaults("ovs",    "overlap store sorting",                  1,  4, 1, undef);
-    setExecDefaults("master", "master script",                          1, 16, 1, undef);  #  Broken; bogart blows the limits
+    $global{"gridMemory"}         = undef;                     #  Unset.  User can limit if wanted.
+    $global{"gridThreads"}        = undef;
+
+    $global{"masterMemory"}       = getPhysicalMemorySize();   #  Set to this machine.
+    $global{"masterThreads"}      = getNumberOfCPUs();
+    #$global{"masterConcurrency"}  = undef;
+
+    $global{"useGrid"}            = 1;
+    $synops{"useGrid"}            = "Enable use of a grid, if one exists";
+
+    $global{"useGridMaster"}      = 1;
+    $synops{"useGridMaster"}      = "Run the canu pipeline entirely under grid control";
 
     #####  Overlapper
 
@@ -1176,6 +1502,12 @@ sub setDefaults () {
 
     $global{"ovlStoreMemory"}              = 4;
     $synops{"ovlStoreMemory"}              = "How much memory, in gigabytes, to use when constructing overlap stores";
+
+    $global{"ovlStoreThreads"}             = 1;
+    $synops{"ovlStoreThreads"}             = "Unused, only one thread supported";
+
+    $global{"ovlStoreConcurrency"}         = 1;
+    $synops{"ovlStoreConcurrency"}         = "Unused, only one process supported";
 
     $global{"ovlStoreMethod"}              = "sequential";
     $synops{"ovlStoreMethod"}              = "Use the 'sequential' or 'parallel' algorithm for constructing an overlap store";
@@ -1190,6 +1522,9 @@ sub setDefaults () {
 
     $global{"merylThreads"}                = undef;
     $synops{"merylThreads"}                = "Number of threads to use for mer counting";
+
+    $global{"merylConcurrency"}            = "1";
+    $synops{"merylConcurrency"}            = "Unused, there is only one process";
 
     #####  Overlap Based Trimming
 
@@ -1238,6 +1573,9 @@ sub setDefaults () {
 
     $global{"batThreads"}                  = undef;
     $synops{"batThreads"}                  = "Number of threads to use in the Merge/Split/Join phase; default is whatever OpenMP wants";
+
+    $global{"batConcurrency"}              = 1;
+    $synops{"batConcurrency"}              = "Unused, only one process supported";
 
     #####  Unitig Filtering Options
 

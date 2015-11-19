@@ -51,6 +51,8 @@ sub bogart ($$$) {
     my $bin  = getBinDirectory();
     my $cmd;
 
+    #getAllowedResources("", "bat");
+
     $cmd  = "$bin/bogart \\\n";
     $cmd .= " -G $wrk/$asm.gkpStore \\\n";
     $cmd .= " -O $wrk/$asm.ovlStore \\\n";

@@ -1102,8 +1102,6 @@ sub submitOrRunParallelJob ($$$$$@) {
         }
     }
 
-    print STDERR "-- WARNING: '${jobType}' requested $thr threads, but only ", getNumberOfCPUs(), " CPUs available.\n";
-
     my $nParallel  = getGlobal("${jobType}Concurrency");
     $nParallel     = int(getNumberOfCPUs() / $thr)  if ((!defined($nParallel)) || ($nParallel == 0));
     $nParallel     = 1                              if ((!defined($nParallel)) || ($nParallel == 0));
@@ -1115,24 +1113,30 @@ sub submitOrRunParallelJob ($$$$$@) {
 
 
 
+#  Pretty-ify the command.  If there are no newlines already in it, break
+#  before every switch and before file redirects.
 
-#  Utility to run a command and check the exit status, report time used.
-#
-sub runCommand ($$) {
-    my $dir = shift @_;
-    my $cmd = shift @_;
-    my $dis = $cmd;
-
-    return  if ($cmd eq "");
-
-    #  Pretty-ify the command.  If there are no newlines already in it, break
-    #  before every switch and before file redirects.
+sub prettifyCommand ($) {
+    my $dis = shift @_;
 
     if (($dis =~ tr/\n/\n/) == 0) {
         $dis =~ s/\s-/ \\\n  -/g;
         $dis =~ s/\s>\s/ \\\n> /;
         $dis =~ s/\s2>\s/ \\\n2> /;
     }
+
+    return($dis);
+}
+
+
+#  Utility to run a command and check the exit status, report time used.
+#
+sub runCommand ($$) {
+    my $dir = shift @_;
+    my $cmd = shift @_;
+    my $dis = prettifyCommand($cmd);
+
+    return  if ($cmd eq "");
 
     #  Check if the directory exists.
 
@@ -1182,7 +1186,7 @@ sub runCommand ($$) {
         }
     }
 
-    my $error = "ERROR: Failed with ";
+    my $error = "";
 
     if ($rc == 0xff00) {
         $error .= "$!\n";
@@ -1203,7 +1207,8 @@ sub runCommand ($$) {
         }
     }
 
-    print STDERR $error;
+    print STDERR "\n";
+    print STDERR "ERROR: Failed with $error\n";
 
     return(1);
 }
@@ -1213,6 +1218,7 @@ sub runCommand ($$) {
 sub runCommandSilently ($$) {
     my $dir = shift @_;
     my $cmd = shift @_;
+    my $dis = prettifyCommand($cmd);
 
     return  if ($cmd eq "");
 
@@ -1237,7 +1243,7 @@ sub runCommandSilently ($$) {
         }
     }
 
-    my $error = "ERROR: Failed with ";
+    my $error = "";
 
     if ($rc == 0xff00) {
         $error .= "$!\n";
@@ -1258,7 +1264,9 @@ sub runCommandSilently ($$) {
         }
     }
 
-    print STDERR $error;
+    print STDERR "$dis\n";
+    print STDERR "\n";
+    print STDERR "ERROR: Failed with $error\n";
 
     return(1);
 }

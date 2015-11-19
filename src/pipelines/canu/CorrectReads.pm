@@ -155,6 +155,8 @@ sub buildCorrectionLayouts_direct ($$) {
     my $taskID            = getGlobal("gridEngineTaskID");
     my $submitTaskID      = getGlobal("gridEngineArraySubmitID");
 
+    #getAllowedResources("", "cor");
+
     open(F, "> $path/correctReads.sh") or caExit("can't open '$path/correctReads.sh'", undef);
 
     print F "#!" . getGlobal("shell") . "\n";
@@ -253,6 +255,8 @@ sub buildCorrectionLayouts_piped ($$) {
 
     my $taskID             = getGlobal("gridEngineTaskID");
     my $submitTaskID       = getGlobal("gridEngineArraySubmitID");
+
+    #getAllowedResources("", "cor");
 
     open(F, "> $path/correctReads.sh") or caExit("can't open '$path/correctReads.sh'", undef);
 

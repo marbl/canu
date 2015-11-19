@@ -66,9 +66,9 @@ sub overlapConfigure ($$$$) {
     goto allDone   if (-e "$path/ovlopt");
 
     print STDERR "--\n";
-    print STDERR "-- OVERLAPPER (normal) (correction)\n"  if ($tag eq "cor");
-    print STDERR "-- OVERLAPPER (normal) (trimming)\n"    if ($tag eq "obt");
-    print STDERR "-- OVERLAPPER (normal) (assembly)\n"    if ($tag eq "utg");
+    print STDERR "-- OVERLAPPER (normal) (correction) erate=", getGlobal("${tag}OvlErrorRate"), "\n"  if ($tag eq "cor");
+    print STDERR "-- OVERLAPPER (normal) (trimming) erate=", getGlobal("${tag}OvlErrorRate"), "\n"    if ($tag eq "obt");
+    print STDERR "-- OVERLAPPER (normal) (assembly) erate=", getGlobal("${tag}OvlErrorRate"), "\n"    if ($tag eq "utg");
     print STDERR "--\n";
 
     make_path("$path") if (! -d "$path");
@@ -123,6 +123,8 @@ sub overlapConfigure ($$$$) {
     close(JOB);
     close(OPT);
 
+    #getAllowedResources($tag, "ovl");
+
     if (! -e "$path/overlap.sh") {
         my $merSize      = getGlobal("${tag}OvlMerSize");
 
@@ -135,8 +137,8 @@ sub overlapConfigure ($$$$) {
         my $hashBits       = getGlobal("${tag}OvlHashBits");
         my $hashLoad       = getGlobal("${tag}OvlHashLoad");
 
-        my $taskID            = getGlobal("gridEngineTaskID");
-        my $submitTaskID      = getGlobal("gridEngineArraySubmitID");
+        my $taskID         = getGlobal("gridEngineTaskID");
+        my $submitTaskID   = getGlobal("gridEngineArraySubmitID");
 
         open(F, "> $path/overlap.sh") or caExit("can't open '$path/overlap.sh' for writing: $!", undef);
         print F "#!" . getGlobal("shell") . "\n";

@@ -124,6 +124,8 @@ sub readErrorDetectionConfigure ($$) {
     my @end;
     my $nj = 0;
 
+    #getAllowedResources("", "red");
+
     my $maxID    = getNumberOfReadsInStore($wrk, $asm);
     my $maxMem   = getGlobal("redMemory") * 1024 * 1024 * 1024;
     my $maxReads = getGlobal("redBatchSize");
@@ -367,6 +369,8 @@ sub overlapErrorAdjustmentConfigure ($$) {
     my @bgn;
     my @end;
     my $nj = 0;
+
+    #getAllowedResources("", "oea");
 
     my $maxID    = getNumberOfReadsInStore($wrk, $asm);
     my $maxMem   = getGlobal("oeaMemory") * 1024 * 1024 * 1024;

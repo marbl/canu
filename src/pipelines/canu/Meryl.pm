@@ -226,6 +226,8 @@ sub meryl ($$$) {
 
     #  Build the database.
 
+    #getAllowedResources("", "meryl");
+
     if (! -e "$ofile.mcdat") {
         my $mem = getGlobal("merylMemory");
         my $thr = getGlobal("merylThreads");

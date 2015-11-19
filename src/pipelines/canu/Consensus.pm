@@ -71,6 +71,8 @@ sub utgcns ($$$) {
     my $taskID            = getGlobal("gridEngineTaskID");
     my $submitTaskID      = getGlobal("gridEngineArraySubmitID");
 
+    #getAllowedResources("", "cns");
+
     open(F, "> $wrk/5-consensus/consensus.sh") or caExit("can't open '$wrk/5-consensus/consensus.sh' for writing: $!", undef);
 
     print F "#!" . getGlobal("shell") . "\n";

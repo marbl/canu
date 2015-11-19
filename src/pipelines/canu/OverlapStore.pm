@@ -73,6 +73,8 @@ sub createOverlapStoreSequential ($$$$) {
     $wrk = "$wrk/trimming"    if ($tag eq "obt");
     $wrk = "$wrk/unitigging"  if ($tag eq "utg");
 
+    #getAllowedResources("", "ovlStore");
+
     $cmd  = "$bin/ovStoreBuild \\\n";
     $cmd .= " -O $wrk/$asm.ovlStore.BUILDING \\\n";
     $cmd .= " -G $wrk/$asm.gkpStore \\\n";
@@ -140,6 +142,8 @@ sub overlapStoreConfigure ($$$$) {
 
     #  Parallel jobs for bucketizing.  This should really be part of overlap computation itself.
 
+    #getAllowedResources("", "ovb");
+
     if (! -e "$wrk/$asm.ovlStore.BUILDING/scripts/1-bucketize.sh") {
         open(F, "> $wrk/$asm.ovlStore.BUILDING/scripts/1-bucketize.sh") or die;
         print F "#!/bin/sh\n";
@@ -199,6 +203,8 @@ sub overlapStoreConfigure ($$$$) {
     }
 
     #  Parallel jobs for sorting each bucket
+
+    #getAllowedResources("", "ovs");
 
     if (! -e "$wrk/$asm.ovlStore.BUILDING/scripts/2-sort.sh") {
         open(F, "> $wrk/$asm.ovlStore.BUILDING/scripts/2-sort.sh") or die;

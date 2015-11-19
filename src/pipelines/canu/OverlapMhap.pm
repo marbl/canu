@@ -126,6 +126,9 @@ sub mhapConfigure ($$$$) {
     my $qryStride = ($numBlocks < 16) ? (2) : int($numBlocks / 4);
 
     print STDERR "-- For $numBlocks blocks, set stride to $qryStride blocks.\n";
+    print STDERR "-- Logging partitioning to '$path/partitioning.log'.\n";
+
+    open(L, "> $path/partitioning.log") or caExit("can't open '$path/partitioning.log' for writing: $!\n", undef);
 
     #  Make queries.  Each hask block needs to search against all blocks less than or equal to it.
     #  Each job will search at most $qryStride blocks at once.  So, queries could be:
@@ -183,7 +186,7 @@ sub mhapConfigure ($$$$) {
             make_path("$path/queries/$job");
 
             if ($qbgn < $numBlocks) {
-                print STDERR "-- Job ", scalar(@hashes), " computes block $bid vs blocks $qbgn-$qend$andSelf,\n";
+                print L "Job ", scalar(@hashes), " computes block $bid vs blocks $qbgn-$qend$andSelf,\n";
 
                 for (my $qid=$qbgn; $qid <= $qend; $qid++) {
                     my $qry = substr("000000" . $qid, -6);             #  Name for the query block
@@ -192,7 +195,7 @@ sub mhapConfigure ($$$$) {
                 }
 
             } else {
-                print STDERR "-- Job ", scalar(@hashes), " computes block $bid vs itself.\n";
+                print L "-- Job ", scalar(@hashes), " computes block $bid vs itself.\n";
                 $qbgn = $bid;  #  Otherwise, the @convert -q value is bogus
             }
 
@@ -208,13 +211,10 @@ sub mhapConfigure ($$$$) {
             } else {
                 push @convert, "-h $blockBgn[$bid] 0 -q $blockBgn[$bid]";
             }
-
-
-            #print STDERR " --   $hashes[scalar(@hashes)-1] $convert[scalar(@convert)-1]\n";
-            #print STDERR "\n";
         }
     }
 
+    close(L);
 
     #  The ignore file is created in Meryl.pm
 
@@ -259,6 +259,8 @@ sub mhapConfigure ($$$$) {
     my $filterThreshold = (getGlobal("${tag}MhapSensitivity") eq "normal") ?   "0.000005" :   "0.000005";  #  Also set in Meryl.pm
 
     #  Create a script to generate precomputed blocks, including extracting the reads from gkpStore.
+
+    #getAllowedResources($tag, "mhap");
 
     my $javaPath = getGlobal("java");
 
@@ -459,7 +461,6 @@ sub mhapConfigure ($$$$) {
         }
         close(F);
 
-        print STDERR "--\n";
         print STDERR "-- Configured $numJobs mhap precompute jobs.\n";
     }
 
@@ -471,7 +472,6 @@ sub mhapConfigure ($$$$) {
         }
         close(F);
 
-        print STDERR "--\n";
         print STDERR "-- Configured $numJobs mhap overlap jobs.\n";
     }
 
