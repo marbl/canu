@@ -4,44 +4,83 @@ use strict;
 
 my @dateStrings = ( "???", "JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC" );
 
-
-
+#
+#  Lots of dead code (like those lists of names) from the first copyright add run.
+#
+#  This script should Just Run, if the last run was finished properly.  In particular, 'r6844' must be updated.
+#
+#  After a successful run, before committing:
+#
+#    update the log loop stopping condition to the revision you'll be committing.  Search for 'r6844'.
+#    rename 'addCopyrights.dat.new' to 'addCopyrights.dat'.
+#    CHECK YOUR WORK!  Diff a bunch of the changes.  Check new files.  Build it.  Does canu still run?
+#    TEST COMMIT - commit this script, check that the commit shows up correctly.
+#
+#  Notes:
+#
+#    Most of the SVN log processing is useless now.  Github doesn't seem to report renames.
+#
 
 sub getName ($) {
     my $a = $_[0];
     my $A;
 
     if      ($a eq "adelcher")        {  $A = "Art Delcher";
+    } elsif ($a eq "art.delcher")     {  $A = "Art Delcher";
     } elsif ($a eq "ahalpern")        {  $A = "Aaron Halpern";
+    } elsif ($a eq "aaron.halpern")   {  $A = "Aaron Halpern";
     } elsif ($a eq "andreyto")        {
+    } elsif ($a eq "andrey.tovchigrechko") {
     } elsif ($a eq "florea")          {  $A = "Liliana Florea";
+    } elsif ($a eq "liliana.florea")  {  $A = "Liliana Florea";
     } elsif ($a eq "cmobarry")        {  $A = "Clark Mobarry";
+    } elsif ($a eq "clark.mobarry")   {  $A = "Clark Mobarry";
     } elsif ($a eq "walenz")          {  $A = "Brian P. Walenz";
     } elsif ($a eq "bri")             {  $A = "Brian P. Walenz";
     } elsif ($a eq "brianwalenz")     {  $A = "Brian P. Walenz";
+    } elsif ($a eq "brian p. walenz") {  $A = "Brian P. Walenz";
+    } elsif ($a eq "brian.p..walenz") {  $A = "Brian P. Walenz";
     } elsif ($a eq "catmandew")       {  $A = "Ian Dew";
+    } elsif ($a eq "ian.dew")         {  $A = "Ian Dew";
     } elsif ($a eq "eliv")            {  $A = "Eli Venter";
+    } elsif ($a eq "eli.venter")      {  $A = "Eli Venter";
     } elsif ($a eq "gdenisov")        {  $A = "Gennady Denisov";
+    } elsif ($a eq "gennady.denisov") {  $A = "Gennady Denisov";
     } elsif ($a eq "gesims")          {  $A = "Gregory Sims";
+    } elsif ($a eq "greg.sims")       {  $A = "Gregory Sims";
     } elsif ($a eq "granger_sutton")  {  $A = "Granger Sutton";
+    } elsif ($a eq "granger.sutton")  {  $A = "Granger Sutton";
     } elsif ($a eq "jason_miller")    {  $A = "Jason Miller";
     } elsif ($a eq "jasonmiller9704") {  $A = "Jason Miller";
+    } elsif ($a eq "jason.miller")    {  $A = "Jason Miller";
     } elsif ($a eq "kli1000")         {  $A = "Kelvin Li";
+    } elsif ($a eq "kelvin.li")       {  $A = "Kelvin Li";
     } elsif ($a eq "mcschatz")        {  $A = "Michael Schatz";
+    } elsif ($a eq "michael.schatz")  {  $A = "Michael Schatz";
     } elsif ($a eq "mhayton")         {
+    } elsif ($a eq "matt.hayton")     {
     } elsif ($a eq "mkotelbajcvi")    {
+    } elsif ($a eq "m.kolteba")       {
     } elsif ($a eq "moweis")          {
+    } elsif ($a eq "m.oweis")         {
     } elsif ($a eq "edwardnj")        {  #  kmer build system
+    } elsif ($a eq "nathan.edwards")  {  #  kmer build system
     } elsif ($a eq "root")            {  #  Really?  possibly me on os-x
     } elsif ($a eq "halldobv")        {
+    } elsif ($a eq "bjarni.halldorson") {
     } elsif ($a eq "fasulodp")        {  #  kmer build system
+    } elsif ($a eq "dan.fasulo")      {  #  kmer build system
     } elsif ($a eq "rbolanos")        {  #  kmer build system
+    } elsif ($a eq "randall.bolanos") {  #  kmer build system
     } elsif ($a eq "ripper")          {  #  kmer build system
+    } elsif ($a eq "ross.lippert")    {  #  kmer build system
     } elsif ($a eq "skoren")          {  $A = "Sergey Koren";
+    } elsif ($a eq "sergey.koren")    {  $A = "Sergey Koren";
     } elsif ($a eq "vrainish")        {
+    } elsif ($a eq "v.rainish")       {
     } elsif ($a eq "walenzb")         {  $A = "Brian P. Walenz";
     } else {
-        die "Unknown a '$a'";
+        print STDERR "Unknown a '$a'";
     }
 
     return($A);
@@ -57,49 +96,88 @@ sub getCopyright ($$$$) {
     my $C;
 
     if      (($a eq "catmandew") && ($y eq "2004")) {         #  This is the initial commit.
+    } elsif (($a eq "ian.dew")   && ($y eq "2004")) {         #  This is the initial commit.
 
     } elsif  ($a eq "adelcher")        {  $C = "jcvi$y$m$d";
+    } elsif  ($a eq "art.delcher")     {  $C = "jcvi$y$m$d";
     } elsif  ($a eq "ahalpern")        {  $C = "jcvi$y$m$d";
+    } elsif  ($a eq "aaron.halpern")   {  $C = "jcvi$y$m$d";
     } elsif  ($a eq "florea")          {  $C = "none$y$m$d";  #  Earliest 2010-07-08, Latest 2011-11-16
+    } elsif  ($a eq "liliana.florea")  {  $C = "none$y$m$d";  #  Earliest 2010-07-08, Latest 2011-11-16
     } elsif  ($a eq "cmobarry")        {  $C = "craa$y$m$d";
+    } elsif  ($a eq "clark.mobarry")   {  $C = "craa$y$m$d";
     } elsif  ($a eq "catmandew")       {  $C = "jcvi$y$m$d";
+    } elsif  ($a eq "ian.dew")         {  $C = "jcvi$y$m$d";
     } elsif  ($a eq "eliv")            {  $C = "jcvi$y$m$d";
+    } elsif  ($a eq "eli.venter")      {  $C = "jcvi$y$m$d";
     } elsif  ($a eq "gdenisov")        {  $C = "jcvi$y$m$d";
+    } elsif  ($a eq "gennady.denisov") {  $C = "jcvi$y$m$d";
     } elsif  ($a eq "gesims")          {  $C = "jcvi$y$m$d";
+    } elsif  ($a eq "greg.sims")       {  $C = "jcvi$y$m$d";
     } elsif  ($a eq "granger_sutton")  {  $C = "jcvi$y$m$d";
+    } elsif  ($a eq "granger.sutton")  {  $C = "jcvi$y$m$d";
     } elsif  ($a eq "jason_miller")    {  $C = "tigr$y$m$d";
     } elsif  ($a eq "jasonmiller9704") {  $C = "jcvi$y$m$d";
+
+    } elsif  ($a eq "jason.miller")    {
+        if ($y < 2006) {
+            $C = "tigr$y$m$d";
+        } else {
+            $C = "jcvi$y$m$d";
+        }
+
+
     } elsif  ($a eq "kli1000")         {  $C = "jcvi$y$m$d";
+    } elsif  ($a eq "kelvin.li")       {  $C = "jcvi$y$m$d";
     } elsif  ($a eq "mcschatz")        {  $C = "tigr$y$m$d";
+    } elsif  ($a eq "michael.schatz")  {  $C = "tigr$y$m$d";
 
-    } elsif (($a eq "skoren") && ($y <  "2011")) {  $C = "jcvi$y$m$d";
-    } elsif (($a eq "skoren") && ($y >= "2011")) {  $C = "bnbi$y$m$d";
+    } elsif ($a eq "sergey.koren") {
+        if ($y <  "2011") {
+            $C = "jcvi$y$m$d";
+        } elsif (($y < "2015") || (($y eq "2015") && ($m < 10))) {
+            $C = "bnbi$y$m$d";
+        } else {
+            $C = "nihh$y$m$d";
+        }
 
-    } elsif (($a eq "brianwalenz") || ($a eq "walenz") || ($a eq "bri") || ($a eq "walenzb")) {
+    } elsif (($a eq "brianwalenz") || ($a eq "walenz") || ($a eq "bri") || ($a eq "walenzb") || ($a eq "brian.p..walenz")) {
         if      (($y < 2004) || (($y == 2004) && ($m < 10) && ($d < 9))) {
             $C = "craa$y$m$d";
         } elsif ($y < 2005) {
             $C = "none$y$m$d";  #  Not employed, copyright me
         } elsif (($y < 2014) || (($y == 2014) && ($m < 7))) {
             $C = "jcvi$y$m$d";
-        } else {
+        } elsif (($y < 2015) || (($y < 2016) && ($m < 10))) {
             $C = "bnbi$y$m$d";
+        } else {
+            $C = "nihh$y$m$d";
         }
 
     } elsif ($a eq "mkotelbajcvi") {
+    } elsif ($a eq "m.kolteba") {
     } elsif ($a eq "moweis") {
+    } elsif ($a eq "m.oweis") {
     } elsif ($a eq "andreyto") {
+    } elsif ($a eq "andrey.tovchigrechko") {
     } elsif ($a eq "vrainish") {
+    } elsif ($a eq "v.rainish") {
     } elsif ($a eq "mhayton") {
+    } elsif ($a eq "matt.hayton") {
     } elsif ($a eq "edwardnj") {
+    } elsif ($a eq "nathan.edwards") {
     } elsif ($a eq "root") {
     } elsif ($a eq "halldobv") {
+    } elsif ($a eq "bjarni.halldorson") {
     } elsif ($a eq "fasulodp") {
+    } elsif ($a eq "dan.fasulo") {
     } elsif ($a eq "rbolanos") {
+    } elsif ($a eq "randall.bolanos") {
     } elsif ($a eq "ripper") {
+    } elsif ($a eq "ross.lippert") {
 
     } else {
-        die "unknown name $a\n";
+        print STDERR "unknown name $a\n";
     }
 
     return($C);
@@ -203,7 +281,7 @@ sub splitAC ($@) {
             $dates = "on $bgn";
         }
 
-        if ($org eq "bnbi") {
+        if ($org eq "nihh") {
             $dates = "beginning on $bgn";
         }
 
@@ -281,10 +359,11 @@ if (! -e "logs") {
 
     open(L, "> logs");
 
-    for (my $x=$rev; $x > 0; $x--) {
-        print STDERR "$x\r";
+    #  The first copyright addition is at r6844
+    #  The second copyright addition is at r7001
 
-        next if ($x == 7097);  #  Skip the big commit that added copyrights.
+    for (my $x=$rev; $x >= 6844; $x--) {
+        print STDERR "$x\r";
 
         open(I, "svn log -v -r $x |");
         while (<I>) {
@@ -296,8 +375,8 @@ if (! -e "logs") {
     close(L);
 }
 
-#  Build a mapping from original file name -> new file name.  Because I didn't use svn copy to
-#  branch files, and because some files exploded into smaller pieces.
+
+
 
 my %authcopy;
 my %derived;
@@ -316,116 +395,8 @@ my %derived;
 
     my %filemap;
 
-    #  Deleted a directory, didn't get tracked using the 'from' notation.  Evil.
-    $filemap{"src/AS_OVM/overlapInCore-Build_Hash_Index.C"} = "src/overlapInCore/overlapInCore-Build_Hash_Index.C";
-    $filemap{"src/AS_OVM/overlapInCore-Extend_Alignment.C"} = "src/overlapInCore/overlapInCore-Extend_Alignment.C";
-    $filemap{"src/AS_OVM/overlapInCore-Find_Overlaps.C"} = "src/overlapInCore/overlapInCore-Find_Overlaps.C";
-    $filemap{"src/AS_OVM/overlapInCore-Output.C"} = "src/overlapInCore/overlapInCore-Output.C";
-    $filemap{"src/AS_OVM/overlapInCore-Process_Overlaps.C"} = "src/overlapInCore/overlapInCore-Process_Overlaps.C";
-    $filemap{"src/AS_OVM/overlapInCore-Process_String_Overlaps.C"} = "src/overlapInCore/overlapInCore-Process_String_Overlaps.C";
-    $filemap{"src/AS_OVM/overlapInCore-Read_Next_Frag.C"} = "src/overlapInCore/overlapInCore-Read_Next_Frag.C";
-    $filemap{"src/AS_OVM/overlapInCore.C"} = "src/overlapInCore/overlapInCore.C";
-    $filemap{"src/AS_OVM/overlapInCore.H"} = "src/overlapInCore/overlapInCore.H";
-    $filemap{"src/AS_OVM/overlapInCore.mk"} = "src/overlapInCore/overlapInCore.mk";
 
-    #  Deleted a directory, didn't get tracked using the 'from' notation.  Evil.
-    $filemap{"src/AS_ALN/AS_ALN_aligners.H"}      = "src/aligners/AS_ALN_aligners.H";
-    $filemap{"src/AS_ALN/AS_ALN_bruteforcedp.C"}  = "src/aligners/AS_ALN_bruteforcedp.C";
-    $filemap{"src/AS_ALN/AS_ALN_bruteforcedp.H"}  = "src/aligners/AS_ALN_bruteforcedp.H";
-    $filemap{"src/AS_ALN/AS_ALN_dpaligner.C"}     = "src/aligners/AS_ALN_dpaligner.C";
-    $filemap{"src/AS_ALN/AS_ALN_forcns.C"}        = "src/aligners/AS_ALN_forcns.C";
-    $filemap{"src/AS_ALN/AS_ALN_loverlapper.C"}   = "src/aligners/AS_ALN_loverlapper.C";
-    $filemap{"src/AS_ALN/AS_ALN_pieceOlap.C"}     = "src/aligners/AS_ALN_pieceOlap.C";
-    $filemap{"src/AS_ALN/AS_ALN_qvaligner.C"}     = "src/aligners/AS_ALN_qvaligner.C";
-    $filemap{"src/AS_ALN/CA_ALN_local.C"}         = "src/aligners/CA_ALN_local.C";
-    $filemap{"src/AS_ALN/CA_ALN_local.H"}         = "src/aligners/CA_ALN_local.H";
-    $filemap{"src/AS_ALN/CA_ALN_overlap.C"}       = "src/aligners/CA_ALN_overlap.C";
-    $filemap{"src/AS_ALN/aligners.H"}             = "src/aligners/aligners.H";
-
-    #  Deleted a directory, didn't get tracked using the 'from' notation.  Evil.
-    $filemap{"src/pipelines/ca3g/Consensus.pm"}              = "src/pipelines/canu/Consensus.pm";
-    $filemap{"src/pipelines/ca3g/CorrectReads.pm"}           = "src/pipelines/canu/CorrectReads.pm";
-    $filemap{"src/pipelines/ca3g/Defaults.pm"}               = "src/pipelines/canu/Defaults.pm";
-    $filemap{"src/pipelines/ca3g/Execution.pm"}              = "src/pipelines/canu/Execution.pm";
-    $filemap{"src/pipelines/ca3g/Gatekeeper.pm"}             = "src/pipelines/canu/Gatekeeper.pm";
-    $filemap{"src/pipelines/ca3g/Meryl.pm"}                  = "src/pipelines/canu/Meryl.pm";
-    $filemap{"src/pipelines/ca3g/Output.pm"}                 = "src/pipelines/canu/Output.pm";
-    $filemap{"src/pipelines/ca3g/OverlapBasedTrimming.pm"}   = "src/pipelines/canu/OverlapBasedTrimming.pm";
-    $filemap{"src/pipelines/ca3g/OverlapErrorAdjustment.pm"} = "src/pipelines/canu/OverlapErrorAdjustment.pm";
-    $filemap{"src/pipelines/ca3g/OverlapInCore.pm"}          = "src/pipelines/canu/OverlapInCore.pm";
-    $filemap{"src/pipelines/ca3g/OverlapMhap.pm"}            = "src/pipelines/canu/OverlapMhap.pm";
-    $filemap{"src/pipelines/ca3g/OverlapStore.pm"}           = "src/pipelines/canu/OverlapStore.pm";
-    $filemap{"src/pipelines/ca3g/Unitig.pm"}                 = "src/pipelines/canu/Unitig.pm";
-
-    #  Just a tiny bit of the executive survived, but it's basically in every file.
-    #  Execution.pm has a significant chunk from ESTmapper/scheduler.pm (and then in runCA.pl)
-    $filemap{"src/AS_RUN/runCA.pl"}          = "src/pipelines/canu/Execution.pl";
-    $filemap{"kmer/ESTmapper/scheduler.pm"} .= "\0src/pipelines/canu/Execution.pm";
-    $filemap{"kmer/scripts/libBri.pm"}      .= "\0src/pipelines/canu/Execution.pm";
-
-    #  Branch ovl into ovm, on 2011-07-29
-    $filemap{"src/AS_OVL/AS_OVL_overlap_common.h"}  = "src/AS_OVM/overlapInCore-Build_Hash_Index.C";
-    $filemap{"src/AS_OVL/AS_OVL_overlap_common.h"} .= "\0src/AS_OVM/overlapInCore-Extend_Alignment.C";
-    $filemap{"src/AS_OVL/AS_OVL_overlap_common.h"} .= "\0src/AS_OVM/overlapInCore-Find_Overlaps.C";
-    $filemap{"src/AS_OVL/AS_OVL_overlap_common.h"} .= "\0src/AS_OVM/overlapInCore-Output.C";
-    $filemap{"src/AS_OVL/AS_OVL_overlap_common.h"} .= "\0src/AS_OVM/overlapInCore-Process_Overlaps.C";
-    $filemap{"src/AS_OVL/AS_OVL_overlap_common.h"} .= "\0src/AS_OVM/overlapInCore-Process_String_Overlaps.C";
-    $filemap{"src/AS_OVL/AS_OVL_overlap_common.h"} .= "\0src/AS_OVM/overlapInCore-Read_Next_Frag.C";
-    $filemap{"src/AS_OVL/AS_OVL_driver_common.h"}   = "src/AS_OVM/overlapInCore.C";
-    $filemap{"src/AS_OVL/AS_OVL_overlap.h"}         = "src/AS_OVM/overlapInCore.H";
-
-    $filemap{"src/AS_CNS/MultiAlignment_CNS.h"}     = "src/AS_CNS/MultiAlignment_CNS.h"; 
-    $filemap{"src/AS_CNS/MultiAlignment_CNS.h"}    .= "\0src/AS_CNS/MultiAlignment_CNS_private.h"; 
-
-    $filemap{"kmer/leaff/leaff.C"}  = "kmer/leaff/leaff.C";
-    $filemap{"kmer/leaff/leaff.C"} .= "kmer/leaff/blocks.C";
-    $filemap{"kmer/leaff/leaff.C"} .= "kmer/leaff/dups.C";
-    $filemap{"kmer/leaff/leaff.C"} .= "kmer/leaff/gc.C";
-    $filemap{"kmer/leaff/leaff.C"} .= "kmer/leaff/partition.C";
-    $filemap{"kmer/leaff/leaff.C"} .= "kmer/leaff/stats.C";
-
-    $filemap{"src/AS_CNS/MultiAlignment_CNS.c"}  = "src/AS_CNS/MultiAlignment_CNS.c";
-    $filemap{"src/AS_CNS/MultiAlignment_CNS.c"} .= "\0src/AS_CNS/AbacusRefine.c";
-    $filemap{"src/AS_CNS/MultiAlignment_CNS.c"} .= "\0src/AS_CNS/ApplyAlignment.c";
-    $filemap{"src/AS_CNS/MultiAlignment_CNS.c"} .= "\0src/AS_CNS/BaseCall.c";
-    $filemap{"src/AS_CNS/MultiAlignment_CNS.c"} .= "\0src/AS_CNS/GetAlignmentTrace.c";
-    $filemap{"src/AS_CNS/MultiAlignment_CNS.c"} .= "\0src/AS_CNS/MergeMultiAligns.c";
-    $filemap{"src/AS_CNS/MultiAlignment_CNS.c"} .= "\0src/AS_CNS/MergeRefine.c";
-    $filemap{"src/AS_CNS/MultiAlignment_CNS.c"} .= "\0src/AS_CNS/MultiAlignContig.c";
-    $filemap{"src/AS_CNS/MultiAlignment_CNS.c"} .= "\0src/AS_CNS/MultiAlignUnitig.c";
-    $filemap{"src/AS_CNS/MultiAlignment_CNS.c"} .= "\0src/AS_CNS/PrintAlignment.c";
-    $filemap{"src/AS_CNS/MultiAlignment_CNS.c"} .= "\0src/AS_CNS/RefreshMANode.c";
-    $filemap{"src/AS_CNS/MultiAlignment_CNS.c"} .= "\0src/AS_CNS/ReplaceEndUnitigInContig.c";
-
-    $filemap{"/src/AS_PER/AS_PER_gkpStore.c"}   = "/src/AS_PER/AS_PER_gkLibrary.C";
-    $filemap{"/src/AS_PER/AS_PER_gkpStore.c"}   .=    "\0src/AS_PER/AS_PER_gkStore.C";
-    $filemap{"/src/AS_PER/AS_PER_gkpStore.c"}   .=    "\0src/AS_PER/AS_PER_gkStore_UID.C";
-    $filemap{"/src/AS_PER/AS_PER_gkpStore.c"}   .=    "\0src/AS_PER/AS_PER_gkStore_clearRange.C";
-    $filemap{"/src/AS_PER/AS_PER_gkpStore.c"}   .=    "\0src/AS_PER/AS_PER_gkStream.C";
-    $filemap{"/src/AS_PER/AS_PER_gkpStore.c"}   .=    "\0src/AS_PER/gkClearRange.H";
-    $filemap{"/src/AS_PER/AS_PER_gkpStore.c"}   .=    "\0src/AS_PER/gkFragment.H";
-    $filemap{"/src/AS_PER/AS_PER_gkpStore.c"}   .=    "\0src/AS_PER/gkLibrary.H";
-    $filemap{"/src/AS_PER/AS_PER_gkpStore.c"}   .=    "\0src/AS_PER/gkStore.H";
-    $filemap{"/src/AS_PER/AS_PER_gkpStore.c"}   .=    "\0src/AS_PER/gkStream.H";
-
-    $filemap{"src/utgcns/libcns/MultiAlignment_CNS.C"}  = "src/utgcns/libcns/abAbacus-populateTig.C";
-    $filemap{"src/utgcns/libcns/MultiAlignment_CNS.C"} .= "\0src/utgcns/libcns/abAbacus.C";
-    $filemap{"src/utgcns/libcns/MultiAlignment_CNS.C"} .= "\0src/utgcns/libcns/abColumn.C";
-    $filemap{"src/utgcns/libcns/MultiAlignment_CNS.C"} .= "\0src/utgcns/libcns/abMultiAlign.C";
-    $filemap{"src/utgcns/libcns/MultiAlignment_CNS.C"} .= "\0src/utgcns/libcns/abacus-addRead.C";
-
-    $filemap{"src/utgcns/libcns/MultiAlignment_CNS_private.H"}  = "src/utgcns/libcns/abAbacus.H";
-    $filemap{"src/utgcns/libcns/MultiAlignment_CNS_private.H"} .= "\0src/utgcns/libcns/abBase.H";
-    $filemap{"src/utgcns/libcns/MultiAlignment_CNS_private.H"} .= "\0src/utgcns/libcns/abBaseCount.H";
-    $filemap{"src/utgcns/libcns/MultiAlignment_CNS_private.H"} .= "\0src/utgcns/libcns/abBead.H";
-    $filemap{"src/utgcns/libcns/MultiAlignment_CNS_private.H"} .= "\0src/utgcns/libcns/abColumn.H";
-    $filemap{"src/utgcns/libcns/MultiAlignment_CNS_private.H"} .= "\0src/utgcns/libcns/abIDs.H";
-    $filemap{"src/utgcns/libcns/MultiAlignment_CNS_private.H"} .= "\0src/utgcns/libcns/abIterators.H";
-    $filemap{"src/utgcns/libcns/MultiAlignment_CNS_private.H"} .= "\0src/utgcns/libcns/abMultiAlign.H";
-    $filemap{"src/utgcns/libcns/MultiAlignment_CNS_private.H"} .= "\0src/utgcns/libcns/abSequence.H";
-    $filemap{"src/utgcns/libcns/MultiAlignment_CNS_private.H"} .= "\0src/utgcns/libcns/abVariants.H";
-    $filemap{"src/utgcns/libcns/MultiAlignment_CNS_private.H"} .= "\0src/utgcns/libcns/multiAlignUnitig.H";
-    $filemap{"src/utgcns/libcns/MultiAlignment_CNS_private.H"} .= "\0src/utgcns/libcns/unitigConsensus.H";
+    #  Read the logs, create data
 
     my $skip;
 
@@ -521,7 +492,27 @@ my %derived;
         }
     }
     close(F);
+
+    #  Load the previous data
+
+    open(F, "< addCopyrights.dat");
+    while (<F>) {
+        chomp;
+
+        if (m/^A\s+(\S+)\s+(.*)$/) {
+            $authcopy{$1} .= "$2\n";
+
+        } elsif (m/^D\s+(\S+)\s+(\S+)$/) {
+            $derived{$1} .= "$2\n";
+
+        } else {
+            die "invalid addCopyrights.dat line '$_'\n";
+        }
+    }
+    close(F);
 }
+
+
 
 
 
@@ -530,7 +521,7 @@ my %derived;
 #  Process each file.
 
 open(FIN, "find kmer src -type f -print |") or die "Failed to launch 'find'\n";
-open(OUT, "> addCopyrights.dat") or die "Failed to open 'addCopyrights.dat' for writing: $!\n";
+open(OUT, "> addCopyrights.dat.new") or die "Failed to open 'addCopyrights.dat.new' for writing: $!\n";
 
 while (<FIN>) {
     chomp;
@@ -546,6 +537,7 @@ while (<FIN>) {
     next if ($file =~ m/Makefile/);
 
     next if ($file =~ m/\.sh$/);
+    next if ($file =~ m/\.py$/);
 
     next if ($file =~ m/\.jar$/);
     next if ($file =~ m/\.tar$/);
@@ -563,6 +555,10 @@ while (<FIN>) {
 
     next if ($file =~ m/md5/);
     next if ($file =~ m/mt19937ar/);
+
+    next if ($file =~ m/\.jpg$/);
+    next if ($file =~ m/README/);
+    next if ($file =~ m/\.dat$/);
 
 
     my $cb = "/";
@@ -655,7 +651,7 @@ while (<FIN>) {
     }
 
     if ($file =~ m/\.pl$/) {
-        push @lines, "#!perl\n";
+        push @lines, "#!/usr/bin/env perl\n";
     }
     
 
@@ -688,7 +684,7 @@ while (<FIN>) {
 
     open(F, "< $file") or die "Failed to open '$file' for reading: $!\n";
     while (<F>) {
-        s/\s+$//;
+        s/\s+$//;  #  Remove trailing spaces because they bug me.
 
         #  If not at the start, add the line.
 
@@ -697,9 +693,14 @@ while (<FIN>) {
             next;
         }
 
-        #  Else, we're at the start; if blank or a comment, skip it.  Only C-style comments are skipped.
+        #  Else, we're at the start; if blank or a comment, skip it.
 
-        if (($_ eq "") || ($_ =~ m/^[\/\s]\*/) || ($_ =~ m/^\s*##/) || ($_ =~ m/^\s*#$/) || ($_ =~ m/^\s*#\s/)) {
+        if (($_ eq "") ||            #  Blank lines
+            ($_ =~ m/^[\/\s]\*/) ||  #  C-style comment (the old copyright block)
+            ($_ =~ m/^\s*##/) ||     #  Perl comment, at least two #'s
+            ($_ =~ m/^\s*#$/) ||     #  Perl comment, exactly one #
+            ($_ =~ m/^\s*#\s/) ||    #  Perl comment, a single # followed by a space (so we don't catch #! lines)
+            ($_ =~ m/^\s*#\!/)) {      #  #! line.  I guess we do want to skip them now
             next;
         }
 
