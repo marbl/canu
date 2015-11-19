@@ -13,14 +13,9 @@
  *  Canu branched from Celera Assembler at its revision 4587.
  *  Canu branched from the kmer project at its revision 1994.
  *
- *  This file is derived from:
- *
- *    src/AS_OVS/overlapStore.C
- *    src/AS_OVS/overlapStore.c
- *
  *  Modifications by:
  *
- *    Brian P. Walenz beginning on 2014-OCT-20
+ *    Brian P. Walenz beginning on 2015-OCT-27
  *      are a 'United States Government Work', and
  *      are released in the public domain
  *
@@ -110,7 +105,7 @@ main(int argc, char **argv) {
 
       else if (strcmp(argv[arg], "3") == 0)
         ovlSelect |= OVL_3;
-      
+
       else if (strcmp(argv[arg], "contained") == 0)
         ovlSelect |= OVL_CONTAINED;
 

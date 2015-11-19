@@ -360,9 +360,9 @@ if (! -e "logs") {
     open(L, "> logs");
 
     #  The first copyright addition is at r6844
-    #  The second copyright addition is at r7001
+    #  The second copyright addition is at r7002
 
-    for (my $x=$rev; $x >= 6844; $x--) {
+    for (my $x=$rev; $x > 7002; $x--) {
         print STDERR "$x\r";
 
         open(I, "svn log -v -r $x |");

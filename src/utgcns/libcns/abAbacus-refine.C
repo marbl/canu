@@ -54,9 +54,13 @@
  *      are Copyright 2011 J. Craig Venter Institute, and
  *      are subject to the GNU General Public License version 2
  *
- *    Brian P. Walenz beginning on 2014-DEC-30
+ *    Brian P. Walenz from 2014-DEC-30 to 2015-AUG-14
  *      are Copyright 2014-2015 Battelle National Biodefense Institute, and
  *      are subject to the BSD 3-Clause License
+ *
+ *    Brian P. Walenz beginning on 2015-OCT-10
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
  *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.
@@ -1136,7 +1140,7 @@ IdentifyWindow_Smooth(abAbacus  *abacus,
 
     win_length++;
   }
-  
+
 #ifdef DEBUG_IDENTIFY_WINDOW
   fprintf(stderr, "identifyWindow()-- gap at %d to %d  win_length=%d (return)\n",
           start_column->position(), stab->position(), win_length);

@@ -13,13 +13,9 @@
  #  Canu branched from Celera Assembler at its revision 4587.
  #  Canu branched from the kmer project at its revision 1994.
  #
- #  This file is derived from:
- #
- #    src/pipelines/ca3g/Gatekeeper.pm
- #
  #  Modifications by:
  #
- #    Brian P. Walenz beginning on 2016-NOV-06
+ #    Brian P. Walenz beginning on 2015-NOV-08
  #      are a 'United States Government Work', and
  #      are released in the public domain
  #
@@ -117,7 +113,7 @@ sub buildGatekeeperHTML ($$$$$$) {
 
             push @$body, "<tr><td colspan='2'>$nl reads ($bl bp) loaded, $ns reads ($bs bp) skipped, $nWARNS warnings</td></tr>\n";
         }
-        
+
         #  the sum block shows up excatly once, a summary of all the reads loaded
         elsif (m/^sum\s(\d+)\s(\d+)\s(\d+)\s(\d+)\s(\d+)$/) {
             my $nLOADED  = $1;
@@ -136,7 +132,7 @@ sub buildGatekeeperHTML ($$$$$$) {
             push @$body, "<tr><td>readsSkipped</td><td>$nSKIPPED reads ($bSKIPPED bp) (read was too short)</td></tr>\n";
             push @$body, "<tr><td>warnings</td><td>$nWARNS warnings (invalid base or quality value)</td></tr>\n";
             push @$body, "</table>\n";
- 
+
         } else {
             caExit("failed to read '$wrk/$asm.gkpStore/load.log': invalid format", undef);
         }
@@ -319,7 +315,7 @@ sub buildOverlapperHTML ($$$$$$) {
             $sizesd   = $6;
             $analysis = $7;
             push @$body, "<tr><td>$category</td><td>$reads</td><td align='right'>$length</td><td>&plusmn;</td><td align='left'>$lengthsd</td><td align='right'>$size</td><td>&plusmn;</td><td align='left'>$sizesd</td><td align='left'>$analysis</td></tr>\n";
-            
+
         } elsif (m/(.*)\s+(\d+)\s+(\d+.\d+)\s+\+-\s+(\d+.\d+)\s+\((.*)\)$/) {
             $category = $1;
             $reads    = $2;

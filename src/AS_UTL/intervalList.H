@@ -31,9 +31,13 @@
  *      are Copyright 2005-2007,2010,2013-2014 J. Craig Venter Institute, and
  *      are subject to the GNU General Public License version 2
  *
- *    Brian P. Walenz beginning on 2014-OCT-07
+ *    Brian P. Walenz from 2014-OCT-07 to 2014-DEC-05
  *      are Copyright 2014 Battelle National Biodefense Institute, and
  *      are subject to the BSD 3-Clause License
+ *
+ *    Brian P. Walenz beginning on 2015-OCT-30
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
  *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.

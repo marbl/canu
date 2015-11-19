@@ -23,11 +23,11 @@
  *      are Copyright 2011-2013 J. Craig Venter Institute, and
  *      are subject to the GNU General Public License version 2
  *
- *    Sergey Koren beginning on 2011-OCT-13
+ *    Sergey Koren on 2011-OCT-13
  *      are Copyright 2011 Battelle National Biodefense Institute, and
  *      are subject to the BSD 3-Clause License
  *
- *    Brian P. Walenz beginning on 2014-OCT-21
+ *    Brian P. Walenz from 2014-OCT-21 to 2015-JUN-16
  *      are Copyright 2014-2015 Battelle National Biodefense Institute, and
  *      are subject to the BSD 3-Clause License
  *

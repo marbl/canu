@@ -23,7 +23,7 @@
  *      are Copyright 2012-2013 J. Craig Venter Institute, and
  *      are subject to the GNU General Public License version 2
  *
- *    Brian P. Walenz beginning on 2015-APR-10
+ *    Brian P. Walenz from 2015-APR-10 to 2015-AUG-18
  *      are Copyright 2015 Battelle National Biodefense Institute, and
  *      are subject to the BSD 3-Clause License
  *

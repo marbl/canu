@@ -16,30 +16,13 @@
  #
  #  Modifications by:
  #
+ #    Brian P. Walenz beginning on 2015-OCT-12
+ #      are a 'United States Government Work', and
+ #      are released in the public domain
+ #
  #  File 'README.licenses' in the root directory of this distribution contains
  #  full conditions and disclaimers for each license.
  ##
-
-#  Analyzes a single overlapStore, reports reads that have a gap in overlap.  Assumes reads are ordered in
-#  reference order.
-#
-#  Expect a picture of:
-#
-#  b ----------
-#     --               < contain we correctly don't have overlap to
-#      ----------
-#        ----------
-#           ========== < read in question
-#             ----------
-#                ----------
-#                  ----------
-# a                  ----------
-#
-#  For some read iid N, we expect it to have overlap to iids N-b ... N+a.
-#    Problem: on the b (before) side, contains can be missing
-#    Problem: on both sides, we cannot detect if we're missing the thinnest overlap
-#
-
 
 use strict;
 

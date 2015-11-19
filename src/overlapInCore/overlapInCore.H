@@ -40,13 +40,17 @@
  *      are Copyright 2007 J. Craig Venter Institute, and
  *      are subject to the GNU General Public License version 2
  *
- *    Sergey Koren beginning on 2011-MAR-08
+ *    Sergey Koren on 2011-MAR-08
  *      are Copyright 2011 Battelle National Biodefense Institute, and
  *      are subject to the BSD 3-Clause License
  *
- *    Brian P. Walenz beginning on 2014-DEC-15
+ *    Brian P. Walenz from 2014-DEC-15 to 2015-AUG-25
  *      are Copyright 2014-2015 Battelle National Biodefense Institute, and
  *      are subject to the BSD 3-Clause License
+ *
+ *    Brian P. Walenz beginning on 2015-OCT-27
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
  *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.

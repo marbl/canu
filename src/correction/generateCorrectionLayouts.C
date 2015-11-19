@@ -15,7 +15,7 @@
  *
  *  Modifications by:
  *
- *    Brian P. Walenz beginning on 2015-APR-09
+ *    Brian P. Walenz from 2015-APR-09 to 2015-SEP-21
  *      are Copyright 2015 Battelle National Biodefense Institute, and
  *      are subject to the BSD 3-Clause License
  *

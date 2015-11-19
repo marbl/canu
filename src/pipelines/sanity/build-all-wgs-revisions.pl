@@ -16,15 +16,14 @@
  #
  #  Modifications by:
  #
+ #    Brian P. Walenz beginning on 2015-OCT-12
+ #      are a 'United States Government Work', and
+ #      are released in the public domain
+ #
  #  File 'README.licenses' in the root directory of this distribution contains
  #  full conditions and disclaimers for each license.
  ##
 
-
-#  Checkout and tar up src for each commit.
-#
-#  The first half comes from get-commit-logs.pl.
-#
 #--------------------------------------------------------------------------------
 
 use strict;
