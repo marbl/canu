@@ -727,14 +727,16 @@ sub submitScript ($$$) {
 
     #  Find the next available output file.
 
+    make_path("$wrk/canu-scripts")  if (! -d "$wrk/canu-scripts");  #  Done in canu.pl, just being paranoid
+
     my $idx = "01";
 
-    while (-e "$wrk/canu.$idx.out") {
+    while (-e "$wrk/canu-scripts/canu.$idx.out") {
         $idx++;
     }
 
-    my $output    = "$wrk/canu.$idx.out";
-    my $script    = "$wrk/canu.$idx.sh";
+    my $output    = "$wrk/canu-scripts/canu.$idx.out";
+    my $script    = "$wrk/canu-scripts/canu.$idx.sh";
     my $iteration = getGlobal("canuIteration") + 1;
 
     #  Make a script for us to submit.
