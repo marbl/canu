@@ -1072,7 +1072,7 @@ sub checkParameters ($) {
         my %hosts;
         my $hosts = "";
 
-        open(F, "qhost |");
+        open(F, "qhost -ncb |");
         $_ = <F>;  #  Header
         $_ = <F>;  #  Table bar
         while (<F>) {
@@ -1473,9 +1473,9 @@ sub setDefaults () {
     setExecDefaults("obtovl",  "overlaps for trimming",                 "4,6,8,12", "2,4,6");
     setExecDefaults("utgovl",  "overlaps for unitig construction",      "4,6,8,12", "2,4,6");
 
-    setExecDefaults("cormhap", "mhap overlaps for correction",          "8,12,14,16,20,24,28,32", "4,8,12,16");
-    setExecDefaults("obtmhap", "mhap overlaps for trimming",            "8,12,14,16,20,24,28,32", "4,8,12,16");
-    setExecDefaults("utgmhap", "mhap overlaps for unitig construction", "8,12,14,16,20,24,28,32", "4,8,12,16");
+    setExecDefaults("cormhap", "mhap overlaps for correction",          "8,12,14,16,20,24,28,32,36,40,44,48,52,56,60,64", "4,8,12,16");
+    setExecDefaults("obtmhap", "mhap overlaps for trimming",            "8,12,14,16,20,24,28,32,36,40,44,48,52,56,60,64", "4,8,12,16");
+    setExecDefaults("utgmhap", "mhap overlaps for unitig construction", "8,12,14,16,20,24,28,32,36,40,44,48,52,56,60,65", "4,8,12,16");
 
     setExecDefaults("ovb",    "overlap store bucketizing",              "2,4",   "1");
     setExecDefaults("ovs",    "overlap store sorting",                  "4,6,8", "1");
