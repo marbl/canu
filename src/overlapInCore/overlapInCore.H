@@ -450,7 +450,6 @@ public:
     Num_PThreads = 1;
 
     Min_Olap_Len = 0;
-    Max_Erate    = 0.06;
 
     Use_Window_Filter  = false;
 
@@ -511,7 +510,6 @@ public:
   uint32  Num_PThreads;  //  -t
 
   int32  Min_Olap_Len;  //  --minlength, former -v
-  double Max_Erate;     //  --maxerate
 
   //  Determines whether check for a window containing too many
   //  errors is used to disqualify overlaps.
