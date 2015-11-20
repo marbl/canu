@@ -105,7 +105,7 @@ sub mhapConfigure ($$$$) {
     }
     my $blockSize = int($blockPerGb * $memorySize);
 
-    print STDERR "Running mhap with memory $memorySize and $blockSize";
+    print STDERR "-- Given $memorySize GB, can fit $blockSize reads per block.\n";
 
     #  Divide the reads into blocks of ovlHashBlockSize.  Each one of these blocks is used as the
     #  table in mhap.  Several of these blocks are used as the queries.
