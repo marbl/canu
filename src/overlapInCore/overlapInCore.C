@@ -417,7 +417,6 @@ main(int argc, char **argv) {
       G.Min_Olap_Len = strtol (argv[++arg], NULL, 10);
     } else if (strcmp(argv[arg], "--maxerate") == 0) {
       G.maxErate = ceil(strtof(argv[++arg], NULL) * 100) / 100;
-      fprintf(stderr, "maxErate %f\n", G.maxErate);
 
     } else if (strcmp(argv[arg], "-w") == 0) {
       G.Use_Window_Filter = TRUE;
@@ -532,7 +531,7 @@ main(int argc, char **argv) {
   fprintf(stderr, "Max_Hash_Load         %f\n", G.Max_Hash_Load);
   fprintf(stderr, "Kmer Length           "F_U64"\n", G.Kmer_Len);
   fprintf(stderr, "Min Overlap Length    %d\n", G.Min_Olap_Len);
-  fprintf(stderr, "Max Error Rate        %f\n", G.Max_Erate);
+  fprintf(stderr, "Max Error Rate        %f\n", G.maxErate);
   fprintf(stderr, "\n");
   fprintf(stderr, "Num_PThreads          "F_U32"\n", G.Num_PThreads);
 

@@ -164,6 +164,16 @@ while (scalar(@ARGV)) {
              ($arg eq "-nanopore-raw")     ||
              ($arg eq "-nanopore-corrected")) {
 
+        if ($arg =~ m/pacbio/) {
+            setErrorRate(0.025);
+            setGlobal("corErrorRate", "0.30");
+            setGlobal("batOptions", "-RS -NS");
+        } elsif ($arg =~ m/nanopore/) {
+            setErrorRate(0.07);
+            setGlobal("corErrorRate", "0.50");
+            setGlobal("batOptions", "-RS -NS");
+        }
+
         $mode = "trim-assemble"  if ($arg =~ m/corrected/);
 
         setGlobal("help",
@@ -291,18 +301,6 @@ sub setOptions ($$) {
     make_path("$wrk/correction")  if ((! -d "$wrk/correction") && ($step eq "correct"));
     make_path("$wrk/trimming")    if ((! -d "$wrk/trimming")   && ($step eq "trim"));
     make_path("$wrk/unitigging")  if ((! -d "$wrk/unitigging") && ($step eq "assemble"));
-
-    #  Now, set options for this step.
-
-    if ($step eq "correct") {
-        setErrorRate(0.15);
-    }
-    if ($step eq "trim") {
-        setErrorRate(0.01);
-    }
-    if ($step eq "assemble") {
-        setErrorRate(0.01);
-    }
 
     #  And return that we want to run this step.
 
