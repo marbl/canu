@@ -83,6 +83,13 @@ sub mhapConfigure ($$$$) {
 
     make_path("$path") if (! -d "$path");
 
+    #  Mhap parameters - filterThreshold needs to be a string, else it is printed as 5e-06.
+
+    my $numHashes       = (getGlobal("${tag}MhapSensitivity") eq "normal") ? "512"        : "768";
+    my $minNumMatches   = (getGlobal("${tag}MhapSensitivity") eq "normal") ?   "3"        :   "2";
+    my $threshold       = (getGlobal("${tag}MhapSensitivity") eq "normal") ?   "0.04"     :   "0.04";
+    my $filterThreshold = (getGlobal("${tag}MhapSensitivity") eq "normal") ?   "0.000005" :   "0.000005";  #  Also set in Meryl.pm
+
     #  Constants.
 
     my $merSize       = getGlobal("${tag}MhapMerSize");
@@ -91,7 +98,14 @@ sub mhapConfigure ($$$$) {
     my $submitTaskID  = getGlobal("gridEngineArraySubmitID");
 
     my $numReads      = getNumberOfReadsInStore($wrk, $asm);
-    my $blockSize     = getGlobal("${tag}MhapBlockSize");
+    my $memorySize    = getGlobal("${tag}mhapMemory");
+    my $blockPerGb    = getGlobal("${tag}MhapBlockSize");
+    if ($numHashes > 768) { 
+       $blockPerGb = int($blockPerGb / 2);
+    }
+    my $blockSize = int($blockPerGb * $memorySize);
+
+    print STDERR "Running mhap with memory $memorySize and $blockSize";
 
     #  Divide the reads into blocks of ovlHashBlockSize.  Each one of these blocks is used as the
     #  table in mhap.  Several of these blocks are used as the queries.
@@ -254,13 +268,6 @@ sub mhapConfigure ($$$$) {
 
         print STDERR "-- Computed seed length $seedLength from desired output coverage ", getGlobal("corOutCoverage"), " and genome size ", getGlobal("genomeSize"), "\n";
     }
-
-    #  Mhap parameters - filterThreshold needs to be a string, else it is printed as 5e-06.
-
-    my $numHashes       = (getGlobal("${tag}MhapSensitivity") eq "normal") ? "512"        : "768";
-    my $minNumMatches   = (getGlobal("${tag}MhapSensitivity") eq "normal") ?   "3"        :   "2";
-    my $threshold       = (getGlobal("${tag}MhapSensitivity") eq "normal") ?   "0.04"     :   "0.04";
-    my $filterThreshold = (getGlobal("${tag}MhapSensitivity") eq "normal") ?   "0.000005" :   "0.000005";  #  Also set in Meryl.pm
 
     #  Create a script to generate precomputed blocks, including extracting the reads from gkpStore.
 

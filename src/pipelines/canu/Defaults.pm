@@ -1378,8 +1378,8 @@ sub setOverlapDefaults ($$$) {
 
     #  Mhap parameters.
 
-    $global{"${tag}MhapBlockSize"}            = 20000;
-    $synops{"${tag}MhapBlockSize"}            = "Number of reads per block; one block is loaded into memory per job";
+    $global{"${tag}MhapBlockSize"}            = 1500;
+    $synops{"${tag}MhapBlockSize"}            = "Number of reads per 1GB; memory * blockSize = the size of  block loaded into memory per job";
 
     $global{"${tag}MhapMerSize"}              = ($tag eq "cor") ? 16 : 22;
     $synops{"${tag}MhapMerSize"}              = "K-mer size for seeds in mhap";
