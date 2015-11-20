@@ -394,7 +394,7 @@ sub overlapErrorAdjustmentConfigure ($$) {
         $bases += $readLengths[$id];
         $olaps += $numOlaps[$id];
 
-        my $memory = (1 * $bases) + (28 * $olaps) + (8 * $bases * getGlobal("errorRate"));
+        my $memory = (1 * $bases) + (28 * $olaps) + (8 * $bases * getGlobal("utgOvlErrorRate"));
 
         if ((($maxMem   > 0) && ($memory >= $maxMem)) ||
             (($maxReads > 0) && ($reads  >= $maxReads)) ||
@@ -406,7 +406,7 @@ sub overlapErrorAdjustmentConfigure ($$) {
             #       $nj + 1, $bgn[$nj], $end[$nj],
             #       1 * $bases / 1024 / 1024 / 1024,
             #       12 * $olaps / 1024 / 1024 / 1024,
-            #       8 * $bases * getGlobal("errorRate") / 1024 / 1024 / 1024);
+            #       8 * $bases * getGlobal("utgOvlErrorRate") / 1024 / 1024 / 1024);
 
             $nj++;
 
