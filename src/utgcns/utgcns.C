@@ -54,43 +54,45 @@ const char *mainid = "$Id$";
 
 int
 main (int argc, char **argv) {
-  char    *gkpName = NULL;
+  char    *gkpName         = NULL;
 
-  char    *tigName = NULL;
-  uint32   tigVers = UINT32_MAX;
-  uint32   tigPart = UINT32_MAX;
+  char    *tigName         = NULL;
+  uint32   tigVers         = UINT32_MAX;
+  uint32   tigPart         = UINT32_MAX;
 
-  char    *tigFileName = NULL;
+  char    *tigFileName     = NULL;
 
-  uint32   utgBgn  = UINT32_MAX;
-  uint32   utgEnd  = UINT32_MAX;
+  uint32   utgBgn          = UINT32_MAX;
+  uint32   utgEnd          = UINT32_MAX;
 
-  char    *outResultsName = NULL;
-  char    *outLayoutsName = NULL;
-  char    *outSeqName     = NULL;
-  char    *outPackageName = NULL;
+  char    *outResultsName  = NULL;
+  char    *outLayoutsName  = NULL;
+  char    *outSeqName      = NULL;
+  char    *outPackageName  = NULL;
 
   FILE     *outResultsFile = NULL;
   FILE     *outLayoutsFile = NULL;
   FILE     *outSeqFile     = NULL;
   FILE     *outPackageFile = NULL;
 
-  char    *inPackageName  = NULL;
+  char    *inPackageName   = NULL;
 
-  bool      forceCompute = false;
+  bool      doQuick        = false;
 
-  double    errorRate    = 0.06;
-  double    errorRateMax = 0.40;
-  uint32    minOverlap   = 40;
+  bool      forceCompute   = false;
 
-  int32     numFailures = 0;
+  double    errorRate      = 0.06;
+  double    errorRateMax   = 0.40;
+  uint32    minOverlap     = 40;
 
-  bool      showResult = false;
+  int32     numFailures    = 0;
 
-  double    maxCov = 0.0;
-  uint32    maxLen = UINT32_MAX;
+  bool      showResult     = false;
 
-  uint32    verbosity = 0;
+  double    maxCov         = 0.0;
+  uint32    maxLen         = UINT32_MAX;
+
+  uint32    verbosity      = 0;
 
   argc = AS_configure(argc, argv);
 
@@ -119,9 +121,6 @@ main (int argc, char **argv) {
     } else if (strcmp(argv[arg], "-t") == 0) {
       tigFileName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-p") == 0) {
-      inPackageName = argv[++arg];
-
     } else if (strcmp(argv[arg], "-O") == 0) {
       outResultsName = argv[++arg];
 
@@ -130,6 +129,12 @@ main (int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-F") == 0) {
       outSeqName = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-Q") == 0) {
+      doQuick = true;
+
+    } else if (strcmp(argv[arg], "-p") == 0) {
+      inPackageName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-P") == 0) {
       outPackageName = argv[++arg];
@@ -188,6 +193,10 @@ main (int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "    -p package      Load unitig and read from 'package' created with -P.  This\n");
     fprintf(stderr, "                    is usually used by developers.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  ALGORITHM\n");
+    fprintf(stderr, "    -Q              No alignments, just paste read sequence into the unitig positions.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  OUTPUT\n");
@@ -433,7 +442,11 @@ main (int argc, char **argv) {
     if ((outPackageFile == NULL) &&
         ((exists == false) || (forceCompute == true))) {
       origChildren = stashContains(tig, maxCov, true);
-      success      = utgcns->generate(tig, NULL, inPackageRead, inPackageReadData);
+
+      if (doQuick)
+        success = utgcns->generateQuick(tig, NULL, inPackageRead, inPackageReadData);
+      else
+        success = utgcns->generate(tig, NULL, inPackageRead, inPackageReadData);
     }
 
     //  If it was successful (or existed already), output.  Success is always false if the unitig

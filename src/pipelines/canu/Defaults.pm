@@ -295,6 +295,51 @@ sub getPhysicalMemorySize () {
 
 
 
+
+sub expandRange ($$) {
+    my $var = shift @_;
+    my $val = shift @_;
+
+    my @v = split ',', $val;
+    my @r;
+
+    foreach my $v (@v) {
+        if      ($v =~ m/^(\d+)$/) {
+            push @r, $1;
+
+        } elsif ($v =~ m/^(\d+)([kKmMgGtT]{0,1})-(\d+)([kKmMgGtT]{0,1})$/) {
+            my $b = adjustMemoryValue("$1$2");
+            my $e = adjustMemoryValue("$3$4");
+            my $s = adjustMemoryValue("1$4");     #  Yup, not a bug: 1-4g == 1g-4g == 1g,2g,3g,4g
+
+            for (my $ii=$b; $ii<=$e; $ii += $s) {
+                push @r, $ii;
+            }
+
+        } elsif ($v =~ m/^(\d+[kKmMgGtT]{0,1})-(\d+[kKmMgGtT]{0,1}):(\d+[kKmMgGtT]{0,1})$/) {
+            my $b = adjustMemoryValue($1);  #  Unlike above, all three need to have multipliers
+            my $e = adjustMemoryValue($2);
+            my $s = adjustMemoryValue($3);
+
+            for (my $ii=$b; $ii<=$e; $ii += $s) {
+                push @r, $ii;
+            }
+
+        } else {
+            caExit("can't parse '$var' entry '$v'", undef);
+        }
+    }
+
+    #print "$var = ";
+    #foreach my $r (@r) {
+    #    print "$r ";
+    #}
+    #print "\n";
+
+    return(@r);
+}
+
+
 #  Side effect!  This will RESET the $global{} parameters to the computed value.  This lets
 #  the rest of canu - in particular, the part that runs the jobs - use the correct value.  Without
 #  resetting, I'd be making code changes all over the place to support the values returned.
@@ -380,11 +425,11 @@ sub getAllowedResources ($$$$) {
     #  We then (typically) want to maximize the number of cores we can get running.
     #  Other options would be number of cores * amount of memory.
 
+    my @taskMemory  = expandRange("${tag}${alg}Memory",  $taskMemory);
+    my @taskThreads = expandRange("${tag}${alg}Threads", $taskThreads);
+
     #  Filter out task settings that can't be run based on the gridMemory/gridThreads or masterMemory/masterThreads setting.
     #  (actually, this just reports those that would be filtered; the actual filtering is inline in the algorithm)
-
-    my @taskMemory  = split ',', $taskMemory;
-    my @taskThreads = split ',', $taskThreads;
 
     my $ignoreM;
     my $ignoreT;
@@ -732,9 +777,10 @@ sub setParametersFromCommandLine(@) {
 sub adjustMemoryValue ($) {
     my $val = shift @_;
 
-    $val = $1                if ($val =~ m/(\d+.*\d*)g/);
-    $val = $1 / 1024         if ($val =~ m/(\d+.*\d*)m/);
-    $val = $1 / 1024 / 1024  if ($val =~ m/(\d+.*\d*)k/);
+    $val = $1 * 1024         if ($val =~ m/(\d+.*\d*)[tT]/);
+    $val = $1                if ($val =~ m/(\d+.*\d*)[gG]/);
+    $val = $1 / 1024         if ($val =~ m/(\d+.*\d*)[mM]/);
+    $val = $1 / 1024 / 1024  if ($val =~ m/(\d+.*\d*)[kK]/);
 
     return($val);
 }
@@ -796,15 +842,12 @@ sub checkParameters ($) {
     }
 
     #
-    #  Adjust memory to be gigabytes.
+    #  Adjust memory to be gigabytes.  All the others, specifying algorithm options, are adjusted 
+    #  in getAllowedResources()
     #
 
-    foreach my $key (keys %global) {
-        next  if ($key =~ m/gridEngineMemoryOption/i);
-        next  if ($key !~ m/Memory/i);
-
-        setGlobal($key, adjustMemoryValue(getGlobal($key)));
-    }
+    setGlobal("gridMemory",   adjustMemoryValue(getGlobal("gridMemory")));
+    setGlobal("masterMemory", adjustMemoryValue(getGlobal("masterMemory")));
 
     #
     #  Check for invalid usage
@@ -822,14 +865,15 @@ sub checkParameters ($) {
         caExit("invalid 'unitigger' specified (" . getGlobal("unitigger") . "); must be 'unitigger' or 'bogart'", undef);
     }
 
-    foreach my $tag ("cor", "cns") {
-        if ((getGlobal("${tag}consensus") ne "utgcns") &&
-            (getGlobal("${tag}consensus") ne "falcon") &&
-            (getGlobal("${tag}consensus") ne "falconpipe") &&
-            (getGlobal("${tag}consensus") ne "pbdagcon") &&
-            (getGlobal("${tag}consensus") ne "pbutgcns")) {
-            caExit("invalid 'consensus' specified (" . getGlobal("${tag}consensus") . "); must be 'utgcns' or 'falcon' or 'falconpipe' or 'pbdagcon' or 'pbutgcns'", undef);
-        }
+    if ((getGlobal("corConsensus") ne "utgcns") &&
+        (getGlobal("corConsensus") ne "falcon") &&
+        (getGlobal("corConsensus") ne "falconpipe")) {
+        caExit("invalid 'corConsensus' specified (" . getGlobal("corConsensus") . "); must be 'utgcns' or 'falcon' or 'falconpipe'", undef);
+    }
+
+    if ((getGlobal("cnsConsensus") ne "utgcns") &&
+        (getGlobal("cnsConsensus") ne "quick")) {
+        caExit("invalid 'cnsConsensus' specified (" . getGlobal("cnsConsensus") . "); must be 'utgcns' or 'quick'", undef);
     }
 
 
@@ -1072,16 +1116,28 @@ sub checkParameters ($) {
         my %hosts;
         my $hosts = "";
 
-        open(F, "qhost -ncb |");
-        $_ = <F>;  #  Header
-        $_ = <F>;  #  Table bar
+        open(F, "qhost |");
+
+        my $h = <F>;  #  Header
+        my $b = <F>;  #  Table bar
+
+        my @h = split '\s+', $h;
+
+        my $cpuIdx = 2;
+        my $memIdx = 4;
+
+        for (my $ii=0; ($ii < scalar(@h)); $ii++) {
+            $cpuIdx = $ii  if ($h[$ii] eq "NCPU");
+            $memIdx = $ii  if ($h[$ii] eq "MEMTOT");
+        }
+
         while (<F>) {
             my @v = split '\s+', $_;
 
             next if ($v[3] eq "-");  #  Node disabled or otherwise not available
 
-            my $cpus = $v[2];
-            my $mem  = $v[4];
+            my $cpus = $v[$cpuIdx];
+            my $mem  = $v[$memIdx];
 
             $mem  = $1 * 1024  if ($mem =~ m/(\d+.*\d+)[tT]/);
             $mem  = $1 * 1     if ($mem =~ m/(\d+.*\d+)[gG]/);
@@ -1470,18 +1526,18 @@ sub setDefaults () {
 
     #####  Grid Engine configuration and parameters, for each step of the pipeline (memory, threads)
 
-    setExecDefaults("cns",    "unitig consensus",                       "4,6,8,10,12,14,16",  "1");
-    setExecDefaults("cor",    "read correction",                        "4,6,8",              "2,4,6,8");
-    setExecDefaults("red",    "read error detection",                   "4,6,8,10,12,14,16",  "2,4,6,8");
-    setExecDefaults("oea",    "overlap error adjustment",               "4,6,8,10,12,14,16",  "1");
+    setExecDefaults("cns",    "unitig consensus",                       "4-16:2",  "1");
+    setExecDefaults("cor",    "read correction",                        "4-8:2",   "2,4,6,8");
+    setExecDefaults("red",    "read error detection",                   "4-16:2",  "2,4,6,8");
+    setExecDefaults("oea",    "overlap error adjustment",               "4-16:2",  "1");
 
-    setExecDefaults("corovl",  "overlaps for correction",               "4,6,8,12", "2,4,6");
-    setExecDefaults("obtovl",  "overlaps for trimming",                 "4,6,8,12", "2,4,6");
-    setExecDefaults("utgovl",  "overlaps for unitig construction",      "4,6,8,12", "2,4,6");
+    setExecDefaults("corovl",  "overlaps for correction",               "4-12:2", "2,4,6");
+    setExecDefaults("obtovl",  "overlaps for trimming",                 "4-12:2", "2,4,6");
+    setExecDefaults("utgovl",  "overlaps for unitig construction",      "4-12:2", "2,4,6");
 
-    setExecDefaults("cormhap", "mhap overlaps for correction",          "8,12,14,16,20,24,28,32,36,40,44,48,52,56,60,64", "4,8,12,16");
-    setExecDefaults("obtmhap", "mhap overlaps for trimming",            "8,12,14,16,20,24,28,32,36,40,44,48,52,56,60,64", "4,8,12,16");
-    setExecDefaults("utgmhap", "mhap overlaps for unitig construction", "8,12,14,16,20,24,28,32,36,40,44,48,52,56,60,65", "4,8,12,16");
+    setExecDefaults("cormhap", "mhap overlaps for correction",          "8-32:2,36-64:4", "4-16:2");
+    setExecDefaults("obtmhap", "mhap overlaps for trimming",            "8-32:2,36-64:4", "4-16:2");
+    setExecDefaults("utgmhap", "mhap overlaps for unitig construction", "8-32:2,36-64:4", "4-16:2");
 
     setExecDefaults("ovb",    "overlap store bucketizing",              "2,4",   "1");
     setExecDefaults("ovs",    "overlap store sorting",                  "4,6,8", "1");
@@ -1579,10 +1635,10 @@ sub setDefaults () {
     $synops{"batOptions"}                  = "Advanced options to bogart";
 
     $global{"batMemory"}                   = undef;
-    $synops{"batMemory"}                   = "Approximate maximum memory usage for loading overlaps, in gigabytes, default is unlimited";
+    $synops{"batMemory"}                   = "Approximate maximum memory usage for loading overlaps, in gigabytes, default is the masterMemory limit";
 
     $global{"batThreads"}                  = undef;
-    $synops{"batThreads"}                  = "Number of threads to use in the Merge/Split/Join phase; default is whatever OpenMP wants";
+    $synops{"batThreads"}                  = "Number of threads to use in the Merge/Split/Join phase; default is the masterThreads limit";
 
     $global{"batConcurrency"}              = 1;
     $synops{"batConcurrency"}              = "Unused, only one process supported";
@@ -1623,7 +1679,7 @@ sub setDefaults () {
     $synops{"cnsMaxCoverage"}              = "Limit unitig consensus to at most this coverage";
 
     $global{"cnsConsensus"}                = "utgcns";
-    $synops{"cnsConsensus"}                = "Which consensus algorithm to use; only 'utgcns' is supported";
+    $synops{"cnsConsensus"}                = "Which consensus algorithm to use; full consensus with 'utgcns', or quick approximation with 'quick'";
 
     #####  Correction Options
 
