@@ -109,6 +109,7 @@ sub utgcns ($$$) {
     print F "  -O $wrk/5-consensus/\$jobid.cns.WORKING \\\n";
     print F "  -L $wrk/5-consensus/\$jobid.layout.WORKING \\\n";
     print F "  -F $wrk/5-consensus/\$jobid.fastq.WORKING \\\n";
+    print F "  -Q \\\n"   if (getGlobal("cnsConsensus") eq "quick");
     print F "  -maxcoverage " . getGlobal('cnsMaxCoverage') . " \\\n";
     print F "&& \\\n";
     print F "mv $wrk/5-consensus/\$jobid.cns.WORKING $wrk/5-consensus/\$jobid.cns \\\n";
@@ -121,89 +122,6 @@ sub utgcns ($$$) {
 
     close(F);
 }
-
-
-
-sub make_consensus ($$$) {
-    my $wrk    = shift @_;  #  Local work directory
-    my $asm    = shift @_;
-    my $jobs   = shift @_;
-
-    die "No make_consensus yet.\n";
-}
-
-
-
-sub falcon_sense ($$$) {
-    my $wrk    = shift @_;  #  Local work directory
-    my $asm    = shift @_;
-    my $jobs   = shift @_;
-
-    die "No falcon_sense yet.\n";
-}
-
-
-
-sub pbdagcon ($$$) {
-    my $wrk    = shift @_;  #  Local work directory
-    my $asm    = shift @_;
-    my $jobs   = shift @_;
-
-    my $blasr = "";
-
-    my $taskID            = getGlobal("gridEngineTaskID");
-    my $submitTaskID      = getGlobal("gridEngineArraySubmitID");
-
-    open(F, "> $wrk/5-consensus/consensus.sh") or caExit("can't open '$wrk/5-consensus/consensus.sh' for writing: $!", undef);
-
-    print F "#!" . getGlobal("shell") . "\n";
-    print F "\n";
-    print F "jobid=$taskID\n";
-    print F "if [ x\$jobid = x -o x\$jobid = xundefined -o x\$jobid = x0 ]; then\n";
-    print F "  jobid=\$1\n";
-    print F "fi\n";
-    print F "if [ x\$jobid = x ]; then\n";
-    print F "  echo Error: I need $taskID set, or a job index on the command line.\n";
-    print F "  exit 1\n";
-    print F "fi\n";
-    print F "\n";
-    print F "if [ \$jobid -gt $jobs ]; then\n";
-    print F "  echo Error: Only $jobs partitions, you asked for \$jobid.\n";
-    print F "  exit 1\n";
-    print F "fi\n";
-    print F "\n";
-    print F "jobid=`printf %04d \$jobid`\n";
-    print F "\n";
-    print F "if [ -e $wrk/5-consensus/\$jobid.cns ] ; then\n";
-    print F "  exit 0\n";
-    print F "fi\n";
-    print F "\n";
-    print F getBinDirectoryShellCode();
-    print F "\n";
-    print F "cat $wrk/4-unitigger/$asm.partitioning | awk -v JOB=\$jobid '{if (\$1 == JOB) print \$NF}' > $wrk/5-consensus/$asm.\$jobid.iid\n";
-    print F "\n";
-    print F "\$bin/gatekeeper -dumpfasta $wrk/5-consensus/$asm.\$jobid -iid $wrk/5-consensus/$asm.\$jobid.iid $wrk/$asm.gkpStore\n";
-    print F "\n";
-    print F "rm -f $wrk/5-consensus/$asm.\$jobid.q*\n";
-    print F "\n";
-    print F "\$bin/tigStore -d layout -U -t $wrk/$asm.tigStore 1 -up \$jobid -g $wrk/$asm.gkpStore > $wrk/5-consensus/$asm.\$jobid.lay\n";
-    print F "\n";
-    print F "\$bin/convertToPBCNS -path $blasr -consensus pbdagcon -coverage 1 -threads " . getGlobal("cnsConcurrency") . " -prefix $wrk/5-consensus/$asm.\$jobid.tmp -length 500 -sequence $wrk/5-consensus/$asm.\$jobid.fasta -input $wrk/5-consensus/$asm.\$jobid.lay -output $wrk/5-consensus/$asm.\$jobid.fa\n";
-    print F "\n";
-    print F "\$bin/addCNSToStore -path \$bin -input $wrk/5-consensus/$asm.\$jobid.fa -lay $wrk/5-consensus/$asm.\$jobid.lay -output $wrk/5-consensus/$asm.\$jobid.cns -prefix $wrk/$asm -sequence $wrk/5-consensus/$asm.\$jobid.fasta -partition \$jobid && \$bin/utgcnsfix -g $wrk/$asm.gkpStore  -t $wrk/$asm.tigStore 2 \$jobid -o $wrk/5-consensus/${asm}_\$jobid.fixes > $wrk/5-consensus/${asm}_\$jobid.fix.err 2>&1 && touch $wrk/5-consensus/${asm}_\$jobid.cns\n";
-    print F "\n";
-    print F "if [ -e $wrk/5-consensus/${asm}_\$jobid.cns ]; then\n";
-    print F "   rm -f $wrk/5-consensus/${asm}.\$jobid.fasta*\n";
-    print F "   rm -f $wrk/5-consensus/${asm}.\$jobid.lay\n";
-    print F "fi\n";
-
-    close(F);
-
-    setGlobal("utgConcurrency", 1);
-
-}
-
-
 
 
 
@@ -256,14 +174,8 @@ sub consensusConfigure ($$) {
     if      (getGlobal("cnsConsensus") eq "utgcns") {
         utgcns($wrk, $asm, $jobs);
 
-    } elsif (getGlobal("cnsConsensus") eq "make_consensus") {
-        make_consensus($wrk, $asm, $jobs);
-
-    } elsif (getGlobal("cnsConsensus") eq "falcon_sense") {
-        falcon_sense($wrk, $asm, $jobs);
-
-    } elsif (getGlobal("cnsConsensus") eq "pbdagcon") {
-        pbdagcon($wrk, $asm, $jobs);
+    } elsif (getGlobal("cnsConsensus") eq "quick") {
+        utgcns($wrk, $asm, $jobs);
 
     } else {
         caFailure("unknown consensus style '" . getGlobal("cnsConsensus") . "'", undef);

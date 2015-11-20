@@ -263,8 +263,6 @@ unitigConsensus::generate(tgTig                     *tig_,
   generateConsensus();
   exportToTig();
 
-  //  NEED TO UPDATE THE tgTig
-
   return(true);
 
  returnFailure:
@@ -274,6 +272,68 @@ unitigConsensus::generate(tgTig                     *tig_,
 
   return(false);
 }
+
+
+
+bool
+unitigConsensus::generateQuick(tgTig                     *tig_,
+                               uint32                    *failed_,
+                               map<uint32, gkRead *>     *inPackageRead_,
+                               map<uint32, gkReadData *> *inPackageReadData_) {
+
+  tig      = tig_;
+  numfrags = tig->numberOfChildren();
+
+  if (initialize(failed_, inPackageRead_, inPackageReadData_) == FALSE) {
+    fprintf(stderr, "generateMultiAlignment()--  Failed to initialize for tig %u with %u children\n", tig->tigID(), tig->numberOfChildren());
+    return(false);
+  }
+
+  while (moreFragments()) {
+    reportStartingWork();
+
+    computePositionFromLayout();
+
+    //  If the read is contained in frankenstein, nothing for us to do.
+
+    if (frankensteinLen < cnspos[tiid].max()) {
+
+      //  The quick variety doesn't generate alignments, it just pastes read bases into
+      //  frankenstein.  We fake that by making an empty trace, and setting the offsets
+      //  to point to the start of the read to paste in.
+
+      gkRead  *read    = gkpStore->gkStore_getRead(utgpos[tiid].ident());
+      uint32   readLen = read->gkRead_sequenceLength();
+
+      uint32   bHang   = cnspos[tiid].max() - frankensteinLen;
+
+      traceABgn = frankensteinLen;
+      traceBBgn = readLen - bHang;
+
+      //fprintf(stderr, "ID %u len %u POSITION %d %d frankensteinlen %d trace A %d trace B %d\n",
+      //        utgpos[tiid].ident(), readLen,
+      //        cnspos[tiid].min(), cnspos[tiid].max(), frankensteinLen, traceABgn, traceBBgn);
+
+      trace[0] = 0;
+      traceLen = 0;
+
+      abacus->applyAlignment(abSeqID(),
+                             frankensteinLen, frankensteinBof,
+                             tiid,
+                             traceABgn, traceBBgn, trace, traceLen);
+    }
+
+    //  Skipped reads don't need to do this, except to clear piid.
+
+    rebuild(false, false);
+  }
+
+  generateConsensus();
+  exportToTig();
+
+  return(true);
+}
+
 
 
 
@@ -797,11 +857,16 @@ unitigConsensus::rebuild(bool recomputeFullConsensus, bool display) {
     abColumn   *fcol  = abacus->getColumn(fbead);
     abColumn   *lcol  = abacus->getColumn(lbead);
 
-    cnspos[i].set(fcol->position(),
-                  lcol->position() + 1);
+    //  If we added bases in Quick mode, there is no column associated with the
+    //  first bead, so skip the update.
 
-    assert(cnspos[i].min() >= 0);
-    assert(cnspos[i].max() > cnspos[i].min());
+    if ((fcol != NULL) && (lcol != NULL)) {
+      cnspos[i].set(fcol->position(),
+                    lcol->position() + 1);
+
+      assert(cnspos[i].min() >= 0);
+      assert(cnspos[i].max() > cnspos[i].min());
+    }
   }
 
   //  Finally, update the anchor/hang of the fragment we just placed.
@@ -834,6 +899,9 @@ unitigConsensus::alignFragmentFailure(void) {
   return(false);
 }
 
+
+//  Generates an alignment of the current read to the frankenstein.
+//  The primary output is a trace stored in the object data.
 
 bool
 unitigConsensus::alignFragment(bool forceAlignment) {

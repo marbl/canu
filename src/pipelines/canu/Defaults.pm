@@ -822,14 +822,15 @@ sub checkParameters ($) {
         caExit("invalid 'unitigger' specified (" . getGlobal("unitigger") . "); must be 'unitigger' or 'bogart'", undef);
     }
 
-    foreach my $tag ("cor", "cns") {
-        if ((getGlobal("${tag}consensus") ne "utgcns") &&
-            (getGlobal("${tag}consensus") ne "falcon") &&
-            (getGlobal("${tag}consensus") ne "falconpipe") &&
-            (getGlobal("${tag}consensus") ne "pbdagcon") &&
-            (getGlobal("${tag}consensus") ne "pbutgcns")) {
-            caExit("invalid 'consensus' specified (" . getGlobal("${tag}consensus") . "); must be 'utgcns' or 'falcon' or 'falconpipe' or 'pbdagcon' or 'pbutgcns'", undef);
-        }
+    if ((getGlobal("corConsensus") ne "utgcns") &&
+        (getGlobal("corConsensus") ne "falcon") &&
+        (getGlobal("corConsensus") ne "falconpipe")) {
+        caExit("invalid 'corConsensus' specified (" . getGlobal("corConsensus") . "); must be 'utgcns' or 'falcon' or 'falconpipe'", undef);
+    }
+
+    if ((getGlobal("cnsConsensus") ne "utgcns") &&
+        (getGlobal("cnsConsensus") ne "quick")) {
+        caExit("invalid 'cnsConsensus' specified (" . getGlobal("cnsConsensus") . "); must be 'utgcns' or 'quick'", undef);
     }
 
 
@@ -1617,7 +1618,7 @@ sub setDefaults () {
     $synops{"cnsMaxCoverage"}              = "Limit unitig consensus to at most this coverage";
 
     $global{"cnsConsensus"}                = "utgcns";
-    $synops{"cnsConsensus"}                = "Which consensus algorithm to use; only 'utgcns' is supported";
+    $synops{"cnsConsensus"}                = "Which consensus algorithm to use; full consensus with 'utgcns', or quick approximation with 'quick'";
 
     #####  Correction Options
 

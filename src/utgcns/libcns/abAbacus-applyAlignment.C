@@ -304,16 +304,16 @@ abAbacus::applyAlignment(abSeqID   afid,
                          int32    *trace, uint32 traceLen) {
 
   int32     apos   = MAX(ahang,0);  //  The aindex index for the current column we're processing
-  int32     bpos   = 0;
+  int32     bpos   = bhang;
 
   int32     blen   = 0;
 
   abBeadID *bindex = NULL;
 
-  abBeadID  lasta;  //  The beadID of the bases in the last column aligned
-  abBeadID  lastb;
-
   assert(trace != NULL);  //  The original (Celera) version of this could be called without a trace
+
+  assert(afid.isValid() == false);  //  The original (CA8) version of this could be called with an actual read here
+  assert(bfid.isValid() == true);   //  But could never be called without a read here
 
 #if 0
   for (uint32 ii=0; trace[ii]; ii++)
@@ -364,8 +364,11 @@ abAbacus::applyAlignment(abSeqID   afid,
     assert(0);
   }
 
-  assert(apos < alen);
-  assert(bpos < blen);
+  //  if apos == alen, we'd just be pasting on new sequence.
+  //  if bpos == blen...we're pasting on one base?
+
+  assert(apos <= alen);
+  assert(bpos <= blen);
 
   //
   //  All the a beads should be in a column.  All the b beads should not.  This is expensive.
@@ -405,6 +408,18 @@ abAbacus::applyAlignment(abSeqID   afid,
   }
 #endif
 
+
+  //  The beadIDs of the bases in the last column aligned.  Both generally get reset almost immediately,
+  //  EXCEPT when the b sequence is appended to the end, as in the Quick variant of utgcns.
+
+  abBeadID  lasta;
+  abBeadID  lastb;
+
+  if (apos > 0)
+    lasta = aindex[apos - 1];
+
+  if (bpos > 0)
+    lastb = bindex[bpos - 1];
 
   //
   //  Catch two nasty cases: negative ahang (so unaligned bases in the B read) and
@@ -581,12 +596,16 @@ abAbacus::applyAlignment(abSeqID   afid,
 #endif
 
   if (blen - bpos > 0) {
-    abColID ci = getBead(lastb)->colIdx();
+
+    //  Find the last column aligned.  This used to be lastb, but that bead doesn't exist in the multialignment
+    //  when we're appending reads to frankenstein with the -Q quick option.
+
+    abColID ci = getBead(lasta)->colIdx();
 
     //  There shouldn't be any gaps left to insert...but there might be if we stop early above.  Old
     //  versions of this would simply stuff gaps into the B sequence for the rest of the existing
     //  multialign.  We'd prefer to fail.
-    //
+
     for (abColumn *col = getColumn(ci); col->nextID().isValid(); col=getColumn(col->nextID()))
       fprintf(stderr, "ERROR!  Column ci="F_U32" has a next pointer ("F_U32")\n",
               col->ident().get(), col->nextID().get());
@@ -594,7 +613,7 @@ abAbacus::applyAlignment(abSeqID   afid,
     assert(getColumn(ci)->nextID().isValid() == false);
 
     //  Add on trailing (dovetail) beads from b
-    //
+
     for (int32 rem=blen-bpos; rem > 0; rem--) {
 
 #ifdef DEBUG_ALIGN_POSITION

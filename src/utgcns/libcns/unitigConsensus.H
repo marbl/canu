@@ -83,6 +83,11 @@ public:
                   map<uint32, gkRead *>     *inPackageRead     = NULL,
                   map<uint32, gkReadData *> *inPackageReadData = NULL);
 
+  bool   generateQuick(tgTig                     *tig,
+                       uint32                    *failed            = NULL,
+                       map<uint32, gkRead *>     *inPackageRead     = NULL,
+                       map<uint32, gkReadData *> *inPackageReadData = NULL);
+
   int32  initialize(uint32                    *failed,
                     map<uint32, gkRead *>     *inPackageRead,
                     map<uint32, gkReadData *> *inPackageReadData);
