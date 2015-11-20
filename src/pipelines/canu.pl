@@ -302,7 +302,7 @@ sub setOptions ($$) {
     make_path("$wrk/trimming")    if ((! -d "$wrk/trimming")   && ($step eq "trim"));
     make_path("$wrk/unitigging")  if ((! -d "$wrk/unitigging") && ($step eq "assemble"));
 
-    #  And return that we want to run this step.
+    #  Return that we want to run this step.
 
     return($step);
 }
