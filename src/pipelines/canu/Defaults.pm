@@ -1073,16 +1073,28 @@ sub checkParameters ($) {
         my %hosts;
         my $hosts = "";
 
-        open(F, "qhost -ncb |");
-        $_ = <F>;  #  Header
-        $_ = <F>;  #  Table bar
+        open(F, "qhost |");
+
+        my $h = <F>;  #  Header
+        my $b = <F>;  #  Table bar
+
+        my @h = split '\s+', $h;
+
+        my $cpuIdx = 2;
+        my $memIdx = 4;
+
+        for (my $ii=0; ($ii < scalar(@h)); $ii++) {
+            $cpuIdx = $ii  if ($h[$ii] eq "NCPU");
+            $memIdx = $ii  if ($h[$ii] eq "MEMTOT");
+        }
+
         while (<F>) {
             my @v = split '\s+', $_;
 
             next if ($v[3] eq "-");  #  Node disabled or otherwise not available
 
-            my $cpus = $v[2];
-            my $mem  = $v[4];
+            my $cpus = $v[$cpuIdx];
+            my $mem  = $v[$memIdx];
 
             $mem  = $1 * 1024  if ($mem =~ m/(\d+.*\d+)[tT]/);
             $mem  = $1 * 1     if ($mem =~ m/(\d+.*\d+)[gG]/);
