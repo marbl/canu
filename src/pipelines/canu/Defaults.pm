@@ -1319,7 +1319,7 @@ sub setErrorRate ($@) {
     setGlobal("obtOvlErrorRate",    $er * 3);  #  Generally must be smaller than utgGraphErrorRate
     setGlobal("utgOvlErrorRate",    $er * 3);
 
-    setGlobal("obtErrorRate",       $er * 2.5);
+    setGlobal("obtErrorRate",       $er * 3);
 
     setGlobal("utgGraphErrorRate",  $er * 2);
     setGlobal("utgBubbleErrorRate", $er * 2 + 0.5 * $er);  #  Not tested!
