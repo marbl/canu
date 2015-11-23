@@ -117,12 +117,7 @@ abAbacus::prependColumn(abColID cid, abBeadID bid) {
 
   column->ma_position = next->ma_position - 1;
 
-  //AddColumnToMANode(column->ma_id, *column);
   getMultiAlign(column->ma_id)->addColumnToMultiAlign(column);
-
-  //  Redundant
-  //if (column->prevID().isValid() == false)
-  //  getMultiAlign(column->ma_id)->first = column->lid;
 
   return(column->ident());
 }
@@ -543,8 +538,6 @@ abAbacus::applyAlignment(abSeqID   afid,
       //  there are +1 trace elements that should have been removed, but aren't.
       //
       //  In one example, bpos=20 and *trace=21, and so alignPosition() was never called.
-
-      //  guido
 
       assert(lastb.isValid());
 
