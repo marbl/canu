@@ -465,7 +465,7 @@ main (int argc, char **argv) {
         tig->dumpLayout(outLayoutsFile);
 
       if (outSeqFile)
-        tig->dumpFASTQ(outSeqFile);
+        tig->dumpFASTQ(outSeqFile, true);
     }
 
     //  Report failures.

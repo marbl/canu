@@ -575,7 +575,7 @@ Build_Hash_Index(gkStore *gkpStore, uint32 bgnID, uint32 endID) {
 
     for (uint32 i=0; i<len; i++, total_len++) {
       basesData[total_len] = tolower(seqptr[i]);
-      qualsData[total_len] = qltptr[i] - QUALITY_BASE_CHAR;
+      qualsData[total_len] = qltptr[i];
     }
 
     basesData[total_len] = 0;

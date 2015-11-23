@@ -262,7 +262,8 @@ public:
   void                 dumpLayout(FILE *F);
   bool                 loadLayout(FILE *F);
 
-  void                 dumpFASTQ(FILE *F);
+  void                 dumpFASTA(FILE *F, bool useGapped);
+  void                 dumpFASTQ(FILE *F, bool useGapped);
 
   //  There are two multiAlign displays; this one, and one in abMultiAlign.
   void                 display(FILE     *F,

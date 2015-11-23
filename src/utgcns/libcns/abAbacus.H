@@ -212,8 +212,8 @@ public:
   void          setQual(abBaseID bid, char q) {
     assert(bid.isValid() == true);
     assert(bid.get() < _basesLen);
-    assert(CNS_MIN_QV + '0' <= q);
-    assert(q <= CNS_MAX_QV + '0');
+    assert(CNS_MIN_QV <= q);
+    assert(q <= CNS_MAX_QV );
     _quals[bid.get()] = q;
   };
 

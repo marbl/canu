@@ -109,6 +109,39 @@ gkRead::gkRead_loadData(gkReadData *readData, void *blobs) {
       assert(_seqLen <= readData->_seqAlloc);
       memcpy(readData->_qlt, blob + 8, _seqLen);
       readData->_qlt[_seqLen] = 0;
+
+#if 1
+      //  Fix for older gkpStore that encoded QV's with offset '0'.  Wasn't RIFF format supposed to solve problems like this?
+      //    Old encoding is ASCII was from '0' = 48 to 'l' = 108.
+      //    New encoding is integer from 0 to 60.
+      //  So, if we see:
+      //    0-47,  we're new format.
+      //    48-60  we're either (but STRONGLY likely to be old).
+      //    61-108 we're old format.
+      //  Most reads are well below qv=40, so this will be easy.
+
+      bool  isOld = false;
+
+      for (uint32 ii=0; ii<_seqLen; ii++) {
+        if (readData->_qlt[ii] < 48) {
+          isOld = false;
+          break;
+        }
+
+        else if (readData->_qlt[ii] < 61) {
+          isOld = true;
+        }
+
+        else {
+          isOld = true;
+          break;
+        }
+      }
+
+      if (isOld)
+        for (uint32 ii=0; ii<_seqLen; ii++)
+          readData->_qlt[ii] -= '0';
+#endif
     }
 
     else if (strncmp(chunk, "2SEQ", 4) == 0) {

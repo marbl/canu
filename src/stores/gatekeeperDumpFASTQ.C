@@ -345,14 +345,14 @@ main(int argc, char **argv) {
     qlt[len] = 0;
 
     //  And print the read.
+    if (dumpFASTA)
+      AS_UTL_writeFastA(out[libID]->getFASTA(), seq, len, 100,
+                        ">"F_U32" clr="F_U32","F_U32"\n",
+                        rid, lclr, rclr);
+
     if (dumpFASTQ)
       AS_UTL_writeFastQ(out[libID]->getFASTQ(), seq, len, qlt, len,
                         "@"F_U32" clr="F_U32","F_U32"\n",
-                        rid, lclr, rclr);
-
-    if (dumpFASTA)
-      AS_UTL_writeFastA(out[libID]->getFASTA(), seq, len, 0,
-                        ">"F_U32" clr="F_U32","F_U32"\n",
                         rid, lclr, rclr);
   }
 

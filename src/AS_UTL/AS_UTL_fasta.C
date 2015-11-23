@@ -35,27 +35,11 @@
  *  full conditions and disclaimers for each license.
  */
 
-static const char *rcsid = "$Id$";
-
 #include "AS_UTL_fasta.H"
 #include "AS_UTL_fileIO.H"
 
 #include <stdarg.h>
 
-int
-AS_UTL_isValidSequence(char *s, int sl) {
-  AS_UTL_initValidSequence();
-  int p = 0;
-
-  for (p = 0; s[p] && p < sl; p++) {
-    if ((AS_UTL_isspacearray[s[p]]) || (AS_UTL_isvalidACGTN[s[p]])) {
-    } else {
-      return FALSE;
-    }
-  }
-
-  return TRUE;
-}
 
 void
 AS_UTL_writeFastA(FILE *f,
@@ -87,47 +71,6 @@ AS_UTL_writeFastA(FILE *f,
 
 
 void
-AS_UTL_writeQVFastA(FILE *f,
-                    char *q, int ql, int bl,
-                    char *h, ...) {
-  va_list ap;
-  char   *o  = new char [3*ql + 3*ql / 60 + 2];
-  int     qi = 0;
-  int     oi = 0;
-
-  //
-  //  20 values per line -> 60 letters per line.
-  //  |xx xx xx xx xx ..... xx|
-  //
-
-  while (qi < ql) {
-    // decode the quality value
-    // we convert the qlt character to the integer value by subtracting '0' and take the significant digit by dividing by ten. Back to character by adding '0'
-    o[oi++] = (((((int)q[qi])-'0') / 10) + '0');
-    // same thing except now use mod
-    o[oi++] = (((((int)q[qi])-'0') % 10) + '0');
-    o[oi++] = ' ';
-
-    qi++;
-
-    if (bl != 0 && (qi % bl) == 0)
-      o[oi-1] = '\n';
-  }
-  if (o[oi-1] != '\n')
-    o[oi++] = '\n';
-  o[oi] = 0;
-
-  va_start(ap, h);
-  vfprintf(f, h, ap);
-  va_end(ap);
-
-  AS_UTL_safeWrite(f, o, "AS_UTL_writeQVFastA", sizeof(char), oi);
-
-  delete [] o;
-}
-
-
-void
 AS_UTL_writeFastQ(FILE *f,
                   char *s, int sl,
                   char *q, int ql,
@@ -141,7 +84,7 @@ AS_UTL_writeFastQ(FILE *f,
 
   //  Reencode the QV to the Sanger spec.
   while (qi < ql)
-    o[oi++] = q[qi++] - '0' + '!';
+    o[oi++] = q[qi++] + '!';
   o[oi] = 0;
 
   va_start(ap, h);

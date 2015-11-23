@@ -35,17 +35,13 @@ static const char *rcsid = "$Id$";
 class qualityLookup {
 public:
   qualityLookup() {
-    for (uint32 i=0; i<='0'; i++)
-      q[i] = 1.0;
-
-    for (uint32 i='1'; i<255; i++)
-      q[i] = 1 / pow(10, (i - '0') / 10.0);
+    for (uint32 i=0; i<255; i++)
+      q[i] = 1 / pow(10, i / 10.0);
   };
   ~qualityLookup() {
   };
 
-  double lookupChar(char x)      { return(q[(uint32)x]);  };
-  double lookupNumber(uint32 x)  { return(q['0' + x]);    };
+  double lookup(uint32 x)  { return(q[x]);          };
 
 private:
   double   q[255];
@@ -79,7 +75,7 @@ findGoodQuality(double  *qltD,
   uint32   p = 0;
   double   q = 0;
 
-  double   minQuality = qual.lookupChar(minQualityLetter);
+  double   minQuality = qual.lookup(minQualityLetter - '!');
 
 
   //  Scan forward, find first base with quality >= 20.
@@ -260,7 +256,7 @@ doTrim(gkRead      *read,
   double   *qltD   = new double [qltLen];
 
   for (uint32 i=0; i<qltLen; i++)
-    qltD[i] = qual.lookupChar(qltC[i]);
+    qltD[i] = qual.lookup(qltC[i]);
 
   findGoodQuality(qltD, qltLen, minQuality, left, right);
 

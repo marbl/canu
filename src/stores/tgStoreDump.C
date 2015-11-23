@@ -281,32 +281,11 @@ dumpConsensus(gkStore *UNUSED(gkpStore), tgStore *tigStore, tgFilter &filter, bo
 
     switch (cnsFormat) {
       case 'A':
-        fprintf(stdout, ">tig%08u len="F_U32" reads="F_U32" covStat=%.2f gapped=%s suggestRepeat=%s suggestUnique=%s suggestCircular=%s suggestHaploid=%s\n%s\n",
-                tig->tigID(),
-                tig->length(useGapped),
-                tig->numberOfChildren(),
-                tig->_coverageStat,
-                (useGapped) ? "yes" : "no",
-                tig->_suggestRepeat ? "yes" : "no",
-                tig->_suggestUnique ? "yes" : "no",
-                tig->_suggestCircular ? "yes" : "no",
-                tig->_suggestHaploid ? "yes" : "no",
-                tig->bases(useGapped));
+        tig->dumpFASTA(stdout, useGapped);
         break;
 
       case 'Q':
-        fprintf(stdout, "@tig%08u len="F_U32" reads="F_U32" covStat=%.2f gappedBases=%s suggestRepeat=%s suggestUnique=%s suggestCircular=%s suggestHaploid=%s\n%s\n+\n%s\n",
-                tig->tigID(),
-                tig->length(useGapped),
-                tig->numberOfChildren(),
-                tig->_coverageStat,
-                (useGapped) ? "yes" : "no",
-                tig->_suggestRepeat ? "yes" : "no",
-                tig->_suggestUnique ? "yes" : "no",
-                tig->_suggestCircular ? "yes" : "no",
-                tig->_suggestHaploid ? "yes" : "no",
-                tig->bases(useGapped),
-                tig->quals(useGapped));
+        tig->dumpFASTQ(stdout, useGapped);
         break;
 
       default:

@@ -75,8 +75,8 @@ loadFASTA(char                 *L,
 
   //  Clear the sequence.
 
-  S[0] = 0;
-  Q[0] = 0;
+  S[0] =  0;
+  Q[0] = -1;  //  Sentinel to tell us to use the fixed QV value
 
   Slen = 0;
 
@@ -231,7 +231,7 @@ loadFASTQ(char                 *L,
   fgets(Q, AS_MAX_READLEN, F->file());
   chomp(Q);
 
-  //  Convert from the (assumed to be) Sanger QVs to the CA offset '0' QVs.
+  //  Convert from the (assumed to be) Sanger QVs to plain ol' integers.
 
   uint32 QVerrors = 0;
 
@@ -247,7 +247,6 @@ loadFASTQ(char                 *L,
     }
 
     Q[i] -= '!';
-    Q[i] += '0';
   }
 
   if (QVerrors > 0) {
@@ -387,8 +386,8 @@ loadReads(gkStore    *gkpStore,
 
     if (S[0] != 0) {
       gkRead     *nr = gkpStore->gkStore_addEmptyRead(gkpLibrary);
-      gkReadData *nd = (Q[0] == 0) ? nr->gkRead_encodeSeqQlt(H, S, gkpLibrary->gkLibrary_defaultQV()) :
-                                     nr->gkRead_encodeSeqQlt(H, S, Q);
+      gkReadData *nd = (Q[0] == -1) ? nr->gkRead_encodeSeqQlt(H, S, gkpLibrary->gkLibrary_defaultQV()) :
+                                      nr->gkRead_encodeSeqQlt(H, S, Q);
 
       gkpStore->gkStore_stashReadData(nr, nd);
 

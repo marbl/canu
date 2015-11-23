@@ -304,8 +304,8 @@ abAbacus::addRead(gkStore *gkpStore,
         _bases[pp] = seq[ii];
         _quals[pp] = qlt[ii];
 
-        assert(CNS_MIN_QV + '0' <= _quals[pp]);
-        assert(_quals[pp] <= CNS_MAX_QV + '0');
+        assert(CNS_MIN_QV <= _quals[pp]);
+        assert(_quals[pp] <= CNS_MAX_QV);
       }
 
     else
@@ -313,8 +313,8 @@ abAbacus::addRead(gkStore *gkpStore,
         _bases[pp] = inv[ seq[ii] ];
         _quals[pp] =      qlt[ii];
 
-        assert(CNS_MIN_QV + '0' <= _quals[pp]);
-        assert(_quals[pp] <= CNS_MAX_QV + '0');
+        assert(CNS_MIN_QV <= _quals[pp]);
+        assert(_quals[pp] <= CNS_MAX_QV);
       }
 
     _bases[_basesLen] = 0;  //  NUL terminate the strings so we can use them in aligners

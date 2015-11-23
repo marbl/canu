@@ -115,7 +115,7 @@ Process_Overlaps(void *ptr){
 
       for (uint32 i=0; i<len; i++) {
         bases[i] = tolower(seqptr[i]);
-        quals[i] = qltptr[i] - QUALITY_BASE_CHAR;
+        quals[i] = qltptr[i];
       }
 
       bases[len] = 0;

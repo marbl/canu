@@ -199,8 +199,8 @@ abAbacus::addBead(char base, char qual) {
   _bases[_basesLen] = base;
   _quals[_basesLen] = qual;
 
-  assert(CNS_MIN_QV + '0' <= _quals[_basesLen]);
-  assert(_quals[_basesLen] <= CNS_MAX_QV + '0');
+  assert(CNS_MIN_QV        <= _quals[_basesLen]);
+  assert(_quals[_basesLen] <= CNS_MAX_QV);
 
   _basesLen++;
   _beadsLen++;
@@ -267,7 +267,7 @@ abAbacus::appendGapBead(abBeadID bid) {
   if (bead->next.isValid())
     getBead(bead->next)->prev = bead->ident();
 
-  //  Pick the minimum of the neighboring QVs, or '5' if both neighbors are zero, and set the base/qual
+  //  Pick the minimum of the neighboring QVs, or 5 if both neighbors are zero, and set the base/qual
 
   char  qv = getQual(prev->soffset);
 
@@ -278,15 +278,15 @@ abAbacus::appendGapBead(abBeadID bid) {
     if (nqv < qv)
       qv = nqv;
 
-    if (qv == '0')
-      qv = '5';
+    if (qv == 0)
+      qv = 5;
   }
 
   _bases[_basesLen] = '-';
   _quals[_basesLen] = qv;
 
-  assert(CNS_MIN_QV + '0' <= _quals[_basesLen]);
-  assert(_quals[_basesLen] <= CNS_MAX_QV + '0');
+  assert(CNS_MIN_QV        <= _quals[_basesLen]);
+  assert(_quals[_basesLen] <= CNS_MAX_QV);
 
   //  Finally, update the length of the beads/bases arrays.
 
@@ -336,7 +336,7 @@ abAbacus::prependGapBead(abBeadID bid) {
   if (bead->prev.isValid())
     getBead(bead->prev)->next = bead->ident();
 
-  //  Pick the minimum of the neighboring QVs, or '5' if both neighbors are zero, and set the base/qual
+  //  Pick the minimum of the neighboring QVs, or 5 if both neighbors are zero, and set the base/qual
 
   char  qv = getQual(next->soffset);
 
@@ -347,15 +347,15 @@ abAbacus::prependGapBead(abBeadID bid) {
     if (pqv < qv)
       qv = pqv;
 
-    if (qv == '0')
-      qv = '5';
+    if (qv == 0)
+      qv = 5;
   }
 
   _bases[_basesLen] = '-';
   _quals[_basesLen] = qv;
 
-  assert(CNS_MIN_QV + '0' <= _quals[_basesLen]);
-  assert(_quals[_basesLen] <= CNS_MAX_QV + '0');
+  assert(CNS_MIN_QV        <= _quals[_basesLen]);
+  assert(_quals[_basesLen] <= CNS_MAX_QV);
 
   //  Finally, update the length of the beads/bases arrays.
 
@@ -460,7 +460,7 @@ abAbacus::addColumn(abMultiAlignID mid, abBeadID bid) {
   abColumn  *col   = getColumn(colID);
 
   col->lid         = colID;
-  col->call        = addBead('N', '0');  //  New bead!
+  col->call        = addBead('N', 0);  //  New bead!
   col->next        = abColID();
   col->prev        = abColID();
   col->ma_id       = mid;

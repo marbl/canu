@@ -187,10 +187,6 @@
 #define  PROBE_MASK              0x3e
 //  Used to determine probe step to resolve collisions
 
-#define  QUALITY_BASE_CHAR       '0'
-//  Quality values were added to this to create printable
-//  characters
-
 #define  QUALITY_CUTOFF          20
 //  Regard quality values higher than this as equal to this
 //  for purposes of finding bad windows

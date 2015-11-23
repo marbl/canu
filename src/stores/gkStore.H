@@ -121,7 +121,7 @@ public:
     _removeChimericReads        = 1;
     _checkForSubReads           = 1;
 
-    _defaultQV                  = '0' + 20;
+    _defaultQV                  = 20;
   };
 
 public:

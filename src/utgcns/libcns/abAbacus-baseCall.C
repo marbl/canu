@@ -100,7 +100,7 @@ abAbacus::baseCallMajority(abColID cid) {
   //  Original version set QV to zero.
 
   char  base = indexToBase[bestIdx];
-  char  qv   = '0';
+  char  qv   = 0;
 
   setBase(call->baseIdx(), base);
   setQual(call->baseIdx(), qv);
@@ -141,7 +141,7 @@ baseToTauIndex(char base) {
 void
 abAbacus::baseCallQuality(abColID cid) {
   char    consensusBase = '-';
-  char    consensusQV   = '0';
+  char    consensusQV   = 0;
 
   vector<abBead *>  bReads;  uint32  bBaseCount[CNS_NUM_SYMBOLS] = {0};  uint32  bQVSum[CNS_NUM_SYMBOLS] = {0};  //  Best allele
   vector<abBead *>  oReads;  uint32  oBaseCount[CNS_NUM_SYMBOLS] = {0};  uint32  oQVSum[CNS_NUM_SYMBOLS] = {0};  //  Other allele
@@ -174,7 +174,7 @@ abAbacus::baseCallQuality(abColID cid) {
     abBead *bead    = getBead(bid);
     char    base    = getBase(bead->baseIdx());
     int32   baseIdx = baseToIndex[base];
-    int     qv      = getQual(bead->baseIdx()) - '0';
+    int     qv      = getQual(bead->baseIdx());
 
     //  Not a base call?  Skip it.
     if (base == 'N')
@@ -249,7 +249,7 @@ abAbacus::baseCallQuality(abColID cid) {
   for (uint32 cind = 0; cind < gReads.size(); cind++) {
     abBead *gb   = gReads[cind];
     char    base = getBase(gb->baseIdx());
-    uint32  qv   = getQual(gb->baseIdx()) - '0';
+    uint32  qv   = getQual(gb->baseIdx());
 
     used_surrogate = true;
 
@@ -281,7 +281,7 @@ abAbacus::baseCallQuality(abColID cid) {
   for (uint32 cind=0; cind < oReads.size(); cind++) {
     abBead  *gb   = oReads[cind];
     char     base = getBase(gb->baseIdx());
-    int32    qv   = getQual(gb->baseIdx()) - '0';
+    int32    qv   = getQual(gb->baseIdx());
 
     used_surrogate = false;
 
@@ -311,7 +311,7 @@ abAbacus::baseCallQuality(abColID cid) {
   for (uint32 cind=0; cind < bReads.size(); cind++) {
     abBead  *gb   = bReads[cind];
     char     base = getBase(gb->baseIdx());
-    int32    qv   = getQual(gb->baseIdx()) - '0';
+    int32    qv   = getQual(gb->baseIdx());
 
     used_surrogate = false;
 
@@ -337,7 +337,7 @@ abAbacus::baseCallQuality(abColID cid) {
       (oReads.size() == 0) &&
       (gReads.size() == 0)) {
     setBase(call->baseIdx(), 'N');
-    setQual(call->baseIdx(), '0');
+    setQual(call->baseIdx(), 0);
 
     return;
   }
@@ -489,7 +489,7 @@ abAbacus::baseCallQuality(abColID cid) {
   //  If cwMax is big, we've max'd out the QV and set it to the maximum.
   //
   if (cwMax >= 1.0 - DBL_EPSILON) {
-    consensusQV = CNS_MAX_QV + '0';
+    consensusQV = CNS_MAX_QV;
   }
 
   //  Otherwise compute the QV.  If there is more than one read, or we used the surrogate,
@@ -510,7 +510,7 @@ abAbacus::baseCallQuality(abColID cid) {
     qv = MIN(CNS_MAX_QV, qv);
     qv = MAX(CNS_MIN_QV, qv);
 
-    consensusQV = qv + '0';
+    consensusQV = qv;
   }
 
 

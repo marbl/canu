@@ -435,15 +435,28 @@ tgTig::dumpLayout(FILE *F) {
   fprintf(F, "tig "F_U32"\n", _tigID);
   fprintf(F, "len %d\n",      _layoutLen);
 
+  //  Adjust QV's to Sanger encoding
+
+  for (uint32 ii=0; ii<_gappedLen; ii++)
+    _gappedQuals[ii] += '!';
+
+  //  Dump the sequence and quality
+
   if (_gappedLen == 0) {
     fputs("cns\n", F);
     fputs("qlt\n", F);
+
   } else {
-    //fputs("cns ", F);  fwrite(_gappedBases, sizeof(char), _gappedLen, F);  fputs("\n", F);
-    //fputs("qlt ", F);  fwrite(_gappedQuals, sizeof(char), _gappedLen, F);  fputs("\n", F);
     fputs("cns ", F);  fputs(_gappedBases, F);  fputs("\n", F);  //  strings are null terminated now, but expected to be long.
     fputs("qlt ", F);  fputs(_gappedQuals, F);  fputs("\n", F);
   }
+
+  //  Adjust QV's back to no encoding
+
+  for (uint32 ii=0; ii<_gappedLen; ii++)
+    _gappedQuals[ii] -= '!';
+  
+  //  Properties.
 
   fprintf(F, "coverageStat    %f\n", _coverageStat);
   fprintf(F, "microhetProb    %f\n", _microhetProb);
@@ -452,6 +465,8 @@ tgTig::dumpLayout(FILE *F) {
   fprintf(F, "suggestCircular %c\n", _suggestCircular ? 'T' : 'F');
   fprintf(F, "suggestHaploid  %c\n", _suggestHaploid  ? 'T' : 'F');
   fprintf(F, "numChildren     "F_U32"\n", _childrenLen);
+
+  //  And the reads.
 
   for (uint32 i=0; i<_childrenLen; i++) {
     tgPosition *imp = _children + i;
@@ -617,10 +632,36 @@ tgTig::loadLayout(FILE *F) {
 }
 
 
+void
+tgTig::dumpFASTA(FILE *F, bool useGapped) {
+  AS_UTL_writeFastA(F,
+                    bases(useGapped), length(useGapped), 100,
+                    "@tig%08u len="F_U32" reads="F_U32" covStat=%.2f gappedBases=%s suggestRepeat=%s suggestUnique=%s suggestCircular=%s suggestHaploid=%s\n",
+                    tigID(),
+                    length(useGapped),
+                    numberOfChildren(),
+                    _coverageStat,
+                    (useGapped) ? "yes" : "no",
+                    _suggestRepeat ? "yes" : "no",
+                    _suggestUnique ? "yes" : "no",
+                    _suggestCircular ? "yes" : "no",
+                    _suggestHaploid ? "yes" : "no");
+}
+
 
 void
-tgTig::dumpFASTQ(FILE *F) {
+tgTig::dumpFASTQ(FILE *F, bool useGapped) {
   AS_UTL_writeFastQ(F,
-                    ungappedBases(), ungappedLength(),
-                    ungappedQuals(), ungappedLength(), "@utg%08u\n", tigID());
+                    bases(useGapped), length(useGapped),
+                    quals(useGapped), length(useGapped),
+                    "@tig%08u len="F_U32" reads="F_U32" covStat=%.2f gappedBases=%s suggestRepeat=%s suggestUnique=%s suggestCircular=%s suggestHaploid=%s\n",
+                    tigID(),
+                    length(useGapped),
+                    numberOfChildren(),
+                    _coverageStat,
+                    (useGapped) ? "yes" : "no",
+                    _suggestRepeat ? "yes" : "no",
+                    _suggestUnique ? "yes" : "no",
+                    _suggestCircular ? "yes" : "no",
+                    _suggestHaploid ? "yes" : "no");
 }

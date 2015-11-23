@@ -482,7 +482,7 @@ public:
     for (uint32 i=0; i<seqLen; i++)
       if (corrSeq[i] == 'N') {
         corrSeq[i] = letters[i & 0x03];
-        corrQlt[i] = '0';
+        corrQlt[i] = 0;
       }
 
     clrBgn = 0;
@@ -594,7 +594,6 @@ public:
       //          origQlt[i], origQlt[i], readName, origQlt);
 
       origQlt[i] -= '!';
-      origQlt[i] += '0';
     }
 
     //  Copy to the corrected sequence
@@ -616,7 +615,7 @@ public:
           (corrSeq[i] != 'T')) {
         numReplace++;
         corrSeq[i] = letters[i & 0x03];
-        corrQlt[i] = '0';
+        corrQlt[i] = 0;
       }
 
     seqLen   = strlen(origSeq);
@@ -986,7 +985,7 @@ mertrimComputation::correctMismatch(uint32 pos, uint32 mNum, uint32 mExtra, bool
               (isReversed == false) ? pos : seqLen - pos,
               corrSeq[pos], mNum,
               rB,           rV,
-              corrQlt[pos] - '0',
+              corrQlt[pos],
               (isReversed == false) ? "fwd" : "rev",
               nA, nC, nG, nT);
     else
@@ -995,7 +994,7 @@ mertrimComputation::correctMismatch(uint32 pos, uint32 mNum, uint32 mExtra, bool
               (isReversed == false) ? pos : seqLen - pos,
               corrSeq[pos], mNum,
               rB,           rV,
-              corrQlt[pos] - '0',
+              corrQlt[pos],
               (isReversed == false) ? "fwd" : "rev");
   }  //  VERBOSE
 
@@ -1069,7 +1068,7 @@ mertrimComputation::correctIndel(uint32 pos, uint32 mNum, uint32 mExtra, bool is
               (isReversed == false) ? pos : seqLen - pos,
               corrSeq[pos], mNum,
               rV,
-              corrQlt[pos] - '0',
+              corrQlt[pos],
               (isReversed == false) ? "fwd" : "rev");
 
     }  //  VERBOSE
@@ -2170,10 +2169,8 @@ mertrimWriterFASTQ(mertrimGlobalData *g, mertrimComputation *s) {
 
   //  Convert from CA QV to Sanger QV
 
-  for (uint32 i=0; s->corrQlt[i]; i++) {
-    s->corrQlt[i] -= '0';
+  for (uint32 i=0; s->corrQlt[i]; i++)
     s->corrQlt[i] += '!';
-  }
 
   //  If no sequence, write a single N, with low QV (! == lowest).
 
