@@ -103,8 +103,9 @@ private:
 
 class abBeadID {
 public:
-  abBeadID()  { _id = UINT32_MAX; };
-  ~abBeadID() {                   };
+  abBeadID()           { _id = UINT32_MAX; };
+  abBeadID(uint32 id)  { _id = id;         };  //  This is probably dangerous.
+  ~abBeadID()          {                   };
 
   //operator const size_t () { return(_id); };
   abBeadID  &operator+(uint32 x) { _id += x;  return(*this); };

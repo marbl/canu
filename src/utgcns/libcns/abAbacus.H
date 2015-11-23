@@ -276,6 +276,10 @@ public:
   char            baseCall(abColID      cid,
                            bool         highQuality);
 
+  void            appendBases(int32     alen, abBeadID *aindex,
+                              abSeqID   bfid,
+                              uint32    bgn,  uint32    end);
+
   void            applyAlignment(abSeqID  afid,
                                  int32    alen, abBeadID *aindex,
                                  abSeqID  bfid,

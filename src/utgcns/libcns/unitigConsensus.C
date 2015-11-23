@@ -289,41 +289,31 @@ unitigConsensus::generateQuick(tgTig                     *tig_,
     return(false);
   }
 
+  //  The quick variety doesn't generate alignments, it just pastes read bases into
+  //  frankenstein.  It still needs to find a placement for the read, and it uses the
+  //  other placed reads for that.
+
   while (moreFragments()) {
     reportStartingWork();
 
+    piid = -1;
     computePositionFromLayout();
 
-    //  If the read is contained in frankenstein, nothing for us to do.
+    gkRead  *read    = gkpStore->gkStore_getRead(utgpos[tiid].ident());
+    uint32   readLen = read->gkRead_sequenceLength();
 
-    if (frankensteinLen < cnspos[tiid].max()) {
+    uint32   bHang   = cnspos[tiid].max() - frankensteinLen;
 
-      //  The quick variety doesn't generate alignments, it just pastes read bases into
-      //  frankenstein.  We fake that by making an empty trace, and setting the offsets
-      //  to point to the start of the read to paste in.
+    //  appendBases() will append only if new bases are needed.  Otherwise, it just
+    //  sets the first/last bead position.
 
-      gkRead  *read    = gkpStore->gkStore_getRead(utgpos[tiid].ident());
-      uint32   readLen = read->gkRead_sequenceLength();
+    abacus->appendBases(frankensteinLen, frankensteinBof,
+                        tiid,
+                        cnspos[tiid].min(),
+                        cnspos[tiid].max());
 
-      uint32   bHang   = cnspos[tiid].max() - frankensteinLen;
-
-      traceABgn = frankensteinLen;
-      traceBBgn = readLen - bHang;
-
-      //fprintf(stderr, "ID %u len %u POSITION %d %d frankensteinlen %d trace A %d trace B %d\n",
-      //        utgpos[tiid].ident(), readLen,
-      //        cnspos[tiid].min(), cnspos[tiid].max(), frankensteinLen, traceABgn, traceBBgn);
-
-      trace[0] = 0;
-      traceLen = 0;
-
-      abacus->applyAlignment(abSeqID(),
-                             frankensteinLen, frankensteinBof,
-                             tiid,
-                             traceABgn, traceBBgn, trace, traceLen);
-    }
-
-    //  Skipped reads don't need to do this, except to clear piid.
+    //  I _think_ we need to rebuild iff bases are added.  This also resets positions for each read.
+    //  Until someone complains this is too slow, it's left in.
 
     rebuild(false, false);
   }
@@ -857,16 +847,11 @@ unitigConsensus::rebuild(bool recomputeFullConsensus, bool display) {
     abColumn   *fcol  = abacus->getColumn(fbead);
     abColumn   *lcol  = abacus->getColumn(lbead);
 
-    //  If we added bases in Quick mode, there is no column associated with the
-    //  first bead, so skip the update.
+    cnspos[i].set(fcol->position(),
+                  lcol->position() + 1);
 
-    if ((fcol != NULL) && (lcol != NULL)) {
-      cnspos[i].set(fcol->position(),
-                    lcol->position() + 1);
-
-      assert(cnspos[i].min() >= 0);
-      assert(cnspos[i].max() > cnspos[i].min());
-    }
+    assert(cnspos[i].min() >= 0);
+    assert(cnspos[i].max() > cnspos[i].min());
   }
 
   //  Finally, update the anchor/hang of the fragment we just placed.

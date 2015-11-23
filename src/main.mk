@@ -118,6 +118,7 @@ SOURCES      := AS_global.C \
                 utgcns/libNDalign/NDalgorithm-reverse.C \
                 \
                 utgcns/libcns/abAbacus-addRead.C \
+                utgcns/libcns/abAbacus-appendBases.C \
                 utgcns/libcns/abAbacus-applyAlignment.C \
                 utgcns/libcns/abAbacus-baseCall.C \
                 utgcns/libcns/abAbacus-mergeRefine.C \
