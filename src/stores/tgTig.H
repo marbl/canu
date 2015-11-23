@@ -232,13 +232,13 @@ private:
 
   uint32               gappedLength(void)                  { return(_gappedLen);   };
   char                *gappedBases(void)                   { return(_gappedBases); };
-  char                *gappedQuals(void)                   { return(_gappedBases); };
+  char                *gappedQuals(void)                   { return(_gappedQuals); };
 
   void                 buildUngapped(void);
 
   uint32               ungappedLength(void)                { buildUngapped();  return(_ungappedLen);   };
   char                *ungappedBases(void)                 { buildUngapped();  return(_ungappedBases); };
-  char                *ungappedQuals(void)                 { buildUngapped();  return(_ungappedBases); };
+  char                *ungappedQuals(void)                 { buildUngapped();  return(_ungappedQuals); };
 
 public:
   uint32               mapGappedToUngapped(uint32 p)       { buildUngapped();  return(_gappedToUngapped[p]); };
