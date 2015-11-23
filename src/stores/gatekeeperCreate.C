@@ -210,8 +210,8 @@ loadFASTQ(char                 *L,
       case 'n':   S[i] = 'N';  break;
       case 'N':                break;
       default:
-        S[i]       = 'N';
-        Q[i]       = '!';  //  QV=0, ASCII=33
+        S[i] = 'N';
+        Q[i] = '!';  //  QV=0, ASCII=33
         baseErrors++;
         break;
     }
@@ -245,8 +245,6 @@ loadFASTQ(char                 *L,
       Q[i] = '!' + 60;
       QVerrors++;
     }
-
-    Q[i] -= '!';
   }
 
   if (QVerrors > 0) {

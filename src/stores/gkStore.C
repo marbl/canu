@@ -361,7 +361,11 @@ gkRead::gkRead_encodeSeqQlt(char *H, char *S, char *Q) {
   //  scores are possible in assemblies or read maps)."
   //  The encoding starts at ! and ends with ~
 
-  uint8  *qseq = NULL;
+  //  Convert the expected Sanger-encoded QV's (base='!') to be just integers.
+  for (uint32 ii=0; ii<Qlen; ii++)
+    Q[ii] -= '!';
+
+  //uint8  *qseq = NULL;
 
   _seqLen    = Slen;
 
@@ -371,6 +375,10 @@ gkRead::gkRead_encodeSeqQlt(char *H, char *S, char *Q) {
   rd->gkReadData_encodeBlobChunk("USEQ", Slen,  S);         //  Unencoded sequence
   rd->gkReadData_encodeBlobChunk("UQLT", Qlen,  Q);         //  Unencoded quality
   rd->gkReadData_encodeBlobChunk("STOP",    0,  NULL);
+
+  //  Restore the QV's.
+  for (uint32 ii=0; ii<Qlen; ii++)
+    Q[ii] += '!';
 
   return(rd);
 }
