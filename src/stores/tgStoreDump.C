@@ -55,6 +55,7 @@ const char *mainid = "$Id$";
 
 #include "tgTigSizeAnalysis.H"
 
+#undef  DEBUG_IGNORE
 
 #define DUMP_UNSET               0
 #define DUMP_STATUS              1
@@ -110,7 +111,24 @@ public:
   };
 
   bool          ignore(tgTig *tig, bool useGapped) {
-    return(ignoreID(tig) || ignoreNreads(tig) || ignoreLength(tig, useGapped) || ignoreCoverage(tig, useGapped));
+#ifdef DEBUG_IGNORE
+    bool   iI = ignoreID(tig);
+    bool   iN = ignoreNreads(tig);
+    bool   iL = ignoreLength(tig, useGapped);
+    bool   iC = ignoreCoverage(tig, useGapped);
+
+    fprintf(stderr, "ignore()--  tig %u - ignore id %s Nreads %s length %s coverage %s\n",
+            tig->tigID(),
+            (iI) ? "true" : "false",
+            (iN) ? "true" : "false",
+            (iL) ? "true" : "false",
+            (iC) ? "true" : "false");
+#endif
+
+    return(ignoreID(tig) ||
+           ignoreNreads(tig) ||
+           ignoreLength(tig, useGapped) ||
+           ignoreCoverage(tig, useGapped));
   };
 
   bool          ignoreID(tgTig *tig) {
@@ -270,6 +288,7 @@ dumpConsensus(gkStore *UNUSED(gkpStore), tgStore *tigStore, tgFilter &filter, bo
     tgTig  *tig = tigStore->loadTig(ti);
 
     if (tig->consensusExists() == false) {
+      //fprintf(stderr, "dumpConsensus()-- tig %u has no consensus sequence.\n", ti);
       tigStore->unloadTig(ti);
       continue;
     }
