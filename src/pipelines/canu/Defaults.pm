@@ -774,16 +774,61 @@ sub setParametersFromCommandLine(@) {
 
 
 
+#  Converts number with units to gigabytes.  If no units, gigabytes is assumed.
 sub adjustMemoryValue ($) {
     my $val = shift @_;
 
-    $val = $1 * 1024         if ($val =~ m/(\d+.*\d*)[tT]/);
-    $val = $1                if ($val =~ m/(\d+.*\d*)[gG]/);
-    $val = $1 / 1024         if ($val =~ m/(\d+.*\d*)[mM]/);
-    $val = $1 / 1024 / 1024  if ($val =~ m/(\d+.*\d*)[kK]/);
+    return(undef)                     if (!defined($val));
 
-    return($val);
+    return($1)                        if ($val =~ m/^(\d+\.{0,1}\d*)$/);
+    return($1 / 1024 / 1024)          if ($val =~ m/^(\d+\.{0,1}\d*)[kK]$/);
+    return($1 / 1024)                 if ($val =~ m/^(\d+\.{0,1}\d*)[mM]$/);
+    return($1)                        if ($val =~ m/^(\d+\.{0,1}\d*)[gG]$/);
+    return($1 * 1024)                 if ($val =~ m/^(\d+\.{0,1}\d*)[tT]$/);
+    return($1 * 1024 * 1024)          if ($val =~ m/^(\d+\.{0,1}\d*)[pP]$/);
+
+    die "Invalid memory value '$val'\n";
 }
+
+
+#  Converts gigabytes to number with units.
+sub displayMemoryValue ($) {
+    my $val = shift @_;
+
+    return(($val * 1024 * 1024)        . "k")   if ($val < adjustMemoryValue("1m"));
+    return(($val * 1024)               . "m")   if ($val < adjustMemoryValue("1g"));
+    return(($val)                      . "g")   if ($val < adjustMemoryValue("1t"));
+    return(($val / 1024)               . "t");
+}
+
+
+#  Converts number with units to bases.
+sub adjustGenomeSize ($) {
+    my $val = shift @_;
+
+    return(undef)               if (!defined($val));
+
+    return($1)                  if ($val =~ m/^(\d+\.{0,1}\d*)$/i);
+    return($1 * 1000)           if ($val =~ m/^(\d+\.{0,1}\d*)[kK]$/i);
+    return($1 * 1000000)        if ($val =~ m/^(\d+\.{0,1}\d*)[mM]$/i);
+    return($1 * 1000000000)     if ($val =~ m/^(\d+\.{0,1}\d*)[gG]$/i);
+    return($1 * 1000000000000)  if ($val =~ m/^(\d+\.{0,1}\d*)[tT]$/i);
+
+    die "Invalid genome size '$val'\n";
+}
+
+
+#  Converts bases to number with units.
+sub displayGenomeSize ($) {
+    my $val = shift @_;
+
+    return(($val))                        if ($val < adjustGenomeSize("1k"));
+    return(($val / 1000)          . "k")  if ($val < adjustGenomeSize("1m"));
+    return(($val / 1000000)       . "m")  if ($val < adjustGenomeSize("1g"));
+    return(($val / 1000000000)    . "g")  if ($val < adjustGenomeSize("1t"));
+    return(($val / 1000000000000) . "t");
+}
+
 
 
 sub checkParameters ($) {
@@ -840,14 +885,6 @@ sub checkParameters ($) {
 
         setGlobal("minOverlapLength", $mo);
     }
-
-    #
-    #  Adjust memory to be gigabytes.  All the others, specifying algorithm options, are adjusted 
-    #  in getAllowedResources()
-    #
-
-    setGlobal("gridMemory",   adjustMemoryValue(getGlobal("gridMemory")));
-    setGlobal("masterMemory", adjustMemoryValue(getGlobal("masterMemory")));
 
     #
     #  Check for invalid usage
@@ -954,9 +991,7 @@ sub checkParameters ($) {
     caExit("required parameter 'errorRate' is not set", undef)   if (! defined(getGlobal("errorRate")));
     caExit("required parameter 'genomeSize' is not set", undef)  if (! defined(getGlobal("genomeSize")));
 
-    setGlobal("genomeSize", $1 * 1000)        if (getGlobal("genomeSize") =~ m/(\d+.*\d*)k/i);
-    setGlobal("genomeSize", $1 * 1000000)     if (getGlobal("genomeSize") =~ m/(\d+.*\d*)m/i);
-    setGlobal("genomeSize", $1 * 1000000000)  if (getGlobal("genomeSize") =~ m/(\d+.*\d*)g/i);
+    setGlobal("genomeSize", adjustGenomeSize(getGlobal("genomeSize")));
 
     #
     #  Java?  Need JRE 1.8.
@@ -1222,7 +1257,145 @@ sub checkParameters ($) {
     setGlobalIfUndef("cnsErrorRate",         3.0 * getGlobal("errorRate"));
 
     #
-    #  Finally, process all the memory/thread settings to make them compatible with our
+    #  Adjust memory to be gigabytes (all the others, specifying algorithm options, are adjusted 
+    #  in getAllowedResources()).
+    #
+
+    setGlobal("gridMemory",   adjustMemoryValue(getGlobal("gridMemory")));
+    setGlobal("masterMemory", adjustMemoryValue(getGlobal("masterMemory")));
+
+    #
+    #  If masterMemory or masterThreads isn't defined, pick a reasonable pair based on genome size.
+    #
+
+    if (!defined(getGlobal("masterMemory")) || !defined(getGlobal("masterThreads"))) {
+        my  $minMemoryD = "";
+        my  $minMemory  = 0;
+        my  $minThreads = 0;
+
+        #  Based on genome size, pick some arbitrary minimums to meet.
+
+        if      (getGlobal("genomeSize") < adjustGenomeSize("40m")) {
+            $minMemoryD = "4g";
+            $minThreads = 1;
+
+        } elsif (getGlobal("genomeSize") < adjustGenomeSize("500m")) {
+            $minMemoryD = "8g";
+            $minThreads = 4;
+
+        } elsif (getGlobal("genomeSize") < adjustGenomeSize("2g")) {
+            $minMemoryD = "64g";
+            $minThreads = 8;
+
+        } elsif (getGlobal("genomeSize") < adjustGenomeSize("5g")) {
+            $minMemoryD = "128g";
+            $minThreads = 16;
+
+        } else {
+            $minMemoryD = "512g";
+            $minThreads = 32;
+        }
+
+        $minMemory = adjustMemoryValue($minMemoryD);
+
+        print STDERR "--\n";
+        print STDERR "-- For genomeSize ", displayGenomeSize(getGlobal("genomeSize")), ", $minMemoryD memory and $minThreads threads seems reasonable.\n";
+
+        #  Set the masterMemory/masterThreads to the minimum if not defined.
+
+        if (!defined(getGlobal("masterMemory"))) {
+            print STDERR "--   masterMemory  not defined, set to $minMemoryD\n";
+            setGlobal("masterMemory", $minMemory);
+        } else {
+            print STDERR "--   masterMemory  defined, current value ", displayMemoryValue(getGlobal("masterMemory")) . "\n";
+        }
+
+        if (!defined(getGlobal("masterThreads"))) {
+            print STDERR "--   masterThreads not defined, set to $minThreads\n";
+            setGlobal("masterThreads", $minThreads);
+        } else {
+            print STDERR "--   masterThreads defined, current value ", getGlobal("masterThreads") . "\n";
+        }
+
+        my $reqMemory  = getGlobal("masterMemory");
+        my $reqThreads = getGlobal("masterThreads");
+
+        if     (($reqMemory < $minMemory) && ($reqThreads < $minThreads)) {
+            print STDERR "--\n";
+            print STDERR "--  WARNING:  supplied masterMemory and masterThreads are both smaller than suggested!\n";
+        } elsif ($reqMemory < $minMemory) {
+            print STDERR "--\n";
+            print STDERR "--  WARNING:  supplied masterMemory is smaller than suggested!\n";
+        } elsif ($reqThreads < $minThreads) {
+            print STDERR "--\n";
+            print STDERR "--  WARNING:  supplied masterMemory is smaller than suggested!\n";
+        }
+
+        #
+        #  Now, tricky.  We need to decide if we can run a job with reqMemory/reqThreads.  We've
+        #  already decided that these are sufficient to run the job, we just need to decide if we
+        #  can actually run the job.
+        #
+
+        #  If we're useGridMaster=0, make sure the minimums are below what the machine has.
+
+        if (getGlobal("useGridMaster") == 0) {
+            if ((getPhysicalMemorySize() < $reqMemory) ||
+                (getNumberOfCPUs()       < $reqThreads)) {
+                print STDERR "--\n";
+                print STDERR "-- WARNING: For genome size ", displayGenomeSize(getGlobal("genomeSize")), " I suggest minimum values:\n";
+                print STDERR "-- WARNING:   masterMemory=$minMemoryD\n";
+                print STDERR "-- WARNING:   masterThreads=$minThreads\n";
+                print STDERR "-- WARNING:\n";
+                print STDERR "-- WARNING: This machine has only:\n";
+                print STDERR "-- WARNING:   masterMemory=", displayMemoryValue(getPhysicalMemorySize()), "\n";
+                print STDERR "-- WARNING:   masterThreads=", getNumberOfCPUs(), "\n";
+                print STDERR "-- WARNING:\n";
+                print STDERR "-- WARNING: If the values are close, the assembly might be possible, but you need to\n";
+                print STDERR "-- WARNING: set masterMemory and masterThreads manually.\n";
+                print STDERR "--\n";
+                caExit("machine limits exceeded", undef);
+            }
+
+            print STDERR "--\n";
+            print STDERR "-- Local host has ", displayMemoryValue(getPhysicalMemorySize()), " memory and ", getNumberOfCPUs(), " CPUs.\n";
+        }
+
+        #  If we're useGridMaster=1, make sure there is at least one host on the grid that can run the job.
+
+        if (getGlobal("useGridMaster") == 1) {
+            my @grid   = split '\0', getGlobal("availableHosts");
+            my $nHosts = 0;
+            my $tHosts = 0;
+
+            foreach my $g (@grid) {
+                my ($cpu, $mem, $num) = split '-', $g;
+
+                $tHosts += $num;
+                $nHosts += $num   if (($reqMemory <= $mem) && ($reqThreads <= $cpu));
+            }
+
+            if ($nHosts == 0) {
+                print STDERR "--\n";
+                print STDERR "-- WARNING: For genome size ", getGlobal("genomeSize"), " I suggest minimum values:\n";
+                print STDERR "-- WARNING:   masterMemory=$minMemoryD\n";
+                print STDERR "-- WARNING:   masterThreads=$minThreads\n";
+                print STDERR "-- WARNING:\n";
+                print STDERR "-- WARNING: There are no suitable hosts in the grid (listed above).\n";
+                print STDERR "-- WARNING:\n";
+                print STDERR "-- WARNING: If the values are close, the assembly might be possible, but you need to\n";
+                print STDERR "-- WARNING: set masterMemory and masterThreads manually.\n";
+                print STDERR "--\n";
+                caExit("machine limits exceeded", undef);
+            }
+
+            print STDERR "--\n";
+            print STDERR "-- Found $nHosts ", (($nHosts == 1) ? "host" : "hosts"), " that we can run jobs with ", displayMemoryValue($minMemory), " memory and $minThreads threads.\n";
+        }
+    }
+
+    #
+    #  Process all the memory/thread settings to make them compatible with our
     #  hardware.  These wanted to be closer to their use (like right before the various
     #  scripts are written), but it needs to be done everytime canu starts, otherwise,
     #  the canu invocation that writes scripts get the fixes, and the canu invocation
@@ -1545,11 +1718,13 @@ sub setDefaults () {
     setExecDefaults("grid",   "parallel jobs",                          undef, undef);  #  gridThreads and gridMemory, other settingss are unused
     setExecDefaults("master", "master script",                          undef, undef);  #  masterThreads and masterMemory and masterConcurrency
 
-    $global{"gridMemory"}         = undef;                     #  Unset.  User can limit if wanted.
+    #  Unlimit both grid and master configs.
+
+    $global{"gridMemory"}         = undef;
     $global{"gridThreads"}        = undef;
 
-    $global{"masterMemory"}       = getPhysicalMemorySize();   #  Set to this machine.
-    $global{"masterThreads"}      = getNumberOfCPUs();
+    $global{"masterMemory"}       = undef;
+    $global{"masterThreads"}      = undef;
     #$global{"masterConcurrency"}  = undef;
 
     $global{"useGrid"}            = 1;
