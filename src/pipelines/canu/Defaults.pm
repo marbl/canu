@@ -1276,24 +1276,24 @@ sub checkParameters ($) {
         #  Based on genome size, pick some arbitrary minimums to meet.
 
         if      (getGlobal("genomeSize") < adjustGenomeSize("40m")) {
-            $minMemoryD = "4g";
-            $minThreads = 1;
+            $minMemoryD = "8g";
+            $minThreads =  4;
 
         } elsif (getGlobal("genomeSize") < adjustGenomeSize("500m")) {
-            $minMemoryD = "8g";
-            $minThreads = 4;
+            $minMemoryD = "32g";
+            $minThreads =  4;
 
         } elsif (getGlobal("genomeSize") < adjustGenomeSize("2g")) {
-            $minMemoryD = "64g";
-            $minThreads = 8;
+            $minMemoryD = "128g";
+            $minThreads =  8;
 
         } elsif (getGlobal("genomeSize") < adjustGenomeSize("5g")) {
-            $minMemoryD = "128g";
-            $minThreads = 16;
+            $minMemoryD = "256g";
+            $minThreads =  16;
 
         } else {
             $minMemoryD = "512g";
-            $minThreads = 32;
+            $minThreads =  32;
         }
 
         $minMemory = adjustMemoryValue($minMemoryD);
@@ -1358,7 +1358,7 @@ sub checkParameters ($) {
             }
 
             print STDERR "--\n";
-            print STDERR "-- Local host has ", displayMemoryValue(getPhysicalMemorySize()), " memory and ", getNumberOfCPUs(), " CPUs.\n";
+            print STDERR "-- Local host has ", displayMemoryValue(getPhysicalMemorySize()), " memory and ", getNumberOfCPUs(), " CPUs, and can run jobs with ", displayMemoryValue($minMemory), " memory and $minThreads threads.\n";
         }
 
         #  If we're useGridMaster=1, make sure there is at least one host on the grid that can run the job.
