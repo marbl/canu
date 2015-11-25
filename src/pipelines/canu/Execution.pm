@@ -792,9 +792,32 @@ sub submitScript ($$$) {
     #  docs online (for bsub.1) claim that we can still use jobToWaitOn.
 
     if (defined($jobToWaitOn)) {
-        (my $hold = getGlobal("gridEngineHoldOption")) =~ s/WAIT_TAG/$jobToWaitOn/;
+        my $hold = getGlobal("gridEngineHoldOption");
+
+        # most grid engines don't understand job names to hold on, only IDs
+        if (uc(getGlobal("gridEngine")) eq "LSF" || uc(getGlobal("gridEngine")) eq "PBS" || uc(getGlobal("gridEngine")) eq "SLURM"){
+           my $tcmd = getGlobal("gridEngineNameToJobIDCommand");
+           $tcmd =~ s/WAIT_TAG/$jobToWaitOn/g;
+           my $propJobCount = `$tcmd |wc -l`;
+           chomp $propJobCount;
+           if ($propJobCount == 0) {
+              $tcmd = getGlobal("gridEngineNameToJobIDCommandNoArray");
+              $tcmd =~ s/WAIT_TAG/$jobToWaitOn/g;
+              $hold = getGlobal("gridEngineHoldOptionNoArray");
+              $propJobCount = `$tcmd |wc -l`;
+           }
+           if ($propJobCount != 1) {
+              print STDERR "Warning: multiple IDs for job $jobToWaitOn got $propJobCount and should have been 1.\n";
+           }
+           my $jobID = `$tcmd |tail -n 1 |awk '{print \$1}'`;
+           chomp $jobID;
+           $hold =~ s/WAIT_TAG/$jobID/g;
+        } else {
+           $hold =~ s/WAIT_TAG/$jobToWaitOn/;
+        }
         $gridOpts .= " " . $hold;
     }
+
 
     my $submitCommand        = getGlobal("gridEngineSubmitCommand");
     my $nameOption           = getGlobal("gridEngineNameOption");
@@ -848,7 +871,7 @@ sub buildMemoryOption ($$) {
     my $t = shift @_;
     my $r;
 
-    if (getGlobal("gridEngine") eq "SGE") {
+    if (getGlobal("gridEngine") eq "SGE" || getGlobal("gridEngine") eq "LSF") {
         $m /= $t;
     }
 

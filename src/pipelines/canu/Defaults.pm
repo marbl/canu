@@ -36,7 +36,7 @@ package canu::Defaults;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(getCommandLineOptions addCommandLineOption writeLog caExit caFailure getNumberOfCPUs getPhysicalMemorySize getAllowedResources diskSpace printHelp setParametersFromFile setParametersFromCommandLine checkParameters getGlobal setGlobal showErrorRates setErrorRate setDefaults);
+@EXPORT = qw(getCommandLineOptions addCommandLineOption writeLog caExit caFailure getNumberOfCPUs getPhysicalMemorySize getAllowedResources formatAllowedResources diskSpace printHelp setParametersFromFile setParametersFromCommandLine checkParameters getGlobal setGlobal showErrorRates setErrorRate setDefaults);
 
 use strict;
 use Carp qw(cluck);
@@ -339,6 +339,35 @@ sub expandRange ($$) {
     return(@r);
 }
 
+sub formatAllowedResources(\%) {
+    my $hosts_ref = shift @_;
+    my %hosts = %$hosts_ref;
+    my $hosts = "";
+
+    #
+    # Process all the memory/thread settings to make them compatible with our
+    # hardware.  These wanted to be closer to their use (like right before the various
+    # scripts are written), but it needs to be done everytime canu starts, otherwise,
+    # the canu invocation that writes scripts get the fixes, and the canu invocation
+    # that runs the scripts does not.
+    # 
+
+    print STDERR "-- \n";
+
+    foreach my $c (keys %hosts) {
+        my ($cpus, $mem) = split '-', $c;
+        my  $nodes       = $hosts{$c};
+
+        printf(STDERR "-- Found %3d host%s with %3d core%s and %4d GB memory under Sun Grid Engine control.\n",
+               $nodes, ($nodes == 1) ? " " : "s",
+               $cpus,  ($cpus  == 1) ? " " : "s",
+               $mem);
+
+        $hosts .= "\0"                  if (defined($hosts));
+        $hosts .= "$cpus-$mem-$nodes";
+    }
+    return $hosts;                            
+}
 
 #  Side effect!  This will RESET the $global{} parameters to the computed value.  This lets
 #  the rest of canu - in particular, the part that runs the jobs - use the correct value.  Without
@@ -1182,42 +1211,62 @@ sub checkParameters ($) {
             $hosts{"$cpus-$mem"}++;
         }
         close(F);
-
-        print STDERR "--\n";
-
-        foreach my $c (keys %hosts) {
-            my ($cpus, $mem) = split '-', $c;
-            my  $nodes       = $hosts{$c};
-
-            printf(STDERR "-- Found %3d host%s with %3d core%s and %4d GB memory under Sun Grid Engine control.\n",
-                   $nodes, ($nodes == 1) ? " " : "s",
-                   $cpus,  ($cpus  == 1) ? " " : "s",
-                   $mem);
-
-            $hosts .= "\0"                  if (defined($hosts));
-            $hosts .= "$cpus-$mem-$nodes";
-        }
-
-        setGlobal("availableHosts", $hosts);
+        setGlobal("availableHosts", formatAllowedResources(%hosts));
     }
 
     if (uc(getGlobal("gridEngine")) eq "PBS") {
-        setGlobalIfUndef("gridEngineSubmitCommand",              "qsub");
-        setGlobalIfUndef("gridEngineHoldOption",                 "-W depend=afterany:\"WAIT_TAG\"");
-        setGlobalIfUndef("gridEngineHoldOptionNoArray",          undef);
-        setGlobalIfUndef("gridEngineSyncOption",                 "");
-        setGlobalIfUndef("gridEngineNameOption",                 "-d `pwd` -N");
-        setGlobalIfUndef("gridEngineArrayOption",                "-t ARRAY_JOBS");
-        setGlobalIfUndef("gridEngineArrayName",                  "ARRAY_NAME\[ARRAY_JOBS\]");
-        setGlobalIfUndef("gridEngineOutputOption",               "-j oe -o");
-        setGlobalIfUndef("gridEnginePropagateCommand",           "qalter -W depend=afterany:\"WAIT_TAG\"");
-        setGlobalIfUndef("gridEngineThreadsOption",              undef);
-        setGlobalIfUndef("gridEngineMemoryOption",               undef);
-        setGlobalIfUndef("gridEngineNameToJobIDCommand",         undef);
-        setGlobalIfUndef("gridEngineNameToJobIDCommandNoArray",  undef);
-        setGlobalIfUndef("gridEngineTaskID",                     "\$PBS_TASKNUM");
-        setGlobalIfUndef("gridEngineArraySubmitID",              "\\\$PBS_TASKNUM");
-        setGlobalIfUndef("gridEngineJobID",                      "PBS_JOBID");
+        setGlobalIfUndef("gridEngineSubmitCommand",         	"qsub");
+        setGlobalIfUndef("gridEngineHoldOption",    	     	"-W depend=afteranyarray:\"WAIT_TAG\"");
+        setGlobalIfUndef("gridEngineHoldOptionNoArray", 	"-W depend=afterany:\"WAIT_TAG\"");
+        setGlobalIfUndef("gridEngineSyncOption",         	"");
+        setGlobalIfUndef("gridEngineNameOption",         	"-d `pwd` -N");
+        setGlobalIfUndef("gridEngineArrayOption",        	"-t ARRAY_JOBS");
+        setGlobalIfUndef("gridEngineArrayName",          	"ARRAY_NAME\[ARRAY_JOBS\]");
+        setGlobalIfUndef("gridEngineOutputOption",       	"-j oe -o");
+        setGlobalIfUndef("gridEngineThreadsOption",             "-l nodes=1:ppn=THREAD");
+        setGlobalIfUndef("gridEngineMemoryOption",              "-l mem=MEMORY");
+        setGlobalIfUndef("gridEnginePropagateCommand",   	"qalter -W depend=afterany:\"WAIT_TAG\"");
+        setGlobalIfUndef("gridEngineNameToJobIDCommand", 	"qstat -f |grep -F -B 1 WAIT_TAG | grep Id: | grep -F [] |awk '{print \$NF}'");
+        setGlobalifUndef("gridEngineNameToJobIDCommandNoArray", "qstat -f |grep -F -B 1 WAIT_TAG | grep Id: |awk '{print \$NF}'");
+        setGlobalIfUndef("gridEngineTaskID",                    "\$PBS_ARRAYID");
+        setGlobalIfUndef("gridEngineArraySubmitID",             "\\\$PBS_ARRAYID");
+        setGlobalIfUndef("gridEngineJobID",                     "PBS_JOBID");
+
+        #  Build a list of the resources available in the grid.  This will contain a list with keys
+        #  of "#CPUs-#GBs" and values of the number of nodes With such a config.  Later on, we'll use this
+        #  to figure out what specific settings to use for each algorithm.
+        #
+        #  The list is saved in global{"availableHosts"}
+        #
+        #  !!! UNTESTED !!!
+        #
+        my %hosts;
+
+        open(F, "pbsnodes |");
+
+        while (<F>) {
+            my $cpus = 0;
+            my $mem = 0;
+            if ($_ =~ m/status/) {
+               my @stats = split ',', $_;
+               for my $stat (@stats) {
+                  if ($stat =~ m/physmem/) {
+                     $mem = ( split '=', $stat )[-1];
+                  } elsif ($stat =~ m/ncpus/) {
+                     $cpus = int(( split '=', $stat )[-1]);
+                  }
+               }
+               $mem  = $1 * 1024         if ($mem =~ m/(\d+.*\d+)[tT]/);
+               $mem  = $1 * 1            if ($mem =~ m/(\d+.*\d+)[gG]/);
+               $mem  = $1 / 1024         if ($mem =~ m/(\d+.*\d+)[mM]/);
+               $mem  = $1 / 1024 / 1024  if ($mem =~ m/(\d+.*\d+)[kK]/);
+               $mem  = int($mem);
+               $hosts{"$cpus-$mem"}++;
+            }
+        }
+        close(F);
+
+        setGlobal("availableHosts", formatAllowedResources(%hosts));
     }
 
     if (uc(getGlobal("gridEngine")) eq "LSF") {
@@ -1229,14 +1278,120 @@ sub checkParameters ($) {
         setGlobalIfUndef("gridEngineArrayOption",                "");
         setGlobalIfUndef("gridEngineArrayName",                  "ARRAY_NAME\[ARRAY_JOBS\]");
         setGlobalIfUndef("gridEngineOutputOption",               "-o");
-        setGlobalIfUndef("gridEnginePropagateCommand",           "bmodify -w \"done\(\"WAIT_TAG\"\)\"");
         setGlobalIfUndef("gridEngineThreadsOption",              undef);
         setGlobalIfUndef("gridEngineMemoryOption",               undef);
+        setGlobalIfUndef("gridEnginePropagateCommand",           "bmodify -w \"done\(\"WAIT_TAG\"\)\"");
         setGlobalIfUndef("gridEngineNameToJobIDCommand",         "bjobs -A -J \"WAIT_TAG\" | grep -v JOBID");
         setGlobalIfUndef("gridEngineNameToJobIDCommandNoArray",  "bjobs -J \"WAIT_TAG\" | grep -v JOBID");
         setGlobalIfUndef("gridEngineTaskID",                     "\$LSB_JOBINDEX");
         setGlobalIfUndef("gridEngineArraySubmitID",              "%I");
         setGlobalIfUndef("gridEngineJobID",                      "LSB_JOBID");
+
+        #  Build a list of the resources available in the grid.  This will contain a list with keys
+        #  of "#CPUs-#GBs" and values of the number of nodes With such a config.  Later on, we'll use this
+        #  to figure out what specific settings to use for each algorithm.
+        #
+        #  The list is saved in global{"availableHosts"}
+        #
+        #  !!! UNTESTED !!
+        #
+        my %hosts;
+
+        open(F, "lshosts |");
+
+        my $h = <F>;  #  header
+
+        my @h = split '\s+', $h;
+
+        my $cpuIdx  = 4;
+        my $memIdx  = 5;
+
+        for (my $ii=0; ($ii < scalar(@h)); $ii++) {
+            $cpuIdx  = $ii  if ($h[$ii] eq "ncpus");
+            $memIdx  = $ii  if ($h[$ii] eq "maxmem");
+        }
+
+        while (<F>) {
+            my @v = split '\s+', $_;
+
+            my $cpus  = $v[$cpuIdx];
+            my $mem   = $v[$memIdx];
+
+            $mem  = $1 * 1024  if ($mem =~ m/(\d+.*\d+)[tT]/);
+            $mem  = $1 * 1     if ($mem =~ m/(\d+.*\d+)[gG]/);
+            $mem  = $1 / 1024  if ($mem =~ m/(\d+.*\d+)[mM]/);
+            $mem  = int($mem);
+
+            $hosts{"$cpus-$mem"}++;
+        }
+        close(F);
+        setGlobal("availableHosts", formatAllowedResources(%hosts));
+    }
+
+    if (uc(getGlobal("gridEngine")) eq "SLURM") {
+        setGlobalIfUndef("gridEngineSubmitCommand",      	"sbatch");                                        
+        setGlobalIfUndef("gridEngineHoldOption",         	"--depend=afterany:\"WAIT_TAG\"");                
+        setGlobalIfUndef("gridEngineHoldOptionNoArray",  	"--depend=afterany:\"WAIT_TAG\"");                
+        setGlobalIfUndef("gridEngineSyncOption",         	"");                                          ## TODO: SLURM may not support w/out wrapper; See LSF bsub manpage to compare
+        setGlobalIfUndef("gridEngineNameOption",         	"-D `pwd` -J");                                   
+        setGlobalIfUndef("gridEngineArrayOption",        	"-a ARRAY_JOBS");                                 
+        setGlobalIfUndef("gridEngineArrayName",          	"ARRAY_NAME\[ARRAY_JOBS\]");                      
+        setGlobalIfUndef("gridEngineOutputOption",       	"-o");                                        ## NB: SLURM default joins STDERR & STDOUT if no -e specified
+        setGlobalIfUndef("gridEngineThreadsOption",         	"--cpus-per-task=THREADS");
+        setGlobalIfUndef("gridEngineMemoryOption",		"--mem=MEMORY");
+        setGlobalIfUndef("gridEnginePropagateCommand",   	"scontrol update job=\"WAIT_TAG\"");          ## TODO: manually verify this in all cases
+        setGlobalIfUndef("gridEngineNameToJobIDCommand", 	"squeue -h -o\%F -n \"WAIT_TAG\" | uniq");  ## TODO: manually verify this in all cases
+        setGlobalIfUndef("gridEngineNameToJobIDCommandNoArray", "squeue -h -o\%i -n \"WAIT_TAG\"");    ## TODO: manually verify this in all cases
+        setGlobalIfUndef("gridEngineTaskID",             	"\$SLURM_ARRAY_TASK_ID");                         
+        setGlobalIfUndef("gridEngineArraySubmitID",      	"%A_%a");                                     
+        setGlobalIfUndef("gridEngineJobID",              	"SLURM_JOB_ID");                               
+
+
+        #  Build a list of the resources available in the grid.  This will contain a list with keys
+        #  of "#CPUs-#GBs" and values of the number of nodes With such a config.  Later on, we'll use this
+        #  to figure out what specific settings to use for each algorithm.
+        #
+        #  The list is saved in global{"availableHosts"}
+        #
+        my %hosts;
+
+        open(F, "sinfo --Node --long |");
+
+        my $b = <F>;  #  date/time
+        my $h = <F>;  #  header
+
+        my @h = split '\s+', $h;
+
+        my $nodeIdx = 1;
+        my $cpuIdx  = 4;
+        my $memIdx  = 6;
+
+        for (my $ii=0; ($ii < scalar(@h)); $ii++) {
+            $nodeIdx = $ii  if ($h[$ii] eq "NODES");
+            $cpuIdx  = $ii  if ($h[$ii] eq "CPUS");
+            $memIdx  = $ii  if ($h[$ii] eq "MEMORY");
+        }
+
+        while (<F>) {
+            my @v = split '\s+', $_;
+
+            my $cpus  = $v[$cpuIdx];
+            my $mem   = $v[$memIdx];
+            my $nodes = $v[$nodeIdx];
+
+            if ($mem =~ m/(\d+.*\d+)[tT]/) {
+               $mem = $1 * 1024;
+            } elsif ($mem =~ m/(\d+.*\d+)[gG]/) {
+               $mem  = $1 * 1;
+            } else {
+               $mem  /= 1024;
+            }
+            $mem  = int($mem);
+
+            $hosts{"$cpus-$mem"}+=int($nodes);
+        }
+        close(F);
+        setGlobal("availableHosts", formatAllowedResources(%hosts));
     }
 
     #
@@ -1393,14 +1548,6 @@ sub checkParameters ($) {
             print STDERR "-- Found $nHosts ", (($nHosts == 1) ? "host" : "hosts"), " that we can run jobs with ", displayMemoryValue($minMemory), " memory and $minThreads threads.\n";
         }
     }
-
-    #
-    #  Process all the memory/thread settings to make them compatible with our
-    #  hardware.  These wanted to be closer to their use (like right before the various
-    #  scripts are written), but it needs to be done everytime canu starts, otherwise,
-    #  the canu invocation that writes scripts get the fixes, and the canu invocation
-    #  that runs the scripts does not.
-    #
 
     my $err;
     my $all;
@@ -1673,10 +1820,32 @@ sub setDefaults () {
     #  submitScript() and submitOrRunParallelJob() will return without submitting, or run locally
     #  (respectively).  This means that we can just trivially change the defaults for useGrid and
     #  useGridMaster to 'enabled' and it'll do the right thing when SGE isn't present.
+    #
+    my $pbs = `which pbsnodes 2> /dev/null`;
+    chomp $pbs;
+    my $slurm = `which sbatch 2> /dev/null`;
+    chomp $slurm;
+    my $lsf = `which bsub 2>/dev/null`;
+    chomp $lsf;
 
     if (defined($ENV{'SGE_ROOT'})) {
         print STDERR "-- Detected Sun Grid Engine in '$ENV{'SGE_ROOT'}/$ENV{'SGE_CELL'}'.\n";
         $global{"gridEngine"} = "SGE";
+    } elsif (defined($slurm) && $slurm ne "") {
+        $slurm = `dirname $slurm`;
+        chomp $slurm;
+        print STDERR "-- Detected Slurm Engine in $slurm.\n";
+        $global{"gridEngine"} = "SLURM";
+    } elsif (defined($pbs) && $pbs ne "") {
+        $pbs = `dirname $pbs`;
+        chomp $pbs;
+        print STDERR "-- Detected PBS/Torque Engine in $pbs.\n";
+        $global{"gridEngine"} = "PBS";
+    } elsif (defined($lsf) && $lsf ne "") {
+        $lsf= `dirname $lsf`;
+        chomp $lsf;
+        print STDERR "-- Detected Slurm Engine in $lsf.\n";
+        $global{"gridEngine"} = "LSF";
     } else {
         print STDERR "-- No grid engine detected, grid disabled.\n";
     }
