@@ -1869,7 +1869,7 @@ sub setDefaults () {
     #####  Grid Engine configuration and parameters, for each step of the pipeline (memory, threads)
 
     setExecDefaults("cns",    "unitig consensus",                       "4-16:2",  "1");
-    setExecDefaults("cor",    "read correction",                        "4-8:2",   "2,4,6,8");
+    setExecDefaults("cor",    "read correction",                        "8-16:2",  "2-10:2");
     setExecDefaults("red",    "read error detection",                   "4-16:2",  "2,4,6,8");
     setExecDefaults("oea",    "overlap error adjustment",               "4-16:2",  "1");
 
