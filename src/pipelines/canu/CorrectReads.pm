@@ -327,7 +327,7 @@ sub buildCorrectionLayouts_piped ($$) {
     print F "  --min_idt " . (1-getGlobal("corErrorRate")) . " \\\n";  #  0.70 for pacbio, 0.50 for nanoport
     print F "  --output_multi \\\n";
     print F "  --local_match_count_threshold 2 \\\n";  #  Suspicious window - 2 suspicious regions in a window (of 100bp) will split a read (0 for nanopore)
-    print F "  --min_cov 4 \\\n";
+    print F "  --min_cov " . getGlobal("corMinCoverage") . " \\\n";
     print F "  --n_core " . getGlobal("corThreads") . " \\\n";
     print F "  > $path/correction_outputs/\$jobid.fasta.WORKING \\\n";
     print F " 2> $path/correction_outputs/\$jobid.err \\\n";
