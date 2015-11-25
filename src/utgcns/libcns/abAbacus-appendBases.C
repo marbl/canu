@@ -46,7 +46,7 @@ abAbacus::appendBases(int32     alen, abBeadID *aindex,
   //  Space-based, so the end element is the (n-1)th element.
   //
   abColID fc =                 getBead(aindex[bgn  ])->colIdx();
-  abColID lc = (alen >= end) ? getBead(aindex[end-1])->colIdx() : getBead(aindex[alen-1])->colIdx();
+  abColID lc = (end <= alen) ? getBead(aindex[end-1])->colIdx() : getBead(aindex[alen-1])->colIdx();
 
   //  To get positions in output, we need to have both the first and last beads
   //  placed in the multialign.  The first bead is always aligned, but the last bead
@@ -54,14 +54,42 @@ abAbacus::appendBases(int32     alen, abBeadID *aindex,
 
   alignBeadToColumn(fc, bfrag->firstBead(), "");
 
-  if (alen >= end)
+  if (end <= alen)
     alignBeadToColumn(lc, bfrag->lastBead(), "");
 
-  //  If not contained, push on bases, and update the consensus base.
+  //  If not contained, push on bases, and update the consensus base.  This is all _very_ rough.
+  //  The unitig-supplied coordinates aren't guaranteed to contain 'blen' bases.  We make the
+  //  obvious guess as to where the frankenstein ends in the read, and push on bases from there till
+  //  the end.
+  //
+  //  The obvious guess is to add exactly enough bases to make the new frankenstein end at
+  //  the expected length.
+  //
+  //                      alen
+  //                      v              blen
+  //  --------------------               v
+  //           --------------------------
+  //           ^          ^              ^
+  //           bgn        bpos           end    !! end-bgn != blen !!
+  //
 
   else
-    for (uint32 bpos=alen; bpos<end; bpos++) {
-      lc = appendColumn(lc, bfrag->getBead(bpos-bgn));
+    for (uint32 bpos=blen - (end - alen); bpos<blen; bpos++) {
+      lc = appendColumn(lc, bfrag->getBead(bpos));
       baseCallMajority(lc);
     }
+
+  //  If we did this correctly, then the first/last column indices should agree with the read placement.
+
+  //assert(bgn   == getBead(bfrag->getBead(0))->colIdx().get());
+  //assert(end-1 == getBead(bfrag->getBead(blen-1))->colIdx().get());
+
+  assert(bgn   == getBead(bfrag->firstBead())->colIdx().get());
+  assert(end-1 == getBead(bfrag->lastBead())->colIdx().get());
+
+  //  Report.
+
+  //fprintf(stderr, "appendBases()-- cols %d %d\n",
+  //        getBead(bfrag->getBead(0))->colIdx().get(),
+  //        getBead(bfrag->getBead(blen-1))->colIdx().get());
 }
