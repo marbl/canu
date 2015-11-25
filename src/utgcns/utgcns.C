@@ -389,8 +389,11 @@ main (int argc, char **argv) {
         if (gkpStore->gkStore_getReadInPartition(tig->getChild(ii)->ident()) == NULL)
           missingReads++;
 
-      if (missingReads)
+      if (missingReads) {
+        fprintf(stderr, "SKIP unitig %u with %u reads found only %u reads in partition, skipped\n",
+                tig->tigID(), tig->numberOfChildren(), tig->numberOfChildren() - missingReads);
         continue;
+      }
     }
 
     if (tig->length(true) > maxLen) {

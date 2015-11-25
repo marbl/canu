@@ -158,6 +158,8 @@ main(int argc, char **argv) {
   bool             wantReads         = true;
   bool             wantStats         = false;  //  Useful only for reads
 
+  bool             fullDump          = true;
+
   uint32           bgnID             = 1;
   uint32           endID             = UINT32_MAX;
 
@@ -181,6 +183,9 @@ main(int argc, char **argv) {
       wantLibs  = false;
       wantReads = true;
       wantStats = false;
+
+    } else if (strcmp(argv[arg], "-full") == 0) {
+      fullDump = true;
 
     } else if (strcmp(argv[arg], "-stats") == 0) {
       wantLibs  = false;
@@ -214,7 +219,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "                   partition 'p', if supplied.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -libs            dump information about libraries\n");
-    fprintf(stderr, "  -reads           dump information about reads\n");
+    fprintf(stderr, "  -reads [-full]   dump information about reads\n");
+    fprintf(stderr, "                     (-full also dumps some storage metadata)\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -stats           dump summary statistics on reads\n");
     fprintf(stderr, "\n");
@@ -253,7 +259,7 @@ main(int argc, char **argv) {
     dumpLibs(gkpStore, bgnID, endID);
 
   if (wantReads)
-    dumpReads(gkpStore, bgnID, endID, false);
+    dumpReads(gkpStore, bgnID, endID, fullDump);
 
   if (wantStats)
     dumpStats(gkpStore, bgnID, endID);
