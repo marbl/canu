@@ -685,7 +685,7 @@ sub printHelp ($) {
         print "    -nanopore-raw       <files>\n";
         print "    -nanopore-corrected <files>\n";
         print "\n";
-        print "Complete documentation at http://canu.github.io/\n";
+        print "Complete documentation at http://canu.readthedocs.org/en/latest/\n";
         print "\n";
         print $global{"help"};
         exit(0);
