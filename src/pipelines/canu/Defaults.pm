@@ -1223,11 +1223,11 @@ sub checkParameters ($) {
         setGlobalIfUndef("gridEngineArrayOption",        	"-t ARRAY_JOBS");
         setGlobalIfUndef("gridEngineArrayName",          	"ARRAY_NAME\[ARRAY_JOBS\]");
         setGlobalIfUndef("gridEngineOutputOption",       	"-j oe -o");
-        setGlobalIfUndef("gridEngineThreadsOption",             "-l nodes=1:ppn=THREAD");
+        setGlobalIfUndef("gridEngineThreadsOption",             "-l nodes=1:ppn=THREADS");
         setGlobalIfUndef("gridEngineMemoryOption",              "-l mem=MEMORY");
         setGlobalIfUndef("gridEnginePropagateCommand",   	"qalter -W depend=afterany:\"WAIT_TAG\"");
         setGlobalIfUndef("gridEngineNameToJobIDCommand", 	"qstat -f |grep -F -B 1 WAIT_TAG | grep Id: | grep -F [] |awk '{print \$NF}'");
-        setGlobalifUndef("gridEngineNameToJobIDCommandNoArray", "qstat -f |grep -F -B 1 WAIT_TAG | grep Id: |awk '{print \$NF}'");
+        setGlobalIfUndef("gridEngineNameToJobIDCommandNoArray", "qstat -f |grep -F -B 1 WAIT_TAG | grep Id: |awk '{print \$NF}'");
         setGlobalIfUndef("gridEngineTaskID",                    "\$PBS_ARRAYID");
         setGlobalIfUndef("gridEngineArraySubmitID",             "\\\$PBS_ARRAYID");
         setGlobalIfUndef("gridEngineJobID",                     "PBS_JOBID");
