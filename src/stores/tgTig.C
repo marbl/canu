@@ -636,7 +636,7 @@ void
 tgTig::dumpFASTA(FILE *F, bool useGapped) {
   AS_UTL_writeFastA(F,
                     bases(useGapped), length(useGapped), 100,
-                    "@tig%08u len="F_U32" reads="F_U32" covStat=%.2f gappedBases=%s suggestRepeat=%s suggestUnique=%s suggestCircular=%s suggestHaploid=%s\n",
+                    ">tig%08u len="F_U32" reads="F_U32" covStat=%.2f gappedBases=%s suggestRepeat=%s suggestUnique=%s suggestCircular=%s suggestHaploid=%s\n",
                     tigID(),
                     length(useGapped),
                     numberOfChildren(),
