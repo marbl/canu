@@ -51,7 +51,7 @@ package canu::Execution;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(stopBefore stopAfter skipStage emitStage touch getInstallDirectory getBinDirectory getBinDirectoryShellCode submitScript submitOrRunParallelJob runCommand runCommandSilently);
+@EXPORT = qw(stopBefore stopAfter skipStage emitStage touch getInstallDirectory getBinDirectory getBinDirectoryShellCode submitScript submitOrRunParallelJob runCommand runCommandSilently findExecutable);
 
 use strict;
 use Config;            #  for @signame
@@ -1301,6 +1301,19 @@ sub runCommandSilently ($$) {
     return(1);
 }
 
+
+
+sub findExecutable ($) {
+    my $exec = shift @_;
+
+    my $path = `which \"$exec\" 2> /dev/null`;
+
+    $path =~ s/^\s+//;
+    $path =~ s/\s+$//;
+
+    return(undef)  if ($path eq "");
+    return($path);
+}
 
 
 1;
