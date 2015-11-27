@@ -36,7 +36,7 @@ package canu::Meryl;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(meryl);
+@EXPORT = qw(meryl getGenomeCoverge);
 
 use strict;
 
@@ -130,7 +130,17 @@ sub plotHistogram ($$$$) {
     runCommandSilently("$wrk/0-mercounts", "gnuplot $ofile.histogram.$suffix.gp > /dev/null 2>&1");
 }
 
+sub getGenomeCoverage($$$) {
+    my $wrk     = shift @_;
+    my $asm     = shift @_;
+    my $merSize = shift @_;
+    my $bin     = getBinDirectory();
 
+    my $gs=`cat $wrk/0-mercounts/$asm.ms$merSize.estMerThresh.err | grep "Guessed X coverage"|awk '{print \$NF}'`;
+    chomp $gs;
+
+    return $gs;
+}
 
 sub meryl ($$$) {
     my $WRK    = shift @_;  #  Root work directory (the -d option to canu)

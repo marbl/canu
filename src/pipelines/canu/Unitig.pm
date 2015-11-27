@@ -46,11 +46,12 @@ use canu::Defaults;
 use canu::Execution;
 use canu::Gatekeeper;
 use canu::HTML;
+use canu::Meryl;
 
-
-sub bogart ($$$) {
+sub bogart ($$$$) {
     my $wrk  = shift @_;
     my $asm  = shift @_;
+    my $genomeCoverage = shift @_;
     my $per  = shift @_;
     my $bin  = getBinDirectory();
     my $cmd;
@@ -70,6 +71,7 @@ sub bogart ($$$) {
     $cmd .= " -threads " . getGlobal("batThreads")         . " \\\n"   if defined(getGlobal("batThreads"));
     $cmd .= " -M "       . getGlobal("batMemory")          . " \\\n"   if defined(getGlobal("batMemory"));
     $cmd .= " "          . getGlobal("batOptions")         . " \\\n"   if defined(getGlobal("batOptions"));
+    $cmd .= " -repeatdetect 6 " . $genomeCoverage . " 15"  . " \\\n"   if defined($genomeCoverage);
     $cmd .= " > $wrk/4-unitigger/unitigger.err 2>&1";
 
     return($cmd);
@@ -143,13 +145,14 @@ sub unitig ($$) {
 
     my $perPart = int(getNumberOfReadsInStore($wrk, $asm) / getGlobal("cnsPartitions"));
     my $minPart = getGlobal("cnsPartitionMin");
+    my $genomeCoverage = getGenomeCoverage($wrk, $asm, getGlobal("utgOvlMerSize"));
 
     $perPart = ($perPart < $minPart) ? ($perPart) : ($minPart);
 
     my $cmd;
 
     if      (getGlobal("unitigger") eq "bogart") {
-        $cmd = bogart($wrk, $asm, $perPart);
+        $cmd = bogart($wrk, $asm, $genomeCoverage, $perPart);
 
     } else {
         caFailure("unknown unitigger '" . getGlobal("unitigger") . "'", undef);
