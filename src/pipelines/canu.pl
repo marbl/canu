@@ -48,6 +48,13 @@ use Carp;
 use canu::Defaults;
 use canu::Execution;
 
+use canu::Configure;
+
+use canu::Grid_SGE;
+use canu::Grid_Slurm;
+use canu::Grid_PBSTorque;
+use canu::Grid_LSF;
+
 use canu::Gatekeeper;
 use canu::Meryl;
 use canu::OverlapInCore;
@@ -84,6 +91,20 @@ print STDERR "-- Detected ", getNumberOfCPUs(), " CPUs and ", getPhysicalMemoryS
 #  Initialize our defaults.  Must be done before defaults are reported in printHelp() below.
 
 setDefaults();
+
+#  Detect grid support.  If 'gridEngine' isn't set, the execution methods submitScript() and
+#  submitOrRunParallelJob() will return without submitting, or run locally (respectively).  This
+#  means that we can leave the default of 'useGrid' to 'true', and execution will do the right thing
+#  when there isn't a grid.
+
+detectSGE();
+detectSlurm();
+detectPBSTorque();
+detectLSF();
+
+if (!defined(getGlobal("gridEngine"))) {
+    print STDERR "-- No grid engine detected, grid disabled.\n";
+}
 
 #  Check for the presence of a -options switch BEFORE we do any work.
 #  This lets us print the default values of options.
@@ -231,6 +252,18 @@ setParametersFromCommandLine(@specOpts);
 #  Finish setting parameters.
 
 checkParameters($bin);
+
+#  Finish setting up the grid.  This is done AFTER parameters are set from the command line, to
+#  let the user override any of our defaults.
+
+configureSGE();
+configureSlurm();
+configurePBSTorque();
+configureLSF();
+
+#  Based on genomeSize, configure the execution of every component.  This needs to be done AFTER the grid is setup!
+
+configureAssembler();
 
 #  If anything complained, global{'help'} will be defined, and we'll print help (and the error) and
 #  stop.
