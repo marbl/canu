@@ -101,7 +101,7 @@ sub getAllowedResources ($$$$) {
 
     #  If no grid, or grid not enabled, everything falls under 'lcoal'.
 
-    my $class = ((getGlobal("useGrid") == 0) || (getGlobal("gridEngine") eq undef)) ? "local" : "grid";
+    my $class = ((getGlobal("useGrid") == 1) && (defined(getGlobal("gridEngine")))) ? "grid" : "local";
 
     #  Figure out limits.
 
@@ -452,7 +452,7 @@ sub configureAssembler () {
 
         #  If we're not running jobs on the grid, make sure the minimums are below what the machine has.
 
-        if (getGlobal("useGrid") == 0) {
+        if ((getGlobal("useGrid") != 1) || (!defined(getGlobal("gridEngine")))) {
             if ((getPhysicalMemorySize() < $reqMemory) ||
                 (getNumberOfCPUs()       < $reqThreads)) {
                 print STDERR "--\n";
