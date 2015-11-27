@@ -49,8 +49,6 @@ sub configureSGE () {
 
     return   if (uc(getGlobal("gridEngine")) ne "SGE");
 
-    print STDERR "SET SGE\n";
-
     setGlobalIfUndef("gridEngineSubmitCommand",              "qsub");
     setGlobalIfUndef("gridEngineHoldOption",                 "-hold_jid \"WAIT_TAG\"");
     setGlobalIfUndef("gridEngineHoldOptionNoArray",          undef);
