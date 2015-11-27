@@ -92,20 +92,6 @@ print STDERR "-- Detected ", getNumberOfCPUs(), " CPUs and ", getPhysicalMemoryS
 
 setDefaults();
 
-#  Detect grid support.  If 'gridEngine' isn't set, the execution methods submitScript() and
-#  submitOrRunParallelJob() will return without submitting, or run locally (respectively).  This
-#  means that we can leave the default of 'useGrid' to 'true', and execution will do the right thing
-#  when there isn't a grid.
-
-detectSGE();
-detectSlurm();
-detectPBSTorque();
-detectLSF();
-
-if (!defined(getGlobal("gridEngine"))) {
-    print STDERR "-- No grid engine detected, grid disabled.\n";
-}
-
 #  Check for the presence of a -options switch BEFORE we do any work.
 #  This lets us print the default values of options.
 
@@ -252,6 +238,27 @@ setParametersFromCommandLine(@specOpts);
 #  Finish setting parameters.
 
 checkParameters($bin);
+
+#  Detect grid support.  If 'gridEngine' isn't set, the execution methods submitScript() and
+#  submitOrRunParallelJob() will return without submitting, or run locally (respectively).  This
+#  means that we can leave the default of 'useGrid' to 'true', and execution will do the right thing
+#  when there isn't a grid.
+
+detectSGE();
+detectSlurm();
+detectPBSTorque();
+detectLSF();
+
+#  Report if no grid engine found, or if the user has disabled grid support.
+
+if (!defined(getGlobal("gridEngine"))) {
+    print STDERR "-- No grid engine detected, grid disabled.\n";
+}
+
+if ((getGlobal("useGrid") == 0) && (defined(getGlobal("gridEngine")))) {
+    print STDERR "-- Grid engine disabled per useGrid=false option.\n";
+    setGlobal("gridEngine", undef);
+}
 
 #  Finish setting up the grid.  This is done AFTER parameters are set from the command line, to
 #  let the user override any of our defaults.
