@@ -368,7 +368,7 @@ sub meryl ($$$) {
 
         caFailure("didn't find any mers?", "$ofile.histogram.info")  if ($totalMers == 0);
 
-        my $filterThreshold = (getGlobal("${tag}MhapSensitivity") eq "normal") ?   0.000005 :   0.000005;  #  Also set in Meryl.pm
+        my $filterThreshold = (getGlobal("${tag}MhapSensitivity") eq "normal") ?   getGlobal("${tag}MhapFilterThreshold") :   getGlobal("${tag}MhapFilterThreshold");  #  Also set in Meryl.pm
         my $minCount        = int($filterThreshold * $totalMers);
 
         open(F, "$bin/meryl -Dt -n $minCount -s $ofile | ")  or die "Failed to run meryl to generate frequent mers $!\n";

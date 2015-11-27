@@ -338,7 +338,7 @@ sub mhapConfigure ($$$$) {
     print F "cd $path/blocks\n";
     print F "\n";
     print F "$javaPath -server -Xmx", getGlobal("${tag}mhapMemory"), "g \\\n";
-    print F "  -jar \$bin/mhap-1.5b1.jar \\\n";
+    print F "  -jar \$bin/mhap-" . getGlobal("${tag}MhapVersion") . ".jar \\\n";
     print F "  --weighted -k $merSize \\\n";
     print F "  --num-hashes $numHashes \\\n";
     print F "  --num-min-matches $minNumMatches \\\n";
@@ -412,7 +412,7 @@ sub mhapConfigure ($$$$) {
     print F "\n";
     print F "if [ ! -e \"$path/results/\$qry.mhap\" ] ; then\n";
     print F "  $javaPath -server -Xmx", getGlobal("${tag}mhapMemory"), "g \\\n";
-    print F "    -jar \$bin/mhap-1.5b1.jar \\\n";
+    print F "    -jar \$bin/mhap-" . getGlobal("${tag}MhapVersion"). ".jar \\\n";
     print F "    --weighted -k $merSize \\\n";
     print F "    --num-hashes $numHashes \\\n";
     print F "    --num-min-matches $minNumMatches \\\n";

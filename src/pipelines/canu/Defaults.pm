@@ -1696,6 +1696,12 @@ sub setOverlapDefaults ($$$) {
 
     #  Mhap parameters.
 
+    $global{"${tag}MhapVersion"}	      = "1.5b1";
+    $synops{"${tag}MhapVersion"}	      = "Version of the MHAP jar file to use";
+
+    $global{"${tag}MhapFilter"}               = "0.000005";
+    $synops{"${tag}MhapFilter"}               = "Value between 0 and 1. kmers which comprise more than this percentage of the input are downweighted";
+
     $global{"${tag}MhapBlockSize"}            = 1500;
     $synops{"${tag}MhapBlockSize"}            = "Number of reads per 1GB; memory * blockSize = the size of  block loaded into memory per job";
 
@@ -1876,8 +1882,8 @@ sub setDefaults () {
 
     #####  Grid Engine configuration and parameters, for each step of the pipeline (memory, threads)
 
-    setExecDefaults("cns",    "unitig consensus",                       "12-16:2",  "1");
-    setExecDefaults("cor",    "read correction",                        "10-16:2",  "2-10:2");
+    setExecDefaults("cns",    "unitig consensus",                       "16-32:2",  "1");
+    setExecDefaults("cor",    "read correction",                        "8-16:2",  "2-16:2");
     setExecDefaults("red",    "read error detection",                   "4-16:2",  "2,4,6,8");
     setExecDefaults("oea",    "overlap error adjustment",               "4-16:2",  "1");
 
@@ -2017,10 +2023,10 @@ sub setDefaults () {
 
     #####  Correction Options
 
-    $global{"corPartitions"}               = 128;
+    $global{"corPartitions"}               = 500;
     $synops{"corPartitions"}               = "Partition read correction into N jobs";
 
-    $global{"corPartitionMin"}             = 25000;
+    $global{"corPartitionMin"}             = 10000;
     $synops{"corPartitionMin"}             = "Don't make a read correction partition with fewer than N reads";
 
     $global{"corMinEvidenceLength"}        = undef;
