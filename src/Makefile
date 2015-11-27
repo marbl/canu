@@ -493,9 +493,15 @@ all: $(addprefix ${TARGET_DIR}/,${ALL_TGTS}) \
      ${TARGET_DIR}/lib/canu \
      ${TARGET_DIR}/lib/canu/Consensus.pm \
      ${TARGET_DIR}/lib/canu/CorrectReads.pm \
+     ${TARGET_DIR}/lib/canu/Configure.pm \
      ${TARGET_DIR}/lib/canu/Defaults.pm \
      ${TARGET_DIR}/lib/canu/Execution.pm \
      ${TARGET_DIR}/lib/canu/Gatekeeper.pm \
+     ${TARGET_DIR}/lib/canu/Grid.pm \
+     ${TARGET_DIR}/lib/canu/Grid_LSF.pm \
+     ${TARGET_DIR}/lib/canu/Grid_PBSTorque.pm \
+     ${TARGET_DIR}/lib/canu/Grid_SGE.pm \
+     ${TARGET_DIR}/lib/canu/Grid_Slurm.pm \
      ${TARGET_DIR}/lib/canu/HTML.pm \
      ${TARGET_DIR}/lib/canu/Meryl.pm \
      ${TARGET_DIR}/lib/canu/Output.pm \
@@ -562,6 +568,9 @@ ${TARGET_DIR}/lib/canu/Consensus.pm: ${TARGET_DIR}/lib/canu pipelines/canu/Conse
 ${TARGET_DIR}/lib/canu/CorrectReads.pm: ${TARGET_DIR}/lib/canu pipelines/canu/CorrectReads.pm
 	cp -pf pipelines/canu/CorrectReads.pm ${TARGET_DIR}/lib/canu/
 
+${TARGET_DIR}/lib/canu/Configure.pm: ${TARGET_DIR}/lib/canu pipelines/canu/Configure.pm
+	cp -pf pipelines/canu/Configure.pm ${TARGET_DIR}/lib/canu/
+
 ${TARGET_DIR}/lib/canu/Defaults.pm: ${TARGET_DIR}/lib/canu pipelines/canu/Defaults.pm
 	cp -pf pipelines/canu/Defaults.pm ${TARGET_DIR}/lib/canu/
 
@@ -570,6 +579,21 @@ ${TARGET_DIR}/lib/canu/Execution.pm: ${TARGET_DIR}/lib/canu pipelines/canu/Execu
 
 ${TARGET_DIR}/lib/canu/Gatekeeper.pm: ${TARGET_DIR}/lib/canu pipelines/canu/Gatekeeper.pm
 	cp -pf pipelines/canu/Gatekeeper.pm ${TARGET_DIR}/lib/canu/
+
+${TARGET_DIR}/lib/canu/Grid.pm: ${TARGET_DIR}/lib/canu pipelines/canu/Grid.pm
+	cp -pf pipelines/canu/Grid.pm ${TARGET_DIR}/lib/canu/
+
+${TARGET_DIR}/lib/canu/Grid_LSF.pm: ${TARGET_DIR}/lib/canu pipelines/canu/Grid_LSF.pm
+	cp -pf pipelines/canu/Grid_LSF.pm ${TARGET_DIR}/lib/canu/
+
+${TARGET_DIR}/lib/canu/Grid_PBSTorque.pm: ${TARGET_DIR}/lib/canu pipelines/canu/Grid_PBSTorque.pm
+	cp -pf pipelines/canu/Grid_PBSTorque.pm ${TARGET_DIR}/lib/canu/
+
+${TARGET_DIR}/lib/canu/Grid_SGE.pm: ${TARGET_DIR}/lib/canu pipelines/canu/Grid_SGE.pm
+	cp -pf pipelines/canu/Grid_SGE.pm ${TARGET_DIR}/lib/canu/
+
+${TARGET_DIR}/lib/canu/Grid_Slurm.pm: ${TARGET_DIR}/lib/canu pipelines/canu/Grid_Slurm.pm
+	cp -pf pipelines/canu/Grid_Slurm.pm ${TARGET_DIR}/lib/canu/
 
 ${TARGET_DIR}/lib/canu/HTML.pm: ${TARGET_DIR}/lib/canu pipelines/canu/HTML.pm
 	cp -pf pipelines/canu/HTML.pm ${TARGET_DIR}/lib/canu/
