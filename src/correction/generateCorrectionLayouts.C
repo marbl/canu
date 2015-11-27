@@ -40,6 +40,10 @@ const char *mainid = "$Id:  $";
 
 using namespace std;
 
+//  Debugging on which reads are filtered, which are used, and which are removed
+//  to meet coverage thresholds.  Very big.
+#undef DEBUG_LAYOUT
+
 
 //  Generate a layout for the read in ovl[0].a_iid, using most or all of the overlaps
 //  in ovl.
@@ -50,10 +54,9 @@ generateLayout(gkStore    *gkpStore,
                uint32      minEvidenceLength,
                double      maxEvidenceErate,
                double      maxEvidenceCoverage,
-               uint32      minCorLength,
                ovOverlap *ovl,
                uint32      ovlLen,
-               FILE       *logFile) {
+               FILE       *flgFile) {
 
   tgTig  *layout = new tgTig;
 
@@ -72,8 +75,8 @@ generateLayout(gkStore    *gkpStore,
 
   resizeArray(layout->_children, layout->_childrenLen, layout->_childrenMax, ovlLen, resizeArray_doNothing);
 
-  if (logFile)
-    fprintf(logFile, "Generate layout for read "F_U32" length "F_U32" using up to "F_U32" overlaps.\n",
+  if (flgFile)
+    fprintf(flgFile, "Generate layout for read "F_U32" length "F_U32" using up to "F_U32" overlaps.\n",
             layout->_tigID, layout->_layoutLen, ovlLen);
 
   for (uint32 oo=0; oo<ovlLen; oo++) {
@@ -91,29 +94,29 @@ generateLayout(gkStore    *gkpStore,
     assert(ovlLength < AS_MAX_READLEN);
 
     if (ovl[oo].erate() > maxEvidenceErate) {
-      if (logFile)
-        fprintf(logFile, "  filter read %9u at position %6u,%6u length %5u erate %.3f - low quality (threshold %.2f)\n",
+      if (flgFile)
+        fprintf(flgFile, "  filter read %9u at position %6u,%6u length %5u erate %.3f - low quality (threshold %.2f)\n",
                 ovl[oo].b_iid, ovl[oo].a_bgn(), ovl[oo].a_end(), ovlLength, ovl[oo].erate(), maxEvidenceErate);
       continue;
     }
 
     if (ovl[oo].a_end() - ovl[oo].a_bgn() < minEvidenceLength) {
-      if (logFile)
-        fprintf(logFile, "  filter read %9u at position %6u,%6u length %5u erate %.3f - too short (threshold %u)\n",
+      if (flgFile)
+        fprintf(flgFile, "  filter read %9u at position %6u,%6u length %5u erate %.3f - too short (threshold %u)\n",
                 ovl[oo].b_iid, ovl[oo].a_bgn(), ovl[oo].a_end(), ovlLength, ovl[oo].erate(), minEvidenceLength);
       continue;
     }
 
     if ((readScores != NULL) &&
         (ovlScore < readScores[ovl[oo].b_iid])) {
-      if (logFile)
-        fprintf(logFile, "  filter read %9u at position %6u,%6u length %5u erate %.3f - filtered by global filter (threshold %u)\n",
+      if (flgFile)
+        fprintf(flgFile, "  filter read %9u at position %6u,%6u length %5u erate %.3f - filtered by global filter (threshold %u)\n",
                 ovl[oo].b_iid, ovl[oo].a_bgn(), ovl[oo].a_end(), ovlLength, ovl[oo].erate(), readScores[ovl[oo].b_iid]);
       continue;
     }
 
-    if (logFile)
-      fprintf(logFile, "  allow  read %9u at position %6u,%6u length %5u erate %.3f\n",
+    if (flgFile)
+      fprintf(flgFile, "  allow  read %9u at position %6u,%6u length %5u erate %.3f\n",
               ovl[oo].b_iid, ovl[oo].a_bgn(), ovl[oo].a_end(), ovlLength, ovl[oo].erate());
 
     tgPosition   *pos = layout->addChild();
@@ -147,8 +150,8 @@ generateLayout(gkStore    *gkpStore,
 
   savedChildren *sc = stashContains(layout, maxEvidenceCoverage);
 
-  if ((logFile) && (sc))
-    sc->reportRemoved(logFile, layout->tigID());
+  if ((flgFile) && (sc))
+    sc->reportRemoved(flgFile, layout->tigID());
 
   if (sc) {
     delete sc->children;
@@ -158,9 +161,9 @@ generateLayout(gkStore    *gkpStore,
   //  stashContains also sorts by position, so we're done.
 
 #if 0
-  if (logFile)
+  if (flgFile)
     for (uint32 ii=0; ii<layout->numberOfChildren(); ii++)
-      fprintf(logFile, "  read %9u at position %6u,%6u hangs %6d %6d %c unAl %5d %5d\n",
+      fprintf(flgFile, "  read %9u at position %6u,%6u hangs %6d %6d %c unAl %5d %5d\n",
               layout->getChild(ii)->_objID,
               layout->getChild(ii)->_min,
               layout->getChild(ii)->_max,
@@ -193,8 +196,8 @@ main(int argc, char **argv) {
   char              logName[FILENAME_MAX] = {0};
   char              sumName[FILENAME_MAX] = {0};
   char              flgName[FILENAME_MAX] = {0};
-  FILE             *logFile       = 0L;
-  FILE             *sumFile       = 0L;
+  FILE             *logFile = 0L;
+  FILE             *sumFile = 0L;
   FILE             *flgFile = 0L;
 
   argc = AS_configure(argc, argv);
@@ -375,9 +378,9 @@ main(int argc, char **argv) {
   //  Open logging and summary files
 
   if (outputPrefix) {
-    sprintf(logName, "%s.log",     outputPrefix);
-    sprintf(sumName, "%s.summary", outputPrefix);
-    sprintf(flgName, "%s.filter.log",     outputPrefix);
+    sprintf(logName, "%s.log",        outputPrefix);
+    sprintf(sumName, "%s.summary",    outputPrefix);
+    sprintf(flgName, "%s.filter.log", outputPrefix);
 
     errno = 0;
 
@@ -389,9 +392,11 @@ main(int argc, char **argv) {
     if (errno)
       fprintf(stderr, "Failed to open '%s' for writing: %s\n", sumName, strerror(errno)), exit(1);
 
+#ifdef DEBUG_LAYOUT
     flgFile = fopen(flgName, "w");
     if (errno)
       fprintf(stderr, "Failed to open '%s' for writing: %s\n", flgName, strerror(errno)), exit(1);
+#endif
   }
 
   if (logFile)
@@ -416,7 +421,6 @@ main(int argc, char **argv) {
     tgTig *layout = generateLayout(gkpStore,
                                    readScores,
                                    minEvidenceLength, maxEvidenceErate, maxEvidenceCoverage,
-                                   minCorLength,
                                    ovl, ovlLen,
                                    flgFile);
 
@@ -498,6 +502,9 @@ main(int argc, char **argv) {
 
   if (sumFile != NULL)
     fclose(sumFile);
+
+  if (flgFile != NULL)
+    fclose(flgFile);
 
   delete tigStore;
   delete ovlStore;
