@@ -33,6 +33,7 @@ require Exporter;
 use strict;
 
 use canu::Defaults;
+use canu::Execution;
 use canu::Grid;
 
 sub detectLSF () {
