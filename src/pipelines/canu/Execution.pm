@@ -716,8 +716,7 @@ sub submitScript ($$$) {
 
     #  If not requested to run on the grid, or can't run on the grid, fail.
 
-    return   if (getGlobal("useGrid")       == 0);
-    return   if (getGlobal("useGridMaster") == 0);
+    return   if (getGlobal("useGrid")       != 1);
     return   if (getGlobal("gridEngine")    eq undef);
 
     #  If no job to wait on, and we are already on the grid, do NOT resubmit ourself.
@@ -776,16 +775,21 @@ sub submitScript ($$$) {
 
     $jobName   = makeUniqueJobName("canu", $asm);
 
-    $memOption = buildMemoryOption(getGlobal("masterMemory"), getGlobal("masterThreads"));
-    $thrOption = buildThreadOption(getGlobal("masterThreads"));
+    #  The canu.pl script isn't expected to take resources.
 
-    $gridOpts  = getGlobal("gridOptions")          if (defined(getGlobal("gridOptions")));
-    $gridOpts .= " "                               if (defined($gridOpts));
-    $gridOpts  = getGlobal("gridOptionsMaster")    if (defined(getGlobal("gridOptionsMaster")));
-    $gridOpts .= " "                               if (defined($gridOpts));
-    $gridOpts .= $memOption                        if (defined($memOption));
-    $gridOpts .= " "                               if (defined($gridOpts));
-    $gridOpts .= $thrOption                        if (defined($thrOption));
+    #$memOption = buildMemoryOption(getGlobal("masterMemory"), getGlobal("masterThreads"));
+    #$thrOption = buildThreadOption(getGlobal("masterThreads"));
+
+    $memOption = buildMemoryOption(4, 1);
+    $thrOption = buildThreadOption(1);
+
+    $gridOpts  = getGlobal("gridOptions")             if (defined(getGlobal("gridOptions")));
+    $gridOpts .= " "                                  if (defined($gridOpts));
+    $gridOpts  = getGlobal("gridOptionsExecutive")    if (defined(getGlobal("gridOptionsExecutive")));
+    $gridOpts .= " "                                  if (defined($gridOpts));
+    $gridOpts .= $memOption                           if (defined($memOption));
+    $gridOpts .= " "                                  if (defined($gridOpts));
+    $gridOpts .= $thrOption                           if (defined($thrOption));
 
     #  If the jobToWaitOn is defined, make the script wait for that to complete.  LSF might need to
     #  query jobs in the queue and figure out the job ID (or IDs) for the jobToWaitOn.  Reading LSF
@@ -1028,7 +1032,7 @@ sub submitOrRunParallelJob ($$$$$@) {
     my $wrk          = shift @_;  #  Root of the assembly (NOT wrk/correction or wrk/trimming)
     my $asm          = shift @_;  #  Name of the assembly
 
-    my $jobType      = shift @_;  #  E.g., ovl, cns, ... - populates 'gridOptionsXXX and useGridXXX (former XXXOnGrid)
+    my $jobType      = shift @_;  #  E.g., ovl, cns, ... - populates 'gridOptionsXXX
                                   #                      - also becomes the grid job name prefix, so three letters suggested
 
     my $path         = shift @_;  #  Location of script to run
@@ -1051,11 +1055,8 @@ sub submitOrRunParallelJob ($$$$$@) {
 
     #  Break infinite loops.  If the grid jobs keep failing, give up after a few attempts.
     #
-    #  If useGridMaster = 0, this has no impact; canuIteration is incremented in submitScript() and
-    #  the initial value is zero.  It is reset during the Check() operation on each parallel step.
-    #
     #  submitScript() will increment canuIteration on each call.  It is reset to zero if the Check()
-    #  for any parallel step succeeds.
+    #  for any parallel step succeeds.  Thus, if useGrid=false, this has no impact.  (COMMENT PROBABLY NOT CORRECT)
     #
     #  Assuming grid jobs die on each attempt:
     #    Iteration 0 - the one run on the command line; submits iteration 1
@@ -1075,7 +1076,7 @@ sub submitOrRunParallelJob ($$$$$@) {
 
     #  Jobs under grid control, and we submit them
 
-    if (getGlobal("gridEngine") && getGlobal("useGrid") && getGlobal("useGrid$jobType") && (exists($ENV{getGlobal("gridEngineJobID")}))) {
+    if (getGlobal("gridEngine") && getGlobal("useGrid") && (exists($ENV{getGlobal("gridEngineJobID")}))) {
         my $cmd;
         my $jobName;
 
@@ -1094,7 +1095,7 @@ sub submitOrRunParallelJob ($$$$$@) {
 
     #  Jobs under grid control, but the user must submit them
 
-    if (getGlobal("gridEngine") && getGlobal("useGrid") && getGlobal("useGrid$jobType") && (! exists($ENV{getGlobal("gridEngineJobID")}))) {
+    if (getGlobal("gridEngine") && getGlobal("useGrid") && (! exists($ENV{getGlobal("gridEngineJobID")}))) {
         print STDERR "\n";
         print STDERR "Please submit the following jobs to the grid for execution using $mem gigabytes memory and $thr threads:\n";
         print STDERR "\n";
