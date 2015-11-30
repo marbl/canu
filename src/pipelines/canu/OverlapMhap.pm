@@ -85,10 +85,10 @@ sub mhapConfigure ($$$$) {
 
     #  Mhap parameters - filterThreshold needs to be a string, else it is printed as 5e-06.
 
-    my $numHashes       = (getGlobal("${tag}MhapSensitivity") eq "normal") ? "512"        : "768";
-    my $minNumMatches   = (getGlobal("${tag}MhapSensitivity") eq "normal") ?   "3"        :   "2";
-    my $threshold       = (getGlobal("${tag}MhapSensitivity") eq "normal") ?   "0.04"     :   "0.04";
-    my $filterThreshold = (getGlobal("${tag}MhapSensitivity") eq "normal") ?   "0.000005" :   "0.000005";  #  Also set in Meryl.pm
+    my $numHashes       = (getGlobal("${tag}MhapSensitivity") eq "normal") ? "512"                                    : "768";
+    my $minNumMatches   = (getGlobal("${tag}MhapSensitivity") eq "normal") ?   "3"                                    :   "2";
+    my $threshold       = (getGlobal("${tag}MhapSensitivity") eq "normal") ?   "0.04"                                 :   "0.04";
+    my $filterThreshold = (getGlobal("${tag}MhapSensitivity") eq "normal") ?   getGlobal("${tag}MhapFilterThreshold") :   getGlobal("${tag}MhapFilterThreshold"); #  Also set in Meryl.pm
 
     #  Constants.
 
