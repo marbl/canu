@@ -36,7 +36,7 @@ package canu::Meryl;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(meryl getGenomeCoverge);
+@EXPORT = qw(meryl getGenomeCoverage);
 
 use strict;
 
