@@ -874,13 +874,37 @@ sub buildMemoryOption ($$) {
     my $m = shift @_;
     my $t = shift @_;
     my $r;
+    my $u = "g";
 
-    if (getGlobal("gridEngine") eq "SGE" || getGlobal("gridEngine") eq "LSF") {
+    if (uc(getGlobal("gridEngine")) eq "SGE") {
         $m /= $t;
     }
 
+    if (uc(getGlobal("gridEngine")) eq "LSF") {
+       my $updated = 0;
+       if (defined(getGlobal("gridEngineMemoryUnits"))) {
+          if (getGlobal("gridEngineMemoryUnits") eq "t") {
+             $m = $m / 1024;
+             $updated++;
+          } elsif (getGlobal("gridEngineMemoryUnits") eq "g") {
+             $m = $m * 1;
+             $updated++;
+          } elsif (getGlobal("gridEngineMemoryUnits") eq "m") {
+             $m = $m * 1024;
+             $updated++;
+          } elsif (getGlobal("gridEngineMemoryUnits") eq "k") {
+             $m = $m * 1024 * 1024;
+             $updated++;
+          }
+       }
+       if ($updated == 0) {
+          print STDERR "-- Warning: unknown memory units for grid engine " . getGlobal("gridEngine") . " assuming KB\n";
+          $m = $m * 1024 * 1024;
+       }
+       $u = "";
+    }
     $r =  getGlobal("gridEngineMemoryOption");
-    $r =~ s/MEMORY/${m}g/;
+    $r =~ s/MEMORY/${m}${u}/;
 
     return($r);
 }

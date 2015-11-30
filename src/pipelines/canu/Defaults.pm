@@ -971,6 +971,7 @@ sub setDefaults () {
     $global{"gridEnginePropagateCommand"}           = undef;
     $global{"gridEngineThreadsOption"}              = undef;
     $global{"gridEngineMemoryOption"}               = undef;
+    $global{"gridEngineMemoryUnits"}                = undef;
     $global{"gridEngineNameToJobIDCommand"}         = undef;
     $global{"gridEngineNameToJobIDCommandNoArray"}  = undef;
     $global{"gridEngineTaskID"}                     = undef;

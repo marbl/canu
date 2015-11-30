@@ -61,14 +61,36 @@ sub configureLSF () {
     setGlobalIfUndef("gridEngineArrayOption",                "");
     setGlobalIfUndef("gridEngineArrayName",                  "ARRAY_NAME\[ARRAY_JOBS\]");
     setGlobalIfUndef("gridEngineOutputOption",               "-o");
-    setGlobalIfUndef("gridEngineThreadsOption",              undef);
-    setGlobalIfUndef("gridEngineMemoryOption",               undef);
+    setGlobalIfUndef("gridEngineThreadsOption",              "-n THREADS");
+    setGlobalIfUndef("gridEngineMemoryOption",               "-M MEMORY");
     setGlobalIfUndef("gridEnginePropagateCommand",           "bmodify -w \"done\(\"WAIT_TAG\"\)\"");
     setGlobalIfUndef("gridEngineNameToJobIDCommand",         "bjobs -A -J \"WAIT_TAG\" | grep -v JOBID");
     setGlobalIfUndef("gridEngineNameToJobIDCommandNoArray",  "bjobs -J \"WAIT_TAG\" | grep -v JOBID");
     setGlobalIfUndef("gridEngineTaskID",                     "\$LSB_JOBINDEX");
     setGlobalIfUndef("gridEngineArraySubmitID",              "%I");
     setGlobalIfUndef("gridEngineJobID",                      "LSB_JOBID");
+
+    #
+    #  LSF has variation in the units used to request memory
+    #  They are defined by the LSF_UNIT_FOR_LIMITS variable in lsf.conf
+    #  Poll and see if we can find it
+    #
+    my $memUnits = undef;
+    open(F, "lsadmin showconf all |");
+    my $s = <F>;  #  cluster name
+    my $d = <F>;  #  dat/time
+
+    while (<F>) {
+        my @v = split '=', $_;
+        if ($v[0] =~ m/LSF_UNIT_FOR_LIMITS/) {
+            $memUnits = "t" if ($v[1] =~ m/[tT]/);
+            $memUnits = "g" if ($v[1] =~ m/[gG]/);
+            $memUnits = "m" if ($v[1] =~ m/[mM]/);
+            $memUnits = "k" if ($v[1] =~ m/[kK]/);
+        }
+    }
+
+    close(F);
 
     #  Build a list of the resources available in the grid.  This will contain a list with keys
     #  of "#CPUs-#GBs" and values of the number of nodes With such a config.  Later on, we'll use this
@@ -100,14 +122,27 @@ sub configureLSF () {
         my $cpus  = $v[$cpuIdx];
         my $mem   = $v[$memIdx];
 
-        $mem  = $1 * 1024  if ($mem =~ m/(\d+.*\d+)[tT]/);
-        $mem  = $1 * 1     if ($mem =~ m/(\d+.*\d+)[gG]/);
-        $mem  = $1 / 1024  if ($mem =~ m/(\d+.*\d+)[mM]/);
+        # if we failed to find the units from the configuration, inherit it from the lshosts output
+        if (!defined($memUnits)) {
+            $memUnits = "t" if ($mem =~ m/(\d+.*\d+)[tT]/);
+            $memUnits = "g" if ($mem =~ m/(\d+.*\d+)[gG]/);
+            $memUnits = "m" if ($mem =~ m/(\d+.*\d+)[mM]/);
+            $memUnits = "k" if ($mem =~ m/(\d+.*\d+)[kK]/);
+        }
+
+        $mem  = $1 * 1024         if ($mem =~ m/(\d+.*\d+)[tT]/);
+        $mem  = $1 * 1            if ($mem =~ m/(\d+.*\d+)[gG]/);
+        $mem  = $1 / 1024         if ($mem =~ m/(\d+.*\d+)[mM]/);
+        $mem  = $1 / 1024 / 1024  if ($mem =~ m/(\d+.*\d+)[kK]/);
         $mem  = int($mem);
 
-        $hosts{"$cpus-$mem"}++;
+        $hosts{"$cpus-$mem"}++    if ($cpus gt 0);
     }
     close(F);
     setGlobal("availableHosts", formatAllowedResources(%hosts, "LSF"));
+    setGlobal("gridEngineMemoryUnits", $memUnits);
+    print STDERR "-- \n";
+    print STDERR "-- On LSF detected memory is requested in " . uc(${memUnits}) . "B\n";
+    print STDERR "-- \n";
 }
 
