@@ -723,19 +723,17 @@ sub checkParameters ($) {
 
 
 
-sub setExecDefaults ($$$$) {
+sub setExecDefaults ($$) {
     my $tag         = shift @_;
     my $name        = shift @_;
-    my $memory      = shift @_;
-    my $threads     = shift @_;
 
     $global{"gridOptions${tag}"}   = undef;
     $synops{"gridOptions${tag}"}   = "Grid engine options applied to $name jobs";
 
-    $global{"${tag}Memory"}        = $memory;
+    $global{"${tag}Memory"}        = undef;
     $synops{"${tag}Memory"}        = "Amount of memory, in gigabytes, to use for $name jobs";
 
-    $global{"${tag}Threads"}       = $threads;
+    $global{"${tag}Threads"}       = undef;
     $synops{"${tag}Threads"}       = "Number of threads to use for $name jobs";
 
     $global{"${tag}Concurrency"}   = undef;
@@ -811,10 +809,10 @@ sub setOverlapDefaults ($$$) {
 
     #  OverlapInCore parameters.
 
-    $global{"${tag}OvlHashBlockLength"}          = ($tag eq "cor") ? 2500000 : 100000000;
+    $global{"${tag}OvlHashBlockLength"}          = undef;
     $synops{"${tag}OvlHashBlockLength"}          = "Amount of sequence (bp) to load into the overlap hash table";
 
-    $global{"${tag}OvlRefBlockSize"}             = ($tag eq "cor") ? 20000 : 2000000;
+    $global{"${tag}OvlRefBlockSize"}             = undef;
     $synops{"${tag}OvlRefBlockSize"}             = "Number of reads to search against the hash table per batch";
 
     $global{"${tag}OvlRefBlockLength"}           = 0;
@@ -996,21 +994,21 @@ sub setDefaults () {
 
     #####  Grid Engine configuration and parameters, for each step of the pipeline (memory, threads)
 
-    setExecDefaults("cns",    "unitig consensus",                       "16-32:2",  "1");
-    setExecDefaults("cor",    "read correction",                        "10-16:2",  "2-8:2");
-    setExecDefaults("red",    "read error detection",                   "4-16:2",  "2,4,6,8");
-    setExecDefaults("oea",    "overlap error adjustment",               "4-16:2",  "1");
+    setExecDefaults("cns",    "unitig consensus");
+    setExecDefaults("cor",    "read correction");
+    setExecDefaults("red",    "read error detection");
+    setExecDefaults("oea",    "overlap error adjustment");
 
-    setExecDefaults("corovl",  "overlaps for correction",               "4-12:2", "2,4,6");
-    setExecDefaults("obtovl",  "overlaps for trimming",                 "4-12:2", "2,4,6");
-    setExecDefaults("utgovl",  "overlaps for unitig construction",      "4-12:2", "2,4,6");
+    setExecDefaults("corovl",  "overlaps for correction");
+    setExecDefaults("obtovl",  "overlaps for trimming");
+    setExecDefaults("utgovl",  "overlaps for unitig construction");
 
-    setExecDefaults("cormhap", "mhap overlaps for correction",          "8-32:2,36-64:4", "4-16:2");
-    setExecDefaults("obtmhap", "mhap overlaps for trimming",            "8-32:2,36-64:4", "4-16:2");
-    setExecDefaults("utgmhap", "mhap overlaps for unitig construction", "8-32:2,36-64:4", "4-16:2");
+    setExecDefaults("cormhap", "mhap overlaps for correction");
+    setExecDefaults("obtmhap", "mhap overlaps for trimming");
+    setExecDefaults("utgmhap", "mhap overlaps for unitig construction");
 
-    setExecDefaults("ovb",    "overlap store bucketizing",              "2,4",   "1");
-    setExecDefaults("ovs",    "overlap store sorting",                  "4,6,8", "1");
+    setExecDefaults("ovb",    "overlap store bucketizing");
+    setExecDefaults("ovs",    "overlap store sorting");
 
     #####  Overlapper
 
@@ -1020,7 +1018,7 @@ sub setDefaults () {
 
     ##### Overlap Store
 
-    $global{"ovlStoreMemory"}              = 4;
+    $global{"ovlStoreMemory"}              = undef;
     $synops{"ovlStoreMemory"}              = "How much memory, in gigabytes, to use when constructing overlap stores";
 
     $global{"ovlStoreThreads"}             = 1;
@@ -1032,15 +1030,15 @@ sub setDefaults () {
     $global{"ovlStoreMethod"}              = "sequential";
     $synops{"ovlStoreMethod"}              = "Use the 'sequential' or 'parallel' algorithm for constructing an overlap store";
 
-    $global{"ovlStoreSlices"}              = 128;
+    $global{"ovlStoreSlices"}              = undef;
     $synops{"ovlStoreSlices"}              = "How many pieces to split the sorting into, for the parallel store build";
 
     #####  Mers
 
-    $global{"merylMemory"}                 = "4g-256g:4";
+    $global{"merylMemory"}                 = undef;
     $synops{"merylMemory"}                 = "Amount of memory, in gigabytes, to use for mer counting";
 
-    $global{"merylThreads"}                = "1-128:1";
+    $global{"merylThreads"}                = undef;
     $synops{"merylThreads"}                = "Number of threads to use for mer counting";
 
     $global{"merylConcurrency"}            = undef;
@@ -1065,16 +1063,16 @@ sub setDefaults () {
     $global{"enableOEA"}                   = 1;
     $synops{"enableOEA"}                   = "Do overlap error adjustment - comprises two steps: read error detection (RED) and overlap error adjustment (OEA)";
 
-    $global{"redBatchSize"}                = 0;
+    $global{"redBatchSize"}                = undef;
     $synops{"redBatchSize"}                = "Number of reads per fragment error detection batch";
 
-    $global{"redBatchLength"}              = 0;
+    $global{"redBatchLength"}              = undef;
     $synops{"redBatchLength"}              = "Number of bases per fragment error detection batch";
 
-    $global{"oeaBatchSize"}                = 0;
+    $global{"oeaBatchSize"}                = undef;
     $synops{"oeaBatchSize"}                = "Number of reads per overlap error correction batch";
 
-    $global{"oeaBatchLength"}              = 0;
+    $global{"oeaBatchLength"}              = undef;
     $synops{"oeaBatchLength"}              = "Number of bases per overlap error correction batch";
 
     #####  Unitigger & BOG & bogart Options
@@ -1088,10 +1086,10 @@ sub setDefaults () {
     $global{"batOptions"}                  = undef;
     $synops{"batOptions"}                  = "Advanced options to bogart";
 
-    $global{"batMemory"}                   = "4g-1024g:2";
+    $global{"batMemory"}                   = undef;
     $synops{"batMemory"}                   = "Approximate maximum memory usage, in gigabytes, default is the maxMemory limit";
 
-    $global{"batThreads"}                  = "1-128:1";
+    $global{"batThreads"}                  = undef;
     $synops{"batThreads"}                  = "Number of threads to use; default is the maxThreads limit";
 
     $global{"batConcurrency"}              = undef;
@@ -1123,10 +1121,10 @@ sub setDefaults () {
 
     #####  Consensus Options
 
-    $global{"cnsPartitions"}               = 128;
+    $global{"cnsPartitions"}               = undef;
     $synops{"cnsPartitions"}               = "Partition consensus into N jobs";
 
-    $global{"cnsPartitionMin"}             = 75000;
+    $global{"cnsPartitionMin"}             = undef;
     $synops{"cnsPartitionMin"}             = "Don't make a consensus partition with fewer than N reads";
 
     $global{"cnsMaxCoverage"}              = 0;
@@ -1137,10 +1135,10 @@ sub setDefaults () {
 
     #####  Correction Options
 
-    $global{"corPartitions"}               = 500;
+    $global{"corPartitions"}               = undef;
     $synops{"corPartitions"}               = "Partition read correction into N jobs";
 
-    $global{"corPartitionMin"}             = 5000;
+    $global{"corPartitionMin"}             = undef;
     $synops{"corPartitionMin"}             = "Don't make a read correction partition with fewer than N reads";
 
     $global{"corMinEvidenceLength"}        = undef;

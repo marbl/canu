@@ -372,144 +372,184 @@ sub displayGenomeSize ($) {
 
 sub configureAssembler () {
 
-    #  First, parse units on things the user possibly set.
+    #  Parse units on things the user possibly set.
 
     setGlobal("genomeSize", adjustGenomeSize(getGlobal("genomeSize")));
 
-    setGlobal("minMemory", adjustMemoryValue(getGlobal("minMemory")));
-    setGlobal("maxMemory", adjustMemoryValue(getGlobal("maxMemory")));
+    setGlobal("minMemory",  adjustMemoryValue(getGlobal("minMemory")));
+    setGlobal("maxMemory",  adjustMemoryValue(getGlobal("maxMemory")));
 
-    #
 
-    if (!defined(getGlobal("minMemory")) || !defined(getGlobal("minThreads"))) {
-        my  $minMemoryD = "";
-        my  $minMemory  = 0;
-        my  $minThreads = 0;
+    #  For overlapper and mhap, allow larger maximums for larger genomes.  More memory won't help
+    #  smaller genomes, and the smaller minimums won't hurt larger genomes (which are probably being
+    #  run on larger machines anyway, so the minimums won't be used).
 
-        #  Based on genome size, pick some arbitrary minimums to meet.
+    #  For uncorrected overlapper, both memory and thread count is reduced.  Memory because it is
+    #  very CPU bound, and thread count because it can be quite unbalanced.
 
-        if      (getGlobal("genomeSize") < adjustGenomeSize("40m")) {
-            $minMemoryD = "8g";
-            $minThreads =  4;
+    if      (getGlobal("genomeSize") < adjustGenomeSize("40m")) {
+        setGlobalIfUndef("corOvlMemory", "2-6");     setGlobalIfUndef("corOvlThreads", "1");
+        setGlobalIfUndef("obtOvlMemory", "4-8");     setGlobalIfUndef("obtOvlThreads", "1-8");
+        setGlobalIfUndef("utgOvlMemory", "4-8");     setGlobalIfUndef("utgOvlThreads", "1-8");
 
-        } elsif (getGlobal("genomeSize") < adjustGenomeSize("500m")) {
-            $minMemoryD = "32g";
-            $minThreads =  4;
+        setGlobalIfUndef("corMhapMemory", "4-16");   setGlobalIfUndef("corMhapThreads", "1-16");
+        setGlobalIfUndef("obtMhapMemory", "4-16");   setGlobalIfUndef("obtMhapThreads", "1-16");
+        setGlobalIfUndef("utgMhapMemory", "4-16");   setGlobalIfUndef("utgMhapThreads", "1-16");
 
-        } elsif (getGlobal("genomeSize") < adjustGenomeSize("2g")) {
-            $minMemoryD = "128g";
-            $minThreads =  8;
+    } elsif (getGlobal("genomeSize") < adjustGenomeSize("500m")) {
+        setGlobalIfUndef("corOvlMemory", "2-6");     setGlobalIfUndef("corOvlThreads", "1");
+        setGlobalIfUndef("obtOvlMemory", "4-8");     setGlobalIfUndef("obtOvlThreads", "1-8");
+        setGlobalIfUndef("utgOvlMemory", "4-8");     setGlobalIfUndef("utgOvlThreads", "1-8");
 
-        } elsif (getGlobal("genomeSize") < adjustGenomeSize("5g")) {
-            $minMemoryD = "256g";
-            $minThreads =  16;
+        setGlobalIfUndef("corMhapMemory", "4-24");   setGlobalIfUndef("corMhapThreads", "1-16");
+        setGlobalIfUndef("obtMhapMemory", "4-24");   setGlobalIfUndef("obtMhapThreads", "1-16");
+        setGlobalIfUndef("utgMhapMemory", "4-24");   setGlobalIfUndef("utgMhapThreads", "1-16");
 
-        } else {
-            $minMemoryD = "512g";
-            $minThreads =  32;
-        }
+    } elsif (getGlobal("genomeSize") < adjustGenomeSize("2g")) {
+        setGlobalIfUndef("corOvlMemory", "2-8");     setGlobalIfUndef("corOvlThreads", "1");
+        setGlobalIfUndef("obtOvlMemory", "4-12");    setGlobalIfUndef("obtOvlThreads", "1-8");
+        setGlobalIfUndef("utgOvlMemory", "4-12");    setGlobalIfUndef("utgOvlThreads", "1-8");
 
-        $minMemory = adjustMemoryValue($minMemoryD);
+        setGlobalIfUndef("corMhapMemory", "8-32");   setGlobalIfUndef("corMhapThreads", "4-16");
+        setGlobalIfUndef("obtMhapMemory", "8-32");   setGlobalIfUndef("obtMhapThreads", "4-16");
+        setGlobalIfUndef("utgMhapMemory", "8-32");   setGlobalIfUndef("utgMhapThreads", "4-16");
 
-        print STDERR "--\n";
-        print STDERR "-- For genomeSize ", displayGenomeSize(getGlobal("genomeSize")), ", $minMemoryD memory and $minThreads threads seems reasonable.\n";
+    } elsif (getGlobal("genomeSize") < adjustGenomeSize("5g")) {
+        setGlobalIfUndef("corOvlMemory", "2-8");     setGlobalIfUndef("corOvlThreads", "1");
+        setGlobalIfUndef("obtOvlMemory", "4-16");    setGlobalIfUndef("obtOvlThreads", "1-8");
+        setGlobalIfUndef("utgOvlMemory", "4-16");    setGlobalIfUndef("utgOvlThreads", "1-8");
 
-        #  Set the minMemory/minThreads to the minimum if not defined.
+        setGlobalIfUndef("corMhapMemory", "12-48");  setGlobalIfUndef("corMhapThreads", "4-16");
+        setGlobalIfUndef("obtMhapMemory", "12-48");  setGlobalIfUndef("obtMhapThreads", "4-16");
+        setGlobalIfUndef("utgMhapMemory", "12-48");  setGlobalIfUndef("utgMhapThreads", "4-16");
 
-        if (!defined(getGlobal("minMemory"))) {
-            print STDERR "--   minMemory  not defined, set to $minMemoryD\n";
-            setGlobal("minMemory", $minMemory);
-        } else {
-            print STDERR "--   minMemory  defined, current value ", displayMemoryValue(getGlobal("minMemory")) . "\n";
-        }
+    } else {
+        setGlobalIfUndef("corOvlMemory", "2-8");     setGlobalIfUndef("corOvlThreads", "1");
+        setGlobalIfUndef("obtOvlMemory", "4-16");    setGlobalIfUndef("obtOvlThreads", "1-8");
+        setGlobalIfUndef("utgOvlMemory", "4-16");    setGlobalIfUndef("utgOvlThreads", "1-8");
 
-        if (!defined(getGlobal("minThreads"))) {
-            print STDERR "--   minThreads not defined, set to $minThreads\n";
-            setGlobal("minThreads", $minThreads);
-        } else {
-            print STDERR "--   minThreads defined, current value ", getGlobal("minThreads") . "\n";
-        }
-
-        my $reqMemory  = getGlobal("minMemory");
-        my $reqThreads = getGlobal("minThreads");
-
-        if     (($reqMemory < $minMemory) && ($reqThreads < $minThreads)) {
-            print STDERR "--\n";
-            print STDERR "--  WARNING:  supplied minMemory and minThreads are both smaller than suggested!\n";
-        } elsif ($reqMemory < $minMemory) {
-            print STDERR "--\n";
-            print STDERR "--  WARNING:  supplied minMemory is smaller than suggested!\n";
-        } elsif ($reqThreads < $minThreads) {
-            print STDERR "--\n";
-            print STDERR "--  WARNING:  supplied minMemory is smaller than suggested!\n";
-        }
-
-        #
-        #  Now, tricky.  We need to decide if we can run a job with reqMemory/reqThreads.  We've
-        #  already decided that these are sufficient to run the job, we just need to decide if we
-        #  can actually run the job.
-        #
-
-        #  If we're not running jobs on the grid, make sure the minimums are below what the machine has.
-
-        if ((getGlobal("useGrid") != 1) || (!defined(getGlobal("gridEngine")))) {
-            if ((getPhysicalMemorySize() < $reqMemory) ||
-                (getNumberOfCPUs()       < $reqThreads)) {
-                print STDERR "--\n";
-                print STDERR "-- WARNING: For genome size ", displayGenomeSize(getGlobal("genomeSize")), " I suggest minimum values:\n";
-                print STDERR "-- WARNING:   minMemory=$minMemoryD\n";
-                print STDERR "-- WARNING:   minThreads=$minThreads\n";
-                print STDERR "-- WARNING:\n";
-                print STDERR "-- WARNING: This machine has only:\n";
-                print STDERR "-- WARNING:   maxMemory=", displayMemoryValue(getPhysicalMemorySize()), "\n";
-                print STDERR "-- WARNING:   maxThreads=", getNumberOfCPUs(), "\n";
-                print STDERR "-- WARNING:\n";
-                print STDERR "-- WARNING: If the values are close, the assembly might be possible, but you need to set minMemory,\n";
-                print STDERR "-- WARNING: minThreads, maxMemory and/or maxThreads manually to have:\n";
-                print STDERR "-- WARNING:   minMemory  <= maxMemory\n";
-                print STDERR "-- WARNING:   minThreads <= maxThreads\n";
-                print STDERR "-- WARNING: (setting minMemory/minThreads is suggested; changing the max could over-commit resources)\n";
-                print STDERR "--\n";
-                caExit("machine limits exceeded", undef);
-            }
-
-            print STDERR "--\n";
-            print STDERR "-- Local host has ", displayMemoryValue(getPhysicalMemorySize()), " memory and ", getNumberOfCPUs(), " CPUs, and can run jobs with ", displayMemoryValue($minMemory), " memory and $minThreads threads.\n";
-        }
-
-        #  Otherwise, we are running jobs on the grid, either under full grid control (useGrid=1) or manually (useGrid=remote).
-        #  Make sure there is at least one host on the grid that can run the job.
-
-        else {
-            my @grid   = split '\0', getGlobal("availableHosts");
-            my $nHosts = 0;
-            my $tHosts = 0;
-
-            foreach my $g (@grid) {
-                my ($cpu, $mem, $num) = split '-', $g;
-
-                $tHosts += $num;
-                $nHosts += $num   if (($reqMemory <= $mem) && ($reqThreads <= $cpu));
-            }
-
-            if ($nHosts == 0) {
-                print STDERR "--\n";
-                print STDERR "-- WARNING: For genome size ", getGlobal("genomeSize"), " I suggest minimum values:\n";
-                print STDERR "-- WARNING:   minMemory=$minMemoryD\n";
-                print STDERR "-- WARNING:   minThreads=$minThreads\n";
-                print STDERR "-- WARNING:\n";
-                print STDERR "-- WARNING: There are no suitable hosts in the grid (listed above).\n";
-                print STDERR "-- WARNING:\n";
-                print STDERR "-- WARNING: If the values are close, the assembly might be possible, but you need to\n";
-                print STDERR "-- WARNING: set minMemory and minThreads manually.\n";
-                print STDERR "--\n";
-                caExit("machine limits exceeded", undef);
-            }
-
-            print STDERR "--\n";
-            print STDERR "-- Found $nHosts ", (($nHosts == 1) ? "host" : "hosts"), " that we can run jobs with ", displayMemoryValue($minMemory), " memory and $minThreads threads.\n";
-        }
+        setGlobalIfUndef("corMhapMemory", "16-64");  setGlobalIfUndef("corMhapThreads", "4-16");
+        setGlobalIfUndef("obtMhapMemory", "16-64");  setGlobalIfUndef("obtMhapThreads", "4-16");
+        setGlobalIfUndef("utgMhapMemory", "16-64");  setGlobalIfUndef("utgMhapThreads", "4-16");
     }
+
+    #  Overlapper block sizes probably don't need to be modified based on genome size.
+
+    setGlobalIfUndef("corOvlHashBlockLength",   2500000);   setGlobalIfUndef("corOvlRefBlockSize",   20000);   setGlobalIfUndef("corOvlRefBlockLength", 0);
+    setGlobalIfUndef("obtOvlHashBlockLength", 100000000);   setGlobalIfUndef("obtOvlRefBlockSize", 2000000);   setGlobalIfUndef("obtOvlRefBlockLength", 0);
+    setGlobalIfUndef("utgOvlHashBlockLength", 100000000);   setGlobalIfUndef("utgOvlRefBlockSize", 2000000);   setGlobalIfUndef("utgOvlRefBlockLength", 0);
+
+    #  The sequential overlap store build is mostly memory agnostic.  With lots of overlaps, smaller
+    #  memory sizes can run out of open file handles.  This really should be using the number of
+    #  overlaps found.
+
+    if      (getGlobal("genomeSize") < adjustGenomeSize("100m")) {
+        setGlobalIfUndef("ovlStoreMemory", 4);
+    } else {
+        setGlobalIfUndef("ovlStoreMemory", 8);
+    }
+
+    #  The parallel store build really doesn't change much.  Also should be based on the number of overlaps found.
+
+    if      (getGlobal("genomeSize") < adjustGenomeSize("100m")) {
+        setGlobalIfUndef("ovbMemory",   "2-4");     setGlobalIfUndef("ovbThreads",   "1");
+        setGlobalIfUndef("ovsMemory",   "4-16");    setGlobalIfUndef("ovsThreads",   "1");
+        setGlobalIfUndef("ovlStoreSlices", 16);
+
+    } elsif (getGlobal("genomeSize") < adjustGenomeSize("1g")) {
+        setGlobalIfUndef("ovbMemory",   "2-4");     setGlobalIfUndef("ovbThreads",   "1");
+        setGlobalIfUndef("ovsMemory",   "8-24");    setGlobalIfUndef("ovsThreads",   "1");
+        setGlobalIfUndef("ovlStoreSlices", 64);
+
+    } else {
+        setGlobalIfUndef("ovbMemory",   "2-4");     setGlobalIfUndef("ovbThreads",   "1");
+        setGlobalIfUndef("ovsMemory",   "8-32");    setGlobalIfUndef("ovsThreads",   "1");
+        setGlobalIfUndef("ovlStoreSlices", 128);
+    }
+
+    #  Correction and consensus are likewise somewhat invariant.
+
+    if      (getGlobal("genomeSize") < adjustGenomeSize("40m")) {
+        setGlobalIfUndef("cnsMemory",     "4-32");     setGlobalIfUndef("cnsThreads",      "1");
+        setGlobalIfUndef("corMemory",     "4-16");     setGlobalIfUndef("corThreads",      "1-4");
+        setGlobalIfUndef("cnsPartitions", "8");        setGlobalIfUndef("cnsPartitionMin", "15000");
+        setGlobalIfUndef("corPartitions", "16");       setGlobalIfUndef("corPartitionMin", "12500");
+
+    } elsif (getGlobal("genomeSize") < adjustGenomeSize("1g")) {
+        setGlobalIfUndef("cnsMemory",     "12-48");    setGlobalIfUndef("cnsThreads",      "1");
+        setGlobalIfUndef("corMemory",     "10-16");    setGlobalIfUndef("corThreads",      "2-8");
+        setGlobalIfUndef("cnsPartitions", "64");       setGlobalIfUndef("cnsPartitionMin", "20000");
+        setGlobalIfUndef("corPartitions", "128");      setGlobalIfUndef("corPartitionMin", "25000");
+
+    } else {
+        setGlobalIfUndef("cnsMemory",     "16-64");    setGlobalIfUndef("cnsThreads",      "1");
+        setGlobalIfUndef("corMemory",     "10-16");    setGlobalIfUndef("corThreads",      "2-8");
+        setGlobalIfUndef("cnsPartitions", "256");      setGlobalIfUndef("cnsPartitionMin", "25000");
+        setGlobalIfUndef("corPartitions", "512");      setGlobalIfUndef("corPartitionMin", "50000");
+    }
+
+    #  Meryl too, basically just small or big.  This should really be using the number of bases
+    #  reported from gatekeeper.
+
+    if      (getGlobal("genomeSize") < adjustGenomeSize("100m")) {
+        setGlobalIfUndef("merylMemory", "4-8");     setGlobalIfUndef("merylThreads", "1-4");
+
+    } elsif (getGlobal("genomeSize") < adjustGenomeSize("1g")) {
+        setGlobalIfUndef("merylMemory", "4-64");    setGlobalIfUndef("merylThreads", "1-16");
+
+    } else {
+        setGlobalIfUndef("merylMemory", "8-256");   setGlobalIfUndef("merylThreads", "1-32");
+    }
+
+    #  Overlap error adjustment
+    #
+    #  Configuration is primarily done though memory size.  If that blows up for some reason,
+    #  the actual number of reads (batchSize) or bases (batchLength) can be restricted.  I expect
+    #  those to be used only from the command line, so they're left unset here.
+    #
+    #setGlobalIfUndef("redBatchSize", "");    setGlobalIfUndef("redBatchLength", "");
+    #setGlobalIfUndef("oeaBatchSize", "");    setGlobalIfUndef("oeaBatchLength", "");
+
+    if      (getGlobal("genomeSize") < adjustGenomeSize("40m")) {
+        setGlobalIfUndef("redMemory",   "2-8");    setGlobalIfUndef("redThreads",   "1-4");
+        setGlobalIfUndef("oeaMemory",   "4-16");   setGlobalIfUndef("oeaThreads",   "1");
+
+    } elsif (getGlobal("genomeSize") < adjustGenomeSize("500m")) {
+        setGlobalIfUndef("redMemory",   "4-12");    setGlobalIfUndef("redThreads",   "1-6");
+        setGlobalIfUndef("oeaMemory",   "8-24");    setGlobalIfUndef("oeaThreads",   "1");
+
+    } elsif (getGlobal("genomeSize") < adjustGenomeSize("2g")) {
+        setGlobalIfUndef("redMemory",   "4-16");    setGlobalIfUndef("redThreads",   "1-8");
+        setGlobalIfUndef("oeaMemory",   "8-32");    setGlobalIfUndef("oeaThreads",   "1");
+
+    } elsif (getGlobal("genomeSize") < adjustGenomeSize("5g")) {
+        setGlobalIfUndef("redMemory",   "4-32");    setGlobalIfUndef("redThreads",   "1-8");
+        setGlobalIfUndef("oeaMemory",   "8-32");    setGlobalIfUndef("oeaThreads",   "1");
+
+    } else {
+        setGlobalIfUndef("redMemory",   "4-32");    setGlobalIfUndef("redThreads",   "1-8");
+        setGlobalIfUndef("oeaMemory",   "8-32");    setGlobalIfUndef("oeaThreads",   "1");
+    }
+
+    #  And bogart.
+
+    if      (getGlobal("genomeSize") < adjustGenomeSize("40m")) {
+        setGlobalIfUndef("batMemory",   "2-16");        setGlobalIfUndef("batThreads",   "1-4");
+
+    } elsif (getGlobal("genomeSize") < adjustGenomeSize("500m")) {
+        setGlobalIfUndef("batMemory",   "8-64");        setGlobalIfUndef("batThreads",   "2-8");
+
+    } elsif (getGlobal("genomeSize") < adjustGenomeSize("2g")) {
+        setGlobalIfUndef("batMemory",   "32-256");      setGlobalIfUndef("batThreads",   "4-16");
+
+    } elsif (getGlobal("genomeSize") < adjustGenomeSize("5g")) {
+        setGlobalIfUndef("batMemory",   "128-512");     setGlobalIfUndef("batThreads",   "8-32");
+
+    } else {
+        setGlobalIfUndef("batMemory",   "256-1024");    setGlobalIfUndef("batThreads",   "16-64");
+    }
+
+    #  Finally, use all that setup to pick actual values for each component.
 
     my $err;
     my $all;
