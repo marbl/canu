@@ -76,8 +76,6 @@ sub configurePBSTorque () {
     #
     #  The list is saved in global{"availableHosts"}
     #
-    #  !!! UNTESTED !!!
-    #
     my %hosts;
 
     open(F, "pbsnodes |");
@@ -99,7 +97,7 @@ sub configurePBSTorque () {
             $mem  = $1 / 1024         if ($mem =~ m/(\d+.*\d+)[mM]/);
             $mem  = $1 / 1024 / 1024  if ($mem =~ m/(\d+.*\d+)[kK]/);
             $mem  = int($mem);
-            $hosts{"$cpus-$mem"}++;
+            $hosts{"$cpus-$mem"}++    if ($cpus gt 0);
         }
     }
     close(F);

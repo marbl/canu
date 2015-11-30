@@ -102,7 +102,7 @@ sub configureSlurm () {
         my $mem   = $v[$memIdx] / 1024;
         my $nodes = $v[$nodeIdx];
 
-        $hosts{"$cpus-$mem"}+=int($nodes);
+        $hosts{"$cpus-$mem"}+=int($nodes)    if ($cpus gt 0);
     }
     close(F);
     setGlobal("availableHosts", formatAllowedResources(%hosts, "Slurm"));

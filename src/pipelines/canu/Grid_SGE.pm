@@ -190,7 +190,7 @@ sub configureSGE () {
         $mem  = $1 / 1024  if ($mem =~ m/(\d+.*\d+)[mM]/);
         $mem  = int($mem);
 
-        $hosts{"$cpus-$mem"}++;
+        $hosts{"$cpus-$mem"}++    if ($cpus gt 0);
     }
     close(F);
     setGlobal("availableHosts", formatAllowedResources(%hosts, "Sun Grid Engine"));
