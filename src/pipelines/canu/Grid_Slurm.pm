@@ -79,9 +79,8 @@ sub configureSlurm () {
     #
     my %hosts;
 
-    open(F, "sinfo --Node --long |");
-
-    my $b = <F>;  #  date/time
+    #NODELIST NODES CPUS MEMORY
+    open(F, "sinfo --exact -o '%N %D %c %m' | grep -v drained | grep -v interactive |");
     my $h = <F>;  #  header
 
     my @h = split '\s+', $h;
