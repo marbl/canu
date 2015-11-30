@@ -76,7 +76,7 @@ sub configureLSF () {
     #  Poll and see if we can find it
     #
     my $memUnits = undef;
-    open(F, "lsadmin showconf all |");
+    open(F, "lsadmin showconf lim |");
     my $s = <F>;  #  cluster name
     my $d = <F>;  #  dat/time
 
