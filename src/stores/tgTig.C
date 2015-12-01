@@ -471,6 +471,9 @@ tgTig::dumpLayout(FILE *F) {
   for (uint32 i=0; i<_childrenLen; i++) {
     tgPosition *imp = _children + i;
 
+    trimString[0]  = 0;
+    deltaString[0] = 0;
+
     if (imp->_askip + imp->_bskip > 0)
       sprintf(trimString,  " trim %6u %6u", imp->_askip, imp->_bskip);
 
