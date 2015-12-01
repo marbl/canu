@@ -222,10 +222,6 @@ sub unitigCheck ($$$) {
     emitStage($WRK, $asm, "unitigCheck", $attempt);
     buildHTML($WRK, $asm, "utg");
 
-    my @failedJobs = ( 1 );
-
-    #push @failedJobs, 1;
-
     submitOrRunParallelJob($WRK, $asm, "bat", $path, "unitigger", (1));
 
   finishStage:
