@@ -716,7 +716,7 @@ sub submitScript ($$$) {
 
     #  If not requested to run on the grid, or can't run on the grid, fail.
 
-    return   if (getGlobal("useGrid")       != 1);
+    return   if (getGlobal("useGrid")       ne "1");
     return   if (getGlobal("gridEngine")    eq undef);
 
     #  If no job to wait on, and we are already on the grid, do NOT resubmit ourself.
@@ -1100,7 +1100,9 @@ sub submitOrRunParallelJob ($$$$$@) {
 
     #  Jobs under grid control, and we submit them
 
-    if (getGlobal("gridEngine") && getGlobal("useGrid") && (exists($ENV{getGlobal("gridEngineJobID")}))) {
+    if (defined(getGlobal("gridEngine")) &&
+        (getGlobal("useGrid") eq "1") &&
+        (exists($ENV{getGlobal("gridEngineJobID")}))) {
         my $cmd;
         my $jobName;
 
@@ -1119,7 +1121,9 @@ sub submitOrRunParallelJob ($$$$$@) {
 
     #  Jobs under grid control, but the user must submit them
 
-    if (getGlobal("gridEngine") && getGlobal("useGrid") && (! exists($ENV{getGlobal("gridEngineJobID")}))) {
+    if (defined(getGlobal("gridEngine")) &&
+        (getGlobal("useGrid") ne "0") &&
+        (! exists($ENV{getGlobal("gridEngineJobID")}))) {
         print STDERR "\n";
         print STDERR "Please submit the following jobs to the grid for execution using $mem gigabytes memory and $thr threads:\n";
         print STDERR "\n";

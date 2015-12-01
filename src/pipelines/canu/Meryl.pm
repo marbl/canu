@@ -36,13 +36,32 @@ package canu::Meryl;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(meryl getGenomeCoverage);
+@EXPORT = qw(getGenomeCoverage merylConfigure merylCheck merylProcess);
 
 use strict;
+
+use File::Path qw(make_path);
 
 use canu::Defaults;
 use canu::Execution;
 use canu::HTML;
+
+
+
+sub getGenomeCoverage($$$) {
+    my $wrk     = shift @_;
+    my $asm     = shift @_;
+    my $merSize = shift @_;
+    my $bin     = getBinDirectory();
+
+    my $gs=`cat $wrk/0-mercounts/$asm.ms$merSize.estMerThresh.err | grep "Guessed X coverage"|awk '{print \$NF}'`;
+    chomp $gs;
+
+    return $gs;
+}
+
+
+
 
 
 #  Generates
@@ -130,32 +149,23 @@ sub plotHistogram ($$$$) {
     runCommandSilently("$wrk/0-mercounts", "gnuplot $ofile.histogram.$suffix.gp > /dev/null 2>&1");
 }
 
-sub getGenomeCoverage($$$) {
-    my $wrk     = shift @_;
-    my $asm     = shift @_;
-    my $merSize = shift @_;
-    my $bin     = getBinDirectory();
 
-    my $gs=`cat $wrk/0-mercounts/$asm.ms$merSize.estMerThresh.err | grep "Guessed X coverage"|awk '{print \$NF}'`;
-    chomp $gs;
 
-    return $gs;
-}
-
-sub meryl ($$$) {
+sub merylParameters ($$$) {
     my $WRK    = shift @_;  #  Root work directory (the -d option to canu)
-    my $wrk    = $WRK;      #  Local work directory
+    ## $wrk    = $WRK;      #  Local work directory
     my $asm    = shift @_;
     my $tag    = shift @_;
-    my $bin    = getBinDirectory();
-    my $cmd;
 
-    $wrk = "$wrk/correction"  if ($tag eq "cor");
-    $wrk = "$wrk/trimming"    if ($tag eq "obt");
-    $wrk = "$wrk/unitigging"  if ($tag eq "utg");
+    my ($wrk, $merSize, $merThresh, $merScale, $merDistinct, $merTotal, $ffile, $ofile);
 
-    my ($merSize, $merThresh, $merScale, $merDistinct, $merTotal);
-    my ($ffile, $ofile);
+    #  Find a place to run stuff.
+
+    $wrk = "$WRK/correction"  if ($tag eq "cor");
+    $wrk = "$WRK/trimming"    if ($tag eq "obt");
+    $wrk = "$WRK/unitigging"  if ($tag eq "utg");
+
+    #  Decide on which set of parameters we need to be using, and make output file names.
 
     if (getGlobal("${tag}Overlapper") eq "ovl") {
         $merSize      = getGlobal("${tag}OvlMerSize");
@@ -181,37 +191,7 @@ sub meryl ($$$) {
         caFailure("unknown ${tag}Overlapper '" . getGlobal("${tag}Overlapper") . "'", undef);
     }
 
-    #  If the frequent mer file exists, don't bother running meryl.  We don't really need the
-    #  databases.
-
-    goto allDone   if (skipStage($WRK, $asm, "$tag-meryl") == 1);
-    goto allDone   if (-e "$ffile");
-
-    print STDERR "-- MERYL (correction)\n"  if ($tag eq "cor");
-    print STDERR "-- MERYL (trimming)\n"    if ($tag eq "obt");
-    print STDERR "-- MERYL (assembly)\n"    if ($tag eq "utg");
-
-    #  Make a work space.
-
-    system("mkdir $wrk/0-mercounts")  if (! -d "$wrk/0-mercounts");
-
-    #  User supplied mers?  Just symlink to them.
-
-    if (defined(getGlobal("${tag}OvlFrequentMers"))) {
-        my $ffile = "$wrk/0-mercounts/$asm.frequentMers.fasta";
-        my $sfile = getGlobal("${tag}OvlFrequentMers");
-
-        if (! -e $ffile) {
-            caFailure("${tag}OvlFrequentMers '$sfile' not found", undef)  if (! -e $sfile);
-            symlink $sfile, $ffile;
-        }
-
-        goto allDone;
-    }
-
-    #  Otherwise, run meryl, and remember the new threshold.
-
-    #  Are we auto with modifications ("auto * X") or ("auto / X")?
+    #  Decode the threshold.  Auto with modifications ("auto * X") or ("auto / X")?
 
     if ($merThresh =~ m/auto\s*\*\s*(\S+)/) {
         $merThresh = "auto";
@@ -223,11 +203,163 @@ sub meryl ($$$) {
         $merScale  = 1.0 / $1;
     }
 
-    #  And a special case; if the threshold is zero, we can skip the rest.
+    #  Return all this goodness.
 
-    #print "thresh    $merThresh\n";
-    #print "distinct  $merDistinct\n";
-    #print "total     $merTotal\n";
+    #print STDERR "wrk - '$wrk'\n";
+    #print STDERR "merSize - '$merSize'\n";
+    #print STDERR "merThresh - '$merThresh'\n";
+    #print STDERR "merScale - '$merScale'\n";
+    #print STDERR "merDistinct - '$merDistinct'\n";
+    #print STDERR "merTotal - '$merTotal'\n";
+    #print STDERR "ffile - '$ffile'\n";
+    #print STDERR "ofile - '$ofile'\n";
+
+    return($wrk, $merSize, $merThresh, $merScale, $merDistinct, $merTotal, $ffile, $ofile);
+}
+
+
+
+sub merylConfigure ($$$) {
+    my $WRK    = shift @_;  #  Root work directory (the -d option to canu)
+    ## $wrk    = $WRK;      #  Local work directory
+    my $asm    = shift @_;
+    my $tag    = shift @_;
+    my $bin    = getBinDirectory();
+    my $cmd;
+
+    my ($wrk, $merSize, $merThresh, $merScale, $merDistinct, $merTotal, $ffile, $ofile) = merylParameters($WRK, $asm, $tag);
+
+    goto allDone   if (skipStage($WRK, $asm, "$tag-merylConfigure") == 1);
+    goto allDone   if (-e "$ofile.mcdat");
+    goto allDone   if (-e "$ofile.mcidx");
+
+    print STDERR "-- MERYL (correction)\n"  if ($tag eq "cor");
+    print STDERR "-- MERYL (trimming)\n"    if ($tag eq "obt");
+    print STDERR "-- MERYL (assembly)\n"    if ($tag eq "utg");
+
+    make_path("$wrk/0-mercounts")  if (! -d "$wrk/0-mercounts");
+
+    #  User supplied mers?  Just symlink to them.
+
+    if (defined(getGlobal("${tag}OvlFrequentMers"))) {
+        #my $ffile = "$wrk/0-mercounts/$asm.frequentMers.fasta";
+        my $sfile = getGlobal("${tag}OvlFrequentMers");
+
+        if (! -e $ffile) {
+            caFailure("${tag}OvlFrequentMers '$sfile' not found", undef)  if (! -e $sfile);
+            symlink $sfile, $ffile;
+        }
+
+        goto allDone;
+    }
+
+    #  Nope, build a script.
+
+    my $mem = getGlobal("merylMemory")  * 1024;   #  Because meryl expects megabytes, not gigabytes.
+    my $thr = getGlobal("merylThreads");
+
+    caExit("merylMemory isn't defined?", undef)   if (!defined($mem));
+    caExit("merylThreads isn't defined?", undef)  if (!defined($thr));
+
+    open(F, "> $wrk/0-mercounts/meryl.sh") or caExit("can't open '$wrk/0-mercounts/meryl.sh' for writing: $1", undef);
+
+    print F "#!" . getGlobal("shell") . "\n";
+    print F "\n";
+    print F "if [ -e $wrk/$asm.tigStore/seqDB.v001.tig ] ; then\n";
+    print F "  exit 0\n";
+    print F "fi\n";
+    print F "\n";
+    print F getBinDirectoryShellCode();
+    print F "\n";
+    print F "\$bin/meryl \\\n";
+    print F "  -B -C -L 2 -v -m $merSize -threads $thr -memory $mem \\\n";
+    print F "  -s $wrk/$asm.gkpStore \\\n";
+    print F "  -o $ofile \\\n";
+    print F "\n";
+    print F "exit 0\n";
+
+    close(F);
+
+  finishStage:
+    emitStage($WRK, $asm, "merylConfigure");
+    buildHTML($WRK, $asm, $tag);
+    stopAfter("merylConfigure");
+
+  allDone:
+}
+
+
+
+sub merylCheck ($$$$) {
+    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
+    ## $wrk     = $WRK;      #  Local work directory
+    my $asm     = shift @_;
+    my $tag     = shift @_;
+    my $attempt = shift @_;
+
+    my $bin    = getBinDirectory();
+    my $cmd;
+    
+    my ($wrk, $merSize, $merThresh, $merScale, $merDistinct, $merTotal, $ffile, $ofile) = merylParameters($WRK, $asm, $tag);
+
+    #  If the frequent mer file exists, don't bother running meryl.  We don't really need the
+    #  databases.
+
+    goto allDone   if  (skipStage($WRK, $asm, "$tag-meryl") == 1);
+    goto allDone   if  (-e "$ffile");
+    goto allDone   if ((-e "$ofile.mcidx") && (-e "$ofile.mcdat"));
+
+    #  If not the first attempt, report the jobs that failed, and that we're recomputing.
+
+    if ($attempt > 1) {
+        print STDERR "--\n";
+        print STDERR "-- meryl failed.\n";
+        print STDERR "--\n";
+    }
+
+    #  If too many attempts, give up.
+
+    if ($attempt > 2) {
+        caExit("failed to generate mer counts.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
+    }
+
+    #  Otherwise, run some jobs.
+
+    print STDERR "-- Meryl attempt $attempt begins.\n";
+
+    emitStage($WRK, $asm, "merylCheck", $attempt);
+    buildHTML($WRK, $asm, $tag);
+
+    submitOrRunParallelJob($WRK, $asm, "meryl", "$wrk/0-mercounts", "meryl", (1));
+
+  finishStage:
+    emitStage($WRK, $asm, "merylCheck");
+    buildHTML($WRK, $asm, $tag);
+    stopAfter("merylCheck");
+  allDone:
+    if ($attempt == 3) {
+        print STDERR "-- Meryl finished successfully.\n";
+    }
+}
+
+
+
+sub merylProcess ($$$) {
+    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
+    ## $wrk     = $WRK;      #  Local work directory
+    my $asm     = shift @_;
+    my $tag     = shift @_;
+    my $attempt = shift @_;
+
+    my $bin    = getBinDirectory();
+    my $cmd;
+    
+    my ($wrk, $merSize, $merThresh, $merScale, $merDistinct, $merTotal, $ffile, $ofile) = merylParameters($WRK, $asm, $tag);
+
+    goto allDone   if (skipStage($WRK, $asm, "$tag-meryl") == 1);
+    goto allDone   if (-e "$ffile");
+
+    #  A special case; if the threshold is zero, we can skip the rest.
 
     if ((defined($merThresh))    &&
         ($merThresh ne "auto")   &&
@@ -236,33 +368,6 @@ sub meryl ($$$) {
         (!defined($merTotal))) {
         touch($ffile);
         goto allDone;
-    }
-
-    #  Build the database.
-
-    #getAllowedResources("", "meryl");
-
-    if (! -e "$ofile.mcdat") {
-        my $mem = getGlobal("merylMemory");
-        my $thr = getGlobal("merylThreads");
-
-        $mem  = int(2 * getPhysicalMemorySize() / 3)   if (!defined($mem));
-        $thr  =         getNumberOfCPUs()              if (!defined($thr));
-
-        $mem *= 1024;  #  Because meryl expects megabytes, not gigabytes.
-
-        $cmd  = "$bin/meryl \\\n";
-        $cmd .= " -B -C -L 2 -v -m $merSize -threads $thr -memory $mem \\\n";
-        $cmd .= " -s $wrk/$asm.gkpStore \\\n";
-        $cmd .= " -o $ofile \\\n";
-        $cmd .= "> $wrk/0-mercounts/meryl.err 2>&1";
-
-        stopBefore("meryl", $cmd);
-
-        if (runCommand("$wrk/0-mercounts", $cmd)) {
-            caFailure("meryl failed", "$wrk/0-mercounts/meryl.err");
-        }
-        unlink "$wrk/0-mercounts/meryl.err";
     }
 
     #  Dump a histogram.
