@@ -255,7 +255,7 @@ if (!defined(getGlobal("gridEngine"))) {
     print STDERR "-- No grid engine detected, grid disabled.\n";
 }
 
-if ((getGlobal("useGrid") == 0) && (defined(getGlobal("gridEngine")))) {
+if ((getGlobal("useGrid") eq "0") && (defined(getGlobal("gridEngine")))) {
     print STDERR "-- Grid engine disabled per useGrid=false option.\n";
     setGlobal("gridEngine", undef);
 }
