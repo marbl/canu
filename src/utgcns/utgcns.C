@@ -390,8 +390,8 @@ main (int argc, char **argv) {
           missingReads++;
 
       if (missingReads) {
-        fprintf(stderr, "SKIP unitig %u with %u reads found only %u reads in partition, skipped\n",
-                tig->tigID(), tig->numberOfChildren(), tig->numberOfChildren() - missingReads);
+        //fprintf(stderr, "SKIP unitig %u with %u reads found only %u reads in partition, skipped\n",
+        //        tig->tigID(), tig->numberOfChildren(), tig->numberOfChildren() - missingReads);
         continue;
       }
     }
