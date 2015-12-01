@@ -474,6 +474,9 @@ if (setOptions($mode, "assemble") eq "assemble") {
     updateOverlapStore($wrk, $asm);
 
     unitig($wrk, $asm);
+    unitigCheck($wrk, $asm, 1);
+    unitigCheck($wrk, $asm, 2);
+    unitigCheck($wrk, $asm, 3);
 
     consensusConfigure($wrk, $asm);
     consensusCheck($wrk, $asm, 1);

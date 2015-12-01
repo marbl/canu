@@ -36,7 +36,7 @@ package canu::Unitig;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(unitig reportUnitigSizes);
+@EXPORT = qw(reportUnitigSizes unitig unitigCheck);
 
 use strict;
 
@@ -47,36 +47,6 @@ use canu::Execution;
 use canu::Gatekeeper;
 use canu::HTML;
 use canu::Meryl;
-
-sub bogart ($$$$) {
-    my $wrk  = shift @_;
-    my $asm  = shift @_;
-    my $genomeCoverage = shift @_;
-    my $per  = shift @_;
-    my $bin  = getBinDirectory();
-    my $cmd;
-
-    #getAllowedResources("", "bat");
-
-    $cmd  = "$bin/bogart \\\n";
-    $cmd .= " -G $wrk/$asm.gkpStore \\\n";
-    $cmd .= " -O $wrk/$asm.ovlStore \\\n";
-    $cmd .= " -T $wrk/$asm.tigStore \\\n";
-    $cmd .= " -o $wrk/4-unitigger/$asm \\\n";
-    $cmd .= " -B $per \\\n";
-    $cmd .= " -eg "      . getGlobal("utgGraphErrorRate")  . " \\\n";
-    $cmd .= " -eb "      . getGlobal("utgBubbleErrorRate") . " \\\n";
-    $cmd .= " -em "      . getGlobal("utgMergeErrorRate")  . " \\\n";
-    $cmd .= " -er "      . getGlobal("utgRepeatErrorRate") . " \\\n";
-    $cmd .= " -threads " . getGlobal("batThreads")         . " \\\n"   if defined(getGlobal("batThreads"));
-    $cmd .= " -M "       . getGlobal("batMemory")          . " \\\n"   if defined(getGlobal("batMemory"));
-    $cmd .= " "          . getGlobal("batOptions")         . " \\\n"   if defined(getGlobal("batOptions"));
-    $cmd .= " -repeatdetect 6 " . $genomeCoverage . " 15"  . " \\\n"   if defined($genomeCoverage);
-    $cmd .= " > $wrk/4-unitigger/unitigger.err 2>&1";
-
-    return($cmd);
-}
-
 
 
 sub reportUnitigSizes ($$$$) {
@@ -149,20 +119,45 @@ sub unitig ($$) {
 
     $perPart = ($perPart < $minPart) ? ($perPart) : ($minPart);
 
-    my $cmd;
+    #  Dump a script to run the unitigger.
+
+    open(F, "> $wrk/4-unitigger/unitigger.sh") or caExit("can't open '$wrk/4-unitigger/unitigger.sh' for writing: $!\n", undef);
+
+    print F "#!" . getGlobal("shell") . "\n";
+    print F "\n";
+    print F "if [ -e $wrk/$asm.tigStore/seqDB.v001.tig ] ; then\n";
+    print F "  exit 0\n";
+    print F "fi\n";
+    print F "\n";
+    print F getBinDirectoryShellCode();
+    print F "\n";
 
     if      (getGlobal("unitigger") eq "bogart") {
-        $cmd = bogart($wrk, $asm, $genomeCoverage, $perPart);
-
+        print F "\$bin/bogart \\\n";
+        print F " -G $wrk/$asm.gkpStore \\\n";
+        print F " -O $wrk/$asm.ovlStore \\\n";
+        print F " -T $wrk/$asm.tigStore.WORKING \\\n";
+        print F " -o $wrk/4-unitigger/$asm \\\n";
+        print F " -B $perPart \\\n";
+        print F " -eg "      . getGlobal("utgGraphErrorRate")  . " \\\n";
+        print F " -eb "      . getGlobal("utgBubbleErrorRate") . " \\\n";
+        print F " -em "      . getGlobal("utgMergeErrorRate")  . " \\\n";
+        print F " -er "      . getGlobal("utgRepeatErrorRate") . " \\\n";
+        print F " -threads " . getGlobal("batThreads")         . " \\\n"   if defined(getGlobal("batThreads"));
+        print F " -M "       . getGlobal("batMemory")          . " \\\n"   if defined(getGlobal("batMemory"));
+        print F " "          . getGlobal("batOptions")         . " \\\n"   if defined(getGlobal("batOptions"));
+        print F " -repeatdetect 6 " . $genomeCoverage . " 15"  . " \\\n"   if defined($genomeCoverage);
+        print F " > $wrk/4-unitigger/unitigger.err 2>&1 \\\n";
+        print F "&& \\\n";
+        print F "mv $wrk/$asm.tigStore.WORKING $wrk/$asm.tigStore.FINISHED\n";
     } else {
         caFailure("unknown unitigger '" . getGlobal("unitigger") . "'", undef);
     }
 
-    stopBefore("unitig", $cmd);
+    print F "\n";
+    print F "exit 0\n";
 
-    if (runCommand("$wrk/4-unitigger", $cmd)) {
-        caExit("failed to unitig", "$wrk/4-unitigger/unitigger.err");
-    }
+    close(F);
 
   finishStage:
     emitStage($WRK, $asm, "unitig");
@@ -170,5 +165,76 @@ sub unitig ($$) {
     stopAfter("unitig");
 
   allDone:
-    reportUnitigSizes($wrk, $asm, 1, "after unitig construction");
+}
+
+
+
+
+sub unitigCheck ($$$) {
+    my $WRK     = shift @_;           #  Root work directory
+    my $wrk     = "$WRK/unitigging";  #  Local work directory
+    my $asm     = shift @_;
+    my $attempt = shift @_;
+    my $path    = "$wrk/4-unitigger";
+
+    goto allDone  if (skipStage($WRK, $asm, "unitigCheck", $attempt) == 1);
+    goto allDone  if (-e "$wrk/$asm.tigStore/seqDB.v001.tig");
+
+    #  Since there is only one job, if we get here, we're not done.  Any other 'check' function
+    #  shows how to process multiple jobs.  This only checks for the existence of either *.WORKING
+    #  (crashed or killed) or *.FINISHED (done).
+
+    #  If 'FINISHED' exists, the job finished successfully.
+
+    if (-e "$wrk/$asm.tigStore.FINISHED/seqDB.v001.tig") {
+        rename "$wrk/$asm.tigStore.FINISHED", "$wrk/$asm.tigStore";
+
+        setGlobal("canuIteration", 0);
+        emitStage($WRK, $asm, "unitigCheck");
+        buildHTML($WRK, $asm, "utg");
+
+        reportUnitigSizes($wrk, $asm, 1, "after unitig construction");
+        return;
+    }
+
+    #  If no 'tigStore' exists - and it doesn't because we just checked for it above - then the
+    #  job failed or was killed.  No cleanup is done, possibly the unitigger will be smart enough
+    #  to reuse some of the files.
+
+    #  If not the first attempt, report the jobs that failed, and that we're recomputing.
+
+    if ($attempt > 1) {
+        print STDERR "--\n";
+        print STDERR "-- Unitigger failed.\n";
+        print STDERR "--\n";
+    }
+
+    #  If too many attempts, give up.
+
+    if ($attempt > 2) {
+        caExit("failed to generate unitigs.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
+    }
+
+    #  Otherwise, run some jobs.
+
+    print STDERR "-- Unitigger attempt $attempt begins.\n";
+
+    emitStage($WRK, $asm, "unitigCheck", $attempt);
+    buildHTML($WRK, $asm, "utg");
+
+    my @failedJobs = ( 1 );
+
+    #push @failedJobs, 1;
+
+    submitOrRunParallelJob($WRK, $asm, "bat", $path, "unitigger", (1));
+
+  finishStage:
+    emitStage($WRK, $asm, "unitigCheck");
+    buildHTML($WRK, $asm, "utg");
+    stopAfter("unitigCheck");
+  allDone:
+    if ($attempt == 3) {
+        print STDERR "-- Unitigger finished successfully.\n";
+        reportUnitigSizes($wrk, $asm, 1, "after unitig construction");
+    }
 }

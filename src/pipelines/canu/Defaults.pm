@@ -994,10 +994,9 @@ sub setDefaults () {
 
     #####  Grid Engine configuration and parameters, for each step of the pipeline (memory, threads)
 
-    setExecDefaults("cns",    "unitig consensus");
+    setExecDefaults("meryl",  "mer counting");
+
     setExecDefaults("cor",    "read correction");
-    setExecDefaults("red",    "read error detection");
-    setExecDefaults("oea",    "overlap error adjustment");
 
     setExecDefaults("corovl",  "overlaps for correction");
     setExecDefaults("obtovl",  "overlaps for trimming");
@@ -1009,6 +1008,12 @@ sub setDefaults () {
 
     setExecDefaults("ovb",    "overlap store bucketizing");
     setExecDefaults("ovs",    "overlap store sorting");
+
+    setExecDefaults("red",    "read error detection");
+    setExecDefaults("oea",    "overlap error adjustment");
+
+    setExecDefaults("bat",    "unitig construction");
+    setExecDefaults("cns",    "unitig consensus");
 
     #####  Overlapper
 
