@@ -219,13 +219,13 @@ unstashContains(tgTig                *tig,
 
     //  Otherwise, fudge the positions.
     else {
-      int32  nmin = sf * saved->children[fi].bgn();
-      int32  nmax = sf * saved->children[fi].end();
+      int32  nmin = sf * saved->children[fi].min();
+      int32  nmax = sf * saved->children[fi].max();
 
       if (nmin > newMax)  nmin = newMax;
       if (nmax > newMax)  nmax = newMax;
 
-      saved->children[fi].set(nmin, nmax);
+      saved->children[fi].setMinMax(nmin, nmax);
     }
   }
 

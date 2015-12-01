@@ -82,7 +82,7 @@ public:
   uint32               deltaLength(void)     { return(_deltaLen);    };
 
   //  Set just the anchor and hangs, leave positions alone.
-  void                 set(uint32 anchor, int32 ahang, int32 bhang) {
+  void                 setAnchor(uint32 anchor, int32 ahang, int32 bhang) {
     _anchor = anchor;
     _ahang  = ahang;
     _bhang  = bhang;
@@ -119,16 +119,9 @@ public:
   };
 
   //  Set the coords, ignoring orientation.
-  void                 set(int32 bgn, int32 end) {
-    if (bgn < end) {
-      //assert(_isReverse == false);
-      _min = bgn;
-      _max = end;
-    } else {
-      //assert(_isReverse == true);
-      _min = bgn;
-      _max = end;
-    }
+  void                 setMinMax(int32 min, int32 max) {
+    _min = min;
+    _max = max;
   };
 
   //  Operators

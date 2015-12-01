@@ -179,20 +179,20 @@ abMultiAlign::getPositions(abAbacus *abacus, tgTig *tig) {
 
     if ((fCol == NULL) || (lCol == NULL)) {
       fprintf(stderr, "WARNING: read %u not in multialignment; position set to 0,0.\n", seq->gkpIdent());
-      child->set(0, 0);
+      child->setMinMax(0, 0);
       continue;
     }
 
     //  Positions are zero-based and inclusive.  The end position gets one added to it to make it true space-based.
 
-    int32 bgn = fCol->position();
-    int32 end = lCol->position() + 1;
+    int32 min = fCol->position();
+    int32 max = lCol->position() + 1;
 
-    if (maxPos < bgn)   maxPos = bgn;
-    if (maxPos < end)   maxPos = end;
+    if (maxPos < min)   maxPos = min;
+    if (maxPos < max)   maxPos = max;
 
     if (seq->isRead() == true) {
-      child->set(bgn, end);      //  The child remembers its orientation, and sets min/max appropriately.
+      child->setMinMax(min, max);      //  The child remembers its orientation, and sets min/max appropriately.
 
       //  Grab the deltas for real now, and set the deltaLen to one less than the number returned
       //  (we don't care about the terminating zero!)
