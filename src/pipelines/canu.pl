@@ -407,7 +407,13 @@ if (setOptions($mode, "correct") eq "correct") {
     print STDERR "--\n";
 
     gatekeeper($wrk, $asm, "cor", @inputFiles);
-    meryl($wrk, $asm, "cor");
+
+    merylConfigure($wrk, $asm, "cor");
+    merylCheck($wrk, $asm, "cor", 1);
+    merylCheck($wrk, $asm, "cor", 2);
+    merylCheck($wrk, $asm, "cor", 3);
+    merylProcess($wrk, $asm, "cor");
+
     overlap($wrk, $asm, "cor");
 
     buildCorrectionLayouts($wrk, $asm);
@@ -432,7 +438,13 @@ if (setOptions($mode, "trim") eq "trim") {
     print STDERR "--\n";
 
     gatekeeper($wrk, $asm, "obt", @inputFiles);
-    meryl($wrk, $asm, "obt");
+
+    merylConfigure($wrk, $asm, "obt");
+    merylCheck($wrk, $asm, "obt", 1);
+    merylCheck($wrk, $asm, "obt", 2);
+    merylCheck($wrk, $asm, "obt", 3);
+    merylProcess($wrk, $asm, "obt");
+
     overlap($wrk, $asm, "obt");
 
     trimReads ($wrk, $asm);
@@ -454,7 +466,13 @@ if (setOptions($mode, "assemble") eq "assemble") {
     print STDERR "--\n";
 
     gatekeeper($wrk, $asm, "utg", @inputFiles);
-    meryl($wrk, $asm, "utg");
+
+    merylConfigure($wrk, $asm, "utg");
+    merylCheck($wrk, $asm, "utg", 1);
+    merylCheck($wrk, $asm, "utg", 2);
+    merylCheck($wrk, $asm, "utg", 3);
+    merylProcess($wrk, $asm, "utg");
+
     overlap($wrk, $asm, "utg");
 
     #readErrorDetection($wrk, $asm);
