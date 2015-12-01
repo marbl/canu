@@ -178,9 +178,9 @@ while (scalar(@ARGV)) {
             setGlobal("cnsConsensus", "utgcns");
             setGlobal("cnsMaxCoverage", 2);
         } elsif ($arg =~ m/nanopore/) {
-            setErrorRate(0.07);
+            setErrorRate(0.045);
             setGlobal("corErrorRate", "0.50");
-            setGlobal("batOptions", "-RS -NS");
+            setGlobal("batOptions", "-RS -NS -CS");
             setGlobal("cnsConsensus", "quick");
             setGlobal("cnsMaxCoverage", 1);
         }
