@@ -225,6 +225,7 @@ sub buildCorrectionLayouts_direct ($$) {
         print F "  --local_match_count_threshold 2 \\\n";  #  Suspicious window - 2 suspicious regions in a window (of 100bp) will split a read (0 for nanopore)
         print F "  --min_cov " . getGlobal("corMinCoverage") . " \\\n";
         print F "  --n_core " . getGlobal("corThreads") . " \\\n";
+        print F "  --output_simple_fasta_header \\\n";
         print F "  < $path/correction_inputs/\$jobid \\\n";
         print F "  > $path/correction_outputs/\$jobid.fasta.WORKING \\\n";
         print F " 2> $path/correction_outputs/\$jobid.err \\\n";
@@ -311,6 +312,8 @@ sub buildCorrectionLayouts_piped ($$) {
 
     my $maxCov   = getCorCov($wrk, $asm, "Local");
 
+    print F "set -o pipefail\n";
+    print F "\n";
     print F "\$bin/generateCorrectionLayouts -b \$bgn -e \$end \\\n";
     print F "  -rl $path/$asm.readsToCorrect \\\n"                 if (-e "$path/$asm.readsToCorrect");
     print F "  -G $wrk/$asm.gkpStore \\\n";
@@ -329,6 +332,7 @@ sub buildCorrectionLayouts_piped ($$) {
     print F "  --local_match_count_threshold 2 \\\n";  #  Suspicious window - 2 suspicious regions in a window (of 100bp) will split a read (0 for nanopore)
     print F "  --min_cov " . getGlobal("corMinCoverage") . " \\\n";
     print F "  --n_core " . getGlobal("corThreads") . " \\\n";
+    print F "  --output_simple_fasta_header \\\n";
     print F "  > $path/correction_outputs/\$jobid.fasta.WORKING \\\n";
     print F " 2> $path/correction_outputs/\$jobid.err \\\n";
     print F "&& \\\n";

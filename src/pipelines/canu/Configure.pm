@@ -401,36 +401,36 @@ sub configureAssembler () {
         setGlobalIfUndef("obtOvlMemory", "4-8");     setGlobalIfUndef("obtOvlThreads", "1-8");
         setGlobalIfUndef("utgOvlMemory", "4-8");     setGlobalIfUndef("utgOvlThreads", "1-8");
 
-        setGlobalIfUndef("corMhapMemory", "4-24");   setGlobalIfUndef("corMhapThreads", "1-16");
-        setGlobalIfUndef("obtMhapMemory", "4-24");   setGlobalIfUndef("obtMhapThreads", "1-16");
-        setGlobalIfUndef("utgMhapMemory", "4-24");   setGlobalIfUndef("utgMhapThreads", "1-16");
+        setGlobalIfUndef("corMhapMemory", "8-24");   setGlobalIfUndef("corMhapThreads", "1-16");
+        setGlobalIfUndef("obtMhapMemory", "8-24");   setGlobalIfUndef("obtMhapThreads", "1-16");
+        setGlobalIfUndef("utgMhapMemory", "8-24");   setGlobalIfUndef("utgMhapThreads", "1-16");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("2g")) {
         setGlobalIfUndef("corOvlMemory", "2-8");     setGlobalIfUndef("corOvlThreads", "1");
         setGlobalIfUndef("obtOvlMemory", "4-12");    setGlobalIfUndef("obtOvlThreads", "1-8");
         setGlobalIfUndef("utgOvlMemory", "4-12");    setGlobalIfUndef("utgOvlThreads", "1-8");
 
-        setGlobalIfUndef("corMhapMemory", "8-32");   setGlobalIfUndef("corMhapThreads", "4-16");
-        setGlobalIfUndef("obtMhapMemory", "8-32");   setGlobalIfUndef("obtMhapThreads", "4-16");
-        setGlobalIfUndef("utgMhapMemory", "8-32");   setGlobalIfUndef("utgMhapThreads", "4-16");
+        setGlobalIfUndef("corMhapMemory", "16-32");   setGlobalIfUndef("corMhapThreads", "4-16");
+        setGlobalIfUndef("obtMhapMemory", "16-32");   setGlobalIfUndef("obtMhapThreads", "4-16");
+        setGlobalIfUndef("utgMhapMemory", "16-32");   setGlobalIfUndef("utgMhapThreads", "4-16");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("5g")) {
         setGlobalIfUndef("corOvlMemory", "2-8");     setGlobalIfUndef("corOvlThreads", "1");
         setGlobalIfUndef("obtOvlMemory", "4-16");    setGlobalIfUndef("obtOvlThreads", "1-8");
         setGlobalIfUndef("utgOvlMemory", "4-16");    setGlobalIfUndef("utgOvlThreads", "1-8");
 
-        setGlobalIfUndef("corMhapMemory", "12-48");  setGlobalIfUndef("corMhapThreads", "4-16");
-        setGlobalIfUndef("obtMhapMemory", "12-48");  setGlobalIfUndef("obtMhapThreads", "4-16");
-        setGlobalIfUndef("utgMhapMemory", "12-48");  setGlobalIfUndef("utgMhapThreads", "4-16");
+        setGlobalIfUndef("corMhapMemory", "16-48");  setGlobalIfUndef("corMhapThreads", "4-16");
+        setGlobalIfUndef("obtMhapMemory", "16-48");  setGlobalIfUndef("obtMhapThreads", "4-16");
+        setGlobalIfUndef("utgMhapMemory", "16-48");  setGlobalIfUndef("utgMhapThreads", "4-16");
 
     } else {
         setGlobalIfUndef("corOvlMemory", "2-8");     setGlobalIfUndef("corOvlThreads", "1");
         setGlobalIfUndef("obtOvlMemory", "4-16");    setGlobalIfUndef("obtOvlThreads", "1-8");
         setGlobalIfUndef("utgOvlMemory", "4-16");    setGlobalIfUndef("utgOvlThreads", "1-8");
 
-        setGlobalIfUndef("corMhapMemory", "16-64");  setGlobalIfUndef("corMhapThreads", "4-16");
-        setGlobalIfUndef("obtMhapMemory", "16-64");  setGlobalIfUndef("obtMhapThreads", "4-16");
-        setGlobalIfUndef("utgMhapMemory", "16-64");  setGlobalIfUndef("utgMhapThreads", "4-16");
+        setGlobalIfUndef("corMhapMemory", "32-64");  setGlobalIfUndef("corMhapThreads", "4-16");
+        setGlobalIfUndef("obtMhapMemory", "32-64");  setGlobalIfUndef("obtMhapThreads", "4-16");
+        setGlobalIfUndef("utgMhapMemory", "32-64");  setGlobalIfUndef("utgMhapThreads", "4-16");
     }
 
     #  Overlapper block sizes probably don't need to be modified based on genome size.
@@ -471,21 +471,21 @@ sub configureAssembler () {
 
     if      (getGlobal("genomeSize") < adjustGenomeSize("40m")) {
         setGlobalIfUndef("cnsMemory",     "4-32");     setGlobalIfUndef("cnsThreads",      "1");
-        setGlobalIfUndef("corMemory",     "4-16");     setGlobalIfUndef("corThreads",      "1-4");
+        setGlobalIfUndef("corMemory",     "6-16");     setGlobalIfUndef("corThreads",      "1-4");
         setGlobalIfUndef("cnsPartitions", "8");        setGlobalIfUndef("cnsPartitionMin", "15000");
-        setGlobalIfUndef("corPartitions", "16");       setGlobalIfUndef("corPartitionMin", "12500");
+        setGlobalIfUndef("corPartitions", "128");       setGlobalIfUndef("corPartitionMin", "5000");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("1g")) {
         setGlobalIfUndef("cnsMemory",     "12-48");    setGlobalIfUndef("cnsThreads",      "1");
         setGlobalIfUndef("corMemory",     "10-16");    setGlobalIfUndef("corThreads",      "2-8");
         setGlobalIfUndef("cnsPartitions", "64");       setGlobalIfUndef("cnsPartitionMin", "20000");
-        setGlobalIfUndef("corPartitions", "128");      setGlobalIfUndef("corPartitionMin", "25000");
+        setGlobalIfUndef("corPartitions", "256");      setGlobalIfUndef("corPartitionMin", "15000");
 
     } else {
         setGlobalIfUndef("cnsMemory",     "16-64");    setGlobalIfUndef("cnsThreads",      "1");
         setGlobalIfUndef("corMemory",     "10-16");    setGlobalIfUndef("corThreads",      "2-8");
         setGlobalIfUndef("cnsPartitions", "256");      setGlobalIfUndef("cnsPartitionMin", "25000");
-        setGlobalIfUndef("corPartitions", "512");      setGlobalIfUndef("corPartitionMin", "50000");
+        setGlobalIfUndef("corPartitions", "512");      setGlobalIfUndef("corPartitionMin", "25000");
     }
 
     #  Meryl too, basically just small or big.  This should really be using the number of bases
@@ -495,10 +495,10 @@ sub configureAssembler () {
         setGlobalIfUndef("merylMemory", "4-8");     setGlobalIfUndef("merylThreads", "1-4");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("1g")) {
-        setGlobalIfUndef("merylMemory", "4-64");    setGlobalIfUndef("merylThreads", "1-16");
+        setGlobalIfUndef("merylMemory", "8-64");    setGlobalIfUndef("merylThreads", "1-16");
 
     } else {
-        setGlobalIfUndef("merylMemory", "8-256");   setGlobalIfUndef("merylThreads", "1-32");
+        setGlobalIfUndef("merylMemory", "64-256");   setGlobalIfUndef("merylThreads", "1-32");
     }
 
     #  Overlap error adjustment
