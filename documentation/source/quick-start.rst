@@ -148,4 +148,11 @@ and run the assembler with modified parameters::
 
 After the run completes, we can check the assembly statistics::
 
- tgStoreDump -sizes -s 12100000 -T yeast/unitigging/asm.tigStore 2 -G yeast/unitigging/asm.gkpStore
+ tgStoreDump -stats -s 12100000 -T yeast/unitigging/asm.tigStore 2 -G yeast/unitigging/asm.gkpStore
+
+Known Issues
+-------------------
+
+- LSF support has limited testing
+- Large virtual memory usage while generating corrected sequences
+- Large memory usage while unitig consensus calling on contigs over 50MB in size
