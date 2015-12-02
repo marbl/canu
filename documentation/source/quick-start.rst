@@ -109,9 +109,9 @@ The canu progress chatter records statistics such as an input read histogram, co
 
 Assembling Oxford Nanopore data
 -------------------
-A set of E. coli runs were released by the Loman lab.  You can download them
+A set of E. coli runs were released by the Loman lab.  You can download one
 `directly <http://nanopore.s3.climb.ac.uk/MAP006-2_2D_pass.fasta>`_
-(7 GB) or from the
+or any of them from the
 `original page <http://lab.loman.net/2015/09/24/first-sqk-map-006-experiment/>`_.
 
 or use the following curl command:
@@ -127,7 +127,9 @@ Canu assembles any of the four available datasets into a single contig but we pi
   genomeSize=4.8m \
   -nanopore-raw oxford.fasta
 
-Assembling Low Coverage
+The assembled identity is >98% before polishing.
+
+Assembling Low Coverage Datasets
 -------------------
 When you have 30X or less coverage, it helps to adjust the Canu assembly parameters. You can download a 20X subset of `S. cerevisae <http://gembox.cbcb.umd.edu/mhap/raw/yeast_filtered.20x.fastq.gz>`_
  
@@ -148,7 +150,7 @@ and run the assembler with modified parameters::
 
 After the run completes, we can check the assembly statistics::
 
- tgStoreDump -stats -s 12100000 -T yeast/unitigging/asm.tigStore 2 -G yeast/unitigging/asm.gkpStore
+ tgStoreDump -sizes -s 12100000 -T yeast/unitigging/asm.tigStore 2 -G yeast/unitigging/asm.gkpStore
 
 Known Issues
 -------------------
