@@ -143,7 +143,7 @@ sub readErrorDetectionConfigure ($$) {
 
     push @bgn, 1;
 
-    for (my $id = 1; $id < $maxID; $id++) {
+    for (my $id = 1; $id <= $maxID; $id++) {
         $reads += 1;
         $bases += $readLengths[$id];
         $olaps += $numOlaps[$id];
