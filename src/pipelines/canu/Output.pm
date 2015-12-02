@@ -40,6 +40,8 @@ require Exporter;
 
 use strict;
 
+use POSIX qw(UINT_MAX);
+
 use canu::Defaults;
 use canu::Execution;
 use canu::HTML;
@@ -131,6 +133,7 @@ sub outputSequence ($$) {
     $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
     $cmd .= "  -T $wrk/$asm.tigStore 2 \\\n";
     $cmd .= "  -consensus -$type \\\n";
+    $cmd .= "  -nreads 2 " . (UINT_MAX-1) . " \\\n";
     $cmd .= "> $WRK/$asm.consensus.$type\n";
     $cmd .= "2> $WRK/$asm.consensus.err";
 
