@@ -9,12 +9,12 @@ assemble the corrected and cleaned reads into unitigs.
 
 Brief Introduction
 -------------------
-Canu has been designed to auto-detect your resources and scale itself to fit. Two parameters let you restrict the resources used
+Canu has been designed to auto-detect your resources and scale itself to fit. Two parameters let you restrict the resources used.
 
 ::
 
-maxMemory=XX
-maxThreads=XX
+ maxMemory=XX
+ maxThreads=XX
 
 Memory is specified in gigabytes. On a single machine, it will restrict Canu to at most this limit, on the grid, no single job will try to use more than the specified resources.
 
@@ -24,8 +24,8 @@ Canu is designed to run on grid environments (LSF/PBS/Torque/Slrum/SGE are suppo
 
 ::
 
-gridOptionsJobName=myassembly
-"gridOptions=--partition quick --time 2:00"
+ gridOptionsJobName=myassembly
+ "gridOptions=--partition quick --time 2:00"
 
 Assembling PacBio data
 -------------------
@@ -135,14 +135,17 @@ or use the following curl command:
 
 ::
 
-curl -L -o yeast.20x.fastq.gz http://gembox.cbcb.umd.edu/mhap/raw/yeast_filtered.20x.fastq.gz
+ curl -L -o yeast.20x.fastq.gz http://gembox.cbcb.umd.edu/mhap/raw/yeast_filtered.20x.fastq.gz
 
- and run the assembler with modified parameters::
+and run the assembler with modified parameters::
+
  canu \
   -p asm -d yeast \
   genomeSize=12.1m \
   corMhapSensitivity=high corMinCoverage=2 errorRate=0.035 \
   -pacbio-raw yeast.20x.fastq.gz
   
- After the run completes, we can check the assembly statistics::
-tgStoreDump -sizes -s 12100000 -T yeast/unitigging/asm.tigStore 2 -G yeast/unitigging/asm.gkpStore
+
+After the run completes, we can check the assembly statistics::
+
+ tgStoreDump -sizes -s 12100000 -T yeast/unitigging/asm.tigStore 2 -G yeast/unitigging/asm.gkpStore
