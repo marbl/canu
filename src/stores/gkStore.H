@@ -37,6 +37,15 @@
 
 using namespace std;
 
+
+//  Canu doesn't really use QVs as of late 2015.  Only consensus is aware of them, but since read
+//  correction doesn't output QVs, the QVs that consensus sees are totally bogus.  So, disable
+//  storage of them - gatekeeperCreate will store a default QV for every read, and consensus will
+//  process as usual.
+//
+#define  DO_NOT_STORE_QVs
+
+
 //  The number of library IIDs we can handle.
 //
 #define AS_MAX_LIBRARIES_BITS      6
@@ -303,6 +312,19 @@ public:
 public:
   bool        gkRead_loadData(gkReadData *readData, void *blob);
 
+private:
+  uint32      gkRead_encode2bit(uint8  *&chunk, char *seq, uint32 seqLen);
+  uint32      gkRead_encode3bit(uint8  *&chunk, char *seq, uint32 seqLen);
+  uint32      gkRead_encode4bit(uint8  *&chunk, char *qlt, uint32 seqLen);
+  uint32      gkRead_encode5bit(uint8  *&chunk, char *qlt, uint32 seqLen);
+
+  bool        gkRead_decode2bit(uint8  *chunk, uint32 chunkLen, char *seq, uint32 seqLen);
+  bool        gkRead_decode3bit(uint8  *chunk, uint32 chunkLen, char *seq, uint32 seqLen);
+  bool        gkRead_decode4bit(uint8  *chunk, uint32 chunkLen, char *qlt, uint32 seqLen);
+  bool        gkRead_decode5bit(uint8  *chunk, uint32 chunkLen, char *qlt, uint32 seqLen);
+
+public:
+  //  These are called by gatekeeperCreate.
   gkReadData *gkRead_encodeSeqQlt(char *H, char *S, char *Q);
   gkReadData *gkRead_encodeSeqQlt(char *H, char *S, uint32 qv);
   //gkReadData *gkRead_encodePacBio(char *H, char *S, char *Q);  //  Not implemented.

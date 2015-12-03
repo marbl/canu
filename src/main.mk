@@ -34,6 +34,7 @@ SOURCES      := AS_global.C \
                 AS_UTL/kMer.C \
                 \
                 stores/gkStore.C \
+                stores/gkStoreEncode.C \
                 \
                 stores/ovOverlap.C \
                 stores/ovStore.C \

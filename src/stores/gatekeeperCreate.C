@@ -235,6 +235,8 @@ loadFASTQ(char                 *L,
 
   uint32 QVerrors = 0;
 
+#ifndef DO_NOT_USE_QVs
+
   for (uint32 i=0; Q[i]; i++) {
     if (Q[i] < '!') {  //  QV=0, ASCII=33
       Q[i] = '!';
@@ -252,6 +254,15 @@ loadFASTQ(char                 *L,
             L, QVerrors, (QVerrors > 1) ? "s" : "");
     nWARNS++;
   }
+
+#else
+
+  //  If we're not using QVs, just reset the first value to -1.  This is the sentinel that FASTA sequences set,
+  //  causing the encoding later to use a fixed QV for all bases.
+
+  Q[0] = -1;
+
+#endif
 
   //  Clear the lines, so we can load the next one.
 
