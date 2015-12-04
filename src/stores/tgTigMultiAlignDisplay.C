@@ -177,6 +177,9 @@ tgTig::display(FILE     *F,
     node->bases[node->readLen] = 0;
     node->quals[node->readLen] = 0;
 
+    for (uint32 ii=0; ii<node->readLen; ii++)  //  Adjust QVs for display
+      node->quals[ii] += '!';
+
     if (node->read->isReverse())
       reverseComplement(node->bases, node->quals, node->readLen);
 
@@ -357,12 +360,18 @@ tgTig::display(FILE     *F,
     }
 
     {
+      for (uint32 ii=0; ii<rowlen; ii++)   //  Adjust QV for display.
+        _gappedQuals[window+ii] += '!';
+
       char save = _gappedQuals[window + rowlen];
-      _gappedQuals[window+rowlen] = 0;
+      _gappedQuals[window+rowlen] = 0;     //  Terminate the substring.
 
       fprintf(F, "%s  qlt\n", _gappedQuals + window);
 
-      _gappedQuals[window+rowlen] = save;
+      _gappedQuals[window+rowlen] = save;  //  Unterminate.
+
+      for (uint32 ii=0; ii<rowlen; ii++)   //  Unadjust.
+        _gappedQuals[window+ii] -= '!';
     }
 
     //  Display.

@@ -243,6 +243,10 @@ abMultiAlign::display(abAbacus  *abacus,
 
   getConsensus(abacus, sequence, quality, len, length() + 1);
 
+  //  For display, offset the quals to Sanger spec.
+  for (uint32 ii=0; ii<len; ii++)
+    quality[ii] += '!';
+
   if (len != length())
     fprintf(stderr, "abMultiAlign::display()-- len=%d != length=%d\n", len, length());
 
