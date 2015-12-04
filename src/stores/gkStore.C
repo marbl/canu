@@ -370,7 +370,7 @@ gkRead::gkRead_encodeSeqQlt(char *H, char *S, char *Q) {
 
   _seqLen    = Slen;
 
-  uint8   *seq  = NULL;
+  uint8   *seq = NULL;
   uint8   *qlt = NULL;
 
   //  Compute the preferred encodings.  If either fail, the length is set to zero, and ...
@@ -423,6 +423,9 @@ gkRead::gkRead_encodeSeqQlt(char *H, char *S, char *Q) {
   for (uint32 ii=0; ii<Qlen; ii++)
     Q[ii] += '!';
 #endif
+
+  delete [] seq;
+  delete [] qlt;
 
   return(rd);
 }
