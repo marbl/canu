@@ -255,7 +255,7 @@ sub merylConfigure ($$$) {
 
     #  Nope, build a script.
 
-    my $mem = getGlobal("merylMemory")  * 1024;   #  Because meryl expects megabytes, not gigabytes.
+    my $mem = int(getGlobal("merylMemory")  * 1024 * 0.8);   #  Because meryl expects megabytes, not gigabytes.
     my $thr = getGlobal("merylThreads");
 
     caExit("merylMemory isn't defined?", undef)   if (!defined($mem));

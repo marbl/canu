@@ -780,7 +780,7 @@ sub submitScript ($$$) {
     #$memOption = buildMemoryOption(getGlobal("masterMemory"), getGlobal("masterThreads"));
     #$thrOption = buildThreadOption(getGlobal("masterThreads"));
     #stores are built in the executive so take max of default or any store memory
-    my $mem = max(4, getGlobal("ovlStoreMemory"));
+    my $mem = max(4, 1.5*getGlobal("ovlStoreMemory"));
 
     $memOption = buildMemoryOption($mem, 1);
     $thrOption = buildThreadOption(1);
