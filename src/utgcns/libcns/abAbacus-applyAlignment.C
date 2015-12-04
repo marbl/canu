@@ -289,31 +289,55 @@ alignPosition(abAbacus *abacus,
 
 
 
+#ifdef TEST_ABACUS_ALIGN 
+
+//
+//  All the a beads should be in a column.  All the b beads should not.  This is expensive.
+//  (and broken - afid.isValid was never true)
 
 void
-abAbacus::applyAlignment(abSeqID   afid,
-                         int32     alen, abBeadID *aindex,
+abAbacus::checkColumns() {
+
+  uint32    columnErrors = 0;
+
+  if (afid.isValid()) {
+    abBead   *b = getBead(getSequence(afid)->firstBead());
+
+    while (b) {
+      if (b->column_index.isValid() == false) {
+        columnErrors++;
+        fprintf(stderr, "bead "F_U32" in A has undef column_index.\n",
+                b->ident().get());
+      }
+      b = (b->nextID().isInvalid()) ? NULL : getBead(b->nextID());
+    }
+  }
+
+  if (bfid.isValid()) {
+    abBead *b = getBead(getSequence(bfid)->firstBead());
+
+    while (b) {
+      if (b->column_index.isValid() == true) {
+        columnErrors++;
+        fprintf(stderr, "bead "F_U32" in B has defined column_index %d.\n",
+                b->ident().get(), b->column_index.get());
+      }
+      b = (b->nextID().isInvalid()) ? NULL : getBead(b->nextID());
+    }
+  }
+
+  assert(columnErrors == 0);
+}
+#endif
+
+
+
+void
+abAbacus::applyAlignment(int32     alen, abBeadID *aindex,
                          abSeqID   bfid,
                          int32     ahang,
                          int32     bhang,
                          int32    *trace, uint32 traceLen) {
-
-  int32     apos   = MAX(ahang,0);  //  The aindex index for the current column we're processing
-  int32     bpos   = bhang;
-
-  int32     blen   = 0;
-
-  abBeadID *bindex = NULL;
-
-  assert(trace != NULL);  //  The original (Celera) version of this could be called without a trace
-
-  assert(afid.isValid() == false);  //  The original (CA8) version of this could be called with an actual read here
-  assert(bfid.isValid() == true);   //  But could never be called without a read here
-
-#if 0
-  for (uint32 ii=0; trace[ii]; ii++)
-    fprintf(stderr, "trace[%u] %d\n", ii, trace[ii]);
-#endif
 
 #ifdef DEBUG_ABACUS_ALIGN
   fprintf(stderr, "abAbacus::applyAlignment()-- ahang=%d bhang=%d traceLen=%u trace=%d %d %d %d %d ... %d %d %d %d %d\n",
@@ -330,79 +354,40 @@ abAbacus::applyAlignment(abSeqID   afid,
           (traceLen > 0) ? trace[traceLen-1] : 0);
 #endif
 
-  //  These loops really abuses the fact that all the beads for the bases in this read are
-  //  contiguous.  They're contiguous because CreateMANode() (I think it's in there) allocated them
-  //  in one block.
+  assert(aindex         != NULL);   //  For every base in frankenstein, the bead associated with it
+  assert(trace          != NULL);   //  The original (Celera) version of this could be called without a trace
+  assert(bfid.isValid() == true);   //  But could never be called without a read
 
-  if (afid.isValid()) {
-    abSequence *afrag = getSequence(afid);
-    alen              = afrag->length();
-    aindex            = new abBeadID [alen];
+  //  Build an array of the beads in the read.  This loop really abuses the fact that all the beads
+  //  for the bases in this read are contiguous.  They're contiguous because CreateMANode() (I think
+  //  it's in there) allocated them in one block.
 
-    for (uint32 ai=0; ai<alen; ai++)
-      aindex[ai].set(afrag->firstBead().get() + ai);
+  abSequence *bfrag  = getSequence(bfid);
+  int32       blen   = bfrag->length();
+  abBeadID   *bindex = new abBeadID [blen];
 
-  } else {
-    assert(aindex != NULL);
-  }
+  for (uint32 bi=0; bi<blen; bi++)
+    bindex[bi].set(bfrag->firstBead().get() + bi);
 
 
-  if (bfid.isValid()) {
-    abSequence *bfrag = getSequence(bfid);
-    blen              = bfrag->length();
-    bindex            = new abBeadID [blen];
+  //  ahang can be negative, zero or positive.
+  //
+  //  If negative, it will be equal in magnitude to bhang.
+  //
+  //  If positive, bhang will be zero, and this is the amount of sequence in frank we should ignore.
+  //  So, we set apos to be this positive value.
 
-    for (uint32 bi=0; bi<blen; bi++)
-      bindex[bi].set(bfrag->firstBead().get() + bi);
-
-  } else {
-    assert(0);
-  }
+  int32     apos   = MAX(ahang, 0);
+  int32     bpos   = 0;
 
   //  if apos == alen, we'd just be pasting on new sequence.
   //  if bpos == blen...we're pasting on one base?
 
   assert(apos <= alen);
+  assert(0    <= bpos);
   assert(bpos <= blen);
 
-  //
-  //  All the a beads should be in a column.  All the b beads should not.  This is expensive.
-  //
-
-#ifdef TEST_ABACUS_ALIGN
-  {
-    uint32    columnErrors = 0;
-
-    if (afid.isValid()) {
-      abBead   *b = getBead(getSequence(afid)->firstBead());
-
-      while (b) {
-        if (b->column_index.isValid() == false) {
-          columnErrors++;
-          fprintf(stderr, "bead "F_U32" in A has undef column_index.\n",
-                  b->ident().get());
-        }
-        b = (b->nextID().isInvalid()) ? NULL : getBead(b->nextID());
-      }
-    }
-
-    if (bfid.isValid()) {
-      abBead *b = getBead(getSequence(bfid)->firstBead());
-
-      while (b) {
-        if (b->column_index.isValid() == true) {
-          columnErrors++;
-          fprintf(stderr, "bead "F_U32" in B has defined column_index %d.\n",
-                  b->ident().get(), b->column_index.get());
-        }
-        b = (b->nextID().isInvalid()) ? NULL : getBead(b->nextID());
-      }
-    }
-
-    assert(columnErrors == 0);
-  }
-#endif
-
+  //checkColumns();
 
   //  The beadIDs of the bases in the last column aligned.  Both generally get reset almost immediately,
   //  EXCEPT when the b sequence is appended to the end, as in the Quick variant of utgcns.
@@ -410,17 +395,10 @@ abAbacus::applyAlignment(abSeqID   afid,
   abBeadID  lasta;
   abBeadID  lastb;
 
-  if (apos > 0)
-    lasta = aindex[apos - 1];
-
-  if (bpos > 0)
-    lastb = bindex[bpos - 1];
-
   //
   //  Catch two nasty cases: negative ahang (so unaligned bases in the B read) and
   //  initial gaps in the B read.
   //
-
 
   //  Negative ahang?  Push these things onto the start of abacus.  Fail if we get a negative ahang,
   //  but there is a column already before the first one (which implies we aligned to something not
@@ -428,24 +406,13 @@ abAbacus::applyAlignment(abSeqID   afid,
   //
   if (ahang < 0) {
     abBead  *bead = getBead(aindex[0]);
-    abColID  colp = bead->colIdx();
 
     assert(bead->prev.isInvalid());
 
     while (bpos < -ahang) {
-#ifdef DEBUG_ABACUS_ALIGN
-      fprintf(stderr, "ApplyAlignment()-- Prepend column for ahang bead=%d,%c\n",
-              getBead(bindex[bpos])->ident().get(),
-              getBase(getBead(bindex[bpos])->baseIdx()));
-#endif
-
-      prependColumn(colp, bindex[bpos++]);
+      //fprintf(stderr, "ApplyAlignment()-- Prepend column for ahang bead=%d,%c\n", getBead(bindex[bpos])->ident().get(), getBase(getBead(bindex[bpos])->baseIdx()));
+      prependColumn(bead->colIdx(), bindex[bpos++]);
     }
-
-    //  Why are these set?
-
-    lasta = getBead(aindex[0])->prev;  //  Probably still invalid, there isn't any A-read aligned yet.
-    lastb = bindex[bpos - 1];          //  But this should be valid; it's pointing into the B-read
   }
 
 
@@ -453,12 +420,7 @@ abAbacus::applyAlignment(abSeqID   afid,
   //  in the B-read, but we don't care because there isn't any B-read aligned yet.
 
   while ((traceLen > 0) && (*trace != 0) && (*trace == 1)) {
-#ifdef DEBUG_ABACUS_ALIGN
-    fprintf(stderr, "trace=%d  apos=%d alen=%d bpos=%d blen=%d - SKIP INITIAL GAP IN READ\n", *trace, apos, alen, bpos, blen);
-#endif
-
-    //lasta = aindex[apos];  //  NEW, untested
-
+    //fprintf(stderr, "trace=%d  apos=%d alen=%d bpos=%d blen=%d - SKIP INITIAL GAP IN READ\n", *trace, apos, alen, bpos, blen);
     apos++;  //  lasta isn't set, it is reset to aindex[apos] in alignPosition().
     trace++;
   }
@@ -467,10 +429,7 @@ abAbacus::applyAlignment(abSeqID   afid,
   //  in the A-read (template).  The A-read extent should be reduced by one for each  gap.
 
   while ((traceLen > 0) && (trace[traceLen-1] > blen)) {
-#ifdef DEBUG_ABACUS_ALIGN
-    fprintf(stderr, "trace=%d  apos=%d alen=%d bpos=%d blen=%d - SKIP TERMINAL GAP IN READ\n", *trace, apos, alen, bpos, blen);
-#endif
-
+    //fprintf(stderr, "trace=%d  apos=%d alen=%d bpos=%d blen=%d - SKIP TERMINAL GAP IN READ\n", *trace, apos, alen, bpos, blen);
     trace[--traceLen] = 0;
   }
 
@@ -627,37 +586,5 @@ abAbacus::applyAlignment(abSeqID   afid,
     }
   }
 
-  //CheckColumns();
-#if 0
-  {
-    int32 fails = 0;
-    int32 cmax  = GetNumColumns(columnStore);
-
-    for (int32 cid=0; cid<cmax; cid++) {
-      abColumn *column = getColumn(cid);
-
-      if (column == NULL)
-        continue;
-
-      ColumnBeadIterator ci;
-      CreateColumnBeadIterator(cid,&ci);
-
-      Bead   *call = GetBead(beadStore,column->call);
-      abBeadID  bid;
-
-      while ( (bid = NextColumnBead(&ci)).isValid() ) {
-        Bead *bead = GetBead(beadStore,bid);
-
-        if (bead->colIdx() != cid)
-          fails++;
-      }
-    }
-    assert(fails == 0);
-  }
-#endif
-
-  if (afid.isValid())  delete [] aindex;
   if (bfid.isValid())  delete [] bindex;
-
-  //bfrag->manode = afrag->manode;
 }

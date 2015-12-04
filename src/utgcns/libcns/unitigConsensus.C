@@ -934,8 +934,8 @@ unitigConsensus::alignFragment(bool forceAlignment) {
 
   bool  allowedToTrim = true;
 
-  assert(frankenstein[frankensteinLen]          == 0);  //  Frankenstein must be NUL terminated
-  assert(fragSeq[fragLen] == 0);  //  The read must be NUL terminated
+  assert(frankenstein[frankensteinLen] == 0);  //  Frankenstein must be NUL terminated
+  assert(fragSeq[fragLen]              == 0);  //  The read must be NUL terminated
 
  alignFragmentAgain:
 
@@ -1100,8 +1100,10 @@ unitigConsensus::alignFragment(bool forceAlignment) {
   //    If positive, align ( trace - bpos) bases, then add a gap in B.
   //
 
-  assert((oaFull->abgn() == 0) ||
-         (oaFull->bbgn() == 0));
+  if (oaFull->abgn() > 0)   assert(oaFull->bbgn() == 0);  //  read aligned fully if frank isn't
+  if (oaFull->bbgn() > 0)   assert(oaFull->abgn() == 0);  //  read extends past the begin, frank aligned fully
+  if (oaFull->bbgn() > 0)   assert(frankBgn == 0);        //  read extends past the begin, frank not trimmed at begin
+
 
   traceABgn = frankBgn + oaFull->abgn() - oaFull->bbgn();
   traceBBgn =            oaFull->bbgn();
@@ -1137,8 +1139,7 @@ unitigConsensus::alignFragment(bool forceAlignment) {
 void
 unitigConsensus::applyAlignment(void) {
 
-  abacus->applyAlignment(abSeqID(),
-                         frankensteinLen, frankensteinBof,
+  abacus->applyAlignment(frankensteinLen, frankensteinBof,
                          tiid,
                          traceABgn, traceBBgn, trace, traceLen);
 }

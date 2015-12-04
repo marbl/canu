@@ -280,8 +280,7 @@ public:
                               abSeqID   bfid,
                               uint32    bgn,  uint32    end);
 
-  void            applyAlignment(abSeqID  afid,
-                                 int32    alen, abBeadID *aindex,
+  void            applyAlignment(int32    alen, abBeadID *aindex,
                                  abSeqID  bfid,
                                  int32    ahang,
                                  int32    bhang,
