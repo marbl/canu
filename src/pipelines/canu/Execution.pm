@@ -785,13 +785,13 @@ sub submitScript ($$$) {
     $memOption = buildMemoryOption($mem, 1);
     $thrOption = buildThreadOption(1);
 
-    $gridOpts  = getGlobal("gridOptions")             if (defined(getGlobal("gridOptions")));
-    $gridOpts .= " "                                  if (defined($gridOpts));
-    $gridOpts  = getGlobal("gridOptionsExecutive")    if (defined(getGlobal("gridOptionsExecutive")));
-    $gridOpts .= " "                                  if (defined($gridOpts));
-    $gridOpts .= $memOption                           if (defined($memOption));
+    $gridOpts  = $memOption                           if (defined($memOption));
     $gridOpts .= " "                                  if (defined($gridOpts));
     $gridOpts .= $thrOption                           if (defined($thrOption));
+    $gridOpts .= " "                                  if (defined($gridOpts));
+    $gridOpts .= getGlobal("gridOptions")             if (defined(getGlobal("gridOptions")));
+    $gridOpts .= " "                                  if (defined($gridOpts));
+    $gridOpts .= getGlobal("gridOptionsExecutive")    if (defined(getGlobal("gridOptionsExecutive")));
 
     #  If the jobToWaitOn is defined, make the script wait for that to complete.  LSF might need to
     #  query jobs in the queue and figure out the job ID (or IDs) for the jobToWaitOn.  Reading LSF
