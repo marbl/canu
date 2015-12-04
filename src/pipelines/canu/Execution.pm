@@ -57,7 +57,7 @@ use strict;
 use Config;            #  for @signame
 
 use POSIX ":sys_wait_h";  #  For waitpid(..., &WNOHANG)
-
+use List::Util qw(min max);
 use File::Path qw(make_path remove_tree);
 
 use canu::Defaults;
@@ -779,8 +779,10 @@ sub submitScript ($$$) {
 
     #$memOption = buildMemoryOption(getGlobal("masterMemory"), getGlobal("masterThreads"));
     #$thrOption = buildThreadOption(getGlobal("masterThreads"));
+    #stores are built in the executive so take max of default or any store memory
+    my $mem = max(4, getGlobal("ovlStoreMemory"));
 
-    $memOption = buildMemoryOption(4, 1);
+    $memOption = buildMemoryOption($mem, 1);
     $thrOption = buildThreadOption(1);
 
     $gridOpts  = getGlobal("gridOptions")             if (defined(getGlobal("gridOptions")));
