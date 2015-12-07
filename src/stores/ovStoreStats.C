@@ -189,7 +189,7 @@ main(int argc, char **argv) {
 
   //  Open inputs, find limits.
 
-  gkStore    *gkpStore = new gkStore(gkpName);
+  gkStore    *gkpStore = gkStore::gkStore_open(gkpName);
   ovStore    *ovlStore = new ovStore(ovlName, gkpStore);
 
   if (endID > gkpStore->gkStore_getNumReads())
@@ -603,9 +603,9 @@ main(int argc, char **argv) {
   if (toFile == true)
     fclose(LOG);
 
-
   delete ovlStore;
-  delete gkpStore;
+
+  gkpStore->gkStore_close();
 
   exit(0);
 }

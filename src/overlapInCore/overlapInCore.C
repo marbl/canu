@@ -192,7 +192,7 @@ OverlapDriver(void) {
   Work_Area_t    *thread_wa = new Work_Area_t [G.Num_PThreads];
 
   fprintf(stderr, "OverlapDriver()--  gkpStore\n");
-  gkStore        *gkpStore  = new gkStore(G.Frag_Store_Path);
+  gkStore        *gkpStore  = gkStore::gkStore_open(G.Frag_Store_Path);
 
   pthread_attr_t  attr;
 
@@ -314,7 +314,7 @@ OverlapDriver(void) {
   pthread_mutex_destroy(&Write_Proto_Mutex);
   pthread_attr_destroy(&attr);
 
-  delete gkpStore;
+  gkpStore->gkStore_close();
 
   for (uint32 i=0;  i<G.Num_PThreads;  i++)
     Delete_Work_Area(thread_wa + i);

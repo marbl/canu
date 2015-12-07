@@ -549,7 +549,7 @@ main(int argc, char **argv) {
   if (dumpType == 0)
     dumpType = DUMP_5p | DUMP_3p | DUMP_CONTAINED | DUMP_CONTAINS;
 
-  gkStore  *gkpStore = new gkStore(gkpName);
+  gkStore  *gkpStore = gkStore::gkStore_open(gkpName);
   ovStore  *ovlStore = new ovStore(ovlName, gkpStore);
 
   if (endID > gkpStore->gkStore_getNumReads())
@@ -571,7 +571,8 @@ main(int argc, char **argv) {
   }
 
   delete ovlStore;
-  delete gkpStore;
+
+  gkpStore->gkStore_close();
 
   exit(0);
 }

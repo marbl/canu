@@ -126,7 +126,7 @@ main(int argc, char **argv) {
   }
 
   if (gkpStoreName)
-    gkpStore = new gkStore(gkpStoreName);
+    gkpStore = gkStore::gkStore_open(gkpStoreName);
 
   char         *S     = new char [1024];
   splitToWords  W;
@@ -189,7 +189,7 @@ main(int argc, char **argv) {
 
   delete [] S;
 
-  delete    gkpStore;
+  gkpStore->gkStore_close();
 
   exit(0);
 }

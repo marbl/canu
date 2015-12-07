@@ -414,7 +414,7 @@ main (int argc, char * argv []) {
     if (logFileFlagSet(j))
       fprintf(stderr, "DEBUG                 = %s\n", logFileFlagNames[i]);
 
-  gkStore          *gkpStore     = new gkStore(gkpStorePath);
+  gkStore          *gkpStore     = gkStore::gkStore_open(gkpStorePath);
   ovStore          *ovlStoreUniq = new ovStore(ovlStoreUniqPath, gkpStore);
   ovStore          *ovlStoreRept = ovlStoreReptPath ? new ovStore(ovlStoreReptPath, gkpStore) : NULL;
 
@@ -439,7 +439,9 @@ main (int argc, char * argv []) {
 
   delete ovlStoreUniq;  ovlStoreUniq = NULL;
   delete ovlStoreRept;  ovlStoreRept = NULL;
-  delete gkpStore;      gkpStore     = NULL;
+
+  gkpStore->gkStore_close();
+  gkpStore = NULL;
 
 
   ////////////////////////////////////////////////////////////////////////////////

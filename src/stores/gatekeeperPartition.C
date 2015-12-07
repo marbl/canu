@@ -75,7 +75,7 @@ main(int argc, char **argv) {
   //  (like, by changing the read ID or pointer to the blob).  We don't need it opened
   //  for writing anyway.
 
-  gkStore    *gkpStore  = new gkStore(gkpStoreName, gkStore_readOnly);
+  gkStore    *gkpStore  = gkStore::gkStore_open(gkpStoreName, gkStore_readOnly);
   uint32      numReads  = gkpStore->gkStore_getNumReads();
 
   uint32     *partition = new uint32 [numReads + 1];
@@ -111,7 +111,8 @@ main(int argc, char **argv) {
   //  That's all folks.
 
   delete [] partition;
-  delete    gkpStore;
+
+  gkpStore->gkStore_close();
 
   exit(0);
 }

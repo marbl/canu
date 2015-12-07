@@ -588,7 +588,7 @@ main(int argc, char **argv) {
   //  Open gatekeeper store
 
   fprintf(stderr, "Opening '%s'\n", gkpName);
-  gkpStore = new gkStore(gkpName);
+  gkpStore = gkStore::gkStore_open(gkpName);
 
   //  Compute what to compute.
 

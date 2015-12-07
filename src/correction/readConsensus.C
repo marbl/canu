@@ -63,7 +63,7 @@ public:
 
     //  Inputs
 
-    gkpStore  = new gkStore(gkpName);
+    gkpStore  = gkStore::gkStore_open(gkpName);
 
     readCache = new overlapReadCache(gkpStore, memLimit);
 
@@ -113,7 +113,8 @@ public:
   };
 
   ~consensusGlobalData() {
-    delete gkpStore;
+    gkpStore->gkStore_close();
+
     delete readCache;
     delete ovlStore;
     delete tigStore;

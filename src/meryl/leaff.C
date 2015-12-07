@@ -59,7 +59,7 @@ void stats(char *filename, uint64 refLen);
 void partitionBySize(char *prefix, uint64 partitionSize, char *filename);
 void partitionByBucket(char *prefix, uint64 partitionSize, char *filename);
 void partitionBySegment(char *prefix, uint64 numSegments, char *filename);
-void simseq(char *,char *,int,int,int,int,double);
+void simseq(char *,char *, uint32, uint32, uint32, uint32, double);
 void computeGCcontent(char *name);
 void findDuplicates(char *filename);
 void mapDuplicates(char *filea, char *fileb);
@@ -694,12 +694,12 @@ processArray(int argc, char **argv) {
       exit(0);
 
     } else if (strcmp(argv[arg], "--errors") == 0) {
-      int    L = strtouint32(argv[++arg]);     //  Desired length
-      int    l = 0;                            //  min of desired length, length of sequence
-      int    N = strtouint32(argv[++arg]);     //  number of copies per sequence
-      int    C = strtouint32(argv[++arg]);     //  number of mutations per copy
-      double P = atof(argv[++arg]);            //  probability of mutation
-      uint32 i = 0;
+      uint32  L = strtouint32(argv[++arg]);     //  Desired length
+      uint32  l = 0;                            //  min of desired length, length of sequence
+      uint32  N = strtouint32(argv[++arg]);     //  number of copies per sequence
+      uint32  C = strtouint32(argv[++arg]);     //  number of mutations per copy
+      double  P = atof(argv[++arg]);            //  probability of mutation
+      uint32  i = 0;
 
       fasta = new seqCache(argv[++arg]);
 
@@ -707,7 +707,7 @@ processArray(int argc, char **argv) {
       while (S) {
         char   *seq = S->sequence();
         char   *hdr = S->header();
-        int     len = S->sequenceLength();
+        uint32  len = S->sequenceLength();
 
         l = len;
         if ((L > 0) && (L < len))

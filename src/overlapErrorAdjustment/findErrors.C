@@ -474,7 +474,7 @@ main(int argc, char **argv) {
   //
   //
 
-  gkStore *gkpStore = new gkStore(G->gkpStorePath);
+  gkStore *gkpStore = gkStore::gkStore_open(G->gkpStorePath);
 
   if (G->bgnID < 1)
     G->bgnID = 1;
@@ -495,7 +495,7 @@ main(int argc, char **argv) {
 
   //fprintf (stderr, "                   Failed overlaps = %d\n", Failed_Olaps);
 
-  delete gkpStore;
+  gkpStore->gkStore_close();
 
   //Output_Details(G);
   Output_Corrections(G);

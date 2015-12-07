@@ -564,7 +564,7 @@ main(int argc, char **argv) {
   }
 
 
-  gkStore     *gkpStore     = new gkStore(gkpStoreName, gkStore_extend);
+  gkStore     *gkpStore     = gkStore::gkStore_open(gkpStoreName, gkStore_extend);
   gkRead      *gkpRead      = NULL;
   gkLibrary   *gkpLibrary   = NULL;
   uint32       gkpFileID    = 0;      //  Used for HTML output, an ID for each file loaded.
@@ -702,7 +702,7 @@ main(int argc, char **argv) {
   fprintf(htmlLog, "</table>\n");
 #endif
 
-  delete gkpStore;
+  gkpStore->gkStore_close();
 
   fclose(nameMap);
   fclose(errorLog);

@@ -147,7 +147,7 @@ main(int argc, char **argv) {
 
   fprintf(stderr, "Opening gkpStore '%s'.\n", G->gkpStorePath);
 
-  gkStore *gkpStore = new gkStore(G->gkpStorePath);
+  gkStore *gkpStore = gkStore::gkStore_open(G->gkpStorePath);
 
   if (G->bgnID < 1)
     G->bgnID = 1;

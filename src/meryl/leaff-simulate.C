@@ -46,13 +46,13 @@
 //  it to use a real RNG, and to make it work from leaff.
 
 typedef struct edit_script {
-  int    optype;
-  int    num;
+  uint32  optype;
+  uint32  num;
   struct edit_script *next;
 } EditScript_t;
 
 typedef struct align {
-  int offset, len;
+  uint32 offset, len;
   EditScript_t *script;
 } Align_t;
 
@@ -76,7 +76,7 @@ extern mtRandom MT;
 
 
 EditScript_t *
-new_script(int optype, int num, EditScript_t *next) {
+new_script(int optype, uint32 num, EditScript_t *next) {
   EditScript_t *newtp = new EditScript_t;
 
   newtp->optype = optype;
@@ -90,8 +90,8 @@ new_script(int optype, int num, EditScript_t *next) {
 
 /* DEL(pos), SUB(pos) - modifY position pos; INS - insert right before pos */
 void
-insert(Align_t *aln, int in_pos, int in_optype) {
-  int i, num, optype;
+insert(Align_t *aln, uint32 in_pos, uint32 in_optype) {
+  uint32 i, num, optype;
   EditScript_t *t, *tp;
 
   //fprintf(stderr, "Modify script op=%d pos=%d\n", in_optype, in_pos);
@@ -119,8 +119,8 @@ insert(Align_t *aln, int in_pos, int in_optype) {
 
       case MOV:
         if (i<in_pos && in_pos<=i+num) {
-          int l = (in_optype==INS) ? (in_pos-i) : (in_pos-i-1);
-          int r = (in_optype==INS) ? (num-l) : (num-l-1);
+          uint32 l = (in_optype==INS) ? (in_pos-i) : (in_pos-i-1);
+          uint32 r = (in_optype==INS) ? (num-l) : (num-l-1);
           if (l && l!=num) {
             t->num = l; tp = t;
             tp->next = new_script(in_optype, 1, tp->next);
@@ -153,8 +153,8 @@ insert(Align_t *aln, int in_pos, int in_optype) {
 
 
 void
-print_simseq(char *seq, char *hdr, Align_t *aln, double P, int CUT, int COPY) {
-  int   k, e;
+print_simseq(char *seq, char *hdr, Align_t *aln, double P, uint32 CUT, uint32 COPY) {
+  uint32   k, e;
   char *s;
   char  let_4[4]  = {'A','C','G','T'};
   char  let_3A[3] = {'C','G','T'};
@@ -226,10 +226,10 @@ print_simseq(char *seq, char *hdr, Align_t *aln, double P, int CUT, int COPY) {
 
 
 void
-simseq(char *seq, char *hdr, int len, int N, int L, int C, double P) {
+simseq(char *seq, char *hdr, uint32 len, uint32 N, uint32 L, uint32 C, double P) {
   Align_t       align;
-  int           i, j, k;
-  int           start;
+  uint32        i, j, k;
+  uint32        start;
   EditScript_t *s;
 
   for (i=0; i<N; i++) {
@@ -245,8 +245,8 @@ simseq(char *seq, char *hdr, int len, int N, int L, int C, double P) {
       align.script = new_script(MOV,L,NULL);
 
       for (k=0; k<L*P; k++) {
-        int optype = RAND(3,0);
-        int pos    = RAND(L,1);
+        uint32 optype = RAND(3,0);
+        uint32 pos    = RAND(L,1);
 
         insert(&align, pos, optype);
       }

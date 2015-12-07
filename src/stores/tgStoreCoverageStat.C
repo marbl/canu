@@ -463,7 +463,7 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  gkStore *gkpStore     = new gkStore(gkpName, gkStore_readOnly);
+  gkStore *gkpStore     = gkStore::gkStore_open(gkpName, gkStore_readOnly);
   tgStore *tigStore     = new tgStore(tigName, tigVers, tgStoreModify);
 
   if (endID == 0)
@@ -580,7 +580,8 @@ main(int argc, char **argv) {
   delete [] isNonRandom;
   delete [] readLength;
 
-  delete gkpStore;
+  gkpStore->gkStore_close();
+
   delete tigStore;
 
   exit(0);

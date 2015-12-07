@@ -168,7 +168,7 @@ public:
       return;
 
     fprintf(stderr, "opening gkStore '%s'\n", gkpPath);
-    gkRead  = new gkStore(gkpPath, FALSE, FALSE);
+    gkRead  = gkStore::gkStore_open(gkpPath, FALSE, FALSE);
 
     if (gktBgn == 0) {
       gktBgn = 1;

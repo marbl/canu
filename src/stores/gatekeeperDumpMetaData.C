@@ -236,7 +236,7 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  gkStore    *gkpStore  = new gkStore(gkpStoreName, gkStore_readOnly, gkpStorePart);
+  gkStore    *gkpStore  = gkStore::gkStore_open(gkpStoreName, gkStore_readOnly, gkpStorePart);
   uint32      numReads  = gkpStore->gkStore_getNumReads();
   uint32      numLibs   = gkpStore->gkStore_getNumLibraries();
 
@@ -265,7 +265,7 @@ main(int argc, char **argv) {
     dumpStats(gkpStore, bgnID, endID);
 
 
-  delete gkpStore;
+  gkpStore->gkStore_close();
 
   exit(0);
 }

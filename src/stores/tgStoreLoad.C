@@ -160,7 +160,7 @@ main (int argc, char **argv) {
     delete tigStore;
   }
 
-  gkStore *gkpStore = new gkStore(gkpName);
+  gkStore *gkpStore = gkStore::gkStore_open(gkpName);
   tgStore *tigStore = new tgStore(tigName, tigVers, tigType);
   tgTig   *tig      = new tgTig;
 
@@ -202,7 +202,8 @@ main (int argc, char **argv) {
 
   delete tig;
   delete tigStore;
-  delete gkpStore;
+
+  gkpStore->gkStore_close();
 
   exit(0);
 }

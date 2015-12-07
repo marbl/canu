@@ -1181,7 +1181,7 @@ main (int argc, char **argv) {
 
   //  Open stores.
 
-  gkStore *gkpStore = new gkStore(gkpName);
+  gkStore *gkpStore = gkStore::gkStore_open(gkpName);
   tgStore *tigStore = new tgStore(tigName, tigVers);
 
   //  Check that the tig ID range is valid, and fix it if possible.
@@ -1251,7 +1251,8 @@ main (int argc, char **argv) {
   //  Clean up.
 
   delete tigStore;
-  delete gkpStore;
+
+  gkpStore->gkStore_close();
 
   //  Bye.
 

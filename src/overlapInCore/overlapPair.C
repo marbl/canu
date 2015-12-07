@@ -370,7 +370,7 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  gkStore          *gkpStore = new gkStore(gkpName);
+  gkStore          *gkpStore = gkStore::gkStore_open(gkpName);
 
   ovStore          *ovlStore = NULL,  *ovlStoreOut = NULL;
   ovFile           *ovlFile  = NULL,  *ovlFileOut  = NULL;
@@ -536,7 +536,7 @@ main(int argc, char **argv) {
 
   delete    rcache;
 
-  delete    gkpStore;
+  gkpStore->gkStore_close();
 
   delete    ovlStore;
   delete    ovlStoreOut;

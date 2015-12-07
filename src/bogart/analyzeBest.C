@@ -93,7 +93,7 @@ main(int argc, char **argv) {
 
   fprintf(stderr, "Loading fragment to library mapping.\n");
 
-  gkStore    *gkp = new gkStore(gkpName, false, false);
+  gkStore    *gkp = gkStore::gkStore_open(gkpName, false, false);
   gkStream   *str = new gkStream(gkp, 0, 0, GKFRAGMENT_INF);
   gkFragment  fr;
 
@@ -200,7 +200,8 @@ main(int argc, char **argv) {
             dovePerLib[i], (dovePerLib[i] == 0) ? 0.0 : 100.0 * dovePerLib[i] / tot);
   }
 
-  delete gkp;
+  gkp->gkStore_close();
+
   fclose(be);
   fclose(bc);
 

@@ -39,14 +39,14 @@ gkStoreFile::gkStoreFile(const char *name) {
 
   strcpy(_filename, name);
 
-  gkp = new gkStore(_filename);
+  gkp = gkStore::gkStore_open(_filename);
 
   _numberOfSequences = gkp->gkStore_getNumReads();
   fprintf(stderr, "Opened '%s' with %u reads\n", _filename, _numberOfSequences);
 }
 
 gkStoreFile::~gkStoreFile() {
-  delete gkp;
+  gkp->gkStore_close();
 }
 
 
@@ -55,17 +55,20 @@ seqFile *
 gkStoreFile::openFile(const char *name) {
   struct stat  st;
 
-  //  Assume it's a gkStore if it is a directory, and the files 'name/info' and 'name/reads' exist.
+  //  Assume it's a gkStore if it is a directory, and the info / reads / blobs files exist.
 
   char  infoName[FILENAME_MAX];
   char  readName[FILENAME_MAX];
+  char  blobName[FILENAME_MAX];
 
   sprintf(infoName, "%s/info",  name);
   sprintf(readName, "%s/reads", name);
+  sprintf(blobName, "%s/blobs", name);
 
-  if ((AS_UTL_fileExists(name, true) == false) &&
-      (AS_UTL_fileExists(infoName) == false) &&
-      (AS_UTL_fileExists(readName) == false))
+  if ((AS_UTL_fileExists(name, true) == false) ||
+      (AS_UTL_fileExists(infoName) == false) ||
+      (AS_UTL_fileExists(readName) == false) ||
+      (AS_UTL_fileExists(blobName) == false))
     return(0L);
 
   //  Yup, probably a gkStore.  If it isn't, the gkStore() constructor blows up.

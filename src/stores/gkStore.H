@@ -433,20 +433,56 @@ toString(gkStore_mode mode) {
 
 
 class gkStore {
-public:
 
-  //  Open a full gkpStore.
-  gkStore(char const *path, gkStore_mode = gkStore_readOnly, uint32 partID=UINT32_MAX);
-
-  //  Open a partitioned store, only reading is supported.
-  //gkStore(char const *path, uint32 partID);
-
+private:
+  gkStore(char const *path, gkStore_mode mode, uint32 partID);
   ~gkStore();
 
+public:
+  static
+  gkStore     *gkStore_open(char const *path, gkStore_mode mode=gkStore_readOnly, uint32 partID=UINT32_MAX) {
+
+#pragma omp critical
+    {
+      //  If an instance exists, return it.
+
+      if (_instance != NULL) {
+        _instanceCount++;
+      }
+
+      //  Otherwise, make a new one.
+
+      else {
+        //fprintf(stderr, "gkStore_open(%s) CREATE\n", path);
+        _instance      = new gkStore(path, mode, partID);
+        _instanceCount = 1;
+      }
+    }
+
+    return(_instance);
+  };
+
+
+  void         gkStore_close(void) {
+
+#pragma omp critical
+    {
+      _instanceCount--;
+
+      //fprintf(stderr, "gkStore_close(%s) return existing, %u instances remain\n", _storeName, _instanceCount);
+
+      if (_instanceCount == 0) {
+        delete _instance;
+        _instance = NULL;
+      }
+    }
+
+  };
+
+
+public:
   const char  *gkStore_path(void) { return(_storePath); };  //  Returns the path to the store
   const char  *gkStore_name(void) { return(_storeName); };  //  Returns the name, e.g., name.gkpStore
-
-  //bool         gkStore_loadPartition(uint32 partID);
 
   void         gkStore_buildPartitions(uint32 *partitionMap);
 
@@ -477,15 +513,13 @@ public:
     return(_reads + id);
   };
 
-  //  Returns a read, but only if it is in the currently loaded partition.  If no partition is loaded,
-  //  no reads are ever returned.
+  //  Returns a read, but only if it is in the currently loaded partition.
   gkRead      *gkStore_getReadInPartition(uint32 id) {
-    if (_readIDtoPartitionID == NULL)
-      //  Not partitioned, return regular read.
+
+    if (_readIDtoPartitionID == NULL)              //  Not partitioned, return regular read.
       return(gkStore_getRead(id));
 
-    if (_readIDtoPartitionID[id] != _partitionID)
-      //  Patitioned, and not in this partition.
+    if (_readIDtoPartitionID[id] != _partitionID)  //  Patitioned, and not in this partition.
       return(NULL);
 
     //fprintf(stderr, "getRead()--  SUCCESS: access to read %u in partition %u is FAST when partition %u is loaded.\n",
@@ -499,7 +533,6 @@ public:
 
   bool         gkStore_loadReadData(gkRead *read,   gkReadData *readData) {
     return(read->gkRead_loadData(readData, _blobs));
-    //gkStore_loadReadData(read->gkRead_readID(), readData));
   };
   bool         gkStore_loadReadData(uint32  readID, gkReadData *readData) {
     return(gkStore_getRead(readID)->gkRead_loadData(readData, _blobs));
@@ -512,6 +545,9 @@ public:
   void         gkStore_saveReadToStream(FILE *S, uint32 id);
 
 private:
+  static gkStore      *_instance;
+  static uint32        _instanceCount;
+
   gkStoreInfo          _info;  //  All the stuff stored on disk.
 
   char                 _storePath[FILENAME_MAX];  //  Needed to create files
@@ -549,9 +585,9 @@ private:
 class gkStoreStats {
 public:
   gkStoreStats(char const *gkStoreName) {
-    gkStore *gkp = new gkStore(gkStoreName);
+    gkStore *gkp = gkStore::gkStore_open(gkStoreName);
     init(gkp);
-    delete gkp;
+    gkp->gkStore_close();
   };
 
   gkStoreStats(gkStore *gkp) {

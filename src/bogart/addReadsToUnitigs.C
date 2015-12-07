@@ -388,7 +388,7 @@ main(int argc, char **argv) {
   //
 
   fprintf(stderr, "Processing mate pairs, updating gkpStore.\n");
-  gkpStore = new gkStore(gkpName, false, true);  //  last arg - TRUE - writable
+  gkpStore = gkStore::gkStore_open(gkpName, false, true);  //  last arg - TRUE - writable
 
   uint32   unpaired    = 0;
   uint32   multiple    = 0;
@@ -460,7 +460,7 @@ main(int argc, char **argv) {
       pairsToDiff++;
   }
 
-  delete gkpStore;
+  gkpStore->gkStore_close();
 
   fprintf(stderr, "Will NOT add %u pairs - one read failed to map.\n", unpaired);
   fprintf(stderr, "Will NOT add %u pairs - multiple mappings.\n", multiple);
@@ -471,7 +471,7 @@ main(int argc, char **argv) {
   //  Open stores.  gkpStore cannot be opened for writing, because then we can't loadall.
   //
 
-  gkpStore = new gkStore(gkpName, false, false);                              //  last arg - false - not writable
+  gkpStore = gkStore::gkStore_open(gkpName, false, false);                              //  last arg - false - not writable
   tigStore = new MultiAlignStore(tigName, tigVers, 0, 0, true, true, false);  //  Write back to the same version
 
   if (loadall) {

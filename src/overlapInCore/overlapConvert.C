@@ -90,7 +90,7 @@ main(int argc, char **argv) {
   }
 
   if (gkpStoreName)
-    gkpStore = new gkStore(gkpStoreName);
+    gkpStore = gkStore::gkStore_open(gkpStoreName);
 
   char  *ovStr = new char [1024];
 
@@ -105,7 +105,8 @@ main(int argc, char **argv) {
   }
 
   delete [] ovStr;
-  delete    gkpStore;
+
+  gkpStore->gkStore_close();
 
   exit(0);
 }

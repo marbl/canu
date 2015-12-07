@@ -63,7 +63,7 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  gkStore  *gkpStore = new gkStore(gkpName);
+  gkStore  *gkpStore = gkStore::gkStore_open(gkpName);
 
   FILE *F = fopen(tigFileName, "r");
 

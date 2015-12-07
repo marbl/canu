@@ -103,7 +103,7 @@ main(int argc, char **argv) {
 
   //  Open gkpStore.  Pretty much the first thing we always do.
 
-  gkStore  *gkpStore = new gkStore(gkpName);
+  gkStore  *gkpStore = gkStore::gkStore_open(gkpName);
 
   //  Open tigStore, check ranges.
 
@@ -214,9 +214,9 @@ main(int argc, char **argv) {
     fclose(partFile[pp]);
   }
 
-
   delete tigStore;
-  delete gkpStore;
+
+  gkpStore->gkStore_close();
 
   return(0);
 }

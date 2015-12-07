@@ -162,7 +162,7 @@ main(int argc, char **argv) {
   uint32    maxEvalue = AS_OVS_encodeEvalue(maxErate);
   uint32    minEvalue = AS_OVS_encodeEvalue(minErate);;
 
-  gkStore  *gkpStore  = new gkStore(gkpStoreName);
+  gkStore  *gkpStore  = gkStore::gkStore_open(gkpStoreName);
 
   ovStore  *inpStore  = new ovStore(ovlStoreName, gkpStore);
 
@@ -332,7 +332,8 @@ main(int argc, char **argv) {
   delete [] scores;
 
   delete inpStore;
-  delete gkpStore;
+
+  gkpStore->gkStore_close();
 
 
 

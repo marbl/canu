@@ -33,6 +33,10 @@
 #include "AS_UTL_alloc.H"
 
 
+gkStore *gkStore::_instance      = NULL;
+uint32   gkStore::_instanceCount = 0;
+
+
 
 bool
 gkRead::gkRead_loadData(gkReadData *readData, void *blobs) {

@@ -241,7 +241,7 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  gkpStore     = new gkStore(gkpName, gkStore_readOnly);
+  gkpStore     = gkStore::gkStore_open(gkpName, gkStore_readOnly);
   tigStore     = new tgStore(tigName, tigVers, tgStoreReadOnly);
 
   if (endID == 0)
@@ -560,7 +560,8 @@ main(int argc, char **argv) {
   delete [] isNonRandom;
   delete [] fragLength;
 
-  delete gkpStore;
+  gkpStore->gkStore_close();
+
   delete tigStore;
 
   exit(0);

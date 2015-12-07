@@ -121,7 +121,7 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  gkStore         *gkp = new gkStore(gkpName);
+  gkStore         *gkp = gkStore::gkStore_open(gkpName);
   ovStore         *ovs = new ovStore(ovsName, gkp);
 
   clearRangeFile  *finClr = new clearRangeFile(finClrName, gkp);
@@ -238,7 +238,7 @@ main(int argc, char **argv) {
 
   delete    w;
 
-  delete    gkp;
+  gkp->gkStore_close();
 
   delete    finClr;
   delete    outClr;

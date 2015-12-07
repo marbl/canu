@@ -312,7 +312,7 @@ main(int argc, char **argv) {
 
   //  Open inputs and output tigStore.
 
-  gkStore  *gkpStore = new gkStore(gkpName);
+  gkStore  *gkpStore = gkStore::gkStore_open(gkpName);
   ovStore  *ovlStore = new ovStore(ovlName, gkpStore);
   tgStore  *tigStore = (tigName != NULL) ? new tgStore(tigName) : NULL;
 
@@ -508,7 +508,8 @@ main(int argc, char **argv) {
 
   delete tigStore;
   delete ovlStore;
-  delete gkpStore;
+
+  gkpStore->gkStore_close();
 
   return(0);
 }

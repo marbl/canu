@@ -419,7 +419,7 @@ main(int argc, char **argv) {
   fprintf(stderr, "HASH: "F_U64" reads or "F_U64" length.\n", ovlHashBlockSize, ovlHashBlockLength);
   fprintf(stderr, "REF:  "F_U64" reads or "F_U64" length.\n", ovlRefBlockSize,  ovlRefBlockLength);
 
-  gkStore   *gkp         = new gkStore(gkpStoreName);
+  gkStore   *gkp         = gkStore::gkStore_open(gkpStoreName);
   uint32     numLibs     = gkp->gkStore_getNumLibraries();
   uint32     invalidLibs = 0;
 
@@ -473,7 +473,7 @@ main(int argc, char **argv) {
   fclose(JOB);
   fclose(OPT);
 
-  delete gkp;
+  gkp->gkStore_close();
 
   exit(0);
 }

@@ -277,7 +277,7 @@ main(int argc, char **argv) {
   }
 
 
-  gkStore *gkp         = new gkStore(gkpName);
+  gkStore *gkp         = gkStore::gkStore_open(gkpName);
 
   uint64  maxIID       = gkp->gkStore_getNumReads() + 1;
   uint64  iidPerBucket = (uint64)ceil((double)maxIID / (double)fileLimit);

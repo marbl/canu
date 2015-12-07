@@ -57,7 +57,7 @@ merTrimApply(char *gkpStoreName,
   if (errno)
     fprintf(stderr, "Failed to open -l '%s' for writing: %s\n", logName, strerror(errno)), exit(1);
 
-  gkStore *gkpStore = new gkStore(gkpStoreName, FALSE, TRUE);
+  gkStore *gkpStore = gkStore::gkStore_open(gkpStoreName, FALSE, TRUE);
 
   gkpStore->gkStore_enableClearRange(AS_READ_CLEAR_OBTINITIAL);
   gkpStore->gkStore_enableClearRange(AS_READ_CLEAR_TNT);
@@ -102,7 +102,7 @@ merTrimApply(char *gkpStoreName,
   fclose(listFile);
   fclose(logFile);
 
-  delete gkpStore;
+  gkpStore->gkStore_close();
 }
 
 

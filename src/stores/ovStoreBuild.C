@@ -331,7 +331,7 @@ main(int argc, char **argv) {
   //  We create the store early, allowing it to fail if it already
   //  exists, or just cannot be created.
 
-  gkStore  *gkp         = new gkStore(gkpName);
+  gkStore  *gkp         = gkStore::gkStore_open(gkpName);
   ovStore  *storeFile   = new ovStore(ovlName, gkp, ovStoreWrite);
 
   uint64    maxIID       = gkp->gkStore_getNumReads() + 1;

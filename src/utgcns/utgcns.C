@@ -273,7 +273,7 @@ main (int argc, char **argv) {
 
   if (gkpName) {
     fprintf(stderr, "-- Opening gkpStore '%s' partition %u.\n", gkpName, tigPart);
-    gkpStore = new gkStore(gkpName, gkStore_readOnly, tigPart);
+    gkpStore = gkStore::gkStore_open(gkpName, gkStore_readOnly, tigPart);
   }
 
   if (tigName) {
@@ -493,7 +493,8 @@ main (int argc, char **argv) {
  finish:
   delete abacus;
   delete tigStore;
-  delete gkpStore;
+
+  gkpStore->gkStore_close();
 
   if (tigFile)         fclose(tigFile);
   if (outResultsFile)  fclose(outResultsFile);
