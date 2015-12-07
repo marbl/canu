@@ -972,7 +972,7 @@ sub setDefaults () {
     $global{"gridEngineMemoryUnits"}                = undef;
     $global{"gridEngineNameToJobIDCommand"}         = undef;
     $global{"gridEngineNameToJobIDCommandNoArray"}  = undef;
-    $global{"gridEngineTaskID"}                     = undef;
+    $global{"gridEngineTaskID"}                     = "1";    #  IMPORTANT!  If no grid, this sets jobid=$1 in shell scripts.
     $global{"gridEngineArraySubmitID"}              = undef;
     $global{"gridEngineJobID"}                      = undef;
 
