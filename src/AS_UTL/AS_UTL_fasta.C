@@ -82,7 +82,7 @@ AS_UTL_writeFastQ(FILE *f,
 
   assert(sl == ql);
 
-  //  Reencode the QV to the Sanger spec.
+  //  Reencode the QV to the Sanger spec.  This is a copy, so we don't need to undo it.
   while (qi < ql)
     o[oi++] = q[qi++] + '!';
   o[oi] = 0;
