@@ -94,9 +94,6 @@ sub mhapConfigure ($$$$) {
 
     my $merSize       = getGlobal("${tag}MhapMerSize");
 
-    my $taskID        = getGlobal("gridEngineTaskID");
-    my $submitTaskID  = getGlobal("gridEngineArraySubmitID");
-
     my $numReads      = getNumberOfReadsInStore($wrk, $asm);
     my $memorySize    = getGlobal("${tag}mhapMemory");
     my $blockPerGb    = getGlobal("${tag}MhapBlockSize");
@@ -279,12 +276,12 @@ sub mhapConfigure ($$$$) {
 
     print F "#!" . getGlobal("shell") . "\n";
     print F "\n";
-    print F "jobid=$taskID\n";
+    print F "jobid=\$" . getGlobal("gridEngineTaskID") . "\n";
     print F "if [ x\$jobid = x -o x\$jobid = xundefined -o x\$jobid = x0 ]; then\n";
     print F "  jobid=\$1\n";
     print F "fi\n";
     print F "if [ x\$jobid = x ]; then\n";
-    print F "  echo Error: I need $taskID set, or a job index on the command line.\n";
+    print F "  echo Error: I need " . getGlobal("gridEngineTaskID") . " set, or a job index on the command line.\n";
     print F "  exit 1\n";
     print F "fi\n";
     print F "\n";
@@ -370,12 +367,12 @@ sub mhapConfigure ($$$$) {
 
     print F "#!" . getGlobal("shell") . "\n";
     print F "\n";
-    print F "jobid=$taskID\n";
+    print F "jobid=\$" . getGlobal("gridEngineTaskID") . "\n";
     print F "if [ x\$jobid = x -o x\$jobid = xundefined -o x\$jobid = x0 ]; then\n";
     print F "  jobid=\$1\n";
     print F "fi\n";
     print F "if [ x\$jobid = x ]; then\n";
-    print F "  echo Error: I need $taskID set, or a job index on the command line.\n";
+    print F "  echo Error: I need " . getGlobal("gridEngineTaskID") . " set, or a job index on the command line.\n";
     print F "  exit 1\n";
     print F "fi\n";
     print F "\n";

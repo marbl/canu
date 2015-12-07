@@ -954,8 +954,7 @@ sub buildGridJob ($$$$$$$$) {
     my $arrayOpt      = buildGridArray($jobNameT, $bgnJob, $endJob, getGlobal("gridEngineArrayOption"));
 
     my $outputOption  = getGlobal("gridEngineOutputOption");
-    my $tid           = getGlobal("gridEngineArraySubmitID");
-    my $outName       = buildOutputName($path, $script, $tid);
+    my $outName       = buildOutputName($path, $script, getGlobal("gridEngineArraySubmitID"));
 
     my $memOption     = buildMemoryOption($mem, $thr);
     my $thrOption     = buildThreadOption($thr);

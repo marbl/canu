@@ -66,7 +66,7 @@ sub configurePBSTorque () {
     setGlobalIfUndef("gridEnginePropagateCommand",   	"qalter -W depend=afterany:\"WAIT_TAG\"");
     setGlobalIfUndef("gridEngineNameToJobIDCommand", 	"qstat -f |grep -F -B 1 WAIT_TAG | grep Id: | grep -F [] |awk '{print \$NF}'");
     setGlobalIfUndef("gridEngineNameToJobIDCommandNoArray", "qstat -f |grep -F -B 1 WAIT_TAG | grep Id: |awk '{print \$NF}'");
-    setGlobalIfUndef("gridEngineTaskID",                    "\$PBS_ARRAYID");
+    setGlobalIfUndef("gridEngineTaskID",                    "PBS_ARRAYID");
     setGlobalIfUndef("gridEngineArraySubmitID",             "\\\$PBS_ARRAYID");
     setGlobalIfUndef("gridEngineJobID",                     "PBS_JOBID");
 

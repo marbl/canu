@@ -66,7 +66,7 @@ sub configureSlurm () {
     setGlobalIfUndef("gridEnginePropagateCommand",   	"scontrol update job=\"WAIT_TAG\"");          ## TODO: manually verify this in all cases
     setGlobalIfUndef("gridEngineNameToJobIDCommand", 	"squeue -h -o\%F -n \"WAIT_TAG\" | uniq");    ## TODO: manually verify this in all cases
     setGlobalIfUndef("gridEngineNameToJobIDCommandNoArray", "squeue -h -o\%i -n \"WAIT_TAG\"");     ## TODO: manually verify this in all cases
-    setGlobalIfUndef("gridEngineTaskID",             	"\$SLURM_ARRAY_TASK_ID");                         
+    setGlobalIfUndef("gridEngineTaskID",             	"SLURM_ARRAY_TASK_ID");
     setGlobalIfUndef("gridEngineArraySubmitID",      	"%A_%a");                                     
     setGlobalIfUndef("gridEngineJobID",              	"SLURM_JOB_ID");                               
 

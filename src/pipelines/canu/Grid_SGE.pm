@@ -62,7 +62,7 @@ sub configureSGE () {
     setGlobalIfUndef("gridEngineMemoryOption",               undef);  #"-l mem=MEMORY");
     setGlobalIfUndef("gridEngineNameToJobIDCommand",         undef);
     setGlobalIfUndef("gridEngineNameToJobIDCommandNoArray",  undef);
-    setGlobalIfUndef("gridEngineTaskID",                     "\$SGE_TASK_ID");
+    setGlobalIfUndef("gridEngineTaskID",                     "SGE_TASK_ID");
     setGlobalIfUndef("gridEngineArraySubmitID",              "\\\$TASK_ID");
     setGlobalIfUndef("gridEngineJobID",                      "JOB_ID");
 

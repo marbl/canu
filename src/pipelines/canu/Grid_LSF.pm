@@ -66,7 +66,7 @@ sub configureLSF () {
     setGlobalIfUndef("gridEnginePropagateCommand",           "bmodify -w \"done\(\"WAIT_TAG\"\)\"");
     setGlobalIfUndef("gridEngineNameToJobIDCommand",         "bjobs -A -J \"WAIT_TAG\" | grep -v JOBID");
     setGlobalIfUndef("gridEngineNameToJobIDCommandNoArray",  "bjobs -J \"WAIT_TAG\" | grep -v JOBID");
-    setGlobalIfUndef("gridEngineTaskID",                     "\$LSB_JOBINDEX");
+    setGlobalIfUndef("gridEngineTaskID",                     "LSB_JOBINDEX");
     setGlobalIfUndef("gridEngineArraySubmitID",              "%I");
     setGlobalIfUndef("gridEngineJobID",                      "LSB_JOBID");
 

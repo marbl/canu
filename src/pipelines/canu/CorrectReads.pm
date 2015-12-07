@@ -160,21 +160,18 @@ sub buildCorrectionLayouts_direct ($$) {
 
     my ($jobs, $nPer) = computeNumberOfCorrectionJobs($wrk, $asm);
 
-    my $taskID            = getGlobal("gridEngineTaskID");
-    my $submitTaskID      = getGlobal("gridEngineArraySubmitID");
-
     #getAllowedResources("", "cor");
 
     open(F, "> $path/correctReads.sh") or caExit("can't open '$path/correctReads.sh'", undef);
 
     print F "#!" . getGlobal("shell") . "\n";
     print F "\n";
-    print F "jobid=$taskID\n";
+    print F "jobid=\$" . getGlobal("gridEngineTaskID") . "\n";
     print F "if [ x\$jobid = x -o x\$jobid = xundefined -o x\$jobid = x0 ]; then\n";
     print F "  jobid=\$1\n";
     print F "fi\n";
     print F "if [ x\$jobid = x ]; then\n";
-    print F "  echo Error: I need $taskID set, or a job index on the command line.\n";
+    print F "  echo Error: I need " . getGlobal("gridEngineTaskID") . " set, or a job index on the command line.\n";
     print F "  exit 1\n";
     print F "fi\n";
     print F "\n";
@@ -262,21 +259,18 @@ sub buildCorrectionLayouts_piped ($$) {
 
     my $nReads             = getNumberOfReadsInStore($wrk, $asm);
 
-    my $taskID             = getGlobal("gridEngineTaskID");
-    my $submitTaskID       = getGlobal("gridEngineArraySubmitID");
-
     #getAllowedResources("", "cor");
 
     open(F, "> $path/correctReads.sh") or caExit("can't open '$path/correctReads.sh'", undef);
 
     print F "#!" . getGlobal("shell") . "\n";
     print F "\n";
-    print F "jobid=$taskID\n";
+    print F "jobid=\$" . getGlobal("gridEngineTaskID") . "\n";
     print F "if [ x\$jobid = x -o x\$jobid = xundefined -o x\$jobid = x0 ]; then\n";
     print F "  jobid=\$1\n";
     print F "fi\n";
     print F "if [ x\$jobid = x ]; then\n";
-    print F "  echo Error: I need $taskID set, or a job index on the command line.\n";
+    print F "  echo Error: I need " . getGlobal("gridEngineTaskID") . " set, or a job index on the command line.\n";
     print F "  exit 1\n";
     print F "fi\n";
     print F "\n";
