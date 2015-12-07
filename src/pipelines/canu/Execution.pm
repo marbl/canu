@@ -746,16 +746,15 @@ sub submitScript ($$$) {
 
     open(F, "> $script") or caFailure("failed to open '$script' for writing", undef);
     print F "#!" . getGlobal("shell") . "\n";
-    print F "#\n";
-    print F "if [ \"x\$SGE_ROOT\" != \"x\" ]; then \n";
-    print F "   #  Attempt to (re)configure SGE.  For reasons Bri doesn't know,\n";
-    print F "   #  jobs submitted to SGE, and running under SGE, fail to read his\n";
-    print F "   #  .tcshrc (or .bashrc, limited testing), and so they don't setup\n";
-    print F "   #  SGE (or ANY other paths, etc) properly.  For the record,\n";
-    print F "   #  interactive SGE logins (qlogin, etc) DO set the environment.\n";
-    print F "   \n";
-    print F "   . \$SGE_ROOT/\$SGE_CELL/common/settings.sh\n";
-    print F "fi\n";
+    print F "\n"                                                                        if (getGlobal("gridEngine") eq "SGE");
+    print F "#  Attempt to (re)configure SGE.  For unknown reasons, jobs submitted\n"   if (getGlobal("gridEngine") eq "SGE");
+    print F "#  to SGE, and running under SGE, fail to read the shell init scripts,\n"  if (getGlobal("gridEngine") eq "SGE");
+    print F "#  and so they don't set up SGE (or ANY other paths, etc) properly.\n"     if (getGlobal("gridEngine") eq "SGE");
+    print F "#  For the record, interactive logins (qlogin) DO set the environment.\n"  if (getGlobal("gridEngine") eq "SGE");
+    print F "\n";
+    print F "if [ \"x\$SGE_ROOT\" != \"x\" ]; then \n"                                  if (getGlobal("gridEngine") eq "SGE");
+    print F "  . \$SGE_ROOT/\$SGE_CELL/common/settings.sh\n"                            if (getGlobal("gridEngine") eq "SGE");
+    print F "fi\n"                                                                      if (getGlobal("gridEngine") eq "SGE");
     print F "\n";
     print F "#  On the off chance that there is a pathMap, and the host we\n";
     print F "#  eventually get scheduled on doesn't see other hosts, we decide\n";
