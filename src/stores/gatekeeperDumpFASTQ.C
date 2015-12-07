@@ -280,8 +280,9 @@ main(int argc, char **argv) {
 
     uint32       libID  = (withLibName == false) ? 0 : read->gkRead_libraryID();
 
+    uint32       flen   = read->gkRead_sequenceLength();
     uint32       lclr   = 0;
-    uint32       rclr   = read->gkRead_sequenceLength();
+    uint32       rclr   = flen;
     bool         ignore = false;
 
     //fprintf(stderr, "READ %u claims id %u length %u in lib %u\n", rid, read->gkRead_readID(), read->gkRead_sequenceLength(), libID);
@@ -309,17 +310,17 @@ main(int argc, char **argv) {
     //  all reads.  Reset the clear range to the whole read, the clear range is invalid.
 
     if (ignore) {
-      rclr = read->gkRead_sequenceLength();
       lclr = 0;
+      rclr = read->gkRead_sequenceLength();
     }
 
     //  Grab the sequence and quality.
 
     gkpStore->gkStore_loadReadData(read, readData);
 
-    char   *seq = readData->gkReadData_getSequence();
-    char   *qlt = readData->gkReadData_getQualities();
-    uint32  len = rclr - lclr;
+    char   *seq  = readData->gkReadData_getSequence();
+    char   *qlt  = readData->gkReadData_getQualities();
+    uint32  clen = rclr - lclr;
 
     //  Soft mask not-clear bases
 
@@ -330,37 +331,38 @@ main(int argc, char **argv) {
       for (uint32 i=lclr; i<rclr; i++)
         seq[i] += (seq[i] >= 'A') ? 0 : 'A' - 'a';
 
-      for (uint32 i=rclr; seq[i]; i++)
+      for (uint32 i=rclr; flen; i++)
         seq[i] += (seq[i] >= 'A') ? 'a' - 'A' : 0;
 
-      rclr = read->gkRead_sequenceLength();
       lclr = 0;
+      rclr = flen;
     }
 
     //  Chop off the ends we're not printing.
 
     seq += lclr;
+    qlt += lclr;
 
-    seq[len] = 0;
-    qlt[len] = 0;
+    seq[clen] = 0;
+    qlt[clen] = 0;
 
-    //  And print the read.
+    //  Print the read.
+
     if (dumpFASTA)
-      AS_UTL_writeFastA(out[libID]->getFASTA(), seq, len, 100,
+      AS_UTL_writeFastA(out[libID]->getFASTA(), seq, clen, 100,
                         ">"F_U32" clr="F_U32","F_U32"\n",
                         rid, lclr, rclr);
 
     if (dumpFASTQ)
-      AS_UTL_writeFastQ(out[libID]->getFASTQ(), seq, len, qlt, len,
+      AS_UTL_writeFastQ(out[libID]->getFASTQ(), seq, clen, qlt, clen,
                         "@"F_U32" clr="F_U32","F_U32"\n",
                         rid, lclr, rclr);
   }
 
-  delete   readData;
+  delete readData;
 
   for (uint32 i=1; i<=numLibs; i++)
     delete out[i];
-
   delete [] out;
 
   delete    gkpStore;

@@ -37,15 +37,6 @@
 
 using namespace std;
 
-
-//  Canu doesn't really use QVs as of late 2015.  Only consensus is aware of them, but since read
-//  correction doesn't output QVs, the QVs that consensus sees are totally bogus.  So, disable
-//  storage of them - gatekeeperCreate will store a default QV for every read, and consensus will
-//  process as usual.
-//
-#define  DO_NOT_STORE_QVs
-
-
 //  The number of library IIDs we can handle.
 //
 #define AS_MAX_LIBRARIES_BITS      6
@@ -325,8 +316,7 @@ private:
 
 public:
   //  These are called by gatekeeperCreate.
-  gkReadData *gkRead_encodeSeqQlt(char *H, char *S, char *Q);
-  gkReadData *gkRead_encodeSeqQlt(char *H, char *S, uint32 qv);
+  gkReadData *gkRead_encodeSeqQlt(char *H, char *S, char *Q, uint32 qv);
   //gkReadData *gkRead_encodePacBio(char *H, char *S, char *Q);  //  Not implemented.
   //gkReadData *gkRead_encodeMinION(char *H, char *S, char *Q);
 

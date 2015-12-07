@@ -47,6 +47,16 @@ const char *mainid = "$Id$";
 #define UPCASE  //  Convert lowercase to uppercase.  Probably needed.
 
 
+
+//  Canu doesn't really use QVs as of late 2015.  Only consensus is aware of them, but since read
+//  correction doesn't output QVs, the QVs that consensus sees are totally bogus.  So, disable
+//  storage of them - gatekeeperCreate will store a default QV for every read, and consensus will
+//  process as usual.
+//
+#define  DO_NOT_STORE_QVs
+
+
+
 //  Support fastq of fasta, even in the same file.
 //  Eventually want to support bax.h5 natively.
 
@@ -235,7 +245,7 @@ loadFASTQ(char                 *L,
 
   uint32 QVerrors = 0;
 
-#ifndef DO_NOT_USE_QVs
+#ifndef DO_NOT_STORE_QVs
 
   for (uint32 i=0; Q[i]; i++) {
     if (Q[i] < '!') {  //  QV=0, ASCII=33
@@ -395,8 +405,7 @@ loadReads(gkStore    *gkpStore,
 
     if (S[0] != 0) {
       gkRead     *nr = gkpStore->gkStore_addEmptyRead(gkpLibrary);
-      gkReadData *nd = (Q[0] == -1) ? nr->gkRead_encodeSeqQlt(H, S, gkpLibrary->gkLibrary_defaultQV()) :
-                                      nr->gkRead_encodeSeqQlt(H, S, Q);
+      gkReadData *nd = nr->gkRead_encodeSeqQlt(H, S, Q, gkpLibrary->gkLibrary_defaultQV());
 
       gkpStore->gkStore_stashReadData(nr, nd);
 

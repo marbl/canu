@@ -340,7 +340,7 @@ gkReadData::gkReadData_encodeBlobChunk(char const *tag,
 
 
 gkReadData *
-gkRead::gkRead_encodeSeqQlt(char *H, char *S, char *Q) {
+gkRead::gkRead_encodeSeqQlt(char *H, char *S, char *Q, uint32 qv) {
   gkReadData *rd = new gkReadData;
 
   uint32  RID  = _readID;    //  Debugging
@@ -362,11 +362,10 @@ gkRead::gkRead_encodeSeqQlt(char *H, char *S, char *Q) {
 
   uint32  blobVers = 0x00000001;
 
-#ifndef DO_NOT_STORE_QVs
   //  Convert the expected Sanger-encoded QV's (base='!') to be just integers.
-  for (uint32 ii=0; ii<Qlen; ii++)
-    Q[ii] -= '!';
-#endif
+  if (Q[0] != -1)
+    for (uint32 ii=0; ii<Qlen; ii++)
+      Q[ii] -= '!';
 
   _seqLen    = Slen;
 
@@ -376,10 +375,8 @@ gkRead::gkRead_encodeSeqQlt(char *H, char *S, char *Q) {
   //  Compute the preferred encodings.  If either fail, the length is set to zero, and ...
   uint32  seq2Len = gkRead_encode2bit(seq, S, Slen);
   uint32  seq3Len = 0;
-#ifndef DO_NOT_STORE_QVs
-  uint32  qlt4Len = gkRead_encode4bit(qlt, S, Slen);
+  uint32  qlt4Len = gkRead_encode4bit(qlt, Q, Slen);
   uint32  qlt5Len = 0;
-#endif
 
   //  ... the non-preferred encoding will be computed.  If this too fails, sequences/qualities will
   //  be stored unencoded.
@@ -387,10 +384,8 @@ gkRead::gkRead_encodeSeqQlt(char *H, char *S, char *Q) {
   if (seq2Len == 0)
     seq3Len = gkRead_encode3bit(seq, S, Slen);
 
-#ifndef DO_NOT_STORE_QVs
   if (qlt4Len == 0)
-    qlt5Len = gkRead_encode5bit(qlt, S, Slen);
-#endif
+    qlt5Len = gkRead_encode5bit(qlt, Q, Slen);
 
 
   rd->gkReadData_encodeBlobChunk("BLOB",       0,  NULL);
@@ -405,67 +400,26 @@ gkRead::gkRead_encodeSeqQlt(char *H, char *S, char *Q) {
     rd->gkReadData_encodeBlobChunk("USEQ", Slen, S);         //  Unencoded sequence
 
 
-#ifndef DO_NOT_STORE_QVs
   if (qlt4Len > 0)
     rd->gkReadData_encodeBlobChunk("4QLT", qlt4Len, qlt);    //  Four-bit (0-15) encoded QVs
   else if (qlt5Len > 0)
     rd->gkReadData_encodeBlobChunk("5QLT", qlt5Len, qlt);    //  Five-bit (0-32) encoded QVs
-  else
+  else if (Q[0] != -1)
     rd->gkReadData_encodeBlobChunk("UQLT", Qlen, Q);         //  Unencoded quality
-#endif
+  else
+    rd->gkReadData_encodeBlobChunk("QVAL", 4, &qv);        //  Constant QV for every base
 
 
   rd->gkReadData_encodeBlobChunk("STOP", 0,  NULL);
 
 
-#ifndef DO_NOT_STORE_QVs
   //  Restore the QV's.
-  for (uint32 ii=0; ii<Qlen; ii++)
-    Q[ii] += '!';
-#endif
+  if (Q[0] != -1)
+    for (uint32 ii=0; ii<Qlen; ii++)
+      Q[ii] += '!';
 
   delete [] seq;
   delete [] qlt;
-
-  return(rd);
-}
-
-
-
-gkReadData *
-gkRead::gkRead_encodeSeqQlt(char *UNUSED(H), char *S, uint32 qv) {
-  gkReadData *rd = new gkReadData;
-
-  uint32  Slen = strlen(S);
-
-  uint32  blobVers = 0x00000002;
-
-  uint8  *qseq = NULL;
-
-  _seqLen    = Slen;
-
-  uint8   *seq     = NULL;
-  uint32   seq2Len = gkRead_encode2bit(seq, S, Slen);
-  uint32   seq3Len = 0;
-
-  if (seq2Len == 0)
-    seq3Len = gkRead_encode3bit(seq, S, Slen);
-
-  rd->gkReadData_encodeBlobChunk("BLOB",       0,  NULL);
-  rd->gkReadData_encodeBlobChunk("VERS",       4, &blobVers);
-
-
-  if (seq2Len > 0)
-    rd->gkReadData_encodeBlobChunk("2SEQ", seq2Len, seq);      //  Two-bit encoded sequence (ACGT only)
-  else if (seq3Len > 0)
-    rd->gkReadData_encodeBlobChunk("3SEQ", seq3Len, seq);      //  Three-bit encoded sequence (ACGTN)
-  else 
-    rd->gkReadData_encodeBlobChunk("USEQ", Slen, S);         //  Unencoded sequence
-
-
-  rd->gkReadData_encodeBlobChunk("QVAL", 4, &qv);        //  Constant QV for every base
-
-  rd->gkReadData_encodeBlobChunk("STOP", 0,  NULL);
 
   return(rd);
 }
