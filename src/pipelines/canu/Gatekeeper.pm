@@ -179,6 +179,10 @@ sub gatekeeper ($$$@) {
             my @name = split '/', $2;
             my $name = $name[scalar(@name)-1];
 
+            $name = $1   if ($name =~ m/(.*).[xgb][z]2{0,1}$/i);
+            $name = $1   if ($name =~ m/(.*).fast[aq]$/i);
+            $name = $1   if ($name =~ m/(.*).f[aq]$/i);
+
             print F "########################################\n";
             print F "#  $tech: $file\n";
             print F "#\n";
