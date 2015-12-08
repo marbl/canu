@@ -359,9 +359,11 @@ main(int argc, char **argv) {
                         rid, lclr, rclr);
   }
 
+  delete clrRange;
+
   delete readData;
 
-  for (uint32 i=1; i<=numLibs; i++)
+  for (uint32 i=0; i<=numLibs; i++)
     delete out[i];
   delete [] out;
 
