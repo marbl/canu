@@ -74,6 +74,7 @@ sub mhapConfigure ($$$$) {
     goto allDone   if (skipStage($WRK, $asm, "$tag-mhapConfigure") == 1);
     goto allDone   if (-e "$path/precompute.sh") && (-e "$path/mhap.sh");
     goto allDone   if (-e "$path/ovljob.files");
+    goto allDone   if (-e "$wrk/$asm.ovlStore");
 
     print STDERR "--\n";
     print STDERR "-- OVERLAPPER (mhap) (correction)\n"  if ($tag eq "cor");
@@ -210,7 +211,7 @@ sub mhapConfigure ($$$$) {
                 }
 
             } else {
-                print L "-- Job ", scalar(@hashes), " computes block $bid vs itself.\n";
+                print L "Job ", scalar(@hashes), " computes block $bid vs itself.\n";
                 $qbgn = $bid;  #  Otherwise, the @convert -q value is bogus
             }
 
@@ -509,7 +510,8 @@ sub mhapPrecomputeCheck ($$$$$) {
     my $path    = "$wrk/1-overlapper";
 
     goto allDone   if (skipStage($WRK, $asm, "$tag-mhapPrecomputeCheck", $attempt) == 1);
-    goto allDone   if (-e "$path/ovljob.files");
+    goto allDone   if (-e "$path/precompute.files");
+    goto allDone   if (-e "$wrk/$asm.ovlStore");
 
     my $currentJobID   = 1;
     my @successJobs;
@@ -520,7 +522,7 @@ sub mhapPrecomputeCheck ($$$$$) {
     while (<F>) {
         if (m/^\s+job=\"(\d+)\"$/) {
             if (-e "$path/blocks/$1.dat") {
-                push @successJobs, $1;
+                push @successJobs, "$path/blocks/$1.dat\n";
             } else {
                 $failureMessage .= "--   job $path/blocks/$1.dat FAILED.\n";
                 push @failedJobs, $currentJobID;
@@ -534,6 +536,9 @@ sub mhapPrecomputeCheck ($$$$$) {
     #  No failed jobs?  Success!
 
     if (scalar(@failedJobs) == 0) {
+        open(L, "> $path/precompute.files") or caExit("failed to open '$path/precompute.files'", undef);
+        print L @successJobs;
+        close(L);
         setGlobal("canuIteration", 0);
         emitStage($WRK, $asm, "$tag-mhapPrecomputeCheck");
         buildHTML($WRK, $asm, $tag);
@@ -565,16 +570,16 @@ sub mhapPrecomputeCheck ($$$$$) {
     submitOrRunParallelJob($WRK, $asm, "${tag}mhap", $path, "precompute", @failedJobs);
 
   allDone:
-    if ((-e "$path/ovljob.files") && ($attempt == 3)) {
+    if ((-e "$path/precompute.files") && ($attempt == 3)) {
         my $results = 0;
-        open(F, "< $path/ovljob.files") or caFailure("can't open '$path/ovljob.files' for reading: $!\n", undef);
+        open(F, "< $path/precompute.files") or caFailure("can't open '$path/precompute.files' for reading: $!\n", undef);
         while (<F>) {
             $results++;
         }
         close(F);
 
         print STDERR "--\n";
-        print STDERR "-- Found $results mhap precomute output files.\n";
+        print STDERR "-- Found $results mhap precompute output files.\n";
     }
 }
 
@@ -598,9 +603,11 @@ sub mhapCheck ($$$$$) {
     my $path    = "$wrk/1-overlapper";
 
     goto allDone   if (skipStage($WRK, $asm, "$tag-mhapCheck", $attempt) == 1);
-    goto allDone   if (-e "$path/ovljob.files");
+    goto allDone   if (-e "$path/mhap.files");
+    goto allDone   if (-e "$wrk/$asm.ovlStore");
 
     my $currentJobID   = 1;
+    my @mhapJobs;
     my @successJobs;
     my @failedJobs;
     my $failureMessage = "";
@@ -609,15 +616,19 @@ sub mhapCheck ($$$$$) {
     while (<F>) {
         if (m/^\s+qry=\"(\d+)\"$/) {
             if      (-e "$path/results/$1.ovb.gz") {
+                push @mhapJobs,    "$path/results/$1.mhap\n";
                 push @successJobs, "$path/results/$1.ovb.gz\n";
 
             } elsif (-e "$path/results/$1.ovb") {
+                push @mhapJobs,    "$path/results/$1.mhap\n";
                 push @successJobs, "$path/results/$1.ovb\n";
 
             } elsif (-e "$path/results/$1.ovb.bz2") {
+                push @mhapJobs,    "$path/results/$1.mhap\n";
                 push @successJobs, "$path/results/$1.ovb.bz2\n";
 
             } elsif (-e "$path/results/$1.ovb.xz") {
+                push @mhapJobs,    "$path/results/$1.mhap\n";
                 push @successJobs, "$path/results/$1.ovb.xz\n";
 
             } else {
@@ -630,9 +641,21 @@ sub mhapCheck ($$$$$) {
     }
     close(F);
 
+    #  Also find the queries symlinks so we can remove those.  And the query directories, because
+    #  the last directory can be empty, and so we'd never see it at all if only finding files.
+
+    open(F, "find $path/queries -print |");
+    while (<F>) {
+        push @mhapJobs, $_;
+    }
+    close(F);
+
     #  No failed jobs?  Success!
 
     if (scalar(@failedJobs) == 0) {
+        open(L, "> $path/mhap.files") or caExit("failed to open '$path/mhap.files'", undef);
+        print L @mhapJobs;
+        close(L);
         open(L, "> $path/ovljob.files") or caExit("failed to open '$path/ovljob.files'", undef);
         print L @successJobs;
         close(L);
@@ -676,7 +699,13 @@ sub mhapCheck ($$$$$) {
         close(F);
 
         print STDERR "--\n";
-        print STDERR "-- Found $results mhap overlap output files.\n";
+        print STDERR "-- Found $results mhap overlap output files.\n"; 
+
+        #  Purge the precompute outputs and the original mhap outputs.  We have all the ovl files we
+        #  need.  This is done after overlap store creation, could safely be done here.
+
+        if (getGlobal("saveOverlaps") eq "0") {
+        }
     }
 }
 

@@ -529,33 +529,78 @@ sub createOverlapStore ($$$$) {
     createOverlapStoreSequential($WRK, $asm, $tag, "$path/ovljob.files")  if ($seq eq "sequential");
     createOverlapStoreParallel  ($WRK, $asm, $tag, "$path/ovljob.files")  if ($seq eq "parallel");
 
-    goto finishStage  if (getGlobal("saveOverlaps"));
-
-    #  Delete the inputs and directories.
-
-    my %directories;
-
-    open(F, "< $path/ovljob.files");
-    while (<F>) {
-        chomp;
-        unlink "$path/$_";
-
-        my @components = split '/', $_;
-        pop @components;
-        my $dir = join '/', @components;
-
-        $directories{$dir}++;
-    }
-    close(F);
-
-    foreach my $dir (keys %directories) {
-        rmdir "$path/$dir";
-    }
-
-    unlink "$path/ovljob.files";
-
     print STDERR "--\n";
     print STDERR "-- Overlap store '$wrk/$asm.ovlStore' successfully constructed.\n";
+
+    goto finishStage  if (getGlobal("saveOverlaps") eq "1");
+
+    #  Delete the inputs and directories.  Some contortions are needed to get directory deletes in order.
+    #  In particular, mhap's queries directory needs to be deleted after it's subdirectories are.
+
+    my %directories;
+    my $bytes = 0;
+    my $files = 0;
+
+    foreach my $file ("$path/ovljob.files", "$path/mhap.files", "$path/precompute.files") {
+        next  if (! -e $file);
+
+        open(F, "< $file") or caExit("can't open '$file' for reading: $!\n", undef);
+        while (<F>) {
+            chomp;
+
+            #  Decide what to do.  Directories - register for later deletion.  Files - sum size and
+            #  delete.
+
+            if (-d $_) {
+                $directories{$_}++;
+
+            } elsif (-e $_) {
+                $bytes += -s $_;
+                $files += 1;
+
+                unlink $_;
+            }
+
+            #  If the file isn't a directory -- the file itself could not exist above -- register
+            #  the directory it is in for deletion.
+
+            if (! -d $_) {
+                my @components = split '/', $_;
+                pop @components;
+                my $dir = join '/', @components;
+
+                $directories{$dir}++;
+            }
+
+        }
+        close(F);
+
+        unlink $file;
+    }
+
+    #  Ideally, every directory we have in our list should be empty.  But they won't be.  So, loop until we fail to delete anything.
+
+    my $dirs = 0;
+    my $deleted = 1;
+
+    while ($deleted > 0) {
+        $deleted = 0;
+
+        foreach my $dir (keys %directories) {
+            if (-d $dir) {
+                rmdir $dir;
+                $dirs++;
+            }
+
+            if (! -d $dir) {  #  If really removed, remove it from our list.
+                delete $directories{$dir};
+                $deleted++;
+            }
+        }
+    }
+
+    print STDERR "--\n";
+    print STDERR "-- Purged ", int(1000 * $bytes / 1024 / 1024 / 1024) / 1000, " GB in $files overlap output files and $dirs directories.\n";
 
     #  Now all done!
 

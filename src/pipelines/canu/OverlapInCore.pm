@@ -66,8 +66,9 @@ sub overlapConfigure ($$$$) {
     caFailure("invalid type '$type'", undef)  if (($type ne "partial") && ($type ne "normal"));
 
     goto allDone   if (skipStage($WRK, $asm, "$tag-overlapConfigure") == 1);
+    goto allDone   if (-e "$path/$asm.partition.ovlopt");
     goto allDone   if (-e "$path/ovljob.files");
-    goto allDone   if (-e "$path/ovlopt");
+    goto allDone   if (-e "$wrk/$asm.ovlStore");
 
     print STDERR "--\n";
     print STDERR "-- OVERLAPPER (normal) (correction) erate=", getGlobal("${tag}OvlErrorRate"), "\n"  if ($tag eq "cor");
@@ -311,6 +312,7 @@ sub overlapCheck ($$$$$) {
 
     goto allDone   if (skipStage($WRK, $asm, "$tag-overlapCheck", $attempt) == 1);
     goto allDone   if (-e "$path/ovljob.files");
+    goto allDone   if (-e "$wrk/$asm.ovlStore");
 
     my $currentJobID   = 1;
     my @successJobs;
