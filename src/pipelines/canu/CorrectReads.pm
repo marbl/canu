@@ -306,8 +306,12 @@ sub buildCorrectionLayouts_piped ($$) {
 
     my $maxCov   = getCorCov($wrk, $asm, "Local");
 
-    print F "set -o pipefail\n";
     print F "\n";
+    print F "if [ \"x\$BASH\" != \"x\" ] ; then\n";   #  Needs doublequotes, else shell doesn't expand $BASH
+    print F "  set -o pipefail\n";
+    print F "fi\n";
+    print F "\n";
+    print F "( \\\n";
     print F "\$bin/generateCorrectionLayouts -b \$bgn -e \$end \\\n";
     print F "  -rl $path/$asm.readsToCorrect \\\n"                 if (-e "$path/$asm.readsToCorrect");
     print F "  -G $wrk/$asm.gkpStore \\\n";
@@ -317,6 +321,9 @@ sub buildCorrectionLayouts_piped ($$) {
     print F "  -E " . getGlobal("corMaxEvidenceErate")  . " \\\n"  if (defined(getGlobal("corMaxEvidenceErate")));
     print F "  -C $maxCov \\\n"                                    if (defined($maxCov));
     print F "  -F \\\n";
+    print F "&& \\\n";
+    print F "  touch $path/correction_outputs/\$jobid.dump.success \\\n";
+    print F ") \\\n";
     print F "| \\\n";
     print F getGlobal("falconSense") . " \\\n"  if ( defined(getGlobal("falconSense")));
     print F "\$bin/falcon_sense \\\n"           if (!defined(getGlobal("falconSense")));
@@ -331,6 +338,11 @@ sub buildCorrectionLayouts_piped ($$) {
     print F " 2> $path/correction_outputs/\$jobid.err \\\n";
     print F "&& \\\n";
     print F "mv $path/correction_outputs/\$jobid.fasta.WORKING $path/correction_outputs/\$jobid.fasta \\\n";
+    print F "\n";
+    print F "if [ ! -e \"$path/correction_outputs/\$jobid.dump.success\" ] ; then\n";
+    print F "  echo Read layout generation failed.\n";
+    print F "  mv $path/correction_outputs/\$jobid.fasta $path/correction_outputs/\$jobid.fasta.INCOMPLETE\n";
+    print F "fi\n";
     print F "\n";
     print F "exit 0\n";
 

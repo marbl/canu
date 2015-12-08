@@ -50,6 +50,7 @@ use canu::Execution;
 
 use canu::Configure;
 
+use canu::Grid;
 use canu::Grid_SGE;
 use canu::Grid_Slurm;
 use canu::Grid_PBSTorque;
@@ -267,6 +268,7 @@ configureSGE();
 configureSlurm();
 configurePBSTorque();
 configureLSF();
+configureLocal();
 
 #  Based on genomeSize, configure the execution of every component.  This needs to be done AFTER the grid is setup!
 

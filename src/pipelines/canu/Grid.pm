@@ -28,18 +28,18 @@ package canu::Grid;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(formatAllowedResources);
+@EXPORT = qw(formatAllowedResources configureLocal);
 
 use strict;
 
-#use canu::Defaults;
+use canu::Defaults;
 
 
 #
 #  Given a map of "cpu-mem" to number-of-nodes, write a log message, and return a string for use
 #  later in the pipeline.
 #
-sub formatAllowedResources(\%$) {
+sub formatAllowedResources (\%$) {
     my $hosts_ref = shift @_;
     my $geName    = shift @_;
     my %hosts     = %$hosts_ref;
@@ -61,4 +61,13 @@ sub formatAllowedResources(\%$) {
     }
 
     return $hosts;                            
+}
+
+
+sub configureLocal () {
+
+    return   if (uc(getGlobal("gridEngine")) ne "");
+
+    #  Set to "1" so that shell scripts will emit "jobid=$1" at the start.
+    setGlobalIfUndef("gridEngineTaskID", "1");
 }
