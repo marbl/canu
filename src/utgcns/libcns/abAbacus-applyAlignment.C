@@ -410,7 +410,9 @@ abAbacus::applyAlignment(int32     alen, abBeadID *aindex,
     assert(bead->prev.isInvalid());
 
     while (bpos < -ahang) {
-      //fprintf(stderr, "ApplyAlignment()-- Prepend column for ahang bead=%d,%c\n", getBead(bindex[bpos])->ident().get(), getBase(getBead(bindex[bpos])->baseIdx()));
+#ifdef DEBUG_ABACUS_ALIGN
+      fprintf(stderr, "ApplyAlignment()-- Prepend column for ahang bead=%d,%c\n", getBead(bindex[bpos])->ident().get(), getBase(getBead(bindex[bpos])->baseIdx()));
+#endif
       prependColumn(bead->colIdx(), bindex[bpos++]);
     }
   }
@@ -420,7 +422,9 @@ abAbacus::applyAlignment(int32     alen, abBeadID *aindex,
   //  in the B-read, but we don't care because there isn't any B-read aligned yet.
 
   while ((traceLen > 0) && (*trace != 0) && (*trace == 1)) {
-    //fprintf(stderr, "trace=%d  apos=%d alen=%d bpos=%d blen=%d - SKIP INITIAL GAP IN READ\n", *trace, apos, alen, bpos, blen);
+#ifdef DEBUG_ABACUS_ALIGN
+    fprintf(stderr, "trace=%d  apos=%d alen=%d bpos=%d blen=%d - SKIP INITIAL GAP IN READ\n", *trace, apos, alen, bpos, blen);
+#endif
     apos++;  //  lasta isn't set, it is reset to aindex[apos] in alignPosition().
     trace++;
   }
@@ -429,11 +433,20 @@ abAbacus::applyAlignment(int32     alen, abBeadID *aindex,
   //  in the A-read (template).  The A-read extent should be reduced by one for each  gap.
 
   while ((traceLen > 0) && (trace[traceLen-1] > blen)) {
-    //fprintf(stderr, "trace=%d  apos=%d alen=%d bpos=%d blen=%d - SKIP TERMINAL GAP IN READ\n", *trace, apos, alen, bpos, blen);
+#ifdef DEBUG_ABACUS_ALIGN
+    fprintf(stderr, "trace=%d  apos=%d alen=%d bpos=%d blen=%d - SKIP TERMINAL GAP IN READ\n", *trace, apos, alen, bpos, blen);
+#endif
     trace[--traceLen] = 0;
   }
 
+  //  If apos (bpos) is valid, set lasta (lastb).
 
+  if (apos > 0)
+    lasta = aindex[apos-1];
+  if (bpos > 0)
+    lastb = bindex[bpos-1];
+
+  //  Process the trace.
 
   while ((traceLen > 0) && (*trace != 0)) {
 
@@ -441,10 +454,13 @@ abAbacus::applyAlignment(int32     alen, abBeadID *aindex,
     fprintf(stderr, "trace=%d  apos=%d alen=%d bpos=%d blen=%d\n", *trace, apos, alen, bpos, blen);
 #endif
 
-    //
+
     //  Gap is in afrag.  align ( - *trace - apos ) positions
-    //
+
     if ( *trace < 0 ) {
+
+      //  Add matching columns
+
       while ( apos < (- *trace - 1))
         alignPosition(this, aindex, apos, alen, bindex, bpos, blen, lasta, lastb, "ApplyAlignment(1)");
 
@@ -475,10 +491,13 @@ abAbacus::applyAlignment(int32     alen, abBeadID *aindex,
       bpos++;
     }
 
-    //
+
     //  Gap is in bfrag.  align ( *trace - bpos ) positions
-    //
+
     if (*trace > 0) {
+
+      //  Add matching columns
+
       while ( bpos < (*trace - 1) )
         alignPosition(this, aindex, apos, alen, bindex, bpos, blen, lasta, lastb, "ApplyAlignment(4)");
 
