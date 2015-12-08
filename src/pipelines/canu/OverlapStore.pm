@@ -150,14 +150,14 @@ sub overlapStoreConfigure ($$$$) {
 
     if (! -e "$wrk/$asm.ovlStore.BUILDING/scripts/1-bucketize.sh") {
         open(F, "> $wrk/$asm.ovlStore.BUILDING/scripts/1-bucketize.sh") or die;
-        print F "#!/bin/sh\n";
+        print F "#!" . getGlobal("shell") . "\n";
         print F "\n";
-        print F "jobid=\$SGE_TASK_ID\n";
-        print F "if [ x\$jobid = x -o x\$jobid = xundefined ]; then\n";
+        print F "jobid=\$" . getGlobal("gridEngineTaskID") . "\n";
+        print F "if [ x\$jobid = x -o x\$jobid = xundefined -o x\$jobid = x0 ]; then\n";
         print F "  jobid=\$1\n";
         print F "fi\n";
         print F "if [ x\$jobid = x ]; then\n";
-        print F "  echo Error: I need SGE_TASK_ID set, or a job index on the command line.\n";
+        print F "  echo Error: I need " . getGlobal("gridEngineTaskID") . " set, or a job index on the command line.\n";
         print F "  exit 1\n";
         print F "fi\n";
         print F "\n";
@@ -212,14 +212,14 @@ sub overlapStoreConfigure ($$$$) {
 
     if (! -e "$wrk/$asm.ovlStore.BUILDING/scripts/2-sort.sh") {
         open(F, "> $wrk/$asm.ovlStore.BUILDING/scripts/2-sort.sh") or die;
-        print F "#!/bin/sh\n";
+        print F "#!" . getGlobal("shell") . "\n";
         print F "\n";
-        print F "jobid=\$SGE_TASK_ID\n";
-        print F "if [ x\$jobid = x -o x\$jobid = xundefined ]; then\n";
+        print F "jobid=\$" . getGlobal("gridEngineTaskID") . "\n";
+        print F "if [ x\$jobid = x -o x\$jobid = xundefined -o x\$jobid = x0 ]; then\n";
         print F "  jobid=\$1\n";
         print F "fi\n";
         print F "if [ x\$jobid = x ]; then\n";
-        print F "  echo Error: I need SGE_TASK_ID set, or a job index on the command line.\n";
+        print F "  echo Error: I need " . getGlobal("gridEngineTaskID") . " set, or a job index on the command line.\n";
         print F "  exit 1\n";
         print F "fi\n";
         print F "\n";
@@ -245,7 +245,7 @@ sub overlapStoreConfigure ($$$$) {
 
     if (! -e "$wrk/$asm.ovlStore.BUILDING/scripts/3-index.sh") {
         open(F, "> $wrk/$asm.ovlStore.BUILDING/scripts/3-index.sh") or die;
-        print F "#!/bin/sh\n";
+        print F "#!" . getGlobal("shell") . "\n";
         print F "\n";
         print F getBinDirectoryShellCode();
         print F "\n";
