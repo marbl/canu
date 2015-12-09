@@ -1,5 +1,5 @@
 gatekeeperCreate
-================
+~~~~~~~~~~~~~~~~
 
 ::
 
@@ -16,7 +16,7 @@ gatekeeperCreate
 .. _gkp-files:
 
 Gatekeeper Input File
-=====================
+~~~~~~~~~~~~~~~~~~~~~
 
 The gatekeeper input file is a text file detaling the library the reads are to be placed in, and
 the input read files.  Multiple read files are allowed.

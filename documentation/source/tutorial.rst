@@ -22,7 +22,7 @@ parallelized (to use all the nodes in a grid), or both (all the cores on all the
 .. _canu-command:
 
 Canu, the command
-=================
+~~~~~~~~~~~~~~~~~~~~~~
 
 The **canu** command is the 'executive' program that runs all modules of the assembler.  It oversees
 each of the three top-level tasks (correction, trimming, unitig construction), each of which
@@ -84,7 +84,7 @@ that is fast to both compress and decompress.  For 'archival' purposes, we use "
 .. _canu-pipeline:
 
 Canu, the pipeline
-==================
+~~~~~~~~~~~~~~~~~~~~~~
 
 The canu pipeline, that is, what it actually computes, comprises of computing overlaps and
 processing the overlaps to some result.  Each of the three tasks (read correction, read trimming and
@@ -110,7 +110,7 @@ unitig construction) follow the same pattern:
 .. _module-tags:
 
 Module Tags
-===========
+~~~~~~~~~~~~~~~~~~~~~~
 
 Beacuse each of the three tasks share commoon algorithms (all compute overlaps, two compute
 consensus sequences, etc), parameters are differentiated by a short prefix 'tag' string.  This lets
@@ -165,7 +165,8 @@ We'll get to the details eventually.
 .. _execution:
 
 Execution Configuration
-=======================
+~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 There are two modes that canu runs in: locally, using just one machine, or grid-enabled, using
 multiple hosts managed by a grid engine.  At present, only Sun Grid Engine / Open Grid Engine /
@@ -207,7 +208,8 @@ would be waiting for jobs named 'ovl_asm_orange'.
 .. _error-rates:
 
 Error Rates
-===========
+~~~~~~~~~~~~~~~~~~~~~~
+
 
 Canu expects all error rates to be reported as fraction error, not as percent error.  We're not sure
 exactly why this is so.  Previously, it used a mix of fraction error and percent error (or both!),
@@ -293,7 +295,7 @@ but the ``cnsErrorRate`` option still exists.
 .. _minimum-lengths:
 
 Minimum Lengths
-===============
+~~~~~~~~~~~~~~~~~~~~~~
 
 Two minimum sizes are known:
 
@@ -304,7 +306,7 @@ minOverlapLength
   Do not save overlaps shorter than this.
 
 Overlap configuration
-=====================
+~~~~~~~~~~~~~~~~~~~~~~
 
 The largest compute of the assembler is also the most complicated to configure.  As shown in the
 'module tags' section, there are up to eight (!) different overlapper configurations.  For
@@ -322,13 +324,13 @@ For example:
 - To change the mhap k-mer size just during correction, 'corMhapMerSize=15' would be used.
 
 Ovl Overlapper Configuration
-============================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 <tag>Overlapper
   select the overlap algorithm to use, 'ovl' or 'mhap'.
 
 Ovl Overlapper Parameters
-=========================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 <tag>ovlHashBlockLength
   how many bases to reads to include in the hash table; directly controls process size
@@ -384,10 +386,10 @@ and 7 'distinct' kmers.
   don't compute frequent kmers, use those listed in this fasta file
 
 Mhap Overlapper Parameters
-==========================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 <tag>MhapBlockSize
-  Chunk the reads into blocks with this many reads.
+  Chunk of reads that can fit into 1GB of memory. Combined with memory to compute the size of chunk the reads are split into.
 <tag>MhapMerSize
   Use k-mers of this size for detecting overlaps.
 <tag>MhapReAlign
@@ -395,6 +397,6 @@ Mhap Overlapper Parameters
 <tag>MhapSensitivity
   Either 'normal' or 'high'.
 
-Mhap also will ignore frequent kmers, but it's selection of frequent is not exposed.
+Mhap also will down-weight frequent kmers (using tf-idf), but it's selection of frequent is not exposed.
 
 

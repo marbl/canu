@@ -38,9 +38,9 @@ Canu
    command-reference
 
 
-Canu is a fork of the Celera Assembler designed for high-noise single-molecule sequencing (such as
-the PacBio RSII or Oxford Nanopore MinION). The software is currently alpha level, feel free to use
-and report issues encountered.
+`Canu <http://github.com/marbl/canu>`_ is a fork of the Celera Assembler designed for high-noise single-molecule sequencing (such as
+the PacBio RSII or Oxford Nanopore MinION). You can `download <http://github.com/marbl/canu/releases>`_ a release. If you encounter
+any issues, please report them using the `github issues <http://github.com/marbl/canu/issues>`_ page.
 
 *  :ref:`Quick Start               <quickstart>` - no experience or data required, download and assemble *Escherichia coli* today!
 *  :ref:`Canu tutorial             <tutorial>`   - a gentle introduction to the complexities of canu.

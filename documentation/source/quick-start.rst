@@ -28,7 +28,7 @@ Canu is designed to run on grid environments (LSF/PBS/Torque/Slrum/SGE are suppo
  "gridOptions=--partition quick --time 2:00"
 
 Assembling PacBio data
--------------------
+----------------------
 
 Pacific Biosciences released P6-C4 chemistry reads.  You can download them
 `directly <https://s3.amazonaws.com/files.pacb.com/datasets/secondary-analysis/e-coli-k12-P6C4/p6c4_ecoli_RSII_DDR2_with_15kb_cut_E01_1.tar.gz>`_
@@ -46,7 +46,7 @@ or use the following curl command:
  curl -L -o p6.25x.fastq.gz http://gembox.cbcb.umd.edu/mhap/raw/ecoli_p6_25x.filtered.fastq.gz
  
 Correct, Trim and Assemble
-~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 By default, canu will correct the reads, then trim the reads, then assemble the reads to unitigs.  
 
@@ -61,7 +61,7 @@ This will use the prefix 'ecoli' to name files, compute the correction task in d
 Output files are described in the next section.
 
 Correct, Trim and Assemble, Manually
-~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Sometimes, however, it makes sense to do the three top-level tasks by hand.  This would allow trying
 multiple unitig construction parameters on the same set of corrected and trimmed reads.
@@ -108,7 +108,7 @@ Outputs from the assembly tasks are in:
 The canu progress chatter records statistics such as an input read histogram, corrected read histogram, and overlap types.
 
 Assembling Oxford Nanopore data
--------------------
+--------------------------------
 A set of E. coli runs were released by the Loman lab.  You can download one
 `directly <http://nanopore.s3.climb.ac.uk/MAP006-2_2D_pass.fasta>`_
 or any of them from the
@@ -130,7 +130,7 @@ Canu assembles any of the four available datasets into a single contig but we pi
 The assembled identity is >98% before polishing.
 
 Assembling Low Coverage Datasets
--------------------
+----------------------------------
 When you have 30X or less coverage, it helps to adjust the Canu assembly parameters. You can download a 20X subset of `S. cerevisae <http://gembox.cbcb.umd.edu/mhap/raw/yeast_filtered.20x.fastq.gz>`_
  
 or use the following curl command:

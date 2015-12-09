@@ -1,52 +1,6 @@
 
 .. _command-reference:
 
-.. toctree::
-   :hidden:
-
-   commands/bogart
-   commands/bogus
-   commands/canu
-   commands/correctOverlaps
-   commands/createFalconSenseInputs
-   commands/erateEstimate
-   commands/estimate-mer-threshold
-   commands/fastqAnalyze
-   commands/fastqSample
-   commands/fastqSimulate-sort
-   commands/fastqSimulate
-   commands/filterCorrectionOverlaps
-   commands/findErrors
-   commands/gatekeeperCreate
-   commands/gatekeeperDumpFASTQ
-   commands/gatekeeperDumpMetaData
-   commands/gatekeeperPartition
-   commands/generateCorrectionLayouts
-   commands/leaff
-   commands/meryl
-   commands/mhapConvert
-   commands/ovStoreBucketizer
-   commands/ovStoreBuild
-   commands/ovStoreDump
-   commands/ovStoreIndexer
-   commands/ovStoreSorter
-   commands/overlapConvert
-   commands/overlapImport
-   commands/overlapInCore
-   commands/overlapInCorePartition
-   commands/overlapPair
-   commands/prefixEditDistance-matchLimitGenerate
-   commands/readConsensus
-   commands/simple
-   commands/splitReads
-   commands/tgStoreCoverageStat
-   commands/tgStoreDump
-   commands/tgStoreFilter
-   commands/tgStoreLoad
-   commands/tgTigDisplay
-   commands/trimReads
-   commands/utgcns
-
 Canu Command Reference
 ======================
 
