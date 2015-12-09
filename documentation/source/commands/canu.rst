@@ -1,5 +1,5 @@
 canu
-====
+~~~~
 
 ::
 
@@ -10,27 +10,28 @@ canu
               [-s <assembly-specifications-file>] \
                -p <assembly-prefix> \
                -d <assembly-directory> \
-               genomeSize=Ng \
-               errorRate=0.X \
+	       genomeSize~Ng \
                [other-options] \
                [read-type *fastq]
   
-    By default, all three stages (correct, trim, assemble) are computed.
-    To compute only a single stage, use:
-      -correct  - generate corrected reads
-      -trim     - generate trimmed reads
-      -assemble - generate an assembly
+By default, all three stages (correct, trim, assemble) are computed. To compute only a single stage, use
+
+-correct
+	 generate corrected reads
+
+-trim
+	generate trimmed reads
+
+-assemble
+	generate an assembly
   
-    A full list of options can be printed with '-options'.  All options
-    can be supplied in an optional sepc file.
+A full list of options can be printed with '-options'.  All options can be supplied in an optional sepc file.
   
-    Reads can be either FASTA or FASTQ format, uncompressed, or compressed
-    with gz, bz2 or xz:
-      -pacbio-raw         
-      -pacbio-corrected   
-      -nanopore-raw       
-      -nanopore-corrected 
+Reads can be either FASTA or FASTQ format, uncompressed, or compressed with gz, bz2 or xz::
+
+	-pacbio-raw         
+	-pacbio-corrected   
+	-nanopore-raw       
+	-nanopore-corrected 
   
-  Complete documentation at http://canu.github.io/
-  
-  1
+Complete documentation at http://canu.github.io/

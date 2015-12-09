@@ -10,7 +10,7 @@ Canu Parameter Reference
 .. _genomeSize:
 
 Global Options
-==============
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The catch all category.
 
@@ -29,7 +29,7 @@ canuIterationMax <integer=2>
 
 
 Process Control
-================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 showNext <boolean=false>
   Report the first major command that would be run, but don't run it.  Processing to get to that
@@ -79,7 +79,7 @@ stopAfter <string=undefined>
 
 
 General Options
-===============
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 pathMap <string=undefined>
   A text file containing lines that map a hostname to a path to the assembler binaries.
@@ -99,7 +99,7 @@ java <string="java">
   A path to a Java application launcher of at least version 1.8.
 
 Cleanup Options
-===============
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 saveOverlaps <boolean=false>
   If set, do not remove raw overlap output from either mhap or overlapInCore.  Normally, this output is removed once
@@ -115,7 +115,7 @@ saveMerCounts <boolean=false>
   If set, do not remove meryl binary databases.
 
 Overlapper Configuration
-========================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Overlaps are generated for three purposes: read correction, read trimming and unitig construction.
 The algorithm and parameters used can be set independently for each set of overlaps.
@@ -186,7 +186,7 @@ Overlapper Configuration, mhap Algorithm
   Coarse sensitivity level: 'normal' or 'high'.
 
 Overlap Store
-=============
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The overlap algorithms return overlaps in an arbitrary order.  The correction, trimming and assembly
 algorithms usually need to know all overlaps for a single read.  The overlap store duplicates each
@@ -206,7 +206,7 @@ ovlStoreSlices <integer=128>
   in more tasks, but each task will use less memory.
 
 Meryl
-=====
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The 'meryl' algorithm counts the occurrences of kmers in the input reads.  It outputs a FASTA format
 list of frequent kmers, and (optionally) a binary database of the counts for each kmer in the input.
@@ -221,7 +221,7 @@ merylThreads <integer=unset>
 
 
 Overlap Based Trimming
-======================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 obtErrorRate <float=unset>
   Stringency of overlaps to use for trimming
@@ -237,7 +237,7 @@ trimReadsCoverage <integer=1>
 .. _grid-engine:
 
 Grid Engine Support
-===================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Canu supports Sun/Open/Univa Grid Engine (SGE), Portable Batch System (PBS), Platform Computing's Load
 Sharing Facility (LSF), and the Simple Linux Utility for Resource Management (SLURM).  Most of the compute
@@ -280,10 +280,9 @@ configures its computes to run under grid control ('gridOptions*').  The grid en
 specified with the 'gridEngine' option.
 
 gridEngine <string="sge">
-  Which grid engine to use.  Possible choices are 'sge', 'pbs', 'lsf' or 'slurm'.
+  Which grid engine to use.  Auto-detected. Possible choices are 'sge', 'pbs', 'lsf' or 'slurm'.
 
-  NOTE: Only 'sge' is tested.  Both 'pbs' and 'lsf' support exist, but are untested.  'slurm'
-  support is planned, but not currently available.
+  NOTE: 'lsf' support is untested.
 
 .. _grid-engine-config:
 
@@ -357,7 +356,7 @@ gridOptionsUTGOVL <string=unset>
 
 
 Algorithm Selection
-===================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Several algorithmic components of canu can be disabled, based on the type of the reads being
 assebmled, the type of processing desired, or the amount of comput resources available.  Overlap
@@ -369,7 +368,7 @@ WHERE IS OBT??
 
 
 Algorithm Execution Method
-==========================
+--------------------------
 
 Each of the high compute stages can be computed either on a grid or in parallel on the local machine.
 Most algorithms will respect a given maximum memory usage.
@@ -437,7 +436,7 @@ For execution locally, three parameters describe the task:
     - oea
 
 Overlap Error Adjustment
-========================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 red = Read Error Detection
 oea = Overlap Error Adjustment
@@ -454,7 +453,7 @@ redBatchSize <unset>
 
 
 Unitigger
-=========
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 unitigger <string="bogart">
   Which unitig construction algorithm to use.  Only "bogart" is supported.
@@ -473,7 +472,7 @@ utgRepeatErrorRate <float=unset>
 
 
 Unitig labeling
-===============
+------------------
 
 maxSingleReadSpan
 lowCoverageDepth
@@ -482,7 +481,7 @@ minReadsUnique
 maxRepeatLength
 
 Consensus Partitioning
-======================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 STILL DONE BY UNITIGGER, NEED TO MOVE OUTSIDE
 
@@ -503,7 +502,7 @@ cnsErrorRate
 
 
 Read Correction
-===============
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 corConsensus <string="falconpipe">
   Which algorithm to use for computing read consensus sequences.  Only 'falcon' and 'falconpipe' are supported.
@@ -533,7 +532,7 @@ falconSense
   Path to fc_consensus.py or falcon_sense.bin
 
 Output Filtering
-================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 lowCoverageAllowed <unset>
   Unitigs with more than fraction lowCoverageAllowed bases at depth at most lowCoverageDepth bases are never labeled unique

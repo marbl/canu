@@ -45,6 +45,18 @@ use Sys::Hostname;
 use canu::Defaults;
 
 
+#  This is called to expand parameter ranges for memory and thread parameters.
+#  Examples of valid ranges:
+#
+#  no units  - 1-4:2                      - assumes 'g' in the adjust (if memory)
+#  one unit  - 1g-4:2 1-4g:2 1-4:2g       - all the others are set to 'g'
+#  two units - 1g-4g:2 1g-4:2g 1-4g:2g    - bgn/end are the same, stp uses end
+#  all three - 1g-4g:2g                   - use as is
+#
+#  Quirks:  1g-2000m will increment every 1m.
+#           1g-2000m:1g only adds 1g.
+#           1g-2048m:1g adds 1 and 2g.
+
 sub expandRange ($$) {
     my $var = shift @_;
     my $val = shift @_;
@@ -53,29 +65,77 @@ sub expandRange ($$) {
     my @r;
 
     foreach my $v (@v) {
-        if      ($v =~ m/^(\d+)$/) {
-            push @r, $1;
+        my $bgn;  my $bgnu;
+        my $end;  my $endu;
+        my $stp;  my $stpu;
 
-        } elsif ($v =~ m/^(\d+)([kKmMgGtT]{0,1})-(\d+)([kKmMgGtT]{0,1})$/) {
-            my $b = adjustMemoryValue("$1$2");
-            my $e = adjustMemoryValue("$3$4");
-            my $s = adjustMemoryValue("1$4");     #  Yup, not a bug: 1-4g == 1g-4g == 1g,2g,3g,4g
+        #  Decode the range.
 
-            for (my $ii=$b; $ii<=$e; $ii += $s) {
-                push @r, $ii;
-            }
-
-        } elsif ($v =~ m/^(\d+[kKmMgGtT]{0,1})-(\d+[kKmMgGtT]{0,1}):(\d+[kKmMgGtT]{0,1})$/) {
-            my $b = adjustMemoryValue($1);  #  Unlike above, all three need to have multipliers
-            my $e = adjustMemoryValue($2);
-            my $s = adjustMemoryValue($3);
-
-            for (my $ii=$b; $ii<=$e; $ii += $s) {
-                push @r, $ii;
-            }
-
+        if      ($v =~ m/^(\d+\.{0,1}\d*)([kKmMgGtT]{0,1})$/) {
+            $bgn = $1;  $bgnu = $2;
+            $end = $1;  $endu = $2;
+            $stp =  1;  $stpu = $2;
+        } elsif ($v =~ m/^(\d+\.{0,1}\d*)([kKmMgGtT]{0,1})-(\d+\.{0,1}\d*)([kKmMgGtT]{0,1})$/) {
+            $bgn = $1;  $bgnu = $2;
+            $end = $3;  $endu = $4;
+            $stp =  1;  $stpu = $4;
+        } elsif ($v =~ m/^(\d+\.{0,1}\d*)([kKmMgGtT]{0,1})-(\d+\.{0,1}\d*)([kKmMgGtT]{0,1}):(\d+\.{0,1}\d*)([kKmMgGtT]{0,1})$/) {
+            $bgn = $1;  $bgnu = $2;
+            $end = $3;  $endu = $4;
+            $stp = $5;  $stpu = $6;
         } else {
             caExit("can't parse '$var' entry '$v'", undef);
+        }
+
+        #  Undef things that are null.  The code that follows this was written assuming undef.
+
+        $bgnu = undef   if ($bgnu eq "");
+        $endu = undef   if ($endu eq "");
+        $stpu = undef   if ($stpu eq "");
+
+        #  Process the range
+
+        my $def = defined($bgnu) + defined($endu) + defined($stpu);
+
+        #  If no units, this could be a memory or a thread setting.  Don't use units.
+        if      ($def == 0) {
+        }
+
+        #  If only one unit specified, set the others to the same.
+        elsif ($def == 1) {
+            if    (defined($bgnu))  { $endu = $stpu = $bgnu;  }
+            elsif (defined($endu))  { $bgnu = $stpu = $endu;  }
+            elsif (defined($stpu))  { $bgnu = $endu = $stpu;  }
+        }
+
+        #  If two units specified, set the unset as:
+        #    bgn or end unset - set based on the other range
+        #    stp unset        - set on end if stp<end otherwise bgn
+        elsif ($def == 2) {
+
+            if ((!defined($bgnu) && ($endu ne $stpu)) ||
+                (!defined($endu) && ($bgnu ne $stpu)) ||
+                (!defined($stpu) && ($bgnu ne $endu))) {
+                print STDERR "--\n";
+                print STDERR "-- WARNING: incomplete and inconsistent units on '$var=$val'.\n";
+            }
+                
+            $bgnu = $endu  if (!defined($bgnu));
+            $endu = $bgnu  if (!defined($endu));
+            $stpu = $endu  if (!defined($stpu) && ($stp <= $end));
+            $stpu = $bgnu  if (!defined($stpu) && ($stp >  $end));
+        }
+
+        #  Nothing to do if all three are set!
+        elsif ($def == 3) {
+        }
+
+        my $b = adjustMemoryValue("$bgn$bgnu");
+        my $e = adjustMemoryValue("$end$endu");
+        my $s = adjustMemoryValue("$stp$stpu");
+
+        for (my $ii=$b; $ii<=$e; $ii += $s) {
+            push @r, $ii;
         }
     }
 
