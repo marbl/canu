@@ -153,9 +153,9 @@ sub readErrorDetectionConfigure ($$) {
 
         my $memory = (13 * $bases) + (12 * $olaps) + (2 * $bases * $coverage);
 
-        if ((($maxMem   > 0) && ($memory >= $maxMem)) ||
-            (($maxReads > 0) && ($reads  >= $maxReads)) ||
-            (($maxBases > 0) && ($bases  >= $maxBases)) ||
+        if ((($maxMem   > 0) && ($memory >= $maxMem * 0.9)) ||    #  Allow 10% slop
+            (($maxReads > 0) && ($reads  >= $maxReads))     ||
+            (($maxBases > 0) && ($bases  >= $maxBases))     ||
             (($id == $maxID - 1))) {
             push @end, $id;
 
@@ -396,9 +396,9 @@ sub overlapErrorAdjustmentConfigure ($$) {
 
         my $memory = (1 * $bases) + (28 * $olaps) + (8 * $bases * getGlobal("utgOvlErrorRate"));
 
-        if ((($maxMem   > 0) && ($memory >= $maxMem)) ||
-            (($maxReads > 0) && ($reads  >= $maxReads)) ||
-            (($maxBases > 0) && ($bases  >= $maxBases)) ||
+        if ((($maxMem   > 0) && ($memory >= $maxMem * 0.9)) ||    #  Allow 10% slop
+            (($maxReads > 0) && ($reads  >= $maxReads))     ||
+            (($maxBases > 0) && ($bases  >= $maxBases))     ||
             (($id == $maxID - 1))) {
             push @end, $id;
 
