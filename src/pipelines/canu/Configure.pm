@@ -476,7 +476,7 @@ sub configureAssembler () {
         setGlobalIfUndef("corPartitions", "128");       setGlobalIfUndef("corPartitionMin", "5000");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("1g")) {
-        setGlobalIfUndef("cnsMemory",     "12-48");    setGlobalIfUndef("cnsThreads",      "1");
+        setGlobalIfUndef("cnsMemory",     "16-48");    setGlobalIfUndef("cnsThreads",      "1");
         setGlobalIfUndef("corMemory",     "10-16");    setGlobalIfUndef("corThreads",      "2-8");
         setGlobalIfUndef("cnsPartitions", "64");       setGlobalIfUndef("cnsPartitionMin", "20000");
         setGlobalIfUndef("corPartitions", "256");      setGlobalIfUndef("corPartitionMin", "15000");
@@ -516,7 +516,7 @@ sub configureAssembler () {
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("500m")) {
         setGlobalIfUndef("redMemory",   "4-12");    setGlobalIfUndef("redThreads",   "1-6");
-        setGlobalIfUndef("oeaMemory",   "8-24");    setGlobalIfUndef("oeaThreads",   "1");
+        setGlobalIfUndef("oeaMemory",   "4-24");    setGlobalIfUndef("oeaThreads",   "1");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("2g")) {
         setGlobalIfUndef("redMemory",   "4-16");    setGlobalIfUndef("redThreads",   "1-8");
