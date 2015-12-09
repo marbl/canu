@@ -92,6 +92,15 @@ gkRead::gkRead_loadData(gkReadData *readData, void *blobs) {
 
     uint32   chunkLen = *((uint32 *)blob + 1);
 
+#if 1
+    // Fix for stores built between 9/3/15-9/7/15 when QVs were changed to uniform value but nothing was stored on disk
+    //    Loading from these stores lead to random uninitialized QVs
+    //    set all QVs to a default value
+    // Should be unnecessary after Dec 8, 2015 and can be removed
+    for (uint32 ii=0; ii<_seqLen; ii++)
+      readData->_qlt[ii] = 20;
+#endif
+
     //fprintf(stderr, "%s len %u\n", chunk, chunkLen);
 
     if      (strncmp(chunk, "VERS", 4) == 0) {
