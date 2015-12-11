@@ -60,6 +60,17 @@ By default, canu will correct the reads, then trim the reads, then assemble the 
 This will use the prefix 'ecoli' to name files, compute the correction task in directory 'ecoli-auto/correction', the trimming task in directory 'ecoli-auto/trimming', and the unitig construction stage in 'ecoli-auto' itself.
 Output files are described in the next section.
 
+Find the Output
+~~~~~~~~~~~~~~~~~~~~~~
+
+Outputs from the assembly tasks are in:
+
+- ecoli*/ecoli.layout
+- ecoli*/ecoli.consensus.fasta
+
+The canu progress chatter records statistics such as an input read histogram, corrected read histogram, and overlap types.
+
+
 Correct, Trim and Assemble, Manually
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -97,16 +108,6 @@ And finally, assemble the output of trimming, twice::
 The directory layout for correction and trimming is exactly the same as when we ran all tasks in the same command.
 Each unitig construction task needs its own private work space, and in there the 'correction' and 'trimming' directories are empty.
 
-Find the Output
-~~~~~~~~~~~~~~~~~~~~~~
-
-Outputs from the assembly tasks are in:
-
-- ecoli*/ecoli.layout
-- ecoli*/ecoli.consensus.fasta
-
-The canu progress chatter records statistics such as an input read histogram, corrected read histogram, and overlap types.
-
 Assembling Oxford Nanopore data
 --------------------------------
 A set of E. coli runs were released by the Loman lab.  You can download one
@@ -128,6 +129,27 @@ Canu assembles any of the four available datasets into a single contig but we pi
   -nanopore-raw oxford.fasta
 
 The assembled identity is >98% before polishing.
+
+Assembling With Multiple Technologies/Files 
+-------------------------------------------
+
+Canu takes an arbitrary number of input files/formats. We made a mixed dataset of about 10X of a PacBio P6 and 10X of an Oxford Nanopore run available `here <http://gembox.cbcb.umd.edu/mhap/raw/ecoliP6Oxford.tar.gz>`_
+
+or use the following curl command:
+
+::
+
+ curl -L -o mix.tar.gz http://gembox.cbcb.umd.edu/mhap/raw/ecoliP6Oxford.tar.gz
+ tar xvzf mix.tar.gz
+ 
+Now you can assemble all the data::
+
+ canu \
+  -p ecoli -d ecoli-mix \
+  genomeSize=4.8m \
+  -pacbio-raw pacbio*fastq.gz \
+  -nanopore-raw oxford.fasta.gz
+
 
 Assembling Low Coverage Datasets
 ----------------------------------
@@ -152,9 +174,29 @@ After the run completes, we can check the assembly statistics::
 
  tgStoreDump -sizes -s 12100000 -T yeast/unitigging/asm.tigStore 2 -G yeast/unitigging/asm.gkpStore
 
+::
+
+ lenSingleton n10 siz       7013 sum    1210884 idx        116
+ lenSingleton sum    2338725 (genomeSize 12100000)
+ lenSingleton num        416
+ lenSingleton ave       5621
+ lenAssembled n10 siz     696203 sum    1453015 idx          1
+ lenAssembled n20 siz     575091 sum    2646269 idx          3
+ lenAssembled n30 siz     550579 sum    3755422 idx          5
+ lenAssembled n40 siz     455083 sum    5250476 idx          8
+ lenAssembled n50 siz     392191 sum    6088423 idx         10
+ lenAssembled n60 siz     205069 sum    7342769 idx         15
+ lenAssembled n70 siz     140204 sum    8504891 idx         22
+ lenAssembled n80 siz      99777 sum    9693133 idx         32
+ lenAssembled n90 siz      64744 sum   10949303 idx         48
+ lenAssembled n100 siz      15639 sum   12100894 idx         89
+ lenAssembled sum   12607682 (genomeSize 12100000)
+ lenAssembled num        150
+ lenAssembled ave      84051
+
 Known Issues
 -------------------
 
 - LSF support has limited testing
-- Large virtual memory usage while generating corrected sequences
 - Large memory usage while unitig consensus calling on contigs over 50MB in size
+- Distributed file systems (such as GPFS) causes issues with memory mapped files, slowing down parts of Canu, including meryl (0-mercounts) and falcon-sense (2-correction).
