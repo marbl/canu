@@ -800,7 +800,7 @@ sub submitScript ($$$) {
         my $hold = getGlobal("gridEngineHoldOption");
 
         # most grid engines don't understand job names to hold on, only IDs
-        if (uc(getGlobal("gridEngine")) eq "LSF" || uc(getGlobal("gridEngine")) eq "PBS" || uc(getGlobal("gridEngine")) eq "SLURM"){
+        if (uc(getGlobal("gridEngine")) eq "PBS" || uc(getGlobal("gridEngine")) eq "SLURM"){
            my $tcmd = getGlobal("gridEngineNameToJobIDCommand");
            $tcmd =~ s/WAIT_TAG/$jobToWaitOn/g;
            my $propJobCount = `$tcmd |wc -l`;
@@ -814,8 +814,17 @@ sub submitScript ($$$) {
            if ($propJobCount != 1) {
               print STDERR "Warning: multiple IDs for job $jobToWaitOn got $propJobCount and should have been 1.\n";
            }
-           my $jobID = `$tcmd |tail -n 1 |awk '{print \$1}'`;
-           chomp $jobID;
+           my $jobID = undef;
+           open(F,  "$tcmd |awk '{print \$1}' |");
+           while (<F>) {
+              chomp $_;
+              if (defined($jobID)) {
+                 $jobID = "$jobID:$_";
+              } else {
+                 $jobID = $_;
+              }
+           }
+           close(F);
            $hold =~ s/WAIT_TAG/$jobID/g;
         } else {
            $hold =~ s/WAIT_TAG/$jobToWaitOn/;
