@@ -697,7 +697,9 @@ sub makeUniqueJobName ($$) {
 
     #  And return it!  Simple!
 
-    return("${jobName}_$jobIdx");
+    # this was breaking dependencies when multiple jobs were submitted like for a failed consensus run, turn off for now
+    return("${jobName}");
+    #return("${jobName}_$jobIdx");
 }
 
 
