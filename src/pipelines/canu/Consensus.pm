@@ -193,11 +193,11 @@ sub consensusConfigure ($$) {
 
 #  Checks that all consensus jobs are complete, loads them into the store.
 #
-sub consensusCheck ($$$) {
+sub consensusCheck ($$) {
     my $WRK     = shift @_;           #  Root work directory
     my $wrk     = "$WRK/unitigging";  #  Local work directory
     my $asm     = shift @_;
-    my $attempt = shift @_;
+    my $attempt = getGlobal("canuIteration");
     my $path    = "$wrk/5-consensus";
 
     goto allDone  if (skipStage($WRK, $asm, "consensusCheck", $attempt) == 1);
@@ -255,7 +255,7 @@ sub consensusCheck ($$$) {
 
     #  If too many attempts, give up.
 
-    if ($attempt > 2) {
+    if ($attempt > getGlobal("canuIterationMax")) {
         caExit("failed to generate consensus.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
     }
 

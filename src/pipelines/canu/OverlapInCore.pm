@@ -296,13 +296,13 @@ sub reportOverlapStats ($$@) {
 #  Check that the overlapper jobs properly executed.  If not,
 #  complain, but don't help the user fix things.
 #
-sub overlapCheck ($$$$$) {
+sub overlapCheck ($$$$) {
     my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
     my $wrk     = $WRK;      #  Local work directory
     my $asm     = shift @_;
     my $tag     = shift @_;
     my $type    = shift @_;
-    my $attempt = shift @_;
+    my $attempt = getGlobal("canuIteration");
 
     $wrk = "$wrk/correction"  if ($tag eq "cor");
     $wrk = "$wrk/trimming"    if ($tag eq "obt");
@@ -375,7 +375,7 @@ sub overlapCheck ($$$$$) {
 
     #  If too many attempts, give up.
 
-    if ($attempt > 2) {
+    if ($attempt > getGlobal("canuIterationMax")) {
         caExit("failed to overlap.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
     }
 

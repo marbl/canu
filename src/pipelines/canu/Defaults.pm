@@ -866,7 +866,7 @@ sub setDefaults () {
 
     #####  General Configuration Options (aka miscellany)
 
-    $global{"canuIteration"}               = 0;  #  See documentation in Execution.pm
+    $global{"canuIteration"}               = 1;  #  See documentation in Execution.pm
     $global{"canuIterationMax"}            = 2;
 
     $global{"showNext"}                    = undef;

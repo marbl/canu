@@ -276,13 +276,13 @@ sub overlapStoreConfigure ($$$$) {
 
 
 
-sub overlapStoreBucketizerCheck ($$$$$) {
+sub overlapStoreBucketizerCheck ($$$$) {
     my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
     my $wrk     = $WRK;      #  Local work directory
     my $asm     = shift @_;
     my $tag     = shift @_;
     my $files   = shift @_;
-    my $attempt = shift @_;
+    my $attempt = getGlobal("canuIteration");
 
     $wrk = "$wrk/correction"  if ($tag eq "cor");
     $wrk = "$wrk/trimming"    if ($tag eq "obt");
@@ -343,7 +343,7 @@ sub overlapStoreBucketizerCheck ($$$$$) {
 
     #  If too many attempts, give up.
 
-    if ($attempt > 2) {
+    if ($attempt > getGlobal("canuIterationMax")) {
         caExit("failed to overlapStoreBucketize.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
     }
 
@@ -362,13 +362,13 @@ sub overlapStoreBucketizerCheck ($$$$$) {
 
 
 
-sub overlapStoreSorterCheck ($$$$$) {
+sub overlapStoreSorterCheck ($$$$) {
     my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
     my $wrk     = $WRK;      #  Local work directory
     my $asm     = shift @_;
     my $tag     = shift @_;
     my $files   = shift @_;
-    my $attempt = shift @_;
+    my $attempt = getGlobal("canuIteration");
 
     $wrk = "$wrk/correction"  if ($tag eq "cor");
     $wrk = "$wrk/trimming"    if ($tag eq "obt");
@@ -436,7 +436,7 @@ sub overlapStoreSorterCheck ($$$$$) {
 
     #  If too many attempts, give up.
 
-    if ($attempt > 2) {
+    if ($attempt > getGlobal("canuIterationMax")) {
         caExit("failed to overlapStoreSorter.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
     }
 
@@ -466,14 +466,8 @@ sub createOverlapStoreParallel ($$$$) {
     $wrk = "$wrk/unitigging"  if ($tag eq "utg");
 
     overlapStoreConfigure($WRK, $asm, $tag, $files);
-
-    overlapStoreBucketizerCheck($WRK, $asm, $tag, $files, 1);
-    overlapStoreBucketizerCheck($WRK, $asm, $tag, $files, 2);
-    overlapStoreBucketizerCheck($WRK, $asm, $tag, $files, 3);
-
-    overlapStoreSorterCheck($WRK, $asm, $tag, $files, 1);
-    overlapStoreSorterCheck($WRK, $asm, $tag, $files, 2);
-    overlapStoreSorterCheck($WRK, $asm, $tag, $files, 3);
+    overlapStoreBucketizerCheck($WRK, $asm, $tag, $files)  foreach (1..getGlobal("canuIterationMax"));
+    overlapStoreSorterCheck($WRK, $asm, $tag, $files)      foreach (1..getGlobal("canuIterationMax"));
 
     if (runCommand("$wrk/$asm.ovlStore.BUILDING", "$wrk/$asm.ovlStore.BUILDING/scripts/3-index.sh > $wrk/$asm.ovlStore.BUILDING/scripts/3-index.err 2>&1")) {
         caExit("failed to build index for overlap store", "$wrk/$asm.ovlStore.BUILDING/scripts/3-index.err");

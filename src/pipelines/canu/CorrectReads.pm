@@ -726,11 +726,11 @@ sub buildCorrectionLayouts ($$) {
 
 
 
-sub generateCorrectedReads ($$$) {
+sub generateCorrectedReads ($$) {
     my $WRK     = shift @_;           #  Root work directory (the -d option to canu)
     my $wrk     = "$WRK/correction";  #  Local work directory
     my $asm     = shift @_;
-    my $attempt = shift @_;
+    my $attempt = getGlobal("canuIteration");
     my $bin     = getBinDirectory();
 
     my $path    = "$wrk/2-correction";
@@ -779,7 +779,7 @@ sub generateCorrectedReads ($$$) {
 
     #  If too many attempts, give up.
 
-    if ($attempt > 2) {
+    if ($attempt > getGlobal("canuIterationMax")) {
         caExit("failed to generate corrected reads.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
     }
 
