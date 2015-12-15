@@ -228,6 +228,8 @@ alignGaps(abAbacus *abacus,
   //  so.
 
   while (nexta != aindex[apos]) {
+    assert(0);
+
 #ifdef DEBUG_ALIGN_GAPS
     fprintf(stderr, "alignGaps()-- lasta=%d  nexta=%d  search for aindex[apos]=%d  \n",
             lasta.get(), nexta.get(), aindex[apos].get());
