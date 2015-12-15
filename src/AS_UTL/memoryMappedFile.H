@@ -108,7 +108,7 @@ public:
 
   ~memoryMappedFile() {
     if (_type == memoryMappedFile_readWrite)
-      msync(_data, _length, MS_ASYNC);
+      msync(_data, _length, MS_SYNC);
 
     munmap(_data, _length);
   };
