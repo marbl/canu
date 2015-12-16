@@ -161,7 +161,7 @@ sub getAllowedResources ($$$$) {
 
     #  If no grid, or grid not enabled, everything falls under 'lcoal'.
 
-    my $class = ((getGlobal("useGrid") == 1) && (defined(getGlobal("gridEngine")))) ? "grid" : "local";
+    my $class = ((getGlobal("useGrid") ne "0") && (defined(getGlobal("gridEngine")))) ? "grid" : "local";
 
     #  Figure out limits.
 
@@ -258,6 +258,8 @@ sub getAllowedResources ($$$$) {
     #    taskMemory  = 16g,32g,64g
 
     my ($bestCores,  $bestCoresM,  $bestCoresT)  = (0, undef, undef);
+
+    print STDERR "maxMemory $maxMemory maxThreads $maxThreads\n";
 
     foreach my $m (@taskMemory) {
         foreach my $t (@taskThreads) {
