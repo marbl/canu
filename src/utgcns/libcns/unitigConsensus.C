@@ -925,10 +925,10 @@ unitigConsensus::alignFragment(bool forceAlignment) {
   if (fragEnd > fragLen)
     fragEnd = fragLen;
 
-  int32  bgnExtra = expectedAlignLen / 32;  //  Start with a small 'extra' allowance, easy to make bigger.
-  int32  endExtra = expectedAlignLen / 32;
+  int32  bgnExtra = 100;  //  Start with a small 'extra' allowance, easy to make bigger.
+  int32  endExtra = 100;
 
-  int32  trimStep = expectedAlignLen / 32;
+  int32  trimStep = max(100, expectedAlignLen / 50);
 
   //  Find an alignment!
 
