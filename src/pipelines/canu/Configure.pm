@@ -452,18 +452,18 @@ sub configureAssembler () {
         setGlobalIfUndef("obtOvlMemory", "4-8");     setGlobalIfUndef("obtOvlThreads", "1-8");
         setGlobalIfUndef("utgOvlMemory", "4-8");     setGlobalIfUndef("utgOvlThreads", "1-8");
 
-        setGlobalIfUndef("corMhapMemory", "4-16");   setGlobalIfUndef("corMhapThreads", "1-16");
-        setGlobalIfUndef("obtMhapMemory", "4-16");   setGlobalIfUndef("obtMhapThreads", "1-16");
-        setGlobalIfUndef("utgMhapMemory", "4-16");   setGlobalIfUndef("utgMhapThreads", "1-16");
+        setGlobalIfUndef("corMhapMemory", "4-6");   setGlobalIfUndef("corMhapThreads", "1-16");
+        setGlobalIfUndef("obtMhapMemory", "4-6");   setGlobalIfUndef("obtMhapThreads", "1-16");
+        setGlobalIfUndef("utgMhapMemory", "4-6");   setGlobalIfUndef("utgMhapThreads", "1-16");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("500m")) {
         setGlobalIfUndef("corOvlMemory", "2-6");     setGlobalIfUndef("corOvlThreads", "1");
         setGlobalIfUndef("obtOvlMemory", "4-8");     setGlobalIfUndef("obtOvlThreads", "1-8");
         setGlobalIfUndef("utgOvlMemory", "4-8");     setGlobalIfUndef("utgOvlThreads", "1-8");
 
-        setGlobalIfUndef("corMhapMemory", "8-24");   setGlobalIfUndef("corMhapThreads", "1-16");
-        setGlobalIfUndef("obtMhapMemory", "8-24");   setGlobalIfUndef("obtMhapThreads", "1-16");
-        setGlobalIfUndef("utgMhapMemory", "8-24");   setGlobalIfUndef("utgMhapThreads", "1-16");
+        setGlobalIfUndef("corMhapMemory", "8-13");   setGlobalIfUndef("corMhapThreads", "1-16");
+        setGlobalIfUndef("obtMhapMemory", "8-13");   setGlobalIfUndef("obtMhapThreads", "1-16");
+        setGlobalIfUndef("utgMhapMemory", "8-13");   setGlobalIfUndef("utgMhapThreads", "1-16");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("2g")) {
         setGlobalIfUndef("corOvlMemory", "2-8");     setGlobalIfUndef("corOvlThreads", "1");
