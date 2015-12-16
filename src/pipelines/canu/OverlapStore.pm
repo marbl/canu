@@ -77,12 +77,24 @@ sub createOverlapStoreSequential ($$$$) {
     $wrk = "$wrk/trimming"    if ($tag eq "obt");
     $wrk = "$wrk/unitigging"  if ($tag eq "utg");
 
+    #  The sequential overlap store build can fail on uneven partition sizes.  For long read
+    #  datasets, the number of overlaps is typically much smaller than before.  A correct fix
+    #  requires overlapper (_and_ mhap) to output the number of overlaps per read, then for
+    #  ovStoreBuild to set bucketsizes using that.
+    #
+    #  Until that appears, we artificially cut the memory size in half, which will double the number
+    #  of sorting buckets.  It is cut in half so that the job is submitted to the grid using the
+    #  larger value.  In reality, this job is run in the canu.pl process itself, and all canu.pl
+    #  processes are submitted with the max of ovStore and canu.pl.
+
+    my $memSize = getGlobal("ovlStoreMemory") / 2;
+
     #getAllowedResources("", "ovlStore");
 
     $cmd  = "$bin/ovStoreBuild \\\n";
     $cmd .= " -O $wrk/$asm.ovlStore.BUILDING \\\n";
     $cmd .= " -G $wrk/$asm.gkpStore \\\n";
-    $cmd .= " -M " . getGlobal("ovlStoreMemory") . " \\\n";
+    $cmd .= " -M $memSize \\\n";
     $cmd .= " -L $files \\\n";
     $cmd .= " > $wrk/$asm.ovlStore.err 2>&1";
 
