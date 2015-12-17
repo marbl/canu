@@ -247,13 +247,9 @@ sub consensusCheck ($$) {
     #  If not the first attempt, report the jobs that failed, and that we're recomputing.
 
     if ($attempt > 1) {
-        setGlobal("cnsConsensus", "quick");
-        utgcns($wrk, $asm, $jobs);
         print STDERR "--\n";
         print STDERR "-- ", scalar(@failedJobs), " consensus jobs failed:\n";
         print STDERR $failureMessage;
-        print STDERR "--\n";
-        print STDERR "-- Retrying with " . getGlobal("cnsConsensus") . "\n";
         print STDERR "--\n";
     }
 
