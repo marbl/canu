@@ -111,7 +111,7 @@ Each unitig construction task needs its own private work space, and in there the
 Assembling Oxford Nanopore data
 --------------------------------
 A set of E. coli runs were released by the Loman lab.  You can download one
-`directly <http://nanopore.s3.climb.ac.uk/MAP006-2_2D_pass.fasta>`_
+`directly <http://nanopore.s3.climb.ac.uk/MAP006-PCR-1_2D_pass.fasta>`_
 or any of them from the
 `original page <http://lab.loman.net/2015/09/24/first-sqk-map-006-experiment/>`_.
 
@@ -119,7 +119,7 @@ or use the following curl command:
 
 ::
 
- curl -L -o oxford.fasta http://nanopore.s3.climb.ac.uk/MAP006-2_2D_pass.fasta
+ curl -L -o oxford.fasta http://nanopore.s3.climb.ac.uk/MAP006-PCR-1_2D_pass.fasta
 
 Canu assembles any of the four available datasets into a single contig but we picked one dataset to use in this tutorial. Then, assemble the data as before::
 
