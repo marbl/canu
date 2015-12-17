@@ -302,6 +302,7 @@ sub overlapStoreBucketizerCheck ($$$$) {
 
     goto allDone   if (skipStage($WRK, $asm, "$tag-overlapStoreBucketizerCheck", $attempt) == 1);
     goto allDone   if (-d "$wrk/$asm.ovlStore");
+    goto allDone   if (-e "$wrk/$asm.ovlStore.BUILDING/1-bucketize.success");
 
     my $numInputs      = countOverlapStoreInputs($files);
     my $currentJobID   = 1;
@@ -337,6 +338,7 @@ sub overlapStoreBucketizerCheck ($$$$) {
 
     if (scalar(@failedJobs) == 0) {
         print STDERR "-- Overlap store bucketizer finished.\n";
+        touch("$wrk/$asm.ovlStore.BUILDING/1-bucketize.success"); 
         setGlobal("canuIteration", 0);
         emitStage($WRK, $asm, "$tag-overlapStoreBucketizerCheck");
         buildHTML($WRK, $asm, $tag);
@@ -388,6 +390,7 @@ sub overlapStoreSorterCheck ($$$$) {
 
     goto allDone   if (skipStage($WRK, $asm, "$tag-overlapStoreSorterCheck", $attempt) == 1);
     goto allDone   if (-d "$wrk/$asm.ovlStore");
+    goto allDone   if (-e "$wrk/$asm.ovlStore.BUILDING/2-sorter.success");
 
     my $numSlices      = getGlobal("ovlStoreSlices");
     my $currentJobID   = 1;
@@ -431,6 +434,7 @@ sub overlapStoreSorterCheck ($$$$) {
 
     if (scalar(@failedJobs) == 0) {
         print STDERR "-- Overlap store sorter finished.\n";
+        touch("$wrk/$asm.ovlStore.BUILDING/2-sorter.success");
         setGlobal("canuIteration", 0);
         emitStage($WRK, $asm, "$tag-overlapStoreSorterCheck");
         buildHTML($WRK, $asm, $tag);
