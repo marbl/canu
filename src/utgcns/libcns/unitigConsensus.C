@@ -303,6 +303,22 @@ unitigConsensus::generateQuick(tgTig                     *tig_,
     uint32   readLen = read->gkRead_sequenceLength();
 
     uint32   bHang   = cnspos[tiid].max() - frankensteinLen;
+    if (bHang <= 0) {
+       //  this read doesn't add anything, skip it
+       continue;
+    }
+
+    //  check if our positions are wonky, adjust the end to match reality
+    uint32 start = cnspos[tiid].min();
+    uint32 end = cnspos[tiid].max();
+
+    if (start > frankensteinLen) {
+       start = frankensteinLen;
+    }
+    if (end - start > readLen) {
+       end = start + readLen;
+    }
+    cnspos[tiid].setMinMax(start, end);
 
     //  appendBases() will append only if new bases are needed.  Otherwise, it just
     //  sets the first/last bead position.
