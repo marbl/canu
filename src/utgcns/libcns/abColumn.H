@@ -50,156 +50,137 @@
  *  full conditions and disclaimers for each license.
  */
 
-class abBaseCount {
+#ifndef ABCOLUMN_H
+#define ABCOLUMN_H
+
+#include "abBead.H"
+
+class abColumn {
 public:
-  abBaseCount() {
-    clear();
-  };
-  ~abBaseCount() {
-  };
+  abColumn() {
+    _columnPosition = INT32_MAX;
+    _call           = '-';
+    _qual           = 0;
+    _prevColumn     = NULL;
+    _nextColumn     = NULL;
+    _beadsMax       = 0;
+    _beadsLen       = 0;
+    _beads          = NULL;
+    _beadReadIDs    = NULL;
 
-  void clear(void) {
-    _depth    = 0;
-
-    for (uint32 ii=0; ii<CNS_NUM_SYMBOLS; ii++)
-      _count[ii] = 0;
-  };
-
-  uint32 IncBaseCount(char c) {
-    uint32 r = baseToIndex[c];
-
-    if (r > 5)
-      fprintf(stderr, "IncBaseCount c=%d '%c' r=%u out of range.\n", c, c, r);
-    assert(r <= 5);
-
-    _depth++;
-
-    return(_count[r]++);
+    for (int32 ii=0; ii<CNS_NUM_SYMBOLS; ii++)
+      _baseCounts[ii]  = 0;
   };
 
-  uint32 DecBaseCount(char c) {
-    uint32 r = baseToIndex[c];
-
-    if (r > 5)
-      fprintf(stderr, "DecBaseCount c=%d '%c' r=%u out of range.\n", c, c, r);
-    assert(r <= 5);
-
-    _depth--;
-
-    return(_count[r]--);
-  };
-
-  uint32 GetBaseCount(char c) {
-    uint32 r = baseToIndex[c];
-
-    if (r > 5)
-      fprintf(stderr, "GetBaseCount c=%d '%c' r=%u out of range.\n", c, c, r);
-    assert(r <= 5);
-
-    return(_count[r]);
+  ~abColumn() {
+    delete [] _beads;
+    delete [] _beadReadIDs;
   };
 
 
+  int32          &position(void)      { return(_columnPosition); };
 
-  uint32 GetDepth(void) {
-    return(_depth);
-  };
+  uint32     depth(void)           { return(_beadsLen);      };
+  uint32     baseCount(char c)     { return(_baseCounts[baseToIndex[c]]); };  //  NO CHECKING.
 
+  //  Return the character with the highest base count, breaking ties deterministically (previous
+  //  versions tried to be random).  The last highest count is used - if the mapping is -acgt, then
+  //  a tie with gap will never select gap.
 
-  //  Return the character with the highest base count, breaking ties randomly (excluding gaps).
-  //  Start at 1 to disallow gaps.
-  //
-  //  BUG FIX:  a two-way tie was NOT broken, the lower letter always won
-  //
-  //  BUG:  This wants to return a letter, but doesn't know the mapping
-  //
-  uint32
-  GetMaxBaseCountBase(bool skipGap) {
-    uint32 iMax = (skipGap == false) ? 0 : 1;
-    uint32 tied = 0;
+  char       majorityBase(bool ignoreGap) {
+    uint32 iMax = (ignoreGap == true) ? 1 : 0;  //  Start at entry 1 to ignore gap
 
-    for (int32 i=iMax+1; i<CNS_NUM_SYMBOLS-1; i++) {
-      if (_count[i] > _count[iMax]) {
+    for (int32 i=iMax+1; i<CNS_NUM_SYMBOLS-1; i++)
+      if (_baseCounts[i] >= _baseCounts[iMax])
         iMax = i;
-        tied = 0;
-      } else if (_count[i] == _count[iMax]) {
-        tied++;
-      }
-    }
-
-    if (tied > 0) {
-      uint32   iTie = 0;
-
-      for (uint32 i=1; i<CNS_NUM_SYMBOLS-1; i++) {
-        if (_count[i] == _count[iMax]) {
-          uint32 tieBreaker = random();
-
-          if (tieBreaker > iTie) {
-            iTie = tieBreaker;
-            iMax = i;
-          }
-        }
-      }
-    }
 
     return(indexToBase[iMax]);
   };
 
+  uint32     majorityCount(bool ignoreGap) {
+    return(_baseCounts[majorityBase(ignoreGap)]);
+  };
+
+  uint32     mismatchCount(void) {
+    return(depth() - majorityCount(false));
+  }
+
+  //  For a little bit of sanity, the original consensus used to (ifdef) recompute the base counts
+  //  every so often.  A better idea would be to do this when calling consensus (since we go through
+  //  everything anyway).  Left in as a reminder to do something like that.
+  //void       checkBaseCounts(void) {
+  //};
+
+
+  char            baseCall(void)      { return(_call); };
+  char            baseQual(void)      { return(_qual); };
+
+  abColumn       *prev(void)          { return(_prevColumn); };
+  abColumn       *next(void)          { return(_nextColumn); };
+
+
 private:
-  uint32   _depth;
-  uint32   _count[CNS_NUM_SYMBOLS];
-};
+  void            allocateInitialBeads(void);
+  void            inferPrevNextBeadPointers(char   base,
+                                            uint8  qual,
+                                            uint16 beadLink);
 
-
-
-
-//  A column of beads in the multialign
-//
-class abColumn {
 public:
-  abColumn() {
-    ma_position = 0;
-  };
-  ~abColumn() {
-  };
+  uint16          insertAtBegin(abColumn *first, uint16 prevLink, char base, uint8 qual);
+  uint16          insertAtEnd  (abColumn *last,  uint16 prevLink, char base, uint8 qual);
+  uint16          insertAfter  (abColumn *prev,  uint16 prevLink, char base, uint8 qual);
 
-  uint32     GetDepth(void)                 { return(base_count.GetDepth());      };
-  uint32     GetColumnBaseCount(char c)     { return(base_count.GetBaseCount(c)); };
+  uint16          alignBead(uint16 prevIndex, char base, uint8 qual);
 
-  void       CheckBaseCounts(abAbacus *ab);
-
-  //  Max over what?  Also needs abacus to get next beads!  Gah!  Two with the same name!
-  //#warning GetMaxBaseCount confusion.
-  //char       GetMaxBaseCount(abAbacus *ab, int32 start_index);
-  char       GetMaxBaseCountBase(bool skipGap) {
-    return(base_count.GetMaxBaseCountBase(skipGap));
-  };
-
-  abColID    const  ident(void)                    { return(lid);  };
-
-  abBeadID   const  callID(void)                   { return(call); };
-
-  abColID          &prevID(void)                   { return(prev); };
-  abColID          &nextID(void)                   { return(next); };
-
-  int32             mismatch(void) {
-    return(base_count.GetDepth() - base_count.GetBaseCount( base_count.GetMaxBaseCountBase(false) ));
-  };
-
-  int32            &position(void)                 { return(ma_position); };
+  uint16          extendRead(abColumn *column, uint16 beadLink);
 
 private:
-  abColID          lid;           //  index in columnStore
-  abBeadID         call;          //  global offset in beadStore;
-  abColID          prev;          //  navigation in columnStore;
-  abColID          next;          //
-  abMultiAlignID   ma_id;         //  abMultiAlign this column belongs to
-  int32            ma_position;   //  was ma_index; column ordinal, needs to be signed for compat with tgTig bgn/end
-  abBaseCount      base_count;
+  void            baseCallMajority(void);
+  void            baseCallQuality(void);
+public:
+  char            baseCall(bool highQuality);
+
+public:
+  abColumn       *mergeNext(void);
+
+private:
+  int32            _columnPosition;  //  coordinate of the column in the multialign; needs to be signed for compat with tgTig bgn/end
+
+  char             _call;            //  The base call for this column.
+  uint8            _qual;            //  The quality of that base call.
+
+  //  16 bytes of pointers.
+  //  Alternate schemes:
+  //    two 4 byte offsets into an arary of pointers, but that's also 16 bytes per column.
+  //    two 4 byte offsets into an array of objects, but we'd then need to realloc sometime.
+  //    two 4 byte offsets into a heap, but that adds a lot of complication.
+  //
+  abColumn        *_prevColumn;
+  abColumn        *_nextColumn;
+
+  //abBaseCount      _baseCounts;
+
+public:
+  abBead           *bead(uint32 ii) { return(_beads + ii); };
+private:
+  uint16           _beadsMax;   //  Number of beads allocated
+  uint16           _beadsLen;   //  Depth; number of reads that span this column
+  abBead          *_beads;
+
+
+  //  If allocated, the read idx (NOT gkpID) for each bead in the column
+public:
+  bool             beadReadIDsExist(void)   { return(_beadReadIDs != NULL); };
+  uint32           beadReadID(uint32 xx)    { return(_beadReadIDs[xx]);     };
+private:
+  uint32          *_beadReadIDs;
+
+
+
+  uint16           _baseCounts[CNS_NUM_SYMBOLS];
 
   friend class abAbacus;
+  friend bool  mergeColumns(abColumn *lcolumn, abColumn *rcolumn);
 };
 
-
-
-
+#endif  //  ABCOLUMN_H

@@ -40,7 +40,6 @@ const char *mainid = "$Id$";
 #include "AS_global.H"
 #include "gkStore.H"
 #include "tgStore.H"
-#include "abAbacus.H"
 
 #include "AS_UTL_decodeRange.H"
 
@@ -328,10 +327,6 @@ main (int argc, char **argv) {
 
   fprintf(stderr, "\n");
 
-  //  Create a consensus object.
-
-  abAbacus  *abacus   = new abAbacus(gkpStore);
-
   //  I don't like this loop control.
 
   for (uint32 ti=b; (e == UINT32_MAX) || (ti <= e); ti++) {
@@ -491,7 +486,6 @@ main (int argc, char **argv) {
   }
 
  finish:
-  delete abacus;
   delete tigStore;
 
   gkpStore->gkStore_close();

@@ -67,7 +67,69 @@
 //  CA8 code for adding a unitig (and expanding it to include all the reads) exists
 //  last in b8cc87300a0b5da87513ea1a6c02e8280af30cd0.
 
-abSeqID
+
+abSequence::abSequence(uint32  readID,
+                       uint32  length,
+                       char   *seq,
+                       char   *qlt,
+                       uint32  complemented) {
+  _iid              = readID;
+
+  _is_read          = true;
+
+  _length           = length;
+
+  _complement       = complemented;
+
+  _bases            = new char  [_length + 1];
+  _quals            = new uint8 [_length + 1];
+
+  _firstColumn      = NULL;
+  _firstColumnIndex = 0;
+
+  _lastColumn       = NULL;
+  _lastColumnIndex  = 0;
+
+  //  Make a complement table
+
+  char inv[256] = {0};
+
+  inv['a'] = 't';  inv['A'] = 'T';
+  inv['c'] = 'g';  inv['C'] = 'G';
+  inv['g'] = 'c';  inv['G'] = 'C';
+  inv['t'] = 'a';  inv['T'] = 'A';
+  inv['n'] = 'n';  inv['N'] = 'N';
+  inv['-'] = '-';
+
+  //  Stash the bases/quals
+
+  for (uint32 ii=0; ii<_length; ii++)
+    assert((seq[ii] == 'A') ||
+           (seq[ii] == 'C') ||
+           (seq[ii] == 'G') ||
+           (seq[ii] == 'T') ||
+           (seq[ii] == 'N'));
+
+  if (complemented == false)
+    for (uint32 ii=0, pp=0; ii<_length; ii++, pp++) {
+      _bases[pp] = seq[ii];
+      _quals[pp] = qlt[ii];
+    }
+
+  else
+    for (uint32 ii=_length, pp=0; ii-->0; pp++) {
+      _bases[pp] = inv[ seq[ii] ];
+      _quals[pp] =      qlt[ii];
+    }
+
+  _bases[_length] = 0;  //  NUL terminate the strings so we can use them in aligners.
+  _quals[_length] = 0;  //  Not actually a string, the 0 is just another QV=0 entry.
+};
+
+
+
+
+void
 abAbacus::addRead(gkStore *gkpStore,
                   uint32   readID,
                   uint32   askip, uint32 bskip,
@@ -75,14 +137,12 @@ abAbacus::addRead(gkStore *gkpStore,
                   map<uint32, gkRead *>     *inPackageRead,
                   map<uint32, gkReadData *> *inPackageReadData) {
 
-  //  Grab the read
+  //  Grab the read.  If there is no package, load the read from the store.  Otherwise, load the
+  //  read from the package.  This REQUIRES that the package be in-sync with the unitig.  We fail
+  //  otherwise.  Hey, it's used for debugging only...
 
   gkRead      *read     = NULL;
   gkReadData  *readData = NULL;
-
-  //  If no package, load the read from the store.  Otherwise, load the read from the package.  This
-  //  REQUIRES that the package be in-sync with the unitig.  We fail otherwise.  Hey, it's used for
-  //  debugging only...
 
   if (inPackageRead == NULL) {
     read     = gkpStore->gkStore_getRead(readID);
@@ -99,117 +159,20 @@ abAbacus::addRead(gkStore *gkpStore,
   assert(read     != NULL);
   assert(readData != NULL);
 
-  uint32  seqLen = read->gkRead_sequenceLength() - askip - bskip;
+  //  Grab seq/qlt from the read, offset to the proper begin and length.
 
-  //  Tell abacus about it.
+  uint32  seqLen = read->gkRead_sequenceLength() - askip - bskip;
+  char   *seq    = readData->gkReadData_getSequence()  + ((complemented == false) ? askip : bskip);
+  char   *qlt    = readData->gkReadData_getQualities() + ((complemented == false) ? askip : bskip);
+
+  //  Tell abacus about it.  We could pre-allocate _sequences (in the constructor) but this is
+  //  relatively painless and makes life easier outside here.
 
   increaseArray(_sequences, _sequencesLen, _sequencesMax, 1);
 
-  abSequence   *ns = _sequences + _sequencesLen;
-
-  ns->initialize(readID, _sequencesLen++, seqLen, complemented, _basesLen, _beadsLen);
-
-  //  Make a complement table
-
-  char inv[256] = {0};
-
-  inv['a'] = 't';  inv['A'] = 'T';
-  inv['c'] = 'g';  inv['C'] = 'G';
-  inv['g'] = 'c';  inv['G'] = 'C';
-  inv['t'] = 'a';  inv['T'] = 'A';
-  inv['n'] = 'n';  inv['N'] = 'N';
-  inv['-'] = '-';
-
-  //  Stash the bases/quals
-
-  {
-    char  *seq = readData->gkReadData_getSequence()  + ((complemented == false) ? askip : bskip);
-    char  *qlt = readData->gkReadData_getQualities() + ((complemented == false) ? askip : bskip);
-
-    while (_basesMax <= _basesLen + seqLen + 1)
-      resizeArrayPair(_bases, _quals, _basesLen, _basesMax, 2 * _basesMax);
-
-    for (uint32 ii=0; ii<seqLen; ii++)
-      assert((seq[ii] == 'A') ||
-             (seq[ii] == 'C') ||
-             (seq[ii] == 'G') ||
-             (seq[ii] == 'T') ||
-             (seq[ii] == 'N'));
-
-    if (complemented == false)
-      for (uint32 ii=0, pp=_basesLen; ii<seqLen; ii++, pp++, _basesLen++) {
-        _bases[pp] = seq[ii];
-        _quals[pp] = qlt[ii];
-
-        assert(CNS_MIN_QV <= _quals[pp]);
-        assert(_quals[pp] <= CNS_MAX_QV);
-      }
-
-    else
-      for (uint32 ii=seqLen, pp=_basesLen; ii-->0; pp++, _basesLen++) {
-        _bases[pp] = inv[ seq[ii] ];
-        _quals[pp] =      qlt[ii];
-
-        assert(CNS_MIN_QV <= _quals[pp]);
-        assert(_quals[pp] <= CNS_MAX_QV);
-      }
-
-    _bases[_basesLen] = 0;  //  NUL terminate the strings so we can use them in aligners
-    _quals[_basesLen] = 0;
-    _basesLen++;
-  }
+  _sequences[_sequencesLen++] = new abSequence(readID, seqLen, seq, qlt, complemented);
 
   delete readData;
-
-  //  Make beads for each base, set the pointer to the first bead
-
-  {
-    increaseArray(_beads, _beadsLen, _beadsMax, seqLen);
-
-    uint32  firstBead = _beadsLen;
-
-    for (uint32 bp=0; bp<ns->length(); bp++, _beadsLen++) {
-      _beads[_beadsLen].boffset.set(_beadsLen);                   //  Offset into the beads array
-      _beads[_beadsLen].soffset.set(ns->firstBase().get() + bp);  //  Offset into the sequence array
-      _beads[_beadsLen].foffset = bp;                             //  Offset into the read itself
-
-      //  Check that nothing odd happened with the ident.
-
-      assert(_beads[_beadsLen].ident().get() == ns->firstBead().get() + bp);
-
-      //  Set previous/next bead appropriately.
-
-      if (_beads[_beadsLen].foffset == 0)
-        _beads[_beadsLen].prev = abBeadID();
-      else
-        _beads[_beadsLen].prev.set(_beads[_beadsLen].ident().get() - 1);
-
-      if (_beads[_beadsLen].foffset == ns->length() - 1)
-        _beads[_beadsLen].next = abBeadID();
-      else
-        _beads[_beadsLen].next.set(_beads[_beadsLen].ident().get() + 1);
-
-      _beads[_beadsLen].up           = abBeadID();   //  No up bead yet.
-      _beads[_beadsLen].down         = abBeadID();   //  No down bead yet.
-
-      _beads[_beadsLen].frag_index   = ns->ident();  //  Bead is for this read idx.
-      _beads[_beadsLen].column_index = abColID();    //  Isn't in a column yet.
-    }
-  }
-
-  assert(_beads[_beadsLen-1].ident() == ns->lastBead());
-
-  //  Return the (internal) index we saved this read at.
-
-#if 0
-  fprintf(stderr, "read %d firstBead %d lastBead %d _basesLen %u\n",
-          ns->ident().get(),
-          ns->firstBead().get(),
-          ns->lastBead().get(),
-          _basesLen);
-#endif
-
-  return(ns->ident());
 }
 
 

@@ -54,10 +54,10 @@
  *  full conditions and disclaimers for each license.
  */
 
-#ifndef MULTIALIGNUNITIG_H
-#define MULTIALIGNUNITIG_H
+#ifndef UNITIGCONSENSUS_H
+#define UNITIGCONSENSUS_H
 
-static const char *rcsid_MULTIALIGNUNITIG_H = "$Id:  $";
+static const char *rcsid_UNITIGCONSENSUS_H = "$Id:  $";
 
 #include "AS_global.H"
 
@@ -137,7 +137,6 @@ private:
   int32           traceBBgn;  //  used in applyAlignment().
 
   abAbacus       *abacus;
-  abMultiAlignID  multialign;  //  Should really be storing the abMultiAlignID
 
   //  The two positions below are storing the low/high coords for the read.
   //  They do not encode the orientation in the coordinates.
@@ -147,11 +146,6 @@ private:
 
   int32           tiid;        //  This frag IID
   int32           piid;        //  Anchor frag IID - if -1, not valid
-
-  int32           frankensteinLen;
-  int32           frankensteinMax;
-  char           *frankenstein;
-  abBeadID       *frankensteinBof;
 
   uint32          minOverlap;
   double          errorRate;

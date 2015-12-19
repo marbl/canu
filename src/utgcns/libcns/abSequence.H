@@ -50,69 +50,78 @@
  *  full conditions and disclaimers for each license.
  */
 
-//  Former Fragment, a sequence loaded into the multialign
-//
+#ifndef ABSEQUENCE_H
+#define ABSEQUENCE_H
+
+#include "abColumn.H"
 
 class abSequence {
 public:
   abSequence() {
+    _iid        = 0;
+
+    _is_read    = false;
+    _complement = false;
+
+    _length     = 0;
+    _bases      = NULL;
+    _quals      = NULL;
+
+    _firstColumn      = NULL;
+    _firstColumnIndex = 0;
+
+    _lastColumn       = NULL;
+    _lastColumnIndex  = 0;
+    
   };
+
+  abSequence(uint32  readID,
+             uint32  length,
+             char   *seq,
+             char   *qlt,
+             uint32  complemented);
+
   ~abSequence() {
   };
 
+
+
   uint32                gkpIdent(void)          { return(_iid);        };
-  abSeqID               ident(void)             { return(_lid);        };
-
-  abBeadID              firstBead(void)         { return(_firstbead);  };
-  abBaseID              firstBase(void)         { return(_firstbase);  };
-
-  abBeadID              lastBead(void)          { return(_lastbead);   };
-  abBaseID              lastBase(void)          { return(_lastbase);   };
-
-  abBeadID              getBead(uint32 offset)  { return(abBeadID(_firstbead.get() + offset)); };
 
   bool                  isRead(void)            { return(_is_read);    };
-
-  uint32                length(void)            { return(_length);     };
-
   bool                  isForward(void)         { return(_complement == false); };
 
-  void                  initialize(uint32 readID,
-                                   uint32 readIdx,
-                                   uint32 length,
-                                   uint32 complemented,
-                                   uint32 firstBase,
-                                   uint32 firstBead) {
-    _iid           = readID;
-    _lid.set(readIdx);                 // index in sequence/quality/fragment store
+  uint32                length(void)            { return(_length);     };
+  char                  getBase(uint32 o)       { return(_bases[o]);   };
+  uint8                 getQual(uint32 o)       { return(_quals[o]);   };
 
-    _is_read       = true;
-
-    _length        = length;
-
-    _complement    = complemented;
-
-    _firstbase.set(firstBase);
-    _firstbead.set(firstBead);
-
-    _lastbase.set(firstBase + _length - 1);
-    _lastbead.set(firstBead + _length - 1);
-  };
+  char                 *getBases(void)          { return(_bases);      };
 
 private:
   uint32           _iid;            //  external, aka gatekeeper, ID;
-  abSeqID          _lid;            //  index in sequence/quality/fragment store
 
   bool             _is_read;
-
-  uint32           _length;
-
   bool             _complement;
 
-  abBaseID         _firstbase;      //  global index of first sequence character
-  abBeadID         _firstbead;      //  global index of first "bead"
+  //  Until the read is added to the abacus, we need to store the correctly
+  //  oriented bases/quals somewhere.
 
-  abBaseID         _lastbase;       //  global index of first sequence character
-  abBeadID         _lastbead;       //  global index of first "bead"
+  uint32           _length;
+  char            *_bases;
+  uint8           *_quals;
+
+  //  Set only after .....
+
+public:
+  abColumn        *firstColumn(void) { return(_firstColumn); };
+  abColumn        *lastColumn(void)  { return(_lastColumn);  };
+
+private:
+  abColumn        *_firstColumn;
+  uint16           _firstColumnIndex;
+
+  abColumn        *_lastColumn;
+  uint16           _lastColumnIndex;
 };
 
+#endif  //  ABSEQUENCE_H

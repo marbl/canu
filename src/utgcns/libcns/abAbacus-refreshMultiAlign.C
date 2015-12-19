@@ -66,59 +66,31 @@ static char *rcsid = "$Id$";
 
 #include "abAbacus.H"
 
-//  Recall consensus in all columns.
+//  (Optionally) recall consensus in all columns.
 //  Rebuild the list of columns in the multialign.
 //  Rebuild the column to position map.
 
 void
-abAbacus::refreshMultiAlign(abMultiAlignID  mid,
-                            bool            recallBase,         //  (false) If true, recall the base
-                            bool            highQuality) {      //  (false) If true, use the high quality base call algorithm
+abAbacus::refreshMultiAlign(bool  recallBase,         //  (false) If true, recall the base
+                            bool  highQuality) {      //  (false) If true, use the high quality base call algorithm
+  uint32     cp = 0;
 
-  abMultiAlign *ma = getMultiAlign(mid);
+  //  Number the columns, so we can make sure the _columns array has enough space.  Probably not
+  //  needed to be done first, but avoids having the resize call in the next loop.
 
-  //fprintf(stderr, "abMultiAlign::refreshMultiAlign()--  legnth %u recallBase=%d highQuality=%d\n",
-  //        ma->length(), recallBase, highQuality);
+  for (abColumn *column = _firstColumn; column; column = column->next())
+    column->_columnPosition = cp++;  //  Position of the column in the gapped consensus.
 
-  ma->columns().clear();
+  resizeArray(_columns, _columnsLen, _columnsMax, cp);
 
-  //  The first column MUST be correct, but we can then update everything else.
-  abColID  cid = ma->firstColumn();
+  //  Build the list of columns
 
-  for (uint32 index=0; (cid.isValid() == true); index++) {
-    abColumn  *column = getColumn(cid);
+  for (abColumn *column = _firstColumn; column; column = column->next())
+    _columns[ column->position() ] = column;
 
-    if (recallBase == true)
-      baseCall(cid, highQuality);
+  //  If we're recalling bases, do that too.
 
-    column->ma_position = index;                      //  Position of the column in the gapped consensus.
-    ma->columns().push_back(column->ident());         //  Just a vector of columns, for random access.
-    ma->last = cid;                                   //  Wherever it ends, it ends.
-
-    assert(ma->columns()[column->ma_position] == column->ident());
-
-    cid = column->next;
-  }
-
-  //  Check column pointers - first/last have no prev/next, and all the other prev/next agree.
-
-  assert(getColumn(ma->firstColumn())->prevID() == abColID());
-  assert(getColumn(ma->lastColumn())->nextID()  == abColID());
-
-  abColID   pid = ma->firstColumn();  //  Previous column
-  abColumn *pol = getColumn(pid);
-
-  abColID   nid = pol->next;          //  Next column
-  abColumn *nol = getColumn(nid);
-
-  while (nid.isValid()) {
-    assert(pol->next == nid);  //  We're iterating over this, must be true.
-    assert(pid == nol->prev);  //  What we're testing
-
-    pid = nid;
-    pol = nol;
-
-    nid = pol->next;          //  Next column
-    nol = getColumn(nid);
-  }
+  if (recallBase == true)
+    for (cp=0; cp < _columnsLen; cp++)
+      _columns[cp]->baseCall(highQuality);
 }

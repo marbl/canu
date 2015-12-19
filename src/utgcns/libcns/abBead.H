@@ -50,8 +50,9 @@
  *  full conditions and disclaimers for each license.
  */
 
-//  A single bead in the multialign
-//
+#ifndef ABBEAD_H
+#define ABBEAD_H
+
 class abBead {
 public:
   abBead() {
@@ -60,41 +61,66 @@ public:
   ~abBead() {
   };
 
-  //  ClearBead
-  void        clear(void) {
-    boffset      = abBeadID();
-    soffset      = abBaseID();
-    foffset      = UINT32_MAX;
-    prev         = abBeadID();
-    next         = abBeadID();
-    up           = abBeadID();
-    down         = abBeadID();
-    frag_index   = abSeqID();
-    column_index = abColID();
+  void         clear(void) {
+    _unused     = 0;
+    _isRead     = 0;
+    _isUnitig   = 0;
+    _base       = '-';
+    _qual       = 0;
+    _prevOffset = UINT16_MAX;
+    _thisOffset = UINT16_MAX;
+    _nextOffset = UINT16_MAX;
   };
 
-  abBeadID   const ident(void)    const { return(boffset);      };
+  void         initialize(char   base,
+                         uint8   qual,
+                         uint16  prevOff,
+                         uint16  thisOff,
+                         uint16  nextOff) {
+    _base       = base;
+    _qual       = qual;
+    _prevOffset = prevOff;
+    _thisOffset = thisOff;
+    _nextOffset = nextOff;
+  };
 
-  abBeadID        &prevID(void)         { return(prev);         };
-  abBeadID        &nextID(void)         { return(next);         };
-  abBeadID        &upID(void)           { return(up);           };
-  abBeadID        &downID(void)         { return(down);         };
+public:  //  ACCESSORS
+  char         base(void)          { return(_base);      };  //  Set only at init, or maybe
+  char         qual(void)          { return(_qual);      };  //    reset with swap()
 
-  abBaseID   const baseIdx(void)  const { return(soffset);      };
-  abSeqID    const seqIdx(void)   const { return(frag_index);   };
-  abColID         &colIdx(void)         { return(column_index); };
+  uint16       prevOffset(void)   { return(_prevOffset); };  //  Generally set only at init,
+  uint16       thisOffset(void)   { return(_prevOffset); };  //    but can change when gap
+  uint16       nextOffset(void)   { return(_prevOffset); };  //    columns are added
+
+public:  //  METHODS
 
 private:
-  abBeadID   boffset;       //  Location in abAbacus bead array
-  abBaseID   soffset;       //  Location in abAbacus bases/quals array
-  uint32     foffset;       //  Location in fragment sequence
-  abBeadID   prev;          //  |
-  abBeadID   next;          //  |
-  abBeadID   up;            //  |- Navigation in abAbacus beads
-  abBeadID   down;          //  |
-  abSeqID    frag_index;    //  Location in abAbacus sequence array
-  abColID    column_index;  //  Location in abAbacus column array
+  uint16      _unused:1;
+  uint16      _isRead:1;     //  If set, base is from an actual read, use it for consensus.
+  uint16      _isUnitig:1;   //  If set, base is from a unitig, don't use it for consensus (unless needed).
+  uint16      _base:7;       //  Base at this position.  (eventually will be encoded to 3 bits)
+  uint16      _qual:6;       //  Quality at this position.
+
+  uint16      _prevOffset;  //  Position in the array of beads for the previous column
+  uint16      _thisOffset;  //  Position in the arary of beads for this column
+  uint16      _nextOffset;  //  Position in the array of beads for the next column
 
   friend class abAbacus;
+  friend class abColumn;  //void abColumn::inferPrevNextBeadPointers(void);
+
+  friend void swap(abBead *a, abBead *b);
 };
 
+
+inline
+void
+swap(abBead *a, abBead *b) {
+  abBead cc;
+
+  cc._isRead = b->_isRead; cc._isUnitig = b->_isUnitig; cc._base = b->_base; cc._qual = b->_qual;
+  b->_isRead = a->_isRead; b->_isUnitig = a->_isUnitig; b->_base = a->_base; b->_qual = a->_qual;
+  a->_isRead = cc._isRead; a->_isUnitig = cc._isUnitig; a->_base = cc._base; a->_qual = cc._qual;
+}
+
+
+#endif  //  ABBEAD_H

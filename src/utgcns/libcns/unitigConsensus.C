@@ -97,16 +97,10 @@ unitigConsensus::unitigConsensus(gkStore  *gkpStore_,
   numfrags        = 0;
   trace           = NULL;
   abacus          = NULL;
-  multialign      = abMultiAlignID();
   utgpos          = NULL;
   cnspos          = NULL;
   tiid            = 0;
   piid            = -1;
-
-  frankensteinLen = 0;
-  frankensteinMax = 0;
-  frankenstein    = NULL;
-  frankensteinBof = NULL;
 
   minOverlap      = minOverlap_;
   errorRate       = errorRate_;
@@ -123,8 +117,6 @@ unitigConsensus::~unitigConsensus() {
 
   delete [] utgpos;
   delete [] cnspos;
-  delete [] frankenstein;
-  delete [] frankensteinBof;
 
   delete    oaPartial;
   delete    oaFull;
@@ -144,7 +136,7 @@ unitigConsensus::reportStartingWork(void) {
             utgpos[tiid].anchor(),
             utgpos[tiid].aHang(),
             utgpos[tiid].bHang(),
-            abacus->getMultiAlign(multialign)->length());
+            abacus->numberOfColumns());
 
   if (showPlacementBefore())
     for (int32 x=0; x<=tiid; x++)
@@ -289,9 +281,8 @@ unitigConsensus::generateQuick(tgTig                     *tig_,
     return(false);
   }
 
-  //  The quick variety doesn't generate alignments, it just pastes read bases into
-  //  frankenstein.  It still needs to find a placement for the read, and it uses the
-  //  other placed reads for that.
+  //  The quick variety doesn't generate alignments, it just pastes read bases into consensus.  It
+  //  still needs to find a placement for the read, and it uses the other placed reads for that.
 
   while (moreFragments()) {
     reportStartingWork();
@@ -302,13 +293,12 @@ unitigConsensus::generateQuick(tgTig                     *tig_,
     gkRead  *read    = gkpStore->gkStore_getRead(utgpos[tiid].ident());
     uint32   readLen = read->gkRead_sequenceLength();
 
-    uint32   bHang   = cnspos[tiid].max() - frankensteinLen;
+    uint32   bHang   = cnspos[tiid].max() - abacus->numberOfColumns();
 
     //  appendBases() will append only if new bases are needed.  Otherwise, it just
     //  sets the first/last bead position.
 
-    abacus->appendBases(frankensteinLen, frankensteinBof,
-                        tiid,
+    abacus->appendBases(tiid,
                         cnspos[tiid].min(),
                         cnspos[tiid].max());
 
@@ -355,8 +345,7 @@ unitigConsensus::initialize(uint32                    *failed,
 
   memset(trace, 0, sizeof(int32) * 2 * AS_MAX_READLEN);
 
-  //manode   = CreateMANode(tig->tigID());
-  abacus     = new abAbacus(gkpStore);
+  abacus     = new abAbacus();
 
   for (int32 i=0; i<numfrags; i++) {
     if (failed != NULL)
@@ -366,35 +355,20 @@ unitigConsensus::initialize(uint32                    *failed,
 
     cnspos[i].setMinMax(0, 0);
 
-    //  Guess a nice ... totally unused value
-    //num_bases   += (int32)ceil( (utgpos[i].max() - utgpos[i].min()) * (1 + 2 * errorRate));
+    //  Guess the number of columns we'll end up with.
 
     num_columns  = (utgpos[i].min() > num_columns) ? utgpos[i].min() : num_columns;
     num_columns  = (utgpos[i].max() > num_columns) ? utgpos[i].max() : num_columns;
 
-    //  Allocate and initialize the beads for each fragment.  Beads are not
-    //  inserted in the abacus here.
+    //  Initialize abacus with the reads.
 
-    abSeqID fid = abacus->addRead(gkpStore,
-                                  utgpos[i].ident(),
-                                  utgpos[i]._askip, utgpos[i]._bskip,
-                                  utgpos[i].isReverse(),
-                                  inPackageRead,
-                                  inPackageReadData);
-
-    //  If this is violated, then the implicit map from utgpos[] and cnspos[] to the unitig child
-    //  list is incorrect.
-
-    assert(fid.get() == i);
-
-    //if (VERBOSE_MULTIALIGN_OUTPUT)
-    //  fprintf(stderr,"unitigConsensus()-- Added fragment mid %d pos %d,%d in unitig %d to store at local id %d.\n",
-    //          utgpos[i].ident(), utgpos[i].min(), utgpos[i].max(), tig->tigID(), fid);
+    abacus->addRead(gkpStore,
+                    utgpos[i].ident(),
+                    utgpos[i]._askip, utgpos[i]._bskip,
+                    utgpos[i].isReverse(),
+                    inPackageRead,
+                    inPackageReadData);
   }
-
-  //  Now that the reads exist, we can initialize the multialign, and add the first read to it.
-
-  multialign = abacus->addMultiAlign(abSeqID(0));
 
   //  Check for duplicate reads
 
@@ -421,30 +395,11 @@ unitigConsensus::initialize(uint32                    *failed,
   if (failed)
     failed[0] = false;
 
-  frankensteinLen = 0;
-  frankensteinMax = MAX(1024 * 1024, 2 * num_columns);
-  frankenstein    = new char     [frankensteinMax];
-  frankensteinBof = new abBeadID [frankensteinMax];
+  //
+  //  Who initializes abacus with the first read?!?
+  //
 
-  //  Save columns
-  {
-    abBeadID  bidx = abacus->getSequence(0)->firstBead();
-    abBead   *bead = abacus->getBead(bidx);
-
-    while (bead) {
-      frankenstein   [frankensteinLen] = abacus->getBase(bead->baseIdx());
-      frankensteinBof[frankensteinLen] = bead->ident();
-
-      frankensteinLen++;
-
-      bead = (bead->nextID().isInvalid()) ? NULL : abacus->getBead(bead->nextID());
-    }
-
-    frankenstein   [frankensteinLen] = 0;
-    frankensteinBof[frankensteinLen] = abBeadID();
-
-    cnspos[0].setMinMax(0, frankensteinLen);
-  }
+  cnspos[0].setMinMax(0, abacus->numberOfColumns());
 
   return(true);
 }
@@ -537,7 +492,7 @@ unitigConsensus::computePositionFromAnchor(void) {
               anchor,
               cnspos[piid].min(), cnspos[piid].max(),
               cnspos[tiid].min(), cnspos[tiid].max(),
-              frankensteinLen);
+              abacus->numberOfColumns());
     return(true);
   }
 
@@ -571,7 +526,7 @@ unitigConsensus::computePositionFromLayout(void) {
       //
       //assert(cnspos[tiid].min() < cnspos[tiid].max());
 
-      int32 ooo = MIN(cnspos[tiid].max(), frankensteinLen) - cnspos[tiid].min();
+      int32 ooo = MIN(cnspos[tiid].max(), abacus->numberOfColumns()) - cnspos[tiid].min();
 
 #if 1
       if (showPlacement())
@@ -583,7 +538,7 @@ unitigConsensus::computePositionFromLayout(void) {
 #endif
 
       //  Occasionally we see an overlap in the original placement (utgpos overlap) by after
-      //  adjusting our fragment to the frankenstein position, we no longer have an overlap.  This
+      //  adjusting our fragment to the consensus position, we no longer have an overlap.  This
       //  seems to be caused by a bad original placement.
       //
       //  Example:
@@ -594,7 +549,7 @@ unitigConsensus::computePositionFromLayout(void) {
       //  new start placement, it starts after the end of the A read -- the utgpos say the B read
       //  starts 700bp after the A read, which is position 13622 + 700 = 14322....50bp after A ends.
 
-      if ((cnspos[tiid].min() < frankensteinLen) &&
+      if ((cnspos[tiid].min() < abacus->numberOfColumns()) &&
           (thickestLen < ooo)) {
         thickestLen = ooo;
 
@@ -602,7 +557,7 @@ unitigConsensus::computePositionFromLayout(void) {
 
         int32 ovl   = ooo;
         int32 ahang = cnspos[tiid].min();
-        int32 bhang = cnspos[tiid].max() - frankensteinLen;
+        int32 bhang = cnspos[tiid].max() - abacus->numberOfColumns();
 
         piid  = qiid;
       }
@@ -625,7 +580,7 @@ unitigConsensus::computePositionFromLayout(void) {
               utgpos[piid].ident(),
               cnspos[piid].min(), cnspos[piid].max(),
               cnspos[tiid].min(), cnspos[tiid].max(),
-              frankensteinLen);
+              abacus->numberOfColumns());
 
     return(true);
   }
@@ -640,7 +595,7 @@ unitigConsensus::computePositionFromLayout(void) {
 
 
 //  Occasionally we get a fragment that just refuses to go in the correct spot.  Search for the
-//  correct placement in all of frankenstein, update ahang,bhang and retry.
+//  correct placement in all of consensus, update ahang,bhang and retry.
 //
 //  We don't expect to have big negative ahangs, and so we don't allow them.  To unlimit this, use
 //  "-fragmentLen" instead of the arbitrary cutoff below.
@@ -653,7 +608,7 @@ unitigConsensus::computePositionFromAlignment(void) {
   int32        ahanglimit  = -10;
 
   abSequence  *seq         = abacus->getSequence(tiid);
-  char        *fragment    = abacus->getBases(seq);
+  char        *fragment    = seq->getBases();
   int32        fragmentLen = seq->length();
 
   bool         foundAlign  = false;
@@ -667,8 +622,8 @@ unitigConsensus::computePositionFromAlignment(void) {
     if (oaPartial == false)
       oaPartial = new NDalign(pedLocal, errorRate, 17);  //  partial allowed!
 
-    oaPartial->initialize(0, frankenstein, frankensteinLen, 0, frankensteinLen,
-                          1, fragment,     fragmentLen,     0, fragmentLen,
+    oaPartial->initialize(0, abacus->bases(), abacus->numberOfColumns(), 0, abacus->numberOfColumns(),
+                          1, fragment,        fragmentLen,               0, fragmentLen,
                           false);
 
     if ((oaPartial->findMinMaxDiagonal(minOverlap) == true) &&
@@ -720,7 +675,7 @@ unitigConsensus::computePositionFromAlignment(void) {
 
         int32 ovl   = ooo;
         int32 ahang = cnspos[tiid].min();
-        int32 bhang = cnspos[tiid].max() - frankensteinLen;
+        int32 bhang = cnspos[tiid].max() - abacus->numberOfColumns();
 
         piid  = qiid;
       }
@@ -746,7 +701,7 @@ unitigConsensus::computePositionFromAlignment(void) {
             utgpos[piid].ident(),
             cnspos[piid].min(), cnspos[piid].max(),
             cnspos[tiid].min(), cnspos[tiid].max(),
-            frankensteinLen);
+            abacus->numberOfColumns());
 
   return(true);
 }
@@ -754,84 +709,28 @@ unitigConsensus::computePositionFromAlignment(void) {
 
 void
 unitigConsensus::rebuild(bool recomputeFullConsensus, bool display) {
-  abMultiAlign *ma = abacus->getMultiAlign(multialign);
 
   //  Run abacus to rebuild an intermediate consensus sequence.  VERY expensive.
   //
   if (recomputeFullConsensus == true) {
-    abacus->refreshMultiAlign(multialign);
+    abacus->refreshMultiAlign();
 
-    ma->refine(abacus, abAbacus_Smooth);
-    ma->mergeRefine(abacus, false);
+    abacus->refine(abAbacus_Smooth);
+    abacus->mergeRefine(false);
 
-    ma->refine(abacus, abAbacus_Poly_X);
-    ma->mergeRefine(abacus, false);
+    abacus->refine(abAbacus_Poly_X);
+    abacus->mergeRefine(false);
 
-    ma->refine(abacus, abAbacus_Indel);
-    ma->mergeRefine(abacus, false);
+    abacus->refine(abAbacus_Indel);
+    abacus->mergeRefine(false);
   }
 
   //  For each column, vote for the consensus base to use.  Ideally, if we just computed the full
   //  consensus, we'd use that and just replace gaps with N.
 
-  abColID cid   = ma->firstColumn();
-  int32   index = 0;
-
-  ma->columns().clear();
-
-  frankensteinLen = 0;
-
-  while (cid.isValid()) {
-    abColumn *column = abacus->getColumn(cid);
-
-    //  This is massively expensive!  It iterates over every bead in the column,
-    //  summing the counts.  Really, it does what it says: it recomputes the base
-    //  counts and compares against the saved version.
-    //column->CheckBaseCounts(abacus);
-
-    int32   nA = column->GetColumnBaseCount('A');
-    int32   nC = column->GetColumnBaseCount('C');
-    int32   nG = column->GetColumnBaseCount('G');
-    int32   nT = column->GetColumnBaseCount('T');
-    int32   nN = column->GetColumnBaseCount('N');
-    int32   n_ = column->GetColumnBaseCount('-');
-    int32   nn = 0;
-
-    abBead *bead = abacus->getBead(column->callID());
-    char    call = 'N';
-
-    //fprintf(stderr, "Column %d %c ACGTN = %d %d %d %d %d\n", column->position(), abacus->getBase(bead->ident()), nA, nC, nG, nT, nN);
-
-    if (nA > nn) { nn = nA;  call = 'A'; }
-    if (nC > nn) { nn = nC;  call = 'C'; }
-    if (nG > nn) { nn = nG;  call = 'G'; }
-    if (nT > nn) { nn = nT;  call = 'T'; }
-
-    //  Call should have been a gap, but we'll instead pick the most prevalant base, but lowercase
-    //  it.  This is used by the dynamic programming alignment.
-    if (n_ > nn)
-      call = tolower(call);
-
-    abacus->setBase(bead->baseIdx(), call);
-
-    while (frankensteinLen >= frankensteinMax)
-      resizeArrayPair(frankenstein, frankensteinBof, frankensteinLen, frankensteinMax, frankensteinMax * 2);
-
-    assert(frankensteinLen < frankensteinMax);
-
-    frankenstein   [frankensteinLen] = call;
-    frankensteinBof[frankensteinLen] = bead->ident();
-    frankensteinLen++;
-
-    column->position() = index++;
-
-    ma->columns().push_back(cid);
-
-    cid = column->nextID();
-  }
-
-  frankenstein   [frankensteinLen] = 0;
-  frankensteinBof[frankensteinLen] = abBeadID();
+  //
+  //  Used to rebuild frankenstein here
+  //
 
   //  Update the position of each fragment in the consensus sequence.
 
@@ -842,10 +741,8 @@ unitigConsensus::rebuild(bool recomputeFullConsensus, bool display) {
       continue;
 
     abSequence *seq   = abacus->getSequence(i);
-    abBeadID    fbead = seq->firstBead();
-    abBeadID    lbead = seq->lastBead();
-    abColumn   *fcol  = abacus->getColumn(fbead);
-    abColumn   *lcol  = abacus->getColumn(lbead);
+    abColumn   *fcol  = seq->firstColumn();
+    abColumn   *lcol  = seq->lastColumn();
 
     cnspos[i].setMinMax(fcol->position(),
                         lcol->position() + 1);
@@ -864,7 +761,7 @@ unitigConsensus::rebuild(bool recomputeFullConsensus, bool display) {
   piid = -1;
 
   if (display)
-    abacus->getMultiAlign(multialign)->display(abacus, stderr);
+    abacus->display(stderr);
 }
 
 
@@ -885,7 +782,7 @@ unitigConsensus::alignFragmentFailure(void) {
 }
 
 
-//  Generates an alignment of the current read to the frankenstein.
+//  Generates an alignment of the current read to the partial consensus.
 //  The primary output is a trace stored in the object data.
 
 bool
@@ -896,16 +793,16 @@ unitigConsensus::alignFragment(bool forceAlignment) {
 
   assert(cnspos[tiid].min() < cnspos[tiid].max());
 
-  abSequence *bSEQ  = abacus->getSequence(tiid);
-  char       *fragSeq = abacus->getBases(bSEQ);
+  abSequence *bSEQ    = abacus->getSequence(tiid);
+  char       *fragSeq = bSEQ->getBases();
   int32       fragLen = bSEQ->length();
 
-  //  Decide on how much to align.  Pick too little of frankenstein, and we leave some of the read
+  //  Decide on how much to align.  Pick too little of consensus, and we leave some of the read
   //  unaligned.  Pick too much, and the read aligns poorly.
   //
-  //  endTrim is trimmed from the 3' of the read.  This is the stuff we don't expect to align to frankenstein.
-  //  bgnExtra is trimmed from the 5' of frankenstein.  Same idea as endTrim.
-  //  endExtra is trimmed from the 3' of frankenstein.  Only for contained reads.
+  //  endTrim is trimmed from the 3' of the read.  This is the stuff we don't expect to align to consensus.
+  //  bgnExtra is trimmed from the 5' of consensus.  Same idea as endTrim.
+  //  endExtra is trimmed from the 3' of consensus.  Only for contained reads.
   //
   //  These values are adjusted later, in trimStep increments, based on the alignments returned.
   //
@@ -920,7 +817,7 @@ unitigConsensus::alignFragment(bool forceAlignment) {
   //  If the read is contained, the full read is aligned.
   //  Otherwise, an extra 1/32 of the align length is added for padding.
   int32  fragBgn = 0;
-  int32  fragEnd = (cnspos[tiid].max() < frankensteinLen) ? (fragLen) : (33 * expectedAlignLen / 32);
+  int32  fragEnd = (cnspos[tiid].max() < abacus->numberOfColumns()) ? (fragLen) : (33 * expectedAlignLen / 32);
 
   if (fragEnd > fragLen)
     fragEnd = fragLen;
@@ -934,41 +831,41 @@ unitigConsensus::alignFragment(bool forceAlignment) {
 
   bool  allowedToTrim = true;
 
-  assert(frankenstein[frankensteinLen] == 0);  //  Frankenstein must be NUL terminated
-  assert(fragSeq[fragLen]              == 0);  //  The read must be NUL terminated
+  assert(abacus->bases()[abacus->numberOfColumns()] == 0);  //  Consensus must be NUL terminated
+  assert(fragSeq[fragLen]                           == 0);  //  The read must be NUL terminated
 
  alignFragmentAgain:
 
-  //  Truncate frankenstein and the read to prevent false alignments.
+  //  Truncate consensus and the read to prevent false alignments.
 
-  if (cnspos[tiid].max() + endExtra > frankensteinLen)
-    endExtra = frankensteinLen - cnspos[tiid].max();
+  if (cnspos[tiid].max() + endExtra > abacus->numberOfColumns())
+    endExtra = abacus->numberOfColumns() - cnspos[tiid].max();
 
-  int32 frankBgn     = MAX(0, cnspos[tiid].min() - bgnExtra);   //  Start position in frankenstein
-  int32 frankEnd     = cnspos[tiid].max() + endExtra;           //  Truncation of frankenstein
-  int32 frankEndBase = frankenstein[frankEnd];                  //  Saved base (if not truncated, it's the NUL byte at the end)
+  int32 cnsBgn     = MAX(0, cnspos[tiid].min() - bgnExtra);   //  Start position in consensus
+  int32 cnsEnd     = cnspos[tiid].max() + endExtra;           //  Truncation of consensus
+  int32 cnsEndBase = abacus->bases()[cnsEnd];               //  Saved base (if not truncated, it's the NUL byte at the end)
 
-  char *aseq         = frankenstein + frankBgn;
+  char *aseq         = abacus->bases() + cnsBgn;
   char *bseq         = fragSeq;
 
   char  fragEndBase  = bseq[fragEnd];                           //  Saved base
 
-  frankenstein[frankEnd] = 0;  //  Do the truncations.
-  bseq[fragEnd]          = 0;
+  abacus->bases()[cnsEnd] = 0;  //  Do the truncations.
+  bseq[fragEnd]             = 0;
 
   //  Report!
 
   if (showAlgorithm())
-    fprintf(stderr, "alignFragment()-- Allow bgnExtra=%d and endExtra=%d (frankBgn=%d frankEnd=%d frankLen=%d) (fragBgn=0 fragEnd=%d fragLen=%d)\n",
-            bgnExtra, endExtra, frankBgn, frankEnd, frankensteinLen, fragEnd, fragLen);
+    fprintf(stderr, "alignFragment()-- Allow bgnExtra=%d and endExtra=%d (cnsBgn=%d cnsEnd=%d cnsLen=%d) (fragBgn=0 fragEnd=%d fragLen=%d)\n",
+            bgnExtra, endExtra, cnsBgn, cnsEnd, abacus->numberOfColumns(), fragEnd, fragLen);
 
   //  Create new aligner object.  'Global' in this case just means to not stop early, not a true global alignment.
 
   if (oaFull == false)
     oaFull = new NDalign(pedGlobal, errorRate, 17);
 
-  oaFull->initialize(0, aseq, frankEnd - frankBgn, 0, frankEnd - frankBgn,
-                     1, bseq, fragEnd  - fragBgn,  0, fragEnd  - fragBgn,
+  oaFull->initialize(0, aseq, cnsEnd  - cnsBgn,   0, cnsEnd  - cnsBgn,
+                     1, bseq, fragEnd - fragBgn,  0, fragEnd - fragBgn,
                      false);
 
   //  Generate a null hit, then align it and finally refine the alignment.
@@ -994,8 +891,8 @@ unitigConsensus::alignFragment(bool forceAlignment) {
 
   //  Restore the bases we removed to end the strings early.
 
-  if (frankEndBase)   frankenstein[frankEnd] = frankEndBase;
-  if (fragEndBase)    bseq[fragEnd]          = fragEndBase;
+  if (cnsEndBase)   abacus->bases()[cnsEnd] = cnsEndBase;
+  if (fragEndBase)    bseq[fragEnd]             = fragEndBase;
 
   //
   //  Check quality and fail if it sucks.
@@ -1005,7 +902,7 @@ unitigConsensus::alignFragment(bool forceAlignment) {
 
   //  Check for bad (under) trimming of input sequences.
   //
-  //  If the alignment is bad, and we hit the start of the frankenstein sequence (or the end of
+  //  If the alignment is bad, and we hit the start of the consensus sequence (or the end of
   //  same), chances are good that the aligner returned a (higher scoring) global alignment instead
   //  of a (lower scoring) local alignment.  Trim off some of the extension and try again.
 
@@ -1013,7 +910,7 @@ unitigConsensus::alignFragment(bool forceAlignment) {
     int32  adj = (bgnExtra < trimStep) ? 0 : bgnExtra - trimStep;
 
     if (showAlgorithm())
-      fprintf(stderr, "utgCns::alignFragment()-- alignment is bad, hit the trimmed start of frankenstein, decrease bgnExtra from %u to %u\n", bgnExtra, adj);
+      fprintf(stderr, "utgCns::alignFragment()-- alignment is bad, hit the trimmed start of consensus, decrease bgnExtra from %u to %u\n", bgnExtra, adj);
 
     bgnExtra = adj;
     goto alignFragmentAgain;
@@ -1023,35 +920,35 @@ unitigConsensus::alignFragment(bool forceAlignment) {
     int32  adj = (endExtra < trimStep) ? 0 : endExtra - trimStep;
 
     if (showAlgorithm())
-      fprintf(stderr, "utgCns::alignFragment()-- alignment is bad, hit the trimmed end of frankenstein, decrease endExtra from %u to %u\n", endExtra, adj);
+      fprintf(stderr, "utgCns::alignFragment()-- alignment is bad, hit the trimmed end of consensus, decrease endExtra from %u to %u\n", endExtra, adj);
 
     endExtra = adj;
     goto alignFragmentAgain;
   }
 
   //  Check for bad (over) trimming of input sequences.  Bad if:
-  //     we don't hit the start of the read, and we chopped the start of frankenstein.
-  //     we don't hit the end   of the read, and we chopped the end   of frankenstein.
+  //     we don't hit the start of the read, and we chopped the start of consensus.
+  //     we don't hit the end   of the read, and we chopped the end   of consensus.
   //     we do    hit the end   of the read, and we chopped the end   of the read.
   //     (we don't chop the start of the read, so the fourth possible case never happens)
 
   allowedToTrim = false;  //  No longer allowed to reduce bgnExtra or endExtra.  We'd hit infinite loops otherwise.
 
-  if ((oaFull->bhg5() > 0) && (frankBgn > 0)) {
+  if ((oaFull->bhg5() > 0) && (cnsBgn > 0)) {
     int32  adj = bgnExtra + 2 * oaFull->bhg5();
 
     if (showAlgorithm())
-      fprintf(stderr, "utgCns::alignFragment()-- hit the trimmed start of frankenstein, increase bgnExtra from %u to %u\n", bgnExtra, adj);
+      fprintf(stderr, "utgCns::alignFragment()-- hit the trimmed start of consensus, increase bgnExtra from %u to %u\n", bgnExtra, adj);
 
     bgnExtra = adj;
     goto alignFragmentAgain;
   }
 
-  if ((oaFull->bhg3() > 0) && (frankEnd < frankensteinLen)) {
+  if ((oaFull->bhg3() > 0) && (cnsEnd < abacus->numberOfColumns())) {
     int32  adj = endExtra + 2 * oaFull->bhg3();
 
     if (showAlgorithm())
-      fprintf(stderr, "utgCns::alignFragment()-- hit the trimmed end of frankenstein, increase endExtra from %u to %u\n", endExtra, adj);
+      fprintf(stderr, "utgCns::alignFragment()-- hit the trimmed end of consensus, increase endExtra from %u to %u\n", endExtra, adj);
 
     endExtra = adj;
     goto alignFragmentAgain;
@@ -1100,12 +997,12 @@ unitigConsensus::alignFragment(bool forceAlignment) {
   //    If positive, align ( trace - bpos) bases, then add a gap in B.
   //
 
-  if (oaFull->abgn() > 0)   assert(oaFull->bbgn() == 0);  //  read aligned fully if frank isn't
-  if (oaFull->bbgn() > 0)   assert(oaFull->abgn() == 0);  //  read extends past the begin, frank aligned fully
-  if (oaFull->bbgn() > 0)   assert(frankBgn == 0);        //  read extends past the begin, frank not trimmed at begin
+  if (oaFull->abgn() > 0)   assert(oaFull->bbgn() == 0);  //  read aligned fully if consensus isn't
+  if (oaFull->bbgn() > 0)   assert(oaFull->abgn() == 0);  //  read extends past the begin, consensus aligned fully
+  if (oaFull->bbgn() > 0)   assert(cnsBgn == 0);          //  read extends past the begin, consensus not trimmed at begin
 
 
-  traceABgn = frankBgn + oaFull->abgn() - oaFull->bbgn();
+  traceABgn = cnsBgn + oaFull->abgn() - oaFull->bbgn();
   traceBBgn =            oaFull->bbgn();
 
   int32   apos = oaFull->abgn();
@@ -1118,7 +1015,7 @@ unitigConsensus::alignFragment(bool forceAlignment) {
       apos += -oaFull->delta()[ii] - 1;
       bpos += -oaFull->delta()[ii];
 
-      trace[traceLen] = -apos - frankBgn - 1;
+      trace[traceLen] = -apos - cnsBgn - 1;
 
     } else {
       apos +=  oaFull->delta()[ii];
@@ -1139,56 +1036,31 @@ unitigConsensus::alignFragment(bool forceAlignment) {
 void
 unitigConsensus::applyAlignment(void) {
 
-  abacus->applyAlignment(frankensteinLen, frankensteinBof,
-                         tiid,
+  abacus->applyAlignment(tiid,
                          traceABgn, traceBBgn, trace, traceLen);
 }
 
 
 void
 unitigConsensus::generateConsensus(void) {
-  abMultiAlign *ma = abacus->getMultiAlign(multialign);
 
-  //fprintf(stderr, "generateConsensus()-- length %u\n", ma->length());
+  abacus->refreshMultiAlign(true, true);
 
-  abacus->refreshMultiAlign(multialign, true, true);
+  abacus->refine(abAbacus_Smooth);
+  abacus->mergeRefine(true);
 
-  ma->refine(abacus, abAbacus_Smooth);
-  ma->mergeRefine(abacus, true);
+  abacus->refine(abAbacus_Poly_X);
+  abacus->mergeRefine(true);
 
-  ma->refine(abacus, abAbacus_Poly_X);
-  ma->mergeRefine(abacus, true);
+  abacus->refine(abAbacus_Indel);
+  abacus->mergeRefine(true);
 
-  ma->refine(abacus, abAbacus_Indel);
-  ma->mergeRefine(abacus, true);
+  abacus->refreshMultiAlign(true, true);  //  To refresh column list.  Still needed?
 
-  //  Why is columnList getting screwed up?
-  abacus->refreshMultiAlign(multialign, true, true);
 
-  //ma->display(abacus, stderr, 0, 5000);
-
-#if 0
   //  While we have fragments in memory, compute the microhet probability.  Ideally, this would be
   //  done in CGW when loading unitigs (the only place the probability is used) but the code wants
   //  to load sequence and quality for every fragment, and that's too expensive.
-  {
-    char   **multia = NULL;
-    int32  **id_array = NULL;
-
-    int32 depth = MANode2Array(manode, &multia, &id_array,0);
-
-    ma->data.unitig_microhet_prob = 1.0;  //AS_REZ_MP_MicroHet_prob(multia, id_array, gkpStore, frankensteinLen, depth);
-
-    for (int32 i=0;i<depth;i++) {
-      delete [] multia[2*i];
-      delete [] multia[2*i+1];
-      delete [] id_array[i];
-    }
-    delete [] multia;
-    delete [] id_array;
-  }
-#endif
-
 }
 
 
@@ -1196,8 +1068,6 @@ unitigConsensus::generateConsensus(void) {
 
 void
 unitigConsensus::exportToTig(void) {
-  abMultiAlign *ma = abacus->getMultiAlign(multialign);
-
-  ma->getConsensus(abacus, tig);
-  ma->getPositions(abacus, tig);
+  abacus->getConsensus(tig);
+  abacus->getPositions(tig);
 }

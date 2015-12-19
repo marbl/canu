@@ -70,8 +70,8 @@ static char *rcsid = "$Id$";
 
 #include "abAbacus.H"
 
-#define MAX_WINDOW_FOR_ABACUS_REFINE      100
 
+#define MAX_WINDOW_FOR_ABACUS_REFINE      100
 
 
 enum ShiftStatus {
@@ -84,8 +84,8 @@ enum ShiftStatus {
 class abAbacusWork {
 public:
   abAbacusWork() {
-    start_column = abColID();
-    end_column   = abColID();
+    start_column = NULL;
+    end_column   = NULL;
     rows         = 0;
     columns      = 0;
     window_width = 0;
@@ -94,10 +94,9 @@ public:
     calls        = NULL;
   };
 
-  abAbacusWork(abAbacus        *abacus,
-               abMultiAlignID   mid,
-               abColID          from,
-               abColID          end);
+  abAbacusWork(abAbacus  *abacus,
+               abColumn  *from,
+               abColumn  *end);
 
   ~abAbacusWork() {
     delete [] beads;
@@ -106,12 +105,12 @@ public:
 
 
   void   reset(void) {
-    for (uint32 j=0; j<columns; j++)
-      calls[j] = 'n';
+    for (uint32 ii=0; ii<columns; ii++)
+      calls[ii] = 'n';
   }
 
 
-  void  set(int32 i, int32 j, char c) {
+  void  setBase(int32 i, int32 j, char c) {
     if ((i < 0) || (rows    <= i) ||
         (j < 0) || (columns <= j))
       fprintf(stderr, "abAbacusWork::set()--  i=%d j=%d out of range of rows=%d columns=%d\n", i, j, rows, columns);
@@ -139,7 +138,7 @@ public:
     return(beads + i * (columns + 2) + j + 1);
   };
 
-  char  getChar(int32 i, int32 j) {
+  char  getBase(int32 i, int32 j) {
     if ((i <  0) || (rows      <= i) ||
         (j < -1) || (columns+1 <= j))
       fprintf(stderr, "abAbacusWork::getCharr()-- i=%d j=%d out of range of rows=%d columns=%d\n", i, j, rows, columns);
@@ -180,8 +179,8 @@ public:
 
     sprintf(form, "'%%%d.%ds'\n", columns, columns);
 
-    fprintf(stderr, "start_column  %d\n", start_column.get());
-    fprintf(stderr, "end_column    %d\n", end_column.get());
+    fprintf(stderr, "start_column  0x%16p %d\n", start_column, start_column->position());
+    fprintf(stderr, "end_column    0x%16p %d\n", end_column,   end_column->position());
     fprintf(stderr, "rows          %d   columns  %d\n", rows, columns);
     fprintf(stderr, "window_width  %d\n", window_width);
     fprintf(stderr, "shift         %c\n", shift);
@@ -194,14 +193,6 @@ public:
       }
       fprintf(stderr, "'\n");
     }
-  };
-
-
-  void    GetBaseCount(abBaseCount &b) {
-    b.clear();
-
-    for (uint32 j=0; j<columns; j++)
-      b.IncBaseCount(calls[j]);
   };
 
 
@@ -220,216 +211,132 @@ public:
   void     applyAbacus(abAbacus *abacus);
 
 public:
-  abColID           start_column;
-  abColID           end_column;
+  uint32           *abacus_indices;
+
+  abColumn         *start_column;
+  abColumn         *end_column;
   int32             rows;
   int32             columns;
   int32             window_width;
   ShiftStatus       shift;
+
   char             *beads;
   char             *calls;
-
-  vector<uint32>   abacus_indices;
 };
 
 
 
-static
-int
-base2int(char b) {
-  if (b == '-')             return 0;
-  if (b == 'a' || b == 'A') return 1;
-  if (b == 'c' || b == 'C') return 2;
-  if (b == 'g' || b == 'G') return 3;
-  if (b == 't' || b == 'T') return 4;
-  if (b == 'n' || b == 'N') return 5;
-  fprintf(stderr, "base2int b out of range");
-  assert(0);
-  return 255;
-}
-
-
-static
-int
-is_good_base(char b) {
-  if (b == '-')             return 1;
-  if (b == 'a' || b == 'A') return 1;
-  if (b == 'c' || b == 'C') return 1;
-  if (b == 'g' || b == 'G') return 1;
-  if (b == 't' || b == 'T') return 1;
-  if (b == 'n' || b == 'N') return 1;
-  return 0;
-}
 
 
 
 
+abAbacusWork::abAbacusWork(abAbacus  *abacus,
+                           abColumn  *bgn,
+                           abColumn  *end) {
 
-
-abAbacusWork::abAbacusWork(abAbacus        *abacus,
-                           abMultiAlignID   mid,
-                           abColID          from,
-                           abColID          end) {
-
-  // from and end are ids of the first and last columns in the columnStore
-
-  abMultiAlign    *ma = abacus->getMultiAlign(mid);
-
-
-  //ResetIndex(abacus_indices,GetNumFragments(fragmentStore));
-  abacus_indices.clear();
-  for (uint32 ii=0; ii<abacus->numberOfSequences(); ii++)
-    abacus_indices.push_back(0);
-  //fprintf(stderr, "CREATE ABACUS abacus_indices size %d\n", abacus_indices.size());
-
-
-  //  Count the number of rows and columns.  Also find the last column.
+  //  See the previous (to mid December 2015) for gigantic amounts of pain related to counting the
+  //  number if reads that have any bases between the bgn and end columns.  It was scanning every
+  //  64th (or so) column, and checking if the bead with that seqIdx was listed in abacus_indices.
+  //  abacus_indices was a vector, initialized with push_back(), once for every read in abAbacus.
   //
-  uint32        origNumColumns = 1;  //  We don't count the last column in the loop below.
-  abColumn     *column  = abacus->getColumn(from);
-  abColumn     *last    = abacus->getColumn(from);
+  //  Instead, we can just test if each read intersects the columns, and then assign the read ID to
+  //  an abAbacusWork-private index.
 
-  //fprintf(stderr, "column_ids= ");
+  abacus_indices = new uint32 [abacus->numberOfSequences()];
 
-  for (; (last->nextID() != end) && (last->nextID().isValid()); last = abacus->getColumn(last->nextID())) {
-    origNumColumns++;
-    //fprintf(stderr, "%u,", last->ident().get());
-  }
+  start_column   = bgn;
+  end_column     = end;
+  rows           = 0;                                       //  rows is incremented and set below
+  window_width   = end->position() - bgn->position() + 1;
+  columns        = 3 * window_width;
+  shift          = UNSHIFTED;
 
-  //fprintf(stderr, "%u\n", last->ident().get());
-  //fprintf(stderr, "origNumColumns %d\n", origNumColumns);
+  for (uint32 ii=0; ii<abacus->numberOfSequences(); ii++) {
+    abacus_indices[ii] = UINT32_MAX;
 
-  // GD: this is where base calling code should be called
-
-  //
-  //  For every bead in the first (last) column, build a map from the seqIdx
-  //  to a row.
-
-  // a little fragment may sneak in, have to ensure the abacus has a
-  // row for it.  The introduction of late- and mid column was done
-  // to eliminate a problem with a degenerate alignment consistenting
-  // of essentially one long poly run.  (encountered in unitig
-  // 1618966 of the NOV'01 human vanilla assembly) it happened that a
-  // little fragment was caught even between the mid_column and end
-  // column, so it's index wasn't in the index set...  which causes a
-  // "SetAbacus" beyond row range error.  putting in two mid-columns
-  // will hopefully catch all fragments in the abacus range.
-  //
-
-  //  Macaque, using overlap based trimming, needed mid_column points
-  //  at rather small intervals to pass.  Even without OBT, macaque
-  //  needed another point at 63 to pass.
-  //
-  //  This change was tested on macaque, and did not change the
-  //  results (except for allowing one partition to finish....).  You
-  //  can revert to the original behavior by undef'ing the following.
-
-  //  For canu, we add new columns every 512 bases.  The original logic was convoluted and probably
-  //  broken -- it added a new column every MAX_READ_LEN/2 (every 1k), which conflicts with the
-  //  above comment.
-
-  abColBeadIterator *bi         = NULL;
-  uint32             rowcounter = 0;
-
-  //  For the first column
-
-  bi = abacus->createColBeadIterator(column->ident());
-
-  for (abBeadID bid=bi->next(); bid.isValid(); bid=bi->next()) {
-    uint32 si = abacus->getBead(bid)->seqIdx().get();
-
-    abacus_indices[si] = ++rowcounter;
-  }
-
-  delete bi;
-
-  //  For the last column
-
-  bi = abacus->createColBeadIterator(last->ident());
-
-  for (abBeadID bid=bi->next(); bid.isValid(); bid=bi->next()) {
-    uint32 si = abacus->getBead(bid)->seqIdx().get();
-
-    if (abacus_indices[si] == 0)
-      abacus_indices[si] = ++rowcounter;
-  }
-
-  delete bi;
-
-  //  For a bunch of intermediate columns
-
-  uint32        colIdx  = 0;
-  abColumn     *c = abacus->getColumn(from);
-
-  for (; ((c->nextID() != end) && (c->nextID().isValid())); c = abacus->getColumn(c->nextID())) {
-    colIdx++;
-
-    if ((colIdx % 512) != 0)
+    if (abacus->getSequence(ii)->lastColumn()->position() < bgn->position())
+      continue;
+    if (abacus->getSequence(ii)->firstColumn()->position() > end->position())
       continue;
 
-    bi = abacus->createColBeadIterator(c->ident());
-
-    for (abBeadID bid = bi->next(); bid.isValid(); bid = bi->next()) {
-      abBead *bead = abacus->getBead(bid);
-      uint32  si   = bead->seqIdx().get();
-
-      if (abacus_indices[si] == 0)
-        abacus_indices[si] = ++rowcounter;
-    }
-    delete bi;
+    abacus_indices[ii] = rows++;
   }
 
+  //  Now we can allocate beads and calls.
 
-  //  Fill out or class members.
+  beads          = new char [rows * (columns + 2)];         //  two extra gap columns, plus "null" borders
+  calls          = new char [columns];
 
-  start_column  = from;
-  end_column    = last->ident();
-  rows          = rowcounter;
-  window_width  = origNumColumns;
-  columns       = 3 * origNumColumns;
-  shift         = UNSHIFTED;
-  beads         = new char [rows * (columns + 2)];    // two extra gap columns, plus "null" borders
-  calls         = new char [columns];
+  //  Clear every base.
 
+  for (uint32 ii=0; ii<rows * (columns+2); ii++)
+    beads[ii] = 'n';
 
-  for (uint32 i=0; i<rows * (columns+2); i++)
-    beads[i] = 'n'; // initialize to "null" code
-
-
-
-  //  Fill the center third of abacus with chars from the columns
-
-  uint32  colcounter = 0;
-
-  while ((column->ident() != end) && (column->ident().isValid())) {
-    abColBeadIterator *bi = abacus->createColBeadIterator(column->ident());
-
-    for (abBeadID bid = bi->next(); bid.isValid(); bid=bi->next()) {
-      abBead *bead = abacus->getBead(bid);
-
-      set(abacus_indices[bead->seqIdx().get()] - 1,
-          colcounter + origNumColumns,
-          abacus->getBase(bead->baseIdx()));
-    }
-
-    delete bi;
-
-    colcounter++;
-
-    column = abacus->getColumn(column->nextID());
-  }
-
-  //  Clear the border columns
-
-  for (uint32 i=0; i<rows; i++) {
-    for (uint32 j=0; j<origNumColumns; j++)
-      set(i, j, '-');
-
-    for (uint32 j=2 * origNumColumns; j<columns; j++)
-      set(i, j, '-');
-  }
+  //  Clear the calls[] to all 'n'
 
   reset();
+
+
+  
+
+  //  Fill the center third of abacus with bases.
+
+  for (uint32 ss=0; ss<abacus->numberOfSequences(); ss++) {
+
+    if (abacus_indices[ss] == UINT32_MAX)
+      continue;
+
+    //  Read is in the range.  We need to figure out a beadLink for some column, preferably close,
+    //  so that we can start iterating over the beads.
+
+    abColumn *bColumn = bgn;
+    uint16    bLink   = UINT16_MAX;
+
+    //  Find the earliest column with a link map.
+
+    while (bColumn->beadReadIDsExist() == false)
+      bColumn = bColumn->prev();
+
+    //  Find the link, move back to the starting column
+
+    for (uint32 ll=0; ll<bColumn->depth(); ll++)
+      if (ss == bColumn->beadReadID(ll)) {
+        bLink = ll;
+        break;
+      }
+
+    assert(bLink != UINT16_MAX);
+
+    while (bColumn != bgn) {
+      bLink   = bColumn->bead(bLink)->nextOffset();
+      bColumn = bColumn->next();
+    }
+
+    //  Now just add bases into abacus.
+
+    uint32 columnIndex = 0;
+
+    while (1) {
+      setBase(abacus_indices[ss], window_width + columnIndex, bColumn->bead(bLink)->base());
+
+      if (bColumn == end)
+        break;
+
+      bLink   = bColumn->bead(bLink)->nextOffset();
+      bColumn = bColumn->next();
+    }
+  }
+
+  //  Clear the border columns.  This is done last, so that we can initialize beads with no read
+  //  coverage to 'n' (from the first initialization), and then clear the borders to '-' (here).
+
+  for (uint32 i=0; i<rows; i++) {
+    for (uint32 j=0; j<window_width; j++)
+      setBase(i, j, '-');
+
+    for (uint32 j=2 * window_width; j<columns; j++)
+      setBase(i, j, '-');
+  }
 }
 
 
@@ -444,46 +351,46 @@ abAbacusWork::abAbacusWork(abAbacus        *abacus,
 //
 uint32
 abAbacusWork::scoreAbacus(int32 &cols) {
-  abBaseCount *counts = new abBaseCount [columns];
-
-  //fprintf(stderr, "scoreAbacus()--\n");
-
-#warning "this doesn't need to allocate an array of abBaseCount"
-
   uint32 score = 0;
 
   cols = 0;
 
-  for (int32 i=0; i<rows; i++) {
-    for (int32 j=0; j<columns; j++) {
-      char b = getChar(i, j);
+  for (int32 cc=0; cc<columns; cc++) {
+    uint32  counts[256] = { 0 };
 
-      if ((b == '-' ) && (j > 0) && (j < columns - 1) &&
-          ((getChar(i, j-1) == 'n')  ||
-           (getChar(i, j+1) == 'n')))
+    //  Sum the bases in this column.
+
+    for (int32 rr=0; rr<rows; rr++) {
+      char b = getBase(rr, cc);
+
+      if ((b == '-' ) && (cc > 0) && (cc < columns - 1) &&
+          ((getBase(rr, cc-1) == 'n')  ||
+           (getBase(rr, cc+1) == 'n')))
         b = 'n';
 
-      counts[j].IncBaseCount(b);
+      counts[b]++;
     }
-  }
 
-  // now, for each column, generate the majority call
-  for (int32 j=0; j<columns; j++) {
-    if (counts[j].GetBaseCount('-') + counts[j].GetBaseCount('n') == counts[j].GetDepth()) {
-      // null (all-gap) column. Flag with an 'n' basecall
-      calls[j] = 'n';
+    //  Pick the majority.
+
+    char  best = 0;
+
+    for (uint32 ii=0; ii<256; ii++)
+      if (counts[best] < counts[ii])
+        best = ii;
+
+    //  Pick a call, and score the non-gap columns.
+
+    if (counts['-'] + counts['n'] == rows) {
+      calls[cc] = 'n';
 
     } else {
       cols++;
 
-      calls[j] = counts[j].GetMaxBaseCountBase(false);
-
-      // and then tally edit score
-      score += counts[j].GetDepth() - counts[j].GetBaseCount(calls[j]) - counts[j].GetBaseCount('n');
+      calls[cc] = best;
+      score    += rows - counts[best] - counts['n'];
     }
   }
-
-  delete [] counts;
 
   return(score);
 }
@@ -516,7 +423,7 @@ abAbacusWork::affineScoreAbacus(void) {
     bool  in_gap = false;
 
     for (int32 j=start_column; j<end_column; j++) {
-      if (getChar(i, j) != '-' ) {
+      if (getBase(i, j) != '-' ) {
         in_gap = false;
 
       } else if (in_gap == false) {
@@ -550,7 +457,7 @@ abAbacusWork::merge(int32 merge_dir) {
     {
       int32 null_column = 1;
       for (int32 i=0; i<rows; i++) {
-        curr = getChar(i,j);
+        curr = getBase(i,j);
         if (curr != '-') null_column = 0;
       }
       if (!null_column)
@@ -561,7 +468,7 @@ abAbacusWork::merge(int32 merge_dir) {
     {
       int32 null_column = 1;
       for (int32 i=0; i<rows; i++) {
-        curr = getChar(i,j);
+        curr = getBase(i,j);
         if (curr != '-')
           null_column = 0;
       }
@@ -582,8 +489,8 @@ abAbacusWork::merge(int32 merge_dir) {
           next_column_good = -1;
           for (int32 i=0;i<rows;i++)
             {
-              curr = getChar(i,j);
-              next = getChar(i,j+1);
+              curr = getBase(i,j);
+              next = getBase(i,j+1);
               // at least in one column there should be a gap
               // or, alternatively, both should be 'n'
               if (curr != '-' && next != '-') {
@@ -607,16 +514,16 @@ abAbacusWork::merge(int32 merge_dir) {
             {
               columns_merged++;
               for (int32 i=0;i<rows;i++) {
-                curr = getChar(i,j  );
-                next = getChar(i,j+1);
+                curr = getBase(i,j  );
+                next = getBase(i,j+1);
                 if (curr == 'n' && next == 'n')
                   {
                     continue;
                   }
                 if (next != '-' && next != 'n' )
                   {
-                    set(i, j  , next);
-                    set(i, j+1, curr);
+                    setBase(i, j  , next);
+                    setBase(i, j+1, curr);
                   }
               }
               // The entire j+1-th column now contains only gaps or n's
@@ -624,16 +531,16 @@ abAbacusWork::merge(int32 merge_dir) {
               // one position to the left
               for (int32 i=0;i<rows;i++)
                 {
-                  curr = getChar(i,j  );
-                  next = getChar(i,j+1);
+                  curr = getBase(i,j  );
+                  next = getBase(i,j+1);
                   if (curr == 'n' && next == 'n')
                     continue;
                   for (int32 k=j+1; k<last_non_null; k++)
                     {
-                      next= getChar(i,k+1);
-                      set(i, k, next);
+                      next= getBase(i,k+1);
+                      setBase(i, k, next);
                     }
-                  set(i, last_non_null, '-');
+                  setBase(i, last_non_null, '-');
                 }
               // Return to the previous coljumn to see if it can be merged again
               j--;
@@ -649,8 +556,8 @@ abAbacusWork::merge(int32 merge_dir) {
           curr_column_good = -1;
           for (int32 i=0;i<rows;i++)
             {
-              curr = getChar(i,j);
-              next = getChar(i,j+1);
+              curr = getBase(i,j);
+              next = getBase(i,j+1);
               // in at least one column there should be a gap
               // or, alternatively, both should be 'n'
               if (curr != '-' && next != '-') {
@@ -674,15 +581,15 @@ abAbacusWork::merge(int32 merge_dir) {
             {
               columns_merged++;
               for (int32 i=0;i<rows;i++) {
-                curr = getChar(i,j  );
-                next = getChar(i,j+1);
+                curr = getBase(i,j  );
+                next = getBase(i,j+1);
                 if (curr == 'n' && next == 'n')
                   {
                     continue;
                   }
                 if (curr != '-' && curr != 'n' ) {
-                  set(i, j  , next);
-                  set(i, j+1, curr);
+                  setBase(i, j  , next);
+                  setBase(i, j+1, curr);
                 }
               }
               // The entire j-th column contains gaps
@@ -690,16 +597,16 @@ abAbacusWork::merge(int32 merge_dir) {
               // one position to the right
               for (int32 i=0;i<rows;i++)
                 {
-                  curr = getChar(i,j  );
-                  next = getChar(i,j+1);
+                  curr = getBase(i,j  );
+                  next = getBase(i,j+1);
                   if (curr == 'n' && next == 'n')
                     continue;
                   for (int32 k=j; k>first_non_null; k--)
                     {
-                      prev = getChar(i,k-1);
-                      set(i, k, prev);
+                      prev = getBase(i,k-1);
+                      setBase(i, k, prev);
                     }
-                  set(i, first_non_null, '-');
+                  setBase(i, first_non_null, '-');
                 }
               // Return to the next column to see if it can be merged again
               j++;
@@ -730,13 +637,13 @@ abAbacusWork::leftShift(int32 &lcols) {
       //  for (l=0; l<vreg.alleles[k].num_reads; l++) {
       //    i = vreg.alleles[k].read_ids[l];
 
-      char  c = getChar(i, j);
+      char  c = getBase(i, j);
       int32 ccol = j;
 
       if (c != '-' ) {
         //look to the left for a suitable placement
         // will be safe on left since abacus has 'n' border
-        while (getChar(i, ccol-1) == '-')
+        while (getBase(i, ccol-1) == '-')
           ccol--;
 
         // from ccol back up to j, look for column with matching call
@@ -763,13 +670,13 @@ abAbacusWork::leftShift(int32 &lcols) {
 
           if (calls[pcol] == c || c == 'n') {
             // swap bases in columns pcol and j of row i
-            set(i, j, '-');
-            set(i, pcol, c);
+            setBase(i, j, '-');
+            setBase(i, pcol, c);
             break;
           }
         }
 
-        if (getChar(i, j) != '-')
+        if (getBase(i, j) != '-')
           calls[j] = c;
       }
     }
@@ -805,13 +712,13 @@ abAbacusWork::rightShift(int32 &rcols) {
       //for (k=0; k<vreg.na; k++) {
       //for (l=0; l<vreg.alleles[k].num_reads; l++) {
       //i = vreg.alleles[k].read_ids[l];
-      char  c = getChar(i,j);
+      char  c = getBase(i,j);
       int32 ccol = j;
 
       if (c != '-' ) {
         //look to the right for a suitable placement
         // will be safe on right since abacus has 'n' border
-        while (getChar(i,ccol+1) == '-' )
+        while (getBase(i,ccol+1) == '-' )
           ccol++;
         // now, from ccol back down to j, look for column with matching call
         for (int32 pcol = ccol;pcol>j;pcol--) {
@@ -821,12 +728,12 @@ abAbacusWork::rightShift(int32 &rcols) {
           if (call == 'n')
             calls[pcol] = c;
           if (calls[pcol] == c || c == 'n' ) {
-            set(i,j,'-');
-            set(i,pcol,c);
+            setBase(i,j,'-');
+            setBase(i,pcol,c);
             break;
           }
         }
-        if (getChar(i,j) != '-' )
+        if (getBase(i,j) != '-' )
           calls[j] = c;
       }
     }
@@ -847,7 +754,7 @@ abAbacusWork::rightShift(int32 &rcols) {
 
 
 
-
+#if 0
 //  Relationship must be one of:
 //
 //  a) end gap moving left:
@@ -884,12 +791,12 @@ leftEndShiftBead(abAbacus *abacus, abBeadID bid, abBeadID eid) {
 
 //  Relationship must be one of:
 //
-//  a) end gap moving left:
+//  a) end gap moving right:
 //
 //      - > A > B > ... > C > X  becomes  A B ... C - X
 //      \_________________^
 //
-//  b) non-gap moving left across only gap characters
+//  b) non-gap moving right across only gap characters
 //    (more efficient special case, since first gap and last
 //     character can just be exchanged)
 //
@@ -917,36 +824,28 @@ rightEndShiftBead(abAbacus *abacus, abBeadID bid, abBeadID eid) {
 
 
 
-
 void
 abAbacusWork::applyAbacus(abAbacus *abacus) {
-  abColumn    *column;
-  int32        columnCount=0;
-  char         a_entry;
 
-  abBeadID bid;  //  ALWAYS the id of bead
-  abBeadID eid;  //  ALWAYS the id of exch
-
-  abBead *bead = NULL;
-  abBead *exch = NULL;
-
-  char base;
+  beadID bid;  //  ALWAYS the id of bead
+  beadID eid;  //  ALWAYS the id of exch
 
   //fprintf(stderr, "applyAbacus()--  shift=%c start=%d width=%d\n", shift, start_column.get(), window_width);
   //show();
 
   if (shift == LEFT_SHIFT) {
-    column = abacus->getColumn(start_column);
-    assert(column != NULL);
+    abColumn *column = start_column;
 
-    while (columnCount < window_width) {
-      bid = abacus->getBead(column->callID())->downID();
+    for (uint32 columnCount=0; columnCount < window_width; ) {
+      bid.column = column;
+      bid.link   = 0;
+
       //fprintf(stderr, "0; bid=%d eid=%d\n", bid.get(), eid.get());
       // Update all beads in a given column
 
-      while (bid.isValid()) {
+      while (bid.link != UINT16_MAXisValid()) {
         bead = abacus->getBead(bid);
-        a_entry = getChar(abacus_indices[bead->seqIdx().get()] - 1, columnCount);
+        char a_entry = getBase(abacus_indices[bead->seqIdx().get()] - 1, columnCount);
 
         //fprintf(stderr, "a_entry=%c bead=%c\n", a_entry, abacus->getBase(bead->baseIdx()));
 
@@ -988,7 +887,7 @@ abAbacusWork::applyAbacus(abAbacus *abacus) {
               exch = abacus->getBead(eid);
               //fprintf(stderr, "5; bid=%d eid=%d\n", bid.get(), eid.get());
 
-              abColID cid = column->ident();
+              abColumn *cid = column;
               abacus->appendColumn(exch->colIdx(),eidp);
               column = abacus->getColumn(cid);
             }
@@ -1027,22 +926,21 @@ abAbacusWork::applyAbacus(abAbacus *abacus) {
 
       base = abacus->baseCall(column->ident(), true);
 
-      column = abacus->getColumn(column->nextID());
+      column = column->next();
       columnCount++;
     }
   }
 
 
   if (shift == RIGHT_SHIFT) {
-    column = abacus->getColumn(end_column);
-    assert(column != NULL);
+    abColumn *column = end_column;
 
-    while (columnCount < window_width) {
+    for (uint32 columnCount=0; columnCount < window_width; ) {
       bid = abacus->getBead(column->callID())->downID();
 
       while (bid.isValid()) {
         bead = abacus->getBead(bid);
-        a_entry = getChar(abacus_indices[bead->seqIdx().get()] - 1, columns - columnCount - 1);
+        a_entry = getBase(abacus_indices[bead->seqIdx().get()] - 1, columns - columnCount - 1);
 
         if (a_entry == 'n') {
           eid  = bead->upID();
@@ -1073,7 +971,7 @@ abAbacusWork::applyAbacus(abAbacus *abacus) {
               bead = abacus->getBead(bid);
               exch = abacus->getBead(eid);
 
-              abColID cid = column->ident();
+              abColumn *cid = column;
               abacus->appendColumn(abacus->getColumn(exch->colIdx())->prevID(), eidp);
               column = abacus->getColumn(cid);
             }
@@ -1107,6 +1005,12 @@ abAbacusWork::applyAbacus(abAbacus *abacus) {
   }
 }
 
+#endif
+
+
+void
+abAbacusWork::applyAbacus(abAbacus *abacus) {
+}
 
 
 //
@@ -1114,39 +1018,31 @@ abAbacusWork::applyAbacus(abAbacus *abacus) {
 //
 static
 int32
-IdentifyWindow_Smooth(abAbacus  *abacus,
-                      abColumn *&start_column,
-                      abColID   &stab_bgn) {
+IdentifyWindow_Smooth(abColumn *&bgnCol,
+                      abColumn *&terCol) {
 
-  stab_bgn = start_column->nextID();
+  terCol = bgnCol->next();
 
-  abColumn *stab = abacus->getColumn(stab_bgn);
-  int32  win_length = 0;
+  //  Consensus not a gap, nothing to do.
+  if (bgnCol->baseCall() != '-')
+    return(0);
 
-#ifdef DEBUG_IDENTIFY_WINDOW
-  fprintf(stderr, "identifyWindow()-- bgn=%d level=%d\n", stab_bgn.get(), level);
-#endif
-
-  if (abacus->getBase( start_column->callID() ) != '-')
-    //  Consensus not a gap, nothing to do.
-    return(win_length);
+  int32  winLen = 1;
 
   //  Consensus is a gap.  Expand it to the maximum gap.
 
-  while ((abacus->getBase( stab->callID()) == '-') &&
-         (stab->nextID().isValid())) {
-    stab_bgn = stab->nextID();
-    stab     = abacus->getColumn(stab_bgn);
-
-    win_length++;
+  while ((terCol->baseCall() == '-') &&
+         (terCol->next() != NULL)) {
+    terCol = terCol->next();
+    winLen++;
   }
 
 #ifdef DEBUG_IDENTIFY_WINDOW
-  fprintf(stderr, "identifyWindow()-- gap at %d to %d  win_length=%d (return)\n",
-          start_column->position(), stab->position(), win_length);
+  fprintf(stderr, "identifyWindow()-- gap at %d to %d  winLen=%d (return)\n",
+          bgnCol->position(), ter->position(), winLen);
 #endif
 
-  return(win_length);
+  return(winLen);
 }
 
 
@@ -1157,85 +1053,70 @@ IdentifyWindow_Smooth(abAbacus  *abacus,
 //
 static
 int32
-IdentifyWindow_Poly_X(abAbacus  *abacus,
-                      abColumn *&start_column,
-                      abColID   &stab_bgn) {
+IdentifyWindow_Poly_X(abColumn *&bgnCol,
+                      abColumn *&terCol) {
 
-  stab_bgn = start_column->nextID();
+  terCol = bgnCol->next();
 
-  abColumn *stab = abacus->getColumn(stab_bgn);
+  int32 gapCount  = bgnCol->baseCount('-');
+  int32 winLen    = 1;
 
-#ifdef DEBUG_IDENTIFY_WINDOW
-  fprintf(stderr, "identifyWindow()-- bgn=%d level=%d\n", stab_bgn.get(), level);
-#endif
-
-  int32 gap_count  = start_column->GetColumnBaseCount('-');
-  int32 win_length = 1;
-
-  char  poly  = abacus->getBase(start_column);
-  char  cb    = abacus->getBase(stab);
+  char  poly      = bgnCol->baseCall();
 
   if (poly == '-')
     return(0);
 
-  while ((cb == poly) || (cb == '-'))  {
-    if (stab->nextID().isValid() == false)
+  while ((terCol->baseCall() == poly) || (terCol->baseCall() == '-'))  {
+    if (terCol->next() == NULL)
       break;
 
-    // move stab column ahead
+    gapCount  += terCol->baseCount('-');
+    winLen    += 1;
 
-    gap_count  += stab->GetColumnBaseCount('-');
-    win_length += 1;
-
-    stab_bgn    = stab->nextID();
-    stab        = abacus->getColumn(stab_bgn);
-
-    cb          = abacus->getBase(stab);
+    terCol    = terCol->next();
   }
 
-  if (win_length <= 2)
+  if (winLen <= 2)
     return(0);
 
   // capture trailing gap-called columns
 
-  while (abacus->getBase(stab) == '-' )  {
-    if (stab->GetMaxBaseCountBase(true) != poly )
+  while (terCol->baseCall() == '-' )  {
+    if (terCol->majorityBase(true) != poly)
       break;
 
-    if (stab->nextID().isValid() == false)
+    if (terCol->next() == NULL)
       break;
 
-    gap_count  += stab->GetColumnBaseCount('-');
-    win_length += 1;
+    gapCount  += terCol->baseCount('-');
+    winLen    += 1;
 
-    stab_bgn    = stab->nextID();
-    stab        = abacus->getColumn(stab_bgn);
+    terCol     = terCol->next();
   }
 
   // now that a poly run with trailing gaps is established, look for leading gaps
 
-  abColumn *pre_start = start_column;
+  abColumn *preCol = bgnCol->prev();
 
-  while (pre_start->prevID().isValid()) {
-    pre_start = abacus->getColumn(pre_start->prevID());
-    cb        = abacus->getBase(pre_start);
-
-    if ((cb != '-') && (cb != poly))
+  while (preCol != NULL) {
+    if ((preCol->baseCall() != '-') && (preCol->baseCall() != poly))
       break;
 
-    start_column = pre_start;
+    bgnCol     = preCol;
 
-    gap_count  += pre_start->GetColumnBaseCount('-');
-    win_length += 1;
+    gapCount  += preCol->baseCount('-');
+    winLen    += 1;
+
+    preCol     = preCol->prev();
   }
 
-  //fprintf(stderr,"POLYX candidate (%c) at column %d stab %d , width %d, gapcount %d\n",
-  //        poly, start_column->position(), stab_bgn.get(), win_length, gap_count);
+  //fprintf(stderr,"POLYX candidate (%c) at column %d ter %d , width %d, gapcount %d\n",
+  //        poly, bgnCol->position(), terCol.get(), winLen, gapCount);
 
-  if ((start_column->prevID().isValid() == true) &&
-      (win_length > 2) &&
-      (gap_count  > 0))
-    return(win_length);
+  if ((bgnCol->prev() != NULL) &&
+      (winLen   > 2) &&
+      (gapCount > 0))
+    return(winLen);
 
   return(0);
 }
@@ -1250,7 +1131,7 @@ IdentifyWindow_Poly_X(abAbacus  *abacus,
 //
 //  heuristics:
 //
-//  > stable border on either side of window of width:  STABWIDTH
+//  > terle border on either side of window of width:  STABWIDTH
 //  > fewer than STABMISMATCH in stable border
 //
 //  _              __              ___
@@ -1262,76 +1143,82 @@ IdentifyWindow_Poly_X(abAbacus  *abacus,
 //  |              |               |
 //  |\_____________|_______________|____ growing 'gappy' window
 //  |
-//  start_column
+//  bgnCol
 //
 
 #define STABWIDTH  6
 
 static
 int32
-IdentifyWindow_Indel(abAbacus  *abacus,
-                     abColumn *&start_column,
-                     abColID   &stab_bgn) {
+IdentifyWindow_Indel(abColumn *&bgnCol,
+                     abColumn *&terCol) {
 
-  stab_bgn = start_column->nextID();
+  terCol = bgnCol->next();
 
-  abColumn *stab = abacus->getColumn(stab_bgn);
+  int32 cum_mm     = bgnCol->mismatchCount();
+  int32 stab_mm    = 0;
+  int32 stab_gaps  = 0;
+  int32 stab_width = 0;
+  int32 stab_bases = 0;
+  int32 winLen     = 0;
 
-#ifdef DEBUG_IDENTIFY_WINDOW
-  fprintf(stderr, "identifyWindow()-- bgn=%d level=%d\n", stab_bgn.get(), level);
-#endif
+  if ((cum_mm == 0) || (bgnCol->baseCount('-') == 0))
+    return(0);
 
-  int32 cum_mm=0;
-  int32 stab_mm=0;
-  int32 stab_gaps=0;
-  int32 stab_width=0;
-  int32 stab_bases=0;
-  abColumn *stab_end;
-  int32 win_length = 0;
+  abColumn  *stableEnd = terCol;
 
-  cum_mm = start_column->mismatch();
-  if (cum_mm > 0 && start_column->GetColumnBaseCount('-') > 0) {
-    stab = start_column;
-    stab = abacus->getColumn(start_column->nextID());
-    stab_end = stab;
-    while (stab_end->nextID().isValid() && stab_width < STABWIDTH) {
-      stab_mm+=stab_end->mismatch();
-      stab_gaps+=stab_end->GetColumnBaseCount('-');
-      stab_bases+=stab_end->GetDepth();
-      stab_end = abacus->getColumn(stab_end->nextID());
-      stab_width++;
-    }
+  //  Compute the number of mismatches, gapes and bases in the next STABWIDTH columnd.
 
-    if (stab_bases == 0 )
-      return(0);
+  while ((stableEnd->next() != NULL) && (stab_width < STABWIDTH)) {
+    stab_mm    += stableEnd->mismatchCount();
+    stab_gaps  += stableEnd->baseCount('-');
+    stab_bases += stableEnd->depth();
 
-    //  Floating point 'instability' here?
-    while ((double)stab_mm/(double)stab_bases > 0.02 ||  //  CNS_SEQUENCING_ERROR_EST
-           (double)stab_gaps/(double)stab_bases > .25  ){
-      int32 mm=stab->mismatch();
-      int32 gp=stab->GetColumnBaseCount('-');
-      int32 bps=stab->GetDepth();
-      // move stab column ahead
-      if (stab_end->nextID().isValid() ) {
-        stab_mm+=stab_end->mismatch();
-        stab_bases+=stab_end->GetDepth();
-        stab_gaps+=stab_end->GetColumnBaseCount('-');
-        stab_end = abacus->getColumn(stab_end->nextID());
-        stab_mm-=mm;
-        stab_gaps-=gp;
-        stab_bases-=bps;
-        cum_mm+=mm;
-        stab = abacus->getColumn(stab->nextID());
-        win_length++;
-      } else {
-        break;
-      }
-    }
-    stab_bgn = stab->ident();
+    stableEnd   = stableEnd->next();
+
+    stab_width++;
   }
 
-  if (win_length > 1)
-    return(win_length);
+  //  If no bases (how?) return an empty window.
+
+  if (stab_bases == 0)
+    return(0);
+
+  //  While the number of mismatches is high, and the number of gaps is also high, shift the stable
+  //  region ahead by one column.  Subtract out the values for the column we shift out (on the left)
+  //  and add in the values for the column we shift in (on the right).
+
+  while ((stab_mm   > 0.02 * stab_bases) ||  //  CNS_SEQUENCING_ERROR_EST
+         (stab_gaps > 0.25 * stab_bases)) {
+
+    int32 mm  = terCol->mismatchCount();
+    int32 gp  = terCol->baseCount('-');
+    int32 bps = terCol->depth();
+
+    //  move terCol ahead
+
+    if (stableEnd->next() != NULL) {
+      stab_mm    += stableEnd->mismatchCount();
+      stab_bases += stableEnd->depth();
+      stab_gaps  += stableEnd->baseCount('-');
+
+      stableEnd   = stableEnd->next();
+
+      stab_mm    -= mm;
+      stab_gaps  -= gp;
+      stab_bases -= bps;
+      cum_mm     += mm;
+
+      terCol      = terCol->next();
+
+      winLen++;
+    } else {
+      break;
+    }
+  }
+
+  if (winLen > 1)
+    return(winLen);
 
   return(0);
 }
@@ -1340,12 +1227,10 @@ IdentifyWindow_Indel(abAbacus  *abacus,
 
 
 int32
-abMultiAlign::refineWindow(abAbacus     *abacus,
-                           abColumn     *start_column,
-                           abColID       stab_bgn) {
+abAbacus::refineWindow(abColumn     *bgnCol,
+                       abColumn     *terCol) {
 
-  abBaseCount    abacus_count;
-  abAbacusWork  *orig_abacus     = new abAbacusWork(abacus, ident(), start_column->ident(), stab_bgn);
+  abAbacusWork  *orig_abacus     = new abAbacusWork(this, bgnCol, terCol);
   int32          orig_columns    = 0;
 
   int32          orig_mm_score   = orig_abacus->scoreAbacus(orig_columns);
@@ -1381,7 +1266,6 @@ abMultiAlign::refineWindow(abAbacus     *abacus,
       score_reduction += orig_total_score - left_total_score;
       //fprintf(stderr,"\nTry to apply LEFT abacus:\n");
       //ShowAbacus(left_abacus);
-      left_abacus->GetBaseCount(abacus_count);
       best_abacus      = left_abacus;
       best_mm_score    = left_mm_score;
       best_columns     = left_columns;
@@ -1391,7 +1275,6 @@ abMultiAlign::refineWindow(abAbacus     *abacus,
       score_reduction += orig_total_score - right_total_score;
       //fprintf(stderr,"\nTry to apply RIGHT abacus:\n");
       //ShowAbacus(right_abacus);
-      right_abacus->GetBaseCount(abacus_count);
       best_abacus      = right_abacus;
       best_mm_score    = right_mm_score;
       best_columns     = right_columns;
@@ -1400,7 +1283,7 @@ abMultiAlign::refineWindow(abAbacus     *abacus,
     }
   }
 
-  best_abacus->applyAbacus(abacus);
+  best_abacus->applyAbacus(this);
 
   delete orig_abacus;
   delete left_abacus;
@@ -1430,39 +1313,35 @@ abMultiAlign::refineWindow(abAbacus     *abacus,
 //  from,to are C-style.  Used to be INCLUSIVE, but never used anyway
 //
 int32
-abMultiAlign::refine(abAbacus            *abacus,
-                     abAbacusRefineLevel  level,
-                     uint32               from,    // from and to are in ma's column coordinates
-                     uint32               to) {
+abAbacus::refine(abAbacusRefineLevel  level,
+                 uint32               bgn,
+                 uint32               end) {
 
-  if (to > length())
-    to = length();
+  if (end > numberOfColumns())
+    end = numberOfColumns();
 
-  abColID sid = columnList[from];      // id of the starting column
-  abColID eid = columnList[to - 1];    // id of the ending column
+  abColumn *bgnCol = _columns[bgn];
+  abColumn *endCol = _columns[end - 1];
+  abColumn *terCol = NULL;
 
-  assert(sid == firstColumn());
-  assert(eid == lastColumn());
+  int32    score_reduction = 0;
 
-  abColumn *start_column = abacus->getColumn(sid);
-  abColID   stab_bgn;
-
-  uint32    score_reduction = 0;
-
-
-  while (start_column->ident() != eid) {
+  while (bgnCol != endCol) {
     int32 window_width = 0;
 
     switch (level) {
       case abAbacus_Smooth:
-        IdentifyWindow_Smooth(abacus, start_column, stab_bgn);
+        window_width = IdentifyWindow_Smooth(bgnCol, terCol);
         break;
+
       case abAbacus_Poly_X:
-        IdentifyWindow_Poly_X(abacus, start_column, stab_bgn);
+        window_width = IdentifyWindow_Poly_X(bgnCol, terCol);
         break;
+
       case abAbacus_Indel:
-        IdentifyWindow_Indel(abacus, start_column, stab_bgn);
+        window_width = IdentifyWindow_Indel(bgnCol, terCol);
         break;
+
       default:
         break;
     }
@@ -1476,9 +1355,10 @@ abMultiAlign::refine(abAbacus            *abacus,
 
       //  Insert a gap column for maneuvering room if the window starts in the first.  This used to
       //  be logged, and BPW can't remember EVER seeing the message.
-      //
-      if (start_column->prevID().isValid() == false) {
-        abBeadID   firstbeadID = abacus->getBead(start_column->callID() )->downID();
+
+#if 0
+      if (bgnCol->prev() == NULL) {
+        abBeadID   firstbeadID = abacus->getBead(bgnCol->callID() )->downID();
         abBeadID   newbeadID   = abacus->appendGapBead(abacus->getBead(firstbeadID)->ident());
 
         fprintf(stderr, "abMultiAlign::refine()-- Adding gap bead "F_U32" after first bead "F_U32" to add abacus room for abutting left of multialignment\n",
@@ -1486,17 +1366,19 @@ abMultiAlign::refine(abAbacus            *abacus,
 
         abacus->appendColumn(abacus->getBead(firstbeadID)->colIdx(), newbeadID);
       }
+#endif
 
       //  Actually do the refinements.
-      score_reduction += refineWindow(abacus, start_column, stab_bgn);
+      score_reduction += refineWindow(bgnCol, terCol);
     }
 
     //  Move to the column after the window we just examined.
-    start_column = abacus->getColumn(stab_bgn);
+    bgnCol = terCol;
   }
 
   //  WITH quality=1 make_v_list=1, all the rest defaults
-  abacus->refreshMultiAlign(ident(), true, true);
+  refreshMultiAlign(true, true);
 
   return(score_reduction);
 }
+

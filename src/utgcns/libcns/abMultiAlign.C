@@ -61,71 +61,66 @@
 
 
 void
-abMultiAlign::getConsensus(abAbacus *abacus, char *bases, char *quals, uint32 &len, uint32 max) {
-  abColumn   *col = abacus->getColumn(firstColumn());
-  abBeadID   bid  = col->callID();
-
-  len = 0;
-
-  while (bid.isValid()) {
-    abBead *bead = abacus->getBead(bid);
-
-    bases[len] = abacus->getBase(bead->baseIdx());
-    quals[len] = abacus->getQual(bead->baseIdx());
-
-    //fprintf(stderr, "getConsensus()--  len %9u bead %5u base %c %c next %5d\n",
-    //        len, bead->ident(), bases[len], quals[len], bead->nextID().get());
-
-    bid = bead->nextID();
-    len++;
-  }
-
-  //  Terminate the string.
-
-  bases[len] = 0;
-  quals[len] = 0;
-
-  if (len >= max) {
-    display(abacus, stderr, 0, len+3);
-    fprintf(stderr, "abMultiAlign::getConsensus()-- len=%u ! < max=%u\n", len, max);
-  }
-  assert(len < max);  //  Should be len+1 == max if we just reallocated, but max can be way bigger
-}
-
-
-void
-abMultiAlign::getConsensus(abAbacus *abacus, tgTig *tig) {
+abAbacus::getConsensus(tgTig *tig) {
 
   //  Resize the bases/quals storage to include a NUL byte.
 
-  resizeArrayPair(tig->_gappedBases, tig->_gappedQuals, 0, tig->_gappedMax, length() + 1, resizeArray_doNothing);
+  resizeArrayPair(tig->_gappedBases, tig->_gappedQuals, 0, tig->_gappedMax, _columnsLen + 1, resizeArray_doNothing);
 
   //  Copy in the bases.
 
-  getConsensus(abacus, tig->_gappedBases, tig->_gappedQuals, tig->_gappedLen, tig->_gappedMax);
+  memcpy(tig->_gappedBases, _cnsBases, sizeof(char)  * _columnsLen);
+  memcpy(tig->_gappedQuals, _cnsQuals, sizeof(uint8) * _columnsLen);
+
+  //  Terminate the strings.
+
+  tig->_gappedBases[_columnsLen] = 0;
+  tig->_gappedQuals[_columnsLen] = 0;
 }
 
 
 
-static
-uint32
-getFragmentDeltas(abAbacus        *abacus,
-                  abSeqID          sid,
-                  int32           *deltas) {
 
-  abSequence         *seq = abacus->getSequence(sid);
-  uint32              len = seq->length();
 
-  abSeqBeadIterator  *fi  = abacus->createSeqBeadIterator(sid);
-  uint32              dl  = 0;
-  uint32              bp  = 0;
+//  Crap.  How can I figure out where a read starts in the multialign??
+//  Something needs to store the first column and index for the first bead....but
+//  the column could be merged and removed.
+//
+//  Put it in the column?  A list of:
+//    uint32  readId - the read id that starts here
+//    uint16  link   - the bead for that read
+//  Adds one pointer to each column, most pointers are null.  If the pointer is set, and we move bases,
+//  we need to update.  On a 32m unitig (pretty big) this adds 256mb + 1mb (100k reads at 8 bytes each)
+//
+//  Put it in the read?  If we move the first bead in the read, we know we need to update something,
+//  but we have no link back to the read from the bead.
+//
+//  It's so sparse - can we just hash it?  Need to store:
+//    readID      -> column/link of first bead
+//    column/link -> readID
+//  The column probably needs to be a pointer (not the columnid) since the ID changes frequently.
+//  Moving beads needs to update this structure, but any structure we make has the same problem.
+
+
 
   //  index < length eliminates any endgaps from the delta list KAR, 09/19/02
 
-  for (abBeadID bid=fi->next(); (bid.isValid()) && (bp < len); bid=fi->next()) {
-    abBead  *bead = abacus->getBead(bid);
 
-    if (abacus->getBase(bead->baseIdx()) == '-') {
+uint32
+abAbacus::getSequenceDeltas(uint32    sid,
+                            int32    *deltas) {
+  abSequence         *seq    = getSequence(sid);
+  beadID              bid    = readToBead[sid];
+  abColumn           *column = bid.column;
+  uint16              link   = bid.link;
+
+  uint32              dl     = 0;
+  uint32              bp     = 0;
+
+  while (link != UINT16_MAX) {
+    char   base = column->_beads[link].base();
+
+    if (base == '-') {
       if (deltas)
         deltas[dl] = bp;
       dl++;
@@ -133,9 +128,10 @@ getFragmentDeltas(abAbacus        *abacus,
 
     else
       bp++;
-  }
 
-  delete fi;
+    link   = column->_beads[link].nextOffset();
+    column = column->next();
+  }
 
   if (deltas)
     deltas[dl] = 0;
@@ -147,17 +143,12 @@ getFragmentDeltas(abAbacus        *abacus,
 
 
 void
-abMultiAlign::getPositions(abAbacus *abacus, tgTig *tig) {
-
-  //  Interesting quandry.  We need to know the number of deltas so we can pre-allocate the array,
-  //  or we need to keep growing it.  We're expecting lots of noise in the reads, and so lots of
-  //  deltas, wich would mean lots of reallocating (and copying).  Is this faster than a pass
-  //  through every read?
+abAbacus::getPositions(tgTig *tig) {
 
   uint32  nd = 0;
 
-  for (abSeqID si=0; si.get()<abacus->numberOfSequences(); ++si)
-    nd += getFragmentDeltas(abacus, si, NULL);
+  for (uint32 si=0; si<numberOfSequences(); si++)
+    nd += getSequenceDeltas(si, NULL);
 
   resizeArray(tig->_childDeltas, tig->_childDeltasLen, tig->_childDeltasMax, nd, resizeArray_doNothing);
 
@@ -165,28 +156,32 @@ abMultiAlign::getPositions(abAbacus *abacus, tgTig *tig) {
 
   int32  maxPos = 0;
 
-  for (abSeqID si=0; si.get()<abacus->numberOfSequences(); ++si) {
-    abSequence *seq   = abacus->getSequence(si);
-    tgPosition *child = tig->getChild(si.get());  //  Assumes one-to-one map of seqs to children;
+  for (uint32 si=0; si<numberOfSequences(); si++) {
+    abSequence *seq   = getSequence(si);
+    tgPosition *child = tig->getChild(si);  //  Assumes one-to-one map of seqs to children;
 
     assert(seq->gkpIdent() == child->ident());
 
-    abBead  *fBead = abacus->getBead(seq->firstBead());
-    abBead  *lBead = abacus->getBead(seq->lastBead());
+    beadID    fBead = readToBead[si];
+    beadID    lBead = fBead;
 
-    abColumn *fCol = abacus->getColumn(fBead->colIdx());
-    abColumn *lCol = abacus->getColumn(lBead->colIdx());
-
-    if ((fCol == NULL) || (lCol == NULL)) {
+    if (fBead.column == NULL) {
       fprintf(stderr, "WARNING: read %u not in multialignment; position set to 0,0.\n", seq->gkpIdent());
       child->setMinMax(0, 0);
       continue;
     }
 
+    //  Find the last bead, so we can find the last column, and thus the end coordinate.
+
+    while (lBead.link != UINT16_MAX) {
+      lBead.link   = lBead.column->_beads[ lBead.link ].nextOffset();
+      lBead.column = lBead.column->next();
+    }
+
     //  Positions are zero-based and inclusive.  The end position gets one added to it to make it true space-based.
 
-    int32 min = fCol->position();
-    int32 max = lCol->position() + 1;
+    int32 min = fBead.column->position();
+    int32 max = lBead.column->position() + 1;
 
     if (maxPos < min)   maxPos = min;
     if (maxPos < max)   maxPos = max;
@@ -198,7 +193,7 @@ abMultiAlign::getPositions(abAbacus *abacus, tgTig *tig) {
       //  (we don't care about the terminating zero!)
 
       child->_deltaOffset   = tig->_childDeltasLen;
-      child->_deltaLen      = getFragmentDeltas(abacus, si, tig->_childDeltas + tig->_childDeltasLen);
+      child->_deltaLen      = getSequenceDeltas(si, tig->_childDeltas + tig->_childDeltasLen);
 
       tig->_childDeltasLen += child->_deltaLen;
 
@@ -221,75 +216,68 @@ abMultiAlign::getPositions(abAbacus *abacus, tgTig *tig) {
 
 
 
+//  If called from unitigConsensus, this needs a rebuild() first.
+
 void
-abMultiAlign::display(abAbacus  *abacus,
-                      FILE      *F,
-                      uint32     from,
-                      uint32     to) {
+abAbacus::display(FILE *F) {
+  int32   pageWidth = 250;
 
-  //  If called from unitigConsensus, this needs a rebuild() first.
-
-  if (to > length())
-    to = length();
-
-  if (from > to)
-    return;
-
-  int32   pageWidth = 250;  //to - from;
-
-  char   *sequence = new char [length() + 1];
-  char   *quality  = new char [length() + 1];
+#if 0
+  char   *sequence = new char [numberOfColumns() + 1];
+  char   *quality  = new char [numberOfColumns() + 1];
   uint32  len      = 0;
 
-  getConsensus(abacus, sequence, quality, len, length() + 1);
+  memcpy(sequence, _cnsBases, sizeof(char)  * _columnsLen);
+  memcpy(quality,  _cnsQuals, sizeof(uint8) * _columnsLen);
+
+  getConsensus(sequence, quality, len, numberOfColumns() + 1);
+#else
+#endif
 
   //  For display, offset the quals to Sanger spec.
-  for (uint32 ii=0; ii<len; ii++)
-    quality[ii] += '!';
+  for (uint32 ii=0; ii<numberOfColumns(); ii++)
+    _cnsQuals[ii] += '!';
 
-  if (len != length())
-    fprintf(stderr, "abMultiAlign::display()-- len=%d != length=%d\n", len, length());
+  uint32 numSeqs = numberOfSequences();
 
-  uint32 numSeqs = abacus->numberOfSequences();
-
-  abSeqBeadIterator     **fit       = new abSeqBeadIterator * [numSeqs];
-  uint32                 *fid       = new uint32              [numSeqs];
-  char                   *type      = new char                [numSeqs];  //  always 'r' for read
-  uint32                 *bgn       = new uint32              [numSeqs];  //  former positions
-  uint32                 *end       = new uint32              [numSeqs];
-
+  beadID                 *fit       = new beadID [numSeqs];
+  uint32                 *fid       = new uint32 [numSeqs];
+  char                   *type      = new char   [numSeqs];  //  always 'r' for read
+  uint32                 *bgn       = new uint32 [numSeqs];  //  former positions
+  uint32                 *end       = new uint32 [numSeqs];
 
   for (uint32 i=0; i<numSeqs; i++) {
-    abSequence  *seq       = abacus->getSequence(i);
-    abColumn    *bgnColumn = abacus->getColumn(seq->firstBead());
-    abColumn    *endColumn = abacus->getColumn(seq->lastBead());
+    abSequence  *seq       = getSequence(i);
+    abColumn    *bgnColumn = seq->firstColumn();
+    abColumn    *endColumn = seq->lastColumn();
 
     if ((bgnColumn == NULL) ||
         (endColumn == NULL)) {
-      fid[i]  = 0;
-      fit[i]  = NULL;
-      type[i] = '?';
-      bgn[i]  = 0;
-      end[i]  = 0;
+      fid[i]        = 0;
+      fit[i].column = NULL;
+      fit[i].link   = UINT16_MAX;
+      type[i]       = '?';
+      bgn[i]        = 0;
+      end[i]        = 0;
 
     } else {
-      fid[i]  = seq->gkpIdent();
-      fit[i]  = NULL;
-      type[i] = (seq->isRead() == true) ? 'R' : '?';
-      bgn[i]  = bgnColumn->position();
-      end[i]  = endColumn->position();
+      fid[i]        = seq->gkpIdent();
+      fit[i].column = NULL;
+      fit[i].link   = UINT16_MAX;
+      type[i]       = (seq->isRead() == true) ? 'R' : '?';
+      bgn[i]        = bgnColumn->position();
+      end[i]        = endColumn->position();
     }
   }
 
-  uint32 window_start = from;
 
-  fprintf(F,"\n==================== abMultiAlign::display %d ====================\n", ident().get());
+  fprintf(F,"\n==================== abAbacus::display ====================\n");
 
-  while (window_start < to) {
+  for (uint32 window_start=0; window_start < numberOfColumns(); ) {
     fprintf(F,"\n");
-    fprintf(F,"%d - %d (max %d length %d)\n", window_start, window_start + pageWidth, to, length());
-    fprintf(F,"%-*.*s <<< consensus\n", pageWidth, pageWidth, sequence + window_start);
-    fprintf(F,"%-*.*s <<< quality\n\n", pageWidth, pageWidth, quality  + window_start);
+    fprintf(F,"%d - %d (length %d)\n", window_start, window_start + pageWidth, numberOfColumns());
+    fprintf(F,"%-*.*s <<< consensus\n", pageWidth, pageWidth, _cnsBases + window_start);
+    fprintf(F,"%-*.*s <<< quality\n\n", pageWidth, pageWidth, _cnsQuals  + window_start);
 
     for (uint32 i=0; i<numSeqs; i++) {
       if (fid[i] == 0)
@@ -297,46 +285,46 @@ abMultiAlign::display(abAbacus  *abacus,
 
       for (uint32 wi=window_start; wi<window_start + pageWidth; wi++) {
 
-        //  If no valid iterator,
-        if (fit[i] == NULL) {
+        //  If no valid iterator:
 
+        if (fit[i].column == NULL) {
+
+          //  Starting in the middle of the sequence, wi should equal window_start, right?
+          //
+          //  This case only occurs if 'from' is set, and it's probably broken!
+          //
+          //  It prints exactly one base, but serves to skip all the bases we shouldn't be printing.
+          //  Once that base is printed, the iterator is valid, and we do the 'normal' case in the else clause.
           if ((bgn[i] < wi) &&
               (wi     < end[i])) {
-            //  Starting in the middle of the sequence, wi should equal window_start, right?
+            fit[i] = readToBead[i];
 
-            //  This case only occurs if 'from' is set, and it's probably broken!
-
-            //  It prints exactly one base, but serves to skip all the bases we shouldn't be printing.
-            //  Once that base is printed, the iterator is valid, and we do the 'normal' case in the else clause.
-
-            fit[i] = abacus->createSeqBeadIterator(i);
-
-            abBeadID   bid = fit[i]->next();
-            abColumn  *col = abacus->getColumn(bid);
-
-            while (col->position() < wi) {
-              bid = fit[i]->next();
-              col = abacus->getColumn(bid);
+            while (fit[i].column->position() < wi) {
+              fit[i].link   = fit[i].column->_beads[fit[i].link].nextOffset();
+              fit[i].column = fit[i].column->next();
             }
+            //fit[i]->prev();
+          }
 
-            fit[i]->prev();
+          //  Start at the beginning of the sequence
+          else if (bgn[i] ==  wi) {
+            fit[i] = readToBead[i];
+          }
 
-          } else if (bgn[i] ==  wi) {
-            //  Start at the beginning of the sequence
-            fit[i] = abacus->createSeqBeadIterator(i);
-
-          } else if ((window_start < bgn[i]) &&
-                     (bgn[i]       < window_start+pageWidth)) {
-            //  Spaces before the read
+          //  Spaces before the read
+          else if ((window_start < bgn[i]) &&
+                   (bgn[i]       < window_start+pageWidth)) {
             fprintf(F," ");
+          }
 
-          } else if ((window_start <= end[i]) &&
-                     (end[i]       <  window_start+pageWidth)) {
-            //  Spaces after the read
+          //  Spaces after the read
+          else if ((window_start <= end[i]) &&
+                   (end[i]       <  window_start+pageWidth)) {
             fprintf(F," ");
+          }
 
-          } else {
-            //  Sequence isn't involved in this window.
+          //  Sequence isn't involved in this window.
+          else {
             break;
           }
         }  //  End of fit[i] == NULL
@@ -346,13 +334,14 @@ abMultiAlign::display(abAbacus  *abacus,
         //  If a valid iterator, print a base.  If we've run out of bases, delete the iterator
         //  and print a space.
         //
-        if (fit[i] != NULL) {
-          abBeadID   bid = fit[i]->next();
+        if (fit[i].column != NULL) {
+          fit[i].link   = fit[i].column->_beads[fit[i].link].nextOffset();
+          fit[i].column = fit[i].column->next();
 
-          if (bid.isValid()) {
-            char pc = abacus->getBase(bid);
+          if (fit[i].link != UINT16_MAX) {
+            char pc = fit[i].column->_beads[fit[i].link].base();
 
-            if (pc == sequence[wi])
+            if (pc == _cnsBases[wi])
               pc = tolower(pc);
             else
               pc = toupper(pc);
@@ -363,8 +352,8 @@ abMultiAlign::display(abAbacus  *abacus,
           //  Not a valid bead, we just ran off the end of the read.  Print a space, and destroy the iterator.
           else {
             fprintf(F," ");
-            delete fit[i];
-            fit[i] = NULL;
+            fit[i].column = NULL;
+            fit[i].link   = UINT16_MAX;
           }
         }
 
@@ -379,16 +368,16 @@ abMultiAlign::display(abAbacus  *abacus,
     window_start += pageWidth;
   }
 
+  //  Unoffset the quals back to integers.
 
-  for (uint32 i=0; i<numSeqs; i++)
-    delete fit[i];
+  for (uint32 ii=0; ii<numberOfColumns(); ii++)
+    _cnsQuals[ii] -= '!';
+
+  //  Cleanup, goodbye.
 
   delete [] fit;
   delete [] fid;
   delete [] type;
   delete [] bgn;
   delete [] end;
-
-  delete [] sequence;
-  delete [] quality;
 }

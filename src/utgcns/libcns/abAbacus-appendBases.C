@@ -31,31 +31,33 @@
 //  Sets read abacus pointers assuming gapless alignments.
 
 void
-abAbacus::appendBases(int32     alen, abBeadID *aindex,
-                      abSeqID   bfid,
-                      uint32    bgn,  uint32    end) {
+abAbacus::appendBases(uint32  bid,
+                      uint32  bgn,
+                      uint32  end) {
+
+  uint32      alen = numberOfColumns();
 
   //  Set up the b read
 
-  abSequence *bfrag  = getSequence(bfid);
-  uint32      blen   = bfrag->length();
+  abSequence *bseq  = getSequence(bid);
+  uint32      blen  = bseq->length();
 
   //  Find the first and last columns the read 'aligns' to.  If the read isn't contained, the last
   //  column is the last column in the frankenstein.  We'll append new columns after this one.
   //
   //  Space-based, so the end element is the (n-1)th element.
   //
-  abColID fc =                 getBead(aindex[bgn  ])->colIdx();
-  abColID lc = (end <= alen) ? getBead(aindex[end-1])->colIdx() : getBead(aindex[alen-1])->colIdx();
+  abColumn *fc =                 getColumn(bgn);
+  abColumn *lc = (end <= alen) ? getColumn(end-1) : getLastColumn();
 
   //  To get positions in output, we need to have both the first and last beads
   //  placed in the multialign.  The first bead is always aligned, but the last bead
   //  is aligned only if it is contained.
 
-  alignBeadToColumn(fc, bfrag->firstBead(), "");
+  fc->alignBead(UINT16_MAX, bseq->getBase(0), bseq->getQual(0));
 
   if (end <= alen)
-    alignBeadToColumn(lc, bfrag->lastBead(), "");
+    lc->alignBead(UINT16_MAX, bseq->getBase(blen-1), bseq->getQual(blen-1));
 
   //  If not contained, push on bases, and update the consensus base.  This is all _very_ rough.
   //  The unitig-supplied coordinates aren't guaranteed to contain 'blen' bases.  We make the
@@ -75,21 +77,15 @@ abAbacus::appendBases(int32     alen, abBeadID *aindex,
 
   else
     for (uint32 bpos=blen - (end - alen); bpos<blen; bpos++) {
-      lc = appendColumn(lc, bfrag->getBead(bpos));
-      baseCallMajority(lc);
+      abColumn *newcol = new abColumn;
+
+      newcol->insertAtEnd(lc, UINT16_MAX, bseq->getBase(bpos), bseq->getQual(bpos));
+
+      //baseCallMajority(lc);
     }
 
   //  If we did this correctly, then the first/last column indices should agree with the read placement.
 
-  //assert(bgn   == getBead(bfrag->getBead(0))->colIdx().get());
-  //assert(end-1 == getBead(bfrag->getBead(blen-1))->colIdx().get());
-
-  assert(bgn   == getBead(bfrag->firstBead())->colIdx().get());
-  assert(end-1 == getBead(bfrag->lastBead())->colIdx().get());
-
-  //  Report.
-
-  //fprintf(stderr, "appendBases()-- cols %d %d\n",
-  //        getBead(bfrag->getBead(0))->colIdx().get(),
-  //        getBead(bfrag->getBead(blen-1))->colIdx().get());
+  //assert(bgn   == getBead(bfrag->firstBead())->colIdx().get());
+  //assert(end-1 == getBead(bfrag->lastBead())->colIdx().get());
 }
