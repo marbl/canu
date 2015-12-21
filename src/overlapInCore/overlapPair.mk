@@ -13,7 +13,7 @@ SOURCES  := overlapPair.C
 SRC_INCDIRS  := .. ../AS_UTL ../stores ../meryl/libleaff liboverlap
 
 TGT_LDFLAGS := -L${TARGET_DIR}
-TGT_LDLIBS  := -lleaff -lCA
-TGT_PREREQS := libleaff.a libCA.a
+TGT_LDLIBS  := -lleaff -lcanu
+TGT_PREREQS := libleaff.a libcanu.a
 
 SUBMAKEFILES :=

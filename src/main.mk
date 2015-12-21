@@ -8,7 +8,7 @@ ifeq "$(strip ${TARGET_DIR})" ""
   TARGET_DIR   := ../$(OSTYPE)-$(MACHINETYPE)/bin
 endif
 
-TARGET       := libCA.a
+TARGET       := libcanu.a
 
 SOURCES      := AS_global.C \
                 \
