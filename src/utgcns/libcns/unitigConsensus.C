@@ -303,6 +303,22 @@ unitigConsensus::generateQuick(tgTig                     *tig_,
     uint32   readLen = read->gkRead_sequenceLength();
 
     uint32   bHang   = cnspos[tiid].max() - frankensteinLen;
+    if (bHang <= 0) {
+       //  this read doesn't add anything, skip it
+       continue;
+    }
+
+    //  check if our positions are wonky, adjust the end to match reality
+    uint32 start = cnspos[tiid].min();
+    uint32 end = cnspos[tiid].max();
+
+    if (start > frankensteinLen) {
+       start = frankensteinLen;
+    }
+    if (end - start > readLen) {
+       end = start + readLen;
+    }
+    cnspos[tiid].setMinMax(start, end);
 
     //  appendBases() will append only if new bases are needed.  Otherwise, it just
     //  sets the first/last bead position.
@@ -925,10 +941,10 @@ unitigConsensus::alignFragment(bool forceAlignment) {
   if (fragEnd > fragLen)
     fragEnd = fragLen;
 
-  int32  bgnExtra = expectedAlignLen / 32;  //  Start with a small 'extra' allowance, easy to make bigger.
-  int32  endExtra = expectedAlignLen / 32;
+  int32  bgnExtra = 100;  //  Start with a small 'extra' allowance, easy to make bigger.
+  int32  endExtra = 100;
 
-  int32  trimStep = expectedAlignLen / 32;
+  int32  trimStep = max(100, expectedAlignLen / 50);
 
   //  Find an alignment!
 

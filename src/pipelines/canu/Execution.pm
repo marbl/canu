@@ -716,7 +716,7 @@ sub submitScript ($$$) {
     my $asm         = shift @_;
     my $jobToWaitOn = shift @_;
 
-    return   if (getGlobal("useGrid")       eq "0");      #  If not requested to run on the grid,
+    return   if (getGlobal("useGrid")       ne "1");      #  If not requested to run on the grid,
     return   if (getGlobal("gridEngine")    eq undef);    #  or can't run on the grid, don't run on the grid.
 
     #  If no job to wait on, and we are already on the grid, do NOT resubmit ourself.

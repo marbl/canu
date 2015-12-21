@@ -115,7 +115,7 @@ sub unitig ($$) {
 
     my $perPart = int(getNumberOfReadsInStore($wrk, $asm) / getGlobal("cnsPartitions"));
     my $minPart = getGlobal("cnsPartitionMin");
-    my $genomeCoverage = getGenomeCoverage($wrk, $asm, getGlobal("utgOvlMerSize"));
+    my $genomeCoverage = int(1.3 * getGenomeCoverage($wrk, $asm, getGlobal("utgOvlMerSize")));
 
     $perPart = ($perPart < $minPart) ? ($perPart) : ($minPart);
 
