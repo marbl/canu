@@ -53,6 +53,7 @@
 #ifndef ABBEAD_H
 #define ABBEAD_H
 
+
 class abBead {
 public:
   abBead() {
@@ -89,8 +90,8 @@ public:  //  ACCESSORS
   char         qual(void)          { return(_qual);      };  //    reset with swap()
 
   uint16       prevOffset(void)   { return(_prevOffset); };  //  Generally set only at init,
-  uint16       thisOffset(void)   { return(_prevOffset); };  //    but can change when gap
-  uint16       nextOffset(void)   { return(_prevOffset); };  //    columns are added
+  uint16       thisOffset(void)   { return(_thisOffset); };  //    but can change when gap
+  uint16       nextOffset(void)   { return(_nextOffset); };  //    columns are added
 
 public:  //  METHODS
 

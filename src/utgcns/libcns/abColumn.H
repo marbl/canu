@@ -127,12 +127,13 @@ private:
 
 public:
   uint16          insertAtBegin(abColumn *first, uint16 prevLink, char base, uint8 qual);
-  uint16          insertAtEnd  (abColumn *last,  uint16 prevLink, char base, uint8 qual);
+  uint16          insertAtEnd  (abColumn *prev,  uint16 prevLink, char base, uint8 qual);
   uint16          insertAfter  (abColumn *prev,  uint16 prevLink, char base, uint8 qual);
 
   uint16          alignBead(uint16 prevIndex, char base, uint8 qual);
 
   uint16          extendRead(abColumn *column, uint16 beadLink);
+  bool            mergeWithNext(bool highQuality);
 
 private:
   void            baseCallMajority(void);
@@ -175,12 +176,10 @@ public:
 private:
   uint32          *_beadReadIDs;
 
-
-
   uint16           _baseCounts[CNS_NUM_SYMBOLS];
 
   friend class abAbacus;
-  friend bool  mergeColumns(abColumn *lcolumn, abColumn *rcolumn);
+  //  friend bool  mergeColumns(abColumn *lcolumn, abColumn *rcolumn);
 };
 
 #endif  //  ABCOLUMN_H

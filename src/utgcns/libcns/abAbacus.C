@@ -63,8 +63,6 @@
 
 #include "abAbacus.H"
 
-#undef  DEBUG_ABACUS_ALIGN
-
 //  Shouldn't be global, but some things -- like abBaseCount -- need it.
 
 bool    DATAINITIALIZED                     = false;

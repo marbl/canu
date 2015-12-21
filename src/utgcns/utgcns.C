@@ -442,9 +442,9 @@ main (int argc, char **argv) {
       origChildren = stashContains(tig, maxCov, true);
 
       if (doQuick)
-        success = utgcns->generateQuick(tig, NULL, inPackageRead, inPackageReadData);
+        success = utgcns->generateQuick(tig, inPackageRead, inPackageReadData);
       else
-        success = utgcns->generate(tig, NULL, inPackageRead, inPackageReadData);
+        success = utgcns->generate(tig, inPackageRead, inPackageReadData);
     }
 
     //  If it was successful (or existed already), output.  Success is always false if the unitig

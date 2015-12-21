@@ -149,20 +149,14 @@ unitigConsensus::reportStartingWork(void) {
 
 
 void
-unitigConsensus::reportFailure(uint32 *failed) {
-  if (failed != NULL)
-    failed[tiid] = true;
-
+unitigConsensus::reportFailure(void) {
   fprintf(stderr, "unitigConsensus()-- failed to align fragment %d in unitig %d.\n",
           utgpos[tiid].ident(), tig->tigID());
 }
 
 
 void
-unitigConsensus::reportSuccess(uint32 *failed) {
-  if (failed != NULL)
-    failed[tiid] = false;
-
+unitigConsensus::reportSuccess() {
   //fprintf(stderr, "unitigConsensus()-- fragment %d aligned in unitig %d.\n",
   //        utgpos[tiid].ident(), tig->tigID());
 }
@@ -192,16 +186,13 @@ unitigConsensus::savePackage(FILE   *outPackageFile,
 
 bool
 unitigConsensus::generate(tgTig                     *tig_,
-                          uint32                    *failed_,
                           map<uint32, gkRead *>     *inPackageRead_,
                           map<uint32, gkReadData *> *inPackageReadData_) {
-
-  //bool  failuresToFix = false;
 
   tig      = tig_;
   numfrags = tig->numberOfChildren();
 
-  if (initialize(failed_, inPackageRead_, inPackageReadData_) == FALSE) {
+  if (initialize(inPackageRead_, inPackageReadData_) == FALSE) {
     fprintf(stderr, "generateMultiAlignment()--  Failed to initialize for tig %u with %u children\n", tig->tigID(), tig->numberOfChildren());
     goto returnFailure;
   }
@@ -232,28 +223,22 @@ unitigConsensus::generate(tgTig                     *tig_,
 
     //  Nope, failed to align.
 
-    reportFailure(failed_);
-    //failuresToFix = true;
+    reportFailure();
     continue;
 
   applyAlignment:
     setErrorRate(errorRate);
     setMinOverlap(minOverlap);
 
-    reportSuccess(failed_);
-    applyAlignment();
-    rebuild(false, showMultiAlignments());
+    reportSuccess();
 
-    //  As long as the last read aligns, we aren't a failure.  Not the greatest way to detect if a
-    //  unitig became disconnected, but easy.
-    //failuresToFix = false;
+    abacus->applyAlignment(tiid, traceABgn, traceBBgn, trace, traceLen);
+  abacus->refreshColumns();
+
+    rebuild(false, showMultiAlignments());
   }
 
-  //if (failuresToFix)
-  //  goto returnFailure;
-
-  generateConsensus();
-  exportToTig();
+  generateConsensus(tig);
 
   return(true);
 
@@ -269,14 +254,13 @@ unitigConsensus::generate(tgTig                     *tig_,
 
 bool
 unitigConsensus::generateQuick(tgTig                     *tig_,
-                               uint32                    *failed_,
                                map<uint32, gkRead *>     *inPackageRead_,
                                map<uint32, gkReadData *> *inPackageReadData_) {
 
   tig      = tig_;
   numfrags = tig->numberOfChildren();
 
-  if (initialize(failed_, inPackageRead_, inPackageReadData_) == FALSE) {
+  if (initialize(inPackageRead_, inPackageReadData_) == FALSE) {
     fprintf(stderr, "generateMultiAlignment()--  Failed to initialize for tig %u with %u children\n", tig->tigID(), tig->numberOfChildren());
     return(false);
   }
@@ -308,8 +292,7 @@ unitigConsensus::generateQuick(tgTig                     *tig_,
     rebuild(false, false);
   }
 
-  generateConsensus();
-  exportToTig();
+  generateConsensus(tig);
 
   return(true);
 }
@@ -319,8 +302,7 @@ unitigConsensus::generateQuick(tgTig                     *tig_,
 
 
 int
-unitigConsensus::initialize(uint32                    *failed,
-                            map<uint32, gkRead *>     *inPackageRead,
+unitigConsensus::initialize(map<uint32, gkRead *>     *inPackageRead,
                             map<uint32, gkReadData *> *inPackageReadData) {
 
   int32 num_columns = 0;
@@ -347,20 +329,15 @@ unitigConsensus::initialize(uint32                    *failed,
 
   abacus     = new abAbacus();
 
+  //  Clear the cnspos position.  We use this to show it's been placed by consensus.
+  //  Guess the number of columns we'll end up with.
+  //  Initialize abacus with the reads.
+
   for (int32 i=0; i<numfrags; i++) {
-    if (failed != NULL)
-      failed[i]  = true;
-
-    //  Clear the cnspos position.  We use this to show it's been placed by consensus.
-
     cnspos[i].setMinMax(0, 0);
-
-    //  Guess the number of columns we'll end up with.
 
     num_columns  = (utgpos[i].min() > num_columns) ? utgpos[i].min() : num_columns;
     num_columns  = (utgpos[i].max() > num_columns) ? utgpos[i].max() : num_columns;
-
-    //  Initialize abacus with the reads.
 
     abacus->addRead(gkpStore,
                     utgpos[i].ident(),
@@ -392,12 +369,12 @@ unitigConsensus::initialize(uint32                    *failed,
     }
   }
 
-  if (failed)
-    failed[0] = false;
+  //  Initialize with the first read.
 
-  //
-  //  Who initializes abacus with the first read?!?
-  //
+  abacus->applyAlignment(0, 0, 0, NULL, 0);
+  abacus->refreshColumns();
+
+  //  And set the placement of the first read.
 
   cnspos[0].setMinMax(0, abacus->numberOfColumns());
 
@@ -710,27 +687,21 @@ unitigConsensus::computePositionFromAlignment(void) {
 void
 unitigConsensus::rebuild(bool recomputeFullConsensus, bool display) {
 
+  abacus->refreshColumns();    //  Needed??
+  abacus->recallBases(false);  //  Needed?
+
   //  Run abacus to rebuild an intermediate consensus sequence.  VERY expensive.
   //
   if (recomputeFullConsensus == true) {
-    abacus->refreshMultiAlign();
-
     abacus->refine(abAbacus_Smooth);
-    abacus->mergeRefine(false);
+    abacus->mergeColumns(false);
 
     abacus->refine(abAbacus_Poly_X);
-    abacus->mergeRefine(false);
+    abacus->mergeColumns(false);
 
     abacus->refine(abAbacus_Indel);
-    abacus->mergeRefine(false);
+    abacus->mergeColumns(false);
   }
-
-  //  For each column, vote for the consensus base to use.  Ideally, if we just computed the full
-  //  consensus, we'd use that and just replace gaps with N.
-
-  //
-  //  Used to rebuild frankenstein here
-  //
 
   //  Update the position of each fragment in the consensus sequence.
 
@@ -1032,42 +1003,30 @@ unitigConsensus::alignFragment(bool forceAlignment) {
 
 
 
-
 void
-unitigConsensus::applyAlignment(void) {
+unitigConsensus::generateConsensus(tgTig *tig) {
 
-  abacus->applyAlignment(tiid,
-                         traceABgn, traceBBgn, trace, traceLen);
-}
-
-
-void
-unitigConsensus::generateConsensus(void) {
-
-  abacus->refreshMultiAlign(true, true);
+  abacus->refreshColumns();   //  Needed??
+  abacus->recallBases(true);  //  Needed?
 
   abacus->refine(abAbacus_Smooth);
-  abacus->mergeRefine(true);
+  abacus->mergeColumns(true);
 
   abacus->refine(abAbacus_Poly_X);
-  abacus->mergeRefine(true);
+  abacus->mergeColumns(true);
 
   abacus->refine(abAbacus_Indel);
-  abacus->mergeRefine(true);
+  abacus->mergeColumns(true);
 
-  abacus->refreshMultiAlign(true, true);  //  To refresh column list.  Still needed?
+  abacus->refreshColumns();   //  Still neded??
+  abacus->recallBases(true);  //  Still needed??
 
+  //  Copy the consensus and positions into the tig.
+
+  abacus->getConsensus(tig);
+  abacus->getPositions(tig);
 
   //  While we have fragments in memory, compute the microhet probability.  Ideally, this would be
   //  done in CGW when loading unitigs (the only place the probability is used) but the code wants
   //  to load sequence and quality for every fragment, and that's too expensive.
-}
-
-
-
-
-void
-unitigConsensus::exportToTig(void) {
-  abacus->getConsensus(tig);
-  abacus->getPositions(tig);
 }

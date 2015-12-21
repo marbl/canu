@@ -1317,6 +1317,9 @@ abAbacus::refine(abAbacusRefineLevel  level,
                  uint32               bgn,
                  uint32               end) {
 
+#warning SKIPPING ALL REFINEMENTS
+  return(0);
+
   if (end > numberOfColumns())
     end = numberOfColumns();
 
@@ -1377,7 +1380,8 @@ abAbacus::refine(abAbacusRefineLevel  level,
   }
 
   //  WITH quality=1 make_v_list=1, all the rest defaults
-  refreshMultiAlign(true, true);
+  refreshColumns();
+  recallBases(true);
 
   return(score_reduction);
 }

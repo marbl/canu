@@ -109,11 +109,13 @@ abColumn::extendRead(abColumn *column, uint16 beadLink) {
 
 
 
-//  Merge two columns, if possible.  Returns true if a merge occurred.
-//
+//  Merges the next column into this column, if possible.  Possible if no read has
+//  an actual base in both columns.
+
 bool
-mergeColumns(abColumn *lcolumn,
-             abColumn *rcolumn) {
+abColumn::mergeWithNext(bool highQuality) {
+  abColumn *lcolumn = this;
+  abColumn *rcolumn = next();
 
   assert(lcolumn != NULL);
   assert(rcolumn != NULL);
@@ -160,14 +162,16 @@ mergeColumns(abColumn *lcolumn,
   for (uint32 rr=0; rr<rcolumn->_beadsLen; rr++)
     assert(rcolumn->_beads[rr].base() == '-');
 
-  //  Yank the column out.
+  //  Yank the column out of the list and dispose of it properly.  Please don't litter!
 
   if (rcolumn->_prevColumn)   rcolumn->_prevColumn->_nextColumn = rcolumn->_nextColumn;
   if (rcolumn->_nextColumn)   rcolumn->_nextColumn->_prevColumn = rcolumn->_prevColumn;
 
-  //  And throw it out.
-
   delete rcolumn;
+
+  //  Finally, recall the base for this column.
+
+  baseCall(highQuality);
 
   return(true);
 }
@@ -181,27 +185,31 @@ mergeColumns(abColumn *lcolumn,
 //  Loop over all columns.  If we do not merge, advance to the next column, otherwise, stay here and
 //  merge to the now different next column (mergeCompatible removes the column that gets merged into
 //  the current column).
-
+//
+//  Note that _firstColumn is never removed.  The second column could be merged into the first,
+//  and the second one then removed.
 void
-abAbacus::mergeRefine(bool highQuality) {
-  bool  somethingMerged = false;
+abAbacus::mergeColumns(bool highQuality) {
+  assert(_firstColumn != NULL);
 
-  abColumn   *lcolumn = _firstColumn;
-  abColumn   *rcolumn = _firstColumn->next();
+  abColumn   *column = _firstColumn;
 
-  while (rcolumn) {
-    if (mergeColumns(lcolumn, rcolumn)) {
+  bool        somethingMerged = false;
+
+  assert(column->prev() == NULL);
+
+  //  If we merge, update the base call, and stay here to try another merge of the now different
+  //  next column.  Otherwise, we didn't merge anything, so advance to the next column.
+
+  while (column->next()) {
+    if (column->mergeWithNext(highQuality) == true)
       somethingMerged = true;
-      lcolumn->baseCall(highQuality);
-      rcolumn = lcolumn->next();
-    }
-
-    lcolumn = rcolumn;
-    rcolumn = rcolumn->next();
+    else
+      column = column->next();
   }
 
-  //  If any merges were performed, refresh.  This updates the column list and does a few checks.
+  //  If any merges were performed, refresh.  This updates the column list.
 
   if (somethingMerged)
-    refreshMultiAlign(false, highQuality);
+    refreshColumns();
 }

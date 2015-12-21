@@ -71,26 +71,65 @@ static char *rcsid = "$Id$";
 //  Rebuild the column to position map.
 
 void
-abAbacus::refreshMultiAlign(bool  recallBase,         //  (false) If true, recall the base
-                            bool  highQuality) {      //  (false) If true, use the high quality base call algorithm
-  uint32     cp = 0;
+abAbacus::refreshColumns(void) {
+
+  fprintf(stderr, "abAbacus::refreshColumns()--\n");
+
+  //  Given that _firstColumn is a valid column, walk to the start of the column list.
+
+  while (_firstColumn->_prevColumn != NULL)
+    _firstColumn = _firstColumn->_prevColumn;
+
+  //  Number the columns, so we can make sure the _columns array has enough space.  Probably not
+  //  needed to be done first, but avoids having the resize call in the next loop.
+
+  uint32 cn = 0;
+
+  for (abColumn *column = _firstColumn; column; column = column->next())
+    column->_columnPosition = cn++;  //  Position of the column in the gapped consensus.
+
+  //  Fake out resizeArray so it will work on three arrays.
+
+  uint32  cm = _columnsMax;
+
+  resizeArray(_columns,  0, cm, cn+1, resizeArray_doNothing);  cm = _columnsMax;
+  resizeArray(_cnsBases, 0, cm, cn+1, resizeArray_doNothing);  cm = _columnsMax;
+  resizeArray(_cnsQuals, 0, cm, cn+1, resizeArray_doNothing);  _columnsMax = cm;
+
+  //  Build the list of columns and update consensus and quals while we're there.
+
+  _columnsLen = 0;
+
+  for (abColumn *column = _firstColumn; column; column = column->next()) {
+    _columns [_columnsLen] = column;
+    _cnsBases[_columnsLen] = column->baseCall();
+    _cnsQuals[_columnsLen] = column->baseQual();
+    _columnsLen++;
+  }
+
+  _cnsBases[_columnsLen] = 0;
+  _cnsQuals[_columnsLen] = 0;  //  Not actually zero terminated.
+
+  //for (abColumn *column = _firstColumn; column; column = column->next())
+  //  fprintf(stderr, "refreshColumns()--  column %p is at position %d\n",
+  //          column, column->position());
+}
+
+
+void
+abAbacus::recallBases(bool highQuality) {
+
+  fprintf(stderr, "abAbacus::recallBases()--  highQuality=%d\n", highQuality);
+
+  //  Given that _firstColumn is a valid column, walk to the start of the column list.
+  //  We could use _columns[] instead.
+
+  while (_firstColumn->_prevColumn != NULL)
+    _firstColumn = _firstColumn->_prevColumn;
 
   //  Number the columns, so we can make sure the _columns array has enough space.  Probably not
   //  needed to be done first, but avoids having the resize call in the next loop.
 
   for (abColumn *column = _firstColumn; column; column = column->next())
-    column->_columnPosition = cp++;  //  Position of the column in the gapped consensus.
-
-  resizeArray(_columns, _columnsLen, _columnsMax, cp);
-
-  //  Build the list of columns
-
-  for (abColumn *column = _firstColumn; column; column = column->next())
-    _columns[ column->position() ] = column;
-
-  //  If we're recalling bases, do that too.
-
-  if (recallBase == true)
-    for (cp=0; cp < _columnsLen; cp++)
-      _columns[cp]->baseCall(highQuality);
+    column->baseCall(highQuality);
 }

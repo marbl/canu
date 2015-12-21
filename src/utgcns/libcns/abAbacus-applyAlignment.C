@@ -241,10 +241,15 @@ abColumn::insertAtBegin(abColumn *first, uint16 prevLink, char base, uint8 qual)
   _beads[0]._thisOffset = 0;
   _beads[0]._nextOffset = UINT16_MAX;  //  No next offset for the next base.
 
+  _beadsLen++;
+
   if (_prevColumn)
     _prevColumn->_beads[prevLink]._nextOffset = 0;
 
   //_baseCounts[ base ]++;
+
+  //fprintf(stderr, "insertAtBegin()-- column prev=%p this=%p next=%p  link prev=%d this=%d next=%d\n",
+  //        _prevColumn, this, _nextColumn, _beads[0]._prevOffset, _beads[0]._thisOffset, _beads[0]._nextOffset);
 
   return(0);
 }
@@ -259,20 +264,20 @@ abColumn::insertAtBegin(abColumn *first, uint16 prevLink, char base, uint8 qual)
 //    [original-multialign]789
 //
 uint16
-abColumn::insertAtEnd(abColumn *last, uint16 prevLink, char base, uint8 qual) {
+abColumn::insertAtEnd(abColumn *prev, uint16 prevLink, char base, uint8 qual) {
 
-  //  The base CAN NOT be a gap - the new column would then be entirely a gap column, with no base.
-  assert(base != '-');
+  assert(base != '-');    //  The base CAN NOT be a gap - the new column would then be entirely a gap column, with no base.
 
   _columnPosition = INT32_MAX;
 
   _call = base;
   _qual = qual;
 
-  _prevColumn = last;
+  _prevColumn = prev;
   _nextColumn = NULL;
 
-  last->_nextColumn = this;
+  if (prev)
+    prev->_nextColumn = this;
 
   allocateInitialBeads();
 
@@ -286,9 +291,15 @@ abColumn::insertAtEnd(abColumn *last, uint16 prevLink, char base, uint8 qual) {
   _beads[0]._thisOffset = 0;
   _beads[0]._nextOffset = UINT16_MAX;
 
-  last->_beads[prevLink]._nextOffset = 0;
+  _beadsLen++;
+
+  if (prev)
+    prev->_beads[prevLink]._nextOffset = 0;
 
   //_baseCounts[ base ]++;
+
+  //fprintf(stderr, "insertAtEnd()-- column prev=%p this=%p next=%p  link prev=%d this=%d next=%d\n",
+  //        _prevColumn, this, _nextColumn, _beads[0]._prevOffset, _beads[0]._thisOffset, _beads[0]._nextOffset);
 
   return(0);
 }
@@ -364,7 +375,7 @@ abColumn::alignBead(uint16 prevIndex, char base, uint8 qual) {
 
   uint16    to = _beadsLen++;
 
-  _beads[to].initialize(base, qual, prevIndex, to, 0);
+  _beads[to].initialize(base, qual, prevIndex, to, UINT16_MAX);
 
   //  Link to the previous
 
@@ -402,8 +413,6 @@ abAbacus::applyAlignment(uint32    bid,
                          int32     UNUSED(bhang),
                          int32    *trace, uint32 traceLen) {
 
-  assert(trace != NULL);
-
 #ifdef DEBUG_ABACUS_ALIGN
   fprintf(stderr, "abAbacus::applyAlignment()-- ahang=%d bhang=%d traceLen=%u trace=%d %d %d %d %d ... %d %d %d %d %d\n",
           ahang, bhang, traceLen,
@@ -426,8 +435,8 @@ abAbacus::applyAlignment(uint32    bid,
   int32       alen     = _columnsLen;     //  Actual length of the consensus sequence BEFORE any new bases are added.
   int32       blen     = bseq->length();  //  Actual length of the read we're adding.
 
-  assert(alen > 0);                       //  There MUST be columns already added.  The first read is added during initialization.
-  assert(blen > 0);                       //  Obvious, just to keep things nice and symmetric.
+  //  We used to check that alen and blen were both positive, but we now allow applyAlignment() of
+  //  the first read (to an empty multialignment) to initialize the structure.
 
   int32       apos     = MAX(ahang, 0);   //  if apos == alen, we'd just be pasting on new sequence.
   int32       bpos     = 0;               //  if bpos == blen...we're pasting on one base?
@@ -440,6 +449,9 @@ abAbacus::applyAlignment(uint32    bid,
   abColumn   *pcolumn  = NULL;            //  The previous column (that we just added a base to).
   uint16      plink    = UINT16_MAX;      //  The read index of the read we just added to the previous column.
 
+  beadID      fBead;
+  beadID      lBead;
+
 
   //  Negative ahang?  Push these things onto the start of the multialign.
   //
@@ -451,9 +463,13 @@ abAbacus::applyAlignment(uint32    bid,
     abColumn  *newcol = new abColumn;
 
     plink = newcol->insertAtBegin(ncolumn, plink, bseq->getBase(bpos), bseq->getQual(bpos));
+
+    fBead.setF(newcol, plink);
+    lBead.setL(newcol, plink);
   }
 
-  pcolumn = ncolumn->_prevColumn;  //  If we did something above, this is now non-NULL.
+  if (ncolumn)
+    pcolumn = ncolumn->_prevColumn;
 
   //  Skip any positive traces at the start.  These are template sequence (A-read) aligned to gaps
   //  in the B-read, but we don't care because there isn't any B-read aligned yet.
@@ -484,10 +500,12 @@ abAbacus::applyAlignment(uint32    bid,
     if ( *trace < 0 ) {
       while (apos < (- *trace - 1)) {
         plink = ncolumn->alignBead(plink, bseq->getBase(bpos), bseq->getQual(bpos));
-        bpos++;                       //  Move to the next base in the read.
-        apos++;                       //  Move to the next column
+        fBead.setF(ncolumn, plink);
+        lBead.setL(ncolumn, plink);
         pcolumn = ncolumn;            //  ...updating the previous column
         ncolumn = ncolumn->next();    //
+        bpos++;                       //  Move to the next base in the read.
+        apos++;                       //  Move to the next column
       }
 
       assert(apos < alen);
@@ -506,9 +524,14 @@ abAbacus::applyAlignment(uint32    bid,
 
       //  Add a new column for this insertion.
       abColumn  *newcol = new abColumn;
+
+      //fprintf(stderr, "applyAlignment()--  align base %6d '%c' to after column %7d (new column)\n", bpos, bseq->getBase(bpos), ncolumn->position());
+
       plink = newcol->insertAfter(pcolumn, plink, bseq->getBase(bpos), bseq->getQual(bpos));
-      bpos++;  //  Move to the next base in the read.
+      fBead.setF(newcol, plink);
+      lBead.setL(newcol, plink);
       pcolumn = newcol;
+      bpos++;  //  Move to the next base in the read.
     }
 
     //  Gap is in bfrag.  Align ( *trace - bpos ) positions, then insert a gap bead into the read,
@@ -517,42 +540,85 @@ abAbacus::applyAlignment(uint32    bid,
     if (*trace > 0) {
       while ( bpos < (*trace - 1) ) {
         plink = ncolumn->alignBead(plink, bseq->getBase(bpos), bseq->getQual(bpos));
-        bpos++;                       //  Move to the next base in the read.
-        apos++;                       //  Move to the next column
+        fBead.setF(ncolumn, plink);
+        lBead.setL(ncolumn, plink);
         pcolumn = ncolumn;            //  ...updating the previous column
         ncolumn = ncolumn->next();    //
+        bpos++;                       //  Move to the next base in the read.
+        apos++;                       //  Move to the next column
       }
 
       assert(apos < alen);
       assert(bpos < blen);
 
+      //fprintf(stderr, "applyAlignment()--  align base %6d '-' to column %7d (gap column)\n", bpos, ncolumn->position());
+
       plink = ncolumn->alignBead(plink, '-', 0);
-      apos++;
+      fBead.setF(ncolumn, plink);
+      lBead.setL(ncolumn, plink);
       pcolumn = ncolumn;
       ncolumn = ncolumn->next();
+      apos++;
     }
 
     trace++;
   }
 
-  //  Remaining alignment contains no indels, just slap in the bases.
+  //  Remaining alignment contains no indels, just slap in the bases.  Note that when there is
+  //  no consensus sequence (this is the first read added) this loop does nothing; alen=apos=0.
 
   for (int32 rem = MIN(blen - bpos, alen - apos); rem > 0; rem--) {
+    //fprintf(stderr, "applyAlignment()--  align base %6d '%c' to column %7d (end of read)\n", bpos, bseq->getBase(bpos), ncolumn->position());
+
     plink = ncolumn->alignBead(plink, bseq->getBase(bpos), bseq->getQual(bpos));
-    apos++;
-    bpos++;
+    fBead.setF(ncolumn, plink);
+    lBead.setL(ncolumn, plink);
     pcolumn = ncolumn;
     ncolumn = ncolumn->next();
+    apos++;
+    bpos++;
   }
 
   //  Finally, append any new (unaligned) sequence from the read.
+  //  For the special case of the first read, when there are no existing columns,
+  //  we need to remember the first column.
 
   for (int32 rem=blen-bpos; rem > 0; rem--) {
-    assert(ncolumn == NULL);
+    assert(ncolumn == NULL);  //  Can't be a column after where we're tring to append to!
 
     abColumn *newcol = new abColumn;
+
+    //fprintf(stderr, "applyAlignment()--  align base %6d '%c' to extend consensus\n", bpos, bseq->getBase(bpos));
+
     plink = newcol->insertAtEnd(pcolumn, plink, bseq->getBase(bpos), bseq->getQual(bpos));
-    bpos++;
+    fBead.setF(newcol, plink);
+    lBead.setL(newcol, plink);
     pcolumn = newcol;
+    bpos++;
   }
+
+  //  Insert the first and last beads into our tracking maps.
+
+  //assert(fBead.column->prev() == NULL);  //  Totally not true - the link for prev/next should
+  //assert(lBead.column->next() == NULL);  //  be UINT16_MAX, but that's hard to check.
+
+  assert(fBead.column->_beads[fBead.link].prevOffset() == UINT16_MAX);
+  assert(lBead.column->_beads[lBead.link].nextOffset() == UINT16_MAX);
+
+  fbeadToRead[fBead] = bid;
+  readTofBead[bid] = fBead;
+
+  lbeadToRead[lBead] = bid;
+  readTolBead[bid] = lBead;
+
+  //  And tell the sequence about it's first and last columns.
+
+  bseq->_fBead = fBead;
+  bseq->_lBead = lBead;
+
+  //  Update the firstColumn in the abAbacus if it isn't set.  updateColumns() will
+  //  reset it if the actual first column has changed here.
+
+  if (_firstColumn == NULL)
+    _firstColumn = fBead.column;
 }

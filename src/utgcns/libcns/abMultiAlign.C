@@ -110,7 +110,7 @@ uint32
 abAbacus::getSequenceDeltas(uint32    sid,
                             int32    *deltas) {
   abSequence         *seq    = getSequence(sid);
-  beadID              bid    = readToBead[sid];
+  beadID              bid    = readTofBead[sid];
   abColumn           *column = bid.column;
   uint16              link   = bid.link;
 
@@ -162,8 +162,8 @@ abAbacus::getPositions(tgTig *tig) {
 
     assert(seq->gkpIdent() == child->ident());
 
-    beadID    fBead = readToBead[si];
-    beadID    lBead = fBead;
+    beadID    fBead = readTofBead[si];
+    beadID    lBead = readTolBead[si];
 
     if (fBead.column == NULL) {
       fprintf(stderr, "WARNING: read %u not in multialignment; position set to 0,0.\n", seq->gkpIdent());
@@ -171,12 +171,28 @@ abAbacus::getPositions(tgTig *tig) {
       continue;
     }
 
+    assert(fBead.column != NULL);
+    assert(lBead.column != NULL);
+
     //  Find the last bead, so we can find the last column, and thus the end coordinate.
 
-    while (lBead.link != UINT16_MAX) {
-      lBead.link   = lBead.column->_beads[ lBead.link ].nextOffset();
+#if 0
+    uint16  nextLink = lBead.column->_beads[ lBead.link ].nextOffset();
+
+    while (nextLink != UINT16_MAX) {
+      //fprintf(stderr, "lBead %p link %u prev/this/next %d/%d/%d\n",
+      //        lBead.column, lBead.link,
+      //        lBead.column->_beads[lBead.link].prevOffset(),
+      //        lBead.column->_beads[lBead.link].thisOffset(),
+      //        lBead.column->_beads[lBead.link].nextOffset());
+
+      lBead.link   = nextLink;
       lBead.column = lBead.column->next();
+
+      nextLink     = lBead.column->_beads[ lBead.link ].nextOffset();
     }
+    fprintf(stderr, "lBead %p link %u\n", lBead.column, lBead.link);
+#endif
 
     //  Positions are zero-based and inclusive.  The end position gets one added to it to make it true space-based.
 
@@ -283,78 +299,55 @@ abAbacus::display(FILE *F) {
       if (fid[i] == 0)
         continue;
 
+      if (end[i] < window_start)
+        continue;
+
+      if (window_start + pageWidth < bgn[i])
+        continue;
+
+
       for (uint32 wi=window_start; wi<window_start + pageWidth; wi++) {
 
-        //  If no valid iterator:
+        //  Spaces before the read
+        if (wi < bgn[i]) {
+          fprintf(F, ".");
+        }
 
-        if (fit[i].column == NULL) {
+        //  Starting in the middle of the sequence.
+        else if ((bgn[i] <= wi) &&
+                 (wi     <  end[i])) {
 
-          //  Starting in the middle of the sequence, wi should equal window_start, right?
-          //
-          //  This case only occurs if 'from' is set, and it's probably broken!
-          //
-          //  It prints exactly one base, but serves to skip all the bases we shouldn't be printing.
-          //  Once that base is printed, the iterator is valid, and we do the 'normal' case in the else clause.
-          if ((bgn[i] < wi) &&
-              (wi     < end[i])) {
-            fit[i] = readToBead[i];
-
+          if (fit[i].column == NULL) {
+            fit[i] = readTofBead[i];
+            
             while (fit[i].column->position() < wi) {
               fit[i].link   = fit[i].column->_beads[fit[i].link].nextOffset();
               fit[i].column = fit[i].column->next();
             }
-            //fit[i]->prev();
           }
 
-          //  Start at the beginning of the sequence
-          else if (bgn[i] ==  wi) {
-            fit[i] = readToBead[i];
-          }
+          char pc = fit[i].column->_beads[fit[i].link].base();
 
-          //  Spaces before the read
-          else if ((window_start < bgn[i]) &&
-                   (bgn[i]       < window_start+pageWidth)) {
-            fprintf(F," ");
-          }
+          if (pc == _cnsBases[wi])
+            pc = tolower(pc);
+          else
+            pc = toupper(pc);
+          
+          fprintf(F, "%c", pc);
 
-          //  Spaces after the read
-          else if ((window_start <= end[i]) &&
-                   (end[i]       <  window_start+pageWidth)) {
-            fprintf(F," ");
-          }
-
-          //  Sequence isn't involved in this window.
-          else {
-            break;
-          }
-        }  //  End of fit[i] == NULL
-
-
-
-        //  If a valid iterator, print a base.  If we've run out of bases, delete the iterator
-        //  and print a space.
-        //
-        if (fit[i].column != NULL) {
           fit[i].link   = fit[i].column->_beads[fit[i].link].nextOffset();
           fit[i].column = fit[i].column->next();
+        }
 
-          if (fit[i].link != UINT16_MAX) {
-            char pc = fit[i].column->_beads[fit[i].link].base();
+        //  Spaces after the read
+        else if (end[i] <= wi) {
+          fprintf(F, ",");
+        }
 
-            if (pc == _cnsBases[wi])
-              pc = tolower(pc);
-            else
-              pc = toupper(pc);
-
-            fprintf(F, "%c", pc);
-          }
-
-          //  Not a valid bead, we just ran off the end of the read.  Print a space, and destroy the iterator.
-          else {
-            fprintf(F," ");
-            fit[i].column = NULL;
-            fit[i].link   = UINT16_MAX;
-          }
+        //  Sequence isn't involved in this window.
+        else {
+          fprintf(stderr, "bgn=%d end=%d wi=%d\n", bgn[i], end[i], wi);
+          assert(0);
         }
 
 

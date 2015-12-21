@@ -66,13 +66,6 @@ public:
     _length     = 0;
     _bases      = NULL;
     _quals      = NULL;
-
-    _firstColumn      = NULL;
-    _firstColumnIndex = 0;
-
-    _lastColumn       = NULL;
-    _lastColumnIndex  = 0;
-    
   };
 
   abSequence(uint32  readID,
@@ -113,15 +106,14 @@ private:
   //  Set only after .....
 
 public:
-  abColumn        *firstColumn(void) { return(_firstColumn); };
-  abColumn        *lastColumn(void)  { return(_lastColumn);  };
+  abColumn        *firstColumn(void) { return(_fBead.column); };
+  abColumn        *lastColumn(void)  { return(_lBead.column); };
 
 private:
-  abColumn        *_firstColumn;
-  uint16           _firstColumnIndex;
+  beadID           _fBead;
+  beadID           _lBead;
 
-  abColumn        *_lastColumn;
-  uint16           _lastColumnIndex;
+  friend class abAbacus;  //  access to _fBead and _lBead.
 };
 
 #endif  //  ABSEQUENCE_H

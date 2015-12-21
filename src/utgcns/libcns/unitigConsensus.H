@@ -79,17 +79,14 @@ public:
                      tgTig  *tig);
 
   bool   generate(tgTig                     *tig,
-                  uint32                    *failed            = NULL,
                   map<uint32, gkRead *>     *inPackageRead     = NULL,
                   map<uint32, gkReadData *> *inPackageReadData = NULL);
 
   bool   generateQuick(tgTig                     *tig,
-                       uint32                    *failed            = NULL,
                        map<uint32, gkRead *>     *inPackageRead     = NULL,
                        map<uint32, gkReadData *> *inPackageReadData = NULL);
 
-  int32  initialize(uint32                    *failed,
-                    map<uint32, gkRead *>     *inPackageRead,
+  int32  initialize(map<uint32, gkRead *>     *inPackageRead,
                     map<uint32, gkReadData *> *inPackageReadData);
 
   void   setErrorRate(double errorRate_)   { errorRate  = errorRate_;  };
@@ -103,8 +100,8 @@ public:
   bool   showMultiAlignments(void)  { return(tig->_utgcns_verboseLevel >= 4); };  //
 
   void   reportStartingWork(void);
-  void   reportFailure(uint32 *failed);
-  void   reportSuccess(uint32 *failed);
+  void   reportFailure(void);
+  void   reportSuccess(void);
 
   int32  moreFragments(void)  { tiid++;  return (tiid < numfrags); };
 
@@ -118,10 +115,8 @@ public:
 
   bool   alignFragmentFailure(void);
   bool   alignFragment(bool forceAlignment=false);
-  void   applyAlignment(void);
 
-  void   generateConsensus(void);
-  void   exportToTig(void);
+  void   generateConsensus(tgTig *tig);
 
 private:
   gkStore        *gkpStore;

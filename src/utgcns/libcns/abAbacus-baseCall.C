@@ -77,8 +77,8 @@ abColumn::baseCallMajority(void) {
     uint8   qual  = _beads[ii]._qual;
     uint32  bidx  = baseToIndex[base];
 
-    bsSum[baseToIndex[bidx]] += 1;
-    qvSum[baseToIndex[bidx]] += qual;
+    bsSum[bidx] += 1;
+    qvSum[bidx] += qual;
   }
 
   //  Find the best, ignore ties.

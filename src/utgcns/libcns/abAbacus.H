@@ -89,9 +89,49 @@ typedef enum {
 } abAbacusRefineLevel;
 
 
+
+
+
+
+class abColumn;
+
+
+class beadID {
+public:
+  beadID(abColumn *c=NULL, uint16 l=UINT16_MAX) {
+    column = c;
+    link   = l;
+  };
+
+  //  Set if not set yet; only want to set for the first bead placed
+  void   setF(abColumn *c, uint16 l) {
+    if (column == NULL) {
+      column = c;
+      link   = l;
+    }
+  };
+
+  //  Always reset, we want to capture the last bead set
+  void   setL(abColumn *c, uint16 l) {
+    column = c;
+    link   = l;
+  };
+
+  bool operator<(beadID const &that) const {
+    return((column != that.column) ? (column < that.column) : (link < that.link));
+  }
+
+  abColumn  *column;
+  uint16     link;
+};
+
+
+
+
 #include "abBead.H"
 #include "abColumn.H"
 #include "abSequence.H"
+
 
 
 class abAbacus {
@@ -101,12 +141,19 @@ public:
     _sequencesMax = 65536;
     _sequences    = new abSequence * [_sequencesMax];
 
+    memset(_sequences, 0, sizeof(abSequence *) * _sequencesMax);
+
     _columnsLen   = 0;
     _columnsMax   = 1024 * 1024;
     _columns      = new abColumn * [_columnsMax];
 
+    memset(_columns, 0, sizeof(abColumn *) * _columnsMax);
+
     _cnsBases     = new char  [_columnsMax];
     _cnsQuals     = new uint8 [_columnsMax];
+
+    memset(_cnsBases, 0, sizeof(char)  * _columnsMax);
+    memset(_cnsQuals, 0, sizeof(uint8) * _columnsMax);
 
     _firstColumn  = NULL;
 
@@ -125,48 +172,32 @@ private:
 
 public:
 
+  char         *bases(void) { return(_cnsBases); };
+  uint8        *quals(void) { return(_cnsQuals); };
+
   //  Adds gkpStore read 'readID' to the abacus; former AppendFragToLocalStore
-  void            addRead(gkStore *gkpStore,
-                          uint32 readID,
-                          uint32 askip, uint32 bskip,
-                          bool complemented,
-                          map<uint32, gkRead *>     *inPackageRead,
-                          map<uint32, gkReadData *> *inPackageReadData);
+  void          addRead(gkStore *gkpStore,
+                        uint32 readID,
+                        uint32 askip, uint32 bskip,
+                        bool complemented,
+                        map<uint32, gkRead *>     *inPackageRead,
+                        map<uint32, gkReadData *> *inPackageReadData);
 
 public:
-  //abBeadID        unalignBeadFromColumn(abBeadID bid);
-  //void            unalignTrailingGapBeads(abBeadID bid);
+  void          refreshColumns(void);
+  void          recallBases(bool  highQuality = false);
 
-  //void            checkColumnBaseCounts();
+  void          appendBases(uint32  bid,
+                            uint32  bgn,
+                            uint32  end);
 
-  //void            lateralExchangeBead(abBeadID lid, abBeadID rid);
-
-public:
-  void    refreshMultiAlign(bool  recallBase  = false,
-                            bool  highQuality = false);
-
-  void    appendBases(uint32  bid,
-                      uint32  bgn,
-                      uint32  end);
-
-  void    applyAlignment(uint32  bid,
-                         int32   ahang,
-                         int32   bhang,
-                         int32  *trace, uint32 traceLen);
-
+  void          applyAlignment(uint32  bid,
+                               int32   ahang,
+                               int32   bhang,
+                               int32  *trace, uint32 traceLen);
 
 public:
-  //  The iterators make calls to abAbacus, and to make them inline, they need to be defined after abAbacus.
-  //  That means these constructors cannot be inlined.
-  //abSeqBeadIterator  *createSeqBeadIterator(abSeqID sid);
-  //abColBeadIterator  *createColBeadIterator(abColID cid);
-
-  //
-  //  Objects that we're trying to build multialigns for
-  //
-
-public:
-  uint32             numberOfSequences(void) {
+  uint32        numberOfSequences(void) {
     return(_sequencesLen);
   };
 
@@ -193,14 +224,11 @@ public:
     assert(cid < _columnsLen);
     return(_columns[cid]);
   };
-  
+
+public:
   uint32            _columnsLen;
   uint32            _columnsMax;
-  abColumn        **_columns;
-
-  char             *bases(void) { return(_cnsBases); };
-  uint8            *quals(void) { return(_cnsQuals); };
-
+  abColumn        **_columns;      //  Sized in refreshColumns()
   char             *_cnsBases;
   uint8            *_cnsQuals;
 
@@ -208,17 +236,28 @@ public:
 
 public:
 
-  struct beadID {
-    abColumn  *column;
-    uint16     link;
-  };
+  //  These maps are used to populate abSequence's first and last column pointers.
+  //    readToBead is the one we use for this.
+  //    beadToRead is used to ...?
+  //  This is updated 
+  map<uint32,beadID>  readTofBead;
+  map<beadID,uint32>  fbeadToRead;
 
-  map<beadID,uint32>  beadToRead;
-  map<uint32,beadID>  readToBead;
+  map<uint32,beadID>  readTolBead;
+  map<beadID,uint32>  lbeadToRead;
 
   //  This is the former abMultiAlign
+private:
+  //abBeadID        unalignBeadFromColumn(abBeadID bid);
+  //void            unalignTrailingGapBeads(abBeadID bid);
+
+  //void            checkColumnBaseCounts();
+
+  //void            lateralExchangeBead(abBeadID lid, abBeadID rid);
+
+
 public:
-  void                   mergeRefine(bool highQuality);
+  void                   mergeColumns(bool highQuality);
 
   void                   getConsensus(tgTig *tig);
   uint32                 getSequenceDeltas(uint32 sid, int32 *deltas);

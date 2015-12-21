@@ -50,14 +50,17 @@ abAbacus::appendBases(uint32  bid,
   abColumn *fc =                 getColumn(bgn);
   abColumn *lc = (end <= alen) ? getColumn(end-1) : getLastColumn();
 
+  uint16    fl = UINT16_MAX;
+  uint16    ll = UINT16_MAX;
+
   //  To get positions in output, we need to have both the first and last beads
   //  placed in the multialign.  The first bead is always aligned, but the last bead
   //  is aligned only if it is contained.
 
-  fc->alignBead(UINT16_MAX, bseq->getBase(0), bseq->getQual(0));
+  fl = fc->alignBead(UINT16_MAX, bseq->getBase(0), bseq->getQual(0));
 
   if (end <= alen)
-    lc->alignBead(UINT16_MAX, bseq->getBase(blen-1), bseq->getQual(blen-1));
+    ll = lc->alignBead(UINT16_MAX, bseq->getBase(blen-1), bseq->getQual(blen-1));
 
   //  If not contained, push on bases, and update the consensus base.  This is all _very_ rough.
   //  The unitig-supplied coordinates aren't guaranteed to contain 'blen' bases.  We make the
@@ -77,12 +80,20 @@ abAbacus::appendBases(uint32  bid,
 
   else
     for (uint32 bpos=blen - (end - alen); bpos<blen; bpos++) {
-      abColumn *newcol = new abColumn;
+      abColumn *nc = new abColumn;
 
-      newcol->insertAtEnd(lc, UINT16_MAX, bseq->getBase(bpos), bseq->getQual(bpos));
-
+      ll = nc->insertAtEnd(lc, UINT16_MAX, bseq->getBase(bpos), bseq->getQual(bpos));
+      lc = nc;
       //baseCallMajority(lc);
     }
+
+  //  Now set the first/last links.
+
+  beadID f(fc, fl);
+  beadID l(lc, ll);
+
+  readTofBead[bid] = f;  fbeadToRead[f] = bid;
+  readTolBead[bid] = l;  lbeadToRead[l] = bid;
 
   //  If we did this correctly, then the first/last column indices should agree with the read placement.
 
