@@ -77,6 +77,8 @@ abColumn::baseCallMajority(void) {
     uint8   qual  = _beads[ii]._qual;
     uint32  bidx  = baseToIndex[base];
 
+    assert(bidx < CNS_NUM_SYMBOLS);
+
     bsSum[bidx] += 1;
     qvSum[bidx] += qual;
   }
@@ -84,14 +86,18 @@ abColumn::baseCallMajority(void) {
   //  Find the best, and second best, ignore ties.
 
   uint32 bestIdx = 0;
-  uint32 nextIdx = 0;
+  uint32 nextIdx = 1;
 
-  for (uint32 i=0; i<CNS_NUM_SYMBOLS; i++)
-    if (((bsSum[i] >  bsSum[bestIdx])) ||
-        ((bsSum[i] >= bsSum[bestIdx]) && (qvSum[i] > qvSum[bestIdx]))) {
+  for (uint32 i=1; i<CNS_NUM_SYMBOLS; i++) {
+    if        (((bsSum[i] >  bsSum[bestIdx])) ||
+               ((bsSum[i] >= bsSum[bestIdx]) && (qvSum[i] > qvSum[bestIdx]))) {
       nextIdx = bestIdx;
       bestIdx = i;
+    } else if (((bsSum[i] >  bsSum[nextIdx])) ||
+               ((bsSum[i] >= bsSum[nextIdx]) && (qvSum[i] > qvSum[nextIdx]))) {
+      nextIdx = i;
     }
+  }
 
   //  Original version set QV to zero.
 
