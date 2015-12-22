@@ -297,21 +297,27 @@ unitigConsensus::generateQuick(tgTig                     *tig_,
     reportStartingWork();
 
     piid = -1;
-    computePositionFromLayout();
+    bool placed = computePositionFromLayout();
 
     gkRead  *read    = gkpStore->gkStore_getRead(utgpos[tiid].ident());
     uint32   readLen = read->gkRead_sequenceLength();
 
-    uint32   bHang   = cnspos[tiid].max() - frankensteinLen;
+    uint32 start = cnspos[tiid].min();
+    uint32 end = cnspos[tiid].max();
+
+    // if we couldn't place the read, fall back to utg positions
+    if (placed == false) {
+        start = frankensteinLen - 1;
+        end = start + readLen;
+    }
+
+    uint32   bHang   = end - frankensteinLen;
     if (bHang <= 0) {
        //  this read doesn't add anything, skip it
        continue;
     }
 
     //  check if our positions are wonky, adjust the end to match reality
-    uint32 start = cnspos[tiid].min();
-    uint32 end = cnspos[tiid].max();
-
     if (start > frankensteinLen) {
        start = frankensteinLen;
     }
