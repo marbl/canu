@@ -1135,7 +1135,7 @@ sub setDefaults () {
     $global{"cnsMaxCoverage"}              = 0;
     $synops{"cnsMaxCoverage"}              = "Limit unitig consensus to at most this coverage";
 
-    $global{"cnsConsensus"}                = "utgcns";
+    $global{"cnsConsensus"}                = "quick";
     $synops{"cnsConsensus"}                = "Which consensus algorithm to use; full consensus with 'utgcns', or quick approximation with 'quick'";
 
     #####  Correction Options

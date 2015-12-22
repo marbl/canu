@@ -176,14 +176,10 @@ while (scalar(@ARGV)) {
             setErrorRate(0.025);
             setGlobal("corErrorRate", "0.30");
             setGlobal("batOptions", "-RS -NS -CS");
-            setGlobal("cnsConsensus", "utgcns");
-            setGlobal("cnsMaxCoverage", 2);
         } elsif ($arg =~ m/nanopore/) {
             setErrorRate(0.045);
             setGlobal("corErrorRate", "0.50");
             setGlobal("batOptions", "-RS -NS -CS");
-            setGlobal("cnsConsensus", "quick");
-            setGlobal("cnsMaxCoverage", 1);
         }
 
         $mode = "trim-assemble"  if ($arg =~ m/corrected/);
