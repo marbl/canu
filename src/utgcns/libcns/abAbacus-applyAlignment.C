@@ -353,8 +353,6 @@ abColumn::insertAfter(abColumn *prev,      //  Add new column after 'prev'
   assert(prev              != NULL);
   assert(prev->_nextColumn != NULL);
 
-  assert(prevLink          != UINT16_MAX);
-
   //  Link in the new column (us!)
 
   _prevColumn = prev;
@@ -396,7 +394,8 @@ abColumn::insertAfter(abColumn *prev,      //  Add new column after 'prev'
 
   //  Don't forget to update the link to us!  (I forgot.)
 
-  _prevColumn->_beads[prevLink]._nextOffset = tpos;
+  if (prevLink != UINT16_MAX)
+    _prevColumn->_beads[prevLink]._nextOffset = tpos;
 
   baseCountIncr(base);
 
