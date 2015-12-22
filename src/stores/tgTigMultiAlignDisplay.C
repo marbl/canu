@@ -435,6 +435,9 @@ tgTig::display(FILE     *F,
 
   fprintf(F, "\n<<< end Contig %d >>>\n", tigID());
 
+  delete [] uruler;
+  delete [] gruler;
+
   for (uint32 i=0; i < 2 * lanesLen; i++)
     delete [] multia[i];
 
