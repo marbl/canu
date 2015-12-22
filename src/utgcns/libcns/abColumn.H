@@ -55,6 +55,8 @@
 
 #include "abBead.H"
 
+class abAbacus;
+
 class abColumn {
 public:
   abColumn() {
@@ -78,10 +80,13 @@ public:
   };
 
 
-  int32          &position(void)      { return(_columnPosition); };
+  int32     &position(void)      { return(_columnPosition); };
 
   uint32     depth(void)           { return(_beadsLen);      };
   uint32     baseCount(char c)     { return(_baseCounts[baseToIndex[c]]); };  //  NO CHECKING.
+
+  void       baseCountIncr(char c) { assert(baseToIndex[c] != UINT32_MAX);  _baseCounts[baseToIndex[c]]++; };
+  void       baseCountDecr(char c) { assert(baseToIndex[c] != UINT32_MAX);  _baseCounts[baseToIndex[c]]--; };
 
   //  Return the character with the highest base count, breaking ties deterministically (previous
   //  versions tried to be random).  The last highest count is used - if the mapping is -acgt, then
@@ -121,9 +126,7 @@ public:
 
 private:
   void            allocateInitialBeads(void);
-  void            inferPrevNextBeadPointers(char   base,
-                                            uint8  qual,
-                                            uint16 beadLink);
+  void            inferPrevNextBeadPointers(void);
 
 public:
   uint16          insertAtBegin(abColumn *first, uint16 prevLink, char base, uint8 qual);
@@ -133,7 +136,7 @@ public:
   uint16          alignBead(uint16 prevIndex, char base, uint8 qual);
 
   uint16          extendRead(abColumn *column, uint16 beadLink);
-  bool            mergeWithNext(bool highQuality);
+  bool            mergeWithNext(abAbacus *abacus, bool highQuality);
 
 private:
   void            baseCallMajority(void);
@@ -177,6 +180,68 @@ private:
   uint32          *_beadReadIDs;
 
   uint16           _baseCounts[CNS_NUM_SYMBOLS];
+
+
+public:
+  void             checkLinks(void) {
+    uint32  nErrors = 0;
+
+    for (uint32 tt=0; tt<_beadsLen; tt++) {
+      uint16 pl = _beads[tt].prevOffset();
+      uint16 nl = _beads[tt].nextOffset();
+
+      if ((prev() != NULL) && (pl != UINT16_MAX) && (prev()->_beads[pl].nextOffset() != tt))
+        fprintf(stderr, "ERROR: prev bead pl=%d nextOffset=%d != tt=%d\n",
+                pl, prev()->_beads[pl].nextOffset(), tt), nErrors++;
+      
+      if ((prev() == NULL) && (pl != UINT16_MAX))
+        fprintf(stderr, "no prev column, yet defined link for column %p bead %d\n",
+                this, tt), nErrors++;
+
+      if ((next() != NULL) && (nl != UINT16_MAX) && (next()->_beads[nl].prevOffset() != tt))
+        fprintf(stderr, "ERROR: next bead pl=%d prevOffset=%d != tt=%d\n",
+                nl, next()->_beads[nl].prevOffset(), tt), nErrors++;
+
+      if ((next() == NULL) && (nl != UINT16_MAX))
+        fprintf(stderr, "no next column, yet defined link for column %p bead %d\n",
+                this, tt), nErrors++;
+    }
+
+    if (nErrors == 0)
+      return;
+
+    fprintf(stderr, "column %d %p has %d error in links\n", position(), this, nErrors);
+    showLinks();
+
+    assert(nErrors == 0);
+  };
+
+  void             showLinks(uint16 ppos=UINT16_MAX, uint16 tpos=UINT16_MAX, uint16 npos=UINT16_MAX) {
+    uint16   pmax = (_prevColumn == NULL) ? 0 : _prevColumn->_beadsLen;
+    uint16   tmax =                                          _beadsLen;
+    uint16   nmax = (_nextColumn == NULL) ? 0 : _nextColumn->_beadsLen;
+
+    uint16   lim = max(max(pmax, tmax), nmax);
+
+    fprintf(stderr, "\n");
+    for (uint32 xx=0; xx<lim; xx++) {
+      fprintf(stderr, "column %d %p link %3d: %5d-%2d-%-5d %c -- %5d-%2d-%-5d %c -- %5d-%2d-%-5d %c\n",
+              position(), this, xx,
+              (xx < pmax) ? _prevColumn->_beads[xx].prevOffset() : UINT16_MAX,
+              xx,
+              (xx < pmax) ? _prevColumn->_beads[xx].nextOffset() : UINT16_MAX,
+              (xx == ppos) ? '*' : ' ',
+              (xx < tmax) ?              _beads[xx].prevOffset() : UINT16_MAX,
+              xx,
+              (xx < tmax) ?              _beads[xx].nextOffset() : UINT16_MAX,
+              (xx == tpos) ? '*' : ' ',
+              (xx < nmax) ? _nextColumn->_beads[xx].prevOffset() : UINT16_MAX,
+              xx,
+              (xx < nmax) ? _nextColumn->_beads[xx].nextOffset() : UINT16_MAX,
+              (xx == npos) ? '*' : ' ');
+      }
+  };
+
 
   friend class abAbacus;
   //  friend bool  mergeColumns(abColumn *lcolumn, abColumn *rcolumn);

@@ -73,7 +73,7 @@ static char *rcsid = "$Id$";
 void
 abAbacus::refreshColumns(void) {
 
-  fprintf(stderr, "abAbacus::refreshColumns()--\n");
+  //fprintf(stderr, "abAbacus::refreshColumns()--\n");
 
   //  Given that _firstColumn is a valid column, walk to the start of the column list.
 
@@ -119,7 +119,7 @@ abAbacus::refreshColumns(void) {
 void
 abAbacus::recallBases(bool highQuality) {
 
-  fprintf(stderr, "abAbacus::recallBases()--  highQuality=%d\n", highQuality);
+  //fprintf(stderr, "abAbacus::recallBases()--  highQuality=%d\n", highQuality);
 
   //  Given that _firstColumn is a valid column, walk to the start of the column list.
   //  We could use _columns[] instead.

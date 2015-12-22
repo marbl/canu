@@ -88,7 +88,6 @@ abColumn::extendRead(abColumn *column, uint16 beadLink) {
     assert(_nextColumn == column);
 
     _beads[link]._prevOffset = UINT16_MAX;
-    _beads[link]._thisOffset = link;
     _beads[link]._nextOffset = beadLink;
 
     column->_beads[beadLink]._prevOffset = link;
@@ -98,7 +97,6 @@ abColumn::extendRead(abColumn *column, uint16 beadLink) {
     assert(_prevColumn == column);
 
     _beads[link]._prevOffset = beadLink;
-    _beads[link]._thisOffset = link;
     _beads[link]._nextOffset = UINT16_MAX;
 
     column->_beads[beadLink]._nextOffset = link;
@@ -113,15 +111,21 @@ abColumn::extendRead(abColumn *column, uint16 beadLink) {
 //  an actual base in both columns.
 
 bool
-abColumn::mergeWithNext(bool highQuality) {
+abColumn::mergeWithNext(abAbacus *abacus, bool highQuality) {
   abColumn *lcolumn = this;
   abColumn *rcolumn = next();
+  abColumn *ncolumn = next()->next();  //  The column after rcolumn.
 
   assert(lcolumn != NULL);
   assert(rcolumn != NULL);
 
   assert(lcolumn->next() == rcolumn);
   assert(rcolumn->prev() == lcolumn);
+
+#if 0
+  lcolumn->checkLinks();
+  rcolumn->checkLinks();
+#endif
 
   //  If both columns have a non-gap (for a single read), we cannot merge.
 
@@ -134,12 +138,25 @@ abColumn::mergeWithNext(bool highQuality) {
       return(false);
   }
 
+#if 0
+  fprintf(stderr, "MERGE columns %d %p <-  %d %p\n",
+          lcolumn->position(), lcolumn,
+          rcolumn->position(), rcolumn);
+
+  fprintf(stderr, "rcolumn links\n");
+  rcolumn->showLinks();
+
+  lcolumn->checkLinks();
+  rcolumn->checkLinks();
+  ncolumn->checkLinks();
+#endif
+
   //  OK to merge.  Merge all the bases from the right column to the current column.  We already
   //  checked that whenever the right column has a base, the left column has a gap, so just march
   //  down the right column and move those bases over!
 
-  for (uint32 rr=0; rr<rcolumn->_beadsLen; rr++) {
-    uint32  ll = rcolumn->_beads[rr].prevOffset();
+  for (uint16 rr=0; rr<rcolumn->_beadsLen; rr++) {
+    uint16  ll = rcolumn->_beads[rr].prevOffset();
 
     //  Ignore the gaps.
 
@@ -149,27 +166,132 @@ abColumn::mergeWithNext(bool highQuality) {
     //  Oh, great.  We just found the end of a read.  We need to link in the gap (in lcolumn)
     //  before we can swap.  Correction: we need to ADD a gap (in lcolumn) before we can swap.
 
-    if (ll == UINT16_MAX)
+    if (ll == UINT16_MAX) {
+      fprintf(stderr, "EXTEND READ at rr=%d\n", rr);
       ll = lcolumn->extendRead(rcolumn, rr);
+    }
 
-    //  The simple case, just swap the contents.
+    //  The simple case: just swap the contents.
+
+#if 0
+    fprintf(stderr, "mergeWithNext()-- swap beads lcolumn %d %c and rcolumn %d %c\n",
+            ll, lcolumn->_beads[ll].base(),
+            rr, rcolumn->_beads[rr].base());
+#endif
+
+    lcolumn->baseCountDecr(lcolumn->_beads[ll].base());
+    rcolumn->baseCountDecr(rcolumn->_beads[rr].base());  //  We don't really care about rcolumn.
 
     swap(lcolumn->_beads[ll], rcolumn->_beads[rr]);
+
+    lcolumn->baseCountIncr(lcolumn->_beads[ll].base());
+    rcolumn->baseCountIncr(rcolumn->_beads[rr].base());
   }
 
-  //  Check that all bases in the rcolumn are now empty.
+  //  The rcolumn should now be full of gaps.  (We could just test that baseCount('-') == depth()
 
   for (uint32 rr=0; rr<rcolumn->_beadsLen; rr++)
     assert(rcolumn->_beads[rr].base() == '-');
 
-  //  Yank the column out of the list and dispose of it properly.  Please don't litter!
+#if 0
+  lcolumn->checkLinks();
+  rcolumn->checkLinks();
+  ncolumn->checkLinks();
+#endif
+
+  //  To make checkLinks() work, we need to unlink rcolumn from the column list right now.
 
   if (rcolumn->_prevColumn)   rcolumn->_prevColumn->_nextColumn = rcolumn->_nextColumn;
   if (rcolumn->_nextColumn)   rcolumn->_nextColumn->_prevColumn = rcolumn->_prevColumn;
 
-  delete rcolumn;
+  assert(ncolumn == rcolumn->next());
+  assert(ncolumn == next());
 
-  //  Finally, recall the base for this column.
+  //  Before the rcolumn can be removed, we need to unlink it from the bead link list.  If there is a column after rcolumn,
+  //  we need to move rcolumn's link pointers to lcolumn (prev) and ncolumn (next).
+  //
+  //  The actual example (,'s indicate no bases because the read ended):
+  //
+  //          1234    Column 2 is merged into column 1, and then we delete column 2.
+  //    1  -aa-aaa     
+  //    2  gaaT,,,       Column 1 read 4 has _beads position 3.            (next = 1)
+  //    3  gaaT,,,       Column 2 read 4 has _beads position 1.  (prev = 3, next = 1)
+  //    4  -aa-aaa       Column 3 read 4 has _beads position 1.  (prev = 1)
+  //    5  -aa-aaa     When column 2 is deleted, we're left with a busted link back from col 3 read 4; it should be 3
+  //    6  gaa,,,,
+
+#if 0
+  fprintf(stderr, "rcolumn links before fixing\n");
+  rcolumn->showLinks();
+#endif
+
+  if (ncolumn != NULL) {
+    for (uint32 rr=0; rr<rcolumn->_beadsLen; rr++) {
+      uint16  bl = rcolumn->_beads[rr].prevOffset();  //  back link from deleted column to lcolumn -> set as ncolumns back link (known as ll above)
+      uint16  fl = rcolumn->_beads[rr].nextOffset();  //  forw link from deleted column to ncolumn -> set as lcolumns forw link
+
+#if 0
+      fprintf(stderr, "in rcolumn bead rr=%d prev=%d next=%d\n", rr, bl, fl);
+#endif
+
+      if (bl != UINT16_MAX)   lcolumn->_beads[bl]._nextOffset = fl;
+      if (fl != UINT16_MAX)   ncolumn->_beads[fl]._prevOffset = bl;
+    }
+  }
+
+#if 0
+  fprintf(stderr, "rcolumn links after fixing\n");
+  rcolumn->showLinks();
+#endif
+
+  lcolumn->checkLinks();
+  ncolumn->checkLinks();
+
+  //  Update the beadID <-> readID map for any beads we moved.  This can be done by searching
+  //  rcolumn for any bead in the map, and resetting it to the bead in lcolumn (found using the
+  //  still-valid back link).
+
+  for (uint16 rr=0; rr<rcolumn->_beadsLen; rr++) {
+    uint16  ll = rcolumn->_beads[rr].prevOffset();
+
+    beadID oldb(rcolumn, rr);
+    beadID newb(lcolumn, ll);
+
+    map<beadID,uint32>::iterator  fit = abacus->fbeadToRead.find(oldb);  //  Does old bead exist
+    map<beadID,uint32>::iterator  lit = abacus->lbeadToRead.find(oldb);  //  in either map?
+
+    if (fit != abacus->fbeadToRead.end()) {
+      uint32  rid = fit->second;
+
+#if 0
+      fprintf(stderr, "mergeWithNext()-- move fbeadToRead from %p/%d to %p/%d for read %d\n", rid, rcolumn, rr, lcolumn, ll, rid);
+#endif
+
+      abacus->fbeadToRead.erase(fit);     //  Remove the old bead to read pointer
+
+      abacus->fbeadToRead[newb] = rid;    //  Add a new bead to read pointer
+      abacus->readTofBead[rid]  = newb;   //  Update the read to bead pointer
+    }
+
+    if (lit != abacus->lbeadToRead.end()) {
+      uint32  rid = lit->second;
+
+#if 0
+      fprintf(stderr, "mergeWithNext()-- move lbeadToRead from %p/%d to %p/%d for read %d\n", rcolumn, rr, lcolumn, ll, rid);
+#endif
+
+      abacus->lbeadToRead.erase(lit);
+
+      abacus->lbeadToRead[newb] = rid;
+      abacus->readTolBead[rid]  = newb;
+    }
+  }
+
+  //  Now, finally, we're done.  Remove the old column, recall the base, and do a final check.
+
+  //fprintf(stderr, "mergeWithNext()--  Remove rcolumn %d %p\n", rcolumn->position(), rcolumn);
+
+  delete rcolumn;
 
   baseCall(highQuality);
 
@@ -198,11 +320,16 @@ abAbacus::mergeColumns(bool highQuality) {
 
   assert(column->prev() == NULL);
 
+#if 0
+  fprintf(stderr, "mergeColumns()--\n");
+  display(stderr);
+#endif
+
   //  If we merge, update the base call, and stay here to try another merge of the now different
   //  next column.  Otherwise, we didn't merge anything, so advance to the next column.
 
   while (column->next()) {
-    if (column->mergeWithNext(highQuality) == true)
+    if (column->mergeWithNext(this, highQuality) == true)
       somethingMerged = true;
     else
       column = column->next();

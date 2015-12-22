@@ -69,19 +69,16 @@ public:
     _base       = '-';
     _qual       = 0;
     _prevOffset = UINT16_MAX;
-    _thisOffset = UINT16_MAX;
     _nextOffset = UINT16_MAX;
   };
 
   void         initialize(char   base,
                          uint8   qual,
                          uint16  prevOff,
-                         uint16  thisOff,
                          uint16  nextOff) {
     _base       = base;
     _qual       = qual;
     _prevOffset = prevOff;
-    _thisOffset = thisOff;
     _nextOffset = nextOff;
   };
 
@@ -90,37 +87,36 @@ public:  //  ACCESSORS
   char         qual(void)          { return(_qual);      };  //    reset with swap()
 
   uint16       prevOffset(void)   { return(_prevOffset); };  //  Generally set only at init,
-  uint16       thisOffset(void)   { return(_thisOffset); };  //    but can change when gap
   uint16       nextOffset(void)   { return(_nextOffset); };  //    columns are added
 
 public:  //  METHODS
 
 private:
-  uint16      _unused:1;
-  uint16      _isRead:1;     //  If set, base is from an actual read, use it for consensus.
-  uint16      _isUnitig:1;   //  If set, base is from a unitig, don't use it for consensus (unless needed).
-  uint16      _base:7;       //  Base at this position.  (eventually will be encoded to 3 bits)
-  uint16      _qual:6;       //  Quality at this position.
+  uint16       _unused:1;
+  uint16       _isRead:1;     //  If set, base is from an actual read, use it for consensus.
+  uint16       _isUnitig:1;   //  If set, base is from a unitig, don't use it for consensus (unless needed).
+  uint16       _base:7;       //  Base at this position.  (eventually will be encoded to 3 bits)
+  uint16       _qual:6;       //  Quality at this position.
 
-  uint16      _prevOffset;  //  Position in the array of beads for the previous column
-  uint16      _thisOffset;  //  Position in the arary of beads for this column
-  uint16      _nextOffset;  //  Position in the array of beads for the next column
+  uint16       _prevOffset;  //  Position in the array of beads for the previous column
+  uint16 unused_thisOffset;  //  Position in the arary of beads for this column
+  uint16       _nextOffset;  //  Position in the array of beads for the next column
 
   friend class abAbacus;
-  friend class abColumn;  //void abColumn::inferPrevNextBeadPointers(void);
+  friend class abColumn;  //  inferPrevNextBeadPointers(), mergeWithNext()
 
-  friend void swap(abBead *a, abBead *b);
+  friend void swap(abBead &a, abBead &b);
 };
 
 
 inline
 void
-swap(abBead *a, abBead *b) {
-  abBead cc;
+swap(abBead &a, abBead &b) {
+  abBead c;
 
-  cc._isRead = b->_isRead; cc._isUnitig = b->_isUnitig; cc._base = b->_base; cc._qual = b->_qual;
-  b->_isRead = a->_isRead; b->_isUnitig = a->_isUnitig; b->_base = a->_base; b->_qual = a->_qual;
-  a->_isRead = cc._isRead; a->_isUnitig = cc._isUnitig; a->_base = cc._base; a->_qual = cc._qual;
+  c._isRead = b._isRead; c._isUnitig = b._isUnitig; c._base = b._base; c._qual = b._qual;
+  b._isRead = a._isRead; b._isUnitig = a._isUnitig; b._base = a._base; b._qual = a._qual;
+  a._isRead = c._isRead; a._isUnitig = c._isUnitig; a._base = c._base; a._qual = c._qual;
 }
 
 

@@ -81,19 +81,27 @@ abColumn::baseCallMajority(void) {
     qvSum[bidx] += qual;
   }
 
-  //  Find the best, ignore ties.
+  //  Find the best, and second best, ignore ties.
 
-  uint32 bestIdx  = 0;
+  uint32 bestIdx = 0;
+  uint32 nextIdx = 0;
 
   for (uint32 i=0; i<CNS_NUM_SYMBOLS; i++)
     if (((bsSum[i] >  bsSum[bestIdx])) ||
-        ((bsSum[i] >= bsSum[bestIdx]) && (qvSum[i] > qvSum[bestIdx])))
-      bestIdx  = i;
+        ((bsSum[i] >= bsSum[bestIdx]) && (qvSum[i] > qvSum[bestIdx]))) {
+      nextIdx = bestIdx;
+      bestIdx = i;
+    }
 
   //  Original version set QV to zero.
 
   _call = indexToBase[bestIdx];
   _qual = 0;
+
+  //  If the best is a gap, use the lowercase second best - the alignment will trest this specially
+
+  if (_call == '-')
+    _call = indexToBase[nextIdx] - 'A' + 'a';
 }
 
 

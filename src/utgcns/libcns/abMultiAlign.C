@@ -76,6 +76,10 @@ abAbacus::getConsensus(tgTig *tig) {
 
   tig->_gappedBases[_columnsLen] = 0;
   tig->_gappedQuals[_columnsLen] = 0;
+
+  //  And set the length.
+
+  tig->_gappedLen = _columnsLen;
 }
 
 
@@ -118,6 +122,8 @@ abAbacus::getSequenceDeltas(uint32    sid,
   uint32              bp     = 0;
 
   while (link != UINT16_MAX) {
+    assert(column != NULL);
+
     char   base = column->_beads[link].base();
 
     if (base == '-') {
@@ -174,26 +180,6 @@ abAbacus::getPositions(tgTig *tig) {
     assert(fBead.column != NULL);
     assert(lBead.column != NULL);
 
-    //  Find the last bead, so we can find the last column, and thus the end coordinate.
-
-#if 0
-    uint16  nextLink = lBead.column->_beads[ lBead.link ].nextOffset();
-
-    while (nextLink != UINT16_MAX) {
-      //fprintf(stderr, "lBead %p link %u prev/this/next %d/%d/%d\n",
-      //        lBead.column, lBead.link,
-      //        lBead.column->_beads[lBead.link].prevOffset(),
-      //        lBead.column->_beads[lBead.link].thisOffset(),
-      //        lBead.column->_beads[lBead.link].nextOffset());
-
-      lBead.link   = nextLink;
-      lBead.column = lBead.column->next();
-
-      nextLink     = lBead.column->_beads[ lBead.link ].nextOffset();
-    }
-    fprintf(stderr, "lBead %p link %u\n", lBead.column, lBead.link);
-#endif
-
     //  Positions are zero-based and inclusive.  The end position gets one added to it to make it true space-based.
 
     int32 min = fBead.column->position();
@@ -238,18 +224,6 @@ void
 abAbacus::display(FILE *F) {
   int32   pageWidth = 250;
 
-#if 0
-  char   *sequence = new char [numberOfColumns() + 1];
-  char   *quality  = new char [numberOfColumns() + 1];
-  uint32  len      = 0;
-
-  memcpy(sequence, _cnsBases, sizeof(char)  * _columnsLen);
-  memcpy(quality,  _cnsQuals, sizeof(uint8) * _columnsLen);
-
-  getConsensus(sequence, quality, len, numberOfColumns() + 1);
-#else
-#endif
-
   //  For display, offset the quals to Sanger spec.
   for (uint32 ii=0; ii<numberOfColumns(); ii++)
     _cnsQuals[ii] += '!';
@@ -286,7 +260,6 @@ abAbacus::display(FILE *F) {
     }
   }
 
-
   fprintf(F,"\n==================== abAbacus::display ====================\n");
 
   for (uint32 window_start=0; window_start < numberOfColumns(); ) {
@@ -315,7 +288,7 @@ abAbacus::display(FILE *F) {
 
         //  Starting in the middle of the sequence.
         else if ((bgn[i] <= wi) &&
-                 (wi     <  end[i])) {
+                 (wi     <= end[i])) {
 
           if (fit[i].column == NULL) {
             fit[i] = readTofBead[i];
@@ -340,7 +313,7 @@ abAbacus::display(FILE *F) {
         }
 
         //  Spaces after the read
-        else if (end[i] <= wi) {
+        else if (end[i] < wi) {
           fprintf(F, ",");
         }
 

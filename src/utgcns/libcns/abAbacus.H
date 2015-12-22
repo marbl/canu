@@ -161,6 +161,9 @@ public:
       initializeGlobals();
   };
   ~abAbacus() {
+    for (uint32 ss=0; ss<_sequencesLen; ss++)
+      delete _sequences[ss];
+
     delete [] _sequences;
     delete [] _columns;
     delete [] _cnsBases;
