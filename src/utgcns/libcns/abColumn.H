@@ -53,6 +53,8 @@
 #ifndef ABCOLUMN_H
 #define ABCOLUMN_H
 
+#undef BASECOUNT  //  Used in abAbacus-refine.C, which is disabled.
+
 #include "abBead.H"
 
 class abAbacus;
@@ -68,23 +70,30 @@ public:
     _beadsMax       = 0;
     _beadsLen       = 0;
     _beads          = NULL;
+#if 0
     _beadReadIDs    = NULL;
+#endif
 
+#ifdef BASECOUNT
     for (int32 ii=0; ii<CNS_NUM_SYMBOLS; ii++)
       _baseCounts[ii]  = 0;
+#endif
   };
 
   ~abColumn() {
     delete [] _beads;
+#if 0
     delete [] _beadReadIDs;
+#endif
   };
 
 
   int32     &position(void)      { return(_columnPosition); };
 
   uint32     depth(void)           { return(_beadsLen);      };
-  uint32     baseCount(char c)     { return(_baseCounts[baseToIndex[c]]); };  //  NO CHECKING.
 
+#ifdef BASECOUNT
+  uint32     baseCount(char c)     { return(_baseCounts[baseToIndex[c]]); };  //  NO CHECKING.
   void       baseCountIncr(char c) { assert(baseToIndex[c] != UINT32_MAX);  _baseCounts[baseToIndex[c]]++; };
   void       baseCountDecr(char c) { assert(baseToIndex[c] != UINT32_MAX);  _baseCounts[baseToIndex[c]]--; };
 
@@ -110,11 +119,12 @@ public:
     return(depth() - majorityCount(false));
   }
 
-  //  For a little bit of sanity, the original consensus used to (ifdef) recompute the base counts
-  //  every so often.  A better idea would be to do this when calling consensus (since we go through
-  //  everything anyway).  Left in as a reminder to do something like that.
-  //void       checkBaseCounts(void) {
-  //};
+#else
+  uint32     baseCount(char )      { return(0); };  //  Just a stub so abAbacus-refine.C will compile
+  char       majorityBase(bool )   { return(0); };
+  uint32     mismatchCount(void)   { return(0); };
+#endif
+
 
 
   char            baseCall(void)      { return(_call); };
@@ -162,8 +172,6 @@ private:
   abColumn        *_prevColumn;
   abColumn        *_nextColumn;
 
-  //abBaseCount      _baseCounts;
-
 public:
   abBead           *bead(uint32 ii) { return(_beads + ii); };
 private:
@@ -172,15 +180,21 @@ private:
   abBead          *_beads;
 
 
-  //  If allocated, the read idx (NOT gkpID) for each bead in the column
+  //  If allocated, the read idx (NOT gkpID) for each bead in the column.  This will
+  //  be used to (efficiently) map arbitrary columns back to their reads when refining abacus
+  //  layouts.  The data is never populated (needs to be done in applyAlignment()).
+  //  
+#if 0
 public:
   bool             beadReadIDsExist(void)   { return(_beadReadIDs != NULL); };
   uint32           beadReadID(uint32 xx)    { return(_beadReadIDs[xx]);     };
 private:
   uint32          *_beadReadIDs;
+#endif
 
+#ifdef BASECOUNT
   uint16           _baseCounts[CNS_NUM_SYMBOLS];
-
+#endif
 
 public:
   void             checkLinks(void) {

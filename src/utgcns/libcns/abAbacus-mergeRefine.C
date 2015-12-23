@@ -179,13 +179,17 @@ abColumn::mergeWithNext(abAbacus *abacus, bool highQuality) {
             rr, rcolumn->_beads[rr].base());
 #endif
 
+#ifdef BASECOUNT
     lcolumn->baseCountDecr(lcolumn->_beads[ll].base());
     rcolumn->baseCountDecr(rcolumn->_beads[rr].base());  //  We don't really care about rcolumn.
+#endif
 
     swap(lcolumn->_beads[ll], rcolumn->_beads[rr]);
 
+#ifdef BASECOUNT
     lcolumn->baseCountIncr(lcolumn->_beads[ll].base());
     rcolumn->baseCountIncr(rcolumn->_beads[rr].base());
+#endif
   }
 
   //  The rcolumn should now be full of gaps.  (We could just test that baseCount('-') == depth()

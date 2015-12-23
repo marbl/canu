@@ -269,7 +269,9 @@ abColumn::insertAtBegin(abColumn *first, uint16 prevLink, char base, uint8 qual)
   if (_prevColumn)
     _prevColumn->_beads[prevLink]._nextOffset = 0;
 
+#ifdef BASECOUNT
   baseCountIncr(base);
+#endif
 
   //  With only the one read, we don't need to do any base calling here.
 
@@ -327,7 +329,9 @@ abColumn::insertAtEnd(abColumn *prev, uint16 prevLink, char base, uint8 qual) {
   if (prev)
     prev->_beads[prevLink]._nextOffset = 0;
 
+#ifdef BASECOUNT
   baseCountIncr(base);
+#endif
 
   //  With only the one read, we don't need to do any base calling here.
 
@@ -401,7 +405,9 @@ abColumn::insertAfter(abColumn *prev,      //  Add new column after 'prev'
   if (prevLink != UINT16_MAX)
     _prevColumn->_beads[prevLink]._nextOffset = tpos;
 
+#ifdef BASECOUNT
   baseCountIncr(base);
+#endif
   baseCall(false);       //  We need to recall the base, using the majority vote.
 
 #ifdef DEBUG_ABACUS_ALIGN
@@ -450,7 +456,9 @@ abColumn::alignBead(uint16 prevIndex, char base, uint8 qual) {
 
   //  increment the base count too!
 
+#ifdef BASECOUNT
   baseCountIncr(base);
+#endif
   baseCall(false);       //  We need to recall the base, using the majority vote.
 
 #ifdef CHECK_LINKS

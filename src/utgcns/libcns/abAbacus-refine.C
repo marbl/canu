@@ -292,8 +292,9 @@ abAbacusWork::abAbacusWork(abAbacus  *abacus,
     abColumn *bColumn = bgn;
     uint16    bLink   = UINT16_MAX;
 
-    //  Find the earliest column with a link map.
+    //  Find the earliest column with a link map.  The data for this is NOT IMPLEMENTED.
 
+#if 0
     while (bColumn->beadReadIDsExist() == false)
       bColumn = bColumn->prev();
 
@@ -304,6 +305,7 @@ abAbacusWork::abAbacusWork(abAbacus  *abacus,
         bLink = ll;
         break;
       }
+#endif
 
     assert(bLink != UINT16_MAX);
 

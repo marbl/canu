@@ -83,11 +83,11 @@ public:
   };
 
 public:  //  ACCESSORS
-  char         base(void)          { return(_base);      };  //  Set only at init, or maybe
-  char         qual(void)          { return(_qual);      };  //    reset with swap()
+  char         base(void)          { return(_base);       };  //  Set only at init, or maybe
+  char         qual(void)          { return(_qual);       };  //    reset with swap()
 
-  uint16       prevOffset(void)   { return(_prevOffset); };  //  Generally set only at init,
-  uint16       nextOffset(void)   { return(_nextOffset); };  //    columns are added
+  uint16       prevOffset(void)    { return(_prevOffset); };  //  Generally set only at init,
+  uint16       nextOffset(void)    { return(_nextOffset); };  //    columns are added
 
 public:  //  METHODS
 
