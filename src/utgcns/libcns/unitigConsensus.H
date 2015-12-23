@@ -109,7 +109,8 @@ public:
   int32  computePositionFromLayout(void);
   int32  computePositionFromAlignment(void);
 
-  void   rebuild(bool recomputeFullConsensus, bool display);
+  void   recomputeConsensus(bool display);
+  void   refreshPositions(void);
 
   bool   rejectAlignment(bool allowBhang, bool allowAhang, ALNoverlap *O);
 

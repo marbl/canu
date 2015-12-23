@@ -80,7 +80,7 @@ main (int argc, char **argv) {
 
   bool      forceCompute   = false;
 
-  double    errorRate      = 0.06;
+  double    errorRate      = 0.12;
   double    errorRateMax   = 0.40;
   uint32    minOverlap     = 40;
 

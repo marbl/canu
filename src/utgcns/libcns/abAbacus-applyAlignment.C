@@ -271,6 +271,8 @@ abColumn::insertAtBegin(abColumn *first, uint16 prevLink, char base, uint8 qual)
 
   baseCountIncr(base);
 
+  //  With only the one read, we don't need to do any base calling here.
+
 #ifdef DEBUG_ABACUS_ALIGN
   fprintf(stderr, "insertAtBegin()-- column prev=%p next=%p  link prev=%d this=%d next=%d\n",
           _prevColumn, this, _nextColumn, _beads[0]._prevOffset, _beads[0]._nextOffset);
@@ -326,6 +328,8 @@ abColumn::insertAtEnd(abColumn *prev, uint16 prevLink, char base, uint8 qual) {
     prev->_beads[prevLink]._nextOffset = 0;
 
   baseCountIncr(base);
+
+  //  With only the one read, we don't need to do any base calling here.
 
 #ifdef DEBUG_ABACUS_ALIGN
   fprintf(stderr, "insertAtEnd()-- column prev=%p this=%p next=%p  link prev=%d next=%d\n",
@@ -398,6 +402,7 @@ abColumn::insertAfter(abColumn *prev,      //  Add new column after 'prev'
     _prevColumn->_beads[prevLink]._nextOffset = tpos;
 
   baseCountIncr(base);
+  baseCall(false);       //  We need to recall the base, using the majority vote.
 
 #ifdef DEBUG_ABACUS_ALIGN
   fprintf(stderr, "insertAfter()-- column prev=%d this=%p next=%d  link %d prev=%d next=%d\n",
@@ -407,7 +412,10 @@ abColumn::insertAfter(abColumn *prev,      //  Add new column after 'prev'
 #ifdef DEBUG_INFER
   showLinks();
 #endif
+
+#ifdef CHECK_LINKS
   checkLinks();
+#endif
 
   return(tpos);
 }
@@ -443,8 +451,11 @@ abColumn::alignBead(uint16 prevIndex, char base, uint8 qual) {
   //  increment the base count too!
 
   baseCountIncr(base);
+  baseCall(false);       //  We need to recall the base, using the majority vote.
 
+#ifdef CHECK_LINKS
   checkLinks();
+#endif
 
   //  Return the index of the bead we just added (for future linking)
 
@@ -671,7 +682,9 @@ abAbacus::applyAlignment(uint32    bid,
     pcolumn = newcol;
     bpos++;
 
+#ifdef CHECK_LINKS
     newcol->checkLinks();
+#endif
   }
 
   //  Insert the first and last beads into our tracking maps.
@@ -698,4 +711,9 @@ abAbacus::applyAlignment(uint32    bid,
 
   if (_firstColumn == NULL)
     _firstColumn = fBead.column;
+
+  //  Finally, recall bases (not needed; done inline when bases are aligned) and refresh the column/cnsBases/cnsQuals lists.
+
+  //recallBases(false);
+  refreshColumns();
 }

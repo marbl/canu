@@ -211,13 +211,13 @@ unitigConsensus::generate(tgTig                     *tig_,
     if (showAlgorithm())
       fprintf(stderr, "generateMultiAlignment()-- recompute full consensus\n");
 
-    rebuild(true, showMultiAlignments());
+    recomputeConsensus(showMultiAlignments());
 
     if (computePositionFromAnchor()    && alignFragment())  goto applyAlignment;
     if (computePositionFromLayout()    && alignFragment())  goto applyAlignment;
     if (computePositionFromAlignment() && alignFragment())  goto applyAlignment;
 
-    //  Third attempot, use whatever aligns.
+    //  Third attempot, use whatever aligns.  (alignFragment(true) forced it to align, but that's breaking the consensus with garbage alignments)
 
     if (computePositionFromAlignment() && alignFragment(true))  goto applyAlignment;
 
@@ -233,9 +233,8 @@ unitigConsensus::generate(tgTig                     *tig_,
     reportSuccess();
 
     abacus->applyAlignment(tiid, traceABgn, traceBBgn, trace, traceLen);
-  abacus->refreshColumns();
 
-    rebuild(false, showMultiAlignments());
+    refreshPositions();
   }
 
   generateConsensus(tig);
@@ -289,7 +288,7 @@ unitigConsensus::generateQuick(tgTig                     *tig_,
     //  I _think_ we need to rebuild iff bases are added.  This also resets positions for each read.
     //  Until someone complains this is too slow, it's left in.
 
-    rebuild(false, false);
+    refreshPositions();
   }
 
   generateConsensus(tig);
@@ -685,25 +684,38 @@ unitigConsensus::computePositionFromAlignment(void) {
 
 
 void
-unitigConsensus::rebuild(bool recomputeFullConsensus, bool display) {
+unitigConsensus::generateConsensus(tgTig *tig) {
 
-  abacus->refreshColumns();    //  Needed??
-  abacus->recallBases(false);  //  Needed?
+  abacus->recallBases(true);  //  Do one last base call, using the full works.
 
-  //  Run abacus to rebuild an intermediate consensus sequence.  VERY expensive.
-  //
-  if (recomputeFullConsensus == true) {
-    abacus->refine(abAbacus_Smooth);
-    abacus->mergeColumns(false);
+  abacus->refine(abAbacus_Smooth);
+  abacus->mergeColumns(true);
 
-    abacus->refine(abAbacus_Poly_X);
-    abacus->mergeColumns(false);
+  abacus->refine(abAbacus_Poly_X);
+  abacus->mergeColumns(true);
 
-    abacus->refine(abAbacus_Indel);
-    abacus->mergeColumns(false);
-  }
+  abacus->refine(abAbacus_Indel);
+  abacus->mergeColumns(true);
 
-  //  Update the position of each fragment in the consensus sequence.
+  abacus->recallBases(true);  //  The bases are possibly all recalled, depending on the above refinements keeping things consistent.
+  //abacus->refreshColumns();    //  Definitely needed, this copies base calls into _cnsBases and _cnsQuals.
+
+  //  Copy the consensus and positions into the tig.
+
+  abacus->getConsensus(tig);
+  abacus->getPositions(tig);
+
+  //  While we have fragments in memory, compute the microhet probability.  Ideally, this would be
+  //  done in CGW when loading unitigs (the only place the probability is used) but the code wants
+  //  to load sequence and quality for every fragment, and that's too expensive.
+}
+
+
+
+//  Update the position of each fragment in the consensus sequence.
+//  Update the anchor/hang of the fragment we just placed.
+void
+unitigConsensus::refreshPositions(void) {
 
   for (int32 i=0; i<=tiid; i++) {
     if ((cnspos[i].min() == 0) &&
@@ -722,14 +734,35 @@ unitigConsensus::rebuild(bool recomputeFullConsensus, bool display) {
     assert(cnspos[i].max() > cnspos[i].min());
   }
 
-  //  Finally, update the anchor/hang of the fragment we just placed.
-
   if (piid >= 0)
     utgpos[tiid].setAnchor(utgpos[piid].ident(),
                            cnspos[tiid].min() - cnspos[piid].min(),
                            cnspos[tiid].max() - cnspos[piid].max());
 
   piid = -1;
+}
+
+
+
+//  Run abacus to rebuild the consensus sequence.  VERY expensive.
+void
+unitigConsensus::recomputeConsensus(bool display) {
+
+  //abacus->recallBases(false);  //  Needed?  We should be up to date.
+
+  abacus->refine(abAbacus_Smooth);
+  abacus->mergeColumns(false);
+
+  abacus->refine(abAbacus_Poly_X);
+  abacus->mergeColumns(false);
+
+  abacus->refine(abAbacus_Indel);
+  abacus->mergeColumns(false);
+
+  abacus->recallBases(false);  //  Possibly not needed.  If this is removed, the following refresh is definitely needed.
+  //abacus->refreshColumns();    //  Definitely needed, this copies base calls into _cnsBases and _cnsQuals.
+
+  refreshPositions();
 
   if (display)
     abacus->display(stderr);
@@ -793,10 +826,10 @@ unitigConsensus::alignFragment(bool forceAlignment) {
   if (fragEnd > fragLen)
     fragEnd = fragLen;
 
-  int32  bgnExtra = expectedAlignLen / 32;  //  Start with a small 'extra' allowance, easy to make bigger.
-  int32  endExtra = expectedAlignLen / 32;
+  int32  bgnExtra = 100;  //  Start with a small 'extra' allowance, easy to make bigger.
+  int32  endExtra = 100;
 
-  int32  trimStep = expectedAlignLen / 32;
+  int32  trimStep = max(100, expectedAlignLen / 50);
 
   //  Find an alignment!
 
@@ -999,34 +1032,4 @@ unitigConsensus::alignFragment(bool forceAlignment) {
   trace[traceLen] = 0;
 
   return(true);
-}
-
-
-
-void
-unitigConsensus::generateConsensus(tgTig *tig) {
-
-  abacus->refreshColumns();   //  Needed??
-  abacus->recallBases(true);  //  Needed?
-
-  abacus->refine(abAbacus_Smooth);
-  abacus->mergeColumns(true);
-
-  abacus->refine(abAbacus_Poly_X);
-  abacus->mergeColumns(true);
-
-  abacus->refine(abAbacus_Indel);
-  abacus->mergeColumns(true);
-
-  abacus->refreshColumns();   //  Still neded??
-  abacus->recallBases(true);  //  Still needed??
-
-  //  Copy the consensus and positions into the tig.
-
-  abacus->getConsensus(tig);
-  abacus->getPositions(tig);
-
-  //  While we have fragments in memory, compute the microhet probability.  Ideally, this would be
-  //  done in CGW when loading unitigs (the only place the probability is used) but the code wants
-  //  to load sequence and quality for every fragment, and that's too expensive.
 }
