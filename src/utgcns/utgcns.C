@@ -298,6 +298,13 @@ main (int argc, char **argv) {
       fprintf(stderr, "Failed to open input package file '%s': %s\n", inPackageName, strerror(errno)), exit(1);
   }
 
+  //  Report some sizes.
+
+  fprintf(stderr, "sizeof(abBead)     "F_SIZE_T"\n", sizeof(abBead));
+  fprintf(stderr, "sizeof(abColumn)   "F_SIZE_T"\n", sizeof(abColumn));
+  fprintf(stderr, "sizeof(abAbacus)   "F_SIZE_T"\n", sizeof(abAbacus));
+  fprintf(stderr, "sizeof(abSequence) "F_SIZE_T"\n", sizeof(abSequence));
+
   //  Decide on what to compute.  Either all unitigs, or a single unitig, or a special case test.
 
   uint32  b = 0;
