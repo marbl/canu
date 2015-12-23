@@ -371,7 +371,6 @@ unitigConsensus::initialize(map<uint32, gkRead *>     *inPackageRead,
   //  Initialize with the first read.
 
   abacus->applyAlignment(0, 0, 0, NULL, 0);
-  abacus->refreshColumns();
 
   //  And set the placement of the first read.
 
