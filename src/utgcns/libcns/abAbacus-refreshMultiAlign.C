@@ -132,4 +132,9 @@ abAbacus::recallBases(bool highQuality) {
 
   for (abColumn *column = _firstColumn; column; column = column->next())
     column->baseCall(highQuality);
+
+  //  After calling bases, we need to refresh to copy the bases from each column into
+  //  _cnsBases and _cnsQuals.
+
+  refreshColumns();
 }
