@@ -242,6 +242,8 @@ abAbacusWork::abAbacusWork(abAbacus  *abacus,
   //  Instead, we can just test if each read intersects the columns, and then assign the read ID to
   //  an abAbacusWork-private index.
 
+  assert(0);
+
   abacus_indices = new uint32 [abacus->numberOfSequences()];
 
   start_column   = bgn;
@@ -254,10 +256,13 @@ abAbacusWork::abAbacusWork(abAbacus  *abacus,
   for (uint32 ii=0; ii<abacus->numberOfSequences(); ii++) {
     abacus_indices[ii] = UINT32_MAX;
 
+    //  Needs to use abAbacus readTofBead and readTolBead; see unitigConsensus::refreshPositions
+#if 0
     if (abacus->getSequence(ii)->lastColumn()->position() < bgn->position())
       continue;
     if (abacus->getSequence(ii)->firstColumn()->position() > end->position())
       continue;
+#endif
 
     abacus_indices[ii] = rows++;
   }

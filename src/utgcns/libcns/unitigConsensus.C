@@ -722,9 +722,8 @@ unitigConsensus::refreshPositions(void) {
       //  Uh oh, not placed originally.
       continue;
 
-    abSequence *seq   = abacus->getSequence(i);
-    abColumn   *fcol  = seq->firstColumn();
-    abColumn   *lcol  = seq->lastColumn();
+    abColumn *fcol = abacus->readTofBead[i].column;
+    abColumn *lcol = abacus->readTolBead[i].column;
 
     cnspos[i].setMinMax(fcol->position(),
                         lcol->position() + 1);

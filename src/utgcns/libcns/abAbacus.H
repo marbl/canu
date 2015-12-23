@@ -157,6 +157,9 @@ public:
 
     _firstColumn  = NULL;
 
+    readTofBead = NULL;
+    readTolBead = NULL;
+
     if (DATAINITIALIZED == false)
       initializeGlobals();
   };
@@ -173,6 +176,9 @@ public:
     delete [] _columns;
     delete [] _cnsBases;
     delete [] _cnsQuals;
+
+    delete [] readTofBead;
+    delete [] readTolBead;
   };
 
 private:
@@ -247,11 +253,11 @@ public:
   //  These maps are used to populate abSequence's first and last column pointers.
   //    readToBead is the one we use for this.
   //    beadToRead is used to ...?
-  //  This is updated 
-  map<uint32,beadID>  readTofBead;
-  map<beadID,uint32>  fbeadToRead;
 
-  map<uint32,beadID>  readTolBead;
+  beadID             *readTofBead;  //  Allocated once, after all reads are
+  beadID             *readTolBead;  //  added to us.
+
+  map<beadID,uint32>  fbeadToRead;
   map<beadID,uint32>  lbeadToRead;
 
   //  This is the former abMultiAlign

@@ -84,9 +84,6 @@ abSequence::abSequence(uint32  readID,
   _bases            = new char  [_length + 1];
   _quals            = new uint8 [_length + 1];
 
-  _fBead            = beadID();
-  _lBead            = beadID();
-
   //  Make a complement table
 
   char inv[256] = {0};

@@ -238,8 +238,8 @@ abAbacus::display(FILE *F) {
 
   for (uint32 i=0; i<numSeqs; i++) {
     abSequence  *seq       = getSequence(i);
-    abColumn    *bgnColumn = seq->firstColumn();
-    abColumn    *endColumn = seq->lastColumn();
+    abColumn    *bgnColumn = readTofBead[i].column;
+    abColumn    *endColumn = readTolBead[i].column;
 
     if ((bgnColumn == NULL) ||
         (endColumn == NULL)) {

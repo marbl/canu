@@ -190,6 +190,38 @@ abColumn::mergeWithNext(abAbacus *abacus, bool highQuality) {
     lcolumn->baseCountIncr(lcolumn->_beads[ll].base());
     rcolumn->baseCountIncr(rcolumn->_beads[rr].base());
 #endif
+
+    //  While we're here, update the bead-to-read maps.
+
+    beadID oldb(rcolumn, rr);
+    beadID newb(lcolumn, ll);
+
+    map<beadID,uint32>::iterator  fit = abacus->fbeadToRead.find(oldb);  //  Does old bead exist
+    map<beadID,uint32>::iterator  lit = abacus->lbeadToRead.find(oldb);  //  in either map?
+
+    if (fit != abacus->fbeadToRead.end()) {
+      uint32  rid = fit->second;
+
+      fprintf(stderr, "mergeWithNext()-- move fbeadToRead from %p/%d to %p/%d for read %d\n",
+              rcolumn, rr, lcolumn, ll, rid);
+
+      abacus->fbeadToRead.erase(fit);     //  Remove the old bead to read pointer
+
+      abacus->fbeadToRead[newb] = rid;    //  Add a new bead to read pointer
+      abacus->readTofBead[rid]  = newb;   //  Update the read to bead pointer
+    }
+
+    if (lit != abacus->lbeadToRead.end()) {
+      uint32  rid = lit->second;
+
+      fprintf(stderr, "mergeWithNext()-- move lbeadToRead from %p/%d to %p/%d for read %d\n",
+              rcolumn, rr, lcolumn, ll, rid);
+
+      abacus->lbeadToRead.erase(lit);
+
+      abacus->lbeadToRead[newb] = rid;
+      abacus->readTolBead[rid]  = newb;
+    }
   }
 
   //  The rcolumn should now be full of gaps.  (We could just test that baseCount('-') == depth()
@@ -224,72 +256,18 @@ abColumn::mergeWithNext(abAbacus *abacus, bool highQuality) {
   //    5  -aa-aaa     When column 2 is deleted, we're left with a busted link back from col 3 read 4; it should be 3
   //    6  gaa,,,,
 
-#if 0
-  fprintf(stderr, "rcolumn links before fixing\n");
-  rcolumn->showLinks();
-#endif
-
   if (ncolumn != NULL) {
     for (uint32 rr=0; rr<rcolumn->_beadsLen; rr++) {
       uint16  bl = rcolumn->_beads[rr].prevOffset();  //  back link from deleted column to lcolumn -> set as ncolumns back link (known as ll above)
       uint16  fl = rcolumn->_beads[rr].nextOffset();  //  forw link from deleted column to ncolumn -> set as lcolumns forw link
-
-#if 0
-      fprintf(stderr, "in rcolumn bead rr=%d prev=%d next=%d\n", rr, bl, fl);
-#endif
 
       if (bl != UINT16_MAX)   lcolumn->_beads[bl]._nextOffset = fl;
       if (fl != UINT16_MAX)   ncolumn->_beads[fl]._prevOffset = bl;
     }
   }
 
-#if 0
-  fprintf(stderr, "rcolumn links after fixing\n");
-  rcolumn->showLinks();
-#endif
-
   lcolumn->checkLinks();
   ncolumn->checkLinks();
-
-  //  Update the beadID <-> readID map for any beads we moved.  This can be done by searching
-  //  rcolumn for any bead in the map, and resetting it to the bead in lcolumn (found using the
-  //  still-valid back link).
-
-  for (uint16 rr=0; rr<rcolumn->_beadsLen; rr++) {
-    uint16  ll = rcolumn->_beads[rr].prevOffset();
-
-    beadID oldb(rcolumn, rr);
-    beadID newb(lcolumn, ll);
-
-    map<beadID,uint32>::iterator  fit = abacus->fbeadToRead.find(oldb);  //  Does old bead exist
-    map<beadID,uint32>::iterator  lit = abacus->lbeadToRead.find(oldb);  //  in either map?
-
-    if (fit != abacus->fbeadToRead.end()) {
-      uint32  rid = fit->second;
-
-#if 0
-      fprintf(stderr, "mergeWithNext()-- move fbeadToRead from %p/%d to %p/%d for read %d\n", rid, rcolumn, rr, lcolumn, ll, rid);
-#endif
-
-      abacus->fbeadToRead.erase(fit);     //  Remove the old bead to read pointer
-
-      abacus->fbeadToRead[newb] = rid;    //  Add a new bead to read pointer
-      abacus->readTofBead[rid]  = newb;   //  Update the read to bead pointer
-    }
-
-    if (lit != abacus->lbeadToRead.end()) {
-      uint32  rid = lit->second;
-
-#if 0
-      fprintf(stderr, "mergeWithNext()-- move lbeadToRead from %p/%d to %p/%d for read %d\n", rcolumn, rr, lcolumn, ll, rid);
-#endif
-
-      abacus->lbeadToRead.erase(lit);
-
-      abacus->lbeadToRead[newb] = rid;
-      abacus->readTolBead[rid]  = newb;
-    }
-  }
 
   //  Now, finally, we're done.  Remove the old column, recall the base, and do a final check.
 

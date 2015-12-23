@@ -103,18 +103,6 @@ private:
   uint32           _length;
   char            *_bases;
   uint8           *_quals;
-
-  //  Set only after .....
-
-public:
-  abColumn        *firstColumn(void) { return(_fBead.column); };
-  abColumn        *lastColumn(void)  { return(_lBead.column); };
-
-private:
-  beadID           _fBead;
-  beadID           _lBead;
-
-  friend class abAbacus;  //  access to _fBead and _lBead.
 };
 
 #endif  //  ABSEQUENCE_H

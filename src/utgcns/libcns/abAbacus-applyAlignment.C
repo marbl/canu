@@ -507,6 +507,14 @@ abAbacus::applyAlignment(uint32    bid,
           (traceLen > 0) ? trace[traceLen-1] : 0);
 #endif
 
+  //  Finish some initialization.  If this is the first call, readTofBead (and readTolBead)
+  //  will be NULL, and we need to allocate space for them.
+
+  if (readTofBead == NULL) {
+    readTofBead = new beadID [numberOfSequences()];
+    readTolBead = new beadID [numberOfSequences()];
+  }
+
   //  Figure out where we are in the multialignment.
 
   abSequence *bseq     = getSequence(bid);
@@ -697,9 +705,6 @@ abAbacus::applyAlignment(uint32    bid,
 
   //  Insert the first and last beads into our tracking maps.
 
-  //assert(fBead.column->prev() == NULL);  //  Totally not true - the link for prev/next should
-  //assert(lBead.column->next() == NULL);  //  be UINT16_MAX, but that's hard to check.
-
   assert(fBead.column->_beads[fBead.link].prevOffset() == UINT16_MAX);
   assert(lBead.column->_beads[lBead.link].nextOffset() == UINT16_MAX);
 
@@ -708,11 +713,6 @@ abAbacus::applyAlignment(uint32    bid,
 
   lbeadToRead[lBead] = bid;
   readTolBead[bid] = lBead;
-
-  //  And tell the sequence about it's first and last columns.
-
-  bseq->_fBead = fBead;
-  bseq->_lBead = lBead;
 
   //  Update the firstColumn in the abAbacus if it isn't set.  updateColumns() will
   //  reset it if the actual first column has changed here.
