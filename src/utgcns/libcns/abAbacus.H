@@ -164,6 +164,11 @@ public:
     for (uint32 ss=0; ss<_sequencesLen; ss++)
       delete _sequences[ss];
 
+    for (abColumn *del = _firstColumn; (del = _firstColumn); ) {
+      _firstColumn = _firstColumn->next();
+      delete del;
+    }
+
     delete [] _sequences;
     delete [] _columns;
     delete [] _cnsBases;

@@ -75,8 +75,9 @@ public:
              uint32  complemented);
 
   ~abSequence() {
+    delete [] _bases;
+    delete [] _quals;
   };
-
 
 
   uint32                gkpIdent(void)          { return(_iid);        };
