@@ -130,7 +130,7 @@ Canu assembles any of the four available datasets into a single contig but we pi
   genomeSize=4.8m \
   -nanopore-raw oxford.fasta
 
-The assembled identity is >98% before polishing.
+The assembled identity is >99% before polishing.
 
 Assembling With Multiple Technologies/Files 
 -------------------------------------------
