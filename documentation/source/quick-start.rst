@@ -200,5 +200,5 @@ Known Issues
 -------------------
 
 - LSF support has limited testing
-- Large memory usage while unitig consensus calling on contigs over 50MB in size
+- Large memory usage while unitig consensus calling on unitigs over 100MB in size (140Mb contig uses approximate 75GB).
 - Distributed file systems (such as GPFS) causes issues with memory mapped files, slowing down parts of Canu, including meryl (0-mercounts) and falcon-sense (2-correction).
