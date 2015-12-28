@@ -106,6 +106,7 @@ sub utgcns ($$$) {
     print F "  -O $wrk/5-consensus/\$jobid.cns.WORKING \\\n";
     print F "  -L $wrk/5-consensus/\$jobid.layout.WORKING \\\n";
     print F "  -F $wrk/5-consensus/\$jobid.fastq.WORKING \\\n";
+    print F "  -threads " . getGlobal("cnsThreads") . " \\\n"; 
     print F "  -Q \\\n"   if (getGlobal("cnsConsensus") eq "quick");
     print F "  -maxcoverage " . (getGlobal("cnsConsensus") eq "quick" ? 1 : getGlobal('cnsMaxCoverage')) . " \\\n";
     print F "&& \\\n";
