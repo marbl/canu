@@ -343,7 +343,7 @@ bool unitigConsensus::generatePBDAG(tgTig                     *tig_,
         aln.qstr = string(fragment);
         aln.tstr = utg.seq.substr(aln.start, aln.end-aln.start);
 
-        align.align(aln);
+        align.align(aln, errorRate);
         if (aln.qstr.size() == 0) {
             cnspos[i].setMinMax(0, 0);
             continue;

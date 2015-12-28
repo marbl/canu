@@ -6,7 +6,7 @@
 class SimpleAligner {
 public:
     SimpleAligner();
-    void align(dagcon::Alignment& aln);
+    void align(dagcon::Alignment& aln, double errorRate);
 };
 
 #endif // __GCON_SIMPLE_ALIGNER__

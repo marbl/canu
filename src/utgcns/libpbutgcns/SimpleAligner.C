@@ -10,9 +10,13 @@
 SimpleAligner::SimpleAligner() {
 }
 
-void SimpleAligner::align(dagcon::Alignment &aln) {
+void SimpleAligner::align(dagcon::Alignment &aln, double errorRate) {
   NDalignment::NDalignResult ndaln;
-  bool aligned = NDalignment::align(aln.qstr.c_str(), aln.qstr.size(), aln.tstr.c_str(), aln.tstr.size(), 100, true, ndaln);
+  bool aligned = NDalignment::align(aln.qstr.c_str(), aln.qstr.size(), aln.tstr.c_str(), aln.tstr.size(), 150, true, ndaln);
+
+  if (((double) ndaln._dist / (double) ndaln._size) > errorRate) {
+     aligned = false;
+  }
 
   if (aligned) {
      aln.start += ndaln._tgt_bgn;
