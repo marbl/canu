@@ -715,10 +715,10 @@ sub checkParameters ($) {
     setGlobalIfUndef("utgGraphErrorRate",    2.0 * getGlobal("errorRate"));
     setGlobalIfUndef("utgBubbleErrorRate",   2.0 * getGlobal("errorRate") + 0.5 * getGlobal("errorRate"));
     setGlobalIfUndef("utgMergeErrorRate",    2.0 * getGlobal("errorRate") - 0.5 * getGlobal("errorRate"));
-    setGlobalIfUndef("utgRepeatErrorRate",   1.0 * getGlobal("errorRate"));
+    setGlobalIfUndef("utgRepeatErrorRate",   2.0 * getGlobal("errorRate"));
 
-    setGlobalIfUndef("corsErrorRate",        8.0 * getGlobal("errorRate"));
-    setGlobalIfUndef("cnsErrorRate",         3.0 * getGlobal("errorRate"));
+    setGlobalIfUndef("corsErrorRate",        10.0 * getGlobal("errorRate"));
+    setGlobalIfUndef("cnsErrorRate",         2.5 * getGlobal("errorRate"));
 }
 
 
@@ -790,7 +790,7 @@ sub setErrorRate ($@) {
     setGlobal("utgRepeatErrorRate", $er * 2);
 
     setGlobal("corErrorRate",       $er * 10);  #  Erorr rate used for raw sequence alignment/consensus
-    setGlobal("cnsErrorRate",       $er);
+    setGlobal("cnsErrorRate",       $er * 2.5);
 
     showErrorRates("--  ")  if (defined($verbose));
 }

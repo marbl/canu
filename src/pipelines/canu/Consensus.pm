@@ -101,6 +101,7 @@ sub utgcns ($$$) {
     print F getBinDirectoryShellCode();
     print F "\n";
     print F "\$bin/utgcns \\\n";
+    print F "  -e " . getGlobal("cnsErrorRate") . " \\\n";
     print F "  -G $wrk/$asm.gkpStore \\\n";
     print F "  -T $wrk/$asm.tigStore 1 \$jobid \\\n";
     print F "  -O $wrk/5-consensus/\$jobid.cns.WORKING \\\n";
