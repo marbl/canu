@@ -128,7 +128,11 @@ SOURCES      := AS_global.C \
                 utgcns/libcns/abAbacus.C \
                 utgcns/libcns/abColumn.C \
                 utgcns/libcns/abMultiAlign.C \
-                utgcns/libcns/unitigConsensus.C
+                utgcns/libcns/unitigConsensus.C \
+                utgcns/libpbutgcns/Alignment.C	\
+		utgcns/libpbutgcns/AlnGraphBoost.C  \
+		utgcns/libpbutgcns/SimpleAligner.C \
+                utgcns/libNDFalcon/dw.C
 
 SRC_INCDIRS  := . \
                 AS_UTL \
@@ -136,6 +140,9 @@ SRC_INCDIRS  := . \
                 alignment \
                 utgcns/libNDalign \
                 utgcns/libcns \
+                utgcns/libpbutgcns \
+		utgcns/libNDFalcon \
+                utgcns/libboost \
                 meryl/libleaff \
                 overlapInCore \
                 overlapInCore/liboverlap
