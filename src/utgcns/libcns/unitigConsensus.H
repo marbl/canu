@@ -83,6 +83,11 @@ public:
                   map<uint32, gkRead *>     *inPackageRead     = NULL,
                   map<uint32, gkReadData *> *inPackageReadData = NULL);
 
+  bool   generatePBDAG(tgTig                     *tig,
+                       uint32                    *failed            = NULL,
+                       map<uint32, gkRead *>     *inPackageRead     = NULL,
+                       map<uint32, gkReadData *> *inPackageReadData = NULL);
+
   bool   generateQuick(tgTig                     *tig,
                        uint32                    *failed            = NULL,
                        map<uint32, gkRead *>     *inPackageRead     = NULL,

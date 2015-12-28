@@ -78,6 +78,7 @@ main (int argc, char **argv) {
   char    *inPackageName   = NULL;
 
   bool      doQuick        = false;
+  uint32    numThreads	   = 0;
 
   bool      forceCompute   = false;
 
@@ -132,6 +133,9 @@ main (int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-Q") == 0) {
       doQuick = true;
+
+    } else if (strcmp(argv[arg], "-threads") == 0) {
+      numThreads = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-p") == 0) {
       inPackageName = argv[++arg];
@@ -261,6 +265,15 @@ main (int argc, char **argv) {
     outSeqFile = fopen(outSeqName, "w");
   if (errno)
     fprintf(stderr, "Failed to open output FASTQ file '%s': %s\n", outSeqName, strerror(errno)), exit(1);
+
+  if (numThreads > 0) {
+    omp_set_num_threads(numThreads);
+    fprintf(stderr, "number of threads     = %d (command line)\n", numThreads);
+    fprintf(stderr, "\n");
+  } else {
+    fprintf(stderr, "number of threads     = %d (OpenMP default)\n", omp_get_max_threads());
+    fprintf(stderr, "\n");
+  }
 
   //  Open gatekeeper for read only, and load the partitioned data if tigPart > 0.
 
@@ -447,9 +460,9 @@ main (int argc, char **argv) {
       origChildren = stashContains(tig, maxCov, true);
 
       if (doQuick)
-        success = utgcns->generateQuick(tig, NULL, inPackageRead, inPackageReadData);
+        success = utgcns->generateQuick(tig,  NULL, inPackageRead, inPackageReadData);
       else
-        success = utgcns->generate(tig, NULL, inPackageRead, inPackageReadData);
+        success = utgcns->generatePBDAG(tig, NULL, inPackageRead, inPackageReadData);
     }
 
     //  If it was successful (or existed already), output.  Success is always false if the unitig
