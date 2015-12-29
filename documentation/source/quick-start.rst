@@ -196,6 +196,12 @@ After the run completes, we can check the assembly statistics::
  lenAssembled num        150
  lenAssembled ave      84051
 
+Consensus Accuracy
+-------------------
+While Canu corrects sequences and has 99% identity or greater with PacBio or Nanopore sequences, for the best accuracy we recommend polishing with a sequence-specific tool. We recommend `Quiver <http://github.com/PacificBiosciences/GenomicConsensus/blob/master/doc/HowToQuiver.rst>`_ for PacBio and `Nanopolish <http://github.com/jts/nanopolish>`_ for Oxford Nanpore data.
+
+If you have Illumina sequences available, `Pilon <http://www.broadinstitute.org/software/pilon/>`_ can also be used to polish either PacBio or Oxford Nanopore assemblies.
+
 Known Issues
 -------------------
 
