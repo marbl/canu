@@ -18,6 +18,8 @@ Canu has been designed to auto-detect your resources and scale itself to fit. Tw
 
 Memory is specified in gigabytes. On a single machine, it will restrict Canu to at most this limit, on the grid, no single job will try to use more than the specified resources.
 
+The input sequences can be FASTA or FASTQ format, uncompressed, or compressed with gz, bz2 or xz.
+
 Running on the grid
 ~~~~~~~~~~~~~~~~~~~~~~
 Canu is designed to run on grid environments (LSF/PBS/Torque/Slrum/SGE are supported). Currently, Canu will submit itself to the default queue with default time options. You can overwrite this behavior by providing any specific parameters you want to be used for submission as an option. Users should also specify a job name to use on the grid:
@@ -43,7 +45,7 @@ or use the following curl command:
 
 ::
 
- curl -L -o p6.25x.fastq.gz http://gembox.cbcb.umd.edu/mhap/raw/ecoli_p6_25x.filtered.fastq.gz
+ curl -L -o p6.25x.fastq http://gembox.cbcb.umd.edu/mhap/raw/ecoli_p6_25x.filtered.fastq
  
 Correct, Trim and Assemble
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -55,7 +57,7 @@ By default, canu will correct the reads, then trim the reads, then assemble the 
  canu \
   -p ecoli -d ecoli-auto \
   genomeSize=4.8m \
-  -pacbio-raw p6.25x.fastq.gz
+  -pacbio-raw p6.25x.fastq
 
 This will use the prefix 'ecoli' to name files, compute the correction task in directory 'ecoli-auto/correction', the trimming task in directory 'ecoli-auto/trimming', and the unitig construction stage in 'ecoli-auto' itself.
 Output files are described in the next section.
@@ -82,7 +84,7 @@ First, correct the raw reads::
  canu -correct \
    -p ecoli -d ecoli \
    genomeSize=4.8m \
-   -pacbio-raw  p6.25x.fastq.gz
+   -pacbio-raw  p6.25x.fastq
 
 Then, trim the output of the correction::
 
@@ -128,7 +130,7 @@ Canu assembles any of the four available datasets into a single contig but we pi
   genomeSize=4.8m \
   -nanopore-raw oxford.fasta
 
-The assembled identity is >98% before polishing.
+The assembled identity is >99% before polishing.
 
 Assembling With Multiple Technologies/Files 
 -------------------------------------------
@@ -198,5 +200,5 @@ Known Issues
 -------------------
 
 - LSF support has limited testing
-- Large memory usage while unitig consensus calling on contigs over 50MB in size
+- Large memory usage while unitig consensus calling on unitigs over 100MB in size (140Mb contig uses approximate 75GB).
 - Distributed file systems (such as GPFS) causes issues with memory mapped files, slowing down parts of Canu, including meryl (0-mercounts) and falcon-sense (2-correction).
