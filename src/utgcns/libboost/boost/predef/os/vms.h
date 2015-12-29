@@ -1,5 +1,5 @@
 /*
-Copyright Redshift Software Inc 2011-2013
+Copyright Rene Rivera 2011-2013
 Distributed under the Boost Software License, Version 1.0.
 (See accompanying file LICENSE_1_0.txt or copy at
 http://www.boost.org/LICENSE_1_0.txt)
@@ -28,7 +28,7 @@ http://www.boost.org/LICENSE_1_0.txt)
 
 #define BOOST_OS_VMS BOOST_VERSION_NUMBER_NOT_AVAILABLE
 
-#if !BOOST_PREDEF_DETAIL_OS_DETECTED && ( \
+#if !defined(BOOST_PREDEF_DETAIL_OS_DETECTED) && ( \
     defined(VMS) || defined(__VMS) \
     )
 #   undef BOOST_OS_VMS
