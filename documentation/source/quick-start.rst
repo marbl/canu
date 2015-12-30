@@ -152,6 +152,7 @@ Now you can assemble all the data::
   -pacbio-raw pacbio*fastq.gz \
   -nanopore-raw oxford.fasta.gz
 
+.. _quick_low:
 
 Assembling Low Coverage Datasets
 ----------------------------------

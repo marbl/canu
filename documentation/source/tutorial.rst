@@ -226,7 +226,7 @@ Fraction Error  Percent Error
 ==============  =============
 
 Eventually, we want to have Canu take a single error rate, the error rate of a single input read,
-and derive all other rates from there.  This is the parameter ``errorRate``. Currently, the defaults are 0.025 for PacBio sequences and 0.045 for Oxford Nanpore sequences. When you have low-coverage datasets it helps to lower the error rate by 0.01 and decrease the stringency for creating corrected sequences. See the :ref:`quickstart#assembling-low-coverage-datasets` section for details.
+and derive all other rates from there.  This is the parameter ``errorRate``. Currently, the defaults are 0.025 for PacBio sequences and 0.045 for Oxford Nanpore sequences. When you have low-coverage datasets it helps to lower the error rate by 0.01 and decrease the stringency for creating corrected sequences. See the :ref:`quick_low` section for details.
 
 The error rates are critical for unitig construction, but are also used when generating overlaps,
 and for trimming reads.  Error rates are used in two ways: to limit what overlaps are generated, and to filter overlaps
