@@ -167,7 +167,7 @@ abColumn::mergeWithNext(abAbacus *abacus, bool highQuality) {
     //  before we can swap.  Correction: we need to ADD a gap (in lcolumn) before we can swap.
 
     if (ll == UINT16_MAX) {
-      fprintf(stderr, "EXTEND READ at rr=%d\n", rr);
+      //fprintf(stderr, "EXTEND READ at rr=%d\n", rr);
       ll = lcolumn->extendRead(rcolumn, rr);
     }
 
