@@ -58,6 +58,7 @@
 #define NDALIGNER_H
 
 #include <cstdlib>
+#include <stdint.h>
 
 namespace NDalignment {
 typedef int32_t seq_coor_t; 

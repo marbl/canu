@@ -9,15 +9,15 @@
 ///
 
 #include <string>
-#include "AS_global.H"
+#include <stdint.h>
 
 namespace dagcon {
 class Alignment {
 public:
     // conforming offsets are 1-based
-    uint32 start;
+    uint32_t start;
 
-    uint32 end;
+    uint32_t end;
 
     // Fragment ID
     std::string frgid;
@@ -31,7 +31,7 @@ public:
 }
 
 struct Unitig {
-    uint32 id;
+    uint32_t id;
     std::string seq;
 };
 
