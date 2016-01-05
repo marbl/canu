@@ -101,15 +101,17 @@ sub utgcns ($$$) {
     print F getBinDirectoryShellCode();
     print F "\n";
     print F "\$bin/utgcns \\\n";
-    print F "  -e " . getGlobal("cnsErrorRate") . " \\\n";
     print F "  -G $wrk/$asm.gkpStore \\\n";
     print F "  -T $wrk/$asm.tigStore 1 \$jobid \\\n";
     print F "  -O $wrk/5-consensus/\$jobid.cns.WORKING \\\n";
     print F "  -L $wrk/5-consensus/\$jobid.layout.WORKING \\\n";
     print F "  -F $wrk/5-consensus/\$jobid.fastq.WORKING \\\n";
+    print F "  -maxcoverage " . getGlobal('cnsMaxCoverage') . " \\\n";
+    print F "  -e " . getGlobal("cnsErrorRate") . " \\\n";
+    print F "  -quick \\\n"      if (getGlobal("cnsConsensus") eq "quick");
+    print F "  -pbdagcon \\\n"   if (getGlobal("cnsConsensus") eq "pbdagcon");
+    print F "  -utgcns \\\n"     if (getGlobal("cnsConsensus") eq "utgcns");
     print F "  -threads " . getGlobal("cnsThreads") . " \\\n"; 
-    print F "  -Q \\\n"   if (getGlobal("cnsConsensus") eq "quick");
-    print F "  -maxcoverage " . (getGlobal("cnsConsensus") eq "quick" ? 1 : getGlobal('cnsMaxCoverage')) . " \\\n";
     print F "&& \\\n";
     print F "mv $wrk/5-consensus/\$jobid.cns.WORKING $wrk/5-consensus/\$jobid.cns \\\n";
     print F "&& \\\n";
@@ -166,14 +168,14 @@ sub consensusConfigure ($$) {
         }
     }
 
-    #  Set up the consensus compute.
+    #  Set up the consensus compute.  It's in a useless if chain because there used to be
+    #  different executables; now they're all rolled into utgcns itself.
 
     my $jobs = computeNumberOfConsensusJobs($wrk, $asm);
 
-    if      (getGlobal("cnsConsensus") eq "utgcns") {
-        utgcns($wrk, $asm, $jobs);
-
-    } elsif (getGlobal("cnsConsensus") eq "quick") {
+    if ((getGlobal("cnsConsensus") eq "quick") ||
+        (getGlobal("cnsConsensus") eq "pbdagcon") ||
+        (getGlobal("cnsConsensus") eq "utgcns")) {
         utgcns($wrk, $asm, $jobs);
 
     } else {

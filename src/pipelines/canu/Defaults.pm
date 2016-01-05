@@ -583,9 +583,10 @@ sub checkParameters ($) {
         caExit("invalid 'corConsensus' specified (" . getGlobal("corConsensus") . "); must be 'utgcns' or 'falcon' or 'falconpipe'", undef);
     }
 
-    if ((getGlobal("cnsConsensus") ne "utgcns") &&
-        (getGlobal("cnsConsensus") ne "quick")) {
-        caExit("invalid 'cnsConsensus' specified (" . getGlobal("cnsConsensus") . "); must be 'utgcns' or 'quick'", undef);
+    if ((getGlobal("cnsConsensus") ne "quick") &&
+        (getGlobal("cnsConsensus") ne "pbdagcon") &&
+        (getGlobal("cnsConsensus") ne "utgcns")) {
+        caExit("invalid 'cnsConsensus' specified (" . getGlobal("cnsConsensus") . "); must be 'quick', 'pbdagcon', or 'utgcns'", undef);
     }
 
 
@@ -1135,8 +1136,8 @@ sub setDefaults () {
     $global{"cnsMaxCoverage"}              = 0;
     $synops{"cnsMaxCoverage"}              = "Limit unitig consensus to at most this coverage";
 
-    $global{"cnsConsensus"}                = "utgcns";
-    $synops{"cnsConsensus"}                = "Which consensus algorithm to use; full consensus with 'utgcns', or quick approximation with 'quick'";
+    $global{"cnsConsensus"}                = "pbdagcon";
+    $synops{"cnsConsensus"}                = "Which consensus algorithm to use; 'pbdagcon' (fast, reliable); 'utgcns' (multialignment output); 'quick' (single read mosaic)";
 
     #####  Correction Options
 
