@@ -237,6 +237,7 @@ abColumn::insertAtBegin(abColumn *first, uint16 prevLink, char base, uint8 qual)
 
   //  The base CAN NOT be a gap - the new column would then be entirely a gap column, with no base.
   assert(base != '-');
+  assert(base != 0);
 
   _columnPosition = INT32_MAX;
 
@@ -296,6 +297,7 @@ uint16
 abColumn::insertAtEnd(abColumn *prev, uint16 prevLink, char base, uint8 qual) {
 
   assert(base != '-');    //  The base CAN NOT be a gap - the new column would then be entirely a gap column, with no base.
+  assert(base != 0);
 
   _columnPosition = INT32_MAX;
 
@@ -355,6 +357,7 @@ abColumn::insertAfter(abColumn *prev,      //  Add new column after 'prev'
   //  The base CAN NOT be a gap - the new column would then be entirely a gap column, with no base.
 
   assert(base != '-');
+  assert(base != 0);
 
   //  Make sure that we're actually in the middle of consensus.
 
