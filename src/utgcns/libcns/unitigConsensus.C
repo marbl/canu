@@ -588,7 +588,7 @@ unitigConsensus::computePositionFromAnchor(void) {
     assert(cnspos[tiid].min() < cnspos[tiid].max());
 
     if (showPlacement())
-      fprintf(stderr, "computePositionFromAnchor()-- anchor %d at %d,%d --> beg,end %d,%d (fLen %d)\n",
+      fprintf(stderr, "computePositionFromAnchor()-- anchor %d at %d,%d --> beg,end %d,%d (tigLen %d)\n",
               anchor,
               cnspos[piid].min(), cnspos[piid].max(),
               cnspos[tiid].min(), cnspos[tiid].max(),
@@ -676,7 +676,7 @@ unitigConsensus::computePositionFromLayout(void) {
     assert(cnspos[tiid].min() < cnspos[tiid].max());
 
     if (showPlacement())
-      fprintf(stderr, "computePositionFromLayout()-- layout %d at %d,%d --> beg,end %d,%d (fLen %d)\n",
+      fprintf(stderr, "computePositionFromLayout()-- layout %d at %d,%d --> beg,end %d,%d (tigLen %d)\n",
               utgpos[piid].ident(),
               cnspos[piid].min(), cnspos[piid].max(),
               cnspos[tiid].min(), cnspos[tiid].max(),
@@ -797,7 +797,7 @@ unitigConsensus::computePositionFromAlignment(void) {
   assert(piid != -1);
 
   if (showPlacement())
-    fprintf(stderr, "computePositionFromAlignment()-- layout %d at %d,%d --> beg,end %d,%d (fLen %d)\n",
+    fprintf(stderr, "computePositionFromAlignment()-- layout %d at %d,%d --> beg,end %d,%d (tigLen %d)\n",
             utgpos[piid].ident(),
             cnspos[piid].min(), cnspos[piid].max(),
             cnspos[tiid].min(), cnspos[tiid].max(),
