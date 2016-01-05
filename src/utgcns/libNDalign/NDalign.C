@@ -614,11 +614,11 @@ NDalign::processHits(void) {
     fprintf(stderr, "NDalign::processHits()-- Extend_Alignment Astart %d Bstart %d length %d\n", match.Start, match.Offset, match.Len);
     fprintf(stderr, "NDalign::processHits()--\n");
 
-    fprintf(stderr, ">A\n");
+    fprintf(stderr, ">A len=%u\n", _aLen);
     fwrite(_aStr, sizeof(char), _aLen, stderr);
     fprintf(stderr, "\n");
 
-    fprintf(stderr, ">B\n");
+    fprintf(stderr, ">B len=%u\n", _bLen);
     fwrite(_bStr, sizeof(char), _bLen, stderr);
     fprintf(stderr, "\n");
 #endif
