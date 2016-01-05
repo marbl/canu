@@ -90,10 +90,9 @@ typedef enum {
 
 
 
-
-
-
-class abColumn;
+#include "abBead.H"
+#include "abColumn.H"
+#include "abSequence.H"
 
 
 class beadID {
@@ -121,16 +120,17 @@ public:
     return((column != that.column) ? (column < that.column) : (link < that.link));
   }
 
+  char       base(void)       { return(column->bead(link)->base()); };
+
+  uint16     prevLink(void)   { return(column->bead(link)->prevOffset()); };
+  uint16     nextLink(void)   { return(column->bead(link)->nextOffset()); };
+
+  abColumn  *prevColumn(void) {  return(column->prev());  };
+  abColumn  *nextColumn(void) {  return(column->next());  };
+
   abColumn  *column;
   uint16     link;
 };
-
-
-
-
-#include "abBead.H"
-#include "abColumn.H"
-#include "abSequence.H"
 
 
 
@@ -238,6 +238,28 @@ public:
     assert(cid < _columnsLen);
     return(_columns[cid]);
   };
+
+  //  Returns column position for position 'pos' in sequence 'seqIdx'.  If the position is not contained
+  //  in the sequence, the remaining bases are assumed to be ungapped.
+
+  uint32             getColumn(uint32 seqIdx, uint32 pos) {
+    beadID   bid    = readTofBead[seqIdx];
+    uint32   cur = 0;
+
+    while ((cur < pos) &&
+           (bid.nextLink() != UINT16_MAX)) {
+      if (bid.base() != '-')  //  Count it only if it is a real base in the read.
+        cur++;
+
+      bid.link   = bid.nextLink();
+      bid.column = bid.nextColumn();
+    }
+
+    assert(bid.column != NULL);
+
+    return(bid.column->position() + pos - cur);
+  };
+
 
 public:
   uint32            _columnsLen;

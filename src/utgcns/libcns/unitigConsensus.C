@@ -542,6 +542,7 @@ unitigConsensus::computePositionFromAnchor(void) {
 
     //  Scale the hangs by the change in the anchor size between bogart and consensus.
 
+#if 0
     double   anchorScale = (double)(cnspos[piid].max() - cnspos[piid].min()) / (double)(utgpos[piid].max() - utgpos[piid].min());
 
     if (showPlacement())
@@ -584,6 +585,14 @@ unitigConsensus::computePositionFromAnchor(void) {
       //  cnspos[tiid].max() = fragmentLength * anchorScale;
       //}
     }
+#else
+    assert(0 <= utgpos[tiid].aHang());
+
+    uint32  bgn = abacus->getColumn(piid, cnspos[piid].min() + utgpos[tiid].aHang() - cnspos[piid].min());
+    uint32  end = abacus->getColumn(piid, cnspos[piid].max() + utgpos[tiid].bHang() - cnspos[piid].min());
+
+    cnspos[tiid].setMinMax(bgn, end);
+#endif
 
     assert(cnspos[tiid].min() < cnspos[tiid].max());
 
@@ -949,10 +958,14 @@ unitigConsensus::alignFragment(bool forceAlignment) {
   if (fragEnd > fragLen)
     fragEnd = fragLen;
 
-  int32  bgnExtra = 100;  //  Start with a small 'extra' allowance, easy to make bigger.
-  int32  endExtra = 100;
+  //  Given the usual case of using an actual overlap to a read in the multialign to find the region
+  //  to align to, we expect that region to be nearly perfect.  Thus, we shouldn't need to extend it
+  //  much.  If anything, we'll need to extend the 3' end of the read.
 
-  int32  trimStep = max(100, expectedAlignLen / 50);
+  int32  bgnExtra = 10;    //  Start with a small 'extra' allowance, easy to make bigger.
+  int32  endExtra = 10;    //
+
+  int32  trimStep = max(10, expectedAlignLen / 50);  //  Step by 10 bases or do at most 50 steps.
 
   //  Find an alignment!
 
@@ -970,15 +983,15 @@ unitigConsensus::alignFragment(bool forceAlignment) {
 
   int32 cnsBgn     = MAX(0, cnspos[tiid].min() - bgnExtra);   //  Start position in consensus
   int32 cnsEnd     = cnspos[tiid].max() + endExtra;           //  Truncation of consensus
-  int32 cnsEndBase = abacus->bases()[cnsEnd];               //  Saved base (if not truncated, it's the NUL byte at the end)
+  int32 cnsEndBase = abacus->bases()[cnsEnd];                 //  Saved base (if not truncated, it's the NUL byte at the end)
 
   char *aseq         = abacus->bases() + cnsBgn;
   char *bseq         = fragSeq;
 
-  char  fragEndBase  = bseq[fragEnd];                           //  Saved base
+  char  fragEndBase  = bseq[fragEnd];                         //  Saved base
 
-  abacus->bases()[cnsEnd] = 0;  //  Do the truncations.
-  bseq[fragEnd]             = 0;
+  abacus->bases()[cnsEnd] = 0;                                //  Do the truncations.
+  bseq[fragEnd]           = 0;
 
   //  Report!
 
@@ -995,31 +1008,27 @@ unitigConsensus::alignFragment(bool forceAlignment) {
                      1, bseq, fragEnd - fragBgn,  0, fragEnd - fragBgn,
                      false);
 
-  //  Generate a null hit, then align it and finally refine the alignment.
+  //  Generate a null hit, then align it and then realign, from both endpoints, and save the better
+  //  of the two.
 
-  if ((oaFull->makeNullHit() == false) ||
-      (oaFull->processHits() == false))
-    return(alignFragmentFailure());
+  if ((oaFull->makeNullHit() == true) &&
+      (oaFull->processHits() == true)) {
+    if (showAlignments())
+      oaFull->display("utgCns::alignFragment()--", true);
 
-  if (showAlignments())
-    oaFull->display("utgCns::alignFragment()--", true);
-
-#if 1
-  //
-  //  Should check that we didn't hit the end, and adjust boundaries if so.  Do this before
-  //  realigning could save a little bit of time.
-  //
-#endif
-
-  //  Realign, from both endpoints, and save the better of the two.
-
-  oaFull->realignBackward(showAlgorithm(), showAlignments());
-  oaFull->realignForward (showAlgorithm(), showAlignments());
+    oaFull->realignBackward(showAlgorithm(), showAlignments());
+    oaFull->realignForward (showAlgorithm(), showAlignments());
+  }
 
   //  Restore the bases we removed to end the strings early.
 
   if (cnsEndBase)   abacus->bases()[cnsEnd] = cnsEndBase;
-  if (fragEndBase)    bseq[fragEnd]             = fragEndBase;
+  if (fragEndBase)  bseq[fragEnd]           = fragEndBase;
+
+  //  If no alignment, bail.
+
+  if (oaFull->length() == 0)
+    return(alignFragmentFailure());
 
   //
   //  Check quality and fail if it sucks.
