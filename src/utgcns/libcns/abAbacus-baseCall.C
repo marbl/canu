@@ -73,10 +73,13 @@ abColumn::baseCallMajority(void) {
   uint32 qvSum[CNS_NUM_SYMBOLS] = {0};  //  Sum of their QVs
 
   for (uint32 ii=0; ii<_beadsLen; ii++) {
-    char    base  = _beads[ii]._base;
-    uint8   qual  = _beads[ii]._qual;
+    char    base  = _beads[ii].base();
+    uint8   qual  = _beads[ii].qual();
     uint32  bidx  = baseToIndex[base];
 
+    if (bidx >= CNS_NUM_SYMBOLS)
+      fprintf(stderr, "abColumn::baseCallMajority()--  For column %u, link %u, base '%c' (%d) is invalid.\n",
+              position(), ii, _beads[ii].base(), _beads[ii].base());
     assert(bidx < CNS_NUM_SYMBOLS);
 
     bsSum[bidx] += 1;
@@ -164,12 +167,17 @@ abColumn::baseCallQuality(void) {
   //  - those corresponding to non-read fragments (aka guides)
 
   for (uint32 ii=0; ii<_beadsLen; ii++) {
-    char    base    = _beads[ii]._base;
-    uint8   qual    = _beads[ii]._qual;
-    uint32  baseIdx = baseToIndex[base];  //  If we encode bases properly, this will go away.
+    char    base = _beads[ii].base();
+    uint8   qual = _beads[ii].qual();
+    uint32  bidx = baseToIndex[base];  //  If we encode bases properly, this will go away.
 
-    bBaseCount[baseIdx] += 1;   //  Could have saved to 'best', 'other' or 'guide' here.
-    bQVSum[baseIdx]     += qual;
+    if (bidx >= CNS_NUM_SYMBOLS)
+      fprintf(stderr, "abColumn::baseCallQuality()--  For column %u, link %u, base '%c' (%d) is invalid.\n",
+              position(), ii, _beads[ii].base(), _beads[ii].base());
+    assert(bidx < CNS_NUM_SYMBOLS);
+
+    bBaseCount[bidx] += 1;   //  Could have saved to 'best', 'other' or 'guide' here.
+    bQVSum[bidx]     += qual;
 
     bReads.push_back(ii);
   }
@@ -180,8 +188,8 @@ abColumn::baseCallQuality(void) {
   //  Compute tau based on real reads.
 
   for (uint32 cind=0; cind < bReads.size(); cind++) {
-    char     base = _beads[ bReads[cind] ]._base;
-    uint8    qual = _beads[ bReads[cind] ]._qual;
+    char     base = _beads[ bReads[cind] ].base();
+    uint8    qual = _beads[ bReads[cind] ].qual();
 
     if (qual == 0)
       qual += 5;
