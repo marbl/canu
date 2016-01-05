@@ -239,28 +239,7 @@ typedef uintptr_t INTPTR;
 #endif
 
 
-#define CGB_MULTIPLIER            1000
-
-#define CGB_INVALID_CUTOFF           -12.0f
-// A threshold value for Gene's coverage statistic. Values BELOW this value
-// have never been known to associated with unitigs with fragments that ARE
-// not contiguous in the genome. They are guaranteed REPEATS.
-
-#define CGB_UNIQUE_CUTOFF            10.0f
-//#define CGB_UNIQUE_CUTOFF            12.0f
-// A threshold value for Gene's coverage statistic. Values above this value
-// have never been known to associated with unitigs with fragments that are
-// not contiguous in the genome.
-
-#define CGB_TANDEM_REPEAT_THRESHOLD  50
-// A threshold distance in base pairs
-// for the allowed slop between the minimum overlap and maximum overlap before
-// calling an overlap definately a tandem repeat.
-
-
-
 int AS_configure(int argc, char **argv);
-
 
 
 // These macros are use to eliminate inter-platform differnces between

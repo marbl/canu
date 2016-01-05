@@ -270,6 +270,13 @@ ovStore::~ovStore() {
     fprintf(stderr, "  info._maxReadLenInBits   = "F_U64"\n", _info._maxReadLenInBits);
   }
 
+  if (_evaluesMap) {
+    delete _evaluesMap;
+
+    _evaluesMap = NULL;
+    _evalues    = NULL;
+  }
+
 #if 0
   if (_statsUpdated) {
     fprintf(stderr, "Writing new stats.\n");

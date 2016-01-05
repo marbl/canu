@@ -119,8 +119,12 @@ main(int argc, char **argv) {
   FILE             *outLOG = NULL;
   FILE             *outSTA = NULL;
 
-  double            cgbUniqueCutoff           = CGB_UNIQUE_CUTOFF;
-  double            cgbDefinitelyUniqueCutoff = CGB_UNIQUE_CUTOFF;
+  //  From the original description of these values (CGB_UNIQUE_CUTOFF):
+  //    A threshold value for Gene's coverage statistic.  Values above this value have never been
+  //    known to associated with unitigs with fragments that are not contiguous in the genome.
+  double            cgbUniqueCutoff           = 10.0;
+  double            cgbDefinitelyUniqueCutoff = 10.0;
+
   double            singleReadMaxCoverage     = 1.0;    //  Reads covering more than this will demote the unitig
   uint32            lowCovDepth               = 2;
   double            lowCovFractionAllowed     = 1.0;

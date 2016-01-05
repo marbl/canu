@@ -54,12 +54,12 @@ sub configurePBSTorque () {
     return   if (uc(getGlobal("gridEngine")) ne "PBS");
 
     setGlobalIfUndef("gridEngineSubmitCommand",         	"qsub");
-    setGlobalIfUndef("gridEngineHoldOption",    	     	"-W depend=afteranyarray:\"WAIT_TAG\"");
-    setGlobalIfUndef("gridEngineHoldOptionNoArray", 	"-W depend=afterany:\"WAIT_TAG\"");
+    setGlobalIfUndef("gridEngineHoldOption",    	     	"-W depend=afteranyarray:WAIT_TAG");
+    setGlobalIfUndef("gridEngineHoldOptionNoArray", 	"-W depend=afterany:WAIT_TAG");
     setGlobalIfUndef("gridEngineSyncOption",         	"");
     setGlobalIfUndef("gridEngineNameOption",         	"-d `pwd` -N");
     setGlobalIfUndef("gridEngineArrayOption",        	"-t ARRAY_JOBS");
-    setGlobalIfUndef("gridEngineArrayName",          	"ARRAY_NAME\[ARRAY_JOBS\]");
+    setGlobalIfUndef("gridEngineArrayName",          	"ARRAY_NAME");
     setGlobalIfUndef("gridEngineOutputOption",       	"-j oe -o");
     setGlobalIfUndef("gridEngineThreadsOption",             "-l nodes=1:ppn=THREADS");
     setGlobalIfUndef("gridEngineMemoryOption",              "-l mem=MEMORY");

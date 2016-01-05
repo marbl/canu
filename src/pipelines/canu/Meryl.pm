@@ -290,12 +290,12 @@ sub merylConfigure ($$$) {
 
 
 
-sub merylCheck ($$$$) {
+sub merylCheck ($$$) {
     my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
     ## $wrk     = $WRK;      #  Local work directory
     my $asm     = shift @_;
     my $tag     = shift @_;
-    my $attempt = shift @_;
+    my $attempt = getGlobal("canuIteration");
 
     my $bin    = getBinDirectory();
     my $cmd;
@@ -319,7 +319,7 @@ sub merylCheck ($$$$) {
 
     #  If too many attempts, give up.
 
-    if ($attempt > 2) {
+    if ($attempt > getGlobal("canuIterationMax")) {
         caExit("failed to generate mer counts.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
     }
 
@@ -349,7 +349,6 @@ sub merylProcess ($$$) {
     ## $wrk     = $WRK;      #  Local work directory
     my $asm     = shift @_;
     my $tag     = shift @_;
-    my $attempt = shift @_;
 
     my $bin    = getBinDirectory();
     my $cmd;

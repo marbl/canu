@@ -153,9 +153,9 @@ sub readErrorDetectionConfigure ($$) {
 
         my $memory = (13 * $bases) + (12 * $olaps) + (2 * $bases * $coverage);
 
-        if ((($maxMem   > 0) && ($memory >= $maxMem * 0.9)) ||    #  Allow 10% slop
-            (($maxReads > 0) && ($reads  >= $maxReads))     ||
-            (($maxBases > 0) && ($bases  >= $maxBases))     ||
+        if ((($maxMem   > 0) && ($memory >= $maxMem * 0.75)) ||    #  Allow 25% slop (10% is probably sufficient)
+            (($maxReads > 0) && ($reads  >= $maxReads))      ||
+            (($maxBases > 0) && ($bases  >= $maxBases))      ||
             (($id == $maxID - 1))) {
             push @end, $id;
 
@@ -239,11 +239,11 @@ sub readErrorDetectionConfigure ($$) {
 
 
 
-sub readErrorDetectionCheck ($$$) {
+sub readErrorDetectionCheck ($$) {
     my $WRK     = shift @_;           #  Root work directory (the -d option to canu)
     my $wrk     = "$WRK/unitigging";  #  Local work directory
     my $asm     = shift @_;
-    my $attempt = shift @_;
+    my $attempt = getGlobal("canuIteration");
     my $path    = "$wrk/3-overlapErrorAdjustment";
 
     return         if (getGlobal("enableOEA") == 0);
@@ -311,7 +311,7 @@ sub readErrorDetectionCheck ($$$) {
 
     #  If too many attempts, give up.
 
-    if ($attempt > 2) {
+    if ($attempt > getGlobal("canuIterationMax")) {
         caExit("failed to detect errors in reads.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
     }
 
@@ -396,9 +396,9 @@ sub overlapErrorAdjustmentConfigure ($$) {
 
         my $memory = (1 * $bases) + (28 * $olaps) + (8 * $bases * getGlobal("utgOvlErrorRate"));
 
-        if ((($maxMem   > 0) && ($memory >= $maxMem * 0.9)) ||    #  Allow 10% slop
-            (($maxReads > 0) && ($reads  >= $maxReads))     ||
-            (($maxBases > 0) && ($bases  >= $maxBases))     ||
+        if ((($maxMem   > 0) && ($memory >= $maxMem * 0.75)) ||    #  Allow 25% slop
+            (($maxReads > 0) && ($reads  >= $maxReads))      ||
+            (($maxBases > 0) && ($bases  >= $maxBases))      ||
             (($id == $maxID - 1))) {
             push @end, $id;
 
@@ -477,11 +477,11 @@ sub overlapErrorAdjustmentConfigure ($$) {
 
 
 
-sub overlapErrorAdjustmentCheck ($$$) {
+sub overlapErrorAdjustmentCheck ($$) {
     my $WRK     = shift @_;           #  Root work directory (the -d option to canu)
     my $wrk     = "$WRK/unitigging";  #  Local work directory
     my $asm     = shift @_;
-    my $attempt = shift @_;
+    my $attempt = getGlobal("canuIteration");
     my $path    = "$wrk/3-overlapErrorAdjustment";
 
     return         if (getGlobal("enableOEA") == 0);
@@ -546,7 +546,7 @@ sub overlapErrorAdjustmentCheck ($$$) {
 
     #  If too many attempts, give up.
 
-    if ($attempt > 2) {
+    if ($attempt > getGlobal("canuIterationMax")) {
         caExit("failed to adjust overlap error rates.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
     }
 

@@ -176,14 +176,12 @@ while (scalar(@ARGV)) {
             setErrorRate(0.025);
             setGlobal("corErrorRate", "0.30");
             setGlobal("batOptions", "-RS -NS -CS");
-            setGlobal("cnsConsensus", "utgcns");
-            setGlobal("cnsMaxCoverage", 2);
+            setGlobal("cnsMaxCoverage", 20);
         } elsif ($arg =~ m/nanopore/) {
             setErrorRate(0.045);
             setGlobal("corErrorRate", "0.50");
             setGlobal("batOptions", "-RS -NS -CS");
-            setGlobal("cnsConsensus", "quick");
-            setGlobal("cnsMaxCoverage", 1);
+            setGlobal("cnsMaxCoverage", 20);
         }
 
         $mode = "trim-assemble"  if ($arg =~ m/corrected/);
@@ -314,10 +312,6 @@ writeLog($wrk);
 
 submitScript($wrk, $asm, undef);
 
-
-
-
-
 #
 #  When doing 'run', this sets options for each stage.
 #    - overlapper 'mhap' for correction, 'ovl' for trimming and assembly.
@@ -367,22 +361,16 @@ sub overlap ($$$) {
     if (getGlobal("${tag}overlapper") eq "mhap") {
         mhapConfigure($wrk, $asm, $tag, $ovlType);
 
-        mhapPrecomputeCheck($wrk, $asm, $tag, $ovlType, 1);
-        mhapPrecomputeCheck($wrk, $asm, $tag, $ovlType, 2);
-        mhapPrecomputeCheck($wrk, $asm, $tag, $ovlType, 3);
+        mhapPrecomputeCheck($wrk, $asm, $tag, $ovlType)  foreach (1..getGlobal("canuIterationMax"));
 
         #  this also does mhapReAlign
 
-        mhapCheck($wrk, $asm, $tag, $ovlType, 1);
-        mhapCheck($wrk, $asm, $tag, $ovlType, 2);
-        mhapCheck($wrk, $asm, $tag, $ovlType, 3);
+        mhapCheck($wrk, $asm, $tag, $ovlType)  foreach (1..getGlobal("canuIterationMax"));
 
     } else {
         overlapConfigure($wrk, $asm, $tag, $ovlType);
 
-        overlapCheck($wrk, $asm, $tag, $ovlType, 1);
-        overlapCheck($wrk, $asm, $tag, $ovlType, 2);
-        overlapCheck($wrk, $asm, $tag, $ovlType, 3);
+        overlapCheck($wrk, $asm, $tag, $ovlType)  foreach (1..getGlobal("canuIterationMax"));
     }
 
     createOverlapStore($wrk, $asm, $tag, getGlobal("ovlStoreMethod"));
@@ -411,19 +399,13 @@ if (setOptions($mode, "correct") eq "correct") {
     gatekeeper($wrk, $asm, "cor", @inputFiles);
 
     merylConfigure($wrk, $asm, "cor");
-    merylCheck($wrk, $asm, "cor", 1);
-    merylCheck($wrk, $asm, "cor", 2);
-    merylCheck($wrk, $asm, "cor", 3);
+    merylCheck($wrk, $asm, "cor")  foreach (1..getGlobal("canuIterationMax"));
     merylProcess($wrk, $asm, "cor");
 
     overlap($wrk, $asm, "cor");
 
     buildCorrectionLayouts($wrk, $asm);
-
-    generateCorrectedReads($wrk, $asm, 1);
-    generateCorrectedReads($wrk, $asm, 2);
-    generateCorrectedReads($wrk, $asm, 3);
-
+    generateCorrectedReads($wrk, $asm)  foreach (1..getGlobal("canuIterationMax"));
     dumpCorrectedReads($wrk, $asm);
 
     buildHTML($wrk, $asm, "cor");
@@ -442,9 +424,7 @@ if (setOptions($mode, "trim") eq "trim") {
     gatekeeper($wrk, $asm, "obt", @inputFiles);
 
     merylConfigure($wrk, $asm, "obt");
-    merylCheck($wrk, $asm, "obt", 1);
-    merylCheck($wrk, $asm, "obt", 2);
-    merylCheck($wrk, $asm, "obt", 3);
+    merylCheck($wrk, $asm, "obt")  foreach (1..getGlobal("canuIterationMax"));
     merylProcess($wrk, $asm, "obt");
 
     overlap($wrk, $asm, "obt");
@@ -470,9 +450,7 @@ if (setOptions($mode, "assemble") eq "assemble") {
     gatekeeper($wrk, $asm, "utg", @inputFiles);
 
     merylConfigure($wrk, $asm, "utg");
-    merylCheck($wrk, $asm, "utg", 1);
-    merylCheck($wrk, $asm, "utg", 2);
-    merylCheck($wrk, $asm, "utg", 3);
+    merylCheck($wrk, $asm, "utg")  foreach (1..getGlobal("canuIterationMax"));
     merylProcess($wrk, $asm, "utg");
 
     overlap($wrk, $asm, "utg");
@@ -480,28 +458,18 @@ if (setOptions($mode, "assemble") eq "assemble") {
     #readErrorDetection($wrk, $asm);
 
     readErrorDetectionConfigure($wrk, $asm);
-
-    readErrorDetectionCheck($wrk, $asm, 1);
-    readErrorDetectionCheck($wrk, $asm, 2);
-    readErrorDetectionCheck($wrk, $asm, 3);
+    readErrorDetectionCheck($wrk, $asm)  foreach (1..getGlobal("canuIterationMax"));
 
     overlapErrorAdjustmentConfigure($wrk, $asm);
-
-    overlapErrorAdjustmentCheck($wrk, $asm, 1);
-    overlapErrorAdjustmentCheck($wrk, $asm, 2);
-    overlapErrorAdjustmentCheck($wrk, $asm, 3);
+    overlapErrorAdjustmentCheck($wrk, $asm)  foreach (1..getGlobal("canuIterationMax"));
 
     updateOverlapStore($wrk, $asm);
 
     unitig($wrk, $asm);
-    unitigCheck($wrk, $asm, 1);
-    unitigCheck($wrk, $asm, 2);
-    unitigCheck($wrk, $asm, 3);
+    unitigCheck($wrk, $asm)  foreach (1..getGlobal("canuIterationMax"));
 
     consensusConfigure($wrk, $asm);
-    consensusCheck($wrk, $asm, 1);
-    consensusCheck($wrk, $asm, 2);
-    consensusCheck($wrk, $asm, 3);
+    consensusCheck($wrk, $asm)  foreach (1..getGlobal("canuIterationMax"));
 
     consensusLoad($wrk, $asm);
     consensusAnalyze($wrk, $asm);

@@ -495,13 +495,13 @@ sub mhapConfigure ($$$$) {
 
 
 
-sub mhapPrecomputeCheck ($$$$$) {
+sub mhapPrecomputeCheck ($$$$) {
     my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
     my $wrk     = $WRK;      #  Local work directory
     my $asm     = shift @_;
     my $tag     = shift @_;
     my $typ     = shift @_;
-    my $attempt = shift @_;
+    my $attempt = getGlobal("canuIteration");
 
     $wrk = "$wrk/correction"  if ($tag eq "cor");
     $wrk = "$wrk/trimming"    if ($tag eq "obt");
@@ -556,7 +556,7 @@ sub mhapPrecomputeCheck ($$$$$) {
 
     #  If too many attempts, give up.
 
-    if ($attempt > 2) {
+    if ($attempt > getGlobal("canuIterationMax")) {
         caExit("failed to precompute mhap indices.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
     }
 
@@ -588,13 +588,13 @@ sub mhapPrecomputeCheck ($$$$$) {
 
 
 
-sub mhapCheck ($$$$$) {
+sub mhapCheck ($$$$) {
     my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
     my $wrk     = $WRK;      #  Local work directory
     my $asm     = shift @_;
     my $tag     = shift @_;
     my $typ     = shift @_;
-    my $attempt = shift @_;
+    my $attempt = getGlobal("canuIteration");
 
     $wrk = "$wrk/correction"  if ($tag eq "cor");
     $wrk = "$wrk/trimming"    if ($tag eq "obt");
@@ -676,7 +676,7 @@ sub mhapCheck ($$$$$) {
 
     #  If too many attempts, give up.
 
-    if ($attempt > 2) {
+    if ($attempt > getGlobal("canuIterationMax")) {
         caExit("failed to compute mhap overlaps.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
     }
 

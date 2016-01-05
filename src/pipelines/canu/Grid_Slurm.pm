@@ -54,12 +54,12 @@ sub configureSlurm () {
     return   if (uc(getGlobal("gridEngine")) ne "SLURM");
 
     setGlobalIfUndef("gridEngineSubmitCommand",      	"sbatch");                                        
-    setGlobalIfUndef("gridEngineHoldOption",         	"--depend=afterany:\"WAIT_TAG\"");                
-    setGlobalIfUndef("gridEngineHoldOptionNoArray",  	"--depend=afterany:\"WAIT_TAG\"");                
+    setGlobalIfUndef("gridEngineHoldOption",         	"--depend=afterany:WAIT_TAG");                
+    setGlobalIfUndef("gridEngineHoldOptionNoArray",  	"--depend=afterany:WAIT_TAG");                
     setGlobalIfUndef("gridEngineSyncOption",         	"");                                          ## TODO: SLURM may not support w/out wrapper; See LSF bsub manpage to compare
     setGlobalIfUndef("gridEngineNameOption",         	"-D `pwd` -J");                                   
     setGlobalIfUndef("gridEngineArrayOption",        	"-a ARRAY_JOBS");                                 
-    setGlobalIfUndef("gridEngineArrayName",          	"ARRAY_NAME\[ARRAY_JOBS\]");                      
+    setGlobalIfUndef("gridEngineArrayName",          	"ARRAY_NAME");                      
     setGlobalIfUndef("gridEngineOutputOption",       	"-o");                                        ## NB: SLURM default joins STDERR & STDOUT if no -e specified
     setGlobalIfUndef("gridEngineThreadsOption",       "--cpus-per-task=THREADS");
     setGlobalIfUndef("gridEngineMemoryOption",        "--mem=MEMORY");

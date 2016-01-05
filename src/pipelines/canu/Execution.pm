@@ -697,7 +697,9 @@ sub makeUniqueJobName ($$) {
 
     #  And return it!  Simple!
 
-    return("${jobName}_$jobIdx");
+    # this was breaking dependencies when multiple jobs were submitted like for a failed consensus run, turn off for now
+    return("${jobName}");
+    #return("${jobName}_$jobIdx");
 }
 
 
@@ -714,10 +716,8 @@ sub submitScript ($$$) {
     my $asm         = shift @_;
     my $jobToWaitOn = shift @_;
 
-    #  If not requested to run on the grid, or can't run on the grid, fail.
-
-    return   if (getGlobal("useGrid")       ne "1");
-    return   if (getGlobal("gridEngine")    eq undef);
+    return   if (getGlobal("useGrid")       ne "1");      #  If not requested to run on the grid,
+    return   if (getGlobal("gridEngine")    eq undef);    #  or can't run on the grid, don't run on the grid.
 
     #  If no job to wait on, and we are already on the grid, do NOT resubmit ourself.
     #
@@ -740,7 +740,7 @@ sub submitScript ($$$) {
 
     my $output    = "$wrk/canu-scripts/canu.$idx.out";
     my $script    = "$wrk/canu-scripts/canu.$idx.sh";
-    my $iteration = getGlobal("canuIteration") + 1;
+    my $iteration = getGlobal("canuIteration");
 
     #  Make a script for us to submit.
 
@@ -800,7 +800,7 @@ sub submitScript ($$$) {
         my $hold = getGlobal("gridEngineHoldOption");
 
         # most grid engines don't understand job names to hold on, only IDs
-        if (uc(getGlobal("gridEngine")) eq "LSF" || uc(getGlobal("gridEngine")) eq "PBS" || uc(getGlobal("gridEngine")) eq "SLURM"){
+        if (uc(getGlobal("gridEngine")) eq "PBS" || uc(getGlobal("gridEngine")) eq "SLURM"){
            my $tcmd = getGlobal("gridEngineNameToJobIDCommand");
            $tcmd =~ s/WAIT_TAG/$jobToWaitOn/g;
            my $propJobCount = `$tcmd |wc -l`;
@@ -814,8 +814,17 @@ sub submitScript ($$$) {
            if ($propJobCount != 1) {
               print STDERR "Warning: multiple IDs for job $jobToWaitOn got $propJobCount and should have been 1.\n";
            }
-           my $jobID = `$tcmd |tail -n 1 |awk '{print \$1}'`;
-           chomp $jobID;
+           my $jobID = undef;
+           open(F,  "$tcmd |awk '{print \$1}' |");
+           while (<F>) {
+              chomp $_;
+              if (defined($jobID)) {
+                 $jobID = "$jobID:$_";
+              } else {
+                 $jobID = $_;
+              }
+           }
+           close(F);
            $hold =~ s/WAIT_TAG/$jobID/g;
         } else {
            $hold =~ s/WAIT_TAG/$jobToWaitOn/;
@@ -1079,20 +1088,24 @@ sub submitOrRunParallelJob ($$$$$@) {
 
     #  Break infinite loops.  If the grid jobs keep failing, give up after a few attempts.
     #
-    #  submitScript() will increment canuIteration on each call.  It is reset to zero if the Check()
-    #  for any parallel step succeeds.  Thus, if useGrid=false, this has no impact.  (COMMENT PROBABLY NOT CORRECT)
+    #  submitScript() passes canuIteration on to the next call.
+    #  canuIteration is reset to zero if the Check() for any parallel step succeeds.
     #
     #  Assuming grid jobs die on each attempt:
-    #    Iteration 0 - the one run on the command line; submits iteration 1
-    #    Iteration 1 - run on the grid, submits parallel jobs and iteration 2
-    #    Iteration 2 - run on the grid, submits parallel jobs and iteration 3
-    #    Iteration 3 - run on the grid, fails
+    #    0) canu run from the command line submits iteration 1; canuIteration is NOT incremented
+    #       because no parallel jobs have been submitted.
+    #    1) Iteration 1 - canu.pl submits jobs, increments the interation count, and submits itself as iteration 2
+    #    2) Iteration 2 - canu.pl submits jobs, increments the interation count, and submits itself as iteration 3
+    #    3) Iteration 3 - canu.pl fails with the error below
     #
-    #  If the jobs succeed in Iteration 2, the canu in iteration 3 will pass the Check(), and
-    #  continue the pipeline.
+    #  If the jobs succeed in Iteration 2, the canu in iteration 3 will pass the Check(), never call
+    #  this function, and continue the pipeline.
 
     caExit("canu iteration count too high, stopping pipeline (most likely a problem in the grid-based computes)", undef)
         if (getGlobal("canuIteration") > getGlobal("canuIterationMax"));
+
+    setGlobal("canuIteration", getGlobal("canuIteration") + 1);
+
 
     #  If 'gridEngineJobID' environment variable exists (SGE: JOB_ID; LSF: LSB_JOBID) then we are
     #  currently running under grid crontrol.  If so, run the grid command to submit more jobs, then

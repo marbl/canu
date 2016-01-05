@@ -61,8 +61,7 @@ reads once and try many different assemblies.  We do exactly that in the :ref:`q
 Parameters are key=value pairs that configure the assembler.  They set run time parameters (e.g.,
 memory, threads, grid), algorithmic parameters (e.g., error rates, trimming aggressiveness), and
 enable or disable entire processing steps (e.g., don't correct errors, don't search for subreads).
-They are described later.  Two parameters are required: the errorRate (in fraction error, for
-example, 0.12 specifies 12% error; see :ref:`error-rates`) and the genomeSize (in bases, with common
+They are described later.  One parameter is required: the genomeSize (in bases, with common
 SI prefixes allowed, for example, 4.7m or 2.8g; see :ref:`genomeSize`).  Parameters are listed in
 the :ref:`parameter-reference`, but the common ones are described in this document.
 
@@ -167,20 +166,16 @@ We'll get to the details eventually.
 Execution Configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-
 There are two modes that canu runs in: locally, using just one machine, or grid-enabled, using
 multiple hosts managed by a grid engine.  At present, only Sun Grid Engine / Open Grid Engine /
-Univa Grid Engine / whatever it's called now is a supported grid engine.  We expect PBS and LSF
-support will be super easy to add (we need to figure out how to test it), and think that SLURM
-support will be possible too.  Section :ref:`grid-engine-config` has a few hints on how to set up a
+Univa Grid Engine / SGE / whatever it's called now, PBS, and Slurm support is available. LSF 
+support is also included but has limited testing. Section :ref:`grid-engine-config` has a few hints on how to set up a
 new grid engine.
 
-To enable execution of the parallel steps on the grid, set ``useGrid=1``.  The canu pipeline will run
-non-parallel steps on the local machine, and will emit a 'qsub' command to manaully run parallel
-steps on the grid.  If ``useGridMaster=1`` is set, the canu pipeline will immediately submit itself to
-the grid, and run entirely under grid control.
+To enable execution of the parallel steps on the grid, set ``useGrid=1``.  The canu pipeline will immediately submit itself to
+the grid, and run entirely under grid control. This is the default if a grid-engine is detected on your system. If you prefer to run locally, set ``useGrid=0``.
 
-Each stage has the same five configuration options, and tags are used to specialize the option to a
+In both cases, local or grid, Canu will auto-detect available resources and scale the jobs to run, based on the resources and genome size you're assembling. Thus, most users should be able to run the command without modifying the defaults. Some advanced options are outlined below. Each stage has the same five configuration options, and tags are used to specialize the option to a
 specific stage.  The options are:
 
 useGrid<tag>=boolean
@@ -231,13 +226,10 @@ Fraction Error  Percent Error
 ==============  =============
 
 Eventually, we want to have Canu take a single error rate, the error rate of a single input read,
-and derive all other rates from there.  This is the mandatory parameter ``errorRate``.
+and derive all other rates from there.  This is the parameter ``errorRate``. Currently, the defaults are 0.025 for PacBio sequences and 0.045 for Oxford Nanpore sequences. When you have low-coverage datasets it helps to lower the error rate by 0.01 and decrease the stringency for creating corrected sequences. See the :ref:`quick_low` section for details.
 
 The error rates are critical for unitig construction, but are also used when generating overlaps,
-and for trimming reads.  A change from `celera-assembler`_ is that they aren't used for generating
-consensus sequences anymore.
-
-Error rates are used in two ways: to limit what overlaps are generated, and to filter overlaps
+and for trimming reads.  Error rates are used in two ways: to limit what overlaps are generated, and to filter overlaps
 before using them.  The former is more a computational shortcut - no need to compute what isn't
 going to be used - while the latter can be critical to a successful assembly.
 

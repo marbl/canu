@@ -583,9 +583,10 @@ sub checkParameters ($) {
         caExit("invalid 'corConsensus' specified (" . getGlobal("corConsensus") . "); must be 'utgcns' or 'falcon' or 'falconpipe'", undef);
     }
 
-    if ((getGlobal("cnsConsensus") ne "utgcns") &&
-        (getGlobal("cnsConsensus") ne "quick")) {
-        caExit("invalid 'cnsConsensus' specified (" . getGlobal("cnsConsensus") . "); must be 'utgcns' or 'quick'", undef);
+    if ((getGlobal("cnsConsensus") ne "quick") &&
+        (getGlobal("cnsConsensus") ne "pbdagcon") &&
+        (getGlobal("cnsConsensus") ne "utgcns")) {
+        caExit("invalid 'cnsConsensus' specified (" . getGlobal("cnsConsensus") . "); must be 'quick', 'pbdagcon', or 'utgcns'", undef);
     }
 
 
@@ -715,10 +716,10 @@ sub checkParameters ($) {
     setGlobalIfUndef("utgGraphErrorRate",    2.0 * getGlobal("errorRate"));
     setGlobalIfUndef("utgBubbleErrorRate",   2.0 * getGlobal("errorRate") + 0.5 * getGlobal("errorRate"));
     setGlobalIfUndef("utgMergeErrorRate",    2.0 * getGlobal("errorRate") - 0.5 * getGlobal("errorRate"));
-    setGlobalIfUndef("utgRepeatErrorRate",   1.0 * getGlobal("errorRate"));
+    setGlobalIfUndef("utgRepeatErrorRate",   2.0 * getGlobal("errorRate"));
 
-    setGlobalIfUndef("corsErrorRate",        8.0 * getGlobal("errorRate"));
-    setGlobalIfUndef("cnsErrorRate",         3.0 * getGlobal("errorRate"));
+    setGlobalIfUndef("corsErrorRate",        10.0 * getGlobal("errorRate"));
+    setGlobalIfUndef("cnsErrorRate",         2.5 * getGlobal("errorRate"));
 }
 
 
@@ -790,7 +791,7 @@ sub setErrorRate ($@) {
     setGlobal("utgRepeatErrorRate", $er * 2);
 
     setGlobal("corErrorRate",       $er * 10);  #  Erorr rate used for raw sequence alignment/consensus
-    setGlobal("cnsErrorRate",       $er);
+    setGlobal("cnsErrorRate",       $er * 2.5);
 
     showErrorRates("--  ")  if (defined($verbose));
 }
@@ -866,7 +867,7 @@ sub setDefaults () {
 
     #####  General Configuration Options (aka miscellany)
 
-    $global{"canuIteration"}               = 0;  #  See documentation in Execution.pm
+    $global{"canuIteration"}               = 1;  #  See documentation in Execution.pm
     $global{"canuIterationMax"}            = 2;
 
     $global{"showNext"}                    = undef;
@@ -1135,8 +1136,8 @@ sub setDefaults () {
     $global{"cnsMaxCoverage"}              = 0;
     $synops{"cnsMaxCoverage"}              = "Limit unitig consensus to at most this coverage";
 
-    $global{"cnsConsensus"}                = "utgcns";
-    $synops{"cnsConsensus"}                = "Which consensus algorithm to use; full consensus with 'utgcns', or quick approximation with 'quick'";
+    $global{"cnsConsensus"}                = "pbdagcon";
+    $synops{"cnsConsensus"}                = "Which consensus algorithm to use; 'pbdagcon' (fast, reliable); 'utgcns' (multialignment output); 'quick' (single read mosaic)";
 
     #####  Correction Options
 

@@ -83,14 +83,16 @@ sub trimReads ($$) {
 
     caFailure("trimReads finished, but no '$asm.1.trimReads.clear' output found", undef)  if (! -e "$path/$asm.1.trimReads.clear");
 
-    $cmd  = "$bin/gatekeeperDumpFASTQ \\\n";
-    $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
-    $cmd .= "  -c $path/$asm.1.trimReads.clear \\\n";
-    $cmd .= "  -o $path/$asm.1.trimReads.trimmed \\\n";
-    $cmd .= ">    $path/$asm.1.trimReads.trimmed.err 2>&1";
+    if (0) {
+        $cmd  = "$bin/gatekeeperDumpFASTQ \\\n";
+        $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
+        $cmd .= "  -c $path/$asm.1.trimReads.clear \\\n";
+        $cmd .= "  -o $path/$asm.1.trimReads.trimmed \\\n";
+        $cmd .= ">    $path/$asm.1.trimReads.trimmed.err 2>&1";
 
-    if (runCommand($path, $cmd)) {
-        caFailure("dumping trimmed reads failed", "$wrk/$asm.1.trimReads.trimmed.err");
+        if (runCommand($path, $cmd)) {
+            caFailure("dumping trimmed reads failed", "$wrk/$asm.1.trimReads.trimmed.err");
+        }
     }
 
   finishStage:
@@ -139,14 +141,16 @@ sub splitReads ($$) {
 
     caFailure("splitReads finished, but no '$asm.2.splitReads.clear' output found", undef)  if (! -e "$path/$asm.2.splitReads.clear");
 
-    $cmd  = "$bin/gatekeeperDumpFASTQ \\\n";
-    $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
-    $cmd .= "  -c $path/$asm.2.splitReads.clear \\\n";
-    $cmd .= "  -o $path/$asm.2.splitReads.trimmed \\\n";
-    $cmd .= ">    $path/$asm.2.splitReads.trimmed.err 2>&1";
+    if (0) {
+        $cmd  = "$bin/gatekeeperDumpFASTQ \\\n";
+        $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
+        $cmd .= "  -c $path/$asm.2.splitReads.clear \\\n";
+        $cmd .= "  -o $path/$asm.2.splitReads.trimmed \\\n";
+        $cmd .= ">    $path/$asm.2.splitReads.trimmed.err 2>&1";
 
-    if (runCommand($path, $cmd)) {
-        caFailure("dumping trimmed reads failed", "$wrk/$asm.2.splitReads.trimmed.err");
+        if (runCommand($path, $cmd)) {
+            caFailure("dumping trimmed reads failed", "$wrk/$asm.2.splitReads.trimmed.err");
+        }
     }
 
   finishStage:

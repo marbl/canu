@@ -106,8 +106,12 @@ sub utgcns ($$$) {
     print F "  -O $wrk/5-consensus/\$jobid.cns.WORKING \\\n";
     print F "  -L $wrk/5-consensus/\$jobid.layout.WORKING \\\n";
     print F "  -F $wrk/5-consensus/\$jobid.fastq.WORKING \\\n";
-    print F "  -Q \\\n"   if (getGlobal("cnsConsensus") eq "quick");
     print F "  -maxcoverage " . getGlobal('cnsMaxCoverage') . " \\\n";
+    print F "  -e " . getGlobal("cnsErrorRate") . " \\\n";
+    print F "  -quick \\\n"      if (getGlobal("cnsConsensus") eq "quick");
+    print F "  -pbdagcon \\\n"   if (getGlobal("cnsConsensus") eq "pbdagcon");
+    print F "  -utgcns \\\n"     if (getGlobal("cnsConsensus") eq "utgcns");
+    print F "  -threads " . getGlobal("cnsThreads") . " \\\n"; 
     print F "&& \\\n";
     print F "mv $wrk/5-consensus/\$jobid.cns.WORKING $wrk/5-consensus/\$jobid.cns \\\n";
     print F "&& \\\n";
@@ -164,14 +168,14 @@ sub consensusConfigure ($$) {
         }
     }
 
-    #  Set up the consensus compute.
+    #  Set up the consensus compute.  It's in a useless if chain because there used to be
+    #  different executables; now they're all rolled into utgcns itself.
 
     my $jobs = computeNumberOfConsensusJobs($wrk, $asm);
 
-    if      (getGlobal("cnsConsensus") eq "utgcns") {
-        utgcns($wrk, $asm, $jobs);
-
-    } elsif (getGlobal("cnsConsensus") eq "quick") {
+    if ((getGlobal("cnsConsensus") eq "quick") ||
+        (getGlobal("cnsConsensus") eq "pbdagcon") ||
+        (getGlobal("cnsConsensus") eq "utgcns")) {
         utgcns($wrk, $asm, $jobs);
 
     } else {
@@ -193,11 +197,11 @@ sub consensusConfigure ($$) {
 
 #  Checks that all consensus jobs are complete, loads them into the store.
 #
-sub consensusCheck ($$$) {
+sub consensusCheck ($$) {
     my $WRK     = shift @_;           #  Root work directory
     my $wrk     = "$WRK/unitigging";  #  Local work directory
     my $asm     = shift @_;
-    my $attempt = shift @_;
+    my $attempt = getGlobal("canuIteration");
     my $path    = "$wrk/5-consensus";
 
     goto allDone  if (skipStage($WRK, $asm, "consensusCheck", $attempt) == 1);
@@ -255,7 +259,7 @@ sub consensusCheck ($$$) {
 
     #  If too many attempts, give up.
 
-    if ($attempt > 2) {
+    if ($attempt > getGlobal("canuIterationMax")) {
         caExit("failed to generate consensus.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
     }
 

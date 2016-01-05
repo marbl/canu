@@ -161,7 +161,7 @@ sub getAllowedResources ($$$$) {
 
     #  If no grid, or grid not enabled, everything falls under 'lcoal'.
 
-    my $class = ((getGlobal("useGrid") == 1) && (defined(getGlobal("gridEngine")))) ? "grid" : "local";
+    my $class = ((getGlobal("useGrid") ne "0") && (defined(getGlobal("gridEngine")))) ? "grid" : "local";
 
     #  Figure out limits.
 
@@ -258,6 +258,8 @@ sub getAllowedResources ($$$$) {
     #    taskMemory  = 16g,32g,64g
 
     my ($bestCores,  $bestCoresM,  $bestCoresT)  = (0, undef, undef);
+
+    print STDERR "maxMemory $maxMemory maxThreads $maxThreads\n";
 
     foreach my $m (@taskMemory) {
         foreach my $t (@taskThreads) {
@@ -452,18 +454,18 @@ sub configureAssembler () {
         setGlobalIfUndef("obtOvlMemory", "4-8");     setGlobalIfUndef("obtOvlThreads", "1-8");
         setGlobalIfUndef("utgOvlMemory", "4-8");     setGlobalIfUndef("utgOvlThreads", "1-8");
 
-        setGlobalIfUndef("corMhapMemory", "4-16");   setGlobalIfUndef("corMhapThreads", "1-16");
-        setGlobalIfUndef("obtMhapMemory", "4-16");   setGlobalIfUndef("obtMhapThreads", "1-16");
-        setGlobalIfUndef("utgMhapMemory", "4-16");   setGlobalIfUndef("utgMhapThreads", "1-16");
+        setGlobalIfUndef("corMhapMemory", "4-6");   setGlobalIfUndef("corMhapThreads", "1-16");
+        setGlobalIfUndef("obtMhapMemory", "4-6");   setGlobalIfUndef("obtMhapThreads", "1-16");
+        setGlobalIfUndef("utgMhapMemory", "4-6");   setGlobalIfUndef("utgMhapThreads", "1-16");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("500m")) {
         setGlobalIfUndef("corOvlMemory", "2-6");     setGlobalIfUndef("corOvlThreads", "1");
         setGlobalIfUndef("obtOvlMemory", "4-8");     setGlobalIfUndef("obtOvlThreads", "1-8");
         setGlobalIfUndef("utgOvlMemory", "4-8");     setGlobalIfUndef("utgOvlThreads", "1-8");
 
-        setGlobalIfUndef("corMhapMemory", "8-24");   setGlobalIfUndef("corMhapThreads", "1-16");
-        setGlobalIfUndef("obtMhapMemory", "8-24");   setGlobalIfUndef("obtMhapThreads", "1-16");
-        setGlobalIfUndef("utgMhapMemory", "8-24");   setGlobalIfUndef("utgMhapThreads", "1-16");
+        setGlobalIfUndef("corMhapMemory", "8-13");   setGlobalIfUndef("corMhapThreads", "1-16");
+        setGlobalIfUndef("obtMhapMemory", "8-13");   setGlobalIfUndef("obtMhapThreads", "1-16");
+        setGlobalIfUndef("utgMhapMemory", "8-13");   setGlobalIfUndef("utgMhapThreads", "1-16");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("2g")) {
         setGlobalIfUndef("corOvlMemory", "2-8");     setGlobalIfUndef("corOvlThreads", "1");
@@ -530,19 +532,19 @@ sub configureAssembler () {
     #  Correction and consensus are likewise somewhat invariant.
 
     if      (getGlobal("genomeSize") < adjustGenomeSize("40m")) {
-        setGlobalIfUndef("cnsMemory",     "4-32");     setGlobalIfUndef("cnsThreads",      "1");
+        setGlobalIfUndef("cnsMemory",     "8-32");     setGlobalIfUndef("cnsThreads",      "1-4");
         setGlobalIfUndef("corMemory",     "6-16");     setGlobalIfUndef("corThreads",      "1-4");
         setGlobalIfUndef("cnsPartitions", "8");        setGlobalIfUndef("cnsPartitionMin", "15000");
         setGlobalIfUndef("corPartitions", "128");       setGlobalIfUndef("corPartitionMin", "5000");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("1g")) {
-        setGlobalIfUndef("cnsMemory",     "16-48");    setGlobalIfUndef("cnsThreads",      "1");
+        setGlobalIfUndef("cnsMemory",     "16-48");    setGlobalIfUndef("cnsThreads",      "2-8");
         setGlobalIfUndef("corMemory",     "10-16");    setGlobalIfUndef("corThreads",      "2-8");
         setGlobalIfUndef("cnsPartitions", "64");       setGlobalIfUndef("cnsPartitionMin", "20000");
         setGlobalIfUndef("corPartitions", "256");      setGlobalIfUndef("corPartitionMin", "15000");
 
     } else {
-        setGlobalIfUndef("cnsMemory",     "16-64");    setGlobalIfUndef("cnsThreads",      "1");
+        setGlobalIfUndef("cnsMemory",     "16-64");    setGlobalIfUndef("cnsThreads",      "2-8");
         setGlobalIfUndef("corMemory",     "10-16");    setGlobalIfUndef("corThreads",      "2-8");
         setGlobalIfUndef("cnsPartitions", "256");      setGlobalIfUndef("cnsPartitionMin", "25000");
         setGlobalIfUndef("corPartitions", "512");      setGlobalIfUndef("corPartitionMin", "25000");
@@ -572,23 +574,23 @@ sub configureAssembler () {
 
     if      (getGlobal("genomeSize") < adjustGenomeSize("40m")) {
         setGlobalIfUndef("redMemory",   "2-8");    setGlobalIfUndef("redThreads",   "1-4");
-        setGlobalIfUndef("oeaMemory",   "4-16");   setGlobalIfUndef("oeaThreads",   "1");
+        setGlobalIfUndef("oeaMemory",   "2");      setGlobalIfUndef("oeaThreads",   "1");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("500m")) {
         setGlobalIfUndef("redMemory",   "4-12");    setGlobalIfUndef("redThreads",   "1-6");
-        setGlobalIfUndef("oeaMemory",   "4-24");    setGlobalIfUndef("oeaThreads",   "1");
+        setGlobalIfUndef("oeaMemory",   "2");       setGlobalIfUndef("oeaThreads",   "1");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("2g")) {
         setGlobalIfUndef("redMemory",   "4-16");    setGlobalIfUndef("redThreads",   "1-8");
-        setGlobalIfUndef("oeaMemory",   "8-32");    setGlobalIfUndef("oeaThreads",   "1");
+        setGlobalIfUndef("oeaMemory",   "2");       setGlobalIfUndef("oeaThreads",   "1");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("5g")) {
         setGlobalIfUndef("redMemory",   "4-32");    setGlobalIfUndef("redThreads",   "1-8");
-        setGlobalIfUndef("oeaMemory",   "8-32");    setGlobalIfUndef("oeaThreads",   "1");
+        setGlobalIfUndef("oeaMemory",   "2");       setGlobalIfUndef("oeaThreads",   "1");
 
     } else {
         setGlobalIfUndef("redMemory",   "4-32");    setGlobalIfUndef("redThreads",   "1-8");
-        setGlobalIfUndef("oeaMemory",   "8-32");    setGlobalIfUndef("oeaThreads",   "1");
+        setGlobalIfUndef("oeaMemory",   "2");       setGlobalIfUndef("oeaThreads",   "1");
     }
 
     #  And bogart.

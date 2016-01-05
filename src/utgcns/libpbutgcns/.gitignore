@@ -1,0 +1,20 @@
+# Compiled Object files and Bindaries
+*.slo
+*.lo
+*.o
+pbutgcns
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+
+# dependency files
+*.d
+
+# vim tmpfiles
+*.swp

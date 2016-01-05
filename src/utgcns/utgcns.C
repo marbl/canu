@@ -76,7 +76,8 @@ main (int argc, char **argv) {
 
   char    *inPackageName   = NULL;
 
-  bool      doQuick        = false;
+  char      algorithm      = 'P';
+  uint32    numThreads	   = 0;
 
   bool      forceCompute   = false;
 
@@ -129,8 +130,15 @@ main (int argc, char **argv) {
     } else if (strcmp(argv[arg], "-F") == 0) {
       outSeqName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-Q") == 0) {
-      doQuick = true;
+    } else if (strcmp(argv[arg], "-quick") == 0) {
+      algorithm = 'Q';
+    } else if (strcmp(argv[arg], "-pbdagcon") == 0) {
+      algorithm = 'P';
+    } else if (strcmp(argv[arg], "-utgcns") == 0) {
+      algorithm = 'U';
+
+    } else if (strcmp(argv[arg], "-threads") == 0) {
+      numThreads = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-p") == 0) {
       inPackageName = argv[++arg];
@@ -195,7 +203,18 @@ main (int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  ALGORITHM\n");
-    fprintf(stderr, "    -Q              No alignments, just paste read sequence into the unitig positions.\n");
+    fprintf(stderr, "    -quick          No alignments, just paste read sequence into the unitig positions.\n");
+    fprintf(stderr, "                    This is very fast, but the consensus sequence is formed from a mosaic\n");
+    fprintf(stderr, "                    of read sequences, and there can be large indel.  This is useful for\n");
+    fprintf(stderr, "                    checking intermediate assembly structure by mapping to reference, or\n");
+    fprintf(stderr, "                    possibly for use as input to a polishing step.\n");
+    fprintf(stderr, "    -pbdagcon       Use pbdagcon (https://github.com/PacificBiosciences/pbdagcon).\n");
+    fprintf(stderr, "                    This is fast and robust.  It is the default algorithm.  It does not\n");
+    fprintf(stderr, "                    generate a final multialignment output (the -v option will not show\n");
+    fprintf(stderr, "                    anything useful).\n");
+    fprintf(stderr, "    -utgcns         Use utgcns (the original Celera Assembler consensus algorithm)\n");
+    fprintf(stderr, "                    This isn't as fast, isn't as robust, but does generate a final multialign\n");
+    fprintf(stderr, "                    output.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  OUTPUT\n");
@@ -260,6 +279,15 @@ main (int argc, char **argv) {
     outSeqFile = fopen(outSeqName, "w");
   if (errno)
     fprintf(stderr, "Failed to open output FASTQ file '%s': %s\n", outSeqName, strerror(errno)), exit(1);
+
+  if (numThreads > 0) {
+    omp_set_num_threads(numThreads);
+    fprintf(stderr, "number of threads     = %d (command line)\n", numThreads);
+    fprintf(stderr, "\n");
+  } else {
+    fprintf(stderr, "number of threads     = %d (OpenMP default)\n", omp_get_max_threads());
+    fprintf(stderr, "\n");
+  }
 
   //  Open gatekeeper for read only, and load the partitioned data if tigPart > 0.
 
@@ -448,10 +476,18 @@ main (int argc, char **argv) {
         ((exists == false) || (forceCompute == true))) {
       origChildren = stashContains(tig, maxCov, true);
 
-      if (doQuick)
-        success = utgcns->generateQuick(tig, inPackageRead, inPackageReadData);
-      else
-        success = utgcns->generate(tig, inPackageRead, inPackageReadData);
+      switch (algorithm) {
+        case 'Q':
+          success = utgcns->generateQuick(tig, inPackageRead, inPackageReadData);
+          break;
+        case 'P':
+        default:
+          success = utgcns->generatePBDAG(tig, inPackageRead, inPackageReadData);
+          break;
+        case 'U':
+          success = utgcns->generate(tig, inPackageRead, inPackageReadData);
+          break;
+      }
     }
 
     //  If it was successful (or existed already), output.  Success is always false if the unitig

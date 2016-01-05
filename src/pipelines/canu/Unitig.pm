@@ -115,7 +115,7 @@ sub unitig ($$) {
 
     my $perPart = int(getNumberOfReadsInStore($wrk, $asm) / getGlobal("cnsPartitions"));
     my $minPart = getGlobal("cnsPartitionMin");
-    my $genomeCoverage = getGenomeCoverage($wrk, $asm, getGlobal("utgOvlMerSize"));
+    my $genomeCoverage = int(1.3 * getGenomeCoverage($wrk, $asm, getGlobal("utgOvlMerSize")));
 
     $perPart = ($perPart < $minPart) ? ($perPart) : ($minPart);
 
@@ -170,11 +170,11 @@ sub unitig ($$) {
 
 
 
-sub unitigCheck ($$$) {
+sub unitigCheck ($$) {
     my $WRK     = shift @_;           #  Root work directory
     my $wrk     = "$WRK/unitigging";  #  Local work directory
     my $asm     = shift @_;
-    my $attempt = shift @_;
+    my $attempt = getGlobal("canuIteration");
     my $path    = "$wrk/4-unitigger";
 
     goto allDone  if (skipStage($WRK, $asm, "unitigCheck", $attempt) == 1);
@@ -211,7 +211,7 @@ sub unitigCheck ($$$) {
 
     #  If too many attempts, give up.
 
-    if ($attempt > 2) {
+    if ($attempt > getGlobal("canuIterationMax")) {
         caExit("failed to generate unitigs.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
     }
 

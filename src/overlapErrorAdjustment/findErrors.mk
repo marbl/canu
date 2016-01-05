@@ -19,7 +19,7 @@ SOURCES  := findErrors.C \
 SRC_INCDIRS  := .. ../AS_UTL ../stores ../overlapInCore/liboverlap
 
 TGT_LDFLAGS := -L${TARGET_DIR}
-TGT_LDLIBS  := -lCA
-TGT_PREREQS := libCA.a
+TGT_LDLIBS  := -lcanu
+TGT_PREREQS := libcanu.a
 
 SUBMAKEFILES :=
