@@ -328,7 +328,7 @@ unitigConsensus::generatePBDAG(tgTig                     *tig_,
         dagcon::Alignment norm = normalizeGaps(aln);
 
         // not thread safe to add to graph concurrently, so lock while adding
-        #pragma omp critical (graphAdd)
+#pragma omp critical (graphAdd)
         ag.addAln(norm);
     }
 
