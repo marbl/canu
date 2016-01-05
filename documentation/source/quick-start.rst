@@ -39,7 +39,7 @@ Pacific Biosciences released P6-C4 chemistry reads.  You can download them
 You must have the Pac Bio SMRTpipe software installed to extract the reads as FASTQ.
 
 We made a 25X subset FASTQ available
-`here <http://gembox.cbcb.umd.edu/mhap/raw/ecoli_p6_25x.filtered.fastq.gz>`_
+`here <http://gembox.cbcb.umd.edu/mhap/raw/ecoli_p6_25x.filtered.fastq>`_
 
 or use the following curl command:
 
