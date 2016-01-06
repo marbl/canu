@@ -120,6 +120,8 @@ if (scalar(@ARGV) == 0) {
 
 my $mode = "run";
 my $step = "run";
+my $haveRaw = 0;
+my $haveCorrected = 0;
 
 while (scalar(@ARGV)) {
     my $arg = shift @ARGV;
@@ -185,6 +187,11 @@ while (scalar(@ARGV)) {
         }
 
         $mode = "trim-assemble"  if ($arg =~ m/corrected/);
+        $haveCorrected = 1       if ($arg =~ m/corrected/);
+        $haveRaw = 1             if ($arg =~ m/raw/);
+
+        setGlobal("help",
+		  getGlobal("help"). "ERROR: specified both raw and corrected sequences. Canu does not currently support mixing raw and corrected sequences. Please correct the raw sequences first and then assemble\n") if ($haveRaw && $haveCorrected);
 
         setGlobal("help",
                   getGlobal("help") . "ERROR:  $arg file '$ARGV[0]' not found\n")
