@@ -59,7 +59,7 @@ sub configureSGE () {
     setGlobalIfUndef("gridEngineOutputOption",               "-j y -o");
     setGlobalIfUndef("gridEnginePropagateCommand",           "qalter -hold_jid \"WAIT_TAG\"");
     setGlobalIfUndef("gridEngineThreadsOption",              undef);  #"-pe threads THREADS");
-    setGlobalIfUndef("gridEngineMemoryOption",               undef);  #"-l mem=MEMORY");
+    setGlobalIfUndef("gridEngineMemoryOption",               undef);  #"-l mem_free=MEMORY");
     setGlobalIfUndef("gridEngineNameToJobIDCommand",         undef);
     setGlobalIfUndef("gridEngineNameToJobIDCommandNoArray",  undef);
     setGlobalIfUndef("gridEngineTaskID",                     "SGE_TASK_ID");
@@ -139,11 +139,11 @@ sub configureSGE () {
         } elsif ($nmm > 1) {
             print STDERR "-- WARNING:  Couldn't determine the SGE resource to request memory.\n";
             print STDERR "--          Found $nmm choices: $mem\n";
-            print STDERR "--          Set 'gridEngineMemoryOption' manually; example: '-l mem=MEMORY'.\n";
+            print STDERR "--          Set 'gridEngineMemoryOption' manually; example: '-l mem_free=MEMORY'.\n";
 
         } else {
             print STDERR "-- WARNING:  Couldn't determine the SGE resource to request memory.\n";
-            print STDERR "--          Set 'gridEngineMemoryOption' manually; example: '-l mem=MEMORY'.\n";
+            print STDERR "--          Set 'gridEngineMemoryOption' manually; example: '-l mem_free=MEMORY'.\n";
         }
     } else {
         if (getGlobal("gridEngineMemoryOption") =~ m/^-l\s+(.*)=MEMORY$/) {
