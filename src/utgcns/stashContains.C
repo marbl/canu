@@ -112,21 +112,27 @@ stashContains(tgTig       *tig,
 
   if ((totlCov  >= maxCov) &&
       (maxCov   > 0)) {
-#warning is this really larger first?
-    std::sort(posLen, posLen + nOrig);  //  Sort by length, larger first
+    std::sort(posLen, posLen + nOrig, greater<readLength>());  //  Sort by length, larger first
 
     nBaseSave = 0.0;
 
-    for (uint32 ii=0; ((ii < nOrig) && ((double)(nBaseSave + nBaseDove) / hiEnd < maxCov)); ii++) {
+    for (uint32 ii=0; ii < nOrig; ii++) {
+
+      if (ii > 0)
+        assert(posLen[ii-1].len >= posLen[ii].len);
+
       if (isBack[posLen[ii].idx])
         //  Already a backbone read.
         continue;
 
-      isBack[posLen[ii].idx] = true;  //  Save it.
+      if ((double)(nBaseSave + nBaseDove) / hiEnd < maxCov) {
+        isBack[posLen[ii].idx] = true;  //  Save it.
 
-      nSave++;
-      nBaseSave += posLen[ii].len;
+        nSave++;
+        nBaseSave += posLen[ii].len;
+      }
     }
+
 
     saved->numContainsRemoved = nOrig - nBack - nSave;
     saved->covContainsRemoved = (double)(nBaseCont - nBaseSave) / hiEnd;

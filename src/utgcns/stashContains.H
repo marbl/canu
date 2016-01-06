@@ -43,6 +43,9 @@ public:
   bool operator<(const readLength &that) const {
     return(len < that.len);
   };
+  bool operator>(const readLength &that) const {
+    return(len > that.len);
+  };
 };
 
 
