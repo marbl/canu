@@ -259,8 +259,6 @@ sub getAllowedResources ($$$$) {
 
     my ($bestCores,  $bestCoresM,  $bestCoresT)  = (0, undef, undef);
 
-    print STDERR "maxMemory $maxMemory maxThreads $maxThreads\n";
-
     foreach my $m (@taskMemory) {
         foreach my $t (@taskThreads) {
 
