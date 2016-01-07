@@ -202,8 +202,8 @@ abColumn::mergeWithNext(abAbacus *abacus, bool highQuality) {
     if (fit != abacus->fbeadToRead.end()) {
       uint32  rid = fit->second;
 
-      fprintf(stderr, "mergeWithNext()-- move fbeadToRead from %p/%d to %p/%d for read %d\n",
-              rcolumn, rr, lcolumn, ll, rid);
+      //fprintf(stderr, "mergeWithNext()-- move fbeadToRead from %p/%d to %p/%d for read %d\n",
+      //        rcolumn, rr, lcolumn, ll, rid);
 
       abacus->fbeadToRead.erase(fit);     //  Remove the old bead to read pointer
 
@@ -214,8 +214,8 @@ abColumn::mergeWithNext(abAbacus *abacus, bool highQuality) {
     if (lit != abacus->lbeadToRead.end()) {
       uint32  rid = lit->second;
 
-      fprintf(stderr, "mergeWithNext()-- move lbeadToRead from %p/%d to %p/%d for read %d\n",
-              rcolumn, rr, lcolumn, ll, rid);
+      //fprintf(stderr, "mergeWithNext()-- move lbeadToRead from %p/%d to %p/%d for read %d\n",
+      //        rcolumn, rr, lcolumn, ll, rid);
 
       abacus->lbeadToRead.erase(lit);
 
