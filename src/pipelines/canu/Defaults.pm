@@ -287,10 +287,6 @@ sub getPhysicalMemorySize () {
 
 
 
-
-
-
-
 sub dirname ($) {
     my $d = shift @_;
 
@@ -303,6 +299,7 @@ sub dirname ($) {
 
     return($d);
 }
+
 
 
 sub diskSpace ($) {
@@ -318,7 +315,6 @@ sub diskSpace ($) {
 
     return (wantarray) ? ($total, $used, $free, $avail) : $avail;
 }
-
 
 
 
@@ -500,226 +496,6 @@ sub setParametersFromCommandLine(@) {
             setGlobal("help", getGlobal("help") . "Misformed command line option '$s'.\n");
         }
     }
-}
-
-
-
-
-
-sub checkParameters ($) {
-    my $bin = shift @_;  #  Can't include canu::Execution without a loop.
-
-    #
-    #  Pick a nice looking set of binaries, and check them.
-    #
-
-    caExit("can't find 'gatekeeperCreate' program in $bin.  Possibly incomplete installation", undef) if (! -x "$bin/gatekeeperCreate");
-    caExit("can't find 'meryl' program in $bin.  Possibly incomplete installation", undef)            if (! -x "$bin/meryl");
-    caExit("can't find 'overlapInCore' program in $bin.  Possibly incomplete installation", undef)    if (! -x "$bin/overlapInCore");
-    caExit("can't find 'bogart' program in $bin.  Possibly incomplete installation", undef)           if (! -x "$bin/bogart");
-    caExit("can't find 'utgcns' program in $bin.  Possibly incomplete installation", undef)           if (! -x "$bin/utgcns");
-
-    #
-    #  Fiddle with filenames to make them absolute paths.
-    #
-
-    makeAbsolute("pathMap");
-
-    makeAbsolute("corOvlFrequentMers");
-    makeAbsolute("obtOvlFrequentMers");
-    makeAbsolute("utgOvlFrequentMers");
-
-    #
-    #  Adjust case on some of them
-    #
-
-    fixCase("corOverlapper");
-    fixCase("obtOverlapper");
-    fixCase("utgOverlapper");
-
-    fixCase("corConsensus");
-    fixCase("cnsConsensus");
-
-    fixCase("corFilter");
-
-    fixCase("unitigger");
-    fixCase("stopBefore");
-    fixCase("stopAfter");
-
-    #
-    #  Check for inconsistent parameters
-    #
-
-    if (getGlobal("minReadLength") < getGlobal("minOverlapLength")) {
-        my $mr = getGlobal("minReadLength");
-        my $mo = getGlobal("minOverlapLength");
-
-        caExit("minReadLength=$mr must be at least minOverlapLength=$mo", undef);
-
-        print STDERR "-- WARNING: minReadLength reset from $mr to $mo (limited by minOverlapLength)\n";
-
-        setGlobal("minOverlapLength", $mo);
-    }
-
-    #
-    #  Check for invalid usage
-    #
-
-    foreach my $tag ("cor", "obt", "utg") {
-        if ((getGlobal("${tag}Overlapper") ne "mhap") &&
-            (getGlobal("${tag}Overlapper") ne "ovl")) {
-            caExit("invalid '${tag}Overlapper' specified (" . getGlobal("${tag}Overlapper") . "); must be 'mhap' or 'ovl'", undef);
-        }
-    }
-
-    if ((getGlobal("unitigger") ne "unitigger") &&
-        (getGlobal("unitigger") ne "bogart")) {
-        caExit("invalid 'unitigger' specified (" . getGlobal("unitigger") . "); must be 'unitigger' or 'bogart'", undef);
-    }
-
-    if ((getGlobal("corConsensus") ne "utgcns") &&
-        (getGlobal("corConsensus") ne "falcon") &&
-        (getGlobal("corConsensus") ne "falconpipe")) {
-        caExit("invalid 'corConsensus' specified (" . getGlobal("corConsensus") . "); must be 'utgcns' or 'falcon' or 'falconpipe'", undef);
-    }
-
-    if ((getGlobal("cnsConsensus") ne "quick") &&
-        (getGlobal("cnsConsensus") ne "pbdagcon") &&
-        (getGlobal("cnsConsensus") ne "utgcns")) {
-        caExit("invalid 'cnsConsensus' specified (" . getGlobal("cnsConsensus") . "); must be 'quick', 'pbdagcon', or 'utgcns'", undef);
-    }
-
-
-    if ((!defined("lowCoverageAllowed") &&  defined("lowCoverageDepth")) ||
-        ( defined("lowCoverageAllowed") && !defined("lowCoverageDepth"))) {
-        caExit("invalid 'lowCoverageAllowed' and 'lowCoverageDepth' specified; both must be set", undef);
-    }
-
-
-    #if ((getGlobal("cleanup") ne "none") &&
-    #    (getGlobal("cleanup") ne "light") &&
-    #    (getGlobal("cleanup") ne "heavy") &&
-    #    (getGlobal("cleanup") ne "aggressive")) {
-    #    caExit("invalid cleaup specified (" . getGlobal("cleanup") . "); must be 'none', 'light', 'heavy' or 'aggressive'", undef);
-    #}
-
-    if ((getGlobal("corFilter") ne "quick") &&
-        (getGlobal("corFilter") ne "expensive")) {
-        caExit("invalid 'corFilter' specified (" . getGlobal("corFilter") . "); must be 'quick' or 'expensive'", undef);
-    }
-
-    if (defined(getGlobal("stopBefore"))) {
-        my $ok = 0;
-        my $st = getGlobal("stopBefore");
-        $st =~ tr/A-Z/a-z/;
-
-        my $failureString = "Invalid stopBefore specified (" . getGlobal("stopBefore") . "); must be one of:\n";
-
-        my @stopBefore = ("gatekeeper",
-                          "meryl",
-                          "trimReads",
-                          "splitReads",
-                          "unitig",
-                          "consensusConfigure");
-
-        foreach my $sb (@stopBefore) {
-            $failureString .= "    '$sb'\n";
-            $sb =~ tr/A-Z/a-z/;
-            if ($st eq $sb) {
-                $ok++;
-                setGlobal('stopBefore', $st);
-            }
-        }
-
-        caExit($failureString, undef) if ($ok == 0);
-    }
-
-    if (defined(getGlobal("stopAfter"))) {
-        my $ok = 0;
-        my $st = getGlobal("stopAfter");
-        $st =~ tr/A-Z/a-z/;
-
-        my $failureString = "Invalid stopAfter specified (" . getGlobal("stopAfter") . "); must be one of:\n";
-
-        my @stopAfter = ("gatekeeper",
-                         "meryl",
-                         "mhapConfigure",
-                         "overlapStoreConfigure",
-                         "overlapStore",
-                         "unitig",
-                         "consensusConfigure",
-                         "consensusCheck",
-                         "consensusLoad",
-                         "consensusFilter");
-
-        foreach my $sa (@stopAfter) {
-            $failureString .= "    '$sa'\n";
-            $sa =~ tr/A-Z/a-z/;
-            if ($st eq $sa) {
-                $ok++;
-                setGlobal('stopAfter', $st);
-            }
-        }
-
-        caExit($failureString, undef) if ($ok == 0);
-    }
-
-    caExit("required parameter 'errorRate' is not set", undef)   if (! defined(getGlobal("errorRate")));
-    caExit("required parameter 'genomeSize' is not set", undef)  if (! defined(getGlobal("genomeSize")));
-
-    #
-    #  Java?  Need JRE 1.8.
-    #
-
-    if ((getGlobal("corOverlapper") eq "mhap") ||
-        (getGlobal("obtOverlapper") eq "mhap") ||
-        (getGlobal("utgOverlapper") eq "mhap")) {
-        my $java       = getGlobal("java");
-        my $versionStr = "unknown";
-        my $version    = 0;
-
-        open(F, "$java -showversion 2>&1 |");
-        while (<F>) {
-            #  First word is either "java" or "openjdk" or ...
-            if (m/^.*\s+version\s+\"(\d+.\d+)(.*)\"$/) {
-                $versionStr = "$1$2";
-                $version    =  $1;
-            }
-        }
-        close(F);
-
-        print STDERR "-- Detected Java(TM) Runtime Environment '$versionStr' (from '$java').\n";
-
-        caExit("mhap overlapper requires java version at least 1.8.0; you have $versionStr", undef)  if ($version < 1.8);
-    }
-
-    #
-    #  Falcon?  Need to find it.
-    #
-
-    if ((getGlobal("corConsensus") eq "falcon") ||
-        (getGlobal("corConsensus") eq "falconpipe")) {
-        my $falcon = getGlobal("falconSense");
-
-        caExit("didn't find falcon program with option falconSense='$falcon'", undef)  if ((defined($falcon)) && (! -e $falcon));
-    }
-
-    #
-    #  Set default error rates based on the per-read error rate.
-    #
-
-    setGlobalIfUndef("corOvlErrorRate",      3.0 * getGlobal("errorRate"));
-    setGlobalIfUndef("obtOvlErrorRate",      3.0 * getGlobal("errorRate"));
-    setGlobalIfUndef("utgOvlErrorRate",      3.0 * getGlobal("errorRate"));
-
-    setGlobalIfUndef("ovlErrorRate",	     2.5 * getGlobal("errorRate"));
-    setGlobalIfUndef("utgGraphErrorRate",    2.0 * getGlobal("errorRate"));
-    setGlobalIfUndef("utgBubbleErrorRate",   2.0 * getGlobal("errorRate") + 0.5 * getGlobal("errorRate"));
-    setGlobalIfUndef("utgMergeErrorRate",    2.0 * getGlobal("errorRate") - 0.5 * getGlobal("errorRate"));
-    setGlobalIfUndef("utgRepeatErrorRate",   2.0 * getGlobal("errorRate"));
-
-    setGlobalIfUndef("corsErrorRate",        10.0 * getGlobal("errorRate"));
-    setGlobalIfUndef("cnsErrorRate",         2.5 * getGlobal("errorRate"));
 }
 
 
@@ -1220,5 +996,224 @@ sub setDefaults () {
 
     setErrorRate(0.01);
 }
+
+
+
+sub checkParameters ($) {
+    my $bin = shift @_;  #  Can't include canu::Execution without a loop.
+
+    #
+    #  Pick a nice looking set of binaries, and check them.
+    #
+
+    caExit("can't find 'gatekeeperCreate' program in $bin.  Possibly incomplete installation", undef) if (! -x "$bin/gatekeeperCreate");
+    caExit("can't find 'meryl' program in $bin.  Possibly incomplete installation", undef)            if (! -x "$bin/meryl");
+    caExit("can't find 'overlapInCore' program in $bin.  Possibly incomplete installation", undef)    if (! -x "$bin/overlapInCore");
+    caExit("can't find 'bogart' program in $bin.  Possibly incomplete installation", undef)           if (! -x "$bin/bogart");
+    caExit("can't find 'utgcns' program in $bin.  Possibly incomplete installation", undef)           if (! -x "$bin/utgcns");
+
+    #
+    #  Fiddle with filenames to make them absolute paths.
+    #
+
+    makeAbsolute("pathMap");
+
+    makeAbsolute("corOvlFrequentMers");
+    makeAbsolute("obtOvlFrequentMers");
+    makeAbsolute("utgOvlFrequentMers");
+
+    #
+    #  Adjust case on some of them
+    #
+
+    fixCase("corOverlapper");
+    fixCase("obtOverlapper");
+    fixCase("utgOverlapper");
+
+    fixCase("corConsensus");
+    fixCase("cnsConsensus");
+
+    fixCase("corFilter");
+
+    fixCase("unitigger");
+    fixCase("stopBefore");
+    fixCase("stopAfter");
+
+    #
+    #  Check for inconsistent parameters
+    #
+
+    if (getGlobal("minReadLength") < getGlobal("minOverlapLength")) {
+        my $mr = getGlobal("minReadLength");
+        my $mo = getGlobal("minOverlapLength");
+
+        caExit("minReadLength=$mr must be at least minOverlapLength=$mo", undef);
+
+        print STDERR "-- WARNING: minReadLength reset from $mr to $mo (limited by minOverlapLength)\n";
+
+        setGlobal("minOverlapLength", $mo);
+    }
+
+    #
+    #  Check for invalid usage
+    #
+
+    foreach my $tag ("cor", "obt", "utg") {
+        if ((getGlobal("${tag}Overlapper") ne "mhap") &&
+            (getGlobal("${tag}Overlapper") ne "ovl")) {
+            caExit("invalid '${tag}Overlapper' specified (" . getGlobal("${tag}Overlapper") . "); must be 'mhap' or 'ovl'", undef);
+        }
+    }
+
+    if ((getGlobal("unitigger") ne "unitigger") &&
+        (getGlobal("unitigger") ne "bogart")) {
+        caExit("invalid 'unitigger' specified (" . getGlobal("unitigger") . "); must be 'unitigger' or 'bogart'", undef);
+    }
+
+    if ((getGlobal("corConsensus") ne "utgcns") &&
+        (getGlobal("corConsensus") ne "falcon") &&
+        (getGlobal("corConsensus") ne "falconpipe")) {
+        caExit("invalid 'corConsensus' specified (" . getGlobal("corConsensus") . "); must be 'utgcns' or 'falcon' or 'falconpipe'", undef);
+    }
+
+    if ((getGlobal("cnsConsensus") ne "quick") &&
+        (getGlobal("cnsConsensus") ne "pbdagcon") &&
+        (getGlobal("cnsConsensus") ne "utgcns")) {
+        caExit("invalid 'cnsConsensus' specified (" . getGlobal("cnsConsensus") . "); must be 'quick', 'pbdagcon', or 'utgcns'", undef);
+    }
+
+
+    if ((!defined("lowCoverageAllowed") &&  defined("lowCoverageDepth")) ||
+        ( defined("lowCoverageAllowed") && !defined("lowCoverageDepth"))) {
+        caExit("invalid 'lowCoverageAllowed' and 'lowCoverageDepth' specified; both must be set", undef);
+    }
+
+
+    #if ((getGlobal("cleanup") ne "none") &&
+    #    (getGlobal("cleanup") ne "light") &&
+    #    (getGlobal("cleanup") ne "heavy") &&
+    #    (getGlobal("cleanup") ne "aggressive")) {
+    #    caExit("invalid cleaup specified (" . getGlobal("cleanup") . "); must be 'none', 'light', 'heavy' or 'aggressive'", undef);
+    #}
+
+    if ((getGlobal("corFilter") ne "quick") &&
+        (getGlobal("corFilter") ne "expensive")) {
+        caExit("invalid 'corFilter' specified (" . getGlobal("corFilter") . "); must be 'quick' or 'expensive'", undef);
+    }
+
+    if (defined(getGlobal("stopBefore"))) {
+        my $ok = 0;
+        my $st = getGlobal("stopBefore");
+        $st =~ tr/A-Z/a-z/;
+
+        my $failureString = "Invalid stopBefore specified (" . getGlobal("stopBefore") . "); must be one of:\n";
+
+        my @stopBefore = ("gatekeeper",
+                          "meryl",
+                          "trimReads",
+                          "splitReads",
+                          "unitig",
+                          "consensusConfigure");
+
+        foreach my $sb (@stopBefore) {
+            $failureString .= "    '$sb'\n";
+            $sb =~ tr/A-Z/a-z/;
+            if ($st eq $sb) {
+                $ok++;
+                setGlobal('stopBefore', $st);
+            }
+        }
+
+        caExit($failureString, undef) if ($ok == 0);
+    }
+
+    if (defined(getGlobal("stopAfter"))) {
+        my $ok = 0;
+        my $st = getGlobal("stopAfter");
+        $st =~ tr/A-Z/a-z/;
+
+        my $failureString = "Invalid stopAfter specified (" . getGlobal("stopAfter") . "); must be one of:\n";
+
+        my @stopAfter = ("gatekeeper",
+                         "meryl",
+                         "mhapConfigure",
+                         "overlapStoreConfigure",
+                         "overlapStore",
+                         "unitig",
+                         "consensusConfigure",
+                         "consensusCheck",
+                         "consensusLoad",
+                         "consensusFilter");
+
+        foreach my $sa (@stopAfter) {
+            $failureString .= "    '$sa'\n";
+            $sa =~ tr/A-Z/a-z/;
+            if ($st eq $sa) {
+                $ok++;
+                setGlobal('stopAfter', $st);
+            }
+        }
+
+        caExit($failureString, undef) if ($ok == 0);
+    }
+
+    caExit("required parameter 'errorRate' is not set", undef)   if (! defined(getGlobal("errorRate")));
+    caExit("required parameter 'genomeSize' is not set", undef)  if (! defined(getGlobal("genomeSize")));
+
+    #
+    #  Java?  Need JRE 1.8.
+    #
+
+    if ((getGlobal("corOverlapper") eq "mhap") ||
+        (getGlobal("obtOverlapper") eq "mhap") ||
+        (getGlobal("utgOverlapper") eq "mhap")) {
+        my $java       = getGlobal("java");
+        my $versionStr = "unknown";
+        my $version    = 0;
+
+        open(F, "$java -showversion 2>&1 |");
+        while (<F>) {
+            #  First word is either "java" or "openjdk" or ...
+            if (m/^.*\s+version\s+\"(\d+.\d+)(.*)\"$/) {
+                $versionStr = "$1$2";
+                $version    =  $1;
+            }
+        }
+        close(F);
+
+        print STDERR "-- Detected Java(TM) Runtime Environment '$versionStr' (from '$java').\n";
+
+        caExit("mhap overlapper requires java version at least 1.8.0; you have $versionStr", undef)  if ($version < 1.8);
+    }
+
+    #
+    #  Falcon?  Need to find it.
+    #
+
+    if ((getGlobal("corConsensus") eq "falcon") ||
+        (getGlobal("corConsensus") eq "falconpipe")) {
+        my $falcon = getGlobal("falconSense");
+
+        caExit("didn't find falcon program with option falconSense='$falcon'", undef)  if ((defined($falcon)) && (! -e $falcon));
+    }
+
+    #
+    #  Set default error rates based on the per-read error rate.
+    #
+
+    setGlobalIfUndef("corOvlErrorRate",      3.0 * getGlobal("errorRate"));
+    setGlobalIfUndef("obtOvlErrorRate",      3.0 * getGlobal("errorRate"));
+    setGlobalIfUndef("utgOvlErrorRate",      3.0 * getGlobal("errorRate"));
+
+    setGlobalIfUndef("ovlErrorRate",	     2.5 * getGlobal("errorRate"));
+    setGlobalIfUndef("utgGraphErrorRate",    2.0 * getGlobal("errorRate"));
+    setGlobalIfUndef("utgBubbleErrorRate",   2.0 * getGlobal("errorRate") + 0.5 * getGlobal("errorRate"));
+    setGlobalIfUndef("utgMergeErrorRate",    2.0 * getGlobal("errorRate") - 0.5 * getGlobal("errorRate"));
+    setGlobalIfUndef("utgRepeatErrorRate",   2.0 * getGlobal("errorRate"));
+
+    setGlobalIfUndef("corsErrorRate",        10.0 * getGlobal("errorRate"));
+    setGlobalIfUndef("cnsErrorRate",         2.5 * getGlobal("errorRate"));
+}
+
 
 1;
