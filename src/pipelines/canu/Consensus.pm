@@ -141,14 +141,14 @@ sub consensusConfigure ($$) {
 
     #  If the gkpStore partitions are older than the tigStore unitig output, assume the unitigs have
     #  changed and remove the gkpStore partition.  -M is (annoyingly) 'file age', so we need to
-    #  rebuild if gkp is newer (smaller) than tig.
+    #  rebuild if gkp is older (larger) than tig.
 
     if (-e "$wrk/$asm.gkpStore/partitions/map") {
         my $gkpTime = -M "$wrk/$asm.gkpStore/partitions/map";
         my $tigTime = -M "$wrk/$asm.tigStore/seqDB.v001.tig";
 
-        if ($gkpTime < $tigTime) {
-            print STDERR "-- Partitioned gkpStore is older than tigs, rebuild partitioning.\n";
+        if ($gkpTime > $tigTime) {
+            print STDERR "-- Partitioned gkpStore is older than tigs, rebuild partitioning (gkpStore $gkpTime days old; tigStore $tigTime days old).\n";
             runCommandSilently($wrk, "rm -rf $wrk/$asm.gkpStore/partitions");
         }
     }
