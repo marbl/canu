@@ -192,6 +192,10 @@ sub getAllowedResources ($$$$) {
     if ($class eq "grid") {
         my @grid = split '\0', getGlobal("availableHosts");
 
+        if (scalar(@grid) == 0) {
+            caExit("invalid useGrid (" . getGlobal("useGrid") . ") and gridEngine (" . getGlobal("gridEngine") . "); found no execution hosts - is grid available from this host?", undef);
+        }
+
         foreach my $g (@grid) {
             my ($cpu, $mem, $num) = split '-', $g;
 

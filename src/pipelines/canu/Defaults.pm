@@ -1088,7 +1088,6 @@ sub checkParameters ($) {
         caExit("invalid 'lowCoverageAllowed' and 'lowCoverageDepth' specified; both must be set", undef);
     }
 
-
     #if ((getGlobal("cleanup") ne "none") &&
     #    (getGlobal("cleanup") ne "light") &&
     #    (getGlobal("cleanup") ne "heavy") &&
@@ -1099,6 +1098,11 @@ sub checkParameters ($) {
     if ((getGlobal("corFilter") ne "quick") &&
         (getGlobal("corFilter") ne "expensive")) {
         caExit("invalid 'corFilter' specified (" . getGlobal("corFilter") . "); must be 'quick' or 'expensive'", undef);
+    }
+
+    if ((getGlobal("useGrid") eq "local") &&
+        (getGlobal("gridEngine") eq "")) {
+        caExit("invalid 'useGrid=local' specified; no gridEngine available", undef);
     }
 
     if (defined(getGlobal("stopBefore"))) {
