@@ -55,6 +55,7 @@ require Exporter;
 
 use strict;
 use Config;            #  for @signame
+use Cwd qw(getcwd);
 
 use POSIX ":sys_wait_h";  #  For waitpid(..., &WNOHANG)
 use List::Util qw(min max);
@@ -1155,6 +1156,9 @@ sub submitOrRunParallelJob ($$$$$@) {
 
     #  Standard jobs, run locally.
 
+    my $cwd = getcwd();  #  Remember where we are.
+    chdir($path);        #  So we can root the jobs in the correct location.
+
     foreach my $j (@jobs) {
         my $st;
         my $ed;
@@ -1179,6 +1183,8 @@ sub submitOrRunParallelJob ($$$$$@) {
 
     schedulerSetNumberOfProcesses($nParallel);
     schedulerFinish($path);
+
+    chdir($cwd);
 }
 
 
