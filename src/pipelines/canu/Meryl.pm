@@ -309,6 +309,8 @@ sub merylCheck ($$$) {
     goto allDone   if  (-e "$ffile");
     goto allDone   if ((-e "$ofile.mcidx") && (-e "$ofile.mcdat"));
 
+    #  Strange, this isn't checking for the outputs here like every other *Check() function does.
+
     #  If not the first attempt, report the jobs that failed, and that we're recomputing.
 
     if ($attempt > 1) {
@@ -333,6 +335,7 @@ sub merylCheck ($$$) {
     submitOrRunParallelJob($WRK, $asm, "meryl", "$wrk/0-mercounts", "meryl", (1));
 
   finishStage:
+    setGlobal("canuIteration", 0);
     emitStage($WRK, $asm, "merylCheck");
     buildHTML($WRK, $asm, $tag);
     stopAfter("merylCheck");
