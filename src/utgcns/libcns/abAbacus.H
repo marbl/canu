@@ -76,269 +76,236 @@ extern bool    DATAINITIALIZED;
 extern double  EPROB[CNS_MAX_QV - CNS_MIN_QV + 1];  // prob of error for each quality value
 extern double  PROB [CNS_MAX_QV - CNS_MIN_QV + 1];  // prob of correct call for each quality value (1-eprob)
 
-
 #define CNS_NUM_SYMBOLS  6  //  -ACGTN
 
 extern uint32   baseToIndex[256];
 extern char     indexToBase[CNS_NUM_SYMBOLS];
 
-class abSequence;
-class abBase;
-class abBead;
-class abColumn;
-class abMultiAlign;
-class abAbacus;
-class abSeqBeadIterator;
-class abColBeadIterator;
 
-#include "abIDs.H"
-#include "abSequence.H"
+typedef enum {
+  abAbacus_Smooth  = 1, // only eliminate pairwise construction artifacts
+  abAbacus_Poly_X  = 2, // align poly-X regions
+  abAbacus_Indel   = 4  // push apart mushed block indels
+} abAbacusRefineLevel;
+
+
+
 #include "abBead.H"
 #include "abColumn.H"
-#include "abMultiAlign.H"
+#include "abSequence.H"
 
-//
-//  The abacus stores an two-dimensional linked list of beads.  The beads represent
-//  the current template sequence (frankenstein, in unitigConsensus language),
-//  and the aligned reads (with gaps).
-//
-//        prev <- column -> next
-//                  |
-//  (bead) prev <- call (bead) -> next (bead)
-//                   |
-//  (bead) prev <- down (bead) -> next
-//                   |
-//
+
+class beadID {
+public:
+  beadID(abColumn *c=NULL, uint16 l=UINT16_MAX) {
+    column = c;
+    link   = l;
+  };
+
+  //  Set if not set yet; only want to set for the first bead placed
+  void   setF(abColumn *c, uint16 l) {
+    if (column == NULL) {
+      column = c;
+      link   = l;
+    }
+  };
+
+  //  Always reset, we want to capture the last bead set
+  void   setL(abColumn *c, uint16 l) {
+    column = c;
+    link   = l;
+  };
+
+  bool operator<(beadID const &that) const {
+    return((column != that.column) ? (column < that.column) : (link < that.link));
+  }
+
+  char       base(void)       { return(column->bead(link)->base()); };
+
+  uint16     prevLink(void)   { return(column->bead(link)->prevOffset()); };
+  uint16     nextLink(void)   { return(column->bead(link)->nextOffset()); };
+
+  abColumn  *prevColumn(void) {  return(column->prev());  };
+  abColumn  *nextColumn(void) {  return(column->next());  };
+
+  abColumn  *column;
+  uint16     link;
+};
+
 
 
 class abAbacus {
 public:
-  abAbacus(gkStore *gkpStore);
-  ~abAbacus();
+  abAbacus() {
+    _sequencesLen = 0;
+    _sequencesMax = 65536;
+    _sequences    = new abSequence * [_sequencesMax];
 
-public:
+    memset(_sequences, 0, sizeof(abSequence *) * _sequencesMax);
 
-  //
-  //  Accessors to lists
-  //
+    _columnsLen   = 0;
+    _columnsMax   = 1024 * 1024;
+    _columns      = new abColumn * [_columnsMax];
 
-  abSequence   *getSequence(abSeqID sid) {
-    if (sid.isValid() == false)
-      return(NULL);
-    assert(sid.get() < _sequencesLen);
-    return(_sequences + sid.get());
+    memset(_columns, 0, sizeof(abColumn *) * _columnsMax);
+
+    _cnsBases     = new char  [_columnsMax];
+    _cnsQuals     = new uint8 [_columnsMax];
+
+    memset(_cnsBases, 0, sizeof(char)  * _columnsMax);
+    memset(_cnsQuals, 0, sizeof(uint8) * _columnsMax);
+
+    _firstColumn  = NULL;
+
+    readTofBead = NULL;
+    readTolBead = NULL;
+
+    if (DATAINITIALIZED == false)
+      initializeGlobals();
   };
+  ~abAbacus() {
+    for (uint32 ss=0; ss<_sequencesLen; ss++)
+      delete _sequences[ss];
 
+    for (abColumn *del = _firstColumn; (del = _firstColumn); ) {
+      _firstColumn = _firstColumn->next();
+      delete del;
+    }
 
-  char          getBase(abBaseID bid) {
-    if (bid.isValid() == false)
-      return(0);
-    assert(bid.get() < _basesLen);
-    return(_bases[bid.get()]);
+    delete [] _sequences;
+    delete [] _columns;
+    delete [] _cnsBases;
+    delete [] _cnsQuals;
+
+    delete [] readTofBead;
+    delete [] readTolBead;
   };
-
-  char          getBase(abBeadID bid) {
-    return(getBase(getBead(bid)->baseIdx()));  //  Crashes if bid is not valid.
-  };
-
-  char          getBase(abColumn *col) {                 //  Returns the base of the call for the column
-    return(getBase(getBead(col->callID())->baseIdx()));  //  Crashes if cid is not valid.
-  };
-
-  char         *getBases(abSequence *seq) {
-    return(_bases + seq->firstBase().get());
-  };
-
-
-  char          getQual(abBaseID bid) {
-    if (bid.isValid() == false)
-      return(0);
-    assert(bid.get() < _basesLen);
-    return(_quals[bid.get()]);
-  };
-
-  char          getQual(abBeadID bid) {
-    return(getQual(getBead(bid)->baseIdx()));  //  Crashes if bid is not valid.
-  };
-
-  char         *getQuals(abSequence *seq) {
-    return(_quals + seq->firstBase().get());
-  };
-
-
-  abBead       *getBead(abBeadID bid) {
-    if (bid.isValid() == false)
-      return(NULL);
-    assert(bid.get() < _beadsLen);
-    return(_beads + bid.get());
-  };
-
-
-  abColumn     *getColumn(abColID cid) {
-    if (cid.isValid() == false)
-      return(NULL);
-    assert(cid.get() < _columnsLen);
-    return(_columns + cid.get());
-  };
-
-  abColumn     *getColumn(abBeadID bid) {
-    if (bid.isValid() == false)
-      return(NULL);
-
-    return(getColumn(getBead(bid)->colIdx()));
-  };
-
-
-  abMultiAlign *getMultiAlign(abMultiAlignID mid) {
-    if (mid.isValid() == false)
-      return(NULL);
-    assert(mid.get() < _multiAlignsLen);
-    return(_multiAligns + mid.get());
-  };
-
-  //
-  //  Setters to lists - lists with no setter shouldn't be set except during construction
-  //
-
-  void          setBase(abBaseID bid, char b) {
-    assert(bid.isValid() == true);
-    assert(bid.get() < _basesLen);
-    assert((b == 'A') || (b == 'C') || (b == 'G') || (b == 'T') || (b == 'N') ||
-           (b == 'a') || (b == 'c') || (b == 'g') || (b == 't') || (b == 'n') ||
-           (b == '-'));
-    _bases[bid.get()] = b;
-  };
-
-  void          setQual(abBaseID bid, char q) {
-    assert(bid.isValid() == true);
-    assert(bid.get() < _basesLen);
-    assert(CNS_MIN_QV <= q);
-    assert(q <= CNS_MAX_QV );
-    _quals[bid.get()] = q;
-  };
-
-  //
-  //  Constructors
-  //
-
-  //  Adds gkpStore read 'readID' to the abacus; former AppendFragToLocalStore
-  abSeqID         addRead(gkStore *gkpStore,
-                          uint32 readID,
-                          uint32 askip, uint32 bskip,
-                          bool complemented,
-                          map<uint32, gkRead *>     *inPackageRead,
-                          map<uint32, gkReadData *> *inPackageReadData);
-
-  //  NOT SUPPORTED
-  abSeqID         addUnitig(gkStore *gkpStore, uint32 readID, bool complemented);
-
-  abBeadID        addBead(char base, char qual);
-
-  abBeadID        appendGapBead(abBeadID bid);
-  abBeadID        prependGapBead(abBeadID bid);
-
-  //  Former ColumnAppend
-  abColID         appendColumn(abColID cid, abBeadID bid);
-  abColID         prependColumn(abColID cid, abBeadID bid);
-
-  //  Adds a column, with a single bead
-  //  Former CreateColumn()
-  //
-  abColID         addColumn(abMultiAlignID mid, abBeadID bid);
-
-  void            alignBeadToColumn(abColID cid, abBeadID bid, char *label);
-  abBeadID        unalignBeadFromColumn(abBeadID bid);
-  void            unalignTrailingGapBeads(abBeadID bid);
-
-  void            checkColumnBaseCounts();
-
-  void            lateralExchangeBead(abBeadID lid, abBeadID rid);
-
-
-  //  After all reads are added, create a new multialign by specifying the first sequence
-  //  Former SeedMAWithFragment
-  //
-  abMultiAlignID  addMultiAlign(abSeqID sid);
-
-
-
-public:
-
-  void    refreshMultiAlign(abMultiAlignID  mid,
-                            bool            recallBase        = false,
-                            bool            highQuality       = false);
-
 
 private:
-  void            baseCallMajority(abColID cid);
-  void            baseCallQuality(abColID  cid);
-public:
-  char            baseCall(abColID      cid,
-                           bool         highQuality);
-
-  void            appendBases(int32     alen, abBeadID *aindex,
-                              abSeqID   bfid,
-                              uint32    bgn,  uint32    end);
-
-  void            applyAlignment(int32    alen, abBeadID *aindex,
-                                 abSeqID  bfid,
-                                 int32    ahang,
-                                 int32    bhang,
-                                 int32   *trace, uint32 traceLen);
-
+  void  initializeGlobals(void);
 
 public:
-  //  The iterators make calls to abAbacus, and to make them inline, they need to be defined after abAbacus.
-  //  That means these constructors cannot be inlined.
-  abSeqBeadIterator  *createSeqBeadIterator(abSeqID sid);
-  abColBeadIterator  *createColBeadIterator(abColID cid);
 
-  //
-  //  Objects that we're trying to build multialigns for
-  //
+  char         *bases(void) { return(_cnsBases); };
+  uint8        *quals(void) { return(_cnsQuals); };
 
+  //  Adds gkpStore read 'readID' to the abacus; former AppendFragToLocalStore
+  void          addRead(gkStore *gkpStore,
+                        uint32 readID,
+                        uint32 askip, uint32 bskip,
+                        bool complemented,
+                        map<uint32, gkRead *>     *inPackageRead,
+                        map<uint32, gkReadData *> *inPackageReadData);
+
+public:
+  void          refreshColumns(void);
+  void          recallBases(bool  highQuality = false);
+
+  void          appendBases(uint32  bid,
+                            uint32  bgn,
+                            uint32  end);
+
+  void          applyAlignment(uint32  bid,
+                               int32   ahang,
+                               int32   bhang,
+                               int32  *trace, uint32 traceLen);
+
+public:
+  uint32        numberOfSequences(void) {
+    return(_sequencesLen);
+  };
+
+  abSequence   *getSequence(uint32 sid) {
+    assert(sid < _sequencesLen);
+    return(_sequences[sid]);
+  };
 private:
   uint32            _sequencesLen;
   uint32            _sequencesMax;
-  abSequence       *_sequences;  //  VA_TYPE(Fragment) *fragmentStore; - indices into bases/quals/beads
+  abSequence      **_sequences;
+
+  //  The consensus sequence (actually, the multialign structure itself) Bases in columns get
+  //  shifted, but columns themselves do not move.  However, we can insert columns.  This array is
+  //  an in order list of the columns in the multialignment.
+
 public:
-  uint32             numberOfSequences(void) { return(_sequencesLen); };
+  abColumn          *getFirstColumn(void) { return(_columns[0]);             };
+  abColumn          *getLastColumn(void)  { return(_columns[_columnsLen-1]); };
 
-private:
-  uint32            _basesLen;
-  uint32            _basesMax;
-  char             *_bases;      //  Used to be a tuple-type, but then we couldn't grab a pointer to the
-  char             *_quals;      //  read for use in alignment - we would have had to copy it first
+  uint32             numberOfColumns(void) { return(_columnsLen); };
 
-  //
-  //  Work space for the multialigns
-  //
+  abColumn          *getColumn(uint32 cid) {
+    assert(cid < _columnsLen);
+    return(_columns[cid]);
+  };
 
-  uint32            _beadsLen;
-  uint32            _beadsMax;
-  abBead           *_beads;      //  VA_TYPE(Bead) *beadStore;
+  //  Returns column position for position 'pos' in sequence 'seqIdx'.  If the position is not contained
+  //  in the sequence, the remaining bases are assumed to be ungapped.
 
+  uint32             getColumn(uint32 seqIdx, uint32 pos) {
+    beadID   bid    = readTofBead[seqIdx];
+    uint32   cur = 0;
+
+    while ((cur < pos) &&
+           (bid.nextLink() != UINT16_MAX)) {
+      if (bid.base() != '-')  //  Count it only if it is a real base in the read.
+        cur++;
+
+      bid.link   = bid.nextLink();
+      bid.column = bid.nextColumn();
+    }
+
+    assert(bid.column != NULL);
+
+    return(bid.column->position() + pos - cur);
+  };
+
+
+public:
   uint32            _columnsLen;
   uint32            _columnsMax;
-  abColumn         *_columns;    //  VA_TYPE(Column)   *columnStore;   - basecall, profile, index in alignment, indexed pointers to prev/next cols
+  abColumn        **_columns;      //  Sized in refreshColumns()
+  char             *_cnsBases;
+  uint8            *_cnsQuals;
 
-  //
-  //  Multialigns - more than one, so we can handle splitting/joining without creating a new abacus
-  //
+  abColumn         *_firstColumn;
 
-  uint32            _multiAlignsLen;
-  uint32            _multiAlignsMax;
-  abMultiAlign     *_multiAligns;      //  VA_TYPE(MANode)   *manodeStore;   - first and last cols, profile, index into multialign, VA of component cols
+public:
 
-  //
-  //
-  //
+  //  These maps are used to populate abSequence's first and last column pointers.
+  //    readToBead is the one we use for this.
+  //    beadToRead is used to ...?
 
-  vector<int32>       _readIdx;      //  VA_TYPE(int32) *fragment_indices; - convenience array
-  vector<int32>       _abacusIdx;    //  VA_TYPE(int32) *abacus_indices;   - convenience array
+  beadID             *readTofBead;  //  Allocated once, after all reads are
+  beadID             *readTolBead;  //  added to us.
+
+  map<beadID,uint32>  fbeadToRead;
+  map<beadID,uint32>  lbeadToRead;
+
+  //  This is the former abMultiAlign
+private:
+  //abBeadID        unalignBeadFromColumn(abBeadID bid);
+  //void            unalignTrailingGapBeads(abBeadID bid);
+
+  //void            checkColumnBaseCounts();
+
+  //void            lateralExchangeBead(abBeadID lid, abBeadID rid);
+
+
+public:
+  void                   mergeColumns(bool highQuality);
+
+  void                   getConsensus(tgTig *tig);
+  uint32                 getSequenceDeltas(uint32 sid, int32 *deltas);
+  void                   getPositions(tgTig *tig);
+
+  int32                  refineWindow(abColumn *bgnCol_column, abColumn *terCol);
+  int32                  refine(abAbacusRefineLevel  level,
+                                uint32               from = 0,
+                                uint32               to   = UINT32_MAX);
+
+  //  There are two multiAlign displays; this one, and one in tgTig.
+  void                   display(FILE *F);
 };
-
-
-#include "abIterators.H"
 
 #endif

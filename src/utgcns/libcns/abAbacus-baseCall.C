@@ -68,42 +68,49 @@ using namespace std;
 
 
 void
-abAbacus::baseCallMajority(abColID cid) {
+abColumn::baseCallMajority(void) {
   uint32 bsSum[CNS_NUM_SYMBOLS] = {0};  //  Number of times we've seen this base
   uint32 qvSum[CNS_NUM_SYMBOLS] = {0};  //  Sum of their QVs
 
-  abColumn *column = getColumn(cid);
-  abBead   *call   = getBead(column->callID());
+  for (uint32 ii=0; ii<_beadsLen; ii++) {
+    char    base  = _beads[ii].base();
+    uint8   qual  = _beads[ii].qual();
+    uint32  bidx  = baseToIndex[base];
 
-  abColBeadIterator *cbi = createColBeadIterator(cid);
+    if (bidx >= CNS_NUM_SYMBOLS)
+      fprintf(stderr, "abColumn::baseCallMajority()--  For column %u, link %u, base '%c' (%d) is invalid.\n",
+              position(), ii, _beads[ii].base(), _beads[ii].base());
+    assert(bidx < CNS_NUM_SYMBOLS);
 
-  for (abBeadID bid=cbi->next(); bid.isValid(); bid=cbi->next()) {
-    abBead *bead = getBead(bid);
-    char  bs     = getBase(bead->baseIdx());
-    char  qv     = getQual(bead->baseIdx());
-
-    bsSum[baseToIndex[bs]] += 1;
-    qvSum[baseToIndex[bs]] += qv;
+    bsSum[bidx] += 1;
+    qvSum[bidx] += qual;
   }
 
-  delete cbi;
+  //  Find the best, and second best, ignore ties.
 
-  //  Find the best, ignore ties.
+  uint32 bestIdx = 0;
+  uint32 nextIdx = 1;
 
-  uint32 bestIdx  = 0;
-
-  for (uint32 i=0; i<CNS_NUM_SYMBOLS; i++)
-    if (((bsSum[i] >  bsSum[bestIdx])) ||
-        ((bsSum[i] >= bsSum[bestIdx]) && (qvSum[i] > qvSum[bestIdx])))
-      bestIdx  = i;
+  for (uint32 i=1; i<CNS_NUM_SYMBOLS; i++) {
+    if        (((bsSum[i] >  bsSum[bestIdx])) ||
+               ((bsSum[i] >= bsSum[bestIdx]) && (qvSum[i] > qvSum[bestIdx]))) {
+      nextIdx = bestIdx;
+      bestIdx = i;
+    } else if (((bsSum[i] >  bsSum[nextIdx])) ||
+               ((bsSum[i] >= bsSum[nextIdx]) && (qvSum[i] > qvSum[nextIdx]))) {
+      nextIdx = i;
+    }
+  }
 
   //  Original version set QV to zero.
 
-  char  base = indexToBase[bestIdx];
-  char  qv   = 0;
+  _call = indexToBase[bestIdx];
+  _qual = 0;
 
-  setBase(call->baseIdx(), base);
-  setQual(call->baseIdx(), qv);
+  //  If the best is a gap, use the lowercase second best - the alignment will trest this specially
+
+  if (_call == '-')
+    _call = indexToBase[nextIdx] - 'A' + 'a';
 }
 
 
@@ -139,206 +146,74 @@ baseToTauIndex(char base) {
 
 
 void
-abAbacus::baseCallQuality(abColID cid) {
+abColumn::baseCallQuality(void) {
   char    consensusBase = '-';
-  char    consensusQV   = 0;
+  char    consensusQual = 0;
 
-  vector<abBead *>  bReads;  uint32  bBaseCount[CNS_NUM_SYMBOLS] = {0};  uint32  bQVSum[CNS_NUM_SYMBOLS] = {0};  //  Best allele
-  vector<abBead *>  oReads;  uint32  oBaseCount[CNS_NUM_SYMBOLS] = {0};  uint32  oQVSum[CNS_NUM_SYMBOLS] = {0};  //  Other allele
-  vector<abBead *>  gReads;  uint32  gBaseCount[CNS_NUM_SYMBOLS] = {0};  uint32  gQVSum[CNS_NUM_SYMBOLS] = {0};  //  Guide allele
+  //  The original versions classified reads as 'best allele', 'other allele' or 'guide allele'.
+  //  Other allele was set if we were targetting a specific set of reads here (e.g., we had already
+  //  clustered reads into haplotypes).  Guide allele was used if the read was not really a read
+  //  (originally, these were reads that came from outside the project, but eventually, I think it
+  //  came to also mean the read was a unitig surrogate).  All this was stripped out in early
+  //  December 2015.  The pieces removed all mirrored what is done for the bReads.
 
-#if 0
-  uint32 highest1_qv[CNS_NUM_SYMBOLS] = {0};
-  uint32 highest2_qv[CNS_NUM_SYMBOLS] = {0};
-#endif
+  vector<uint16>  bReads;   uint32  bBaseCount[CNS_NUM_SYMBOLS] = {0};  uint32  bQVSum[CNS_NUM_SYMBOLS] = {0};  //  Best allele
 
   uint32 frag_cov = 0;
-
-  bool   used_surrogate = false;
-
-  abColumn *column  = getColumn(cid);
-  abBead   *call    = getBead(column->callID());
-
-  uint32  position  = getColumn(call->colIdx())->position();
-
-  abColBeadIterator *cbi = createColBeadIterator(cid);
 
   // Scan a column of aligned bases.  Sort into three groups:
   //  - those corresponding to the reads of the best allele,
   //  - those corresponding to the reads of the other allele and
   //  - those corresponding to non-read fragments (aka guides)
 
-  //fprintf(stderr, "POSITION %d - ", position);
+  for (uint32 ii=0; ii<_beadsLen; ii++) {
+    char    base = _beads[ii].base();
+    uint8   qual = _beads[ii].qual();
+    uint32  bidx = baseToIndex[base];  //  If we encode bases properly, this will go away.
 
-  for (abBeadID bid=cbi->next(); bid.isValid(); bid=cbi->next()) {
-    abBead *bead    = getBead(bid);
-    char    base    = getBase(bead->baseIdx());
-    int32   baseIdx = baseToIndex[base];
-    int     qv      = getQual(bead->baseIdx());
+    if (bidx >= CNS_NUM_SYMBOLS)
+      fprintf(stderr, "abColumn::baseCallQuality()--  For column %u, link %u, base '%c' (%d) is invalid.\n",
+              position(), ii, _beads[ii].base(), _beads[ii].base());
+    assert(bidx < CNS_NUM_SYMBOLS);
 
-    //  Not a base call?  Skip it.
-    if (base == 'N')
-      continue;
+    bBaseCount[bidx] += 1;   //  Could have saved to 'best', 'other' or 'guide' here.
+    bQVSum[bidx]     += qual;
 
-    //  Not a read?  Save the guide base.
-    if (getSequence(bead->seqIdx())->isRead() == false) {
-      gBaseCount[baseIdx] += 1;
-      gQVSum[baseIdx]     += qv;
-
-      gReads.push_back(bead);
-
-      //fprintf(stderr, " guide/%c/%d", base, qv);
-
-      continue;
-    }
-
-    //  Otherwise, a real read, with a real base.
-
-    frag_cov++;
-
-#if 0
-    //  Find the allele for this iid.  It searched a map of readIID to variant id.
-    uint32  iid = getSequence(bead->seqIdx())->gkpIdent();
-#endif
-
-    //  If the allele is the target, or we're using all alleles, save to the 'best' list.
-    //  Currently, this is the only case.
-
-    if (1) {
-      // Save the base in the majority allele.
-      bBaseCount[baseIdx]++;
-      bQVSum[baseIdx] += qv;
-      bReads.push_back(bead);
-
-      //fprintf(stderr, " base/%c/%d", base, qv);
-    }
-
-    else {
-      //  Save the base in the 'other' allele.
-      oBaseCount[baseIdx]++;
-      oQVSum[baseIdx] += qv;
-      oReads.push_back(bead);
-
-      //fprintf(stderr, " other/%c/%d", base, qv);
-    }
-
-    //  Remember the two highest QVs
-
-#if 0
-    if (highest1_qv[baseIdx] < qv) {
-      highest2_qv[baseIdx] = highest1_qv[baseIdx];
-      highest1_qv[baseIdx] = qv;
-
-    } else if (highest2_qv[baseIdx] < qv) {
-      highest2_qv[baseIdx] = qv;
-    }
-#endif
+    bReads.push_back(ii);
   }
-
-  //fprintf(stderr, "\n");
-
-  delete cbi;
 
   double  cw[5]    = { 0.0, 0.0, 0.0, 0.0, 0.0 };      // "consensus weight" for a given base
   double  tau[5]   = { 1.0, 1.0, 1.0, 1.0, 1.0 };
 
-  //  Compute tau based on guides
-
-  //fprintf(stderr, "TAU1     %f %f %f %f %f\n", tau[0], tau[1], tau[2], tau[3], tau[4]);
-
-  for (uint32 cind = 0; cind < gReads.size(); cind++) {
-    abBead *gb   = gReads[cind];
-    char    base = getBase(gb->baseIdx());
-    uint32  qv   = getQual(gb->baseIdx());
-
-    used_surrogate = true;
-
-    if (qv == 0)
-      qv = 5;    /// HUH?!!
-
-    tau[0] += (base == '-') ? PROB[qv] : EPROB[qv];
-    tau[1] += (base == 'A') ? PROB[qv] : EPROB[qv];
-    tau[2] += (base == 'C') ? PROB[qv] : EPROB[qv];
-    tau[3] += (base == 'G') ? PROB[qv] : EPROB[qv];
-    tau[4] += (base == 'T') ? PROB[qv] : EPROB[qv];
-
-    //fprintf(stderr, "TAU2[%2d] %f %f %f %f %f qv %d\n", cind, tau[0], tau[1], tau[2], tau[3], tau[4], qv);
-
-    consensusQV = qv;
-  }
-
-  //fprintf(stderr, "TAU3     %f %f %f %f %f\n", tau[0], tau[1], tau[2], tau[3], tau[4]);
-
-  //  If other reads exist, reset.
-
-  if (oReads.size() > 0)
-    tau[0] = tau[1] = tau[2] = tau[3] = tau[4] = 1.0;
-
-  //fprintf(stderr, "TAU4     %f %f %f %f %f\n", tau[0], tau[1], tau[2], tau[3], tau[4]);
-
-  //  Compute tau based on others
-
-  for (uint32 cind=0; cind < oReads.size(); cind++) {
-    abBead  *gb   = oReads[cind];
-    char     base = getBase(gb->baseIdx());
-    int32    qv   = getQual(gb->baseIdx());
-
-    used_surrogate = false;
-
-    if (qv == 0)
-      qv = 5;
-
-    tau[0] += (base == '-') ? PROB[qv] : EPROB[qv];
-    tau[1] += (base == 'A') ? PROB[qv] : EPROB[qv];
-    tau[2] += (base == 'C') ? PROB[qv] : EPROB[qv];
-    tau[3] += (base == 'G') ? PROB[qv] : EPROB[qv];
-    tau[4] += (base == 'T') ? PROB[qv] : EPROB[qv];
-
-    //fprintf(stderr, "TAU5[%2d] %f %f %f %f %f qv %d\n", cind, tau[0], tau[1], tau[2], tau[3], tau[4], qv);
-
-    consensusQV = qv;
-  }
-
-  //  If real reads exist, reset.
-
-  if (bReads.size() > 0)
-    tau[0] = tau[1] = tau[2] = tau[3] = tau[4] = 1.0;
-
-  //fprintf(stderr, "TAU6     %f %f %f %f %f\n", tau[0], tau[1], tau[2], tau[3], tau[4]);
-
   //  Compute tau based on real reads.
 
   for (uint32 cind=0; cind < bReads.size(); cind++) {
-    abBead  *gb   = bReads[cind];
-    char     base = getBase(gb->baseIdx());
-    int32    qv   = getQual(gb->baseIdx());
+    char     base = _beads[ bReads[cind] ].base();
+    uint8    qual = _beads[ bReads[cind] ].qual();
 
-    used_surrogate = false;
+    if (qual == 0)
+      qual += 5;
 
-    if (qv == 0)
-      qv += 5;
+    tau[0] += (base == '-') ? PROB[qual] : EPROB[qual];
+    tau[1] += (base == 'A') ? PROB[qual] : EPROB[qual];
+    tau[2] += (base == 'C') ? PROB[qual] : EPROB[qual];
+    tau[3] += (base == 'G') ? PROB[qual] : EPROB[qual];
+    tau[4] += (base == 'T') ? PROB[qual] : EPROB[qual];
 
-    tau[0] += (base == '-') ? PROB[qv] : EPROB[qv];
-    tau[1] += (base == 'A') ? PROB[qv] : EPROB[qv];
-    tau[2] += (base == 'C') ? PROB[qv] : EPROB[qv];
-    tau[3] += (base == 'G') ? PROB[qv] : EPROB[qv];
-    tau[4] += (base == 'T') ? PROB[qv] : EPROB[qv];
+    //fprintf(stderr, "TAU7[%2d] %f %f %f %f %f qv %d\n", cind, tau[0], tau[1], tau[2], tau[3], tau[4], qual);
 
-    //fprintf(stderr, "TAU7[%2d] %f %f %f %f %f qv %d\n", cind, tau[0], tau[1], tau[2], tau[3], tau[4], qv);
-
-    consensusQV = qv;
+    consensusQual = qual;
   }
 
   //fprintf(stderr, "TAU8     %f %f %f %f %f\n", tau[0], tau[1], tau[2], tau[3], tau[4]);
 
   //  Occasionally we get a single read of coverage, and the base is an N, which we ignored above.
+  //  This is probably of historical interest any more (it happened with 454 reads) but is left in
+  //  because its a cheap and working and safe.
 
-  if ((bReads.size() == 0) &&
-      (oReads.size() == 0) &&
-      (gReads.size() == 0)) {
-    setBase(call->baseIdx(), 'N');
-    setQual(call->baseIdx(), 0);
-
+  if (bReads.size() == 0) {  //  + oReads.size() + gReads.size()
+    _call = 'N';
+    _qual = 0;
     return;
   }
 
@@ -489,55 +364,50 @@ abAbacus::baseCallQuality(abColID cid) {
   //  If cwMax is big, we've max'd out the QV and set it to the maximum.
   //
   if (cwMax >= 1.0 - DBL_EPSILON) {
-    consensusQV = CNS_MAX_QV;
+    consensusQual = CNS_MAX_QV;
   }
 
   //  Otherwise compute the QV.  If there is more than one read, or we used the surrogate,
   //  we can compute from cwMax.  If only one read, use its qv.
   //
   else {
-    int32  qv = consensusQV;
+    int32  qual = consensusQual;
 
-    if ((frag_cov > 1) || (used_surrogate == true)) {
+    if ((bReads.size() > 1) /*|| (used_surrogate == true)*/) {
       double dqv =  -10.0 * log10(1.0 - cwMax);
 
-      qv = DBL_TO_INT(dqv);
+      qual = DBL_TO_INT(dqv);
 
-      if (dqv - qv >= 0.50)
-        qv++;
+      if (dqv - qual >= 0.50)
+        qual++;
     }
 
-    qv = MIN(CNS_MAX_QV, qv);
-    qv = MAX(CNS_MIN_QV, qv);
+    qual = MIN(CNS_MAX_QV, qual);
+    qual = MAX(CNS_MIN_QV, qual);
 
-    consensusQV = qv;
+    consensusQual = qual;
   }
-
 
   //  If no target allele, or this is the target allele, set the base.  Since there
   //  is (currently) always no target allele, we always set the base.
 
   //fprintf(stderr, "SET %u to %c qv %c\n", position, consensusBase, consensusQV);
 
-  setBase(call->baseIdx(), consensusBase);
-  setQual(call->baseIdx(), consensusQV);
+  _call = consensusBase;
+  _qual = consensusQual;
 }
 
 
 
 char
-abAbacus::baseCall(abColID      cid,
-                   bool         highQuality) {
+abColumn::baseCall(bool  highQuality) {
 
   if (highQuality)
-    baseCallQuality(cid);
+    baseCallQuality();
   else
-    baseCallMajority(cid);
+    baseCallMajority();
 
-  abColumn *column = getColumn(cid);
-  abBead   *call   = getBead(column->callID());
-
-  return(getBase(call->baseIdx()));
+  return(_call);
 }
 
 

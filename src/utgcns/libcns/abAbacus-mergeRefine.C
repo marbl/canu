@@ -67,162 +67,258 @@ static char *rcsid = "$Id$";
 #include "abAbacus.H"
 
 
-// test for Level 1 (neighbor) merge compatibility of cid with right
-// neighbor and merge if compatible
-//
-static
-abColID
-mergeCompatible(abAbacus *abacus, abColID cid) {
 
-  abColumn *column = abacus->getColumn(cid);
+//  Extends the read represented by column/beadLink into this column.
 
-  if (column->nextID().isValid() == false)
-    return(abColID());
+uint16
+abColumn::extendRead(abColumn *column, uint16 beadLink) {
 
-  abColumn *merge_column = abacus->getColumn(column->nextID());
+  increaseArray(_beads, _beadsLen, _beadsMax, 1);
 
-  //  If both columns have a non-gap (for a single read), we cannot merge.
+  uint32  link = _beadsLen++;
 
-  for (abBead *cbead = abacus->getBead(column->callID()); (cbead->downID().isValid()); ) {
-    cbead = abacus->getBead(cbead->downID());
+  _beads[link]._unused     = column->_beads[beadLink]._unused;
+  _beads[link]._isRead     = column->_beads[beadLink]._isRead;
+  _beads[link]._isUnitig   = column->_beads[beadLink]._isUnitig;
+  _beads[link]._base       = '-';
+  _beads[link]._qual       = 0;
 
-    if ((cbead->nextID().isValid() == true) &&
-        (abacus->getBase(cbead->baseIdx()) != '-') &&
-        (abacus->getBase(cbead->nextID())  != '-'))
-      return(abColID());
+  if (column->_beads[beadLink]._prevOffset == UINT16_MAX) {
+    assert(column->_beads[beadLink]._nextOffset != UINT16_MAX);
+    assert(_nextColumn == column);
+
+    _beads[link]._prevOffset = UINT16_MAX;
+    _beads[link]._nextOffset = beadLink;
+
+    column->_beads[beadLink]._prevOffset = link;
+
+  } else {
+    assert(column->_beads[beadLink]._prevOffset != UINT16_MAX);
+    assert(_prevColumn == column);
+
+    _beads[link]._prevOffset = beadLink;
+    _beads[link]._nextOffset = UINT16_MAX;
+
+    column->_beads[beadLink]._nextOffset = link;
   }
 
-  //  OK to merge.  Merge all the bases from the right column (merge_column) to the current column.
-
-  for (abBead *cbead = abacus->getBead(column->callID()); (cbead->downID().isValid()); ) {
-    cbead = abacus->getBead(cbead->downID());
-
-    if (cbead->nextID().isValid() == false)
-      //  Nothing to merge in!
-      continue;
-
-    abBead *mbead =  abacus->getBead(cbead->nextID());
-
-    if ((abacus->getBase(cbead->baseIdx()) != '-') ||
-        (abacus->getBase(mbead->baseIdx()) == '-'))
-      //  Our base isn't a gap, or their base isn't a base, nothing to do.
-      continue;
-
-    //  Exchange beads, then reset the pointer.  lateralExchangeBead() actually swaps the bead
-    //  itself.  The bead in the current column is now 'mbead', so update the cbead pointer.
-
-    abacus->lateralExchangeBead(cbead->ident(), mbead->ident());
-
-    cbead = mbead;
-
-    assert(cid == cbead->colIdx());
-  }
-
-  //  Finish up by removing gaps from the merged column, and moving any remaining base beads to the
-  //  current column.
-
-  abBead *mcall = abacus->getBead(merge_column->callID());
-
-  while (mcall->downID().isValid()) {
-    abBead *mbead = abacus->getBead(mcall->downID());
-
-    //  Remove the bead from the old column.  After this, mcall->downID() points to the next
-    //  bead in the column.  We're iterating down the column by popping beads out from the head.
-
-    abacus->getBead(mbead->upID())->downID() = mbead->downID();
-
-    if (mbead->downID().isValid())
-      abacus->getBead(mbead->downID())->upID() = mbead->upID();
-
-    //  Technically correct, but it's private, and we're just killing the column anyway.
-    //abacus->getColumn(mbead->column_index)->base_count.DecBaseCount( abacus->getBase(mbead->soffset));
-
-    mbead->upID()   = abBeadID();
-    mbead->downID() = abBeadID();
-    mbead->colIdx() = abColID();
-
-    //  Base is not a gap.  Move bead from old column to current column.
-
-    if (abacus->getBase(mbead->baseIdx()) != '-') {
-      abacus->alignBeadToColumn(cid, mbead->ident(), "mergeCompatible()");
-    }
-
-    //  Base is a gap, just delete it.
-
-    else {
-      if (mbead->prevID().isValid())   abacus->getBead(mbead->prevID())->nextID() = mbead->nextID();
-      if (mbead->nextID().isValid())   abacus->getBead(mbead->nextID())->prevID() = mbead->prevID();
-
-      mbead->clear();
-    }
-  }
-
-  //  Now, we're left with a column with just the consensus call.  Yank the call out of the consensus.
-
-  if (mcall->prevID().isValid())   abacus->getBead(mcall->prevID())->nextID() = mcall->nextID();
-  if (mcall->nextID().isValid())   abacus->getBead(mcall->nextID())->prevID() = mcall->prevID();
-
-  mcall->clear();
-
-  //  And, finally, yank the column out.
-
-  if (merge_column->prevID().isValid())
-    abacus->getColumn(merge_column->prevID())->nextID() = merge_column->nextID();
-
-  if (merge_column->nextID().isValid())
-    abacus->getColumn(merge_column->nextID())->prevID() = merge_column->prevID();
-
-  //  We have merged.  Return the now obsolete column ID.
-
-  return(merge_column->ident());
+  return(link);
 }
 
 
-//*********************************************************************************
-// Simple sweep through the MultiAlignment columns, looking for columns
-// to merge and removing null columns
-//*********************************************************************************
 
-void
-abMultiAlign::mergeRefine(abAbacus *abacus, bool highQuality) {
+//  Merges the next column into this column, if possible.  Possible if no read has
+//  an actual base in both columns.
 
-  //fprintf(stderr, "abMultiAlign::mergeRefine()--  legnth %u\n", length());
+bool
+abColumn::mergeWithNext(abAbacus *abacus, bool highQuality) {
+  abColumn *lcolumn = this;
+  abColumn *rcolumn = next();
+  abColumn *ncolumn = next()->next();  //  The column after rcolumn.
 
-  //  Loop over all columns.  If we do not merge, advance to the next column, otherwise, stay here
-  //  and merge to the now different next column (mergeCompatible removes the column that gets
-  //  merged into the current column).
+  assert(lcolumn != NULL);
+  assert(rcolumn != NULL);
 
-  bool  somethingMerged = false;
-
-  for (abColID cid=first; cid.isValid(); ) {
-    abColID  mergedCol = mergeCompatible(abacus, cid);
-
-    //  If we didn't merge anything, move to the next column and keep going.
-
-    if (mergedCol == abColID()) {
-      cid = abacus->getColumn(cid)->nextID();
-      continue;
-    }
-
-    //  We merged!  Update the base call.
-
-    somethingMerged = true;
-
-    abacus->baseCall(cid, highQuality);
-
-    //  And reset our first/last pointers as needed.  first shouldn't change, but last can disappear.
+  assert(lcolumn->next() == rcolumn);
+  assert(rcolumn->prev() == lcolumn);
 
 #if 0
-    if (first == mergedCol)  first = abacus->getColumn(mergedCol)->nextID();
-    if (last  == mergedCol)   last = abacus->getColumn(mergedCol)->prevID();
-
-    assert(abacus->getColumn(first)->prevID() == abColID());
-    assert(abacus->getColumn(last)->nextID()  == abColID());
+  lcolumn->checkLinks();
+  rcolumn->checkLinks();
 #endif
+
+  //  If both columns have a non-gap (for a single read), we cannot merge.
+
+  for (uint32 ii=0; ii<lcolumn->_beadsLen; ii++) {
+    uint32  jj = lcolumn->_beads[ii].nextOffset();
+
+    if ((jj < UINT16_MAX) &&
+        (lcolumn->_beads[ii].base() != '-') &&
+        (rcolumn->_beads[jj].base() != '-'))
+      return(false);
   }
 
-  //  If any merges were performed, refresh.  This updates the column list and does a few checks.
+#if 0
+  fprintf(stderr, "MERGE columns %d %p <-  %d %p\n",
+          lcolumn->position(), lcolumn,
+          rcolumn->position(), rcolumn);
+
+  fprintf(stderr, "rcolumn links\n");
+  rcolumn->showLinks();
+
+  lcolumn->checkLinks();
+  rcolumn->checkLinks();
+  ncolumn->checkLinks();
+#endif
+
+  //  OK to merge.  Merge all the bases from the right column to the current column.  We already
+  //  checked that whenever the right column has a base, the left column has a gap, so just march
+  //  down the right column and move those bases over!
+
+  for (uint16 rr=0; rr<rcolumn->_beadsLen; rr++) {
+    uint16  ll = rcolumn->_beads[rr].prevOffset();
+
+    //  Ignore the gaps.
+
+    if (rcolumn->_beads[rr].base() == '-')
+      continue;
+
+    //  Oh, great.  We just found the end of a read.  We need to link in the gap (in lcolumn)
+    //  before we can swap.  Correction: we need to ADD a gap (in lcolumn) before we can swap.
+
+    if (ll == UINT16_MAX) {
+      //fprintf(stderr, "EXTEND READ at rr=%d\n", rr);
+      ll = lcolumn->extendRead(rcolumn, rr);
+    }
+
+    //  The simple case: just swap the contents.
+
+#if 0
+    fprintf(stderr, "mergeWithNext()-- swap beads lcolumn %d %c and rcolumn %d %c\n",
+            ll, lcolumn->_beads[ll].base(),
+            rr, rcolumn->_beads[rr].base());
+#endif
+
+#ifdef BASECOUNT
+    lcolumn->baseCountDecr(lcolumn->_beads[ll].base());
+    rcolumn->baseCountDecr(rcolumn->_beads[rr].base());  //  We don't really care about rcolumn.
+#endif
+
+    swap(lcolumn->_beads[ll], rcolumn->_beads[rr]);
+
+#ifdef BASECOUNT
+    lcolumn->baseCountIncr(lcolumn->_beads[ll].base());
+    rcolumn->baseCountIncr(rcolumn->_beads[rr].base());
+#endif
+
+    //  While we're here, update the bead-to-read maps.
+
+    beadID oldb(rcolumn, rr);
+    beadID newb(lcolumn, ll);
+
+    map<beadID,uint32>::iterator  fit = abacus->fbeadToRead.find(oldb);  //  Does old bead exist
+    map<beadID,uint32>::iterator  lit = abacus->lbeadToRead.find(oldb);  //  in either map?
+
+    if (fit != abacus->fbeadToRead.end()) {
+      uint32  rid = fit->second;
+
+      fprintf(stderr, "mergeWithNext()-- move fbeadToRead from %p/%d to %p/%d for read %d\n",
+              rcolumn, rr, lcolumn, ll, rid);
+
+      abacus->fbeadToRead.erase(fit);     //  Remove the old bead to read pointer
+
+      abacus->fbeadToRead[newb] = rid;    //  Add a new bead to read pointer
+      abacus->readTofBead[rid]  = newb;   //  Update the read to bead pointer
+    }
+
+    if (lit != abacus->lbeadToRead.end()) {
+      uint32  rid = lit->second;
+
+      fprintf(stderr, "mergeWithNext()-- move lbeadToRead from %p/%d to %p/%d for read %d\n",
+              rcolumn, rr, lcolumn, ll, rid);
+
+      abacus->lbeadToRead.erase(lit);
+
+      abacus->lbeadToRead[newb] = rid;
+      abacus->readTolBead[rid]  = newb;
+    }
+  }
+
+  //  The rcolumn should now be full of gaps.  (We could just test that baseCount('-') == depth()
+
+  for (uint32 rr=0; rr<rcolumn->_beadsLen; rr++)
+    assert(rcolumn->_beads[rr].base() == '-');
+
+#if 0
+  lcolumn->checkLinks();
+  rcolumn->checkLinks();
+  ncolumn->checkLinks();
+#endif
+
+  //  To make checkLinks() work, we need to unlink rcolumn from the column list right now.
+
+  if (rcolumn->_prevColumn)   rcolumn->_prevColumn->_nextColumn = rcolumn->_nextColumn;
+  if (rcolumn->_nextColumn)   rcolumn->_nextColumn->_prevColumn = rcolumn->_prevColumn;
+
+  assert(ncolumn == rcolumn->next());
+  assert(ncolumn == next());
+
+  //  Before the rcolumn can be removed, we need to unlink it from the bead link list.  If there is a column after rcolumn,
+  //  we need to move rcolumn's link pointers to lcolumn (prev) and ncolumn (next).
+  //
+  //  The actual example (,'s indicate no bases because the read ended):
+  //
+  //          1234    Column 2 is merged into column 1, and then we delete column 2.
+  //    1  -aa-aaa     
+  //    2  gaaT,,,       Column 1 read 4 has _beads position 3.            (next = 1)
+  //    3  gaaT,,,       Column 2 read 4 has _beads position 1.  (prev = 3, next = 1)
+  //    4  -aa-aaa       Column 3 read 4 has _beads position 1.  (prev = 1)
+  //    5  -aa-aaa     When column 2 is deleted, we're left with a busted link back from col 3 read 4; it should be 3
+  //    6  gaa,,,,
+
+  if (ncolumn != NULL) {
+    for (uint32 rr=0; rr<rcolumn->_beadsLen; rr++) {
+      uint16  bl = rcolumn->_beads[rr].prevOffset();  //  back link from deleted column to lcolumn -> set as ncolumns back link (known as ll above)
+      uint16  fl = rcolumn->_beads[rr].nextOffset();  //  forw link from deleted column to ncolumn -> set as lcolumns forw link
+
+      if (bl != UINT16_MAX)   lcolumn->_beads[bl]._nextOffset = fl;
+      if (fl != UINT16_MAX)   ncolumn->_beads[fl]._prevOffset = bl;
+    }
+  }
+
+  lcolumn->checkLinks();
+  ncolumn->checkLinks();
+
+  //  Now, finally, we're done.  Remove the old column, recall the base, and do a final check.
+
+  //fprintf(stderr, "mergeWithNext()--  Remove rcolumn %d %p\n", rcolumn->position(), rcolumn);
+
+  delete rcolumn;
+
+  baseCall(highQuality);
+
+  return(true);
+}
+
+
+
+
+//  Simple sweep through the MultiAlignment columns, looking for columns to merge and removing null
+//  columns
+//
+//  Loop over all columns.  If we do not merge, advance to the next column, otherwise, stay here and
+//  merge to the now different next column (mergeCompatible removes the column that gets merged into
+//  the current column).
+//
+//  Note that _firstColumn is never removed.  The second column could be merged into the first,
+//  and the second one then removed.
+void
+abAbacus::mergeColumns(bool highQuality) {
+  assert(_firstColumn != NULL);
+
+  abColumn   *column = _firstColumn;
+
+  bool        somethingMerged = false;
+
+  assert(column->prev() == NULL);
+
+#if 0
+  fprintf(stderr, "mergeColumns()--\n");
+  display(stderr);
+#endif
+
+  //  If we merge, update the base call, and stay here to try another merge of the now different
+  //  next column.  Otherwise, we didn't merge anything, so advance to the next column.
+
+  while (column->next()) {
+    if (column->mergeWithNext(this, highQuality) == true)
+      somethingMerged = true;
+    else
+      column = column->next();
+  }
+
+  //  If any merges were performed, refresh.  This updates the column list.
 
   if (somethingMerged)
-    abacus->refreshMultiAlign(lid, false, highQuality);
+    refreshColumns();
 }

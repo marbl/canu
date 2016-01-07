@@ -133,6 +133,12 @@ public:
     if (al != bl)
       return(al < bl);
 
+    if (that._anchor == _objID)  //  I'm his anchor, I must be before it.
+      return(true);
+
+    if (_anchor == that._objID)  //  My anchor is the other tig; I must
+      return(false);             //  be after it.
+
     int32 ah = max();
     int32 bh = that.max();
 

@@ -54,10 +54,10 @@
  *  full conditions and disclaimers for each license.
  */
 
-#ifndef MULTIALIGNUNITIG_H
-#define MULTIALIGNUNITIG_H
+#ifndef UNITIGCONSENSUS_H
+#define UNITIGCONSENSUS_H
 
-static const char *rcsid_MULTIALIGNUNITIG_H = "$Id:  $";
+static const char *rcsid_UNITIGCONSENSUS_H = "$Id:  $";
 
 #include "AS_global.H"
 
@@ -79,22 +79,18 @@ public:
                      tgTig  *tig);
 
   bool   generate(tgTig                     *tig,
-                  uint32                    *failed            = NULL,
                   map<uint32, gkRead *>     *inPackageRead     = NULL,
                   map<uint32, gkReadData *> *inPackageReadData = NULL);
 
   bool   generatePBDAG(tgTig                     *tig,
-                       uint32                    *failed            = NULL,
                        map<uint32, gkRead *>     *inPackageRead     = NULL,
                        map<uint32, gkReadData *> *inPackageReadData = NULL);
 
   bool   generateQuick(tgTig                     *tig,
-                       uint32                    *failed            = NULL,
                        map<uint32, gkRead *>     *inPackageRead     = NULL,
                        map<uint32, gkReadData *> *inPackageReadData = NULL);
 
-  int32  initialize(uint32                    *failed,
-                    map<uint32, gkRead *>     *inPackageRead,
+  int32  initialize(map<uint32, gkRead *>     *inPackageRead,
                     map<uint32, gkReadData *> *inPackageReadData);
 
   void   setErrorRate(double errorRate_)   { errorRate  = errorRate_;  };
@@ -108,8 +104,8 @@ public:
   bool   showMultiAlignments(void)  { return(tig->_utgcns_verboseLevel >= 4); };  //
 
   void   reportStartingWork(void);
-  void   reportFailure(uint32 *failed);
-  void   reportSuccess(uint32 *failed);
+  void   reportFailure(void);
+  void   reportSuccess(void);
 
   int32  moreFragments(void)  { tiid++;  return (tiid < numfrags); };
 
@@ -117,16 +113,15 @@ public:
   int32  computePositionFromLayout(void);
   int32  computePositionFromAlignment(void);
 
-  void   rebuild(bool recomputeFullConsensus, bool display);
+  void   recomputeConsensus(bool display);
+  void   refreshPositions(void);
 
   bool   rejectAlignment(bool allowBhang, bool allowAhang, ALNoverlap *O);
 
   bool   alignFragmentFailure(void);
   bool   alignFragment(bool forceAlignment=false);
-  void   applyAlignment(void);
 
-  void   generateConsensus(void);
-  void   exportToTig(void);
+  void   generateConsensus(tgTig *tig);
 
 private:
   gkStore        *gkpStore;
@@ -142,7 +137,6 @@ private:
   int32           traceBBgn;  //  used in applyAlignment().
 
   abAbacus       *abacus;
-  abMultiAlignID  multialign;  //  Should really be storing the abMultiAlignID
 
   //  The two positions below are storing the low/high coords for the read.
   //  They do not encode the orientation in the coordinates.
@@ -152,11 +146,6 @@ private:
 
   int32           tiid;        //  This frag IID
   int32           piid;        //  Anchor frag IID - if -1, not valid
-
-  int32           frankensteinLen;
-  int32           frankensteinMax;
-  char           *frankenstein;
-  abBeadID       *frankensteinBof;
 
   uint32          minOverlap;
   double          errorRate;

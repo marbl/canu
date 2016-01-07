@@ -68,15 +68,23 @@ unitigToTig(tgTig       *tig,
   resizeArray(tig->_children, tig->_childrenLen, tig->_childrenMax, utg->ufpath.size(), resizeArray_doNothing);
 
   map<uint32,bool>  forward;
+  map<uint32,bool>  allreads;
 
-  for (uint32 fi=0; fi<utg->ufpath.size(); fi++) {
-    ufNode        *frg   = &utg->ufpath[fi];
+  //  Just for stats, build a map fo the reads in the unitig.
 
-    //  Remember that we've placed this read.
+  for (uint32 ti=0; ti<utg->ufpath.size(); ti++)
+    allreads[utg->ufpath[ti].ident] = true;
+
+  //  Process all reads.
+
+  for (uint32 ti=0; ti<utg->ufpath.size(); ti++) {
+    ufNode        *frg   = &utg->ufpath[ti];
+
+    //  Remember that we've placed this read, and if it was forward or reverse.
     forward[frg->ident] = (frg->position.bgn < frg->position.end);
 
     //  If the first read, just dump it in the unitig with no parent.
-    if (fi == 0) {
+    if (ti == 0) {
       tig->addChild()->set(frg->ident, 0, 0, 0, frg->position.bgn, frg->position.end);
       continue;
     }
@@ -90,13 +98,65 @@ unitigToTig(tgTig       *tig,
     uint32         ttLen  = 0;
     double         ttErr  = DBL_MAX;
 
+    int32          ah     = 0;
+    int32          bh     = 0;
+
+    uint32         notPresent = 0;  //  Potential parent isn't in the unitig
+    uint32         notPlaced  = 0;  //  Potential parent isn't placed yet
+    uint32         negHang    = 0;  //  Potential parent has a negative hang to a placed read
+    uint32         goodOlap   = 0;
+
     for (uint32 oo=0; oo<olapsLen; oo++) {
+
+      if (allreads.count(olaps[oo].b_iid) == 0) {
+        notPresent++;
+        continue;
+      }
+
+      if (forward.count(olaps[oo].b_iid) == 0) {       //  Potential parent not placed yet
+        notPlaced++;
+        continue;
+      }
+
       uint32  l = FI->overlapLength(olaps[oo].a_iid, olaps[oo].b_iid, olaps[oo].a_hang, olaps[oo].b_hang);
 
-      if ((l < ttLen) ||
-          (ttErr < olaps[oo].erate) ||
-          (forward.count(olaps[oo].b_iid) == 0))
+      //  Compute the hangs, so we can ignore those that would place this read before the parent.
+      //  This is a flaw somewhere in bogart, and should be caught and fixed earlier.
+
+      //  Consensus is expecting the have the hangs for the parent read, not this read, and some
+      //  fiddling is needed to flip the overlap for this:
+      //    First, swap the reads so it's b-vs-a.
+      //    Then, flip the overlap if the b read is in the unitig flipped.
+
+      int32 ah = (olaps[oo].flipped == false) ? (-olaps[oo].a_hang) : (olaps[oo].b_hang);
+      int32 bh = (olaps[oo].flipped == false) ? (-olaps[oo].b_hang) : (olaps[oo].a_hang);
+
+      if (forward[olaps[oo].b_iid] == false) {
+        swap(ah, bh);
+        ah = -ah;
+        bh = -bh;
+      }
+
+      //  If the ahang is negative, we flubbed up somewhere, and want to place this read before
+      //  the parent (even though positions say to place it after, because we sorted by position).
+
+      if (ah < 0) {
+        //fprintf(stderr, "ERROR: read %u in tig %u has negative ahang from parent read %u, ejected.\n",
+        //        frg->ident, ti, olaps[oo].b_iid);
+        negHang++;
         continue;
+      }
+
+      //  The overlap is good.  Count it as such.
+
+      goodOlap++;
+
+      //  If the overlap is worse than the one we already have, we don't care.
+
+      if ((l < ttLen) ||                  //  Too short
+          (ttErr < olaps[oo].erate)) {    //  Too noisy
+        continue;
+      }
 
       tt    = oo;
       ttLen = l;
@@ -106,26 +166,9 @@ unitigToTig(tgTig       *tig,
     //  If no thickest overlap, we screwed up somewhere.  Complain and eject the read.
 
     if (tt == UINT32_MAX) {
-      fprintf(stderr, "ERROR: read %u in tig %u has no overlap to any previous read, ejected.\n",
-              frg->ident, fi);
+      fprintf(stderr, "ERROR: read %u in tig %u has no overlap to any previous read, ejected.  %u overlaps total.  %u negative hang.  %u to read not in tig.  %u to read later in tig.  %u good overlaps.\n",
+              frg->ident, tig->tigID(), olapsLen, negHang, notPresent, notPlaced, goodOlap);
       continue;
-    }
-
-    //  Place the read!  Use the bogart computed position, and the actual thickest overlap.
-    //  Consensus is expecting the have the hangs for the parent read, not this read, and some
-    //  fiddling is needed to flip the overlap for this.
-
-    //  First, swap the reads so it's b-vs-a.
-
-    int32 ah = (olaps[tt].flipped == false) ? (-olaps[tt].a_hang) : (olaps[tt].b_hang);
-    int32 bh = (olaps[tt].flipped == false) ? (-olaps[tt].b_hang) : (olaps[tt].a_hang);
-
-    //  Then, flip the overlap if the b read is in the unitig flipped.
-
-    if (forward[olaps[tt].b_iid] == false) {
-      swap(ah, bh);
-      ah = -ah;
-      bh = -bh;
     }
 
     tig->addChild()->set(frg->ident, olaps[tt].b_iid, ah, bh, frg->position.bgn, frg->position.end);

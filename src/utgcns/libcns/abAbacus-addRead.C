@@ -64,173 +64,66 @@
 
 #include "abAbacus.H"
 
+//  CA8 code for adding a unitig (and expanding it to include all the reads) exists
+//  last in b8cc87300a0b5da87513ea1a6c02e8280af30cd0.
 
-#if 0
 
-//  If we're adding a unitig (with reads in it) drill into the unitig and add each
-//  of its reads (at least, I think that's what this is doing)
+abSequence::abSequence(uint32  readID,
+                       uint32  length,
+                       char   *seq,
+                       char   *qlt,
+                       uint32  complemented) {
+  _iid              = readID;
 
-static
-int
-abAbacus::SetUngappedFragmentPositions(FragType type,int32 n_frags, MultiAlignT *uma) {
+  _is_read          = true;
 
-  int32 num_frags   = GetNumIntMultiPoss(uma->f_list);
-  int32 num_unitigs = GetNumIntUnitigPoss(uma->u_list);
+  _length           = length;
 
-  HashTable_AS *unitigFrags = CreateScalarHashTable_AS();
+  _complement       = complemented;
 
-  int32 num_columns   = GetMultiAlignLength(uma);
-  int32 ungapped_pos  = 0;
+  _bases            = new char  [_length + 1];
+  _quals            = new uint8 [_length + 1];
 
-  int32 *gapped_positions = new int32 [num_columns + 1];
-  char  *consensus        = Getchar(uma->consensus,0);
+  //  Make a complement table
 
-  for (int32 i=0; i<num_columns+1; i++) {
-    gapped_positions[i] = ungapped_pos;
+  char inv[256] = {0};
 
-    if (consensus[i] != '-')
-      ungapped_pos++;
-  }
+  inv['a'] = 't';  inv['A'] = 'T';
+  inv['c'] = 'g';  inv['C'] = 'G';
+  inv['g'] = 'c';  inv['G'] = 'C';
+  inv['t'] = 'a';  inv['T'] = 'A';
+  inv['n'] = 'n';  inv['N'] = 'N';
+  inv['-'] = '-';
 
-  //  Remember the first fragment we add.
-  int32 first_frag = GetNumCNS_AlignedContigElements(fragment_positions);
+  //  Stash the bases/quals
 
-  for (int32 ifrag=0; ifrag<num_frags; ifrag++) {
-    CNS_AlignedContigElement epos;
-    IntMultiPos *frag = GetIntMultiPos(uma->f_list, ifrag);
+  for (uint32 ii=0; ii<_length; ii++)
+    assert((seq[ii] == 'A') ||
+           (seq[ii] == 'C') ||
+           (seq[ii] == 'G') ||
+           (seq[ii] == 'T') ||
+           (seq[ii] == 'N'));
 
-    if (ExistsInHashTable_AS(unitigFrags, frag->ident, 0)) {
-      fprintf(stderr,"SetUngappedFragmentPositions()-- ident %d already in hashtable\n", frag->ident);
-      assert(0);
-    }
-    if (HASH_SUCCESS != InsertInHashTable_AS(unitigFrags, frag->ident, 0, 1, 0)) {
-      fprintf(stderr,"SetUngappedFragmentPositions()-- Failure to insert ident %d in hashtable\n", frag->ident);
-      assert(0);
-    }
-
-    assert(frag->position.bgn >= 0);
-    assert(frag->position.bgn < num_columns + 1);
-    assert(frag->position.end >= 0);
-    assert(frag->position.end < num_columns + 1);
-
-    epos.frg_or_utg                  = CNS_ELEMENT_IS_FRAGMENT;
-    epos.idx.fragment.frgIdent       = frag->ident;
-    epos.idx.fragment.frgType        = frag->type;
-    epos.idx.fragment.frgContained   = frag->contained;
-    epos.idx.fragment.frgInUnitig    = (type == AS_CONTIG) ? -1 : uma->maID;
-    epos.position.bgn                = gapped_positions[frag->position.bgn];
-    epos.position.end                = gapped_positions[frag->position.end];
-
-    //fprintf(stderr, "SetUngappedFragmentPositions()-- FRG id=%d type=%c pos=%d,%d (orig pos=%d,%d)\n",
-    //        frag->ident, frag->type, epos.position.bgn, epos.position.end, frag->position.bgn, frag->position.end);
-
-    //  Adjust the ungapped position if we fall within a gap
-    //
-    if (epos.position.bgn == epos.position.end) {
-      fprintf(stderr,"SetUngappedFragmentPositions()-- Encountered bgn==end=="F_S32" in ungapped coords within SetUngappedFragmentPositions for "F_CID "(gapped coords "F_S32","F_S32")\n",
-              epos.position.bgn,frag->ident,frag->position.bgn,frag->position.end);
-      assert(frag->position.bgn != frag->position.end);
-
-      if (frag->position.bgn < frag->position.end) {
-        if (epos.position.bgn > 0)
-          epos.position.bgn--;
-        else
-          epos.position.end++;
-      } else {
-        if (epos.position.end > 0)
-          epos.position.end--;
-        else
-          epos.position.bgn++;
-      }
-      fprintf(stderr,"SetUngappedFragmentPositions()--   Reset to "F_S32","F_S32"\n",
-              epos.position.bgn,
-              epos.position.end);
+  if (complemented == false)
+    for (uint32 ii=0, pp=0; ii<_length; ii++, pp++) {
+      _bases[pp] = seq[ii];
+      _quals[pp] = qlt[ii];
     }
 
-    AppendVA_CNS_AlignedContigElement(fragment_positions, &epos);
-  }
-
-
-  for (int32 ifrag=0; ifrag < num_unitigs; ifrag++){
-    CNS_AlignedContigElement epos;
-    IntUnitigPos *unitig = GetIntUnitigPos(uma->u_list, ifrag);
-
-    epos.frg_or_utg           = CNS_ELEMENT_IS_UNITIG;
-    epos.idx.unitig.utgIdent  = unitig->ident;
-    epos.idx.unitig.utgType   = unitig->type;
-    epos.position.bgn         = gapped_positions[unitig->position.bgn];
-    epos.position.end         = gapped_positions[unitig->position.end];
-
-    //fprintf(stderr, "SetUngappedFragmentPositions()-- UTG id=%d type=%c pos=%d,%d (orig pos=%d,%d)\n",
-    //        unitig->ident, unitig->type, epos.position.bgn, epos.position.end, unitig->position.bgn, unitig->position.end);
-
-    AppendVA_CNS_AlignedContigElement(fragment_positions,&epos);
-  }
-
-  //  This is used only by ReplaceEndUnitigInContig().  Mark fragments in the "anchoring" contig
-  //  that belong to this unitig.
-  //
-  if (type != AS_CONTIG) {
-    Fragment *anchor = GetFragment(fragmentStore,0);
-
-    if ((anchor != NULL) &&
-        (anchor->type == AS_CONTIG)) {
-      CNS_AlignedContigElement *af = GetCNS_AlignedContigElement(fragment_positions, anchor->components);
-
-      for (int32 ifrag=0; ifrag < anchor->n_components; ifrag++, af++) {
-        if ((af->frg_or_utg == CNS_ELEMENT_IS_FRAGMENT) &&
-            (ExistsInHashTable_AS(unitigFrags, af->idx.fragment.frgIdent, 0)))
-          af->idx.fragment.frgInUnitig = uma->maID;
-      }
+  else
+    for (uint32 ii=_length, pp=0; ii-->0; pp++) {
+      _bases[pp] = inv[ seq[ii] ];
+      _quals[pp] =      qlt[ii];
     }
-  }
 
-  DeleteHashTable_AS(unitigFrags);
-  delete [] gapped_positions;
-
-  return first_frag;
-}
-
-
-
-int32
-abAbacus::addContig() {
-
-      if (tigStore)
-        uma = tigStore->loadMultiAlign(iid, type == AS_UNITIG);
-      if (uma == NULL)
-        fprintf(stderr,"Lookup failure in CNS: MultiAlign for unitig %d could not be found.\n",iid);
-      assert(uma != NULL);
-
-      //  Contigs used to be added gapped, unitigs as ungapped.
-      //  This caused no end of trouble in MergeMultiAligns and
-      //  ReplaceEndUnitigInContig.
-
-      ResetVA_char(ungappedSequence);
-      ResetVA_char(ungappedQuality);
-
-      GetMultiAlignUngappedConsensus(uma, ungappedSequence, ungappedQuality);
-
-      sequence = Getchar(ungappedSequence,0);
-      quality = Getchar(ungappedQuality,0);
-
-      fragment.length = GetMultiAlignUngappedLength(uma);
-
-      fragment.utype = (type == AS_UNITIG) ? utype : AS_OTHER_UNITIG;
-
-      fragment.n_components = GetNumIntMultiPoss(uma->f_list) + GetNumIntUnitigPoss(uma->u_list);
-      fragment.components   = SetUngappedFragmentPositions(type, fragment.n_components, uma);
-
-      //fprintf(stderr, "AppendFragToLocalStore()-- TIG %d len=%d\n", iid, fragment.length);
-}
-
-#endif
+  _bases[_length] = 0;  //  NUL terminate the strings so we can use them in aligners.
+  _quals[_length] = 0;  //  Not actually a string, the 0 is just another QV=0 entry.
+};
 
 
 
 
-
-abSeqID
+void
 abAbacus::addRead(gkStore *gkpStore,
                   uint32   readID,
                   uint32   askip, uint32 bskip,
@@ -238,14 +131,12 @@ abAbacus::addRead(gkStore *gkpStore,
                   map<uint32, gkRead *>     *inPackageRead,
                   map<uint32, gkReadData *> *inPackageReadData) {
 
-  //  Grab the read
+  //  Grab the read.  If there is no package, load the read from the store.  Otherwise, load the
+  //  read from the package.  This REQUIRES that the package be in-sync with the unitig.  We fail
+  //  otherwise.  Hey, it's used for debugging only...
 
   gkRead      *read     = NULL;
   gkReadData  *readData = NULL;
-
-  //  If no package, load the read from the store.  Otherwise, load the read from the package.  This
-  //  REQUIRES that the package be in-sync with the unitig.  We fail otherwise.  Hey, it's used for
-  //  debugging only...
 
   if (inPackageRead == NULL) {
     read     = gkpStore->gkStore_getRead(readID);
@@ -262,117 +153,20 @@ abAbacus::addRead(gkStore *gkpStore,
   assert(read     != NULL);
   assert(readData != NULL);
 
-  uint32  seqLen = read->gkRead_sequenceLength() - askip - bskip;
+  //  Grab seq/qlt from the read, offset to the proper begin and length.
 
-  //  Tell abacus about it.
+  uint32  seqLen = read->gkRead_sequenceLength() - askip - bskip;
+  char   *seq    = readData->gkReadData_getSequence()  + ((complemented == false) ? askip : bskip);
+  char   *qlt    = readData->gkReadData_getQualities() + ((complemented == false) ? askip : bskip);
+
+  //  Tell abacus about it.  We could pre-allocate _sequences (in the constructor) but this is
+  //  relatively painless and makes life easier outside here.
 
   increaseArray(_sequences, _sequencesLen, _sequencesMax, 1);
 
-  abSequence   *ns = _sequences + _sequencesLen;
-
-  ns->initialize(readID, _sequencesLen++, seqLen, complemented, _basesLen, _beadsLen);
-
-  //  Make a complement table
-
-  char inv[256] = {0};
-
-  inv['a'] = 't';  inv['A'] = 'T';
-  inv['c'] = 'g';  inv['C'] = 'G';
-  inv['g'] = 'c';  inv['G'] = 'C';
-  inv['t'] = 'a';  inv['T'] = 'A';
-  inv['n'] = 'n';  inv['N'] = 'N';
-  inv['-'] = '-';
-
-  //  Stash the bases/quals
-
-  {
-    char  *seq = readData->gkReadData_getSequence()  + ((complemented == false) ? askip : bskip);
-    char  *qlt = readData->gkReadData_getQualities() + ((complemented == false) ? askip : bskip);
-
-    while (_basesMax <= _basesLen + seqLen + 1)
-      resizeArrayPair(_bases, _quals, _basesLen, _basesMax, 2 * _basesMax);
-
-    for (uint32 ii=0; ii<seqLen; ii++)
-      assert((seq[ii] == 'A') ||
-             (seq[ii] == 'C') ||
-             (seq[ii] == 'G') ||
-             (seq[ii] == 'T') ||
-             (seq[ii] == 'N'));
-
-    if (complemented == false)
-      for (uint32 ii=0, pp=_basesLen; ii<seqLen; ii++, pp++, _basesLen++) {
-        _bases[pp] = seq[ii];
-        _quals[pp] = qlt[ii];
-
-        assert(CNS_MIN_QV <= _quals[pp]);
-        assert(_quals[pp] <= CNS_MAX_QV);
-      }
-
-    else
-      for (uint32 ii=seqLen, pp=_basesLen; ii-->0; pp++, _basesLen++) {
-        _bases[pp] = inv[ seq[ii] ];
-        _quals[pp] =      qlt[ii];
-
-        assert(CNS_MIN_QV <= _quals[pp]);
-        assert(_quals[pp] <= CNS_MAX_QV);
-      }
-
-    _bases[_basesLen] = 0;  //  NUL terminate the strings so we can use them in aligners
-    _quals[_basesLen] = 0;
-    _basesLen++;
-  }
+  _sequences[_sequencesLen++] = new abSequence(readID, seqLen, seq, qlt, complemented);
 
   delete readData;
-
-  //  Make beads for each base, set the pointer to the first bead
-
-  {
-    increaseArray(_beads, _beadsLen, _beadsMax, seqLen);
-
-    uint32  firstBead = _beadsLen;
-
-    for (uint32 bp=0; bp<ns->length(); bp++, _beadsLen++) {
-      _beads[_beadsLen].boffset.set(_beadsLen);                   //  Offset into the beads array
-      _beads[_beadsLen].soffset.set(ns->firstBase().get() + bp);  //  Offset into the sequence array
-      _beads[_beadsLen].foffset = bp;                             //  Offset into the read itself
-
-      //  Check that nothing odd happened with the ident.
-
-      assert(_beads[_beadsLen].ident().get() == ns->firstBead().get() + bp);
-
-      //  Set previous/next bead appropriately.
-
-      if (_beads[_beadsLen].foffset == 0)
-        _beads[_beadsLen].prev = abBeadID();
-      else
-        _beads[_beadsLen].prev.set(_beads[_beadsLen].ident().get() - 1);
-
-      if (_beads[_beadsLen].foffset == ns->length() - 1)
-        _beads[_beadsLen].next = abBeadID();
-      else
-        _beads[_beadsLen].next.set(_beads[_beadsLen].ident().get() + 1);
-
-      _beads[_beadsLen].up           = abBeadID();   //  No up bead yet.
-      _beads[_beadsLen].down         = abBeadID();   //  No down bead yet.
-
-      _beads[_beadsLen].frag_index   = ns->ident();  //  Bead is for this read idx.
-      _beads[_beadsLen].column_index = abColID();    //  Isn't in a column yet.
-    }
-  }
-
-  assert(_beads[_beadsLen-1].ident() == ns->lastBead());
-
-  //  Return the (internal) index we saved this read at.
-
-#if 0
-  fprintf(stderr, "read %d firstBead %d lastBead %d _basesLen %u\n",
-          ns->ident().get(),
-          ns->firstBead().get(),
-          ns->lastBead().get(),
-          _basesLen);
-#endif
-
-  return(ns->ident());
 }
 
 

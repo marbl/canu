@@ -66,59 +66,75 @@ static char *rcsid = "$Id$";
 
 #include "abAbacus.H"
 
-//  Recall consensus in all columns.
+//  (Optionally) recall consensus in all columns.
 //  Rebuild the list of columns in the multialign.
 //  Rebuild the column to position map.
 
 void
-abAbacus::refreshMultiAlign(abMultiAlignID  mid,
-                            bool            recallBase,         //  (false) If true, recall the base
-                            bool            highQuality) {      //  (false) If true, use the high quality base call algorithm
+abAbacus::refreshColumns(void) {
 
-  abMultiAlign *ma = getMultiAlign(mid);
+  //fprintf(stderr, "abAbacus::refreshColumns()--\n");
 
-  //fprintf(stderr, "abMultiAlign::refreshMultiAlign()--  legnth %u recallBase=%d highQuality=%d\n",
-  //        ma->length(), recallBase, highQuality);
+  //  Given that _firstColumn is a valid column, walk to the start of the column list.
 
-  ma->columns().clear();
+  while (_firstColumn->_prevColumn != NULL)
+    _firstColumn = _firstColumn->_prevColumn;
 
-  //  The first column MUST be correct, but we can then update everything else.
-  abColID  cid = ma->firstColumn();
+  //  Number the columns, so we can make sure the _columns array has enough space.  Probably not
+  //  needed to be done first, but avoids having the resize call in the next loop.
 
-  for (uint32 index=0; (cid.isValid() == true); index++) {
-    abColumn  *column = getColumn(cid);
+  uint32 cn = 0;
 
-    if (recallBase == true)
-      baseCall(cid, highQuality);
+  for (abColumn *column = _firstColumn; column; column = column->next())
+    column->_columnPosition = cn++;  //  Position of the column in the gapped consensus.
 
-    column->ma_position = index;                      //  Position of the column in the gapped consensus.
-    ma->columns().push_back(column->ident());         //  Just a vector of columns, for random access.
-    ma->last = cid;                                   //  Wherever it ends, it ends.
+  //  Fake out resizeArray so it will work on three arrays.
 
-    assert(ma->columns()[column->ma_position] == column->ident());
+  uint32  cm = _columnsMax;
 
-    cid = column->next;
+  resizeArray(_columns,  0, cm, cn+1, resizeArray_doNothing);  cm = _columnsMax;
+  resizeArray(_cnsBases, 0, cm, cn+1, resizeArray_doNothing);  cm = _columnsMax;
+  resizeArray(_cnsQuals, 0, cm, cn+1, resizeArray_doNothing);  _columnsMax = cm;
+
+  //  Build the list of columns and update consensus and quals while we're there.
+
+  _columnsLen = 0;
+
+  for (abColumn *column = _firstColumn; column; column = column->next()) {
+    _columns [_columnsLen] = column;
+    _cnsBases[_columnsLen] = column->baseCall();
+    _cnsQuals[_columnsLen] = column->baseQual();
+    _columnsLen++;
   }
 
-  //  Check column pointers - first/last have no prev/next, and all the other prev/next agree.
+  _cnsBases[_columnsLen] = 0;
+  _cnsQuals[_columnsLen] = 0;  //  Not actually zero terminated.
 
-  assert(getColumn(ma->firstColumn())->prevID() == abColID());
-  assert(getColumn(ma->lastColumn())->nextID()  == abColID());
+  //for (abColumn *column = _firstColumn; column; column = column->next())
+  //  fprintf(stderr, "refreshColumns()--  column %p is at position %d\n",
+  //          column, column->position());
+}
 
-  abColID   pid = ma->firstColumn();  //  Previous column
-  abColumn *pol = getColumn(pid);
 
-  abColID   nid = pol->next;          //  Next column
-  abColumn *nol = getColumn(nid);
+void
+abAbacus::recallBases(bool highQuality) {
 
-  while (nid.isValid()) {
-    assert(pol->next == nid);  //  We're iterating over this, must be true.
-    assert(pid == nol->prev);  //  What we're testing
+  //fprintf(stderr, "abAbacus::recallBases()--  highQuality=%d\n", highQuality);
 
-    pid = nid;
-    pol = nol;
+  //  Given that _firstColumn is a valid column, walk to the start of the column list.
+  //  We could use _columns[] instead.
 
-    nid = pol->next;          //  Next column
-    nol = getColumn(nid);
-  }
+  while (_firstColumn->_prevColumn != NULL)
+    _firstColumn = _firstColumn->_prevColumn;
+
+  //  Number the columns, so we can make sure the _columns array has enough space.  Probably not
+  //  needed to be done first, but avoids having the resize call in the next loop.
+
+  for (abColumn *column = _firstColumn; column; column = column->next())
+    column->baseCall(highQuality);
+
+  //  After calling bases, we need to refresh to copy the bases from each column into
+  //  _cnsBases and _cnsQuals.
+
+  refreshColumns();
 }

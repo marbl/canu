@@ -40,7 +40,6 @@ const char *mainid = "$Id$";
 #include "AS_global.H"
 #include "gkStore.H"
 #include "tgStore.H"
-#include "abAbacus.H"
 
 #include "AS_UTL_decodeRange.H"
 
@@ -82,7 +81,7 @@ main (int argc, char **argv) {
 
   bool      forceCompute   = false;
 
-  double    errorRate      = 0.06;
+  double    errorRate      = 0.12;
   double    errorRateMax   = 0.40;
   uint32    minOverlap     = 40;
 
@@ -327,6 +326,13 @@ main (int argc, char **argv) {
       fprintf(stderr, "Failed to open input package file '%s': %s\n", inPackageName, strerror(errno)), exit(1);
   }
 
+  //  Report some sizes.
+
+  fprintf(stderr, "sizeof(abBead)     "F_SIZE_T"\n", sizeof(abBead));
+  fprintf(stderr, "sizeof(abColumn)   "F_SIZE_T"\n", sizeof(abColumn));
+  fprintf(stderr, "sizeof(abAbacus)   "F_SIZE_T"\n", sizeof(abAbacus));
+  fprintf(stderr, "sizeof(abSequence) "F_SIZE_T"\n", sizeof(abSequence));
+
   //  Decide on what to compute.  Either all unitigs, or a single unitig, or a special case test.
 
   uint32  b = 0;
@@ -355,10 +361,6 @@ main (int argc, char **argv) {
   }
 
   fprintf(stderr, "\n");
-
-  //  Create a consensus object.
-
-  abAbacus  *abacus   = new abAbacus(gkpStore);
 
   //  I don't like this loop control.
 
@@ -476,14 +478,14 @@ main (int argc, char **argv) {
 
       switch (algorithm) {
         case 'Q':
-          success = utgcns->generateQuick(tig,  NULL, inPackageRead, inPackageReadData);
+          success = utgcns->generateQuick(tig, inPackageRead, inPackageReadData);
           break;
         case 'P':
         default:
-          success = utgcns->generatePBDAG(tig, NULL, inPackageRead, inPackageReadData);
+          success = utgcns->generatePBDAG(tig, inPackageRead, inPackageReadData);
           break;
         case 'U':
-          success = utgcns->generate(tig, NULL, inPackageRead, inPackageReadData);
+          success = utgcns->generate(tig, inPackageRead, inPackageReadData);
           break;
       }
     }
@@ -527,7 +529,6 @@ main (int argc, char **argv) {
   }
 
  finish:
-  delete abacus;
   delete tigStore;
 
   gkpStore->gkStore_close();
