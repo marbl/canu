@@ -185,8 +185,14 @@ sub schedulerFinish ($) {
     $diskfree = (defined($dir)) ? (diskSpace($dir)) : (0);
 
     my $warning = "  !!! WARNING !!!" if ($diskfree < 10);
+    my $elapsed = time() - $startsecs;
+
+    $elapsed = "lickety-split"    if ($elapsed eq "0");
+    $elapsed = "$elapsed second"  if ($elapsed eq "1");
+    $elapsed = "$elapsed seconds" if ($elapsed  >  1);
+
     print STDERR "\n";
-    print STDERR "-- Finished on ", scalar(localtime()), " (", time() - $startsecs, " seconds) with $diskfree GB free disk space$warning\n";
+    print STDERR "-- Finished on ", scalar(localtime()), " ($elapsed) with $diskfree GB free disk space$warning\n";
     print STDERR "----------------------------------------\n";
 }
 
@@ -1250,8 +1256,14 @@ sub runCommand ($$) {
     $diskfree = (defined($dir)) ? (diskSpace($dir)) : (0);
 
     my $warning = "  !!! WARNING !!!" if ($diskfree < 10);
+    my $elapsed = time() - $startsecs;
+
+    $elapsed = "lickety-split"    if ($elapsed eq "0");
+    $elapsed = "$elapsed second"  if ($elapsed eq "1");
+    $elapsed = "$elapsed seconds" if ($elapsed  >  1);
+
     print STDERR "\n";
-    print STDERR "-- Finished on ", scalar(localtime()), " (", time() - $startsecs, " seconds) with $diskfree GB free disk space$warning\n";
+    print STDERR "-- Finished on ", scalar(localtime()), " ($elapsed) with $diskfree GB free disk space$warning\n";
     print STDERR "----------------------------------------\n";
 
     #  Pretty much copied from Programming Perl page 230
