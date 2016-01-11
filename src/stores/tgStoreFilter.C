@@ -352,6 +352,8 @@ main(int argc, char **argv) {
         covHistogram[ID->depth(ii)] += ID->hi(ii) - ID->lo(ii) + 1;
     }
 
+    delete ID;  ID = NULL;
+
     //  Single read max fraction covered.
 
     uint32  covMax = 0;
@@ -375,6 +377,8 @@ main(int argc, char **argv) {
     numReadsPerUnitig[uu] = tig->numberOfChildren();
 
     //fprintf(stderr, "unitig %u covMax %f\n", tig->tigID(), covMax / 1000.0);
+
+    tigStore->unloadTig(uu);
   }
 
   //
@@ -434,7 +438,7 @@ main(int argc, char **argv) {
   //  Apply the thresholds to unitigs.  The first half of these are the historical CGW rules.
   //
 
-  fprintf(stderr, "Processing unitigs.\n");
+  fprintf(stderr, "Processing unitigs %u to %u.\n", bgnID, endID);
 
   for (uint32 uu=bgnID; uu<endID; uu++) {
     tgTig  *tig = tigStore->loadTig(uu);
