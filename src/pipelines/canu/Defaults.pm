@@ -41,6 +41,7 @@ require Exporter;
 use strict;
 use Carp qw(cluck);
 use Sys::Hostname;
+use Text::Wrap;
 
 use Filesys::Df;  #  for diskSpace()
 
@@ -326,17 +327,26 @@ sub printHelp ($) {
         exit(0);
     }
 
+    my $pretty = 0;
+
     if (getGlobal("options")) {
         foreach my $k (sort values %synnam) {
-            my $o = substr("$k                                    ", 0, 35);
-            my $d = substr($global{$k}   . "                      ", 0, 20);
+            my $o = $k;
             my $u = $synops{$k};
 
-            if (!defined($global{$k})) {
-                $d = substr("<unset>                    ", 0, 20);
+            next   if (length($u) == 0);
+
+            if ($pretty == 0) {
+                $o = substr("$k                                    ", 0, 40);
+
+            } else {
+                $Text::Wrap::columns = 100;
+
+                $o = "$o\n";
+                $u = wrap("    ", "    ", $u) . "\n";
             }
 
-            print "$o$d($u)\n";
+            print "$o$u\n";
         }
         exit(0);
     }
@@ -578,45 +588,45 @@ sub setOverlapDefaults ($$$) {
 
     #  Which overlapper to use.
 
-    $global{"${tag}Overlapper"}                  = $default;
-    $synops{"${tag}Overlapper"}                  = "Which overlap algorithm to use for $name";
+    $global{"${tag}Overlapper"}               = $default;
+    $synops{"${tag}Overlapper"}               = "Which overlap algorithm to use for $name";
 
     #  OverlapInCore parameters.
 
-    $global{"${tag}OvlHashBlockLength"}          = undef;
-    $synops{"${tag}OvlHashBlockLength"}          = "Amount of sequence (bp) to load into the overlap hash table";
+    $global{"${tag}OvlHashBlockLength"}       = undef;
+    $synops{"${tag}OvlHashBlockLength"}       = "Amount of sequence (bp) to load into the overlap hash table";
 
-    $global{"${tag}OvlRefBlockSize"}             = undef;
-    $synops{"${tag}OvlRefBlockSize"}             = "Number of reads to search against the hash table per batch";
+    $global{"${tag}OvlRefBlockSize"}          = undef;
+    $synops{"${tag}OvlRefBlockSize"}          = "Number of reads to search against the hash table per batch";
 
-    $global{"${tag}OvlRefBlockLength"}           = 0;
-    $synops{"${tag}OvlRefBlockLength"}           = "Amount of sequence (bp) to search against the hash table per batch";
+    $global{"${tag}OvlRefBlockLength"}        = 0;
+    $synops{"${tag}OvlRefBlockLength"}        = "Amount of sequence (bp) to search against the hash table per batch";
 
-    $global{"${tag}OvlHashBits"}                 = ($tag eq "cor") ? 18 : 22;
-    $synops{"${tag}OvlHashBits"}                 = "Width of the kmer hash.  Width 22=1gb, 23=2gb, 24=4gb, 25=8gb.  Plus 10b per ${tag}OvlHashBlockLength";
+    $global{"${tag}OvlHashBits"}              = ($tag eq "cor") ? 18 : 22;
+    $synops{"${tag}OvlHashBits"}              = "Width of the kmer hash.  Width 22=1gb, 23=2gb, 24=4gb, 25=8gb.  Plus 10b per ${tag}OvlHashBlockLength";
 
-    $global{"${tag}OvlHashLoad"}                 = 0.75;
-    $synops{"${tag}OvlHashLoad"}                 = "Maximum hash table load.  If set too high, table lookups are inefficent; if too low, search overhead dominates run time";
+    $global{"${tag}OvlHashLoad"}              = 0.75;
+    $synops{"${tag}OvlHashLoad"}              = "Maximum hash table load.  If set too high, table lookups are inefficent; if too low, search overhead dominates run time; default 0.75";
 
-    $global{"${tag}OvlMerSize"}                  = ($tag eq "cor") ? 19 : 22;
-    $synops{"${tag}OvlMerSize"}                  = "K-mer size for seeds in overlaps";
+    $global{"${tag}OvlMerSize"}               = ($tag eq "cor") ? 19 : 22;
+    $synops{"${tag}OvlMerSize"}               = "K-mer size for seeds in overlaps";
 
-    $global{"${tag}OvlMerThreshold"}             = "auto";
-    $synops{"${tag}OvlMerThreshold"}             = "K-mer frequency threshold; mers more frequent than this count are ignored";
+    $global{"${tag}OvlMerThreshold"}          = "auto";
+    $synops{"${tag}OvlMerThreshold"}          = "K-mer frequency threshold; mers more frequent than this count are ignored; default 'auto'";
 
-    $global{"${tag}OvlMerDistinct"}              = undef;
-    $synops{"${tag}OvlMerDistinct"}              = "K-mer frequency threshold; the least frequent fraction of distinct mers can seed overlaps";
+    $global{"${tag}OvlMerDistinct"}           = undef;
+    $synops{"${tag}OvlMerDistinct"}           = "K-mer frequency threshold; the least frequent fraction of distinct mers can seed overlaps";
 
-    $global{"${tag}OvlMerTotal"}                 = undef;
-    $synops{"${tag}OvlMerTotal"}                 = "K-mer frequency threshold; the least frequent fraction of all mers can seed overlaps";
+    $global{"${tag}OvlMerTotal"}              = undef;
+    $synops{"${tag}OvlMerTotal"}              = "K-mer frequency threshold; the least frequent fraction of all mers can seed overlaps";
 
-    $global{"${tag}OvlFrequentMers"}             = undef;
-    $synops{"${tag}OvlFrequentMers"}             = "Do not seed overlaps with these kmers (fasta format)";
+    $global{"${tag}OvlFrequentMers"}          = undef;
+    $synops{"${tag}OvlFrequentMers"}          = "Do not seed overlaps with these kmers (fasta format)";
 
     #  Mhap parameters.
 
-    $global{"${tag}MhapVersion"}	      = "1.5b1";
-    $synops{"${tag}MhapVersion"}	      = "Version of the MHAP jar file to use";
+    $global{"${tag}MhapVersion"}              = "1.5b1";
+    $synops{"${tag}MhapVersion"}              = "Version of the MHAP jar file to use";
 
     $global{"${tag}MhapFilterThreshold"}      = "0.000005";
     $synops{"${tag}MhapFilterThreshold"}      = "Value between 0 and 1. kmers which comprise more than this percentage of the input are downweighted";
@@ -631,7 +641,7 @@ sub setOverlapDefaults ($$$) {
     $synops{"${tag}MhapReAlign"}              = "Compute actual alignments from mhap overlaps; 'raw' from mhap output, 'final' from overlap store; uses either obtErrorRate or ovlErrorRate, depending on which overlaps are computed";
 
     $global{"${tag}MhapSensitivity"}          = "normal";
-    $synops{"${tag}MhapSensitivity"}          = "Coarse sensitivity level: 'normal' or 'high'";
+    $synops{"${tag}MhapSensitivity"}          = "Coarse sensitivity level: 'normal' or 'high'; default 'normal'";
 }
 
 
@@ -650,13 +660,10 @@ sub setDefaults () {
     $synops{"pathMap"}                     = "File with a hostname to binary directory map";
 
     $global{"shell"}                       = "/bin/sh";
-    $synops{"shell"}                       = "Command interpreter to use; sh-compatible (e.g., bash), NOT C-shell (csh or tcsh)";
+    $synops{"shell"}                       = "Command interpreter to use; sh-compatible (e.g., bash), NOT C-shell (csh or tcsh); default '/bin/sh'";
 
     $global{"java"}                        = "java";
-    #$global{"java"}                        = "/usr/bin/java"                               if (-e "/usr/bin/java");
-    #$global{"java"}                        = "/usr/local/bin/java"                         if (-e "/usr/local/bin/java");
-    $global{"java"}                        = "/nbacc/local/packages/jdk1.8.0_25/bin/java"  if (-e "/nbacc/local/packages/jdk1.8.0_25/bin/java");
-    $synops{"java"}                        = "Java interpreter to use; at least version 1.8";
+    $synops{"java"}                        = "Java interpreter to use; at least version 1.8; default 'java'";
 
     #####  Cleanup options
 
@@ -704,10 +711,10 @@ sub setDefaults () {
     #####  Minimums and maximums
 
     $global{"minReadLength"}               = 1000;
-    $synops{"minReadLength"}               = "Reads shorter than this length are not loaded into the assembler";
+    $synops{"minReadLength"}               = "Reads shorter than this length are not loaded into the assembler; default 1000";
 
     $global{"minOverlapLength"}            = 500;
-    $synops{"minOverlapLength"}            = "Overlaps shorter than this length are not computed";
+    $synops{"minOverlapLength"}            = "Overlaps shorter than this length are not computed; default 500";
 
     $global{"minMemory"}                   = undef;
     $synops{"minMemory"}                   = "Minimum amount of memory needed to compute the assembly (do not set unless prompted!)";
@@ -753,7 +760,7 @@ sub setDefaults () {
     #####  Grid Engine Pipeline
 
     $global{"useGrid"}                     = 1;
-    $synops{"useGrid"}                     = "If 'true', enable grid-based execution; if 'false', run all jobs on the local machine; if 'remote', create jobs for grid execution but do not submit";
+    $synops{"useGrid"}                     = "If 'true', enable grid-based execution; if 'false', run all jobs on the local machine; if 'remote', create jobs for grid execution but do not submit; default 'true'";
 
     #####  Grid Engine configuration, for each step of the pipeline
 
@@ -807,7 +814,7 @@ sub setDefaults () {
     $synops{"ovlStoreConcurrency"}         = "Unused, only one process supported";
 
     $global{"ovlStoreMethod"}              = "sequential";
-    $synops{"ovlStoreMethod"}              = "Use the 'sequential' or 'parallel' algorithm for constructing an overlap store";
+    $synops{"ovlStoreMethod"}              = "Use the 'sequential' or 'parallel' algorithm for constructing an overlap store; default 'sequential'";
 
     $global{"ovlStoreSlices"}              = undef;
     $synops{"ovlStoreSlices"}              = "How many pieces to split the sorting into, for the parallel store build";
@@ -829,10 +836,10 @@ sub setDefaults () {
     $synops{"obtErrorRate"}                = "Stringency of overlaps to use for trimming";
 
     $global{"trimReadsOverlap"}            = 1;
-    $synops{"trimReadsOverlap"}            = "Minimum overlap between evidence to make contiguous trim";
+    $synops{"trimReadsOverlap"}            = "Minimum overlap between evidence to make contiguous trim; default '1'";
 
     $global{"trimReadsCoverage"}           = 1;
-    $synops{"trimReadsCoverage"}           = "Minimum depth of evidence to retain bases";
+    $synops{"trimReadsCoverage"}           = "Minimum depth of evidence to retain bases; default '1'";
 
     #$global{"splitReads..."}               = 1;
     #$synops{"splitReads..."}               = "";
@@ -840,7 +847,7 @@ sub setDefaults () {
     #####  Fragment/Overlap Error Correction
 
     $global{"enableOEA"}                   = 1;
-    $synops{"enableOEA"}                   = "Do overlap error adjustment - comprises two steps: read error detection (RED) and overlap error adjustment (OEA)";
+    $synops{"enableOEA"}                   = "Do overlap error adjustment - comprises two steps: read error detection (RED) and overlap error adjustment (OEA); default 'true'";
 
     $global{"redBatchSize"}                = undef;
     $synops{"redBatchSize"}                = "Number of reads per fragment error detection batch";
@@ -857,7 +864,7 @@ sub setDefaults () {
     #####  Unitigger & BOG & bogart Options
 
     $global{"unitigger"}                   = "bogart";
-    $synops{"unitigger"}                   = "Which unitig algorithm to use; utg or bogart (defalut)";
+    $synops{"unitigger"}                   = "Which unitig algorithm to use; only 'bogart' supported; default 'bogart'";
 
     $global{"genomeSize"}                  = undef;
     $synops{"genomeSize"}                  = "An estimate of the size of the genome";
@@ -907,10 +914,10 @@ sub setDefaults () {
     $synops{"cnsPartitionMin"}             = "Don't make a consensus partition with fewer than N reads";
 
     $global{"cnsMaxCoverage"}              = 0;
-    $synops{"cnsMaxCoverage"}              = "Limit unitig consensus to at most this coverage";
+    $synops{"cnsMaxCoverage"}              = "Limit unitig consensus to at most this coverage; default '0' = unlimited";
 
     $global{"cnsConsensus"}                = "pbdagcon";
-    $synops{"cnsConsensus"}                = "Which consensus algorithm to use; 'pbdagcon' (fast, reliable); 'utgcns' (multialignment output); 'quick' (single read mosaic)";
+    $synops{"cnsConsensus"}                = "Which consensus algorithm to use; 'pbdagcon' (fast, reliable); 'utgcns' (multialignment output); 'quick' (single read mosaic); default 'pbdagcon'";
 
     #####  Correction Options
 
@@ -927,22 +934,22 @@ sub setDefaults () {
     $synops{"corMaxEvidenceErate"}         = "Limit read correction to only overlaps at or below this fraction error; default: unlimited";
 
     $global{"corMaxEvidenceCoverageGlobal"}= "1.0x";
-    $synops{"corMaxEvidenceCoverageGlobal"}= "Limit reads used for correction to supporting at most this coverage; default: 1.0 * estimated coverage";
+    $synops{"corMaxEvidenceCoverageGlobal"}= "Limit reads used for correction to supporting at most this coverage; default: '1.0x' = 1.0 * estimated coverage";
 
     $global{"corMaxEvidenceCoverageLocal"} = "2.0x";
-    $synops{"corMaxEvidenceCoverageLocal"} = "Limit reads being corrected to at most this much evidence coverage; default: 10 * estimated coverage";
+    $synops{"corMaxEvidenceCoverageLocal"} = "Limit reads being corrected to at most this much evidence coverage; default: '2.0x' = 2.0 * estimated coverage";
 
     $global{"corOutCoverage"}              = 40;
     $synops{"corOutCoverage"}              = "Only correct the longest reads up to this coverage; default 40";
 
     $global{"corMinCoverage"}              = 4;
-    $synops{"corMinCoverage"}              = "Minimum number of bases supporting each corrected base, if less than this sequences are split";
+    $synops{"corMinCoverage"}              = "Minimum number of bases supporting each corrected base, if less than this sequences are split; default 4";
 
     $global{"corFilter"}                   = "expensive";
-    $synops{"corFilter"}                   = "Method to filter short reads from correction; 'quick' or 'expensive'";
+    $synops{"corFilter"}                   = "Method to filter short reads from correction; 'quick' or 'expensive'; default 'expensive'";
 
     $global{"corConsensus"}                = "falconpipe";
-    $synops{"corConsensus"}                = "Which consensus algorithm to use; only 'falcon' and 'falconpipe' are supported";
+    $synops{"corConsensus"}                = "Which consensus algorithm to use; only 'falcon' and 'falconpipe' are supported; default 'falconpipe'";
 
     $global{"falconSense"}                 = undef;
     $synops{"falconSense"}                 = "Path to fc_consensus.py or falcon_sense.bin";
