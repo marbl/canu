@@ -808,6 +808,8 @@ sub dumpCorrectedReads ($$) {
     goto allDone   if (skipStage($WRK, $asm, "cor-dumpCorrectedReads") == 1);
     goto allDone   if (-e "$WRK/$asm.correctedReads.fastq");
 
+    print STDERR "-- Concatenating correctReads output.\n";
+
     my $files = 0;
     my $reads = 0;
 
@@ -818,7 +820,6 @@ sub dumpCorrectedReads ($$) {
         chomp;
 
         open(R, "< $_") or caExit("can't open correction output '$_' for reading: $!\n", undef);
-
         while (!eof(R)) {
             my $n = <R>;
             my $s = "";
@@ -852,6 +853,57 @@ sub dumpCorrectedReads ($$) {
 
     close(O);
     close(F);
+
+    #  Now that all outputs are (re)written, cleanup the job outputs.
+
+    print STDERR "-- Purging correctReads output after merging to final output file.\n";
+
+    my $Nsuccess = 0;
+    my $Nerr     = 0;
+    my $Nfasta   = 0;
+    my $Nlog     = 0;
+
+    open(F, "< $path/corjob.files")             or caExit("can't open '$path/corjob.files' for reading: $!", undef);
+    while (<F>) {
+        chomp;
+
+        if (m/^(.*)\/correction_outputs\/0*(\d+).fasta$/) {
+            my $ID6 = substr("00000" . $2, -6);
+            my $ID4 = substr("000"   . $2, -4);
+            my $ID0 = $2;
+
+            if (-e "$1/correction_outputs/$ID4.dump.success") {
+                $Nsuccess++;
+                unlink "$1/correction_outputs/$ID4.dump.success";
+            }
+            if (-e "$1/correction_outputs/$ID4.err") {
+                $Nerr++;
+                unlink "$1/correction_outputs/$ID4.err";
+            }
+            if (-e "$1/correction_outputs/$ID4.fasta") {
+                $Nfasta++;
+                unlink "$1/correction_outputs/$ID4.fasta";
+            }
+
+            if (-e "$1/correctReads.$ID6.out") {
+                $Nlog++;
+                unlink "$1/correctReads.$ID6.out";
+            }
+            if (-e "$1/correctReads.$ID0.out") {
+                $Nlog++;
+                unlink "$1/correctReads.$ID0.out";
+            }
+
+        } else {
+            caExit("unknown correctReads job name '$_'\n", undef);
+        }
+    }
+    close(F);
+
+    print STDERR "-- Purged $Nsuccess .dump.success sentinels.\n"   if ($Nsuccess > 0);
+    print STDERR "-- Purged $Nfasta .fasta outputs.\n"              if ($Nfasta > 0);
+    print STDERR "-- Purged $Nerr .err outputs.\n"                  if ($Nerr > 0);
+    print STDERR "-- Purged $Nlog .out job log outputs.\n"          if ($Nlog > 0);
 
   finishStage:
     emitStage($WRK, $asm, "cor-dumpCorrectedReads");
