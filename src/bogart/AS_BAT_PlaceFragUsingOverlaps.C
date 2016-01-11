@@ -49,7 +49,7 @@ static const char *rcsid = "$Id$";
 //  best placement for the fragment in an existing unitig.  ALL overlaps are used, not just
 //  the best.
 //
-//  Ties are broken using mate pairs, overlap identities, or arbitrarily.
+//  Ties are broken using overlap identities or arbitrarily.
 //
 //  Returns true if any placement is found, false otherwise.
 //
@@ -777,9 +777,14 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
 
 
 void
-placeUnmatedFragInBestLocation(UnitigVector   &unitigs,
-                               double          erate,
-                               uint32          fid) {
+placeFragInBestLocation(UnitigVector   &unitigs,
+                        double          erate,
+                        uint32          fid) {
+
+  if (Unitig::fragIn(fid) != 0)
+    //  Already placed.
+    return;
+
   ufNode                    frg;
   vector<overlapPlacement>  op;
 
@@ -831,31 +836,4 @@ placeUnmatedFragInBestLocation(UnitigVector   &unitigs,
 
   tig->addFrag(frg, 0, false);
   tig->bubbleSortLastFrag();
-}
-
-
-void
-placeMatedFragInBestLocation(UnitigVector   &unitigs,
-                             double          erate,
-                             uint32          fid,
-                             uint32          mid) {
-  placeUnmatedFragInBestLocation(unitigs, erate, fid);
-}
-
-
-void
-placeFragInBestLocation(UnitigVector   &unitigs,
-                        double          erate,
-                        uint32          fid) {
-
-  if (Unitig::fragIn(fid) != 0)
-    //  Already placed.
-    return;
-
-  uint32  mid = FI->mateIID(fid);
-
-  if (mid == 0)
-    placeUnmatedFragInBestLocation(unitigs, erate, fid);
-  else
-    placeMatedFragInBestLocation(unitigs, erate, fid, mid);
 }

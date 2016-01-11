@@ -42,8 +42,6 @@ void placeContainsUsingBestOverlaps(Unitig      *target,
                                     set<uint32> *fragments);
 
 void placeContainsUsingAllOverlaps(UnitigVector &unitigs,
-                                   double        erate,
-                                   bool          withMatesToNonContained,
-                                   bool          withMatesToUnambiguousContain);
+                                   double        erate);
 
 #endif  //  INCLUDE_AS_BAT_PLACECONTAINS

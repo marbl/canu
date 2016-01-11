@@ -59,25 +59,15 @@ const uint32  noUnitig = 0xffffffff;
 
 ////////////////////////////////////////
 
-#define BADMATE_INTRA_STDDEV 3  //  Mates more than this stddev away in the same unitig are bad
-#define BADMATE_INTER_STDDEV 5  //  Mates more than this stddev away from the end of the unitig are bad
-
-//  Historical.  Eli had problems with STL and max.
-#undef max
-
-////////////////////////////////////////
-
 class FragmentInfo;
 class OverlapCache;
 class BestOverlapGraph;
 class ChunkGraph;
-class InsertSizes;
 
 extern FragmentInfo     *FI;
 extern OverlapCache     *OC;
 extern BestOverlapGraph *OG;
 extern ChunkGraph       *CG;
-extern InsertSizes      *IS;
 
 ////////////////////////////////////////
 
@@ -274,13 +264,7 @@ public:
   uint32  numLibraries(void) { return(_numLibraries); };
 
   uint32  fragmentLength(uint32 iid) { return(_fragLength[iid]); };
-  uint32  mateIID(uint32 iid)        { return(_mateIID[iid]); };
   uint32  libraryIID(uint32 iid)     { return(_libIID[iid]);  };
-
-  double  mean(uint32 iid)   { return(_mean[iid]); };
-  double  stddev(uint32 iid) { return(_stddev[iid]); };
-
-  uint32  numMatesInLib(uint32 iid) { return(_numMatesInLib[iid]); };
 
   uint32  overlapLength(uint32 a_iid, uint32 b_iid, int32 a_hang, int32 b_hang) {
     int32  alen = fragmentLength(a_iid);
@@ -342,14 +326,9 @@ private:
   uint32   _numLibraries;
 
   uint32  *_fragLength;
-  uint32  *_mateIID;
   uint32  *_libIID;
 
-  double  *_mean;
-  double  *_stddev;
-
   uint32  *_numFragsInLib;
-  uint32  *_numMatesInLib;
 };
 
 #endif

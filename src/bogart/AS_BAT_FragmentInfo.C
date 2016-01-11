@@ -36,7 +36,7 @@ static const char *rcsid = "$Id$";
 #include "AS_BAT_Datatypes.H"
 
 const uint64 fiMagicNumber   = 0x6f666e4967617266llu;  //  'fragInfo' until it gets messed up by endianess.
-const uint64 fiVersionNumber = 1;
+const uint64 fiVersionNumber = 2;
 
 
 FragmentInfo::FragmentInfo(gkStore    *gkp,
@@ -56,29 +56,17 @@ FragmentInfo::FragmentInfo(gkStore    *gkp,
   _numFragments = gkp->gkStore_getNumReads();
 
   _fragLength    = new uint32 [_numFragments + 1];
-  _mateIID       = new uint32 [_numFragments + 1];
   _libIID        = new uint32 [_numFragments + 1];
 
-  _mean          = new double [_numLibraries + 1];
-  _stddev        = new double [_numLibraries + 1];
-
   _numFragsInLib = new uint32 [_numLibraries + 1];
-  _numMatesInLib = new uint32 [_numLibraries + 1];
 
   for (uint32 i=0; i<_numFragments + 1; i++) {
     _fragLength[i] = 0;
-    _mateIID[i] = 0;
     _libIID[i] = 0;
   }
 
-  for (uint32 i=1; i<_numLibraries + 1; i++) {
-    _mean[i]          = 0.0;
-    _stddev[i]        = 0.0;
-    //_mean[i]          = gkp->gkStore_getLibrary(i)->mean;
-    //_stddev[i]        = gkp->gkStore_getLibrary(i)->stddev;
+  for (uint32 i=1; i<_numLibraries + 1; i++)
     _numFragsInLib[i] = 0;
-    _numMatesInLib[i] = 0;
-  }
 
   uint32 numSkipped = 0;
   uint32 numLoaded  = 0;
@@ -94,13 +82,9 @@ FragmentInfo::FragmentInfo(gkStore    *gkp,
       uint32 lib = read->gkRead_libraryID();
 
       _fragLength[iid] = read->gkRead_sequenceLength();
-      _mateIID[iid]    = 0;  //read->gkRead_mateIID();;
       _libIID[iid]     = lib;
 
       _numFragsInLib[lib]++;
-
-      if (_mateIID[iid])
-        _numMatesInLib[lib]++;
 
       numLoaded++;
     }
@@ -109,31 +93,6 @@ FragmentInfo::FragmentInfo(gkStore    *gkp,
       writeLog("FragmentInfo()-- Loading fragment information: skipped:%9d active:%9d\n",
                numSkipped, numLoaded);
   }
-
-  for (uint32 i=0; i<_numLibraries + 1; i++)
-    _numMatesInLib[i] /= 2;
-
-  //  Search for and break (and complain) mates to deleted fragments.
-  uint32  numBroken = 0;
-
-  for (uint32 i=0; i<_numFragments + 1; i++) {
-    if ((_fragLength[i] == 0) ||
-        (_mateIID[i] == 0) ||
-        (_fragLength[_mateIID[i]] > 0))
-      //  This frag deleted, or this frag unmated, or mate of this frag is alive, all good!
-      continue;
-
-    assert(_mateIID[_mateIID[i]] == 0);
-
-    if (numBroken++ < 100)
-      writeLog("FragmentInfo()-- WARNING!  Mate of fragment %d (fragment %d) is deleted.\n",
-               i, _mateIID[i]);
-
-    _mateIID[i] = 0;
-  }
-
-  if (numBroken > 0)
-    writeLog("FragmentInfo()-- WARNING!  Removed "F_U32" mate relationships.\n", numBroken);
 
   writeLog("FragmentInfo()-- Loaded %d alive reads, skipped %d short reads.\n",
            numLoaded, numSkipped);
@@ -145,14 +104,9 @@ FragmentInfo::FragmentInfo(gkStore    *gkp,
 
 FragmentInfo::~FragmentInfo() {
   delete [] _fragLength;
-  delete [] _mateIID;
   delete [] _libIID;
 
-  delete [] _mean;
-  delete [] _stddev;
-
   delete [] _numFragsInLib;
-  delete [] _numMatesInLib;
 }
 
 
@@ -179,13 +133,9 @@ FragmentInfo::save(const char *prefix) {
   AS_UTL_safeWrite(file, &_numLibraries,   "fragmentInformationNumLibs",      sizeof(uint32), 1);
 
   AS_UTL_safeWrite(file,  _fragLength,     "fragmentInformationFragLen",      sizeof(uint32), _numFragments + 1);
-  AS_UTL_safeWrite(file,  _mateIID,        "fragmentInformationMateIID",      sizeof(uint32), _numFragments + 1);
   AS_UTL_safeWrite(file,  _libIID,         "fragmentInformationLibIID",       sizeof(uint32), _numFragments + 1);
 
-  AS_UTL_safeWrite(file,  _mean,           "fragmentInformationMean",         sizeof(double), _numLibraries + 1);
-  AS_UTL_safeWrite(file,  _stddev,         "fragmentInformationStddev",       sizeof(double), _numLibraries + 1);
   AS_UTL_safeWrite(file,  _numFragsInLib,  "fragmentInformationNumFrgsInLib", sizeof(uint32), _numLibraries + 1);
-  AS_UTL_safeWrite(file,  _numMatesInLib,  "fragmentInformationNumMateInLib", sizeof(uint32), _numLibraries + 1);
 
   fclose(file);
 }
@@ -226,23 +176,14 @@ FragmentInfo::load(const char *prefix) {
           _numFragments, _numLibraries, name);
 
   _fragLength    = new uint32 [_numFragments + 1];
-  _mateIID       = new uint32 [_numFragments + 1];
   _libIID        = new uint32 [_numFragments + 1];
 
-  _mean          = new double [_numLibraries + 1];
-  _stddev        = new double [_numLibraries + 1];
-
   _numFragsInLib = new uint32 [_numLibraries + 1];
-  _numMatesInLib = new uint32 [_numLibraries + 1];
 
   AS_UTL_safeRead(file,  _fragLength,    "fragmentInformationFragLen",      sizeof(uint32), _numFragments + 1);
-  AS_UTL_safeRead(file,  _mateIID,       "fragmentInformationMateIID",      sizeof(uint32), _numFragments + 1);
   AS_UTL_safeRead(file,  _libIID,        "fragmentInformationLibIID",       sizeof(uint32), _numFragments + 1);
 
-  AS_UTL_safeRead(file,  _mean,          "fragmentInformationMean",         sizeof(double), _numLibraries + 1);
-  AS_UTL_safeRead(file,  _stddev,        "fragmentInformationStddev",       sizeof(double), _numLibraries + 1);
   AS_UTL_safeRead(file,  _numFragsInLib, "fragmentInformationNumFrgsInLib", sizeof(uint32), _numLibraries + 1);
-  AS_UTL_safeRead(file,  _numMatesInLib, "fragmentInformationNumMateInLib", sizeof(uint32), _numLibraries + 1);
 
   fclose(file);
 

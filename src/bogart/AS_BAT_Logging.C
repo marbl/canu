@@ -123,15 +123,12 @@ uint64 LOG_INTERSECTION_BUBBLES        = 0x0000000000000040;  //
 uint64 LOG_INTERSECTION_BUBBLES_DEBUG  = 0x0000000000000080;  //
 uint64 LOG_INTERSECTION_JOINING        = 0x0000000000000100;  //
 uint64 LOG_INTERSECTION_JOINING_DEBUG  = 0x0000000000000200;  //
-uint64 LOG_INITIAL_CONTAINED_PLACEMENT = 0x0000000000000400;  //
-uint64 LOG_HAPPINESS                   = 0x0000000000000800;  //
-uint64 LOG_INTERMEDIATE_UNITIGS        = 0x0000000000001000;  //  At various spots, dump the current unitigs
-uint64 LOG_MATE_SPLIT_ANALYSIS         = 0x0000000000002000;  //
-uint64 LOG_MATE_SPLIT_DISCONTINUOUS    = 0x0000000000004000;  //
-uint64 LOG_MATE_SPLIT_UNHAPPY_CONTAINS = 0x0000000000008000;  //
-uint64 LOG_MATE_SPLIT_COVERAGE_PLOT    = 0x0000000000010000;  //
-uint64 LOG_SET_PARENT_AND_HANG         = 0x0000000000020000;  //
-uint64 LOG_STDERR                      = 0x0000000000040000;  //  Write ALL logging to stderr, not the files.
+uint64 LOG_SPLIT_DISCONTINUOUS         = 0x0000000000000400;  //
+uint64 LOG_INITIAL_CONTAINED_PLACEMENT = 0x0000000000000800;  //
+uint64 LOG_HAPPINESS                   = 0x0000000000001000;  //
+uint64 LOG_INTERMEDIATE_UNITIGS        = 0x0000000000002000;  //  At various spots, dump the current unitigs
+uint64 LOG_SET_PARENT_AND_HANG         = 0x0000000000004000;  //
+uint64 LOG_STDERR                      = 0x0000000000008000;  //  Write ALL logging to stderr, not the files.
 
 uint64 LOG_PLACE_FRAG                  = 0x8000000000000000;  //  Internal use only.
 
@@ -148,10 +145,6 @@ char const *logFileFlagNames[64] = { "overlapQuality",
                                      "containedPlacement",
                                      "happiness",
                                      "intermediateUnitigs",
-                                     "mateSplitAnalysis",
-                                     "mateSplitDiscontinuous",
-                                     "mateSplitUnhappyContains",
-                                     "mateSplitCoveragePlot",
                                      "setParentAndHang",
                                      "stderr",
                                      NULL

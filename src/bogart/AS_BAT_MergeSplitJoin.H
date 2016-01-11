@@ -44,10 +44,6 @@ mergeSplitJoin(UnitigVector &unitigs,
                bool shatterRepeats);
 
 void
-extendByMates(UnitigVector &unitigs,
-              double        erateGraph);
-
-void
 reconstructRepeats(UnitigVector &unitigs,
                    double        erateGraph);
 

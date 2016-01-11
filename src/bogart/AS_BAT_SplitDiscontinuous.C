@@ -37,8 +37,6 @@ static const char *rcsid = "$Id$";
 #include "AS_BAT_Unitig.H"
 #include "AS_BAT_BestOverlapGraph.H"
 
-#include "AS_BAT_MateLocation.H"
-
 
 
 static
@@ -48,7 +46,7 @@ makeNewUnitig(UnitigVector &unitigs,
               ufNode       *splitFrags) {
   Unitig *dangler = unitigs.newUnitig(false);
 
-  if (logFileFlagSet(LOG_MATE_SPLIT_DISCONTINUOUS))
+  if (logFileFlagSet(LOG_SPLIT_DISCONTINUOUS))
     writeLog("splitDiscontinuous()--   new tig "F_U32" with "F_U32" fragments (starting at frag "F_U32").\n",
             dangler->id(), splitFragsLen, splitFrags[0].ident);
 
@@ -58,7 +56,7 @@ makeNewUnitig(UnitigVector &unitigs,
   splitFrags[0].contained = 0;
 
   for (uint32 i=0; i<splitFragsLen; i++)
-    dangler->addFrag(splitFrags[i], splitOffset, false);  //logFileFlagSet(LOG_MATE_SPLIT_DISCONTINUOUS));
+    dangler->addFrag(splitFrags[i], splitOffset, false);  //logFileFlagSet(LOG_SPLIT_DISCONTINUOUS));
 }
 
 
@@ -150,7 +148,7 @@ void splitDiscontinuousUnitigs(UnitigVector &unitigs, uint32 minOverlap) {
     splitFragsLen = 0;
     maxEnd        = 0;
 
-    if (logFileFlagSet(LOG_MATE_SPLIT_DISCONTINUOUS))
+    if (logFileFlagSet(LOG_SPLIT_DISCONTINUOUS))
       writeLog("splitDiscontinuous()-- discontinuous tig "F_U32" with "F_SIZE_T" fragments broken into:\n",
               tig->id(), tig->ufpath.size());
 
@@ -170,11 +168,10 @@ void splitDiscontinuousUnitigs(UnitigVector &unitigs, uint32 minOverlap) {
 
       //  No thick overlap found.  We need to break right here before the current fragment.
 
-      //  If there is exactly one fragment, and it's contained, and it's not mated, move it to the
+      //  If there is exactly one fragment, and it's contained, move it to the
       //  container.  (This has a small positive benefit over just making every read a singleton).
       //
       if ((splitFragsLen == 1) &&
-          (FI->mateIID(splitFrags[0].ident) == 0) &&
           (splitFrags[0].contained != 0)) {
         Unitig  *dangler  = unitigs[tig->fragIn(splitFrags[0].contained)];
 
@@ -182,7 +179,7 @@ void splitDiscontinuousUnitigs(UnitigVector &unitigs, uint32 minOverlap) {
         //  Do the same here.
 
         if (dangler == NULL) {
-          if (logFileFlagSet(LOG_MATE_SPLIT_DISCONTINUOUS))
+          if (logFileFlagSet(LOG_SPLIT_DISCONTINUOUS))
             writeLog("splitDiscontinuous()--   singleton frag "F_U32" shattered.\n",
                     splitFrags[0].ident);
           Unitig::removeFrag(splitFrags[0].ident);
@@ -190,7 +187,7 @@ void splitDiscontinuousUnitigs(UnitigVector &unitigs, uint32 minOverlap) {
         } else {
           assert(dangler->id() == tig->fragIn(splitFrags[0].contained));
 
-          if (logFileFlagSet(LOG_MATE_SPLIT_DISCONTINUOUS))
+          if (logFileFlagSet(LOG_SPLIT_DISCONTINUOUS))
             writeLog("splitDiscontinuous()--   old tig "F_U32" with "F_SIZE_T" fragments (contained frag "F_U32" moved here).\n",
                     dangler->id(), dangler->ufpath.size() + 1, splitFrags[0].ident);
 

@@ -12,19 +12,13 @@ SOURCES  := bogart.C \
             AS_BAT_BestOverlapGraph.C \
             AS_BAT_Breaking.C \
             AS_BAT_ChunkGraph.C \
-            AS_BAT_EvaluateMates.C \
-            AS_BAT_ExtendByMates.C \
             AS_BAT_FragmentInfo.C \
-            AS_BAT_InsertSizes.C \
             AS_BAT_Instrumentation.C \
             AS_BAT_IntersectBubble.C \
             AS_BAT_IntersectSplit.C \
             AS_BAT_Joining.C \
             AS_BAT_Logging.C \
-            AS_BAT_MateBubble.C \
-            AS_BAT_MateLocation.C \
             AS_BAT_MergeSplitJoin.C \
-            AS_BAT_MoveContains.C \
             AS_BAT_Outputs.C \
             AS_BAT_OverlapCache.C \
             AS_BAT_PlaceContains.C \
@@ -39,10 +33,6 @@ SOURCES  := bogart.C \
             AS_BAT_Unitig_AddFrag.C \
             AS_BAT_Unitig.C \
             AS_BAT_Unitig_PlaceFragUsingEdges.C
-
-UNUSED   := AS_BAT_findEdges.C \
-            AS_BAT_MateChecker.C \
-
 
 SRC_INCDIRS  := .. ../AS_UTL ../stores
 

@@ -95,13 +95,10 @@ public:
   repeatRegion(uint32 bgn_, uint32 end_) {
     bgn             = bgn_;
     end             = end_;
-    ejectUnanchored = false;
   };
 
   uint32         bgn;
   uint32         end;
-
-  bool           ejectUnanchored;
 
   repeatUniqueBreakPoint  rujBgn;
   repeatUniqueBreakPoint  rujEnd;

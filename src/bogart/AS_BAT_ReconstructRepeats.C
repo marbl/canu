@@ -50,8 +50,8 @@ void
 reconstructRepeats(UnitigVector &unitigs,
                    double        erateGraph) {
 
-  //  Similar to mate extension, we build a set<> of all the unplaced fragments, then
-  //  construct a new BOG and CG from which we construct unitigs.
+  //  Build a set<> of all the unplaced fragments, then construct a new BOG and CG from which we
+  //  construct unitigs.
 
   BestOverlapGraph  *OGsave = OG;
   ChunkGraph        *CGsave = CG;

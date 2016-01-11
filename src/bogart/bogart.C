@@ -40,11 +40,8 @@ const char *mainid = "$Id$";
 
 #include "AS_BAT_OverlapCache.H"
 
-#include "AS_BAT_InsertSizes.H"
-
 #include "AS_BAT_PopulateUnitig.H"
 #include "AS_BAT_Instrumentation.H"
-#include "AS_BAT_EvaluateMates.H"
 #include "AS_BAT_PlaceContains.H"
 #include "AS_BAT_PlaceZombies.H"
 
@@ -60,7 +57,6 @@ FragmentInfo     *FI  = 0L;
 OverlapCache     *OC  = 0L;
 BestOverlapGraph *OG  = 0L;
 ChunkGraph       *CG  = 0L;
-InsertSizes      *IS  = 0L;
 
 //  HACK
 extern uint32 examineOnly;
@@ -102,7 +98,6 @@ main (int argc, char * argv []) {
   bool      placeContainsUsingBest   = true;
 
   bool      enableShatterRepeats     = false;
-  bool      enableExtendByMates      = false;
   bool      enableReconstructRepeats = false;
   bool      enablePromoteToSingleton = true;
 
@@ -155,10 +150,6 @@ main (int argc, char * argv []) {
     } else if (strcmp(argv[arg], "-R") == 0) {
       enableShatterRepeats     = true;
       enableReconstructRepeats = true;
-
-    } else if (strcmp(argv[arg], "-E") == 0) {
-      enableShatterRepeats     = true;
-      enableExtendByMates      = true;
 
     } else if (strcmp(argv[arg], "-DP") == 0) {
       enablePromoteToSingleton = false;
@@ -229,7 +220,6 @@ main (int argc, char * argv []) {
       if (strcasecmp("most", argv[arg]) == 0) {
         for (flg=1, opt=0; logFileFlagNames[opt]; flg <<= 1, opt++)
           if ((strcasecmp(logFileFlagNames[opt], "stderr") != 0) &&
-              (strcasecmp(logFileFlagNames[opt], "mateSplitCoveragePlot") != 0) &&
               (strcasecmp(logFileFlagNames[opt], "overlapQuality") != 0) &&
               (strcasecmp(logFileFlagNames[opt], "overlapsUsed") != 0) &&
               (strcasecmp(logFileFlagNames[opt], "chunkGraph") != 0) &&
@@ -303,11 +293,9 @@ main (int argc, char * argv []) {
     fprintf(stderr, "  -CS        Don't place contained reads in singleton unitigs.\n");
     fprintf(stderr, "  -RW t      Remove weak overlaps, those in the lower t fraction of erates per overlap end.\n");
     fprintf(stderr, "  -J         Join promiscuous unitigs using unused best edges.\n");
-    fprintf(stderr, "  -SR        Shatter repeats.  Enabled with -R and -E; if neither are supplied,\n");
-    fprintf(stderr, "               repeat fragments are promoted to singleton unitigs (unless -DP).\n");
-    fprintf(stderr, "  -R         Shatter repeats, rebuild\n");
-    fprintf(stderr, "  -E         Shatter repeats, extend unique unitigs\n");
-    fprintf(stderr, "  -DP        When -R or -E, don't promote shattered leftovers to unitigs.\n");
+    fprintf(stderr, "  -SR        Shatter repeats, don't rebuild.\n");
+    fprintf(stderr, "  -R         Shatter repeats (-SR), then rebuild them\n");
+    fprintf(stderr, "  -DP        When -R, don't promote shattered leftovers to unitigs.\n");
     fprintf(stderr, "               This WILL cause CGW to fail; diagnostic only.\n");
     fprintf(stderr, "  -RL len    Force reads below 'len' bases to be singletons.\n");
     fprintf(stderr, "               This WILL cause CGW to fail; diagnostic only.\n");
@@ -435,7 +423,6 @@ main (int argc, char * argv []) {
   OC = new OverlapCache(ovlStoreUniq, ovlStoreRept, output_prefix, erateMax, minOverlap, ovlCacheMemory, ovlCacheLimit, onlySave, doSave);
   OG = new BestOverlapGraph(erateGraph, output_prefix, removeWeak, removeSuspicious, removeSpur);
   CG = new ChunkGraph(output_prefix);
-  IS = NULL;
 
   delete ovlStoreUniq;  ovlStoreUniq = NULL;
   delete ovlStoreRept;  ovlStoreRept = NULL;
@@ -468,7 +455,6 @@ main (int argc, char * argv []) {
 
   reportOverlapsUsed(unitigs, output_prefix, "buildUnitigs");
   reportUnitigs(unitigs, output_prefix, "buildUnitigs");
-  evaluateMates(unitigs, output_prefix, "buildUnitigs");
 
   setLogFile(output_prefix, "placeContains");
 
@@ -479,7 +465,6 @@ main (int argc, char * argv []) {
 
     reportOverlapsUsed(unitigs, output_prefix, "joining");
     reportUnitigs(unitigs, output_prefix, "joining");
-    evaluateMates(unitigs, output_prefix, "joining");
   }
 
   if (noContainsInSingletons)
@@ -489,11 +474,9 @@ main (int argc, char * argv []) {
     placeContainsUsingBestOverlaps(unitigs);
 
   } else {
-    bool withMatesToNonContained       = false;  //  Resolve ambiguous contained placements using mates to dovetail reads
-    bool withMatesToUnambiguousContain = false;  //  Resolve ambiguous contained placements using mates
 
     assert(0);  //  Doesn't work                vvvvvv- bubble?
-    placeContainsUsingAllOverlaps(unitigs, erateBubble, withMatesToNonContained, withMatesToUnambiguousContain);
+    placeContainsUsingAllOverlaps(unitigs, erateBubble);
   }
 
   setLogFile(output_prefix, "placeZombies");
@@ -503,7 +486,6 @@ main (int argc, char * argv []) {
   checkUnitigMembership(unitigs);
   reportOverlapsUsed(unitigs, output_prefix, "placeContainsZombies");
   reportUnitigs(unitigs, output_prefix, "placeContainsZombies");
-  evaluateMates(unitigs, output_prefix, "placeContainsZombies");
 
   setLogFile(output_prefix, "mergeSplitJoin");
 
@@ -513,17 +495,6 @@ main (int argc, char * argv []) {
                  minOverlap,
                  enableShatterRepeats);
 
-  if (enableExtendByMates) {
-    assert(enableShatterRepeats);
-    setLogFile(output_prefix, "extendMates");
-
-    extendByMates(unitigs, erateGraph);
-
-    reportOverlapsUsed(unitigs, output_prefix, "extendMates");
-    reportUnitigs(unitigs, output_prefix, "extendMates");
-    evaluateMates(unitigs, output_prefix, "extendMates");
-  }
-
   if (enableReconstructRepeats) {
     assert(enableShatterRepeats);
     setLogFile(output_prefix, "reconstructRepeats");
@@ -532,7 +503,6 @@ main (int argc, char * argv []) {
 
     reportOverlapsUsed(unitigs, output_prefix, "reconstructRepeats");
     reportUnitigs(unitigs, output_prefix, "reconstructRepeats");
-    evaluateMates(unitigs, output_prefix, "reconstructRepeats");
   }
 
   checkUnitigMembership(unitigs);
@@ -545,11 +515,8 @@ main (int argc, char * argv []) {
     placeContainsUsingBestOverlaps(unitigs);
 
   } else {
-    bool withMatesToNonContained       = false;  //  Resolve ambiguous contained placements using mates to dovetail reads
-    bool withMatesToUnambiguousContain = false;  //  Resolve ambiguous contained placements using mates
-
     assert(0);  //  Doesn't work                vvvvvv- bubble?
-    placeContainsUsingAllOverlaps(unitigs, erateBubble, withMatesToNonContained, withMatesToUnambiguousContain);
+    placeContainsUsingAllOverlaps(unitigs, erateBubble);
   }
 
   promoteToSingleton(unitigs, enablePromoteToSingleton);
@@ -566,7 +533,6 @@ main (int argc, char * argv []) {
   writeUnitigsToStore(unitigs, output_prefix, tigStorePath, fragment_count_target);
   writeOverlapsUsed(unitigs, output_prefix);
 
-  delete IS;
   delete CG;
   delete OG;
   delete OC;

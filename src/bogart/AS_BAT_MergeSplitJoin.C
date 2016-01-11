@@ -41,14 +41,11 @@ static const char *rcsid = "$Id$";
 #include "AS_BAT_OverlapCache.H"
 #include "AS_BAT_IntersectSplit.H"
 
-#include "AS_BAT_InsertSizes.H"
-
 #include "AS_BAT_MergeSplitJoin.H"
 
 #include "AS_BAT_Breaking.H"
 
 #include "AS_BAT_Instrumentation.H"
-#include "AS_BAT_EvaluateMates.H"
 
 #include "AS_BAT_RepeatJunctionEvidence.H"
 
@@ -458,7 +455,6 @@ mergeBubbles_checkFrags(UnitigVector &unitigs,
   //    * Resolve ties with
   //      * Placement in the original unitig
   //      * Error rates on overlaps
-  //      * Mate pairs
 
   bool success = false;
 
@@ -1206,148 +1202,6 @@ markRepeats_filterIntervalsSpannedByFragment(Unitig                    *target,
 
 
 
-void
-markRepeats_filterIntervalsSpannedByMates(Unitig                    *target,
-                                          vector<repeatRegion>      &regions) {
-
-  //  Save the interval if it is small and has 'enough' mates spanning to convince us it is correct.
-  //  Spanning mates must be anchored in non-repeat marked areas.  If we choose to keep it, eject
-  //  any fragment that is externally mated.  Also eject any non-mated fragments.
-
-  for (uint32 i=0; i<regions.size(); i++) {
-    assert(regions[i].bgn < regions[i].end);
-
-    uint32        spanGood       = 0;  //  Mate spans the region
-    uint32        spanGoodMaybe  = 0;  //  Mate spans the region, but is slightly off in position
-    uint32        spanBad        = 0;  //  Mate should span, but is missing the other frag
-
-    uint32        tigLen = target->getLength();
-
-    for (uint32 fi=0; fi<target->ufpath.size(); fi++) {
-      ufNode     *frg      = &target->ufpath[fi];
-      uint32      frgbgn   = (frg->position.bgn < frg->position.end) ? frg->position.bgn : frg->position.end;
-      uint32      frgend   = (frg->position.bgn < frg->position.end) ? frg->position.end : frg->position.bgn;
-      bool        frg53    = (frg->position.bgn < frg->position.end) ? true : false;
-
-      uint32      mid      = FI->mateIID(frg->ident);
-      uint32      mrgtig   = target->fragIn(mid);
-      ufNode     *mrg      = NULL;
-      uint32      mrgbgn   = 0;
-      uint32      mrgend   = 0;
-      bool        mrg53    = false;
-
-      if (mid == 0)
-        //  Fragment is not mated.  Won't help us.
-        continue;
-
-      uint32      lib      = FI->libraryIID(frg->ident);
-
-      uint32      minD     = IS->mean(lib) - 3 * IS->stddev(lib);
-      uint32      maxD     = IS->mean(lib) + 3 * IS->stddev(lib);
-      uint32      stddev   = IS->stddev(lib);
-
-      bool        isGood   = false;
-      bool        isBad    = false;
-
-      bool        expout   = false;  //  Expected location is outside the unitig
-      bool        expspan  = false;  //  Expected location spans the region
-      uint32      expbgn   = 0;
-      uint32      expend   = 0;
-
-      if (frg53 == true) {
-        expbgn = frgbgn + minD;
-        expend = frgbgn + maxD;
-
-        if ((frgend < regions[i].bgn) &&
-            (regions[i].end < expbgn))
-          expspan = true;
-
-        if (tigLen < expend)
-          expout = true;
-
-      } else {
-        expbgn = frgend - maxD;
-        expend = frgend - minD;
-
-        if ((expend < regions[i].bgn) &&
-            (regions[i].end < frgbgn))
-          expspan = true;
-
-        if (frgend < maxD)
-          expout = true;
-      }
-
-      if (expspan == false)
-        //  Pair doesn't span the repeat.  Don't care.  Move along.
-        continue;
-
-      if (expout == true)
-        //  Mate can be placed outside the unitig.  Don't care.  Move along.
-        continue;
-
-      if (target->id() != mrgtig) {
-        //  Mate is not in this unitig, but it should be.  That's bad.
-#ifdef MATE_VERBOSE
-        writeLog("frg "F_U32","F_U32",%d  region "F_U32","F_U32"  expected "F_U32","F_U32"  mate in tig "F_U32"  BADMISSING\n",
-                frgbgn, frgend, frg53, regions[i].bgn, regions[i].end, expbgn, expend, mrgtig);
-#endif
-        spanBad++;
-        continue;
-      }
-
-      //  Otherwise, the mate is in this unitig, and it should be spanning the repeat.
-      //  If it is in the expected location and oriented correctly, that's good!
-      //  If it's almost in the expected location, that's maybe good.
-
-      mrg      = &target->ufpath[ target->pathPosition(mid) ];
-      mrgbgn   = (mrg->position.bgn < mrg->position.end) ? mrg->position.bgn : mrg->position.end;
-      mrgend   = (mrg->position.bgn < mrg->position.end) ? mrg->position.end : mrg->position.bgn;
-      mrg53    = (mrg->position.bgn < mrg->position.end) ? true : false;
-
-      if ((expbgn <= mrgbgn) &&
-          (mrgend <= expend) &&
-          (frg53  != mrg53)) {
-#ifdef MATE_VERBOSE
-        writeLog("frg "F_U32","F_U32",%d  region "F_U32","F_U32"   expected "F_U32","F_U32"  mate "F_U32","F_U32",%d  GOOD\n",
-                frgbgn, frgend, frg53, regions[i].bgn, regions[i].end, expbgn, expend, mrgbgn, mrgend, mrg53);
-#endif
-        spanGood++;
-
-      } else if ((expbgn              <= mrgbgn + 2 * stddev) &&
-                 (mrgend + 2 * stddev <= expend) &&
-                 (frg53  != mrg53)) {
-#ifdef MATE_VERBOSE
-        writeLog("frg "F_U32","F_U32",%d  region "F_U32","F_U32"   expected "F_U32","F_U32"  mate "F_U32","F_U32",%d  GOODMAYBE\n",
-                frgbgn, frgend, frg53, regions[i].bgn, regions[i].end, expbgn, expend, mrgbgn, mrgend, mrg53);
-#endif
-        spanGoodMaybe++;
-
-      } else {
-#ifdef MATE_VERBOSE
-        writeLog("frg "F_U32","F_U32",%d  region "F_U32","F_U32"   expected "F_U32","F_U32"  mate "F_U32","F_U32",%d  BADDISTORIENT\n",
-                frgbgn, frgend, frg53, regions[i].bgn, regions[i].end, expbgn, expend, mrgbgn, mrgend, mrg53);
-#endif
-        spanBad++;
-      }
-    }
-
-    //  If we're mostly good/goodMaybe and few bad, mark this is a repeat that we should kick out
-    //  unmated and externally mated reads from.
-
-    if ((2 * spanBad < 2 * spanGood + spanGoodMaybe) &&
-        (2 <= spanGood))
-      regions[i].ejectUnanchored = true;
-
-    writeLog("markRepeats()--  region["F_U32"] "F_U32","F_U32" -- length "F_U32" -- bad "F_U32" good "F_U32" goodmaybe "F_U32"%s\n",
-             i,
-             regions[i].bgn, regions[i].end, regions[i].end - regions[i].bgn,
-             spanBad, spanGood, spanGoodMaybe,
-             regions[i].ejectUnanchored ? " -- DON'T SPLIT" : "");
-  }
-}
-
-
-
 
 //  Unitig fragment is completely within the repeat interval, or is close enough to the edge that
 //  maybe it couldn't be placed uniquely.
@@ -1379,16 +1233,11 @@ markRepeats_findFragsInRegions(Unitig                    *target,
           (regions[i].end + minOverlap/2 < end))
         continue;
 
-      if (regions[i].ejectUnanchored == false) {
-        rptFrags.insert(frg->ident);
-        continue;
-      }
+      //  Read is in a repeat region, toss it out for rebuilding.
+      rptFrags.insert(frg->ident);
 
-      uint32  mid = FI->mateIID(frg->ident);
-      uint32  min = target->fragIn(mid);
-
-      if ((mid == 0) || (min != target->id()))
-        ejtFrags.insert(frg->ident);
+      //  Read is unanchored in a repeat region, toss it out, but place it with the mate.
+      //ejtFrags.insert(frg->ident);
     }
   }
 }
@@ -1455,11 +1304,6 @@ markRepeats_filterJunctions(Unitig                          *target,
 
     if ((bi >= regions.size()) ||
         (ruj.point < regions[bi].bgn))
-      continue;
-
-    //  If this region was marked as confirmed by mates, don't add the aplit points.
-
-    if (regions[bi].ejectUnanchored == true)
       continue;
 
     assert(regions[bi].bgn <= ruj.point);
@@ -1585,8 +1429,8 @@ markRepeats_breakUnitigs(UnitigVector                    &unitigs,
     uint32  bid = breakID[fi];
 
     if (ejtFrags.count(frg.ident) > 0) {
-      writeLog("markRepeats()-- EJECT unanchored frag %u from unitig %u (mate frag %u)\n",
-               frg.ident, target->id(), FI->mateIID(frg.ident));
+      writeLog("markRepeats()-- EJECT unanchored frag %u from unitig %u\n",
+               frg.ident, target->id());
       target->removeFrag(frg.ident);
       continue;
     }
@@ -1621,7 +1465,7 @@ markRepeats_breakUnitigs(UnitigVector                    &unitigs,
     delete target;
   }
 
-  //  Run back over the ejected frags, and place them with either their mate, or at their best location.
+  //  Run back over the ejected frags, and place them at their best location.
 
   for (set<uint32>::iterator it=ejtFrags.begin(); it!=ejtFrags.end(); it++) {
     writeLog("markRepeats()-- EJECT frag "F_U32"\n", *it);
@@ -1732,7 +1576,6 @@ markRepeats(UnitigVector &unitigs,
 
   //  Convert 'aligned' into regions, throwing out weak ones and those contained in a fragment.
   markRepeats_filterIntervalsSpannedByFragment(target, aligned, regions, minOverlap);
-  markRepeats_filterIntervalsSpannedByMates(target, regions);
 
   markRepeats_findFragsInRegions(target, regions, covFrags, ejtFrags, minOverlap);
 
@@ -1775,9 +1618,6 @@ mergeSplitJoin(UnitigVector &unitigs,
 
   //logFileFlags |= LOG_PLACE_FRAG;
   //logFileFlags &= ~LOG_PLACE_FRAG;
-
-  if (IS == NULL)
-    IS = new InsertSizes(unitigs);
 
   //  BUILD A LIST OF ALL INTERSECTIONS - build a reverse mapping of all BestEdges that are between
   //  unitigs.  For each fragment, we want to have a list of the incoming edges from other unitigs.
@@ -1827,7 +1667,6 @@ mergeSplitJoin(UnitigVector &unitigs,
 
   reportOverlapsUsed(unitigs, prefix, "popBubbles");
   reportUnitigs(unitigs, prefix, "popBubbles");
-  evaluateMates(unitigs, prefix, "popBubbles");
 
   //  Since we create new unitigs for any of the splits, we need to remember
   //  where to stop.  We don't want to re-examine any of the split unitigs.
@@ -1862,7 +1701,6 @@ mergeSplitJoin(UnitigVector &unitigs,
 
   reportOverlapsUsed(unitigs, prefix, "mergeSplitJoin");
   reportUnitigs(unitigs, prefix, "mergeSplitJoin");
-  evaluateMates(unitigs, prefix, "mergeSplitJoin");
 
   //  JOIN EXPOSED BEST - after bubbles are stolen, this should leave some unitigs
   //  with exposed best edges that can now be connected.
@@ -1877,9 +1715,6 @@ mergeSplitJoin(UnitigVector &unitigs,
   //  they'll just be low coverage spurs
 
   delete ilist;
-
-  delete IS;
-  IS = NULL;
 
   logFileFlags &= ~LOG_PLACE_FRAG;
 }

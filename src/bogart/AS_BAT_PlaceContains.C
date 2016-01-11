@@ -160,9 +160,7 @@ placeContainsUsingBestOverlaps(Unitig *target, set<uint32> *fragments) {
 
 void
 placeContainsUsingAllOverlaps(UnitigVector &unitigs,
-                              double        erate,
-                              bool          withMatesToNonContained,
-                              bool          withMatesToUnambiguousContain) {
+                              double        erate) {
 
   //  UNFINISHED.  This results in crashes later in the process.
 
@@ -220,8 +218,6 @@ placeContainsUsingAllOverlaps(UnitigVector &unitigs,
       //  Failed to place the contained read anywhere.  We should probably just make a new unitig
       //  for it right here.
       continue;
-
-    //  Place the mate
 
     //  Add the placed read to the unitig.
 

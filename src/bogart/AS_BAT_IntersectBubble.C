@@ -297,7 +297,6 @@ validateBubbleFragmentsWithOverlaps(UnitigVector &unitigs,
   //    * Resolve ties with
   //      * Placement in the original unitig
   //      * Error rates on overlaps
-  //      * Mate pairs
 
   bool success = false;
 

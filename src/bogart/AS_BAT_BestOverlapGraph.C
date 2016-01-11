@@ -855,9 +855,9 @@ BestOverlapGraph::reportBestEdges(void) {
   FILE *BS = fopen("best.singletons", "w");
 
   if ((BC) && (BE) && (BS)) {
-    fprintf(BC, "#fragId\tlibId\tmated\tbestCont\teRate\n");
+    fprintf(BC, "#fragId\tlibId\tbestCont\teRate\n");
     fprintf(BE, "#fragId\tlibId\tbest5iid\tbest5end\tbest3iid\tbest3end\teRate5\teRate3\n");
-    fprintf(BS, "#fragId\tlibId\tmated\n");
+    fprintf(BS, "#fragId\tlibId\n");
 
     for (uint32 id=1; id<FI->numFragments() + 1; id++) {
       BestContainment *bestcont  = getBestContainer(id);
@@ -867,8 +867,7 @@ BestOverlapGraph::reportBestEdges(void) {
       if (bestcont->isContained) {
         double  erate = OC->findErate(id, bestcont->container);
 
-        fprintf(BC, "%u\t%u\t%c\t%u\t%6.4f\n", id, FI->libraryIID(id),
-                (FI->mateIID(id) > 0) ? 'm' : 'f', bestcont->container, erate);
+        fprintf(BC, "%u\t%u\t%u\t%6.4f\n", id, FI->libraryIID(id), bestcont->container, erate);
       }
 
       else if ((bestedge5->fragId() > 0) || (bestedge3->fragId() > 0)) {
@@ -882,7 +881,7 @@ BestOverlapGraph::reportBestEdges(void) {
       }
 
       else {
-        fprintf(BS, "%u\t%u\t%c\n", id, FI->libraryIID(id), (FI->mateIID(id) > 0) ? 'm' : 'f');
+        fprintf(BS, "%u\t%u\n", id, FI->libraryIID(id));
       }
     }
 
@@ -1082,19 +1081,6 @@ BestOverlapGraph::isOverlapRestricted(const BAToverlap &olap) {
 
   if (_restrictEnabled == false)
     return(false);
-
-  //assert(0);
-
-  //  Previous version would check if the two reads were both unplaced, if _restrict was NULL.
-#if 0
-  if (_restrictToUnplaced) {
-    if ((Unitig::fragIn(olap.a_iid) == 0) &&
-        (Unitig::fragIn(olap.b_iid) == 0))
-      return(false);
-    else
-      return(true);
-  }
-#endif
 
   assert(_restrict != NULL);
 
