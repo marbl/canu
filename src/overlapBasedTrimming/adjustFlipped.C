@@ -23,8 +23,6 @@
  *  full conditions and disclaimers for each license.
  */
 
-static const char *rcsid = "$Id:  $";
-
 #include "adjustOverlaps.H"
 
 //  Adjust the overlap for any trimming done already.  This works by computing the fraction of the

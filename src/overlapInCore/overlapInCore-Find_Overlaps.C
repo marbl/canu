@@ -60,8 +60,6 @@
  *  full conditions and disclaimers for each license.
  */
 
-static const char *rcsid = "$Id$";
-
 #include "overlapInCore.H"
 
 //  Add information for the match in  ref  to the list

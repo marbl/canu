@@ -38,8 +38,6 @@
 #ifndef TGTIGSIZEANALYSIS
 #define TGTIGSIZEANALYSIS
 
-static const char *rcsid_TGTIGSIZEANALYSIS = "$Id$";
-
 #include "tgTig.H"
 
 #include <vector>

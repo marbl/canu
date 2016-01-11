@@ -66,8 +66,6 @@
  *  full conditions and disclaimers for each license.
  */
 
-static char *rcsid = "$Id$";
-
 #include "abAbacus.H"
 
 

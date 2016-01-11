@@ -30,8 +30,6 @@
 #ifndef AS_UTL_FILEIO_H
 #define AS_UTL_FILEIO_H
 
-static const char *rcsid_AS_UTL_FILEIO_H = "$Id$";
-
 #include "AS_global.H"
 
 #include <vector>

@@ -34,8 +34,6 @@
 #ifndef INCLUDE_AS_BAT_OUTPUTS
 #define INCLUDE_AS_BAT_OUTPUTS
 
-static const char *rcsid_INCLUDE_AS_BAT_OUTPUTS = "$Id$";
-
 #include "tgStore.H"
 
 void unitigToMA(tgTig *tig, uint32 tigid, Unitig *utg);

@@ -31,8 +31,6 @@
  *  full conditions and disclaimers for each license.
  */
 
-const char *mainid = "$Id$";
-
 #include "AS_global.H"
 #include "libmeryl.H"
 

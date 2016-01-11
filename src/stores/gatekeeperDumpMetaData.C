@@ -23,8 +23,6 @@
  *  full conditions and disclaimers for each license.
  */
 
-const char *mainid = "$Id: gatekeeperDumpFASTQ.C 6775 2015-03-18 03:55:15Z bri $";
-
 #include "AS_global.H"
 #include "gkStore.H"
 

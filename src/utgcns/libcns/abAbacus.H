@@ -57,8 +57,6 @@
 #ifndef ABACUS_H
 #define ABACUS_H
 
-static const char *rcsid_ABACUS_H = "$Id:  $";
-
 #include "AS_global.H"
 
 #include "gkStore.H"

@@ -31,6 +31,4 @@
  *  full conditions and disclaimers for each license.
  */
 
-static const char *rcsid = "$Id$";
-
 //  Nothing here.  Left for future use.

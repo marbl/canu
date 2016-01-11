@@ -38,8 +38,6 @@
 #ifndef INCLUDE_AS_BAT_OVERLAPCACHE
 #define INCLUDE_AS_BAT_OVERLAPCACHE
 
-static const char *rcsid_INCLUDE_AS_BAT_OVERLAPCACHE = "$Id$";
-
 #include "memoryMappedFile.H"
 
 //  CA8 used to re-encode the error rate into a smaller-precision number.  This was

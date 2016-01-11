@@ -28,8 +28,6 @@
  *  full conditions and disclaimers for each license.
  */
 
-static char const *rcsid = "$Id$";
-
 #include "aligners.H"
 #include "gkStore.H"  //  For AS_MAX_READLEN
 #include "AS_UTL_reverseComplement.H"

@@ -34,8 +34,6 @@
 #ifndef INCLUDE_AS_BAT_SETPARENTANDHANG
 #define INCLUDE_AS_BAT_SETPARENTANDHANG
 
-static const char *rcsid_INCLUDE_AS_BAT_SETPARENTANDHANG = "$Id$";
-
 void setParentAndHang(UnitigVector &unitigs);
 
 #endif  //  INCLUDE_AS_BAT_SETPARENTANDHANG

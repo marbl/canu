@@ -31,8 +31,6 @@
  *  full conditions and disclaimers for each license.
  */
 
-const char *mainid = "$Id$";
-
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
 #include "AS_BAT_ChunkGraph.H"

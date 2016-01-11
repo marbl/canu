@@ -36,8 +36,6 @@
  *  full conditions and disclaimers for each license.
  */
 
-static const char *rcsid = "$Id$";
-
 #include "bogusUtil.H"
 
 #define MAX_GENOME_SIZE_INPUT 256 * 1024 * 1024

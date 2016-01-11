@@ -34,8 +34,6 @@
 #ifndef INCLUDE_AS_BAT_BREAKING
 #define INCLUDE_AS_BAT_BREAKING
 
-static const char *rcsid_INCLUDE_AS_BAT_BREAKING = "$Id$";
-
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
 

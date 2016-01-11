@@ -34,8 +34,6 @@
 #ifndef INCLUDE_AS_BAT_CHUNKGRAPH
 #define INCLUDE_AS_BAT_CHUNKGRAPH
 
-static const char *rcsid_INCLUDE_AS_BAT_CHUNKGRAPH = "$Id$";
-
 #include "AS_BAT_Datatypes.H"
 
 class BestOverlapGraph;

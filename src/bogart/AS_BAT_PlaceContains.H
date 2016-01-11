@@ -34,8 +34,6 @@
 #ifndef INCLUDE_AS_BAT_PLACECONTAINS
 #define INCLUDE_AS_BAT_PLACECONTAINS
 
-static const char *rcsid_INCLUDE_AS_BAT_PLACECONTAINS = "$Id$";
-
 void placeContainsUsingBestOverlaps(UnitigVector &unitigs);
 
 void placeContainsUsingBestOverlaps(Unitig      *target,

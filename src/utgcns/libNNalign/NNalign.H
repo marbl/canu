@@ -31,8 +31,6 @@
 #ifndef ALIGNERS_H
 #define ALIGNERS_H
 
-static const char *rcsid_ALIGNERS_H = "$Id$";
-
 #include "AS_global.H"
 
 //

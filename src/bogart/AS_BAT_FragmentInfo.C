@@ -31,8 +31,6 @@
  *  full conditions and disclaimers for each license.
  */
 
-static const char *rcsid = "$Id$";
-
 #include "AS_BAT_Datatypes.H"
 
 const uint64 fiMagicNumber   = 0x6f666e4967617266llu;  //  'fragInfo' until it gets messed up by endianess.

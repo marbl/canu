@@ -34,8 +34,6 @@
 #ifndef INCLUDE_AS_BAT_PLACEZOMBIES
 #define INCLUDE_AS_BAT_PLACEZOMBIES
 
-static const char *rcsid_INCLUDE_AS_BAT_PLACEZOMBIES = "$Id$";
-
 void
 placeZombies(UnitigVector &unitigs, double erate);
 

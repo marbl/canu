@@ -31,8 +31,6 @@
  *  full conditions and disclaimers for each license.
  */
 
-static const char *rcsid_MERTRIMRESULT_H = "$Id$";
-
 #include <stdio.h>
 #include <stdlib.h>
 

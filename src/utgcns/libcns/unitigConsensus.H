@@ -57,8 +57,6 @@
 #ifndef UNITIGCONSENSUS_H
 #define UNITIGCONSENSUS_H
 
-static const char *rcsid_UNITIGCONSENSUS_H = "$Id:  $";
-
 #include "AS_global.H"
 
 #include "tgStore.H"

@@ -31,8 +31,6 @@
  *  full conditions and disclaimers for each license.
  */
 
-//static char *rcsid = "$Id$";
-
 #include "AS_UTL_fileIO.H"
 
 //  Report ALL attempts to seek somewhere.

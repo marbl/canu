@@ -23,8 +23,6 @@
  *  full conditions and disclaimers for each license.
  */
 
-const char *mainid = "$Id:  $";
-
 #include "AS_global.H"
 #include "gkStore.H"
 #include "AS_UTL_fileIO.H"

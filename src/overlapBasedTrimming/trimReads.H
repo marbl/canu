@@ -26,8 +26,6 @@
 #ifndef TRIM_READS_H
 #define TRIM_READS_H
 
-static const char *rcsid_TRIM_READS_H = "$Id$";
-
 #include "AS_global.H"
 
 #include "gkStore.H"

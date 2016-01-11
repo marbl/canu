@@ -30,8 +30,6 @@
 #ifndef TG_TIG_H
 #define TG_TIG_H
 
-static const char *rcsid_TG_TIG_H = "$Id:  $";
-
 #include "AS_global.H"
 
 #include "gkStore.H"

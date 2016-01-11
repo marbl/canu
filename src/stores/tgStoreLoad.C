@@ -23,8 +23,6 @@
  *  full conditions and disclaimers for each license.
  */
 
-const char *mainid = "$Id: tgStoreDump.C 6974 2015-07-01 18:27:05Z walenzb $";
-
 #include "AS_global.H"
 
 #include "gkStore.H"

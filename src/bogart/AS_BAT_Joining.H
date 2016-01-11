@@ -34,8 +34,6 @@
 #ifndef INCLUDE_AS_BAT_JOINING
 #define INCLUDE_AS_BAT_JOINING
 
-static const char *rcsid_INCLUDE_AS_BAT_JOINING = "$Id$";
-
 #include "AS_BAT_Unitig.H"
 
 void joinUnitigs(UnitigVector &unitigs, bool enableJoining);

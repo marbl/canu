@@ -27,8 +27,6 @@
  *  full conditions and disclaimers for each license.
  */
 
-static const char *rcsid = "$Id$";
-
 #include "AS_global.H"
 
 static char inv[256] = {0};

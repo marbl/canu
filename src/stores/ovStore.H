@@ -30,8 +30,6 @@
 #ifndef AS_OVERLAP_H
 #define AS_OVERLAP_H
 
-static const char *rcsid_ovStore_H = "$Id:  $";
-
 #include "AS_global.H"
 #include "gkStore.H"
 

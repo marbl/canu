@@ -34,8 +34,6 @@
 #ifndef AS_UTL_ALLOC_H
 #define AS_UTL_ALLOC_H
 
-static const char *rcsid_AS_UTL_ALLOC_H = "$Id$";
-
 
 template<typename TT, typename LL>
 void

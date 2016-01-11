@@ -35,8 +35,6 @@
  *  full conditions and disclaimers for each license.
  */
 
-const char *mainid = "$Id$";
-
 #include "AS_global.H"
 #include "AS_UTL_reverseComplement.H"
 #include "AS_PER_gkpStore.H"

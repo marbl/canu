@@ -35,8 +35,6 @@
  *  full conditions and disclaimers for each license.
  */
 
-static const char *rcsid = "$Id$";
-
 #include "AS_global.H"
 #include "canu_version.H"
 

@@ -35,8 +35,6 @@
  *  full conditions and disclaimers for each license.
  */
 
-static const char *rcsid = "$Id$";
-
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_OverlapCache.H"
 #include "AS_BAT_Unitig.H"  //  For sizeof(ufNode)

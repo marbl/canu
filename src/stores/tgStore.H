@@ -39,8 +39,6 @@
 #ifndef TGSTORE_H
 #define TGSTORE_H
 
-static const char *rcsid_TGSTORE_H = "$Id$";
-
 #include "AS_global.H"
 #include "tgTig.H"
 //

@@ -34,8 +34,6 @@
 #ifndef AS_UTL_MEMORYMAPPEDFILE_H
 #define AS_UTL_MEMORYMAPPEDFILE_H
 
-//static const char *rcsid = "$Id$";
-
 #include "AS_global.H"
 #include "AS_UTL_fileIO.H"
 

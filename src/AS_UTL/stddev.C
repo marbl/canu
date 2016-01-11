@@ -31,8 +31,6 @@
  *  full conditions and disclaimers for each license.
  */
 
-static const char *rcsid = "$Id$";
-
 #include "stddev.H"
 
 #include <algorithm>

@@ -34,8 +34,6 @@
 #ifndef INCLUDE_AS_BAT_POPULATEUNITIG
 #define INCLUDE_AS_BAT_POPULATEUNITIG
 
-static const char *rcsid_INCLUDE_AS_BAT_POPULATEUNITIG = "$Id$";
-
 void populateUnitig(Unitig             *unitig,
                     BestEdgeOverlap    *nextedge);
 

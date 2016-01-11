@@ -34,8 +34,6 @@
 #ifndef INCLUDE_AS_BAT_LOGGING
 #define INCLUDE_AS_BAT_LOGGING
 
-static const char *rcsid_INCLUDE_AS_BAT_LOGGING = "$Id$";
-
 #include "AS_global.H"
 #include "AS_UTL_fileIO.H"
 

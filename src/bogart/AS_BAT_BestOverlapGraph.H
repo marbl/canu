@@ -34,8 +34,6 @@
 #ifndef INCLUDE_AS_BAT_BESTOVERLAPGRAPH
 #define INCLUDE_AS_BAT_BESTOVERLAPGRAPH
 
-static const char *rcsid_INCLUDE_AS_BAT_BESTOVERLAPGRAPH = "$Id$";
-
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
 

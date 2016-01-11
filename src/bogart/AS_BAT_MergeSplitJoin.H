@@ -34,8 +34,6 @@
 #ifndef INCLUDE_AS_BAT_MERGESPLITJOIN
 #define INCLUDE_AS_BAT_MERGESPLITJOIN
 
-static const char *rcsid_INCLUDE_AS_BAT_MERGESPLITJOIN = "$Id$";
-
 void
 mergeSplitJoin(UnitigVector &unitigs,
                double erateGraph, double erateBubble, double erateMerge, double erateRepeat,

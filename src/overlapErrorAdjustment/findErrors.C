@@ -23,8 +23,6 @@
  *  full conditions and disclaimers for each license.
  */
 
-const char *mainid = "$Id: FragCorrectOVL.C 6709 2015-02-06 09:39:26Z bri $";
-
 #include "findErrors.H"
 
 #include "Binomial_Bound.H"

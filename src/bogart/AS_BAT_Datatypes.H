@@ -34,8 +34,6 @@
 #ifndef INCLUDE_AS_BAT_DATATYPES
 #define INCLUDE_AS_BAT_DATATYPES
 
-static const char *rcsid_INCLUDE_AS_BAT_DATATYPES = "$Id$";
-
 #include "AS_global.H"
 #include "ovStore.H"
 #include "gkStore.H"

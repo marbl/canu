@@ -26,8 +26,6 @@
 #ifndef REVERSECOMPLEMENT_H
 #define REVERSECOMPLEMENT_H
 
-static const char *rcsid_REVERSECOMPLEMENT_H = "$Id$";
-
 #include "AS_global.H"
 
 void reverseComplementSequence(char *seq, int len);

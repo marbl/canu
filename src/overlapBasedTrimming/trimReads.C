@@ -23,8 +23,6 @@
  *  full conditions and disclaimers for each license.
  */
 
-const char *mainid = "$Id$";
-
 #include "trimReads.H"
 #include "clearRangeFile.H"
 

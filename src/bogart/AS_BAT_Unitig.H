@@ -34,8 +34,6 @@
 #ifndef INCLUDE_AS_BAT_UNITIG
 #define INCLUDE_AS_BAT_UNITIG
 
-static const char *rcsid_INCLUDE_AS_BAT_UNITIG = "$Id$";
-
 #include "AS_BAT_Datatypes.H"
 
 //  Derived from IntMultiPos, but removes some of the data (48b in IntMultiPos, 32b in struct

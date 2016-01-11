@@ -48,8 +48,6 @@
  *  full conditions and disclaimers for each license.
  */
 
-static const char *rcsid = "$Id$";
-
 #include "ovStore.H"
 
 const uint64 ovStoreVersion         = 2;

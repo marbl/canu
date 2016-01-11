@@ -44,8 +44,6 @@
  *  full conditions and disclaimers for each license.
  */
 
-const char *mainid = "$Id$";
-
 #include "overlapInCore.H"
 #include "AS_UTL_decodeRange.H"
 

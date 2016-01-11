@@ -27,8 +27,6 @@
  *  full conditions and disclaimers for each license.
  */
 
-static const char *rcsid = "$Id$";
-
 #include <stdio.h>
 #include <unistd.h>
 #include <math.h>

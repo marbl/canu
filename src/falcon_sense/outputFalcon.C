@@ -23,8 +23,6 @@
  *  full conditions and disclaimers for each license.
  */
 
-static char *rcsid = "$Id:  $";
-
 #include "outputFalcon.H"
 
 #include "AS_UTL_reverseComplement.H"

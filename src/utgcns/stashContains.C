@@ -23,8 +23,6 @@
  *  full conditions and disclaimers for each license.
  */
 
-static const char *rcsid = "$Id:  $";
-
 #include "stashContains.H"
 
 //  Replace the children list in tig with one that has fewer contains.  The original

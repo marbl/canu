@@ -34,8 +34,6 @@
 #ifndef INCLUDE_AS_BAT_INTERSECTSPLIT
 #define INCLUDE_AS_BAT_INTERSECTSPLIT
 
-static const char *rcsid_INCLUDE_AS_BAT_INTERSECTSPLIT = "$Id$";
-
 
 
 

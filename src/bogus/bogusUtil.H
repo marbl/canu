@@ -35,8 +35,6 @@
 #ifndef INCLUDE_BOGUSUTIL
 #define INCLUDE_BOGUSUTIL
 
-static const char *rcsid_INCLUDE_BOGUSUTIL = "$Id$";
-
 #include "AS_global.H"
 
 #include "splitToWords.H"
