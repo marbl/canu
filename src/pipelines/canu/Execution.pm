@@ -136,7 +136,7 @@ sub schedulerRun () {
     while ((scalar(@processesRunning) < $numberOfProcesses) &&
            (scalar(@processQueue) > 0)) {
         my $process = shift @processQueue;
-        print STDERR "$process\n";
+        print STDERR "    $process\n";
         push @processesRunning, schedulerForkProcess($process);
     }
 }
@@ -152,9 +152,10 @@ sub schedulerFinish ($) {
     my $startsecs = time();
     my $diskfree  = (defined($dir)) ? (diskSpace($dir)) : (0);
 
-    print STDERR "--\n";
+    print STDERR "----------------------------------------\n";
     print STDERR "-- Starting concurrent execution on ", scalar(localtime()), " with $diskfree GB free disk space ($remain processes; $numberOfProcesses concurrently)\n"  if  (defined($dir));
     print STDERR "-- Starting concurrent execution on ", scalar(localtime()), " ($remain processes; $numberOfProcesses concurrently)\n"                                    if (!defined($dir));
+    print STDERR "\n";
 
     #  Run all submitted jobs
     #
@@ -184,8 +185,9 @@ sub schedulerFinish ($) {
     $diskfree = (defined($dir)) ? (diskSpace($dir)) : (0);
 
     my $warning = "  !!! WARNING !!!" if ($diskfree < 10);
-    print STDERR "--\n";
+    print STDERR "\n";
     print STDERR "-- Finished on ", scalar(localtime()), " (", time() - $startsecs, " seconds) with $diskfree GB free disk space$warning\n";
+    print STDERR "----------------------------------------\n";
 }
 
 
@@ -1197,10 +1199,13 @@ sub prettifyCommand ($) {
     my $dis = shift @_;
 
     if (($dis =~ tr/\n/\n/) == 0) {
-        $dis =~ s/\s-/ \\\n  -/g;
-        $dis =~ s/\s>\s/ \\\n> /;
-        $dis =~ s/\s2>\s/ \\\n2> /;
+        $dis =~ s/\s-/ \\\n  -/g;    #  Replace ' -' with '\n  -' (newline, two spaces, then the dash)
+        $dis =~ s/\s>\s/ \\\n> /;    #  Replace ' > ' with '\n> '
+        $dis =~ s/\s2>\s/ \\\n2> /;  #  Replace ' 2> ' with '\n2> '
     }
+
+    $dis = "    " . $dis;    #  Indent the command by four spaces.
+    $dis =~ s/\n/\n    /g;
 
     return($dis);
 }
@@ -1234,10 +1239,10 @@ sub runCommand ($$) {
     my $startsecs = time();
     my $diskfree  = (defined($dir)) ? (diskSpace($dir)) : (0);
 
-    print STDERR "--\n";
+    print STDERR "----------------------------------------\n";
     print STDERR "-- Starting command on ", scalar(localtime()), " with $diskfree GB free disk space\n"  if  (defined($dir));
     print STDERR "-- Starting command on ", scalar(localtime()), "\n"                                    if (!defined($dir));
-    print STDERR "--\n";
+    print STDERR "\n";
     print STDERR "$dis\n";
 
     my $rc = 0xffff & system("cd $dir && $cmd");
@@ -1245,8 +1250,9 @@ sub runCommand ($$) {
     $diskfree = (defined($dir)) ? (diskSpace($dir)) : (0);
 
     my $warning = "  !!! WARNING !!!" if ($diskfree < 10);
-    print STDERR "--\n";
+    print STDERR "\n";
     print STDERR "-- Finished on ", scalar(localtime()), " (", time() - $startsecs, " seconds) with $diskfree GB free disk space$warning\n";
+    print STDERR "----------------------------------------\n";
 
     #  Pretty much copied from Programming Perl page 230
 
