@@ -38,6 +38,7 @@
 static const char *rcsid = "$Id$";
 
 #include "AS_global.H"
+#include "canu_version.H"
 
 #include "AS_UTL_stackTrace.H"
 
@@ -50,12 +51,6 @@ static const char *rcsid = "$Id$";
 #include <parallel/settings.h>
 #endif
 
-//  EVERY main program should define mainid.  The release manager
-//  should fill in releaseid with the release name.
-
-extern
-const char *mainid;
-const char *releaseid = "CVS TIP";
 
 //  We take argc and argv, so, maybe, eventually, we'll want to parse
 //  something out of there.  We return argc in case what we parse we
@@ -109,7 +104,12 @@ AS_configure(int argc, char **argv) {
 
   for (i=0; i<argc; i++) {
     if (strcmp(argv[i], "--version") == 0) {
-      fprintf(stderr, "CA version %s (%s).\n", releaseid, mainid);
+      fprintf(stderr, "Canu v%s.%s (+%s commits) r%s %s.\n",
+              CANU_VERSION_MAJOR,
+              CANU_VERSION_MINOR,
+              CANU_VERSION_COMMITS,
+              CANU_VERSION_REVISION,
+              CANU_VERSION_HASH);
       exit(0);
     }
   }
@@ -118,7 +118,7 @@ AS_configure(int argc, char **argv) {
   //  Logging.
   //
 
-  p = getenv("AS_RUNCA_DIRECTORY");
+  p = getenv("CANU_DIRECTORY");
   if (p) {
     char  D[FILENAME_MAX] = {0};
     char  N[FILENAME_MAX] = {0};
@@ -159,7 +159,12 @@ AS_configure(int argc, char **argv) {
     errno = 0;
     F = fopen(N, "w");
     if ((errno == 0) && (F)) {
-      fprintf(F, "CA version %s (%s).\n", releaseid, mainid);
+      fprintf(stderr, "Canu v%s.%s (+%s commits) r%s %s.\n",
+              CANU_VERSION_MAJOR,
+              CANU_VERSION_MINOR,
+              CANU_VERSION_COMMITS,
+              CANU_VERSION_REVISION,
+              CANU_VERSION_HASH);
       fprintf(F, "\n");
       fprintf(F, "Current Working Directory:\n");
       fprintf(F, "%s\n", getcwd(N, FILENAME_MAX));

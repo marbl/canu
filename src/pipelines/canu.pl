@@ -87,8 +87,6 @@ my @specFiles;    #  Files of specs
 my @specOpts;     #  Command line specs
 my @inputFiles;   #  Command line inputs, later inputs in spec files are added
 
-print STDERR "-- Detected ", getNumberOfCPUs(), " CPUs and ", getPhysicalMemorySize(), " gigabytes of memory.\n";
-
 #  Initialize our defaults.  Must be done before defaults are reported in printHelp() below.
 
 setDefaults();
@@ -161,9 +159,10 @@ while (scalar(@ARGV)) {
         addCommandLineOption("-trim-assemble");
 
 
-    } elsif ($arg eq "-version") {
+    } elsif (($arg eq "-version") ||
+             ($arg eq "--version")) {
         setGlobal("version", 1);
-
+        
     } elsif (($arg eq "-options") ||
              ($arg eq "-defaults")) {
         #  Do nothing.  Handled above, but we still need to process it here.
@@ -191,7 +190,7 @@ while (scalar(@ARGV)) {
         $haveRaw = 1             if ($arg =~ m/raw/);
 
         setGlobal("help",
-		  getGlobal("help"). "ERROR: specified both raw and corrected sequences. Canu does not currently support mixing raw and corrected sequences. Please correct the raw sequences first and then assemble\n") if ($haveRaw && $haveCorrected);
+                  getGlobal("help"). "ERROR: specified both raw and corrected sequences. Canu does not currently support mixing raw and corrected sequences. Please correct the raw sequences first and then assemble\n") if ($haveRaw && $haveCorrected);
 
         setGlobal("help",
                   getGlobal("help") . "ERROR:  $arg file '$ARGV[0]' not found\n")
@@ -224,12 +223,10 @@ while (scalar(@ARGV)) {
 setGlobal("help", getGlobal("help") . "ERROR:  Assembly name prefix not supplied with -p.\n") if (!defined($asm));
 setGlobal("help", getGlobal("help") . "ERROR:  Directory not supplied with -d.\n")            if (!defined($wrk));
 
-
 $bin = getBinDirectory();
 
 #@inputFiles = setParametersFromFile("$bin/spec/runCA.default.specFile", @inputFiles)   if (-e "$bin/spec/runCA.default.specFile");
 #@inputFiles = setParametersFromFile("$ENV{'HOME'}/.runCA",              @inputFiles)   if (-e "$ENV{'HOME'}/.runCA");
-
 
 #  For each of the spec files, parse it, setting parameters and remembering any input files discovered.
 
@@ -241,6 +238,11 @@ foreach my $specFile (@specFiles) {
 
 setParametersFromCommandLine(@specOpts);
 
+#  If 'help' or 'version' are set, we can quit now, before doing anything else.  In particular,
+#  we NEED to quit now, before checkParameters() complains that genomeSize isn't set.
+
+printHelp($bin);
+
 #  Finish setting parameters.
 
 checkParameters($bin);
@@ -249,6 +251,8 @@ checkParameters($bin);
 #  submitOrRunParallelJob() will return without submitting, or run locally (respectively).  This
 #  means that we can leave the default of 'useGrid' to 'true', and execution will do the right thing
 #  when there isn't a grid.
+
+print STDERR "-- Detected ", getNumberOfCPUs(), " CPUs and ", getPhysicalMemorySize(), " gigabytes of memory.\n";
 
 detectSGE();
 detectSlurm();
@@ -306,9 +310,9 @@ make_path("$wrk/canu-scripts")  if (! -d "$wrk/canu-scripts");
 
 caExit("run directory (-d option) '$wrk' doesn't exist and couldn't be created", undef)  if (! -d $wrk);
 
-#  This environment variable tells the binaries to log their execution in runCA-logs/
+#  This environment variable tells the binaries to log their execution in canu-logs/
 
-$ENV{'AS_RUNCA_DIRECTORY'} = $wrk;
+$ENV{'CANU_DIRECTORY'} = $wrk;
 
 #  Report the parameters used.
 

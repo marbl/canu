@@ -364,7 +364,7 @@ ifeq (${OSTYPE}, SunOS)
 endif
 
 ${info Building for '${OSTYPE}' '${OSVERSION}' as '${MACHINETYPE}'}
-${info Using LD_RUN_PATH '${LD_RUN_PATH}'}
+#${info Using LD_RUN_PATH '${LD_RUN_PATH}'}
 
 
 # (BPW) Set compiler and flags based on discovered hardware
@@ -487,7 +487,8 @@ INCDIRS := $(addprefix -I,$(call CANONICAL_PATH,${INCDIRS}))
 # Define the "all" target (which simply builds all user-defined targets) as the
 # default goal.
 .PHONY: all
-all: $(addprefix ${TARGET_DIR}/,${ALL_TGTS}) \
+all: UPDATE_VERSION \
+     $(addprefix ${TARGET_DIR}/,${ALL_TGTS}) \
      ${TARGET_DIR}/falcon_sense \
      ${TARGET_DIR}/canu \
      ${TARGET_DIR}/lib/canu \
@@ -537,13 +538,16 @@ $(foreach TGT,${ALL_TGTS},\
 $(foreach TGT,${ALL_TGTS},\
   $(eval -include ${${TGT}_DEPS}))
 
+#  A fake target, to regenerate the canu_version.H file on every build.
+.PHONY: UPDATE_VERSION
+UPDATE_VERSION:
+	@./canu_version_update.pl
 
+#  A different falconsense for every platform, yay!
 ifeq      (${OSTYPE}, Linux)
   FALCONSENSE := falcon_sense.${OSTYPE}-${MACHINETYPE}.bin
-
 else ifeq (${OSTYPE}, Darwin)
   FALCONSENSE := falcon_sense.${OSTYPE}-${MACHINETYPE}.bin
-
 else
   FALCONSENSE := falcon_sense.py
 endif

@@ -323,9 +323,6 @@ sub printHelp ($) {
 
     if (getGlobal("version")) {
         system("$bin/gatekeeperCreate --version");
-        system("$bin/overlapInCore    --version");
-        system("$bin/bogart           --version");
-        system("$bin/utgcns           --version");
         exit(0);
     }
 
