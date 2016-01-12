@@ -814,36 +814,84 @@ sub dumpCorrectedReads ($$) {
     my $files = 0;
     my $reads = 0;
 
-    open(F, "< $path/corjob.files")             or caExit("can't open '$path/corjob.files' for reading: $!", undef);
-    open(O, "> $WRK/$asm.correctedReads.fastq") or caExit("can't open '$WRK/$asm.correctedReads.fastq' for writing: $!", undef);
+    open(F, "< $path/corjob.files")                           or caExit("can't open '$path/corjob.files' for reading: $!", undef);
+    open(N, "< $wrk/$asm.gkpStore/readNames.txt")             or caExit("can't open '$wrk/$asm.gkpStore/readNames.txt' for reading: $!", undef);
+    open(O, "| gzip -1c > $WRK/$asm.correctedReads.fasta.gz") or caExit("can't open '$WRK/$asm.correctedReads.fasta.gz' for writing: $!", undef);
+    #open(O, "> $WRK/$asm.correctedReads.fasta")               or caExit("can't open '$WRK/$asm.correctedReads.fasta' for writing: $!", undef);
+    open(L, "> $WRK/$asm.correctedReads.length")              or caExit("can't open '$WRK/$asm.correctedReads.length' for writing: $!", undef);
 
     while (<F>) {
         chomp;
-
         open(R, "< $_") or caExit("can't open correction output '$_' for reading: $!\n", undef);
-        while (!eof(R)) {
-            my $n = <R>;
-            my $s = "";
-            # read Sequence until we hit the next starting line
-            while (!eof(R)) {
-               my $pos = tell R;
-               my $next = <R>;
-               if ($next !~ m/^>/) {
-                  chomp $next;
-                  $s = $s . $next;
-               } else {
-                  seek R, $pos, 0;
-                  last;
-               }
-            }
-            my $q = $s;
-            $n =~ s/^>/\@/;
-            $q =~ tr/[A-Z][a-z]/*/;
 
-            print O $n;
-            print O $s . "\n";
-            print O "+\n";
-            print O $q . "\n";
+        my $h;   #  Current header line
+        my $s;   #  Current sequence
+        my $n;   #  Next header line
+
+        my $nameid;  #  Currently loaded id and name from gkpStore/readNames
+        my $name;
+
+        $n = <R>;  chomp $n;  #  Read the first line, the first header.
+
+        while (!eof(R)) {
+            $h = $n;              #  Read name.
+            $s = undef;           #  No sequence yet.
+            $n = <R>;  chomp $n;  #  Sequence, or the next header.
+
+            #  Read sequence until the next header or eof.
+
+            while (($n !~ m/^>/) && (!eof(R))) {
+                $s .= $n;
+
+                $n = <R>;  chomp $n;
+            }
+
+            #  Parse the header of the corrected read to find the IID and the split piece number
+
+            my $rid = undef;  #  Read ID
+            my $pid = undef;  #  Piece ID
+
+            if ($h =~ m/read(\d+)_(\d+)/) {
+                $rid = $1;
+                $pid = $2;
+            }
+
+            #  Load the next line from the gatekeeper ID map file until we find the
+            #  correct one.
+
+            while (!eof(N) && ($rid != $nameid)) {
+                my $rn = <N>;
+
+                ($rn =~ m/^(\d+)\s+(.*)$/);
+
+                $nameid = $1;
+                $name   = $2;
+            }
+
+            #  If a match, replace the header with the actual read id.  If no match, use the bogus
+            #  corrected read name as is.
+
+            if ($rid eq $nameid) {
+                $h = ">$name iid=${rid}_${pid}";
+            }
+
+            #  And write the read to the output as FASTA.
+
+            print O "$h", "\n";
+            print O "$s", "\n";
+
+            #  Or as FASTQ
+
+            #my $q = $s;
+            #$n =~ s/^>/\@/;
+            #$q =~ tr/[A-Z][a-z]/*/;
+
+            #print O $h, "\n";
+            #print O $s, "\n";
+            #print O "+\n";
+            #print O $q, "\n";
+
+            print L "$rid\t$pid\t", length($s), "\n";
 
             $reads++;
         }
@@ -912,5 +960,5 @@ sub dumpCorrectedReads ($$) {
 
   allDone:
     print STDERR "--\n";
-    print STDERR "-- Corrected reads saved in '$WRK/$asm.correctedReads.fastq'.\n";
+    print STDERR "-- Corrected reads saved in '$WRK/$asm.correctedReads.fasta'.\n";
 }
