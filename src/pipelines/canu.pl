@@ -422,7 +422,12 @@ if (setOptions($mode, "correct") eq "correct") {
     buildHTML($wrk, $asm, "cor");
 
     undef @inputFiles;
-    push  @inputFiles, "-pacbio-corrected:$wrk/$asm.correctedReads.fastq";
+    push  @inputFiles, "-pacbio-corrected:$wrk/$asm.correctedReads.fasta"    if (-e "$wrk/$asm.correctedReads.fasta");
+    push  @inputFiles, "-pacbio-corrected:$wrk/$asm.correctedReads.fasta.gz" if (-e "$wrk/$asm.correctedReads.fasta.gz");
+    push  @inputFiles, "-pacbio-corrected:$wrk/$asm.correctedReads.fasta.xz" if (-e "$wrk/$asm.correctedReads.fasta.xz");
+    push  @inputFiles, "-pacbio-corrected:$wrk/$asm.correctedReads.fastq"    if (-e "$wrk/$asm.correctedReads.fastq");
+    push  @inputFiles, "-pacbio-corrected:$wrk/$asm.correctedReads.fastq.gz" if (-e "$wrk/$asm.correctedReads.fastq.gz");
+    push  @inputFiles, "-pacbio-corrected:$wrk/$asm.correctedReads.fastq.xz" if (-e "$wrk/$asm.correctedReads.fastq.xz");
 }
 
 
@@ -448,7 +453,12 @@ if (setOptions($mode, "trim") eq "trim") {
     buildHTML($wrk, $asm, "obt");
 
     undef @inputFiles;
-    push  @inputFiles, "-pacbio-corrected:$wrk/$asm.trimmedReads.fastq";
+    push  @inputFiles, "-pacbio-corrected:$wrk/$asm.trimmedReads.fasta"    if (-e "$wrk/$asm.trimmedReads.fasta");
+    push  @inputFiles, "-pacbio-corrected:$wrk/$asm.trimmedReads.fasta.gz" if (-e "$wrk/$asm.trimmedReads.fasta.gz");
+    push  @inputFiles, "-pacbio-corrected:$wrk/$asm.trimmedReads.fasta.xz" if (-e "$wrk/$asm.trimmedReads.fasta.xz");
+    push  @inputFiles, "-pacbio-corrected:$wrk/$asm.trimmedReads.fastq"    if (-e "$wrk/$asm.trimmedReads.fastq");
+    push  @inputFiles, "-pacbio-corrected:$wrk/$asm.trimmedReads.fastq.gz" if (-e "$wrk/$asm.trimmedReads.fastq.gz");
+    push  @inputFiles, "-pacbio-corrected:$wrk/$asm.trimmedReads.fastq.xz" if (-e "$wrk/$asm.trimmedReads.fastq.xz");
 }
 
 
