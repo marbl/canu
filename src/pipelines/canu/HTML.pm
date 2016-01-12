@@ -220,8 +220,46 @@ sub buildCorrectionHTML ($$$$$$) {
     my $body    = shift @_;  #  Array reference
     my $scripts = shift @_;  #  Array reference
 
-    push @$body, "<h2>Correction</h2>\n";
+    push @$body, "<h2>Overlap Filtering</h2>\n";
     push @$body, "\n";
+
+    if (-e "$wrk/2-correction/$asm.globalScores.stats") {
+        my $rh;   # 'row header', for labeling a set of rows with a common cell
+
+        push @$body, "<table>\n";
+
+        open(F, "< $wrk/2-correction/$asm.globalScores.stats") or caExit("can't open '$wrk/2-correction/$asm.globalScores.stats' for reading: $!", undef);
+        while (<F>) {
+            chomp;
+
+            next  if (m/^$/);  #  Skip blank lines.
+
+            push @$body, "<tr><th colspan='3'>PARAMETERS</th></tr>\n"  if ($_ eq "PARAMETERS:");
+            push @$body, "<tr><th colspan='3'>OVERLAPS</th></tr>\n"    if ($_ eq "OVERLAPS:");
+            push @$body, "<tr><th colspan='3'>READS</th></tr>\n"       if ($_ eq "READS:");
+
+            $rh = "<td rowspan='4'></td>"             if ($_ eq "PARAMETERS:");
+            $rh = "<td rowspan='4'></td>"             if ($_ eq "OVERLAPS:");     #  Gets replaced by 'IGNORED' below.
+            $rh = "<td rowspan='6'></td>"             if ($_ eq "READS:");
+
+            $rh = "<td rowspan='4'>Ignored</td>"      if ($_ eq "IGNORED:");
+            $rh = "<td rowspan='1'>Filtered</td>"     if ($_ eq "FILTERED:");
+            $rh = "<td rowspan='1'>Evidence</td>"     if ($_ eq "EVIDENCE:");
+            $rh = "<td rowspan='1'>Total</td>"        if ($_ eq "TOTAL:");
+
+            if (m/^\s*(\d+\.*\d*)\s+\((.*)\)$/) {
+                push @$body, "<tr>$rh<td>$1</td><td>$2</td></tr>\n";
+                $rh = undef;
+            }
+        }
+        close(F);
+
+        push @$body, "</table>\n";
+
+    } else {
+        push @$body, "<p>Stage not computed or results file removed ($wrk/2-correction/$asm.globalScores.stats).</p>\n";
+    }
+
     #buildGatekeeperHTML($wrk, $asm, $tag, $css, $body, $scripts);
     #  Analyzes the output fastq
 }

@@ -684,12 +684,13 @@ sub buildCorrectionLayouts ($$) {
         $cmd .= "  -S $path/$asm.globalScores \\\n";
         $cmd .= "  -c $maxCov \\\n";
         $cmd .= "  -l $minLen \\\n";
-        $cmd .= "  -logfile $path/$asm.globalScores.log \\\n";
         $cmd .= "> $path/$asm.globalScores.err 2>&1";
 
         if (runCommand($path, $cmd)) {
             caExit("failed to globally filter overlaps for correction", "$path/$asm.globalScores.err");
         }
+
+        unlink "$path/$asm.globalScores.err";
     }
 
     #  For 'quick' filtering, but more reads to correct, sort the reads by length, and correct the
