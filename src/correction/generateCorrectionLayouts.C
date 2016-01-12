@@ -198,8 +198,6 @@ main(int argc, char **argv) {
   FILE             *sumFile = 0L;
   FILE             *flgFile = 0L;
 
-  argc = AS_configure(argc, argv);
-
   uint32            minEvidenceOverlap  = 40;
   uint32            minEvidenceCoverage = 1;
 
@@ -216,6 +214,7 @@ main(int argc, char **argv) {
 
   bool              filterCorLength     = false;
 
+  argc = AS_configure(argc, argv);
 
   int arg=1;
   int err=0;
