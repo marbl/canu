@@ -58,6 +58,7 @@ main(int argc, char **argv) {
   bool            noDovetail       = false;
 
   uint32          maxHang          = UINT32_MAX;
+  argc = AS_configure(argc, argv);
 
   int32     arg = 1;
   int32     err = 0;
