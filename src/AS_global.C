@@ -157,7 +157,7 @@ AS_configure(int argc, char **argv) {
     errno = 0;
     F = fopen(N, "w");
     if ((errno == 0) && (F)) {
-      fprintf(stderr, "Canu v%s.%s (+%s commits) r%s %s.\n",
+      fprintf(F, "Canu v%s.%s (+%s commits) r%s %s.\n",
               CANU_VERSION_MAJOR,
               CANU_VERSION_MINOR,
               CANU_VERSION_COMMITS,
