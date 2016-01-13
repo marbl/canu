@@ -36,7 +36,7 @@ package canu::Gatekeeper;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(getNumberOfReadsInStore getNumberOfBasesInStore getExpectedCoverage gatekeeper);
+@EXPORT = qw(getNumberOfReadsInStore getNumberOfBasesInStore getExpectedCoverage sequenceFileExists gatekeeper);
 
 use strict;
 
@@ -115,6 +115,23 @@ sub getExpectedCoverage ($$) {
 
 
 
+#  Returns undef if a sequence file with the supplied name cannot be found.  Common suffices and compressions are tried.
+#  Otherwise, returns the found sequence file.
+
+sub sequenceFileExists ($) {
+    my $p = shift @_;
+
+    foreach my $s ("", ".fasta", ".fastq", ".fa", ".fq") {
+        foreach my $c ("", ".gz", ".xz") {
+            return("$p$s$c")  if (-e "$p$s$c");
+        }
+    }
+
+    return(undef);
+}
+
+
+
 sub gatekeeper ($$$@) {
     my $WRK    = shift @_;  #  Root work directory (the -d option to canu)
     my $wrk    = $WRK;      #  Local work directory
@@ -159,9 +176,9 @@ sub gatekeeper ($$$@) {
 
         if (! -e $file) {
             if (defined($failedFiles)) {
-                $failedFiles .= "; '$file' not found";
+                $failedFiles .= "; '$file' not found in gatekeeper()";
             } else {
-                $failedFiles = "'$file' not found";
+                $failedFiles = "'$file' not found in gatekeeper()";
             }
         }
     }

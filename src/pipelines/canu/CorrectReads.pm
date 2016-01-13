@@ -665,9 +665,9 @@ sub buildCorrectionLayouts ($$) {
     #  tigs that shouldn't be corrected.  I suspect this will be slower.
 
     goto allDone   if (skipStage($WRK, $asm, "cor-buildCorrectionLayouts") == 1);
-    goto allDone   if (-e "$WRK/$asm.correctedReads.fastq");  #  Output exists
-    goto allDone   if (-e "$path/cnsjob.files");              #  Jobs all finished
-    goto allDone   if (-e "$path/correctReads.sh");           #  Jobs created
+    goto allDone   if (sequenceFileExists("$WRK/$asm.correctedReads"));    #  Output exists
+    goto allDone   if (-e "$path/cnsjob.files");                           #  Jobs all finished
+    goto allDone   if (-e "$path/correctReads.sh");                        #  Jobs created
 
     make_path("$path")  if (! -d "$path");
 
@@ -737,7 +737,7 @@ sub generateCorrectedReads ($$) {
     my $path    = "$wrk/2-correction";
 
     goto allDone   if (skipStage($WRK, $asm, "cor-generateCorrectedReads", $attempt) == 1);
-    goto allDone   if (-e "$WRK/$asm.correctedReads.fastq");
+    goto allDone   if (sequenceFileExists("$WRK/$asm.correctedReads"));
 
     my ($jobs, undef) = computeNumberOfCorrectionJobs($wrk, $asm);
 
@@ -807,7 +807,7 @@ sub dumpCorrectedReads ($$) {
     my $path = "$wrk/2-correction";
 
     goto allDone   if (skipStage($WRK, $asm, "cor-dumpCorrectedReads") == 1);
-    goto allDone   if (-e "$WRK/$asm.correctedReads.fastq");
+    goto allDone   if (sequenceFileExists("$WRK/$asm.correctedReads"));
 
     print STDERR "-- Concatenating correctReads output.\n";
 
@@ -960,5 +960,5 @@ sub dumpCorrectedReads ($$) {
 
   allDone:
     print STDERR "--\n";
-    print STDERR "-- Corrected reads saved in '$WRK/$asm.correctedReads.fasta'.\n";
+    print STDERR "-- Corrected reads saved in '", sequenceFileExists("$WRK/$asm.correctedReads"), "'.\n";
 }

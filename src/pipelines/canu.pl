@@ -421,13 +421,12 @@ if (setOptions($mode, "correct") eq "correct") {
 
     buildHTML($wrk, $asm, "cor");
 
+    my $correctedReads = sequenceFileExists("$wrk/$asm.correctedReads");
+
+    caExit("can't find corrected reads in '$wrk/$asm.correctedReads*'", undef)  if (!defined($correctedReads));
+
     undef @inputFiles;
-    push  @inputFiles, "-pacbio-corrected:$wrk/$asm.correctedReads.fasta"    if (-e "$wrk/$asm.correctedReads.fasta");
-    push  @inputFiles, "-pacbio-corrected:$wrk/$asm.correctedReads.fasta.gz" if (-e "$wrk/$asm.correctedReads.fasta.gz");
-    push  @inputFiles, "-pacbio-corrected:$wrk/$asm.correctedReads.fasta.xz" if (-e "$wrk/$asm.correctedReads.fasta.xz");
-    push  @inputFiles, "-pacbio-corrected:$wrk/$asm.correctedReads.fastq"    if (-e "$wrk/$asm.correctedReads.fastq");
-    push  @inputFiles, "-pacbio-corrected:$wrk/$asm.correctedReads.fastq.gz" if (-e "$wrk/$asm.correctedReads.fastq.gz");
-    push  @inputFiles, "-pacbio-corrected:$wrk/$asm.correctedReads.fastq.xz" if (-e "$wrk/$asm.correctedReads.fastq.xz");
+    push  @inputFiles, "-pacbio-corrected:$correctedReads";
 }
 
 
@@ -452,13 +451,12 @@ if (setOptions($mode, "trim") eq "trim") {
 
     buildHTML($wrk, $asm, "obt");
 
+    my $trimmedReads = sequenceFileExists("$wrk/$asm.trimmedReads");
+
+    caExit("can't find trimmed reads in '$wrk/$asm.trimmedReads*'", undef)  if (!defined($trimmedReads));
+
     undef @inputFiles;
-    push  @inputFiles, "-pacbio-corrected:$wrk/$asm.trimmedReads.fasta"    if (-e "$wrk/$asm.trimmedReads.fasta");
-    push  @inputFiles, "-pacbio-corrected:$wrk/$asm.trimmedReads.fasta.gz" if (-e "$wrk/$asm.trimmedReads.fasta.gz");
-    push  @inputFiles, "-pacbio-corrected:$wrk/$asm.trimmedReads.fasta.xz" if (-e "$wrk/$asm.trimmedReads.fasta.xz");
-    push  @inputFiles, "-pacbio-corrected:$wrk/$asm.trimmedReads.fastq"    if (-e "$wrk/$asm.trimmedReads.fastq");
-    push  @inputFiles, "-pacbio-corrected:$wrk/$asm.trimmedReads.fastq.gz" if (-e "$wrk/$asm.trimmedReads.fastq.gz");
-    push  @inputFiles, "-pacbio-corrected:$wrk/$asm.trimmedReads.fastq.xz" if (-e "$wrk/$asm.trimmedReads.fastq.xz");
+    push  @inputFiles, "-pacbio-corrected:$trimmedReads";
 }
 
 
