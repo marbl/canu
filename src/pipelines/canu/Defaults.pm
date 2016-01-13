@@ -670,6 +670,9 @@ sub setDefaults () {
     $global{"saveOverlaps"}                = 0;
     $synops{"saveOverlaps"}                = "Save intermediate overlap files, almost never a good idea";
 
+    $global{"saveReadCorrections"}         = 0;
+    $synops{"saveReadCorrections"}         = "Save intermediate read correction files, almost never a good idea";
+
     $global{"saveMerCounts"}               = 0;
     $synops{"saveMerCounts"}               = "Save full mer counting results, sometimes useful";
 
