@@ -36,6 +36,29 @@ use canu::Defaults;
 use canu::Execution;
 
 
+
+sub simpleFigure ($$$) {
+    my $body  = shift @_;
+    my $image = shift @_;
+    my $text  = shift @_;
+
+    if (-e "$image.sm.png") {
+        push @$body, "<figure>\n";
+        push @$body, "<a href='$image.lg.png'><img src='$image.sm.png'></a>\n";
+        push @$body, "<figcaption>\n";
+        push @$body, "$text\n";
+        push @$body, "</figcaption>\n";
+        push @$body, "</figure>\n";
+    }
+
+    else {
+        push @$body, "<p>Image '$image.sm.png' not found.</p>\n";
+    }
+}
+
+
+
+
 sub buildGatekeeperHTML ($$$$$$) {
     my $wrk     = shift @_;
     my $asm     = shift @_;
@@ -220,6 +243,12 @@ sub buildCorrectionHTML ($$$$$$) {
     my $body    = shift @_;  #  Array reference
     my $scripts = shift @_;  #  Array reference
 
+
+    #  Need to include the minimum original read length that is correctable
+
+
+    #  Summarizes filterCorrectionOverlaps outputs.
+
     push @$body, "<h2>Overlap Filtering</h2>\n";
     push @$body, "\n";
 
@@ -260,24 +289,113 @@ sub buildCorrectionHTML ($$$$$$) {
         push @$body, "<p>Stage not computed or results file removed ($wrk/2-correction/$asm.globalScores.stats).</p>\n";
     }
 
-    #buildGatekeeperHTML($wrk, $asm, $tag, $css, $body, $scripts);
-    #  Analyzes the output fastq
-}
 
-
-sub buildCorrectedReadsHTML ($$$$$$) {
-    my $wrk     = shift @_;
-    my $asm     = shift @_;
-    my $tag     = shift @_;
-    my $css     = shift @_;  #  Array reference
-    my $body    = shift @_;  #  Array reference
-    my $scripts = shift @_;  #  Array reference
-
-    push @$body, "<h2>Corrected Reads</h2>\n";
+    push @$body, "<h2>Read Correction</h2>\n";
     push @$body, "\n";
-    #buildGatekeeperHTML($wrk, $asm, $tag, $css, $body, $scripts);
-    #  Analyzes the output fastq
+
+
+    #  Summarizes expensiveFilter() outputs - we want to get the 'corrected read length filter' numbers.
+    #  which should be the first set in the file.
+
+    my $nReads    = undef;
+    my $nBasesIn  = undef;
+    my $nBasesOut = undef;
+
+    if (-e "$wrk/2-correction/$asm.readsToCorrect.summary") {
+        open(F, "< $wrk/2-correction/$asm.readsToCorrect.summary") or caExit("can't open '$wrk/2-correction/$asm.readsToCorrect.summary' for reading: $!", undef);
+        while (<F>) {
+            $nReads    = $1  if ((m/nReads\s+(\d+)/)         && (!defined($nReads)));
+            $nBasesIn  = $1  if ((m/nBasds\s+(\d+).*input/)  && (!defined($nBasesIn)));
+            $nBasesOut = $1  if ((m/nReads\s+(\d+).*output/) && (!defined($nBasesOut)));
+
+            last             if (m/^Raw\sreads/);
+        }
+        close(F);
+
+        push @$body, "<p>Filter method: corFilter=expensive.  Expect to correct $nReads reads with ${nBasesIn}bp to ${nBasesOut}bp.</p>\n";
+    } else {
+        push @$body, "<p>Filter method: corFilter=quick.</p>\n";
+    }
+
+
+    #  $wrk/2-correction/$asm.readsToCorrect has 'readID', 'originalLength' and 'expectedCorrectedLength'.
+    #  $WRK/$asm.correctedReads.length has 'readID', 'pieceID', 'length'.
+    #
+    #  Both files should be sorted by increasing ID, so a simple merge sufficies.
+
+    if (-e "$wrk/2-correction/$asm.correction.summary") {
+        my $rh;
+
+        push @$body, "<table>\n";
+
+        open(F, "< $wrk/2-correction/$asm.correction.summary") or caExit("can't open '$wrk/2-correction/$asm.correction.summary' for reading: $!", undef);
+        while (<F>) {
+            chomp;
+
+            next  if (m/^$/);  #  Skip blank lines.
+
+            push @$body, "<tr><th colspan='3'>INPUTS</th></tr>\n"            if ($_ eq "CORRECTION INPUTS:");
+            push @$body, "<tr><th colspan='3'>OUTPUTS</th></tr>\n"           if ($_ eq "CORRECTION OUTPUTS:");
+            push @$body, "<tr><th colspan='3'>PIECES PER READ</th></tr>\n"   if ($_ eq "PIECES PER READ:");
+
+            #  Normal table lines.
+            if (m/^\s*(\d+\.*\d*)\s+\((.*)\)$/) {
+                push @$body, "<tr>$rh<td>$1</td><td>$2</td></tr>\n";
+                $rh = undef;
+            }
+
+            #  Pieces per read histogram.
+            if (m/^\s*(\d+)\s+pieces:\s+(\d+)$/) {
+                push @$body, "<tr>$rh<td>$1</td><td>$2</td></tr>\n";
+                $rh = undef;
+            }
+        }
+        close(F);
+
+        push @$body, "</table>\n";
+    }
+
+    #  Really should be a 'caption' on the 'pieces per read' table.
+    push @$body, "<p>A single input read can be split into multiple output reads, or possibly not even output at all.</p>\n";
+
+    #  Simple vs Expensive filter true/false positive
+
+    simpleFigure($body,
+                 "$wrk/2-correction/$asm.estimate.original-x-corrected",
+                 "Scatter plot of the original read length (X axis) against the expected corrected read length (Y axis).\n" .
+                 "Colors show a comparison of the simple filter (which doesn't use overlaps) to the expensive filter (which does).\n" .
+                 "A large green triangle (false negatives) hints that there could be abnormally low quality regions in the reads.\n");
+
+    #  Scatter plots of read lengths - they don't show much.
+
+    #  Original vs expected shown above.
+    simpleFigure($body,
+                 "$wrk/2-correction/test.originalLength-vs-expectedLength",
+                 "Scatter plot of original vs expected read length.  Shown in filter plot above.");
+
+    simpleFigure($body,
+                 "$wrk/2-correction/test.originalLength-vs-correctedLength",
+                 "Scatter plot of original vs corrected read length.");
+
+    simpleFigure($body,
+                 "$wrk/2-correction/test.expectedLength-vs-correctedLength",
+                 "Scatter plot of expected vs corrected read length.");
+
+    #  Histogram - expected vs corrected lengths NEEDS TO SHOW NEGATIVES!?
+
+    simpleFigure($body,
+                 "$wrk/2-correction/test.length-difference-histograms",
+                 "Histogram of the difference between the expected and corrected read lengths.\n" .
+                 "Note that a negative difference means the corrected read is larger than expected.\n");
+
+    #  Histogram - original, expected, corrected lengths
+
+    simpleFigure($body,
+                 "$wrk/2-correction/test.length-histograms",
+                 "Histogram of original (red), expected (green) and actual corrected (blue) read lengths.\n");
 }
+
+
 
 
 sub buildTrimmingHTML ($$$$$$) {
@@ -295,19 +413,6 @@ sub buildTrimmingHTML ($$$$$$) {
 }
 
 
-sub buildTrimmedReadsHTML ($$$$$$) {
-    my $wrk     = shift @_;
-    my $asm     = shift @_;
-    my $tag     = shift @_;
-    my $css     = shift @_;  #  Array reference
-    my $body    = shift @_;  #  Array reference
-    my $scripts = shift @_;  #  Array reference
-
-    push @$body, "<h2>Trimmed Reads</h2>\n";
-    push @$body, "\n";
-    #buildGatekeeperHTML($wrk, $asm, $tag, $css, $body, $scripts);
-    #  Analyzes the output fastq
-}
 
 
 sub buildOverlapperHTML ($$$$$$) {
@@ -450,7 +555,6 @@ sub buildHTML ($$$) {
         buildMerylHTML($wrk, $asm, $tag, \@css, \@body, \@scripts);
         buildOverlapperHTML($wrk, $asm, $tag, \@css, \@body, \@scripts);
         buildCorrectionHTML($wrk, $asm, $tag, \@css, \@body, \@scripts);
-        buildCorrectedReadsHTML($wrk, $asm, $tag, \@css, \@body, \@scripts);
     }
 
     #  For trimming runs
@@ -460,7 +564,6 @@ sub buildHTML ($$$) {
         buildMerylHTML($wrk, $asm, $tag, \@css, \@body, \@scripts);
         buildOverlapperHTML($wrk, $asm, $tag, \@css, \@body, \@scripts);
         buildTrimmingHTML($wrk, $asm, $tag, \@css, \@body, \@scripts);
-        buildTrimmedReadsHTML($wrk, $asm, $tag, \@css, \@body, \@scripts);
     }
 
     #  For assembly runs

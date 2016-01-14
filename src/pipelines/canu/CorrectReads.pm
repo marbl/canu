@@ -492,8 +492,8 @@ sub expensiveFilter ($$) {
         }
     }
 
-    open(O, "> $path/$asm.readsToCorrect.WORKING") or caExit("can't open '$path/$asm.readsToCorrect.WORKING' for writing: $!\n", undef);
     open(F, "< $path/$asm.estimate.correctedLength.log");
+    open(O, "| sort -k1n > $path/$asm.readsToCorrect.WORKING") or caExit("can't open sort -k1n > '$path/$asm.readsToCorrect.WORKING' for writing: $!\n", undef);
 
     print O "read\toriginalLength\tcorrectedLength\n";
 
@@ -515,8 +515,8 @@ sub expensiveFilter ($$) {
             last;
         }
     }
-    close(F);
     close(O);
+    close(F);
 
     rename "$path/$asm.readsToCorrect.WORKING", "$path/$asm.readsToCorrect";
 
@@ -595,48 +595,29 @@ sub expensiveFilter ($$) {
     printf F "TP %9d reads %13d raw bases (%6d ave) %13d corrected bases (%6d ave)\n", $tpReads, $tpBasesR, $tpBasesRave, $tpBasesC, $tpBasesCave;
     close(F);
 
+    #  Plot a scatter plot of the original vs the expected corrected read lengths.  Early versions
+    #  also plotted the sorted length vs the other length, but those were not interesting.
+
     if (! -e "$path/$asm.estimate.original-x-correctedLength.png") {
         open(F, "> $path/$asm.estimate.original-x-correctedLength.gp");
         print F "set title 'original length (x) vs corrected length (y)'\n";
         print F "set xlabel 'original read length'\n";
         print F "set ylabel 'corrected read length (expected)'\n";
         print F "set pointsize 0.25\n";
+        print F "\n";
         print F "set terminal png size 1024,1024\n";
-        print F "set output '$path/$asm.estimate.original-x-corrected.png'\n";
+        print F "set output '$path/$asm.estimate.original-x-corrected.lg.png'\n";
         print F "plot '$path/$asm.estimate.tn.log' using 2:4 title 'tn', \\\n";
         print F "     '$path/$asm.estimate.fn.log' using 2:4 title 'fn', \\\n";
         print F "     '$path/$asm.estimate.fp.log' using 2:4 title 'fp', \\\n";
         print F "     '$path/$asm.estimate.tp.log' using 2:4 title 'tp'\n";
+        print F "set terminal png size 256,256\n";
+        print F "set output '$path/$asm.estimate.original-x-corrected.sm.png'\n";
+        print F "replot\n";
         close(F);
 
         runCommandSilently($path, "gnuplot < $path/$asm.estimate.original-x-correctedLength.gp > /dev/null 2>&1");
     }
-
-    #  These not so interesting
-
-    #if (! -e "$path/$asm.estimate.correctedLength.png") {
-    #    open(F, "> $path/$asm.estimate.correctedLength.gp");
-    #    print F "set title 'sorted corrected length vs original length'\n";
-    #    print F "set pointsize 0.25\n";
-    #    print F "set terminal png size 1024,1024\n";
-    #    print F "set output '$path/$asm.estimate.correctedLength.png'\n";
-    #    print F "plot '$path/$asm.estimate.correctedLength.log' using 2 title 'original length', '$path/$asm.estimate.correctedLength.log' using 4 with lines title 'corrected length'\n";
-    #    close(F);
-    #
-    #    runCommandSilently($path, "gnuplot < $path/$asm.estimate.correctedLength.gp > /dev/null 2>&1");
-    #}
-
-    #if (! -e "$path/$asm.estimate.originalLength.png") {
-    #    open(F, "> $path/$asm.estimate.originalLength.gp");
-    #    print F "set title 'sorted original length vs corrected length'\n";
-    #    print F "set pointsize 0.25\n";
-    #    print F "set terminal png size 1024,1024\n";
-    #    print F "set output '$path/$asm.estimate.originalLength.png'\n";
-    #    print F "plot '$path/$asm.estimate.originalLength.log' using 4 title 'corrected length', '$path/$asm.estimate.originalLength.log' using 2 with lines title 'original length'\n";
-    #    close(F);
-    #
-    #    runCommandSilently($path, "gnuplot < $path/$asm.estimate.originalLength.gp > /dev/null 2>&1");
-    #}
 }
 
 
@@ -902,6 +883,224 @@ sub dumpCorrectedReads ($$) {
 
     close(O);
     close(F);
+
+    #  Analyze the results.
+
+    print STDERR "-- Analyzing correctReads output.\n";
+
+    my @origLengthHist;
+    my @expcLengthHist;
+    my @corrLengthHist;
+
+    my @origExpcDiffLengthHist;
+    my @origCorrDiffLengthHist;
+    my @expcCorrDiffLengthHist;
+
+    my @corrPiecesHist;
+
+    my $inputReads     = 0;
+    my $inputBases     = 0;
+
+    my $failedReads    = 0;
+
+    my $correctedReads = 0;
+    my $correctedBases = 0;
+
+    my $maxReadLen     = 0;
+
+    my $minDiff = 0;
+    my $maxDiff = 0;
+
+    open(R, "< $wrk/2-correction/$asm.readsToCorrect") or caExit("can't open '$wrk/2-correction/$asm.readsToCorrect' for reading: $!", undef);
+    open(L, "< $WRK/$asm.correctedReads.length")       or caExit("can't open '$WRK./$asm.correctedReads.length' for reading: $!", undef);
+
+    open(S, "> $wrk/2-correction/$asm.original-expected-corrected-length.dat") or caExit("", undef);
+
+    my $moreData = 1;
+
+    my $r = <R>;  chomp $r;    #  Read first 'read to correct' (input read)
+    my @r = split '\s+', $r;
+
+    if ($r[0] == 0) {
+        $r = <R>;  chomp $r;    #  First line was header, read again.
+        @r = split '\s+', $r;
+    }
+
+    my $l = <L>;  chomp $l;    #  Read first 'corrected read' (output read)
+    my @l = split '\s+', $l;
+
+    if ($l[0] == 0) {
+        $l = <L>;  chomp $l;    #  First line was header, read again.
+        @l = split '\s+', $l;
+    }
+
+    while ($moreData) {
+
+        #  The 'read to correct' should be a superset of the 'corrected reads'.
+        #  There will be only one 'read to correct', but possibly multiple (or even zero)
+        #  'corrected reads'.  Read until the IDs differ.  For this, we only want to
+        #  count the number of pieces and the total length.
+
+        my $numPieces = 0;
+        my $numBases  = 0;
+
+        while ($l[0] == $r[0]) {
+            $numPieces++;
+            $numBases += $l[2];
+
+            last   if (eof(L));  #  Ugly, break out if we just processed the last 'corrected read'.
+
+            $l = <L>;  chomp $l;    #  Read next 'corrected read'
+            @l = split '\s+', $l;
+        }
+
+        #  Add to the length scatter plot (original length, expected length, actual length).
+
+        print S "$r[0]\t$r[1]\t$r[2]\t$numBases\t", $r[1] - $r[2], "\t", $r[1] - $numBases, "\t", $r[2] - $numBases, "\n";
+
+        $minDiff = $r[2] - $numBases  if ($r[2] - $numBases < $minDiff);
+        $maxDiff = $r[2] - $numBases  if ($r[2] - $numBases > $minDiff);
+
+        #  Add to the histograms.
+
+        $origLengthHist[$r[1]]++;
+        $expcLengthHist[$r[2]]++;
+
+        $corrLengthHist[$numBases]++;
+
+        $origExpcDiffLengthHist[$r[1] - $r[2]]++;
+        $origCorrDiffLengthHist[$r[1] - $numBases]++;
+        $expcCorrDiffLengthHist[$r[2] - $numBases]++;
+
+        $corrPiecesHist[$numPieces]++;
+
+        $inputReads++;
+        $inputBases += $r[1];
+
+        $failedReads++  if ($numBases == 0);
+
+        $correctedReads += $numPieces;
+        $correctedBases += $numBases;
+
+        $maxReadLen = $r[1]      if ($maxReadLen < $r[1]);
+        $maxReadLen = $r[2]      if ($maxReadLen < $r[2]);
+        $maxReadLen = $numBases  if ($maxReadLen < $numBases);
+
+        #  Read next 'read to correct'.  If this reads the last line, eof(R) is true, so can't
+        #  loop on that.  Instead, we set a flag after we process that last line.
+
+        if (!eof(R)) {
+            $r = <R>;  chomp $r;
+            @r = split '\s+', $r;
+        } else {
+            $moreData = 0;
+        }
+    }
+
+    close(S);
+    close(R);
+    close(L);
+
+    #  Write a summary of the corrections.
+
+    open(F, "> $wrk/2-correction/$asm.correction.summary") or caExit("", undef);
+    print F "CORRECTION INPUTS:\n";
+    print F "-----------------\n";
+    print F "$inputReads (input reads)\n";
+    print F "$inputBases (input bases)\n";
+    print F "\n";
+    print F "CORRECTION OUTPUTS:\n";
+    print F "-----------------\n";
+    print F "$failedReads (reads that failed to generate any corrected bases)\n";
+    print F "$correctedReads (corrected read pieces)\n";
+    print F "$correctedBases (corrected bases)\n";
+    print F "\n";
+    print F "PIECES PER READ:\n";
+    print F "---------------\n";
+
+    for (my $ii=0; $ii<scalar(@corrPiecesHist); $ii++) {
+        $corrPiecesHist[$ii] += 0;
+        print F "$ii pieces: $corrPiecesHist[$ii]\n";
+    }
+    close(F);
+
+    #  Scatterplot of lengths.
+
+    open(F, "> $wrk/2-correction/$asm.originalLength-vs-correctedLength.gp") or caExit("", undef);
+    print F "\n";
+    print F "set pointsize 0.25\n";
+    print F "\n";
+    print F "set title 'original read length vs expected corrected read length'\n";
+    print F "set xlabel 'original read length'\n";
+    print F "set ylabel 'expected corrected read length'\n";
+    print F "\n";
+    print F "set terminal png size 1024,1024\n";
+    print F "set output '$wrk/2-correction/$asm.originalLength-vs-expectedLength.lg.png'\n";
+    print F "plot [0:$maxReadLen] [0:$maxReadLen] '$wrk/2-correction/$asm.original-expected-corrected-length.dat' using 2:3 title 'original (x) vs expected (y)'\n";
+    print F "set terminal png size 256,256\n";
+    print F "set output '$wrk/2-correction/$asm.originalLength-vs-expectedLength.sm.png'\n";
+    print F "replot\n";
+    print F "\n";
+    print F "set title 'original read length vs sum of corrected read lengths'\n";
+    print F "set xlabel 'original read length'\n";
+    print F "set ylabel 'sum of corrected read lengths'\n";
+    print F "\n";
+    print F "set terminal png size 1024,1024\n";
+    print F "set output '$wrk/2-correction/$asm.originalLength-vs-correctedLength.lg.png'\n";
+    print F "plot [0:$maxReadLen] [0:$maxReadLen] '$wrk/2-correction/$asm.original-expected-corrected-length.dat' using 2:4 title 'original (x) vs corrected (y)'\n";
+    print F "set terminal png size 256,256\n";
+    print F "set output '$wrk/2-correction/$asm.originalLength-vs-correctedLength.sm.png'\n";
+    print F "replot\n";
+    print F "\n";
+    print F "set title 'expected read length vs sum of corrected read lengths'\n";
+    print F "set xlabel 'expected read length'\n";
+    print F "set ylabel 'sum of corrected read lengths'\n";
+    print F "\n";
+    print F "set terminal png size 1024,1024\n";
+    print F "set output '$wrk/2-correction/$asm.expectedLength-vs-correctedLength.lg.png'\n";
+    print F "plot [0:$maxReadLen] [0:$maxReadLen] '$wrk/2-correction/$asm.original-expected-corrected-length.dat' using 3:4 title 'expected (x) vs corrected (y)'\n";
+    print F "set terminal png size 256,256\n";
+    print F "set output '$wrk/2-correction/$asm.expectedLength-vs-correctedLength.sm.png'\n";
+    print F "replot\n";
+    close(F);
+
+    runCommandSilently("$wrk/2-correction", "gnuplot $wrk/2-correction/$asm.originalLength-vs-correctedLength.gp > /dev/null 2>&1");
+
+    #  Histograms of lengths, including the difference between expected and actual corrected (the
+    #  other two difference plots weren't interesting; original-expected was basically all zero, and
+    #  so original-actual was nearly the same as expected-actual.
+
+    open(F, "> $wrk/2-correction/$asm.length-histograms.gp") or caExit("", undef);
+    print F "set title 'read length'\n";
+    print F "set ylabel 'number of reads'\n";
+    print F "set xlabel 'read length, bin width = 250'\n";
+    print F "\n";
+    print F "binwidth=250\n";
+    print F "set boxwidth binwidth\n";
+    print F "bin(x,width) = width*floor(x/width) + binwidth/2.0\n";
+    print F "\n";
+    print F "set terminal png size 1024,1024\n";
+    print F "set output '$wrk/2-correction/$asm.length-histograms.lg.png'\n";
+    print F "plot [1:$maxReadLen] [0:] \\\n";
+    print F "  '$wrk/2-correction/$asm.original-expected-corrected-length.dat' using (bin(\$2,binwidth)):(1.0) smooth freq with boxes title 'original', \\\n";
+    print F "  '$wrk/2-correction/$asm.original-expected-corrected-length.dat' using (bin(\$3,binwidth)):(1.0) smooth freq with boxes title 'expected', \\\n";
+    print F "  '$wrk/2-correction/$asm.original-expected-corrected-length.dat' using (bin(\$4,binwidth)):(1.0) smooth freq with boxes title 'corrected'\n";
+    print F "set terminal png size 256,256\n";
+    print F "set output '$wrk/2-correction/$asm.length-histograms.sm.png'\n";
+    print F "replot\n";
+    print F "\n";
+    print F "set xlabel 'difference between expected and corrected read length, bin width = 250, min=$minDiff, max=$maxDiff'\n";
+    print F "\n";
+    print F "set terminal png size 1024,1024\n";
+    print F "set output '$wrk/2-correction/$asm.length-difference-histograms.lg.png'\n";
+    print F "plot [$minDiff:$maxDiff] [0:] \\\n";
+    print F "  '$wrk/2-correction/$asm.original-expected-corrected-length.dat' using (bin(\$7,binwidth)):(1.0) smooth freq with boxes title 'expected - corrected'\n";
+    print F "set terminal png size 256,256\n";
+    print F "set output '$wrk/2-correction/$asm.length-difference-histograms.sm.png'\n";
+    print F "replot\n";
+    close(F);
+
+    runCommandSilently("$wrk/2-correction", "gnuplot $wrk/2-correction/$asm.length-histograms.gp > /dev/null 2>&1");
 
     #  Now that all outputs are (re)written, cleanup the job outputs.
 
