@@ -277,7 +277,7 @@ configureSGE();
 configureSlurm();
 configurePBSTorque();
 configureLSF();
-configureLocal();
+configureRemote();
 
 #  Based on genomeSize, configure the execution of every component.  This needs to be done AFTER the grid is setup!
 

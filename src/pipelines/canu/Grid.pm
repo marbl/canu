@@ -28,7 +28,7 @@ package canu::Grid;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(formatAllowedResources configureLocal);
+@EXPORT = qw(formatAllowedResources configureRemote);
 
 use strict;
 
@@ -64,7 +64,12 @@ sub formatAllowedResources (\%$) {
 }
 
 
-sub configureLocal () {
+sub configureRemote () {
+
+    if ((getGlobal("useGrid") eq "remote") &&
+        (getGlobal("gridEngine") eq "")) {
+        caExit("invalid 'useGrid=remote' specified; no gridEngine available", undef);
+    }
 
     return   if (uc(getGlobal("gridEngine")) ne "");
 

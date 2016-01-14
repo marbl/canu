@@ -1107,9 +1107,11 @@ sub checkParameters ($) {
         caExit("invalid 'corFilter' specified (" . getGlobal("corFilter") . "); must be 'quick' or 'expensive'", undef);
     }
 
-    if ((getGlobal("useGrid") eq "local") &&
-        (getGlobal("gridEngine") eq "")) {
-        caExit("invalid 'useGrid=local' specified; no gridEngine available", undef);
+
+    if ((getGlobal("useGrid") ne "0") &&
+        (getGlobal("useGrid") ne "1") &&
+        (getGlobal("useGrid") ne "remote")) {
+        caExit("invalid 'useGrid' specified (" . getGlobal("useGrid") . "); must be 'true', 'false' or 'remote'", undef);
     }
 
     if (defined(getGlobal("stopBefore"))) {
