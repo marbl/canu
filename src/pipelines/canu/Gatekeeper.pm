@@ -290,8 +290,9 @@ sub gatekeeper ($$$@) {
     if (! -e "$wrk/$asm.gkpStore/readlengths.png") {
         open(F, "> $wrk/$asm.gkpStore/readlengths.gp") or caExit("can't open '$wrk/$asm.gkpStore/readlengths.gp' for writing: $!", undef);
         print F "set title 'read length'\n";
-        print F "set xlabel 'binwidth=250'\n";
+        print F "set xlabel 'read length, bin width = 250'\n";
         print F "set ylabel 'number of reads'\n";
+        print F "\n";
         print F "binwidth=250\n";
         print F "set boxwidth binwidth\n";
         print F "bin(x,width) = width*floor(x/width) + binwidth/2.0\n";
