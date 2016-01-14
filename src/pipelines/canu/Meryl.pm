@@ -99,7 +99,7 @@ sub plotHistogram ($$$$) {
     print F "unset multiplot\n";
     print F "\n";
     print F "set terminal png size $size,$size\n";
-    print F "set output \"$ofile.histogram.$suffix.png\"\n";
+    print F "set output '$ofile.histogram.$suffix.png'\n";
     print F "\n";
     print F "set multiplot\n";
     print F "\n";
@@ -113,9 +113,9 @@ sub plotHistogram ($$$$) {
     print F "\n";
     print F "unset ytics\n";
     print F "set y2tics 0.1\n";
-    #print F "set y2tics add (\"0.6765\" 0.6765)\n";
+    #print F "set y2tics add ('0.6765' 0.6765)\n";
     print F "\n";
-    print F "plot [0.5:1.0] \"$ofile.histogram\" using 3:4 with lines title \"Distinct-vs-Total\"\n";
+    print F "plot [0.5:1.0] '$ofile.histogram' using 3:4 with lines title 'Distinct-vs-Total'\n";
     print F "\n";
     print F "#  Distinct-vs-total zoom in lower left corner\n";
     print F "\n";
@@ -127,9 +127,9 @@ sub plotHistogram ($$$$) {
     print F "\n";
     print F "unset ytics\n";     #  ytics on the left of the plot
     print F "set y2tics 0.1\n";  #  y2tics on the right of the plot
-    #print F "set y2tics add (\"0.6765\" 0.6765)\n";
+    #print F "set y2tics add ('0.6765' 0.6765)\n";
     print F "\n";
-    print F "plot [0.975:1.0] \"$ofile.histogram\" using 3:4 with lines title \"Distinct-vs-Total\"\n";
+    print F "plot [0.975:1.0] '$ofile.histogram' using 3:4 with lines title 'Distinct-vs-Total'\n";
     print F "\n";
     print F "#  Histogram in upper left corner\n";
     print F "\n";
@@ -143,7 +143,7 @@ sub plotHistogram ($$$$) {
     print F "set y2tics 10e6\n";  #  y2tics on the right of the plot
     print F "unset mytics\n";
     print F "\n";
-    print F "plot [0:200] \"$ofile.histogram\" using 1:2 with lines title \"Histogram\"\n";
+    print F "plot [0:200] '$ofile.histogram' using 1:2 with lines title 'Histogram'\n";
     close(F);
 
     runCommandSilently("$wrk/0-mercounts", "gnuplot $ofile.histogram.$suffix.gp > /dev/null 2>&1");
