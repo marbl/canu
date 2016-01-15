@@ -543,6 +543,8 @@ $(foreach TGT,${ALL_TGTS},\
 UPDATE_VERSION:
 	@./canu_version_update.pl
 
+AS_global.C: UPDATE_VERSION
+
 #  A different falconsense for every platform, yay!
 ifeq      (${OSTYPE}, Linux)
   FALCONSENSE := falcon_sense.${OSTYPE}-${MACHINETYPE}.bin
