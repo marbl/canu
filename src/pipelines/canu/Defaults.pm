@@ -36,7 +36,7 @@ package canu::Defaults;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(getCommandLineOptions addCommandLineOption writeLog caExit caFailure getNumberOfCPUs getPhysicalMemorySize getAllowedResources diskSpace printHelp setParametersFromFile setParametersFromCommandLine checkParameters getGlobal setGlobal setGlobalIfUndef showErrorRates setErrorRate setDefaults);
+@EXPORT = qw(getCommandLineOptions addCommandLineOption addCommandLineError writeLog caExit caFailure getNumberOfCPUs getPhysicalMemorySize getAllowedResources diskSpace printOptions printHelp setParametersFromFile setParametersFromCommandLine checkParameters getGlobal setGlobal setGlobalIfUndef showErrorRates setErrorRate setDefaults);
 
 use strict;
 use Carp qw(cluck);
@@ -72,7 +72,6 @@ sub setGlobalSpecialization ($@) {
     my $val = shift @_;
 
     foreach my $var (@_) {
-        #print STDERR "set specialization $var = $val\n";
         $global{$var} = $val;
     }
 
@@ -81,7 +80,8 @@ sub setGlobalSpecialization ($@) {
 
 
 sub setGlobal ($$) {
-    my $var = shift @_;
+    my $VAR = shift @_;
+    my $var = $VAR;
     my $val = shift @_;
     my $set = 0;
 
@@ -126,7 +126,10 @@ sub setGlobal ($$) {
         return;
     }
 
-    caFailure("paramter '$var' is not known", undef) if (!exists($global{$var}));
+    #  If we got a parameter we don't understand, we should be parsing command line options or
+    #  reading spec files, and we can let the usual error handling handle it.
+
+    addCommandLineError("ERROR:  Paramter '$VAR' is not known.\n")   if (!exists($global{$var}));
 
     $global{$var} = $val;
 }
@@ -159,6 +162,12 @@ sub addCommandLineOption ($) {
     } else {
         $cLineOpts .= " $_[0]";
     }
+}
+
+
+
+sub addCommandLineError($) {
+    $global{'errors'} .= shift @_;
 }
 
 
@@ -318,86 +327,77 @@ sub diskSpace ($) {
 }
 
 
-
-sub printHelp ($) {
-    my $bin = shift @_;  #  Can't include canu::Execution without a loop.
-
-    if (getGlobal("version")) {
-        system("$bin/gatekeeperCreate --version");
-        exit(0);
-    }
-
+sub printOptions () {
     my $pretty = 0;
 
-    if (getGlobal("options")) {
-        foreach my $k (sort values %synnam) {
-            my $o = $k;
-            my $u = $synops{$k};
+    foreach my $k (sort values %synnam) {
+        my $o = $k;
+        my $u = $synops{$k};
 
-            next   if (length($u) == 0);
+        next   if (length($u) == 0);
 
-            if ($pretty == 0) {
-                $o = substr("$k                                    ", 0, 40);
+        if ($pretty == 0) {
+            $o = substr("$k                                    ", 0, 40);
 
-            } else {
-                $Text::Wrap::columns = 100;
+        } else {
+            $Text::Wrap::columns = 100;
 
-                $o = "$o\n";
-                $u = wrap("    ", "    ", $u) . "\n";
-            }
-
-            print "$o$u\n";
+            $o = "$o\n";
+            $u = wrap("    ", "    ", $u) . "\n";
         }
-        exit(0);
-    }
 
-    if (getGlobal("help") ne "") {
-        print "\n";
-        print "usage: canu [-correct | -trim | -assemble] \\\n";
-        print "            [-s <assembly-specifications-file>] \\\n";
-        print "             -p <assembly-prefix> \\\n";
-        print "             -d <assembly-directory> \\\n";
-        print "             genomeSize=<number>[g|m|k] \\\n";
-        print "             errorRate=0.X \\\n";
-        print "            [other-options] \\\n";
-        print "            [-pacbio-raw | -pacbio-corrected | -nanopore-raw | -nanopore-corrected] *fastq\n";
-        print "\n";
-        print "  By default, all three stages (correct, trim, assemble) are computed.\n";
-        print "  To compute only a single stage, use:\n";
-        print "    -correct  - generate corrected reads\n";
-        print "    -trim     - generate trimmed reads\n";
-        print "    -assemble - generate an assembly\n";
-        print "\n";
-        print "  The assembly is computed in the (created) -d <assembly-directory>, with most\n";
-        print "  files named using the -p <assembly-prefix>.\n";
-        print "\n";
-        print "  The genome size is your best guess of the genome size of what is being assembled.\n";
-        print "  It is used mostly to compute coverage in reads.  Fractional values are allowed: '4.7m'\n";
-        print "  is the same as '4700k' and '4700000'\n";
-        print "\n";
-        print "  The errorRate is not used correctly (we're working on it).  Set it to 0.06 and\n";
-        print "  use the various utg*ErrorRate options.\n";
-        print "\n";
-        print "  A full list of options can be printed with '-options'.  All options\n";
-        print "  can be supplied in an optional sepc file.\n";
-        print "\n";
-        print "  Reads can be either FASTA or FASTQ format, uncompressed, or compressed\n";
-        print "  with gz, bz2 or xz.  Reads are specified by the technology they were\n";
-        print "  generated with:\n";
-        print "    -pacbio-raw         <files>\n";
-        print "    -pacbio-corrected   <files>\n";
-        print "    -nanopore-raw       <files>\n";
-        print "    -nanopore-corrected <files>\n";
-        print "\n";
-        print "Complete documentation at http://canu.readthedocs.org/en/latest/\n";
-        print "\n";
-        print $global{"help"};
-        exit(0);
+        print "$o$u\n";
     }
+}
 
-    undef $global{"version"};
-    undef $global{"options"};
-    undef $global{"help"};
+
+sub printHelp () {
+
+    return   if (!exists($global{'errors'}));
+
+    print "\n";
+    print "usage: canu [-correct | -trim | -assemble] \\\n";
+    print "            [-s <assembly-specifications-file>] \\\n";
+    print "             -p <assembly-prefix> \\\n";
+    print "             -d <assembly-directory> \\\n";
+    print "             genomeSize=<number>[g|m|k] \\\n";
+    print "             errorRate=0.X \\\n";
+    print "            [other-options] \\\n";
+    print "            [-pacbio-raw | -pacbio-corrected | -nanopore-raw | -nanopore-corrected] *fastq\n";
+    print "\n";
+    print "  By default, all three stages (correct, trim, assemble) are computed.\n";
+    print "  To compute only a single stage, use:\n";
+    print "    -correct  - generate corrected reads\n";
+    print "    -trim     - generate trimmed reads\n";
+    print "    -assemble - generate an assembly\n";
+    print "\n";
+    print "  The assembly is computed in the (created) -d <assembly-directory>, with most\n";
+    print "  files named using the -p <assembly-prefix>.\n";
+    print "\n";
+    print "  The genome size is your best guess of the genome size of what is being assembled.\n";
+    print "  It is used mostly to compute coverage in reads.  Fractional values are allowed: '4.7m'\n";
+    print "  is the same as '4700k' and '4700000'\n";
+    print "\n";
+    print "  The errorRate is not used correctly (we're working on it).  Set it to 0.06 and\n";
+    print "  use the various utg*ErrorRate options.\n";
+    print "\n";
+    print "  A full list of options can be printed with '-options'.  All options\n";
+    print "  can be supplied in an optional sepc file.\n";
+    print "\n";
+    print "  Reads can be either FASTA or FASTQ format, uncompressed, or compressed\n";
+    print "  with gz, bz2 or xz.  Reads are specified by the technology they were\n";
+    print "  generated with:\n";
+    print "    -pacbio-raw         <files>\n";
+    print "    -pacbio-corrected   <files>\n";
+    print "    -nanopore-raw       <files>\n";
+    print "    -nanopore-corrected <files>\n";
+    print "\n";
+    print "Complete documentation at http://canu.readthedocs.org/en/latest/\n";
+    print "\n";
+    print "$global{'errors'}";
+    print "\n";
+
+    exit(1);
 }
 
 
@@ -461,7 +461,7 @@ sub setParametersFromFile ($@) {
             if (-e $xx) {
                 push @fragFiles, $xx;
             } else {
-                setGlobal("help", getGlobal("help") . "File not found '$_' after appending absolute path.\n");
+                addCommandLineError("ERROR:  File not found '$_' after appending absolute path.\n");
             }
         } elsif (m/\s*(\w*)\s*=([^#]*)#*.*$/) {
             my ($var, $val) = ($1, $2);
@@ -470,7 +470,7 @@ sub setParametersFromFile ($@) {
             undef $val if ($val eq "undef");
             setGlobal($var, $val);
         } else {
-            setGlobal("help", getGlobal("help") . "File not found or unknown specFile option line '$_'.\n");
+            addCommandLineError("ERROR:  File not found or unknown specFile option line '$_'.\n");
         }
     }
     close(F);
@@ -500,7 +500,7 @@ sub setParametersFromCommandLine(@) {
             $val =~ s/^\s+//; $val =~ s/\s+$//;
             setGlobal($var, $val);
         } else {
-            setGlobal("help", getGlobal("help") . "Misformed command line option '$s'.\n");
+            addCommandLineError("ERROR:  Misformed command line option '$s'.\n");
         }
     }
 }
@@ -957,27 +957,10 @@ sub setDefaults () {
     $global{"falconSense"}                 = undef;
     $synops{"falconSense"}                 = "Path to fc_consensus.py or falcon_sense.bin";
 
-
-
-    #####  Ugly, command line options passed to printHelp()
-
-    $global{"help"}                        = "";
-    $synops{"help"}                        = undef;
-
-    $global{"version"}                     = 0;
-    $synops{"version"}                     = undef;
-
-    $global{"options"}                     = 0;
-    $synops{"options"}                     = undef;
-
     #  Convert all the keys to lowercase, and remember the case-sensitive version
 
     foreach my $k (keys %global) {
         (my $l = $k) =~ tr/A-Z/a-z/;
-
-        next  if ($k eq "version");
-        next  if ($k eq "options");
-        next  if ($k eq "help");
 
         if (! exists($synnam{$l})) {
             $synnam{$l} = $k;
@@ -1006,18 +989,7 @@ sub setDefaults () {
 
 
 
-sub checkParameters ($) {
-    my $bin = shift @_;  #  Can't include canu::Execution without a loop.
-
-    #
-    #  Pick a nice looking set of binaries, and check them.
-    #
-
-    caExit("can't find 'gatekeeperCreate' program in $bin.  Possibly incomplete installation", undef) if (! -x "$bin/gatekeeperCreate");
-    caExit("can't find 'meryl' program in $bin.  Possibly incomplete installation", undef)            if (! -x "$bin/meryl");
-    caExit("can't find 'overlapInCore' program in $bin.  Possibly incomplete installation", undef)    if (! -x "$bin/overlapInCore");
-    caExit("can't find 'bogart' program in $bin.  Possibly incomplete installation", undef)           if (! -x "$bin/bogart");
-    caExit("can't find 'utgcns' program in $bin.  Possibly incomplete installation", undef)           if (! -x "$bin/utgcns");
+sub checkParameters () {
 
     #
     #  Fiddle with filenames to make them absolute paths.
@@ -1054,11 +1026,11 @@ sub checkParameters ($) {
         my $mr = getGlobal("minReadLength");
         my $mo = getGlobal("minOverlapLength");
 
-        caExit("minReadLength=$mr must be at least minOverlapLength=$mo", undef);
+        addCommandLineError("ERROR:  minReadLength=$mr must be at least minOverlapLength=$mo.\n");
 
-        print STDERR "-- WARNING: minReadLength reset from $mr to $mo (limited by minOverlapLength)\n";
-
-        setGlobal("minOverlapLength", $mo);
+        #  Or we can just reset one or the other....
+        #print STDERR "-- WARNING: minReadLength reset from $mr to $mo (limited by minOverlapLength)\n";
+        #setGlobal("minOverlapLength", $mo);
     }
 
     #
@@ -1068,50 +1040,50 @@ sub checkParameters ($) {
     foreach my $tag ("cor", "obt", "utg") {
         if ((getGlobal("${tag}Overlapper") ne "mhap") &&
             (getGlobal("${tag}Overlapper") ne "ovl")) {
-            caExit("invalid '${tag}Overlapper' specified (" . getGlobal("${tag}Overlapper") . "); must be 'mhap' or 'ovl'", undef);
+            addCommandLineError("ERROR:  Invalid '${tag}Overlapper' specified (" . getGlobal("${tag}Overlapper") . "); must be 'mhap' or 'ovl'\n");
         }
     }
 
     if ((getGlobal("unitigger") ne "unitigger") &&
         (getGlobal("unitigger") ne "bogart")) {
-        caExit("invalid 'unitigger' specified (" . getGlobal("unitigger") . "); must be 'unitigger' or 'bogart'", undef);
+        addCommandLineError("ERROR:  Invalid 'unitigger' specified (" . getGlobal("unitigger") . "); must be 'unitigger' or 'bogart'\n");
     }
 
     if ((getGlobal("corConsensus") ne "utgcns") &&
         (getGlobal("corConsensus") ne "falcon") &&
         (getGlobal("corConsensus") ne "falconpipe")) {
-        caExit("invalid 'corConsensus' specified (" . getGlobal("corConsensus") . "); must be 'utgcns' or 'falcon' or 'falconpipe'", undef);
+        addCommandLineError("ERROR:  Invalid 'corConsensus' specified (" . getGlobal("corConsensus") . "); must be 'utgcns' or 'falcon' or 'falconpipe'\n");
     }
 
     if ((getGlobal("cnsConsensus") ne "quick") &&
         (getGlobal("cnsConsensus") ne "pbdagcon") &&
         (getGlobal("cnsConsensus") ne "utgcns")) {
-        caExit("invalid 'cnsConsensus' specified (" . getGlobal("cnsConsensus") . "); must be 'quick', 'pbdagcon', or 'utgcns'", undef);
+        addCommandLineError("ERROR:  Invalid 'cnsConsensus' specified (" . getGlobal("cnsConsensus") . "); must be 'quick', 'pbdagcon', or 'utgcns'\n");
     }
 
 
     if ((!defined("lowCoverageAllowed") &&  defined("lowCoverageDepth")) ||
         ( defined("lowCoverageAllowed") && !defined("lowCoverageDepth"))) {
-        caExit("invalid 'lowCoverageAllowed' and 'lowCoverageDepth' specified; both must be set", undef);
+        addCommandLineError("ERROR:  Invalid 'lowCoverageAllowed' and 'lowCoverageDepth' specified; both must be set\n");
     }
 
     #if ((getGlobal("cleanup") ne "none") &&
     #    (getGlobal("cleanup") ne "light") &&
     #    (getGlobal("cleanup") ne "heavy") &&
     #    (getGlobal("cleanup") ne "aggressive")) {
-    #    caExit("invalid cleaup specified (" . getGlobal("cleanup") . "); must be 'none', 'light', 'heavy' or 'aggressive'", undef);
+    #    addCommandLineError("ERROR:  Invalid cleaup specified (" . getGlobal("cleanup") . "); must be 'none', 'light', 'heavy' or 'aggressive'\n");
     #}
 
     if ((getGlobal("corFilter") ne "quick") &&
         (getGlobal("corFilter") ne "expensive")) {
-        caExit("invalid 'corFilter' specified (" . getGlobal("corFilter") . "); must be 'quick' or 'expensive'", undef);
+        addCommandLineError("ERROR:  Invalid 'corFilter' specified (" . getGlobal("corFilter") . "); must be 'quick' or 'expensive'\n");
     }
 
 
     if ((getGlobal("useGrid") ne "0") &&
         (getGlobal("useGrid") ne "1") &&
         (getGlobal("useGrid") ne "remote")) {
-        caExit("invalid 'useGrid' specified (" . getGlobal("useGrid") . "); must be 'true', 'false' or 'remote'", undef);
+        addCommandLineError("ERROR:  Invalid 'useGrid' specified (" . getGlobal("useGrid") . "); must be 'true', 'false' or 'remote'\n");
     }
 
     if (defined(getGlobal("stopBefore"))) {
@@ -1119,7 +1091,7 @@ sub checkParameters ($) {
         my $st = getGlobal("stopBefore");
         $st =~ tr/A-Z/a-z/;
 
-        my $failureString = "Invalid stopBefore specified (" . getGlobal("stopBefore") . "); must be one of:\n";
+        my $failureString = "ERROR:  Invalid stopBefore specified (" . getGlobal("stopBefore") . "); must be one of:\n";
 
         my @stopBefore = ("gatekeeper",
                           "meryl",
@@ -1129,7 +1101,7 @@ sub checkParameters ($) {
                           "consensusConfigure");
 
         foreach my $sb (@stopBefore) {
-            $failureString .= "    '$sb'\n";
+            $failureString .= "ERROR:      '$sb'\n";
             $sb =~ tr/A-Z/a-z/;
             if ($st eq $sb) {
                 $ok++;
@@ -1137,7 +1109,7 @@ sub checkParameters ($) {
             }
         }
 
-        caExit($failureString, undef) if ($ok == 0);
+        addCommandLineError($failureString)   if ($ok == 0);
     }
 
     if (defined(getGlobal("stopAfter"))) {
@@ -1145,7 +1117,7 @@ sub checkParameters ($) {
         my $st = getGlobal("stopAfter");
         $st =~ tr/A-Z/a-z/;
 
-        my $failureString = "Invalid stopAfter specified (" . getGlobal("stopAfter") . "); must be one of:\n";
+        my $failureString = "ERROR:  Invalid stopAfter specified (" . getGlobal("stopAfter") . "); must be one of:\n";
 
         my @stopAfter = ("gatekeeper",
                          "meryl",
@@ -1159,7 +1131,7 @@ sub checkParameters ($) {
                          "consensusFilter");
 
         foreach my $sa (@stopAfter) {
-            $failureString .= "    '$sa'\n";
+            $failureString .= "ERROR:      '$sa'\n";
             $sa =~ tr/A-Z/a-z/;
             if ($st eq $sa) {
                 $ok++;
@@ -1167,11 +1139,11 @@ sub checkParameters ($) {
             }
         }
 
-        caExit($failureString, undef) if ($ok == 0);
+        addCommandLineError($failureString)   if ($ok == 0);
     }
 
-    caExit("required parameter 'errorRate' is not set", undef)   if (! defined(getGlobal("errorRate")));
-    caExit("required parameter 'genomeSize' is not set", undef)  if (! defined(getGlobal("genomeSize")));
+    addCommandLineError("ERROR:  Required parameter 'errorRate' is not set\n")    if (! defined(getGlobal("errorRate")));
+    addCommandLineError("ERROR:  Required parameter 'genomeSize' is not set\n")   if (! defined(getGlobal("genomeSize")));
 
     #
     #  Java?  Need JRE 1.8.
@@ -1196,7 +1168,7 @@ sub checkParameters ($) {
 
         print STDERR "-- Detected Java(TM) Runtime Environment '$versionStr' (from '$java').\n";
 
-        caExit("mhap overlapper requires java version at least 1.8.0; you have $versionStr", undef)  if ($version < 1.8);
+        addCommandLineError("ERROR:  mhap overlapper requires java version at least 1.8.0; you have $versionStr\n")   if ($version < 1.8);
     }
 
     #
@@ -1207,7 +1179,7 @@ sub checkParameters ($) {
         (getGlobal("corConsensus") eq "falconpipe")) {
         my $falcon = getGlobal("falconSense");
 
-        caExit("didn't find falcon program with option falconSense='$falcon'", undef)  if ((defined($falcon)) && (! -e $falcon));
+        addCommandLineError("ERROR:  Didn't find falcon program with option falconSense='$falcon'")   if ((defined($falcon)) && (! -e $falcon));
     }
 
     #
@@ -1218,7 +1190,7 @@ sub checkParameters ($) {
     setGlobalIfUndef("obtOvlErrorRate",      3.0 * getGlobal("errorRate"));
     setGlobalIfUndef("utgOvlErrorRate",      3.0 * getGlobal("errorRate"));
 
-    setGlobalIfUndef("ovlErrorRate",	     2.5 * getGlobal("errorRate"));
+    setGlobalIfUndef("ovlErrorRate",         2.5 * getGlobal("errorRate"));
     setGlobalIfUndef("utgGraphErrorRate",    2.0 * getGlobal("errorRate"));
     setGlobalIfUndef("utgBubbleErrorRate",   2.0 * getGlobal("errorRate") + 0.5 * getGlobal("errorRate"));
     setGlobalIfUndef("utgMergeErrorRate",    2.0 * getGlobal("errorRate") - 0.5 * getGlobal("errorRate"));

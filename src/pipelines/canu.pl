@@ -73,23 +73,25 @@ use canu::Output;
 
 use canu::HTML;
 
-
-my $bin = undef;  #  Path to binaries, set once in main.
-my $cmd = undef;  #  Temporary string passed to system().
-my $wrk = undef;  #  Path to our assembly directory.
-my $asm = undef;  #  Name of our assembly.
-
-my %global;       #  Global parameters
-my %synops;       #  Global parameters - description
-my %synnam;       #  Global parameters - case sensitive name
+#my %global;       #  Global parameters
+#my %synops;       #  Global parameters - description
+#my %synnam;       #  Global parameters - case sensitive name
 
 my @specFiles;    #  Files of specs
 my @specOpts;     #  Command line specs
 my @inputFiles;   #  Command line inputs, later inputs in spec files are added
 
-#  Initialize our defaults.  Must be done before defaults are reported in printHelp() below.
+#  Initialize our defaults.  Must be done before defaults are reported in printOptions() below.
 
 setDefaults();
+
+#  The bin directory is needed for -version, can only be set after setDefaults(), but really should be
+#  set after checkParameters() so it can know pathMap.
+
+my $bin = getBinDirectory();  #  Path to binaries, reset later.
+my $cmd = undef;              #  Temporary string passed to system().
+my $wrk = undef;              #  Path to our assembly directory.
+my $asm = undef;              #  Name of our assembly.
 
 #  Check for the presence of a -options switch BEFORE we do any work.
 #  This lets us print the default values of options.
@@ -97,16 +99,15 @@ setDefaults();
 foreach my $arg (@ARGV) {
     if (($arg eq "-options") ||
         ($arg eq "-defaults")) {
-        setGlobal("options", 1);
-        printHelp($bin);
+        printOptions();
+        exit(0);
     }
-}
 
-#  Print usage if no arguments
-
-if (scalar(@ARGV) == 0) {
-    setGlobal("help", 1);
-    printHelp($bin);
+    if (($arg eq "-version") ||
+        ($arg eq "--version")) {
+        system("$bin/gatekeeperCreate --version");
+        exit(0);
+    }
 }
 
 #  By default, all three steps are run.  Options -correct, -trim and -assemble
@@ -116,7 +117,7 @@ if (scalar(@ARGV) == 0) {
 #  to use these when we resubmit ourself to the grid.  We can't simply dump
 #  all of @ARGV into here, because we need to fix up relative paths first.
 
-my $mode = "run";
+my $mode = undef;
 my $step = "run";
 my $haveRaw = 0;
 my $haveCorrected = 0;
@@ -161,7 +162,6 @@ while (scalar(@ARGV)) {
 
     } elsif (($arg eq "-version") ||
              ($arg eq "--version")) {
-        setGlobal("version", 1);
         
     } elsif (($arg eq "-options") ||
              ($arg eq "-defaults")) {
@@ -185,7 +185,9 @@ while (scalar(@ARGV)) {
             setGlobal("cnsMaxCoverage", 20);
         }
 
-        $mode = "trim-assemble"  if ($arg =~ m/corrected/);
+        $mode = "trim-assemble"  if (!defined($mode) && ($arg =~ m/corrected/));
+        $mode = "run"            if (!defined($mode) && ($arg =~ m/raw/));
+
         $haveCorrected = 1       if ($arg =~ m/corrected/);
         $haveRaw = 1             if ($arg =~ m/raw/);
 
@@ -214,16 +216,21 @@ while (scalar(@ARGV)) {
         addCommandLineOption("\"$arg\"");
 
     } else {
-        setGlobal("help",
-                  getGlobal("help") . "ERROR:  Invalid command line option '$arg'\n");
+        addCommandLineError("ERROR:  Invalid command line option '$arg'.\n");
     }
 }
 
+#  Fail if some obvious things aren't set.
 
-setGlobal("help", getGlobal("help") . "ERROR:  Assembly name prefix not supplied with -p.\n") if (!defined($asm));
-setGlobal("help", getGlobal("help") . "ERROR:  Directory not supplied with -d.\n")            if (!defined($wrk));
+addCommandLineError("ERROR:  Assembly name prefix not supplied with -p.\n")   if (!defined($asm));
+addCommandLineError("ERROR:  Directory not supplied with -d.\n")              if (!defined($wrk));
 
-$bin = getBinDirectory();
+#  If the mode isn't set - which is allowed only if a gkpStore exists somewhere - be a little smart
+#  and figure out which store exists.
+
+$mode = "run"            if (!defined($mode) && (-d "$wrk/correction/$asm.gkpStore"));
+$mode = "trim-assemble"  if (!defined($mode) && (-d "$wrk/trimming/$asm.gkpStore"));
+$mode = "assemble"       if (!defined($mode) && (-d "$wrk/unitigging/$asm.gkpStore"));
 
 #@inputFiles = setParametersFromFile("$bin/spec/runCA.default.specFile", @inputFiles)   if (-e "$bin/spec/runCA.default.specFile");
 #@inputFiles = setParametersFromFile("$ENV{'HOME'}/.runCA",              @inputFiles)   if (-e "$ENV{'HOME'}/.runCA");
@@ -238,14 +245,16 @@ foreach my $specFile (@specFiles) {
 
 setParametersFromCommandLine(@specOpts);
 
-#  If 'help' or 'version' are set, we can quit now, before doing anything else.  In particular,
-#  we NEED to quit now, before checkParameters() complains that genomeSize isn't set.
+#  Finish setting parameters, then reset the bin directory using pathMap.
 
-printHelp($bin);
+checkParameters();
 
-#  Finish setting parameters.
+$bin = getBinDirectory();
 
-checkParameters($bin);
+#  If anything complained (invalid option, missing file, etc) printHelp() will trigger and exit.
+
+printHelp();
+
 
 #  Detect grid support.  If 'gridEngine' isn't set, the execution methods submitScript() and
 #  submitOrRunParallelJob() will return without submitting, or run locally (respectively).  This
@@ -282,11 +291,6 @@ configureRemote();
 #  Based on genomeSize, configure the execution of every component.  This needs to be done AFTER the grid is setup!
 
 configureAssembler();
-
-#  If anything complained, global{'help'} will be defined, and we'll print help (and the error) and
-#  stop.
-
-printHelp($bin);
 
 #  Fail immediately if we run the script on the grid, and the gkpStore directory doesn't exist and
 #  we have no input files.  Without this check we'd fail only after being scheduled on the grid.
