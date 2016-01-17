@@ -42,17 +42,21 @@ sub simpleFigure ($$$) {
     my $image = shift @_;
     my $text  = shift @_;
 
-    if (-e "$image.sm.png") {
+    if    ((! -e "$image.sm.png") && (! -e "$image.lg.png")) {
+        push @$body, "<p>Image '$image' not found.</p>\n";
+    }
+
+    elsif ((-z "$image.sm.png") || (-z "$image.lg.png"))  {
+        push @$body, "<p>Image '$image' is empty.  Probably no data to display.</p>\n";
+    }
+
+    else {
         push @$body, "<figure>\n";
         push @$body, "<a href='$image.lg.png'><img src='$image.sm.png'></a>\n";
         push @$body, "<figcaption>\n";
         push @$body, "$text\n";
         push @$body, "</figcaption>\n";
         push @$body, "</figure>\n";
-    }
-
-    else {
-        push @$body, "<p>Image '$image.sm.png' not found.</p>\n";
     }
 }
 
@@ -408,6 +412,73 @@ sub buildTrimmingHTML ($$$$$$) {
 
     push @$body, "<h2>Trimming</h2>\n";
     push @$body, "\n";
+
+
+    if (-e "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.stats") {
+        my $rh;   # 'row header', for labeling a set of rows with a common cell
+
+        #  Read once to make a paramters table.  We could have embedded this in the loop below, but it's cleaner here.
+
+        #push @$body, "<table>\n";
+        #push @$body, "</table>\n";
+
+        #  Read again for the statistics.
+
+        push @$body, "<table>\n";
+
+        open(F, "< $wrk/3-overlapbasedtrimming/$asm.1.trimReads.stats") or caExit("can't open '$wrk/3-overlapbasedtrimming/$asm.1.trimReads.stats' for reading: $!", undef);
+        while (<F>) {
+            chomp;
+
+            next  if (m/^$/);  #  Skip blank lines.
+
+            push @$body, "<tr><th colspan='3'>PARAMETERS</th></tr>\n"        if ($_ eq "PARAMETERS:");
+
+            push @$body, "</table>\n"                                        if ($_ eq "INPUT READS:");  #  Start a new table because 'params' has only
+            push @$body, "<table>\n"                                         if ($_ eq "INPUT READS:");  #  2 cols, but the rest have 3
+            push @$body, "<tr><th colspan='3'>INPUT READS</th></tr>\n"       if ($_ eq "INPUT READS:");
+            push @$body, "<tr><th>reads</th><th>bases</th><th></th></tr>\n"  if ($_ eq "INPUT READS:");
+
+            push @$body, "<tr><th colspan='3'>OUTPUT READS</th></tr>\n"      if ($_ eq "OUTPUT READS:");
+            push @$body, "<tr><th>reads</th><th>bases</th><th></th></tr>\n"  if ($_ eq "OUTPUT READS:");
+
+            push @$body, "<tr><th colspan='3'>TRIMMING DETAILS</th></tr>\n"  if ($_ eq "TRIMMING DETAILS:");
+            push @$body, "<tr><th>reads</th><th>bases</th><th></th></tr>\n"  if ($_ eq "TRIMMING DETAILS:");
+
+            #  Normal stats line "number (text)"
+            if (m/^\s*(\d+\.*\d*)\s+\((.*)\)$/) {
+                push @$body, "<tr>$rh<td>$1</td><td>$2</td></tr>\n";
+                $rh = undef;
+            }
+
+            #  Specific to trimming "number reads number bases (text)"
+            if (m/^\s*(\d+\.*\d*)\s+reads\s+(\d+\.*\d*)\s+bases\s+\((.*)\)$/) {
+                push @$body, "<tr>$rh<td>$1</td><td>$2</td><td>$3</td></tr>\n";
+                $rh = undef;
+            }
+        }
+        close(F);
+
+        push @$body, "</table>\n";
+
+    } else {
+        push @$body, "<p>Stage not computed or results file removed ($wrk/3-overlapbasedtrimming/$asm.1.trimReads.stats).</p>\n";
+    }
+
+    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.inputDeletedReads",    "");
+    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.inputNoTrimReads",     "");
+    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.inputReads",           "");
+    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.outputDeletedReads",   "");
+    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.outputNoOvlReads",     "");
+    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.outputTrimmedReads",   "");
+    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.outputUnchangedReads", "");
+    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.trim3",                "");
+    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.trim5",                "");
+
+    push @$body, "<h2>Splitting</h2>\n";
+    push @$body, "\n";
+
+
     #buildGatekeeperHTML($wrk, $asm, $tag, $css, $body, $scripts);
     #  Analyzes the output fastq
 }
