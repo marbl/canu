@@ -370,28 +370,28 @@ sub buildCorrectionHTML ($$$$$$) {
 
     #  Original vs expected shown above.
     simpleFigure($body,
-                 "$wrk/2-correction/test.originalLength-vs-expectedLength",
+                 "$wrk/2-correction/$asm.originalLength-vs-expectedLength",
                  "Scatter plot of original vs expected read length.  Shown in filter plot above.");
 
     simpleFigure($body,
-                 "$wrk/2-correction/test.originalLength-vs-correctedLength",
+                 "$wrk/2-correction/$asm.originalLength-vs-correctedLength",
                  "Scatter plot of original vs corrected read length.");
 
     simpleFigure($body,
-                 "$wrk/2-correction/test.expectedLength-vs-correctedLength",
+                 "$wrk/2-correction/$asm.expectedLength-vs-correctedLength",
                  "Scatter plot of expected vs corrected read length.");
 
     #  Histogram - expected vs corrected lengths NEEDS TO SHOW NEGATIVES!?
 
     simpleFigure($body,
-                 "$wrk/2-correction/test.length-difference-histograms",
+                 "$wrk/2-correction/$asm.length-difference-histograms",
                  "Histogram of the difference between the expected and corrected read lengths.\n" .
                  "Note that a negative difference means the corrected read is larger than expected.\n");
 
     #  Histogram - original, expected, corrected lengths
 
     simpleFigure($body,
-                 "$wrk/2-correction/test.length-histograms",
+                 "$wrk/2-correction/$asm.length-histograms",
                  "Histogram of original (red), expected (green) and actual corrected (blue) read lengths.\n");
 }
 
