@@ -73,10 +73,6 @@ use canu::Output;
 
 use canu::HTML;
 
-#my %global;       #  Global parameters
-#my %synops;       #  Global parameters - description
-#my %synnam;       #  Global parameters - case sensitive name
-
 my @specFiles;    #  Files of specs
 my @specOpts;     #  Command line specs
 my @inputFiles;   #  Command line inputs, later inputs in spec files are added
@@ -142,7 +138,6 @@ while (scalar(@ARGV)) {
 
         addCommandLineOption("-s \"$spec\"");
 
-
     } elsif ($arg eq "-correct") {
         $mode = $step = "correct";
         addCommandLineOption("-correct");
@@ -158,16 +153,7 @@ while (scalar(@ARGV)) {
     } elsif ($arg eq "-trim-assemble") {
         $mode = $step = "trim-assemble";
         addCommandLineOption("-trim-assemble");
-
-
-    } elsif (($arg eq "-version") ||
-             ($arg eq "--version")) {
         
-    } elsif (($arg eq "-options") ||
-             ($arg eq "-defaults")) {
-        #  Do nothing.  Handled above, but we still need to process it here.
-        #setGlobal("options", 1);
-
     } elsif (($arg eq "-pacbio-raw")       ||
              ($arg eq "-pacbio-corrected") ||
              ($arg eq "-nanopore-raw")     ||
@@ -191,12 +177,7 @@ while (scalar(@ARGV)) {
         $haveCorrected = 1       if ($arg =~ m/corrected/);
         $haveRaw = 1             if ($arg =~ m/raw/);
 
-        setGlobal("help",
-                  getGlobal("help"). "ERROR: specified both raw and corrected sequences. Canu does not currently support mixing raw and corrected sequences. Please correct the raw sequences first and then assemble\n") if ($haveRaw && $haveCorrected);
-
-        setGlobal("help",
-                  getGlobal("help") . "ERROR:  $arg file '$ARGV[0]' not found\n")
-            if (! -e $ARGV[0]);
+        addCommandLineError("ERROR:  File '$ARGV[0]' not found.\n")   if (! -e $ARGV[0]);
 
         while (-e $ARGV[0]) {
             my $file = shift @ARGV;
@@ -208,8 +189,7 @@ while (scalar(@ARGV)) {
         }
 
     } elsif (-e $arg) {
-        setGlobal("help",
-                  getGlobal("help") . "ERROR:  File supplied on command line; use -s, -pacbio-raw, -pacbio-corrected, -nanopore-raw, or -nanopore-corrected.\n");
+        addCommandLineErorr("ERROR:  File supplied on command line; use -s, -pacbio-raw, -pacbio-corrected, -nanopore-raw, or -nanopore-corrected.\n");
 
     } elsif ($arg =~ m/=/) {
         push @specOpts, $arg;
@@ -219,6 +199,10 @@ while (scalar(@ARGV)) {
         addCommandLineError("ERROR:  Invalid command line option '$arg'.\n");
     }
 }
+
+#  Fail if both raw and corrected are supplied.
+
+addCommandLineError("ERROR:  Canu does not currently support mixing raw and corrected sequences.\n")   if ($haveRaw && $haveCorrected);
 
 #  Fail if some obvious things aren't set.
 
