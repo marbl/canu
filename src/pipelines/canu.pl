@@ -189,7 +189,7 @@ while (scalar(@ARGV)) {
         }
 
     } elsif (-e $arg) {
-        addCommandLineErorr("ERROR:  File supplied on command line; use -s, -pacbio-raw, -pacbio-corrected, -nanopore-raw, or -nanopore-corrected.\n");
+        addCommandLineError("ERROR:  File supplied on command line; use -s, -pacbio-raw, -pacbio-corrected, -nanopore-raw, or -nanopore-corrected.\n");
 
     } elsif ($arg =~ m/=/) {
         push @specOpts, $arg;
