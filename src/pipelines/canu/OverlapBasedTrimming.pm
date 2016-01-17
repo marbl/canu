@@ -83,6 +83,8 @@ sub trimReads ($$) {
 
     caFailure("trimReads finished, but no '$asm.1.trimReads.clear' output found", undef)  if (! -e "$path/$asm.1.trimReads.clear");
 
+    unlink("$path/$asm.1.trimReads.err");
+
     if (0) {
         $cmd  = "$bin/gatekeeperDumpFASTQ \\\n";
         $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
@@ -140,6 +142,8 @@ sub splitReads ($$) {
     }
 
     caFailure("splitReads finished, but no '$asm.2.splitReads.clear' output found", undef)  if (! -e "$path/$asm.2.splitReads.clear");
+
+    unlink("$path/$asm.2.splitReads.err");
 
     if (0) {
         $cmd  = "$bin/gatekeeperDumpFASTQ \\\n";
