@@ -432,7 +432,7 @@ sub buildTrimmingHTML ($$$$$$) {
 
             next  if (m/^$/);  #  Skip blank lines.
 
-            push @$body, "<tr><th colspan='3'>PARAMETERS</th></tr>\n"        if ($_ eq "PARAMETERS:");
+            push @$body, "<tr><th colspan='2'>PARAMETERS</th></tr>\n"        if ($_ eq "PARAMETERS:");
 
             push @$body, "</table>\n"                                        if ($_ eq "INPUT READS:");  #  Start a new table because 'params' has only
             push @$body, "<table>\n"                                         if ($_ eq "INPUT READS:");  #  2 cols, but the rest have 3
@@ -477,6 +477,67 @@ sub buildTrimmingHTML ($$$$$$) {
 
     push @$body, "<h2>Splitting</h2>\n";
     push @$body, "\n";
+
+    if (-e "$wrk/3-overlapbasedtrimming/$asm.2.splitReads.stats") {
+        my $rh;   # 'row header', for labeling a set of rows with a common cell
+
+        #  Read once to make a paramters table.  We could have embedded this in the loop below, but it's cleaner here.
+
+        #push @$body, "<table>\n";
+        #push @$body, "</table>\n";
+
+        #  Read again for the statistics.
+
+        push @$body, "<table>\n";
+
+        open(F, "< $wrk/3-overlapbasedtrimming/$asm.2.splitReads.stats") or caExit("can't open '$wrk/3-overlapbasedtrimming/$asm.2.splitReads.stats' for reading: $!", undef);
+        while (<F>) {
+            chomp;
+
+            next  if (m/^$/);  #  Skip blank lines.
+
+            push @$body, "<tr><th colspan='2'>PARAMETERS</th></tr>\n"        if ($_ eq "PARAMETERS:");
+
+            push @$body, "</table>\n"                                        if ($_ eq "INPUT READS:");  #  Start a new table because 'params' has only
+            push @$body, "<table>\n"                                         if ($_ eq "INPUT READS:");  #  2 cols, but the rest have 3
+            push @$body, "<tr><th colspan='3'>INPUT READS</th></tr>\n"         if ($_ eq "INPUT READS:");
+            push @$body, "<tr><th>reads</th><th>bases</th><th></th></tr>\n"    if ($_ eq "INPUT READS:");
+
+            push @$body, "<tr><th colspan='3'>PROCESSED</th></tr>\n"           if ($_ eq "PROCESSED:");
+            push @$body, "<tr><th>reads</th><th>bases</th><th></th></tr>\n"    if ($_ eq "PROCESSED:");
+
+            push @$body, "<tr><th colspan='3'>READS WITH SIGNALS</th></tr>\n"  if ($_ eq "READS WITH SIGNALS:");
+            push @$body, "<tr><th>reads</th><th>signals</th><th></th></tr>\n"  if ($_ eq "READS WITH SIGNALS:");
+
+            push @$body, "<tr><th colspan='3'>SIGNALS</th></tr>\n"             if ($_ eq "SIGNALS:");
+            push @$body, "<tr><th>reads</th><th>bases</th><th></th></tr>\n"    if ($_ eq "SIGNALS:");
+
+            push @$body, "<tr><th colspan='3'>TRIMMING</th></tr>\n"            if ($_ eq "TRIMMING:");
+            push @$body, "<tr><th>reads</th><th>bases</th><th></th></tr>\n"    if ($_ eq "TRIMMING:");
+
+            #  Normal stats line "number (text)"
+            if (m/^\s*(\d+\.*\d*)\s+\((.*)\)$/) {
+                push @$body, "<tr>$rh<td>$1</td><td>$2</td></tr>\n";
+                $rh = undef;
+            }
+
+            #  Specific to trimming "number reads number bases (text)"
+            if (m/^\s*(\d+\.*\d*)\s+reads\s+(\d+\.*\d*)\s+bases\s+\((.*)\)$/) {
+                push @$body, "<tr>$rh<td>$1</td><td>$2</td><td>$3</td></tr>\n";
+                $rh = undef;
+            }
+            if (m/^\s*(\d+\.*\d*)\s+reads\s+(\d+\.*\d*)\s+signals\s+\((.*)\)$/) {
+                push @$body, "<tr>$rh<td>$1</td><td>$2</td><td>$3</td></tr>\n";
+                $rh = undef;
+            }
+        }
+        close(F);
+
+        push @$body, "</table>\n";
+
+    } else {
+        push @$body, "<p>Stage not computed or results file removed ($wrk/3-overlapbasedtrimming/$asm.2.splitReads.stats).</p>\n";
+    }
 
 
     #buildGatekeeperHTML($wrk, $asm, $tag, $css, $body, $scripts);

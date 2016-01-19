@@ -99,7 +99,7 @@ trimBadInterval(gkStore               *gkp,
 
     char  *logPtr = w->logMsg;
 
-    sprintf(logPtr, "iid %u trim %u %u",
+    sprintf(logPtr, "iid %6u trim %7u %7u",
             w->id, w->clrBgn, w->clrEnd);
     while (*logPtr)
       logPtr++;
@@ -110,19 +110,19 @@ trimBadInterval(gkStore               *gkp,
       logPtr++;
 
     if (spur5 != UINT32_MAX)
-      sprintf(logPtr, " 5' spur %u %u", w->blist[spur5].bgn, w->blist[spur5].end);
+      sprintf(logPtr, " (5'spur %7u %7u)", w->blist[spur5].bgn, w->blist[spur5].end);
     while (*logPtr)
       logPtr++;
 
     if (spur3 != UINT32_MAX)
-      sprintf(logPtr, " 3' spur %u %u", w->blist[spur3].bgn, w->blist[spur3].end);
+      sprintf(logPtr, " (3'spur %7u %7u)", w->blist[spur3].bgn, w->blist[spur3].end);
     while (*logPtr)
       logPtr++;
 
     for (uint32 xx=0; xx<loBad.size(); xx++) {
       uint32 x = loBad[xx];
 
-      sprintf(logPtr, " L(%s %u %u)", w->blist[x].typeName(), w->blist[x].bgn, w->blist[x].end);
+      sprintf(logPtr, " (%s %7u %7u)", w->blist[x].typeName(), w->blist[x].bgn, w->blist[x].end);
       while (*logPtr)
         logPtr++;
     }
@@ -130,7 +130,7 @@ trimBadInterval(gkStore               *gkp,
     for (uint32 xx=0; xx<hiBad.size(); xx++) {
       uint32 x = hiBad[xx];
 
-      sprintf(logPtr, " R(%s %u %u)", w->blist[x].typeName(), w->blist[x].bgn, w->blist[x].end);
+      sprintf(logPtr, " (%s %7u %7u)", w->blist[x].typeName(), w->blist[x].bgn, w->blist[x].end);
       while (*logPtr)
         logPtr++;
     }

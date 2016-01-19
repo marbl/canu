@@ -24,36 +24,92 @@
  */
 
 #include "splitReads.H"
+#include "trimStat.H"
+#include "clearRangeFile.H"
 
+#include "AS_UTL_decodeRange.H"
 
 
 int
 main(int argc, char **argv) {
+  char     *gkpName = NULL;
+  char     *ovsName = NULL;
+
+  char     *finClrName = NULL;
+  char     *outClrName = NULL;
+
+  double    errorRate       = 0.06;
+  //uint32    minAlignLength  = 40;
+  uint32    minReadLength   = 64;
+
+  uint32    idMin = 1;
+  uint32    idMax = UINT32_MAX;
+
+  char     *outputPrefix = NULL;
+  char      outputName[FILENAME_MAX];
+
+  FILE     *staFile      = NULL;
+  FILE     *reportFile   = NULL;
+  FILE     *subreadFile  = NULL;
+
+  bool      doSubreadLogging        = true;
+  bool      doSubreadLoggingVerbose = false;
+
+  //  Statistics on the trimming - the second set are from the old logging, and don't really apply anymore.
+
+  trimStat  readsIn;                  //  Read is eligible for trimming
+  trimStat  deletedIn;                //  Read was deleted already
+  trimStat  noTrimIn;                 //  Read not requesting trimming
+
+  trimStat  noOverlaps;               //  no overlaps in store
+  trimStat  noCoverage;               //  no coverage after adjusting for trimming done
+
+  trimStat  readsProcChimera;         //  Read was processed for chimera signal
+  trimStat  readsProcSpur;            //  Read was processed for spur signal
+  trimStat  readsProcSubRead;         //  Read was processed for subread signal
+
+#if 0
+  trimStat  badSpur5;
+  trimStat  badSpur3;
+  trimStat  badChimera;
+  trimStat  badSubread;
+#endif
+
+  trimStat  readsNoChange;
+
+  trimStat  readsBadSpur5,   basesBadSpur5;
+  trimStat  readsBadSpur3,   basesBadSpur3;
+  trimStat  readsBadChimera, basesBadChimera;
+  trimStat  readsBadSubread, basesBadSubread;
+
+  trimStat  readsTrimmed5;
+  trimStat  readsTrimmed3;
+
+#if 0
+  trimStat  fullCoverage;             //  fully covered by overlaps
+  trimStat  noSignalNoGap;            //  no signal, no gaps
+  trimStat  noSignalButGap;           //  no signal, with gaps
+
+  trimStat  bothFixed;                //  both chimera and spur signal trimmed
+  trimStat  chimeraFixed;             //  only chimera signal trimmed
+  trimStat  spurFixed;                //  only spur signal trimmed
+
+  trimStat  bothDeletedSmall;         //  deleted because of both cimera and spur signals
+  trimStat  chimeraDeletedSmall;      //  deleted because of chimera signal
+  trimStat  spurDeletedSmall;         //  deleted because of spur signal
+
+  trimStat  spurDetectedNormal;       //  normal spur detected
+  trimStat  spurDetectedLinker;       //  linker spur detected
+
+  trimStat  chimeraDetectedInnie;     //  innpue-pair chimera detected
+  trimStat  chimeraDetectedOverhang;  //  overhanging chimera detected
+  trimStat  chimeraDetectedGap;       //  gap chimera detected
+  trimStat  chimeraDetectedLinker;    //  linker chimera detected
+#endif
+
+  trimStat  deletedOut;               //  Read was deleted by trimming
 
   argc = AS_configure(argc, argv);
-
-  char              *gkpName = NULL;
-  char              *ovsName = NULL;
-
-  char              *finClrName = NULL;
-  char              *outClrName = NULL;
-
-  double             errorRate       = 0.06;
-  uint32             minAlignLength  = 40;
-  uint32             minReadLength   = 64;
-
-  uint32             idMin = 1;
-  uint32             idMax = UINT32_MAX;
-
-  char              *outputPrefix = NULL;
-  char               outputName[FILENAME_MAX];
-
-  FILE              *summaryFile  = NULL;
-  FILE              *reportFile   = NULL;
-  FILE              *subreadFile  = NULL;
-
-  bool               doSubreadLogging        = true;
-  bool               doSubreadLoggingVerbose = false;
 
   int arg=1;
   int err=0;
@@ -78,8 +134,8 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-e") == 0) {
       errorRate = atof(argv[++arg]);
 
-    } else if (strcmp(argv[arg], "-l") == 0) {
-      minAlignLength = atoi(argv[++arg]);
+    //} else if (strcmp(argv[arg], "-l") == 0) {
+    //  minAlignLength = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-minlength") == 0) {
       minReadLength = atoi(argv[++arg]);
@@ -172,30 +228,41 @@ main(int argc, char **argv) {
     gkRead     *read = gkp->gkStore_getRead(id);
     gkLibrary  *libr = gkp->gkStore_getLibrary(read->gkRead_libraryID());
 
-    if (finClr->isDeleted(id))
+    if (finClr->isDeleted(id)) {
       //  Read already trashed.
+      deletedIn += read->gkRead_sequenceLength();
       continue;
+    }
 
     if ((libr->gkLibrary_removeSpurReads()     == false) &&
         (libr->gkLibrary_removeChimericReads() == false) &&
-        (libr->gkLibrary_checkForSubReads()    == false))
+        (libr->gkLibrary_checkForSubReads()    == false)) {
       //  Nothing to do.
+      noTrimIn += read->gkRead_sequenceLength();
       continue;
+    }
+
+    readsIn += read->gkRead_sequenceLength();
+
 
     uint32   nLoaded = ovs->readOverlaps(id, ovl, ovlLen, ovlMax);
 
     //fprintf(stderr, "read %7u with %7u overlaps\r", id, nLoaded);
 
-    if (nLoaded == 0)
+    if (nLoaded == 0) {
       //  No overlaps, nothing to check!
+      noOverlaps += read->gkRead_sequenceLength();
       continue;
+    }
 
     w->clear(id, finClr->bgn(id), finClr->end(id));
     w->addAndFilterOverlaps(gkp, finClr, errorRate, ovl, ovlLen);
 
-    if (w->adjLen == 0)
+    if (w->adjLen == 0) {
       //  All overlaps trimmed out!
+      noCoverage += read->gkRead_sequenceLength();
       continue;
+    }
 
     //  Find bad regions.
 
@@ -205,30 +272,99 @@ main(int argc, char **argv) {
     //  //  motivated by the old 454 linker detection.
     //  markBad(gkp, w, subreadFile, doSubreadLoggingVerbose);
 
-    //if (libr->gkLibrary_removeSpurReads() == true)
+    //if (libr->gkLibrary_removeSpurReads() == true) {
+    //  readsProcSpur += read->gkRead_sequenceLength();
     //  detectSpur(gkp, w, subreadFile, doSubreadLoggingVerbose);
+    //  Get stats on spur region detected - save the length of each region to the trimStats object.
+    //}
 
-    //if (libr->gkLibrary_removeChimericReads() == true)
+    //if (libr->gkLibrary_removeChimericReads() == true) {
+    //  readsProcChimera += read->gkRead_sequenceLength();
     //  detectChimer(gkp, w, subreadFile, doSubreadLoggingVerbose);
+    //  Get stats on chimera region detected - save the length of each region to the trimStats object.
+    //}
 
-    if (libr->gkLibrary_checkForSubReads() == true)
+    if (libr->gkLibrary_checkForSubReads() == true) {
+      readsProcSubRead += read->gkRead_sequenceLength();
       detectSubReads(gkp, w, subreadFile, doSubreadLoggingVerbose);
+    }
 
-    //  Find solution.
+    //  Get stats on the bad regions found.  This kind of duplicates code in trimBadInterval(), but
+    //  I don't want to pass all the stats objects into there.
+
+    if (w->blist.size() == 0) {
+      readsNoChange += read->gkRead_sequenceLength();
+    }
+
+    else {
+      uint32  nSpur5   = 0, bSpur5   = 0;
+      uint32  nSpur3   = 0, bSpur3   = 0;
+      uint32  nChimera = 0, bChimera = 0;
+      uint32  nSubread = 0, bSubread = 0;
+
+      for (uint32 bb=0; bb<w->blist.size(); bb++) {
+        switch (w->blist[bb].type) {
+          case badType_5spur:
+            nSpur5        += 1;
+            basesBadSpur5 += w->blist[bb].end - w->blist[bb].bgn;
+            break;
+          case badType_3spur:
+            nSpur3        += 1;
+            basesBadSpur3 += w->blist[bb].end - w->blist[bb].bgn;
+            break;
+          case badType_chimera:
+            nChimera        += 1;
+            basesBadChimera += w->blist[bb].end - w->blist[bb].bgn;
+            break;
+          case badType_subread:
+            nSubread        += 1;
+            basesBadSubread += w->blist[bb].end - w->blist[bb].bgn;
+            break;
+          default:
+            break;
+        }
+      }
+
+      if (nSpur5   > 0)   readsBadSpur5   += nSpur5;
+      if (nSpur3   > 0)   readsBadSpur3   += nSpur3;
+      if (nChimera > 0)   readsBadChimera += nChimera;
+      if (nSubread > 0)   readsBadSubread += nSubread;
+    }
+
+    //  Find solution.  This coalesces the list (in 'w') of all the bad regions found, picks out the
+    //  largest good region, generates a log of the bad regions that support this decision, and sets
+    //  the trim points.
 
     trimBadInterval(gkp, w, minReadLength, subreadFile, doSubreadLoggingVerbose);
 
-    //  Report solution.
+    //  Log the solution.
 
     AS_UTL_safeWrite(reportFile, w->logMsg, "logMsg", sizeof(char), strlen(w->logMsg));
+
+    //  Save the solution....
 
     outClr->setbgn(w->id) = w->clrBgn;
     outClr->setend(w->id) = w->clrEnd;
 
+    //  And maybe delete the read.
+
     if (w->isOK == false) {
+      deletedOut += read->gkRead_sequenceLength();
+
       outClr->setDeleted(w->id);
-      fprintf(stderr, "\n");
     }
+
+    //  Update stats on what was trimmed.  The asserts say the clear range didn't expand, and the if
+    //  tests if the clear range changed.
+
+    assert(w->clrBgn >= w->iniBgn);
+    assert(w->iniEnd >= w->clrEnd);
+
+    if (w->clrBgn > w->iniBgn)
+      readsTrimmed5 += w->clrBgn - w->iniBgn;
+
+    if (w->iniEnd > w->clrEnd)
+      readsTrimmed3 += w->iniEnd - w->clrEnd;
   }
 
 
@@ -251,47 +387,84 @@ main(int argc, char **argv) {
 
   //  Write the summary
 
-  sprintf(outputName, "%s.summary",     outputPrefix);
-  errno = 0;
-  summaryFile = fopen(outputName, "w");
-  if (errno) {
-    fprintf(stderr, "Failed to open '%s' for writing: %s\n", outputName, strerror(errno));
-    summaryFile = stdout;
+  if (outputPrefix) {
+    sprintf(outputName, "%s.stats", outputPrefix);
+
+    errno = 0;
+    staFile = fopen(outputName, "w");
+    if (errno)
+      fprintf(stderr, "Failed to open '%s' for writing: %s\n", outputName, strerror(errno));
   }
 
+  if (staFile == NULL)
+    staFile = stdout;
+
+  //  Would like to know number of subreads per read
+
+  fprintf(staFile, "PARAMETERS:\n");
+  fprintf(staFile, "----------\n");
+  fprintf(staFile, "%7u    (reads trimmed below this many bases are deleted)\n", minReadLength);
+  fprintf(staFile, "%7.4f    (use overlaps at or below this fraction error)\n", errorRate);
+  //fprintf(staFile, "%7u    (use only overlaps longer than this)\n", minAlignLength);  //  NOT SUPPORTED!
+  fprintf(staFile, "INPUT READS:\n");
+  fprintf(staFile, "-----------\n");
+  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (reads processed)\n", readsIn.nReads, readsIn.nBases);
+  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (reads not processed, previously deleted)\n", deletedIn.nReads, deletedIn.nBases);
+  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (reads not processed, in a library where trimming isn't allowed)\n", noTrimIn.nReads, noTrimIn.nBases);
+  fprintf(staFile, "\n");
+  fprintf(staFile, "PROCESSED:\n");
+  fprintf(staFile, "--------\n");
+  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (no overlaps)\n", noOverlaps.nReads, noOverlaps.nBases);
+  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (no coverage after adjusting for trimming done already)\n", noCoverage.nReads, noCoverage.nBases);
+  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (processed for chimera)\n",  readsProcChimera.nReads, readsProcChimera.nBases);
+  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (processed for spur)\n",     readsProcSpur.nReads,    readsProcSpur.nBases);
+  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (processed for subreads)\n", readsProcSubRead.nReads, readsProcSubRead.nBases);
+  fprintf(staFile, "\n");
+  fprintf(staFile, "READS WITH SIGNALS:\n");
+  fprintf(staFile, "------------------\n");
+  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" signals (number of 5' spur signal)\n", readsBadSpur5.nReads,   readsBadSpur5.nBases);
+  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" signals (number of 3' spur signal)\n", readsBadSpur3.nReads,   readsBadSpur3.nBases);
+  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" signals (number of chimera signal)\n", readsBadChimera.nReads, readsBadChimera.nBases);
+  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" signals (number of subread signal)\n", readsBadSubread.nReads, readsBadSubread.nBases);
+  fprintf(staFile, "\n");
+  fprintf(staFile, "SIGNALS:\n");
+  fprintf(staFile, "-------\n");
+  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (size of 5' spur signal)\n", basesBadSpur5.nReads,   basesBadSpur5.nBases);
+  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (size of 3' spur signal)\n", basesBadSpur3.nReads,   basesBadSpur3.nBases);
+  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (size of chimera signal)\n", basesBadChimera.nReads, basesBadChimera.nBases);
+  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (size of subread signal)\n", basesBadSubread.nReads, basesBadSubread.nBases);
+  fprintf(staFile, "\n");
+  fprintf(staFile, "TRIMMING:\n");
+  fprintf(staFile, "--------\n");
+  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (trimmed from the 5' end of the read)\n", readsTrimmed5.nReads, readsTrimmed5.nBases);
+  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (trimmed from the 3' end of the read)\n", readsTrimmed3.nReads, readsTrimmed3.nBases);
+
 #if 0
-  fprintf(summaryFile, "READS (= ACEEPTED + TRIMMED + DELETED)\n");
-  fprintf(summaryFile, "  total processed       "F_U32"\n", readsProcessed);
-  fprintf(summaryFile, "\n");
-  fprintf(summaryFile, "ACCEPTED\n");
-  fprintf(summaryFile, "  no coverage           "F_U32"\n", noCoverage);
-  fprintf(summaryFile, "  full coverage         "F_U32"\n", fullCoverage);
-  fprintf(summaryFile, "  no signal, no gaps    "F_U32"\n", noSignalNoGap);
-  fprintf(summaryFile, "  no signal, gaps       "F_U32"\n", noSignalButGap);
-  fprintf(summaryFile, "\n");
-  fprintf(summaryFile, "TRIMMED\n");
-  fprintf(summaryFile, "  both                  "F_U32"\n", bothFixed);
-  fprintf(summaryFile, "  chimera               "F_U32"\n", chimeraFixed);
-  fprintf(summaryFile, "  spur                  "F_U32"\n", spurFixed);
-  fprintf(summaryFile, "\n");
-  fprintf(summaryFile, "DELETED\n");
-  fprintf(summaryFile, "  both                  "F_U32"\n", bothDeletedSmall);
-  fprintf(summaryFile, "  chimera               "F_U32"\n", chimeraDeletedSmall);
-  fprintf(summaryFile, "  spur                  "F_U32"\n", spurDeletedSmall);
-  fprintf(summaryFile, "\n");
-  fprintf(summaryFile, "SPUR TYPES (= TRIMMED/DELETED spur + both)\n");
-  fprintf(summaryFile, "  normal                "F_U32"\n", spurDetectedNormal);
-  fprintf(summaryFile, "  linker                "F_U32"\n", spurDetectedLinker);
-  fprintf(summaryFile, "\n");
-  fprintf(summaryFile, "CHIMERA TYPES (= TRIMMED/DELETED chimera + both)\n");
-  fprintf(summaryFile, "  innie pair            "F_U32"\n", chimeraDetectedInnie);
-  fprintf(summaryFile, "  overhang              "F_U32"\n", chimeraDetectedOverhang);
-  fprintf(summaryFile, "  gap                   "F_U32"\n", chimeraDetectedGap);
-  fprintf(summaryFile, "  linker                "F_U32"\n", chimeraDetectedLinker);
+  fprintf(staFile, "DELETED:\n");
+  fprintf(staFile, "-------\n");
+  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (deleted because of both cimera and spur signals)\n", bothDeletedSmall.nReads, bothDeletedSmall.nBases);
+  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (deleted because of chimera signal)\n", chimeraDeletedSmall.nReads, chimeraDeletedSmall.nBases);
+  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (deleted because of spur signal)\n", spurDeletedSmall.nReads, spurDeletedSmall.nBases);
+  fprintf(staFile, "\n");
+  fprintf(staFile, "SPUR TYPES:\n");
+  fprintf(staFile, "----------\n");
+  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (normal spur detected)\n", spurDetectedNormal.nReads, spurDetectedNormal.nBases);
+  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (linker spur detected)\n", spurDetectedLinker.nReads, spurDetectedLinker.nBases);
+  fprintf(staFile, "\n");
+  fprintf(staFile, "CHIMERA TYPES:\n");
+  fprintf(staFile, "-------------\n");
+  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (innie-pair chimera detected)\n", chimeraDetectedInnie.nReads, chimeraDetectedInnie.nBases);
+  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (overhanging chimera detected)\n", chimeraDetectedOverhang.nReads, chimeraDetectedOverhang.nBases);
+  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (gap chimera detected)\n", chimeraDetectedGap.nReads, chimeraDetectedGap.nBases);
+  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (linker chimera detected)\n", chimeraDetectedLinker.nReads, chimeraDetectedLinker.nBases);
 #endif
 
-  if (summaryFile != stdout)
-    fclose(summaryFile);
+  //  INPUT READS  = ACCEPTED + TRIMMED + DELETED
+  //  SPUR TYPE    = TRIMMED and DELETED spur and both categories
+  //  CHIMERA TYPE = TRIMMED and DELETED chimera and both categories
+
+  if (staFile != stdout)
+    fclose(staFile);
 
   exit(0);
 }
