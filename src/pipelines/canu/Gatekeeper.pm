@@ -244,6 +244,12 @@ sub gatekeeper ($$$@) {
     rename "$wrk/$asm.gkpStore.BUILDING",             "$wrk/$asm.gkpStore";
     rename "$wrk/$asm.gkpStore.BUILDING.errorLog",    "$wrk/$asm.gkpStore.errorLog";
 
+    #  If there are no reads in the store, fail politely.
+
+    if (getNumberOfReadsInStore($wrk, $asm) == 0) {
+        caExit("gatekeeper store exists, but contains no reads", undef);
+    }
+
     #  Generate some statistics.
 
     if (! -e "$wrk/$asm.gkpStore/reads.txt") {
