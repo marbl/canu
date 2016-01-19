@@ -111,7 +111,7 @@ unitig construction) follow the same pattern:
 Module Tags
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Beacuse each of the three tasks share common algorithms (all compute overlaps, two compute
+Because each of the three tasks share common algorithms (all compute overlaps, two compute
 consensus sequences, etc), parameters are differentiated by a short prefix 'tag' string.  This lets
 canu have one generic parameter that can be set to different values for each stage in each task.
 For example, "corOvlMemory" will set memory usage for overlaps being generated for read correction;
