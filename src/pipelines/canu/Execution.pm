@@ -1365,6 +1365,7 @@ sub runCommandSilently ($$) {
     print STDERR "\n";
     print STDERR "ERROR: Failed with $error\n";
 
+    exit(1);
     return(1);
 }
 
