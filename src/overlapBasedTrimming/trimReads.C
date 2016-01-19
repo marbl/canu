@@ -24,74 +24,10 @@
  */
 
 #include "trimReads.H"
+#include "trimStat.H"
 #include "clearRangeFile.H"
 
 #include "AS_UTL_decodeRange.H"
-
-
-
-
-class trimStat {
-public:
-  trimStat() {
-    nReads = 0;
-    nBases = 0;
-  };
-
-  trimStat &operator+=(uint32 bases) {
-    nReads += 1;
-    nBases += bases;
-
-    histo.push_back(bases);
-
-    return(*this);
-  };
-
-  void       generatePlots(char *outputPrefix, char *outputName, uint32 binwidth) {
-    char  N[FILENAME_MAX];
-    FILE *F;
-
-    sprintf(N, "%s.%s.dat", outputPrefix, outputName);
-    F = fopen(N, "w");
-    if (errno)
-      fprintf(stderr, "Failed to open '%s' for writing: %s\n", N, strerror(errno)), exit(1);
-    for (uint64 ii=0; ii<histo.size(); ii++)
-      fprintf(F, F_U32"\n", histo[ii]);
-    fclose(F);
-
-    sprintf(N, "%s.%s.gp", outputPrefix, outputName);
-    F = fopen(N, "w");
-    if (errno)
-      fprintf(stderr, "Failed to open '%s' for writing: %s\n", N, strerror(errno)), exit(1);
-    fprintf(F, "set title '%s'\n", outputName);
-    fprintf(F, "set xlabel 'length, bin width = %u'\n", binwidth);
-    fprintf(F, "set ylabel 'number'\n");
-    fprintf(F, "\n");
-    fprintf(F, "binwidth=%u\n", binwidth);
-    fprintf(F, "set boxwidth binwidth\n");
-    fprintf(F, "bin(x,width) = width*floor(x/width) + binwidth/2.0\n");
-    fprintf(F, "\n");
-    fprintf(F, "set terminal png size 1024,1024\n");
-    fprintf(F, "set output '%s.%s.lg.png'\n", outputPrefix, outputName);
-    fprintf(F, "plot [] [0:] '%s.%s.dat' using (bin($1,binwidth)):(1.0) smooth freq with boxes title ''\n", outputPrefix, outputName);
-    fprintf(F, "\n");
-    fprintf(F, "set terminal png size 256,256\n");
-    fprintf(F, "set output '%s.%s.sm.png'\n", outputPrefix, outputName);
-    fprintf(F, "replot\n");
-    fclose(F);
-
-    sprintf(N, "gnuplot %s.%s.gp > /dev/null 2>&1", outputPrefix, outputName);
-
-    system(N);
-  };
-
-  uint32          nReads;
-  uint64          nBases;
-
-  vector<uint32>  histo;
-};
-
-
 
 
 
@@ -296,16 +232,11 @@ main(int argc, char **argv) {
 
   if (outputPrefix) {
     sprintf(logName, "%s.log",   outputPrefix);
-    sprintf(sumName, "%s.stats", outputPrefix);
 
     errno = 0;
     logFile = fopen(logName, "w");
     if (errno)
       fprintf(stderr, "Failed to open log file '%s' for writing: %s\n", logName, strerror(errno)), exit(1);
-
-    staFile = fopen(sumName, "w");
-    if (errno)
-      fprintf(stderr, "Failed to open stats file '%s' for writing: %s\n", sumName, strerror(errno)), exit(1);
 
     fprintf(logFile, "id\tinitL\tinitR\tfinalL\tfinalR\tmessage (DEL=deleted NOC=no change MOD=modified)\n");
   }
@@ -511,10 +442,22 @@ main(int argc, char **argv) {
   delete maxClr;
   delete outClr;
 
+  if (logFile)
+    fclose(logFile);
+
   //  should fprintf() the numbers directly here so an explanation of each category can be supplied;
   //  simpler for now to have report() do it.
 
   //  Dump the statistics and plots
+
+  if (outputPrefix) {
+    sprintf(sumName, "%s.stats", outputPrefix);
+
+    errno = 0;
+    staFile = fopen(sumName, "w");
+    if (errno)
+      fprintf(stderr, "Failed to open stats file '%s' for writing: %s\n", sumName, strerror(errno)), exit(1);
+  }
 
   if (staFile == NULL)
     staFile = stderr;
@@ -528,9 +471,9 @@ main(int argc, char **argv) {
 
   fprintf(staFile, "INPUT READS:\n");
   fprintf(staFile, "-----------\n");
-  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (reads in the input)\n", readsIn.nReads,  readsIn.nBases);
-  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (reads previously deleted)\n", deletedIn.nReads, deletedIn.nBases);
-  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (reads in a library where trimming isn't allowed)\n", noTrimIn.nReads, noTrimIn.nBases);
+  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (reads processed)\n", readsIn.nReads,  readsIn.nBases);
+  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (reads not processed, previously deleted)\n", deletedIn.nReads, deletedIn.nBases);
+  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (reads not processed, in a library where trimming isn't allowed)\n", noTrimIn.nReads, noTrimIn.nBases);
 
   readsIn  .generatePlots(outputPrefix, "inputReads",        250);
   deletedIn.generatePlots(outputPrefix, "inputDeletedReads", 250);
@@ -558,10 +501,8 @@ main(int argc, char **argv) {
   trim5.generatePlots(outputPrefix, "trim5", 25);
   trim3.generatePlots(outputPrefix, "trim3", 25);
 
-  //  Close the log files.
-
-  if (logFile)   fclose(logFile);
-  if (staFile)   fclose(staFile);  //  probably shouldn't close stderr...
+  if ((staFile) && (staFile != stderr))
+    fclose(staFile);
 
   //  Buh-bye.
 
