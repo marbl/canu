@@ -464,6 +464,7 @@ main(int argc, char **argv) {
 
   fprintf(staFile, "PARAMETERS:\n");
   fprintf(staFile, "----------\n");
+  fprintf(staFile, "%7u    (reads trimmed below this many bases are deleted)\n", minReadLength);
   fprintf(staFile, "%7.4f    (use overlaps at or below this fraction error)\n", AS_OVS_decodeEvalue(errorValue));
   fprintf(staFile, "%7u    (break region if overlap is less than this long, for 'largest covered' algorithm)\n", minEvidenceOverlap,  (minEvidenceOverlap  == 1) ? "" : "s");
   fprintf(staFile, "%7u    (break region if overlap coverage is less than this many read%s, for 'largest covered' algorithm)\n", minEvidenceCoverage, (minEvidenceCoverage == 1) ? "" : "s");
