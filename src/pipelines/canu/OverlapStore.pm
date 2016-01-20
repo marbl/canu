@@ -304,6 +304,8 @@ sub overlapStoreBucketizerCheck ($$$$) {
     goto allDone   if (-d "$wrk/$asm.ovlStore");
     goto allDone   if (-e "$wrk/$asm.ovlStore.BUILDING/1-bucketize.success");
 
+    #  Figure out if all the tasks finished correctly.
+
     my $numInputs      = countOverlapStoreInputs($files);
     my $currentJobID   = 1;
     my @successJobs;
@@ -334,41 +336,46 @@ sub overlapStoreBucketizerCheck ($$$$) {
 
     close(F);
 
-    #  No failed jobs?  Success!
+    #  Failed jobs, retry.
 
-    if (scalar(@failedJobs) == 0) {
-        print STDERR "-- Overlap store bucketizer finished.\n";
-        touch("$wrk/$asm.ovlStore.BUILDING/1-bucketize.success"); 
-        setGlobal("canuIteration", 0);
-        emitStage($WRK, $asm, "$tag-overlapStoreBucketizerCheck");
+    if (scalar(@failedJobs) > 0) {
+
+        #  If not the first attempt, report the jobs that failed, and that we're recomputing.
+
+        if ($attempt > 1) {
+            print STDERR "--\n";
+            print STDERR "-- ", scalar(@failedJobs), " overlap store bucketizer jobs failed:\n";
+            print STDERR $failureMessage;
+            print STDERR "--\n";
+        }
+
+        #  If too many attempts, give up.
+
+        if ($attempt > getGlobal("canuIterationMax")) {
+            caExit("failed to overlapStoreBucketize.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
+        }
+
+        #  Otherwise, run some jobs.
+
+        print STDERR "-- overlap store bucketizer attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
+
+        emitStage($WRK, $asm, "$tag-overlapStoreBucketizerCheck", $attempt);
         buildHTML($WRK, $asm, $tag);
+
+        submitOrRunParallelJob($WRK, $asm, "ovB", "$wrk/$asm.ovlStore.BUILDING", "scripts/1-bucketize", @failedJobs);
         return;
     }
 
-    #  If not the first attempt, report the jobs that failed, and that we're recomputing.
-
-    if ($attempt > 1) {
-        print STDERR "--\n";
-        print STDERR "-- ", scalar(@failedJobs), " overlap store bucketizer jobs failed:\n";
-        print STDERR $failureMessage;
-        print STDERR "--\n";
-    }
-
-
-    #  If too many attempts, give up.
-
-    if ($attempt > getGlobal("canuIterationMax")) {
-        caExit("failed to overlapStoreBucketize.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
-    }
-
-    #  Otherwise, run some jobs.
-
-    print STDERR "-- overlap store bucketizer attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
-
   finishStage:
-    emitStage($WRK, $asm, "$tag-overlapStoreBucketizerCheck", $attempt);
+    print STDERR "-- Overlap store bucketizer finished.\n";
+
+    touch("$wrk/$asm.ovlStore.BUILDING/1-bucketize.success"); 
+
+    setGlobal("canuIteration", 0);
+    emitStage($WRK, $asm, "$tag-overlapStoreBucketizerCheck");
     buildHTML($WRK, $asm, $tag);
-    submitOrRunParallelJob($WRK, $asm, "ovB", "$wrk/$asm.ovlStore.BUILDING", "scripts/1-bucketize", @failedJobs);
+    stopAfter("overlapBucketizer");
+
   allDone:
 }
 
@@ -391,6 +398,8 @@ sub overlapStoreSorterCheck ($$$$) {
     goto allDone   if (skipStage($WRK, $asm, "$tag-overlapStoreSorterCheck", $attempt) == 1);
     goto allDone   if (-d "$wrk/$asm.ovlStore");
     goto allDone   if (-e "$wrk/$asm.ovlStore.BUILDING/2-sorter.success");
+
+    #  Figure out if all the tasks finished correctly.
 
     my $numSlices      = getGlobal("ovlStoreSlices");
     my $currentJobID   = 1;
@@ -430,40 +439,46 @@ sub overlapStoreSorterCheck ($$$$) {
 
     close(F);
 
-    #  No failed jobs?  Success!
+    #  Failed jobs, retry.
 
-    if (scalar(@failedJobs) == 0) {
-        print STDERR "-- Overlap store sorter finished.\n";
-        touch("$wrk/$asm.ovlStore.BUILDING/2-sorter.success");
-        setGlobal("canuIteration", 0);
-        emitStage($WRK, $asm, "$tag-overlapStoreSorterCheck");
+    if (scalar(@failedJobs) > 0) {
+
+        #  If not the first attempt, report the jobs that failed, and that we're recomputing.
+
+        if ($attempt > 1) {
+            print STDERR "--\n";
+            print STDERR "-- ", scalar(@failedJobs), " overlap store sorter jobs failed:\n";
+            print STDERR $failureMessage;
+            print STDERR "--\n";
+        }
+
+        #  If too many attempts, give up.
+
+        if ($attempt > getGlobal("canuIterationMax")) {
+            caExit("failed to overlapStoreSorter.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
+        }
+
+        #  Otherwise, run some jobs.
+
+        print STDERR "-- overlap store sorter attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
+
+        emitStage($WRK, $asm, "$tag-overlapStoreSorterCheck", $attempt);
         buildHTML($WRK, $asm, $tag);
+
+        submitOrRunParallelJob($WRK, $asm, "ovS", "$wrk/$asm.ovlStore.BUILDING", "scripts/2-sort", @failedJobs);
         return;
     }
 
-    #  If not the first attempt, report the jobs that failed, and that we're recomputing.
-
-    if ($attempt > 1) {
-        print STDERR "--\n";
-        print STDERR "-- ", scalar(@failedJobs), " overlap store sorter jobs failed:\n";
-        print STDERR $failureMessage;
-        print STDERR "--\n";
-    }
-
-    #  If too many attempts, give up.
-
-    if ($attempt > getGlobal("canuIterationMax")) {
-        caExit("failed to overlapStoreSorter.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
-    }
-
-    #  Otherwise, run some jobs.
-
-    print STDERR "-- overlap store sorter attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
-
   finishStage:
-    emitStage($WRK, $asm, "$tag-overlapStoreSorterCheck", $attempt);
+    print STDERR "-- Overlap store sorter finished.\n";
+
+    touch("$wrk/$asm.ovlStore.BUILDING/2-sorter.success");
+
+    setGlobal("canuIteration", 0);
+    emitStage($WRK, $asm, "$tag-overlapStoreSorterCheck");
     buildHTML($WRK, $asm, $tag);
-    submitOrRunParallelJob($WRK, $asm, "ovS", "$wrk/$asm.ovlStore.BUILDING", "scripts/2-sort", @failedJobs);
+    stopAfter("overlapSorter");
+
   allDone:
 }
 
@@ -616,11 +631,7 @@ sub createOverlapStore ($$$$) {
 
   finishStage:
     generateOverlapStoreStats($wrk, $asm);
-    emitStage($WRK, $asm, "$tag-createOverlapStore");
-    buildHTML($WRK, $asm, $tag);
-    stopAfter("overlapStore");
 
-  allDone:
     if (-e "$wrk/$asm.ovlStore.summary") {
         print STDERR "--\n";
         print STDERR "-- Overlap store '$wrk/$asm.ovlStore' contains:\n";
@@ -635,4 +646,10 @@ sub createOverlapStore ($$$$) {
     } else {
         print STDERR "-- Overlap store '$wrk/$asm.ovlStore' statistics not available.\n";
     }
+
+    emitStage($WRK, $asm, "$tag-createOverlapStore");
+    buildHTML($WRK, $asm, $tag);
+    stopAfter("overlapStore");
+
+  allDone:
 }

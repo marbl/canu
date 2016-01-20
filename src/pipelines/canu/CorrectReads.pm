@@ -720,6 +720,8 @@ sub generateCorrectedReads ($$) {
     goto allDone   if (skipStage($WRK, $asm, "cor-generateCorrectedReads", $attempt) == 1);
     goto allDone   if (sequenceFileExists("$WRK/$asm.correctedReads"));
 
+    #  Figure out if all the tasks finished correctly.
+
     my ($jobs, undef) = computeNumberOfCorrectionJobs($wrk, $asm);
 
     my $currentJobID = "0001";
@@ -739,40 +741,46 @@ sub generateCorrectedReads ($$) {
         $currentJobID++;
     }
 
-    #  No failed jobs?  Success!
+    #  Failed jobs, retry.
 
-    if (scalar(@failedJobs) == 0) {
-        open(L, "> $path/corjob.files") or caExit("failed to open '$path/corjob.files'", undef);
-        print L @successJobs;
-        close(L);
-        setGlobal("canuIteration", 0);
-        emitStage($WRK, $asm, "cor-generateCorrectedReads");
+    if (scalar(@failedJobs) > 0) {
+
+        #  If not the first attempt, report the jobs that failed, and that we're recomputing.
+
+        if ($attempt > 1) {
+            print STDERR "--\n";
+            print STDERR "-- ", scalar(@failedJobs), " read correction jobs failed:\n";
+            print STDERR $failureMessage;
+        }
+
+        #  If too many attempts, give up.
+
+        if ($attempt > getGlobal("canuIterationMax")) {
+            caExit("failed to generate corrected reads.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
+        }
+
+        #  Otherwise, run some jobs.
+
+        print STDERR "-- generate corrected reads attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
+
+        emitStage($WRK, $asm, "cor-generateCorrectedReads", $attempt);
         buildHTML($WRK, $asm, "cor");
+
+        submitOrRunParallelJob($WRK, $asm, "cor", $path, "correctReads", @failedJobs);
         return;
     }
 
-    #  If not the first attempt, report the jobs that failed, and that we're recomputing.
-
-    if ($attempt > 1) {
-        print STDERR "--\n";
-        print STDERR "-- ", scalar(@failedJobs), " read correction jobs failed:\n";
-        print STDERR $failureMessage;
-    }
-
-    #  If too many attempts, give up.
-
-    if ($attempt > getGlobal("canuIterationMax")) {
-        caExit("failed to generate corrected reads.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
-    }
-
-    #  Otherwise, run some jobs.
-
-    print STDERR "-- generate corrected reads attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
-
   finishStage:
-    emitStage($WRK, $asm, "cor-generateCorrectedReads", $attempt);
+    print STDERR "-- Found ", scalar(@successJobs), " read correction output files.\n";
+
+    open(L, "> $path/corjob.files") or caExit("failed to open '$path/corjob.files'", undef);
+    print L @successJobs;
+    close(L);
+
+    setGlobal("canuIteration", 0);
+    emitStage($WRK, $asm, "cor-generateCorrectedReads");
     buildHTML($WRK, $asm, "cor");
-    submitOrRunParallelJob($WRK, $asm, "cor", $path, "correctReads", @failedJobs);
+    stopAfter("readCorrection");
 
   allDone:
 }

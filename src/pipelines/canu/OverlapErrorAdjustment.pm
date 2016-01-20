@@ -253,76 +253,72 @@ sub readErrorDetectionCheck ($$) {
     goto allDone   if (-e "$wrk/$asm.ovlStore/adjustedEvalues");
     goto allDone   if (-d "$wrk/$asm.tigStore");
 
-    my $numReads    = getNumberOfReadsInStore($wrk, $asm);
-    my $numJobs     = 0;
+    #  Figure out if all the tasks finished correctly.
 
-    my $currentJobID   = 1;
     my @successJobs;
     my @failedJobs;
     my $failureMessage = "";
 
-    #  Need to read script to find number of jobs!
-
     open(A, "< $path/red.sh") or caExit("can't open '$path/red.sh' for reading: $!\n", undef);
-
     while (<A>) {
         if (m/if.*jobid\s+=\s+(\d+)\s+.*then/) {
-            $numJobs = ($numJobs < $1) ? $1 : $numJobs;
+            my $ji = substr("0000" . $1, -4);
+            my $jn = "$path/$ji.red";
+
+            if (! -e $jn) {
+                $failureMessage .= "--   job $jn FAILED.\n";
+                push @failedJobs, $1;
+            } else {
+                push @successJobs, $jn;
+            }
         }
     }
-
     close(A);
 
-    for (my $currentJobID=1; $currentJobID <= $numJobs; $currentJobID++) {
-        my $ji = substr("0000" . $currentJobID, -4);
-        my $jn = "$path/$ji.red";
+    #  Failed jobs, retry.
 
-        if (! -e $jn) {
-            $failureMessage .= "--   job $jn FAILED.\n";
-            push @failedJobs, $currentJobID;
-        } else {
-            push @successJobs, $jn;
+    if (scalar(@failedJobs) > 0) {
+
+        #  If not the first attempt, report the jobs that failed, and that we're recomputing.
+
+        if ($attempt > 1) {
+            print STDERR "--\n";
+            print STDERR "-- ", scalar(@failedJobs), " read error detection jobs failed:\n";
+            print STDERR $failureMessage;
+            print STDERR "--\n";
         }
+
+        #  If too many attempts, give up.
+
+        if ($attempt > getGlobal("canuIterationMax")) {
+            caExit("failed to detect errors in reads.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
+        }
+
+        #  Otherwise, run some jobs.
+
+        print STDERR "-- read error detection attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
+
+        emitStage($WRK, $asm, "readErrorDetectionCheck", $attempt);
+        buildHTML($WRK, $asm, "utg");
+
+        submitOrRunParallelJob($WRK, $asm, "red", "$path", "red", @failedJobs);
+        return;
     }
 
-    #  No failed jobs?  Success!
+
+  finishStage:
+    print STDERR "-- Found ", scalar(@successJobs), " read error detection output files.\n";
 
     #  I didn't wan't to concat all the corrections, but it is _vastly_ easier to do so, compared to
     #  hacking correctOverlaps to handle multiple corrections files.  Plus, it is now really just a
     #  concat; before, the files needed to be parsed to strip off a header.
 
-    if (scalar(@failedJobs) == 0) {
-        concatOutput("$path/red.red", @successJobs);
-        setGlobal("canuIteration", 0);
-        emitStage($WRK, $asm, "readErrorDetectionCheck");
-        buildHTML($WRK, $asm, "utg");
-        return;
-    }
+    concatOutput("$path/red.red", @successJobs);
 
-    #  If not the first attempt, report the jobs that failed, and that we're recomputing.
-
-    if ($attempt > 1) {
-        print STDERR "--\n";
-        print STDERR "-- ", scalar(@failedJobs), " read error detection jobs failed:\n";
-        print STDERR $failureMessage;
-        print STDERR "--\n";
-    }
-
-
-    #  If too many attempts, give up.
-
-    if ($attempt > getGlobal("canuIterationMax")) {
-        caExit("failed to detect errors in reads.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
-    }
-
-    #  Otherwise, run some jobs.
-
-    print STDERR "-- read error detection attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
-
-  finishStage:
-    emitStage($WRK, $asm, "readErrorDetectionCheck", $attempt);
+    setGlobal("canuIteration", 0);
+    emitStage($WRK, $asm, "readErrorDetectionCheck");
     buildHTML($WRK, $asm, "utg");
-    submitOrRunParallelJob($WRK, $asm, "red", "$path", "red", @failedJobs);
+    stopAfter("red");
 
   allDone:
 }
@@ -489,6 +485,8 @@ sub overlapErrorAdjustmentCheck ($$) {
     goto allDone   if (skipStage($wrk, $asm, "overlapErrorAdjustmentCheck", $attempt) == 1);
     goto allDone   if (-e "$path/oea.files");
 
+    #  Figure out if all the tasks finished correctly.
+
     my $batchSize   = getGlobal("oeaBatchSize");
     my $failedJobs  = 0;
     my $numReads    = getNumberOfReadsInStore($wrk, $asm);
@@ -496,68 +494,69 @@ sub overlapErrorAdjustmentCheck ($$) {
 
     #  Need to read script to find number of jobs!
 
-    open(A, "< $path/oea.sh") or caExit("can't open '$path/oea.sh' for reading: $!\n", undef);
-
-    while (<A>) {
-        if (m/if.*jobid\s+=\s+(\d+)\s+.*then/) {
-            $numJobs = ($numJobs < $1) ? $1 : $numJobs;
-        }
-    }
-
-    close(A);
-
-    my $currentJobID   = 1;
     my @successJobs;
     my @failedJobs;
     my $failureMessage = "";
 
-    for (my $currentJobID=1; $currentJobID <= $numJobs; $currentJobID++) {
-        my $ji = substr("0000" . $currentJobID, -4);
-        my $jn = "$path/$ji.oea";
+    open(A, "< $path/oea.sh") or caExit("can't open '$path/oea.sh' for reading: $!\n", undef);
+    while (<A>) {
+        if (m/if.*jobid\s+=\s+(\d+)\s+.*then/) {
+            my $ji = substr("0000" . $1, -4);
+            my $jn = "$path/$ji.oea";
 
-        if (! -e $jn) {
-            $failureMessage .= "--   job $jn FAILED.\n";
-            push @failedJobs, $currentJobID;
-        } else {
-            push @successJobs, $jn;
+            if (! -e $jn) {
+                $failureMessage .= "--   job $jn FAILED.\n";
+                push @failedJobs, $1;
+            } else {
+                push @successJobs, $jn;
+            }
         }
     }
+    close(A);
 
-    #  No failed jobs?  Success!
+    #  Failed jobs, retry.
 
-    if (scalar(@failedJobs) == 0) {
-        open(L, "> $path/oea.files") or caExit("can't open '$path/oea.files' for writing: $!", undef);
-        foreach my $f (@successJobs) {
-            print L "$f\n";
+    if (scalar(@failedJobs) > 0) {
+
+        #  If not the first attempt, report the jobs that failed, and that we're recomputing.
+
+        if ($attempt > 1) {
+            print STDERR "--\n";
+            print STDERR "-- ", scalar(@failedJobs), " overlap error adjustment jobs failed:\n";
+            print STDERR $failureMessage;
+            print STDERR "--\n";
         }
-        close(L);
-        setGlobal("canuIteration", 0);
+
+        #  If too many attempts, give up.
+
+        if ($attempt > getGlobal("canuIterationMax")) {
+            caExit("failed to adjust overlap error rates.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
+        }
+
+        #  Otherwise, run some jobs.
+
+        print STDERR "-- overlap error adjustment attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
+
+        emitStage($WRK, $asm, "overlapErrorAdjustmentCheck", $attempt);
+        buildHTML($WRK, $asm, "utg");
+
+        submitOrRunParallelJob($WRK, $asm, "oea", "$path", "oea", @failedJobs);
         return;
     }
 
-    #  If not the first attempt, report the jobs that failed, and that we're recomputing.
-
-    if ($attempt > 1) {
-        print STDERR "--\n";
-        print STDERR "-- ", scalar(@failedJobs), " overlap error adjustment jobs failed:\n";
-        print STDERR $failureMessage;
-        print STDERR "--\n";
-    }
-
-    #  If too many attempts, give up.
-
-    if ($attempt > getGlobal("canuIterationMax")) {
-        caExit("failed to adjust overlap error rates.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
-    }
-
-    #  Otherwise, run some jobs.
-
-    print STDERR "-- overlap error adjustment attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
-
   finishStage:
-    emitStage($WRK, $asm, "overlapErrorAdjustmentCheck", $attempt);
+    print STDERR "-- Found ", scalar(@successJobs), " overlap error adjustment output files.\n";
+
+    open(L, "> $path/oea.files") or caExit("can't open '$path/oea.files' for writing: $!", undef);
+    foreach my $f (@successJobs) {
+        print L "$f\n";
+    }
+    close(L);
+
+    setGlobal("canuIteration", 0);
+    emitStage($WRK, $asm, "overlapErrorAdjustmentCheck");
     buildHTML($WRK, $asm, "utg");
-    submitOrRunParallelJob($WRK, $asm, "oea", "$path", "oea", @failedJobs);
+    stopAfter("oea");
 
   allDone:
 }

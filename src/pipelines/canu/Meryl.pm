@@ -271,10 +271,18 @@ sub merylConfigure ($$$) {
     print F "\n";
     print F getBinDirectoryShellCode();
     print F "\n";
+    print F "#  Purge any previous intermediate result.  Possibly not needed, but safer.\n";
+    print F "\n";
+    print F "rm -f $ofile.WORKING*\n";
+    print F "\n";
     print F "\$bin/meryl \\\n";
     print F "  -B -C -L 2 -v -m $merSize -threads $thr -memory $mem \\\n";
     print F "  -s $wrk/$asm.gkpStore \\\n";
-    print F "  -o $ofile \\\n";
+    print F "  -o $ofile.WORKING \\\n";
+    print F "&& \\\n";
+    print F "mv $ofile.WORKING.mcdat $ofile.FINISHED.mcdat \\\n";
+    print F "&& \\\n";
+    print F "mv $ofile.WORKING.mcidx $ofile.FINISHED.mcidx\n";
     print F "\n";
     print F "exit 0\n";
 
@@ -309,40 +317,49 @@ sub merylCheck ($$$) {
     goto allDone   if  (-e "$ffile");
     goto allDone   if ((-e "$ofile.mcidx") && (-e "$ofile.mcdat"));
 
-    #  Strange, this isn't checking for the outputs here like every other *Check() function does.
+    #  If FINISHED exists, meryl finished successfully.  If WORKING, it failed during output.  If
+    #  nothing, it failed before output.
 
-    #  If not the first attempt, report the jobs that failed, and that we're recomputing.
+    if ((! -e "$ofile.FINISHED.mcdat") ||
+        (! -e "$ofile.FINISHED.mcidx")) {
 
-    if ($attempt > 1) {
-        print STDERR "--\n";
-        print STDERR "-- meryl failed.\n";
-        print STDERR "--\n";
+        #  If not the first attempt, report the jobs that failed, and that we're recomputing.
+
+        if ($attempt > 1) {
+            print STDERR "--\n";
+            print STDERR "-- meryl failed.\n";
+            print STDERR "--\n";
+        }
+
+        #  If too many attempts, give up.
+
+        if ($attempt > getGlobal("canuIterationMax")) {
+            caExit("failed to generate mer counts.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
+        }
+
+        #  Otherwise, run some jobs.
+
+        print STDERR "-- Meryl attempt $attempt begins.\n";
+
+        emitStage($WRK, $asm, "merylCheck", $attempt);
+        buildHTML($WRK, $asm, $tag);
+
+        submitOrRunParallelJob($WRK, $asm, "meryl", "$wrk/0-mercounts", "meryl", (1));
+        return;
     }
-
-    #  If too many attempts, give up.
-
-    if ($attempt > getGlobal("canuIterationMax")) {
-        caExit("failed to generate mer counts.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
-    }
-
-    #  Otherwise, run some jobs.
-
-    print STDERR "-- Meryl attempt $attempt begins.\n";
-
-    emitStage($WRK, $asm, "merylCheck", $attempt);
-    buildHTML($WRK, $asm, $tag);
-
-    submitOrRunParallelJob($WRK, $asm, "meryl", "$wrk/0-mercounts", "meryl", (1));
 
   finishStage:
+    print STDERR "-- Meryl finished successfully.\n";
+
+    rename("$ofile.FINISHED.mcdat", "$ofile.mcdat");
+    rename("$ofile.FINISHED.mcidx", "$ofile.mcidx");
+
     setGlobal("canuIteration", 0);
     emitStage($WRK, $asm, "merylCheck");
     buildHTML($WRK, $asm, $tag);
     stopAfter("merylCheck");
+
   allDone:
-    if ($attempt == 3) {
-        print STDERR "-- Meryl finished successfully.\n";
-    }
 }
 
 
@@ -506,15 +523,6 @@ sub merylProcess ($$$) {
     }
 
   finishStage:
-    unlink "$ofile.mcidx"   if (getGlobal("saveMerCounts") == 0);
-    unlink "$ofile.mcdat"   if (getGlobal("saveMerCounts") == 0);
-
-    emitStage($WRK, $asm, "$tag-meryl");
-    buildHTML($WRK, $asm, $tag);
-    stopAfter("meryl");
-
-  allDone:
-
     if (-e "$ofile.histogram.info") {
         my $numTotal    = 0;
         my $numDistinct = 0;
@@ -541,4 +549,13 @@ sub merylProcess ($$$) {
         print STDERR "--\n";
         print STDERR "-- Using frequent mers in '", getGlobal("${tag}OvlFrequentMers"), "'\n";
     }
+
+    unlink "$ofile.mcidx"   if (getGlobal("saveMerCounts") == 0);
+    unlink "$ofile.mcdat"   if (getGlobal("saveMerCounts") == 0);
+
+    emitStage($WRK, $asm, "$tag-meryl");
+    buildHTML($WRK, $asm, $tag);
+    stopAfter("meryl");
+
+  allDone:
 }

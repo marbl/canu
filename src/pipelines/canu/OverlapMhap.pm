@@ -513,6 +513,8 @@ sub mhapPrecomputeCheck ($$$$) {
     goto allDone   if (-e "$path/precompute.files");
     goto allDone   if (-e "$wrk/$asm.ovlStore");
 
+    #  Figure out if all the tasks finished correctly.
+
     my $currentJobID   = 1;
     my @successJobs;
     my @failedJobs;
@@ -533,54 +535,49 @@ sub mhapPrecomputeCheck ($$$$) {
     }
     close(F);
 
-    #  No failed jobs?  Success!
+    #  Failed jobs, retry.
 
-    if (scalar(@failedJobs) == 0) {
-        open(L, "> $path/precompute.files") or caExit("failed to open '$path/precompute.files'", undef);
-        print L @successJobs;
-        close(L);
-        setGlobal("canuIteration", 0);
-        emitStage($WRK, $asm, "$tag-mhapPrecomputeCheck");
+    if (scalar(@failedJobs) > 0) {
+
+        #  If not the first attempt, report the jobs that failed, and that we're recomputing.
+
+        if ($attempt > 1) {
+            print STDERR "--\n";
+            print STDERR "-- ", scalar(@failedJobs), " mhap precompute jobs failed:\n";
+            print STDERR $failureMessage;
+            print STDERR "--\n";
+        }
+
+        #  If too many attempts, give up.
+
+        if ($attempt > getGlobal("canuIterationMax")) {
+            caExit("failed to precompute mhap indices.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
+        }
+
+        #  Otherwise, run some jobs.
+
+        print STDERR "-- mhap precompute attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
+
+        emitStage($WRK, $asm, "$tag-mhapPrecomputeCheck", $attempt);
         buildHTML($WRK, $asm, $tag);
+
+        submitOrRunParallelJob($WRK, $asm, "${tag}mhap", $path, "precompute", @failedJobs);
         return;
     }
 
-    #  If not the first attempt, report the jobs that failed, and that we're recomputing.
-
-    if ($attempt > 1) {
-        print STDERR "--\n";
-        print STDERR "-- ", scalar(@failedJobs), " mhap precompute jobs failed:\n";
-        print STDERR $failureMessage;
-        print STDERR "--\n";
-    }
-
-    #  If too many attempts, give up.
-
-    if ($attempt > getGlobal("canuIterationMax")) {
-        caExit("failed to precompute mhap indices.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
-    }
-
-    #  Otherwise, run some jobs.
-
-    print STDERR "-- mhap precompute attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
-
   finishStage:
-    emitStage($WRK, $asm, "$tag-mhapPrecomputeCheck", $attempt);
+    print STDERR "-- All ", scalar(@successJobs), " mhap precompute jobs finished successfully.\n";
+
+    open(L, "> $path/precompute.files") or caExit("failed to open '$path/precompute.files'", undef);
+    print L @successJobs;
+    close(L);
+
+    setGlobal("canuIteration", 0);
+    emitStage($WRK, $asm, "$tag-mhapPrecomputeCheck");
     buildHTML($WRK, $asm, $tag);
-    submitOrRunParallelJob($WRK, $asm, "${tag}mhap", $path, "precompute", @failedJobs);
+    stopAfter("mhapPrecompute");
 
   allDone:
-    if ((-e "$path/precompute.files") && ($attempt == 3)) {
-        my $results = 0;
-        open(F, "< $path/precompute.files") or caFailure("can't open '$path/precompute.files' for reading: $!\n", undef);
-        while (<F>) {
-            $results++;
-        }
-        close(F);
-
-        print STDERR "--\n";
-        print STDERR "-- Found $results mhap precompute output files.\n";
-    }
 }
 
 
@@ -605,6 +602,8 @@ sub mhapCheck ($$$$) {
     goto allDone   if (skipStage($WRK, $asm, "$tag-mhapCheck", $attempt) == 1);
     goto allDone   if (-e "$path/mhap.files");
     goto allDone   if (-e "$wrk/$asm.ovlStore");
+
+    #  Figure out if all the tasks finished correctly.
 
     my $currentJobID   = 1;
     my @mhapJobs;
@@ -650,62 +649,51 @@ sub mhapCheck ($$$$) {
     }
     close(F);
 
-    #  No failed jobs?  Success!
+    #  Failed jobs, retry.
 
-    if (scalar(@failedJobs) == 0) {
-        open(L, "> $path/mhap.files") or caExit("failed to open '$path/mhap.files'", undef);
-        print L @mhapJobs;
-        close(L);
-        open(L, "> $path/ovljob.files") or caExit("failed to open '$path/ovljob.files'", undef);
-        print L @successJobs;
-        close(L);
-        setGlobal("canuIteration", 0);
-        emitStage($WRK, $asm, "$tag-mhapCheck");
+    if (scalar(@failedJobs) > 0) {
+
+        #  If not the first attempt, report the jobs that failed, and that we're recomputing.
+
+        if ($attempt > 1) {
+            print STDERR "--\n";
+            print STDERR "-- ", scalar(@failedJobs), " mhap jobs failed:\n";
+            print STDERR $failureMessage;
+            print STDERR "--\n";
+        }
+
+        #  If too many attempts, give up.
+
+        if ($attempt > getGlobal("canuIterationMax")) {
+            caExit("failed to compute mhap overlaps.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
+        }
+
+        #  Otherwise, run some jobs.
+
+        print STDERR "-- mhap attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
+
+        emitStage($WRK, $asm, "$tag-mhapCheck", $attempt);
         buildHTML($WRK, $asm, $tag);
+        submitOrRunParallelJob($WRK, $asm, "${tag}mhap", $path, "mhap", @failedJobs);
         return;
     }
 
-    #  If not the first attempt, report the jobs that failed, and that we're recomputing.
-
-    if ($attempt > 1) {
-        print STDERR "--\n";
-        print STDERR "-- ", scalar(@failedJobs), " mhap jobs failed:\n";
-        print STDERR $failureMessage;
-        print STDERR "--\n";
-    }
-
-    #  If too many attempts, give up.
-
-    if ($attempt > getGlobal("canuIterationMax")) {
-        caExit("failed to compute mhap overlaps.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
-    }
-
-    #  Otherwise, run some jobs.
-
-    print STDERR "-- mhap attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
-
   finishStage:
-    emitStage($WRK, $asm, "$tag-mhapCheck", $attempt);
+    print STDERR "-- Found ", scalar(@successJobs), " mhap overlap output files.\n"; 
+
+    open(L, "> $path/mhap.files") or caExit("failed to open '$path/mhap.files'", undef);
+    print L @mhapJobs;
+    close(L);
+
+    open(L, "> $path/ovljob.files") or caExit("failed to open '$path/ovljob.files'", undef);
+    print L @successJobs;
+    close(L);
+
+    setGlobal("canuIteration", 0);
+    emitStage($WRK, $asm, "$tag-mhapCheck");
     buildHTML($WRK, $asm, $tag);
-    submitOrRunParallelJob($WRK, $asm, "${tag}mhap", $path, "mhap", @failedJobs);
+    stopAfter("mhapOverlap");
 
   allDone:
-    if ((-e "$path/ovljob.files") && ($attempt == 3)) {
-        my $results = 0;
-        open(F, "< $path/ovljob.files") or caFailure("can't open '$path/ovljob.files' for reading: $!\n", undef);
-        while (<F>) {
-            $results++;
-        }
-        close(F);
-
-        print STDERR "--\n";
-        print STDERR "-- Found $results mhap overlap output files.\n"; 
-
-        #  Purge the precompute outputs and the original mhap outputs.  We have all the ovl files we
-        #  need.  This is done after overlap store creation, could safely be done here.
-
-        if (getGlobal("saveOverlaps") eq "0") {
-        }
-    }
 }
 

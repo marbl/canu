@@ -186,51 +186,47 @@ sub unitigCheck ($$) {
 
     #  If 'FINISHED' exists, the job finished successfully.
 
-    if (-e "$wrk/$asm.tigStore.FINISHED/seqDB.v001.tig") {
-        rename "$wrk/$asm.tigStore.FINISHED", "$wrk/$asm.tigStore";
+    if (! -e "$wrk/$asm.tigStore.FINISHED/seqDB.v001.tig") {
 
-        setGlobal("canuIteration", 0);
-        emitStage($WRK, $asm, "unitigCheck");
+        #  If not the first attempt, report the jobs that failed, and that we're recomputing.
+
+        if ($attempt > 1) {
+            print STDERR "--\n";
+            print STDERR "-- Unitigger failed.\n";
+            print STDERR "--\n";
+        }
+
+        #  If too many attempts, give up.
+
+        if ($attempt > getGlobal("canuIterationMax")) {
+            caExit("failed to generate unitigs.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
+        }
+
+        #  Otherwise, run some jobs.
+
+        print STDERR "-- Unitigger attempt $attempt begins.\n";
+
+        emitStage($WRK, $asm, "unitigCheck", $attempt);
         buildHTML($WRK, $asm, "utg");
 
-        reportUnitigSizes($wrk, $asm, 1, "after unitig construction");
+        submitOrRunParallelJob($WRK, $asm, "bat", $path, "unitigger", (1));
         return;
     }
 
-    #  If no 'tigStore' exists - and it doesn't because we just checked for it above - then the
-    #  job failed or was killed.  No cleanup is done, possibly the unitigger will be smart enough
-    #  to reuse some of the files.
-
-    #  If not the first attempt, report the jobs that failed, and that we're recomputing.
-
-    if ($attempt > 1) {
-        print STDERR "--\n";
-        print STDERR "-- Unitigger failed.\n";
-        print STDERR "--\n";
-    }
-
-    #  If too many attempts, give up.
-
-    if ($attempt > getGlobal("canuIterationMax")) {
-        caExit("failed to generate unitigs.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
-    }
-
-    #  Otherwise, run some jobs.
-
-    print STDERR "-- Unitigger attempt $attempt begins.\n";
-
-    emitStage($WRK, $asm, "unitigCheck", $attempt);
-    buildHTML($WRK, $asm, "utg");
-
-    submitOrRunParallelJob($WRK, $asm, "bat", $path, "unitigger", (1));
+    #  If onGrid, the submitOrRun() has submitted parallel jobs to the grid, and resubmitted the
+    #  executive.  #  The parallel version never gets here
 
   finishStage:
+    print STDERR "-- Unitigger finished successfully.\n";
+
+    rename "$wrk/$asm.tigStore.FINISHED", "$wrk/$asm.tigStore";
+
+    reportUnitigSizes($wrk, $asm, 1, "after unitig construction");
+
+    setGlobal("canuIteration", 0);
     emitStage($WRK, $asm, "unitigCheck");
     buildHTML($WRK, $asm, "utg");
     stopAfter("unitigCheck");
+
   allDone:
-    if ($attempt == 3) {
-        print STDERR "-- Unitigger finished successfully.\n";
-        reportUnitigSizes($wrk, $asm, 1, "after unitig construction");
-    }
 }

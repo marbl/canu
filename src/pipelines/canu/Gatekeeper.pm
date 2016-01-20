@@ -316,11 +316,6 @@ sub gatekeeper ($$$@) {
     }
 
   finishStage:
-    emitStage($WRK, $asm, "$tag-gatekeeper");
-    buildHTML($WRK, $asm, $tag);
-    stopAfter("gatekeeper");
-
-  allDone:
     my $reads    = getNumberOfReadsInStore($wrk, $asm);
     my $bases    = getNumberOfBasesInStore($wrk, $asm);
     my $coverage = int(100 * $bases / getGlobal("genomeSize")) / 100;
@@ -349,4 +344,10 @@ sub gatekeeper ($$$@) {
         printf STDERR "--   %6d %6d %6d %s\n", $v[0], $v[1], $v[2], "*" x int($v[2] / $scale);
     }
     close(F);
+
+    emitStage($WRK, $asm, "$tag-gatekeeper");
+    buildHTML($WRK, $asm, $tag);
+    stopAfter("gatekeeper");
+
+  allDone:
 }

@@ -208,6 +208,8 @@ sub consensusCheck ($$) {
     goto allDone  if (-e "$path/cnsjob.files");
     goto allDone  if (-e "$wrk/$asm.tigStore/seqDB.v002.tig");
 
+    #  Figure out if all the tasks finished correctly.
+
     my $jobs = computeNumberOfConsensusJobs($wrk, $asm);
 
     my $currentJobID = "0001";
@@ -236,50 +238,49 @@ sub consensusCheck ($$) {
         $currentJobID++;
     }
 
-    #  No failed jobs?  Success!
+    #  Failed jobs, retry.
 
-    if (scalar(@failedJobs) == 0) {
-        open(L, "> $path/cnsjob.files") or caExit("can't open '$path/cnsjob.files' for writing: $!", undef);
-        print L @successJobs;
-        close(L);
-        setGlobal("canuIteration", 0);
-        emitStage($WRK, $asm, "consensusCheck");
+    if (scalar(@failedJobs) > 0) {
+
+        #  If not the first attempt, report the jobs that failed, and that we're recomputing.
+
+        if ($attempt > 1) {
+            print STDERR "--\n";
+            print STDERR "-- ", scalar(@failedJobs), " consensus jobs failed:\n";
+            print STDERR $failureMessage;
+            print STDERR "--\n";
+        }
+
+        #  If too many attempts, give up.
+
+        if ($attempt > getGlobal("canuIterationMax")) {
+            caExit("failed to generate consensus.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
+        }
+
+        #  Otherwise, run some jobs.
+
+        print STDERR "-- Consensus attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
+
+        emitStage($WRK, $asm, "consensusCheck", $attempt);
         buildHTML($WRK, $asm, "utg");
+
+        submitOrRunParallelJob($WRK, $asm, "cns", $path, "consensus", @failedJobs);
         return;
     }
 
-    #  If not the first attempt, report the jobs that failed, and that we're recomputing.
-
-    if ($attempt > 1) {
-        print STDERR "--\n";
-        print STDERR "-- ", scalar(@failedJobs), " consensus jobs failed:\n";
-        print STDERR $failureMessage;
-        print STDERR "--\n";
-    }
-
-    #  If too many attempts, give up.
-
-    if ($attempt > getGlobal("canuIterationMax")) {
-        caExit("failed to generate consensus.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
-    }
-
-    #  Otherwise, run some jobs.
-
-    print STDERR "-- Consensus attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
-
-    emitStage($WRK, $asm, "consensusCheck", $attempt);
-    buildHTML($WRK, $asm, "utg");
-
-    submitOrRunParallelJob($WRK, $asm, "cns", $path, "consensus", @failedJobs);
-
   finishStage:
+    print STDERR "-- All ", scalar(@successJobs), " consensus jobs finished successfully.\n";
+
+    open(L, "> $path/cnsjob.files") or caExit("can't open '$path/cnsjob.files' for writing: $!", undef);
+    print L @successJobs;
+    close(L);
+
+    setGlobal("canuIteration", 0);
     emitStage($WRK, $asm, "consensusCheck");
     buildHTML($WRK, $asm, "utg");
     stopAfter("consensusCheck");
+
   allDone:
-    if ($attempt == 3) {
-        print STDERR "-- All ", computeNumberOfConsensusJobs($wrk, $asm), " consensus jobs finished successfully.\n";
-    }
 }
 
 

@@ -314,6 +314,8 @@ sub overlapCheck ($$$$) {
     goto allDone   if (-e "$path/ovljob.files");
     goto allDone   if (-e "$wrk/$asm.ovlStore");
 
+    #  Figure out if all the tasks finished correctly.
+
     my $currentJobID   = 1;
     my @successJobs;
     my @statsJobs;
@@ -351,52 +353,50 @@ sub overlapCheck ($$$$) {
 
     close(F);
 
-    #  No failed jobs?  Success!
+    #  Failed jobs, retry.
 
-    if (scalar(@failedJobs) == 0) {
-        reportOverlapStats($wrk, $asm, @statsJobs);
-        open(L, "> $path/ovljob.files") or caExit("can't open '$path/ovljob.files' for writing: $!", undef);
-        print L @successJobs;
-        close(L);
-        setGlobal("canuIteration", 0);
-        emitStage($WRK, $asm, "$tag-overlapCheck");
+    if (scalar(@failedJobs) > 0) {
+
+        #  If not the first attempt, report the jobs that failed, and that we're recomputing.
+
+        if ($attempt > 1) {
+            print STDERR "--\n";
+            print STDERR "-- ", scalar(@failedJobs), " overlapper jobs failed:\n";
+            print STDERR $failureMessage;
+            print STDERR "--\n";
+        }
+
+        #  If too many attempts, give up.
+
+        if ($attempt > getGlobal("canuIterationMax")) {
+            caExit("failed to overlap.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
+        }
+
+        #  Otherwise, run some jobs.
+
+        print STDERR "-- overlapInCore attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
+
+        emitStage($WRK, $asm, "$tag-overlapCheck", $attempt);
         buildHTML($WRK, $asm, $tag);
+
+        submitOrRunParallelJob($WRK, $asm, "${tag}ovl", $path, "overlap", @failedJobs);
         return;
     }
 
-    #  If not the first attempt, report the jobs that failed, and that we're recomputing.
-
-    if ($attempt > 1) {
-        print STDERR "--\n";
-        print STDERR "-- ", scalar(@failedJobs), " overlapper jobs failed:\n";
-        print STDERR $failureMessage;
-        print STDERR "--\n";
-    }
-
-    #  If too many attempts, give up.
-
-    if ($attempt > getGlobal("canuIterationMax")) {
-        caExit("failed to overlap.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
-    }
-
-    #  Otherwise, run some jobs.
-
-    print STDERR "-- overlapInCore attempt $attempt begins with ", scalar(@successJobs), " finished, and ", scalar(@failedJobs), " to compute.\n";
-
   finishStage:
-    emitStage($WRK, $asm, "$tag-overlapCheck", $attempt);
+    print STDERR "-- Found ", scalar(@successJobs), " overlapInCore output files.\n";
+
+    open(L, "> $path/ovljob.files") or caExit("can't open '$path/ovljob.files' for writing: $!", undef);
+    print L @successJobs;
+    close(L);
+
+    reportOverlapStats($wrk, $asm, @statsJobs);
+
+    setGlobal("canuIteration", 0);
+    emitStage($WRK, $asm, "$tag-overlapCheck");
     buildHTML($WRK, $asm, $tag);
-    submitOrRunParallelJob($WRK, $asm, "${tag}ovl", $path, "overlap", @failedJobs);
+    stopAfter("overlapper");
 
   allDone:
-    if ((-e "$path/ovljob.files") && ($attempt == 3)) {
-        my $results = 0;
-        open(F, "< $path/ovljob.files") or caExit("can't open '$path/ovljob.files' for reading: $!\n", undef);
-        while (<F>) {
-            $results++;
-        }
-        close(F);
-        print STDERR "-- Found $results overlapInCore output files.\n";
-    }
 }
 
