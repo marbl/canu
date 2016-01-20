@@ -279,8 +279,8 @@ There are many options for configuring a new grid ('gridEngine*') and for config
 configures its computes to run under grid control ('gridOptions*').  The grid engine to use is
 specified with the 'gridEngine' option.
 
-gridEngine <string="sge">
-  Which grid engine to use.  Auto-detected. Possible choices are 'sge', 'pbs', 'lsf' or 'slurm'.
+gridEngine <string>
+  Which grid engine to use.  Auto-detected.  Possible choices are 'sge', 'pbs', 'lsf' or 'slurm'.
 
   NOTE: 'lsf' support is untested.
 
@@ -291,25 +291,37 @@ Grid Engine Configuration
 
 There are many options to configure support for a new grid engine, and we don't describe them fully.
 If you feel the need to add support for a new engine, please contact us.  That said, file
-``src/pipeline/canu/Defaults.pm`` defines a whole slew of parameters that are used to build up grid
-commands.  The building of commands is done in ``src/pipeline/canu/Execution.pm``.
+``src/pipeline/canu/Defaults.pm`` lists a whole slew of parameters that are used to build up grid
+commands, they all start with ``gridEngine``.  For each grid, these parameters are defined in the
+various ``src/pipeline/Grid_*.pm`` modules.  The parameters are used in
+``src/pipeline/canu/Execution.pm``.
 
-.. gridEngineArrayName <string>
-.. gridEngineArrayOption <string>
-.. gridEngineArraySubmitID <string>
-.. gridEngineHoldOption <string>
-.. gridEngineHoldOptionNoArray <string>
-.. gridEngineJobID <string>
-.. gridEngineMemoryOption <string>
-.. gridEngineNameOption <string>
-.. gridEngineNameToJobIDCommand <string>
-.. gridEngineNameToJobIDCommandNoArray <string>
-.. gridEngineOutputOption <string>
-.. gridEnginePropagateCommand <string>
-.. gridEngineSubmitCommand <string>
-.. gridEngineSyncOption <string>
-.. gridEngineTaskID <string>
-.. gridEngineThreadsOption <string>
+For SGE grids, two options are sometimes necessary to tell canu about pecularities of your grid:
+``gridEngineThreadsOption`` describes how to request multiple cores, and ``gridEngineMemoryOption``
+describes how to request memory.  Usually, canu can figure out how to do this, but sometimes it
+reports an error such as::
+
+ -- WARNING:  Couldn't determine the SGE parallel environment to run multi-threaded codes.
+ --           Valid choices are (pick one and supply it to canu):
+ --             gridEngineThreadsOption="-pe make THREADS"
+ --             gridEngineThreadsOption="-pe make-dedicated THREADS"
+ --             gridEngineThreadsOption="-pe mpich-rr THREADS"
+ --             gridEngineThreadsOption="-pe openmpi-fill THREADS"
+ --             gridEngineThreadsOption="-pe smp THREADS"
+ --             gridEngineThreadsOption="-pe thread THREADS"
+
+or::
+
+ -- WARNING:  Couldn't determine the SGE resource to request memory.
+ --           Valid choices are (pick one and supply it to canu):
+ --             gridEngineMemoryOption="-l h_vmem=MEMORY"
+ --             gridEngineMemoryOption="-l mem_free=MEMORY"
+
+If you get such a message, just add the appropriate line to your canu command line.  Both options
+will replace the uppercase text (THREADS or MEMORY) with the value canu wants when the job is
+submitted.  For ``gridEngineMemoryOption``, any number of ``-l`` options can be supplied; we could
+use ``gridEngineMemoryOption="-l h_vmem=MEMORY -l mem_free=MEMORY"`` to request both ``h_vmem`` and
+``mem_free`` memory.
 
 .. _grid-options:
 
