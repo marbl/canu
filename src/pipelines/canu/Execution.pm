@@ -923,7 +923,7 @@ sub buildMemoryOption ($$) {
        $u = "";
     }
     $r =  getGlobal("gridEngineMemoryOption");
-    $r =~ s/MEMORY/${m}${u}/;
+    $r =~ s/MEMORY/${m}${u}/g;
 
     return($r);
 }
@@ -934,7 +934,7 @@ sub buildThreadOption ($) {
     my $r;
 
     $r =  getGlobal("gridEngineThreadsOption");
-    $r =~ s/THREADS/$t/;
+    $r =~ s/THREADS/$t/g;
 
     return($r);
 }
