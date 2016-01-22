@@ -88,9 +88,9 @@ sub configureSGE () {
             }
             close(F);
 
-            #if (($ar == 1) && ($cs == 1) && ($jf == 1)) {
+            if (($ar == 1) && ($cs == 1) && ($jf == 1)) {
                 push @thr, $env;
-            #}
+            }
         }
 
         if (scalar(@thr) == 1) {
