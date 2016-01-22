@@ -2,48 +2,72 @@
 
 use strict;
 use File::Compare;
+use Cwd qw(getcwd);
 
-#  If not a git repo, do nothing.
-exit(0)   if (! -d "../.git");
+my $cwd = getcwd();
 
-my $firstRev = undef;
+my $major    = "0";
+my $minor    = "0";
+my $commits  = "0";
+my $hash     = undef;   #  This from 'git describe'
+my $dirty    = "";
+my $firstRev = undef;   #  This from 'git rev-list'
 my $revCount = 0;
 
-open(F, "git rev-list HEAD |") or die "Failed to run 'git rev-list'.\n";
-while (<F>) {
-    chomp;
 
-    $firstRev = $_  if (!defined($firstRev));
-    $revCount++;
-}
-close(F);
+#  If in a git repo, we can get the actual values.
 
-my $major   = "M";
-my $minor   = "n";
-my $commits = "d";
-my $hash    = "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef";
-my $dirty   = "";
+if (-d "../.git") {
 
-open(F, "git describe --tags --long --dirty --always --abbrev=40 |") or die "Failed to run 'git describe'.\n";
-while (<F>) {
-    chomp;
-    if (m/^v(\d+)\.(\d+.*)-(\d+)-g(.{40})-*(.*)$/) {
-        $major   = $1;
-        $minor   = $2;
-        $commits = $3;
-        $hash    = $4;
-        $dirty   = $5;
+    open(F, "git rev-list HEAD |") or die "Failed to run 'git rev-list'.\n";
+    while (<F>) {
+        chomp;
+
+        $firstRev = $_  if (!defined($firstRev));
+        $revCount++;
+    }
+    close(F);
+
+    open(F, "git describe --tags --long --dirty --always --abbrev=40 |") or die "Failed to run 'git describe'.\n";
+    while (<F>) {
+        chomp;
+        if (m/^v(\d+)\.(\d+.*)-(\d+)-g(.{40})-*(.*)$/) {
+            $major   = $1;
+            $minor   = $2;
+            $commits = $3;
+            $hash    = $4;
+            $dirty   = $5;
+        } else {
+            die "Failed to parse describe string '$_'.\n";
+        }
+    }
+    close(F);
+
+    if ($dirty eq "dirty") {
+        $dirty = "ahead of github";
     } else {
-        die "Failed to parse describe string '$_'.\n";
+        $dirty = "sync'd with guthub";
     }
 }
-close(F);
 
-if ($dirty eq "dirty") {
-    $dirty = "ahead of github";
-} else {
-    $dirty = "sync'd with guthub";
+
+#  If not in a git repo, we might be able to figure things out based on the directory name.
+
+elsif ((! -e "../.git") &&
+    ($cwd =~ m/canu-(.{40})\/src/)) {
+    $hash     = $1;
+    $firstRev = $1;
 }
+
+
+#  Otherwise, we know absolutely nothing.
+
+else {
+    $hash     = "unknown-hash-tag-no-repository-available";
+    $firstRev = "unknown-hash-tag-no-repository-available";
+}
+
+
 
 #  Report what we found.  This is really for the gmake output.
 
