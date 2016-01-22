@@ -161,15 +161,12 @@ sub outputSummary ($$) {
     my $cmd;
 
     goto allDone   if (skipStage($WRK, $asm, "outputSummary") == 1);
-    goto allDone   if (-e "$WRK/$asm.html");
-
-    #  Write a basic html file with all the summary statistics we can find, links to images, and links to outputs.
-
+    goto allDone   if (-e "$WRK/unitiggging.html");
 
   finishStage:
     emitStage($WRK, $asm, "outputSummary");
     buildHTML($WRK, $asm, "utg");
 
   allDone:
-    print STDERR "-- Summary saved in '$WRK/$asm.html'.\n";
+    print STDERR "-- Summary saved in '$WRK/unitigging.html'.\n";
 }
