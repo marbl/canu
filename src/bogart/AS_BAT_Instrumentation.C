@@ -171,6 +171,19 @@ classifyUnitigsAsUnassembled(UnitigVector &unitigs,
                              uint32        tooShortLength,
                              double        spanFraction,
                              double        lowcovFraction,   uint32  lowcovDepth) {
+  uint32  nTooFew   = 0;
+  uint32  nShort    = 0;
+  uint32  nSingle   = 0;
+  uint32  nCoverage = 0;
+  uint32  nContig   = 0;
+
+  uint64  bTooFew   = 0;
+  uint64  bShort    = 0;
+  uint64  bSingle   = 0;
+  uint64  bCoverage = 0;
+  uint64  bContig   = 0;
+
+  writeLog("==> FILTERING UNASSEMBLED CRUD\n");
 
   for (uint32  ti=0; ti<unitigs.size(); ti++) {
     Unitig  *utg = unitigs[ti];
@@ -183,14 +196,20 @@ classifyUnitigsAsUnassembled(UnitigVector &unitigs,
     //  Rule 1.  Too few reads.
 
     if (utg->ufpath.size() < fewReadsNumber) {
+      writeLog("unitig %u unassembled - too few reads (%u < %u)\n", ti, utg->ufpath.size(), fewReadsNumber);
       utg->_isUnassembled = true;
+      nTooFew += 1;
+      bTooFew += utg->getLength();
       continue;
     }
 
     //  Rule 2.  Short.
 
     if (utg->getLength() < tooShortLength) {
+      writeLog("unitig %u unassembled - too short (%u < %u)\n", ti, utg->getLength(), tooShortLength);
       utg->_isUnassembled = true;
+      nShort += 1;
+      bShort += utg->getLength();
       continue;
     }
 
@@ -203,10 +222,16 @@ classifyUnitigsAsUnassembled(UnitigVector &unitigs,
       int frgend = MAX(frg->position.bgn, frg->position.end);
 
       if (frgend - frgbgn > utg->getLength() * spanFraction) {
+        writeLog("unitig %u unassembled - single read spans unitig (read %u %u-%u spans fraction %f > %f\n",
+                 ti, frg->ident, frg->position.bgn, frg->position.end, (double)(frgend - frgbgn) / utg->getLength(), spanFraction);
         utg->_isUnassembled = true;
+        nSingle += 1;
+        bSingle += utg->getLength();
         break;
       }
     }
+    if (utg->_isUnassembled)
+      continue;
         
     //  Rule 4.  Low coverage.
 
@@ -234,9 +259,26 @@ classifyUnitigsAsUnassembled(UnitigVector &unitigs,
 
     double  lowcov = (double)basesLow / (basesLow + basesHigh);
 
-    if (lowcov >= lowcovFraction)
+    if (lowcov >= lowcovFraction) {
+      writeLog("Unitig %u unassembled - low coverage (%.4f > %.4f at < %ux coverage)\n",
+               ti, lowcov, lowcovFraction, lowcovDepth);
       utg->_isUnassembled = true;
+      nCoverage += 1;
+      bCoverage += utg->getLength();
+      continue;
+    }
+
+    //  Otherwise, unitig is assembled!
+
+    nContig += 1;
+    bContig += utg->getLength();
   }
+
+  writeLog("unassembled filter:  %6u unitigs %11lu bases -- too few reads\n", nTooFew, bTooFew);
+  writeLog("unassembled filter:  %6u unitigs %11lu bases -- too short\n", nShort, bShort);
+  writeLog("unassembled filter:  %6u unitigs %11lu bases -- single spanning read\n", nSingle, bSingle);
+  writeLog("unassembled filter:  %6u unitigs %11lu bases -- low coverage\n", nCoverage, bCoverage);
+  writeLog("unassembled filter:  %6u unitigs %11lu bases -- acceptable contigs\n", nContig, bContig);
 }
 
 
