@@ -61,19 +61,19 @@ uint32 REGION_END_WEIGHT            = 15;  //  Pretend there are this many inter
 omp_lock_t  markRepeat_breakUnitigs_Lock;
 
 bool
-mergeBubbles_findEnds(UnitigVector &unitigs,
-                      double erateBubble,
+mergeBubbles_findEnds(UnitigVector &UNUSED(unitigs),
+                      double UNUSED(erateBubble),
                       Unitig *bubble,
                       ufNode &fFrg,
                       ufNode &lFrg,
-                      Unitig *target) {
+                      Unitig *UNUSED(target)) {
 
   //  Search for edges.  For a bubble to exist, at least one of the first or last non-contained
   //  fragment must have an edge to the 'target' unitig (by construction of the inputs to this
   //  routine).  Ideally, both the first and last will have edges to the same unitig, but we'll test
   //  and allow only a single edge.
 
-  uint32  zIdx = ~(uint32)0;
+  uint32  zIdx = UINT32_MAX;
   uint32  fIdx = zIdx;
   uint32  lIdx = zIdx;
 
@@ -101,8 +101,8 @@ mergeBubbles_findEnds(UnitigVector &unitigs,
   if (fIdx == zIdx) {
 #ifdef LOG_BUBBLE_TESTS
     writeLog("popBubbles()-- Potential bubble unitig %d of length %d with %lu fragments STARTS WITH A CONTAINED FRAGMENT %d\n",
-            bubble->id(), bubble->getLength(), bubble->ufpath.size(),
-            bubble->ufpath[0].ident);
+             bubble->id(), bubble->getLength(), bubble->ufpath.size(),
+             bubble->ufpath[0].ident);
 #endif
     fIdx = 0;
     lIdx = bubble->ufpath.size() - 1;
@@ -154,24 +154,24 @@ mergeBubbles_findEnds(UnitigVector &unitigs,
 #ifdef LOG_BUBBLE_TESTS
   if ((fUtg != 0) && (lUtg != 0))
     writeLog("popBubbles()-- Potential bubble unitig %d of length %d with %lu fragments.  Edges (%d/%d') from frag %d/%d' and (%d/%d') from frag %d/%d'\n",
-            bubble->id(), bubble->getLength(), bubble->ufpath.size(),
-            fEdge->fragId(), (fEdge->frag3p() ? 3 : 5), fFrg.ident, (f3p ? 3 : 5),
-            lEdge->fragId(), (lEdge->frag3p() ? 3 : 5), lFrg.ident, (l3p ? 3 : 5));
+             bubble->id(), bubble->getLength(), bubble->ufpath.size(),
+             fEdge->fragId(), (fEdge->frag3p() ? 3 : 5), fFrg.ident, (f3p ? 3 : 5),
+             lEdge->fragId(), (lEdge->frag3p() ? 3 : 5), lFrg.ident, (l3p ? 3 : 5));
   else if (fUtg != 0)
     writeLog("popBubbles()-- Potential bubble unitig %d of length %d with %lu fragments.  Edge (%d/%d') from frag %d/%d'\n",
-            bubble->id(), bubble->getLength(), bubble->ufpath.size(),
-            fEdge->fragId(), (fEdge->frag3p() ? 3 : 5), fFrg.ident, (f3p ? 3 : 5));
+             bubble->id(), bubble->getLength(), bubble->ufpath.size(),
+             fEdge->fragId(), (fEdge->frag3p() ? 3 : 5), fFrg.ident, (f3p ? 3 : 5));
   else if (lUtg != 0)
     writeLog("popBubbles()-- Potential bubble unitig %d of length %d with %lu fragments.  Edge (%d/%d') from frag %d/%d'\n",
-            bubble->id(), bubble->getLength(), bubble->ufpath.size(),
-            lEdge->fragId(), (lEdge->frag3p() ? 3 : 5), lFrg.ident, (l3p ? 3 : 5));
+             bubble->id(), bubble->getLength(), bubble->ufpath.size(),
+             lEdge->fragId(), (lEdge->frag3p() ? 3 : 5), lFrg.ident, (l3p ? 3 : 5));
   else
     //  But then how do we get an intersection?!?!!  Intersections from a bubble that was
     //  already popped.  We pop A into B, and while iterating through fragments in B we find
     //  the -- now obsolete -- intersections we originally used and try to pop it again.
     //
     writeLog("popBubbles()-- Potential bubble unitig %d of length %d with %lu fragments.  NO EDGES, no bubble.\n",
-            bubble->id(), bubble->getLength(), bubble->ufpath.size());
+             bubble->id(), bubble->getLength(), bubble->ufpath.size());
 #endif
 
   if ((fUtg == 0) && (lUtg == 0))
@@ -183,7 +183,7 @@ mergeBubbles_findEnds(UnitigVector &unitigs,
 
   if ((fUtg != 0) && (lUtg != 0) && (fUtg != lUtg)) {
     writeLog("popBubbles()--   bubble unitig %d has edges to both unitig %d and unitig %d\n",
-            bubble->id(), fUtg, lUtg);
+             bubble->id(), fUtg, lUtg);
     return(true);
   }
 #endif
@@ -364,9 +364,9 @@ mergeBubbles_checkEnds(UnitigVector &unitigs,
     //  Too short.
 #ifdef LOG_BUBBLE_FAILURE
     writeLog("popBubbles()--   too short.  fFrg %d,%d lFrg %d,%d.  L %d,%d R %d,%d len %d\n",
-            fFrg.position.bgn, fFrg.position.end,
-            lFrg.position.bgn, lFrg.position.end,
-            minL, maxL, minR, maxR, placedLen);
+             fFrg.position.bgn, fFrg.position.end,
+             lFrg.position.bgn, lFrg.position.end,
+             minL, maxL, minR, maxR, placedLen);
 #endif
     return(false);
   }
@@ -375,9 +375,9 @@ mergeBubbles_checkEnds(UnitigVector &unitigs,
     //  Too long.
 #ifdef LOG_BUBBLE_FAILURE
     writeLog("popBubbles()--   too long.  fFrg %d,%d lFrg %d,%d.  L %d,%d R %d,%d len %d\n",
-            fFrg.position.bgn, fFrg.position.end,
-            lFrg.position.bgn, lFrg.position.end,
-            minL, maxL, minR, maxR, placedLen);
+             fFrg.position.bgn, fFrg.position.end,
+             lFrg.position.bgn, lFrg.position.end,
+             minL, maxL, minR, maxR, placedLen);
 #endif
     return(false);
   }
@@ -419,8 +419,8 @@ mergeBubbles_checkEnds(UnitigVector &unitigs,
 
 #ifdef LOG_BUBBLE_FAILURE
   writeLog("popBubbles()--   Order/Orientation problem.  bL %d bR %d bOrd %d  nL %d nR %d nOrd %d\n",
-          bL, bR, bOrd,
-          nL, nR, nOrd);
+           bL, bR, bOrd,
+           nL, nR, nOrd);
 #endif
   return(false);
 }
@@ -564,15 +564,14 @@ mergeBubbles_checkFrags(UnitigVector &unitigs,
       //  fails.
 #ifdef LOG_BUBBLE_FAILURE
       writeLog("popBubbles()--   Failed to place frag %d notPlaced %d notPlacedInCorrectPosition %d notPlacedFully %d notOriented %d\n",
-              bubble->ufpath[fi].ident, nNotPlaced, nNotPlacedInCorrectPosition, nNotPlacedFully, nNotOriented);
+               bubble->ufpath[fi].ident, nNotPlaced, nNotPlacedInCorrectPosition, nNotPlacedFully, nNotOriented);
 #endif
       break;
     }
   }
 
-  if (nCorrect != bubble->ufpath.size()) {
+  if (nCorrect != bubble->ufpath.size())
     goto finished;
-  }
 
   //  Now just move the fragments into the target unitig and delete the bubble unitig.
   //
@@ -601,12 +600,20 @@ mergeBubbles_checkFrags(UnitigVector &unitigs,
 
 #ifdef LOG_BUBBLE_SUCCESS
   writeLog("popBubbles()--   merged bubble unitig %d with %ld frags into unitig %d now with %ld frags\n",
-          bubble->id(), bubble->ufpath.size(), target->id(), target->ufpath.size());
+           bubble->id(), bubble->ufpath.size(), target->id(), target->ufpath.size());
 #endif
 
  finished:
   delete [] placements;
   delete [] correctPlace;
+
+  //  If not successful, mark this unitig as a potential bubble.
+
+  if (success == false) {
+    writeLog("popBubbles()--   bubble unitig %d (reads %u length %u) has large differences, not popped into unitig %d\n",
+             bubble->id(), bubble->ufpath.size(), bubble->getLength(), target->id());
+    bubble->_isBubble = true;
+  }
 
   return(success);
 }
@@ -641,11 +648,13 @@ mergeBubbles(UnitigVector &unitigs, double erateBubble, Unitig *target, intersec
 
       if ((bubble == NULL) ||
           (bubble->getLength() > 50000)) {
+#if 0
         writeLog("popBubbles()-- Skip bubble %u length %u with "F_SIZE_T" frags - edge from %d/%c' to utg %d %d/%c'\n",
-                bubble->id(), bubble->getLength(), bubble->ufpath.size(),
-                isect->invadFrg, isect->invad3p ? '3' : '5',
-                target->id(),
-                isect->isectFrg, isect->isect3p ? '3' : '5');
+                 bubble->id(), bubble->getLength(), bubble->ufpath.size(),
+                 isect->invadFrg, isect->invad3p ? '3' : '5',
+                 target->id(),
+                 isect->isectFrg, isect->isect3p ? '3' : '5');
+#endif
         continue;
       }
 
@@ -693,9 +702,9 @@ mergeBubbles(UnitigVector &unitigs, double erateBubble, Unitig *target, intersec
 
 
 
-void
-stealBubbles(UnitigVector &unitigs, double erateBubble, Unitig *target, intersectionList *ilist) {
-}
+//void
+//stealBubbles(UnitigVector &unitigs, double erateBubble, Unitig *target, intersectionList *ilist) {
+//}
 
 
 
@@ -801,7 +810,7 @@ markRepeats_computeUnitigErrorRate(UnitigVector &unitigs,
   stddevError = sqrt(stddevError / error.size());
 
   writeLog("markRepeats_computeUnitigErrorRate()--  tig %d error %f +- %f\n",
-          target->id(), meanError, stddevError);
+           target->id(), meanError, stddevError);
 }
 
 
@@ -840,11 +849,11 @@ markRepeats_placeAndProcessOverlaps(UnitigVector                     &unitigs,
 
 #if 0
       writeLog("markRepeats()-- op[%3d] tig %d frag %d fCoverage %f position %d %d verified %d %d erate %f%s\n",
-              pl, op[pl].tigID, op[pl].frgID, op[pl].fCoverage,
-              op[pl].position.bgn, op[pl].position.end,
-              op[pl].verified.bgn, op[pl].verified.end,
-              erate,
-              erateTooHigh ? " - TOO HIGH" : "");
+               pl, op[pl].tigID, op[pl].frgID, op[pl].fCoverage,
+               op[pl].position.bgn, op[pl].position.end,
+               op[pl].verified.bgn, op[pl].verified.end,
+               erate,
+               erateTooHigh ? " - TOO HIGH" : "");
 #endif
 
       if (erateTooHigh)
@@ -1208,7 +1217,7 @@ void
 markRepeats_findFragsInRegions(Unitig                    *target,
                                vector<repeatRegion>      &regions,
                                set<uint32>               &rptFrags,
-                               set<uint32>               &ejtFrags,
+                               set<uint32>               &UNUSED(ejtFrags),
                                uint32                     minOverlap) {
 
   for (uint32 i=0; i<regions.size(); i++) {
@@ -1227,11 +1236,13 @@ markRepeats_findFragsInRegions(Unitig                    *target,
                                                    FragmentEnd(frg->ident, bgn < end),
                                                    true);
 
+      //  If the read has at least minOverlap/2 bases outside the repeat, assume it
+      //  is placed correctly.
       if ((bgn + minOverlap/2 < regions[i].bgn) ||
           (regions[i].end + minOverlap/2 < end))
         continue;
 
-      //  Read is in a repeat region, toss it out for rebuilding.
+      //  Otherwise, the read is 'contained' in a repeat region.  Remember it for later processing.
       rptFrags.insert(frg->ident);
 
       //  Read is unanchored in a repeat region, toss it out, but place it with the mate.
@@ -1330,15 +1341,15 @@ markRepeats_filterJunctions(Unitig                          *target,
   sort(breakpoints.begin(), breakpoints.end());
 
   writeLog("markRepeats()--  unitig %d has "F_SIZE_T" interesting junctions:\n",
-          target->id(), breakpoints.size());
+           target->id(), breakpoints.size());
 
   for (uint32 ji=0; ji<breakpoints.size(); ji++)
     writeLog("markRepeats()--  junction["F_U32"] at "F_U32"/%c' position "F_U32" repeat %s count "F_U32"\n",
-            ji,
-            breakpoints[ji].breakFrag.fragId(), breakpoints[ji].breakFrag.frag3p() ? '3' : '5',
-            breakpoints[ji].point,
-            breakpoints[ji].rptLeft ? "<-" : "->",
-            brkFrags[breakpoints[ji].breakFrag]);
+             ji,
+             breakpoints[ji].breakFrag.fragId(), breakpoints[ji].breakFrag.frag3p() ? '3' : '5',
+             breakpoints[ji].point,
+             breakpoints[ji].rptLeft ? "<-" : "->",
+             brkFrags[breakpoints[ji].breakFrag]);
 }
 
 
@@ -1348,9 +1359,10 @@ void
 markRepeats_breakUnitigs(UnitigVector                    &unitigs,
                          double                           erateRepeat,
                          Unitig                          *target,
-                         vector<overlapPlacement>        &places,
+                         vector<overlapPlacement>        &UNUSED(places),
                          vector<repeatUniqueBreakPoint>  &breakpoints,
                          set<uint32>                     &jctFrags,
+                         set<uint32>                     &rptFrags,
                          set<uint32>                     &ejtFrags) {
 
   jctFrags.clear();
@@ -1358,10 +1370,9 @@ markRepeats_breakUnitigs(UnitigVector                    &unitigs,
   if (breakpoints.size() == 0)
     return;
 
-  uint32   *breakID = new uint32 [target->ufpath.size()];
+  uint32   *breakID  = new uint32 [target->ufpath.size()];
 
   uint32    nextBreakPoint = 0;
-  bool      currIsRepeat = (breakpoints[nextBreakPoint].rptLeft == true);
   uint32    curr = 1;
   uint32    next = 2;
 
@@ -1370,8 +1381,9 @@ markRepeats_breakUnitigs(UnitigVector                    &unitigs,
     uint32      bgn   = (frg->position.bgn < frg->position.end) ? frg->position.bgn : frg->position.end;
     uint32      end   = (frg->position.bgn < frg->position.end) ? frg->position.end : frg->position.bgn;
 
+    //  If out of breakpoints, put all the remaining reads into the current tig.
     if (nextBreakPoint >= breakpoints.size()) {
-      breakID[fi] = curr;
+      breakID[fi]  = curr;
 
     } else if (breakpoints[nextBreakPoint].rptLeft == false) {
       //  Repeat to the right.  If the fragment starts at or after the junction, place this and
@@ -1389,10 +1401,11 @@ markRepeats_breakUnitigs(UnitigVector                    &unitigs,
       //
       if ((nextBreakPoint < breakpoints.size()) &&
           (breakpoints[nextBreakPoint].point < end) &&
-          (breakpoints[nextBreakPoint].rptLeft == true))
+          (breakpoints[nextBreakPoint].rptLeft == true)) {
         breakID[fi] = next;
-      else
+      } else {
         breakID[fi] = curr;
+      }
 
     } else {
       //  Repeat to the left.  If the fragment ends before the junction, move to the current unitig
@@ -1423,8 +1436,8 @@ markRepeats_breakUnitigs(UnitigVector                    &unitigs,
   memset(uidToOffset, 0, sizeof(uint32)   * (next + 1));
 
   for (uint32 fi=0; fi<target->ufpath.size(); fi++) {
-    ufNode  frg = target->ufpath[fi];
-    uint32  bid = breakID[fi];
+    ufNode  &frg = target->ufpath[fi];
+    uint32   bid = breakID[fi];
 
     if (ejtFrags.count(frg.ident) > 0) {
       writeLog("markRepeats()-- EJECT unanchored frag %u from unitig %u\n",
@@ -1434,7 +1447,9 @@ markRepeats_breakUnitigs(UnitigVector                    &unitigs,
     }
 
     if (uidToUnitig[bid] == NULL) {
-      uidToUnitig[bid] = unitigs.newUnitig(false);
+      uidToUnitig[bid] = unitigs.newUnitig(false);  //  Add a new unitig to the unitigs list
+      //uidToUnitig[bid]->_isRepeat = true;
+
       uidToOffset[bid] = -MIN(frg.position.bgn, frg.position.end);
 
       newTigs.push_back(uidToUnitig[bid]);  //  For reporting below.
@@ -1450,13 +1465,33 @@ markRepeats_breakUnitigs(UnitigVector                    &unitigs,
 
   if (newTigs.size() > 0) {
     writeLog("markRepeats()-- SPLIT unitig %d of length %u with %ld fragments into "F_SIZE_T" unitigs:\n",
-            target->id(), target->getLength(), target->ufpath.size(),
-            newTigs.size());
-    for (uint32 i=0; i<newTigs.size(); i++)
-      writeLog("markRepeats()--   unitig %u of length %u with %ld fragments.\n",
-              newTigs[i]->id(),
-              newTigs[i]->getLength(),
-              newTigs[i]->ufpath.size());
+             target->id(), target->getLength(), target->ufpath.size(),
+             newTigs.size());
+
+    for (uint32 ti=0; ti<newTigs.size(); ti++) {
+      Unitig *tig   = newTigs[ti];
+      uint32  nRept = 0;
+      uint32  nUniq = 0;
+
+      for (uint32 fi=0; fi < tig->ufpath.size(); fi++) {
+        ufNode  &frg = tig->ufpath[fi];
+
+        if (rptFrags.count(frg.ident) == 1)
+          nRept++;
+        else
+          nUniq++;
+      }
+
+      if (nRept > nUniq)
+        tig->_isRepeat = true;
+
+      writeLog("markRepeats()--   unitig %u of length %u with %ld fragments (%u %.4f repeat and %u %.4f non-repeat).\n",
+               tig->id(),
+               tig->getLength(),
+               tig->ufpath.size(),
+               nRept, (double)nRept / (nRept + nUniq),
+               nUniq, (double)nUniq / (nRept + nUniq));
+    }
 
     writeLog("markRepeats()-- DELETE unitig %d\n", target->id());
     unitigs[target->id()] = NULL;
@@ -1478,7 +1513,9 @@ markRepeats_breakUnitigs(UnitigVector                    &unitigs,
 void
 markRepeats_shatterRepeats(UnitigVector   &unitigs,
                            set<uint32>    &jctFrags,
-                           set<uint32>    &covFrags) {
+                           set<uint32>    &rptFrags) {
+
+  //  For each junction read (defined to be the first/last read in a repeat unitig), shatter the unitig.
 
   for (set<uint32>::iterator it=jctFrags.begin(); it!=jctFrags.end(); it++) {
     uint32   iid = *it;
@@ -1490,7 +1527,7 @@ markRepeats_shatterRepeats(UnitigVector   &unitigs,
       continue;
 
     writeLog("markRepeats()--  shatter unitig %u with "F_SIZE_T" fragments from repeat frag %u\n",
-            ti, rpt->ufpath.size(), iid);
+             ti, rpt->ufpath.size(), iid);
 
     for (uint32 fi=0; fi<rpt->ufpath.size(); fi++)
       rpt->removeFrag(rpt->ufpath[fi].ident);
@@ -1499,7 +1536,10 @@ markRepeats_shatterRepeats(UnitigVector   &unitigs,
     delete rpt;
   }
 
-  for (set<uint32>::iterator it=covFrags.begin(); it!=covFrags.end(); it++) {
+  //  For each repeat read (defined to be a read contained nearly entirely in a repeat region), count
+  //  the number that are still in a unitig.
+
+  for (set<uint32>::iterator it=rptFrags.begin(); it!=rptFrags.end(); it++) {
     uint32   iid = *it;
     uint32   ti  = Unitig::fragIn(iid);
     Unitig  *rpt = unitigs[ti];
@@ -1509,7 +1549,7 @@ markRepeats_shatterRepeats(UnitigVector   &unitigs,
       continue;
 
     writeLog("markRepeats()--  frag "F_U32" covered by repeats, but still in unitig %d\n",
-            iid, ti);
+             iid, ti);
   }
 }
 
@@ -1547,7 +1587,7 @@ markRepeats(UnitigVector &unitigs,
             bool shatterRepeats) {
 
   set<uint32>                     ovlFrags;
-  set<uint32>                     covFrags;  //  Frag IIDs of fragments covered by repeat alignments
+  set<uint32>                     rptFrags;  //  Frag IIDs of fragments covered by repeat alignments
   set<uint32>                     jctFrags;  //  Frag IIDs of the first/last fragment in a repeat unitig
   set<uint32>                     ejtFrags;  //  Frag IIDs of frags we should eject instead of split
 
@@ -1575,7 +1615,7 @@ markRepeats(UnitigVector &unitigs,
   //  Convert 'aligned' into regions, throwing out weak ones and those contained in a fragment.
   markRepeats_filterIntervalsSpannedByFragment(target, aligned, regions, minOverlap);
 
-  markRepeats_findFragsInRegions(target, regions, covFrags, ejtFrags, minOverlap);
+  markRepeats_findFragsInRegions(target, regions, rptFrags, ejtFrags, minOverlap);
 
   //  Discard junctions that are not in a remaining region.
   markRepeats_filterJunctions(target, regions, evidence, breakpoints);
@@ -1588,28 +1628,28 @@ markRepeats(UnitigVector &unitigs,
   //#pragma omp critical
 
   omp_set_lock(&markRepeat_breakUnitigs_Lock);
-  markRepeats_breakUnitigs(unitigs, erateRepeat, target, places, breakpoints, jctFrags, ejtFrags);
+  markRepeats_breakUnitigs(unitigs, erateRepeat, target, places, breakpoints, jctFrags, rptFrags, ejtFrags);
   omp_unset_lock(&markRepeat_breakUnitigs_Lock);
 
   //  For each repeat unitig, shatter into fragments (not singleton unitigs) so we can later re-BOG.
   if (shatterRepeats)
-    markRepeats_shatterRepeats(unitigs, jctFrags, covFrags);
+    markRepeats_shatterRepeats(unitigs, jctFrags, rptFrags);
 }
 
 
 
 
-void
-markChimera(UnitigVector &unitigs,
-            double erateRepeat,
-            Unitig *target) {
-}
+//void
+//markChimera(UnitigVector &unitigs,
+//            double erateRepeat,
+//            Unitig *target) {
+//}
 
 
 
 void
 mergeSplitJoin(UnitigVector &unitigs,
-               double erateGraph, double erateBubble, double erateMerge, double erateRepeat,
+               double UNUSED(erateGraph), double erateBubble, double UNUSED(erateMerge), double erateRepeat,
                const char *prefix,
                uint32 minOverlap,
                bool shatterRepeats) {
@@ -1629,12 +1669,12 @@ mergeSplitJoin(UnitigVector &unitigs,
     Unitig        *target = unitigs[5];
 
     writeLog("popBubbles()-- WORKING on unitig %d/"F_SIZE_T" with %ld fragments.\n",
-            target->id(), unitigs.size(), target->ufpath.size());
+             target->id(), unitigs.size(), target->ufpath.size());
 
     mergeBubbles(unitigs, erateBubble, target, ilist);
-    stealBubbles(unitigs, erateBubble, target, ilist);
+    //stealBubbles(unitigs, erateBubble, target, ilist);
     markRepeats(unitigs, erateRepeat, target, minOverlap, shatterRepeats);
-    markChimera(unitigs, erateRepeat, target);
+    //markChimera(unitigs, erateRepeat, target);
     exit(1);
   }
 #endif
@@ -1652,15 +1692,15 @@ mergeSplitJoin(UnitigVector &unitigs,
     Unitig        *target = unitigs[ti];
 
     if ((target == NULL) ||
-        (target->ufpath.size() < 15) ||
+        (target->ufpath.size() < 1) ||  //  was 15
         (target->getLength() < 300))
       continue;
 
-    writeLog("popBubbles()-- WORKING on unitig %d/"F_SIZE_T" of length %u with %ld fragments.\n",
-            target->id(), unitigs.size(), target->getLength(), target->ufpath.size());
+    //writeLog("popBubbles()-- WORKING on unitig %d/"F_SIZE_T" of length %u with %ld fragments.\n",
+    //         target->id(), unitigs.size(), target->getLength(), target->ufpath.size());
 
     mergeBubbles(unitigs, erateBubble, target, ilist);
-    stealBubbles(unitigs, erateBubble, target, ilist);
+    //stealBubbles(unitigs, erateBubble, target, ilist);
   }
 
   reportOverlapsUsed(unitigs, prefix, "popBubbles");
@@ -1688,11 +1728,11 @@ mergeSplitJoin(UnitigVector &unitigs,
         (target->getLength() < 300))
       continue;
 
-    writeLog("repeatDetect()-- WORKING on unitig %d/"F_SIZE_T" of length %u with %ld fragments.\n",
-            target->id(), unitigs.size(), target->getLength(), target->ufpath.size());
+    //writeLog("repeatDetect()-- WORKING on unitig %d/"F_SIZE_T" of length %u with %ld fragments.\n",
+    //         target->id(), unitigs.size(), target->getLength(), target->ufpath.size());
 
     markRepeats(unitigs, erateRepeat, target, minOverlap, shatterRepeats);
-    markChimera(unitigs, erateRepeat, target);
+    //markChimera(unitigs, erateRepeat, target);
   }
 
   omp_destroy_lock(&markRepeat_breakUnitigs_Lock);

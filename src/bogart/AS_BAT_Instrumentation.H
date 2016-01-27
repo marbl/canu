@@ -35,9 +35,15 @@
 #define INCLUDE_AS_BAT_INSTRUMENTATION
 
 
-void           checkUnitigMembership(UnitigVector &unitigs);
-void           reportOverlapsUsed(UnitigVector &unitigs, const char *prefix, const char *name);
-void           reportUnitigs(UnitigVector &unitigs, const char *prefix, const char *name);
+void  checkUnitigMembership(UnitigVector &unitigs);
+void  reportOverlapsUsed(UnitigVector &unitigs, const char *prefix, const char *name);
+void  reportUnitigs(UnitigVector &unitigs, const char *prefix, const char *name);
+
+void  classifyUnitigsAsUnassembled(UnitigVector &unitigs,
+                                   uint32        fewReadsNumber,
+                                   uint32        tooShortLength,
+                                   double        spanFraction,
+                                   double        lowcovFraction,   uint32  lowcovDepth);
 
 
 #endif //  INCLUDE_AS_BAT_INSTRUMENTATION

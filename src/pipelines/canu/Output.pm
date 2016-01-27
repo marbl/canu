@@ -127,28 +127,30 @@ sub outputSequence ($$) {
     my $type = "fasta";  #  Should probably be an option.
 
     goto allDone   if (skipStage($WRK, $asm, "outputSequence") == 1);
-    goto allDone   if (-e "$WRK/$asm.consensus.$type");
+    goto allDone   if (-e "$WRK/$asm.contigs.$type");
 
-    $cmd  = "$bin/tgStoreDump \\\n";
-    $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
-    $cmd .= "  -T $wrk/$asm.tigStore 2 \\\n";
-    $cmd .= "  -consensus -$type \\\n";
-    $cmd .= "  -nreads 2 " . (UINT_MAX-1) . " \\\n";
-    $cmd .= "> $WRK/$asm.consensus.$type\n";
-    $cmd .= "2> $WRK/$asm.consensus.err";
+    foreach my $tt ("unassembled", "bubbles", "contigs") {
+        $cmd  = "$bin/tgStoreDump \\\n";
+        $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
+        $cmd .= "  -T $wrk/$asm.tigStore 2 \\\n";
+        $cmd .= "  -consensus -$type \\\n";
+        $cmd .= "  -$tt \\\n";
+        $cmd .= "> $WRK/$asm.$tt.$type\n";
+        $cmd .= "2> $WRK/$asm.$tt.err";
 
-    if (runCommand($WRK, $cmd)) {
-        caExit("failed to output consensus", "$WRK/$asm.consensus.err");
+        if (runCommand($WRK, $cmd)) {
+            caExit("failed to output consensus", "$WRK/$asm.$tt.err");
+        }
+
+        unlink "$WRK/$asm.$tt.err";
     }
-
-    unlink "$WRK/$asm.consensus.err";
 
   finishStage:
     emitStage($WRK, $asm, "outputSequence");
     buildHTML($WRK, $asm, "utg");
 
   allDone:
-    print STDERR "-- Unitig sequences saved in '$WRK/$asm.consensus.$type'.\n";
+    print STDERR "-- Unitig sequences saved in '$WRK/$asm.*.$type'.\n";
 }
 
 

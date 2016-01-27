@@ -46,7 +46,7 @@ reconstructRepeats(UnitigVector &unitigs,
                    double        erateGraph);
 
 void
-promoteToSingleton(UnitigVector &unitigs, bool enablePromoteToSingleton);
+promoteToSingleton(UnitigVector &unitigs);
 
 
 #endif  //  INCLUDE_AS_BAT_MERGESPLITJOIN

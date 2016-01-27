@@ -66,31 +66,25 @@ tgTigSizeAnalysis::evaluateTig(tgTig *tig, bool useGapped) {
   if (tig->_suggestRepeat)
     lenSuggestRepeat.push_back(length);
 
-  if (tig->_suggestUnique)
-    lenSuggestUnique.push_back(length);
-
   if (tig->_suggestCircular)
     lenSuggestCircular.push_back(length);
 
-  if (tig->_suggestHaploid)
-    lenSuggestHaploid.push_back(length);
-
-  if (tig->numberOfChildren() == 1)
-    lenSingleton.push_back(length);
-  else
-    lenAssembled.push_back(length);
+  switch (tig->_class) {
+    case tgTig_unassembled:   lenUnassembled.push_back(length);  break;
+    case tgTig_bubble:        lenBubble.push_back(length);       break;
+    case tgTig_contig:        lenContig.push_back(length);       break;
+  }
 }
 
 void
 tgTigSizeAnalysis::finalize(void) {
 
-  sort(lenSuggestRepeat.rbegin(),   lenSuggestRepeat.rend());
-  sort(lenSuggestUnique.rbegin(),   lenSuggestUnique.rend());
-  sort(lenSuggestCircular.rbegin(), lenSuggestCircular.rend());
-  sort(lenSuggestHaploid.rbegin(),  lenSuggestHaploid.rend());
+  sort(lenSuggestRepeat.begin(),   lenSuggestRepeat.end(),   greater<uint32>());
+  sort(lenSuggestCircular.begin(), lenSuggestCircular.end(), greater<uint32>());
 
-  sort(lenSingleton.rbegin(), lenSingleton.rend());
-  sort(lenAssembled.rbegin(), lenAssembled.rend());
+  sort(lenUnassembled.begin(), lenUnassembled.end(), greater<uint32>());
+  sort(lenBubble.begin(),      lenBubble.end(),      greater<uint32>());
+  sort(lenContig.begin(),      lenContig.end(),      greater<uint32>());
 }
 
 void
@@ -100,6 +94,8 @@ tgTigSizeAnalysis::printSummary(FILE *out, char *description, vector<uint32> &da
   uint64  tot = 0;
   uint64  nnn = 10;
   uint64  siz = 0;
+
+  //  Duplicates AS_BAT_Instrumentation.C reportN50().
 
   if (cnt == 0)
     return;
@@ -132,10 +128,9 @@ tgTigSizeAnalysis::printSummary(FILE *out, char *description, vector<uint32> &da
 void
 tgTigSizeAnalysis::printSummary(FILE *out) {
   printSummary(out, "lenSuggestRepeat",   lenSuggestRepeat);
-  printSummary(out, "lenSuggestUnique",   lenSuggestUnique);
   printSummary(out, "lenSuggestCircular", lenSuggestCircular);
-  printSummary(out, "lenSuggestHaploid",  lenSuggestHaploid);
 
-  printSummary(out, "lenSingleton",  lenSingleton);
-  printSummary(out, "lenAssembled",  lenAssembled);
+  printSummary(out, "lenUnassembled",     lenUnassembled);
+  printSummary(out, "lenBubble",          lenBubble);
+  printSummary(out, "lenContig",          lenContig);
 }

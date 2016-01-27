@@ -109,20 +109,18 @@ public:
   double         getCoverageStat(uint32 tigID);
   double         getMicroHetProb(uint32 tigID);
 
+  tgTig_class    getClass(uint32 tigID);
   bool           getSuggestRepeat(uint32 tigID);
-  bool           getSuggestUnique(uint32 tigID);
   bool           getSuggestCircular(uint32 tigID);
-  bool           getSuggestHaploid(uint32 tigID);
 
   uint32         getNumChildren(uint32 tigID);
 
   void           setCoverageStat(uint32 tigID, double cs);
   void           setMicroHetProb(uint32 tigID, double mp);
 
+  void           setClass(uint32 tigID, tgTig_class c);
   void           setSuggestRepeat(uint32 tigID, bool enable=true);
-  void           setSuggestUnique(uint32 tigID, bool enable=true);
   void           setSuggestCircular(uint32 tigID, bool enable=true);
-  void           setSuggestHaploid(uint32 tigID, bool enable=true);
 
   uint32         getVersion(uint32 tigID);
 
@@ -195,6 +193,13 @@ tgStore::getMicroHetProb(uint32 tigID) {
 }
 
 inline
+tgTig_class
+tgStore::getClass(uint32 tigID) {
+  assert(tigID < _tigLen);
+  return(_tigEntry[tigID].tigRecord._class);
+}
+
+inline
 bool
 tgStore::getSuggestRepeat(uint32 tigID) {
   assert(tigID < _tigLen);
@@ -203,23 +208,9 @@ tgStore::getSuggestRepeat(uint32 tigID) {
 
 inline
 bool
-tgStore::getSuggestUnique(uint32 tigID) {
-  assert(tigID < _tigLen);
-  return(_tigEntry[tigID].tigRecord._suggestUnique);
-}
-
-inline
-bool
 tgStore::getSuggestCircular(uint32 tigID) {
   assert(tigID < _tigLen);
   return(_tigEntry[tigID].tigRecord._suggestCircular);
-}
-
-inline
-bool
-tgStore::getSuggestHaploid(uint32 tigID) {
-  assert(tigID < _tigLen);
-  return(_tigEntry[tigID].tigRecord._suggestHaploid);
 }
 
 inline
@@ -248,6 +239,15 @@ tgStore::setMicroHetProb(uint32 tigID, double mp) {
 
 inline
 void
+tgStore::setClass(uint32 tigID, tgTig_class c) {
+  assert(tigID < _tigLen);
+  _tigEntry[tigID].tigRecord._class = c;
+  if (_tigCache[tigID])
+    _tigCache[tigID]->_class = c;
+}
+
+inline
+void
 tgStore::setSuggestRepeat(uint32 tigID, bool enable) {
   assert(tigID < _tigLen);
   _tigEntry[tigID].tigRecord._suggestRepeat = enable;
@@ -257,29 +257,11 @@ tgStore::setSuggestRepeat(uint32 tigID, bool enable) {
 
 inline
 void
-tgStore::setSuggestUnique(uint32 tigID, bool enable) {
-  assert(tigID < _tigLen);
-  _tigEntry[tigID].tigRecord._suggestUnique = enable;
-  if (_tigCache[tigID])
-    _tigCache[tigID]->_suggestUnique = enable;
-}
-
-inline
-void
 tgStore::setSuggestCircular(uint32 tigID, bool enable) {
   assert(tigID < _tigLen);
   _tigEntry[tigID].tigRecord._suggestCircular = enable;
   if (_tigCache[tigID])
     _tigCache[tigID]->_suggestCircular = enable;
-}
-
-inline
-void
-tgStore::setSuggestHaploid(uint32 tigID, bool enable) {
-  assert(tigID < _tigLen);
-  _tigEntry[tigID].tigRecord._suggestHaploid = enable;
-  if (_tigCache[tigID])
-    _tigCache[tigID]->_suggestHaploid = enable;
 }
 
 inline

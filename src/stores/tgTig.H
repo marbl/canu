@@ -35,8 +35,30 @@
 #include "gkStore.H"
 
 
-//  Former IntMultiPos
-//
+typedef enum {
+  tgTig_noclass      = 0x00,    //  Could use a tgTig_read for corrections
+  tgTig_unassembled  = 0x01,
+  tgTig_bubble       = 0x02,
+  tgTig_contig       = 3
+} tgTig_class;
+
+static
+const
+char *
+toString(tgTig_class c) {
+  switch (c) {
+    case tgTig_noclass:      return("unset-class");  break;
+    case tgTig_unassembled:  return("unassembled");  break;
+    case tgTig_bubble:       return("bubble");       break;
+    case tgTig_contig:       return("contig");       break;
+  }
+
+  return("undefined-class");
+}
+
+
+
+
 //  Info about the placement of an object in a tig.  For unitigs, this
 //  will be just reads.  For contigs, this could be unitigs and reads.
 //
@@ -192,11 +214,11 @@ public:
   double              _coverageStat;
   double              _microhetProb;   //  placeholder for some future multialignment based uniqueness probability
 
-  uint32              _suggestRepeat    : 1;
-  uint32              _suggestUnique    : 1;
-  uint32              _suggestCircular  : 1;
-  uint32              _suggestHaploid   : 1;
-  uint32              _spare            : 28;
+  tgTig_class         _class           : 2;    //  Output classification: unassembled, bubble, contig
+  uint32              _suggestRepeat   : 1;    //  Bogart made this from detected repeat.
+  uint32              _suggestCircular : 1;    //  Bogart found overlaps making a circle.
+
+  uint32              _spare           : 32 - 2 - 2;
 
   uint32              _layoutLen;       //  Max coord
   uint32              _gappedLen;       //  Gapped consensus
@@ -282,17 +304,13 @@ public:
   double              _coverageStat;
   double              _microhetProb;  //  Placeholder.
 
-  //  Flags for computing consensus/multialignments
-
-  uint32              _utgcns_verboseLevel;
-
   //  A variety of flags to suggest what type of unitig this is
 
-  uint32              _suggestRepeat    : 1;
-  uint32              _suggestUnique    : 1;
-  uint32              _suggestCircular  : 1;
-  uint32              _suggestHaploid   : 1;
-  uint32              _spare:28;
+  tgTig_class         _class           : 2;    //  Output classification: unassembled, bubble, contig
+  uint32              _suggestRepeat   : 1;    //  Bogart made this from detected repeat.
+  uint32              _suggestCircular : 1;    //  Bogart found overlaps making a circle.
+
+  uint32              _spare           : 32 - 2 - 2;
 
   uint32              _layoutLen;         //  The max coord in the layout.  Same as gappedLen if it exists.
 
@@ -315,6 +333,10 @@ public:
   int32              *_childDeltas;       //  deltas for all objects in the _children list
   uint32              _childDeltasLen;
   uint32              _childDeltasMax;
+
+  //  Flags for computing consensus/multialignments
+
+  uint32              _utgcns_verboseLevel;
 };
 
 #endif

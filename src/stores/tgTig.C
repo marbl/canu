@@ -66,10 +66,9 @@ tgTigRecord::tgTigRecord() {
   _coverageStat    = 0.0;
   _microhetProb    = 0.0;
 
+  _class           = tgTig_noclass;
   _suggestRepeat   = false;
-  _suggestUnique   = false;
   _suggestCircular = false;
-  _suggestHaploid  = false;
   _spare           = 0;
 
   _layoutLen       = 0;
@@ -89,10 +88,9 @@ tgTig::tgTig() {
 
   _utgcns_verboseLevel  = 0;
 
+  _class                = tgTig_noclass;
   _suggestRepeat        = 0;
-  _suggestUnique        = 0;
   _suggestCircular      = 0;
-  _suggestHaploid       = 0;
   _spare                = 0;
 
   _layoutLen            = 0;
@@ -139,10 +137,9 @@ tgTigRecord::operator=(tgTig & tg) {
   _coverageStat        = tg._coverageStat;
   _microhetProb        = tg._microhetProb;
 
+  _class               = tg._class;
   _suggestRepeat       = tg._suggestRepeat;
-  _suggestUnique       = tg._suggestUnique;
   _suggestCircular     = tg._suggestCircular;
-  _suggestHaploid      = tg._suggestHaploid;
   _spare               = tg._spare;
 
   _layoutLen           = tg._layoutLen;
@@ -164,10 +161,9 @@ tgTig::operator=(tgTigRecord & tr) {
   _coverageStat        = tr._coverageStat;
   _microhetProb        = tr._microhetProb;
 
+  _class               = tr._class;
   _suggestRepeat       = tr._suggestRepeat;
-  _suggestUnique       = tr._suggestUnique;
   _suggestCircular     = tr._suggestCircular;
-  _suggestHaploid      = tr._suggestHaploid;
   _spare               = tr._spare;
 
   _layoutLen           = tr._layoutLen;
@@ -190,10 +186,9 @@ tgTig::operator=(tgTig & tg) {
   _coverageStat        = tg._coverageStat;
   _microhetProb        = tg._microhetProb;
 
+  _class               = tg._class;
   _suggestRepeat       = tg._suggestRepeat;
-  _suggestUnique       = tg._suggestUnique;
   _suggestCircular     = tg._suggestCircular;
-  _suggestHaploid      = tg._suggestHaploid;
   _spare               = tg._spare;
 
   _layoutLen = tg._layoutLen;
@@ -299,10 +294,9 @@ tgTig::clear(void) {
   _coverageStat         = 0;
   _microhetProb         = 0;
 
+  _class                = tgTig_noclass;
   _suggestRepeat        = 0;
-  _suggestUnique        = 0;
   _suggestCircular      = 0;
-  _suggestHaploid       = 0;
   _spare                = 0;
 
   _layoutLen            = 0;
@@ -460,10 +454,9 @@ tgTig::dumpLayout(FILE *F) {
 
   fprintf(F, "coverageStat    %f\n", _coverageStat);
   fprintf(F, "microhetProb    %f\n", _microhetProb);
+  fprintf(F, "class           %s\n", toString(_class));
   fprintf(F, "suggestRepeat   %c\n", _suggestRepeat   ? 'T' : 'F');
-  fprintf(F, "suggestUnique   %c\n", _suggestUnique   ? 'T' : 'F');
   fprintf(F, "suggestCircular %c\n", _suggestCircular ? 'T' : 'F');
-  fprintf(F, "suggestHaploid  %c\n", _suggestHaploid  ? 'T' : 'F');
   fprintf(F, "numChildren     "F_U32"\n", _childrenLen);
 
   //  And the reads.
@@ -549,17 +542,21 @@ tgTig::loadLayout(FILE *F) {
     } else if (strcmp(W[0], "microhetProb") == 0) {
       _microhetProb = strtodouble(W[1]);
 
+    } else if (strcmp(W[0], "class") == 0) {
+      if      (strcmp(W[1], "unassembled") == 0)
+        _class = tgTig_unassembled;
+      else if (strcmp(W[1], "bubble") == 0)
+        _class = tgTig_bubble;
+      else if (strcmp(W[1], "contig") == 0)
+        _class = tgTig_contig;
+      else
+        fprintf(stderr, "tgTig::loadLayout()-- '%s' line "F_U64" invalid: '%s'\n", W[0], LINEnum, LINE), exit(1);
+
     } else if (strcmp(W[0], "suggestRepeat") == 0) {
       _suggestRepeat = strtouint32(W[1]);
 
-    } else if (strcmp(W[0], "suggestUnique") == 0) {
-      _suggestUnique = strtouint32(W[1]);
-
     } else if (strcmp(W[0], "suggestCircular") == 0) {
       _suggestCircular = strtouint32(W[1]);
-
-    } else if (strcmp(W[0], "suggestHaploid") == 0) {
-      _suggestHaploid = strtouint32(W[1]);
 
     } else if (strcmp(W[0], "numChildren") == 0) {
       //_numChildren = strtouint32(W[1]);
@@ -639,16 +636,15 @@ void
 tgTig::dumpFASTA(FILE *F, bool useGapped) {
   AS_UTL_writeFastA(F,
                     bases(useGapped), length(useGapped), 100,
-                    ">tig%08u len="F_U32" reads="F_U32" covStat=%.2f gappedBases=%s suggestRepeat=%s suggestUnique=%s suggestCircular=%s suggestHaploid=%s\n",
+                    ">tig%08u len="F_U32" reads="F_U32" covStat=%.2f gappedBases=%s class=%s suggestRepeat=%s suggestCircular=%s\n",
                     tigID(),
                     length(useGapped),
                     numberOfChildren(),
                     _coverageStat,
                     (useGapped) ? "yes" : "no",
+                    toString(_class),
                     _suggestRepeat ? "yes" : "no",
-                    _suggestUnique ? "yes" : "no",
-                    _suggestCircular ? "yes" : "no",
-                    _suggestHaploid ? "yes" : "no");
+                    _suggestCircular ? "yes" : "no");
 }
 
 
@@ -657,14 +653,13 @@ tgTig::dumpFASTQ(FILE *F, bool useGapped) {
   AS_UTL_writeFastQ(F,
                     bases(useGapped), length(useGapped),
                     quals(useGapped), length(useGapped),
-                    "@tig%08u len="F_U32" reads="F_U32" covStat=%.2f gappedBases=%s suggestRepeat=%s suggestUnique=%s suggestCircular=%s suggestHaploid=%s\n",
+                    "@tig%08u len="F_U32" reads="F_U32" covStat=%.2f gappedBases=%s class=%s suggestRepeat=%s suggestCircular=%s\n",
                     tigID(),
                     length(useGapped),
                     numberOfChildren(),
                     _coverageStat,
                     (useGapped) ? "yes" : "no",
+                    toString(_class),
                     _suggestRepeat ? "yes" : "no",
-                    _suggestUnique ? "yes" : "no",
-                    _suggestCircular ? "yes" : "no",
-                    _suggestHaploid ? "yes" : "no");
+                    _suggestCircular ? "yes" : "no");
 }

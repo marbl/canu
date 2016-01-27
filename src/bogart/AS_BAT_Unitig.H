@@ -61,8 +61,12 @@ struct ufNode {
 struct Unitig {
 private:
   Unitig() {
-    _length = 0;
-    _id     = 0;
+    _length        = 0;
+    _id            = 0;
+    _isUnassembled = false;
+    _isBubble      = false;
+    _isRepeat      = false;
+    _isCircular    = false;
   };
 
 public:
@@ -78,6 +82,8 @@ public:
   // contain guides, or other fragments that are not randomly sampled
   // across the whole genome.
 
+  uint32 id(void)                 { return(_id); };
+
   int32  getLength(void)          { return(_length);       };
   uint32 getNumFrags(void)        { return(ufpath.size()); };
   uint32 getNumRandomFrags(void)  { return(getNumFrags()); };
@@ -85,23 +91,22 @@ public:
   ufNode getLastBackboneNode(void);
   ufNode getLastBackboneNode(uint32 &);
 
-  uint32       id(void) { return(_id); };
+  void   placeFrag_computePlacement(ufNode          &frag,
+                                    int32           &bidx,
+                                    BestEdgeOverlap *bestedge,
+                                    bool             bestIs3);
 
-  void placeFrag_computePlacement(ufNode          &frag,
-                                  int32           &bidx,
-                                  BestEdgeOverlap *bestedge,
-                                  bool             bestIs3);
+  bool   placeFrag(ufNode &place5, int32 &fidx5, BestEdgeOverlap *bestedge5,
+                   ufNode &place3, int32 &fidx3, BestEdgeOverlap *bestedge3);
 
-  bool placeFrag(ufNode &place5, int32 &fidx5, BestEdgeOverlap *bestedge5,
-                 ufNode &place3, int32 &fidx3, BestEdgeOverlap *bestedge3);
+  bool   placeFrag(ufNode &frag, BestContainment *bestcont);
 
-  bool placeFrag(ufNode &frag, BestContainment *bestcont);
+  void   addFrag(ufNode node, int offset=0, bool report=false);
+  bool   addContainedFrag(int32 fid, BestContainment *bestcont, bool report=false);
+  bool   addAndPlaceFrag(int32 fid, BestEdgeOverlap *bestedge5, BestEdgeOverlap *bestedge3, bool report=false);
 
-  void addFrag(ufNode node, int offset=0, bool report=false);
-  bool addContainedFrag(int32 fid, BestContainment *bestcont, bool report=false);
-  bool addAndPlaceFrag(int32 fid, BestEdgeOverlap *bestedge5, BestEdgeOverlap *bestedge3, bool report=false);
+  void   bubbleSortLastFrag(void);
 
-  void bubbleSortLastFrag(void);
 
   static void removeFrag(int32 fid) {
     _inUnitig[fid] = 0;
@@ -134,11 +139,20 @@ public:
   vector<ufNode>         ufpath;
 
 private:
-  int32    _length;
-  uint32   _id;
+  int32          _length;
+  uint32         _id;
 
   static uint32 *_inUnitig;      //  Maps a fragment iid to a unitig id.
   static uint32 *_pathPosition;  //  Maps a fragment iid to an index in the dovetail path
+
+public:
+  //  Classification.  The output is in three files: 'unassembled', 'bubbles', 'contigs' (defined as
+  //  not unassembled and not bubble).
+
+  uint32         _isUnassembled;  //  Is a single read or a pseudo singleton
+  uint32         _isBubble;       //  Annotation: from a failed bubble pop
+  uint32         _isRepeat;       //  Annotation: from an identified repeat region
+  uint32         _isCircular;     //  Annotation: has overlap to self
 };
 
 

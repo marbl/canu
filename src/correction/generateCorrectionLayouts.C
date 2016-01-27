@@ -62,10 +62,9 @@ generateLayout(gkStore    *gkpStore,
   layout->_coverageStat    = 1.0;  //  Default to just barely unique
   layout->_microhetProb    = 1.0;  //  Default to 100% probability of unique
 
+  layout->_class           = tgTig_noclass;
   layout->_suggestRepeat   = false;
-  layout->_suggestUnique   = false;
   layout->_suggestCircular = false;
-  layout->_suggestHaploid  = false;
 
   gkRead  *read = gkpStore->gkStore_getRead(ovl[0].a_iid);
 

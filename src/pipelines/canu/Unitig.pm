@@ -58,12 +58,18 @@ sub reportUnitigSizes ($$$$) {
     my $bin       = getBinDirectory();
     my $cmd       = "";
 
-    my $asmnum    = 0;
-    my $asmbases  = 0;
-    my $asmsizes  = "";
+    my $ctgNum    = 0;
+    my $ctgBases  = 0;
+    my $ctgSizes  = "";
 
-    my $singnum   = 0;
-    my $singbases = 0;
+    my $usmNum   = 0;
+    my $usmBases = 0;
+
+    my $bubNum   = 0;
+    my $bubBases = 0;
+
+    my $rptNum    = 0;
+    my $rptBases  = 0;
 
     my $V = substr("000000" . $version, -3);
     my $N = "$wrk/$asm.tigStore/seqDB.v$V.sizes.txt";
@@ -82,20 +88,29 @@ sub reportUnitigSizes ($$$$) {
 
     open(F, "< $N") or caExit("failed to open '$N' for reading: $!\n", undef);
     while (<F>) {
-        $singbases = $1  if (m/lenSingleton\s+sum\s+(\d+)/);
-        $singnum   = $1  if (m/lenSingleton\s+num\s+(\d+)/);
-        $asmbases  = $1  if (m/lenAssembled\s+sum\s+(\d+)/);
-        $asmnum    = $1  if (m/lenAssembled\s+num\s+(\d+)/);
+        $rptBases  = $1  if (m/lenSuggestRepeat\s+sum\s+(\d+)/);
+        $rptNum    = $1  if (m/lenSuggestRepeat\s+num\s+(\d+)/);
 
-        $asmsizes .= "--   $_"  if (m/lenAssembled\s+(n\d+)\s+siz/);
+        $usmBases  = $1  if (m/lenUnassembled\s+sum\s+(\d+)/);
+        $usmNum    = $1  if (m/lenUnassembled\s+num\s+(\d+)/);
+
+        $bubBases  = $1  if (m/lenBubble\s+sum\s+(\d+)/);
+        $bubNum    = $1  if (m/lenBubble\s+num\s+(\d+)/);
+
+        $ctgBases  = $1  if (m/lenContig\s+sum\s+(\d+)/);
+        $ctgNum    = $1  if (m/lenContig\s+num\s+(\d+)/);
+
+        $ctgSizes .= "--   $_"  if (m/lenContig\s+(n\d+)\s+siz/);
+
     }
     close(F);
 
     print STDERR "-- Found, in version $version, $label:\n";
-    print STDERR "--   unitigs:     $asmnum sequences, total length $asmbases bp.\n";
-    print STDERR "--   singletons:  $singnum sequences, total length $singbases bp.\n";
+    print STDERR "--   contigs:      $ctgNum sequences, total length $ctgBases bp (including $rptNum repeats of total length $rptBases bp).\n";
+    print STDERR "--   bubbles:      $bubNum sequences, total length $bubBases bp.\n";
+    print STDERR "--   unassembled:  $usmNum sequences, total length $usmBases bp.\n";
     print STDERR "--\n";
-    print STDERR "$asmsizes";
+    print STDERR "$ctgSizes";
     print STDERR "--\n";
 }
 

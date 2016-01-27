@@ -39,7 +39,7 @@
 //  the non-contained, then place contains, then promote what is left over, etc.
 
 void
-promoteToSingleton(UnitigVector &unitigs, bool enablePromoteToSingleton) {
+promoteToSingleton(UnitigVector &unitigs) {
 
   for (uint32 fi=1; fi<=FI->numFragments(); fi++) {
     if (Unitig::fragIn(fi) != 0)
@@ -49,12 +49,6 @@ promoteToSingleton(UnitigVector &unitigs, bool enablePromoteToSingleton) {
     if (FI->fragmentLength(fi) == 0)
       //  Deleted.
       continue;
-
-    if (enablePromoteToSingleton == false) {
-      writeLog("promoteToSingleton()--  Repeat fragment "F_U32" removed from assembly.\n", fi);
-      FI->markAsIgnore(fi);
-      continue;
-    }
 
     Unitig *utg = unitigs.newUnitig(false);
     ufNode  frag;

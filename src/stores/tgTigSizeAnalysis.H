@@ -60,12 +60,11 @@ private:
   uint64          genomeSize;
 
   vector<uint32>  lenSuggestRepeat;
-  vector<uint32>  lenSuggestUnique;
   vector<uint32>  lenSuggestCircular;
-  vector<uint32>  lenSuggestHaploid;
 
-  vector<uint32>  lenSingleton;  //  Has exactly one child
-  vector<uint32>  lenAssembled;  //  Has more than one child
+  vector<uint32>  lenUnassembled;
+  vector<uint32>  lenBubble;
+  vector<uint32>  lenContig;
 };
 
 

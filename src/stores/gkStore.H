@@ -419,8 +419,8 @@ typedef enum {
 static
 const
 char *
-toString(gkStore_mode mode) {
-  switch (mode) {
+toString(gkStore_mode m) {
+  switch (m) {
     case gkStore_readOnly:     return("gkStore_readOnly");     break;
     case gkStore_modify:       return("gkStore_modify");       break;
     case gkStore_extend:       return("gkStore_extend");       break;

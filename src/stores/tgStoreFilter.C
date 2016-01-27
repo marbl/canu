@@ -535,17 +535,20 @@ main(int argc, char **argv) {
 
     if (isUnique) {
       repeat_IsUnique += tigLen;
-      tigStore->setSuggestUnique(tig->tigID());
+#warning NOT setSuggestUnique
+      //tigStore->setSuggestUnique(tig->tigID());
       tigStore->setSuggestRepeat(tig->tigID(), false);
 
     } else if (isSingleton) {
       repeat_IsSingleton += tigLen;
-      tigStore->setSuggestUnique(tig->tigID(), false);
+#warning NOT setSuggestUnique
+      //tigStore->setSuggestUnique(tig->tigID(), false);
       tigStore->setSuggestRepeat(tig->tigID());
 
     } else {
       repeat_IsRepeat += tigLen;
-      tigStore->setSuggestUnique(tig->tigID(), false);
+#warning NOT setSuggestUnique
+      //tigStore->setSuggestUnique(tig->tigID(), false);
       tigStore->setSuggestRepeat(tig->tigID());
     }
   }

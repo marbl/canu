@@ -93,11 +93,10 @@ main (int argc, char * argv []) {
   bool      noContainsInSingletons   = false;
   bool      enableJoining            = false;
 
-  bool      placeContainsUsingBest   = true;
+  bool      placeContainsUsingBest   = true;     //  MUST be true; alternate doesn't work.
 
   bool      enableShatterRepeats     = false;
   bool      enableReconstructRepeats = false;
-  bool      enablePromoteToSingleton = true;
 
   uint32    minReadLen               = 0;
   uint32    minOverlap               = 40;
@@ -148,9 +147,6 @@ main (int argc, char * argv []) {
     } else if (strcmp(argv[arg], "-R") == 0) {
       enableShatterRepeats     = true;
       enableReconstructRepeats = true;
-
-    } else if (strcmp(argv[arg], "-DP") == 0) {
-      enablePromoteToSingleton = false;
 
     } else if (strcmp(argv[arg], "-examineonly") == 0) {
       //  HACK
@@ -293,8 +289,6 @@ main (int argc, char * argv []) {
     fprintf(stderr, "  -J         Join promiscuous unitigs using unused best edges.\n");
     fprintf(stderr, "  -SR        Shatter repeats, don't rebuild.\n");
     fprintf(stderr, "  -R         Shatter repeats (-SR), then rebuild them\n");
-    fprintf(stderr, "  -DP        When -R, don't promote shattered leftovers to unitigs.\n");
-    fprintf(stderr, "               This WILL cause CGW to fail; diagnostic only.\n");
     fprintf(stderr, "  -RL len    Force reads below 'len' bases to be singletons.\n");
     fprintf(stderr, "               This WILL cause CGW to fail; diagnostic only.\n");
     fprintf(stderr, "\n");
@@ -428,8 +422,6 @@ main (int argc, char * argv []) {
   gkpStore->gkStore_close();
   gkpStore = NULL;
 
-
-  ////////////////////////////////////////////////////////////////////////////////
   //
   //  Build the initial unitig path from non-contained fragments.  The first pass is usually the
   //  only one needed, but occasionally (maybe) we miss fragments, so we make an explicit pass
@@ -445,7 +437,6 @@ main (int argc, char * argv []) {
   delete CG;
   CG = NULL;
 
-  //setLogFile(output_prefix, "buildUnitigs-MissedFragments");
   writeLog("==> BUILDING UNITIGS catching missed fragments.\n");
 
   for (uint32 fi=1; fi <= FI->numFragments(); fi++)
@@ -454,7 +445,12 @@ main (int argc, char * argv []) {
   reportOverlapsUsed(unitigs, output_prefix, "buildUnitigs");
   reportUnitigs(unitigs, output_prefix, "buildUnitigs");
 
-  setLogFile(output_prefix, "placeContains");
+#if 0
+  //
+  //  Join unitigs using not-best edges.
+  //
+
+  setLogFile(output_prefix, "joinUnitigs");
 
   if (enableJoining) {
     setLogFile(output_prefix, "joining");
@@ -464,18 +460,25 @@ main (int argc, char * argv []) {
     reportOverlapsUsed(unitigs, output_prefix, "joining");
     reportUnitigs(unitigs, output_prefix, "joining");
   }
+#endif
+
+  //
+  //  Place contained reads.
+  //
+
+  setLogFile(output_prefix, "placeContains");
 
   if (noContainsInSingletons)
     OG->rebuildBestContainsWithoutSingletons(unitigs, erateGraph, output_prefix);
 
-  if (placeContainsUsingBest) {
+  if (placeContainsUsingBest)
     placeContainsUsingBestOverlaps(unitigs);
-
-  } else {
-
-    assert(0);  //  Doesn't work                vvvvvv- bubble?
+  else
     placeContainsUsingAllOverlaps(unitigs, erateBubble);
-  }
+
+  //
+  //  Break and place zombies
+  //
 
   setLogFile(output_prefix, "placeZombies");
 
@@ -484,6 +487,10 @@ main (int argc, char * argv []) {
   checkUnitigMembership(unitigs);
   reportOverlapsUsed(unitigs, output_prefix, "placeContainsZombies");
   reportUnitigs(unitigs, output_prefix, "placeContainsZombies");
+
+  //
+  //  Pop bubbles, detect repeats
+  //
 
   setLogFile(output_prefix, "mergeSplitJoin");
 
@@ -505,31 +512,44 @@ main (int argc, char * argv []) {
 
   checkUnitigMembership(unitigs);
 
+  //
+  //  Cleanup unitigs.  Break those that have gaps in them.  Place contains again.  For any read
+  //  still unplaced, make it a singleton unitig.
+  //
+
   setLogFile(output_prefix, "cleanup");
 
-  splitDiscontinuousUnitigs(unitigs, minOverlap);       //  Clean up splitting problems.
+  splitDiscontinuousUnitigs(unitigs, minOverlap);
 
-  if (placeContainsUsingBest) {
+  if (placeContainsUsingBest)
     placeContainsUsingBestOverlaps(unitigs);
-
-  } else {
-    assert(0);  //  Doesn't work                vvvvvv- bubble?
+  else
     placeContainsUsingAllOverlaps(unitigs, erateBubble);
-  }
 
-  promoteToSingleton(unitigs, enablePromoteToSingleton);
+  promoteToSingleton(unitigs);
 
+  classifyUnitigsAsUnassembled(unitigs,
+                               2,
+                               1000,
+                               1.0,
+                               1.0, 2);
   checkUnitigMembership(unitigs);
+  reportUnitigs(unitigs, output_prefix, "final");
 
-  //  OUTPUT
+  //
+  //  Generate outputs.
+  //
 
   setLogFile(output_prefix, "setParentAndHang");
   setParentAndHang(unitigs);
 
   setLogFile(output_prefix, "output");
-
   writeUnitigsToStore(unitigs, output_prefix, tigStorePath, fragment_count_target);
   writeOverlapsUsed(unitigs, output_prefix);
+
+  //
+  //  Tear down bogart.
+  //
 
   delete CG;
   delete OG;
@@ -540,6 +560,7 @@ main (int argc, char * argv []) {
     delete unitigs[ti];
 
   setLogFile(output_prefix, NULL);
+
   writeLog("Bye.\n");
 
   return(0);

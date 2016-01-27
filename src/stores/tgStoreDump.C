@@ -84,23 +84,28 @@
 class tgFilter {
 public:
   tgFilter() {
-    tigIDbgn    = 0;
-    tigIDend    = UINT32_MAX;
+    tigIDbgn        = 0;
+    tigIDend        = UINT32_MAX;
 
-    minNreads   = 0;
-    maxNreads   = UINT32_MAX;
+    dumpAllClasses  = true;
+    dumpUnassembled = false;
+    dumpBubbles     = false;
+    dumpContigs     = false;
 
-    minLength   = 0;
-    maxLength   = UINT32_MAX;
+    minNreads       = 0;
+    maxNreads       = UINT32_MAX;
 
-    minCoverage = 0.0;
-    maxCoverage = DBL_MAX;
+    minLength       = 0;
+    maxLength       = UINT32_MAX;
 
-    minGoodCov  = 0.0;
-    maxGoodCov  = DBL_MAX;
+    minCoverage     = 0.0;
+    maxCoverage     = DBL_MAX;
 
-    IL          = NULL;
-    ID          = NULL;
+    minGoodCov      = 0.0;
+    maxGoodCov      = DBL_MAX;
+
+    IL              = NULL;
+    ID              = NULL;
   };
 
   ~tgFilter() {
@@ -114,24 +119,37 @@ public:
     bool   iN = ignoreNreads(tig);
     bool   iL = ignoreLength(tig, useGapped);
     bool   iC = ignoreCoverage(tig, useGapped);
+    bool   iS = ignoreClass(tig);
 
-    fprintf(stderr, "ignore()--  tig %u - ignore id %s Nreads %s length %s coverage %s\n",
+    fprintf(stderr, "ignore()--  tig %u - ignore id %s Nreads %s length %s coverage %s class %s\n",
             tig->tigID(),
             (iI) ? "true" : "false",
             (iN) ? "true" : "false",
             (iL) ? "true" : "false",
-            (iC) ? "true" : "false");
+            (iC) ? "true" : "false",
+            (iS) ? "true" : "false");
 #endif
 
     return(ignoreID(tig) ||
            ignoreNreads(tig) ||
            ignoreLength(tig, useGapped) ||
-           ignoreCoverage(tig, useGapped));
+           ignoreCoverage(tig, useGapped) ||
+           ignoreClass(tig));
   };
 
   bool          ignoreID(tgTig *tig) {
     return((tig->tigID() < tigIDbgn) ||
            (tigIDend < tig->tigID()));
+  };
+
+  bool          ignoreClass(tgTig *tig) {
+    if ((dumpAllClasses == true) ||
+        ((tig->_class == tgTig_unassembled) && (dumpUnassembled == true)) ||
+        ((tig->_class == tgTig_bubble)      && (dumpBubbles == true)) ||
+        ((tig->_class == tgTig_contig)      && (dumpContigs == true)))
+      return(false);
+
+    return(true);
   };
 
   bool          ignoreNreads(tgTig *tig) {
@@ -196,6 +214,11 @@ public:
   uint32        tigIDbgn;
   uint32        tigIDend;
 
+  bool          dumpAllClasses;
+  bool          dumpUnassembled;
+  bool          dumpBubbles;
+  bool          dumpContigs;
+
   uint32        minNreads;
   uint32        maxNreads;
 
@@ -223,15 +246,14 @@ dumpStatus(gkStore *UNUSED(gkpStore), tgStore *tigStore) {
 
 void
 dumpTig(FILE *out, tgTig *tig, bool useGapped) {
-  fprintf(out, F_U32"\t"F_U32"\t%s\t%.2f\t%s\t%s\t%s\t%s\t"F_U32"\n",
+  fprintf(out, F_U32"\t"F_U32"\t%s\t%.2f\t%s\t%s\t%s\t"F_U32"\n",
           tig->tigID(),
           tig->length(useGapped),
           tig->coordinateType(useGapped),
           tig->_coverageStat,
+          toString(tig->_class),
           tig->_suggestRepeat ? "yes" : "no",
-          tig->_suggestUnique ? "yes" : "no",
           tig->_suggestCircular ? "yes" : "no",
-          tig->_suggestHaploid ? "yes" : "no",
           tig->numberOfChildren());
 }
 
@@ -1009,6 +1031,22 @@ main (int argc, char **argv) {
       AS_UTL_decodeRange(argv[++arg], filter.tigIDbgn, filter.tigIDend);
     }
 
+    else if (strcmp(argv[arg], "-unassembled") == 0) {
+      filter.dumpAllClasses  = false;
+      filter.dumpUnassembled = true;
+    }
+
+    else if (strcmp(argv[arg], "-bubbles") == 0) {
+      filter.dumpAllClasses  = false;
+      filter.dumpBubbles     = true;
+    }
+
+    else if (strcmp(argv[arg], "-contigs") == 0) {
+      filter.dumpAllClasses  = false;
+      filter.dumpContigs     = true;
+    }
+
+
     else if (strcmp(argv[arg], "-nreads") == 0) {
       filter.minNreads = atoi(argv[++arg]);
       filter.maxNreads = atoi(argv[++arg]);
@@ -1115,7 +1153,10 @@ main (int argc, char **argv) {
     fprintf(stderr, "TIG SELECTION - if nothing specified, all tigs are reported\n");
     fprintf(stderr, "              - all ranges are inclusive.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -tig id[-id]            tig to dump; if A-B, dump tigs from id A to id B\n");
+    fprintf(stderr, "  -tig A[-B]              only dump tigs between ids A and B\n");
+    fprintf(stderr, "  -unassembled            only dump tigs that are 'unassembled'\n");
+    fprintf(stderr, "  -bubbles                only dump tigs that are 'bubbles'\n");
+    fprintf(stderr, "  -contigs                only dump tigs that are 'contigs'\n");
     fprintf(stderr, "  -nreads min max         only dump tigs with between min and max reads\n");
     fprintf(stderr, "  -length min max         only dump tigs with length between 'min' and 'max' bases\n");
     fprintf(stderr, "  -coverage c C g G       only dump tigs with between fraction g and G at coverage between c and C\n");
