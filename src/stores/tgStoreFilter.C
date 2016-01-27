@@ -142,6 +142,9 @@ main(int argc, char **argv) {
 
   argc = AS_configure(argc, argv);
 
+  fprintf(stderr, "this is obsolete.  do not use.\n");
+  exit(1);
+
   int err = 0;
   int arg = 1;
   while (arg < argc) {

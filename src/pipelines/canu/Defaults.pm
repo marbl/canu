@@ -884,29 +884,10 @@ sub setDefaults () {
     $global{"batConcurrency"}              = undef;
     $synops{"batConcurrency"}              = "Unused, only one process supported";
 
-    #####  Unitig Filtering Options
+    #####  Unitig Filtering Options (also set in bogart/bogart.C)
 
-
-
-    #####  Unitig Repeat/Unique Options (formerly in scaffolder)
-
-    $global{"maxSingleReadSpan"}           = undef;  #  1.0 (default as in the binary)
-    $synops{"maxSingleReadSpan"}           = "Unitigs with a single read spanning more than this fraction of the unitig are never labeled unique";
-
-    $global{"lowCoverageAllowed"}          = undef;  #  1.0
-    $synops{"lowCoverageAllowed"}          = "Unitigs with more than fraction lowCoverageAllowed bases at depth at most lowCoverageDepth bases are never labeled unique";
-
-    $global{"lowCoverageDepth"}            = undef;  #  2
-    $synops{"lowCoverageDepth"}            = "Unitigs with more than fraction lowCoverageAllowed bases at depth at most lowCoverageDepth bases are never labeled unique";
-
-    $global{"minReadsUnique"}              = undef;  #  2
-    $synops{"minReadsUnique"}              = "Unitigs with fewer reads that this are never labeled unique";
-
-    $global{"minUniqueLength"}             = undef;  #  1000
-    $synops{"minUniqueLength"}             = "Unitigs shorter than this are always labeled non-unique";
-
-    $global{"maxRepeatLength"}             = undef;  #  max_int
-    $synops{"maxRepeatLength"}             = "Unitigs longer than this are always labeled unique";
+    $global{"contigFilter"}                = "2 1000 0.75 0.75 2";
+    $synops{"contigFilter"}                = "Parameters to filter out 'unassembled' unitigs: minReads; minLength; singleReadSpan; lowCovSpan, lowCovDepth";
 
     #####  Consensus Options
 

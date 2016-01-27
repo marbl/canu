@@ -480,7 +480,6 @@ if (setOptions($mode, "assemble") eq "assemble") {
 
     consensusLoad($wrk, $asm);
     consensusAnalyze($wrk, $asm);
-    consensusFilter($wrk, $asm);
 
     outputGraph($wrk, $asm);
     outputLayout($wrk, $asm);

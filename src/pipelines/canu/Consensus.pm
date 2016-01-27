@@ -36,7 +36,7 @@ package canu::Consensus;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(consensusConfigure consensusCheck consensusLoad consensusAnalyze consensusFilter);
+@EXPORT = qw(consensusConfigure consensusCheck consensusLoad consensusAnalyze);
 
 use strict;
 
@@ -404,49 +404,5 @@ sub consensusAnalyze ($$) {
     buildHTML($WRK, $asm, "utg");
     touch("$wrk/$asm.tigStore/status.coverageStat");
     stopAfter("consensusAnalyze");
-  allDone:
-}
-
-
-sub consensusFilter ($$) {
-    my $WRK     = shift @_;           #  Root work directory
-    my $wrk     = "$WRK/unitigging";  #  Local work directory
-    my $asm     = shift @_;
-    my $bin     = getBinDirectory();
-    my $cmd;
-    my $path    = "$wrk/5-consensus";
-
-    goto allDone   if (skipStage($WRK, $asm, "consensusFilter") == 1);
-    goto allDone   if (-e "$wrk/$asm.tigStore/status.filter");
-
-    my $msrs = getGlobal("maxSingleReadSpan");
-    my $lca  = getGlobal("lowCoverageAllowed");  #  checkParameters() ensures that this and
-    my $lcd  = getGlobal("lowCoverageDepth");    #  this are both set or both unset
-    my $mru  = getGlobal("minReadsUnique");
-    my $mul  = getGlobal("minUniqueLength");
-    my $mrl  = getGlobal("maxRepeatLength");
-
-    $cmd  = "$bin/tgStoreFilter \\\n";
-    $cmd .= "  -G       $wrk/$asm.gkpStore \\\n";
-    $cmd .= "  -T       $wrk/$asm.tigStore 2 \\\n";
-    $cmd .= "  -o       $wrk/$asm.tigStore.filter \\\n";
-    $cmd .= "  -span    $msrs \\\n"       if (defined($msrs));;
-    $cmd .= "  -lowcov  $lca $lcd \\\n"   if (defined($lca) && defined($lcd));;
-    $cmd .= "  -reads   $mru \\\n"        if (defined($mru));
-    $cmd .= "  -long    $mul \\\n"        if (defined($mul));
-    $cmd .= "  -short   $mrl \\\n"        if (defined($mrl));
-    $cmd .= "> $wrk/$asm.tigStore.filter.err 2>&1";
-
-    if (runCommand($path, $cmd)) {
-        caExit("failed to filter unitigs", "$wrk/$asm.tigStore.filter.err");
-    }
-
-    unlink "$wrk/$asm.tigStore.filter.err";
-
-  finishStage:
-    emitStage($WRK, $asm, "consensusFilter");
-    buildHTML($WRK, $asm, "utg");
-    touch("$wrk/$asm.tigStore/status.filter");
-    stopAfter("consensusFilter");
   allDone:
 }
