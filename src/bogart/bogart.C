@@ -76,6 +76,12 @@ main (int argc, char * argv []) {
   double    erateRepeat              = 0.030;
   double    erateMax                 = 0.0;    //  Computed
 
+  uint32    fewReadsNumber           = 2;      //  Parameters for labeling of unassembled; also set in pipelines/canu/Defaults.pm
+  uint32    tooShortLength           = 1000;
+  double    spanFraction             = 0.75;
+  double    lowcovFraction           = 0.75;
+  uint32    lowcovDepth              = 2;
+
   int32     numThreads               = 0;
 
   uint64    ovlCacheMemory           = UINT64_MAX;
@@ -157,6 +163,13 @@ main (int argc, char * argv []) {
       SPURIOUS_COVERAGE_THRESHOLD  = atoi(argv[++arg]);
       ISECT_NEEDED_TO_BREAK        = atoi(argv[++arg]);
       REGION_END_WEIGHT            = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-unassembled") == 0) {
+      fewReadsNumber  = atoi(argv[++arg]);
+      tooShortLength  = atoi(argv[++arg]);
+      spanFraction    = atof(argv[++arg]);
+      lowcovFraction  = atof(argv[++arg]);
+      lowcovDepth     = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-RL") == 0) {
       minReadLen = atoi(argv[++arg]);
@@ -529,10 +542,10 @@ main (int argc, char * argv []) {
   promoteToSingleton(unitigs);
 
   classifyUnitigsAsUnassembled(unitigs,
-                               2,
-                               1000,
-                               1.0,
-                               1.0, 2);
+                               fewReadsNumber,
+                               tooShortLength,
+                               spanFraction,
+                               lowcovFraction, lowcovDepth);
   checkUnitigMembership(unitigs);
   reportUnitigs(unitigs, output_prefix, "final");
 
