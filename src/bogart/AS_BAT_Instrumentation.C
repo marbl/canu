@@ -270,8 +270,10 @@ reportN50(vector<uint32> &data, char const *label, uint32 genomeSize) {
     sum += data[i];
 
     while (siz * nnn / 100 < sum) {
-      writeLog("n%03"F_U64P" siz %10"F_U32P" sum %10"F_U64P" idx %10"F_U64P"\n",
-               nnn, data[i], sum, i);
+      writeLog("ng%03"F_U64P"   lg%03d %6"F_U64P"   sum %10"F_U64P"\n",
+               nnn, data[i],
+               nnn, i+1,
+               sum);
 
       nnn += 10;
     }

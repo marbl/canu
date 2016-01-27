@@ -112,8 +112,11 @@ tgTigSizeAnalysis::printSummary(FILE *out, char *description, vector<uint32> &da
     sum += data[i];
 
     while (siz * nnn / 100 < sum) {
-      fprintf(out, "%s n%2"F_U64P" siz %10"F_U32P" sum %10"F_U64P" idx %10"F_U64P"\n",
-              description, nnn, data[i], sum, i);
+      fprintf(out, "%s ng%-3"F_U64P" %10"F_U32P" bp   lg%-3"F_U64P" %6"F_U64P"   sum %10"F_U64P" bp\n",
+              description,
+              nnn, data[i],
+              nnn, i+1,
+              sum);
 
       nnn += 10;
     }

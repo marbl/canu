@@ -44,6 +44,7 @@ use File::Path qw(make_path remove_tree);
 
 use canu::Defaults;
 use canu::Execution;
+use canu::Configure;    #  For displayGenomeSize
 use canu::Gatekeeper;
 use canu::HTML;
 use canu::Meryl;
@@ -71,6 +72,8 @@ sub reportUnitigSizes ($$$$) {
     my $rptNum    = 0;
     my $rptBases  = 0;
 
+    my $gs        = getGlobal("genomeSize");
+
     my $V = substr("000000" . $version, -3);
     my $N = "$wrk/$asm.tigStore/seqDB.v$V.sizes.txt";
 
@@ -86,6 +89,9 @@ sub reportUnitigSizes ($$$$) {
         }
     }
 
+    $ctgSizes .= "--            NG (bp)  LG (contigs)    sum (bp)\n";
+    $ctgSizes .= "--         ----------  ------------  ----------\n";
+
     open(F, "< $N") or caExit("failed to open '$N' for reading: $!\n", undef);
     while (<F>) {
         $rptBases  = $1  if (m/lenSuggestRepeat\s+sum\s+(\d+)/);
@@ -100,8 +106,19 @@ sub reportUnitigSizes ($$$$) {
         $ctgBases  = $1  if (m/lenContig\s+sum\s+(\d+)/);
         $ctgNum    = $1  if (m/lenContig\s+num\s+(\d+)/);
 
-        $ctgSizes .= "--   $_"  if (m/lenContig\s+(n\d+)\s+siz/);
+        if (m/lenContig\s+ng(\d+)\s+(\d+)\s+bp\s+lg(\d+)\s+(\d+)\s+sum\s+(\d+)\s+bp$/) {
+            my $n  = substr("          $1", -3);
+            my $ng = substr("          $2", -10);
+            my $lg = substr("          $4", -6);
+            my $ss = substr("          $5", -10);
 
+            $ctgSizes .= "--    $n  $ng        $lg  $ss\n";
+        }
+
+        #  User could have changed genome size since this report was dumped.
+        if (m/lenContig.*genomeSize\s+(\d+)/) {
+            $gs = $1;
+        }
     }
     close(F);
 
@@ -109,6 +126,8 @@ sub reportUnitigSizes ($$$$) {
     print STDERR "--   contigs:      $ctgNum sequences, total length $ctgBases bp (including $rptNum repeats of total length $rptBases bp).\n";
     print STDERR "--   bubbles:      $bubNum sequences, total length $bubBases bp.\n";
     print STDERR "--   unassembled:  $usmNum sequences, total length $usmBases bp.\n";
+    print STDERR "--\n";
+    print STDERR "-- Contig sizes based on genome size ", displayGenomeSize($gs), "bp:\n";
     print STDERR "--\n";
     print STDERR "$ctgSizes";
     print STDERR "--\n";
