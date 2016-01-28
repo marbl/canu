@@ -393,7 +393,7 @@ sub mhapConfigure ($$$$) {
     print F "  exit 1\n";
     print F "fi\n";
     print F "\n";
-    print F "if [ -e $path/blocks/\$qry.ovb.gz ]; then\n";
+    print F "if [ -e $path/results/\$qry.ovb.gz ]; then\n";
     print F "  echo Job previously completed successfully.\n";
     print F "  exit\n";
     print F "fi\n";
