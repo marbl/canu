@@ -119,7 +119,7 @@ public:
     return(&_bestM[fragid]._bestC);
   };
 
-  void      reportBestEdges(void);
+  void      reportBestEdges(const char *prefix);
 
 public:
   void      rebuildBestContainsWithoutSingletons(UnitigVector  &unitigs,

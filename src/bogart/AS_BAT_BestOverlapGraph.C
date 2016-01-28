@@ -570,38 +570,26 @@ BestOverlapGraph::BestOverlapGraph(double               erate,
 
   writeLog("BestOverlapGraph()-- analyzing %d fragments for best contains, with %d threads.\n", fiLimit, numThreads);
 
-  if (false && AS_UTL_fileExists("best.contains", false, false)) {
-    writeLog("BestOverlapGraph()-- loading best containes from cache.\n");
-    assert(0);  //  Not quite done.
-
-  } else {
 #pragma omp parallel for schedule(dynamic, blockSize)
-    for (uint32 fi=1; fi <= fiLimit; fi++) {
-      uint32      no  = 0;
-      BAToverlap *ovl = OC->getOverlaps(fi, AS_MAX_EVALUE, no);
+  for (uint32 fi=1; fi <= fiLimit; fi++) {
+    uint32      no  = 0;
+    BAToverlap *ovl = OC->getOverlaps(fi, AS_MAX_EVALUE, no);
 
-      for (uint32 ii=0; ii<no; ii++)
-        scoreContainment(ovl[ii]);
-    }
+    for (uint32 ii=0; ii<no; ii++)
+      scoreContainment(ovl[ii]);
   }
 
   //  PASS 2:  Find dovetails.
 
-  if (false && AS_UTL_fileExists("best.edges", false, false)) {
-    writeLog("BestOverlapGraph()-- loading best edges from cache.\n");
-    assert(0);  //  Not quite done.
-
-  } else {
-    writeLog("BestOverlapGraph()-- analyzing %d fragments for best edges, with %d threads.\n", fiLimit, numThreads);
+  writeLog("BestOverlapGraph()-- analyzing %d fragments for best edges, with %d threads.\n", fiLimit, numThreads);
 
 #pragma omp parallel for schedule(dynamic, blockSize)
-    for (uint32 fi=1; fi <= fiLimit; fi++) {
-      uint32      no  = 0;
-      BAToverlap *ovl = OC->getOverlaps(fi, AS_MAX_EVALUE, no);
+  for (uint32 fi=1; fi <= fiLimit; fi++) {
+    uint32      no  = 0;
+    BAToverlap *ovl = OC->getOverlaps(fi, AS_MAX_EVALUE, no);
 
-      for (uint32 ii=0; ii<no; ii++)
-        scoreEdge(ovl[ii]);
-    }
+    for (uint32 ii=0; ii<no; ii++)
+      scoreEdge(ovl[ii]);
   }
 
   //  Now, several optional refinements.
@@ -634,7 +622,7 @@ BestOverlapGraph::BestOverlapGraph(double               erate,
 
   writeLog("BestOverlapGraph()-- dumping best edges/contains/singletons.\n");
 
-  reportBestEdges();
+  reportBestEdges(prefix);
 
   setLogFile(prefix, NULL);
 }
@@ -847,10 +835,12 @@ BestOverlapGraph::BestOverlapGraph(double               erate,
 
 
 void
-BestOverlapGraph::reportBestEdges(void) {
-  FILE *BC = fopen("best.contains", "w");
-  FILE *BE = fopen("best.edges", "w");
-  FILE *BS = fopen("best.singletons", "w");
+BestOverlapGraph::reportBestEdges(const char *prefix) {
+  char  N[FILENAME_MAX];
+
+  sprintf(N, "%s.best.contains",   prefix);   FILE *BC = fopen(N, "w");
+  sprintf(N, "%s.best.edges",      prefix);   FILE *BE = fopen(N, "w");
+  sprintf(N, "%s.best.singletons", prefix);   FILE *BS = fopen(N, "w");
 
   if ((BC) && (BE) && (BS)) {
     fprintf(BC, "#fragId\tlibId\tbestCont\teRate\n");
