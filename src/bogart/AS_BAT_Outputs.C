@@ -362,7 +362,7 @@ writeOverlapsUsed(UnitigVector &unitigs,
         if (tg3->_isCircular)     ty3 = 'O';
 
         fprintf(F, "tig %7u %c read %8u at %9u %-9u %c' -- %8d %-8d -- tig %7u %c read %8u at %9u %-9u %c'\n",
-                tig->id(), tyt, frg->ident, frg->position.bgn, frg->position.end, '5',
+                tig->id(), tyt, frg->ident, frg->position.bgn, frg->position.end, '3',
                 be3->ahang(), be3->bhang(),
                 tg3->id(), ty3, oth->ident, oth->position.bgn, oth->position.end, (be3->frag3p() == false) ? '5' : '3');
       }
