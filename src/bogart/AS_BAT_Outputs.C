@@ -301,101 +301,73 @@ writeUnitigsToStore(UnitigVector  &unitigs,
 //
 void
 writeOverlapsUsed(UnitigVector &unitigs,
-                  char         *fileprefix) {
-  char         filename[FILENAME_MAX] = {0};
-#if 0
-  GenericMesg  pmesg;
-  OverlapMesg  omesg;
-#endif
+                  char         *prefix) {
+  char   N[FILENAME_MAX];
 
-  sprintf(filename, "%s.unused.ovl", fileprefix);
-  FILE *file = fopen(filename, "w");
-  assert(file != NULL);
+  sprintf(N, "%s.unused.best.edges", prefix);
 
-#if 0
+  FILE  *F = fopen(N, "w");
+
   for (uint32  ti=0; ti<unitigs.size(); ti++) {
-    Unitig  *utg = unitigs[ti];
+    Unitig  *tig = unitigs[ti];
+    Unitig  *ovl = NULL;
+    char     tyt = 'C';
 
-    if (utg == NULL)
+    if (tig == NULL)
       continue;
 
-    for (uint32 fi=0; fi<utg->ufpath.size(); fi++) {
-      ufNode  *frg = &utg->ufpath[fi];
+    if (tig->_isUnassembled)  tyt = 'U';
+    if (tig->_isBubble)       tyt = 'B';
+    if (tig->_isRepeat)       tyt = 'R';
+    if (tig->_isCircular)     tyt = 'O';
 
-      //  Where is our best overlap?  Contained or dovetail?
+    for (uint32 fi=0; fi<tig->ufpath.size(); fi++) {
+      ufNode  *frg = &tig->ufpath[fi];
+      ufNode  *oth = NULL;
 
-      BestEdgeOverlap *bestedge5 = OG->getBestEdgeOverlap(frg->ident, false);
-      BestEdgeOverlap *bestedge3 = OG->getBestEdgeOverlap(frg->ident, true);
+      //  Report the unused best edge
 
-      int              bestident5 = 0;
-      int              bestident3 = 0;
+      BestEdgeOverlap *be5 = OG->getBestEdgeOverlap(frg->ident, false);
+      uint32           rd5 = (be5 == NULL) ?    0 : be5->fragId();
+      Unitig          *tg5 = (be5 == NULL) ? NULL : unitigs[Unitig::fragIn(rd5)];
+      char             ty5 = 'C';
 
-      if (bestedge5) {
-        bestident5 = bestedge5->fragId();
+      if ((tg5 != NULL) && (tg5->id() != tig->id())) {
+        uint32  ord = Unitig::pathPosition(rd5);
+        ufNode *oth = &tg5->ufpath[ord];
 
-        if ((bestident5 > 0) && (utg->fragIn(bestident5) != utg->id())) {
-          omesg.aifrag          = frg->ident;
-          omesg.bifrag          = bestident5;
-          omesg.ahg             = bestedge5->ahang();
-          omesg.bhg             = bestedge5->bhang();
-          omesg.orientation.setIsUnknown();
-          omesg.overlap_type    = AS_DOVETAIL;
-          omesg.quality         = 0.0;
-          omesg.min_offset      = 0;
-          omesg.max_offset      = 0;
-          omesg.polymorph_ct    = 0;
-          omesg.alignment_trace = NULL;
-#ifdef AS_MSG_USE_OVL_DELTA
-          omesg.alignment_delta = NULL;
-#endif
+        if (tg5->_isUnassembled)  ty5 = 'U';
+        if (tg5->_isBubble)       ty5 = 'B';
+        if (tg5->_isRepeat)       ty5 = 'R';
+        if (tg5->_isCircular)     ty5 = 'O';
 
-          //  This overlap is off of the 5' end of this fragment.
-          if (bestedge5->frag3p() == false)
-            omesg.orientation.setIsOuttie();
-          if (bestedge5->frag3p() == true)
-            omesg.orientation.setIsAnti();
-
-          pmesg.t = MESG_OVL;
-          pmesg.m = &omesg;
-
-          WriteProtoMesg_AS(file, &pmesg);
-        }
+        fprintf(F, "tig %7u %c read %8u at %9u %-9u %c' -- %8d %-8d -- tig %7u %c read %8u at %9u %-9u %c'\n",
+                tig->id(), tyt, frg->ident, frg->position.bgn, frg->position.end, '5',
+                be5->ahang(), be5->bhang(),
+                tg5->id(), ty5, oth->ident, oth->position.bgn, oth->position.end, (be5->frag3p() == false) ? '5' : '3');
       }
 
-      if (bestedge3) {
-        bestident3 = bestedge3->fragId();
+      BestEdgeOverlap *be3 = OG->getBestEdgeOverlap(frg->ident, true);
+      uint32           rd3 = (be3 == NULL) ?    0 : be3->fragId();
+      Unitig          *tg3 = (be3 == NULL) ? NULL : unitigs[Unitig::fragIn(rd3)];
+      char             ty3 = 'C';
 
-        if ((bestident3 > 0) && (utg->fragIn(bestident3) != utg->id())) {
-          omesg.aifrag          = frg->ident;
-          omesg.bifrag          = bestident3;
-          omesg.ahg             = bestedge3->ahang();
-          omesg.bhg             = bestedge3->bhang();
-          omesg.orientation.setIsUnknown();
-          omesg.overlap_type    = AS_DOVETAIL;
-          omesg.quality         = 0.0;
-          omesg.min_offset      = 0;
-          omesg.max_offset      = 0;
-          omesg.polymorph_ct    = 0;
-          omesg.alignment_trace = NULL;
-#ifdef AS_MSG_USE_OVL_DELTA
-          omesg.alignment_delta = NULL;
-#endif
+      if ((tg3 != NULL) && (tg3->id() != tig->id())) {
+        uint32  ord = Unitig::pathPosition(rd3);
+        ufNode *oth = &tg3->ufpath[ord];
 
-          //  This overlap is off of the 3' end of this fragment.
-          if (bestedge3->frag3p() == false)
-            omesg.orientation.setIsNormal();
-          if (bestedge3->frag3p() == true)
-            omesg.orientation.setIsInnie();
+        if (tg3->_isUnassembled)  ty3 = 'U';
+        if (tg3->_isBubble)       ty3 = 'B';
+        if (tg3->_isRepeat)       ty3 = 'R';
+        if (tg3->_isCircular)     ty3 = 'O';
 
-          pmesg.t = MESG_OVL;
-          pmesg.m = &omesg;
-
-          WriteProtoMesg_AS(file, &pmesg);
-        }
+        fprintf(F, "tig %7u %c read %8u at %9u %-9u %c' -- %8d %-8d -- tig %7u %c read %8u at %9u %-9u %c'\n",
+                tig->id(), tyt, frg->ident, frg->position.bgn, frg->position.end, '5',
+                be3->ahang(), be3->bhang(),
+                tg3->id(), ty3, oth->ident, oth->position.bgn, oth->position.end, (be3->frag3p() == false) ? '5' : '3');
       }
     }
   }
-#endif
 
-  fclose(file);
+  fclose(F);
 }
