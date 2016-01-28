@@ -283,7 +283,7 @@ classifyUnitigsAsUnassembled(UnitigVector &unitigs,
 
 
 void
-reportN50(vector<uint32> &data, char const *label, uint32 genomeSize) {
+reportN50(vector<uint32> &data, char const *label, uint64 genomeSize) {
   uint64  cnt = data.size();
   uint64  sum = 0;
   uint64  tot = 0;
@@ -325,7 +325,7 @@ reportN50(vector<uint32> &data, char const *label, uint32 genomeSize) {
 
 
 void
-reportUnitigs(UnitigVector &unitigs, const char *prefix, const char *name) {
+reportUnitigs(UnitigVector &unitigs, const char *prefix, const char *name, uint64 genomeSize) {
 
   //  Generate n50.  Assumes unitigs have been 'classified' already.
 
@@ -361,9 +361,6 @@ reportUnitigs(UnitigVector &unitigs, const char *prefix, const char *name) {
       contigLength.push_back(utg->getLength());
     }
   }
-
-#warning need to set genome size
-  uint32 genomeSize = 0;
 
   reportN50(unassembledLength, "UNASSEMBLED", genomeSize);
   reportN50(bubbleLength,      "BUBBLE",      genomeSize);

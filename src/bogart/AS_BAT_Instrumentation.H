@@ -37,7 +37,7 @@
 
 void  checkUnitigMembership(UnitigVector &unitigs);
 void  reportOverlapsUsed(UnitigVector &unitigs, const char *prefix, const char *name);
-void  reportUnitigs(UnitigVector &unitigs, const char *prefix, const char *name);
+void  reportUnitigs(UnitigVector &unitigs, const char *prefix, const char *name, uint64 genomeSize);
 
 void  classifyUnitigsAsUnassembled(UnitigVector &unitigs,
                                    uint32        fewReadsNumber,

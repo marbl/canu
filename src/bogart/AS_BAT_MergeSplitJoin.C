@@ -1652,7 +1652,8 @@ mergeSplitJoin(UnitigVector &unitigs,
                double UNUSED(erateGraph), double erateBubble, double UNUSED(erateMerge), double erateRepeat,
                const char *prefix,
                uint32 minOverlap,
-               bool shatterRepeats) {
+               bool shatterRepeats,
+               uint64 genomeSize) {
 
   //logFileFlags |= LOG_PLACE_FRAG;
   //logFileFlags &= ~LOG_PLACE_FRAG;
@@ -1704,7 +1705,7 @@ mergeSplitJoin(UnitigVector &unitigs,
   }
 
   reportOverlapsUsed(unitigs, prefix, "popBubbles");
-  reportUnitigs(unitigs, prefix, "popBubbles");
+  reportUnitigs(unitigs, prefix, "popBubbles", genomeSize);
 
   //  Since we create new unitigs for any of the splits, we need to remember
   //  where to stop.  We don't want to re-examine any of the split unitigs.
@@ -1738,7 +1739,7 @@ mergeSplitJoin(UnitigVector &unitigs,
   omp_destroy_lock(&markRepeat_breakUnitigs_Lock);
 
   reportOverlapsUsed(unitigs, prefix, "mergeSplitJoin");
-  reportUnitigs(unitigs, prefix, "mergeSplitJoin");
+  reportUnitigs(unitigs, prefix, "mergeSplitJoin", genomeSize);
 
   //  JOIN EXPOSED BEST - after bubbles are stolen, this should leave some unitigs
   //  with exposed best edges that can now be connected.

@@ -76,6 +76,8 @@ main (int argc, char * argv []) {
   double    erateRepeat              = 0.030;
   double    erateMax                 = 0.0;    //  Computed
 
+  uint64    genomeSize               = 0;
+
   uint32    fewReadsNumber           = 2;      //  Parameters for labeling of unassembled; also set in pipelines/canu/Defaults.pm
   uint32    tooShortLength           = 1000;
   double    spanFraction             = 0.75;
@@ -128,6 +130,9 @@ main (int argc, char * argv []) {
         ovlStoreReptPath = argv[++arg];
       else
         err.push_back(NULL);
+
+    } else if (strcmp(argv[arg], "-gs") == 0) {
+      genomeSize = strtoull(argv[++arg], NULL, 10);
 
     } else if (strcmp(argv[arg], "-RS") == 0) {
       removeSpur = true;
@@ -295,6 +300,8 @@ main (int argc, char * argv []) {
     fprintf(stderr, "\n");
     fprintf(stderr, "Algorithm Options\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "  -gs        Genome size in bases.\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "  -RS        Remove edges to spur reads from best overlap graph.\n");
     fprintf(stderr, "  -NS        Don't seed promiscuous unitigs with suspicious reads.\n");
     fprintf(stderr, "  -CS        Don't place contained reads in singleton unitigs.\n");
@@ -456,7 +463,7 @@ main (int argc, char * argv []) {
     populateUnitig(unitigs, fi);
 
   reportOverlapsUsed(unitigs, output_prefix, "buildUnitigs");
-  reportUnitigs(unitigs, output_prefix, "buildUnitigs");
+  reportUnitigs(unitigs, output_prefix, "buildUnitigs", genomeSize);
 
 #if 0
   //
@@ -471,7 +478,7 @@ main (int argc, char * argv []) {
     joinUnitigs(unitigs, enableJoining);
 
     reportOverlapsUsed(unitigs, output_prefix, "joining");
-    reportUnitigs(unitigs, output_prefix, "joining");
+    reportUnitigs(unitigs, output_prefix, "joining", genomeSize);
   }
 #endif
 
@@ -499,7 +506,7 @@ main (int argc, char * argv []) {
 
   checkUnitigMembership(unitigs);
   reportOverlapsUsed(unitigs, output_prefix, "placeContainsZombies");
-  reportUnitigs(unitigs, output_prefix, "placeContainsZombies");
+  reportUnitigs(unitigs, output_prefix, "placeContainsZombies", genomeSize);
 
   //
   //  Pop bubbles, detect repeats
@@ -511,7 +518,8 @@ main (int argc, char * argv []) {
                  erateGraph, erateBubble, erateMerge, erateRepeat,
                  output_prefix,
                  minOverlap,
-                 enableShatterRepeats);
+                 enableShatterRepeats,
+                 genomeSize);
 
   if (enableReconstructRepeats) {
     assert(enableShatterRepeats);
@@ -520,7 +528,7 @@ main (int argc, char * argv []) {
     reconstructRepeats(unitigs, erateGraph);
 
     reportOverlapsUsed(unitigs, output_prefix, "reconstructRepeats");
-    reportUnitigs(unitigs, output_prefix, "reconstructRepeats");
+    reportUnitigs(unitigs, output_prefix, "reconstructRepeats", genomeSize);
   }
 
   checkUnitigMembership(unitigs);
@@ -547,7 +555,7 @@ main (int argc, char * argv []) {
                                spanFraction,
                                lowcovFraction, lowcovDepth);
   checkUnitigMembership(unitigs);
-  reportUnitigs(unitigs, output_prefix, "final");
+  reportUnitigs(unitigs, output_prefix, "final", genomeSize);
 
   //
   //  Generate outputs.

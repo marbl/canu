@@ -173,6 +173,7 @@ sub unitig ($$) {
         print F " -T $wrk/$asm.tigStore.WORKING \\\n";
         print F " -o $wrk/4-unitigger/$asm \\\n";
         print F " -B $perPart \\\n";
+        print F " -gs "          . getGlobal("genomeSize")         . " \\\n";
         print F " -eg "          . getGlobal("utgGraphErrorRate")  . " \\\n";
         print F " -eb "          . getGlobal("utgBubbleErrorRate") . " \\\n";
         print F " -em "          . getGlobal("utgMergeErrorRate")  . " \\\n";

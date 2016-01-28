@@ -39,7 +39,8 @@ mergeSplitJoin(UnitigVector &unitigs,
                double erateGraph, double erateBubble, double erateMerge, double erateRepeat,
                const char *prefix,
                uint32 minOverlap,
-               bool shatterRepeats);
+               bool shatterRepeats,
+               uint64 genomeSize);
 
 void
 reconstructRepeats(UnitigVector &unitigs,
