@@ -900,9 +900,9 @@ sub dumpCorrectedReads ($$) {
     my @expcLengthHist;
     my @corrLengthHist;
 
-    my @origExpcDiffLengthHist;
-    my @origCorrDiffLengthHist;
-    my @expcCorrDiffLengthHist;
+    #my @origExpcDiffLengthHist;
+    #my @origCorrDiffLengthHist;
+    #my @expcCorrDiffLengthHist;
 
     my @corrPiecesHist;
 
@@ -976,9 +976,9 @@ sub dumpCorrectedReads ($$) {
 
         $corrLengthHist[$numBases]++;
 
-        $origExpcDiffLengthHist[$r[1] - $r[2]]++;
-        $origCorrDiffLengthHist[$r[1] - $numBases]++;
-        $expcCorrDiffLengthHist[$r[2] - $numBases]++;
+        #$origExpcDiffLengthHist[$r[1] - $r[2]]++;
+        #$origCorrDiffLengthHist[$r[1] - $numBases]++;
+        #$expcCorrDiffLengthHist[$r[2] - $numBases]++;
 
         $corrPiecesHist[$numPieces]++;
 
