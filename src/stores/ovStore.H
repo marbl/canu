@@ -597,8 +597,8 @@ public:
     memset(skipReadDUP, 0, sizeof(char) * maxID);
 
 
-    uint32  numSkipOBT;
-    uint32  numSkipDUP;
+    uint32  numSkipOBT = 0;
+    uint32  numSkipDUP = 0;
 
     fprintf(stderr, "Marking fragments to skip overlap based trimming.\n");
 
