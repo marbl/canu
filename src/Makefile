@@ -431,15 +431,15 @@ endif
 
 
 ifeq (${OSTYPE}, FreeBSD)
+ifeq (${MACHINETYPE}, amd64)
   CC       ?= gcc48
   CXX      ?= g++48
-  CXXFLAGS := -pthread -fPIC -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare # -Wformat -Wall -Wextra
+
+  CXXFLAGS := -pthread -fPIC -Wall -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat -Wextra
   LDFLAGS  := -pthread -lm
 
-  CXXFLAGS  += -fopenmp  -Wall -Wextra -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat
+  CXXFLAGS  += -fopenmp
   LDFLAGS   += -fopenmp -rpath /usr/local/lib/gcc48
-
-  #CXXFLAGS  += -Wall -Wextra -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat
 
   #  Google Performance Tools malloc and heapchecker (HEAPCHECK=normal)
   #CXXFLAGS  +=
@@ -460,8 +460,8 @@ ifeq (${OSTYPE}, FreeBSD)
   CXXFLAGS  +=             -I/usr/local/include
   LDFLAGS   +=             -L/usr/local/lib
 
-  CXXFLAGS  += -DLIBUNWIND -I/usr/local/include
-  LDFLAGS   +=             -L/usr/local/lib -lunwind -lunwind-x86_64
+  #CXXFLAGS  += -DLIBUNWIND -I/usr/local/include
+  #LDFLAGS   +=             -L/usr/local/lib -lunwind -lunwind-x86_64
 
   ifeq ($(BUILDDEBUG), 1)
     CXXFLAGS  += -g
@@ -473,7 +473,24 @@ ifeq (${OSTYPE}, FreeBSD)
     endif
   endif
 endif
+endif
 
+
+ifeq (${OSTYPE}, FreeBSD)
+ifeq (${MACHINETYPE}, arm)
+  CC       ?= gcc48
+  CXX      ?= g++48
+
+  CXXFLAGS  := -pthread -fPIC -Wall -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat -Wextra
+  LDFLAGS   := -pthread -lm
+
+  CXXFLAGS  += -D_GLIBCXX_PARALLEL -fopenmp
+  LDFLAGS   += -D_GLIBCXX_PARALLEL -fopenmp -rpath /usr/local/lib/gcc48
+
+  CXXFLAGS  += -I/usr/local/include -O3 -funroll-loops -fomit-frame-pointer
+  LDFLAGS   += -L/usr/local/lib
+endif
+endif
 
 
 # Include the main user-supplied submakefile. This also recursively includes
