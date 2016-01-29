@@ -154,6 +154,7 @@ public:
 uint64
 estimateNumMersInMemorySize(uint32 merSize,
                             uint64 mem,
+                            uint32 numThreads,
                             bool   positionsEnabled,
                             bool   beVerbose);
 

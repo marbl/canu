@@ -296,14 +296,16 @@ prepareBatch(merylArgs *args) {
   //  Otherwise, we must be doing it all in one fell swoop.
   //
   if (args->memoryLimit) {
-    args->mersPerBatch = estimateNumMersInMemorySize(args->merSize, args->memoryLimit, args->positionsEnabled, args->beVerbose);
+    args->mersPerBatch = estimateNumMersInMemorySize(args->merSize, args->memoryLimit, args->numThreads, args->positionsEnabled, args->beVerbose);
 
+    //  Degenerate case; if we can fit more per batch than there are in total, just divide them equally.
     if (args->mersPerBatch > args->numMersActual)
-      args->mersPerBatch = args->numMersActual;
+      args->mersPerBatch = args->numMersActual / args->numThreads;
 
-    args->mersPerBatch = (uint64)ceil((double)args->mersPerBatch  / (double)args->numThreads);
+    //  Compute how many segments we need, rounding up.
     args->segmentLimit = (uint64)ceil((double)args->numMersActual / (double)args->mersPerBatch);
 
+    //  Then keep the compute balanced and make the number of segments be a multiple of the number of threads.
     args->segmentLimit = args->numThreads * (uint32)ceil((double)args->segmentLimit / (double)args->numThreads);
 
   } else if (args->segmentLimit) {
