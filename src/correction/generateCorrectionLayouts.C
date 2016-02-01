@@ -74,8 +74,8 @@ generateLayout(gkStore    *gkpStore,
   resizeArray(layout->_children, layout->_childrenLen, layout->_childrenMax, ovlLen, resizeArray_doNothing);
 
   if (flgFile)
-    fprintf(flgFile, "Generate layout for read "F_U32" length "F_U32" using up to "F_U32" overlaps.\n",
-            layout->_tigID, layout->_layoutLen, ovlLen);
+    fprintf(flgFile, "Generate layout for read "F_U32" length "F_U32" using up to "F_U32" overlaps with threshold %.2f.\n",
+            layout->_tigID, layout->_layoutLen, ovlLen, readScores[ovl[0].a_iid]/100.0);
 
   for (uint32 oo=0; oo<ovlLen; oo++) {
 
@@ -106,10 +106,10 @@ generateLayout(gkStore    *gkpStore,
     }
 
     if ((readScores != NULL) &&
-        (ovlScore < readScores[ovl[oo].b_iid])) {
+        (ovlScore < readScores[ovl[oo].a_iid])) {
       if (flgFile)
-        fprintf(flgFile, "  filter read %9u at position %6u,%6u length %5u erate %.3f - filtered by global filter (threshold %u)\n",
-                ovl[oo].b_iid, ovl[oo].a_bgn(), ovl[oo].a_end(), ovlLength, ovl[oo].erate(), readScores[ovl[oo].b_iid]);
+        fprintf(flgFile, "  filter read %9u at position %6u,%6u length %5u erate %.3f - filtered by global filter (threshold %.2f)\n",
+                ovl[oo].b_iid, ovl[oo].a_bgn(), ovl[oo].a_end(), ovlLength, ovl[oo].erate(), readScores[ovl[oo].a_iid]/100.0);
       continue;
     }
 
