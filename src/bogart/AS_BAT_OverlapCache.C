@@ -548,7 +548,7 @@ OverlapCache::loadOverlaps(double erate, uint32 minOverlap, const char *prefix, 
   while (1) {
 
     //  Ask the store how many overlaps exist for this fragment.
-    numOvl = _ovlStoreUniq->readOverlaps(NULL, 0);
+    numOvl = _ovlStoreUniq->numberOfOverlaps();
 
     numTotal += numOvl;
 

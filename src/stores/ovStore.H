@@ -488,9 +488,12 @@ public:
   //  Read the next overlap from the store.  Return value is the number of overlaps read.
   uint32     readOverlap(ovOverlap *overlap);
 
+  //  Return the number of overlaps that would be read.  Basically the same as the next readOverlaps() call.
+  uint32     numberOfOverlaps(void);
+
   //  Read ALL remaining overlaps for the current A_iid.  Return value is the number of overlaps read.
-  uint32     readOverlaps(ovOverlap *overlaps,
-                          uint32      maxOverlaps,
+  uint32     readOverlaps(ovOverlap *&overlaps,
+                          uint32     &maxOverlaps,
                           bool        restrictToIID=true);
 
   //  Append ALL remaining overlaps for the current A_iid to the overlaps in ovl.  Return value is
