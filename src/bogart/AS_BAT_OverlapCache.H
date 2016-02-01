@@ -135,8 +135,8 @@ public:
   double       findErate(uint32 aIID, uint32 bIID);
 
 private:
-  bool         load(const char *prefix, double erate, uint64 memlimit, uint32 maxOverlaps);
-  void         save(const char *prefix, double erate, uint64 memlimit, uint32 maxOverlaps);
+  bool         load(const char *prefix, double erate);
+  void         save(const char *prefix, double erate);
 
 private:
   uint64                  _memLimit;
