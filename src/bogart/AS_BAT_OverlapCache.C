@@ -103,7 +103,7 @@ OverlapCache::OverlapCache(ovStore *ovlStoreUniq,
                            bool onlySave,
                            bool doSave) {
 
-  if (load(prefix, erate, memlimit, maxOverlaps) == true)
+  if (load(prefix, erate) == true)
     return;
 
   fprintf(stderr, "\n");
@@ -237,7 +237,7 @@ OverlapCache::OverlapCache(ovStore *ovlStoreUniq,
   delete [] _ovsTmp;    _ovsTmp = NULL;
 
   if (doSave == true)
-    save(prefix, erate, memlimit, maxOverlaps);
+    save(prefix, erate);
 
   if ((doSave == true) && (onlySave == true))
     fprintf(stderr, "Exiting; only requested to build the overlap graph.\n"), exit(0);
@@ -548,7 +548,7 @@ OverlapCache::loadOverlaps(double erate, uint32 minOverlap, const char *prefix, 
   while (1) {
 
     //  Ask the store how many overlaps exist for this fragment.
-    numOvl = _ovlStoreUniq->readOverlaps(NULL, 0);
+    numOvl = _ovlStoreUniq->numberOfOverlaps();
 
     numTotal += numOvl;
 
@@ -770,7 +770,7 @@ OverlapCache::findErate(uint32 aIID, uint32 bIID) {
 
 
 bool
-OverlapCache::load(const char *prefix, double erate, uint64 memlimit, uint32 maxOverlaps) {
+OverlapCache::load(const char *prefix, double erate) {
   char     name[FILENAME_MAX];
   FILE    *file;
   size_t   numRead;
@@ -914,7 +914,7 @@ OverlapCache::load(const char *prefix, double erate, uint64 memlimit, uint32 max
 
 
 void
-OverlapCache::save(const char *prefix, double erate, uint64 memlimit, uint32 maxOverlaps) {
+OverlapCache::save(const char *prefix, double erate) {
   char  name[FILENAME_MAX];
   FILE *file;
 

@@ -59,12 +59,13 @@
 uint64
 estimateNumMersInMemorySize(uint32 merSize,
                             uint64 mem,
+                            uint32 numThreads,
                             bool   positionsEnabled,
                             bool   beVerbose) {
   uint64 maxN    = 0;
   uint64 bestT   = 0;
 
-  uint64 memLimt    = mem * 8;                                //  Memory limit, in bits.
+  uint64 memLimt    = mem * 8 / numThreads;                   //  Memory limit, in bits, for one thread of data.
   uint64 posPerMer  = (positionsEnabled == false) ? 0 : 32;   //  Positions consume space, if enabled.
   uint64 tMax       = (merSize > 25) ? 50 : 2 * merSize - 2;  //  Max width of bucket pointer table.
 
@@ -93,10 +94,10 @@ estimateNumMersInMemorySize(uint32 merSize,
 
   if (beVerbose)
     fprintf(stdout, "Can fit "F_U64" mers into table with prefix of "F_U64" bits, using %.3fMB (%.3fMB for positions)\n",
-            maxN,
+            maxN * numThreads,
             bestT,
-            (((uint64ONE << bestT) * logBaseTwo64(maxN) + maxN * (2*merSize - bestT + posPerMer)) >> 3) / 1048576.0,
-            ((maxN * posPerMer) >> 3) / 1048576.0);
+            (((uint64ONE << bestT) * logBaseTwo64(maxN) + maxN * (2*merSize - bestT + posPerMer)) >> 3) * numThreads / 1048576.0,
+            ((maxN * posPerMer) >> 3) * numThreads / 1048576.0);
 
   return(maxN);
 }

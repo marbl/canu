@@ -445,12 +445,17 @@ main(int argc, char **argv) {
 
   rcache = new overlapReadCache(gkpStore, memLimit);
 
-  //  Load the first batch of overlaps and reads.
+  //  Load the first batch of overlaps and reads.  Purposely loading only 1/8th the normal batch size, to
+  //  get computes computing while the next full batch is loaded.
+
+  overlapsMax /= 8;
 
   if (ovlStore)
-    *overlapsLen = ovlStore->readOverlaps(overlaps, overlapsMax / 8, false);
+    *overlapsLen = ovlStore->readOverlaps(overlaps, overlapsMax, false);
   if (ovlFile)
-    *overlapsLen = ovlFile->readOverlaps(overlaps, overlapsMax / 8);
+    *overlapsLen = ovlFile->readOverlaps(overlaps, overlapsMax);
+
+  overlapsMax *= 8;  //  Back to the normal batch size.
 
   fprintf(stderr, "Loaded %u overlaps.\n", *overlapsLen);
 

@@ -251,7 +251,7 @@ main(int argc, char **argv) {
 
   //  Compute!
 
-  uint32                 overlapsMax = 1024 * 1024;
+  uint32                 overlapsMax = 1024;
 
   uint32                 overlapsLen = 0;
   ovOverlap             *overlaps    = ovOverlap::allocateOverlaps(gkpStore, overlapsMax);

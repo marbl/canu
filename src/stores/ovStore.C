@@ -349,7 +349,17 @@ ovStore::readOverlap(ovOverlap *overlap) {
 
 
 uint32
-ovStore::readOverlaps(ovOverlap *overlaps, uint32 maxOverlaps, bool restrictToIID) {
+ovStore::numberOfOverlaps(void) {
+  ovOverlap  *ovl  = NULL;
+  uint32      novl = 0;
+
+  return(readOverlaps(ovl, novl));
+}
+
+
+
+uint32
+ovStore::readOverlaps(ovOverlap *&overlaps, uint32 &maxOverlaps, bool restrictToIID) {
   int    numOvl = 0;
 
   assert(_isOutput == FALSE);
@@ -372,9 +382,18 @@ ovStore::readOverlaps(ovOverlap *overlaps, uint32 maxOverlaps, bool restrictToII
   if ((overlaps == NULL) || (maxOverlaps == 0))
     return(_offt._numOlaps);
 
-  //  Read all the overlaps for this ID.
+  //  Allocate more space, if needed
 
-  assert(_offt._numOlaps <= maxOverlaps);
+  if (maxOverlaps < _offt._numOlaps) {
+    delete [] overlaps;
+
+    while (maxOverlaps < _offt._numOlaps)
+      maxOverlaps *= 2;
+
+    overlaps = ovOverlap::allocateOverlaps(_gkp, maxOverlaps);
+  }
+
+  //  Read all the overlaps for this ID.
 
   while (((restrictToIID == true)  && (_offt._numOlaps > 0)) ||
          ((restrictToIID == false) && (_offt._numOlaps > 0) && (numOvl < maxOverlaps))) {
@@ -472,7 +491,7 @@ ovStore::readOverlaps(uint32         iid,
 
   do {
     //  Count the number of overlaps we would load
-    ovlLen = readOverlaps(NULL, 0);
+    ovlLen = numberOfOverlaps();
 
     if (ovlLen == 0)
       //  Quit now if there are no overlaps.  This simplifies the rest of the loop.
