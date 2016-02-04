@@ -71,7 +71,8 @@ loadFASTA(char                 *L,
           compressedFileReader *F,
           FILE                 *errorLog,
           uint32               &nWARNS) {
-  uint32  nLines = 0;
+  uint32  nLines = 0;     //  Lines read from the input
+  uint32  nBases = 0;     //  Bases read from the input, used for reporting errors
   bool    valid  = true;
 
   //  We've already read the header.  It's in L.  But we want to use L to load the sequence, so the
@@ -92,7 +93,7 @@ loadFASTA(char                 *L,
   //  and stop reading before the next header is loaded.  Instead, we read the
   //  next line into what we'd read the header into outside here.
 
-  fgets(L, AS_MAX_READLEN, F->file());  nLines++;
+  fgets(L, AS_MAX_READLEN+1, F->file());  nLines++;
   chomp(L);
 
   //  Catch empty reads - reads with no sequence line at all.
@@ -103,14 +104,15 @@ loadFASTA(char                 *L,
     return(nLines);
   }
 
+  //  Copy in the sequence, as long as it is valid sequence.  If any invalid letters
+  //  are found, set the base to 'N'.
+
+  uint32  baseErrors = 0;
+
   while ((!feof(F->file())) && (L[0] != '>')) {
+    nBases += strlen(L);  //  Could do this in the loop below, but it makes it ugly.
 
-    //  Copy in the sequence, as long as it is valid sequence.  If any invalid letters
-    //  are found, stop copying, and stop reading sequence.
-
-    uint32  baseErrors = 0;
-
-    for (uint32 i=0; L[i]; i++) {
+    for (uint32 i=0; (Slen < AS_MAX_READLEN) && (L[i] != 0); i++) {
       switch (L[i]) {
 #ifdef UPCASE
         case 'a':   S[Slen] = 'A';  break;
@@ -138,18 +140,12 @@ loadFASTA(char                 *L,
       Slen++;
     }
 
-    if (baseErrors > 0) {
-      fprintf(errorLog, "read '%s' has "F_U32" invalid base%s.  Converted to 'N'.\n",
-              H, baseErrors, (baseErrors > 1) ? "s" : "");
-      nWARNS++;
-    }
-
     //  Grab the next line.  It should be more sequence, or the next header, or eof.
     //  The last two are stop conditions for the while loop.
 
     L[0] = 0;
 
-    fgets(L, AS_MAX_READLEN, F->file());  nLines++;
+    fgets(L, AS_MAX_READLEN+1, F->file());  nLines++;
     chomp(L);
   }
 
@@ -157,12 +153,22 @@ loadFASTA(char                 *L,
 
   S[Slen] = 0;
 
-  //  Catch empty reads - reads with a line for sequence, but the line was empty.
+  //  Report errors.
+
+  if (baseErrors > 0) {
+    fprintf(errorLog, "read '%s' has "F_U32" invalid base%s.  Converted to 'N'.\n",
+            H, baseErrors, (baseErrors > 1) ? "s" : "");
+    nWARNS++;
+  }
 
   if (Slen == 0) {
     fprintf(errorLog, "read '%s' is empty.\n", H);
     nWARNS++;
-    return(nLines);
+  }
+
+  if (Slen != nBases) {
+    fprintf(errorLog, "read '%s' is too long; contains %u bases, but we can only handle %u.\n", H, nBases, AS_MAX_READLEN);
+    nWARNS++;
   }
 
   //  Do NOT clear L, it contains the next header.
@@ -191,14 +197,41 @@ loadFASTQ(char                 *L,
   S[0] = 0;
   Slen = 0;
 
-  fgets(S, AS_MAX_READLEN, F->file());
+  S[AS_MAX_READLEN+1-2] = 0;  //  If this is ever set, the read is probably longer than we can support.
+  S[AS_MAX_READLEN+1-1] = 0;  //  This will always be zero; fgets() sets it.
+
+  Q[AS_MAX_READLEN+1-2] = 0;  //  This too.
+  Q[AS_MAX_READLEN+1-1] = 0;
+
+  fgets(S, AS_MAX_READLEN+1, F->file());
   chomp(S);
+
+  //  Check for long reads.  If found, read the rest of the line, and report an error.  The -1 (in
+  //  the print) is because fgets() and strlen() will count the newline, which isn't a base.
+
+  if ((S[AS_MAX_READLEN+1-2] != 0) && (S[AS_MAX_READLEN+1-2] != '\n')) {
+    char    *overflow = new char [1048576];
+    uint32   nBases   = AS_MAX_READLEN;
+
+    do {
+      overflow[1048576-2] = 0;
+      overflow[1048576-1] = 0;
+      fgets(overflow, 1048576, F->file());
+      nBases += strlen(overflow);
+    } while (overflow[1048576-2] != 0);
+
+    fprintf(errorLog, "read '%s' is too long; contains %u bases, but we can only handle %u.\n", H, nBases-1, AS_MAX_READLEN);
+
+    nWARNS++;
+
+    delete [] overflow;
+  }
 
   //  Check for and correct invalid bases.
 
   uint32 baseErrors = 0;
 
-  for (uint32 i=0; S[i]; i++) {
+  for (uint32 i=0; (Slen < AS_MAX_READLEN) && (S[i] != 0); i++) {
     switch (S[i]) {
 #ifdef UPCASE
       case 'a':   S[i] = 'A';  break;
@@ -234,10 +267,26 @@ loadFASTQ(char                 *L,
   }
 
   //  Load the qv header, and then load the qvs themselves over the header.
+
   Q[0] = 0;
-  fgets(Q, AS_MAX_READLEN, F->file());
-  fgets(Q, AS_MAX_READLEN, F->file());
+  fgets(Q, AS_MAX_READLEN+1, F->file());
+  fgets(Q, AS_MAX_READLEN+1, F->file());
   chomp(Q);
+
+  //  As with the base, we need to suck in the rest of the longer-than-allowed QV string.  But we don't need to report it
+  //  or do anything fancy, just advance the file pointer.
+
+  if ((Q[AS_MAX_READLEN-1] != 0) && (Q[AS_MAX_READLEN-1] != '\n')) {
+    char    *overflow = new char [1048576];
+
+    do {
+      overflow[1048576-2] = 0;
+      overflow[1048576-1] = 0;
+      fgets(overflow, 1048576, F->file());
+    } while (overflow[1048576-2] != 0);
+
+    delete [] overflow;
+  }
 
   //  Convert from the (assumed to be) Sanger QVs to plain ol' integers.
 
@@ -297,14 +346,13 @@ loadReads(gkStore    *gkpStore,
           uint64     &bLOADED,
           uint32     &nSKIPPED,
           uint64     &bSKIPPED) {
-  char    *L = new char [AS_MAX_READLEN + 1];
+  char    *L = new char [AS_MAX_READLEN + 1];  //  +1.  One for the newline, and one for the terminating nul.
   char    *H = new char [AS_MAX_READLEN + 1];
+  char    *S = new char [AS_MAX_READLEN + 1];
+  char    *Q = new char [AS_MAX_READLEN + 1];
 
   uint32   Slen = 0;
-  char    *S = new char [AS_MAX_READLEN + 1];
-
   uint32   Qlen = 0;
-  char    *Q = new char [AS_MAX_READLEN + 1];
 
   uint64   lineNumber = 1;
 
@@ -355,7 +403,7 @@ loadReads(gkStore    *gkpStore,
   uint64   bSKIPPEDAlocal = 0;
   uint64   bSKIPPEDQlocal = 0;
 
-  fgets(L, AS_MAX_READLEN, F->file());
+  fgets(L, AS_MAX_READLEN+1, F->file());
   chomp(L);
 
   while (!feof(F->file())) {
@@ -426,7 +474,7 @@ loadReads(gkStore    *gkpStore,
     //  the fasta loader).
 
     if (L[0] == 0) {
-      fgets(L, AS_MAX_READLEN, F->file());  lineNumber++;
+      fgets(L, AS_MAX_READLEN+1, F->file());  lineNumber++;
       chomp(L);
     }
   }
@@ -707,12 +755,14 @@ main(int argc, char **argv) {
 
   fprintf(stderr, "\n");
   fprintf(stderr, "Finished with:\n");
-  fprintf(stderr, "  "F_U32" warnings (bad base or qv)\n", nWARNS);
+  fprintf(stderr, "  "F_U32" warnings (bad base or qv, too short, too long)\n", nWARNS);
   fprintf(stderr, "\n");
+#if 0
   fprintf(stderr, "Read from inputs:\n");
   fprintf(stderr, "  "F_U64" bp.\n",    bLOADED);
   fprintf(stderr, "  "F_U32" reads.\n", nLOADED);
   fprintf(stderr, "\n");
+#endif
   fprintf(stderr, "Loaded into store:\n");
   fprintf(stderr, "  "F_U64" bp.\n",    bLOADED);
   fprintf(stderr, "  "F_U32" reads.\n", nLOADED);
