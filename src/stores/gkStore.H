@@ -51,7 +51,6 @@ using namespace std;
 //  If 17-21, an overlap is 24 bytes.    (3x 64 bit words)
 //  If 22-32, an overlap is 32 bytes.    (4x 64 bit words)
 //
-//  If 21, overlapErrorCorrection (both programs) take a long time to initialize
 //  if 26, bogart has issues with storing the error rate
 //  If 28, alignment/alignment-drivers.C won't link
 //  If 29, alignment/alignment-drivers.C won't link

@@ -58,56 +58,6 @@ SOURCES      := AS_global.C \
                 overlapInCore/liboverlap/prefixEditDistance-extend.C \
                 overlapInCore/liboverlap/prefixEditDistance-forward.C \
                 overlapInCore/liboverlap/prefixEditDistance-reverse.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-5000.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-4900.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-4800.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-4700.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-4600.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-4500.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-4400.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-4300.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-4200.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-4100.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-4000.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-3900.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-3800.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-3700.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-3600.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-3500.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-3400.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-3300.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-3200.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-3100.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-3000.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-2900.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-2800.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-2700.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-2600.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-2500.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-2400.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-2300.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-2200.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-2100.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-2000.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-1900.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-1800.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-1700.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-1600.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-1500.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-1400.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-1300.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-1200.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-1100.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-1000.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-0900.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-0800.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-0700.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-0600.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-0500.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-0400.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-0300.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-0200.C \
-                overlapInCore/liboverlap/prefixEditDistance-matchLimit-0100.C \
                 \
                 utgcns/libNDalign/NDalign.C \
                 \

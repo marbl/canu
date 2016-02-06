@@ -120,24 +120,12 @@ main(int argc, char **argv) {
 
   fprintf(stderr, "Initializing.\n");
 
-  {
-    double MAX_ERRORS = 1 + (uint32)(G->errorRate * AS_MAX_READLEN);
+  double MAX_ERRORS = 1 + (uint32)(G->errorRate * AS_MAX_READLEN);
 
-    for (int32 i=0;  i <= ERRORS_FOR_FREE;  i++)
-      G->Edit_Match_Limit[i] = 0;
+  Initialize_Match_Limit(G->Edit_Match_Limit, G->errorRate, MAX_ERRORS);
 
-    int32 start = 1;
-    for (int32 e = ERRORS_FOR_FREE + 1;  e < MAX_ERRORS;  e++) {
-      start = Binomial_Bound(e - ERRORS_FOR_FREE, G->errorRate, start);
-
-      G->Edit_Match_Limit[e] = start - 1;
-
-      assert(G->Edit_Match_Limit[e] >= G->Edit_Match_Limit[e - 1]);
-    }
-
-    for (int32 i=0;  i <= AS_MAX_READLEN;  i++)
-      G->Error_Bound[i] = (int)ceil(i * G->errorRate);
-  }
+  for (int32 i=0;  i <= AS_MAX_READLEN;  i++)
+    G->Error_Bound[i] = (int)ceil(i * G->errorRate);
 
   //
   //
