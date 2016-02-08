@@ -34,6 +34,7 @@ use strict;
 
 use canu::Defaults;
 use canu::Grid;
+use canu::Execution;
 
 sub detectSGE () {
 
@@ -175,9 +176,56 @@ sub configureSGE () {
         caFailure("Couldn't parse gridEngineMemoryOption='" . getGlobal("gridEngineMemoryOption") . "'", undef);
     }
 
-
     caExit("can't configure for SGE", undef)  if ($configError);
 
+    #  Check that SGE is setup to use the #! line instead of the (stupid) defaults.
+
+    my %start_mode;
+    my %start_shell;
+
+    if (getGlobal('gridOptions') !~ m/-S/) {
+        open(Q, "qconf -sql |");
+        while (<Q>) {
+            chomp;
+            my $q = $_;
+
+            $start_mode{$q}  = "na";
+            $start_shell{$q} = "na";
+
+            open(F, "qconf -sq $q |");
+            while (<F>) {
+                $start_mode{$q}  = $1   if (m/shell_start_mode\s+(\S+)/);
+                $start_shell{$q} = $1   if (m/shell\s+(\S+)/);
+            }
+            close(F);
+        }
+
+        my $startBad = undef;
+
+        foreach my $q (keys %start_mode) {
+            if (($start_mode{$q}  ne "unix_behavior") &&
+                ($start_shell{$q} =~ m/csh$/)) {
+                $startBad .= "-- WARNING:  Queue '$q' has start mode set to 'posix_behavior' and shell set to '$start_shell{$q}'.\n";
+            }
+        }
+
+        if (defined($startBad)) {
+            my $bash = findCommand("bash");
+            my $sh   = findCommand("sh");
+
+            print STDERR "--\n";
+            print STDERR "-- WARNING:\n";
+            print STDERR "$startBad";
+            print STDERR "-- WARNING:\n";
+            print STDERR "-- WARNING:  Some queues in your configuration will fail to start jobs correctly.\n";
+            print STDERR "-- WARNING:  If these queues are used and canu fails to run, supply (or add to) option:\n";
+            print STDERR "-- WARNING:    gridOptions=-S $bash\n"   if ($bash ne "");
+            print STDERR "-- WARNING:         -- or --\n"                    if (($bash ne "") && ($sh ne ""));
+            print STDERR "-- WARNING:    gridOptions=-S $sh\n"     if ($sh ne "");
+            print STDERR "-- WARNING:  to force the use of that shell to run scripts.\n";
+            print STDERR "-- WARNING:\n";
+        }
+    }
 
     #  Build a list of the resources available in the grid.  This will contain a list with keys
     #  of "#CPUs-#GBs" and values of the number of nodes With such a config.  Later on, we'll use this
