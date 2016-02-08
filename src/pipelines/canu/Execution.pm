@@ -51,7 +51,7 @@ package canu::Execution;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(stopBefore stopAfter skipStage emitStage touch getInstallDirectory getBinDirectory getBinDirectoryShellCode submitScript submitOrRunParallelJob runCommand runCommandSilently findExecutable);
+@EXPORT = qw(stopBefore stopAfter skipStage emitStage touch getInstallDirectory getBinDirectory getBinDirectoryShellCode submitScript submitOrRunParallelJob runCommand runCommandSilently findCommand findExecutable);
 
 use strict;
 use Config;            #  for @signame
@@ -60,6 +60,7 @@ use Cwd qw(getcwd);
 use POSIX ":sys_wait_h";  #  For waitpid(..., &WNOHANG)
 use List::Util qw(min max);
 use File::Path qw(make_path remove_tree);
+use File::Spec;
 
 use canu::Defaults;
 
@@ -1369,8 +1370,22 @@ sub runCommandSilently ($$) {
     print STDERR "\n";
     print STDERR "ERROR: Failed with $error\n";
 
-    exit(1);
     return(1);
+}
+
+
+
+sub findCommand ($) {
+    my $cmd  = shift @_;
+    my @path = File::Spec->path;
+
+    for my $path (@path) {
+        if (-x "$path/$cmd") {
+            return("$path/$cmd");
+        }
+    }
+
+    return(undef);
 }
 
 
