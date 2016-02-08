@@ -149,7 +149,10 @@ sub consensusConfigure ($$) {
 
         if ($gkpTime > $tigTime) {
             print STDERR "-- Partitioned gkpStore is older than tigs, rebuild partitioning (gkpStore $gkpTime days old; tigStore $tigTime days old).\n";
-            runCommandSilently($wrk, "rm -rf $wrk/$asm.gkpStore/partitions");
+
+            if (runCommandSilently($wrk, "rm -rf $wrk/$asm.gkpStore/partitions", 1)) {
+                caExit("failed to remove old partitions ($wrk/$asm.gkpStore/partitions), can't continue until these are removed", undef);
+            }
         }
     }
 

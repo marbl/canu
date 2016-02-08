@@ -445,10 +445,14 @@ sub emitStage ($$$@) {
     }
 
     if (-e "$wrk/$asm.stage.fileLists/stage.$label1.created") {
-        runCommandSilently($wrk, "find . -type f -and -newer  $wrk/$asm.stage.fileLists/stage.$label1.created -print > $wrk/$asm.stage.fileLists/stage.$label.created");
-        runCommandSilently($wrk, "find . -type f -and -anewer $wrk/$asm.stage.fileLists/stage.$label1.created -print > $wrk/$asm.stage.fileLists/stage.$label.accessed");
+        runCommandSilently($wrk, "find . -type f -and -newer  $wrk/$asm.stage.fileLists/stage.$label1.created -print > $wrk/$asm.stage.fileLists/stage.$label.created", 1);
+        runCommandSilently($wrk, "find . -type f -and -anewer $wrk/$asm.stage.fileLists/stage.$label1.created -print > $wrk/$asm.stage.fileLists/stage.$label.accessed", 1);
     } else {
-        runCommandSilently($wrk, "find . -type f -print > $wrk/$asm.stage.fileLists/stage.$label.created");
+        runCommandSilently($wrk, "find . -type f -print > $wrk/$asm.stage.fileLists/stage.$label.created", 1);
+    }
+
+    if (! -e "$wrk/$asm.stage.fileLists/stage.$label1.created") {
+        caExit("failed to generate list of files created since last checkpoint", undef);
     }
 }
 
@@ -1315,12 +1319,13 @@ sub runCommand ($$) {
 
 
 
-sub runCommandSilently ($$) {
-    my $dir = shift @_;
-    my $cmd = shift @_;
-    my $dis = prettifyCommand($cmd);
+sub runCommandSilently ($$$) {
+    my $dir      = shift @_;
+    my $cmd      = shift @_;
+    my $dis      = prettifyCommand($cmd);
+    my $critical = shift @_;
 
-    return  if ($cmd eq "");
+    return(0)   if ($cmd eq "");
 
     if (! -d $dir) {
         caFailure("Directory '$dir' doesn't exist, can't run command", "");
@@ -1330,10 +1335,11 @@ sub runCommandSilently ($$) {
 
     #  Pretty much copied from Programming Perl page 230
 
-    return(0) if ($rc == 0);
+    return(0) if ($rc == 0);         #  No errors, return no error.
+    return(1) if ($critical == 0);   #  If not critical, return that it failed.
 
-    #  Bunch of busy work to get the names of signals.  Is it really worth it?!
-    #
+    #  Otherwise, it failed, and is critical.  Report an error and return that it failed.
+
     my @signame;
     if (defined($Config{sig_name})) {
         my $i = 0;

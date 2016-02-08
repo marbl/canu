@@ -437,8 +437,13 @@ sub expensiveFilter ($$) {
         }
     }
 
-    runCommandSilently($path, "sort -k4nr -k2nr < $path/$asm.estimate.log > $path/$asm.estimate.correctedLength.log");
-    runCommandSilently($path, "sort -k2nr -k4nr < $path/$asm.estimate.log > $path/$asm.estimate.originalLength.log");
+    if (runCommandSilently($path, "sort -k4nr -k2nr < $path/$asm.estimate.log > $path/$asm.estimate.correctedLength.log", 1)) {
+        caExit("failed to sort by corrected read length", undef);
+    }
+
+    if (runCommandSilently($path, "sort -k2nr -k4nr < $path/$asm.estimate.log > $path/$asm.estimate.originalLength.log",  1)) {
+        caExit("failed to sort by original read length", undef);
+    }
 
     my $totRawLengthIn    = 0;  #  Bases in raw reads we correct
     my $totRawLengthOut   = 0;  #  Expected bases in corrected reads
@@ -616,11 +621,14 @@ sub expensiveFilter ($$) {
         print F "replot\n";
         close(F);
 
-        runCommandSilently($path, "gnuplot < $path/$asm.estimate.original-x-correctedLength.gp > /dev/null 2>&1");
+        if (runCommandSilently($path, "gnuplot < $path/$asm.estimate.original-x-correctedLength.gp > /dev/null 2>&1", 0)) {
+            print STDERR "--\n";
+            print STDERR "-- WARNING: gnuplot failed; no plots will appear in HTML output.\n";
+            print STDERR "--\n";
+            print STDERR "----------------------------------------\n";
+        }
     }
 }
-
-
 
 
 
@@ -1072,7 +1080,12 @@ sub dumpCorrectedReads ($$) {
     print F "replot\n";
     close(F);
 
-    runCommandSilently("$wrk/2-correction", "gnuplot $wrk/2-correction/$asm.originalLength-vs-correctedLength.gp > /dev/null 2>&1");
+    if (runCommandSilently("$wrk/2-correction", "gnuplot $wrk/2-correction/$asm.originalLength-vs-correctedLength.gp > /dev/null 2>&1", 0)) {
+        print STDERR "--\n";
+        print STDERR "-- WARNING: gnuplot failed; no plots will appear in HTML output.\n";
+        print STDERR "--\n";
+        print STDERR "----------------------------------------\n";
+    }
 
     #  Histograms of lengths, including the difference between expected and actual corrected (the
     #  other two difference plots weren't interesting; original-expected was basically all zero, and
@@ -1108,7 +1121,12 @@ sub dumpCorrectedReads ($$) {
     print F "replot\n";
     close(F);
 
-    runCommandSilently("$wrk/2-correction", "gnuplot $wrk/2-correction/$asm.length-histograms.gp > /dev/null 2>&1");
+    if (runCommandSilently("$wrk/2-correction", "gnuplot $wrk/2-correction/$asm.length-histograms.gp > /dev/null 2>&1", 0)) {
+        print STDERR "--\n";
+        print STDERR "-- WARNING: gnuplot failed; no plots will appear in HTML output.\n";
+        print STDERR "--\n";
+        print STDERR "----------------------------------------\n";
+    }
 
     #  Now that all outputs are (re)written, cleanup the job outputs.
 
