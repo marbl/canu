@@ -149,18 +149,32 @@ Initialize_Match_Limit(int32 *ml, double maxErate, int32 maxErrors) {
   //  Estimate the remaining limits.  using a linear function based on a precomputed slope.
   //  prefixEditDistance-matchLimitGenerate computes the data values for a bunch of error rates.
   //  These are used to compute the slope of a line from the [2000] point through the [max] point.
-  //  These slopes fit, almost exactly, a 1/x curve, and that fit is used to compute a slope for any
-  //  error rate.
+  //  These slopes fit, almost exactly, an a/x+b curve, and that curve is used to compute the slope
+  //  for any error rate.
   //
-  //  For BITS=17:  0.962830901135531 / maxErate + 0.096810267016486
-  //  For BITS=18:  0.964368146781421 / maxErate + 0.118101522100597
-  //  For BITS=19:  0.963823337297648 / maxErate + 0.156091528250625
-  //  For BITS=20:  0.971023157863311 / maxErate + 0.154425731746994
-  //  For BITS=21:  0.982064188397525 / maxErate + 0.067835741959926
-  //
-  double  sl = 0.982064188397525 / maxErate + 0.0678357419599262;
+#if AS_MAX_READLEN_BITS == 17
+  double sl = 0.962830901135531 / maxErate + 0.096810267016486;
+#endif
 
-  fprintf(stderr, "slope = %f  for maxErate = %f\n", sl, maxErate);
+#if AS_MAX_READLEN_BITS == 18
+  double sl = 0.964368146781421 / maxErate + 0.118101522100597;
+#endif
+
+#if AS_MAX_READLEN_BITS == 19
+  double sl = 0.963823337297648 / maxErate + 0.156091528250625;
+#endif
+
+#if AS_MAX_READLEN_BITS == 20
+  double sl = 0.971023157863311 / maxErate + 0.154425731746994;
+#endif
+
+#if AS_MAX_READLEN_BITS == 21
+  double sl = 0.982064188397525 / maxErate + 0.067835741959926;
+#endif
+
+#if AS_MAX_READLEN_BITS == 22
+  double sl = 0.986446300363063 / maxErate + 0.052358358862826;
+#endif
 
   //  And the first value.
   double  vl = ml[e-1] + sl;
