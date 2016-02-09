@@ -492,7 +492,7 @@ all: UPDATE_VERSION MAKE_DIRS \
      ${TARGET_DIR}/falcon_sense \
      ${TARGET_DIR}/canu \
      ${TARGET_DIR}/canu.defaults \
-     ${TARGET_DIR}/lib/canu \
+     ${TARGET_DIR}/lib/canu/lib \
      ${TARGET_DIR}/lib/canu/Consensus.pm \
      ${TARGET_DIR}/lib/canu/CorrectReads.pm \
      ${TARGET_DIR}/lib/canu/Configure.pm \
@@ -573,7 +573,7 @@ ${TARGET_DIR}/canu.defaults:
 	echo > ${TARGET_DIR}/canu.defaults  "# Add site specific options (for setting up Grid or limiting memory/threads) here."
 	chmod -x ${TARGET_DIR}/canu.defaults
 
-${TARGET_DIR}/lib/canu: pipelines/install-perl-libraries.sh
+${TARGET_DIR}/lib/canu/lib: pipelines/install-perl-libraries.sh
 	cd pipelines && sh install-perl-libraries.sh ../${TARGET_DIR}/lib/canu
 
 ${TARGET_DIR}/lib/canu/Consensus.pm: pipelines/canu/Consensus.pm
