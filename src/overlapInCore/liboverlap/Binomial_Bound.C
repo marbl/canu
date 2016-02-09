@@ -109,3 +109,91 @@ Binomial_Bound(int e, double p, int Start) {
   return(AS_MAX_READLEN);
 }
 
+
+
+
+void
+Initialize_Match_Limit(int32 *ml, double maxErate, int32 maxErrors) {
+  int32 e = 0;
+  int32 s = 1;
+  int32 l = MIN(maxErrors, 2000);  //  Compute the first 2000 values; set to maxErrors to do no estimation
+
+  //  The number of errors that are ignored in setting probability bound for terminating alignment
+  //  extensions in edit distance calculations
+  int32 ERRORS_FOR_FREE = 1;
+
+  //  Free errors.
+
+  while (e <= ERRORS_FOR_FREE)
+    ml[e++] = 0;
+
+  //  Compute the actual limits.  This is _VERY_ expensive for longer reads.  BITS=17 is about all
+  //  it can support.
+
+#ifdef DUMP_MATCH_LIMIT
+  l = maxErrors;  //  For showing deviations
+#endif
+
+  while (e < l) {
+    s = Binomial_Bound(e - ERRORS_FOR_FREE, maxErate, s);
+    ml[e] = s - 1;
+
+    assert(ml[e] >= ml[e-1]);
+
+    //if ((e % 100) == 0)
+    //  fprintf(stderr, " %8.4f%% - %8d / %8d\r", 100.0 * e / maxErrors, e, maxErrors);
+
+    e++;
+  }
+
+  //  Estimate the remaining limits.  using a linear function based on a precomputed slope.
+  //  prefixEditDistance-matchLimitGenerate computes the data values for a bunch of error rates.
+  //  These are used to compute the slope of a line from the [2000] point through the [max] point.
+  //  These slopes fit, almost exactly, an a/x+b curve, and that curve is used to compute the slope
+  //  for any error rate.
+  //
+#if AS_MAX_READLEN_BITS == 17
+  double sl = 0.962830901135531 / maxErate + 0.096810267016486;
+#endif
+
+#if AS_MAX_READLEN_BITS == 18
+  double sl = 0.964368146781421 / maxErate + 0.118101522100597;
+#endif
+
+#if AS_MAX_READLEN_BITS == 19
+  double sl = 0.963823337297648 / maxErate + 0.156091528250625;
+#endif
+
+#if AS_MAX_READLEN_BITS == 20
+  double sl = 0.971023157863311 / maxErate + 0.154425731746994;
+#endif
+
+#if AS_MAX_READLEN_BITS == 21
+  double sl = 0.982064188397525 / maxErate + 0.067835741959926;
+#endif
+
+#if AS_MAX_READLEN_BITS == 22
+  double sl = 0.986446300363063 / maxErate + 0.052358358862826;
+#endif
+
+  //  And the first value.
+  double  vl = ml[e-1] + sl;
+
+  while (e < maxErrors) {
+    ml[e] = (int32)ceil(vl);
+    vl += sl;
+    e++;
+  }
+
+#ifdef DUMP_MATCH_LIMIT
+  FILE *F = fopen("values-new.dat", "w");
+  for (int32 e=0; e<maxErrors; e++)
+    fprintf(F, "%d %d\n", e, Edit_Match_Limit[e]);
+  fclose(F);
+
+  fprintf(stderr, "values-orig.dat and values-new.dat dumped.  exiting.\n");
+  exit(1);
+#endif
+
+}
+

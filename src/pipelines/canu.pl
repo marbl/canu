@@ -196,7 +196,7 @@ while (scalar(@ARGV)) {
         addCommandLineOption("\"$arg\"");
 
     } else {
-        addCommandLineError("ERROR:  Invalid command line option '$arg'.\n");
+        addCommandLineError("ERROR:  Invalid command line option '$arg'.  Did you forget quotes around options with spaces?\n");
     }
 }
 
@@ -216,8 +216,10 @@ $mode = "run"            if (!defined($mode) && (-d "$wrk/correction/$asm.gkpSto
 $mode = "trim-assemble"  if (!defined($mode) && (-d "$wrk/trimming/$asm.gkpStore"));
 $mode = "assemble"       if (!defined($mode) && (-d "$wrk/unitigging/$asm.gkpStore"));
 
-#@inputFiles = setParametersFromFile("$bin/spec/runCA.default.specFile", @inputFiles)   if (-e "$bin/spec/runCA.default.specFile");
-#@inputFiles = setParametersFromFile("$ENV{'HOME'}/.runCA",              @inputFiles)   if (-e "$ENV{'HOME'}/.runCA");
+#  Load paramters from the defaults files
+
+@inputFiles = setParametersFromFile("$bin/canu.defaults",   @inputFiles)   if (-e "$bin/canu.defaults");
+@inputFiles = setParametersFromFile("$ENV{'HOME'}/.canu",   @inputFiles)   if (-e "$ENV{'HOME'}/.canu");
 
 #  For each of the spec files, parse it, setting parameters and remembering any input files discovered.
 

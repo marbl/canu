@@ -449,24 +449,12 @@ main(int argc, char **argv) {
   //  Initialize Globals
   //
 
-  {
-    double MAX_ERRORS = 1 + (uint32)(G->errorRate * AS_MAX_READLEN);
+  double MAX_ERRORS = 1 + (uint32)(G->errorRate * AS_MAX_READLEN);
 
-    for  (uint32 i = 0;  i <= ERRORS_FOR_FREE;  i++)
-      G->Edit_Match_Limit[i] = 0;
-
-    uint32 start = 1;
-
-    for  (uint32 e = ERRORS_FOR_FREE + 1;  e < MAX_ERRORS;  e++) {
-      start = Binomial_Bound (e - ERRORS_FOR_FREE, G->errorRate, start);
-      G->Edit_Match_Limit[e] = start - 1;
-
-      assert(G->Edit_Match_Limit[e] >= G->Edit_Match_Limit[e - 1]);
-    }
-
-    for  (uint32 i = 0;  i <= AS_MAX_READLEN;  i++)
-      G->Error_Bound[i] = (int)ceil(i * G->errorRate);
-  }
+  Initialize_Match_Limit(G->Edit_Match_Limit, G->errorRate, MAX_ERRORS);
+ 
+  for  (uint32 i = 0;  i <= AS_MAX_READLEN;  i++)
+    G->Error_Bound[i] = (int)ceil(i * G->errorRate);
 
   //
   //

@@ -88,10 +88,6 @@ sub getNumberOfBasesInStore ($$) {
 
     return($nb)   if (! -e "$wrk/$asm.gkpStore/info.txt");
 
-    if (! -e "$wrk/$asm.gkpStore/reads.txt") {
-        runCommandSilently("$wrk/$asm.gkpStore", "$bin/gatekeeperDumpMetaData -G . -reads > reads.txt 2> /dev/null");
-    }
-
     #  Read the info file.  gatekeeperCreate creates this at the end.
 
     open(F, "< $wrk/$asm.gkpStore/reads.txt") or caExit("can't open '$wrk/$asm.gkpStore/reads.txt' for reading: $!", undef);
@@ -253,7 +249,9 @@ sub gatekeeper ($$$@) {
     #  Generate some statistics.
 
     if (! -e "$wrk/$asm.gkpStore/reads.txt") {
-        runCommandSilently("$wrk/$asm.gkpStore", "$bin/gatekeeperDumpMetaData -G . -reads > reads.txt 2> /dev/null");
+        if (runCommandSilently("$wrk/$asm.gkpStore", "$bin/gatekeeperDumpMetaData -G . -reads > reads.txt 2> /dev/null", 1)) {
+            caExit("failed to generate list of reads in store", undef);
+        }
     }
 
     if (! -e "$wrk/$asm.gkpStore/readlengths.txt") {
@@ -312,7 +310,12 @@ sub gatekeeper ($$$@) {
         print F "plot [] '$wrk/$asm.gkpStore/readlengths.txt' using (bin(\$1,binwidth)):(1.0) smooth freq with boxes title ''\n";
         close(F);
 
-        runCommandSilently("$wrk/$asm.gkpStore", "gnuplot < $wrk/$asm.gkpStore/readlengths.gp > /dev/null 2>&1");
+        if (runCommandSilently("$wrk/$asm.gkpStore", "gnuplot $wrk/$asm.gkpStore/readlengths.gp > /dev/null 2>&1", 0)) {
+            print STDERR "--\n";
+            print STDERR "-- WARNING: gnuplot failed; no plots will appear in HTML output.\n";
+            print STDERR "--\n";
+            print STDERR "----------------------------------------\n";
+        }
     }
 
   finishStage:

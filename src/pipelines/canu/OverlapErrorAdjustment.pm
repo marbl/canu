@@ -182,7 +182,7 @@ sub readErrorDetectionConfigure ($$) {
 
     my $numReads    = getNumberOfReadsInStore($wrk, $asm);
 
-    open(F, "> $path/red.sh") or caWarn("can't open '$path/red.sh' for writing: $!", undef);
+    open(F, "> $path/red.sh") or caExit("can't open '$path/red.sh' for writing: $!", undef);
 
     print F "#!" . getGlobal("shell") . "\n\n";
     print F "\n";

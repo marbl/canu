@@ -102,10 +102,6 @@ public:
   //  Most errors in any edit distance computation
   uint32   MAX_ERRORS;
 
-  //  The number of errors that are ignored in setting probability bound for terminating alignment
-  //  extensions in edit distance calculations
-  uint32   ERRORS_FOR_FREE;
-
   //  Branch points must be at least this many bases from the end of the fragment to be reported
   uint32   MIN_BRANCH_END_DIST;
 

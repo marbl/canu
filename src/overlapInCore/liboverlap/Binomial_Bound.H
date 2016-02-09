@@ -31,4 +31,7 @@
 int
 Binomial_Bound(int e, double p, int Start);
 
+void
+Initialize_Match_Limit(int32 *ml, double maxErate, int32 MAX_ERRORS);
+
 #endif
