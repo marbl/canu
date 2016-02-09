@@ -212,18 +212,28 @@ sub configureSGE () {
         if (defined($startBad)) {
             my $bash = findCommand("bash");
             my $sh   = findCommand("sh");
+            my $shell;
+
+            $shell = $bash   if ($bash ne "");
+            $shell = $sh     if ($sh   ne "");
 
             print STDERR "--\n";
             print STDERR "-- WARNING:\n";
             print STDERR "$startBad";
             print STDERR "-- WARNING:\n";
             print STDERR "-- WARNING:  Some queues in your configuration will fail to start jobs correctly.\n";
-            print STDERR "-- WARNING:  If these queues are used and canu fails to run, supply (or add to) option:\n";
-            print STDERR "-- WARNING:    gridOptions=-S $bash\n"   if ($bash ne "");
-            print STDERR "-- WARNING:         -- or --\n"                    if (($bash ne "") && ($sh ne ""));
-            print STDERR "-- WARNING:    gridOptions=-S $sh\n"     if ($sh ne "");
-            print STDERR "-- WARNING:  to force the use of that shell to run scripts.\n";
+            print STDERR "-- WARNING:  Jobs will be submitted with option:\n";
+            print STDERR "-- WARNING:    gridOptions=-S $shell\n";
             print STDERR "-- WARNING:\n";
+            print STDERR "-- WARNING:  If jobs fail to start, modify the above option to use a valid shell\n";
+            print STDERR "-- WARNING:  and supply it directly to canu.\n";
+            print STDERR "-- WARNING:\n";
+
+            if (!defined(getGlobal('gridOptions'))) {
+                setGlobal('gridOptions', "-S $shell");
+            } else {
+                setGlobal('gridOptions', getGlobal('gridOptions') . " -S $shell");
+            }
         }
     }
 
