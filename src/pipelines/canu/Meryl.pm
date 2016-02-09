@@ -230,8 +230,8 @@ sub merylConfigure ($$$) {
     my ($wrk, $merSize, $merThresh, $merScale, $merDistinct, $merTotal, $ffile, $ofile) = merylParameters($WRK, $asm, $tag);
 
     goto allDone   if (skipStage($WRK, $asm, "$tag-merylConfigure") == 1);
-    goto allDone   if (-e "$ofile.mcdat");
-    goto allDone   if (-e "$ofile.mcidx");
+    goto allDone   if  (-e "$ffile");
+    goto allDone   if ((-e "$ofile.mcidx") && (-e "$ofile.mcdat"));
 
     print STDERR "-- MERYL (correction)\n"  if ($tag eq "cor");
     print STDERR "-- MERYL (trimming)\n"    if ($tag eq "obt");
