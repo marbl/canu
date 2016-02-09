@@ -487,7 +487,7 @@ INCDIRS := $(addprefix -I,$(call CANONICAL_PATH,${INCDIRS}))
 # Define the "all" target (which simply builds all user-defined targets) as the
 # default goal.
 .PHONY: all
-all: UPDATE_VERSION \
+all: UPDATE_VERSION MAKE_DIRS \
      $(addprefix ${TARGET_DIR}/,${ALL_TGTS}) \
      ${TARGET_DIR}/falcon_sense \
      ${TARGET_DIR}/canu \
@@ -546,6 +546,11 @@ UPDATE_VERSION:
 
 AS_global.C: UPDATE_VERSION
 
+#  A fake target, to make the directory for the canu perl modules.
+.PHONY: MAKE_DIRS
+MAKE_DIRS:
+	@if [ ! -e ${TARGET_DIR}/lib/canu ] ; then mkdir -p ${TARGET_DIR}/lib/canu ; fi
+
 #  A different falconsense for every platform, yay!
 ifeq      (${OSTYPE}, Linux)
   FALCONSENSE := falcon_sense.${OSTYPE}-${MACHINETYPE}.bin
@@ -560,71 +565,73 @@ ${TARGET_DIR}/falcon_sense: falcon_sense/${FALCONSENSE}
 	cp -pf falcon_sense/${FALCONSENSE} ${TARGET_DIR}/falcon_sense
 	chmod +x ${TARGET_DIR}/falcon_sense
 
-
 ${TARGET_DIR}/canu: pipelines/canu.pl
 	cp -pf pipelines/canu.pl ${TARGET_DIR}/canu
 	chmod +x ${TARGET_DIR}/canu
 
+${TARGET_DIR}/canu.defaults:
+	echo > ${TARGET_DIR}/canu.defaults  "# Add site specific options (for setting up Grid or limiting memory/threads) here."
+	chmod -x ${TARGET_DIR}/canu.defaults
+
 ${TARGET_DIR}/lib/canu: pipelines/install-perl-libraries.sh
-	@if [ ! -e ${TARGET_DIR}/lib/canu ] ; then mkdir -p ${TARGET_DIR}/lib/canu ; fi
 	cd pipelines && sh install-perl-libraries.sh ../${TARGET_DIR}/lib/canu
 
-${TARGET_DIR}/lib/canu/Consensus.pm: ${TARGET_DIR}/lib/canu pipelines/canu/Consensus.pm
+${TARGET_DIR}/lib/canu/Consensus.pm: pipelines/canu/Consensus.pm
 	cp -pf pipelines/canu/Consensus.pm ${TARGET_DIR}/lib/canu/
 
-${TARGET_DIR}/lib/canu/CorrectReads.pm: ${TARGET_DIR}/lib/canu pipelines/canu/CorrectReads.pm
+${TARGET_DIR}/lib/canu/CorrectReads.pm: pipelines/canu/CorrectReads.pm
 	cp -pf pipelines/canu/CorrectReads.pm ${TARGET_DIR}/lib/canu/
 
-${TARGET_DIR}/lib/canu/Configure.pm: ${TARGET_DIR}/lib/canu pipelines/canu/Configure.pm
+${TARGET_DIR}/lib/canu/Configure.pm: pipelines/canu/Configure.pm
 	cp -pf pipelines/canu/Configure.pm ${TARGET_DIR}/lib/canu/
 
-${TARGET_DIR}/lib/canu/Defaults.pm: ${TARGET_DIR}/lib/canu pipelines/canu/Defaults.pm
+${TARGET_DIR}/lib/canu/Defaults.pm: pipelines/canu/Defaults.pm
 	cp -pf pipelines/canu/Defaults.pm ${TARGET_DIR}/lib/canu/
 
-${TARGET_DIR}/lib/canu/Execution.pm: ${TARGET_DIR}/lib/canu pipelines/canu/Execution.pm
+${TARGET_DIR}/lib/canu/Execution.pm: pipelines/canu/Execution.pm
 	cp -pf pipelines/canu/Execution.pm ${TARGET_DIR}/lib/canu/
 
-${TARGET_DIR}/lib/canu/Gatekeeper.pm: ${TARGET_DIR}/lib/canu pipelines/canu/Gatekeeper.pm
+${TARGET_DIR}/lib/canu/Gatekeeper.pm: pipelines/canu/Gatekeeper.pm
 	cp -pf pipelines/canu/Gatekeeper.pm ${TARGET_DIR}/lib/canu/
 
-${TARGET_DIR}/lib/canu/Grid.pm: ${TARGET_DIR}/lib/canu pipelines/canu/Grid.pm
+${TARGET_DIR}/lib/canu/Grid.pm: pipelines/canu/Grid.pm
 	cp -pf pipelines/canu/Grid.pm ${TARGET_DIR}/lib/canu/
 
-${TARGET_DIR}/lib/canu/Grid_LSF.pm: ${TARGET_DIR}/lib/canu pipelines/canu/Grid_LSF.pm
+${TARGET_DIR}/lib/canu/Grid_LSF.pm: pipelines/canu/Grid_LSF.pm
 	cp -pf pipelines/canu/Grid_LSF.pm ${TARGET_DIR}/lib/canu/
 
-${TARGET_DIR}/lib/canu/Grid_PBSTorque.pm: ${TARGET_DIR}/lib/canu pipelines/canu/Grid_PBSTorque.pm
+${TARGET_DIR}/lib/canu/Grid_PBSTorque.pm: pipelines/canu/Grid_PBSTorque.pm
 	cp -pf pipelines/canu/Grid_PBSTorque.pm ${TARGET_DIR}/lib/canu/
 
-${TARGET_DIR}/lib/canu/Grid_SGE.pm: ${TARGET_DIR}/lib/canu pipelines/canu/Grid_SGE.pm
+${TARGET_DIR}/lib/canu/Grid_SGE.pm: pipelines/canu/Grid_SGE.pm
 	cp -pf pipelines/canu/Grid_SGE.pm ${TARGET_DIR}/lib/canu/
 
-${TARGET_DIR}/lib/canu/Grid_Slurm.pm: ${TARGET_DIR}/lib/canu pipelines/canu/Grid_Slurm.pm
+${TARGET_DIR}/lib/canu/Grid_Slurm.pm: pipelines/canu/Grid_Slurm.pm
 	cp -pf pipelines/canu/Grid_Slurm.pm ${TARGET_DIR}/lib/canu/
 
-${TARGET_DIR}/lib/canu/HTML.pm: ${TARGET_DIR}/lib/canu pipelines/canu/HTML.pm
+${TARGET_DIR}/lib/canu/HTML.pm: pipelines/canu/HTML.pm
 	cp -pf pipelines/canu/HTML.pm ${TARGET_DIR}/lib/canu/
 
-${TARGET_DIR}/lib/canu/Meryl.pm: ${TARGET_DIR}/lib/canu pipelines/canu/Meryl.pm
+${TARGET_DIR}/lib/canu/Meryl.pm: pipelines/canu/Meryl.pm
 	cp -pf pipelines/canu/Meryl.pm ${TARGET_DIR}/lib/canu/
 
-${TARGET_DIR}/lib/canu/Output.pm: ${TARGET_DIR}/lib/canu pipelines/canu/Output.pm
+${TARGET_DIR}/lib/canu/Output.pm: pipelines/canu/Output.pm
 	cp -pf pipelines/canu/Output.pm ${TARGET_DIR}/lib/canu/
 
-${TARGET_DIR}/lib/canu/OverlapBasedTrimming.pm: ${TARGET_DIR}/lib/canu pipelines/canu/OverlapBasedTrimming.pm
+${TARGET_DIR}/lib/canu/OverlapBasedTrimming.pm: pipelines/canu/OverlapBasedTrimming.pm
 	cp -pf pipelines/canu/OverlapBasedTrimming.pm ${TARGET_DIR}/lib/canu/
 
-${TARGET_DIR}/lib/canu/OverlapErrorAdjustment.pm: ${TARGET_DIR}/lib/canu pipelines/canu/OverlapErrorAdjustment.pm
+${TARGET_DIR}/lib/canu/OverlapErrorAdjustment.pm: pipelines/canu/OverlapErrorAdjustment.pm
 	cp -pf pipelines/canu/OverlapErrorAdjustment.pm ${TARGET_DIR}/lib/canu/
 
-${TARGET_DIR}/lib/canu/OverlapInCore.pm: ${TARGET_DIR}/lib/canu pipelines/canu/OverlapInCore.pm
+${TARGET_DIR}/lib/canu/OverlapInCore.pm: pipelines/canu/OverlapInCore.pm
 	cp -pf pipelines/canu/OverlapInCore.pm ${TARGET_DIR}/lib/canu/
 
-${TARGET_DIR}/lib/canu/OverlapMhap.pm: ${TARGET_DIR}/lib/canu pipelines/canu/OverlapMhap.pm
+${TARGET_DIR}/lib/canu/OverlapMhap.pm: pipelines/canu/OverlapMhap.pm
 	cp -pf pipelines/canu/OverlapMhap.pm ${TARGET_DIR}/lib/canu/
 
-${TARGET_DIR}/lib/canu/OverlapStore.pm: ${TARGET_DIR}/lib/canu pipelines/canu/OverlapStore.pm
+${TARGET_DIR}/lib/canu/OverlapStore.pm: pipelines/canu/OverlapStore.pm
 	cp -pf pipelines/canu/OverlapStore.pm ${TARGET_DIR}/lib/canu/
 
-${TARGET_DIR}/lib/canu/Unitig.pm: ${TARGET_DIR}/lib/canu pipelines/canu/Unitig.pm
+${TARGET_DIR}/lib/canu/Unitig.pm: pipelines/canu/Unitig.pm
 	cp -pf pipelines/canu/Unitig.pm ${TARGET_DIR}/lib/canu/
