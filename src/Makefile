@@ -491,6 +491,7 @@ all: UPDATE_VERSION \
      $(addprefix ${TARGET_DIR}/,${ALL_TGTS}) \
      ${TARGET_DIR}/falcon_sense \
      ${TARGET_DIR}/canu \
+     ${TARGET_DIR}/canu.defaults \
      ${TARGET_DIR}/lib/canu \
      ${TARGET_DIR}/lib/canu/Consensus.pm \
      ${TARGET_DIR}/lib/canu/CorrectReads.pm \
