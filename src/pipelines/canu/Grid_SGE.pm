@@ -75,22 +75,31 @@ sub configureSGE () {
     if (!defined(getGlobal("gridEngineThreadsOption"))) {
         my @env = `qconf -spl`;  chomp @env;
         my @thr;
+        my $bestThr   = undef;
+        my $bestSlots = 0;
 
         foreach my $env (@env) {
+            my $ns = 0;
             my $ar = 0;
-            my $cs = 0;
             my $jf = 0;
 
             open(F, "qconf -sp $env |");
             while (<F>) {
-                $ar = 1  if (m/allocation_rule.*pe_slots/);
-                $cs = 1  if (m/control_slaves.*FALSE/);
-                $jf = 1  if (m/job_is_first_task.*TRUE/);
+                $ns = $1  if (m/slots\s+(\d+)/);               #  How many slots can we use?
+                $ar = 1   if (m/allocation_rule.*pe_slots/);   #  All slots need to be on a single node.
+                #$cs = 1   if (m/control_slaves.*FALSE/);      #  Doesn't apply to pe_slots.
+                $jf = 1   if (m/job_is_first_task.*TRUE/);     #  The fisrt task (slot) does actual work.
             }
             close(F);
 
-            if (($ar == 1) && ($cs == 1) && ($jf == 1)) {
-                push @thr, $env;
+            next  if ($ar == 0);
+            next  if ($jf == 0);
+
+            push @thr, $env;
+
+            if ($ns > $bestSlots) {
+                $bestThr   = $env;
+                $bestSlots = $ns;
             }
         }
 
@@ -102,19 +111,23 @@ sub configureSGE () {
         elsif (scalar(@thr) > 1) {
             print STDERR "--\n";
             print STDERR "-- WARNING:  Couldn't determine the SGE parallel environment to run multi-threaded codes.\n";
-            print STDERR "--           Valid choices are (pick one and supply it to canu):\n";
+            print STDERR "-- WARNING:  Valid choices are:\n";
             foreach my $thr (@thr) {
-                print STDERR "--             gridEngineThreadsOption=\"-pe $thr THREADS\"\n";
+                print STDERR "-- WARNING:    gridEngineThreadsOption=\"-pe $thr THREADS\"\n";
             }
+            print STDERR "-- WARNING:\n";
+            print STDERR "-- WARNING:  Using SGE parallel environment '$bestThr'.\n";
             print STDERR "--\n";
-            $configError++;
+
+            setGlobal("gridEngineThreadsOption", "-pe $bestThr THREADS");
+            #$configError++;
         }
 
         else {
             print STDERR "--\n";
             print STDERR "-- WARNING:  Couldn't determine the SGE parallel environment to run multi-threaded codes.\n";
-            print STDERR "--           No valid choices found!  Find an appropriate Parallel Environment name (qconf -spl) and set:\n";
-            print STDERR "--             gridEngineThreadsOption=\"-pe <name> THREADS\"\n";
+            print STDERR "-- WARNING:  No valid choices found!  Find an appropriate Parallel Environment name (qconf -spl) and set:\n";
+            print STDERR "-- WARNING:    gridEngineThreadsOption=\"-pe <name> THREADS\"\n";
             print STDERR "--\n";
 
             $configError++;
@@ -153,9 +166,9 @@ sub configureSGE () {
         elsif (scalar(@mem) > 1) {
             print STDERR "--\n";
             print STDERR "-- WARNING:  Couldn't determine the SGE resource to request memory.\n";
-            print STDERR "--           Valid choices are (pick one and supply it to canu):\n";
+            print STDERR "-- WARNING:  Valid choices are (pick one and supply it to canu):\n";
             foreach my $mem (@mem) {
-                print STDERR "--             gridEngineMemoryOption=\"-l $mem=MEMORY\"\n";
+                print STDERR "-- WARNING:    gridEngineMemoryOption=\"-l $mem=MEMORY\"\n";
             }
             print STDERR "--\n";
             $configError++;
@@ -164,8 +177,8 @@ sub configureSGE () {
         else {
             print STDERR "--\n";
             print STDERR "-- WARNING:  Couldn't determine the SGE resource to request memory.\n";
-            print STDERR "--           No valid choices found!  Find an appropriate complex name (qconf -sc) and set:\n";
-            print STDERR "--             gridEngineMemoryOption=\"-l <name>=MEMORY\"\n";
+            print STDERR "-- WARNING:  No valid choices found!  Find an appropriate complex name (qconf -sc) and set:\n";
+            print STDERR "-- WARNING:    gridEngineMemoryOption=\"-l <name>=MEMORY\"\n";
             print STDERR "--\n";
             $configError++;
         }
