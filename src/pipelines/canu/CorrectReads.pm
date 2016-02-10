@@ -835,9 +835,11 @@ sub dumpCorrectedReads ($$) {
             $s = undef;           #  No sequence yet.
             $n = <R>;  chomp $n;  #  Sequence, or the next header.
 
-            #  Read sequence until the next header or eof.
+            #  Read sequence until the next header or we stop reading lines.  Perl seems to be
+            #  setting EOF when the last line is read, which is early, IMHO.  We loop until
+            #  we both are EOF and have an empty line.
 
-            while (($n !~ m/^>/) && (!eof(R))) {
+            while (($n !~ m/^>/) && ((length($n) > 0) || !eof(R))) {
                 $s .= $n;
 
                 $n = <R>;  chomp $n;
