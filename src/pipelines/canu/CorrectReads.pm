@@ -281,11 +281,11 @@ sub buildCorrectionLayouts_piped ($$) {
     print F "\n";
 
     my  $bgnID   = 1;
-    my  $endID   = $bgnID + $nPerJob;
+    my  $endID   = $bgnID + $nPerJob - 1;
     my  $jobID   = 1;
 
     while ($bgnID < $nReads) {
-        $endID  = $bgnID + $nPerJob;
+        $endID  = $bgnID + $nPerJob - 1;
         $endID  = $nReads  if ($endID > $nReads);
 
         print F "if [ \$jobid -eq $jobID ] ; then\n";
@@ -293,7 +293,7 @@ sub buildCorrectionLayouts_piped ($$) {
         print F "  end=$endID\n";
         print F "fi\n";
 
-        $bgnID = $endID;
+        $bgnID = $endID + 1;
         $jobID++;
     }
 
