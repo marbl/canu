@@ -144,7 +144,7 @@ sub gatekeeper ($$$@) {
 
     if ((storeExists($wrk, $asm)) && (getNumberOfReadsInStore($wrk, $asm) == 0)) {
         print STDERR "-- Removing empty or incomplate gkpStore '$wrk/$asm.gkpStore'\n";
-        runmCommandSilently($wrk, "rm -rf $wrk/$asm.gkpStore");
+        runCommandSilently($wrk, "rm -rf $wrk/$asm.gkpStore", 1);
     }
 
     #  Store with reads?  Yay!  Report it, then skip.
