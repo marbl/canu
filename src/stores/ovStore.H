@@ -617,7 +617,7 @@ public:
       gkLibrary *L   = gkp->gkStore_getLibrary(Lid);
 
       if ((L->gkLibrary_removeDuplicateReads()     == false) &&
-          (L->gkLibrary_finalTrim()                == FINALTRIM_NONE) &&
+          (L->gkLibrary_finalTrim()                == GK_FINALTRIM_NONE) &&
           (L->gkLibrary_removeSpurReads()          == false) &&
           (L->gkLibrary_removeChimericReads()      == false) &&
           (L->gkLibrary_checkForSubReads()         == false)) {

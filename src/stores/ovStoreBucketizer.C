@@ -106,7 +106,7 @@ markOBT(gkStore *gkp, uint32 maxIID, char *skipRead) {
       continue;
 
     if ((L->gkLibrary_removeDuplicateReads()     == false) &&
-        (L->gkLibrary_finalTrim()                != FINALTRIM_LARGEST_COVERED) &&
+        (L->gkLibrary_finalTrim()                != GK_FINALTRIM_LARGEST_COVERED) &&
         (L->gkLibrary_removeSpurReads()          == false) &&
         (L->gkLibrary_removeChimericReads()      == false)) {
       numMarked++;

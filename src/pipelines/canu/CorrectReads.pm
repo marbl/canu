@@ -75,6 +75,51 @@ sub getCorCov ($$$) {
 }
 
 
+#  Query gkpStore to find the read types involved.  Return an error rate that is appropriate for
+#  aligning reads of that type to each other.
+sub getCorErrorRate ($$) {
+    my $wrk     = shift @_;  #  Local work directory
+    my $asm     = shift @_;
+    my $bin     = getBinDirectory();
+    my $erate   = getGlobal("corErrorRate");
+
+    if (defined($erate)) {
+        print STDERR "-- Using overlaps no worse than $erate fraction error for correcting reads (from corErrorRate parameter).\n";
+        return($erate);
+    }
+
+    if (! -e "$wrk/$asm.gkpStore/libraries.txt") {
+        if (runCommandSilently("$wrk/$asm.gkpStore", "$bin/gatekeeperDumpMetaData -G . -libs > libraries.txt 2> /dev/null", 1)) {
+            caExit("failed to generate library metadata", undef);
+        }
+    }
+
+    my $numPacBioRaw         = 0;
+    my $numPacBioCorrected   = 0;
+    my $numNanoporeRaw       = 0;
+    my $numNanoporeCorrected = 0;
+
+    open(L, "< $wrk/$asm.gkpStore/libraries.txt") or caExit("can't open '$wrk/$asm.gkpStore/libraries.txt' for reading: $!", undef);
+    while (<L>) {
+        $numPacBioRaw++           if (m/pacbio-raw/);
+        $numPacBioCorrected++     if (m/pacbio-corrected/);
+        $numNanoporeRaw++         if (m/nanopore-raw/);
+        $numNanoporeCorrected++   if (m/nanopore-corrected/);
+    }
+    close(L);
+
+    $erate = 0.10;                              #  Default; user is stupid and forced correction of corrected reads.
+    $erate = 0.30   if ($numPacBioRaw   > 0);
+    $erate = 0.50   if ($numNanoporeRaw > 0);
+
+    print STDERR "-- Found $numPacBioRaw raw and $numPacBioCorrected corrected PacBio libraries.\n";
+    print STDERR "-- Found $numNanoporeRaw raw and $numNanoporeCorrected corrected Nanopore libraries.\n";
+    print STDERR "-- Using overlaps no worse than $erate fraction error for correcting reads.\n";
+
+    return($erate);
+}
+
+
 
 #  Return the number of jobs for 'falcon', 'falconpipe' or 'utgcns'
 #
@@ -193,11 +238,14 @@ sub buildCorrectionLayouts_direct ($$) {
 
     print F getBinDirectoryShellCode();
 
+    my $erate  = getCorErrorRate($wrk, $asm);
+    my $minidt = 1 - $erate;
+
     if (getGlobal("corConsensus") eq "utgcns") {
         print F "\n";
         print F "\$bin/utgcns \\\n";
         print F "  -u \$bgn-\$end \\\n";
-        print F "  -e 0.30 \\\n";
+        print F "  -e $erate \\\n";
         print F "  -G $wrk/$asm.gkpStore \\\n";
         print F "  -T $wrk/$asm.corStore 1 . \\\n";
         print F "  -O $path/correction_outputs/\$jobid.cns.WORKING \\\n";
@@ -217,7 +265,7 @@ sub buildCorrectionLayouts_direct ($$) {
         print F getGlobal("falconSense") . " \\\n"  if ( defined(getGlobal("falconSense")));
         print F "\$bin/falcon_sense \\\n"           if (!defined(getGlobal("falconSense")));
         print F "  --max_n_read 200 \\\n";
-        print F "  --min_idt " . (1-getGlobal("corErrorRate")) . " \\\n";  #  0.70 for pacbio, 0.50 for nanoport
+        print F "  --min_idt $minidt \\\n";
         print F "  --output_multi \\\n";
         print F "  --local_match_count_threshold 2 \\\n";  #  Suspicious window - 2 suspicious regions in a window (of 100bp) will split a read (0 for nanopore)
         print F "  --min_cov " . getGlobal("corMinCoverage") . " \\\n";
@@ -306,6 +354,9 @@ sub buildCorrectionLayouts_piped ($$) {
 
     my $maxCov   = getCorCov($wrk, $asm, "Local");
 
+    my $erate    = getCorErrorRate($wrk, $asm);
+    my $minidt   = 1 - $erate;
+
     print F "\n";
     print F "if [ \"x\$BASH\" != \"x\" ] ; then\n";   #  Needs doublequotes, else shell doesn't expand $BASH
     print F "  set -o pipefail\n";
@@ -328,7 +379,7 @@ sub buildCorrectionLayouts_piped ($$) {
     print F getGlobal("falconSense") . " \\\n"  if ( defined(getGlobal("falconSense")));
     print F "\$bin/falcon_sense \\\n"           if (!defined(getGlobal("falconSense")));
     print F "  --max_n_read 200 \\\n";
-    print F "  --min_idt " . (1-getGlobal("corErrorRate")) . " \\\n";  #  0.70 for pacbio, 0.50 for nanoport
+    print F "  --min_idt $minidt \\\n";
     print F "  --output_multi \\\n";
     print F "  --local_match_count_threshold 2 \\\n";  #  Suspicious window - 2 suspicious regions in a window (of 100bp) will split a read (0 for nanopore)
     print F "  --min_cov " . getGlobal("corMinCoverage") . " \\\n";

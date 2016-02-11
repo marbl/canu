@@ -32,15 +32,17 @@ void
 dumpLibs(gkStore *gkp, uint32 bgnID, uint32 endID) {
   //fprintf(stderr, "Dumping libraries from %u to %u (inclusive).\n", bgnID, endID);
 
+  fprintf(stdout, "libID\tnonRandom\treadType\tcorrectBases\tfinalTrim\tremoveDupe\tremoveSpur\tremoveChimer\tcheckSubRead\tdefaultQV\tlibName\n");
+
   for (uint32 lid=bgnID; lid<=endID; lid++) {
     gkLibrary  *library = gkp->gkStore_getLibrary(lid);
 
-    fprintf(stdout, F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t%s\n",
+    fprintf(stdout, F_U32"\t"F_U32"\t%s\t%s\t%s\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t%s\n",
             library->gkLibrary_libraryID(),
             library->gkLibrary_isNonRandom(),
-            library->gkLibrary_trustHomopolymerRuns(),
-            library->gkLibrary_correctBases(),
-            library->gkLibrary_finalTrim(),
+            library->gkLibrary_readTypeString(),
+            library->gkLibrary_readCorrectionString(),
+            library->gkLibrary_finalTrimString(),
             library->gkLibrary_removeDuplicateReads(),
             library->gkLibrary_removeSpurReads(),
             library->gkLibrary_removeChimericReads(),

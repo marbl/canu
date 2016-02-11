@@ -544,7 +544,7 @@ sub showErrorRates ($) {
     print STDERR "${prefix}utgMergeErrorRate   -- ", getGlobal("utgMergeErrorRate"), "\n";
     print STDERR "${prefix}utgRepeatErrorRate  -- ", getGlobal("utgRepeatErrorRate"), "\n";
     print STDERR "${prefix}\n";
-    print STDERR "${prefix}corErrorRate        -- ", getGlobal("corErrorRate"), "\n";
+    #print STDERR "${prefix}corErrorRate        -- ", getGlobal("corErrorRate"), "\n";
     print STDERR "${prefix}cnsErrorRate        -- ", getGlobal("cnsErrorRate"), "\n";
 }
 
@@ -573,7 +573,8 @@ sub setErrorRate ($@) {
     setGlobal("utgMergeErrorRate",  $er * 2 - 0.5 * $er);
     setGlobal("utgRepeatErrorRate", $er * 2);
 
-    setGlobal("corErrorRate",       $er * 10);  #  Erorr rate used for raw sequence alignment/consensus
+    #  Removed, is usually set in CorrectReads, can be set from command line directly.
+    #setGlobal("corErrorRate",       $er * 10);  #  Erorr rate used for raw sequence alignment/consensus
     setGlobal("cnsErrorRate",       $er * 2.5);
 
     showErrorRates("--  ")  if (defined($verbose));
