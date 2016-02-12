@@ -63,6 +63,7 @@ private:
   Unitig() {
     _length        = 0;
     _id            = 0;
+    _tigID         = 0;
     _isUnassembled = false;
     _isBubble      = false;
     _isRepeat      = false;
@@ -82,7 +83,8 @@ public:
   // contain guides, or other fragments that are not randomly sampled
   // across the whole genome.
 
-  uint32 id(void)                 { return(_id); };
+  uint32 id(void)                 { return(_id); };      //  ID internal to bogart
+  uint32 tigID(void)              { return(_tigID); };   //  ID in the output store
 
   int32  getLength(void)          { return(_length);       };
   uint32 getNumFrags(void)        { return(ufpath.size()); };
@@ -141,7 +143,10 @@ public:
 private:
   int32          _length;
   uint32         _id;
+public:
+  uint32         _tigID;
 
+private:
   static uint32 *_inUnitig;      //  Maps a fragment iid to a unitig id.
   static uint32 *_pathPosition;  //  Maps a fragment iid to an index in the dovetail path
 

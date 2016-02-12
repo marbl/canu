@@ -53,6 +53,8 @@ unitigToTig(tgTig       *tig,
   tig->clear();
 
   tig->_tigID           = tigid;
+  utg->_tigID           = tigid;
+
   tig->_coverageStat    = 1.0;  //  Default to just barely unique
   tig->_microhetProb    = 1.0;  //  Default to 100% probability of unique
 
@@ -217,20 +219,28 @@ writeUnitigsToStore(UnitigVector  &unitigs,
 
   //  Step through all the unitigs once to build the partition mapping and IID mapping.
 
-  memset(partmap, 0xff, sizeof(uint32) * unitigs.size());
+  tgStore     *tigStore = new tgStore(tigStorePath);
+  tgTig       *tig      = new tgTig;
 
-  for (uint32 iumiid=0, ti=0; ti<unitigs.size(); ti++) {
+  for (uint32 tigID=0, ti=0; ti<unitigs.size(); ti++) {
     Unitig  *utg = unitigs[ti];
-    uint32   nf  = (utg) ? utg->getNumFrags() : 0;
 
-    if ((utg == NULL) || (nf == 0))
+    if ((utg == NULL) || (utg->getNumFrags() == 0))
       continue;
 
     assert(utg->getLength() > 0);
-    assert(nf == utg->ufpath.size());
 
-    if ((frg_count + nf >= frg_count_target) &&
-        (frg_count      >  0)) {
+    //  Convert the bogart tig to a tgTig and save to the store.
+
+    unitigToTig(tig, (isFinal) ? tigID : ti, utg);
+    tigID++;
+
+    tigStore->insertTig(tig, false);
+
+    //  Increment the partition if the current one is too large.
+
+    if ((frg_count + utg->getNumFrags() >= frg_count_target) &&
+        (frg_count                      >  0)) {
       fprintf(pari, "Partition %d has %d unitigs and %d fragments.\n",
               prt_count, utg_count, frg_count);
 
@@ -239,58 +249,32 @@ writeUnitigsToStore(UnitigVector  &unitigs,
       frg_count = 0;
     }
 
-    uint32 tigid = (isFinal) ? iumiid : ti;
+    //  Note that the tig is included in this partition.
 
-    assert(tigid < unitigs.size());
-    partmap[tigid] = prt_count;
+    utg_count += 1;
+    frg_count += utg->getNumFrags();
+
+    //  Map the tig to a partition, and log both the tig-to-partition map and the partition-to-read map.
 
     fprintf(iidm, "bogart "F_U32" -> tig "F_U32" (in partition "F_U32" with "F_U32" frags)\n",
             utg->id(),
-            (tigid),
-            partmap[(tigid)],
-            nf);
+            utg->tigID(),
+            prt_count,
+            utg->getNumFrags());
 
-    for (uint32 fragIdx=0; fragIdx<nf; fragIdx++) {
-      ufNode  *f = &utg->ufpath[fragIdx];
-
-      fprintf(part, "%d\t%d\n", prt_count, f->ident);
-    }
-
-    utg_count += 1;
-    frg_count += nf;
-
-    iumiid++;
+    for (uint32 fragIdx=0; fragIdx<utg->getNumFrags(); fragIdx++)
+      fprintf(part, "%d\t%d\n", prt_count, utg->ufpath[fragIdx].ident);
   }
 
-  fprintf(pari, "Partition %d has %d unitigs and %d fragments.\n",
+  fprintf(pari, "Partition %d has %d unitigs and %d fragments.\n",   //  Don't forget to log the last partition!
           prt_count, utg_count, frg_count);
 
   fclose(pari);
   fclose(part);
   fclose(iidm);
 
-  //  Step through all the unitigs once to build the partition mapping and IID mapping.
-
-  tgStore     *tigStore = new tgStore(tigStorePath);
-  tgTig       *tig      = new tgTig;
-
-  for (uint32 iumiid=0, ti=0; ti<unitigs.size(); ti++) {
-    Unitig  *utg = unitigs[ti];
-    uint32   nf  = (utg) ? utg->getNumFrags() : 0;
-
-    if ((utg == NULL) || (nf == 0))
-      continue;
-
-    unitigToTig(tig, (isFinal) ? iumiid : ti, utg);
-
-    tigStore->insertTig(tig, false);
-
-    iumiid++;
-  }
-
   delete    tig;
   delete    tigStore;
-  delete [] partmap;
 }
 
 
@@ -328,43 +312,43 @@ writeOverlapsUsed(UnitigVector &unitigs,
       //  Report the unused best edge
 
       BestEdgeOverlap *be5 = OG->getBestEdgeOverlap(frg->ident, false);
-      uint32           rd5 = (be5 == NULL) ?    0 : be5->fragId();
-      Unitig          *tg5 = (be5 == NULL) ? NULL : unitigs[Unitig::fragIn(rd5)];
-      char             ty5 = 'C';
+      uint32   rd5 = (be5 == NULL) ?    0 : be5->fragId();
+      Unitig  *tg5 = (be5 == NULL) ? NULL : unitigs[Unitig::fragIn(rd5)];
+      char     ty5 = 'C';
 
-      if ((tg5 != NULL) && (tg5->id() != tig->id())) {
+      if ((tg5 != NULL) && (tg5->tigID() != tig->tigID())) {
         uint32  ord = Unitig::pathPosition(rd5);
         ufNode *oth = &tg5->ufpath[ord];
 
-        if (tg5->_isUnassembled)  ty5 = 'U';
-        if (tg5->_isBubble)       ty5 = 'B';
-        if (tg5->_isRepeat)       ty5 = 'R';
-        if (tg5->_isCircular)     ty5 = 'O';
+        if (tig->_isUnassembled)  ty5 = 'U';
+        if (tig->_isBubble)       ty5 = 'B';
+        if (tig->_isRepeat)       ty5 = 'R';
+        if (tig->_isCircular)     ty5 = 'O';
 
         fprintf(F, "tig %7u %c read %8u at %9u %-9u %c' -- %8d %-8d -- tig %7u %c read %8u at %9u %-9u %c'\n",
-                tig->id(), tyt, frg->ident, frg->position.bgn, frg->position.end, '5',
+                tig->tigID(), tyt, frg->ident, frg->position.bgn, frg->position.end, '5',
                 be5->ahang(), be5->bhang(),
-                tg5->id(), ty5, oth->ident, oth->position.bgn, oth->position.end, (be5->frag3p() == false) ? '5' : '3');
+                tg5->tigID(), ty5, oth->ident, oth->position.bgn, oth->position.end, (be5->frag3p() == false) ? '5' : '3');
       }
 
       BestEdgeOverlap *be3 = OG->getBestEdgeOverlap(frg->ident, true);
-      uint32           rd3 = (be3 == NULL) ?    0 : be3->fragId();
-      Unitig          *tg3 = (be3 == NULL) ? NULL : unitigs[Unitig::fragIn(rd3)];
-      char             ty3 = 'C';
+      uint32   rd3 = (be3 == NULL) ?    0 : be3->fragId();
+      Unitig  *tg3 = (be3 == NULL) ? NULL : unitigs[Unitig::fragIn(rd3)];
+      char     ty3 = 'C';
 
-      if ((tg3 != NULL) && (tg3->id() != tig->id())) {
+      if ((tg3 != NULL) && (tg3->tigID() != tig->tigID())) {
         uint32  ord = Unitig::pathPosition(rd3);
         ufNode *oth = &tg3->ufpath[ord];
 
-        if (tg3->_isUnassembled)  ty3 = 'U';
-        if (tg3->_isBubble)       ty3 = 'B';
-        if (tg3->_isRepeat)       ty3 = 'R';
-        if (tg3->_isCircular)     ty3 = 'O';
+        if (tig->_isUnassembled)  ty3 = 'U';
+        if (tig->_isBubble)       ty3 = 'B';
+        if (tig->_isRepeat)       ty3 = 'R';
+        if (tig->_isCircular)     ty3 = 'O';
 
         fprintf(F, "tig %7u %c read %8u at %9u %-9u %c' -- %8d %-8d -- tig %7u %c read %8u at %9u %-9u %c'\n",
-                tig->id(), tyt, frg->ident, frg->position.bgn, frg->position.end, '3',
+                tig->tigID(), tyt, frg->ident, frg->position.bgn, frg->position.end, '3',
                 be3->ahang(), be3->bhang(),
-                tg3->id(), ty3, oth->ident, oth->position.bgn, oth->position.end, (be3->frag3p() == false) ? '5' : '3');
+                tg3->tigID(), ty3, oth->ident, oth->position.bgn, oth->position.end, (be3->frag3p() == false) ? '5' : '3');
       }
     }
   }

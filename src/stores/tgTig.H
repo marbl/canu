@@ -39,7 +39,7 @@ typedef enum {
   tgTig_noclass      = 0x00,    //  Could use a tgTig_read for corrections
   tgTig_unassembled  = 0x01,
   tgTig_bubble       = 0x02,
-  tgTig_contig       = 3
+  tgTig_contig       = 0x03
 } tgTig_class;
 
 static
@@ -47,13 +47,30 @@ const
 char *
 toString(tgTig_class c) {
   switch (c) {
-    case tgTig_noclass:      return("unset-class");  break;
-    case tgTig_unassembled:  return("unassembled");  break;
-    case tgTig_bubble:       return("bubble");       break;
-    case tgTig_contig:       return("contig");       break;
+    case tgTig_noclass:      return("unsetc");  break;
+    case tgTig_unassembled:  return("unassm");  break;
+    case tgTig_bubble:       return("bubble");  break;
+    case tgTig_contig:       return("contig");  break;
   }
 
   return("undefined-class");
+}
+
+static
+tgTig_class
+toClass(char const *c) {
+  if (strcmp(c, "unsetc") == 0)
+    return(tgTig_noclass);
+  if (strcmp(c, "unassm") == 0)
+    return(tgTig_unassembled);
+  if (strcmp(c, "bubble") == 0)
+    return(tgTig_bubble);
+  if (strcmp(c, "contig") == 0)
+    return(tgTig_contig);
+
+  fprintf(stderr, "WARNING:  tiTig_class toClass('%s') is not a valid class.\n", c);
+
+  return(tgTig_noclass);
 }
 
 
@@ -260,7 +277,16 @@ private:
   char                *ungappedQuals(void)                 { buildUngapped();  return(_ungappedQuals); };
 
 public:
-  uint32               mapGappedToUngapped(uint32 p)       { buildUngapped();  return(_gappedToUngapped[p]); };
+
+  //  This function needs to be hidden.  Coordinates in reads need to be transparent.
+  uint32               mapGappedToUngapped(uint32 p)       {
+    if (consensusExists() == false)
+      return(p);
+
+    buildUngapped();
+
+    return(_gappedToUngapped[p]);
+  };
 
   uint32               numberOfChildren(void)              {                            return(_childrenLen); };
   tgPosition          *getChild(uint32 c)                  { assert(c < _childrenLen);  return(_children + c);  };

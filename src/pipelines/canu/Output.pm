@@ -94,24 +94,31 @@ sub outputGraph ($$) {
     my $cmd;
 
     goto allDone   if (skipStage($WRK, $asm, "outputGraph") == 1);
-    goto allDone   if (-e "$WRK/$asm.graph");
+    goto allDone   if (-e "$WRK/$asm.gfa");
 
-    #
-    #  Stuff here.
-    #
+    if (-e "$wrk/4-unitigger/$asm.unused.best.edges") {
+        $cmd  = "$bin/buildGraph \\\n";
+        $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
+        $cmd .= "  -T $wrk/$asm.tigStore 2 \\\n";
+        $cmd .= "  -E $wrk/4-unitigger/$asm.unused.best.edges \\\n";
+        $cmd .= "> $WRK/$asm.gfa \\\n";
+        $cmd .= "2> $WRK/$asm.gfa.err\n";
 
-    if (runCommand($wrk, $cmd)) {
-        caExit("failed to output consensus", "$WRK/$asm.graph.err");
+        if (runCommand($wrk, $cmd)) {
+            caExit("failed to output consensus", "$WRK/$asm.gfa.err");
+        }
+
+        unlink "$WRK/$asm.gfa.err";
+    } else {
+        print STDERR "-- Unused best edges file missing, no graph output generated.\n";
     }
-
-    unlink "$WRK/$asm.graph.err";
 
   finishStage:
     emitStage($WRK, $asm, "outputGraph");
     buildHTML($WRK, $asm, "utg");
 
   allDone:
-    print STDERR "-- Unitig graph saved in (nowhere, yet).\n";
+    print STDERR "-- Unitig graph saved in '$WRK/$asm.gfa'.\n";
 }
 
 

@@ -143,6 +143,7 @@ SUBMAKEFILES := stores/gatekeeperCreate.mk \
                 overlapErrorAdjustment/correctOverlaps.mk \
                 \
                 bogart/bogart.mk \
+                bogart/buildGraph.mk \
                 \
                 bogus/bogus.mk \
                 \
