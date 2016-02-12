@@ -149,8 +149,13 @@ bool align(const char * query_seq, seq_coor_t q_len,
     
     aln_path = (path_point *)calloc( q_len + t_len + 1, sizeof(path_point) );
 
-    align_rtn._tgt_aln_str = (char *)calloc( q_len + t_len + 1, sizeof(char));
-    align_rtn._qry_aln_str = (char *)calloc( q_len + t_len + 1, sizeof(char));
+    if (get_aln_str) {
+       align_rtn._tgt_aln_str = (char *)calloc( q_len + t_len + 1, sizeof(char));
+       align_rtn._qry_aln_str = (char *)calloc( q_len + t_len + 1, sizeof(char));
+    } else {
+       align_rtn._tgt_aln_str = NULL;
+       align_rtn._qry_aln_str = NULL;
+    }
     align_rtn._size = 0;
     align_rtn._qry_bgn = 0;
     align_rtn._qry_end = 0;
