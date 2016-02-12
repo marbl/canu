@@ -364,7 +364,6 @@ loadReads(gkStore    *gkpStore,
   fprintf(htmlLog, "<tr class='details'><td rowspan='9'>Parameters</td><td>preset=N/A</td></tr>\n");
   fprintf(htmlLog, "<tr class='details'><td>defaultQV=%u</td></tr>\n",            gkpLibrary->gkLibrary_defaultQV());
   fprintf(htmlLog, "<tr class='details'><td>isNonRandom=%s</td></tr>\n",          gkpLibrary->gkLibrary_isNonRandom()          ? "true" : "false");
-  fprintf(htmlLog, "<tr class='details'><td>trustHomopolymerRuns=%s</td></tr>\n", gkpLibrary->gkLibrary_trustHomopolymerRuns() ? "true" : "false");
   fprintf(htmlLog, "<tr class='details'><td>removeDuplicateReads=%s</td></tr>\n", gkpLibrary->gkLibrary_removeDuplicateReads() ? "true" : "false");
   fprintf(htmlLog, "<tr class='details'><td>finalTrim=%s</td></tr>\n",            gkpLibrary->gkLibrary_finalTrim()            ? "true" : "false");
   fprintf(htmlLog, "<tr class='details'><td>removeSpurReads=%s</td></tr>\n",      gkpLibrary->gkLibrary_removeSpurReads()      ? "true" : "false");
@@ -376,7 +375,6 @@ loadReads(gkStore    *gkpStore,
   fprintf(htmlLog, "lib preset=N/A");
   fprintf(htmlLog,    " defaultQV=%u",            gkpLibrary->gkLibrary_defaultQV());
   fprintf(htmlLog,    " isNonRandom=%s",          gkpLibrary->gkLibrary_isNonRandom()          ? "true" : "false");
-  fprintf(htmlLog,    " trustHomopolymerRuns=%s", gkpLibrary->gkLibrary_trustHomopolymerRuns() ? "true" : "false");
   fprintf(htmlLog,    " removeDuplicateReads=%s", gkpLibrary->gkLibrary_removeDuplicateReads() ? "true" : "false");
   fprintf(htmlLog,    " finalTrim=%s",            gkpLibrary->gkLibrary_finalTrim()            ? "true" : "false");
   fprintf(htmlLog,    " removeSpurReads=%s",      gkpLibrary->gkLibrary_removeSpurReads()      ? "true" : "false");
@@ -602,7 +600,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "  \n");
 
     if (gkpStoreName == NULL)
-      fprintf(stderr, "ERROR: no gkpStore (-g) supplied.\n");
+      fprintf(stderr, "ERROR: no gkpStore (-o) supplied.\n");
     if (firstFileArg == 0)
       fprintf(stderr, "ERROR: no input files supplied.\n");
 
@@ -705,8 +703,8 @@ main(int argc, char **argv) {
       } else if (strcasecmp(keyval.key(), "isNonRandom") == 0) {
         gkpLibrary->gkLibrary_setIsNonRandom(keyval.value_bool());
 
-      } else if (strcasecmp(keyval.key(), "trustHomopolymerRuns") == 0) {
-        gkpLibrary->gkLibrary_setTrustHomopolymerRuns(keyval.value_bool());
+      } else if (strcasecmp(keyval.key(), "readType") == 0) {
+        gkpLibrary->gkLibrary_setReadType(keyval.value());
 
       } else if (strcasecmp(keyval.key(), "removeDuplicateReads") == 0) {
         gkpLibrary->gkLibrary_setRemoveDuplicateReads(keyval.value_bool());

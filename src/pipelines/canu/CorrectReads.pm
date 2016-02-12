@@ -75,6 +75,51 @@ sub getCorCov ($$$) {
 }
 
 
+#  Query gkpStore to find the read types involved.  Return an error rate that is appropriate for
+#  aligning reads of that type to each other.
+sub getCorErrorRate ($$) {
+    my $wrk     = shift @_;  #  Local work directory
+    my $asm     = shift @_;
+    my $bin     = getBinDirectory();
+    my $erate   = getGlobal("corErrorRate");
+
+    if (defined($erate)) {
+        print STDERR "-- Using overlaps no worse than $erate fraction error for correcting reads (from corErrorRate parameter).\n";
+        return($erate);
+    }
+
+    if (! -e "$wrk/$asm.gkpStore/libraries.txt") {
+        if (runCommandSilently("$wrk/$asm.gkpStore", "$bin/gatekeeperDumpMetaData -G . -libs > libraries.txt 2> /dev/null", 1)) {
+            caExit("failed to generate library metadata", undef);
+        }
+    }
+
+    my $numPacBioRaw         = 0;
+    my $numPacBioCorrected   = 0;
+    my $numNanoporeRaw       = 0;
+    my $numNanoporeCorrected = 0;
+
+    open(L, "< $wrk/$asm.gkpStore/libraries.txt") or caExit("can't open '$wrk/$asm.gkpStore/libraries.txt' for reading: $!", undef);
+    while (<L>) {
+        $numPacBioRaw++           if (m/pacbio-raw/);
+        $numPacBioCorrected++     if (m/pacbio-corrected/);
+        $numNanoporeRaw++         if (m/nanopore-raw/);
+        $numNanoporeCorrected++   if (m/nanopore-corrected/);
+    }
+    close(L);
+
+    $erate = 0.10;                              #  Default; user is stupid and forced correction of corrected reads.
+    $erate = 0.30   if ($numPacBioRaw   > 0);
+    $erate = 0.50   if ($numNanoporeRaw > 0);
+
+    print STDERR "-- Found $numPacBioRaw raw and $numPacBioCorrected corrected PacBio libraries.\n";
+    print STDERR "-- Found $numNanoporeRaw raw and $numNanoporeCorrected corrected Nanopore libraries.\n";
+    print STDERR "-- Using overlaps no worse than $erate fraction error for correcting reads.\n";
+
+    return($erate);
+}
+
+
 
 #  Return the number of jobs for 'falcon', 'falconpipe' or 'utgcns'
 #
@@ -185,30 +230,40 @@ sub buildCorrectionLayouts_direct ($$) {
     print F "\n";
     print F "jobid=`printf %04d \$jobid`\n";
     print F "\n";
-    print F "if [ -e \"$path/correction_outputs/\$jobid.fastq\" ] ; then\n";
+    print F "if [ -e \"$path/correction_outputs/\$jobid.fasta\" ] ; then\n";
     print F "  echo Job finished successfully.\n";
     print F "  exit 0\n";
+    print F "fi\n";
+    print F "\n";
+    print F "if [ ! -d \"$path/correction_outputs\" ] ; then\n";
+    print F "  mkdir -p \"$path/correction_outputs\"\n";
     print F "fi\n";
     print F "\n";
 
     print F getBinDirectoryShellCode();
 
+    my $erate  = getCorErrorRate($wrk, $asm);
+    my $minidt = 1 - $erate;
+
+    #  UTGCNS for correction is writing FASTQ, but needs to write FASTA.  The names below were changed to fasta preemptively.
+
     if (getGlobal("corConsensus") eq "utgcns") {
+        caExit("UTGCNS for correction is writing FASTQ, but needs to write FASTA", undef);
         print F "\n";
         print F "\$bin/utgcns \\\n";
         print F "  -u \$bgn-\$end \\\n";
-        print F "  -e 0.30 \\\n";
+        print F "  -e $erate \\\n";
         print F "  -G $wrk/$asm.gkpStore \\\n";
         print F "  -T $wrk/$asm.corStore 1 . \\\n";
         print F "  -O $path/correction_outputs/\$jobid.cns.WORKING \\\n";
         print F "  -L $path/correction_outputs/\$jobid.layout.WORKING \\\n";
-        print F "  -F $path/correction_outputs/\$jobid.fastq.WORKING \\\n";
+        print F "  -F $path/correction_outputs/\$jobid.fasta.WORKING \\\n";
         print F "&& \\\n";
         print F "mv $path/correction_outputs/\$jobid.cns.WORKING $path/correction_outputs/\$jobid.cns \\\n";
         print F "&& \\\n";
         print F "mv $path/correction_outputs/\$jobid.layout.WORKING $path/correction_outputs/\$jobid.layout \\\n";
         print F "&& \\\n";
-        print F "mv $path/correction_outputs/\$jobid.fastq.WORKING $path/correction_outputs/\$jobid.fastq \\\n";
+        print F "mv $path/correction_outputs/\$jobid.fasta.WORKING $path/correction_outputs/\$jobid.fasta \\\n";
         print F "\n";
     }
 
@@ -217,7 +272,7 @@ sub buildCorrectionLayouts_direct ($$) {
         print F getGlobal("falconSense") . " \\\n"  if ( defined(getGlobal("falconSense")));
         print F "\$bin/falcon_sense \\\n"           if (!defined(getGlobal("falconSense")));
         print F "  --max_n_read 200 \\\n";
-        print F "  --min_idt " . (1-getGlobal("corErrorRate")) . " \\\n";  #  0.70 for pacbio, 0.50 for nanoport
+        print F "  --min_idt $minidt \\\n";
         print F "  --output_multi \\\n";
         print F "  --local_match_count_threshold 2 \\\n";  #  Suspicious window - 2 suspicious regions in a window (of 100bp) will split a read (0 for nanopore)
         print F "  --min_cov " . getGlobal("corMinCoverage") . " \\\n";
@@ -281,11 +336,11 @@ sub buildCorrectionLayouts_piped ($$) {
     print F "\n";
 
     my  $bgnID   = 1;
-    my  $endID   = $bgnID + $nPerJob;
+    my  $endID   = $bgnID + $nPerJob - 1;
     my  $jobID   = 1;
 
     while ($bgnID < $nReads) {
-        $endID  = $bgnID + $nPerJob;
+        $endID  = $bgnID + $nPerJob - 1;
         $endID  = $nReads  if ($endID > $nReads);
 
         print F "if [ \$jobid -eq $jobID ] ; then\n";
@@ -293,18 +348,29 @@ sub buildCorrectionLayouts_piped ($$) {
         print F "  end=$endID\n";
         print F "fi\n";
 
-        $bgnID = $endID;
+        $bgnID = $endID + 1;
         $jobID++;
     }
 
     print F "\n";
     print F "jobid=`printf %04d \$jobid`\n";
     print F "\n";
+    print F "if [ -e \"$path/correction_outputs/\$jobid.fasta\" ] ; then\n";
+    print F "  echo Job finished successfully.\n";
+    print F "  exit 0\n";
+    print F "fi\n";
+    print F "\n";
+    print F "if [ ! -d \"$path/correction_outputs\" ] ; then\n";
+    print F "  mkdir -p \"$path/correction_outputs\"\n";
+    print F "fi\n";
     print F "\n";
     print F getBinDirectoryShellCode();
     print F "\n";
 
     my $maxCov   = getCorCov($wrk, $asm, "Local");
+
+    my $erate    = getCorErrorRate($wrk, $asm);
+    my $minidt   = 1 - $erate;
 
     print F "\n";
     print F "if [ \"x\$BASH\" != \"x\" ] ; then\n";   #  Needs doublequotes, else shell doesn't expand $BASH
@@ -328,7 +394,7 @@ sub buildCorrectionLayouts_piped ($$) {
     print F getGlobal("falconSense") . " \\\n"  if ( defined(getGlobal("falconSense")));
     print F "\$bin/falcon_sense \\\n"           if (!defined(getGlobal("falconSense")));
     print F "  --max_n_read 200 \\\n";
-    print F "  --min_idt " . (1-getGlobal("corErrorRate")) . " \\\n";  #  0.70 for pacbio, 0.50 for nanoport
+    print F "  --min_idt $minidt \\\n";
     print F "  --output_multi \\\n";
     print F "  --local_match_count_threshold 2 \\\n";  #  Suspicious window - 2 suspicious regions in a window (of 100bp) will split a read (0 for nanopore)
     print F "  --min_cov " . getGlobal("corMinCoverage") . " \\\n";
@@ -835,9 +901,11 @@ sub dumpCorrectedReads ($$) {
             $s = undef;           #  No sequence yet.
             $n = <R>;  chomp $n;  #  Sequence, or the next header.
 
-            #  Read sequence until the next header or eof.
+            #  Read sequence until the next header or we stop reading lines.  Perl seems to be
+            #  setting EOF when the last line is read, which is early, IMHO.  We loop until
+            #  we both are EOF and have an empty line.
 
-            while (($n !~ m/^>/) && (!eof(R))) {
+            while (($n !~ m/^>/) && ((length($n) > 0) || !eof(R))) {
                 $s .= $n;
 
                 $n = <R>;  chomp $n;

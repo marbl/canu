@@ -238,10 +238,6 @@ sub merylConfigure ($$$) {
     goto allDone   if  (-e "$ffile");
     goto allDone   if ((-e "$ofile.mcidx") && (-e "$ofile.mcdat"));
 
-    print STDERR "-- MERYL (correction)\n"  if ($tag eq "cor");
-    print STDERR "-- MERYL (trimming)\n"    if ($tag eq "obt");
-    print STDERR "-- MERYL (assembly)\n"    if ($tag eq "utg");
-
     make_path("$wrk/0-mercounts")  if (! -d "$wrk/0-mercounts");
 
     #  User supplied mers?  Just symlink to them.

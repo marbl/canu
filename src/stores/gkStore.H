@@ -75,16 +75,28 @@ using namespace std;
 #define AS_MAX_READS               (((uint64)1 << AS_MAX_READS_BITS) - 1)
 
 
-//  Per-library algorithm options.
-//
-#define CORRECTION_NONE            0x00
-#define CORRECTION_CONSENSUS       0x01
-#define CORRECTION_MER             0x02
+//  Per-library options.
 
-#define FINALTRIM_NONE             0x00
-#define FINALTRIM_LARGEST_COVERED  0x01  //  largest region covered by good overlaps
-//#define FINALTRIM_EVIDENCE_BASED   0x02  //  rules for sanger reads -- DOESN'T EXIST
-#define FINALTRIM_BEST_EDGE        0x03  //  largest region covered by best overlaps (broken)
+//  Read type
+
+#define GK_READTYPE_GENERIC            0x0000
+#define GK_READTYPE_CONTIG             0x0001
+#define GK_READTYPE_PACBIO_RAW         0x0002
+#define GK_READTYPE_PACBIO_CORRECTED   0x0003
+#define GK_READTYPE_NANOPORE_RAW       0x0004
+#define GK_READTYPE_NANOPORE_CORRECTED 0x0005
+
+//  Correction algorithm
+
+#define GK_CORRECTION_NONE             0x0000
+#define GK_CORRECTION_CONSENSUS        0x0001
+#define GK_CORRECTION_MER              0x0002
+
+//  Trimming algorithm
+
+#define GK_FINALTRIM_NONE              0x0000
+#define GK_FINALTRIM_LARGEST_COVERED   0x0001  //  largest region covered by good overlaps
+#define GK_FINALTRIM_BEST_EDGE         0x0002  //  largest region covered by best overlaps (broken)
 
 
 
@@ -111,10 +123,10 @@ public:
     //  DO NOT change defaults without updating gkLibrary_parsePreset().
     _isNonRandom                = 0;
 
-    _trustHomopolymerRuns       = 1;
-    _doCorrection               = CORRECTION_NONE;
+    _readCorrection             = GK_CORRECTION_NONE;
+    _readType                   = GK_READTYPE_GENERIC;
 
-    _finalTrim                  = FINALTRIM_LARGEST_COVERED;
+    _finalTrim                  = GK_FINALTRIM_LARGEST_COVERED;
     _removeDuplicateReads       = 1;
     _removeSpurReads            = 1;
     _removeChimericReads        = 1;
@@ -129,9 +141,12 @@ public:
   uint32         gkLibrary_libraryID(void)             { return(_libraryID);            };
 
   uint32         gkLibrary_isNonRandom(void)           { return(_isNonRandom);          };
-  uint32         gkLibrary_trustHomopolymerRuns(void)  { return(_trustHomopolymerRuns); };
-  uint32         gkLibrary_correctBases(void)          { return(_doCorrection);         };
+  uint32         gkLibrary_readType(void)              { return(_readType);             };
+  char const    *gkLibrary_readTypeString(void);
+  uint32         gkLibrary_readCorrection(void)        { return(_readCorrection);       };
+  char const    *gkLibrary_readCorrectionString(void);
   uint32         gkLibrary_finalTrim(void)             { return(_finalTrim);            };
+  char const    *gkLibrary_finalTrimString(void);
   uint32         gkLibrary_removeDuplicateReads(void)  { return(_removeDuplicateReads); };
   uint32         gkLibrary_removeSpurReads(void)       { return(_removeSpurReads);      };
   uint32         gkLibrary_removeChimericReads(void)   { return(_removeChimericReads);  };
@@ -141,8 +156,8 @@ public:
 
 
   void           gkLibrary_setIsNonRandom(bool f)           { _isNonRandom = f;          };
-  void           gkLibrary_setTrustHomopolymerRuns(bool f)  { _trustHomopolymerRuns = f; };
-  void           gkLibrary_setCorrectBases(bool f)          { _doCorrection = f;         };
+  void           gkLibrary_setReadType(char *f);
+  void           gkLibrary_setReadCorrection(char *t);
   void           gkLibrary_setFinalTrim(char *t);
   void           gkLibrary_setRemoveDuplicateReads(bool f)  { _removeDuplicateReads = f; };
   void           gkLibrary_setRemoveSpurReads(bool f)       { _removeSpurReads = f;      };
@@ -161,11 +176,11 @@ private:
   //  If set, reads are from a non-random library and shouldn't count toward coverage stats.
   uint32         _isNonRandom;
 
-  //  If set, reads have issues with homopolymer runs.
-  uint32         _trustHomopolymerRuns;
+  //  What generated these reads?  
+  uint32         _readType;
 
   //  Should reads be corrected?  How?
-  uint32         _doCorrection;
+  uint32         _readCorrection;
 
   //  Should reads be trimmed based on overlaps?  How?
   uint32         _finalTrim;

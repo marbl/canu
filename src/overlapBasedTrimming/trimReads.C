@@ -279,8 +279,8 @@ main(int argc, char **argv) {
     //  If it did not request trimming, do nothing.  Similar to the above, we'll get overlaps to
     //  fragments we skip.
     //
-    if ((libr->gkLibrary_finalTrim() == FINALTRIM_LARGEST_COVERED) &&
-        (libr->gkLibrary_finalTrim() == FINALTRIM_BEST_EDGE)) {
+    if ((libr->gkLibrary_finalTrim() == GK_FINALTRIM_LARGEST_COVERED) &&
+        (libr->gkLibrary_finalTrim() == GK_FINALTRIM_BEST_EDGE)) {
       noTrimIn += read->gkRead_sequenceLength();
       continue;
     }
@@ -311,7 +311,7 @@ main(int argc, char **argv) {
       isGood = false;
     }
 
-    else if (libr->gkLibrary_finalTrim() == FINALTRIM_LARGEST_COVERED) {
+    else if (libr->gkLibrary_finalTrim() == GK_FINALTRIM_LARGEST_COVERED) {
       //  Use the largest region covered by overlaps as the trim
 
       assert(ovlLen > 0);
@@ -328,7 +328,7 @@ main(int argc, char **argv) {
       assert(fbgn <= fend);
     }
 
-    else if (libr->gkLibrary_finalTrim() == FINALTRIM_BEST_EDGE) {
+    else if (libr->gkLibrary_finalTrim() == GK_FINALTRIM_BEST_EDGE) {
       //  Use the largest region covered by overlaps as the trim
 
       assert(ovlLen > 0);
@@ -466,7 +466,7 @@ main(int argc, char **argv) {
   fprintf(staFile, "----------\n");
   fprintf(staFile, "%7u    (reads trimmed below this many bases are deleted)\n", minReadLength);
   fprintf(staFile, "%7.4f    (use overlaps at or below this fraction error)\n", AS_OVS_decodeEvalue(errorValue));
-  fprintf(staFile, "%7u    (break region if overlap is less than this long, for 'largest covered' algorithm)\n", minEvidenceOverlap,  (minEvidenceOverlap  == 1) ? "" : "s");
+  fprintf(staFile, "%7u    (break region if overlap is less than this long, for 'largest covered' algorithm)\n", minEvidenceOverlap);
   fprintf(staFile, "%7u    (break region if overlap coverage is less than this many read%s, for 'largest covered' algorithm)\n", minEvidenceCoverage, (minEvidenceCoverage == 1) ? "" : "s");
   fprintf(staFile, "\n");
 
