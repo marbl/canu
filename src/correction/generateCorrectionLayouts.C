@@ -56,6 +56,7 @@ generateLayout(gkStore    *gkpStore,
                uint32      ovlLen,
                FILE       *flgFile) {
 
+  set<uint32_t> children;
   tgTig  *layout = new tgTig;
 
   layout->_tigID           = ovl[0].a_iid;
@@ -112,6 +113,13 @@ generateLayout(gkStore    *gkpStore,
       continue;
     }
 
+    if (children.find(ovl[oo].b_iid) != children.end()) {
+      if (flgFile)
+        fprintf(flgFile, "  filter read %9u at position %6u,%6u length %5u erate %.3f - duplicate\n",
+                ovl[oo].b_iid, ovl[oo].a_bgn(), ovl[oo].a_end(), ovlLength, ovl[oo].erate());
+      continue;
+    }
+
     if (flgFile)
       fprintf(flgFile, "  allow  read %9u at position %6u,%6u length %5u erate %.3f\n",
               ovl[oo].b_iid, ovl[oo].a_bgn(), ovl[oo].a_end(), ovlLength, ovl[oo].erate());
@@ -140,6 +148,9 @@ generateLayout(gkStore    *gkpStore,
 
     pos->_askip = ovl[oo].dat.ovl.bhg5;
     pos->_bskip = ovl[oo].dat.ovl.bhg3;
+
+    // record the ID
+    children.insert(ovl[oo].b_iid);
   }
 
   //  Use utgcns's stashContains to get rid of extra coverage; we don't care about it, and
