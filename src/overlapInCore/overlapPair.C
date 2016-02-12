@@ -30,10 +30,17 @@
 #include "gkStore.H"
 #include "ovStore.H"
 
-#define BUSTED
+//#define BUSTED
+#define FALCON
 
-#ifndef BUSTED
-#include "overlapAlign.H"
+#ifdef FALCON
+#include "dw.H"
+#else
+#include "ssw_cpp.H"
+#endif
+
+#ifdef BUSTED
+#include "NDalign.H"
 #endif
 #include "overlapReadCache.H"
 
@@ -55,6 +62,12 @@
 #define BATCH_SIZE   1024 * 1024
 #define THREAD_SIZE  128
 
+#ifdef FALCON
+// we don't alow slop because the ND aligner in falcon has no concept of non-global aligns. It always slams reads in so we find the conservative overlap and then we extend if it's close to a dovetail manually
+#define	MHAP_SLOP    0
+#else
+#define MHAP_SLOP    500
+#endif
 
 overlapReadCache  *rcache        = NULL;  //  Used to be just 'cache', but that conflicted with -pg: /usr/lib/libc_p.a(msgcat.po):(.bss+0x0): multiple definition of `cache'
 uint32             batchPrtID    = 0;  //  When to report progress
@@ -75,17 +88,13 @@ public:
     invertOverlaps  = false;
 
     gkpStore        = NULL;
-#ifndef BUSTED
     align           = NULL;
-#endif
     //analyze         = NULL;
     overlapsLen     = 0;
     overlaps        = NULL;
   };
   ~workSpace() {
-#ifndef BUSTED
     delete align;
-#endif
     //delete analyze;
   };
 
@@ -97,8 +106,14 @@ public:
 
   gkStore               *gkpStore;
 
-#ifndef BUSTED
-  overlapAlign           *align;
+#ifdef BUSTED
+  NDalign	   *NDaln;
+#endif
+#ifndef FALCON
+  StripedSmithWaterman::Aligner *align;
+  StripedSmithWaterman::Filter *filter;
+#else
+  NDalignment::NDalignResult *align;
 #endif
   //analyzeAlignment       *analyze;
 
@@ -149,12 +164,19 @@ recomputeOverlaps(void *ptr) {
 
   uint32        nPassed = 0;
   uint32        nFailed = 0;
+  uint32	nTested = 0;
 
   //  Lazy allocation of the prefixEditDistance structure; it's slow.
 
-#ifndef BUSTED
-  if (WA->align == NULL)
-    WA->align = new overlapAlign(WA->partialOverlaps ? pedLocal : pedOverlap, WA->maxErate, 15);
+#ifdef BUSTED
+  if (WA->NDaln == NULL)
+    WA->NDaln = new NDalign(WA->partialOverlaps ? pedLocal : pedOverlap, WA->maxErate, 15);
+#endif
+#ifndef FALCON
+  WA->align = new StripedSmithWaterman::Aligner(1, 3, 3, 1);
+  WA->filter = new StripedSmithWaterman::Filter();
+#else
+  WA->align = new NDalignment::NDalignResult();
 #endif
 
   //if (WA->analyze == NULL)
@@ -196,12 +218,21 @@ recomputeOverlaps(void *ptr) {
 
       //  Compute the overlap
 
-#ifndef BUSTED
-      WA->align->initialize(aID, rcache->getRead(aID), rcache->getLength(aID), ovl->a_bgn(), ovl->a_end(),
+#if 0
+nTested++;
+if (nTested % 1000 == 0) {
+   double  deltaTime = getTime() - startTime;
+   fprintf(stderr, "*******Thread %2u computed overlaps %7u - %7u in %7.3f seconds - %6.2f olaps per second (%8u fail %8u pass)\n",
+              WA->threadID, bgnID, endID, deltaTime, (endID - bgnID) / deltaTime, nFailed, nPassed);
+}
+#endif
+
+#ifdef BUSTED
+      WA->NDaln->initialize(aID, rcache->getRead(aID), rcache->getLength(aID), ovl->a_bgn(), ovl->a_end(),
                             bID, rcache->getRead(bID), rcache->getLength(bID), ovl->b_bgn(), ovl->b_end(),
                             ovl->flipped());
 
-      if (WA->align->findMinMaxDiagonal(40) == false) {
+      if (WA->NDaln->findMinMaxDiagonal(40) == false) {
         fprintf(stderr, "A %6u %5d-%5d ->   B %6u %5d-%5d %s ALIGN LENGTH TOO SHORT.\n",
                 aID, ovl->a_bgn(), ovl->a_end(),
                 bID, ovl->b_bgn(), ovl->b_end(),
@@ -209,7 +240,7 @@ recomputeOverlaps(void *ptr) {
         continue;
       }
 
-      if (WA->align->findSeeds(true) == false) {
+      if (WA->NDaln->findSeeds(true) == false) {
         fprintf(stderr, "A %6u %5d-%5d ->   B %6u %5d-%5d %s NO SEEDS.\n",
                 aID, ovl->a_bgn(), ovl->a_end(),
                 bID, ovl->b_bgn(), ovl->b_end(),
@@ -217,26 +248,99 @@ recomputeOverlaps(void *ptr) {
         continue;
       }
 
-      if ((WA->align->findHits()    == true) &&
-          (WA->align->chainHits()   == true) &&
-          (WA->align->processHits() == true)) {
+      if ((WA->NDaln->findHits()    == true) &&
+          (WA->NDaln->chainHits()   == true)  &&
+          (WA->NDaln->processHits() == true)) {
 
-        WA->align->display(true);
+        WA->align->display("MHAP align():", true);
+//        fprintf(stderr, "Reads %d to %d, expected overlap %d - %d to %d - %d and found error rate %f from %d - %d and %d - %d\n", aID, bID, ovl->a_bgn(), ovl->a_end(), ovl->b_bgn(), ovl->b_end(), WA->NDaln->erate(), WA->NDaln->abgn(), WA->NDaln->aend(), WA->NDaln->bbgn(), WA->NDaln->bend());
+#else
+  char *bRead = new char[rcache->getLength(bID)+1];
+  int32 astart = std::max((int32)0, (int32)ovl->a_bgn() - MHAP_SLOP);
+  int32 aend = std::min((int32)rcache->getLength(aID), (int32)ovl->a_end() + MHAP_SLOP);
+  int32 bstart = std::max((int32)0, (int32)ovl->b_bgn() - MHAP_SLOP);
+  int32 bend = std::min((int32)rcache->getLength(bID), (int32)ovl->b_end() + MHAP_SLOP);
+  strcpy(bRead, rcache->getRead(bID));
+  if (ovl->flipped()) {
+     reverseComplementSequence(bRead, rcache->getLength(bID));
+     bstart = std::max((int32)0, (int32)rcache->getLength(bID) - (int32)ovl->b_bgn() - MHAP_SLOP);
+     bend = std::min((int32)rcache->getLength(bID), (int32)rcache->getLength(bID) - (int32)ovl->b_end() + MHAP_SLOP);
+  }
 
+#ifdef FALCON
+  int tolerance = std::min(150, (int)round(0.5 * WA->maxErate * (rcache->getLength(aID) + rcache->getLength(bID))));
+  WA->align->clear();
+  bool aligned = NDalignment::align(bRead+bstart, bend-bstart+1, rcache->getRead(aID)+astart, aend-astart+1, tolerance, false, *(WA->align));
+  NDalignment::NDalignResult& alignResult = *WA->align;
+ 
+  uint32 alignmentLength = WA->align->_tgt_end - WA->align->_tgt_bgn + 1;
+#else
+  StripedSmithWaterman::Alignment alignment;
+  WA->align->Align(bRead+bstart, rcache->getRead(aID)+astart, aend-astart+1, *WA->filter, &alignment);
+  NDalignment::NDalignResult alignResult;
+
+  alignResult._dist = alignment.mismatches;
+  alignResult._tgt_bgn = alignment.ref_begin;
+  alignResult._tgt_end = alignment.ref_end;
+  alignResult._qry_bgn = alignment.query_begin;
+  alignResult._qry_end = alignment.query_end;
+
+  uint32 alignmentLength = alignment.ref_end-alignment.ref_begin+1;
+#endif
+  delete[] bRead;
+
+  //fprintf(stderr, "Reads %d (%d) to %d (%d), expected overlap %d - %d to %d - %d and found error rate %f from %d - %d and %d - %d\n", aID, rcache->getLength(aID), bID, rcache->getLength(bID), ovl->a_bgn(), ovl->a_end(), ovl->b_bgn(), ovl->b_end(), (double)alignResult._dist/(alignmentLength),alignResult._tgt_bgn+astart, alignResult._tgt_end+astart, alignResult._qry_bgn+bstart, alignResult._qry_end+bstart);
+
+  if (alignmentLength > 40 && ((double)alignResult._dist / (double) (alignmentLength)) < WA->maxErate) {
+
+#endif
         nPassed++;
 
         //WA->align->display();
 
-        ovl->dat.ovl.ahg5 = WA->align->ahg5();
-        ovl->dat.ovl.ahg3 = WA->align->ahg3();
-        ovl->dat.ovl.bhg5 = WA->align->bhg5();
-        ovl->dat.ovl.bhg3 = WA->align->bhg3();
-
-        ovl->erate(WA->align->erate());
+#ifdef BUSTED
+        ovl->dat.ovl.bhg5 = WA->NDaln->bhg5();
+        ovl->dat.ovl.bhg3 = WA->NDaln->bhg3();
+        ovl->dat.ovl.ahg5 = WA->NDaln->ahg5();
+        ovl->dat.ovl.ahg3 = WA->NDaln->ahg3();
+        ovl->erate(WA->NDaln->erate());
+#else
+        ovl->dat.ovl.ahg5 = alignResult._tgt_bgn+astart;
+        ovl->dat.ovl.ahg3 = rcache->getLength(aID) - (alignResult._tgt_end+astart);
+        ovl->dat.ovl.bhg5 = alignResult._qry_bgn + bstart;
+        ovl->dat.ovl.bhg3 = rcache->getLength(bID) - (alignResult._qry_end + bstart);
+        // check for almost dovetail if we're not looking for partial and extend
+        if (WA->partialOverlaps == false) {
+           if ((double)(alignResult._dist + ovl->dat.ovl.ahg5) / (alignmentLength+ovl->dat.ovl.ahg5) <  WA->maxErate) {
+              alignResult._dist += ovl->dat.ovl.ahg5;
+              alignmentLength += ovl->dat.ovl.ahg5;
+              ovl->dat.ovl.ahg5 = 0;
+           }
+           if ((double)(alignResult._dist + ovl->dat.ovl.ahg3) / (alignmentLength+ovl->dat.ovl.ahg3) <  WA->maxErate) {
+              alignResult._dist += ovl->dat.ovl.ahg3;
+              alignmentLength += ovl->dat.ovl.ahg3;
+              ovl->dat.ovl.ahg3 = 0;
+           }
+           if ((double)(alignResult._dist + ovl->dat.ovl.bhg5) / (alignmentLength+ovl->dat.ovl.bhg5) <  WA->maxErate) {
+              alignResult._dist += ovl->dat.ovl.bhg5;
+              alignmentLength += ovl->dat.ovl.bhg5;
+              ovl->dat.ovl.bhg5 = 0;
+           }
+           if ((double)(alignResult._dist + ovl->dat.ovl.bhg3) / (alignmentLength+ovl->dat.ovl.bhg3) <  WA->maxErate) {
+              alignResult._dist += ovl->dat.ovl.bhg3;
+              alignmentLength += ovl->dat.ovl.bhg3;
+              ovl->dat.ovl.bhg3 = 0;
+           }
+        }
+        ovl->erate((double)alignResult._dist/(alignmentLength));
+        //fprintf(stderr, "Reads %d (%d) to %d (%d), updated overlap to be %d - %d to %d - %d at error rate %f\n", aID, rcache->getLength(aID), bID, rcache->getLength(bID), ovl->a_bgn(), ovl->a_end(), ovl->b_bgn(), ovl->b_end(), ovl->erate());
+  //
+#endif
 
         ovl->dat.ovl.forOBT = (WA->partialOverlaps == true);
         ovl->dat.ovl.forDUP = (WA->partialOverlaps == true);
         ovl->dat.ovl.forUTG = (WA->partialOverlaps == false) && (ovl->overlapIsDovetail() == true);
+
       } else {
         nFailed++;
 
@@ -246,19 +350,20 @@ recomputeOverlaps(void *ptr) {
         ovl->dat.ovl.forDUP = false;
         ovl->dat.ovl.forUTG = false;
       }
-#endif
     }
 
-    if (0) {
-      double  deltaTime = getTime() - startTime;
-      fprintf(stderr, "Thread %2u computed overlaps %7u - %7u in %7.3f seconds - %6.2f olaps per second (%8u fail %8u pass)\n",
-              WA->threadID, bgnID, endID, deltaTime, (endID - bgnID) / deltaTime, nFailed, nPassed);
-    }
+    double  deltaTime = getTime() - startTime;
+    fprintf(stderr, "Thread %2u computed overlaps %7u - %7u in %7.3f seconds - %6.2f olaps per second (%8u fail %8u pass)\n",
+            WA->threadID, bgnID, endID, deltaTime, (endID - bgnID) / deltaTime, nFailed, nPassed);
   }
 
   //  All done.
 
   delete [] bRev;
+  delete WA->align;
+#ifndef FALCON
+  delete WA->filter;
+#endif
 
   //  Report.  The last batch has no work to do.
 
@@ -549,6 +654,9 @@ main(int argc, char **argv) {
 
   delete [] overlapsA;
   delete [] overlapsB;
+
+  delete [] WA;
+  delete [] tID;
 
   return(0);
 }

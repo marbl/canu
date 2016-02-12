@@ -101,6 +101,7 @@ sub mhapConfigure ($$$$) {
     if ($numHashes > 768) { 
        $blockPerGb = int($blockPerGb / 2);
     }
+
     my $blockSize = int($blockPerGb * $memorySize);
 
     print STDERR "-- Given $memorySize GB, can fit $blockSize reads per block.\n";
@@ -447,8 +448,8 @@ sub mhapConfigure ($$$$) {
         print F "    -partial \\\n"  if ($typ eq "partial");
         print F "    -erate ", getGlobal("obtOvlErrorRate"), " \\\n"  if ($typ eq "partial");
         print F "    -erate ", getGlobal("utgOvlErrorRate"), " \\\n"  if ($typ eq "normal");
-        print F "    -memory 10 \\\n";
-        print F "    -t 12\n";
+        print F "    -memory " . getGlobal("${tag}mhapMemory") . " \\\n";
+        print F "    -t " . getGlobal("${tag}mhapThreads") . " \n";
         print F "fi\n";
     } else {
         print F "mv -f \"$path/results/\$qry.mhap.ovb.gz\" \"$path/results/\$qry.ovb.gz\"\n";

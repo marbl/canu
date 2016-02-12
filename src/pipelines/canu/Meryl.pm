@@ -57,6 +57,19 @@ sub getGenomeCoverage($$$) {
     my $gs=`cat $wrk/0-mercounts/$asm.ms$merSize.estMerThresh.err | grep "Guessed X coverage"|awk '{print \$NF}'`;
     chomp $gs;
 
+    # if we couldn't find the coverage, just take # bases divided by user supplied genome size as a guestimate
+    if ($gs == "") {
+        open(F, "$bin/gatekeeperDumpMetaData -stats -G $wrk/$asm.gkpStore | ") or caFailure("failed to read gatekeeper stats fromfrom '$wrk/$asm.gkpStore'", undef);
+        while (<F>) {
+           my ($junk1, $library, $junk2, $reads, $junk3, $junk4, $bases, $junk5, $average, $junk6, $min, $junk7, $max) = split '\s+', $_;
+           if ($library == 0) {
+              $gs = $bases / getGlobal("genomeSize");
+              last;
+           }
+        }
+       close(F);
+    }
+
     return $gs;
 }
 
