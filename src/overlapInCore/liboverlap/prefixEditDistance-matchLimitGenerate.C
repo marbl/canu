@@ -28,7 +28,9 @@
 
 #include "Binomial_Bound.H"
 
+#ifndef BROKEN_CLANG_OpenMP
 #include <omp.h>
+#endif
 
 //  To use:
 //

@@ -402,10 +402,17 @@ endif
 
 
 ifeq (${OSTYPE}, Darwin)
+  CLANG = $(shell echo `${CXX} --version 2>&1 | grep -c clang`)
+
   CC       ?= gcc
   CXX      ?= g++
-  CXXFLAGS := -pthread -fopenmp -fPIC -m64 -Wall -Wextra -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat
-  LDFLAGS  := -pthread -fopenmp -lm
+  ifeq ($(CLANG), 0)
+     CXXFLAGS := -pthread -fopenmp -fPIC -m64 -Wall -Wextra -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat
+     LDFLAGS  := -pthread -fopenmp -lm
+  else
+     CXXFLAGS := -DBROKEN_CLANG_OpenMP -pthread -fPIC -m64 -Wall -Wextra -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat
+     LDFLAGS  := -pthread -lm
+  endif
 
   ifeq ($(BUILDPROFILE), 1)
     CXXFLAGS  +=

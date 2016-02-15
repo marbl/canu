@@ -272,6 +272,11 @@ int AS_configure(int argc, char **argv);
 #ifdef BROKEN_CLANG_OpenMP
 
 static
+void
+omp_set_dynamic(int x) {
+}
+
+static
 int
 omp_get_max_threads(void) {
   return(1);
