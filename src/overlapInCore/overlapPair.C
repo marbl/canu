@@ -352,9 +352,11 @@ if (nTested % 1000 == 0) {
       }
     }
 
+#if 0
     double  deltaTime = getTime() - startTime;
     fprintf(stderr, "Thread %2u computed overlaps %7u - %7u in %7.3f seconds - %6.2f olaps per second (%8u fail %8u pass)\n",
             WA->threadID, bgnID, endID, deltaTime, (endID - bgnID) / deltaTime, nFailed, nPassed);
+#endif
   }
 
   //  All done.
