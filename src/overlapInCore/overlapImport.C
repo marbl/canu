@@ -78,7 +78,6 @@ main(int argc, char **argv) {
       inType = TYPE_HANGS;
 
     } else if (strcmp(argv[arg], "-raw") == 0) {
-      fprintf(stderr, "-raw not implemented.\n"), exit(1);
       inType = TYPE_RAW;
 
     } else if ((strcmp(argv[arg], "-") == 0) ||
@@ -166,6 +165,33 @@ main(int argc, char **argv) {
         break;
 
       case TYPE_RAW:
+         ov.a_iid = W(0);
+         ov.b_iid = W(1);
+
+         ov.flipped(W[2][0] == 'I');
+
+         ov.dat.ovl.ahg5 = W(4);
+         ov.dat.ovl.ahg3 = W(5);
+
+         ov.dat.ovl.bhg5 = W(6);
+         ov.dat.ovl.bhg3 = W(7);
+         ov.erate(atof(W[8]) / 1);
+
+         ov.dat.ovl.forUTG = false;
+         ov.dat.ovl.forOBT = false;
+         ov.dat.ovl.forDUP = false;
+
+         for (uint32 i = 9; i < W.numWords(); i++) {
+            if (strcmp(W[i], "UTG") == 0) {
+               ov.dat.ovl.forUTG = true;
+            }
+            if (strcmp(W[i], "OBT") == 0) {
+               ov.dat.ovl.forOBT = true;
+            }
+            if (strcmp(W[i], "DUP") == 0) {
+               ov.dat.ovl.forDUP = true;
+            }
+         }
         break;
 
       default:
