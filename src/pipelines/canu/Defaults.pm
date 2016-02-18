@@ -808,20 +808,8 @@ sub setDefaults () {
 
     ##### Overlap Store
 
-    $global{"ovlStoreMemory"}              = undef;
-    $synops{"ovlStoreMemory"}              = "How much memory, in gigabytes, to use when constructing overlap stores";
-
-    $global{"ovlStoreThreads"}             = 1;
-    $synops{"ovlStoreThreads"}             = "Unused, only one thread supported";
-
-    $global{"ovlStoreConcurrency"}         = undef;
-    $synops{"ovlStoreConcurrency"}         = "Unused, only one process supported";
-
-    $global{"ovlStoreMethod"}              = "sequential";
-    $synops{"ovlStoreMethod"}              = "Use the 'sequential' or 'parallel' algorithm for constructing an overlap store; default 'sequential'";
-
-    $global{"ovlStoreSlices"}              = undef;
-    $synops{"ovlStoreSlices"}              = "How many pieces to split the sorting into, for the parallel store build";
+    $global{"ovsMethod"}                   = "sequential";
+    $synops{"ovsMethod"}                   = "Use the 'sequential' or 'parallel' algorithm for constructing an overlap store; default 'sequential'";
 
     #####  Mers
 

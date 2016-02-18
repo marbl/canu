@@ -326,30 +326,18 @@ public:
 };
 
 
-
-//  If ovOverlapWORD is uint32, we have no problems.
-
-//  If ovOverlapWORD is uint64, and we are internal, then we have a problem with the internal format.
-//  We want to store just one uint32 id and 3 uint64's, but our buffer wants to be uint64.
-
-
-
-//  The flags are a bit goofy.
-//
 //  The default, no flags, is to open for normal overlaps, read only.  Normal overlaps mean they
 //  have only the B id, i.e., they are in a fully built store.
 //
-//  To write those overlaps, open with ovFileNormal | ovFileWrite.
-//
-//  To read/write intermediate overlaps (both ids are present), use ovFileFull and ovFileFull | ovFileWrite
-//
-//  Stupid enum, can't be combined - ofFileNormal | ofFileWrite gives an error.
+//  Output of overlapper (input to store building) should be ovFileFullWrite.  The specialized
+//  ovFileFullWriteNoCounts is used internally by store creation.
 //
 enum ovFileType {
-  ovFileNormal      = 0,  //  Reading of b_id overlaps (aka store files)
-  ovFileNormalWrite = 1,  //  Writing of b_id overlaps
-  ovFileFull        = 2,  //  Reading of a_id+b_id overlaps (aka dump files)
-  ovFileFullWrite   = 3   //  Writing of a_id+b_id overlaps
+  ovFileNormal              = 0,  //  Reading of b_id overlaps (aka store files)
+  ovFileNormalWrite         = 1,  //  Writing of b_id overlaps
+  ovFileFull                = 2,  //  Reading of a_id+b_id overlaps (aka dump files)
+  ovFileFullWrite           = 3,  //  Writing of a_id+b_id overlaps
+  ovFileFullWriteNoCounts   = 4   //  Writing of a_id+b_id overlaps, omitting the counts of olaps per read
 };
 
 
@@ -383,6 +371,9 @@ private:
   uint32                  _bufferMax;    //  allocated size of the buffer
   uint32                 *_buffer;
 
+  uint32                  _numPerMax;
+  uint32                 *_numPer;
+
   bool                    _isOutput;     //  if true, we can writeOverlap()
   bool                    _isSeekable;   //  if true, we can seekOverlap()
   bool                    _isNormal;     //  if true, 3 words per overlap, else 4
@@ -390,6 +381,7 @@ private:
   compressedFileReader   *_reader;
   compressedFileWriter   *_writer;
 
+  char                    _prefix[FILENAME_MAX];
   FILE                   *_file;
 };
 

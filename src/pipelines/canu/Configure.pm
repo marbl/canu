@@ -350,7 +350,6 @@ sub getAllowedResources ($$$$) {
     elsif ($alg eq "meryl")    {  $nam = "meryl (k-mer counting)"; }
     elsif ($alg eq "oea")      {  $nam = "overlap error adjustment"; }
     elsif ($alg eq "ovb")      {  $nam = "overlap store parallel bucketizer"; }
-    elsif ($alg eq "ovlStore") {  $nam = "overlap store sequential building"; }
     elsif ($alg eq "ovs")      {  $nam = "overlap store parallel sorting"; }
     elsif ($alg eq "red")      {  $nam = "read error detection (overlap error adjustment)"; }
     elsif ($alg eq "mhap")     {  $nam = "mhap (overlapper)"; }
@@ -503,35 +502,27 @@ sub configureAssembler () {
     setGlobalIfUndef("obtOvlHashBlockLength", 100000000);   setGlobalIfUndef("obtOvlRefBlockSize", 2000000);   setGlobalIfUndef("obtOvlRefBlockLength", 0);
     setGlobalIfUndef("utgOvlHashBlockLength", 100000000);   setGlobalIfUndef("utgOvlRefBlockSize", 2000000);   setGlobalIfUndef("utgOvlRefBlockLength", 0);
 
-    #  The sequential overlap store build is mostly memory agnostic.  With lots of overlaps, smaller
-    #  memory sizes can run out of open file handles.  This really should be using the number of
-    #  overlaps found.
+    #  Overlap store construction should be based on the number of overlaps, but we obviously don't
+    #  know that until much later.  If we set memory too large, we risk (in the parallel version for sure)
+    #  inefficiency; too small and we run out of file handles.
 
-    if      (getGlobal("genomeSize") < adjustGenomeSize("100m")) {
-        setGlobalIfUndef("ovlStoreMemory", 4);
-    } else {
-        setGlobalIfUndef("ovlStoreMemory", 8);
-    }
-
-    #  The parallel store build really doesn't change much.  Also should be based on the number of overlaps found.
-
-    if      (getGlobal("genomeSize") < adjustGenomeSize("100m")) {
+    if      (getGlobal("genomeSize") < adjustGenomeSize("300m")) {
+        setGlobalIfUndef("ovsMethod", "sequential");
         setGlobalIfUndef("ovbMemory",   "2-4");     setGlobalIfUndef("ovbThreads",   "1");
-        setGlobalIfUndef("ovsMemory",   "4-16");    setGlobalIfUndef("ovsThreads",   "1");
-        setGlobalIfUndef("ovlStoreSlices", 16);
+        setGlobalIfUndef("ovsMemory",   "2-8");     setGlobalIfUndef("ovsThreads",   "1");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("1g")) {
+        setGlobalIfUndef("ovsMethod", "parallel");
         setGlobalIfUndef("ovbMemory",   "2-4");     setGlobalIfUndef("ovbThreads",   "1");
-        setGlobalIfUndef("ovsMemory",   "8-24");    setGlobalIfUndef("ovsThreads",   "1");
-        setGlobalIfUndef("ovlStoreSlices", 64);
+        setGlobalIfUndef("ovsMemory",   "4-12");    setGlobalIfUndef("ovsThreads",   "1");
 
     } else {
+        setGlobalIfUndef("ovsMethod", "parallel");
         setGlobalIfUndef("ovbMemory",   "2-4");     setGlobalIfUndef("ovbThreads",   "1");
-        setGlobalIfUndef("ovsMemory",   "8-32");    setGlobalIfUndef("ovsThreads",   "1");
-        setGlobalIfUndef("ovlStoreSlices", 128);
+        setGlobalIfUndef("ovsMemory",   "4-16");    setGlobalIfUndef("ovsThreads",   "1");
     }
 
-    #  Correction and consensus are likewise somewhat invariant.
+    #  Correction and consensus are somewhat invariant.
 
     if      (getGlobal("genomeSize") < adjustGenomeSize("40m")) {
         setGlobalIfUndef("cnsMemory",     "8-32");     setGlobalIfUndef("cnsThreads",      "1-4");
@@ -625,7 +616,6 @@ sub configureAssembler () {
     ($err, $all) = getAllowedResources("",    "red",      $err, $all);
     ($err, $all) = getAllowedResources("",    "oea",      $err, $all);
     ($err, $all) = getAllowedResources("",    "cns",      $err, $all);
-    ($err, $all) = getAllowedResources("",    "ovlStore", $err, $all);
     ($err, $all) = getAllowedResources("",    "ovb",      $err, $all);
     ($err, $all) = getAllowedResources("",    "ovs",      $err, $all);
     ($err, $all) = getAllowedResources("cor", "ovl",      $err, $all);

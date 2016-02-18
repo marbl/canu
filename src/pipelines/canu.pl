@@ -374,7 +374,7 @@ sub overlap ($$$) {
         overlapCheck($wrk, $asm, $tag, $ovlType)  foreach (1..getGlobal("canuIterationMax") + 1);
     }
 
-    createOverlapStore($wrk, $asm, $tag, getGlobal("ovlStoreMethod"));
+    createOverlapStore($wrk, $asm, $tag, getGlobal("ovsMethod"));
 }
 
 #

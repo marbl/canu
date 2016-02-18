@@ -48,12 +48,8 @@ ovFile::ovFile(const char  *name,
                uint32       bufferSize) {
 
   //  We write two sizes of overlaps.  The 'normal' format doesn't contain the a_iid, while the
-  //  'full' format does.  Choose a buffer size that can handle both, because we don't know
-  //  which type is going to be used.
-  //
-  //  The lcm can be one of two values, depending on the number of bits in the reead length:
-  //    == 16-bit -- (4 + 5*4) * (8 + 5*4) = 672
-  //     > 17-bit -- (4 + 3*8) * (8 + 3*8) = 896
+  //  'full' format does.  The buffer size must hold an integer number of overlaps, otherwise the
+  //  reader will read partial overlaps and fail.  Choose a buffer size that can handle both.
 
   uint32  lcm = ((sizeof(uint32) * 1 + sizeof(ovOverlapDAT)) *
                  (sizeof(uint32) * 2 + sizeof(ovOverlapDAT)));
@@ -66,25 +62,31 @@ ovFile::ovFile(const char  *name,
   _bufferMax  = (bufferSize / (lcm * sizeof(uint32))) * lcm;
   _buffer     = new uint32 [_bufferMax];
 
+  assert(_bufferMax % ((sizeof(uint32) * 1) + (sizeof(ovOverlapDAT))) == 0);
+  assert(_bufferMax % ((sizeof(uint32) * 2) + (sizeof(ovOverlapDAT))) == 0);
+
+  //  When writing full overlaps, we also write the number of overlaps per read.  This is used to
+  //  build the store.  Overlaps in the store, normal format, don't need this extra data, as the
+  //  store itself knows how many overlaps per read.
+
+  _numPerMax = 0;
+  _numPer    = NULL;
+
+  if (type == ovFileFullWrite) {
+    _numPerMax  = 1024;
+    _numPer     = new uint32 [_numPerMax];
+
+    memset(_numPer, 0, sizeof(uint32) * _numPerMax);
+  }
+
+  //  Create the input/output buffers and files.
+
   _isOutput   = false;
   _isSeekable = false;
   _isNormal   = (type == ovFileNormal) || (type == ovFileNormalWrite);
 
   _reader     = NULL;
   _writer     = NULL;
-
-  _file       = NULL;
-
-  //  The buffer size must hold an integer number of overlaps, otherwise the reader
-  //  will read partial overlaps and fail.
-
-  //fprintf(stderr, "lcm = %u\n", lcm);
-  //fprintf(stderr, "_bufferMax = %u\n", _bufferMax);
-  //fprintf(stderr, "sizeof(uint32) = %u\n", sizeof(uint32));
-  //fprintf(stderr, "sizeof(ovOverlapDAT) = %u\n", sizeof(ovOverlapDAT));
-
-  assert(_bufferMax % ((sizeof(uint32) * 1) + (sizeof(ovOverlapDAT))) == 0);
-  assert(_bufferMax % ((sizeof(uint32) * 2) + (sizeof(ovOverlapDAT))) == 0);
 
   //  Open a file for reading?
   if ((type == ovFileNormal) || (type == ovFileFull)) {
@@ -93,13 +95,23 @@ ovFile::ovFile(const char  *name,
     _isSeekable  = (_reader->isCompressed() == false);
   }
 
-
   //  Open a file for writing?
   else {
     _writer      = new compressedFileWriter(name);
     _file        = _writer->file();
     _isOutput    = true;
   }
+
+  //  Make a copy of the output name, and clean it up.  This is used as the base for
+  //  the counts output.  We just strip off all the dotted extensions in the filename.
+
+  strcpy(_prefix, name);
+
+  char  *slash = strrchr(_prefix, '/');
+  char  *dot   = strchr((slash == NULL) ? _prefix : slash, '.');
+
+  if (dot)
+    *dot = 0;
 }
 
 
@@ -111,6 +123,26 @@ ovFile::~ovFile() {
   delete    _reader;
   delete    _writer;
   delete [] _buffer;
+
+  if (_numPer) {
+    char  name[FILENAME_MAX];
+
+    sprintf(name, "%s.counts", _prefix);
+
+    fprintf(stderr, "CREATING '%s'\n", name);
+
+    errno = 0;
+    _file = fopen(name, "w");
+    if (errno)
+      fprintf(stderr, "failed to open counts file '%s' for writing: %s\n", name, strerror(errno)), exit(1);
+
+    AS_UTL_safeWrite(_file, &_numPerMax, "ovFile::numPerMax", sizeof(uint32), 1);
+    AS_UTL_safeWrite(_file,  _numPer,    "ovFile::numPer",    sizeof(uint32), _numPerMax);
+
+    fclose(_file);
+
+    delete [] _numPer;
+  }
 }
 
 
@@ -139,6 +171,14 @@ ovFile::writeOverlap(ovOverlap *overlap) {
   if (_bufferLen >= _bufferMax) {
     AS_UTL_safeWrite(_file, _buffer, "ovFile::writeOverlap", sizeof(uint32), _bufferLen);
     _bufferLen = 0;
+  }
+
+  if (_numPer) {
+    resizeArray(_numPer, _numPerMax, _numPerMax, overlap->a_iid+1, resizeArray_copyData | resizeArray_clearNew);
+    resizeArray(_numPer, _numPerMax, _numPerMax, overlap->b_iid+1, resizeArray_copyData | resizeArray_clearNew);
+
+    _numPer[overlap->a_iid]++;
+    _numPer[overlap->b_iid]++;
   }
 
   if (_isNormal == false)
@@ -187,6 +227,14 @@ ovFile::writeOverlaps(ovOverlap *overlaps, uint64 overlapsLen) {
     if (_bufferLen >= _bufferMax) {
       AS_UTL_safeWrite(_file, _buffer, "ovFile::writeOverlap", sizeof(uint32), _bufferLen);
       _bufferLen = 0;
+    }
+
+    if (_numPer) {
+      resizeArray(_numPer, _numPerMax, _numPerMax, overlaps[nWritten].a_iid+1, resizeArray_copyData | resizeArray_clearNew);
+      resizeArray(_numPer, _numPerMax, _numPerMax, overlaps[nWritten].b_iid+1, resizeArray_copyData | resizeArray_clearNew);
+
+      _numPer[overlaps[nWritten].a_iid]++;
+      _numPer[overlaps[nWritten].b_iid]++;
     }
 
     if (_isNormal == false)

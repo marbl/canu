@@ -45,23 +45,12 @@ use canu::Execution;
 use canu::HTML;
 
 
-#  Parallel documentation:
-#
-#  Each overlap job is converted into a single bucket of overlaps.  Within each bucket, the overlaps
-#  are distributed into many slices, one per sort job.  The sort jobs then load the same slice from
-#  each bucket.
-#
-#  E.g., Overlap job 13 will create bucket 13 with slices 4-15.  Sort job 13 will load slice 13 from
-#  any bucket that it exists in.
-#
-#  The terminology isn't consistent however, espeically in the C++ code.
-
+#  Parallel documentation: Each overlap job is converted into a single bucket of overlaps.  Within
+#  each bucket, the overlaps are distributed into many slices, one per sort job.  The sort jobs then
+#  load the same slice from each bucket.
 
 
 #  NOT FILTERING overlaps by error rate when building the parallel store.
-#  NOT able to change the delete flag.
-#  Using ovlStoreMemory for sorting.
-
 
 
 sub createOverlapStoreSequential ($$$$) {
@@ -77,19 +66,10 @@ sub createOverlapStoreSequential ($$$$) {
     $wrk = "$wrk/trimming"    if ($tag eq "obt");
     $wrk = "$wrk/unitigging"  if ($tag eq "utg");
 
-    #  The sequential overlap store build can fail on uneven partition sizes.  For long read
-    #  datasets, the number of overlaps is typically much smaller than before.  A correct fix
-    #  requires overlapper (_and_ mhap) to output the number of overlaps per read, then for
-    #  ovStoreBuild to set bucketsizes using that.
-    #
-    #  Until that appears, we artificially cut the memory size in half, which will double the number
-    #  of sorting buckets.  It is cut in half so that the job is submitted to the grid using the
-    #  larger value.  In reality, this job is run in the canu.pl process itself, and all canu.pl
-    #  processes are submitted with the max of ovStore and canu.pl.
+    #  This is running in the canu process itself.  Execution.pm has special case code
+    #  to submit canu to grids using the maximum of 4gb and this memory limit.
 
-    my $memSize = getGlobal("ovlStoreMemory") / 2;
-
-    #getAllowedResources("", "ovlStore");
+    my $memSize = getGlobal("ovsMemory");
 
     $cmd  = "$bin/ovStoreBuild \\\n";
     $cmd .= " -O $wrk/$asm.ovlStore.BUILDING \\\n";
@@ -131,6 +111,31 @@ sub countOverlapStoreInputs ($) {
 
 
 
+sub getNumOlapsAndSlices ($$) {
+    my $wrk = shift @_;
+    my $asm = shift @_;
+
+    my $numOlaps   = 0;
+    my $numSlices  = 0;
+
+    open(F, "< $wrk/$asm.ovlStore.BUILDING/config.err") or caExit("can't open '$wrk/$asm.ovlStore.BUILDING/config.err' for reading: $!\n", undef);
+    while (<F>) {
+        if (m/Will sort (\d+.\d+) million overlaps per bucket, using (\d+) buckets./) {
+            $numOlaps  = $1;
+            $numSlices = $2;
+        }
+    }
+    close(F);
+
+    if (($numOlaps == 0) || ($numSlices == 0)) {
+        caExit("Failed to find any overlaps ($numOlaps) or slices ($numSlices).\n", undef);
+    }
+
+    return($numOlaps, $numSlices);
+}
+
+
+
 sub overlapStoreConfigure ($$$$) {
     my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
     my $wrk     = $WRK;      #  Local work directory
@@ -148,13 +153,32 @@ sub overlapStoreConfigure ($$$$) {
     goto allDone   if (-d "$wrk/$asm.ovlStore");
 
     my $numInputs  = countOverlapStoreInputs($files);
-    my $numSlices  = getGlobal("ovlStoreSlices");
 
     #  Create an output directory, and populate it with more directories and scripts
 
     system("mkdir -p $wrk/$asm.ovlStore.BUILDING")                   if (! -d "$wrk/$asm.ovlStore.BUILDING");
     system("mkdir -p $wrk/$asm.ovlStore.BUILDING/scripts")           if (! -d "$wrk/$asm.ovlStore.BUILDING/scripts");
     system("mkdir -p $wrk/$asm.ovlStore.BUILDING/logs")              if (! -d "$wrk/$asm.ovlStore.BUILDING/logs");
+
+    #  Run the normal store build, but just to get the partitioning.
+
+    if (! -e "$wrk/$asm.ovlStore.BUILDING/config") {
+        $cmd  = "$bin/ovStoreBuild \\\n";
+        $cmd .= " -G $wrk/$asm.gkpStore \\\n";
+        $cmd .= " -O $wrk/$asm.ovlStore \\\n";  #  NOT created!
+        $cmd .= " -M " . getGlobal("ovsMemory") . " \\\n";
+        $cmd .= " -config $wrk/$asm.ovlStore.BUILDING/config \\\n";
+        $cmd .= " -L $files \\\n";
+        $cmd .= "> $wrk/$asm.ovlStore.BUILDING/config.err 2>&1\n";
+
+        if (runCommand($wrk, $cmd)) {
+            caExit("failed to generate configuration for building overlap store", "$wrk/$asm.ovlStore.BUILDING/config.err");
+        }
+    }
+
+    #  Parse the output to find the number of jobs we need to sort.
+
+    my ($numOlaps, $numSlices) = getNumOlapsAndSlices($wrk, $asm);
 
     #  Parallel jobs for bucketizing.  This should really be part of overlap computation itself.
 
@@ -211,7 +235,7 @@ sub overlapStoreConfigure ($$$$) {
         print F "\$bin/ovStoreBucketizer \\\n";
         print F "  -O $wrk/$asm.ovlStore.BUILDING \\\n";
         print F "  -G $wrk/$asm.gkpStore \\\n";
-        print F "  -F $numSlices \\\n";
+        print F "  -C $wrk/$asm.ovlStore.BUILDING/config \\\n";
         #print F "  -e " . getGlobal("") . " \\\n"  if (defined(getGlobal("")));
         print F "  -job \$jobid \\\n";
         print F "  -i   \$jn\n";
@@ -401,7 +425,8 @@ sub overlapStoreSorterCheck ($$$$) {
 
     #  Figure out if all the tasks finished correctly.
 
-    my $numSlices      = getGlobal("ovlStoreSlices");
+    my ($numOlaps, $numSlices) = getNumOlapsAndSlices($wrk, $asm);
+
     my $currentJobID   = 1;
     my @successJobs;
     my @failedJobs;
@@ -497,8 +522,8 @@ sub createOverlapStoreParallel ($$$$) {
     $wrk = "$wrk/unitigging"  if ($tag eq "utg");
 
     overlapStoreConfigure($WRK, $asm, $tag, $files);
-    overlapStoreBucketizerCheck($WRK, $asm, $tag, $files)  foreach (1..getGlobal("canuIterationMax"));
-    overlapStoreSorterCheck($WRK, $asm, $tag, $files)      foreach (1..getGlobal("canuIterationMax"));
+    overlapStoreBucketizerCheck($WRK, $asm, $tag, $files)  foreach (1..getGlobal("canuIterationMax") + 1);
+    overlapStoreSorterCheck($WRK, $asm, $tag, $files)      foreach (1..getGlobal("canuIterationMax") + 1);
 
     if (runCommand("$wrk/$asm.ovlStore.BUILDING", "$wrk/$asm.ovlStore.BUILDING/scripts/3-index.sh > $wrk/$asm.ovlStore.BUILDING/scripts/3-index.err 2>&1")) {
         caExit("failed to build index for overlap store", "$wrk/$asm.ovlStore.BUILDING/scripts/3-index.err");

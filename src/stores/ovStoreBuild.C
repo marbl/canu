@@ -45,69 +45,157 @@
 
 using namespace std;
 
-
-uint32  lastLibFirstIID = 0;
-uint32  lastLibLastIID  = 0;
-
+#define  MEMORY_OVERHEAD  (128 * 1024 * 1024)
 
 static
-uint64
-computeIIDperBucket(uint32 fileLimit, uint64 memoryLimit, uint32 maxIID, vector<char *> &fileList) {
-  uint64  numOverlaps = 0;
+uint32 *
+computeIIDperBucket(uint32          fileLimit,
+                    uint64          memoryLimit,
+                    uint32          maxIID,
+                    vector<char *> &fileList) {
+  uint32  *iidToBucket = new uint32 [maxIID];
 
-  if (fileLimit > 0) {
-    uint64  iidPerBucket = (uint64)ceil((double)maxIID / (double)fileLimit);
-
-    fprintf(stderr, "Explicit bucket count supplied, memory sizing disabled.  I'll put "F_U64" IIDs into each of "F_U32" buckets.\n",
-            iidPerBucket, fileLimit);
-    return(iidPerBucket);
-  }
+  //  If we're reading from stdin, not much we can do but divide the IIDs equally per file.  Note
+  //  that the IIDs must be consecutive; the obvious, simple and clean division of 'mod' won't work.
 
   if (fileList[0][0] == '-') {
-    fileLimit = sysconf(_SC_OPEN_MAX) - 16;
-    uint64  iidPerBucket = (uint64)ceil((double)maxIID / (double)fileLimit);
+    if (memoryLimit > 0) {
+      memoryLimit = 0;
+      fileLimit   = sysconf(_SC_OPEN_MAX) - 16;
 
-    fprintf(stderr, "Reading overlaps from stdin, memory sizing disabled.  I'll put "F_U64" IIDs into each of "F_U32" buckets.\n",
-            iidPerBucket, fileLimit);
-    return(iidPerBucket);
+      fprintf(stderr, "WARNING: memory limit (-M) specified, but can't be used with inputs from stdin; using %d files instead.\n", fileLimit);
+    } else {
+      fprintf(stderr, "Sorting overlaps from stdin using %d files.\n", fileLimit);
+    }
+
+    uint32  iidPerBucket   = maxIID / fileLimit;
+    uint32  thisBucket     = 1;
+    uint32  iidThisBucket  = 0;
+
+    for (uint32 ii=0; ii<maxIID; ii++) {
+      iidThisBucket++;
+      iidToBucket[ii] = thisBucket;
+
+      if (iidThisBucket > iidPerBucket) {
+        iidThisBucket = 0;
+        thisBucket++;
+      }
+    }
+
+    return(iidToBucket);
   }
 
-  fprintf(stderr, "Scanning overlap files to count the number of overlaps.\n");
+  //  Otherwise, we have files, and should have counts.
+
+  uint32  *overlapsPerRead = new uint32 [maxIID];
+  uint32   maxPerNum       = 0;
+  uint32  *maxPer          = new uint32 [maxIID];
+
+  memset(overlapsPerRead, 0, sizeof(uint32) * maxIID);
+  memset(maxPer,          0, sizeof(uint32) * maxIID);
+
+  //  For each overlap file, find the counts file and merge into overlapsPerRead.
 
   for (uint32 i=0; i<fileList.size(); i++) {
-    uint64  no = AS_UTL_sizeOfFile(fileList[i]);
-    if (no == 0)
-      fprintf(stderr, "WARNING:  No overlaps found (or file not found) in '%s'.\n", fileList[i]);
+    char  countsName[FILENAME_MAX];
 
-    numOverlaps += 2 * no / sizeof(ovOverlap);
+    strcpy(countsName, fileList[i]);
+
+    char  *slash = strrchr(countsName, '/');
+    char  *dot   = strchr((slash == NULL) ? countsName : slash, '.');
+
+    if (dot)
+      *dot = 0;
+
+    strcat(countsName, ".counts");
+
+    errno = 0;
+    FILE *C = fopen(countsName, "r");
+    if (errno)
+      fprintf(stderr, "failed to open counts file '%s' for reading: %s\n", countsName, strerror(errno)), exit(1);
+
+    AS_UTL_safeRead(C, &maxPerNum, "maxPerNum", sizeof(uint32), 1);
+    AS_UTL_safeRead(C,  maxPer,    "maxPer",    sizeof(uint32), maxPerNum);
+
+    fclose(C);
+
+    fprintf(stderr, "Summing overlap counts for %u reads from '%s'.\n", maxPerNum, countsName);
+
+    for (uint32 ii=0; ii<maxPerNum; ii++)
+      overlapsPerRead[ii] += maxPer[ii];
+
+    fclose(C);
   }
 
-  fprintf(stderr, "Found %.3f million overlaps.\n", numOverlaps / 1000000.0);
-  assert(numOverlaps > 0);
+  delete [] maxPer;
 
-  //  Why the +1 below?  Consider the case when the number of overlaps is less than the number of
-  //  fragments.  This value is used to figure out how many IIDs we can fit into a single bucket,
-  //  and making it too large means we'll get maybe one more bucket and the buckets will be smaller.
-  //  Yeah, we probably could have just used ceil.
-  //
-  double  overlapsPerBucket   = (double)memoryLimit / (double)sizeof(ovOverlap);
-  double  overlapsPerIID      = (double)numOverlaps / (double)maxIID;
+  //  How many overlaps?
 
-  uint64  iidPerBucket        = (uint64)(overlapsPerBucket / overlapsPerIID) + 1;
+  uint64   numOverlaps = 0;
 
-  fileLimit = maxIID / iidPerBucket + 1;
+  for (uint32 ii=0; ii<maxIID; ii++)
+    numOverlaps += overlapsPerRead[ii];
 
-  fprintf(stderr, "Memory limit "F_U64"MB supplied.  I'll put "F_U64" IIDs (%.2f million overlaps) into each of "F_U32" buckets.\n",
-          memoryLimit / (uint64)1048576,
-          iidPerBucket,
-          overlapsPerBucket / 1000000.0,
-          fileLimit);
+  fprintf(stderr, "Found "F_U64" (%.2f million) overlaps.\n", numOverlaps, numOverlaps / 1000000.0);
 
-  return(iidPerBucket);
+  //  Partition the overlaps into buckets.
+
+  uint64   olapsPerBucketMax = 0;
+  double   GBperOlap         = (sizeof(uint32) + sizeof(uint32) + sizeof(ovOverlapDAT)) / 1024.0 / 1024.0 / 1024.0;
+
+  //  If a file limit, distribute the overlaps to equal sized files.
+  if (fileLimit > 0) {
+    olapsPerBucketMax = (uint64)ceil((double)numOverlaps / (double)fileLimit);
+    fprintf(stderr, "Will sort using "F_U32" files; "F_U64" (%.2f million) overlaps per bucket; %.2f GB memory per bucket\n",
+            fileLimit, olapsPerBucketMax, olapsPerBucketMax / 1000000.0, olapsPerBucketMax * GBperOlap);
+  }
+
+  //  If a memory limit, distribute the overlaps to files no larger than the limit.
+  if (memoryLimit > 0) {
+  olapsPerBucketMax = (memoryLimit - MEMORY_OVERHEAD) / (sizeof(uint32) + sizeof(uint32) + sizeof(ovOverlapDAT));
+    fprintf(stderr, "Will sort using "F_U64" files; "F_U64" (%.2f million) overlaps per bucket; %.2f GB memory per bucket\n",
+            numOverlaps / olapsPerBucketMax + 1,
+            olapsPerBucketMax,
+            olapsPerBucketMax / 1000000.0,
+            olapsPerBucketMax * GBperOlap);
+  }
+
+  //  Given the limit on each bucket, assign IDs to a bucket.
+
+  uint64          olaps  = 0;
+  uint32          bucket = 1;
+
+  for (uint32 ii=0; ii<maxIID; ii++) {
+    olaps            += overlapsPerRead[ii];
+    iidToBucket[ii]   = bucket;
+
+    if (olaps >= olapsPerBucketMax) {
+      fprintf(stderr, "  bucket %3d has "F_U64" olaps.\n", bucket, olaps);
+      olaps = 0;
+      bucket++;
+    }
+  }
+
+  fprintf(stderr, "  bucket %3d has "F_U64" olaps.\n", bucket, olaps);
+
+  delete [] overlapsPerRead;
+
+  fprintf(stderr, "Will sort %.3f million overlaps per bucket, using %u buckets.\n", olapsPerBucketMax / 1000000.0, bucket);
+
+  //  If too many buckets, fail.
+
+#warning not failing if too many buckets
+#if 0
+  if (maxIID / iidPerBucket + 1 > dumpFileMax - 16) {
+    fprintf(stderr, "ERROR:\n");
+    fprintf(stderr, "ERROR:  Operating system limit of %d open files.  The current -F setting\n", dumpFileMax);
+    fprintf(stderr, "ERROR:  will need to create "F_U64" files to construct the store.\n", maxIID / iidPerBucket + 1);
+    exit(1);
+  }
+#endif
+
+  return(iidToBucket);
 }
-
-
-
 
 
 
@@ -117,52 +205,21 @@ writeToDumpFile(ovOverlap       *overlap,
                 ovFile          **dumpFile,
                 uint32            dumpFileMax,
                 uint64           *dumpLength,
-                uint32            iidPerBucket,
+                uint32           *iidToBucket,
                 char             *ovlName) {
+  uint32 df = iidToBucket[overlap->a_iid];
 
-  uint32 df = overlap->a_iid / iidPerBucket;
-
-  if (lastLibFirstIID > 0) {
-    uint32  firstHighDensity = lastLibFirstIID;      //  IID of first pacBio read
-    uint32  lastHighDensity  = lastLibLastIID + 1;  //  IID of last pacBio read, plus 1
-    uint32  numHighDensity   = lastHighDensity - firstHighDensity;
-
-    uint32  lowDensity       = firstHighDensity /  64;  //  64 buckets for illumina overlaps
-    uint32  highDensity      = numHighDensity   / 128;  //  128 buckets for dense overlaps
-
-    if (overlap->a_iid < firstHighDensity)
-      df = overlap->a_iid / lowDensity;
-    else
-      df = (overlap->a_iid - firstHighDensity) / highDensity + 64;  //  plus 64 buckets from above
-  }
-
-  //fprintf(stderr, "IID %u DF %u\n", overlap->a_iid, df);
-
-  if (df >= dumpFileMax) {
-    char   olapstring[256];
-
-    fprintf(stderr, "\n");
-    fprintf(stderr, "Too many bucket files when adding overlap:\n");
-    fprintf(stderr, "  Aid "F_U32"  Bid "F_U32"\n",  overlap->a_iid, overlap->b_iid);
-    fprintf(stderr, "\n");
-    fprintf(stderr, "bucket       = "F_U32"\n", df);
-    fprintf(stderr, "iidPerBucket = "F_U32"\n", iidPerBucket);
-    fprintf(stderr, "dumpFileMax  = "F_U32"\n", dumpFileMax);
-    fprintf(stderr, "\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "This might be a corrupt input file, or maybe you simply need to supply more\n");
-    fprintf(stderr, "memory with the canu option ovlStoreMemory.\n");
-    fprintf(stderr, "\n");
-    exit(1);
-  }
+  //  If the dump file isn't opened, open it.
 
   if (dumpFile[df] == NULL) {
     char name[FILENAME_MAX];
     sprintf(name, "%s/tmp.sort.%03d", ovlName, df);
     fprintf(stderr, "CREATE bucket '%s'\n", name);
-    dumpFile[df]   = new ovFile(name, ovFileFullWrite);
+    dumpFile[df]   = new ovFile(name, ovFileFullWriteNoCounts);
     dumpLength[df] = 0;
   }
+
+  //  And write the overlap.
 
   dumpFile[df]->writeOverlap(overlap);
   dumpLength[df]++;
@@ -182,10 +239,10 @@ main(int argc, char **argv) {
 
   vector<char *>  fileList;
 
-  uint32          nThreads = 4;
+  uint32          nThreads     = 4;
 
-  bool            eValues = false;
-
+  bool            eValues      = false;
+  char           *configOut    = NULL;
 
   argc = AS_configure(argc, argv);
 
@@ -204,10 +261,7 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-M") == 0) {
       fileLimit    = 0;
-      memoryLimit  = atoi(argv[++arg]);
-      memoryLimit *= 1024;
-      memoryLimit *= 1024;
-      memoryLimit *= 1024;
+      memoryLimit  = (uint64)ceil(atof(argv[++arg]) * 1024.0 * 1024.0 * 1024.0);
 
     } else if (strcmp(argv[arg], "-e") == 0) {
       maxError = atof(argv[++arg]);
@@ -218,17 +272,14 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-L") == 0) {
       AS_UTL_loadFileList(argv[++arg], fileList);
 
-    } else if (strcmp(argv[arg], "-big") == 0) {
-      lastLibFirstIID = atoi(argv[++arg]);
-
     } else if (strcmp(argv[arg], "-evalues") == 0) {
       eValues = true;
 
-    } else if ((argv[arg][0] == '-') && (argv[arg][1] != 0)) {
-      fprintf(stderr, "%s: unknown option '%s'.\n", argv[0], argv[arg]);
-      err++;
+    } else if (strcmp(argv[arg], "-config") == 0) {
+      configOut = argv[++arg];
 
-    } else if (AS_UTL_fileExists(argv[arg])) {
+    } else if (((argv[arg][0] == '-') && (argv[arg][1] == 0)) ||
+               (AS_UTL_fileExists(argv[arg]))) {
       //  Assume it's an input file
       fileList.push_back(argv[arg]);
 
@@ -247,10 +298,14 @@ main(int argc, char **argv) {
     err++;
   if (fileLimit > sysconf(_SC_OPEN_MAX) - 16)
     err++;
+  if (memoryLimit < MEMORY_OVERHEAD)
+    err++;
   if (err) {
     fprintf(stderr, "usage: %s -O asm.ovlStore -G asm.gkpStore [opts] [-L fileList | *.ovb.gz]\n", argv[0]);
     fprintf(stderr, "  -O asm.ovlStore       path to store to create\n");
     fprintf(stderr, "  -G asm.gkpStore       path to gkpStore for this assembly\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -L fileList           read input filenames from 'flieList'\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -F f                  use up to 'f' files for store creation\n");
     fprintf(stderr, "  -M m                  use up to 'm' gigabytes memory for store creation\n");
@@ -258,13 +313,9 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -e e                  filter overlaps above e fraction error\n");
     fprintf(stderr, "  -l l                  filter overlaps below l bases overlap length (needs gkpStore to get read lengths!)\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -L fileList           read input filenames from 'flieList'\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -big iid              handle a large number of overlaps in the last library\n");
-    fprintf(stderr, "                        iid is the first read iid in the last library, from\n");
-    fprintf(stderr, "                        'gatekeeper -dumpinfo *gkpStore'\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -evalues              Input files are evalue updates from overlap error adjustment\n");
+    fprintf(stderr, "Non-building options:\n");
+    fprintf(stderr, "  -evalues              input files are evalue updates from overlap error adjustment\n");
+    fprintf(stderr, "  -config out.dat       don't build a store, just dump a binary partitioning file for ovStoreBucketizer\n");
     fprintf(stderr, "\n");
 
     if (ovlName == NULL)
@@ -275,10 +326,11 @@ main(int argc, char **argv) {
       fprintf(stderr, "ERROR: No input overlap files (-L or last on the command line) supplied.\n");
     if (fileLimit > sysconf(_SC_OPEN_MAX) - 16)
       fprintf(stderr, "ERROR: Too many jobs (-F); only "F_SIZE_T" supported on this architecture.\n", sysconf(_SC_OPEN_MAX) - 16);
+    if (memoryLimit < MEMORY_OVERHEAD)
+      fprintf(stderr, "ERROR: Memory (-M) must be at least %.3f to account for overhead.\n", MEMORY_OVERHEAD / 1024.0 / 1024.0 / 1024.0);
 
     exit(1);
   }
-
 
 
 
@@ -326,29 +378,30 @@ main(int argc, char **argv) {
 
 
 
-  //  We create the store early, allowing it to fail if it already
-  //  exists, or just cannot be created.
+  //  Open reads, figure out a partitioning scheme.  Dump if told to.
 
   gkStore  *gkp         = gkStore::gkStore_open(gkpName);
-  ovStore  *storeFile   = new ovStore(ovlName, gkp, ovStoreWrite);
+  uint64    maxIID      = gkp->gkStore_getNumReads() + 1;
+  uint32   *iidToBucket = computeIIDperBucket(fileLimit, memoryLimit, maxIID, fileList);
 
-  uint64    maxIID       = gkp->gkStore_getNumReads() + 1;
-  uint64    iidPerBucket = computeIIDperBucket(fileLimit, memoryLimit, maxIID, fileList);
+  if (configOut) {
+    errno = 0;
+    FILE *C = fopen(configOut, "w");
+    if (errno)
+      fprintf(stderr, "Failed to open config output file '%s': %s\n", configOut, strerror(errno)), exit(1);
 
-  lastLibLastIID       = gkp->gkStore_getNumReads();
+    AS_UTL_safeWrite(C, &maxIID,      "maxIID",      sizeof(uint32), 1);
+    AS_UTL_safeWrite(C,  iidToBucket, "iidToBucket", sizeof(uint32), maxIID);
 
-  uint32    dumpFileMax  = sysconf(_SC_OPEN_MAX) + 1;
-  ovFile  **dumpFile     = new ovFile * [dumpFileMax];
-  uint64   *dumpLength   = new uint64   [dumpFileMax];
+    fclose(C);
 
-  memset(dumpFile,   0, sizeof(ovFile *) * dumpFileMax);
-  memset(dumpLength, 0, sizeof(uint64)   * dumpFileMax);
+    delete [] iidToBucket;
 
-  if (maxIID / iidPerBucket + 1 > dumpFileMax - 16) {
-    fprintf(stderr, "ERROR:\n");
-    fprintf(stderr, "ERROR:  Operating system limit of %d open files.  The current -F setting\n", dumpFileMax);
-    fprintf(stderr, "ERROR:  will need to create "F_U64" files to construct the store.\n", maxIID / iidPerBucket + 1);
-    exit(1);
+    gkp->gkStore_close();
+
+    fprintf(stderr, "saved configuration to '%s'.\n", configOut);
+
+    exit(0);
   }
 
 
@@ -356,6 +409,18 @@ main(int argc, char **argv) {
   //  Read the gkStore to determine which fragments we care about.
 
   ovStoreFilter *filter = new ovStoreFilter(gkp, maxError);
+
+  //  And load reads into the store!  We used to create the store before filtering, so it could fail
+  //  quicker, but the filter should be much faster with the mmap()'d gkpStore in canu.
+
+  ovStore  *storeFile   = new ovStore(ovlName, gkp, ovStoreWrite);
+
+  uint32    dumpFileMax  = iidToBucket[maxIID-1] + 1;   //sysconf(_SC_OPEN_MAX) + 1;
+  ovFile  **dumpFile     = new ovFile * [dumpFileMax];
+  uint64   *dumpLength   = new uint64   [dumpFileMax];
+
+  memset(dumpFile,   0, sizeof(ovFile *) * dumpFileMax);
+  memset(dumpLength, 0, sizeof(uint64)   * dumpFileMax);
 
   for (uint32 i=0; i<fileList.size(); i++) {
     ovOverlap    foverlap(gkp);
@@ -368,17 +433,20 @@ main(int argc, char **argv) {
     while (inputFile->readOverlap(&foverlap)) {
       filter->filterOverlap(foverlap, roverlap);  //  The filter copies f into r
 
+      //  Check that overlap IDs are valid.
+#warning not checking overlap IDs for validity
+
       //  If all are skipped, don't bother writing the overlap.
 
       if ((foverlap.dat.ovl.forUTG == true) ||
           (foverlap.dat.ovl.forOBT == true) ||
           (foverlap.dat.ovl.forDUP == true))
-        writeToDumpFile(&foverlap, dumpFile, dumpFileMax, dumpLength, iidPerBucket, ovlName);
+        writeToDumpFile(&foverlap, dumpFile, dumpFileMax, dumpLength, iidToBucket, ovlName);
 
       if ((roverlap.dat.ovl.forUTG == true) ||
           (roverlap.dat.ovl.forOBT == true) ||
           (roverlap.dat.ovl.forDUP == true))
-        writeToDumpFile(&roverlap, dumpFile, dumpFileMax, dumpLength, iidPerBucket, ovlName);
+        writeToDumpFile(&roverlap, dumpFile, dumpFileMax, dumpLength, iidToBucket, ovlName);
     }
 
     delete inputFile;
@@ -396,8 +464,6 @@ main(int argc, char **argv) {
 
   fprintf(stderr, "bucketizing DONE!\n");
 
-
-
   //
   //  Read each bucket, sort it, and dump it to the store
   //
@@ -406,6 +472,7 @@ main(int argc, char **argv) {
   for (uint32 i=0; i<dumpFileMax; i++)
     if (dumpLengthMax < dumpLength[i])
       dumpLengthMax = dumpLength[i];
+
 
   ovOverlap  *overlapsort = ovOverlap::allocateOverlaps(gkp, dumpLengthMax);
 
@@ -418,9 +485,8 @@ main(int argc, char **argv) {
     if (dumpLength[i] == 0)
       continue;
 
-    //  We're vastly more efficient if we skip the AS_OVS interface
-    //  and just suck in the whole file directly....BUT....we can't do
-    //  that because the AS_OVS interface is rearranging the data to
+    //  We're vastly more efficient if we skip the AS_OVS interface and just suck in the whole file
+    //  directly....BUT....we can't do that because the AS_OVS interface is rearranging the data to
     //  make sure the store is cross-platform compatible.
 
     sprintf(name, "%s/tmp.sort.%03d", ovlName, i);
@@ -453,11 +519,10 @@ main(int argc, char **argv) {
     assert(numOvl == dumpLength[i]);
     assert(numOvl <= dumpLengthMax);
 
-    //  There's no real advantage to saving this file until after we
-    //  write it out.  If we crash anywhere during the build, we are
-    //  forced to restart from scratch.  I'll argue that removing it
-    //  early helps us to not crash from running out of disk space.
-    //
+    //  There's no real advantage to saving this file until after we write it out.  If we crash
+    //  anywhere during the build, we are forced to restart from scratch.  I'll argue that removing
+    //  it early helps us to not crash from running out of disk space.
+
     unlink(name);
 
     fprintf(stderr, "sorting %s (%ld)\n", name, time(NULL) - beginTime);
@@ -476,6 +541,8 @@ main(int argc, char **argv) {
 
   delete    storeFile;
   delete [] overlapsort;
+
+  gkp->gkStore_close();
 
   //  And we have a store.
 

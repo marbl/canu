@@ -788,15 +788,19 @@ sub submitScript ($$$) {
 
     $jobName   = makeUniqueJobName("canu", $asm);
 
-    #  The canu.pl script isn't expected to take resources.
+    #  The canu.pl script isn't expected to take resources.  We'll default to 4gb and one thread.
 
-    #$memOption = buildMemoryOption(getGlobal("masterMemory"), getGlobal("masterThreads"));
-    #$thrOption = buildThreadOption(getGlobal("masterThreads"));
-    #stores are built in the executive so take max of default or any store memory
-    my $mem = max(4, 1.5*getGlobal("ovlStoreMemory"));
+    my $mem = 4;
+    my $thr = 1;
+
+    #  However, the sequential overlap store is still built from within the canu process.
+
+    if (getGlobal("ovsMethod") eq "sequential") {
+        $mem = max($mem, getGlobal("ovsMemory"));
+    }
 
     $memOption = buildMemoryOption($mem, 1);
-    $thrOption = buildThreadOption(1);
+    $thrOption = buildThreadOption($thr);
 
     $gridOpts  = $memOption                           if (defined($memOption));
     $gridOpts .= " "                                  if (defined($gridOpts));

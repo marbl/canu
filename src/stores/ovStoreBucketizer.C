@@ -47,36 +47,18 @@ writeToFile(ovOverlap    *overlap,
             ovFile       **sliceFile,
             uint32         sliceFileMax,
             uint64        *sliceSize,
-            uint32         iidPerBucket,
+            uint32        *iidToBucket,
             char          *ovlName,
             uint32         jobIndex,
             bool           useGzip) {
 
-  uint32 df = overlap->a_iid / iidPerBucket + 1;
-
-  if (df > sliceFileMax) {
-    char   olapstring[256];
-
-    fprintf(stderr, "\n");
-    fprintf(stderr, "Too many bucket files when adding overlap:\n");
-    fprintf(stderr, "  Aid "F_U32"  Bid "F_U32"\n",  overlap->a_iid, overlap->b_iid);
-    fprintf(stderr, "\n");
-    fprintf(stderr, "bucket        = "F_U32"\n", df);
-    fprintf(stderr, "iidPerBucket  = "F_U32"\n", iidPerBucket);
-    fprintf(stderr, "sliceFileMax  = "F_U32"\n", sliceFileMax);
-    fprintf(stderr, "\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "This might be a corrupt input file, or maybe you simply need to supply more\n");
-    fprintf(stderr, "memory with the canu option ovlStoreMemory.\n");
-    fprintf(stderr, "\n");
-    exit(1);
-  }
+  uint32 df = iidToBucket[overlap->a_iid];
 
   if (sliceFile[df] == NULL) {
     char name[FILENAME_MAX];
 
     sprintf(name, "%s/create%04d/slice%03d%s", ovlName, jobIndex, df, (useGzip) ? ".gz" : "");
-    sliceFile[df] = new ovFile(name, ovFileFullWrite);
+    sliceFile[df] = new ovFile(name, ovFileFullWriteNoCounts);
     sliceSize[df] = 0;
   }
 
@@ -152,6 +134,7 @@ int
 main(int argc, char **argv) {
   char           *ovlName      = NULL;
   char           *gkpName      = NULL;
+  char           *cfgName      = NULL;
   uint32          fileLimit    = 512;
 
   uint32          jobIndex     = 0;
@@ -173,6 +156,9 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-G") == 0) {
       gkpName = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-C") == 0) {
+      cfgName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-F") == 0) {
       fileLimit = atoi(argv[++arg]);
@@ -211,6 +197,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "usage: %s -O asm.ovlStore -G asm.gkpStore -i file.ovb.gz -job j [opts]\n", argv[0]);
     fprintf(stderr, "  -O asm.ovlStore       path to store to create\n");
     fprintf(stderr, "  -G asm.gkpStore       path to gkpStore for this assembly\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -C config             path to previously created ovStoreBuild config data file\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -i file.ovb.gz        input overlaps\n");
     fprintf(stderr, "  -job j                index of this overlap input file\n");
@@ -278,7 +266,23 @@ main(int argc, char **argv) {
   gkStore *gkp         = gkStore::gkStore_open(gkpName);
 
   uint64  maxIID       = gkp->gkStore_getNumReads() + 1;
-  uint64  iidPerBucket = (uint64)ceil((double)maxIID / (double)fileLimit);
+  uint32 *iidToBucket  = new uint32 [maxIID];
+
+  {
+    errno = 0;
+    FILE *C = fopen(cfgName, "r");
+    if (errno)
+      fprintf(stderr, "ERROR: failed to open config file '%s' for reading: %s\n", cfgName, strerror(errno)), exit(1);
+
+    uint32  maxIIDtest  = 0;
+
+    AS_UTL_safeRead(C, &maxIIDtest,  "maxIID",      sizeof(uint32), 1);
+    AS_UTL_safeRead(C,  iidToBucket, "iidToBucket", sizeof(uint32), maxIID);
+
+    if (maxIIDtest != maxIID)
+      fprintf(stderr, "ERROR: maxIID in store (%u) differs from maxIID in config file (%u).\n", maxIID, maxIIDtest), exit(1);
+  }
+
 
   ovFile                 **sliceFile     = new ovFile * [fileLimit + 1];
   uint64                  *sliceSize     = new uint64   [fileLimit + 1];
@@ -307,12 +311,12 @@ main(int argc, char **argv) {
     if ((foverlap.dat.ovl.forUTG == true) ||
         (foverlap.dat.ovl.forOBT == true) ||
         (foverlap.dat.ovl.forDUP == true))
-      writeToFile(&foverlap, sliceFile, fileLimit, sliceSize, iidPerBucket, ovlName, jobIndex, useGzip);
+      writeToFile(&foverlap, sliceFile, fileLimit, sliceSize, iidToBucket, ovlName, jobIndex, useGzip);
 
     if ((roverlap.dat.ovl.forUTG == true) ||
         (roverlap.dat.ovl.forOBT == true) ||
         (roverlap.dat.ovl.forDUP == true))
-      writeToFile(&roverlap, sliceFile, fileLimit, sliceSize, iidPerBucket, ovlName, jobIndex, useGzip);
+      writeToFile(&roverlap, sliceFile, fileLimit, sliceSize, iidToBucket, ovlName, jobIndex, useGzip);
   }
 
   delete inputFile;

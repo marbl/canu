@@ -77,10 +77,7 @@ main(int argc, char **argv) {
       jobIdxMax = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-M") == 0) {
-      maxMemory  = atoi(argv[++arg]);
-      maxMemory *= 1024;
-      maxMemory *= 1024;
-      maxMemory *= 1024;
+      maxMemory  = (uint64)ceil(atof(argv[++arg]) * 1024.0 * 1024.0 * 1024.0);
 
     } else if (strcmp(argv[arg], "-deleteearly") == 0) {
       deleteIntermediateEarly = true;
