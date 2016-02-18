@@ -109,8 +109,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "Format options:\n");
     fprintf(stderr, "  -legacy            'CA8 overlapStore -d' format\n");
-    fprintf(stderr, "  -coords            'overlapConvert -coords' format\n");
-    fprintf(stderr, "  -hangs             'overlapConvert -hangs' format\n");
+    fprintf(stderr, "  -coords            'overlapConvert -coords' format (not implemented)\n");
+    fprintf(stderr, "  -hangs             'overlapConvert -hangs' format (not implemented)\n");
     fprintf(stderr, "  -raw               'overlapConvert -raw' format\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Input file can be stdin ('-') or a gz/bz2/xz compressed file.\n");
@@ -170,11 +170,14 @@ main(int argc, char **argv) {
 
          ov.flipped(W[2][0] == 'I');
 
+         ov.dat.ovl.span = W(3);
+
          ov.dat.ovl.ahg5 = W(4);
          ov.dat.ovl.ahg3 = W(5);
 
          ov.dat.ovl.bhg5 = W(6);
          ov.dat.ovl.bhg3 = W(7);
+
          ov.erate(atof(W[8]) / 1);
 
          ov.dat.ovl.forUTG = false;
@@ -182,15 +185,9 @@ main(int argc, char **argv) {
          ov.dat.ovl.forDUP = false;
 
          for (uint32 i = 9; i < W.numWords(); i++) {
-            if (strcmp(W[i], "UTG") == 0) {
-               ov.dat.ovl.forUTG = true;
-            }
-            if (strcmp(W[i], "OBT") == 0) {
-               ov.dat.ovl.forOBT = true;
-            }
-            if (strcmp(W[i], "DUP") == 0) {
-               ov.dat.ovl.forDUP = true;
-            }
+           ov.dat.ovl.forUTG |= ((W[i][0] == 'U') && (W[i][1] == 'T') && (W[i][2] == 'G'));  //  Fails if W[i] == "U".
+           ov.dat.ovl.forOBT |= ((W[i][0] == 'O') && (W[i][1] == 'B') && (W[i][2] == 'T'));
+           ov.dat.ovl.forDUP |= ((W[i][0] == 'D') && (W[i][1] == 'U') && (W[i][2] == 'P'));
          }
         break;
 
