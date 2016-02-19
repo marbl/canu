@@ -104,8 +104,8 @@ sub utgcns ($$$) {
     print F "  -G $wrk/$asm.gkpStore \\\n";
     print F "  -T $wrk/$asm.tigStore 1 \$jobid \\\n";
     print F "  -O $wrk/5-consensus/\$jobid.cns.WORKING \\\n";
-    print F "  -L $wrk/5-consensus/\$jobid.layout.WORKING \\\n";
-    print F "  -F $wrk/5-consensus/\$jobid.fastq.WORKING \\\n";
+    #print F "  -L $wrk/5-consensus/\$jobid.layout.WORKING \\\n";
+    #print F "  -F $wrk/5-consensus/\$jobid.fastq.WORKING \\\n";
     print F "  -maxcoverage " . getGlobal('cnsMaxCoverage') . " \\\n";
     print F "  -e " . getGlobal("cnsErrorRate") . " \\\n";
     print F "  -quick \\\n"      if (getGlobal("cnsConsensus") eq "quick");
@@ -114,10 +114,10 @@ sub utgcns ($$$) {
     print F "  -threads " . getGlobal("cnsThreads") . " \\\n"; 
     print F "&& \\\n";
     print F "mv $wrk/5-consensus/\$jobid.cns.WORKING $wrk/5-consensus/\$jobid.cns \\\n";
-    print F "&& \\\n";
-    print F "mv $wrk/5-consensus/\$jobid.layout.WORKING $wrk/5-consensus/\$jobid.layout \\\n";
-    print F "&& \\\n";
-    print F "mv $wrk/5-consensus/\$jobid.fastq.WORKING $wrk/5-consensus/\$jobid.fastq\n";
+    #print F "&& \\\n";
+    #print F "mv $wrk/5-consensus/\$jobid.layout.WORKING $wrk/5-consensus/\$jobid.layout \\\n";
+    #print F "&& \\\n";
+    #print F "mv $wrk/5-consensus/\$jobid.fastq.WORKING $wrk/5-consensus/\$jobid.fastq\n";
     print F "\n";
     print F "exit 0\n";
 
