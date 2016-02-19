@@ -248,8 +248,8 @@ int
 main(int argc, char **argv) {
   char           *ovlName      = NULL;
   char           *gkpName      = NULL;
-  uint32          fileLimit    = sysconf(_SC_OPEN_MAX) - 16;
-  uint64          memoryLimit  = 0;
+  uint32          fileLimit    = 0;
+  uint64          memoryLimit  = (uint64)4 * 1024 * 1024 * 1024;
 
   double          maxError     = 1.0;
   uint32          minOverlap   = 0;
@@ -325,7 +325,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -L fileList           read input filenames from 'flieList'\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -F f                  use up to 'f' files for store creation\n");
-    fprintf(stderr, "  -M m                  use up to 'm' gigabytes memory for store creation\n");
+    fprintf(stderr, "  -M g                  use up to 'g' gigabytes memory for sorting overlaps\n");
+    fprintf(stderr, "                          default 4; g-0.125 gb is available for sorting overlaps\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -e e                  filter overlaps above e fraction error\n");
     fprintf(stderr, "  -l l                  filter overlaps below l bases overlap length (needs gkpStore to get read lengths!)\n");
