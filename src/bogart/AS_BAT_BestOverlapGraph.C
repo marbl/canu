@@ -162,11 +162,25 @@ BestOverlapGraph::removeSpurs(void) {
     bool   spur5 = (getBestEdgeOverlap(fi, false)->fragId() == 0);
     bool   spur3 = (getBestEdgeOverlap(fi, true)->fragId()  == 0);
 
-    if ((spur5 == true) || (spur3 == true)) {
-      if ((spur5 == false) || (spur3 == false))
-        writeLog("BestOverlapGraph()-- frag "F_U32" is a %s spur.\n", fi, (spur5) ? "5'" : "3'");
-      isSpur[fi] = true;
+    if (isContained(fi)) {
+      //writeLog("BestOverlapGraph()-- frag "F_U32" is contained - %d %d.\n", fi, spur5, spur3);
+      continue;
     }
+
+    if ((spur5 == false) && (spur3 == false))
+      //  Edges off of both ends.  Not a spur.
+      continue;
+
+    if ((spur5 == true)  && (spur3 == true))
+      //  No edges off either end.  Not a spur, just garbage.  EXCEPT that this could also
+      //  be a contained read that has no 5'/3' best edges assigned to it.
+      //writeLog("BestOverlapGraph()-- frag "F_U32" is singleton, no best edges and not contained.\n", fi);
+      continue;
+
+    //  Exactly one end is missing a best edge.  Bad!
+
+    writeLog("BestOverlapGraph()-- frag "F_U32" is a %s spur.\n", fi, (spur5) ? "5'" : "3'");
+    isSpur[fi] = true;
   }
 
   //  Remove best edges, so we can rebuild
@@ -188,8 +202,7 @@ BestOverlapGraph::removeSpurs(void) {
     BAToverlap *ovl = OC->getOverlaps(fi, AS_MAX_EVALUE, no);
 
     for (uint32 ii=0; ii<no; ii++)
-      if (isSpur[ovl[ii].b_iid] == false)
-        scoreContainment(ovl[ii]);
+      scoreContainment(ovl[ii]);
   }
 
   //  PASS 4:  Find dovetails.
@@ -985,9 +998,8 @@ BestOverlapGraph::scoreEdge(const BAToverlap& olap) {
     return;
   }
 
-  if ((isContained(olap.a_iid) == true) ||
-      (isContained(olap.b_iid) == true)) {
-    //  Skip contained fragments.
+  if (isContained(olap.b_iid) == true) {
+    //  Skip overlaps to contained reads (allow scoring of best edges from contained reads).
     if ((enableLog == true) && (logFileFlags & LOG_OVERLAP_QUALITY))
       writeLog("scoreEdge()-- OVERLAP CONT:     %d %d %c  hangs "F_S32" "F_S32" err %.3f -- contained read\n",
                olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.erate);
