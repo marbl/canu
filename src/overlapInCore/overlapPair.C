@@ -94,8 +94,18 @@ public:
     overlaps        = NULL;
   };
   ~workSpace() {
+#ifdef BUSTED
+    delete NDaln;
+    NDaln = NULL;
+#endif
+#ifndef FALCON
     delete align;
-    //delete analyze;
+    delete filter;
+    align = filter = NULL;
+#else
+    delete align;
+    align=NULL;
+#endif
   };
 
 public:
@@ -362,10 +372,6 @@ if (nTested % 1000 == 0) {
   //  All done.
 
   delete [] bRev;
-  delete WA->align;
-#ifndef FALCON
-  delete WA->filter;
-#endif
 
   //  Report.  The last batch has no work to do.
 
