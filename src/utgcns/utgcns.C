@@ -64,12 +64,14 @@ main (int argc, char **argv) {
 
   char    *outResultsName  = NULL;
   char    *outLayoutsName  = NULL;
-  char    *outSeqName      = NULL;
+  char    *outSeqNameA     = NULL;
+  char    *outSeqNameQ     = NULL;
   char    *outPackageName  = NULL;
 
   FILE     *outResultsFile = NULL;
   FILE     *outLayoutsFile = NULL;
-  FILE     *outSeqFile     = NULL;
+  FILE     *outSeqFileA    = NULL;
+  FILE     *outSeqFileQ    = NULL;
   FILE     *outPackageFile = NULL;
 
   char    *inPackageName   = NULL;
@@ -125,8 +127,11 @@ main (int argc, char **argv) {
     } else if (strcmp(argv[arg], "-L") == 0) {
       outLayoutsName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-F") == 0) {
-      outSeqName = argv[++arg];
+    } else if (strcmp(argv[arg], "-A") == 0) {
+      outSeqNameA = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-Q") == 0) {
+      outSeqNameQ = argv[++arg];
 
     } else if (strcmp(argv[arg], "-quick") == 0) {
       algorithm = 'Q';
@@ -218,7 +223,8 @@ main (int argc, char **argv) {
     fprintf(stderr, "  OUTPUT\n");
     fprintf(stderr, "    -O results      Write computed tigs to binary output file 'results'\n");
     fprintf(stderr, "    -L layouts      Write computed tigs to layout output file 'layouts'\n");
-    fprintf(stderr, "    -F fastq        Write computed tigs to fastq  output file 'fastq'\n");
+    fprintf(stderr, "    -A fasta        Write computed tigs to fasta  output file 'fasta'\n");
+    fprintf(stderr, "    -Q fastq        Write computed tigs to fastq  output file 'fastq'\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "    -P package      Create a copy of the inputs needed to compute the unitigs.  This\n");
     fprintf(stderr, "                    file can then be sent to the developers for debugging.  The unitig(s)\n");
@@ -273,10 +279,15 @@ main (int argc, char **argv) {
   if (errno)
     fprintf(stderr, "Failed to open output layout file '%s': %s\n", outLayoutsName, strerror(errno)), exit(1);
 
-  if ((outSeqName) && (outPackageName == NULL))
-    outSeqFile = fopen(outSeqName, "w");
+  if ((outSeqNameA) && (outPackageName == NULL))
+    outSeqFileA = fopen(outSeqNameA, "w");
   if (errno)
-    fprintf(stderr, "Failed to open output FASTQ file '%s': %s\n", outSeqName, strerror(errno)), exit(1);
+    fprintf(stderr, "Failed to open output FASTA file '%s': %s\n", outSeqNameA, strerror(errno)), exit(1);
+
+  if ((outSeqNameQ) && (outPackageName == NULL))
+    outSeqFileQ = fopen(outSeqNameQ, "w");
+  if (errno)
+    fprintf(stderr, "Failed to open output FASTQ file '%s': %s\n", outSeqNameQ, strerror(errno)), exit(1);
 
   if (numThreads > 0) {
     omp_set_num_threads(numThreads);
@@ -503,8 +514,11 @@ main (int argc, char **argv) {
       if (outLayoutsFile)
         tig->dumpLayout(outLayoutsFile);
 
-      if (outSeqFile)
-        tig->dumpFASTQ(outSeqFile, true);
+      if (outSeqFileA)
+        tig->dumpFASTA(outSeqFileA, true);
+
+      if (outSeqFileQ)
+        tig->dumpFASTQ(outSeqFileQ, true);
     }
 
     //  Report failures.

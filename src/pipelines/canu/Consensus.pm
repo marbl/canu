@@ -105,7 +105,7 @@ sub utgcns ($$$) {
     print F "  -T $wrk/$asm.tigStore 1 \$jobid \\\n";
     print F "  -O $wrk/5-consensus/\$jobid.cns.WORKING \\\n";
     #print F "  -L $wrk/5-consensus/\$jobid.layout.WORKING \\\n";
-    #print F "  -F $wrk/5-consensus/\$jobid.fastq.WORKING \\\n";
+    #print F "  -Q $wrk/5-consensus/\$jobid.fastq.WORKING \\\n";
     print F "  -maxcoverage " . getGlobal('cnsMaxCoverage') . " \\\n";
     print F "  -e " . getGlobal("cnsErrorRate") . " \\\n";
     print F "  -quick \\\n"      if (getGlobal("cnsConsensus") eq "quick");
