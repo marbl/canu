@@ -47,6 +47,15 @@ using namespace std;
 
 #define  MEMORY_OVERHEAD  (128 * 1024 * 1024)
 
+//  This is the size of the datastructure that we're using to store overlaps for sorting.
+//  At present, with ovOverlap, it is over-allocating a pointer that we don't need, but
+//  to make a custom structure, we'd need to duplicate a bunch of code or copy data after
+//  loading and before writing.
+//
+//  Used in both ovStoreSorter.C and ovStoreBuild.C.
+//
+#define ovOverlapSortSize  (sizeof(ovOverlap))
+
 static
 uint32 *
 computeIIDperBucket(uint32          fileLimit,
@@ -139,7 +148,7 @@ computeIIDperBucket(uint32          fileLimit,
   //  Partition the overlaps into buckets.
 
   uint64   olapsPerBucketMax = 0;
-  double   GBperOlap         = (sizeof(uint32) + sizeof(uint32) + sizeof(ovOverlapDAT)) / 1024.0 / 1024.0 / 1024.0;
+  double   GBperOlap         = ovOverlapSortSize / 1024.0 / 1024.0 / 1024.0;
 
   //  If a file limit, distribute the overlaps to equal sized files.
   if (fileLimit > 0) {
@@ -150,7 +159,7 @@ computeIIDperBucket(uint32          fileLimit,
 
   //  If a memory limit, distribute the overlaps to files no larger than the limit.
   if (memoryLimit > 0) {
-  olapsPerBucketMax = (memoryLimit - MEMORY_OVERHEAD) / (sizeof(uint32) + sizeof(uint32) + sizeof(ovOverlapDAT));
+    olapsPerBucketMax = (memoryLimit - MEMORY_OVERHEAD) / ovOverlapSortSize;
     fprintf(stderr, "Will sort using "F_U64" files; "F_U64" (%.2f million) overlaps per bucket; %.2f GB memory per bucket\n",
             numOverlaps / olapsPerBucketMax + 1,
             olapsPerBucketMax,
@@ -158,39 +167,50 @@ computeIIDperBucket(uint32          fileLimit,
             olapsPerBucketMax * GBperOlap);
   }
 
-  //  Given the limit on each bucket, assign IDs to a bucket.
+  //  Given the limit on each bucket, count the number of buckets needed, then reset the limit on
+  //  each bucket to have the same number of overlaps for every bucket.
 
-  uint64          olaps  = 0;
-  uint32          bucket = 1;
+  {
+    uint64  olaps  = 0;
+    uint32  bucket = 1;
 
-  for (uint32 ii=0; ii<maxIID; ii++) {
-    olaps            += overlapsPerRead[ii];
-    iidToBucket[ii]   = bucket;
+    for (uint32 ii=0; ii<maxIID; ii++) {
+      olaps            += overlapsPerRead[ii];
+      iidToBucket[ii]   = bucket;
 
-    if (olaps >= olapsPerBucketMax) {
-      fprintf(stderr, "  bucket %3d has "F_U64" olaps.\n", bucket, olaps);
-      olaps = 0;
-      bucket++;
+      if (olaps >= olapsPerBucketMax) {
+        olaps = 0;
+        bucket++;
+      }
     }
+
+    olapsPerBucketMax = (uint64)ceil((double)numOverlaps / (double)bucket);
   }
 
-  fprintf(stderr, "  bucket %3d has "F_U64" olaps.\n", bucket, olaps);
+  //  And, finally, assign IIDs to buckets.
+
+  {
+    uint64  olaps  = 0;
+    uint32  bucket = 1;
+
+    for (uint32 ii=0; ii<maxIID; ii++) {
+      olaps            += overlapsPerRead[ii];
+      iidToBucket[ii]   = bucket;
+
+      if (olaps >= olapsPerBucketMax) {
+        fprintf(stderr, "  bucket %3d has "F_U64" olaps.\n", bucket, olaps);
+        olaps = 0;
+        bucket++;
+      }
+    }
+
+    fprintf(stderr, "  bucket %3d has "F_U64" olaps.\n", bucket, olaps);
+  }
+
+  fprintf(stderr, "Will sort %.3f million overlaps per bucket, using %u buckets.\n",
+          olapsPerBucketMax / 1000000.0, iidToBucket[maxIID-1]);
 
   delete [] overlapsPerRead;
-
-  fprintf(stderr, "Will sort %.3f million overlaps per bucket, using %u buckets.\n", olapsPerBucketMax / 1000000.0, bucket);
-
-  //  If too many buckets, fail.
-
-#warning not failing if too many buckets
-#if 0
-  if (maxIID / iidPerBucket + 1 > dumpFileMax - 16) {
-    fprintf(stderr, "ERROR:\n");
-    fprintf(stderr, "ERROR:  Operating system limit of %d open files.  The current -F setting\n", dumpFileMax);
-    fprintf(stderr, "ERROR:  will need to create "F_U64" files to construct the store.\n", maxIID / iidPerBucket + 1);
-    exit(1);
-  }
-#endif
 
   return(iidToBucket);
 }
@@ -201,7 +221,6 @@ static
 void
 writeToDumpFile(ovOverlap       *overlap,
                 ovFile          **dumpFile,
-                uint32            dumpFileMax,
                 uint64           *dumpLength,
                 uint32           *iidToBucket,
                 char             *ovlName) {
@@ -374,13 +393,24 @@ main(int argc, char **argv) {
 
 
 
-
-
-  //  Open reads, figure out a partitioning scheme.  Dump if told to.
+  //  Open reads, figure out a partitioning scheme.
 
   gkStore  *gkp         = gkStore::gkStore_open(gkpName);
   uint64    maxIID      = gkp->gkStore_getNumReads() + 1;
   uint32   *iidToBucket = computeIIDperBucket(fileLimit, memoryLimit, maxIID, fileList);
+
+  uint32    maxFiles    = sysconf(_SC_OPEN_MAX);
+
+  if (iidToBucket[maxIID-1] > maxFiles - 8) {
+    fprintf(stderr, "ERROR:\n");
+    fprintf(stderr, "ERROR:  Operating system limit of "F_U32" open files.  The current -F/-M settings\n", maxFiles);
+    fprintf(stderr, "ERROR:  will need to create "F_U32" files to construct the store.\n", iidToBucket[maxIID-1]);
+    fprintf(stderr, "ERROR:\n");
+    exit(1);
+  }
+
+
+  //  Dump the configuration if told to.
 
   if (configOut) {
     errno = 0;
@@ -413,7 +443,7 @@ main(int argc, char **argv) {
 
   ovStore  *storeFile   = new ovStore(ovlName, gkp, ovStoreWrite);
 
-  uint32    dumpFileMax  = iidToBucket[maxIID-1] + 1;   //sysconf(_SC_OPEN_MAX) + 1;
+  uint32    dumpFileMax  = iidToBucket[maxIID-1] + 1;
   ovFile  **dumpFile     = new ovFile * [dumpFileMax];
   uint64   *dumpLength   = new uint64   [dumpFileMax];
 
@@ -439,12 +469,12 @@ main(int argc, char **argv) {
       if ((foverlap.dat.ovl.forUTG == true) ||
           (foverlap.dat.ovl.forOBT == true) ||
           (foverlap.dat.ovl.forDUP == true))
-        writeToDumpFile(&foverlap, dumpFile, dumpFileMax, dumpLength, iidToBucket, ovlName);
+        writeToDumpFile(&foverlap, dumpFile, dumpLength, iidToBucket, ovlName);
 
       if ((roverlap.dat.ovl.forUTG == true) ||
           (roverlap.dat.ovl.forOBT == true) ||
           (roverlap.dat.ovl.forDUP == true))
-        writeToDumpFile(&roverlap, dumpFile, dumpFileMax, dumpLength, iidToBucket, ovlName);
+        writeToDumpFile(&roverlap, dumpFile, dumpLength, iidToBucket, ovlName);
     }
 
     delete inputFile;

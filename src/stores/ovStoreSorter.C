@@ -42,6 +42,16 @@
 using namespace std;
 
 
+//  This is the size of the datastructure that we're using to store overlaps for sorting.
+//  At present, with ovOverlap, it is over-allocating a pointer that we don't need, but
+//  to make a custom structure, we'd need to duplicate a bunch of code or copy data after
+//  loading and before writing.
+//
+//  Used in both ovStoreSorter.C and ovStoreBuild.C.
+//
+#define ovOverlapSortSize  (sizeof(ovOverlap))
+
+
 int
 main(int argc, char **argv) {
   char           *storePath      = NULL;
@@ -200,9 +210,9 @@ main(int argc, char **argv) {
   delete [] sliceSizes;
   sliceSizes = NULL;
 
-  if (sizeof(ovOverlap) * totOvl > maxMemory) {
+  if (ovOverlapSortSize * totOvl > maxMemory) {
     fprintf(stderr, "ERROR:  Overlaps need %.2f GB memory, but process limited (via -M) to "F_U64" GB.\n",
-            sizeof(ovOverlap) * totOvl / (1024.0 * 1024.0 * 1024.0), maxMemory >> 30);
+            ovOverlapSortSize * totOvl / 1024.0 / 1024.0 / 1024.0, maxMemory >> 30);
 
     char name[FILENAME_MAX];
     sprintf(name,"%s/%04d.ovs", storePath, fileID);
@@ -213,7 +223,7 @@ main(int argc, char **argv) {
   }
 
   fprintf(stderr, "Overlaps need %.2f GB memory, allowed to use up to (via -M) "F_U64" GB.\n",
-          sizeof(ovOverlap) * totOvl / (1024.0 * 1024.0 * 1024.0), maxMemory >> 30);
+          ovOverlapSortSize * totOvl / 1024.0 / 1024.0 / 1024.0, maxMemory >> 30);
 
   ovOverlap *ovls = ovOverlap::allocateOverlaps(NULL, totOvl);
 
