@@ -123,8 +123,6 @@ computeIIDperBucket(uint32          fileLimit,
 
     for (uint32 ii=0; ii<maxPerNum; ii++)
       overlapsPerRead[ii] += maxPer[ii];
-
-    fclose(C);
   }
 
   delete [] maxPer;
