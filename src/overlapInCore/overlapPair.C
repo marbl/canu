@@ -299,7 +299,7 @@ if (nTested % 1000 == 0) {
 #endif
   delete[] bRead;
 
-  //fprintf(stderr, "Reads %d (%d) to %d (%d), expected overlap %d - %d to %d - %d and found error rate %f from %d - %d and %d - %d\n", aID, rcache->getLength(aID), bID, rcache->getLength(bID), ovl->a_bgn(), ovl->a_end(), ovl->b_bgn(), ovl->b_end(), (double)alignResult._dist/(alignmentLength),alignResult._tgt_bgn+astart, alignResult._tgt_end+astart, alignResult._qry_bgn+bstart, alignResult._qry_end+bstart);
+  //fprintf(stderr, "Reads %d (%d) to %d (%d), expected overlap %d - %d to %d - %d and found error rate %f from %d - %d and %d - %d\n", aID, rcache->getLength(aID), bID, rcache->getLength(bID), ovl->a_bgn(), ovl->a_end(), ovl->b_bgn(), ovl->b_end(), (double)alignResult._dist/(alignmentLength),alignResult._tgt_bgn+astart, alignResult._tgt_end+astart-1, alignResult._qry_bgn+bstart, alignResult._qry_end+bstart-1);
 
   if (alignmentLength > 40 && ((double)alignResult._dist / (double) (alignmentLength)) < WA->maxErate) {
 
@@ -316,9 +316,9 @@ if (nTested % 1000 == 0) {
         ovl->erate(WA->NDaln->erate());
 #else
         ovl->dat.ovl.ahg5 = alignResult._tgt_bgn+astart;
-        ovl->dat.ovl.ahg3 = rcache->getLength(aID) - (alignResult._tgt_end+astart);
+        ovl->dat.ovl.ahg3 = rcache->getLength(aID) - (alignResult._tgt_end+astart - 1);
         ovl->dat.ovl.bhg5 = alignResult._qry_bgn + bstart;
-        ovl->dat.ovl.bhg3 = rcache->getLength(bID) - (alignResult._qry_end + bstart);
+        ovl->dat.ovl.bhg3 = rcache->getLength(bID) - (alignResult._qry_end + bstart - 1);
         // check for almost dovetail if we're not looking for partial and extend
         if (WA->partialOverlaps == false) {
            if ((double)(alignResult._dist + ovl->dat.ovl.ahg5) / (alignmentLength+ovl->dat.ovl.ahg5) <  WA->maxErate) {
@@ -343,7 +343,7 @@ if (nTested % 1000 == 0) {
            }
         }
         ovl->erate((double)alignResult._dist/(alignmentLength));
-        //fprintf(stderr, "Reads %d (%d) to %d (%d), updated overlap to be %d - %d to %d - %d at error rate %f\n", aID, rcache->getLength(aID), bID, rcache->getLength(bID), ovl->a_bgn(), ovl->a_end(), ovl->b_bgn(), ovl->b_end(), ovl->erate());
+       // fprintf(stderr, "Reads %d (%d) to %d (%d), updated overlap to be %d - %d to %d - %d at error rate %f\n", aID, rcache->getLength(aID), bID, rcache->getLength(bID), ovl->a_bgn(), ovl->a_end(), ovl->b_bgn(), ovl->b_end(), ovl->erate());
   //
 #endif
 
