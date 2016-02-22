@@ -168,7 +168,7 @@ sub gatekeeper ($$$@) {
     foreach my $iii (@inputs) {
         my $file = $iii;  #  This stupid foreach works by reference!
 
-        $file = $2  if ($file =~ m/^(.*):(.*)/);   #  Handle the raw sequence inputs.
+        $file = $2  if ($file =~ m/^(.*)\0(.*)/);   #  Handle the raw sequence inputs.
 
         if (! -e $file) {
             if (defined($failedFiles)) {
@@ -186,7 +186,7 @@ sub gatekeeper ($$$@) {
     open(F, "> $wrk/$asm.gkpStore.gkp") or caExit("cant' open '$wrk/$asm.gkpStore.gkp' for writing: $0", undef);
 
     foreach my $iii (@inputs) {
-        if ($iii =~ m/^-(.*):(.*)$/) {
+        if ($iii =~ m/^-(.*)\0(.*)$/) {
             my $tech = $1;
             my $file = $2;
             my @name = split '/', $2;

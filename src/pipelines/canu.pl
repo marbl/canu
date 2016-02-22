@@ -184,7 +184,7 @@ while (scalar(@ARGV)) {
 
             $file = "$ENV{'PWD'}/$file"  if ($file !~ m!^/!);
 
-            push @inputFiles, "$arg:$file";
+            push @inputFiles, "$arg\0$file";
             addCommandLineOption("$arg \"$file\"");
         }
 
@@ -416,7 +416,7 @@ if (setOptions($mode, "correct") eq "correct") {
     caExit("can't find corrected reads in '$wrk/$asm.correctedReads*'", undef)  if (!defined($correctedReads));
 
     undef @inputFiles;
-    push  @inputFiles, "-pacbio-corrected:$correctedReads";
+    push  @inputFiles, "-pacbio-corrected\0$correctedReads";
 }
 
 
@@ -446,7 +446,7 @@ if (setOptions($mode, "trim") eq "trim") {
     caExit("can't find trimmed reads in '$wrk/$asm.trimmedReads*'", undef)  if (!defined($trimmedReads));
 
     undef @inputFiles;
-    push  @inputFiles, "-pacbio-corrected:$trimmedReads";
+    push  @inputFiles, "-pacbio-corrected\0$trimmedReads";
 }
 
 
