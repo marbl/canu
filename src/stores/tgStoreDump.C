@@ -429,7 +429,7 @@ dumpMultialign(gkStore *gkpStore, tgStore *tigStore, tgFilter &filter, bool maWi
 
 
 void
-dumpSizes(gkStore *UNUSED(gkpStore), tgStore *tigStore, tgFilter &filter, bool useGapped, uint32 genomeSize) {
+dumpSizes(gkStore *UNUSED(gkpStore), tgStore *tigStore, tgFilter &filter, bool useGapped, uint64 genomeSize) {
 
   tgTigSizeAnalysis *siz = new tgTigSizeAnalysis(genomeSize);
 
@@ -1112,7 +1112,7 @@ main (int argc, char **argv) {
       maDisplayWidth = atoi(argv[++arg]);
 
     else if (strcmp(argv[arg], "-s") == 0)
-      maDisplaySpacing = genomeSize = atoi(argv[++arg]);
+      maDisplaySpacing = genomeSize = atol(argv[++arg]);
 
     else if (strcmp(argv[arg], "-o") == 0)
       outPrefix = argv[++arg];
