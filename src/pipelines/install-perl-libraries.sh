@@ -35,8 +35,8 @@ if [ $perlversion = "old" ] ; then
   cd File-Path-2.09
 
   echo \
-  perl Makefile.PL PREFIX=../$installdir
-  perl Makefile.PL PREFIX=../$installdir > make.maker.err 2>&1
+  perl Makefile.PL PREFIX=$installdir
+  perl Makefile.PL PREFIX=$installdir > make.maker.err 2>&1
 
   echo \
   make install
@@ -52,8 +52,8 @@ if [ $perlversion = "old" ] ; then
   cd Filesys-Df-0.92
 
   echo \
-  perl Makefile.PL PREFIX=../$installdir
-  perl Makefile.PL PREFIX=../$installdir > make.maker.err 2>&1
+  perl Makefile.PL PREFIX=$installdir
+  perl Makefile.PL PREFIX=$installdir > make.maker.err 2>&1
 
   echo \
   make install
@@ -84,8 +84,8 @@ else
   cd Filesys-Df-0.92
 
   echo \
-  perl Makefile.PL INSTALL_BASE=../$installdir
-  perl Makefile.PL INSTALL_BASE=../$installdir > make.maker.err 2>& 1
+  perl Makefile.PL INSTALL_BASE=$installdir
+  perl Makefile.PL INSTALL_BASE=$installdir > make.maker.err 2>& 1
 
   #  The toplevel GNU make is setting MAKEFLAGS to be "-j --jobserver-fds=3,4".  The BSD make
   #  invoked below (on FreeBSD and probably OS X) requires a value for -j.  So we just remove it.

@@ -600,7 +600,7 @@ ${TARGET_DIR}/canu.defaults:
 	chmod -x ${TARGET_DIR}/canu.defaults
 
 ${TARGET_DIR}/lib/canu/lib: pipelines/install-perl-libraries.sh
-	cd pipelines && sh install-perl-libraries.sh ../${TARGET_DIR}/lib/canu
+	cd pipelines && sh install-perl-libraries.sh ${TARGET_DIR}/lib/canu
 
 ${TARGET_DIR}/lib/canu/Consensus.pm: pipelines/canu/Consensus.pm
 	cp -pf pipelines/canu/Consensus.pm ${TARGET_DIR}/lib/canu/
