@@ -1218,6 +1218,40 @@ sub prettifyCommand ($) {
 }
 
 
+sub reportRunError ($) {
+    my $rc  = shift @_;
+
+    #  Bunch of busy work to get the names of signals.  Is it really worth it?!
+
+    my @signame;
+    if (defined($Config{sig_name})) {
+        my $i = 0;
+        foreach my $n (split('\s+', $Config{sig_name})) {
+            $signame[$i] = $n;
+            $i++;
+        }
+    } else {
+        for (my $i=0; $i<127; $i++) {
+            $signame[$i] = "signal $i";
+        }
+    }
+
+    #  The rest is rather straightforward at least.
+
+    print STDERR "ERROR:\n";
+
+    if      ($rc ==  -1) {
+        print STDERR "ERROR:  Failed to run the command.\n";
+    } elsif ($rc  & 127) {
+        print STDERR "ERROR:  Failed with signal $signame[$rc&127].\n";
+    } else {
+        print STDERR "ERROR:  Failed with exit code ", $rc >> 8 , ".\n";
+    }
+
+    print STDERR "ERROR:\n";
+}
+
+
 #  Utility to run a command and check the exit status, report time used.
 #
 sub runCommand ($$) {
@@ -1271,40 +1305,7 @@ sub runCommand ($$) {
 
     return(0) if ($rc == 0);
 
-    #  Bunch of busy work to get the names of signals.  Is it really worth it?!
-    #
-    my @signame;
-    if (defined($Config{sig_name})) {
-        my $i = 0;
-        foreach my $n (split('\s+', $Config{sig_name})) {
-            $signame[$i] = $n;
-            $i++;
-        }
-    }
-
-    my $error = "";
-
-    if ($rc == 0xff00) {
-        $error .= "$!\n";
-    } else {
-        if ($rc & 0x80) {
-            $error .= "coredump from ";
-        }
-
-        if ($rc > 0x80) {
-            $rc >>= 8;
-        }
-        $rc &= 127;
-
-        if (defined($signame[$rc])) {
-            $error .= "signal $signame[$rc] ($rc)\n";
-        } else {
-            $error .= "signal $rc\n";
-        }
-    }
-
-    print STDERR "\n";
-    print STDERR "ERROR: Failed with $error\n";
+    reportRunError($rc);
 
     return(1);
 }
@@ -1325,48 +1326,12 @@ sub runCommandSilently ($$$) {
 
     my $rc = 0xffff & system("cd $dir && $cmd");
 
-    #  Pretty much copied from Programming Perl page 230
-
     return(0) if ($rc == 0);         #  No errors, return no error.
-    return(1) if ($critical == 0);   #  If not critical, return that it failed.
+    return(1) if ($critical == 0);   #  If not critical, return that it failed, otherwise, report error and fail.
 
-    #  Otherwise, it failed, and is critical.  Report an error and return that it failed.
-
-    my @signame;
-    if (defined($Config{sig_name})) {
-        my $i = 0;
-        foreach my $n (split('\s+', $Config{sig_name})) {
-            $signame[$i] = $n;
-            $i++;
-        }
-    }
-
-    my $error = "";
-
-    if ($rc == 0xff00) {
-        $error .= "$!\n";
-    } else {
-        if ($rc & 0x80) {
-            $error .= "coredump from ";
-        }
-
-        if ($rc > 0x80) {
-            $rc >>= 8;
-        }
-        $rc &= 127;
-
-        if (defined($signame[$rc])) {
-            $error .= "signal $signame[$rc] ($rc)\n";
-        } else {
-            $error .= "signal $rc\n";
-        }
-    }
-
-    print STDERR "runCommandSilently()\n";
-    print STDERR "\n";
     print STDERR "$dis\n";
-    print STDERR "\n";
-    print STDERR "ERROR: Failed with $error\n";
+
+    reportRunError($rc);
 
     return(1);
 }
