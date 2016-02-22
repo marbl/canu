@@ -230,7 +230,7 @@ sub gatekeeperCreateStore ($$$@) {
         close(F);
 
         if ($nProblems > 0) {
-            print STDERR "Gatekeeper detected problems in your input reads.  Please review the loggig in files:\n";
+            print STDERR "Gatekeeper detected problems in your input reads.  Please review the logging in files:\n";
             print STDERR "  $wrk/$asm.gkpStore.err\n";
             print STDERR "  $wrk/$asm.gkpStore.BUILDING.errorLog\n";
             print STDERR "If you wish to proceed, rename the store with the following commands and restart canu.\n";
