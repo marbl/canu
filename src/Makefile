@@ -314,6 +314,7 @@ endef
 # With older versions, "make" may simply output "nothing to do", likely leading
 # to confusion. To avoid this, check the version of GNU make up-front and
 # inform the user if their version of make doesn't meet the minimum required.
+
 MIN_MAKE_VERSION := 3.81
 MIN_MAKE_VER_MSG := boilermake requires GNU Make ${MIN_MAKE_VERSION} or greater
 ifeq "${MAKE_VERSION}" ""
@@ -326,20 +327,23 @@ ifneq "${MIN_MAKE_VERSION}" "$(call MIN,${MIN_MAKE_VERSION},${MAKE_VERSION})"
 endif
 
 # Define the source file extensions that we know how to handle.
+
 C_SRC_EXTS := %.c
 CXX_SRC_EXTS := %.C %.cc %.cp %.cpp %.CPP %.cxx %.c++
 JAVA_EXTS    := %.jar %.tar
 ALL_SRC_EXTS := ${C_SRC_EXTS} ${CXX_SRC_EXTS} ${JAVA_EXTS}
 
 # Initialize global variables.
+
 ALL_TGTS :=
 DEFS :=
 DIR_STACK :=
 INCDIRS :=
 TGT_STACK :=
 
-# (BPW) Discover our OS and architecture.  These are used to set the BUILD_DIR and TARGET_DIR to
+# Discover our OS and architecture.  These are used to set the BUILD_DIR and TARGET_DIR to
 # something more useful than 'build' and '.'.
+
 OSTYPE      := $(shell echo `uname`)
 OSVERSION   := $(shell echo `uname -r`)
 MACHINETYPE := $(shell echo `uname -m`)
@@ -363,12 +367,7 @@ ifeq (${OSTYPE}, SunOS)
   endif
 endif
 
-${info Building for '${OSTYPE}' '${OSVERSION}' as '${MACHINETYPE}'}
-#${info Using LD_RUN_PATH '${LD_RUN_PATH}'}
-
-
-# (BPW) Set compiler and flags based on discovered hardware
-
+# Set compiler and flags based on discovered hardware
 
 ifeq (${OSTYPE}, Linux)
   CC        ?= gcc
@@ -537,6 +536,9 @@ all: UPDATE_VERSION MAKE_DIRS \
      ${TARGET_DIR}/lib/canu/OverlapMhap.pm \
      ${TARGET_DIR}/lib/canu/OverlapStore.pm \
      ${TARGET_DIR}/lib/canu/Unitig.pm
+	@echo ""
+	@echo "Success!"
+	@echo "canu installed in ${TARGET_DIR}/canu"
 
 # Add a new target rule for each user-defined target.
 $(foreach TGT,${ALL_TGTS},\
@@ -659,3 +661,8 @@ ${TARGET_DIR}/lib/canu/OverlapStore.pm: pipelines/canu/OverlapStore.pm
 
 ${TARGET_DIR}/lib/canu/Unitig.pm: pipelines/canu/Unitig.pm
 	cp -pf pipelines/canu/Unitig.pm ${TARGET_DIR}/lib/canu/
+
+#  Makefile processed.  Report that we're starting the build.
+
+${info Building for '${OSTYPE}' '${OSVERSION}' as '${MACHINETYPE}' into '${DESTDIR}${PREFIX}/$(OSTYPE)-$(MACHINETYPE)/{bin,obj}'}
+#${info Using LD_RUN_PATH '${LD_RUN_PATH}'}
