@@ -1069,12 +1069,6 @@ sub convertToJobRange (@) {
 
 
 
-sub resetIterationCount () {
-    print STDERR "-- Jobs finished successfully, iteration counter reset to 0.\n";
-    setGlobal("canuIteration", 0);
-}
-
-
 #  Expects
 #    job type ("ovl", etc)
 #    output directory
