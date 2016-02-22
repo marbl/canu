@@ -216,14 +216,25 @@ sub gatekeeperCreateStore ($$$@) {
     $cmd .= "  -minlength " . getGlobal("minReadLength") . " \\\n";
     $cmd .= "  -o $wrk/$asm.gkpStore.BUILDING \\\n";
     $cmd .= "  $wrk/$asm.gkpStore.gkp \\\n";
-    $cmd .= "> $wrk/$asm.gkpStore.err 2>&1";
+    $cmd .= "> $wrk/$asm.gkpStore.BUILDING.err 2>&1";
 
     stopBefore("gatekeeper", $cmd);
 
-    if (runCommand($wrk, $cmd)) {
+    #  A little funny business to make gatekeeper not fail on read quality issues.
+    #  A return code of 0 is total success.
+    #  A return code of 1 means it found errors in the inputs, but finished.
+    #  Anything larger is a crash.
+
+    if (runCommand($wrk, $cmd) > 1) {
+        caExit("gatekeeper failed", "$wrk/$asm.gkpStore.BUILDING.err");
+    }
+
+    #  Check for quality issues.
+
+    if (-e "$wrk/$asm.gkpStore.BUILDING.err") {
         my $nProblems = 0;
 
-        open(F, "< $wrk/$asm.gkpStore.err");
+        open(F, "< $wrk/$asm.gkpStore.BUILDING.err");
         while (<F>) {
             $nProblems++   if (m/Check\syour\sreads/);
         }
@@ -231,21 +242,26 @@ sub gatekeeperCreateStore ($$$@) {
 
         if ($nProblems > 0) {
             print STDERR "Gatekeeper detected problems in your input reads.  Please review the logging in files:\n";
-            print STDERR "  $wrk/$asm.gkpStore.err\n";
-            print STDERR "  $wrk/$asm.gkpStore.BUILDING.errorLog\n";
-            print STDERR "If you wish to proceed, rename the store with the following commands and restart canu.\n";
-            print STDERR "\n";
-            print STDERR "  mv $wrk/$asm.gkpStore.BUILDING \\\n";
-            print STDERR "     $wrk/$asm.gkpStore.ACCEPTED\n";
-            print STDERR "\n";
-            exit(1);
+            print STDERR "  $wrk/$asm.gkpStore.BUILDING.err\n"        if (getGlobal("stopOnReadQuality") == 0);
+            print STDERR "  $wrk/$asm.gkpStore.BUILDING.errorLog\n"   if (getGlobal("stopOnReadQuality") == 0);
+            print STDERR "  $wrk/$asm.gkpStore.err\n"                 if (getGlobal("stopOnReadQuality") == 1);
+            print STDERR "  $wrk/$asm.gkpStore.errorLog\n"            if (getGlobal("stopOnReadQuality") == 1);
 
-        } else {
-            caExit("gatekeeper failed", "$wrk/$asm.gkpStore.err");
+            if (getGlobal("stopOnReadQuality")) {
+                print STDERR "If you wish to proceed, rename the store with the following commands and restart canu.\n";
+                print STDERR "\n";
+                print STDERR "  mv $wrk/$asm.gkpStore.BUILDING \\\n";
+                print STDERR "     $wrk/$asm.gkpStore.ACCEPTED\n";
+                print STDERR "\n";
+                exit(1);
+            } else {
+                print STDERR "Proceeding with assembly because stopOnReadQuality=false.\n";
+            }
         }
     }
 
     rename "$wrk/$asm.gkpStore.BUILDING",             "$wrk/$asm.gkpStore";
+    rename "$wrk/$asm.gkpStore.BUILDING.err",         "$wrk/$asm.gkpStore.err";
     rename "$wrk/$asm.gkpStore.BUILDING.errorLog",    "$wrk/$asm.gkpStore.errorLog";
 }
 

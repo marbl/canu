@@ -732,6 +732,9 @@ sub setDefaults () {
 
     #####  Stopping conditions
 
+    $global{"stopOnReadQuality"}           = 1;
+    $synops{"stopOnReadQuality"}           = "Stop if a significant portion of the input data is too short or has quality value or base composition errors";
+
     $global{"stopBefore"}                  = undef;
     $synops{"stopBefore"}                  = "Tell canu when to halt execution";
 
