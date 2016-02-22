@@ -554,10 +554,11 @@ sub emitStage ($$$@) {
 #  To make it more trouble, shell scripts need to do all this by themselves.
 #
 sub getInstallDirectory () {
-    my @t = split '/', "$FindBin::RealBin";
-    pop @t;                         #  bin
-    pop @t;                         #  arch, e.g., FreeBSD-amd64
-    my $installDir = join '/', @t;  #  path to the assembler
+    my $installDir = $FindBin::RealBin;
+
+    if ($installDir =~ m!^(.*)/\w+-\w+/bin$!) {
+        $installDir = $1;
+    }
 
     return($installDir);
 }
@@ -579,16 +580,6 @@ sub getBinDirectory () {
 
     my $path = "$installDir/$syst-$arch/bin";
 
-    while ((! -d $path) && ($installDir ne "")) {
-        print STDERR "Failed to find bin directory '$path'.\n";
-
-        my @id = split '/', $installDir;
-        pop @id;
-        $installDir = join('/', @id);
-
-        $path = "$installDir/$syst-$arch/bin";
-    }
-
     my $pathMap = getGlobal("pathMap");
     if (defined($pathMap)) {
         open(F, "< $pathMap") or caFailure("failed to open pathMap '$pathMap'", undef);
@@ -600,11 +591,8 @@ sub getBinDirectory () {
     }
 
     if (! -d "$path") {
-        print STDERR "Failed to find bin directory.\n";
-        exit(1);
+        $path = $installDir;
     }
-
-    #print STDERR "Found binaries in '$path'\n";
 
     return($path);
 }
@@ -629,6 +617,7 @@ sub getBinDirectoryShellCode () {
     $string .= "fi\n";
     $string .= "\n";
     $string .= "bin=\"$installDir/\$syst-\$arch/bin\"\n";
+    $string .= "\n";
 
     my $pathMap = getGlobal("pathMap");
     if (defined($pathMap)) {
@@ -642,6 +631,11 @@ sub getBinDirectoryShellCode () {
         close(PM);
         $string .= "\n";
     }
+
+    $string .= "if [ ! -d \"\$bin\" ] ; then\n";
+    $string .= "  bin=\"$installDir\"\n";
+    $string .= "fi\n";
+    $string .= "\n";
 
     return($string);
 }
