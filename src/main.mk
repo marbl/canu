@@ -1,11 +1,25 @@
 
 #  If 'make' isn't run from the root directory, we need to set these to
 #  point to the upper level build directory.
-ifeq "$(strip ${BUILD_DIR})" ""
-  BUILD_DIR    := ../$(OSTYPE)-$(MACHINETYPE)/obj
+
+ifeq "$(strip ${DESTDIR})" ""
+  DESTDIR      := 
 endif
+
+ifeq "$(strip ${PREFIX})" ""
+  ifeq "$(strip ${DESTDIR})" ""
+    PREFIX     := $(realpath ..)
+  else
+    PREFIX     := /canu
+  endif
+endif
+
+ifeq "$(strip ${BUILD_DIR})" ""
+  BUILD_DIR    := $(DESTDIR)$(PREFIX)/$(OSTYPE)-$(MACHINETYPE)/obj
+endif
+
 ifeq "$(strip ${TARGET_DIR})" ""
-  TARGET_DIR   := ../$(OSTYPE)-$(MACHINETYPE)/bin
+  TARGET_DIR   := $(DESTDIR)$(PREFIX)/$(OSTYPE)-$(MACHINETYPE)/bin
 endif
 
 TARGET       := libcanu.a

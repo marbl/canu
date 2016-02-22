@@ -124,6 +124,9 @@ computeIIDperBucket(uint32          fileLimit,
       fprintf(stderr, "failed to open counts file '%s' for reading: %s\n", countsName, strerror(errno)), exit(1);
 
     AS_UTL_safeRead(C, &maxPerNum, "maxPerNum", sizeof(uint32), 1);
+    // resize our array up if needed, there is a minimum maxPerNum size but if we have fewer reads than this we don't have space to store them
+    // note we are not resizing overlapsPerRead because the extra written array should be empty since those reads dont exist
+    resizeArray(maxPer, maxIID, maxIID, maxPerNum, resizeArray_copyData | resizeArray_clearNew);
     AS_UTL_safeRead(C,  maxPer,    "maxPer",    sizeof(uint32), maxPerNum);
 
     fclose(C);
