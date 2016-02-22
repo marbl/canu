@@ -671,11 +671,13 @@ main(int argc, char **argv) {
 
     compressedFileReader *inFile = new compressedFileReader(argv[firstFileArg]);
     char                 *line   = new char [10240];
+    char                 *linekv = new char [10240];
     KeyAndValue           keyval;
 
     while (fgets(line, 10240, inFile->file()) != NULL) {
       chomp(line);
-      keyval.find(line);
+      strcpy(linekv, line);  //  keyval.find() modifies the input line, adding a nul byte to split the key and value.
+      keyval.find(linekv);
 
       if (keyval.key() == NULL) {
         //  No key, so must be a comment or blank line
@@ -721,7 +723,7 @@ main(int argc, char **argv) {
       } else if (strcasecmp(keyval.key(), "checkForSubReads") == 0) {
         gkpLibrary->gkLibrary_setCheckForSubReads(keyval.value_bool());
 
-      } else if (AS_UTL_fileExists(keyval.key(), false, false)) {
+      } else if (AS_UTL_fileExists(line, false, false)) {
         loadReads(gkpStore,
                   gkpLibrary,
                   gkpFileID++,
@@ -729,7 +731,7 @@ main(int argc, char **argv) {
                   nameMap,
                   htmlLog,
                   errorLog,
-                  keyval.key(),
+                  line,
                   nWARNS, nLOADED, bLOADED, nSKIPPED, bSKIPPED);
 
       } else {
@@ -740,6 +742,7 @@ main(int argc, char **argv) {
 
     delete    inFile;
     delete [] line;
+    delete [] linekv;
   }
 
 #if 0

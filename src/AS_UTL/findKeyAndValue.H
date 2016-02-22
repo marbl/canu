@@ -59,7 +59,7 @@ public:
 
 
 
-//  Returns true if a key and value are found.
+//  Returns true if a key and value are found.  line is modified.
 //
 bool
 KeyAndValue::find(char *line) {
