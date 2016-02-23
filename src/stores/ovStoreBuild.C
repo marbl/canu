@@ -96,12 +96,9 @@ computeIIDperBucket(uint32          fileLimit,
 
   //  Otherwise, we have files, and should have counts.
 
-  uint32  *overlapsPerRead = new uint32 [maxIID];
-  uint32   maxPerNum       = 0;
-  uint32  *maxPer          = new uint32 [maxIID];
+  uint32  *overlapsPerRead = new uint32 [maxIID];   //  Sum over all files.
 
   memset(overlapsPerRead, 0, sizeof(uint32) * maxIID);
-  memset(maxPer,          0, sizeof(uint32) * maxIID);
 
   //  For each overlap file, find the counts file and merge into overlapsPerRead.
 
@@ -123,21 +120,23 @@ computeIIDperBucket(uint32          fileLimit,
     if (errno)
       fprintf(stderr, "failed to open counts file '%s' for reading: %s\n", countsName, strerror(errno)), exit(1);
 
-    AS_UTL_safeRead(C, &maxPerNum, "maxPerNum", sizeof(uint32), 1);
-    // resize our array up if needed, there is a minimum maxPerNum size but if we have fewer reads than this we don't have space to store them
-    // note we are not resizing overlapsPerRead because the extra written array should be empty since those reads dont exist
-    resizeArray(maxPer, maxIID, maxIID, maxPerNum, resizeArray_copyData | resizeArray_clearNew);
-    AS_UTL_safeRead(C,  maxPer,    "maxPer",    sizeof(uint32), maxPerNum);
+    uint32   perLen = 0;
+    uint32  *per    = NULL;
+
+    AS_UTL_safeRead(C, &perLen,                    "perLen", sizeof(uint32), 1);
+    AS_UTL_safeRead(C,  per = new uint32 [perLen], "per",    sizeof(uint32), perLen);
 
     fclose(C);
 
-    fprintf(stderr, "Summing overlap counts for %u reads from '%s'.\n", maxPerNum, countsName);
+    fprintf(stderr, "Summing overlap counts for %u reads from '%s'.\n", perLen, countsName);
 
-    for (uint32 ii=0; ii<maxPerNum; ii++)
-      overlapsPerRead[ii] += maxPer[ii];
+    assert(perLen <= maxIID);
+
+    for (uint32 ii=0; ii<perLen; ii++)
+      overlapsPerRead[ii] += per[ii];
+
+    delete [] per;
   }
-
-  delete [] maxPer;
 
   //  How many overlaps?
 
@@ -145,6 +144,11 @@ computeIIDperBucket(uint32          fileLimit,
 
   for (uint32 ii=0; ii<maxIID; ii++)
     numOverlaps += overlapsPerRead[ii];
+
+  if (numOverlaps == 0) {
+    fprintf(stderr, "Found no overlaps to sort.\n");
+    exit(1);
+  }
 
   fprintf(stderr, "Found "F_U64" (%.2f million) overlaps.\n", numOverlaps, numOverlaps / 1000000.0);
 

@@ -265,7 +265,7 @@ main(int argc, char **argv) {
 
   gkStore *gkp         = gkStore::gkStore_open(gkpName);
 
-  uint64  maxIID       = gkp->gkStore_getNumReads() + 1;
+  uint32  maxIID       = gkp->gkStore_getNumReads() + 1;
   uint32 *iidToBucket  = new uint32 [maxIID];
 
   {
@@ -280,12 +280,13 @@ main(int argc, char **argv) {
     AS_UTL_safeRead(C,  iidToBucket, "iidToBucket", sizeof(uint32), maxIID);
 
     if (maxIIDtest != maxIID)
-      fprintf(stderr, "ERROR: maxIID in store (%u) differs from maxIID in config file (%u).\n", maxIID, maxIIDtest), exit(1);
+      fprintf(stderr, "ERROR: maxIID in store ("F_U32") differs from maxIID in config file ("F_U32").\n",
+              maxIID, maxIIDtest), exit(1);
   }
 
 
-  ovFile                 **sliceFile     = new ovFile * [fileLimit + 1];
-  uint64                  *sliceSize     = new uint64   [fileLimit + 1];
+  ovFile       **sliceFile = new ovFile * [fileLimit + 1];
+  uint64        *sliceSize = new uint64   [fileLimit + 1];
 
   memset(sliceFile, 0, sizeof(ovFile *) * (fileLimit + 1));
   memset(sliceSize, 0, sizeof(uint64)   * (fileLimit + 1));
@@ -296,9 +297,9 @@ main(int argc, char **argv) {
   fprintf(stderr, "Bucketizing %s\n", ovlInput);
 
   ovStoreFilter *filter = new ovStoreFilter(gkp, maxError);
-  ovOverlap     foverlap(gkp);
-  ovOverlap     roverlap(gkp);
-  ovFile        *inputFile = new ovFile(ovlInput, ovFileFull);
+  ovOverlap      foverlap(gkp);
+  ovOverlap      roverlap(gkp);
+  ovFile         *inputFile = new ovFile(ovlInput, ovFileFull);
 
   //  Do bigger buffers increase performance?  Do small ones hurt?
   //AS_OVS_setBinaryOverlapFileBufferSize(2 * 1024 * 1024);

@@ -371,8 +371,9 @@ private:
   uint32                  _bufferMax;    //  allocated size of the buffer
   uint32                 *_buffer;
 
-  uint32                  _numPerMax;
-  uint32                 *_numPer;
+  uint32                  _olapsPerReadAlloc;
+  uint32                  _olapsPerReadLast;
+  uint32                 *_olapsPerRead;
 
   bool                    _isOutput;     //  if true, we can writeOverlap()
   bool                    _isSeekable;   //  if true, we can seekOverlap()

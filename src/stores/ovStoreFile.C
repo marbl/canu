@@ -69,14 +69,16 @@ ovFile::ovFile(const char  *name,
   //  build the store.  Overlaps in the store, normal format, don't need this extra data, as the
   //  store itself knows how many overlaps per read.
 
-  _numPerMax = 0;
-  _numPer    = NULL;
+  _olapsPerReadAlloc = 0;
+  _olapsPerReadLast  = 0;
+  _olapsPerRead      = NULL;
 
   if (type == ovFileFullWrite) {
-    _numPerMax  = 1024;
-    _numPer     = new uint32 [_numPerMax];
+    _olapsPerReadAlloc = 128 * 1024;
+    _olapsPerReadLast  = 0;
+    _olapsPerRead      = new uint32 [_olapsPerReadAlloc];
 
-    memset(_numPer, 0, sizeof(uint32) * _numPerMax);
+    memset(_olapsPerRead, 0, sizeof(uint32) * _olapsPerReadAlloc);
   }
 
   //  Create the input/output buffers and files.
@@ -124,24 +126,26 @@ ovFile::~ovFile() {
   delete    _writer;
   delete [] _buffer;
 
-  if (_numPer) {
+  if (_olapsPerRead) {
     char  name[FILENAME_MAX];
 
     sprintf(name, "%s.counts", _prefix);
-
-    fprintf(stderr, "CREATING '%s'\n", name);
 
     errno = 0;
     _file = fopen(name, "w");
     if (errno)
       fprintf(stderr, "failed to open counts file '%s' for writing: %s\n", name, strerror(errno)), exit(1);
 
-    AS_UTL_safeWrite(_file, &_numPerMax, "ovFile::numPerMax", sizeof(uint32), 1);
-    AS_UTL_safeWrite(_file,  _numPer,    "ovFile::numPer",    sizeof(uint32), _numPerMax);
+    _olapsPerReadLast++;
+
+    AS_UTL_safeWrite(_file, &_olapsPerReadLast, "ovFile::olapsPerReadLast", sizeof(uint32), 1);
+    AS_UTL_safeWrite(_file,  _olapsPerRead,     "ovFile::olapsPerRead",     sizeof(uint32), _olapsPerReadLast);
 
     fclose(_file);
 
-    delete [] _numPer;
+    delete [] _olapsPerRead;
+
+    //fprintf(stderr, "Wrote counts file '%s' for reads up to iid "F_U32"\n", name, _olapsPerReadLast);
   }
 }
 
@@ -173,12 +177,22 @@ ovFile::writeOverlap(ovOverlap *overlap) {
     _bufferLen = 0;
   }
 
-  if (_numPer) {
-    resizeArray(_numPer, _numPerMax, _numPerMax, overlap->a_iid+1, resizeArray_copyData | resizeArray_clearNew);
-    resizeArray(_numPer, _numPerMax, _numPerMax, overlap->b_iid+1, resizeArray_copyData | resizeArray_clearNew);
+  if (_olapsPerRead) {
+    uint32   newmax  = _olapsPerReadAlloc;
+    uint32   newlast = _olapsPerReadLast;
 
-    _numPer[overlap->a_iid]++;
-    _numPer[overlap->b_iid]++;
+    newlast = max(newlast, overlap->a_iid);
+    newlast = max(newlast, overlap->b_iid);
+
+    while (newmax <= newlast)
+      newmax += newmax / 4;
+
+    resizeArray(_olapsPerRead, _olapsPerReadLast+1, _olapsPerReadAlloc, newmax, resizeArray_copyData | resizeArray_clearNew);
+
+    _olapsPerRead[overlap->a_iid]++;
+    _olapsPerRead[overlap->b_iid]++;
+
+    _olapsPerReadLast = newlast;
   }
 
   if (_isNormal == false)
@@ -223,18 +237,36 @@ ovFile::writeOverlaps(ovOverlap *overlaps, uint64 overlapsLen) {
 
   assert(_isOutput == true);
 
+  //  Resize the olapsPerRead array once per batch.
+
+  if (_olapsPerRead) {
+    uint32  newmax  = _olapsPerReadAlloc;
+    uint32  newlast = _olapsPerReadLast;
+
+    for (uint32 oo=0; oo<overlapsLen; oo++) {
+      newlast = max(newlast, overlaps[oo].a_iid);
+      newlast = max(newlast, overlaps[oo].b_iid);
+
+      while (newmax <= newlast)
+        newmax += newmax / 4;
+    }
+
+    resizeArray(_olapsPerRead, _olapsPerReadLast+1, _olapsPerReadAlloc, newmax, resizeArray_copyData | resizeArray_clearNew);
+
+    _olapsPerReadLast = newlast;
+  }
+
+  //  Add all overlaps to the buffer.
+
   while (nWritten < overlapsLen) {
     if (_bufferLen >= _bufferMax) {
       AS_UTL_safeWrite(_file, _buffer, "ovFile::writeOverlap", sizeof(uint32), _bufferLen);
       _bufferLen = 0;
     }
 
-    if (_numPer) {
-      resizeArray(_numPer, _numPerMax, _numPerMax, overlaps[nWritten].a_iid+1, resizeArray_copyData | resizeArray_clearNew);
-      resizeArray(_numPer, _numPerMax, _numPerMax, overlaps[nWritten].b_iid+1, resizeArray_copyData | resizeArray_clearNew);
-
-      _numPer[overlaps[nWritten].a_iid]++;
-      _numPer[overlaps[nWritten].b_iid]++;
+    if (_olapsPerRead) {
+      _olapsPerRead[overlaps[nWritten].a_iid]++;
+      _olapsPerRead[overlaps[nWritten].b_iid]++;
     }
 
     if (_isNormal == false)
