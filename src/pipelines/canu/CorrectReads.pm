@@ -271,13 +271,11 @@ sub buildCorrectionLayouts_direct ($$) {
         print F "\n";
         print F getGlobal("falconSense") . " \\\n"  if ( defined(getGlobal("falconSense")));
         print F "\$bin/falcon_sense \\\n"           if (!defined(getGlobal("falconSense")));
-        print F "  --max_n_read 200 \\\n";
         print F "  --min_idt $minidt \\\n";
-        print F "  --output_multi \\\n";
-        print F "  --local_match_count_threshold 2 \\\n";  #  Suspicious window - 2 suspicious regions in a window (of 100bp) will split a read (0 for nanopore)
+        print F "  --min_len " . getGlobal("minReadLength") . "\\\n";
+        print F "  --min_ovl_len " . getGlobal("minOverlapLength") . "\\\n";
         print F "  --min_cov " . getGlobal("corMinCoverage") . " \\\n";
         print F "  --n_core " . getGlobal("corThreads") . " \\\n";
-        print F "  --output_simple_fasta_header \\\n";
         print F "  < $path/correction_inputs/\$jobid \\\n";
         print F "  > $path/correction_outputs/\$jobid.fasta.WORKING \\\n";
         print F " 2> $path/correction_outputs/\$jobid.err \\\n";
@@ -393,13 +391,11 @@ sub buildCorrectionLayouts_piped ($$) {
     print F "| \\\n";
     print F getGlobal("falconSense") . " \\\n"  if ( defined(getGlobal("falconSense")));
     print F "\$bin/falcon_sense \\\n"           if (!defined(getGlobal("falconSense")));
-    print F "  --max_n_read 200 \\\n";
     print F "  --min_idt $minidt \\\n";
-    print F "  --output_multi \\\n";
-    print F "  --local_match_count_threshold 2 \\\n";  #  Suspicious window - 2 suspicious regions in a window (of 100bp) will split a read (0 for nanopore)
+    print F "  --min_len " . getGlobal("minReadLength") . "\\\n";
+    print F "  --min_ovl_len " . getGlobal("minOverlapLength") . "\\\n";
     print F "  --min_cov " . getGlobal("corMinCoverage") . " \\\n";
     print F "  --n_core " . getGlobal("corThreads") . " \\\n";
-    print F "  --output_simple_fasta_header \\\n";
     print F "  > $path/correction_outputs/\$jobid.fasta.WORKING \\\n";
     print F " 2> $path/correction_outputs/\$jobid.err \\\n";
     print F "&& \\\n";

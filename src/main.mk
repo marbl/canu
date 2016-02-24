@@ -96,7 +96,10 @@ SOURCES      := AS_global.C \
                 utgcns/libpbutgcns/Alignment.C	\
                 utgcns/libpbutgcns/AlnGraphBoost.C  \
                 utgcns/libpbutgcns/SimpleAligner.C \
-                utgcns/libNDFalcon/dw.C
+                utgcns/libNDFalcon/dw.C \
+                \
+                falcon_sense/libfalcon/falcon.C \
+                falcon_sense/libfalcon/kmer_lookup.C
 
 SRC_INCDIRS  := . \
                 AS_UTL \
@@ -109,7 +112,8 @@ SRC_INCDIRS  := . \
                 utgcns/libboost \
                 meryl/libleaff \
                 overlapInCore \
-                overlapInCore/liboverlap
+                overlapInCore/liboverlap \
+                falcon_sense/libfalcon
 
 SUBMAKEFILES := stores/gatekeeperCreate.mk \
                 stores/gatekeeperDumpFASTQ.mk \
@@ -149,6 +153,7 @@ SUBMAKEFILES := stores/gatekeeperCreate.mk \
                 correction/readConsensus.mk \
                 \
                 falcon_sense/createFalconSenseInputs.mk \
+                falcon_sense/falcon_sense.mk \
                 \
                 overlapBasedTrimming/trimReads.mk \
                 overlapBasedTrimming/splitReads.mk \

@@ -512,7 +512,6 @@ INCDIRS := $(addprefix -I,$(call CANONICAL_PATH,${INCDIRS}))
 .PHONY: all
 all: UPDATE_VERSION MAKE_DIRS \
      $(addprefix ${TARGET_DIR}/,${ALL_TGTS}) \
-     ${TARGET_DIR}/falcon_sense \
      ${TARGET_DIR}/canu \
      ${TARGET_DIR}/canu.defaults \
      ${TARGET_DIR}/lib/canu/lib \
@@ -576,20 +575,6 @@ AS_global.C: UPDATE_VERSION
 .PHONY: MAKE_DIRS
 MAKE_DIRS:
 	@if [ ! -e ${TARGET_DIR}/lib/canu ] ; then mkdir -p ${TARGET_DIR}/lib/canu ; fi
-
-#  A different falconsense for every platform, yay!
-ifeq      (${OSTYPE}, Linux)
-  FALCONSENSE := falcon_sense.${OSTYPE}-${MACHINETYPE}.bin
-else ifeq (${OSTYPE}, Darwin)
-  FALCONSENSE := falcon_sense.${OSTYPE}-${MACHINETYPE}.bin
-else
-  FALCONSENSE := falcon_sense.py
-endif
-
-
-${TARGET_DIR}/falcon_sense: falcon_sense/${FALCONSENSE}
-	cp -pf falcon_sense/${FALCONSENSE} ${TARGET_DIR}/falcon_sense
-	chmod +x ${TARGET_DIR}/falcon_sense
 
 ${TARGET_DIR}/canu: pipelines/canu.pl
 	cp -pf pipelines/canu.pl ${TARGET_DIR}/canu
