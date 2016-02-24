@@ -942,6 +942,9 @@ sub setDefaults () {
     $global{"falconSense"}                 = undef;
     $synops{"falconSense"}                 = "Path to fc_consensus.py or falcon_sense.bin";
 
+    $global{"corNoLegacyFilter"}           = undef;
+    $synops{"corNoLegacyFilter"}           = "Expert option: global filter, length with ties broken by identity (default)  or length * identity (if on)";
+
     #  Convert all the keys to lowercase, and remember the case-sensitive version
 
     foreach my $k (keys %global) {
@@ -1061,8 +1064,9 @@ sub checkParameters () {
     #}
 
     if ((getGlobal("corFilter") ne "quick") &&
-        (getGlobal("corFilter") ne "expensive")) {
-        addCommandLineError("ERROR:  Invalid 'corFilter' specified (" . getGlobal("corFilter") . "); must be 'quick' or 'expensive'\n");
+        (getGlobal("corFilter") ne "expensive") &&
+        (getGlobal("corFilter") ne "none")) {
+        addCommandLineError("ERROR:  Invalid 'corFilter' specified (" . getGlobal("corFilter") . "); must be 'none' or 'quick' or 'expensive'\n");
     }
 
 

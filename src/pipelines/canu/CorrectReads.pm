@@ -178,6 +178,7 @@ sub buildCorrectionLayouts_direct ($$) {
         $cmd .= "  -L " . getGlobal("corMinEvidenceLength") . " \\\n"  if (defined(getGlobal("corMinEvidenceLength")));
         $cmd .= "  -E " . getGlobal("corMaxEvidenceErate")  . " \\\n"  if (defined(getGlobal("corMaxEvidenceErate")));
         $cmd .= "  -C $maxCov \\\n"                                    if (defined($maxCov));
+        $cmd .= "  -legacy \\\n"                                       if (!defined(getGlobal("corNoLegacyFilter")));
         $cmd .= "> $wrk/$asm.corStore.err 2>&1";
 
         if (runCommand($wrk, $cmd)) {
@@ -384,6 +385,7 @@ sub buildCorrectionLayouts_piped ($$) {
     print F "  -L " . getGlobal("corMinEvidenceLength") . " \\\n"  if (defined(getGlobal("corMinEvidenceLength")));
     print F "  -E " . getGlobal("corMaxEvidenceErate")  . " \\\n"  if (defined(getGlobal("corMaxEvidenceErate")));
     print F "  -C $maxCov \\\n"                                    if (defined($maxCov));
+    print F "  -legacy \\\n"                                       if (!defined(getGlobal("corNoLegacyFilter")));
     print F "  -F \\\n";
     print F "&& \\\n";
     print F "  touch $path/correction_outputs/\$jobid.dump.success \\\n";
@@ -435,17 +437,16 @@ sub lengthStats (@) {
 }
 
 
-sub quickFilter ($$) {
+sub quickFilter ($$$) {
     my $wrk  = shift @_;  #  Local work directory
     my $asm  = shift @_;
+    my $minTotal = shift @_;
     my $bin  = getBinDirectory();
     my $path = "$wrk/2-correction";
 
     my $totCorLengthIn  = 0;
     my $totCorLengthOut = 0;
     my $minCorLength    = 0;
-
-    my $minTotal  = getGlobal("genomeSize") * getGlobal("corOutCoverage");
 
     open(O, "> $path/$asm.readsToCorrect.WORKING") or caExit("can't open '$path/$asm.readsToCorrect.WORKING' for writing: $!\n", undef);
     open(F, "$bin/gatekeeperDumpMetaData -G $wrk/$asm.gkpStore -reads | sort -k3nr | ") or caExit("can't dump gatekeeper for read lengths: $!\n", undef);
@@ -460,7 +461,7 @@ sub quickFilter ($$) {
 
         print O "$v[0]\t$v[2]\t0\n";
 
-        if ($totCorLengthIn >= $minTotal) {
+        if ($minTotal != 0 && $totCorLengthIn >= $minTotal) {
             $minCorLength = $v[2];
             last;
         }
@@ -491,6 +492,7 @@ sub expensiveFilter ($$) {
         $cmd .= "  -L " . getGlobal("corMinEvidenceLength") . " \\\n"  if (defined(getGlobal("corMinEvidenceLength")));
         $cmd .= "  -E " . getGlobal("corMaxEvidenceErate")  . " \\\n"  if (defined(getGlobal("corMaxEvidenceErate")));
         $cmd .= "  -C $maxCov \\\n"                                    if (defined($maxCov));
+        $cmd .= "  -legacy \\\n"                                       if (!defined(getGlobal("corNoLegacyFilter")));
         $cmd .= "  -p $path/$asm.estimate";
 
         if (runCommand($wrk, $cmd)) {
@@ -735,6 +737,7 @@ sub buildCorrectionLayouts ($$) {
         $cmd .= "  -S $path/$asm.globalScores \\\n";
         $cmd .= "  -c $maxCov \\\n";
         $cmd .= "  -l $minLen \\\n";
+        $cmd .= "  -legacy \\\n"                       if (!defined(getGlobal("corNoLegacyFilter")));
         $cmd .= "> $path/$asm.globalScores.err 2>&1";
 
         if (runCommand($path, $cmd)) {
@@ -753,10 +756,13 @@ sub buildCorrectionLayouts ($$) {
     #  Both are required to create a file $asm.readsToCorrect, containing a list of IDs to correct.
 
     if      (getGlobal("corFilter") eq "quick") {
-        quickFilter($wrk, $asm);
+        quickFilter($wrk, $asm, (getGlobal("genomeSize") * getGlobal("corOutCoverage")));
 
     } elsif (getGlobal("corFilter") eq "expensive") {
         expensiveFilter($wrk, $asm);
+
+    } elsif (getGlobal("corFilter") eq "none" ) {
+        quickFilter($wrk, $asm, 0);
 
     } else {
         caFailure("unknown corFilter '" . getGlobal("corFilter") . "'", undef);

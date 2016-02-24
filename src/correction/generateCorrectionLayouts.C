@@ -48,7 +48,8 @@ using namespace std;
 
 tgTig *
 generateLayout(gkStore    *gkpStore,
-               uint32     *readScores,
+               uint64     *readScores,
+	       bool	   legacyScore,
                uint32      minEvidenceLength,
                double      maxEvidenceErate,
                double      maxEvidenceCoverage,
@@ -83,7 +84,11 @@ generateLayout(gkStore    *gkpStore,
     uint32   ovlLength = ((ovl[oo].b_bgn() < ovl[oo].b_end()) ?
                           ovl[oo].b_end() - ovl[oo].b_bgn() :
                           ovl[oo].b_bgn() - ovl[oo].b_end());
-    uint32   ovlScore  = 100 * ovlLength * (1 - ovl[oo].erate());
+    uint64   ovlScore  = 100 * ovlLength * (1 - ovl[oo].erate());
+    if (legacyScore) {
+       ovlScore  = ovlLength << AS_MAX_EVALUE_BITS;
+       ovlScore |= (AS_MAX_EVALUE - ovl[oo].evalue());
+    }
 
     if (ovlLength > AS_MAX_READLEN) {
       char ovlString[1024];
@@ -108,7 +113,7 @@ generateLayout(gkStore    *gkpStore,
     if ((readScores != NULL) &&
         (ovlScore < readScores[ovl[oo].b_iid])) {
       if (flgFile)
-        fprintf(flgFile, "  filter read %9u at position %6u,%6u length %5u erate %.3f - filtered by global filter (threshold %u)\n",
+        fprintf(flgFile, "  filter read %9u at position %6u,%6u length %5u erate %.3f - filtered by global filter (threshold "F_U64")\n",
                 ovl[oo].b_iid, ovl[oo].a_bgn(), ovl[oo].a_end(), ovlLength, ovl[oo].erate(), readScores[ovl[oo].b_iid]);
       continue;
     }
@@ -223,6 +228,7 @@ main(int argc, char **argv) {
   uint32            minCorLength        = 0;
 
   bool              filterCorLength     = false;
+  bool		    legacyScore	        = false;
 
   argc = AS_configure(argc, argv);
 
@@ -273,6 +279,8 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-M") == 0) {  //  Minimum length of a corrected read
       minCorLength = atoi(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-legacy") == 0) {
+      legacyScore = true;
 
     } else {
       fprintf(stderr, "ERROR: unknown option '%s'\n", argv[arg]);
@@ -325,17 +333,17 @@ main(int argc, char **argv) {
 
   //  Load read scores, if supplied.
 
-  uint32   *readScores = NULL;
+  uint64   *readScores = NULL;
 
   if (scoreName) {
-    readScores = new uint32 [gkpStore->gkStore_getNumReads() + 1];
+    readScores = new uint64 [gkpStore->gkStore_getNumReads() + 1];
 
     errno = 0;
     FILE *scoreFile = fopen(scoreName, "r");
     if (errno)
       fprintf(stderr, "failed to open '%s' for reading: %s\n", scoreName, strerror(errno)), exit(1);
 
-    AS_UTL_safeRead(scoreFile, readScores, "scores", sizeof(uint32), gkpStore->gkStore_getNumReads() + 1);
+    AS_UTL_safeRead(scoreFile, readScores, "scores", sizeof(uint64), gkpStore->gkStore_getNumReads() + 1);
 
     fclose(scoreFile);
   }
@@ -427,6 +435,7 @@ main(int argc, char **argv) {
 
     tgTig *layout = generateLayout(gkpStore,
                                    readScores,
+                                   legacyScore,
                                    minEvidenceLength, maxEvidenceErate, maxEvidenceCoverage,
                                    ovl, ovlLen,
                                    flgFile);

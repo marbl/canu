@@ -38,7 +38,6 @@
 
 using namespace std;
 
-
 int
 main(int argc, char **argv) {
   char           *gkpStoreName     = NULL;
@@ -57,6 +56,8 @@ main(int argc, char **argv) {
 
   double          maxErate         = 1.0;
   double          minErate         = 1.0;
+
+  bool		  legacyScore	   = false;
 
   argc = AS_configure(argc, argv);
 
@@ -89,6 +90,9 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-nostats") == 0) {
       noStats = true;
+
+    } else if (strcmp(argv[arg], "-legacy") == 0) {
+      legacyScore = true;
 
     } else {
       fprintf(stderr, "ERROR:  invalid arg '%s'\n", argv[arg]);
@@ -153,7 +157,7 @@ main(int argc, char **argv) {
 
   ovStore  *inpStore  = new ovStore(ovlStoreName, gkpStore);
 
-  uint32   *scores    = new uint32 [gkpStore->gkStore_getNumReads() + 1];
+  uint64   *scores    = new uint64 [gkpStore->gkStore_getNumReads() + 1];
 
 
   sprintf(logFileName, "%s.log", scoreFileName);
@@ -178,7 +182,7 @@ main(int argc, char **argv) {
 
   uint32      histLen = 0;
   uint32      histMax = ovlMax;
-  uint32     *hist    = new uint32 [histMax];
+  uint64     *hist    = new uint64 [histMax];
 
   uint64      totalOverlaps = 0;
   uint64      lowErate     = 0;
@@ -197,7 +201,7 @@ main(int argc, char **argv) {
   uint64      reads99OlapsFiltered  = 0;
 
   for (uint32 id=1; id <= gkpStore->gkStore_getNumReads(); id++) {
-    scores[id] = UINT32_MAX;
+    scores[id] = UINT64_MAX;
 
     inpStore->readOverlaps(id, ovl, ovlLen, ovlMax);
 
@@ -217,14 +221,18 @@ main(int argc, char **argv) {
       delete [] hist;
 
       histMax = ovlMax;
-      hist    = new uint32 [ovlMax];
+      hist    = new uint64 [ovlMax];
     }
 
     //  Figure out which overlaps are good enough to consider and save their length.
 
     for (uint32 oo=0; oo<ovlLen; oo++) {
       uint32  ovlLength  = ovl[oo].a_end() - ovl[oo].a_bgn();
-      uint32  ovlScore   = 100 * ovlLength * (1 - ovl[oo].erate());
+      uint64  ovlScore   = 100 * ovlLength * (1 - ovl[oo].erate());
+      if (legacyScore) {
+         ovlScore  = ovlLength << AS_MAX_EVALUE_BITS;
+         ovlScore |= (AS_MAX_EVALUE - ovl[oo].evalue());
+      }
 
       if ((ovl[oo].evalue() < minEvalue)        ||
           (maxEvalue        < ovl[oo].evalue()) ||
@@ -252,7 +260,12 @@ main(int argc, char **argv) {
 
     for (uint32 oo=0; oo<ovlLen; oo++) {
       uint32  ovlLength  = ovl[oo].a_end() - ovl[oo].a_bgn();
-      uint32  ovlScore   = 100 * ovlLength * (1 - ovl[oo].erate());
+      uint64  ovlScore   = 100 * ovlLength * (1 - ovl[oo].erate());
+      if (legacyScore) {
+         ovlScore  = ovlLength << AS_MAX_EVALUE_BITS;
+         ovlScore |= (AS_MAX_EVALUE - ovl[oo].evalue());
+      }
+
       bool    isC        = false;
       bool    isD        = false;
       bool    skipIt     = false;
@@ -318,7 +331,7 @@ main(int argc, char **argv) {
   }
 
   if (scoreFile)
-    AS_UTL_safeWrite(scoreFile, scores, "scores", sizeof(uint32), gkpStore->gkStore_getNumReads() + 1);
+    AS_UTL_safeWrite(scoreFile, scores, "scores", sizeof(uint64), gkpStore->gkStore_getNumReads() + 1);
 
   if (scoreFile)
     fclose(scoreFile);
