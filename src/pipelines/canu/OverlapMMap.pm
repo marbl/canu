@@ -39,7 +39,6 @@ require Exporter;
 @EXPORT = qw(mmapConfigure mmapPrecomputeCheck mmapCheck);
 
 use strict;
-use POSIX;
 
 use File::Path qw(make_path remove_tree);
 
