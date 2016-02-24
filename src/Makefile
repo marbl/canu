@@ -533,6 +533,7 @@ all: UPDATE_VERSION MAKE_DIRS \
      ${TARGET_DIR}/lib/canu/OverlapErrorAdjustment.pm \
      ${TARGET_DIR}/lib/canu/OverlapInCore.pm \
      ${TARGET_DIR}/lib/canu/OverlapMhap.pm \
+     ${TARGET_DIR}/lib/canu/OverlapMMap.pm \
      ${TARGET_DIR}/lib/canu/OverlapStore.pm \
      ${TARGET_DIR}/lib/canu/Unitig.pm
 	@echo ""
@@ -640,6 +641,9 @@ ${TARGET_DIR}/lib/canu/OverlapInCore.pm: pipelines/canu/OverlapInCore.pm
 
 ${TARGET_DIR}/lib/canu/OverlapMhap.pm: pipelines/canu/OverlapMhap.pm
 	cp -pf pipelines/canu/OverlapMhap.pm ${TARGET_DIR}/lib/canu/
+
+${TARGET_DIR}/lib/canu/OverlapMMap.pm: pipelines/canu/OverlapMMap.pm
+	cp -pf pipelines/canu/OverlapMMap.pm ${TARGET_DIR}/lib/canu/
 
 ${TARGET_DIR}/lib/canu/OverlapStore.pm: pipelines/canu/OverlapStore.pm
 	cp -pf pipelines/canu/OverlapStore.pm ${TARGET_DIR}/lib/canu/

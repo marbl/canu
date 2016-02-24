@@ -60,6 +60,7 @@ use canu::Gatekeeper;
 use canu::Meryl;
 use canu::OverlapInCore;
 use canu::OverlapMhap;
+use canu::OverlapMMap;
 use canu::OverlapStore;
 
 use canu::CorrectReads;
@@ -367,6 +368,13 @@ sub overlap ($$$) {
         #  this also does mhapReAlign
 
         mhapCheck($wrk, $asm, $tag, $ovlType)  foreach (1..getGlobal("canuIterationMax") + 1);
+
+   } elsif (getGlobal("${tag}overlapper") eq "minimap") {
+        mmapConfigure($wrk, $asm, $tag, $ovlType);
+
+        mmapPrecomputeCheck($wrk, $asm, $tag, $ovlType)  foreach (1..getGlobal("canuIterationMax") + 1);
+
+        mmapCheck($wrk, $asm, $tag, $ovlType)   foreach (1..getGlobal("canuIterationMax") + 1);
 
     } else {
         overlapConfigure($wrk, $asm, $tag, $ovlType);

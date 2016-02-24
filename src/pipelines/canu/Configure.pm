@@ -353,6 +353,7 @@ sub getAllowedResources ($$$$) {
     elsif ($alg eq "ovs")      {  $nam = "overlap store parallel sorting"; }
     elsif ($alg eq "red")      {  $nam = "read error detection (overlap error adjustment)"; }
     elsif ($alg eq "mhap")     {  $nam = "mhap (overlapper)"; }
+    elsif ($alg eq "mmap")     {  $nam = "minimap (overlapper)"; }
     elsif ($alg eq "ovl")      {  $nam = "overlapper"; }
     else {
         caFailure("unknown task '$alg' in getAllowedResources().", undef);
@@ -459,6 +460,11 @@ sub configureAssembler () {
         setGlobalIfUndef("obtMhapMemory", "4-6");   setGlobalIfUndef("obtMhapThreads", "1-16");
         setGlobalIfUndef("utgMhapMemory", "4-6");   setGlobalIfUndef("utgMhapThreads", "1-16");
 
+        setGlobalIfUndef("corMMapMemory", "4-6");   setGlobalIfUndef("corMMapThreads", "1-16");
+        setGlobalIfUndef("obtMMapMemory", "4-6");   setGlobalIfUndef("obtMMapThreads", "1-16");
+        setGlobalIfUndef("utgMMapMemory", "4-6");   setGlobalIfUndef("utgMMapThreads", "1-16");
+
+
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("500m")) {
         setGlobalIfUndef("corOvlMemory", "2-6");     setGlobalIfUndef("corOvlThreads", "1");
         setGlobalIfUndef("obtOvlMemory", "4-8");     setGlobalIfUndef("obtOvlThreads", "1-8");
@@ -467,6 +473,10 @@ sub configureAssembler () {
         setGlobalIfUndef("corMhapMemory", "8-13");   setGlobalIfUndef("corMhapThreads", "1-16");
         setGlobalIfUndef("obtMhapMemory", "8-13");   setGlobalIfUndef("obtMhapThreads", "1-16");
         setGlobalIfUndef("utgMhapMemory", "8-13");   setGlobalIfUndef("utgMhapThreads", "1-16");
+
+        setGlobalIfUndef("corMMapMemory", "4-6");   setGlobalIfUndef("corMMapThreads", "1-16");
+        setGlobalIfUndef("obtMMapMemory", "4-6");   setGlobalIfUndef("obtMMapThreads", "1-16");
+        setGlobalIfUndef("utgMMapMemory", "4-6");   setGlobalIfUndef("utgMMapThreads", "1-16");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("2g")) {
         setGlobalIfUndef("corOvlMemory", "2-8");     setGlobalIfUndef("corOvlThreads", "1");
@@ -477,6 +487,10 @@ sub configureAssembler () {
         setGlobalIfUndef("obtMhapMemory", "16-32");   setGlobalIfUndef("obtMhapThreads", "4-16");
         setGlobalIfUndef("utgMhapMemory", "16-32");   setGlobalIfUndef("utgMhapThreads", "4-16");
 
+        setGlobalIfUndef("corMMapMemory", "4-6");   setGlobalIfUndef("corMMapThreads", "1-16");
+        setGlobalIfUndef("obtMMapMemory", "4-6");   setGlobalIfUndef("obtMMapThreads", "1-16");
+        setGlobalIfUndef("utgMMapMemory", "4-6");   setGlobalIfUndef("utgMMapThreads", "1-16");
+
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("5g")) {
         setGlobalIfUndef("corOvlMemory", "2-8");     setGlobalIfUndef("corOvlThreads", "1");
         setGlobalIfUndef("obtOvlMemory", "4-16");    setGlobalIfUndef("obtOvlThreads", "1-8");
@@ -486,6 +500,10 @@ sub configureAssembler () {
         setGlobalIfUndef("obtMhapMemory", "16-48");  setGlobalIfUndef("obtMhapThreads", "4-16");
         setGlobalIfUndef("utgMhapMemory", "16-48");  setGlobalIfUndef("utgMhapThreads", "4-16");
 
+        setGlobalIfUndef("corMMapMemory", "4-6");   setGlobalIfUndef("corMMapThreads", "1-16");
+        setGlobalIfUndef("obtMMapMemory", "4-6");   setGlobalIfUndef("obtMMapThreads", "1-16");
+        setGlobalIfUndef("utgMMapMemory", "4-6");   setGlobalIfUndef("utgMMapThreads", "1-16");
+
     } else {
         setGlobalIfUndef("corOvlMemory", "2-8");     setGlobalIfUndef("corOvlThreads", "1");
         setGlobalIfUndef("obtOvlMemory", "4-16");    setGlobalIfUndef("obtOvlThreads", "1-8");
@@ -494,6 +512,10 @@ sub configureAssembler () {
         setGlobalIfUndef("corMhapMemory", "32-64");  setGlobalIfUndef("corMhapThreads", "4-16");
         setGlobalIfUndef("obtMhapMemory", "32-64");  setGlobalIfUndef("obtMhapThreads", "4-16");
         setGlobalIfUndef("utgMhapMemory", "32-64");  setGlobalIfUndef("utgMhapThreads", "4-16");
+
+        setGlobalIfUndef("corMMapMemory", "4-6");   setGlobalIfUndef("corMMapThreads", "1-16");
+        setGlobalIfUndef("obtMMapMemory", "4-6");   setGlobalIfUndef("obtMMapThreads", "1-16");
+        setGlobalIfUndef("utgMMapMemory", "4-6");   setGlobalIfUndef("utgMMapThreads", "1-16");
     }
 
     #  Overlapper block sizes probably don't need to be modified based on genome size.
@@ -623,6 +645,9 @@ sub configureAssembler () {
     ($err, $all) = getAllowedResources("utg", "ovl",      $err, $all);
     ($err, $all) = getAllowedResources("",    "meryl",    $err, $all);
     ($err, $all) = getAllowedResources("",    "cor",      $err, $all);
+    ($err, $all) = getAllowedResources("cor", "mmap",     $err, $all);
+    ($err, $all) = getAllowedResources("obt", "mmap",     $err, $all);
+    ($err, $all) = getAllowedResources("utg", "mmap",     $err, $all);
 
     print STDERR "--\n" if (defined($err));
     print STDERR $err   if (defined($err));

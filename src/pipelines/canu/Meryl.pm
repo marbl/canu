@@ -205,6 +205,11 @@ sub merylParameters ($$$) {
         $ffile = "$wrk/0-mercounts/$asm.ms$merSize.frequentMers.ignore";  #  The mhap-specific file we should be creating (ends in IGNORE).
         $ofile = "$wrk/0-mercounts/$asm.ms$merSize";                      #  The meryl database 'intermediate file'.
 
+    } elsif (getGlobal("${tag}Overlapper") eq "minimap") {
+        # do nothing
+        $ffile = "$wrk/0-mercounts/$asm.ms$merSize.skip";
+        make_path("$wrk/0-mercounts")  if (! -d "$wrk/0-mercounts");
+        touch($ffile);
     } else {
         caFailure("unknown ${tag}Overlapper '" . getGlobal("${tag}Overlapper") . "'", undef);
     }

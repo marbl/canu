@@ -148,6 +148,8 @@ SUBMAKEFILES := stores/gatekeeperCreate.mk \
                 mhap/mhap.mk \
                 mhap/mhapConvert.mk \
                 \
+                minimap/mmapConvert.mk \
+                \
                 correction/filterCorrectionOverlaps.mk \
                 correction/generateCorrectionLayouts.mk \
                 correction/readConsensus.mk \

@@ -95,7 +95,7 @@ sub setGlobal ($$) {
 
     #  Translate from generic to specialized var
 
-    foreach my $alg ("ovl", "mhap") {
+    foreach my $alg ("ovl", "mhap", "mmap") {
         foreach my $opt ("gridoptions") {
             $set += setGlobalSpecialization($val, ("${opt}cor${alg}", "${opt}obt${alg}", "${opt}utg${alg}"))  if ($var eq "${opt}${alg}");
         }
@@ -638,11 +638,19 @@ sub setOverlapDefaults ($$$) {
     $global{"${tag}MhapMerSize"}              = ($tag eq "cor") ? 16 : 22;
     $synops{"${tag}MhapMerSize"}              = "K-mer size for seeds in mhap";
 
-    $global{"${tag}MhapReAlign"}              = undef;
-    $synops{"${tag}MhapReAlign"}              = "Compute actual alignments from mhap overlaps; 'raw' from mhap output, 'final' from overlap store; uses either obtErrorRate or ovlErrorRate, depending on which overlaps are computed";
-
     $global{"${tag}MhapSensitivity"}          = "normal";
     $synops{"${tag}MhapSensitivity"}          = "Coarse sensitivity level: 'normal' or 'high'; default 'normal'";
+
+    $global{"${tag}MMapBlockSize"}            = 6000;
+    $synops{"${tag}MMapBlockSize"}            = "Number of reads per 1GB; memory * blockSize = the size of  block loaded into memory per job";
+
+    # minimap parameters.
+    $global{"${tag}MMapMerSize"}              = ($tag eq "cor") ? 15 : 22;
+    $synops{"${tag}MMapMerSize"}              = "K-mer size for seeds in minmap";
+
+    # shared parameters for alignment-free overlappers
+    $global{"${tag}ReAlign"}                  = undef;
+    $synops{"${tag}ReAlign"}              = "Compute actual alignments from overlaps; 'raw' from output, 'final' from overlap store; uses either obtErrorRate or ovlErrorRate, depending on which overlaps are computed";
 }
 
 
@@ -793,6 +801,10 @@ sub setDefaults () {
     setExecDefaults("cormhap", "mhap overlaps for correction");
     setExecDefaults("obtmhap", "mhap overlaps for trimming");
     setExecDefaults("utgmhap", "mhap overlaps for unitig construction");
+
+    setExecDefaults("cormmap", "mmap overlaps for correction");
+    setExecDefaults("obtmmap", "mmap overlaps for trimming");
+    setExecDefaults("utgmmap", "mmap overlaps for unitig construction");
 
     setExecDefaults("ovb",    "overlap store bucketizing");
     setExecDefaults("ovs",    "overlap store sorting");
@@ -1012,8 +1024,9 @@ sub checkParameters () {
 
     foreach my $tag ("cor", "obt", "utg") {
         if ((getGlobal("${tag}Overlapper") ne "mhap") &&
-            (getGlobal("${tag}Overlapper") ne "ovl")) {
-            addCommandLineError("ERROR:  Invalid '${tag}Overlapper' specified (" . getGlobal("${tag}Overlapper") . "); must be 'mhap' or 'ovl'\n");
+            (getGlobal("${tag}Overlapper") ne "ovl")  &&
+            (getGlobal("${tag}Overlapper") ne "minimap")) {
+            addCommandLineError("ERROR:  Invalid '${tag}Overlapper' specified (" . getGlobal("${tag}Overlapper") . "); must be 'mhap', 'ovl', or 'minimap'\n");
         }
     }
 
