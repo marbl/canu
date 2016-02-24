@@ -86,10 +86,25 @@ sub mhapConfigure ($$$$) {
 
     #  Mhap parameters - filterThreshold needs to be a string, else it is printed as 5e-06.
 
-    my $numHashes       = (getGlobal("${tag}MhapSensitivity") eq "normal") ? "512"                                    : "768";
-    my $minNumMatches   = (getGlobal("${tag}MhapSensitivity") eq "normal") ?   "3"                                    :   "2";
-    my $threshold       = (getGlobal("${tag}MhapSensitivity") eq "normal") ?   "0.04"                                 :   "0.04";
-    my $filterThreshold = (getGlobal("${tag}MhapSensitivity") eq "normal") ?   getGlobal("${tag}MhapFilterThreshold") :   getGlobal("${tag}MhapFilterThreshold"); #  Also set in Meryl.pm
+    my $numHashes       = "512";
+    my $minNumMatches   = "3";
+    my $threshold       = "0.024";
+    my $ordSketch       = "1536";
+    my $ordSketchMer    = 12;
+
+    if (getGlobal("${tag}MhapSensitivity") eq "sens") {
+       $numHashes     =  "768";
+       $minNumMatches =    "2";
+       $threshold     = "0.024";
+       $ordSketch     = "1536";
+    } elsif (getGlobal("${tag}MhapSensitivity") eq "fast") {
+       $numHashes     =  "256";
+       $minNumMatches =    "3";
+       $threshold     =    "0.04";
+       $ordSketch     = "1000";
+    }
+
+    my $filterThreshold = getGlobal("${tag}MhapFilterThreshold");
 
     #  Constants.
 
@@ -98,8 +113,18 @@ sub mhapConfigure ($$$$) {
     my $numReads      = getNumberOfReadsInStore($wrk, $asm);
     my $memorySize    = getGlobal("${tag}mhapMemory");
     my $blockPerGb    = getGlobal("${tag}MhapBlockSize");
-    if ($numHashes > 768) { 
+    if ($numHashes >= 768) {
        $blockPerGb = int($blockPerGb / 2);
+    }
+
+    # quick guess parameter adjustment for corrected reads, hack for now and should take error rate into account
+    if (($tag eq "obt") || ($tag eq "utg")) {
+       $numHashes     /= 4;
+       $minNumMatches  = floor(1.5 * $minNumMatches); 
+       $ordSketch      = floor($ordSketch / 2);
+       $ordSketchMer   = floor($ordSketchMer * 1.3);
+       $threshold     *= 4;
+       $blockPerGb    *= 2;
     }
 
     my $blockSize = int($blockPerGb * $memorySize);
@@ -341,6 +366,8 @@ sub mhapConfigure ($$$$) {
     print F "  --weighted -k $merSize \\\n";
     print F "  --num-hashes $numHashes \\\n";
     print F "  --num-min-matches $minNumMatches \\\n";
+    print F "  --ordered-sketch-size $ordSketch \\\n";
+    print F "  --ordered-kmer-size $ordSketchMer \\\n";
     print F "  --threshold $threshold \\\n";
     print F "  --filter-threshold $filterThreshold \\\n";
     print F "  --min-store-length " . ($seedLength-1) . " \\\n";

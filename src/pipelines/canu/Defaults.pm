@@ -626,13 +626,13 @@ sub setOverlapDefaults ($$$) {
 
     #  Mhap parameters.
 
-    $global{"${tag}MhapVersion"}              = "1.5b1";
+    $global{"${tag}MhapVersion"}              = "2.0";
     $synops{"${tag}MhapVersion"}              = "Version of the MHAP jar file to use";
 
     $global{"${tag}MhapFilterThreshold"}      = "0.000005";
     $synops{"${tag}MhapFilterThreshold"}      = "Value between 0 and 1. kmers which comprise more than this percentage of the input are downweighted";
 
-    $global{"${tag}MhapBlockSize"}            = 1500;
+    $global{"${tag}MhapBlockSize"}            = 3000;
     $synops{"${tag}MhapBlockSize"}            = "Number of reads per 1GB; memory * blockSize = the size of  block loaded into memory per job";
 
     $global{"${tag}MhapMerSize"}              = ($tag eq "cor") ? 16 : 22;

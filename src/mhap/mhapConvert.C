@@ -128,7 +128,7 @@ main(int argc, char **argv) {
         ov.flipped(true);
       }
 
-      ov.erate(atof(W[2]) / 500.0);
+      ov.erate(atof(W[2]));
 
       of->writeOverlap(&ov);
     }
