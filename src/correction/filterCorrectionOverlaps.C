@@ -227,7 +227,7 @@ main(int argc, char **argv) {
     //  Figure out which overlaps are good enough to consider and save their length.
 
     for (uint32 oo=0; oo<ovlLen; oo++) {
-      uint32  ovlLength  = ovl[oo].a_end() - ovl[oo].a_bgn();
+      uint64  ovlLength  = ovl[oo].a_end() - ovl[oo].a_bgn();
       uint64  ovlScore   = 100 * ovlLength * (1 - ovl[oo].erate());
       if (legacyScore) {
          ovlScore  = ovlLength << AS_MAX_EVALUE_BITS;
@@ -259,7 +259,7 @@ main(int argc, char **argv) {
     uint32 belowCutoffLocal = 0;
 
     for (uint32 oo=0; oo<ovlLen; oo++) {
-      uint32  ovlLength  = ovl[oo].a_end() - ovl[oo].a_bgn();
+      uint64  ovlLength  = ovl[oo].a_end() - ovl[oo].a_bgn();
       uint64  ovlScore   = 100 * ovlLength * (1 - ovl[oo].erate());
       if (legacyScore) {
          ovlScore  = ovlLength << AS_MAX_EVALUE_BITS;
@@ -345,9 +345,11 @@ main(int argc, char **argv) {
 
   gkpStore->gkStore_close();
 
-
+  if (noStats == true)
+     exit(0);
+  
   errno = 0;
-  FILE     *statsFile = (noStats == true) ? NULL : fopen(statsFileName, "w");
+  FILE     *statsFile = fopen(statsFileName, "w");
   if (errno)
     fprintf(stderr, "ERROR: failed to open '%s' for writing: %s\n", statsFileName, strerror(errno)), exit(1);
 
@@ -391,13 +393,11 @@ main(int argc, char **argv) {
   fprintf(statsFile, "%12"F_U64P" (<  95%% overlaps filtered)\n", reads95OlapsFiltered);
   fprintf(statsFile, "%12"F_U64P" (< 100%% overlaps filtered)\n", reads99OlapsFiltered);
   fprintf(statsFile, "\n");
+  fclose(statsFile);
 
   //  Histogram of overlaps per read
   //  Histogram of overlaps filtered per read
   //  Histogram of overlaps used for correction (number per read, lengths?)
-
-  if (statsFile)
-    fclose(statsFile);
 
   exit(0);
 }

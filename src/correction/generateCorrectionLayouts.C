@@ -81,7 +81,7 @@ generateLayout(gkStore    *gkpStore,
   for (uint32 oo=0; oo<ovlLen; oo++) {
 
     //  ovlLength, in filterCorrectionOverlaps, is computed on the a read.  That is now the b read here.
-    uint32   ovlLength = ((ovl[oo].b_bgn() < ovl[oo].b_end()) ?
+    uint64   ovlLength = ((ovl[oo].b_bgn() < ovl[oo].b_end()) ?
                           ovl[oo].b_end() - ovl[oo].b_bgn() :
                           ovl[oo].b_bgn() - ovl[oo].b_end());
     uint64   ovlScore  = 100 * ovlLength * (1 - ovl[oo].erate());
