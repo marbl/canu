@@ -163,6 +163,8 @@ dumpDistanceBetweenMers(merylArgs *args) {
   uint64 *hist     = new uint64 [histMax];
   uint64  histHuge = 0;
 
+  memset(hist, 0, sizeof(uint64) * histMax);
+
   if (M->hasPositions() == false) {
     fprintf(stderr, "File '%s' contains no position information.\n", args->inputFile);
   } else {
