@@ -207,7 +207,7 @@ main(int argc, char **argv) {
 
   delete readData;
 
-  for (uint32 pp=0; pp<numPartitions; pp++) {
+  for (uint32 pp=0; pp<=numPartitions; pp++) {
     if (partFile[pp] == NULL)
       continue;
 
@@ -216,6 +216,9 @@ main(int argc, char **argv) {
   }
 
   delete tigStore;
+  delete [] partFile;
+  delete [] tigToPart;
+  delete [] nReadsPerPart;
 
   gkpStore->gkStore_close();
 
