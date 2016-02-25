@@ -622,13 +622,13 @@ gkLibrary::gkLibrary_finalTrimString(void) {
 //  3)  No addition, no modification.              gkStore(path);
 //
 gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
-  char    name[FILENAME_MAX];
+  char    name[FILENAME_MAX + 5];
 
   memset(_storePath, 0, sizeof(char) * FILENAME_MAX);
   memset(_storeName, 0, sizeof(char) * FILENAME_MAX);
 
-  strcpy(_storePath, path);
-  strcpy(_storeName, path);  //  Broken.
+  strncpy(_storePath, path, FILENAME_MAX-1);
+  strncpy(_storeName, path, FILENAME_MAX-1);  //  Broken.
 
   sprintf(name, "%s/info", _storePath);
 
@@ -1016,7 +1016,7 @@ gkStore::gkStore_addEmptyLibrary(char const *name) {
 
   _libraries[_info.numLibraries] = gkLibrary();
 
-  strcpy(_libraries[_info.numLibraries]._libraryName, libname);
+  strncpy(_libraries[_info.numLibraries]._libraryName, libname, LIBRARY_NAME_SIZE-1);
 
   _libraries[_info.numLibraries]._libraryID = _info.numLibraries;
 

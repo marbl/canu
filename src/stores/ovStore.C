@@ -183,7 +183,8 @@ ovStore::ovStore(const char *path, gkStore *gkp, ovStoreType cType) {
       (path[1] == 0))
     fprintf(stderr, "ovStore::ovStore()-- ERROR: name cannot be '-' (stdin).\n"), exit(1);
 
-  strcpy(_storePath, path);
+  memset(_storePath, 0, FILENAME_MAX);
+  strncpy(_storePath, path, FILENAME_MAX-1);
 
   _isOutput  = (cType & ovStoreWrite)   ? true : false;
 
@@ -407,6 +408,7 @@ ovStore::readOverlaps(ovOverlap *&overlaps, uint32 &maxOverlaps, bool restrictTo
       //  We read no overlap, open the next file and try again.
 
       delete _bof;
+      _bof = NULL;
 
       _currentFileIndex++;
 

@@ -43,7 +43,6 @@ using namespace std;
 #define AS_MAX_LIBRARIES           (((uint32)1 << AS_MAX_LIBRARIES_BITS) - 1)
 
 #define LIBRARY_NAME_SIZE          128
-#define LIBRARY_NAME_DEFAULT      "UNDEFINED"
 
 //  Maximum length of reads.
 //
@@ -104,14 +103,14 @@ class gkLibrary {
 public:
   gkLibrary() {
     memset(_libraryName, 0, sizeof(char) * LIBRARY_NAME_SIZE);
-    strcpy(_libraryName, LIBRARY_NAME_DEFAULT);
+    strncpy(_libraryName, "UNDEFINED", LIBRARY_NAME_SIZE-1);
 
     gkLibrary_clearFeatures();
   };
 
   gkLibrary(char const *name) {
     memset(_libraryName, 0, sizeof(char) * LIBRARY_NAME_SIZE);
-    strcpy(_libraryName, name);
+    strncpy(_libraryName, name, LIBRARY_NAME_SIZE-1);
 
     gkLibrary_clearFeatures();
   };
