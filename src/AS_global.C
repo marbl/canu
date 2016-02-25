@@ -117,70 +117,72 @@ AS_configure(int argc, char **argv) {
   //
 
   p = getenv("CANU_DIRECTORY");
-  if (p) {
-    char  D[FILENAME_MAX] = {0};
-    char  N[FILENAME_MAX] = {0};
-    char  H[1024]         = {0};  //  HOST_NAME_MAX?  Undefined.
-    char *E;
-    FILE *F;
+  if (p == NULL)
+    return(argc);
 
-    //  Make a directory for logs.  Allow all errors, in particular,
-    //  the error of "directory already exists".
-    //
-    sprintf(D, "%s/canu-logs", p);
-    mkdir(D, S_IRWXU | S_IRWXG | S_IRWXO);
+  char  D[FILENAME_MAX] = {0};
+  char  N[FILENAME_MAX] = {0};
+  char  H[1024]         = {0};  //  HOST_NAME_MAX?  Undefined.
+  char *E;
+  FILE *F;
 
-    //  Our hostname is part of our unique filename.
-    //
-    gethostname(H, 1024);
+  //  Make a directory for logs.  If an error, just return now, there's nothing we can log.
 
-    //  Our executable name is part of our unique filename too.
-    //
-    E = argv[0] + strlen(argv[0]) - 1;
-    while ((E != argv[0]) && (*E != '/'))
-      E--;
-    if (*E == '/')
-      E++;
+  sprintf(D, "%s/canu-logs", p);
 
-    //  Construct a name for this log, and open it.  If we can't open
-    //  it, just skip the log.
-    //
-    sprintf(N, "%s/"F_U64"_%s_"F_U64"_%s",
-            D,
-            (uint64)time(NULL),
-            H,
-            (uint64)getpid(),
-            E);
+  errno = 0;
+  mkdir(D, S_IRWXU | S_IRWXG | S_IRWXO);
+  if ((errno != 0) && (errno != EEXIST))
+    return(argc);
 
-    //fprintf(stderr, "%s\n", N);
+  //  Our hostname is part of our unique filename.
 
-    errno = 0;
-    F = fopen(N, "w");
-    if ((errno == 0) && (F)) {
-      fprintf(F, "Canu v%s.%s (+%s commits) r%s %s.\n",
-              CANU_VERSION_MAJOR,
-              CANU_VERSION_MINOR,
-              CANU_VERSION_COMMITS,
-              CANU_VERSION_REVISION,
-              CANU_VERSION_HASH);
-      fprintf(F, "\n");
-      fprintf(F, "Current Working Directory:\n");
-      fprintf(F, "%s\n", getcwd(N, FILENAME_MAX));
-      fprintf(F, "\n");
-      fprintf(F, "Command:\n");
-      fprintf(F, "%s", argv[0]);
+  gethostname(H, 1024);
 
-      for (i=1; i<argc; i++)
-        if (argv[i][0] == '-')
-          fprintf(F, " \\\n  %s", argv[i]);
-        else
-          fprintf(F, " %s", argv[i]);
+  //  Our executable name is part of our unique filename too.
 
-      fprintf(F, "\n");
+  E = argv[0] + strlen(argv[0]) - 1;
+  while ((E != argv[0]) && (*E != '/'))
+    E--;
+  if (*E == '/')
+    E++;
 
-      fclose(F);
-    }
-  }
+  //  Construct a name for this log, and open it.  If we can't open it, just skip the log.
+
+  sprintf(N, "%s/"F_U64"_%s_"F_U64"_%s",
+          D,
+          (uint64)time(NULL),
+          H,
+          (uint64)getpid(),
+          E);
+
+  errno = 0;
+  F = fopen(N, "w");
+  if ((errno != 0) || (F == NULL))
+    return(argc);
+
+  fprintf(F, "Canu v%s.%s (+%s commits) r%s %s.\n",
+          CANU_VERSION_MAJOR,
+          CANU_VERSION_MINOR,
+          CANU_VERSION_COMMITS,
+          CANU_VERSION_REVISION,
+          CANU_VERSION_HASH);
+  fprintf(F, "\n");
+  fprintf(F, "Current Working Directory:\n");
+  fprintf(F, "%s\n", getcwd(N, FILENAME_MAX));
+  fprintf(F, "\n");
+  fprintf(F, "Command:\n");
+  fprintf(F, "%s", argv[0]);
+
+  for (i=1; i<argc; i++)
+    if (argv[i][0] == '-')
+      fprintf(F, " \\\n  %s", argv[i]);
+    else
+      fprintf(F, " %s", argv[i]);
+
+  fprintf(F, "\n");
+
+  fclose(F);
 
   return(argc);
 }
