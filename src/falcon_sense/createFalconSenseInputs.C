@@ -98,6 +98,9 @@ main(int argc, char **argv) {
   if (err) {
     exit(1);
   }
+  if (gkpName == NULL || tigName == NULL) {
+    exit(1);
+  }
 
   //  Open gkpStore.  Pretty much the first thing we always do.
 
