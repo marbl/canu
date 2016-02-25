@@ -202,7 +202,7 @@ doStats(char *inName,
   fprintf(stdout, "mononucleotide\n");
   fprintf(stdout, "\n");
   for (uint32 ii=0; ii<FREQ_NUM; ii++)
-    if (freq->tri[ii] > 0)
+    if (freq->mono[ii] > 0)
       output.push_back(nucOut(indexToBase[ii], 0, 0,
                               freq->mono[ii],
                               freq->mono[ii] * 100.0 / totBases));
