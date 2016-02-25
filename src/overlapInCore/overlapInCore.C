@@ -140,7 +140,7 @@ ovFile  *Out_BOF = NULL;
 //  Allocate memory for  (* WA)  and set initial values.
 //  Set  thread_id  field to  id .
 void
-Initialize_Work_Area(Work_Area_t *WA, int id) {
+Initialize_Work_Area(Work_Area_t *WA, int id, gkStore *gkpStore) {
   uint64  allocated = 0;
 
   WA->String_Olap_Size  = INIT_STRING_OLAP_SIZE;
@@ -154,6 +154,8 @@ Initialize_Work_Area(Work_Area_t *WA, int id) {
 
   WA->status     = 0;
   WA->thread_id  = id;
+
+  WA->gkpStore = gkpStore;
 
   WA->overlapsLen = 0;
   WA->overlapsMax = 1024 * 1024 / sizeof(ovOverlap);
@@ -200,8 +202,7 @@ OverlapDriver(void) {
 
   for (uint32 i=0;  i<G.Num_PThreads;  i++) {
     fprintf(stderr, "OverlapDriver()--  Initialize_Work_Area %u\n", i);
-    Initialize_Work_Area(thread_wa+i, i);
-    thread_wa[i].gkpStore = gkpStore;
+    Initialize_Work_Area(thread_wa+i, i, gkpStore);
   }
 
   fprintf(stderr, "OverlapDriver()--  Initialized\n");
