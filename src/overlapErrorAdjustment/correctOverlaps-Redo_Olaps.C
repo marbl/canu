@@ -515,8 +515,13 @@ Redo_Olaps(coParameters *G, gkStore *gkpStore) {
     }
   }
 
-  delete ped;
-  delete readData;
+  delete    ped;
+  delete    readData;
+  delete [] radj;
+  delete [] fadj;
+  delete [] rseq;
+  delete [] fseq;
+  delete    Cfile;
 
   fprintf(stderr, "Olaps Fwd "F_U64"\n", olapsFwd);
   fprintf(stderr, "Olaps Rev "F_U64"\n", olapsRev);
