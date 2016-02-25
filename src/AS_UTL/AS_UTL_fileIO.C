@@ -321,9 +321,7 @@ AS_UTL_fseek(FILE *stream, off_t offset, int whence) {
   }
 #endif  //  __FreeBSD__
 
-  errno = 0;
-  fseeko(stream, offset, whence);
-  if (errno) {
+  if (fseeko(stream, offset, whence) != 0) {
     fprintf(stderr, "AS_UTL_fseek()--  Failed with %s.\n", strerror(errno));
     assert(errno == 0);
   }
