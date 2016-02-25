@@ -140,28 +140,36 @@ AS_UTL_mkdir(const char *dirname) {
   struct stat  st;
 
   errno = 0;
-  stat(dirname, &st);
-  if (errno == 0) {
-    if (S_ISDIR(st.st_mode))
-      return(0);
-    fprintf(stderr, "AS_UTL_mkdir()--  ERROR!  '%s' is a file, and not a directory.\n", dirname);
-    exit(1);
-  }
 
-  if (errno != ENOENT) {
+  //  Stat the file.  Don't fail if the file doesn't exist though.
+
+  if ((stat(dirname, &st) != 0) && (errno != ENOENT)) {
     fprintf(stderr, "AS_UTL_mkdir()--  Couldn't stat '%s': %s\n", dirname, strerror(errno));
     exit(1);
   }
 
-  errno = 0;
-  mkdir(dirname, S_IRWXU | S_IRWXG | S_IRWXO);
-  if ((errno) && (errno != EEXIST)) {
-    fprintf(stderr, "AS_UTL_mkdir()--  Couldn't create directory '%s': %s\n", dirname, strerror(errno));
-    exit(1);
+  //  If file doesn't exist, make the directory, and fail horribly, or return success.
+
+  if (errno == ENOENT) {
+    if (mkdir(dirname, S_IRWXU | S_IRWXG | S_IRWXO) != 0) {
+      fprintf(stderr, "AS_UTL_mkdir()--  Couldn't create directory '%s': %s\n", dirname, strerror(errno));
+      exit(1);
+    }
+
+    return(1);
   }
 
+  //  The file exists.  Return that it already exists, or that it's a file and fail horribly.
+
+  if (S_ISDIR(st.st_mode))
+    return(0);
+
+  fprintf(stderr, "AS_UTL_mkdir()--  ERROR!  '%s' is a file, and not a directory.\n", dirname);
+  exit(1);
   return(1);
 }
+
+
 
 //  Remove a file, or do nothing if the file doesn't exist.  Returns true if the file
 //  was deleted, false if the file never existsed.
