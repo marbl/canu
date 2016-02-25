@@ -73,8 +73,8 @@ public:
     uint32   cmdWords = 2;  //  2 == Space for first word and terminating 0L
 
     for (char *tmp=cmd; *tmp; tmp++) {
-      cmdWords += *tmp == ' ';
-      cmdWords += *tmp == '\t';
+      cmdWords += (*tmp == ' ')  ? 1 : 0;
+      cmdWords += (*tmp == '\t') ? 1 : 0;
       cmdChars++;
     }
 
