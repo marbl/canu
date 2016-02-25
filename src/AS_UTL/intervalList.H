@@ -148,6 +148,8 @@ public:
   void      merge(uint32 minOverlap=0);               //  Merge overlapping regions
   void      merge(intervalList<iNum, iVal> *IL);      //  Insert IL into this list
 
+  void      filterShort(iNum minLength);
+
   void      intersect(intervalList<iNum, iVal> &A,
                       intervalList<iNum, iVal> &B);
 
@@ -377,6 +379,27 @@ void
 intervalList<iNum, iVal>::merge(intervalList<iNum, iVal> *IL) {
   for (uint32 i=0; i<IL->_listLen; i++)
     add(IL->_list[i].lo, IL->_list[i].hi - IL->_list[i].lo);
+}
+
+
+
+template <class iNum, class iVal>
+void
+intervalList<iNum, iVal>::filterShort(iNum minLength) {
+  uint32   fr = 0;
+  uint32   to = 0;
+
+  for (; fr < _listLen; fr++) {
+    if (hi(fr) - lo(fr) <= minLength)
+      continue;
+
+    if (to != fr)
+      _list[to] = _list[fr];
+
+    to++;
+  }
+
+  _listLen = to;
 }
 
 
