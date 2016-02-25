@@ -166,6 +166,9 @@ void add_sequence ( seq_coor_t start,
                 break;
             case 'T':
                 sa[ start + i ] = 3;
+                break;
+            default:
+                sa[ start + i ] = 0;
         }
     }
     kmer_bv = get_kmer_bitvector( sa + start, K);
@@ -241,6 +244,9 @@ kmer_match * find_kmer_pos_for_seq( const char * seq, seq_coor_t seq_len, uint32
                 break;
             case 'T':
                 sa[ i ] = 3;
+                break;
+             default:
+                sa[ i ] = 0;
         }
     }
 
@@ -328,7 +334,7 @@ aln_range* find_best_aln_range(kmer_match * km_ptr,
         if ( km_ptr -> target_pos[i] < t_min) {
             t_min =  km_ptr->target_pos[i];
         }
-        if ( km_ptr -> query_pos[i] > t_max) {
+        if ( km_ptr -> target_pos[i] > t_max) {
             t_max =  km_ptr->target_pos[i];
         }
         d = (long int) km_ptr->query_pos[i] - (long int) km_ptr->target_pos[i];
@@ -341,9 +347,12 @@ aln_range* find_best_aln_range(kmer_match * km_ptr,
     }
 
     //printf("%lu %ld %ld\n" , km_ptr->count, d_min, d_max);
+    if (km_ptr->count == 0)
+       d_max = d_min = 0;
+
     d_count = (seq_coor_t *)calloc( (d_max - d_min)/bin_size + 1, sizeof(seq_coor_t) );
-    q_coor = (seq_coor_t *)calloc( km_ptr->count, sizeof(seq_coor_t) );
-    t_coor = (seq_coor_t *)calloc( km_ptr->count, sizeof(seq_coor_t) );
+    q_coor =  (seq_coor_t *)calloc( km_ptr->count, sizeof(seq_coor_t) );
+    t_coor =  (seq_coor_t *)calloc( km_ptr->count, sizeof(seq_coor_t) );
 
     for (i = 0; i <  km_ptr->count; i++ ) {
         d = (long int) (km_ptr->query_pos[i]) - (long int) (km_ptr->target_pos[i]);

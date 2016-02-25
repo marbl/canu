@@ -392,6 +392,7 @@ consensus_data * get_cns_from_align_tags( align_tags_t ** tag_seqs,
                 case 'G': base = 2; break;
                 case 'T': base = 3; break;
                 case '-': base = 4; break;
+                default : base = 4; break;
             }
             // Note: On bad input, base may be -1.
             update_col( &(msa_array[t_pos]->delta[delta].base[base]), c_tag->p_t_pos, c_tag->p_delta, c_tag->p_q_base);
@@ -434,59 +435,57 @@ consensus_data * get_cns_from_align_tags( align_tags_t ** tag_seqs,
                     }
                     */
                     aln_col = msa_array[i]->delta[j].base + kk;
-                    if (aln_col->count >= 0) {
-                        best_score = -1;
-                        best_i = -1;
-                        best_j = -1;
-                        best_b = -1;
+                    best_score = -1;
+                    best_i = -1;
+                    best_j = -1;
+                    best_b = -1;
 
-                        for (ck = 0; ck < aln_col->n_link; ck++) { // loop through differnt link to previous column
-                            int pi;
-                            int pj;
-                            int pkk;
-                            pi = aln_col->p_t_pos[ck];
-                            pj = aln_col->p_delta[ck];
-                            switch (aln_col->p_q_base[ck]) {
-                                case 'A': pkk = 0; break;
-                                case 'C': pkk = 1; break;
-                                case 'G': pkk = 2; break;
-                                case 'T': pkk = 3; break;
-                                case '-': pkk = 4; break;
-                                default: pkk = 4;
-                            }
+                    for (ck = 0; ck < aln_col->n_link; ck++) { // loop through differnt link to previous column
+                        int pi;
+                        int pj;
+                        int pkk;
+                        pi = aln_col->p_t_pos[ck];
+                        pj = aln_col->p_delta[ck];
+                        switch (aln_col->p_q_base[ck]) {
+                            case 'A': pkk = 0; break;
+                            case 'C': pkk = 1; break;
+                            case 'G': pkk = 2; break;
+                            case 'T': pkk = 3; break;
+                            case '-': pkk = 4; break;
+                            default : pkk = 4; break;
+                        }
 
-                            if (aln_col->p_t_pos[ck] == -1) {
-                                score =  (double) aln_col->link_count[ck] - (double) coverage[i] * 0.5;
-                            } else {
-                                score = msa_array[pi]->delta[pj].base[pkk].score + 
-                                        (double) aln_col->link_count[ck] - (double) coverage[i] * 0.5;
-                            }
-                            // best_mark = ' ';
-                            if (score > best_score) {
-                                best_score = score;
-                                aln_col->best_p_t_pos = best_i = pi;
-                                aln_col->best_p_delta = best_j = pj;
-                                aln_col->best_p_q_base = best_b = pkk;
-                                best_ck = ck;
-                                // best_mark = '*';
-                            }
-                            /*
-                            printf("X %d %d %d %c %d %d %d %c %d %lf %c\n", coverage[i], i, j, base, aln_col->count, 
-                                                                  aln_col->p_t_pos[ck], 
-                                                                  aln_col->p_delta[ck], 
-                                                                  aln_col->p_q_base[ck], 
-                                                                  aln_col->link_count[ck],
-                                                                  score, best_mark);
-                            */
+                        if (aln_col->p_t_pos[ck] == -1) {
+                            score =  (double) aln_col->link_count[ck] - (double) coverage[i] * 0.5;
+                        } else {
+                            score = msa_array[pi]->delta[pj].base[pkk].score + 
+                                    (double) aln_col->link_count[ck] - (double) coverage[i] * 0.5;
                         }
-                        aln_col->score = best_score;
-                        if (best_score > g_best_score) {
-                            g_best_score = best_score;
-                            g_best_aln_col = aln_col;
-                            g_best_ck = best_ck;
-                            g_best_t_pos = i;
-                            //printf("GB %d %d %d %d\n", i, j, ck, g_best_aln_col);
+                        // best_mark = ' ';
+                        if (score > best_score) {
+                            best_score = score;
+                            aln_col->best_p_t_pos = best_i = pi;
+                            aln_col->best_p_delta = best_j = pj;
+                            aln_col->best_p_q_base = best_b = pkk;
+                            best_ck = ck;
+                            // best_mark = '*';
                         }
+                        /*
+                        printf("X %d %d %d %c %d %d %d %c %d %lf %c\n", coverage[i], i, j, base, aln_col->count, 
+                                                              aln_col->p_t_pos[ck], 
+                                                              aln_col->p_delta[ck], 
+                                                              aln_col->p_q_base[ck], 
+                                                              aln_col->link_count[ck],
+                                                              score, best_mark);
+                        */
+                    }
+                    aln_col->score = best_score;
+                    if (best_score > g_best_score) {
+                        g_best_score = best_score;
+                        g_best_aln_col = aln_col;
+                        g_best_ck = best_ck;
+                        g_best_t_pos = i;
+                        //printf("GB %d %d %d %d\n", i, j, ck, g_best_aln_col);
                     }
                 }
             }
