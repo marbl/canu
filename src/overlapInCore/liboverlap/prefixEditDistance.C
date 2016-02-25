@@ -39,7 +39,7 @@ prefixEditDistance::prefixEditDistance(bool doingPartialOverlaps_, double maxEra
   Left_Delta  = new int  [MAX_ERRORS];
   Right_Delta = new int  [MAX_ERRORS];
 
-  allocated += 3 * MAX_ERRORS * sizeof(int);
+  allocated  = 3 * MAX_ERRORS * sizeof(int);
 
   Delta_Stack = new int  [MAX_ERRORS];
 
