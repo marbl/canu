@@ -504,7 +504,7 @@ BestOverlapGraph::removeWeak(double threshold) {
       if ((AS_BAT_overlapAEndIs5prime(olaps[oo])) && (evalues5len < evaluesMax))
         evalues5[evalues5len++] = olaps[oo].evalue;
 
-      if ((AS_BAT_overlapAEndIs3prime(olaps[oo])) && (evalues5len < evaluesMax))
+      if ((AS_BAT_overlapAEndIs3prime(olaps[oo])) && (evalues3len < evaluesMax))
         evalues3[evalues3len++] = olaps[oo].evalue;
     }
 
