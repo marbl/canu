@@ -129,16 +129,19 @@ sub computeNumberOfCorrectionJobs ($$) {
     my $nJobs   = 0;
     my $nPerJob = 0;
 
-    if (getGlobal("corConsensus") eq "falcon") {
-        open(F, "ls $wrk/correction_inputs/ |") or caExit("can't find list of correction_inputs: $!", undef);
+    if (getGlobal("corConsensus") eq "falcon" && -e "$wrk/2-correction/correction_inputs" ) {
+        open(F, "ls $wrk/2-correction/correction_inputs/ |") or caExit("can't find list of correction_inputs: $!", undef);
         while (<F>) {
             $nJobs++  if (m/^\d\d\d\d$/);
         }
         close(F);
+
+        return($nJobs, undef);
     }
 
     if ((getGlobal("corConsensus") eq "utgcns") ||
-        (getGlobal("corConsensus") eq "falconpipe")) {
+        (getGlobal("corConsensus") eq "falconpipe") ||
+        (getGlobal("corConsensus") eq "falcon")) {
         my $nPart    = getGlobal("corPartitions");
         my $nReads   = getNumberOfReadsInStore($wrk, $asm);
 
@@ -188,6 +191,9 @@ sub buildCorrectionLayouts_direct ($$) {
         rename "$wrk/$asm.corStore.WORKING", "$wrk/$asm.corStore";
     }
 
+    # first we call this function to compute partioning
+    my ($jobs, $nPer) = computeNumberOfCorrectionJobs($wrk, $asm);
+
     make_path("$path/correction_inputs")  if (! -d "$path/correction_inputs");
     make_path("$path/correction_outputs")  if (! -d "$path/correction_outputs");
 
@@ -196,7 +202,7 @@ sub buildCorrectionLayouts_direct ($$) {
         $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
         $cmd .= "  -T $wrk/$asm.corStore 1 \\\n";
         $cmd .= "  -o $path/correction_inputs/ \\\n";
-        $cmd .= "  -p " . getGlobal("corPartitions") . " \\\n";   #  NEED corPartitionMin!
+        $cmd .= "  -p " . $jobs . " \\\n";
         $cmd .= "> $path/correction_inputs.err 2>&1";
 
         if (runCommand($wrk, $cmd)) {
@@ -204,7 +210,10 @@ sub buildCorrectionLayouts_direct ($$) {
         }
     }
 
-    my ($jobs, $nPer) = computeNumberOfCorrectionJobs($wrk, $asm);
+    if (getGlobal("corConsensus") eq "falcon") {
+       #the second call will confirm we have the proper number of output files and set jobs 
+       ($jobs, $nPer) = computeNumberOfCorrectionJobs($wrk, $asm);
+    }
 
     #getAllowedResources("", "cor");
 
@@ -226,9 +235,11 @@ sub buildCorrectionLayouts_direct ($$) {
     print F "  exit 1\n";
     print F "fi\n";
     print F "\n";
-    print F "bgn=`expr \\( \$jobid - 1 \\) \\* $nPer`\n";
-    print F "end=`expr \\( \$jobid + 0 \\) \\* $nPer`\n";
-    print F "\n";
+    if (getGlobal("corConsensus") eq "utgcns") {
+       print F "bgn=`expr \\( \$jobid - 1 \\) \\* $nPer`\n";
+       print F "end=`expr \\( \$jobid + 0 \\) \\* $nPer`\n";
+       print F "\n";
+    }
     print F "jobid=`printf %04d \$jobid`\n";
     print F "\n";
     print F "if [ -e \"$path/correction_outputs/\$jobid.fasta\" ] ; then\n";
