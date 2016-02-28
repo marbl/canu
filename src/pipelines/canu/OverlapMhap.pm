@@ -39,6 +39,7 @@ require Exporter;
 @EXPORT = qw(mhapConfigure mhapPrecomputeCheck mhapCheck);
 
 use strict;
+use POSIX qw(floor);
 
 use File::Path qw(make_path remove_tree);
 
@@ -92,7 +93,7 @@ sub mhapConfigure ($$$$) {
     my $ordSketch       = "1536";
     my $ordSketchMer    = 12;
 
-    if (getGlobal("${tag}MhapSensitivity") eq "sens") {
+    if (getGlobal("${tag}MhapSensitivity") eq "sens" || getGlobal("${tag}MhapSensitivity") eq "high") {
        $numHashes     =  "768";
        $minNumMatches =    "2";
        $threshold     = "0.024";
