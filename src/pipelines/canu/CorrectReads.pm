@@ -88,12 +88,6 @@ sub getCorErrorRate ($$) {
         return($erate);
     }
 
-    if (! -e "$wrk/$asm.gkpStore/libraries.txt") {
-        if (runCommandSilently("$wrk/$asm.gkpStore", "$bin/gatekeeperDumpMetaData -G . -libs > libraries.txt 2> /dev/null", 1)) {
-            caExit("failed to generate library metadata", undef);
-        }
-    }
-
     my $numPacBioRaw         = 0;
     my $numPacBioCorrected   = 0;
     my $numNanoporeRaw       = 0;

@@ -159,7 +159,6 @@ while (scalar(@ARGV)) {
              ($arg eq "-pacbio-corrected") ||
              ($arg eq "-nanopore-raw")     ||
              ($arg eq "-nanopore-corrected")) {
-
         if ($arg =~ m/pacbio/) {
             setErrorRate(0.025);
             setGlobal("corErrorRate", "0.30");
@@ -231,6 +230,45 @@ foreach my $specFile (@specFiles) {
 #  Set parameters from the command line.
 
 setParametersFromCommandLine(@specOpts);
+
+#  When resuming a run without input files, set the error rates based on library type in the gkpStore. If the user set error, do nothing
+# check if we have gkpStores but no input files and reset error rates based on gkpStore
+if (scalar(@inputFiles) == 0 && ! defined(getGlobal("errorRate"))) {
+    my $gkpStore = undef;
+    $gkpStore = "$wrk/correction/$asm.gkpStore" if -e "$wrk/correction/$asm.gkpStore/libraries.txt";
+    $gkpStore = "$wrk/trimming/$asm.gkpStore "  if -e "$wrk/trimming/$asm.gkpStore/libraries.txt";
+    $gkpStore = "$wrk/unitigging/$asm.gkpStore" if -e "$wrk/unitigging/$asm.gkpStore/libraries.txt";
+
+    # set to the default if we can't find anything 
+    if (!defined($gkpStore)) {
+        setErrorRate(0.01);
+    } else {
+        my $numPacBioRaw         = 0;
+        my $numPacBioCorrected   = 0;
+        my $numNanoporeRaw       = 0;
+        my $numNanoporeCorrected = 0;
+
+        open(L, "< $gkpStore/libraries.txt") or caExit("can't open '$gkpStore/libraries.txt' for reading: $!", undef);
+        while (<L>) {
+            $numPacBioRaw++           if (m/pacbio-raw/);
+            $numPacBioCorrected++     if (m/pacbio-corrected/);
+            $numNanoporeRaw++         if (m/nanopore-raw/);
+            $numNanoporeCorrected++   if (m/nanopore-corrected/);
+        }
+        if ($numPacBioRaw > 0 || $numPacBioCorrected > 0) {
+            setErrorRate(0.025);
+            setGlobal("corErrorRate", "0.30");
+            setGlobal("batOptions", "-RS -NS -CS");
+            setGlobal("cnsMaxCoverage", 20);
+        }
+        if ($numNanoporeRaw > 0 || $numNanoporeCorrected > 0) {
+            setErrorRate(0.045);
+            setGlobal("corErrorRate", "0.50");
+            setGlobal("batOptions", "-RS -NS -CS");
+            setGlobal("cnsMaxCoverage", 20);
+        }
+    }
+}
 
 #  Finish setting parameters, then reset the bin directory using pathMap.
 

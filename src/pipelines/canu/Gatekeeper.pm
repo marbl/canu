@@ -253,6 +253,8 @@ sub gatekeeperCreateStore ($$$@) {
                 print STDERR "  mv $wrk/$asm.gkpStore.BUILDING \\\n";
                 print STDERR "     $wrk/$asm.gkpStore.ACCEPTED\n";
                 print STDERR "\n";
+                print STDERR "Or remove $wrk and re-run with stopOnReadQuality=false\n";
+                print STDERR "\n";
                 exit(1);
             } else {
                 print STDERR "Proceeding with assembly because stopOnReadQuality=false.\n";
@@ -278,7 +280,16 @@ sub gatekeeperGenerateReadsList ($$$) {
     }
 }
 
+sub gatekeeperGenerateLibrariesList ($$$) {
+    my $wrk    = shift @_;  #  Local work directory
+    my $asm    = shift @_;
+    my $tag    = shift @_;
+    my $bin    = getBinDirectory();
 
+    if (runCommandSilently("$wrk/$asm.gkpStore", "$bin/gatekeeperDumpMetaData -G . -libs > libraries.txt 2> /dev/null", 1)) {
+        caExit("failed to generate list of libraries in store", undef);
+    }
+}
 
 sub gatekeeperGenerateReadLengths ($$$) {
     my $wrk    = shift @_;  #  Local work directory
@@ -425,6 +436,7 @@ sub gatekeeper ($$$@) {
     caExit("gatekeeper store exists, but contains no reads", undef)   if (getNumberOfReadsInStore($wrk, $asm) == 0);
 
     gatekeeperGenerateReadsList($wrk, $asm, $tag)                     if (! -e "$wrk/$asm.gkpStore/reads.txt");
+    gatekeeperGenerateLibrariesList($wrk, $asm, $tag)                 if (! -e "$wrk/$asm.gkpStore/libraries.txt"); 
     gatekeeperGenerateReadLengths($wrk, $asm, $tag)                   if (! -e "$wrk/$asm.gkpStore/readlengths.txt");
     gatekeeperGenerateReadLengthPlot($wrk, $asm, $tag)                if (! -e "$wrk/$asm.gkpStore/readlengths.png");
 

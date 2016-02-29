@@ -378,8 +378,8 @@ sub printHelp () {
     print "  It is used mostly to compute coverage in reads.  Fractional values are allowed: '4.7m'\n";
     print "  is the same as '4700k' and '4700000'\n";
     print "\n";
-    print "  The errorRate is not used correctly (we're working on it).  Set it to 0.06 and\n";
-    print "  use the various utg*ErrorRate options.\n";
+    print "  The errorRate is not used correctly (we're working on it).  Don't set it\n";
+    print "  If you want to change the defaults, use the various utg*ErrorRate options.\n";
     print "\n";
     print "  A full list of options can be printed with '-options'.  All options\n";
     print "  can be supplied in an optional sepc file.\n";
@@ -547,7 +547,6 @@ sub showErrorRates ($) {
     #print STDERR "${prefix}corErrorRate        -- ", getGlobal("corErrorRate"), "\n";
     print STDERR "${prefix}cnsErrorRate        -- ", getGlobal("cnsErrorRate"), "\n";
 }
-
 
 
 #  Defaults are set for yeast:
@@ -969,10 +968,6 @@ sub setDefaults () {
         undef $ENV{getGlobal("gridEngineTaskID")};
         print STDERR "ENV: ", getGlobal("gridEngineTaskID"), " needs to be unset, done.\n";
     }
-
-    #  Finally, set the global default error rate
-
-    setErrorRate(0.01);
 }
 
 
