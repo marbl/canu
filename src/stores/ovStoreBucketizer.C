@@ -135,7 +135,8 @@ main(int argc, char **argv) {
   char           *ovlName      = NULL;
   char           *gkpName      = NULL;
   char           *cfgName      = NULL;
-  uint32          fileLimit    = 512;
+  uint32          maxFiles     = sysconf(_SC_OPEN_MAX) - 16;
+  uint32          fileLimit    = maxFiles;
 
   uint32          jobIndex     = 0;
 
@@ -190,7 +191,7 @@ main(int argc, char **argv) {
     err++;
   if (jobIndex == 0)
     err++;
-  if (fileLimit > sysconf(_SC_OPEN_MAX) - 16)
+  if (fileLimit > maxFiles)
     err++;
 
   if (err) {
@@ -228,8 +229,8 @@ main(int argc, char **argv) {
       fprintf(stderr, "ERROR: No input (-i) supplied.\n");
     if (jobIndex == 0)
       fprintf(stderr, "ERROR: No job index (-job) supplied.\n");
-    if (fileLimit > sysconf(_SC_OPEN_MAX) - 16)
-      fprintf(stderr, "ERROR: Too many jobs (-F); only "F_SIZE_T" supported on this architecture.\n", sysconf(_SC_OPEN_MAX) - 16);
+    if (fileLimit > maxFiles)
+      fprintf(stderr, "ERROR: Too many jobs (-F); only "F_SIZE_T" supported on this architecture.\n", maxFiles);
 
     exit(1);
   }
