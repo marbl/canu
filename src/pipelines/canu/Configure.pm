@@ -554,13 +554,13 @@ sub configureAssembler () {
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("1g")) {
         setGlobalIfUndef("cnsMemory",     "16-48");    setGlobalIfUndef("cnsThreads",      "2-8");
-        setGlobalIfUndef("corMemory",     "10-16");    setGlobalIfUndef("corThreads",      "2-8");
+        setGlobalIfUndef("corMemory",     "10-20");    setGlobalIfUndef("corThreads",      "2-4");
         setGlobalIfUndef("cnsPartitions", "64");       setGlobalIfUndef("cnsPartitionMin", "20000");
         setGlobalIfUndef("corPartitions", "256");      setGlobalIfUndef("corPartitionMin", "15000");
 
     } else {
         setGlobalIfUndef("cnsMemory",     "16-64");    setGlobalIfUndef("cnsThreads",      "2-8");
-        setGlobalIfUndef("corMemory",     "10-16");    setGlobalIfUndef("corThreads",      "2-8");
+        setGlobalIfUndef("corMemory",     "10-32");    setGlobalIfUndef("corThreads",      "2-4");
         setGlobalIfUndef("cnsPartitions", "256");      setGlobalIfUndef("cnsPartitionMin", "25000");
         setGlobalIfUndef("corPartitions", "512");      setGlobalIfUndef("corPartitionMin", "25000");
     }
@@ -639,7 +639,6 @@ sub configureAssembler () {
     ($err, $all) = getAllowedResources("",    "oea",      $err, $all);
     ($err, $all) = getAllowedResources("",    "cns",      $err, $all);
     ($err, $all) = getAllowedResources("",    "ovb",      $err, $all);
-    ($err, $all) = getAllowedResources("",    "ovs",      $err, $all);
     ($err, $all) = getAllowedResources("cor", "ovl",      $err, $all);
     ($err, $all) = getAllowedResources("obt", "ovl",      $err, $all);
     ($err, $all) = getAllowedResources("utg", "ovl",      $err, $all);

@@ -823,7 +823,7 @@ sub setDefaults () {
 
     ##### Overlap Store
 
-    $global{"ovsMethod"}                   = "sequential";
+    $global{"ovsMethod"}                   = undef;
     $synops{"ovsMethod"}                   = "Use the 'sequential' or 'parallel' algorithm for constructing an overlap store; default 'sequential'";
 
     #####  Mers

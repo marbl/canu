@@ -40,6 +40,7 @@ require Exporter;
 
 use strict;
 
+use POSIX qw(ceil);
 use canu::Defaults;
 use canu::Execution;
 use canu::HTML;
@@ -117,12 +118,14 @@ sub getNumOlapsAndSlices ($$) {
 
     my $numOlaps   = 0;
     my $numSlices  = 0;
+    my $memLimit   = 0;
 
     open(F, "< $wrk/$asm.ovlStore.BUILDING/config.err") or caExit("can't open '$wrk/$asm.ovlStore.BUILDING/config.err' for reading: $!\n", undef);
     while (<F>) {
-        if (m/Will sort (\d+.\d+) million overlaps per bucket, using (\d+) buckets./) {
+        if (m/Will sort (\d+.\d+) million overlaps per bucket, using (\d+) buckets (\d+.\d+) GB per bucket./) {
             $numOlaps  = $1;
             $numSlices = $2;
+            $memLimit  = ceil($3);
         }
     }
     close(F);
@@ -131,7 +134,7 @@ sub getNumOlapsAndSlices ($$) {
         caExit("Failed to find any overlaps ($numOlaps) or slices ($numSlices).\n", undef);
     }
 
-    return($numOlaps, $numSlices);
+    return($numOlaps, $numSlices, $memLimit);
 }
 
 
@@ -176,9 +179,10 @@ sub overlapStoreConfigure ($$$$) {
         }
     }
 
-    #  Parse the output to find the number of jobs we need to sort.
-
-    my ($numOlaps, $numSlices) = getNumOlapsAndSlices($wrk, $asm);
+    #  Parse the output to find the number of jobs we need to sort and the memory
+    #  ovs store memory is left as a range (e.g. 4-16) so building can scale itself to (hopefully) fit both into memory and into max system open files
+    my ($numOlaps, $numSlices, $memLimit) = getNumOlapsAndSlices($wrk, $asm);
+    setGlobal("ovsMemory", $memLimit);
 
     #  Parallel jobs for bucketizing.  This should really be part of overlap computation itself.
 

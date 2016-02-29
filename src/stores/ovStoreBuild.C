@@ -36,6 +36,7 @@
  */
 
 #include "AS_global.H"
+#include "AS_UTL_decodeRange.H"
 
 #include "gkStore.H"
 #include "ovStore.H"
@@ -60,9 +61,11 @@ static
 uint32 *
 computeIIDperBucket(uint32          fileLimit,
                     uint64          memoryLimit,
+                    uint64          maxMemoryLimit,
                     uint32          maxIID,
                     vector<char *> &fileList) {
   uint32  *iidToBucket = new uint32 [maxIID];
+  uint32    maxFiles    = sysconf(_SC_OPEN_MAX) - 16;
 
   //  If we're reading from stdin, not much we can do but divide the IIDs equally per file.  Note
   //  that the IIDs must be consecutive; the obvious, simple and clean division of 'mod' won't work.
@@ -70,7 +73,7 @@ computeIIDperBucket(uint32          fileLimit,
   if (fileList[0][0] == '-') {
     if (memoryLimit > 0) {
       memoryLimit = 0;
-      fileLimit   = sysconf(_SC_OPEN_MAX) - 16;
+      fileLimit   = maxFiles;
 
       fprintf(stderr, "WARNING: memory limit (-M) specified, but can't be used with inputs from stdin; using %d files instead.\n", fileLimit);
     } else {
@@ -166,12 +169,16 @@ computeIIDperBucket(uint32          fileLimit,
 
   //  If a memory limit, distribute the overlaps to files no larger than the limit.
   if (memoryLimit > 0) {
-    olapsPerBucketMax = (memoryLimit - MEMORY_OVERHEAD) / ovOverlapSortSize;
-    fprintf(stderr, "Will sort using "F_U64" files; "F_U64" (%.2f million) overlaps per bucket; %.2f GB memory per bucket\n",
-            numOverlaps / olapsPerBucketMax + 1,
-            olapsPerBucketMax,
-            olapsPerBucketMax / 1000000.0,
-            olapsPerBucketMax * GBperOlap);
+    // iterate until we can fit the files into file system limits, give up if we hit our max limit
+    do {
+       olapsPerBucketMax = (memoryLimit - MEMORY_OVERHEAD) / ovOverlapSortSize;
+       fprintf(stderr, "Will sort using "F_U64" files; "F_U64" (%.2f million) overlaps per bucket; %.2f GB memory per bucket\n",
+               numOverlaps / olapsPerBucketMax + 1,
+               olapsPerBucketMax,
+               olapsPerBucketMax / 1000000.0,
+               olapsPerBucketMax * GBperOlap);
+       memoryLimit += 1024 * 1024 * 1024;
+    } while (memoryLimit <= maxMemoryLimit && ( numOverlaps / olapsPerBucketMax + 1) > maxFiles / 2);
   }
 
   //  Given the limit on each bucket, count the number of buckets needed, then reset the limit on
@@ -214,8 +221,8 @@ computeIIDperBucket(uint32          fileLimit,
     fprintf(stderr, "  bucket %3d has "F_U64" olaps.\n", bucket, olaps);
   }
 
-  fprintf(stderr, "Will sort %.3f million overlaps per bucket, using %u buckets.\n",
-          olapsPerBucketMax / 1000000.0, iidToBucket[maxIID-1]);
+  fprintf(stderr, "Will sort %.3f million overlaps per bucket, using %u buckets %.2f GB per bucket.\n",
+          olapsPerBucketMax / 1000000.0, iidToBucket[maxIID-1], olapsPerBucketMax * GBperOlap);
 
   delete [] overlapsPerRead;
 
@@ -253,10 +260,11 @@ writeToDumpFile(ovOverlap       *overlap,
 
 int
 main(int argc, char **argv) {
-  char           *ovlName      = NULL;
-  char           *gkpName      = NULL;
-  uint32          fileLimit    = 0;
-  uint64          memoryLimit  = (uint64)4 * 1024 * 1024 * 1024;
+  char           *ovlName        = NULL;
+  char           *gkpName        = NULL;
+  uint32          fileLimit      = 0;
+  uint64          memoryLimit    = (uint64)4 * 1024 * 1024 * 1024;
+  uint64          maxMemoryLimit = memoryLimit;
 
   double          maxError     = 1.0;
   uint32          minOverlap   = 0;
@@ -285,7 +293,9 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-M") == 0) {
       fileLimit    = 0;
-      memoryLimit  = (uint64)ceil(atof(argv[++arg]) * 1024.0 * 1024.0 * 1024.0);
+      AS_UTL_decodeRange(argv[++arg], memoryLimit, maxMemoryLimit);
+      memoryLimit     = (uint64)ceil(memoryLimit)    * 1024.0 * 1024.0 * 1024.0;
+      maxMemoryLimit  = (uint64)ceil(maxMemoryLimit) * 1024.0 * 1024.0 * 1024.0;
 
     } else if (strcmp(argv[arg], "-e") == 0) {
       maxError = atof(argv[++arg]);
@@ -405,7 +415,7 @@ main(int argc, char **argv) {
 
   gkStore  *gkp         = gkStore::gkStore_open(gkpName);
   uint64    maxIID      = gkp->gkStore_getNumReads() + 1;
-  uint32   *iidToBucket = computeIIDperBucket(fileLimit, memoryLimit, maxIID, fileList);
+  uint32   *iidToBucket = computeIIDperBucket(fileLimit, memoryLimit, maxMemoryLimit, maxIID, fileList);
 
   uint32    maxFiles    = sysconf(_SC_OPEN_MAX);
 
