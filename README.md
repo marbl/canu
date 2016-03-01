@@ -25,4 +25,4 @@ Canu is a hierachical assembly pipeline which runs in four steps:
 * Trim corrected sequences
 * Assemble trimmed corrected sequences
 
-Read the [documentation](http://canu.readthedocs.org/en/latest/ "docs")
+Read the [documentation](http://canu.readthedocs.org/ "docs")
