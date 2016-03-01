@@ -600,6 +600,11 @@ consensus_data * generate_consensus( vector<string> input_seq,
 
 #pragma omp parallel for schedule(dynamic)
     for (uint32 j=0; j < seq_count; j++) {
+#define MAX_UNMASKED_LENGTH 500000
+#define MAX_KMER_REPEAT     1000
+        if (input_seq[j].length() > MAX_UNMASKED_LENGTH) {
+            mask_k_mer(1 << (K*2), lk_ptr, MAX_KMER_REPEAT);
+        }
         kmer_match *kmer_match_ptr = find_kmer_pos_for_seq(input_seq[j].c_str(), input_seq[j].length(), K, sda_ptr, lk_ptr);
 #define INDEL_ALLOWENCE_0 6
 
@@ -622,7 +627,6 @@ consensus_data * generate_consensus( vector<string> input_seq,
         
         
 #define INDEL_ALLOWENCE_2 150
-
         NDalignment::NDalignResult aln;
         align(input_seq[j].c_str()+arange->s1, arange->e1 - arange->s1 ,
                     input_seq[0].c_str()+arange->s2, arange->e2 - arange->s2 , 
