@@ -536,12 +536,12 @@ sub configureAssembler () {
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("1g")) {
         setGlobalIfUndef("ovsMethod", "parallel");
         setGlobalIfUndef("ovbMemory",   "2-4");     setGlobalIfUndef("ovbThreads",   "1");
-        setGlobalIfUndef("ovsMemory",   "4-12");    setGlobalIfUndef("ovsThreads",   "1");
+        setGlobalIfUndef("ovsMemory",   "4-16");    setGlobalIfUndef("ovsThreads",   "1");
 
     } else {
         setGlobalIfUndef("ovsMethod", "parallel");
         setGlobalIfUndef("ovbMemory",   "2-4");     setGlobalIfUndef("ovbThreads",   "1");
-        setGlobalIfUndef("ovsMemory",   "4-16");    setGlobalIfUndef("ovsThreads",   "1");
+        setGlobalIfUndef("ovsMemory",   "4-32");    setGlobalIfUndef("ovsThreads",   "1");
     }
 
     #  Correction and consensus are somewhat invariant.

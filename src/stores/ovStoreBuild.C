@@ -46,7 +46,7 @@
 
 using namespace std;
 
-#define  MEMORY_OVERHEAD  (128 * 1024 * 1024)
+#define  MEMORY_OVERHEAD  (256 * 1024 * 1024)
 
 //  This is the size of the datastructure that we're using to store overlaps for sorting.
 //  At present, with ovOverlap, it is over-allocating a pointer that we don't need, but
@@ -65,7 +65,7 @@ computeIIDperBucket(uint32          fileLimit,
                     uint32          maxIID,
                     vector<char *> &fileList) {
   uint32  *iidToBucket = new uint32 [maxIID];
-  uint32    maxFiles    = sysconf(_SC_OPEN_MAX) - 16;
+  uint32    maxFiles    = MIN(floor(sysconf(_SC_CHILD_MAX) / 2), sysconf(_SC_OPEN_MAX) - 16);
 
   //  If we're reading from stdin, not much we can do but divide the IIDs equally per file.  Note
   //  that the IIDs must be consecutive; the obvious, simple and clean division of 'mod' won't work.

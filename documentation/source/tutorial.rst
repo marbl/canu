@@ -154,6 +154,15 @@ The tags are:
 |utgmhap | the mhap overlapper, as used in the assembly phase                |
 +--------+-------------------------------------------------------------------+
 +--------+-------------------------------------------------------------------+
+|mmap    | the `minimap <https://github.com/lh3/minimap>`_ overlapper                                      |
++--------+-------------------------------------------------------------------+
+|cormmap | the minimap overlapper, as used in the correction phase           |
++--------+-------------------------------------------------------------------+
+|obtmmap | the minimap overlapper, as used in the trimming phase             |
++--------+-------------------------------------------------------------------+
+|utgmmap | the minimap overlapper, as used in the assembly phase             |
++--------+-------------------------------------------------------------------+
++--------+-------------------------------------------------------------------+
 |ovb     | the bucketizing phase of overlap store building                   |
 +--------+-------------------------------------------------------------------+
 |ovs     | the sort phase of overlap store building                          |
@@ -254,8 +263,8 @@ utgOvlErrorRate
   Do not compute overlaps used for unitig construction above this error rate.  Applies
   to the standard overlapper, and realigning mhap overlaps.
 
-(ADVANCED) It is possible to convert the mhap overlaps to alignment based overlaps using
-``obtMhapReAlign=true`` or ``ovlMhapReAlign=true``.  If so, the overlaps will be computed using
+(ADVANCED) It is possible to convert the mhap or minimap overlaps to alignment based overlaps using
+``obtReAlign=true`` or ``ovlReAlign=true``.  If so, the overlaps will be computed using
 either ``obtOvlErrorRate`` or ``utgOvlErrorRate``, depending on which overlaps are being generated.
 
 Be sure to not confuse ``obtOvlErrorRate`` with ``obtErrorRate``:
@@ -314,6 +323,7 @@ For example:
 - To change the k-mer size for just the ovl overlapper used during correction, 'corMerSize=16' would be used.
 - To change the mhap k-mer size for all instances, 'mhapMerSize=18' would be used.
 - To change the mhap k-mer size just during correction, 'corMhapMerSize=15' would be used.
+- To use minimap for overlap computation just during correction, 'corOverlapper=minimap' would be used.
 
 Ovl Overlapper Configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -384,11 +394,18 @@ Mhap Overlapper Parameters
   Chunk of reads that can fit into 1GB of memory. Combined with memory to compute the size of chunk the reads are split into.
 <tag>MhapMerSize
   Use k-mers of this size for detecting overlaps.
-<tag>MhapReAlign
+<tag>ReAlign
   After computing overlaps with mhap, compute a sequence alignment for each overlap.
 <tag>MhapSensitivity
-  Either 'normal' or 'high'.
+  Either 'normal', 'high', or 'fast'.
 
 Mhap also will down-weight frequent kmers (using tf-idf), but it's selection of frequent is not exposed.
 
+Minimap Overlapper Parameters
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<tag>MMapBlockSize
+  Chunk of reads that can fit into 1GB of memory. Combined with memory to compute the size of chunk the reads are split into.
+<tag>MMapMerSize
+  Use k-mers of this size for detecting overlaps
 
+Minimap also will ignore high-frequency minimzers, but it's selection of frequent is not exposed.
