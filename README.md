@@ -26,3 +26,7 @@ Canu is a hierachical assembly pipeline which runs in four steps:
 * Assemble trimmed corrected sequences
 
 Read the [documentation](http://canu.readthedocs.org/ "docs")
+
+## Citation
+ - Berlin K, Koren S, Chin CS, Drake PJ, Landolin JM, Phillippy AM [Assembling Large Genomes with Single-Molecule Sequencing and Locality Sensitive Hashing](http://www.nature.com/nbt/journal/v33/n6/abs/nbt.3238.html "nb"). Nature Biotechnology. (2015).
+ - Stay tuned for a Canu-specific citation
