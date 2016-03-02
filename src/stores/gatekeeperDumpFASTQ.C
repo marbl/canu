@@ -33,6 +33,7 @@
 
 #include "AS_global.H"
 #include "gkStore.H"
+#include "AS_UTL_decodeRange.H"
 #include "AS_UTL_fileIO.H"
 #include "AS_UTL_fasta.H"
 
@@ -79,7 +80,7 @@ public:
       sprintf(N, "%s.fastq", _p);
 
     errno = 0;
-    _FASTQ = fopen(N, "w");
+    _FASTQ = ((_p[0] == '-') && (_p[1] == 0)) ? stdout : fopen(N, "w");
     if (errno)
       fprintf(stderr, "Failed to open FASTQ output file '%s': %s\n", N, strerror(errno)), exit(1);
 
@@ -104,7 +105,7 @@ public:
       sprintf(N, "%s.fasta", _p);
 
     errno = 0;
-    _FASTA = fopen(N, "w");
+    _FASTA = ((_p[0] == '-') && (_p[1] == 0)) ? stdout : fopen(N, "w");
     if (errno)
       fprintf(stderr, "Failed to open FASTA output file '%s': %s\n", N, strerror(errno)), exit(1);
 
@@ -163,17 +164,14 @@ main(int argc, char **argv) {
       libToDump = atoi(argv[++arg]);
 
 
-    } else if (strcmp(argv[arg], "-b") == 0) {
+    } else if (strcmp(argv[arg], "-b") == 0) {   //  DEPRECATED!
       bgnID = atoi(argv[++arg]);
 
-    } else if (strcmp(argv[arg], "-e") == 0) {
+    } else if (strcmp(argv[arg], "-e") == 0) {   //  DEPRECATED!
       endID  = atoi(argv[++arg]);
 
-
     } else if (strcmp(argv[arg], "-r") == 0) {
-      bgnID  = atoi(argv[++arg]);
-      endID  = bgnID;
-
+      AS_UTL_decodeRange(argv[++arg], bgnID, endID);
 
     } else if (strcmp(argv[arg], "-allreads") == 0) {
       dumpAllReads    = true;
@@ -213,17 +211,15 @@ main(int argc, char **argv) {
     fprintf(stderr, "usage: %s [...] -o fastq-prefix -g gkpStore\n", argv[0]);
     fprintf(stderr, "  -G gkpStore\n");
     fprintf(stderr, "  -o fastq-prefix     write files fastq-prefix.(libname).fastq, ...\n");
+    fprintf(stderr, "                      if fastq-prefix is '-', all sequences output to stdout\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -l libToDump        output only read in library number libToDump (NOT IMPLEMENTED)\n");
-    fprintf(stderr, "  -b id               output starting at read 'id'\n");
-    fprintf(stderr, "  -e id               output stopping after read 'id'\n");
+    fprintf(stderr, "  -r id[-id]          output only the single read 'id', or the specified range of ids\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -c clearFile        clear range file from OBT modules\n");
     fprintf(stderr, "  -allreads           if a clear range file, lower case mask the deleted reads\n");
     fprintf(stderr, "  -allbases           if a clear range file, lower case mask the non-clear bases\n");
     fprintf(stderr, "  -onlydeleted        if a clear range file, only output deleted reads (the entire read)\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -r id               output only the single read 'id'\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -fastq              output is FASTQ format (with extension .fastq, default)\n");
     fprintf(stderr, "  -fasta              output is FASTA format (with extension .fasta)\n");
