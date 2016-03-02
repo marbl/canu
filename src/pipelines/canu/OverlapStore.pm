@@ -182,7 +182,7 @@ sub overlapStoreConfigure ($$$$) {
     #  Parse the output to find the number of jobs we need to sort and the memory
     #  ovs store memory is left as a range (e.g. 4-16) so building can scale itself to (hopefully) fit both into memory and into max system open files
     my ($numOlaps, $numSlices, $memLimit) = getNumOlapsAndSlices($wrk, $asm);
-    setGlobal("ovsMemory", $memLimit);
+    setGlobal("ovsMemory", ceil($memLimit * 1.1)); # request more memory to avoid memory issues on machines with no swap
 
     #  Parallel jobs for bucketizing.  This should really be part of overlap computation itself.
 
@@ -267,7 +267,7 @@ sub overlapStoreConfigure ($$$$) {
         print F "\n";
         print F "\$bin/ovStoreSorter \\\n";
         print F "  -deletelate \\\n";  #  Choices -deleteearly -deletelate or nothing
-        print F "  -M " . getGlobal("ovsMemory") . " \\\n";
+        print F "  -M $memLimit \\\n";
         print F "  -O $wrk/$asm.ovlStore.BUILDING \\\n";
         print F "  -G $wrk/$asm.gkpStore \\\n";
         print F "  -F $numSlices \\\n";
