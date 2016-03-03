@@ -1,11 +1,13 @@
 ovStoreBucketizer
-~~~~~~~~~~~~~~~~~
+~~~~~~
 
 ::
 
-  usage: ovStoreBucketizer -c asm.ovlStore -g asm.gkpStore -i file.ovb.gz -job j [opts]
-    -c asm.ovlStore       path to store to create
-    -g asm.gkpStore       path to gkpStore for this assembly
+  usage: ovStoreBucketizer -O asm.ovlStore -G asm.gkpStore -i file.ovb.gz -job j [opts]
+    -O asm.ovlStore       path to store to create
+    -G asm.gkpStore       path to gkpStore for this assembly
+  
+    -C config             path to previously created ovStoreBuild config data file
   
     -i file.ovb.gz        input overlaps
     -job j                index of this overlap input file
@@ -18,7 +20,15 @@ ovStoreBucketizer
     -e e                  filter overlaps above e fraction error
   
     -raw                  write uncompressed buckets
-  ERROR: No overlap store (-o) supplied.
-  ERROR: No gatekeeper store (-g) supplied.
+  
+      DANGER    DO NOT USE     DO NOT USE     DO NOT USE    DANGER
+      DANGER                                                DANGER
+      DANGER   This command is difficult to run by hand.    DANGER
+      DANGER          Use ovStoreCreate instead.            DANGER
+      DANGER                                                DANGER
+      DANGER    DO NOT USE     DO NOT USE     DO NOT USE    DANGER
+  
+  ERROR: No overlap store (-O) supplied.
+  ERROR: No gatekeeper store (-G) supplied.
   ERROR: No input (-i) supplied.
   ERROR: No job index (-job) supplied.

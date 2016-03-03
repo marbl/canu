@@ -25,6 +25,8 @@
  
  option index (alphabetical)
 
+ history
+
 Canu
 ====
 

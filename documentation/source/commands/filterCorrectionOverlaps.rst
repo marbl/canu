@@ -1,5 +1,5 @@
 filterCorrectionOverlaps
-~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~
 
 ::
 
@@ -9,7 +9,9 @@ filterCorrectionOverlaps
   
     -G gkpStore     input reads
     -O ovlStore     input overlaps
-    -S scoreFile    output scores for each read, binary file
+    -S scoreFile    output scores for each read, binary file, to 'scoreFile'
+                    per-read logging to 'scoreFile.log' (see -nolog)
+                    summary statistics to 'scoreFile.stats' (see -nostats)
   
     -c coverage     retain at most this many overlaps per read
   
@@ -19,15 +21,8 @@ filterCorrectionOverlaps
                       example:  -e 0.05-0.20     filter overlaps below 5% error
                                                               or above 20% error
   
-    -logfile L      write detailed per-read logging to file L
-  
-  The following are not implemented:
-  
-    -nocontain      filter overlaps that are contained in the target read
-    -nodovetail     filter dovetail overlaps
-  
-    -maxhang h      filter overlaps with more than 'h' bases unaligned on both the
-                    target and evidence read, on either end
+    -nolog          don't create 'scoreFile.log'
+    -nostats        don't create 'scoreFile.stats'
   ERROR: no gatekeeper store (-G) supplied.
   ERROR: no overlap store (-O) supplied.
-  ERROR: no log file name (-f) supplied.
+  ERROR: no output scoreFile (-S) supplied.

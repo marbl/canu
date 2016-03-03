@@ -1,5 +1,5 @@
 prefixEditDistance-matchLimitGenerate
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~
 
 ::
 

@@ -1,5 +1,5 @@
 gatekeeperDumpMetaData
-~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~
 
 ::
 
@@ -9,7 +9,8 @@ gatekeeperDumpMetaData
                      partition 'p', if supplied.
   
     -libs            dump information about libraries
-    -reads           dump information about reads
+    -reads [-full]   dump information about reads
+                       (-full also dumps some storage metadata)
   
     -stats           dump summary statistics on reads
   

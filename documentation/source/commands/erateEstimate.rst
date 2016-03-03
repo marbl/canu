@@ -1,6 +1,6 @@
 erateEstimate
-~~~~~~~~~~~~~
+~~~~~~
 
 ::
 
-  NOT YET AVAILABLE
+  Opening '(null)'

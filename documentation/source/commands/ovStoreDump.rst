@@ -1,5 +1,5 @@
 ovStoreDump
-~~~~~~~~~~~
+~~~~~~
 
 ::
 
@@ -28,3 +28,6 @@ ovStoreDump
     -dc               Dump only overlaps that are containing the A frag (A contained in B).
     -v                Report statistics (to stderr) on some dumps (-d).
   
+  ERROR: no operation (-d, -q or -p) supplied.
+  ERROR: no input gkpStore (-G) supplied.
+  ERROR: no input ovlStore (-O) supplied.

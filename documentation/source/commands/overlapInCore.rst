@@ -1,5 +1,5 @@
 overlapInCore
-~~~~~~~~~~~~~
+~~~~~~
 
 ::
 
@@ -26,7 +26,6 @@ overlapInCore
   -o          specify output file name
   -P          write protoIO output (if not -G)
   -r <range>  specify old fragments to overlap
-  -s          ignore screen information with fragments
   -t <n>      use <n> parallel threads
   -u          allow only 1 overlap per oriented fragment pair
   -w          filter out overlaps with too many errors in a window

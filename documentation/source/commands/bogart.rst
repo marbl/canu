@@ -14,17 +14,15 @@ bogart
   
   Algorithm Options
   
+    -gs        Genome size in bases.
+  
     -RS        Remove edges to spur reads from best overlap graph.
     -NS        Don't seed promiscuous unitigs with suspicious reads.
     -CS        Don't place contained reads in singleton unitigs.
     -RW t      Remove weak overlaps, those in the lower t fraction of erates per overlap end.
     -J         Join promiscuous unitigs using unused best edges.
-    -SR        Shatter repeats.  Enabled with -R and -E; if neither are supplied,
-                 repeat fragments are promoted to singleton unitigs (unless -DP).
-    -R         Shatter repeats, rebuild
-    -E         Shatter repeats, extend unique unitigs
-    -DP        When -R or -E, don't promote shattered leftovers to unitigs.
-                 This WILL cause CGW to fail; diagnostic only.
+    -SR        Shatter repeats, don't rebuild.
+    -R         Shatter repeats (-SR), then rebuild them
     -RL len    Force reads below 'len' bases to be singletons.
                  This WILL cause CGW to fail; diagnostic only.
   
@@ -76,13 +74,10 @@ bogart
                  intersectionBubblesDebug
                  intersectionJoining
                  intersectionJoiningDebug
+                 splitDiscontinuous
                  containedPlacement
                  happiness
                  intermediateUnitigs
-                 mateSplitAnalysis
-                 mateSplitDiscontinuous
-                 mateSplitUnhappyContains
-                 mateSplitCoveragePlot
                  setParentAndHang
                  stderr
   

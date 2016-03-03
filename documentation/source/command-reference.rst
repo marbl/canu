@@ -16,10 +16,6 @@ Commands marked as 'just usage' were automagically generated from the command li
   The executive in charge!  Coordinates all these commands to make an assembler.
 :doc:`commands/correctOverlaps` (just usage)
   Part of Overlap Error Adjustment, recomputes overlaps given a set of read corrections.
-:doc:`commands/createFalconSenseInputs` (just usage)
-  Part of Read Correction, writes the input to FalconSense to generate corrected reads.
-:doc:`commands/erateEstimate` (just usage)
-  An *experimental* algorithm to filter overlaps.
 :doc:`commands/estimate-mer-threshold` (just usage)
   Decides on a k-mer threshold for overlapInCore seeds.
 :doc:`commands/fastqAnalyze` (just usage)
@@ -72,10 +68,6 @@ Commands marked as 'just usage' were automagically generated from the command li
   An *experimental* algorithm to recompute overlaps and output the alignments.
 :doc:`commands/prefixEditDistance-matchLimitGenerate` (just usage)
   Generate source code files with data representing the minimum length of a good overlap given some number of errors.
-:doc:`commands/readConsensus` (just usage)
-  An *experimental* and *incomplete* algorithm to compute corrected read consensus sequences.
-:doc:`commands/simple` (just usage)
-  Counts k-mer occurrences, for k < 32, in FASTA, FASTQ or gkpStore.  Output is meryl compatible.
 :doc:`commands/splitReads` (just usage)
   Part of Overlap Based Trimming, splits reads based on overlaps, specifically, looking for PacBio hairpin adapter signatures.
 :doc:`commands/tgStoreCoverageStat` (just usage)

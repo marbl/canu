@@ -1,5 +1,5 @@
 fastqSample
-~~~~~~~~~~~
+~~~~~~
 
 ::
 
@@ -35,7 +35,7 @@ fastqSample
   
   Samples reads from paired Illumina reads NAME.1.fastq and NAME.2.fastq and outputs:
       NAME.Cx.1.fastq and N.Cx.2.fastq (for coverage based sampling)
-NAME.n~N.1.fastq and N.n=N.2.fastq (for coverage based sampling)
+      NAME.n=N.1.fastq and N.n=N.2.fastq (for coverage based sampling)
   
   If -T is not supplied, the number of reads will be counted for you.
   

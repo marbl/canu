@@ -1,5 +1,5 @@
 overlapImport
-~~~~~~~~~~~~~
+~~~~~~
 
 ::
 
@@ -13,8 +13,8 @@ overlapImport
     -O name.ovlStore   output overlap store
   Format options:
     -legacy            'CA8 overlapStore -d' format
-    -coords            'overlapConvert -coords' format
-    -hangs             'overlapConvert -hangs' format
+    -coords            'overlapConvert -coords' format (not implemented)
+    -hangs             'overlapConvert -hangs' format (not implemented)
     -raw               'overlapConvert -raw' format
   
   Input file can be stdin ('-') or a gz/bz2/xz compressed file.

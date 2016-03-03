@@ -1,55 +1,61 @@
 tgStoreDump
-~~~~~~~~~~~
+~~~~~~
 
 ::
 
   usage: tgStoreDump -G <gkpStore> -T <tigStore> <v> [opts]
   
-    -G <gkpStore>         Path to the gatekeeper store
-    -T <tigStore> <v>     Path to the tigStore, version, to use
+  STORE SELECTION (mandatory)
+  
+    -G <gkpStore>           path to the gatekeeper store
+    -T <tigStore> <v>       path to the tigStore, version, to use
+  
+  TIG SELECTION - if nothing specified, all tigs are reported
+                - all ranges are inclusive.
+  
+    -tig A[-B]              only dump tigs between ids A and B
+    -unassembled            only dump tigs that are 'unassembled'
+    -bubbles                only dump tigs that are 'bubbles'
+    -contigs                only dump tigs that are 'contigs'
+    -nreads min max         only dump tigs with between min and max reads
+    -length min max         only dump tigs with length between 'min' and 'max' bases
+    -coverage c C g G       only dump tigs with between fraction g and G at coverage between c and C
+                              example:  -coverage 10 inf 0.5 1.0 would report tigs where half of the
+                                        bases are at 10+ times coverage.
+  
+  DUMP TYPE - all dumps, except status, report on tigs selected as above
+  
+    -status                 the number of tigs in the store
+  
+    -tigs                   a list of tigs, and some information about them
+  
+    -consensus [opts]       the consensus sequence, with options:
+                              -gapped           report the gapped (multialignment) consensus sequence
+                              -fasta            report sequences in FASTA format (the default)
+                              -fastq            report sequences in FASTQ format
+  
+    -layout [opts]          the layout of reads in each tig
+                            if '-o' is supplied, three files are created, otherwise just the layout is printed to stdout
+                              -gapped           report the gapped (multialignment) positions
+                              -o outputPrefix   write plots to 'outputPrefix.*' in the current directory
+  
+    -multialign [opts]      the full multialignment, output is to stdout
+                              -w width          width of the page
+                              -s spacing        spacing between reads on the same line
+  
+    -sizes [opts]           size statistics
+                              -s genomesize     denominator to use for n50 computation
+  
+    -coverage [opts]        read coverage plots, one plot per tig
+                              -o outputPrefix   write plots to 'outputPrefix.*' in the current directory
+  
+    -depth [opts]           a histogram of depths
+                              -single           one histogram per tig
+  
+    -overlap                read overlaps
+                              -thin overlap     report regions where the (thickest) read overlap is less than 'overlap' bases
+  
+    -overlaphistogram       a histogram of the thickest overlaps used
+                              -o outputPrefix   write plots to 'outputPrefix.*' in the current directory
   
   
-    -D <operation>        Dump something about the store
-       list               ...a list of the unitigs in the store (NOT IMPLEMENTED)
-       properties         ...a list of properties for ALL multialigns in the store (for -E)
-  
-    -u id[-id]            Unitig to dump (for -d option); if A-B, dump tigs from id A to id B, inclusive
-    -c id[-id]            Contig to dump (for -d option); if A-B, dump tigs from id A to id B, inclusive
-  
-    -U                    Dump ALL unitigs (for -d option)
-    -C                    Dump ALL contigs (for -d option)
-  
-    -nreads min max       Dump tigs with between min and max reads (inclusive)
-  
-    -d <operation>        Dump something about a multialign (-c or -u) in the store
-       properties         ...properties
-       frags              ...a list of fragments
-       unitigs            ...a list of unitigs
-       consensus [C]      ...the consensus sequence
-                               if C supplied, only consensus with coverage >= C is output
-       consensusgapped    ...the consensus sequence, with gaps as indicated in the multialignment
-       layout             ...the layout
-       multialign         ...the full multialignment
-       sizes              ...an analysis of sizes of the tigs
-       coverage           ...an analysis of read coverage of the tigs
-       overlap            ...an analysis of read overlaps in the tigs
-       fmap               ...a map from fragment IID to unitig IID
-  
-  
-    -E <editFile>         Change properties of multialigns
-  
-  
-    -compress             Move tigs from earlier versions into the specified version.  This removes
-                          historical versions of unitigs/contigs, and can save tremendous storage space,
-                          but makes it impossible to back up the assembly past the specified versions
-  
-    For '-d multialign':
-    -w width              Width of the page.
-    -s spacing            Spacing between reads on the same line.
-  
-    For '-d coverage':
-    -o prefix             Output files will be written to 'prefix.*' in the current directory.
-                          (defaults to 'tigStore' (the -t option) if not set.)
-  
-    For '-d sizes':
-    -s genomesize         Denominator to use for n50 computation

@@ -1,25 +1,24 @@
 ovStoreBuild
-~~~~~~~~~~~~
+~~~~~~
 
 ::
 
-  usage: ovStoreBuild -o asm.ovlStore -g asm.gkpStore [opts] [-L fileList | *.ovb.gz]
-    -o asm.ovlStore       path to store to create
-    -g asm.gkpStore       path to gkpStore for this assembly
+  usage: ovStoreBuild -O asm.ovlStore -G asm.gkpStore [opts] [-L fileList | *.ovb.gz]
+    -O asm.ovlStore       path to store to create
+    -G asm.gkpStore       path to gkpStore for this assembly
+  
+    -L fileList           read input filenames from 'flieList'
   
     -F f                  use up to 'f' files for store creation
-    -M m                  use up to 'm' MB memory for store creation
+    -M g                  use up to 'g' gigabytes memory for sorting overlaps
+                            default 4; g-0.125 gb is available for sorting overlaps
   
     -e e                  filter overlaps above e fraction error
     -l l                  filter overlaps below l bases overlap length (needs gkpStore to get read lengths!)
   
-    -L fileList           read input filenames from 'flieList'
-  
-    -big iid              handle a large number of overlaps in the last library
-                          iid is the first read iid in the last library, from
-                          'gatekeeper -dumpinfo *gkpStore'
-  
-    -evalues              Input files are evalue updates from overlap error adjustment
+  Non-building options:
+    -evalues              input files are evalue updates from overlap error adjustment
+    -config out.dat       don't build a store, just dump a binary partitioning file for ovStoreBucketizer
   
   ERROR: No overlap store (-o) supplied.
   ERROR: No gatekeeper store (-g) supplied.

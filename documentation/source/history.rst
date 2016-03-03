@@ -1,3 +1,5 @@
+.. _history:
+
 Software Background
 ====================
 Canu is derived from the Celera Assembler. The Celera assembler [Myers 2000] 
