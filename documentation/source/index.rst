@@ -36,6 +36,7 @@ Canu
    pipeline
    parameter-reference
    command-reference
+   history
 
 
 `Canu <http://github.com/marbl/canu>`_ is a fork of the Celera Assembler designed for high-noise single-molecule sequencing (such as
@@ -48,3 +49,4 @@ any issues, please report them using the `github issues <http://github.com/marbl
 
 *  :ref:`Canu Parameter Reference  <parameter-reference>` - all the paramters, grouped by function.
 *  :ref:`Canu Command Reference    <command-reference>` - all the commands that canu runs for you.
+*  :ref:`Canu History              <history>` - the history of the Canu project.
