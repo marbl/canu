@@ -89,19 +89,19 @@ sub mhapConfigure ($$$$) {
 
     my $numHashes       = "512";
     my $minNumMatches   = "3";
-    my $threshold       = "0.024";
+    my $threshold       = "0.6";
     my $ordSketch       = "1536";
     my $ordSketchMer    = 12;
 
     if (getGlobal("${tag}MhapSensitivity") eq "sens" || getGlobal("${tag}MhapSensitivity") eq "high") {
        $numHashes     =  "768";
        $minNumMatches =    "2";
-       $threshold     = "0.024";
+       $threshold     = "0.6";
        $ordSketch     = "1536";
     } elsif (getGlobal("${tag}MhapSensitivity") eq "fast") {
        $numHashes     =  "256";
        $minNumMatches =    "3";
-       $threshold     =    "0.04";
+       $threshold     =    "0.7";
        $ordSketch     = "1000";
     }
 
@@ -118,13 +118,13 @@ sub mhapConfigure ($$$$) {
        $blockPerGb = int($blockPerGb / 2);
     }
 
-    # quick guess parameter adjustment for corrected reads, hack for now and should take error rate into account
+    # quick guess parameter adjustment for corrected reads, hack for now and should better take error rate into account
     if (($tag eq "obt") || ($tag eq "utg")) {
        $numHashes     /= 4;
        $minNumMatches  = floor(1.5 * $minNumMatches); 
        $ordSketch      = floor($ordSketch / 2);
        $ordSketchMer   = floor($ordSketchMer * 1.3);
-       $threshold     *= 4;
+       $threshold      = 1-getGlobal("${tag}OvlErrorRate");
        $blockPerGb    *= 2;
     }
 
