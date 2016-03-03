@@ -15,7 +15,7 @@ Global Options
 The catch all category.
 
 errorRate <float=0.01>
-  The expected error rate, as fraction error, in the input reads.
+  The expected error rate, as fraction error, in the corrected reads.
 
 genomeSize <float=unset>
   An estimate of the size of the genome.  Common suffices are allowed, for example, 3.7m or 2.8g.
@@ -105,6 +105,9 @@ saveOverlaps <boolean=false>
   If set, do not remove raw overlap output from either mhap or overlapInCore.  Normally, this output is removed once
   the overlaps are loaded into an overlap store.
 
+saveReadCorrections <boolean=false.
+  If set, do not remove raw corrected read output from correction/2-correction. Normally, this output is removed once the corrected reads are generated.
+  
 saveIntermediates <boolean=false>
   If set, do not remove intermediate outputs.  Normally, intermediate files are removed
   once they are no longer needed.
@@ -124,14 +127,14 @@ Two overlap algorithms are in use.  One, mhap, is typically applied to raw uncor
 returns alignment-free overlaps with imprecise extents.  The other, the original overlapper
 algorithm 'ovl', returns alignments but is much more expensive.
 
-There are two sets of parameters, one for the 'mhap' algorithm and one for the 'ovl' algorithm.
+There are three sets of parameters, one for the 'mhap' algorithm, one for the 'ovl' algorithm, and one for the 'minimap' algorithm.
 Parameters used for a specific type of overlap are set by a prefix on the option: 'cor' for read
 correction, 'obt' for read trimming ('overlap based trimming') or 'utg' for unitig construction.
 For example, 'corOverlapper=ovl' would set the overlapper used for read correction to the 'ovl'
 algorithm.
 
 {prefix}Overlapper <string=see-below>
-  Specify which overlap algorith, 'mhap' or 'ovl'.  The default is to use 'mhap' for 'cor' and 'ovl' for both 'obt' and 'utg'.
+  Specify which overlap algorith, 'mhap' or 'ovl' or 'minimap'.  The default is to use 'mhap' for 'cor' and 'ovl' for both 'obt' and 'utg'.
 
 Overlapper Configuration, ovl Algorithm
 ---------------------------------------
@@ -173,17 +176,30 @@ Overlapper Configuration, mhap Algorithm
 ----------------------------------------
 
 {prefix}MhapBlockSize <integer=unset>
-  Number of reads per block.  One block is loaded into memory per job.
+  Number of reads per 1GB block.  Memory * size is loaded into memory per job.
 
 {prefix}MhapMerSize <integer=unset>
   K-mer size for seeds in mhap.
 
-{prefix}MhapReAlign <boolean=false>
-  Compute actual alignments from mhap overlaps; 'raw' from mhap output, 'final' from overlap store;
+{prefix}ReAlign <boolean=false>
+  Compute actual alignments from mhap overlaps; 'raw' from mhap output;
   uses either obtErrorRate or ovlErrorRate, depending on which overlaps are computed)
 
 {prefix}MhapSensitivity <string="normal">
-  Coarse sensitivity level: 'normal' or 'high'.
+  Coarse sensitivity level: 'normal' or 'high' or 'fast'.
+
+Overlapper Configuration, mhap Algorithm
+----------------------------------------
+
+{prefix}MMapBlockSize <integer=unset>
+  Number of reads per 1GB block.  Memory * size is loaded into memory per job.
+
+{prefix}MMapMerSize <integer=unset>
+  K-mer size for seeds in minimap.
+
+{prefix}ReAlign <boolean=false>
+  Compute actual alignments from minimap overlaps; 'raw' from mhap output;
+  uses either obtErrorRate or ovlErrorRate, depending on which overlaps are computed)
 
 Overlap Store
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -193,17 +209,13 @@ algorithms usually need to know all overlaps for a single read.  The overlap sto
 overlap, sorts them by the first ID, and stores them for quick retrieval of all overlaps for a
 single read.
 
-ovlStoreMemory <integer=2048>
-  How much memory, in megabytes, to use for constructing overlap stores.
+ovsMemory <integer=2>
+  How much memory, in gigabytes, to use for constructing overlap stores.
 
-ovlStoreMethod <string="sequential">
+ovsMethod <string="sequential">
   Two construction algorithms are supported.  One uses a single data stream, and is faster for small
   and moderate size assemblies.  The other uses parallel data streams and can be faster (depending
   on your network disk bandwitdh) for moderate and large assemblies.
-
-ovlStoreSlices <integer=128>
-  For the parallel store construction, how many pieces to split the sorting into.  More pieces will result
-  in more tasks, but each task will use less memory.
 
 Meryl
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -404,6 +416,9 @@ For execution locally, three parameters describe the task:
     - corovl
     - obtovl
     - utgovl
+    - cormmap
+    - obtmmap
+    - utgmmap
     - oea
     - ovb
     - ovs
@@ -423,6 +438,9 @@ For execution locally, three parameters describe the task:
     - corovl
     - obtovl
     - utgovl
+    - cormmap
+    - obtmmap
+    - utgmmap
     - ovb
     - ovs
     - red
@@ -444,6 +462,9 @@ For execution locally, three parameters describe the task:
     - corovl
     - obtovl
     - utgovl
+    - cormmap
+    - obtmmap
+    - utgmmap
     - red
     - oea
 
@@ -527,6 +548,8 @@ corPartitionMin <integer=25000>
 
 corMinEvidenceLength <integer=unset>
   Limit read correction to only overlaps longer than this; default: unlimited
+corMinCoverage <integer=4>
+  Limit read correction to regions with at least this minimum coverage. Split reads when coverage drops below threshold.
 corMaxEvidenceErate <integer=unset>
   Limit read correction to only overlaps at or below this fraction error; default: unlimited
 corMaxEvidenceCoverageGlobal <string="1.0x">
@@ -538,7 +561,7 @@ corOutCoverage <integer=40>
   Only correct the longest reads up to this coverage; default 40
 
 corFilter <string="expensive">
-  Method to filter short reads from correction; 'quick' or 'expensive'
+  Method to filter short reads from correction; 'quick' or 'expensive' or 'none'
 
 falconSense
   Path to fc_consensus.py or falcon_sense.bin
