@@ -10,8 +10,8 @@ several large genomes, namely those of Homo sapiens [Venter 2001], Mus musculus
 The Celera Assembler was shown to be very accurate when its reconstruction of 
 the human genome was compared to independent reconstructions completed later 
 [Istrail 2004]. It was used to reconstructing one of the first large-scale
-metagenomic projects [Venter 2004, Rusch 2007] and a diploid human reference [Levy 2007, Denisov 2008].
- It was adapted to 454 Pyrosequencing [Miller 2008] and PacBio sequencing [Koren 2011], demonstrating 
+metagenomic projects [Venter 2004, Rusch 2007] and a diploid human reference [Levy 2007, Denisov 2008]. 
+It was adapted to 454 Pyrosequencing [Miller 2008] and PacBio sequencing [Koren 2011], demonstrating 
 finished bacterial genomes [Koren 2013] and efficient algorithms for eukaryotic assembly [Berlin 2015].
 
 In 2015 Canu was forked from Celera Assembler and specialized for single-molecule
