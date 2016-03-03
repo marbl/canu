@@ -1,5 +1,5 @@
 Software Background
---------------------
+====================
 Canu is derived from the Celera Assembler. The Celera assembler [Myers 2000] 
 was designed to reconstruct mammalian 
 chromosomal DNA sequences from the short fragments of a whole genome shotgun 
