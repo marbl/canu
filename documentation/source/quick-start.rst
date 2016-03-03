@@ -199,29 +199,28 @@ After the run completes, we can check the assembly statistics::
 
 ::
 
- lenSuggestRepeat sum    1135952 (genomeSize 12100000)
- lenSuggestRepeat num        159
- lenSuggestRepeat ave       7144
- lenUnassembled ng10       12635 bp   lg10      76   sum    1220193 bp
- lenUnassembled ng20        9372 bp   lg20     188   sum    2424217 bp
- lenUnassembled ng30        7287 bp   lg30     333   sum    3632625 bp
- lenUnassembled ng40        4941 bp   lg40     534   sum    4841897 bp
- lenUnassembled ng50        2069 bp   lg50     883   sum    6050798 bp
- lenUnassembled sum    6321159 (genomeSize 12100000)
- lenUnassembled num       1061
- lenUnassembled ave       5957
- lenContig ng10      761684 bp   lg10       2   sum    1544923 bp
- lenContig ng20      667922 bp   lg20       4   sum    2942290 bp
- lenContig ng30      567305 bp   lg30       6   sum    4156720 bp
- lenContig ng40      550087 bp   lg40       8   sum    5271140 bp
- lenContig ng50      446812 bp   lg50      10   sum    6197825 bp
- lenContig ng60      251216 bp   lg60      14   sum    7356841 bp
- lenContig ng70      183999 bp   lg70      20   sum    8624087 bp
- lenContig ng80      120025 bp   lg80      28   sum    9744795 bp
- lenContig ng90       84512 bp   lg90      40   sum   10907525 bp
- lenContig sum   11922888 (genomeSize 12100000)
- lenContig num         67
- lenContig ave     177953
+lenSuggestRepeat sum     989829 (genomeSize 12100000)
+lenSuggestRepeat num        122
+lenSuggestRepeat ave       8113
+lenUnassembled ng10       12402 bp   lg10      76   sum    1219358 bp
+lenUnassembled ng20        9224 bp   lg20     188   sum    2424213 bp
+lenUnassembled ng30        6962 bp   lg30     338   sum    3630024 bp
+lenUnassembled ng40        4658 bp   lg40     550   sum    4840192 bp
+lenUnassembled sum    6015883 (genomeSize 12100000)
+lenUnassembled num       1001
+lenUnassembled ave       6009
+lenContig ng10      761678 bp   lg10       2   sum    1544923 bp
+lenContig ng20      667913 bp   lg20       4   sum    2936565 bp
+lenContig ng30      567302 bp   lg30       6   sum    4150893 bp
+lenContig ng40      550085 bp   lg40       8   sum    5265318 bp
+lenContig ng50      446807 bp   lg50      10   sum    6191995 bp
+lenContig ng60      258194 bp   lg60      14   sum    7357975 bp
+lenContig ng70      184000 bp   lg70      20   sum    8638537 bp
+lenContig ng80      120032 bp   lg80      28   sum    9759277 bp
+lenContig ng90       84513 bp   lg90      40   sum   10934756 bp
+lenContig sum   11916196 (genomeSize 12100000)
+lenContig num         68
+lenContig ave     175238
 
 Consensus Accuracy
 -------------------
@@ -232,21 +231,23 @@ If you have Illumina sequences available, `Pilon <http://www.broadinstitute.org/
 Changes
 -------------------
 
-- Support for reads up to 2Mbp in size (up from 130Kbp).
-- Incorporate MHAP 2.0 which is 3-5X faster than previous version and has higher specificity
-- Add `GFA <http://lh3.github.io/2014/07/19/a-proposal-of-the-grapical-fragment-assembly-format/>`_ output
-- Improve diploid-aware assembly by categorizing output as primary contigs or unmerged bubbles. Annotate repeat and unique contigs in the output.
-- Enable parallel overlap store construction on large genomes
-- Enable `minimap <https://github.com/lh3/minimap>`_ as an option for generating overlaps during correction step. Corrected reads are generated as before with falcon_sense.
-- Fix bug using shorter rather than longer reads for corrected reads/consensus computation
-- Fix bug resuming without providing input sequences which would incorrectly set error rates
-- Fix bug in bogart which would demote contained sequences as spurs incorrectly
-- Fix bugs in falcon_sense which would hang when input had N bases and limit corrected reads to 65Kbp
+ - Support for reads up to 2Mbp in size (up from 130Kbp).
+ - Incorporate MHAP 2.0 which is 5X faster than previous version and has higher specificity
+ - Add GFA output
+ - Improve diploid-aware assembly by categorizing output as primary contigs or unmerged bubbles. Annotate repeat and unique contigs in the output.
+ - Enable parallel overlap store construction on large genomes
+ - Enable minimap as an option for generating overlaps during correction step. Corrected reads are generated as before with falcon_sense.
+ - Fix bug using shorter rather than longer reads for corrected reads/consensus computation
+ - Fix bug resuming without providing input sequences which would incorrectly set error rates
+ - Fix bug in bogart which would demote contained sequences as spurs incorrectly
+ - Fix bugs in falcon_sense which would hang when input had N bases and limit corrected reads to 65Kbp
+ - Fix falcon_sense support on OSX <10.10.
+ - Fix various pipeline bugs
 
 Known Issues
 -------------------
 
-- Bogart (unitigger) has false positives in repeat breaking. Currently, the workaround is to increase the minimum overlap size to avoid detecting false repeats caused by short overlaps. Canu will automatically do this for large (>100MB) genomes.
+- Bogart (unitigger) has false positives in repeat breaking. Currently, the temporary workaround is to increase the minimum overlap size to avoid detecting false repeats caused by short overlaps. Canu will automatically do this for large (>100MB) genomes while the fixed algorithm is tested.
 - LSF support has limited testing
 - Large memory usage while unitig consensus calling on unitigs over 100MB in size (140Mb contig uses approximate 75GB).
 - Distributed file systems (such as GPFS) causes issues with memory mapped files, slowing down parts of Canu, including meryl (0-mercounts) and falcon-sense (2-correction).
