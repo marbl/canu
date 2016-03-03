@@ -199,28 +199,28 @@ After the run completes, we can check the assembly statistics::
 
 ::
 
-lenSuggestRepeat sum     989829 (genomeSize 12100000)
-lenSuggestRepeat num        122
-lenSuggestRepeat ave       8113
-lenUnassembled ng10       12402 bp   lg10      76   sum    1219358 bp
-lenUnassembled ng20        9224 bp   lg20     188   sum    2424213 bp
-lenUnassembled ng30        6962 bp   lg30     338   sum    3630024 bp
-lenUnassembled ng40        4658 bp   lg40     550   sum    4840192 bp
-lenUnassembled sum    6015883 (genomeSize 12100000)
-lenUnassembled num       1001
-lenUnassembled ave       6009
-lenContig ng10      761678 bp   lg10       2   sum    1544923 bp
-lenContig ng20      667913 bp   lg20       4   sum    2936565 bp
-lenContig ng30      567302 bp   lg30       6   sum    4150893 bp
-lenContig ng40      550085 bp   lg40       8   sum    5265318 bp
-lenContig ng50      446807 bp   lg50      10   sum    6191995 bp
-lenContig ng60      258194 bp   lg60      14   sum    7357975 bp
-lenContig ng70      184000 bp   lg70      20   sum    8638537 bp
-lenContig ng80      120032 bp   lg80      28   sum    9759277 bp
-lenContig ng90       84513 bp   lg90      40   sum   10934756 bp
-lenContig sum   11916196 (genomeSize 12100000)
-lenContig num         68
-lenContig ave     175238
+  lenSuggestRepeat sum     989829 (genomeSize 12100000)
+  lenSuggestRepeat num        122
+  lenSuggestRepeat ave       8113
+  lenUnassembled ng10       12402 bp   lg10      76   sum    1219358 bp
+  lenUnassembled ng20        9224 bp   lg20     188   sum    2424213 bp
+  lenUnassembled ng30        6962 bp   lg30     338   sum    3630024 bp
+  lenUnassembled ng40        4658 bp   lg40     550   sum    4840192 bp
+  lenUnassembled sum    6015883 (genomeSize 12100000)
+  lenUnassembled num       1001
+  lenUnassembled ave       6009
+  lenContig ng10      761678 bp   lg10       2   sum    1544923 bp
+  lenContig ng20      667913 bp   lg20       4   sum    2936565 bp
+  lenContig ng30      567302 bp   lg30       6   sum    4150893 bp
+  lenContig ng40      550085 bp   lg40       8   sum    5265318 bp
+  lenContig ng50      446807 bp   lg50      10   sum    6191995 bp
+  lenContig ng60      258194 bp   lg60      14   sum    7357975 bp
+  lenContig ng70      184000 bp   lg70      20   sum    8638537 bp
+  lenContig ng80      120032 bp   lg80      28   sum    9759277 bp
+  lenContig ng90       84513 bp   lg90      40   sum   10934756 bp
+  lenContig sum   11916196 (genomeSize 12100000)
+  lenContig num         68
+  lenContig ave     175238
 
 Consensus Accuracy
 -------------------
@@ -231,18 +231,18 @@ If you have Illumina sequences available, `Pilon <http://www.broadinstitute.org/
 Changes
 -------------------
 
- - Support for reads up to 2Mbp in size (up from 130Kbp).
- - Incorporate MHAP 2.0 which is 5X faster than previous version and has higher specificity
- - Add GFA output
- - Improve diploid-aware assembly by categorizing output as primary contigs or unmerged bubbles. Annotate repeat and unique contigs in the output.
- - Enable parallel overlap store construction on large genomes
- - Enable minimap as an option for generating overlaps during correction step. Corrected reads are generated as before with falcon_sense.
- - Fix bug using shorter rather than longer reads for corrected reads/consensus computation
- - Fix bug resuming without providing input sequences which would incorrectly set error rates
- - Fix bug in bogart which would demote contained sequences as spurs incorrectly
- - Fix bugs in falcon_sense which would hang when input had N bases and limit corrected reads to 65Kbp
- - Fix falcon_sense support on OSX <10.10.
- - Fix various pipeline bugs
+- Support for reads up to 2Mbp in size (up from 130Kbp).
+- Incorporate MHAP 2.0 which is 5X faster than previous version and has higher specificity
+- Add GFA output
+- Improve diploid-aware assembly by categorizing output as primary contigs or unmerged bubbles. Annotate repeat and unique contigs in the output.
+- Enable parallel overlap store construction on large genomes
+- Enable minimap as an option for generating overlaps during correction step. Corrected reads are generated as before with falcon_sense.
+- Fix bug using shorter rather than longer reads for corrected reads/consensus computation
+- Fix bug resuming without providing input sequences which would incorrectly set error rates
+- Fix bug in bogart which would demote contained sequences as spurs incorrectly
+- Fix bugs in falcon_sense which would hang when input had N bases and limit corrected reads to 65Kbp
+- Fix falcon_sense support on OSX <10.10.
+- Fix various pipeline bugs
 
 Known Issues
 -------------------
