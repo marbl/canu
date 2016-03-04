@@ -46,6 +46,10 @@
  *      are Copyright 2014-2015 Battelle National Biodefense Institute, and
  *      are subject to the BSD 3-Clause License
  *
+ *    Brian P. Walenz beginning on 2015-DEC-18
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
+ *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.
  */
@@ -183,7 +187,7 @@ private:
   //  If allocated, the read idx (NOT gkpID) for each bead in the column.  This will
   //  be used to (efficiently) map arbitrary columns back to their reads when refining abacus
   //  layouts.  The data is never populated (needs to be done in applyAlignment()).
-  //  
+  //
 #if 0
 public:
   bool             beadReadIDsExist(void)   { return(_beadReadIDs != NULL); };
@@ -207,7 +211,7 @@ public:
       if ((prev() != NULL) && (pl != UINT16_MAX) && (prev()->_beads[pl].nextOffset() != tt))
         fprintf(stderr, "ERROR: prev bead pl=%d nextOffset=%d != tt=%d\n",
                 pl, prev()->_beads[pl].nextOffset(), tt), nErrors++;
-      
+
       if ((prev() == NULL) && (pl != UINT16_MAX))
         fprintf(stderr, "no prev column, yet defined link for column %p bead %d\n",
                 this, tt), nErrors++;

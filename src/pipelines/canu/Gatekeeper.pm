@@ -27,6 +27,10 @@
  #      are a 'United States Government Work', and
  #      are released in the public domain
  #
+ #    Sergey Koren beginning on 2016-FEB-29
+ #      are a 'United States Government Work', and
+ #      are released in the public domain
+ #
  #  File 'README.licenses' in the root directory of this distribution contains
  #  full conditions and disclaimers for each license.
  ##
@@ -436,7 +440,7 @@ sub gatekeeper ($$$@) {
     caExit("gatekeeper store exists, but contains no reads", undef)   if (getNumberOfReadsInStore($wrk, $asm) == 0);
 
     gatekeeperGenerateReadsList($wrk, $asm, $tag)                     if (! -e "$wrk/$asm.gkpStore/reads.txt");
-    gatekeeperGenerateLibrariesList($wrk, $asm, $tag)                 if (! -e "$wrk/$asm.gkpStore/libraries.txt"); 
+    gatekeeperGenerateLibrariesList($wrk, $asm, $tag)                 if (! -e "$wrk/$asm.gkpStore/libraries.txt");
     gatekeeperGenerateReadLengths($wrk, $asm, $tag)                   if (! -e "$wrk/$asm.gkpStore/readlengths.txt");
     gatekeeperGenerateReadLengthPlot($wrk, $asm, $tag)                if (! -e "$wrk/$asm.gkpStore/readlengths.png");
 

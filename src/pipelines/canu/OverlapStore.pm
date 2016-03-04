@@ -27,6 +27,10 @@
  #      are a 'United States Government Work', and
  #      are released in the public domain
  #
+ #    Sergey Koren beginning on 2015-DEC-08
+ #      are a 'United States Government Work', and
+ #      are released in the public domain
+ #
  #  File 'README.licenses' in the root directory of this distribution contains
  #  full conditions and disclaimers for each license.
  ##
@@ -397,7 +401,7 @@ sub overlapStoreBucketizerCheck ($$$$) {
   finishStage:
     print STDERR "-- Overlap store bucketizer finished.\n";
 
-    touch("$wrk/$asm.ovlStore.BUILDING/1-bucketize.success"); 
+    touch("$wrk/$asm.ovlStore.BUILDING/1-bucketize.success");
 
     setGlobal("canuIteration", 0);
     emitStage($WRK, $asm, "$tag-overlapStoreBucketizerCheck");

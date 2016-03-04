@@ -1,18 +1,42 @@
 
+/******************************************************************************
+ *
+ *  This file is part of canu, a software program that assembles whole-genome
+ *  sequencing reads into contigs.
+ *
+ *  This software is based on:
+ *    'Celera Assembler' (http://wgs-assembler.sourceforge.net)
+ *    the 'kmer package' (http://kmer.sourceforge.net)
+ *  both originally distributed by Applera Corporation under the GNU General
+ *  Public License, version 2.
+ *
+ *  Canu branched from Celera Assembler at its revision 4587.
+ *  Canu branched from the kmer project at its revision 1994.
+ *
+ *  Modifications by:
+ *
+ *    Sergey Koren beginning on 2015-DEC-28
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
+ *
+ *  File 'README.licenses' in the root directory of this distribution contains
+ *  full conditions and disclaimers for each license.
+ */
+
 /*
  * =====================================================================================
  *
  *       Filename:  DW.c
  *
- *    Description:  A banded version for the O(ND) greedy sequence alignment algorithm 
+ *    Description:  A banded version for the O(ND) greedy sequence alignment algorithm
  *
  *        Version:  0.1
  *        Created:  07/20/2013 17:00:00
  *       Revision:  none
  *       Compiler:  gcc
  *
- *         Author:  Jason Chin, 
- *        Company:  
+ *         Author:  Jason Chin,
+ *        Company:
  *
  * =====================================================================================
 
@@ -52,7 +76,7 @@
  # OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  # SUCH DAMAGE.
  #################################################################################$$
- 
+
 
 */
 
@@ -87,7 +111,7 @@ d_path_data2 * get_dpath_idx( seq_coor_t d, seq_coor_t k, unsigned long max_idx,
     d_tmp.k = k;
     rtn = (d_path_data2 *)  bsearch( &d_tmp, base, max_idx, sizeof(d_path_data2), compare_d_path);
     //printf("dp %ld %ld %ld %ld %ld %ld %ld\n", (rtn)->d, (rtn)->k, (rtn)->x1, (rtn)->y1, (rtn)->x2, (rtn)->y2, (rtn)->pre_k);
-    
+
     return rtn;
 
 }
@@ -133,20 +157,20 @@ bool align(const char * query_seq, seq_coor_t q_len,
 
     //printf("debug: %ld %ld\n", q_len, t_len);
     //printf("%s\n", query_seq);
-   
+
     max_d = (int) (0.3*(q_len + t_len));
 
     band_size = band_tolerance * 2;
 
     V = (seq_coor_t *)calloc( max_d * 2 + 1, sizeof(seq_coor_t) );
     U = (seq_coor_t *)calloc( max_d * 2 + 1, sizeof(seq_coor_t) );
-    
+
     k_offset = max_d;
-    
+
     // We should probably use hashmap to store the backtracing information to save memory allocation time
     // This O(MN) block allocation scheme is convient for now but it is slower for very long sequences
     d_path = (d_path_data2 *)calloc( max_d * (band_size + 1 ) * 2 + 1, sizeof(d_path_data2) );
-    
+
     aln_path = (path_point *)calloc( q_len + t_len + 1, sizeof(path_point) );
 
     if (get_aln_str) {
@@ -166,13 +190,13 @@ bool align(const char * query_seq, seq_coor_t q_len,
     best_m = -1;
     min_k = 0;
     max_k = 0;
-    d_path_idx = 0; 
+    d_path_idx = 0;
     max_idx = 0;
     for (d = 0; d < max_d; d ++ ) {
         if (max_k - min_k > band_size) {
             break;
         }
- 
+
         for (k = min_k; k <= max_k;  k += 2) {
 
             if ( (k == min_k) || ((k != max_k) && (V[ k - 1 + k_offset ] < V[ k + 1 + k_offset])) ) {
@@ -200,7 +224,7 @@ bool align(const char * query_seq, seq_coor_t q_len,
 
             V[ k + k_offset ] = x;
             U[ k + k_offset ] = x + y;
-            
+
             if ( x + y > best_m) {
                 best_m = x + y;
             }
@@ -211,7 +235,7 @@ bool align(const char * query_seq, seq_coor_t q_len,
                 break;
             }
         }
-        
+
         // For banding
         new_min_k = max_k;
         new_max_k = min_k;
@@ -226,17 +250,17 @@ bool align(const char * query_seq, seq_coor_t q_len,
                 }
             }
         }
-        
+
         max_k = new_max_k + 1;
         min_k = new_min_k - 1;
-        
+
         // For no banding
         // max_k ++;
         // min_k --;
 
-        // For debuging 
+        // For debuging
         // printf("min_max_k,d, %ld %ld %ld\n", min_k, max_k, d);
-        
+
         if (aligned == true) {
             align_rtn._qry_end = x;
             align_rtn._tgt_end = y;
@@ -252,7 +276,7 @@ bool align(const char * query_seq, seq_coor_t q_len,
                 cd = d;
                 ck = k;
                 aln_path_idx = 0;
-                while (cd >= 0 && aln_path_idx < q_len + t_len + 1) {    
+                while (cd >= 0 && aln_path_idx < q_len + t_len + 1) {
                     d_path_aux = (d_path_data2 *) get_dpath_idx( cd, ck, max_idx, d_path);
                     aln_path[aln_path_idx].x = d_path_aux -> x2;
                     aln_path[aln_path_idx].y = d_path_aux -> y2;

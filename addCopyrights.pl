@@ -4,185 +4,28 @@ use strict;
 
 my @dateStrings = ( "???", "JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC" );
 
+#  If set, rename original files to name.ORIG, rewrite files with updated copyright text.
+#  If not, create new name.MODIFIED files with updated copyright text.
 #
-#  Lots of dead code (like those lists of names) from the first copyright add run.
+my $doForReal = 1;
+
+
 #
-#  This script should Just Run, if the last run was finished properly.  In particular, 'r6844' must be updated.
+#  The change data 'addCopyrights.dat' contains lines of two types:
 #
-#  After a successful run, before committing:
+#    A <file> <date><author>  -- a committed change to this file
+#    D <file> <oldfile>       -- 'file' used to be called 'oldfile'
 #
-#    update the log loop stopping condition to the revision you'll be committing.  Search for 'r6844'.
-#    rename 'addCopyrights.dat.new' to 'addCopyrights.dat'.
-#    CHECK YOUR WORK!  Diff a bunch of the changes.  Check new files.  Build it.  Does canu still run?
-#    TEST COMMIT - commit this script, check that the commit shows up correctly.
+#  The 'D' lines DO NOT map existing A lines.  They just emit 'this file derived from' lines in the
+#  copyright text.
+#  
+#  When a file is added to the repo, nothing special needs to be done; an 'A' line
+#  is emitted for the new file.  If a file comes about because of a copy (of an existing file),
+#  a 'D' line needs to be added.
 #
-#  Notes:
+#  If a file is renamed, a 'D' line needs to be added, and all previous mentions
+#  of the original name need to be updated to the new name.
 #
-#    Most of the SVN log processing is useless now.  Github doesn't seem to report renames.
-#
-
-sub getName ($) {
-    my $a = $_[0];
-    my $A;
-
-    if      ($a eq "adelcher")        {  $A = "Art Delcher";
-    } elsif ($a eq "art.delcher")     {  $A = "Art Delcher";
-    } elsif ($a eq "ahalpern")        {  $A = "Aaron Halpern";
-    } elsif ($a eq "aaron.halpern")   {  $A = "Aaron Halpern";
-    } elsif ($a eq "andreyto")        {
-    } elsif ($a eq "andrey.tovchigrechko") {
-    } elsif ($a eq "florea")          {  $A = "Liliana Florea";
-    } elsif ($a eq "liliana.florea")  {  $A = "Liliana Florea";
-    } elsif ($a eq "cmobarry")        {  $A = "Clark Mobarry";
-    } elsif ($a eq "clark.mobarry")   {  $A = "Clark Mobarry";
-    } elsif ($a eq "walenz")          {  $A = "Brian P. Walenz";
-    } elsif ($a eq "bri")             {  $A = "Brian P. Walenz";
-    } elsif ($a eq "brianwalenz")     {  $A = "Brian P. Walenz";
-    } elsif ($a eq "brian p. walenz") {  $A = "Brian P. Walenz";
-    } elsif ($a eq "brian.p..walenz") {  $A = "Brian P. Walenz";
-    } elsif ($a eq "catmandew")       {  $A = "Ian Dew";
-    } elsif ($a eq "ian.dew")         {  $A = "Ian Dew";
-    } elsif ($a eq "eliv")            {  $A = "Eli Venter";
-    } elsif ($a eq "eli.venter")      {  $A = "Eli Venter";
-    } elsif ($a eq "gdenisov")        {  $A = "Gennady Denisov";
-    } elsif ($a eq "gennady.denisov") {  $A = "Gennady Denisov";
-    } elsif ($a eq "gesims")          {  $A = "Gregory Sims";
-    } elsif ($a eq "greg.sims")       {  $A = "Gregory Sims";
-    } elsif ($a eq "granger_sutton")  {  $A = "Granger Sutton";
-    } elsif ($a eq "granger.sutton")  {  $A = "Granger Sutton";
-    } elsif ($a eq "jason_miller")    {  $A = "Jason Miller";
-    } elsif ($a eq "jasonmiller9704") {  $A = "Jason Miller";
-    } elsif ($a eq "jason.miller")    {  $A = "Jason Miller";
-    } elsif ($a eq "kli1000")         {  $A = "Kelvin Li";
-    } elsif ($a eq "kelvin.li")       {  $A = "Kelvin Li";
-    } elsif ($a eq "mcschatz")        {  $A = "Michael Schatz";
-    } elsif ($a eq "michael.schatz")  {  $A = "Michael Schatz";
-    } elsif ($a eq "mhayton")         {
-    } elsif ($a eq "matt.hayton")     {
-    } elsif ($a eq "mkotelbajcvi")    {
-    } elsif ($a eq "m.kolteba")       {
-    } elsif ($a eq "moweis")          {
-    } elsif ($a eq "m.oweis")         {
-    } elsif ($a eq "edwardnj")        {  #  kmer build system
-    } elsif ($a eq "nathan.edwards")  {  #  kmer build system
-    } elsif ($a eq "root")            {  #  Really?  possibly me on os-x
-    } elsif ($a eq "halldobv")        {
-    } elsif ($a eq "bjarni.halldorson") {
-    } elsif ($a eq "fasulodp")        {  #  kmer build system
-    } elsif ($a eq "dan.fasulo")      {  #  kmer build system
-    } elsif ($a eq "rbolanos")        {  #  kmer build system
-    } elsif ($a eq "randall.bolanos") {  #  kmer build system
-    } elsif ($a eq "ripper")          {  #  kmer build system
-    } elsif ($a eq "ross.lippert")    {  #  kmer build system
-    } elsif ($a eq "skoren")          {  $A = "Sergey Koren";
-    } elsif ($a eq "sergey.koren")    {  $A = "Sergey Koren";
-    } elsif ($a eq "vrainish")        {
-    } elsif ($a eq "v.rainish")       {
-    } elsif ($a eq "walenzb")         {  $A = "Brian P. Walenz";
-    } else {
-        print STDERR "Unknown a '$a'";
-    }
-
-    return($A);
-}
-
-
-
-sub getCopyright ($$$$) {
-    my $a = shift @_;
-    my $y = shift @_;
-    my $m = shift @_;
-    my $d = shift @_;
-    my $C;
-
-    if      (($a eq "catmandew") && ($y eq "2004")) {         #  This is the initial commit.
-    } elsif (($a eq "ian.dew")   && ($y eq "2004")) {         #  This is the initial commit.
-
-    } elsif  ($a eq "adelcher")        {  $C = "jcvi$y$m$d";
-    } elsif  ($a eq "art.delcher")     {  $C = "jcvi$y$m$d";
-    } elsif  ($a eq "ahalpern")        {  $C = "jcvi$y$m$d";
-    } elsif  ($a eq "aaron.halpern")   {  $C = "jcvi$y$m$d";
-    } elsif  ($a eq "florea")          {  $C = "none$y$m$d";  #  Earliest 2010-07-08, Latest 2011-11-16
-    } elsif  ($a eq "liliana.florea")  {  $C = "none$y$m$d";  #  Earliest 2010-07-08, Latest 2011-11-16
-    } elsif  ($a eq "cmobarry")        {  $C = "craa$y$m$d";
-    } elsif  ($a eq "clark.mobarry")   {  $C = "craa$y$m$d";
-    } elsif  ($a eq "catmandew")       {  $C = "jcvi$y$m$d";
-    } elsif  ($a eq "ian.dew")         {  $C = "jcvi$y$m$d";
-    } elsif  ($a eq "eliv")            {  $C = "jcvi$y$m$d";
-    } elsif  ($a eq "eli.venter")      {  $C = "jcvi$y$m$d";
-    } elsif  ($a eq "gdenisov")        {  $C = "jcvi$y$m$d";
-    } elsif  ($a eq "gennady.denisov") {  $C = "jcvi$y$m$d";
-    } elsif  ($a eq "gesims")          {  $C = "jcvi$y$m$d";
-    } elsif  ($a eq "greg.sims")       {  $C = "jcvi$y$m$d";
-    } elsif  ($a eq "granger_sutton")  {  $C = "jcvi$y$m$d";
-    } elsif  ($a eq "granger.sutton")  {  $C = "jcvi$y$m$d";
-    } elsif  ($a eq "jason_miller")    {  $C = "tigr$y$m$d";
-    } elsif  ($a eq "jasonmiller9704") {  $C = "jcvi$y$m$d";
-
-    } elsif  ($a eq "jason.miller")    {
-        if ($y < 2006) {
-            $C = "tigr$y$m$d";
-        } else {
-            $C = "jcvi$y$m$d";
-        }
-
-
-    } elsif  ($a eq "kli1000")         {  $C = "jcvi$y$m$d";
-    } elsif  ($a eq "kelvin.li")       {  $C = "jcvi$y$m$d";
-    } elsif  ($a eq "mcschatz")        {  $C = "tigr$y$m$d";
-    } elsif  ($a eq "michael.schatz")  {  $C = "tigr$y$m$d";
-
-    } elsif ($a eq "sergey.koren") {
-        if ($y <  "2011") {
-            $C = "jcvi$y$m$d";
-        } elsif (($y < "2015") || (($y eq "2015") && ($m < 10))) {
-            $C = "bnbi$y$m$d";
-        } else {
-            $C = "nihh$y$m$d";
-        }
-
-    } elsif (($a eq "brianwalenz") || ($a eq "walenz") || ($a eq "bri") || ($a eq "walenzb") || ($a eq "brian.p..walenz")) {
-        if      (($y < 2004) || (($y == 2004) && ($m < 10) && ($d < 9))) {
-            $C = "craa$y$m$d";
-        } elsif ($y < 2005) {
-            $C = "none$y$m$d";  #  Not employed, copyright me
-        } elsif (($y < 2014) || (($y == 2014) && ($m < 7))) {
-            $C = "jcvi$y$m$d";
-        } elsif (($y < 2015) || (($y < 2016) && ($m < 10))) {
-            $C = "bnbi$y$m$d";
-        } else {
-            $C = "nihh$y$m$d";
-        }
-
-    } elsif ($a eq "mkotelbajcvi") {
-    } elsif ($a eq "m.kolteba") {
-    } elsif ($a eq "moweis") {
-    } elsif ($a eq "m.oweis") {
-    } elsif ($a eq "andreyto") {
-    } elsif ($a eq "andrey.tovchigrechko") {
-    } elsif ($a eq "vrainish") {
-    } elsif ($a eq "v.rainish") {
-    } elsif ($a eq "mhayton") {
-    } elsif ($a eq "matt.hayton") {
-    } elsif ($a eq "edwardnj") {
-    } elsif ($a eq "nathan.edwards") {
-    } elsif ($a eq "root") {
-    } elsif ($a eq "halldobv") {
-    } elsif ($a eq "bjarni.halldorson") {
-    } elsif ($a eq "fasulodp") {
-    } elsif ($a eq "dan.fasulo") {
-    } elsif ($a eq "rbolanos") {
-    } elsif ($a eq "randall.bolanos") {
-    } elsif ($a eq "ripper") {
-    } elsif ($a eq "ross.lippert") {
-
-    } else {
-        print STDERR "unknown name $a\n";
-    }
-
-    return($C);
-}
-
 
 
 sub toList (@) {
@@ -344,157 +187,13 @@ sub splitAC ($@) {
 
 
 
-#  Generate logs
 
-if (! -e "logs") {
-    my $rev = 0;
-
-    open(F, "svn info |");
-    while (<F>) {
-        if (m/Revision:\s+(\d+)$/) {
-            $rev = $1;
-        }
-    }
-    close(F);
-
-    open(L, "> logs");
-
-    #  The first copyright addition is at r6844
-    #  The second copyright addition is at r7002
-
-    for (my $x=$rev; $x > 7002; $x--) {
-        print STDERR "$x\r";
-
-        open(I, "svn log -v -r $x |");
-        while (<I>) {
-            print L $_;
-        }
-        close(I);
-    }
-
-    close(L);
-}
-
-
-
+#  Load the previously generated change data
 
 my %authcopy;
 my %derived;
 
 {
-    my $r = undef;
-    my $a = undef;
-    my $y = undef;
-    my $m = undef;
-    my $d = undef;
-
-    #  Special case filemap; files that were split manually.
-    #  Mostly this is from memory.
-    #
-    #  filemap{oldfile} -> newfile
-
-    my %filemap;
-
-
-    #  Read the logs, create data
-
-    my $skip;
-
-    open(F, "< logs") or die "Failed to open 'logs' for reading: $!\n";
-    while (<F>) {
-        chomp;
-
-        if (m/^------------------------------------------------------------------------$/) {
-            undef $r;
-            undef $a;
-            undef $y;
-            undef $m;
-            undef $d;
-            undef $skip;
-
-        } elsif (m/^\s*$/) {
-            $skip = 1;
-
-        } elsif ($skip) {
-
-        } elsif (m/^r(\d+)\s\|\s(.*)\s\|\s(\d\d\d\d)-(\d\d)-(\d\d)/) {
-            $r = $1;
-            $a = $2;
-            $y = $3;
-            $m = $4;
-            $d = $5;
-
-        } elsif (m/^Changed paths:$/) {
-
-        } elsif ($r == 1) {
-            #  Skip the initial commit, it breaks the next clause.
-
-        } elsif (m/^\s\s\s.\s\/trunk\/(\S+)/) {
-            my $fn = $1;
-
-            #  Add a filemap if this is a svn controlled move
-
-            if      (m/^\s\s\s.\s\/trunk\/(\S+)\s.*from\s\/trunk\/(\S+)\:\d+/) {
-                #print STDERR "SET '$2' -> '$1' (for '$fn')\n";
-                if (defined($filemap{$2})) {
-                    $filemap{$2} .= "\0$1";
-                } else {
-                    $filemap{$2} = $1;
-                }
-            } elsif (m/\s\sA\s\/trunk\/(\S+)\s/) {
-                #print STDERR "NEW FILE $f\n";
-            }
-
-            #  And recursively figure out the files this change applies to in the future
-
-            my %files;
-
-            $files{$fn} = 1;  #  So far, just the current file.
-
-            {
-                my $added = 1;
-
-                while ($added) {
-                    $added = 0;
-
-                    #  For every file currently in the list
-                    foreach my $fk (keys %files) {
-
-                        #  If it has a map, remove the old file, and add the mapped files.
-                        if (exists($filemap{$fk})) {
-                            #delete $files{$fk};
-
-                            my @map = split '\0', $filemap{$fk};
-
-                            foreach my $fm (@map) {
-                                if (!exists($files{$fm})) {
-                                    #print STDERR "ADD FILE for new $fm <- $fk <- $fn\n";
-                                    $files{$fm} = 1;
-                                    $added = 1;  #  If wasn't there, keep recursing
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            my $A = getName($a);
-            my $C = getCopyright($a, $y, $m, $d);
-
-            if ((defined($A) && (defined($C)))) {
-                foreach my $f (keys %files) {
-                    $authcopy{$f}   .= "$C$A\n";
-                    $derived{$f}    .= "$fn\n";    #  Whatever file we end up with, it was derived from the one we're reading the log for.
-                }
-            }
-        } else {
-            print STDERR "WARN: $_\n";
-        }
-    }
-    close(F);
-
-    #  Load the previous data
-
     open(F, "< addCopyrights.dat");
     while (<F>) {
         chomp;
@@ -511,9 +210,6 @@ my %derived;
     }
     close(F);
 }
-
-
-
 
 
 
@@ -560,6 +256,7 @@ while (<FIN>) {
     next if ($file =~ m/README/);
     next if ($file =~ m/\.dat$/);
 
+    next if ($file =~ m/libboost/);
 
     my $cb = "/";
     my $cc = "*";
@@ -571,10 +268,7 @@ while (<FIN>) {
         $ce = "#";
     }
 
-
-
     my $iskmer   = 0;
-    my $isextern = 0;
 
     $iskmer = 1    if ($file =~ m/^kmer/);
     $iskmer = 1    if ($file =~ m/meryl/);
@@ -601,20 +295,16 @@ while (<FIN>) {
     $iskmer = 1    if ($file =~ m/testVar/);
     $iskmer = 1    if ($file =~ m/timeAndSize/);
 
-    $isextern = 1  if ($file =~ m/md5/);
-    $isextern = 1  if ($file =~ m/md5/);
-
-    $isextern = 1  if ($file =~ m/mt19937ar/);
-    $isextern = 1  if ($file =~ m/mt19937ar/);
-
-
-    die "Can't process '$file'\n"  if (($file !~ m/\.[CHch]$/) && ($file !~ m/\.p[lm]/));
+    if (($file !~ m/\.[CHch]$/) && ($file !~ m/\.p[lm]/)) {
+        print STDERR "Won't process:      '$file'\n";
+        next;
+    }
 
     my @AC     = split '\n', $authcopy{$file};
 
-    foreach my $ac (@AC) {
-        print OUT "A\t$file\t$ac\n";
-    }
+    #foreach my $ac (@AC) {
+    #    print OUT "A\t$file\t$ac\n";
+    #}
 
     my @AClist = splitAC($cc, @AC);
 
@@ -636,13 +326,13 @@ while (<FIN>) {
 
         @DElist = sort @DElist;
 
-        foreach my $d (@DElist) {
-            if ($d =~ m/^\s*\S\s*(\S+)$/) {
-                print OUT "D\t$file\t$1\n";
-            } else {
-                die "Failed to match DElist line '$d'\n";
-            }
-        }
+        #foreach my $d (@DElist) {
+        #    if ($d =~ m/^\s*\S\s*(\S+)$/) {
+        #        print OUT "D\t$file\t$1\n";
+        #    } else {
+        #        die "Failed to match DElist line '$d'\n";
+        #    }
+        #}
 
         unshift @DElist, " $cc\n";
         unshift @DElist, " $cc  This file is derived from:\n";
@@ -686,6 +376,14 @@ while (<FIN>) {
     while (<F>) {
         s/\s+$//;  #  Remove trailing spaces because they bug me.
 
+        #  If a single "/*" at the start of the line, assume this is NOT an old copyright block,
+        #  but a copyright block (or just a comment) from some third party code.
+
+        if ($_ eq "\/\*") {
+            print STDERR "Foreign code found: '$file'\n";
+            $start = 0;
+        }
+
         #  If not at the start, add the line.
 
         if ($start == 0) {
@@ -700,7 +398,7 @@ while (<FIN>) {
             ($_ =~ m/^\s*##/) ||     #  Perl comment, at least two #'s
             ($_ =~ m/^\s*#$/) ||     #  Perl comment, exactly one #
             ($_ =~ m/^\s*#\s/) ||    #  Perl comment, a single # followed by a space (so we don't catch #! lines)
-            ($_ =~ m/^\s*#\!/)) {      #  #! line.  I guess we do want to skip them now
+            ($_ =~ m/^\s*#\!/)) {    #  #! line.  I guess we do want to skip them now
             next;
         }
 
@@ -712,15 +410,17 @@ while (<FIN>) {
     }
     close(F);
 
-    #rename "$file", "$file.ORIG";
+    if ($doForReal) {
+        rename "$file", "$file.ORIG";
 
-    open(F, "> $file") or die "Failed to open '$file' for writing: $!\n";
-    print F @lines;
-    close(F);
-
-    #open(F, "> $file.MODIFIED") or die "Failed to open '$file.MODIFIED' for writing: $!\n";
-    #print F @lines;
-    #close(F);
+        open(F, "> $file") or die "Failed to open '$file' for writing: $!\n";
+        print F @lines;
+        close(F);
+    } else {
+        open(F, "> $file.MODIFIED") or die "Failed to open '$file.MODIFIED' for writing: $!\n";
+        print F @lines;
+        close(F);
+    }
 }
 
 close(FIN);

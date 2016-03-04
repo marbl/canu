@@ -19,6 +19,14 @@
  *      are Copyright 2015 Battelle National Biodefense Institute, and
  *      are subject to the BSD 3-Clause License
  *
+ *    Brian P. Walenz beginning on 2016-FEB-05
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
+ *
+ *    Sergey Koren beginning on 2016-FEB-15
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
+ *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.
  */
@@ -103,7 +111,7 @@ main(int argc, char **argv) {
     int32   ERRORS_FOR_FREE   = 1;
 
     int32  *starts            = new int32 [MAX_ERRORS + 1];
- 
+
     memset(starts, 0, sizeof(int32) * (MAX_ERRORS + 1));
 
     sprintf(N, "%s/prefixEditDistance-matchLimit-%04d.bin", D, evalue);

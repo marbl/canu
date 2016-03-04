@@ -23,6 +23,10 @@
  *      are a 'United States Government Work', and
  *      are released in the public domain
  *
+ *    Sergey Koren beginning on 2016-FEB-24
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
+ *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.
  */
@@ -347,7 +351,7 @@ main(int argc, char **argv) {
 
   if (noStats == true)
      exit(0);
-  
+
   errno = 0;
   FILE     *statsFile = fopen(statsFileName, "w");
   if (errno)

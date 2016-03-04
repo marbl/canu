@@ -62,6 +62,10 @@
  *      are a 'United States Government Work', and
  *      are released in the public domain
  *
+ *    Sergey Koren beginning on 2015-DEC-17
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
+ *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.
  */
@@ -333,7 +337,7 @@ unitigConsensus::generatePBDAG(tgTig                     *tig_,
     // merge the nodes and call consensus
     ag.mergeNodes();
     std::string cns = ag.consensus(1);
-    
+
     // save consensus
     resizeArrayPair(tig->_gappedBases, tig->_gappedQuals, 0, tig->_gappedMax, (uint32) cns.length() + 1, resizeArray_doNothing);
     std::string::size_type len = 0;

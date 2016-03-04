@@ -205,7 +205,7 @@ sub buildCorrectionLayouts_direct ($$) {
     }
 
     if (getGlobal("corConsensus") eq "falcon") {
-       #the second call will confirm we have the proper number of output files and set jobs 
+       #the second call will confirm we have the proper number of output files and set jobs
        ($jobs, $nPer) = computeNumberOfCorrectionJobs($wrk, $asm);
     }
 

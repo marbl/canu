@@ -19,6 +19,10 @@
  *      are Copyright 2015 Battelle National Biodefense Institute, and
  *      are subject to the BSD 3-Clause License
  *
+ *    Brian P. Walenz beginning on 2015-DEC-07
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
+ *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.
  */
@@ -452,7 +456,7 @@ main(int argc, char **argv) {
   double MAX_ERRORS = 1 + (uint32)(G->errorRate * AS_MAX_READLEN);
 
   Initialize_Match_Limit(G->Edit_Match_Limit, G->errorRate, MAX_ERRORS);
- 
+
   for  (uint32 i = 0;  i <= AS_MAX_READLEN;  i++)
     G->Error_Bound[i] = (int)ceil(i * G->errorRate);
 

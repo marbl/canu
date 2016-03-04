@@ -27,6 +27,10 @@
  *      are Copyright 2014 Battelle National Biodefense Institute, and
  *      are subject to the BSD 3-Clause License
  *
+ *    Brian P. Walenz beginning on 2016-JAN-11
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
+ *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.
  */
@@ -232,7 +236,7 @@ classifyUnitigsAsUnassembled(UnitigVector &unitigs,
     }
     if (utg->_isUnassembled)
       continue;
-        
+
     //  Rule 4.  Low coverage.
 
     intervalList<int32>  IL;
@@ -245,12 +249,12 @@ classifyUnitigsAsUnassembled(UnitigVector &unitigs,
 
       IL.add(frgbgn, frgend - frgbgn);
     }
-    
+
     intervalList<int32>  ID(IL);
 
     uint32  basesLow  = 0;
     uint32  basesHigh = 0;
-    
+
     for (uint32 ii=0; ii<ID.numberOfIntervals(); ii++)
       if (ID.depth(ii) < lowcovDepth)
         basesLow  += ID.hi(ii) - ID.lo(ii) + 1;

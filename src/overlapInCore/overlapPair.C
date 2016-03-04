@@ -19,6 +19,14 @@
  *      are Copyright 2015 Battelle National Biodefense Institute, and
  *      are subject to the BSD 3-Clause License
  *
+ *    Brian P. Walenz beginning on 2015-DEC-07
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
+ *
+ *    Sergey Koren beginning on 2016-FEB-12
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
+ *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.
  */
@@ -282,7 +290,7 @@ if (nTested % 1000 == 0) {
   WA->align->clear();
   bool aligned = NDalignment::align(bRead+bstart, bend-bstart+1, rcache->getRead(aID)+astart, aend-astart+1, tolerance, false, *(WA->align));
   NDalignment::NDalignResult& alignResult = *WA->align;
- 
+
   uint32 alignmentLength = WA->align->_tgt_end - WA->align->_tgt_bgn + 1;
 #else
   StripedSmithWaterman::Alignment alignment;

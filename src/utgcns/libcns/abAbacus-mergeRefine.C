@@ -247,7 +247,7 @@ abColumn::mergeWithNext(abAbacus *abacus, bool highQuality) {
   //  The actual example (,'s indicate no bases because the read ended):
   //
   //          1234    Column 2 is merged into column 1, and then we delete column 2.
-  //    1  -aa-aaa     
+  //    1  -aa-aaa
   //    2  gaaT,,,       Column 1 read 4 has _beads position 3.            (next = 1)
   //    3  gaaT,,,       Column 2 read 4 has _beads position 1.  (prev = 3, next = 1)
   //    4  -aa-aaa       Column 3 read 4 has _beads position 1.  (prev = 1)

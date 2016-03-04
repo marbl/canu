@@ -27,6 +27,10 @@
  #      are a 'United States Government Work', and
  #      are released in the public domain
  #
+ #    Sergey Koren beginning on 2015-NOV-19
+ #      are a 'United States Government Work', and
+ #      are released in the public domain
+ #
  #  File 'README.licenses' in the root directory of this distribution contains
  #  full conditions and disclaimers for each license.
  ##
@@ -326,7 +330,7 @@ sub merylCheck ($$$) {
 
     my $bin    = getBinDirectory();
     my $cmd;
-    
+
     my ($wrk, $merSize, $merThresh, $merScale, $merDistinct, $merTotal, $ffile, $ofile) = merylParameters($WRK, $asm, $tag);
 
     #  If the frequent mer file exists, don't bother running meryl.  We don't really need the
@@ -391,7 +395,7 @@ sub merylProcess ($$$) {
 
     my $bin    = getBinDirectory();
     my $cmd;
-    
+
     my ($wrk, $merSize, $merThresh, $merScale, $merDistinct, $merTotal, $ffile, $ofile) = merylParameters($WRK, $asm, $tag);
 
     goto allDone   if (skipStage($WRK, $asm, "$tag-meryl") == 1);

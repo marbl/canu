@@ -175,7 +175,7 @@ private:
   //  If set, reads are from a non-random library and shouldn't count toward coverage stats.
   uint32         _isNonRandom;
 
-  //  What generated these reads?  
+  //  What generated these reads?
   uint32         _readType;
 
   //  Should reads be corrected?  How?

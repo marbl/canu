@@ -15,7 +15,7 @@
  #
  #  Modifications by:
  #
- #    Brian P. Walenz beginning on 2015-MOV-27
+ #    Brian P. Walenz beginning on 2015-NOV-27
  #      are a 'United States Government Work', and
  #      are released in the public domain
  #
@@ -60,7 +60,7 @@ sub formatAllowedResources (\%$) {
         $hosts .= "$cpus-$mem-$nodes";
     }
 
-    return $hosts;                            
+    return $hosts;
 }
 
 

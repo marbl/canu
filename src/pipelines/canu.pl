@@ -28,6 +28,10 @@
  #      are a 'United States Government Work', and
  #      are released in the public domain
  #
+ #    Sergey Koren beginning on 2015-NOV-19
+ #      are a 'United States Government Work', and
+ #      are released in the public domain
+ #
  #  File 'README.licenses' in the root directory of this distribution contains
  #  full conditions and disclaimers for each license.
  ##
@@ -154,7 +158,7 @@ while (scalar(@ARGV)) {
     } elsif ($arg eq "-trim-assemble") {
         $mode = $step = "trim-assemble";
         addCommandLineOption("-trim-assemble");
-        
+
     } elsif (($arg eq "-pacbio-raw")       ||
              ($arg eq "-pacbio-corrected") ||
              ($arg eq "-nanopore-raw")     ||
@@ -239,7 +243,7 @@ if (scalar(@inputFiles) == 0 && ! defined(getGlobal("errorRate"))) {
     $gkpStore = "$wrk/trimming/$asm.gkpStore "  if -e "$wrk/trimming/$asm.gkpStore/libraries.txt";
     $gkpStore = "$wrk/unitigging/$asm.gkpStore" if -e "$wrk/unitigging/$asm.gkpStore/libraries.txt";
 
-    # set to the default if we can't find anything 
+    # set to the default if we can't find anything
     if (!defined($gkpStore)) {
         setErrorRate(0.01);
     } else {

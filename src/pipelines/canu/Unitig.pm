@@ -27,6 +27,10 @@
  #      are a 'United States Government Work', and
  #      are released in the public domain
  #
+ #    Sergey Koren beginning on 2015-NOV-27
+ #      are a 'United States Government Work', and
+ #      are released in the public domain
+ #
  #  File 'README.licenses' in the root directory of this distribution contains
  #  full conditions and disclaimers for each license.
  ##
@@ -66,7 +70,7 @@ sub estimateOverlapSize($$) {
     my $gs        = getGlobal("genomeSize");
 
     # if the  user manually set a threshold, use theirs, don't change it
-    if ($ovl != 500) { 
+    if ($ovl != 500) {
        return $ovl;
     }
 
@@ -80,7 +84,7 @@ sub estimateOverlapSize($$) {
           my $cov = ceil($bases / $gs);
 
           if ($gs >= 100000000) {
-             $ovl = roundoff(($average - $minread + $ovl) * 0.65, 500); 
+             $ovl = roundoff(($average - $minread + $ovl) * 0.65, 500);
              print STDERR "-- Average read length $average (found $reads reads with $bases bases). Minimum overlap set to $ovl\n";
           }
           last;
@@ -89,7 +93,7 @@ sub estimateOverlapSize($$) {
     close(F);
     return $ovl;
 }
-    
+
 
 
 sub reportUnitigSizes ($$$$) {

@@ -13,17 +13,9 @@
  #  Canu branched from Celera Assembler at its revision 4587.
  #  Canu branched from the kmer project at its revision 1994.
  #
- #  This file is derived from:
- #
- #    src/pipelines/ca3g/OverlapMMap.pm
- #
  #  Modifications by:
  #
- #    Brian P. Walenz from 2015-MAR-27 to 2015-SEP-21
- #      are Copyright 2015 Battelle National Biodefense Institute, and
- #      are subject to the BSD 3-Clause License
- #
- #    Brian P. Walenz beginning on 2015-NOV-03
+ #    Sergey Koren beginning on 2016-FEB-24
  #      are a 'United States Government Work', and
  #      are released in the public domain
  #
@@ -341,7 +333,7 @@ sub mmapConfigure ($$$$) {
     print F " \n";
     print F "fi\n";
     print F "\n";
-   
+
     print F "for file in `ls $path/queries/\$qry/*.fasta`; do\n";
     print F "  \$bin/minimap \\\n";
     print F "    -k $merSize \\\n";
@@ -603,7 +595,7 @@ sub mmapCheck ($$$$) {
     }
 
   finishStage:
-    print STDERR "-- Found ", scalar(@successJobs), " mmap overlap output files.\n"; 
+    print STDERR "-- Found ", scalar(@successJobs), " mmap overlap output files.\n";
 
     open(L, "> $path/mmap.files") or caExit("failed to open '$path/mmap.files'", undef);
     print L @mmapJobs;

@@ -13,17 +13,13 @@
  #  Canu branched from Celera Assembler at its revision 4587.
  #  Canu branched from the kmer project at its revision 1994.
  #
- #  This file is derived from:
- #
- #    src/pipelines/ca3g/Defaults.pm
- #
  #  Modifications by:
  #
- #    Brian P. Walenz from 2015-FEB-27 to 2015-SEP-21
- #      are Copyright 2015 Battelle National Biodefense Institute, and
- #      are subject to the BSD 3-Clause License
+ #    Brian P. Walenz beginning on 2015-NOV-27
+ #      are a 'United States Government Work', and
+ #      are released in the public domain
  #
- #    Brian P. Walenz beginning on 2015-OCT-21
+ #    Sergey Koren beginning on 2015-DEC-02
  #      are a 'United States Government Work', and
  #      are released in the public domain
  #
@@ -119,7 +115,7 @@ sub expandRange ($$) {
                 print STDERR "--\n";
                 print STDERR "-- WARNING: incomplete and inconsistent units on '$var=$val'.\n";
             }
-                
+
             $bgnu = $endu  if (!defined($bgnu));
             $endu = $bgnu  if (!defined($endu));
             $stpu = $endu  if (!defined($stpu) && ($stp <= $end));

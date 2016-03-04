@@ -27,6 +27,10 @@
  #      are a 'United States Government Work', and
  #      are released in the public domain
  #
+ #    Sergey Koren beginning on 2015-NOV-20
+ #      are a 'United States Government Work', and
+ #      are released in the public domain
+ #
  #  File 'README.licenses' in the root directory of this distribution contains
  #  full conditions and disclaimers for each license.
  ##
@@ -121,7 +125,7 @@ sub mhapConfigure ($$$$) {
     # quick guess parameter adjustment for corrected reads, hack for now and should better take error rate into account
     if (($tag eq "obt") || ($tag eq "utg")) {
        $numHashes     /= 4;
-       $minNumMatches  = floor(1.5 * $minNumMatches); 
+       $minNumMatches  = floor(1.5 * $minNumMatches);
        $ordSketch      = floor($ordSketch / 2);
        $ordSketchMer   = floor($ordSketchMer * 1.3);
        $threshold      = 1-getGlobal("${tag}OvlErrorRate");
@@ -708,7 +712,7 @@ sub mhapCheck ($$$$) {
     }
 
   finishStage:
-    print STDERR "-- Found ", scalar(@successJobs), " mhap overlap output files.\n"; 
+    print STDERR "-- Found ", scalar(@successJobs), " mhap overlap output files.\n";
 
     open(L, "> $path/mhap.files") or caExit("failed to open '$path/mhap.files'", undef);
     print L @mhapJobs;

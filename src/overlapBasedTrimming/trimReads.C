@@ -19,6 +19,10 @@
  *      are Copyright 2015 Battelle National Biodefense Institute, and
  *      are subject to the BSD 3-Clause License
  *
+ *    Brian P. Walenz beginning on 2015-DEC-07
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
+ *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.
  */
@@ -286,7 +290,7 @@ main(int argc, char **argv) {
     }
 
     readsIn += read->gkRead_sequenceLength();
-    
+
 
     //  Decide on the initial trimming.  We copied any iniClr into outClr above, and if there wasn't
     //  an iniClr, then outClr is the full read.

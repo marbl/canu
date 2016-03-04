@@ -1,18 +1,46 @@
 
+/******************************************************************************
+ *
+ *  This file is part of canu, a software program that assembles whole-genome
+ *  sequencing reads into contigs.
+ *
+ *  This software is based on:
+ *    'Celera Assembler' (http://wgs-assembler.sourceforge.net)
+ *    the 'kmer package' (http://kmer.sourceforge.net)
+ *  both originally distributed by Applera Corporation under the GNU General
+ *  Public License, version 2.
+ *
+ *  Canu branched from Celera Assembler at its revision 4587.
+ *  Canu branched from the kmer project at its revision 1994.
+ *
+ *  Modifications by:
+ *
+ *    Sergey Koren beginning on 2015-DEC-28
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
+ *
+ *    Brian P. Walenz beginning on 2016-JAN-04
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
+ *
+ *  File 'README.licenses' in the root directory of this distribution contains
+ *  full conditions and disclaimers for each license.
+ */
+
 /*
  * =====================================================================================
  *
  *       Filename:  dw.h
  *
- *    Description:  Common delclaration for the code base 
+ *    Description:  Common delclaration for the code base
  *
  *        Version:  0.1
  *        Created:  07/16/2013 07:46:23 AM
  *       Revision:  none
  *       Compiler:  gcc
  *
- *         Author:  Jason Chin, 
- *        Company:  
+ *         Author:  Jason Chin,
+ *        Company:
  *
  * =====================================================================================
 
@@ -61,7 +89,7 @@
 #include <stdint.h>
 
 namespace NDalignment {
-typedef int32_t seq_coor_t; 
+typedef int32_t seq_coor_t;
 
 class NDalignResult {
 public:
@@ -129,7 +157,7 @@ typedef struct {
 bool align(const char *, seq_coor_t,
                   const char *, seq_coor_t,
                   seq_coor_t,
-                  bool, NDalignResult &aln); 
+                  bool, NDalignResult &aln);
 }
 
 #endif

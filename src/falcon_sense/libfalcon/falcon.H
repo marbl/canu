@@ -1,18 +1,42 @@
 
+/******************************************************************************
+ *
+ *  This file is part of canu, a software program that assembles whole-genome
+ *  sequencing reads into contigs.
+ *
+ *  This software is based on:
+ *    'Celera Assembler' (http://wgs-assembler.sourceforge.net)
+ *    the 'kmer package' (http://kmer.sourceforge.net)
+ *  both originally distributed by Applera Corporation under the GNU General
+ *  Public License, version 2.
+ *
+ *  Canu branched from Celera Assembler at its revision 4587.
+ *  Canu branched from the kmer project at its revision 1994.
+ *
+ *  Modifications by:
+ *
+ *    Sergey Koren beginning on 2016-FEB-24
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
+ *
+ *  File 'README.licenses' in the root directory of this distribution contains
+ *  full conditions and disclaimers for each license.
+ */
+
 /*
  * =====================================================================================
  *
  *       Filename:  common.h
  *
- *    Description:  Common delclaration for the code base 
+ *    Description:  Common delclaration for the code base
  *
  *        Version:  0.1
  *        Created:  07/16/2013 07:46:23 AM
  *       Revision:  none
  *       Compiler:  gcc
  *
- *         Author:  Jason Chin, 
- *        Company:  
+ *         Author:  Jason Chin,
+ *        Company:
  *
  * =====================================================================================
 
@@ -61,9 +85,9 @@
 
 using namespace std;
 using namespace NDalignment;
- 
+
 namespace FConsensus {
-typedef struct {    
+typedef struct {
     seq_coor_t start;
     seq_coor_t last;
     seq_coor_t count;
@@ -105,22 +129,22 @@ seq_array allocate_seq(seq_coor_t);
 void init_seq_array( seq_array, seq_coor_t);
 void free_seq_array(seq_array);
 
-seq_addr_array allocate_seq_addr(seq_coor_t size); 
+seq_addr_array allocate_seq_addr(seq_coor_t size);
 
 void free_seq_addr_array(seq_addr_array);
 
 
-aln_range *  find_best_aln_range(kmer_match *, 
-                              seq_coor_t, 
-                              seq_coor_t, 
-                              seq_coor_t); 
+aln_range *  find_best_aln_range(kmer_match *,
+                              seq_coor_t,
+                              seq_coor_t,
+                              seq_coor_t);
 
 void free_aln_range( aln_range *);
 
-kmer_match * find_kmer_pos_for_seq( const char *, 
-                                    seq_coor_t, 
-                                    uint32 K, 
-                                    seq_addr_array, 
+kmer_match * find_kmer_pos_for_seq( const char *,
+                                    seq_coor_t,
+                                    uint32 K,
+                                    seq_addr_array,
                                     kmer_lookup * );
 
 void free_kmer_match( kmer_match * ptr);
@@ -128,13 +152,13 @@ void free_kmer_lookup(kmer_lookup * );
 
 
 
-void add_sequence ( seq_coor_t, 
-                    uint32, 
-                    const char *, 
+void add_sequence ( seq_coor_t,
+                    uint32,
+                    const char *,
                     seq_coor_t,
-                    seq_addr_array, 
-                    seq_array, 
-                    kmer_lookup *); 
+                    seq_addr_array,
+                    seq_array,
+                    kmer_lookup *);
 
 void mask_k_mer(seq_coor_t, kmer_lookup *, seq_coor_t);
 

@@ -40,6 +40,10 @@
  *      are a 'United States Government Work', and
  *      are released in the public domain
  *
+ *    Sergey Koren beginning on 2015-NOV-20
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
+ *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.
  */

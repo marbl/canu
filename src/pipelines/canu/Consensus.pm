@@ -27,6 +27,10 @@
  #      are a 'United States Government Work', and
  #      are released in the public domain
  #
+ #    Sergey Koren beginning on 2015-DEC-16
+ #      are a 'United States Government Work', and
+ #      are released in the public domain
+ #
  #  File 'README.licenses' in the root directory of this distribution contains
  #  full conditions and disclaimers for each license.
  ##
@@ -111,7 +115,7 @@ sub utgcns ($$$) {
     print F "  -quick \\\n"      if (getGlobal("cnsConsensus") eq "quick");
     print F "  -pbdagcon \\\n"   if (getGlobal("cnsConsensus") eq "pbdagcon");
     print F "  -utgcns \\\n"     if (getGlobal("cnsConsensus") eq "utgcns");
-    print F "  -threads " . getGlobal("cnsThreads") . " \\\n"; 
+    print F "  -threads " . getGlobal("cnsThreads") . " \\\n";
     print F "&& \\\n";
     print F "mv $wrk/5-consensus/\$jobid.cns.WORKING $wrk/5-consensus/\$jobid.cns \\\n";
     #print F "&& \\\n";

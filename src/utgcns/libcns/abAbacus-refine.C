@@ -280,7 +280,7 @@ abAbacusWork::abAbacusWork(abAbacus  *abacus,
   reset();
 
 
-  
+
 
   //  Fill the center third of abacus with bases.
 

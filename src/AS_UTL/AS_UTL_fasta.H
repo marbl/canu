@@ -23,6 +23,10 @@
  *      are Copyright 2008-2009 J. Craig Venter Institute, and
  *      are subject to the GNU General Public License version 2
  *
+ *    Brian P. Walenz beginning on 2015-NOV-23
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
+ *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.
  */
