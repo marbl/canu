@@ -184,12 +184,12 @@ or use the following curl command:
 
  curl -L -o yeast.20x.fastq.gz http://gembox.cbcb.umd.edu/mhap/raw/yeast_filtered.20x.fastq.gz
 
-and run the assembler with modified parameters::
+and run the assembler adding sensitive parameters (**corMhapSensitivity=high corMinCoverage=2 errorRate=0.035 minOverlapLength=499**)::
 
  canu \
   -p asm -d yeast \
   genomeSize=12.1m \
-  corMhapSensitivity=high corMinCoverage=2 errorRate=0.035 \
+  corMhapSensitivity=high corMinCoverage=2 errorRate=0.035 minOverlapLength=499 \
   -pacbio-raw yeast.20x.fastq.gz
   
 
