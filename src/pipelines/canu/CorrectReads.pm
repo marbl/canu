@@ -742,6 +742,7 @@ sub buildCorrectionLayouts ($$) {
         $cmd .= "  -S $path/$asm.globalScores \\\n";
         $cmd .= "  -c $maxCov \\\n";
         $cmd .= "  -l $minLen \\\n";
+        $cmd .= "  -e " . getGlobal("corMaxEvidenceErate")  . " \\\n"  if (defined(getGlobal("corMaxEvidenceErate")));
         $cmd .= "  -legacy \\\n"                       if (!defined(getGlobal("corNoLegacyFilter")));
         $cmd .= "> $path/$asm.globalScores.err 2>&1";
 
