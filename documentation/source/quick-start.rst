@@ -184,12 +184,12 @@ or use the following curl command:
 
  curl -L -o yeast.20x.fastq.gz http://gembox.cbcb.umd.edu/mhap/raw/yeast_filtered.20x.fastq.gz
 
-and run the assembler adding sensitive parameters (**corMhapSensitivity=high corMinCoverage=2 errorRate=0.035 minOverlapLength=499**)::
+and run the assembler adding sensitive parameters (**corMhapSensitivity=high corMinCoverage=2 errorRate=0.035 minOverlapLength=499 corMaxEvidenceErate=0.3**)::
 
  canu \
   -p asm -d yeast \
   genomeSize=12.1m \
-  corMhapSensitivity=high corMinCoverage=2 errorRate=0.035 minOverlapLength=499 \
+  corMhapSensitivity=high corMinCoverage=2 errorRate=0.035 minOverlapLength=499 corMaxEvidenceErate=0.3 \
   -pacbio-raw yeast.20x.fastq.gz
   
 
@@ -199,28 +199,28 @@ After the run completes, we can check the assembly statistics::
 
 ::
 
-  lenSuggestRepeat sum     989829 (genomeSize 12100000)
-  lenSuggestRepeat num        122
-  lenSuggestRepeat ave       8113
-  lenUnassembled ng10       12402 bp   lg10      76   sum    1219358 bp
-  lenUnassembled ng20        9224 bp   lg20     188   sum    2424213 bp
-  lenUnassembled ng30        6962 bp   lg30     338   sum    3630024 bp
-  lenUnassembled ng40        4658 bp   lg40     550   sum    4840192 bp
-  lenUnassembled sum    6015883 (genomeSize 12100000)
-  lenUnassembled num       1001
-  lenUnassembled ave       6009
-  lenContig ng10      761678 bp   lg10       2   sum    1544923 bp
-  lenContig ng20      667913 bp   lg20       4   sum    2936565 bp
-  lenContig ng30      567302 bp   lg30       6   sum    4150893 bp
-  lenContig ng40      550085 bp   lg40       8   sum    5265318 bp
-  lenContig ng50      446807 bp   lg50      10   sum    6191995 bp
-  lenContig ng60      258194 bp   lg60      14   sum    7357975 bp
-  lenContig ng70      184000 bp   lg70      20   sum    8638537 bp
-  lenContig ng80      120032 bp   lg80      28   sum    9759277 bp
-  lenContig ng90       84513 bp   lg90      40   sum   10934756 bp
-  lenContig sum   11916196 (genomeSize 12100000)
-  lenContig num         68
-  lenContig ave     175238
+  lenSuggestRepeat sum     829257 (genomeSize 12100000)
+  lenSuggestRepeat num        105
+  lenSuggestRepeat ave       7897
+  lenUnassembled ng10       12472 bp   lg10      75   sum    1217659 bp
+  lenUnassembled ng20        8623 bp   lg20     192   sum    2420234 bp
+  lenUnassembled ng30        5949 bp   lg30     359   sum    3632595 bp
+  lenUnassembled ng40        2851 bp   lg40     640   sum    4842075 bp
+  lenUnassembled sum    5325150 (genomeSize 12100000)
+  lenUnassembled num        903
+  lenUnassembled ave       5897
+  lenContig ng10      719035 bp   lg10       2   sum    1502223 bp
+  lenContig ng20      646872 bp   lg20       4   sum    2817020 bp
+  lenContig ng30      565419 bp   lg30       6   sum    3949850 bp
+  lenContig ng40      485518 bp   lg40       8   sum    4989743 bp
+  lenContig ng50      329252 bp   lg50      11   sum    6245693 bp
+  lenContig ng60      257910 bp   lg60      15   sum    7358747 bp
+  lenContig ng70      196655 bp   lg70      20   sum    8473224 bp
+  lenContig ng80      119852 bp   lg80      29   sum    9776539 bp
+  lenContig ng90       85266 bp   lg90      40   sum   10892166 bp
+  lenContig sum   11972093 (genomeSize 12100000)
+  lenContig num         66
+  lenContig ave     181395
 
 Consensus Accuracy
 -------------------
