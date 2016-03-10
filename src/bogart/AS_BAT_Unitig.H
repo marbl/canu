@@ -178,7 +178,20 @@ public:
     _blockNext    = 1;
     _totalUnitigs = 1;
   };
+
   ~UnitigVector() {
+
+    //  Delete the unitigs.
+    for (uint32 ii=0; ii<_numBlocks; ii++)
+      for (uint32 jj=0; jj<_blockSize; jj++)
+        delete _blocks[ii][jj];
+
+    //  Delete the blocks.
+    for (uint32 ii=0; ii<_numBlocks; ii++)
+      delete [] _blocks[ii];
+
+    //  And the block pointers.
+    delete [] _blocks;
   };
 
   Unitig *newUnitig(bool verbose) {

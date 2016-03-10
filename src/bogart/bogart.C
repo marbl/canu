@@ -581,9 +581,6 @@ main (int argc, char * argv []) {
   delete OC;
   delete FI;
 
-  for (uint32  ti=0; ti<unitigs.size(); ti++)
-    delete unitigs[ti];
-
   setLogFile(output_prefix, NULL);
 
   writeLog("Bye.\n");
