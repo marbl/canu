@@ -107,6 +107,33 @@ OverlapCache::OverlapCache(ovStore *ovlStoreUniq,
                            bool onlySave,
                            bool doSave) {
 
+  _memLimit      = 0;
+  _memUsed       = 0;
+
+  _storMax       = 0;
+  _storLen       = 0;
+  _stor          = NULL;
+
+  _heaps.clear();
+
+  _cacheMMF      = NULL;
+
+  _cachePtr      = NULL;
+  _cacheLen      = NULL;
+
+  _maxPer        = 0;
+
+  _ovsMax        = 0;
+  _ovs           = NULL;
+  _ovsSco        = NULL;
+  _ovsTmp        = NULL;
+
+  _threadMax     = 0;
+  _thread        = NULL;
+
+  _ovlStoreUniq  = NULL;
+  _ovlStoreRept  = NULL;
+
   if (load(prefix, erate) == true)
     return;
 
@@ -220,9 +247,6 @@ OverlapCache::OverlapCache(ovStore *ovlStoreUniq,
   _ovs     = ovOverlap::allocateOverlaps(NULL, _ovsMax);  //  So can't call bgn or end.
   _ovsSco  = new uint64     [_ovsMax];
   _ovsTmp  = new uint64     [_ovsMax];
-
-  //_threadMax = omp_get_max_threads();
-  //_thread    = new OverlapCacheThreadData [_threadMax];
 
   _ovlStoreUniq = ovlStoreUniq;
   _ovlStoreRept = ovlStoreRept;
