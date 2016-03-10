@@ -102,10 +102,10 @@ public:
     //  NOTA BENE!!  Even though it is writable, it CANNOT be extended.
 
     _data = (_type == memoryMappedFile_readOnly) ? mmap(0L, _length, PROT_READ,              MAP_FILE | MAP_SHARED, fd, 0)
-                                                 : mmap(0L, _length, PROT_READ | PROT_WRITE, MAP_FILE | MAP_SHARED, fd, 0);
+                                                 : mmap(0L, _length, PROT_READ | PROT_WRITE, MAP_FILE | MAP_PRIVATE, fd, 0);
 
     if (errno)
-      fprintf(stderr, "memoryMappedFile()-- Couldn't mmap '%s': %s\n", _name, strerror(errno)), exit(1);
+      fprintf(stderr, "memoryMappedFile()-- Couldn't mmap '%s' of length "F_SIZE_T": %s\n", _name, _length, strerror(errno)), exit(1);
 
     close(fd);
 
