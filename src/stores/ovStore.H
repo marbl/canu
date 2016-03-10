@@ -46,6 +46,7 @@
 #define AS_OVS_decodeEvalue(E)   ((E) / 10000.0)
 #define AS_OVS_encodeEvalue(Q)   (((Q) < AS_OVS_decodeEvalue(AS_MAX_EVALUE)) ? (int)(10000.0 * (Q) + 0.5) : AS_MAX_EVALUE)
 
+#define AS_MAX_ERATE               AS_OVS_decodeEvalue(AS_MAX_EVALUE)
 
 //  The old implementation allowed up to 20-bit reads, and used 3 32-bit words.  No alignment was
 //  stored.
