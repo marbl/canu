@@ -145,7 +145,7 @@ public:
 
   void      add(iNum position, iNum length, iVal value=0);
   void      sort(void);
-  void      merge(uint32 minOverlap=0);               //  Merge overlapping regions
+  void      merge(iNum minOverlap=0);                 //  Merge overlapping regions
   void      merge(intervalList<iNum, iVal> *IL);      //  Insert IL into this list
 
   void      filterShort(iNum minLength);
@@ -277,7 +277,7 @@ intervalList<iNum, iVal>::sort(void) {
 
 template <class iNum, class iVal>
 void
-intervalList<iNum, iVal>::merge(uint32 minOverlap) {
+intervalList<iNum, iVal>::merge(iNum minOverlap) {
   uint32  thisInterval = 0;
   uint32  nextInterval = 1;
 
