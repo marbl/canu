@@ -300,7 +300,7 @@ intervalList<iNum, iVal>::merge(iNum minOverlap) {
       _list[thisInterval].lo = _list[nextInterval].lo;
       _list[thisInterval].hi = _list[nextInterval].hi;
       _list[thisInterval].ct = _list[nextInterval].ct;
-      _list[thisInterval].ct = _list[nextInterval].va;
+      _list[thisInterval].va = _list[nextInterval].va;
 
       _list[nextInterval].lo = 0;
       _list[nextInterval].hi = 0;
