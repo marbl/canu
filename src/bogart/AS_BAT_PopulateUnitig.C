@@ -53,11 +53,13 @@ populateUnitig(Unitig           *unitig,
     //  Nothing to add!
     return;
 
-  ufNode frag = unitig->ufpath.back();
+  ufNode  frag    = unitig->ufpath.back();
 
   //  The ID of the last fragment in the unitig, and the end we should walk off of it.
-  int32 lastID  = frag.ident;
-  bool  last3p  = (frag.position.bgn < frag.position.end);
+  int32   lastID  = frag.ident;
+  bool    last3p  = (frag.position.bgn < frag.position.end);
+
+  uint32  nAdded  = 0;
 
   //  While there are fragments to add AND those fragments to add are not already in a unitig,
   //  construct a reverse-edge, and add the fragment.
@@ -84,10 +86,11 @@ populateUnitig(Unitig           *unitig,
 
     if (unitig->placeFrag(frag, bidx5, (bestnext->frag3p() ? NULL : &bestprev),
                           frag, bidx3, (bestnext->frag3p() ? &bestprev : NULL))) {
-      unitig->addFrag(frag, 0, logFileFlagSet(LOG_POPULATE_UNITIG));
+      //unitig->addFrag(frag, 0, logFileFlagSet(LOG_POPULATE_UNITIG));
+      unitig->addFrag(frag, 0, false);
+      nAdded++;
 
     } else {
-
       writeLog("ERROR:  Failed to place frag %d into BOG path.\n", frag.ident);
       assert(0);
     }
@@ -99,6 +102,18 @@ populateUnitig(Unitig           *unitig,
 
     bestnext = OG->getBestEdgeOverlap(lastID, last3p);
   }
+
+  if (logFileFlagSet(LOG_POPULATE_UNITIG))
+    if (bestnext->fragId() == 0)
+      writeLog("Stopped adding at frag %u/%c' because no next best edge.  Added %u reads.\n",
+               lastID, (last3p) ? '3' : '5',
+               nAdded);
+    else
+      writeLog("Stopped adding at frag %u/%c' beacuse next best frag %u/%c' is in unitig %u.  Added %u reads.\n",
+               lastID, (last3p) ? '3' : '5',
+               bestnext->fragId(), bestnext->frag3p() ? '3' : '5',
+               Unitig::fragIn(bestnext->fragId()),
+               nAdded);
 }
 
 
