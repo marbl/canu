@@ -38,9 +38,52 @@
 using namespace std;
 
 
-//  Note:  Does not work well with unsigned types.  The 'smallest' compute can underflow.
+
+//  Online mean and std.dev calculation.
+//  B. P. Welford, Technometrics, Vol 4, No 3, Aug 1962 pp 419-420.
+//    http://www2.in.tu-clausthal.de/~zach/teaching/info_literatur/Welford.pdf
+//  Also presented in Knuth Vol 2 (3rd Ed.) pp 232.
+//
+template<typename TT>
+class stdDev {
+public:
+  stdDev() {
+    _mn = 0.0;
+    _sn = 0.0;
+    _nn = 0;
+  };
+
+  ~stdDev() {
+  };
+
+  void     update(TT val) {
+    double m0 = _mn;
+    double s0 = _sn;
+    uint32 n0 = _nn + 1;
+
+    _mn = m0 + (val - m0) / n0;
+    _sn = s0 + (val - m0) * (val - _mn);
+    _nn = n0;
+  };
+
+  uint32   size(void)      { return(_nn);                                  };
+
+  double   mean(void)      { return(_mn);                                  };
+  double   variance(void)  { return((_nn < 2) ? (0.0) : (_sn / (_nn-1)));  };
+  double   stddev(void)    { return(sqrt(variance()));                     };
+
+private:
+  double   _mn;  //  mean
+  double   _sn;  //  "sum of variances"
+  uint32   _nn;  //  number of items in the set
+};
 
 
+
+
+//  Offline mean and std.dev calculation.  Filters outliers.
+//  Does not work well with unsigned types.  The 'smallest' compute can underflow.
+//
 template<typename TT>
 void
 computeStdDev(vector<TT> dist, double &mean, double &stddev, bool isSorted=false) {
