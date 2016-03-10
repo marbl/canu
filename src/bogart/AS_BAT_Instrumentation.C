@@ -43,7 +43,6 @@
 #include "intervalList.H"
 
 //  Will fail if a read is in unitig 0, or if a read isn't in a unitig.
-//  Used to also compute some simple size statistics.
 
 void
 checkUnitigMembership(UnitigVector &unitigs) {
@@ -66,7 +65,8 @@ checkUnitigMembership(UnitigVector &unitigs) {
     for (uint32 fi=0; fi<tig->ufpath.size(); fi++) {
       ufNode  *frg = &tig->ufpath[fi];
 
-      assert(frg->ident <= FI->numFragments());
+      assert(frg->ident <= FI->numFragments());   //  Can't be out of range.
+      assert(inUnitig[frg->ident] == noUnitig);   //  Read must be not placed yet.
 
       inUnitig[frg->ident] = ti;
     }
@@ -378,6 +378,11 @@ reportUnitigs(UnitigVector &unitigs, const char *prefix, const char *name, uint6
   if (logFileFlagSet(LOG_INTERMEDIATE_UNITIGS) == 0)
     return;
 
+  char tigStorePath[FILENAME_MAX];
+  sprintf(tigStorePath, "%s.%03u.%s.tigStore", prefix, logFileOrder, name);
+
+  fprintf(stderr, "Creating intermediate tigStore '%s'\n", tigStorePath);
+
   uint32  numFragsT  = 0;
   uint32  numFragsP  = 0;
   uint64  utgLen     = 0;
@@ -403,9 +408,6 @@ reportUnitigs(UnitigVector &unitigs, const char *prefix, const char *name, uint6
     numFragsP = numFragsT / 127;
 
   //  Dump the unitigs to an intermediate store.
-
-  char tigStorePath[FILENAME_MAX];
-  sprintf(tigStorePath, "%s.%03u.%s.tigStore", prefix, logFileOrder, name);
 
   setParentAndHang(unitigs);
 
