@@ -40,38 +40,10 @@
 #include "AS_BAT_Unitig.H"
 
 #include "intervalList.H"
-#include "stddev.H"
 
 
-
-void
-getOverlapForBestEdge(uint32 fi, BestEdgeOverlap *edge, BAToverlap &olap) {
-  uint32       no    = 0;
-  BAToverlap  *ovl   = OC->getOverlaps(fi, AS_MAX_EVALUE, no);
-
-  for (uint32 ii=0; ii<no; ii++)
-    if (ovl[ii].b_iid == edge->fragId())
-      olap = ovl[ii];
-}
-
-
-
-void
-getOverlapForBestEdges(uint32 fi,
-                       BestEdgeOverlap *e5, BAToverlap &ovl5,
-                       BestEdgeOverlap *e3, BAToverlap &ovl3) {
-  uint32       no    = 0;
-  BAToverlap  *ovl   = OC->getOverlaps(fi, AS_MAX_EVALUE, no);
-
-  for (uint32 ii=0; ii<no; ii++) {
-    if (ovl[ii].b_iid == e5->fragId())
-      ovl5 = ovl[ii];
-
-    if (ovl[ii].b_iid == e3->fragId())
-      ovl3 = ovl[ii];
-  }
-}
-
+//  HACK
+uint32  examineOnly = UINT32_MAX;
 
 
 void
@@ -134,209 +106,51 @@ BestOverlapGraph::removeSuspicious(void) {
 }
 
 
-
 void
-BestOverlapGraph::removeHighErrorBestEdges(void) {
+BestOverlapGraph::examineOnlyTopN(void) {
   uint32  fiLimit    = FI->numFragments();
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
 
-  stdDev<double>  edgeStats;
-
-  BAToverlap   b5ovl = { 0, 0, 0, 0, 0, 0, 0};
-  BAToverlap   b3ovl = { 0, 0, 0, 0, 0, 0, 0};
-
-  for (uint32 fi=1; fi <= fiLimit; fi++) {
-    BestEdgeOverlap *b5 = getBestEdgeOverlap(fi, false);
-    BestEdgeOverlap *b3 = getBestEdgeOverlap(fi, true);
-
-    getOverlapForBestEdges(fi,
-                           b5, b5ovl,
-                           b3, b3ovl);
-
-    if (b5->fragId() != 0)
-      edgeStats.update(b5ovl.erate);
-
-    if (b3->fragId() != 0)
-      edgeStats.update(b3ovl.erate);
-  }
-
-  writeLog("removeHighErrorBestEdges()-- with %u points - mean %f stddev %f\n",
-           edgeStats.size(), edgeStats.mean(), edgeStats.stddev());
-
-  _mean   = edgeStats.mean();
-  _stddev = edgeStats.stddev();
-
-  uint32  retained = 0;
-  uint32  removed  = 0;
-
-  //FILE *F = fopen("test.best.edges.erates", "w");
-
-  for (uint32 fi=1; fi <= fiLimit; fi++) {
-    BestEdgeOverlap *b5 = getBestEdgeOverlap(fi, false);
-    BestEdgeOverlap *b3 = getBestEdgeOverlap(fi, true);
-
-    b5ovl.erate = 1.0;
-    b3ovl.erate = 1.0;
-
-    getOverlapForBestEdges(fi,
-                           b5, b5ovl,
-                           b3, b3ovl);
-
-    //fprintf(F, "%u 5' %f 3' %f\n", fi, b5ovl.erate, b3ovl.erate);
-
-    if (b5->fragId() != 0) {
-      if (b5ovl.erate > _mean + 5 * _stddev)
-        removed++;
-      else
-        retained++;
-    }
-
-    if (b3->fragId() != 0) {
-      if (b3ovl.erate > _mean + 5 * _stddev)
-        removed++;
-      else
-        retained++;
-    }
-  }
-
-  //fclose(F);
-
-  fprintf(stderr, "removeHighErrorBestEdges()-- %u edges are above threshold, %u edges are acceptable.\n",
-          removed, retained);
-}
-
-
-
-void
-BestOverlapGraph::removeLopsidedEdges(void) {
-  uint32  fiLimit    = FI->numFragments();
-  uint32  numThreads = omp_get_max_threads();
-  uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
-
-  writeLog("BestOverlapGraph()-- removing suspicious edges from graph, with %d threads.\n", numThreads);
-
-  uint32   nSuspicious = 0;
-  uint32   nContained  = 0;
-  uint32   nSpur       = 0;
-  uint32   nMutual     = 0;
-  uint32   nAccepted   = 0;
-  uint32   nRejected   = 0;
+  writeLog("BestOverlapGraph()-- analyzing %d fragments for best edges, with %d threads.\n", fiLimit, numThreads);
+  writeLog("BestOverlapGraph()-- scoring highest quality %d overlaps.\n", examineOnly);
 
 #pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 fi=1; fi <= fiLimit; fi++) {
-    BestEdgeOverlap *this5 = getBestEdgeOverlap(fi, false);
-    BestEdgeOverlap *this3 = getBestEdgeOverlap(fi, true);
+    uint32      no  = 0;
+    uint32      n5  = 0;
+    uint32      n3  = 0;
+    BAToverlap *ovl = OC->getOverlaps(fi, AS_MAX_EVALUE, no);
 
-    //  Ignore spurs and contains...and previously detected suspicious reads.  The suspicious reads
-    //  do not have best edges back to them, and it's possible to find reads B where best edge A->B
-    //  exists, yet no best edge from B exists.
+    sort(ovl, ovl + no, BAToverlap_sortByErate);
 
-    if (isSuspicious(fi) == true) {
-      nSuspicious++;
-      continue;
-    }
+    for (uint32 ii=0; ii<no; ii++) {
+      if (((ovl[ii].a_hang >= 0) && (ovl[ii].b_hang <= 0)) ||
+          ((ovl[ii].a_hang <= 0) && (ovl[ii].b_hang >= 0)))
+        //  Don't do contains here!
+        continue;
 
-    if (isContained(fi) == true) {
-      nContained++;
-      continue;
-    }
+      //  Process the 5' overlaps.
+      if ((n5 < examineOnly) &&
+          (ovl[ii].a_hang < 0)) {
+        assert(ovl[ii].b_hang < 0);
+        n5++;
+        scoreEdge(ovl[ii]);
+      }
 
-    if ((this5->fragId() == 0) ||
-        (this3->fragId() == 0)) {
-      nSpur++;
-      continue;
-    }
-
-    //  Find the overlap for this5 and this3.
-
-    BAToverlap   this5ovl = {0,0,0,0,0,0,0};
-    BAToverlap   this3ovl = {0,0,0,0,0,0,0};
-
-    getOverlapForBestEdges(fi,
-                           this5, this5ovl,
-                           this3, this3ovl);
-
-    //  Compute the length of each overlap.
-
-    int32   this5ovlLen = FI->overlapLength(this5ovl.a_iid, this5ovl.b_iid, this5ovl.a_hang, this5ovl.b_hang);
-    int32   this3ovlLen = FI->overlapLength(this3ovl.a_iid, this3ovl.b_iid, this3ovl.a_hang, this3ovl.b_hang);
-
-    //  Find the edges for our best overlaps.
-
-    BestEdgeOverlap *that5 = getBestEdgeOverlap(this5->fragId(), this5->frag3p());
-    BestEdgeOverlap *that3 = getBestEdgeOverlap(this3->fragId(), this3->frag3p());
-
-    //  If both point back to us, we're done.
-
-    if ((that5->fragId() == fi) && (that5->frag3p() == false) &&
-        (that3->fragId() == fi) && (that3->frag3p() == true)) {
-      nMutual++;
-      continue;
-    }
-
-    //  Both are supposed to exist, but possibly we could be removing some best edge.
-
-    //if ((that5->fragId() == 0) ||
-    //    (that3->fragId() == 0)) {
-    //  continue;
-    //}
-
-    //  Something doesn't agree.  Find those overlaps...
-
-    BAToverlap   that5ovl = {0,0,0,0,0,0,0};
-    BAToverlap   that3ovl = {0,0,0,0,0,0,0};
-
-    getOverlapForBestEdge(this5->fragId(), that5, that5ovl);
-    getOverlapForBestEdge(this3->fragId(), that3, that3ovl);
-
-    fprintf(stderr, "fi %u this5 %u that5 %u\n", fi, this5->fragId(), that5->fragId());
-    fprintf(stderr, "fi %u this3 %u that3 %u\n", fi, this3->fragId(), that3->fragId());
-
-    assert(that5ovl.a_iid != 0);
-    assert(that3ovl.a_iid != 0);
-
-    //  ...and their lengths...
-
-    int32  that5ovlLen = FI->overlapLength(that5ovl.a_iid, that5ovl.b_iid, that5ovl.a_hang, that5ovl.b_hang);
-    int32  that3ovlLen = FI->overlapLength(that3ovl.a_iid, that3ovl.b_iid, that3ovl.a_hang, that3ovl.b_hang);
-
-    //  ...and compare.
-
-    double  percDiff5 = 200.0 * abs(this5ovlLen - that5ovlLen) / (this5ovlLen + that5ovlLen);
-    double  percDiff3 = 200.0 * abs(this3ovlLen - that3ovlLen) / (this3ovlLen + that3ovlLen);
-
-    if ((percDiff5 <= 5) &&
-        (percDiff3 <= 5)) {
-#if 0
-      writeLog("fi %8u -- %8u/%c' len %6u VS %8u/%c' len %6u %8.4f%% -- %8u/%c' len %6u VS %8u/%c' len %6u %8.4f%% -- ACCEPTED\n",
-               fi,
-               this5->fragId(), this5->frag3p() ? '3' : '5', this5ovlLen, that5->fragId(), that5->frag3p() ? '3' : '5', that5ovlLen, percDiff5,
-               this3->fragId(), this3->frag3p() ? '3' : '5', this3ovlLen, that3->fragId(), that3->frag3p() ? '3' : '5', that3ovlLen, percDiff3);
-#endif
-      nAccepted++;
-
-    } else {
-#if 0
-      writeLog("fi %8u -- %8u/%c' len %6u VS %8u/%c' len %6u %8.4f%% -- %8u/%c' len %6u VS %8u/%c' len %6u %8.4f%%\n",
-               fi,
-               this5->fragId(), this5->frag3p() ? '3' : '5', this5ovlLen, that5->fragId(), that5->frag3p() ? '3' : '5', that5ovlLen, percDiff5,
-               this3->fragId(), this3->frag3p() ? '3' : '5', this3ovlLen, that3->fragId(), that3->frag3p() ? '3' : '5', that3ovlLen, percDiff3);
-#endif
-      nRejected++;
-
-#pragma omp critical (suspInsert)
-      _suspicious.insert(fi);
+      //  Process the 3' overlaps.
+      if ((n3 < examineOnly) &&
+          (ovl[ii].a_hang > 0)) {
+        assert(ovl[ii].b_hang > 0);
+        n3++;
+        scoreEdge(ovl[ii]);
+      }
     }
   }
-
-  writeLog("BestOverlapGraph()--  suspicious %u  contained %u  spur %u  mutual-best %u  accepted %u  rejected %u\n",
-           nSuspicious, nContained, nSpur, nMutual, nAccepted, nRejected);
 }
 
 
-
-char *
+void
 BestOverlapGraph::removeSpurs(void) {
   uint32  fiLimit    = FI->numFragments();
   uint32  numThreads = omp_get_max_threads();
@@ -373,19 +187,16 @@ BestOverlapGraph::removeSpurs(void) {
     isSpur[fi] = true;
   }
 
-  return(isSpur);
-}
-
-
-
-void
-BestOverlapGraph::findEdges(char *isSpur) {
-  uint32  fiLimit    = FI->numFragments();
-  uint32  numThreads = omp_get_max_threads();
-  uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
+  //  Remove best edges, so we can rebuild
 
   memset(_bestA, 0, sizeof(BestOverlaps) * (fiLimit + 1));
   memset(_scorA, 0, sizeof(BestScores)   * (fiLimit + 1));
+
+  //  Rebuild best edges, ignoring edges to spurs.  We build edges out of spurs, but don't allow edges into them.
+  //  This should prevent them from being incorporated into a promiscuous unitig, but still let them be popped
+  //  as bubbles (but they shouldn't because they're spurs).
+
+  //  PASS 3:  Find containments.
 
   writeLog("BestOverlapGraph()-- analyzing %d fragments for best contains, with %d threads.\n", fiLimit, numThreads);
 
@@ -398,6 +209,8 @@ BestOverlapGraph::findEdges(char *isSpur) {
       scoreContainment(ovl[ii]);
   }
 
+  //  PASS 4:  Find dovetails.
+
   writeLog("BestOverlapGraph()-- analyzing %d fragments for best edges, with %d threads.\n", fiLimit, numThreads);
 
 #pragma omp parallel for schedule(dynamic, blockSize)
@@ -405,12 +218,8 @@ BestOverlapGraph::findEdges(char *isSpur) {
     uint32      no  = 0;
     BAToverlap *ovl = OC->getOverlaps(fi, AS_MAX_EVALUE, no);
 
-    //  Build edges out of spurs, but don't allow edges into them.  This should prevent them from
-    //  being incorporated into a promiscuous unitig, but still let them be popped as bubbles (but
-    //  they shouldn't because they're spurs).
-
     for (uint32 ii=0; ii<no; ii++)
-      if ((isSpur == NULL) || (isSpur[ovl[ii].b_iid] == false))
+      if (isSpur[ovl[ii].b_iid] == false)
         scoreEdge(ovl[ii]);
   }
 
@@ -418,25 +227,329 @@ BestOverlapGraph::findEdges(char *isSpur) {
 }
 
 
-
 void
-BestOverlapGraph::removeContainedDovetails(void) {
+BestOverlapGraph::removeFalseBest(void) {
   uint32  fiLimit    = FI->numFragments();
+  uint32  numThreads = omp_get_max_threads();
+  uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
 
-  writeLog("BestOverlapGraph()-- removing best edges for contained fragments.\n");
+  writeLog("BestOverlapGraph()-- detecting false best overlaps.\n");
+
+  //  WARNING!  This code was quite confused about erate and evalue (back when they were called
+  //  error and errorValue or somethihng confusing like that).  Use with caution.
+
+  uint32    *histo5 = new uint32 [AS_MAX_EVALUE + 1];
+  uint32    *histo3 = new uint32 [AS_MAX_EVALUE + 1];
+
+  memset(histo5, 0, sizeof(uint32) * (AS_MAX_EVALUE + 1));
+  memset(histo3, 0, sizeof(uint32) * (AS_MAX_EVALUE + 1));
+
+  uint32    *erate5 = new uint32 [fiLimit + 1];
+  uint32    *erate3 = new uint32 [fiLimit + 1];
+
+  memset(erate5,     0, sizeof(uint32) * (fiLimit + 1));
+  memset(erate3,     0, sizeof(uint32) * (fiLimit + 1));
+
+  char   *altBest = new char [fiLimit + 1];
+  char   *isBad   = new char [fiLimit + 1];
+
+  memset(altBest, 0, sizeof(char) * (fiLimit + 1));
+  memset(isBad,   0, sizeof(char) * (fiLimit + 1));
+
+  //  Compute a histogram of the current best edges, and save the erate of the best for each read.
 
   for (uint32 fi=1; fi <= fiLimit; fi++) {
-    if (isContained(fi) == true) {
-      getBestEdgeOverlap(fi, false)->set(0, 0, 0, 0);
-      getBestEdgeOverlap(fi, true) ->set(0, 0, 0, 0);
+    uint32            olapsLen = 0;
+    BAToverlap       *olaps    = OC->getOverlaps(fi, AS_MAX_EVALUE, olapsLen);
+
+    BestEdgeOverlap  *ovl5 = getBestEdgeOverlap(fi, false);
+    BestEdgeOverlap  *ovl3 = getBestEdgeOverlap(fi, true);
+
+    for (uint32 oo=0; oo<olapsLen; oo++) {
+      assert(fi == olaps[oo].a_iid);
+
+      if (ovl5->fragId() == olaps[oo].b_iid) {
+        histo5[olaps[oo].evalue]++;
+        erate5[fi] = olaps[oo].erate;
+      }
+
+      if (ovl3->fragId() == olaps[oo].b_iid) {
+        histo3[olaps[oo].evalue]++;
+        erate3[fi] = olaps[oo].erate;
+      }
     }
   }
+
+  //  Compute a nice threshold.  Find the mean and stddev of the best edge error rates.
+
+  double  m5 = 0, s5 = 100;
+  double  m3 = 0, s3 = 100;
+
+  for (uint32 xx=0; xx<10; xx++) {
+    double  mean5   =   0, mean3   =   0;
+    uint64  count5  =   0, count3  =   0;
+    double  stddev5 = 100, stddev3 = 100;
+
+    for (uint32 er=0; er <= AS_MAX_EVALUE; er++) {
+      double ER = AS_OVS_decodeEvalue(er) * 100;
+
+      if (ER <= 0.0)
+        continue;
+
+      if ((m5 - 3 * s5 <= ER) &
+          (ER          <= m5 + 3 * s5)) {
+        mean5  += histo5[er] * ER;
+        count5 += histo5[er];
+      }
+
+      if ((m3 - 3 * s3 <= ER) &
+          (ER          <= m3 + 3 * s3)) {
+        mean3  += histo3[er] * ER;
+        count3 += histo3[er];
+      }
+    }
+
+    mean5 /= count5;
+    mean3 /= count3;
+
+    for (uint32 er=0; er <= AS_MAX_EVALUE; er++) {
+      double ER =  AS_OVS_decodeEvalue(er) * 100;
+
+      if (ER <= 0.0)
+        continue;
+
+      if ((m5 - 3 * s5 <= ER) &
+          (ER          <= m5 + 3 * s5)) {
+        stddev5 += histo5[er] * (ER - mean5) * (ER - mean5);
+      }
+
+      if ((m3 - 3 * s3 <= ER) &
+          (ER          <= m3 + 3 * s3)) {
+        stddev3 += histo3[er] * (ER - mean3) * (ER - mean3);
+      }
+    }
+
+    stddev5 = sqrt(stddev5 / (count5 - 1));
+    stddev3 = sqrt(stddev3 / (count3 - 1));
+
+    m5 = mean5;    m3 = mean3;
+    s5 = stddev5;  s3 = stddev3;
+
+    fprintf(stderr, "mean  %.4f +- %.4f --- %.4f +- %.4f     ",
+            mean5, stddev5,
+            mean3, stddev3);
+
+    fprintf(stderr, "set xtics ( %.4f, %.4f,    %.4f, %.4f)\n",
+            mean5 - 3 * stddev5, mean5 + 3 * stddev5,
+            mean3 - 3 * stddev3, mean3 + 3 * stddev3);
+  }  //  xx 10 times to stabilize
+
+
+  //  Output the evalue histogram
+
+  {
+    char  EN[FILENAME_MAX];
+
+    sprintf(EN, "best.edges.erate.histogram");
+
+    errno = 0;
+    FILE *EH = fopen(EN, "w");
+    if (errno)
+      fprintf(stderr, "BestOverlapGraph()-- failed to open '%s' for writing: %s\n", EN, strerror(errno)), exit(1);
+
+    for (uint32 er=0; er <= AS_MAX_EVALUE; er++) {
+      double  ER = AS_OVS_decodeEvalue(er);
+
+      if (ER <= 0.0)
+        continue;
+
+      fprintf(EH, "%.4f\t%u\t%u\t%f\t%f\n",
+              ER,
+              histo5[er],  //  HUH?!?!  This used to output decodedEvalue() of the histogram...nonsense!
+              histo3[er],
+              fabs(m5 - ER) / s5,   //  Grubb's test
+              fabs(m3 - ER) / s3);
+    }
+
+    fclose(EH);
+  }
+
+  //  For any read with best edge above THRESHOLD error, see if there is an alternate best
+  //  that is within the target error range.
+
+  double  erate5thresh = m5 + 2 * s5;  //  Discard best if it is worse than 2 s.d. from mean.
+  double  erate3thresh = m3 + 2 * s3;
+
+  for (uint32 fi=1; fi <= fiLimit; fi++) {
+
+    if (erate5[fi] > erate5thresh) {
+      fprintf(stderr, "RECOMPUTE frag %u 5'\n", fi);
+      isBad[fi] = true;
+    }
+
+    if (erate3[fi] > erate3thresh) {
+      fprintf(stderr, "RECOMPUTE frag %u 3'\n", fi);
+      isBad[fi] = true;
+    }
+  }
+
+  fprintf(stderr, "thresholds %f %f\n", erate5thresh, erate3thresh);
+
+  double erateCthresh = MIN(erate5thresh, erate3thresh);
+
+#if 0
+  //  Remove best edges, so we can rebuild
+
+  memset(_bestA, 0, sizeof(BestOverlaps) * (fiLimit + 1));
+  memset(_scorA, 0, sizeof(BestScores)   * (fiLimit + 1));
+
+  //  Rebuild best edges, ignoring edges to spurs.  We build edges out of spurs, but don't allow edges into them.
+  //  This should prevent them from being incorporated into a promiscuous unitig, but still let them be popped
+  //  as bubbles (but they shouldn't because they're spurs).
+
+  //  PASS 3:  Find containments.
+
+  writeLog("BestOverlapGraph()-- analyzing %d fragments for best contains, with %d threads.\n", fiLimit, numThreads);
+
+#pragma omp parallel for schedule(dynamic, blockSize)
+  for (uint32 fi=1; fi <= fiLimit; fi++) {
+    uint32      no  = 0;
+    BAToverlap *ovl = OC->getOverlaps(fi, AS_MAX_EVALUE, no);
+
+    for (uint32 ii=0; ii<no; ii++)
+      assert(ovl[ii].a_iid == fi);
+
+    for (uint32 ii=0; ii<no; ii++)
+      if (ovl[ii].error < erateCthresh)
+        scoreContainment(ovl[ii]);
+  }
+
+  //  PASS 4:  Find dovetails.
+
+  writeLog("BestOverlapGraph()-- analyzing %d fragments for best edges, with %d threads.\n", fiLimit, numThreads);
+
+#pragma omp parallel for schedule(dynamic, blockSize)
+  for (uint32 fi=1; fi <= fiLimit; fi++) {
+    uint32      no  = 0;
+    BAToverlap *ovl = OC->getOverlaps(fi, AS_MAX_EVALUE, no);
+
+    if (isBad[ovl[fi].a_iid] == true)
+      continue;
+
+    for (uint32 ii=0; ii<no; ii++)
+      assert(ovl[ii].a_iid == fi);
+
+    for (uint32 ii=0; ii<no; ii++)
+      if (isBad[ovl[ii].b_iid] == false)
+        scoreEdge(ovl[ii]);
+  }
+#endif
+
+  delete [] histo5;
+  delete [] histo3;
+
+  delete [] erate5;
+  delete [] erate3;
+}
+
+
+
+
+
+
+
+
+
+
+void
+BestOverlapGraph::removeWeak(double threshold) {
+  uint32  fiLimit    = FI->numFragments();
+  uint32  numThreads = omp_get_max_threads();
+  uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
+
+  writeLog("BestOverlapGraph()-- detecting weak overlaps.\n");
+
+  //  For each read, mark an overlap as bad if it falls in the lower
+  //  X% of overlaps sorted by identity.
+
+  uint32  *minEvalue5p = new uint32 [fiLimit + 1];
+  uint32  *minEvalue3p = new uint32 [fiLimit + 1];
+
+  memset(minEvalue5p, 0, sizeof(uint32) * (fiLimit + 1));
+  memset(minEvalue3p, 0, sizeof(uint32) * (fiLimit + 1));
+
+  uint32   evaluesMax  = 1048576;
+  uint32   evalues5len = 0;
+  uint32  *evalues5    = new uint32 [evaluesMax];
+  uint32   evalues3len = 0;
+  uint32  *evalues3    = new uint32 [evaluesMax];
+
+  for (uint32 fi=1; fi <= fiLimit; fi++) {
+    uint32            olapsLen = 0;
+    BAToverlap       *olaps    = OC->getOverlaps(fi, AS_MAX_EVALUE, olapsLen);
+
+    uint64            ovl5sum = 0;
+    uint32            ovl5cnt = 0;
+
+    uint64            ovl3sum = 0;
+    uint32            ovl3cnt = 0;
+
+    evalues5len = 0;
+    evalues5[0] = 0;
+
+    evalues3len = 0;
+    evalues3[0] = 0;
+
+    //  Find the error rate histogram for each end.
+
+    for (uint32 oo=0; oo<olapsLen; oo++) {
+      assert(fi == olaps[oo].a_iid);
+
+      if ((AS_BAT_overlapAEndIs5prime(olaps[oo])) && (evalues5len < evaluesMax))
+        evalues5[evalues5len++] = olaps[oo].evalue;
+
+      if ((AS_BAT_overlapAEndIs3prime(olaps[oo])) && (evalues3len < evaluesMax))
+        evalues3[evalues3len++] = olaps[oo].evalue;
+    }
+
+    //  Sort by increasing error rate.
+
+    sort(evalues5, evalues5 + evalues5len);
+    sort(evalues3, evalues3 + evalues3len);
+
+    //  Pick a min erate for each end.
+
+    minEvalue5p[fi] = evalues5[(int32)(evalues5len - evalues5len * threshold)];
+    minEvalue3p[fi] = evalues3[(int32)(evalues3len - evalues3len * threshold)];
+
+    if ((fi % 1000) == 0) {
+      fprintf(stderr, "len %d %d t %f vals %d %f %d %f\n", evalues5len, evalues3len, threshold,
+              minEvalue5p[fi], AS_OVS_decodeEvalue(minEvalue5p[fi]),
+              minEvalue3p[fi], AS_OVS_decodeEvalue(minEvalue3p[fi]));
+    }
+  }
+
+  delete [] evalues5;
+  delete [] evalues3;
+
+  //  Throw this at the OverlapCache, so it can remove overlaps.
+
+  OC->removeWeakOverlaps(minEvalue5p, minEvalue3p);
+
+  delete [] minEvalue5p;
+  delete [] minEvalue3p;
 }
 
 
 
 BestOverlapGraph::BestOverlapGraph(double               erate,
-                                   const char          *prefix) {
+                                   const char          *prefix,
+                                   double               doRemoveWeakThreshold,
+                                   bool                 doRemoveSuspicious,
+                                   bool                 doRemoveSpurs) {
+
+  bool doExamineOnlyTopN = false;
+  bool doRemoveFalseBest = false;
 
   setLogFile(prefix, "bestOverlapGraph");
 
@@ -444,60 +557,92 @@ BestOverlapGraph::BestOverlapGraph(double               erate,
            ((2 * sizeof(BestEdgeOverlap) * (FI->numFragments() + 1)) >> 20),
            ((1 * sizeof(BestContainment) * (FI->numFragments() + 1)) >> 20));
 
-  //  Initialize data.
-
-  _bestA           = new BestOverlaps [FI->numFragments() + 1];
-  _scorA           = new BestScores   [FI->numFragments() + 1];
-
-  _mean            = erate;
-  _stddev          = 0.0;
-
-  _suspicious.clear();
-
-  _bestM.clear();
-  _scorM.clear();
-
-  _restrict        = NULL;
-  _restrictEnabled = false;
-
-  _erate           = erate;
+  _bestA = new BestOverlaps [FI->numFragments() + 1];
+  _scorA = new BestScores   [FI->numFragments() + 1];
 
   memset(_bestA, 0, sizeof(BestOverlaps) * (FI->numFragments() + 1));
   memset(_scorA, 0, sizeof(BestScores)   * (FI->numFragments() + 1));
 
-  //  Compute best overlaps.
+  _restrict        = NULL;
+  _restrictEnabled = false;
 
-  removeSuspicious();
-  findEdges();
-  reportBestEdges("TEST1");
+  _erate = erate;
 
-  removeHighErrorBestEdges();
-  findEdges();
-  reportBestEdges("TEST2");
+  //  Initialize parallelism.
 
-  removeLopsidedEdges();
-  findEdges();
-  reportBestEdges("TEST3");
+  uint32  fiLimit    = FI->numFragments();
+  uint32  numThreads = omp_get_max_threads();
+  uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
 
-  findEdges(removeSpurs());
-  reportBestEdges("TEST4");
+  //  PASS 0:  Find suspicious fragments.  For any found, mark as suspicious and don't allow
+  //  these to be best overlaps.
 
-  delete [] _scorA;  //  Done with the scoring data.
+  if (doRemoveWeakThreshold > 0.0)
+    removeWeak(doRemoveWeakThreshold);
+
+  if (doRemoveSuspicious)
+    removeSuspicious();
+
+  //  PASS 1:  Find containments.
+
+  writeLog("BestOverlapGraph()-- analyzing %d fragments for best contains, with %d threads.\n", fiLimit, numThreads);
+
+#pragma omp parallel for schedule(dynamic, blockSize)
+  for (uint32 fi=1; fi <= fiLimit; fi++) {
+    uint32      no  = 0;
+    BAToverlap *ovl = OC->getOverlaps(fi, AS_MAX_EVALUE, no);
+
+    for (uint32 ii=0; ii<no; ii++)
+      scoreContainment(ovl[ii]);
+  }
+
+  //  PASS 2:  Find dovetails.
+
+  writeLog("BestOverlapGraph()-- analyzing %d fragments for best edges, with %d threads.\n", fiLimit, numThreads);
+
+#pragma omp parallel for schedule(dynamic, blockSize)
+  for (uint32 fi=1; fi <= fiLimit; fi++) {
+    uint32      no  = 0;
+    BAToverlap *ovl = OC->getOverlaps(fi, AS_MAX_EVALUE, no);
+
+    for (uint32 ii=0; ii<no; ii++)
+      scoreEdge(ovl[ii]);
+  }
+
+  //  Now, several optional refinements.
+
+  if (doExamineOnlyTopN)
+    examineOnlyTopN();
+
+  if (doRemoveSpurs)
+    removeSpurs();
+
+  if (doRemoveFalseBest)
+    removeFalseBest();
+
+  //  Done with the scoring data.
+
+  delete [] _scorA;
   _scorA = NULL;
 
-  removeContainedDovetails();
+  //  Finally, remove dovetail overlaps for contained fragments.
+
+  writeLog("BestOverlapGraph()-- removing best edges for contained fragments, with %d threads.\n", numThreads);
+
+#pragma omp parallel for schedule(dynamic, blockSize)
+  for (uint32 fi=1; fi <= fiLimit; fi++) {
+    if (isContained(fi) == true) {
+      getBestEdgeOverlap(fi, false)->set(0, 0, 0, 0);
+      getBestEdgeOverlap(fi, true) ->set(0, 0, 0, 0);
+    }
+  }
+
+  writeLog("BestOverlapGraph()-- dumping best edges/contains/singletons.\n");
 
   reportBestEdges(prefix);
 
   setLogFile(prefix, NULL);
 }
-
-
-
-
-
-
-
 
 
 void
@@ -694,6 +839,18 @@ BestOverlapGraph::BestOverlapGraph(double               erate,
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 void
 BestOverlapGraph::reportBestEdges(const char *prefix) {
   char  N[FILENAME_MAX];
@@ -741,6 +898,9 @@ BestOverlapGraph::reportBestEdges(const char *prefix) {
 
 
 
+
+
+
 void
 BestOverlapGraph::scoreContainment(const BAToverlap& olap) {
 
@@ -777,6 +937,13 @@ BestOverlapGraph::scoreContainment(const BAToverlap& olap) {
   if (newScr > bestCscore(olap.a_iid)) {
     BestContainment   *c = getBestContainer(olap.a_iid);
 
+#if 0
+    writeLog("set best for %d from "F_U32" score="F_U64" to "F_U32" score="F_U64"\n",
+             olap.a_iid,
+             c->container, bestCscore(olap.a_iid),
+             olap.b_iid,   newScr);
+#endif
+
     c->container         = olap.b_iid;
     c->isContained       = true;
     c->sameOrientation   = olap.flipped ? false : true;
@@ -784,6 +951,12 @@ BestOverlapGraph::scoreContainment(const BAToverlap& olap) {
     c->b_hang            = olap.flipped ? olap.a_hang : -olap.b_hang;
 
     bestCscore(olap.a_iid) = newScr;
+#if 0
+  } else {
+    writeLog("NOT best for %d WITH "F_U32" score="F_U64"\n",
+             olap.a_iid,
+             olap.b_iid,   newScr);
+#endif
   }
 }
 
@@ -872,11 +1045,10 @@ BestOverlapGraph::isOverlapBadQuality(const BAToverlap& olap) {
     //  assembly, but sometimes us users want to delete fragments after overlaps are generated.
     return(true);
 
-  //  The overlap is GOOD (false == not bad) if the error rate is below the allowed erate.
-  //  Initially, this is just the erate passed in.  After the first rount of finding edges,
-  //  it is reset to the mean and stddev of selected best edges.
+  //  The overlap is GOOD (false == not bad) if the corrected error rate is below the requested
+  //  erate.
   //
-  if (olap.erate <= _mean + 5 * _stddev) {
+  if (olap.erate <= _erate) {
     if ((enableLog == true) && (logFileFlags & LOG_OVERLAP_QUALITY))
       writeLog("isOverlapBadQuality()-- OVERLAP GOOD:     %d %d %c  hangs "F_S32" "F_S32" err %.3f\n",
                olap.a_iid, olap.b_iid,
@@ -904,7 +1076,6 @@ BestOverlapGraph::isOverlapBadQuality(const BAToverlap& olap) {
 }
 
 
-
 //  If no restrictions are known, this overlap is useful if both fragments are not in a unitig
 //  already.  Otherwise, we are restricted to just a specific set of fragments (usually a single
 //  unitig and all the mated reads).  The overlap is useful if both fragments are in the set.
@@ -923,7 +1094,6 @@ BestOverlapGraph::isOverlapRestricted(const BAToverlap &olap) {
   else
     return(true);
 }
-
 
 
 uint64

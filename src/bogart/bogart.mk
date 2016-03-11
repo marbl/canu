@@ -10,7 +10,6 @@ endif
 TARGET   := bogart
 SOURCES  := bogart.C \
             AS_BAT_BestOverlapGraph.C \
-            AS_BAT_BreakRepeats.C \
             AS_BAT_Breaking.C \
             AS_BAT_ChunkGraph.C \
             AS_BAT_FragmentInfo.C \
@@ -19,21 +18,20 @@ SOURCES  := bogart.C \
             AS_BAT_IntersectSplit.C \
             AS_BAT_Joining.C \
             AS_BAT_Logging.C \
-            AS_BAT_MarkRepeatReads.C \
+            AS_BAT_MergeSplitJoin.C \
             AS_BAT_Outputs.C \
             AS_BAT_OverlapCache.C \
             AS_BAT_PlaceContains.C \
             AS_BAT_PlaceFragUsingOverlaps.C \
             AS_BAT_PlaceZombies.C \
-            AS_BAT_PopBubbles.C \
             AS_BAT_PopulateUnitig.C \
             AS_BAT_PromoteToSingleton.C \
             AS_BAT_ReconstructRepeats.C \
             AS_BAT_SetParentAndHang.C \
             AS_BAT_SplitDiscontinuous.C \
-            AS_BAT_Unitig.C \
             AS_BAT_Unitig_AddAndPlaceFrag.C \
             AS_BAT_Unitig_AddFrag.C \
+            AS_BAT_Unitig.C \
             AS_BAT_Unitig_PlaceFragUsingEdges.C
 
 SRC_INCDIRS  := .. ../AS_UTL ../stores

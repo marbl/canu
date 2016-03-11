@@ -67,18 +67,17 @@ public:
 class BestOverlapGraph {
 private:
   void   removeSuspicious(void);
-  char  *removeSpurs(void);
-  void   removeLopsidedEdges(void);
-
-  void   findEdges(char *isSpur=NULL);
-
-  void   removeHighErrorBestEdges(void);
-
-  void   removeContainedDovetails(void);
+  void   examineOnlyTopN(void);
+  void   removeSpurs(void);
+  void   removeFalseBest(void);
+  void   removeWeak(double threshold);
 
 public:
   BestOverlapGraph(double      erate,
-                   const char *prefix);
+                   const char *prefix,
+                   double      doRemoveWeakThreshold,
+                   bool        doRemoveSuspicious,
+                   bool        doRemoveSpurs);
 
   BestOverlapGraph(double erate,
                    set<uint32> *restrict);
@@ -162,9 +161,6 @@ private:
 private:
   BestOverlaps              *_bestA;
   BestScores                *_scorA;
-
-  double                     _mean;
-  double                     _stddev;
 
   set<uint32>                _suspicious;
 
