@@ -86,7 +86,8 @@ dumpStore(ovStore *ovlStore,
           uint32   endID,
           uint32   qryID,
           ovOverlapDisplayType    type,
-          bool     beVerbose) {
+          bool     beVerbose,
+          bool     oneSided) {
 
   ovOverlap     overlap(gkpStore);
   uint64         evalue = AS_OVS_encodeEvalue(dumpERate);
@@ -97,6 +98,7 @@ dumpStore(ovStore *ovlStore,
   uint32   ovlNot3p        = 0;
   uint32   ovlNotContainer = 0;
   uint32   ovlNotContainee = 0;
+  uint32   ovlNotUnique    = 0;
   uint32   ovlDumped       = 0;
   uint32   obtTooHighError = 0;
   uint32   obtDumped       = 0;
@@ -145,6 +147,11 @@ dumpStore(ovStore *ovlStore,
     if (((dumpType & DUMP_CONTAINED) == 1) && (ahang <= 0) && (bhang >= 0)) {
       ovlNotContainee++;
       continue;
+    }
+
+    if (oneSided == true && overlap.a_iid >= overlap.b_iid) {
+       ovlNotUnique++;
+       continue;
     }
 
     ovlDumped++;
@@ -408,6 +415,7 @@ main(int argc, char **argv) {
   uint32          qryID       = 0;
 
   bool            beVerbose   = false;
+  bool            oneSided    = false;
 
   ovOverlapDisplayType  type = ovOverlapAsCoords;
 
@@ -461,13 +469,14 @@ main(int argc, char **argv) {
 
     else if (strcmp(argv[arg], "-raw") == 0)
       type = ovOverlapAsRaw;
+    else if (strcmp(argv[arg], "-paf") == 0)
+      type = ovOverlapAsPaf;
 
     else if (strcmp(argv[arg], "-binary") == 0)
       asBinary = true;
 
     else if (strcmp(argv[arg], "-counts") == 0)
       asCounts = true;
-
 
     //  standard bulk dump options
     else if (strcmp(argv[arg], "-E") == 0)
@@ -491,6 +500,8 @@ main(int argc, char **argv) {
     else if (strcmp(argv[arg], "-v") == 0)
       beVerbose = true;
 
+    else if (strcmp(argv[arg], "-unique") == 0)
+       oneSided = true;
 
     else {
       fprintf(stderr, "%s: unknown option '%s'.\n", argv[0], argv[arg]);
@@ -520,6 +531,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -coords    dump overlap showing coordinates in the reads (default)\n");
     fprintf(stderr, "  -hangs     dump overlap showing dovetail hangs unaligned\n");
     fprintf(stderr, "  -raw       dump overlap showing its raw native format (four hangs)\n");
+    fprintf(stderr, "  -paf       dump overlaps in miniasm/minimap format\n");
     fprintf(stderr, "  -binary    dump overlap as raw binary data\n");
     fprintf(stderr, "  -counts    dump the number of overlaps per read\n");
     fprintf(stderr, "\n");
@@ -532,6 +544,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -dC               Dump only overlaps that are contained in the A frag (B contained in A).\n");
     fprintf(stderr, "  -dc               Dump only overlaps that are containing the A frag (A contained in B).\n");
     fprintf(stderr, "  -v                Report statistics (to stderr) on some dumps (-d).\n");
+    fprintf(stderr, "  -unique           Report only overlaps where A id is < B id, do not report both A to B and B to A overlap\n");
     fprintf(stderr, "\n");
 
     if (operation == OP_NONE)
@@ -558,7 +571,7 @@ main(int argc, char **argv) {
 
   switch (operation) {
     case OP_DUMP:
-      dumpStore(ovlStore, gkpStore, asBinary, asCounts, dumpERate, dumpLength, dumpType, bgnID, endID, qryID, type, beVerbose);
+      dumpStore(ovlStore, gkpStore, asBinary, asCounts, dumpERate, dumpLength, dumpType, bgnID, endID, qryID, type, beVerbose, oneSided);
       break;
     case OP_DUMP_PICTURE:
       for (qryID=bgnID; qryID <= endID; qryID++)
