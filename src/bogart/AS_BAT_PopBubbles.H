@@ -27,31 +27,33 @@
  *      are Copyright 2014-2015 Battelle National Biodefense Institute, and
  *      are subject to the BSD 3-Clause License
  *
- *    Brian P. Walenz beginning on 2016-JAN-11
- *      are a 'United States Government Work', and
- *      are released in the public domain
- *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.
  */
 
-#ifndef INCLUDE_AS_BAT_MERGESPLITJOIN
-#define INCLUDE_AS_BAT_MERGESPLITJOIN
+#ifndef INCLUDE_AS_BAT_BUBBLEPOPPING
+#define INCLUDE_AS_BAT_BUBBLEPOPPING
+
+#include "AS_BAT_Datatypes.H"
+#include "AS_BAT_BestOverlapGraph.H"
+#include "AS_BAT_Unitig.H"
+
+#include "AS_BAT_IntersectSplit.H"
+
 
 void
-mergeSplitJoin(UnitigVector &unitigs,
-               double erateGraph, double erateBubble, double erateMerge, double erateRepeat,
-               const char *prefix,
-               uint32 minOverlap,
-               bool shatterRepeats,
-               uint64 genomeSize);
+mergeBubbles(UnitigVector     &unitigs,
+             double            erateBubble,
+             Unitig           *target,
+             intersectionList *ilist);
+
 
 void
-reconstructRepeats(UnitigVector &unitigs,
-                   double        erateGraph);
+popBubbles(UnitigVector &unitigs,
+           double erateGraph, double erateBubble, double erateMerge, double erateRepeat,
+           const char *prefix,
+           uint32 minOverlap,
+           uint64 genomeSize);
 
-void
-promoteToSingleton(UnitigVector &unitigs);
 
-
-#endif  //  INCLUDE_AS_BAT_MERGESPLITJOIN
+#endif  //  INCLUDE_AS_BAT_BUBBLEPOPPING

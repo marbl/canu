@@ -48,7 +48,11 @@
 #include "AS_BAT_PlaceZombies.H"
 
 #include "AS_BAT_Joining.H"
-#include "AS_BAT_MergeSplitJoin.H"
+
+#include "AS_BAT_PopBubbles.H"
+#include "AS_BAT_MarkRepeatReads.H"
+#include "AS_BAT_BreakRepeats.H"
+
 #include "AS_BAT_SplitDiscontinuous.H"
 
 #include "AS_BAT_SetParentAndHang.H"
@@ -59,9 +63,6 @@ FragmentInfo     *FI  = 0L;
 OverlapCache     *OC  = 0L;
 BestOverlapGraph *OG  = 0L;
 ChunkGraph       *CG  = 0L;
-
-//  HACK
-extern uint32 examineOnly;
 
 extern uint32 SPURIOUS_COVERAGE_THRESHOLD;
 extern uint32 ISECT_NEEDED_TO_BREAK;
@@ -99,10 +100,6 @@ main (int argc, char * argv []) {
   int       fragment_count_target    = 0;
   char     *output_prefix            = NULL;
 
-  bool      removeSpur               = false;
-  double    removeWeak               = 0.0;
-  bool      removeSuspicious         = false;
-  bool      noContainsInSingletons   = false;
   bool      enableJoining            = false;
 
   bool      placeContainsUsingBest   = true;     //  MUST be true; alternate doesn't work.
@@ -138,18 +135,6 @@ main (int argc, char * argv []) {
     } else if (strcmp(argv[arg], "-gs") == 0) {
       genomeSize = strtoull(argv[++arg], NULL, 10);
 
-    } else if (strcmp(argv[arg], "-RS") == 0) {
-      removeSpur = true;
-
-    } else if (strcmp(argv[arg], "-RW") == 0) {
-      removeWeak = atof(argv[++arg]);
-
-    } else if (strcmp(argv[arg], "-NS") == 0) {
-      removeSuspicious = true;
-
-    } else if (strcmp(argv[arg], "-CS") == 0) {
-      noContainsInSingletons = true;
-
     } else if (strcmp(argv[arg], "-J") == 0) {
       enableJoining = true;
 
@@ -162,10 +147,6 @@ main (int argc, char * argv []) {
     } else if (strcmp(argv[arg], "-R") == 0) {
       enableShatterRepeats     = true;
       enableReconstructRepeats = true;
-
-    } else if (strcmp(argv[arg], "-examineonly") == 0) {
-      //  HACK
-      examineOnly = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-repeatdetect") == 0) {
       //  HACK
@@ -306,11 +287,8 @@ main (int argc, char * argv []) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -gs        Genome size in bases.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -RS        Remove edges to spur reads from best overlap graph.\n");
-    fprintf(stderr, "  -NS        Don't seed promiscuous unitigs with suspicious reads.\n");
-    fprintf(stderr, "  -CS        Don't place contained reads in singleton unitigs.\n");
-    fprintf(stderr, "  -RW t      Remove weak overlaps, those in the lower t fraction of erates per overlap end.\n");
     fprintf(stderr, "  -J         Join promiscuous unitigs using unused best edges.\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "  -SR        Shatter repeats, don't rebuild.\n");
     fprintf(stderr, "  -R         Shatter repeats (-SR), then rebuild them\n");
     fprintf(stderr, "  -RL len    Force reads below 'len' bases to be singletons.\n");
@@ -437,7 +415,7 @@ main (int argc, char * argv []) {
   erateMax = MAX(erateMax, erateRepeat);
 
   OC = new OverlapCache(ovlStoreUniq, ovlStoreRept, output_prefix, erateMax, minOverlap, ovlCacheMemory, ovlCacheLimit, onlySave, doSave);
-  OG = new BestOverlapGraph(erateGraph, output_prefix, removeWeak, removeSuspicious, removeSpur);
+  OG = new BestOverlapGraph(erateGraph, output_prefix);
   CG = new ChunkGraph(output_prefix);
 
   delete ovlStoreUniq;  ovlStoreUniq = NULL;
@@ -492,8 +470,7 @@ main (int argc, char * argv []) {
 
   setLogFile(output_prefix, "placeContains");
 
-  if (noContainsInSingletons)
-    OG->rebuildBestContainsWithoutSingletons(unitigs, erateGraph, output_prefix);
+  OG->rebuildBestContainsWithoutSingletons(unitigs, erateGraph, output_prefix);
 
   if (placeContainsUsingBest)
     placeContainsUsingBestOverlaps(unitigs);
@@ -513,17 +490,64 @@ main (int argc, char * argv []) {
   reportUnitigs(unitigs, output_prefix, "placeContainsZombies", genomeSize);
 
   //
-  //  Pop bubbles, detect repeats
+  //  Pop bubbles
   //
 
-  setLogFile(output_prefix, "mergeSplitJoin");
+  setLogFile(output_prefix, "popBubbles");
 
-  mergeSplitJoin(unitigs,
-                 erateGraph, erateBubble, erateMerge, erateRepeat,
-                 output_prefix,
-                 minOverlap,
-                 enableShatterRepeats,
-                 genomeSize);
+  popBubbles(unitigs,
+             erateGraph, erateBubble, erateMerge, erateRepeat,
+             output_prefix,
+             minOverlap,
+             genomeSize);
+             
+  checkUnitigMembership(unitigs);
+  reportOverlapsUsed(unitigs, output_prefix, "popBubbles");
+  reportUnitigs(unitigs, output_prefix, "popBubbles", genomeSize);
+
+  //
+  //  Detect and break repeats
+  //
+
+
+  //
+  //  Newer style breaking.  Annotate each read with overlaps to reads not overlapping in the tig,
+  //  project these regions back to the tig, and break unless there is a read spanning the region.
+  //
+
+#if 0
+  setLogFile(output_prefix, "markRepeatReads");
+
+  markRepeatReads(unitigs, erateGraph, erateBubble, erateMerge, erateRepeat);
+
+  checkUnitigMembership(unitigs);
+  reportOverlapsUsed(unitigs, output_prefix, "markRepeatReads");
+  reportUnitigs(unitigs, output_prefix, "markRepeatReads", genomeSize);
+#endif
+
+  //
+  //  Older style breaking.  Use unused overlaps to mark regions in tigs as repetitive, break unless
+  //  there is evidence to hold them together.
+  //
+
+#if 1
+  setLogFile(output_prefix, "breakRepeats");
+
+  breakRepeats(unitigs,
+               erateGraph, erateBubble, erateMerge, erateRepeat,
+               output_prefix,
+               minOverlap,
+               enableShatterRepeats,
+               genomeSize);
+
+  checkUnitigMembership(unitigs);
+  reportOverlapsUsed(unitigs, output_prefix, "breakRepeats");
+  reportUnitigs(unitigs, output_prefix, "breakRepeats", genomeSize);
+#endif
+
+  //
+  //  Try to reassemble just the split repeats.
+  //
 
   if (enableReconstructRepeats) {
     assert(enableShatterRepeats);
@@ -531,11 +555,10 @@ main (int argc, char * argv []) {
 
     reconstructRepeats(unitigs, erateGraph);
 
+    checkUnitigMembership(unitigs);
     reportOverlapsUsed(unitigs, output_prefix, "reconstructRepeats");
     reportUnitigs(unitigs, output_prefix, "reconstructRepeats", genomeSize);
   }
-
-  checkUnitigMembership(unitigs);
 
   //
   //  Cleanup unitigs.  Break those that have gaps in them.  Place contains again.  For any read
