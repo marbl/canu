@@ -151,6 +151,7 @@ enum ovOverlapDisplayType {
   ovOverlapAsCoords     = 1,  //  Show bgn,end for each read
   ovOverlapAsRaw        = 2,  //  Show all four hangs
   ovOverlapAsCompat     = 3,  //  Show in a format more-or-less compatible with CA 8.3
+  ovOverlapAsPaf        = 4,  //  Show in a format compatible with miniasm
 };
 
 

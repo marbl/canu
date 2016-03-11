@@ -80,6 +80,21 @@ ovOverlap::toString(char                  *str,
               erate() * 100.0,
               (newLine) ? "\n" : "");
       break;
+    case ovOverlapAsPaf:
+      // miniasm/map expects entries to be separated by tabs
+      // no padding spaces on names we don't confuse read identifiers
+      sprintf(str, "%"F_U32P"\t%6"F_U32P"\t%6"F_U32P"\t%6"F_U32P"\t%c\t%"F_U32P"\t%6"F_U32P"\t%6"F_U32P"\t%6"F_U32P"\t%6"F_U32P"\t%6"F_U32P"\t%6"F_U32P" %s",
+              a_iid,
+              (g->gkStore_getRead(a_iid)->gkRead_sequenceLength()), a_bgn(), a_end(),
+              flipped() ? '-' : '+',
+              b_iid,
+              (g->gkStore_getRead(b_iid)->gkRead_sequenceLength()), flipped() ? b_end() : b_bgn(), flipped() ? b_bgn() : b_end(),
+              (uint32)floor(span() == 0 ? (1-erate() * (a_end()-a_bgn())) : (1-erate()) * span()),
+              span() == 0 ? a_end() - a_bgn() : span(),
+              255,
+              (newLine) ? "\n" : "");
+      break;
+
   }
 
   return(str);
