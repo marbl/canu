@@ -93,19 +93,19 @@ sub mhapConfigure ($$$$) {
 
     my $numHashes       = "512";
     my $minNumMatches   = "3";
-    my $threshold       = "0.6";
+    my $threshold       = "0.75";
     my $ordSketch       = "1536";
     my $ordSketchMer    = 12;
 
     if (getGlobal("${tag}MhapSensitivity") eq "sens" || getGlobal("${tag}MhapSensitivity") eq "high") {
        $numHashes     =  "768";
        $minNumMatches =    "2";
-       $threshold     = "0.6";
+       $threshold     = "0.75";
        $ordSketch     = "1536";
     } elsif (getGlobal("${tag}MhapSensitivity") eq "fast") {
        $numHashes     =  "256";
        $minNumMatches =    "3";
-       $threshold     =    "0.7";
+       $threshold     =    "0.85";
        $ordSketch     = "1000";
     }
 
@@ -366,7 +366,7 @@ sub mhapConfigure ($$$$) {
     print F "#  So mhap writes its output in the correct spot.\n";
     print F "cd $path/blocks\n";
     print F "\n";
-    print F "$javaPath -server -Xmx", getGlobal("${tag}mhapMemory"), "g \\\n";
+    print F "$javaPath -d64 -server -Xmx", getGlobal("${tag}mhapMemory"), "g \\\n";
     print F "  -jar \$bin/mhap-" . getGlobal("${tag}MhapVersion") . ".jar \\\n";
     print F "  --weighted -k $merSize \\\n";
     print F "  --num-hashes $numHashes \\\n";
@@ -442,7 +442,7 @@ sub mhapConfigure ($$$$) {
     print F getBinDirectoryShellCode();
     print F "\n";
     print F "if [ ! -e \"$path/results/\$qry.mhap\" ] ; then\n";
-    print F "  $javaPath -server -Xmx", getGlobal("${tag}mhapMemory"), "g \\\n";
+    print F "  $javaPath -d64 -server -Xmx", getGlobal("${tag}mhapMemory"), "g \\\n";
     print F "    -jar \$bin/mhap-" . getGlobal("${tag}MhapVersion"). ".jar \\\n";
     print F "    --weighted -k $merSize \\\n";
     print F "    --num-hashes $numHashes \\\n";
