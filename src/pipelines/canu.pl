@@ -260,13 +260,11 @@ if (scalar(@inputFiles) == 0 && ! defined(getGlobal("errorRate"))) {
         if ($numPacBioRaw > 0 || $numPacBioCorrected > 0) {
             setErrorRate(0.025);
             setGlobal("corErrorRate", "0.30");
-            setGlobal("batOptions", "-RS -NS -CS");
             setGlobal("cnsMaxCoverage", 20);
         }
         if ($numNanoporeRaw > 0 || $numNanoporeCorrected > 0) {
             setErrorRate(0.045);
             setGlobal("corErrorRate", "0.50");
-            setGlobal("batOptions", "-RS -NS -CS");
             setGlobal("cnsMaxCoverage", 20);
         }
     }
