@@ -69,6 +69,9 @@ sub estimateOverlapSize($$) {
     my $ovl       = getGlobal("minOverlapLength");
     my $gs        = getGlobal("genomeSize");
 
+    # dont set min let new alg do its job
+    return $ovl;
+
     # if the  user manually set a threshold, use theirs, don't change it
     if ($ovl != 500) {
        return $ovl;

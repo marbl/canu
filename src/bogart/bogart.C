@@ -107,6 +107,8 @@ main (int argc, char * argv []) {
   bool      enableShatterRepeats     = false;
   bool      enableReconstructRepeats = false;
 
+  bool      newBreaking              = false;
+
   uint32    minReadLen               = 0;
   uint32    minOverlap               = 40;
 
@@ -153,6 +155,9 @@ main (int argc, char * argv []) {
       SPURIOUS_COVERAGE_THRESHOLD  = atoi(argv[++arg]);
       ISECT_NEEDED_TO_BREAK        = atoi(argv[++arg]);
       REGION_END_WEIGHT            = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-newSplitting") == 0) {
+       newBreaking = true;
 
     } else if (strcmp(argv[arg], "-unassembled") == 0) {
       fewReadsNumber  = atoi(argv[++arg]);
@@ -515,7 +520,8 @@ main (int argc, char * argv []) {
   //  project these regions back to the tig, and break unless there is a read spanning the region.
   //
 
-#if 0
+if (newBreaking == true) {
+#if 1
   setLogFile(output_prefix, "markRepeatReads");
 
   markRepeatReads(unitigs, erateGraph, erateBubble, erateMerge, erateRepeat);
@@ -524,12 +530,13 @@ main (int argc, char * argv []) {
   reportOverlapsUsed(unitigs, output_prefix, "markRepeatReads");
   reportUnitigs(unitigs, output_prefix, "markRepeatReads", genomeSize);
 #endif
-
+}
   //
   //  Older style breaking.  Use unused overlaps to mark regions in tigs as repetitive, break unless
   //  there is evidence to hold them together.
   //
 
+if (newBreaking == false) {
 #if 1
   setLogFile(output_prefix, "breakRepeats");
 
@@ -544,7 +551,7 @@ main (int argc, char * argv []) {
   reportOverlapsUsed(unitigs, output_prefix, "breakRepeats");
   reportUnitigs(unitigs, output_prefix, "breakRepeats", genomeSize);
 #endif
-
+}
   //
   //  Try to reassemble just the split repeats.
   //
