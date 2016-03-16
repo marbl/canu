@@ -178,6 +178,9 @@ AS_BAT_overlapBEndIs3prime(const BAToverlap& olap) {
 }
 
 
+//  Stores an overlap from an 'a' read (implied by the index into the array of best edges) to a 'b'
+//  read.  The hangs are relative to the 'a' read - just as a normal overlap would be.
+//
 class BestEdgeOverlap {
 public:
   BestEdgeOverlap() {
@@ -187,24 +190,27 @@ public:
   };
 
   void    clear(void) {
-    _id    = 0;
-    _e3p   = 0;
-    _ahang = 0;
-    _bhang = 0;
+    _id     = 0;
+    _e3p    = 0;
+    _ahang  = 0;
+    _bhang  = 0;
+    _evalue = 0;
   };
 
   void    set(BAToverlap const &olap) {
-    _id    = olap.b_iid;
-    _e3p   = AS_BAT_overlapBEndIs3prime(olap);
-    _ahang = olap.a_hang;
-    _bhang = olap.b_hang;
+    _id     = olap.b_iid;
+    _e3p    = AS_BAT_overlapBEndIs3prime(olap);
+    _ahang  = olap.a_hang;
+    _bhang  = olap.b_hang;
+    _evalue = olap.evalue;
   };
 
-  void    set(uint32 id, bool e3p, int32 ahang, int32 bhang) {
-    _id    = id;
-    _e3p   = e3p;
-    _ahang = ahang;
-    _bhang = bhang;
+  void    set(uint32 id, bool e3p, int32 ahang, int32 bhang, uint32 evalue) {
+    _id     = id;
+    _e3p    = e3p;
+    _ahang  = ahang;
+    _bhang  = bhang;
+    _evalue = evalue;
   };
 
 
@@ -215,12 +221,22 @@ public:
   int32   ahang(void)   const { return(_ahang); };
   int32   bhang(void)   const { return(_bhang); };
 
+  uint32  evalue(void)  const { return(_evalue); };
+  double  erate(void)   const { return(AS_OVS_decodeEvalue(_evalue)); };
+
 private:
   uint32            _id;
-  uint64            _e3p   : 1;    //  Overlap with the 3' end of that fragment
-  int64             _ahang : AS_MAX_READLEN_BITS+1;
-  int64             _bhang : AS_MAX_READLEN_BITS+1;
+  uint64            _e3p    : 1;    //  Overlap with the 3' end of that fragment
+  int64             _ahang  : AS_MAX_READLEN_BITS+1;
+  int64             _bhang  : AS_MAX_READLEN_BITS+1;
+  uint64            _evalue : AS_MAX_EVALUE_BITS;
 };
+
+#if (1 + AS_MAX_READLEN_BITS + 1 + AS_MAX_READLEN_BITS + 1 + AS_MAX_EVALUE_BITS > 64)
+#error not enough bits to store overlaps.  decrease AS_MAX_EVALUE_BITS or AS_MAX_READLEN_BITS.
+#endif
+
+//#error finish adding _evalue support to BestEdgeOVerlap and BestContainment
 
 
 // Contains what kind of containment relationship exists between fragment a and fragment b
@@ -241,13 +257,30 @@ public:
     b_hang          = 0;
   };
 
+#if 0
+  uint32  fragId(void)  const { return(_id); };
+  bool    frag3p(void)  const { return(_e3p == true);  };
+  bool    frag5p(void)  const { return(_e3p == false); };
+
+  int32   ahang(void)   const { return(_ahang); };
+  int32   bhang(void)   const { return(_bhang); };
+#endif
+
+  uint32  evalue(void)  const { return(_evalue); };
+  double  erate(void)   const { return(AS_OVS_decodeEvalue(_evalue)); };
+
+
   uint32  container;
   uint64  isContained     : 1;
   uint64  sameOrientation : 1;
   int64   a_hang          : AS_MAX_READLEN_BITS+1;
   int64   b_hang          : AS_MAX_READLEN_BITS+1;
+  uint64  _evalue          : AS_MAX_EVALUE_BITS;
 };
 
+#if (1 + 1 + AS_MAX_READLEN_BITS + 1 + AS_MAX_READLEN_BITS + 1 + AS_MAX_EVALUE_BITS > 64)
+#error not enough bits to store overlaps.  decrease AS_MAX_EVALUE_BITS or AS_MAX_READLEN_BITS.
+#endif
 
 
 

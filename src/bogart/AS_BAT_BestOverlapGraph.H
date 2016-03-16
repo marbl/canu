@@ -67,10 +67,10 @@ public:
 class BestOverlapGraph {
 private:
   void   removeSuspicious(void);
-  char  *removeSpurs(void);
+  void   removeSpurs(void);
   void   removeLopsidedEdges(void);
 
-  void   findEdges(char *isSpur=NULL);
+  void   findEdges(void);
 
   void   removeHighErrorBestEdges(void);
 
@@ -124,7 +124,7 @@ public:
     return(&_bestM[fragid]._bestC);
   };
 
-  void      reportBestEdges(const char *prefix);
+  void      reportBestEdges(const char *prefix, const char *label);
 
 public:
   void      rebuildBestContainsWithoutSingletons(UnitigVector  &unitigs,
@@ -166,7 +166,11 @@ private:
   double                     _mean;
   double                     _stddev;
 
+  double                     _median;
+  double                     _mad;
+
   set<uint32>                _suspicious;
+  set<uint32>                _spur;
 
   map<uint32, BestOverlaps>  _bestM;
   map<uint32, BestScores>    _scorM;

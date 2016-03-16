@@ -778,6 +778,7 @@ OverlapCache::removeWeakOverlaps(uint32 *minEvalue5p,
 
 
 
+#if 0
 double
 OverlapCache::findErate(uint32 aIID, uint32 bIID) {
 
@@ -791,7 +792,7 @@ OverlapCache::findErate(uint32 aIID, uint32 bIID) {
 
   return(1.0);
 }
-
+#endif
 
 
 

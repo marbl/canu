@@ -136,7 +136,7 @@ public:
   void         removeWeakOverlaps(uint32 *minEvalue5p,
                                   uint32 *minEvalue3p);
 
-  double       findErate(uint32 aIID, uint32 bIID);
+  //double       findErate(uint32 aIID, uint32 bIID);
 
 private:
   bool         load(const char *prefix, double erate);

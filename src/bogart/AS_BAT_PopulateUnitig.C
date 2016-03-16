@@ -73,9 +73,9 @@ populateUnitig(Unitig           *unitig,
     //  innie/outtie, we need to reverse the overlap to maintain that the A fragment is forward.
 
     if (last3p == bestnext->frag3p())
-      bestprev.set(lastID, last3p, bestnext->bhang(), bestnext->ahang());
+      bestprev.set(lastID, last3p, bestnext->bhang(), bestnext->ahang(), bestnext->evalue());
     else
-      bestprev.set(lastID, last3p, -bestnext->ahang(), -bestnext->bhang());
+      bestprev.set(lastID, last3p, -bestnext->ahang(), -bestnext->bhang(), bestnext->evalue());
 
     //  Call the usual placement routine to place the next fragment relative to the last one.  This
     //  call depends on which end of the frag-to-be-added we are working with.
