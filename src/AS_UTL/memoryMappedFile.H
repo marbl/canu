@@ -64,6 +64,10 @@ enum memoryMappedFileType {
 };
 
 
+#ifndef MAP_POPULATE
+#define MAP_POPULATE 0
+#endif
+
 class memoryMappedFile {
 public:
   memoryMappedFile(const char           *name,
