@@ -40,7 +40,7 @@
 class logFileInstance {
 public:
   logFileInstance() {
-    file    = NULL;
+    file    = stderr;
     name[0] = 0;
     part    = 0;
     length  = 0;
@@ -65,6 +65,9 @@ public:
   };
 
   void  rotate(void) {
+
+    assert(name[0] != 0);
+
     fclose(file);
 
     file   = NULL;
@@ -160,14 +163,15 @@ setLogFile(char const *prefix, char const *label) {
 
   assert(prefix != NULL);
 
-  if (logFileFlagSet(LOG_STDERR))
-    //  Write everything to stderr
-    return;
-
   //  Allocate space.
 
   if (logFileThread == NULL)
     logFileThread = new logFileInstance [omp_get_max_threads()];
+
+  //  If writing to stderr, that's all we needed to do.
+
+  if (logFileFlagSet(LOG_STDERR))
+    return;
 
   //  Close out the old.
 
@@ -175,7 +179,6 @@ setLogFile(char const *prefix, char const *label) {
 
   for (int32 tn=0; tn<omp_get_max_threads(); tn++)
     logFileThread[tn].close();
-
 
   //  Move to the next iteration.
 
@@ -205,7 +208,6 @@ writeLog(char const *fmt, ...) {
   logFileInstance  *lf = (nt == 1) ? (&logFileMain) : (&logFileThread[tn]);
 
   //  Rotate the log file please, HAL.
-  //    AS_UTL_sizeOfFile(lf->name) > 512 * 1024 * 1024)
 
   uint64  maxLength = 512 * 1024 * 1024;
 
@@ -215,11 +217,6 @@ writeLog(char const *fmt, ...) {
             lf->length, maxLength);
     lf->rotate();
   }
-
-  //  Default to stderr if no name set.
-
-  if (lf->name[0] == 0)
-    lf->file = stderr;
 
   //  Open the file if needed.
 
