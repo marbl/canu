@@ -285,6 +285,19 @@ BestOverlapGraph::removeLopsidedEdges(void) {
       continue;
     }
 
+    //  If there is an overlap to something with no overlaps out of it, that's
+    //  a little suspicious.
+
+    if ((that5->fragId() == 0) ||
+        (that3->fragId() == 0)) {
+      writeLog("WARNING: read %u has overlap to spur - 3' to read %u back to %u - 5' to read %u back to %u\n",
+               fi,
+               this5->fragId(), that5->fragId(),
+               this3->fragId(), that3->fragId());
+      _suspicious.insert(fi);
+      continue;
+    }
+
     //  Something doesn't agree.  Find those overlaps...
 
     int32  that5ovlLen = FI->overlapLength(this5->fragId(), that5->fragId(), that5->ahang(), that5->bhang());
