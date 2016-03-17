@@ -269,19 +269,6 @@ BestOverlapGraph::removeLopsidedEdges(void) {
 
     //  Find the overlap for this5 and this3.
 
-#if 0
-    BAToverlap   this5ovl = {0,0,0,0,0,0,0};
-    BAToverlap   this3ovl = {0,0,0,0,0,0,0};
-
-    getOverlapForBestEdges(fi,
-                           this5, this5ovl,
-                           this3, this3ovl);
-
-    //  Compute the length of each overlap.
-
-    int32   this5ovlLen = FI->overlapLength(this5ovl.a_iid, this5ovl.b_iid, this5ovl.a_hang, this5ovl.b_hang);
-    int32   this3ovlLen = FI->overlapLength(this3ovl.a_iid, this3ovl.b_iid, this3ovl.a_hang, this3ovl.b_hang);
-#endif
     int32   this5ovlLen = FI->overlapLength(fi, this5->fragId(), this5->ahang(), this5->bhang());
     int32   this3ovlLen = FI->overlapLength(fi, this3->fragId(), this3->ahang(), this3->bhang());
 
@@ -300,24 +287,6 @@ BestOverlapGraph::removeLopsidedEdges(void) {
 
     //  Something doesn't agree.  Find those overlaps...
 
-#if 0
-    BAToverlap   that5ovl = {0,0,0,0,0,0,0};
-    BAToverlap   that3ovl = {0,0,0,0,0,0,0};
-
-    getOverlapForBestEdge(this5->fragId(), that5, that5ovl);
-    getOverlapForBestEdge(this3->fragId(), that3, that3ovl);
-
-    //fprintf(stderr, "fi %u this5 %u that5 %u\n", fi, this5->fragId(), that5->fragId());
-    //fprintf(stderr, "fi %u this3 %u that3 %u\n", fi, this3->fragId(), that3->fragId());
-
-    assert(that5ovl.a_iid != 0);
-    assert(that3ovl.a_iid != 0);
-
-    //  ...and their lengths...
-
-    int32  that5ovlLen = FI->overlapLength(that5ovl.a_iid, that5ovl.b_iid, that5ovl.a_hang, that5ovl.b_hang);
-    int32  that3ovlLen = FI->overlapLength(that3ovl.a_iid, that3ovl.b_iid, that3ovl.a_hang, that3ovl.b_hang);
-#endif
     int32  that5ovlLen = FI->overlapLength(this5->fragId(), that5->fragId(), that5->ahang(), that5->bhang());
     int32  that3ovlLen = FI->overlapLength(this3->fragId(), that3->fragId(), that3->ahang(), that3->bhang());
 
