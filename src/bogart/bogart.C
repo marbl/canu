@@ -521,7 +521,6 @@ main (int argc, char * argv []) {
   //
 
 if (newBreaking == true) {
-#if 1
   setLogFile(output_prefix, "markRepeatReads");
 
   markRepeatReads(unitigs, erateGraph, erateBubble, erateMerge, erateRepeat);
@@ -529,7 +528,6 @@ if (newBreaking == true) {
   checkUnitigMembership(unitigs);
   reportOverlapsUsed(unitigs, output_prefix, "markRepeatReads");
   reportUnitigs(unitigs, output_prefix, "markRepeatReads", genomeSize);
-#endif
 }
   //
   //  Older style breaking.  Use unused overlaps to mark regions in tigs as repetitive, break unless
@@ -537,7 +535,6 @@ if (newBreaking == true) {
   //
 
 if (newBreaking == false) {
-#if 1
   setLogFile(output_prefix, "breakRepeats");
 
   breakRepeats(unitigs,
@@ -550,7 +547,6 @@ if (newBreaking == false) {
   checkUnitigMembership(unitigs);
   reportOverlapsUsed(unitigs, output_prefix, "breakRepeats");
   reportUnitigs(unitigs, output_prefix, "breakRepeats", genomeSize);
-#endif
 }
   //
   //  Try to reassemble just the split repeats.
