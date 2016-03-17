@@ -120,16 +120,22 @@ unitigToTig(tgTig       *tig,
     for (uint32 oo=0; oo<olapsLen; oo++) {
 
       if (allreads.count(olaps[oo].b_iid) == 0) {
+        //  Potential parent not present in this tig
         notPresent++;
         continue;
       }
 
-      if (forward.count(olaps[oo].b_iid) == 0) {       //  Potential parent not placed yet
+      if (forward.count(olaps[oo].b_iid) == 0) {
+        //  Potential parent not placed in any tig
         notPlaced++;
         continue;
       }
 
       uint32  l = FI->overlapLength(olaps[oo].a_iid, olaps[oo].b_iid, olaps[oo].a_hang, olaps[oo].b_hang);
+
+      if (l < ttLen)
+        //  Overlap is shorter than the one we've saved already.
+        continue;
 
       //  Compute the hangs, so we can ignore those that would place this read before the parent.
       //  This is a flaw somewhere in bogart, and should be caught and fixed earlier.
@@ -161,13 +167,6 @@ unitigToTig(tgTig       *tig,
       //  The overlap is good.  Count it as such.
 
       goodOlap++;
-
-      //  If the overlap is worse than the one we already have, we don't care.
-
-      if ((l < ttLen) ||                  //  Too short
-          (ttErr < olaps[oo].erate)) {    //  Too noisy
-        continue;
-      }
 
       tt    = oo;
       ttLen = l;
@@ -236,9 +235,11 @@ writeUnitigsToStore(UnitigVector  &unitigs,
 
     //  Convert the bogart tig to a tgTig and save to the store.
 
+    fprintf(stderr, "unitigToTig %u\n", tigID);
     unitigToTig(tig, (isFinal) ? tigID : ti, utg);
     tigID++;
 
+    fprintf(stderr, "insertTig %u\n", tigID);
     tigStore->insertTig(tig, false);
 
     //  Increment the partition if the current one is too large.
