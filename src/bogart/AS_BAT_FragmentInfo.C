@@ -60,15 +60,10 @@ FragmentInfo::FragmentInfo(gkStore    *gkp,
   _fragLength    = new uint32 [_numFragments + 1];
   _libIID        = new uint32 [_numFragments + 1];
 
-  _numFragsInLib = new uint32 [_numLibraries + 1];
-
   for (uint32 i=0; i<_numFragments + 1; i++) {
     _fragLength[i] = 0;
     _libIID[i] = 0;
   }
-
-  for (uint32 i=1; i<_numLibraries + 1; i++)
-    _numFragsInLib[i] = 0;
 
   uint32 numSkipped = 0;
   uint32 numLoaded  = 0;
@@ -85,8 +80,6 @@ FragmentInfo::FragmentInfo(gkStore    *gkp,
 
       _fragLength[iid] = read->gkRead_sequenceLength();
       _libIID[iid]     = lib;
-
-      _numFragsInLib[lib]++;
 
       numLoaded++;
     }
@@ -107,8 +100,6 @@ FragmentInfo::FragmentInfo(gkStore    *gkp,
 FragmentInfo::~FragmentInfo() {
   delete [] _fragLength;
   delete [] _libIID;
-
-  delete [] _numFragsInLib;
 }
 
 
@@ -136,8 +127,6 @@ FragmentInfo::save(const char *prefix) {
 
   AS_UTL_safeWrite(file,  _fragLength,     "fragmentInformationFragLen",      sizeof(uint32), _numFragments + 1);
   AS_UTL_safeWrite(file,  _libIID,         "fragmentInformationLibIID",       sizeof(uint32), _numFragments + 1);
-
-  AS_UTL_safeWrite(file,  _numFragsInLib,  "fragmentInformationNumFrgsInLib", sizeof(uint32), _numLibraries + 1);
 
   fclose(file);
 }
@@ -180,12 +169,8 @@ FragmentInfo::load(const char *prefix) {
   _fragLength    = new uint32 [_numFragments + 1];
   _libIID        = new uint32 [_numFragments + 1];
 
-  _numFragsInLib = new uint32 [_numLibraries + 1];
-
   AS_UTL_safeRead(file,  _fragLength,    "fragmentInformationFragLen",      sizeof(uint32), _numFragments + 1);
   AS_UTL_safeRead(file,  _libIID,        "fragmentInformationLibIID",       sizeof(uint32), _numFragments + 1);
-
-  AS_UTL_safeRead(file,  _numFragsInLib, "fragmentInformationNumFrgsInLib", sizeof(uint32), _numLibraries + 1);
 
   fclose(file);
 

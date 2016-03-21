@@ -347,12 +347,6 @@ public:
     return(aovl);
   };
 
-  //  For DIAGNOSTIC ONLY.  Mark this fragment as 'deleted' so checkUnitigMembership() will pass
-  //  when we ignore fragments.  The resuting assembly will fail in CGW.
-  void    markAsIgnore(uint32 iid) {
-    _fragLength[iid] = 0;
-  };
-
 private:
   void      save(const char *prefix);
   bool      load(const char *prefix);
@@ -362,8 +356,6 @@ private:
 
   uint32  *_fragLength;
   uint32  *_libIID;
-
-  uint32  *_numFragsInLib;
 };
 
 #endif
