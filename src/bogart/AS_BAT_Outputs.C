@@ -235,11 +235,9 @@ writeUnitigsToStore(UnitigVector  &unitigs,
 
     //  Convert the bogart tig to a tgTig and save to the store.
 
-    fprintf(stderr, "unitigToTig %u\n", tigID);
     unitigToTig(tig, (isFinal) ? tigID : ti, utg);
     tigID++;
 
-    fprintf(stderr, "insertTig %u\n", tigID);
     tigStore->insertTig(tig, false);
 
     //  Increment the partition if the current one is too large.
