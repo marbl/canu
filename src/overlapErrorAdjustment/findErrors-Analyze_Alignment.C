@@ -259,6 +259,11 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
          (wa->globalvote[i  ].vote_val <= T_SUBST))) {
       int32 next_match = wa->globalvote[i + 1].align_sub - wa->globalvote[i].align_sub - 1;
 
+      // if our vote is outside of the bounds (meaning we have gaps at the start or end of the alignment), skip the vote
+      if (a_offset + wa->globalvote[i].frag_sub < 0 || a_offset + wa->globalvote[i].frag_sub >= a_len) {
+         continue;
+      }
+
       if (prev_match + next_match >= wa->G->Vote_Qualify_Len)
         Cast_Vote(wa->G,
                              wa->globalvote[i].vote_val,
