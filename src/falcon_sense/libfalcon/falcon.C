@@ -482,6 +482,8 @@ consensus_data * get_cns_from_align_tags( align_tags_t ** tag_seqs,
 
                         if (aln_col->p_t_pos[ck] == -1) {
                             score =  (double) aln_col->link_count[ck] - (double) coverage[i] * 0.5;
+                        } else if (pj > msa_array[pi]->max_delta) {
+                            score =  (double) aln_col->link_count[ck] - (double) coverage[i] * 0.5;
                         } else {
                             score = msa_array[pi]->delta[pj].base[pkk].score +
                                     (double) aln_col->link_count[ck] - (double) coverage[i] * 0.5;
