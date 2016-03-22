@@ -826,7 +826,7 @@ BestOverlapGraph::isOverlapBadQuality(const BAToverlap& olap) {
   double Tstddev = _mean   + 5 * _stddev;
   double Tmad    = _median + 5 * 1.4826 * _mad;
 
-  if (olap.erate <= Tmad) {
+  if (olap.erate <= Tmad || (Tmad == 0 && olap.erate <= Tstddev)) {
     if ((enableLog == true) && (logFileFlags & LOG_OVERLAP_QUALITY))
       writeLog("isOverlapBadQuality()-- OVERLAP GOOD:     %d %d %c  hangs "F_S32" "F_S32" err %.3f\n",
                olap.a_iid, olap.b_iid,
