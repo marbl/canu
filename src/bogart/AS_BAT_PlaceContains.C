@@ -44,188 +44,128 @@
 #include "AS_BAT_PlaceFragUsingOverlaps.H"
 
 
+
 void
-placeContainsUsingBestOverlaps(UnitigVector &unitigs) {
-  uint32   fragsPlaced  = 1;
-  uint32   fragsPending = 0;
+placeContainsUsingAllOverlaps(UnitigVector &unitigs,
+                              double        erate) {
+  uint32  fiLimit    = FI->numFragments();
+  uint32  numThreads = omp_get_max_threads();
+  uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
 
-  uint32  *nReadsPer = new uint32 [unitigs.size()];
+  uint32       *placedTig = new uint32      [FI->numFragments() + 1];
+  SeqInterval  *placedPos = new SeqInterval [FI->numFragments() + 1];
 
-  uint32   totalPlaced            = 0;
-  uint32   totalPlacedInSingleton = 0;
+  memset(placedTig, 0, sizeof(uint32)      * (FI->numFragments() + 1));
+  memset(placedPos, 0, sizeof(SeqInterval) * (FI->numFragments() + 1));
 
-  logFileFlags &= ~LOG_PLACE_FRAG;
+  //  Just some logging.
 
-  for (uint32 ii=0; ii<unitigs.size(); ii++)
-    nReadsPer[ii] = (unitigs[ii] == NULL) ? 0 : unitigs[ii]->getNumFrags();
+  uint32   nPlaced  = 0;
+  uint32   nToPlace = 0;
+  uint32   nFailed  = 0;
 
-  while (fragsPlaced > 0) {
-    fragsPlaced  = 0;
-    fragsPending = 0;
+  for (uint32 fid=1; fid<FI->numFragments()+1; fid++)
+    if (Unitig::fragIn(fid) == 0)
+      nToPlace++;
 
-    writeLog("==> PLACING CONTAINED FRAGMENTS\n");
+  fprintf(stderr, "placeContains()-- placing %u contained reads, with %d threads.\n", nToPlace, numThreads);
 
-    for (uint32 fid=1; fid<FI->numFragments()+1; fid++) {
-      BestContainment *bestcont = OG->getBestContainer(fid);
+#pragma omp parallel for schedule(dynamic, blockSize)
+  for (uint32 fid=1; fid<FI->numFragments()+1; fid++) {
+    if (Unitig::fragIn(fid) > 0)
+      continue;
 
-      if (bestcont->isContained == false)
-        //  Not a contained fragment.
+    //  Place the read.
+
+    vector<overlapPlacement>   placements;
+
+    placeFragUsingOverlaps(unitigs, erate, NULL, fid, placements);
+
+    //  Search the placements for the highest expected identity placement using all overlaps in the unitig.
+
+    uint32   b = UINT32_MAX;
+
+    for (uint32 i=0; i<placements.size(); i++) {
+#if 0
+      writeLog("frag %u placed in tig %u (%u reads) with coverage %f and ident %f\n",
+               fid, placements[i].tigID, unitigs[placements[i].tigID]->ufpath.size(),
+               placements[i].fCoverage,
+               placements[i].errors / placements[i].aligned);
+#endif
+
+      if (placements[i].fCoverage < 0.99)                   //  Ignore partially placed reads.
         continue;
 
-      if (Unitig::fragIn(fid) != 0)
-        //  Containee already placed.
+      if (unitigs[placements[i].tigID]->ufpath.size() == 1)  //  Ignore placements in singletons.
         continue;
 
-      if (Unitig::fragIn(bestcont->container) == 0) {
-        //  Container not placed (yet).
-        fragsPending++;
-        continue;
-      }
-
-      uint32  utgid = Unitig::fragIn(bestcont->container);
-      Unitig *utg   = unitigs[utgid];
-
-      totalPlaced++;
-
-      if (nReadsPer[utgid] == 1)
-        totalPlacedInSingleton++;
-
-      utg->addContainedFrag(fid, bestcont, true);  //logFileFlagSet(LOG_INITIAL_CONTAINED_PLACEMENT));
-
-      if (utg->id() != Unitig::fragIn(fid))
-        writeLog("placeContainsUsingBestOverlaps()-- FAILED to add frag %d to unitig %d.\n", fid, bestcont->container);
-      assert(utg->id() == Unitig::fragIn(fid));
-
-
-      fragsPlaced++;
+      if ((b == UINT32_MAX) ||
+          (placements[i].errors / placements[i].aligned < placements[b].errors / placements[b].aligned))
+        b = i;
     }
 
-    writeLog("placeContainsUsingBestOverlaps()-- Placed %d fragments; still need to place %d\n",
-            fragsPlaced, fragsPending);
+    //  If we didn't find a best, b will be invalid; set positions for adding to a new tig.
+    //  If we did, save both the position it was placed at, and the tigID it was placed in.
 
-    if ((fragsPlaced == 0) && (fragsPending > 0))
-      writeLog("placeContainsUsingBestOverlaps()-- Stopping contained fragment placement due to zombies.\n");
+    if (b == UINT32_MAX) {
+      placedPos[fid].bgn = 0;
+      placedPos[fid].end = FI->fragmentLength(fid);
+    } else {
+      placedTig[fid] = placements[b].tigID;
+      placedPos[fid] = placements[b].position;
+    }
   }
 
-  writeLog("placeContainsUsingBestOverlaps()-- %u frags placed in unitigs (including singleton unitigs)\n", totalPlaced);
-  writeLog("placeContainsUsingBestOverlaps()-- %u frags placed in singleton unitigs\n", totalPlacedInSingleton);
-  writeLog("placeContainsUsingBestOverlaps()-- %u frags unplaced\n", fragsPending);
+  //  All reads placed, now just dump them in their correct tigs.
 
-  delete [] nReadsPer;
+  for (uint32 fid=1; fid<FI->numFragments()+1; fid++) {
+    Unitig  *tig = NULL;
+    ufNode   frg;
+
+    if (Unitig::fragIn(fid) > 0)
+      continue;
+
+    //  If not placed, dump it in a new unitig.  Otherwise, it was placed somewhere, grab the tig.
+
+    if (placedTig[fid] == 0) {
+      nFailed++;
+      tig = unitigs.newUnitig(false);
+    } else {
+      nPlaced++;
+      tig = unitigs[placedTig[fid]];
+    }
+
+    //  Regardless, add it to the tig.
+
+    frg.ident             = fid;
+    frg.contained         = 0;
+    frg.parent            = 0;
+    frg.ahang             = 0;
+    frg.bhang             = 0;
+    frg.position          = placedPos[fid];
+    frg.containment_depth = 0;
+
+    writeLog("placeContainsUsingAllOverlaps()-- frag %u placed in tig %u at %u-%u.\n",
+             fid, tig->id(), frg.position.bgn, frg.position.end);
+
+    tig->addFrag(frg, 0, false);
+  }
+
+  //  Cleanup.
+
+  delete [] placedPos;
+  delete [] placedTig;
+
+  fprintf(stderr, "placeContains()-- placed %u contained reads.  failed to place %u contained reads.\n", nPlaced, nFailed);
+
+  //  But wait!  All the tigs need to be sorted.  Well, not really _all_, but the hard ones to sort
+  //  are big, and those quite likely had reads added to them, so it's really not worth the effort
+  //  of tracking which ones need sorting, since the ones that don't need it are trivial to sort.
 
   for (uint32 ti=1; ti<unitigs.size(); ti++) {
     Unitig *utg = unitigs[ti];
 
     if (utg)
       utg->sort();
-  }
-}
-
-
-
-void
-placeContainsUsingBestOverlaps(Unitig *target, set<uint32> *fragments) {
-  uint32   fragsPlaced  = 1;
-
-  logFileFlags &= ~LOG_PLACE_FRAG;
-
-  while (fragsPlaced > 0) {
-    fragsPlaced  = 0;
-
-    for (set<uint32>::iterator it=fragments->begin(); it != fragments->end(); it++) {
-      uint32           fid      = *it;
-      BestContainment *bestcont = OG->getBestContainer(fid);
-
-      if ((bestcont->isContained == false) ||
-          (Unitig::fragIn(fid) != 0) ||
-          (Unitig::fragIn(bestcont->container) == 0) ||
-          (Unitig::fragIn(bestcont->container) != target->id()))
-        //  Not a contained fragment OR
-        //  Containee already placed OR
-        //  Container not placed (yet) OR
-        //  Containee not in the target unitig
-        continue;
-
-      target->addContainedFrag(fid, bestcont, false);
-
-      if (target->id() != Unitig::fragIn(fid))
-        writeLog("placeContainsUsingBestOverlaps()-- FAILED to add frag %d to unitig %d.\n", fid, bestcont->container);
-      assert(target->id() == Unitig::fragIn(fid));
-
-      fragsPlaced++;
-    }
-  }
-
-  target->sort();
-}
-
-
-void
-placeContainsUsingAllOverlaps(UnitigVector &unitigs,
-                              double        erate) {
-
-  //  UNFINISHED.  This results in crashes later in the process.
-
-  for (uint32 fid=1; fid<FI->numFragments()+1; fid++) {
-    ufNode frg;
-    //ufNode mat;
-
-    if (Unitig::fragIn(fid) > 0)
-      //  Fragment placed already.
-      continue;
-
-    frg.ident = fid;
-    //mat.ident = 0;  //mid;
-
-    overlapPlacement    frgPlacement;
-    //overlapPlacement    matPlacement;
-
-    frgPlacement.errors  = 4.0e9;
-    frgPlacement.aligned = 1;
-
-    //matPlacement.errors  = 4.0e9;
-    //matPlacement.aligned = 1;
-
-    vector<overlapPlacement>   placements;
-
-    //  Place the read.
-
-    placeFragUsingOverlaps(unitigs, erate, NULL, frg.ident, placements);
-
-    //  Search the placements for the highest expect identity placement using all overlaps in the unitig.
-
-    Unitig  *frgTig = NULL;
-    Unitig  *matTig = NULL;
-
-    for (uint32 i=0; i<placements.size(); i++) {
-      if (placements[i].fCoverage < 0.99)
-        continue;
-
-      if (placements[i].errors / placements[i].aligned < frgPlacement.errors / frgPlacement.aligned) {
-        frgPlacement = placements[i];
-        frgTig       = unitigs[placements[i].tigID];
-      }
-    }
-
-    frg.ident             = frgPlacement.frgID;
-    frg.contained         = 0;
-    frg.parent            = 0;
-    frg.ahang             = 0;
-    frg.bhang             = 0;
-    frg.position          = frgPlacement.position;
-    frg.containment_depth = 0;
-
-    if ((frg.position.bgn == 0) &&
-        (frg.position.end == 0))
-      //  Failed to place the contained read anywhere.  We should probably just make a new unitig
-      //  for it right here.
-      continue;
-
-    //  Add the placed read to the unitig.
-
-    writeLog("placeContainsUsingAllOverlaps()-- frag %u placed in tig %u at %u-%u.\n",
-             frg.ident, frgTig->id(), frg.position.bgn, frg.position.end);
-
-    frgTig->addFrag(frg, 0, false);
   }
 }

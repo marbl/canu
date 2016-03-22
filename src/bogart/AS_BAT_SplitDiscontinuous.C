@@ -168,48 +168,14 @@ void splitDiscontinuousUnitigs(UnitigVector &unitigs, uint32 minOverlap) {
         continue;
       }
 
-      //  No thick overlap found.  We need to break right here before the current fragment.
+      //  No thick overlap found.  We need to break right here before the current fragment.  We used
+      //  to try to place contained reads with their container.  For simplicity, we instead just
+      //  make a new unitig, letting the main() decide what to do with them (e.g., bubble pop or try
+      //  to place all reads in singleton unitigs as contained reads again).
 
-      //  If there is exactly one fragment, and it's contained, move it to the
-      //  container.  (This has a small positive benefit over just making every read a singleton).
-      //
-      if ((splitFragsLen == 1) &&
-          (splitFrags[0].contained != 0)) {
-        Unitig  *dangler  = unitigs[tig->fragIn(splitFrags[0].contained)];
-
-        //  If the parent isn't in a unitig, we must have shattered the repeat unitig it was in.
-        //  Do the same here.
-
-        if (dangler == NULL) {
-          if (logFileFlagSet(LOG_SPLIT_DISCONTINUOUS))
-            writeLog("splitDiscontinuous()--   singleton frag "F_U32" shattered.\n",
-                    splitFrags[0].ident);
-          Unitig::removeFrag(splitFrags[0].ident);
-
-        } else {
-          assert(dangler->id() == tig->fragIn(splitFrags[0].contained));
-
-          if (logFileFlagSet(LOG_SPLIT_DISCONTINUOUS))
-            writeLog("splitDiscontinuous()--   old tig "F_U32" with "F_SIZE_T" fragments (contained frag "F_U32" moved here).\n",
-                    dangler->id(), dangler->ufpath.size() + 1, splitFrags[0].ident);
-
-          BestContainment  *bestcont = OG->getBestContainer(splitFrags[0].ident);
-
-          assert(bestcont->isContained == true);
-
-          dangler->addContainedFrag(splitFrags[0].ident, bestcont, false);
-          dangler->bubbleSortLastFrag();
-
-          assert(dangler->id() == Unitig::fragIn(splitFrags[0].ident));
-        }
-      }
-
-      //  Otherwise, make an entirely new unitig for these fragments.
-      else {
-        numCreated++;
-        makeNewUnitig(unitigs, splitFragsLen, splitFrags);
-        tig = unitigs[ti];
-      }
+      numCreated++;
+      makeNewUnitig(unitigs, splitFragsLen, splitFrags);
+      tig = unitigs[ti];
 
       //  Done with the split, save the current fragment.  This resets everything.
 

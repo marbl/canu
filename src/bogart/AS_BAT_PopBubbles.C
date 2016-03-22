@@ -583,7 +583,8 @@ mergeBubbles_checkFrags(UnitigVector &unitigs,
     target->addFrag(nFrg, 0, logFileFlagSet(LOG_INTERSECTION_BUBBLES_DEBUG));
   }
 
-  target->sort();
+#warning SORT DISABLED IN BUBBLE POPPING
+  //target->sort();
 
   success = true;
 
@@ -730,4 +731,8 @@ popBubbles(UnitigVector &unitigs,
   }
 
   delete ilist;
+
+  for (uint32 ti=0; ti<unitigs.size(); ti++)
+    if (unitigs[ti])
+      unitigs[ti]->sort();
 }

@@ -38,11 +38,6 @@
 #ifndef INCLUDE_AS_BAT_PLACECONTAINS
 #define INCLUDE_AS_BAT_PLACECONTAINS
 
-void placeContainsUsingBestOverlaps(UnitigVector &unitigs);
-
-void placeContainsUsingBestOverlaps(Unitig      *target,
-                                    set<uint32> *fragments);
-
 void placeContainsUsingAllOverlaps(UnitigVector &unitigs,
                                    double        erate);
 

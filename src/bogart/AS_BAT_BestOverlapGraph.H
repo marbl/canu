@@ -126,11 +126,6 @@ public:
 
   void      reportBestEdges(const char *prefix, const char *label);
 
-public:
-  void      rebuildBestContainsWithoutSingletons(UnitigVector  &unitigs,
-                                                 double         erate,
-                                                 const char    *prefix);
-
 private:
   bool     isOverlapBadQuality(const BAToverlap& olap);
   bool     isOverlapRestricted(const BAToverlap &olap);

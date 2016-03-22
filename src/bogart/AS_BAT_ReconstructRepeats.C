@@ -79,7 +79,7 @@ reconstructRepeats(UnitigVector &unitigs,
 
   writeLog("==> BUILDING REPEAT UNITIGS placing contained fragments.\n");
 
-  placeContainsUsingBestOverlaps(unitigs);
+  placeContainsUsingAllOverlaps(unitigs, erateGraph);
 
   delete OG;
   delete CG;

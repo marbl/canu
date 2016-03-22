@@ -45,7 +45,6 @@
 #include "AS_BAT_PopulateUnitig.H"
 #include "AS_BAT_Instrumentation.H"
 #include "AS_BAT_PlaceContains.H"
-#include "AS_BAT_PlaceZombies.H"
 
 #include "AS_BAT_Joining.H"
 
@@ -101,8 +100,6 @@ main (int argc, char * argv []) {
   char     *output_prefix            = NULL;
 
   bool      enableJoining            = false;
-
-  bool      placeContainsUsingBest   = true;     //  MUST be true; alternate doesn't work.
 
   bool      enableShatterRepeats     = false;
   bool      enableReconstructRepeats = false;
@@ -475,24 +472,7 @@ main (int argc, char * argv []) {
 
   setLogFile(output_prefix, "placeContains");
 
-  OG->rebuildBestContainsWithoutSingletons(unitigs, erateGraph, output_prefix);
-
-  if (placeContainsUsingBest)
-    placeContainsUsingBestOverlaps(unitigs);
-  else
-    placeContainsUsingAllOverlaps(unitigs, erateBubble);
-
-  //
-  //  Break and place zombies
-  //
-
-  setLogFile(output_prefix, "placeZombies");
-
-  placeZombies(unitigs, erateMerge);
-
-  checkUnitigMembership(unitigs);
-  reportOverlapsUsed(unitigs, output_prefix, "placeContainsZombies");
-  reportUnitigs(unitigs, output_prefix, "placeContainsZombies", genomeSize);
+  placeContainsUsingAllOverlaps(unitigs, erateBubble);
 
   //
   //  Pop bubbles
@@ -572,10 +552,8 @@ if (newBreaking == false) {
 
   splitDiscontinuousUnitigs(unitigs, minOverlap);
 
-  if (placeContainsUsingBest)
-    placeContainsUsingBestOverlaps(unitigs);
-  else
-    placeContainsUsingAllOverlaps(unitigs, erateBubble);
+#warning need to eject reads from singleton unitigs here
+  placeContainsUsingAllOverlaps(unitigs, erateBubble);
 
   promoteToSingleton(unitigs);
 

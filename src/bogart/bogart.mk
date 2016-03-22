@@ -24,7 +24,6 @@ SOURCES  := bogart.C \
             AS_BAT_OverlapCache.C \
             AS_BAT_PlaceContains.C \
             AS_BAT_PlaceFragUsingOverlaps.C \
-            AS_BAT_PlaceZombies.C \
             AS_BAT_PopBubbles.C \
             AS_BAT_PopulateUnitig.C \
             AS_BAT_PromoteToSingleton.C \
@@ -32,7 +31,6 @@ SOURCES  := bogart.C \
             AS_BAT_SetParentAndHang.C \
             AS_BAT_SplitDiscontinuous.C \
             AS_BAT_Unitig.C \
-            AS_BAT_Unitig_AddAndPlaceFrag.C \
             AS_BAT_Unitig_AddFrag.C \
             AS_BAT_Unitig_PlaceFragUsingEdges.C
 

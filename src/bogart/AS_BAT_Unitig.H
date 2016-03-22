@@ -97,21 +97,16 @@ public:
   ufNode getLastBackboneNode(void);
   ufNode getLastBackboneNode(uint32 &);
 
-  void   placeFrag_computePlacement(ufNode          &frag,
-                                    int32           &bidx,
-                                    BestEdgeOverlap *bestedge,
-                                    bool             bestIs3);
-
-  bool   placeFrag(ufNode &place5, int32 &fidx5, BestEdgeOverlap *bestedge5,
-                   ufNode &place3, int32 &fidx3, BestEdgeOverlap *bestedge3);
-
-  bool   placeFrag(ufNode &frag, BestContainment *bestcont);
+  //  Place 'frag' using an edge to some read in this tig.  The edge is from 'frag3p' end.
+  //
+  bool   placeFrag(ufNode          &frag,     //  resulting placement
+                   uint32           fragId,   //  read we want to place
+                   bool             frag3p,   //  end that the edge is from
+                   BestEdgeOverlap *edge);    //  edge to something in this tig
 
   void   addFrag(ufNode node, int offset=0, bool report=false);
-  bool   addContainedFrag(int32 fid, BestContainment *bestcont, bool report=false);
-  bool   addAndPlaceFrag(int32 fid, BestEdgeOverlap *bestedge5, BestEdgeOverlap *bestedge3, bool report=false);
 
-  void   bubbleSortLastFrag(void);
+  //void   bubbleSortLastFrag(void);
 
 
   static void removeFrag(int32 fid) {

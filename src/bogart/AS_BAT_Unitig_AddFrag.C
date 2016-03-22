@@ -86,32 +86,9 @@ Unitig::addFrag(ufNode node, int offset, bool report) {
 }
 
 
-//  This will add a contained fragment to a unitig, adjusting the position as needed.  It is only
-//  needed when moving a contained read from unitig A to unitig B.  It is NOT needed when rebuilding
-//  a unitig.
-//
-bool
-Unitig::addContainedFrag(int32 fid, BestContainment *bestcont, bool report) {
-  ufNode  frag;
-
-  assert(bestcont->isContained);
-
-  frag.ident        = fid;
-
-  if (placeFrag(frag, bestcont) == false) {
-    writeLog("addContainedFrag()-- Failed to place contained frag %d using bestcont %d (hang %d,%d same orient %d).\n",
-            fid, bestcont->container, bestcont->a_hang, bestcont->b_hang, bestcont->sameOrientation);
-    return(false);
-  }
-
-  addFrag(frag, 0, report);
-
-  return(true);
-}
-
-
 
 //  Percolate the last fragment to the correct spot in the list.
+#if 0
 void
 Unitig::bubbleSortLastFrag(void) {
   uint32   previd  = ufpath.size() - 2;
@@ -135,3 +112,4 @@ Unitig::bubbleSortLastFrag(void) {
   if (lastid < ufpath.size() - 1)
     ufpath[lastid] = last;
 }
+#endif

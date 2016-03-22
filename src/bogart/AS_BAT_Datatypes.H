@@ -156,23 +156,40 @@ private:
 };
 
 
-//  Swiped from AS_OVS_overlap.h, modified to take a BAToverlap instead of an OVSoverlap.
-
+//  Return which end of the read the overlap is on.  For 'Ais', the orientation
+//  of B doesn't matter; likewise for 'Bis'.
+//
+//  If the overlap is a containment relationship, both Is5 and Is3 are false.
+//
 static
 uint32
-AS_BAT_overlapAEndIs5prime(const BAToverlap& olap) {
-  return((olap.a_hang < 0) && (olap.b_hang < 0));
+AS_BAT_overlapAEndIs5prime(const BAToverlap& olap) {   //  -------->
+  return((olap.a_hang < 0) && (olap.b_hang < 0));      //        -------
 }
 
 static
 uint32
-AS_BAT_overlapAEndIs3prime(const BAToverlap& olap) {
-  return((olap.a_hang > 0) && (olap.b_hang > 0));
+AS_BAT_overlapAEndIs3prime(const BAToverlap& olap) {   //     -------->
+  return((olap.a_hang > 0) && (olap.b_hang > 0));      //  -------
+}
+
+static
+uint32
+AS_BAT_overlapAisContainer(const BAToverlap& olap) {   //  -------->
+  return((olap.a_hang >= 0) && (olap.b_hang <= 0));    //    ----
+}
+
+static
+uint32
+AS_BAT_overlapAisContained(const BAToverlap& olap) {   //    --->
+  return((olap.a_hang <= 0) && (olap.b_hang >= 0));    //  ---------
 }
 
 static
 uint32
 AS_BAT_overlapBEndIs3prime(const BAToverlap& olap) {
+  assert(AS_BAT_overlapAisContainer(olap) == false);  //  Function is not defined
+  assert(AS_BAT_overlapAisContained(olap) == false);  //    for containments.
   return((AS_BAT_overlapAEndIs5prime(olap) && (olap.flipped == false)) ||
          (AS_BAT_overlapAEndIs3prime(olap) && (olap.flipped == true)));
 }
@@ -185,6 +202,9 @@ class BestEdgeOverlap {
 public:
   BestEdgeOverlap() {
     clear();
+  };
+  BestEdgeOverlap(BAToverlap const &ovl) {
+    set(ovl);
   };
   ~BestEdgeOverlap() {
   };
@@ -199,7 +219,11 @@ public:
 
   void    set(BAToverlap const &olap) {
     _id     = olap.b_iid;
-    _e3p    = AS_BAT_overlapBEndIs3prime(olap);
+    if (((olap.a_hang <= 0) && (olap.b_hang >= 0)) ||    //  If contained, _e3p just means
+        ((olap.a_hang >= 0) && (olap.b_hang <= 0)))      //  the other read is flipped
+      _e3p  = olap.flipped;
+    else
+      _e3p    = AS_BAT_overlapBEndIs3prime(olap);  //  Otherwise, means olap is to the 3' end
     _ahang  = olap.a_hang;
     _bhang  = olap.b_hang;
     _evalue = olap.evalue;

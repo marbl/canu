@@ -77,16 +77,10 @@ populateUnitig(Unitig           *unitig,
     else
       bestprev.set(lastID, last3p, -bestnext->ahang(), -bestnext->bhang(), bestnext->evalue());
 
-    //  Call the usual placement routine to place the next fragment relative to the last one.  This
-    //  call depends on which end of the frag-to-be-added we are working with.
+    //  We just made 'bestprev' pointing from read 'bestnext->fragId()' end 'bestnext->frag3p()'
+    //  back to read 'lastID' end 'last3p'.  Compute the placement.
 
-    frag.ident = bestnext->fragId();
-
-    int32  bidx5 = -1, bidx3 = -1;
-
-    if (unitig->placeFrag(frag, bidx5, (bestnext->frag3p() ? NULL : &bestprev),
-                          frag, bidx3, (bestnext->frag3p() ? &bestprev : NULL))) {
-      //unitig->addFrag(frag, 0, logFileFlagSet(LOG_POPULATE_UNITIG));
+    if (unitig->placeFrag(frag, bestnext->fragId(), bestnext->frag3p(), &bestprev)) {
       unitig->addFrag(frag, 0, false);
       nAdded++;
 
