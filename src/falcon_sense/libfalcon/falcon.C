@@ -78,13 +78,16 @@
  #################################################################################$$
  */
 
+// for AS_MAX_READ_LEN
+#include "gkStore.H"
+#include "falcon.H"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <limits.h>
 #include <string.h>
 #include <assert.h>
 #include <stdint.h>
-#include "falcon.H"
 
 namespace FConsensus {
 
@@ -327,8 +330,8 @@ void clean_msa_working_space( msa_pos_t * msa_array, uint32 max_t_len) {
     }
 }
 
-//#define STATIC_ALLOCATE
-#undef STATIC_ALLOCATE
+#define STATIC_ALLOCATE
+//#undef STATIC_ALLOCATE
 
 consensus_data * get_cns_from_align_tags( align_tags_t ** tag_seqs,
                                           uint32 n_tag_seqs,
@@ -380,10 +383,10 @@ consensus_data * get_cns_from_align_tags( align_tags_t ** tag_seqs,
 #ifdef STATIC_ALLOCATE
 
     if ( msa_array == NULL) {
-        msa_array = get_msa_working_sapce( 100000 );
+        msa_array = get_msa_working_sapce( AS_MAX_READLEN );
     }
 
-    assert(t_len < 100000);
+    assert(t_len < AS_MAX_READLEN);
 
 #endif
 
