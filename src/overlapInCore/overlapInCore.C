@@ -171,6 +171,9 @@ Initialize_Work_Area(Work_Area_t *WA, int id, gkStore *gkpStore) {
 
   WA->editDist = new prefixEditDistance(G.Doing_Partial_Overlaps, G.maxErate);
 
+  WA->q_diff = new char [AS_MAX_READLEN];
+  WA->distinct_olap = new Olap_Info_t [MAX_DISTINCT_OLAPS];
+
   fprintf(stderr, "Initialize_Work_Area()-- done\n");
 }
 
@@ -181,6 +184,9 @@ Delete_Work_Area(Work_Area_t *WA) {
   delete [] WA->String_Olap_Space;
   delete [] WA->Match_Node_Space;
   delete [] WA->overlaps;
+
+  delete [] WA->distinct_olap;
+  delete [] WA->q_diff;
 }
 
 

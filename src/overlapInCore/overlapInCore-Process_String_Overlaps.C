@@ -445,7 +445,7 @@ Process_Matches (int * Start,
     }
   }
 
-  distinct_olap    = new Olap_Info_t [MAX_DISTINCT_OLAPS];
+  distinct_olap    = WA->distinct_olap;
   distinct_olap_ct = 0;
 
   while  ((* Start) != 0) {
@@ -547,7 +547,7 @@ Process_Matches (int * Start,
           int32  j = p->t_lo;
           int32  q_len = 0;
 
-          char  *q_diff = new char [AS_MAX_READLEN];
+          char  *q_diff = WA->q_diff;
 
           for  (int32 k=0;  k<p->delta_ct;  k++) {
             int32 len = abs(p->delta[k]);
@@ -600,7 +600,6 @@ Process_Matches (int * Start,
             Bad_Long_Window_Ct++;
           }
 
-          delete [] q_diff;
         }
 
         if  (! rejected) {
@@ -631,8 +630,6 @@ Process_Matches (int * Start,
       if  (overlaps_output > 1)
         WA->Multi_Overlap_Ct++;
     }
-
-  delete [] distinct_olap;
 
   return;
 }
