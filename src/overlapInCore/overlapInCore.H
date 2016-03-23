@@ -254,6 +254,18 @@ typedef  struct String_Olap_Node {
   unsigned  consistent : 1;
 }  String_Olap_t;
 
+
+typedef  struct Olap_Info {
+  int  s_lo, s_hi;
+  int  t_lo, t_hi;
+  double  quality;
+  int  delta [AS_MAX_READLEN+1];  //  needs only MAX_ERRORS
+  int  delta_ct;
+  int  s_left_boundary, s_right_boundary;
+  int  t_left_boundary, t_right_boundary;
+  int  min_diag, max_diag;
+}  Olap_Info_t;
+
 //  The following structure holds what used to be global information, but
 //  is now encapsulated so that multiple copies can be made for multiple
 //  parallel threads.
@@ -304,6 +316,10 @@ typedef  struct Work_Area {
   uint64         Multi_Overlap_Ct;
 
   prefixEditDistance  *editDist;
+
+
+   char * q_diff;
+   Olap_Info_t  *distinct_olap;
 }  Work_Area_t;
 
 
@@ -311,20 +327,6 @@ typedef  struct Work_Area {
 
 typedef  uint32  Check_Vector_t;
 // Bit vector to see if hash bucket could possibly contain a match
-
-
-typedef  struct Olap_Info {
-  int  s_lo, s_hi;
-  int  t_lo, t_hi;
-  double  quality;
-  int  delta [AS_MAX_READLEN+1];  //  needs only MAX_ERRORS
-  int  delta_ct;
-  int  s_left_boundary, s_right_boundary;
-  int  t_left_boundary, t_right_boundary;
-  int  min_diag, max_diag;
-}  Olap_Info_t;
-
-
 
 
 typedef  uint64   String_Ref_t;
