@@ -533,8 +533,8 @@ sub createOverlapStoreParallel ($$$$) {
     overlapStoreBucketizerCheck($WRK, $asm, $tag, $files)  foreach (1..getGlobal("canuIterationMax") + 1);
     overlapStoreSorterCheck($WRK, $asm, $tag, $files)      foreach (1..getGlobal("canuIterationMax") + 1);
 
-    if (runCommand("$wrk/$asm.ovlStore.BUILDING", "$wrk/$asm.ovlStore.BUILDING/scripts/3-index.sh > $wrk/$asm.ovlStore.BUILDING/scripts/3-index.err 2>&1")) {
-        caExit("failed to build index for overlap store", "$wrk/$asm.ovlStore.BUILDING/scripts/3-index.err");
+    if (runCommand("$wrk/$asm.ovlStore.BUILDING", "$wrk/$asm.ovlStore.BUILDING/scripts/3-index.sh > $wrk/$asm.ovlStore.BUILDING/logs/3-index.err 2>&1")) {
+        caExit("failed to build index for overlap store", "$wrk/$asm.ovlStore.BUILDING/logs/3-index.err");
     }
 
     rename "$wrk/$asm.ovlStore.BUILDING", "$wrk/$asm.ovlStore";
