@@ -92,21 +92,6 @@ ufNodeCmp(const void *a, const void *b){
   int32 bbgn = (impb->position.bgn < impb->position.end) ? impb->position.bgn : impb->position.end;
   int32 frag3p = (impb->position.bgn < impb->position.end) ? impb->position.end : impb->position.bgn;
 
-  //  NEWSORT does not work.  When bubbles are popped, we add non-contained fragments to
-  //  a unitig, but just stick them at the end of the list.  NEWSORT would then maintain
-  //  this ordering, which is an error.
-  //
-#undef NEWSORT
-
-#ifdef NEWSORT
-  bool  aIsCont = OG->isContained(impa->ident);
-  bool  bIsCont = OG->isContained(impb->ident);
-
-  if ((aIsCont == false) && (bIsCont == false))
-    //  Both dovetail nodes, keep same order
-    return((int)impa->containment_depth - (int)impb->containment_depth);
-#endif
-
   if (abgn != bbgn)
     //  Return negative for the one that starts first.
     return(abgn - bbgn);
@@ -115,16 +100,6 @@ ufNodeCmp(const void *a, const void *b){
     //  Return negative for the one that ends last.
     return(frag3p - aend);
 
-#ifdef NEWSORT
-  if (bIsCont == true)
-    //  b is contained in a, so it comes after a.
-    return(-1);
-
- if (aIsCont == true)
-    //  a is contained in b, so it comes after b.
-    return(1);
-#endif
-
   //  Both contained, fallback on depth added, negative for earliest added
   return((int)impa->containment_depth - (int)impb->containment_depth);
 }
@@ -132,15 +107,6 @@ ufNodeCmp(const void *a, const void *b){
 
 void
 Unitig::sort(void) {
-
-#ifdef NEWSORT
-  for (int fi=0; fi<ufpath.size(); fi++) {
-    ufNode *f = &(ufpath[fi]);
-
-    if (OG->isContained(f->ident) == false)
-      f->containment_depth = fi;
-  }
-#endif
 
   qsort( &(ufpath.front()), getNumFrags(), sizeof(ufNode), &ufNodeCmp );
 
