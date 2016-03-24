@@ -169,7 +169,6 @@ Unitig::placeFrag(ufNode          &frag,
   frag.bhang             = 0;
   frag.position.bgn      = 0;
   frag.position.end      = 0;
-  frag.containment_depth = 0;
 
   if (edge == NULL)
     //  No best edge?  Hard to place without one.

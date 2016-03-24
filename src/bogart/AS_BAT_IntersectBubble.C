@@ -160,7 +160,6 @@ validateBubbleWithEdges(UnitigVector &unitigs,
   lFrgN.ahang             = 0;
   lFrgN.bhang             = 0;
   lFrgN.position          = lFrgPlacement.position;
-  lFrgN.containment_depth = 0;
 
   if ((lFrgN.position.bgn == 0) &&
       (lFrgN.position.end == 0)) {
@@ -189,7 +188,6 @@ validateBubbleWithEdges(UnitigVector &unitigs,
   rFrgN.ahang             = 0;
   rFrgN.bhang             = 0;
   rFrgN.position          = rFrgPlacement.position;
-  rFrgN.containment_depth = 0;
 
   if ((rFrgN.position.bgn == 0) &&
       (rFrgN.position.end == 0)) {
@@ -428,7 +426,6 @@ validateBubbleFragmentsWithOverlaps(UnitigVector &unitigs,
     nFrg.ahang             = 0;
     nFrg.bhang             = 0;
     nFrg.position          = correctPlace[fi].position;
-    nFrg.containment_depth = 0;
 
     larger->addFrag(nFrg, 0, logFileFlagSet(LOG_INTERSECTION_BUBBLES_DEBUG));
   }

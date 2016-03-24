@@ -100,8 +100,8 @@ ufNodeCmp(const void *a, const void *b){
     //  Return negative for the one that ends last.
     return(frag3p - aend);
 
-  //  Both contained, fallback on depth added, negative for earliest added
-  return((int)impa->containment_depth - (int)impb->containment_depth);
+  //  Equal starts.
+  return(0);
 }
 
 

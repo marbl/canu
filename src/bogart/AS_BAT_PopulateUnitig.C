@@ -136,7 +136,6 @@ populateUnitig(UnitigVector &unitigs,
   frag.bhang             = 0;
   frag.position.bgn      = FI->fragmentLength(fi);
   frag.position.end      = 0;
-  frag.containment_depth = 0;
 
   utg->addFrag(frag, 0, logFileFlagSet(LOG_POPULATE_UNITIG));
 

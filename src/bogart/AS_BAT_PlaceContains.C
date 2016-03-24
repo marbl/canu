@@ -190,7 +190,6 @@ placeUnplacedUsingAllOverlaps(UnitigVector &unitigs,
     frg.ahang             = 0;
     frg.bhang             = 0;
     frg.position          = placedPos[fid];
-    frg.containment_depth = 0;
 
     writeLog("placeContainsUsingAllOverlaps()-- frag %u placed in tig %u at %u-%u.\n",
              fid, tig->id(), frg.position.bgn, frg.position.end);

@@ -262,7 +262,6 @@ mergeBubbles_checkEnds(UnitigVector &unitigs,
   fFrgN.ahang             = 0;
   fFrgN.bhang             = 0;
   fFrgN.position          = fFrgPlacement.position;
-  fFrgN.containment_depth = 0;
 
   if ((fFrgN.position.bgn == 0) &&
       (fFrgN.position.end == 0)) {
@@ -330,7 +329,6 @@ mergeBubbles_checkEnds(UnitigVector &unitigs,
   lFrgN.ahang             = 0;
   lFrgN.bhang             = 0;
   lFrgN.position          = lFrgPlacement.position;
-  lFrgN.containment_depth = 0;
 
   if ((lFrgN.position.bgn == 0) &&
       (lFrgN.position.end == 0)) {
@@ -578,7 +576,6 @@ mergeBubbles_checkFrags(UnitigVector &unitigs,
     nFrg.ahang             = 0;
     nFrg.bhang             = 0;
     nFrg.position          = correctPlace[fi].position;
-    nFrg.containment_depth = 0;
 
     target->addFrag(nFrg, 0, logFileFlagSet(LOG_INTERSECTION_BUBBLES_DEBUG));
   }

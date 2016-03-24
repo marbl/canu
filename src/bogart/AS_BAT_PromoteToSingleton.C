@@ -64,7 +64,6 @@ promoteToSingleton(UnitigVector &unitigs) {
     frag.bhang             = 0;
     frag.position.bgn      = 0;
     frag.position.end      = FI->fragmentLength(fi);
-    frag.containment_depth = 0;
 
     utg->addFrag(frag, 0, false);
   }

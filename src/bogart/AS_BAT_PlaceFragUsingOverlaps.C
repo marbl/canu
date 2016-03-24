@@ -161,7 +161,6 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
   frag.bhang             = 0;
   frag.position.bgn      = 0;
   frag.position.end      = 0;
-  frag.containment_depth = 0;
 
   placements.clear();
 
@@ -630,7 +629,6 @@ placeFragInBestLocation(UnitigVector   &unitigs,
   frg.bhang             = 0;
   frg.position.bgn      = 0;
   frg.position.end      = FI->fragmentLength(fid);
-  frg.containment_depth = 0;
 
   placeFragUsingOverlaps(unitigs, erate, NULL, fid, op);
 

@@ -56,8 +56,6 @@ struct ufNode {
   int32            bhang;       //  that fragment
 
   SeqInterval      position;
-
-  uint32           containment_depth;
 };
 
 
