@@ -78,38 +78,3 @@ void Unitig::reverseComplement(bool doSort) {
       _pathPosition[ufpath[fi].ident] = fi;
   }
 }
-
-
-
-int
-ufNodeCmp(const void *a, const void *b){
-  ufNode *impa = (ufNode *)a;
-  ufNode *impb = (ufNode *)b;
-
-  int32 abgn = (impa->position.bgn < impa->position.end) ? impa->position.bgn : impa->position.end;
-  int32 aend = (impa->position.bgn < impa->position.end) ? impa->position.end : impa->position.bgn;
-
-  int32 bbgn = (impb->position.bgn < impb->position.end) ? impb->position.bgn : impb->position.end;
-  int32 frag3p = (impb->position.bgn < impb->position.end) ? impb->position.end : impb->position.bgn;
-
-  if (abgn != bbgn)
-    //  Return negative for the one that starts first.
-    return(abgn - bbgn);
-
-  if (aend != frag3p)
-    //  Return negative for the one that ends last.
-    return(frag3p - aend);
-
-  //  Equal starts.
-  return(0);
-}
-
-
-void
-Unitig::sort(void) {
-
-  qsort( &(ufpath.front()), getNumFrags(), sizeof(ufNode), &ufNodeCmp );
-
-  for (uint32 fi=0; fi<ufpath.size(); fi++)
-    _pathPosition[ufpath[fi].ident] = fi;
-}

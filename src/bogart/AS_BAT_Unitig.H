@@ -40,6 +40,9 @@
 
 #include "AS_BAT_Datatypes.H"
 
+#include <vector>
+#include <algorithm>
+
 //  Derived from IntMultiPos, but removes some of the data (48b in IntMultiPos, 32b in struct
 //  ufNode).  The minimum size (bit fields, assuming maximum limits, not using the contained
 //  field) seems to be 24b, and is more effort than it is worth (just removing 'contained' would be
@@ -47,7 +50,8 @@
 //
 //  ufNode is, of course, 'unitig fragment node'.
 //
-struct ufNode {
+class ufNode {
+public:
   uint32           ident;
   uint32           contained;
   uint32           parent;     //  IID of the fragment we align to
@@ -56,6 +60,22 @@ struct ufNode {
   int32            bhang;       //  that fragment
 
   SeqInterval      position;
+
+  bool  operator<(ufNode const &that) const {
+    int32 abgn = (position.bgn < position.end) ? position.bgn : position.end;
+    int32 aend = (position.bgn < position.end) ? position.end : position.bgn;
+
+    int32 bbgn = (that.position.bgn < that.position.end) ? that.position.bgn : that.position.end;
+    int32 bend = (that.position.bgn < that.position.end) ? that.position.end : that.position.bgn;
+
+    if (abgn < bbgn) return(true);    //  A starts before B!
+    if (abgn > bbgn) return(false);   //  B starts before A!
+
+    if (aend < bend) return(false);   //  A contained in B, not less than.
+    if (aend > bend) return(true);    //  B contained in A, is  less than.
+
+    return(false);                    //  Equality, not less than.
+  };
 };
 
 
@@ -78,7 +98,9 @@ public:
 
   friend class UnitigVector;
 
-  void sort(void);
+  void sort(void) {
+    std::sort(ufpath.begin(), ufpath.end());
+  };
   void reverseComplement(bool doSort=true);
 
   // getNumRandomFrags() is a placeholder, random frags should not
