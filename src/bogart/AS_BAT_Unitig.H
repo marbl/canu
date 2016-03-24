@@ -40,6 +40,8 @@
 
 #include "AS_BAT_Datatypes.H"
 
+#include "stddev.H"
+
 #include <vector>
 #include <algorithm>
 
@@ -80,7 +82,9 @@ public:
 
 
 
-struct Unitig {
+
+
+class Unitig {
 private:
   Unitig() {
     _length        = 0;
@@ -101,6 +105,7 @@ public:
   void sort(void) {
     std::sort(ufpath.begin(), ufpath.end());
   };
+  //void   bubbleSortLastFrag(void);
   void reverseComplement(bool doSort=true);
 
   // getNumRandomFrags() is a placeholder, random frags should not
@@ -123,8 +128,27 @@ public:
 
   void   addFrag(ufNode node, int offset=0, bool report=false);
 
-  //void   bubbleSortLastFrag(void);
 
+public:
+  class epValue {
+  public:
+    epValue(uint32 b, uint32 e) {
+      bgn = b;
+      end = e;
+    };
+
+    bool operator<(const epValue &that) const { return(bgn < that.bgn); };
+    bool operator<(const uint32 &that)  const { return(bgn < that);     };
+
+    uint32          bgn;
+    uint32          end;
+    stdDev<double>  dev;
+  };
+  
+
+  void   computeErrorProfile(void);
+  void   reportErrorProfile(char *prefix);
+  void   clearErrorProfile(void)       { errorProfile.clear(); };
 
   static void removeFrag(int32 fid) {
     _inUnitig[fid] = 0;
@@ -155,12 +179,13 @@ public:
 
   // Public Member Variables
   vector<ufNode>         ufpath;
+  vector<epValue>        errorProfile;
 
 private:
-  int32          _length;
-  uint32         _id;
+  int32                 _length;
+  uint32                _id;
 public:
-  uint32         _tigID;
+  uint32                _tigID;
 
 private:
   static uint32 *_inUnitig;      //  Maps a fragment iid to a unitig id.

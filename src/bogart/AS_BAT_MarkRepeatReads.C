@@ -153,135 +153,6 @@ public:
 };
 
 
-class errorProfile {
-public:
-  errorProfile(uint32 b, uint32 e) {
-    bgn = b;
-    end = e;
-  }
-
-  bool operator<(const errorProfile &that) const { return(bgn < that.bgn); };
-  bool operator<(const uint32 &that)       const { return(bgn < that);     };
-
-  uint32          bgn;
-  uint32          end;
-  stdDev<double>  dev;
-};
-
-
-
-void
-findUnitigErrorProfile(Unitig                        *tig,
-                       vector<errorProfile>          &profile) {
-
-  uint32          ti = tig->id();
-
-  fprintf(stderr, "Find error profile for tig "F_U32".\n", ti);
-
-  vector<olapDat>  olaps;
-  vector<uint32>   coords;
-
-  for (uint32 fi=0; fi<tig->ufpath.size(); fi++) {
-    ufNode     *rdA    = &tig->ufpath[fi];
-    bool        rdAfwd = (rdA->position.bgn < rdA->position.end);
-    int32       rdAlo  = (rdAfwd) ? rdA->position.bgn : rdA->position.end;
-    int32       rdAhi  = (rdAfwd) ? rdA->position.end : rdA->position.bgn;
-
-    uint32      ovlLen =  0;
-    BAToverlap *ovl    =  OC->getOverlaps(rdA->ident, AS_MAX_ERATE, ovlLen);
-
-    for (uint32 oi=0; oi<ovlLen; oi++) {
-      if (ti != Unitig::fragIn(ovl[oi].b_iid))
-        //  Reads in different tigs.  Don't care.
-        continue;
-
-      ufNode  *rdB    = &tig->ufpath[ Unitig::pathPosition(ovl[oi].b_iid) ];
-      bool     rdBfwd = (rdB->position.bgn < rdB->position.end);
-      int32    rdBlo  = (rdBfwd) ? rdB->position.bgn : rdB->position.end;
-      int32    rdBhi  = (rdBfwd) ? rdB->position.end : rdB->position.bgn;
-
-      if ((rdAhi < rdBlo) || (rdBhi < rdAlo))
-        continue;
-
-      //  Now figure out what region is covered by the overlap.
-
-      int32    tiglo = rdAlo;
-      int32    tighi = rdAhi;
-
-      olapToReadCoords(rdA, ovl+oi, tiglo, tighi);
-
-      //  Offset and adjust to tig coordinates
-
-      //  Beacuse the read is placed with a lot of fudging in the positions, we need
-      //  to scale the coordinates we compute here.
-      double      sc = (rdAhi - rdAlo) / (double)FI->fragmentLength(rdA->ident);
-
-      olapDat     olap((uint32)floor(rdAlo + sc * tiglo),
-                       (uint32)floor(rdAlo + sc * tighi),
-                       ovl[oi].erate);
-
-      coords.push_back(olap.bgn);
-      coords.push_back(olap.end);
-
-      olaps.push_back(olap);
-    }
-  }
-
-  sort(coords.begin(), coords.end());
-  sort(olaps.begin(),  olaps.end());
-
-  fprintf(stderr, "Generated "F_SIZE_T" coords and "F_SIZE_T" olaps.\n", coords.size(), olaps.size());
-
-  //  Convert coordinates into intervals.  Conceptually, squish out the duplicate numbers, then
-  //  create an interval for every adjacent pair.
-
-  for (uint32 bb=0, ii=1; ii<coords.size(); ii++) {
-    if (coords[bb] == coords[ii])
-      continue;
-
-    profile.push_back(errorProfile(coords[bb], coords[ii]));
-
-    bb = ii;
-  }
-
-  fprintf(stderr, "Generated "F_SIZE_T" profile regions.\n", profile.size());
-
-  //  Transfer overlap error rates to the regions.  Find the first region we intersect (by
-  //  construction, the first interval will have olap.bgn == profile.bgn), then add the overlap
-  //  error rate to each interval it covers (again, by construction, the last interval we add to
-  //  will have olap.end == profile.end).
-
-  uint64   nPieces = 0;
-
-  for (uint32 bb=0, ii=0; ii<olaps.size(); ii++) {
-
-    //  Find first region for this overlap.  All later overlaps will start at or after this region.
-    for (; (bb < profile.size()) && (profile[bb].bgn < olaps[ii].bgn); bb++)
-      ;
-
-    //if (ii > 1771000)
-    //  fprintf(stderr, "olap ii=%u %u-%u bb=%u profile %u-%u\n", ii, olaps[ii].bgn, olaps[ii].end, bb, profile[bb].bgn, profile[bb].end);
-
-    //  Until the overlap stops overlapping, add its error rate to the regions.
-    for (uint32 ee=bb; (ee < profile.size()) && (profile[ee].end <= olaps[ii].end); ee++, nPieces++)
-      profile[ee].dev.update(olaps[ii].erate);
-  }
-
-  fprintf(stderr, "Generated "F_SIZE_T" profile regions with "F_U64" overlap pieces.\n", profile.size(), nPieces);
-
-#ifdef DUMP_ERROR_PROFILE
-  char  fn[FILENAME_MAX];
-  sprintf(fn, "%08u.profile", tig->id());
-  FILE *F = fopen(fn, "w");
-
-  for (uint32 ii=0; ii<profile.size(); ii++)
-    fprintf(F, "%u %u %f +- %f (%u overlaps)\n", profile[ii].bgn, profile[ii].end, profile[ii].dev.mean(), profile[ii].dev.stddev(), profile[ii].dev.size());
-
-  fclose(F);
-#endif
-}
-
-
 
 
 //  For each overlap, if the b-read is in this tig, ignore it.
@@ -418,7 +289,6 @@ void
 annotateRepeatsInReads(UnitigVector          &unitigs, 
                        Unitig                *tig,
                        double                 erateRepeat,
-                       vector<errorProfile>  &errorProfile,    //  Computed error profile for this unitig
                        intervalList<int32>   &tigMarksR) {     //  Output list of repeat regions in the unitig
 
   tigMarksR.clear();
@@ -447,16 +317,16 @@ annotateRepeatsInReads(UnitigVector          &unitigs,
     uint32  nAbove = 0;
 
     //  Find first region for this overlap.  All later overlaps will start at or after this region.
-    for (; (bb < errorProfile.size()) && (errorProfile[bb].bgn < repeatOlaps[ii].bgn); bb++)
+    for (; (bb < tig->errorProfile.size()) && (tig->errorProfile[bb].bgn < repeatOlaps[ii].bgn); bb++)
       ;
 
     //  Until the overlap stops overlapping, add its error rate to the regions.
-    for (uint32 ee=bb; (ee < errorProfile.size()) && (errorProfile[ee].end <= repeatOlaps[ii].end); ee++)
+    for (uint32 ee=bb; (ee < tig->errorProfile.size()) && (tig->errorProfile[ee].end <= repeatOlaps[ii].end); ee++)
 #warning size compute is wrong
-      if (repeatOlaps[ii].erate <= errorProfile[ee].dev.mean() + 5 * errorProfile[ee].dev.stddev())
-        nBelow += errorProfile[ee].end - errorProfile[ee].bgn;
+      if (repeatOlaps[ii].erate <= tig->errorProfile[ee].dev.mean() + 5 * tig->errorProfile[ee].dev.stddev())
+        nBelow += tig->errorProfile[ee].end - tig->errorProfile[ee].bgn;
       else
-        nAbove += errorProfile[ee].end - errorProfile[ee].bgn;
+        nAbove += tig->errorProfile[ee].end - tig->errorProfile[ee].bgn;
 
     if (nAbove > nBelow) {
       //writeLog("SKIP overlap iid %u iid %u at %.4f%% at unitig position %u %u - %u bases high error\n",
@@ -578,6 +448,8 @@ markRepeatReads(UnitigVector &unitigs,
   intervalList<int32>  tigMarksR;  //  Marked repeats based on reads, filtered by spanning reads
   intervalList<int32>  tigMarksU;  //  Non-repeat invervals, just the inversion of tigMarksR
 
+  //  Compute all error profiles.
+
   for (uint32 ti=0; ti<tiLimit; ti++) {
     Unitig  *tig = unitigs[ti];
 
@@ -589,17 +461,25 @@ markRepeatReads(UnitigVector &unitigs,
 
     fprintf(stderr, "Finding coverage and error profile for tig %u/%u.\n", ti, tiLimit);
 
-    //intervalList<uint32>         readCoverage;
-    //findUnitigCoverage(tig, readCoverage);
+    tig->computeErrorProfile();
+  }
 
-    vector<errorProfile>         errorProfile;
-    vector<olapDat>              repeats;
 
-    findUnitigErrorProfile(tig, errorProfile);
+
+  for (uint32 ti=0; ti<tiLimit; ti++) {
+    Unitig  *tig = unitigs[ti];
+
+    if (tig == NULL)
+      continue;
+
+    if (tig->ufpath.size() == 1)
+      continue;
+
+    vector<olapDat>   repeats;
 
     fprintf(stderr, "Annotating repeats in reads for tig %u/%u.\n", ti, tiLimit);
 
-    annotateRepeatsInReads(unitigs, tig, erateRepeat, errorProfile, tigMarksR);
+    annotateRepeatsInReads(unitigs, tig, erateRepeat, tigMarksR);
 
     //  Collapse all the (scaled) read markings to intervals on the unitig, merging those that overlap
     //  significantly.
