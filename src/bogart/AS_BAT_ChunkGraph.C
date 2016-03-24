@@ -55,17 +55,23 @@ ChunkGraph::ChunkGraph(const char *output_prefix) {
   memset(_chunkLength, 0, sizeof(ChunkLength) * (_maxFragment));
 
   for (uint32 fid=1; fid <= _maxFragment; fid++) {
-    if (OG->isContained(fid))
+    if (OG->isContained(fid)) {
+      if (logFileFlagSet(LOG_CHUNK_GRAPH))
+        writeLog("read %u contained\n", fid);
       continue;
+    }
 
-    if (OG->isSuspicious(fid))
-      //  Fragment is suspicious.  We won't seed a BOG from it, and populateUnitig will make only a
-      //  singleton.
+    if (OG->isSuspicious(fid)) {
+      if (logFileFlagSet(LOG_CHUNK_GRAPH))
+        writeLog("read %u suspicious\n", fid);
       continue;
+    }
+
+    uint32  l5 = countFullWidth(FragmentEnd(fid, false));
+    uint32  l3 = countFullWidth(FragmentEnd(fid, true));
 
     _chunkLength[fid-1].fragId = fid;
-    _chunkLength[fid-1].cnt    = (countFullWidth(FragmentEnd(fid, false)) +
-                                  countFullWidth(FragmentEnd(fid, true)));
+    _chunkLength[fid-1].cnt    = l5 + l3;
   }
 
   delete [] _pathLen;
@@ -200,13 +206,15 @@ ChunkGraph::countFullWidth(FragmentEnd firstEnd) {
     currIdx = getIndex(currEnd);
   }
 
+
+
   if (logFileFlagSet(LOG_CHUNK_GRAPH)) {
     seen.clear();
 
     currEnd = firstEnd;
     currIdx = firstIdx;
 
-    writeLog("PATH from %d,%d length %d:",
+    writeLog("path from %d,%d length %d:",
             firstEnd.fragId(),
             (firstEnd.frag3p()) ? 3 : 5,
             _pathLen[firstIdx]);
