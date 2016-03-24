@@ -279,6 +279,7 @@ sub buildCorrectionLayouts_direct ($$) {
         print F "\$bin/falcon_sense \\\n"           if (!defined(getGlobal("falconSense")));
         print F "  --min_idt $minidt \\\n";
         print F "  --min_len " . getGlobal("minReadLength") . "\\\n";
+        print F "  --max_read_len " . 2 * getMaxReadInStore($wrk, $asm) . "\\\n";
         print F "  --min_ovl_len " . getGlobal("minOverlapLength") . "\\\n";
         print F "  --min_cov " . getGlobal("corMinCoverage") . " \\\n";
         print F "  --n_core " . getGlobal("corThreads") . " \\\n";
@@ -400,6 +401,7 @@ sub buildCorrectionLayouts_piped ($$) {
     print F "\$bin/falcon_sense \\\n"           if (!defined(getGlobal("falconSense")));
     print F "  --min_idt $minidt \\\n";
     print F "  --min_len " . getGlobal("minReadLength") . "\\\n";
+    print F "  --max_read_len " . 2 * getMaxReadInStore($wrk, $asm) . "\\\n";
     print F "  --min_ovl_len " . getGlobal("minOverlapLength") . "\\\n";
     print F "  --min_cov " . getGlobal("corMinCoverage") . " \\\n";
     print F "  --n_core " . getGlobal("corThreads") . " \\\n";

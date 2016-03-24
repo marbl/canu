@@ -78,8 +78,6 @@
  #################################################################################$$
  */
 
-// for AS_MAX_READ_LEN
-#include "gkStore.H"
 #include "falcon.H"
 
 #include <stdlib.h>
@@ -336,7 +334,7 @@ void clean_msa_working_space( msa_pos_t * msa_array, uint32 max_t_len) {
 consensus_data * get_cns_from_align_tags( align_tags_t ** tag_seqs,
                                           uint32 n_tag_seqs,
                                           uint32 t_len,
-                                          uint32 min_cov ) {
+                                          uint32 min_cov, uint32 max_len ) {
 
     seq_coor_t i,j;
     seq_coor_t t_pos = 0;
@@ -383,10 +381,10 @@ consensus_data * get_cns_from_align_tags( align_tags_t ** tag_seqs,
 #ifdef STATIC_ALLOCATE
 
     if ( msa_array == NULL) {
-        msa_array = get_msa_working_sapce( AS_MAX_READLEN );
+        msa_array = get_msa_working_sapce( max_len );
     }
 
-    assert(t_len < AS_MAX_READLEN);
+    assert(t_len < max_len);
 
 #endif
 
@@ -609,7 +607,7 @@ consensus_data * get_cns_from_align_tags( align_tags_t ** tag_seqs,
 consensus_data * generate_consensus( vector<string> input_seq,
                            uint32 min_cov,
                            uint32 K,
-                           double min_idt, uint32 min_len) {
+                           double min_idt, uint32 min_len, uint32 max_len) {
     uint32 seq_count;
     kmer_lookup * lk_ptr;
     seq_array sa_ptr;
@@ -673,7 +671,7 @@ consensus_data * generate_consensus( vector<string> input_seq,
         free_kmer_match( kmer_match_ptr);
     }
 
-    consensus = get_cns_from_align_tags( tags_list, seq_count, input_seq[0].length(), min_cov );
+    consensus = get_cns_from_align_tags( tags_list, seq_count, input_seq[0].length(), min_cov, max_len);
     free_seq_addr_array(sda_ptr);
     free_seq_array(sa_ptr);
     free_kmer_lookup(lk_ptr);

@@ -40,7 +40,7 @@ package canu::Gatekeeper;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(getNumberOfReadsInStore getNumberOfBasesInStore getExpectedCoverage sequenceFileExists gatekeeper);
+@EXPORT = qw(getMaxReadInStore getNumberOfReadsInStore getNumberOfBasesInStore getExpectedCoverage sequenceFileExists gatekeeper);
 
 use strict;
 
@@ -57,6 +57,26 @@ sub storeExists ($$) {
 }
 
 
+sub getMaxReadInStore ($$) {
+    my $wrk    = shift @_;  #  Local work directory
+    my $asm    = shift @_;
+    my $nr     = 0;
+
+    #  No file, no reads.
+
+    return($nr)   if (! -e "$wrk/$asm.gkpStore/readlengthhistogram.txt");
+
+    #  Read the info file.  gatekeeperCreate creates this at the end.
+
+    open(F, "< $wrk/$asm.gkpStore/readlengthhistogram.txt") or caExit("can't open '$wrk/$asm.gkpStore/readlengthhistogram.txt' for reading: $!", undef);
+    while (<F>) {
+       my @v = split '\s+', $_;
+       $nr = $v[1];
+    }
+    close(F);
+
+    return($nr);
+}
 
 sub getNumberOfReadsInStore ($$) {
     my $wrk    = shift @_;  #  Local work directory

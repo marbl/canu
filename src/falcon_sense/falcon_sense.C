@@ -43,6 +43,7 @@ main (int argc, char **argv) {
   uint32 min_ovl_len = 500;
   double min_idy = 0.5;
   uint32 K = 8;
+  uint32 max_read_len = AS_MAX_READLEN;
 
   argc = AS_configure(argc, argv);
 
@@ -63,6 +64,12 @@ main (int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "--min_ovl_len") == 0) {
        min_ovl_len = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "--max_read_len") == 0) {
+       max_read_len = atoi(argv[++arg]);        
+       if (max_read_len < 0 || max_read_len > AS_MAX_READLEN) {
+          max_read_len = AS_MAX_READLEN;
+       }
 
     } else {
       fprintf(stderr, "%s: Unknown option '%s'\n", argv[0], argv[arg]);
@@ -95,7 +102,7 @@ main (int argc, char **argv) {
 
     if (W[0][0] == '+') {
        uint32 splitSeqID = 0;
-       FConsensus::consensus_data *consensus_data_ptr = FConsensus::generate_consensus( seqs, min_cov, K, min_idy, min_ovl_len );
+       FConsensus::consensus_data *consensus_data_ptr = FConsensus::generate_consensus( seqs, min_cov, K, min_idy, min_ovl_len, max_read_len );
        char * split = strtok(consensus_data_ptr->sequence, "acgt");
        while (split != NULL) {
           if (strlen(split) > min_len) {

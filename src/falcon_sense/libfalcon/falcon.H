@@ -165,6 +165,6 @@ void mask_k_mer(seq_coor_t, kmer_lookup *, seq_coor_t);
 consensus_data * generate_consensus( vector<string> input_seq,
                            uint32 min_cov,
                            uint32 K,
-                           double min_idt, uint32 min_len);
+                           double min_idt, uint32 min_len, uint32 max_len);
 void free_consensus_data(consensus_data *);
 }
