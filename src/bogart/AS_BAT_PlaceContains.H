@@ -38,7 +38,11 @@
 #ifndef INCLUDE_AS_BAT_PLACECONTAINS
 #define INCLUDE_AS_BAT_PLACECONTAINS
 
-void placeContainsUsingAllOverlaps(UnitigVector &unitigs,
+void breakSingletonTigs(UnitigVector &unitigs);
+
+void placeUnplacedUsingAllOverlaps(UnitigVector &unitigs,
                                    double        erate);
+
+
 
 #endif  //  INCLUDE_AS_BAT_PLACECONTAINS

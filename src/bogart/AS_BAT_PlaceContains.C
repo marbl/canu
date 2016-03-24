@@ -46,7 +46,37 @@
 
 
 void
-placeContainsUsingAllOverlaps(UnitigVector &unitigs,
+breakSingletonTigs(UnitigVector &unitigs) {
+
+  //  For any singleton unitig, eject the read and delete the unitig.  Eventually,
+  //  we will stop making singleton unitigs.
+
+  uint32   removed = 0;
+
+  for (uint32 ti=1; ti<unitigs.size(); ti++) {
+    Unitig *utg = unitigs[ti];
+
+    if (utg == NULL)
+      continue;
+
+    if (utg->ufpath.size() > 1)
+      continue;
+
+    unitigs[ti] = NULL;                      //  Remove the unitig from the list
+    utg->removeFrag(utg->ufpath[0].ident);   //  Eject the read
+    delete utg;                              //  Reclaim space
+    removed++;                               //  Count
+  }
+
+  fprintf(stderr, "Removed %u read%s from %u singleton unitig%s.\n",
+          removed, (removed != 1) ? "" : "s",
+          removed, (removed != 1) ? "" : "s");
+}
+
+
+
+void
+placeUnplacedUsingAllOverlaps(UnitigVector &unitigs,
                               double        erate) {
   uint32  fiLimit    = FI->numFragments();
   uint32  numThreads = omp_get_max_threads();
@@ -60,15 +90,22 @@ placeContainsUsingAllOverlaps(UnitigVector &unitigs,
 
   //  Just some logging.
 
-  uint32   nPlaced  = 0;
-  uint32   nToPlace = 0;
-  uint32   nFailed  = 0;
+  uint32   nToPlaceContained = 0;
+  uint32   nToPlace          = 0;
+  uint32   nPlacedContained  = 0;
+  uint32   nPlaced           = 0;
+  uint32   nFailedContained  = 0;
+  uint32   nFailed           = 0;
 
   for (uint32 fid=1; fid<FI->numFragments()+1; fid++)
     if (Unitig::fragIn(fid) == 0)
-      nToPlace++;
+      if (OG->isContained(fid))
+        nToPlaceContained++;
+      else
+        nToPlace++;
 
-  fprintf(stderr, "placeContains()-- placing %u contained reads, with %d threads.\n", nToPlace, numThreads);
+  fprintf(stderr, "placeContains()-- placing %u contained and %u unplaced reads, with %d threads.\n",
+          nToPlaceContained, nToPlace, numThreads);
 
 #pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 fid=1; fid<FI->numFragments()+1; fid++) {
@@ -128,10 +165,20 @@ placeContainsUsingAllOverlaps(UnitigVector &unitigs,
     //  If not placed, dump it in a new unitig.  Otherwise, it was placed somewhere, grab the tig.
 
     if (placedTig[fid] == 0) {
-      nFailed++;
+      if (OG->isContained(fid))
+        nFailedContained++;
+      else
+        nFailed++;
+
       tig = unitigs.newUnitig(false);
-    } else {
-      nPlaced++;
+    }
+
+    else {
+      if (OG->isContained(fid))
+        nPlacedContained++;
+      else
+        nPlaced++;
+
       tig = unitigs[placedTig[fid]];
     }
 
@@ -156,7 +203,8 @@ placeContainsUsingAllOverlaps(UnitigVector &unitigs,
   delete [] placedPos;
   delete [] placedTig;
 
-  fprintf(stderr, "placeContains()-- placed %u contained reads.  failed to place %u contained reads.\n", nPlaced, nFailed);
+  fprintf(stderr, "placeContains()-- Placed %u contained reads and %u unplaced reads.\n", nPlacedContained, nPlaced);
+  fprintf(stderr, "placeContains()-- Failed to place %u contained reads and %u unplaced reads.\n", nFailedContained, nFailed);
 
   //  But wait!  All the tigs need to be sorted.  Well, not really _all_, but the hard ones to sort
   //  are big, and those quite likely had reads added to them, so it's really not worth the effort

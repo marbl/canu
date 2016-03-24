@@ -472,7 +472,8 @@ main (int argc, char * argv []) {
 
   setLogFile(output_prefix, "placeContains");
 
-  placeContainsUsingAllOverlaps(unitigs, erateBubble);
+  breakSingletonTigs(unitigs);
+  placeUnplacedUsingAllOverlaps(unitigs, erateBubble);
 
   //
   //  Pop bubbles
@@ -553,7 +554,7 @@ if (newBreaking == false) {
   splitDiscontinuousUnitigs(unitigs, minOverlap);
 
 #warning need to eject reads from singleton unitigs here
-  placeContainsUsingAllOverlaps(unitigs, erateBubble);
+  placeUnplacedUsingAllOverlaps(unitigs, erateBubble);
 
   promoteToSingleton(unitigs);
 
