@@ -45,52 +45,6 @@ uint32* Unitig::_inUnitig     = NULL;
 uint32* Unitig::_pathPosition = NULL;
 
 
-#warning WHAT REALLLY HAPPENS IF NO BACKBONE NODE, OR NO PREVIOUS BACKBONE NODE
-
-ufNode Unitig::getLastBackboneNode(void) {
-  for (int32 fi=ufpath.size()-1; fi >= 0; fi--) {
-    ufNode  &node = ufpath[fi];
-
-    if (node.contained)
-      continue;
-
-    return(node);
-  }
-
-  writeLog("Unitig::getLastBackboneNode()--  WARNING:  unitig %d has no backbone nodes, all contained!\n", id());
-  ufNode last;
-  memset(&last, 0, sizeof(ufNode));
-  return(last);
-}
-
-
-ufNode Unitig::getLastBackboneNode(uint32 &prevID) {
-  ufNode last;
-
-  memset(&last, 0, sizeof(ufNode));
-
-  prevID = 0;
-
-  for (int32 fi=ufpath.size()-1; (fi >= 0) && (prevID == 0); fi--) {
-    ufNode  *node = &ufpath[fi];
-
-    if (node->contained)
-      continue;
-
-    if (last.ident == 0)
-      //  Save the last dovetail node, but keep looking....
-      last = *node;
-    else
-      //  ...for the next to last ID.
-      prevID = node->ident;
-  }
-
-  return(last);
-}
-
-
-
-
 void Unitig::reverseComplement(bool doSort) {
 
   //  If there are contained fragments, we need to sort by position to place them correctly after

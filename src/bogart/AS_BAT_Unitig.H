@@ -94,9 +94,6 @@ public:
   uint32 getNumFrags(void)        { return(ufpath.size()); };
   uint32 getNumRandomFrags(void)  { return(getNumFrags()); };
 
-  ufNode getLastBackboneNode(void);
-  ufNode getLastBackboneNode(uint32 &);
-
   //  Place 'frag' using an edge to some read in this tig.  The edge is from 'frag3p' end.
   //
   bool   placeFrag(ufNode          &frag,     //  resulting placement
