@@ -382,6 +382,7 @@ sub overlapErrorAdjustmentConfigure ($$) {
     my $olaps    = 0;
 
     my $coverage = getExpectedCoverage($wrk, $asm);
+    my $corrSize = (-s "$path/red.red");
 
     push @bgn, 1;
 
@@ -390,7 +391,7 @@ sub overlapErrorAdjustmentConfigure ($$) {
         $bases += $readLengths[$id];
         $olaps += $numOlaps[$id];
 
-        my $memory = (1 * $bases) + (28 * $olaps) + (8 * $bases * getGlobal("utgOvlErrorRate"));
+        my $memory = (2 * $bases) + (32 * $olaps) + (8 * $corrSize);
 
         if ((($maxMem   > 0) && ($memory >= $maxMem * 0.75)) ||    #  Allow 25% slop
             (($maxReads > 0) && ($reads  >= $maxReads))      ||
