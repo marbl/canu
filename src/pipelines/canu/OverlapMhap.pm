@@ -91,22 +91,22 @@ sub mhapConfigure ($$$$) {
 
     #  Mhap parameters - filterThreshold needs to be a string, else it is printed as 5e-06.
 
-    my $numHashes       = "512";
-    my $minNumMatches   = "3";
-    my $threshold       = "0.6";
-    my $ordSketch       = "1536";
+    my $numHashes       = 512;
+    my $minNumMatches   = 3;
+    my $threshold       = 0.78;
+    my $ordSketch       = 1536;
     my $ordSketchMer    = 12;
 
     if (getGlobal("${tag}MhapSensitivity") eq "sens" || getGlobal("${tag}MhapSensitivity") eq "high") {
-       $numHashes     =  "768";
-       $minNumMatches =    "2";
-       $threshold     = "0.6";
-       $ordSketch     = "1536";
+       $numHashes     =  768;
+       $minNumMatches =    2;
+       $threshold     = 0.73;
+       $ordSketch     = 1536;
     } elsif (getGlobal("${tag}MhapSensitivity") eq "fast") {
-       $numHashes     =  "256";
-       $minNumMatches =    "3";
-       $threshold     =    "0.7";
-       $ordSketch     = "1000";
+       $numHashes     =  256;
+       $minNumMatches =    3;
+       $threshold     =    0.8;
+       $ordSketch     = 1000;
     }
 
     my $filterThreshold = getGlobal("${tag}MhapFilterThreshold");
@@ -131,6 +131,10 @@ sub mhapConfigure ($$$$) {
        $threshold      = 1-getGlobal("${tag}OvlErrorRate");
        $blockPerGb    *= 2;
     }
+
+    print STDERR "--\n";
+    print STDERR "-- PARAMETERS: hashes=$numHashes, minMatches=$minNumMatches, threshold=$threshold\n";
+    print STDERR "--\n";
 
     my $blockSize = int($blockPerGb * $memorySize);
 
@@ -449,6 +453,8 @@ sub mhapConfigure ($$$$) {
     print F "    --num-min-matches $minNumMatches \\\n";
     print F "    --threshold $threshold \\\n";
     print F "    --filter-threshold $filterThreshold \\\n";
+    print F "    --ordered-sketch-size $ordSketch \\\n";
+    print F "    --ordered-kmer-size $ordSketchMer \\\n";
     print F "    --min-store-length " . ($seedLength-1) . " \\\n";
     print F "    --num-threads ", getGlobal("${tag}mhapThreads"), " \\\n";
     print F "    -f $wrk/0-mercounts/$asm.ms$merSize.frequentMers.ignore \\\n"   if (-e "$wrk/0-mercounts/$asm.ms$merSize.frequentMers.ignore");
