@@ -544,21 +544,21 @@ sub configureAssembler () {
 
     if      (getGlobal("genomeSize") < adjustGenomeSize("40m")) {
         setGlobalIfUndef("cnsMemory",     "8-32");     setGlobalIfUndef("cnsThreads",      "1-4");
-        setGlobalIfUndef("corMemory",     "6-16");     setGlobalIfUndef("corThreads",      "1-4");
+        setGlobalIfUndef("corMemory",     "6-16");     setGlobalIfUndef("corThreads",      "1-2");
         setGlobalIfUndef("cnsPartitions", "8");        setGlobalIfUndef("cnsPartitionMin", "15000");
-        setGlobalIfUndef("corPartitions", "128");       setGlobalIfUndef("corPartitionMin", "5000");
+        setGlobalIfUndef("corPartitions", "256");      setGlobalIfUndef("corPartitionMin", "5000");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("1g")) {
         setGlobalIfUndef("cnsMemory",     "16-48");    setGlobalIfUndef("cnsThreads",      "2-8");
-        setGlobalIfUndef("corMemory",     "10-20");    setGlobalIfUndef("corThreads",      "2-4");
+        setGlobalIfUndef("corMemory",     "6-20");     setGlobalIfUndef("corThreads",      "2-4");
         setGlobalIfUndef("cnsPartitions", "64");       setGlobalIfUndef("cnsPartitionMin", "20000");
-        setGlobalIfUndef("corPartitions", "256");      setGlobalIfUndef("corPartitionMin", "15000");
+        setGlobalIfUndef("corPartitions", "512");      setGlobalIfUndef("corPartitionMin", "10000");
 
     } else {
         setGlobalIfUndef("cnsMemory",     "16-64");    setGlobalIfUndef("cnsThreads",      "2-8");
         setGlobalIfUndef("corMemory",     "10-32");    setGlobalIfUndef("corThreads",      "2-4");
         setGlobalIfUndef("cnsPartitions", "256");      setGlobalIfUndef("cnsPartitionMin", "25000");
-        setGlobalIfUndef("corPartitions", "512");      setGlobalIfUndef("corPartitionMin", "25000");
+        setGlobalIfUndef("corPartitions", "1024");     setGlobalIfUndef("corPartitionMin", "15000");
     }
 
     #  Meryl too, basically just small or big.  This should really be using the number of bases
