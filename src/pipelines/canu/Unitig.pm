@@ -83,7 +83,7 @@ sub estimateOverlapSize($$) {
        if ($library == 0) {
           my $cov = ceil($bases / $gs);
 
-          if ($gs >= 100000000) {
+          if ($gs >= 10000000 && $cov >= 20) {
              $ovl = roundoff(($average - $minread + $ovl) * 0.65, 500);
              print STDERR "-- Average read length $average (found $reads reads with $bases bases). Minimum overlap set to $ovl\n";
           }
