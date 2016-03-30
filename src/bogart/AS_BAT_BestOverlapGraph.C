@@ -162,8 +162,8 @@ BestOverlapGraph::removeHighErrorBestEdges(void) {
     BestEdgeOverlap *b5 = getBestEdgeOverlap(fi, false);
     BestEdgeOverlap *b3 = getBestEdgeOverlap(fi, true);
 
-    if (b5->fragId() != 0)   edgeStats.update(erates[eratesLen++] = b5->erate());
-    if (b3->fragId() != 0)   edgeStats.update(erates[eratesLen++] = b3->erate());
+    if (b5->fragId() != 0)   edgeStats.insert(erates[eratesLen++] = b5->erate());
+    if (b3->fragId() != 0)   edgeStats.insert(erates[eratesLen++] = b3->erate());
   }
 
   _mean   = edgeStats.mean();

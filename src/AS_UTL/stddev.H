@@ -56,7 +56,7 @@ public:
   ~stdDev() {
   };
 
-  void     update(TT val) {
+  void     insert(TT val) {
     double m0 = _mn;
     double s0 = _sn;
     uint32 n0 = _nn + 1;
@@ -64,6 +64,16 @@ public:
     _mn = m0 + (val - m0) / n0;
     _sn = s0 + (val - m0) * (val - _mn);
     _nn = n0;
+  };
+
+  void     remove(double val) {
+    uint32 n0 = _nn - 1;
+    double m0 = (_nn * _mn - val) / n0;
+    double s0 = _sn - (val - m0) * (val - _mn);
+
+    _nn = n0;
+    _mn = m0;
+    _sn = s0;
   };
 
   uint32   size(void)      { return(_nn);                                  };
