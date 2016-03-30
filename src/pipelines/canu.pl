@@ -169,7 +169,7 @@ while (scalar(@ARGV)) {
             setGlobal("batOptions", "-RS -NS -CS");
             setGlobal("cnsMaxCoverage", 20);
         } elsif ($arg =~ m/nanopore/) {
-            setErrorRate(0.045);
+            setErrorRate(0.050);
             setGlobal("corErrorRate", "0.50");
             setGlobal("batOptions", "-RS -NS -CS");
             setGlobal("cnsMaxCoverage", 20);
@@ -266,7 +266,7 @@ if (scalar(@inputFiles) == 0 && ! defined(getGlobal("errorRate"))) {
             setGlobal("cnsMaxCoverage", 20);
         }
         if ($numNanoporeRaw > 0 || $numNanoporeCorrected > 0) {
-            setErrorRate(0.045);
+            setErrorRate(0.050);
             setGlobal("corErrorRate", "0.50");
             setGlobal("batOptions", "-RS -NS -CS");
             setGlobal("cnsMaxCoverage", 20);
