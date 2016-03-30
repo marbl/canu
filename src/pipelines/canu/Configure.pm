@@ -593,15 +593,15 @@ sub configureAssembler () {
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("2g")) {
         setGlobalIfUndef("redMemory",   "4-16");    setGlobalIfUndef("redThreads",   "1-8");
-        setGlobalIfUndef("oeaMemory",   "2");       setGlobalIfUndef("oeaThreads",   "1");
+        setGlobalIfUndef("oeaMemory",   "4");       setGlobalIfUndef("oeaThreads",   "1");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("5g")) {
         setGlobalIfUndef("redMemory",   "4-32");    setGlobalIfUndef("redThreads",   "1-8");
-        setGlobalIfUndef("oeaMemory",   "2");       setGlobalIfUndef("oeaThreads",   "1");
+        setGlobalIfUndef("oeaMemory",   "4");       setGlobalIfUndef("oeaThreads",   "1");
 
     } else {
         setGlobalIfUndef("redMemory",   "4-32");    setGlobalIfUndef("redThreads",   "1-8");
-        setGlobalIfUndef("oeaMemory",   "2");       setGlobalIfUndef("oeaThreads",   "1");
+        setGlobalIfUndef("oeaMemory",   "4");       setGlobalIfUndef("oeaThreads",   "1");
     }
 
     #  And bogart.

@@ -156,16 +156,22 @@ main(int argc, char **argv) {
   Read_Olaps(G, gkpStore);
 
   //  Now sort them on the B iid.
-
+#ifdef _GLIBCXX_PARALLEL
+  __gnu_sequential::sort(G->olaps, G->olaps + G->olapsLen, Olap_Info_t_by_bID());
+#else
   sort(G->olaps, G->olaps + G->olapsLen, Olap_Info_t_by_bID());
+#endif
 
   //  Recompute overlaps
 
   Redo_Olaps(G, gkpStore);
 
   //  Sort the overlaps back into the original order
-
+#ifdef _GLIBCXX_PARALLEL
+  __gnu_sequential::sort(G->olaps, G->olaps + G->olapsLen, Olap_Info_t_by_Order());
+#else
   sort(G->olaps, G->olaps + G->olapsLen, Olap_Info_t_by_Order());
+#endif
 
   //  Dump the new erates
 
