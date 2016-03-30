@@ -674,7 +674,7 @@ sub setDefaults () {
     $global{"shell"}                       = "/bin/sh";
     $synops{"shell"}                       = "Command interpreter to use; sh-compatible (e.g., bash), NOT C-shell (csh or tcsh); default '/bin/sh'";
 
-    $global{"java"}                        = "java";
+    $global{"java"}                        = (exists $ENV{"JAVA_HOME"} && -e "$ENV{'JAVA_HOME'}/bin/java") ? "$ENV{'JAVA_HOME'}/bin/java" : "java";
     $synops{"java"}                        = "Java interpreter to use; at least version 1.8; default 'java'";
 
     #####  Cleanup options
