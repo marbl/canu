@@ -391,7 +391,7 @@ sub overlapErrorAdjustmentConfigure ($$) {
         $bases += $readLengths[$id];
         $olaps += $numOlaps[$id];
 
-        my $memory = (2 * $bases) + (32 * $olaps) + (8 * $corrSize);
+        my $memory = (1 * $bases) + (28 * $olaps) + ($corrSize);
 
         if ((($maxMem   > 0) && ($memory >= $maxMem * 0.75)) ||    #  Allow 25% slop
             (($maxReads > 0) && ($reads  >= $maxReads))      ||
