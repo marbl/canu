@@ -278,6 +278,7 @@ int AS_configure(int argc, char **argv);
 static
 void
 omp_set_dynamic(int x) {
+    #pragma unused(x)
 }
 
 static
@@ -289,6 +290,7 @@ omp_get_max_threads(void) {
 static
 void
 omp_set_num_threads(int x) {
+    #pragma unused(x)
 }
 
 static
@@ -308,21 +310,25 @@ typedef int omp_lock_t;
 static
 void
 omp_init_lock(omp_lock_t *a) {
+    #pragma unused(a)
 }
 
 static
 void
 omp_set_lock(omp_lock_t *a) {
+    #pragma unused(a)
 }
 
 static
 void
 omp_unset_lock(omp_lock_t *a) {
+    #pragma unused(a)
 }
 
 static
 void
 omp_destroy_lock(omp_lock_t *a) {
+    #pragma unused(a)
 }
 
 #endif
