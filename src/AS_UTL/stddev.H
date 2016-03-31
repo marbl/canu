@@ -465,7 +465,8 @@ public:
         break;
       }
 
-    //  And, done.
+    //  And, done
+    delete[] maddata;
 
     _finalized = true;
   };

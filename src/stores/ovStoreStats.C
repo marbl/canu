@@ -440,6 +440,8 @@ main(int argc, char **argv) {
       endi--;
     endi++;
 
+    delete[] classification;
+
     //  All the same classification?
 
     if (bgni == endi) {
@@ -600,6 +602,45 @@ main(int argc, char **argv) {
 
   if (toFile == true)
     fclose(LOG);
+
+  // Clean up the histograms
+  delete readNoOlaps;
+  delete readHole;
+  delete readHump;
+  delete readNo5;
+  delete readNo3;
+
+  delete olapHole;
+  delete olapHump;
+  delete olapNo5;
+  delete olapNo3;
+
+  delete readLowCov;
+  delete readUnique;
+  delete readRepeatCont;
+  delete readRepeatDove;
+  delete readSpanRepeat;
+  delete readUniqRepeatCont;
+  delete readUniqRepeatDove;
+  delete readUniqAnchor;
+
+  delete covrLowCov;
+  delete covrUnique;
+  delete covrRepeatCont;
+  delete covrRepeatDove;
+  delete covrSpanRepeat;
+  delete covrUniqRepeatCont;
+  delete covrUniqRepeatDove;
+  delete covrUniqAnchor;
+
+  delete olapLowCov;
+  delete olapUnique;
+  delete olapRepeatCont;
+  delete olapRepeatDove;
+  delete olapSpanRepeat;
+  delete olapUniqRepeatCont;
+  delete olapUniqRepeatDove;
+  delete olapUniqAnchor;
 
   delete ovlStore;
 
