@@ -26,6 +26,7 @@
 
 void
 markRepeatReads(UnitigVector &unitigs,
+                const char   *prefix,
                 double        erateGraph,
                 double        erateBubble,
                 double        erateMerge,

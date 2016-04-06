@@ -43,649 +43,254 @@
 
 #include "intervalList.H"
 
+#include <vector>
+#include <set>
+#include <map>
+
+using namespace std;
+
+#define BUBBLE_CONSISTENT  3.0
 
 #undef  LOG_BUBBLE_TESTS
 #undef  LOG_BUBBLE_FAILURE
 #define LOG_BUBBLE_SUCCESS
 
+#define BUBBLINESS_DETAILS
 
-bool
-mergeBubbles_findEnds(UnitigVector &UNUSED(unitigs),
-                      double UNUSED(erateBubble),
-                      Unitig *bubble,
-                      ufNode &fFrg,
-                      ufNode &lFrg,
-                      Unitig *UNUSED(target)) {
 
-  //  Search for edges.  For a bubble to exist, at least one of the first or last non-contained
-  //  fragment must have an edge to the 'target' unitig (by construction of the inputs to this
-  //  routine).  Ideally, both the first and last will have edges to the same unitig, but we'll test
-  //  and allow only a single edge.
+class candidatePop {
+public:
+  candidatePop() {
+  };
+  candidatePop(Unitig *bubble_, Unitig *target_, uint32 bgn_, uint32 end_) {
+    bubble = bubble_;
+    target = target_;
+    bgn    = bgn_;
+    end    = end_;
+  };
+  ~candidatePop() {
+  };
 
-  uint32  zIdx = UINT32_MAX;
-  uint32  fIdx = zIdx;
-  uint32  lIdx = zIdx;
+  Unitig  *bubble;
+  Unitig  *target;
 
-  //  We'd like to claim that all unitigs begin with a non-contained fragment, but zombie fragments
-  //  (contained fragments that are in a circular containment relationship) violate this.  So, we
-  //  could then claim that unitigs with more than one fragment begin with a non-contained fragment.
-  //  But any zombie that has a bubble popped into it violate this.
-  //
-  //  Since nothing is really using the best edges from non-contained fragmnet, in cases where the
-  //  first fragment is contained, we'll use the first and last fragments, instead of the first and
-  //  last non-contained fragments.
+  uint32   bgn;
+  uint32   end;
 
-  //  Search for the first and last non-contained fragments.
+  vector<overlapPlacement>  placed;
+};
 
-  for (uint32 ii=0; ((fIdx == zIdx) && (ii < bubble->ufpath.size())); ii++)
-    if (OG->isContained(bubble->ufpath[ii].ident) == false)
-      fIdx = ii;
 
-  for (uint32 ii=bubble->ufpath.size(); ((lIdx == zIdx) && (ii-- > 0)); )
-    if (OG->isContained(bubble->ufpath[ii].ident) == false)
-      lIdx = ii;
+//  A list of the target unitigs that a bubble could be popped into.
+typedef  map<uint32, vector<uint32> >  BubTargetList;
 
-  //  Didn't find a non-contained fragment!  Reset to the first/last fragments.
 
-  if (fIdx == zIdx) {
-#ifdef LOG_BUBBLE_TESTS
-    writeLog("popBubbles()-- Potential bubble unitig %d of length %d with %lu fragments STARTS WITH A CONTAINED FRAGMENT %d\n",
-             bubble->id(), bubble->getLength(), bubble->ufpath.size(),
-             bubble->ufpath[0].ident);
-#endif
-    fIdx = 0;
-    lIdx = bubble->ufpath.size() - 1;
-  }
 
-  assert(fIdx <= lIdx);
-  assert(fIdx != zIdx);
-  assert(lIdx != zIdx);
-
-  fFrg = bubble->ufpath[fIdx];  //  NOTE:  A COPY, not a pointer or reference.
-  lFrg = bubble->ufpath[lIdx];  //         These get modified.
-
-  //  Grab the best edges outside the unitig.  If the first fragment is reversed, we want
-  //  to grab the edge off of the 3' end; opposite for the last fragment.
-  //
-  //  There is ALWAYS a best edge, even for contained fragments.  The edge might be empty, with fragId == 0.
-
-  bool             f3p   = (isReverse(fFrg.position) == true);
-  BestEdgeOverlap *fEdge = OG->getBestEdgeOverlap(fFrg.ident, f3p);
-  uint32           fUtg  = Unitig::fragIn(fEdge->fragId());
-
-  bool             l3p   = (isReverse(lFrg.position) == false);
-  BestEdgeOverlap *lEdge = OG->getBestEdgeOverlap(lFrg.ident, l3p);
-  uint32           lUtg  = Unitig::fragIn(lEdge->fragId());
-
-  //  Just make sure...those edges should NOT to be to ourself.  But if they are, we'll just ignore
-  //  them -- these can be from circular unitigs (in which case we can't really merge ourself into
-  //  ourself at the correct spot) OR from a bubble that was already merged and just happened to tie
-  //  for a fragment at the end.
-  //
-  //  aaaaaaaaaa
-  //      aaaaaaaaaaa
-  //    bbbbbbbbb
-  //       bbbbbbbbbb
-  //
-  //  The 'b' unitig was merged into a.  The second b fragment now becomes the last non-contained
-  //  fragment in the merged unitig, and it has a best edge back to the original 'a' fragment,
-  //  ourself.
-
-  if (fUtg == bubble->id()) {
-    fEdge = NULL;
-    fUtg  = 0;
-  }
-  if (lUtg == bubble->id()) {
-    lEdge = NULL;
-    lUtg  = 0;
-  }
-
-#ifdef LOG_BUBBLE_TESTS
-  if ((fUtg != 0) && (lUtg != 0))
-    writeLog("popBubbles()-- Potential bubble unitig %d of length %d with %lu fragments.  Edges (%d/%d') from frag %d/%d' and (%d/%d') from frag %d/%d'\n",
-             bubble->id(), bubble->getLength(), bubble->ufpath.size(),
-             fEdge->fragId(), (fEdge->frag3p() ? 3 : 5), fFrg.ident, (f3p ? 3 : 5),
-             lEdge->fragId(), (lEdge->frag3p() ? 3 : 5), lFrg.ident, (l3p ? 3 : 5));
-  else if (fUtg != 0)
-    writeLog("popBubbles()-- Potential bubble unitig %d of length %d with %lu fragments.  Edge (%d/%d') from frag %d/%d'\n",
-             bubble->id(), bubble->getLength(), bubble->ufpath.size(),
-             fEdge->fragId(), (fEdge->frag3p() ? 3 : 5), fFrg.ident, (f3p ? 3 : 5));
-  else if (lUtg != 0)
-    writeLog("popBubbles()-- Potential bubble unitig %d of length %d with %lu fragments.  Edge (%d/%d') from frag %d/%d'\n",
-             bubble->id(), bubble->getLength(), bubble->ufpath.size(),
-             lEdge->fragId(), (lEdge->frag3p() ? 3 : 5), lFrg.ident, (l3p ? 3 : 5));
-  else
-    //  But then how do we get an intersection?!?!!  Intersections from a bubble that was
-    //  already popped.  We pop A into B, and while iterating through fragments in B we find
-    //  the -- now obsolete -- intersections we originally used and try to pop it again.
-    //
-    writeLog("popBubbles()-- Potential bubble unitig %d of length %d with %lu fragments.  NO EDGES, no bubble.\n",
-             bubble->id(), bubble->getLength(), bubble->ufpath.size());
-#endif
-
-  if ((fUtg == 0) && (lUtg == 0))
-    return(false);
-
-#ifdef LOG_BUBBLE_TESTS
-  //  The only interesting case here is if we have both edges and they point to different unitigs.
-  //  We might as well place it aggressively.
-
-  if ((fUtg != 0) && (lUtg != 0) && (fUtg != lUtg)) {
-    writeLog("popBubbles()--   bubble unitig %d has edges to both unitig %d and unitig %d\n",
-             bubble->id(), fUtg, lUtg);
-    return(true);
-  }
-#endif
-
-  return(true);
-}
-
-
-bool
-mergeBubbles_checkEnds(UnitigVector &unitigs,
-                       double erateBubble,
-                       Unitig *bubble,
-                       ufNode &fFrg,
-                       ufNode &lFrg,
-                       Unitig *target) {
-
-  //  Compute placement of the two fragments.  Compare the size against the bubble.
-
-  ufNode fFrgN = fFrg;
-  ufNode lFrgN = lFrg;
-
-  overlapPlacement    fFrgPlacement;
-  overlapPlacement    lFrgPlacement;
-
-  fFrgPlacement.errors  = 4.0e9;
-  fFrgPlacement.aligned = 1;
-
-  lFrgPlacement.errors  = 4.0e9;
-  lFrgPlacement.aligned = 1;
-
-  vector<overlapPlacement>   placements;
-
-  placements.clear();
-
-  placeFragUsingOverlaps(unitigs, erateBubble, target, fFrg.ident, placements);
-
-#ifdef LOG_BUBBLE_TESTS
-  writeLog("popBubbles()-- fFrg %u has %u potential placements in unitig %u.\n",
-           fFrg.ident, placements.size(), target->id());
-#endif
-
-  for (uint32 i=0; i<placements.size(); i++) {
-    assert(placements[i].tigID == target->id());
-
-    if (placements[i].fCoverage < 0.99) {
-#ifdef LOG_BUBBLE_FAILURE
-      writeLog("popBubbles()-- fFrg %u low coverage %f at unitig %u %u,%u\n",
-               fFrg.ident,
-               placements[i].fCoverage,
-               placements[i].tigID,
-               placements[i].position.bgn, placements[i].position.end);
-#endif
-      continue;
-    } else {
-#ifdef LOG_BUBBLE_FAILURE
-      writeLog("popBubbles()-- fFrg %u GOOD coverage %f at unitig %u %u,%u\n",
-               fFrg.ident,
-               placements[i].fCoverage,
-               placements[i].tigID,
-               placements[i].position.bgn, placements[i].position.end);
-#endif
-    }
-
-    if (placements[i].errors / placements[i].aligned < fFrgPlacement.errors / fFrgPlacement.aligned) {
-#ifdef LOG_BUBBLE_FAILURE
-      writeLog("popBubbles()-- fFrg %u GOOD identity %f at unitig %u %u,%u\n",
-               fFrg.ident,
-               placements[i].errors / placements[i].aligned,
-               placements[i].tigID,
-               placements[i].position.bgn, placements[i].position.end);
-#endif
-      fFrgPlacement = placements[i];
-    } else {
-#ifdef LOG_BUBBLE_FAILURE
-      writeLog("popBubbles()-- fFrg %u low identity %f at unitig %u %u,%u\n",
-               fFrg.ident,
-               placements[i].errors / placements[i].aligned,
-               placements[i].tigID,
-               placements[i].position.bgn, placements[i].position.end);
-#endif
-    }
-  }
-
-  fFrgN.ident             = fFrgPlacement.frgID;
-  fFrgN.contained         = 0;
-  fFrgN.parent            = 0;
-  fFrgN.ahang             = 0;
-  fFrgN.bhang             = 0;
-  fFrgN.position          = fFrgPlacement.position;
-
-  if ((fFrgN.position.bgn == 0) &&
-      (fFrgN.position.end == 0)) {
-#ifdef LOG_BUBBLE_FAILURE
-    writeLog("popBubbles()--   failed to place fFrg.\n");
-#endif
-    return(false);
-  }
-
-
-  placements.clear();
-
-  placeFragUsingOverlaps(unitigs, erateBubble, target, lFrg.ident, placements);
-
-#ifdef LOG_BUBBLE_TESTS
-  writeLog("popBubbles()-- lFrg %u has %u potential placements in unitig %u.\n",
-           lFrg.ident, placements.size(), target->id());
-#endif
-
-  for (uint32 i=0; i<placements.size(); i++) {
-    assert(placements[i].tigID == target->id());
-
-    if (placements[i].fCoverage < 0.99) {
-#ifdef LOG_BUBBLE_FAILURE
-      writeLog("popBubbles()-- lFrg %u low coverage %f at unitig %u %u,%u\n",
-               lFrg.ident,
-               placements[i].fCoverage,
-               placements[i].tigID,
-               placements[i].position.bgn, placements[i].position.end);
-#endif
-      continue;
-    } else {
-#ifdef LOG_BUBBLE_FAILURE
-      writeLog("popBubbles()-- lFrg %u GOOD coverage %f at unitig %u %u,%u\n",
-               lFrg.ident,
-               placements[i].fCoverage,
-               placements[i].tigID,
-               placements[i].position.bgn, placements[i].position.end);
-#endif
-    }
-
-    if (placements[i].errors / placements[i].aligned < lFrgPlacement.errors / lFrgPlacement.aligned) {
-#ifdef LOG_BUBBLE_FAILURE
-      writeLog("popBubbles()-- lFrg %u GOOD identity %f at unitig %u %u,%u\n",
-               lFrg.ident,
-               placements[i].errors / placements[i].aligned,
-               placements[i].tigID,
-               placements[i].position.bgn, placements[i].position.end);
-#endif
-      lFrgPlacement = placements[i];
-    } else {
-#ifdef LOG_BUBBLE_FAILURE
-      writeLog("popBubbles()-- lFrg %u low identity %f at unitig %u %u,%u\n",
-               lFrg.ident,
-               placements[i].errors / placements[i].aligned,
-               placements[i].tigID,
-               placements[i].position.bgn, placements[i].position.end);
-#endif
-    }
-  }
-
-  lFrgN.ident             = lFrgPlacement.frgID;
-  lFrgN.contained         = 0;
-  lFrgN.parent            = 0;
-  lFrgN.ahang             = 0;
-  lFrgN.bhang             = 0;
-  lFrgN.position          = lFrgPlacement.position;
-
-  if ((lFrgN.position.bgn == 0) &&
-      (lFrgN.position.end == 0)) {
-#ifdef LOG_BUBBLE_FAILURE
-    writeLog("popBubbles()--   failed to place lFrg.\n");
-#endif
-    return(false);
-  }
-
-
-  int32 minL = MIN(fFrg.position.bgn, fFrg.position.end);
-  int32 maxL = MAX(fFrg.position.bgn, fFrg.position.end);
-
-  int32 minR = MIN(lFrg.position.bgn, lFrg.position.end);
-  int32 maxR = MAX(lFrg.position.bgn, lFrg.position.end);
-
-  int32 placedLen = MAX(maxL, maxR) - MIN(minL, minR);
-
-  if (2 * placedLen < bubble->getLength()) {
-    //  Too short.
-#ifdef LOG_BUBBLE_FAILURE
-    writeLog("popBubbles()--   too short.  fFrg %d,%d lFrg %d,%d.  L %d,%d R %d,%d len %d\n",
-             fFrg.position.bgn, fFrg.position.end,
-             lFrg.position.bgn, lFrg.position.end,
-             minL, maxL, minR, maxR, placedLen);
-#endif
-    return(false);
-  }
-
-  if (2 * bubble->getLength() < placedLen) {
-    //  Too long.
-#ifdef LOG_BUBBLE_FAILURE
-    writeLog("popBubbles()--   too long.  fFrg %d,%d lFrg %d,%d.  L %d,%d R %d,%d len %d\n",
-             fFrg.position.bgn, fFrg.position.end,
-             lFrg.position.bgn, lFrg.position.end,
-             minL, maxL, minR, maxR, placedLen);
-#endif
-    return(false);
-  }
-
-  ////////////////////
-  //
-  //  Check orientations
-  //
-  ////////////////////
-
-  //  If fFrg and lFrg are the same fragment (bubble is one uncontained fragment) then we're done.
-
-  if (fFrg.ident == lFrg.ident) {
-    fFrg = fFrgN;
-    lFrg = lFrgN;
-    return(true);
-  }
-
-  //  Otherwise, check that the orientation and positioning of the before and after fragments is the
-  //  same.
-
-  bool   bL    = (isReverse(fFrg.position));
-  bool   bR    = (isReverse(lFrg.position));
-  bool   bOrd  = (MIN(fFrg.position.bgn, fFrg.position.end) < MIN(lFrg.position.bgn, lFrg.position.end));
-
-  bool   nL    = (isReverse(fFrgN.position));
-  bool   nR    = (isReverse(lFrgN.position));
-  bool   nOrd  = (MIN(fFrgN.position.bgn, fFrgN.position.end) < MIN(lFrgN.position.bgn, lFrgN.position.end));
-
-  if (((bL == nL) && (bR == nR) && (bOrd == nOrd)) ||
-      ((bL != nL) && (bR != nR) && (bOrd != nOrd))) {
-    //  Yup, looks good!
-    fFrg = fFrgN;
-    lFrg = lFrgN;
-    return(true);
-  }
-
-  //  Nope, something got screwed up in alignment.
-
-#ifdef LOG_BUBBLE_FAILURE
-  writeLog("popBubbles()--   Order/Orientation problem.  bL %d bR %d bOrd %d  nL %d nR %d nOrd %d\n",
-           bL, bR, bOrd,
-           nL, nR, nOrd);
-#endif
-  return(false);
-}
-
-
-//  False if any of the fragments in 'bubble' are not fully covered by overlaps to fragments in
-//  'target'.  Such uncovered fragments would indicate a large bubble -- large enough that we failed
-//  to find an overlap -- and would cause problems in consensus.
-//
-//  False if any of the fragments in 'bubble' cannot be placed between fFrg and lFrg.  This would
-//  indicate the bubble contains a significant rearrangement and would cause problems in consensus.
-//
-//  If the above tests pass, 'bubble' is inserted into 'target' and 'bubble' is deleted.
-//
-static
-bool
-mergeBubbles_checkFrags(UnitigVector &unitigs,
-                        double erateBubble,
-                        Unitig *bubble,
-                        ufNode &fFrg,
-                        ufNode &lFrg,
-                        Unitig *target) {
-
-  //  Method:
-  //
-  //  * Call placeFragUsingOverlaps() for every fragment.  Save the placements returned.
-  //  * Count the number of placements that are outside the fFrg/lFrg range.
-  //  * Isolate down to one 'best' placement for each fragment.
-  //    * Must be within fFrg/lFrg.
-  //    * Resolve ties with
-  //      * Placement in the original unitig
-  //      * Error rates on overlaps
-
-  bool success = false;
-
-  vector<overlapPlacement>    *placements   = new vector<overlapPlacement> [bubble->ufpath.size()];
-  overlapPlacement            *correctPlace = new        overlapPlacement  [bubble->ufpath.size()];
-
-  for (uint32 fi=0; fi<bubble->ufpath.size(); fi++) {
-    ufNode *frg = &bubble->ufpath[fi];
-
-    placeFragUsingOverlaps(unitigs, erateBubble, target, frg->ident, placements[fi]);
-
-    //  Initialize the final placement to be bad, so we can pick the best.
-    correctPlace[fi].fCoverage = 0.0;
-    correctPlace[fi].errors    = 4.0e9;
-    correctPlace[fi].aligned   = 1;
-  }
-
-  //  Some bizarre cases -- possibly only from bad data -- confound any logical attempt at finding
-  //  the min/max extents.  Yes, even though this should work, it doesn't.  Or maybe it's just
-  //  broken and I haven't seen how.
-  //
-  //int32  minE = (fFrg.position.bgn < lFrg.position.bgn) ? MIN(fFrg.position.bgn, fFrg.position.end) : MIN(lFrg.position.bgn, lFrg.position.end);
-  //int32  maxE = (fFrg.position.bgn < lFrg.position.bgn) ? MAX(lFrg.position.bgn, lFrg.position.end) : MAX(fFrg.position.bgn, fFrg.position.end);
-  //
-  //  The one case that breaks it is a bubble unitig with a single chimeric fragment.
-  //    fFrg ident = 367563, contained = 0, parent = 254673, ahang =  144,   bhang = 24,  bgn = 33406, end = 33238}
-  //    lFrg ident = 367563, contained = 0, parent = 147697, ahang = -58,  bhang = -157,  bgn = 33406, end = 33574}
-  //
-  int32  minE = MIN(MIN(fFrg.position.bgn, fFrg.position.end), MIN(lFrg.position.bgn, lFrg.position.end));
-  int32  maxE = MAX(MAX(fFrg.position.bgn, fFrg.position.end), MAX(lFrg.position.bgn, lFrg.position.end));
-  int32  diff = maxE - minE;
-
-  assert(minE < maxE);
-
-  minE -= diff / 2;    if (minE < 0)  minE = 0;
-  maxE += diff / 2;
-
-  uint32  nCorrect = 0;
-
-  for (uint32 fi=0; fi<bubble->ufpath.size(); fi++) {
-    uint32  nNotPlaced = 0;
-    uint32  nNotPlacedInCorrectPosition = 0;
-    uint32  nNotPlacedFully = 0;
-    uint32  nNotOriented = 0;
-
-    if (placements[fi].size() == 0)
-      nNotPlaced++;
-
-    //  If we're contained, and our container is actually in the bubble, we can (or should be able
-    //  to) safely allow almost any placement.
-
-    bool requireFullAlignment = true;
-
-    if ((OG->isContained(bubble->ufpath[fi].ident) == true) &&
-        (bubble->fragIn(OG->getBestContainer(bubble->ufpath[fi].ident)->container) == bubble->id()))
-      requireFullAlignment = false;
-
-    for (uint32 pl=0; pl<placements[fi].size(); pl++) {
-      assert(placements[fi][pl].tigID == target->id());
-      if (placements[fi][pl].tigID != target->id()) continue;
-
-      int32  minP = MIN(placements[fi][pl].position.bgn, placements[fi][pl].position.end);
-      int32  maxP = MAX(placements[fi][pl].position.bgn, placements[fi][pl].position.end);
-
-      if ((maxP < minE) || (maxE < minP)) {
-        nNotPlacedInCorrectPosition++;
-        continue;
-      }
-
-      if ((requireFullAlignment == true) && (placements[fi][pl].fCoverage < 0.99)) {
-        nNotPlacedFully++;
-        continue;
-      }
-
-      //if ((placements[fi][pl].nForward > 0) &&
-      //    (placements[fi][pl].nReverse > 0)) {
-      //  nNotOriented++;
-      //  continue;
-      //}
-
-      //  The current placement seems like a good one.  Should we keep it?
-
-      //  The length requirement was added to solve a problem during testing on hydra.  We tried to
-      //  place a contained fragment -- so skipped the fCoverage test above.  This fragment had two
-      //  placements in the correct location on the target unitig.  One plaement was fCoverage=1.00,
-      //  the other was fCoverage=0.15.  Clearly the first was better, but the second had less
-      //  error.  Without the length filter, we'd incorrectly pick the second placement.
-
-      bool  keepIt = false;
-
-      if (placements[fi][pl].fCoverage > correctPlace[fi].fCoverage)
-        //  Yes!  The current placement has more coverage than the saved one.
-        keepIt = true;
-
-      if ((placements[fi][pl].fCoverage >= correctPlace[fi].fCoverage) &&
-          (placements[fi][pl].errors / placements[fi][pl].aligned < correctPlace[fi].errors / correctPlace[fi].aligned))
-        //  Yes!  The current placement is just as long, and lower error.
-        keepIt = true;
-
-      //  Yup, looks like a better placement.
-      if (keepIt)
-        correctPlace[fi] = placements[fi][pl];
-    }  //  over all placements
-
-    if (correctPlace[fi].fCoverage > 0) {
-      nCorrect++;
-    } else {
-      //  We currently require ALL fragments to be well placed, so we can abort on the first fragment that
-      //  fails.
-#ifdef LOG_BUBBLE_FAILURE
-      writeLog("popBubbles()--   Failed to place frag %d notPlaced %d notPlacedInCorrectPosition %d notPlacedFully %d notOriented %d\n",
-               bubble->ufpath[fi].ident, nNotPlaced, nNotPlacedInCorrectPosition, nNotPlacedFully, nNotOriented);
-#endif
-      break;
-    }
-  }
-
-  if (nCorrect != bubble->ufpath.size())
-    goto finished;
-
-  //  Now just move the fragments into the target unitig and delete the bubble unitig.
-  //
-  //  Explicitly DO NOT propagate the contained, parent, ahang or bhang from the bubble here.  We
-  //  could figure all this stuff out, but it definitely is NOT just a simple copy from the bubble
-  //  unitig (for example, we could add the bubble unitig reversed).
-  //
-  //
-  for (uint32 fi=0; fi<bubble->ufpath.size(); fi++) {
-    ufNode  nFrg;
-
-    nFrg.ident             = correctPlace[fi].frgID;
-    nFrg.contained         = 0;
-    nFrg.parent            = 0;
-    nFrg.ahang             = 0;
-    nFrg.bhang             = 0;
-    nFrg.position          = correctPlace[fi].position;
-
-    target->addFrag(nFrg, 0, logFileFlagSet(LOG_INTERSECTION_BUBBLES_DEBUG));
-  }
-
-#warning SORT DISABLED IN BUBBLE POPPING
-  //target->sort();
-
-  success = true;
-
-#ifdef LOG_BUBBLE_SUCCESS
-  writeLog("popBubbles()--   merged bubble unitig %d with %ld frags into unitig %d now with %ld frags\n",
-           bubble->id(), bubble->ufpath.size(), target->id(), target->ufpath.size());
-#endif
-
- finished:
-  delete [] placements;
-  delete [] correctPlace;
-
-  //  If not successful, mark this unitig as a potential bubble.
-
-  if (success == false) {
-    writeLog("popBubbles()--   bubble unitig %d (reads %u length %u) has large differences, not popped into unitig %d\n",
-             bubble->id(), bubble->ufpath.size(), bubble->getLength(), target->id());
-    bubble->_isBubble = true;
-  }
-
-  return(success);
-}
-
-
-
+  //  Decide which unitigs can be bubbles.  The first pass finds unitigs that can be potential
+  //  bubbles.  Any unitig where every dovetail read has an overlap to some other unitig is a
+  //  candidate for bubble popping.
 void
-mergeBubbles(UnitigVector &unitigs, double erateBubble, Unitig *target, intersectionList *ilist) {
+findPotentialBubbles(UnitigVector    &unitigs,
+                     double           erateBubble,
+                     BubTargetList   &potentialBubbles) {
+  uint32  tiLimit      = unitigs.size();
+  uint32  tiNumThreads = omp_get_max_threads();
+  uint32  tiBlockSize  = (tiLimit < 100000 * tiNumThreads) ? tiNumThreads : tiLimit / 99999;
 
-  for (uint32 fi=0; fi<target->ufpath.size(); fi++) {
-    ufNode             *frg   = &target->ufpath[fi];
-    intersectionPoint  *isect = ilist->getIntersection(frg->ident, 0);
+  writeLog("bubbleDetect()-- working on "F_U32" unitigs, with "F_U32" threads.\n", tiLimit, tiNumThreads);
 
-    if (isect == NULL)
+  for (uint32 ti=0; ti<tiLimit; ti++) {
+    Unitig  *tig = unitigs[ti];
+
+    if ((tig == NULL) ||               //  Not a tig, ignore it.
+        (tig->ufpath.size() == 1))     //  Singleton, handled elsewhere
       continue;
 
-    for (; isect->isectFrg == frg->ident; isect++) {
-      assert(target->id() == Unitig::fragIn(isect->isectFrg));
+    uint32  nonContainedReads = 0;
+    bool    validBubble       = true;
 
-      //  Grab the potential bubble unitig
+    map<uint32,uint32>  tigOlapsTo;
 
-      Unitig *bubble = unitigs[Unitig::fragIn(isect->invadFrg)];
+    uint32  fiLimit      = tig->ufpath.size();
+    uint32  fiNumThreads = omp_get_max_threads();
+    uint32  fiBlockSize  = (fiLimit < 100 * fiNumThreads) ? fiNumThreads : fiLimit / 99;
 
-      if (bubble == NULL)
-        //  Whoops!  Unitig was repeat/unique split and the repeats shattered
+    for (uint32 fi=0; (validBubble == true) && (fi<fiLimit); fi++) {
+      uint32      rid      = tig->ufpath[fi].ident;
+
+      if (OG->isContained(rid) == true)
         continue;
 
-      assert(bubble->id() == Unitig::fragIn(isect->invadFrg));
+      nonContainedReads++;
 
-      //  I don't like a number of reads filter - for 50x Illumina, 500 reads is only 1k of unitig,
-      //  but for 10x PacBio, this is over 250k of unitig.
+      uint32      ovlLen   = 0;
+      BAToverlap *ovl      = OC->getOverlaps(rid, AS_MAX_ERATE, ovlLen);
 
-      if ((bubble == NULL) ||
-          (bubble->getLength() > 50000)) {
-#if 0
-        writeLog("popBubbles()-- Skip bubble %u length %u with "F_SIZE_T" frags - edge from %d/%c' to utg %d %d/%c'\n",
-                 bubble->id(), bubble->getLength(), bubble->ufpath.size(),
-                 isect->invadFrg, isect->invad3p ? '3' : '5',
-                 target->id(),
-                 isect->isectFrg, isect->isect3p ? '3' : '5');
+      set<uint32>  readOlapsTo;
+
+      for (uint32 oi=0; oi<ovlLen; oi++) {
+        uint32  ovlTigID = Unitig::fragIn(ovl[oi].b_iid);
+        Unitig *ovlTig   = unitigs[ovlTigID];
+
+        //  Skip this overlap if it is to an unplaced read, to a singleton tig, to ourself,
+        //  or to a unitig that is shorter than us.  We can not pop this tig as a bubble
+        //  in any of those cases.
+
+        if ((ovlTigID == 0) ||
+            (ovlTig == NULL) ||
+            (ovlTig->ufpath.size() == 1) ||
+            (ovlTig->id() == tig->id()) ||
+            (ovlTig->getLength() < tig->getLength()))
+          continue;
+
+        //  Otherwise, remember that we had an overlap to ovlTig.
+
+        readOlapsTo.insert(ovlTigID);
+      }
+
+      //  Transfer the per-read counts to the per-unitig counts.  Decide if we're a valid potential bubble.
+
+      validBubble = false;
+
+      for (set<uint32>::iterator it=readOlapsTo.begin(); it != readOlapsTo.end(); ++it) {
+        tigOlapsTo[*it]++;
+
+        if (tigOlapsTo[*it] == nonContainedReads)
+          validBubble = true;
+      }
+    }
+
+    //  If validBubble, then there is a tig that every dovetail read has at least one overlap to.
+    //  Save those tigs in potentialBubbles.
+
+    if (validBubble) {
+      uint32  nTigs = 0;
+
+      for (map<uint32,uint32>::iterator it=tigOlapsTo.begin(); it != tigOlapsTo.end(); ++it)
+        if (it->second == nonContainedReads)
+          nTigs++;
+
+      writeLog("potential bubble tig %8u length %9u nReads %7u to %3u tigs:\n",
+               tig->id(), tig->getLength(), tig->ufpath.size(), nTigs);
+
+      for (map<uint32,uint32>::iterator it=tigOlapsTo.begin(); it != tigOlapsTo.end(); ++it) {
+        Unitig  *dest = unitigs[it->first];
+
+        if (it->second != nonContainedReads)
+          continue;
+
+        writeLog("                 tig %8u length %9u nReads %7u\n", dest->id(), dest->getLength(), dest->ufpath.size());
+
+        potentialBubbles[ti].push_back(dest->id());
+      }
+    }
+  }
+
+  flushLog();
+}
+                     
+
+
+
+//  Find filtered placements for all the reads in the potential bubble tigs.
+
+vector<overlapPlacement>  *
+findBubbleReadPlacements(UnitigVector    &unitigs,
+                         BubTargetList   &potentialBubbles) {
+  uint32  fiLimit      = FI->numFragments();
+  uint32  fiNumThreads = omp_get_max_threads();
+  uint32  fiBlockSize  = (fiLimit < 1000 * fiNumThreads) ? fiNumThreads : fiLimit / 999;
+
+  vector<overlapPlacement>   *placed = new vector<overlapPlacement> [fiLimit + 1];
+
+#pragma omp parallel for schedule(dynamic, fiBlockSize)
+  for (uint32 fi=0; fi<fiLimit; fi++) {
+    uint32     rdAtigID = Unitig::fragIn(fi);
+
+    if ((rdAtigID == 0) ||                           //  Read not placed in a tig, ignore it.
+        (OG->isContained(fi)) ||                     //  Read is contained, ignore it.
+        (potentialBubbles.count(rdAtigID) == 0))     //  Read isn't in a potential bubble, ignore it.
+      continue;
+
+    Unitig     *rdAtig   = unitigs[rdAtigID];
+    ufNode     *rdA      = &rdAtig->ufpath[ Unitig::pathPosition(fi) ];
+    bool        rdAfwd   = (rdA->position.bgn < rdA->position.end);
+    int32       rdAlo    = (rdAfwd) ? rdA->position.bgn : rdA->position.end;
+    int32       rdAhi    = (rdAfwd) ? rdA->position.end : rdA->position.bgn;
+
+    uint32      ovlLen   = 0;
+    BAToverlap *ovl      = OC->getOverlaps(rdA->ident, AS_MAX_ERATE, ovlLen);
+
+    set<uint32> intersections;
+
+    if ((fi % 100) == 0)
+      fprintf(stderr, "bubbliness()-- read %8u with %6u overlaps - %6.2f%% finished.\r",
+              rdA->ident, ovlLen, 100.0 * fi / fiLimit);
+
+    //  Compute all placements for this read.
+
+    vector<overlapPlacement>   placements;
+
+    placeFragUsingOverlaps(unitigs, AS_MAX_ERATE, NULL, rdA->ident, placements);
+
+    //  Weed out placements that aren't for bubbles, or that are for bubbles but are poor quality.
+
+    for (uint32 pi=0; pi<placements.size(); pi++) {
+      uint32    rdBtigID = placements[pi].tigID;
+      Unitig   *rdBtig   = unitigs[rdBtigID];
+
+      //  Ignore the placement if it is to a non-tig / singleton read, or if it didn't place the
+      //  read fully.
+
+      if ((rdBtigID == 0) ||
+          (rdBtig   == NULL) ||
+          (rdBtig->ufpath.size() == 1) ||
+          (placements[pi].fCoverage < 0.99))
+        continue;
+
+      //  Ignore the placement if it isn't to one of our bubble-popping candidate unitigs.
+
+      bool             dontcare = true;
+      vector<uint32>  &pbubbles = potentialBubbles[rdAtigID];
+
+      for (uint32 pb=0; pb<pbubbles.size(); pb++) {
+        if (pbubbles[pb] == rdBtigID)
+          dontcare = false;
+      }
+
+      if (dontcare)
+        continue;
+
+      //  Ignore the placement if it is too diverged from the destination tig.
+
+      uint32  lo = (placements[pi].position.bgn < placements[pi].position.end) ? placements[pi].position.bgn : placements[pi].position.end;
+      uint32  hi = (placements[pi].position.bgn < placements[pi].position.end) ? placements[pi].position.end : placements[pi].position.bgn;
+
+      double  erate = placements[pi].errors / placements[pi].aligned;
+
+      if (rdBtig->overlapConsistentWithTig(BUBBLE_CONSISTENT, lo, hi, erate) < 0.5) {
+#ifdef SHOW_PLACEMENT_DETAIL
+        writeLog("frag %8u placed in tig %6u (%6u reads) at %8u-%8u with coverage %7.5f and erate %6.4f - HIGH ERROR\n",
+                 fid, placements[pi].tigID, rdBtig->ufpath.size(), placements[pi].position.bgn, placements[pi].position.end, placements[pi].fCoverage, erate);
 #endif
         continue;
       }
 
-      if (bubble->id() == target->id())
-        //  HEY!  We're not a bubble in ourself!
-        continue;
+#ifdef SHOW_PLACEMENT_DETAIL
+      writeLog("frag %8u placed in tig %6u (%6u reads) at %8u-%8u with coverage %7.5f and erate %6.4f\n",
+               fid, placements[pi].tigID, rdBtig->ufpath.size(), placements[pi].position.bgn, placements[pi].position.end, placements[pi].fCoverage, erate);
+#endif
 
-      ufNode  fFrg;  //  First fragment in the bubble
-      ufNode  lFrg;  //  Last fragment in the bubble
+      //  Good placement!
 
-      //  We have no way of deciding if we've tested this bubble unitig already.  Each bubble unitig
-      //  should generate two intersection edges.  If those edges are to the same target unitig, and
-      //  the bubble fails to pop, we'll test the bubble twice.
-      //
-      //  This is kind of by design.  The two intersections could be to two different locations, and
-      //  maybe one will work while the other doesn't.  Though, I think we accept a placement only
-      //  if the two end reads are consistent implying that we'd double test a bubble if the
-      //  placements are different, and that we'd fail both times.
-
-      if (mergeBubbles_findEnds(unitigs, erateBubble, bubble, fFrg, lFrg, target) == false)
-        continue;
-
-      if (mergeBubbles_checkEnds(unitigs, erateBubble, bubble, fFrg, lFrg, target) == false)
-        continue;
-
-      if (mergeBubbles_checkFrags(unitigs, erateBubble, bubble, fFrg, lFrg, target) == false)
-        continue;
-
-      //  Merged!
-      //  o Delete the unitig we just merged in.
-      //  o Skip the rest of the intersections for this fragment (because....)
-      //  o Reset iteration over fragments in this unitig -- we'll try some failed merges
-      //    again, but we might pick up a bunch more from the fragments we just added.  Plus,
-      //    we changed the ufpath vector.
-
-      unitigs[bubble->id()] = NULL;
-      delete bubble;
-
-      fi = 0;
-
-      break;
+      placed[fi].push_back(placements[pi]);
     }
   }
+
+  return(placed);
 }
+
+
 
 
 
@@ -695,41 +300,166 @@ mergeBubbles(UnitigVector &unitigs, double erateBubble, Unitig *target, intersec
 
 void
 popBubbles(UnitigVector &unitigs,
-           double UNUSED(erateGraph), double erateBubble, double UNUSED(erateMerge), double erateRepeat,
-           const char *prefix,
-           uint32 minOverlap,
-           uint64 genomeSize) {
+           double UNUSED(erateGraph), double erateBubble, double UNUSED(erateMerge), double UNUSED(erateRepeat),
+           const char *UNUSED(prefix),
+           uint32 UNUSED(minOverlap),
+           uint64 UNUSED(genomeSize)) {
 
-  //logFileFlags |= LOG_PLACE_FRAG;
-  //logFileFlags &= ~LOG_PLACE_FRAG;
+  BubTargetList   potentialBubbles;
 
-  //  BUILD A LIST OF ALL INTERSECTIONS - build a reverse mapping of all BestEdges that are between
-  //  unitigs.  For each fragment, we want to have a list of the incoming edges from other unitigs.
+  findPotentialBubbles(unitigs, erateBubble, potentialBubbles);
 
-  intersectionList  *ilist = new intersectionList(unitigs);
+  vector<overlapPlacement>   *placed = findBubbleReadPlacements(unitigs, potentialBubbles);
 
-  //ilist->logIntersections();
+  //  We now have, in 'placed', a list of all the places that each read could be placed.  Decide if there is a _single_
+  //  place for each bubble to be popped.
 
-  writeLog("popBubbles()-- working on "F_U64" unitigs.\n", unitigs.size());
+  uint32  tiLimit      = unitigs.size();
+  //uint32  tiNumThreads = omp_get_max_threads();
+  //uint32  tiBlockSize  = (tiLimit < 100000 * tiNumThreads) ? tiNumThreads : tiLimit / 99999;
 
-  for (uint32 ti=0; ti<unitigs.size(); ti++) {
-    Unitig        *target = unitigs[ti];
-
-    if ((target == NULL) ||
-        (target->ufpath.size() < 1) ||  //  was 15
-        (target->getLength() < 300))
+  for (uint32 ti=0; ti<tiLimit; ti++) {
+    if (potentialBubbles.count(ti) == 0)   //  Not a potential bubble
       continue;
 
-    //writeLog("popBubbles()-- WORKING on unitig %d/"F_SIZE_T" of length %u with %ld fragments.\n",
-    //         target->id(), unitigs.size(), target->getLength(), target->ufpath.size());
+    Unitig  *bubble = unitigs[ti];
 
-    mergeBubbles(unitigs, erateBubble, target, ilist);
-    //stealBubbles(unitigs, erateBubble, target, ilist);
+    //  Split the placements into piles for each target and build an interval list for each target.
+
+    map<uint32, intervalList<uint32> *>  targetIntervals;
+
+    //  For each read in the tig, convert the vector of placements into interval lists, one list per target tig.
+
+    for (uint32 fi=0; fi<bubble->ufpath.size(); fi++) {
+      uint32  readID  = bubble->ufpath[fi].ident;
+
+      for (uint32 pp=0; pp<placed[readID].size(); pp++) {
+        uint32  tid = placed[readID][pp].tigID;
+
+        uint32  bgn = (placed[readID][pp].position.bgn < placed[readID][pp].position.end) ? placed[readID][pp].position.bgn : placed[readID][pp].position.end;
+        uint32  end = (placed[readID][pp].position.bgn < placed[readID][pp].position.end) ? placed[readID][pp].position.end : placed[readID][pp].position.bgn;
+
+        if (targetIntervals[tid] == NULL)
+          targetIntervals[tid] = new intervalList<uint32>;
+
+        targetIntervals[tid]->add(bgn, end-bgn);
+      }
+    }
+
+    vector<candidatePop *>    targets;
+
+    //  Squish the intervals.  Create new candidatePops for each interval that isn't too big or
+    //  small.  Assign each overlapPlacements to the correct candidatePop.
+
+    for (map<uint32, intervalList<uint32> *>::iterator it=targetIntervals.begin(); it != targetIntervals.end(); ++it) {
+      uint32                 targetID = it->first;
+      intervalList<uint32>  *IL       = it->second;
+
+      IL->merge();
+
+      //  Discard intervals that are significantly too small or large.  Save the ones that are nicely sized.
+
+      for (uint32 ii=0; ii<IL->numberOfIntervals(); ii++) {
+        writeLog("tig %u length %u -> target %u piece %u position %u-%u length %u\n",
+                 bubble->id(), bubble->getLength(),
+                 targetID, ii, IL->lo(ii), IL->hi(ii), IL->hi(ii) - IL->lo(ii));
+
+        if (IL->hi(ii) - IL->lo(ii) < 0.75 * bubble->getLength())   //  Too small!
+          continue;
+
+        if (1.25 * bubble->getLength() < IL->hi(ii) - IL->lo(ii))     //  Too big!
+          continue;
+
+        targets.push_back(new candidatePop(bubble, unitigs[targetID], IL->lo(ii), IL->hi(ii)));
+      }
+
+      delete IL;
+    }
+
+    targetIntervals.clear();
+
+    //  Run through the placements again, and assign them to the correct target.
+    //
+    //  For each read:
+    //  For each acceptable placement:
+    //  For each target location:
+    //  If the placement is for this target, save it.
+
+    for (uint32 fi=0; fi<bubble->ufpath.size(); fi++) {
+      uint32  readID  = bubble->ufpath[fi].ident;
+
+      for (uint32 pp=0; pp<placed[readID].size(); pp++) {
+        uint32  tid = placed[readID][pp].tigID;
+
+        uint32  bgn = (placed[readID][pp].position.bgn < placed[readID][pp].position.end) ? placed[readID][pp].position.bgn : placed[readID][pp].position.end;
+        uint32  end = (placed[readID][pp].position.bgn < placed[readID][pp].position.end) ? placed[readID][pp].position.end : placed[readID][pp].position.bgn;
+
+        for (uint32 tt=0; tt<targets.size(); tt++)
+          if ((targets[tt]->target->id() == tid) &&
+              (targets[tt]->bgn < end) && (bgn < targets[tt]->end))
+            targets[tt]->placed.push_back(placed[readID][pp]);
+      }
+    }
+
+    //  Count the number of targets that have all the reads (in the correct order, etc, etc).  Remove those
+    //  that don't.
+
+    uint32  nTargets = 0;
+
+    set<uint32>  tigReads;
+    set<uint32>  tgtReads;
+
+    for (uint32 fi=0; fi<bubble->ufpath.size(); fi++)
+      tigReads.insert(bubble->ufpath[fi].ident);
+
+
+    for (uint32 tt=0; tt<targets.size(); tt++) {
+      tgtReads.clear();
+
+      for (uint32 op=0; op<targets[tt]->placed.size(); op++)
+        tgtReads.insert(targets[tt]->placed[op].frgID);
+
+      uint32  n5 = 0;
+      uint32  n3 = 0;
+
+      for (uint32 fi=0; fi<bubble->ufpath.size(); fi++)
+        if (tgtReads.count(bubble->ufpath[fi].ident) > 0)
+          n5++;
+        else
+          break;
+
+      for (uint32 fi=bubble->ufpath.size(); fi-->0; )
+        if (tgtReads.count(bubble->ufpath[fi].ident) > 0)
+          n3++;
+        else
+          break;
+
+      writeLog("target %u piece %u position %u-%u length %u - expected "F_SIZE_T" reads, had "F_SIZE_T" reads.  n5=%u n3=%u\n",
+               targets[tt]->target->id(), tt, targets[tt]->bgn, targets[tt]->end, targets[tt]->end - targets[tt]->bgn,
+               tigReads.size(),
+               tgtReads.size(), n5, n3);
+
+      if (tigReads == tgtReads) {
+        nTargets++;
+      } else {
+        targets[tt]->bubble = NULL;
+        targets[tt]->target = NULL;
+      }
+    }
+
+
+    if (nTargets == 0) {
+      writeLog("no targets\n");
+    }
+
+    else if (nTargets == 1) {
+      writeLog("one target\n");
+    }
+
+    else {
+      writeLog("many targets\n");
+    }
   }
 
-  delete ilist;
-
-  for (uint32 ti=0; ti<unitigs.size(); ti++)
-    if (unitigs[ti])
-      unitigs[ti]->sort();
+  delete [] placed;
 }

@@ -45,6 +45,9 @@ uint32* Unitig::_inUnitig     = NULL;
 uint32* Unitig::_pathPosition = NULL;
 
 
+#undef  SHOW_PROFILE_CONSTRUCTION
+#undef  SHOW_PROFILE_CONSTRUCTION_DETAILS
+
 void
 Unitig::reverseComplement(bool doSort) {
 
@@ -83,31 +86,53 @@ Unitig::reverseComplement(bool doSort) {
 
 
 
-class olapDat {
+class epOlapDat {
 public:
-  olapDat(uint32 b, uint32 e, double er) {
-    bgn    = b;
-    end    = e;
-    erate  = er;
+  epOlapDat(uint32 p, bool o, double e) {
+    pos    = p;
+    open   = o;
+    erate  = e;
   };
 
-  bool operator<(const olapDat &that)     const { return(bgn < that.bgn); };
+  bool operator<(const epOlapDat &that)     const { return(pos < that.pos); };
 
-  uint32  bgn;
-  uint32  end;
+  uint32  pos;
+  bool    open;
   double  erate;
 };
 
 
+
+
+#if 1
 void
-Unitig::computeErrorProfile(void) {
-  //uint32          ti = id();
+Unitig::computeErrorProfileApproximate(const char *UNUSED(prefix), const char *UNUSED(label)) {
+}
+#endif
 
 
-  //fprintf(stderr, "Find error profile for tig "F_U32".\n", id());
 
-  vector<olapDat>  olaps;
-  vector<uint32>   coords;
+void
+Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label)) {
+
+#ifdef SHOW_PROFILE_CONSTRUCTION
+  writeLog("Find error profile for tig "F_U32" of length "F_U32" with "F_SIZE_T" reads.\n",
+          id(), getLength(), ufpath.size());
+#endif
+
+  errorProfile.clear();
+  errorProfileIndex.clear();
+
+  vector<epOlapDat>  olaps;
+
+
+
+  //  Pick a set of reads to use.  We need full coverage in overlaps.
+
+
+
+
+  // Scan overlaps to find those that we care about, and save their endpoints.
 
   for (uint32 fi=0; fi<ufpath.size(); fi++) {
     ufNode     *rdA    = &ufpath[fi];
@@ -118,18 +143,35 @@ Unitig::computeErrorProfile(void) {
     uint32      ovlLen =  0;
     BAToverlap *ovl    =  OC->getOverlaps(rdA->ident, AS_MAX_ERATE, ovlLen);
 
+    uint32      nDiffTig  = 0;
+    uint32      nDiffPos  = 0;
+    uint32      nIsect    = 0;
+
     for (uint32 oi=0; oi<ovlLen; oi++) {
-      if (id() != Unitig::fragIn(ovl[oi].b_iid))
-        //  Reads in different tigs.  Don't care.
+
+      //  Reads in different tigs?  Don't care about this overlap.
+
+      if (id() != Unitig::fragIn(ovl[oi].b_iid)) {
+        nDiffTig++;
         continue;
+      }
+
+      //  Reads in same tig but not overlapping?  Don't care about this overlap.
 
       ufNode  *rdB    = &ufpath[ Unitig::pathPosition(ovl[oi].b_iid) ];
       bool     rdBfwd = (rdB->position.bgn < rdB->position.end);
       int32    rdBlo  = (rdBfwd) ? rdB->position.bgn : rdB->position.end;
       int32    rdBhi  = (rdBfwd) ? rdB->position.end : rdB->position.bgn;
 
-      if ((rdAhi < rdBlo) || (rdBhi < rdAlo))
+      if ((rdAhi < rdBlo) || (rdBhi < rdAlo)) {
+        nDiffPos++;
+#ifdef SHOW_PROFILE_CONSTRUCTION_DETAILS
+        writeLog("diffPos rdA %u=%u %u-%u rdB %u=%u %u-%u\n",
+                 ovl[oi].a_iid, rdA->ident, rdAlo, rdAhi,
+                 ovl[oi].b_iid, rdB->ident, rdBlo, rdBhi);
+#endif
         continue;
+      }
 
       //  Now figure out what region is covered by the overlap.
 
@@ -152,80 +194,291 @@ Unitig::computeErrorProfile(void) {
 
       //  Beacuse the read is placed with a lot of fudging in the positions, we need
       //  to scale the coordinates we compute here.
-      double      sc = (rdAhi - rdAlo) / (double)FI->fragmentLength(rdA->ident);
+      double      sc  = (rdAhi - rdAlo) / (double)FI->fragmentLength(rdA->ident);
 
-      olapDat     olap((uint32)floor(rdAlo + sc * tiglo),
-                       (uint32)floor(rdAlo + sc * tighi),
-                       ovl[oi].erate);
+      uint32      bgn = (uint32)floor(rdAlo + sc * tiglo);
+      uint32      end = (uint32)floor(rdAlo + sc * tighi);
 
-      coords.push_back(olap.bgn);
-      coords.push_back(olap.end);
+      nIsect++;
 
-      olaps.push_back(olap);
+      olaps.push_back(epOlapDat(bgn, true,  ovl[oi].erate));
+      olaps.push_back(epOlapDat(end, false, ovl[oi].erate));
     }
+
+#ifdef SHOW_PROFILE_CONSTRUCTION_DETAILS
+    writeLog("tig %u read %u with %u overlaps - diffTig %u diffPos %u intersect %u\n",
+             id(), rdA->ident, ovlLen, nDiffTig, nDiffPos, nIsect);
+#endif
   }
 
-  std::sort(coords.begin(), coords.end());
-  std::sort(olaps.begin(),  olaps.end());
+#ifdef SHOW_PROFILE_CONSTRUCTION
+  writeLog("tig %u generated "F_SIZE_T" olaps.\n", id(), olaps.size());
+#endif
 
-  //fprintf(stderr, "Generated "F_SIZE_T" coords and "F_SIZE_T" olaps.\n", coords.size(), olaps.size());
+  //  Sort.
+
+  std::sort(olaps.begin(), olaps.end());
 
   //  Convert coordinates into intervals.  Conceptually, squish out the duplicate numbers, then
-  //  create an interval for every adjacent pair.
+  //  create an interval for every adjacent pair.  We need to add intervals for the first and last
+  //  region.  And one more, for convenience, to hold the final 'close' values on intervals that
+  //  extend to the end of the unitig.
 
-  for (uint32 bb=0, ii=1; ii<coords.size(); ii++) {
-    if (coords[bb] == coords[ii])
+  if (olaps[0].pos != 0)
+    errorProfile.push_back(epValue(0, olaps[0].pos));
+
+  for (uint32 bb=0, ii=1; ii<olaps.size(); ii++) {
+    if (olaps[bb].pos == olaps[ii].pos)
       continue;
 
-    errorProfile.push_back(epValue(coords[bb], coords[ii]));
+    errorProfile.push_back(epValue(olaps[bb].pos, olaps[ii].pos));
+
+#ifdef SHOW_PROFILE_CONSTRUCTION_DETAILS
+    writeLog("tig %u make region bb=%u ii=%i - %u %u\n", id(), bb, ii, olaps[bb].pos, olaps[ii].pos);
+#endif
 
     bb = ii;
   }
 
-  //fprintf(stderr, "Generated "F_SIZE_T" profile regions.\n", profile.size());
+  if (olaps[olaps.size()-1].pos != getLength())
+    errorProfile.push_back(epValue(olaps[olaps.size()-1].pos, getLength()));
 
-  //  Transfer overlap error rates to the regions.  Find the first region we intersect (by
-  //  construction, the first interval will have olap.bgn == profile.bgn), then add the overlap
-  //  error rate to each interval it covers (again, by construction, the last interval we add to
-  //  will have olap.end == profile.end).
+  errorProfile.push_back(epValue(getLength(), getLength()+1));
 
-  uint64   nPieces = 0;
 
-  for (uint32 bb=0, ii=0; ii<olaps.size(); ii++) {
+#ifdef SHOW_PROFILE_CONSTRUCTION
+  writeLog("tig %u generated "F_SIZE_T" profile regions.\n", id(), errorProfile.size());
+#endif
 
-    //  Find first region for this overlap.  All later overlaps will start at or after this region.
-    for (; (bb < errorProfile.size()) && (errorProfile[bb].bgn < olaps[ii].bgn); bb++)
-      ;
+  //  Walk both lists, adding positive erates and removing negative erates.
 
-    //if (ii > 1771000)
-    //  fprintf(stderr, "olap ii=%u %u-%u bb=%u profile %u-%u\n", ii, olaps[ii].bgn, olaps[ii].end, bb, profile[bb].bgn, profile[bb].end);
+  stdDev<double>  curDev;
 
-    //  Until the overlap stops overlapping, add its error rate to the regions.
-    for (uint32 ee=bb; (ee < errorProfile.size()) && (errorProfile[ee].end <= olaps[ii].end); ee++, nPieces++)
-      errorProfile[ee].dev.update(olaps[ii].erate);
+  for (uint32 oo=0, ee=0; oo<olaps.size(); oo++) {
+    if (olaps[oo].pos != errorProfile[ee].bgn)  //  Move to the next profile if the pos is different.
+      ee++;                                     //  By construction, this single step should be all we need.
+
+#ifdef SHOW_PROFILE_CONSTRUCTION_DETAILS
+    writeLog("oo=%u bgn=%u -- ee=%u bgn=%u -- olaps.size "F_SIZE_T" errorProfile.size "F_SIZE_T" -- insert %d erate %f\n",
+             oo, olaps[oo].pos,
+             ee, errorProfile[ee].bgn,
+             olaps.size(), errorProfile.size(),
+             olaps[oo].open, olaps[oo].erate);
+#endif
+
+    assert(olaps[oo].pos == errorProfile[ee].bgn);
+    assert(oo < olaps.size());
+    assert(ee < errorProfile.size());
+
+    if (olaps[oo].open == true)
+      curDev.insert(olaps[oo].erate);
+    else
+      curDev.remove(olaps[oo].erate);
+
+    errorProfile[ee].dev = curDev;
   }
 
-  //fprintf(stderr, "Generated "F_SIZE_T" profile regions with "F_U64" overlap pieces.\n", profile.size(), nPieces);
+  //  Build an index.
+  //    bi - base we are indexing.
+  //    pi - profile
+  //
+  for (uint32 bi=0, pi=0; bi<getLength(); bi += 1000) {
+    while ((pi < errorProfile.size()) && (errorProfile[pi].end <= bi))
+      pi++;
+
+    if (pi < errorProfile.size()) {
+      assert(errorProfile[pi].bgn <= bi);
+      assert(bi <  errorProfile[pi].end);
+
+      errorProfileIndex.push_back(pi);
+    }
+  }
+
+  //  Finalize the values.  Just caching the mean and stddev to avoid a sqrt call.
+
+  for (uint32 bi=0; bi<errorProfile.size(); bi++) {
+    errorProfile[bi].mean   = errorProfile[bi].dev.mean();
+    errorProfile[bi].stddev = errorProfile[bi].dev.stddev();
+  }
+
+  //writeLog("tig %u generated "F_SIZE_T" profile regions with "F_U64" overlap pieces.\n",
+  //         id(), errorProfile.size(), nPieces);
+}
+
+
+//  For the range bgn..end, returns the amount of sequence (as a fraction)
+//  that has an estimated max overlap error rate above the 'erate' threshold.
+//
+//  For bgn..end the range of an overlap with some 'erate', then a low
+//  return value would indicate that the average overlap error rate in this
+//  region is lower than the supplied 'erate' - that this overlap is too noisy
+//  to be placed here.  Likewise, if the return value is 1.0, then the
+//  overlap 'erate' is within the same range as the other overlaps in the tig.
+//
+double
+Unitig::overlapConsistentWithTig(double deviations,
+                                 uint32 bgn, uint32 end,
+                                 double erate) {
+  uint32  nBelow = 0;
+  uint32  nAbove = 0;
+
+  assert(bgn <  end);
+  assert(bgn <  getLength());
+  assert(end <= getLength());
+
+  //  Coarse search to find the first index that is after our region.
+
+#undef BINARY_SEARCH
+
+#ifdef BINARY_SEARCH
+
+  uint32  min = 0;
+  uint32  max = errorProfile.size();
+  uint32  pb  = min + (max - min) / 2;
+
+  while ((bgn < errorProfile[pb].bgn) ||
+         (errorProfile[pb].end <= bgn)) {
+
+    if (bgn < errorProfile[pb].bgn)
+      max = pb;
+
+    if (errorProfile[pb].end <= bgn)
+      min = pb;
+
+    assert(min < max);
+
+    pb = min + (max - min) / 2;
+  }
+
+#else
+
+  uint32  pbi = bgn / 1000;
+
+  if (errorProfileIndex.size() <= pbi)
+    fprintf(stderr, "errorProfileIndex.size() = "F_SIZE_T"\n", errorProfileIndex.size());
+  assert(pbi < errorProfileIndex.size());
+
+  while ((0 < pbi) && (errorProfile[errorProfileIndex[pbi]].bgn > bgn)) {
+    fprintf(stderr, "BAD ESTIMATE for bgn=%u end=%u\n", bgn, end);
+    pbi--;
+  }
+
+  while ((pbi < errorProfileIndex.size()) && (errorProfile[errorProfileIndex[pbi]].end <= bgn))
+    pbi++;
+
+  if (pbi == errorProfileIndex.size()) {
+    //fprintf(stderr, "Fell off loop for bgn=%u end=%u last ep bgn=%u end=%u\n",
+    //        bgn, end, errorProfile.back().bgn, errorProfile.back().end);
+    pbi--;
+  }
+
+  //  The region pb points to will contain bgn.
+
+  uint32 pb = errorProfileIndex[pbi];
+
+  //fprintf(stderr, "For bgn=%u end=%u - stopped at pbi=%u errorProfile[%u] = %u-%u (1)\n",
+  //        bgn, end, pbi, pb, errorProfile[pb].bgn, errorProfile[pb].end);
+
+  //  Fine tune search to find the exact first region.
+
+  while ((0 < pb) && (bgn < errorProfile[pb].bgn))
+    pb--;
+  while ((pb < errorProfile.size()) && (errorProfile[pb].end <= bgn))
+    pb++;
+
+#endif
+
+  if ((errorProfile[pb].bgn > bgn) ||
+      (bgn >=  errorProfile[pb].end))
+    fprintf(stderr, "For bgn=%u end=%u - stopped at errorProfile[%u] = %u-%u BOOM\n",
+            bgn, end, pb, errorProfile[pb].bgn, errorProfile[pb].end);
+  assert(errorProfile[pb].bgn <= bgn);
+  assert(bgn <  errorProfile[pb].end);
+
+  //  Sum the number of bases above the supplied erate.
+
+  uint32 pe = pb;
+
+  while ((pe < errorProfile.size()) && (errorProfile[pe].bgn < end)) {
+    if (erate <= errorProfile[pe].max(deviations))
+      nAbove += errorProfile[pe].end - errorProfile[pe].bgn;
+    else
+      nBelow += errorProfile[pe].end - errorProfile[pe].bgn;
+
+    pe++;
+  }
+
+  //  Adjust for the bits we overcounted in the first and last regions.
+
+  if (pe > 0)   //  Argh.  If this read is fully in the first region (where there
+    pe--;       //  is only 1x coverage) then pe==0.
+
+
+  uint32  bb = bgn - errorProfile[pb].bgn;
+  uint32  be = errorProfile[pe].end - end;
+
+  assert(bgn >= errorProfile[pb].bgn);
+  assert(errorProfile[pe].end >= end);
+
+  if (erate <= errorProfile[pb].max(5))
+    nAbove -= bb;
+  else
+    nBelow -= bb;
+
+
+  if (erate <= errorProfile[pe].max(5))
+    nAbove -= be;
+  else
+    nBelow -= be;
+
+
+  return((double)nAbove / (nBelow + nAbove));
 }
 
 
 
+
+
+
 void
-Unitig::reportErrorProfile(char *prefix) {
+Unitig::reportErrorProfile(const char *prefix, const char *label) {
   char  N[FILENAME_MAX];
+  FILE *F;
 
-  sprintf(N, "%s.%08u.profile", prefix, id());
+  sprintf(N, "%s.%s.%08u.profile", prefix, label, id());
 
-  FILE *F = fopen(N, "w");
+  F = fopen(N, "w");
 
-  if (F == NULL)
-    return;
+  if (F) {
+    for (uint32 ii=0; ii<errorProfile.size(); ii++)
+      fprintf(F, "%u %u %f +- %f (%u overlaps)\n",
+              errorProfile[ii].bgn,        errorProfile[ii].end,
+              errorProfile[ii].dev.mean(), errorProfile[ii].dev.stddev(),
+              errorProfile[ii].dev.size());
+    fclose(F);
+  }
 
-  for (uint32 ii=0; ii<errorProfile.size(); ii++)
-    fprintf(F, "%u %u %f +- %f (%u overlaps)\n",
-            errorProfile[ii].bgn,        errorProfile[ii].end,
-            errorProfile[ii].dev.mean(), errorProfile[ii].dev.stddev(),
-            errorProfile[ii].dev.size());
+  //  Reporting the index isn't generally useful, only for debugging.
 
-  fclose(F);
+#if 0
+  sprintf(N, "%s.%s.%08u.profile.index", prefix, label, id());
+
+  F = fopen(N, "w");
+
+  if (F) {
+    for (uint32 ii=0; ii<errorProfileIndex.size(); ii++) {
+      uint32  xx = errorProfileIndex[ii];
+
+      fprintf(F, "index[%u] = %u -- errorProfile[] = %u-%u  %.6f +- %.6f (%u values)\n",
+              ii,
+              xx,
+              errorProfile[xx].bgn,
+              errorProfile[xx].end,
+              errorProfile[xx].dev.mean(),
+              errorProfile[xx].dev.stddev(),
+              errorProfile[xx].dev.size());
+    }
+    fclose(F);
+  }
+#endif
 }

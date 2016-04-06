@@ -39,6 +39,7 @@
 #define INCLUDE_AS_BAT_UNITIG
 
 #include "AS_BAT_Datatypes.H"
+#include "AS_BAT_UnitigVector.H"
 
 #include "stddev.H"
 
@@ -104,6 +105,9 @@ public:
 
   void sort(void) {
     std::sort(ufpath.begin(), ufpath.end());
+
+    for (uint32 fi=0; fi<ufpath.size(); fi++)
+      _pathPosition[ufpath[fi].ident] = fi;
   };
   //void   bubbleSortLastFrag(void);
   void reverseComplement(bool doSort=true);
@@ -133,8 +137,14 @@ public:
   class epValue {
   public:
     epValue(uint32 b, uint32 e) {
-      bgn = b;
-      end = e;
+      bgn    = b;
+      end    = e;
+      mean   = 0.0;
+      stddev = 0.0;
+    };
+
+    double    max(double deviations) {
+      return(mean + deviations * stddev);
     };
 
     bool operator<(const epValue &that) const { return(bgn < that.bgn); };
@@ -142,13 +152,22 @@ public:
 
     uint32          bgn;
     uint32          end;
+
     stdDev<double>  dev;
+
+    double          mean;
+    double          stddev;
   };
   
 
-  void   computeErrorProfile(void);
-  void   reportErrorProfile(char *prefix);
+  void   computeErrorProfileApproximate(const char *prefix, const char *label);
+  void   computeErrorProfile(const char *prefix, const char *label);
+  void   reportErrorProfile(const char *prefix, const char *label);
   void   clearErrorProfile(void)       { errorProfile.clear(); };
+
+  double overlapConsistentWithTig(double deviations,
+                                  uint32 bgn, uint32 end,
+                                  double erate);
 
   static void removeFrag(int32 fid) {
     _inUnitig[fid] = 0;
@@ -180,6 +199,7 @@ public:
   // Public Member Variables
   vector<ufNode>         ufpath;
   vector<epValue>        errorProfile;
+  vector<uint32>         errorProfileIndex;
 
 private:
   int32                 _length;
@@ -199,106 +219,6 @@ public:
   uint32         _isBubble;       //  Annotation: from a failed bubble pop
   uint32         _isRepeat;       //  Annotation: from an identified repeat region
   uint32         _isCircular;     //  Annotation: has overlap to self
-};
-
-
-
-class UnitigVector {
-public:
-  UnitigVector() {
-    _blockSize    = 1048576;
-    _numBlocks    = 1;
-    _maxBlocks    = 1024;
-    _blocks       = new Unitig ** [_maxBlocks];
-    _blocks[0]    = new Unitig  * [_blockSize];
-    _blocks[0][0] = NULL;  //  No first unitig.
-    _blockNext    = 1;
-    _totalUnitigs = 1;
-  };
-
-  ~UnitigVector() {
-
-    //  Delete the unitigs.
-    for (uint32 ii=0; ii<_numBlocks; ii++)
-      for (uint32 jj=0; jj<_blockSize; jj++)
-        delete _blocks[ii][jj];
-
-    //  Delete the blocks.
-    for (uint32 ii=0; ii<_numBlocks; ii++)
-      delete [] _blocks[ii];
-
-    //  And the block pointers.
-    delete [] _blocks;
-  };
-
-  Unitig *newUnitig(bool verbose) {
-    Unitig *u = new Unitig();
-
-#pragma omp critical
-    {
-      u->_id = _totalUnitigs++;
-
-      if (verbose)
-        writeLog("Creating Unitig %d\n", u->_id);
-
-      if (_blockNext >= _blockSize) {
-        assert(_numBlocks < _maxBlocks);
-
-        _blocks[_numBlocks] = new Unitig * [_blockSize];
-
-        memset(_blocks[_numBlocks], 0, sizeof(Unitig **) * _blockSize);
-
-        _numBlocks++;
-        _blockNext = 0;
-      }
-
-      _blocks[_numBlocks-1][_blockNext++] = u;
-
-      //  The rest are just sanity checks.
-
-      assert((u->id() / _blockSize) == (_numBlocks - 1));
-      assert((u->id() % _blockSize) == (_blockNext - 1));
-
-      assert(operator[](u->id()) == u);
-    }
-
-    return(u);
-  };
-
-  size_t  size(void) {
-    return(_totalUnitigs);
-  };
-
-  Unitig *&operator[](uint32 i) {
-    uint32  idx = i / _blockSize;
-    uint32  pos = i % _blockSize;
-
-#ifdef CHECK_UNITIG_ARRAY_INDEXING
-    if (((i    >= _totalUnitigs)) ||
-        ((idx  >= _numBlocks)) ||
-        (((pos >= _blockNext) && (idx >= _numBlocks - 1)))) {
-      fprintf(stderr, "UnitigVector::operator[]()--  i="F_U32" with totalUnitigs="F_U64"\n", i, _totalUnitigs);
-      fprintf(stderr, "UnitigVector::operator[]()--  blockSize="F_U64"\n", _blockSize);
-      fprintf(stderr, "UnitigVector::operator[]()--  idx="F_U32" numBlocks="F_U64"\n", idx, _numBlocks);
-      fprintf(stderr, "UnitigVector::operator[]()--  pos="F_U32" blockNext="F_U64"\n", pos, _blockNext);
-    }
-    assert(i    < _totalUnitigs);
-    assert((idx < _numBlocks));
-    assert((pos < _blockNext) || (idx < _numBlocks - 1));
-#endif
-
-    return(_blocks[idx][pos]);
-  };
-
-private:
-  uint64              _blockSize;
-
-  uint64              _numBlocks;
-  uint64              _maxBlocks;
-  Unitig           ***_blocks;
-  uint64              _blockNext;
-
-  uint64              _totalUnitigs;
 };
 
 

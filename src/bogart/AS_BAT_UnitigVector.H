@@ -15,16 +15,16 @@
  *
  *  This file is derived from:
  *
- *    src/AS_BAT/AS_BAT_PlaceContains.H
+ *    src/AS_BAT/AS_BAT_Unitig.H
  *
  *  Modifications by:
  *
- *    Brian P. Walenz from 2010-DEC-06 to 2013-AUG-01
+ *    Brian P. Walenz from 2010-NOV-23 to 2013-AUG-01
  *      are Copyright 2010-2013 J. Craig Venter Institute, and
  *      are subject to the GNU General Public License version 2
  *
- *    Brian P. Walenz from 2014-DEC-19 to 2015-JUN-03
- *      are Copyright 2014-2015 Battelle National Biodefense Institute, and
+ *    Brian P. Walenz on 2014-DEC-19
+ *      are Copyright 2014 Battelle National Biodefense Institute, and
  *      are subject to the BSD 3-Clause License
  *
  *    Brian P. Walenz beginning on 2016-JAN-11
@@ -35,15 +35,37 @@
  *  full conditions and disclaimers for each license.
  */
 
-#ifndef INCLUDE_AS_BAT_PLACECONTAINS
-#define INCLUDE_AS_BAT_PLACECONTAINS
+#ifndef INCLUDE_AS_BAT_UNITIG_VECTOR
+#define INCLUDE_AS_BAT_UNITIG_VECTOR
 
-void breakSingletonTigs(UnitigVector &unitigs);
+#include "AS_BAT_Datatypes.H"
 
-void placeUnplacedUsingAllOverlaps(UnitigVector &unitigs,
-                                   const char   *prefix,
-                                   double        erate);
+class Unitig;
+
+class UnitigVector {
+public:
+  UnitigVector();
+  ~UnitigVector();
+
+  Unitig   *newUnitig(bool verbose);
+  void      deleteUnitig(uint32 i);
+
+  size_t    size(void)            {  return(_totalUnitigs);  };
+  Unitig  *&operator[](uint32 i)  {  return(_blocks[i / _blockSize][i % _blockSize]);  };
+
+  void      computeErrorProfiles(const char *prefix, const char *label);
+  void      reportErrorProfiles(const char *prefix, const char *label);
+
+private:
+  uint64              _blockSize;
+
+  uint64              _numBlocks;
+  uint64              _maxBlocks;
+  Unitig           ***_blocks;
+  uint64              _blockNext;
+
+  uint64              _totalUnitigs;
+};
 
 
-
-#endif  //  INCLUDE_AS_BAT_PLACECONTAINS
+#endif  //  INCLUDE_AS_BAT_UNITIG_VECTOR

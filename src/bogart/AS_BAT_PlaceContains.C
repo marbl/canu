@@ -43,6 +43,8 @@
 
 #include "AS_BAT_PlaceFragUsingOverlaps.H"
 
+#define  SHOW_PLACEMENT_DETAIL    //  Reports evidence (too much) for placing reads.
+#define  SHOW_PLACEMENT           //  Reports where the read was placed.
 
 
 void
@@ -68,7 +70,7 @@ breakSingletonTigs(UnitigVector &unitigs) {
     removed++;                               //  Count
   }
 
-  fprintf(stderr, "Removed %u read%s from %u singleton unitig%s.\n",
+  writeLog("Removed %u read%s from %u singleton unitig%s.\n",
           removed, (removed != 1) ? "" : "s",
           removed, (removed != 1) ? "" : "s");
 }
@@ -77,6 +79,7 @@ breakSingletonTigs(UnitigVector &unitigs) {
 
 void
 placeUnplacedUsingAllOverlaps(UnitigVector &unitigs,
+                              const char   *prefix,
                               double        erate) {
   uint32  fiLimit    = FI->numFragments();
   uint32  numThreads = omp_get_max_threads();
@@ -88,7 +91,7 @@ placeUnplacedUsingAllOverlaps(UnitigVector &unitigs,
   memset(placedTig, 0, sizeof(uint32)      * (FI->numFragments() + 1));
   memset(placedPos, 0, sizeof(SeqInterval) * (FI->numFragments() + 1));
 
-  //  Just some logging.
+  //  Just some logging.  Count the number of reads we try to place.
 
   uint32   nToPlaceContained = 0;
   uint32   nToPlace          = 0;
@@ -104,8 +107,10 @@ placeUnplacedUsingAllOverlaps(UnitigVector &unitigs,
       else
         nToPlace++;
 
-  fprintf(stderr, "placeContains()-- placing %u contained and %u unplaced reads, with %d threads.\n",
-          nToPlaceContained, nToPlace, numThreads);
+  writeLog("placeContains()-- placing %u contained and %u unplaced reads, with %d threads.\n",
+           nToPlaceContained, nToPlace, numThreads);
+
+  //  Do the placing!
 
 #pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 fid=1; fid<FI->numFragments()+1; fid++) {
@@ -123,18 +128,31 @@ placeUnplacedUsingAllOverlaps(UnitigVector &unitigs,
     uint32   b = UINT32_MAX;
 
     for (uint32 i=0; i<placements.size(); i++) {
-#if 0
-      writeLog("frag %u placed in tig %u (%u reads) with coverage %f and ident %f\n",
-               fid, placements[i].tigID, unitigs[placements[i].tigID]->ufpath.size(),
-               placements[i].fCoverage,
-               placements[i].errors / placements[i].aligned);
-#endif
+      Unitig *tig = unitigs[placements[i].tigID];
 
       if (placements[i].fCoverage < 0.99)                   //  Ignore partially placed reads.
         continue;
 
-      if (unitigs[placements[i].tigID]->ufpath.size() == 1)  //  Ignore placements in singletons.
+      if (tig->ufpath.size() == 1)  //  Ignore placements in singletons.
         continue;
+
+      uint32  bgn   = (placements[i].position.bgn < placements[i].position.end) ? placements[i].position.bgn : placements[i].position.end;
+      uint32  end   = (placements[i].position.bgn < placements[i].position.end) ? placements[i].position.end : placements[i].position.bgn;
+
+      double  erate = placements[i].errors / placements[i].aligned;
+
+      if (tig->overlapConsistentWithTig(5.0, bgn, end, erate) < 0.5) {
+#ifdef SHOW_PLACEMENT_DETAIL
+        writeLog("frag %8u placed in tig %6u (%6u reads) at %8u-%8u with coverage %7.5f and erate %6.4f - HIGH ERROR\n",
+                 fid, placements[i].tigID, tig->ufpath.size(), placements[i].position.bgn, placements[i].position.end, placements[i].fCoverage, erate);
+#endif
+        continue;
+      }
+
+#ifdef SHOW_PLACEMENT_DETAIL
+      writeLog("frag %8u placed in tig %6u (%6u reads) at %8u-%8u with coverage %7.5f and erate %6.4f\n",
+               fid, placements[i].tigID, tig->ufpath.size(), placements[i].position.bgn, placements[i].position.end, placements[i].fCoverage, erate);
+#endif
 
       if ((b == UINT32_MAX) ||
           (placements[i].errors / placements[i].aligned < placements[b].errors / placements[b].aligned))
@@ -145,9 +163,19 @@ placeUnplacedUsingAllOverlaps(UnitigVector &unitigs,
     //  If we did, save both the position it was placed at, and the tigID it was placed in.
 
     if (b == UINT32_MAX) {
+#ifdef SHOW_PLACEMENT_DETAIL
+      writeLog("frag %8u placed in new tig\n", fid);
+#endif
       placedPos[fid].bgn = 0;
       placedPos[fid].end = FI->fragmentLength(fid);
     } else {
+#ifdef SHOW_PLACEMENT_DETAIL
+      writeLog("frag %8u placed in tig %6u (%6u reads) at %8u-%8u with coverage %7.5f and ident %6.4f - FINAL\n",
+               fid, placements[b].tigID, unitigs[placements[b].tigID]->ufpath.size(),
+               placements[b].position.bgn, placements[b].position.end,
+               placements[b].fCoverage,
+               placements[b].errors / placements[b].aligned);
+#endif
       placedTig[fid] = placements[b].tigID;
       placedPos[fid] = placements[b].position;
     }
@@ -170,7 +198,7 @@ placeUnplacedUsingAllOverlaps(UnitigVector &unitigs,
       else
         nFailed++;
 
-      tig = unitigs.newUnitig(false);
+      //tig = unitigs.newUnitig(false);
     }
 
     else {
@@ -184,17 +212,21 @@ placeUnplacedUsingAllOverlaps(UnitigVector &unitigs,
 
     //  Regardless, add it to the tig.
 
-    frg.ident             = fid;
-    frg.contained         = 0;
-    frg.parent            = 0;
-    frg.ahang             = 0;
-    frg.bhang             = 0;
-    frg.position          = placedPos[fid];
+    if (tig) {
+      frg.ident             = fid;
+      frg.contained         = 0;
+      frg.parent            = 0;
+      frg.ahang             = 0;
+      frg.bhang             = 0;
+      frg.position          = placedPos[fid];
 
-    writeLog("placeContainsUsingAllOverlaps()-- frag %u placed in tig %u at %u-%u.\n",
-             fid, tig->id(), frg.position.bgn, frg.position.end);
+#ifdef SHOW_PLACEMENT
+      writeLog("placeContainsUsingAllOverlaps()-- frag %u placed in tig %u at %u-%u.\n",
+               fid, tig->id(), frg.position.bgn, frg.position.end);
+#endif
 
-    tig->addFrag(frg, 0, false);
+      tig->addFrag(frg, 0, false);
+    }
   }
 
   //  Cleanup.
@@ -202,8 +234,8 @@ placeUnplacedUsingAllOverlaps(UnitigVector &unitigs,
   delete [] placedPos;
   delete [] placedTig;
 
-  fprintf(stderr, "placeContains()-- Placed %u contained reads and %u unplaced reads.\n", nPlacedContained, nPlaced);
-  fprintf(stderr, "placeContains()-- Failed to place %u contained reads and %u unplaced reads.\n", nFailedContained, nFailed);
+  writeLog("placeContains()-- Placed %u contained reads and %u unplaced reads.\n", nPlacedContained, nPlaced);
+  writeLog("placeContains()-- Failed to place %u contained reads (too high error suspected) and %u unplaced reads (lack of overlaps suspected).\n", nFailedContained, nFailed);
 
   //  But wait!  All the tigs need to be sorted.  Well, not really _all_, but the hard ones to sort
   //  are big, and those quite likely had reads added to them, so it's really not worth the effort

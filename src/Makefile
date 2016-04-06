@@ -425,7 +425,8 @@ ifeq (${OSTYPE}, Darwin)
   LDFLAGS   +=
 
   ifeq ($(BUILDDEBUG), 1)
-    CXXFLAGS  += -g -fno-omit-frame-pointer
+    CXXFLAGS  += -g
+# -fno-omit-frame-pointer
   else
     ifeq ($(BUILDPROFILE), 1)
       CXXFLAGS   += -g3 -O4 -funroll-loops -fexpensive-optimizations -finline-functions -fno-omit-frame-pointer

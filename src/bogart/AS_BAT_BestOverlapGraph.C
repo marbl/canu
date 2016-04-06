@@ -464,13 +464,13 @@ BestOverlapGraph::BestOverlapGraph(double               erate,
 
   removeSuspicious();
   findEdges();
-  reportBestEdges(prefix, "best.0.initial");
+  //reportBestEdges(prefix, "best.0.initial");
 
   //  Analyze the current best edges to set a cutoff on overlap quality used for graph building.
 
   removeHighErrorBestEdges();
   findEdges();
-  reportBestEdges(prefix, "best.1.filtered");
+  //reportBestEdges(prefix, "best.1.filtered");
 
   //  Mark reads as suspicious if the length of the best edge out is very different than the length
   //  of the best edge that should be back to us.  E.g., if readA has best edge to readB (of length
@@ -481,7 +481,7 @@ BestOverlapGraph::BestOverlapGraph(double               erate,
 
   removeLopsidedEdges();
   findEdges();
-  reportBestEdges(prefix, "best.2.cleaned");
+  //reportBestEdges(prefix, "best.2.cleaned");
 
   //  Mark reads as spurs, so we don't find best edges to them.
 

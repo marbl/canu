@@ -97,7 +97,7 @@ main (int argc, char * argv []) {
   bool      doSave                   = false;
 
   int       fragment_count_target    = 0;
-  char     *output_prefix            = NULL;
+  char     *prefix                   = NULL;
 
   bool      enableJoining            = false;
 
@@ -118,7 +118,7 @@ main (int argc, char * argv []) {
       fragment_count_target = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-o") == 0) {
-      output_prefix = argv[++arg];
+      prefix = argv[++arg];
 
     } else if (strcmp(argv[arg], "-G") == 0) {
       gkpStorePath = argv[++arg];
@@ -266,7 +266,7 @@ main (int argc, char * argv []) {
     err.push_back(NULL);
   if (erateRepeat < 0.0)
     err.push_back(NULL);
-  if (output_prefix == NULL)
+  if (prefix == NULL)
     err.push_back(NULL);
   if (gkpStorePath == NULL)
     err.push_back(NULL);
@@ -350,7 +350,7 @@ main (int argc, char * argv []) {
     if (erateRepeat < 0.0)
       fprintf(stderr, "Invalid overlap error threshold (-er option); must be at least 0.0.\n");
 
-    if (output_prefix == NULL)
+    if (prefix == NULL)
       fprintf(stderr, "No output prefix name (-o option) supplied.\n");
 
     if (gkpStorePath == NULL)
@@ -404,9 +404,9 @@ main (int argc, char * argv []) {
 
   UnitigVector      unitigs;
 
-  setLogFile(output_prefix, NULL);
+  setLogFile(prefix, NULL);
 
-  FI = new FragmentInfo(gkpStore, output_prefix, minReadLen);
+  FI = new FragmentInfo(gkpStore, prefix, minReadLen);
 
   // Initialize where we've been to nowhere
   Unitig::resetFragUnitigMap(FI->numFragments());
@@ -416,9 +416,9 @@ main (int argc, char * argv []) {
   erateMax = MAX(erateMax, erateMerge);
   erateMax = MAX(erateMax, erateRepeat);
 
-  OC = new OverlapCache(ovlStoreUniq, ovlStoreRept, output_prefix, erateMax, minOverlap, ovlCacheMemory, ovlCacheLimit, onlySave, doSave);
-  OG = new BestOverlapGraph(erateGraph, output_prefix);
-  CG = new ChunkGraph(output_prefix);
+  OC = new OverlapCache(ovlStoreUniq, ovlStoreRept, prefix, erateMax, minOverlap, ovlCacheMemory, ovlCacheLimit, onlySave, doSave);
+  OG = new BestOverlapGraph(erateGraph, prefix);
+  CG = new ChunkGraph(prefix);
 
   delete ovlStoreUniq;  ovlStoreUniq = NULL;
   delete ovlStoreRept;  ovlStoreRept = NULL;
@@ -432,7 +432,7 @@ main (int argc, char * argv []) {
   //  through all fragments and place whatever isn't already placed.
   //
 
-  setLogFile(output_prefix, "buildUnitigs");
+  setLogFile(prefix, "buildUnitigs");
   writeLog("==> BUILDING UNITIGS from %d fragments.\n", FI->numFragments());
 
   for (uint32 fi=CG->nextFragByChunkLength(); fi>0; fi=CG->nextFragByChunkLength())
@@ -441,55 +441,53 @@ main (int argc, char * argv []) {
   delete CG;
   CG = NULL;
 
-  writeLog("==> BUILDING UNITIGS catching missed fragments.\n");
+  breakSingletonTigs(unitigs);
 
-  for (uint32 fi=1; fi <= FI->numFragments(); fi++)
-    populateUnitig(unitigs, fi);
+  reportOverlapsUsed(unitigs, prefix, "buildUnitigs");
+  reportUnitigs(unitigs, prefix, "buildUnitigs", genomeSize);
 
-  reportOverlapsUsed(unitigs, output_prefix, "buildUnitigs");
-  reportUnitigs(unitigs, output_prefix, "buildUnitigs", genomeSize);
-
-#if 0
   //
   //  Join unitigs using not-best edges.
   //
 
-  setLogFile(output_prefix, "joinUnitigs");
+  //setLogFile(prefix, "joinUnitigs");
 
-  if (enableJoining) {
-    setLogFile(output_prefix, "joining");
+  //joinUnitigs(unitigs, enableJoining);
 
-    joinUnitigs(unitigs, enableJoining);
-
-    reportOverlapsUsed(unitigs, output_prefix, "joining");
-    reportUnitigs(unitigs, output_prefix, "joining", genomeSize);
-  }
-#endif
+  //reportOverlapsUsed(unitigs, prefix, "joining");
+  //reportUnitigs(unitigs, prefix, "joining", genomeSize);
 
   //
   //  Place contained reads.
   //
 
-  setLogFile(output_prefix, "placeContains");
+  setLogFile(prefix, "placeContains");
 
-  breakSingletonTigs(unitigs);
-  placeUnplacedUsingAllOverlaps(unitigs, erateBubble);
+  unitigs.computeErrorProfiles(prefix, "unplaced");
+  unitigs.reportErrorProfiles(prefix, "unplaced");
+
+  placeUnplacedUsingAllOverlaps(unitigs, prefix, erateBubble);
+
+  reportUnitigs(unitigs, prefix, "placeContains", genomeSize);
 
   //
   //  Pop bubbles
   //
 
-  setLogFile(output_prefix, "popBubbles");
+  setLogFile(prefix, "popBubbles");
+
+  unitigs.computeErrorProfiles(prefix, "bubbles");
+  //unitigs.reportErrorProfiles(prefix, "bubbles");
 
   popBubbles(unitigs,
              erateGraph, erateBubble, erateMerge, erateRepeat,
-             output_prefix,
+             prefix,
              minOverlap,
              genomeSize);
              
-  checkUnitigMembership(unitigs);
-  reportOverlapsUsed(unitigs, output_prefix, "popBubbles");
-  reportUnitigs(unitigs, output_prefix, "popBubbles", genomeSize);
+  //checkUnitigMembership(unitigs);
+  reportOverlapsUsed(unitigs, prefix, "popBubbles");
+  reportUnitigs(unitigs, prefix, "popBubbles", genomeSize);
 
   //
   //  Detect and break repeats
@@ -502,32 +500,35 @@ main (int argc, char * argv []) {
   //
 
 if (newBreaking == true) {
-  setLogFile(output_prefix, "markRepeatReads");
+  setLogFile(prefix, "markRepeatReads");
 
-  markRepeatReads(unitigs, erateGraph, erateBubble, erateMerge, erateRepeat);
+  unitigs.computeErrorProfiles(prefix, "repeats");
 
-  checkUnitigMembership(unitigs);
-  reportOverlapsUsed(unitigs, output_prefix, "markRepeatReads");
-  reportUnitigs(unitigs, output_prefix, "markRepeatReads", genomeSize);
+  markRepeatReads(unitigs, prefix, erateGraph, erateBubble, erateMerge, erateRepeat);
+
+  //checkUnitigMembership(unitigs);
+  reportOverlapsUsed(unitigs, prefix, "markRepeatReads");
+  reportUnitigs(unitigs, prefix, "markRepeatReads", genomeSize);
 }
+
   //
   //  Older style breaking.  Use unused overlaps to mark regions in tigs as repetitive, break unless
   //  there is evidence to hold them together.
   //
 
 if (newBreaking == false) {
-  setLogFile(output_prefix, "breakRepeats");
+  setLogFile(prefix, "breakRepeats");
 
   breakRepeats(unitigs,
                erateGraph, erateBubble, erateMerge, erateRepeat,
-               output_prefix,
+               prefix,
                minOverlap,
                enableShatterRepeats,
                genomeSize);
 
-  checkUnitigMembership(unitigs);
-  reportOverlapsUsed(unitigs, output_prefix, "breakRepeats");
-  reportUnitigs(unitigs, output_prefix, "breakRepeats", genomeSize);
+  //checkUnitigMembership(unitigs);
+  reportOverlapsUsed(unitigs, prefix, "breakRepeats");
+  reportUnitigs(unitigs, prefix, "breakRepeats", genomeSize);
 }
   //
   //  Try to reassemble just the split repeats.
@@ -535,13 +536,13 @@ if (newBreaking == false) {
 
   if (enableReconstructRepeats) {
     assert(enableShatterRepeats);
-    setLogFile(output_prefix, "reconstructRepeats");
+    setLogFile(prefix, "reconstructRepeats");
 
     reconstructRepeats(unitigs, erateGraph);
 
-    checkUnitigMembership(unitigs);
-    reportOverlapsUsed(unitigs, output_prefix, "reconstructRepeats");
-    reportUnitigs(unitigs, output_prefix, "reconstructRepeats", genomeSize);
+    //checkUnitigMembership(unitigs);
+    reportOverlapsUsed(unitigs, prefix, "reconstructRepeats");
+    reportUnitigs(unitigs, prefix, "reconstructRepeats", genomeSize);
   }
 
   //
@@ -549,12 +550,16 @@ if (newBreaking == false) {
   //  still unplaced, make it a singleton unitig.
   //
 
-  setLogFile(output_prefix, "cleanup");
+  setLogFile(prefix, "cleanup");
 
   splitDiscontinuousUnitigs(unitigs, minOverlap);
 
-#warning need to eject reads from singleton unitigs here
-  placeUnplacedUsingAllOverlaps(unitigs, erateBubble);
+  breakSingletonTigs(unitigs);
+
+  //unitigs.computeErrorProfiles(prefix, "cleanup");
+  //unitigs.reportErrorProfiles(prefix, "cleanup");
+
+  //placeUnplacedUsingAllOverlaps(unitigs, prefix, erateBubble);
 
   promoteToSingleton(unitigs);
 
@@ -563,19 +568,19 @@ if (newBreaking == false) {
                                tooShortLength,
                                spanFraction,
                                lowcovFraction, lowcovDepth);
-  checkUnitigMembership(unitigs);
-  reportUnitigs(unitigs, output_prefix, "final", genomeSize);
+  //checkUnitigMembership(unitigs);
+  reportUnitigs(unitigs, prefix, "final", genomeSize);
 
   //
   //  Generate outputs.
   //
 
-  setLogFile(output_prefix, "setParentAndHang");
+  setLogFile(prefix, "setParentAndHang");
   setParentAndHang(unitigs);
 
-  setLogFile(output_prefix, "output");
-  writeUnitigsToStore(unitigs, output_prefix, tigStorePath, fragment_count_target);
-  writeOverlapsUsed(unitigs, output_prefix);
+  setLogFile(prefix, "output");
+  writeUnitigsToStore(unitigs, prefix, tigStorePath, fragment_count_target);
+  writeOverlapsUsed(unitigs, prefix);
 
   //
   //  Tear down bogart.
@@ -586,7 +591,7 @@ if (newBreaking == false) {
   delete OC;
   delete FI;
 
-  setLogFile(output_prefix, NULL);
+  setLogFile(prefix, NULL);
 
   writeLog("Bye.\n");
 

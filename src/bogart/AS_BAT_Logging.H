@@ -56,6 +56,7 @@
 
 void  setLogFile(char const *prefix, char const *name);
 void  writeLog(char const *fmt, ...);
+void  flushLog(void);
 
 #define logFileFlagSet(L) ((logFileFlags & L) == L)
 

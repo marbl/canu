@@ -231,3 +231,16 @@ writeLog(char const *fmt, ...) {
 
   va_end(ap);
 }
+
+
+
+void
+flushLog(void) {
+  int32             nt = omp_get_num_threads();
+  int32             tn = omp_get_thread_num();
+
+  logFileInstance  *lf = (nt == 1) ? (&logFileMain) : (&logFileThread[tn]);
+
+  if (lf->file != NULL)
+    fflush(lf->file);
+}

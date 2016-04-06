@@ -31,6 +31,7 @@ SOURCES  := bogart.C \
             AS_BAT_SetParentAndHang.C \
             AS_BAT_SplitDiscontinuous.C \
             AS_BAT_Unitig.C \
+            AS_BAT_UnitigVector.C \
             AS_BAT_Unitig_AddFrag.C \
             AS_BAT_Unitig_PlaceFragUsingEdges.C
 

@@ -409,7 +409,8 @@ reportUnitigs(UnitigVector &unitigs, const char *prefix, const char *name, uint6
 
   //  Dump the unitigs to an intermediate store.
 
-  setParentAndHang(unitigs);
+#warning NOT set parent and hang
+  //setParentAndHang(unitigs);
 
   writeUnitigsToStore(unitigs, tigStorePath, tigStorePath, numFragsP, false);
 }
