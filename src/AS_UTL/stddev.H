@@ -68,7 +68,7 @@ public:
 
   void     remove(double val) {
     uint32 n0 = _nn - 1;
-    double m0 = (_nn * _mn - val) / n0;
+    double m0 = (n0 == 0) ? (0) : ((_nn * _mn - val) / n0);
     double s0 = _sn - (val - m0) * (val - _mn);
 
     _nn = n0;
