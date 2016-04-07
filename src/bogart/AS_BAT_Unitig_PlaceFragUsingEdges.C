@@ -43,19 +43,83 @@
 #undef  DEBUG_PLACE_FRAG
 
 
+ufNode
+placeFrag_contained(uint32           fragId,
+                    ufNode          &parent,
+                    BestEdgeOverlap *edge) {
+
+  bool   pFwd  = (parent.position.bgn < parent.position.end) ? true : false;
+  int32  pMin  = (parent.position.bgn < parent.position.end) ? parent.position.bgn : parent.position.end;
+  int32  pMax  = (parent.position.bgn < parent.position.end) ? parent.position.end : parent.position.bgn;
+
+  assert(pMin < pMax);
+
+  //  Reverse the overlap.  frag3p here means the overlap is flipped.
+  int32  ahang = (edge->frag3p() == false) ? -edge->ahang() : edge->bhang();
+  int32  bhang = (edge->frag3p() == false) ? -edge->bhang() : edge->ahang();
+
+  //  Depending on the parent orientation...
+  //
+  //     pMin         pMax        pMin         pMax
+  //     ---------------->        <----------------
+  //     ahang ----- bhang        bhang ----- ahang
+  //     > 0         < 0          < 0         > 0
+
+  int32 fMin = (pFwd == true) ? pMin + ahang : pMin - bhang;
+  int32 fMax = (pFwd == true) ? pMax + bhang : pMax - ahang;
+
+  //int32  fMin = pMin + ((frag3p == false) ? -edge->ahang() : edge->bhang());   //  * intraScale
+  //int32  fMax = pMax + ((frag3p == false) ? -edge->bhang() : edge->ahang());   //  * interScale
+
+  assert(fMin < fMax);
+
+  //  We don't know the true length of the overlap, and our hang-based math tends to shrink reads.
+  //  Reset the end coordinate using the actual length of the read.
+
+  fMax = fMin + FI->fragmentLength(fragId);
+
+  //  Orientation is straightforward, based on the orient of the parent, and the flipped flag.
+
+  bool fFwd = (((pFwd == true)  && (edge->frag3p() == false)) ||  //  parent is fwd, olap is not flipped
+               ((pFwd == false) && (edge->frag3p() == true)));    //  parent is rev, olap is     flipped
+
+  ufNode   frag;
+
+  frag.ident        = fragId;
+  frag.contained    = 0;
+  frag.parent       = edge->fragId();       //  == parent->ident
+  frag.ahang        = 0;                    //  Not used in bogart, set on output
+  frag.bhang        = 0;                    //  Not used in bogart, set on output
+  frag.position.bgn = (fFwd) ? fMin : fMax;
+  frag.position.end = (fFwd) ? fMax : fMin;
+
+#ifdef DEBUG_PLACE_FRAG
+  writeLog("placeCont()-- parent %7d pos %7d,%7d -- edge to %7d %c' hangs %7d %7d -- frag %7d C' -- placed %7d-%7d oriented %s %7d-%7d\n",
+           parent.ident, parent.position.bgn, parent.position.end,
+           edge->fragId(), (edge->frag3p()) ? '3' : '5', edge->ahang(), edge->bhang(),
+           fragId,
+           fMin, fMax, (fFwd) ? "rev" : "fwd", frag.position.bgn, frag.position.end);
+#endif
+
+  return(frag);
+}
+
+
+
+
 
 ufNode
-placeFrag_computePlacement(uint32           fragId,
-                           bool             frag3p,
-                           ufNode          &parent,
-                           BestEdgeOverlap *edge) {
+placeFrag_dovetail(uint32           fragId,
+                   bool             frag3p,
+                   ufNode          &parent,
+                   BestEdgeOverlap *edge) {
 
   //  We have an 'edge' from 'fragId' end 'frag3p' back to 'parent'.
   //  Use that to compute the placement of 'frag'.
 
-  bool   pFwd = (parent.position.bgn < parent.position.end) ? true : false;
-  int32  pMin = (parent.position.bgn < parent.position.end) ? parent.position.bgn : parent.position.end;
-  int32  pMax = (parent.position.bgn < parent.position.end) ? parent.position.end : parent.position.bgn;
+  bool   pFwd  = (parent.position.bgn < parent.position.end) ? true : false;
+  int32  pMin  = (parent.position.bgn < parent.position.end) ? parent.position.bgn : parent.position.end;
+  int32  pMax  = (parent.position.bgn < parent.position.end) ? parent.position.end : parent.position.bgn;
 
   assert(pMin < pMax);
 
@@ -64,38 +128,52 @@ placeFrag_computePlacement(uint32           fragId,
   //double  intraScale = (double)(pMax - pMin) / FI->fragmentLength(parent.ident);  //  Within the parent read overlap
   //double  interScale = 1.0;                                                       //  Outside the parent read overlap
 
-  //  We have two cases, adding a read 'to the left' or 'to the right' of the parent read.
-  //  'To the right' looks like:
+  //  We're given an edge from the read-to-place back to the parent.  Reverse the edge so it points
+  //  from the parent to the read-to-place.
   //
-  //        -a    --/-------    frag (edge from frag to parent)
-  //        -------v---   -b    parent
+  //  The canonical edge is from a forward parent to the child.
   //
-  //  'To the left' looks like:
+  //      -P----\-->      +b
+  //      +a  ---v--------C-
   //
-  //      ------\---  +b        frag (edge from frag to parent)
-  //      +a  ---v-------       parent
+  //  To reverse the edge:
   //
-  //  The construction of our edges is such that they tell, via simple addition, the placement
-  //  of the next read.  So, in both cases, to flip the edge to be from parent to frag, all we
-  //  need to do is negate both hangs.
+  //    If child is forward, swapping the order of the reads results in a canonical overlap.  The
+  //    hangs become negative.
   //
+  //      -P----\-->      +b    ---->   -a  ---/--------C>
+  //      +a  ---v--------C>    ---->   -P----v-->      -b
   //
-  //  HOWEVER, if the read we're placing is reverse (edge is from the 3p end), we still need to swap
-  //  the hangs when the edge is reversed, because the ahang/bhang labels are assuming the source
-  //  read is forward oriented.
+  //    If child is reverse, swapping the order of the reads results in a backwards canonical
+  //    overlap, and we need to flip end-to-end also.  The hangs are swapped.
   //
-  //      -------\-->  1035   This edge has ahang=831 bhang=1035.
-  //      831  <==v========
+  //      -P----\-->      +b    ---->   -C--------\-->  +a
+  //      +a  <--v--------C-    ---->   +b      <--v----P-
   //
-  //      -------^-->  1035   This edge has ahang=1035 and bhang=831
-  //      831  <==\========   (rotate the picture 180 degrees to get the 'standard' overlap form)
-  //
+  int32  ahang = (frag3p == false) ? -edge->ahang() : edge->bhang();
+  int32  bhang = (frag3p == false) ? -edge->bhang() : edge->ahang();
 
-  //assert(pMin > edge->ahang());
-  //assert(pMax > edge->bhang());
+  //  The read is placed 'to the right' of the parent if
+  //    pFwd == true  and edge points to 3' end
+  //    pFwd == false and edge points to 5' end
+  //
+  bool  toRight = (pFwd == edge->frag3p());
 
-  int32  fMin = pMin + ((frag3p == false) ? -edge->ahang() : edge->bhang());   //  * intraScale
-  int32  fMax = pMax + ((frag3p == false) ? -edge->bhang() : edge->ahang());   //  * interScale
+  //  If placing 'to the right', we add hangs.  Else, subtract the swapped hangs.
+
+  int32  fMin = 0;
+  int32  fMax = 0;
+
+  if (toRight) {
+    fMin = pMin + ahang;
+    fMax = pMax + bhang;
+  } else {
+    fMin = pMin - bhang;
+    fMax = pMax - ahang;
+  }
+
+  //int32  fMin = pMin + ((frag3p == false) ? -edge->ahang() : edge->bhang());   //  * intraScale
+  //int32  fMax = pMax + ((frag3p == false) ? -edge->bhang() : edge->ahang());   //  * interScale
 
   assert(fMin < fMax);
 
@@ -133,7 +211,7 @@ placeFrag_computePlacement(uint32           fragId,
   frag.position.end = (fFwd) ? fMax : fMin;
 
 #ifdef DEBUG_PLACE_FRAG
-  writeLog("placeFrag()-- parent %7d pos %7d,%7d -- edge to %7d %c' hangs %7d %7d -- frag %7d %c' -- placed %7d-%7d oriented %s %7d-%7d\n",
+  writeLog("placeDove()-- parent %7d pos %7d,%7d -- edge to %7d %c' hangs %7d %7d -- frag %7d %c' -- placed %7d-%7d oriented %s %7d-%7d\n",
            parent.ident, parent.position.bgn, parent.position.end,
            edge->fragId(), (edge->frag3p()) ? '3' : '5', edge->ahang(), edge->bhang(),
            fragId, (frag3p) ? '3' : '5',
@@ -148,16 +226,12 @@ placeFrag_computePlacement(uint32           fragId,
 
 
 //  Place a read into this tig using an edge from the read to some read in this tig.
-//    frag   - output placement
-//    fragId - read we're trying to place
-//    frag3p - edge is from the 3p end of the read?
-//    edge   - edge from read to something in this tig
 //
 bool
-Unitig::placeFrag(ufNode          &frag,
-                  uint32           fragId,
-                  bool             frag3p,
-                  BestEdgeOverlap *edge) {
+Unitig::placeFrag(ufNode          &frag,      //  output placement
+                  uint32           fragId,    //  id of read we want to place
+                  bool             frag3p,    //  end of read 'edge' is from, meaningless if contained
+                  BestEdgeOverlap *edge) {    //  edge to read in this tig
 
   assert(fragId > 0);
   assert(fragId <= FI->numFragments());
@@ -189,7 +263,11 @@ Unitig::placeFrag(ufNode          &frag,
 
   //  Now, just compute the placement and return success!
 
-  frag = placeFrag_computePlacement(fragId, frag3p, ufpath[bidx], edge);
+  if (((edge->ahang() >= 0) && (edge->bhang() <= 0)) ||
+      ((edge->ahang() <= 0) && (edge->bhang() >= 0)))
+    frag = placeFrag_contained(fragId, ufpath[bidx], edge);
+  else
+    frag = placeFrag_dovetail(fragId, frag3p, ufpath[bidx], edge);
 
   return(true);
 }

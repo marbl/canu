@@ -44,94 +44,7 @@
 #include "intervalList.H"
 
 //  Report LOTS of details on placement, including evidence.
-#define VERBOSE_PLACEMENT
-
-
-
-//  Find the location for 'frag' in tig 'utg' based on the overlap in 'ovl'.
-bool
-placeDovetail(Unitig           *tig,
-              uint32            fid,
-              BAToverlap       &ovl,
-              overlapPlacement &op) {
-  BestEdgeOverlap   edge(ovl);
-  ufNode            frag;
-
-  if (tig->placeFrag(frag,
-                     fid,
-                     AS_BAT_overlapAEndIs3prime(ovl),
-                     &edge) == false)
-    return(false);
-
-  uint32  olen = FI->overlapLength(ovl.a_iid, ovl.b_iid, ovl.a_hang, ovl.b_hang);
-  uint32  flen = FI->fragmentLength(ovl.a_iid);
-
-  op.frgID       = frag.ident;
-  op.refID       = ovl.b_iid;
-  op.tigID       = tig->id();
-  op.position    = frag.position;
-  op.errors      = olen * ovl.erate;
-  op.covered.bgn = (ovl.a_hang < 0) ?    0 : ovl.a_hang;
-  op.covered.end = (ovl.b_hang > 0) ? flen : ovl.b_hang + flen;
-  op.aligned     = op.covered.end - op.covered.bgn;
-
-  assert(op.covered.bgn < op.covered.end);
-
-  //  Compute the portion of the unitig that is actually verified by
-  //  the overlap.
-
-  if (op.position.bgn < op.position.end) {
-    op.verified.bgn = op.position.bgn + op.covered.bgn;
-    op.verified.end = op.position.bgn + op.covered.end;
-
-    if (op.verified.end > op.position.end)
-      op.verified.end = op.position.end;
-
-    assert(op.verified.bgn >= op.position.bgn);
-    assert(op.verified.end <= op.position.end);
-    assert(op.verified.bgn <  op.verified.end);
-  } else {
-    op.verified.bgn = op.position.bgn - op.covered.bgn;  //  pos.bgn is the larger and cov.bgn the smaller, so ver.bgn is the larger
-    op.verified.end = op.position.bgn - op.covered.end;  //  pos.bgn is the larger and cov.bgn the larger, so ver.end the smaller
-
-    if (op.verified.end < op.position.end)
-      op.verified.end = op.position.end;
-
-    assert(op.verified.end >= op.position.end);
-    assert(op.verified.bgn <= op.position.bgn);
-    assert(op.verified.end <  op.verified.bgn);
-  }
-
-  //  Disallow any placements that exceed the boundary of the unitig.  These cannot be confirmed
-  //  by overlaps and might be wrong.  Sample cases:
-  //    o  sticking a unique/repeat fragment onto a repeat (leaving the unique uncovered)
-  //    o  sticking a chimeric fragment onto the end of a unitig (leaving the chimeric join uncovered)
-
-  if ((MIN(op.position.bgn, op.position.end) < 0) ||
-      (MAX(op.position.bgn, op.position.end) > tig->getLength())) {
-#ifdef VERBOSE_PLACEMENT
-    //if (logFileFlagSet(LOG_PLACE_FRAG))
-    writeLog("placeFragUsingOverlaps()-- (dovetail)  - frag %d in unitig %d at %d,%d (verified %d,%d) from overlap ident %d %d hang %d %d flipped %d covered %d,%d DISALLOWED\n",
-             frag.ident, tig->id(), op.position.bgn, op.position.end, op.verified.bgn, op.verified.end,
-             ovl.a_iid, ovl.b_iid, ovl.a_hang, ovl.b_hang, ovl.flipped,
-             op.covered.bgn, op.covered.end);
-#endif
-    op = overlapPlacement();
-
-  } else {
-#ifdef VERBOSE_PLACEMENT
-    //if (logFileFlagSet(LOG_PLACE_FRAG))
-    writeLog("placeFragUsingOverlaps()-- (dovetail)  - frag %d in unitig %d at %d,%d (verified %d,%d) from overlap ident %d %d hang %d %d flipped %d covered %d,%d\n",
-             frag.ident, tig->id(), op.position.bgn, op.position.end, op.verified.bgn, op.verified.end,
-             ovl.a_iid, ovl.b_iid, ovl.a_hang, ovl.b_hang, ovl.flipped,
-             op.covered.bgn, op.covered.end);
-#endif
-  }
-
-  return(true);
-}
-
-
+#undef VERBOSE_PLACEMENT
 
 
 
@@ -194,8 +107,81 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
 
     //  Place the fragment relative to the other fragment.
 
-    if (placeDovetail(tig, fid, ovl[i], ovlPlace[i]) == false)
+    BestEdgeOverlap   edge(ovl[i]);
+    ufNode            frag;
+
+    if (tig->placeFrag(frag,
+                       fid,
+                       AS_BAT_overlapAEndIs3prime(ovl[i]),
+                       &edge) == false) {
       nFragmentsNotPlaced++;
+      continue;
+    }
+
+    uint32  olen = FI->overlapLength(ovl[i].a_iid, ovl[i].b_iid, ovl[i].a_hang, ovl[i].b_hang);
+    uint32  flen = FI->fragmentLength(ovl[i].a_iid);
+
+    ovlPlace[i].frgID       = frag.ident;
+    ovlPlace[i].refID       = ovl[i].b_iid;
+    ovlPlace[i].tigID       = tig->id();
+    ovlPlace[i].position    = frag.position;
+    ovlPlace[i].errors      = olen * ovl[i].erate;
+    ovlPlace[i].covered.bgn = (ovl[i].a_hang < 0) ?    0 : ovl[i].a_hang;
+    ovlPlace[i].covered.end = (ovl[i].b_hang > 0) ? flen : ovl[i].b_hang + flen;
+    ovlPlace[i].aligned     = ovlPlace[i].covered.end - ovlPlace[i].covered.bgn;
+
+    assert(ovlPlace[i].covered.bgn < ovlPlace[i].covered.end);
+
+    //  Compute the portion of the unitig that is actually verified by
+    //  the overlap.
+
+    if (ovlPlace[i].position.bgn < ovlPlace[i].position.end) {
+      ovlPlace[i].verified.bgn = ovlPlace[i].position.bgn + ovlPlace[i].covered.bgn;
+      ovlPlace[i].verified.end = ovlPlace[i].position.bgn + ovlPlace[i].covered.end;
+
+      if (ovlPlace[i].verified.end > ovlPlace[i].position.end)
+        ovlPlace[i].verified.end = ovlPlace[i].position.end;
+
+      assert(ovlPlace[i].verified.bgn >= ovlPlace[i].position.bgn);
+      assert(ovlPlace[i].verified.end <= ovlPlace[i].position.end);
+      assert(ovlPlace[i].verified.bgn <  ovlPlace[i].verified.end);
+    } else {
+      ovlPlace[i].verified.bgn = ovlPlace[i].position.bgn - ovlPlace[i].covered.bgn;  //  pos.bgn is the larger and cov.bgn the smaller, so ver.bgn is the larger
+      ovlPlace[i].verified.end = ovlPlace[i].position.bgn - ovlPlace[i].covered.end;  //  pos.bgn is the larger and cov.bgn the larger, so ver.end the smaller
+
+      if (ovlPlace[i].verified.end < ovlPlace[i].position.end)
+        ovlPlace[i].verified.end = ovlPlace[i].position.end;
+
+      assert(ovlPlace[i].verified.end >= ovlPlace[i].position.end);
+      assert(ovlPlace[i].verified.bgn <= ovlPlace[i].position.bgn);
+      assert(ovlPlace[i].verified.end <  ovlPlace[i].verified.bgn);
+    }
+
+    //  Disallow any placements that exceed the boundary of the unitig.  These cannot be confirmed
+    //  by overlaps and might be wrong.  Sample cases:
+    //    o  sticking a unique/repeat fragment onto a repeat (leaving the unique uncovered)
+    //    o  sticking a chimeric fragment onto the end of a unitig (leaving the chimeric join uncovered)
+
+    if ((MIN(ovlPlace[i].position.bgn, ovlPlace[i].position.end) < 0) ||
+        (MAX(ovlPlace[i].position.bgn, ovlPlace[i].position.end) > tig->getLength())) {
+#ifdef VERBOSE_PLACEMENT
+      //if (logFileFlagSet(LOG_PLACE_FRAG))
+      writeLog("placeFragUsingOverlaps()-- frag %d in unitig %d at %d,%d (verified %d,%d) from overlap ident %d %d hang %d %d flipped %d covered %d,%d DISALLOWED\n",
+               frag.ident, tig->id(), ovlPlace[i].position.bgn, ovlPlace[i].position.end, ovlPlace[i].verified.bgn, ovlPlace[i].verified.end,
+               ovl[i].a_iid, ovl[i].b_iid, ovl[i].a_hang, ovl[i].b_hang, ovl[i].flipped,
+               ovlPlace[i].covered.bgn, ovlPlace[i].covered.end);
+#endif
+      ovlPlace[i] = overlapPlacement();
+
+    } else {
+#ifdef VERBOSE_PLACEMENT
+      //if (logFileFlagSet(LOG_PLACE_FRAG))
+      writeLog("placeFragUsingOverlaps()-- frag %d in unitig %d at %d,%d (verified %d,%d) from overlap ident %d %d hang %d %d flipped %d covered %d,%d\n",
+               frag.ident, tig->id(), ovlPlace[i].position.bgn, ovlPlace[i].position.end, ovlPlace[i].verified.bgn, ovlPlace[i].verified.end,
+               ovl[i].a_iid, ovl[i].b_iid, ovl[i].a_hang, ovl[i].b_hang, ovl[i].flipped,
+               ovlPlace[i].covered.bgn, ovlPlace[i].covered.end);
+#endif
+    }
 
     assert((ovlPlace[i].position.bgn < ovlPlace[i].position.end) == (ovlPlace[i].verified.bgn < ovlPlace[i].verified.end));
   }  //  Over all overlaps.
@@ -461,9 +447,9 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
         if (ovlPlace[oo].position.bgn < ovlPlace[oo].position.end) {
           if (ovlPlace[oo].verified.bgn >= ovlPlace[oo].verified.end)
             writeLog("placeFragUsingOverlaps()-- frag %d FWD verified placement invalid (bgn,end %d,%d) for position (bgn,end %d,%d)\n",
-                    ovlPlace[oo].frgID,
-                    ovlPlace[oo].verified.bgn, ovlPlace[oo].verified.end,
-                    ovlPlace[oo].position.bgn, ovlPlace[oo].position.end);
+                     ovlPlace[oo].frgID,
+                     ovlPlace[oo].verified.bgn, ovlPlace[oo].verified.end,
+                     ovlPlace[oo].position.bgn, ovlPlace[oo].position.end);
           assert(ovlPlace[oo].verified.bgn < ovlPlace[oo].verified.end);
 
           bgnMean += ovlPlace[oo].position.bgn;
@@ -475,9 +461,9 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
         } else {
           if (ovlPlace[oo].verified.bgn < ovlPlace[oo].verified.end)
             writeLog("placeFragUsingOverlaps()-- frag %d REV verified placement invalid (bgn,end %d,%d) for position (bgn,end %d,%d)\n",
-                    ovlPlace[oo].frgID,
-                    ovlPlace[oo].verified.bgn, ovlPlace[oo].verified.end,
-                    ovlPlace[oo].position.bgn, ovlPlace[oo].position.end);
+                     ovlPlace[oo].frgID,
+                     ovlPlace[oo].verified.bgn, ovlPlace[oo].verified.end,
+                     ovlPlace[oo].position.bgn, ovlPlace[oo].position.end);
           assert(ovlPlace[oo].verified.bgn >= ovlPlace[oo].verified.end);
 
           bgnMean += ovlPlace[oo].position.end;
