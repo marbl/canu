@@ -250,7 +250,7 @@ public:
 
 private:
   uint32            _id;
-  uint64            _e3p    : 1;    //  Overlap with the 3' end of that fragment
+  uint64            _e3p    : 1;    //  Overlap with the 3' end of that fragment, or flipped contain
   int64             _ahang  : AS_MAX_READLEN_BITS+1;
   int64             _bhang  : AS_MAX_READLEN_BITS+1;
   uint64            _evalue : AS_MAX_EVALUE_BITS;
