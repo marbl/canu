@@ -1190,9 +1190,19 @@ sub submitOrRunParallelJob ($$$$$@) {
         }
     }
 
-    my $nParallel  = getGlobal("${jobType}Concurrency");
-    $nParallel     = int(getNumberOfCPUs() / $thr)  if ((!defined($nParallel)) || ($nParallel == 0));
-    $nParallel     = 1                              if ((!defined($nParallel)) || ($nParallel == 0));
+
+    # compute limit based on # of cpus
+    my $nCParallel  = getGlobal("${jobType}Concurrency");
+    $nCParallel     = int(getGlobal("maxThreads") / $thr)  if ((!defined($nCParallel)) || ($nCParallel == 0));
+    $nCParallel     = 1                              if ((!defined($nCParallel)) || ($nCParallel == 0));
+
+    # compute limit based on physical memory
+    my $nMParallel = getGlobal("${jobType}Concurrency");
+    $nMParallel    = int(getGlobal("maxMemory") / getGlobal("${jobType}Memory")) if ((!defined($nMParallel)) || ($nMParallel == 0));
+    $nMParallel    = 1                                                            if ((!defined($nMParallel)) || ($nMParallel == 0));
+
+    # run min of our limits
+    my $nParallel  = MIN($nCParallel, $nMParallel);
 
     schedulerSetNumberOfProcesses($nParallel);
     schedulerFinish($path);
