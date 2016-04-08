@@ -186,38 +186,6 @@ sub mmapConfigure ($$$$) {
 
     close(L);
 
-    #  The seed length is the shortest read such that all reads longer than this sum to 50x genome size.
-    #  genomeSize must be set (canu should be failing early if it isn't).
-
-    my $seedLength = 500;
-
-    {
-        my @readLengths;
-
-        open(F, "< $wrk/$asm.gkpStore/reads.txt") or caExit("can't open '$wrk/$asm.gkpStore/reads.txt' for reading: $!", undef);
-        while (<F>) {
-            my @v = split '\s+', $_;
-            push @readLengths, $v[2];
-        }
-        close(F);
-
-        @readLengths = sort { $b <=> $a } @readLengths;
-
-        my $readLengthSum = 0;
-        my $targetSum     = getGlobal("corOutCoverage") * getGlobal("genomeSize");
-
-        foreach my $l (@readLengths) {
-            $readLengthSum += $l;
-
-            if ($readLengthSum > $targetSum) {
-                $seedLength = $l;
-                last;
-            }
-        }
-
-        print STDERR "-- Computed seed length $seedLength from desired output coverage ", getGlobal("corOutCoverage"), " and genome size ", getGlobal("genomeSize"), "\n";
-    }
-
     #  Create a script to generate precomputed blocks, including extracting the reads from gkpStore.
 
     open(F, "> $path/precompute.sh") or caFailure("can't open '$path/precompute.sh' for writing: $!", undef);
