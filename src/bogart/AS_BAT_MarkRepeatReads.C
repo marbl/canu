@@ -37,8 +37,10 @@ int32  REPEAT_OVERLAP_MIN    = 50;
 
 #define REPEAT_CONSISTENT 3.0
 
-#undef DUMP_READ_COVERAGE
-#undef DUMP_ERROR_PROFILE
+#undef  SHOW_ANNOTATION_RAW    //  Show all overlaps used to annotate reads
+
+#undef  DUMP_READ_COVERAGE
+#undef  DUMP_ERROR_PROFILE
 
 //  Each evidence read picks its single best overlap to tig (based on overlaps to reads in the tig).
 //  Filter out evidence that aligns at erate higher than expected.
@@ -353,17 +355,21 @@ annotateRepeatsOnRead(UnitigVector          &unitigs,
     //  Filter overlaps that are higher error than expected.
 
     if (tgA->overlapConsistentWithTig(REPEAT_CONSISTENT, tigbgn, tigend, ovl[oi].erate) < 0.5) {
+#ifdef SHOW_ANNOTATION_RAW
       writeLog("tig %u read %u %u-%u OVERLAP from tig %u read %u %u-%u at tigpos %u-%u erate %f FILTER\n",
                tgAid, rdA->ident, rdAlo, rdAhi,
                tgBid, rdBid, rdBlo, rdBhi,
                tigbgn, tigend, ovl[oi].erate);
+#endif
       continue;
     }
 
+#ifdef SHOW_ANNOTATION_RAW
     writeLog("tig %u read %u %u-%u OVERLAP from tig %u read %u %u-%u at tigpos %u-%u erate %f\n",
              tgAid, rdA->ident, rdAlo, rdAhi,
              tgBid, rdBid, rdBlo, rdBhi,
              tigbgn, tigend, ovl[oi].erate);
+#endif
 
     readOlaps.push_back(olapDat(tigbgn, tigend, tgBid, rdBid));
   }
@@ -544,7 +550,33 @@ markRepeatReads(UnitigVector &unitigs,
       bool        discarded = false;
 
       for (uint32 ri=0; ri<tigMarksR.numberOfIntervals(); ri++) {
-        if ((frglo + MIN_ANCHOR_HANG <= tigMarksR.lo(ri)) && (tigMarksR.hi(ri) + MIN_ANCHOR_HANG <= frghi)) {
+        bool   spanLo = false;
+        bool   spanHi = false;
+
+        //  The decision of 'spanned by a read' is broken into two pieces: does the read span the
+        //  lower (higher) boundary of the region.  To be spanned, the boundary needs to be spanned
+        //  by at least MIN_ANCHOR_HANG additional bases (to anchor the read to non-repeat
+        //  sequence).
+        //
+        //  This is a problem at the start/end of the tig, beacuse no read will extend past the
+        //  start/end of the tig.  Instead, if the repeat is contained within the first (last) read
+        //  with no extension at the respective end, it is spanned.
+
+        if ((frglo == 0) &&
+            (tigMarksR.hi(ri) + MIN_ANCHOR_HANG <= frghi))
+          spanLo = spanHi = true;
+
+        if ((frghi == tig->getLength()) &&
+            (frglo + MIN_ANCHOR_HANG <= tigMarksR.lo(ri)))
+          spanLo = spanHi = true;
+
+        if (frglo + MIN_ANCHOR_HANG <= tigMarksR.lo(ri))
+          spanLo = true;
+
+        if (tigMarksR.hi(ri) + MIN_ANCHOR_HANG <= frghi)
+          spanHi = true;
+
+        if (spanLo && spanHi) {
           writeLog("discard region %8d:%-8d - contained in read %6u %5d-%5d\n",
                    tigMarksR.lo(ri), tigMarksR.hi(ri), frg->ident, frglo, frghi);
 
@@ -609,6 +641,17 @@ markRepeatReads(UnitigVector &unitigs,
         tigMarksR.filterShort(1);
     }
 
+    //  Extend the regions by MIN_ANCHOR_HANG.  This makes checking for reads that span and are
+    //  anchored in the next region easier.  It also solved a quirk when the first/last repeat
+    //  region doesn't extend to the end of the sequence:
+    //    0-183     unique  (created from inversion below, but useless and incorrect)
+    //    183-9942  repeat
+
+    for (uint32 ii=0; ii<tigMarksR.numberOfIntervals(); ii++) {
+      tigMarksR.lo(ii) = max<int32>(tigMarksR.lo(ii) - MIN_ANCHOR_HANG, 0);
+      tigMarksR.hi(ii) = min<int32>(tigMarksR.hi(ii) + MIN_ANCHOR_HANG, tig->getLength());
+    }
+
     //  Find the non-repeat intervals.
 
     tigMarksU = tigMarksR;
@@ -632,23 +675,15 @@ markRepeatReads(UnitigVector &unitigs,
 
     for (uint32 ii=0; ii<tigMarksR.numberOfIntervals(); ii++)
       if (nonRepeatIntervals.count(tigMarksR.lo(ii)) == 0)
-        BP.push_back(breakPointCoords(ti,
-                                      tigMarksR.lo(ii) - MIN_ANCHOR_HANG,
-                                      tigMarksR.hi(ii) + MIN_ANCHOR_HANG,
-                                      true));
+        BP.push_back(breakPointCoords(ti, tigMarksR.lo(ii), tigMarksR.hi(ii), true));
 
     for (uint32 ii=0; ii<tigMarksR.numberOfIntervals(); ii++)
       if (nonRepeatIntervals.count(tigMarksR.lo(ii)) != 0)
-        BP.push_back(breakPointCoords(ti,
-                                      tigMarksR.lo(ii) - MIN_ANCHOR_HANG,
-                                      tigMarksR.hi(ii) + MIN_ANCHOR_HANG,
-                                      true));
+        BP.push_back(breakPointCoords(ti, tigMarksR.lo(ii), tigMarksR.hi(ii), true));
 
-    for (uint32 ii=0; ii<tigMarksU.numberOfIntervals(); ii++)
-      BP.push_back(breakPointCoords(ti,
-                                    tigMarksU.lo(ii) + MIN_ANCHOR_HANG,
-                                    tigMarksU.hi(ii) - MIN_ANCHOR_HANG,
-                                    false));
+    for (uint32 ii=0; ii<tigMarksU.numberOfIntervals(); ii++) {
+      BP.push_back(breakPointCoords(ti, tigMarksU.lo(ii), tigMarksU.hi(ii), false));
+    }
 
     //  If only one region, the whole unitig was declared repeat.  Nothing to do.
 
