@@ -37,7 +37,8 @@ int32  REPEAT_OVERLAP_MIN    = 50;
 
 #define REPEAT_CONSISTENT 3.0
 
-#undef  SHOW_ANNOTATION_RAW    //  Show all overlaps used to annotate reads
+#undef  SHOW_ANNOTATION_RAW             //  Show all overlaps used to annotate reads
+#undef  SHOW_ANNOTATION_RAW_FILTERED    //  Show all overlaps filtered by high error rate
 
 #undef  DUMP_READ_COVERAGE
 #undef  DUMP_ERROR_PROFILE
@@ -354,21 +355,23 @@ annotateRepeatsOnRead(UnitigVector          &unitigs,
 
     //  Filter overlaps that are higher error than expected.
 
-    if (tgA->overlapConsistentWithTig(REPEAT_CONSISTENT, tigbgn, tigend, ovl[oi].erate) < 0.5) {
-#ifdef SHOW_ANNOTATION_RAW
-      writeLog("tig %u read %u %u-%u OVERLAP from tig %u read %u %u-%u at tigpos %u-%u erate %f FILTER\n",
+    double   consistent = tgA->overlapConsistentWithTig(REPEAT_CONSISTENT, tigbgn, tigend, ovl[oi].erate);
+
+    if (consistent < 0.5) {
+#ifdef SHOW_ANNOTATION_RAW_FILTERED
+      writeLog("tig %6u read %7u %8u-%8u OVERLAP from tig %6u read %7u %8u-%8u at tigpos %8u-%8u erate %.6f consistent %.4f FILTERED\n",
                tgAid, rdA->ident, rdAlo, rdAhi,
                tgBid, rdBid, rdBlo, rdBhi,
-               tigbgn, tigend, ovl[oi].erate);
+               tigbgn, tigend, ovl[oi].erate, consistent);
 #endif
       continue;
     }
 
 #ifdef SHOW_ANNOTATION_RAW
-    writeLog("tig %u read %u %u-%u OVERLAP from tig %u read %u %u-%u at tigpos %u-%u erate %f\n",
+    writeLog("tig %6u read %7u %8u-%8u OVERLAP from tig %6u read %7u %8u-%8u at tigpos %8u-%8u erate %.6f consistent %.4f\n",
              tgAid, rdA->ident, rdAlo, rdAhi,
              tgBid, rdBid, rdBlo, rdBhi,
-             tigbgn, tigend, ovl[oi].erate);
+             tigbgn, tigend, ovl[oi].erate, consistent);
 #endif
 
     readOlaps.push_back(olapDat(tigbgn, tigend, tgBid, rdBid));
