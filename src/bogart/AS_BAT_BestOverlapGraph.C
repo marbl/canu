@@ -43,6 +43,8 @@
 #include "stddev.H"
 
 
+#define PATH_CONSISTENT 5.0
+
 
 #if 0
 void
@@ -170,7 +172,7 @@ BestOverlapGraph::removeHighErrorBestEdges(void) {
   _stddev = edgeStats.stddev();
 
   writeLog("removeHighErrorBestEdges()-- with %u points - mean %f stddev %f -- would use overlaps below %f fraction error\n",
-           edgeStats.size(), _mean, _stddev, _mean + 5 * _stddev);
+           edgeStats.size(), _mean, _stddev, _mean + PATH_CONSISTENT * _stddev);
 
   //  Find the median and absolute deviations.
 
@@ -194,7 +196,7 @@ BestOverlapGraph::removeHighErrorBestEdges(void) {
   delete [] erates;
 
   writeLog("removeHighErrorBestEdges()-- with %u points - median %f mad %f - would use overlaps below %f fraction error\n",
-           edgeStats.size(), _median, _mad, _median + 5 * 1.4826 * _mad);
+           edgeStats.size(), _median, _mad, _median + PATH_CONSISTENT * 1.4826 * _mad);
 
   //  The real filtering is done on the next pass through findEdges().  Here, we just report statistics.
 
@@ -208,14 +210,14 @@ BestOverlapGraph::removeHighErrorBestEdges(void) {
 
     if      (b5->fragId() == 0)
       noedge++;
-    else if (b5->erate() > _mean + 5 * _stddev)
+    else if (b5->erate() > _mean + PATH_CONSISTENT * _stddev)
       removed++;
     else
       retained++;
 
     if      (b3->fragId() == 0)
       noedge++;
-    else if (b3->erate() > _mean + 5 * _stddev)
+    else if (b3->erate() > _mean + PATH_CONSISTENT * _stddev)
       removed++;
     else
       retained++;
@@ -823,8 +825,8 @@ BestOverlapGraph::isOverlapBadQuality(const BAToverlap& olap) {
   //  it is reset to the mean and stddev of selected best edges.
   //
 
-  double Tstddev = _mean   + 5 * _stddev;
-  double Tmad    = _median + 5 * 1.4826 * _mad;
+  double Tstddev = _mean   + PATH_CONSISTENT * _stddev;
+  double Tmad    = _median + PATH_CONSISTENT * 1.4826 * _mad;
 
   if (olap.erate <= Tmad || (Tmad == 0 && olap.erate <= Tstddev)) {
     if ((enableLog == true) && (logFileFlags & LOG_OVERLAP_QUALITY))
