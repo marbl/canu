@@ -319,8 +319,8 @@ double
 Unitig::overlapConsistentWithTig(double deviations,
                                  uint32 bgn, uint32 end,
                                  double erate) {
-  uint32  nBelow = 0;
-  uint32  nAbove = 0;
+  int32  nBelow = 0;
+  int32  nAbove = 0;
 
   assert(bgn <  end);
   assert(bgn <  getLength());
@@ -420,17 +420,18 @@ Unitig::overlapConsistentWithTig(double deviations,
   assert(bgn >= errorProfile[pb].bgn);
   assert(errorProfile[pe].end >= end);
 
-  if (erate <= errorProfile[pb].max(5))
+  if (erate <= errorProfile[pb].max(deviations))
     nAbove -= bb;
   else
     nBelow -= bb;
 
-
-  if (erate <= errorProfile[pe].max(5))
+  if (erate <= errorProfile[pe].max(deviations))
     nAbove -= be;
   else
     nBelow -= be;
 
+  assert(nAbove >= 0);
+  assert(nBelow >= 0);
 
   return((double)nAbove / (nBelow + nAbove));
 }
