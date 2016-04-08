@@ -463,8 +463,8 @@ main (int argc, char * argv []) {
 
   setLogFile(prefix, "placeContains");
 
-  unitigs.computeErrorProfiles(prefix, "unplaced");
-  unitigs.reportErrorProfiles(prefix, "unplaced");
+  unitigs.computeErrorProfiles(prefix, "initial");
+  unitigs.reportErrorProfiles(prefix, "initial");
 
   placeUnplacedUsingAllOverlaps(unitigs, prefix, erateBubble);
 
@@ -476,8 +476,8 @@ main (int argc, char * argv []) {
 
   setLogFile(prefix, "popBubbles");
 
-  unitigs.computeErrorProfiles(prefix, "bubbles");
-  //unitigs.reportErrorProfiles(prefix, "bubbles");
+  unitigs.computeErrorProfiles(prefix, "unplaced");
+  //unitigs.reportErrorProfiles(prefix, "unplaced");
 
   popBubbles(unitigs,
              erateGraph, erateBubble, erateMerge, erateRepeat,
@@ -556,8 +556,8 @@ if (newBreaking == false) {
 
   breakSingletonTigs(unitigs);
 
-  //unitigs.computeErrorProfiles(prefix, "cleanup");
-  //unitigs.reportErrorProfiles(prefix, "cleanup");
+  //unitigs.computeErrorProfiles(prefix, "final");
+  //unitigs.reportErrorProfiles(prefix, "final");
 
   //placeUnplacedUsingAllOverlaps(unitigs, prefix, erateBubble);
 
