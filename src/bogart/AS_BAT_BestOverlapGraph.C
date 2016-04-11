@@ -296,6 +296,7 @@ BestOverlapGraph::removeLopsidedEdges(void) {
                fi,
                this5->fragId(), that5->fragId(),
                this3->fragId(), that3->fragId());
+#pragma omp critical (suspInsert)
       _suspicious.insert(fi);
       continue;
     }
@@ -606,7 +607,7 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
 
   if ((BC) && (BE) && (BS)) {
     fprintf(BC, "#fragId\tlibId\tbestCont\teRate\n");
-    fprintf(BE, "#fragId\tlibId\tbest5iid\tbest5end\tbest3iid\tbest3end\teRate5\teRate3\n");
+    fprintf(BE, "#fragId\tlibId\tbest5iid\tbest5end\tbest3iid\tbest3end\teRate5\teRate3\tbest5len\tbest3len\n");
     fprintf(BS, "#fragId\tlibId\n");
 
     for (uint32 id=1; id<FI->numFragments() + 1; id++) {
@@ -623,19 +624,23 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
       }
 
       else if (_suspicious.count(id) > 0) {
-        fprintf(SS, "%u\t%u\t%u\t%c'\t%u\t%c'\t%6.4f\t%6.4f\n", id, FI->libraryIID(id),
+        fprintf(SS, "%u\t%u\t%u\t%c'\t%u\t%c'\t%6.4f\t%6.4f\t%u\t%u\n", id, FI->libraryIID(id),
                 bestedge5->fragId(), bestedge5->frag3p() ? '3' : '5',
                 bestedge3->fragId(), bestedge3->frag3p() ? '3' : '5',
                 AS_OVS_decodeEvalue(bestedge5->evalue()),
-                AS_OVS_decodeEvalue(bestedge3->evalue()));
+                AS_OVS_decodeEvalue(bestedge3->evalue()),
+                (bestedge5->fragId() == 0 ? 0 : FI->overlapLength(id, bestedge5->fragId(), bestedge5->ahang(), bestedge5->bhang())),
+                (bestedge3->fragId() == 0 ? 0 : FI->overlapLength(id, bestedge3->fragId(), bestedge3->ahang(), bestedge3->bhang())));
       }
 
       else {
-        fprintf(BE, "%u\t%u\t%u\t%c'\t%u\t%c'\t%6.4f\t%6.4f\n", id, FI->libraryIID(id),
+        fprintf(BE, "%u\t%u\t%u\t%c'\t%u\t%c'\t%6.4f\t%6.4f\t%u\t%u\n", id, FI->libraryIID(id),
                 bestedge5->fragId(), bestedge5->frag3p() ? '3' : '5',
                 bestedge3->fragId(), bestedge3->frag3p() ? '3' : '5',
                 AS_OVS_decodeEvalue(bestedge5->evalue()),
-                AS_OVS_decodeEvalue(bestedge3->evalue()));
+                AS_OVS_decodeEvalue(bestedge3->evalue()),
+                (bestedge5->fragId() == 0 ? 0 : FI->overlapLength(id, bestedge5->fragId(), bestedge5->ahang(), bestedge5->bhang())),
+                (bestedge3->fragId() == 0 ? 0 : FI->overlapLength(id, bestedge3->fragId(), bestedge3->ahang(), bestedge3->bhang())));
       }
     }
 
