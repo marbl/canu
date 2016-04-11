@@ -179,7 +179,7 @@ main (int argc, char **argv) {
       //  Handle insertion.
 
       if (tig->numberOfChildren() > 0) {
-        fprintf(stderr, "INSERTING tig %d\n", tig->tigID());
+        //fprintf(stderr, "INSERTING tig %d\n", tig->tigID());
         tigStore->insertTig(tig, false);
         continue;
       }
@@ -187,13 +187,13 @@ main (int argc, char **argv) {
       //  Deleted already?
 
       if (tigStore->isDeleted(tig->tigID()) == true) {
-        fprintf(stderr, "DELETING tig %d -- ALREADY DELETED\n", tig->tigID());
+        //fprintf(stderr, "DELETING tig %d -- ALREADY DELETED\n", tig->tigID());
         continue;
       }
 
       //  Really delete it then.
 
-      fprintf(stderr, "DELETING tig %d\n", tig->tigID());
+      //fprintf(stderr, "DELETING tig %d\n", tig->tigID());
       tigStore->deleteTig(tig->tigID());
     }
 
