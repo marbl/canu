@@ -461,19 +461,22 @@ main (int argc, char * argv []) {
   //  Place contained reads.
   //
 
+#if 1
   setLogFile(prefix, "placeContains");
 
   unitigs.computeErrorProfiles(prefix, "initial");
-  unitigs.reportErrorProfiles(prefix, "initial");
+  //unitigs.reportErrorProfiles(prefix, "initial");
 
   placeUnplacedUsingAllOverlaps(unitigs, prefix, erateBubble);
 
   reportUnitigs(unitigs, prefix, "placeContains", genomeSize);
+#endif
 
   //
   //  Pop bubbles
   //
 
+#if 1
   setLogFile(prefix, "popBubbles");
 
   unitigs.computeErrorProfiles(prefix, "unplaced");
@@ -488,6 +491,7 @@ main (int argc, char * argv []) {
   //checkUnitigMembership(unitigs);
   reportOverlapsUsed(unitigs, prefix, "popBubbles");
   reportUnitigs(unitigs, prefix, "popBubbles", genomeSize);
+#endif
 
   //
   //  Detect and break repeats

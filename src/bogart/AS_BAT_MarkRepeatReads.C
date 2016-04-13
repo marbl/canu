@@ -36,8 +36,9 @@ uint32 MIN_ANCHOR_HANG       = 500;   //  Require reads to be anchored by this m
 int32  REPEAT_OVERLAP_MIN    = 50;
 
 #define REPEAT_CONSISTENT 3.0
+#define REPEAT_FRACTION   0.5
 
-#undef  SHOW_ANNOTATION_RAW             //  Show all overlaps used to annotate reads
+#define SHOW_ANNOTATION_RAW             //  Show all overlaps used to annotate reads
 #undef  SHOW_ANNOTATION_RAW_FILTERED    //  Show all overlaps filtered by high error rate
 
 #undef  DUMP_READ_COVERAGE
@@ -308,6 +309,10 @@ annotateRepeatsOnRead(UnitigVector          &unitigs,
         (unitigs[tgBid]->ufpath.size() == 1))
       continue;
 
+    //  If the read is in an annotated bubble, skip.
+    if (unitigs[tgBid]->_isBubble)
+      continue;
+
     //  If the overlap is to a container read, skip it.
     if ((ovl[oi].a_hang < 0) && (ovl[oi].b_hang > 0))
       continue;
@@ -357,7 +362,7 @@ annotateRepeatsOnRead(UnitigVector          &unitigs,
 
     double   consistent = tgA->overlapConsistentWithTig(REPEAT_CONSISTENT, tigbgn, tigend, ovl[oi].erate);
 
-    if (consistent < 0.5) {
+    if (consistent < REPEAT_FRACTION) {
 #ifdef SHOW_ANNOTATION_RAW_FILTERED
       writeLog("tig %6u read %7u %8u-%8u OVERLAP from tig %6u read %7u %8u-%8u at tigpos %8u-%8u erate %.6f consistent %.4f FILTERED\n",
                tgAid, rdA->ident, rdAlo, rdAhi,
