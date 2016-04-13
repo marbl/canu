@@ -99,7 +99,6 @@ writeUnitigsToStore(UnitigVector  &unitigs,
   uint32      frg_count              = 0;
   uint32      prt_count              = 1;
   char        filename[FILENAME_MAX] = {0};
-  uint32     *partmap                = new uint32 [unitigs.size()];
 
   //  This code closely follows that in AS_CGB_unitigger.c::output_the_chunks()
 
