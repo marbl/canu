@@ -38,16 +38,6 @@
 #include "AS_BAT_BestOverlapGraph.H"
 #include "AS_BAT_Unitig.H"
 
-#include "AS_BAT_IntersectSplit.H"
-
-
-void
-mergeBubbles(UnitigVector     &unitigs,
-             double            erateBubble,
-             Unitig           *target,
-             intersectionList *ilist);
-
-
 void
 popBubbles(UnitigVector &unitigs,
            double erateGraph, double erateBubble, double erateMerge, double erateRepeat,

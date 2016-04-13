@@ -50,9 +50,10 @@
 
 #include "AS_BAT_PopBubbles.H"
 #include "AS_BAT_MarkRepeatReads.H"
-#include "AS_BAT_BreakRepeats.H"
 
 #include "AS_BAT_SplitDiscontinuous.H"
+
+#include "AS_BAT_PromoteToSingleton.H"
 
 #include "AS_BAT_SetParentAndHang.H"
 #include "AS_BAT_Outputs.H"
@@ -62,10 +63,6 @@ FragmentInfo     *FI  = 0L;
 OverlapCache     *OC  = 0L;
 BestOverlapGraph *OG  = 0L;
 ChunkGraph       *CG  = 0L;
-
-extern uint32 SPURIOUS_COVERAGE_THRESHOLD;
-extern uint32 ISECT_NEEDED_TO_BREAK;
-extern uint32 REGION_END_WEIGHT;
 
 int
 main (int argc, char * argv []) {
@@ -103,8 +100,6 @@ main (int argc, char * argv []) {
 
   bool      enableShatterRepeats     = false;
   bool      enableReconstructRepeats = false;
-
-  bool      newBreaking              = false;
 
   uint32    minReadLen               = 0;
   uint32    minOverlap               = 40;
@@ -146,15 +141,6 @@ main (int argc, char * argv []) {
     } else if (strcmp(argv[arg], "-R") == 0) {
       enableShatterRepeats     = true;
       enableReconstructRepeats = true;
-
-    } else if (strcmp(argv[arg], "-repeatdetect") == 0) {
-      //  HACK
-      SPURIOUS_COVERAGE_THRESHOLD  = atoi(argv[++arg]);
-      ISECT_NEEDED_TO_BREAK        = atoi(argv[++arg]);
-      REGION_END_WEIGHT            = atoi(argv[++arg]);
-
-    } else if (strcmp(argv[arg], "-newSplitting") == 0) {
-       newBreaking = true;
 
     } else if (strcmp(argv[arg], "-unassembled") == 0) {
       fewReadsNumber  = atoi(argv[++arg]);
@@ -380,10 +366,6 @@ main (int argc, char * argv []) {
   fprintf(stderr, "\n");
   fprintf(stderr, "Minimum overlap length = %u bases\n", minOverlap);
   fprintf(stderr, "\n");
-  fprintf(stderr, "SPURIOUS_COVERAGE_THRESHOLD  "F_U32"\n", SPURIOUS_COVERAGE_THRESHOLD);
-  fprintf(stderr, "ISECT_NEEDED_TO_BREAK        "F_U32"\n", ISECT_NEEDED_TO_BREAK);
-  fprintf(stderr, "REGION_END_WEIGHT            "F_U32"\n", REGION_END_WEIGHT);
-  fprintf(stderr, "\n");
 
   if (numThreads > 0) {
     omp_set_num_threads(numThreads);
@@ -494,16 +476,10 @@ main (int argc, char * argv []) {
 #endif
 
   //
-  //  Detect and break repeats
-  //
-
-
-  //
-  //  Newer style breaking.  Annotate each read with overlaps to reads not overlapping in the tig,
+  //  Detect and break repeats.  Annotate each read with overlaps to reads not overlapping in the tig,
   //  project these regions back to the tig, and break unless there is a read spanning the region.
   //
 
-if (newBreaking == true) {
   setLogFile(prefix, "markRepeatReads");
 
   unitigs.computeErrorProfiles(prefix, "repeats");
@@ -513,31 +489,12 @@ if (newBreaking == true) {
   //checkUnitigMembership(unitigs);
   reportOverlapsUsed(unitigs, prefix, "markRepeatReads");
   reportUnitigs(unitigs, prefix, "markRepeatReads", genomeSize);
-}
 
-  //
-  //  Older style breaking.  Use unused overlaps to mark regions in tigs as repetitive, break unless
-  //  there is evidence to hold them together.
-  //
-
-if (newBreaking == false) {
-  setLogFile(prefix, "breakRepeats");
-
-  breakRepeats(unitigs,
-               erateGraph, erateBubble, erateMerge, erateRepeat,
-               prefix,
-               minOverlap,
-               enableShatterRepeats,
-               genomeSize);
-
-  //checkUnitigMembership(unitigs);
-  reportOverlapsUsed(unitigs, prefix, "breakRepeats");
-  reportUnitigs(unitigs, prefix, "breakRepeats", genomeSize);
-}
   //
   //  Try to reassemble just the split repeats.
   //
 
+#if 0
   if (enableReconstructRepeats) {
     assert(enableShatterRepeats);
     setLogFile(prefix, "reconstructRepeats");
@@ -548,6 +505,7 @@ if (newBreaking == false) {
     reportOverlapsUsed(unitigs, prefix, "reconstructRepeats");
     reportUnitigs(unitigs, prefix, "reconstructRepeats", genomeSize);
   }
+#endif
 
   //
   //  Cleanup unitigs.  Break those that have gaps in them.  Place contains again.  For any read

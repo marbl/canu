@@ -31,30 +31,9 @@
  *  full conditions and disclaimers for each license.
  */
 
-#ifndef INCLUDE_AS_BAT_MERGESPLITJOIN
-#define INCLUDE_AS_BAT_MERGESPLITJOIN
-
-void
-markRepeats(UnitigVector &unitigs,
-            double erateRepeat,
-            Unitig *target,
-            uint32 minOverlap,
-            bool shatterRepeats);
-
-void
-breakRepeats(UnitigVector &unitigs,
-             double erateGraph, double erateBubble, double erateMerge, double erateRepeat,
-             const char *prefix,
-             uint32 minOverlap,
-             bool shatterRepeats,
-             uint64 genomeSize);
-
-void
-reconstructRepeats(UnitigVector &unitigs,
-                   double        erateGraph);
+#ifndef INCLUDE_AS_BAT_PROMOTE_TO_SINGLETON
 
 void
 promoteToSingleton(UnitigVector &unitigs);
 
-
-#endif  //  INCLUDE_AS_BAT_MERGESPLITJOIN
+#endif  //  INCLUDE_AS_BAT_PROMOTE_TO_SINGLETON

@@ -10,12 +10,9 @@ endif
 TARGET   := bogart
 SOURCES  := bogart.C \
             AS_BAT_BestOverlapGraph.C \
-            AS_BAT_BreakRepeats.C \
-            AS_BAT_Breaking.C \
             AS_BAT_ChunkGraph.C \
             AS_BAT_FragmentInfo.C \
             AS_BAT_Instrumentation.C \
-            AS_BAT_IntersectSplit.C \
             AS_BAT_Joining.C \
             AS_BAT_Logging.C \
             AS_BAT_MarkRepeatReads.C \

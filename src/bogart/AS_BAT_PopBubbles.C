@@ -37,7 +37,6 @@
 #include "AS_BAT_PlaceFragUsingOverlaps.H"
 
 #include "AS_BAT_OverlapCache.H"
-#include "AS_BAT_IntersectSplit.H"
 
 #include "AS_BAT_Instrumentation.H"
 
