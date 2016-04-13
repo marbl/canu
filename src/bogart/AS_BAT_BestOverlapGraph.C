@@ -612,7 +612,7 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
   }
 
   if ((BCH) && (BEH)) {
-    double *bc = new double [FI->numFragments() + 1];
+    double *bc = new double [FI->numFragments() + 1 + FI->numFragments() + 1];
     double *be = new double [FI->numFragments() + 1 + FI->numFragments() + 1];
 
     uint32  bcl = 0;
