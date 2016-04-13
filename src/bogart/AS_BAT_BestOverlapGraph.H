@@ -110,7 +110,8 @@ public:
   void setContained(const uint32 fragid) {
     if (_bestA)
       _bestA[fragid]._isC = true;
-    _bestM[fragid]._isC = true;
+    else
+      _bestM[fragid]._isC = true;
   };
 
   bool isContained(const uint32 fragid) {
