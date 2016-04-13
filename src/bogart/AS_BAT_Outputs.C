@@ -100,6 +100,7 @@ unitigToTig(tgTig       *tig,
       continue;
     }
 
+#if 0
     //  Otherwise, find the thickest overlap to any read already placed in the unitig.
 
     uint32         olapsLen = 0;
@@ -183,6 +184,9 @@ unitigToTig(tgTig       *tig,
     }
 
     tig->addChild()->set(frg->ident, olaps[tt].b_iid, ah, bh, frg->position.bgn, frg->position.end);
+#else
+    tig->addChild()->set(frg->ident, 0, 0, 0, frg->position.bgn, frg->position.end);
+#endif
   }
 
   //fprintf(stderr, "unitigToTig()--  tig %u has %u children\n", tig->_tigID, tig->_childrenLen);
