@@ -65,6 +65,14 @@ checkUnitigMembership(UnitigVector &unitigs) {
     for (uint32 fi=0; fi<tig->ufpath.size(); fi++) {
       ufNode  *frg = &tig->ufpath[fi];
 
+      if (frg->ident > FI->numFragments())
+        fprintf(stderr, "tig %u ufpath[%d] ident %u more than number of reads %u\n",
+                tig->id(), fi, frg->ident, FI->numFragments());
+
+      if (inUnitig[frg->ident] != noUnitig)
+        fprintf(stderr, "tig %u ufpath[%d] ident %u placed multiple times\n",
+                tig->id(), fi, frg->ident);
+
       assert(frg->ident <= FI->numFragments());   //  Can't be out of range.
       assert(inUnitig[frg->ident] == noUnitig);   //  Read must be not placed yet.
 
