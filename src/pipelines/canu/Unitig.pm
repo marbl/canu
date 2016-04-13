@@ -232,7 +232,6 @@ sub unitig ($$) {
         print F " -M "              . getGlobal("batMemory")          . " \\\n"   if (defined(getGlobal("batMemory")));
         print F " "                 . getGlobal("batOptions")         . " \\\n"   if (defined(getGlobal("batOptions")));
         print F " -unassembled "    . getGlobal("contigFilter")       . " \\\n"   if (defined(getGlobal("contigFilter")));
-        print F " -repeatdetect 6 " . $genomeCoverage . " 15"         . " \\\n"   if (defined($genomeCoverage));
         print F " -el "             . $overlapLength                  . " \\\n";
         print F " > $wrk/4-unitigger/unitigger.err 2>&1 \\\n";
         print F "&& \\\n";
