@@ -116,12 +116,6 @@ BestOverlapGraph::removeHighErrorBestEdges(void) {
 
   stdDev<double>  edgeStats;
 
-  BAToverlap  *b5ovl = new BAToverlap [fiLimit + 1];
-  BAToverlap  *b3ovl = new BAToverlap [fiLimit + 1];
-
-  memset(b5ovl, 0, sizeof(BAToverlap) * (fiLimit + 1));
-  memset(b3ovl, 0, sizeof(BAToverlap) * (fiLimit + 1));
-
   //  Find the overlap for every best edge.
 
   double  *erates    = new double [fiLimit + 1 + fiLimit + 1];
