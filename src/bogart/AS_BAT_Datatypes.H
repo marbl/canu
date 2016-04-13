@@ -260,52 +260,6 @@ private:
 #error not enough bits to store overlaps.  decrease AS_MAX_EVALUE_BITS or AS_MAX_READLEN_BITS.
 #endif
 
-//#error finish adding _evalue support to BestEdgeOVerlap and BestContainment
-
-
-// Contains what kind of containment relationship exists between fragment a and fragment b
-//
-class BestContainment{
-public:
-  BestContainment() {
-    clear();
-  };
-  ~BestContainment() {
-  };
-
-  void    clear(void) {
-    container       = 0;
-    isContained     = false;
-    sameOrientation = false;
-    a_hang          = 0;
-    b_hang          = 0;
-  };
-
-#if 0
-  uint32  fragId(void)  const { return(_id); };
-  bool    frag3p(void)  const { return(_e3p == true);  };
-  bool    frag5p(void)  const { return(_e3p == false); };
-
-  int32   ahang(void)   const { return(_ahang); };
-  int32   bhang(void)   const { return(_bhang); };
-#endif
-
-  uint32  evalue(void)  const { return(_evalue); };
-  double  erate(void)   const { return(AS_OVS_decodeEvalue(_evalue)); };
-
-
-  uint32  container;
-  uint64  isContained     : 1;
-  uint64  sameOrientation : 1;
-  int64   a_hang          : AS_MAX_READLEN_BITS+1;
-  int64   b_hang          : AS_MAX_READLEN_BITS+1;
-  uint64  _evalue          : AS_MAX_EVALUE_BITS;
-};
-
-#if (1 + 1 + AS_MAX_READLEN_BITS + 1 + AS_MAX_READLEN_BITS + 1 + AS_MAX_EVALUE_BITS > 64)
-#error not enough bits to store overlaps.  decrease AS_MAX_EVALUE_BITS or AS_MAX_READLEN_BITS.
-#endif
-
 
 
 class FragmentInfo {

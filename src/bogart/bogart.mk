@@ -15,7 +15,6 @@ SOURCES  := bogart.C \
             AS_BAT_ChunkGraph.C \
             AS_BAT_FragmentInfo.C \
             AS_BAT_Instrumentation.C \
-            AS_BAT_IntersectBubble.C \
             AS_BAT_IntersectSplit.C \
             AS_BAT_Joining.C \
             AS_BAT_Logging.C \

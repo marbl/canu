@@ -45,7 +45,7 @@ class BestOverlaps {
 public:
   BestEdgeOverlap     _best5;
   BestEdgeOverlap     _best3;
-  BestContainment     _bestC;
+  uint32              _isC;
 };
 
 
@@ -54,12 +54,12 @@ public:
   BestScores() {
     _best5score = 0;
     _best3score = 0;
-    _bestCscore = 0;
+    _isC        = 0;
   };
 
   uint64  _best5score;
   uint64  _best3score;
-  uint64  _bestCscore;
+  uint32  _isC;
 };
 
 
@@ -107,21 +107,20 @@ public:
     return(FragmentEnd(edge->fragId(), !edge->frag3p()));
   };
 
+  void setContained(const uint32 fragid) {
+    if (_bestA)
+      _bestA[fragid]._isC = true;
+    _bestM[fragid]._isC = true;
+  };
+
   bool isContained(const uint32 fragid) {
     if (_bestA)
-      return(_bestA[fragid]._bestC.isContained);
-    return(_bestM[fragid]._bestC.isContained);
+      return(_bestA[fragid]._isC);
+    return(_bestM[fragid]._isC);
   };
 
   bool isSuspicious(const uint32 fragid) {
     return(_suspicious.count(fragid) > 0);
-  };
-
-  // Given a containee, returns pointer to BestContainment record
-  BestContainment *getBestContainer(const uint32 fragid) {
-    if (_bestA)
-      return(&_bestA[fragid]._bestC);
-    return(&_bestM[fragid]._bestC);
   };
 
   void      reportBestEdges(const char *prefix, const char *label);
@@ -136,12 +135,6 @@ private:
   void     scoreEdge(const BAToverlap& olap);
 
 private:
-  uint64  &bestCscore(uint32 id) {
-    if (_restrictEnabled == false)
-      return(_scorA[id]._bestCscore);
-    return(_scorM[id]._bestCscore);
-  };
-
   uint64  &best5score(uint32 id) {
     if (_restrictEnabled == false)
       return(_scorA[id]._best5score);

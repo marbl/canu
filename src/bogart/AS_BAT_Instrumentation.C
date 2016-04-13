@@ -145,17 +145,10 @@ reportOverlapsUsed(UnitigVector &unitigs, const char *prefix, const char *name) 
         int oooend = MAX(ooo->position.bgn, ooo->position.end);
 
         if ((frgbgn <= ooobgn) && (ooobgn + 40 < frgend)) {
-          BestContainment *bestcont  = OG->getBestContainer(ooo->ident);
-
-          uint32           bestident  = 0;
-          if (bestcont->isContained)
-            bestident = bestcont->container;
-
-          bool isBest = ((frg->ident == bestident) ||
-                         (ooo->ident == bestident5) ||
+          bool isBest = ((ooo->ident == bestident5) ||
                          (ooo->ident == bestident3));
 
-          fprintf(F, "%d\t%d%s\n", frg->ident, ooo->ident, (isBest) ? ((bestident) ? "\tbc" : "\tbe") : "");
+          fprintf(F, "%d\t%d%s\n", frg->ident, ooo->ident, (isBest) ? "\tbest" : "");
         }
 
         if (frgend < ooobgn)

@@ -68,44 +68,7 @@ setParentAndHang(UnitigVector &unitigs) {
     for (uint32 fi=0; fi<utg->ufpath.size(); fi++) {
       ufNode *frg  = &utg->ufpath[fi];
 
-      //  If we're contained, gee, I sure hope the container is here!
-
-      BestContainment *bestcont  = OG->getBestContainer(frg->ident);
-
-      if (bestcont->isContained == true) {
-        if (utg->fragIn(bestcont->container) == utg->id()) {
-          int32   pi   = utg->pathPosition(bestcont->container);
-          ufNode *par  = &utg->ufpath[pi];
-
-          assert(par->ident == bestcont->container);
-
-          frg->parent = par->ident;
-
-          //  The hangs assume the container is forward; adjust if not so.
-          if (par->position.bgn < par->position.end) {
-            frg->ahang  = bestcont->a_hang;
-            frg->bhang  = bestcont->b_hang;
-          } else {
-            frg->ahang  = -bestcont->b_hang;
-            frg->bhang  = -bestcont->a_hang;
-          }
-
-          if (logFileFlags & LOG_SET_PARENT_AND_HANG)
-            writeLog("setParentAndHang()--  CONTAINED - frag %d at %d,%d edge to cont frag %d at %d,%d -- hang %d,%d\n",
-                    frg->ident, frg->position.bgn, frg->position.end,
-                    par->ident, par->position.bgn, par->position.end,
-                    frg->ahang, frg->bhang);
-        } else {
-          if (logFileFlags & LOG_SET_PARENT_AND_HANG)
-            writeLog("setParentAndHang()--  CONTAINED - frag %d at %d,%d edge to cont frag %d IN DIFFERENT UNITIG %d\n",
-                    frg->ident, frg->position.bgn, frg->position.end,
-                    bestcont->container, utg->fragIn(bestcont->container));
-        }
-
-        continue;
-      }
-
-      //  Nope, not contained.  If we don't have a parent set, see if one of our best overlaps
+      //  If we don't have a parent set, see if one of our best overlaps
       //  can set it.
 
       BestEdgeOverlap *bestedge5 = OG->getBestEdgeOverlap(frg->ident, false);

@@ -46,38 +46,6 @@
 #define PATH_CONSISTENT 5.0
 
 
-#if 0
-void
-getOverlapForBestEdge(uint32 fi, BestEdgeOverlap *edge, BAToverlap &olap) {
-  uint32       no    = 0;
-  BAToverlap  *ovl   = OC->getOverlaps(fi, AS_MAX_EVALUE, no);
-
-  for (uint32 ii=0; ii<no; ii++)
-    if (ovl[ii].b_iid == edge->fragId())
-      olap = ovl[ii];
-}
-
-
-
-void
-getOverlapForBestEdges(uint32 fi,
-                       BestEdgeOverlap *e5, BAToverlap &ovl5,
-                       BestEdgeOverlap *e3, BAToverlap &ovl3) {
-  uint32       no    = 0;
-  BAToverlap  *ovl   = OC->getOverlaps(fi, AS_MAX_EVALUE, no);
-
-  for (uint32 ii=0; ii<no; ii++) {
-    if ((e5->fragId() == ovl[ii].b_iid) &&
-        (e5->frag3p() == AS_BAT_overlapBEndIs3prime(ovl[ii])))
-      ovl5 = ovl[ii];
-
-    if ((e3->fragId() == ovl[ii].b_iid) &&
-        (e3->frag3p() == AS_BAT_overlapBEndIs3prime(ovl[ii])))
-      ovl3 = ovl[ii];
-  }
-}
-#endif
-
 
 
 void
@@ -440,9 +408,8 @@ BestOverlapGraph::BestOverlapGraph(double               erate,
 
   setLogFile(prefix, "bestOverlapGraph");
 
-  writeLog("BestOverlapGraph-- allocating best edges ("F_SIZE_T"MB) and containments ("F_SIZE_T"MB)\n",
-           ((2 * sizeof(BestEdgeOverlap) * (FI->numFragments() + 1)) >> 20),
-           ((1 * sizeof(BestContainment) * (FI->numFragments() + 1)) >> 20));
+  writeLog("BestOverlapGraph-- allocating best edges ("F_SIZE_T"MB)\n",
+           ((2 * sizeof(BestEdgeOverlap) * (FI->numFragments() + 1)) >> 20));
 
   _bestA           = new BestOverlaps [FI->numFragments() + 1];  //  Cleared in findEdges()
   _scorA           = new BestScores   [FI->numFragments() + 1];
@@ -592,12 +559,11 @@ BestOverlapGraph::BestOverlapGraph(double               erate,
 void
 BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
   char  N[FILENAME_MAX];
-  FILE *BC = NULL, *BCH = NULL;
+  FILE             *BCH = NULL;
   FILE *BE = NULL, *BEH = NULL;
   FILE *BS = NULL;
   FILE *SS = NULL;
 
-  sprintf(N, "%s.%s.contains",         prefix, label);   BC = fopen(N, "w");
   sprintf(N, "%s.%s.edges",            prefix, label);   BE = fopen(N, "w");
   sprintf(N, "%s.%s.singletons",       prefix, label);   BS = fopen(N, "w");
   sprintf(N, "%s.%s.edges.suspicious", prefix, label);   SS = fopen(N, "w");
@@ -605,46 +571,41 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
   sprintf(N, "%s.%s.contains.histogram",  prefix, label);   BCH = fopen(N, "w");
   sprintf(N, "%s.%s.edges.histogram",     prefix, label);   BEH = fopen(N, "w");
 
-  if ((BC) && (BE) && (BS)) {
-    fprintf(BC, "#fragId\tlibId\tbestCont\teRate\n");
+  if ((BE) && (BS)) {
     fprintf(BE, "#fragId\tlibId\tbest5iid\tbest5end\tbest3iid\tbest3end\teRate5\teRate3\tbest5len\tbest3len\n");
     fprintf(BS, "#fragId\tlibId\n");
 
     for (uint32 id=1; id<FI->numFragments() + 1; id++) {
-      BestContainment *bestcont  = getBestContainer(id);
       BestEdgeOverlap *bestedge5 = getBestEdgeOverlap(id, false);
       BestEdgeOverlap *bestedge3 = getBestEdgeOverlap(id, true);
 
-      if (bestcont->isContained) {
-        fprintf(BC, "%u\t%u\t%u\t%6.4f\n", id, FI->libraryIID(id), bestcont->container, bestcont->erate());
-      }
-
-      else if ((bestedge5->fragId() == 0) && (bestedge3->fragId() == 0)) {
+      if ((bestedge5->fragId() == 0) && (bestedge3->fragId() == 0)) {
         fprintf(BS, "%u\t%u\n", id, FI->libraryIID(id));
       }
 
       else if (_suspicious.count(id) > 0) {
-        fprintf(SS, "%u\t%u\t%u\t%c'\t%u\t%c'\t%6.4f\t%6.4f\t%u\t%u\n", id, FI->libraryIID(id),
-                bestedge5->fragId(), bestedge5->frag3p() ? '3' : '5',
+        fprintf(SS, "%u\t%u\t%u\t%c'\t%u\t%c'\t%6.4f\t%6.4f\t%u\t%u%s\n", id, FI->libraryIID(id),
+          bestedge5->fragId(), bestedge5->frag3p() ? '3' : '5',
                 bestedge3->fragId(), bestedge3->frag3p() ? '3' : '5',
                 AS_OVS_decodeEvalue(bestedge5->evalue()),
                 AS_OVS_decodeEvalue(bestedge3->evalue()),
                 (bestedge5->fragId() == 0 ? 0 : FI->overlapLength(id, bestedge5->fragId(), bestedge5->ahang(), bestedge5->bhang())),
-                (bestedge3->fragId() == 0 ? 0 : FI->overlapLength(id, bestedge3->fragId(), bestedge3->ahang(), bestedge3->bhang())));
+                (bestedge3->fragId() == 0 ? 0 : FI->overlapLength(id, bestedge3->fragId(), bestedge3->ahang(), bestedge3->bhang())),
+                isContained(id) ? "\tcontained" : "");
       }
 
       else {
-        fprintf(BE, "%u\t%u\t%u\t%c'\t%u\t%c'\t%6.4f\t%6.4f\t%u\t%u\n", id, FI->libraryIID(id),
+        fprintf(BE, "%u\t%u\t%u\t%c'\t%u\t%c'\t%6.4f\t%6.4f\t%u\t%u%s\n", id, FI->libraryIID(id),
                 bestedge5->fragId(), bestedge5->frag3p() ? '3' : '5',
                 bestedge3->fragId(), bestedge3->frag3p() ? '3' : '5',
                 AS_OVS_decodeEvalue(bestedge5->evalue()),
                 AS_OVS_decodeEvalue(bestedge3->evalue()),
                 (bestedge5->fragId() == 0 ? 0 : FI->overlapLength(id, bestedge5->fragId(), bestedge5->ahang(), bestedge5->bhang())),
-                (bestedge3->fragId() == 0 ? 0 : FI->overlapLength(id, bestedge3->fragId(), bestedge3->ahang(), bestedge3->bhang())));
+                (bestedge3->fragId() == 0 ? 0 : FI->overlapLength(id, bestedge3->fragId(), bestedge3->ahang(), bestedge3->bhang())),
+                isContained(id) ? "\tcontained" : "");
       }
     }
 
-    fclose(BC);
     fclose(BE);
     fclose(BS);
     fclose(SS);
@@ -658,12 +619,14 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
     uint32  bel = 0;
 
     for (uint32 id=1; id<FI->numFragments() + 1; id++) {
-      BestContainment *bestcont  = getBestContainer(id);
       BestEdgeOverlap *bestedge5 = getBestEdgeOverlap(id, false);
       BestEdgeOverlap *bestedge3 = getBestEdgeOverlap(id, true);
 
-      if (bestcont->isContained) {
-        bc[bcl++] = bestcont->erate();
+      if (isContained(id)) {
+        //bc[bcl++] = bestcont->erate();
+#warning what is the error rate of the 'best contained' overlap?
+        bc[bcl++] = bestedge5->erate();
+        bc[bcl++] = bestedge3->erate();
       }
       else {
         if (bestedge5->fragId() > 0)
@@ -715,29 +678,7 @@ BestOverlapGraph::scoreContainment(const BAToverlap& olap) {
     //  We only save if A is the contained fragment.
     return;
 
-  uint64           newScr = scoreOverlap(olap);
-
-  assert(newScr > 0);
-
-  //  The previous version (1.5) saved if A contained B.  This was breaking the overlap filtering,
-  //  because long A fragments containing short B fragments would have those containment overlaps
-  //  filtered out.  Version 1.6 reversed what is saved here so that the containment overlap is
-  //  associated with the A fragment (the containee).
-  //
-  //  The hangs will transform the container coordinates into the containee cordinates.
-
-  if (newScr > bestCscore(olap.a_iid)) {
-    BestContainment   *c = getBestContainer(olap.a_iid);
-
-    c->container         = olap.b_iid;
-    c->isContained       = true;
-    c->sameOrientation   = olap.flipped ? false : true;
-    c->a_hang            = olap.flipped ? olap.b_hang : -olap.a_hang;
-    c->b_hang            = olap.flipped ? olap.a_hang : -olap.b_hang;
-    c->_evalue            = olap.evalue;
-
-    bestCscore(olap.a_iid) = newScr;
-  }
+  setContained(olap.a_iid);
 }
 
 
