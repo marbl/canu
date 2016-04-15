@@ -82,6 +82,7 @@ tag              values  definition
 ===============  ======  ==========
 len              int     length in bp
 reads            int     number of sequences comprising the contig
+covStat          float   The log of the ratio of the contig being unique vs being two-copy, based on the read arrival rate. Positime means more likely to be unique, negative means more likely to be reptitive. Based on A-stat from the original Celera Assembler `paper <http://science.sciencemag.org/content/287/5461/2196.full#ref-24>`_ 
 suggestRepeat    yes/no  whether the contig is a repetitive element or unique
 suggestCircular  yes/no  currently unused 
 ===============  ======  ==========
