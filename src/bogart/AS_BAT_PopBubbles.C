@@ -52,8 +52,8 @@ using namespace std;
 
 #define BUBBLE_READ_FRACTION  0.5
 
-#define SHOW_PLACEMENT_DETAIL   //  Reports where each bubble read is placed, or if it was ignored for too high error
-
+#undef  SHOW_PLACEMENT_DETAIL     //  Reports where each bubble read is placed, or if it was ignored for too high error
+#undef  SHOW_MULTIPLE_PLACEMENTS  //  Reports reads that are placed multiple times in a single target region
 
 class candidatePop {
 public:
@@ -146,8 +146,7 @@ findPotentialBubbles(UnitigVector    &unitigs,
         readOlapsTo.insert(ovlTigID);
       }
 
-      writeLog("tig %8u read %8u has %u olaps\n", tig->id(), rid, readOlapsTo.size());
-
+      //writeLog("tig %8u read %8u has %u olaps\n", tig->id(), rid, readOlapsTo.size());
 
       //  Transfer the per-read counts to the per-unitig counts:  add one to the counter for each tig
       //  that we have overlaps to.
@@ -175,19 +174,17 @@ findPotentialBubbles(UnitigVector    &unitigs,
 
     //  If not validBubble, report.
 
+#if 0
     if (validBubble == false) {
       writeLog("notValidBubble tig %8d expects %6u reads\n", tig->id(), nonContainedReads);
 
       for (map<uint32,uint32>::iterator it=tigOlapsTo.begin(); it != tigOlapsTo.end(); ++it)
         writeLog("  to tig %8u overlaps %6u\n", it->first, it->second);
     }
+#endif
 
     //  If validBubble, then there is a tig that every dovetail read has at least one overlap to.
     //  Save those tigs in potentialBubbles.
-
-    //  This fails for very tiny bubbles - a three-read tig needs all three reads to pass.
-
-#warning aggressively filtering out small bubbles
 
     if (validBubble) {
       uint32  nTigs = 0;
@@ -196,6 +193,7 @@ findPotentialBubbles(UnitigVector    &unitigs,
         if (it->second >= BUBBLE_READ_FRACTION * nonContainedReads)
           nTigs++;
 
+      writeLog("\n");
       writeLog("potential bubble tig %8u length %9u nReads %7u to %3u tigs:\n",
                tig->id(), tig->getLength(), tig->ufpath.size(), nTigs);
 
@@ -250,7 +248,7 @@ findBubbleReadPlacements(UnitigVector    &unitigs,
     set<uint32> intersections;
 
     if ((fi % 100) == 0)
-      fprintf(stderr, "bubbliness()-- read %8u with %6u overlaps - %6.2f%% finished.\r",
+      fprintf(stderr, "findBubbleReadPlacements()-- read %8u with %6u overlaps - %6.2f%% finished.\r",
               rdA->ident, ovlLen, 100.0 * fi / fiLimit);
 
     //  Compute all placements for this read.
@@ -335,7 +333,9 @@ popBubbles(UnitigVector &unitigs,
 
   findPotentialBubbles(unitigs, erateBubble, potentialBubbles);
 
+  writeLog("\n");
   writeLog("Found "F_SIZE_T" potential bubbles.\n", potentialBubbles.size());
+  writeLog("\n");
 
   vector<overlapPlacement>   *placed = findBubbleReadPlacements(unitigs, potentialBubbles);
 
@@ -458,7 +458,8 @@ popBubbles(UnitigVector &unitigs,
     for (uint32 tt=0; tt<targets.size(); tt++) {
       candidatePop *t = targets[tt];
 
-      //  Detect duplicates, keep the one with lower error.
+      //  Detect duplicates, keep the one with lower error.  There are a lot of duplicate
+      //  placements, logging isn't terribly useful.
 
       for (uint32 aa=0; aa<t->placed.size(); aa++) {
         for (uint32 bb=0; bb<t->placed.size(); bb++) {
@@ -469,16 +470,20 @@ popBubbles(UnitigVector &unitigs,
             continue;
 
           if (t->placed[aa].errors / t->placed[aa].aligned < t->placed[bb].errors / t->placed[bb].aligned) {
+#ifdef SHOW_MULTIPLE_PLACEMENTS
             writeLog("duplicate read alignment for tig %u read %u - better %u-%u %.4f - worse %u-%u %.4f\n",
                      t->placed[aa].tigID, t->placed[aa].frgID,
                      t->placed[aa].position.bgn, t->placed[aa].position.end, t->placed[aa].errors / t->placed[aa].aligned,
                      t->placed[bb].position.bgn, t->placed[bb].position.end, t->placed[bb].errors / t->placed[bb].aligned);
+#endif
             t->placed[bb] = overlapPlacement();
           } else {
+#ifdef SHOW_MULTIPLE_PLACEMENTS
             writeLog("duplicate read alignment for tig %u read %u - better %u-%u %.4f - worse %u-%u %.4f\n",
                      t->placed[aa].tigID, t->placed[aa].frgID,
                      t->placed[bb].position.bgn, t->placed[bb].position.end, t->placed[bb].errors / t->placed[bb].aligned,
                      t->placed[aa].position.bgn, t->placed[aa].position.end, t->placed[aa].errors / t->placed[aa].aligned);
+#endif
             t->placed[aa] = overlapPlacement();
           }
         }
@@ -575,6 +580,7 @@ popBubbles(UnitigVector &unitigs,
       writeLog("tig %8u length %8u reads %6u - repeat - %u orphan %u bubble placements.\n",
                bubble->id(), bubble->getLength(), bubble->ufpath.size(),
                nOrphan, nBubble);
+      writeLog("\n");
       bubble->_isRepeat = true;
       continue;
     }
@@ -584,6 +590,7 @@ popBubbles(UnitigVector &unitigs,
     if (nBubble > 0) {
       writeLog("tig %8u length %8u reads %6u - bubble\n",
                bubble->id(), bubble->getLength(), bubble->ufpath.size());
+      writeLog("\n");
       bubble->_isBubble = true;
       continue;
     }
@@ -591,15 +598,9 @@ popBubbles(UnitigVector &unitigs,
     //  Otherwise, it's an orphan, move the reads to the proper place.
 
     writeLog("tig %8u length %8u reads %6u - orphan\n", bubble->id(), bubble->getLength(), bubble->ufpath.size());
-    bubble->_isOrphan = true;
 
+    bubble->_isOrphan = true;  //  Useless because we just delete the tig!
 
-    //  Problem:  reads can be placed multiple times in a target.
-
-
-    for (uint32 fi=0; fi<bubble->ufpath.size(); fi++)
-      writeLog("bubble %u has read %u\n", bubble->id(), bubble->ufpath[fi].ident);
-    
     for (uint32 op=0, tt=orphanTarget; op<targets[tt]->placed.size(); op++) {
       ufNode  frg;
 
@@ -619,6 +620,7 @@ popBubbles(UnitigVector &unitigs,
       targets[tt]->target->addFrag(frg, 0, false);
     }
 
+    writeLog("\n");
 
     //  End of problem
 
