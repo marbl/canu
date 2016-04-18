@@ -695,7 +695,7 @@ BestOverlapGraph::scoreEdge(const BAToverlap& olap) {
   if (isOverlapRestricted(olap)) {
     //  Whoops, don't want this overlap for this BOG
     if ((enableLog == true) && (logFileFlags & LOG_OVERLAP_QUALITY))
-      writeLog("scoreEdge()-- OVERLAP REST:     %d %d %c  hangs "F_S32" "F_S32" err %.3f -- restricted\n",
+      writeLog("scoreEdge()-- OVERLAP RESTRICT: %d %d %c  hangs "F_S32" "F_S32" err %.3f -- restricted\n",
                olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.erate);
     return;
   }
@@ -732,15 +732,18 @@ BestOverlapGraph::scoreEdge(const BAToverlap& olap) {
 
   assert(newScr > 0);
 
-  if (newScr <= score)
+  if (newScr <= score) {
+    writeLog("scoreEdge()-- OVERLAP GOOD:     %d %d %c  hangs "F_S32" "F_S32" err %.3f -- no better than best\n",
+             olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.erate);
     return;
+  }
 
   best->set(olap);
 
   score = newScr;
 
   if ((enableLog == true) && (logFileFlags & LOG_OVERLAP_QUALITY))
-    writeLog("OVERLAP GOOD:     %d %d %c  hangs "F_S32" "F_S32" err %.3f -- NOW BEST\n",
+    writeLog("scoreEdge()-- OVERLAP BEST:     %d %d %c  hangs "F_S32" "F_S32" err %.3f -- NOW BEST\n",
              olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.erate);
 }
 
