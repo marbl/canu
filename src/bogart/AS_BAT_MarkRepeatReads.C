@@ -521,27 +521,7 @@ markRepeatReads(UnitigVector &unitigs,
 
     writeLog("Merge marks.\n");
 
-#if 0
-#ifdef SHOW_ANNOTATE
-    writeLog("PRE-MERGE markings\n");
-    for (uint32 ii=0; ii<tigMarksR.numberOfIntervals(); ii++) {
-      writeLog("  %8d:%-8d size %7d (distance to next %7d)\n",
-               tigMarksR.lo(ii), tigMarksR.hi(ii), tigMarksR.hi(ii) - tigMarksR.lo(ii),
-               (ii < tigMarksR.numberOfIntervals()-1) ? (tigMarksR.lo(ii+1) - tigMarksR.hi(ii)) : (0));
-    }
-#endif
-#endif
-
     tigMarksR.merge(REPEAT_OVERLAP_MIN);
-
-#ifdef SHOW_ANNOTATE
-    writeLog("POST-MERGE markings\n");
-    for (uint32 ii=0; ii<tigMarksR.numberOfIntervals(); ii++) {
-      writeLog("  %8d:%-8d size %7d (distance to next %7d)\n",
-               tigMarksR.lo(ii), tigMarksR.hi(ii), tigMarksR.hi(ii) - tigMarksR.lo(ii),
-               (ii < tigMarksR.numberOfIntervals()-1) ? (tigMarksR.lo(ii+1) - tigMarksR.hi(ii)) : (0));
-    }
-#endif
 
     //  Scan reads, discard any mark that is contained in a read
     //
@@ -570,22 +550,22 @@ markRepeatReads(UnitigVector &unitigs,
         //  start/end of the tig.  Instead, if the repeat is contained within the first (last) read
         //  with no extension at the respective end, it is spanned.
 
-        if ((frglo == 0) &&
+        if ((frglo == 0) &&                                   //  Read at start of tig, spans off the high end
             (tigMarksR.hi(ri) + MIN_ANCHOR_HANG <= frghi))
           spanLo = spanHi = true;
 
-        if ((frghi == tig->getLength()) &&
+        if ((frghi == tig->getLength()) &&                    //  Read at end of tig, spans off the low end
             (frglo + MIN_ANCHOR_HANG <= tigMarksR.lo(ri)))
           spanLo = spanHi = true;
 
-        if (frglo + MIN_ANCHOR_HANG <= tigMarksR.lo(ri))
+        if (frglo + MIN_ANCHOR_HANG <= tigMarksR.lo(ri))      //  Read spanned off the low end
           spanLo = true;
 
-        if (tigMarksR.hi(ri) + MIN_ANCHOR_HANG <= frghi)
+        if (tigMarksR.hi(ri) + MIN_ANCHOR_HANG <= frghi)      //  Read spanned off the high end
           spanHi = true;
 
         if (spanLo && spanHi) {
-          writeLog("discard region %8d:%-8d - contained in read %6u %5d-%5d\n",
+          writeLog("discard region %8d:%-8d - contained in read %6u %8d-%8d\n",
                    tigMarksR.lo(ri), tigMarksR.hi(ri), frg->ident, frglo, frghi);
 
           tigMarksR.lo(ri) = 0;
@@ -595,9 +575,72 @@ markRepeatReads(UnitigVector &unitigs,
         }
       }
 
+
       if (discarded)
         tigMarksR.filterShort(1);
     }
+
+    //  Run through again, looking for the thickest overlap(s) to the remaining regions.
+    //  This isn't caring about the end effect noted above.
+
+#if 1
+    for (uint32 ri=0; ri<tigMarksR.numberOfIntervals(); ri++) {
+      uint32   t5 = UINT32_MAX, l5 = 0, t5bgn, t5end;
+      uint32   t3 = UINT32_MAX, l3 = 0, t3bgn, t3end;
+
+      for (uint32 fi=0; fi<tig->ufpath.size(); fi++) {
+        ufNode     *frg       = &tig->ufpath[fi];
+        bool        frgfwd    = (frg->position.bgn < frg->position.end);
+        int32       frglo     = (frgfwd) ? frg->position.bgn : frg->position.end;
+        int32       frghi     = (frgfwd) ? frg->position.end : frg->position.bgn;
+        bool        discarded = false;
+
+        //  Overlap off the 5' end of the region.
+        if (frglo <= tigMarksR.lo(ri) && (tigMarksR.lo(ri) <= frghi)) {
+          uint32 olap = frghi - tigMarksR.lo(ri);
+          if (l5 < olap) {
+            l5    = olap;
+            t5    = fi;
+            t5bgn = frglo;  //  Easier than recomputing it later on...
+            t5end = frghi;
+          }
+        }
+
+        //  Overlap off the 3' end of the region.
+        if (frglo <= tigMarksR.hi(ri) && (tigMarksR.hi(ri) <= frghi)) {
+          uint32 olap = tigMarksR.hi(ri) - frglo;
+          if (l3 < olap) {
+            l3    = olap;
+            t3    = fi;
+            t3bgn = frglo;
+            t3end = frghi;
+          }
+        }
+
+        if (frglo <= tigMarksR.lo(ri) && (tigMarksR.hi(ri) <= frghi)) {
+          writeLog("saved   region %8d:%-8d - closest Cn read %6u (%+6d) %8d:%-8d (%+6d)\n",
+                   tigMarksR.lo(ri), tigMarksR.hi(ri),
+                   frg->ident,
+                   tigMarksR.lo(ri) - frglo, frglo,
+                   frghi, frghi - tigMarksR.hi(ri));
+        }
+      }
+
+      if (t5 != UINT32_MAX)
+        writeLog("saved   region %8d:%-8d - closest 5' read %6u (%+6d) %8d:%8-d (%+6d)\n",
+                 tigMarksR.lo(ri), tigMarksR.hi(ri),
+                 tig->ufpath[t5].ident,
+                 tigMarksR.lo(ri) - t5bgn, t5bgn,
+                 t5end, t5end - tigMarksR.hi(ri));
+
+      if (t3 != UINT32_MAX)
+        writeLog("saved   region %8d:%-8d - closest 3' read %6u (%+6d) %8d:%8-d (%+6d)\n",
+                 tigMarksR.lo(ri), tigMarksR.hi(ri),
+                 tig->ufpath[t3].ident,
+                 tigMarksR.lo(ri) - t3bgn, t3bgn,
+                 t3end, t3end - tigMarksR.hi(ri));
+    }
+#endif
 
     //  Scan reads, join any marks that have their junctions spanned by a sufficiently large amount.
     //
