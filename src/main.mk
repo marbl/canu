@@ -124,6 +124,7 @@ SUBMAKEFILES := stores/gatekeeperCreate.mk \
                 stores/ovStoreIndexer.mk \
                 stores/ovStoreDump.mk \
                 stores/ovStoreStats.mk \
+                stores/tgStoreCompress.mk \
                 stores/tgStoreDump.mk \
                 stores/tgStoreLoad.mk \
                 stores/tgStoreFilter.mk \
