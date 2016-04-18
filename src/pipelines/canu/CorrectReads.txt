@@ -1,0 +1,41 @@
+
+buildCorrectionLayouts()
+
+----------------------------------------
+filterCorrectionOverlaps (binary)
+ - writes asm.globalScores
+ - log to asm.globalScores.log -- PER READ, #olaps, #scored, #filtered, #saved, reason
+ - log to asm.globalScores.err -- STATS
+ - knows a -S <prefix>, so write log and stats using that.
+ - params corMaxEvidenceCoverageGlobal
+ - params corMinEvidenceLength
+
+----------------------------------------
+quickFilter() or expensiveFilter()
+
+Creates asm.readsToCorrect with 'readID', 'originalLength', 'expectedCorrectedLength'
+
+quick filter just picks the longest originalLength reads that sum to corOutCoverage * genomeSize
+no logging, no stats, no plot
+
+expensive filter calls generateCorrectionLayouts (binary) to write asm.estimate.log and
+asm.estimate.stats with expected corrected length based on the overlaps we'd use
+canu.pl makes asm.estimate.* files with tp/tn rates and a figure
+canu.pl makes asm.readsToCorrect.summary and asm.estimate.original-x-corrected.png
+
+----------------------------------------
+buildCorrectionLayouts (_direct or _piped)
+
+generateCorrectionLayouts
+ - reads asm.readsToCorrect (who makes this?)
+ - reads asm.globalScores
+ - writes asm.corStore (direct)
+ - writes falcon-formatted reads for a pipe to compute consensus
+ - params -L corMinEvidenceLength
+ - params -E corMaxEvidenceErate
+ - params -C maxCov (corMaxEvidenceCoverageLocal)
+ - only errors to stderr
+ - writes no log or summary (disabled in canu here, output in the expensiveFilter above)
+ 
+When outputs of the parallel processes are merged, a length file is created.  This, with
+the expensive filter length file, can generate stats on corrections.
