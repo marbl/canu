@@ -1,0 +1,87 @@
+
+
+findPotentialBubbles()
+ - any unitig where at least half the reads an overlap to some other unitig is a candidate.
+ - returns a map of unitig id (the bubble) to to a vector of unitig ids (the potential poppers).
+
+findBubbleReadPlacements()
+ - threaded on the reads
+ - for reads in potential bubbles, uses placeFragUsingOverlaps() to find high-quality
+   alignments to unitigs that can pop the bubble.
+ - returns an array of vector<overlapPlacement> - one vector per read - of the placements
+   for this read.  Placements are high quality and to popper tigs only.
+
+popBubbles()
+ - findPotentialBubbles()
+ - findBubbleReadPlacements()
+
+ - for each candidate tig:
+ -   build a map of unitig id (target) to an intervalList (targetIntervals)
+ -   add to the corresponding intervalList each bubble read placement, squish to intervals when done
+ -   filter out intervals that are too short (0.75x) or too long (1.25x) the bubble tig size
+ -   save size-consistent interavs to vector of candidatePop (targets)
+ -   clear targetIntervals list (its no longer needed)
+ -   for each read in the candidate tig
+ -     assign placements (from findBubbleReadPlacements()) to targets.  some placements have no target
+ -   we now have a list of targets[] with: bubble*, target*, target bgn/end, vector of placed bubble reads in this region
+ -   decide if the candidate is a bubble, a repeat or an orphan
+ -     a bubble has the 5' and 3' most reads aligned, and only one target
+ -     a repeat has all reads aligned, and multiple targets
+ -     an orphan has all reads aligned, and one target
+
+
+----------------------------------------
+OLD-STYLE BUBBLE POPPING
+
+
+mergeSplitJoin()
+
+new intersectionList(unitigs)
+
+foreach unitig (NOT parallel)
+  skip if fewer than 15 reads or 300 bases
+  mergeBubbles() - based on previously discovered intersections
+  stealBubbles() - nothing here, not implemented
+
+for each unitig (parallel) - unitigs created here are not reprocessed
+  skip if fewer than 15 reads or 300 bases
+  markRepeats()
+  markChimera()
+
+----------------------------------------
+
+mergeBubbles(unitigs, erateBubble, targetUnitig, intersectionList)
+
+The intersection list is a 'reverse mapping of all BestEdges between unitigs'.
+For each read, a list of the incoming edges from other unitigs.
+
+foreach intersection point
+  get potential bubble unitig
+  if bubble unitig doesn't exist, it was popped already
+  if bubble unitig is more than 500k, it is skipped
+  if bubble unitig is the current unitig, it is skipped
+  findEnds(), skip if none found
+  checkEnds(), skip if bad
+  checkFrags(), skip if fails
+  bubble is merged, remove it
+
+findEnds() - return value is first/last reads
+  find the first/last non-contained read
+  get the correct edge
+  get the unitig that edge points to
+  discard the edge if the unitig it points to is the bubble (??)
+  if both unitigs are null, return false
+
+checkEnds() - computes placement of first/last reads, false if inconsistent
+  place both reads using overlaps
+  find min/max coords of suspected correct placement
+  if placedLength < bubbleLength / 2  -> return false, bubble shrank too much
+  if placedLength > bubbleLength * 2  -> return false, bubble grew too much
+  if first/last reads are the same, return true
+  check order and orientation between bubble placement and popped placement
+    bubble placed forward - reads have same orient and same order
+    bubble placed reverse - reads have diff orient and diff order
+    if so, return true
+  return false
+
+checkFrags() - based on edges, we think the bubble goes here, try to place all the reads
