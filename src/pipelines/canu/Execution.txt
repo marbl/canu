@@ -1,0 +1,85 @@
+
+
+Running Commands
+----------------
+
+Simple single commands can be run, and logged to the chatter output, with something like
+
+if (output-doesn't-exist) {
+  if (runCommand(directory, command)) {
+    caExit(command-failed-message, command.err)
+  }
+  do-steps-to-make-output-exist
+}
+
+If no chatter output is desired, runCommandSilently() can be used.  Ideally in the same recipe as
+above, but usually it isn't guarded at all.  This function will terminate ungracefully if the
+command fails.
+
+For jobs to be run on the grid, either in parallel or a single job, the function
+submitOrRunParallelJob() is used.  This takes a job type (as in gridOptions{jobType}), a path and a
+script, and a list of numeric job IDs to run.  The list can be formed of simple integers or ranges,
+or both (e.g., 1,2,3-9,10,12-99).  Its use is straightforward, but the wrapper to make it
+work both for grid-based execution and local execution is non-trivial.
+
+
+
+
+useGrid=remote fails
+
+maxMemory / maxThreads
+minMemory / minThreads - means what?
+maxGridCores - sge "-tc N", slurm/pbs "-a 1-1000%50"
+
+
+
+
+A *Configure() function needs to prepare the job.  Its product is a shell script
+to run the job.
+
+A *Check() function parses the shell script (usually) to find out which jobs to run,
+then submitOrRunParallelJob() to execute them.  Each Check() function is called
+up to three times (for a MaxIteration=2) - the first two to actually try to compute
+and the last to fail.
+
+For executions not using the grid, the check function will run the jobs and fall through
+to the finishStage: clause, reporting the job finished and maybe generating some stats.
+If the job fails, it is retried, using the same flow.
+
+For executions using the grid, the check function breaks execution and checking into two grid jobs.
+A parallel job runs the compute, and a sequential job holds on the parallel job.  The sequential job
+remembers canuIteration (by having it passed on the command line as a parameter).  If the parallel
+jobs succeeded, it falls through to finishStage: as above.  If they had failed, they are tried
+again.
+
+The flow of each *Check() function is:
+
+goto allDone  if (outputs exist)
+
+decide if job outputs exist or not
+
+if (job outputs do not exist) {
+  if (attempt > 1)    report job failed
+  if (attempt > max)  report failed, caExit()
+  report starting an attempt
+  emitStage(check, $attempt)
+  buildHTML()
+  submitOrRun()
+  return   #  if not on grid, we need to call again to decide if job outputs exist
+}
+
+finishStage:
+
+report job finished successfully
+
+do any processing to make 'outputs exist' true above
+
+setGlobal(iteration, 0)
+emitStage()
+buildHTML()
+stopAfter()
+
+allDone:
+
+anything that runs after EVERY call
+
