@@ -23,6 +23,7 @@
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
 #include "AS_BAT_OverlapCache.H"
+#include "AS_BAT_BestOverlapGraph.H"
 
 #include "intervalList.H"
 #include "stddev.H"
@@ -113,16 +114,18 @@ public:
 //  ------------
 //        ----------
 void
-olapToReadCoords(ufNode *frg, BAToverlap *olap, int32 &lo, int32 &hi) {
+olapToReadCoords(ufNode *frg,
+                 int32   ahang,  int32  bhang,
+                 int32  &lo,     int32 &hi) {
 
   lo = 0;
   hi = FI->fragmentLength(frg->ident);
 
-  if (olap->a_hang > 0)
-    lo += olap->a_hang;  //  Postiive hang!
+  if (ahang > 0)
+    lo += ahang;  //  Positive hang!
 
-  if (olap->b_hang < 0)
-    hi += olap->b_hang;  //  Negative hang!
+  if (bhang < 0)
+    hi += bhang;  //  Negative hang!
 
   assert(0  <= lo);
   assert(0  <= hi);
@@ -130,7 +133,6 @@ olapToReadCoords(ufNode *frg, BAToverlap *olap, int32 &lo, int32 &hi) {
   assert(lo <= FI->fragmentLength(frg->ident));
   assert(hi <= FI->fragmentLength(frg->ident));
 }
-
 
 
 
@@ -333,13 +335,13 @@ annotateRepeatsOnRead(UnitigVector          &unitigs,
     //  If the overlap is to a read in a different tig, save it.
     if (tgBid != tgAid) {
       nDiff++;
-      olapToReadCoords(rdA, ovl+oi, bgn, end);
+      olapToReadCoords(rdA, ovl[oi].a_hang, ovl[oi].b_hang, bgn, end);
     }
 
     // If the overlap is to a read in the same tig, but we don't overlap in the tig, save it.
     else if ((rdAhi < rdBlo) || (rdBhi < rdAlo)) {
       nSelf++;
-      olapToReadCoords(rdA, ovl+oi, bgn, end);
+      olapToReadCoords(rdA, ovl[oi].a_hang, ovl[oi].b_hang, bgn, end);
     }
 
     //  Otherwise, the overlap is present in the tig, and can't indicate a repeat.
@@ -641,6 +643,281 @@ markRepeatReads(UnitigVector &unitigs,
                  t3end, t3end - tigMarksR.hi(ri));
     }
 #endif
+
+
+    //  Scan reads.  If a read intersects a repeat interval, and the best edge for that read
+    //  is entirely in the repeat region, decide if there is a near-best edge to something
+    //  not in this tig.
+    //
+    //  A region with no such near-best edges is _probably_ correct.
+
+    uint32  *isConfused  = new uint32 [tigMarksR.numberOfIntervals()];
+
+    memset(isConfused, 0, sizeof(uint32) * tigMarksR.numberOfIntervals());
+
+    for (uint32 fi=0; fi<tig->ufpath.size(); fi++) {
+      ufNode     *rdA       = &tig->ufpath[fi];
+      uint32      rdAid     = rdA->ident;
+      bool        rdAfwd    = (rdA->position.bgn < rdA->position.end);
+      int32       rdAlo     = (rdAfwd) ? rdA->position.bgn : rdA->position.end;
+      int32       rdAhi     = (rdAfwd) ? rdA->position.end : rdA->position.bgn;
+
+      double      sc        = (rdAhi - rdAlo) / (double)FI->fragmentLength(rdAid);
+
+      if ((OG->isContained(rdAid)  == true) ||
+          (OG->isSuspicious(rdAid) == true))
+        continue;
+
+      for (uint32 ri=0; ri<tigMarksR.numberOfIntervals(); ri++) {
+        uint32  rMin = tigMarksR.lo(ri);
+        uint32  rMax = tigMarksR.hi(ri);
+
+        if ((rdAhi < rMin) ||   //  Read ends before the region
+            (rMax  < rdAlo))    //  Read starts after the region
+          continue;              //   -> don't care about this read!
+
+        //  Compute the position (in the tig) of the best overlaps.
+
+        int32  tig5bgn=0, tig5end=0;
+        int32  tig3bgn=0, tig3end=0;
+
+#warning best edge here might be bogus
+
+        //  Instead of using the best edge - which might not be the edge used in the unitig -
+        //  we need to scan the layout to return the previous/next dovetail
+
+        //  Put this in a function - what to return if no best overlap?
+
+        BestEdgeOverlap   *b5 = OG->getBestEdgeOverlap(rdAid, false);
+        BestEdgeOverlap   *b3 = OG->getBestEdgeOverlap(rdAid, true);
+
+        //  If the best edge is to a read not in this tig, there is nothing to compare against.
+        //  Is this confused by default?  Possibly.  The unitig was constructed somehow, and that
+        //  must then be the edge coming into us.  We'll pick it up later.
+
+        bool b5use = true;
+        bool b3use = true;
+
+        if (b5->fragId() == 0)
+          b5use = false;
+        if (b3->fragId() == 0)
+          b3use = false;
+
+        if ((b5use) && (Unitig::fragIn(b5->fragId()) != tig->id()))
+          b5use = false;
+        if ((b3use) && (Unitig::fragIn(b3->fragId()) != tig->id()))
+          b3use = false;
+
+        //  The best edge read is in this tig.  If they don't overlap, again, nothing to compare
+        //  against.
+
+        if (b5use) {
+          ufNode     *rdB       = &tig->ufpath[Unitig::pathPosition(b5->fragId())];
+          uint32      rdBid     = rdB->ident;
+          bool        rdBfwd    = (rdB->position.bgn < rdB->position.end);
+          int32       rdBlo     = (rdBfwd) ? rdB->position.bgn : rdB->position.end;
+          int32       rdBhi     = (rdBfwd) ? rdB->position.end : rdB->position.bgn;
+
+          if ((rdAhi < rdBlo) ||
+              (rdBhi < rdAlo))
+            b5use = false;
+        }
+
+        if (b3use) {
+          ufNode     *rdB       = &tig->ufpath[Unitig::pathPosition(b3->fragId())];
+          uint32      rdBid     = rdB->ident;
+          bool        rdBfwd    = (rdB->position.bgn < rdB->position.end);
+          int32       rdBlo     = (rdBfwd) ? rdB->position.bgn : rdB->position.end;
+          int32       rdBhi     = (rdBfwd) ? rdB->position.end : rdB->position.bgn;
+
+          if ((rdAhi < rdBlo) ||
+              (rdBhi < rdAlo))
+            b3use = false;
+        }
+
+        //  If we can use this edge, compute the placement of the overlap on the unitig.
+
+        //  Call #1;
+
+        if (b5use) {
+          int32   bgn=0, end=0;
+
+          olapToReadCoords(rdA,
+                           b5->ahang(), b5->bhang(),
+                           bgn, end);
+
+          tig5bgn = (rdAfwd) ? (rdAlo + sc * bgn) : (rdAhi - sc * end);
+          tig5end = (rdAfwd) ? (rdAlo + sc * end) : (rdAhi - sc * bgn);
+        
+          assert(tig5bgn < tig5end);
+
+          if (tig5bgn < 0)                  tig5bgn = 0;
+          if (tig5end > tig->getLength())   tig5end = tig->getLength();
+        }
+
+        //  Call #2
+
+        if (b3use) {
+          int32   bgn=0, end=0;
+
+          olapToReadCoords(rdA,
+                           b3->ahang(), b3->bhang(),
+                           bgn, end);
+
+          tig3bgn = (rdAfwd) ? (rdAlo + sc * bgn) : (rdAhi - sc * end);
+          tig3end = (rdAfwd) ? (rdAlo + sc * end) : (rdAhi - sc * bgn);
+
+          assert(tig3bgn < tig3end);
+
+          if (tig3bgn < 0)                  tig3bgn = 0;
+          if (tig3end > tig->getLength())   tig3end = tig->getLength();
+        }
+
+        //  If either of the 5' or 3' overlaps (or both!) are in the repeat region, we need to check for
+        //  close overlaps on that end.
+
+        double  lenFactor = 0.95;
+        uint32  len5 = 0;
+        uint32  len3 = 0;
+
+        if ((rMin    < tig5bgn) &&
+            (tig5end < rMax) &&
+            (b5use))
+          len5 = FI->overlapLength(rdAid, b5->fragId(), b5->ahang(), b5->bhang());
+
+        if ((rMin    < tig3bgn) &&
+            (tig3end < rMax) &&
+            (b3use))
+          len3 = FI->overlapLength(rdAid, b3->fragId(), b3->ahang(), b3->bhang());
+
+        double score5 = 0.98 * len5 * (1 - b5->erate());
+        double score3 = 0.98 * len3 * (1 - b3->erate());
+
+        //  Neither of the best edges are in the repeat region; move to the next region and/or read.
+        if (len5 + len3 == 0)
+          continue;
+
+        //  At least one of the best edge overlaps is in the repeat region.  Scan for other edges
+        //  that are of comparable length and quality.
+
+        uint32        ovlLen   = 0;
+        BAToverlap   *ovl      = OC->getOverlaps(rdAid, erateRepeat, ovlLen);
+
+        for (uint32 oo=0; oo<ovlLen; oo++) {
+          uint32   rdBid    = ovl[oo].b_iid;
+          uint32   tgBid    = Unitig::fragIn(rdBid);
+
+          //  If the read is in a singleton, skip.  These are unassembled crud.
+          if ((tgBid                         == 0) ||
+              (unitigs[tgBid]                == NULL) ||
+              (unitigs[tgBid]->ufpath.size() == 1))
+            continue;
+
+          //  If the read is in an annotated bubble, skip.
+          if (unitigs[tgBid]->_isBubble)
+            continue;
+
+          //  Skip if this overlap is the best we're trying to match.
+          if ((rdBid == b5->fragId()) ||
+              (rdBid == b3->fragId()))
+            continue;
+
+          //  Skip if this overlap is crappy quality
+          if (OG->isOverlapBadQuality(ovl[oo]))
+            continue;
+
+          //  Skip if the read is contained or suspicious.
+          if ((OG->isContained(rdBid)  == true) ||
+              (OG->isSuspicious(rdBid) == true))
+            continue;
+
+          //  Skip if the overlap isn't dovetail.
+          bool  ovl5 = AS_BAT_overlapAEndIs5prime(ovl[oo]);
+          bool  ovl3 = AS_BAT_overlapAEndIs3prime(ovl[oo]);
+
+          if ((ovl5 == false) &&
+              (ovl3 == false))
+            continue;
+
+
+          uint32   rdBpos   =  unitigs[tgBid]->pathPosition(rdBid);
+          ufNode  *rdB      = &unitigs[tgBid]->ufpath[rdBpos];
+
+          bool     rdBfwd   = (rdB->position.bgn < rdB->position.end);
+          int32    rdBlo    = (rdBfwd) ? rdB->position.bgn : rdB->position.end;
+          int32    rdBhi    = (rdBfwd) ? rdB->position.end : rdB->position.bgn;
+
+          //  If the overlap is to a read in a different tig, or
+          //     the overlap is to a read in the same tig, but we don't overlap in the tig, check lengths.
+          //  Otherwise, the overlap is present in the tig, and can't be confused.
+          if ((tgBid == tig->id()) &&
+              (rdBlo <= rdAhi) &&
+              (rdAlo <= rdBhi))
+            continue;
+
+          uint32  len   = FI->overlapLength(rdAid, ovl[oo].b_iid, ovl[oo].a_hang, ovl[oo].b_hang);
+          double  score = len * (1 - ovl[oo].erate);
+
+          //  Skip if this overlap is vastly worse than the best.
+          if ((ovl5 == true) && (score < score5))
+            continue;
+
+          if ((ovl3 == true) && (score < score3))
+            continue;
+
+          //  Potential confusion!
+
+          if (ovl5 == true)
+            writeLog("tig %u read %u is confused by 5' edge to read %u - best edge id %u len %u erate %f score %f - confused edge len %u erate %f score %f - diff %f\n",
+                     tig->id(), rdAid, rdBid,
+                     b5->fragId(), len5, b5->erate(), score5,
+                     len, ovl[oo].erate, score,
+                     score5 - score);
+
+          if (ovl3 == true)
+            writeLog("tig %u read %u is confused by 3' edge to read %u - best edge id %u len %u erate %f score %f - confused edge len %u erate %f score %f - diff %f\n",
+                     tig->id(), rdAid, rdBid,
+                     b3->fragId(), len3, b3->erate(), score3,
+                     len, ovl[oo].erate, score,
+                     score3 - score);
+
+          isConfused[ri]++;
+        }
+      }  //  Over all marks (ri)
+    }  //  Over all reads (fi)
+
+
+    //  Scan all the regions, and delete any that have no confusion.
+
+    {
+      bool  discarded = false;
+
+      for (uint32 ri=0; ri<tigMarksR.numberOfIntervals(); ri++) {
+        if (isConfused[ri] == 0) {
+          writeLog("discard region %8d:%-8d - no confusion in best edges\n",
+                   tigMarksR.lo(ri), tigMarksR.hi(ri));
+
+          tigMarksR.lo(ri) = 0;
+          tigMarksR.hi(ri) = 0;
+
+          discarded = true;
+        }
+
+        else {
+          writeLog("saved   region %8d:%-8d - %u best edges are potentially confused\n",
+                   tigMarksR.lo(ri), tigMarksR.hi(ri), isConfused[ri]);
+        }
+      }
+
+      if (discarded)
+        tigMarksR.filterShort(1);
+    }
+
+    delete [] isConfused;
+
+
+
+
 
     //  Scan reads, join any marks that have their junctions spanned by a sufficiently large amount.
     //
