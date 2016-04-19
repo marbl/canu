@@ -118,38 +118,26 @@ logFileInstance   *logFileThread = NULL;  //  For writes during threaded portion
 uint32             logFileOrder  = 0;
 uint64             logFileFlags  = 0;
 
-uint64 LOG_OVERLAP_QUALITY             = 0x0000000000000001;  //  Debug, scoring of overlaps
-uint64 LOG_OVERLAPS_USED               = 0x0000000000000002;  //  Report overlaps used/not used
+uint64 LOG_OVERLAP_SCORING             = 0x0000000000000001;  //  Debug, scoring of overlaps
+uint64 LOG_ALL_BEST_EDGES              = 0x0000000000000002;
 uint64 LOG_CHUNK_GRAPH                 = 0x0000000000000004;  //  Report the chunk graph as we build it
-uint64 LOG_INTERSECTIONS               = 0x0000000000000008;  //  Report intersections found when building initial unitigs
-uint64 LOG_POPULATE_UNITIG             = 0x0000000000000010;  //  Report building of initial unitigs (both unitig creation and fragment placement)
-uint64 LOG_INTERSECTION_BREAKING       = 0x0000000000000020;  //
-uint64 LOG_INTERSECTION_BUBBLES        = 0x0000000000000040;  //
-uint64 LOG_INTERSECTION_BUBBLES_DEBUG  = 0x0000000000000080;  //
-uint64 LOG_INTERSECTION_JOINING        = 0x0000000000000100;  //
-uint64 LOG_INTERSECTION_JOINING_DEBUG  = 0x0000000000000200;  //
-uint64 LOG_SPLIT_DISCONTINUOUS         = 0x0000000000000400;  //
-uint64 LOG_INITIAL_CONTAINED_PLACEMENT = 0x0000000000000800;  //
-uint64 LOG_HAPPINESS                   = 0x0000000000001000;  //
-uint64 LOG_INTERMEDIATE_UNITIGS        = 0x0000000000002000;  //  At various spots, dump the current unitigs
-uint64 LOG_SET_PARENT_AND_HANG         = 0x0000000000004000;  //
-uint64 LOG_STDERR                      = 0x0000000000008000;  //  Write ALL logging to stderr, not the files.
+uint64 LOG_BUILD_UNITIG                = 0x0000000000000008;  //  Report building of initial unitigs (both unitig creation and fragment placement)
+uint64 LOG_PLACE_UNPLACED              = 0x0000000000000010;  //  Report placing of unplaced reads
+uint64 LOG_BUBBLE_DETAIL               = 0x0000000000000020;
+uint64 LOG_SPLIT_DISCONTINUOUS         = 0x0000000000000040;  //
+uint64 LOG_INTERMEDIATE_UNITIGS        = 0x0000000000000080;  //  At various spots, dump the current unitigs
+uint64 LOG_SET_PARENT_AND_HANG         = 0x0000000000000100;  //
+uint64 LOG_STDERR                      = 0x0000000000000200;  //  Write ALL logging to stderr, not the files.
 
 uint64 LOG_PLACE_FRAG                  = 0x8000000000000000;  //  Internal use only.
 
-char const *logFileFlagNames[64] = { "overlapQuality",
-                                     "overlapsUsed",
+char const *logFileFlagNames[64] = { "overlapScoring",
+                                     "allBestEdges",
                                      "chunkGraph",
-                                     "intersections",
-                                     "populate",
-                                     "intersectionBreaking",
-                                     "intersectionBubbles",
-                                     "intersectionBubblesDebug",
-                                     "intersectionJoining",
-                                     "intersectionJoiningDebug",
-                                     "splitDiscontinuous",
-                                     "containedPlacement",
-                                     "happiness",
+                                     "buildUnitig",
+                                     "placeUnplaced",
+                                     "bubbles",
+                                     "splitDiscontinuous",   //  Update made it to here, need repeats
                                      "intermediateUnitigs",
                                      "setParentAndHang",
                                      "stderr",

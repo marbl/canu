@@ -114,6 +114,8 @@ placeUnplacedUsingAllOverlaps(UnitigVector &unitigs,
 
 #pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 fid=1; fid<FI->numFragments()+1; fid++) {
+    bool  enableLog = true;
+
     if (Unitig::fragIn(fid) > 0)
       continue;
 
@@ -142,17 +144,15 @@ placeUnplacedUsingAllOverlaps(UnitigVector &unitigs,
       double  erate = placements[i].errors / placements[i].aligned;
 
       if (tig->overlapConsistentWithTig(5.0, bgn, end, erate) < 0.5) {
-#ifdef SHOW_PLACEMENT_DETAIL
-        writeLog("frag %8u placed in tig %6u (%6u reads) at %8u-%8u with coverage %7.5f and erate %6.4f - HIGH ERROR\n",
-                 fid, placements[i].tigID, tig->ufpath.size(), placements[i].position.bgn, placements[i].position.end, placements[i].fCoverage, erate);
-#endif
+        if ((enableLog == true) && (logFileFlagSet(LOG_PLACE_UNPLACED)))
+          writeLog("frag %8u tested tig %6u (%6u reads) at %8u-%8u (cov %7.5f erate %6.4f) - HIGH ERROR\n",
+                   fid, placements[i].tigID, tig->ufpath.size(), placements[i].position.bgn, placements[i].position.end, placements[i].fCoverage, erate);
         continue;
       }
 
-#ifdef SHOW_PLACEMENT_DETAIL
-      writeLog("frag %8u placed in tig %6u (%6u reads) at %8u-%8u with coverage %7.5f and erate %6.4f\n",
-               fid, placements[i].tigID, tig->ufpath.size(), placements[i].position.bgn, placements[i].position.end, placements[i].fCoverage, erate);
-#endif
+      if ((enableLog == true) && (logFileFlagSet(LOG_PLACE_UNPLACED)))
+        writeLog("frag %8u tested tig %6u (%6u reads) at %8u-%8u (cov %7.5f erate %6.4f)\n",
+                 fid, placements[i].tigID, tig->ufpath.size(), placements[i].position.bgn, placements[i].position.end, placements[i].fCoverage, erate);
 
       if ((b == UINT32_MAX) ||
           (placements[i].errors / placements[i].aligned < placements[b].errors / placements[b].aligned))
@@ -163,19 +163,19 @@ placeUnplacedUsingAllOverlaps(UnitigVector &unitigs,
     //  If we did, save both the position it was placed at, and the tigID it was placed in.
 
     if (b == UINT32_MAX) {
-#ifdef SHOW_PLACEMENT_DETAIL
-      writeLog("frag %8u placed in new tig\n", fid);
-#endif
+      if ((enableLog == true) && (logFileFlagSet(LOG_PLACE_UNPLACED)))
+        writeLog("frag %8u remains unplaced\n", fid);
       placedPos[fid].bgn = 0;
       placedPos[fid].end = FI->fragmentLength(fid);
-    } else {
-#ifdef SHOW_PLACEMENT_DETAIL
-      writeLog("frag %8u placed in tig %6u (%6u reads) at %8u-%8u with coverage %7.5f and ident %6.4f - FINAL\n",
-               fid, placements[b].tigID, unitigs[placements[b].tigID]->ufpath.size(),
-               placements[b].position.bgn, placements[b].position.end,
-               placements[b].fCoverage,
-               placements[b].errors / placements[b].aligned);
-#endif
+    }
+
+    else {
+      if ((enableLog == true) && (logFileFlagSet(LOG_PLACE_UNPLACED)))
+        writeLog("frag %8u placed tig %6u (%6u reads) at %8u-%8u (cov %7.5f erate %6.4f)\n",
+                 fid, placements[b].tigID, unitigs[placements[b].tigID]->ufpath.size(),
+                 placements[b].position.bgn, placements[b].position.end,
+                 placements[b].fCoverage,
+                 placements[b].errors / placements[b].aligned);
       placedTig[fid] = placements[b].tigID;
       placedPos[fid] = placements[b].position;
     }
@@ -190,7 +190,10 @@ placeUnplacedUsingAllOverlaps(UnitigVector &unitigs,
     if (Unitig::fragIn(fid) > 0)
       continue;
 
-    //  If not placed, dump it in a new unitig.  Otherwise, it was placed somewhere, grab the tig.
+    //  If not placed, dump it in a new unitig.  Well, not anymore.  These reads were not placed in
+    //  any tig initially, were not allowed to seed a tig, and now, could find no place to go.
+    //  They're garbage.  Plus, it screws up the logging above because we don't know the new tig ID
+    //  until now.
 
     if (placedTig[fid] == 0) {
       if (OG->isContained(fid))
@@ -201,6 +204,8 @@ placeUnplacedUsingAllOverlaps(UnitigVector &unitigs,
       //tig = unitigs.newUnitig(false);
     }
 
+    //  Otherwise, it was placed somewhere, grab the tig.
+
     else {
       if (OG->isContained(fid))
         nPlacedContained++;
@@ -210,7 +215,7 @@ placeUnplacedUsingAllOverlaps(UnitigVector &unitigs,
       tig = unitigs[placedTig[fid]];
     }
 
-    //  Regardless, add it to the tig.
+    //  Regardless, add it to the tig.  Logging for this is above.
 
     if (tig) {
       frg.ident             = fid;
@@ -219,11 +224,6 @@ placeUnplacedUsingAllOverlaps(UnitigVector &unitigs,
       frg.ahang             = 0;
       frg.bhang             = 0;
       frg.position          = placedPos[fid];
-
-#ifdef SHOW_PLACEMENT
-      writeLog("placeContainsUsingAllOverlaps()-- frag %u placed in tig %u at %u-%u.\n",
-               fid, tig->id(), frg.position.bgn, frg.position.end);
-#endif
 
       tig->addFrag(frg, 0, false);
     }

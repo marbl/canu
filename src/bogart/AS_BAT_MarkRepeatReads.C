@@ -38,7 +38,7 @@ int32  REPEAT_OVERLAP_MIN    = 50;
 #define REPEAT_CONSISTENT 3.0
 #define REPEAT_FRACTION   0.5
 
-#define SHOW_ANNOTATION_RAW             //  Show all overlaps used to annotate reads
+#undef  SHOW_ANNOTATION_RAW             //  Show all overlaps used to annotate reads
 #undef  SHOW_ANNOTATION_RAW_FILTERED    //  Show all overlaps filtered by high error rate
 
 #undef  DUMP_READ_COVERAGE

@@ -428,13 +428,17 @@ BestOverlapGraph::BestOverlapGraph(double               erate,
 
   removeSuspicious();
   findEdges();
-  //reportBestEdges(prefix, "best.0.initial");
+
+  if (logFileFlagSet(LOG_ALL_BEST_EDGES))
+    reportBestEdges(prefix, "best.0.initial");
 
   //  Analyze the current best edges to set a cutoff on overlap quality used for graph building.
 
   removeHighErrorBestEdges();
   findEdges();
-  //reportBestEdges(prefix, "best.1.filtered");
+
+  if (logFileFlagSet(LOG_ALL_BEST_EDGES))
+    reportBestEdges(prefix, "best.1.filtered");
 
   //  Mark reads as suspicious if the length of the best edge out is very different than the length
   //  of the best edge that should be back to us.  E.g., if readA has best edge to readB (of length
@@ -445,16 +449,24 @@ BestOverlapGraph::BestOverlapGraph(double               erate,
 
   removeLopsidedEdges();
   findEdges();
-  //reportBestEdges(prefix, "best.2.cleaned");
+
+  if (logFileFlagSet(LOG_ALL_BEST_EDGES))
+    reportBestEdges(prefix, "best.2.cleaned");
 
   //  Mark reads as spurs, so we don't find best edges to them.
 
   removeSpurs();
   findEdges();
   removeContainedDovetails();
-  reportBestEdges(prefix, "best.3.final");
 
-  delete [] _scorA;  //  Done with the scoring data.
+  if (logFileFlagSet(LOG_ALL_BEST_EDGES))
+    reportBestEdges(prefix, "best.3.final");
+  else
+    reportBestEdges(prefix, "best");
+
+  //  Done with scoring data.
+
+  delete [] _scorA;
   _scorA = NULL;
 
   _spur.clear();
@@ -686,7 +698,7 @@ BestOverlapGraph::scoreEdge(const BAToverlap& olap) {
 
   if (isOverlapBadQuality(olap)) {
     //  Yuck.  Don't want to use this crud.
-    if ((enableLog == true) && ((enableLog == true) && (logFileFlags & LOG_OVERLAP_QUALITY)))
+    if ((enableLog == true) && (logFileFlagSet(LOG_OVERLAP_SCORING)))
       writeLog("scoreEdge()-- OVERLAP BADQ:     %d %d %c  hangs "F_S32" "F_S32" err %.3f -- bad quality\n",
                olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.erate);
     return;
@@ -694,7 +706,7 @@ BestOverlapGraph::scoreEdge(const BAToverlap& olap) {
 
   if (isOverlapRestricted(olap)) {
     //  Whoops, don't want this overlap for this BOG
-    if ((enableLog == true) && (logFileFlags & LOG_OVERLAP_QUALITY))
+    if ((enableLog == true) && (logFileFlagSet(LOG_OVERLAP_SCORING)))
       writeLog("scoreEdge()-- OVERLAP RESTRICT: %d %d %c  hangs "F_S32" "F_S32" err %.3f -- restricted\n",
                olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.erate);
     return;
@@ -702,7 +714,7 @@ BestOverlapGraph::scoreEdge(const BAToverlap& olap) {
 
   if (isSuspicious(olap.b_iid)) {
     //  Whoops, don't want this overlap for this BOG
-    if ((enableLog == true) && (logFileFlags & LOG_OVERLAP_QUALITY))
+    if ((enableLog == true) && (logFileFlagSet(LOG_OVERLAP_SCORING)))
       writeLog("scoreEdge()-- OVERLAP SUSP:     %d %d %c  hangs "F_S32" "F_S32" err %.3f -- suspicious\n",
                olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.erate);
     return;
@@ -711,7 +723,7 @@ BestOverlapGraph::scoreEdge(const BAToverlap& olap) {
   if (((olap.a_hang >= 0) && (olap.b_hang <= 0)) ||
       ((olap.a_hang <= 0) && (olap.b_hang >= 0))) {
     //  Skip containment overlaps.
-    if ((enableLog == true) && (logFileFlags & LOG_OVERLAP_QUALITY))
+    if ((enableLog == true) && (logFileFlagSet(LOG_OVERLAP_SCORING)))
       writeLog("scoreEdge()-- OVERLAP CONT:     %d %d %c  hangs "F_S32" "F_S32" err %.3f -- container read\n",
                olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.erate);
     return;
@@ -719,7 +731,7 @@ BestOverlapGraph::scoreEdge(const BAToverlap& olap) {
 
   if (isContained(olap.b_iid) == true) {
     //  Skip overlaps to contained reads (allow scoring of best edges from contained reads).
-    if ((enableLog == true) && (logFileFlags & LOG_OVERLAP_QUALITY))
+    if ((enableLog == true) && (logFileFlagSet(LOG_OVERLAP_SCORING)))
       writeLog("scoreEdge()-- OVERLAP CONT:     %d %d %c  hangs "F_S32" "F_S32" err %.3f -- contained read\n",
                olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.erate);
     return;
@@ -733,8 +745,9 @@ BestOverlapGraph::scoreEdge(const BAToverlap& olap) {
   assert(newScr > 0);
 
   if (newScr <= score) {
-    writeLog("scoreEdge()-- OVERLAP GOOD:     %d %d %c  hangs "F_S32" "F_S32" err %.3f -- no better than best\n",
-             olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.erate);
+    if ((enableLog == true) && (logFileFlagSet(LOG_OVERLAP_SCORING)))
+      writeLog("scoreEdge()-- OVERLAP GOOD:     %d %d %c  hangs "F_S32" "F_S32" err %.3f -- no better than best\n",
+               olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.erate);
     return;
   }
 
@@ -742,7 +755,7 @@ BestOverlapGraph::scoreEdge(const BAToverlap& olap) {
 
   score = newScr;
 
-  if ((enableLog == true) && (logFileFlags & LOG_OVERLAP_QUALITY))
+  if ((enableLog == true) && (logFileFlagSet(LOG_OVERLAP_SCORING)))
     writeLog("scoreEdge()-- OVERLAP BEST:     %d %d %c  hangs "F_S32" "F_S32" err %.3f -- NOW BEST\n",
              olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.erate);
 }
@@ -772,7 +785,7 @@ BestOverlapGraph::isOverlapBadQuality(const BAToverlap& olap) {
   double Tmad    = _median + PATH_CONSISTENT * 1.4826 * _mad;
 
   if (olap.erate <= Tmad || (Tmad == 0 && olap.erate <= Tstddev)) {
-    if ((enableLog == true) && (logFileFlags & LOG_OVERLAP_QUALITY))
+    if ((enableLog == true) && (logFileFlagSet(LOG_OVERLAP_SCORING)))
       writeLog("isOverlapBadQuality()-- OVERLAP GOOD:     %d %d %c  hangs "F_S32" "F_S32" err %.3f\n",
                olap.a_iid, olap.b_iid,
                olap.flipped ? 'A' : 'N',
@@ -787,7 +800,7 @@ BestOverlapGraph::isOverlapBadQuality(const BAToverlap& olap) {
   //  against another limit.  This was to allow very short overlaps where one error would push the
   //  error rate above a few percent.  canu doesn't do short overlaps.
 
-  if ((enableLog == true) && (logFileFlags & LOG_OVERLAP_QUALITY))
+  if ((enableLog == true) && (logFileFlagSet(LOG_OVERLAP_SCORING)))
     writeLog("isOverlapBadQuality()-- OVERLAP REJECTED: %d %d %c  hangs "F_S32" "F_S32" err %.3f\n",
              olap.a_iid, olap.b_iid,
              olap.flipped ? 'A' : 'N',

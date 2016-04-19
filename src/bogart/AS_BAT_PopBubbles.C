@@ -52,7 +52,6 @@ using namespace std;
 
 #define BUBBLE_READ_FRACTION  0.5
 
-#undef  SHOW_PLACEMENT_DETAIL     //  Reports where each bubble read is placed, or if it was ignored for too high error
 #undef  SHOW_MULTIPLE_PLACEMENTS  //  Reports reads that are placed multiple times in a single target region
 
 class candidatePop {
@@ -143,6 +142,9 @@ findPotentialBubbles(UnitigVector    &unitigs,
 
         //  Otherwise, remember that we had an overlap to ovlTig.
 
+        //writeLog("tig %u read %u overlap to tig %u read %u\n",
+        //         tig->id(), rid, ovlTigID, ovl[oi].b_iid);
+
         readOlapsTo.insert(ovlTigID);
       }
 
@@ -186,26 +188,29 @@ findPotentialBubbles(UnitigVector    &unitigs,
     //  If validBubble, then there is a tig that every dovetail read has at least one overlap to.
     //  Save those tigs in potentialBubbles.
 
-    if (validBubble) {
-      uint32  nTigs = 0;
+    uint32  nTigs = 0;
 
+    if (validBubble) {
       for (map<uint32,uint32>::iterator it=tigOlapsTo.begin(); it != tigOlapsTo.end(); ++it)
         if (it->second >= BUBBLE_READ_FRACTION * nonContainedReads)
           nTigs++;
+    }
 
+    //  ALWAYS log potential bubbles.
+
+    if (nTigs > 0) {
       writeLog("\n");
       writeLog("potential bubble tig %8u length %9u nReads %7u to %3u tigs:\n",
                tig->id(), tig->getLength(), tig->ufpath.size(), nTigs);
 
       for (map<uint32,uint32>::iterator it=tigOlapsTo.begin(); it != tigOlapsTo.end(); ++it) {
-        Unitig  *dest = unitigs[it->first];
+        if (it->second >= BUBBLE_READ_FRACTION * nonContainedReads) {
+          Unitig  *dest = unitigs[it->first];
 
-        if (it->second < BUBBLE_READ_FRACTION * nonContainedReads)
-          continue;
+          writeLog("                 tig %8u length %9u nReads %7u\n", dest->id(), dest->getLength(), dest->ufpath.size());
 
-        writeLog("                 tig %8u length %9u nReads %7u\n", dest->id(), dest->getLength(), dest->ufpath.size());
-
-        potentialBubbles[ti].push_back(dest->id());
+          potentialBubbles[ti].push_back(dest->id());
+        }
       }
     }
   }
@@ -247,9 +252,9 @@ findBubbleReadPlacements(UnitigVector    &unitigs,
 
     set<uint32> intersections;
 
-    if ((fi % 100) == 0)
-      fprintf(stderr, "findBubbleReadPlacements()-- read %8u with %6u overlaps - %6.2f%% finished.\r",
-              rdA->ident, ovlLen, 100.0 * fi / fiLimit);
+    //if ((fi % 100) == 0)
+    //  fprintf(stderr, "findBubbleReadPlacements()-- read %8u with %6u overlaps - %6.2f%% finished.\r",
+    //          rdA->ident, ovlLen, 100.0 * fi / fiLimit);
 
     //  Compute all placements for this read.
 
@@ -257,11 +262,24 @@ findBubbleReadPlacements(UnitigVector    &unitigs,
 
     placeFragUsingOverlaps(unitigs, AS_MAX_ERATE, NULL, rdA->ident, placements);
 
-    //  Weed out placements that aren't for bubbles, or that are for bubbles but are poor quality.
+    //  Weed out placements that aren't for bubbles, or that are for bubbles but are poor quality.  Or are to ourself!
 
     for (uint32 pi=0; pi<placements.size(); pi++) {
       uint32    rdBtigID = placements[pi].tigID;
       Unitig   *rdBtig   = unitigs[rdBtigID];
+
+      uint32    lo       = (placements[pi].position.bgn < placements[pi].position.end) ? placements[pi].position.bgn : placements[pi].position.end;
+      uint32    hi       = (placements[pi].position.bgn < placements[pi].position.end) ? placements[pi].position.end : placements[pi].position.bgn;
+
+      double    erate    = placements[pi].errors / placements[pi].aligned;
+
+      //  Ignore the placement if it is to ourself.
+
+      if (rdAtigID == rdBtigID) {
+        //writeLog("tig %6u frag %8u -> tig %6u %6u reads at %8u-%8u (cov %7.5f erate %6.4f) - SAME TIG\n",
+        //         rdAtigID, placements[pi].frgID, placements[pi].tigID, rdBtig->ufpath.size(), placements[pi].position.bgn, placements[pi].position.end, placements[pi].fCoverage, erate);
+        continue;
+      }
 
       //  Ignore the placement if it is to a non-tig / singleton read, or if it didn't place the
       //  read fully.
@@ -269,8 +287,12 @@ findBubbleReadPlacements(UnitigVector    &unitigs,
       if ((rdBtigID == 0) ||
           (rdBtig   == NULL) ||
           (rdBtig->ufpath.size() == 1) ||
-          (placements[pi].fCoverage < 0.99))
+          (placements[pi].fCoverage < 0.99)) {
+        if (logFileFlagSet(LOG_BUBBLE_DETAIL))
+          writeLog("tig %6u frag %8u -> tig %6u %6u reads at %8u-%8u (cov %7.5f erate %6.4f) - PARTIALLY PLACED\n",
+                   rdAtigID, placements[pi].frgID, placements[pi].tigID, rdBtig->ufpath.size(), placements[pi].position.bgn, placements[pi].position.end, placements[pi].fCoverage, erate);
         continue;
+      }
 
       //  Ignore the placement if it isn't to one of our bubble-popping candidate unitigs.
 
@@ -282,30 +304,27 @@ findBubbleReadPlacements(UnitigVector    &unitigs,
           dontcare = false;
       }
 
-      if (dontcare)
-        continue;
-
-      //  Ignore the placement if it is too diverged from the destination tig.
-
-      uint32  lo = (placements[pi].position.bgn < placements[pi].position.end) ? placements[pi].position.bgn : placements[pi].position.end;
-      uint32  hi = (placements[pi].position.bgn < placements[pi].position.end) ? placements[pi].position.end : placements[pi].position.bgn;
-
-      double  erate = placements[pi].errors / placements[pi].aligned;
-
-      if (rdBtig->overlapConsistentWithTig(BUBBLE_CONSISTENT, lo, hi, erate) < 0.5) {
-#ifdef SHOW_PLACEMENT_DETAIL
-        writeLog("frag %8u placed in tig %6u (%6u reads) at %8u-%8u with coverage %7.5f and erate %6.4f - HIGH ERROR\n",
-                 placements[pi].frgID, placements[pi].tigID, rdBtig->ufpath.size(), placements[pi].position.bgn, placements[pi].position.end, placements[pi].fCoverage, erate);
-#endif
+      if (dontcare) {
+        if (logFileFlagSet(LOG_BUBBLE_DETAIL))
+          writeLog("tig %6u frag %8u -> tig %6u %6u reads at %8u-%8u (cov %7.5f erate %6.4f) - NOT CANDIDATE TIG\n",
+                   rdAtigID, placements[pi].frgID, placements[pi].tigID, rdBtig->ufpath.size(), placements[pi].position.bgn, placements[pi].position.end, placements[pi].fCoverage, erate);
         continue;
       }
 
-#ifdef SHOW_PLACEMENT_DETAIL
-      writeLog("frag %8u placed in tig %6u (%6u reads) at %8u-%8u with coverage %7.5f and erate %6.4f\n",
-               placements[pi].frgID, placements[pi].tigID, rdBtig->ufpath.size(), placements[pi].position.bgn, placements[pi].position.end, placements[pi].fCoverage, erate);
-#endif
+      //  Ignore the placement if it is too diverged from the destination tig.
+
+      if (rdBtig->overlapConsistentWithTig(BUBBLE_CONSISTENT, lo, hi, erate) < 0.5) {
+        if (logFileFlagSet(LOG_BUBBLE_DETAIL))
+          writeLog("tig %6u frag %8u -> tig %6u %6u reads at %8u-%8u (cov %7.5f erate %6.4f) - HIGH ERROR\n",
+                   rdAtigID, placements[pi].frgID, placements[pi].tigID, rdBtig->ufpath.size(), placements[pi].position.bgn, placements[pi].position.end, placements[pi].fCoverage, erate);
+        continue;
+      }
 
       //  Good placement!
+
+      if (logFileFlagSet(LOG_BUBBLE_DETAIL))
+        writeLog("tig %6u frag %8u -> tig %6u %6u reads at %8u-%8u (cov %7.5f erate %6.4f)\n",
+                 rdAtigID, placements[pi].frgID, placements[pi].tigID, rdBtig->ufpath.size(), placements[pi].position.bgn, placements[pi].position.end, placements[pi].fCoverage, erate);
 
       placed[fi].push_back(placements[pi]);
     }
@@ -361,13 +380,27 @@ popBubbles(UnitigVector &unitigs,
     if (potentialBubbles.count(ti) == 0)   //  Not a potential bubble
       continue;
 
+    //  Scan the bubble, decide if there are _ANY_ read placements.  Log appropriately.
+
     Unitig  *bubble = unitigs[ti];
+    bool     hasPlacements = false;
+
+    for (uint32 fi=0; fi<bubble->ufpath.size(); fi++) {
+      uint32  readID  = bubble->ufpath[fi].ident;
+
+      if (placed[readID].size() > 0)
+        hasPlacements = true;
+    }
+
+    if (hasPlacements == false)
+      writeLog("potential bubble %u had no valid placements (all were not contained in target tig)\n", ti);
+    else
+      writeLog("potential bubble %u\n", ti);
 
     //  Split the placements into piles for each target and build an interval list for each target.
+    //  For each read in the tig, convert the vector of placements into interval lists, one list per target tig.
 
     map<uint32, intervalList<uint32> *>  targetIntervals;
-
-    //  For each read in the tig, convert the vector of placements into interval lists, one list per target tig.
 
     for (uint32 fi=0; fi<bubble->ufpath.size(); fi++) {
       uint32  readID  = bubble->ufpath[fi].ident;
@@ -380,6 +413,8 @@ popBubbles(UnitigVector &unitigs,
 
         if (targetIntervals[tid] == NULL)
           targetIntervals[tid] = new intervalList<uint32>;
+
+        //writeLog("read %u -> tig %u intervals %u-%u\n", readID, tid, bgn, end);
 
         targetIntervals[tid]->add(bgn, end-bgn);
       }
@@ -402,12 +437,16 @@ popBubbles(UnitigVector &unitigs,
 
       for (uint32 ii=0; ii<IL->numberOfIntervals(); ii++) {
         if ((IL->hi(ii) - IL->lo(ii) < 0.75 * bubble->getLength()) ||   //  Too small!
-            (1.25 * bubble->getLength() < IL->hi(ii) - IL->lo(ii)))     //  Too big!
+            (1.25 * bubble->getLength() < IL->hi(ii) - IL->lo(ii))) {   //  Too big!
+          writeLog("tig %8u length %9u -> target %8u piece %2u position %9u-%9u length %8u - size mismatch, discarded\n",
+                   bubble->id(), bubble->getLength(),
+                   targetID, ii, IL->lo(ii), IL->hi(ii), IL->hi(ii) - IL->lo(ii));
           continue;
+        }
 
-        //writeLog("tig %8u length %9u -> target %8u piece %2u position %9u-%9u length %8u\n",
-        //         bubble->id(), bubble->getLength(),
-        //         targetID, ii, IL->lo(ii), IL->hi(ii), IL->hi(ii) - IL->lo(ii));
+        writeLog("tig %8u length %9u -> target %8u piece %2u position %9u-%9u length %8u\n",
+                 bubble->id(), bubble->getLength(),
+                 targetID, ii, IL->lo(ii), IL->hi(ii), IL->hi(ii) - IL->lo(ii));
 
         targets.push_back(new candidatePop(bubble, unitigs[targetID], IL->lo(ii), IL->hi(ii)));
       }
@@ -629,6 +668,7 @@ popBubbles(UnitigVector &unitigs,
     delete bubble;
   }
 
+  writeLog("\n");   //  Needed if no bubbles are popped.
 
   delete [] placed;
 }

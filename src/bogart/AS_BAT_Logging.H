@@ -63,19 +63,13 @@ void  flushLog(void);
 extern uint64  logFileFlags;
 extern uint32  logFileOrder;  //  Used debug tigStore dumps, etc
 
-extern uint64 LOG_OVERLAP_QUALITY;
-extern uint64 LOG_OVERLAPS_USED;
+extern uint64 LOG_OVERLAP_SCORING;
+extern uint64 LOG_ALL_BEST_EDGES;
 extern uint64 LOG_CHUNK_GRAPH;
-extern uint64 LOG_INTERSECTIONS;
-extern uint64 LOG_POPULATE_UNITIG;
-extern uint64 LOG_INTERSECTION_BREAKING;
-extern uint64 LOG_INTERSECTION_BUBBLES;
-extern uint64 LOG_INTERSECTION_BUBBLES_DEBUG;
-extern uint64 LOG_INTERSECTION_JOINING;
-extern uint64 LOG_INTERSECTION_JOINING_DEBUG;
+extern uint64 LOG_BUILD_UNITIG;
+extern uint64 LOG_PLACE_UNPLACED;
+extern uint64 LOG_BUBBLE_DETAIL;
 extern uint64 LOG_SPLIT_DISCONTINUOUS;
-extern uint64 LOG_INITIAL_CONTAINED_PLACEMENT;
-extern uint64 LOG_HAPPINESS;
 extern uint64 LOG_INTERMEDIATE_UNITIGS;
 extern uint64 LOG_SET_PARENT_AND_HANG;
 extern uint64 LOG_STDERR;

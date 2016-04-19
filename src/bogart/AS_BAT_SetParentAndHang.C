@@ -87,7 +87,7 @@ setParentAndHang(UnitigVector &unitigs) {
       //
 
       if (bestedge5->fragId() > 0) {
-        if (logFileFlags & LOG_SET_PARENT_AND_HANG)
+        if (logFileFlagSet(LOG_SET_PARENT_AND_HANG))
           writeLog("setParentAndHang()--  BEST5     - frag %d in unitig %d 5' to %d/%c' in unitig %d\n",
                   frg->ident, utg->id(),
                   bestedge5->fragId(), bestedge5->frag3p() ? '3' : '5',
@@ -106,7 +106,7 @@ setParentAndHang(UnitigVector &unitigs) {
             frg->bhang  = -bestedge5->bhang();
             assert(frg->ahang >= 0);
 
-            if (logFileFlags & LOG_SET_PARENT_AND_HANG)
+            if (logFileFlagSet(LOG_SET_PARENT_AND_HANG))
               writeLog("                             - -> frag %d at %d,%d 5' edge to prev frag %d at %d,%d -- hang %d,%d\n",
                       frg->ident, frg->position.bgn, frg->position.end,
                       oth->ident, oth->position.bgn, oth->position.end,
@@ -125,20 +125,20 @@ setParentAndHang(UnitigVector &unitigs) {
               oth->bhang  = -bestedge5->ahang();
               assert(oth->ahang >= 0);
 
-              if (logFileFlags & LOG_SET_PARENT_AND_HANG)
+              if (logFileFlagSet(LOG_SET_PARENT_AND_HANG))
                 writeLog("                                - <- frag %d at %d,%d %c' edge fr prev frag %d at %d,%d -- hang %d,%d\n",
                         oth->ident, oth->position.bgn, oth->position.end, bestedge5->frag3p() ? '3' : '5',
                         frg->ident, frg->position.bgn, frg->position.end,
                         frg->ahang, frg->bhang);
             } else {
-              if (logFileFlags & LOG_SET_PARENT_AND_HANG)
+              if (logFileFlagSet(LOG_SET_PARENT_AND_HANG))
                 writeLog("                                - <- frag %d at %d,%d %c' edge fr prev frag %d at %d,%d -- NOT VALID\n",
                         oth->ident, oth->position.bgn, oth->position.end, bestedge5->frag3p() ? '3' : '5',
                         frg->ident, frg->position.bgn, frg->position.end);
             }
 
           } else {
-            if (logFileFlags & LOG_SET_PARENT_AND_HANG)
+            if (logFileFlagSet(LOG_SET_PARENT_AND_HANG))
               writeLog("                                - -- frag %d at %d,%d 5' edge to prev frag %d at %d,%d -- NOT VALID\n",
                       frg->ident, frg->position.bgn, frg->position.end,
                       oth->ident, oth->position.bgn, oth->position.end);
@@ -147,7 +147,7 @@ setParentAndHang(UnitigVector &unitigs) {
       }
 
       if (bestedge3->fragId() > 0) {
-        if (logFileFlags & LOG_SET_PARENT_AND_HANG)
+        if (logFileFlagSet(LOG_SET_PARENT_AND_HANG))
           writeLog("setParentAndHang()--  BEST3     - frag %d in unitig %d 3' to %d/%c' in unitig %d\n",
                   frg->ident, utg->id(),
                   bestedge3->fragId(), bestedge3->frag3p() ? '3' : '5',
@@ -166,7 +166,7 @@ setParentAndHang(UnitigVector &unitigs) {
             frg->bhang  = bestedge3->ahang();
             assert(frg->ahang >= 0);
 
-            if (logFileFlags & LOG_SET_PARENT_AND_HANG)
+            if (logFileFlagSet(LOG_SET_PARENT_AND_HANG))
               writeLog("                                - -> frag %d at %d,%d 3' edge to prev frag %d at %d,%d -- hang %d,%d\n",
                       frg->ident, frg->position.bgn, frg->position.end,
                       oth->ident, oth->position.bgn, oth->position.end,
@@ -180,20 +180,20 @@ setParentAndHang(UnitigVector &unitigs) {
               oth->bhang  = bestedge3->bhang();
               assert(oth->ahang >= 0);
 
-              if (logFileFlags & LOG_SET_PARENT_AND_HANG)
+              if (logFileFlagSet(LOG_SET_PARENT_AND_HANG))
                 writeLog("                                - <- frag %d at %d,%d %c' edge fr prev frag %d at %d,%d -- hang %d,%d\n",
                         oth->ident, oth->position.bgn, oth->position.end, bestedge5->frag3p() ? '3' : '5',
                         frg->ident, frg->position.bgn, frg->position.end,
                         frg->ahang, frg->bhang);
             } else {
-              if (logFileFlags & LOG_SET_PARENT_AND_HANG)
+              if (logFileFlagSet(LOG_SET_PARENT_AND_HANG))
                 writeLog("                             - <- frag %d at %d,%d %c' edge fr prev frag %d at %d,%d -- NOT VALID\n",
                         oth->ident, oth->position.bgn, oth->position.end, bestedge5->frag3p() ? '3' : '5',
                         frg->ident, frg->position.bgn, frg->position.end);
             }
 
           } else {
-            if (logFileFlags & LOG_SET_PARENT_AND_HANG)
+            if (logFileFlagSet(LOG_SET_PARENT_AND_HANG))
               writeLog("                                - -- frag %d at %d,%d 3' edge to prev frag %d at %d,%d -- NOT VALID\n",
                       frg->ident, frg->position.bgn, frg->position.end,
                       oth->ident, oth->position.bgn, oth->position.end);

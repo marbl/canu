@@ -97,7 +97,7 @@ populateUnitig(Unitig           *unitig,
     bestnext = OG->getBestEdgeOverlap(lastID, last3p);
   }
 
-  if (logFileFlagSet(LOG_POPULATE_UNITIG))
+  if (logFileFlagSet(LOG_BUILD_UNITIG))
     if (bestnext->fragId() == 0)
       writeLog("Stopped adding at frag %u/%c' because no next best edge.  Added %u reads.\n",
                lastID, (last3p) ? '3' : '5',
@@ -122,7 +122,7 @@ populateUnitig(UnitigVector &unitigs,
       (OG->isContained(fi) == true))    //  Skip contained
     return;
 
-  Unitig *utg = unitigs.newUnitig(logFileFlagSet(LOG_POPULATE_UNITIG));
+  Unitig *utg = unitigs.newUnitig(logFileFlagSet(LOG_BUILD_UNITIG));
 
   //  Add a first fragment -- to be 'compatable' with the old code, the first fragment is added
   //  reversed, we walk off of its 5' end, flip it, and add the 3' walk.
@@ -137,7 +137,7 @@ populateUnitig(UnitigVector &unitigs,
   frag.position.bgn      = FI->fragmentLength(fi);
   frag.position.end      = 0;
 
-  utg->addFrag(frag, 0, logFileFlagSet(LOG_POPULATE_UNITIG));
+  utg->addFrag(frag, 0, logFileFlagSet(LOG_BUILD_UNITIG));
 
   //  Add fragments as long as there is a path to follow...from the 3' end of the first fragment.
 
@@ -177,7 +177,7 @@ populateUnitig(UnitigVector &unitigs,
   }
 #endif
 
-  if (logFileFlagSet(LOG_POPULATE_UNITIG))
+  if (logFileFlagSet(LOG_BUILD_UNITIG))
     writeLog("Adding 5' edges off of frag %d in unitig %d\n",
             utg->ufpath.back().ident, utg->id());
 
@@ -186,7 +186,7 @@ populateUnitig(UnitigVector &unitigs,
 
   utg->reverseComplement(false);
 
-  if (logFileFlagSet(LOG_POPULATE_UNITIG))
+  if (logFileFlagSet(LOG_BUILD_UNITIG))
     writeLog("Adding 3' edges off of frag %d in unitig %d\n",
             utg->ufpath.back().ident, utg->id());
 

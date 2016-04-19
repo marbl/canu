@@ -205,10 +205,8 @@ main (int argc, char * argv []) {
       if (strcasecmp("most", argv[arg]) == 0) {
         for (flg=1, opt=0; logFileFlagNames[opt]; flg <<= 1, opt++)
           if ((strcasecmp(logFileFlagNames[opt], "stderr") != 0) &&
-              (strcasecmp(logFileFlagNames[opt], "overlapQuality") != 0) &&
-              (strcasecmp(logFileFlagNames[opt], "overlapsUsed") != 0) &&
+              (strcasecmp(logFileFlagNames[opt], "overlapScoring") != 0) &&
               (strcasecmp(logFileFlagNames[opt], "chunkGraph") != 0) &&
-              (strcasecmp(logFileFlagNames[opt], "happiness") != 0) &&
               (strcasecmp(logFileFlagNames[opt], "setParentAndHang") != 0))
             logFileFlags |= flg;
         fnd = true;
@@ -425,7 +423,6 @@ main (int argc, char * argv []) {
 
   breakSingletonTigs(unitigs);
 
-  reportOverlapsUsed(unitigs, prefix, "buildUnitigs");
   reportUnitigs(unitigs, prefix, "buildUnitigs", genomeSize);
 
   //
@@ -436,7 +433,6 @@ main (int argc, char * argv []) {
 
   //joinUnitigs(unitigs, enableJoining);
 
-  //reportOverlapsUsed(unitigs, prefix, "joining");
   //reportUnitigs(unitigs, prefix, "joining", genomeSize);
 
   //
@@ -471,7 +467,6 @@ main (int argc, char * argv []) {
              genomeSize);
              
   //checkUnitigMembership(unitigs);
-  reportOverlapsUsed(unitigs, prefix, "popBubbles");
   reportUnitigs(unitigs, prefix, "popBubbles", genomeSize);
 #endif
 
@@ -487,7 +482,6 @@ main (int argc, char * argv []) {
   markRepeatReads(unitigs, prefix, erateGraph, erateBubble, erateMerge, erateRepeat);
 
   //checkUnitigMembership(unitigs);
-  reportOverlapsUsed(unitigs, prefix, "markRepeatReads");
   reportUnitigs(unitigs, prefix, "markRepeatReads", genomeSize);
 
   //
@@ -502,7 +496,6 @@ main (int argc, char * argv []) {
     reconstructRepeats(unitigs, erateGraph);
 
     //checkUnitigMembership(unitigs);
-    reportOverlapsUsed(unitigs, prefix, "reconstructRepeats");
     reportUnitigs(unitigs, prefix, "reconstructRepeats", genomeSize);
   }
 #endif
@@ -542,7 +535,6 @@ main (int argc, char * argv []) {
 
   setLogFile(prefix, "output");
   writeUnitigsToStore(unitigs, prefix, tigStorePath, fragment_count_target);
-  writeOverlapsUsed(unitigs, prefix);
 
   //
   //  Tear down bogart.
