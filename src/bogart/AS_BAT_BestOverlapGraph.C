@@ -573,7 +573,7 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
       BestEdgeOverlap *bestedge5 = getBestEdgeOverlap(id, false);
       BestEdgeOverlap *bestedge3 = getBestEdgeOverlap(id, true);
 
-      if ((bestedge5->fragId() == 0) && (bestedge3->fragId() == 0)) {
+      if ((bestedge5->fragId() == 0) && (bestedge3->fragId() == 0) && (isContained(id) == false)) {
         fprintf(BS, "%u\t%u\n", id, FI->libraryIID(id));
       }
 
