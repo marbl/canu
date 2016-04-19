@@ -457,12 +457,14 @@ BestOverlapGraph::BestOverlapGraph(double               erate,
 
   removeSpurs();
   findEdges();
-  removeContainedDovetails();
 
-  if (logFileFlagSet(LOG_ALL_BEST_EDGES))
-    reportBestEdges(prefix, "best.3.final");
-  else
-    reportBestEdges(prefix, "best");
+  reportBestEdges(prefix, logFileFlagSet(LOG_ALL_BEST_EDGES) ? "best.3.final" : "best");
+
+  //  One more pass, to find any ambiguous best edges.
+
+  //  Cleanup the contained reads.  Why?
+
+  removeContainedDovetails();
 
   //  Done with scoring data.
 
