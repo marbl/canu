@@ -988,7 +988,7 @@ sub buildGridJob ($$$$$$$$) {
 
     $gridOpts  = getGlobal("gridOptions")          if (defined(getGlobal("gridOptions")));
     $gridOpts .= " "                               if (defined($gridOpts));
-    $gridOpts  = getGlobal("gridOptions$jobType")  if (defined(getGlobal("gridOptions$jobType")));
+    $gridOpts .= getGlobal("gridOptions$jobType")  if (defined(getGlobal("gridOptions$jobType")));
     $gridOpts .= " "                               if (defined($gridOpts));
     $gridOpts .= $memOption                        if (defined($memOption));
     $gridOpts .= " "                               if (defined($gridOpts));
@@ -1202,7 +1202,7 @@ sub submitOrRunParallelJob ($$$$$@) {
     $nMParallel    = 1                                                            if ((!defined($nMParallel)) || ($nMParallel == 0));
 
     # run min of our limits
-    my $nParallel  = MIN($nCParallel, $nMParallel);
+    my $nParallel  = $nCParallel < $nMParallel ? $nCParallel : $nMParallel;
 
     schedulerSetNumberOfProcesses($nParallel);
     schedulerFinish($path);
