@@ -784,11 +784,15 @@ markRepeatReads(UnitigVector &unitigs,
             (tig5end < rMax) &&
             (b5use))
           len5 = FI->overlapLength(rdAid, b5->fragId(), b5->ahang(), b5->bhang());
+        else
+          b5use = false;
 
         if ((rMin    < tig3bgn) &&
             (tig3end < rMax) &&
             (b3use))
           len3 = FI->overlapLength(rdAid, b3->fragId(), b3->ahang(), b3->bhang());
+        else
+          b3use = false;
 
         double score5 = 0.98 * len5 * (1 - b5->erate());
         double score3 = 0.98 * len3 * (1 - b3->erate());
@@ -837,6 +841,13 @@ markRepeatReads(UnitigVector &unitigs,
 
           if ((ovl5 == false) &&
               (ovl3 == false))
+            continue;
+
+          //  Skip if we're not using this overlap
+          if ((ovl5 == true) && (b5use == false))
+            continue;
+
+          if ((ovl3 == true) && (b3use == false))
             continue;
 
 
