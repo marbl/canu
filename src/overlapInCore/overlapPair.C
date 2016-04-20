@@ -100,6 +100,7 @@ public:
     //analyze         = NULL;
     overlapsLen     = 0;
     overlaps        = NULL;
+    readSeq         = NULL;
   };
   ~workSpace() {
 #ifdef BUSTED
@@ -114,6 +115,7 @@ public:
     delete align;
     align=NULL;
 #endif
+    delete[] readSeq;
   };
 
 public:
@@ -121,6 +123,7 @@ public:
   double                 maxErate;
   bool                   partialOverlaps;
   bool                   invertOverlaps;
+  char*                  readSeq;
 
   gkStore               *gkpStore;
 
@@ -175,8 +178,6 @@ void *
 recomputeOverlaps(void *ptr) {
   workSpace    *WA = (workSpace *)ptr;
 
-  char         *bRev = new char [AS_MAX_READLEN];
-
   uint32        bgnID = 0;
   uint32        endID = 0;
 
@@ -189,12 +190,6 @@ recomputeOverlaps(void *ptr) {
 #ifdef BUSTED
   if (WA->NDaln == NULL)
     WA->NDaln = new NDalign(WA->partialOverlaps ? pedLocal : pedOverlap, WA->maxErate, 15);
-#endif
-#ifndef FALCON
-  WA->align = new StripedSmithWaterman::Aligner(1, 3, 3, 1);
-  WA->filter = new StripedSmithWaterman::Filter();
-#else
-  WA->align = new NDalignment::NDalignResult();
 #endif
 
   //if (WA->analyze == NULL)
@@ -273,7 +268,7 @@ if (nTested % 1000 == 0) {
         WA->align->display("MHAP align():", true);
 //        fprintf(stderr, "Reads %d to %d, expected overlap %d - %d to %d - %d and found error rate %f from %d - %d and %d - %d\n", aID, bID, ovl->a_bgn(), ovl->a_end(), ovl->b_bgn(), ovl->b_end(), WA->NDaln->erate(), WA->NDaln->abgn(), WA->NDaln->aend(), WA->NDaln->bbgn(), WA->NDaln->bend());
 #else
-  char *bRead = new char[rcache->getLength(bID)+1];
+  char *bRead = WA->readSeq;
   int32 astart = std::max((int32)0, (int32)ovl->a_bgn() - MHAP_SLOP);
   int32 aend = std::min((int32)rcache->getLength(aID), (int32)ovl->a_end() + MHAP_SLOP);
   int32 bstart = std::max((int32)0, (int32)ovl->b_bgn() - MHAP_SLOP);
@@ -305,7 +300,6 @@ if (nTested % 1000 == 0) {
 
   uint32 alignmentLength = alignment.ref_end-alignment.ref_begin+1;
 #endif
-  delete[] bRead;
 
   //fprintf(stderr, "Reads %d (%d) to %d (%d), expected overlap %d - %d to %d - %d and found error rate %f from %d - %d and %d - %d\n", aID, rcache->getLength(aID), bID, rcache->getLength(bID), ovl->a_bgn(), ovl->a_end(), ovl->b_bgn(), ovl->b_end(), (double)alignResult._dist/(alignmentLength),alignResult._tgt_bgn+astart, alignResult._tgt_end+astart-1, alignResult._qry_bgn+bstart, alignResult._qry_end+bstart-1);
 
@@ -376,10 +370,6 @@ if (nTested % 1000 == 0) {
             WA->threadID, bgnID, endID, deltaTime, (endID - bgnID) / deltaTime, nFailed, nPassed);
 #endif
   }
-
-  //  All done.
-
-  delete [] bRev;
 
   //  Report.  The last batch has no work to do.
 
@@ -537,6 +527,15 @@ main(int argc, char **argv) {
     WA[tt].align            = NULL;
 #endif
     WA[tt].overlaps         = NULL;
+
+      // preallocate some work thread memory for common tasks to avoid allocation
+#ifndef FALCON
+      WA[tt].align = new StripedSmithWaterman::Aligner(1, 3, 3, 1);
+      WA[tt].filter = new StripedSmithWaterman::Filter();
+#else
+      WA[tt].align = new NDalignment::NDalignResult();
+#endif
+      WA[tt].readSeq = new char[AS_MAX_READLEN+1];
   }
 
 
