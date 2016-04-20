@@ -569,9 +569,9 @@ sub buildOverlapperHTML ($$$$$$) {
     }
 
     push @$body, "<table>\n";
-    push @$body, "<tr><th>Category</th><th>Reads</th><th colspan='3'>Read Length</th><th colspan='3'>Feature Size or Coverage</th><th>Analysis</th></tr>\n";
+    push @$body, "<tr><th>Category</th><th>Reads</th><th>%</th><th colspan='3'>Read Length</th><th colspan='3'>Feature Size or Coverage</th><th>Analysis</th></tr>\n";
 
-    my ($category, $reads, $length, $lengthsd, $size, $sizesd, $analysis);
+    my ($category, $reads, $readsP, $length, $lengthsd, $size, $sizesd, $analysis);
 
     open(F, "< $wrk/$asm.ovlStore.summary") or caExit("Failed to open overlap store statistics in '$wrk/$asm.ovlStore': $!", undef);
     $_ = <F>;
@@ -581,25 +581,27 @@ sub buildOverlapperHTML ($$$$$$) {
 
         next if ($_ eq "");
 
-        if      (m/(.*)\s+(\d+)\s+(\d+.\d+)\s+\+-\s+(\d+.\d+)\s+(\d+.\d+)\s+\+-\s+(\d+.\d+)\s+\((.*)\)$/) {
+        if      (m/(.*)\s+(\d+)\s+(\d+.\d+)\s+(\d+.\d+)\s+\+-\s+(\d+.\d+)\s+(\d+.\d+)\s+\+-\s+(\d+.\d+)\s+\((.*)\)$/) {
             $category = $1;
             $reads    = $2;
-            $length   = $3;
-            $lengthsd = $4;
-            $size     = $5;
-            $sizesd   = $6;
-            $analysis = $7;
-            push @$body, "<tr><td>$category</td><td>$reads</td><td align='right'>$length</td><td>&plusmn;</td><td align='left'>$lengthsd</td><td align='right'>$size</td><td>&plusmn;</td><td align='left'>$sizesd</td><td align='left'>$analysis</td></tr>\n";
+            $readsP   = $3;
+            $length   = $4;
+            $lengthsd = $5;
+            $size     = $6;
+            $sizesd   = $7;
+            $analysis = $8;
+            push @$body, "<tr><td>$category</td><td>$reads</td><td>$readsP</td><td align='right'>$length</td><td>&plusmn;</td><td align='left'>$lengthsd</td><td align='right'>$size</td><td>&plusmn;</td><td align='left'>$sizesd</td><td align='left'>$analysis</td></tr>\n";
 
-        } elsif (m/(.*)\s+(\d+)\s+(\d+.\d+)\s+\+-\s+(\d+.\d+)\s+\((.*)\)$/) {
+        } elsif (m/(.*)\s+(\d+)\s+(\d+.\d+)\s+(\d+.\d+)\s+\+-\s+(\d+.\d+)\s+\((.*)\)$/) {
             $category = $1;
             $reads    = $2;
-            $length   = $3;
-            $lengthsd = $4;
+            $readsP   = $3;
+            $length   = $4;
+            $lengthsd = $5;
             $size     = undef;
             $sizesd   = undef;
-            $analysis = $5;
-            push @$body, "<tr><td>$category</td><td>$reads</td><td align='right'>$length</td><td>&plusmn;</td><td align-'left'>$lengthsd</td><td></td><td></td><td></td><td align='left'>$analysis</td></tr>\n";
+            $analysis = $6;
+            push @$body, "<tr><td>$category</td><td>$reads</td><td>$readsP</td><td align='right'>$length</td><td>&plusmn;</td><td align-'left'>$lengthsd</td><td></td><td></td><td></td><td align='left'>$analysis</td></tr>\n";
 
         } else {
             chomp;
