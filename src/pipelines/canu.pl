@@ -167,10 +167,12 @@ while (scalar(@ARGV)) {
             setErrorRate(0.025);
             setGlobal("corErrorRate", "0.30");
             setGlobal("cnsMaxCoverage", 20);
+            setGlobal("utgGraphDeviation", 6);
         } elsif ($arg =~ m/nanopore/) {
             setErrorRate(0.050);
             setGlobal("corErrorRate", "0.50");
             setGlobal("cnsMaxCoverage", 20);
+            setGlobal("utgGraphDeviation", 6);
         }
 
         $mode = "trim-assemble"  if (!defined($mode) && ($arg =~ m/corrected/));

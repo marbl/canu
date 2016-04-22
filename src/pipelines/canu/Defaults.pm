@@ -543,11 +543,6 @@ sub showErrorRates ($) {
     print STDERR "${prefix}\n";
     print STDERR "${prefix}obtErrorRate        -- ", getGlobal("obtErrorRate"), "\n";
     print STDERR "${prefix}\n";
-    print STDERR "${prefix}utgGraphErrorRate   -- ", getGlobal("utgGraphErrorRate"), "\n";
-    print STDERR "${prefix}utgBubbleErrorRate  -- ", getGlobal("utgBubbleErrorRate"), "\n";
-    print STDERR "${prefix}utgMergeErrorRate   -- ", getGlobal("utgMergeErrorRate"), "\n";
-    print STDERR "${prefix}utgRepeatErrorRate  -- ", getGlobal("utgRepeatErrorRate"), "\n";
-    print STDERR "${prefix}\n";
     #print STDERR "${prefix}corErrorRate        -- ", getGlobal("corErrorRate"), "\n";
     print STDERR "${prefix}cnsErrorRate        -- ", getGlobal("cnsErrorRate"), "\n";
 }
@@ -570,11 +565,6 @@ sub setErrorRate ($@) {
     setGlobal("utgOvlErrorRate",    $er * 3);
 
     setGlobal("obtErrorRate",       $er * 3);
-
-    setGlobal("utgGraphErrorRate",  $er * 2);
-    setGlobal("utgBubbleErrorRate", $er * 2 + 0.5 * $er);  #  Not tested!
-    setGlobal("utgMergeErrorRate",  $er * 2 - 0.5 * $er);
-    setGlobal("utgRepeatErrorRate", $er * 2);
 
     #  Removed, is usually set in CorrectReads, can be set from command line directly.
     #setGlobal("corErrorRate",       $er * 10);  #  Erorr rate used for raw sequence alignment/consensus
@@ -606,7 +596,7 @@ sub setOverlapDefaults ($$$) {
     $global{"${tag}OvlRefBlockLength"}        = 0;
     $synops{"${tag}OvlRefBlockLength"}        = "Amount of sequence (bp) to search against the hash table per batch";
 
-    $global{"${tag}OvlHashBits"}              = ($tag eq "cor") ? 18 : 22;
+    $global{"${tag}OvlHashBits"}              = ($tag eq "cor") ? 18 : 23;
     $synops{"${tag}OvlHashBits"}              = "Width of the kmer hash.  Width 22=1gb, 23=2gb, 24=4gb, 25=8gb.  Plus 10b per ${tag}OvlHashBlockLength";
 
     $global{"${tag}OvlHashLoad"}              = 0.75;
@@ -705,17 +695,14 @@ sub setDefaults () {
     #$global{"utgErrorRate"}                = undef;
     #$synops{"utgErrorRate"}                = "Overlaps at or below this error rate are used to construct unitigs (BOG and UTG)";
 
-    $global{"utgGraphErrorRate"}           = undef;
-    $synops{"utgGraphErrorRate"}           = "Overlaps at or below this error rate are used to construct unitigs (BOGART)";
+    $global{"utgGraphDeviation"}           = 5;
+    $synops{"utgGraphDeviation"}           = "Overlaps this much above median will not be used for initial graph construction (BOGART)";
 
-    $global{"utgBubbleErrorRate"}          = undef;
-    $synops{"utgBubbleErrorRate"}          = "Overlaps at or below this error rate are used to construct unitigs (BOGART)";
+    $global{"utgRepeatDeviation"}          = 3;
+    $synops{"utgRepeatDeviation"}          = "Overlaps this much above mean unitig error rate will not be used for repeat splitting (BOGART)";
 
-    $global{"utgMergeErrorRate"}           = undef;
-    $synops{"utgMergeErrorRate"}           = "Overlaps at or below this error rate are used to construct unitigs (BOGART)";
-
-    $global{"utgRepeatErrorRate"}          = undef;
-    $synops{"utgRepeatErrorRate"}          = "Overlaps at or below this error rate are used to construct unitigs (BOGART)";
+    $global{"utgRepeatConfusedBP"}         = 5000;
+    $synops{"utgRepeatConfusedBP"}           = "Repeats where the next best edge is at least this many bp shorter will not be split (BOGART)";
 
     $global{"corErrorRate"}                = undef;
     $synops{"corErrorRate"}                = "Only use raw alignments below this error rate to construct corrected reads";
@@ -1180,10 +1167,6 @@ sub checkParameters () {
     setGlobalIfUndef("utgOvlErrorRate",      3.0 * getGlobal("errorRate"));
 
     setGlobalIfUndef("ovlErrorRate",         2.5 * getGlobal("errorRate"));
-    setGlobalIfUndef("utgGraphErrorRate",    2.0 * getGlobal("errorRate"));
-    setGlobalIfUndef("utgBubbleErrorRate",   2.0 * getGlobal("errorRate") + 0.5 * getGlobal("errorRate"));
-    setGlobalIfUndef("utgMergeErrorRate",    2.0 * getGlobal("errorRate") - 0.5 * getGlobal("errorRate"));
-    setGlobalIfUndef("utgRepeatErrorRate",   2.0 * getGlobal("errorRate"));
 
     setGlobalIfUndef("corsErrorRate",        10.0 * getGlobal("errorRate"));
     setGlobalIfUndef("cnsErrorRate",         2.5 * getGlobal("errorRate"));

@@ -54,48 +54,6 @@ use canu::Gatekeeper;
 use canu::HTML;
 use canu::Meryl;
 
-sub roundoff($$) {
-   my $num = shift;
-   my $base = shift || 1;
-
-   return int($num/$base + 0.5)*$base;
-}
-
-sub estimateOverlapSize($$) {
-    my $wrk       = shift @_;
-    my $asm       = shift @_;
-    my $bin       = getBinDirectory();
-    my $minread   = getGlobal("minReadLength");
-    my $ovl       = getGlobal("minOverlapLength");
-    my $gs        = getGlobal("genomeSize");
-
-    # dont set min let new alg do its job
-    return $ovl;
-
-    # if the  user manually set a threshold, use theirs, don't change it
-    if ($ovl != 500) {
-       return $ovl;
-    }
-
-    # for larger genomes bogart works better when ignoring short (repetitive) overlaps
-    # this is a temoporary fix while bogart splitting is improved
-    # we don't do it for all genomes to avoid losing overlaps for assembly of small genomes
-    open(F, "$bin/gatekeeperDumpMetaData -stats -G $wrk/$asm.gkpStore | ") or caFailure("failed to read gatekeeper stats fromfrom '$wrk/$asm.gkpStore'", undef);
-    while (<F>) {
-       my ($junk1, $library, $junk2, $reads, $junk3, $junk4, $bases, $junk5, $average, $junk6, $min, $junk7, $max) = split '\s+', $_;
-       if ($library == 0) {
-          my $cov = ceil($bases / $gs);
-
-          if ($gs >= 100000000) {
-             $ovl = roundoff(($average - $minread + $ovl) * 0.65, 500);
-             print STDERR "-- Average read length $average (found $reads reads with $bases bases). Minimum overlap set to $ovl\n";
-          }
-          last;
-       }
-    }
-    close(F);
-    return $ovl;
-}
 
 
 
@@ -198,8 +156,7 @@ sub unitig ($$) {
 
     my $perPart = int(getNumberOfReadsInStore($wrk, $asm) / getGlobal("cnsPartitions"));
     my $minPart = getGlobal("cnsPartitionMin");
-    my $genomeCoverage = int(1.3 * getGenomeCoverage($wrk, $asm, getGlobal("utgOvlMerSize")));
-    my $overlapLength = estimateOverlapSize($wrk, $asm);
+    my $overlapLength = getGlobal("minOverlapLength");
 
     $perPart = ($perPart < $minPart) ? ($perPart) : ($minPart);
 
@@ -224,10 +181,13 @@ sub unitig ($$) {
         print F " -o $wrk/4-unitigger/$asm \\\n";
         print F " -B $perPart \\\n";
         print F " -gs "             . getGlobal("genomeSize")         . " \\\n";
-        print F " -eg "             . getGlobal("utgGraphErrorRate")  . " \\\n";
-        print F " -eb "             . getGlobal("utgBubbleErrorRate") . " \\\n";
-        print F " -em "             . getGlobal("utgMergeErrorRate")  . " \\\n";
-        print F " -er "             . getGlobal("utgRepeatErrorRate") . " \\\n";
+        print F " -eg "             . getGlobal("utgOvlErrorRate")    . " \\\n";
+        print F " -eM "             . getGlobal("utgOvlErrorRate")    . " \\\n";
+        print F " -dg "             . getGlobal("utgGraphDeviation")  . " \\\n"
+        print F " -db "             . getGlobal("utgGraphDeviation")  . " \\\n"
+        print F " -dr "             . getGlobal("utgRepeatDeviation") . " \\\n"
+        print F " -ca "             . getGlobal("utgRepeatConfusedBP"). " \\\n"
+        print F " -cp "             . "500"                           . " \\\n"
         print F " -threads "        . getGlobal("batThreads")         . " \\\n"   if (defined(getGlobal("batThreads")));
         print F " -M "              . getGlobal("batMemory")          . " \\\n"   if (defined(getGlobal("batMemory")));
         print F " "                 . getGlobal("batOptions")         . " \\\n"   if (defined(getGlobal("batOptions")));
