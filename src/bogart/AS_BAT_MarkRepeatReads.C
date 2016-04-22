@@ -627,14 +627,14 @@ markRepeatReads(UnitigVector &unitigs,
       }
 
       if (t5 != UINT32_MAX)
-        writeLog("saved   region %8d:%-8d - closest 5' read %6u (%+6d) %8d:%8-d (%+6d)\n",
+        writeLog("saved   region %8d:%-8d - closest 5' read %6u (%+6d) %8d:%-8d (%+6d)\n",
                  tigMarksR.lo(ri), tigMarksR.hi(ri),
                  tig->ufpath[t5].ident,
                  tigMarksR.lo(ri) - t5bgn, t5bgn,
                  t5end, t5end - tigMarksR.hi(ri));
 
       if (t3 != UINT32_MAX)
-        writeLog("saved   region %8d:%-8d - closest 3' read %6u (%+6d) %8d:%8-d (%+6d)\n",
+        writeLog("saved   region %8d:%-8d - closest 3' read %6u (%+6d) %8d:%-8d (%+6d)\n",
                  tigMarksR.lo(ri), tigMarksR.hi(ri),
                  tig->ufpath[t3].ident,
                  tigMarksR.lo(ri) - t3bgn, t3bgn,
