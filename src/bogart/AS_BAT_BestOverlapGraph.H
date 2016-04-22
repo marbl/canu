@@ -77,10 +77,12 @@ private:
   void   removeContainedDovetails(void);
 
 public:
-  BestOverlapGraph(double      erate,
+  BestOverlapGraph(double      erateGraph,
+                   double      deviationGraph,
                    const char *prefix);
 
-  BestOverlapGraph(double erate,
+  BestOverlapGraph(double       erateGraph,
+                   double       deviationGraph,
                    set<uint32> *restrict);
 
   ~BestOverlapGraph() {
@@ -169,7 +171,8 @@ private:
   bool                       _restrictEnabled;
 
 public:
-  double                     _erate;
+  double                     _erateGraph;
+  double                     _deviationGraph;
 }; //BestOverlapGraph
 
 

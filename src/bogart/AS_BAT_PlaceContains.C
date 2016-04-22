@@ -79,8 +79,7 @@ breakSingletonTigs(UnitigVector &unitigs) {
 
 void
 placeUnplacedUsingAllOverlaps(UnitigVector &unitigs,
-                              const char   *prefix,
-                              double        erate) {
+                              const char   *prefix) {
   uint32  fiLimit    = FI->numFragments();
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
@@ -123,7 +122,7 @@ placeUnplacedUsingAllOverlaps(UnitigVector &unitigs,
 
     vector<overlapPlacement>   placements;
 
-    placeFragUsingOverlaps(unitigs, erate, NULL, fid, placements);
+    placeFragUsingOverlaps(unitigs, AS_MAX_ERATE, NULL, fid, placements);
 
     //  Search the placements for the highest expected identity placement using all overlaps in the unitig.
 

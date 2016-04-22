@@ -104,6 +104,40 @@ public:
 
 
 
+
+void
+Unitig::computeArrivalRate(const char *UNUSED(prefix),
+                           const char *UNUSED(label),
+                           vector<int32> *hist) {
+
+  sort();
+
+  for (uint32 fi=0; fi<ufpath.size(); fi++) {
+    ufNode     *rdA    = &ufpath[fi];
+    bool        rdAfwd = (rdA->position.bgn < rdA->position.end);
+    int32       rdAlo  = (rdAfwd) ? rdA->position.bgn : rdA->position.end;
+    int32       rdAhi  = (rdAfwd) ? rdA->position.end : rdA->position.bgn;
+
+    for (uint32 fj=1; fj<6; fj++) {
+      if (fi + fj < ufpath.size()) {
+        ufNode     *rdB    = &ufpath[fi+fj];
+        bool        rdBfwd = (rdB->position.bgn < rdB->position.end);
+        int32       rdBlo  = (rdBfwd) ? rdB->position.bgn : rdB->position.end;
+        int32       rdBhi  = (rdBfwd) ? rdB->position.end : rdB->position.bgn;
+
+        uint32  dist = rdBlo - rdAlo;
+
+        hist[fj].push_back(dist);
+      }
+    }
+  }
+}
+
+
+
+
+
+
 #if 1
 void
 Unitig::computeErrorProfileApproximate(const char *UNUSED(prefix), const char *UNUSED(label)) {

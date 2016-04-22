@@ -53,6 +53,8 @@ public:
   size_t    size(void)            {  return(_totalUnitigs);  };
   Unitig  *&operator[](uint32 i)  {  return(_blocks[i / _blockSize][i % _blockSize]);  };
 
+  void      computeArrivalRate(const char *prefix, const char *label);
+
   void      computeErrorProfiles(const char *prefix, const char *label);
   void      reportErrorProfiles(const char *prefix, const char *label);
 

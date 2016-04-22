@@ -26,11 +26,9 @@
 
 void
 markRepeatReads(UnitigVector &unitigs,
-                const char   *prefix,
-                double        erateGraph,
-                double        erateBubble,
-                double        erateMerge,
-                double        erateRepeat);
+                double        deviationRepeat,
+                uint32        confusedAbsolute,
+                double        confusedPercent);
 
 
 #endif  //  INCLUDE_AS_BAT_MARKREPEATREADS

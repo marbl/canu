@@ -36,14 +36,12 @@ using namespace std;
 uint32 MIN_ANCHOR_HANG       = 500;   //  Require reads to be anchored by this many bases at boundaries of repeats.
 int32  REPEAT_OVERLAP_MIN    = 50;
 
-#define REPEAT_CONSISTENT 3.0
 #define REPEAT_FRACTION   0.5
 
 #undef  SHOW_ANNOTATION_RAW             //  Show all overlaps used to annotate reads
 #undef  SHOW_ANNOTATION_RAW_FILTERED    //  Show all overlaps filtered by high error rate
 
 #undef  DUMP_READ_COVERAGE
-#undef  DUMP_ERROR_PROFILE
 
 //  Each evidence read picks its single best overlap to tig (based on overlaps to reads in the tig).
 //  Filter out evidence that aligns at erate higher than expected.
@@ -272,10 +270,10 @@ void
 annotateRepeatsOnRead(UnitigVector          &unitigs,
                       Unitig                *tgA,
                       ufNode                *rdA,
-                      double                 erateRepeat,
+                      double                 deviationRepeat,
                       vector<olapDat>       &repeats) {
   uint32               ovlLen   = 0;
-  BAToverlap          *ovl      = OC->getOverlaps(rdA->ident, erateRepeat, ovlLen);
+  BAToverlap          *ovl      = OC->getOverlaps(rdA->ident, AS_MAX_ERATE, ovlLen);
 
   vector<olapDat>      readOlaps;        //  List of valid repeat overlaps to this read
 
@@ -362,7 +360,7 @@ annotateRepeatsOnRead(UnitigVector          &unitigs,
 
     //  Filter overlaps that are higher error than expected.
 
-    double   consistent = tgA->overlapConsistentWithTig(REPEAT_CONSISTENT, tigbgn, tigend, ovl[oi].erate);
+    double   consistent = tgA->overlapConsistentWithTig(deviationRepeat, tigbgn, tigend, ovl[oi].erate);
 
     if (consistent < REPEAT_FRACTION) {
 #ifdef SHOW_ANNOTATION_RAW_FILTERED
@@ -396,11 +394,9 @@ annotateRepeatsOnRead(UnitigVector          &unitigs,
 
 void
 markRepeatReads(UnitigVector &unitigs,
-                const char   *UNUSED(prefix),
-                double        UNUSED(erateGraph),
-                double        UNUSED(erateBubble),
-                double        UNUSED(erateMerge),
-                double        erateRepeat) {
+                double        deviationRepeat,
+                uint32        confusedAbsolute,
+                double        confusedPercent) {
   uint32  tiLimit = unitigs.size();
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize = (tiLimit < 100000 * numThreads) ? numThreads : tiLimit / 99999;
@@ -440,7 +436,7 @@ markRepeatReads(UnitigVector &unitigs,
 
 #pragma omp parallel for if(fiLimit > 100) schedule(dynamic, blockSize)
     for (uint32 fi=0; fi<fiLimit; fi++)
-      annotateRepeatsOnRead(unitigs, tig, &tig->ufpath[fi], erateRepeat, repeatOlaps);
+      annotateRepeatsOnRead(unitigs, tig, &tig->ufpath[fi], deviationRepeat, repeatOlaps);
 
     writeLog("Annotated with %lu overlaps.\n", repeatOlaps.size());
 
@@ -586,6 +582,8 @@ markRepeatReads(UnitigVector &unitigs,
     //  This isn't caring about the end effect noted above.
 
 #if 1
+    writeLog("thickest edges to the repeat regions:\n");
+
     for (uint32 ri=0; ri<tigMarksR.numberOfIntervals(); ri++) {
       uint32   t5 = UINT32_MAX, l5 = 0, t5bgn, t5end;
       uint32   t3 = UINT32_MAX, l3 = 0, t3bgn, t3end;
@@ -620,7 +618,7 @@ markRepeatReads(UnitigVector &unitigs,
         }
 
         if (frglo <= tigMarksR.lo(ri) && (tigMarksR.hi(ri) <= frghi)) {
-          writeLog("saved   region %8d:%-8d - closest Cn read %6u (%+6d) %8d:%-8d (%+6d)\n",
+          writeLog("saved   region %8d:%-8d - closest    read %6u (%+6d) %8d:%-8d (%+6d) (contained)\n",
                    tigMarksR.lo(ri), tigMarksR.hi(ri),
                    frg->ident,
                    tigMarksR.lo(ri) - frglo, frglo,
@@ -650,6 +648,8 @@ markRepeatReads(UnitigVector &unitigs,
     //  not in this tig.
     //
     //  A region with no such near-best edges is _probably_ correct.
+
+    writeLog("search for confused edges:\n");
 
     uint32  *isConfused  = new uint32 [tigMarksR.numberOfIntervals()];
 
@@ -776,7 +776,6 @@ markRepeatReads(UnitigVector &unitigs,
         //  If either of the 5' or 3' overlaps (or both!) are in the repeat region, we need to check for
         //  close overlaps on that end.
 
-        double  lenFactor = 0.95;
         uint32  len5 = 0;
         uint32  len3 = 0;
 
@@ -794,8 +793,8 @@ markRepeatReads(UnitigVector &unitigs,
         else
           b3use = false;
 
-        double score5 = 0.98 * len5 * (1 - b5->erate());
-        double score3 = 0.98 * len3 * (1 - b3->erate());
+        double score5 = len5 * (1 - b5->erate());
+        double score3 = len3 * (1 - b3->erate());
 
         //  Neither of the best edges are in the repeat region; move to the next region and/or read.
         if (len5 + len3 == 0)
@@ -805,7 +804,7 @@ markRepeatReads(UnitigVector &unitigs,
         //  that are of comparable length and quality.
 
         uint32        ovlLen   = 0;
-        BAToverlap   *ovl      = OC->getOverlaps(rdAid, erateRepeat, ovlLen);
+        BAToverlap   *ovl      = OC->getOverlaps(rdAid, AS_MAX_ERATE, ovlLen);
 
         for (uint32 oo=0; oo<ovlLen; oo++) {
           uint32   rdBid    = ovl[oo].b_iid;
@@ -869,28 +868,53 @@ markRepeatReads(UnitigVector &unitigs,
           uint32  len   = FI->overlapLength(rdAid, ovl[oo].b_iid, ovl[oo].a_hang, ovl[oo].b_hang);
           double  score = len * (1 - ovl[oo].erate);
 
-          //  Skip if this overlap is vastly worse than the best.
-          if ((ovl5 == true) && (score < score5))
-            continue;
+          //  Compute percent difference.
 
-          if ((ovl3 == true) && (score < score3))
+          double  ad5 = fabs(score - score5);
+          double  ad3 = fabs(score - score3);
+
+          double  pd5 = 200 * ad5 / (score + score5);
+          double  pd3 = 200 * ad3 / (score + score3);
+
+          //  Skip if this overlap is vastly worse than the best.
+
+          if ((ovl5 == true) && ((ad5 >= confusedAbsolute) || (pd3 > confusedPercent))) {
+            writeLog("tig %7u read %8u pos %7u-%-7u NOT confused by 5' edge to read %8u - best edge read %8u len %6u erate %.4f score %8.2f - alt edge len %6u erate %.4f score %8.2f - absdiff %8.2f percdiff %8.4f\n",
+                     tig->id(), rdAid, rdAlo, rdAhi,
+                     rdBid,
+                     b5->fragId(), len5, b5->erate(), score5,
+                     len, ovl[oo].erate, score,
+                     ad5, pd5);
             continue;
+          }
+
+          if ((ovl3 == true) && ((ad3 >= confusedAbsolute) || (pd3 > confusedPercent))) {
+            writeLog("tig %7u read %8u pos %7u-%-7u NOT confused by 3' edge to read %8u - best edge read %8u len %6u erate %.4f score %8.2f - alt edge len %6u erate %.4f score %8.2f - absdiff %8.2f percdiff %8.4f\n",
+                     tig->id(), rdAid, rdAlo, rdAhi,
+                     rdBid,
+                     b3->fragId(), len3, b3->erate(), score3,
+                     len, ovl[oo].erate, score,
+                     ad3, pd3);
+            continue;
+          }
 
           //  Potential confusion!
 
           if (ovl5 == true)
-            writeLog("tig %u read %u is confused by 5' edge to read %u - best edge id %u len %u erate %f score %f - confused edge len %u erate %f score %f - diff %f\n",
-                     tig->id(), rdAid, rdBid,
+            writeLog("tig %7u read %8u pos %7u-%-7u IS confused by 5' edge to read %8u - best edge read %8u len %6u erate %.4f score %8.2f - alt edge len %6u erate %.4f score %8.2f - absdiff %8.2f percdiff %8.4f\n",
+                     tig->id(), rdAid, rdAlo, rdAhi,
+                     rdBid,
                      b5->fragId(), len5, b5->erate(), score5,
                      len, ovl[oo].erate, score,
-                     score5 - score);
+                     ad5, pd5);
 
           if (ovl3 == true)
-            writeLog("tig %u read %u is confused by 3' edge to read %u - best edge id %u len %u erate %f score %f - confused edge len %u erate %f score %f - diff %f\n",
-                     tig->id(), rdAid, rdBid,
+            writeLog("tig %7u read %8u pos %7u-%-7u IS confused by 3' edge to read %8u - best edge read %8u len %6u erate %.4f score %8.2f - alt edge len %6u erate %.4f score %8.2f - absdiff %8.2f percdiff %8.4f\n",
+                     tig->id(), rdAid, rdAlo, rdAhi,
+                     rdBid,
                      b3->fragId(), len3, b3->erate(), score3,
                      len, ovl[oo].erate, score,
-                     score3 - score);
+                     ad3, pd3);
 
           isConfused[ri]++;
         }

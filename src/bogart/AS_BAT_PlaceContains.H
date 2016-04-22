@@ -41,8 +41,7 @@
 void breakSingletonTigs(UnitigVector &unitigs);
 
 void placeUnplacedUsingAllOverlaps(UnitigVector &unitigs,
-                                   const char   *prefix,
-                                   double        erate);
+                                   const char   *prefix);
 
 
 

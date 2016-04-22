@@ -40,10 +40,7 @@
 
 void
 popBubbles(UnitigVector &unitigs,
-           double erateGraph, double erateBubble, double erateMerge, double erateRepeat,
-           const char *prefix,
-           uint32 minOverlap,
-           uint64 genomeSize);
+           double deviationBubble);
 
 
 #endif  //  INCLUDE_AS_BAT_BUBBLEPOPPING

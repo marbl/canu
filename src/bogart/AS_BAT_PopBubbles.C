@@ -48,8 +48,6 @@
 
 using namespace std;
 
-#define BUBBLE_CONSISTENT     3.0
-
 #define BUBBLE_READ_FRACTION  0.5
 
 #undef  SHOW_MULTIPLE_PLACEMENTS  //  Reports reads that are placed multiple times in a single target region
@@ -88,7 +86,6 @@ typedef  map<uint32, vector<uint32> >  BubTargetList;
 
 void
 findPotentialBubbles(UnitigVector    &unitigs,
-                     double           erateBubble,
                      BubTargetList   &potentialBubbles) {
   uint32  tiLimit      = unitigs.size();
   uint32  tiNumThreads = omp_get_max_threads();
@@ -225,7 +222,8 @@ findPotentialBubbles(UnitigVector    &unitigs,
 
 vector<overlapPlacement>  *
 findBubbleReadPlacements(UnitigVector    &unitigs,
-                         BubTargetList   &potentialBubbles) {
+                         BubTargetList   &potentialBubbles,
+                         double           deviationBubble) {
   uint32  fiLimit      = FI->numFragments();
   uint32  fiNumThreads = omp_get_max_threads();
   uint32  fiBlockSize  = (fiLimit < 1000 * fiNumThreads) ? fiNumThreads : fiLimit / 999;
@@ -313,7 +311,7 @@ findBubbleReadPlacements(UnitigVector    &unitigs,
 
       //  Ignore the placement if it is too diverged from the destination tig.
 
-      if (rdBtig->overlapConsistentWithTig(BUBBLE_CONSISTENT, lo, hi, erate) < 0.5) {
+      if (rdBtig->overlapConsistentWithTig(deviationBubble, lo, hi, erate) < 0.5) {
         if (logFileFlagSet(LOG_BUBBLE_DETAIL))
           writeLog("tig %6u frag %8u -> tig %6u %6u reads at %8u-%8u (cov %7.5f erate %6.4f) - HIGH ERROR\n",
                    rdAtigID, placements[pi].frgID, placements[pi].tigID, rdBtig->ufpath.size(), placements[pi].position.bgn, placements[pi].position.end, placements[pi].fCoverage, erate);
@@ -343,20 +341,17 @@ findBubbleReadPlacements(UnitigVector    &unitigs,
 
 void
 popBubbles(UnitigVector &unitigs,
-           double UNUSED(erateGraph), double erateBubble, double UNUSED(erateMerge), double UNUSED(erateRepeat),
-           const char *UNUSED(prefix),
-           uint32 UNUSED(minOverlap),
-           uint64 UNUSED(genomeSize)) {
+           double deviationBubble) {
 
   BubTargetList   potentialBubbles;
 
-  findPotentialBubbles(unitigs, erateBubble, potentialBubbles);
+  findPotentialBubbles(unitigs, potentialBubbles);
 
   writeLog("\n");
   writeLog("Found "F_SIZE_T" potential bubbles.\n", potentialBubbles.size());
   writeLog("\n");
 
-  vector<overlapPlacement>   *placed = findBubbleReadPlacements(unitigs, potentialBubbles);
+  vector<overlapPlacement>   *placed = findBubbleReadPlacements(unitigs, potentialBubbles, deviationBubble);
 
   //  We now have, in 'placed', a list of all the places that each read could be placed.  Decide if there is a _single_
   //  place for each bubble to be popped.

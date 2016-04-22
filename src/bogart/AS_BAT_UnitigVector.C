@@ -138,6 +138,49 @@ Unitig *&operator[](uint32 i) {
 
 
 
+
+
+
+
+void
+UnitigVector::computeArrivalRate(const char *prefix, const char *label) {
+  uint32  tiLimit = size();
+  uint32  numThreads = omp_get_max_threads();
+  uint32  blockSize = (tiLimit < 100000 * numThreads) ? numThreads : tiLimit / 99999;
+
+  fprintf(stderr, "Computing arrival rates for %u unitigs using %u threads.\n", tiLimit, numThreads);
+
+  vector<int32>  hist[6];
+
+  //#pragma omp parallel for schedule(dynamic, blockSize)
+  for (uint32 ti=0; ti<tiLimit; ti++) {
+    Unitig  *tig = operator[](ti);
+
+    if (tig == NULL)
+      continue;
+
+    if (tig->ufpath.size() == 1)
+      continue;
+
+    tig->computeArrivalRate(prefix, label, hist);
+  }
+
+  for (uint32 ii=1; ii<6; ii++) {
+    char  N[FILENAME_MAX];
+
+    sprintf(N, "%s.arrivalRate.%u.dat", prefix, ii);
+    FILE *F = fopen(N, "w");
+    for (uint32 jj=0; jj<hist[ii].size(); jj++)
+      fprintf(F, "%d\n", hist[ii][jj]);
+    fclose(F);
+  }
+}
+
+
+
+
+
+
 void
 UnitigVector::computeErrorProfiles(const char *prefix, const char *label) {
   uint32  tiLimit = size();

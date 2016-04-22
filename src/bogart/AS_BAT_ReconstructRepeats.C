@@ -50,7 +50,8 @@
 
 void
 reconstructRepeats(UnitigVector &unitigs,
-                   double        erateGraph) {
+                   double        erateGraph,
+                   double        deviationGraph) {
 
   //  Build a set<> of all the unplaced fragments, then construct a new BOG and CG from which we
   //  construct unitigs.
@@ -64,7 +65,7 @@ reconstructRepeats(UnitigVector &unitigs,
     if (Unitig::fragIn(fi) == 0)
       unplaced.insert(fi);
 
-  OG = new BestOverlapGraph(erateGraph / 2.0, &unplaced);
+  OG = new BestOverlapGraph(erateGraph / 2.0, deviationGraph, &unplaced);
   CG = new ChunkGraph(&unplaced);
 
   writeLog("==> BUILDING REPEAT UNITIGS from %d fragments.\n", unplaced.size());
@@ -79,7 +80,7 @@ reconstructRepeats(UnitigVector &unitigs,
 
   writeLog("==> BUILDING REPEAT UNITIGS placing contained fragments.\n");
 
-  placeUnplacedUsingAllOverlaps(unitigs, "PREFIX", erateGraph);
+  placeUnplacedUsingAllOverlaps(unitigs, "PREFIX");
 
   delete OG;
   delete CG;

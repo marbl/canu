@@ -72,10 +72,7 @@ main (int argc, char * argv []) {
   char      *tigStorePath            = NULL;
 
   double    erateGraph               = 0.030;
-  double    erateBubble              = 0.035;
-  double    erateMerge               = 0.025;
-  double    erateRepeat              = 0.030;
-  double    erateMax                 = 0.0;    //  Computed
+  double    erateMax                 = 0.050;
 
   uint64    genomeSize               = 0;
 
@@ -84,6 +81,13 @@ main (int argc, char * argv []) {
   double    spanFraction             = 0.75;
   double    lowcovFraction           = 0.75;
   uint32    lowcovDepth              = 2;
+
+  double    deviationGraph           = 5.0;
+  double    deviationBubble          = 5.0;
+  double    deviationRepeat          = 3.0;
+
+  uint32    confusedAbsolute         = 250;
+  double    confusedPercent          = 100.0;
 
   int32     numThreads               = 0;
 
@@ -102,7 +106,7 @@ main (int argc, char * argv []) {
   bool      enableReconstructRepeats = false;
 
   uint32    minReadLen               = 0;
-  uint32    minOverlap               = 40;
+  uint32    minOverlap               = 500;
 
   argc = AS_configure(argc, argv);
 
@@ -157,21 +161,23 @@ main (int argc, char * argv []) {
 
     } else if (strcmp(argv[arg], "-eg") == 0) {
       erateGraph = atof(argv[++arg]);
-
-    } else if (strcmp(argv[arg], "-eb") == 0) {
-      erateBubble = atof(argv[++arg]);
-
-    } else if (strcmp(argv[arg], "-em") == 0) {
-      erateMerge = atof(argv[++arg]);
-
-    } else if (strcmp(argv[arg], "-er") == 0) {
-      erateRepeat = atof(argv[++arg]);
-
     } else if (strcmp(argv[arg], "-eM") == 0) {
       erateMax = atof(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-el") == 0) {
       minOverlap = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-ca") == 0) {  //  Edge confused, based on absolute difference
+      confusedAbsolute = atoi(argv[++arg]);
+    } else if (strcmp(argv[arg], "-cp") == 0) {  //  Edge confused, based on percent difference
+      confusedPercent = atof(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-dg") == 0) {  //  Deviations, graph
+      deviationGraph = atof(argv[++arg]);
+    } else if (strcmp(argv[arg], "-db") == 0) {  //  Deviations, bubble
+      deviationBubble = atof(argv[++arg]);
+    } else if (strcmp(argv[arg], "-dr") == 0) {  //  Deviations, repeat
+      deviationRepeat = atof(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-M") == 0) {
       ovlCacheMemory  = (uint64)(atof(argv[++arg]) * 1024 * 1024 * 1024);
@@ -244,12 +250,9 @@ main (int argc, char * argv []) {
 
   if (erateGraph < 0.0)
     err.push_back(NULL);
-  if (erateBubble < 0.0)
+  if (erateMax < 0.0)
     err.push_back(NULL);
-  if (erateMerge < 0.0)
-    err.push_back(NULL);
-  if (erateRepeat < 0.0)
-    err.push_back(NULL);
+
   if (prefix == NULL)
     err.push_back(NULL);
   if (gkpStorePath == NULL)
@@ -288,23 +291,14 @@ main (int argc, char * argv []) {
     fprintf(stderr, "                    the following conditions:\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  When constructing the Best Overlap Graph and Promiscuous Unitigs ('g'raph):\n");
-    fprintf(stderr, "    -eg 0.020   no more than 0.020 fraction (2.0%%) error\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  When popping bubbles ('b'ubbles):\n");
-    fprintf(stderr, "    -eb 0.045   no more than 0.045 fraction (4.5%%) error when bubble popping\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  When merging unitig ends ('m'erging):\n");
-    fprintf(stderr, "    -em 0.045   no more than 0.045 fraction (4.5%%) error when merging unitig ends\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  When detecting repeats ('r'epeats):\n");
-    fprintf(stderr, "    -er 0.045   no more than 0.045 fraction (4.5%%) error when detecting repeats\n");
+    fprintf(stderr, "    -eg 0.020   no more than 0.020 fraction (2.0%%) error   ** DEPRECATED **\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  When loading overlaps, an inflated maximum (to allow reruns with different error rates):\n");
     fprintf(stderr, "    -eM 0.05   no more than 0.05 fraction (5.0%%) error in any overlap loaded into bogart\n");
     fprintf(stderr, "               the maximum used will ALWAYS be at leeast the maximum of the four error rates\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  For all, the lower limit on overlap length\n");
-    fprintf(stderr, "    -el 40      no shorter than 40 bases\n");
+    fprintf(stderr, "    -el 500     no shorter than 40 bases\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Overlap Storage\n");
     fprintf(stderr, "\n");
@@ -324,15 +318,8 @@ main (int argc, char * argv []) {
 
     if (erateGraph < 0.0)
       fprintf(stderr, "Invalid overlap error threshold (-eg option); must be at least 0.0.\n");
-
-    if (erateBubble < 0.0)
-      fprintf(stderr, "Invalid overlap error threshold (-eb option); must be at least 0.0.\n");
-
-    if (erateMerge < 0.0)
-      fprintf(stderr, "Invalid overlap error threshold (-em option); must be at least 0.0.\n");
-
-    if (erateRepeat < 0.0)
-      fprintf(stderr, "Invalid overlap error threshold (-er option); must be at least 0.0.\n");
+    if (erateMax < 0.0)
+      fprintf(stderr, "Invalid overlap error threshold (-eM option); must be at least 0.0.\n");
 
     if (prefix == NULL)
       fprintf(stderr, "No output prefix name (-o option) supplied.\n");
@@ -358,9 +345,7 @@ main (int argc, char * argv []) {
 
   fprintf(stderr, "\n");
   fprintf(stderr, "Graph  error threshold  = %.3f (%.3f%%)\n", erateGraph,  erateGraph  * 100);
-  fprintf(stderr, "Bubble error threshold  = %.3f (%.3f%%)\n", erateBubble, erateBubble * 100);
-  fprintf(stderr, "Merge  error threshold  = %.3f (%.3f%%)\n", erateMerge,  erateMerge  * 100);
-  fprintf(stderr, "Repeat error threshold  = %.3f (%.3f%%)\n", erateRepeat, erateRepeat  * 100);
+  fprintf(stderr, "Max    error threshold  = %.3f (%.3f%%)\n", erateMax, erateMax * 100);
   fprintf(stderr, "\n");
   fprintf(stderr, "Minimum overlap length = %u bases\n", minOverlap);
   fprintf(stderr, "\n");
@@ -391,13 +376,8 @@ main (int argc, char * argv []) {
   // Initialize where we've been to nowhere
   Unitig::resetFragUnitigMap(FI->numFragments());
 
-  erateMax = MAX(erateMax, erateGraph);
-  erateMax = MAX(erateMax, erateBubble);
-  erateMax = MAX(erateMax, erateMerge);
-  erateMax = MAX(erateMax, erateRepeat);
-
-  OC = new OverlapCache(ovlStoreUniq, ovlStoreRept, prefix, erateMax, minOverlap, ovlCacheMemory, ovlCacheLimit, onlySave, doSave);
-  OG = new BestOverlapGraph(erateGraph, prefix);
+  OC = new OverlapCache(ovlStoreUniq, ovlStoreRept, prefix, MAX(erateMax, erateGraph), minOverlap, ovlCacheMemory, ovlCacheLimit, onlySave, doSave);
+  OG = new BestOverlapGraph(erateGraph, deviationGraph, prefix);
   CG = new ChunkGraph(prefix);
 
   delete ovlStoreUniq;  ovlStoreUniq = NULL;
@@ -442,10 +422,11 @@ main (int argc, char * argv []) {
 #if 1
   setLogFile(prefix, "placeContains");
 
+  unitigs.computeArrivalRate(prefix, "initial");
   unitigs.computeErrorProfiles(prefix, "initial");
   //unitigs.reportErrorProfiles(prefix, "initial");
 
-  placeUnplacedUsingAllOverlaps(unitigs, prefix, erateBubble);
+  placeUnplacedUsingAllOverlaps(unitigs, prefix);
 
   reportUnitigs(unitigs, prefix, "placeContains", genomeSize);
 #endif
@@ -461,10 +442,7 @@ main (int argc, char * argv []) {
   //unitigs.reportErrorProfiles(prefix, "unplaced");
 
   popBubbles(unitigs,
-             erateGraph, erateBubble, erateMerge, erateRepeat,
-             prefix,
-             minOverlap,
-             genomeSize);
+             deviationBubble);
              
   //checkUnitigMembership(unitigs);
   reportUnitigs(unitigs, prefix, "popBubbles", genomeSize);
@@ -479,7 +457,7 @@ main (int argc, char * argv []) {
 
   unitigs.computeErrorProfiles(prefix, "repeats");
 
-  markRepeatReads(unitigs, prefix, erateGraph, erateBubble, erateMerge, erateRepeat);
+  markRepeatReads(unitigs, deviationRepeat, confusedAbsolute, confusedPercent);
 
   //checkUnitigMembership(unitigs);
   reportUnitigs(unitigs, prefix, "markRepeatReads", genomeSize);
@@ -514,7 +492,7 @@ main (int argc, char * argv []) {
   //unitigs.computeErrorProfiles(prefix, "final");
   //unitigs.reportErrorProfiles(prefix, "final");
 
-  //placeUnplacedUsingAllOverlaps(unitigs, prefix, erateBubble);
+  //placeUnplacedUsingAllOverlaps(unitigs, prefix);
 
   promoteToSingleton(unitigs);
 
