@@ -631,6 +631,9 @@ sub setOverlapDefaults ($$$) {
     $global{"${tag}MhapMerSize"}              = ($tag eq "cor") ? 16 : 22;
     $synops{"${tag}MhapMerSize"}              = "K-mer size for seeds in mhap";
 
+    $global{"${tag}MhapOrderedMerSize"}       = ($tag eq "cor") ? 12 : 22;
+    $synops{"${tag}MhapOrderedMerSize"}       = "K-mer size for second-stage filter in mhap";
+
     $global{"${tag}MhapSensitivity"}          = "normal";
     $synops{"${tag}MhapSensitivity"}          = "Coarse sensitivity level: 'normal' or 'high'; default 'normal'";
 
@@ -932,8 +935,8 @@ sub setDefaults () {
     $global{"falconSense"}                 = undef;
     $synops{"falconSense"}                 = "Path to fc_consensus.py or falcon_sense.bin";
 
-    $global{"corNoLegacyFilter"}           = undef;
-    $synops{"corNoLegacyFilter"}           = "Expert option: global filter, length with ties broken by identity (default)  or length * identity (if on)";
+    $global{"corLegacyFilter"}             = undef;
+    $synops{"corLegacyFilter"}             = "Expert option: global filter, length * identity (default) or length with  broken by identity (if on)";
 
     #  Convert all the keys to lowercase, and remember the case-sensitive version
 

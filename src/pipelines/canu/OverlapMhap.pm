@@ -95,7 +95,7 @@ sub mhapConfigure ($$$$) {
     my $minNumMatches   = 3;
     my $threshold       = 0.78;
     my $ordSketch       = 1536;
-    my $ordSketchMer    = 12;
+    my $ordSketchMer    = getGlobal("${tag}MhapOrderedMerSize");
 
     if (getGlobal("${tag}MhapSensitivity") eq "sens" || getGlobal("${tag}MhapSensitivity") eq "high") {
        $numHashes     =  768;
@@ -107,6 +107,7 @@ sub mhapConfigure ($$$$) {
        $minNumMatches =    3;
        $threshold     =    0.8;
        $ordSketch     = 1000;
+       $ordSketchMer +=    2;
     }
 
     my $filterThreshold = getGlobal("${tag}MhapFilterThreshold");
@@ -127,7 +128,6 @@ sub mhapConfigure ($$$$) {
        $numHashes     /= 4;
        $minNumMatches  = floor(1.5 * $minNumMatches);
        $ordSketch      = floor($ordSketch / 2);
-       $ordSketchMer   = floor($ordSketchMer * 1.3);
        $threshold      = 1-getGlobal("${tag}OvlErrorRate");
        $blockPerGb    *= 2;
     }
@@ -270,38 +270,6 @@ sub mhapConfigure ($$$$) {
     #  The ignore file is created in Meryl.pm
 
 
-    #  The seed length is the shortest read such that all reads longer than this sum to 50x genome size.
-    #  genomeSize must be set (canu should be failing early if it isn't).
-
-    my $seedLength = 500;
-
-    {
-        my @readLengths;
-
-        open(F, "< $wrk/$asm.gkpStore/reads.txt") or caExit("can't open '$wrk/$asm.gkpStore/reads.txt' for reading: $!", undef);
-        while (<F>) {
-            my @v = split '\s+', $_;
-            push @readLengths, $v[2];
-        }
-        close(F);
-
-        @readLengths = sort { $b <=> $a } @readLengths;
-
-        my $readLengthSum = 0;
-        my $targetSum     = getGlobal("corOutCoverage") * getGlobal("genomeSize");
-
-        foreach my $l (@readLengths) {
-            $readLengthSum += $l;
-
-            if ($readLengthSum > $targetSum) {
-                $seedLength = $l;
-                last;
-            }
-        }
-
-        print STDERR "-- Computed seed length $seedLength from desired output coverage ", getGlobal("corOutCoverage"), " and genome size ", getGlobal("genomeSize"), "\n";
-    }
-
     #  Create a script to generate precomputed blocks, including extracting the reads from gkpStore.
 
     #getAllowedResources($tag, "mhap");
@@ -379,7 +347,6 @@ sub mhapConfigure ($$$$) {
     print F "  --ordered-kmer-size $ordSketchMer \\\n";
     print F "  --threshold $threshold \\\n";
     print F "  --filter-threshold $filterThreshold \\\n";
-    print F "  --min-store-length " . ($seedLength-1) . " \\\n";
     print F "  --num-threads ", getGlobal("${tag}mhapThreads"), " \\\n";
     print F "  -f $wrk/0-mercounts/$asm.ms$merSize.frequentMers.ignore \\\n"   if (-e "$wrk/0-mercounts/$asm.ms$merSize.frequentMers.ignore");
     print F "  -p $path/blocks/\$job.fasta \\\n";
@@ -455,7 +422,6 @@ sub mhapConfigure ($$$$) {
     print F "    --filter-threshold $filterThreshold \\\n";
     print F "    --ordered-sketch-size $ordSketch \\\n";
     print F "    --ordered-kmer-size $ordSketchMer \\\n";
-    print F "    --min-store-length " . ($seedLength-1) . " \\\n";
     print F "    --num-threads ", getGlobal("${tag}mhapThreads"), " \\\n";
     print F "    -f $wrk/0-mercounts/$asm.ms$merSize.frequentMers.ignore \\\n"   if (-e "$wrk/0-mercounts/$asm.ms$merSize.frequentMers.ignore");
     print F "    -s $path/blocks/\$blk.dat \$slf \\\n";
@@ -484,8 +450,9 @@ sub mhapConfigure ($$$$) {
         print F "    -O $path/results/\$qry.mhap.ovb.gz \\\n";
         print F "    -o $path/results/\$qry.ovb.gz \\\n";
         print F "    -partial \\\n"  if ($typ eq "partial");
-        print F "    -erate ", getGlobal("obtOvlErrorRate"), " \\\n"  if ($typ eq "partial");
-        print F "    -erate ", getGlobal("utgOvlErrorRate"), " \\\n"  if ($typ eq "normal");
+        print F "    -erate ", getGlobal("corErrorRate"),    " \\\n"  if ($tag eq "cor");
+        print F "    -erate ", getGlobal("obtOvlErrorRate"), " \\\n"  if ($tag eq "obt");
+        print F "    -erate ", getGlobal("utgOvlErrorRate"), " \\\n"  if ($tag eq "utg");
         print F "    -memory " . getGlobal("${tag}mhapMemory") . " \\\n";
         print F "    -t " . getGlobal("${tag}mhapThreads") . " \n";
         print F "fi\n";

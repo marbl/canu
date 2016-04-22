@@ -175,7 +175,7 @@ sub buildCorrectionLayouts_direct ($$) {
         $cmd .= "  -L " . getGlobal("corMinEvidenceLength") . " \\\n"  if (defined(getGlobal("corMinEvidenceLength")));
         $cmd .= "  -E " . getGlobal("corMaxEvidenceErate")  . " \\\n"  if (defined(getGlobal("corMaxEvidenceErate")));
         $cmd .= "  -C $maxCov \\\n"                                    if (defined($maxCov));
-        $cmd .= "  -legacy \\\n"                                       if (!defined(getGlobal("corNoLegacyFilter")));
+        $cmd .= "  -legacy \\\n"                                       if (defined(getGlobal("corLegacyFilter")));
         $cmd .= "> $wrk/$asm.corStore.err 2>&1";
 
         if (runCommand($wrk, $cmd)) {
@@ -391,7 +391,7 @@ sub buildCorrectionLayouts_piped ($$) {
     print F "  -L " . getGlobal("corMinEvidenceLength") . " \\\n"  if (defined(getGlobal("corMinEvidenceLength")));
     print F "  -E " . getGlobal("corMaxEvidenceErate")  . " \\\n"  if (defined(getGlobal("corMaxEvidenceErate")));
     print F "  -C $maxCov \\\n"                                    if (defined($maxCov));
-    print F "  -legacy \\\n"                                       if (!defined(getGlobal("corNoLegacyFilter")));
+    print F "  -legacy \\\n"                                       if (defined(getGlobal("corLegacyFilter")));
     print F "  -F \\\n";
     print F "&& \\\n";
     print F "  touch $path/correction_outputs/\$jobid.dump.success \\\n";
@@ -499,7 +499,7 @@ sub expensiveFilter ($$) {
         $cmd .= "  -L " . getGlobal("corMinEvidenceLength") . " \\\n"  if (defined(getGlobal("corMinEvidenceLength")));
         $cmd .= "  -E " . getGlobal("corMaxEvidenceErate")  . " \\\n"  if (defined(getGlobal("corMaxEvidenceErate")));
         $cmd .= "  -C $maxCov \\\n"                                    if (defined($maxCov));
-        $cmd .= "  -legacy \\\n"                                       if (!defined(getGlobal("corNoLegacyFilter")));
+        $cmd .= "  -legacy \\\n"                                       if (defined(getGlobal("corLegacyFilter")));
         $cmd .= "  -p $path/$asm.estimate";
 
         if (runCommand($wrk, $cmd)) {
@@ -745,7 +745,7 @@ sub buildCorrectionLayouts ($$) {
         $cmd .= "  -c $maxCov \\\n";
         $cmd .= "  -l $minLen \\\n";
         $cmd .= "  -e " . getGlobal("corMaxEvidenceErate")  . " \\\n"  if (defined(getGlobal("corMaxEvidenceErate")));
-        $cmd .= "  -legacy \\\n"                       if (!defined(getGlobal("corNoLegacyFilter")));
+        $cmd .= "  -legacy \\\n"                                       if (defined(getGlobal("corLegacyFilter")));
         $cmd .= "> $path/$asm.globalScores.err 2>&1";
 
         if (runCommand($path, $cmd)) {
