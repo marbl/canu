@@ -183,11 +183,11 @@ sub unitig ($$) {
         print F " -gs "             . getGlobal("genomeSize")         . " \\\n";
         print F " -eg "             . getGlobal("utgOvlErrorRate")    . " \\\n";
         print F " -eM "             . getGlobal("utgOvlErrorRate")    . " \\\n";
-        print F " -dg "             . getGlobal("utgGraphDeviation")  . " \\\n"
-        print F " -db "             . getGlobal("utgGraphDeviation")  . " \\\n"
-        print F " -dr "             . getGlobal("utgRepeatDeviation") . " \\\n"
-        print F " -ca "             . getGlobal("utgRepeatConfusedBP"). " \\\n"
-        print F " -cp "             . "500"                           . " \\\n"
+        print F " -dg "             . getGlobal("utgGraphDeviation")  . " \\\n";
+        print F " -db "             . getGlobal("utgGraphDeviation")  . " \\\n";
+        print F " -dr "             . getGlobal("utgRepeatDeviation") . " \\\n";
+        print F " -ca "             . getGlobal("utgRepeatConfusedBP"). " \\\n";
+        print F " -cp "             . "500"                           . " \\\n";
         print F " -threads "        . getGlobal("batThreads")         . " \\\n"   if (defined(getGlobal("batThreads")));
         print F " -M "              . getGlobal("batMemory")          . " \\\n"   if (defined(getGlobal("batMemory")));
         print F " "                 . getGlobal("batOptions")         . " \\\n"   if (defined(getGlobal("batOptions")));
