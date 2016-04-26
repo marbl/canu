@@ -48,23 +48,27 @@
 //
 class libOutput {
 public:
-  libOutput(char const *outPrefix, char const *libName = NULL) {
+  libOutput(char const *outPrefix, char const *outSuffix, char const *libName = NULL) {
     strcpy(_p, outPrefix);
+
+    if (outSuffix[0])
+      sprintf(_s, ".%s", outSuffix);
+    else
+      _s[0] = 0;
 
     if (libName)
       strcpy(_n, libName);
     else
       _n[0] = 0;
 
-    _FASTA = NULL;
-    _FASTQ = NULL;
+    _WRITER = NULL;
+    _FASTA  = NULL;
+    _FASTQ  = NULL;
   };
 
   ~libOutput() {
-    if (_FASTA)
-      fclose(_FASTA);
-    if (_FASTQ)
-      fclose(_FASTQ);
+    if (_WRITER)
+      delete _WRITER;
   };
 
   FILE  *getFASTQ(void) {
@@ -79,14 +83,19 @@ public:
     char  N[FILENAME_MAX];
 
     if (_n[0])
-      sprintf(N, "%s.%s.fastq", _p, _n);
+      sprintf(N, "%s.%s.fastq%s", _p, _n, _s);
     else
-      sprintf(N, "%s.fastq", _p);
+      sprintf(N, "%s.fastq%s", _p, _s);
 
-    errno = 0;
-    _FASTQ = ((_p[0] == '-') && (_p[1] == 0)) ? stdout : fopen(N, "w");
-    if (errno)
-      fprintf(stderr, "Failed to open FASTQ output file '%s': %s\n", N, strerror(errno)), exit(1);
+    if ((_p[0] == '-') && (_p[1] == 0)) {
+      sprintf(N, "(stdout)");
+      _FASTQ = stdout;
+    }
+
+    else {
+      _WRITER = new compressedFileWriter(N);
+      _FASTQ  = _WRITER->file();
+    }
 
     return(_FASTQ);
   };
@@ -104,25 +113,57 @@ public:
     char  N[FILENAME_MAX];
 
     if (_n[0])
-      sprintf(N, "%s.%s.fasta", _p, _n);
+      sprintf(N, "%s.%s.fasta%s", _p, _n, _s);
     else
-      sprintf(N, "%s.fasta", _p);
+      sprintf(N, "%s.fasta%s", _p, _s);
 
-    errno = 0;
-    _FASTA = ((_p[0] == '-') && (_p[1] == 0)) ? stdout : fopen(N, "w");
-    if (errno)
-      fprintf(stderr, "Failed to open FASTA output file '%s': %s\n", N, strerror(errno)), exit(1);
+    if ((_p[0] == '-') && (_p[1] == 0)) {
+      sprintf(N, "(stdout)");
+      _FASTA = stdout;
+    }
+
+    else {
+      _WRITER = new compressedFileWriter(N);
+      _FASTA  = _WRITER->file();
+    }
 
     return(_FASTA);
   };
 
 private:
   char   _p[FILENAME_MAX];
+  char   _s[FILENAME_MAX];
   char   _n[FILENAME_MAX];
 
-  FILE  *_FASTA;
-  FILE  *_FASTQ;
+  compressedFileWriter  *_WRITER;
+  FILE                  *_FASTA;
+  FILE                  *_FASTQ;
 };
+
+
+
+
+char *
+scanPrefix(char *prefix) {
+  int32 len = strlen(prefix);
+
+  if ((len > 3) && (strcasecmp(prefix + len - 3, ".gz") == 0)) {
+    prefix[len-3] = 0;
+    return(prefix + len - 2);
+  }
+
+  if ((len > 4) && (strcasecmp(prefix + len - 4, ".bz2") == 0)) {
+    prefix[len-4] = 0;
+    return(prefix + len - 3);
+  }
+
+  if ((len > 3) && (strcasecmp(prefix + len - 3, ".xz") == 0)) {
+    prefix[len-3] = 0;
+    return(prefix + len - 2);
+  }
+
+  return(prefix + len);
+}
 
 
 
@@ -131,6 +172,7 @@ int
 main(int argc, char **argv) {
   char            *gkpStoreName      = NULL;
   char            *outPrefix         = NULL;
+  char            *outSuffix         = NULL;
 
   char            *clrName           = NULL;
 
@@ -158,6 +200,7 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-o") == 0) {
       outPrefix = argv[++arg];
+      outSuffix = scanPrefix(outPrefix);
 
 
     } else if (strcmp(argv[arg], "-c") == 0) {
@@ -216,6 +259,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -G gkpStore\n");
     fprintf(stderr, "  -o fastq-prefix     write files fastq-prefix.(libname).fastq, ...\n");
     fprintf(stderr, "                      if fastq-prefix is '-', all sequences output to stdout\n");
+    fprintf(stderr, "                      if fastq-prefix ends in .gz, .bz2 or .xz, output is compressed\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -l libToDump        output only read in library number libToDump (NOT IMPLEMENTED)\n");
     fprintf(stderr, "  -r id[-id]          output only the single read 'id', or the specified range of ids\n");
@@ -264,10 +308,10 @@ main(int argc, char **argv) {
   //  Allocate outputs.  If withLibName == false, all reads will artificially be in lib zero, the
   //  other files won't ever be created.  Otherwise, the zeroth file won't ever be created.
 
-  out[0] = new libOutput(outPrefix, NULL);
+  out[0] = new libOutput(outPrefix, outSuffix, NULL);
 
   for (uint32 i=1; i<=numLibs; i++)
-    out[i] = new libOutput(outPrefix, gkpStore->gkStore_getLibrary(i)->gkLibrary_libraryName());
+    out[i] = new libOutput(outPrefix, outSuffix, gkpStore->gkStore_getLibrary(i)->gkLibrary_libraryName());
 
   //  Grab a new readData, and iterate through reads to dump.
 
