@@ -576,12 +576,21 @@ sub configureAssembler () {
 
     #  Overlap error adjustment
     #
-    #  Configuration is primarily done though memory size.  If that blows up for some reason,
-    #  the actual number of reads (batchSize) or bases (batchLength) can be restricted.  I expect
-    #  those to be used only from the command line, so they're left unset here.
+    #  Configuration is primarily done though memory size.  This blows up when there are many
+    #  short(er) reads and large memory machines are available.
     #
-    #setGlobalIfUndef("redBatchSize", "");    setGlobalIfUndef("redBatchLength", "");
-    #setGlobalIfUndef("oeaBatchSize", "");    setGlobalIfUndef("oeaBatchLength", "");
+    #  The limit is arbitrary.
+    #   On medicago,   with 740,000 reads (median len  ~1,500bp), this will result in about 150 jobs.
+    #   The memory-only limit generated only 7 jobs.
+    #
+    #   On drosophila, with 270,000 reads (median len ~17,000bp), this will result in about  50 jobs.
+    #   The memory-only limit generated 36 jobs.
+    #   
+    setGlobalIfUndef("redBatchSize",   "5000");
+    setGlobalIfUndef("redBatchLength", "");
+
+    setGlobalIfUndef("oeaBatchSize",   "25000");
+    setGlobalIfUndef("oeaBatchLength", "");
 
     if      (getGlobal("genomeSize") < adjustGenomeSize("40m")) {
         setGlobalIfUndef("redMemory",   "2-8");    setGlobalIfUndef("redThreads",   "1-4");
