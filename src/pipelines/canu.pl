@@ -265,7 +265,7 @@ if (scalar(@inputFiles) == 0 && ! defined(getGlobal("errorRate"))) {
             setGlobal("cnsMaxCoverage", 20);
         }
         if ($numNanoporeRaw > 0 || $numNanoporeCorrected > 0) {
-            setErrorRate(0.05);
+            setErrorRate(0.050);
             setGlobal("corErrorRate", "0.50");
             setGlobal("cnsMaxCoverage", 20);
         }
