@@ -135,6 +135,10 @@ sub readErrorDetectionConfigure ($$) {
     my $maxReads = getGlobal("redBatchSize");
     my $maxBases = getGlobal("redBatchLength");
 
+    print STDERR "\n";
+    print STDERR "Configure RED for ", getGlobal("redMemory"), "gb memory with batches of at most ", ($maxReads > 0) ? $maxReads : "(unlimited)", " reads and ", ($maxBases > 0) ? $maxBases : "(unlimited)", " bases.\n";
+    print STDERR "\n";
+
     my $reads    = 0;
     my $bases    = 0;
     my $olaps    = 0;
@@ -159,11 +163,12 @@ sub readErrorDetectionConfigure ($$) {
             (($id == $maxID - 1))) {
             push @end, $id;
 
-            #printf(STDERR "RED job %3u from read %9u to read %9u using %7.3f GB for %7u reads, %7.3f GB for %9u olaps and %7.3f GB for evidence\n",
-            #       $nj + 1, $bgn[$nj], $end[$nj], $reads,
-            #       13 * $bases / 1024 / 1024 / 1024, $bases,
-            #       12 * $olaps / 1024 / 1024 / 1024, $olaps,
-            #       2 * $bases * $coverage / 1024 / 1024 / 1024);
+            printf(STDERR "RED job %3u from read %9u to read %9u - %7.3f GB for %7u reads - %7.3f GB for %9u olaps - %7.3f GB for evidence\n",
+                   $nj + 1, $bgn[$nj], $end[$nj],
+                   $memory / 1024 / 1024 / 1024, $reads,
+                   13 * $bases / 1024 / 1024 / 1024, $bases,
+                   12 * $olaps / 1024 / 1024 / 1024, $olaps,
+                   2 * $bases * $coverage / 1024 / 1024 / 1024);
 
             $nj++;
 
@@ -377,6 +382,10 @@ sub overlapErrorAdjustmentConfigure ($$) {
     my $maxReads = getGlobal("oeaBatchSize");
     my $maxBases = getGlobal("oeaBatchLength");
 
+    print STDERR "\n";
+    print STDERR "Configure OEA for ", getGlobal("oeaMemory"), "gb memory with batches of at most ", ($maxReads > 0) ? $maxReads : "(unlimited)", " reads and ", ($maxBases > 0) ? $maxBases : "(unlimited)", " bases.\n";
+    print STDERR "\n";
+
     my $reads    = 0;
     my $bases    = 0;
     my $olaps    = 0;
@@ -391,6 +400,8 @@ sub overlapErrorAdjustmentConfigure ($$) {
         $bases += $readLengths[$id];
         $olaps += $numOlaps[$id];
 
+        #  Hacked to attempt to estimate adjustment size better.  Olaps should only require 12 bytes each.
+
         my $memory = (1 * $bases) + (28 * $olaps) + ($corrSize);
 
         if ((($maxMem   > 0) && ($memory >= $maxMem * 0.75)) ||    #  Allow 25% slop
@@ -399,11 +410,11 @@ sub overlapErrorAdjustmentConfigure ($$) {
             (($id == $maxID - 1))) {
             push @end, $id;
 
-            #printf(STDERR "OEA job %3u from read %9u to read %9u using %7.3f GB for reads, %7.3f GB for olaps and %7.3f GB for adjustments\n",
-            #       $nj + 1, $bgn[$nj], $end[$nj],
-            #       1 * $bases / 1024 / 1024 / 1024,
-            #       12 * $olaps / 1024 / 1024 / 1024,
-            #       8 * $bases * getGlobal("utgOvlErrorRate") / 1024 / 1024 / 1024);
+            printf(STDERR "OEA job %3u from read %9u to read %9u - %7.3f GB for %7u reads - %7.3f GB for %9u olaps - %7.3f GB for adjustments\n",
+                   $nj + 1, $bgn[$nj], $end[$nj],
+                   1 * $bases / 1024 / 1024 / 1024, $reads,
+                   28 * $olaps / 1024 / 1024 / 1024, $olaps,
+                   8 * $bases * getGlobal("utgOvlErrorRate") / 1024 / 1024 / 1024);
 
             $nj++;
 
