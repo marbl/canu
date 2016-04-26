@@ -363,7 +363,7 @@ public:
   };
 
   void               add(uint64 data, uint32 count=1) {
-    if (_histogramAlloc < data)
+    while (_histogramAlloc < data)
       resizeArray(_histogram, _histogramMax+1, _histogramAlloc, _histogramAlloc * 2, resizeArray_copyData | resizeArray_clearNew);
 
     if (_histogramMax < data)
