@@ -402,9 +402,9 @@ sub overlapErrorAdjustmentConfigure ($$) {
 
         #  Hacked to attempt to estimate adjustment size better.  Olaps should only require 12 bytes each.
 
-        my $memory = (1 * $bases) + (28 * $olaps) + ($corrSize);
+        my $memory = (2 * $bases) + (35 * $olaps) + ($corrSize);
 
-        if ((($maxMem   > 0) && ($memory >= $maxMem * 0.75)) ||    #  Allow 25% slop
+        if ((($maxMem   > 0) && ($memory >= $maxMem * 0.50)) ||    #  Allow 50% slop
             (($maxReads > 0) && ($reads  >= $maxReads))      ||
             (($maxBases > 0) && ($bases  >= $maxBases))      ||
             (($id == $maxID - 1))) {
