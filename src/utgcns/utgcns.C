@@ -49,6 +49,7 @@
 
 #include "unitigConsensus.H"
 
+#include <omp.h>
 #include <map>
 #include <algorithm>
 

@@ -30,6 +30,7 @@
 
 #include "falcon.H"
 
+#include <omp.h>
 #include <vector>
 #include <string>
 

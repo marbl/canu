@@ -29,7 +29,11 @@
 
 #include "AS_global.H"
 
-#include <execinfo.h>  //  backtrace
+#ifndef __CYGWIN__
+   #ifndef _WIN32
+      #include <execinfo.h>  //  backtrace
+   #endif
+#endif
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -146,6 +150,8 @@ AS_UTL_catchCrash(int sig_num, siginfo_t *info, void *ctx) {
 void
 AS_UTL_catchCrash(int sig_num, siginfo_t *info, void *ctx) {
   void  *arr[256];
+#ifndef __CYGWIN__
+#ifndef _WIN32
   int32  cnt = backtrace(arr, 256);
 
   //  Report the signal we failed on, be careful to not allocate memory.
@@ -219,6 +225,8 @@ AS_UTL_catchCrash(int sig_num, siginfo_t *info, void *ctx) {
   AS_UTL_envokeGDB();
 
   WRITE_STRING("\n");
+#endif
+#endif
 
   //  Pass the signal through, only so a core file can get generated.
 

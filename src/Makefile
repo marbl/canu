@@ -499,6 +499,35 @@ ifeq (${MACHINETYPE}, arm)
 endif
 endif
 
+ifneq (,$(findstring CYGWIN, ${OSTYPE}))
+  CC        ?= gcc
+  CXX       ?= g++
+  CXXFLAGS  := -pthread -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare
+  LDFLAGS   := -pthread -lm
+
+  CXXFLAGS  += -fopenmp
+  LDFLAGS   += -fopenmp
+
+  CXXFLAGS  += -Wall -Wextra -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat
+
+  ifeq ($(BUILDPROFILE), 1)
+    CXXFLAGS  +=
+    LDFLAGS   += -pg
+  else
+    CXXFLAGS  += 
+    LDFLAGS   += 
+  endif
+
+  ifeq ($(BUILDDEBUG), 1)
+    CXXFLAGS  += -g
+  else
+    ifeq ($(BUILDPROFILE), 1)
+      CXXFLAGS   += -O4 -funroll-loops -fexpensive-optimizations -finline-functions
+    else
+      CXXFLAGS   += -O4 -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+    endif
+  endif
+endif
 
 # Include the main user-supplied submakefile. This also recursively includes
 # all other user-supplied submakefiles.

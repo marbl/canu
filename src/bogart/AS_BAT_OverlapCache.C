@@ -46,9 +46,14 @@
 #include "memoryMappedFile.H"
 
 #include <sys/types.h>
-#include <sys/sysctl.h>
 
 uint64  ovlCacheMagic = 0x65686361436c766fLLU;  //0102030405060708LLU;
+
+#ifndef __CYGWIN__
+   #ifndef _WIN32
+      #include <sys/sysctl.h>
+   #endif
+#endif
 
 #ifdef HW_PHYSMEM
 
