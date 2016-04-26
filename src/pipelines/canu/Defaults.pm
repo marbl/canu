@@ -754,6 +754,7 @@ sub setDefaults () {
     $global{"gridEngineNameOption"}                 = undef;
     $global{"gridEngineArrayOption"}                = undef;
     $global{"gridEngineArrayName"}                  = undef;
+    $global{"gridEngineArrayMaxJobs"}               = undef;
     $global{"gridEngineOutputOption"}               = undef;
     $global{"gridEnginePropagateCommand"}           = undef;
     $global{"gridEngineThreadsOption"}              = undef;

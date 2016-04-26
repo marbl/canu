@@ -57,22 +57,33 @@ sub configureSlurm () {
 
     return   if (uc(getGlobal("gridEngine")) ne "SLURM");
 
-    setGlobalIfUndef("gridEngineSubmitCommand",      	"sbatch");
-    setGlobalIfUndef("gridEngineHoldOption",         	"--depend=afterany:WAIT_TAG");
-    setGlobalIfUndef("gridEngineHoldOptionNoArray",  	"--depend=afterany:WAIT_TAG");
-    setGlobalIfUndef("gridEngineSyncOption",         	"");                                          ## TODO: SLURM may not support w/out wrapper; See LSF bsub manpage to compare
-    setGlobalIfUndef("gridEngineNameOption",         	"-D `pwd` -J");
-    setGlobalIfUndef("gridEngineArrayOption",        	"-a ARRAY_JOBS");
-    setGlobalIfUndef("gridEngineArrayName",          	"ARRAY_NAME");
-    setGlobalIfUndef("gridEngineOutputOption",       	"-o");                                        ## NB: SLURM default joins STDERR & STDOUT if no -e specified
-    setGlobalIfUndef("gridEngineThreadsOption",       "--cpus-per-task=THREADS");
-    setGlobalIfUndef("gridEngineMemoryOption",        "--mem=MEMORY");
-    setGlobalIfUndef("gridEnginePropagateCommand",   	"scontrol update job=\"WAIT_TAG\"");          ## TODO: manually verify this in all cases
-    setGlobalIfUndef("gridEngineNameToJobIDCommand", 	"squeue -h -o\%F -n \"WAIT_TAG\" | uniq");    ## TODO: manually verify this in all cases
-    setGlobalIfUndef("gridEngineNameToJobIDCommandNoArray", "squeue -h -o\%i -n \"WAIT_TAG\"");     ## TODO: manually verify this in all cases
-    setGlobalIfUndef("gridEngineTaskID",             	"SLURM_ARRAY_TASK_ID");
-    setGlobalIfUndef("gridEngineArraySubmitID",      	"%A_%a");
-    setGlobalIfUndef("gridEngineJobID",              	"SLURM_JOB_ID");
+    my $maxArraySize = 65535;
+
+    open(F, "scontrol show config |") or caExit("can't run 'scontrol' to get SLURM config", undef);
+    while (<F>) {
+        if (m/MaxArraySize\s+=\s+(\d+)/) {
+            $maxArraySize = $1;
+        }
+    }
+    close(F);
+
+    setGlobalIfUndef("gridEngineSubmitCommand",              "sbatch");
+    setGlobalIfUndef("gridEngineHoldOption",                 "--depend=afterany:WAIT_TAG");
+    setGlobalIfUndef("gridEngineHoldOptionNoArray",          "--depend=afterany:WAIT_TAG");
+    setGlobalIfUndef("gridEngineSyncOption",                 "");                                          ## TODO: SLURM may not support w/out wrapper; See LSF bsub manpage to compare
+    setGlobalIfUndef("gridEngineNameOption",                 "-D `pwd` -J");
+    setGlobalIfUndef("gridEngineArrayOption",                "-a ARRAY_JOBS");
+    setGlobalIfUndef("gridEngineArrayName",                  "ARRAY_NAME");
+    setGlobalIfUndef("gridEngineArrayMaxJobs",               $maxArraySize);
+    setGlobalIfUndef("gridEngineOutputOption",               "-o");                                        ## NB: SLURM default joins STDERR & STDOUT if no -e specified
+    setGlobalIfUndef("gridEngineThreadsOption",              "--cpus-per-task=THREADS");
+    setGlobalIfUndef("gridEngineMemoryOption",               "--mem=MEMORY");
+    setGlobalIfUndef("gridEnginePropagateCommand",           "scontrol update job=\"WAIT_TAG\"");          ## TODO: manually verify this in all cases
+    setGlobalIfUndef("gridEngineNameToJobIDCommand",         "squeue -h -o\%F -n \"WAIT_TAG\" | uniq");    ## TODO: manually verify this in all cases
+    setGlobalIfUndef("gridEngineNameToJobIDCommandNoArray",  "squeue -h -o\%i -n \"WAIT_TAG\"");     ## TODO: manually verify this in all cases
+    setGlobalIfUndef("gridEngineTaskID",                     "SLURM_ARRAY_TASK_ID");
+    setGlobalIfUndef("gridEngineArraySubmitID",              "%A_%a");
+    setGlobalIfUndef("gridEngineJobID",                      "SLURM_JOB_ID");
 
 
     #  Build a list of the resources available in the grid.  This will contain a list with keys

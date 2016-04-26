@@ -54,6 +54,16 @@ sub configureSGE () {
 
     return   if (uc(getGlobal("gridEngine")) ne "SGE");
 
+    my $maxArraySize = 65535;
+
+    open(F, "qconf -sconf |") or caExit("can't run 'qconf' to get SGE config", undef);
+    while (<F>) {
+        if (m/max_aj_tasks\s+(\d+)/) {
+            $maxArraySize = $1;
+        }
+    }
+    close(F);
+
     setGlobalIfUndef("gridEngineSubmitCommand",              "qsub");
     setGlobalIfUndef("gridEngineHoldOption",                 "-hold_jid \"WAIT_TAG\"");
     setGlobalIfUndef("gridEngineHoldOptionNoArray",          undef);
@@ -61,6 +71,7 @@ sub configureSGE () {
     setGlobalIfUndef("gridEngineNameOption",                 "-cwd -N");
     setGlobalIfUndef("gridEngineArrayOption",                "-t ARRAY_JOBS");
     setGlobalIfUndef("gridEngineArrayName",                  "ARRAY_NAME");
+    setGlobalIfUndef("gridEngineArrayMaxJobs",               $maxArraySize);
     setGlobalIfUndef("gridEngineOutputOption",               "-j y -o");
     setGlobalIfUndef("gridEnginePropagateCommand",           "qalter -hold_jid \"WAIT_TAG\"");
     setGlobalIfUndef("gridEngineThreadsOption",              undef);  #"-pe threads THREADS");

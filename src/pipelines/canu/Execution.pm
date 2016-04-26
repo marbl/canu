@@ -1027,6 +1027,8 @@ sub buildGridJob ($$$$$$$$) {
 sub convertToJobRange (@) {
     my @jobs;
 
+    #  Expand the ranges into a simple list of job ids.
+
     foreach my $j (@_) {
         if        ($j =~ m/^(\d+)-(\d+)$/) {
             for (my $a=$1; $a<=$2; $a++) {
@@ -1041,9 +1043,13 @@ sub convertToJobRange (@) {
         }
     }
 
+    #  Sort.
+
     my @jobsA = sort { $a <=> $b } @jobs;
 
     undef @jobs;
+
+    #  Merge adjacent ids into a range.
 
     my $st = $jobsA[0];
     my $ed = $jobsA[0];
@@ -1061,6 +1067,33 @@ sub convertToJobRange (@) {
     }
 
     push @jobs, ($st == $ed) ? "$st" : "$st-$ed";
+
+
+    #  If any of the ranges are larger than allowed, split into multiple pieces.
+
+    my $l = getGlobal("gridEngineArrayMaxJobs") - 1;
+
+    if ($l > 0) {
+        @jobsA = @jobs;
+        undef @jobs;
+
+        foreach my $j (@jobsA) {
+            if ($j =~ m/^(\d+)-(\d+)$/) {
+                my $b = $1;
+                my $e = $2;
+
+                while ($b <= $e) {
+                    my $B = ($b + $l < $e) ? ($b + $l) : $e;
+                    push @jobs, "$b-$B";
+                    $b += $l + 1;
+                }
+            } else {
+                push @jobs, $j
+            }
+        }
+
+        undef @jobsA;
+    }
 
     return(@jobs);
 }

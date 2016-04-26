@@ -64,6 +64,7 @@ sub configureLSF () {
     setGlobalIfUndef("gridEngineNameOption",                 "-J");
     setGlobalIfUndef("gridEngineArrayOption",                "");
     setGlobalIfUndef("gridEngineArrayName",                  "ARRAY_NAME\[ARRAY_JOBS\]");
+    setGlobalIfUndef("gridEngineArrayMaxJobs",               65535);
     setGlobalIfUndef("gridEngineOutputOption",               "-o");
     setGlobalIfUndef("gridEngineThreadsOption",              "-n THREADS");
     setGlobalIfUndef("gridEngineMemoryOption",               "-M MEMORY");

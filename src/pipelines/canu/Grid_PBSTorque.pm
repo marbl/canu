@@ -57,22 +57,23 @@ sub configurePBSTorque () {
 
     return   if (uc(getGlobal("gridEngine")) ne "PBS");
 
-    setGlobalIfUndef("gridEngineSubmitCommand",         	"qsub");
-    setGlobalIfUndef("gridEngineHoldOption",    	     	"-W depend=afteranyarray:WAIT_TAG");
-    setGlobalIfUndef("gridEngineHoldOptionNoArray", 	"-W depend=afterany:WAIT_TAG");
-    setGlobalIfUndef("gridEngineSyncOption",         	"");
-    setGlobalIfUndef("gridEngineNameOption",         	"-d `pwd` -N");
-    setGlobalIfUndef("gridEngineArrayOption",        	"-t ARRAY_JOBS");
-    setGlobalIfUndef("gridEngineArrayName",          	"ARRAY_NAME");
-    setGlobalIfUndef("gridEngineOutputOption",       	"-j oe -o");
-    setGlobalIfUndef("gridEngineThreadsOption",             "-l nodes=1:ppn=THREADS");
-    setGlobalIfUndef("gridEngineMemoryOption",              "-l mem=MEMORY");
-    setGlobalIfUndef("gridEnginePropagateCommand",   	"qalter -W depend=afterany:\"WAIT_TAG\"");
-    setGlobalIfUndef("gridEngineNameToJobIDCommand", 	"qstat -f |grep -F -B 1 WAIT_TAG | grep Id: | grep -F [] |awk '{print \$NF}'");
-    setGlobalIfUndef("gridEngineNameToJobIDCommandNoArray", "qstat -f |grep -F -B 1 WAIT_TAG | grep Id: |awk '{print \$NF}'");
-    setGlobalIfUndef("gridEngineTaskID",                    "PBS_ARRAYID");
-    setGlobalIfUndef("gridEngineArraySubmitID",             "\\\$PBS_ARRAYID");
-    setGlobalIfUndef("gridEngineJobID",                     "PBS_JOBID");
+    setGlobalIfUndef("gridEngineSubmitCommand",              "qsub");
+    setGlobalIfUndef("gridEngineHoldOption",                 "-W depend=afteranyarray:WAIT_TAG");
+    setGlobalIfUndef("gridEngineHoldOptionNoArray",          "-W depend=afterany:WAIT_TAG");
+    setGlobalIfUndef("gridEngineSyncOption",                 "");
+    setGlobalIfUndef("gridEngineNameOption",                 "-d `pwd` -N");
+    setGlobalIfUndef("gridEngineArrayOption",                "-t ARRAY_JOBS");
+    setGlobalIfUndef("gridEngineArrayName",                  "ARRAY_NAME");
+    setGlobalIfUndef("gridEngineArrayMaxJobs",               65535);
+    setGlobalIfUndef("gridEngineOutputOption",               "-j oe -o");
+    setGlobalIfUndef("gridEngineThreadsOption",              "-l nodes=1:ppn=THREADS");
+    setGlobalIfUndef("gridEngineMemoryOption",               "-l mem=MEMORY");
+    setGlobalIfUndef("gridEnginePropagateCommand",           "qalter -W depend=afterany:\"WAIT_TAG\"");
+    setGlobalIfUndef("gridEngineNameToJobIDCommand",         "qstat -f |grep -F -B 1 WAIT_TAG | grep Id: | grep -F [] |awk '{print \$NF}'");
+    setGlobalIfUndef("gridEngineNameToJobIDCommandNoArray",  "qstat -f |grep -F -B 1 WAIT_TAG | grep Id: |awk '{print \$NF}'");
+    setGlobalIfUndef("gridEngineTaskID",                     "PBS_ARRAYID");
+    setGlobalIfUndef("gridEngineArraySubmitID",              "\\\$PBS_ARRAYID");
+    setGlobalIfUndef("gridEngineJobID",                      "PBS_JOBID");
 
     #  Build a list of the resources available in the grid.  This will contain a list with keys
     #  of "#CPUs-#GBs" and values of the number of nodes With such a config.  Later on, we'll use this
