@@ -322,8 +322,8 @@ configureAssembler();
 #  Fail immediately if we run the script on the grid, and the gkpStore directory doesn't exist and
 #  we have no input files.  Without this check we'd fail only after being scheduled on the grid.
 
-my $cor = (-e "$wrk/correction/$asm.gkpStore") || (-e "$wrk/$asm.correctedReads.fastq") || (-e "$wrk/$asm.correctedReads.gkp");
-my $obt = (-e "$wrk/trimming/$asm.gkpStore")   || (-e "$wrk/$asm.trimmedReads.fastq")   || (-e "$wrk/$asm.trimmedReads.gkp");
+my $cor = (-e "$wrk/correction/$asm.gkpStore") || sequenceFileExists("$wrk/$asm.correctedReads") || (-e "$wrk/$asm.correctedReads.gkp");
+my $obt = (-e "$wrk/trimming/$asm.gkpStore")   || sequenceFileExists("$wrk/$asm.trimmedReads")   || (-e "$wrk/$asm.trimmedReads.gkp");
 my $utg = (-e "$wrk/unitigging/$asm.gkpStore");
 
 if (($cor + $obt + $utg == 0) &&
