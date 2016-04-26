@@ -1278,7 +1278,7 @@ gkStore::gkStore_deletePartitions(void) {
   if (errno)
     fprintf(stderr, "ERROR: failed to open partition meta data '%s': %s\n", path, strerror(errno)), exit(1);
 
-  fread(&_numberOfPartitions, sizeof(uint32), 1, F);
+  AS_UTL_safeRead(F, &_numberOfPartitions, "gkStore_deletePartitions::numberOfPartitions", sizeof(uint32), 1);
 
   fclose(F);
 
