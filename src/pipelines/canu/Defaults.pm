@@ -1077,8 +1077,10 @@ sub checkParameters () {
                           "meryl",
                           "trimReads",
                           "splitReads",
+                          "red", "oea",
                           "unitig",
-                          "consensusConfigure");
+                          "consensusConfigure",
+                          "cns");
 
         foreach my $sb (@stopBefore) {
             $failureString .= "ERROR:      '$sb'\n";

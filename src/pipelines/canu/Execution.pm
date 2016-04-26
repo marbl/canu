@@ -228,8 +228,10 @@ sub stopBefore ($$) {
     if ((defined($stopBefore)) &&
         (defined(getGlobal("stopBefore"))) &&
         (getGlobal("stopBefore") eq $stopBefore)) {
+        print STDERR "\n";
         print STDERR "Stop requested before '$stopBefore'.\n";
-        print STDERR "Command:\n$cmd\n" if (defined($cmd));
+        print STDERR "\n";
+        print STDERR "Command:\n  $cmd\n" if (defined($cmd));
         exit(0);
     }
 }
@@ -1132,6 +1134,10 @@ sub submitOrRunParallelJob ($$$$$@) {
     #my $t = localtime();
     #print STDERR "----------------------------------------GRIDSTART $t\n";
     #print STDERR "$path/$script.sh with $mem gigabytes memory and $thr threads.\n";
+
+    #  Check stopping rules.
+
+    stopBefore($jobType, "$path/$script.sh");
 
     #  Break infinite loops.  If the grid jobs keep failing, give up after a few attempts.
     #
