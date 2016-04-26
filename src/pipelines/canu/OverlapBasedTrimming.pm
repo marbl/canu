@@ -177,7 +177,8 @@ sub dumpReads ($$) {
     my $inp;
 
     goto allDone   if (skipStage($WRK, $asm, "obt-dumpReads") == 1);
-    goto allDone   if (-e "$WRK/$asm.trimmedReads.fastq");
+    goto allDone   if (-e "$WRK/$asm.trimmedReads.fasta");
+    goto allDone   if (-e "$WRK/$asm.trimmedReads.fasta.gz");
 
     make_path($path)  if (! -d $path);
 
@@ -186,10 +187,10 @@ sub dumpReads ($$) {
 
     caFailure("dumping trimmed reads failed; no 'clear' input", "$WRK/$asm.trimmedReads.err")  if (!defined($inp));
 
-    $cmd  = "$bin/gatekeeperDumpFASTQ -nolibname \\\n";
+    $cmd  = "$bin/gatekeeperDumpFASTQ -fasta -nolibname \\\n";
     $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
     $cmd .= "  -c $inp \\\n";
-    $cmd .= "  -o $WRK/$asm.trimmedReads \\\n";
+    $cmd .= "  -o $WRK/$asm.trimmedReads.gz \\\n";
     $cmd .= ">    $WRK/$asm.trimmedReads.err 2>&1";
 
     if (runCommand($wrk, $cmd)) {
@@ -207,5 +208,5 @@ sub dumpReads ($$) {
 
   allDone:
     print STDERR "--\n";
-    print STDERR "-- Trimmed reads saved in '$WRK/$asm.trimmedReads.fastq'\n";
+    print STDERR "-- Trimmed reads saved in '$WRK/$asm.trimmedReads.fasta.gz'\n";
 }
