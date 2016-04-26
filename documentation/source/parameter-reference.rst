@@ -257,34 +257,46 @@ intensive stages can run under grid control.
 
 The useGrid* options control which algorithms run in parallel on the grid.
 
-useGrid <boolean=false>
-  Master control.  If false, no algorithms will run in parallel.  Does not change the value of the other useGrid options.
+useGrid <boolean=true>
+  Master control.  If 'false', no algorithms will run under grid control.  Does not change the value of the other useGrid options.
 
-useGridcns <boolean=true>
+  If 'remote', jobs are configured for grid execution, but not submitted.  A message, with commands to launch the job, is reported and canu halts execution.
+
+  Note that the host used to run canu for 'remote' execution must know about the grid, that is, it must be able to submit jobs to the grid.
+
+useGridBAT <boolean=true>
+  Use grid engine for unitig construction
+useGridCNS <boolean=true>
   Use grid engine for unitig consensus computes
-useGridcor <boolean=true>
+useGridCOR <boolean=true>
   Use grid engine for read correction computes
-useGridcormhap <boolean=true>
+useGridMERYL <boolean=true>
+  Use grid engine for read correction computes
+useGridCORMHAP <boolean=true>
   Use grid engine for mhap overlaps for correction computes
-useGridcorovl <boolean=true>
+useGridCORMMAP <boolean=true>
+  Use grid engine for minimap overlaps for correction computes
+useGridCOROVL <boolean=true>
   Use grid engine for overlaps for correction computes
-useGridmaster <boolean=true>
-  Use grid engine for master script computes
-useGridobtmhap <boolean=true>
+useGridOBTMHAP <boolean=true>
   Use grid engine for mhap overlaps for trimming computes
-useGridobtovl <boolean=true>
+useGridOBTMMAP <boolean=true>
+  Use grid engine for minimap overlaps for trimming computes
+useGridOBTOVL <boolean=true>
   Use grid engine for overlaps for trimming computes
-useGridoea <boolean=true>
+useGridOEA <boolean=true>
   Use grid engine for overlap error adjustment computes
-useGridovb <boolean=true>
+useGridOVB <boolean=true>
   Use grid engine for overlap store bucketizing computes
-useGridovs <boolean=true>
+useGridOVS <boolean=true>
   Use grid engine for overlap store sorting computes
-useGridred <boolean=true>
+useGridRED <boolean=true>
   Use grid engine for read error detection computes
-useGridutgmhap <boolean=true>
+useGridUTGMHAP <boolean=true>
   Use grid engine for mhap overlaps for unitig construction computes
-useGridutgovl <boolean=true>
+useGridUTGMMAP <boolean=true>
+  Use grid engine for minimap overlaps for unitig construction computes
+useGridUTGOVL <boolean=true>
   Use grid engine for overlaps for unitig construction computes
 
 There are many options for configuring a new grid ('gridEngine*') and for configuring how canu

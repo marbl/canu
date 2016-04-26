@@ -1168,6 +1168,7 @@ sub submitOrRunParallelJob ($$$$$@) {
 
     if (defined(getGlobal("gridEngine")) &&
         (getGlobal("useGrid") eq "1") &&
+        (getGlobal("useGrid$jobType") eq "1") &&
         (exists($ENV{getGlobal("gridEngineJobID")}))) {
         my $cmd;
         my $jobName;
@@ -1189,6 +1190,7 @@ sub submitOrRunParallelJob ($$$$$@) {
 
     if (defined(getGlobal("gridEngine")) &&
         (getGlobal("useGrid") ne "0") &&
+        (getGlobal("useGrid$jobType") eq "1") &&
         (! exists($ENV{getGlobal("gridEngineJobID")}))) {
         print STDERR "\n";
         print STDERR "Please submit the following jobs to the grid for execution using $mem gigabytes memory and $thr threads:\n";

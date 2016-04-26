@@ -771,6 +771,11 @@ sub setDefaults () {
     $global{"useGrid"}                     = 1;
     $synops{"useGrid"}                     = "If 'true', enable grid-based execution; if 'false', run all jobs on the local machine; if 'remote', create jobs for grid execution but do not submit; default 'true'";
 
+    foreach my $c (qw(BAT CNS COR MERYL CORMHAP CORMMAP COROVL OBTMHAP OBTOVL OEA OVB OVS RED UTGMHAP UTGMMAP UTGOVL)) {
+        $global{"useGrid$c"} = 1;
+        $synops{"useGrid$c"} = "If 'true', run module $c under grid control; if 'false' run locally.";
+    }
+
     #####  Grid Engine configuration, for each step of the pipeline
 
     $global{"gridOptions"}                 = undef;
