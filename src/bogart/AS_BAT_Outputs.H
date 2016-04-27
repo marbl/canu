@@ -38,6 +38,7 @@
 #ifndef INCLUDE_AS_BAT_OUTPUTS
 #define INCLUDE_AS_BAT_OUTPUTS
 
+#include "AS_BAT_Unitig.H"
 #include "tgStore.H"
 
 void unitigToMA(tgTig *tig, uint32 tigid, Unitig *utg);

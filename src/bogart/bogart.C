@@ -512,6 +512,7 @@ main (int argc, char * argv []) {
   setParentAndHang(unitigs);
 
   setLogFile(prefix, "output");
+  //checkUnitigMembership(unitigs);
   writeUnitigsToStore(unitigs, prefix, tigStorePath, fragment_count_target);
 
   //

@@ -307,10 +307,10 @@ reportUnitigs(UnitigVector &unitigs, const char *prefix, const char *name, uint6
   reportN50(circularLength,    "CIRCULAR",    genomeSize);
   reportN50(contigLength,      "CONTIGS",     genomeSize);
 
-  //  Dump to an intermediate store.
-
   if (logFileFlagSet(LOG_INTERMEDIATE_UNITIGS) == 0)
     return;
+
+  //  Dump to an intermediate store.
 
   char tigStorePath[FILENAME_MAX];
   sprintf(tigStorePath, "%s.%03u.%s.tigStore", prefix, logFileOrder, name);
@@ -322,6 +322,7 @@ reportUnitigs(UnitigVector &unitigs, const char *prefix, const char *name, uint6
   uint64  utgLen     = 0;
 
   //  Compute average frags per partition.
+
   for (uint32  ti=0; ti<unitigs.size(); ti++) {
     Unitig  *utg = unitigs[ti];
 
@@ -343,8 +344,7 @@ reportUnitigs(UnitigVector &unitigs, const char *prefix, const char *name, uint6
 
   //  Dump the unitigs to an intermediate store.
 
-#warning NOT set parent and hang
-  //setParentAndHang(unitigs);
+  setParentAndHang(unitigs);
 
   writeUnitigsToStore(unitigs, tigStorePath, tigStorePath, numFragsP, false);
 }

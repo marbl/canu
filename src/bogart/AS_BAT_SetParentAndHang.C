@@ -44,162 +44,137 @@
 void
 setParentAndHang(UnitigVector &unitigs) {
 
+  return;
+
+  map<uint32,bool>  forward;
+  map<uint32,bool>  allreads;
+
+  //  Just for stats, build a map fo the reads in the unitig.
+
+
   for (uint32 ti=0; ti<unitigs.size(); ti++) {
-    Unitig        *utg = unitigs[ti];
+    Unitig        *tig = unitigs[ti];
 
-    if (utg == NULL)
+    if (tig == NULL)
       continue;
 
-    if (utg->ufpath.size() == 0)
+    if (tig->ufpath.size() == 0)
       continue;
 
-    //  Reset parent and hangs for everything.
+    //  Reset parent and hangs, build a map of the reads in the unitig.
 
-    for (uint32 fi=1; fi<utg->ufpath.size(); fi++) {
-      ufNode *frg = &utg->ufpath[fi];
+    for (uint32 fi=1; fi<tig->ufpath.size(); fi++) {
+      ufNode *frg = &tig->ufpath[fi];
 
-      frg->parent       = 0;
-      frg->ahang        = 0;
-      frg->bhang        = 0;
+      frg->parent          = 0;
+      frg->ahang           = 0;
+      frg->bhang           = 0;
+
+      allreads[frg->ident] = true;
     }
 
     //  For each fragment, set parent/hangs using the edges.
 
-    for (uint32 fi=0; fi<utg->ufpath.size(); fi++) {
-      ufNode *frg  = &utg->ufpath[fi];
+    for (uint32 fi=0; fi<tig->ufpath.size(); fi++) {
+      ufNode *frg  = &tig->ufpath[fi];
 
-      //  If we don't have a parent set, see if one of our best overlaps
-      //  can set it.
 
-      BestEdgeOverlap *bestedge5 = OG->getBestEdgeOverlap(frg->ident, false);
-      BestEdgeOverlap *bestedge3 = OG->getBestEdgeOverlap(frg->ident, true);
 
-      //  Consensus is expected parent/hangs to be relative to the parent fragment.  This is used
-      //  ONLY to place the fragment, not to orient the fragment.  Orientation comes from the
-      //  absolute positioning coordinates.
-      //
-      //  Interestingly, all four overlap transformations are used here.
-      //
-      //  The inner if tests (on fragment orientation) should be asserts, but due to imprecise
-      //  layouts, they are sometimes violated:
-      //    A fragment from       271-547 had a 5'overlap to something after it;
-      //    the frag after was at 543-272, close enough to a tie to screw up placements
-      //
+    //  Remember that we've placed this read, and if it was forward or reverse.
+    forward[frg->ident] = (frg->position.bgn < frg->position.end);
 
-      if (bestedge5->fragId() > 0) {
-        if (logFileFlagSet(LOG_SET_PARENT_AND_HANG))
-          writeLog("setParentAndHang()--  BEST5     - frag %d in unitig %d 5' to %d/%c' in unitig %d\n",
-                  frg->ident, utg->id(),
-                  bestedge5->fragId(), bestedge5->frag3p() ? '3' : '5',
-                  utg->fragIn(bestedge5->fragId()));
+    //  If the first read, there is no parent possible.
+    if (ti == 0)
+      continue;
 
-        if (utg->fragIn(bestedge5->fragId()) == utg->id()) {
-          uint32  pi5  = utg->pathPosition(bestedge5->fragId());
-          ufNode *oth  = &utg->ufpath[pi5];
+    //  Otherwise, find the thickest overlap to any read already placed in the unitig.
 
-          assert(oth->ident == bestedge5->fragId());
+    uint32         olapsLen = 0;
+    BAToverlap    *olaps = OC->getOverlaps(frg->ident, AS_MAX_EVALUE, olapsLen);
 
-          if ((pi5 < fi) && (isReverse(frg->position) == false)) {
-            //  Edge is to a fragment before us, off our 5' end, and we are forward.
-            frg->parent = bestedge5->fragId();
-            frg->ahang  = -bestedge5->ahang();
-            frg->bhang  = -bestedge5->bhang();
-            assert(frg->ahang >= 0);
+    uint32         tt     = UINT32_MAX;
+    uint32         ttLen  = 0;
+    double         ttErr  = DBL_MAX;
 
-            if (logFileFlagSet(LOG_SET_PARENT_AND_HANG))
-              writeLog("                             - -> frag %d at %d,%d 5' edge to prev frag %d at %d,%d -- hang %d,%d\n",
-                      frg->ident, frg->position.bgn, frg->position.end,
-                      oth->ident, oth->position.bgn, oth->position.end,
-                      frg->ahang, frg->bhang);
+    int32          ah     = 0;
+    int32          bh     = 0;
 
-          } else if ((pi5 > fi) && (isReverse(frg->position) == true)) {
-            //  Edge is to a fragment after us, off our 5' end, and we are reverse.
-            //  Use this edge to set the other fragment parent and hang.
-            //  That fragment must pass the same order/orient tests.
-            //    Off the others 3' end, fragment must be reverse.
-            //    Off the others 5' end, fragment must be forward.
-            if (((bestedge5->frag3p() == true)  && (isReverse(oth->position) == true)) ||
-                ((bestedge5->frag3p() == false) && (isReverse(oth->position) == false))) {
-              oth->parent = frg->ident;
-              oth->ahang  = -bestedge5->bhang();
-              oth->bhang  = -bestedge5->ahang();
-              assert(oth->ahang >= 0);
+    uint32         notPresent = 0;  //  Potential parent isn't in the unitig
+    uint32         notPlaced  = 0;  //  Potential parent isn't placed yet
+    uint32         negHang    = 0;  //  Potential parent has a negative hang to a placed read
+    uint32         goodOlap   = 0;
 
-              if (logFileFlagSet(LOG_SET_PARENT_AND_HANG))
-                writeLog("                                - <- frag %d at %d,%d %c' edge fr prev frag %d at %d,%d -- hang %d,%d\n",
-                        oth->ident, oth->position.bgn, oth->position.end, bestedge5->frag3p() ? '3' : '5',
-                        frg->ident, frg->position.bgn, frg->position.end,
-                        frg->ahang, frg->bhang);
-            } else {
-              if (logFileFlagSet(LOG_SET_PARENT_AND_HANG))
-                writeLog("                                - <- frag %d at %d,%d %c' edge fr prev frag %d at %d,%d -- NOT VALID\n",
-                        oth->ident, oth->position.bgn, oth->position.end, bestedge5->frag3p() ? '3' : '5',
-                        frg->ident, frg->position.bgn, frg->position.end);
-            }
+    for (uint32 oo=0; oo<olapsLen; oo++) {
 
-          } else {
-            if (logFileFlagSet(LOG_SET_PARENT_AND_HANG))
-              writeLog("                                - -- frag %d at %d,%d 5' edge to prev frag %d at %d,%d -- NOT VALID\n",
-                      frg->ident, frg->position.bgn, frg->position.end,
-                      oth->ident, oth->position.bgn, oth->position.end);
-          }
-        }
+      if (allreads.count(olaps[oo].b_iid) == 0) {
+        notPresent++;
+        continue;
       }
 
-      if (bestedge3->fragId() > 0) {
-        if (logFileFlagSet(LOG_SET_PARENT_AND_HANG))
-          writeLog("setParentAndHang()--  BEST3     - frag %d in unitig %d 3' to %d/%c' in unitig %d\n",
-                  frg->ident, utg->id(),
-                  bestedge3->fragId(), bestedge3->frag3p() ? '3' : '5',
-                  utg->fragIn(bestedge5->fragId()));
-
-        if (utg->fragIn(bestedge3->fragId()) == utg->id()) {
-          uint32  pi3  = utg->pathPosition(bestedge3->fragId());
-          ufNode *oth  = &utg->ufpath[pi3];
-
-          assert(oth->ident == bestedge3->fragId());
-
-          //  Edge is to a fragment before us, off our 3' end, and we are reverse.
-          if        ((pi3 < fi) && (isReverse(frg->position) == true)) {
-            frg->parent = oth->ident;
-            frg->ahang  = bestedge3->bhang();
-            frg->bhang  = bestedge3->ahang();
-            assert(frg->ahang >= 0);
-
-            if (logFileFlagSet(LOG_SET_PARENT_AND_HANG))
-              writeLog("                                - -> frag %d at %d,%d 3' edge to prev frag %d at %d,%d -- hang %d,%d\n",
-                      frg->ident, frg->position.bgn, frg->position.end,
-                      oth->ident, oth->position.bgn, oth->position.end,
-                      frg->ahang, frg->bhang);
-
-          } else if ((pi3 > fi) && (isReverse(frg->position) == false)) {
-            if (((bestedge3->frag3p() == true)  && (isReverse(oth->position) == true)) ||
-                ((bestedge3->frag3p() == false) && (isReverse(oth->position) == false))) {
-              oth->parent = frg->ident;
-              oth->ahang  = bestedge3->ahang();
-              oth->bhang  = bestedge3->bhang();
-              assert(oth->ahang >= 0);
-
-              if (logFileFlagSet(LOG_SET_PARENT_AND_HANG))
-                writeLog("                                - <- frag %d at %d,%d %c' edge fr prev frag %d at %d,%d -- hang %d,%d\n",
-                        oth->ident, oth->position.bgn, oth->position.end, bestedge5->frag3p() ? '3' : '5',
-                        frg->ident, frg->position.bgn, frg->position.end,
-                        frg->ahang, frg->bhang);
-            } else {
-              if (logFileFlagSet(LOG_SET_PARENT_AND_HANG))
-                writeLog("                             - <- frag %d at %d,%d %c' edge fr prev frag %d at %d,%d -- NOT VALID\n",
-                        oth->ident, oth->position.bgn, oth->position.end, bestedge5->frag3p() ? '3' : '5',
-                        frg->ident, frg->position.bgn, frg->position.end);
-            }
-
-          } else {
-            if (logFileFlagSet(LOG_SET_PARENT_AND_HANG))
-              writeLog("                                - -- frag %d at %d,%d 3' edge to prev frag %d at %d,%d -- NOT VALID\n",
-                      frg->ident, frg->position.bgn, frg->position.end,
-                      oth->ident, oth->position.bgn, oth->position.end);
-          }
-        }
+      if (forward.count(olaps[oo].b_iid) == 0) {       //  Potential parent not placed yet
+        notPlaced++;
+        continue;
       }
-    }  //  Over all fragment
+
+      uint32  l = FI->overlapLength(olaps[oo].a_iid, olaps[oo].b_iid, olaps[oo].a_hang, olaps[oo].b_hang);
+
+      //  Compute the hangs, so we can ignore those that would place this read before the parent.
+      //  This is a flaw somewhere in bogart, and should be caught and fixed earlier.
+
+      //  Consensus is expecting the have the hangs for the parent read, not this read, and some
+      //  fiddling is needed to flip the overlap for this:
+      //    First, swap the reads so it's b-vs-a.
+      //    Then, flip the overlap if the b read is in the unitig flipped.
+
+      int32 ah = (olaps[oo].flipped == false) ? (-olaps[oo].a_hang) : (olaps[oo].b_hang);
+      int32 bh = (olaps[oo].flipped == false) ? (-olaps[oo].b_hang) : (olaps[oo].a_hang);
+
+      if (forward[olaps[oo].b_iid] == false) {
+        swap(ah, bh);
+        ah = -ah;
+        bh = -bh;
+      }
+
+      //  If the ahang is negative, we flubbed up somewhere, and want to place this read before
+      //  the parent (even though positions say to place it after, because we sorted by position).
+
+      if (ah < 0) {
+        //fprintf(stderr, "ERROR: read %u in tig %u has negative ahang from parent read %u, ejected.\n",
+        //        frg->ident, ti, olaps[oo].b_iid);
+        negHang++;
+        continue;
+      }
+
+      //  The overlap is good.  Count it as such.
+
+      goodOlap++;
+
+      //  If the overlap is worse than the one we already have, we don't care.
+
+      if ((l < ttLen) ||                  //  Too short
+          (ttErr < olaps[oo].erate)) {    //  Too noisy
+        continue;
+      }
+
+      tt    = oo;
+      ttLen = l;
+      ttErr = olaps[oo].erate;
+    }
+
+    //  If no thickest overlap, we screwed up somewhere.  Complain and eject the read.
+
+    if (tt == UINT32_MAX) {
+      fprintf(stderr, "ERROR: read %u in tig %u has no overlap to any previous read, ejected.  %u overlaps total.  %u negative hang.  %u to read not in tig.  %u to read later in tig.  %u good overlaps.\n",
+              frg->ident, tig->tigID(), olapsLen, negHang, notPresent, notPlaced, goodOlap);
+      continue;
+    }
+
+    frg->parent = olaps[tt].b_iid;
+    frg->ahang  = ah;
+    frg->bhang  = bh;
+
+
+
+    }  //  Over all fragments
   }  //  Over all unitigs
 }
