@@ -685,8 +685,6 @@ markRepeatReads(UnitigVector &unitigs,
         int32  tig5bgn=0, tig5end=0;
         int32  tig3bgn=0, tig3end=0;
 
-#warning best edge here might be bogus
-
         //  Instead of using the best edge - which might not be the edge used in the unitig -
         //  we need to scan the layout to return the previous/next dovetail
 
