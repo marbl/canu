@@ -153,9 +153,14 @@ main(int argc, char **argv) {
 
   //  Load overlaps we're going to correct
 
+  fprintf(stderr, "Loading overlaps.\n");
+
   Read_Olaps(G, gkpStore);
 
   //  Now sort them on the B iid.
+
+  fprintf(stderr, "Sorting overlaps.\n");
+
 #ifdef _GLIBCXX_PARALLEL
   __gnu_sequential::sort(G->olaps, G->olaps + G->olapsLen, Olap_Info_t_by_bID());
 #else
@@ -164,9 +169,17 @@ main(int argc, char **argv) {
 
   //  Recompute overlaps
 
+  fprintf(stderr, "Recomputing overlaps.\n");
+
   Redo_Olaps(G, gkpStore);
 
+  gkpStore->gkStore_close();
+  gkpStore = NULL;
+
   //  Sort the overlaps back into the original order
+
+  fprintf(stderr, "Sorting overlaps.\n");
+
 #ifdef _GLIBCXX_PARALLEL
   __gnu_sequential::sort(G->olaps, G->olaps + G->olapsLen, Olap_Info_t_by_Order());
 #else
@@ -204,6 +217,10 @@ main(int argc, char **argv) {
   //fprintf (stderr, "%d/%d failed/total alignments (%.1f%%)\n",
   //         Failed_Alignments_Ct, Total_Alignments_Ct,
   //         Total_Alignments_Ct == 0 ? 0.0 : (100.0 * Failed_Alignments_Ct) / Total_Alignments_Ct);
+
+  delete G;
+
+  fprintf(stderr, "DONE.\n");
 
   exit(0);
 }
