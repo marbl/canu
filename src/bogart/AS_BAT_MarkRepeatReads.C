@@ -185,10 +185,13 @@ splitUnitigs(UnitigVector             &unitigs,
              bool                      doMove) {
   uint32  nTigsCreated = 0;
 
-  memset(newTigs,  0, sizeof(Unitig *) * BP.size());
-  memset(lowCoord, 0, sizeof(int32)    * BP.size());
-  memset(nRepeat,  0, sizeof(uint32)   * BP.size());
-  memset(nUnique,  0, sizeof(uint32)   * BP.size());
+  if (doMove == true) {
+    memset(newTigs,  0, sizeof(Unitig *) * BP.size());
+    memset(lowCoord, 0, sizeof(int32)    * BP.size());
+  } else {
+    memset(nRepeat,  0, sizeof(uint32)   * BP.size());
+    memset(nUnique,  0, sizeof(uint32)   * BP.size());
+  }
 
   for (uint32 fi=0; fi<tig->ufpath.size(); fi++) {
     ufNode     &frg    = tig->ufpath[fi];
@@ -237,18 +240,24 @@ splitUnitigs(UnitigVector             &unitigs,
     if (doMove) {
       if (newTigs[rid] == NULL) {
         lowCoord[rid] = frgbgn;
+
         newTigs[rid]  = unitigs.newUnitig(true);  // LOG_ADDUNITIG_BREAKING
+
+        if (nRepeat[rid] > nUnique[rid])
+          newTigs[rid]->_isRepeat = true;
       }
 
       newTigs[rid]->addFrag(frg, -lowCoord[rid], false);  //LOG_ADDFRAG_BREAKING);
     }
 
-    //  Count how many reads cam from repeats or uniques.
+    //  Else, we're not moving, just count how many reads came from repeats or uniques.
 
-    if (rpt)
-      nRepeat[rid]++;
-    else
-      nUnique[rid]++;
+    else {
+      if (rpt)
+        nRepeat[rid]++;
+      else
+        nUnique[rid]++;
+    }
   }
 
   //  Return the number of tigs created.
@@ -1075,9 +1084,11 @@ markRepeatReads(UnitigVector &unitigs,
     uint32  *nUnique   = new uint32   [BP.size()];
 
     //  First call, count the number of tigs we would create if we let it create them.
+
     uint32  nTigs = splitUnitigs(unitigs, tig, BP, newTigs, lowCoord, nRepeat, nUnique, false);
 
     //  Second call, actually create the tigs, if anything would change.
+
     if (nTigs > 1)
       splitUnitigs(unitigs, tig, BP, newTigs, lowCoord, nRepeat, nUnique, true);
 
