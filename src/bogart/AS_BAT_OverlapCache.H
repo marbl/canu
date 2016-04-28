@@ -88,6 +88,12 @@ public:
   //  If the overlap is a containment relationship, both Is5 and Is3 are false.
   //
   bool
+  isDovetail(void) const {
+    return(((a_hang < 0) && (b_hang < 0)) ||
+           ((a_hang > 0) && (b_hang > 0)));
+  };
+
+  bool
   AEndIs5prime(void) const {                   //  -------->
     return((a_hang < 0) && (b_hang < 0));      //        -------
   };
