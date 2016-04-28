@@ -266,7 +266,7 @@ sub getNumberOfCPUs () {
         $ncpu = int(`/usr/bin/getconf _NPROCESSORS_ONLN`);
     }
 
-    if ($os eq "linux") {
+    if ($os eq "linux" || $os eq "cygwin") {
         $ncpu = int(`getconf _NPROCESSORS_ONLN`);
     }
 
@@ -286,7 +286,7 @@ sub getPhysicalMemorySize () {
         $memory = `/usr/sbin/sysctl -n hw.memsize` / 1024 / 1024 / 1024;
     }
 
-    if ($os eq "linux") {
+    if ($os eq "linux" || $os eq "cygwin") {
         open(F, "< /proc/meminfo");        #  Way to go, Linux!  Make it easy on us!
         while (<F>) {
             if (m/MemTotal:\s+(\d+)/) {
@@ -1146,7 +1146,7 @@ sub checkParameters () {
         open(F, "$java -showversion 2>&1 |");
         while (<F>) {
             #  First word is either "java" or "openjdk" or ...
-            if (m/^.*\s+version\s+\"(\d+.\d+)(.*)\"$/) {
+            if (m/^.*\s+version\s+\"(\d+.\d+)(.*)\".*$/) {
                 $versionStr = "$1$2";
                 $version    =  $1;
             }

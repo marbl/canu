@@ -556,7 +556,10 @@ sub generateOverlapStoreStats ($$) {
     $cmd .= " > $wrk/$asm.ovlStore.summary.err 2>&1";
 
     if (runCommand($wrk, $cmd)) {
-        caExit("failed to generate statistics for the overlap store", "$wrk/$asm.ovlStore.summary.err");
+        print STDERR "--\n";
+        print STDERR "-- WARNING: failed to generate statistics for the overlap store; no summary will appear in HTML output.\n";
+        print STDERR "--\n";
+        print STDERR "----------------------------------------\n";
     }
 }
 
