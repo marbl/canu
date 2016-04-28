@@ -35,12 +35,14 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include "AS_BAT_Datatypes.H"
+#include "AS_BAT_FragmentInfo.H"
+#include "AS_BAT_OverlapCache.H"
 #include "AS_BAT_BestOverlapGraph.H"
 #include "AS_BAT_ChunkGraph.H"
-#include "AS_BAT_Unitig.H"
 
-#include "AS_BAT_OverlapCache.H"
+#include "AS_BAT_Logging.H"
+
+#include "AS_BAT_Unitig.H"
 
 #include "AS_BAT_PopulateUnitig.H"
 #include "AS_BAT_Instrumentation.H"
@@ -501,6 +503,7 @@ main (int argc, char * argv []) {
                                tooShortLength,
                                spanFraction,
                                lowcovFraction, lowcovDepth);
+
   //checkUnitigMembership(unitigs);
   reportUnitigs(unitigs, prefix, "final", genomeSize);
 
@@ -508,11 +511,9 @@ main (int argc, char * argv []) {
   //  Generate outputs.
   //
 
-  setLogFile(prefix, "setParentAndHang");
-  setParentAndHang(unitigs);
-
   setLogFile(prefix, "output");
-  //checkUnitigMembership(unitigs);
+
+  setParentAndHang(unitigs);
   writeUnitigsToStore(unitigs, prefix, tigStorePath, fragment_count_target);
 
   //

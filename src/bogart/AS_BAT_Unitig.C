@@ -35,8 +35,9 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include "AS_BAT_Datatypes.H"
+#include "AS_global.H"
 #include "AS_BAT_Unitig.H"
+#include "AS_BAT_FragmentInfo.H"
 #include "AS_BAT_BestOverlapGraph.H"
 
 static std::map<uint32,int>* containPartialOrder;

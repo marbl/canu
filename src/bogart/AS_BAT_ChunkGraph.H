@@ -38,7 +38,13 @@
 #ifndef INCLUDE_AS_BAT_CHUNKGRAPH
 #define INCLUDE_AS_BAT_CHUNKGRAPH
 
-#include "AS_BAT_Datatypes.H"
+#include "AS_global.H"
+
+#include <set>
+#include <map>
+
+using namespace std;
+
 
 class BestOverlapGraph;
 
@@ -86,4 +92,8 @@ private:
   set<uint32>        *_restrict;
 };
 
-#endif
+
+
+extern ChunkGraph       *CG;
+
+#endif  //  INCLUDE_AS_BAT_CHUNKGRAPH

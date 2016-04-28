@@ -35,7 +35,8 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include "AS_BAT_Datatypes.H"
+#include "AS_BAT_FragmentInfo.H"
+#include "AS_BAT_Logging.H"
 
 const uint64 fiMagicNumber   = 0x6f666e4967617266llu;  //  'fragInfo' until it gets messed up by endianess.
 const uint64 fiVersionNumber = 2;

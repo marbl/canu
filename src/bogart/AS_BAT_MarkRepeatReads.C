@@ -20,10 +20,12 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include "AS_BAT_Datatypes.H"
-#include "AS_BAT_Unitig.H"
+#include "AS_BAT_FragmentInfo.H"
 #include "AS_BAT_OverlapCache.H"
 #include "AS_BAT_BestOverlapGraph.H"
+#include "AS_BAT_Logging.H"
+
+#include "AS_BAT_Unitig.H"
 
 #include "intervalList.H"
 #include "stddev.H"
@@ -31,6 +33,8 @@
 #include <vector>
 
 using namespace std;
+
+
 
 //  Hack.
 uint32 MIN_ANCHOR_HANG       = 500;   //  Require reads to be anchored by this many bases at boundaries of repeats.
@@ -835,8 +839,8 @@ markRepeatReads(UnitigVector &unitigs,
             continue;
 
           //  Skip if the overlap isn't dovetail.
-          bool  ovl5 = AS_BAT_overlapAEndIs5prime(ovl[oo]);
-          bool  ovl3 = AS_BAT_overlapAEndIs3prime(ovl[oo]);
+          bool  ovl5 = ovl[oo].AEndIs5prime();
+          bool  ovl3 = ovl[oo].AEndIs3prime();
 
           if ((ovl5 == false) &&
               (ovl3 == false))

@@ -39,6 +39,9 @@
 #define INCLUDE_AS_BAT_PLACEFRAGUSINGOVERLAPS
 
 #include "AS_BAT_OverlapCache.H"
+#include "AS_BAT_Unitig.H"          //  For SeqInterval
+#include "AS_BAT_UnitigVector.H"
+
 
 class overlapPlacement {
 public:
@@ -105,8 +108,8 @@ bool
 overlapPlacement_byLocation(const overlapPlacement &A, const overlapPlacement &B) {
   if (A.tigID != B.tigID)
     return(A.tigID < B.tigID);
-  if (isReverse(A.position) != isReverse(B.position))
-    return(isReverse(A.position) < isReverse(B.position));
+  if (A.position.isReverse() != B.position.isReverse())
+    return(A.position.isReverse() < B.position.isReverse());
   return(A.position < B.position);
 }
 

@@ -35,8 +35,12 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include "AS_BAT_Unitig.H"
+#include "AS_BAT_FragmentInfo.H"
 #include "AS_BAT_BestOverlapGraph.H"
+
+#include "AS_BAT_Logging.H"
+
+#include "AS_BAT_Unitig.H"
 #include "AS_BAT_SetParentAndHang.H"
 #include "AS_BAT_Outputs.H"
 
@@ -47,6 +51,7 @@
 void
 checkUnitigMembership(UnitigVector &unitigs) {
   uint32 *inUnitig = new uint32 [FI->numFragments()+1];
+  uint32  noUnitig = 0xffffffff;
 
   //  All reads start of not placed in a unitig.
 

@@ -42,7 +42,11 @@
 #ifndef INCLUDE_AS_BAT_OVERLAPCACHE
 #define INCLUDE_AS_BAT_OVERLAPCACHE
 
+#include "AS_global.H"
+#include "ovStore.H"
+#include "gkStore.H"
 #include "memoryMappedFile.H"
+
 
 //  CA8 used to re-encode the error rate into a smaller-precision number.  This was
 //  confusing and broken (it tried to use a log-based encoding to give more precision
@@ -68,7 +72,51 @@ struct BAToverlapInt {
 //  For working with overlaps, 32 bytes per overlap.  This data is copied
 //  from the overlap storage (from a BAToverlapInt) with the erate expanded,
 //  and a_iid added.
-struct BAToverlap {
+
+class BAToverlap {
+public:
+  BAToverlap() {
+  };
+  ~BAToverlap() {
+  };
+
+public:
+
+  //  Return which end of the read the overlap is on.  For 'Ais', the orientation
+  //  of B doesn't matter; likewise for 'Bis'.
+  //
+  //  If the overlap is a containment relationship, both Is5 and Is3 are false.
+  //
+  bool
+  AEndIs5prime(void) const {                   //  -------->
+    return((a_hang < 0) && (b_hang < 0));      //        -------
+  };
+
+  bool
+  AEndIs3prime(void) const {                   //     -------->
+    return((a_hang > 0) && (b_hang > 0));      //  -------
+  };
+
+  bool
+  AisContainer(void) const {                   //  -------->
+    return((a_hang >= 0) && (b_hang <= 0));    //    ----
+  };
+
+  bool
+  AisContained(void) const {                   //    --->
+    return((a_hang <= 0) && (b_hang >= 0));    //  ---------
+  };
+
+  bool
+  BEndIs3prime(void) const {
+    assert(AisContainer() == false);  //  Function is not defined
+    assert(AisContained() == false);  //    for containments.
+    return((AEndIs5prime() && (flipped == false)) ||
+           (AEndIs3prime() && (flipped == true)));
+  };
+
+
+public:
   int32       a_hang;
   int32       b_hang;
 
@@ -170,5 +218,9 @@ private:
   ovStore                *_ovlStoreUniq;  //  Pointers to input stores
   ovStore                *_ovlStoreRept;
 };
+
+
+
+extern OverlapCache     *OC;
 
 #endif  //  INCLUDE_AS_BAT_OVERLAPCACHE

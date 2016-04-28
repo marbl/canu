@@ -35,12 +35,13 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include "AS_BAT_Datatypes.H"
-#include "AS_BAT_Unitig.H"
+#include "AS_BAT_FragmentInfo.H"
 #include "AS_BAT_BestOverlapGraph.H"
 
-#include "AS_BAT_PlaceContains.H"
+#include "AS_BAT_Logging.H"
 
+#include "AS_BAT_Unitig.H"
+#include "AS_BAT_PlaceContains.H"
 #include "AS_BAT_PlaceFragUsingOverlaps.H"
 
 #define  SHOW_PLACEMENT_DETAIL    //  Reports evidence (too much) for placing reads.

@@ -38,7 +38,7 @@
 #ifndef INCLUDE_AS_BAT_UNITIG_VECTOR
 #define INCLUDE_AS_BAT_UNITIG_VECTOR
 
-#include "AS_BAT_Datatypes.H"
+#include "AS_global.H"
 
 class Unitig;
 

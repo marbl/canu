@@ -38,8 +38,119 @@
 #ifndef INCLUDE_AS_BAT_BESTOVERLAPGRAPH
 #define INCLUDE_AS_BAT_BESTOVERLAPGRAPH
 
-#include "AS_BAT_Datatypes.H"
-#include "AS_BAT_Unitig.H"
+#include "AS_global.H"
+#include "AS_BAT_OverlapCache.H"
+
+class FragmentEnd {
+public:
+  FragmentEnd() {
+    _id  = 0;
+    _e3p = false;
+  };
+  FragmentEnd(uint32 id, bool e3p) {
+    _id  = id;
+    _e3p = e3p;
+  };
+
+  uint32  fragId(void)  const { return(_id); };
+  bool    frag3p(void)  const { return(_e3p == true);  };
+  bool    frag5p(void)  const { return(_e3p == false); };
+
+  bool operator==(FragmentEnd const that) const {
+    return((fragId() == that.fragId()) && (frag3p() == that.frag3p()));
+  };
+
+  bool operator!=(FragmentEnd const that) const {
+    return((fragId() != that.fragId()) || (frag3p() != that.frag3p()));
+  };
+
+  bool operator<(FragmentEnd const that) const {
+    if (fragId() != that.fragId())
+      return fragId() < that.fragId();
+    else
+      return frag3p() < that.frag3p();
+  };
+
+private:
+  uint32   _id:31;
+  uint32   _e3p:1;
+};
+
+
+
+//  Stores an overlap from an 'a' read (implied by the index into the array of best edges) to a 'b'
+//  read.  The hangs are relative to the 'a' read - just as a normal overlap would be.
+//
+class BestEdgeOverlap {
+public:
+  BestEdgeOverlap() {
+    clear();
+  };
+  BestEdgeOverlap(BAToverlap const &ovl) {
+    set(ovl);
+  };
+  ~BestEdgeOverlap() {
+  };
+
+  void    clear(void) {
+    _id     = 0;
+    _e3p    = 0;
+    _ahang  = 0;
+    _bhang  = 0;
+    _evalue = 0;
+  };
+
+  void    set(BAToverlap const &olap) {
+    _id     = olap.b_iid;
+    if (((olap.a_hang <= 0) && (olap.b_hang >= 0)) ||    //  If contained, _e3p just means
+        ((olap.a_hang >= 0) && (olap.b_hang <= 0)))      //  the other read is flipped
+      _e3p  = olap.flipped;
+    else
+      _e3p    = olap.BEndIs3prime();      //  Otherwise, means olap is to the 3' end
+
+    _ahang  = olap.a_hang;
+    _bhang  = olap.b_hang;
+    _evalue = olap.evalue;
+  };
+
+  void    set(uint32 id, bool e3p, int32 ahang, int32 bhang, uint32 evalue) {
+    _id     = id;
+    _e3p    = e3p;
+    _ahang  = ahang;
+    _bhang  = bhang;
+    _evalue = evalue;
+  };
+
+
+  uint32  fragId(void)  const { return(_id); };
+  bool    frag3p(void)  const { return(_e3p == true);  };
+  bool    frag5p(void)  const { return(_e3p == false); };
+
+  int32   ahang(void)   const { return(_ahang); };
+  int32   bhang(void)   const { return(_bhang); };
+
+  uint32  evalue(void)  const { return(_evalue); };
+  double  erate(void)   const { return(AS_OVS_decodeEvalue(_evalue)); };
+
+private:
+  uint32            _id;
+  uint64            _e3p    : 1;    //  Overlap with the 3' end of that fragment, or flipped contain
+  int64             _ahang  : AS_MAX_READLEN_BITS+1;
+  int64             _bhang  : AS_MAX_READLEN_BITS+1;
+  uint64            _evalue : AS_MAX_EVALUE_BITS;
+};
+
+#if (1 + AS_MAX_READLEN_BITS + 1 + AS_MAX_READLEN_BITS + 1 + AS_MAX_EVALUE_BITS > 64)
+#error not enough bits to store overlaps.  decrease AS_MAX_EVALUE_BITS or AS_MAX_READLEN_BITS.
+#endif
+
+
+
+
+
+
+
+
 
 class BestOverlaps {
 public:
@@ -177,4 +288,6 @@ public:
 
 
 
-#endif //INCLUDE_AS_BAT_BESTOVERLAPGRAPH
+extern BestOverlapGraph *OG;
+
+#endif  //  INCLUDE_AS_BAT_BESTOVERLAPGRAPH

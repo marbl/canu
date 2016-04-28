@@ -35,7 +35,8 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include "AS_BAT_Datatypes.H"
+#include "AS_global.H"
+#include "AS_BAT_FragmentInfo.H"
 #include "AS_BAT_Unitig.H"
 
 //  If we are not reconstructing repeats, promote all the unplaced fragments to new unitigs.

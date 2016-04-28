@@ -35,8 +35,10 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include "AS_BAT_Datatypes.H"
+#include "AS_BAT_FragmentInfo.H"
 #include "AS_BAT_BestOverlapGraph.H"
+#include "AS_BAT_Logging.H"
+
 #include "AS_BAT_Unitig.H"
 
 #include "intervalList.H"
@@ -740,7 +742,7 @@ BestOverlapGraph::scoreEdge(const BAToverlap& olap) {
   }
 
   uint64           newScr = scoreOverlap(olap);
-  bool             a3p    = AS_BAT_overlapAEndIs3prime(olap);
+  bool             a3p    = olap.AEndIs3prime();
   BestEdgeOverlap *best   = getBestEdgeOverlap(olap.a_iid, a3p);
   uint64          &score  = (a3p) ? (best3score(olap.a_iid)) : (best5score(olap.a_iid));
 

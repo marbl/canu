@@ -38,13 +38,67 @@
 #ifndef INCLUDE_AS_BAT_UNITIG
 #define INCLUDE_AS_BAT_UNITIG
 
-#include "AS_BAT_Datatypes.H"
+#include "AS_global.H"
 #include "AS_BAT_UnitigVector.H"
 
 #include "stddev.H"
 
 #include <vector>
 #include <algorithm>
+
+class BestEdgeOverlap;
+
+
+
+class SeqInterval {
+public:
+  SeqInterval() {
+    bgn = 0;
+    end = 0;
+  };
+  ~SeqInterval() {
+  };
+
+
+  int32  min(void) const         {  return(::min(bgn, end));  };
+  int32  max(void) const         {  return(::max(bgn, end));  };
+
+  bool   isReverse(void) const   {  return(bgn > end);        };
+
+  bool   operator==(SeqInterval const that) const {
+    return(((bgn == that.bgn) && (end == that.end)) ||
+           ((bgn == that.end) && (end == that.bgn)));
+  };
+
+  bool   operator!=(SeqInterval const that) const {
+    return(((bgn != that.bgn) || (end != that.end)) &&
+           ((bgn != that.end) || (end != that.bgn)));
+  };
+
+  bool   operator<(SeqInterval const that) const {
+    return(min() < that.min());
+#if 0
+    if (isReverse()) {
+      if (b.isReverse())  return end < that.end;
+      else                return end < that.bgn;
+    } else {
+      if (b.isReverse())  return bgn < that.end;
+      else                return bgn < that.bgn;
+    }
+#endif
+  };
+
+
+public:
+  int32  bgn;  //  MUST be signed!  Read placement needs to set coordinates to negative
+  int32  end;  //  coordinates to indicate the read extends off the start of the tig.
+};
+
+
+
+
+
+
 
 //  Derived from IntMultiPos, but removes some of the data (48b in IntMultiPos, 32b in struct
 //  ufNode).  The minimum size (bit fields, assuming maximum limits, not using the contained

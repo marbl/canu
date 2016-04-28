@@ -35,10 +35,11 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include "AS_BAT_Datatypes.H"
-#include "AS_BAT_Unitig.H"
+#include "AS_BAT_FragmentInfo.H"
 #include "AS_BAT_BestOverlapGraph.H"
+#include "AS_BAT_Logging.H"
 
+#include "AS_BAT_Unitig.H"
 #include "AS_BAT_PlaceFragUsingOverlaps.H"
 
 #include "intervalList.H"
@@ -112,7 +113,7 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
 
     if (tig->placeFrag(frag,
                        fid,
-                       AS_BAT_overlapAEndIs3prime(ovl[i]),
+                       ovl[i].AEndIs3prime(),
                        &edge) == false) {
       nFragmentsNotPlaced++;
       continue;
@@ -240,7 +241,7 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
     end = bgn + 1;
     while ((end < ovlLen) &&
            (ovlPlace[bgn].tigID == ovlPlace[end].tigID) &&
-           (isReverse(ovlPlace[bgn].verified) == isReverse(ovlPlace[end].verified)))
+           (ovlPlace[bgn].verified.isReverse() == ovlPlace[end].verified.isReverse()))
       end++;
 
     //  Over all placements with the same unitig/orientation (that'd be from bgn to end), build
@@ -358,7 +359,7 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
         op.covered.bgn  = MIN(op.covered.bgn, ovlPlace[oo].covered.bgn);
         op.covered.end  = MAX(op.covered.end, ovlPlace[oo].covered.end);
 
-        if (isReverse(ovlPlace[oo].position))
+        if (ovlPlace[oo].position.isReverse())
           nReverse++;
         else
           nForward++;

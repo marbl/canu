@@ -35,14 +35,18 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include "AS_BAT_Datatypes.H"
+#include "AS_BAT_FragmentInfo.H"
 #include "AS_BAT_BestOverlapGraph.H"
 #include "AS_BAT_ChunkGraph.H"
+#include "AS_BAT_Logging.H"
+
+#include "AS_BAT_Unitig.H"
+
+#include "AS_BAT_PlaceFragUsingOverlaps.H"
 
 #include "AS_BAT_PopulateUnitig.H"
 #include "AS_BAT_PlaceContains.H"
 
-#include "AS_BAT_Unitig.H"
 
 
 //  estimate read error rate from best overlaps (per library?)

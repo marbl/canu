@@ -39,9 +39,11 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include "AS_BAT_Datatypes.H"
+#include "AS_BAT_FragmentInfo.H"
 #include "AS_BAT_OverlapCache.H"
-#include "AS_BAT_Unitig.H"  //  For sizeof(ufNode)
+#include "AS_BAT_BestOverlapGraph.H"  //  sizeof(BestEdgeOverlap)
+#include "AS_BAT_Unitig.H"            //  sizeof(ufNode)
+#include "AS_BAT_Logging.H"
 
 #include "memoryMappedFile.H"
 
@@ -49,6 +51,8 @@
 #include <sys/sysctl.h>
 
 uint64  ovlCacheMagic = 0x65686361436c766fLLU;  //0102030405060708LLU;
+
+
 
 #ifdef HW_PHYSMEM
 
