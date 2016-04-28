@@ -1,7 +1,5 @@
 # Canu
 
-<img style="float: left; margin: 50px 50px;" align=left src="https://raw.githubusercontent.com/marbl/canu/master/logo.jpg" width="125" />
-
 Canu is a fork of the [Celera Assembler](http://wgs-assembler.sourceforge.net/wiki/index.php?title=Main_Page), designed for high-noise single-molecule sequencing (such as the [PacBio](http://www.pacb.com) [RS II](http://www.pacb.com/products-and-services/pacbio-systems/rsii/) or [Oxford Nanopore](https://www.nanoporetech.com/) [MinION](https://www.nanoporetech.com/products-services/minion-mki)).
 
 Canu is a hierachical assembly pipeline which runs in four steps:
