@@ -12526,3 +12526,4 @@ A src/pipelines/canu/Meryl.pm nihh20151119Sergey Koren
 A src/pipelines/canu/Defaults.pm nihh20151119Sergey Koren
 D src/bogart/AS_BAT_PromoteToSingleton.H bogart/AS_BAT_BreakRepeats.H
 D	src/stores/tgStoreCompress.C	src/stores/tgStore.C
+D src/bogart/AS_BAT_FragmentInfo.H src/bogart/AS_BAT_Datatypes.H
