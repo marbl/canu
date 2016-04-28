@@ -395,7 +395,7 @@ sub overlapErrorAdjustmentConfigure ($$) {
 
     push @bgn, 1;
 
-    for (my $id = 1; $id < $maxID; $id++) {
+    for (my $id = 1; $id <= $maxID; $id++) {
         $reads += 1;
         $bases += $readLengths[$id];
         $olaps += $numOlaps[$id];
@@ -407,7 +407,7 @@ sub overlapErrorAdjustmentConfigure ($$) {
         if ((($maxMem   > 0) && ($memory >= $maxMem * 0.50)) ||    #  Allow 50% slop
             (($maxReads > 0) && ($reads  >= $maxReads))      ||
             (($maxBases > 0) && ($bases  >= $maxBases))      ||
-            (($id == $maxID - 1))) {
+            (($id == $maxID))) {
             push @end, $id;
 
             printf(STDERR "OEA job %3u from read %9u to read %9u - %7.3f GB for %7u reads - %7.3f GB for %9u olaps - %7.3f GB for adjustments\n",
