@@ -686,7 +686,9 @@ main(int argc, char **argv) {
     //  Standard bulk dump of overlaps
     else if (strcmp(argv[arg], "-d") == 0) {
       operation  = OP_DUMP;
-      AS_UTL_decodeRange(argv[++arg], bgnID, endID);
+
+      if ((arg+1 < argc) && (argv[arg+1][0] != '-'))
+        AS_UTL_decodeRange(argv[++arg], bgnID, endID);
     }
 
     //  Dump as a picture
@@ -781,7 +783,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "usage: %s -G gkpStore -O ovlStore ...\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "There are three modes of operation:\n");
-    fprintf(stderr, "  -d a[-b]   dump overlaps for reads a to b, inclusive\n");
+    fprintf(stderr, "  -d [a[-b]] dump overlaps for reads a to b, inclusive\n");
     fprintf(stderr, "  -q a b     report the a,b overlap, if it exists.\n");
     fprintf(stderr, "  -p a       dump a picture of overlaps to fragment 'a'.\n");
     fprintf(stderr, "\n");
