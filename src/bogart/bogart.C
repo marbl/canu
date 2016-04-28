@@ -405,6 +405,7 @@ main (int argc, char * argv []) {
 
   breakSingletonTigs(unitigs);
 
+  reportOverlaps(unitigs, prefix, "buildUnitigs");
   reportUnitigs(unitigs, prefix, "buildUnitigs", genomeSize);
 
   //
@@ -415,6 +416,7 @@ main (int argc, char * argv []) {
 
   //joinUnitigs(unitigs, enableJoining);
 
+  //reportOverlaps(unitigs, prefix, "joining");
   //reportUnitigs(unitigs, prefix, "joining", genomeSize);
 
   //
@@ -430,6 +432,7 @@ main (int argc, char * argv []) {
 
   placeUnplacedUsingAllOverlaps(unitigs, prefix);
 
+  reportOverlaps(unitigs, prefix, "placeContains");
   reportUnitigs(unitigs, prefix, "placeContains", genomeSize);
 #endif
 
@@ -447,6 +450,7 @@ main (int argc, char * argv []) {
              deviationBubble);
              
   //checkUnitigMembership(unitigs);
+  reportOverlaps(unitigs, prefix, "popBubbles");
   reportUnitigs(unitigs, prefix, "popBubbles", genomeSize);
 #endif
 
@@ -462,6 +466,7 @@ main (int argc, char * argv []) {
   markRepeatReads(unitigs, deviationRepeat, confusedAbsolute, confusedPercent);
 
   //checkUnitigMembership(unitigs);
+  reportOverlaps(unitigs, prefix, "markRepeatReads");
   reportUnitigs(unitigs, prefix, "markRepeatReads", genomeSize);
 
   //
@@ -476,6 +481,7 @@ main (int argc, char * argv []) {
     reconstructRepeats(unitigs, erateGraph);
 
     //checkUnitigMembership(unitigs);
+    reportOverlaps(unitigs, prefix, "reconstructRepeats");
     reportUnitigs(unitigs, prefix, "reconstructRepeats", genomeSize);
   }
 #endif
@@ -505,6 +511,7 @@ main (int argc, char * argv []) {
                                lowcovFraction, lowcovDepth);
 
   //checkUnitigMembership(unitigs);
+  reportOverlaps(unitigs, prefix, "final");
   reportUnitigs(unitigs, prefix, "final", genomeSize);
 
   //

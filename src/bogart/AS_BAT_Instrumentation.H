@@ -40,7 +40,7 @@
 
 
 void  checkUnitigMembership(UnitigVector &unitigs);
-void  reportOverlapsUsed(UnitigVector &unitigs, const char *prefix, const char *name);
+void  reportOverlaps(UnitigVector &unitigs, const char *prefix, const char *name);
 void  reportUnitigs(UnitigVector &unitigs, const char *prefix, const char *name, uint64 genomeSize);
 
 void  classifyUnitigsAsUnassembled(UnitigVector &unitigs,
@@ -48,6 +48,5 @@ void  classifyUnitigsAsUnassembled(UnitigVector &unitigs,
                                    uint32        tooShortLength,
                                    double        spanFraction,
                                    double        lowcovFraction,   uint32  lowcovDepth);
-
 
 #endif //  INCLUDE_AS_BAT_INSTRUMENTATION
