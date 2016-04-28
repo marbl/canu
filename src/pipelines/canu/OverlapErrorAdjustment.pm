@@ -391,7 +391,7 @@ sub overlapErrorAdjustmentConfigure ($$) {
     my $olaps    = 0;
 
     my $coverage = getExpectedCoverage($wrk, $asm);
-    my $corrSize = (-s "$path/red.red");
+    my $corrSize = (-s "$path/red.red") / $maxID;
 
     push @bgn, 1;
 
@@ -402,7 +402,13 @@ sub overlapErrorAdjustmentConfigure ($$) {
 
         #  Hacked to attempt to estimate adjustment size better.  Olaps should only require 12 bytes each.
 
-        my $memory = (2 * $bases) + (35 * $olaps) + ($corrSize);
+        my $memory = ((28 * 2097152) +             #  Various arrays of size AS_MAX_READLEN
+                      (32 * $reads) +              #  Read data in the batch
+                      (2  * $bases) +              #  Copy of uncorrected reads and corrected reads
+                      (4  * $bases) +              #  Gross estimate of alignment edit array size
+                      (32 * $olaps) +              #  Loaded overlaps
+                      (2  * $olaps) +              #  Output erates
+                      (8  * $reads * $corrSize));  #  Overestimate of the size of the adjustments needed
 
         if ((($maxMem   > 0) && ($memory >= $maxMem * 0.50)) ||    #  Allow 50% slop
             (($maxReads > 0) && ($reads  >= $maxReads))      ||
@@ -410,11 +416,8 @@ sub overlapErrorAdjustmentConfigure ($$) {
             (($id == $maxID))) {
             push @end, $id;
 
-            printf(STDERR "OEA job %3u from read %9u to read %9u - %7.3f GB for %7u reads - %7.3f GB for %9u olaps - %7.3f GB for adjustments\n",
-                   $nj + 1, $bgn[$nj], $end[$nj],
-                   1 * $bases / 1024 / 1024 / 1024, $reads,
-                   28 * $olaps / 1024 / 1024 / 1024, $olaps,
-                   8 * $bases * getGlobal("utgOvlErrorRate") / 1024 / 1024 / 1024);
+            printf(STDERR "OEA job %3u from read %9u to read %9u - %7.3f GB\n",
+                   $nj + 1, $bgn[$nj], $end[$nj], $memory / 1024 / 1024 / 1024);
 
             $nj++;
 
