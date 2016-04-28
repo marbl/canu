@@ -316,7 +316,7 @@ dumpStore(ovStore *ovlStore,
 
   if (asCounts)
     for (uint32 ii=bgnID; ii<=endID; ii++)
-      fprintf(stdout, "%u\t%u\n", ii + bgnID, counts[ii]);
+      fprintf(stdout, "%u\t%u\n", ii, counts[ii - bgnID]);
 
   delete [] counts;
 
