@@ -644,6 +644,7 @@ sub configureAssembler () {
     ($err, $all) = getAllowedResources("",    "oea",      $err, $all);
     ($err, $all) = getAllowedResources("",    "cns",      $err, $all);
     ($err, $all) = getAllowedResources("",    "ovb",      $err, $all);
+    ($err, $all) = getAllowedResources("",    "ovs",      $err, $all);
     ($err, $all) = getAllowedResources("cor", "ovl",      $err, $all);
     ($err, $all) = getAllowedResources("obt", "ovl",      $err, $all);
     ($err, $all) = getAllowedResources("utg", "ovl",      $err, $all);
