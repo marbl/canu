@@ -87,7 +87,7 @@ correctRead(uint32 curID,
 
     if ((i != C[Cpos].pos) &&
         (i != C[Cpos].pos + 1))
-      fprintf(stderr, "i=%d Cpos=%d C[Cpos].pos=%d\n", i, Cpos, C[Cpos].pos);
+      fprintf(stderr, "i="F_U32" Cpos="F_U64" C[Cpos].pos="F_U32"\n", i, Cpos, C[Cpos].pos);
     assert((i == C[Cpos].pos) ||
            (i == C[Cpos].pos + 1));
 
@@ -239,6 +239,11 @@ Correct_Frags(coParameters *G,
 
   fprintf(stderr, "Correcting "F_U64" bases with "F_U64" indel adjustments.\n", G->basesLen, G->adjustsLen);
 
+  fprintf(stderr, "--Allocate "F_U64" + "F_U64" + "F_U64" MB for bases, adjusts and reads.\n",
+          (sizeof(char) * G->basesLen) >> 20,
+          (sizeof(Adjust_t) * G->adjustsLen) >> 20,
+          (sizeof(Frag_Info_t) * (G->endID - G->bgnID + 1)) >> 20);
+
   G->bases        = new char          [G->basesLen];
   G->adjusts      = new Adjust_t      [G->adjustsLen];
   G->reads        = new Frag_Info_t   [G->endID - G->bgnID + 1];
@@ -276,7 +281,7 @@ Correct_Frags(coParameters *G,
     //  We should be at the IDENT message.
 
     if (C[Cpos].type != IDENT) {
-      fprintf(stderr, "ERROR: didn't find IDENT at Cpos=%u for read %u\n", Cpos, curID);
+      fprintf(stderr, "ERROR: didn't find IDENT at Cpos="F_U64" for read "F_U32"\n", Cpos, curID);
       fprintf(stderr, "       C[Cpos] = keep_left=%u keep_right=%u type=%u pos=%u readID=%u\n",
               C[Cpos].keep_left,
               C[Cpos].keep_right,

@@ -391,7 +391,7 @@ sub overlapErrorAdjustmentConfigure ($$) {
     my $olaps    = 0;
 
     my $coverage = getExpectedCoverage($wrk, $asm);
-    my $corrSize = (-s "$path/red.red") / $maxID;
+    my $corrSize = (-s "$path/red.red");
 
     push @bgn, 1;
 
@@ -402,22 +402,34 @@ sub overlapErrorAdjustmentConfigure ($$) {
 
         #  Hacked to attempt to estimate adjustment size better.  Olaps should only require 12 bytes each.
 
-        my $memory = ((28 * 2097152) +             #  Various arrays of size AS_MAX_READLEN
-                      (32 * $reads) +              #  Read data in the batch
-                      (2  * $bases) +              #  Copy of uncorrected reads and corrected reads
-                      (4  * $bases) +              #  Gross estimate of alignment edit array size
-                      (32 * $olaps) +              #  Loaded overlaps
-                      (2  * $olaps) +              #  Output erates
-                      (8  * $reads * $corrSize));  #  Overestimate of the size of the adjustments needed
+        my $memBases  = (1   * $bases);              #  Corrected reads for this batch
+        my $memAdj1   = (8   * $corrSize) * 0.33;    #  Overestimate of the size of the indel adjustments needed (total size includes mismatches)
+        my $memReads  = (32  * $reads);              #  Read data in the batch
+        my $memOlaps  = (32  * $olaps);              #  Loaded overlaps
+        my $memSeq    = (4   * 2097152);             #  two char arrays of 2*maxReadLen
+        my $memAdj2   = (16  * 2097152);             #  two Adjust_t arrays of maxReadLen
+        my $memWA     = (32  * 1048576);             #  Work area (16mb) and edit array (16mb)
+        my $memMisc   = (256 * 1048576);             #  Work area (16mb) and edit array (16mb) and (192mb) slop
 
-        if ((($maxMem   > 0) && ($memory >= $maxMem * 0.50)) ||    #  Allow 50% slop
+        my $memory = $memBases + $memAdj1 + $memReads + $memOlaps + $memSeq + $memAdj2 + $memWA + $memMisc;
+
+        if ((($maxMem   > 0) && ($memory >= $maxMem * 0.75)) ||
             (($maxReads > 0) && ($reads  >= $maxReads))      ||
             (($maxBases > 0) && ($bases  >= $maxBases))      ||
             (($id == $maxID))) {
             push @end, $id;
 
-            printf(STDERR "OEA job %3u from read %9u to read %9u - %7.3f GB\n",
-                   $nj + 1, $bgn[$nj], $end[$nj], $memory / 1024 / 1024 / 1024);
+            printf(STDERR "OEA job %3u from read %9u to read %9u - %4.1f bases + %4.1f adjusts + %4.1f reads + %4.1f olaps + %4.1f fseq/rseq + %4.1f fadj/radj + %4.1f work + %4.1f misc = %5.1f MB\n",
+                   $nj + 1, $bgn[$nj], $end[$nj],
+                   $memBases / 1024 / 1024,
+                   $memAdj1  / 1024 / 1024,
+                   $memReads / 1024 / 1024,
+                   $memOlaps / 1024 / 1024,
+                   $memSeq   / 1024 / 1024,
+                   $memAdj2  / 1024 / 1024,
+                   $memWA    / 1024 / 1024,
+                   $memMisc  / 1024 / 1024,
+                   $memory   / 1024 / 1024);
 
             $nj++;
 

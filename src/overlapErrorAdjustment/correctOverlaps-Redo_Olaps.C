@@ -290,16 +290,19 @@ Redo_Olaps(coParameters *G, gkStore *gkpStore) {
 
   //  Allocate some temporary work space for the forward and reverse corrected B reads.
 
-  char          *fseq    = new char     [AS_MAX_READLEN + AS_MAX_READLEN];
+  fprintf(stderr, "--Allocate "F_U64" MB for fseq and rseq.\n", (2 * sizeof(char) * 2 * (AS_MAX_READLEN + 1)) >> 20);
+  char          *fseq    = new char     [AS_MAX_READLEN + 1 + AS_MAX_READLEN + 1];
   uint32         fseqLen = 0;
 
-  char          *rseq    = new char     [AS_MAX_READLEN + AS_MAX_READLEN];
+  char          *rseq    = new char     [AS_MAX_READLEN + 1 + AS_MAX_READLEN + 1];
   uint32         rseqLen = 0;
 
-  Adjust_t      *fadj    = new Adjust_t [AS_MAX_READLEN];
-  Adjust_t      *radj    = new Adjust_t [AS_MAX_READLEN];
+  fprintf(stderr, "--Allocate "F_U64" MB for fadj and radj.\n", (2 * sizeof(Adjust_t) * (AS_MAX_READLEN + 1)) >> 20);
+  Adjust_t      *fadj    = new Adjust_t [AS_MAX_READLEN + 1];
+  Adjust_t      *radj    = new Adjust_t [AS_MAX_READLEN + 1];
   uint32         fadjLen  = 0;  //  radj is the same length
 
+  fprintf(stderr, "--Allocate "F_U64" MB for pedWorkArea_t.\n", sizeof(pedWorkArea_t) >> 20);
   gkReadData    *readData = new gkReadData;
   pedWorkArea_t *ped      = new pedWorkArea_t;
 
@@ -323,6 +326,8 @@ Redo_Olaps(coParameters *G, gkStore *gkpStore) {
   //  Process overlaps.  Loop over the B reads, and recompute each overlap.
 
   for (uint32 curID=loBid; curID<=hiBid; curID++) {
+    if (((curID - loBid) % 1024) == 0)
+      fprintf(stderr, "Recomputing overlaps - %9u - %9u - %9u\r", loBid, curID, hiBid);
 
     if (curID < G->olaps[thisOvl].b_iid)
       continue;
@@ -519,6 +524,8 @@ Redo_Olaps(coParameters *G, gkStore *gkpStore) {
     }
   }
 
+  fprintf(stderr, "\n");
+
   delete    ped;
   delete    readData;
   delete [] radj;
@@ -526,6 +533,12 @@ Redo_Olaps(coParameters *G, gkStore *gkpStore) {
   delete [] rseq;
   delete [] fseq;
   delete    Cfile;
+
+  fprintf(stderr, "--  Release bases, adjusts and reads.\n");
+
+  delete [] G->bases;     G->bases   = NULL;
+  delete [] G->adjusts;   G->adjusts = NULL;
+  delete [] G->reads;     G->reads   = NULL;
 
   fprintf(stderr, "Olaps Fwd "F_U64"\n", olapsFwd);
   fprintf(stderr, "Olaps Rev "F_U64"\n", olapsRev);

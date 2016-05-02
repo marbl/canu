@@ -43,6 +43,9 @@ Read_Olaps(coParameters *G, gkStore *gkpStore) {
   fprintf(stderr, "Read_Olaps()--  Loading "F_U64" overlaps from '%s' for reads "F_U32" to "F_U32"\n",
           numolaps, G->ovlStorePath, G->bgnID, G->endID);
 
+  fprintf(stderr, "--Allocate "F_U64" MB for overlaps.\n",
+          (sizeof(Olap_Info_t) * numolaps) >> 20);
+
   G->olaps    = new Olap_Info_t [numolaps];
   G->olapsLen = 0;
 

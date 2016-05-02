@@ -138,7 +138,7 @@ Allocate_More_Edit_Space(pedWorkArea_t *WA) {
     fprintf(stderr, "Allocate_More_Edit_Space()-- ERROR: couldn't allocate enough space for even one more entry!  e=%d\n", e);
   assert(e != b);
 
-  //fprintf(stderr, "WorkArea %d allocates space %d of size %d for array %d through %d\n", WA->thread_id, a, Size, b, e-1);
+  fprintf(stderr, "--Allocate "F_U64" MB for edit array work space %u (positions %u-%u)\n", Size >> 20, a, b, e-1);
 }
 
 

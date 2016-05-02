@@ -200,6 +200,9 @@ main(int argc, char **argv) {
     AS_UTL_safeWrite(fp, &G->endID,    "hiid", sizeof(int32),  1);
     AS_UTL_safeWrite(fp, &G->olapsLen, "num",  sizeof(uint64), 1);
 
+    fprintf(stderr, "--Allocate "F_U64" MB for output error rates.\n",
+            (sizeof(uint16) * G->olapsLen) >> 20);
+
     uint16 *evalue = new uint16 [G->olapsLen];
 
     for (int32 i=0; i<G->olapsLen; i++)
