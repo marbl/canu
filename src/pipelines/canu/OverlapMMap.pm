@@ -322,14 +322,16 @@ sub mmapConfigure ($$$$) {
     print F "if [   -e \"$path/results/\$qry.mmap\" -a \\\n";
     print F "     ! -e \"$path/results/\$qry.ovb.gz\" ] ; then\n";
     print F "  \$bin/mmapConvert \\\n";
-    print F "    -o $path/results/\$qry.mmap.ovb.gz \\\n";
-    print F "    $path/results/\$qry.mmap\n";
+    print F "    -o $path/results/\$qry.mmap.ovb.WORKING.gz \\\n";
+    print F "    $path/results/\$qry.mmap \\\n";
+    print F "  && \\\n";
+    print F "  mv $path/results/\$qry.mmap.ovb.WORKING.gz $path/results/\$qry.mmap.ovb.gz\n";
     print F "fi\n";
 
     print F "\n";
 
+    print F "if [ -e \"$path/results/\$qry.mmap.ovb.gz\" ] ; then\n";
     if (getGlobal("${tag}ReAlign") eq "raw") {
-        print F "if [ -e \"$path/results/\$qry.mmap.ovb.gz\" ] ; then\n";
         print F "  \$bin/overlapPair \\\n";
         print F "    -G $wrk/$asm.gkpStore \\\n";
         print F "    -O $path/results/\$qry.mmap.ovb.gz \\\n";
@@ -340,10 +342,10 @@ sub mmapConfigure ($$$$) {
         print F "    -erate ", getGlobal("utgOvlErrorRate"), " \\\n"  if ($tag eq "utg");
         print F "    -memory " . getGlobal("${tag}mmapMemory") . " \\\n";
         print F "    -t " . getGlobal("${tag}mmapThreads") . " \n";
-        print F "fi\n";
     } else {
         print F "mv -f \"$path/results/\$qry.mmap.ovb.gz\" \"$path/results/\$qry.ovb.gz\"\n";
     }
+    print F "fi\n";
 
     print F "\n";
     print F "\n";
