@@ -602,7 +602,7 @@ sub createOverlapStore ($$$$) {
     my $bytes = 0;
     my $files = 0;
 
-    foreach my $file ("$path/ovljob.files", "$path/mhap.files", "$path/mmap.files", "$path/precompute.files") {
+    foreach my $file ("$path/ovljob.files", "$path/ovljob.more.files", "$path/mhap.files", "$path/mmap.files", "$path/precompute.files") {
         next  if (! -e $file);
 
         open(F, "< $file") or caExit("can't open '$file' for reading: $!\n", undef);

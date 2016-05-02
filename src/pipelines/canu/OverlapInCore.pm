@@ -319,6 +319,7 @@ sub overlapCheck ($$$$) {
     my $currentJobID   = 1;
     my @successJobs;
     my @statsJobs;
+    my @miscJobs;
     my @failedJobs;
     my $failureMessage = "";
 
@@ -329,18 +330,26 @@ sub overlapCheck ($$$$) {
             if      (-e "$path/$1.ovb.gz") {
                 push @successJobs, "$path/$1.ovb.gz\n";   #  Dumped to a file, so include \n
                 push @statsJobs,   "$path/$1.stats";      #  Used here, don't include \n
+                push @miscJobs,    "$path/$1.stats\n";
+                push @miscJobs,    "$path/$1.counts\n";
 
             } elsif (-e "$path/$1.ovb") {
                 push @successJobs, "$path/$1.ovb\n";
                 push @statsJobs,   "$path/$1.stats";
+                push @miscJobs,    "$path/$1.stats\n";
+                push @miscJobs,    "$path/$1.counts\n";
 
             } elsif (-e "$path/$1.ovb.bz2") {
                 push @successJobs, "$path/$1.ovb.bz2\n";
                 push @statsJobs,   "$path/$1.stats";
+                push @miscJobs,    "$path/$1.stats\n";
+                push @miscJobs,    "$path/$1.counts\n";
 
             } elsif (-e "$path/$1.ovb.xz") {
                 push @successJobs, "$path/$1.ovb.xz\n";
                 push @statsJobs,   "$path/$1.stats";
+                push @miscJobs,    "$path/$1.stats\n";
+                push @miscJobs,    "$path/$1.counts\n";
 
             } else {
                 $failureMessage .= "--   job $path/$1 FAILED.\n";
@@ -388,6 +397,10 @@ sub overlapCheck ($$$$) {
 
     open(L, "> $path/ovljob.files") or caExit("can't open '$path/ovljob.files' for writing: $!", undef);
     print L @successJobs;
+    close(L);
+
+    open(L, "> $path/ovljob.more.files") or caExit("can't open '$path/ovljob.more.files' for writing: $!", undef);
+    print L @miscJobs;
     close(L);
 
     reportOverlapStats($wrk, $asm, @statsJobs);

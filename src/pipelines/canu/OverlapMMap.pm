@@ -495,6 +495,7 @@ sub mmapCheck ($$$$) {
     my $currentJobID   = 1;
     my @mmapJobs;
     my @successJobs;
+    my @miscJobs;
     my @failedJobs;
     my $failureMessage = "";
 
@@ -504,18 +505,26 @@ sub mmapCheck ($$$$) {
             if      (-e "$path/results/$1.ovb.gz") {
                 push @mmapJobs,    "$path/results/$1.mmap\n";
                 push @successJobs, "$path/results/$1.ovb.gz\n";
+                push @miscJobs,    "$path/results/$1.stats\n";
+                push @miscJobs,    "$path/results/$1.counts\n";
 
             } elsif (-e "$path/results/$1.ovb") {
                 push @mmapJobs,    "$path/results/$1.mmap\n";
                 push @successJobs, "$path/results/$1.ovb\n";
+                push @miscJobs,    "$path/results/$1.stats\n";
+                push @miscJobs,    "$path/results/$1.counts\n";
 
             } elsif (-e "$path/results/$1.ovb.bz2") {
                 push @mmapJobs,    "$path/results/$1.mmap\n";
                 push @successJobs, "$path/results/$1.ovb.bz2\n";
+                push @miscJobs,    "$path/results/$1.stats\n";
+                push @miscJobs,    "$path/results/$1.counts\n";
 
             } elsif (-e "$path/results/$1.ovb.xz") {
                 push @mmapJobs,    "$path/results/$1.mmap\n";
                 push @successJobs, "$path/results/$1.ovb.xz\n";
+                push @miscJobs,    "$path/results/$1.stats\n";
+                push @miscJobs,    "$path/results/$1.counts\n";
 
             } else {
                 $failureMessage .= "--   job $path/results/$1.ovb FAILED.\n";
@@ -574,6 +583,10 @@ sub mmapCheck ($$$$) {
 
     open(L, "> $path/ovljob.files") or caExit("failed to open '$path/ovljob.files'", undef);
     print L @successJobs;
+    close(L);
+
+    open(L, "> $path/ovljob.more.files") or caExit("failed to open '$path/ovljob.more.files'", undef);
+    print L @miscJobs;
     close(L);
 
     setGlobal("canuIteration", 0);
