@@ -240,7 +240,7 @@ setParametersFromCommandLine(@specOpts);
 if (scalar(@inputFiles) == 0 && ! defined(getGlobal("errorRate"))) {
     my $gkpStore = undef;
     $gkpStore = "$wrk/correction/$asm.gkpStore" if -e "$wrk/correction/$asm.gkpStore/libraries.txt";
-    $gkpStore = "$wrk/trimming/$asm.gkpStore "  if -e "$wrk/trimming/$asm.gkpStore/libraries.txt";
+    $gkpStore = "$wrk/trimming/$asm.gkpStore"   if -e "$wrk/trimming/$asm.gkpStore/libraries.txt";
     $gkpStore = "$wrk/unitigging/$asm.gkpStore" if -e "$wrk/unitigging/$asm.gkpStore/libraries.txt";
 
     # set to the default if we can't find anything
