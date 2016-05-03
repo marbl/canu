@@ -158,24 +158,24 @@ double
 getGlobalArrivalRate(tgStore         *tigStore,
                      FILE            *outSTA,
                      uint64           genomeSize,
-                     bool            useN50) {
-  double   globalRate = 0;
-  double   recalRate  = 0;
+                     bool             useN50) {
+  double   globalRate  = 0;
+  double   recalRate   = 0;
 
-  double   sumRho     = 0;
+  double   sumRho      = 0;
 
-  int32    arLen   = 0;
-  double  *ar      = NULL;
-  uint32   *allRho  = NULL;
+  int32    arLen       = 0;
+  double  *ar          = NULL;
   uint32   NF;
   uint64   totalRandom = 0;
   uint64   totalNF     = 0;
   int32    BIG_SPAN    = 10000;
+
   int32    big_spans_in_unitigs   = 0; // formerly arMax
 
   // Go through all the unitigs to sum rho and unitig arrival frags
 
-  allRho = new uint32 [tigStore->numTigs()];
+  uint32 *allRho = new uint32 [tigStore->numTigs()];
 
   for (uint32 i=0; i<tigStore->numTigs(); i++) {
     tgTig  *tig = tigStore->loadTig(i);
@@ -261,6 +261,8 @@ getGlobalArrivalRate(tgStore         *tigStore,
 
       keepNF     +=  (numRandom == 0) ? (0) : (numRandom - 1);
       keepRho    +=  rho;
+
+      tigStore->unloadTig(i);
     }
 
     fprintf(outSTA, "BASED ON UNITIGS > N50:\n");
@@ -311,7 +313,7 @@ getGlobalArrivalRate(tgStore         *tigStore,
 
     assert(0 < rhoDiv10k);
 
-    for (uint32 i=0; i<rhoDiv10k; i++)
+    for (uint32 aa=0; aa<rhoDiv10k; aa++)
       ar[arLen++] = localArrivalRate;
 
     assert(arLen <= big_spans_in_unitigs);
@@ -358,6 +360,8 @@ getGlobalArrivalRate(tgStore         *tigStore,
     recalRate  = MIN(recalRate, ar[maxDiffIdx]);
 
     globalRate = MAX(globalRate, recalRate);
+
+    tigStore->unloadTig(i);
   }
 
   delete [] ar;
@@ -461,11 +465,7 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  gkStore *gkpStore     = gkStore::gkStore_open(gkpName, gkStore_readOnly);
-  tgStore *tigStore     = new tgStore(tigName, tigVers, tgStoreModify);
-
-  if (endID == 0)
-    endID = tigStore->numTigs();
+  //  Open output files first, so we can fail before getting too far along.
 
   {
     char  outName[FILENAME_MAX];
@@ -485,17 +485,21 @@ main(int argc, char **argv) {
       fprintf(stderr, "Failed to open '%s': %s\n", outName, strerror(errno)), exit(1);
   }
 
-
   //
   //  Load fragment data
   //
 
-  double  globalRate     = 0;
+  fprintf(stderr, "Opening gkpStore '%s'\n", gkpName);
+
+  gkStore *gkpStore = gkStore::gkStore_open(gkpName, gkStore_readOnly);
+
+  fprintf(stderr, "Reading read lengths and randomness for %u reads.\n",
+          gkpStore->gkStore_getNumReads());
 
   isNonRandom = new bool   [gkpStore->gkStore_getNumReads() + 1];
   readLength  = new uint32 [gkpStore->gkStore_getNumReads() + 1];
 
-  for (uint32 ii=0; ii<gkpStore->gkStore_getNumReads(); ii++) {
+  for (uint32 ii=0; ii<=gkpStore->gkStore_getNumReads(); ii++) {
     gkRead      *read = gkpStore->gkStore_getRead(ii);
     gkLibrary   *libr = gkpStore->gkStore_getLibrary(read->gkRead_libraryID());
 
@@ -503,11 +507,29 @@ main(int argc, char **argv) {
     readLength[ii]  = read->gkRead_sequenceLength();
   }
 
+  fprintf(stderr, "Closing gkpStore.\n");
+
+  gkpStore->gkStore_close();
+  gkpStore = NULL;
+
+  //
+  //  Open tigs.  Kind of important to do this.
+  //
+
+  fprintf(stderr, "Opening tigStore '%s'\n", tigName);
+
+  tgStore *tigStore     = new tgStore(tigName, tigVers, tgStoreModify);
+
+  if (endID == 0)
+    endID = tigStore->numTigs();
+
   //
   //  Compute global arrival rate.  This ain't cheap.
   //
 
-  globalRate = getGlobalArrivalRate(tigStore, outSTA, genomeSize, use_N50);
+  fprintf(stderr, "Computing global arrival rate.\n");
+
+  double  globalRate = getGlobalArrivalRate(tigStore, outSTA, genomeSize, use_N50);
 
   //
   //  Compute coverage stat for each unitig, populate histograms, write logging.
@@ -524,6 +546,8 @@ main(int argc, char **argv) {
   //  was incorrect, causing too many non-unique unitigs.
   //
   //  They were removed 13 Aug 2015.
+
+  fprintf(stderr, "Computing coverage stat for tigs %u-%u.\n", bgnID, endID-1);
 
   for (uint32 i=bgnID; i<endID; i++) {
     tgTig  *tig = tigStore->loadTig(i);
@@ -570,6 +594,8 @@ main(int argc, char **argv) {
 
     if (doUpdate)
       tigStore->setCoverageStat(tig->tigID(), covStat);
+
+    tigStore->unloadTig(tig->tigID());
   }
 
 
@@ -577,8 +603,6 @@ main(int argc, char **argv) {
 
   delete [] isNonRandom;
   delete [] readLength;
-
-  gkpStore->gkStore_close();
 
   delete tigStore;
 
