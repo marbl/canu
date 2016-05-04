@@ -188,6 +188,8 @@ getGlobalArrivalRate(tgStore         *tigStore,
     double rho       = computeRho(tig);
     int32  numRandom = numRandomFragments(tig);
 
+    tigStore->unloadTig(i);
+
     sumRho                 += rho;
     big_spans_in_unitigs   += (int32) (rho / BIG_SPAN);  // Keep integral portion of fraction.
     totalRandom            += numRandom;
