@@ -404,6 +404,8 @@ popBubbles(UnitigVector &unitigs,
       for (uint32 pp=0; pp<placed[readID].size(); pp++) {
         uint32  tid = placed[readID][pp].tigID;
 
+        assert(placed[readID][pp].frgID > 0);
+
         uint32  bgn = (placed[readID][pp].position.bgn < placed[readID][pp].position.end) ? placed[readID][pp].position.bgn : placed[readID][pp].position.end;
         uint32  end = (placed[readID][pp].position.bgn < placed[readID][pp].position.end) ? placed[readID][pp].position.end : placed[readID][pp].position.bgn;
 
@@ -526,7 +528,7 @@ popBubbles(UnitigVector &unitigs,
 
       //  Get rid of any now-empty entries.
 
-      for (uint32 aa=0; aa<t->placed.size(); aa++) {
+      for (uint32 aa=t->placed.size(); aa--; ) {
         if (t->placed[aa].frgID == 0) {
           t->placed[aa] = t->placed.back();
           t->placed.pop_back();
@@ -548,8 +550,17 @@ popBubbles(UnitigVector &unitigs,
     for (uint32 tt=0; tt<targets.size(); tt++) {
       tgtReads.clear();
 
-      for (uint32 op=0; op<targets[tt]->placed.size(); op++)
+      for (uint32 op=0; op<targets[tt]->placed.size(); op++) {
+        if (logFileFlagSet(LOG_BUBBLE_DETAIL))
+          writeLog("tig %8u length %9u -> target %8u piece %2u position %9u-%9u length %8u - read %7u at %9u-%9u\n",
+                   bubble->id(), bubble->getLength(),
+                   targets[tt]->target->id(), tt, targets[tt]->bgn, targets[tt]->end, targets[tt]->end - targets[tt]->bgn,
+                   targets[tt]->placed[op].frgID,
+                   targets[tt]->placed[op].position.bgn, targets[tt]->placed[op].position.end);
+
+        assert(targets[tt]->placed[op].frgID > 0);
         tgtReads.insert(targets[tt]->placed[op].frgID);
+      }
 
       //  Count the number of consecutive reads from the 5' or 3' end of the bubble that are placed
       //  in the target.
