@@ -214,17 +214,20 @@ BestOverlapGraph::removeLopsidedEdges(void) {
     //  exists, yet no best edge from B exists.
 
     if (isSuspicious(fi) == true) {
+#pragma omp atomic
       nSuspicious++;
       continue;
     }
 
     if (isContained(fi) == true) {
+#pragma omp atomic
       nContained++;
       continue;
     }
 
     if ((this5->fragId() == 0) ||
         (this3->fragId() == 0)) {
+#pragma omp atomic
       nSpur++;
       continue;
     }
@@ -243,6 +246,7 @@ BestOverlapGraph::removeLopsidedEdges(void) {
 
     if ((that5->fragId() == fi) && (that5->frag3p() == false) &&
         (that3->fragId() == fi) && (that3->frag3p() == true)) {
+#pragma omp atomic
       nMutual++;
       continue;
     }
