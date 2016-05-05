@@ -91,23 +91,41 @@ sub mhapConfigure ($$$$) {
 
     #  Mhap parameters - filterThreshold needs to be a string, else it is printed as 5e-06.
 
-    my $numHashes       = 512;
-    my $minNumMatches   = 3;
-    my $threshold       = 0.78;
-    my $ordSketch       = 1536;
-    my $ordSketchMer    = getGlobal("${tag}MhapOrderedMerSize");
+    my ($numHashes, $minNumMatches, $threshold, $ordSketch, $ordSketchMer);
 
-    if (getGlobal("${tag}MhapSensitivity") eq "sens" || getGlobal("${tag}MhapSensitivity") eq "high") {
-       $numHashes     =  768;
-       $minNumMatches =    2;
-       $threshold     = 0.73;
-       $ordSketch     = 1536;
-    } elsif (getGlobal("${tag}MhapSensitivity") eq "fast") {
-       $numHashes     =  256;
-       $minNumMatches =    3;
-       $threshold     =    0.8;
-       $ordSketch     = 1000;
-       $ordSketchMer +=    2;
+    if (!defined(getGlobal("${tag}MhapSensitivity"))) {
+        my $cov = getExpectedCoverage($wrk, $asm);
+
+        setGlobal("${tag}MhapSensitivity", "low");                          #  Yup, super inefficient.  The code is
+        setGlobal("${tag}MhapSensitivity", "normal")   if ($cov <  60);     #  compact and clear and runs once.
+        setGlobal("${tag}MhapSensitivity", "high")     if ($cov <= 30);     #  Live with it.
+
+        print STDERR "-- Set ${tag}MhapSensitivity=", getGlobal("${tag}MhapSensitivity"), " based on read coverage of $cov.\n";
+    }
+
+    if      (getGlobal("${tag}MhapSensitivity") eq "low") {
+        $numHashes     =  256;
+        $minNumMatches =    3;
+        $threshold     =    0.80;
+        $ordSketch     = 1000;
+        $ordSketchMer  = getGlobal("${tag}MhapOrderedMerSize") + 2;
+
+    } elsif (getGlobal("${tag}MhapSensitivity") eq "normal") {
+        $numHashes     =  512;
+        $minNumMatches =    3;
+        $threshold     =    0.78;
+        $ordSketch     = 1536;
+        $ordSketchMer  = getGlobal("${tag}MhapOrderedMerSize");
+
+    } elsif (getGlobal("${tag}MhapSensitivity") eq "high") {
+        $numHashes     =  768;
+        $minNumMatches =    2;
+        $threshold     =    0.73;
+        $ordSketch     = 1536;
+        $ordSketchMer  = getGlobal("${tag}MhapOrderedMerSize");
+
+    } else {
+        caFailure("invalid ${tag}MhapSensitivity=" . getGlobal("${tag}MhapSensitivity"), undef);
     }
 
     my $filterThreshold = getGlobal("${tag}MhapFilterThreshold");

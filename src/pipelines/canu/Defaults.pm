@@ -634,8 +634,8 @@ sub setOverlapDefaults ($$$) {
     $global{"${tag}MhapOrderedMerSize"}       = ($tag eq "cor") ? 12 : 22;
     $synops{"${tag}MhapOrderedMerSize"}       = "K-mer size for second-stage filter in mhap";
 
-    $global{"${tag}MhapSensitivity"}          = "normal";
-    $synops{"${tag}MhapSensitivity"}          = "Coarse sensitivity level: 'normal' or 'high'; default 'normal'";
+    $global{"${tag}MhapSensitivity"}          = undef;
+    $synops{"${tag}MhapSensitivity"}          = "Coarse sensitivity level: 'low', 'normal' or 'high'.  Usually set automatically based on coverage; 'high' <= 30x < 'normal' < 60x <= 'low'";
 
     $global{"${tag}MMapBlockSize"}            = 6000;
     $synops{"${tag}MMapBlockSize"}            = "Number of reads per 1GB; memory * blockSize = the size of  block loaded into memory per job";
@@ -929,8 +929,8 @@ sub setDefaults () {
     $global{"corOutCoverage"}              = 40;
     $synops{"corOutCoverage"}              = "Only correct the longest reads up to this coverage; default 40";
 
-    $global{"corMinCoverage"}              = 4;
-    $synops{"corMinCoverage"}              = "Minimum number of bases supporting each corrected base, if less than this sequences are split; default 4";
+    $global{"corMinCoverage"}              = undef;
+    $synops{"corMinCoverage"}              = "Minimum number of bases supporting each corrected base, if less than this sequences are split; default based on input read coverage: 0 <= 30x < 4 < 60x <= 4";
 
     $global{"corFilter"}                   = "expensive";
     $synops{"corFilter"}                   = "Method to filter short reads from correction; 'quick' or 'expensive'; default 'expensive'";
@@ -1025,6 +1025,19 @@ sub checkParameters () {
             (getGlobal("${tag}Overlapper") ne "ovl")  &&
             (getGlobal("${tag}Overlapper") ne "minimap")) {
             addCommandLineError("ERROR:  Invalid '${tag}Overlapper' specified (" . getGlobal("${tag}Overlapper") . "); must be 'mhap', 'ovl', or 'minimap'\n");
+        }
+    }
+
+    foreach my $tag ("cor", "obt", "utg") {
+        if (getGlobal("${tag}MhapSensitivity") eq "fast") {
+            print STDERR "WARNING: deprecated ${tag}NhapSensitivity=fast replaced with ${tag}MhapSensitivity=low\n";
+        }
+
+        if ((getGlobal("${tag}MhapSensitivity") ne undef)    &&
+            (getGlobal("${tag}MhapSensitivity") ne "low")    &&
+            (getGlobal("${tag}MhapSensitivity") ne "normal") &&
+            (getGlobal("${tag}MhapSensitivity") ne "high")) {
+            addCommandLineError("ERROR:  Invalid '${tag}MhapSensitivity' specified (" . getGlobal("${tag}MhapSensitivity") . "); must be 'fast' or 'normal' or 'high'\n");
         }
     }
 

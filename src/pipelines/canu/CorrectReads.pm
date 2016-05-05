@@ -776,6 +776,18 @@ sub buildCorrectionLayouts ($$) {
         caFailure("unknown corFilter '" . getGlobal("corFilter") . "'", undef);
     }
 
+    #  Set the minimum coverage for a corrected read based on coverage in input reads.
+
+    if (!defined(getGlobal("corMinCoverage"))) {
+        my $cov = getExpectedCoverage($wrk, $asm);
+
+        setGlobal("corMinCoverage", 4);
+        setGlobal("corMinCoverage", 4)   if ($cov <  60);
+        setGlobal("corMinCoverage", 0)   if ($cov <= 30);
+
+        print STDERR "-- Set corMinCoverage=", getGlobal("corMinCoverage"), " based on read coverage of $cov.\n";
+    }
+
     caExit("failed to create list of reads to correct", undef)  if (! -e "$path/$asm.readsToCorrect");
 
     buildCorrectionLayouts_direct($wrk, $asm)      if (getGlobal("corConsensus") eq "utgcns");
