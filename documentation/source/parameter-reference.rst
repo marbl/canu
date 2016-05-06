@@ -4,8 +4,11 @@
 Canu Parameter Reference
 ========================
 
-**WARNING**:  The default values aren't correct.
+To get the most up-to-date options, run
 
+   canu -options
+
+The default values below will vary based on the input data type and genome size.
 
 .. _genomeSize:
 
@@ -15,10 +18,10 @@ Global Options
 The catch all category.
 
 errorRate <float=0.01>
-  The expected error rate, as fraction error, in the corrected reads.
+  The expected error rate, as fraction error, in the corrected reads, set by default based on data type, typically not changed by the user.
 
 genomeSize <float=unset>
-  An estimate of the size of the genome.  Common suffices are allowed, for example, 3.7m or 2.8g.
+  An estimate of the size of the genome.  Common suffices are allowed, for example, 3.7m or 2.8g. Required.
 
 canuIteration <internal parameter, do not use>
   Which parallel iteration is being attempted.
@@ -264,41 +267,6 @@ useGrid <boolean=true>
 
   Note that the host used to run canu for 'remote' execution must know about the grid, that is, it must be able to submit jobs to the grid.
 
-useGridBAT <boolean=true>
-  Use grid engine for unitig construction
-useGridCNS <boolean=true>
-  Use grid engine for unitig consensus computes
-useGridCOR <boolean=true>
-  Use grid engine for read correction computes
-useGridMERYL <boolean=true>
-  Use grid engine for read correction computes
-useGridCORMHAP <boolean=true>
-  Use grid engine for mhap overlaps for correction computes
-useGridCORMMAP <boolean=true>
-  Use grid engine for minimap overlaps for correction computes
-useGridCOROVL <boolean=true>
-  Use grid engine for overlaps for correction computes
-useGridOBTMHAP <boolean=true>
-  Use grid engine for mhap overlaps for trimming computes
-useGridOBTMMAP <boolean=true>
-  Use grid engine for minimap overlaps for trimming computes
-useGridOBTOVL <boolean=true>
-  Use grid engine for overlaps for trimming computes
-useGridOEA <boolean=true>
-  Use grid engine for overlap error adjustment computes
-useGridOVB <boolean=true>
-  Use grid engine for overlap store bucketizing computes
-useGridOVS <boolean=true>
-  Use grid engine for overlap store sorting computes
-useGridRED <boolean=true>
-  Use grid engine for read error detection computes
-useGridUTGMHAP <boolean=true>
-  Use grid engine for mhap overlaps for unitig construction computes
-useGridUTGMMAP <boolean=true>
-  Use grid engine for minimap overlaps for unitig construction computes
-useGridUTGOVL <boolean=true>
-  Use grid engine for overlaps for unitig construction computes
-
 There are many options for configuring a new grid ('gridEngine*') and for configuring how canu
 configures its computes to run under grid control ('gridOptions*').  The grid engine to use is
 specified with the 'gridEngine' option.
@@ -366,7 +334,7 @@ gridOptionsCNS <string=unset>
   Grid submission command options applied to unitig consensus jobs
 gridOptionsCOR <string=unset>
   Grid submission command options applied to read correction jobs
-gridOptionsMaster <string=unset>
+gridOptionsExecutive <string=unset>
   Grid submission command options applied to master script jobs
 gridOptionsOEA <string=unset>
   Grid submission command options applied to overlap error adjustment jobs
@@ -506,25 +474,6 @@ unitigger <string="bogart">
 batOptions <unset>
   Advanced options to bogart
 
-utgBubbleErrorRate <float=unset>
-  Overlaps at or below this error rate are used to construct unitigs.  For the bogart algorithm.
-utgGraphErrorRate <float=unset>
-  Overlaps at or below this error rate are used to construct unitigs.  For the bogart algorithm.
-utgMergeErrorRate <float=unset>
-  Overlaps at or below this error rate are used to construct unitigs.  For the bogart algorithm.
-utgRepeatErrorRate <float=unset>
-  Overlaps at or below this error rate are used to construct unitigs.  For the bogart algorithm.
-
-
-Unitig labeling
-------------------
-
-maxSingleReadSpan
-lowCoverageDepth
-lowCoverageAllowed
-minReadsUnique
-maxRepeatLength
-
 Consensus Partitioning
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -548,6 +497,18 @@ cnsErrorRate
 
 Read Correction
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The first step in Canu is to find high-error overlaps and generate corrected sequences for subsequent assembly. This is currently the fastest step in Canu. By default, only the longest 40X of data (based on the specified genome size) is used for correction. Typically, some reads are trimmed during correction due to being chimeric or having erroneous sequence, resulting in a loss of 20-25% (30X output). You can force correction to be non-lossy by setting 
+
+   corMinCoverage=0
+
+In which case the corrected reads output will be the same length as the input data, keeping any high-error unsupported bases. Canu will trim these in downstream steps before assembly.
+
+If you have a dataset with uneven coverage or small plasmids, correcting the longest 40X may not give you sufficient coverage of your genome/plasmid. In these cases, you can set 
+
+   corOutCoverage=400
+
+Or any large value greater than your total input coverage which will correct and assemble all input data, at the expense of runtime.
 
 corConsensus <string="falconpipe">
   Which algorithm to use for computing read consensus sequences.  Only 'falcon' and 'falconpipe' are supported.
@@ -581,19 +542,26 @@ falconSense
 Output Filtering
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-lowCoverageAllowed <unset>
-  Unitigs with more than fraction lowCoverageAllowed bases at depth at most lowCoverageDepth bases are never labeled unique
-lowCoverageDepth <unset>
-  Unitigs with more than fraction lowCoverageAllowed bases at depth at most lowCoverageDepth bases are never labeled unique
-maxRepeatLength <unset>
-  Unitigs longer than this are always labeled unique
-maxSingleReadSpan <unset>
-  Unitigs with a single read spanning more than this fraction of the unitig are never labeled unique
-minOverlapLength <unset>
-  Overlaps shorter than this length are not computed
-minReadLength <unset>
-  Reads shorter than this length are not loaded into the assembler
-minReadsUnique <unset>
-  Unitigs with fewer reads that this are never labeled unique
-minUniqueLength <unset>
-  Unitigs shorter than this are always labeled non-unique
+By default, canu will split the final output into three files:
+
+asm.contigs.fasta
+   Everything which could be assembled and is part of the primary assembly, including both unique and repetitive elements.  Each contig has several flags included on the fasta def line::
+
+asm.bubbles.fasta
+   alternate paths in the graph which could not be merged into the primary assembly.
+
+asm.unassembled.fasta
+   reads/tigs which could not be incorporated into the primary or bubble assemblies.
+
+It is possible for ttigs comprised of multiple reads to end up in asm.unassembled.fasta. The default filtering eliminates anything with < 2 reads, shorter than 1000bp, or comprised of mostly a single sequence (>75%). The filtering is controlled by the contigFilter parameter which takes 5 values.
+
+contigFilter
+  minReads
+  minLength
+  singleReadSpan
+  lowCovSpan
+  lowCovDepth
+
+The default filtering is "2 1000 0.75 0.75 2". If you are assembling amplified data or viral data, it is possible your assembly will be flagged as unassembled. In those cases, you can turn off the filtering with the parameters
+
+   contigFilter="2 1000 1.0 1.0 2"
