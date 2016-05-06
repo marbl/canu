@@ -553,7 +553,7 @@ asm.bubbles.fasta
 asm.unassembled.fasta
    reads/tigs which could not be incorporated into the primary or bubble assemblies.
 
-It is possible for ttigs comprised of multiple reads to end up in asm.unassembled.fasta. The default filtering eliminates anything with < 2 reads, shorter than 1000bp, or comprised of mostly a single sequence (>75%). The filtering is controlled by the contigFilter parameter which takes 5 values.
+It is possible for tigs comprised of multiple reads to end up in asm.unassembled.fasta. The default filtering eliminates anything with < 2 reads, shorter than 1000bp, or comprised of mostly a single sequence (>75%). The filtering is controlled by the contigFilter parameter which takes 5 values.
 
 contigFilter
   minReads

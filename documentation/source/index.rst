@@ -47,7 +47,7 @@ the PacBio RSII or Oxford Nanopore MinION). You can `download <http://github.com
 any issues, please report them using the `github issues <http://github.com/marbl/canu/issues>`_ page.
 
 *  :ref:`Quick Start               <quickstart>` - no experience or data required, download and assemble *Escherichia coli* today!
-*  :ref:`FAQ                       <faq>` - Frequently asked questions.
+*  :ref:`FAQ                       <faq>` - Frequently asked questions
 *  :ref:`Canu tutorial             <tutorial>`   - a gentle introduction to the complexities of canu.
 *  :ref:`Canu pipeline             <pipeline>`   - what, exactly, is canu doing, anyway?
 
