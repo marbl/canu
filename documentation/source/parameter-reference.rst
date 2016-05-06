@@ -500,11 +500,15 @@ Read Correction
 
 The first step in Canu is to find high-error overlaps and generate corrected sequences for subsequent assembly. This is currently the fastest step in Canu. By default, only the longest 40X of data (based on the specified genome size) is used for correction. Typically, some reads are trimmed during correction due to being chimeric or having erroneous sequence, resulting in a loss of 20-25% (30X output). You can force correction to be non-lossy by setting 
 
+::
+
    corMinCoverage=0
 
 In which case the corrected reads output will be the same length as the input data, keeping any high-error unsupported bases. Canu will trim these in downstream steps before assembly.
 
 If you have a dataset with uneven coverage or small plasmids, correcting the longest 40X may not give you sufficient coverage of your genome/plasmid. In these cases, you can set 
+
+::
 
    corOutCoverage=400
 
@@ -555,13 +559,17 @@ asm.unassembled.fasta
 
 It is possible for tigs comprised of multiple reads to end up in asm.unassembled.fasta. The default filtering eliminates anything with < 2 reads, shorter than 1000bp, or comprised of mostly a single sequence (>75%). The filtering is controlled by the contigFilter parameter which takes 5 values.
 
-contigFilter
-  minReads
-  minLength
-  singleReadSpan
-  lowCovSpan
-  lowCovDepth
+::
+
+   contigFilter
+     minReads
+     minLength
+     singleReadSpan
+     lowCovSpan
+     lowCovDepth
 
 The default filtering is "2 1000 0.75 0.75 2". If you are assembling amplified data or viral data, it is possible your assembly will be flagged as unassembled. In those cases, you can turn off the filtering with the parameters
+
+::
 
    contigFilter="2 1000 1.0 1.0 2"
