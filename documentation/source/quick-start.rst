@@ -131,19 +131,19 @@ Then, trim the output of the correction::
 And finally, assemble the output of trimming, twice::
 
  canu -assemble \
+   -p ecoli -d ecoli-erate-0.013 \
+   genomeSize=4.8m \
+   errorRate=0.013 \
+   -pacbio-corrected ecoli/trimming/ecoli.trimmedReads.fastq
+
+ canu -assemble \
    -p ecoli -d ecoli-erate-0.025 \
    genomeSize=4.8m \
    errorRate=0.025 \
    -pacbio-corrected ecoli/trimming/ecoli.trimmedReads.fastq
 
- canu -assemble \
-   -p ecoli -d ecoli-erate-0.035 \
-   genomeSize=4.8m \
-   errorRate=0.035 \
-   -pacbio-corrected ecoli/trimming/ecoli.trimmedReads.fastq
-
 The directory layout for correction and trimming is exactly the same as when we ran all tasks in the same command.
-Each unitig construction task needs its own private work space, and in there the 'correction' and 'trimming' directories are empty.
+Each unitig construction task needs its own private work space, and in there the 'correction' and 'trimming' directories are empty. The error rate always specifies the error in the corrected reads which is typically <1% for PacBio data and <2% for Nanopore data (<1% on newest chemistries).
 
 Assembling Oxford Nanopore data
 --------------------------------
@@ -191,7 +191,7 @@ Now you can assemble all the data::
 
 Assembling Low Coverage Datasets
 ----------------------------------
-When you have 30X or less coverage, it helps to adjust the Canu assembly parameters. You can download a 20X subset of `S. cerevisae <http://gembox.cbcb.umd.edu/mhap/raw/yeast_filtered.20x.fastq.gz>`_
+When you have 30X or less coverage, it helps to adjust the Canu assembly parameters. Typically, assembly 20X of single-molecule data outperforms hybrid methods with higher coverage. You can download a 20X subset of `S. cerevisae <http://gembox.cbcb.umd.edu/mhap/raw/yeast_filtered.20x.fastq.gz>`_
  
 or use the following curl command:
 
@@ -199,12 +199,12 @@ or use the following curl command:
 
  curl -L -o yeast.20x.fastq.gz http://gembox.cbcb.umd.edu/mhap/raw/yeast_filtered.20x.fastq.gz
 
-and run the assembler adding sensitive parameters (**corMhapSensitivity=high corMinCoverage=2 errorRate=0.035 minOverlapLength=499 corMaxEvidenceErate=0.3**)::
+and run the assembler adding sensitive parameters (**corMinCoverage=0 errorRate=0.035**)::
 
  canu \
   -p asm -d yeast \
   genomeSize=12.1m \
-  corMhapSensitivity=high corMinCoverage=2 errorRate=0.035 minOverlapLength=499 corMaxEvidenceErate=0.3 \
+  corMinCoverage=0 errorRate=0.035 \
   -pacbio-raw yeast.20x.fastq.gz
   
 
@@ -214,28 +214,37 @@ After the run completes, we can check the assembly statistics::
 
 ::
 
-  lenSuggestRepeat sum     829257 (genomeSize 12100000)
-  lenSuggestRepeat num        105
-  lenSuggestRepeat ave       7897
-  lenUnassembled ng10       12472 bp   lg10      75   sum    1217659 bp
-  lenUnassembled ng20        8623 bp   lg20     192   sum    2420234 bp
-  lenUnassembled ng30        5949 bp   lg30     359   sum    3632595 bp
-  lenUnassembled ng40        2851 bp   lg40     640   sum    4842075 bp
-  lenUnassembled sum    5325150 (genomeSize 12100000)
-  lenUnassembled num        903
-  lenUnassembled ave       5897
-  lenContig ng10      719035 bp   lg10       2   sum    1502223 bp
-  lenContig ng20      646872 bp   lg20       4   sum    2817020 bp
-  lenContig ng30      565419 bp   lg30       6   sum    3949850 bp
-  lenContig ng40      485518 bp   lg40       8   sum    4989743 bp
-  lenContig ng50      329252 bp   lg50      11   sum    6245693 bp
-  lenContig ng60      257910 bp   lg60      15   sum    7358747 bp
-  lenContig ng70      196655 bp   lg70      20   sum    8473224 bp
-  lenContig ng80      119852 bp   lg80      29   sum    9776539 bp
-  lenContig ng90       85266 bp   lg90      40   sum   10892166 bp
-  lenContig sum   11972093 (genomeSize 12100000)
-  lenContig num         66
-  lenContig ave     181395
+   lenSuggestRepeat sum     173426 (genomeSize 12100000)
+   lenSuggestRepeat num         15
+   lenSuggestRepeat ave      11561
+   lenUnassembled ng10       13545 bp   lg10      78   sum    1222796 bp
+   lenUnassembled ng20       11336 bp   lg20     176   sum    2430408 bp
+   lenUnassembled ng30       10036 bp   lg30     289   sum    3637779 bp
+   lenUnassembled ng40        9152 bp   lg40     415   sum    4843129 bp
+   lenUnassembled ng50        8255 bp   lg50     555   sum    6057762 bp
+   lenUnassembled ng60        7394 bp   lg60     710   sum    7262996 bp
+   lenUnassembled ng70        6562 bp   lg70     884   sum    8472421 bp
+   lenUnassembled ng80        5829 bp   lg80    1080   sum    9682480 bp
+   lenUnassembled ng90        5168 bp   lg90    1301   sum   10893017 bp
+   lenUnassembled ng100       4431 bp   lg100   1554   sum   12103066 bp
+   lenUnassembled ng110       3731 bp   lg110   1850   sum   13311653 bp
+   lenUnassembled ng120       2961 bp   lg120   2213   sum   14522021 bp
+   lenUnassembled ng130       2086 bp   lg130   2693   sum   15731230 bp
+  lenUnassembled sum   16861939 (genomeSize 12100000)
+   lenUnassembled num       3442
+   lenUnassembled ave       4898
+   lenContig ng10      770259 bp   lg10       2   sum    1565899 bp
+   lenContig ng20      710332 bp   lg20       4   sum    3000381 bp
+   lenContig ng30      665395 bp   lg30       5   sum    3665776 bp
+   lenContig ng40      610651 bp   lg40       7   sum    4890687 bp
+   lenContig ng50      553073 bp   lg50      10   sum    6577239 bp
+   lenContig ng60      390370 bp   lg60      12   sum    7413097 bp
+   lenContig ng70      237134 bp   lg70      16   sum    8526341 bp
+   lenContig ng80      142632 bp   lg80      23   sum    9773802 bp
+   lenContig ng90       94308 bp   lg90      33   sum   10931633 bp
+   lenContig sum   12045366 (genomeSize 12100000)
+   lenContig num         57
+   lenContig ave     211322
 
 Consensus Accuracy
 -------------------
@@ -246,23 +255,13 @@ If you have Illumina sequences available, `Pilon <http://www.broadinstitute.org/
 Changes
 -------------------
 
-- Support for reads up to 2Mbp in size (up from 130Kbp).
-- Incorporate MHAP 2.0 which is 5X faster than previous version and has higher specificity
-- Add GFA output
-- Improve diploid-aware assembly by categorizing output as primary contigs or unmerged bubbles. Annotate repeat and unique contigs in the output.
-- Enable parallel overlap store construction on large genomes
-- Enable minimap as an option for generating overlaps during correction step. Corrected reads are generated as before with falcon_sense.
-- Fix bug using shorter rather than longer reads for corrected reads/consensus computation
-- Fix bug resuming without providing input sequences which would incorrectly set error rates
-- Fix bug in bogart which would demote contained sequences as spurs incorrectly
-- Fix bugs in falcon_sense which would hang when input had N bases and limit corrected reads to 65Kbp
-- Fix falcon_sense support on OSX <10.10.
-- Fix various pipeline bugs
+- Rewriten bogart algorith, automatically selects error rate and has improved repeat breaking
+- Drop seed length when running MHAP, compute all-vs-all overlaps and select best subest based on overlap coverage
+ Fix various pipeline bugs
 
 Known Issues
 -------------------
 
-- Bogart (unitigger) has false positives in repeat breaking. Currently, the temporary workaround is to increase the minimum overlap size to avoid detecting false repeats caused by short overlaps. Canu will automatically do this for large (>100MB) genomes while the fixed algorithm is tested.
-- LSF support has limited testing
+ LSF support has limited testing
 - Large memory usage while unitig consensus calling on unitigs over 100MB in size (140Mb contig uses approximate 75GB).
-- Distributed file systems (such as GPFS) causes issues with memory mapped files, slowing down parts of Canu, including meryl (0-mercounts) and falcon-sense (2-correction).
+- Distributed file systems (such as GPFS) causes issues with memory mapped files, slowing down parts of Canu, including meryl (0-mercounts), falcon-sense (2-correction), and red (unitigging/3-*).
