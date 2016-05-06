@@ -16,11 +16,8 @@ bogart
   
     -gs        Genome size in bases.
   
-    -RS        Remove edges to spur reads from best overlap graph.
-    -NS        Don't seed promiscuous unitigs with suspicious reads.
-    -CS        Don't place contained reads in singleton unitigs.
-    -RW t      Remove weak overlaps, those in the lower t fraction of erates per overlap end.
     -J         Join promiscuous unitigs using unused best edges.
+  
     -SR        Shatter repeats, don't rebuild.
     -R         Shatter repeats (-SR), then rebuild them
     -RL len    Force reads below 'len' bases to be singletons.
@@ -34,23 +31,14 @@ bogart
                       the following conditions:
   
     When constructing the Best Overlap Graph and Promiscuous Unitigs ('g'raph):
-      -eg 0.020   no more than 0.020 fraction (2.0%) error
-  
-    When popping bubbles ('b'ubbles):
-      -eb 0.045   no more than 0.045 fraction (4.5%) error when bubble popping
-  
-    When merging unitig ends ('m'erging):
-      -em 0.045   no more than 0.045 fraction (4.5%) error when merging unitig ends
-  
-    When detecting repeats ('r'epeats):
-      -er 0.045   no more than 0.045 fraction (4.5%) error when detecting repeats
+      -eg 0.020   no more than 0.020 fraction (2.0%) error   ** DEPRECATED **
   
     When loading overlaps, an inflated maximum (to allow reruns with different error rates):
       -eM 0.05   no more than 0.05 fraction (5.0%) error in any overlap loaded into bogart
                  the maximum used will ALWAYS be at leeast the maximum of the four error rates
   
     For all, the lower limit on overlap length
-      -el 40      no shorter than 40 bases
+      -el 500     no shorter than 40 bases
   
   Overlap Storage
   
@@ -64,19 +52,13 @@ bogart
   
     -D <name>  enable logging/debugging for a specific component.
     -d <name>  disable logging/debugging for a specific component.
-                 overlapQuality
-                 overlapsUsed
+                 overlapScoring
+                 allBestEdges
                  chunkGraph
-                 intersections
-                 populate
-                 intersectionBreaking
-                 intersectionBubbles
-                 intersectionBubblesDebug
-                 intersectionJoining
-                 intersectionJoiningDebug
+                 buildUnitig
+                 placeUnplaced
+                 bubbles
                  splitDiscontinuous
-                 containedPlacement
-                 happiness
                  intermediateUnitigs
                  setParentAndHang
                  stderr

@@ -7,6 +7,7 @@ gatekeeperDumpFASTQ
     -G gkpStore
     -o fastq-prefix     write files fastq-prefix.(libname).fastq, ...
                         if fastq-prefix is '-', all sequences output to stdout
+                        if fastq-prefix ends in .gz, .bz2 or .xz, output is compressed
   
     -l libToDump        output only read in library number libToDump (NOT IMPLEMENTED)
     -r id[-id]          output only the single read 'id', or the specified range of ids
