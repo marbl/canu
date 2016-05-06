@@ -235,17 +235,12 @@ Fraction Error  Percent Error
 ==============  =============
 
 Eventually, we want to have Canu take a single error rate, the error rate of a single input read,
-and derive all other rates from there.  This is the parameter ``errorRate``. Currently, the defaults are 0.025 for PacBio sequences and 0.045 for Oxford Nanpore sequences. When you have low-coverage datasets it helps to lower the error rate by 0.01 and decrease the stringency for creating corrected sequences. See the :ref:`quick_low` section for details.
-
-The error rates are critical for unitig construction, but are also used when generating overlaps,
-and for trimming reads.  Error rates are used in two ways: to limit what overlaps are generated, and to filter overlaps
-before using them.  The former is more a computational shortcut - no need to compute what isn't
-going to be used - while the latter can be critical to a successful assembly.
+and derive all other rates from there.  This is the parameter ``errorRate``. Currently, the defaults are 0.025 for PacBio sequences and 0.05 for Oxford Nanpore sequences. Typically, you should not need to modify this setting. However, the error rate does affect runtime and lowering it can significantly speed up your assembly. Thus, for low coverage datasets (<=30X) we recommend increasing the error rate slightly (by 1%, so errorRate=0.035 or PacBio) and for high-coverage (>=60X) datasets, we recommend decreasing it (by 1%, so errorRate=0.015 for PacBio). 
 
 The following error rates are defined:
 
 errorRate
-  The expected error rate in a single read.  This will set the remaining
+  The expected error rate in a corrected single read.  This will set the remaining
   error rates implicitly.
 
 Recall there are three sets of overlaps generated: one for read correction, one for read trimming,
@@ -271,24 +266,6 @@ Be sure to not confuse ``obtOvlErrorRate`` with ``obtErrorRate``:
 
 obtErrorRate
   Filter overlaps during OBT's read trimming and read splitting.
-
-Unitig construction has four error rates:
-
-utgGraphErrorRate
-  Only overlaps below this rate are used for forming initial 'best-edge' unitigs.
-
-utgBubbleErrorRate
-  A short unitig that aligns (via overlaps, not sequence alignment) to a larger
-  unitig at or below this rate will be merged into the larger unitig.
-
-utgMergeErrorRate
-  After initial unitigs are formed and bubbles are popped, unitigs are merged if there is a
-  'second-best' overlap at or below this error rate.  THIS ALGORITHM IS NOT IMPLEMENTED YET.
-
-utgRepeatErrorRate
-  All non-best overlaps at or below this error rate are used to detect regions in unitigs that
-  potentially span a repeat without sufficiently strong evidence.  These regions are split into
-  multiple unitigs.
 
 In `celera-assembler`_, consensus generation required an overlap.  In canu, this is no longer used,
 but the ``cnsErrorRate`` option still exists.
