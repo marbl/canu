@@ -317,8 +317,6 @@ sub mmapConfigure ($$$$) {
     print F "mv  $path/results/\$qry.mmap.WORKING  $path/results/\$qry.mmap\n";
     print F "\n";
 
-    print F "\n";
-
     print F "if [   -e \"$path/results/\$qry.mmap\" -a \\\n";
     print F "     ! -e \"$path/results/\$qry.ovb.gz\" ] ; then\n";
     print F "  \$bin/mmapConvert \\\n";
@@ -327,8 +325,15 @@ sub mmapConfigure ($$$$) {
     print F "  && \\\n";
     print F "  mv $path/results/\$qry.mmap.ovb.WORKING.gz $path/results/\$qry.mmap.ovb.gz\n";
     print F "fi\n";
-
     print F "\n";
+
+    if (getGlobal('saveOverlaps') eq "0") {
+        print F "if [   -e \"$path/results/\$qry.mmap\" -a \\\n";
+        print F "       -e \"$path/results/\$qry.mmap.ovb.gz\" ] ; then\n";
+        print F "  rm -f $path/results/\$qry.mmap\n";
+        print F "fi\n";
+        print F "\n";
+    }
 
     print F "if [ -e \"$path/results/\$qry.mmap.ovb.gz\" ] ; then\n";
     if (getGlobal("${tag}ReAlign") eq "raw") {
@@ -343,7 +348,7 @@ sub mmapConfigure ($$$$) {
         print F "    -memory " . getGlobal("${tag}mmapMemory") . " \\\n";
         print F "    -t " . getGlobal("${tag}mmapThreads") . " \n";
     } else {
-        print F "mv -f \"$path/results/\$qry.mmap.ovb.gz\" \"$path/results/\$qry.ovb.gz\"\n";
+        print F "  mv -f \"$path/results/\$qry.mmap.ovb.gz\" \"$path/results/\$qry.ovb.gz\"\n";
     }
     print F "fi\n";
 

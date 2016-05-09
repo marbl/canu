@@ -448,7 +448,6 @@ sub mhapConfigure ($$$$) {
     print F "  && \\\n";
     print F "  mv -f $path/results/\$qry.mhap.WORKING $path/results/\$qry.mhap\n";
     print F "fi\n";
-
     print F "\n";
 
     print F "if [   -e \"$path/results/\$qry.mhap\" -a \\\n";
@@ -460,8 +459,15 @@ sub mhapConfigure ($$$$) {
     print F "  && \\\n";
     print F "  mv $path/results/\$qry.mhap.ovb.WORKING.gz $path/results/\$qry.mhap.ovb.gz\n";
     print F "fi\n";
-
     print F "\n";
+
+    if (getGlobal('saveOverlaps') eq "0") {
+        print F "if [   -e \"$path/results/\$qry.mhap\" -a \\\n";
+        print F "       -e \"$path/results/\$qry.mhap.ovb.gz\" ] ; then\n";
+        print F "  rm -f $path/results/\$qry.mhap\n";
+        print F "fi\n";
+        print F "\n";
+    }
 
     print F "if [ -e \"$path/results/\$qry.mhap.ovb.gz\" ] ; then\n";
     if (getGlobal("${tag}ReAlign") eq "raw") {
@@ -476,7 +482,7 @@ sub mhapConfigure ($$$$) {
         print F "    -memory " . getGlobal("${tag}mhapMemory") . " \\\n";
         print F "    -t " . getGlobal("${tag}mhapThreads") . " \n";
     } else {
-        print F "mv -f \"$path/results/\$qry.mhap.ovb.gz\" \"$path/results/\$qry.ovb.gz\"\n";
+        print F "  mv -f \"$path/results/\$qry.mhap.ovb.gz\" \"$path/results/\$qry.ovb.gz\"\n";
     }
     print F "fi\n";
 
