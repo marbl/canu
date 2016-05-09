@@ -133,10 +133,5 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
                        uint32                    fid,
                        vector<overlapPlacement> &placements);
 
-void
-placeFragInBestLocation(UnitigVector   &unitigs,
-                        double          erate,
-                        uint32          fid);
-
 
 #endif  //  INCLUDE_AS_BAT_PLACEFRAGUSINGOVERLAPS
