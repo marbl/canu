@@ -76,6 +76,9 @@ sub createOverlapStoreSequential ($$$$) {
 
     my $memSize = getGlobal("ovsMemory");
 
+    #  The parallel store build will unlimit 'max user processes'.  The sequential method usually
+    #  runs out of open file handles first (meaning it has never run out of processes yet).
+
     $cmd  = "$bin/ovStoreBuild \\\n";
     $cmd .= " -O $wrk/$asm.ovlStore.BUILDING \\\n";
     $cmd .= " -G $wrk/$asm.gkpStore \\\n";
@@ -238,6 +241,18 @@ sub overlapStoreConfigure ($$$$) {
         print F "  rm -rf \"$wrk/$asm.ovlStore.BUILDING/create\$bn\"\n";
         print F "fi\n";
         print F "\n";
+        print F "max=`ulimit -Hu`\n";
+        print F "bef=`ulimit -Su`\n";
+        print F "if [ \$bef -lt \$max ] ; then\n";
+        print F "  ulimit -Su \$max\n";
+        print F "  aft=`ulimit -Su`\n";
+        print F "  echo \"Changed max processes per user from \$bef to \$aft (max \$max).\"\n";
+        print F "  echo \"\"\n";
+        print F "else\n";
+        print F "  echo \"Max processes per user limited to \$bef, no increase possible.\"\n";
+        print F "  echo \"\"\n";
+        print F "fi\n";
+        print F "\n";
         print F getBinDirectoryShellCode();
         print F "\n";
         print F "\$bin/ovStoreBucketizer \\\n";
@@ -265,6 +280,18 @@ sub overlapStoreConfigure ($$$$) {
         print F "if [ x\$jobid = x ]; then\n";
         print F "  echo Error: I need " . getGlobal("gridEngineTaskID") . " set, or a job index on the command line.\n";
         print F "  exit 1\n";
+        print F "fi\n";
+        print F "\n";
+        print F "max=`ulimit -Hu`\n";
+        print F "bef=`ulimit -Su`\n";
+        print F "if [ \$bef -lt \$max ] ; then\n";
+        print F "  ulimit -Su \$max\n";
+        print F "  aft=`ulimit -Su`\n";
+        print F "  echo \"Changed max processes per user from \$bef to \$aft (max \$max).\"\n";
+        print F "  echo \"\"\n";
+        print F "else\n";
+        print F "  echo \"Max processes per user limited to \$bef, no increase possible.\"\n";
+        print F "  echo \"\"\n";
         print F "fi\n";
         print F "\n";
         print F getBinDirectoryShellCode();
