@@ -183,6 +183,7 @@ sub unitig ($$) {
         print F " -gs "             . getGlobal("genomeSize")         . " \\\n";
         print F " -eg "             . getGlobal("utgOvlErrorRate")    . " \\\n";
         print F " -eM "             . getGlobal("utgOvlErrorRate")    . " \\\n";
+        print F " -el "             . $overlapLength                  . " \\\n";
         print F " -dg "             . getGlobal("utgGraphDeviation")  . " \\\n";
         print F " -db "             . getGlobal("utgGraphDeviation")  . " \\\n";
         print F " -dr "             . getGlobal("utgRepeatDeviation") . " \\\n";
@@ -190,9 +191,8 @@ sub unitig ($$) {
         print F " -cp "             . "500"                           . " \\\n";
         print F " -threads "        . getGlobal("batThreads")         . " \\\n"   if (defined(getGlobal("batThreads")));
         print F " -M "              . getGlobal("batMemory")          . " \\\n"   if (defined(getGlobal("batMemory")));
-        print F " "                 . getGlobal("batOptions")         . " \\\n"   if (defined(getGlobal("batOptions")));
         print F " -unassembled "    . getGlobal("contigFilter")       . " \\\n"   if (defined(getGlobal("contigFilter")));
-        print F " -el "             . $overlapLength                  . " \\\n";
+        print F " "                 . getGlobal("batOptions")         . " \\\n"   if (defined(getGlobal("batOptions")));
         print F " > $wrk/4-unitigger/unitigger.err 2>&1 \\\n";
         print F "&& \\\n";
         print F "mv $wrk/$asm.tigStore.WORKING $wrk/$asm.tigStore.FINISHED\n";
