@@ -147,7 +147,6 @@ private:
     _tigID         = 0;
 
     _isUnassembled = false;
-    _isOrphan      = false;
     _isBubble      = false;
     _isRepeat      = false;
     _isCircular    = false;
@@ -276,7 +275,6 @@ public:
   //  not unassembled and not bubble).
 
   uint32         _isUnassembled;  //  Is a single read or a pseudo singleton
-  uint32         _isOrphan;       //  Annotation: popped as a bubble
   uint32         _isBubble;       //  Annotation: from a failed bubble pop
   uint32         _isRepeat;       //  Annotation: from an identified repeat region
   uint32         _isCircular;     //  Annotation: has overlap to self

@@ -364,7 +364,6 @@ popBubbles(UnitigVector &unitigs,
   //  Clear flags.
   for (uint32 ti=0; ti<tiLimit; ti++) {
     if (unitigs[ti]) {
-      unitigs[ti]->_isOrphan = false;
       unitigs[ti]->_isBubble = false;
       unitigs[ti]->_isRepeat = false;
     }
@@ -644,8 +643,6 @@ popBubbles(UnitigVector &unitigs,
     //  Otherwise, it's an orphan, move the reads to the proper place.
 
     writeLog("tig %8u length %8u reads %6u - orphan\n", bubble->id(), bubble->getLength(), bubble->ufpath.size());
-
-    bubble->_isOrphan = true;  //  Useless because we just delete the tig!
 
     for (uint32 op=0, tt=orphanTarget; op<targets[tt]->placed.size(); op++) {
       ufNode  frg;
