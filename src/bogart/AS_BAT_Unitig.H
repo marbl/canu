@@ -63,6 +63,7 @@ public:
   int32  min(void) const         {  return(::min(bgn, end));  };
   int32  max(void) const         {  return(::max(bgn, end));  };
 
+  bool   isForward(void) const   {  return(bgn < end);        };
   bool   isReverse(void) const   {  return(bgn > end);        };
 
   bool   operator==(SeqInterval const that) const {
@@ -117,6 +118,9 @@ public:
   int32            bhang;       //  that fragment
 
   SeqInterval      position;
+
+  bool   isForward(void) const   {  return(position.isForward());  };
+  bool   isReverse(void) const   {  return(position.isReverse());  };
 
   bool  operator<(ufNode const &that) const {
     int32 abgn = (position.bgn < position.end) ? position.bgn : position.end;
