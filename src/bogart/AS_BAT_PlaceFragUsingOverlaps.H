@@ -39,7 +39,8 @@
 #define INCLUDE_AS_BAT_PLACEFRAGUSINGOVERLAPS
 
 #include "AS_BAT_OverlapCache.H"
-#include "AS_BAT_Unitig.H"          //  For SeqInterval
+#include "AS_BAT_BestOverlapGraph.H"  //  For FragmentEnd
+#include "AS_BAT_Unitig.H"            //  For SeqInterval
 #include "AS_BAT_UnitigVector.H"
 
 
