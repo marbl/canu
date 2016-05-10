@@ -333,10 +333,7 @@ BestOverlapGraph::removeSpurs(void) {
 
     //  Exactly one end is missing a best edge.  Bad!
 
-#if 0
     writeLog("BestOverlapGraph()-- frag "F_U32" is a %s spur.\n", fi, (spur5) ? "5'" : "3'");
-#endif
-#warning DISABLED LOGGING
 
     _spur.insert(fi);
   }
