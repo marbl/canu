@@ -282,6 +282,14 @@ public:
   uint32         _isBubble;       //  Annotation: from a failed bubble pop
   uint32         _isRepeat;       //  Annotation: from an identified repeat region
   uint32         _isCircular;     //  Annotation: has overlap to self
+
+  char            type(void) {
+    if (_isUnassembled)  return('U');
+    if (_isBubble)       return('B');
+    if (_isRepeat)       return('R');
+    if (_isCircular)     return('C');
+    return('N');
+  }
 };
 
 
