@@ -117,8 +117,16 @@ public:
   BEndIs3prime(void) const {
     assert(AisContainer() == false);  //  Function is not defined
     assert(AisContained() == false);  //    for containments.
-    return((AEndIs5prime() && (flipped == false)) ||
-           (AEndIs3prime() && (flipped == true)));
+    return((AEndIs5prime() && (flipped == false)) ||   // <===     ------>
+           (AEndIs3prime() && (flipped == true)));     //        ---->
+  };
+
+  bool
+  BEndIs5prime(void) const {
+    assert(AisContainer() == false);  //  Function is not defined
+    assert(AisContained() == false);  //    for containments.
+    return((AEndIs5prime() && (flipped == true)) ||   //          ------>
+           (AEndIs3prime() && (flipped == false)));   // <===          ---->
   };
 
 
