@@ -5,6 +5,14 @@ Canu FAQ
 ========================
 
 **Q**:
+    What resources does Canu require for a bacterial genome assembly? A mammalian assembly?
+
+**A**:
+    Canu is designed to scale resources to the system it runs on. It will report if the a system does not meet the minimum requirements for a given genome size.
+    
+    Typically, a bacterial genome can be assembled in 1-10 cpu hours, depending on coverage (~20 min on 16-cores) and 4GB of ram (8GB is recommended). A mammalian genome (such as human) can be assembled in 10-25K cpu hours, depending on coverage (a grid environment is recommended) and at least one machine with 64GB of ram (128GB is recommended).
+
+**Q**:
     My asm.contigs.fasta is empty, why?
 
 **A**:
