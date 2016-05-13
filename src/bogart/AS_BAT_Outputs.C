@@ -444,23 +444,8 @@ writeUnusedEdges(UnitigVector  &unitigs,
         (tig->_isUnassembled == true))
       continue;
 
-    ufNode  *rd5 = &tig->ufpath.front();
-    ufNode  *rd3 = &tig->ufpath.back();
-
-    //  First read should always have min() == 0, but still search for it.
-    for (uint32 fi=1; (fi < tig->ufpath.size()) && (rd5->position.min() != 0); fi++)
-      rd5 = &tig->ufpath[fi];
-
-    //  Last read might be contained and not max() == length().  Search for the read at the end.
-    for (uint32 fi=tig->ufpath.size()-1; (fi-- > 0) && (rd3->position.max() != tig->getLength()); )
-      rd3 = &tig->ufpath[fi];
-
-    assert(rd5->position.min() == 0);
-    assert(rd3->position.max() == tig->getLength());
-
-    //  Should we save just one, or all reads that touch the border?
-    edgeReads.insert(rd5->ident);
-    edgeReads.insert(rd3->ident);
+    edgeReads.insert(tig->firstRead()->ident);
+    edgeReads.insert(tig->lastRead()->ident);
   }
 #endif
 
@@ -502,17 +487,8 @@ writeUnusedEdges(UnitigVector  &unitigs,
     //  Find the smallest/largest read position - the two reads that are at the end of the tig.
 
 #if 1
-    ufNode  *rd5 = &tig->ufpath.front();
-    ufNode  *rd3 = &tig->ufpath.back();
-
-    for (uint32 fi=1; (fi < tig->ufpath.size()) && (rd5->position.min() != 0); fi++)
-      rd5 = &tig->ufpath[fi];
-
-    for (uint32 fi=tig->ufpath.size()-1; (fi-- > 0) && (rd3->position.max() != tig->getLength()); )
-      rd3 = &tig->ufpath[fi];
-
-    assert(rd5->position.min() == 0);
-    assert(rd3->position.max() == tig->getLength());
+    ufNode  *rd5 = tig->firstRead();
+    ufNode  *rd3 = tig->lastRead();
 #endif
 
     //  Finally, we probably should be finding just the reads touching the ends of the unitig, not the

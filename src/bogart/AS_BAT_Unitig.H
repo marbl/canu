@@ -232,6 +232,33 @@ public:
                                   uint32 bgn, uint32 end,
                                   double erate);
 
+
+  //  Returns the read that is touching the start of the tig.
+  ufNode *firstRead(void) {
+    ufNode  *rd5 = &ufpath.front();
+
+    for (uint32 fi=1; (fi < ufpath.size()) && (rd5->position.min() != 0); fi++)
+      rd5 = &ufpath[fi];
+
+    assert(rd5->position.min() == 0);
+
+    return(rd5);
+  };
+
+
+  //  Returns the read that is touching the end of the tig.
+  ufNode *lastRead(void) {
+    ufNode  *rd3 = &ufpath.back();
+
+    for (uint32 fi=ufpath.size()-1; (fi-- > 0) && (rd3->position.max() != getLength()); )
+      rd3 = &ufpath[fi];
+
+    assert(rd3->position.max() == getLength());
+
+    return(rd3);
+  };
+
+
   static void removeFrag(int32 fid) {
     _inUnitig[fid] = 0;
     _pathPosition[fid] = ~0;
