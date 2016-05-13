@@ -39,11 +39,19 @@
 #define INCLUDE_AS_BAT_OUTPUTS
 
 #include "AS_BAT_Unitig.H"
-#include "tgStore.H"
+#include "AS_BAT_UnitigVector.H"
 
-void unitigToMA(tgTig *tig, uint32 tigid, Unitig *utg);
 
-void writeUnitigsToStore(UnitigVector &unitigs, char *fileprefix, char *tigStorePath, uint32 fragment_count_target, bool isFinal=true);
-void writeOverlapsUsed(UnitigVector &unitigs, char *fileprefix);
+void
+writeUnitigsToStore(UnitigVector  &unitigs,
+                    char          *fileprefix,
+                    char          *tigStorePath,
+                    uint32         frg_count_target,
+                    bool           isFinal);
+
+void
+writeUnusedEdges(UnitigVector  &unitigs,
+                 char          *fileprefix);
+
 
 #endif  //  INCLUDE_AS_BAT_OUTPUTS

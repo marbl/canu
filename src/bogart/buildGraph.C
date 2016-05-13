@@ -46,7 +46,6 @@ public:
   uint32  readID;
   uint32  readBgn;
   uint32  readEnd;
-  uint32  end;
 };
 
 
@@ -61,11 +60,13 @@ public:
   int32    ahang;
   int32    bhang;
   bestRead to;
+
+  bool     flipped;
 };
 
 
 void
-loadEdges(char *edgeName, vector<bestEdge> &edges) {
+loadEdges(char *edgeName, vector<bestEdge> &edges, set<uint32> &vertices) {
 
   errno = 0;
   FILE  *edgeFile = fopen(edgeName, "r");
@@ -79,30 +80,59 @@ loadEdges(char *edgeName, vector<bestEdge> &edges) {
   while (!feof(edgeFile)) {
     splitToWords  W(edgeLine);
     bestEdge      E;
+    uint32        w = 0;
 
-    E.fr.tigID   = W(1);
-    E.fr.tigType = W[2][0];
-    E.fr.readID  = W(4);
-    E.fr.readBgn = W(6);
-    E.fr.readEnd = W(7);
-    E.fr.end     = W[8][0];
+    assert(W[w++][0] == 't');           //  'tig'
+    E.fr.tigID   = W(w++);              //  tigID
+    E.fr.tigType = W[w++][0];           //  tig type 'R', 'N', ...
+    assert(W[w++][0] == 'r');           //  'read'
+    E.fr.readID  = W(w++);              //  readID
+    assert(W[w++][0] == 'a');           //  'at'
+    E.fr.readBgn = W(w++);              //  bgn-position
+    E.fr.readEnd = W(w++);              //  end-position
 
-    E.ahang      = W(10);
-    E.ahang      = W(11);
+    E.ahang      = W(w++);              //  a-hang
+    E.flipped    = (W[w++][0] == '<');  //  '<' if flipped, '>' if normal
+    E.bhang      = W(w++);              //  b-hang
 
-    E.to.tigID   = W(14);
-    E.fr.tigType = W[15][0];
-    E.to.readID  = W(17);
-    E.to.readBgn = W(19);
-    E.to.readEnd = W(20);
-    E.to.end     = W[21][0];
+    assert(W[w++][0] == 't');           //  'tig'
+    E.to.tigID   = W(w++);              //  tigID
+    E.fr.tigType = W[w++][0];           //  tig type
+    assert(W[w++][0] == 'r');           //  'read'
+    E.to.readID  = W(w++);              //  readID
+    assert(W[w++][0] == 'a');           //  'at'
+    E.to.readBgn = W(w++);              //  bgn-position
+    E.to.readEnd = W(w++);              //  end-position
 
     edges.push_back(E);
+
+    vertices.insert(E.fr.tigID);
+    vertices.insert(E.to.tigID);
 
     fgets(edgeLine, 1024, edgeFile);
   }
 
   fprintf(stderr, "Loaded "F_SIZE_T" edges from '%s'.\n", edges.size(), edgeName);
+}
+
+
+
+
+tgPosition *
+findRead(tgTig *tig, uint32 id) {
+  uint32      rr = 0;
+  tgPosition *rd = NULL;
+
+  do {
+    rd = tig->getChild(rr++);
+  } while ((rr < tig->numberOfChildren()) && (rd->ident() != id));
+
+  if (rd->ident() != id) {
+    fprintf(stderr, "WARNING:  failed to find read %u in tig %u - ejected?\n", id, tig->tigID());
+    rd = NULL;
+  }
+
+  return(rd);
 }
 
 
@@ -114,8 +144,7 @@ main(int argc, char **argv) {
   char              *tigName = NULL;
   int32              tigVers = -1;
   char              *edgesName = NULL;
-
-  vector<bestEdge>   edges;
+  char              *graphName = NULL;
 
   argc = AS_configure(argc, argv);
 
@@ -132,6 +161,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-E") == 0) {
       edgesName = argv[++arg];
 
+    } else if (strcmp(argv[arg], "-o") == 0) {
+      graphName = argv[++arg];
+
     } else {
       char *s = new char [1024];
       sprintf(s, "Unknown option '%s'.\n", argv[arg]);
@@ -147,12 +179,16 @@ main(int argc, char **argv) {
     err.push_back("No tigStore store (-T option) supplied.\n");
   if (edgesName == NULL)
     err.push_back("No edges file (-E option) supplied.\n");
+  if (graphName == NULL)
+    err.push_back("No output graph file (-o option) supplied.\n");
 
   if (err.size() > 0) {
     fprintf(stderr, "usage: %s -G gkpStore -T tigStore tigVersion -E edgesFile ...\n", argv[0]);
     fprintf(stderr, "  -G gkpStore           path to gkpStore\n");
     fprintf(stderr, "  -T tigStore version   path to tigStore\n");
-    fprintf(stderr, "  -E edgeFile           path to bogart used-best-edges file\n");
+    fprintf(stderr, "  -E edgeFile           path to bogart unused-edges file\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -o graph.gfa          write to 'graph.gfa'\n");
     fprintf(stderr, "\n");
 
     for (uint32 ii=0; ii<err.size(); ii++)
@@ -162,180 +198,204 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  gkStore  *gkpStore = gkStore::gkStore_open(gkpName);
-  tgStore  *tigStore = new tgStore(tigName, tigVers);
+  //  Open output.
 
+  errno = 0;
+  FILE               *graph = fopen(graphName, "w");
+  if (errno)
+    fprintf(stderr, "Failed to open output graph '%s': %s\n", graphName, strerror(errno)), exit(1);
 
-  fprintf(stdout, "H\tVN:Z:bogart\n");
+  //  Open inputs, load the graph.
+
+  gkStore            *gkpStore = gkStore::gkStore_open(gkpName);
+  tgStore            *tigStore = new tgStore(tigName, tigVers);
+
+  vector<bestEdge>    edges;
+  set<uint32>         vertices;
+
+  loadEdges(edgesName, edges, vertices);
+
+  //  Dump vertcies.
+
+  fprintf(graph, "H\tVN:Z:canu\n");
 
   for (uint32 tt=0; tt<tigStore->numTigs(); tt++) {
     tgTig  *tig = tigStore->loadTig(tt);
 
-    fprintf(stdout, "S\ttig%08u\t*\tLN:i:%u\tRC:i:%u\n", tig->tigID(), tig->length(), tig->numberOfChildren());
+    if (vertices.count(tig->tigID()) > 0)
+      fprintf(graph, "S\ttig%08u\t*\tLN:i:%u\tRC:i:%u\n", tig->tigID(), tig->length(), tig->numberOfChildren());
 
     tigStore->unloadTig(tt, true);
   }
 
+  //  Dump graph.
 
-
-  loadEdges(edgesName, edges);
-
-  uint32      edgeTypes[4][4] = {0};
   char       *cigar = new char [1024 * 1024];
+
+  uint32      nEdgesUnassembled = 0;
 
   for (uint32 ee=0; ee<edges.size(); ee++) {
 
     //  Get the tigs for this edge, ignore if either is unassembled.
 
-    tgTig  *frTig = tigStore->loadTig(edges[ee].fr.tigID);
-    tgTig  *toTig = tigStore->loadTig(edges[ee].to.tigID);
+    tgTig  *frTig   = tigStore->loadTig(edges[ee].fr.tigID);
+    uint32  frTigID = frTig->tigID();
+
+    tgTig  *toTig   = tigStore->loadTig(edges[ee].to.tigID);
+    uint32  toTigID = toTig->tigID();
 
     assert(frTig->_class != tgTig_noclass);
     assert(toTig->_class != tgTig_noclass);
 
     if ((frTig->_class == tgTig_unassembled) ||
         (toTig->_class == tgTig_unassembled)) {
-#if 0
-      fprintf(stderr, "SKIPPING edge %d -- fr tig %d read %d -- to tig %d read %d\n",
-              ee,
-              edges[ee].fr.tigID, edges[ee].fr.readID,
-              edges[ee].to.tigID, edges[ee].to.readID);
-#endif
+      nEdgesUnassembled++;
       continue;
     }
 
     //  Find the reads we're using to anchor the tigs together.
 
-#if 0
-    fprintf(stderr, "SEARCHING edge %d -- fr tig %d read %d -- to tig %d read %d\n",
-            ee,
-            frTig->tigID(), edges[ee].fr.readID,
-            toTig->tigID(), edges[ee].to.readID);
-#endif
+    tgPosition  *frRead = findRead(frTig, edges[ee].fr.readID);
+    tgPosition  *toRead = findRead(toTig, edges[ee].to.readID);
 
-    tgPosition  *frRead = NULL;
-    tgPosition  *toRead = NULL;
-    uint32       rr;
-
-    rr = 0;
-    do {
-      frRead = frTig->getChild(rr++);
-    } while ((rr < frTig->numberOfChildren()) && (frRead->ident() != edges[ee].fr.readID));
-
-    rr = 0;
-    do {
-      toRead = toTig->getChild(rr++);
-    } while ((rr < toTig->numberOfChildren()) && (toRead->ident() != edges[ee].to.readID));
-
-
-    if (frRead->ident() != edges[ee].fr.readID)
-      fprintf(stderr, "WARNING:  failed to find read %u in tig %u - ejected?\n",
-              edges[ee].fr.readID, edges[ee].fr.tigID);
-    if (toRead->ident() != edges[ee].to.readID)
-      fprintf(stderr, "WARNING:  failed to find read %u in tig %u - ejected?\n",
-              edges[ee].to.readID, edges[ee].to.tigID);
-
-    if (frRead->ident() != edges[ee].fr.readID)
-      continue;
-    if (toRead->ident() != edges[ee].to.readID)
+    if ((frRead == NULL) ||
+        (toRead == NULL))
       continue;
 
-    fprintf(stderr, "WORKING -- fr tig %d read %d -- to tig %d read %d\n",
-            frTig->tigID(), frRead->ident(),
-            toTig->tigID(), toRead->ident());
+    //  Map coordinates from gapped to ungapped.
 
-    //  Decide orientations
+    uint32  frReadMin = frTig->mapGappedToUngapped(frRead->min());
+    uint32  frReadMax = frTig->mapGappedToUngapped(frRead->max());
+    uint32  frLen     = frTig->length(false);
 
-    bool  frForward = frRead->isForward();
-    bool  toForward = toRead->isForward();
+    uint32  toReadMin = toTig->mapGappedToUngapped(toRead->min());
+    uint32  toReadMax = toTig->mapGappedToUngapped(toRead->max());
+    uint32  toLen     = toTig->length(false);
 
-    int32  frBgn = frTig->mapGappedToUngapped(frRead->bgn());
-    int32  frEnd = frTig->mapGappedToUngapped(frRead->end());
+    //
+    //  Convert from a read-read overlap to a tig-tig overlap.
+    //
 
-    int32  toBgn = toTig->mapGappedToUngapped(toRead->bgn());
-    int32  toEnd = toTig->mapGappedToUngapped(toRead->end());
+    //  Orient tigs based oin the read orientation.
+    //    For 'fr', we require that the read always be forward.
+    //    For 'to', the overlap dictates the orientation.
 
-    //  Normalize to forward/forward.
+    bool  frTigFwd = frRead->isForward();  //  Tig forward if read forward.
+    bool  toTigFwd = toRead->isForward();  //  Same, unless...
 
-    if (frForward) {
-      frBgn = frTig->length(false) - frBgn;
-      frEnd = frTig->length(false) - frEnd;
+    if (edges[ee].flipped == true)         //  ...edge is flipped, so flip
+      toTigFwd = !toTigFwd;                //  'to' tig.
+
+    //  Cleanup.  Makes skipping an edge much easier.
+
+    tigStore->unloadTig(frTigID, true);  frRead = NULL;
+    tigStore->unloadTig(toTigID, true);  toRead = NULL;
+
+    //  Based on tig orientation, find the bgn and end lengths from each read.
+
+    int32   frBgn = (frTigFwd) ? (        frReadMin) : (frLen - frReadMax);
+    int32   frEnd = (frTigFwd) ? (frLen - frReadMax) : (        frReadMin);
+
+    int32   toBgn = (toTigFwd) ? (        toReadMin) : (toLen - toReadMax);
+    int32   toEnd = (toTigFwd) ? (toLen - toReadMax) : (        toReadMin);
+
+    //fprintf(graph, "hangs0- fr %d-%d to %d-%d ahang %d bhang %d\n",
+    //        frBgn, frEnd, toBgn, toEnd, edges[ee].ahang, edges[ee].bhang);
+
+    //  Apply the overlap hangs to find the overlapping regions on the tigs.
+
+    if (edges[ee].ahang < 0)
+      toBgn += -edges[ee].ahang;
+    else
+      frBgn +=  edges[ee].ahang;
+
+    if (edges[ee].bhang < 0)
+      frEnd += -edges[ee].bhang;
+    else
+      toEnd +=  edges[ee].bhang;
+
+    //fprintf(graph, "hangs1- fr %d-%d to %d-%d\n",
+    //        frBgn, frEnd, toBgn, toEnd);
+
+    //  The overlap is now between regions toBgn-toEnd and frBgn-frEnd.  Extend this to cover the ends of each tig.
+    //
+    //     ------------------------------------------
+    //                           +++ ||| olap ||| +++
+    //                           -------------------------------
+
+    if (toBgn < frBgn) {
+      toBgn -= toBgn;
+      frBgn -= toBgn;
+    } else {
+      toBgn -= frBgn;
+      frBgn -= frBgn;
     }
 
-    if (toForward) {
-      toBgn = toTig->length(false) - toBgn;
-      toEnd = toTig->length(false) - toEnd;
+    if (toEnd < frEnd) {
+      toEnd -= toEnd;
+      frEnd -= toEnd;
+    } else {
+      toEnd -= frEnd;
+      frEnd -= frEnd;
     }
 
-    //  Compute an offset based on the read-to-read overlap.
+    //fprintf(graph, "hangs2- fr %d-%d to %d-%d\n",
+    //        frBgn, frEnd, toBgn, toEnd);
 
-    int32  alignOffset = 0;
+    //  Compute the alignment between the two regions, and convert to a cigar string.
 
-    //  Figure out the hangs of each tig.
+    frLen -= (frBgn + frEnd);
+    toLen -= (toBgn + toEnd);
 
-    int32    fr5 = frBgn - 0;
-    int32    fr3 = frTig->length(false) - frEnd;
+    sprintf(cigar, "%dM", (frLen + toLen) / 2);    //  Used to be 'm', Bandage complained about it not being 'M'.
 
-    int32    to5 = toBgn - 0;
-    int32    to3 = toTig->length(false) - toEnd;
+    //  The overlap should now have one of:
+    //     frBgn == toEnd == 0 -- to has an overlap to fr
+    //     frEnd == toBgn == 0 -- fr has an overlap to to
+    //
+    //  If not, the overlap is inconsistent with the tigs; it implies the two tigs overlap in their
+    //  entirety.
 
-    //  Find the min of each of the 5' and 3' hangs.  These tell what portions of each tig should be overlapping.
+    //  GFA requires that the overlap be between the end of the first read and the start of the second read.
+    //  Flip the order if needed.
 
-    int32    min5 = min(fr5, to5);
-    int32    min3 = min(fr3, to3);
-
-    //  Extending the read positions by these minimum extensions will then give up (more or less) the region that aligns.
-
-    frBgn -= min5;
-    frEnd += min3;
-
-    toBgn -= min5;
-    toEnd += min3;
-
-    //  And undo the normalization.
-
-    if (frForward) {
-      frBgn = frTig->length(false) - frBgn;
-      frEnd = frTig->length(false) - frEnd;
+    if (frTigID == toTigID) {
+      fprintf(stderr, "L\ttig%08u\t%c\ttig%08d\t%c\t%s circular\n",
+              frTigID, (frTigFwd) ? '+' : '-',
+              toTigID, (toTigFwd) ? '+' : '-',
+              cigar);
+      continue;
     }
 
-    if (toForward) {
-      toBgn = toTig->length(false) - toBgn;
-      toEnd = toTig->length(false) - toEnd;
+    if ((toBgn == 0) && (frEnd == 0)) {
+      fprintf(graph, "L\ttig%08u\t%c\ttig%08d\t%c\t%s\n",
+              frTigID, (frTigFwd) ? '+' : '-',
+              toTigID, (toTigFwd) ? '+' : '-',
+              cigar);
+      continue;
     }
 
-    //  Find an overlap, convert it to a cigar string.
+    if ((frBgn == 0) && (toEnd == 0)) {
+      fprintf(graph, "L\ttig%08u\t%c\ttig%08d\t%c\t%s\n",
+              toTigID, (toTigFwd) ? '+' : '-',
+              frTigID, (frTigFwd) ? '+' : '-',
+              cigar);
+      continue;
+    }
 
-    //  For now, we just take the average of the two lengths.
-    int32  frLen = (frBgn < frEnd) ? (frEnd - frBgn) : (frBgn - frEnd);
-    int32  toLen = (toBgn < toEnd) ? (toEnd - toBgn) : (toBgn - toEnd);
+    //  Inconsistent edge.
 
-    sprintf(cigar, "%dm", (frLen + toLen) / 2);
-
-    //  Report the edge.
-
-    fprintf(stdout, "L\ttig%08u\t%c\ttig%08d\t%c\t%s\n",
-            frTig->tigID(), frForward ? '+' : '-',
-            toTig->tigID(), toForward ? '+' : '-',
+    fprintf(stderr, "L\ttig%08u\t%c\ttig%08d\t%c\t%s inconsistent\n",
+            frTigID, (frTigFwd) ? '+' : '-',
+            toTigID, (toTigFwd) ? '+' : '-',
             cigar);
-
-    tigStore->unloadTig(frTig->tigID(), true);
-    tigStore->unloadTig(toTig->tigID(), true);
   }
+
+  edges.clear();       //  Make valgrind slightly happier.
+  vertices.clear();
 
   delete [] cigar;
-
-#if 0
-  for (uint32 ii=0; ii<4; ii++) {
-    fprintf(stderr, "%8u%8u%8u%8u\n",
-            edgeTypes[ii][0],
-            edgeTypes[ii][1],
-            edgeTypes[ii][2],
-            edgeTypes[ii][3]);
-  }
-#endif
-
-  delete tigStore;
+  delete    tigStore;
 
   gkpStore->gkStore_close();
 

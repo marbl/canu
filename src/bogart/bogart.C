@@ -515,13 +515,18 @@ main (int argc, char * argv []) {
   reportUnitigs(unitigs, prefix, "final", genomeSize);
 
   //
-  //  Generate outputs.
+  //  Generate outputs.  The graph MUST come after output, because it needs
+  //  the tigStore tigID.
   //
 
   setLogFile(prefix, "output");
 
   setParentAndHang(unitigs);
-  writeUnitigsToStore(unitigs, prefix, tigStorePath, fragment_count_target);
+  writeUnitigsToStore(unitigs, prefix, tigStorePath, fragment_count_target, true);
+
+  setLogFile(prefix, "graph");
+
+  writeUnusedEdges(unitigs, prefix);
 
   //
   //  Tear down bogart.

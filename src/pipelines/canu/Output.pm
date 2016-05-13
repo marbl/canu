@@ -100,13 +100,13 @@ sub outputGraph ($$) {
     goto allDone   if (skipStage($WRK, $asm, "outputGraph") == 1);
     goto allDone   if (-e "$WRK/$asm.gfa");
 
-    if (-e "$wrk/4-unitigger/$asm.unused.best.edges") {
+    if (-e "$wrk/4-unitigger/$asm.unused.edges") {
         $cmd  = "$bin/buildGraph \\\n";
         $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
         $cmd .= "  -T $wrk/$asm.tigStore 2 \\\n";
-        $cmd .= "  -E $wrk/4-unitigger/$asm.unused.best.edges \\\n";
-        $cmd .= "> $WRK/$asm.gfa \\\n";
-        $cmd .= "2> $WRK/$asm.gfa.err\n";
+        $cmd .= "  -E $wrk/4-unitigger/$asm.unused.edges \\\n";
+        $cmd .= "  -o $WRK/$asm.gfa \\\n";
+        $cmd .= "2>&1 > $WRK/$asm.gfa.err\n";
 
         if (runCommand($wrk, $cmd)) {
             caExit("failed to output consensus", "$WRK/$asm.gfa.err");
