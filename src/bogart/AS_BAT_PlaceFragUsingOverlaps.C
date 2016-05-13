@@ -45,7 +45,7 @@
 #include "intervalList.H"
 
 //  Report LOTS of details on placement, including evidence.
-#undef VERBOSE_PLACEMENT
+#undef  VERBOSE_PLACEMENT
 
 
 
@@ -248,6 +248,10 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
     //  interval lists for the begin point and the end point.  Remember, this is all fragments to a
     //  single unitig (the whole picture above), not just the overlapping fragment sets (left or
     //  right blocks).
+    //
+    //  This used to (before MAY-2016) use the 'verified' placement, instead of the 'full' placement.
+    //  In long pacbio reads, this seems to result in far too many clusters - each placement is
+    //  derived from one overlap, which will almost never cover the whole read.
 
     intervalList<int32>   bgnPoints;
     intervalList<int32>   endPoints;
@@ -257,19 +261,23 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
     if (windowSlop < 5)
       windowSlop = 5;
 
+#ifdef VERBOSE_PLACEMENT
+    writeLog("placeFragUsingOverlaps()-- windowSlop = %d\n", windowSlop);
+#endif
+
     for (uint32 oo=bgn; oo<end; oo++) {
       assert(ovlPlace[oo].tigID > 0);
 
-      int32   b  = ovlPlace[oo].verified.bgn;
-      int32   be = ovlPlace[oo].verified.bgn + windowSlop;
-      int32   e  = ovlPlace[oo].verified.end;
-      int32   ee = ovlPlace[oo].verified.end + windowSlop;
+      int32   bb = ovlPlace[oo].position.bgn;
+      int32   be = ovlPlace[oo].position.bgn + windowSlop;
+      int32   eb = ovlPlace[oo].position.end;
+      int32   ee = ovlPlace[oo].position.end + windowSlop;
 
-      b = (b < windowSlop) ? 0 : b - windowSlop;
-      e = (e < windowSlop) ? 0 : e - windowSlop;
+      bb = (bb < windowSlop) ? 0 : bb - windowSlop;
+      eb = (eb < windowSlop) ? 0 : eb - windowSlop;
 
-      bgnPoints.add(b, be - b);
-      endPoints.add(e, ee - e);
+      bgnPoints.add(bb, be - bb);
+      endPoints.add(eb, ee - eb);
     }
 
     bgnPoints.merge();
@@ -287,8 +295,8 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
     int32   numEndPoints = endPoints.numberOfIntervals();
 
     for (uint32 oo=bgn; oo<end; oo++) {
-      int32   b = ovlPlace[oo].verified.bgn;  //  WAS expected position of read in tig!
-      int32   e = ovlPlace[oo].verified.end;
+      int32   b = ovlPlace[oo].position.bgn;
+      int32   e = ovlPlace[oo].position.end;
       int32   c = 0;
 
       ovlPlace[oo].clusterID = 0;
