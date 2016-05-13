@@ -77,7 +77,7 @@ sub configureSlurm () {
     setGlobalIfUndef("gridEngineArrayMaxJobs",               $maxArraySize);
     setGlobalIfUndef("gridEngineOutputOption",               "-o");                                        ## NB: SLURM default joins STDERR & STDOUT if no -e specified
     setGlobalIfUndef("gridEngineThreadsOption",              "--cpus-per-task=THREADS");
-    setGlobalIfUndef("gridEngineMemoryOption",               "--mem=MEMORY");
+    setGlobalIfUndef("gridEngineMemoryOption",               "--mem-per-cpu=MEMORY");
     setGlobalIfUndef("gridEnginePropagateCommand",           "scontrol update job=\"WAIT_TAG\"");          ## TODO: manually verify this in all cases
     setGlobalIfUndef("gridEngineNameToJobIDCommand",         "squeue -h -o\%F -n \"WAIT_TAG\" | uniq");    ## TODO: manually verify this in all cases
     setGlobalIfUndef("gridEngineNameToJobIDCommandNoArray",  "squeue -h -o\%i -n \"WAIT_TAG\"");     ## TODO: manually verify this in all cases

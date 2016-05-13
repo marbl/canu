@@ -908,6 +908,10 @@ sub buildMemoryOption ($$) {
         $m /= $t;
     }
 
+    if ((uc(getGlobal("gridEngine")) eq "SLURM") && (getGlobal("gridEngineMemoryOption") =~ m/mem-per-cpu/i)) {
+        $m /= $t;
+    }
+
     if (uc(getGlobal("gridEngine")) eq "LSF") {
        my $updated = 0;
        if (defined(getGlobal("gridEngineMemoryUnits"))) {
