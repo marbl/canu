@@ -48,8 +48,6 @@
 #include "AS_BAT_Instrumentation.H"
 #include "AS_BAT_PlaceContains.H"
 
-#include "AS_BAT_Joining.H"
-
 #include "AS_BAT_PopBubbles.H"
 #include "AS_BAT_MarkRepeatReads.H"
 
@@ -407,17 +405,6 @@ main (int argc, char * argv []) {
 
   reportOverlaps(unitigs, prefix, "buildUnitigs");
   reportUnitigs(unitigs, prefix, "buildUnitigs", genomeSize);
-
-  //
-  //  Join unitigs using not-best edges.
-  //
-
-  //setLogFile(prefix, "joinUnitigs");
-
-  //joinUnitigs(unitigs, enableJoining);
-
-  //reportOverlaps(unitigs, prefix, "joining");
-  //reportUnitigs(unitigs, prefix, "joining", genomeSize);
 
   //
   //  Place contained reads.

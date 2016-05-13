@@ -13,7 +13,6 @@ SOURCES  := bogart.C \
             AS_BAT_ChunkGraph.C \
             AS_BAT_FragmentInfo.C \
             AS_BAT_Instrumentation.C \
-            AS_BAT_Joining.C \
             AS_BAT_Logging.C \
             AS_BAT_MarkRepeatReads.C \
             AS_BAT_Outputs.C \
