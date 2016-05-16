@@ -912,6 +912,11 @@ sub buildMemoryOption ($$) {
         $m /= $t;
     }
 
+    if (int($m) != $m) {
+        $m = int($m * 1024);
+        $u = "m";
+    }
+
     if (uc(getGlobal("gridEngine")) eq "LSF") {
        my $updated = 0;
        if (defined(getGlobal("gridEngineMemoryUnits"))) {
