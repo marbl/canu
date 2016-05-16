@@ -1297,14 +1297,14 @@ sub reportRunError ($) {
 
     #  The rest is rather straightforward at least.
 
-    print STDERR "ERROR (rc=$rc):\n";
+    print STDERR "ERROR:\n";
 
     if      ($rc ==  -1) {
-        print STDERR "ERROR:  Failed to run the command.\n";
+        print STDERR "ERROR:  Failed to run the command.  (rc=$rc)\n";
     } elsif ($rc  & 127) {
-        print STDERR "ERROR:  Failed with signal $signame[$rc & 127].\n";
+        print STDERR "ERROR:  Failed with signal $signame[$rc & 127].  (rc=$rc)\n";
     } else {
-        print STDERR "ERROR:  Failed with exit code ", $rc >> 8 , ".\n";
+        print STDERR "ERROR:  Failed with exit code ", $rc >> 8 , ".  (rc=$rc)\n";
     }
 
     print STDERR "ERROR:\n";
