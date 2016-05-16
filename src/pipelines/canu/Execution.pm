@@ -918,28 +918,13 @@ sub buildMemoryOption ($$) {
     }
 
     if (uc(getGlobal("gridEngine")) eq "LSF") {
-       my $updated = 0;
-       if (defined(getGlobal("gridEngineMemoryUnits"))) {
-          if (getGlobal("gridEngineMemoryUnits") eq "t") {
-             $m = $m / 1024;
-             $updated++;
-          } elsif (getGlobal("gridEngineMemoryUnits") eq "g") {
-             $m = $m * 1;
-             $updated++;
-          } elsif (getGlobal("gridEngineMemoryUnits") eq "m") {
-             $m = $m * 1024;
-             $updated++;
-          } elsif (getGlobal("gridEngineMemoryUnits") eq "k") {
-             $m = $m * 1024 * 1024;
-             $updated++;
-          }
-       }
-       if ($updated == 0) {
-          print STDERR "-- Warning: unknown memory units for grid engine " . getGlobal("gridEngine") . " assuming KB\n";
-          $m = $m * 1024 * 1024;
-       }
-       $u = "";
+        $m = $m / 1024          if (getGlobal("gridEngineMemoryUnits") eq "t");
+        $m = $m * 1             if (getGlobal("gridEngineMemoryUnits") eq "g");
+        $m = $m * 1024          if (getGlobal("gridEngineMemoryUnits") eq "m");
+        $m = $m * 1024 * 1024   if (getGlobal("gridEngineMemoryUnits") eq "k");
+        $u = "";
     }
+
     $r =  getGlobal("gridEngineMemoryOption");
     $r =~ s/MEMORY/${m}${u}/g;
 

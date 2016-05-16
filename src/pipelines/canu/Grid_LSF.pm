@@ -80,8 +80,11 @@ sub configureLSF () {
     #  They are defined by the LSF_UNIT_FOR_LIMITS variable in lsf.conf
     #  Poll and see if we can find it
     #
+
     my $memUnits = undef;
+
     open(F, "lsadmin showconf lim |");
+
     my $s = <F>;  #  cluster name
     my $d = <F>;  #  dat/time
 
@@ -96,6 +99,11 @@ sub configureLSF () {
     }
 
     close(F);
+
+    if (!defined($memUnits)) {
+        print STDERR "-- Warning: unknown memory units for grid engine LSF assuming KB\n";
+        $memUnits = "k";
+    }
 
     #  Build a list of the resources available in the grid.  This will contain a list with keys
     #  of "#CPUs-#GBs" and values of the number of nodes With such a config.  Later on, we'll use this
