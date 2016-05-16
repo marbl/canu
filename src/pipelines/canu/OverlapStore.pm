@@ -123,9 +123,9 @@ sub getNumOlapsAndSlices ($$) {
     my $wrk = shift @_;
     my $asm = shift @_;
 
-    my $numOlaps   = 0;
-    my $numSlices  = 0;
-    my $memLimit   = 0;
+    my $numOlaps   = undef;
+    my $numSlices  = undef;
+    my $memLimit   = undef;
 
     open(F, "< $wrk/$asm.ovlStore.BUILDING/config.err") or caExit("can't open '$wrk/$asm.ovlStore.BUILDING/config.err' for reading: $!\n", undef);
     while (<F>) {
@@ -137,8 +137,8 @@ sub getNumOlapsAndSlices ($$) {
     }
     close(F);
 
-    if (($numOlaps == 0) || ($numSlices == 0)) {
-        caExit("Failed to find any overlaps ($numOlaps) or slices ($numSlices).\n", undef);
+    if (!defined($numOlaps) || !defined($numSlices) || !defined($memLimit)) {
+        caExit("Failed to find any overlaps ($numOlaps) or slices ($numSlices) or memory limit ($memLimit)", undef);
     }
 
     return($numOlaps, $numSlices, $memLimit);

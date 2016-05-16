@@ -257,7 +257,7 @@ sub getAllowedResources ($$$$) {
     #    taskThreads = 4,8,32,64
     #    taskMemory  = 16g,32g,64g
 
-    my ($bestCores,  $bestCoresM,  $bestCoresT)  = (0, undef, undef);
+    my ($bestCores, $bestCoresM, $bestCoresT, $availMemoryMin, $availMemoryMax)  = (0, undef, undef, undef, undef);
 
     foreach my $m (@taskMemory) {
         foreach my $t (@taskThreads) {
@@ -265,13 +265,19 @@ sub getAllowedResources ($$$$) {
             next  if ($m > $maxMemory);   #  Bail if either of the suggest settings are
             next  if ($t > $maxThreads);  #  larger than the maximum allowed.
 
-            my $processes = 0;
-            my $cores     = 0;
-            my $memory    = 0;
+            #  Save this memory size.  ovsMemory uses a list of possible memory sizes to
+            #  pick the smallest one that results in an acceptable number of files.
+
+            $availMemoryMin = $m    if (!defined($availMemoryMin) || ($m < $availMemoryMin));
+            $availMemoryMax = $m    if (!defined($availMemoryMax) || ($availMemoryMax < $m));
 
             #  For a job using $m GB memory and $t threads, we can compute how many processes will
             #  fit on each node in our set of available machines.  The smaller of the two is then
             #  the number of processes we can run on this node.
+
+            my $processes = 0;
+            my $cores     = 0;
+            my $memory    = 0;
 
             for (my $ii=0; $ii<scalar(@gridCor); $ii++) {
                 my $np_cpu = $gridNum[$ii] * int($gridCor[$ii] / $t);  #  Each process uses $t cores, node has $gridCor[$ii] cores available.
@@ -304,18 +310,28 @@ sub getAllowedResources ($$$$) {
         caExit("task $tag$alg failed to find a configuration to run on", undef);
     }
 
-    $taskMemory  = $bestCoresM;
-    $taskThreads = $bestCoresT;
+    #  Reset the global values for later use.  SPECIAL CASE!  For ovsMemory, we just want the list
+    #  of valid memory sizes.
+
+    if ("$alg" ne "ovs") {
+        $taskMemory  = $bestCoresM;
+        $taskThreads = $bestCoresT;
+
+        setGlobal("${tag}${alg}Memory",  $taskMemory);
+        setGlobal("${tag}${alg}Threads", $taskThreads);
+
+    } else {
+        $taskMemory  = $availMemoryMax;
+        $taskThreads = $bestCoresT;
+
+        setGlobal("${tag}${alg}Memory",  "$availMemoryMin-$availMemoryMax");
+        setGlobal("${tag}${alg}Threads",  $taskThreads);
+    }
 
     #  Check for stupidity.
 
-    caExit("invalid taskThread=$taskMemory; maxMemory=$maxMemory", undef)     if ($taskMemory > $maxMemory);
+    caExit("invalid taskMemory=$taskMemory; maxMemory=$maxMemory", undef)     if ($taskMemory > $maxMemory);
     caExit("invalid taskThread=$taskThreads; maxThreads=$maxThreads", undef)  if ($taskThreads > $maxThreads);
-
-    #  Reset the global values for later use.
-
-    setGlobal("${tag}${alg}Memory",  $taskMemory);
-    setGlobal("${tag}${alg}Threads", $taskThreads);
 
     #  Finally, reset the concurrency (if we're running locally) so we don't swamp our poor workstation.
 
@@ -632,6 +648,10 @@ sub configureAssembler () {
     }
 
     #  Finally, use all that setup to pick actual values for each component.
+    #
+    #  ovsMemory needs to be configured here iff the sequential build method is used.  This runs in
+    #  the canu process, and needs to have a single memory size.  The parallel method will pick a
+    #  memory size based on the number of overlaps and submit jobs using that size.
 
     my $err;
     my $all;

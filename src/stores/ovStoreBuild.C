@@ -64,8 +64,8 @@ using namespace std;
 static
 uint32 *
 computeIIDperBucket(uint32          fileLimit,
-                    uint64          memoryLimit,
-                    uint64          maxMemoryLimit,
+                    uint64          minMemory,
+                    uint64          maxMemory,
                     uint32          maxIID,
                     vector<char *> &fileList) {
   uint32  *iidToBucket = new uint32 [maxIID];
@@ -75,9 +75,10 @@ computeIIDperBucket(uint32          fileLimit,
   //  that the IIDs must be consecutive; the obvious, simple and clean division of 'mod' won't work.
 
   if (fileList[0][0] == '-') {
-    if (memoryLimit > 0) {
-      memoryLimit = 0;
-      fileLimit   = maxFiles;
+    if (maxMemory > 0) {
+      minMemory = 0;
+      maxMemory = 0;
+      fileLimit = maxFiles;
 
       fprintf(stderr, "WARNING: memory limit (-M) specified, but can't be used with inputs from stdin; using %d files instead.\n", fileLimit);
     } else {
@@ -135,7 +136,7 @@ computeIIDperBucket(uint32          fileLimit,
 
     fclose(C);
 
-    fprintf(stderr, "Summing overlap counts for %u reads from '%s'.\n", perLen, countsName);
+    //fprintf(stderr, "Summing overlap counts for %u reads from '%s'.\n", perLen, countsName);
 
     assert(perLen <= maxIID);
 
@@ -161,7 +162,7 @@ computeIIDperBucket(uint32          fileLimit,
 
   //  Partition the overlaps into buckets.
 
-  uint64   olapsPerBucketMax = 0;
+  uint64   olapsPerBucketMax = 1;
   double   GBperOlap         = ovOverlapSortSize / 1024.0 / 1024.0 / 1024.0;
 
   //  If a file limit, distribute the overlaps to equal sized files.
@@ -172,17 +173,51 @@ computeIIDperBucket(uint32          fileLimit,
   }
 
   //  If a memory limit, distribute the overlaps to files no larger than the limit.
-  if (memoryLimit > 0) {
-    // iterate until we can fit the files into file system limits, give up if we hit our max limit
+  //
+  //  This will pick the smallest memory size that uses fewer than maxFiles buckets.  Unreasonable
+  //  values can break this - either too low memory or too high allowed open files (an OS limit).
+
+  if (maxMemory > 0) {
+    fprintf(stderr, "Configuring for %.2f GB to %.2f GB memory.\n",
+            minMemory / 1024.0 / 1024.0 / 1024.0,
+            maxMemory / 1024.0 / 1024.0 / 1024.0);
+
+    if (minMemory < MEMORY_OVERHEAD + ovOverlapSortSize)
+      minMemory  = MEMORY_OVERHEAD + ovOverlapSortSize;
+
+    uint64  incr = (maxMemory - minMemory) / 1000;
+    if (incr < 1)
+      incr = 1;
+
+    //  iterate until we can fit the files into file system limits.
+
     do {
-       olapsPerBucketMax = (memoryLimit - MEMORY_OVERHEAD) / ovOverlapSortSize;
-       fprintf(stderr, "Will sort using "F_U64" files; "F_U64" (%.2f million) overlaps per bucket; %.2f GB memory per bucket\n",
-               numOverlaps / olapsPerBucketMax + 1,
-               olapsPerBucketMax,
-               olapsPerBucketMax / 1000000.0,
-               olapsPerBucketMax * GBperOlap);
-       memoryLimit += 1024 * 1024 * 1024;
-    } while (memoryLimit <= maxMemoryLimit && ( numOverlaps / olapsPerBucketMax + 1) > maxFiles / 2);
+      olapsPerBucketMax = (minMemory - MEMORY_OVERHEAD) / ovOverlapSortSize;
+       minMemory        += incr;
+    } while ((minMemory <= maxMemory) &&
+             (numOverlaps / olapsPerBucketMax + 1 > 0.50 * maxFiles));
+
+    //  Should we prefer finding 0.50 * maxFiles/2 (as above) but allow up to, say, 0.75 * maxFiles if 0.50 can't be satisfied?
+    //  Is the 0.5 scaling because we open two files per bucket?  Seems very tight if so.
+
+    //  Give up if we hit our max limit.
+
+    if ((minMemory > maxMemory) ||
+        (numOverlaps / olapsPerBucketMax + 1) > 0.50 * maxFiles) {
+      fprintf(stderr, "ERROR:  Cannot sort %.2f million overlaps using %.2f GB memory; too few file handles available.\n",
+              numOverlaps / 1000000.0,
+              maxMemory / 1024.0 / 1024.0 / 1024.0);
+      fprintf(stderr, "ERROR:    olapsPerBucket "F_U64"\n", olapsPerBucketMax);
+      fprintf(stderr, "ERROR:    buckets        "F_U64"\n", numOverlaps / olapsPerBucketMax + 1);
+      fprintf(stderr, "ERROR:  Increase memory size (in canu, ovsMemory; in ovStoreBuild, -M)\n");
+      exit(1);
+    }
+
+    fprintf(stderr, "Will sort using "F_U64" files; "F_U64" (%.2f million) overlaps per bucket; %.2f GB memory per bucket\n",
+            numOverlaps / olapsPerBucketMax + 1,
+            olapsPerBucketMax,
+            olapsPerBucketMax / 1000000.0,
+            olapsPerBucketMax * GBperOlap + MEMORY_OVERHEAD / 1024.0 / 1024.0 / 1024.0);
   }
 
   //  Given the limit on each bucket, count the number of buckets needed, then reset the limit on
@@ -226,7 +261,9 @@ computeIIDperBucket(uint32          fileLimit,
   }
 
   fprintf(stderr, "Will sort %.3f million overlaps per bucket, using %u buckets %.2f GB per bucket.\n",
-          olapsPerBucketMax / 1000000.0, iidToBucket[maxIID-1], olapsPerBucketMax * GBperOlap);
+          olapsPerBucketMax / 1000000.0,
+          iidToBucket[maxIID-1],
+          olapsPerBucketMax * GBperOlap + MEMORY_OVERHEAD / 1024.0 / 1024.0 / 1024.0);
 
   delete [] overlapsPerRead;
 
@@ -267,8 +304,8 @@ main(int argc, char **argv) {
   char           *ovlName        = NULL;
   char           *gkpName        = NULL;
   uint32          fileLimit      = 0;
-  uint64          memoryLimit    = (uint64)4 * 1024 * 1024 * 1024;
-  uint64          maxMemoryLimit = memoryLimit;
+  uint64          minMemory      = (uint64)1 * 1024 * 1024 * 1024;
+  uint64          maxMemory      = (uint64)4 * 1024 * 1024 * 1024;
 
   double          maxError     = 1.0;
   uint32          minOverlap   = 0;
@@ -293,13 +330,17 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-F") == 0) {
       fileLimit    = atoi(argv[++arg]);
-      memoryLimit  = 0;
+      minMemory    = 0;
+      maxMemory    = 0;
 
     } else if (strcmp(argv[arg], "-M") == 0) {
-      fileLimit    = 0;
-      AS_UTL_decodeRange(argv[++arg], memoryLimit, maxMemoryLimit);
-      memoryLimit     = (uint64)ceil(memoryLimit)    * 1024.0 * 1024.0 * 1024.0;
-      maxMemoryLimit  = (uint64)ceil(maxMemoryLimit) * 1024.0 * 1024.0 * 1024.0;
+      double lo=0.0, hi=0.0;
+
+      AS_UTL_decodeRange(argv[++arg], lo, hi);
+
+      minMemory = (uint64)ceil(lo * 1024.0 * 1024.0 * 1024.0);
+      maxMemory = (uint64)ceil(hi * 1024.0 * 1024.0 * 1024.0);
+      fileLimit = 0;
 
     } else if (strcmp(argv[arg], "-e") == 0) {
       maxError = atof(argv[++arg]);
@@ -336,7 +377,7 @@ main(int argc, char **argv) {
     err++;
   if (fileLimit > sysconf(_SC_OPEN_MAX) - 16)
     err++;
-  if (memoryLimit < MEMORY_OVERHEAD)
+  if (maxMemory < MEMORY_OVERHEAD)
     err++;
   if (err) {
     fprintf(stderr, "usage: %s -O asm.ovlStore -G asm.gkpStore [opts] [-L fileList | *.ovb.gz]\n", argv[0]);
@@ -347,7 +388,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -F f                  use up to 'f' files for store creation\n");
     fprintf(stderr, "  -M g                  use up to 'g' gigabytes memory for sorting overlaps\n");
-    fprintf(stderr, "                          default 4; g-0.125 gb is available for sorting overlaps\n");
+    fprintf(stderr, "                          default 4; g-0.25 gb is available for sorting overlaps\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -e e                  filter overlaps above e fraction error\n");
     fprintf(stderr, "  -l l                  filter overlaps below l bases overlap length (needs gkpStore to get read lengths!)\n");
@@ -365,8 +406,8 @@ main(int argc, char **argv) {
       fprintf(stderr, "ERROR: No input overlap files (-L or last on the command line) supplied.\n");
     if (fileLimit > sysconf(_SC_OPEN_MAX) - 16)
       fprintf(stderr, "ERROR: Too many jobs (-F); only "F_SIZE_T" supported on this architecture.\n", sysconf(_SC_OPEN_MAX) - 16);
-    if (memoryLimit < MEMORY_OVERHEAD)
-      fprintf(stderr, "ERROR: Memory (-M) must be at least %.3f to account for overhead.\n", MEMORY_OVERHEAD / 1024.0 / 1024.0 / 1024.0);
+    if (maxMemory < MEMORY_OVERHEAD)
+      fprintf(stderr, "ERROR: Memory (-M) must be at least %.3f GB to account for overhead.\n", MEMORY_OVERHEAD / 1024.0 / 1024.0 / 1024.0);
 
     exit(1);
   }
@@ -414,12 +455,11 @@ main(int argc, char **argv) {
 
 
 
-
   //  Open reads, figure out a partitioning scheme.
 
   gkStore  *gkp         = gkStore::gkStore_open(gkpName);
   uint64    maxIID      = gkp->gkStore_getNumReads() + 1;
-  uint32   *iidToBucket = computeIIDperBucket(fileLimit, memoryLimit, maxMemoryLimit, maxIID, fileList);
+  uint32   *iidToBucket = computeIIDperBucket(fileLimit, minMemory, maxMemory, maxIID, fileList);
 
   uint32    maxFiles    = sysconf(_SC_OPEN_MAX);
 
@@ -430,6 +470,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "ERROR:\n");
     exit(1);
   }
+
 
 
   //  Dump the configuration if told to.
