@@ -153,6 +153,7 @@ SUBMAKEFILES := stores/gatekeeperCreate.mk \
                 correction/filterCorrectionOverlaps.mk \
                 correction/generateCorrectionLayouts.mk \
                 correction/readConsensus.mk \
+                correction/errorEstimate.mk \
                 \
                 falcon_sense/createFalconSenseInputs.mk \
                 falcon_sense/falcon_sense.mk \

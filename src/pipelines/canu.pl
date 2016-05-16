@@ -68,6 +68,7 @@ use canu::OverlapMMap;
 use canu::OverlapStore;
 
 use canu::CorrectReads;
+use canu::ErrorEstimate;
 
 use canu::OverlapBasedTrimming;
 
@@ -456,6 +457,8 @@ if (setOptions($mode, "correct") eq "correct") {
     buildCorrectionLayouts($wrk, $asm);
     generateCorrectedReads($wrk, $asm)  foreach (1..getGlobal("canuIterationMax") + 1);
     dumpCorrectedReads($wrk, $asm);
+
+    estimateCorrectedError($wrk, $asm, "cor");
 
     buildHTML($wrk, $asm, "cor");
 

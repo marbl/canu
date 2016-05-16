@@ -684,7 +684,7 @@ sub setDefaults () {
     #####  Error Rates
 
     $global{"errorRate"}                   = undef;
-    $synops{"errorRate"}                   = "The expected error rate in the input reads";
+    $synops{"errorRate"}                   = "The expected error rate in the corrected reads, typically set based on sequencing type. Set to 0 to try to estimate dynamically. (EXPERIMENTAL)";
 
     $global{"corOvlErrorRate"}             = undef;
     $synops{"corOvlErrorRate"}             = "Overlaps above this error rate are not computed";

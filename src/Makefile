@@ -549,6 +549,7 @@ all: UPDATE_VERSION MAKE_DIRS \
      ${TARGET_DIR}/lib/canu/CorrectReads.pm \
      ${TARGET_DIR}/lib/canu/Configure.pm \
      ${TARGET_DIR}/lib/canu/Defaults.pm \
+     ${TARGET_DIR}/lib/canu/ErrorEstimate.pm \
      ${TARGET_DIR}/lib/canu/Execution.pm \
      ${TARGET_DIR}/lib/canu/Gatekeeper.pm \
      ${TARGET_DIR}/lib/canu/Grid.pm \
@@ -629,6 +630,9 @@ ${TARGET_DIR}/lib/canu/Configure.pm: pipelines/canu/Configure.pm
 
 ${TARGET_DIR}/lib/canu/Defaults.pm: pipelines/canu/Defaults.pm
 	cp -pf pipelines/canu/Defaults.pm ${TARGET_DIR}/lib/canu/
+
+${TARGET_DIR}/lib/canu/ErrorEstimate.pm: pipelines/canu/ErrorEstimate.pm
+	cp -pf pipelines/canu/ErrorEstimate.pm ${TARGET_DIR}/lib/canu/
 
 ${TARGET_DIR}/lib/canu/Execution.pm: pipelines/canu/Execution.pm
 	cp -pf pipelines/canu/Execution.pm ${TARGET_DIR}/lib/canu/
