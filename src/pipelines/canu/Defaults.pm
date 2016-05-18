@@ -1175,12 +1175,12 @@ sub checkParameters () {
     }
 
     #
-    #  Minimap, no valid identities, set legacy 
+    #  Minimap, no valid identities, set legacy
     #
     if (getGlobal("corOverlapper") eq "minimap") {
        setGlobalIfUndef("corLegacyFilter", 1);
     }
- 
+
     #
     #  Falcon?  Need to find it.
     #

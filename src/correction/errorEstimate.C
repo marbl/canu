@@ -1,3 +1,28 @@
+
+/******************************************************************************
+ *
+ *  This file is part of canu, a software program that assembles whole-genome
+ *  sequencing reads into contigs.
+ *
+ *  This software is based on:
+ *    'Celera Assembler' (http://wgs-assembler.sourceforge.net)
+ *    the 'kmer package' (http://kmer.sourceforge.net)
+ *  both originally distributed by Applera Corporation under the GNU General
+ *  Public License, version 2.
+ *
+ *  Canu branched from Celera Assembler at its revision 4587.
+ *  Canu branched from the kmer project at its revision 1994.
+ *
+ *  Modifications by:
+ *
+ *    Sergey Koren beginning on 2016-MAY-16
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
+ *
+ *  File 'README.licenses' in the root directory of this distribution contains
+ *  full conditions and disclaimers for each license.
+ */
+
 #include "AS_global.H"
 #include "ovStore.H"
 #include "splitToWords.H"
@@ -68,7 +93,7 @@ main(int argc, char **argv) {
 
   while (fgets(ovStr, 1024, scoreFile) != NULL) {
       splitToWords  W(ovStr);
- 
+
       if (isOvl) {
          ov.a_iid = W(0);
          ov.b_iid = W(1);
@@ -79,10 +104,10 @@ main(int argc, char **argv) {
          ov.dat.ovl.bhg5 = W(6);
          ov.dat.ovl.bhg3 = W(7);
          ov.span(W(3));
-         ov.erate(atof(W[8])); 
-         ov.flipped(W[3][0] == 'I' ? true : false); 
+         ov.erate(atof(W[8]));
+         ov.flipped(W[3][0] == 'I' ? true : false);
 
-      } else { 
+      } else {
          ov.a_iid = W(0);
          ov.b_iid = W(1);
 
@@ -113,7 +138,7 @@ main(int argc, char **argv) {
       if (readToLength.find(ov.b_iid) == readToLength.end() || readToLength[ov.b_iid] < ov.span()) {
          readToLength[ov.b_iid] = ov.span();
          readToIdy[ov.b_iid] = ov.erate();
-      } 
+      }
   }
   fclose(scoreFile);
 
@@ -122,7 +147,7 @@ main(int argc, char **argv) {
   //  Find the overlap for every best edge.
 
   double  *absdev    = new double [readToLength.size() + 1];
-  double  *erates    = new double [readToLength.size() + 1]; 
+  double  *erates    = new double [readToLength.size() + 1];
   uint32   eratesLen = 0;
 
 
@@ -145,7 +170,7 @@ main(int argc, char **argv) {
   uint32 totalBelow = 0;
   for (uint32 ii=0; ii<eratesLen/2; ii++) {
     absdev[ii] = median - erates[ii];
-    if ((double)totalBelow / eratesLen < mass) { 
+    if ((double)totalBelow / eratesLen < mass) {
        massCutoff = erates[ii];
        totalBelow++;
     }

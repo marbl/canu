@@ -13,13 +13,9 @@
  #  Canu branched from Celera Assembler at its revision 4587.
  #  Canu branched from the kmer project at its revision 1994.
  #
- #  This file is derived from:
- #
- #    src/pipelines/ca3g/ErrorEstimate.pm
- #
  #  Modifications by:
  #
- #    Sergey Koren beginning on 2015-NOV-20
+ #    Sergey Koren beginning on 2016-MAY-16
  #      are a 'United States Government Work', and
  #      are released in the public domain
  #
