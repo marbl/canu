@@ -167,12 +167,12 @@ while (scalar(@ARGV)) {
         if ($arg =~ m/pacbio/) {
             setErrorRate(0.025);
             setGlobal("corErrorRate", "0.30");
-            setGlobal("cnsMaxCoverage", 20);
+            setGlobal("cnsMaxCoverage", 40);
             setGlobal("utgGraphDeviation", 6);
         } elsif ($arg =~ m/nanopore/) {
             setErrorRate(0.050);
             setGlobal("corErrorRate", "0.50");
-            setGlobal("cnsMaxCoverage", 20);
+            setGlobal("cnsMaxCoverage", 40);
             setGlobal("utgGraphDeviation", 6);
         }
 
@@ -263,12 +263,12 @@ if (scalar(@inputFiles) == 0 && ! defined(getGlobal("errorRate"))) {
         if ($numPacBioRaw > 0 || $numPacBioCorrected > 0) {
             setErrorRate(0.025);
             setGlobal("corErrorRate", "0.30");
-            setGlobal("cnsMaxCoverage", 20);
+            setGlobal("cnsMaxCoverage", 40);
         }
         if ($numNanoporeRaw > 0 || $numNanoporeCorrected > 0) {
             setErrorRate(0.050);
             setGlobal("corErrorRate", "0.50");
-            setGlobal("cnsMaxCoverage", 20);
+            setGlobal("cnsMaxCoverage", 40);
         }
     }
 }

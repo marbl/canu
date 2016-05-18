@@ -783,7 +783,7 @@ sub buildCorrectionLayouts ($$) {
 
         setGlobal("corMinCoverage", 4);
         setGlobal("corMinCoverage", 4)   if ($cov <  60);
-        setGlobal("corMinCoverage", 0)   if ($cov <= 30);
+        setGlobal("corMinCoverage", 0)   if ($cov <= 20);
 
         print STDERR "-- Set corMinCoverage=", getGlobal("corMinCoverage"), " based on read coverage of $cov.\n";
     }
