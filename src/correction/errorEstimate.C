@@ -49,12 +49,6 @@ main(int argc, char **argv) {
   if (err) {
     fprintf(stderr, "usage: %s [options]\n", argv[0]);
     fprintf(stderr, "\n");
-    fprintf(stderr, "Rewrites an ovlStore, filtering overlaps that shouldn't be used for correcting reads.\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -S scoreFile    output scores for each read, binary file, to 'scoreFile'\n");
-
-    if (scoreFileName == NULL)
-      fprintf(stderr, "ERROR: no output scoreFile (-S) supplied.\n");
 
     exit(1);
   }
@@ -182,6 +176,6 @@ main(int argc, char **argv) {
   if (scoreFile)
     fclose(scoreFile);
 
-  fprintf(stdout, "%.3f\n",  massCutoff /*median + deviations * 1.4826 * mad*/);
+  fprintf(stdout, "%.3f\n",  massCutoff /* median + deviations * 1.4826 * mad*/);
   exit(0);
 }

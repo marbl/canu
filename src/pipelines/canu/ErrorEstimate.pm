@@ -32,7 +32,7 @@ package canu::ErrorEstimate;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(estimateCorrectedError);
+@EXPORT = qw(estimateKmerError estimateRawError estimateCorrectedError uniqueKmerThreshold);
 
 use strict;
 use POSIX qw(floor);
@@ -43,6 +43,144 @@ use canu::Defaults;
 use canu::Execution;
 use canu::Gatekeeper;
 use canu::HTML;
+
+sub fac($) {
+    my $x = shift @_;
+
+    return 1 if($x == 0);
+    return 1 if($x == 1);
+    return $x * fac($x - 1);
+}
+
+sub poisson_pdf ($$) {
+    my $lambda = shift @_;
+    my $k = shift @_;
+
+    return  ( ( ($lambda ** $k) * exp(-$lambda) ) / fac($k) );
+}
+
+sub uniqueKmerThreshold($$$$) {
+    my $wrk       = shift @_;
+    my $asm       = shift @_;
+    my $merSize   = shift @_;
+    my $loss      = shift @_;
+    my $bin       = getBinDirectory();
+    my $errorRate = estimateRawError($wrk, $asm, "cor", $merSize);
+
+    my $readLength = getNumberOfBasesInStore($wrk, $asm) / getNumberOfReadsInStore ($wrk, $asm);
+    my $effective_coverage = getExpectedCoverage($wrk, $asm) * ( ($readLength - $merSize + 1)/$readLength ) * (1 - $errorRate) ** $merSize;
+
+    my $threshold = 0;
+    my $kMer_loss = poisson_pdf($effective_coverage, 0);
+
+    return 1 if($kMer_loss > $loss); 
+
+    my $keepTrying = 1;
+    while($keepTrying)
+    {
+        $keepTrying = 0;
+        my $p_true_kMers_threshold_p1 = poisson_pdf($effective_coverage, $threshold+1);
+        if(($kMer_loss + $p_true_kMers_threshold_p1) <= $loss)
+        {
+                $threshold++;
+                $kMer_loss += $p_true_kMers_threshold_p1;
+                $keepTrying = 1;
+        }
+   }
+
+   return ($threshold == 0 ? 1 : $threshold);
+}
+
+sub computeSampleSize($$$$) {
+    my $wrk      = shift @_;
+    my $asm      = shift @_;
+    my $percent  = shift @_;
+    my $coverage = shift @_;
+    my $sampleSize = 0;
+
+    my $minSampleSize = 100;
+
+   if (defined($percent)) {
+      $sampleSize = int($percent * getNumberOfReadsInStore ($wrk, $asm))+1;
+   } elsif (defined($coverage)) {
+      $sampleSize = int(($coverage * getGlobal("genomeSize")) / (getNumberOfBasesInStore($wrk, $asm) / getNumberOfReadsInStore ($wrk, $asm))) + 1;
+   }
+
+   return $sampleSize < $minSampleSize ? $minSampleSize : $sampleSize;
+}
+
+sub runMHAP($$$$$$$$$$$$) {
+    my ($wrk, $tag, $numHashes, $minNumMatches, $threshold, $ordSketch, $ordSketchMer, $sampleSize, $hash, $query, $out, $err) = @_;
+
+    my $filterThreshold = getGlobal("${tag}MhapFilterThreshold");
+    my $merSize         = getGlobal("${tag}MhapMerSize");
+    my $javaPath        = getGlobal("java");
+    my $bin             = getBinDirectory();
+
+    print STDERR "--\n";
+    print STDERR "-- PARAMETERS: hashes=$numHashes, minMatches=$minNumMatches, threshold=$threshold\n";
+    print STDERR "--\n";   
+
+    my $cmd  = "$javaPath -d64 -server -Xmx4g -jar $bin/mhap-" . getGlobal("${tag}MhapVersion") . ".jar ";
+    $cmd .= "  --no-self --remove-unique --repeat-weight 0.9 -k $merSize --num-hashes $numHashes --num-min-matches $minNumMatches --ordered-sketch-size $ordSketch --ordered-kmer-size $ordSketchMer  --threshold $threshold --filter-threshold $filterThreshold --num-threads " . getGlobal("${tag}mhapThreads");
+    $cmd .= " -s $hash -q $query  2> /dev/null | awk '{if (\$1 != \$2+$sampleSize) { print \$0}}' | $bin/errorEstimate -d 2 -m 0.985 -S - > $out 2> $err";
+    runCommand($wrk, $cmd);
+}
+
+
+sub estimateRawError($$$$) {
+    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
+    my $wrk     = $WRK;      #  Local work directory
+    my $asm     = shift @_;
+    my $tag     = shift @_;
+    my $merSize = shift @_;
+    my $bin     = getBinDirectory();
+    my $numReads = getNumberOfReadsInStore ($wrk, $asm);
+
+    $wrk = "$wrk/$asm.gkpStore";
+    goto allDone   if (skipStage($WRK, $asm, "errorEstimate") == 1);
+    goto allDone   if (-e "$wrk/raw.estimate.out");
+    goto allDone   if (getGlobal("errorrate") > 0);
+
+    print STDERR "--\n";
+    print STDERR "-- ESTIMATOR (mhap) (raw)\n";
+
+    my ($numHashes, $minNumMatches, $threshold, $ordSketch, $ordSketchMer);
+
+    $numHashes          =  10000;
+    $minNumMatches      =    3;
+    $threshold          =    0.65;
+    $ordSketch          = 10000;
+    $ordSketchMer       = getGlobal("${tag}MhapOrderedMerSize");
+
+    # subsample raw reads
+    my $sampleSize = computeSampleSize($wrk, $asm, 0.01, undef);
+    $sampleSize /= 2;
+    my $cmd = "$bin/gatekeeperDumpFASTQ -G $wrk -nolibname -fasta -r 1-$sampleSize -o - > $wrk/subset.fasta 2> /dev/null";
+    runCommandSilently($wrk, $cmd, 1);
+    my $min = $numReads - $sampleSize + 1;
+    my $cmd = "$bin/gatekeeperDumpFASTQ -G $wrk -nolibname -fasta -r $min-$numReads -o - >> $wrk/subset.fasta 2> /dev/null";
+    runCommandSilently($wrk, $cmd, 1);
+    my $querySize = computeSampleSize($wrk, $asm, undef, 2);
+    my $cmd = "$bin/gatekeeperDumpFASTQ -G $wrk -nolibname -fasta -r 1-$querySize -o - > $wrk/reads.fasta 2> /dev/null";
+    runCommandSilently($wrk, $cmd, 1);
+
+    runMHAP($wrk, $tag, $numHashes, $minNumMatches, $threshold, $ordSketch, $ordSketchMer, $sampleSize*2, "$wrk/subset.fasta", "$wrk/reads.fasta", "$wrk/raw.estimate.out", "$wrk/raw.estimate.err");
+    unlink("$wrk/subset.fasta");
+    unlink("$wrk/reads.fasta");
+
+  allDone:
+    return 0.15 if (! -e "$wrk/raw.estimate.out");
+
+    my $errorRate = 0;
+    open(L, "< $wrk/raw.estimate.out") or caExit("can't open '$wrk/raw.estimate.out' for reading: $!", undef);
+    while (<L>) {
+        $errorRate = sprintf "%.3f", ($_ / 2);
+    }
+    close(L);
+
+    return $errorRate;
+}
 
 #  Map subset of reads to long reads with mhap.
 #  Compute resulting distribution and estimate error rate
@@ -64,7 +202,7 @@ sub estimateCorrectedError ($$$) {
     goto allDone   if (getGlobal("errorrate") > 0);
 
     print STDERR "--\n";
-    print STDERR "-- ESTIMATOR (mhap)  (correction)\n";
+    print STDERR "-- ESTIMATOR (mhap) (correction)\n";
 
     #  Mhap parameters - filterThreshold needs to be a string, else it is printed as 5e-06.
     #
@@ -73,32 +211,26 @@ sub estimateCorrectedError ($$$) {
 
     $numHashes     	=  256;
     $minNumMatches 	=    4;
-    $threshold     	=    0.80;
+    $threshold     	=    0.85;
     $ordSketch     	= 1000;
     $ordSketchMer  	= getGlobal("${tag}MhapOrderedMerSize") + 2;
-    my $filterThreshold = getGlobal("${tag}MhapFilterThreshold");
-    my $merSize         = getGlobal("${tag}MhapMerSize");
-    my $javaPath 	= getGlobal("java");
-
-    print STDERR "--\n";
-    print STDERR "-- PARAMETERS: hashes=$numHashes, minMatches=$minNumMatches, threshold=$threshold\n";
-    print STDERR "--\n";
 
     make_path("$path");
 
     # subsample corrected reads, this assumes the fasta records are on a single line. We take some reads from the top and bottom of file to avoid sampling one library
-    my $sampleSize = 1000;
+    my $sampleSize = computeSampleSize($wrk, $asm, 0.01, undef);
     my $cmd = "gunzip -c $WRK/asm.correctedReads.fasta.gz |head -n $sampleSize > $path/subset.fasta";
     runCommandSilently($path, $cmd, 1);
     my $cmd = "gunzip -c $WRK/asm.correctedReads.fasta.gz |tail -n $sampleSize >> $path/subset.fasta";
     runCommandSilently($path, $cmd, 1);
+    my $querySize =  computeSampleSize($wrk, $asm, undef, 2);
+    my $cmd = "gunzip -c $WRK/asm.correctedReads.fasta.gz |tail -n $querySize >> $path/reads.fasta";
+    runCommandSilently($path, $cmd, 1);
 
     # now compute the overlaps
-    $cmd  = "$javaPath -d64 -server -Xmx4g -jar $bin/mhap-" . getGlobal("${tag}MhapVersion") . ".jar ";
-    $cmd .= "  --weighted -k $merSize --num-hashes $numHashes --num-min-matches $minNumMatches --ordered-sketch-size $ordSketch --ordered-kmer-size $ordSketchMer --ordered-kmer-size $ordSketchMer  --threshold $threshold --filter-threshold $filterThreshold --num-threads " . getGlobal("${tag}mhapThreads");
-    $cmd .= " -s $path/subset.fasta -q $WRK/asm.correctedReads.fasta.gz 2> $path/$asm.mhap.err | $bin/errorEstimate -d 2 -m 0.985 -S - > $path/$asm.estimate.out 2> $path/$asm.estimate.err";
-    runCommand($path, $cmd);
-
+    runMHAP($wrk, $tag, $numHashes, $minNumMatches, $threshold, $ordSketch, $ordSketchMer, $sampleSize, "$path/subset.fasta", "$path/reads.fasta", "$path/$asm.estimate.out", "$path/$asm.estimate.err");
+    unlink("$path/subset.fasta");
+    unlink("$path/reads.fasta");
   allDone:
     return if (! -e "$path/$asm.estimate.out");
 
@@ -113,6 +245,9 @@ sub estimateCorrectedError ($$$) {
     if ($errorRate > 0.13) {
         print STDERR "-- Estimated error rate: " . ($errorRate*100) . "% > " . (0.13 * 100) . "% limit, capping it.\n";
         $errorRate = 0.13;
+    } elsif ($errorRate < 0.005) {
+        print STDERR "-- Estimated error rate: " . ($errorRate*100) . "%, increasing to " . (0.005 * 100). "%.\n";
+        $errorRate = 0.005;
     } else {
        print STDERR "-- Estimated error rate: " . ($errorRate * 100) . "%.\n";
     }
