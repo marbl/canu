@@ -31,6 +31,10 @@
  *      are a 'United States Government Work', and
  *      are released in the public domain
  *
+ *    Sergey Koren beginning on 2016-MAR-11
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
+ *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.
  */
@@ -48,6 +52,7 @@
 #include "AS_BAT_Instrumentation.H"
 #include "AS_BAT_PlaceContains.H"
 
+#include "AS_BAT_MergeUnitigs.H"
 #include "AS_BAT_PopBubbles.H"
 #include "AS_BAT_MarkRepeatReads.H"
 
@@ -424,6 +429,24 @@ main (int argc, char * argv []) {
 #endif
 
   //
+  //  Merge tigs (and detect ciruclar ones too).  Contained reads need to be placed to 'clean up'
+  //  the error rate.  Dovetail alone is too 'clean' for circular to be detected (in ecoli).
+  //
+
+#if 0
+  setLogFile(prefix, "merge");
+
+  computeErrorProfiles(unitigs, prefix, "merge");
+  //reportErrorProfiles(unitigs, prefix, "merge");
+
+  mergeUnitigs(unitigs, deviationGraph, false);
+
+  reportOverlaps(unitigs, prefix, "merge");
+  reportUnitigs(unitigs, prefix, "merge", genomeSize);
+#endif
+
+
+  //
   //  Pop bubbles
   //
 
@@ -435,7 +458,7 @@ main (int argc, char * argv []) {
 
   popBubbles(unitigs,
              deviationBubble);
-             
+
   //checkUnitigMembership(unitigs);
   reportOverlaps(unitigs, prefix, "popBubbles");
   reportUnitigs(unitigs, prefix, "popBubbles", genomeSize);

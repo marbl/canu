@@ -601,7 +601,7 @@ sub configureAssembler () {
     #
     #   On drosophila, with 270,000 reads (median len ~17,000bp), this will result in about  50 jobs.
     #   The memory-only limit generated 36 jobs.
-    #   
+    #
     setGlobalIfUndef("redBatchSize",   "5000");
     setGlobalIfUndef("redBatchLength", "");
 

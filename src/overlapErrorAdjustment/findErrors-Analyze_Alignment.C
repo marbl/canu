@@ -19,6 +19,14 @@
  *      are Copyright 2015 Battelle National Biodefense Institute, and
  *      are subject to the BSD 3-Clause License
  *
+ *    Sergey Koren beginning on 2016-MAR-22
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
+ *
+ *    Brian P. Walenz beginning on 2016-MAY-18
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
+ *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.
  */
@@ -88,7 +96,6 @@ Matching_Vote(char ch) {
 //   a_offset  bytes in from the start of the a sequence in  G->reads[sub] .
 //   a_len  and  b_len  are the lengths of the prefixes of  a_part  and
 //   b_part , resp., that align.
-
 
 void
 Analyze_Alignment(Thread_Work_Area_t *wa,
@@ -215,7 +222,19 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
 
 
   //  For each identified change, add votes for some region around the change.
-
+  //
+  //  This is adding extra votes if the distance between two errors is larger than a kmer.
+  //  Not sure why there are no 'matching bases' in this region.
+  //
+  //  X == changes, mismatch or indel
+  //
+  //                          ------- <- confirmed count added
+  //                          -----   <- no_insert count added
+  //  matching-bases} X 1 2 3 1 2 3 4 3 2 1 X {matching-bases
+  //                    -----         -----
+  //                    match         match
+  //                    votes         votes
+  //
 
   for (int32 i=1; i<=ct; i++) {
     int32  prev_match = wa->globalvote[i].align_sub - wa->globalvote[i - 1].align_sub - 1;

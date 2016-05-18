@@ -13,13 +13,9 @@
  *  Canu branched from Celera Assembler at its revision 4587.
  *  Canu branched from the kmer project at its revision 1994.
  *
- *  This file is derived from:
- *
- *    bogart/AS_BAT_BreakRepeats.H
- *
  *  Modifications by:
  *
- *    Brian P. Walenz beginning on 2016-APR-13
+ *    Brian P. Walenz beginning on 2016-MAY-17
  *      are a 'United States Government Work', and
  *      are released in the public domain
  *
@@ -27,9 +23,13 @@
  *  full conditions and disclaimers for each license.
  */
 
-#ifndef INCLUDE_AS_BAT_PROMOTE_TO_SINGLETON
+#ifndef INCLUDE_AS_BAT_MERGE_UNITIGS
+#define INCLUDE_AS_BAT_MERGE_UNITIGS
+
 
 void
-promoteToSingleton(UnitigVector &unitigs);
+mergeUnitigs(UnitigVector &unitigs,
+             double        deviation,
+             bool          findCircularTigs);
 
-#endif  //  INCLUDE_AS_BAT_PROMOTE_TO_SINGLETON
+#endif  //  INCLUDE_AS_BAT_MERGE_UNITIGS

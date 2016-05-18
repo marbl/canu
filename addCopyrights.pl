@@ -217,7 +217,7 @@ my %derived;
 #  Process each file.
 
 open(FIN, "find kmer src -type f -print |") or die "Failed to launch 'find'\n";
-open(OUT, "> addCopyrights.dat.new") or die "Failed to open 'addCopyrights.dat.new' for writing: $!\n";
+#open(OUT, "> addCopyrights.dat.new") or die "Failed to open 'addCopyrights.dat.new' for writing: $!\n";
 
 while (<FIN>) {
     chomp;
