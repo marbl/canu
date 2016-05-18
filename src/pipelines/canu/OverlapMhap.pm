@@ -358,7 +358,8 @@ sub mhapConfigure ($$$$) {
     print F "\n";
     print F "$javaPath -d64 -server -Xmx", getGlobal("${tag}mhapMemory"), "g \\\n";
     print F "  -jar " . ($^O eq "cygwin" ? "\$(cygpath -w " : "") . "\$bin/mhap-" . getGlobal("${tag}MhapVersion") . ".jar " . ($^O eq "cygwin" ? ")" : "") . "\\\n";
-    print F "  --weighted -k $merSize \\\n";
+    print F "  --repeat-weight 0.9 -k $merSize \\\n";
+    print F "    --remove-unique \\\n"  if (defined(getGlobal("${tag}MhapFilterUnique")));
     print F "  --num-hashes $numHashes \\\n";
     print F "  --num-min-matches $minNumMatches \\\n";
     print F "  --ordered-sketch-size $ordSketch \\\n";
@@ -366,7 +367,7 @@ sub mhapConfigure ($$$$) {
     print F "  --threshold $threshold \\\n";
     print F "  --filter-threshold $filterThreshold \\\n";
     print F "  --num-threads ", getGlobal("${tag}mhapThreads"), " \\\n";
-    print F "  -f " . ($^O eq "cygwin" ? "\$(cygpath -w " : "") . "$wrk/0-mercounts/$asm.ms$merSize.frequentMers.ignore" . ($^O eq "cygwin" ? ") " : "") . "\\\n"   if (-e "$wrk/0-mercounts/$asm.ms$merSize.frequentMers.ignore");
+    print F "  -f " . ($^O eq "cygwin" ? "\$(cygpath -w " : "") . "$wrk/0-mercounts/$asm.ms$merSize.frequentMers.ignore.gz" . ($^O eq "cygwin" ? ") " : "") . "\\\n"   if (-e "$wrk/0-mercounts/$asm.ms$merSize.frequentMers.ignore.gz");
     print F "  -p " . ($^O eq "cygwin" ? "\$(cygpath -w " : "") . "$path/blocks/\$job.fasta" .  ($^O eq "cygwin" ? ") " : "") . "\\\n";
     print F "  -q " . ($^O eq "cygwin" ? "\$(cygpath -w " : "") . "$path/blocks" .($^O eq "cygwin" ? ") " : "") . "\\\n";
     print F "|| \\\n";
@@ -433,7 +434,8 @@ sub mhapConfigure ($$$$) {
     print F "if [ ! -e \"$path/results/\$qry.mhap\" ] ; then\n";
     print F "  $javaPath -d64 -server -Xmx", getGlobal("${tag}mhapMemory"), "g \\\n";
     print F "    -jar " . ($^O eq "cygwin" ? "\$(cygpath -w " : "") . "\$bin/mhap-" . getGlobal("${tag}MhapVersion") . ".jar " . ($^O eq "cygwin" ? ")" : "") . "\\\n";
-    print F "    --weighted -k $merSize \\\n";
+    print F "    --repeat-weight 0.9 -k $merSize \\\n";
+    print F "    --remove-unique \\\n"  if (defined(getGlobal("${tag}MhapFilterUnique")));
     print F "    --num-hashes $numHashes \\\n";
     print F "    --num-min-matches $minNumMatches \\\n";
     print F "    --threshold $threshold \\\n";
@@ -441,7 +443,7 @@ sub mhapConfigure ($$$$) {
     print F "    --ordered-sketch-size $ordSketch \\\n";
     print F "    --ordered-kmer-size $ordSketchMer \\\n";
     print F "    --num-threads ", getGlobal("${tag}mhapThreads"), " \\\n";
-    print F "    -f " . ($^O eq "cygwin" ? "\$(cygpath -w " : "") . "$wrk/0-mercounts/$asm.ms$merSize.frequentMers.ignore" .  ($^O eq "cygwin" ? ")" : "") . "\\\n"   if (-e "$wrk/0-mercounts/$asm.ms$merSize.frequentMers.ignore");
+    print F "    -f " . ($^O eq "cygwin" ? "\$(cygpath -w " : "") . "$wrk/0-mercounts/$asm.ms$merSize.frequentMers.ignore.gz" .  ($^O eq "cygwin" ? ")" : "") . "\\\n"   if (-e "$wrk/0-mercounts/$asm.ms$merSize.frequentMers.ignore.gz");
     print F "    -s " . ($^O eq "cygwin" ? "\$(cygpath -w " : "") . "$path/blocks/\$blk.dat \$slf" .  ($^O eq "cygwin" ? ")" : "") . "\\\n";
     print F "    -q " . ($^O eq "cygwin" ? "\$(cygpath -w " : "") . "$path/queries/\$qry" . ($^O eq "cygwin" ? ")" : "") . "\\\n";
     print F "  > $path/results/\$qry.mhap.WORKING \\\n";

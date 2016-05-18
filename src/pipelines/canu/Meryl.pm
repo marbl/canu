@@ -48,9 +48,9 @@ use File::Path qw(make_path);
 
 use canu::Defaults;
 use canu::Execution;
+use canu::Gatekeeper;
+use canu::ErrorEstimate;
 use canu::HTML;
-
-
 
 sub getGenomeCoverage($$$) {
     my $wrk     = shift @_;
@@ -206,8 +206,8 @@ sub merylParameters ($$$) {
         $merDistinct  = undef;
         $merTotal     = undef;
 
-        $ffile = "$wrk/0-mercounts/$asm.ms$merSize.frequentMers.ignore";  #  The mhap-specific file we should be creating (ends in IGNORE).
-        $ofile = "$wrk/0-mercounts/$asm.ms$merSize";                      #  The meryl database 'intermediate file'.
+        $ffile = "$wrk/0-mercounts/$asm.ms$merSize.frequentMers.ignore.gz";  #  The mhap-specific file we should be creating (ends in IGNORE).
+        $ofile = "$wrk/0-mercounts/$asm.ms$merSize";                         #  The meryl database 'intermediate file'.
 
     } elsif (getGlobal("${tag}Overlapper") eq "minimap") {
         # do nothing
@@ -512,14 +512,30 @@ sub merylProcess ($$$) {
             }
         }
         close(F);
-
         caFailure("didn't find any mers?", "$ofile.histogram.info")  if ($totalMers == 0);
 
         my $filterThreshold = (getGlobal("${tag}MhapSensitivity") eq "normal") ?   getGlobal("${tag}MhapFilterThreshold") :   getGlobal("${tag}MhapFilterThreshold");  #  Also set in Meryl.pm
-        my $minCount        = int($filterThreshold * $totalMers);
+
+        my $misRate  = 0.1;
+        my $minCount = defined(getGlobal("${tag}MhapFilterUnique")) ? uniqueKmerThreshold($wrk, $asm, $merSize, $misRate)+1 : int($filterThreshold * $totalMers);
+        my $totalToOutput = 0;
+        my $totalFiltered = 0;
+        open(F, "< $ofile.histogram") or die "Failed to open '$ofile.histogram' for reading: $!\n";
+        while (<F>) {
+           my ($kCount, $occurences, $cumsum, $faction) = split '\s+', $_;
+           if ($kCount < $minCount) {
+              $totalFiltered = $cumsum * 100;
+           }
+           if ($kCount >= $minCount) {
+              $totalToOutput += $occurences;
+           }
+        }
+        close(F);
+        $totalToOutput *= 2; # for the reverse complement
 
         open(F, "$bin/meryl -Dt -n $minCount -s $ofile | ")  or die "Failed to run meryl to generate frequent mers $!\n";
-        open(O, "> $ofile.frequentMers.ignore")              or die "Failed to open '$ofile.frequentMers.mhap_ignore' for writing: $!\n";
+        open(O, "| gzip -c > $ofile.frequentMers.ignore.gz")              or die "Failed to open '$ofile.frequentMers.ignore.gz' for writing: $!\n";
+        printf(O "%d\n", $totalToOutput);
 
         while (!eof(F)) {
             my $h = <F>;
@@ -529,13 +545,18 @@ sub merylProcess ($$$) {
             $r =~ tr/ACGTacgt/TGCAtgca/;
 
             if ($h =~ m/^>(\d+)/) {
-                printf(O "%s\t%.16f\t$1\t$totalMers\n", $m, $1 / $totalMers);
-                printf(O "%s\t%.16f\t$1\t$totalMers\n", $r, $1 / $totalMers);
+                printf(O "%s\t%e\n", $m, $1 / $totalMers);
+                printf(O "%s\t%e\n", $r, $1 / $totalMers);
             }
         }
 
         close(O);
         close(F);
+
+        if (defined(getGlobal("${tag}MhapFilterUnique"))) {
+           printf STDERR "-- For %s overlapping, filtering low-occurence k-mers < %d (%.2f\%) based on estimated error of %.2f\%.\n", getGlobal("${tag}Overlapper"), $minCount, $totalFiltered, 100*estimateRawError($wrk, $asm, $tag, $merSize);
+        }
+        printf STDERR "-- For %s overlapping, set repeat k-mer threshold to %d.\n", getGlobal("${tag}Overlapper"), int($filterThreshold * $totalMers);
     }
 
     #  Report the new threshold.
