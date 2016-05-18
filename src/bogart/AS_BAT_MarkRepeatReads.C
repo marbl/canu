@@ -397,7 +397,7 @@ annotateRepeatsOnRead(UnitigVector          &unitigs,
 
   //  All overlaps processed.  Save to the master list.
 
-#pragma omp critical (repeatsPushBack)     
+#pragma omp critical (repeatsPushBack)
   for (uint32 rr=0; rr<readOlaps.size(); rr++)
     repeats.push_back(readOlaps[rr]);
 }
@@ -759,7 +759,7 @@ markRepeatReads(UnitigVector &unitigs,
 
           tig5bgn = (rdAfwd) ? (rdAlo + sc * bgn) : (rdAhi - sc * end);
           tig5end = (rdAfwd) ? (rdAlo + sc * end) : (rdAhi - sc * bgn);
-        
+
           assert(tig5bgn < tig5end);
 
           if (tig5bgn < 0)                  tig5bgn = 0;
@@ -973,7 +973,7 @@ markRepeatReads(UnitigVector &unitigs,
     //  to be spanned, the read must span from min-ROM to max+ROM, not just hi(ri-1) to lo(ri).
     //
     //  We DO need to filterShort() after every merge, otherwise, we'd have an empty bogus interval
-    //  in the middle of our list, which could be preventing some other merge.  OK, we could 
+    //  in the middle of our list, which could be preventing some other merge.  OK, we could
     //
     //  Anything that gets merged is now no longer a true repeat.  It's unique, just bordered by repeats.
     //  We can't track this through the indices (because we delete things).  We track it with a set of

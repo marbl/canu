@@ -217,7 +217,7 @@ public:
     double          mean;
     double          stddev;
   };
-  
+
 
   void   computeArrivalRate(const char *prefix,
                             const char *label,

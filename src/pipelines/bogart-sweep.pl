@@ -107,7 +107,7 @@ foreach my $cs (@CS) {
     print F "    -D $d \\\n"  if (length($d) > 0);
     print F "  > bogart.err 2>& 1\n";
     print F "fi\n";
-    print F "\n"; 
+    print F "\n";
     close(F);
 
     open(F, "> $wrk/$path/utgcns.sh") or die "can't open '$wrk/$path/utgcns.sh' for writing: $!\n";

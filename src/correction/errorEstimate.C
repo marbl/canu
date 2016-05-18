@@ -74,7 +74,7 @@ main(int argc, char **argv) {
 
   while (fgets(ovStr, 1024, scoreFile) != NULL) {
       splitToWords  W(ovStr);
- 
+
       if (isOvl) {
          ov.a_iid = W(0);
          ov.b_iid = W(1);
@@ -85,10 +85,10 @@ main(int argc, char **argv) {
          ov.dat.ovl.bhg5 = W(6);
          ov.dat.ovl.bhg3 = W(7);
          ov.span(W(3));
-         ov.erate(atof(W[8])); 
-         ov.flipped(W[3][0] == 'I' ? true : false); 
+         ov.erate(atof(W[8]));
+         ov.flipped(W[3][0] == 'I' ? true : false);
 
-      } else { 
+      } else {
          ov.a_iid = W(0);
          ov.b_iid = W(1);
 
@@ -119,7 +119,7 @@ main(int argc, char **argv) {
       if (readToLength.find(ov.b_iid) == readToLength.end() || readToLength[ov.b_iid] < ov.span()) {
          readToLength[ov.b_iid] = ov.span();
          readToIdy[ov.b_iid] = ov.erate();
-      } 
+      }
   }
   fclose(scoreFile);
 
@@ -128,7 +128,7 @@ main(int argc, char **argv) {
   //  Find the overlap for every best edge.
 
   double  *absdev    = new double [readToLength.size() + 1];
-  double  *erates    = new double [readToLength.size() + 1]; 
+  double  *erates    = new double [readToLength.size() + 1];
   uint32   eratesLen = 0;
 
 
@@ -151,7 +151,7 @@ main(int argc, char **argv) {
   uint32 totalBelow = 0;
   for (uint32 ii=0; ii<eratesLen/2; ii++) {
     absdev[ii] = median - erates[ii];
-    if ((double)totalBelow / eratesLen < mass) { 
+    if ((double)totalBelow / eratesLen < mass) {
        massCutoff = erates[ii];
        totalBelow++;
     }
