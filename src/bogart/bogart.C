@@ -31,6 +31,10 @@
  *      are a 'United States Government Work', and
  *      are released in the public domain
  *
+ *    Sergey Koren beginning on 2016-MAR-11
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
+ *
  *  File 'README.licenses' in the root directory of this distribution contains
  *  full conditions and disclaimers for each license.
  */
@@ -454,7 +458,7 @@ main (int argc, char * argv []) {
 
   popBubbles(unitigs,
              deviationBubble);
-             
+
   //checkUnitigMembership(unitigs);
   reportOverlaps(unitigs, prefix, "popBubbles");
   reportUnitigs(unitigs, prefix, "popBubbles", genomeSize);
