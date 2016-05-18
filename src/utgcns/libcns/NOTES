@@ -1,0 +1,38 @@
+
+
+BeadLinks
+
+(prev/this/next)  M=max
+
+#0 <-->  0/0/0  <-->  0/0/0  <-->
+#1 <\    M/1/1  <-->  1/1/1  <-->
+#2 <\\>  1/2/M    />  3/2/2  <-->
+#3   \>  2/3/2  </
+
+
+
+
+ApplyAbacus
+
+RightShift
+  col = end
+  while colCount < windowWidth
+    getBase in abacus()
+
+    if base == n
+      move up
+      unalign trailing gap beads
+    else if
+      base != bead
+      "look for matching beat and exchange, adding gap beads if needed"
+
+UnalignTrailingGapBeads
+  move bead right while gap
+  if hit end, move bead left while gap
+  while bead != anchor
+    remove bead
+    if no next
+      goto prevBead
+    else
+      goto nextBead
+
