@@ -22,10 +22,16 @@ if (! -e "logs") {
     system("git log --name-status > logs");
 }
 
+#  Update this after each copyright update commit, please.  Best method is to commit
+#  the copyright changes -- none of the addCopyrights files, -- update this file and
+#  Then commit the addCopyrights files.
+
 my %stoppingCommits;
 
-$stoppingCommits{"6950cb74e302a97673a5ba482b3b8992eea72c37"} = 1;   #  Initial copyright addition.
-$stoppingCommits{"72c27c95d61cb8f37e859c4039456eb2acc5c55b"} = 1;   #  Second copyright addition.
+$stoppingCommits{"6950cb74e302a97673a5ba482b3b8992eea72c37"} = 1;   #  20 AUG 2015 - Initial copyright addition.
+$stoppingCommits{"72c27c95d61cb8f37e859c4039456eb2acc5c55b"} = 1;   #  19 NOV 2015 - Second copyright addition.
+$stoppingCommits{"b2df5790f77d38cc31fe77a7f65360e02389f92e"} = 1;   #  04 MAR 2016
+$stoppingCommits{"1ef335952342ef06ad1651a888f09c312f54dab8"} = 1;   #  18 MAY 2016
 
 open(F, "< logs") or die "Failed to open 'logs': $!\n";
 
