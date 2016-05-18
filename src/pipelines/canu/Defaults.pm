@@ -568,7 +568,7 @@ sub setErrorRate ($@) {
 
     #  Removed, is usually set in CorrectReads, can be set from command line directly.
     #setGlobal("corErrorRate",       $er * 10);  #  Erorr rate used for raw sequence alignment/consensus
-    setGlobal("cnsErrorRate",       $er * 2.5);
+    setGlobal("cnsErrorRate",       $er * 3);
 
     showErrorRates("--  ")  if (defined($verbose));
 }
@@ -619,11 +619,14 @@ sub setOverlapDefaults ($$$) {
 
     #  Mhap parameters.
 
-    $global{"${tag}MhapVersion"}              = "2.0";
+    $global{"${tag}MhapVersion"}              = "2.1";
     $synops{"${tag}MhapVersion"}              = "Version of the MHAP jar file to use";
 
     $global{"${tag}MhapFilterThreshold"}      = "0.000005";
     $synops{"${tag}MhapFilterThreshold"}      = "Value between 0 and 1. kmers which comprise more than this percentage of the input are downweighted";
+
+    $global{"${tag}MhapFilterUnique"}         = undef;
+    $synops{"${tag}MhapFilterUnique"}         = "Expert option: True or false, truncate the low-frequency k-mer distribution based on them being likely noise and not true overlaps. Threshold auto-computed based on error rate, genome size, and coverage.";
 
     $global{"${tag}MhapBlockSize"}            = 3000;
     $synops{"${tag}MhapBlockSize"}            = "Number of reads per 1GB; memory * blockSize = the size of  block loaded into memory per job";
