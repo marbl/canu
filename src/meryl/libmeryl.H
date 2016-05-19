@@ -80,7 +80,6 @@ public:
 
   uint64          histogram(uint32 i)         { return((i < _histogramLen) ? _histogram[i] : ~uint64ZERO); };
   uint64          histogramLength(void)       { return(_histogramLen); };
-  uint64          histogramHuge(void)         { return(_histogramHuge); };
   uint64          histogramMaximumCount(void) { return(_histogramMaxValue); };
 
   bool            nextMer(void);
@@ -139,7 +138,7 @@ private:
   uint64                 _numDistinct;
   uint64                 _numTotal;
 
-  uint64                 _histogramHuge;       // number that are bigger than Len
+  uint64                 _histogramPos;        // position of the histogram data in IDX
   uint64                 _histogramLen;        // number of entries in the histo
   uint64                 _histogramMaxValue;   // highest count ever seen
   uint64                *_histogram;
@@ -207,8 +206,8 @@ private:
   uint64                 _numDistinct;
   uint64                 _numTotal;
 
-  uint64                 _histogramHuge;       // number that are bigger than Len
-  uint64                 _histogramLen;        // number of entries in the histo
+  uint64                 _histogramPos;        // position of the histogram data in IDX
+  uint64                 _histogramLen;        // number of entries in the histogram
   uint64                 _histogramMaxValue;   // highest count ever seen
   uint64                *_histogram;
 
