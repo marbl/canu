@@ -133,8 +133,8 @@ plotHistogram(merylArgs *args) {
   fprintf(stderr, "Found "F_U64" distinct mers.\n", M->numberOfDistinctMers());
   fprintf(stderr, "Found "F_U64" unique mers.\n",   M->numberOfUniqueMers());
 
-  fprintf(stderr, "Largest mercount is "F_U64"; "F_U64" mers are too big for histogram.\n",
-          M->histogramMaximumCount(), M->histogramHuge());
+  fprintf(stderr, "Largest mercount is "F_U64".\n",
+          M->histogramMaximumCount());
 
   for (uint32 i=1; i<M->histogramLength(); i++) {
     uint64 hist = M->histogram(i);

@@ -26,9 +26,6 @@
 #include "fastaFile.H"
 #include "dnaAlphabets.H"
 
-#undef DEBUG
-#undef DEBUGINDEX
-
 //  Says 'kmerFastaFileIdx'
 #define FASTA_MAGICNUMBER1  0x7473614672656d6bULL
 #define FASTA_MAGICNUMBER2  0x786449656c694661ULL

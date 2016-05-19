@@ -72,6 +72,8 @@ fastaStdin::openFile(const char *filename) {
   if (filename == 0L)
     return(0L);
 
+  //  The stdin variants also handle compressed inputs (because we can't seek in these).
+
   uint32       fl   = strlen(filename);
   char         cmd[32 + fl];
 
@@ -103,7 +105,7 @@ fastaStdin::getNumberOfSequences(void) {
 
 uint32
 fastaStdin::find(const char *sequencename) {
-  fprintf(stderr, "fastaStdin::find()-- ERROR!  Used for random access.\n");
+  fprintf(stderr, "fastaStdin::find()-- ERROR!  Used for random access on sequence '%s'.\n", sequencename);
   assert(0);
   return(~uint32ZERO);
 }
@@ -135,7 +137,7 @@ fastaStdin::getSequence(uint32 iid,
   bool  ret = true;
 
 #ifdef DEBUG
-  fprintf(stderr, "fastaStdin::getSequence(full)-- "uint32FMT"\n", iid);
+  fprintf(stderr, "fastaStdin::getSequence(full)-- "F_U32"\n", iid);
 #endif
 
   if (iid == _nextIID)
@@ -173,12 +175,10 @@ fastaStdin::getSequence(uint32 iid,
 
 bool
 fastaStdin::getSequence(uint32 iid,
-                        uint32 bgn, uint32 end, char *s) {
+                        uint32 bgn, uint32 end, char *UNUSED(s)) {
 
-#ifdef DEBUG
-  fprintf(stderr, "fastaStdin::getSequence(part)-- "uint32FMT"\n", iid);
-#endif
-  fprintf(stderr, "fastaStdin::getSequence(part)-- ERROR!  Used for random access.\n");
+  fprintf(stderr, "fastaStdin::getSequence(part)-- ERROR!  Used for random access on sequence %u bgn %u end %u.\n",
+          iid, bgn, end);
   assert(0);
   return(false);
 }

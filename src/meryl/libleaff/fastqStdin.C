@@ -73,6 +73,8 @@ fastqStdin::openFile(const char *filename) {
       ((filename != 0L) && (filename[0] == '-') && (filename[1] == 0)))
     return(new fastqStdin(0L));
 
+  //  The stdin variants also handle compressed inputs (because we can't seek in these).
+
   if (filename == 0L)
     return(0L);
 
@@ -139,7 +141,7 @@ fastqStdin::getSequence(uint32 iid,
   bool  ret = true;
 
 #ifdef DEBUG
-  fprintf(stderr, "fastqStdin::getSequence(full)-- "uint32FMT"\n", iid);
+  fprintf(stderr, "fastqStdin::getSequence(full)-- "F_U32"\n", iid);
 #endif
 
   if (iid == _nextIID)
@@ -179,9 +181,6 @@ bool
 fastqStdin::getSequence(uint32 iid,
                         uint32 bgn, uint32 end, char *s) {
 
-#ifdef DEBUG
-  fprintf(stderr, "fastqStdin::getSequence(part)-- "uint32FMT"\n", iid);
-#endif
   fprintf(stderr, "fastqStdin::getSequence(part)-- ERROR!  Used for random access on iid "F_U32" from position "F_U32"-"F_U32".\n", iid, bgn, end);
   assert(0);
   return(false);

@@ -30,6 +30,8 @@
 #ifndef SEQFILE_H
 #define SEQFILE_H
 
+#undef DEBUG
+
 #include "AS_global.H"
 #include "readBuffer.H"
 

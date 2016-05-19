@@ -46,15 +46,18 @@
 #include "libmeryl.H"
 
 #include "AS_UTL_fileIO.H"
+#include "AS_UTL_alloc.H"
 
-#define LIBMERYL_HISTOGRAM_MAX  1048576
+
+//  Version 3 ??
+//  Version 4 removed _histogramHuge, dynamically sizing it on write.
 
 //                      0123456789012345
-static char *ImagicV = "merylStreamIv03\n";
+static char *ImagicV = "merylStreamIv04\n";
 static char *ImagicX = "merylStreamIvXX\n";
-static char *DmagicV = "merylStreamDv03\n";
+static char *DmagicV = "merylStreamDv04\n";
 static char *DmagicX = "merylStreamDvXX\n";
-static char *PmagicV = "merylStreamPv03\n";
+static char *PmagicV = "merylStreamPv04\n";
 static char *PmagicX = "merylStreamPvXX\n";
 
 merylStreamReader::merylStreamReader(const char *fn_, uint32 ms_) {
@@ -150,15 +153,19 @@ merylStreamReader::merylStreamReader(const char *fn_, uint32 ms_) {
   _numDistinct    = _IDX->getBits(64);
   _numTotal       = _IDX->getBits(64);
 
-  _histogramHuge     = 0;
+  _histogramPos      = 0;
   _histogramLen      = 0;
   _histogramMaxValue = 0;
   _histogram         = 0L;
 
   uint32 version = atoi(Imagic + 13);
 
-  if (version > 1) {
-    _histogramHuge     = _IDX->getBits(64);
+  //  Versions earlier than four used a fixed-size histogram, stored at the start
+  //  of the index.
+
+  if (version < 4) {
+    _histogramPos      = _IDX->tell();
+    _histogramLen      = _IDX->getBits(64);  //  Previous _histogramHuge, now unused
     _histogramLen      = _IDX->getBits(64);
     _histogramMaxValue = _IDX->getBits(64);
     _histogram         = new uint64 [_histogramLen];
@@ -166,6 +173,26 @@ merylStreamReader::merylStreamReader(const char *fn_, uint32 ms_) {
     for (uint32 i=0; i<_histogramLen; i++)
       _histogram[i] = _IDX->getBits(64);
   }
+
+  //  Version 4 switched to a dynamically sized histogram, stored at the end
+  //  of the index.
+
+  else {
+    _histogramPos      = _IDX->getBits(64);
+    _histogramLen      = _IDX->getBits(64);
+    _histogramMaxValue = _IDX->getBits(64);
+    _histogram         = new uint64 [_histogramLen];
+
+    uint64  position = _IDX->tell();
+
+    _IDX->seek(_histogramPos);
+
+    for (uint32 i=0; i<_histogramLen; i++)
+      _histogram[i] = _IDX->getBits(64);
+
+    _IDX->seek(position);
+  }
+
 
   _thisBucket     = uint64ZERO;
   _thisBucketSize = getIDXnumber();
@@ -281,13 +308,6 @@ merylStreamWriter::merylStreamWriter(const char *fn_,
 
   delete [] outpath;
 
-  //  Save really important stuff
-
-  //  unpacked --> write 0.42M mers/sec on 8 threads, merge 3.3M mers/sec
-  //  packed   --> write 0.77M mers/sec on 8 threads, merge 3.9M mers/sec
-  //
-  //  This sucks.
-  //
   _idxIsPacked    = 1;
   _datIsPacked    = 1;
   _posIsPacked    = 0;
@@ -305,6 +325,14 @@ merylStreamWriter::merylStreamWriter(const char *fn_,
   _numDistinct    = uint64ZERO;
   _numTotal       = uint64ZERO;
 
+  _histogramPos      = 0;
+  _histogramLen      = 1024;
+  _histogramMaxValue = 0;
+  _histogram         = new uint64 [_histogramLen];
+
+  for (uint32 i=0; i<_histogramLen; i++)
+    _histogram[i] = 0;
+
   _thisMerIsBits  = false;
   _thisMerIskMer  = false;
 
@@ -318,6 +346,8 @@ merylStreamWriter::merylStreamWriter(const char *fn_,
   _thisMerMerSize = 2 * merSize - prefixSize;
 
   _thisMerCount   = uint64ZERO;
+
+  //  Initialize the index file.
 
   for (uint32 i=0; i<16; i++)
     _IDX->putBits(ImagicX[i], 8);
@@ -333,22 +363,16 @@ merylStreamWriter::merylStreamWriter(const char *fn_,
   _IDX->putBits(_numDistinct, 64);
   _IDX->putBits(_numTotal,    64);
 
-  _histogramHuge     = 0;
-  _histogramLen      = LIBMERYL_HISTOGRAM_MAX;
-  _histogramMaxValue = 0;
-  _histogram         = new uint64 [_histogramLen];
+  _IDX->putBits(0, 64);        //  Offset to the histogram
+  _IDX->putBits(0, 64);        //  Length of the histogram data
+  _IDX->putBits(0, 64);        //  Max value seen in the histogram
 
-  for (uint32 i=0; i<_histogramLen; i++)
-    _histogram[i] = 0;
-
-  _IDX->putBits(_histogramHuge, 64);
-  _IDX->putBits(_histogramLen, 64);
-  _IDX->putBits(_histogramMaxValue, 64);
-  for (uint32 i=0; i<_histogramLen; i++)
-    _IDX->putBits(_histogram[i], 64);
+  //  Initialize the data file.
 
   for (uint32 i=0; i<16; i++)
     _DAT->putBits(DmagicX[i], 8);
+
+  //  Initialize the positions file.
 
   if (_POS)
     for (uint32 i=0; i<16; i++)
@@ -361,17 +385,25 @@ merylStreamWriter::~merylStreamWriter() {
   writeMer();
 
   //  Finish writing the buckets.
-  //
+
   while (_thisBucket < _numBuckets + 2) {
     setIDXnumber(_thisBucketSize);
     _thisBucketSize = 0;
     _thisBucket++;
   }
 
-  //  Seek back to the start and rewrite the magic numbers
-  //
+  //  Save the position of the histogram
+
+  _histogramPos = _IDX->tell();
+
+  //  And write the histogram
+
+  for (uint32 i=0; i<=_histogramMaxValue; i++)
+    _IDX->putBits(_histogram[i], 64);
+
+  //  Seek back to the start and rewrite the magic numbers.
+
   _IDX->seek(0);
-  _DAT->seek(0);
 
   for (uint32 i=0; i<16; i++)
     _IDX->putBits(ImagicV[i], 8);
@@ -387,24 +419,34 @@ merylStreamWriter::~merylStreamWriter() {
   _IDX->putBits(_numDistinct, 64);
   _IDX->putBits(_numTotal,    64);
 
-  _IDX->putBits(_histogramHuge, 64);
-  _IDX->putBits(_histogramLen, 64);
-  _IDX->putBits(_histogramMaxValue, 64);
-  for (uint32 i=0; i<_histogramLen; i++)
-    _IDX->putBits(_histogram[i], 64);
-  delete _IDX;
+  _IDX->putBits(_histogramPos,        64);
+  _IDX->putBits(_histogramMaxValue+1, 64);  //  The length of the data (includes 0)
+  _IDX->putBits(_histogramMaxValue,   64);  //  The maximum value of the data
 
+  delete    _IDX;
   delete [] _histogram;
+
+  //  Seek back to the start of the data and rewrite the magic numbers.
+
+  _DAT->seek(0);
 
   for (uint32 i=0; i<16; i++)
     _DAT->putBits(DmagicV[i], 8);
+
   delete _DAT;
 
+  //  Seek back to the start of the positions and rewrite the magic numbers.
+
   if (_POS) {
+    _POS->seek(0);
+
     for (uint32 i=0; i<16; i++)
       _POS->putBits(PmagicV[i], 8);
-    delete _POS;
   }
+
+  delete _POS;
+
+  //  All done!  Rename our temporary outputs to final outputs.
 
   char *outpath = new char [FILENAME_MAX];
   char *finpath = new char [FILENAME_MAX];
@@ -437,10 +479,11 @@ merylStreamWriter::writeMer(void) {
   _numTotal += _thisMerCount;
   _numDistinct++;
 
-  if (_thisMerCount < LIBMERYL_HISTOGRAM_MAX)
-    _histogram[_thisMerCount]++;
-  else
-    _histogramHuge++;
+  if (_thisMerCount >= _histogramLen)
+    resizeArray(_histogram, _histogramMaxValue, _histogramLen, _thisMerCount + 16384);
+
+  _histogram[_thisMerCount]++;
+
   if (_histogramMaxValue < _thisMerCount)
     _histogramMaxValue = _thisMerCount;
 
