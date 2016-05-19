@@ -657,14 +657,23 @@ popBubbles(UnitigVector &unitigs,
 
     writeLog("\n");
 
-    //  End of problem
-
-
     unitigs[bubble->id()] = NULL;
     delete bubble;
-  }
+  }  //  Over all bubbles
 
   writeLog("\n");   //  Needed if no bubbles are popped.
 
   delete [] placed;
+
+  //  Sort reads in all the tigs.  Overkill, but correct.
+
+  for (uint32 ti=0; ti<tiLimit; ti++) {
+    Unitig  *tig = unitigs[ti];
+
+    if ((tig == NULL) ||               //  Not a tig, ignore it.
+        (tig->ufpath.size() == 1))     //  Singleton, already sorted.
+      continue;
+
+    tig->sort();
+  }
 }
