@@ -25,9 +25,6 @@
 
 #include "seqCache.H"
 #include "seqFactory.H"
-//#include "alphabet.h"
-
-#undef DEBUG
 
 
 seqCache::seqCache(const char *filename, uint32 cachesize, bool verbose) {
