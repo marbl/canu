@@ -162,6 +162,7 @@ SUBMAKEFILES := stores/gatekeeperCreate.mk \
                 overlapBasedTrimming/splitReads.mk \
                 \
                 overlapErrorAdjustment/findErrors.mk \
+                overlapErrorAdjustment/findErrors-Dump.mk \
                 overlapErrorAdjustment/correctOverlaps.mk \
                 \
                 bogart/bogart.mk \
