@@ -413,6 +413,10 @@ main(int argc, char **argv) {
     arg++;
   }
 
+  if (G->gkpStorePath == NULL)
+    err++;
+  if (G->ovlStorePath == NULL)
+    err++;
   if (G->numThreads == 0)
     err++;
 
@@ -442,6 +446,10 @@ main(int argc, char **argv) {
     fprintf(stderr, "-V   specify number of exact match bases around an error to vote to change\n");
     fprintf(stderr, "-x   length of end of exact match to exclude in preventing change\n");
 
+    if (G->gkpStorePath == NULL)
+      fprintf(stderr, "ERROR: no gatekeeper store (-G) supplied.\n");
+    if (G->ovlStorePath == NULL)
+      fprintf(stderr, "ERROR: no overlap store (-O) supplied.\n");
     if (G->numThreads == 0)
       fprintf(stderr, "ERROR: number of compute threads (-t) must be larger than zero.\n");
 
