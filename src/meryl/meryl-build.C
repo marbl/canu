@@ -394,43 +394,12 @@ runSegment(merylArgs *args, uint64 segment) {
   delete [] filename;
 
 
-
-  //
-  //  We can do all allocations up front:
-  //    mer data storage (the buckets themselves, plus 64 for slop)
-  //    bucket pointers (plus an extra bucket at the end and a little for slop)
-  //    bucket size counting space, last because we toss it out quickly
-  //
-  if (args->beVerbose)
-    fprintf(stderr, " Allocating "F_U64"MB for mer storage ("F_U32" bits wide).\n",
-            (args->basesPerBatch * args->merDataWidth + 64) >> 23, args->merDataWidth);
-
-  //  Mer storage - if mers are bigger than 32, we allocate full
-  //  words.  The last allocation is always a bitPacked array.
-
-  for (uint64 mword=0, width=args->merDataWidth; width > 0; ) {
-    if (width >= 64) {
-      merDataArray[mword] = new uint64 [ args->basesPerBatch + 1 ];
-      width -= 64;
-      mword++;
-    } else {
-      merDataArray[mword] = new uint64 [ (args->basesPerBatch * width + 64) >> 6 ];
-      width  = 0;
-    }
-  }
-
-  if (args->positionsEnabled) {
-    if (args->beVerbose)
-      fprintf(stderr, " Allocating "F_U64"MB for mer position storage.\n",
-              (args->basesPerBatch * 32 + 32) >> 23);
-    merPosnArray = new uint32 [ args->basesPerBatch + 1 ];
-  }
+  //  Allocate space for bucket pointers and (temporary) bucket sizes.
 
   if (args->beVerbose)
     fprintf(stderr, " Allocating "F_U64"MB for bucket pointer table ("F_U32" bits wide).\n",
             (args->numBuckets * args->bucketPointerWidth + 128) >> 23, args->bucketPointerWidth);
   bucketPointers = new uint64 [(args->numBuckets * args->bucketPointerWidth + 128) >> 6];
-
 
   if (args->beVerbose)
     fprintf(stderr, " Allocating "F_U64"MB for counting the size of each bucket.\n", args->numBuckets >> 18);
@@ -512,10 +481,40 @@ runSegment(merylArgs *args, uint64 segment) {
 
 
   //  All done with the counting table, get rid of it.
-  //
+
   if (args->beVerbose)
     fprintf(stderr, " Releasing "F_U64"MB from counting the size of each bucket.\n", args->numBuckets >> 18);
   delete [] bucketSizes;
+
+
+
+  //  Allocate space for mer storage and (optional) position data.  If mers are bigger than 32, we
+  //  allocate full words.
+
+  if (args->beVerbose)
+    fprintf(stderr, " Allocating "F_U64"MB for mer storage ("F_U32" bits wide).\n",
+            (args->basesPerBatch * args->merDataWidth + 64) >> 23, args->merDataWidth);
+
+  for (uint64 mword=0, width=args->merDataWidth; width > 0; ) {
+    if (width >= 64) {
+      merDataArray[mword] = new uint64 [ args->basesPerBatch + 1 ];
+      width -= 64;
+      mword++;
+    } else {
+      merDataArray[mword] = new uint64 [ (args->basesPerBatch * width + 64) >> 6 ];
+      width  = 0;
+    }
+  }
+
+  //  Position data.
+
+  if (args->positionsEnabled) {
+    if (args->beVerbose)
+      fprintf(stderr, " Allocating "F_U64"MB for mer position storage.\n",
+              (args->basesPerBatch * 32 + 32) >> 23);
+    merPosnArray = new uint32 [ args->basesPerBatch + 1 ];
+  }
+
 
 
   C = new speedCounter(" Filling mers into list:   %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, args->beVerbose);
