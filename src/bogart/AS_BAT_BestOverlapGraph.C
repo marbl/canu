@@ -575,16 +575,18 @@ void
 BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
   char  N[FILENAME_MAX];
   FILE             *BCH = NULL;
-  FILE *BE = NULL, *BEH = NULL;
+  FILE *BE = NULL, *BEH = NULL, *BEG;
   FILE *BS = NULL;
   FILE *SS = NULL;
 
-  sprintf(N, "%s.%s.edges",            prefix, label);   BE = fopen(N, "w");
-  sprintf(N, "%s.%s.singletons",       prefix, label);   BS = fopen(N, "w");
-  sprintf(N, "%s.%s.edges.suspicious", prefix, label);   SS = fopen(N, "w");
+  sprintf(N, "%s.%s.edges",               prefix, label);   BE = fopen(N, "w");
+  sprintf(N, "%s.%s.singletons",          prefix, label);   BS = fopen(N, "w");
+  sprintf(N, "%s.%s.edges.suspicious",    prefix, label);   SS = fopen(N, "w");
 
   sprintf(N, "%s.%s.contains.histogram",  prefix, label);   BCH = fopen(N, "w");
   sprintf(N, "%s.%s.edges.histogram",     prefix, label);   BEH = fopen(N, "w");
+
+  sprintf(N, "%s.%s.edges.gfa",           prefix, label);   BEG = fopen(N, "w");
 
   if ((BE) && (BS)) {
     fprintf(BE, "#fragId\tlibId\tbest5iid\tbest5end\tbest3iid\tbest3end\teRate5\teRate3\tbest5len\tbest3len\n");
@@ -625,6 +627,90 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
     fclose(BS);
     fclose(SS);
   }
+
+
+  if (BEG) {
+    fprintf(BEG, "H\tVN:Z:bogart/edges\n");
+
+    //  First, write the sequences used.
+
+    for (uint32 id=1; id<FI->numFragments() + 1; id++) {
+      BestEdgeOverlap *bestedge5 = getBestEdgeOverlap(id, false);
+      BestEdgeOverlap *bestedge3 = getBestEdgeOverlap(id, true);
+
+      if ((bestedge5->fragId() == 0) && (bestedge3->fragId() == 0) && (isContained(id) == false)) {
+        //  Do nothing, a singleton.
+      }
+
+      else if (isContained(id) == true) {
+        //  Do nothing, a contained read.
+      }
+
+      else if (_suspicious.count(id) > 0) {
+        //  Do nothing, a suspicious read.
+      }
+
+      else {
+        //  Report the read, it has best edges - including contained reads.
+        fprintf(BEG, "S\tread%08u\t*\tLN:i:%u\n", id, FI->fragmentLength(id));
+      }
+    }
+
+    //  Now, report edges.  GFA wants edges in exactly this format:
+    //
+    //       -------------
+    //             -------------
+    //
+    //  with read orientation given by +/-.  Conveniently, this is what we've saved (for the edges).
+
+    for (uint32 id=1; id<FI->numFragments() + 1; id++) {
+      BestEdgeOverlap *bestedge5 = getBestEdgeOverlap(id, false);
+      BestEdgeOverlap *bestedge3 = getBestEdgeOverlap(id, true);
+
+      if ((bestedge5->fragId() == 0) && (bestedge3->fragId() == 0) && (isContained(id) == false)) {
+        //  Do nothing, a singleton.
+      }
+
+      else if (isContained(id) == true) {
+        //  Do nothing, a contained read.
+      }
+
+      else if (_suspicious.count(id) > 0) {
+        //  Do nothing, a suspicious read.
+      }
+
+      else {
+        if (bestedge5->fragId() != 0) {
+          int32  ahang   = bestedge5->ahang();
+          int32  bhang   = bestedge5->bhang();
+          int32  olaplen = FI->overlapLength(id, bestedge5->fragId(), bestedge5->ahang(), bestedge5->bhang());
+
+          assert((ahang <= 0) && (bhang <= 0));  //  ALL 5' edges should be this.
+
+          fprintf(BEG, "L\tread%08u\t-\tread%08u\t%c\t%uM\n",
+                  id,
+                  bestedge5->fragId(), bestedge5->frag3p() ? '-' : '+',
+                  olaplen);
+        }
+
+        if (bestedge3->fragId() != 0) {
+          int32  ahang   = bestedge3->ahang();
+          int32  bhang   = bestedge3->bhang();
+          int32  olaplen = FI->overlapLength(id, bestedge3->fragId(), bestedge3->ahang(), bestedge3->bhang());
+
+          assert((ahang >= 0) && (bhang >= 0));  //  ALL 3' edges should be this.
+
+          fprintf(BEG, "L\tread%08u\t+\tread%08u\t%c\t%uM\n",
+                  id,
+                  bestedge3->fragId(), bestedge3->frag3p() ? '-' : '+',
+                  FI->overlapLength(id, bestedge3->fragId(), bestedge3->ahang(), bestedge3->bhang()));
+        }
+      }
+    }
+
+    fclose(BEG);
+  }
+
 
   if ((BCH) && (BEH)) {
     double *bc = new double [FI->numFragments() + 1 + FI->numFragments() + 1];
