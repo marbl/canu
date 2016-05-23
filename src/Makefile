@@ -467,6 +467,9 @@ ifeq (${MACHINETYPE}, amd64)
   CXXFLAGS  +=             -I/usr/local/include
   LDFLAGS   +=             -L/usr/local/lib
 
+  #  callgrind
+  #CXXFLAGS  += -g3 -Wa,--gstabs -save-temps
+
   #CXXFLAGS  += -DLIBUNWIND -I/usr/local/include
   #LDFLAGS   +=             -L/usr/local/lib -lunwind -lunwind-x86_64
 
