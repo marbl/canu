@@ -109,7 +109,7 @@ Analyze_Alignment(Thread_Work_Area_t *wa,
   int32  ct = 0;
 
   //  Necessary??
-  memset(wa->globalvote, 0, sizeof(Vote_t) * AS_MAX_READLEN);
+  //memset(wa->globalvote, 0, sizeof(Vote_t) * AS_MAX_READLEN);
 
   wa->globalvote[ct].frag_sub  = -1;
   wa->globalvote[ct].align_sub = -1;

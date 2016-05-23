@@ -46,7 +46,7 @@ gkStoreFile::gkStoreFile(const char *name) {
   gkp = gkStore::gkStore_open(_filename);
 
   _numberOfSequences = gkp->gkStore_getNumReads();
-  fprintf(stderr, "Opened '%s' with %u reads\n", _filename, _numberOfSequences);
+  //fprintf(stderr, "Opened '%s' with %u reads\n", _filename, _numberOfSequences);
 }
 
 gkStoreFile::~gkStoreFile() {
