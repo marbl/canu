@@ -217,6 +217,8 @@ sub estimateCorrectedError ($$$) {
     my $cmd = "gunzip -c $WRK/asm.correctedReads.fasta.gz |tail -n $sampleSize >> $path/subset.fasta";
     runCommandSilently($path, $cmd, 1);
     my $querySize =  computeSampleSize($wrk, $asm, undef, 2);
+    my $cmd = "gunzip -c $WRK/asm.correctedReads.fasta.gz |head -n $querySize > $path/reads.fasta";
+    runCommandSilently($path, $cmd, 1);
     my $cmd = "gunzip -c $WRK/asm.correctedReads.fasta.gz |tail -n $querySize >> $path/reads.fasta";
     runCommandSilently($path, $cmd, 1);
 
