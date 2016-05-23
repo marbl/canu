@@ -461,14 +461,15 @@ public:
 
       if (_instance != NULL) {
         _instanceCount++;
+        //fprintf(stderr, "gkStore_open(%s), %u instances now\n", path, _instanceCount);
       }
 
       //  Otherwise, make a new one.
 
       else {
-        //fprintf(stderr, "gkStore_open(%s) CREATE\n", path);
         _instance      = new gkStore(path, mode, partID);
         _instanceCount = 1;
+        //fprintf(stderr, "gkStore_open(%s), first instance, create store\n", path);
       }
     }
 
@@ -482,11 +483,14 @@ public:
     {
       _instanceCount--;
 
-      //fprintf(stderr, "gkStore_close(%s) return existing, %u instances remain\n", _storeName, _instanceCount);
-
       if (_instanceCount == 0) {
         delete _instance;
         _instance = NULL;
+        //fprintf(stderr, "gkStore_close(%s), no instances remain, delete store\n", _storeName, _instanceCount);
+      }
+
+      else {
+        //fprintf(stderr, "gkStore_close(%s), %u instances remain\n", _storeName, _instanceCount);
       }
     }
 
