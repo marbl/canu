@@ -501,6 +501,7 @@ sub merylProcess ($$$) {
         (! -e $ffile)) {
 
         my $totalMers = 0;
+        my $maxCount  = 0;
 
         #  Meryl reports number of distinct canonical mers, we multiply by two to get the
         #  (approximate) number of distinct mers.  Palindromes are counted twice, oh well.
@@ -509,6 +510,9 @@ sub merylProcess ($$$) {
         while (<F>) {
             if (m/Found\s+(\d+)\s+mers./) {
                 $totalMers = 2 * $1;
+            }
+            if (m/Largest\s+mercount\s+is\s+(\d+)./) {
+               $maxCount = $1;
             }
         }
         close(F);
@@ -549,7 +553,6 @@ sub merylProcess ($$$) {
                 printf(O "%s\t%e\n", $r, $1 / $totalMers);
             }
         }
-
         close(O);
         close(F);
 

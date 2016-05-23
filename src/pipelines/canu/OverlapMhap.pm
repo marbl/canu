@@ -359,7 +359,8 @@ sub mhapConfigure ($$$$) {
     print F "$javaPath -d64 -server -Xmx", getGlobal("${tag}mhapMemory"), "g \\\n";
     print F "  -jar " . ($^O eq "cygwin" ? "\$(cygpath -w " : "") . "\$bin/mhap-" . getGlobal("${tag}MhapVersion") . ".jar " . ($^O eq "cygwin" ? ")" : "") . "\\\n";
     print F "  --repeat-weight 0.9 -k $merSize \\\n";
-    print F "    --remove-unique \\\n"  if (defined(getGlobal("${tag}MhapFilterUnique")));
+    print F "  --supress-noise 2 \\\n"  if (defined(getGlobal("${tag}MhapFilterUnique")) && getGlobal("${tag}MhapFilterUnique") == 1);
+    print F "  --no-tf \\\n"            if (defined(getGlobal("${tag}MhapNoTf")) && getGlobal("${tag}MhapNoTf") == 1);
     print F "  --num-hashes $numHashes \\\n";
     print F "  --num-min-matches $minNumMatches \\\n";
     print F "  --ordered-sketch-size $ordSketch \\\n";
@@ -435,7 +436,8 @@ sub mhapConfigure ($$$$) {
     print F "  $javaPath -d64 -server -Xmx", getGlobal("${tag}mhapMemory"), "g \\\n";
     print F "    -jar " . ($^O eq "cygwin" ? "\$(cygpath -w " : "") . "\$bin/mhap-" . getGlobal("${tag}MhapVersion") . ".jar " . ($^O eq "cygwin" ? ")" : "") . "\\\n";
     print F "    --repeat-weight 0.9 -k $merSize \\\n";
-    print F "    --remove-unique \\\n"  if (defined(getGlobal("${tag}MhapFilterUnique")));
+    print F "    --supress-noise 2 \\\n"  if (defined(getGlobal("${tag}MhapFilterUnique")) && getGlobal("${tag}MhapFilterUnique") == 1);
+    print F "    --no-tf \\\n"            if (defined(getGlobal("${tag}MhapNoTf")) && getGlobal("${tag}MhapNoTf") == 1);
     print F "    --num-hashes $numHashes \\\n";
     print F "    --num-min-matches $minNumMatches \\\n";
     print F "    --threshold $threshold \\\n";

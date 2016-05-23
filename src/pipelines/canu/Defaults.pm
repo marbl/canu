@@ -626,7 +626,10 @@ sub setOverlapDefaults ($$$) {
     $synops{"${tag}MhapFilterThreshold"}      = "Value between 0 and 1. kmers which comprise more than this percentage of the input are downweighted";
 
     $global{"${tag}MhapFilterUnique"}         = undef;
-    $synops{"${tag}MhapFilterUnique"}         = "Expert option: True or false, truncate the low-frequency k-mer distribution based on them being likely noise and not true overlaps. Threshold auto-computed based on error rate, genome size, and coverage.";
+    $synops{"${tag}MhapFilterUnique"}         = "Expert option: True or false, supress the low-frequency k-mer distribution based on them being likely noise and not true overlaps. Threshold auto-computed based on error rate and coverage.";
+
+    $global{"${tag}MhapNoTf"}                 = undef;
+    $synops{"${tag}MhapNoTf"}                 = "Expert option: True or false, do not use tf weighting, only idf of tf-idf.";
 
     $global{"${tag}MhapBlockSize"}            = 3000;
     $synops{"${tag}MhapBlockSize"}            = "Number of reads per 1GB; memory * blockSize = the size of  block loaded into memory per job";
