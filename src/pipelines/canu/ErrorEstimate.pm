@@ -87,14 +87,16 @@ sub uniqueKmerThreshold($$$$) {
    return ($threshold == 0 ? 1 : $threshold);
 }
 
-sub computeSampleSize($$$$) {
+sub computeSampleSize($$$$$) {
     my $wrk      = shift @_;
     my $asm      = shift @_;
+    my $tag      = shift @_;
     my $percent  = shift @_;
     my $coverage = shift @_;
     my $sampleSize = 0;
 
     my $minSampleSize = 100;
+    my $maxSampleSize = getGlobal("${tag}MhapBlockSize") * 4;
 
    if (defined($percent)) {
       $sampleSize = int($percent * getNumberOfReadsInStore ($wrk, $asm))+1;
@@ -103,6 +105,7 @@ sub computeSampleSize($$$$) {
       $sampleSize = int(($coverage * getGlobal("genomeSize")) / (getNumberOfBasesInStore($wrk, $asm) / getNumberOfReadsInStore ($wrk, $asm))) + 1;
    }
 
+   $sampleSize = $maxSampleSize if (defined($percent) && $sampleSize > $maxSampleSize);
    return $sampleSize < $minSampleSize ? $minSampleSize : $sampleSize;
 }
 
@@ -120,7 +123,7 @@ sub runMHAP($$$$$$$$$$$$) {
 
     my $cmd  = "$javaPath -d64 -server -Xmx4g -jar $bin/mhap-" . getGlobal("${tag}MhapVersion") . ".jar ";
     $cmd .= "  --no-self --repeat-weight 0.9 -k $merSize --num-hashes $numHashes --num-min-matches $minNumMatches --ordered-sketch-size $ordSketch --ordered-kmer-size $ordSketchMer  --threshold $threshold --filter-threshold $filterThreshold --num-threads " . getGlobal("${tag}mhapThreads");
-    $cmd .= " -s $hash -q $query  2> /dev/null | awk '{if (\$1 != \$2+$sampleSize) { print \$0}}' | $bin/errorEstimate -d 2 -m 0.985 -S - > $out 2> $err";
+    $cmd .= " -s $hash -q $query  2> /dev/null | awk '{if (\$1 != \$2+$sampleSize) { print \$0}}' | $bin/errorEstimate -d 2 -m 0.95 -S - > $out 2> $err";
     runCommand($wrk, $cmd);
 }
 
@@ -147,14 +150,14 @@ sub estimateRawError($$$$) {
     $ordSketchMer       = getGlobal("${tag}MhapOrderedMerSize");
 
     # subsample raw reads
-    my $sampleSize = computeSampleSize($wrk, $asm, 0.01, undef);
+    my $sampleSize = computeSampleSize($wrk, $asm, $tag, 0.01, undef);
     $sampleSize /= 2;
     my $cmd = "$bin/gatekeeperDumpFASTQ -G $wrk/$asm.gkpStore -nolibname -fasta -r 1-$sampleSize -o - > $wrk/$asm.gkpStore/subset.fasta 2> /dev/null";
     runCommandSilently($wrk, $cmd, 1);
     my $min = $numReads - $sampleSize + 1;
     my $cmd = "$bin/gatekeeperDumpFASTQ -G $wrk/$asm.gkpStore -nolibname -fasta -r $min-$numReads -o - >> $wrk/$asm.gkpStore/subset.fasta 2> /dev/null";
     runCommandSilently($wrk, $cmd, 1);
-    my $querySize = computeSampleSize($wrk, $asm, undef, 2);
+    my $querySize = computeSampleSize($wrk, $asm, $tag, undef, 2);
     my $cmd = "$bin/gatekeeperDumpFASTQ -G $wrk/$asm.gkpStore -nolibname -fasta -r 1-$querySize -o - > $wrk/$asm.gkpStore/reads.fasta 2> /dev/null";
     runCommandSilently($wrk, $cmd, 1);
 
@@ -211,12 +214,12 @@ sub estimateCorrectedError ($$$) {
     make_path("$path");
 
     # subsample corrected reads, this assumes the fasta records are on a single line. We take some reads from the top and bottom of file to avoid sampling one library
-    my $sampleSize = computeSampleSize($wrk, $asm, 0.01, undef);
+    my $sampleSize = computeSampleSize($wrk, $asm, $tag, 0.01, undef);
     my $cmd = "gunzip -c $WRK/asm.correctedReads.fasta.gz |head -n $sampleSize > $path/subset.fasta";
     runCommandSilently($path, $cmd, 1);
     my $cmd = "gunzip -c $WRK/asm.correctedReads.fasta.gz |tail -n $sampleSize >> $path/subset.fasta";
     runCommandSilently($path, $cmd, 1);
-    my $querySize =  computeSampleSize($wrk, $asm, undef, 2);
+    my $querySize =  computeSampleSize($wrk, $asm, $tag, undef, 2);
     my $cmd = "gunzip -c $WRK/asm.correctedReads.fasta.gz |head -n $querySize > $path/reads.fasta";
     runCommandSilently($path, $cmd, 1);
     my $cmd = "gunzip -c $WRK/asm.correctedReads.fasta.gz |tail -n $querySize >> $path/reads.fasta";
