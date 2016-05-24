@@ -425,7 +425,7 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "--minlength") == 0) {
       G.Min_Olap_Len = strtol (argv[++arg], NULL, 10);
     } else if (strcmp(argv[arg], "--maxerate") == 0) {
-      G.maxErate = ceil(strtof(argv[++arg], NULL) * 100) / 100;
+      G.maxErate = strtof(argv[++arg], NULL);
 
     } else if (strcmp(argv[arg], "-w") == 0) {
       G.Use_Window_Filter = TRUE;

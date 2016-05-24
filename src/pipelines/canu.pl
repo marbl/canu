@@ -170,7 +170,7 @@ while (scalar(@ARGV)) {
             setGlobal("cnsMaxCoverage", 40);
             setGlobal("utgGraphDeviation", 6);
         } elsif ($arg =~ m/nanopore/) {
-            setErrorRate(0.050);
+            setErrorRate(0.048);
             setGlobal("corErrorRate", "0.50");
             setGlobal("cnsMaxCoverage", 40);
             setGlobal("utgGraphDeviation", 6);
@@ -266,7 +266,7 @@ if (scalar(@inputFiles) == 0 && ! defined(getGlobal("errorRate"))) {
             setGlobal("cnsMaxCoverage", 40);
         }
         if ($numNanoporeRaw > 0 || $numNanoporeCorrected > 0) {
-            setErrorRate(0.050);
+            setErrorRate(0.048);
             setGlobal("corErrorRate", "0.50");
             setGlobal("cnsMaxCoverage", 40);
         }
