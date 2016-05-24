@@ -456,7 +456,7 @@ sub quickFilter ($$$) {
     my $minCorLength    = 0;
 
     open(O, "> $path/$asm.readsToCorrect.WORKING") or caExit("can't open '$path/$asm.readsToCorrect.WORKING' for writing: $!\n", undef);
-    open(F, "$bin/gatekeeperDumpMetaData -G $wrk/$asm.gkpStore -reads | sort -k3nr | ") or caExit("can't dump gatekeeper for read lengths: $!\n", undef);
+    open(F, "$bin/gatekeeperDumpMetaData -G $wrk/$asm.gkpStore -reads | sort -T . -k3nr | ") or caExit("can't dump gatekeeper for read lengths: $!\n", undef);
 
     print O "read\toriginalLength\tcorrectedLength\n";
 
@@ -508,11 +508,11 @@ sub expensiveFilter ($$) {
         }
     }
 
-    if (runCommandSilently($path, "sort -k4nr -k2nr < $path/$asm.estimate.log > $path/$asm.estimate.correctedLength.log", 1)) {
+    if (runCommandSilently($path, "sort -T . -k4nr -k2nr < $path/$asm.estimate.log > $path/$asm.estimate.correctedLength.log", 1)) {
         caExit("failed to sort by corrected read length", undef);
     }
 
-    if (runCommandSilently($path, "sort -k2nr -k4nr < $path/$asm.estimate.log > $path/$asm.estimate.originalLength.log",  1)) {
+    if (runCommandSilently($path, "sort -T . -k2nr -k4nr < $path/$asm.estimate.log > $path/$asm.estimate.originalLength.log",  1)) {
         caExit("failed to sort by original read length", undef);
     }
 
@@ -569,7 +569,7 @@ sub expensiveFilter ($$) {
     }
 
     open(F, "< $path/$asm.estimate.correctedLength.log");
-    open(O, "| sort -k1n > $path/$asm.readsToCorrect.WORKING") or caExit("can't open sort -k1n > '$path/$asm.readsToCorrect.WORKING' for writing: $!\n", undef);
+    open(O, "| sort -T . -k1n > $path/$asm.readsToCorrect.WORKING") or caExit("can't open sort -k1n > '$path/$asm.readsToCorrect.WORKING' for writing: $!\n", undef);
 
     print O "read\toriginalLength\tcorrectedLength\n";
 
