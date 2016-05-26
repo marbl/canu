@@ -67,6 +67,12 @@ Find the Output
 
 The canu progress chatter records statistics such as an input read histogram, corrected read histogram, and overlap types. Outputs from the assembly tasks are in:
 
+ecoli*/ecoli.correctedReads.fasta.gz
+   The sequences after correction, trimmed and split based on consensus evidence. Typically >99% for PacBio and >98% for Nanopore but it can vary based on your input sequencing quality.
+
+ecoli*/ecoli.trimmedReads.fasta.gz
+   The sequences after correction and final trimming. The corrected sequences above are overlapped again to identify any missed hairpin adapters or bad sequence that could not be detected in the raw sequences.
+
 ecoli*/ecoli.layout
    The layout provides information on where each read ended up in the final assembly, including contig and positions. It also includes the consensus sequence for each contig.
    
@@ -126,7 +132,7 @@ Then, trim the output of the correction::
  canu -trim \
    -p ecoli -d ecoli \
    genomeSize=4.8m \
-   -pacbio-corrected ecoli/correction/ecoli.correctedReads.fastq
+   -pacbio-corrected ecoli/correction/ecoli.correctedReads.fasta.gz
 
 And finally, assemble the output of trimming, twice::
 
@@ -134,13 +140,13 @@ And finally, assemble the output of trimming, twice::
    -p ecoli -d ecoli-erate-0.013 \
    genomeSize=4.8m \
    errorRate=0.013 \
-   -pacbio-corrected ecoli/trimming/ecoli.trimmedReads.fastq
+   -pacbio-corrected ecoli/trimming/ecoli.trimmedReads.fasta.gz
 
  canu -assemble \
    -p ecoli -d ecoli-erate-0.025 \
    genomeSize=4.8m \
    errorRate=0.025 \
-   -pacbio-corrected ecoli/trimming/ecoli.trimmedReads.fastq
+   -pacbio-corrected ecoli/trimming/ecoli.trimmedReads.fasta.gz
 
 The directory layout for correction and trimming is exactly the same as when we ran all tasks in the same command.
 Each unitig construction task needs its own private work space, and in there the 'correction' and 'trimming' directories are empty. The error rate always specifies the error in the corrected reads which is typically <1% for PacBio data and <2% for Nanopore data (<1% on newest chemistries).
@@ -199,12 +205,12 @@ or use the following curl command:
 
  curl -L -o yeast.20x.fastq.gz http://gembox.cbcb.umd.edu/mhap/raw/yeast_filtered.20x.fastq.gz
 
-and run the assembler adding sensitive parameters (**corMinCoverage=0 errorRate=0.035**)::
+and run the assembler adding sensitive parameters (**errorRate=0.035**)::
 
  canu \
   -p asm -d yeast \
   genomeSize=12.1m \
-  corMinCoverage=0 errorRate=0.035 \
+  errorRate=0.035 \
   -pacbio-raw yeast.20x.fastq.gz
   
 
@@ -214,37 +220,37 @@ After the run completes, we can check the assembly statistics::
 
 ::
 
-   lenSuggestRepeat sum     173426 (genomeSize 12100000)
-   lenSuggestRepeat num         15
-   lenSuggestRepeat ave      11561
-   lenUnassembled ng10       13545 bp   lg10      78   sum    1222796 bp
-   lenUnassembled ng20       11336 bp   lg20     176   sum    2430408 bp
-   lenUnassembled ng30       10036 bp   lg30     289   sum    3637779 bp
-   lenUnassembled ng40        9152 bp   lg40     415   sum    4843129 bp
-   lenUnassembled ng50        8255 bp   lg50     555   sum    6057762 bp
-   lenUnassembled ng60        7394 bp   lg60     710   sum    7262996 bp
-   lenUnassembled ng70        6562 bp   lg70     884   sum    8472421 bp
-   lenUnassembled ng80        5829 bp   lg80    1080   sum    9682480 bp
-   lenUnassembled ng90        5168 bp   lg90    1301   sum   10893017 bp
-   lenUnassembled ng100       4431 bp   lg100   1554   sum   12103066 bp
-   lenUnassembled ng110       3731 bp   lg110   1850   sum   13311653 bp
-   lenUnassembled ng120       2961 bp   lg120   2213   sum   14522021 bp
-   lenUnassembled ng130       2086 bp   lg130   2693   sum   15731230 bp
-  lenUnassembled sum   16861939 (genomeSize 12100000)
-   lenUnassembled num       3442
-   lenUnassembled ave       4898
-   lenContig ng10      770259 bp   lg10       2   sum    1565899 bp
-   lenContig ng20      710332 bp   lg20       4   sum    3000381 bp
-   lenContig ng30      665395 bp   lg30       5   sum    3665776 bp
-   lenContig ng40      610651 bp   lg40       7   sum    4890687 bp
-   lenContig ng50      553073 bp   lg50      10   sum    6577239 bp
-   lenContig ng60      390370 bp   lg60      12   sum    7413097 bp
-   lenContig ng70      237134 bp   lg70      16   sum    8526341 bp
-   lenContig ng80      142632 bp   lg80      23   sum    9773802 bp
-   lenContig ng90       94308 bp   lg90      33   sum   10931633 bp
-   lenContig sum   12045366 (genomeSize 12100000)
-   lenContig num         57
-   lenContig ave     211322
+   lenSuggestRepeat sum     160297 (genomeSize 12100000)
+   lenSuggestRepeat num         12
+   lenSuggestRepeat ave      13358
+   lenUnassembled ng10       13491 bp   lg10      77   sum    1214310 bp
+   lenUnassembled ng20       11230 bp   lg20     176   sum    2424556 bp
+   lenUnassembled ng30        9960 bp   lg30     290   sum    3632411 bp
+   lenUnassembled ng40        8986 bp   lg40     418   sum    4841978 bp
+   lenUnassembled ng50        8018 bp   lg50     561   sum    6054460 bp
+   lenUnassembled ng60        7040 bp   lg60     723   sum    7266816 bp
+   lenUnassembled ng70        6169 bp   lg70     906   sum    8474192 bp
+   lenUnassembled ng80        5479 bp   lg80    1114   sum    9684981 bp
+   lenUnassembled ng90        4787 bp   lg90    1348   sum   10890099 bp
+   lenUnassembled ng100       4043 bp   lg100   1624   sum   12103239 bp
+   lenUnassembled ng110       3323 bp   lg110   1952   sum   13310167 bp
+   lenUnassembled ng120       2499 bp   lg120   2370   sum   14520362 bp
+   lenUnassembled ng130       1435 bp   lg130   2997   sum   15731198 bp
+   lenUnassembled sum   16139888 (genomeSize 12100000)
+   lenUnassembled num       3332
+   lenUnassembled ave       4843
+   lenContig ng10      770772 bp   lg10       2   sum    1566457 bp
+   lenContig ng20      710140 bp   lg20       4   sum    3000257 bp
+   lenContig ng30      669248 bp   lg30       5   sum    3669505 bp
+   lenContig ng40      604859 bp   lg40       7   sum    4884914 bp
+   lenContig ng50      552911 bp   lg50      10   sum    6571204 bp
+   lenContig ng60      390415 bp   lg60      12   sum    7407061 bp
+   lenContig ng70      236725 bp   lg70      16   sum    8521520 bp
+   lenContig ng80      142854 bp   lg80      23   sum    9768299 bp
+   lenContig ng90       94308 bp   lg90      33   sum   10927790 bp
+   lenContig sum   12059140 (genomeSize 12100000)
+   lenContig num         56
+   lenContig ave     215341
 
 Consensus Accuracy
 -------------------
