@@ -32,34 +32,62 @@ require Exporter;
 
 use strict;
 
+use File::Copy;
+use File::Path qw(make_path remove_tree);
+
 use canu::Defaults;
 use canu::Execution;
 
 
 
-sub simpleFigure ($$$) {
-    my $body  = shift @_;
-    my $image = shift @_;
-    my $text  = shift @_;
+sub copyFile ($$) {
+    my $sPath = shift @_;  #  Path to source file.
+    my $dPath = shift @_;  #  Path to destination file.
 
-    if    ((! -e "$image.sm.png") && (! -e "$image.lg.png")) {
-        push @$body, "<p>Image '$image' not found.</p>\n";
-    }
-
-    elsif ((-z "$image.sm.png") || (-z "$image.lg.png"))  {
-        push @$body, "<p>Image '$image' is empty.  Probably no data to display.</p>\n";
-    }
-
-    else {
-        push @$body, "<figure>\n";
-        push @$body, "<a href='$image.lg.png'><img src='$image.sm.png'></a>\n";
-        push @$body, "<figcaption>\n";
-        push @$body, "$text\n";
-        push @$body, "</figcaption>\n";
-        push @$body, "</figure>\n";
+    if ((-e $sPath) &&
+        ((! -e $dPath) ||
+         ((-M $sPath) < (-M $dPath)))) {
+        copy($sPath, $dPath);
     }
 }
 
+
+
+sub simpleFigure ($$$$) {
+    my $body   = shift @_;
+    my $sImage = shift @_;
+    my $dImage = shift @_;
+    my $text   = shift @_;
+
+    #  No image?  Note so in the html.
+
+    if ((! -e "$sImage.sm.png") && (! -e "$sImage.lg.png") &&
+        (! -e "$dImage.sm.png") && (! -e "$dImage.lg.png")) {
+        push @$body, "<p>Image '$sImage' not found.</p>\n";
+        return;
+    }
+
+    #  Copy the file to our files location.
+
+    copyFile("$sImage.lg.png", "$dImage.lg.png");
+    copyFile("$sImage.sm.png", "$dImage.sm.png");
+
+    #  Empty image?  Note so in the html.
+
+    if ((-z "$dImage.sm.png") || (-z "$dImage.lg.png")) {
+        push @$body, "<p>Image '$sImage' is empty.  Probably no data to display.</p>\n";
+        return;
+    }
+
+    #  Otherwise, show it!
+
+    push @$body, "<figure>\n";
+    push @$body, "<a href='$dImage.lg.png'><img src='$dImage.sm.png'></a>\n";
+    push @$body, "<figcaption>\n";
+    push @$body, "$text\n";
+    push @$body, "</figcaption>\n";
+    push @$body, "</figure>\n";
+}
 
 
 
@@ -167,7 +195,10 @@ sub buildGatekeeperHTML ($$$$$$) {
     close(F);
 
     push @$body, "<h3>Read Length Histogram</h3>\n";
-    push @$body, "<a href='$wrk/$asm.gkpStore/readlengths.lg.png'><img src='$wrk/$asm.gkpStore/readlengths.sm.png'></img></a>\n";
+    simpleFigure($body,
+                 "$wrk/$asm.gkpStore/readlengths",
+                 "$wrk.html.files/readlengths",
+                 "");
 }
 
 
@@ -213,14 +244,10 @@ sub buildMerylHTML ($$$$$$) {
             }
             close(F);
 
-            if (-e "$wrk/0-mercounts/$asm.ms$ms.histogram.sm.png") {
-                push @$body, "<figure>\n";
-                push @$body, "<a href='$wrk/0-mercounts/$asm.ms$ms.histogram.lg.png'><img src='$wrk/0-mercounts/$asm.ms$ms.histogram.sm.png'></a>\n";
-                push @$body, "<figcaption>\n";
-                push @$body, "Histogram for k=$ms with $numTotal mers, $numDistinct distinct mers and $numUnique single-copy mers.  Largest count is $largest.\n";
-                push @$body, "</figcaption>\n";
-                push @$body, "</figure>\n";
-            }
+            simpleFigure($body,
+                         "$wrk/0-mercounts/$asm.ms$ms.histogram",
+                         "$wrk.html.files/$asm.ms$ms.histogram",
+                         "Histogram for k=$ms with $numTotal mers, $numDistinct distinct mers and $numUnique single-copy mers.  Largest count is $largest.");
         }
 
         elsif ((-e "$wrk/0-mercounts/$asm.ms$ms.ignore") && (-z "$wrk/0-mercounts/$asm.ms$ms.ignore")) {
@@ -366,6 +393,7 @@ sub buildCorrectionHTML ($$$$$$) {
 
     simpleFigure($body,
                  "$wrk/2-correction/$asm.estimate.original-x-corrected",
+                 "correction.html.files/$asm.estimate.original-x-corrected",
                  "Scatter plot of the original read length (X axis) against the expected corrected read length (Y axis).\n" .
                  "Colors show a comparison of the simple filter (which doesn't use overlaps) to the expensive filter (which does).\n" .
                  "A large green triangle (false negatives) hints that there could be abnormally low quality regions in the reads.\n");
@@ -375,20 +403,24 @@ sub buildCorrectionHTML ($$$$$$) {
     #  Original vs expected shown above.
     simpleFigure($body,
                  "$wrk/2-correction/$asm.originalLength-vs-expectedLength",
+                 "correction.html.files/$asm.originalLength-vs-expectedLength",
                  "Scatter plot of original vs expected read length.  Shown in filter plot above.");
 
     simpleFigure($body,
                  "$wrk/2-correction/$asm.originalLength-vs-correctedLength",
+                 "correction.html.files/$asm.originalLength-vs-correctedLength",
                  "Scatter plot of original vs corrected read length.");
 
     simpleFigure($body,
                  "$wrk/2-correction/$asm.expectedLength-vs-correctedLength",
+                 "correction.html.files/$asm.expectedLength-vs-correctedLength",
                  "Scatter plot of expected vs corrected read length.");
 
     #  Histogram - expected vs corrected lengths NEEDS TO SHOW NEGATIVES!?
 
     simpleFigure($body,
                  "$wrk/2-correction/$asm.length-difference-histograms",
+                 "correction.html.files/$asm.length-difference-histograms",
                  "Histogram of the difference between the expected and corrected read lengths.\n" .
                  "Note that a negative difference means the corrected read is larger than expected.\n");
 
@@ -396,6 +428,7 @@ sub buildCorrectionHTML ($$$$$$) {
 
     simpleFigure($body,
                  "$wrk/2-correction/$asm.length-histograms",
+                 "correction.html.files/$asm.length-histograms",
                  "Histogram of original (red), expected (green) and actual corrected (blue) read lengths.\n");
 }
 
@@ -465,15 +498,15 @@ sub buildTrimmingHTML ($$$$$$) {
         push @$body, "<p>Stage not computed or results file removed ($wrk/3-overlapbasedtrimming/$asm.1.trimReads.stats).</p>\n";
     }
 
-    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.inputDeletedReads",    "");
-    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.inputNoTrimReads",     "");
-    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.inputReads",           "");
-    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.outputDeletedReads",   "");
-    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.outputNoOvlReads",     "");
-    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.outputTrimmedReads",   "");
-    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.outputUnchangedReads", "");
-    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.trim3",                "");
-    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.trim5",                "");
+    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.inputDeletedReads",    "trimming.html.files/$asm.1.trimReads.inputDeletedReads",    "");
+    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.inputNoTrimReads",     "trimming.html.files/$asm.1.trimReads.inputNoTrimReads",     "");
+    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.inputReads",           "trimming.html.files/$asm.1.trimReads.inputReads",           "");
+    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.outputDeletedReads",   "trimming.html.files/$asm.1.trimReads.outputDeletedReads",   "");
+    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.outputNoOvlReads",     "trimming.html.files/$asm.1.trimReads.outputNoOvlReads",     "");
+    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.outputTrimmedReads",   "trimming.html.files/$asm.1.trimReads.outputTrimmedReads",   "");
+    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.outputUnchangedReads", "trimming.html.files/$asm.1.trimReads.outputUnchangedReads", "");
+    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.trim3",                "trimming.html.files/$asm.1.trimReads.trim3",                "");
+    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.trim5",                "trimming.html.files/$asm.1.trimReads.trim5",                "");
 
     push @$body, "<h2>Splitting</h2>\n";
     push @$body, "\n";
@@ -669,18 +702,17 @@ sub buildOutputHTML ($$$$$$) {
 sub buildHTML ($$$) {
     my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
     my $wrk     = $WRK;      #  Local work directory
-    my $dir;
     my $asm     = shift @_;
     my $tag     = shift @_;
     my @css;
     my @body;
     my @scripts;
 
-    $dir = "correction"  if ($tag eq "cor");
-    $dir = "trimming"    if ($tag eq "obt");
-    $dir = "unitigging"  if ($tag eq "utg");
+    $wrk = "$WRK/correction"  if ($tag eq "cor");
+    $wrk = "$WRK/trimming"    if ($tag eq "obt");
+    $wrk = "$WRK/unitigging"  if ($tag eq "utg");
 
-    $wrk = "$WRK/$dir";
+    make_path("$wrk.html.files")  if (! -e "$wrk.html.files");
 
     #  For correction runs
     if ($tag eq "cor") {
@@ -715,7 +747,7 @@ sub buildHTML ($$$) {
 
     #print STDERR "WRITING '$wrk/$asm-summary.html'\n";
 
-    open(F, "> $WRK/$dir.html") or die "can't open '$WRK/$dir.html' for writing: $!\n";
+    open(F, "> $wrk.html") or die "can't open '$wrk.html' for writing: $!\n";
 
     print F "<!DOCTYPE html>\n";
     print F "\n";
