@@ -1162,6 +1162,13 @@ sub checkParameters () {
         my $versionStr = "unknown";
         my $version    = 0;
 
+        #  Argh, we can't use runCommand() here, because we're included in Execution.pm.  Try to check it with -x.
+        #  Nope.  Fails if $java == "java".
+
+        #if (! -x $java) {
+        #    addCommandLineError("ERROR:  java executable '$java' not found or not executable\n");
+        #}
+
         open(F, "$java -showversion 2>&1 |");
         while (<F>) {
             #  First word is either "java" or "openjdk" or ...
@@ -1172,9 +1179,20 @@ sub checkParameters () {
         }
         close(F);
 
-        print STDERR "-- Detected Java(TM) Runtime Environment '$versionStr' (from '$java').\n";
+        if ($version < 1.8) {
+            addCommandLineError("ERROR:  mhap overlapper requires java version at least 1.8.0; you have $versionStr (from '$java').\n");
+            addCommandLineError("ERROR:  '$java -showversion' reports:\n");
 
-        addCommandLineError("ERROR:  mhap overlapper requires java version at least 1.8.0; you have $versionStr\n")   if ($version < 1.8);
+            open(F, "$java -showversion 2>&1 |");
+            while (<F>) {
+                chomp;
+                addCommandLineError("ERROR:    '$_'\n");
+            }
+            close(F);
+
+        } else {
+            print STDERR "-- Detected Java(TM) Runtime Environment '$versionStr' (from '$java').\n";
+        }
     }
 
     #
