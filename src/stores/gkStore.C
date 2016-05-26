@@ -368,7 +368,7 @@ gkRead::gkRead_encodeSeqQlt(char *H, char *S, char *Q, uint32 qv) {
   uint32  Slen = _seqLen = strlen(S);
   uint32  Qlen = 0;
 
-  if (Q[0] != -1) {
+  if (Q[0] != 0) {
     Qlen = strlen(Q);
 
     if (Slen < Qlen) {
@@ -384,9 +384,8 @@ gkRead::gkRead_encodeSeqQlt(char *H, char *S, char *Q, uint32 qv) {
         Q[ii] = Q[Qlen-1];
     }
 
-    if (Q[0] != -1)
-      for (uint32 ii=0; ii<Qlen; ii++)
-        Q[ii] -= '!';
+    for (uint32 ii=0; ii<Qlen; ii++)
+      Q[ii] -= '!';
   }
 
   //  Compute the preferred encodings.  If either fail, the length is set to zero, and ...
@@ -415,29 +414,28 @@ gkRead::gkRead_encodeSeqQlt(char *H, char *S, char *Q, uint32 qv) {
   rd->gkReadData_encodeBlobChunk("BLOB",       0,  NULL);
   rd->gkReadData_encodeBlobChunk("VERS",       4, &blobVers);
 
-  if (seq2Len > 0)
+  if      (seq2Len > 0)
     rd->gkReadData_encodeBlobChunk("2SEQ", seq2Len, seq);    //  Two-bit encoded sequence (ACGT only)
   else if (seq3Len > 0)
     rd->gkReadData_encodeBlobChunk("3SEQ", seq3Len, seq);    //  Three-bit encoded sequence (ACGTN)
   else
     rd->gkReadData_encodeBlobChunk("USEQ", Slen, S);         //  Unencoded sequence
 
-  if (qlt4Len > 0)
+  if      (qlt4Len > 0)
     rd->gkReadData_encodeBlobChunk("4QLT", qlt4Len, qlt);    //  Four-bit (0-15) encoded QVs
   else if (qlt5Len > 0)
     rd->gkReadData_encodeBlobChunk("5QLT", qlt5Len, qlt);    //  Five-bit (0-32) encoded QVs
-  else if (Q[0] != -1)
-    rd->gkReadData_encodeBlobChunk("UQLT", Qlen, Q);         //  Unencoded quality
+  else if (Q[0] == 0)
+    rd->gkReadData_encodeBlobChunk("QVAL", 4, &qv);          //  Constant QV for every base
   else
-    rd->gkReadData_encodeBlobChunk("QVAL", 4, &qv);        //  Constant QV for every base
+    rd->gkReadData_encodeBlobChunk("UQLT", Qlen, Q);         //  Unencoded quality
 
   rd->gkReadData_encodeBlobChunk("STOP", 0,  NULL);
 
   //  Cleanup.  Restore the QV's.  Delete temporary storage.
 
-  if (Q[0] != -1)
-    for (uint32 ii=0; ii<Qlen; ii++)
-      Q[ii] += '!';
+  for (uint32 ii=0; ii<Qlen; ii++)
+    Q[ii] += '!';
 
   delete [] seq;
   delete [] qlt;

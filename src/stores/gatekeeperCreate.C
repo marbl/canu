@@ -84,8 +84,8 @@ loadFASTA(char                 *L,
 
   //  Clear the sequence.
 
-  S[0] =  0;
-  Q[0] = -1;  //  Sentinel to tell us to use the fixed QV value
+  S[0] = 0;
+  Q[0] = 0;  //  Sentinel to tell gatekeeper to use the fixed QV value
 
   Slen = 0;
 
@@ -317,7 +317,7 @@ loadFASTQ(char                 *L,
   //  If we're not using QVs, just reset the first value to -1.  This is the sentinel that FASTA sequences set,
   //  causing the encoding later to use a fixed QV for all bases.
 
-  Q[0] = -1;
+  Q[0] = 0;
 
 #endif
 

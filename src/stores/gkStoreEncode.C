@@ -133,7 +133,7 @@ gkRead::gkRead_decode3bit(uint8 *UNUSED(chunk), uint32 UNUSED(chunkLen), char *U
 //  Encode qualities as 4 bit integers.  Doesn't touch seq.
 uint32
 gkRead::gkRead_encode4bit(uint8 *&UNUSED(chunk), char *qlt, uint32 UNUSED(seqLen)) {
-  if (qlt[0] == -1)
+  if (qlt[0] == 0)
     //  No QVs in the string.
     return(0);
 
@@ -152,7 +152,7 @@ gkRead::gkRead_decode4bit(uint8 *UNUSED(chunk), uint32 UNUSED(chunkLen), char *U
 //  Encode qualities as 5 bit integers.  Doesn't touch seq.
 uint32
 gkRead::gkRead_encode5bit(uint8 *&UNUSED(chunk), char  *qlt, uint32 UNUSED(seqLen)) {
-  if (qlt[0] == -1)
+  if (qlt[0] == 0)
     //  No QVs in the string.
     return(0);
 
