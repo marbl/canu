@@ -11,7 +11,30 @@ Canu FAQ
     Canu is designed to scale resources to the system it runs on. It will report if the a system does not meet the minimum requirements for a given genome size.
     
     Typically, a bacterial genome can be assembled in 1-10 cpu hours, depending on coverage (~20 min on 16-cores) and 4GB of ram (8GB is recommended). A mammalian genome (such as human) can be assembled in 10-25K cpu hours, depending on coverage (a grid environment is recommended) and at least one machine with 64GB of ram (128GB is recommended).
+    
+**Q**:
+    What parameters should I use for my genome? Sequencing type?
+    
+**A**:
+    By default, Canu is designed to be universal on a large range of PacBio (C2-P6-C4) and Oxford Nanopore (R6-R9) data. You can adjust parameters to increase efficiency for your datatype. For example, for higher coverage PacBio datasets, especially from inbred samples, you can decrease the error rate (``errorRate=0.013``). For recent Nanopore data (R9) you can also decrease the default error rate (``errorRate=0.013``).
+    
+    With R7 1D sequencing data, multiple rounds of error correction are helpful. This should not be necessary for sequences over 85% identity. You can run just the correction from Canu with the options
+    
+        ::
+            -correct corOutCoverage=500 corMinCoverage=0 corMhapSensitivity=high
+    
+    for 5-10 rounds, supplying the asm.correctedReads.fasta.gz output from round ``i-1`` to round ``i``. Assemble with
+    
+    ::
+    
+        -nanopore-corrected <your data> errorRate=0.1 utgGraphDeviation=50
+    
+**Q**:
+    How do I run Canu on my SLURM/SGE/PBS/LSF/Torque system?
 
+**A**:
+    Canu will auto-detect and configure itself to submit on most grids. If your grid requires special options (such as a partition on SLURM or an account code on SGE, specify it with ``gridOptions="<your options list>"`` which will passed to the sheduler by Canu. If you have a grid system but prefer to run locally, specify useGrid=false
+    
 **Q**:
     My asm.contigs.fasta is empty, why?
 
@@ -55,7 +78,7 @@ Canu FAQ
 
         corOutCoverage=1000
 
-    Or any large value greater than your total input coverage which will correct and assemble all input data, at the expense of runtime.
+    Or any large value greater than your total input coverage which will correct and assemble all input data, at the expense of runtime. This option is also recommended for metagenomic datasets where all data is useful for assembly.
 
 **Q**:
     Why do I get only 30X of corrected data?
@@ -85,9 +108,9 @@ Canu FAQ
 
     ::
 
-       errorRate=0.015
+       errorRate=0.013
 
-    However, the above is mainly an optimization for speed and will not affect your assembly.
+    However, the above is mainly an optimization for speed and will not affect your assembly continuity.
 
 
 **Q**:
