@@ -21,6 +21,7 @@ Canu FAQ
     With R7 1D sequencing data, multiple rounds of error correction are helpful. This should not be necessary for sequences over 85% identity. You can run just the correction from Canu with the options
     
         ::
+        
             -correct corOutCoverage=500 corMinCoverage=0 corMhapSensitivity=high
     
     for 5-10 rounds, supplying the asm.correctedReads.fasta.gz output from round ``i-1`` to round ``i``. Assemble with
@@ -71,7 +72,6 @@ Canu FAQ
     Why is my assembly is missing my favorite short plasmid X?
 
 **A**:
-
     The first step in Canu is to find high-error overlaps and generate corrected sequences for subsequent assembly. This is currently the fastest step in Canu. By default, only the longest 40X of data (based on the specified genome size) is used for correction. If you have a dataset with uneven coverage or small plasmids, correcting the longest 40X may not give you sufficient coverage of your genome/plasmid. In these cases, you can set
 
     ::
@@ -84,7 +84,6 @@ Canu FAQ
     Why do I get only 30X of corrected data?
 
 **A**:
-
     By default, only the longest 40X of data (based on the specified genome size) is used for correction. Typically, some reads are trimmed during correction due to being chimeric or having erroneous sequence, resulting in a loss of 20-25% (30X output). You can force correction to be non-lossy by setting
 
     ::  
@@ -97,8 +96,7 @@ Canu FAQ
    What is the minimum coverage required to run Canu?
 
 **A**:
-
-    We have found that >=20X typically begins to outperform current hybrid methods. For low coverage datasets (<=30X) we recommend the following parameters
+    We have found that on eukaryotic genomes >=20X typically begins to outperform current hybrid methods. For low coverage datasets (<=30X) we recommend the following parameters
 
     ::
 
@@ -117,7 +115,6 @@ Canu FAQ
    My genome is AT/GC rich, do I need to adjust parameters?
 
 **A**:
-
     On bacterial genomes, typically no. On repetitive genomes with AT<=25 or 75>=AT (or GC) the sequence biases the Jaccard estimate used by MHAP. In those cases setting
 
     ::
