@@ -20,9 +20,9 @@ Canu FAQ
     
     With R7 1D sequencing data, multiple rounds of error correction are helpful. This should not be necessary for sequences over 85% identity. You can run just the correction from Canu with the options
     
-        ::
-        
-            -correct corOutCoverage=500 corMinCoverage=0 corMhapSensitivity=high
+    ::
+    
+        -correct corOutCoverage=500 corMinCoverage=0 corMhapSensitivity=high
     
     for 5-10 rounds, supplying the asm.correctedReads.fasta.gz output from round ``i-1`` to round ``i``. Assemble with
     
