@@ -258,4 +258,6 @@ While Canu corrects sequences and has 99% identity or greater with PacBio or Nan
 
 If you have Illumina sequences available, `Pilon <http://www.broadinstitute.org/software/pilon/>`_ can also be used to polish either PacBio or Oxford Nanopore assemblies.
 
-See the `FAQ <faq>`_ page for commonly-asked questions and the `release <http://github.com/marbl/canu/releases>`_. notes page for information on what's changed and known issues.
+Futher Reading
+-------------------
+See the `FAQ <faq.html>`_ page for commonly-asked questions and the `release <http://github.com/marbl/canu/releases>`_. notes page for information on what's changed and known issues.
