@@ -208,36 +208,12 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
         continue;
       }
 
-      //  Now figure out what region is covered by the overlap.
-
-      int32    tiglo = 0;
-      int32    tighi = FI->fragmentLength(rdA->ident);
-
-      if (ovl[oi].a_hang > 0)
-        tiglo += ovl[oi].a_hang;  //  Postiive hang!
-
-      if (ovl[oi].b_hang < 0)
-        tighi += ovl[oi].b_hang;  //  Negative hang!
-
-      assert(0     <= tiglo);
-      assert(0     <= tighi);
-      assert(tiglo <= tighi);
-      assert(tiglo <= FI->fragmentLength(rdA->ident));
-      assert(tighi <= FI->fragmentLength(rdA->ident));
-
-      //  Offset and adjust to tig coordinates
-
-      //  Beacuse the read is placed with a lot of fudging in the positions, we need
-      //  to scale the coordinates we compute here.
-      double      sc  = (rdAhi - rdAlo) / (double)FI->fragmentLength(rdA->ident);
-
-      uint32      bgn = (uint32)floor(rdAlo + sc * tiglo);
-      uint32      end = (uint32)floor(rdAlo + sc * tighi);
-
       nIsect++;
 
-      olaps.push_back(epOlapDat(bgn, true,  ovl[oi].erate));
-      olaps.push_back(epOlapDat(end, false, ovl[oi].erate));
+      //  Now figure out what region is covered by the overlap, and save the open/close event.
+
+      olaps.push_back(epOlapDat(max(rdAlo, rdBlo), true,  ovl[oi].erate));
+      olaps.push_back(epOlapDat(min(rdAhi, rdBhi), false, ovl[oi].erate));
     }
 
 #ifdef SHOW_PROFILE_CONSTRUCTION_DETAILS
