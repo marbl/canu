@@ -198,24 +198,21 @@ public:
     epValue(uint32 b, uint32 e) {
       bgn    = b;
       end    = e;
-      mean   = 0.0;
-      stddev = 0.0;
     };
 
     double    max(double deviations) {
-      return(mean + deviations * stddev);
+      return(dev.mean() + deviations * dev.stddev());
     };
 
     bool operator<(const epValue &that) const { return(bgn < that.bgn); };
     bool operator<(const uint32 &that)  const { return(bgn < that);     };
 
+
+
     uint32          bgn;
     uint32          end;
 
     stdDev<double>  dev;
-
-    double          mean;
-    double          stddev;
   };
 
 

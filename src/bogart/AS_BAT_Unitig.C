@@ -329,12 +329,10 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
     }
   }
 
-  //  Finalize the values.  Just caching the mean and stddev to avoid a sqrt call.
+  //  Finalize the values.
 
-  for (uint32 bi=0; bi<errorProfile.size(); bi++) {
-    errorProfile[bi].mean   = errorProfile[bi].dev.mean();
-    errorProfile[bi].stddev = errorProfile[bi].dev.stddev();
-  }
+  for (uint32 bi=0; bi<errorProfile.size(); bi++)
+    errorProfile[bi].dev.finalize();
 
   //writeLog("tig %u generated "F_SIZE_T" profile regions with "F_U64" overlap pieces.\n",
   //         id(), errorProfile.size(), nPieces);
