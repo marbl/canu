@@ -16,7 +16,7 @@ Canu FAQ
     What parameters should I use for my genome? Sequencing type?
     
 **A**:
-    By default, Canu is designed to be universal on a large range of PacBio (C2-P6-C4) and Oxford Nanopore (R6-R9) data. You can adjust parameters to increase efficiency for your datatype. For example, for higher coverage PacBio datasets, especially from inbred samples, you can decrease the error rate (``errorRate=0.013``). For recent Nanopore data (R9) you can also decrease the default error rate (``errorRate=0.013``).
+    By default, Canu is designed to be universal on a large range of PacBio (C2-P6-C4) and Oxford Nanopore (R6-R9) data. You can adjust parameters to increase efficiency for your datatype. For example, for higher coverage PacBio datasets, especially from inbred samples, you can decrease the error rate (``errorRate=0.013``). For recent Nanopore data (R9) 2D data, you can also decrease the default error rate (``errorRate=0.013``).
     
     With R7 1D sequencing data, multiple rounds of error correction are helpful. This should not be necessary for sequences over 85% identity. You can run just the correction from Canu with the options
     
