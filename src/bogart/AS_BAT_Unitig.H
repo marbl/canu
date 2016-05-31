@@ -215,6 +215,7 @@ public:
     stdDev<double>  dev;
   };
 
+  static size_t epValueSize(void) { return(sizeof(epValue)); };
 
   void   computeArrivalRate(const char *prefix,
                             const char *label,

@@ -173,13 +173,16 @@ OverlapCache::OverlapCache(ovStore *ovlStoreUniq,
 
   uint64 memFI = FI->memoryUsage();
   uint64 memBE = FI->numFragments() * sizeof(BestEdgeOverlap);
-  uint64 memUL = FI->numFragments() * sizeof(ufNode);           //  For fragment positions in unitigs
-  uint64 memUT = FI->numFragments() * sizeof(uint32) / 16;      //  For unitigs (assumes 32 frag / unitig)
-  uint64 memID = FI->numFragments() * sizeof(uint32) * 2;       //  For maps of fragment id to unitig id
+  uint64 memUL = FI->numFragments() * sizeof(ufNode);             //  For fragment positions in unitigs
+  uint64 memUT = FI->numFragments() * sizeof(uint32) / 16;        //  For unitigs (assumes 32 frag / unitig)
+  uint64 memID = FI->numFragments() * sizeof(uint32) * 2;         //  For maps of fragment id to unitig id
+  uint64 memEP = FI->numFragments() * Unitig::epValueSize() * 2;  //  For error profile
+
   uint64 memC1 = (FI->numFragments() + 1) * (sizeof(BAToverlapInt *) + sizeof(uint32));
   uint64 memC2 = _ovsMax * (sizeof(ovOverlap) + sizeof(uint64) + sizeof(uint64));
   uint64 memC3 = _threadMax * _thread[0]._batMax * sizeof(BAToverlap);
   uint64 memC4 = (FI->numFragments() + 1) * sizeof(uint32);
+
   uint64 memOS = (_memLimit == getMemorySize()) ? (0.1 * getMemorySize()) : 0.0;
 
   uint64 memTT = memFI + memBE + memUL + memUT + memID + memC1 + memC2 + memC3 + memC4 + memOS;
@@ -198,6 +201,7 @@ OverlapCache::OverlapCache(ovStore *ovlStoreUniq,
   fprintf(stderr, "OverlapCache()-- %7"F_U64P"MB for unitig layouts.\n",                 memUL >> 20);
   fprintf(stderr, "OverlapCache()-- %7"F_U64P"MB for unitigs.\n",                        memUT >> 20);
   fprintf(stderr, "OverlapCache()-- %7"F_U64P"MB for id maps.\n",                        memID >> 20);
+  fprintf(stderr, "OverlapCache()-- %7"F_U64P"MB for error profiles.\n",                 memEP >> 20);
   fprintf(stderr, "OverlapCache()-- %7"F_U64P"MB for overlap cache pointers.\n",         memC1 >> 20);
   fprintf(stderr, "OverlapCache()-- %7"F_U64P"MB for overlap cache initial bucket.\n",   memC2 >> 20);
   fprintf(stderr, "OverlapCache()-- %7"F_U64P"MB for overlap cache thread data.\n",      memC3 >> 20);
