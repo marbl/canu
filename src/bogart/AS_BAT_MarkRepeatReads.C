@@ -601,8 +601,8 @@ markRepeatReads(UnitigVector &unitigs,
     writeLog("thickest edges to the repeat regions:\n");
 
     for (uint32 ri=0; ri<tigMarksR.numberOfIntervals(); ri++) {
-      uint32   t5 = UINT32_MAX, l5 = 0, t5bgn, t5end;
-      uint32   t3 = UINT32_MAX, l3 = 0, t3bgn, t3end;
+      uint32   t5 = UINT32_MAX, l5 = 0, t5bgn = 0, t5end = 0;
+      uint32   t3 = UINT32_MAX, l3 = 0, t3bgn = 0, t3end = 0;
 
       for (uint32 fi=0; fi<tig->ufpath.size(); fi++) {
         ufNode     *frg       = &tig->ufpath[fi];
