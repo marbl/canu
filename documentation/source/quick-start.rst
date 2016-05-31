@@ -258,16 +258,4 @@ While Canu corrects sequences and has 99% identity or greater with PacBio or Nan
 
 If you have Illumina sequences available, `Pilon <http://www.broadinstitute.org/software/pilon/>`_ can also be used to polish either PacBio or Oxford Nanopore assemblies.
 
-Changes
--------------------
-
-- Rewriten bogart algorith, automatically selects error rate and has improved repeat breaking
-- Drop seed length when running MHAP, compute all-vs-all overlaps and select best subest based on overlap coverage
- Fix various pipeline bugs
-
-Known Issues
--------------------
-
- LSF support has limited testing
-- Large memory usage while unitig consensus calling on unitigs over 100MB in size (140Mb contig uses approximate 75GB).
-- Distributed file systems (such as GPFS) causes issues with memory mapped files, slowing down parts of Canu, including meryl (0-mercounts), falcon-sense (2-correction), and red (unitigging/3-*).
+See the `FAQ <faq>`_ page for commonly-asked questions and the `release <http://github.com/marbl/canu/releases>`_. notes page for information on what's changed and known issues.
