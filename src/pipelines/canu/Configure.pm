@@ -571,7 +571,7 @@ sub configureAssembler () {
         setGlobalIfUndef("corPartitions", "512");      setGlobalIfUndef("corPartitionMin", "10000");
 
     } else {
-        setGlobalIfUndef("cnsMemory",     "16-64");    setGlobalIfUndef("cnsThreads",      "2-8");
+        setGlobalIfUndef("cnsMemory",     "64-128");   setGlobalIfUndef("cnsThreads",      "2-8");
         setGlobalIfUndef("corMemory",     "10-32");    setGlobalIfUndef("corThreads",      "2-4");
         setGlobalIfUndef("cnsPartitions", "256");      setGlobalIfUndef("cnsPartitionMin", "25000");
         setGlobalIfUndef("corPartitions", "1024");     setGlobalIfUndef("corPartitionMin", "15000");
@@ -614,7 +614,7 @@ sub configureAssembler () {
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("500m")) {
         setGlobalIfUndef("redMemory",   "2-6");    setGlobalIfUndef("redThreads",   "1-6");
-        setGlobalIfUndef("oeaMemory",   "1");       setGlobalIfUndef("oeaThreads",   "1");
+        setGlobalIfUndef("oeaMemory",   "2");       setGlobalIfUndef("oeaThreads",   "1");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("2g")) {
         setGlobalIfUndef("redMemory",   "2-8");    setGlobalIfUndef("redThreads",   "1-8");
@@ -622,11 +622,11 @@ sub configureAssembler () {
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("5g")) {
         setGlobalIfUndef("redMemory",   "2-16");    setGlobalIfUndef("redThreads",   "1-8");
-        setGlobalIfUndef("oeaMemory",   "2");       setGlobalIfUndef("oeaThreads",   "1");
+        setGlobalIfUndef("oeaMemory",   "4");       setGlobalIfUndef("oeaThreads",   "1");
 
     } else {
         setGlobalIfUndef("redMemory",   "2-16");    setGlobalIfUndef("redThreads",   "1-8");
-        setGlobalIfUndef("oeaMemory",   "2");       setGlobalIfUndef("oeaThreads",   "1");
+        setGlobalIfUndef("oeaMemory",   "4");       setGlobalIfUndef("oeaThreads",   "1");
     }
 
     #  And bogart.
@@ -635,7 +635,7 @@ sub configureAssembler () {
         setGlobalIfUndef("batMemory",   "2-16");        setGlobalIfUndef("batThreads",   "1-4");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("500m")) {
-        setGlobalIfUndef("batMemory",   "8-64");        setGlobalIfUndef("batThreads",   "2-8");
+        setGlobalIfUndef("batMemory",   "16-64");        setGlobalIfUndef("batThreads",   "2-8");
 
     } elsif (getGlobal("genomeSize") < adjustGenomeSize("2g")) {
         setGlobalIfUndef("batMemory",   "32-256");      setGlobalIfUndef("batThreads",   "4-16");
