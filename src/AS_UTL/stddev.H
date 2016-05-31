@@ -65,6 +65,9 @@ public:
     double s0 = _sn;
     uint32 n0 = _nn + 1;
 
+    if (_nn & 0x80000000)
+      fprintf(stderr, "ERROR: stdDev has been finalized; can't insert() new value.\n"), exit(1);
+
     _mn = m0 + (val - m0) / n0;
     _sn = s0 + (val - m0) * (val - _mn);
     _nn = n0;
@@ -75,16 +78,40 @@ public:
     double m0 = (n0 == 0) ? (0) : ((_nn * _mn - val) / n0);
     double s0 = _sn - (val - m0) * (val - _mn);
 
+    if (_nn & 0x80000000)
+      fprintf(stderr, "ERROR: stdDev has been finalized; can't remove() old value.\n"), exit(1);
+
     _nn = n0;
     _mn = m0;
     _sn = s0;
   };
 
-  uint32   size(void)      { return(_nn);                                  };
+  void     finalize(void) {
+    _sn  = stddev();
+    _nn  |= 0x80000000;
+  };
 
-  double   mean(void)      { return(_mn);                                  };
-  double   variance(void)  { return((_nn < 2) ? (0.0) : (_sn / (_nn-1)));  };
-  double   stddev(void)    { return(sqrt(variance()));                     };
+  uint32   size(void) {
+    return(_nn & 0x7fffffff);
+  };
+
+  double   mean(void) {
+    return(_mn);
+  };
+
+  double   variance(void) {
+    if (_nn & 0x80000000)
+      return(_sn * _sn);
+    else
+      return((_nn < 2) ? (0.0) : (_sn / (_nn-1)));
+  };
+
+  double   stddev(void) {
+    if (_nn & 0x80000000)
+      return(_sn);
+    else
+      return(sqrt(variance()));
+  };
 
 private:
   double   _mn;  //  mean
