@@ -181,9 +181,9 @@ public:
 
 class BestOverlapGraph {
 private:
-  void   removeSuspicious(void);
-  void   removeSpurs(void);
-  void   removeLopsidedEdges(void);
+  void   removeSuspicious(const char *prefix);
+  void   removeSpurs(const char *prefix);
+  void   removeLopsidedEdges(const char *prefix);
 
   void   findEdges(void);
 

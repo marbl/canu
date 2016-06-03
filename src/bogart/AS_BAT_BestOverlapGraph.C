@@ -51,7 +51,7 @@
 
 
 void
-BestOverlapGraph::removeSuspicious(void) {
+BestOverlapGraph::removeSuspicious(const char *UNUSED(prefix)) {
   uint32  fiLimit    = FI->numFragments();
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
@@ -194,7 +194,7 @@ BestOverlapGraph::removeHighErrorBestEdges(void) {
 
 
 void
-BestOverlapGraph::removeLopsidedEdges(void) {
+BestOverlapGraph::removeLopsidedEdges(const char *UNUSED(prefix)) {
   uint32  fiLimit    = FI->numFragments();
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
@@ -310,12 +310,20 @@ BestOverlapGraph::removeLopsidedEdges(void) {
 
 
 void
-BestOverlapGraph::removeSpurs(void) {
+BestOverlapGraph::removeSpurs(const char *prefix) {
   uint32  fiLimit    = FI->numFragments();
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
 
-  writeLog("BestOverlapGraph()-- detecting spur fragments.\n");
+  char    N[FILENAME_MAX];
+
+  sprintf(N, "%s.best.spurs", prefix);
+
+  FILE   *F = fopen(N, "w");
+  if (errno)
+    F = NULL;
+
+  writeLog("BestOverlapGraph()-- detecting spur reads.\n");
 
   _spur.clear();
 
@@ -337,10 +345,16 @@ BestOverlapGraph::removeSpurs(void) {
 
     //  Exactly one end is missing a best edge.  Bad!
 
-    writeLog("BestOverlapGraph()-- frag "F_U32" is a %s spur.\n", fi, (spur5) ? "5'" : "3'");
+    if (F)
+      fprintf(F, F_U32" %c'\n", fi, (spur5) ? '5' : '3');
 
     _spur.insert(fi);
   }
+
+  writeLog("BestOverlapGraph()-- detected "F_SIZE_T" spur reads.\n", _spur.size());
+
+  if (F)
+    fclose(F);
 }
 
 
@@ -431,7 +445,7 @@ BestOverlapGraph::BestOverlapGraph(double        erateGraph,
 
   //  Mark reads as suspicious if they are not fully covered by overlaps.
 
-  removeSuspicious();
+  removeSuspicious(prefix);
   findEdges();
 
   if (logFileFlagSet(LOG_ALL_BEST_EDGES))
@@ -452,7 +466,7 @@ BestOverlapGraph::BestOverlapGraph(double        erateGraph,
   //
   //  This must come before removeSpurs().
 
-  removeLopsidedEdges();
+  removeLopsidedEdges(prefix);
   findEdges();
 
   if (logFileFlagSet(LOG_ALL_BEST_EDGES))
@@ -460,7 +474,7 @@ BestOverlapGraph::BestOverlapGraph(double        erateGraph,
 
   //  Mark reads as spurs, so we don't find best edges to them.
 
-  removeSpurs();
+  removeSpurs(prefix);
   findEdges();
 
   reportBestEdges(prefix, logFileFlagSet(LOG_ALL_BEST_EDGES) ? "best.3.final" : "best");
