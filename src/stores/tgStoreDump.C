@@ -250,11 +250,12 @@ dumpStatus(gkStore *UNUSED(gkpStore), tgStore *tigStore) {
 
 void
 dumpTig(FILE *out, tgTig *tig, bool useGapped) {
-  fprintf(out, F_U32"\t"F_U32"\t%s\t%.2f\t%s\t%s\t%s\t"F_U32"\n",
+  fprintf(out, F_U32"\t"F_U32"\t%s\t%.2f\t%.2f\t%s\t%s\t%s\t"F_U32"\n",
           tig->tigID(),
           tig->length(useGapped),
           tig->coordinateType(useGapped),
           tig->_coverageStat,
+          tig->computeCoverage(useGapped),
           toString(tig->_class),
           tig->_suggestRepeat ? "yes" : "no",
           tig->_suggestCircular ? "yes" : "no",
@@ -278,7 +279,7 @@ dumpRead(FILE *out, tgTig *tig, tgPosition *read, bool useGapped) {
 void
 dumpTigs(gkStore *UNUSED(gkpStore), tgStore *tigStore, tgFilter &filter, bool useGapped) {
 
-  fprintf(stdout, "tigID\ttigLen\ttype\tcovStat\tsr\tsu\tsc\tsh\tnumChildren\n");
+  fprintf(stdout, "#tigID\ttigLen\tcoordType\tcovStat\tcoverage\ttigClass\tsugRept\tsugCirc\tnumChildren\n");
 
   for (uint32 ti=0; ti<tigStore->numTigs(); ti++) {
     if (tigStore->isDeleted(ti))
@@ -372,6 +373,9 @@ dumpLayout(gkStore *UNUSED(gkpStore), tgStore *tigStore, tgFilter &filter, bool 
 
     if (Terr + Rerr + Lerr > 0)
       exit(1);
+
+    fprintf(tigs,  "#tigID\ttigLen\tcoordType\tcovStat\tcoverage\ttigClass\tsugRept\tsugCirc\tnumChildren\n");
+    fprintf(reads, "#readID\ttigID\tcoordType\tbgn\tend\n");
   }
 
   for (uint32 ti=0; ti<tigStore->numTigs(); ti++) {
@@ -1178,10 +1182,12 @@ main (int argc, char **argv) {
     fprintf(stderr, "                            -fasta            report sequences in FASTA format (the default)\n");
     fprintf(stderr, "                            -fastq            report sequences in FASTQ format\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -layout [opts]          the layout of reads in each tig\n");
-    fprintf(stderr, "                          if '-o' is supplied, three files are created, otherwise just the layout is printed to stdout\n");
+    fprintf(stderr, "  -layout [opts]          the layout of reads in each tig.  if '-o' is supplied, three files are created.\n");
     fprintf(stderr, "                            -gapped           report the gapped (multialignment) positions\n");
-    fprintf(stderr, "                            -o outputPrefix   write plots to 'outputPrefix.*' in the current directory\n");
+    fprintf(stderr, "                            -o name           write data to 'name.*' files in the current directory\n");
+    fprintf(stderr, "                                                name.layout           - layout of reads\n");
+    fprintf(stderr, "                                                name.layout.readToTig - read to tig position\n");
+    fprintf(stderr, "                                                name.layout.tigInfo   - metadata for each tig\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -multialign [opts]      the full multialignment, output is to stdout\n");
     fprintf(stderr, "                            -w width          width of the page\n");
