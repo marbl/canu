@@ -37,6 +37,7 @@
 #include "AS_UTL_fasta.C"
 
 #include "splitToWords.H"
+#include "intervalList.H"
 
 
 tgPosition::tgPosition() {
@@ -228,6 +229,29 @@ tgTig::operator=(tgTig & tg) {
   return(*this);
 }
 
+
+
+double
+tgTig::computeCoverage(bool useGapped) {
+  intervalList<int32>  allL;
+
+  for (uint32 ci=0; ci<numberOfChildren(); ci++) {
+    tgPosition *read = getChild(ci);
+    uint32      bgn  = (useGapped) ? read->min() : mapGappedToUngapped(read->min());
+    uint32      end  = (useGapped) ? read->max() : mapGappedToUngapped(read->max());
+
+    allL.add(bgn, end - bgn);
+  }
+  
+  intervalList<int32>   ID(allL);
+
+  double  aveDepth    = 0;
+  
+  for (uint32 ii=0; ii<ID.numberOfIntervals(); ii++)
+    aveDepth += (ID.hi(ii) - ID.lo(ii) + 1) * ID.depth(ii);
+
+  return(aveDepth / length(useGapped));
+}
 
 
 

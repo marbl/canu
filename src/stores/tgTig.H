@@ -263,6 +263,8 @@ public:
   char                *bases(bool useGapped=true)          { return( (useGapped == true) ? gappedBases() : ungappedBases() ); };
   char                *quals(bool useGapped=true)          { return( (useGapped == true) ? gappedQuals() : ungappedQuals() ); };
 
+  double               computeCoverage(bool useGapped=true);
+
 private:
   uint32               layoutLength(void)                  { return(_layoutLen); };
 
