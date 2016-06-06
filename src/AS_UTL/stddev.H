@@ -51,10 +51,10 @@ using namespace std;
 template<typename TT>
 class stdDev {
 public:
-  stdDev() {
-    _mn = 0.0;
-    _sn = 0.0;
-    _nn = 0;
+  stdDev(double mn=0.0, double sn=0.0, uint32 nn=0) {
+    _mn = mn;
+    _sn = sn;
+    _nn = nn;
   };
 
   ~stdDev() {
