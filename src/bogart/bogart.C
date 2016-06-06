@@ -217,6 +217,7 @@ main (int argc, char * argv []) {
         for (flg=1, opt=0; logFileFlagNames[opt]; flg <<= 1, opt++)
           if ((strcasecmp(logFileFlagNames[opt], "stderr") != 0) &&
               (strcasecmp(logFileFlagNames[opt], "overlapScoring") != 0) &&
+              (strcasecmp(logFileFlagNames[opt], "errorProfiles") != 0) &&
               (strcasecmp(logFileFlagNames[opt], "chunkGraph") != 0) &&
               (strcasecmp(logFileFlagNames[opt], "setParentAndHang") != 0))
             logFileFlags |= flg;
@@ -420,7 +421,7 @@ main (int argc, char * argv []) {
 
   unitigs.computeArrivalRate(prefix, "initial");
   unitigs.computeErrorProfiles(prefix, "initial");
-  //unitigs.reportErrorProfiles(prefix, "initial");
+  unitigs.reportErrorProfiles(prefix, "initial");
 
   placeUnplacedUsingAllOverlaps(unitigs, prefix);
 
@@ -437,7 +438,7 @@ main (int argc, char * argv []) {
   setLogFile(prefix, "merge");
 
   computeErrorProfiles(unitigs, prefix, "merge");
-  //reportErrorProfiles(unitigs, prefix, "merge");
+  reportErrorProfiles(unitigs, prefix, "merge");
 
   mergeUnitigs(unitigs, deviationGraph, false);
 
@@ -454,7 +455,7 @@ main (int argc, char * argv []) {
   setLogFile(prefix, "popBubbles");
 
   unitigs.computeErrorProfiles(prefix, "unplaced");
-  //unitigs.reportErrorProfiles(prefix, "unplaced");
+  unitigs.reportErrorProfiles(prefix, "unplaced");
 
   popBubbles(unitigs,
              deviationBubble);

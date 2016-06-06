@@ -39,6 +39,7 @@
 #include "AS_BAT_Unitig.H"
 #include "AS_BAT_FragmentInfo.H"
 #include "AS_BAT_BestOverlapGraph.H"
+#include "AS_BAT_Logging.H"
 
 static std::map<uint32,int>* containPartialOrder;
 
@@ -454,6 +455,9 @@ void
 Unitig::reportErrorProfile(const char *prefix, const char *label) {
   char  N[FILENAME_MAX];
   FILE *F;
+
+  if (logFileFlagSet(LOG_ERROR_PROFILES) == false)
+    return;
 
   sprintf(N, "%s.%s.%08u.profile", prefix, label, id());
 
