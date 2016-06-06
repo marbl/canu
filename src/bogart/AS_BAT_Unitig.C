@@ -290,6 +290,40 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
     errorProfile[ee].dev = curDev;
   }
 
+  //  Finalize the values.
+
+  for (uint32 bi=0; bi<errorProfile.size(); bi++)
+    errorProfile[bi].dev.finalize();
+
+  //  Adjust regions that have no overlaps (mean == 0) to be the average of the adjacent regions.
+  //  There are always at least two elements in the profile list: one that starts at coordinate 0,
+  //  and the terminating one at coordinate (len, len+1).
+
+  for (uint32 bi=0; bi<errorProfile.size(); bi++) {
+    if (errorProfile[bi].dev.mean() != 0)
+      continue;
+
+    //  Set any initial zero coverage area to the next one.
+    if      (bi == 0) {
+      errorProfile[bi].dev = errorProfile[bi+1].dev;
+    }
+
+    //  Set intermediate ones to the average.
+    else if (bi < errorProfile.size() - 2) {
+      writeLog("tig %u zero coverage %u-%u\n", id(), errorProfile[bi].bgn, errorProfile[bi].end);
+
+      errorProfile[bi].dev = stdDev<double>((errorProfile[bi-1].dev.mean()   + errorProfile[bi+1].dev.mean()) / 2,
+                                            (errorProfile[bi-1].dev.stddev() + errorProfile[bi+1].dev.stddev()) / 2,
+                                            1);
+    }
+
+    //  Set the last two - the last real one and the terminator - to the previous one.
+    else {
+      errorProfile[bi].dev = errorProfile[bi-1].dev;
+    }
+  }
+
+
   //  Build an index.
   //    bi - base we are indexing.
   //    pi - profile
@@ -306,10 +340,7 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
     }
   }
 
-  //  Finalize the values.
 
-  for (uint32 bi=0; bi<errorProfile.size(); bi++)
-    errorProfile[bi].dev.finalize();
 
   //writeLog("tig %u generated "F_SIZE_T" profile regions with "F_U64" overlap pieces.\n",
   //         id(), errorProfile.size(), nPieces);
