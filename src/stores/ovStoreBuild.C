@@ -178,37 +178,56 @@ computeIIDperBucket(uint32          fileLimit,
   //  values can break this - either too low memory or too high allowed open files (an OS limit).
 
   if (maxMemory > 0) {
-    fprintf(stderr, "Configuring for %.2f GB to %.2f GB memory.\n",
+    fprintf(stderr, "Configuring for %.2f GB to %.2f GB memory and "F_U32" open files.\n",
             minMemory / 1024.0 / 1024.0 / 1024.0,
-            maxMemory / 1024.0 / 1024.0 / 1024.0);
+            maxMemory / 1024.0 / 1024.0 / 1024.0,
+            maxFiles);
 
-    if (minMemory < MEMORY_OVERHEAD + ovOverlapSortSize)
+    if (minMemory < MEMORY_OVERHEAD + ovOverlapSortSize) {
+      fprintf(stderr, "Reset minMemory from "F_U64" to "F_U64"\n", minMemory, MEMORY_OVERHEAD + ovOverlapSortSize);
       minMemory  = MEMORY_OVERHEAD + ovOverlapSortSize;
+    }
 
-    uint64  incr = (maxMemory - minMemory) / 1000;
-    if (incr < 1)
-      incr = 1;
+    uint64  incr = (maxMemory - minMemory) / 128;
+    if (incr < 1024 * 1024)
+      incr = 1024 * 1024;
 
-    //  iterate until we can fit the files into file system limits.
+    uint64  useMemory = minMemory;
 
-    do {
-      olapsPerBucketMax = (minMemory - MEMORY_OVERHEAD) / ovOverlapSortSize;
-       minMemory        += incr;
-    } while ((minMemory <= maxMemory) &&
-             (numOverlaps / olapsPerBucketMax + 1 > 0.50 * maxFiles));
+    //  Find the smallest memory size that uses fewer files than the OS allows.
 
-    //  Should we prefer finding 0.50 * maxFiles/2 (as above) but allow up to, say, 0.75 * maxFiles if 0.50 can't be satisfied?
-    //  Is the 0.5 scaling because we open two files per bucket?  Seems very tight if so.
+    for (;
+         ((useMemory <= maxMemory) && (numOverlaps / olapsPerBucketMax + 1 > maxFiles));
+         useMemory += incr) {
+      olapsPerBucketMax = (useMemory - MEMORY_OVERHEAD) / ovOverlapSortSize;
+      fprintf(stderr, "At memory %.3fGB, "F_U64" olaps per bucket, "F_U64" buckets (pass 1).\n",
+              useMemory / 1024.0 / 1024.0 / 1024.0, olapsPerBucketMax, numOverlaps / olapsPerBucketMax + 1);
+    }
+
+    //  If we're at less than half the max, make buckets a little bit bigger to reduce the open file
+    //  count.  This helps when multiple bucketizer jobs get scheduled to the same node.
+
+    if (useMemory < minMemory + (maxMemory - minMemory) / 2) {
+      for (;
+           ((useMemory <= maxMemory) && (numOverlaps / olapsPerBucketMax + 1 > maxFiles / 2));
+           useMemory += incr) {
+        olapsPerBucketMax = (useMemory - MEMORY_OVERHEAD) / ovOverlapSortSize;
+        fprintf(stderr, "At memory %.3fGB, "F_U64" olaps per bucket, "F_U64" buckets (pass 2).\n",
+                useMemory / 1024.0 / 1024.0 / 1024.0, olapsPerBucketMax, numOverlaps / olapsPerBucketMax + 1);
+      }
+    }
 
     //  Give up if we hit our max limit.
 
     if ((minMemory > maxMemory) ||
-        (numOverlaps / olapsPerBucketMax + 1) > 0.50 * maxFiles) {
+        (numOverlaps / olapsPerBucketMax + 1) > maxFiles) {
       fprintf(stderr, "ERROR:  Cannot sort %.2f million overlaps using %.2f GB memory; too few file handles available.\n",
               numOverlaps / 1000000.0,
               maxMemory / 1024.0 / 1024.0 / 1024.0);
       fprintf(stderr, "ERROR:    olapsPerBucket "F_U64"\n", olapsPerBucketMax);
       fprintf(stderr, "ERROR:    buckets        "F_U64"\n", numOverlaps / olapsPerBucketMax + 1);
+      fprintf(stderr, "ERROR:    SC_CHILD_MAX   "F_U64"\n", sysconf(_SC_CHILD_MAX));
+      fprintf(stderr, "ERROR:    SC_OPEN_MAX    "F_U64"\n", sysconf(_SC_OPEN_MAX));
       fprintf(stderr, "ERROR:  Increase memory size (in canu, ovsMemory; in ovStoreBuild, -M)\n");
       exit(1);
     }
@@ -397,11 +416,16 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -evalues              input files are evalue updates from overlap error adjustment\n");
     fprintf(stderr, "  -config out.dat       don't build a store, just dump a binary partitioning file for ovStoreBucketizer\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "Sizes and Limits:\n");
+    fprintf(stderr, "  ovOverlapSortSize     "F_U64" bytes\n", ovOverlapSortSize);
+    fprintf(stderr, "  SC_CHILD_MAX          "F_U64" processes\n", sysconf(_SC_CHILD_MAX));
+    fprintf(stderr, "  SC_OPEN_MAX           "F_U64" files\n", sysconf(_SC_OPEN_MAX));
+    fprintf(stderr, "\n");
 
     if (ovlName == NULL)
-      fprintf(stderr, "ERROR: No overlap store (-o) supplied.\n");
+      fprintf(stderr, "ERROR: No overlap store (-O) supplied.\n");
     if (gkpName == NULL)
-      fprintf(stderr, "ERROR: No gatekeeper store (-g) supplied.\n");
+      fprintf(stderr, "ERROR: No gatekeeper store (-G) supplied.\n");
     if (fileList.size() == 0)
       fprintf(stderr, "ERROR: No input overlap files (-L or last on the command line) supplied.\n");
     if (fileLimit > sysconf(_SC_OPEN_MAX) - 16)
