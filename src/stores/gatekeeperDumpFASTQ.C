@@ -189,6 +189,7 @@ main(int argc, char **argv) {
   bool             dumpFASTA         = false;
 
   bool             withLibName       = true;
+  bool             withReadName      = true;
 
   argc = AS_configure(argc, argv);
 
@@ -242,6 +243,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-nolibname") == 0) {
       withLibName     = false;
 
+    } else if (strcmp(argv[arg], "-noreadname") == 0) {
+      withReadName    = false;
+
 
     } else {
       err++;
@@ -274,6 +278,9 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -nolibname          don't include the library name in the output file name\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "  -noreadname         don't include the read name in the sequence header.  header will be:\n");
+    fprintf(stderr, "                        '>original-name id=<gkpID> clr=<bgn>,<end>   with names\n");
+    fprintf(stderr, "                        '><gkpID> clr=<bgn>,<end>                 without names\n");
 
     if (gkpStoreName == NULL)
       fprintf(stderr, "ERROR: no gkpStore (-G) supplied.\n");
@@ -360,6 +367,8 @@ main(int argc, char **argv) {
 
     gkpStore->gkStore_loadReadData(read, readData);
 
+    char   *name = readData->gkReadData_getName();
+
     char   *seq  = readData->gkReadData_getSequence();
     char   *qlt  = readData->gkReadData_getQualities();
     uint32  clen = rclr - lclr;
@@ -390,15 +399,26 @@ main(int argc, char **argv) {
 
     //  Print the read.
 
-    if (dumpFASTA)
-      AS_UTL_writeFastA(out[libID]->getFASTA(), seq, clen, 100,
-                        ">"F_U32" clr="F_U32","F_U32"\n",
-                        rid, lclr, rclr);
+    if (dumpFASTA)  //  Dear GCC:  I'm NOT ambiguous
+      if ((withReadName == true) && (name != NULL))
+        AS_UTL_writeFastA(out[libID]->getFASTA(), seq, clen, 100,
+                        ">%s id="F_U32" clr="F_U32","F_U32"\n",
+                        name, rid, lclr, rclr);
+      else
+        AS_UTL_writeFastA(out[libID]->getFASTA(), seq, clen, 100,
+                          ">"F_U32" clr="F_U32","F_U32"\n",
+                          rid, lclr, rclr);
 
-    if (dumpFASTQ)
-      AS_UTL_writeFastQ(out[libID]->getFASTQ(), seq, clen, qlt, clen,
-                        "@"F_U32" clr="F_U32","F_U32"\n",
-                        rid, lclr, rclr);
+    if (dumpFASTQ)  //  Dear GCC:  I'm NOT ambiguous
+      if ((withReadName == true) && (name != NULL))
+        AS_UTL_writeFastQ(out[libID]->getFASTQ(), seq, clen, qlt, clen,
+                          "@%s id="F_U32" clr="F_U32","F_U32"\n",
+                          name,
+                          rid, lclr, rclr);
+      else
+        AS_UTL_writeFastQ(out[libID]->getFASTQ(), seq, clen, qlt, clen,
+                          "@"F_U32" clr="F_U32","F_U32"\n",
+                          rid, lclr, rclr);
   }
 
   delete clrRange;
