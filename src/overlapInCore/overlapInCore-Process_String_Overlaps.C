@@ -68,8 +68,22 @@
  *  full conditions and disclaimers for each license.
  */
 
+#include <math.h>
 #include "overlapInCore.H"
 
+static
+uint64 computeExpected(uint64 kmerSize, double ovlLen, double erate) {
+   if (ovlLen < kmerSize) return 0;
+   return int(floor(exp(-1.0 * (double)kmerSize * erate) * (ovlLen - kmerSize + 1)));
+}
+
+static
+uint64 computeMinimumKmers(uint64 kmerSize, double ovlLen, double erate) {
+   if (G.Filter_By_Kmer_Count == 0) return G.Filter_By_Kmer_Count;
+
+   ovlLen = (ovlLen < 0 ? ovlLen*-1.0 : ovlLen);
+   return max(G.Filter_By_Kmer_Count, computeExpected(kmerSize, ovlLen, erate));
+}
 
 //  Choose the best overlap in  olap[0 .. (ct - 1)] .
 //  Mark all others as deleted (by setting  deleted[]  true for them)
@@ -707,6 +721,8 @@ Process_String_Olaps (char * S,
   if  (ct <= G.Frag_Olap_Limit) {
     for  (i = 0;  i < ct;  i ++) {
       root_num = WA->String_Olap_Space[i].String_Num;
+      //fprintf(stderr, "Processing overlap from %d and global, curr match is %d of %.2f len and %d diag matches min of %d\n", ID, (root_num + Hash_String_Num_Offset), (double)WA->String_Olap_Space[i].diag_end-WA->String_Olap_Space[i].diag_bgn, WA->String_Olap_Space[i].diag_ct, computeMinimumKmers(G.Kmer_Len, WA->String_Olap_Space[i].diag_end-WA->String_Olap_Space[i].diag_bgn, G.maxErate));
+      if (computeMinimumKmers(G.Kmer_Len, WA->String_Olap_Space[i].diag_end-WA->String_Olap_Space[i].diag_bgn, G.maxErate) > WA->String_Olap_Space[i].diag_ct) { WA->Kmer_Hits_Skipped_Ct++; continue; }
 
       Process_Matches(&WA->String_Olap_Space[i].Match_List,
                       S,
@@ -738,6 +754,7 @@ Process_String_Olaps (char * S,
 
   for  (i = start;  i < ct && WA->A_Olaps_For_Frag < G.Frag_Olap_Limit ;  i ++) {
     root_num = WA->String_Olap_Space[i].String_Num;
+    if (computeMinimumKmers(G.Kmer_Len, WA->String_Olap_Space[i].diag_end-WA->String_Olap_Space[i].diag_bgn, G.maxErate) > WA->String_Olap_Space[i].diag_ct) { WA->Kmer_Hits_Skipped_Ct++; continue; }
 
     Process_Matches(&WA->String_Olap_Space[i].Match_List,
                     S,
@@ -759,6 +776,7 @@ Process_String_Olaps (char * S,
 
   for  (i = start - 1;  i >= 0 && WA->B_Olaps_For_Frag < G.Frag_Olap_Limit ;  i --) {
     root_num = WA->String_Olap_Space[i].String_Num;
+    if (computeMinimumKmers(G.Kmer_Len, WA->String_Olap_Space[i].diag_end-WA->String_Olap_Space[i].diag_bgn, G.maxErate) > WA->String_Olap_Space[i].diag_ct) { WA->Kmer_Hits_Skipped_Ct++; continue; }
 
     Process_Matches(&WA->String_Olap_Space[i].Match_List,
                     S,

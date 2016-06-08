@@ -187,6 +187,7 @@ sub overlapConfigure ($$$$) {
         print F "  --hashload $hashLoad \\\n";
         print F "  --maxerate  ", getGlobal("${tag}OvlErrorRate"), " \\\n";
         print F "  --minlength ", getGlobal("minOverlapLength"), " \\\n";
+        print F "  --minkmers \\\n" if (defined(getGlobal("${tag}OvlFilter")) && getGlobal("${tag}OvlFilter")==1);
         print F "  \$opt \\\n";
         print F "  -o $path/\$job.ovb.WORKING.gz \\\n";
         print F "  -s $path/\$job.stats \\\n";

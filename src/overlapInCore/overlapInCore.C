@@ -103,6 +103,7 @@ Hash_Bucket_t  * Hash_Table;
 
 uint64  Kmer_Hits_With_Olap_Ct = 0;
 uint64  Kmer_Hits_Without_Olap_Ct = 0;
+uint64  Kmer_Hits_Skipped_Ct = 0;
 uint64  Multi_Overlap_Ct = 0;
 
 uint64  String_Ct;
@@ -424,6 +425,8 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "--minlength") == 0) {
       G.Min_Olap_Len = strtol (argv[++arg], NULL, 10);
+    } else if (strcmp(argv[arg], "--minkmers") == 0) {
+      G.Filter_By_Kmer_Count = int(floor(exp(-1.0 * (double)G.Kmer_Len * G.maxErate) * (G.Min_Olap_Len - G.Kmer_Len + 1)));
     } else if (strcmp(argv[arg], "--maxerate") == 0) {
       G.maxErate = strtof(argv[++arg], NULL);
 
@@ -541,6 +544,7 @@ main(int argc, char **argv) {
   fprintf(stderr, "Kmer Length           "F_U64"\n", G.Kmer_Len);
   fprintf(stderr, "Min Overlap Length    %d\n", G.Min_Olap_Len);
   fprintf(stderr, "Max Error Rate        %f\n", G.maxErate);
+  fprintf(stderr, "Min Kmer Matches      %d\n", G.Filter_By_Kmer_Count);
   fprintf(stderr, "\n");
   fprintf(stderr, "Num_PThreads          "F_U32"\n", G.Num_PThreads);
 
@@ -613,6 +617,7 @@ main(int argc, char **argv) {
 
   fprintf(stats, " Kmer hits without olaps = "F_S64"\n", Kmer_Hits_Without_Olap_Ct);
   fprintf(stats, "    Kmer hits with olaps = "F_S64"\n", Kmer_Hits_With_Olap_Ct);
+  //fprintf(stats, "      Kmer hits below %u = "F_S64"\n", G.Filter_By_Kmer_Count, Kmer_Hits_Skipped_Ct);
   fprintf(stats, "  Multiple overlaps/pair = "F_S64"\n", Multi_Overlap_Ct);
   fprintf(stats, " Total overlaps produced = "F_S64"\n", Total_Overlaps);
   fprintf(stats, "      Contained overlaps = "F_S64"\n", Contained_Overlap_Ct);

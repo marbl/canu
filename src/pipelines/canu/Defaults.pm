@@ -617,6 +617,9 @@ sub setOverlapDefaults ($$$) {
     $global{"${tag}OvlFrequentMers"}          = undef;
     $synops{"${tag}OvlFrequentMers"}          = "Do not seed overlaps with these kmers (fasta format)";
 
+    $global{"${tag}OvlFilter"}                = undef;
+    $synops{"${tag}OvlFilter"}                = "Filter overlaps based on expected kmers vs observed kmers";
+
     #  Mhap parameters.
 
     $global{"${tag}MhapVersion"}              = "2.1";

@@ -248,7 +248,9 @@ typedef  struct String_Olap_Node {
   uint32  String_Num;                // Of hash-table frag that have exact match with
   int32  Match_List;                 // Subscript of start of list of exact matches
   double  diag_sum;                  // Sum of diagonals of all k-mer matches to this frag
-  int32  diag_ct;                    // Count of all k-mer matches to this frag
+  int32   diag_ct;                   // Count of all k-mer matches to this frag
+  int     diag_bgn;
+  int     diag_end;
   signed int  Next : 29;             // Next match if this is a collision
   unsigned  Full : 1;
   unsigned  consistent : 1;
@@ -313,6 +315,7 @@ typedef  struct Work_Area {
 
   uint64         Kmer_Hits_Without_Olap_Ct;
   uint64         Kmer_Hits_With_Olap_Ct;
+  uint64         Kmer_Hits_Skipped_Ct;
   uint64         Multi_Overlap_Ct;
 
   prefixEditDistance  *editDist;
@@ -397,6 +400,7 @@ extern uint64  Hash_String_Num_Offset;
 extern Hash_Bucket_t  * Hash_Table;
 extern uint64  Kmer_Hits_With_Olap_Ct;
 extern uint64  Kmer_Hits_Without_Olap_Ct;
+extern uint64  Kmer_Hits_Skipped_Ct;
 extern uint64  Multi_Overlap_Ct;
 extern uint64  String_Ct;
 extern Hash_Frag_Info_t  * String_Info;
@@ -434,6 +438,7 @@ public:
 
     Kmer_Len = 0;
     Kmer_Skip_File = NULL;
+    Filter_By_Kmer_Count = 0;
 
     Frag_Olap_Limit = UINT64_MAX;
 
@@ -485,6 +490,7 @@ public:
   uint32  perThread;        //  When processing, how many to do per block
 
   uint64  Kmer_Len;         //  -k
+  uint64  Filter_By_Kmer_Count; 
   FILE   *Kmer_Skip_File;   //  -k
 
   //  Maximum number of overlaps for end of an old fragment against

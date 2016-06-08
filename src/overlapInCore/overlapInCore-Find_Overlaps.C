@@ -187,6 +187,8 @@ Add_Ref(String_Ref_t Ref, int Offset, Work_Area_t * WA) {
     WA->String_Olap_Space [Sub].Match_List = 0;
     WA->String_Olap_Space [Sub].diag_sum = 0.0;
     WA->String_Olap_Space [Sub].diag_ct = 0;
+    WA->String_Olap_Space [Sub].diag_bgn = AS_MAX_READLEN;
+    WA->String_Olap_Space [Sub].diag_end = 0;
     WA->String_Olap_Space [Sub].Next = 0;
     WA->String_Olap_Space [Sub].Full = TRUE;
     WA->String_Olap_Space [Sub].consistent = TRUE;
@@ -194,8 +196,10 @@ Add_Ref(String_Ref_t Ref, int Offset, Work_Area_t * WA) {
 
   consistent = WA->String_Olap_Space [Sub].consistent;
 
-  WA->String_Olap_Space [Sub].diag_sum += getStringRefOffset(Ref) - Offset;
+  WA->String_Olap_Space [Sub].diag_sum += (double)getStringRefOffset(Ref) - Offset;
   WA->String_Olap_Space [Sub].diag_ct ++;
+  if (WA->String_Olap_Space [Sub].diag_bgn > Offset) WA->String_Olap_Space [Sub].diag_bgn = Offset;
+  if (WA->String_Olap_Space [Sub].diag_end < Offset) WA->String_Olap_Space [Sub].diag_end = Offset;
   Add_Match (Ref, & (WA->String_Olap_Space [Sub].Match_List), Offset, & consistent, WA);
 
   WA->String_Olap_Space [Sub].consistent = consistent;
