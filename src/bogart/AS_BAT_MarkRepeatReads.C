@@ -235,6 +235,7 @@ splitUnitigs(UnitigVector             &unitigs,
       fprintf(stderr, "Failed to place read %u at %u-%u\n", frg.ident, frgbgn, frgend);
       for (uint32 ii=0; ii<BP.size(); ii++)
         fprintf(stderr, "Breakpoints %2u %8u-%8u repeat %u\n", ii, BP[ii]._bgn, BP[ii]._end, BP[ii]._isRepeat);
+      flushLog();
     }
     assert(rid != UINT32_MAX);  //  We searched all the BP's, the read had better be placed!
 
@@ -532,8 +533,6 @@ markRepeatReads(UnitigVector &unitigs,
 
     //  Collapse these markings Collapse all the read markings to intervals on the unitig, merging those that overlap
     //  significantly.
-
-    writeLog("Merge marks.\n");
 
     tigMarksR.merge(REPEAT_OVERLAP_MIN);
 
@@ -968,106 +967,77 @@ markRepeatReads(UnitigVector &unitigs,
 
 
 
-    //  Scan reads, join any marks that have their junctions spanned by a sufficiently large amount.
+    //  Merge adjacent repeats.
     //
-    //  If the read spans this junction be the usual amount, merge the intervals.
+    //  When we split (later), we require a MIN_ANCHOR_HANG overlap to anchor a read in a unique
+    //  region.  This is accomplished by extending the repeat regions on both ends.  For regions
+    //  close together, this could leave a negative length unique region between them:
     //
-    //  The intervals can be overlapping (by up to REPEAT_OVERLAP_MIN (x2?) bases.  For this junction
-    //  to be spanned, the read must span from min-ROM to max+ROM, not just hi(ri-1) to lo(ri).
+    //   ---[-----]--[-----]---  before
+    //   -[--------[]--------]-  after extending by MIN_ANCHOR_HANG (== two dashes)
     //
-    //  We DO need to filterShort() after every merge, otherwise, we'd have an empty bogus interval
-    //  in the middle of our list, which could be preventing some other merge.  OK, we could
+    //  To solve this, regions that were linked together by a single read (with sufficient overlaps
+    //  to each) were merged.  However, there was no maximum imposed on the distance between the
+    //  repeats, so (in theory) a 150kbp read could attach two repeats to a 149kbp unique unitig --
+    //  and label that as a repeat.  After the merges were completed, the regions were extended.
     //
-    //  Anything that gets merged is now no longer a true repeat.  It's unique, just bordered by repeats.
-    //  We can't track this through the indices (because we delete things).  We track it with a set of
-    //  begin coordinates.
+    //  This version will extend regions first, then merge repeats only if they intersect.  No need
+    //  for a linking read.
+    //
+    //  The extension also serves to clean up the edges of tigs, where the repeat doesn't quite
+    //  extend to the end of the tig, leaving a few hundred bases of non-repeat.
 
-    set<int32>  nonRepeatIntervals;
-
-    writeLog("Scan reads to merge repeat regions.\n");
-
-    for (uint32 fi=0; fi<tig->ufpath.size(); fi++) {
-      ufNode     *frg       = &tig->ufpath[fi];
-      bool        frgfwd    = (frg->position.bgn < frg->position.end);
-      int32       frglo     = (frgfwd) ? frg->position.bgn : frg->position.end;
-      int32       frghi     = (frgfwd) ? frg->position.end : frg->position.bgn;
-      bool        merged    = false;
-
-      for (uint32 ri=1; ri<tigMarksR.numberOfIntervals(); ri++) {
-        uint32  rMin = min(tigMarksR.hi(ri-1), tigMarksR.lo(ri));
-        uint32  rMax = max(tigMarksR.hi(ri-1), tigMarksR.lo(ri));
-
-        if ((frglo + MIN_ANCHOR_HANG <= rMin) && (rMax + MIN_ANCHOR_HANG <= frghi)) {
-          writeLog("merge regions %8d:%-8d and %8d:%-8d - junction contained in read %6u %5d-%5d\n",
-                   tigMarksR.lo(ri-1), tigMarksR.hi(ri-1),
-                   tigMarksR.lo(ri), tigMarksR.hi(ri),
-                   frg->ident, frglo, frghi);
-
-          tigMarksR.lo(ri) = tigMarksR.lo(ri-1);
-
-          tigMarksR.lo(ri-1) = 0;   //  CRITICAL to delete this interval (and not ri) because the next
-          tigMarksR.hi(ri-1) = 0;   //  iteration will be using ri-1 (== ri here) and ri (== ri+1).
-
-          merged = true;
-
-          nonRepeatIntervals.insert(tigMarksR.lo(ri));
-        }
-      }
-
-      if (merged)
-        tigMarksR.filterShort(1);
-    }
-
-    //  Extend the regions by MIN_ANCHOR_HANG.  This makes checking for reads that span and are
-    //  anchored in the next region easier.  It also solved a quirk when the first/last repeat
-    //  region doesn't extend to the end of the sequence:
-    //    0-183     unique  (created from inversion below, but useless and incorrect)
-    //    183-9942  repeat
+    //  Extend, but don't extend past the end of the tig.
 
     for (uint32 ii=0; ii<tigMarksR.numberOfIntervals(); ii++) {
       tigMarksR.lo(ii) = max<int32>(tigMarksR.lo(ii) - MIN_ANCHOR_HANG, 0);
       tigMarksR.hi(ii) = min<int32>(tigMarksR.hi(ii) + MIN_ANCHOR_HANG, tig->getLength());
     }
 
-    //  Find the non-repeat intervals.
+    //  Merge.
+
+    bool  merged = false;
+
+    for (uint32 ri=1; ri<tigMarksR.numberOfIntervals(); ri++) {
+      uint32  rMin = min(tigMarksR.hi(ri-1), tigMarksR.lo(ri));
+      uint32  rMax = max(tigMarksR.hi(ri-1), tigMarksR.lo(ri));
+
+      if (tigMarksR.lo(ri) <= tigMarksR.hi(ri-1)) {
+        writeLog("merge extended regions %8d:%-8d and %8d:%-8d\n",
+                 tigMarksR.lo(ri-1), tigMarksR.hi(ri-1),
+                 tigMarksR.lo(ri), tigMarksR.hi(ri));
+
+        tigMarksR.lo(ri) = tigMarksR.lo(ri-1);
+
+        tigMarksR.lo(ri-1) = 0;   //  CRITICAL to delete the ri-1 interval (and not ri) because the next
+        tigMarksR.hi(ri-1) = 0;   //  iteration will be using ri (as its ri-1).  ri-1 here is never seen again.
+
+        merged = true;
+      }
+    }
+
+    if (merged)
+      tigMarksR.filterShort(1);
+
+    //  Invert.  This finds the non-repeat intervals, which get turned into non-repeat tigs.
 
     tigMarksU = tigMarksR;
     tigMarksU.invert(0, tig->getLength());
 
     //  Create the list of intervals we'll use to make new unitigs.
-    //
-    //  The repeat intervals are extended by MIN_ANCHOR_HANG, and then any read fully contained in one of
-    //  these is moved here.
-    //
-    //  The non-repeat intervals are shortened by the same amount, and any read that intersects one
-    //  is moved there.
-    //
-    //  Does order matter?  Not sure.  The repeat intervals are first, then the formerly repeat
-    //  merged intervals, then the unique intervals.  Splitting might depend on the repeats being
-    //  first.
-
-    writeLog("Make breakpoints.\n");
 
     vector<breakPointCoords>   BP;
 
     for (uint32 ii=0; ii<tigMarksR.numberOfIntervals(); ii++)
-      if (nonRepeatIntervals.count(tigMarksR.lo(ii)) == 0)
-        BP.push_back(breakPointCoords(ti, tigMarksR.lo(ii), tigMarksR.hi(ii), true));
+      BP.push_back(breakPointCoords(ti, tigMarksR.lo(ii), tigMarksR.hi(ii), true));
 
-    for (uint32 ii=0; ii<tigMarksR.numberOfIntervals(); ii++)
-      if (nonRepeatIntervals.count(tigMarksR.lo(ii)) != 0)
-        BP.push_back(breakPointCoords(ti, tigMarksR.lo(ii), tigMarksR.hi(ii), true));
-
-    for (uint32 ii=0; ii<tigMarksU.numberOfIntervals(); ii++) {
+    for (uint32 ii=0; ii<tigMarksU.numberOfIntervals(); ii++)
       BP.push_back(breakPointCoords(ti, tigMarksU.lo(ii), tigMarksU.hi(ii), false));
-    }
 
-    //  If only one region, the whole unitig was declared repeat.  Nothing to do.
-
-    if (BP.size() == 1)
+    if (BP.size() == 1)  //  Only one region.  Nothing to do!
       continue;
 
-    sort(BP.begin(), BP.end());
+    sort(BP.begin(), BP.end());  //  Makes the report nice.  Doesn't impact splitting.
 
     //  Report.
 
