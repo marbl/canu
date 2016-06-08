@@ -437,8 +437,8 @@ main (int argc, char * argv []) {
 #if 0
   setLogFile(prefix, "merge");
 
-  computeErrorProfiles(unitigs, prefix, "merge");
-  reportErrorProfiles(unitigs, prefix, "merge");
+  unitigs.computeErrorProfiles(prefix, "merge");
+  unitigs.reportErrorProfiles(prefix, "merge");
 
   mergeUnitigs(unitigs, deviationGraph, false);
 
