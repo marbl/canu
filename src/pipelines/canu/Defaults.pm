@@ -631,6 +631,9 @@ sub setOverlapDefaults ($$$) {
     $global{"${tag}MhapNoTf"}                 = undef;
     $synops{"${tag}MhapNoTf"}                 = "Expert option: True or false, do not use tf weighting, only idf of tf-idf.";
 
+    $global{"${tag}MhapOptions"}              = undef;
+    $synops{"${tag}MhapOptions"}              = "Expert option: free-form parameters to pass to MHAP.";
+
     $global{"${tag}MhapBlockSize"}            = 3000;
     $synops{"${tag}MhapBlockSize"}            = "Number of reads per 1GB; memory * blockSize = the size of  block loaded into memory per job";
 

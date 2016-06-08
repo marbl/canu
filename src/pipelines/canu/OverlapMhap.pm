@@ -368,6 +368,7 @@ sub mhapConfigure ($$$$) {
     print F "  --threshold $threshold \\\n";
     print F "  --filter-threshold $filterThreshold \\\n";
     print F "  --num-threads ", getGlobal("${tag}mhapThreads"), " \\\n";
+    print F " " . getGlobal("${tag}MhapOptions")         . " \\\n"   if (defined(getGlobal("${tag}MhapOptions")));
     print F "  -f " . ($^O eq "cygwin" ? "\$(cygpath -w " : "") . "$wrk/0-mercounts/$asm.ms$merSize.frequentMers.ignore.gz" . ($^O eq "cygwin" ? ") " : "") . "\\\n"   if (-e "$wrk/0-mercounts/$asm.ms$merSize.frequentMers.ignore.gz");
     print F "  -p " . ($^O eq "cygwin" ? "\$(cygpath -w " : "") . "$path/blocks/\$job.fasta" .  ($^O eq "cygwin" ? ") " : "") . "\\\n";
     print F "  -q " . ($^O eq "cygwin" ? "\$(cygpath -w " : "") . "$path/blocks" .($^O eq "cygwin" ? ") " : "") . "\\\n";
@@ -445,6 +446,7 @@ sub mhapConfigure ($$$$) {
     print F "    --ordered-sketch-size $ordSketch \\\n";
     print F "    --ordered-kmer-size $ordSketchMer \\\n";
     print F "    --num-threads ", getGlobal("${tag}mhapThreads"), " \\\n";
+    print F " " . getGlobal("${tag}MhapOptions")         . " \\\n"   if (defined(getGlobal("${tag}MhapOptions")));
     print F "    -f " . ($^O eq "cygwin" ? "\$(cygpath -w " : "") . "$wrk/0-mercounts/$asm.ms$merSize.frequentMers.ignore.gz" .  ($^O eq "cygwin" ? ")" : "") . "\\\n"   if (-e "$wrk/0-mercounts/$asm.ms$merSize.frequentMers.ignore.gz");
     print F "    -s " . ($^O eq "cygwin" ? "\$(cygpath -w " : "") . "$path/blocks/\$blk.dat \$slf" .  ($^O eq "cygwin" ? ")" : "") . "\\\n";
     print F "    -q " . ($^O eq "cygwin" ? "\$(cygpath -w " : "") . "$path/queries/\$qry" . ($^O eq "cygwin" ? ")" : "") . "\\\n";
