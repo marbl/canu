@@ -110,6 +110,12 @@ gkRead::gkRead_loadData(gkReadData *readData, void *blobs) {
     if      (strncmp(chunk, "VERS", 4) == 0) {
     }
 
+    else if (strncmp(chunk, "NAME", 4) == 0) {
+      resizeArray(readData->_name, 0, readData->_nameAlloc, chunkLen + 1, resizeArray_doNothing);
+      memcpy(readData->_name, blob + 8, chunkLen);
+      readData->_name[chunkLen] = 0;
+    }
+
     else if (strncmp(chunk, "QSEQ", 4) == 0) {
       //fprintf(stderr, "QSEQ not supported.\n");
     }
@@ -365,6 +371,7 @@ gkRead::gkRead_encodeSeqQlt(char *H, char *S, char *Q, uint32 qv) {
   //  If there is a QV string, ensure that the lengths are the same.  If not, trim or pad the QVs.
   //  Then, convert the expected Sanger-encoded QV's (base='!') to be just integers.
 
+  uint32  Hlen = strlen(H);
   uint32  Slen = _seqLen = strlen(S);
   uint32  Qlen = 0;
 
@@ -411,8 +418,10 @@ gkRead::gkRead_encodeSeqQlt(char *H, char *S, char *Q, uint32 qv) {
 
   uint32  blobVers = 0x00000001;
 
-  rd->gkReadData_encodeBlobChunk("BLOB",       0,  NULL);
-  rd->gkReadData_encodeBlobChunk("VERS",       4, &blobVers);
+  rd->gkReadData_encodeBlobChunk("BLOB", 0,  NULL);
+  rd->gkReadData_encodeBlobChunk("VERS", 4, &blobVers);
+
+  rd->gkReadData_encodeBlobChunk("NAME", Hlen, H);
 
   if      (seq2Len > 0)
     rd->gkReadData_encodeBlobChunk("2SEQ", seq2Len, seq);    //  Two-bit encoded sequence (ACGT only)

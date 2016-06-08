@@ -209,7 +209,10 @@ class gkRead;
 class gkReadData {
 public:
   gkReadData() {
-    _read = NULL;
+    _read      = NULL;
+
+    _name      = NULL;
+    _nameAlloc = 0;
 
     _seq       = NULL;
     _qlt       = NULL;
@@ -229,6 +232,8 @@ public:
   };
 
   ~gkReadData() {
+    delete [] _name;
+
     delete [] _seq;
     delete [] _qlt;
 
@@ -245,6 +250,8 @@ public:
 
   gkRead  *gkReadData_getRead(void)         { return(_read); };
 
+  char    *gkReadData_getName(void)         { return(_name); };
+
   bool     gkReadData_hasSequence(void)     { return(_seq != NULL); };
   bool     gkReadData_hasQualities(void)    { return(_qlt != NULL); };
 
@@ -253,6 +260,9 @@ public:
 
 private:
   gkRead            *_read;     //  Pointer to the mmap'd read
+
+  char              *_name;
+  uint32             _nameAlloc;
 
   char              *_seq;      //  Everyone has sequence
   char              *_qlt;      //    and quality
