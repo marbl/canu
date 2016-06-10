@@ -49,7 +49,9 @@
 
 #include "unitigConsensus.H"
 
+#ifndef BROKEN_CLANG_OpenMP
 #include <omp.h>
+#endif
 #include <map>
 #include <algorithm>
 
