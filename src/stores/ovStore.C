@@ -121,7 +121,7 @@ ovStore::ovStore_read(void) {
   errno = 0;
   FILE *ovsinfo = fopen(name, "r");
   if (errno)
-    fprintf(stderr, "ERROR: directory '%s' is not an ovelrapStore; failed to open info file '%s': %s\n",
+    fprintf(stderr, "ERROR: directory '%s' is not an overlapStore; failed to open info file '%s': %s\n",
             _storePath, name, strerror(errno)), exit(1);
 
   AS_UTL_safeRead(ovsinfo, &_info, "ovStore::ovStore::info", sizeof(ovStoreInfo), 1);
