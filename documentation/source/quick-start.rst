@@ -27,7 +27,7 @@ Canu is designed to run on grid environments (LSF/PBS/Torque/Slrum/SGE are suppo
 ::
 
  gridOptionsJobName=myassembly
- "gridOptions=--partition quick --time 2:00"
+ gridOptions=--partition quick --time 2:00
 
 Assembling PacBio data
 ----------------------
