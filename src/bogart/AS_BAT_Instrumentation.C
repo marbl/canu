@@ -306,6 +306,9 @@ reportUnitigs(UnitigVector &unitigs, const char *prefix, const char *name, uint6
     }
   }
 
+  writeLog("== SIZE STATISTICS ==\n");
+  writeLog("\n");
+
   reportN50(unassembledLength, "UNASSEMBLED", genomeSize);
   reportN50(bubbleLength,      "BUBBLE",      genomeSize);
   reportN50(repeatLength,      "REPEAT",      genomeSize);
