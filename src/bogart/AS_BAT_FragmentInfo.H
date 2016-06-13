@@ -106,9 +106,6 @@ public:
   };
 
 private:
-  void      save(const char *prefix);
-  bool      load(const char *prefix);
-
   uint32   _numFragments;
   uint32   _numLibraries;
 

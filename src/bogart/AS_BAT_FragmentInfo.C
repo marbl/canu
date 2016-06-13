@@ -46,9 +46,6 @@ FragmentInfo::FragmentInfo(gkStore    *gkp,
                            const char *prefix,
                            uint32      minReadLen) {
 
-  if (load(prefix))
-    return;
-
   writeLog("FragmentInfo()-- Loading fragment information\n");
 
   if (minReadLen > 0)
@@ -92,8 +89,6 @@ FragmentInfo::FragmentInfo(gkStore    *gkp,
 
   writeLog("FragmentInfo()-- Loaded %d alive reads, skipped %d short reads.\n",
            numLoaded, numSkipped);
-
-  save(prefix);
 }
 
 
@@ -101,79 +96,4 @@ FragmentInfo::FragmentInfo(gkStore    *gkp,
 FragmentInfo::~FragmentInfo() {
   delete [] _fragLength;
   delete [] _libIID;
-}
-
-
-
-void
-FragmentInfo::save(const char *prefix) {
-  char  name[FILENAME_MAX];
-
-  sprintf(name, "%s.fragmentInfo", prefix);
-
-  errno = 0;
-  FILE *file = fopen(name, "w");
-  if (errno) {
-    writeLog("FragmentInfo()-- Failed to open '%s' for writing: %s\n", name, strerror(errno));
-    writeLog("FragmentInfo()-- Will not save fragment information to cache.\n");
-    return;
-  }
-
-  writeLog("FragmentInfo()-- Saving fragment information to cache '%s'\n", name);
-
-  AS_UTL_safeWrite(file, &fiMagicNumber,   "fragmentInformationMagicNumber",  sizeof(uint64), 1);
-  AS_UTL_safeWrite(file, &fiVersionNumber, "fragmentInformationMagicNumber",  sizeof(uint64), 1);
-  AS_UTL_safeWrite(file, &_numFragments,   "fragmentInformationNumFrgs",      sizeof(uint32), 1);
-  AS_UTL_safeWrite(file, &_numLibraries,   "fragmentInformationNumLibs",      sizeof(uint32), 1);
-
-  AS_UTL_safeWrite(file,  _fragLength,     "fragmentInformationFragLen",      sizeof(uint32), _numFragments + 1);
-  AS_UTL_safeWrite(file,  _libIID,         "fragmentInformationLibIID",       sizeof(uint32), _numFragments + 1);
-
-  fclose(file);
-}
-
-
-bool
-FragmentInfo::load(const char *prefix) {
-  char  name[FILENAME_MAX];
-
-  sprintf(name, "%s.fragmentInfo", prefix);
-
-  errno = 0;
-  FILE *file = fopen(name, "r");
-  if (errno)
-    return(false);
-
-  uint64  magicNumber   = 0;
-  uint64  versionNumber = 0;
-
-  AS_UTL_safeRead(file, &magicNumber,    "fragmentInformationMagicNumber",   sizeof(uint64), 1);
-  AS_UTL_safeRead(file, &versionNumber,  "fragmentInformationVersionNumber", sizeof(uint64), 1);
-  AS_UTL_safeRead(file, &_numFragments,  "fragmentInformationNumFrgs",       sizeof(uint32), 1);
-  AS_UTL_safeRead(file, &_numLibraries,  "fragmentInformationNumLibs",       sizeof(uint32), 1);
-
-  if (magicNumber != fiMagicNumber) {
-    writeLog("FragmentInfo()-- File '%s' is not a fragment info; cannot load.\n", name);
-    fclose(file);
-    return(false);
-  }
-  if (versionNumber != fiVersionNumber) {
-    writeLog("FragmentInfo()-- File '%s' is version "F_U64", I can only read version "F_U64"; cannot load.\n",
-            name, versionNumber, fiVersionNumber);
-    fclose(file);
-    return(false);
-  }
-
-  writeLog("FragmentInfo()-- Loading fragment information for "F_U32" fragments and "F_U32" libraries from cache '%s'\n",
-          _numFragments, _numLibraries, name);
-
-  _fragLength    = new uint32 [_numFragments + 1];
-  _libIID        = new uint32 [_numFragments + 1];
-
-  AS_UTL_safeRead(file,  _fragLength,    "fragmentInformationFragLen",      sizeof(uint32), _numFragments + 1);
-  AS_UTL_safeRead(file,  _libIID,        "fragmentInformationLibIID",       sizeof(uint32), _numFragments + 1);
-
-  fclose(file);
-
-  return(true);
 }
