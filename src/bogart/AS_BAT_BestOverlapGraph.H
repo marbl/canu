@@ -241,6 +241,7 @@ public:
     return(_suspicious.count(fragid) > 0);
   };
 
+  void      reportEdgeStatistics(const char *prefix, const char *label);
   void      reportBestEdges(const char *prefix, const char *label);
 
 public:
@@ -276,6 +277,12 @@ private:
   double                     _median;
   double                     _mad;
 
+  uint32                     _nSuspicious;          //  Stats for output
+  uint32                     _n1EdgeFiltered;
+  uint32                     _n2EdgeFiltered;
+  uint32                     _n1EdgeIncompatible;
+  uint32                     _n2EdgeIncompatible;
+
   set<uint32>                _suspicious;
   set<uint32>                _spur;
 
@@ -288,6 +295,8 @@ private:
 public:
   double                     _erateGraph;
   double                     _deviationGraph;
+private:
+  double                     _errorLimit;
 }; //BestOverlapGraph
 
 
