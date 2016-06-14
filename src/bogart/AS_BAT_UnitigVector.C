@@ -113,10 +113,10 @@ Unitig *&operator[](uint32 i) {
   if (((i    >= _totalUnitigs)) ||
       ((idx  >= _numBlocks)) ||
       (((pos >= _blockNext) && (idx >= _numBlocks - 1)))) {
-    fprintf(stderr, "UnitigVector::operator[]()--  i="F_U32" with totalUnitigs="F_U64"\n", i, _totalUnitigs);
-    fprintf(stderr, "UnitigVector::operator[]()--  blockSize="F_U64"\n", _blockSize);
-    fprintf(stderr, "UnitigVector::operator[]()--  idx="F_U32" numBlocks="F_U64"\n", idx, _numBlocks);
-    fprintf(stderr, "UnitigVector::operator[]()--  pos="F_U32" blockNext="F_U64"\n", pos, _blockNext);
+    writeStatus("UnitigVector::operator[]()--  i="F_U32" with totalUnitigs="F_U64"\n", i, _totalUnitigs);
+    writeStatus("UnitigVector::operator[]()--  blockSize="F_U64"\n", _blockSize);
+    writeStatus("UnitigVector::operator[]()--  idx="F_U32" numBlocks="F_U64"\n", idx, _numBlocks);
+    writeStatus("UnitigVector::operator[]()--  pos="F_U32" blockNext="F_U64"\n", pos, _blockNext);
   }
   assert(i    < _totalUnitigs);
   assert((idx < _numBlocks));
@@ -138,7 +138,7 @@ UnitigVector::computeArrivalRate(const char *prefix, const char *label) {
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize = (tiLimit < 100000 * numThreads) ? numThreads : tiLimit / 99999;
 
-  fprintf(stderr, "Computing arrival rates for %u unitigs using %u threads.\n", tiLimit, numThreads);
+  writeStatus("computeArrivalRate()-- Computing arrival rates for %u unitigs using %u threads.\n", tiLimit, numThreads);
 
   vector<int32>  hist[6];
 
@@ -177,7 +177,7 @@ UnitigVector::computeErrorProfiles(const char *prefix, const char *label) {
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize = (tiLimit < 100000 * numThreads) ? numThreads : tiLimit / 99999;
 
-  fprintf(stderr, "Computing error profiles for %u unitigs using %u threads.\n", tiLimit, numThreads);
+  writeStatus("computeErrorProfiles()-- Computing error profiles for %u unitigs using %u threads.\n", tiLimit, numThreads);
 
   //#pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 ti=0; ti<tiLimit; ti++) {
@@ -191,8 +191,6 @@ UnitigVector::computeErrorProfiles(const char *prefix, const char *label) {
 
     tig->computeErrorProfile(prefix, label);
   }
-
-  fprintf(stderr, "Computing error profiles - FINISHED.\n");
 }
 
 

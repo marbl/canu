@@ -152,7 +152,7 @@ void
 Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label)) {
 
 #ifdef SHOW_PROFILE_CONSTRUCTION
-  writeLog("Find error profile for tig "F_U32" of length "F_U32" with "F_SIZE_T" reads.\n",
+  writeLog("errorProfile()-- Find error profile for tig "F_U32" of length "F_U32" with "F_SIZE_T" reads.\n",
           id(), getLength(), ufpath.size());
 #endif
 
@@ -202,7 +202,7 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
       if ((rdAhi < rdBlo) || (rdBhi < rdAlo)) {
         nDiffPos++;
 #ifdef SHOW_PROFILE_CONSTRUCTION_DETAILS
-        writeLog("diffPos rdA %u=%u %u-%u rdB %u=%u %u-%u\n",
+        writeLog("errorProfile()-- diffPos rdA %u=%u %u-%u rdB %u=%u %u-%u\n",
                  ovl[oi].a_iid, rdA->ident, rdAlo, rdAhi,
                  ovl[oi].b_iid, rdB->ident, rdBlo, rdBhi);
 #endif
@@ -218,13 +218,13 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
     }
 
 #ifdef SHOW_PROFILE_CONSTRUCTION_DETAILS
-    writeLog("tig %u read %u with %u overlaps - diffTig %u diffPos %u intersect %u\n",
+    writeLog("errorProfile()-- tig %u read %u with %u overlaps - diffTig %u diffPos %u intersect %u\n",
              id(), rdA->ident, ovlLen, nDiffTig, nDiffPos, nIsect);
 #endif
   }
 
 #ifdef SHOW_PROFILE_CONSTRUCTION
-  writeLog("tig %u generated "F_SIZE_T" olaps.\n", id(), olaps.size());
+  writeLog("errorProfile()-- tig %u generated "F_SIZE_T" olaps.\n", id(), olaps.size());
 #endif
 
   //  Sort.
@@ -246,7 +246,7 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
     errorProfile.push_back(epValue(olaps[bb].pos, olaps[ii].pos));
 
 #ifdef SHOW_PROFILE_CONSTRUCTION_DETAILS
-    writeLog("tig %u make region bb=%u ii=%i - %u %u\n", id(), bb, ii, olaps[bb].pos, olaps[ii].pos);
+    writeLog("errorProfile()-- tig %u make region bb=%u ii=%i - %u %u\n", id(), bb, ii, olaps[bb].pos, olaps[ii].pos);
 #endif
 
     bb = ii;
@@ -259,7 +259,7 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
 
 
 #ifdef SHOW_PROFILE_CONSTRUCTION
-  writeLog("tig %u generated "F_SIZE_T" profile regions.\n", id(), errorProfile.size());
+  writeLog("errorProfile()-- tig %u generated "F_SIZE_T" profile regions.\n", id(), errorProfile.size());
 #endif
 
   //  Walk both lists, adding positive erates and removing negative erates.
@@ -271,7 +271,7 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
       ee++;                                     //  By construction, this single step should be all we need.
 
 #ifdef SHOW_PROFILE_CONSTRUCTION_DETAILS
-    writeLog("oo=%u bgn=%u -- ee=%u bgn=%u -- olaps.size "F_SIZE_T" errorProfile.size "F_SIZE_T" -- insert %d erate %f\n",
+    writeLog("errorProfile()-- oo=%u bgn=%u -- ee=%u bgn=%u -- olaps.size "F_SIZE_T" errorProfile.size "F_SIZE_T" -- insert %d erate %f\n",
              oo, olaps[oo].pos,
              ee, errorProfile[ee].bgn,
              olaps.size(), errorProfile.size(),
@@ -310,7 +310,7 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
 
     //  Set intermediate ones to the average.
     else if (bi < errorProfile.size() - 2) {
-      writeLog("tig %u zero coverage %u-%u\n", id(), errorProfile[bi].bgn, errorProfile[bi].end);
+      writeLog("errorProfile()-- tig %u zero coverage %u-%u\n", id(), errorProfile[bi].bgn, errorProfile[bi].end);
 
       errorProfile[bi].dev = stdDev<double>((errorProfile[bi-1].dev.mean()   + errorProfile[bi+1].dev.mean()) / 2,
                                             (errorProfile[bi-1].dev.stddev() + errorProfile[bi+1].dev.stddev()) / 2,
@@ -342,7 +342,7 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
 
 
 
-  //writeLog("tig %u generated "F_SIZE_T" profile regions with "F_U64" overlap pieces.\n",
+  //writeLog("errorProfile()-- tig %u generated "F_SIZE_T" profile regions with "F_U64" overlap pieces.\n",
   //         id(), errorProfile.size(), nPieces);
 }
 

@@ -44,12 +44,6 @@ FragmentInfo::FragmentInfo(gkStore    *gkp,
                            const char *prefix,
                            uint32      minReadLen) {
 
-  writeLog("FragmentInfo()-- Loading fragment information\n");
-
-  if (minReadLen > 0)
-    writeLog("FragmentInfo()-- Reads shorter than "F_U32" bases are forced to be singleton.\n",
-             minReadLen);
-
   _numLibraries = gkp->gkStore_getNumLibraries();
   _numFragments = gkp->gkStore_getNumReads();
 
@@ -79,14 +73,14 @@ FragmentInfo::FragmentInfo(gkStore    *gkp,
 
       numLoaded++;
     }
-
-    if (((numSkipped + numLoaded) % 10000000) == 0)
-      writeLog("FragmentInfo()-- Loading fragment information: skipped:%9d active:%9d\n",
-               numSkipped, numLoaded);
   }
 
-  writeLog("FragmentInfo()-- Loaded %d alive reads, skipped %d short reads.\n",
-           numLoaded, numSkipped);
+  if (minReadLen > 0)
+    writeStatus("FragmentInfo()-- Using %d reads, ignoring %u reads less than "F_U32" bp long.\n",
+                numLoaded, numSkipped, minReadLen);
+  else
+    writeStatus("FragmentInfo()-- Using %d reads, no minimum read length used.\n",
+                numLoaded);
 }
 
 

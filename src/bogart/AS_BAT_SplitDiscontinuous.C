@@ -67,9 +67,6 @@ makeNewUnitig(UnitigVector &unitigs,
 //  After splitting and ejecting some contains, check for discontinuous unitigs.
 //
 void splitDiscontinuousUnitigs(UnitigVector &unitigs, uint32 minOverlap) {
-
-  writeLog("==> SPLIT DISCONTINUOUS\n");
-
   uint32                numTested  = 0;
   uint32                numSplit   = 0;
   uint32                numCreated = 0;
@@ -198,9 +195,10 @@ void splitDiscontinuousUnitigs(UnitigVector &unitigs, uint32 minOverlap) {
     }
   }
 
-  writeLog("splitDiscontinuous()-- Tested "F_U32" unitigs, split "F_U32" into "F_U32" new unitigs.\n",
-          numTested, numSplit, numCreated);
-
   delete [] splitFrags;
+
+  if ((numSplit > 0) || (numCreated > 0))
+    writeLog("splitDiscontinuous()-- Tested "F_U32" unitigs, split "F_U32" into "F_U32" new unitigs.\n",
+             numTested, numSplit, numCreated);
 }
 

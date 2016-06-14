@@ -54,9 +54,13 @@
 #include <omp.h>
 #endif
 
-void  setLogFile(char const *prefix, char const *name);
-void  writeLog(char const *fmt, ...);
-void  flushLog(void);
+void    setLogFile(char const *prefix, char const *name);
+char   *getLogFilePrefix(void);
+
+void    writeStatus(char const *fmt, ...);
+void    writeLog(char const *fmt, ...);
+
+void    flushLog(void);
 
 #define logFileFlagSet(L) ((logFileFlags & L) == L)
 

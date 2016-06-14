@@ -40,10 +40,11 @@
 class logFileInstance {
 public:
   logFileInstance() {
-    file    = stderr;
-    name[0] = 0;
-    part    = 0;
-    length  = 0;
+    file      = stderr;
+    prefix[0] = 0;
+    name[0]   = 0;
+    part      = 0;
+    length    = 0;
   };
   ~logFileInstance() {
     if ((name[0] != 0) && (file)) {
@@ -52,16 +53,18 @@ public:
     }
   };
 
-  void  set(char const *prefix, int32 order, char const *label, int32 tn) {
-    if (label == NULL) {
-      file    = stderr;
-      name[0] = 0;
-      part    = 0;
-      length  = 0;
+  void  set(char const *prefix_, int32 order_, char const *label_, int32 tn_) {
+    if (label_ == NULL) {
+      file      = stderr;
+      prefix[0] = 0;
+      name[0]   = 0;
+      part      = 0;
+      length    = 0;
       return;
     }
 
-    sprintf(name, "%s.%03u.%s.thr%03d", prefix, order, label, tn);
+    sprintf(prefix, "%s.%03u.%s",         prefix_, order_, label_);
+    sprintf(name,   "%s.%03u.%s.thr%03d", prefix_, order_, label_, tn_);
   };
 
   void  rotate(void) {
@@ -87,8 +90,8 @@ public:
     errno = 0;
     file = fopen(path, "w");
     if (errno) {
-      fprintf(stderr, "setLogFile()-- Failed to open logFile '%s': %s.\n", path, strerror(errno));
-      fprintf(stderr, "setLogFile()-- Will now log to stderr instead.\n");
+      writeStatus("setLogFile()-- Failed to open logFile '%s': %s.\n", path, strerror(errno));
+      writeStatus("setLogFile()-- Will now log to stderr instead.\n");
       file = stderr;
     }
   };
@@ -97,13 +100,15 @@ public:
     if ((file != NULL) && (file != stderr))
       fclose(file);
 
-    file    = NULL;
-    name[0] = 0;
-    part    = 0;
-    length  = 0;
+    file      = NULL;
+    prefix[0] = 0;
+    name[0]   = 0;
+    part      = 0;
+    length    = 0;
   };
 
   FILE   *file;
+  char    prefix[FILENAME_MAX];
   char    name[FILENAME_MAX];
   uint32  part;
   uint64  length;
@@ -183,8 +188,28 @@ setLogFile(char const *prefix, char const *label) {
 
   //  File open is delayed until it is used.
 
-  if (label != NULL)
-    fprintf(stderr,  "setLogFile()-- Now logging to '%s.%03d.%s'\n", prefix, logFileOrder, label);
+}
+
+
+
+char *
+getLogFilePrefix(void) {
+  return(logFileMain.prefix);
+}
+
+
+
+void
+writeStatus(char const *fmt, ...) {
+  va_list           ap;
+  int32             nt = omp_get_num_threads();
+  int32             tn = omp_get_thread_num();
+
+  va_start(ap, fmt);
+
+  vfprintf(stderr, fmt, ap);
+
+  va_end(ap);
 }
 
 

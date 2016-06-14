@@ -56,7 +56,7 @@ BestOverlapGraph::removeSuspicious(const char *UNUSED(prefix)) {
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
 
-  writeLog("BestOverlapGraph()-- removing suspicious reads from graph, with %d threads.\n", numThreads);
+  writeStatus("BestOverlapGraph()-- removing suspicious reads from graph, with %d threads.\n", numThreads);
 
 #pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 fi=1; fi <= fiLimit; fi++) {
@@ -108,7 +108,7 @@ BestOverlapGraph::removeSuspicious(const char *UNUSED(prefix)) {
     }
   }
 
-  writeLog("BestOverlapGraph()-- marked "F_U64" reads as suspicious.\n", _suspicious.size());
+  writeStatus("BestOverlapGraph()-- marked "F_U64" reads as suspicious.\n", _suspicious.size());
 }
 
 
@@ -119,7 +119,7 @@ BestOverlapGraph::removeHighErrorBestEdges(void) {
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
 
-  writeLog("BestOverlapGraph()-- analyzing best edges to find useful edge error rate\n");
+  writeStatus("BestOverlapGraph()-- analyzing best edges to find useful edge error rate\n");
 
   stdDev<double>  edgeStats;
 
@@ -202,7 +202,7 @@ BestOverlapGraph::removeLopsidedEdges(const char *UNUSED(prefix)) {
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
 
-  writeLog("BestOverlapGraph()-- removing suspicious edges from graph, with %d threads.\n", numThreads);
+  writeStatus("BestOverlapGraph()-- removing suspicious edges from graph, with %d threads.\n", numThreads);
 
 #pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 fi=1; fi <= fiLimit; fi++) {
@@ -302,7 +302,7 @@ BestOverlapGraph::removeSpurs(const char *prefix) {
   if (errno)
     F = NULL;
 
-  writeLog("BestOverlapGraph()-- detecting spur reads.\n");
+  writeStatus("BestOverlapGraph()-- detecting spur reads.\n");
 
   _spur.clear();
 
@@ -330,7 +330,7 @@ BestOverlapGraph::removeSpurs(const char *prefix) {
     _spur.insert(fi);
   }
 
-  writeLog("BestOverlapGraph()-- detected "F_SIZE_T" spur reads.\n", _spur.size());
+  writeStatus("BestOverlapGraph()-- detected "F_SIZE_T" spur reads.\n", _spur.size());
 
   if (F)
     fclose(F);
@@ -347,7 +347,7 @@ BestOverlapGraph::findEdges(void) {
   memset(_bestA, 0, sizeof(BestOverlaps) * (fiLimit + 1));
   memset(_scorA, 0, sizeof(BestScores)   * (fiLimit + 1));
 
-  writeLog("BestOverlapGraph()-- analyzing %d fragments for best contains, with %d threads.\n", fiLimit, numThreads);
+  writeStatus("BestOverlapGraph()-- analyzing %d fragments for best contains, with %d threads.\n", fiLimit, numThreads);
 
 #pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 fi=1; fi <= fiLimit; fi++) {
@@ -358,7 +358,7 @@ BestOverlapGraph::findEdges(void) {
       scoreContainment(ovl[ii]);
   }
 
-  writeLog("BestOverlapGraph()-- analyzing %d fragments for best edges, with %d threads.\n", fiLimit, numThreads);
+  writeStatus("BestOverlapGraph()-- analyzing %d fragments for best edges, with %d threads.\n", fiLimit, numThreads);
 
 #pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 fi=1; fi <= fiLimit; fi++) {
@@ -381,7 +381,7 @@ void
 BestOverlapGraph::removeContainedDovetails(void) {
   uint32  fiLimit    = FI->numFragments();
 
-  writeLog("BestOverlapGraph()-- removing best edges for contained fragments.\n");
+  writeStatus("BestOverlapGraph()-- removing best edges for contained fragments.\n");
 
   for (uint32 fi=1; fi <= fiLimit; fi++) {
     if (isContained(fi) == true) {
@@ -397,9 +397,8 @@ BestOverlapGraph::BestOverlapGraph(double        erateGraph,
                                    double        deviationGraph,
                                    const char   *prefix) {
 
-  setLogFile(prefix, "bestOverlapGraph");
-
-  writeLog("BestOverlapGraph-- allocating best edges ("F_SIZE_T"MB)\n",
+  writeStatus("\n");
+  writeStatus("BestOverlapGraph()-- allocating best edges ("F_SIZE_T"MB)\n",
            ((2 * sizeof(BestEdgeOverlap) * (FI->numFragments() + 1)) >> 20));
 
   _bestA               = new BestOverlaps [FI->numFragments() + 1];  //  Cleared in findEdges()

@@ -42,9 +42,16 @@
 #include "AS_BAT_Logging.H"
 
 
-ChunkGraph::ChunkGraph(const char *output_prefix) {
+ChunkGraph::ChunkGraph(const char *prefix) {
+  char N[FILENAME_MAX];
 
-  setLogFile(output_prefix, "ChunkGraph");
+  sprintf(N, "%s.chunkGraph.log", prefix);
+
+  errno = 0;
+  _chunkLog = (logFileFlagSet(LOG_CHUNK_GRAPH)) ? fopen(N, "w") : NULL;
+
+  if (errno)
+    _chunkLog = NULL;
 
   _maxFragment = FI->numFragments();
   _restrict    = NULL;
@@ -58,14 +65,14 @@ ChunkGraph::ChunkGraph(const char *output_prefix) {
 
   for (uint32 fid=1; fid <= _maxFragment; fid++) {
     if (OG->isContained(fid)) {
-      if (logFileFlagSet(LOG_CHUNK_GRAPH))
-        writeLog("read %u contained\n", fid);
+      if (_chunkLog)
+        fprintf(_chunkLog, "read %u contained\n", fid);
       continue;
     }
 
     if (OG->isSuspicious(fid)) {
-      if (logFileFlagSet(LOG_CHUNK_GRAPH))
-        writeLog("read %u suspicious\n", fid);
+      if (_chunkLog)
+        fprintf(_chunkLog, "read %u suspicious\n", fid);
       continue;
     }
 
@@ -75,6 +82,9 @@ ChunkGraph::ChunkGraph(const char *output_prefix) {
     _chunkLength[fid-1].fragId = fid;
     _chunkLength[fid-1].cnt    = l5 + l3;
   }
+
+  if (_chunkLog)
+    fclose(_chunkLog);
 
   delete [] _pathLen;
   _pathLen = NULL;
@@ -209,6 +219,13 @@ ChunkGraph::countFullWidth(FragmentEnd firstEnd) {
   }
 
 
+  if (lengthMax != _pathLen[firstIdx]) {
+    writeStatus("chunkGraph()-- ERROR: lengthMax %d _pathLen[] %d\n",
+                lengthMax, _pathLen[firstIdx]);
+    flushLog();
+  }
+  assert(lengthMax == _pathLen[firstIdx]);
+
 
   if (logFileFlagSet(LOG_CHUNK_GRAPH)) {
     seen.clear();
@@ -216,7 +233,7 @@ ChunkGraph::countFullWidth(FragmentEnd firstEnd) {
     currEnd = firstEnd;
     currIdx = firstIdx;
 
-    writeLog("path from %d,%d length %d:",
+    fprintf(_chunkLog, "path from %d,%d length %d:",
             firstEnd.fragId(),
             (firstEnd.frag3p()) ? 3 : 5,
             _pathLen[firstIdx]);
@@ -226,9 +243,9 @@ ChunkGraph::countFullWidth(FragmentEnd firstEnd) {
       seen.insert(currEnd);
 
       if (currEnd == lastEnd)
-        writeLog(" LAST");
+        fprintf(_chunkLog, " LAST");
 
-      writeLog(" %d,%d(%d)",
+      fprintf(_chunkLog, " %d,%d(%d)",
               currEnd.fragId(),
               (currEnd.frag3p()) ? 3 : 5,
               _pathLen[currIdx]);
@@ -238,18 +255,14 @@ ChunkGraph::countFullWidth(FragmentEnd firstEnd) {
     }
 
     if (seen.find(currEnd) != seen.end())
-      writeLog(" CYCLE %d,%d(%d)",
+      fprintf(_chunkLog, " CYCLE %d,%d(%d)",
               currEnd.fragId(),
               (currEnd.frag3p()) ? 3 : 5,
               _pathLen[currIdx]);
 
-    writeLog("\n");
+    fprintf(_chunkLog, "\n");
   }
 
-  if (lengthMax != _pathLen[firstIdx])
-    writeLog("ERROR: lengthMax %d _pathLen[] %d\n",
-            lengthMax, _pathLen[firstIdx]);
-  assert(lengthMax == _pathLen[firstIdx]);
-
+  
   return(_pathLen[firstIdx]);
 }

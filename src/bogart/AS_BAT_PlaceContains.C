@@ -71,9 +71,8 @@ breakSingletonTigs(UnitigVector &unitigs) {
     removed++;                               //  Count
   }
 
-  writeLog("Removed %u read%s from %u singleton unitig%s.\n",
-          removed, (removed != 1) ? "" : "s",
-          removed, (removed != 1) ? "" : "s");
+  writeStatus("breakSingletonTigs()-- Removed %u singleton tig%s; reads are now unplaced.\n",
+              removed, (removed == 1) ? "" : "s");
 }
 
 
@@ -107,8 +106,9 @@ placeUnplacedUsingAllOverlaps(UnitigVector &unitigs,
       else
         nToPlace++;
 
-  writeLog("placeContains()-- placing %u contained and %u unplaced reads, with %d threads.\n",
-           nToPlaceContained, nToPlace, numThreads);
+  writeStatus("\n");
+  writeStatus("placeContains()-- placing %u contained and %u unplaced reads, with %d threads.\n",
+              nToPlaceContained, nToPlace, numThreads);
 
   //  Do the placing!
 
@@ -234,8 +234,8 @@ placeUnplacedUsingAllOverlaps(UnitigVector &unitigs,
   delete [] placedPos;
   delete [] placedTig;
 
-  writeLog("placeContains()-- Placed %u contained reads and %u unplaced reads.\n", nPlacedContained, nPlaced);
-  writeLog("placeContains()-- Failed to place %u contained reads (too high error suspected) and %u unplaced reads (lack of overlaps suspected).\n", nFailedContained, nFailed);
+  writeStatus("placeContains()-- Placed %u contained reads and %u unplaced reads.\n", nPlacedContained, nPlaced);
+  writeStatus("placeContains()-- Failed to place %u contained reads (too high error suspected) and %u unplaced reads (lack of overlaps suspected).\n", nFailedContained, nFailed);
 
   //  But wait!  All the tigs need to be sorted.  Well, not really _all_, but the hard ones to sort
   //  are big, and those quite likely had reads added to them, so it's really not worth the effort

@@ -375,7 +375,11 @@ main (int argc, char * argv []) {
 
   UnitigVector      unitigs;
 
-  setLogFile(prefix, NULL);
+  writeStatus("\n");
+  writeStatus("==> LOADING AND FILTERING OVERLAPS.\n");
+  writeStatus("\n");
+
+  setLogFile(prefix, "filterOverlaps");
 
   FI = new FragmentInfo(gkpStore, prefix, minReadLen);
 
@@ -398,8 +402,11 @@ main (int argc, char * argv []) {
   //  through all fragments and place whatever isn't already placed.
   //
 
+  writeStatus("\n");
+  writeStatus("==> BUILDING UNITIGS.\n");
+  writeStatus("\n");
+
   setLogFile(prefix, "buildUnitigs");
-  writeLog("==> BUILDING UNITIGS from %d fragments.\n", FI->numFragments());
 
   for (uint32 fi=CG->nextFragByChunkLength(); fi>0; fi=CG->nextFragByChunkLength())
     populateUnitig(unitigs, fi);
@@ -417,9 +424,13 @@ main (int argc, char * argv []) {
   //
 
 #if 1
+  writeStatus("\n");
+  writeStatus("==> PLACE CONTAINED READS.\n");
+  writeStatus("\n");
+
   setLogFile(prefix, "placeContains");
 
-  unitigs.computeArrivalRate(prefix, "initial");
+  //unitigs.computeArrivalRate(prefix, "initial");
   unitigs.computeErrorProfiles(prefix, "initial");
   unitigs.reportErrorProfiles(prefix, "initial");
 
@@ -435,7 +446,11 @@ main (int argc, char * argv []) {
   //
 
 #if 0
-  setLogFile(prefix, "merge");
+  writeStatus("\n");
+  writeStatus("==> MERGE ALTERNATE PATHS.\n");
+  writeStatus("\n");
+
+  setLogFile(prefix, "mergeAlternates");
 
   unitigs.computeErrorProfiles(prefix, "merge");
   unitigs.reportErrorProfiles(prefix, "merge");
@@ -452,6 +467,10 @@ main (int argc, char * argv []) {
   //
 
 #if 1
+  writeStatus("\n");
+  writeStatus("==> DETECT BUBBLES AND ORPHANS.\n");
+  writeStatus("\n");
+
   setLogFile(prefix, "popBubbles");
 
   unitigs.computeErrorProfiles(prefix, "unplaced");
@@ -470,7 +489,11 @@ main (int argc, char * argv []) {
   //  project these regions back to the tig, and break unless there is a read spanning the region.
   //
 
-  setLogFile(prefix, "markRepeatReads");
+  writeStatus("\n");
+  writeStatus("==> BREAK REPEATS.\n");
+  writeStatus("\n");
+
+  setLogFile(prefix, "breakRepeats");
 
   unitigs.computeErrorProfiles(prefix, "repeats");
 
@@ -502,7 +525,11 @@ main (int argc, char * argv []) {
   //  still unplaced, make it a singleton unitig.
   //
 
-  setLogFile(prefix, "cleanup");
+  writeStatus("\n");
+  writeStatus("==> CLEANUP MISTAKES.\n");
+  writeStatus("\n");
+
+  setLogFile(prefix, "cleanupMistakes");
 
   splitDiscontinuousUnitigs(unitigs, minOverlap);
 
@@ -514,6 +541,12 @@ main (int argc, char * argv []) {
   //placeUnplacedUsingAllOverlaps(unitigs, prefix);
 
   promoteToSingleton(unitigs);
+
+  writeStatus("\n");
+  writeStatus("==> GENERATE OUTPUTS.\n");
+  writeStatus("\n");
+
+  setLogFile(prefix, "generateOutputs");
 
   classifyUnitigsAsUnassembled(unitigs,
                                fewReadsNumber,
@@ -530,12 +563,8 @@ main (int argc, char * argv []) {
   //  the tigStore tigID.
   //
 
-  setLogFile(prefix, "output");
-
   setParentAndHang(unitigs);
   writeUnitigsToStore(unitigs, prefix, tigStorePath, fragment_count_target, true);
-
-  setLogFile(prefix, "graph");
 
   writeUnusedEdges(unitigs, prefix);
 
@@ -550,7 +579,8 @@ main (int argc, char * argv []) {
 
   setLogFile(prefix, NULL);
 
-  writeLog("Bye.\n");
+  writeStatus("\n");
+  writeStatus("Bye.\n");
 
   return(0);
 }

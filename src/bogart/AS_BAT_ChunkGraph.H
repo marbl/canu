@@ -63,7 +63,7 @@ public:
 
 class ChunkGraph {
 public:
-  ChunkGraph(const char *output_prefix);
+  ChunkGraph(const char *prefix);
   ChunkGraph(set<uint32> *restrict);
   ~ChunkGraph(void) {
     delete [] _chunkLength;
@@ -78,6 +78,8 @@ public:
 private:
   uint64 getIndex(FragmentEnd e);
   uint32 countFullWidth(FragmentEnd firstEnd);
+
+  FILE               *_chunkLog;
 
   uint64              _maxFragment;
 

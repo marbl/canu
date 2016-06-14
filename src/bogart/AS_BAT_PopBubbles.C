@@ -84,7 +84,8 @@ findPotentialBubbles(UnitigVector    &unitigs,
   uint32  tiNumThreads = omp_get_max_threads();
   uint32  tiBlockSize  = (tiLimit < 100000 * tiNumThreads) ? tiNumThreads : tiLimit / 99999;
 
-  writeLog("bubbleDetect()-- working on "F_U32" unitigs, with "F_U32" threads.\n", tiLimit, tiNumThreads);
+  writeStatus("\n");
+  writeStatus("bubbleDetect()-- working on "F_U32" unitigs, with "F_U32" threads.\n", tiLimit, tiNumThreads);
 
   for (uint32 ti=0; ti<tiLimit; ti++) {
     Unitig  *tig = unitigs[ti];
@@ -339,6 +340,11 @@ popBubbles(UnitigVector &unitigs,
   BubTargetList   potentialBubbles;
 
   findPotentialBubbles(unitigs, potentialBubbles);
+
+  writeStatus("popBubbles()-- Found "F_SIZE_T" potential bubbles.\n", potentialBubbles.size());
+
+  //if (potentialBubbles.size() == 0)
+  //  return;
 
   writeLog("\n");
   writeLog("Found "F_SIZE_T" potential bubbles.\n", potentialBubbles.size());
