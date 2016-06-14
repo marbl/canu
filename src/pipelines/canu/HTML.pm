@@ -660,6 +660,42 @@ sub buildOverlapErrorCorrectionHTML ($$$$$$) {
 }
 
 
+
+sub reportSizeStatistics ($$$) {
+    my $css     = shift @_;  #  Array reference
+    my $body    = shift @_;  #  Array reference
+    my $scripts = shift @_;  #  Array reference
+
+    $_ = <F>;  chomp;  #  First real line.
+
+    push @$body, "<table>\n";
+    push @$body, "<tr><th>Fraction</th><th>Length</th><th>Sequences</th><th>Bases</th></tr>\n";
+
+    while (!eof(F) && (length($_) > 0)) {
+        if (m/^(\w+)\s+\((\d+)\s+tigs\)\s+\((\d+)\s+length\)\s+\((\d+)\s+average\)\s+\((\d+.\d+x)\s+coverage\)$/) {
+            push @$body, "<tr><td colspan='5'>$_</td></tr>\n";
+        }
+
+        if (m/^ng(\d\d\d)\s+(\d+)\s+lg(\d\d\d)\s+(\d+)\s+sum\s+(\d+)\s+\((\w+\))$/) {
+            my $ng  = $1;
+            my $ngv = $2;
+            my $lg  = $3;
+            my $lgv = $4;
+            my $sum = $5;
+            my $typ = $6;
+
+            $ng =~ s/^0*//;
+
+            push @$body, "<tr><td>$ng</td><td>$ngv</td><td>$lgv</td><td>$sum</td></tr>\n";
+        }
+
+        $_ = <F>;  chomp;
+    }
+
+    push @$body, "</table>\n";
+}
+
+
 sub buildUnitiggerHTML ($$$$$$) {
     my $wrk     = shift @_;
     my $asm     = shift @_;
@@ -668,9 +704,179 @@ sub buildUnitiggerHTML ($$$$$$) {
     my $body    = shift @_;  #  Array reference
     my $scripts = shift @_;  #  Array reference
 
+    return  if (! -d "$wrk/4-unitigger");
+
+    my @logs;
+
+    push @logs, "$wrk/4-unitigger/unitigger.err";
+
+    open(F, "ls $wrk/4-unitigger |");
+    while (<F>) {
+        chomp;
+
+        push @logs, "$wrk/4-unitigger/$_"   if (m/log$/);
+    }
+    close(F);
+
     push @$body, "<h2>Unitigs</h2>\n";
     push @$body, "\n";
+
+    if (-e "$wrk/4-unitigger/unitigger.err") {
+        my $all   = 0;
+        my $some  = 0;
+        my $someL = 0;
+        my $olaps = 0;
+
+        open(F, "< $wrk/4-unitigger/unitigger.err");
+        while (<F>) {
+            chomp;
+
+            #if (m/maxPer.*numBelow=(\d+)\snumEqual=(\d+)\snumAbove=(\d+)\stotalLoad=(\d+)\s/) {
+            #    push @$body, "Loaded $4 overlaps.  $3 overlaps were omitted due to memory constraints.\n";
+            #}
+
+            $someL  = $1   if (m/_maxPer\s+=\s+(\d+)\s+overlaps/);
+            $all   += $1   if (m/numBelow\s+=\s+(\d+)\s+reads/);
+            $all   += $1   if (m/numEqual\s+=\s+(\d+)\s+reads/);
+            $some   = $1   if (m/numAbove\s+=\s+(\d+)\s+reads/);
+            $olaps  = $1   if (m/totalLoad\s+=\s+(\d+)\s+overlaps/);
+
+            
+        }
+        close(F);
+
+        push @$body, "<h3>Overlaps</h3>\n";
+        push @$body, "\n";
+        push @$body, "Loaded all overlaps for $all reads.<br>\n";
+        push @$body, "Loaded some overlaps for $some reads (the best $someL for each read).<br>\n"  if ($some > 0);
+        push @$body, "Loaded $olaps overlaps in total.<br>\n";
+    }
+
+    if (-e "$wrk/4-unitigger/$asm.001.filterOverlaps.thr000.num000.log") {
+        push @$body, "<h3>Edges</h3>\n";
+        push @$body, "\n";
+
+        my $initContained      = 0;
+        my $initSingleton      = 0;
+        my $initSpur           = 0;
+        my $initSpurMutualBest = 0;
+        my $initBest           = 0;
+        my $initBest0Mutual    = 0;
+        my $initBest1Mutual    = 0;
+        my $initBest2Mutual    = 0;
+
+        my $mean   = 0;  my $stddev  = 0;  my $ms         = 0;
+        my $median = 0;  my $mad     = 0;  my $mm         = 0;
+        my $noBest = 0;  my $highErr = 0;  my $acceptable = 0;
+
+        my $suspicious  = 0;
+        my $filtered1   = 0;
+        my $filtered2   = 0;
+        my $lopsided1   = 0;
+        my $lopsided2   = 0;
+
+        my $finalContained      = 0;
+        my $finalSingleton      = 0;
+        my $finalSpur           = 0;
+        my $finalSpurMutualBest = 0;
+        my $finalBest           = 0;
+        my $finalBest0Mutual    = 0;
+        my $finalBest1Mutual    = 0;
+        my $finalBest2Mutual    = 0;
+
+        open(F, "$wrk/4-unitigger/$asm.001.filterOverlaps.thr000.num000.log");
+        $_ = <F>;  chomp;
+
+        my $block = "none";
+
+        while (!eof(F)) {
+            $block = "init"   if (m/^INITIAL\sEDGES/);
+            $block = "error"  if (m/^ERROR\sRATES/);
+            $block = "edge"   if (m/^EDGE\sFILTERING/);
+            $block = "final"  if (m/^FINAL\sEDGES/);
+
+            $initContained      = $1    if (($block eq "init") && (m/(\d+)\sreads\sare\scontained/));
+            $initSingleton      = $1    if (($block eq "init") && (m/(\d+)\sreads\shave\sno\sbest\sedges/));
+            $initSpur           = $1    if (($block eq "init") && (m/(\d+)\sreads\shave\sonly\sone\sbest\sedge.*spur/));
+            $initSpurMutualBest = $1    if (($block eq "init") && (m/(\d+)\sare\smutual\sbest/));
+            $initBest           = $1    if (($block eq "init") && (m/(\d+)\sreads\shave\stwo\sbest\sedges/));
+            $initBest1Mutual    = $1    if (($block eq "init") && (m/(\d+)\shave\sone\smutual\sbest/));
+            $initBest2Mutual    = $1    if (($block eq "init") && (m/(\d+)\shave\stwo\smutual\sbest/));
+
+            if (($block eq "error") && (m/mean\s+(\d+.\d+)\s+stddev\s+(\d+.\d+)\s+.*\s+(\d+.\d+)\s+fraction\serror/)) {
+                $mean   = $1;
+                $stddev = $2;
+                $ms     = $3;
+            }
+            if (($block eq "error") && (m/median\s+(\d+.\d+)\s+mad\s+(\d+.\d+)\s+.*\s+(\d+.\d+)\s+fraction\serror/)) {
+                $median = $1;
+                $mad    = $2;
+                $mm     = $3;
+            }
+
+            $suspicious   = $1   if (($block eq "edge") && (m/(\d+)\sreads\shave\sa\ssuspicious\soverlap\spattern/));
+            $filtered1    = $1   if (($block eq "edge") && (m/(\d+)\shad\sone/));
+            $filtered2    = $1   if (($block eq "edge") && (m/(\d+)\shad\stwo/));
+            $lopsided1    = $1   if (($block eq "edge") && (m/(\d+)\shave\sone/));
+            $lopsided2    = $1   if (($block eq "edge") && (m/(\d+)\shave\stwo/));
+
+            $finalContained      = $1    if (($block eq "final") && (m/(\d+)\sreads\sare\scontained/));
+            $finalSingleton      = $1    if (($block eq "final") && (m/(\d+)\sreads\shave\sno\sbest\sedges/));
+            $finalSpur           = $1    if (($block eq "final") && (m/(\d+)\sreads\shave\sonly\sone\sbest\sedge.*spur/));
+            $finalSpurMutualBest = $1    if (($block eq "final") && (m/(\d+)\sare\smutual\sbest/));
+            $finalBest           = $1    if (($block eq "final") && (m/(\d+)\sreads\shave\stwo\sbest\sedges/));
+            $finalBest1Mutual    = $1    if (($block eq "final") && (m/(\d+)\shave\sone\smutual\sbest/));
+            $finalBest2Mutual    = $1    if (($block eq "final") && (m/(\d+)\shave\stwo\smutual\sbest/));
+
+            $_ = <F>;  chomp;
+        }
+
+        close(F);
+
+        $initBest0Mutual  = $initBest  - $initBest1Mutual  - $initBest2Mutual;
+        $finalBest0Mutual = $finalBest - $finalBest1Mutual - $finalBest2Mutual;
+
+        push @$body, "Constructing unitigs using overlaps of at most this fraction error:<br>\n";
+        push @$body, "$median +- $mad = $mm = ", $mm * 100, "\% (median absolute deviation)<br>\n";
+        push @$body, "$mean +- $stddev = $ms = ", $ms * 100, "\% (standard deviation)<br>\n";
+        push @$body, "<br>\n";
+        push @$body, "INITIAL EDGES<br>\n";
+        push @$body, "$initContained reads are contained.<br>\n";
+        push @$body, "$initSingleton reads are singleton.<br>\n";
+        push @$body, "$initSpur reads are spur ($initSpurMutualBest have a mutual best edge).<br>\n";
+        push @$body, "$initBest reads form the backbone ($initBest0Mutual have no mutual best edges; $initBest1Mutual have one; $initBest2Mutual have both).<br>\n";
+        push @$body, "<br>\n";
+        push @$body, "FILTERING<br>\n";
+        push @$body, "$suspicious reads have a suspicious overlap pattern.<br>\n";
+        push @$body, "$filtered1 had one high error rate edge filtered; $filtered2 had both.<br>\n";
+        push @$body, "$lopsided1 had one size incompatible edge filtered; $lopsided2 had both.<br>\n";
+        push @$body, "<br>\n";
+        push @$body, "FINAL EDGES<br>\n";
+        push @$body, "$finalContained reads are contained.<br>\n";
+        push @$body, "$finalSingleton reads are singleton.<br>\n";
+        push @$body, "$finalSpur reads are spur ($finalSpurMutualBest have a mutual best edge).<br>\n";
+        push @$body, "$finalBest reads form the backbone ($finalBest0Mutual have no mutual best edges; $finalBest1Mutual have one; $finalBest2Mutual have both).<br>\n";
+    }
+
+
+    push @$body, "<h3>Initial Tig Sizes</h3>\n";
+
+    if (-e "$wrk/4-unitigger/$asm.003.buildUnitigs.sizes") {
+        open(F, "< $wrk/4-unitigger/$asm.003.buildUnitigs.sizes");
+        reportSizeStatistics($css, $body, $scripts);
+        close(F);
+    }
+
+    push @$body, "<h3>Final Tig Sizes</h3>\n";
+
+    if (-e "$wrk/4-unitigger/$asm.008.generateOutputs.sizes") {
+        open(F, "< $wrk/4-unitigger/$asm.008.generateOutputs.sizes");
+        reportSizeStatistics($css, $body, $scripts);
+        close(F);
+    }
+
 }
+
 
 
 sub buildConsensusHTML ($$$$$$) {
