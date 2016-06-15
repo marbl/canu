@@ -659,9 +659,15 @@ intervalList<iNum, iVal>::computeDepth(intervalDepthRegions<iNum, iVal> *id, uin
     _list    = new _intervalPair<iNum, iVal> [_listMax];
   }
 
-  //  Init first interval.
+  //  The first thing must be an 'open' event.  If not, someone supplied a negative length to the
+  //  original intervalList.  Or, possibly, two zero-length intervals.
 
+  if (id[0].open == false)
+    for (uint32 ii=0; ii<idlen; ii++)
+      fprintf(stderr, "id[%d] pos %d open %d\n", ii, id[ii].pos, id[ii].open);
   assert(id[0].open == true);
+
+  //  Init first interval.
 
   _list[_listLen].lo = id[0].pos;
   _list[_listLen].hi = id[0].pos;
