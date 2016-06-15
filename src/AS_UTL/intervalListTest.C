@@ -41,24 +41,44 @@ typedef uint64_t uint64;
 
 #include "intervalList.H"
 
+//  g++ -o intervalListTest -I.. -I. intervalListTest.C 
+
 int
 main(int argc, char **argv) {
 
-  intervalList<int32>  t1;
+  if (0) {
+    intervalList<int32>  t1;
 
-  t1.add(0, 10);
-  t1.add(11,7);
-  t1.add(20, 8);
+    t1.add(0, 10);
+    t1.add(11,7);
+    t1.add(20, 8);
 
-  fprintf(stderr, "BEFORE:\n");
-  for (uint32 ii=0; ii<t1.numberOfIntervals(); ii++)
-    fprintf(stderr, "%2d %3d-%3d\n", ii, t1.lo(ii), t1.hi(ii));
+    fprintf(stderr, "BEFORE:\n");
+    for (uint32 ii=0; ii<t1.numberOfIntervals(); ii++)
+      fprintf(stderr, "%2d %3d-%3d\n", ii, t1.lo(ii), t1.hi(ii));
 
-  t1.merge(-1);
+    t1.merge(-1);
 
-  fprintf(stderr, "AFTER:\n");
-  for (uint32 ii=0; ii<t1.numberOfIntervals(); ii++)
-    fprintf(stderr, "%2d %3d-%3d\n", ii, t1.lo(ii), t1.hi(ii));
+    fprintf(stderr, "AFTER:\n");
+    for (uint32 ii=0; ii<t1.numberOfIntervals(); ii++)
+      fprintf(stderr, "%2d %3d-%3d\n", ii, t1.lo(ii), t1.hi(ii));
+  }
+
+  if (1) {
+    intervalList<uint32>  il;
+
+    il.add(1, -1);
+
+    intervalList<uint32>  de(il);
+
+    il.merge();
+
+    for (uint32 ii=0; ii<il.numberOfIntervals(); ii++)
+      fprintf(stderr, "il %2u %4u-%4u\n", ii, il.lo(ii), il.hi(ii));
+
+    for (uint32 ii=0; ii<de.numberOfIntervals(); ii++)
+      fprintf(stderr, "de %2u %4u-%4u %4d\n", ii, de.lo(ii), de.hi(ii), de.depth(ii));
+  }
 
   exit(0);
 }
