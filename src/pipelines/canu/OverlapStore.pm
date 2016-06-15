@@ -172,16 +172,30 @@ sub overlapStoreConfigure ($$$$) {
 
     #  Run the normal store build, but just to get the partitioning.
 
+    if (! -e "$wrk/$asm.ovlStore.BUILDING/scripts/0-config.sh") {
+        open(F, "> $wrk/$asm.ovlStore.BUILDING/scripts/0-config.sh") or die;
+        print F "#!" . getGlobal("shell") . "\n";
+        print F "\n";
+        print F getLimitShellCode("processes");
+        print F getLimitShellCode("files");
+        print F "\n";
+        print F getBinDirectoryShellCode();
+        print F "\n";
+        print F "\$bin/ovStoreBuild \\\n";
+        print F " -G $wrk/$asm.gkpStore \\\n";
+        print F " -O $wrk/$asm.ovlStore \\\n";  #  NOT created!
+        print F " -M " . getGlobal("ovsMemory") . " \\\n";
+        print F " -config $wrk/$asm.ovlStore.BUILDING/config \\\n";
+        print F " -L $files \\\n";
+        close(F);
+    }
+    system("chmod +x $wrk/$asm.ovlStore.BUILDING/scripts/0-config.sh");
+
     if (! -e "$wrk/$asm.ovlStore.BUILDING/config") {
-        $cmd  = "$bin/ovStoreBuild \\\n";
-        $cmd .= " -G $wrk/$asm.gkpStore \\\n";
-        $cmd .= " -O $wrk/$asm.ovlStore \\\n";  #  NOT created!
-        $cmd .= " -M " . getGlobal("ovsMemory") . " \\\n";
-        $cmd .= " -config $wrk/$asm.ovlStore.BUILDING/config \\\n";
-        $cmd .= " -L $files \\\n";
+        $cmd  = "$wrk/$asm.ovlStore.BUILDING/scripts/0-config.sh \\\n";
         $cmd .= "> $wrk/$asm.ovlStore.BUILDING/config.err 2>&1\n";
 
-        if (runCommand($wrk, $cmd)) {
+        if (runCommand("$wrk/$asm.ovlStore.BUILDING/scripts", $cmd)) {
             caExit("failed to generate configuration for building overlap store", "$wrk/$asm.ovlStore.BUILDING/config.err");
         }
     }
@@ -241,17 +255,8 @@ sub overlapStoreConfigure ($$$$) {
         print F "  rm -rf \"$wrk/$asm.ovlStore.BUILDING/create\$bn\"\n";
         print F "fi\n";
         print F "\n";
-        print F "max=`ulimit -Hu`\n";
-        print F "bef=`ulimit -Su`\n";
-        print F "if [ \$bef -lt \$max ] ; then\n";
-        print F "  ulimit -Su \$max\n";
-        print F "  aft=`ulimit -Su`\n";
-        print F "  echo \"Changed max processes per user from \$bef to \$aft (max \$max).\"\n";
-        print F "  echo \"\"\n";
-        print F "else\n";
-        print F "  echo \"Max processes per user limited to \$bef, no increase possible.\"\n";
-        print F "  echo \"\"\n";
-        print F "fi\n";
+        print F getLimitShellCode("processes");
+        print F getLimitShellCode("files");
         print F "\n";
         print F getBinDirectoryShellCode();
         print F "\n";
@@ -282,17 +287,8 @@ sub overlapStoreConfigure ($$$$) {
         print F "  exit 1\n";
         print F "fi\n";
         print F "\n";
-        print F "max=`ulimit -Hu`\n";
-        print F "bef=`ulimit -Su`\n";
-        print F "if [ \$bef -lt \$max ] ; then\n";
-        print F "  ulimit -Su \$max\n";
-        print F "  aft=`ulimit -Su`\n";
-        print F "  echo \"Changed max processes per user from \$bef to \$aft (max \$max).\"\n";
-        print F "  echo \"\"\n";
-        print F "else\n";
-        print F "  echo \"Max processes per user limited to \$bef, no increase possible.\"\n";
-        print F "  echo \"\"\n";
-        print F "fi\n";
+        print F getLimitShellCode("processes");
+        print F getLimitShellCode("files");
         print F "\n";
         print F getBinDirectoryShellCode();
         print F "\n";
