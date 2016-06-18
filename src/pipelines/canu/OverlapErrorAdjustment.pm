@@ -195,14 +195,7 @@ sub readErrorDetectionConfigure ($$) {
 
     print F "#!" . getGlobal("shell") . "\n\n";
     print F "\n";
-    print F "jobid=\$" . getGlobal("gridEngineTaskID") . "\n";
-    print F "if [ x\$jobid = x -o x\$jobid = xundefined -o x\$jobid = x0 ]; then\n";
-    print F "  jobid=\$1\n";
-    print F "fi\n";
-    print F "if [ x\$jobid = x ]; then\n";
-    print F "  echo Error: I need " . getGlobal("gridEngineTaskID") . " set, or a job index on the command line.\n";
-    print F "  exit 1\n";
-    print F "fi\n";
+    print F getJobIDShellCode();
     print F "\n";
 
     for (my $jj=1; $jj <= $nj; $jj++) {
@@ -451,14 +444,7 @@ sub overlapErrorAdjustmentConfigure ($$) {
 
     print F "#!" . getGlobal("shell") . "\n\n";
     print F "\n";
-    print F "jobid=\$" . getGlobal("gridEngineTaskID") . "\n";
-    print F "if [ x\$jobid = x -o x\$jobid = xundefined -o x\$jobid = x0 ]; then\n";
-    print F "  jobid=\$1\n";
-    print F "fi\n";
-    print F "if [ x\$jobid = x ]; then\n";
-    print F "  echo Error: I need " . getGlobal("gridEngineTaskID") . " set, or a job index on the command line.\n";
-    print F "  exit 1\n";
-    print F "fi\n";
+    print F getJobIDShellCode();
     print F "\n";
 
     for (my $jj=1; $jj <= $nj; $jj++) {

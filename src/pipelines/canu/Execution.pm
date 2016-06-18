@@ -55,7 +55,7 @@ package canu::Execution;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(stopBefore stopAfter skipStage emitStage touch getInstallDirectory getLimitShellCode getBinDirectory getBinDirectoryShellCode submitScript submitOrRunParallelJob runCommand runCommandSilently findCommand findExecutable);
+@EXPORT = qw(stopBefore stopAfter skipStage emitStage touch getInstallDirectory getJobIDShellCode getLimitShellCode getBinDirectory getBinDirectoryShellCode submitScript submitOrRunParallelJob runCommand runCommandSilently findCommand findExecutable);
 
 use strict;
 use Config;            #  for @signame
@@ -570,7 +570,43 @@ sub getInstallDirectory () {
 }
 
 
-#  Emits a block of shell code to change shell imposed limit on the number of open files and processes.
+#  Emits a block of shell code to parse the grid task id and offset.
+#  Expects zero or one argument, which is interpreted different in grid and non-grid mode.
+#    Off grid - the job to run
+#    On grid  - an offset to add to SGE_TASK_ID or SLURM_ARRAY_TASK_ID to compute the job to run
+#
+sub getJobIDShellCode () {
+    my $string;
+
+    $string .= "#  Discover the jobid to run, from either a grid environment variable and a\n";
+    $string .= "#  command line offset, or directly from the command line.\n";
+    $string .= "#\n";
+    $string .= "sgeid=\$" . getGlobal('gridEngineTaskID') . "\n";
+    $string .= "if [ x\$sgeid = x -o x\$sgeid = xundefined -o x\$sgeid = x0 ]; then\n";
+    $string .= "  jobid=\$1\n";
+    $string .= "  sgeid=\n";
+    $string .= "else\n";
+    $string .= "  jobid=\$sgeid\n";
+    $string .= "  offset=\$1\n";
+    $string .= "fi\n";
+    $string .= "if [ x\$offset = x ]; then\n";
+    $string .= "  offset=0\n";
+    $string .= "fi\n";
+    $string .= "if [ x\$jobid = x ]; then\n";
+    $string .= "  echo Error: I need " . getGlobal('gridEngineTaskID') . " set, or a job index on the command line.\n";
+    $string .= "  exit\n";
+    $string .= "fi\n";
+    $string .= "jobid=`expr \$jobid + \$offset`\n";
+    $string .= "if [ x\$sgeid = x ]; then\n";
+    $string .= "  echo Running job \$jobid based on command line options.\n";
+    $string .= "else\n";
+    $string .= "  echo Running job \$jobid based on " . getGlobal('gridEngineTaskID') . "=\$"  . getGlobal('gridEngineTaskID') . " and offset=\$offset.\n";
+    $string .= "fi\n";
+}
+
+
+#  Emits a block of shell code to change shell imposed limit on the number of open files and
+#  processes.
 #
 sub getLimitShellCode ($) {
     my $which = shift @_;
@@ -915,12 +951,24 @@ sub submitScript ($$$) {
 #    global pattern for option
 #
 sub buildGridArray ($$$$) {
-    my $r = $_[3];
+    my ($name, $bgn, $end, $opt) = @_;
+    my  $off = 0;
 
-    $r =~ s/ARRAY_NAME/$_[0]/g;        #  Replace ARRAY_NAME with 'job name'
-    $r =~ s/ARRAY_JOBS/$_[1]-$_[2]/g;  #  Replace ARRAY_JOBS with 'bgn-end'
+    #  In some grids (SGE)   this is the maximum size of an array job.
+    #  In some grids (Slurm) this is the maximum index of an array job.
+    #
+    #  So, here, we just don't let any index be above the value.  Both types will be happy.
 
-    return($r);
+    if ($end > getGlobal('gridEngineArrayMaxJobs')) {
+        $off  = $bgn - 1;
+        $bgn -= $off;
+        $end -= $off;
+    }
+
+    $opt =~ s/ARRAY_NAME/$name/g;        #  Replace ARRAY_NAME with 'job name'
+    $opt =~ s/ARRAY_JOBS/$bgn-$end/g;    #  Replace ARRAY_JOBS with 'bgn-end'
+
+    return($opt, $off);
 }
 
 
@@ -1008,19 +1056,19 @@ sub buildGridJob ($$$$$$$$) {
 
     #  Figure out the command and options needed to run the job.
 
-    my $submitCommand = getGlobal("gridEngineSubmitCommand");
-    my $nameOption    = getGlobal("gridEngineNameOption");
+    my $submitCommand          = getGlobal("gridEngineSubmitCommand");
+    my $nameOption             = getGlobal("gridEngineNameOption");
 
-    my $jobNameT      = makeUniqueJobName($jobType, $asm);
+    my $jobNameT               = makeUniqueJobName($jobType, $asm);
 
-    my $jobName       = buildGridArray($jobNameT, $bgnJob, $endJob, getGlobal("gridEngineArrayName"));
-    my $arrayOpt      = buildGridArray($jobNameT, $bgnJob, $endJob, getGlobal("gridEngineArrayOption"));
+    my ($jobName,  $jobOff)    = buildGridArray($jobNameT, $bgnJob, $endJob, getGlobal("gridEngineArrayName"));
+    my ($arrayOpt, $arrayOff)  = buildGridArray($jobNameT, $bgnJob, $endJob, getGlobal("gridEngineArrayOption"));
 
-    my $outputOption  = getGlobal("gridEngineOutputOption");
-    my $outName       = buildOutputName($path, $script, getGlobal("gridEngineArraySubmitID"));
+    my $outputOption           = getGlobal("gridEngineOutputOption");
+    my $outName                = buildOutputName($path, $script, getGlobal("gridEngineArraySubmitID"));
 
-    my $memOption     = buildMemoryOption($mem, $thr);
-    my $thrOption     = buildThreadOption($thr);
+    my $memOption              = buildMemoryOption($mem, $thr);
+    my $thrOption              = buildThreadOption($thr);
 
     my $gridOpts;
 
@@ -1040,7 +1088,7 @@ sub buildGridJob ($$$$$$$$) {
     $cmd .= "    $nameOption \"$jobName\" \\\n";
     $cmd .= "    $arrayOpt \\\n";
     $cmd .= "    $outputOption $outName \\\n";
-    $cmd .= "    $path/$script.sh\n";
+    $cmd .= "    $path/$script.sh $arrayOff\n";
 
     #  Save it, just because.
 
@@ -1107,7 +1155,11 @@ sub convertToJobRange (@) {
     push @jobs, ($st == $ed) ? "$st" : "$st-$ed";
 
 
-    #  If any of the ranges are larger than allowed, split into multiple pieces.
+    #  In some grids (SGE)   this is the maximum size of an array job.
+    #  In some grids (Slurm) this is the maximum index of an array job.
+    #
+    #  So, here, we make blocks that have at most that many jobs.  When we submit the job, we'll
+    #  offset the indices to be 1..Max.
 
     my $l = getGlobal("gridEngineArrayMaxJobs") - 1;
 

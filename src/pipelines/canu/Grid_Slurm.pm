@@ -59,10 +59,17 @@ sub configureSlurm () {
 
     my $maxArraySize = 65535;
 
+    #  From the docs (http://slurm.schedmd.com/job_array.html):
+    #
+    #  Note that the minimum index value is zero and the maximum value is a Slurm configuration
+    #  parameter (MaxArraySize minus one).
+    #
+    #  Which is a totally stupid name for the parameter, and a totally stupid interpretation.
+
     open(F, "scontrol show config |") or caExit("can't run 'scontrol' to get SLURM config", undef);
     while (<F>) {
         if (m/MaxArraySize\s+=\s+(\d+)/) {
-            $maxArraySize = $1;
+            $maxArraySize = $1 - 1;
         }
     }
     close(F);
