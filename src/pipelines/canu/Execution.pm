@@ -581,7 +581,11 @@ sub getJobIDShellCode () {
     $string .= "#  Discover the jobid to run, from either a grid environment variable and a\n";
     $string .= "#  command line offset, or directly from the command line.\n";
     $string .= "#\n";
-    $string .= "sgeid=\$" . getGlobal('gridEngineTaskID') . "\n";
+    if (length(getGlobal('gridEngineTaskID'))) {
+       $string .= "sgeid=\$" . getGlobal('gridEngineTaskID') . "\n";
+    } else {
+       $string .= "sgeid=\n";
+    }
     $string .= "if [ x\$sgeid = x -o x\$sgeid = xundefined -o x\$sgeid = x0 ]; then\n";
     $string .= "  jobid=\$1\n";
     $string .= "  sgeid=\n";

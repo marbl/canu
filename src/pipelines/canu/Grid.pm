@@ -73,6 +73,6 @@ sub configureRemote () {
 
     return   if (uc(getGlobal("gridEngine")) ne "");
 
-    #  Set to "1" so that shell scripts will emit "jobid=$1" at the start.
-    setGlobalIfUndef("gridEngineTaskID", "1");
+    #  Set to "" so that shell scripts will emit "sgeid=" at the start.
+    setGlobalIfUndef("gridEngineTaskID", "");
 }
