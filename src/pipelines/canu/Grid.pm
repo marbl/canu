@@ -73,6 +73,7 @@ sub configureRemote () {
 
     return   if (uc(getGlobal("gridEngine")) ne "");
 
-    #  Set to "" so that shell scripts will emit "sgeid=" at the start.
-    setGlobalIfUndef("gridEngineTaskID", "");
+    #  If here, gridEngine is not set, and we're running locally.
+    #  Set to a variable we don't expect to see in the environment.
+    setGlobalIfUndef("gridEngineTaskID", "CANU_LOCAL_JOB_ID");
 }

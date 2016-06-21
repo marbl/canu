@@ -577,34 +577,30 @@ sub getInstallDirectory () {
 #
 sub getJobIDShellCode () {
     my $string;
+    my $taskenv = getGlobal('gridEngineTaskID');
 
-    $string .= "#  Discover the jobid to run, from either a grid environment variable and a\n";
+    $string .= "#  Discover the job ID to run, from either a grid environment variable and a\n";
     $string .= "#  command line offset, or directly from the command line.\n";
     $string .= "#\n";
-    if (length(getGlobal('gridEngineTaskID'))) {
-       $string .= "sgeid=\$" . getGlobal('gridEngineTaskID') . "\n";
-    } else {
-       $string .= "sgeid=\n";
-    }
-    $string .= "if [ x\$sgeid = x -o x\$sgeid = xundefined -o x\$sgeid = x0 ]; then\n";
-    $string .= "  jobid=\$1\n";
-    $string .= "  sgeid=\n";
+    $string .= "if [ x\$$taskenv = x -o x\$$taskenv = xundefined -o x\$$taskenv = x0 ]; then\n";
+    $string .= "  baseid=\$1\n";
+    $string .= "  offset=0\n";
     $string .= "else\n";
-    $string .= "  jobid=\$sgeid\n";
+    $string .= "  baseid=\$$taskenv\n";
     $string .= "  offset=\$1\n";
     $string .= "fi\n";
     $string .= "if [ x\$offset = x ]; then\n";
     $string .= "  offset=0\n";
     $string .= "fi\n";
-    $string .= "if [ x\$jobid = x ]; then\n";
-    $string .= "  echo Error: I need " . getGlobal('gridEngineTaskID') . " set, or a job index on the command line.\n";
+    $string .= "if [ x\$baseid = x ]; then\n";
+    $string .= "  echo Error: I need $taskenv set, or a job index on the command line.\n";
     $string .= "  exit\n";
     $string .= "fi\n";
-    $string .= "jobid=`expr \$jobid + \$offset`\n";
-    $string .= "if [ x\$sgeid = x ]; then\n";
+    $string .= "jobid=`expr \$baseid + \$offset`\n";
+    $string .= "if [ x\$$taskenv = x ]; then\n";
     $string .= "  echo Running job \$jobid based on command line options.\n";
     $string .= "else\n";
-    $string .= "  echo Running job \$jobid based on " . getGlobal('gridEngineTaskID') . "=\$"  . getGlobal('gridEngineTaskID') . " and offset=\$offset.\n";
+    $string .= "  echo Running job \$jobid based on $taskenv=\$$taskenv and offset=\$offset.\n";
     $string .= "fi\n";
 }
 
