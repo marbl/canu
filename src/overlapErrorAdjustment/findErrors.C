@@ -178,9 +178,13 @@ Extract_Needed_Frags(feParameters *G,
 
   fl->readsLen = ii;
 
-  fprintf(stderr, "Extract_Needed_Frags()--  Loaded "F_U32" reads (%.4f%%).  Loaded IDs "F_U32" through "F_U32".\n",
-          fl->readsLen, 100.0 * fl->readsLen / (hiID - 1 - loID),
-          fl->readIDs[0], fl->readIDs[fl->readsLen-1]);
+  if (fl->readsLen > 0)
+    fprintf(stderr, "Extract_Needed_Frags()--  Loaded "F_U32" reads (%.4f%%).  Loaded IDs "F_U32" through "F_U32".\n",
+            fl->readsLen, 100.0 * fl->readsLen / (hiID - 1 - loID),
+            fl->readIDs[0], fl->readIDs[fl->readsLen-1]);
+  else
+    fprintf(stderr, "Extract_Needed_Frags()--  Loaded "F_U32" reads (%.4f%%).\n",
+            fl->readsLen, 100.0 * fl->readsLen / (hiID - 1 - loID));
 }
 
 
