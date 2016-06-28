@@ -53,7 +53,7 @@ Output_Corrections(feParameters *G);
 
 //  From overlapInCore.C
 int
-Binomial_Bound (int e, double p, int Start, double Limit);
+Binomial_Bound(int e, double p, int Start, double Limit);
 
 
 
@@ -259,8 +259,8 @@ Threaded_Stream_Old_Frags(feParameters *G,
   pthread_attr_init(&attr);
   pthread_attr_setstacksize(&attr, THREAD_STACKSIZE);
 
-  pthread_t           *thread_id = new pthread_t         [G->numThreads];
-  Thread_Work_Area_t  *thread_wa = new Thread_Work_Area_t[G->numThreads];
+  pthread_t           *thread_id = new pthread_t          [G->numThreads];
+  Thread_Work_Area_t  *thread_wa = new Thread_Work_Area_t [G->numThreads];
 
   for (uint32 i=0; i<G->numThreads; i++) {
     thread_wa[i].thread_id    = i;
@@ -466,10 +466,7 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-
-  //
   //  Initialize Globals
-  //
 
   double MAX_ERRORS = 1 + (uint32)(G->errorRate * AS_MAX_READLEN);
 
@@ -478,9 +475,7 @@ main(int argc, char **argv) {
   for  (uint32 i = 0;  i <= AS_MAX_READLEN;  i++)
     G->Error_Bound[i] = (int)ceil(i * G->errorRate);
 
-  //
-  //
-  //
+  //  Load data.
 
   gkStore *gkpStore = gkStore::gkStore_open(G->gkpStorePath);
 
@@ -493,7 +488,7 @@ main(int argc, char **argv) {
   Read_Frags(G, gkpStore);
   Read_Olaps(G, gkpStore);
 
-  //  Now sort them!
+  //  Sort overlaps, process each.
 
   sort(G->olaps, G->olaps + G->olapsLen);
 
