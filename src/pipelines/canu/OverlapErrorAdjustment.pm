@@ -164,7 +164,7 @@ sub readErrorDetectionConfigure ($$) {
         if ((($maxMem   > 0) && ($memory >= $maxMem * 0.75)) ||    #  Allow 25% slop (10% is probably sufficient)
             (($maxReads > 0) && ($reads  >= $maxReads))      ||
             (($maxBases > 0) && ($bases  >= $maxBases))      ||
-            (($id == $maxID - 1))) {
+            (($id == $maxID))) {
             push @end, $id;
 
             printf(STDERR "RED job %3u from read %9u to read %9u - %7.3f GB for %7u reads - %7.3f GB for %9u olaps - %7.3f GB for evidence\n",
