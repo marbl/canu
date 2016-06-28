@@ -274,7 +274,8 @@ struct Thread_Work_Area_t {
 
   Vote_t        globalvote[AS_MAX_READLEN];
 
-  uint32        failedOlaps;
+  uint64        passedOlaps;
+  uint64        failedOlaps;
 
   pedWorkArea_t ped;
 };

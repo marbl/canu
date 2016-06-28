@@ -92,10 +92,8 @@ Extract_Needed_Frags(feParameters *G,
 
   assert(loID <= fi);
 
-  fprintf(stderr, "Extract_Needed_Frags()--  Loading used reads between "F_U32" and "F_U32".\n",
-          fi, hiID);
-
-  fprintf(stderr, "Extract_Needed_Frags()--  At overlap "F_U64"\n", lastOlap);
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Extract_Needed_Frags()--  Loading used reads between "F_U32" and "F_U32", at overlap "F_U64".\n", fi, hiID, lastOlap);
 
   while (fi <= hiID) {
     gkRead *read = gkpStore->gkStore_getRead(fi);
@@ -111,9 +109,7 @@ Extract_Needed_Frags(feParameters *G,
     fi = (lastOlap < G->olapsLen) ? G->olaps[lastOlap].b_iid : hiID + 1;
   }
 
-  fprintf(stderr, "Extract_Needed_Frags()--  Loading reads for overlaps "F_U64" to "F_U64"\n",
-          nextOlap, lastOlap);
-  fprintf(stderr, "Extract_Needed_Frags()--  reads "F_U32" bases "F_U64"\n", fl->readsLen, fl->basesLen);
+  fprintf(stderr, "Extract_Needed_Frags()--  Loading reads for overlaps "F_U64" to "F_U64" (reads "F_U32" bases "F_U64")\n", nextOlap, lastOlap, fl->readsLen, fl->basesLen);
 
   //  Ensure there is space.
 
@@ -121,7 +117,7 @@ Extract_Needed_Frags(feParameters *G,
     delete [] fl->readIDs;
     delete [] fl->readBases;
 
-    fprintf(stderr, "realloc reads from "F_U32" to "F_U32"\n", fl->readsMax, 12 * fl->readsLen / 10);
+    //fprintf(stderr, "Extract_Needed_Frags()--  realloc reads from "F_U32" to "F_U32"\n", fl->readsMax, 12 * fl->readsLen / 10);
 
     fl->readIDs   = new uint32 [12 * fl->readsLen / 10];
     fl->readBases = new char * [12 * fl->readsLen / 10];
@@ -132,7 +128,7 @@ Extract_Needed_Frags(feParameters *G,
   if (fl->basesMax < fl->basesLen) {
     delete [] fl->bases;
 
-    fprintf(stderr, "realloc bases from "F_U64" to "F_U64"\n", fl->basesMax, 12 * fl->basesLen / 10);
+    //fprintf(stderr, "Extract_Needed_Frags()--  realloc bases from "F_U64" to "F_U64"\n", fl->basesMax, 12 * fl->basesLen / 10);
 
     fl->bases       = new char [12 * fl->basesLen / 10];
 
@@ -251,7 +247,10 @@ Threaded_Process_Stream(void *ptr) {
 
 static
 void
-Threaded_Stream_Old_Frags(feParameters *G, gkStore *gkpStore) {
+Threaded_Stream_Old_Frags(feParameters *G,
+                          gkStore      *gkpStore,
+                          uint64       &passedOlaps,
+                          uint64       &failedOlaps) {
 
   pthread_attr_t  attr;
 
@@ -271,6 +270,7 @@ Threaded_Stream_Old_Frags(feParameters *G, gkStore *gkpStore) {
     thread_wa[i].G            = G;
     thread_wa[i].frag_list    = NULL;
     thread_wa[i].rev_id       = UINT32_MAX;
+    thread_wa[i].passedOlaps  = 0;
     thread_wa[i].failedOlaps  = 0;
 
     memset(thread_wa[i].rev_seq, 0, sizeof(char) * AS_MAX_READLEN);
@@ -348,6 +348,16 @@ Threaded_Stream_Old_Frags(feParameters *G, gkStore *gkpStore) {
       curr_frag_list = next_frag_list;
       next_frag_list = s;
     }
+  }
+
+  //  Threads all done, sum up stats.
+
+  passedOlaps = 0;
+  failedOlaps = 0;
+
+  for (uint32 i=0; i<G->numThreads; i++) {
+    passedOlaps += thread_wa[i].passedOlaps;
+    failedOlaps += thread_wa[i].failedOlaps;
   }
 }
 
@@ -487,18 +497,30 @@ main(int argc, char **argv) {
 
   sort(G->olaps, G->olaps + G->olapsLen);
 
-  //fprintf (stderr, "Before Stream_Old_Frags  Num_Olaps = "F_S64"\n", Num_Olaps);
+  uint64  passedOlaps = 0;
+  uint64  failedOlaps = 0;
 
-  Threaded_Stream_Old_Frags(G, gkpStore);
+  Threaded_Stream_Old_Frags(G, gkpStore, passedOlaps, failedOlaps);
 
-  //fprintf (stderr, "                   Failed overlaps = %d\n", Failed_Olaps);
+  //  All done.  Sum up what we did.
 
-  gkpStore->gkStore_close();
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Passed overlaps = %10"F_U64P" %8.4f%%\n", passedOlaps, 100.0 * passedOlaps / (failedOlaps + passedOlaps));
+  fprintf(stderr, "Failed overlaps = %10"F_U64P" %8.4f%%\n", failedOlaps, 100.0 * failedOlaps / (failedOlaps + passedOlaps));
+
+  //  Dump output.
 
   //Output_Details(G);
   Output_Corrections(G);
 
+  //  Cleanup and exit!
+
+  gkpStore->gkStore_close();
+
   delete G;
+
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Bye.\n");
 
   exit(0);
 }

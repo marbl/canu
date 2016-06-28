@@ -147,11 +147,14 @@ Process_Olap(Olap_Info_t        *olap,
     match_to_end = true;
   }
 
-  if ((errors <= wa->G->Error_Bound[olap_len]) && (match_to_end == true))
+
+  if ((errors <= wa->G->Error_Bound[olap_len]) && (match_to_end == true)) {
+    wa->passedOlaps++;
     Analyze_Alignment(wa,
                       a_part, a_end, a_offset,
                       b_part, b_end,
                       ri);
-  else
+  } else {
     wa->failedOlaps++;
+  }
 }

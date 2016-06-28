@@ -227,7 +227,8 @@ main(int argc, char **argv) {
 
   delete G;
 
-  fprintf(stderr, "DONE.\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Bye.\n");
 
   exit(0);
 }
