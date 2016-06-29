@@ -1025,7 +1025,7 @@ sub checkParameters () {
             addCommandLineError("ERROR:  Invalid '$var' specified (" . getGlobal("$var") . "); must be numeric\n");
         }
         elsif ((getGlobal($var) < 0.0) || (getGlobal($var) > 1.0)) {
-            addCommandLineError("ERROR:  Invalid '$var' specified (" . getGlobal("$var") . "); must numeric and 0.0 <= x <= 1.0\n");
+            addCommandLineError("ERROR:  Invalid '$var' specified (" . getGlobal("$var") . "); must be at least 0.0 and no more than 1.0\n");
         }
     }
 
@@ -1034,14 +1034,44 @@ sub checkParameters () {
         my $mo = getGlobal("minOverlapLength");
 
         addCommandLineError("ERROR:  minReadLength=$mr must be at least minOverlapLength=$mo.\n");
-
-        #  Or we can just reset one or the other....
-        #print STDERR "-- WARNING: minReadLength reset from $mr to $mo (limited by minOverlapLength)\n";
-        #setGlobal("minOverlapLength", $mo);
     }
 
-    if (getGlobal("corOutCoverage") < 1) {
-        addCommandLineError("ERROR:  Invalid 'corOutCoverage' specified (" . getGlobal("corOutCoverage") . "); must be at least 1\n");
+    foreach my $var ("corOutCoverage") {
+        if (!defined(getGlobal($var))) {
+            addCommandLineError("ERROR:  Invalid 'corOutCoverage' specified (" . getGlobal("corOutCoverage") . "); must be at least 1.0\n");
+        }
+        elsif (getGlobal($var) !~ m/^[.-0123456789]/) {
+            addCommandLineError("ERROR:  Invalid '$var' specified (" . getGlobal("$var") . "); must be numeric\n");
+        }
+        elsif (getGlobal($var) < 1.0) {
+            addCommandLineError("ERROR:  Invalid '$var' specified (" . getGlobal("$var") . "); must be at least 1.0\n");
+        }
+    }
+
+    foreach my $var ("corMaxEvidenceCoverageGlobal", "corMaxEvidenceCoverageLocal") {
+        if (!defined(getGlobal($var))) {
+            #  If undef, defaults to corOutCoverage in CorrectReads.pm
+        }
+        elsif (getGlobal($var) =~ m/^(\d*\.*\d*)(x*)$/) {
+            if (($1 < 1.0) && ($2 ne "x")) {
+                addCommandLineError("ERROR:  Invalid '$var' specified (" . getGlobal("$var") . "); must be at least 1.0\n");
+            }
+        }
+        else {
+            addCommandLineError("ERROR:  Invalid '$var' specified (" . getGlobal("$var") . "); must be numeric\n");
+        }
+    }
+
+    foreach my $var ("utgGraphDeviation", "utgRepeatDeviation", "utgRepeatConfusedBP", "minReadLength", "minOverlapLength") {
+        if (!defined(getGlobal($var))) {
+            addCommandLineError("ERROR:  Invalid '$var' specified; must be set\n");
+        }
+        elsif (getGlobal($var) !~ m/^[.-0123456789]/) {
+            addCommandLineError("ERROR:  Invalid '$var' specified (" . getGlobal("$var") . "); must be numeric\n");
+        }
+        elsif (getGlobal($var) < 0.0) {
+            addCommandLineError("ERROR:  Invalid '$var' specified (" . getGlobal("$var") . "); must be at least 0.0\n");
+        }
     }
 
     #
