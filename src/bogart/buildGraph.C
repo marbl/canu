@@ -33,6 +33,36 @@
 using namespace std;
 
 
+//  Converts the bogart created unused edge list to GFA.
+
+
+//
+//  GFA cheat sheet:
+//
+//  H - header
+//  S - segment     (continuous sequence)
+//  L - link        (overlap)
+//  C - containment (containment overlap)
+//  P - path        (ordered and oriented semgnets supported by links)
+//
+//  S <name-string> <sequence-string> [optional fields]
+//  LN:i:# - length
+//  RC:i:# - number of reads
+//  FC:i:# - number of fragments
+//  KC:i:# - number of kmers
+//
+//  L <from-name-string> <from-orient> <to-name-string> <to-orient> <overlap-cigar> [optional fields]
+//  MQ:i:# - mapping quality
+//  NM:i:# - number of mismatches/gaps
+//  RC:i:# - number of reads
+//  FC:i:# - number of fragments
+//  KC:i:# - number of kmers
+//
+//  C "need motivation for this"
+//
+//  P (not in my original notes)
+//
+
 
 class bestRead {
 public:
@@ -356,8 +386,8 @@ main(int argc, char **argv) {
     //  If not, the overlap is inconsistent with the tigs; it implies the two tigs overlap in their
     //  entirety.
 
-    //  GFA requires that the overlap be between the end of the first read and the start of the second read.
-    //  Flip the order if needed.
+    //  GFA requires that the overlap be between the end of the first read and the start of the
+    //  second read.  Flip the order if needed.
 
     if (frTigID == toTigID) {
       fprintf(stderr, "L\ttig%08u\t%c\ttig%08d\t%c\t%s circular\n",
