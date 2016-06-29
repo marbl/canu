@@ -49,9 +49,9 @@ use Text::Wrap;
 
 use Filesys::Df;  #  for diskSpace()
 
-my %global;
-my %synops;
-my %synnam;
+my %global;    #  Parameter value
+my %synops;    #  Parameter description (for -defaults)
+my %synnam;    #  Parameter name (beacuse the key is lowercase)
 
 my $cLineOpts = "";
 my $specLog   = "";
@@ -1017,6 +1017,18 @@ sub checkParameters () {
     #  Check for inconsistent parameters
     #
 
+    foreach my $var ("corOvlErrorRate", "obtOvlErrorRate", "utgOvlErrorRate", "corErrorRate", "cnsErrorRate", "obtErrorRate") {
+        if (!defined(getGlobal($var))) {
+            addCommandLineError("ERROR:  Invalid '$var' specified; must be set\n");
+        }
+        elsif (getGlobal($var) !~ m/^[.-0123456789]/) {
+            addCommandLineError("ERROR:  Invalid '$var' specified (" . getGlobal("$var") . "); must be numeric\n");
+        }
+        elsif ((getGlobal($var) < 0.0) || (getGlobal($var) > 1.0)) {
+            addCommandLineError("ERROR:  Invalid '$var' specified (" . getGlobal("$var") . "); must numeric and 0.0 <= x <= 1.0\n");
+        }
+    }
+
     if (getGlobal("minReadLength") < getGlobal("minOverlapLength")) {
         my $mr = getGlobal("minReadLength");
         my $mo = getGlobal("minOverlapLength");
@@ -1026,6 +1038,10 @@ sub checkParameters () {
         #  Or we can just reset one or the other....
         #print STDERR "-- WARNING: minReadLength reset from $mr to $mo (limited by minOverlapLength)\n";
         #setGlobal("minOverlapLength", $mo);
+    }
+
+    if (getGlobal("corOutCoverage") < 1) {
+        addCommandLineError("ERROR:  Invalid 'corOutCoverage' specified (" . getGlobal("corOutCoverage") . "); must be at least 1\n");
     }
 
     #
@@ -1204,6 +1220,7 @@ sub checkParameters () {
     #
     #  Minimap, no valid identities, set legacy
     #
+
     if (getGlobal("corOverlapper") eq "minimap") {
        setGlobalIfUndef("corLegacyFilter", 1);
     }
