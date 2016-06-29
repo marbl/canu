@@ -945,7 +945,7 @@ sub dumpCorrectedReads ($$) {
             #  corrected read name as is.
 
             if ($rid eq $nameid) {
-                $h = ">$name iid=${rid}_${pid}";
+                $h = ">$name id=${rid}_${pid}";
             }
 
             #  And write the read to the output as FASTA.
