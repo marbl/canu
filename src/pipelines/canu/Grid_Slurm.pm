@@ -70,6 +70,7 @@ sub configureSlurm () {
     while (<F>) {
         if (m/MaxArraySize\s+=\s+(\d+)/) {
             $maxArraySize = $1 - 1;
+            print STDERR "-- Detected Slurm with 'MaxArraySize' limited to $maxArraySize jobs.\n";
         }
     }
     close(F);
