@@ -357,7 +357,7 @@ sub getAllowedResources ($$$$) {
     my $nam;
 
     if    ($alg eq "bat")      {  $nam = "bogart (unitigger)"; }
-    elsif ($alg eq "cns")      {  $nam = "utgcns (consensus"; }
+    elsif ($alg eq "cns")      {  $nam = "utgcns (consensus)"; }
     elsif ($alg eq "cor")      {  $nam = "falcon_sense (read correction)"; }
     elsif ($alg eq "meryl")    {  $nam = "meryl (k-mer counting)"; }
     elsif ($alg eq "oea")      {  $nam = "overlap error adjustment"; }
