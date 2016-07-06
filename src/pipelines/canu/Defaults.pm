@@ -710,7 +710,7 @@ sub setDefaults () {
     #$global{"utgErrorRate"}                = undef;
     #$synops{"utgErrorRate"}                = "Overlaps at or below this error rate are used to construct unitigs (BOG and UTG)";
 
-    $global{"utgGraphDeviation"}           = 5;
+    $global{"utgGraphDeviation"}           = 6;
     $synops{"utgGraphDeviation"}           = "Overlaps this much above median will not be used for initial graph construction (BOGART)";
 
     $global{"utgRepeatDeviation"}          = 3;
@@ -912,7 +912,7 @@ sub setDefaults () {
     $global{"cnsPartitionMin"}             = undef;
     $synops{"cnsPartitionMin"}             = "Don't make a consensus partition with fewer than N reads";
 
-    $global{"cnsMaxCoverage"}              = 0;
+    $global{"cnsMaxCoverage"}              = 40;
     $synops{"cnsMaxCoverage"}              = "Limit unitig consensus to at most this coverage; default '0' = unlimited";
 
     $global{"cnsConsensus"}                = "pbdagcon";

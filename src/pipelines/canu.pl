@@ -167,13 +167,9 @@ while (scalar(@ARGV)) {
         if ($arg =~ m/pacbio/) {
             setErrorRate(0.025);
             setGlobal("corErrorRate", "0.30");
-            setGlobal("cnsMaxCoverage", 40);
-            setGlobal("utgGraphDeviation", 6);
         } elsif ($arg =~ m/nanopore/) {
             setErrorRate(0.048);
             setGlobal("corErrorRate", "0.50");
-            setGlobal("cnsMaxCoverage", 40);
-            setGlobal("utgGraphDeviation", 6);
         }
 
         $mode = "trim-assemble"  if (!defined($mode) && ($arg =~ m/corrected/));
