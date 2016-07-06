@@ -87,7 +87,7 @@ main (int argc, char * argv []) {
   double    lowcovFraction           = 0.75;
   uint32    lowcovDepth              = 2;
 
-  double    deviationGraph           = 5.0;
+  double    deviationGraph           = 6.0;
   double    deviationBubble          = 5.0;
   double    deviationRepeat          = 3.0;
 
