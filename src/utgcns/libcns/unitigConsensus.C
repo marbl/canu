@@ -277,7 +277,7 @@ unitigConsensus::generatePBDAG(tgTig                     *tig_,
 
     // build a quick consensus to align to, just smash together sequences.
     for (int i = 0; i < numfrags; i++) {
-        gkRead  *read    = gkpStore->gkStore_getRead(utgpos[i].ident());
+        gkRead  *read    = (*inPackageRead_)[utgpos[i].ident()];
         uint32   readLen = read->gkRead_sequenceLength();
 
         uint32 start = utgpos[i].min();
@@ -378,7 +378,7 @@ unitigConsensus::generateQuick(tgTig                     *tig_,
     piid = -1;
     bool placed = computePositionFromLayout();
 
-    gkRead  *read    = gkpStore->gkStore_getRead(utgpos[tiid].ident());
+    gkRead  *read    = (*inPackageRead_)[utgpos[tiid].ident()];
     uint32   readLen = read->gkRead_sequenceLength();
 
     uint32 start = cnspos[tiid].min();
