@@ -327,7 +327,8 @@ annotateRepeatsOnRead(UnitigVector          &unitigs,
       continue;
 
     //  If the read is in an annotated bubble, skip.
-    if (unitigs[tgBid]->_isBubble)
+    if ((unitigs[tgBid]->_isBubble == true) &&
+        (unitigs[tgBid]->_isRepeat == false))
       continue;
 
     //  If the overlap is to a container read, skip it.
@@ -830,7 +831,8 @@ markRepeatReads(UnitigVector &unitigs,
             continue;
 
           //  If the read is in an annotated bubble, skip.
-          if (unitigs[tgBid]->_isBubble)
+          if ((unitigs[tgBid]->_isBubble == true) &&
+              (unitigs[tgBid]->_isRepeat == false))
             continue;
 
           //  Skip if this overlap is the best we're trying to match.

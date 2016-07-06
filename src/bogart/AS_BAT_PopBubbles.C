@@ -610,61 +610,103 @@ popBubbles(UnitigVector &unitigs,
       }
     }
 
-    //  If no placements, pbbbt.
+    //  If no placements, pbbbt, not a whole lot we can do here.  Leave it as is.  It's not even
+    //  worth logging (there are many of these).
 
     if (nOrphan + nBubble == 0) {
-      //writeLog("tig %8u length %8u reads %6u had no bubble or orphan placements.\n", bubble->id(), bubble->getLength(), bubble->ufpath.size());
-      continue;
     }
 
-    //  If multiple orphan and/or bubble placements, it's a repeat.
+    //  If not an orphan, mark it as a bubble.  If multiple bubble placements, mark it as a repeat
+    //  so we can use it in repeat detection.
+    //
+    //  If there are orphan placements also, those placements are superior to the bubble placements,
+    //  and we'll place the orphan.
 
-    if (nOrphan + nBubble > 1) {
-      writeLog("tig %8u length %8u reads %6u - repeat - %u orphan %u bubble placements.\n",
+    else if (nOrphan == 0) {
+      writeLog("tig %8u length %8u reads %6u - %s.\n",
                bubble->id(), bubble->getLength(), bubble->ufpath.size(),
-               nOrphan, nBubble);
+               (nBubble == 1) ? "bubble" : "bubble-repeat");
       writeLog("\n");
-      bubble->_isRepeat = true;
-      continue;
-    }
 
-    //  If a bubble placement, mark it as a bubble so it can be skipped during repeat detection.
-
-    if (nBubble > 0) {
-      writeLog("tig %8u length %8u reads %6u - bubble\n",
-               bubble->id(), bubble->getLength(), bubble->ufpath.size());
-      writeLog("\n");
+      bubble->_isRepeat = (nBubble > 1);
       bubble->_isBubble = true;
-      continue;
     }
 
-    //  Otherwise, it's an orphan, move the reads to the proper place.
+    //  If a unique orphan placement, place it there.
 
-    writeLog("tig %8u length %8u reads %6u - orphan\n", bubble->id(), bubble->getLength(), bubble->ufpath.size());
+    else if (nOrphan == 1) {
+      writeLog("tig %8u length %8u reads %6u - orphan\n", bubble->id(), bubble->getLength(), bubble->ufpath.size());
 
-    for (uint32 op=0, tt=orphanTarget; op<targets[tt]->placed.size(); op++) {
-      ufNode  frg;
+      for (uint32 op=0, tt=orphanTarget; op<targets[tt]->placed.size(); op++) {
+        ufNode  frg;
 
-      frg.ident        = targets[tt]->placed[op].frgID;
-      frg.contained    = 0;
-      frg.parent       = 0;
-      frg.ahang        = 0;
-      frg.bhang        = 0;
-      frg.position.bgn = targets[tt]->placed[op].position.bgn;
-      frg.position.end = targets[tt]->placed[op].position.end;
+        frg.ident        = targets[tt]->placed[op].frgID;
+        frg.contained    = 0;
+        frg.parent       = 0;
+        frg.ahang        = 0;
+        frg.bhang        = 0;
+        frg.position.bgn = targets[tt]->placed[op].position.bgn;
+        frg.position.end = targets[tt]->placed[op].position.end;
 
-      writeLog("move read %u from tig %u to tig %u %u-%u\n",
-               frg.ident,
-               bubble->id(),
-               targets[tt]->target->id(), frg.position.bgn, frg.position.end);
+        writeLog("move read %u from tig %u to tig %u %u-%u\n",
+                 frg.ident,
+                 bubble->id(),
+                 targets[tt]->target->id(), frg.position.bgn, frg.position.end);
 
-      targets[tt]->target->addFrag(frg, 0, false);
+        targets[tt]->target->addFrag(frg, 0, false);
+      }
+
+      writeLog("\n");
+
+      unitigs[bubble->id()] = NULL;
+      delete bubble;
     }
 
-    writeLog("\n");
+    //  Otherwise, there are multiple orphan placements.  We can't distinguish between them, and
+    //  instead just place reads where they individually decide to go.
 
-    unitigs[bubble->id()] = NULL;
-    delete bubble;
+    else {
+      writeLog("tig %8u length %8u reads %6u - orphan with multiple placements\n", bubble->id(), bubble->getLength(), bubble->ufpath.size());
+
+      for (uint32 fi=0; fi<bubble->ufpath.size(); fi++) {
+        uint32  rr = bubble->ufpath[fi].ident;
+        double  er = 1.00;
+        uint32  bb = 0;
+
+        for (uint32 pp=0; pp<placed[rr].size(); pp++) {
+          double erate = placed[rr][pp].errors / placed[rr][pp].aligned;
+
+          if (erate < er) {
+            er = erate;
+            bb = pp;
+          }
+        }
+
+        ufNode  frg;
+
+        frg.ident        = placed[rr][bb].frgID;
+        frg.contained    = 0;
+        frg.parent       = 0;
+        frg.ahang        = 0;
+        frg.bhang        = 0;
+        frg.position.bgn = placed[rr][bb].position.bgn;
+        frg.position.end = placed[rr][bb].position.end;
+
+        Unitig  *target  = unitigs[placed[rr][bb].tigID];
+
+        writeLog("move read %u from tig %u to tig %u %u-%u\n",
+                 frg.ident,
+                 bubble->id(),
+                 target->id(), frg.position.bgn, frg.position.end);
+
+        target->addFrag(frg, 0, false);
+      }
+
+      writeLog("\n");
+
+      unitigs[bubble->id()] = NULL;
+      delete bubble;
+    }
   }  //  Over all bubbles
 
   writeLog("\n");   //  Needed if no bubbles are popped.
