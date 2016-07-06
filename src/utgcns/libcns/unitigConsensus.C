@@ -261,98 +261,110 @@ bool
 unitigConsensus::generatePBDAG(tgTig                     *tig_,
                                map<uint32, gkRead *>     *inPackageRead_,
                                map<uint32, gkReadData *> *inPackageReadData_) {
-    tig      = tig_;
-    numfrags = tig->numberOfChildren();
+  tig      = tig_;
+  numfrags = tig->numberOfChildren();
 
-    if (initialize(inPackageRead_, inPackageReadData_) == FALSE) {
-      fprintf(stderr, "generatePBDAG()--  Failed to initialize for tig %u with %u children\n", tig->tigID(), tig->numberOfChildren());
-      return(false);
-    }
+  if (initialize(inPackageRead_, inPackageReadData_) == FALSE) {
+    fprintf(stderr, "generatePBDAG()--  Failed to initialize for tig %u with %u children\n", tig->tigID(), tig->numberOfChildren());
+    return(false);
+  }
 
-    // first we need to load into Unitig data structure the quick cns
-    Unitig utg;
-    utg.id = tig->tigID();
+  //  First we need to load into Unitig data structure the quick cns
 
-    utg.seq = string(tig->_layoutLen, 'N');
+  Unitig utg;
 
-    // build a quick consensus to align to, just smash together sequences.
-    for (int i = 0; i < numfrags; i++) {
-        gkRead  *read    = (*inPackageRead_)[utgpos[i].ident()];
-        uint32   readLen = read->gkRead_sequenceLength();
+  utg.id  = tig->tigID();
+  utg.seq = string(tig->_layoutLen, 'N');
 
-        uint32 start = utgpos[i].min();
-        uint32 end = utgpos[i].max();
+  //  Build a quick consensus to align to, just smash together sequences.
 
-        if (start > utg.seq.length()) {
-          start = utg.seq.length() - 1;
-        }
-        if (end - start > readLen) {
-           end = start + readLen;
-        }
-        if (end > utg.seq.length()) {
-           end = utg.seq.length() - 1;
-        }
+  for (uint32 i=0; i<numfrags; i++) {
+    gkRead  *read    = (*inPackageRead_)[utgpos[i].ident()];
+    uint32   readLen = read->gkRead_sequenceLength();
 
-        abSequence  *seq      = abacus->getSequence(i);
-        char        *fragment = seq->getBases();
+    uint32 start = utgpos[i].min();
+    uint32 end   = utgpos[i].max();
 
-        for (int j = start; j < end; j++) {
-           if (utg.seq[j] == 'N') {
-              utg.seq[j] = fragment[j - start];
-           }
-        }
-    }
-    AlnGraphBoost ag(utg.seq);
+    if (start > utg.seq.length())
+      start = utg.seq.length() - 1;
 
-    // compute alignments of each sequence in parallel
+    if (end - start > readLen)
+      end = start + readLen;
+
+    if (end > utg.seq.length())
+      end = utg.seq.length() - 1;
+
+    abSequence  *seq      = abacus->getSequence(i);
+    char        *fragment = seq->getBases();
+
+    for (uint32 j=start; j<end; j++)
+      if (utg.seq[j] == 'N')
+        utg.seq[j] = fragment[j - start];
+  }
+
+  AlnGraphBoost ag(utg.seq);
+
+  //  Compute alignments of each sequence in parallel
+
 #pragma omp parallel for schedule(dynamic)
-    for (int i = 0; i < numfrags; i++) {
-        bool placed = computePositionFromLayout();
-        dagcon::Alignment aln;
-        SimpleAligner align;
+  for (uint32 i=0; i<numfrags; i++) {
+    abSequence  *seq      = abacus->getSequence(i);
+    char        *fragment = seq->getBases();
 
-        // for each fragment align it
-        abSequence  *seq      = abacus->getSequence(i);
-        char        *fragment = seq->getBases();
+    computePositionFromLayout();
 
-        aln.start = utgpos[i].min();
-        aln.end = utgpos[i].max();
-        aln.frgid = utgpos[i].ident();
-        aln.qstr = string(fragment);
-        aln.tstr = utg.seq.substr(aln.start, aln.end-aln.start);
+    dagcon::Alignment aln;
 
-        align.align(aln, errorRate);
-        if (aln.qstr.size() == 0) {
-            cnspos[i].setMinMax(0, 0);
-            continue;
-        }
-        cnspos[i].setMinMax(aln.start, aln.end);
-        dagcon::Alignment norm = normalizeGaps(aln);
+    aln.start = utgpos[i].min();
+    aln.end   = utgpos[i].max();
+    aln.frgid = utgpos[i].ident();
+    aln.qstr  = string(fragment);
+    aln.tstr  = utg.seq.substr(aln.start, aln.end-aln.start);
 
-        // not thread safe to add to graph concurrently, so lock while adding
+    SimpleAligner     align;
+
+    align.align(aln, errorRate);
+
+    if (aln.qstr.size() == 0) {
+      cnspos[i].setMinMax(0, 0);
+      continue;
+    }
+
+    cnspos[i].setMinMax(aln.start, aln.end);
+
+    dagcon::Alignment norm = normalizeGaps(aln);
+
 #pragma omp critical (graphAdd)
-        ag.addAln(norm);
-    }
+    ag.addAln(norm);  //  NOT thread safe!
+  }
 
-    // merge the nodes and call consensus
-    ag.mergeNodes();
-    std::string cns = ag.consensus(1);
+  //  Merge the nodes and call consensus
 
-    // save consensus
-    resizeArrayPair(tig->_gappedBases, tig->_gappedQuals, 0, tig->_gappedMax, (uint32) cns.length() + 1, resizeArray_doNothing);
-    std::string::size_type len = 0;
-    for(len = 0; len < cns.size(); len++) {
-      tig->_gappedBases[len] = cns[len];
-      tig->_gappedQuals[len] = CNS_MIN_QV;
-    }
-    //  Terminate the string.
-    tig->_gappedBases[len] = 0;
-    tig->_gappedQuals[len] = 0;
-    tig->_gappedLen = len;
-    tig->_layoutLen = len;
+  ag.mergeNodes();
 
-    assert(len < tig->_gappedMax);
-    return true;
+  std::string cns = ag.consensus(1);
+
+  //  Save consensus
+
+  resizeArrayPair(tig->_gappedBases, tig->_gappedQuals, 0, tig->_gappedMax, (uint32) cns.length() + 1, resizeArray_doNothing);
+
+  std::string::size_type len = 0;
+
+  for (len=0; len<cns.size(); len++) {
+    tig->_gappedBases[len] = cns[len];
+    tig->_gappedQuals[len] = CNS_MIN_QV;
+  }
+
+  //  Terminate the string.
+
+  tig->_gappedBases[len] = 0;
+  tig->_gappedQuals[len] = 0;
+  tig->_gappedLen        = len;
+  tig->_layoutLen        = len;
+
+  assert(len < tig->_gappedMax);
+
+  return(true);
 }
 
 
