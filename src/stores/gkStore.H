@@ -567,6 +567,7 @@ public:
 
   void         gkStore_stashReadData(gkRead *read, gkReadData *data);
 
+  //  Used in utgcns, for the package format.
   static
   void         gkStore_loadReadFromStream(FILE *S, gkRead *read, gkReadData *readData);
   void         gkStore_saveReadToStream(FILE *S, uint32 id);
