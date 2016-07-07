@@ -279,11 +279,12 @@ unitigConsensus::generatePBDAG(tgTig                     *tig_,
   //  Build a quick consensus to align to, just smash together sequences.
 
   for (uint32 i=0; i<numfrags; i++) {
-    gkRead  *read    = (*inPackageRead_)[utgpos[i].ident()];
-    uint32   readLen = read->gkRead_sequenceLength();
+    abSequence  *seq      = abacus->getSequence(i);
+    char        *fragment = seq->getBases();
+    uint32       readLen  = seq->length();
 
-    uint32 start = utgpos[i].min();
-    uint32 end   = utgpos[i].max();
+    uint32       start    = utgpos[i].min();
+    uint32       end      = utgpos[i].max();
 
     if (start > utg.seq.length())
       start = utg.seq.length() - 1;
@@ -293,9 +294,6 @@ unitigConsensus::generatePBDAG(tgTig                     *tig_,
 
     if (end > utg.seq.length())
       end = utg.seq.length() - 1;
-
-    abSequence  *seq      = abacus->getSequence(i);
-    char        *fragment = seq->getBases();
 
     for (uint32 j=start; j<end; j++)
       if (utg.seq[j] == 'N')
@@ -388,13 +386,15 @@ unitigConsensus::generateQuick(tgTig                     *tig_,
     reportStartingWork();
 
     piid = -1;
+
     bool placed = computePositionFromLayout();
 
-    gkRead  *read    = (*inPackageRead_)[utgpos[tiid].ident()];
-    uint32   readLen = read->gkRead_sequenceLength();
+    abSequence  *seq      = abacus->getSequence(utgpos[tiid].ident());
+    char        *fragment = seq->getBases();
+    uint32       readLen  = seq->length();
 
-    uint32 start = cnspos[tiid].min();
-    uint32 end = cnspos[tiid].max();
+    uint32       start = cnspos[tiid].min();
+    uint32       end = cnspos[tiid].max();
 
     // if we couldn't place the read, fall back to utg positions
     if (placed == false) {
