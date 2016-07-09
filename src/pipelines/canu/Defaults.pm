@@ -1221,7 +1221,7 @@ sub checkParameters () {
         #    addCommandLineError("ERROR:  java executable '$java' not found or not executable\n");
         #}
 
-        open(F, "$java -showversion 2>&1 |");
+        open(F, "$java -Xmx1g -showversion 2>&1 |");
         while (<F>) {
             #  First word is either "java" or "openjdk" or ...
             if (m/^.*\s+version\s+\"(\d+.\d+)(.*)\".*$/) {
