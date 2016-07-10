@@ -968,6 +968,11 @@ sub buildGridArray ($$$$) {
     $opt =~ s/ARRAY_NAME/$name/g;        #  Replace ARRAY_NAME with 'job name'
     $opt =~ s/ARRAY_JOBS/$bgn-$end/g;    #  Replace ARRAY_JOBS with 'bgn-end'
 
+    # PBS/Torque won't let scripts be passed options unless they are prefixed with a -F
+    if (getGlobal("gridEngine") eq "PBS") {
+       $off="-F \"$off\"";
+    }
+
     return($opt, $off);
 }
 
