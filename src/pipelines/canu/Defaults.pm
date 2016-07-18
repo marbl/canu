@@ -47,8 +47,6 @@ use Carp qw(cluck);
 use Sys::Hostname;
 use Text::Wrap;
 
-use Filesys::Df;  #  for diskSpace()
-
 my %global;    #  Parameter value
 my %synops;    #  Parameter description (for -defaults)
 my %synnam;    #  Parameter name (beacuse the key is lowercase)
@@ -317,13 +315,21 @@ sub dirname ($) {
 
 
 sub diskSpace ($) {
-    my $wrk   = dirname($_[0]);
-    my $df    = df($wrk, 1024);
+    my  $wrk                          = dirname($_[0]);
+    my ($total, $used, $free, $avail) = (0, 0, 0, 0);
 
-    my $total = int(10 * $df->{blocks} / 1048576) / 10;
-    my $used  = int(10 * $df->{used}   / 1048576) / 10;
-    my $free  = int(10 * $df->{bfree}  / 1048576) / 10;
-    my $avail = int(10 * $df->{bavail} / 1048576) / 10;
+    open(DF, "df -P -k $wrk |");
+    while (<DF>) {
+        chomp;
+
+        if (m/^(.*)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+%)\s+(.*)$/) {
+            $total = int($2 / 1048.576) / 1000;
+            $used  = int($3 / 1048.576) / 1000;
+            $free  = int($4 / 1048.576) / 1000;
+            $avail = int($4 / 1048.576) / 1000;  #  Possibly limited by quota?
+        }
+    }
+    close(DF);
 
     #print STDERR "Disk space: total $total GB, used $used GB, free $free GB, available $avail GB\n";
 
