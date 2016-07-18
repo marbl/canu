@@ -9,11 +9,7 @@ Canu is a hierarchical assembly pipeline which runs in four steps:
 * Trim corrected sequences
 * Assemble trimmed corrected sequences
 
-## Learn:
-
-The [quick start](http://canu.readthedocs.io/en/stable/quick-start.html) will get you assembling quickly, while the [tutorial](http://canu.readthedocs.io/en/stable/tutorial.html) explains things in more detail.
-
-## Getting Started:
+## Install:
 
 The easiest way to get started is to download a [release](http://github.com/marbl/canu/releases). 
 
@@ -23,12 +19,15 @@ Alternatively, you can also build the latest unreleased from github:
     cd canu/src
     make -j <number of threads>
 
+## Learn:
+
+The [quick start](http://canu.readthedocs.io/en/stable/quick-start.html) will get you assembling quickly, while the [tutorial](http://canu.readthedocs.io/en/stable/tutorial.html) explains things in more detail.
+
 ## Run:
 
 Brief command line help:
 
     ../<achitechture>/bin/canu
-    
 
 Full list of parameters:
 
