@@ -366,7 +366,7 @@ sub printHelp () {
     return   if (!exists($global{'errors'}));
 
     print "\n";
-    print "usage: canu [-correct | -trim | -assemble] \\\n";
+    print "usage: canu [-correct | -trim | -assemble | -trim-assemble] \\\n";
     print "            [-s <assembly-specifications-file>] \\\n";
     print "             -p <assembly-prefix> \\\n";
     print "             -d <assembly-directory> \\\n";
@@ -377,9 +377,10 @@ sub printHelp () {
     print "\n";
     print "  By default, all three stages (correct, trim, assemble) are computed.\n";
     print "  To compute only a single stage, use:\n";
-    print "    -correct  - generate corrected reads\n";
-    print "    -trim     - generate trimmed reads\n";
-    print "    -assemble - generate an assembly\n";
+    print "    -correct       - generate corrected reads\n";
+    print "    -trim          - generate trimmed reads\n";
+    print "    -assemble      - generate an assembly\n";
+    print "    -trim-assemble - generate trimmed reads and then assemble them\n";
     print "\n";
     print "  The assembly is computed in the (created) -d <assembly-directory>, with most\n";
     print "  files named using the -p <assembly-prefix>.\n";
