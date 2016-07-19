@@ -4,7 +4,7 @@
 Canu Quick Start
 ================
 
-Canu specializes in assembling PacBio or Oxford Nanopre sequences.  Canu will correct the reads, then trim suspicious regions (such as remaining SMRTbell adapter), then
+Canu specializes in assembling PacBio or Oxford Nanopore sequences.  Canu will correct the reads, then trim suspicious regions (such as remaining SMRTbell adapter), then
 assemble the corrected and cleaned reads into unitigs.
 
 Brief Introduction
