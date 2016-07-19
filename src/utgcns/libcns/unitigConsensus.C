@@ -75,7 +75,7 @@
 // for pbdagcon
 #include "Alignment.H"
 #include "AlnGraphBoost.H"
-#include "SimpleAligner.H"
+#include "dw.H"
 
 #include "NDalign.H"
 
@@ -216,7 +216,7 @@ unitigConsensus::generate(tgTig                     *tig_,
     //  Second attempt, default parameters after recomputing consensus sequence.
 
     if (showAlgorithm())
-      fprintf(stderr, "generateMultiAlignment()-- recompute full consensus\n");
+      fprintf(stderr, "generate()-- recompute full consensus\n");
 
     recomputeConsensus(showMultiAlignments());
 
@@ -249,7 +249,7 @@ unitigConsensus::generate(tgTig                     *tig_,
   return(true);
 
  returnFailure:
-  fprintf(stderr, "generateMultiAlignment()-- unitig %d FAILED.\n", tig->tigID());
+  fprintf(stderr, "generate()-- unitig %d FAILED.\n", tig->tigID());
 
   //  tgTig should have no changes.
 
@@ -265,7 +265,7 @@ unitigConsensus::generatePBDAG(tgTig                     *tig_,
   numfrags = tig->numberOfChildren();
 
   if (initialize(inPackageRead_, inPackageReadData_) == FALSE) {
-    fprintf(stderr, "generatePBDAG()--  Failed to initialize for tig %u with %u children\n", tig->tigID(), tig->numberOfChildren());
+    fprintf(stderr, "generatePBDAG()-- Failed to initialize for tig %u with %u children\n", tig->tigID(), tig->numberOfChildren());
     return(false);
   }
 
@@ -286,20 +286,53 @@ unitigConsensus::generatePBDAG(tgTig                     *tig_,
     uint32       start    = utgpos[i].min();
     uint32       end      = utgpos[i].max();
 
-    if (start > utg.seq.length())
+    if (start > utg.seq.length()) {
+      fprintf(stderr, "WARNING: reset start  from "F_U32" to "F_U64"\n", start, utg.seq.length()-1);
       start = utg.seq.length() - 1;
+    }
 
-    if (end - start > readLen)
+    if (end - start > readLen) {
+      fprintf(stderr, "WARNING: reset end    from "F_U32" to "F_U32"\n", end, start+readLen);
       end = start + readLen;
+    }
 
-    if (end > utg.seq.length())
+    if (end > utg.seq.length()) {
+      fprintf(stderr, "WARNING: truncate end from "F_U32" to "F_U64"\n", end, utg.seq.length()-1);
       end = utg.seq.length() - 1;
+    }
 
-    for (uint32 j=start; j<end; j++)
-      if (utg.seq[j] == 'N')
-        utg.seq[j] = fragment[j - start];
+    //  Read aligns from position start to end.  Skip ahead until we find unset bases.
+
+    uint32 cur = start;
+    while ((cur < end) && (utg.seq[cur] != 'N'))
+      cur++;
+
+    fprintf(stderr, "generatePBDAG()-- template from %7d to %7d comes from read %3d id %6d bases (%5d %5d) nominally %6d %6d)\n",
+            cur, end, i, seq->gkpIdent(),
+            cur - start,
+            end - start,
+            utgpos[i].min(),
+            utgpos[i].max());
+
+    for (uint32 j=cur; j<end; j++) {
+      //if (utg.seq[j] != 'N')
+      //  fprintf(stderr, "WARNING: template %6d already set\n", j);
+      utg.seq[j] = fragment[j - start];
+    }
   }
 
+  for (uint32 jj=0; jj<tig->_layoutLen; jj++)
+    if (utg.seq[jj] == 'N')
+      fprintf(stdout, "generatePBDAG()-- WARNING: template position %u not defined.\n", jj);
+
+  assert(utg.seq[tig->_layoutLen] == 0);
+
+#if 0
+  FILE *F = fopen("template.fasta", "w");
+  fprintf(F, ">tig%d template\n%s\n", tig->tigID(), utg.seq.c_str());
+  fclose(F);
+#endif
+      
   AlnGraphBoost ag(utg.seq);
 
   //  Compute alignments of each sequence in parallel
@@ -309,7 +342,23 @@ unitigConsensus::generatePBDAG(tgTig                     *tig_,
     abSequence  *seq      = abacus->getSequence(i);
     char        *fragment = seq->getBases();
 
-    computePositionFromLayout();
+    //  computePositionFromLayout() does NOT work here; it needs to have abacus->numberOfColumns() updated.
+    //  When the reads aren't placed in frankenstein, this function probably also just returns
+    //  the original utgpos position anyway.
+    //
+    //computePositionFromLayout();
+
+    fprintf(stderr, "\n");
+    fprintf(stderr, "generatePBDAG()-- align read %u (%u/%u) at %u-%u\n",
+            seq->gkpIdent(), i, numfrags, utgpos[i].min(), utgpos[i].max());
+
+#if 0
+    char N[FILENAME_MAX];
+    sprintf(N, "read-%03d.fasta", i, seq->gkpIdent());
+    FILE *F = fopen(N, "w");
+    fprintf(F, ">read%d pos %d %d\n%s\n", seq->gkpIdent(), utgpos[i].min(), utgpos[i].max(), fragment);
+    fclose(F);
+#endif
 
     dagcon::Alignment aln;
 
@@ -319,14 +368,65 @@ unitigConsensus::generatePBDAG(tgTig                     *tig_,
     aln.qstr  = string(fragment);
     aln.tstr  = utg.seq.substr(aln.start, aln.end-aln.start);
 
-    SimpleAligner     align;
+    NDalignment::NDalignResult ndaln;
 
-    align.align(aln, errorRate);
+    uint32  aLen = aln.qstr.size();
+    uint32  bLen = aln.tstr.size();
 
-    if (aln.qstr.size() == 0) {
+    uint32  bandTolerance = 150;
+    bool    aligned       = NDalignment::align(aln.qstr.c_str(), aln.qstr.size(),
+                                               aln.tstr.c_str(), aln.tstr.size(),
+                                               bandTolerance,
+                                               true,
+                                               ndaln);
+
+    while ((aligned == false) && (bandTolerance < errorRate * (aLen + bLen))) {
+      bandTolerance *= 4;
+      fprintf(stderr, "generatePBDAG()-- retry with bandTolerance = %d\n",
+              bandTolerance);
+      aligned = NDalignment::align(aln.qstr.c_str(), aln.qstr.size(),
+                                   aln.tstr.c_str(), aln.tstr.size(),
+                                   bandTolerance,
+                                   true,
+                                   ndaln);
+      
+    }
+
+    double errorRateAln = (ndaln._size > 0) ? ((double)ndaln._dist / ndaln._size) : 1.0;
+
+    if ((aligned == true) && (errorRateAln > errorRate)) {
+      fprintf(stderr, "generatePBDAG()-- error rate too high distance=%5d size=%5d, %f > %f\n",
+              ndaln._dist, ndaln._size, errorRateAln, errorRate);
+      aligned = false;
+    }
+
+
+    if (aligned == false) {
+      aln.start = aln.end = 0;
+      aln.qstr  = std::string();
+      aln.tstr  = std::string();
+
+      fprintf(stderr, "generatePBDAG()-- failed to align read #%u id %u at position %u-%u.\n",
+              i, utgpos[i].ident(), utgpos[i].min(), utgpos[i].max());
+
       cnspos[i].setMinMax(0, 0);
+
       continue;
     }
+
+
+    fprintf(stderr, "generatePBDAG()-- aligned             distance=%5d size=%5d, %f < %f\n",
+            ndaln._dist, ndaln._size,
+            (double) ndaln._dist / ndaln._size,
+            errorRate);
+
+    aln.start += ndaln._tgt_bgn;
+    aln.end = aln.start + ndaln._tgt_end;
+    aln.start++;
+    aln.qstr = std::string(ndaln._qry_aln_str);
+    aln.tstr = std::string(ndaln._tgt_aln_str);
+
+    assert(aln.qstr.length() == aln.tstr.length());
 
     cnspos[i].setMinMax(aln.start, aln.end);
 

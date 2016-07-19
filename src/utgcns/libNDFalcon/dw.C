@@ -194,6 +194,8 @@ bool align(const char * query_seq, seq_coor_t q_len,
     max_idx = 0;
     for (d = 0; d < max_d; d ++ ) {
         if (max_k - min_k > band_size) {
+            fprintf(stderr, "generatePBDAG()-- Exceeded band size max_k %d - min_k %d = %d > band_size = %d.\n",
+                    max_k, min_k, max_k - min_k, band_size);
             break;
         }
 

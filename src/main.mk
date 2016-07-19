@@ -94,7 +94,6 @@ SOURCES      := AS_global.C \
                 utgcns/libcns/unitigConsensus.C \
                 utgcns/libpbutgcns/Alignment.C	\
                 utgcns/libpbutgcns/AlnGraphBoost.C  \
-                utgcns/libpbutgcns/SimpleAligner.C \
                 utgcns/libNDFalcon/dw.C \
                 \
                 falcon_sense/libfalcon/falcon.C \
