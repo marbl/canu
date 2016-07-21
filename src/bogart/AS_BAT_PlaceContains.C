@@ -100,7 +100,7 @@ placeUnplacedUsingAllOverlaps(UnitigVector &unitigs,
   uint32   nFailed           = 0;
 
   for (uint32 fid=1; fid<FI->numFragments()+1; fid++)
-    if (Unitig::fragIn(fid) == 0)
+    if (Unitig::fragIn(fid) == 0)    //  I'm NOT ambiguous!
       if (OG->isContained(fid))
         nToPlaceContained++;
       else
