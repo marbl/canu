@@ -675,7 +675,7 @@ void
 BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
   char  N[FILENAME_MAX];
   FILE             *BCH = NULL;
-  FILE *BE = NULL, *BEH = NULL, *BEG;
+  FILE *BE = NULL, *BEH = NULL, *BEG = NULL;
   FILE *BS = NULL;
   FILE *SS = NULL;
 
