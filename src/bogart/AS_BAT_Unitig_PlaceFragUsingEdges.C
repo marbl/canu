@@ -50,9 +50,9 @@ placeFrag_contained(uint32           fragId,
                     ufNode          &parent,
                     BestEdgeOverlap *edge) {
 
-  bool   pFwd  = (parent.position.bgn < parent.position.end) ? true : false;
-  int32  pMin  = (parent.position.bgn < parent.position.end) ? parent.position.bgn : parent.position.end;
-  int32  pMax  = (parent.position.bgn < parent.position.end) ? parent.position.end : parent.position.bgn;
+  bool   pFwd  = parent.position.isForward();
+  int32  pMin  = parent.position.min();
+  int32  pMax  = parent.position.max();
 
   assert(pMin < pMax);
 
@@ -119,9 +119,9 @@ placeFrag_dovetail(uint32           fragId,
   //  We have an 'edge' from 'fragId' end 'frag3p' back to 'parent'.
   //  Use that to compute the placement of 'frag'.
 
-  bool   pFwd  = (parent.position.bgn < parent.position.end) ? true : false;
-  int32  pMin  = (parent.position.bgn < parent.position.end) ? parent.position.bgn : parent.position.end;
-  int32  pMax  = (parent.position.bgn < parent.position.end) ? parent.position.end : parent.position.bgn;
+  bool   pFwd  = parent.position.isForward();
+  int32  pMin  = parent.position.min();
+  int32  pMax  = parent.position.max();
 
   assert(pMin < pMax);
 

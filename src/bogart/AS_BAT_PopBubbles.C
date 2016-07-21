@@ -262,8 +262,8 @@ findBubbleReadPlacements(UnitigVector    &unitigs,
       uint32    rdBtigID = placements[pi].tigID;
       Unitig   *rdBtig   = unitigs[rdBtigID];
 
-      uint32    lo       = (placements[pi].position.bgn < placements[pi].position.end) ? placements[pi].position.bgn : placements[pi].position.end;
-      uint32    hi       = (placements[pi].position.bgn < placements[pi].position.end) ? placements[pi].position.end : placements[pi].position.bgn;
+      uint32    lo       = placements[pi].position.min();
+      uint32    hi       = placements[pi].position.max();
 
       double    erate    = placements[pi].errors / placements[pi].aligned;
 

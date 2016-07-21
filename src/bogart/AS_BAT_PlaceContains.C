@@ -138,8 +138,8 @@ placeUnplacedUsingAllOverlaps(UnitigVector &unitigs,
       if (tig->ufpath.size() == 1)  //  Ignore placements in singletons.
         continue;
 
-      uint32  bgn   = (placements[i].position.bgn < placements[i].position.end) ? placements[i].position.bgn : placements[i].position.end;
-      uint32  end   = (placements[i].position.bgn < placements[i].position.end) ? placements[i].position.end : placements[i].position.bgn;
+      uint32  bgn   = placements[i].position.min();
+      uint32  end   = placements[i].position.max();
 
       double  erate = placements[i].errors / placements[i].aligned;
 
