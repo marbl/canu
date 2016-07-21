@@ -47,6 +47,8 @@
 #include "gkStore.H"
 #include "memoryMappedFile.H"
 
+class BAToverlapInt;
+class BAToverlap;
 
 //  CA8 used to re-encode the error rate into a smaller-precision number.  This was
 //  confusing and broken (it tried to use a log-based encoding to give more precision
@@ -56,7 +58,65 @@
 //  storage.
 
 //  For storing overlaps in memory.  12 bytes per overlap.
-struct BAToverlapInt {
+class BAToverlapInt {
+public:
+  BAToverlapInt() {
+    evalue  = 0;
+    a_hang  = 0;
+    b_hang  = 0;
+    flipped = 0;
+    b_iid   = 0;
+  };
+  ~BAToverlapInt() {};
+
+  void set(BAToverlap const &olap);
+
+  //  Nasty bit of code duplication.
+
+  bool
+  isDovetail(void) const {
+    return(((a_hang < 0) && (b_hang < 0)) ||
+           ((a_hang > 0) && (b_hang > 0)));
+  };
+
+  bool
+  AEndIs5prime(void) const {                   //  -------->
+    return((a_hang < 0) && (b_hang < 0));      //        -------
+  };
+
+  bool
+  AEndIs3prime(void) const {                   //     -------->
+    return((a_hang > 0) && (b_hang > 0));      //  -------
+  };
+
+  bool
+  AisContainer(void) const {                   //  -------->
+    return((a_hang >= 0) && (b_hang <= 0));    //    ----
+  };
+
+  bool
+  AisContained(void) const {                   //    --->
+    return((a_hang <= 0) && (b_hang >= 0));    //  ---------
+  };
+
+  bool
+  BEndIs3prime(void) const {
+    assert(AisContainer() == false);  //  Function is not defined
+    assert(AisContained() == false);  //    for containments.
+    return((AEndIs5prime() && (flipped == false)) ||   // <===     ------>
+           (AEndIs3prime() && (flipped == true)));     //        ---->
+  };
+
+  bool
+  BEndIs5prime(void) const {
+    assert(AisContainer() == false);  //  Function is not defined
+    assert(AisContained() == false);  //    for containments.
+    return((AEndIs5prime() && (flipped == true)) ||   //          ------>
+           (AEndIs3prime() && (flipped == false)));   // <===          ---->
+  };
+
+
+
   uint64      evalue    :AS_MAX_EVALUE_BITS;     //  12 by default (same as AS_MAX_EVALUE_BITS)
   int64       a_hang    :AS_MAX_READLEN_BITS+1;  //  21+1 by default
   int64       b_hang    :AS_MAX_READLEN_BITS+1;  //  21+1 by default
@@ -75,10 +135,10 @@ struct BAToverlapInt {
 
 class BAToverlap {
 public:
-  BAToverlap() {
-  };
-  ~BAToverlap() {
-  };
+  BAToverlap() {};
+  ~BAToverlap() {};
+
+  void set(uint32 aiid, BAToverlapInt const &olap);
 
 public:
 
@@ -156,6 +216,36 @@ bool
 BAToverlap_sortByEvalue(BAToverlap const &a, BAToverlap const &b) {
   return(a.evalue > b.evalue);
 }
+
+
+
+inline
+void
+BAToverlapInt::set(BAToverlap const &olap) {
+  evalue  = olap.evalue;
+  a_hang  = olap.a_hang;
+  b_hang  = olap.b_hang;
+  flipped = olap.flipped;
+  b_iid   = olap.b_iid;
+}
+
+
+
+inline
+void
+BAToverlap::set(uint32 aiid, BAToverlapInt const &olap) {
+  a_hang   = olap.a_hang;
+  b_hang   = olap.b_hang;
+
+  flipped  = olap.flipped;
+
+  evalue   = olap.evalue;
+  erate    = AS_OVS_decodeEvalue(olap.evalue);
+
+  a_iid    = aiid;
+  b_iid    = olap.b_iid;
+}
+
 
 
 class OverlapCacheThreadData {

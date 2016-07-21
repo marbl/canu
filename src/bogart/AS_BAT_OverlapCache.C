@@ -697,18 +697,7 @@ OverlapCache::getOverlaps(uint32 fragIID, double maxErate, uint32 &numOverlaps) 
     if (ptr[pos].evalue > maxEvalue)
       continue;
 
-    _thread[tid]._bat[numOverlaps].a_hang   = ptr[pos].a_hang;
-    _thread[tid]._bat[numOverlaps].b_hang   = ptr[pos].b_hang;
-
-    _thread[tid]._bat[numOverlaps].flipped  = ptr[pos].flipped;
-
-    _thread[tid]._bat[numOverlaps].evalue   = ptr[pos].evalue;
-    _thread[tid]._bat[numOverlaps].erate    = AS_OVS_decodeEvalue(ptr[pos].evalue);
-
-    _thread[tid]._bat[numOverlaps].a_iid    = fragIID;
-    _thread[tid]._bat[numOverlaps].b_iid    = ptr[pos].b_iid;
-
-    numOverlaps++;
+    _thread[tid]._bat[numOverlaps++].set(fragIID, ptr[pos]);
   }
 
   return(_thread[tid]._bat);
