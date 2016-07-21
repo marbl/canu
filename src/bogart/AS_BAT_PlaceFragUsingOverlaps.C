@@ -378,65 +378,15 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
       op.fCoverage = (op.covered.end - op.covered.bgn) / (double)FI->fragmentLength(op.frgID);
 
       //  Find the first and last fragment in the unitig that we overlap with.
-      //
-      //  The first fragment is easy.  We can run through the list of overlaps, ask the unitig for
-      //  the ordinal of each fragment, and return the lowest.
-      //
-      //  The last fragment is similar, but we need to return the highest ordinal that is also the
-      //  longest.  (In the first fragment case, we are guaranteed by the construction of the unitig
-      //  to have the earliest fragment position).
 
-      Unitig *destTig = unitigs[op.tigID];
-
-      uint32  firstOrdinal  = UINT32_MAX;
-      uint32  firstPosition = UINT32_MAX;
-      uint32  lastOrdinal   = 0;
-      uint32  lastPosition  = 0;
-
-      FragmentEnd  firstEnd;
-      FragmentEnd  lastEnd;
+      op.tigFidx = UINT32_MAX;
+      op.tigLidx = 0;
 
       for (uint32 oo=os; oo<oe; oo++) {
-        uint32   ordinal = destTig->pathPosition(ovlPlace[oo].refID);
-        ufNode  &ovlFrg  = destTig->ufpath[ordinal];
-        uint32   minPos  = MIN(ovlFrg.position.bgn, ovlFrg.position.end);
-        uint32   maxPos  = MAX(ovlFrg.position.bgn, ovlFrg.position.end);
+        uint32   ord = unitigs[op.tigID]->pathPosition(ovlPlace[oo].refID);
 
-        //writeLog("placeFragUsingOverlaps()-- PickEnds ordinal %d tigFrg %d pos %d,%d\n",
-        //        ordinal, ovlFrg.ident, minPos, maxPos);
-
-        //  For a normal dovetail alignment, this is pretty straight forward.  We pick the
-        //  end we align to.
-        //
-        //  For spur alignments (repeat detection) it is backwards to what we want.  More comments
-        //  in repeatJunctionEvidence::repeatJunctionEvidence().
-        //
-        //         \                        /
-        //          -----alignedfragment----
-        //          ------....    .....-----
-        //
-
-        if (((minPos  <  firstPosition)) ||
-            ((minPos  <= firstPosition) && (ordinal < firstOrdinal))) {
-          firstOrdinal  = ordinal;
-          firstPosition = minPos;
-          firstEnd      = FragmentEnd(ovlFrg.ident, (ovlFrg.position.bgn < ovlFrg.position.end));
-        }
-
-        if (((maxPos  >  lastPosition)) ||
-            ((maxPos  >= lastPosition) && (ordinal > lastOrdinal))) {
-          lastOrdinal  = ordinal;
-          lastPosition = minPos;
-          lastEnd      = FragmentEnd(ovlFrg.ident, (ovlFrg.position.end < ovlFrg.position.bgn));
-        }
-      }
-
-      if (nForward > 0) {
-        op.frag5p = firstEnd;
-        op.frag3p = lastEnd;
-      } else {
-        op.frag5p = lastEnd;
-        op.frag3p = firstEnd;
+        op.tigFidx = min(ord, op.tigFidx);
+        op.tigLidx = max(ord, op.tigLidx);
       }
 
       //  Compute mean and stddev placement.

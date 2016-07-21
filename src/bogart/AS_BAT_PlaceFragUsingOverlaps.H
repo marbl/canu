@@ -69,8 +69,8 @@ public:
     covered.bgn           = 0;
     covered.end           = 0;
 
-    frag5p                = FragmentEnd();
-    frag3p                = FragmentEnd();
+    tigFidx               = UINT32_MAX;
+    tigLidx               = 0;
   };
   ~overlapPlacement() {
   };
@@ -95,8 +95,8 @@ public:
   uint32            aligned;    //  number of bases in alignments
   SeqInterval       covered;    //  Position of the overlap on the read
 
-  FragmentEnd       frag5p;     //  First unitig fragment that supports this placement
-  FragmentEnd       frag3p;     //  Last unitig fragment that supports this placement
+  uint32            tigFidx;    //  First unitig fragment that supports this placement
+  uint32            tigLidx;    //  Last  unitig fragment that supports this placement
 };
 
 
