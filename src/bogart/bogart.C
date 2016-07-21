@@ -43,6 +43,7 @@
 #include "AS_BAT_OverlapCache.H"
 #include "AS_BAT_BestOverlapGraph.H"
 #include "AS_BAT_ChunkGraph.H"
+#include "AS_BAT_AssemblyGraph.H"
 
 #include "AS_BAT_Logging.H"
 
@@ -68,6 +69,7 @@ FragmentInfo     *FI  = 0L;
 OverlapCache     *OC  = 0L;
 BestOverlapGraph *OG  = 0L;
 ChunkGraph       *CG  = 0L;
+AssemblyGraph    *AG  = 0L;
 
 int
 main (int argc, char * argv []) {
@@ -414,6 +416,10 @@ main (int argc, char * argv []) {
   delete CG;
   CG = NULL;
 
+  //  The overlap graph isn't used after this, except to decide if a read is contained.
+  //delete OG;
+  //OG = NULL;
+
   breakSingletonTigs(unitigs);
 
   reportOverlaps(unitigs, prefix, "buildUnitigs");
@@ -439,6 +445,24 @@ main (int argc, char * argv []) {
   reportOverlaps(unitigs, prefix, "placeContains");
   reportUnitigs(unitigs, prefix, "placeContains", genomeSize);
 #endif
+
+  //
+  //  Generate a new graph using only edges that are compatible with existing tigs.
+  //
+
+  writeStatus("\n");
+  writeStatus("==> GENERATING ASSEMBLY GRAPH.\n");
+  writeStatus("\n");
+
+  setLogFile(prefix, "assemblyGraph");
+
+  unitigs.computeErrorProfiles(prefix, "assemblyGraph");
+  unitigs.reportErrorProfiles(prefix, "assemblyGraph");
+
+  AG = new AssemblyGraph(prefix, deviationGraph, deviationBubble, deviationRepeat, unitigs);
+  AG->reportGraph(prefix, "assembly");
+
+  //generateGraph(unitigs);
 
   //
   //  Merge tigs (and detect ciruclar ones too).  Contained reads need to be placed to 'clean up'

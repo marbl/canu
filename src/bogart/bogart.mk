@@ -9,6 +9,7 @@ endif
 
 TARGET   := bogart
 SOURCES  := bogart.C \
+            AS_BAT_AssemblyGraph.C \
             AS_BAT_BestOverlapGraph.C \
             AS_BAT_ChunkGraph.C \
             AS_BAT_FragmentInfo.C \
