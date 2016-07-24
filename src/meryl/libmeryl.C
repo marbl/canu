@@ -480,7 +480,7 @@ merylStreamWriter::writeMer(void) {
   _numDistinct++;
 
   if (_thisMerCount >= _histogramLen)
-    resizeArray(_histogram, _histogramMaxValue, _histogramLen, _thisMerCount + 16384);
+    resizeArray(_histogram, _histogramMaxValue, _histogramLen, _thisMerCount + 16384, resizeArray_copyData | resizeArray_clearNew);
 
   _histogram[_thisMerCount]++;
 
