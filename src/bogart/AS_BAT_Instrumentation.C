@@ -768,5 +768,6 @@ reportOverlaps(UnitigVector &unitigs, const char *prefix, const char *name) {
   delete dd;
   delete dc;
   delete cc;
+  delete bb;
 }
 
