@@ -254,7 +254,7 @@ findBubbleReadPlacements(UnitigVector    &unitigs,
 
     vector<overlapPlacement>   placements;
 
-    placeFragUsingOverlaps(unitigs, AS_MAX_ERATE, NULL, rdA->ident, placements);
+    placeFragUsingOverlaps(unitigs, NULL, rdA->ident, placements);
 
     //  Weed out placements that aren't for bubbles, or that are for bubbles but are poor quality.  Or are to ourself!
 

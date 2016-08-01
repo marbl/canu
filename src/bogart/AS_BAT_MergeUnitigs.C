@@ -48,7 +48,7 @@ mergeUnitigs_findPlacements(UnitigVector              &unitigs,
                             vector<overlapPlacement>  &validPlacements) {
   vector<overlapPlacement>   placements;
 
-  placeFragUsingOverlaps(unitigs, AS_MAX_ERATE, NULL, rd->ident, placements);
+  placeFragUsingOverlaps(unitigs, NULL, rd->ident, placements);
 
   for (uint32 pi=0; pi<placements.size(); pi++) {
     Unitig *tig   = unitigs[placements[pi].tigID];

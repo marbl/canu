@@ -100,7 +100,7 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
 
     vector<overlapPlacement>   placements;
 
-    placeFragUsingOverlaps(unitigs, AS_MAX_ERATE, NULL, fi, placements);
+    placeFragUsingOverlaps(unitigs, NULL, fi, placements);
 
     //  For each placement decide if the overlap is compatible with the tig.
     //  Filter out placements that are too small.

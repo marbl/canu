@@ -48,14 +48,12 @@ class overlapPlacement {
 public:
   overlapPlacement() {
     frgID                 = 0;
+
     refID                 = 0;
-
     tigID                 = 0;
-    position.bgn          = 0;
-    position.end          = 0;
-
-    verified.bgn          = 0;
-    verified.end          = 0;
+    position              = SeqInterval();
+    verified              = SeqInterval();
+    covered               = SeqInterval();
 
     bgnStdDev             = 0.0;
     endStdDev             = 0.0;
@@ -66,8 +64,6 @@ public:
 
     errors                = 0.0;
     aligned               = 0;
-    covered.bgn           = 0;
-    covered.end           = 0;
 
     tigFidx               = UINT32_MAX;
     tigLidx               = 0;
@@ -76,13 +72,14 @@ public:
   };
 
 public:
-  uint32            frgID;      //  ID of the fragment this position is for.
-  uint32            refID;      //  ID if the fragment we used to place this frag (the reference).
+  uint32            frgID;      //  Read ID of the fragment this position is for.
 
+  uint32            refID;      //  Read ID of the overlapping read were placed with.
   uint32            tigID;      //  Unitig ID of this placement
 
   SeqInterval       position;   //  Unitig position of this placement
   SeqInterval       verified;   //  Unitig position of this placement, verified by overlaps
+  SeqInterval       covered;    //  Position of the overlap on the read
 
   double            bgnStdDev;  //  Standard deviation of position.bgn
   double            endStdDev;  //  Standard deviation of position.end
@@ -93,7 +90,6 @@ public:
 
   double            errors;     //  number of errors in alignments
   uint32            aligned;    //  number of bases in alignments
-  SeqInterval       covered;    //  Position of the overlap on the read
 
   uint32            tigFidx;    //  First unitig fragment that supports this placement
   uint32            tigLidx;    //  Last  unitig fragment that supports this placement
@@ -127,12 +123,16 @@ overlapPlacement_byCluster(const overlapPlacement &A, const overlapPlacement &B)
 }
 
 
+const uint32  placeFrag_all        = 0x00;
+const uint32  placeFrag_fullMatch  = 0x01;
+const uint32  placeFrag_noExtend   = 0x02;
+
 bool
 placeFragUsingOverlaps(UnitigVector             &unitigs,
-                       double                    erate,
                        Unitig                   *target,
                        uint32                    fid,
-                       vector<overlapPlacement> &placements);
+                       vector<overlapPlacement> &placements,
+                       uint32                    flags = placeFrag_all);
 
 
 #endif  //  INCLUDE_AS_BAT_PLACEFRAGUSINGOVERLAPS

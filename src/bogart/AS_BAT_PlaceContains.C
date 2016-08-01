@@ -123,7 +123,7 @@ placeUnplacedUsingAllOverlaps(UnitigVector &unitigs,
 
     vector<overlapPlacement>   placements;
 
-    placeFragUsingOverlaps(unitigs, AS_MAX_ERATE, NULL, fid, placements);
+    placeFragUsingOverlaps(unitigs, NULL, fid, placements, placeFrag_fullMatch);
 
     //  Search the placements for the highest expected identity placement using all overlaps in the unitig.
 
