@@ -40,6 +40,27 @@ use canu::Defaults;
 use canu::Execution;
 use canu::Grid;
 
+
+sub detectPBSVersion () {
+    my $isPro   = 0;
+    my $version = "";
+
+    open(F, "pbsnodes --version |");
+    while (<F>) {
+        if (m/pbs_version\s+=\s+(.*)/) {
+            $isPro   =  1;
+            $version = $1;
+        }
+        if (m/Version:\s+(.*)/) {
+            $version = $1;
+        }
+    }
+    close(F);
+
+    return($version, $isPro);
+}
+
+
 sub detectPBSTorque () {
 
     return   if ( defined(getGlobal("gridEngine")));
@@ -48,9 +69,81 @@ sub detectPBSTorque () {
 
     return   if (!defined($pbsnodes));
 
-    print STDERR "-- Detected PBS/Torque with 'pbsnodes' binary in $pbsnodes.\n";
+    my ($version, $isPro) = detectPBSVersion();
+
+    print STDERR "-- Detected PBS/Torque '$version' with 'pbsnodes' binary in $pbsnodes.\n";
     setGlobal("gridEngine", "PBS");
 }
+
+
+
+sub configurePBSTorqueNodes () {
+    my %hosts;
+
+    print STDERR "-- Detecting PBS/Torque resources.\n";
+
+    open(F, "pbsnodes |");
+    while (<F>) {
+        my $cpus = 0;
+        my $mem = 0;
+        if ($_ =~ m/status/) {
+            my @stats = split ',', $_;
+            for my $stat (@stats) {
+                if ($stat =~ m/physmem/) {
+                    $mem = ( split '=', $stat )[-1];
+                } elsif ($stat =~ m/ncpus/) {
+                    $cpus = int(( split '=', $stat )[-1]);
+                }
+            }
+            $mem  = $1 * 1024         if ($mem =~ m/(\d+.*\d+)[tT]/);
+            $mem  = $1 * 1            if ($mem =~ m/(\d+.*\d+)[gG]/);
+            $mem  = $1 / 1024         if ($mem =~ m/(\d+.*\d+)[mM]/);
+            $mem  = $1 / 1024 / 1024  if ($mem =~ m/(\d+.*\d+)[kK]/);
+            $mem  = int($mem);
+            $hosts{"$cpus-$mem"}++    if ($cpus gt 0);
+        }
+    }
+    close(F);
+
+    setGlobal("availableHosts", formatAllowedResources(%hosts, "PBS/Torque"));
+}
+
+
+
+sub configurePBSProNodes () {
+    my %hosts;
+    my $mem  = 0;
+    my $cpus = 0;
+
+    print STDERR "-- Detecting PBSPro resources.\n";
+
+    open(F, "pbsnodes -av |");
+    while (<F>) {
+        if (m/resources_available.mem\s*=\s*(\d+)kb/) {
+            $mem = int($1 / 1024 / 1024);
+        }
+        if (m/resources_available.mem\s*=\s*(\d+)mb/) {
+            $mem = int($1 / 1024);
+        }
+        if (m/resources_available.mem\s*=\s*(\d+)gb/) {
+            $mem = int($1);
+        }
+
+        if (m/resources_available.ncpus\s*=\s*(\d+)/) {
+            $cpus = $1;
+        }
+
+        if (($cpus > 0) && ($mem > 0)) {
+            $hosts{"$cpus-$mem"}++;
+            $cpus = 0;
+            $mem  = 0;
+        }
+    }
+    close(F);
+
+    setGlobal("availableHosts", formatAllowedResources(%hosts, "PBSPro"));
+}
+
 
 
 sub configurePBSTorque () {
@@ -81,31 +174,12 @@ sub configurePBSTorque () {
     #
     #  The list is saved in global{"availableHosts"}
     #
-    my %hosts;
 
-    open(F, "pbsnodes |");
+    my ($version, $isPro) = detectPBSVersion();
 
-    while (<F>) {
-        my $cpus = 0;
-        my $mem = 0;
-        if ($_ =~ m/status/) {
-            my @stats = split ',', $_;
-            for my $stat (@stats) {
-                if ($stat =~ m/physmem/) {
-                    $mem = ( split '=', $stat )[-1];
-                } elsif ($stat =~ m/ncpus/) {
-                    $cpus = int(( split '=', $stat )[-1]);
-                }
-            }
-            $mem  = $1 * 1024         if ($mem =~ m/(\d+.*\d+)[tT]/);
-            $mem  = $1 * 1            if ($mem =~ m/(\d+.*\d+)[gG]/);
-            $mem  = $1 / 1024         if ($mem =~ m/(\d+.*\d+)[mM]/);
-            $mem  = $1 / 1024 / 1024  if ($mem =~ m/(\d+.*\d+)[kK]/);
-            $mem  = int($mem);
-            $hosts{"$cpus-$mem"}++    if ($cpus gt 0);
-        }
+    if ($isPro) {
+        configurePBSProNodes();
+    } else {
+        configurePBSTorqueNodes();
     }
-    close(F);
-
-    setGlobal("availableHosts", formatAllowedResources(%hosts, "PBS/Torque"));
 }
