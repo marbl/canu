@@ -503,15 +503,15 @@ tgTig::dumpLayout(FILE *F) {
 
 
     if (imp->_isRead)
-      fprintf(F, "read   %9"F_U32P" anchor %9"F_U32P" hang %6"F_S32P" %6"F_S32P" position %6"F_U32P" %6"F_U32P"%s%s\n",
+      fprintf(F, "read   %9"F_U32P" anchor %9"F_U32P" hang %7"F_S32P" %7"F_S32P" position %9"F_U32P" %9"F_U32P"%s%s\n",
               imp->ident(), imp->anchor(), imp->aHang(), imp->bHang(), imp->bgn(), imp->end(), trimString, deltaString);
 
     if (imp->_isUnitig)
-      fprintf(F, "unitig %9"F_U32P" anchor %9"F_U32P" hang %6"F_S32P" %6"F_S32P" position %6"F_U32P" %6"F_U32P"%s%s\n",
+      fprintf(F, "unitig %9"F_U32P" anchor %9"F_U32P" hang %7"F_S32P" %7"F_S32P" position %9"F_U32P" %9"F_U32P"%s%s\n",
               imp->ident(), imp->anchor(), imp->aHang(), imp->bHang(), imp->bgn(), imp->end(), trimString, deltaString);
 
     if (imp->_isContig)
-      fprintf(F, "contig %9"F_U32P" anchor %9"F_U32P" hang %6"F_S32P" %6"F_S32P" position %6"F_U32P" %6"F_U32P"%s%s\n",
+      fprintf(F, "contig %9"F_U32P" anchor %9"F_U32P" hang %7"F_S32P" %7"F_S32P" position %9"F_U32P" %9"F_U32P"%s%s\n",
               imp->ident(), imp->anchor(), imp->aHang(), imp->bHang(), imp->bgn(), imp->end(), trimString, deltaString);
   }
 
