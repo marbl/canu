@@ -61,11 +61,11 @@ class BAToverlap;
 class BAToverlapInt {
 public:
   BAToverlapInt() {
-    evalue  = 0;
-    a_hang  = 0;
-    b_hang  = 0;
-    flipped = 0;
-    b_iid   = 0;
+    evalue   = 0;
+    a_hang   = 0;
+    b_hang   = 0;
+    flipped  = 0;
+    b_iid    = 0;
   };
   ~BAToverlapInt() {};
 
@@ -117,14 +117,15 @@ public:
 
 
 
-  uint64      evalue    :AS_MAX_EVALUE_BITS;     //  12 by default (same as AS_MAX_EVALUE_BITS)
-  int64       a_hang    :AS_MAX_READLEN_BITS+1;  //  21+1 by default
-  int64       b_hang    :AS_MAX_READLEN_BITS+1;  //  21+1 by default
-  uint64      flipped   :1;
+  uint64      evalue    :AS_MAX_EVALUE_BITS;     //  12
+  int64       a_hang    :AS_MAX_READLEN_BITS+1;  //  21+1
+  int64       b_hang    :AS_MAX_READLEN_BITS+1;  //  21+1
+  uint64      flipped   :1;                      //   1
+
   uint32      b_iid;
 };
 
-#if (AS_MAX_EVALUE_BITS + AS_MAX_READLEN_BITS + 1 + AS_MAX_READLEN_BITS + 1 + 1 > 64)
+#if (AS_MAX_EVALUE_BITS + (AS_MAX_READLEN_BITS + 1) + (AS_MAX_READLEN_BITS + 1) + 1 > 64)
 #error not enough bits to store overlaps.  decrease AS_MAX_EVALUE_BITS or AS_MAX_READLEN_BITS.
 #endif
 
