@@ -123,9 +123,9 @@ overlapPlacement_byCluster(const overlapPlacement &A, const overlapPlacement &B)
 }
 
 
-const uint32  placeFrag_all        = 0x00;
-const uint32  placeFrag_fullMatch  = 0x01;
-const uint32  placeFrag_noExtend   = 0x02;
+const uint32  placeFrag_all        = 0x00;   //  Return all alignments
+const uint32  placeFrag_fullMatch  = 0x01;   //  Return only alignments for the whole read
+const uint32  placeFrag_noExtend   = 0x02;   //  Return only alignments contained in the tig
 
 bool
 placeFragUsingOverlaps(UnitigVector             &unitigs,
