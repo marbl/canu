@@ -26,6 +26,7 @@
 #include "AS_BAT_FragmentInfo.H"
 #include "AS_BAT_OverlapCache.H"
 #include "AS_BAT_BestOverlapGraph.H"
+#include "AS_BAT_AssemblyGraph.H"
 #include "AS_BAT_Logging.H"
 
 #include "AS_BAT_Unitig.H"
@@ -45,6 +46,8 @@ int32  REPEAT_OVERLAP_MIN    = 50;
 
 #define REPEAT_FRACTION   0.5
 
+#undef  OLD_ANNOTATE
+#undef  SHOW_ANNOTATE
 #undef  SHOW_ANNOTATION_RAW             //  Show all overlaps used to annotate reads
 #undef  SHOW_ANNOTATION_RAW_FILTERED    //  Show all overlaps filtered by high error rate
 
@@ -68,9 +71,10 @@ public:
 
   bool operator<(const olapDat &that)     const { return(tigbgn < that.tigbgn); };
 
-  uint32  tigbgn;   //  Location of the overlap on this tig
-  uint32  tigend;   //
+  int32   tigbgn;   //  Location of the overlap on this tig
+  int32   tigend;   //
 
+#warning eviTid is unused.
   uint32  eviTid;   //  tig that the evidence read came from
   uint32  eviRid;   //  evidence read
 };
@@ -207,7 +211,7 @@ splitUnitigs(UnitigVector             &unitigs,
     uint32      rid = UINT32_MAX;
     bool        rpt = false;
 
-    //fprintf(stderr, "Searching for placement for read %u at %u-%u\n", frg.ident, frgbgn, frgend);
+    //fprintf(stderr, "Searching for placement for read %u at %d-%d\n", frg.ident, frgbgn, frgend);
 
     for (uint32 ii=0; ii<BP.size(); ii++) {
       int32   rgnbgn = BP[ii]._bgn;
@@ -232,7 +236,7 @@ splitUnitigs(UnitigVector             &unitigs,
     }
 
     if (rid == UINT32_MAX) {
-      fprintf(stderr, "Failed to place read %u at %u-%u\n", frg.ident, frgbgn, frgend);
+      fprintf(stderr, "Failed to place read %u at %d-%d\n", frg.ident, frgbgn, frgend);
       for (uint32 ii=0; ii<BP.size(); ii++)
         fprintf(stderr, "Breakpoints %2u %8u-%8u repeat %u\n", ii, BP[ii]._bgn, BP[ii]._end, BP[ii]._isRepeat);
       flushLog();
@@ -272,6 +276,67 @@ splitUnitigs(UnitigVector             &unitigs,
 
   return(nTigsCreated);
 }
+
+
+
+
+//  Over all reads in tgA, return a vector of olapDat (tigBgn, tigEnd, eviRid)
+//  for all reads that overlap into this tig.
+//  
+//  The current AssemblyGraph is backwards to what we need.  It has, for each read, the
+//  overlaps from that read that are compatible - but we need to the overlaps to each
+//  read that are compatible, and the two are not symmetric.  A can be compatible in tig 1,
+//  but the same overlapping read B can be incompatible with tig 2.
+//
+//  We can invert the graph at the start of repeat detection, making a list of
+//    read B ---> overlaps to tig N position X-Y, with read A
+
+
+void
+annotateRepeatsOnRead(UnitigVector          &UNUSED(unitigs),
+                      Unitig                *tig,
+                      double                 UNUSED(deviationRepeat),
+                      vector<olapDat>       &repeats) {
+
+  //  Over all reads in this tig,
+  //  Grab pointers to all incoming edges.
+  //  Push those locations onto our output list.
+
+  for (uint32 ii=0; ii<tig->ufpath.size(); ii++) {
+    ufNode               *read   = &tig->ufpath[ii];
+    vector<BestReverse>  &rPlace = AG->getReverse(read->ident);
+
+#if 0
+    writeLog("annotateRepeatsOnRead()-- tig %u read #%u %u at %d-%d reverse %u items\n",
+             tig->id(), ii, read->ident,
+             read->position.bgn,
+             read->position.end,
+             rPlace.size());
+#endif
+
+    for (uint32 rr=0; rr<rPlace.size(); rr++) {
+      uint32          rID    = rPlace[rr].readID;
+      uint32          pID    = rPlace[rr].placeID;
+      BestPlacement  &fPlace = AG->getForward(rID)[pID];
+
+#ifdef SHOW_ANNOTATION_RAW
+      writeLog("annotateRepeatsOnRead()-- tig %u read #%u %u place %u reverse read %u in tig %u placed %d-%d olap %d-%d%s\n",
+               tig->id(), ii, read->ident, rr,
+               rID,
+               Unitig::fragIn(rID),
+               fPlace.placedBgn, fPlace.placedEnd,
+               fPlace.olapBgn,   fPlace.olapEnd,
+               (fPlace.isUnitig) ? " IN_UNITIG" : "");
+#endif
+
+      if (fPlace.isUnitig)
+        continue;
+
+      repeats.push_back(olapDat(fPlace.olapBgn, fPlace.olapEnd, Unitig::fragIn(rID), rID));
+    }
+  }
+}
+
 
 
 
@@ -452,9 +517,17 @@ markRepeatReads(UnitigVector &unitigs,
     uint32  numThreads = omp_get_max_threads();
     uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
 
+#ifdef OLD_ANNOTATE
+
 #pragma omp parallel for if(fiLimit > 100) schedule(dynamic, blockSize)
     for (uint32 fi=0; fi<fiLimit; fi++)
       annotateRepeatsOnRead(unitigs, tig, &tig->ufpath[fi], deviationRepeat, repeatOlaps);
+
+#else
+
+    annotateRepeatsOnRead(unitigs, tig, deviationRepeat, repeatOlaps);
+
+#endif
 
     writeLog("Annotated with %lu overlaps.\n", repeatOlaps.size());
 
@@ -465,7 +538,7 @@ markRepeatReads(UnitigVector &unitigs,
 #ifdef SHOW_ANNOTATE
     for (uint32 ii=0; ii<repeatOlaps.size(); ii++)
       if (repeatOlaps[ii].tigbgn < 1000000)
-        writeLog("repeatOlaps[%u] %u-%u from tig %u read %u RAW\n",
+        writeLog("repeatOlaps[%u] %d-%d from tig %u read %u RAW\n",
                  ii,
                  repeatOlaps[ii].tigbgn, repeatOlaps[ii].tigend,
                  repeatOlaps[ii].eviTid, repeatOlaps[ii].eviRid);
@@ -519,10 +592,11 @@ markRepeatReads(UnitigVector &unitigs,
 
 #ifdef SHOW_ANNOTATE
     for (uint32 ii=0; ii<repeatOlaps.size(); ii++)
-      writeLog("repeatOlaps[%d] %u-%u from tig %u read %u MERGED\n",
-               ii,
-               repeatOlaps[ii].tigbgn, repeatOlaps[ii].tigend,
-               repeatOlaps[ii].eviTid, repeatOlaps[ii].eviRid);
+      if (repeatOlaps[ii].tigbgn < 1000000)
+        writeLog("repeatOlaps[%d] %d-%d from tig %u read %u MERGED\n",
+                 ii,
+                 repeatOlaps[ii].tigbgn, repeatOlaps[ii].tigend,
+                 repeatOlaps[ii].eviTid, repeatOlaps[ii].eviRid);
 #endif
 
     //  Make a new set of intervals based on all the detected repeats.
