@@ -197,7 +197,7 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
 
       //  A valid placement!
 
-#ifdef LOG_GRAPH
+#if 0
       writeLog("AG()-- frag %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.4f Fidx %6u Lidx %6u is5 %d is3 %d onLeft %d onRight %d  VALID_PLACEMENT\n",
                fi, pp,
                placements[pp].tigID,
@@ -250,9 +250,7 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
         //  Are we contained in the read?  We should save the 'best' overlap, but we don't know identities here.
         else if ((readmin <= ovlmin) && (ovlmax <= readmax)) {
           if ((onLeft == true) && (onRight == true)) {
-#ifdef LOG_GRAPH
-            writeLog("AG()-- thickestC %u\n", read->ident);
-#endif
+            //writeLog("AG()-- thickestC %u %d-%d\n", read->ident, read->position.bgn, read->position.end);
             thickestC      = read->ident;
             thickestCident = 0;
           }
@@ -260,10 +258,8 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
 
         //  Is the read to our left?
         else if ((readmin <= ovlmin) && (ovlmin <= readmax)) {
-          if ((onLeft == true) && (onRight == false) && (readmax - ovlmin > thickest5len)) {
-#ifdef LOG_GRAPH
-            writeLog("AG()-- thickest5 %u len %u (was %u len %u) OVL %d %d READ %d %d\n", read->ident, readmax - ovlmin, thickest5, thickest5len, ovlmin, ovlmax, readmin, readmax);
-#endif
+          if ((onLeft == true) && (readmax - ovlmin > thickest5len)) {
+            //writeLog("AG()-- thickest5 %u len %u (was %u len %u) OVL %d %d READ %d %d\n", read->ident, readmax - ovlmin, thickest5, thickest5len, ovlmin, ovlmax, readmin, readmax);
             thickest5    = read->ident;
             thickest5len = readmax - ovlmin;
           }
@@ -271,16 +267,12 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
 
         //  Is the read to our right?
         else if ((readmin <= ovlmax) && (ovlmax <= readmax)) {
-          if ((onLeft == false) && (onRight == true) && (ovlmax - readmin > thickest3len)) {
-#ifdef LOG_GRAPH
-            writeLog("AG()-- thickest3 %u len %u (was %u len %u) OVL %d %d READ %d %d\n", read->ident, readmax - ovlmin, thickest3, thickest3len, ovlmin, ovlmax, readmin, readmax);
-#endif
+          if ((onRight == true) && (ovlmax - readmin > thickest3len)) {
+            //writeLog("AG()-- thickest3 %u len %u (was %u len %u) OVL %d %d READ %d %d\n", read->ident, readmax - ovlmin, thickest3, thickest3len, ovlmin, ovlmax, readmin, readmax);
             thickest3    = read->ident;
             thickest3len = ovlmax - readmin;
           }
         }
-
-        //  Otherwise an inferior overlap.
       }
 
       //  Save the edge.
@@ -371,22 +363,22 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
 
 #ifdef LOG_GRAPH
       if (thickestC != 0) {
-        writeLog("AG()-- frag %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.4f CONTAINED %8d%s\n",
+        writeLog("AG()-- frag %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.4f CONTAINED %8d (%8d %8d)%s\n",
                  fi, pp,
                  placements[pp].tigID,
                  placements[pp].position.bgn, placements[pp].position.end,
                  placements[pp].verified.bgn, placements[pp].verified.end,
                  placements[pp].fCoverage, erate,
-                 thickestC,
+                 thickestC, thickest5, thickest3,
                  (isTig == true) ? " IN_UNITIG" : "");
       } else {
-        writeLog("AG()-- frag %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.4f DOVETAIL %8d %8d%s\n",
+        writeLog("AG()-- frag %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.4f DOVETAIL (%8d) %8d %8d%s\n",
                  fi, pp,
                  placements[pp].tigID,
                  placements[pp].position.bgn, placements[pp].position.end,
                  placements[pp].verified.bgn, placements[pp].verified.end,
                  placements[pp].fCoverage, erate,
-                 thickest5, thickest3,
+                 thickestC, thickest5, thickest3,
                  (isTig == true) ? " IN_UNITIG" : "");
       } 
 #endif
@@ -511,7 +503,7 @@ AssemblyGraph::reportGraph(const char *prefix, const char *label) {
 
   fclose(BEG);
 
-  writeStatus("AssemblyGraph()-- output %u contained edges, %u with dovetail edges\n", nC, nCdove);
+  writeStatus("AssemblyGraph()-- output %u contained edges, %u with dovetail edges and %u contained only\n", nC, nCdove, nConly);
   writeStatus("AssemblyGraph()-- output %u 5' edges\n", n5);
   writeStatus("AssemblyGraph()-- output %u 3' edges\n", n3);
 }
