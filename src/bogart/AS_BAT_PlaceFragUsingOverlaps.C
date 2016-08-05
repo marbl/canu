@@ -114,8 +114,8 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
     ovlPlace[i].position     = frag.position;
     ovlPlace[i].verified.bgn = INT32_MAX;
     ovlPlace[i].verified.end = INT32_MIN;
-    ovlPlace[i].covered.bgn  = (ovl[i].a_hang < 0) ?    0 : ovl[i].a_hang;
-    ovlPlace[i].covered.end  = (ovl[i].b_hang > 0) ? flen : ovl[i].b_hang + flen;
+    ovlPlace[i].covered.bgn  = (ovl[i].a_hang < 0) ?    0 : ovl[i].a_hang;          //  The portion of the read
+    ovlPlace[i].covered.end  = (ovl[i].b_hang > 0) ? flen : ovl[i].b_hang + flen;   //  covered by the overlap.
     ovlPlace[i].bgnStdDev    = 0.0;
     ovlPlace[i].endStdDev    = 0.0;
     ovlPlace[i].clusterID    = 0;
@@ -125,60 +125,35 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
     ovlPlace[i].tigFidx      = UINT32_MAX;
     ovlPlace[i].tigLidx      = 0;
 
+    assert(ovlPlace[i].covered.bgn >= 0);
+    assert(ovlPlace[i].covered.end >= 0);
+    assert(ovlPlace[i].covered.bgn <= flen);
+    assert(ovlPlace[i].covered.end <= flen);
     assert(ovlPlace[i].covered.bgn < ovlPlace[i].covered.end);
-
-    //  Compute the portion of the unitig that is actually verified by the overlap.
-
-    if (ovlPlace[i].position.isForward()) {
-      ovlPlace[i].verified.bgn = ovlPlace[i].position.bgn + ovlPlace[i].covered.bgn;
-      ovlPlace[i].verified.end = ovlPlace[i].position.bgn + ovlPlace[i].covered.end;
-
-      if (ovlPlace[i].verified.end > ovlPlace[i].position.end)
-        ovlPlace[i].verified.end = ovlPlace[i].position.end;
-
-      assert(ovlPlace[i].verified.bgn >= ovlPlace[i].position.bgn);
-      assert(ovlPlace[i].verified.end <= ovlPlace[i].position.end);
-      assert(ovlPlace[i].verified.bgn <  ovlPlace[i].verified.end);
-    }
-
-    else {
-      ovlPlace[i].verified.bgn = ovlPlace[i].position.bgn - ovlPlace[i].covered.bgn;
-      ovlPlace[i].verified.end = ovlPlace[i].position.bgn - ovlPlace[i].covered.end;
-
-      if (ovlPlace[i].verified.end < ovlPlace[i].position.end)
-        ovlPlace[i].verified.end = ovlPlace[i].position.end;
-
-      assert(ovlPlace[i].verified.end >= ovlPlace[i].position.end);
-      assert(ovlPlace[i].verified.bgn <= ovlPlace[i].position.bgn);
-      assert(ovlPlace[i].verified.end <  ovlPlace[i].verified.bgn);
-    }
 
     //  Disallow any placements that exceed the boundary of the unitig.  These cannot be confirmed
     //  by overlaps and might be wrong.  Sample cases:
     //    o  sticking a unique/repeat fragment onto a repeat (leaving the unique uncovered)
     //    o  sticking a chimeric fragment onto the end of a unitig (leaving the chimeric join uncovered)
 
-    if ((flags | placeFrag_noExtend) &&
+    if (((flags & placeFrag_fullMatch) ||
+         (flags & placeFrag_noExtend)) &&
         ((ovlPlace[i].position.min() < 0) ||
-         (ovlPlace[i].position.max() > tig->getLength())))
+         (ovlPlace[i].position.max() > tig->getLength()))) {
       ovlPlace[i] = overlapPlacement();
-
-    //  Valid?
-
-    assert(ovlPlace[i].position.isForward() == ovlPlace[i].verified.isForward());
+    }
 
     //  Report the placement.
 
+
     if (logFileFlagSet(LOG_PLACE_FRAG))
-      if (ovlPlace[i].frgID > 0)
-        writeLog("pFUO()-- frag %d in unitig %d at %d,%d (verified %d,%d) (covered %d,%d) from overlap ident %d %d hang %d %d flipped %d%s\n",
-                 ovlPlace[i].frgID,
-                 ovlPlace[i].tigID,
-                 ovlPlace[i].position.bgn, ovlPlace[i].position.end,
-                 ovlPlace[i].verified.bgn, ovlPlace[i].verified.end,
-                 ovlPlace[i].covered.bgn, ovlPlace[i].covered.end,
-                 ovl[i].a_iid, ovl[i].b_iid, ovl[i].a_hang, ovl[i].b_hang, ovl[i].flipped,
-                 (ovlPlace[i].frgID == 0) ? " DISALLOWED" : "");
+      writeLog("pFUO()-- frag %d in unitig %d at %d,%d (covered %d,%d) from overlap ident %d %d hang %d %d flipped %d%s\n",
+               ovlPlace[i].frgID,
+               ovlPlace[i].tigID,
+               ovlPlace[i].position.bgn, ovlPlace[i].position.end,
+               ovlPlace[i].covered.bgn, ovlPlace[i].covered.end,
+               ovl[i].a_iid, ovl[i].b_iid, ovl[i].a_hang, ovl[i].b_hang, ovl[i].flipped,
+               (ovlPlace[i].frgID == 0) ? " DISALLOWED" : "");
   }  //  Over all overlaps.
 
 
@@ -225,12 +200,11 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
   while (bgn < ovlLen) {
 
     //  Find the last placement with the same unitig/orientation as the 'bgn' fragment.
-    //  Orientation of 'position' and 'verified' is the same, asserted above.
 
     end = bgn + 1;
     while ((end < ovlLen) &&
            (ovlPlace[bgn].tigID == ovlPlace[end].tigID) &&
-           (ovlPlace[bgn].verified.isReverse() == ovlPlace[end].verified.isReverse()))
+           (ovlPlace[bgn].position.isReverse() == ovlPlace[end].position.isReverse()))
       end++;
 
     if (logFileFlagSet(LOG_PLACE_FRAG))
@@ -239,10 +213,6 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
     //  Build interval lists for the begin point and the end point.  Remember, this is all fragments
     //  to a single unitig (the whole picture above), not just the overlapping fragment sets (left
     //  or right blocks).
-
-    //  This used to (before MAY-2016) use the 'verified' placement, instead of the 'full' placement.
-    //  In long pacbio reads, this seems to result in far too many clusters - each placement is
-    //  derived from one overlap, which will almost never cover the whole read.
 
     intervalList<int32>   bgnPoints;
     intervalList<int32>   endPoints;
@@ -323,8 +293,8 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
       op.position.bgn   = 0;
       op.position.end   = 0;
 
-      op.verified.bgn   = ovlPlace[os].verified.bgn;
-      op.verified.end   = ovlPlace[os].verified.end;
+      op.verified.bgn   = 0;
+      op.verified.end   = 0;
 
       op.covered.bgn    = ovlPlace[os].covered.bgn;
       op.covered.end    = ovlPlace[os].covered.end;
@@ -352,7 +322,6 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
 
       //  Sum the errors and bases aligned for each overlap.
       //  Find the minimum and maximum coordinates covered in the read, use that to compute the fraction of read coverage.
-      //  Find the minimum and maximum coordinates verified in the unitig.
 
       for (uint32 oo=os; oo<oe; oo++) {
         if ((ovlPlace[oo].position.bgn == 0) &&
@@ -366,29 +335,20 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
 
         op.covered.bgn  = min(op.covered.bgn, ovlPlace[oo].covered.bgn);
         op.covered.end  = max(op.covered.end, ovlPlace[oo].covered.end);
-
-        //  Find min/max verified interval.  These are consistently placed, either all forward or
-        //  all reverse, but we need to find min of the smaller and max of the larger, which
-        //  changes.
-
-        if (ovlPlace[oo].position.isForward()) {
-          op.verified.bgn  = min(op.verified.bgn, ovlPlace[oo].verified.bgn);
-          op.verified.end  = max(op.verified.end, ovlPlace[oo].verified.end);
-        } else {
-          op.verified.bgn  = max(op.verified.bgn, ovlPlace[oo].verified.bgn);
-          op.verified.end  = min(op.verified.end, ovlPlace[oo].verified.end);
-        }
       }
 
       op.fCoverage = (op.covered.end - op.covered.bgn) / (double)FI->fragmentLength(op.frgID);
 
       //  Find the first and last fragment in the unitig that we overlap with.
 
+      Unitig   *tig    = unitigs[op.tigID];
+      uint32    tigLen = tig->getLength();
+
       op.tigFidx = UINT32_MAX;
       op.tigLidx = 0;
 
       for (uint32 oo=os; oo<oe; oo++) {
-        uint32   ord = unitigs[op.tigID]->pathPosition(ovlPlace[oo].refID);
+        uint32   ord = tig->pathPosition(ovlPlace[oo].refID);
 
         op.tigFidx = min(ord, op.tigFidx);
         op.tigLidx = max(ord, op.tigLidx);
@@ -398,10 +358,14 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
         //            os, oe, op.tigID, ord, op.tigFidx, op.tigLidx);
       }
 
+      if (op.tigFidx > op.tigLidx)
+        writeStatus("Invalid placement indices: tigFidx %u tigLidx %u\n", op.tigFidx, op.tigLidx);
+      assert(op.tigFidx <= op.tigLidx);
+
       if (logFileFlagSet(LOG_PLACE_FRAG))
         writeLog("pFUO()--   spans reads #%u (%u) to #%u (%u) in tig %u\n",
-                 op.tigFidx, unitigs[op.tigID]->ufpath[op.tigFidx].ident,
-                 op.tigLidx, unitigs[op.tigID]->ufpath[op.tigLidx].ident,
+                 op.tigFidx, tig->ufpath[op.tigFidx].ident,
+                 op.tigLidx, tig->ufpath[op.tigLidx].ident,
                  op.tigID);
 
       //  Compute mean and stddev placement.
@@ -424,38 +388,86 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
       op.position.bgn = bgnPos.mean();
       op.position.end = endPos.mean();
 
-      op.bgnStdDev = bgnPos.stddev();
-      op.endStdDev = endPos.stddev();
+      op.bgnStdDev = bgnPos.stddev();   //  StdDev's are the same because the placement (placeFrag())
+      op.endStdDev = endPos.stddev();   //  forces end to be set to bgn+readLen.
 
-      //  StdDev's are the same because the placement (placeFrag()) forces end to be set to bgn+readLen.
+      //  Now that it is placed, estimate the span that is verified by overlaps.
+      //  Threshold the floating end so it doesn't exceed the placement.
+      //
+      //  Annoyingly, the verified placement can, and does, exceed the bounds of the
+      //  unitig, and we  need to check that threshold too.  Indel in the read and all that.
+      
+      if (op.position.isForward()) {
+        op.verified.bgn = op.position.bgn + op.covered.bgn;
+        op.verified.end = op.position.bgn + op.covered.end;
 
-      if (logFileFlagSet(LOG_PLACE_FRAG))
-        writeLog("pFUO()--   placed at bgn %.2f +- %.2f to end %.2f +- %.2f from %u overlaps\n",
-                 bgnPos.mean(), bgnPos.stddev(),
-                 endPos.mean(), endPos.stddev(),
-                 bgnPos.size());
+        if (op.verified.end > op.position.end)   //  verified.bgn is always valid if covered.bgn > 0
+          op.verified.end = op.position.end;     //  
+
+        if (op.verified.bgn < 0)
+          op.verified.bgn = 0;
+        if (op.verified.end > tigLen)
+          op.verified.end = tigLen;
+
+        assert(op.verified.bgn >= op.position.bgn);
+        assert(op.verified.end <= op.position.end);
+        assert(op.verified.bgn <  op.verified.end);
+      }
+
+      else {
+        op.verified.bgn = op.position.bgn - op.covered.bgn;  //  High coord
+        op.verified.end = op.position.bgn - op.covered.end;  //  Low coord
+
+        if (op.verified.end < op.position.end)  //  verified.bgn is always valid if covered.bgn > 0
+          op.verified.end = op.position.end;
+
+        if (op.verified.end < 0)
+          op.verified.end = 0;
+        if (op.verified.bgn > tigLen)
+          op.verified.bgn = tigLen;
+
+        assert(op.verified.end >= op.position.end);
+        assert(op.verified.bgn <= op.position.bgn);
+        assert(op.verified.end <  op.verified.bgn);
+      }
+
+      assert(op.position.isForward() == op.verified.isForward());
 
       //  Filter out bogus placements.  There used to be a few more, but they made no sense for long reads.
       //  Reject if either end stddev is high.  It has to be pretty bad before this triggers.
 
-      bool   weakStdDev      = false;
+      bool   goodPlacement   = true;
+
       double allowableStdDev = max(2.0, 0.075 * FI->fragmentLength(op.frgID));
 
       if ((op.bgnStdDev > allowableStdDev) ||
           (op.endStdDev > allowableStdDev))
-        weakStdDev = true;
-      else
+        goodPlacement = false;
+
+      if ((flags & placeFrag_fullMatch) &&
+          (op.fCoverage < 0.99))
+        goodPlacement = false;
+
+      if ((flags & placeFrag_noExtend) &&
+          ((op.position.min() < 0) ||
+           (op.position.max() > tigLen)))
+        goodPlacement = false;
+
+
+      if (goodPlacement)
         placements.push_back(op);
 
+
       if (logFileFlagSet(LOG_PLACE_FRAG))
-        writeLog("pFUO()--   PLACE FRAG %d in unitig %d at %d,%d (+- %.2f,%.2f) -- ovl %d,%d -- cov %d,%d %.2f -- errors %.2f aligned %d novl %d%s\n",
+        writeLog("pFUO()--   placements[%u] - PLACE FRAG %d in unitig %d at %d,%d (+- %.2f,%.2f) -- ovl %d,%d -- cov %d,%d %.2f -- errors %.2f aligned %d novl %d%s\n",
+                 placements.size() - 1,
                  op.frgID, op.tigID,
                  op.position.bgn, op.position.end, op.bgnStdDev, op.endStdDev,
                  op.verified.bgn, op.verified.end,
                  op.covered.bgn, op.covered.end,
                  op.fCoverage,
                  op.errors, op.aligned, oe - os,
-                 (weakStdDev == true) ? " -- INVALID"  : "");
+                 (goodPlacement == false) ? " -- INVALID"  : "");
 
       os = oe;
       oe = oe + 1;
