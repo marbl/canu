@@ -67,16 +67,17 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
 
   writeStatus("\n");
 
-  writeStatus("AssemblyGraph()-- finding edges for %u reads (%u contained), ignoring %u unplaced reads, with %d threads.\n",
-              nToPlaceContained + nToPlace,
-              nToPlaceContained,
-              FI->numFragments() - nToPlaceContained - nToPlace,
-              numThreads);
   writeStatus("AssemblyGraph()-- allocating vectors for placements, %.3fMB\n",   //  vector<> is 24 bytes, pretty tiny.
               (sizeof(vector<BestPlacement>) + sizeof(vector<BestReverse>)) * (fiLimit + 1) / 1048576.0);
 
   _pForward = new vector<BestPlacement> [fiLimit + 1];
   _pReverse = new vector<BestReverse>   [fiLimit + 1];
+
+  writeStatus("AssemblyGraph()-- finding edges for %u reads (%u contained), ignoring %u unplaced reads, with %d threads.\n",
+              nToPlaceContained + nToPlace,
+              nToPlaceContained,
+              FI->numFragments() - nToPlaceContained - nToPlace,
+              numThreads);
 
   //  Do the placing!
 
