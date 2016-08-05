@@ -429,7 +429,6 @@ main (int argc, char * argv []) {
   //  Place contained reads.
   //
 
-#if 1
   writeStatus("\n");
   writeStatus("==> PLACE CONTAINED READS.\n");
   writeStatus("\n");
@@ -444,7 +443,25 @@ main (int argc, char * argv []) {
 
   reportOverlaps(unitigs, prefix, "placeContains");
   reportUnitigs(unitigs, prefix, "placeContains", genomeSize);
-#endif
+
+  //
+  //  Merge orphans.
+  //
+
+  writeStatus("\n");
+  writeStatus("==> MERGE ORPHANS.\n");
+  writeStatus("\n");
+
+  setLogFile(prefix, "mergeOrphans");
+
+  unitigs.computeErrorProfiles(prefix, "unplaced");
+  unitigs.reportErrorProfiles(prefix, "unplaced");
+
+  popBubbles(unitigs, deviationGraph);
+
+  //checkUnitigMembership(unitigs);
+  reportOverlaps(unitigs, prefix, "mergeOrphans");
+  reportUnitigs(unitigs, prefix, "mergeOrphans", genomeSize);
 
   //
   //  Generate a new graph using only edges that are compatible with existing tigs.
@@ -460,53 +477,7 @@ main (int argc, char * argv []) {
   unitigs.reportErrorProfiles(prefix, "assemblyGraph");
 
   AG = new AssemblyGraph(prefix, deviationGraph, deviationBubble, deviationRepeat, unitigs);
-  AG->reportGraph(prefix, "assembly");
-
-  //generateGraph(unitigs);
-
-  //
-  //  Merge tigs (and detect ciruclar ones too).  Contained reads need to be placed to 'clean up'
-  //  the error rate.  Dovetail alone is too 'clean' for circular to be detected (in ecoli).
-  //
-
-#if 0
-  writeStatus("\n");
-  writeStatus("==> MERGE ALTERNATE PATHS.\n");
-  writeStatus("\n");
-
-  setLogFile(prefix, "mergeAlternates");
-
-  unitigs.computeErrorProfiles(prefix, "merge");
-  unitigs.reportErrorProfiles(prefix, "merge");
-
-  mergeUnitigs(unitigs, deviationGraph, false);
-
-  reportOverlaps(unitigs, prefix, "merge");
-  reportUnitigs(unitigs, prefix, "merge", genomeSize);
-#endif
-
-
-  //
-  //  Pop bubbles
-  //
-
-#if 1
-  writeStatus("\n");
-  writeStatus("==> DETECT BUBBLES AND ORPHANS.\n");
-  writeStatus("\n");
-
-  setLogFile(prefix, "popBubbles");
-
-  unitigs.computeErrorProfiles(prefix, "unplaced");
-  unitigs.reportErrorProfiles(prefix, "unplaced");
-
-  popBubbles(unitigs,
-             deviationBubble);
-
-  //checkUnitigMembership(unitigs);
-  reportOverlaps(unitigs, prefix, "popBubbles");
-  reportUnitigs(unitigs, prefix, "popBubbles", genomeSize);
-#endif
+  AG->reportGraph(prefix, "initial");
 
   //
   //  Detect and break repeats.  Annotate each read with overlaps to reads not overlapping in the tig,
@@ -596,6 +567,7 @@ main (int argc, char * argv []) {
   //  Tear down bogart.
   //
 
+  delete AG;
   delete CG;
   delete OG;
   delete OC;
