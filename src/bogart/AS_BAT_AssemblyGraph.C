@@ -412,7 +412,7 @@ AssemblyGraph::reportGraph(const char *prefix, const char *label) {
 
   writeStatus("AssemblyGraph()-- generating '%s.%s.edges.gfa'.\n", prefix, label);
 
-  sprintf(N, "%s.%s.edges.gfa", prefix, label);
+  sprintf(N, "%s.%s.assembly.gfa", prefix, label);
 
   BEG = fopen(N, "w");
 
