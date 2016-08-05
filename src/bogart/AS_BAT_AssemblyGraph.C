@@ -34,6 +34,7 @@
 #include "intervalList.H"
 #include "stddev.H"
 
+#undef  LOG_GRAPH      //  Report the (forward) graph edges in the log file
 
 
 AssemblyGraph::AssemblyGraph(const char   *prefix,
@@ -72,9 +73,10 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
               FI->numFragments() - nToPlaceContained - nToPlace,
               numThreads);
   writeStatus("AssemblyGraph()-- allocating vectors for placements, %.3fMB\n",   //  vector<> is 24 bytes, pretty tiny.
-              sizeof(vector<BestPlacement>) * (fiLimit + 1) / 1048576.0);
+              (sizeof(vector<BestPlacement>) + sizeof(vector<BestReverse>)) * (fiLimit + 1) / 1048576.0);
 
-  _placements = new vector<BestPlacement> [fiLimit + 1];
+  _pForward = new vector<BestPlacement> [fiLimit + 1];
+  _pReverse = new vector<BestReverse>   [fiLimit + 1];
 
   //  Do the placing!
 
@@ -102,177 +104,295 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
 
     placeFragUsingOverlaps(unitigs, NULL, fi, placements);
 
+#ifdef LOG_GRAPH
+    writeLog("AG()-- working on frag %u with %u placements\n", fi, placements.size());
+#endif
+
     //  For each placement decide if the overlap is compatible with the tig.
     //  Filter out placements that are too small.
 
-    uint32   minOverlap = 500;
+    //uint32   minOverlap = 500;
 
-    for (uint32 i=0; i<placements.size(); i++) {
-      Unitig *tig = unitigs[placements[i].tigID];
+    for (uint32 pp=0; pp<placements.size(); pp++) {
+      Unitig *tig = unitigs[placements[pp].tigID];
 
-      //  Ignore placements in contains.
-      if (tig->ufpath.size() == 1)
-        continue;
+      double  erate = placements[pp].errors / placements[pp].aligned;
 
-      uint32  utgmin  = placements[i].position.min();  //  Placement in unitig.
-      uint32  utgmax  = placements[i].position.max();
-
-      uint32  ovlmin  = placements[i].verified.min();  //  Placement in unitig, verified by overlaps.
-      uint32  ovlmax  = placements[i].verified.max();
-
-      //  Ignore placements that are from thin overlaps.
-      if (ovlmax - ovlmin < minOverlap)
-        continue;
-
-      //  Ignore placements that aren't overlaps (contained reads placed inside this read will do this).
-      bool  is5 = (placements[i].covered.min() == 0)     ? true : false;
-      bool  is3 = (placements[i].covered.max() == fiLen) ? true : false;
-
-      if ((is5 == false) && (is3 == false)) {
-        //writeLog("is5=false is3=false covered %d %d fiLen %d\n",
-        //         placements[i].covered.min(), placements[i].covered.max(), fiLen);
+      //  Ignore placements in singletons.
+      if (tig->ufpath.size() <= 1) {
+#ifdef LOG_GRAPH
+        writeLog("AG()-- frag %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.4f SINGLETON\n",
+                 fi, pp,
+                 placements[pp].tigID,
+                 placements[pp].position.bgn, placements[pp].position.end,
+                 placements[pp].verified.bgn, placements[pp].verified.end,
+                 placements[pp].fCoverage, erate);
+#endif
         continue;
       }
+
+      uint32   utgmin  = placements[pp].position.min();  //  Placement in unitig.
+      uint32   utgmax  = placements[pp].position.max();
+      bool     utgfwd  = placements[pp].position.isForward();
+
+      uint32   ovlmin  = placements[pp].verified.min();  //  Placement in unitig, verified by overlaps.
+      uint32   ovlmax  = placements[pp].verified.max();
+
+      //  Ignore placements that are from thin overlaps.
+      //if (ovlmax - ovlmin < minOverlap)
+      //  continue;
+
+      //  Decide if the overlap is on our 5' or 3' end.  If both, we've been aligned fully.
+      bool  is5  = (placements[pp].covered.min() == 0)     ? true : false;
+      bool  is3  = (placements[pp].covered.max() == fiLen) ? true : false;
+
+      //  Ignore placements that aren't overlaps (contained reads placed inside this read will do this).
+      if ((is5 == false) && (is3 == false)) {
+#ifdef LOG_GRAPH
+        writeLog("AG()-- frag %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.4f SPANNED_REPEAT\n",
+                 fi, pp,
+                 placements[pp].tigID,
+                 placements[pp].position.bgn, placements[pp].position.end,
+                 placements[pp].verified.bgn, placements[pp].verified.end,
+                 placements[pp].fCoverage, erate);
+#endif
+        continue;
+      }
+
+      //  Decide if the overlap is to the left (towards 0) or right (towards infinity) of us on the tig.
+      bool  onLeft  = (((utgfwd == true)  && (is5 == true)) ||
+                       ((utgfwd == false) && (is3 == true))) ? true : false;
+
+      bool  onRight = (((utgfwd == true)  && (is3 == true)) ||
+                       ((utgfwd == false) && (is5 == true))) ? true : false;
+
+      assert((is5 == true) || (is3 == true));
+
 
       //  Decide if this is already captured in a tig.  If so, we'll emit to GFA, but omit from our
       //  internal graph.
       bool  isTig = false;
 
-      if ((placements[i].tigID == fiTigID) && (utgmin <= fiMax) && (fiMin <= utgmax))
+      if ((placements[pp].tigID == fiTigID) && (utgmin <= fiMax) && (fiMin <= utgmax))
         isTig = true;
 
       //  Decide if the placement is complatible with the other reads in the tig.
 
-      double  erate = placements[i].errors / placements[i].aligned;
+#define REPEAT_FRACTION   0.5
 
       if ((isTig == false) &&
-          (tig->overlapConsistentWithTig(5.0, ovlmin, ovlmax, erate) < 0.5)) {
+          (tig->overlapConsistentWithTig(deviationRepeat, ovlmin, ovlmax, erate) < REPEAT_FRACTION)) {
+#ifdef LOG_GRAPH
         if ((enableLog == true) && (logFileFlagSet(LOG_PLACE_UNPLACED)))
-          writeLog("frag %8u tested tig %6u (%6u reads) at %8u-%8u (cov %7.5f erate %6.4f) - HIGH ERROR\n",
-                   fi, placements[i].tigID, tig->ufpath.size(), placements[i].position.bgn, placements[i].position.end, placements[i].fCoverage, erate);
+          writeLog("AG()-- frag %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.4f HIGH_ERROR\n",
+                   fi, pp,
+                   placements[pp].tigID,
+                   placements[pp].position.bgn, placements[pp].position.end,
+                   placements[pp].verified.bgn, placements[pp].verified.end,
+                   placements[pp].fCoverage, erate);
+#endif
         continue;
       }
 
-      //  A valid placement.  Find the thickest overlaps on either side of the read.
+      //  A valid placement!
 
-      if (placements[i].tigFidx > placements[i].tigLidx)
-        fprintf(stderr, "Invalid placement indices: tigFidx %u tigLidx %u\n", placements[i].tigFidx, placements[i].tigLidx);
-      assert(placements[i].tigFidx <= placements[i].tigLidx);
+#ifdef LOG_GRAPH
+      writeLog("AG()-- frag %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.4f Fidx %6u Lidx %6u is5 %d is3 %d onLeft %d onRight %d  VALID_PLACEMENT\n",
+               fi, pp,
+               placements[pp].tigID,
+               placements[pp].position.bgn, placements[pp].position.end,
+               placements[pp].verified.bgn, placements[pp].verified.end,
+               placements[pp].fCoverage, erate,
+               placements[pp].tigFidx, placements[pp].tigLidx,
+               is5, is3, onLeft, onRight);
+#endif
 
-      uint32  thickest5 = UINT32_MAX, thickest5len   = 0;
-      uint32  thickest3 = UINT32_MAX, thickest3len   = 0;
-      uint32  thickestC = UINT32_MAX, thickestCident = 0;
 
-      uint32  n5 = 0;
-      uint32  n3 = 0;
+      //  Find the overlaps for this read.  We'll use this to find the thickest overlaps to this
+      //  tig.  We'd like to use a map, to avoid searching later, but because of duplicates, the
+      //  best we can (easily) do is just remember the ID's we have an overlap to.
 
-      for (uint32 rr=placements[i].tigFidx; rr <= placements[i].tigLidx; rr++) {
+      set<uint32>  olapIDs;
+      uint32       no  = 0;
+      BAToverlap  *ovl = OC->getOverlaps(fi, AS_MAX_EVALUE, no);
+
+      for (uint32 oo=0; oo<no; oo++)
+        olapIDs.insert(ovl[oo].b_iid);
+
+      //  Find the thickest overlaps on either side of the read.
+      //
+      //  The logic here is to first classify the type of overlap (contained, dovetail to the left,
+      //  etc) then to decide if our read cares about these types of overlaps, and if so, save the
+      //  best.
+
+      uint32  thickest5 = 0, thickest5len   = 0;
+      uint32  thickest3 = 0, thickest3len   = 0;
+      uint32  thickestC = 0, thickestCident = 0;
+
+      for (uint32 rr=placements[pp].tigFidx; rr <= placements[pp].tigLidx; rr++) {
         ufNode  *read    = &tig->ufpath[rr];
         uint32   readmin = read->position.min();
         uint32   readmax = read->position.max();
 
-        //  Can't use ourself as the thickest edge!
-        if (read->ident == fi) {
-          //writeLog("frag %u (len %u) utg %u-%u (%u) to read %u at %u-%u %u IDENT\n",
-          //         fi, FI->fragmentLength(fi), utgmin, utgmax, utgmax-utgmin, read->ident, readmin, readmax, readmax-readmin);
+        //  No oevrlap?
+        if (olapIDs.count(read->ident) == 0)
           continue;
-        }
+
+        //  Can't use ourself as the thickest edge!  (useless test; it's captured above)
+        if (read->ident == fi)
+          continue;
 
         //  Is the read contained in us?
-        if        ((utgmin <= readmin) && (readmax <= utgmax)) {
-          //writeLog("frag %u (len %u) utg %u-%u (%u) to read %u at %u-%u %u contained\n",
-          //         fi, FI->fragmentLength(fi), utgmin, utgmax, utgmax-utgmin, read->ident, readmin, readmax, readmax-readmin);
+        if        ((ovlmin <= readmin) && (readmax <= ovlmax))
           continue;
-        }
 
         //  Are we contained in the read?  We should save the 'best' overlap, but we don't know identities here.
-        else if ((readmin <= utgmin) && (utgmax <= readmax)) {
-          thickestC      = rr;
-          thickestCident = 0;
-        }
-
-        //  Is the read to our right?
-        else if ((readmin < utgmax) && (utgmax < readmax) && (utgmax - readmin > thickest3len)) {
-          n3++;
-          thickest3    = rr;
-          thickest3len = utgmax - readmin;
+        else if ((readmin <= ovlmin) && (ovlmax <= readmax)) {
+          if ((onLeft == true) && (onRight == true)) {
+#ifdef LOG_GRAPH
+            writeLog("AG()-- thickestC %u\n", read->ident);
+#endif
+            thickestC      = read->ident;
+            thickestCident = 0;
+          }
         }
 
         //  Is the read to our left?
-        else if ((readmin < utgmin) && (utgmin < readmax) && (readmax - utgmin > thickest5len)) {
-          n5++;
-          thickest5    = rr;
-          thickest5len = readmax - utgmin;
+        else if ((readmin <= ovlmin) && (ovlmin <= readmax)) {
+          if ((onLeft == true) && (onRight == false) && (readmax - ovlmin > thickest5len)) {
+#ifdef LOG_GRAPH
+            writeLog("AG()-- thickest5 %u len %u (was %u len %u) OVL %d %d READ %d %d\n", read->ident, readmax - ovlmin, thickest5, thickest5len, ovlmin, ovlmax, readmin, readmax);
+#endif
+            thickest5    = read->ident;
+            thickest5len = readmax - ovlmin;
+          }
         }
 
-        //writeLog("frag %u (len %u) utg %u-%u (%u) to read %u at %u-%u %u\n",
-        //         fi, FI->fragmentLength(fi), utgmin, utgmax, utgmax-utgmin, read->ident, readmin, readmax, readmax-readmin);
+        //  Is the read to our right?
+        else if ((readmin <= ovlmax) && (ovlmax <= readmax)) {
+          if ((onLeft == false) && (onRight == true) && (ovlmax - readmin > thickest3len)) {
+#ifdef LOG_GRAPH
+            writeLog("AG()-- thickest3 %u len %u (was %u len %u) OVL %d %d READ %d %d\n", read->ident, readmax - ovlmin, thickest3, thickest3len, ovlmin, ovlmax, readmin, readmax);
+#endif
+            thickest3    = read->ident;
+            thickest3len = ovlmax - readmin;
+          }
+        }
 
         //  Otherwise an inferior overlap.
       }
 
       //  Save the edge.
 
-      bp.tigID     = placements[i].tigID;
+      bp.tigID     = placements[pp].tigID;
 
-      bp.placedBgn = placements[i].position.bgn;
-      bp.placedEnd = placements[i].position.end;
+      bp.placedBgn = placements[pp].position.bgn;
+      bp.placedEnd = placements[pp].position.end;
 
-      bp.olapBgn   = placements[i].verified.bgn;
-      bp.olapEnd   = placements[i].verified.end;
+      bp.olapBgn   = placements[pp].verified.bgn;
+      bp.olapEnd   = placements[pp].verified.end;
 
-      bp.thickestC = (thickestC != UINT32_MAX) ? tig->ufpath[thickestC].ident : 0;
-      bp.thickest5 = (thickest5 != UINT32_MAX) ? tig->ufpath[thickest5].ident : 0;
-      bp.thickest3 = (thickest3 != UINT32_MAX) ? tig->ufpath[thickest3].ident : 0;
+      bp.isRepeat  = false;
+      bp.isBubble  = false;
+      bp.isUnitig  = isTig;
 
       //  If there are best edges off the 5' or 3' end, grab all the overlaps, find the particular
       //  overlap, and generate new BestEdgeOverlaps for them.
 
-      if ((bp.thickestC != 0) ||
-          (bp.thickest5 != 0) ||
-          (bp.thickest3 != 0)) {
-        uint32       no  = 0;
-        BAToverlap  *ovl = OC->getOverlaps(fi, AS_MAX_EVALUE, no);
+      if ((thickestC == 0) &&
+          (thickest5 == 0) &&
+          (thickest3 == 0)) {
+#ifdef LOG_GRAPH
+          writeLog("AG()-- frag %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.4f NO_EDGES Fidx %6u Lidx %6u is5 %d is3 %d onLeft %d onRight %d\n",
+                   fi, pp,
+                   placements[pp].tigID,
+                   placements[pp].position.bgn, placements[pp].position.end,
+                   placements[pp].verified.bgn, placements[pp].verified.end,
+                   placements[pp].fCoverage, erate,
+                   placements[pp].tigFidx, placements[pp].tigLidx,
+                   is5, is3, onLeft, onRight);
+#endif
+        continue;
+      }
+      assert((thickestC != 0) ||
+             (thickest5 != 0) ||
+             (thickest3 != 0));
 
-        for (uint32 oo=0; oo<no; oo++) {
-          if ((ovl[oo].b_iid == bp.thickestC) && (ovl[oo].AisContained()))
-            bp.bestC.set(ovl[oo]);
+      //  Find the actual overlap for each of the thickest
 
-          if ((ovl[oo].b_iid == bp.thickest5) && (ovl[oo].AEndIs5prime()))
-            bp.best5.set(ovl[oo]);
+      bp.bestC = BAToverlapInt();
+      bp.best5 = BAToverlapInt();
+      bp.best3 = BAToverlapInt();
 
-          if ((ovl[oo].b_iid == bp.thickest3) && (ovl[oo].AEndIs3prime()))
-            bp.best3.set(ovl[oo]);
-        }
+      for (uint32 oo=0; oo<no; oo++) {
+        if ((ovl[oo].b_iid == thickestC) && (ovl[oo].AisContained()))
+          bp.bestC.set(ovl[oo]);
+
+        if ((ovl[oo].b_iid == thickest5) && (ovl[oo].AEndIs5prime()))
+          bp.best5.set(ovl[oo]);
+
+        if ((ovl[oo].b_iid == thickest3) && (ovl[oo].AEndIs3prime()))
+          bp.best3.set(ovl[oo]);
       }
 
-      if (isTig == true)
-        _placements[fi].push_back(bp);
+      //  Save the BestPlacement
+
+      uint32       ff = _pForward[fi].size();
+
+      _pForward[fi].push_back(bp);
+
+      //  Create BestReverse links.
+
+      BestReverse  br(fi, ff);
+
+      if (bp.bestC.b_iid != 0) {
+#ifdef LOG_GRAPH
+        writeLog("AG()--   reverse frag %u idx %u\n", bp.bestC.b_iid, _pReverse[bp.bestC.b_iid].size());
+#endif
+        _pReverse[bp.bestC.b_iid].push_back(br);
+      }
+
+      if (bp.best5.b_iid != 0) {
+#ifdef LOG_GRAPH
+        writeLog("AG()--   reverse frag %u idx %u\n", bp.best5.b_iid, _pReverse[bp.best5.b_iid].size());
+#endif
+        _pReverse[bp.best5.b_iid].push_back(br);
+      }
+
+      if (bp.best3.b_iid != 0) {
+#ifdef LOG_GRAPH
+        writeLog("AG()--   reverse frag %u idx %u\n", bp.best3.b_iid, _pReverse[bp.best3.b_iid].size());
+#endif
+        _pReverse[bp.best3.b_iid].push_back(br);
+      }
 
       //  And now just log.
 
-#if 0
-      if (bp.thickestC != 0) {
-        writeLog("frag %8u -> tig %6u %6u reads  contained %6u     - at %8u-%-8u  cov %7.5f erate %6.4f olap %5u%s\n",
-                 fi, bp.tigID, tig->ufpath.size(),
-                 bp.thickestC,
-                 bp.placedBgn, bp.placedEnd, placements[i].fCoverage, erate, ovlmax - ovlmin,
-                 (isTig == true) ? " unitig" : "");
+#ifdef LOG_GRAPH
+      if (thickestC != 0) {
+        writeLog("AG()-- frag %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.4f CONTAINED %8d%s\n",
+                 fi, pp,
+                 placements[pp].tigID,
+                 placements[pp].position.bgn, placements[pp].position.end,
+                 placements[pp].verified.bgn, placements[pp].verified.end,
+                 placements[pp].fCoverage, erate,
+                 thickestC,
+                 (isTig == true) ? " IN_UNITIG" : "");
       } else {
-        writeLog("frag %8u -> tig %6u %6u reads  dovetail %6u %6u at %8u-%-8u  cov %7.5f erate %6.4f olap %5u%s  n5=%u n3=%u\n",
-                 fi, bp.tigID, tig->ufpath.size(),
-                 bp.thickest5, bp.thickest3,
-                 bp.placedBgn, bp.placedEnd, placements[i].fCoverage, erate, ovlmax - ovlmin,
-                 (isTig == true) ? " unitig" : "", n5, n3);
+        writeLog("AG()-- frag %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.4f DOVETAIL %8d %8d%s\n",
+                 fi, pp,
+                 placements[pp].tigID,
+                 placements[pp].position.bgn, placements[pp].position.end,
+                 placements[pp].verified.bgn, placements[pp].verified.end,
+                 placements[pp].fCoverage, erate,
+                 thickest5, thickest3,
+                 (isTig == true) ? " IN_UNITIG" : "");
       } 
 #endif
-
    }  //  Over all placements
   }  //  Over all reads
 
-
   //  Cleanup.
-
 
   //writeStatus("placeContains()-- Placed %u contained reads and %u unplaced reads.\n", nPlacedContained, nPlaced);
   //writeStatus("placeContains()-- Failed to place %u contained reads (too high error suspected) and %u unplaced reads (lack of overlaps suspected).\n", nFailedContained, nFailed);
@@ -307,13 +427,13 @@ AssemblyGraph::reportGraph(const char *prefix, const char *label) {
   memset(used, 0, sizeof(uint32) * (FI->numFragments() + 1));
 
   for (uint32 fi=1; fi<FI->numFragments() + 1; fi++) {
-    if (_placements[fi].size() > 0)
+    if (_pForward[fi].size() > 0)
       used[fi] = 1;
 
-    for (uint32 pp=0; pp<_placements[fi].size(); pp++) {
-      used[_placements[fi][pp].bestC.b_iid] = 1;
-      used[_placements[fi][pp].best5.b_iid] = 1;
-      used[_placements[fi][pp].best3.b_iid] = 1;
+    for (uint32 pp=0; pp<_pForward[fi].size(); pp++) {
+      used[_pForward[fi][pp].bestC.b_iid] = 1;
+      used[_pForward[fi][pp].best5.b_iid] = 1;
+      used[_pForward[fi][pp].best3.b_iid] = 1;
     }
   }
 
@@ -338,12 +458,12 @@ AssemblyGraph::reportGraph(const char *prefix, const char *label) {
   uint32  n3 = 0;
 
   for (uint32 fi=1; fi<FI->numFragments() + 1; fi++) {
-    for (uint32 pp=0; pp<_placements[fi].size(); pp++) {
-      BAToverlapInt *bestedgeC = &_placements[fi][pp].bestC;
-      BAToverlapInt *bestedge5 = &_placements[fi][pp].best5;
-      BAToverlapInt *bestedge3 = &_placements[fi][pp].best3;
+    for (uint32 pp=0; pp<_pForward[fi].size(); pp++) {
+      BAToverlapInt *bestedgeC = &_pForward[fi][pp].bestC;
+      BAToverlapInt *bestedge5 = &_pForward[fi][pp].best5;
+      BAToverlapInt *bestedge3 = &_pForward[fi][pp].best3;
 
-      if (bestedgeC->b_iid != 0)
+      if (bestedgeC->b_iid != 0)  //  Not ambiguous.
         if ((bestedge5->b_iid == 0) && (bestedge3->b_iid == 0))
           nConly++;
         else

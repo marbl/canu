@@ -43,14 +43,15 @@ public:
     olapBgn     = INT32_MIN;
     olapEnd     = INT32_MAX;
 
-    thickestC   = 0;
-    thickest5   = 0;
-    thickest3   = 0;
+    isRepeat    = false;
+    isBubble    = false;
+    isUnitig    = false;
+
   };
   ~BestPlacement() {
   };
 
-  uint32            tigID;        //  Which tig this is in
+  uint32            tigID;        //  Which tig this is placed in.
 
   int32             placedBgn;    //  Position in the tig.  Can extend negative.
   int32             placedEnd;    //
@@ -58,14 +59,34 @@ public:
   uint32            olapBgn;      //  Position in the tig covered by overlaps.
   uint32            olapEnd;      //
 
-  uint32            thickestC;    //  Read ID of best container
-  uint32            thickest5;    //  Read ID of thickest overlap on the 5' end
-  uint32            thickest3;    //  Read ID of thickest overlap on the 5' end
+  bool              isRepeat;     //  This placement is to a repeat
+  bool              isBubble;     //  This placement is to a bubble
+  bool              isUnitig;     //  This placement is in a unitig
 
   BAToverlapInt     bestC;
   BAToverlapInt     best5;        //  For space reasons, overlaps are stored in the
   BAToverlapInt     best3;        //  internal format.  It's time inefficient though.
 };
+
+
+
+class BestReverse {
+public:
+  BestReverse() {
+    readID  = 0;
+    placeID = 0;
+  };
+  BestReverse(uint32 id, uint32 pp) {
+    readID  = id;
+    placeID = pp;
+  };
+  ~BestReverse() {
+  };
+
+  uint32    readID;    //  readID we have an overlap from; Index into _pForward
+  uint32    placeID;   //  index into the vector for _pReverse[readID]
+};
+
 
 
 class AssemblyGraph {
@@ -77,13 +98,26 @@ public:
                 UnitigVector &unitigs);
   
   ~AssemblyGraph() {
-    delete [] _placements;
+    delete [] _pForward;
+    delete [] _pReverse;
   };
 
-  void          reportGraph(const char *prefix, const char *label);
+  void                      reportGraph(const char *prefix, const char *label);
+
+  vector<BestPlacement>    &getForward(uint32 fi) {
+    return(_pForward[fi]);
+  };
+
+  vector<BestReverse>      &getReverse(uint32 fi) {
+    return(_pReverse[fi]);
+  };
+
+
+
 
 private:
-  vector<BestPlacement>  *_placements;
+  vector<BestPlacement>  *_pForward;   //  Where each read is placed in other tigs
+  vector<BestReverse>    *_pReverse;   //  What reads overlap to me
 };
 
 
