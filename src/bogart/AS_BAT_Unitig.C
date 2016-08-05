@@ -310,7 +310,7 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
 
     //  Set intermediate ones to the average.
     else if (bi < errorProfile.size() - 2) {
-      writeLog("errorProfile()-- tig %u zero coverage %u-%u\n", id(), errorProfile[bi].bgn, errorProfile[bi].end);
+      //writeLog("errorProfile()-- tig %u no overlap coverage %u-%u\n", id(), errorProfile[bi].bgn, errorProfile[bi].end);
 
       errorProfile[bi].dev = stdDev<double>((errorProfile[bi-1].dev.mean()   + errorProfile[bi+1].dev.mean()) / 2,
                                             (errorProfile[bi-1].dev.stddev() + errorProfile[bi+1].dev.stddev()) / 2,
