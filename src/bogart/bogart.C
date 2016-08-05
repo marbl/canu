@@ -78,8 +78,8 @@ main (int argc, char * argv []) {
   char      *ovlStoreReptPath        = NULL;
   char      *tigStorePath            = NULL;
 
-  double    erateGraph               = 0.030;
-  double    erateMax                 = 0.050;
+  double    erateGraph               = 0.075;
+  double    erateMax                 = 0.100;
 
   uint64    genomeSize               = 0;
 
@@ -90,11 +90,11 @@ main (int argc, char * argv []) {
   uint32    lowcovDepth              = 2;
 
   double    deviationGraph           = 6.0;
-  double    deviationBubble          = 5.0;
+  double    deviationBubble          = 6.0;
   double    deviationRepeat          = 3.0;
 
-  uint32    confusedAbsolute         = 250;
-  double    confusedPercent          = 100.0;
+  uint32    confusedAbsolute         = 5000;
+  double    confusedPercent          = 500.0;
 
   int32     numThreads               = 0;
 
