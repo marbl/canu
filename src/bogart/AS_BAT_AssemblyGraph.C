@@ -334,31 +334,6 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
 
       _pForward[fi].push_back(bp);
 
-      //  Create BestReverse links.
-
-      BestReverse  br(fi, ff);
-
-      if (bp.bestC.b_iid != 0) {
-#ifdef LOG_GRAPH
-        writeLog("AG()--   reverse frag %u idx %u\n", bp.bestC.b_iid, _pReverse[bp.bestC.b_iid].size());
-#endif
-        _pReverse[bp.bestC.b_iid].push_back(br);
-      }
-
-      if (bp.best5.b_iid != 0) {
-#ifdef LOG_GRAPH
-        writeLog("AG()--   reverse frag %u idx %u\n", bp.best5.b_iid, _pReverse[bp.best5.b_iid].size());
-#endif
-        _pReverse[bp.best5.b_iid].push_back(br);
-      }
-
-      if (bp.best3.b_iid != 0) {
-#ifdef LOG_GRAPH
-        writeLog("AG()--   reverse frag %u idx %u\n", bp.best3.b_iid, _pReverse[bp.best3.b_iid].size());
-#endif
-        _pReverse[bp.best3.b_iid].push_back(br);
-      }
-
       //  And now just log.
 
 #ifdef LOG_GRAPH
@@ -384,6 +359,33 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
 #endif
    }  //  Over all placements
   }  //  Over all reads
+
+
+  //  Create the reverse links.  This can't be done in the parallel loop above without synchronization.
+
+  writeStatus("AssemblyGraph()-- building reverse edges.\n",
+              nToPlaceContained + nToPlace,
+              nToPlaceContained,
+              FI->numFragments() - nToPlaceContained - nToPlace,
+              numThreads);
+
+  for (uint32 fi=1; fi<FI->numFragments()+1; fi++) {
+    for (uint32 ff=0; ff<_pForward[fi].size(); ff++) {
+      BestPlacement &bp = _pForward[fi][ff];
+      BestReverse    br(fi, ff);
+
+      if (bp.bestC.b_iid != 0)
+        _pReverse[bp.bestC.b_iid].push_back(br);
+
+      if (bp.best5.b_iid != 0)
+        _pReverse[bp.best5.b_iid].push_back(br);
+
+      if (bp.best3.b_iid != 0)
+        _pReverse[bp.best3.b_iid].push_back(br);
+    }
+  }
+
+  writeStatus("AssemblyGraph()-- complete.\n");
 
   //  Cleanup.
 
