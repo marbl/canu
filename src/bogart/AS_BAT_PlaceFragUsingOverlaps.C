@@ -47,7 +47,7 @@
 
 
 bool
-placeFragUsingOverlaps(TigVector             &unitigs,
+placeFragUsingOverlaps(TigVector                &tigs,
                        Unitig                   *target,
                        uint32                    fid,
                        vector<overlapPlacement> &placements,
@@ -81,7 +81,7 @@ placeFragUsingOverlaps(TigVector             &unitigs,
 
   for (uint32 i=0; i<ovlLen; i++) {
     int32             tigID = Unitig::fragIn(ovl[i].b_iid);
-    Unitig           *tig   = unitigs[tigID];
+    Unitig           *tig   = tigs[tigID];
 
     assert(ovl[i].a_iid == fid);
 
@@ -341,7 +341,7 @@ placeFragUsingOverlaps(TigVector             &unitigs,
 
       //  Find the first and last fragment in the unitig that we overlap with.
 
-      Unitig   *tig    = unitigs[op.tigID];
+      Unitig   *tig    = tigs[op.tigID];
       uint32    tigLen = tig->getLength();
 
       op.tigFidx = UINT32_MAX;

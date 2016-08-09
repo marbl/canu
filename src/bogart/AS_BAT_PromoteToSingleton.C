@@ -39,12 +39,12 @@
 #include "AS_BAT_FragmentInfo.H"
 #include "AS_BAT_Unitig.H"
 
-//  If we are not reconstructing repeats, promote all the unplaced fragments to new unitigs.
+//  If we are not reconstructing repeats, promote all the unplaced fragments to new tigs.
 //  Oodles of possibilities here; promote everything to a singleton unitig, promote only
 //  the non-contained, then place contains, then promote what is left over, etc.
 
 void
-promoteToSingleton(TigVector &unitigs) {
+promoteToSingleton(TigVector &tigs) {
 
   for (uint32 fi=1; fi<=FI->numFragments(); fi++) {
     if (Unitig::fragIn(fi) != 0)
@@ -55,7 +55,7 @@ promoteToSingleton(TigVector &unitigs) {
       //  Deleted.
       continue;
 
-    Unitig *utg = unitigs.newUnitig(false);
+    Unitig *utg = tigs.newUnitig(false);
     ufNode  frag;
 
     frag.ident             = fi;

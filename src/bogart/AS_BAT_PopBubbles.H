@@ -31,8 +31,8 @@
 #include "AS_BAT_Unitig.H"
 
 void
-popBubbles(TigVector &unitigs,
-           double deviationBubble);
+popBubbles(TigVector &tigs,
+           double     deviationBubble);
 
 
 #endif  //  INCLUDE_AS_BAT_BUBBLEPOPPING

@@ -41,7 +41,7 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
                              double        deviationGraph,
                              double        deviationBubble,
                              double        deviationRepeat,
-                             TigVector &unitigs) {
+                             TigVector    &tigs) {
   uint32  fiLimit    = FI->numFragments();
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
@@ -93,7 +93,7 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
     //  Grab a bit about this read.
 
     uint32   fiLen  = FI->fragmentLength(fi);
-    ufNode  *fiRead = &unitigs[fiTigID]->ufpath[ Unitig::pathPosition(fi) ];
+    ufNode  *fiRead = &tigs[fiTigID]->ufpath[ Unitig::pathPosition(fi) ];
     uint32   fiMin  = fiRead->position.min();
     uint32   fiMax  = fiRead->position.max();
 
@@ -103,7 +103,7 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
 
     vector<overlapPlacement>   placements;
 
-    placeFragUsingOverlaps(unitigs, NULL, fi, placements);
+    placeFragUsingOverlaps(tigs, NULL, fi, placements);
 
 #ifdef LOG_GRAPH
     writeLog("AG()-- working on frag %u with %u placements\n", fi, placements.size());
@@ -115,7 +115,7 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
     //uint32   minOverlap = 500;
 
     for (uint32 pp=0; pp<placements.size(); pp++) {
-      Unitig *tig = unitigs[placements[pp].tigID];
+      Unitig *tig = tigs[placements[pp].tigID];
 
       double  erate = placements[pp].errors / placements[pp].aligned;
 

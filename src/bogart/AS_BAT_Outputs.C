@@ -98,11 +98,11 @@ unitigToTig(tgTig       *tig,
 
 
 void
-writeUnitigsToStore(TigVector  &unitigs,
-                    char          *fileprefix,
-                    char          *tigStorePath,
-                    uint32         frg_count_target,
-                    bool           isFinal) {
+writeTigsToStore(TigVector     &tigs,
+                 char          *fileprefix,
+                 char          *tigStorePath,
+                 uint32         frg_count_target,
+                 bool           isFinal) {
   uint32      utg_count              = 0;
   uint32      frg_count              = 0;
   uint32      prt_count              = 1;
@@ -122,13 +122,13 @@ writeUnitigsToStore(TigVector  &unitigs,
   FILE *pari = fopen(filename, "w");
   assert(NULL != pari);
 
-  //  Step through all the unitigs once to build the partition mapping and IID mapping.
+  //  Step through all the tigs once to build the partition mapping and IID mapping.
 
   tgStore     *tigStore = new tgStore(tigStorePath);
   tgTig       *tig      = new tgTig;
 
-  for (uint32 tigID=0, ti=0; ti<unitigs.size(); ti++) {
-    Unitig  *utg = unitigs[ti];
+  for (uint32 tigID=0, ti=0; ti<tigs.size(); ti++) {
+    Unitig  *utg = tigs[ti];
 
     if ((utg == NULL) || (utg->getNumFrags() == 0))
       continue;
@@ -146,7 +146,7 @@ writeUnitigsToStore(TigVector  &unitigs,
 
     if ((frg_count + utg->getNumFrags() >= frg_count_target) &&
         (frg_count                      >  0)) {
-      fprintf(pari, "Partition %d has %d unitigs and %d fragments.\n",
+      fprintf(pari, "Partition %d has %d tigs and %d fragments.\n",
               prt_count, utg_count, frg_count);
 
       prt_count++;
@@ -171,7 +171,7 @@ writeUnitigsToStore(TigVector  &unitigs,
       fprintf(part, "%d\t%d\n", prt_count, utg->ufpath[fragIdx].ident);
   }
 
-  fprintf(pari, "Partition %d has %d unitigs and %d fragments.\n",   //  Don't forget to log the last partition!
+  fprintf(pari, "Partition %d has %d tigs and %d fragments.\n",   //  Don't forget to log the last partition!
           prt_count, utg_count, frg_count);
 
   fclose(pari);
@@ -217,7 +217,7 @@ public:
 
 
 void
-findUnusedEdges(TigVector  &unitigs,
+findUnusedEdges(TigVector     &tigs,
                 ufNode        *rdA,         //  Read we're finding edges for
                 bool           rdA3p,       //  Overlaps from the 3' end of the read
                 set<uint32>    edgeReads,
@@ -229,7 +229,7 @@ findUnusedEdges(TigVector  &unitigs,
   int32       rdAlo    =  (rdAfwd) ? (rdA->position.bgn) : (rdA->position.end);
   int32       rdAhi    =  (rdAfwd) ? (rdA->position.end) : (rdA->position.bgn);
   uint32      rdAtigID =  Unitig::fragIn(rdAid);
-  Unitig     *rdAtig   =  unitigs[rdAtigID];
+  Unitig     *rdAtig   =  tigs[rdAtigID];
 
   uint32      ovlLen   = 0;
   BAToverlap *ovl      = OC->getOverlaps(rdA->ident, AS_MAX_ERATE, ovlLen);
@@ -250,7 +250,7 @@ findUnusedEdges(TigVector  &unitigs,
 
     uint32    rdBid    = ovl[oi].b_iid;
     uint32    rdBtigID = Unitig::fragIn(rdBid);
-    Unitig   *rdBtig   = unitigs[rdBtigID];
+    Unitig   *rdBtig   = tigs[rdBtigID];
 
     if ((rdBtig == NULL) ||
         (rdBtig->getNumFrags() == 0) ||    //  Not interested in edges to singletons
@@ -350,7 +350,7 @@ findUnusedEdges(TigVector  &unitigs,
 
     uint32    rdBid    = ovl[oi].b_iid;
     uint32    rdBtigID = Unitig::fragIn(rdBid);
-    Unitig   *rdBtig   = unitigs[rdBtigID];
+    Unitig   *rdBtig   = tigs[rdBtigID];
 
     ufNode   *rdB      = &rdBtig->ufpath[ Unitig::pathPosition(rdBid) ];
     bool      rdBfwd   =  rdB->isForward();
@@ -380,7 +380,7 @@ findUnusedEdges(TigVector  &unitigs,
 
 
 void
-writeUnusedEdges(TigVector  &unitigs,
+writeUnusedEdges(TigVector     &tigs,
                  char          *fileprefix) {
   char        filename[FILENAME_MAX] = {0};
 
@@ -399,8 +399,8 @@ writeUnusedEdges(TigVector  &unitigs,
   //  Find the outer-most non-contained reads in each unitig.
 
 #if 0
-  for (uint32 ti=0; ti<unitigs.size(); ti++) {
-    Unitig  *tig = unitigs[ti];
+  for (uint32 ti=0; ti<tigs.size(); ti++) {
+    Unitig  *tig = tigs[ti];
 
     if ((tig == NULL) ||
         (tig->getNumFrags() == 0) ||
@@ -440,8 +440,8 @@ writeUnusedEdges(TigVector  &unitigs,
   //  Find the reads at the ends of the tig.
 
 #if 1
-  for (uint32 ti=0; ti<unitigs.size(); ti++) {
-    Unitig  *tig = unitigs[ti];
+  for (uint32 ti=0; ti<tigs.size(); ti++) {
+    Unitig  *tig = tigs[ti];
 
     if ((tig == NULL) ||
         (tig->getNumFrags() == 0) ||
@@ -454,11 +454,11 @@ writeUnusedEdges(TigVector  &unitigs,
 #endif
 
 
-  //  Step through all the unitigs, find all unused overlaps off the ends of the tig.
+  //  Step through all the tigs, find all unused overlaps off the ends of the tig.
 
 
-  for (uint32 ti=0; ti<unitigs.size(); ti++) {
-    Unitig  *tig = unitigs[ti];
+  for (uint32 ti=0; ti<tigs.size(); ti++) {
+    Unitig  *tig = tigs[ti];
 
     if ((tig == NULL) ||
         (tig->getNumFrags() == 0) ||
@@ -498,10 +498,9 @@ writeUnusedEdges(TigVector  &unitigs,
     //  Finally, we probably should be finding just the reads touching the ends of the unitig, not the
     //  first/last non-contained read.
 
-    findUnusedEdges(unitigs, rd5, rd5->isReverse(), edgeReads, EF);   //  First read, if reverse, find edges off 3' end
-    findUnusedEdges(unitigs, rd3, rd3->isForward(), edgeReads, EF);   //  Last  read, if forward, find edges off 3' end
+    findUnusedEdges(tigs, rd5, rd5->isReverse(), edgeReads, EF);   //  First read, if reverse, find edges off 3' end
+    findUnusedEdges(tigs, rd3, rd3->isForward(), edgeReads, EF);   //  Last  read, if forward, find edges off 3' end
   }
 
   fclose(EF);
 }
-

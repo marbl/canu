@@ -179,7 +179,7 @@ findUnitigCoverage(Unitig               *tig,
 //  has been deemed resolved.  Mark those edges.
 //
 void
-removeResolvedRepeatEdges(TigVector             &unitigs,
+removeResolvedRepeatEdges(TigVector                &tigs,
                           Unitig                   *tig,
                           vector<breakPointCoords> &BP,
                           vector<olapDat>          &repeats) {
@@ -220,14 +220,14 @@ removeResolvedRepeatEdges(TigVector             &unitigs,
 
 
 uint32
-splitUnitigs(TigVector             &unitigs,
-             Unitig                   *tig,
-             vector<breakPointCoords> &BP,
-             Unitig                  **newTigs,
-             int32                    *lowCoord,
-             uint32                   *nRepeat,
-             uint32                   *nUnique,
-             bool                      doMove) {
+splitTigs(TigVector                &tigs,
+          Unitig                   *tig,
+          vector<breakPointCoords> &BP,
+          Unitig                  **newTigs,
+          int32                    *lowCoord,
+          uint32                   *nRepeat,
+          uint32                   *nUnique,
+          bool                      doMove) {
   uint32  nTigsCreated = 0;
 
   if (doMove == true) {
@@ -287,7 +287,7 @@ splitUnitigs(TigVector             &unitigs,
       if (newTigs[rid] == NULL) {
         lowCoord[rid] = frgbgn;
 
-        newTigs[rid]  = unitigs.newUnitig(true);  // LOG_ADDUNITIG_BREAKING
+        newTigs[rid]  = tigs.newUnitig(true);  // LOG_ADDUNITIG_BREAKING
 
         if (nRepeat[rid] > nUnique[rid])
           newTigs[rid]->_isRepeat = true;
@@ -331,7 +331,7 @@ splitUnitigs(TigVector             &unitigs,
 
 
 void
-annotateRepeatsOnRead(TigVector          &UNUSED(unitigs),
+annotateRepeatsOnRead(TigVector             &UNUSED(tigs),
                       Unitig                *tig,
                       double                 UNUSED(deviationRepeat),
                       vector<olapDat>       &repeats) {
@@ -378,15 +378,15 @@ annotateRepeatsOnRead(TigVector          &UNUSED(unitigs),
 
 
 void
-markRepeatReads(TigVector &unitigs,
+markRepeatReads(TigVector    &tigs,
                 double        deviationRepeat,
                 uint32        confusedAbsolute,
                 double        confusedPercent) {
-  uint32  tiLimit = unitigs.size();
+  uint32  tiLimit = tigs.size();
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize = (tiLimit < 100000 * numThreads) ? numThreads : tiLimit / 99999;
 
-  writeLog("repeatDetect()-- working on "F_U32" unitigs, with "F_U32" threads.\n", tiLimit, numThreads);
+  writeLog("repeatDetect()-- working on "F_U32" tigs, with "F_U32" threads.\n", tiLimit, numThreads);
 
   vector<olapDat>      repeatOlaps;   //  Overlaps to reads promoted to tig coords
 
@@ -395,7 +395,7 @@ markRepeatReads(TigVector &unitigs,
 
 
   for (uint32 ti=0; ti<tiLimit; ti++) {
-    Unitig  *tig = unitigs[ti];
+    Unitig  *tig = tigs[ti];
 
     if (tig == NULL)
       continue;
@@ -417,7 +417,7 @@ markRepeatReads(TigVector &unitigs,
     uint32  numThreads = omp_get_max_threads();
     uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
 
-    annotateRepeatsOnRead(unitigs, tig, deviationRepeat, repeatOlaps);
+    annotateRepeatsOnRead(tigs, tig, deviationRepeat, repeatOlaps);
 
     writeLog("Annotated with %lu overlaps.\n", repeatOlaps.size());
 
@@ -790,13 +790,13 @@ markRepeatReads(TigVector &unitigs,
 
           //  If the read is in a singleton, skip.  These are unassembled crud.
           if ((tgBid                         == 0) ||
-              (unitigs[tgBid]                == NULL) ||
-              (unitigs[tgBid]->ufpath.size() == 1))
+              (tigs[tgBid]                == NULL) ||
+              (tigs[tgBid]->ufpath.size() == 1))
             continue;
 
           //  If the read is in an annotated bubble, skip.
-          if ((unitigs[tgBid]->_isBubble == true) &&
-              (unitigs[tgBid]->_isRepeat == false))
+          if ((tigs[tgBid]->_isBubble == true) &&
+              (tigs[tgBid]->_isRepeat == false))
             continue;
 
           //  Skip if this overlap is the best we're trying to match.
@@ -829,8 +829,8 @@ markRepeatReads(TigVector &unitigs,
             continue;
 
 
-          uint32   rdBpos   =  unitigs[tgBid]->pathPosition(rdBid);
-          ufNode  *rdB      = &unitigs[tgBid]->ufpath[rdBpos];
+          uint32   rdBpos   =  tigs[tgBid]->pathPosition(rdBid);
+          ufNode  *rdB      = &tigs[tgBid]->ufpath[rdBpos];
 
           bool     rdBfwd   = (rdB->position.bgn < rdB->position.end);
           int32    rdBlo    = (rdBfwd) ? rdB->position.bgn : rdB->position.end;
@@ -990,7 +990,7 @@ markRepeatReads(TigVector &unitigs,
     tigMarksU = tigMarksR;
     tigMarksU.invert(0, tig->getLength());
 
-    //  Create the list of intervals we'll use to make new unitigs.
+    //  Create the list of intervals we'll use to make new tigs.
 
     vector<breakPointCoords>   BP;
 
@@ -1024,14 +1024,14 @@ markRepeatReads(TigVector &unitigs,
 
     //  First call, count the number of tigs we would create if we let it create them.
 
-    uint32  nTigs = splitUnitigs(unitigs, tig, BP, newTigs, lowCoord, nRepeat, nUnique, false);
+    uint32  nTigs = splitTigs(tigs, tig, BP, newTigs, lowCoord, nRepeat, nUnique, false);
 
     //  Second call, actually create the tigs, if anything would change.
 
     if (nTigs > 1) {
-      //markResolvedRepeatEdges(unitigs, tig, BP, repeatOlaps);
-      splitUnitigs(unitigs, tig, BP, newTigs, lowCoord, nRepeat, nUnique, true);
-      //markSplitRepeatEdges(unitigs, tig, BP, repeatOlaps);
+      //markResolvedRepeatEdges(tigs, tig, BP, repeatOlaps);
+      splitTigs(tigs, tig, BP, newTigs, lowCoord, nRepeat, nUnique, true);
+      //markSplitRepeatEdges(tigs, tig, BP, repeatOlaps);
     }
 
     //  Report the tigs created.
@@ -1065,8 +1065,7 @@ markRepeatReads(TigVector &unitigs,
 
     if (nTigs > 1) {
       delete tig;
-      unitigs[ti] = NULL;
+      tigs[ti] = NULL;
     }
   }
 }
-

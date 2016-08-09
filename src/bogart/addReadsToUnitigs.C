@@ -190,7 +190,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -M fastqUIDmap        gatekeeper output fastqUIDmap for read name to IID translation\n");
     fprintf(stderr, "\n");
 #if 0
-    fprintf(stderr, "unmapped reads:  default is to promote to singleton unitigs\n");
+    fprintf(stderr, "unmapped reads:  default is to promote to singleton tigs\n");
     fprintf(stderr, "  -U                    leave unmapped reads alone (will crash CGW)\n");
     fprintf(stderr, "  -D                    delete unmapped reads from gkpStore\n");
 #else
@@ -290,7 +290,7 @@ main(int argc, char **argv) {
   //  Load the alignment map.  The challenge here is to parse the unitig and read names
   //  into correct IIDs.  We assume that:
   //    Reads were dumped with -dumpfasta and have names ">UID,IID"
-  //    Unitigs were dumped with tigStore -d consensus and have names "utgIID"
+  //    Tigs were dumped with tigStore -d consensus and have names "utgIID"
   //    Alignments are in the convertToExtent -extended format
   //
 
@@ -467,7 +467,7 @@ main(int argc, char **argv) {
   fprintf(stderr, "Will NOT add %u pairs - one read failed to map.\n", unpaired);
   fprintf(stderr, "Will NOT add %u pairs - multiple mappings.\n", multiple);
   fprintf(stderr, "Will add %u pairs in the same unitig\n", pairsToSame);
-  fprintf(stderr, "Will add %u pairs in different unitigs\n", pairsToDiff);
+  fprintf(stderr, "Will add %u pairs in different tigs\n", pairsToDiff);
 
   //
   //  Open stores.  gkpStore cannot be opened for writing, because then we can't loadall.
@@ -482,7 +482,7 @@ main(int argc, char **argv) {
   }
 
   //
-  //  Rebuild unitigs, stuff them back into the same version.
+  //  Rebuild tigs, stuff them back into the same version.
   //
 
   //  Argh, really should convert this to a vector right now....
@@ -574,4 +574,3 @@ main(int argc, char **argv) {
 
   exit(0);
 }
-

@@ -168,13 +168,13 @@ OverlapCache::OverlapCache(ovStore *ovlStoreUniq,
   //  And this too.
   _ovsMax  = 1 * 1024 * 1024;  //  At 16B each, this is 16MB
 
-  //  Account for memory used by fragment data, best overlaps, and unitigs.
-  //  The chunk graph is temporary, and should be less than the size of the unitigs.
+  //  Account for memory used by fragment data, best overlaps, and tigs.
+  //  The chunk graph is temporary, and should be less than the size of the tigs.
 
   uint64 memFI = FI->memoryUsage();
   uint64 memBE = FI->numFragments() * sizeof(BestEdgeOverlap);
-  uint64 memUL = FI->numFragments() * sizeof(ufNode);             //  For fragment positions in unitigs
-  uint64 memUT = FI->numFragments() * sizeof(uint32) / 16;        //  For unitigs (assumes 32 frag / unitig)
+  uint64 memUL = FI->numFragments() * sizeof(ufNode);             //  For fragment positions in tigs
+  uint64 memUT = FI->numFragments() * sizeof(uint32) / 16;        //  For tigs (assumes 32 frag / unitig)
   uint64 memID = FI->numFragments() * sizeof(uint32) * 2;         //  For maps of fragment id to unitig id
   uint64 memEP = FI->numFragments() * Unitig::epValueSize() * 2;  //  For error profile
 
@@ -188,7 +188,7 @@ OverlapCache::OverlapCache(ovStore *ovlStoreUniq,
   uint64 memTT = memFI + memBE + memUL + memUT + memID + memC1 + memC2 + memC3 + memC4 + memOS;
 
   if (onlySave) {
-    writeStatus("OverlapCache()-- Only saving overlaps, not computing unitigs.\n");
+    writeStatus("OverlapCache()-- Only saving overlaps, not computing tigs.\n");
     memBE = 0;
     memUL = 0;
     memUT = 0;
@@ -199,7 +199,7 @@ OverlapCache::OverlapCache(ovStore *ovlStoreUniq,
   writeStatus("OverlapCache()-- %7"F_U64P"MB for fragment data.\n",                  memFI >> 20);
   writeStatus("OverlapCache()-- %7"F_U64P"MB for best edges.\n",                     memBE >> 20);
   writeStatus("OverlapCache()-- %7"F_U64P"MB for unitig layouts.\n",                 memUL >> 20);
-  writeStatus("OverlapCache()-- %7"F_U64P"MB for unitigs.\n",                        memUT >> 20);
+  writeStatus("OverlapCache()-- %7"F_U64P"MB for tigs.\n",                           memUT >> 20);
   writeStatus("OverlapCache()-- %7"F_U64P"MB for id maps.\n",                        memID >> 20);
   writeStatus("OverlapCache()-- %7"F_U64P"MB for error profiles.\n",                 memEP >> 20);
   writeStatus("OverlapCache()-- %7"F_U64P"MB for overlap cache pointers.\n",         memC1 >> 20);

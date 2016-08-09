@@ -40,6 +40,6 @@
 
 #include "AS_BAT_TigVector.H"
 
-void setParentAndHang(TigVector &unitigs);
+void setParentAndHang(TigVector &tigs);
 
 #endif  //  INCLUDE_AS_BAT_SETPARENTANDHANG

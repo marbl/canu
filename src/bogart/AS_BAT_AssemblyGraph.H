@@ -97,7 +97,7 @@ public:
                 double        deviationGraph,
                 double        deviationBubble,
                 double        deviationRepeat,
-                TigVector &unitigs);
+                TigVector    &tigs);
   
   ~AssemblyGraph() {
     delete [] _pForward;

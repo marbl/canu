@@ -40,10 +40,10 @@
 
 #include "AS_BAT_TigVector.H"
 
-void breakSingletonTigs(TigVector &unitigs);
+void breakSingletonTigs(TigVector &tigs);
 
-void placeUnplacedUsingAllOverlaps(TigVector &unitigs,
-                                   const char   *prefix);
+void placeUnplacedUsingAllOverlaps(TigVector  &tigs,
+                                   const char *prefix);
 
 
 

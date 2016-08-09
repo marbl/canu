@@ -49,7 +49,7 @@
 //  Will fail if a read is in unitig 0, or if a read isn't in a unitig.
 
 void
-checkUnitigMembership(TigVector &unitigs) {
+checkUnitigMembership(TigVector &tigs) {
   uint32 *inUnitig = new uint32 [FI->numFragments()+1];
   uint32  noUnitig = 0xffffffff;
 
@@ -58,10 +58,10 @@ checkUnitigMembership(TigVector &unitigs) {
   for (uint32 i=0; i<FI->numFragments()+1; i++)
     inUnitig[i] = noUnitig;
 
-  //  Over all unitigs, remember where each read is.
+  //  Over all tigs, remember where each read is.
 
-  for (uint32 ti=0; ti<unitigs.size(); ti++) {
-    Unitig  *tig = unitigs[ti];
+  for (uint32 ti=0; ti<tigs.size(); ti++) {
+    Unitig  *tig = tigs[ti];
     int32    len = 0;
 
     if (tig == NULL)
@@ -109,11 +109,11 @@ checkUnitigMembership(TigVector &unitigs) {
 //    4) at least fraction F of the unitig is below read depth D (F=1.0, D=2)
 //
 void
-classifyUnitigsAsUnassembled(TigVector &unitigs,
-                             uint32        fewReadsNumber,
-                             uint32        tooShortLength,
-                             double        spanFraction,
-                             double        lowcovFraction,   uint32  lowcovDepth) {
+classifyTigsAsUnassembled(TigVector    &tigs,
+                          uint32        fewReadsNumber,
+                          uint32        tooShortLength,
+                          double        spanFraction,
+                          double        lowcovFraction,   uint32  lowcovDepth) {
   uint32  nTooFew   = 0;
   uint32  nShort    = 0;
   uint32  nSingle   = 0;
@@ -135,8 +135,8 @@ classifyUnitigsAsUnassembled(TigVector &unitigs,
   if (errno)
     F = NULL;
 
-  for (uint32  ti=0; ti<unitigs.size(); ti++) {
-    Unitig  *utg = unitigs[ti];
+  for (uint32  ti=0; ti<tigs.size(); ti++) {
+    Unitig  *utg = tigs[ti];
 
     if (utg == NULL)
       continue;
@@ -276,9 +276,9 @@ reportN50(FILE *F, vector<uint32> &data, char const *label, uint64 genomeSize) {
 
 
 void
-reportUnitigs(TigVector &unitigs, const char *prefix, const char *name, uint64 genomeSize) {
+reportTigs(TigVector &tigs, const char *prefix, const char *name, uint64 genomeSize) {
 
-  //  Generate n50.  Assumes unitigs have been 'classified' already.
+  //  Generate n50.  Assumes tigs have been 'classified' already.
 
   vector<uint32>   unassembledLength;
   vector<uint32>   bubbleLength;
@@ -286,8 +286,8 @@ reportUnitigs(TigVector &unitigs, const char *prefix, const char *name, uint64 g
   vector<uint32>   circularLength;
   vector<uint32>   contigLength;
 
-  for (uint32  ti=0; ti<unitigs.size(); ti++) {
-    Unitig  *utg = unitigs[ti];
+  for (uint32  ti=0; ti<tigs.size(); ti++) {
+    Unitig  *utg = tigs[ti];
 
     if (utg == NULL)
       continue;
@@ -329,7 +329,7 @@ reportUnitigs(TigVector &unitigs, const char *prefix, const char *name, uint64 g
     fclose(F);
   }
 
-  if (logFileFlagSet(LOG_INTERMEDIATE_UNITIGS) == 0)
+  if (logFileFlagSet(LOG_INTERMEDIATE_TIGS) == 0)
     return;
 
   //  Dump to an intermediate store.
@@ -345,8 +345,8 @@ reportUnitigs(TigVector &unitigs, const char *prefix, const char *name, uint64 g
 
   //  Compute average frags per partition.
 
-  for (uint32  ti=0; ti<unitigs.size(); ti++) {
-    Unitig  *utg = unitigs[ti];
+  for (uint32  ti=0; ti<tigs.size(); ti++) {
+    Unitig  *utg = tigs[ti];
 
     if (utg == NULL)
       continue;
@@ -364,11 +364,11 @@ reportUnitigs(TigVector &unitigs, const char *prefix, const char *name, uint64 g
   else
     numFragsP = numFragsT / 127;
 
-  //  Dump the unitigs to an intermediate store.
+  //  Dump the tigs to an intermediate store.
 
-  setParentAndHang(unitigs);
+  setParentAndHang(tigs);
 
-  writeUnitigsToStore(unitigs, tigStorePath, tigStorePath, numFragsP, false);
+  writeTigsToStore(tigs, tigStorePath, tigStorePath, numFragsP, false);
 }
 
 
@@ -420,9 +420,9 @@ satisfiedOverlap(uint32 rdAlo, uint32 rdAhi, bool rdAfwd, uint32 rdBlo, uint32 r
 
 
 //  Iterate over all overlaps (but the only interface we have is by iterating
-//  over all reads), and count the number of overlaps satisfied in unitigs.
+//  over all reads), and count the number of overlaps satisfied in tigs.
 void
-reportOverlaps(TigVector &unitigs, const char *prefix, const char *name) {
+reportOverlaps(TigVector &tigs, const char *prefix, const char *name) {
   olapsUsed   *dd       = new olapsUsed;  //  Dovetail overlaps to non-contained reads
   olapsUsed   *dc       = new olapsUsed;  //  Dovetail overlaps to contained reads
   olapsUsed   *cc       = new olapsUsed;  //  Containment overlaps
@@ -440,7 +440,7 @@ reportOverlaps(TigVector &unitigs, const char *prefix, const char *name) {
 
     uint32           rdAid   = fi;
     uint32           tgAid   = Unitig::fragIn(rdAid);
-    Unitig          *tgA     = unitigs[tgAid];
+    Unitig          *tgA     = tigs[tgAid];
     uint32           tgAtype = getTigType(tgA);
 
     //  Best overlaps exist if the read isn't contained.
@@ -449,13 +449,13 @@ reportOverlaps(TigVector &unitigs, const char *prefix, const char *name) {
       BestEdgeOverlap *b5      = OG->getBestEdgeOverlap(fi, false);
       uint32           rd5id   = b5->fragId();
       uint32           tg5id   = Unitig::fragIn(rd5id);
-      Unitig          *tg5     = unitigs[tg5id];
+      Unitig          *tg5     = tigs[tg5id];
       uint32           tg5type = getTigType(tg5);
 
       BestEdgeOverlap *b3      = OG->getBestEdgeOverlap(fi, true);
       uint32           rd3id   = b3->fragId();
       uint32           tg3id   = Unitig::fragIn(rd3id);
-      Unitig          *tg3     = unitigs[tg3id];
+      Unitig          *tg3     = tigs[tg3id];
       uint32           tg3type = getTigType(tg3);
 
       bb->total += 2;
@@ -477,8 +477,8 @@ reportOverlaps(TigVector &unitigs, const char *prefix, const char *name) {
       //  Otherwise, its in a tig, and we need to compare positions.
 
       else {
-        uint32           rdApos  = unitigs[tgAid]->pathPosition(rdAid);
-        ufNode          *rdA     = &unitigs[tgAid]->ufpath[rdApos];
+        uint32           rdApos  = tigs[tgAid]->pathPosition(rdAid);
+        ufNode          *rdA     = &tigs[tgAid]->ufpath[rdApos];
         bool             rdAfwd  = (rdA->position.bgn < rdA->position.end);
         int32            rdAlo   = (rdAfwd) ? rdA->position.bgn : rdA->position.end;
         int32            rdAhi   = (rdAfwd) ? rdA->position.end : rdA->position.bgn;
@@ -492,8 +492,8 @@ reportOverlaps(TigVector &unitigs, const char *prefix, const char *name) {
           bb->doveUnsatDiff[tgAtype][tNOP]++;
 
         } else {
-          uint32     rd5pos   = unitigs[tg5id]->pathPosition(rd5id);
-          ufNode    *rd5      = &unitigs[tg5id]->ufpath[rd5pos];
+          uint32     rd5pos   = tigs[tg5id]->pathPosition(rd5id);
+          ufNode    *rd5      = &tigs[tg5id]->ufpath[rd5pos];
           bool       rd5fwd   = (rd5->position.bgn < rd5->position.end);
           int32      rd5lo    = (rd5fwd) ? rd5->position.bgn : rd5->position.end;
           int32      rd5hi    = (rd5fwd) ? rd5->position.end : rd5->position.bgn;
@@ -513,8 +513,8 @@ reportOverlaps(TigVector &unitigs, const char *prefix, const char *name) {
           bb->doveUnsatDiff[tgAtype][tNOP]++;
 
         } else {
-          uint32     rd3pos   = unitigs[tg3id]->pathPosition(rd3id);
-          ufNode    *rd3      = &unitigs[tg3id]->ufpath[rd3pos];
+          uint32     rd3pos   = tigs[tg3id]->pathPosition(rd3id);
+          ufNode    *rd3      = &tigs[tg3id]->ufpath[rd3pos];
           bool       rd3fwd   = (rd3->position.bgn < rd3->position.end);
           int32      rd3lo    = (rd3fwd) ? rd3->position.bgn : rd3->position.end;
           int32      rd3hi    = (rd3fwd) ? rd3->position.end : rd3->position.bgn;
@@ -538,12 +538,12 @@ reportOverlaps(TigVector &unitigs, const char *prefix, const char *name) {
     for (uint32 oi=0; oi<ovlLen; oi++) {
       uint32     rdAid     = ovl[oi].a_iid;
       uint32     tgAid     = Unitig::fragIn(rdAid);
-      Unitig    *tgA       = unitigs[tgAid];
+      Unitig    *tgA       = tigs[tgAid];
       uint32     tgAtype   = getTigType(tgA);
 
       uint32     rdBid     = ovl[oi].b_iid;
       uint32     tgBid     = Unitig::fragIn(rdBid);
-      Unitig    *tgB       = unitigs[tgBid];
+      Unitig    *tgB       = tigs[tgBid];
       uint32     tgBtype   = getTigType(tgB);
 
       bool       isDove    = ovl[oi].isDovetail();
@@ -585,14 +585,14 @@ reportOverlaps(TigVector &unitigs, const char *prefix, const char *name) {
 
       //  Else, possibly satisfied.  We need to check positions.
 
-      uint32     rdApos   = unitigs[tgAid]->pathPosition(rdAid);
-      ufNode    *rdA      = &unitigs[tgAid]->ufpath[rdApos];
+      uint32     rdApos   = tigs[tgAid]->pathPosition(rdAid);
+      ufNode    *rdA      = &tigs[tgAid]->ufpath[rdApos];
       bool       rdAfwd   = (rdA->position.bgn < rdA->position.end);
       int32      rdAlo    = (rdAfwd) ? rdA->position.bgn : rdA->position.end;
       int32      rdAhi    = (rdAfwd) ? rdA->position.end : rdA->position.bgn;
 
-      uint32     rdBpos   = unitigs[tgBid]->pathPosition(rdBid);
-      ufNode    *rdB      = &unitigs[tgBid]->ufpath[rdBpos];
+      uint32     rdBpos   = tigs[tgBid]->pathPosition(rdBid);
+      ufNode    *rdB      = &tigs[tgBid]->ufpath[rdBpos];
       bool       rdBfwd   = (rdB->position.bgn < rdB->position.end);
       int32      rdBlo    = (rdBfwd) ? rdB->position.bgn : rdB->position.end;
       int32      rdBhi    = (rdBfwd) ? rdB->position.end : rdB->position.bgn;

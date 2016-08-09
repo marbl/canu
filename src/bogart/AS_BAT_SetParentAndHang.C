@@ -44,7 +44,7 @@
 #include "AS_BAT_SetParentAndHang.H"
 
 void
-setParentAndHang(TigVector &unitigs) {
+setParentAndHang(TigVector &tigs) {
 
   return;
 
@@ -54,8 +54,8 @@ setParentAndHang(TigVector &unitigs) {
   //  Just for stats, build a map fo the reads in the unitig.
 
 
-  for (uint32 ti=0; ti<unitigs.size(); ti++) {
-    Unitig        *tig = unitigs[ti];
+  for (uint32 ti=0; ti<tigs.size(); ti++) {
+    Unitig        *tig = tigs[ti];
 
     if (tig == NULL)
       continue;
@@ -178,5 +178,5 @@ setParentAndHang(TigVector &unitigs) {
 
 
     }  //  Over all fragments
-  }  //  Over all unitigs
+  }  //  Over all tigs
 }

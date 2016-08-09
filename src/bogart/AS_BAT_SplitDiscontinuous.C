@@ -43,10 +43,10 @@
 
 static
 void
-makeNewUnitig(TigVector &unitigs,
+makeNewUnitig(TigVector    &tigs,
               uint32        splitFragsLen,
               ufNode       *splitFrags) {
-  Unitig *dangler = unitigs.newUnitig(false);
+  Unitig *dangler = tigs.newUnitig(false);
 
   if (logFileFlagSet(LOG_SPLIT_DISCONTINUOUS))
     writeLog("splitDiscontinuous()--   new tig "F_U32" with "F_U32" fragments (starting at frag "F_U32").\n",
@@ -64,9 +64,9 @@ makeNewUnitig(TigVector &unitigs,
 
 
 
-//  After splitting and ejecting some contains, check for discontinuous unitigs.
+//  After splitting and ejecting some contains, check for discontinuous tigs.
 //
-void splitDiscontinuousUnitigs(TigVector &unitigs, uint32 minOverlap) {
+void splitDiscontinuous(TigVector &tigs, uint32 minOverlap) {
   uint32                numTested  = 0;
   uint32                numSplit   = 0;
   uint32                numCreated = 0;
@@ -75,8 +75,8 @@ void splitDiscontinuousUnitigs(TigVector &unitigs, uint32 minOverlap) {
   uint32                splitFragsMax = 0;
   ufNode               *splitFrags    = NULL;
 
-  for (uint32 ti=0; ti<unitigs.size(); ti++) {
-    Unitig  *tig = unitigs[ti];
+  for (uint32 ti=0; ti<tigs.size(); ti++) {
+    Unitig  *tig = tigs[ti];
 
     if ((tig == NULL) || (tig->ufpath.size() < 2))
       continue;
@@ -107,15 +107,15 @@ void splitDiscontinuousUnitigs(TigVector &unitigs, uint32 minOverlap) {
 
   splitFrags = new ufNode [splitFragsMax];
 
-  //  Now, finally, we can check for gaps in unitigs.
+  //  Now, finally, we can check for gaps in tigs.
 
-  for (uint32 ti=0; ti<unitigs.size(); ti++) {
-    Unitig  *tig = unitigs[ti];
+  for (uint32 ti=0; ti<tigs.size(); ti++) {
+    Unitig  *tig = tigs[ti];
 
     if ((tig == NULL) || (tig->ufpath.size() < 2))
       continue;
 
-    //  We don't expect many unitigs to be broken, so we'll do a first quick pass to just
+    //  We don't expect many tigs to be broken, so we'll do a first quick pass to just
     //  test if it is.
 
     int32  maxEnd   = MAX(tig->ufpath[0].position.bgn, tig->ufpath[0].position.end);
@@ -168,11 +168,11 @@ void splitDiscontinuousUnitigs(TigVector &unitigs, uint32 minOverlap) {
       //  No thick overlap found.  We need to break right here before the current fragment.  We used
       //  to try to place contained reads with their container.  For simplicity, we instead just
       //  make a new unitig, letting the main() decide what to do with them (e.g., bubble pop or try
-      //  to place all reads in singleton unitigs as contained reads again).
+      //  to place all reads in singleton tigs as contained reads again).
 
       numCreated++;
-      makeNewUnitig(unitigs, splitFragsLen, splitFrags);
-      tig = unitigs[ti];
+      makeNewUnitig(tigs, splitFragsLen, splitFrags);
+      tig = tigs[ti];
 
       //  Done with the split, save the current fragment.  This resets everything.
 
@@ -188,17 +188,16 @@ void splitDiscontinuousUnitigs(TigVector &unitigs, uint32 minOverlap) {
     //
     if (splitFragsLen != tig->ufpath.size()) {
       numCreated++;
-      makeNewUnitig(unitigs, splitFragsLen, splitFrags);
+      makeNewUnitig(tigs, splitFragsLen, splitFrags);
 
-      delete unitigs[ti];
-      unitigs[ti] = NULL;
+      delete tigs[ti];
+      tigs[ti] = NULL;
     }
   }
 
   delete [] splitFrags;
 
   if ((numSplit > 0) || (numCreated > 0))
-    writeLog("splitDiscontinuous()-- Tested "F_U32" unitigs, split "F_U32" into "F_U32" new unitigs.\n",
+    writeLog("splitDiscontinuous()-- Tested "F_U32" tigs, split "F_U32" into "F_U32" new tigs.\n",
              numTested, numSplit, numCreated);
 }
-

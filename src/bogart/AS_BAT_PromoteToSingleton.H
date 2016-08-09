@@ -30,6 +30,6 @@
 #ifndef INCLUDE_AS_BAT_PROMOTE_TO_SINGLETON
 
 void
-promoteToSingleton(TigVector &unitigs);
+promoteToSingleton(TigVector &tigs);
 
 #endif  //  INCLUDE_AS_BAT_PROMOTE_TO_SINGLETON

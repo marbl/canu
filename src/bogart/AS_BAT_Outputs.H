@@ -43,14 +43,14 @@
 
 
 void
-writeUnitigsToStore(TigVector  &unitigs,
-                    char          *fileprefix,
-                    char          *tigStorePath,
-                    uint32         frg_count_target,
-                    bool           isFinal);
+writeTigsToStore(TigVector     &tigs,
+                 char          *fileprefix,
+                 char          *tigStorePath,
+                 uint32         frg_count_target,
+                 bool           isFinal);
 
 void
-writeUnusedEdges(TigVector  &unitigs,
+writeUnusedEdges(TigVector     &tigs,
                  char          *fileprefix);
 
 

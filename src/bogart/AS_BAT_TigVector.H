@@ -38,7 +38,7 @@ public:
   Unitig   *newUnitig(bool verbose);
   void      deleteUnitig(uint32 i);
 
-  size_t    size(void)            {  return(_totalUnitigs);  };
+  size_t    size(void)            {  return(_totalTigs);  };
   Unitig  *&operator[](uint32 i)  {  return(_blocks[i / _blockSize][i % _blockSize]);  };
 
   void      computeArrivalRate(const char *prefix, const char *label);
@@ -54,7 +54,7 @@ private:
   Unitig           ***_blocks;
   uint64              _blockNext;
 
-  uint64              _totalUnitigs;
+  uint64              _totalTigs;
 };
 
 

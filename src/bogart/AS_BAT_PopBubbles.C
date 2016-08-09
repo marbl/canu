@@ -68,27 +68,27 @@ public:
 };
 
 
-//  A list of the target unitigs that a bubble could be popped into.
+//  A list of the target tigs that a bubble could be popped into.
 typedef  map<uint32, vector<uint32> >  BubTargetList;
 
 
 
-//  Decide which unitigs can be bubbles.  The first pass finds unitigs that can be potential
+//  Decide which tigs can be bubbles.  The first pass finds tigs that can be potential
 //  bubbles.  Any unitig where every dovetail read has an overlap to some other unitig is a
 //  candidate for bubble popping.
 
 void
-findPotentialBubbles(TigVector    &unitigs,
+findPotentialBubbles(TigVector       &tigs,
                      BubTargetList   &potentialBubbles) {
-  uint32  tiLimit      = unitigs.size();
+  uint32  tiLimit      = tigs.size();
   uint32  tiNumThreads = omp_get_max_threads();
   uint32  tiBlockSize  = (tiLimit < 100000 * tiNumThreads) ? tiNumThreads : tiLimit / 99999;
 
   writeStatus("\n");
-  writeStatus("bubbleDetect()-- working on "F_U32" unitigs, with "F_U32" threads.\n", tiLimit, tiNumThreads);
+  writeStatus("bubbleDetect()-- working on "F_U32" tigs, with "F_U32" threads.\n", tiLimit, tiNumThreads);
 
   for (uint32 ti=0; ti<tiLimit; ti++) {
-    Unitig  *tig = unitigs[ti];
+    Unitig  *tig = tigs[ti];
 
     if ((tig == NULL) ||               //  Not a tig, ignore it.
         (tig->ufpath.size() == 1))     //  Singleton, handled elsewhere.
@@ -118,7 +118,7 @@ findPotentialBubbles(TigVector    &unitigs,
 
       for (uint32 oi=0; oi<ovlLen; oi++) {
         uint32  ovlTigID = Unitig::fragIn(ovl[oi].b_iid);
-        Unitig *ovlTig   = unitigs[ovlTigID];
+        Unitig *ovlTig   = tigs[ovlTigID];
 
         //  Skip this overlap if it is to an unplaced read, to a singleton tig, to ourself,
         //  or to a unitig that is shorter than us.  We can not pop this tig as a bubble
@@ -196,7 +196,7 @@ findPotentialBubbles(TigVector    &unitigs,
 
       for (map<uint32,uint32>::iterator it=tigOlapsTo.begin(); it != tigOlapsTo.end(); ++it) {
         if (it->second >= BUBBLE_READ_FRACTION * nonContainedReads) {
-          Unitig  *dest = unitigs[it->first];
+          Unitig  *dest = tigs[it->first];
 
           writeLog("                 tig %8u length %9u nReads %7u\n", dest->id(), dest->getLength(), dest->ufpath.size());
 
@@ -215,7 +215,7 @@ findPotentialBubbles(TigVector    &unitigs,
 //  Find filtered placements for all the reads in the potential bubble tigs.
 
 vector<overlapPlacement>  *
-findBubbleReadPlacements(TigVector    &unitigs,
+findBubbleReadPlacements(TigVector       &tigs,
                          BubTargetList   &potentialBubbles,
                          double           deviationBubble) {
   uint32  fiLimit      = FI->numFragments();
@@ -233,7 +233,7 @@ findBubbleReadPlacements(TigVector    &unitigs,
         (potentialBubbles.count(rdAtigID) == 0))     //  Read isn't in a potential bubble, ignore it.
       continue;
 
-    Unitig     *rdAtig   = unitigs[rdAtigID];
+    Unitig     *rdAtig   = tigs[rdAtigID];
     ufNode     *rdA      = &rdAtig->ufpath[ Unitig::pathPosition(fi) ];
     bool        rdAfwd   = (rdA->position.bgn < rdA->position.end);
     int32       rdAlo    = (rdAfwd) ? rdA->position.bgn : rdA->position.end;
@@ -254,13 +254,13 @@ findBubbleReadPlacements(TigVector    &unitigs,
 
     vector<overlapPlacement>   placements;
 
-    placeFragUsingOverlaps(unitigs, NULL, rdA->ident, placements, placeFrag_noExtend);
+    placeFragUsingOverlaps(tigs, NULL, rdA->ident, placements, placeFrag_noExtend);
 
     //  Weed out placements that aren't for bubbles, or that are for bubbles but are poor quality.  Or are to ourself!
 
     for (uint32 pi=0; pi<placements.size(); pi++) {
       uint32    rdBtigID = placements[pi].tigID;
-      Unitig   *rdBtig   = unitigs[rdBtigID];
+      Unitig   *rdBtig   = tigs[rdBtigID];
 
       uint32    lo       = placements[pi].position.min();
       uint32    hi       = placements[pi].position.max();
@@ -289,7 +289,7 @@ findBubbleReadPlacements(TigVector    &unitigs,
         continue;
       }
 
-      //  Ignore the placement if it isn't to one of our bubble-popping candidate unitigs.
+      //  Ignore the placement if it isn't to one of our bubble-popping candidate tigs.
 
       bool             dontcare = true;
       vector<uint32>  &pbubbles = potentialBubbles[rdAtigID];
@@ -333,16 +333,16 @@ findBubbleReadPlacements(TigVector    &unitigs,
 
 
 
-//  Bubble popping cannot be done in parallel -- there is a race condition when both unitigs
+//  Bubble popping cannot be done in parallel -- there is a race condition when both tigs
 //  A and B are considering merging in unitig C.
 
 void
-popBubbles(TigVector &unitigs,
-           double deviationBubble) {
+popBubbles(TigVector &tigs,
+           double     deviationBubble) {
 
   BubTargetList   potentialBubbles;
 
-  findPotentialBubbles(unitigs, potentialBubbles);
+  findPotentialBubbles(tigs, potentialBubbles);
 
   writeStatus("popBubbles()-- Found "F_SIZE_T" potential bubbles.\n", potentialBubbles.size());
 
@@ -353,20 +353,20 @@ popBubbles(TigVector &unitigs,
   writeLog("Found "F_SIZE_T" potential bubbles.\n", potentialBubbles.size());
   writeLog("\n");
 
-  vector<overlapPlacement>   *placed = findBubbleReadPlacements(unitigs, potentialBubbles, deviationBubble);
+  vector<overlapPlacement>   *placed = findBubbleReadPlacements(tigs, potentialBubbles, deviationBubble);
 
   //  We now have, in 'placed', a list of all the places that each read could be placed.  Decide if there is a _single_
   //  place for each bubble to be popped.
 
-  uint32  tiLimit      = unitigs.size();
+  uint32  tiLimit      = tigs.size();
   //uint32  tiNumThreads = omp_get_max_threads();
   //uint32  tiBlockSize  = (tiLimit < 100000 * tiNumThreads) ? tiNumThreads : tiLimit / 99999;
 
   //  Clear flags.
   for (uint32 ti=0; ti<tiLimit; ti++) {
-    if (unitigs[ti]) {
-      unitigs[ti]->_isBubble = false;
-      unitigs[ti]->_isRepeat = false;
+    if (tigs[ti]) {
+      tigs[ti]->_isBubble = false;
+      tigs[ti]->_isRepeat = false;
     }
   }
 
@@ -385,7 +385,7 @@ popBubbles(TigVector &unitigs,
 
     //  Save some interesting bits about our bubble.
 
-    Unitig  *bubble        = unitigs[ti];
+    Unitig  *bubble        = tigs[ti];
     uint32   bubbleLen     = bubble->getLength();
 
     ufNode  &fRead         = bubble->ufpath.front();
@@ -562,7 +562,7 @@ popBubbles(TigVector &unitigs,
 
         //  Both reads placed, and at about the right size.  We probably should be checking orientation.  Maybe tomorrow.
 
-        targets.push_back(new candidatePop(bubble, unitigs[targetID], regionMin, regionMax));
+        targets.push_back(new candidatePop(bubble, tigs[targetID], regionMin, regionMax));
       }  //  Over all intervals for this target
     }  //  Over all targets
 
@@ -793,7 +793,7 @@ popBubbles(TigVector &unitigs,
 
       writeLog("\n");
 
-      unitigs[bubble->id()] = NULL;
+      tigs[bubble->id()] = NULL;
       delete bubble;
     }
 
@@ -831,7 +831,7 @@ popBubbles(TigVector &unitigs,
         frg.position.bgn = placed[rr][bb].position.bgn;
         frg.position.end = placed[rr][bb].position.end;
 
-        Unitig  *target  = unitigs[placed[rr][bb].tigID];
+        Unitig  *target  = tigs[placed[rr][bb].tigID];
 
         writeLog("move read %u from tig %u to tig %u %u-%u\n",
                  frg.ident,
@@ -843,7 +843,7 @@ popBubbles(TigVector &unitigs,
 
       writeLog("\n");
 
-      unitigs[bubble->id()] = NULL;
+      tigs[bubble->id()] = NULL;
       delete bubble;
     }
   }  //  Over all bubbles
@@ -855,7 +855,7 @@ popBubbles(TigVector &unitigs,
   //  Sort reads in all the tigs.  Overkill, but correct.
 
   for (uint32 ti=0; ti<tiLimit; ti++) {
-    Unitig  *tig = unitigs[ti];
+    Unitig  *tig = tigs[ti];
 
     if ((tig == NULL) ||               //  Not a tig, ignore it.
         (tig->ufpath.size() == 1))     //  Singleton, already sorted.

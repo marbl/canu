@@ -49,15 +49,15 @@
 
 
 void
-breakSingletonTigs(TigVector &unitigs) {
+breakSingletonTigs(TigVector &tigs) {
 
   //  For any singleton unitig, eject the read and delete the unitig.  Eventually,
-  //  we will stop making singleton unitigs.
+  //  we will stop making singleton tigs.
 
   uint32   removed = 0;
 
-  for (uint32 ti=1; ti<unitigs.size(); ti++) {
-    Unitig *utg = unitigs[ti];
+  for (uint32 ti=1; ti<tigs.size(); ti++) {
+    Unitig *utg = tigs[ti];
 
     if (utg == NULL)
       continue;
@@ -65,7 +65,7 @@ breakSingletonTigs(TigVector &unitigs) {
     if (utg->ufpath.size() > 1)
       continue;
 
-    unitigs[ti] = NULL;                      //  Remove the unitig from the list
+    tigs[ti] = NULL;                      //  Remove the unitig from the list
     utg->removeFrag(utg->ufpath[0].ident);   //  Eject the read
     delete utg;                              //  Reclaim space
     removed++;                               //  Count
@@ -78,7 +78,7 @@ breakSingletonTigs(TigVector &unitigs) {
 
 
 void
-placeUnplacedUsingAllOverlaps(TigVector &unitigs,
+placeUnplacedUsingAllOverlaps(TigVector    &tigs,
                               const char   *prefix) {
   uint32  fiLimit    = FI->numFragments();
   uint32  numThreads = omp_get_max_threads();
@@ -123,14 +123,14 @@ placeUnplacedUsingAllOverlaps(TigVector &unitigs,
 
     vector<overlapPlacement>   placements;
 
-    placeFragUsingOverlaps(unitigs, NULL, fid, placements, placeFrag_fullMatch);
+    placeFragUsingOverlaps(tigs, NULL, fid, placements, placeFrag_fullMatch);
 
     //  Search the placements for the highest expected identity placement using all overlaps in the unitig.
 
     uint32   b = UINT32_MAX;
 
     for (uint32 i=0; i<placements.size(); i++) {
-      Unitig *tig = unitigs[placements[i].tigID];
+      Unitig *tig = tigs[placements[i].tigID];
 
       if (placements[i].fCoverage < 0.99)                   //  Ignore partially placed reads.
         continue;
@@ -172,7 +172,7 @@ placeUnplacedUsingAllOverlaps(TigVector &unitigs,
     else {
       if ((enableLog == true) && (logFileFlagSet(LOG_PLACE_UNPLACED)))
         writeLog("frag %8u placed tig %6u (%6u reads) at %8u-%8u (cov %7.5f erate %6.4f)\n",
-                 fid, placements[b].tigID, unitigs[placements[b].tigID]->ufpath.size(),
+                 fid, placements[b].tigID, tigs[placements[b].tigID]->ufpath.size(),
                  placements[b].position.bgn, placements[b].position.end,
                  placements[b].fCoverage,
                  placements[b].errors / placements[b].aligned);
@@ -201,7 +201,7 @@ placeUnplacedUsingAllOverlaps(TigVector &unitigs,
       else
         nFailed++;
 
-      //tig = unitigs.newUnitig(false);
+      //tig = tigs.newUnitig(false);
     }
 
     //  Otherwise, it was placed somewhere, grab the tig.
@@ -212,7 +212,7 @@ placeUnplacedUsingAllOverlaps(TigVector &unitigs,
       else
         nPlaced++;
 
-      tig = unitigs[placedTig[fid]];
+      tig = tigs[placedTig[fid]];
     }
 
     //  Regardless, add it to the tig.  Logging for this is above.
@@ -241,8 +241,8 @@ placeUnplacedUsingAllOverlaps(TigVector &unitigs,
   //  are big, and those quite likely had reads added to them, so it's really not worth the effort
   //  of tracking which ones need sorting, since the ones that don't need it are trivial to sort.
 
-  for (uint32 ti=1; ti<unitigs.size(); ti++) {
-    Unitig *utg = unitigs[ti];
+  for (uint32 ti=1; ti<tigs.size(); ti++) {
+    Unitig *utg = tigs[ti];
 
     if (utg)
       utg->sort();

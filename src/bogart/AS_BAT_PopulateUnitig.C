@@ -116,15 +116,15 @@ populateUnitig(Unitig           *unitig,
 
 
 void
-populateUnitig(TigVector &unitigs,
-               int32 fi) {
+populateUnitig(TigVector &tigs,
+               int32      fi) {
 
   if ((FI->fragmentLength(fi) == 0) ||  //  Skip deleted
       (Unitig::fragIn(fi) != 0) ||      //  Skip placed
       (OG->isContained(fi) == true))    //  Skip contained
     return;
 
-  Unitig *utg = unitigs.newUnitig(logFileFlagSet(LOG_BUILD_UNITIG));
+  Unitig *utg = tigs.newUnitig(logFileFlagSet(LOG_BUILD_UNITIG));
 
   //  Add a first fragment -- to be 'compatable' with the old code, the first fragment is added
   //  reversed, we walk off of its 5' end, flip it, and add the 3' walk.
@@ -170,7 +170,7 @@ populateUnitig(TigVector &unitigs,
 #if 0
   uint32  covered = FI->fragmentLength(fi) + bestedge5->bhang() + FI->fragmentLength(fi) - bestedge3->ahang();
 
-  //  This breaks unitigs at 0x best-coverage regions.  There might be a contain that spans (joins)
+  //  This breaks tigs at 0x best-coverage regions.  There might be a contain that spans (joins)
   //  the two best overlaps to verify the fragment, but we can't easily tell right now.
   if (covered < FI->fragmentLength(fi) + AS_OVERLAP_MIN_LEN / 2) {
     writeLog("Stopping unitig construction of suspicious frag %d in unitig %d\n",

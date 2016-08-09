@@ -128,7 +128,7 @@ const uint32  placeFrag_fullMatch  = 0x01;   //  Return only alignments for the 
 const uint32  placeFrag_noExtend   = 0x02;   //  Return only alignments contained in the tig
 
 bool
-placeFragUsingOverlaps(TigVector             &unitigs,
+placeFragUsingOverlaps(TigVector                &tigs,
                        Unitig                   *target,
                        uint32                    fid,
                        vector<overlapPlacement> &placements,

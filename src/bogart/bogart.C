@@ -106,8 +106,6 @@ main (int argc, char * argv []) {
   int       fragment_count_target    = 0;
   char     *prefix                   = NULL;
 
-  bool      enableJoining            = false;
-
   uint32    minReadLen               = 0;
   uint32    minOverlap               = 500;
 
@@ -135,9 +133,6 @@ main (int argc, char * argv []) {
 
     } else if (strcmp(argv[arg], "-gs") == 0) {
       genomeSize = strtoull(argv[++arg], NULL, 10);
-
-    } else if (strcmp(argv[arg], "-J") == 0) {
-      enableJoining = true;
 
     } else if (strcmp(argv[arg], "-T") == 0) {
       tigStorePath = argv[++arg];
@@ -273,8 +268,6 @@ main (int argc, char * argv []) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -gs        Genome size in bases.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -J         Join promiscuous unitigs using unused best edges.\n");
-    fprintf(stderr, "\n");
     fprintf(stderr, "  -RL len    Force reads below 'len' bases to be singletons.\n");
     fprintf(stderr, "               This WILL cause CGW to fail; diagnostic only.\n");
     fprintf(stderr, "\n");
@@ -285,7 +278,7 @@ main (int argc, char * argv []) {
     fprintf(stderr, "Overlap Selection - an overlap will be considered for use in a unitig under\n");
     fprintf(stderr, "                    the following conditions:\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  When constructing the Best Overlap Graph and Promiscuous Unitigs ('g'raph):\n");
+    fprintf(stderr, "  When constructing the Best Overlap Graph and Greedy tigs ('g'raph):\n");
     fprintf(stderr, "    -eg 0.020   no more than 0.020 fraction (2.0%%) error   ** DEPRECATED **\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  When loading overlaps, an inflated maximum (to allow reruns with different error rates):\n");
@@ -362,7 +355,8 @@ main (int argc, char * argv []) {
   ovStore          *ovlStoreUniq = new ovStore(ovlStoreUniqPath, gkpStore);
   ovStore          *ovlStoreRept = ovlStoreReptPath ? new ovStore(ovlStoreReptPath, gkpStore) : NULL;
 
-  TigVector         unitigs;
+  TigVector         contigs;  //  Both initial greedy tigs and final contigs
+  TigVector         unitigs;  //  The 'final' contigs, split at every intersection in the graph
 
   writeStatus("\n");
   writeStatus("==> LOADING AND FILTERING OVERLAPS.\n");
@@ -392,13 +386,13 @@ main (int argc, char * argv []) {
   //
 
   writeStatus("\n");
-  writeStatus("==> BUILDING UNITIGS.\n");
+  writeStatus("==> BUILDING GREEDY TIGS.\n");
   writeStatus("\n");
 
-  setLogFile(prefix, "buildUnitigs");
+  setLogFile(prefix, "buildGreedy");
 
   for (uint32 fi=CG->nextFragByChunkLength(); fi>0; fi=CG->nextFragByChunkLength())
-    populateUnitig(unitigs, fi);
+    populateUnitig(contigs, fi);
 
   delete CG;
   CG = NULL;
@@ -407,10 +401,10 @@ main (int argc, char * argv []) {
   //delete OG;
   //OG = NULL;
 
-  breakSingletonTigs(unitigs);
+  breakSingletonTigs(contigs);
 
-  reportOverlaps(unitigs, prefix, "buildUnitigs");
-  reportUnitigs(unitigs, prefix, "buildUnitigs", genomeSize);
+  reportOverlaps(contigs, prefix, "buildGreedy");
+  reportTigs(contigs, prefix, "buildGreedy", genomeSize);
 
   //
   //  Place contained reads.
@@ -422,14 +416,14 @@ main (int argc, char * argv []) {
 
   setLogFile(prefix, "placeContains");
 
-  //unitigs.computeArrivalRate(prefix, "initial");
-  unitigs.computeErrorProfiles(prefix, "initial");
-  unitigs.reportErrorProfiles(prefix, "initial");
+  //contigs.computeArrivalRate(prefix, "initial");
+  contigs.computeErrorProfiles(prefix, "initial");
+  contigs.reportErrorProfiles(prefix, "initial");
 
-  placeUnplacedUsingAllOverlaps(unitigs, prefix);
+  placeUnplacedUsingAllOverlaps(contigs, prefix);
 
-  reportOverlaps(unitigs, prefix, "placeContains");
-  reportUnitigs(unitigs, prefix, "placeContains", genomeSize);
+  reportOverlaps(contigs, prefix, "placeContains");
+  reportTigs(contigs, prefix, "placeContains", genomeSize);
 
   //
   //  Merge orphans.
@@ -441,14 +435,14 @@ main (int argc, char * argv []) {
 
   setLogFile(prefix, "mergeOrphans");
 
-  unitigs.computeErrorProfiles(prefix, "unplaced");
-  unitigs.reportErrorProfiles(prefix, "unplaced");
+  contigs.computeErrorProfiles(prefix, "unplaced");
+  contigs.reportErrorProfiles(prefix, "unplaced");
 
-  popBubbles(unitigs, deviationGraph);
+  popBubbles(contigs, deviationGraph);
 
-  //checkUnitigMembership(unitigs);
-  reportOverlaps(unitigs, prefix, "mergeOrphans");
-  reportUnitigs(unitigs, prefix, "mergeOrphans", genomeSize);
+  //checkUnitigMembership(contigs);
+  reportOverlaps(contigs, prefix, "mergeOrphans");
+  reportTigs(contigs, prefix, "mergeOrphans", genomeSize);
 
   //
   //  Generate a new graph using only edges that are compatible with existing tigs.
@@ -460,10 +454,10 @@ main (int argc, char * argv []) {
 
   setLogFile(prefix, "assemblyGraph");
 
-  unitigs.computeErrorProfiles(prefix, "assemblyGraph");
-  unitigs.reportErrorProfiles(prefix, "assemblyGraph");
+  contigs.computeErrorProfiles(prefix, "assemblyGraph");
+  contigs.reportErrorProfiles(prefix, "assemblyGraph");
 
-  AG = new AssemblyGraph(prefix, deviationGraph, deviationBubble, deviationRepeat, unitigs);
+  AG = new AssemblyGraph(prefix, deviationGraph, deviationBubble, deviationRepeat, contigs);
   AG->reportGraph(prefix, "initial");
 
   //
@@ -477,18 +471,18 @@ main (int argc, char * argv []) {
 
   setLogFile(prefix, "breakRepeats");
 
-  unitigs.computeErrorProfiles(prefix, "repeats");
+  contigs.computeErrorProfiles(prefix, "repeats");
 
-  markRepeatReads(unitigs, deviationRepeat, confusedAbsolute, confusedPercent);
+  markRepeatReads(contigs, deviationRepeat, confusedAbsolute, confusedPercent);
 
-  //checkUnitigMembership(unitigs);
-  reportOverlaps(unitigs, prefix, "markRepeatReads");
-  reportUnitigs(unitigs, prefix, "markRepeatReads", genomeSize);
+  //checkUnitigMembership(contigs);
+  reportOverlaps(contigs, prefix, "markRepeatReads");
+  reportTigs(contigs, prefix, "markRepeatReads", genomeSize);
 
    AG->reportGraph(prefix, "split");
 
   //
-  //  Cleanup unitigs.  Break those that have gaps in them.  Place contains again.  For any read
+  //  Cleanup tigs.  Break those that have gaps in them.  Place contains again.  For any read
   //  still unplaced, make it a singleton unitig.
   //
 
@@ -498,16 +492,16 @@ main (int argc, char * argv []) {
 
   setLogFile(prefix, "cleanupMistakes");
 
-  splitDiscontinuousUnitigs(unitigs, minOverlap);
+  splitDiscontinuous(contigs, minOverlap);
 
-  breakSingletonTigs(unitigs);
+  breakSingletonTigs(contigs);
 
-  //unitigs.computeErrorProfiles(prefix, "final");
-  //unitigs.reportErrorProfiles(prefix, "final");
+  //contigs.computeErrorProfiles(prefix, "final");
+  //contigs.reportErrorProfiles(prefix, "final");
 
-  //placeUnplacedUsingAllOverlaps(unitigs, prefix);
+  //placeUnplacedUsingAllOverlaps(contigs, prefix);
 
-  promoteToSingleton(unitigs);
+  promoteToSingleton(contigs);
 
   writeStatus("\n");
   writeStatus("==> GENERATE OUTPUTS.\n");
@@ -515,25 +509,25 @@ main (int argc, char * argv []) {
 
   setLogFile(prefix, "generateOutputs");
 
-  classifyUnitigsAsUnassembled(unitigs,
-                               fewReadsNumber,
-                               tooShortLength,
-                               spanFraction,
-                               lowcovFraction, lowcovDepth);
+  classifyTigsAsUnassembled(contigs,
+                            fewReadsNumber,
+                            tooShortLength,
+                            spanFraction,
+                            lowcovFraction, lowcovDepth);
 
-  //checkUnitigMembership(unitigs);
-  reportOverlaps(unitigs, prefix, "final");
-  reportUnitigs(unitigs, prefix, "final", genomeSize);
+  //checkUnitigMembership(contigs);
+  reportOverlaps(contigs, prefix, "final");
+  reportTigs(contigs, prefix, "final", genomeSize);
 
   //
   //  Generate outputs.  The graph MUST come after output, because it needs
   //  the tigStore tigID.
   //
 
-  setParentAndHang(unitigs);
-  writeUnitigsToStore(unitigs, prefix, tigStorePath, fragment_count_target, true);
+  setParentAndHang(contigs);
+  writeTigsToStore(contigs, prefix, tigStorePath, fragment_count_target, true);
 
-  writeUnusedEdges(unitigs, prefix);
+  writeUnusedEdges(contigs, prefix);
 
   //
   //  Tear down bogart.

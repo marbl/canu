@@ -38,14 +38,14 @@ TigVector::TigVector() {
   _blocks[0]    = new Unitig  * [_blockSize];
   _blocks[0][0] = NULL;  //  No first unitig.
   _blockNext    = 1;
-  _totalUnitigs = 1;
+  _totalTigs    = 1;
 };
 
 
 
 TigVector::~TigVector() {
 
-  //  Delete the unitigs.
+  //  Delete the tigs.
   for (uint32 ii=0; ii<_numBlocks; ii++)
     for (uint32 jj=0; jj<_blockSize; jj++)
       delete _blocks[ii][jj];
@@ -66,7 +66,7 @@ TigVector::newUnitig(bool verbose) {
 
 #pragma omp critical
   {
-    u->_id = _totalUnitigs++;
+    u->_id = _totalTigs++;
 
     if (verbose)
       writeLog("Creating Unitig %d\n", u->_id);
@@ -110,15 +110,15 @@ Unitig *&operator[](uint32 i) {
   uint32  idx = i / _blockSize;
   uint32  pos = i % _blockSize;
 
-  if (((i    >= _totalUnitigs)) ||
+  if (((i    >= _totalTigs)) ||
       ((idx  >= _numBlocks)) ||
       (((pos >= _blockNext) && (idx >= _numBlocks - 1)))) {
-    writeStatus("TigVector::operator[]()--  i="F_U32" with totalUnitigs="F_U64"\n", i, _totalUnitigs);
+    writeStatus("TigVector::operator[]()--  i="F_U32" with totalTigs="F_U64"\n", i, _totalTigs);
     writeStatus("TigVector::operator[]()--  blockSize="F_U64"\n", _blockSize);
     writeStatus("TigVector::operator[]()--  idx="F_U32" numBlocks="F_U64"\n", idx, _numBlocks);
     writeStatus("TigVector::operator[]()--  pos="F_U32" blockNext="F_U64"\n", pos, _blockNext);
   }
-  assert(i    < _totalUnitigs);
+  assert(i    < _totalTigs);
   assert((idx < _numBlocks));
   assert((pos < _blockNext) || (idx < _numBlocks - 1));
 
@@ -138,7 +138,7 @@ TigVector::computeArrivalRate(const char *prefix, const char *label) {
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize = (tiLimit < 100000 * numThreads) ? numThreads : tiLimit / 99999;
 
-  writeStatus("computeArrivalRate()-- Computing arrival rates for %u unitigs using %u threads.\n", tiLimit, numThreads);
+  writeStatus("computeArrivalRate()-- Computing arrival rates for %u tigs using %u threads.\n", tiLimit, numThreads);
 
   vector<int32>  hist[6];
 
@@ -177,7 +177,7 @@ TigVector::computeErrorProfiles(const char *prefix, const char *label) {
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize = (tiLimit < 100000 * numThreads) ? numThreads : tiLimit / 99999;
 
-  writeStatus("computeErrorProfiles()-- Computing error profiles for %u unitigs using %u threads.\n", tiLimit, numThreads);
+  writeStatus("computeErrorProfiles()-- Computing error profiles for %u tigs using %u threads.\n", tiLimit, numThreads);
 
   //#pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 ti=0; ti<tiLimit; ti++) {
