@@ -59,9 +59,11 @@ public:
   uint32            olapBgn;      //  Position in the tig covered by overlaps.
   uint32            olapEnd;      //
 
-  bool              isRepeat;     //  This placement is to a repeat
-  bool              isBubble;     //  This placement is to a bubble
+  bool              isBubble;     //  This placement is to a bubble (a repeat that was not split)
+  bool              isRepeat;     //  This placement is to a repeat (that was split)
+
   bool              isUnitig;     //  This placement is in a unitig
+  bool              isContig;     //  This placement is in a contig
 
   BAToverlapInt     bestC;
   BAToverlapInt     best5;        //  For space reasons, overlaps are stored in the

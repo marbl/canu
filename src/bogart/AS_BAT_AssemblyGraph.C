@@ -422,8 +422,13 @@ AssemblyGraph::reportGraph(const char *prefix, const char *label) {
   memset(used, 0, sizeof(uint32) * (FI->numFragments() + 1));
 
   for (uint32 fi=1; fi<FI->numFragments() + 1; fi++) {
-    if (_pForward[fi].size() > 0)
-      used[fi] = 1;
+
+    for (uint32 pp=0; pp<_pForward[fi].size(); pp++)
+      if (_pForward[fi][pp].isRepeat == false)
+        used[fi] = 1;
+
+    //if (_pForward[fi].size() > 0)
+    //  used[fi] = 1;
 
     for (uint32 pp=0; pp<_pForward[fi].size(); pp++) {
       used[_pForward[fi][pp].bestC.b_iid] = 1;
@@ -448,12 +453,21 @@ AssemblyGraph::reportGraph(const char *prefix, const char *label) {
   uint32  nConly = 0;  //  Number of placements with a contained overlap and no pair of edges
   uint32  nCdove = 0;  //  Number of placements with a cotnained overlap but a  pair of edges
 
+  uint32  nRepeat = 0;
+
   uint32  nC = 0;
   uint32  n5 = 0;
   uint32  n3 = 0;
 
   for (uint32 fi=1; fi<FI->numFragments() + 1; fi++) {
     for (uint32 pp=0; pp<_pForward[fi].size(); pp++) {
+
+      //  Skip eges to resolved repeats.
+      if (_pForward[fi][pp].isRepeat == true) {
+        nRepeat++;
+        continue;
+      }
+
       BAToverlapInt *bestedgeC = &_pForward[fi][pp].bestC;
       BAToverlapInt *bestedge5 = &_pForward[fi][pp].best5;
       BAToverlapInt *bestedge3 = &_pForward[fi][pp].best3;
@@ -508,4 +522,5 @@ AssemblyGraph::reportGraph(const char *prefix, const char *label) {
   writeStatus("AssemblyGraph()-- output %u contained edges, %u with dovetail edges and %u contained only\n", nC, nCdove, nConly);
   writeStatus("AssemblyGraph()-- output %u 5' edges\n", n5);
   writeStatus("AssemblyGraph()-- output %u 3' edges\n", n3);
+  writeStatus("AssemblyGraph()-- skipped %u reads to resolved repeat regions\n");
 }

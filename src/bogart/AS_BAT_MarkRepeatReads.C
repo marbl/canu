@@ -62,11 +62,11 @@ int32  REPEAT_OVERLAP_MIN    = 50;
 
 class olapDat {
 public:
-  olapDat(uint32 b, uint32 e, uint32 t, uint32 r) {
+  olapDat(uint32 b, uint32 e, uint32 r, uint32 p) {
     tigbgn  = b;
     tigend  = e;
-    eviTid  = t;
     eviRid  = r;
+    eviPid  = p;
   };
 
   bool operator<(const olapDat &that)     const { return(tigbgn < that.tigbgn); };
@@ -74,9 +74,8 @@ public:
   int32   tigbgn;   //  Location of the overlap on this tig
   int32   tigend;   //
 
-#warning eviTid is unused.
-  uint32  eviTid;   //  tig that the evidence read came from
   uint32  eviRid;   //  evidence read
+  uint32  eviPid;   //  evidence read placeID
 };
 
 
@@ -176,8 +175,47 @@ findUnitigCoverage(Unitig               *tig,
 
 
 
+//  Any edge in 'repeats' that is not captured in a 'BP' is to a repeat that
+//  has been deemed resolved.  Mark those edges.
+//
+void
+removeResolvedRepeatEdges(UnitigVector             &unitigs,
+                          Unitig                   *tig,
+                          vector<breakPointCoords> &BP,
+                          vector<olapDat>          &repeats) {
+  uint32   nUnitig   = 0;
+  uint32   nResolved = 0;
+  uint32   nRepeat   = 0;
 
+  for (uint32 rr=0; rr<repeats.size(); rr++) {
+    uint32  rID = repeats[rr].eviRid;
+    uint32  pID = repeats[rr].eviPid;
+    bool    foundBP = false;
 
+    //  There shouldn't be any isUnitig edges.  They're screened out when 'repeats' is built.
+    assert(AG->getForward(rID)[pID].isUnitig == false);
+
+    //  Search to see if this repeat is completely within a NP.
+    for (uint32 bb=0; (foundBP == false) && (bb<BP.size()); bb++) {
+      if (BP[bb]._isRepeat == false)
+        continue;
+
+      if ((BP[bb]._bgn <= repeats[rr].tigbgn) &&
+          (repeats[rr].tigend <= BP[bb]._end))
+        foundBP = true;
+    }
+
+    if (foundBP == false) {
+      nResolved++;
+      AG->getForward(rID)[pID].isRepeat = true;
+    } else {
+      nRepeat++;
+    }
+  }
+
+  writeStatus("AssemblyGraph()-- retained %u unitig edges, retained %u repeat edges, removed %u resolved repeat edges.\n",
+              nUnitig, nResolved, nRepeat);
+}
 
 
 
@@ -332,7 +370,7 @@ annotateRepeatsOnRead(UnitigVector          &UNUSED(unitigs),
       if (fPlace.isUnitig)
         continue;
 
-      repeats.push_back(olapDat(fPlace.olapBgn, fPlace.olapEnd, Unitig::fragIn(rID), rID));
+      repeats.push_back(olapDat(fPlace.olapBgn, fPlace.olapEnd, rID, pID));
     }
   }
 }
@@ -365,8 +403,6 @@ markRepeatReads(UnitigVector &unitigs,
     if (tig->ufpath.size() == 1)
       continue;
 
-    vector<olapDat>   repeats;
-
     writeLog("Annotating repeats in reads for tig %u/%u.\n", ti, tiLimit);
 
     //  Clear out all the existing marks.  They're not for this tig.
@@ -392,10 +428,10 @@ markRepeatReads(UnitigVector &unitigs,
 #ifdef SHOW_ANNOTATE
     for (uint32 ii=0; ii<repeatOlaps.size(); ii++)
       if (repeatOlaps[ii].tigbgn < 1000000)
-        writeLog("repeatOlaps[%u] %d-%d from tig %u read %u RAW\n",
+        writeLog("repeatOlaps[%u] %d-%d from read %u place %u RAW\n",
                  ii,
                  repeatOlaps[ii].tigbgn, repeatOlaps[ii].tigend,
-                 repeatOlaps[ii].eviTid, repeatOlaps[ii].eviRid);
+                 repeatOlaps[ii].eviRid, repeatOlaps[ii].eviPid);
 
     flushLog();
 #endif
@@ -427,8 +463,8 @@ markRepeatReads(UnitigVector &unitigs,
 
       repeatOlaps[ss].tigbgn = UINT32_MAX;
       repeatOlaps[ss].tigend = UINT32_MAX;
-      repeatOlaps[ss].eviTid = UINT32_MAX;
       repeatOlaps[ss].eviRid = UINT32_MAX;
+      repeatOlaps[ss].eviPid = UINT32_MAX;
     }
 
     //  Sort overlaps again.  This pushes all those 'erased' regions to the end of the list, which
@@ -437,7 +473,7 @@ markRepeatReads(UnitigVector &unitigs,
     sort(repeatOlaps.begin(), repeatOlaps.end(), olapDatByEviRid);
 
     for (uint32 ii=repeatOlaps.size(); ii--; )
-      if (repeatOlaps[ii].eviTid == UINT32_MAX)
+      if (repeatOlaps[ii].eviRid == UINT32_MAX)
         repeatOlaps.pop_back();
 
     //  For logging, sort by coordinate
@@ -447,10 +483,10 @@ markRepeatReads(UnitigVector &unitigs,
 #ifdef SHOW_ANNOTATE
     for (uint32 ii=0; ii<repeatOlaps.size(); ii++)
       if (repeatOlaps[ii].tigbgn < 1000000)
-        writeLog("repeatOlaps[%d] %d-%d from tig %u read %u MERGED\n",
+        writeLog("repeatOlaps[%d] %d-%d from tig %u read %u place %u MERGED\n",
                  ii,
                  repeatOlaps[ii].tigbgn, repeatOlaps[ii].tigend,
-                 repeatOlaps[ii].eviTid, repeatOlaps[ii].eviRid);
+                 repeatOlaps[ii].eviRid, repeatOlaps[ii].eviPid);
 #endif
 
     //  Make a new set of intervals based on all the detected repeats.
@@ -992,8 +1028,10 @@ markRepeatReads(UnitigVector &unitigs,
 
     //  Second call, actually create the tigs, if anything would change.
 
-    if (nTigs > 1)
+    if (nTigs > 1) {
+      //removeResolvedRepeatEdges(unitigs, tig, BP, repeatOlaps);
       splitUnitigs(unitigs, tig, BP, newTigs, lowCoord, nRepeat, nUnique, true);
+    }
 
     //  Report the tigs created.
 
