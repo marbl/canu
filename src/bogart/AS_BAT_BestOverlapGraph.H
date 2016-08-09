@@ -196,10 +196,6 @@ public:
                    double      deviationGraph,
                    const char *prefix);
 
-  BestOverlapGraph(double       erateGraph,
-                   double       deviationGraph,
-                   set<uint32> *restrict);
-
   ~BestOverlapGraph() {
     delete [] _bestA;
     delete [] _scorA;
@@ -247,7 +243,6 @@ public:
 public:
   bool     isOverlapBadQuality(const BAToverlap& olap);  //  Used in repeat detection
 private:
-  bool     isOverlapRestricted(const BAToverlap &olap);
   uint64   scoreOverlap(const BAToverlap& olap);
 
 private:
@@ -289,8 +284,15 @@ private:
   map<uint32, BestOverlaps>  _bestM;
   map<uint32, BestScores>    _scorM;
 
+  //  These restrict the best overlap graph to a set of reads, instead of all reads.
+  //  Currently (Aug 2016) unused.  There used to be a constructor that would take
+  //  a set(uint32) of reads we cared about, but it was quite stale and was removed.
+private:
+  bool     isOverlapRestricted(const BAToverlap &olap);
+private:
   set<uint32>               *_restrict;
   bool                       _restrictEnabled;
+
 
 public:
   double                     _erateGraph;

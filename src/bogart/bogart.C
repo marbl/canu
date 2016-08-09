@@ -108,9 +108,6 @@ main (int argc, char * argv []) {
 
   bool      enableJoining            = false;
 
-  bool      enableShatterRepeats     = false;
-  bool      enableReconstructRepeats = false;
-
   uint32    minReadLen               = 0;
   uint32    minOverlap               = 500;
 
@@ -144,13 +141,6 @@ main (int argc, char * argv []) {
 
     } else if (strcmp(argv[arg], "-T") == 0) {
       tigStorePath = argv[++arg];
-
-    } else if (strcmp(argv[arg], "-SR") == 0) {
-      enableShatterRepeats     = true;
-
-    } else if (strcmp(argv[arg], "-R") == 0) {
-      enableShatterRepeats     = true;
-      enableReconstructRepeats = true;
 
     } else if (strcmp(argv[arg], "-unassembled") == 0) {
       fewReadsNumber  = atoi(argv[++arg]);
@@ -285,8 +275,6 @@ main (int argc, char * argv []) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -J         Join promiscuous unitigs using unused best edges.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -SR        Shatter repeats, don't rebuild.\n");
-    fprintf(stderr, "  -R         Shatter repeats (-SR), then rebuild them\n");
     fprintf(stderr, "  -RL len    Force reads below 'len' bases to be singletons.\n");
     fprintf(stderr, "               This WILL cause CGW to fail; diagnostic only.\n");
     fprintf(stderr, "\n");
@@ -498,23 +486,6 @@ main (int argc, char * argv []) {
   reportUnitigs(unitigs, prefix, "markRepeatReads", genomeSize);
 
    AG->reportGraph(prefix, "split");
-
- //
-  //  Try to reassemble just the split repeats.
-  //
-
-#if 0
-  if (enableReconstructRepeats) {
-    assert(enableShatterRepeats);
-    setLogFile(prefix, "reconstructRepeats");
-
-    reconstructRepeats(unitigs, erateGraph);
-
-    //checkUnitigMembership(unitigs);
-    reportOverlaps(unitigs, prefix, "reconstructRepeats");
-    reportUnitigs(unitigs, prefix, "reconstructRepeats", genomeSize);
-  }
-#endif
 
   //
   //  Cleanup unitigs.  Break those that have gaps in them.  Place contains again.  For any read

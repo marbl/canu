@@ -23,7 +23,6 @@ SOURCES  := bogart.C \
             AS_BAT_PopBubbles.C \
             AS_BAT_PopulateUnitig.C \
             AS_BAT_PromoteToSingleton.C \
-            AS_BAT_ReconstructRepeats.C \
             AS_BAT_SetParentAndHang.C \
             AS_BAT_SplitDiscontinuous.C \
             AS_BAT_TigVector.C \
