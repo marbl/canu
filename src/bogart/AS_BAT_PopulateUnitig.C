@@ -116,7 +116,7 @@ populateUnitig(Unitig           *unitig,
 
 
 void
-populateUnitig(UnitigVector &unitigs,
+populateUnitig(TigVector &unitigs,
                int32 fi) {
 
   if ((FI->fragmentLength(fi) == 0) ||  //  Skip deleted

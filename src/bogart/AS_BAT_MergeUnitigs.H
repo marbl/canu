@@ -28,7 +28,7 @@
 
 
 void
-mergeUnitigs(UnitigVector &unitigs,
+mergeUnitigs(TigVector &unitigs,
              double        deviation,
              bool          findCircularTigs);
 

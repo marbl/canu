@@ -39,7 +39,7 @@
 #define INCLUDE_AS_BAT_UNITIG
 
 #include "AS_global.H"
-#include "AS_BAT_UnitigVector.H"
+#include "AS_BAT_TigVector.H"
 
 #include "stddev.H"
 
@@ -160,7 +160,7 @@ public:
   ~Unitig(void) {
   };
 
-  friend class UnitigVector;
+  friend class TigVector;
 
   void sort(void) {
     std::sort(ufpath.begin(), ufpath.end());

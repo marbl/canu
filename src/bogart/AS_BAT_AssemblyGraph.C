@@ -29,7 +29,7 @@
 #include "AS_BAT_Logging.H"
 
 #include "AS_BAT_Unitig.H"
-#include "AS_BAT_UnitigVector.H"
+#include "AS_BAT_TigVector.H"
 
 #include "intervalList.H"
 #include "stddev.H"
@@ -41,7 +41,7 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
                              double        deviationGraph,
                              double        deviationBubble,
                              double        deviationRepeat,
-                             UnitigVector &unitigs) {
+                             TigVector &unitigs) {
   uint32  fiLimit    = FI->numFragments();
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;

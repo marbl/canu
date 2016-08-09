@@ -38,8 +38,8 @@
 #ifndef INCLUDE_AS_BAT_SETPARENTANDHANG
 #define INCLUDE_AS_BAT_SETPARENTANDHANG
 
-#include "AS_BAT_UnitigVector.H"
+#include "AS_BAT_TigVector.H"
 
-void setParentAndHang(UnitigVector &unitigs);
+void setParentAndHang(TigVector &unitigs);
 
 #endif  //  INCLUDE_AS_BAT_SETPARENTANDHANG

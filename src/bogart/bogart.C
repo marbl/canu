@@ -375,7 +375,7 @@ main (int argc, char * argv []) {
   ovStore          *ovlStoreUniq = new ovStore(ovlStoreUniqPath, gkpStore);
   ovStore          *ovlStoreRept = ovlStoreReptPath ? new ovStore(ovlStoreReptPath, gkpStore) : NULL;
 
-  UnitigVector      unitigs;
+  TigVector         unitigs;
 
   writeStatus("\n");
   writeStatus("==> LOADING AND FILTERING OVERLAPS.\n");

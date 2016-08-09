@@ -42,7 +42,7 @@ using namespace std;
 
 
 void
-mergeUnitigs_findPlacements(UnitigVector              &unitigs,
+mergeUnitigs_findPlacements(TigVector              &unitigs,
                             ufNode                    *rd,
                             double                     deviation,
                             vector<overlapPlacement>  &validPlacements) {
@@ -90,7 +90,7 @@ mergeUnitigs_findPlacements(UnitigVector              &unitigs,
 
 
 void
-mergeUnitigs(UnitigVector &unitigs,
+mergeUnitigs(TigVector &unitigs,
              double        deviation,
              bool          findCircularTigs) {
 

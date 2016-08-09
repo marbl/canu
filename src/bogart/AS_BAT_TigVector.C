@@ -26,11 +26,11 @@
 #include "AS_BAT_Logging.H"
 
 #include "AS_BAT_Unitig.H"
-#include "AS_BAT_UnitigVector.H"
+#include "AS_BAT_TigVector.H"
 
 
 
-UnitigVector::UnitigVector() {
+TigVector::TigVector() {
   _blockSize    = 1048576;
   _numBlocks    = 1;
   _maxBlocks    = 1024;
@@ -43,7 +43,7 @@ UnitigVector::UnitigVector() {
 
 
 
-UnitigVector::~UnitigVector() {
+TigVector::~TigVector() {
 
   //  Delete the unitigs.
   for (uint32 ii=0; ii<_numBlocks; ii++)
@@ -61,7 +61,7 @@ UnitigVector::~UnitigVector() {
 
 
 Unitig *
-UnitigVector::newUnitig(bool verbose) {
+TigVector::newUnitig(bool verbose) {
   Unitig *u = new Unitig();
 
 #pragma omp critical
@@ -98,7 +98,7 @@ UnitigVector::newUnitig(bool verbose) {
 
 
 void
-UnitigVector::deleteUnitig(uint32 i) {
+TigVector::deleteUnitig(uint32 i) {
   delete _blocks[i / _blockSize][i % _blockSize];
   _blocks[i / _blockSize][i % _blockSize] = NULL;
 }
@@ -113,10 +113,10 @@ Unitig *&operator[](uint32 i) {
   if (((i    >= _totalUnitigs)) ||
       ((idx  >= _numBlocks)) ||
       (((pos >= _blockNext) && (idx >= _numBlocks - 1)))) {
-    writeStatus("UnitigVector::operator[]()--  i="F_U32" with totalUnitigs="F_U64"\n", i, _totalUnitigs);
-    writeStatus("UnitigVector::operator[]()--  blockSize="F_U64"\n", _blockSize);
-    writeStatus("UnitigVector::operator[]()--  idx="F_U32" numBlocks="F_U64"\n", idx, _numBlocks);
-    writeStatus("UnitigVector::operator[]()--  pos="F_U32" blockNext="F_U64"\n", pos, _blockNext);
+    writeStatus("TigVector::operator[]()--  i="F_U32" with totalUnitigs="F_U64"\n", i, _totalUnitigs);
+    writeStatus("TigVector::operator[]()--  blockSize="F_U64"\n", _blockSize);
+    writeStatus("TigVector::operator[]()--  idx="F_U32" numBlocks="F_U64"\n", idx, _numBlocks);
+    writeStatus("TigVector::operator[]()--  pos="F_U32" blockNext="F_U64"\n", pos, _blockNext);
   }
   assert(i    < _totalUnitigs);
   assert((idx < _numBlocks));
@@ -133,7 +133,7 @@ Unitig *&operator[](uint32 i) {
 
 
 void
-UnitigVector::computeArrivalRate(const char *prefix, const char *label) {
+TigVector::computeArrivalRate(const char *prefix, const char *label) {
   uint32  tiLimit = size();
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize = (tiLimit < 100000 * numThreads) ? numThreads : tiLimit / 99999;
@@ -172,7 +172,7 @@ UnitigVector::computeArrivalRate(const char *prefix, const char *label) {
 
 
 void
-UnitigVector::computeErrorProfiles(const char *prefix, const char *label) {
+TigVector::computeErrorProfiles(const char *prefix, const char *label) {
   uint32  tiLimit = size();
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize = (tiLimit < 100000 * numThreads) ? numThreads : tiLimit / 99999;
@@ -196,7 +196,7 @@ UnitigVector::computeErrorProfiles(const char *prefix, const char *label) {
 
 
 void
-UnitigVector::reportErrorProfiles(const char *prefix, const char *label) {
+TigVector::reportErrorProfiles(const char *prefix, const char *label) {
   uint32  tiLimit = size();
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize = (tiLimit < 100000 * numThreads) ? numThreads : tiLimit / 99999;

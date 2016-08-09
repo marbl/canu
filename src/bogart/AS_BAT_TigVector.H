@@ -23,17 +23,17 @@
  *  full conditions and disclaimers for each license.
  */
 
-#ifndef INCLUDE_AS_BAT_UNITIG_VECTOR
-#define INCLUDE_AS_BAT_UNITIG_VECTOR
+#ifndef INCLUDE_AS_BAT_TIGVECTOR
+#define INCLUDE_AS_BAT_TIGVECTOR
 
 #include "AS_global.H"
 
 class Unitig;
 
-class UnitigVector {
+class TigVector {
 public:
-  UnitigVector();
-  ~UnitigVector();
+  TigVector();
+  ~TigVector();
 
   Unitig   *newUnitig(bool verbose);
   void      deleteUnitig(uint32 i);
@@ -58,4 +58,4 @@ private:
 };
 
 
-#endif  //  INCLUDE_AS_BAT_UNITIG_VECTOR
+#endif  //  INCLUDE_AS_BAT_TIGVECTOR

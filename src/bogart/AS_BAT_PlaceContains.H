@@ -38,11 +38,11 @@
 #ifndef INCLUDE_AS_BAT_PLACECONTAINS
 #define INCLUDE_AS_BAT_PLACECONTAINS
 
-#include "AS_BAT_UnitigVector.H"
+#include "AS_BAT_TigVector.H"
 
-void breakSingletonTigs(UnitigVector &unitigs);
+void breakSingletonTigs(TigVector &unitigs);
 
-void placeUnplacedUsingAllOverlaps(UnitigVector &unitigs,
+void placeUnplacedUsingAllOverlaps(TigVector &unitigs,
                                    const char   *prefix);
 
 

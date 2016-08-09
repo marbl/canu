@@ -53,7 +53,7 @@
 //  use that error rate below when rebuilding repeats
 
 void
-reconstructRepeats(UnitigVector &unitigs,
+reconstructRepeats(TigVector &unitigs,
                    double        erateGraph,
                    double        deviationGraph) {
 

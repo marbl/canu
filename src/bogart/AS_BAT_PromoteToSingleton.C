@@ -44,7 +44,7 @@
 //  the non-contained, then place contains, then promote what is left over, etc.
 
 void
-promoteToSingleton(UnitigVector &unitigs) {
+promoteToSingleton(TigVector &unitigs) {
 
   for (uint32 fi=1; fi<=FI->numFragments(); fi++) {
     if (Unitig::fragIn(fi) != 0)

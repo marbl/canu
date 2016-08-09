@@ -39,12 +39,12 @@
 #include "AS_BAT_OverlapCache.H"
 
 #include "AS_BAT_Unitig.H"
-#include "AS_BAT_UnitigVector.H"
+#include "AS_BAT_TigVector.H"
 
 #include "AS_BAT_SetParentAndHang.H"
 
 void
-setParentAndHang(UnitigVector &unitigs) {
+setParentAndHang(TigVector &unitigs) {
 
   return;
 

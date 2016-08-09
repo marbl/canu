@@ -78,7 +78,7 @@ typedef  map<uint32, vector<uint32> >  BubTargetList;
 //  candidate for bubble popping.
 
 void
-findPotentialBubbles(UnitigVector    &unitigs,
+findPotentialBubbles(TigVector    &unitigs,
                      BubTargetList   &potentialBubbles) {
   uint32  tiLimit      = unitigs.size();
   uint32  tiNumThreads = omp_get_max_threads();
@@ -215,7 +215,7 @@ findPotentialBubbles(UnitigVector    &unitigs,
 //  Find filtered placements for all the reads in the potential bubble tigs.
 
 vector<overlapPlacement>  *
-findBubbleReadPlacements(UnitigVector    &unitigs,
+findBubbleReadPlacements(TigVector    &unitigs,
                          BubTargetList   &potentialBubbles,
                          double           deviationBubble) {
   uint32  fiLimit      = FI->numFragments();
@@ -337,7 +337,7 @@ findBubbleReadPlacements(UnitigVector    &unitigs,
 //  A and B are considering merging in unitig C.
 
 void
-popBubbles(UnitigVector &unitigs,
+popBubbles(TigVector &unitigs,
            double deviationBubble) {
 
   BubTargetList   potentialBubbles;

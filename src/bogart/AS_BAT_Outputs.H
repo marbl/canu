@@ -39,18 +39,18 @@
 #define INCLUDE_AS_BAT_OUTPUTS
 
 #include "AS_BAT_Unitig.H"
-#include "AS_BAT_UnitigVector.H"
+#include "AS_BAT_TigVector.H"
 
 
 void
-writeUnitigsToStore(UnitigVector  &unitigs,
+writeUnitigsToStore(TigVector  &unitigs,
                     char          *fileprefix,
                     char          *tigStorePath,
                     uint32         frg_count_target,
                     bool           isFinal);
 
 void
-writeUnusedEdges(UnitigVector  &unitigs,
+writeUnusedEdges(TigVector  &unitigs,
                  char          *fileprefix);
 
 

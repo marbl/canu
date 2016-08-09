@@ -41,7 +41,7 @@
 #include "AS_BAT_OverlapCache.H"
 #include "AS_BAT_BestOverlapGraph.H"  //  For FragmentEnd
 #include "AS_BAT_Unitig.H"            //  For SeqInterval
-#include "AS_BAT_UnitigVector.H"
+#include "AS_BAT_TigVector.H"
 
 
 class overlapPlacement {
@@ -128,7 +128,7 @@ const uint32  placeFrag_fullMatch  = 0x01;   //  Return only alignments for the 
 const uint32  placeFrag_noExtend   = 0x02;   //  Return only alignments contained in the tig
 
 bool
-placeFragUsingOverlaps(UnitigVector             &unitigs,
+placeFragUsingOverlaps(TigVector             &unitigs,
                        Unitig                   *target,
                        uint32                    fid,
                        vector<overlapPlacement> &placements,

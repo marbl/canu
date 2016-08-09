@@ -179,7 +179,7 @@ findUnitigCoverage(Unitig               *tig,
 //  has been deemed resolved.  Mark those edges.
 //
 void
-removeResolvedRepeatEdges(UnitigVector             &unitigs,
+removeResolvedRepeatEdges(TigVector             &unitigs,
                           Unitig                   *tig,
                           vector<breakPointCoords> &BP,
                           vector<olapDat>          &repeats) {
@@ -220,7 +220,7 @@ removeResolvedRepeatEdges(UnitigVector             &unitigs,
 
 
 uint32
-splitUnitigs(UnitigVector             &unitigs,
+splitUnitigs(TigVector             &unitigs,
              Unitig                   *tig,
              vector<breakPointCoords> &BP,
              Unitig                  **newTigs,
@@ -331,7 +331,7 @@ splitUnitigs(UnitigVector             &unitigs,
 
 
 void
-annotateRepeatsOnRead(UnitigVector          &UNUSED(unitigs),
+annotateRepeatsOnRead(TigVector          &UNUSED(unitigs),
                       Unitig                *tig,
                       double                 UNUSED(deviationRepeat),
                       vector<olapDat>       &repeats) {
@@ -378,7 +378,7 @@ annotateRepeatsOnRead(UnitigVector          &UNUSED(unitigs),
 
 
 void
-markRepeatReads(UnitigVector &unitigs,
+markRepeatReads(TigVector &unitigs,
                 double        deviationRepeat,
                 uint32        confusedAbsolute,
                 double        confusedPercent) {
@@ -1029,8 +1029,9 @@ markRepeatReads(UnitigVector &unitigs,
     //  Second call, actually create the tigs, if anything would change.
 
     if (nTigs > 1) {
-      //removeResolvedRepeatEdges(unitigs, tig, BP, repeatOlaps);
+      //markResolvedRepeatEdges(unitigs, tig, BP, repeatOlaps);
       splitUnitigs(unitigs, tig, BP, newTigs, lowCoord, nRepeat, nUnique, true);
+      //markSplitRepeatEdges(unitigs, tig, BP, repeatOlaps);
     }
 
     //  Report the tigs created.

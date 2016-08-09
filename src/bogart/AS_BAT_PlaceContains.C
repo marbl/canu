@@ -49,7 +49,7 @@
 
 
 void
-breakSingletonTigs(UnitigVector &unitigs) {
+breakSingletonTigs(TigVector &unitigs) {
 
   //  For any singleton unitig, eject the read and delete the unitig.  Eventually,
   //  we will stop making singleton unitigs.
@@ -78,7 +78,7 @@ breakSingletonTigs(UnitigVector &unitigs) {
 
 
 void
-placeUnplacedUsingAllOverlaps(UnitigVector &unitigs,
+placeUnplacedUsingAllOverlaps(TigVector &unitigs,
                               const char   *prefix) {
   uint32  fiLimit    = FI->numFragments();
   uint32  numThreads = omp_get_max_threads();

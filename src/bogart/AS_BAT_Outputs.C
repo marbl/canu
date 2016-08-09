@@ -98,7 +98,7 @@ unitigToTig(tgTig       *tig,
 
 
 void
-writeUnitigsToStore(UnitigVector  &unitigs,
+writeUnitigsToStore(TigVector  &unitigs,
                     char          *fileprefix,
                     char          *tigStorePath,
                     uint32         frg_count_target,
@@ -217,7 +217,7 @@ public:
 
 
 void
-findUnusedEdges(UnitigVector  &unitigs,
+findUnusedEdges(TigVector  &unitigs,
                 ufNode        *rdA,         //  Read we're finding edges for
                 bool           rdA3p,       //  Overlaps from the 3' end of the read
                 set<uint32>    edgeReads,
@@ -380,7 +380,7 @@ findUnusedEdges(UnitigVector  &unitigs,
 
 
 void
-writeUnusedEdges(UnitigVector  &unitigs,
+writeUnusedEdges(TigVector  &unitigs,
                  char          *fileprefix) {
   char        filename[FILENAME_MAX] = {0};
 

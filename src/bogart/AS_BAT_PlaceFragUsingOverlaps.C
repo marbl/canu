@@ -47,7 +47,7 @@
 
 
 bool
-placeFragUsingOverlaps(UnitigVector             &unitigs,
+placeFragUsingOverlaps(TigVector             &unitigs,
                        Unitig                   *target,
                        uint32                    fid,
                        vector<overlapPlacement> &placements,

@@ -43,7 +43,7 @@
 
 static
 void
-makeNewUnitig(UnitigVector &unitigs,
+makeNewUnitig(TigVector &unitigs,
               uint32        splitFragsLen,
               ufNode       *splitFrags) {
   Unitig *dangler = unitigs.newUnitig(false);
@@ -66,7 +66,7 @@ makeNewUnitig(UnitigVector &unitigs,
 
 //  After splitting and ejecting some contains, check for discontinuous unitigs.
 //
-void splitDiscontinuousUnitigs(UnitigVector &unitigs, uint32 minOverlap) {
+void splitDiscontinuousUnitigs(TigVector &unitigs, uint32 minOverlap) {
   uint32                numTested  = 0;
   uint32                numSplit   = 0;
   uint32                numCreated = 0;

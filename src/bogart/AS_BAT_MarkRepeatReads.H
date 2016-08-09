@@ -28,7 +28,7 @@
 
 
 void
-markRepeatReads(UnitigVector &unitigs,
+markRepeatReads(TigVector &unitigs,
                 double        deviationRepeat,
                 uint32        confusedAbsolute,
                 double        confusedPercent);

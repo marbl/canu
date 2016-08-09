@@ -39,11 +39,11 @@
 #define INCLUDE_AS_BAT_INSTRUMENTATION
 
 
-void  checkUnitigMembership(UnitigVector &unitigs);
-void  reportOverlaps(UnitigVector &unitigs, const char *prefix, const char *name);
-void  reportUnitigs(UnitigVector &unitigs, const char *prefix, const char *name, uint64 genomeSize);
+void  checkUnitigMembership(TigVector &unitigs);
+void  reportOverlaps(TigVector &unitigs, const char *prefix, const char *name);
+void  reportUnitigs(TigVector &unitigs, const char *prefix, const char *name, uint64 genomeSize);
 
-void  classifyUnitigsAsUnassembled(UnitigVector &unitigs,
+void  classifyUnitigsAsUnassembled(TigVector &unitigs,
                                    uint32        fewReadsNumber,
                                    uint32        tooShortLength,
                                    double        spanFraction,

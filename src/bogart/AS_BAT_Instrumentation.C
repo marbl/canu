@@ -49,7 +49,7 @@
 //  Will fail if a read is in unitig 0, or if a read isn't in a unitig.
 
 void
-checkUnitigMembership(UnitigVector &unitigs) {
+checkUnitigMembership(TigVector &unitigs) {
   uint32 *inUnitig = new uint32 [FI->numFragments()+1];
   uint32  noUnitig = 0xffffffff;
 
@@ -109,7 +109,7 @@ checkUnitigMembership(UnitigVector &unitigs) {
 //    4) at least fraction F of the unitig is below read depth D (F=1.0, D=2)
 //
 void
-classifyUnitigsAsUnassembled(UnitigVector &unitigs,
+classifyUnitigsAsUnassembled(TigVector &unitigs,
                              uint32        fewReadsNumber,
                              uint32        tooShortLength,
                              double        spanFraction,
@@ -276,7 +276,7 @@ reportN50(FILE *F, vector<uint32> &data, char const *label, uint64 genomeSize) {
 
 
 void
-reportUnitigs(UnitigVector &unitigs, const char *prefix, const char *name, uint64 genomeSize) {
+reportUnitigs(TigVector &unitigs, const char *prefix, const char *name, uint64 genomeSize) {
 
   //  Generate n50.  Assumes unitigs have been 'classified' already.
 
@@ -422,7 +422,7 @@ satisfiedOverlap(uint32 rdAlo, uint32 rdAhi, bool rdAfwd, uint32 rdBlo, uint32 r
 //  Iterate over all overlaps (but the only interface we have is by iterating
 //  over all reads), and count the number of overlaps satisfied in unitigs.
 void
-reportOverlaps(UnitigVector &unitigs, const char *prefix, const char *name) {
+reportOverlaps(TigVector &unitigs, const char *prefix, const char *name) {
   olapsUsed   *dd       = new olapsUsed;  //  Dovetail overlaps to non-contained reads
   olapsUsed   *dc       = new olapsUsed;  //  Dovetail overlaps to contained reads
   olapsUsed   *cc       = new olapsUsed;  //  Containment overlaps
