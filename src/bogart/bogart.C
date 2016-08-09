@@ -53,7 +53,6 @@
 #include "AS_BAT_Instrumentation.H"
 #include "AS_BAT_PlaceContains.H"
 
-#include "AS_BAT_MergeUnitigs.H"
 #include "AS_BAT_PopBubbles.H"
 #include "AS_BAT_MarkRepeatReads.H"
 
