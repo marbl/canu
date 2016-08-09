@@ -113,7 +113,13 @@ main(int argc, char **argv) {
       if (ov.a_iid == ov.b_iid)
         continue;
 
-      assert(W[4][0] == '0');
+      assert(W[4][0] == '0');   //  first read is always forward
+
+      assert(W(5)  <  W(6));    //  first read bgn < end
+      assert(W(6)  <= W(7));    //  first read end <= len
+
+      assert(W(9)  <  W(10));   //  second read bgn < end
+      assert(W(10) <= W(11));   //  second read end <= len
 
       ov.dat.ovl.forUTG = true;
       ov.dat.ovl.forOBT = true;
@@ -136,6 +142,8 @@ main(int argc, char **argv) {
 
       of->writeOverlap(&ov);
     }
+
+    delete in;
 
     arg++;
   }
