@@ -498,7 +498,9 @@ main (int argc, char * argv []) {
   reportOverlaps(unitigs, prefix, "markRepeatReads");
   reportUnitigs(unitigs, prefix, "markRepeatReads", genomeSize);
 
-  //
+   AG->reportGraph(prefix, "split");
+
+ //
   //  Try to reassemble just the split repeats.
   //
 
