@@ -44,8 +44,8 @@
 #include "AS_BAT_PlaceContains.H"
 #include "AS_BAT_PlaceFragUsingOverlaps.H"
 
-#define  SHOW_PLACEMENT_DETAIL    //  Reports evidence (too much) for placing reads.
-#define  SHOW_PLACEMENT           //  Reports where the read was placed.
+#undef  SHOW_PLACEMENT_DETAIL    //  Reports evidence (too much) for placing reads.
+#undef  SHOW_PLACEMENT           //  Reports where the read was placed.
 
 
 void
