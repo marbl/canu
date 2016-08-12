@@ -6,7 +6,7 @@ findPotentialBubbles()
 
 findBubbleReadPlacements()
  - threaded on the reads
- - for reads in potential bubbles, uses placeFragUsingOverlaps() to find high-quality
+ - for reads in potential bubbles, uses placeReadUsingOverlaps() to find high-quality
    alignments to unitigs that can pop the bubble.
  - returns an array of vector<overlapPlacement> - one vector per read - of the placements
    for this read.  Placements are high quality and to popper tigs only.

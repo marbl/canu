@@ -28,8 +28,9 @@
 
 #include "AS_global.H"
 #include "AS_BAT_OverlapCache.H"
-
-#include "AS_BAT_PlaceFragUsingOverlaps.H"
+#include "AS_BAT_BestOverlapGraph.H"  //  For ReadEnd
+#include "AS_BAT_Unitig.H"            //  For SeqInterval
+#include "AS_BAT_TigVector.H"
 
 
 class BestPlacement {

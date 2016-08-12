@@ -28,8 +28,7 @@
 #include "AS_BAT_AssemblyGraph.H"
 #include "AS_BAT_Logging.H"
 
-#include "AS_BAT_Unitig.H"
-#include "AS_BAT_TigVector.H"
+#include "AS_BAT_PlaceReadUsingOverlaps.H"
 
 #include "intervalList.H"
 #include "stddev.H"

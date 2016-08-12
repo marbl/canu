@@ -35,8 +35,8 @@
  *  full conditions and disclaimers for each license.
  */
 
-#ifndef INCLUDE_AS_BAT_PLACEFRAGUSINGOVERLAPS
-#define INCLUDE_AS_BAT_PLACEFRAGUSINGOVERLAPS
+#ifndef INCLUDE_AS_BAT_PLACEREADUSINGOVERLAPS
+#define INCLUDE_AS_BAT_PLACEREADUSINGOVERLAPS
 
 #include "AS_BAT_OverlapCache.H"
 #include "AS_BAT_BestOverlapGraph.H"  //  For ReadEnd
@@ -135,4 +135,4 @@ placeReadUsingOverlaps(TigVector                &tigs,
                        uint32                    flags = placeRead_all);
 
 
-#endif  //  INCLUDE_AS_BAT_PLACEFRAGUSINGOVERLAPS
+#endif  //  INCLUDE_AS_BAT_PLACEREADUSINGOVERLAPS

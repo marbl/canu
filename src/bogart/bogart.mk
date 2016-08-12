@@ -19,7 +19,7 @@ SOURCES  := bogart.C \
             AS_BAT_Outputs.C \
             AS_BAT_OverlapCache.C \
             AS_BAT_PlaceContains.C \
-            AS_BAT_PlaceFragUsingOverlaps.C \
+            AS_BAT_PlaceReadUsingOverlaps.C \
             AS_BAT_PopBubbles.C \
             AS_BAT_PopulateUnitig.C \
             AS_BAT_PromoteToSingleton.C \
@@ -27,8 +27,8 @@ SOURCES  := bogart.C \
             AS_BAT_SplitDiscontinuous.C \
             AS_BAT_TigVector.C \
             AS_BAT_Unitig.C \
-            AS_BAT_Unitig_AddFrag.C \
-            AS_BAT_Unitig_PlaceFragUsingEdges.C
+            AS_BAT_Unitig_AddRead.C \
+            AS_BAT_Unitig_PlaceReadUsingEdges.C
 
 SRC_INCDIRS  := .. ../AS_UTL ../stores
 

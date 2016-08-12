@@ -40,7 +40,7 @@
 #include "AS_BAT_Logging.H"
 
 #include "AS_BAT_Unitig.H"
-#include "AS_BAT_PlaceFragUsingOverlaps.H"
+#include "AS_BAT_PlaceReadUsingOverlaps.H"
 
 #include "intervalList.H"
 

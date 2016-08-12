@@ -10241,3 +10241,7 @@ A src/pipelines/canu/CorrectReads.pm nihh20160309Sergey Koren
 A documentation/source/quick-start.rst nihh20160307Sergey Koren
 D	src/bogart/TigVector.C src/bogart/UnitigVector.C
 D	src/bogart/TigVector.H src/bogart/UnitigVector.H
+D src/bogart/AS_BAT_PlaceReadUsingOverlaps.C AS_BAT_PlaceFragUsingOverlaps.C
+D src/bogart/AS_BAT_PlaceReadUsingOverlaps.H AS_BAT_PlaceFragUsingOverlaps.H
+D src/bogart/AS_BAT_Unitig_AddRead.C AS_BAT_Unitig_AddFrag.C
+D src/bogart/AS_BAT_Unitig_PlaceReadUsingEdges.C AS_BAT_Unitig_PlaceFragUsingEdges.C
