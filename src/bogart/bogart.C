@@ -479,8 +479,6 @@ main (int argc, char * argv []) {
   reportOverlaps(contigs, prefix, "markRepeatReads");
   reportTigs(contigs, prefix, "markRepeatReads", genomeSize);
 
-   AG->reportGraph(prefix, "split");
-
   //
   //  Cleanup tigs.  Break those that have gaps in them.  Place contains again.  For any read
   //  still unplaced, make it a singleton unitig.
@@ -518,6 +516,8 @@ main (int argc, char * argv []) {
   //checkUnitigMembership(contigs);
   reportOverlaps(contigs, prefix, "final");
   reportTigs(contigs, prefix, "final", genomeSize);
+
+  AG->reportGraph(prefix, "final");
 
   //
   //  Generate outputs.  The graph MUST come after output, because it needs
