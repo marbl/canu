@@ -12,7 +12,6 @@ SOURCES  := bogart.C \
             AS_BAT_AssemblyGraph.C \
             AS_BAT_BestOverlapGraph.C \
             AS_BAT_ChunkGraph.C \
-            AS_BAT_FragmentInfo.C \
             AS_BAT_Instrumentation.C \
             AS_BAT_Logging.C \
             AS_BAT_MarkRepeatReads.C \
@@ -23,6 +22,7 @@ SOURCES  := bogart.C \
             AS_BAT_PopBubbles.C \
             AS_BAT_PopulateUnitig.C \
             AS_BAT_PromoteToSingleton.C \
+            AS_BAT_ReadInfo.C \
             AS_BAT_SetParentAndHang.C \
             AS_BAT_SplitDiscontinuous.C \
             AS_BAT_TigVector.C \

@@ -39,7 +39,7 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include "AS_BAT_FragmentInfo.H"
+#include "AS_BAT_ReadInfo.H"
 #include "AS_BAT_OverlapCache.H"
 #include "AS_BAT_BestOverlapGraph.H"
 #include "AS_BAT_ChunkGraph.H"
@@ -64,7 +64,7 @@
 #include "AS_BAT_Outputs.H"
 
 
-FragmentInfo     *FI  = 0L;
+ReadInfo         *RI  = 0L;
 OverlapCache     *OC  = 0L;
 BestOverlapGraph *OG  = 0L;
 ChunkGraph       *CG  = 0L;
@@ -364,10 +364,10 @@ main (int argc, char * argv []) {
 
   setLogFile(prefix, "filterOverlaps");
 
-  FI = new FragmentInfo(gkpStore, prefix, minReadLen);
+  RI = new ReadInfo(gkpStore, prefix, minReadLen);
 
   // Initialize where we've been to nowhere
-  Unitig::resetReadUnitigMap(FI->numReads());
+  Unitig::resetReadUnitigMap(RI->numReads());
 
   OC = new OverlapCache(ovlStoreUniq, ovlStoreRept, prefix, MAX(erateMax, erateGraph), minOverlap, ovlCacheMemory, ovlCacheLimit, onlySave, doSave);
   OG = new BestOverlapGraph(erateGraph, deviationGraph, prefix);
@@ -537,7 +537,7 @@ main (int argc, char * argv []) {
   delete CG;
   delete OG;
   delete OC;
-  delete FI;
+  delete RI;
 
   setLogFile(prefix, NULL);
 

@@ -37,7 +37,7 @@
 
 #include "AS_global.H"
 #include "AS_BAT_Unitig.H"
-#include "AS_BAT_FragmentInfo.H"
+#include "AS_BAT_ReadInfo.H"
 #include "AS_BAT_BestOverlapGraph.H"
 #include "AS_BAT_Logging.H"
 

@@ -23,7 +23,7 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include "AS_BAT_FragmentInfo.H"
+#include "AS_BAT_ReadInfo.H"
 #include "AS_BAT_BestOverlapGraph.H"
 #include "AS_BAT_AssemblyGraph.H"
 #include "AS_BAT_Logging.H"
@@ -41,7 +41,7 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
                              double        deviationBubble,
                              double        deviationRepeat,
                              TigVector    &tigs) {
-  uint32  fiLimit    = FI->numReads();
+  uint32  fiLimit    = RI->numReads();
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
 
@@ -54,7 +54,7 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
   uint32   nFailedContained  = 0;
   uint32   nFailed           = 0;
 
-  for (uint32 fid=1; fid<FI->numReads()+1; fid++) {
+  for (uint32 fid=1; fid<RI->numReads()+1; fid++) {
     if (Unitig::readIn(fid) == 0)   //  Unplaced, don't care.  These didn't assemble, and aren't contained.
       continue;
 
@@ -75,13 +75,13 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
   writeStatus("AssemblyGraph()-- finding edges for %u reads (%u contained), ignoring %u unplaced reads, with %d threads.\n",
               nToPlaceContained + nToPlace,
               nToPlaceContained,
-              FI->numReads() - nToPlaceContained - nToPlace,
+              RI->numReads() - nToPlaceContained - nToPlace,
               numThreads);
 
   //  Do the placing!
 
 #pragma omp parallel for schedule(dynamic, blockSize)
-  for (uint32 fi=1; fi<FI->numReads()+1; fi++) {
+  for (uint32 fi=1; fi<RI->numReads()+1; fi++) {
     bool  enableLog = true;
 
     uint32   fiTigID = Unitig::readIn(fi);
@@ -91,7 +91,7 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
 
     //  Grab a bit about this read.
 
-    uint32   fiLen  = FI->readLength(fi);
+    uint32   fiLen  = RI->readLength(fi);
     ufNode  *fiRead = &tigs[fiTigID]->ufpath[ Unitig::pathPosition(fi) ];
     uint32   fiMin  = fiRead->position.min();
     uint32   fiMax  = fiRead->position.max();
@@ -236,7 +236,7 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
         if (tigReads.count(ovl[oo].b_iid) == 0)   //  Don't care about overlaps to reads not in the set.
           continue;
 
-        uint32  olapLen = FI->overlapLength(ovl[oo].a_iid, ovl[oo].b_iid, ovl[oo].a_hang, ovl[oo].b_hang);
+        uint32  olapLen = RI->overlapLength(ovl[oo].a_iid, ovl[oo].b_iid, ovl[oo].a_hang, ovl[oo].b_hang);
 
         if      (ovl[oo].AisContainer() == true) {
           continue;
@@ -351,10 +351,10 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
   writeStatus("AssemblyGraph()-- building reverse edges.\n",
               nToPlaceContained + nToPlace,
               nToPlaceContained,
-              FI->numReads() - nToPlaceContained - nToPlace,
+              RI->numReads() - nToPlaceContained - nToPlace,
               numThreads);
 
-  for (uint32 fi=1; fi<FI->numReads()+1; fi++) {
+  for (uint32 fi=1; fi<RI->numReads()+1; fi++) {
     for (uint32 ff=0; ff<_pForward[fi].size(); ff++) {
       BestPlacement &bp = _pForward[fi][ff];
       BestReverse    br(fi, ff);
@@ -398,11 +398,11 @@ AssemblyGraph::reportGraph(const char *prefix, const char *label) {
   //  First, figure out what sequences are used.  A sequence is used if it has forward edges,
   //  or if it is referred to by a forward edge.
 
-  uint32   *used = new uint32 [FI->numReads() + 1];
+  uint32   *used = new uint32 [RI->numReads() + 1];
 
-  memset(used, 0, sizeof(uint32) * (FI->numReads() + 1));
+  memset(used, 0, sizeof(uint32) * (RI->numReads() + 1));
 
-  for (uint32 fi=1; fi<FI->numReads() + 1; fi++) {
+  for (uint32 fi=1; fi<RI->numReads() + 1; fi++) {
     if (_pForward[fi].size() > 0)
       used[fi] = 1;
 
@@ -415,9 +415,9 @@ AssemblyGraph::reportGraph(const char *prefix, const char *label) {
 
   //  Then write those sequences.
 
-  for (uint32 fi=1; fi<FI->numReads() + 1; fi++)
+  for (uint32 fi=1; fi<RI->numReads() + 1; fi++)
     if (used[fi] == 1)
-      fprintf(BEG, "S\tread%08u\t*\tLN:i:%u\n", fi, FI->readLength(fi));
+      fprintf(BEG, "S\tread%08u\t*\tLN:i:%u\n", fi, RI->readLength(fi));
 
   //  Now, report edges.  GFA wants edges in exactly this format:
   //
@@ -438,7 +438,7 @@ AssemblyGraph::reportGraph(const char *prefix, const char *label) {
   uint64  nBubble = 0;
   uint64  nRepeat = 0;
 
-  for (uint32 fi=1; fi<FI->numReads() + 1; fi++) {
+  for (uint32 fi=1; fi<RI->numReads() + 1; fi++) {
     for (uint32 pp=0; pp<_pForward[fi].size(); pp++) {
       BAToverlapInt *bestedgeC = &_pForward[fi][pp].bestC;
       BAToverlapInt *bestedge5 = &_pForward[fi][pp].best5;
@@ -510,7 +510,7 @@ AssemblyGraph::reportGraph(const char *prefix, const char *label) {
                 fi,
                 bestedgeC->b_iid, bestedgeC->flipped ? '-' : '+',
                 -bestedgeC->a_hang,
-                FI->readLength(fi),
+                RI->readLength(fi),
                 _pForward[fi][pp].isContig,
                 _pForward[fi][pp].isUnitig,
                 _pForward[fi][pp].isBubble,
@@ -520,7 +520,7 @@ AssemblyGraph::reportGraph(const char *prefix, const char *label) {
         fprintf(BEG, "L\tread%08u\t-\tread%08u\t%c\t%uM\tic:i:%d\tiu:i:%d\tib:i:%d\tir:i:%d\n",
                 fi,
                 bestedge5->b_iid, bestedge5->BEndIs3prime() ? '-' : '+',
-                FI->overlapLength(fi, bestedge5->b_iid, bestedge5->a_hang, bestedge5->b_hang),
+                RI->overlapLength(fi, bestedge5->b_iid, bestedge5->a_hang, bestedge5->b_hang),
                 _pForward[fi][pp].isContig,
                 _pForward[fi][pp].isUnitig,
                 _pForward[fi][pp].isBubble,
@@ -530,7 +530,7 @@ AssemblyGraph::reportGraph(const char *prefix, const char *label) {
         fprintf(BEG, "L\tread%08u\t+\tread%08u\t%c\t%uM\tic:i:%d\tiu:i:%d\tib:i:%d\tir:i:%d\n",
                 fi,
                 bestedge3->b_iid, bestedge3->BEndIs3prime() ? '-' : '+',
-                FI->overlapLength(fi, bestedge3->b_iid, bestedge3->a_hang, bestedge3->b_hang),
+                RI->overlapLength(fi, bestedge3->b_iid, bestedge3->a_hang, bestedge3->b_hang),
                 _pForward[fi][pp].isContig,
                 _pForward[fi][pp].isUnitig,
                 _pForward[fi][pp].isBubble,

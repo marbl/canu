@@ -35,7 +35,7 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include "AS_BAT_FragmentInfo.H"
+#include "AS_BAT_ReadInfo.H"
 #include "AS_BAT_BestOverlapGraph.H"
 #include "AS_BAT_Logging.H"
 
@@ -63,7 +63,7 @@ placeReadUsingOverlaps(TigVector                &tigs,
       writeLog("\npFUO()-- begin for read %d into all tigs\n", fid);
 
   assert(fid > 0);
-  assert(fid <= FI->numReads());
+  assert(fid <= RI->numReads());
 
   //  Grab overlaps we'll use to place this read.
 
@@ -105,8 +105,8 @@ placeReadUsingOverlaps(TigVector                &tigs,
 
     //  Save the placement in our work space.
 
-    uint32  olen = FI->overlapLength(ovl[i].a_iid, ovl[i].b_iid, ovl[i].a_hang, ovl[i].b_hang);
-    uint32  flen = FI->readLength(ovl[i].a_iid);
+    uint32  olen = RI->overlapLength(ovl[i].a_iid, ovl[i].b_iid, ovl[i].a_hang, ovl[i].b_hang);
+    uint32  flen = RI->readLength(ovl[i].a_iid);
 
     ovlPlace[i].frgID        = fid;
     ovlPlace[i].refID        = ovl[i].b_iid;
@@ -217,7 +217,7 @@ placeReadUsingOverlaps(TigVector                &tigs,
     intervalList<int32>   bgnPoints;
     intervalList<int32>   endPoints;
 
-    int32                 windowSlop = 0.075 * FI->readLength(fid);
+    int32                 windowSlop = 0.075 * RI->readLength(fid);
 
     if (windowSlop < 5)
       windowSlop = 5;
@@ -337,7 +337,7 @@ placeReadUsingOverlaps(TigVector                &tigs,
         op.covered.end  = max(op.covered.end, ovlPlace[oo].covered.end);
       }
 
-      op.fCoverage = (op.covered.end - op.covered.bgn) / (double)FI->readLength(op.frgID);
+      op.fCoverage = (op.covered.end - op.covered.bgn) / (double)RI->readLength(op.frgID);
 
       //  Find the first and last read in the unitig that we overlap with.
 
@@ -438,7 +438,7 @@ placeReadUsingOverlaps(TigVector                &tigs,
 
       bool   goodPlacement   = true;
 
-      double allowableStdDev = max(2.0, 0.075 * FI->readLength(op.frgID));
+      double allowableStdDev = max(2.0, 0.075 * RI->readLength(op.frgID));
 
       if ((op.bgnStdDev > allowableStdDev) ||
           (op.endStdDev > allowableStdDev))

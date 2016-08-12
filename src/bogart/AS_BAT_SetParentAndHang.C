@@ -35,7 +35,7 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include "AS_BAT_FragmentInfo.H"
+#include "AS_BAT_ReadInfo.H"
 #include "AS_BAT_OverlapCache.H"
 
 #include "AS_BAT_Unitig.H"
@@ -118,7 +118,7 @@ setParentAndHang(TigVector &tigs) {
         continue;
       }
 
-      uint32  l = FI->overlapLength(olaps[oo].a_iid, olaps[oo].b_iid, olaps[oo].a_hang, olaps[oo].b_hang);
+      uint32  l = RI->overlapLength(olaps[oo].a_iid, olaps[oo].b_iid, olaps[oo].a_hang, olaps[oo].b_hang);
 
       //  Compute the hangs, so we can ignore those that would place this read before the parent.
       //  This is a flaw somewhere in bogart, and should be caught and fixed earlier.

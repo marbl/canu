@@ -39,7 +39,7 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include "AS_BAT_FragmentInfo.H"
+#include "AS_BAT_ReadInfo.H"
 #include "AS_BAT_OverlapCache.H"
 #include "AS_BAT_BestOverlapGraph.H"
 #include "AS_BAT_Logging.H"
@@ -224,7 +224,7 @@ findUnusedEdges(TigVector     &tigs,
                 FILE          *EF) {
 
   uint32      rdAid    =  rdA->ident;
-  uint32      rdAlen   =  FI->readLength(rdAid);
+  uint32      rdAlen   =  RI->readLength(rdAid);
   bool        rdAfwd   =  rdA->isForward();
   int32       rdAlo    =  (rdAfwd) ? (rdA->position.bgn) : (rdA->position.end);
   int32       rdAhi    =  (rdAfwd) ? (rdA->position.end) : (rdA->position.bgn);

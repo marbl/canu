@@ -36,7 +36,7 @@
  */
 
 #include "AS_global.H"
-#include "AS_BAT_FragmentInfo.H"
+#include "AS_BAT_ReadInfo.H"
 #include "AS_BAT_Unitig.H"
 
 //  If we are not reconstructing repeats, promote all the unplaced reads to new tigs.
@@ -46,12 +46,12 @@
 void
 promoteToSingleton(TigVector &tigs) {
 
-  for (uint32 fi=1; fi<=FI->numReads(); fi++) {
+  for (uint32 fi=1; fi<=RI->numReads(); fi++) {
     if (Unitig::readIn(fi) != 0)
       //  Placed already
       continue;
 
-    if (FI->readLength(fi) == 0)
+    if (RI->readLength(fi) == 0)
       //  Deleted.
       continue;
 
@@ -64,7 +64,7 @@ promoteToSingleton(TigVector &tigs) {
     read.ahang             = 0;
     read.bhang             = 0;
     read.position.bgn      = 0;
-    read.position.end      = FI->readLength(fi);
+    read.position.end      = RI->readLength(fi);
 
     utg->addRead(read, 0, false);
   }

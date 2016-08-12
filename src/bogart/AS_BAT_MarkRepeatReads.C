@@ -23,7 +23,7 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include "AS_BAT_FragmentInfo.H"
+#include "AS_BAT_ReadInfo.H"
 #include "AS_BAT_OverlapCache.H"
 #include "AS_BAT_BestOverlapGraph.H"
 #include "AS_BAT_AssemblyGraph.H"
@@ -127,7 +127,7 @@ olapToReadCoords(ufNode *frg,
                  int32  &lo,     int32 &hi) {
 
   lo = 0;
-  hi = FI->readLength(frg->ident);
+  hi = RI->readLength(frg->ident);
 
   if (ahang > 0)
     lo += ahang;  //  Positive hang!
@@ -138,8 +138,8 @@ olapToReadCoords(ufNode *frg,
   assert(0  <= lo);
   assert(0  <= hi);
   assert(lo <= hi);
-  assert(lo <= FI->readLength(frg->ident));
-  assert(hi <= FI->readLength(frg->ident));
+  assert(lo <= RI->readLength(frg->ident));
+  assert(hi <= RI->readLength(frg->ident));
 }
 
 
@@ -707,7 +707,7 @@ markRepeatReads(TigVector    &tigs,
       int32       rdAlo     = (rdAfwd) ? rdA->position.bgn : rdA->position.end;
       int32       rdAhi     = (rdAfwd) ? rdA->position.end : rdA->position.bgn;
 
-      double      sc        = (rdAhi - rdAlo) / (double)FI->readLength(rdAid);
+      double      sc        = (rdAhi - rdAlo) / (double)RI->readLength(rdAid);
 
       if ((OG->isContained(rdAid)  == true) ||
           (OG->isSuspicious(rdAid) == true))
@@ -825,14 +825,14 @@ markRepeatReads(TigVector    &tigs,
         if ((rMin    < tig5bgn) &&
             (tig5end < rMax) &&
             (b5use))
-          len5 = FI->overlapLength(rdAid, b5->readId(), b5->ahang(), b5->bhang());
+          len5 = RI->overlapLength(rdAid, b5->readId(), b5->ahang(), b5->bhang());
         else
           b5use = false;
 
         if ((rMin    < tig3bgn) &&
             (tig3end < rMax) &&
             (b3use))
-          len3 = FI->overlapLength(rdAid, b3->readId(), b3->ahang(), b3->bhang());
+          len3 = RI->overlapLength(rdAid, b3->readId(), b3->ahang(), b3->bhang());
         else
           b3use = false;
 
@@ -909,7 +909,7 @@ markRepeatReads(TigVector    &tigs,
               (rdAlo <= rdBhi))
             continue;
 
-          uint32  len   = FI->overlapLength(rdAid, ovl[oo].b_iid, ovl[oo].a_hang, ovl[oo].b_hang);
+          uint32  len   = RI->overlapLength(rdAid, ovl[oo].b_iid, ovl[oo].a_hang, ovl[oo].b_hang);
           double  score = len * (1 - ovl[oo].erate);
 
           //  Compute percent difference.

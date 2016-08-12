@@ -35,7 +35,7 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include "AS_BAT_FragmentInfo.H"
+#include "AS_BAT_ReadInfo.H"
 #include "AS_BAT_BestOverlapGraph.H"
 
 #include "AS_BAT_Logging.H"
@@ -80,15 +80,15 @@ breakSingletonTigs(TigVector &tigs) {
 void
 placeUnplacedUsingAllOverlaps(TigVector    &tigs,
                               const char   *prefix) {
-  uint32  fiLimit    = FI->numReads();
+  uint32  fiLimit    = RI->numReads();
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
 
-  uint32       *placedTig = new uint32      [FI->numReads() + 1];
-  SeqInterval  *placedPos = new SeqInterval [FI->numReads() + 1];
+  uint32       *placedTig = new uint32      [RI->numReads() + 1];
+  SeqInterval  *placedPos = new SeqInterval [RI->numReads() + 1];
 
-  memset(placedTig, 0, sizeof(uint32)      * (FI->numReads() + 1));
-  memset(placedPos, 0, sizeof(SeqInterval) * (FI->numReads() + 1));
+  memset(placedTig, 0, sizeof(uint32)      * (RI->numReads() + 1));
+  memset(placedPos, 0, sizeof(SeqInterval) * (RI->numReads() + 1));
 
   //  Just some logging.  Count the number of reads we try to place.
 
@@ -99,7 +99,7 @@ placeUnplacedUsingAllOverlaps(TigVector    &tigs,
   uint32   nFailedContained  = 0;
   uint32   nFailed           = 0;
 
-  for (uint32 fid=1; fid<FI->numReads()+1; fid++)
+  for (uint32 fid=1; fid<RI->numReads()+1; fid++)
     if (Unitig::readIn(fid) == 0)    //  I'm NOT ambiguous!
       if (OG->isContained(fid))
         nToPlaceContained++;
@@ -113,7 +113,7 @@ placeUnplacedUsingAllOverlaps(TigVector    &tigs,
   //  Do the placing!
 
 #pragma omp parallel for schedule(dynamic, blockSize)
-  for (uint32 fid=1; fid<FI->numReads()+1; fid++) {
+  for (uint32 fid=1; fid<RI->numReads()+1; fid++) {
     bool  enableLog = true;
 
     if (Unitig::readIn(fid) > 0)
@@ -166,7 +166,7 @@ placeUnplacedUsingAllOverlaps(TigVector    &tigs,
       if ((enableLog == true) && (logFileFlagSet(LOG_PLACE_UNPLACED)))
         writeLog("read %8u remains unplaced\n", fid);
       placedPos[fid].bgn = 0;
-      placedPos[fid].end = FI->readLength(fid);
+      placedPos[fid].end = RI->readLength(fid);
     }
 
     else {
@@ -183,7 +183,7 @@ placeUnplacedUsingAllOverlaps(TigVector    &tigs,
 
   //  All reads placed, now just dump them in their correct tigs.
 
-  for (uint32 fid=1; fid<FI->numReads()+1; fid++) {
+  for (uint32 fid=1; fid<RI->numReads()+1; fid++) {
     Unitig  *tig = NULL;
     ufNode   frg;
 

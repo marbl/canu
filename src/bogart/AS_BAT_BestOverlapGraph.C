@@ -39,7 +39,7 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include "AS_BAT_FragmentInfo.H"
+#include "AS_BAT_ReadInfo.H"
 #include "AS_BAT_BestOverlapGraph.H"
 #include "AS_BAT_Logging.H"
 
@@ -52,7 +52,7 @@
 
 void
 BestOverlapGraph::removeSuspicious(const char *UNUSED(prefix)) {
-  uint32  fiLimit    = FI->numReads();
+  uint32  fiLimit    = RI->numReads();
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
 
@@ -66,7 +66,7 @@ BestOverlapGraph::removeSuspicious(const char *UNUSED(prefix)) {
     bool                 verified = false;
     intervalList<int32>  IL;
 
-    uint32               fLen = FI->readLength(fi);
+    uint32               fLen = RI->readLength(fi);
 
     for (uint32 ii=0; (ii<no) && (verified == false); ii++) {
       if (isOverlapBadQuality(ovl[ii]))
@@ -115,7 +115,7 @@ BestOverlapGraph::removeSuspicious(const char *UNUSED(prefix)) {
 
 void
 BestOverlapGraph::removeHighErrorBestEdges(void) {
-  uint32  fiLimit    = FI->numReads();
+  uint32  fiLimit    = RI->numReads();
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
 
@@ -198,7 +198,7 @@ BestOverlapGraph::removeHighErrorBestEdges(void) {
 
 void
 BestOverlapGraph::removeLopsidedEdges(const char *UNUSED(prefix)) {
-  uint32  fiLimit    = FI->numReads();
+  uint32  fiLimit    = RI->numReads();
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
 
@@ -221,8 +221,8 @@ BestOverlapGraph::removeLopsidedEdges(const char *UNUSED(prefix)) {
 
     //  Find the overlap for this5 and this3.
 
-    int32   this5ovlLen = FI->overlapLength(fi, this5->readId(), this5->ahang(), this5->bhang());
-    int32   this3ovlLen = FI->overlapLength(fi, this3->readId(), this3->ahang(), this3->bhang());
+    int32   this5ovlLen = RI->overlapLength(fi, this5->readId(), this5->ahang(), this5->bhang());
+    int32   this3ovlLen = RI->overlapLength(fi, this3->readId(), this3->ahang(), this3->bhang());
 
     //  Find the edges for our best overlaps.
 
@@ -250,8 +250,8 @@ BestOverlapGraph::removeLopsidedEdges(const char *UNUSED(prefix)) {
 
     //  Something doesn't agree.  Find those overlaps...
 
-    int32  that5ovlLen = FI->overlapLength(this5->readId(), that5->readId(), that5->ahang(), that5->bhang());
-    int32  that3ovlLen = FI->overlapLength(this3->readId(), that3->readId(), that3->ahang(), that3->bhang());
+    int32  that5ovlLen = RI->overlapLength(this5->readId(), that5->readId(), that5->ahang(), that5->bhang());
+    int32  that3ovlLen = RI->overlapLength(this3->readId(), that3->readId(), that3->ahang(), that3->bhang());
 
     //  ...and compare.
 
@@ -290,7 +290,7 @@ BestOverlapGraph::removeLopsidedEdges(const char *UNUSED(prefix)) {
 
 void
 BestOverlapGraph::removeSpurs(const char *prefix) {
-  uint32  fiLimit    = FI->numReads();
+  uint32  fiLimit    = RI->numReads();
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
 
@@ -340,7 +340,7 @@ BestOverlapGraph::removeSpurs(const char *prefix) {
 
 void
 BestOverlapGraph::findEdges(void) {
-  uint32  fiLimit    = FI->numReads();
+  uint32  fiLimit    = RI->numReads();
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
 
@@ -379,7 +379,7 @@ BestOverlapGraph::findEdges(void) {
 
 void
 BestOverlapGraph::removeContainedDovetails(void) {
-  uint32  fiLimit    = FI->numReads();
+  uint32  fiLimit    = RI->numReads();
 
   writeStatus("BestOverlapGraph()-- removing best edges for contained reads.\n");
 
@@ -399,10 +399,10 @@ BestOverlapGraph::BestOverlapGraph(double        erateGraph,
 
   writeStatus("\n");
   writeStatus("BestOverlapGraph()-- allocating best edges ("F_SIZE_T"MB)\n",
-           ((2 * sizeof(BestEdgeOverlap) * (FI->numReads() + 1)) >> 20));
+           ((2 * sizeof(BestEdgeOverlap) * (RI->numReads() + 1)) >> 20));
 
-  _bestA               = new BestOverlaps [FI->numReads() + 1];  //  Cleared in findEdges()
-  _scorA               = new BestScores   [FI->numReads() + 1];
+  _bestA               = new BestOverlaps [RI->numReads() + 1];  //  Cleared in findEdges()
+  _scorA               = new BestScores   [RI->numReads() + 1];
 
   _mean                = erateGraph;
   _stddev              = 0.0;
@@ -505,7 +505,7 @@ BestOverlapGraph::BestOverlapGraph(double        erateGraph,
 
 void
 BestOverlapGraph::reportEdgeStatistics(const char *prefix, const char *label) {
-  uint32  fiLimit      = FI->numReads();
+  uint32  fiLimit      = RI->numReads();
   uint32  numThreads   = omp_get_max_threads();
   uint32  blockSize    = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
 
@@ -604,33 +604,33 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
     fprintf(BE, "#readId\tlibId\tbest5iid\tbest5end\tbest3iid\tbest3end\teRate5\teRate3\tbest5len\tbest3len\n");
     fprintf(BS, "#readId\tlibId\n");
 
-    for (uint32 id=1; id<FI->numReads() + 1; id++) {
+    for (uint32 id=1; id<RI->numReads() + 1; id++) {
       BestEdgeOverlap *bestedge5 = getBestEdgeOverlap(id, false);
       BestEdgeOverlap *bestedge3 = getBestEdgeOverlap(id, true);
 
       if ((bestedge5->readId() == 0) && (bestedge3->readId() == 0) && (isContained(id) == false)) {
-        fprintf(BS, "%u\t%u\n", id, FI->libraryIID(id));
+        fprintf(BS, "%u\t%u\n", id, RI->libraryIID(id));
       }
 
       else if (_suspicious.count(id) > 0) {
-        fprintf(SS, "%u\t%u\t%u\t%c'\t%u\t%c'\t%6.4f\t%6.4f\t%u\t%u%s\n", id, FI->libraryIID(id),
+        fprintf(SS, "%u\t%u\t%u\t%c'\t%u\t%c'\t%6.4f\t%6.4f\t%u\t%u%s\n", id, RI->libraryIID(id),
           bestedge5->readId(), bestedge5->read3p() ? '3' : '5',
                 bestedge3->readId(), bestedge3->read3p() ? '3' : '5',
                 AS_OVS_decodeEvalue(bestedge5->evalue()),
                 AS_OVS_decodeEvalue(bestedge3->evalue()),
-                (bestedge5->readId() == 0 ? 0 : FI->overlapLength(id, bestedge5->readId(), bestedge5->ahang(), bestedge5->bhang())),
-                (bestedge3->readId() == 0 ? 0 : FI->overlapLength(id, bestedge3->readId(), bestedge3->ahang(), bestedge3->bhang())),
+                (bestedge5->readId() == 0 ? 0 : RI->overlapLength(id, bestedge5->readId(), bestedge5->ahang(), bestedge5->bhang())),
+                (bestedge3->readId() == 0 ? 0 : RI->overlapLength(id, bestedge3->readId(), bestedge3->ahang(), bestedge3->bhang())),
                 isContained(id) ? "\tcontained" : "");
       }
 
       else {
-        fprintf(BE, "%u\t%u\t%u\t%c'\t%u\t%c'\t%6.4f\t%6.4f\t%u\t%u%s\n", id, FI->libraryIID(id),
+        fprintf(BE, "%u\t%u\t%u\t%c'\t%u\t%c'\t%6.4f\t%6.4f\t%u\t%u%s\n", id, RI->libraryIID(id),
                 bestedge5->readId(), bestedge5->read3p() ? '3' : '5',
                 bestedge3->readId(), bestedge3->read3p() ? '3' : '5',
                 AS_OVS_decodeEvalue(bestedge5->evalue()),
                 AS_OVS_decodeEvalue(bestedge3->evalue()),
-                (bestedge5->readId() == 0 ? 0 : FI->overlapLength(id, bestedge5->readId(), bestedge5->ahang(), bestedge5->bhang())),
-                (bestedge3->readId() == 0 ? 0 : FI->overlapLength(id, bestedge3->readId(), bestedge3->ahang(), bestedge3->bhang())),
+                (bestedge5->readId() == 0 ? 0 : RI->overlapLength(id, bestedge5->readId(), bestedge5->ahang(), bestedge5->bhang())),
+                (bestedge3->readId() == 0 ? 0 : RI->overlapLength(id, bestedge3->readId(), bestedge3->ahang(), bestedge3->bhang())),
                 isContained(id) ? "\tcontained" : "");
       }
     }
@@ -646,7 +646,7 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
 
     //  First, write the sequences used.
 
-    for (uint32 id=1; id<FI->numReads() + 1; id++) {
+    for (uint32 id=1; id<RI->numReads() + 1; id++) {
       BestEdgeOverlap *bestedge5 = getBestEdgeOverlap(id, false);
       BestEdgeOverlap *bestedge3 = getBestEdgeOverlap(id, true);
 
@@ -664,7 +664,7 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
 
       else {
         //  Report the read, it has best edges - including contained reads.
-        fprintf(BEG, "S\tread%08u\t*\tLN:i:%u\n", id, FI->readLength(id));
+        fprintf(BEG, "S\tread%08u\t*\tLN:i:%u\n", id, RI->readLength(id));
       }
     }
 
@@ -675,7 +675,7 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
     //
     //  with read orientation given by +/-.  Conveniently, this is what we've saved (for the edges).
 
-    for (uint32 id=1; id<FI->numReads() + 1; id++) {
+    for (uint32 id=1; id<RI->numReads() + 1; id++) {
       BestEdgeOverlap *bestedge5 = getBestEdgeOverlap(id, false);
       BestEdgeOverlap *bestedge3 = getBestEdgeOverlap(id, true);
 
@@ -695,7 +695,7 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
         if (bestedge5->readId() != 0) {
           int32  ahang   = bestedge5->ahang();
           int32  bhang   = bestedge5->bhang();
-          int32  olaplen = FI->overlapLength(id, bestedge5->readId(), bestedge5->ahang(), bestedge5->bhang());
+          int32  olaplen = RI->overlapLength(id, bestedge5->readId(), bestedge5->ahang(), bestedge5->bhang());
 
           assert((ahang <= 0) && (bhang <= 0));  //  ALL 5' edges should be this.
 
@@ -708,14 +708,14 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
         if (bestedge3->readId() != 0) {
           int32  ahang   = bestedge3->ahang();
           int32  bhang   = bestedge3->bhang();
-          int32  olaplen = FI->overlapLength(id, bestedge3->readId(), bestedge3->ahang(), bestedge3->bhang());
+          int32  olaplen = RI->overlapLength(id, bestedge3->readId(), bestedge3->ahang(), bestedge3->bhang());
 
           assert((ahang >= 0) && (bhang >= 0));  //  ALL 3' edges should be this.
 
           fprintf(BEG, "L\tread%08u\t+\tread%08u\t%c\t%uM\n",
                   id,
                   bestedge3->readId(), bestedge3->read3p() ? '-' : '+',
-                  FI->overlapLength(id, bestedge3->readId(), bestedge3->ahang(), bestedge3->bhang()));
+                  RI->overlapLength(id, bestedge3->readId(), bestedge3->ahang(), bestedge3->bhang()));
         }
       }
     }
@@ -725,13 +725,13 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
 
 
   if ((BCH) && (BEH)) {
-    double *bc = new double [FI->numReads() + 1 + FI->numReads() + 1];
-    double *be = new double [FI->numReads() + 1 + FI->numReads() + 1];
+    double *bc = new double [RI->numReads() + 1 + RI->numReads() + 1];
+    double *be = new double [RI->numReads() + 1 + RI->numReads() + 1];
 
     uint32  bcl = 0;
     uint32  bel = 0;
 
-    for (uint32 id=1; id<FI->numReads() + 1; id++) {
+    for (uint32 id=1; id<RI->numReads() + 1; id++) {
       BestEdgeOverlap *bestedge5 = getBestEdgeOverlap(id, false);
       BestEdgeOverlap *bestedge3 = getBestEdgeOverlap(id, true);
 
@@ -876,8 +876,8 @@ BestOverlapGraph::isOverlapBadQuality(const BAToverlap& olap) {
   //if ((olap.a_iid == 97202) || (olap.a_iid == 30701))
   //  enableLog = true;
 
-  if ((FI->readLength(olap.a_iid) == 0) ||
-      (FI->readLength(olap.b_iid) == 0))
+  if ((RI->readLength(olap.a_iid) == 0) ||
+      (RI->readLength(olap.b_iid) == 0))
     //  The overlap is bad if it involves deleted reads.  Shouldn't happen in a normal
     //  assembly, but sometimes us users want to delete reads after overlaps are generated.
     return(true);
@@ -959,13 +959,13 @@ BestOverlapGraph::scoreOverlap(const BAToverlap& olap) {
   //  takes into account both reads, or as the number of aligned bases on the A read.
 
 #if 0
-  leng = FI->overlapLength(olap.a_iid, olap.b_iid, olap.a_hang, olap.b_hang);
+  leng = RI->overlapLength(olap.a_iid, olap.b_iid, olap.a_hang, olap.b_hang);
 #endif
 
   if (olap.a_hang > 0)
-    leng = FI->readLength(olap.a_iid) - olap.a_hang;
+    leng = RI->readLength(olap.a_iid) - olap.a_hang;
   else
-    leng = FI->readLength(olap.a_iid) + olap.b_hang;
+    leng = RI->readLength(olap.a_iid) + olap.b_hang;
 
   //  Convert the length into an expected number of matches.
 

@@ -35,7 +35,7 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include "AS_BAT_FragmentInfo.H"
+#include "AS_BAT_ReadInfo.H"
 #include "AS_BAT_BestOverlapGraph.H"
 #include "AS_BAT_Logging.H"
 
@@ -78,7 +78,7 @@ placeRead_contained(uint32           readId,
   //  We don't know the true length of the overlap, and our hang-based math tends to shrink reads.
   //  Reset the end coordinate using the actual length of the read.
 
-  fMax = fMin + FI->readLength(readId);
+  fMax = fMin + RI->readLength(readId);
 
   //  Orientation is straightforward, based on the orient of the parent, and the flipped flag.
 
@@ -127,7 +127,7 @@ placeRead_dovetail(uint32           readId,
 
   //  Scale the hangs based on the placed versus actual length of the parent read.
 
-  //double  intraScale = (double)(pMax - pMin) / FI->readLength(parent.ident);  //  Within the parent read overlap
+  //double  intraScale = (double)(pMax - pMin) / RI->readLength(parent.ident);  //  Within the parent read overlap
   //double  interScale = 1.0;                                                       //  Outside the parent read overlap
 
   //  We're given an edge from the read-to-place back to the parent.  Reverse the edge so it points
@@ -182,7 +182,7 @@ placeRead_dovetail(uint32           readId,
   //  We don't know the true length of the overlap, and our hang-based math tends to shrink reads.
   //  Reset the end coordinate using the actual length of the read.
 
-  fMax = fMin + FI->readLength(readId);
+  fMax = fMin + RI->readLength(readId);
 
 
   //  Orientation is a bit more complicated, with eight cases (drawing pictures helps).
@@ -236,7 +236,7 @@ Unitig::placeRead(ufNode          &read,      //  output placement
                   BestEdgeOverlap *edge) {    //  edge to read in this tig
 
   assert(readId > 0);
-  assert(readId <= FI->numReads());
+  assert(readId <= RI->numReads());
 
   read.ident             = readId;
   read.contained         = 0;

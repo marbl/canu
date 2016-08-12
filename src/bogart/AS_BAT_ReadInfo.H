@@ -27,8 +27,8 @@
  *  full conditions and disclaimers for each license.
  */
 
-#ifndef INCLUDE_AS_BAT_FRAGMENT_INFO
-#define INCLUDE_AS_BAT_FRAGMENT_INFO
+#ifndef INCLUDE_AS_BAT_READ_INFO
+#define INCLUDE_AS_BAT_READ_INFO
 
 #include "AS_global.H"
 #include "ovStore.H"
@@ -42,10 +42,10 @@
 
 
 
-class FragmentInfo {
+class ReadInfo {
 public:
-  FragmentInfo(gkStore *gkp, const char *prefix, uint32 minReadLen);
-  ~FragmentInfo();
+  ReadInfo(gkStore *gkp, const char *prefix, uint32 minReadLen);
+  ~ReadInfo();
 
   uint64  memoryUsage(void) {
     return((3 * sizeof(uint32) * _numReads) +
@@ -115,6 +115,6 @@ private:
 
 
 
-extern FragmentInfo     *FI;
+extern ReadInfo     *RI;
 
-#endif  //  INCLUDE_AS_BAT_FRAGMENT_INFO
+#endif  //  INCLUDE_AS_BAT_READ_INFO

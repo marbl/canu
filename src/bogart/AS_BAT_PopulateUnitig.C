@@ -35,7 +35,7 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include "AS_BAT_FragmentInfo.H"
+#include "AS_BAT_ReadInfo.H"
 #include "AS_BAT_BestOverlapGraph.H"
 #include "AS_BAT_Logging.H"
 
@@ -119,7 +119,7 @@ void
 populateUnitig(TigVector &tigs,
                int32      fi) {
 
-  if ((FI->readLength(fi) == 0) ||  //  Skip deleted
+  if ((RI->readLength(fi) == 0) ||  //  Skip deleted
       (Unitig::readIn(fi) != 0) ||      //  Skip placed
       (OG->isContained(fi) == true))    //  Skip contained
     return;
@@ -136,7 +136,7 @@ populateUnitig(TigVector &tigs,
   read.parent            = 0;
   read.ahang             = 0;
   read.bhang             = 0;
-  read.position.bgn      = FI->readLength(fi);
+  read.position.bgn      = RI->readLength(fi);
   read.position.end      = 0;
 
   utg->addRead(read, 0, logFileFlagSet(LOG_BUILD_UNITIG));
@@ -168,11 +168,11 @@ populateUnitig(TigVector &tigs,
     return;
 
 #if 0
-  uint32  covered = FI->readLength(fi) + bestedge5->bhang() + FI->readLength(fi) - bestedge3->ahang();
+  uint32  covered = RI->readLength(fi) + bestedge5->bhang() + RI->readLength(fi) - bestedge3->ahang();
 
   //  This breaks tigs at 0x best-coverage regions.  There might be a contain that spans (joins)
   //  the two best overlaps to verify the read, but we can't easily tell right now.
-  if (covered < FI->readLength(fi) + AS_OVERLAP_MIN_LEN / 2) {
+  if (covered < RI->readLength(fi) + AS_OVERLAP_MIN_LEN / 2) {
     writeLog("Stopping unitig construction of suspicious read %d in unitig %d\n",
             utg->ufpath.back().ident, utg->id());
     return;

@@ -35,12 +35,12 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include "AS_BAT_FragmentInfo.H"
+#include "AS_BAT_ReadInfo.H"
 #include "AS_BAT_Logging.H"
 
 
 
-FragmentInfo::FragmentInfo(gkStore    *gkp,
+ReadInfo::ReadInfo(gkStore    *gkp,
                            const char *prefix,
                            uint32      minReadLen) {
 
@@ -76,16 +76,16 @@ FragmentInfo::FragmentInfo(gkStore    *gkp,
   }
 
   if (minReadLen > 0)
-    writeStatus("FragmentInfo()-- Using %d reads, ignoring %u reads less than "F_U32" bp long.\n",
+    writeStatus("ReadInfo()-- Using %d reads, ignoring %u reads less than "F_U32" bp long.\n",
                 numLoaded, numSkipped, minReadLen);
   else
-    writeStatus("FragmentInfo()-- Using %d reads, no minimum read length used.\n",
+    writeStatus("ReadInfo()-- Using %d reads, no minimum read length used.\n",
                 numLoaded);
 }
 
 
 
-FragmentInfo::~FragmentInfo() {
+ReadInfo::~ReadInfo() {
   delete [] _readLength;
   delete [] _libIID;
 }

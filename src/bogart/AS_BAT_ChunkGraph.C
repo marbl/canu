@@ -35,7 +35,7 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include "AS_BAT_FragmentInfo.H"
+#include "AS_BAT_ReadInfo.H"
 #include "AS_BAT_BestOverlapGraph.H"
 #include "AS_BAT_ChunkGraph.H"
 
@@ -53,7 +53,7 @@ ChunkGraph::ChunkGraph(const char *prefix) {
   if (errno)
     _chunkLog = NULL;
 
-  _maxRead = FI->numReads();
+  _maxRead = RI->numReads();
   _restrict    = NULL;
 
   _pathLen         = new uint32      [_maxRead * 2 + 2];

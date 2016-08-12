@@ -35,7 +35,7 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include "AS_BAT_FragmentInfo.H"
+#include "AS_BAT_ReadInfo.H"
 #include "AS_BAT_BestOverlapGraph.H"
 
 #include "AS_BAT_Logging.H"
@@ -50,12 +50,12 @@
 
 void
 checkUnitigMembership(TigVector &tigs) {
-  uint32 *inUnitig = new uint32 [FI->numReads()+1];
+  uint32 *inUnitig = new uint32 [RI->numReads()+1];
   uint32  noUnitig = 0xffffffff;
 
   //  All reads start of not placed in a unitig.
 
-  for (uint32 i=0; i<FI->numReads()+1; i++)
+  for (uint32 i=0; i<RI->numReads()+1; i++)
     inUnitig[i] = noUnitig;
 
   //  Over all tigs, remember where each read is.
@@ -70,15 +70,15 @@ checkUnitigMembership(TigVector &tigs) {
     for (uint32 fi=0; fi<tig->ufpath.size(); fi++) {
       ufNode  *frg = &tig->ufpath[fi];
 
-      if (frg->ident > FI->numReads())
+      if (frg->ident > RI->numReads())
         fprintf(stderr, "tig %u ufpath[%d] ident %u more than number of reads %u\n",
-                tig->id(), fi, frg->ident, FI->numReads());
+                tig->id(), fi, frg->ident, RI->numReads());
 
       if (inUnitig[frg->ident] != noUnitig)
         fprintf(stderr, "tig %u ufpath[%d] ident %u placed multiple times\n",
                 tig->id(), fi, frg->ident);
 
-      assert(frg->ident <= FI->numReads());   //  Can't be out of range.
+      assert(frg->ident <= RI->numReads());   //  Can't be out of range.
       assert(inUnitig[frg->ident] == noUnitig);   //  Read must be not placed yet.
 
       inUnitig[frg->ident] = ti;
@@ -87,8 +87,8 @@ checkUnitigMembership(TigVector &tigs) {
 
   //  Find any read not placed in a unitig.
 
-  for (uint32 i=0; i<FI->numReads()+1; i++) {
-    if (FI->readLength(i) == 0)  //  Deleted read.
+  for (uint32 i=0; i<RI->numReads()+1; i++) {
+    if (RI->readLength(i) == 0)  //  Deleted read.
       continue;
 
     assert(inUnitig[i] != 0);         //  There shouldn't be a unitig 0.
@@ -434,8 +434,8 @@ reportOverlaps(TigVector &tigs, const char *prefix, const char *name) {
   memset(bb, 0, sizeof(olapsUsed));
 
 
-  for (uint32 fi=0; fi<FI->numReads()+1; fi++) {
-    if (FI->readLength(fi) == 0)
+  for (uint32 fi=0; fi<RI->numReads()+1; fi++) {
+    if (RI->readLength(fi) == 0)
       continue;
 
     uint32           rdAid   = fi;

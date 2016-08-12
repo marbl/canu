@@ -35,7 +35,7 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include "AS_BAT_FragmentInfo.H"
+#include "AS_BAT_ReadInfo.H"
 #include "AS_BAT_BestOverlapGraph.H"
 #include "AS_BAT_Logging.H"
 
@@ -64,7 +64,7 @@ Unitig::addRead(ufNode node, int offset, bool report) {
   ufpath.push_back(node);
 
   if ((report) || (node.position.bgn < 0) || (node.position.end < 0)) {
-    int32 trulen = FI->readLength(node.ident);
+    int32 trulen = RI->readLength(node.ident);
     int32 poslen = (node.position.end > node.position.bgn) ? (node.position.end - node.position.bgn) : (node.position.bgn - node.position.end);
 
     if (node.contained)
