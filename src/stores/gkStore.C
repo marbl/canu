@@ -1202,7 +1202,7 @@ gkStore::gkStore_buildPartitions(uint32 *partitionMap) {
 
     partRead.gkRead_copyDataToPartition(_blobs, blobfiles, blobfileslen, pi);
 
-#if 1
+#if 0
     fprintf(stderr, "read "F_U32"="F_U32" len "F_U32" -- blob master "F_U64" -- to part "F_U32" new read id "F_U32" blob "F_U64"/"F_U64" -- at readIdx "F_U32"\n",
             fi, _reads[fi].gkRead_readID(), _reads[fi].gkRead_sequenceLength(),
             _reads[fi]._mPtr,
