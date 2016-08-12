@@ -175,47 +175,111 @@ findUnitigCoverage(Unitig               *tig,
 
 
 
-//  Any edge in 'repeats' that is not captured in a 'BP' is to a repeat that
-//  has been deemed resolved.  Mark those edges.
+
+//  
 //
+
 void
-removeResolvedRepeatEdges(TigVector                &tigs,
-                          Unitig                   *tig,
-                          vector<breakPointCoords> &BP,
-                          vector<olapDat>          &repeats) {
-  uint32   nUnitig   = 0;
-  uint32   nResolved = 0;
-  uint32   nRepeat   = 0;
+markEdges(Unitig                   *tig,
+          vector<breakPointCoords> &BP,
+          vector<olapDat>          &repeats) {
+  uint32   nBubble = 0;
+  uint32   nRepeat = 0;
+  uint32   nSplit  = 0;
+
+  //  Clean up edges that point to the tig we just processed for repeats.
+  //
+  //  Any edge in 'repeats' that is not captured in a 'BP' is to a repeat that
+  //  is unambiguous.  Mark those as 'isBubble'.  Mark other edges as 'isRepeat'.
+  //
+  //  The edge should have olapBgn/olapEnd either entirely inside or outside a BP.
 
   for (uint32 rr=0; rr<repeats.size(); rr++) {
     uint32  rID = repeats[rr].eviRid;
     uint32  pID = repeats[rr].eviPid;
     bool    foundBP = false;
 
+    uint32  bgn = repeats[rr].tigbgn;
+    uint32  end = repeats[rr].tigend;
+      
     //  There shouldn't be any isUnitig edges.  They're screened out when 'repeats' is built.
     assert(AG->getForward(rID)[pID].isUnitig == false);
+    assert(AG->getForward(rID)[pID].isContig == false);
 
     //  Search to see if this repeat is completely within a NP.
     for (uint32 bb=0; (foundBP == false) && (bb<BP.size()); bb++) {
       if (BP[bb]._isRepeat == false)
         continue;
 
-      if ((BP[bb]._bgn <= repeats[rr].tigbgn) &&
-          (repeats[rr].tigend <= BP[bb]._end))
+      if ((BP[bb]._bgn <= bgn) &&
+          (end <= BP[bb]._end))
         foundBP = true;
     }
 
     if (foundBP == false) {
-      nResolved++;
-      AG->getForward(rID)[pID].isRepeat = true;
+      nBubble++;
+      AG->getForward(rID)[pID].isBubble = true;
     } else {
       nRepeat++;
+      AG->getForward(rID)[pID].isRepeat = true;
     }
   }
 
-  writeStatus("AssemblyGraph()-- retained %u unitig edges, retained %u repeat edges, removed %u resolved repeat edges.\n",
-              nUnitig, nResolved, nRepeat);
+  //  Clean up edges that are internal to the tig we just processed for repeats - we're after edges
+  //  that are between reads that will be in different tigs after this one is split.
+  //
+  //  Over all reads in the tig, over all placements for those reads: If the placement
+  //  is in a contig and intersects a break point, we are going to split the tig there,
+  //  so the edge is now not 'isContig' but is now 'isRepeat'.
+
+#if 0
+  for (uint32 fi=0; fi<tig->ufpath.size(); fi++) {
+    ufNode                 &frg   = tig->ufpath[fi];
+    vector<BestPlacement>  &place = AG->getForward(frg.ident);
+  
+    for (uint32 pp=0; pp<place.size(); pp++) {
+      if (place[pp].isContig == false)  //  If not in a contig, we don't care.
+        continue;
+
+      if (tig->id() != place[pp].tigID) {
+        fprintf(stderr, "tig %u read #%u %u at %u-%u edge #%u: tigID %u placed %u-%u olap %u-%u flags isC %d isU %d isB %d isR %d\n",
+                tig->id(), fi, frg.ident, frg.position.bgn, frg.position.end,
+                pp,
+                place[pp].tigID,
+                place[pp].placedBgn, place[pp].placedEnd,
+                place[pp].olapBgn, place[pp].olapEnd,
+                place[pp].isContig, place[pp].isUnitig, place[pp].isBubble, place[pp].isRepeat);
+      }
+      assert(tig->id() == place[pp].tigID);
+
+      uint32  bgn = place[pp].olapBgn;
+      uint32  end = place[pp].olapEnd;
+
+      bool    foundBP = false;
+
+      for (uint32 bb=0; (foundBP == false) && (bb < BP.size()); bb++) {
+        if (BP[bb]._isRepeat == false)
+          continue;
+
+        if ((BP[bb]._bgn < end) &&
+            (bgn < BP[bb]._end))
+          foundBP = true;
+      }
+
+      if (foundBP == true) {
+        nSplit++;
+        place[pp].isContig = false;
+        place[pp].isUnitig = false;
+        place[pp].isRepeat = true;
+      }
+    }
+  }
+#endif
+
+  writeLog("markEdges()-- tig %u marked %u bubble edges; %u repeat edges; %u split repeat edges\n",
+           tig->id(), nBubble, nRepeat, nSplit);
 }
+
 
 
 
@@ -367,7 +431,8 @@ annotateRepeatsOnRead(TigVector             &UNUSED(tigs),
                (fPlace.isUnitig) ? " IN_UNITIG" : "");
 #endif
 
-      if (fPlace.isUnitig)
+      if ((fPlace.isUnitig == true) ||
+          (fPlace.isContig == true))
         continue;
 
       repeats.push_back(olapDat(fPlace.olapBgn, fPlace.olapEnd, rID, pID));
@@ -561,7 +626,7 @@ markRepeatReads(TigVector    &tigs,
     //  Run through again, looking for the thickest overlap(s) to the remaining regions.
     //  This isn't caring about the end effect noted above.
 
-#if 1
+#if 0
     writeLog("thickest edges to the repeat regions:\n");
 
     for (uint32 ri=0; ri<tigMarksR.numberOfIntervals(); ri++) {
@@ -1000,12 +1065,19 @@ markRepeatReads(TigVector    &tigs,
     for (uint32 ii=0; ii<tigMarksU.numberOfIntervals(); ii++)
       BP.push_back(breakPointCoords(ti, tigMarksU.lo(ii), tigMarksU.hi(ii), false));
 
-    if (BP.size() == 1)  //  Only one region.  Nothing to do!
+    //  Mark edges for later use.
+
+    markEdges(tig, BP, repeatOlaps);
+
+    //  If there is only one BP, the tig is entirely resolved or entirely repeat.  Either case,
+    //  there is nothing more for us to do.
+
+    if (BP.size() == 1)
       continue;
 
-    sort(BP.begin(), BP.end());  //  Makes the report nice.  Doesn't impact splitting.
-
     //  Report.
+
+    sort(BP.begin(), BP.end());  //  Makes the report nice.  Doesn't impact splitting.
 
     writeLog("break tig %u into up to %u pieces:\n", ti, BP.size());
     for (uint32 ii=0; ii<BP.size(); ii++)
@@ -1028,11 +1100,8 @@ markRepeatReads(TigVector    &tigs,
 
     //  Second call, actually create the tigs, if anything would change.
 
-    if (nTigs > 1) {
-      //markResolvedRepeatEdges(tigs, tig, BP, repeatOlaps);
+    if (nTigs > 1)
       splitTigs(tigs, tig, BP, newTigs, lowCoord, nRepeat, nUnique, true);
-      //markSplitRepeatEdges(tigs, tig, BP, repeatOlaps);
-    }
 
     //  Report the tigs created.
 
