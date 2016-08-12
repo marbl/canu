@@ -42,7 +42,7 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
                              double        deviationBubble,
                              double        deviationRepeat,
                              TigVector    &tigs) {
-  uint32  fiLimit    = FI->numFragments();
+  uint32  fiLimit    = FI->numReads();
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
 
@@ -55,8 +55,8 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
   uint32   nFailedContained  = 0;
   uint32   nFailed           = 0;
 
-  for (uint32 fid=1; fid<FI->numFragments()+1; fid++) {
-    if (Unitig::fragIn(fid) == 0)   //  Unplaced, don't care.  These didn't assemble, and aren't contained.
+  for (uint32 fid=1; fid<FI->numReads()+1; fid++) {
+    if (Unitig::readIn(fid) == 0)   //  Unplaced, don't care.  These didn't assemble, and aren't contained.
       continue;
 
     if (OG->isContained(fid))
@@ -76,23 +76,23 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
   writeStatus("AssemblyGraph()-- finding edges for %u reads (%u contained), ignoring %u unplaced reads, with %d threads.\n",
               nToPlaceContained + nToPlace,
               nToPlaceContained,
-              FI->numFragments() - nToPlaceContained - nToPlace,
+              FI->numReads() - nToPlaceContained - nToPlace,
               numThreads);
 
   //  Do the placing!
 
 #pragma omp parallel for schedule(dynamic, blockSize)
-  for (uint32 fi=1; fi<FI->numFragments()+1; fi++) {
+  for (uint32 fi=1; fi<FI->numReads()+1; fi++) {
     bool  enableLog = true;
 
-    uint32   fiTigID = Unitig::fragIn(fi);
+    uint32   fiTigID = Unitig::readIn(fi);
 
     if (fiTigID == 0)  //  Unplaced, don't care.
       continue;
 
     //  Grab a bit about this read.
 
-    uint32   fiLen  = FI->fragmentLength(fi);
+    uint32   fiLen  = FI->readLength(fi);
     ufNode  *fiRead = &tigs[fiTigID]->ufpath[ Unitig::pathPosition(fi) ];
     uint32   fiMin  = fiRead->position.min();
     uint32   fiMax  = fiRead->position.max();
@@ -101,10 +101,10 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
 
     vector<overlapPlacement>   placements;
 
-    placeFragUsingOverlaps(tigs, NULL, fi, placements);
+    placeReadUsingOverlaps(tigs, NULL, fi, placements);
 
 #ifdef LOG_GRAPH
-    //writeLog("AG()-- working on frag %u with %u placements\n", fi, placements.size());
+    //writeLog("AG()-- working on read %u with %u placements\n", fi, placements.size());
 #endif
 
     //  For each placement decide if the overlap is compatible with the tig.
@@ -118,7 +118,7 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
       if (tig->ufpath.size() <= 1) {
 #if 0
 #ifdef LOG_GRAPH
-        writeLog("AG()-- frag %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.4f SINGLETON\n",
+        writeLog("AG()-- read %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.4f SINGLETON\n",
                  fi, pp,
                  placements[pp].tigID,
                  placements[pp].position.bgn, placements[pp].position.end,
@@ -146,7 +146,7 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
       if ((is5 == false) && (is3 == false)) {
 #if 0
 #ifdef LOG_GRAPH
-        writeLog("AG()-- frag %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.4f SPANNED_REPEAT\n",
+        writeLog("AG()-- read %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.4f SPANNED_REPEAT\n",
                  fi, pp,
                  placements[pp].tigID,
                  placements[pp].position.bgn, placements[pp].position.end,
@@ -180,7 +180,7 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
           (tig->overlapConsistentWithTig(deviationRepeat, ovlmin, ovlmax, erate) < REPEAT_FRACTION)) {
 #ifdef LOG_GRAPH
         if ((enableLog == true) && (logFileFlagSet(LOG_PLACE_UNPLACED)))
-          writeLog("AG()-- frag %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.4f HIGH_ERROR\n",
+          writeLog("AG()-- read %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.4f HIGH_ERROR\n",
                    fi, pp,
                    placements[pp].tigID,
                    placements[pp].position.bgn, placements[pp].position.end,
@@ -195,7 +195,7 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
       BestPlacement  bp;
 
 #if 0
-      writeLog("AG()-- frag %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.4f Fidx %6u Lidx %6u is5 %d is3 %d onLeft %d onRight %d  VALID_PLACEMENT\n",
+      writeLog("AG()-- read %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.4f Fidx %6u Lidx %6u is5 %d is3 %d onLeft %d onRight %d  VALID_PLACEMENT\n",
                fi, pp,
                placements[pp].tigID,
                placements[pp].position.bgn, placements[pp].position.end,
@@ -298,7 +298,7 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
           (thickest5 == 0) &&
           (thickest3 == 0)) {
 #ifdef LOG_GRAPH
-          writeLog("AG()-- frag %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.4f NO_EDGES Fidx %6u Lidx %6u is5 %d is3 %d onLeft %d onRight %d\n",
+          writeLog("AG()-- read %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.4f NO_EDGES Fidx %6u Lidx %6u is5 %d is3 %d onLeft %d onRight %d\n",
                    fi, pp,
                    placements[pp].tigID,
                    placements[pp].position.bgn, placements[pp].position.end,
@@ -324,7 +324,7 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
 #ifdef LOG_GRAPH
       if (isTig == false)
         if (thickestC != 0) {
-          writeLog("AG()-- frag %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.4f CONTAINED %8d (%8d %8d)%s\n",
+          writeLog("AG()-- read %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.4f CONTAINED %8d (%8d %8d)%s\n",
                    fi, pp,
                    placements[pp].tigID,
                    placements[pp].position.bgn, placements[pp].position.end,
@@ -333,7 +333,7 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
                    bp.bestC.b_iid, bp.best5.b_iid, bp.best3.b_iid,
                    (isTig == true) ? " IN_UNITIG" : "");
         } else {
-          writeLog("AG()-- frag %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.4f DOVETAIL (%8d) %8d %8d%s\n",
+          writeLog("AG()-- read %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.4f DOVETAIL (%8d) %8d %8d%s\n",
                    fi, pp,
                    placements[pp].tigID,
                    placements[pp].position.bgn, placements[pp].position.end,
@@ -352,10 +352,10 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
   writeStatus("AssemblyGraph()-- building reverse edges.\n",
               nToPlaceContained + nToPlace,
               nToPlaceContained,
-              FI->numFragments() - nToPlaceContained - nToPlace,
+              FI->numReads() - nToPlaceContained - nToPlace,
               numThreads);
 
-  for (uint32 fi=1; fi<FI->numFragments()+1; fi++) {
+  for (uint32 fi=1; fi<FI->numReads()+1; fi++) {
     for (uint32 ff=0; ff<_pForward[fi].size(); ff++) {
       BestPlacement &bp = _pForward[fi][ff];
       BestReverse    br(fi, ff);
@@ -399,11 +399,11 @@ AssemblyGraph::reportGraph(const char *prefix, const char *label) {
   //  First, figure out what sequences are used.  A sequence is used if it has forward edges,
   //  or if it is referred to by a forward edge.
 
-  uint32   *used = new uint32 [FI->numFragments() + 1];
+  uint32   *used = new uint32 [FI->numReads() + 1];
 
-  memset(used, 0, sizeof(uint32) * (FI->numFragments() + 1));
+  memset(used, 0, sizeof(uint32) * (FI->numReads() + 1));
 
-  for (uint32 fi=1; fi<FI->numFragments() + 1; fi++) {
+  for (uint32 fi=1; fi<FI->numReads() + 1; fi++) {
     if (_pForward[fi].size() > 0)
       used[fi] = 1;
 
@@ -416,9 +416,9 @@ AssemblyGraph::reportGraph(const char *prefix, const char *label) {
 
   //  Then write those sequences.
 
-  for (uint32 fi=1; fi<FI->numFragments() + 1; fi++)
+  for (uint32 fi=1; fi<FI->numReads() + 1; fi++)
     if (used[fi] == 1)
-      fprintf(BEG, "S\tread%08u\t*\tLN:i:%u\n", fi, FI->fragmentLength(fi));
+      fprintf(BEG, "S\tread%08u\t*\tLN:i:%u\n", fi, FI->readLength(fi));
 
   //  Now, report edges.  GFA wants edges in exactly this format:
   //
@@ -439,7 +439,7 @@ AssemblyGraph::reportGraph(const char *prefix, const char *label) {
   uint64  nBubble = 0;
   uint64  nRepeat = 0;
 
-  for (uint32 fi=1; fi<FI->numFragments() + 1; fi++) {
+  for (uint32 fi=1; fi<FI->numReads() + 1; fi++) {
     for (uint32 pp=0; pp<_pForward[fi].size(); pp++) {
       BAToverlapInt *bestedgeC = &_pForward[fi][pp].bestC;
       BAToverlapInt *bestedge5 = &_pForward[fi][pp].best5;
@@ -511,7 +511,7 @@ AssemblyGraph::reportGraph(const char *prefix, const char *label) {
                 fi,
                 bestedgeC->b_iid, bestedgeC->flipped ? '-' : '+',
                 -bestedgeC->a_hang,
-                FI->fragmentLength(fi),
+                FI->readLength(fi),
                 _pForward[fi][pp].isContig,
                 _pForward[fi][pp].isUnitig,
                 _pForward[fi][pp].isBubble,

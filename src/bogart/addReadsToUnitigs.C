@@ -111,7 +111,7 @@ main(int argc, char **argv) {
   map<string,uint32>  lookupIID;
 
 #ifdef UNFINISHED_ADD_TO_SINGLETON
-  vector<bool>        iidInTig;       //  true if the read is already in a unitig
+  vector<bool>        iidInTig;       //  true if the read is already in a tig
   vector<uint32>      iidInTigByLib;  //  count of reads in tigs, by library
   vector<uint32>      iidInLib;       //  count of reads, by library
 #endif
@@ -287,7 +287,7 @@ main(int argc, char **argv) {
 
 
   //
-  //  Load the alignment map.  The challenge here is to parse the unitig and read names
+  //  Load the alignment map.  The challenge here is to parse the tig and read names
   //  into correct IIDs.  We assume that:
   //    Reads were dumped with -dumpfasta and have names ">UID,IID"
   //    Tigs were dumped with tigStore -d consensus and have names "utgIID"
@@ -337,7 +337,7 @@ main(int argc, char **argv) {
       rm.rFWD = (S(4) < S(5));
       rm.rCNT = 1;
 
-      assert(S[6][0] == 'u');  //  Unitig must be from a tigStore dump, and will be
+      assert(S[6][0] == 'u');  //  tig must be from a tigStore dump, and will be
       assert(S[6][1] == 't');  //  named 'utg#######'.
       assert(S[6][2] == 'g');
 
@@ -466,7 +466,7 @@ main(int argc, char **argv) {
 
   fprintf(stderr, "Will NOT add %u pairs - one read failed to map.\n", unpaired);
   fprintf(stderr, "Will NOT add %u pairs - multiple mappings.\n", multiple);
-  fprintf(stderr, "Will add %u pairs in the same unitig\n", pairsToSame);
+  fprintf(stderr, "Will add %u pairs in the same tig\n", pairsToSame);
   fprintf(stderr, "Will add %u pairs in different tigs\n", pairsToDiff);
 
   //
@@ -489,7 +489,7 @@ main(int argc, char **argv) {
   VA_TYPE(int32) *unGappedOffsets = CreateVA_int32(1024 * 1024);
 
   for (uint32 bb=0; bb<RM.size(); bb++) {
-    if ((RM[bb].tIID == UINT32_MAX) ||   //  not mapped into a unitig
+    if ((RM[bb].tIID == UINT32_MAX) ||   //  not mapped into a tig
         (RM[bb].good == false)      ||   //  not useful mate pair
         (RM[bb].proc == true))           //  already added
       continue;
@@ -520,11 +520,11 @@ main(int argc, char **argv) {
 
       readsAdded++;
 
-      fprintf(stdout, "bb=%u ee=%u ADD frag %u to unitig %u at %u,%u (from ungapped %u,%u)\n",
+      fprintf(stdout, "bb=%u ee=%u ADD read %u to tig %u at %u,%u (from ungapped %u,%u)\n",
               bb, ee,
               RM[ee].rIID, RM[ee].tIID, bgn, end, RM[ee].tBGN, RM[ee].tEND);
 
-      //  Add a read to the unitig.
+      //  Add a read to the tig.
 
       IntMultiPos  frg;
 
@@ -546,7 +546,7 @@ main(int argc, char **argv) {
       RM[ee].proc = true;
     }
 
-    fprintf(stderr, "Added %u reads to unitig %u (previously %lu reads)\n",
+    fprintf(stderr, "Added %u reads to tig %u (previously %lu reads)\n",
             readsAdded,
             ma->maID,
             GetNumIntMultiPoss(ma->f_list) - readsAdded);
@@ -558,13 +558,13 @@ main(int argc, char **argv) {
         if (showResult)
           PrintMultiAlignT(stdout, ma, gkpStore, false, false, AS_READ_CLEAR_LATEST);
       } else {
-        fprintf(stderr, "MultiAlignUnitig()-- unitig %d failed.\n", ma->maID);
+        fprintf(stderr, "MultiAlignUnitig()-- tig %d failed.\n", ma->maID);
         numFailures++;
       }
     }
 
     if (doModify) {
-      fprintf(stderr, "Updating unitig %u\n", ma->maID);
+      fprintf(stderr, "Updating tig %u\n", ma->maID);
       tigStore->insertMultiAlign(ma, true, false);
     }
   }

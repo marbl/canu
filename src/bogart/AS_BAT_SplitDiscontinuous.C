@@ -44,21 +44,21 @@
 static
 void
 makeNewUnitig(TigVector    &tigs,
-              uint32        splitFragsLen,
-              ufNode       *splitFrags) {
+              uint32        splitReadsLen,
+              ufNode       *splitReads) {
   Unitig *dangler = tigs.newUnitig(false);
 
   if (logFileFlagSet(LOG_SPLIT_DISCONTINUOUS))
-    writeLog("splitDiscontinuous()--   new tig "F_U32" with "F_U32" fragments (starting at frag "F_U32").\n",
-            dangler->id(), splitFragsLen, splitFrags[0].ident);
+    writeLog("splitDiscontinuous()--   new tig "F_U32" with "F_U32" reads (starting at read "F_U32").\n",
+            dangler->id(), splitReadsLen, splitReads[0].ident);
 
-  int splitOffset = -MIN(splitFrags[0].position.bgn, splitFrags[0].position.end);
+  int splitOffset = -MIN(splitReads[0].position.bgn, splitReads[0].position.end);
 
   //  This should already be true, but we force it still
-  splitFrags[0].contained = 0;
+  splitReads[0].contained = 0;
 
-  for (uint32 i=0; i<splitFragsLen; i++)
-    dangler->addFrag(splitFrags[i], splitOffset, false);  //logFileFlagSet(LOG_SPLIT_DISCONTINUOUS));
+  for (uint32 i=0; i<splitReadsLen; i++)
+    dangler->addRead(splitReads[i], splitOffset, false);  //logFileFlagSet(LOG_SPLIT_DISCONTINUOUS));
 }
 
 
@@ -71,9 +71,9 @@ void splitDiscontinuous(TigVector &tigs, uint32 minOverlap) {
   uint32                numSplit   = 0;
   uint32                numCreated = 0;
 
-  uint32                splitFragsLen = 0;
-  uint32                splitFragsMax = 0;
-  ufNode               *splitFrags    = NULL;
+  uint32                splitReadsLen = 0;
+  uint32                splitReadsMax = 0;
+  ufNode               *splitReads    = NULL;
 
   for (uint32 ti=0; ti<tigs.size(); ti++) {
     Unitig  *tig = tigs[ti];
@@ -84,9 +84,9 @@ void splitDiscontinuous(TigVector &tigs, uint32 minOverlap) {
     //  Unitig must be sorted.  Someone upstream os screwing this up.
     tig->sort();
 
-    //  We'll want to build an array of new fragments to split out.  This can be up
+    //  We'll want to build an array of new reads to split out.  This can be up
     //  to the size of the largest unitig.
-    splitFragsMax = MAX(splitFragsMax, tig->ufpath.size());
+    splitReadsMax = MAX(splitReadsMax, tig->ufpath.size());
 
     //  Check that the unitig starts at position zero.  Not critical for the next loop, but
     //  needs to be dome sometime.
@@ -105,7 +105,7 @@ void splitDiscontinuous(TigVector &tigs, uint32 minOverlap) {
     }
   }
 
-  splitFrags = new ufNode [splitFragsMax];
+  splitReads = new ufNode [splitReadsMax];
 
   //  Now, finally, we can check for gaps in tigs.
 
@@ -144,11 +144,11 @@ void splitDiscontinuous(TigVector &tigs, uint32 minOverlap) {
 
     //  Dang, busted unitig.  Fix it up.
 
-    splitFragsLen = 0;
+    splitReadsLen = 0;
     maxEnd        = 0;
 
     if (logFileFlagSet(LOG_SPLIT_DISCONTINUOUS))
-      writeLog("splitDiscontinuous()-- discontinuous tig "F_U32" with "F_SIZE_T" fragments broken into:\n",
+      writeLog("splitDiscontinuous()-- discontinuous tig "F_U32" with "F_SIZE_T" reads broken into:\n",
               tig->id(), tig->ufpath.size());
 
     for (uint32 fi=0; fi<tig->ufpath.size(); fi++) {
@@ -157,45 +157,45 @@ void splitDiscontinuous(TigVector &tigs, uint32 minOverlap) {
       int32    bgn = MIN(frg->position.bgn, frg->position.end);
       int32    end = MAX(frg->position.bgn, frg->position.end);
 
-      //  Good thick overlap exists to this fragment, save it.
+      //  Good thick overlap exists to this read, save it.
       if (bgn <= maxEnd - minOverlap) {
-        assert(splitFragsLen < splitFragsMax);
-        splitFrags[splitFragsLen++] = *frg;
+        assert(splitReadsLen < splitReadsMax);
+        splitReads[splitReadsLen++] = *frg;
         maxEnd = MAX(maxEnd, end);
         continue;
       }
 
-      //  No thick overlap found.  We need to break right here before the current fragment.  We used
+      //  No thick overlap found.  We need to break right here before the current read.  We used
       //  to try to place contained reads with their container.  For simplicity, we instead just
       //  make a new unitig, letting the main() decide what to do with them (e.g., bubble pop or try
       //  to place all reads in singleton tigs as contained reads again).
 
       numCreated++;
-      makeNewUnitig(tigs, splitFragsLen, splitFrags);
+      makeNewUnitig(tigs, splitReadsLen, splitReads);
       tig = tigs[ti];
 
-      //  Done with the split, save the current fragment.  This resets everything.
+      //  Done with the split, save the current read.  This resets everything.
 
-      splitFragsLen = 0;
-      splitFrags[splitFragsLen++] = *frg;
+      splitReadsLen = 0;
+      splitReads[splitReadsLen++] = *frg;
 
       maxEnd = end;
     }
 
 
-    //  If we did any splitting, then the length of the frags in splitFrags will be less than the length
-    //  of the path in the current unitig.  Make a final new unitig for the remaining fragments.
+    //  If we did any splitting, then the length of the reads in splitReads will be less than the length
+    //  of the path in the current unitig.  Make a final new unitig for the remaining reads.
     //
-    if (splitFragsLen != tig->ufpath.size()) {
+    if (splitReadsLen != tig->ufpath.size()) {
       numCreated++;
-      makeNewUnitig(tigs, splitFragsLen, splitFrags);
+      makeNewUnitig(tigs, splitReadsLen, splitReads);
 
       delete tigs[ti];
       tigs[ti] = NULL;
     }
   }
 
-  delete [] splitFrags;
+  delete [] splitReads;
 
   if ((numSplit > 0) || (numCreated > 0))
     writeLog("splitDiscontinuous()-- Tested "F_U32" tigs, split "F_U32" into "F_U32" new tigs.\n",

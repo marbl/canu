@@ -45,20 +45,20 @@ FragmentInfo::FragmentInfo(gkStore    *gkp,
                            uint32      minReadLen) {
 
   _numLibraries = gkp->gkStore_getNumLibraries();
-  _numFragments = gkp->gkStore_getNumReads();
+  _numReads     = gkp->gkStore_getNumReads();
 
-  _fragLength    = new uint32 [_numFragments + 1];
-  _libIID        = new uint32 [_numFragments + 1];
+  _readLength    = new uint32 [_numReads + 1];
+  _libIID        = new uint32 [_numReads + 1];
 
-  for (uint32 i=0; i<_numFragments + 1; i++) {
-    _fragLength[i] = 0;
+  for (uint32 i=0; i<_numReads + 1; i++) {
+    _readLength[i] = 0;
     _libIID[i] = 0;
   }
 
   uint32 numSkipped = 0;
   uint32 numLoaded  = 0;
 
-  for (uint32 fi=1; fi<=_numFragments; fi++) {
+  for (uint32 fi=1; fi<=_numReads; fi++) {
     gkRead  *read = gkp->gkStore_getRead(fi);
 
     if (read->gkRead_sequenceLength() < minReadLen) {
@@ -68,7 +68,7 @@ FragmentInfo::FragmentInfo(gkStore    *gkp,
       uint32 iid = read->gkRead_readID();
       uint32 lib = read->gkRead_libraryID();
 
-      _fragLength[iid] = read->gkRead_sequenceLength();
+      _readLength[iid] = read->gkRead_sequenceLength();
       _libIID[iid]     = lib;
 
       numLoaded++;
@@ -86,6 +86,6 @@ FragmentInfo::FragmentInfo(gkStore    *gkp,
 
 
 FragmentInfo::~FragmentInfo() {
-  delete [] _fragLength;
+  delete [] _readLength;
   delete [] _libIID;
 }

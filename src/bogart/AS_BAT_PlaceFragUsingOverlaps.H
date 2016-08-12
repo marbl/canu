@@ -39,7 +39,7 @@
 #define INCLUDE_AS_BAT_PLACEFRAGUSINGOVERLAPS
 
 #include "AS_BAT_OverlapCache.H"
-#include "AS_BAT_BestOverlapGraph.H"  //  For FragmentEnd
+#include "AS_BAT_BestOverlapGraph.H"  //  For ReadEnd
 #include "AS_BAT_Unitig.H"            //  For SeqInterval
 #include "AS_BAT_TigVector.H"
 
@@ -72,7 +72,7 @@ public:
   };
 
 public:
-  uint32            frgID;      //  Read ID of the fragment this position is for.
+  uint32            frgID;      //  Read ID of the read this position is for.
 
   uint32            refID;      //  Read ID of the overlapping read were placed with.
   uint32            tigID;      //  Unitig ID of this placement
@@ -86,13 +86,13 @@ public:
 
   int32             clusterID;
 
-  double            fCoverage;  //  Coverage of the fragment
+  double            fCoverage;  //  Coverage of the read
 
   double            errors;     //  number of errors in alignments
   uint32            aligned;    //  number of bases in alignments
 
-  uint32            tigFidx;    //  First unitig fragment that supports this placement
-  uint32            tigLidx;    //  Last  unitig fragment that supports this placement
+  uint32            tigFidx;    //  First unitig read that supports this placement
+  uint32            tigLidx;    //  Last  unitig read that supports this placement
 };
 
 
@@ -123,16 +123,16 @@ overlapPlacement_byCluster(const overlapPlacement &A, const overlapPlacement &B)
 }
 
 
-const uint32  placeFrag_all        = 0x00;   //  Return all alignments
-const uint32  placeFrag_fullMatch  = 0x01;   //  Return only alignments for the whole read
-const uint32  placeFrag_noExtend   = 0x02;   //  Return only alignments contained in the tig
+const uint32  placeRead_all        = 0x00;   //  Return all alignments
+const uint32  placeRead_fullMatch  = 0x01;   //  Return only alignments for the whole read
+const uint32  placeRead_noExtend   = 0x02;   //  Return only alignments contained in the tig
 
 bool
-placeFragUsingOverlaps(TigVector                &tigs,
+placeReadUsingOverlaps(TigVector                &tigs,
                        Unitig                   *target,
                        uint32                    fid,
                        vector<overlapPlacement> &placements,
-                       uint32                    flags = placeFrag_all);
+                       uint32                    flags = placeRead_all);
 
 
 #endif  //  INCLUDE_AS_BAT_PLACEFRAGUSINGOVERLAPS

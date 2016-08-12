@@ -112,10 +112,10 @@ class ufNode {
 public:
   uint32           ident;
   uint32           contained;
-  uint32           parent;     //  IID of the fragment we align to
+  uint32           parent;     //  IID of the read we align to
 
   int32            ahang;       //  If parent defined, these are relative
-  int32            bhang;       //  that fragment
+  int32            bhang;       //  that read
 
   SeqInterval      position;
 
@@ -168,28 +168,28 @@ public:
     for (uint32 fi=0; fi<ufpath.size(); fi++)
       _pathPosition[ufpath[fi].ident] = fi;
   };
-  //void   bubbleSortLastFrag(void);
+  //void   bubbleSortLastRead(void);
   void reverseComplement(bool doSort=true);
 
-  // getNumRandomFrags() is a placeholder, random frags should not
-  // contain guides, or other fragments that are not randomly sampled
+  // getNumRandomRead() is a placeholder, random reads should not
+  // contain guides, or other reads that are not randomly sampled
   // across the whole genome.
 
   uint32 id(void)                 { return(_id); };      //  ID internal to bogart
   uint32 tigID(void)              { return(_tigID); };   //  ID in the output store
 
   int32  getLength(void)          { return(_length);       };
-  uint32 getNumFrags(void)        { return(ufpath.size()); };
-  uint32 getNumRandomFrags(void)  { return(getNumFrags()); };
+  uint32 getNumReads(void)        { return(ufpath.size()); };
+  uint32 getNumRandomReads(void)  { return(getNumReads()); };
 
-  //  Place 'frag' using an edge to some read in this tig.  The edge is from 'frag3p' end.
+  //  Place 'read' using an edge to some read in this tig.  The edge is from 'read3p' end.
   //
-  bool   placeFrag(ufNode          &frag,     //  resulting placement
-                   uint32           fragId,   //  read we want to place
-                   bool             frag3p,   //  end that the edge is from
+  bool   placeRead(ufNode          &read,     //  resulting placement
+                   uint32           readId,   //  read we want to place
+                   bool             read3p,   //  end that the edge is from
                    BestEdgeOverlap *edge);    //  edge to something in this tig
 
-  void   addFrag(ufNode node, int offset=0, bool report=false);
+  void   addRead(ufNode node, int offset=0, bool report=false);
 
 
 public:
@@ -257,31 +257,31 @@ public:
   };
 
 
-  static void removeFrag(int32 fid) {
+  static void removeRead(int32 fid) {
     _inUnitig[fid] = 0;
     _pathPosition[fid] = ~0;
   };
 
-  static uint32 fragIn(uint32 fragId) {
-    if ((_inUnitig == NULL) || (fragId == 0))
+  static uint32 readIn(uint32 readId) {
+    if ((_inUnitig == NULL) || (readId == 0))
       return 0;
-    return _inUnitig[fragId];
+    return _inUnitig[readId];
   };
 
-  static uint32 pathPosition(uint32 fragId) {
-    if ((_pathPosition == NULL) || (fragId == 0))
+  static uint32 pathPosition(uint32 readId) {
+    if ((_pathPosition == NULL) || (readId == 0))
       return ~0;
-    return _pathPosition[fragId];
+    return _pathPosition[readId];
   };
 
-  static void resetFragUnitigMap(uint32 numFrags) {
+  static void resetReadUnitigMap(uint32 numReads) {
     if (_inUnitig == NULL)
-      _inUnitig = new uint32[numFrags+1];
-    memset(_inUnitig, 0, (numFrags+1) * sizeof(uint32));
+      _inUnitig = new uint32[numReads+1];
+    memset(_inUnitig, 0, (numReads+1) * sizeof(uint32));
 
     if (_pathPosition == NULL)
-      _pathPosition = new uint32[numFrags+1];
-    memset(_pathPosition, 0, (numFrags+1) * sizeof(uint32));
+      _pathPosition = new uint32[numReads+1];
+    memset(_pathPosition, 0, (numReads+1) * sizeof(uint32));
   };
 
   // Public Member Variables
@@ -296,8 +296,8 @@ public:
   uint32                _tigID;
 
 private:
-  static uint32 *_inUnitig;      //  Maps a fragment iid to a unitig id.
-  static uint32 *_pathPosition;  //  Maps a fragment iid to an index in the dovetail path
+  static uint32 *_inUnitig;      //  Maps a read iid to a unitig id.
+  static uint32 *_pathPosition;  //  Maps a read iid to an index in the dovetail path
 
 public:
   //  Classification.  The output is in three files: 'unassembled', 'bubbles', 'contigs' (defined as

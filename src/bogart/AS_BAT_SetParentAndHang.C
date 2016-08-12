@@ -75,7 +75,7 @@ setParentAndHang(TigVector &tigs) {
       allreads[frg->ident] = true;
     }
 
-    //  For each fragment, set parent/hangs using the edges.
+    //  For each read, set parent/hangs using the edges.
 
     for (uint32 fi=0; fi<tig->ufpath.size(); fi++) {
       ufNode *frg  = &tig->ufpath[fi];
@@ -177,6 +177,6 @@ setParentAndHang(TigVector &tigs) {
 
 
 
-    }  //  Over all fragments
+    }  //  Over all reads
   }  //  Over all tigs
 }

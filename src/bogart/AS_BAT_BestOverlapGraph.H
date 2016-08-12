@@ -45,34 +45,34 @@
 #include "AS_global.H"
 #include "AS_BAT_OverlapCache.H"
 
-class FragmentEnd {
+class ReadEnd {
 public:
-  FragmentEnd() {
+  ReadEnd() {
     _id  = 0;
     _e3p = false;
   };
-  FragmentEnd(uint32 id, bool e3p) {
+  ReadEnd(uint32 id, bool e3p) {
     _id  = id;
     _e3p = e3p;
   };
 
-  uint32  fragId(void)  const { return(_id); };
-  bool    frag3p(void)  const { return(_e3p == true);  };
-  bool    frag5p(void)  const { return(_e3p == false); };
+  uint32  readId(void)  const { return(_id); };
+  bool    read3p(void)  const { return(_e3p == true);  };
+  bool    read5p(void)  const { return(_e3p == false); };
 
-  bool operator==(FragmentEnd const that) const {
-    return((fragId() == that.fragId()) && (frag3p() == that.frag3p()));
+  bool operator==(ReadEnd const that) const {
+    return((readId() == that.readId()) && (read3p() == that.read3p()));
   };
 
-  bool operator!=(FragmentEnd const that) const {
-    return((fragId() != that.fragId()) || (frag3p() != that.frag3p()));
+  bool operator!=(ReadEnd const that) const {
+    return((readId() != that.readId()) || (read3p() != that.read3p()));
   };
 
-  bool operator<(FragmentEnd const that) const {
-    if (fragId() != that.fragId())
-      return fragId() < that.fragId();
+  bool operator<(ReadEnd const that) const {
+    if (readId() != that.readId())
+      return readId() < that.readId();
     else
-      return frag3p() < that.frag3p();
+      return read3p() < that.read3p();
   };
 
 private:
@@ -126,9 +126,9 @@ public:
   };
 
 
-  uint32  fragId(void)  const { return(_id); };
-  bool    frag3p(void)  const { return(_e3p == true);  };
-  bool    frag5p(void)  const { return(_e3p == false); };
+  uint32  readId(void)  const { return(_id); };
+  bool    read3p(void)  const { return(_e3p == true);  };
+  bool    read5p(void)  const { return(_e3p == false); };
 
   int32   ahang(void)   const { return(_ahang); };
   int32   bhang(void)   const { return(_bhang); };
@@ -138,7 +138,7 @@ public:
 
 private:
   uint32            _id;
-  uint64            _e3p    : 1;    //  Overlap with the 3' end of that fragment, or flipped contain
+  uint64            _e3p    : 1;    //  Overlap with the 3' end of that read, or flipped contain
   int64             _ahang  : AS_MAX_READLEN_BITS+1;
   int64             _bhang  : AS_MAX_READLEN_BITS+1;
   uint64            _evalue : AS_MAX_EVALUE_BITS;
@@ -201,40 +201,40 @@ public:
     delete [] _scorA;
   };
 
-  //  Given a fragment UINT32 and which end, returns pointer to
+  //  Given a read UINT32 and which end, returns pointer to
   //  BestOverlap node.
-  BestEdgeOverlap *getBestEdgeOverlap(uint32 fragid, bool threePrime) {
+  BestEdgeOverlap *getBestEdgeOverlap(uint32 readid, bool threePrime) {
     if (_bestA)
-      return((threePrime) ? (&_bestA[fragid]._best3) : (&_bestA[fragid]._best5));
-    return((threePrime) ? (&_bestM[fragid]._best3) : (&_bestM[fragid]._best5));
+      return((threePrime) ? (&_bestA[readid]._best3) : (&_bestA[readid]._best5));
+    return((threePrime) ? (&_bestM[readid]._best3) : (&_bestM[readid]._best5));
   };
 
-  // given a FragmentEnd sets it to the next FragmentEnd after following the
+  // given a ReadEnd sets it to the next ReadEnd after following the
   // best edge
-  FragmentEnd   followOverlap(FragmentEnd end) {
-    if (end.fragId() == 0)
-      return(FragmentEnd());
+  ReadEnd   followOverlap(ReadEnd end) {
+    if (end.readId() == 0)
+      return(ReadEnd());
 
-    BestEdgeOverlap *edge = getBestEdgeOverlap(end.fragId(), end.frag3p());
+    BestEdgeOverlap *edge = getBestEdgeOverlap(end.readId(), end.read3p());
 
-    return(FragmentEnd(edge->fragId(), !edge->frag3p()));
+    return(ReadEnd(edge->readId(), !edge->read3p()));
   };
 
-  void setContained(const uint32 fragid) {
+  void setContained(const uint32 readid) {
     if (_bestA)
-      _bestA[fragid]._isC = true;
+      _bestA[readid]._isC = true;
     else
-      _bestM[fragid]._isC = true;
+      _bestM[readid]._isC = true;
   };
 
-  bool isContained(const uint32 fragid) {
+  bool isContained(const uint32 readid) {
     if (_bestA)
-      return(_bestA[fragid]._isC);
-    return(_bestM[fragid]._isC);
+      return(_bestA[readid]._isC);
+    return(_bestM[readid]._isC);
   };
 
-  bool isSuspicious(const uint32 fragid) {
-    return(_suspicious.count(fragid) > 0);
+  bool isSuspicious(const uint32 readid) {
+    return(_suspicious.count(readid) > 0);
   };
 
   void      reportEdgeStatistics(const char *prefix, const char *label);

@@ -39,33 +39,33 @@
 #include "AS_BAT_FragmentInfo.H"
 #include "AS_BAT_Unitig.H"
 
-//  If we are not reconstructing repeats, promote all the unplaced fragments to new tigs.
+//  If we are not reconstructing repeats, promote all the unplaced reads to new tigs.
 //  Oodles of possibilities here; promote everything to a singleton unitig, promote only
 //  the non-contained, then place contains, then promote what is left over, etc.
 
 void
 promoteToSingleton(TigVector &tigs) {
 
-  for (uint32 fi=1; fi<=FI->numFragments(); fi++) {
-    if (Unitig::fragIn(fi) != 0)
+  for (uint32 fi=1; fi<=FI->numReads(); fi++) {
+    if (Unitig::readIn(fi) != 0)
       //  Placed already
       continue;
 
-    if (FI->fragmentLength(fi) == 0)
+    if (FI->readLength(fi) == 0)
       //  Deleted.
       continue;
 
     Unitig *utg = tigs.newUnitig(false);
-    ufNode  frag;
+    ufNode  read;
 
-    frag.ident             = fi;
-    frag.contained         = 0;
-    frag.parent            = 0;
-    frag.ahang             = 0;
-    frag.bhang             = 0;
-    frag.position.bgn      = 0;
-    frag.position.end      = FI->fragmentLength(fi);
+    read.ident             = fi;
+    read.contained         = 0;
+    read.parent            = 0;
+    read.ahang             = 0;
+    read.bhang             = 0;
+    read.position.bgn      = 0;
+    read.position.end      = FI->readLength(fi);
 
-    utg->addFrag(frag, 0, false);
+    utg->addRead(read, 0, false);
   }
 }

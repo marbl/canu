@@ -103,7 +103,7 @@ main (int argc, char * argv []) {
   bool      onlySave                 = false;
   bool      doSave                   = false;
 
-  int       fragment_count_target    = 0;
+  int       read_count_target        = 0;
   char     *prefix                   = NULL;
 
   uint32    minReadLen               = 0;
@@ -115,7 +115,7 @@ main (int argc, char * argv []) {
   int             arg = 1;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-B") == 0) {
-      fragment_count_target = atoi(argv[++arg]);
+      read_count_target = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-o") == 0) {
       prefix = argv[++arg];
@@ -262,7 +262,7 @@ main (int argc, char * argv []) {
     fprintf(stderr, "  -T         Mandatory path to a tigStore (can exist or not).\n");
     fprintf(stderr, "  -o prefix  Mandatory name for the output files\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -B b       Target number of fragments per tigStore (consensus) partition\n");
+    fprintf(stderr, "  -B b       Target number of reads per tigStore (consensus) partition\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Algorithm Options\n");
     fprintf(stderr, "\n");
@@ -367,7 +367,7 @@ main (int argc, char * argv []) {
   FI = new FragmentInfo(gkpStore, prefix, minReadLen);
 
   // Initialize where we've been to nowhere
-  Unitig::resetFragUnitigMap(FI->numFragments());
+  Unitig::resetReadUnitigMap(FI->numReads());
 
   OC = new OverlapCache(ovlStoreUniq, ovlStoreRept, prefix, MAX(erateMax, erateGraph), minOverlap, ovlCacheMemory, ovlCacheLimit, onlySave, doSave);
   OG = new BestOverlapGraph(erateGraph, deviationGraph, prefix);
@@ -380,9 +380,9 @@ main (int argc, char * argv []) {
   gkpStore = NULL;
 
   //
-  //  Build the initial unitig path from non-contained fragments.  The first pass is usually the
-  //  only one needed, but occasionally (maybe) we miss fragments, so we make an explicit pass
-  //  through all fragments and place whatever isn't already placed.
+  //  Build the initial unitig path from non-contained reads.  The first pass is usually the
+  //  only one needed, but occasionally (maybe) we miss reads, so we make an explicit pass
+  //  through all reads and place whatever isn't already placed.
   //
 
   writeStatus("\n");
@@ -391,7 +391,7 @@ main (int argc, char * argv []) {
 
   setLogFile(prefix, "buildGreedy");
 
-  for (uint32 fi=CG->nextFragByChunkLength(); fi>0; fi=CG->nextFragByChunkLength())
+  for (uint32 fi=CG->nextReadByChunkLength(); fi>0; fi=CG->nextReadByChunkLength())
     populateUnitig(contigs, fi);
 
   delete CG;
@@ -525,7 +525,7 @@ main (int argc, char * argv []) {
   //
 
   setParentAndHang(contigs);
-  writeTigsToStore(contigs, prefix, tigStorePath, fragment_count_target, true);
+  writeTigsToStore(contigs, prefix, tigStorePath, read_count_target, true);
 
   writeUnusedEdges(contigs, prefix);
 

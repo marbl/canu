@@ -65,8 +65,8 @@ breakSingletonTigs(TigVector &tigs) {
     if (utg->ufpath.size() > 1)
       continue;
 
-    tigs[ti] = NULL;                      //  Remove the unitig from the list
-    utg->removeFrag(utg->ufpath[0].ident);   //  Eject the read
+    tigs[ti] = NULL;                         //  Remove the tig from the list
+    utg->removeRead(utg->ufpath[0].ident);   //  Eject the read
     delete utg;                              //  Reclaim space
     removed++;                               //  Count
   }
@@ -80,15 +80,15 @@ breakSingletonTigs(TigVector &tigs) {
 void
 placeUnplacedUsingAllOverlaps(TigVector    &tigs,
                               const char   *prefix) {
-  uint32  fiLimit    = FI->numFragments();
+  uint32  fiLimit    = FI->numReads();
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
 
-  uint32       *placedTig = new uint32      [FI->numFragments() + 1];
-  SeqInterval  *placedPos = new SeqInterval [FI->numFragments() + 1];
+  uint32       *placedTig = new uint32      [FI->numReads() + 1];
+  SeqInterval  *placedPos = new SeqInterval [FI->numReads() + 1];
 
-  memset(placedTig, 0, sizeof(uint32)      * (FI->numFragments() + 1));
-  memset(placedPos, 0, sizeof(SeqInterval) * (FI->numFragments() + 1));
+  memset(placedTig, 0, sizeof(uint32)      * (FI->numReads() + 1));
+  memset(placedPos, 0, sizeof(SeqInterval) * (FI->numReads() + 1));
 
   //  Just some logging.  Count the number of reads we try to place.
 
@@ -99,8 +99,8 @@ placeUnplacedUsingAllOverlaps(TigVector    &tigs,
   uint32   nFailedContained  = 0;
   uint32   nFailed           = 0;
 
-  for (uint32 fid=1; fid<FI->numFragments()+1; fid++)
-    if (Unitig::fragIn(fid) == 0)    //  I'm NOT ambiguous!
+  for (uint32 fid=1; fid<FI->numReads()+1; fid++)
+    if (Unitig::readIn(fid) == 0)    //  I'm NOT ambiguous!
       if (OG->isContained(fid))
         nToPlaceContained++;
       else
@@ -113,17 +113,17 @@ placeUnplacedUsingAllOverlaps(TigVector    &tigs,
   //  Do the placing!
 
 #pragma omp parallel for schedule(dynamic, blockSize)
-  for (uint32 fid=1; fid<FI->numFragments()+1; fid++) {
+  for (uint32 fid=1; fid<FI->numReads()+1; fid++) {
     bool  enableLog = true;
 
-    if (Unitig::fragIn(fid) > 0)
+    if (Unitig::readIn(fid) > 0)
       continue;
 
     //  Place the read.
 
     vector<overlapPlacement>   placements;
 
-    placeFragUsingOverlaps(tigs, NULL, fid, placements, placeFrag_fullMatch);
+    placeReadUsingOverlaps(tigs, NULL, fid, placements, placeRead_fullMatch);
 
     //  Search the placements for the highest expected identity placement using all overlaps in the unitig.
 
@@ -145,13 +145,13 @@ placeUnplacedUsingAllOverlaps(TigVector    &tigs,
 
       if (tig->overlapConsistentWithTig(5.0, bgn, end, erate) < 0.5) {
         if ((enableLog == true) && (logFileFlagSet(LOG_PLACE_UNPLACED)))
-          writeLog("frag %8u tested tig %6u (%6u reads) at %8u-%8u (cov %7.5f erate %6.4f) - HIGH ERROR\n",
+          writeLog("read %8u tested tig %6u (%6u reads) at %8u-%8u (cov %7.5f erate %6.4f) - HIGH ERROR\n",
                    fid, placements[i].tigID, tig->ufpath.size(), placements[i].position.bgn, placements[i].position.end, placements[i].fCoverage, erate);
         continue;
       }
 
       if ((enableLog == true) && (logFileFlagSet(LOG_PLACE_UNPLACED)))
-        writeLog("frag %8u tested tig %6u (%6u reads) at %8u-%8u (cov %7.5f erate %6.4f)\n",
+        writeLog("read %8u tested tig %6u (%6u reads) at %8u-%8u (cov %7.5f erate %6.4f)\n",
                  fid, placements[i].tigID, tig->ufpath.size(), placements[i].position.bgn, placements[i].position.end, placements[i].fCoverage, erate);
 
       if ((b == UINT32_MAX) ||
@@ -164,14 +164,14 @@ placeUnplacedUsingAllOverlaps(TigVector    &tigs,
 
     if (b == UINT32_MAX) {
       if ((enableLog == true) && (logFileFlagSet(LOG_PLACE_UNPLACED)))
-        writeLog("frag %8u remains unplaced\n", fid);
+        writeLog("read %8u remains unplaced\n", fid);
       placedPos[fid].bgn = 0;
-      placedPos[fid].end = FI->fragmentLength(fid);
+      placedPos[fid].end = FI->readLength(fid);
     }
 
     else {
       if ((enableLog == true) && (logFileFlagSet(LOG_PLACE_UNPLACED)))
-        writeLog("frag %8u placed tig %6u (%6u reads) at %8u-%8u (cov %7.5f erate %6.4f)\n",
+        writeLog("read %8u placed tig %6u (%6u reads) at %8u-%8u (cov %7.5f erate %6.4f)\n",
                  fid, placements[b].tigID, tigs[placements[b].tigID]->ufpath.size(),
                  placements[b].position.bgn, placements[b].position.end,
                  placements[b].fCoverage,
@@ -183,11 +183,11 @@ placeUnplacedUsingAllOverlaps(TigVector    &tigs,
 
   //  All reads placed, now just dump them in their correct tigs.
 
-  for (uint32 fid=1; fid<FI->numFragments()+1; fid++) {
+  for (uint32 fid=1; fid<FI->numReads()+1; fid++) {
     Unitig  *tig = NULL;
     ufNode   frg;
 
-    if (Unitig::fragIn(fid) > 0)
+    if (Unitig::readIn(fid) > 0)
       continue;
 
     //  If not placed, dump it in a new unitig.  Well, not anymore.  These reads were not placed in
@@ -225,7 +225,7 @@ placeUnplacedUsingAllOverlaps(TigVector    &tigs,
       frg.bhang             = 0;
       frg.position          = placedPos[fid];
 
-      tig->addFrag(frg, 0, false);
+      tig->addRead(frg, 0, false);
     }
   }
 

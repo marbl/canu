@@ -79,7 +79,7 @@ extern uint64 LOG_INTERMEDIATE_TIGS;
 extern uint64 LOG_SET_PARENT_AND_HANG;
 extern uint64 LOG_STDERR;
 
-extern uint64 LOG_PLACE_FRAG;
+extern uint64 LOG_PLACE_READ;
 
 extern char const *logFileFlagNames[64];
 

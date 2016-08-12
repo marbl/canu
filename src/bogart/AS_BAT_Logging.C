@@ -127,7 +127,7 @@ uint64 LOG_OVERLAP_SCORING             = 0x0000000000000001;  //  Debug, scoring
 uint64 LOG_ALL_BEST_EDGES              = 0x0000000000000002;
 uint64 LOG_ERROR_PROFILES              = 0x0000000000000004;
 uint64 LOG_CHUNK_GRAPH                 = 0x0000000000000008;  //  Report the chunk graph as we build it
-uint64 LOG_BUILD_UNITIG                = 0x0000000000000010;  //  Report building of initial tigs (both unitig creation and fragment placement)
+uint64 LOG_BUILD_UNITIG                = 0x0000000000000010;  //  Report building of initial tigs (both unitig creation and read placement)
 uint64 LOG_PLACE_UNPLACED              = 0x0000000000000020;  //  Report placing of unplaced reads
 uint64 LOG_BUBBLE_DETAIL               = 0x0000000000000040;
 uint64 LOG_SPLIT_DISCONTINUOUS         = 0x0000000000000080;  //
@@ -135,7 +135,7 @@ uint64 LOG_INTERMEDIATE_TIGS           = 0x0000000000000100;  //  At various spo
 uint64 LOG_SET_PARENT_AND_HANG         = 0x0000000000000200;  //
 uint64 LOG_STDERR                      = 0x0000000000000400;  //  Write ALL logging to stderr, not the files.
 
-uint64 LOG_PLACE_FRAG                  = 0x8000000000000000;  //  Internal use only.
+uint64 LOG_PLACE_READ                  = 0x8000000000000000;  //  Internal use only.
 
 char const *logFileFlagNames[64] = { "overlapScoring",
                                      "allBestEdges",

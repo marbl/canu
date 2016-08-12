@@ -45,14 +45,14 @@
 
 
 void
-Unitig::addFrag(ufNode node, int offset, bool report) {
+Unitig::addRead(ufNode node, int offset, bool report) {
 
   node.position.bgn += offset;
   node.position.end += offset;
 
   assert(node.ident > 0);
 
-  // keep track of the unitig a frag is in
+  // keep track of the unitig a read is in
   _inUnitig[node.ident]     = _id;
   _pathPosition[node.ident] = ufpath.size();
 
@@ -64,17 +64,17 @@ Unitig::addFrag(ufNode node, int offset, bool report) {
   ufpath.push_back(node);
 
   if ((report) || (node.position.bgn < 0) || (node.position.end < 0)) {
-    int32 trulen = FI->fragmentLength(node.ident);
+    int32 trulen = FI->readLength(node.ident);
     int32 poslen = (node.position.end > node.position.bgn) ? (node.position.end - node.position.bgn) : (node.position.bgn - node.position.end);
 
     if (node.contained)
-      writeLog("Added frag %d (len %d) to unitig %d at %d,%d (idx %lu) (lendiff %d) (contained in %d)\n",
+      writeLog("Added read %d (len %d) to unitig %d at %d,%d (idx %lu) (lendiff %d) (contained in %d)\n",
               node.ident, trulen, _id, node.position.bgn, node.position.end,
               ufpath.size() - 1,
               poslen - trulen,
               node.contained);
     else
-      writeLog("Added frag %d (len %d) to unitig %d at %d,%d (idx %lu) (lendiff %d)\n",
+      writeLog("Added read %d (len %d) to unitig %d at %d,%d (idx %lu) (lendiff %d)\n",
               node.ident, trulen, _id, node.position.bgn, node.position.end,
               ufpath.size() - 1,
               poslen - trulen);
@@ -89,10 +89,10 @@ Unitig::addFrag(ufNode node, int offset, bool report) {
 
 
 
-//  Percolate the last fragment to the correct spot in the list.
+//  Percolate the last read to the correct spot in the list.
 #if 0
 void
-Unitig::bubbleSortLastFrag(void) {
+Unitig::bubbleSortLastRead(void) {
   uint32   previd  = ufpath.size() - 2;
   uint32   lastid  = ufpath.size() - 1;
 

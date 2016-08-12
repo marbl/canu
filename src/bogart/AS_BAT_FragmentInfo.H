@@ -48,20 +48,20 @@ public:
   ~FragmentInfo();
 
   uint64  memoryUsage(void) {
-    return((3 * sizeof(uint32) * _numFragments) +
+    return((3 * sizeof(uint32) * _numReads) +
            (2 * sizeof(double) * _numLibraries) +
            (2 * sizeof(uint32) * _numLibraries));
   };
 
-  uint32  numFragments(void) { return(_numFragments); };
+  uint32  numReads(void)     { return(_numReads); };
   uint32  numLibraries(void) { return(_numLibraries); };
 
-  uint32  fragmentLength(uint32 iid) { return(_fragLength[iid]); };
+  uint32  readLength(uint32 iid)     { return(_readLength[iid]); };
   uint32  libraryIID(uint32 iid)     { return(_libIID[iid]);  };
 
   uint32  overlapLength(uint32 a_iid, uint32 b_iid, int32 a_hang, int32 b_hang) {
-    int32  alen = fragmentLength(a_iid);
-    int32  blen = fragmentLength(b_iid);
+    int32  alen = readLength(a_iid);
+    int32  blen = readLength(b_iid);
     int32  aovl = 0;
     int32  bovl = 0;
 
@@ -106,10 +106,10 @@ public:
   };
 
 private:
-  uint32   _numFragments;
+  uint32   _numReads;
   uint32   _numLibraries;
 
-  uint32  *_fragLength;
+  uint32  *_readLength;
   uint32  *_libIID;
 };
 

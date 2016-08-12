@@ -42,6 +42,6 @@ void populateUnitig(Unitig             *unitig,
                     BestEdgeOverlap    *nextedge);
 
 void populateUnitig(TigVector          &tigs,
-                    int32               fragID);
+                    int32               readID);
 
 #endif  //  INCLUDE_AS_BAT_POPULATUNITIG

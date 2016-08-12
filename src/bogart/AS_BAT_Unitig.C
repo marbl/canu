@@ -53,10 +53,10 @@ uint32* Unitig::_pathPosition = NULL;
 void
 Unitig::reverseComplement(bool doSort) {
 
-  //  If there are contained fragments, we need to sort by position to place them correctly after
-  //  their containers.  If there are no contained fragments, sorting can break the initial unitig
-  //  building.  When two frags start at position zero, we'll exchange the order.  Initial unitig
-  //  building depends on having the first fragment added become the last fragment in the unitig
+  //  If there are contained reads, we need to sort by position to place them correctly after
+  //  their containers.  If there are no contained reads, sorting can break the initial unitig
+  //  building.  When two reads start at position zero, we'll exchange the order.  Initial unitig
+  //  building depends on having the first read added become the last read in the unitig
   //  after reversing.
 
   for (uint32 fi=0; fi<ufpath.size(); fi++) {
@@ -187,7 +187,7 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
 
       //  Reads in different tigs?  Don't care about this overlap.
 
-      if (id() != Unitig::fragIn(ovl[oi].b_iid)) {
+      if (id() != Unitig::readIn(ovl[oi].b_iid)) {
         nDiffTig++;
         continue;
       }

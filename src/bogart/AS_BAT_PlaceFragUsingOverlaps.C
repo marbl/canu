@@ -47,23 +47,23 @@
 
 
 bool
-placeFragUsingOverlaps(TigVector                &tigs,
+placeReadUsingOverlaps(TigVector                &tigs,
                        Unitig                   *target,
                        uint32                    fid,
                        vector<overlapPlacement> &placements,
                        uint32                    flags) {
 
   //if (fid == 328)
-  //  logFileFlags |= LOG_PLACE_FRAG;
+  //  logFileFlags |= LOG_PLACE_READ;
 
-  if (logFileFlagSet(LOG_PLACE_FRAG))  //  Nope, not ambiguous.
+  if (logFileFlagSet(LOG_PLACE_READ))  //  Nope, not ambiguous.
     if (target)
-      writeLog("\npFUO()-- begin for frag %d into target tig %d\n", fid, target->id());
+      writeLog("\npFUO()-- begin for read %d into target tig %d\n", fid, target->id());
     else
-      writeLog("\npFUO()-- begin for frag %d into all tigs\n", fid);
+      writeLog("\npFUO()-- begin for read %d into all tigs\n", fid);
 
   assert(fid > 0);
-  assert(fid <= FI->numFragments());
+  assert(fid <= FI->numReads());
 
   //  Grab overlaps we'll use to place this read.
 
@@ -80,7 +80,7 @@ placeFragUsingOverlaps(TigVector                &tigs,
   //  Anything that doesn't get placed is left as 'nowhere', specifically, in unitig 0 (which doesn't exist).
 
   for (uint32 i=0; i<ovlLen; i++) {
-    int32             tigID = Unitig::fragIn(ovl[i].b_iid);
+    int32             tigID = Unitig::readIn(ovl[i].b_iid);
     Unitig           *tig   = tigs[tigID];
 
     assert(ovl[i].a_iid == fid);
@@ -91,13 +91,13 @@ placeFragUsingOverlaps(TigVector                &tigs,
     if ((target != NULL) && (target != tig))  //  Skip if we requested a specific tig and if this isn't it.
       continue;
 
-    //  Place the fragment relative to the other fragment.
+    //  Place the read relative to the other read.
 
     BestEdgeOverlap   edge(ovl[i]);
-    ufNode            frag;
+    ufNode            read;
 
-    if (tig->placeFrag(frag, fid, ovl[i].AEndIs3prime(), &edge) == false) {
-      if (logFileFlagSet(LOG_PLACE_FRAG))
+    if (tig->placeRead(read, fid, ovl[i].AEndIs3prime(), &edge) == false) {
+      if (logFileFlagSet(LOG_PLACE_READ))
         writeLog("pFUO()-- WARNING: Failed to place with overlap %u %u hangs %u %u flipped %u\n",
                  ovl[i].a_iid, ovl[i].b_iid, ovl[i].a_hang, ovl[i].b_hang, ovl[i].flipped);
       continue;
@@ -106,12 +106,12 @@ placeFragUsingOverlaps(TigVector                &tigs,
     //  Save the placement in our work space.
 
     uint32  olen = FI->overlapLength(ovl[i].a_iid, ovl[i].b_iid, ovl[i].a_hang, ovl[i].b_hang);
-    uint32  flen = FI->fragmentLength(ovl[i].a_iid);
+    uint32  flen = FI->readLength(ovl[i].a_iid);
 
     ovlPlace[i].frgID        = fid;
     ovlPlace[i].refID        = ovl[i].b_iid;
     ovlPlace[i].tigID        = tig->id();
-    ovlPlace[i].position     = frag.position;
+    ovlPlace[i].position     = read.position;
     ovlPlace[i].verified.bgn = INT32_MAX;
     ovlPlace[i].verified.end = INT32_MIN;
     ovlPlace[i].covered.bgn  = (ovl[i].a_hang < 0) ?    0 : ovl[i].a_hang;          //  The portion of the read
@@ -133,11 +133,11 @@ placeFragUsingOverlaps(TigVector                &tigs,
 
     //  Disallow any placements that exceed the boundary of the unitig.  These cannot be confirmed
     //  by overlaps and might be wrong.  Sample cases:
-    //    o  sticking a unique/repeat fragment onto a repeat (leaving the unique uncovered)
-    //    o  sticking a chimeric fragment onto the end of a unitig (leaving the chimeric join uncovered)
+    //    o  sticking a unique/repeat read onto a repeat (leaving the unique uncovered)
+    //    o  sticking a chimeric read onto the end of a unitig (leaving the chimeric join uncovered)
 
-    if (((flags & placeFrag_fullMatch) ||
-         (flags & placeFrag_noExtend)) &&
+    if (((flags & placeRead_fullMatch) ||
+         (flags & placeRead_noExtend)) &&
         ((ovlPlace[i].position.min() < 0) ||
          (ovlPlace[i].position.max() > tig->getLength()))) {
       ovlPlace[i] = overlapPlacement();
@@ -146,8 +146,8 @@ placeFragUsingOverlaps(TigVector                &tigs,
     //  Report the placement.
 
 
-    if (logFileFlagSet(LOG_PLACE_FRAG))
-      writeLog("pFUO()-- frag %d in unitig %d at %d,%d (covered %d,%d) from overlap ident %d %d hang %d %d flipped %d%s\n",
+    if (logFileFlagSet(LOG_PLACE_READ))
+      writeLog("pFUO()-- read %d in unitig %d at %d,%d (covered %d,%d) from overlap ident %d %d hang %d %d flipped %d%s\n",
                ovlPlace[i].frgID,
                ovlPlace[i].tigID,
                ovlPlace[i].position.bgn, ovlPlace[i].position.end,
@@ -170,11 +170,11 @@ placeFragUsingOverlaps(TigVector                &tigs,
   //  Segregate the overlaps by placement in the unitig.  We want to construct one
   //  overlapPlacement for each distinct placement.  How this is done:
   //
-  //  For all overlapping overlaps for a specific unitig and a specific fragment orientation, the
+  //  For all overlapping overlaps for a specific unitig and a specific read orientation, the
   //  end points (+- a few bases) are added to an interval list.  The intervals are combined.
   //  Each combined interval now forms the basis of a cluster of overlaps.  A list of the pairs of
   //  clusters hit by each overlap is built.  If there is one clear winner, that is picked.  If
-  //  there is no clear winner, the fragment cannot be placed.
+  //  there is no clear winner, the read cannot be placed.
   //
   //  unitig    ==========================================================================
   //  overlaps       --------------------                           ------------------
@@ -199,7 +199,7 @@ placeFragUsingOverlaps(TigVector                &tigs,
 
   while (bgn < ovlLen) {
 
-    //  Find the last placement with the same unitig/orientation as the 'bgn' fragment.
+    //  Find the last placement with the same unitig/orientation as the 'bgn' read.
 
     end = bgn + 1;
     while ((end < ovlLen) &&
@@ -207,17 +207,17 @@ placeFragUsingOverlaps(TigVector                &tigs,
            (ovlPlace[bgn].position.isReverse() == ovlPlace[end].position.isReverse()))
       end++;
 
-    if (logFileFlagSet(LOG_PLACE_FRAG))
+    if (logFileFlagSet(LOG_PLACE_READ))
       writeLog("pFUO()-- Merging placements %u to %u to place the read.\n", bgn, end);
 
-    //  Build interval lists for the begin point and the end point.  Remember, this is all fragments
-    //  to a single unitig (the whole picture above), not just the overlapping fragment sets (left
+    //  Build interval lists for the begin point and the end point.  Remember, this is all reads
+    //  to a single unitig (the whole picture above), not just the overlapping read sets (left
     //  or right blocks).
 
     intervalList<int32>   bgnPoints;
     intervalList<int32>   endPoints;
 
-    int32                 windowSlop = 0.075 * FI->fragmentLength(fid);
+    int32                 windowSlop = 0.075 * FI->readLength(fid);
 
     if (windowSlop < 5)
       windowSlop = 5;
@@ -230,7 +230,7 @@ placeFragUsingOverlaps(TigVector                &tigs,
     bgnPoints.merge();
     endPoints.merge();
 
-    if (logFileFlagSet(LOG_PLACE_FRAG)) {
+    if (logFileFlagSet(LOG_PLACE_READ)) {
       writeLog("pFUO()-- Found %u bgn intervals: ", bgnPoints.numberOfIntervals());
       for (uint32 r=0; r<bgnPoints.numberOfIntervals(); r++)
         writeLog(" %u-%u", bgnPoints.lo(r), bgnPoints.hi(r));
@@ -244,7 +244,7 @@ placeFragUsingOverlaps(TigVector                &tigs,
 
     //  Now, assign each placement to an end-pair cluster based on the interval ID that the end point falls in.
     //
-    //  Count the number of fragments that hit each pair of points.  Assign each ovlPlace to an implicit
+    //  Count the number of reads that hit each pair of points.  Assign each ovlPlace to an implicit
     //  numbering of each pair of points.
 
     int32   numBgnPoints = bgnPoints.numberOfIntervals();
@@ -279,7 +279,7 @@ placeFragUsingOverlaps(TigVector                &tigs,
     //    Each cluster generates one placement.
 
     for (uint32 os=bgn, oe=bgn; os<end; ) {
-      if (logFileFlagSet(LOG_PLACE_FRAG))
+      if (logFileFlagSet(LOG_PLACE_READ))
         writeLog("pFUO()-- process clusterID %u\n", ovlPlace[os].clusterID);
 
       overlapPlacement  op;
@@ -304,7 +304,7 @@ placeFragUsingOverlaps(TigVector                &tigs,
 
       op.clusterID      = ovlPlace[os].clusterID;  //  Useless to track forward.
 
-      op.fCoverage      = 0.0;                     //  coverage of the fragment
+      op.fCoverage      = 0.0;                     //  coverage of the read
 
       op.errors         = 0.0;                     //  sum of the estimated number of errors in all the overlaps
       op.aligned        = 0;                       //  bases aligned?
@@ -337,9 +337,9 @@ placeFragUsingOverlaps(TigVector                &tigs,
         op.covered.end  = max(op.covered.end, ovlPlace[oo].covered.end);
       }
 
-      op.fCoverage = (op.covered.end - op.covered.bgn) / (double)FI->fragmentLength(op.frgID);
+      op.fCoverage = (op.covered.end - op.covered.bgn) / (double)FI->readLength(op.frgID);
 
-      //  Find the first and last fragment in the unitig that we overlap with.
+      //  Find the first and last read in the unitig that we overlap with.
 
       Unitig   *tig    = tigs[op.tigID];
       uint32    tigLen = tig->getLength();
@@ -353,7 +353,7 @@ placeFragUsingOverlaps(TigVector                &tigs,
         op.tigFidx = min(ord, op.tigFidx);
         op.tigLidx = max(ord, op.tigLidx);
 
-        //if (logFileFlagSet(LOG_PLACE_FRAG))
+        //if (logFileFlagSet(LOG_PLACE_READ))
         //  writeLog("pFUO()--     find range from os=%u to oe=%u  tig=%u  ord=%u  f=%u l=%u\n",
         //            os, oe, op.tigID, ord, op.tigFidx, op.tigLidx);
       }
@@ -362,7 +362,7 @@ placeFragUsingOverlaps(TigVector                &tigs,
         writeStatus("Invalid placement indices: tigFidx %u tigLidx %u\n", op.tigFidx, op.tigLidx);
       assert(op.tigFidx <= op.tigLidx);
 
-      if (logFileFlagSet(LOG_PLACE_FRAG))
+      if (logFileFlagSet(LOG_PLACE_READ))
         writeLog("pFUO()--   spans reads #%u (%u) to #%u (%u) in tig %u\n",
                  op.tigFidx, tig->ufpath[op.tigFidx].ident,
                  op.tigLidx, tig->ufpath[op.tigLidx].ident,
@@ -388,7 +388,7 @@ placeFragUsingOverlaps(TigVector                &tigs,
       op.position.bgn = bgnPos.mean();
       op.position.end = endPos.mean();
 
-      op.bgnStdDev = bgnPos.stddev();   //  StdDev's are the same because the placement (placeFrag())
+      op.bgnStdDev = bgnPos.stddev();   //  StdDev's are the same because the placement (placeRead())
       op.endStdDev = endPos.stddev();   //  forces end to be set to bgn+readLen.
 
       //  Now that it is placed, estimate the span that is verified by overlaps.
@@ -438,17 +438,17 @@ placeFragUsingOverlaps(TigVector                &tigs,
 
       bool   goodPlacement   = true;
 
-      double allowableStdDev = max(2.0, 0.075 * FI->fragmentLength(op.frgID));
+      double allowableStdDev = max(2.0, 0.075 * FI->readLength(op.frgID));
 
       if ((op.bgnStdDev > allowableStdDev) ||
           (op.endStdDev > allowableStdDev))
         goodPlacement = false;
 
-      if ((flags & placeFrag_fullMatch) &&
+      if ((flags & placeRead_fullMatch) &&
           (op.fCoverage < 0.99))
         goodPlacement = false;
 
-      if ((flags & placeFrag_noExtend) &&
+      if ((flags & placeRead_noExtend) &&
           ((op.position.min() < 0) ||
            (op.position.max() > tigLen)))
         goodPlacement = false;
@@ -458,8 +458,8 @@ placeFragUsingOverlaps(TigVector                &tigs,
         placements.push_back(op);
 
 
-      if (logFileFlagSet(LOG_PLACE_FRAG))
-        writeLog("pFUO()--   placements[%u] - PLACE FRAG %d in unitig %d at %d,%d (+- %.2f,%.2f) -- ovl %d,%d -- cov %d,%d %.2f -- errors %.2f aligned %d novl %d%s\n",
+      if (logFileFlagSet(LOG_PLACE_READ))
+        writeLog("pFUO()--   placements[%u] - PLACE READ %d in unitig %d at %d,%d (+- %.2f,%.2f) -- ovl %d,%d -- cov %d,%d %.2f -- errors %.2f aligned %d novl %d%s\n",
                  placements.size() - 1,
                  op.frgID, op.tigID,
                  op.position.bgn, op.position.end, op.bgnStdDev, op.endStdDev,
@@ -481,7 +481,7 @@ placeFragUsingOverlaps(TigVector                &tigs,
   delete [] ovlPlace;
 
   //if (fid == 328)
-  //  logFileFlags &= ~LOG_PLACE_FRAG;
+  //  logFileFlags &= ~LOG_PLACE_READ;
 
   return(true);
 }

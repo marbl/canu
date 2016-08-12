@@ -50,12 +50,12 @@ class BestOverlapGraph;
 
 class ChunkLength {
 public:
-  uint32 fragId;
+  uint32 readId;
   uint32 cnt;
 
   bool operator<(ChunkLength const that) const {
     if (cnt == that.cnt)
-      return(fragId < that.fragId);
+      return(readId < that.readId);
     return(cnt > that.cnt);
   };
 };
@@ -69,26 +69,26 @@ public:
     delete [] _chunkLength;
   };
 
-  uint32 nextFragByChunkLength(void) {
-    if (_chunkLengthIter >= _maxFragment)
+  uint32 nextReadByChunkLength(void) {
+    if (_chunkLengthIter >= _maxRead)
       return(0);
-    return(_chunkLength[_chunkLengthIter++].fragId);
+    return(_chunkLength[_chunkLengthIter++].readId);
   };
 
 private:
-  uint64 getIndex(FragmentEnd e);
-  uint32 countFullWidth(FragmentEnd firstEnd);
+  uint64 getIndex(ReadEnd e);
+  uint32 countFullWidth(ReadEnd firstEnd);
 
   FILE               *_chunkLog;
 
-  uint64              _maxFragment;
+  uint64              _maxRead;
 
-  //  The usual case, for a chunk graph of all fragments.
+  //  The usual case, for a chunk graph of all reads.
   ChunkLength        *_chunkLength;
   uint32              _chunkLengthIter;
   uint32             *_pathLen;
 
-  //  For a chunk graph of a single unitig plus some extra fragments.
+  //  For a chunk graph of a single unitig plus some extra reads.
   //  This maps the uint32 to an index in the arrays above.
   map<uint32,uint32>  _idMap;
   set<uint32>        *_restrict;

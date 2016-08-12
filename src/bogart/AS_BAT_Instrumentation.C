@@ -50,12 +50,12 @@
 
 void
 checkUnitigMembership(TigVector &tigs) {
-  uint32 *inUnitig = new uint32 [FI->numFragments()+1];
+  uint32 *inUnitig = new uint32 [FI->numReads()+1];
   uint32  noUnitig = 0xffffffff;
 
   //  All reads start of not placed in a unitig.
 
-  for (uint32 i=0; i<FI->numFragments()+1; i++)
+  for (uint32 i=0; i<FI->numReads()+1; i++)
     inUnitig[i] = noUnitig;
 
   //  Over all tigs, remember where each read is.
@@ -70,15 +70,15 @@ checkUnitigMembership(TigVector &tigs) {
     for (uint32 fi=0; fi<tig->ufpath.size(); fi++) {
       ufNode  *frg = &tig->ufpath[fi];
 
-      if (frg->ident > FI->numFragments())
+      if (frg->ident > FI->numReads())
         fprintf(stderr, "tig %u ufpath[%d] ident %u more than number of reads %u\n",
-                tig->id(), fi, frg->ident, FI->numFragments());
+                tig->id(), fi, frg->ident, FI->numReads());
 
       if (inUnitig[frg->ident] != noUnitig)
         fprintf(stderr, "tig %u ufpath[%d] ident %u placed multiple times\n",
                 tig->id(), fi, frg->ident);
 
-      assert(frg->ident <= FI->numFragments());   //  Can't be out of range.
+      assert(frg->ident <= FI->numReads());   //  Can't be out of range.
       assert(inUnitig[frg->ident] == noUnitig);   //  Read must be not placed yet.
 
       inUnitig[frg->ident] = ti;
@@ -87,8 +87,8 @@ checkUnitigMembership(TigVector &tigs) {
 
   //  Find any read not placed in a unitig.
 
-  for (uint32 i=0; i<FI->numFragments()+1; i++) {
-    if (FI->fragmentLength(i) == 0)  //  Deleted read.
+  for (uint32 i=0; i<FI->numReads()+1; i++) {
+    if (FI->readLength(i) == 0)  //  Deleted read.
       continue;
 
     assert(inUnitig[i] != 0);         //  There shouldn't be a unitig 0.
@@ -339,11 +339,11 @@ reportTigs(TigVector &tigs, const char *prefix, const char *name, uint64 genomeS
 
   fprintf(stderr, "Creating intermediate tigStore '%s'\n", tigStorePath);
 
-  uint32  numFragsT  = 0;
-  uint32  numFragsP  = 0;
+  uint32  numReadsT  = 0;
+  uint32  numReadsP  = 0;
   uint64  utgLen     = 0;
 
-  //  Compute average frags per partition.
+  //  Compute average reads per partition.
 
   for (uint32  ti=0; ti<tigs.size(); ti++) {
     Unitig  *utg = tigs[ti];
@@ -351,24 +351,24 @@ reportTigs(TigVector &tigs, const char *prefix, const char *name, uint64 genomeS
     if (utg == NULL)
       continue;
 
-    numFragsT += utg->ufpath.size();
+    numReadsT += utg->ufpath.size();
 
     if (utg->ufpath.size() > 2)
       utgLen    += utg->getLength();
   }
 
   if      (utgLen < 16 * 1024 * 1024)
-    numFragsP = numFragsT / 7;
+    numReadsP = numReadsT / 7;
   else if (utgLen < 64 * 1024 * 1024)
-    numFragsP = numFragsT / 63;
+    numReadsP = numReadsT / 63;
   else
-    numFragsP = numFragsT / 127;
+    numReadsP = numReadsT / 127;
 
   //  Dump the tigs to an intermediate store.
 
   setParentAndHang(tigs);
 
-  writeTigsToStore(tigs, tigStorePath, tigStorePath, numFragsP, false);
+  writeTigsToStore(tigs, tigStorePath, tigStorePath, numReadsP, false);
 }
 
 
@@ -434,12 +434,12 @@ reportOverlaps(TigVector &tigs, const char *prefix, const char *name) {
   memset(bb, 0, sizeof(olapsUsed));
 
 
-  for (uint32 fi=0; fi<FI->numFragments()+1; fi++) {
-    if (FI->fragmentLength(fi) == 0)
+  for (uint32 fi=0; fi<FI->numReads()+1; fi++) {
+    if (FI->readLength(fi) == 0)
       continue;
 
     uint32           rdAid   = fi;
-    uint32           tgAid   = Unitig::fragIn(rdAid);
+    uint32           tgAid   = Unitig::readIn(rdAid);
     Unitig          *tgA     = tigs[tgAid];
     uint32           tgAtype = getTigType(tgA);
 
@@ -447,14 +447,14 @@ reportOverlaps(TigVector &tigs, const char *prefix, const char *name) {
 
     if (OG->isContained(rdAid) == false) {
       BestEdgeOverlap *b5      = OG->getBestEdgeOverlap(fi, false);
-      uint32           rd5id   = b5->fragId();
-      uint32           tg5id   = Unitig::fragIn(rd5id);
+      uint32           rd5id   = b5->readId();
+      uint32           tg5id   = Unitig::readIn(rd5id);
       Unitig          *tg5     = tigs[tg5id];
       uint32           tg5type = getTigType(tg5);
 
       BestEdgeOverlap *b3      = OG->getBestEdgeOverlap(fi, true);
-      uint32           rd3id   = b3->fragId();
-      uint32           tg3id   = Unitig::fragIn(rd3id);
+      uint32           rd3id   = b3->readId();
+      uint32           tg3id   = Unitig::readIn(rd3id);
       Unitig          *tg3     = tigs[tg3id];
       uint32           tg3type = getTigType(tg3);
 
@@ -498,7 +498,7 @@ reportOverlaps(TigVector &tigs, const char *prefix, const char *name) {
           int32      rd5lo    = (rd5fwd) ? rd5->position.bgn : rd5->position.end;
           int32      rd5hi    = (rd5fwd) ? rd5->position.end : rd5->position.bgn;
 
-          if (satisfiedOverlap(rdAlo, rdAhi, rdAfwd, rd5lo, rd5hi, rd5fwd, (b5->frag3p() == true))) {
+          if (satisfiedOverlap(rdAlo, rdAhi, rdAfwd, rd5lo, rd5hi, rd5fwd, (b5->read3p() == true))) {
             bb->doveSatSame[tgAtype]++;
           } else {
             bb->doveUnsatSame[tgAtype]++;
@@ -519,7 +519,7 @@ reportOverlaps(TigVector &tigs, const char *prefix, const char *name) {
           int32      rd3lo    = (rd3fwd) ? rd3->position.bgn : rd3->position.end;
           int32      rd3hi    = (rd3fwd) ? rd3->position.end : rd3->position.bgn;
 
-          if (satisfiedOverlap(rdAlo, rdAhi, rdAfwd, rd3lo, rd3hi, rd3fwd, (b3->frag3p() == false))) {
+          if (satisfiedOverlap(rdAlo, rdAhi, rdAfwd, rd3lo, rd3hi, rd3fwd, (b3->read3p() == false))) {
             bb->doveSatSame[tgAtype]++;
           } else {
             bb->doveUnsatSame[tgAtype]++;
@@ -537,12 +537,12 @@ reportOverlaps(TigVector &tigs, const char *prefix, const char *name) {
 
     for (uint32 oi=0; oi<ovlLen; oi++) {
       uint32     rdAid     = ovl[oi].a_iid;
-      uint32     tgAid     = Unitig::fragIn(rdAid);
+      uint32     tgAid     = Unitig::readIn(rdAid);
       Unitig    *tgA       = tigs[tgAid];
       uint32     tgAtype   = getTigType(tgA);
 
       uint32     rdBid     = ovl[oi].b_iid;
-      uint32     tgBid     = Unitig::fragIn(rdBid);
+      uint32     tgBid     = Unitig::readIn(rdBid);
       Unitig    *tgB       = tigs[tgBid];
       uint32     tgBtype   = getTigType(tgB);
 

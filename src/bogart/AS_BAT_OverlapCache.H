@@ -284,7 +284,7 @@ public:
 
   void         loadOverlaps(double erate, uint32 minOverlap, const char *prefix, bool onlySave, bool doSave);
 
-  BAToverlap  *getOverlaps(uint32 fragIID, double maxErate, uint32 &numOverlaps);
+  BAToverlap  *getOverlaps(uint32 readIID, double maxErate, uint32 &numOverlaps);
 
   void         removeWeakOverlaps(uint32 *minEvalue5p,
                                   uint32 *minEvalue3p);
@@ -307,10 +307,10 @@ private:
 
   memoryMappedFile       *_cacheMMF;
 
-  BAToverlapInt         **_cachePtr; //  Mapping of frag iid to overlaps stored in the heap
-  uint32                 *_cacheLen; //  Number of overlaps per frag iid
+  BAToverlapInt         **_cachePtr; //  Mapping of read iid to overlaps stored in the heap
+  uint32                 *_cacheLen; //  Number of overlaps per read iid
 
-  uint32                  _maxPer;   //  Maximum number of overlaps to load for a single fragment
+  uint32                  _maxPer;   //  Maximum number of overlaps to load for a single read
 
   uint32                  _ovsMax;   //  For loading overlaps
   ovOverlap              *_ovs;      //

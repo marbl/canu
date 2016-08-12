@@ -130,7 +130,7 @@ writeTigsToStore(TigVector     &tigs,
   for (uint32 tigID=0, ti=0; ti<tigs.size(); ti++) {
     Unitig  *utg = tigs[ti];
 
-    if ((utg == NULL) || (utg->getNumFrags() == 0))
+    if ((utg == NULL) || (utg->getNumReads() == 0))
       continue;
 
     assert(utg->getLength() > 0);
@@ -144,9 +144,9 @@ writeTigsToStore(TigVector     &tigs,
 
     //  Increment the partition if the current one is too large.
 
-    if ((frg_count + utg->getNumFrags() >= frg_count_target) &&
+    if ((frg_count + utg->getNumReads() >= frg_count_target) &&
         (frg_count                      >  0)) {
-      fprintf(pari, "Partition %d has %d tigs and %d fragments.\n",
+      fprintf(pari, "Partition %d has %d tigs and %d reads.\n",
               prt_count, utg_count, frg_count);
 
       prt_count++;
@@ -157,21 +157,21 @@ writeTigsToStore(TigVector     &tigs,
     //  Note that the tig is included in this partition.
 
     utg_count += 1;
-    frg_count += utg->getNumFrags();
+    frg_count += utg->getNumReads();
 
     //  Map the tig to a partition, and log both the tig-to-partition map and the partition-to-read map.
 
-    fprintf(iidm, "bogart "F_U32" -> tig "F_U32" (in partition "F_U32" with "F_U32" frags)\n",
+    fprintf(iidm, "bogart "F_U32" -> tig "F_U32" (in partition "F_U32" with "F_U32" reads)\n",
             utg->id(),
             utg->tigID(),
             prt_count,
-            utg->getNumFrags());
+            utg->getNumReads());
 
-    for (uint32 fragIdx=0; fragIdx<utg->getNumFrags(); fragIdx++)
-      fprintf(part, "%d\t%d\n", prt_count, utg->ufpath[fragIdx].ident);
+    for (uint32 readIdx=0; readIdx<utg->getNumReads(); readIdx++)
+      fprintf(part, "%d\t%d\n", prt_count, utg->ufpath[readIdx].ident);
   }
 
-  fprintf(pari, "Partition %d has %d tigs and %d fragments.\n",   //  Don't forget to log the last partition!
+  fprintf(pari, "Partition %d has %d tigs and %d reads.\n",   //  Don't forget to log the last partition!
           prt_count, utg_count, frg_count);
 
   fclose(pari);
@@ -224,11 +224,11 @@ findUnusedEdges(TigVector     &tigs,
                 FILE          *EF) {
 
   uint32      rdAid    =  rdA->ident;
-  uint32      rdAlen   =  FI->fragmentLength(rdAid);
+  uint32      rdAlen   =  FI->readLength(rdAid);
   bool        rdAfwd   =  rdA->isForward();
   int32       rdAlo    =  (rdAfwd) ? (rdA->position.bgn) : (rdA->position.end);
   int32       rdAhi    =  (rdAfwd) ? (rdA->position.end) : (rdA->position.bgn);
-  uint32      rdAtigID =  Unitig::fragIn(rdAid);
+  uint32      rdAtigID =  Unitig::readIn(rdAid);
   Unitig     *rdAtig   =  tigs[rdAtigID];
 
   uint32      ovlLen   = 0;
@@ -249,11 +249,11 @@ findUnusedEdges(TigVector     &tigs,
       continue;
 
     uint32    rdBid    = ovl[oi].b_iid;
-    uint32    rdBtigID = Unitig::fragIn(rdBid);
+    uint32    rdBtigID = Unitig::readIn(rdBid);
     Unitig   *rdBtig   = tigs[rdBtigID];
 
     if ((rdBtig == NULL) ||
-        (rdBtig->getNumFrags() == 0) ||    //  Not interested in edges to singletons
+        (rdBtig->getNumReads() == 0) ||    //  Not interested in edges to singletons
         (rdBtig->_isUnassembled == true))  //  Or other unassembled crap.  rdA filtered outside here.
       continue;
 
@@ -280,7 +280,7 @@ findUnusedEdges(TigVector     &tigs,
     ufNode           placed;
     BestEdgeOverlap  edge(ovl[oi]);
 
-    rdBtig->placeFrag(placed,
+    rdBtig->placeRead(placed,
                       rdAid,
                       rdA3p,
                       &edge);
@@ -349,7 +349,7 @@ findUnusedEdges(TigVector     &tigs,
     uint32 oi = rawEdges[rrIdx].oi;
 
     uint32    rdBid    = ovl[oi].b_iid;
-    uint32    rdBtigID = Unitig::fragIn(rdBid);
+    uint32    rdBtigID = Unitig::readIn(rdBid);
     Unitig   *rdBtig   = tigs[rdBtigID];
 
     ufNode   *rdB      = &rdBtig->ufpath[ Unitig::pathPosition(rdBid) ];
@@ -403,7 +403,7 @@ writeUnusedEdges(TigVector     &tigs,
     Unitig  *tig = tigs[ti];
 
     if ((tig == NULL) ||
-        (tig->getNumFrags() == 0) ||
+        (tig->getNumReads() == 0) ||
         (tig->_isUnassembled == true))
       continue;
 
@@ -444,7 +444,7 @@ writeUnusedEdges(TigVector     &tigs,
     Unitig  *tig = tigs[ti];
 
     if ((tig == NULL) ||
-        (tig->getNumFrags() == 0) ||
+        (tig->getNumReads() == 0) ||
         (tig->_isUnassembled == true))
       continue;
 
@@ -461,7 +461,7 @@ writeUnusedEdges(TigVector     &tigs,
     Unitig  *tig = tigs[ti];
 
     if ((tig == NULL) ||
-        (tig->getNumFrags() == 0) ||
+        (tig->getNumReads() == 0) ||
         (tig->_isUnassembled == true))
       continue;
 

@@ -48,14 +48,14 @@ using namespace std;
 //  S <name-string> <sequence-string> [optional fields]
 //  LN:i:# - length
 //  RC:i:# - number of reads
-//  FC:i:# - number of fragments
+//  FC:i:# - number of reads
 //  KC:i:# - number of kmers
 //
 //  L <from-name-string> <from-orient> <to-name-string> <to-orient> <overlap-cigar> [optional fields]
 //  MQ:i:# - mapping quality
 //  NM:i:# - number of mismatches/gaps
 //  RC:i:# - number of reads
-//  FC:i:# - number of fragments
+//  FC:i:# - number of reads
 //  KC:i:# - number of kmers
 //
 //  C "need motivation for this"

@@ -60,7 +60,7 @@ sub computeNumberOfConsensusJobs ($$) {
     my $jobs = 0;
     open(F, "< $wrk/4-unitigger/$asm.partitioningInfo") or caExit("can't open '$wrk/4-unitigger/$asm.partitioningInfo' for reading: $!", undef);
     while (<F>) {
-        if (m/Partition\s+(\d+)\s+has\s+(\d+)\s+unitigs\sand\s+(\d+)\s+fragments./) {
+        if (m/Partition\s+(\d+)\s+has\s+(\d+)\s+tigs*\s+and\s+(\d+)\s+reads*./) {
             $jobs = $1;
         }
     }

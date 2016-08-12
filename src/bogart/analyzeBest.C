@@ -93,7 +93,7 @@ main(int argc, char **argv) {
   if (errno)
     fprintf(stderr, "Failed to open '%s' for reading: %s\n", bSing, strerror(errno)), exit(1);
 
-  fprintf(stderr, "Loading fragment to library mapping.\n");
+  fprintf(stderr, "Loading read to library mapping.\n");
 
   gkStore    *gkp = gkStore::gkStore_open(gkpName, false, false);
   gkStream   *str = new gkStream(gkp, 0, 0, GKFRAGMENT_INF);
@@ -104,7 +104,7 @@ main(int argc, char **argv) {
 
   uint32  *frgToLib  = new uint32 [numFrg + 1];  memset(frgToLib, 0, sizeof(uint32) * (numFrg + 1));
 
-  uint64  *fragPerLib = new uint64 [numLib + 1];  memset(fragPerLib, 0, sizeof(uint64) * (numLib + 1));
+  uint64  *readPerLib = new uint64 [numLib + 1];  memset(readPerLib, 0, sizeof(uint64) * (numLib + 1));
   uint64  *deldPerLib = new uint64 [numLib + 1];  memset(deldPerLib, 0, sizeof(uint64) * (numLib + 1));
 
   while (str->next(&fr)) {
@@ -113,7 +113,7 @@ main(int argc, char **argv) {
     if (fr.gkFragment_getIsDeleted())
       deldPerLib[fr.gkFragment_getLibraryIID()]++;
     else
-      fragPerLib[fr.gkFragment_getLibraryIID()]++;
+      readPerLib[fr.gkFragment_getLibraryIID()]++;
   }
 
   delete str;
@@ -187,12 +187,12 @@ main(int argc, char **argv) {
   fprintf(stderr, "libIID   libUID                             #frg     #del             cnt'd             cnt'r              sing             spur5             spur3              dove\n");
 
   for (uint32 i=0; i<numLib+1; i++) {
-    double tot = fragPerLib[i] + deldPerLib[i];
+    double tot = readPerLib[i] + deldPerLib[i];
 
     fprintf(stderr, "%-8u %-30s %8"F_U64P" %8"F_U64P" (%4.1f%%)  %8"F_U64P" (%4.1f%%)  %8"F_U64P" (%4.1f%%)  %8"F_U64P" (%4.1f%%)  %8"F_U64P" (%4.1f%%)  %8"F_U64P" (%4.1f%%)  %8"F_U64P" (%4.1f%%)\n",
             i,
             gkp->gkStore_getLibrary(i)->libraryName,
-            fragPerLib[i],
+            readPerLib[i],
             deldPerLib[i], (deldPerLib[i] == 0) ? 0.0 : 100.0 * deldPerLib[i] / tot,
             cntdPerLib[i], (cntdPerLib[i] == 0) ? 0.0 : 100.0 * cntdPerLib[i] / tot,
             cntrPerLib[i], (cntrPerLib[i] == 0) ? 0.0 : 100.0 * cntrPerLib[i] / tot,
@@ -209,7 +209,7 @@ main(int argc, char **argv) {
 
   delete [] frgToLib;
 
-  delete [] fragPerLib;
+  delete [] readPerLib;
   delete [] deldPerLib;
 
   delete [] cntdPerLib;

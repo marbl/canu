@@ -127,7 +127,7 @@ olapToReadCoords(ufNode *frg,
                  int32  &lo,     int32 &hi) {
 
   lo = 0;
-  hi = FI->fragmentLength(frg->ident);
+  hi = FI->readLength(frg->ident);
 
   if (ahang > 0)
     lo += ahang;  //  Positive hang!
@@ -138,8 +138,8 @@ olapToReadCoords(ufNode *frg,
   assert(0  <= lo);
   assert(0  <= hi);
   assert(lo <= hi);
-  assert(lo <= FI->fragmentLength(frg->ident));
-  assert(hi <= FI->fragmentLength(frg->ident));
+  assert(lo <= FI->readLength(frg->ident));
+  assert(hi <= FI->readLength(frg->ident));
 }
 
 
@@ -351,13 +351,13 @@ splitTigs(TigVector                &tigs,
       if (newTigs[rid] == NULL) {
         lowCoord[rid] = frgbgn;
 
-        newTigs[rid]  = tigs.newUnitig(true);  // LOG_ADDUNITIG_BREAKING
+        newTigs[rid]  = tigs.newUnitig(true);
 
         if (nRepeat[rid] > nUnique[rid])
           newTigs[rid]->_isRepeat = true;
       }
 
-      newTigs[rid]->addFrag(frg, -lowCoord[rid], false);  //LOG_ADDFRAG_BREAKING);
+      newTigs[rid]->addRead(frg, -lowCoord[rid], false);
     }
 
     //  Else, we're not moving, just count how many reads came from repeats or uniques.
@@ -425,7 +425,7 @@ annotateRepeatsOnRead(TigVector             &UNUSED(tigs),
       writeLog("annotateRepeatsOnRead()-- tig %u read #%u %u place %u reverse read %u in tig %u placed %d-%d olap %d-%d%s\n",
                tig->id(), ii, read->ident, rr,
                rID,
-               Unitig::fragIn(rID),
+               Unitig::readIn(rID),
                fPlace.placedBgn, fPlace.placedEnd,
                fPlace.olapBgn,   fPlace.olapEnd,
                (fPlace.isUnitig) ? " IN_UNITIG" : "");
@@ -707,7 +707,7 @@ markRepeatReads(TigVector    &tigs,
       int32       rdAlo     = (rdAfwd) ? rdA->position.bgn : rdA->position.end;
       int32       rdAhi     = (rdAfwd) ? rdA->position.end : rdA->position.bgn;
 
-      double      sc        = (rdAhi - rdAlo) / (double)FI->fragmentLength(rdAid);
+      double      sc        = (rdAhi - rdAlo) / (double)FI->readLength(rdAid);
 
       if ((OG->isContained(rdAid)  == true) ||
           (OG->isSuspicious(rdAid) == true))
@@ -741,21 +741,21 @@ markRepeatReads(TigVector    &tigs,
         bool b5use = true;
         bool b3use = true;
 
-        if (b5->fragId() == 0)
+        if (b5->readId() == 0)
           b5use = false;
-        if (b3->fragId() == 0)
+        if (b3->readId() == 0)
           b3use = false;
 
-        if ((b5use) && (Unitig::fragIn(b5->fragId()) != tig->id()))
+        if ((b5use) && (Unitig::readIn(b5->readId()) != tig->id()))
           b5use = false;
-        if ((b3use) && (Unitig::fragIn(b3->fragId()) != tig->id()))
+        if ((b3use) && (Unitig::readIn(b3->readId()) != tig->id()))
           b3use = false;
 
         //  The best edge read is in this tig.  If they don't overlap, again, nothing to compare
         //  against.
 
         if (b5use) {
-          ufNode     *rdB       = &tig->ufpath[Unitig::pathPosition(b5->fragId())];
+          ufNode     *rdB       = &tig->ufpath[Unitig::pathPosition(b5->readId())];
           uint32      rdBid     = rdB->ident;
           bool        rdBfwd    = (rdB->position.bgn < rdB->position.end);
           int32       rdBlo     = (rdBfwd) ? rdB->position.bgn : rdB->position.end;
@@ -767,7 +767,7 @@ markRepeatReads(TigVector    &tigs,
         }
 
         if (b3use) {
-          ufNode     *rdB       = &tig->ufpath[Unitig::pathPosition(b3->fragId())];
+          ufNode     *rdB       = &tig->ufpath[Unitig::pathPosition(b3->readId())];
           uint32      rdBid     = rdB->ident;
           bool        rdBfwd    = (rdB->position.bgn < rdB->position.end);
           int32       rdBlo     = (rdBfwd) ? rdB->position.bgn : rdB->position.end;
@@ -825,14 +825,14 @@ markRepeatReads(TigVector    &tigs,
         if ((rMin    < tig5bgn) &&
             (tig5end < rMax) &&
             (b5use))
-          len5 = FI->overlapLength(rdAid, b5->fragId(), b5->ahang(), b5->bhang());
+          len5 = FI->overlapLength(rdAid, b5->readId(), b5->ahang(), b5->bhang());
         else
           b5use = false;
 
         if ((rMin    < tig3bgn) &&
             (tig3end < rMax) &&
             (b3use))
-          len3 = FI->overlapLength(rdAid, b3->fragId(), b3->ahang(), b3->bhang());
+          len3 = FI->overlapLength(rdAid, b3->readId(), b3->ahang(), b3->bhang());
         else
           b3use = false;
 
@@ -851,7 +851,7 @@ markRepeatReads(TigVector    &tigs,
 
         for (uint32 oo=0; oo<ovlLen; oo++) {
           uint32   rdBid    = ovl[oo].b_iid;
-          uint32   tgBid    = Unitig::fragIn(rdBid);
+          uint32   tgBid    = Unitig::readIn(rdBid);
 
           //  If the read is in a singleton, skip.  These are unassembled crud.
           if ((tgBid                         == 0) ||
@@ -865,8 +865,8 @@ markRepeatReads(TigVector    &tigs,
             continue;
 
           //  Skip if this overlap is the best we're trying to match.
-          if ((rdBid == b5->fragId()) ||
-              (rdBid == b3->fragId()))
+          if ((rdBid == b5->readId()) ||
+              (rdBid == b3->readId()))
             continue;
 
           //  Skip if this overlap is crappy quality
@@ -926,7 +926,7 @@ markRepeatReads(TigVector    &tigs,
             writeLog("tig %7u read %8u pos %7u-%-7u NOT confused by 5' edge to read %8u - best edge read %8u len %6u erate %.4f score %8.2f - alt edge len %6u erate %.4f score %8.2f - absdiff %8.2f percdiff %8.4f\n",
                      tig->id(), rdAid, rdAlo, rdAhi,
                      rdBid,
-                     b5->fragId(), len5, b5->erate(), score5,
+                     b5->readId(), len5, b5->erate(), score5,
                      len, ovl[oo].erate, score,
                      ad5, pd5);
             continue;
@@ -936,7 +936,7 @@ markRepeatReads(TigVector    &tigs,
             writeLog("tig %7u read %8u pos %7u-%-7u NOT confused by 3' edge to read %8u - best edge read %8u len %6u erate %.4f score %8.2f - alt edge len %6u erate %.4f score %8.2f - absdiff %8.2f percdiff %8.4f\n",
                      tig->id(), rdAid, rdAlo, rdAhi,
                      rdBid,
-                     b3->fragId(), len3, b3->erate(), score3,
+                     b3->readId(), len3, b3->erate(), score3,
                      len, ovl[oo].erate, score,
                      ad3, pd3);
             continue;
@@ -948,7 +948,7 @@ markRepeatReads(TigVector    &tigs,
             writeLog("tig %7u read %8u pos %7u-%-7u IS confused by 5' edge to read %8u - best edge read %8u len %6u erate %.4f score %8.2f - alt edge len %6u erate %.4f score %8.2f - absdiff %8.2f percdiff %8.4f\n",
                      tig->id(), rdAid, rdAlo, rdAhi,
                      rdBid,
-                     b5->fragId(), len5, b5->erate(), score5,
+                     b5->readId(), len5, b5->erate(), score5,
                      len, ovl[oo].erate, score,
                      ad5, pd5);
 
@@ -956,7 +956,7 @@ markRepeatReads(TigVector    &tigs,
             writeLog("tig %7u read %8u pos %7u-%-7u IS confused by 3' edge to read %8u - best edge read %8u len %6u erate %.4f score %8.2f - alt edge len %6u erate %.4f score %8.2f - absdiff %8.2f percdiff %8.4f\n",
                      tig->id(), rdAid, rdAlo, rdAhi,
                      rdBid,
-                     b3->fragId(), len3, b3->erate(), score3,
+                     b3->readId(), len3, b3->erate(), score3,
                      len, ovl[oo].erate, score,
                      ad3, pd3);
 
