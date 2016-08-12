@@ -43,9 +43,10 @@ public:
     olapBgn     = INT32_MIN;
     olapEnd     = INT32_MAX;
 
-    isRepeat    = false;
-    isBubble    = false;
+    isContig    = false;
     isUnitig    = false;
+    isBubble    = false;
+    isRepeat    = false;
 
   };
   ~BestPlacement() {
@@ -59,11 +60,10 @@ public:
   uint32            olapBgn;      //  Position in the tig covered by overlaps.
   uint32            olapEnd;      //
 
-  bool              isBubble;     //  This placement is to a bubble (a repeat that was not split)
-  bool              isRepeat;     //  This placement is to a repeat (that was split)
-
-  bool              isUnitig;     //  This placement is in a unitig
   bool              isContig;     //  This placement is in a contig
+  bool              isUnitig;     //  This placement is in a unitig
+  bool              isBubble;     //  This placement is to an unambiguous region in a contig
+  bool              isRepeat;     //  This placement is to an ambiguous region in a contig that was split
 
   BAToverlapInt     bestC;
   BAToverlapInt     best5;        //  For space reasons, overlaps are stored in the

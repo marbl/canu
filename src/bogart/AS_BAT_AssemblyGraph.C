@@ -97,8 +97,6 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
     uint32   fiMin  = fiRead->position.min();
     uint32   fiMax  = fiRead->position.max();
 
-    BestPlacement  bp;  //  Result of the placement, saved in the master vector at the end.
-
     //  Find ALL potential placements, regardless of error rate.
 
     vector<overlapPlacement>   placements;
@@ -106,13 +104,10 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
     placeFragUsingOverlaps(tigs, NULL, fi, placements);
 
 #ifdef LOG_GRAPH
-    writeLog("AG()-- working on frag %u with %u placements\n", fi, placements.size());
+    //writeLog("AG()-- working on frag %u with %u placements\n", fi, placements.size());
 #endif
 
     //  For each placement decide if the overlap is compatible with the tig.
-    //  Filter out placements that are too small.
-
-    //uint32   minOverlap = 500;
 
     for (uint32 pp=0; pp<placements.size(); pp++) {
       Unitig *tig = tigs[placements[pp].tigID];
@@ -121,6 +116,7 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
 
       //  Ignore placements in singletons.
       if (tig->ufpath.size() <= 1) {
+#if 0
 #ifdef LOG_GRAPH
         writeLog("AG()-- frag %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.4f SINGLETON\n",
                  fi, pp,
@@ -128,6 +124,7 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
                  placements[pp].position.bgn, placements[pp].position.end,
                  placements[pp].verified.bgn, placements[pp].verified.end,
                  placements[pp].fCoverage, erate);
+#endif
 #endif
         continue;
       }
@@ -139,16 +136,15 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
       uint32   ovlmin  = placements[pp].verified.min();  //  Placement in unitig, verified by overlaps.
       uint32   ovlmax  = placements[pp].verified.max();
 
-      //  Ignore placements that are from thin overlaps.
-      //if (ovlmax - ovlmin < minOverlap)
-      //  continue;
+      assert(placements[pp].covered.bgn < placements[pp].covered.end);     //  Coverage is always forward.
 
-      //  Decide if the overlap is on our 5' or 3' end.  If both, we've been aligned fully.
-      bool  is5  = (placements[pp].covered.min() == 0)     ? true : false;
-      bool  is3  = (placements[pp].covered.max() == fiLen) ? true : false;
+      bool  is5  = (placements[pp].covered.bgn == 0)     ? true : false;   //  Placement covers the 5' end of the read
+      bool  is3  = (placements[pp].covered.end == fiLen) ? true : false;   //  Placement covers the 3' end of the read
+
 
       //  Ignore placements that aren't overlaps (contained reads placed inside this read will do this).
       if ((is5 == false) && (is3 == false)) {
+#if 0
 #ifdef LOG_GRAPH
         writeLog("AG()-- frag %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.4f SPANNED_REPEAT\n",
                  fi, pp,
@@ -156,6 +152,7 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
                  placements[pp].position.bgn, placements[pp].position.end,
                  placements[pp].verified.bgn, placements[pp].verified.end,
                  placements[pp].fCoverage, erate);
+#endif
 #endif
         continue;
       }
@@ -166,8 +163,6 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
 
       bool  onRight = (((utgfwd == true)  && (is3 == true)) ||
                        ((utgfwd == false) && (is5 == true))) ? true : false;
-
-      assert((is5 == true) || (is3 == true));
 
 
       //  Decide if this is already captured in a tig.  If so, we'll emit to GFA, but omit from our
@@ -195,7 +190,9 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
         continue;
       }
 
-      //  A valid placement!
+      //  A valid placement!  Create a BestPlacement for it.
+
+      BestPlacement  bp;
 
 #if 0
       writeLog("AG()-- frag %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.4f Fidx %6u Lidx %6u is5 %d is3 %d onLeft %d onRight %d  VALID_PLACEMENT\n",
@@ -208,71 +205,75 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
                is5, is3, onLeft, onRight);
 #endif
 
+      //  Find the reads we have overlaps to.  The range of reads here is the first and last read in
+      //  the tig layout that overlaps with ourself.  We don't need to check that the reads overlap in the
+      //  layout: the only false case I can think of involves contained reads.
+      //
+      //  READ:                         -----------------------------------
+      //  TIG: Fidx  -----------------------------
+      //  TIG: (1)      ------
+      //  TIG:                 --------------------------------------
+      //  TIG: Lidx                        -----------------------------------------
+      //       (2)                                ------
+      //
+      //  The short read is placed at (1), but also has an overlap to us at (2).
 
-      //  Find the overlaps for this read.  We'll use this to find the thickest overlaps to this
-      //  tig.  We'd like to use a map, to avoid searching later, but because of duplicates, the
-      //  best we can (easily) do is just remember the ID's we have an overlap to.
+      set<uint32>  tigReads;
 
-      set<uint32>  olapIDs;
+      for (uint32 rr=placements[pp].tigFidx; rr <= placements[pp].tigLidx; rr++)
+        tigReads.insert(tig->ufpath[rr].ident);
+
+      //  Scan all overlaps.  Decide if the overlap is to the L or R of the _placed_ read, and save
+      //  the thickest overlap on the 5' or 3' end of the read.
+
       uint32       no  = 0;
       BAToverlap  *ovl = OC->getOverlaps(fi, AS_MAX_EVALUE, no);
 
-      for (uint32 oo=0; oo<no; oo++)
-        olapIDs.insert(ovl[oo].b_iid);
-
-      //  Find the thickest overlaps on either side of the read.
-      //
-      //  The logic here is to first classify the type of overlap (contained, dovetail to the left,
-      //  etc) then to decide if our read cares about these types of overlaps, and if so, save the
-      //  best.
-
+      uint32  thickestC = 0, thickestCident = 0;
       uint32  thickest5 = 0, thickest5len   = 0;
       uint32  thickest3 = 0, thickest3len   = 0;
-      uint32  thickestC = 0, thickestCident = 0;
 
-      for (uint32 rr=placements[pp].tigFidx; rr <= placements[pp].tigLidx; rr++) {
-        ufNode  *read    = &tig->ufpath[rr];
-        uint32   readmin = read->position.min();
-        uint32   readmax = read->position.max();
-
-        //  No oevrlap?
-        if (olapIDs.count(read->ident) == 0)
+      for (uint32 oo=0; oo<no; oo++) {
+        if (tigReads.count(ovl[oo].b_iid) == 0)   //  Don't care about overlaps to reads not in the set.
           continue;
 
-        //  Can't use ourself as the thickest edge!  (useless test; it's captured above)
-        if (read->ident == fi)
-          continue;
+        uint32  olapLen = FI->overlapLength(ovl[oo].a_iid, ovl[oo].b_iid, ovl[oo].a_hang, ovl[oo].b_hang);
 
-        //  Is the read contained in us?
-        if        ((ovlmin <= readmin) && (readmax <= ovlmax))
+        if      (ovl[oo].AisContainer() == true) {
           continue;
+        }
 
-        //  Are we contained in the read?  We should save the 'best' overlap, but we don't know identities here.
-        else if ((readmin <= ovlmin) && (ovlmax <= readmax)) {
-          if ((onLeft == true) && (onRight == true)) {
-            //writeLog("AG()-- thickestC %u %d-%d\n", read->ident, read->position.bgn, read->position.end);
-            thickestC      = read->ident;
-            thickestCident = 0;
+        else if (ovl[oo].AisContained() == true) {
+          if (thickestCident < ovl[oo].evalue) {
+            thickestC      = oo;
+            thickestCident = ovl[oo].evalue;
+            bp.bestC.set(ovl[oo]);
           }
         }
 
-        //  Is the read to our left?
-        else if ((readmin <= ovlmin) && (ovlmin <= readmax)) {
-          if ((onLeft == true) && (readmax - ovlmin > thickest5len)) {
-            //writeLog("AG()-- thickest5 %u len %u (was %u len %u) OVL %d %d READ %d %d\n", read->ident, readmax - ovlmin, thickest5, thickest5len, ovlmin, ovlmax, readmin, readmax);
-            thickest5    = read->ident;
-            thickest5len = readmax - ovlmin;
+        else if (ovl[oo].AEndIs5prime() == true) {
+          if (thickest5len < olapLen) {
+            thickest5      = oo;
+            thickest5len   = olapLen;
+            bp.best5.set(ovl[oo]);
           }
         }
 
-        //  Is the read to our right?
-        else if ((readmin <= ovlmax) && (ovlmax <= readmax)) {
-          if ((onRight == true) && (ovlmax - readmin > thickest3len)) {
-            //writeLog("AG()-- thickest3 %u len %u (was %u len %u) OVL %d %d READ %d %d\n", read->ident, readmax - ovlmin, thickest3, thickest3len, ovlmin, ovlmax, readmin, readmax);
-            thickest3    = read->ident;
-            thickest3len = ovlmax - readmin;
+        else if (ovl[oo].AEndIs3prime() == true) {
+          if (thickest3len < olapLen) {
+            thickest3      = oo;
+            thickest3len   = olapLen;
+            bp.best3.set(ovl[oo]);
           }
         }
+      }
+
+      //  If we have both 5' and 3' edges, delete the containment edge.
+
+      if ((bp.best5.b_iid != 0) && (bp.best3.b_iid != 0)) {
+        thickestC      = 0;
+        thickestCident = 0;
+        bp.bestC       = BAToverlapInt();
       }
 
       //  Save the edge.
@@ -285,9 +286,10 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
       bp.olapBgn   = placements[pp].verified.bgn;
       bp.olapEnd   = placements[pp].verified.end;
 
-      bp.isRepeat  = false;
-      bp.isBubble  = false;
+      bp.isContig  = isTig;  //  Currently, contigs == unitigs.
       bp.isUnitig  = isTig;
+      bp.isBubble  = false;
+      bp.isRepeat  = false;
 
       //  If there are best edges off the 5' or 3' end, grab all the overlaps, find the particular
       //  overlap, and generate new BestEdgeOverlaps for them.
@@ -311,23 +313,6 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
              (thickest5 != 0) ||
              (thickest3 != 0));
 
-      //  Find the actual overlap for each of the thickest
-
-      bp.bestC = BAToverlapInt();
-      bp.best5 = BAToverlapInt();
-      bp.best3 = BAToverlapInt();
-
-      for (uint32 oo=0; oo<no; oo++) {
-        if ((ovl[oo].b_iid == thickestC) && (ovl[oo].AisContained()))
-          bp.bestC.set(ovl[oo]);
-
-        if ((ovl[oo].b_iid == thickest5) && (ovl[oo].AEndIs5prime()))
-          bp.best5.set(ovl[oo]);
-
-        if ((ovl[oo].b_iid == thickest3) && (ovl[oo].AEndIs3prime()))
-          bp.best3.set(ovl[oo]);
-      }
-
       //  Save the BestPlacement
 
       uint32       ff = _pForward[fi].size();
@@ -337,27 +322,28 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
       //  And now just log.
 
 #ifdef LOG_GRAPH
-      if (thickestC != 0) {
-        writeLog("AG()-- frag %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.4f CONTAINED %8d (%8d %8d)%s\n",
-                 fi, pp,
-                 placements[pp].tigID,
-                 placements[pp].position.bgn, placements[pp].position.end,
-                 placements[pp].verified.bgn, placements[pp].verified.end,
-                 placements[pp].fCoverage, erate,
-                 thickestC, thickest5, thickest3,
-                 (isTig == true) ? " IN_UNITIG" : "");
-      } else {
-        writeLog("AG()-- frag %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.4f DOVETAIL (%8d) %8d %8d%s\n",
-                 fi, pp,
-                 placements[pp].tigID,
-                 placements[pp].position.bgn, placements[pp].position.end,
-                 placements[pp].verified.bgn, placements[pp].verified.end,
-                 placements[pp].fCoverage, erate,
-                 thickestC, thickest5, thickest3,
-                 (isTig == true) ? " IN_UNITIG" : "");
-      } 
+      if (isTig == false)
+        if (thickestC != 0) {
+          writeLog("AG()-- frag %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.4f CONTAINED %8d (%8d %8d)%s\n",
+                   fi, pp,
+                   placements[pp].tigID,
+                   placements[pp].position.bgn, placements[pp].position.end,
+                   placements[pp].verified.bgn, placements[pp].verified.end,
+                   placements[pp].fCoverage, erate,
+                   bp.bestC.b_iid, bp.best5.b_iid, bp.best3.b_iid,
+                   (isTig == true) ? " IN_UNITIG" : "");
+        } else {
+          writeLog("AG()-- frag %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.4f DOVETAIL (%8d) %8d %8d%s\n",
+                   fi, pp,
+                   placements[pp].tigID,
+                   placements[pp].position.bgn, placements[pp].position.end,
+                   placements[pp].verified.bgn, placements[pp].verified.end,
+                   placements[pp].fCoverage, erate,
+                   bp.bestC.b_iid, bp.best5.b_iid, bp.best3.b_iid,
+                   (isTig == true) ? " IN_UNITIG" : "");
+        } 
 #endif
-   }  //  Over all placements
+    }  //  Over all placements
   }  //  Over all reads
 
 
@@ -386,11 +372,6 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
   }
 
   writeStatus("AssemblyGraph()-- complete.\n");
-
-  //  Cleanup.
-
-  //writeStatus("placeContains()-- Placed %u contained reads and %u unplaced reads.\n", nPlacedContained, nPlaced);
-  //writeStatus("placeContains()-- Failed to place %u contained reads (too high error suspected) and %u unplaced reads (lack of overlaps suspected).\n", nFailedContained, nFailed);
 }
 
 
@@ -415,20 +396,16 @@ AssemblyGraph::reportGraph(const char *prefix, const char *label) {
      
   fprintf(BEG, "H\tVN:Z:bogart/edges\n");
 
-  //  First, figure out what sequences are used.
+  //  First, figure out what sequences are used.  A sequence is used if it has forward edges,
+  //  or if it is referred to by a forward edge.
 
   uint32   *used = new uint32 [FI->numFragments() + 1];
 
   memset(used, 0, sizeof(uint32) * (FI->numFragments() + 1));
 
   for (uint32 fi=1; fi<FI->numFragments() + 1; fi++) {
-
-    for (uint32 pp=0; pp<_pForward[fi].size(); pp++)
-      if (_pForward[fi][pp].isRepeat == false)
-        used[fi] = 1;
-
-    //if (_pForward[fi].size() > 0)
-    //  used[fi] = 1;
+    if (_pForward[fi].size() > 0)
+      used[fi] = 1;
 
     for (uint32 pp=0; pp<_pForward[fi].size(); pp++) {
       used[_pForward[fi][pp].bestC.b_iid] = 1;
@@ -450,77 +427,131 @@ AssemblyGraph::reportGraph(const char *prefix, const char *label) {
   //
   //  with read orientation given by +/-.  Conveniently, this is what we've saved (for the edges).
 
-  uint32  nConly = 0;  //  Number of placements with a contained overlap and no pair of edges
-  uint32  nCdove = 0;  //  Number of placements with a cotnained overlap but a  pair of edges
+  uint32  nCdove0 = 0;
+  uint32  nCdove1 = 0;
+  uint32  nCdove2 = 0;
 
-  uint32  nRepeat = 0;
+  uint64  nTig[3] = {0,0,0};  //  Number of edges - both contig and unitig
+  uint64  nCtg[3] = {0,0,0};  //  Number of edges - contig only
+  uint64  nUtg[3] = {0,0,0};  //  Number of edges - unitig only (should be zero)
+  uint64  nAsm[3] = {0,0,0};  //  Number of edges - between contigs
 
-  uint32  nC = 0;
-  uint32  n5 = 0;
-  uint32  n3 = 0;
+  uint64  nBubble = 0;
+  uint64  nRepeat = 0;
 
   for (uint32 fi=1; fi<FI->numFragments() + 1; fi++) {
     for (uint32 pp=0; pp<_pForward[fi].size(); pp++) {
+      BAToverlapInt *bestedgeC = &_pForward[fi][pp].bestC;
+      BAToverlapInt *bestedge5 = &_pForward[fi][pp].best5;
+      BAToverlapInt *bestedge3 = &_pForward[fi][pp].best3;
 
-      //  Skip eges to resolved repeats.
+      bool  outputC = (bestedgeC->b_iid != 0) && (bestedge5->b_iid == 0) && (bestedge3->b_iid == 0);
+      bool  output5 = (bestedge5->b_iid != 0);
+      bool  output3 = (bestedge3->b_iid != 0);
+
+      //  Some statistics - number of contained reads with dovetail edges
+
+      if (bestedgeC->b_iid != 0) {
+        if      ((bestedge5->b_iid == 0) && (bestedge3->b_iid == 0))
+          nCdove0++;  //  Contained edge with no dovetail edges
+
+        else if ((bestedge5->b_iid != 0) && (bestedge3->b_iid != 0))
+          nCdove2++;  //  Contained edge with both dovetail edges
+
+        else
+          nCdove1++;  //  Contained edge with one dovetail edge
+      }
+
+      //  Some statistics - number of edges of each type (in a contig, in a unitig, in both (tig), in neither (asm))
+
+      if ((_pForward[fi][pp].isContig == true)  && (_pForward[fi][pp].isUnitig == true)) {
+        if (outputC == true)   nTig[0]++;
+        if (output5 == true)   nTig[1]++;
+        if (output3 == true)   nTig[2]++;
+      }
+
+      if ((_pForward[fi][pp].isContig == true)  && (_pForward[fi][pp].isUnitig == false)) {
+        if (outputC == true)   nCtg[0]++;
+        if (output5 == true)   nCtg[1]++;
+        if (output3 == true)   nCtg[2]++;
+      }
+
+      if ((_pForward[fi][pp].isContig == false) && (_pForward[fi][pp].isUnitig == true)) {
+        if (outputC == true)   nUtg[0]++;
+        if (output5 == true)   nUtg[1]++;
+        if (output3 == true)   nUtg[2]++;
+      }
+
+      if ((_pForward[fi][pp].isContig == false) && (_pForward[fi][pp].isUnitig == false)) {
+        if (outputC == true)   nAsm[0]++;
+        if (output5 == true)   nAsm[1]++;
+        if (output3 == true)   nAsm[2]++;
+      }
+
+      if (_pForward[fi][pp].isBubble == true) {
+        nBubble++;
+        continue;
+      }
+
       if (_pForward[fi][pp].isRepeat == true) {
         nRepeat++;
         continue;
       }
 
-      BAToverlapInt *bestedgeC = &_pForward[fi][pp].bestC;
-      BAToverlapInt *bestedge5 = &_pForward[fi][pp].best5;
-      BAToverlapInt *bestedge3 = &_pForward[fi][pp].best3;
+      //  Check sanity.
 
-      if (bestedgeC->b_iid != 0)  //  Not ambiguous.
-        if ((bestedge5->b_iid == 0) && (bestedge3->b_iid == 0))
-          nConly++;
-        else
-          nCdove++;
+      if (outputC)  assert((bestedgeC->a_hang <= 0) && (bestedgeC->b_hang >= 0));  //  ALL contained edges should be this.
+      if (output5)  assert((bestedge5->a_hang <= 0) && (bestedge5->b_hang <= 0));  //  ALL 5' edges should be this.
+      if (output3)  assert((bestedge3->a_hang >= 0) && (bestedge3->b_hang >= 0));  //  ALL 3' edges should be this.
 
-      if ((bestedgeC->b_iid != 0) && (bestedge5->b_iid == 0) && (bestedge3->b_iid == 0)) {
-        int32  olaplen = FI->fragmentLength(fi);
+      //  Finally, output the edge.
 
-        assert((bestedgeC->a_hang <= 0) && (bestedgeC->b_hang >= 0));  //  ALL contained edges should be this.
-
-        nC++;
-        fprintf(BEG, "C\tread%08u\t+\tread%08u\t%c\t%u\t%uM\n",
+      if (outputC)
+        fprintf(BEG, "C\tread%08u\t+\tread%08u\t%c\t%u\t%uM\tic:i:%d\tiu:i:%d\tib:i:%d\tir:i:%d\n",
                 fi,
                 bestedgeC->b_iid, bestedgeC->flipped ? '-' : '+',
                 -bestedgeC->a_hang,
-                olaplen);
-      }
+                FI->fragmentLength(fi),
+                _pForward[fi][pp].isContig,
+                _pForward[fi][pp].isUnitig,
+                _pForward[fi][pp].isBubble,
+                _pForward[fi][pp].isRepeat);
 
-      if (bestedge5->b_iid != 0) {
-        int32  olaplen = FI->overlapLength(fi, bestedge5->b_iid, bestedge5->a_hang, bestedge5->b_hang);
-
-        assert((bestedge5->a_hang <= 0) && (bestedge5->b_hang <= 0));  //  ALL 5' edges should be this.
-
-        n5++;
-        fprintf(BEG, "L\tread%08u\t-\tread%08u\t%c\t%uM 5p\n",
+      if (output5)
+        fprintf(BEG, "L\tread%08u\t-\tread%08u\t%c\t%uM\tic:i:%d\tiu:i:%d\tib:i:%d\tir:i:%d\n",
                 fi,
                 bestedge5->b_iid, bestedge5->BEndIs3prime() ? '-' : '+',
-                olaplen);
-      }
+                FI->overlapLength(fi, bestedge5->b_iid, bestedge5->a_hang, bestedge5->b_hang),
+                _pForward[fi][pp].isContig,
+                _pForward[fi][pp].isUnitig,
+                _pForward[fi][pp].isBubble,
+                _pForward[fi][pp].isRepeat);
 
-      if (bestedge3->b_iid != 0) {
-        int32  olaplen = FI->overlapLength(fi, bestedge3->b_iid, bestedge3->a_hang, bestedge3->b_hang);
-
-        assert((bestedge3->a_hang >= 0) && (bestedge3->b_hang >= 0));  //  ALL 3' edges should be this.
-
-        n3++;
-        fprintf(BEG, "L\tread%08u\t+\tread%08u\t%c\t%uM 3p\n",
+      if (output3)
+        fprintf(BEG, "L\tread%08u\t+\tread%08u\t%c\t%uM\tic:i:%d\tiu:i:%d\tib:i:%d\tir:i:%d\n",
                 fi,
                 bestedge3->b_iid, bestedge3->BEndIs3prime() ? '-' : '+',
-                FI->overlapLength(fi, bestedge3->b_iid, bestedge3->a_hang, bestedge3->b_hang));
-      }
+                FI->overlapLength(fi, bestedge3->b_iid, bestedge3->a_hang, bestedge3->b_hang),
+                _pForward[fi][pp].isContig,
+                _pForward[fi][pp].isUnitig,
+                _pForward[fi][pp].isBubble,
+                _pForward[fi][pp].isRepeat);
     }
   }
 
   fclose(BEG);
 
-  writeStatus("AssemblyGraph()-- output %u contained edges, %u with dovetail edges and %u contained only\n", nC, nCdove, nConly);
-  writeStatus("AssemblyGraph()-- output %u 5' edges\n", n5);
-  writeStatus("AssemblyGraph()-- output %u 3' edges\n", n3);
-  writeStatus("AssemblyGraph()-- skipped %u reads to resolved repeat regions\n");
+  //  And report statistics.
+
+  writeStatus("AssemblyGraph()-- %8"F_U64P" contained edges with zero dovetail edges (output as a contained edge)\n", nCdove0);
+  writeStatus("AssemblyGraph()-- %8"F_U64P" contained edges with one  dovetail edge  (output as a single dovetail edge)\n",  nCdove1);
+  writeStatus("AssemblyGraph()-- %8"F_U64P" contained edges with two  dovetail edges (output as a pair of dovetail edges)\n", nCdove2);
+  writeStatus("\n");
+  writeStatus("AssemblyGraph()-- %8"F_U64P" bubble placements\n", nBubble);
+  writeStatus("AssemblyGraph()-- %8"F_U64P" repeat placements\n", nRepeat);
+  writeStatus("\n");
+  writeStatus("AssemblyGraph()-- Intratig edges:     %8"F_U64P" contained  %8"F_U64P" 5'  %8"F_U64P" 3' (in both contig and unitig)\n", nTig[0], nTig[1], nTig[2]);
+  writeStatus("AssemblyGraph()-- Contig only edges:  %8"F_U64P" contained  %8"F_U64P" 5'  %8"F_U64P" 3'\n", nCtg[0], nCtg[1], nCtg[2]);
+  writeStatus("AssemblyGraph()-- Unitig only edges:  %8"F_U64P" contained  %8"F_U64P" 5'  %8"F_U64P" 3'\n", nUtg[0], nUtg[1], nUtg[2]);
+  writeStatus("AssemblyGraph()-- Intercontig edges:  %8"F_U64P" contained  %8"F_U64P" 5'  %8"F_U64P" 3' (in neither contig nor unitig)\n", nAsm[0], nAsm[1], nAsm[2]);
 }
