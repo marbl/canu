@@ -47,28 +47,50 @@
 class overlapPlacement {
 public:
   overlapPlacement() {
-    frgID                 = 0;
+    frgID         = 0;
 
-    refID                 = 0;
-    tigID                 = 0;
-    position              = SeqInterval();
-    verified              = SeqInterval();
-    covered               = SeqInterval();
+    refID         = 0;
+    tigID         = 0;
+    position      = SeqInterval();
+    verified      = SeqInterval();
+    covered       = SeqInterval();
 
-    bgnStdDev             = 0.0;
-    endStdDev             = 0.0;
+    clusterID     = 0;
+    fCoverage     = 0.0;
 
-    clusterID             = 0;
+    errors        = 0.0;
+    aligned       = 0;
 
-    fCoverage             = 0.0;
-
-    errors                = 0.0;
-    aligned               = 0;
-
-    tigFidx               = UINT32_MAX;
-    tigLidx               = 0;
+    tigFidx       = UINT32_MAX;
+    tigLidx       = 0;
   };
   ~overlapPlacement() {
+  };
+
+public:
+  overlapPlacement(uint32 fid, overlapPlacement &op) {
+    frgID          = fid;
+
+    refID          = UINT32_MAX;       //  Not valid in the output overlapPlacement.
+    tigID          = op.tigID;
+    position.bgn   = 0;
+    position.end   = 0;
+
+    verified.bgn   = 0;
+    verified.end   = 0;
+
+    covered.bgn    = op.covered.bgn;
+    covered.end    = op.covered.end;
+
+    clusterID      = op.clusterID;     //  Useless to track forward.
+
+    fCoverage      = 0.0;
+
+    errors         = 0.0;
+    aligned        = 0;
+
+    tigFidx        = UINT32_MAX;
+    tigLidx        = UINT32_MAX;
   };
 
 public:
@@ -80,9 +102,6 @@ public:
   SeqInterval       position;   //  Unitig position of this placement
   SeqInterval       verified;   //  Unitig position of this placement, verified by overlaps
   SeqInterval       covered;    //  Position of the overlap on the read
-
-  double            bgnStdDev;  //  Standard deviation of position.bgn
-  double            endStdDev;  //  Standard deviation of position.end
 
   int32             clusterID;
 
