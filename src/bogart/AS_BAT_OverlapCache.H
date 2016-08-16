@@ -281,6 +281,7 @@ public:
   void         computeOverlapLimit(void);
 
   uint32       filterOverlaps(uint32 maxOVSerate, uint32 minOverlap, uint32 no);
+  uint32       filterDuplicates(uint32 &no);
 
   void         loadOverlaps(double erate, uint32 minOverlap, const char *prefix, bool onlySave, bool doSave);
 

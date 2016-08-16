@@ -472,6 +472,55 @@ OverlapCache::computeOverlapLimit(void) {
 
 
 
+uint32
+OverlapCache::filterDuplicates(uint32 &no) {
+  uint32   nFiltered = 0;
+
+  for (uint32 ii=0, jj=1; jj<no; ii++, jj++) {
+    if (_ovs[ii].b_iid != _ovs[jj].b_iid)
+      continue;
+
+    //  Found duplicate B IDs.  Drop one of them.
+    
+    nFiltered++;
+
+    //  If they're the same length, make the one with the higher evalue be length zero so it'll be
+    //  the shortest.
+
+    uint32  iilen = RI->overlapLength(_ovs[ii].a_iid, _ovs[ii].b_iid, _ovs[ii].a_hang(), _ovs[ii].b_hang());
+    uint32  jjlen = RI->overlapLength(_ovs[jj].a_iid, _ovs[jj].b_iid, _ovs[jj].a_hang(), _ovs[jj].b_hang());
+
+    if (iilen == jjlen) {
+      if (_ovs[ii].evalue() < _ovs[jj].evalue())
+        jjlen = 0;
+      else
+        iilen = 0;
+    }
+
+    //  Drop the shorter overlap by forcing its erate to the maximum.
+
+    if (iilen < jjlen)
+      _ovs[ii].evalue(AS_MAX_EVALUE);
+    else
+      _ovs[jj].evalue(AS_MAX_EVALUE);
+  }
+
+  //  Now that all have been filtered, squeeze out the filtered overlaps.  This leaves them
+  //  unsorted, but the next step doesn't care.  We could have (probably) just left it as is, and
+  //  let the maxEvalue filter below catch it.
+
+  if (nFiltered > 0) {
+    //  Needs to have it's own log.  Lots of stuff here.
+    //writeLog("OverlapCache()-- read %u filtered %u overlaps to the same read pair\n", _ovs[0].a_iid, nFiltered);
+
+    for (uint32 ii=0, jj=1; jj<no; ii++, jj++)
+      if (_ovs[ii].evalue() == AS_MAX_EVALUE)
+        _ovs[ii] = _ovs[--no];
+  }
+
+  return(nFiltered);
+}
+
 
 
 uint32
@@ -547,13 +596,12 @@ OverlapCache::filterOverlaps(uint32 maxEvalue, uint32 minOverlap, uint32 no) {
 
 
 
-
 void
 OverlapCache::loadOverlaps(double erate, uint32 minOverlap, const char *prefix, bool onlySave, bool doSave) {
   uint64   numTotal     = 0;
   uint64   numLoaded    = 0;
+  uint64   numDups      = 0;
   uint32   numReads     = 0;
-  uint32   numOvl       = 0;
   uint32   maxEvalue    = AS_OVS_encodeEvalue(erate);
 
   FILE    *ovlDat = NULL;
@@ -584,17 +632,13 @@ OverlapCache::loadOverlaps(double erate, uint32 minOverlap, const char *prefix, 
   //  be in contiguous memory.
 
   while (1) {
+    uint32  numOvl = _ovlStoreUniq->numberOfOverlaps();   //  Query how many overlaps for the next read.
 
-    //  Ask the store how many overlaps exist for this read.
-    numOvl = _ovlStoreUniq->numberOfOverlaps();
-
-    numTotal += numOvl;
-
-    if (numOvl == 0)
-      //  No overlaps?  We're at the end of the store.
+    if (numOvl == 0)    //  If no overlaps, we're at the end of the store.
       break;
 
     //  Resize temporary storage space to hold all these overlaps.
+
     while (_ovsMax <= numOvl) {
       _memUsed -= (_ovsMax) * sizeof(ovOverlap);
       _memUsed -= (_ovsMax) * sizeof(uint64);
@@ -610,11 +654,15 @@ OverlapCache::loadOverlaps(double erate, uint32 minOverlap, const char *prefix, 
       _memUsed += (_ovsMax) * sizeof(uint64);
     }
 
-    //  Actually load the overlaps.
-    uint32  no = _ovlStoreUniq->readOverlaps(_ovs, _ovsMax);
-    uint32  ns = filterOverlaps(maxEvalue, minOverlap, no);
+    //  Actually load the overlaps, then detect and remove overlaps between the same pair, then
+    //  filter short and low quality overlaps.
+
+    uint32  no = _ovlStoreUniq->readOverlaps(_ovs, _ovsMax);     //  no == total overlaps == numOvl
+    uint32  nd = filterDuplicates(no);                           //  nd == duplicated overlaps (no is decreased by this amount)
+    uint32  ns = filterOverlaps(maxEvalue, minOverlap, no);      //  ns == acceptable overlaps
 
     //  Resize the permament storage space for overlaps.
+
     if ((_storLen + ns > _storMax) ||
         (_stor == NULL)) {
 
@@ -632,14 +680,18 @@ OverlapCache::loadOverlaps(double erate, uint32 minOverlap, const char *prefix, 
 
     //  Save a pointer to the start of the overlaps for this read, and the number of overlaps
     //  that exist.
+
     _cachePtr[_ovs[0].a_iid] = _stor + _storLen;
     _cacheLen[_ovs[0].a_iid] = ns;
 
+    numTotal  += no + nd;   //  Because no was decremented by nd in filterDuplicates()
     numLoaded += ns;
+    numDups   += nd;
 
     uint32 storEnd = _storLen + ns;
 
     //  Finally, append the overlaps to the storage.
+
     for (uint32 ii=0; ii<no; ii++) {
       if (_ovsSco[ii] == 0)
         continue;
@@ -656,10 +708,11 @@ OverlapCache::loadOverlaps(double erate, uint32 minOverlap, const char *prefix, 
     assert(storEnd == _storLen);
 
     if ((numReads++ % 1000000) == 0)
-      writeStatus("OverlapCache()-- Loading: overlaps processed %12"F_U64P" (%06.2f%%) loaded %12"F_U64P" (%06.2f%%) (at read iid %d)\n",
-               numTotal,  100.0 * numTotal  / numStore,
-               numLoaded, 100.0 * numLoaded / numStore,
-               _ovs[0].a_iid);
+      writeStatus("OverlapCache()-- Loading: overlaps processed %12"F_U64P" (%06.2f%%) loaded %12"F_U64P" (%06.2f%%) droppeddupe %12"F_U64P" (%06.2f%%) (at read iid %d)\n",
+                  numTotal,  100.0 * numTotal  / numStore,
+                  numLoaded, 100.0 * numLoaded / numStore,
+                  numDups,   100.0 * numDups   / numStore,
+                  _ovs[0].a_iid);
   }
 
   if ((ovlDat) && (_storLen > 0))
@@ -670,9 +723,10 @@ OverlapCache::loadOverlaps(double erate, uint32 minOverlap, const char *prefix, 
   if (ovlDat)
     fclose(ovlDat);
 
-  writeStatus("OverlapCache()-- Loading: overlaps processed %12"F_U64P" (%06.2f%%) loaded %12"F_U64P" (%06.2f%%)\n",
-           numTotal,  100.0 * numTotal  / numStore,
-           numLoaded, 100.0 * numLoaded / numStore);
+  writeStatus("OverlapCache()-- Loading: overlaps processed %12"F_U64P" (%06.2f%%) loaded %12"F_U64P" (%06.2f%%) droppeddupe %12"F_U64P" (%06.2f%%)\n",
+              numTotal,  100.0 * numTotal  / numStore,
+              numLoaded, 100.0 * numLoaded / numStore,
+              numDups,   100.0 * numDups   / numStore);
 }
 
 
