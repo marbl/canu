@@ -195,9 +195,11 @@ sub getAllowedResources ($$$$) {
         foreach my $g (@grid) {
             my ($cpu, $mem, $num) = split '-', $g;
 
-            push @gridCor, $cpu;
-            push @gridMem, $mem;
-            push @gridNum, $num;
+            if (($cpu > 0) && ($mem > 0) && ($num > 0)) {
+                push @gridCor, $cpu;
+                push @gridMem, $mem;
+                push @gridNum, $num;
+            }
         }
     } else {
         push @gridCor, $maxThreads;
@@ -289,6 +291,10 @@ sub getAllowedResources ($$$$) {
                 $cores     += $np * $t;
                 $memory    += $np * $m;
             }
+
+            #  If no cores, then all machines were too small.
+
+            next if ($cores == 0);
 
             #  Save the best one seen so far.
 

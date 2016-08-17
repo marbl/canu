@@ -43,7 +43,7 @@ sub formatAllowedResources (\%$) {
     my $hosts_ref = shift @_;
     my $geName    = shift @_;
     my %hosts     = %$hosts_ref;
-    my $hosts     = "";
+    my $hosts     = undef;
 
     print STDERR "-- \n";
 
