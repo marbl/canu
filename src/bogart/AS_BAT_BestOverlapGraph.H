@@ -87,14 +87,10 @@ private:
 //
 class BestEdgeOverlap {
 public:
-  BestEdgeOverlap() {
-    clear();
-  };
-  BestEdgeOverlap(BAToverlap const &ovl) {
-    set(ovl);
-  };
-  ~BestEdgeOverlap() {
-  };
+  BestEdgeOverlap()                          { clear();  };
+  BestEdgeOverlap(BAToverlap const &ovl)     { set(ovl); };
+  BestEdgeOverlap(BAToverlapInt const &ovl)  { set(ovl); };
+  ~BestEdgeOverlap()                         {           };
 
   void    clear(void) {
     _id     = 0;
@@ -104,13 +100,14 @@ public:
     _evalue = 0;
   };
 
-  void    set(BAToverlap const &olap) {
+  template<typename OO>                                  //  Expecting BAToverlap
+  void    set(OO const &olap) {                          //         or BAToverlapInt.
     _id     = olap.b_iid;
     if (((olap.a_hang <= 0) && (olap.b_hang >= 0)) ||    //  If contained, _e3p just means
         ((olap.a_hang >= 0) && (olap.b_hang <= 0)))      //  the other read is flipped
       _e3p  = olap.flipped;
-    else
-      _e3p    = olap.BEndIs3prime();      //  Otherwise, means olap is to the 3' end
+    else                                                 //  Otherwise, means the
+      _e3p    = olap.BEndIs3prime();                     //    olap is to the 3' end
 
     _ahang  = olap.a_hang;
     _bhang  = olap.b_hang;
