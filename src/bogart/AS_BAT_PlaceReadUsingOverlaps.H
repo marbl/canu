@@ -46,8 +46,8 @@
 
 class overlapPlacement {
 public:
-  overlapPlacement() {
-    frgID         = 0;
+  overlapPlacement(uint32 fi=0) {
+    frgID         = fi;
 
     refID         = 0;
     tigID         = 0;
@@ -64,10 +64,7 @@ public:
     tigFidx       = UINT32_MAX;
     tigLidx       = 0;
   };
-  ~overlapPlacement() {
-  };
 
-public:
   overlapPlacement(uint32 fid, overlapPlacement &op) {
     frgID          = fid;
 
@@ -92,6 +89,10 @@ public:
     tigFidx        = UINT32_MAX;
     tigLidx        = UINT32_MAX;
   };
+
+  ~overlapPlacement() {
+  };
+
 
 public:
   uint32            frgID;      //  Read ID of the read this position is for.
