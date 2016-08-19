@@ -175,114 +175,6 @@ findUnitigCoverage(Unitig               *tig,
 
 
 
-
-//  
-//
-
-void
-markEdges(Unitig                   *tig,
-          vector<breakPointCoords> &BP,
-          vector<olapDat>          &repeats) {
-  uint32   nBubble = 0;
-  uint32   nRepeat = 0;
-  uint32   nSplit  = 0;
-
-  //  Clean up edges that point to the tig we just processed for repeats.
-  //
-  //  Any edge in 'repeats' that is not captured in a 'BP' is to a repeat that
-  //  is unambiguous.  Mark those as 'isBubble'.  Mark other edges as 'isRepeat'.
-  //
-  //  The edge should have olapBgn/olapEnd either entirely inside or outside a BP.
-
-  for (uint32 rr=0; rr<repeats.size(); rr++) {
-    uint32  rID = repeats[rr].eviRid;
-    uint32  pID = repeats[rr].eviPid;
-    bool    foundBP = false;
-
-    uint32  bgn = repeats[rr].tigbgn;
-    uint32  end = repeats[rr].tigend;
-      
-    //  There shouldn't be any isUnitig edges.  They're screened out when 'repeats' is built.
-    assert(AG->getForward(rID)[pID].isUnitig == false);
-    assert(AG->getForward(rID)[pID].isContig == false);
-
-    //  Search to see if this repeat is completely within a NP.
-    for (uint32 bb=0; (foundBP == false) && (bb<BP.size()); bb++) {
-      if (BP[bb]._isRepeat == false)
-        continue;
-
-      if ((BP[bb]._bgn <= bgn) &&
-          (end <= BP[bb]._end))
-        foundBP = true;
-    }
-
-    if (foundBP == false) {
-      nBubble++;
-      AG->getForward(rID)[pID].isBubble = true;
-    } else {
-      nRepeat++;
-      AG->getForward(rID)[pID].isRepeat = true;
-    }
-  }
-
-  //  Clean up edges that are internal to the tig we just processed for repeats - we're after edges
-  //  that are between reads that will be in different tigs after this one is split.
-  //
-  //  Over all reads in the tig, over all placements for those reads: If the placement
-  //  is in a contig and intersects a break point, we are going to split the tig there,
-  //  so the edge is now not 'isContig' but is now 'isRepeat'.
-
-#if 0
-  for (uint32 fi=0; fi<tig->ufpath.size(); fi++) {
-    ufNode                 &frg   = tig->ufpath[fi];
-    vector<BestPlacement>  &place = AG->getForward(frg.ident);
-  
-    for (uint32 pp=0; pp<place.size(); pp++) {
-      if (place[pp].isContig == false)  //  If not in a contig, we don't care.
-        continue;
-
-      if (tig->id() != place[pp].tigID) {
-        fprintf(stderr, "tig %u read #%u %u at %u-%u edge #%u: tigID %u placed %u-%u olap %u-%u flags isC %d isU %d isB %d isR %d\n",
-                tig->id(), fi, frg.ident, frg.position.bgn, frg.position.end,
-                pp,
-                place[pp].tigID,
-                place[pp].placedBgn, place[pp].placedEnd,
-                place[pp].olapBgn, place[pp].olapEnd,
-                place[pp].isContig, place[pp].isUnitig, place[pp].isBubble, place[pp].isRepeat);
-      }
-      assert(tig->id() == place[pp].tigID);
-
-      uint32  bgn = place[pp].olapBgn;
-      uint32  end = place[pp].olapEnd;
-
-      bool    foundBP = false;
-
-      for (uint32 bb=0; (foundBP == false) && (bb < BP.size()); bb++) {
-        if (BP[bb]._isRepeat == false)
-          continue;
-
-        if ((BP[bb]._bgn < end) &&
-            (bgn < BP[bb]._end))
-          foundBP = true;
-      }
-
-      if (foundBP == true) {
-        nSplit++;
-        place[pp].isContig = false;
-        place[pp].isUnitig = false;
-        place[pp].isRepeat = true;
-      }
-    }
-  }
-#endif
-
-  writeLog("markEdges()-- tig %u marked %u bubble edges; %u repeat edges; %u split repeat edges\n",
-           tig->id(), nBubble, nRepeat, nSplit);
-}
-
-
-
-
 uint32
 splitTigs(TigVector                &tigs,
           Unitig                   *tig,
@@ -1147,10 +1039,6 @@ markRepeatReads(TigVector    &tigs,
     for (uint32 ii=0; ii<tigMarksU.numberOfIntervals(); ii++)
       BP.push_back(breakPointCoords(ti, tigMarksU.lo(ii), tigMarksU.hi(ii), false));
 
-    //  Mark edges for later use.
-
-    //markEdges(tig, BP, repeatOlaps);
-
     //  If there is only one BP, the tig is entirely resolved or entirely repeat.  Either case,
     //  there is nothing more for us to do.
 
@@ -1203,4 +1091,8 @@ markRepeatReads(TigVector    &tigs,
       tigs[ti] = NULL;
     }
   }
+
+  AG->rebuildGraph(tigs);
+
+  AG->filterEdges(tigs);
 }
