@@ -98,23 +98,34 @@ public:
                 double        deviationGraph,
                 double        deviationBubble,
                 double        deviationRepeat,
-                TigVector    &tigs);
+                TigVector    &tigs) {
+    buildGraph(prefix, deviationGraph, deviationBubble, deviationRepeat, tigs);
+  }
   
   ~AssemblyGraph() {
     delete [] _pForward;
     delete [] _pReverse;
   };
 
+
+public:
+  vector<BestPlacement>    &getForward(uint32 fi)  { return(_pForward[fi]); };
+  vector<BestReverse>      &getReverse(uint32 fi)  { return(_pReverse[fi]); };
+
+
+public:
+  void                      buildReverseEdges(void);
+  void                      buildGraph(const char   *prefix,
+                                       double        deviationGraph,
+                                       double        deviationBubble,
+                                       double        deviationRepeat,
+                                       TigVector    &tigs);
+
+  void                      rebuildGraph(TigVector     &tigs);
+
+  void                      filterEdges(TigVector     &tigs);
+
   void                      reportGraph(const char *prefix, const char *label);
-
-  vector<BestPlacement>    &getForward(uint32 fi) {
-    return(_pForward[fi]);
-  };
-
-  vector<BestReverse>      &getReverse(uint32 fi) {
-    return(_pReverse[fi]);
-  };
-
 
 
 

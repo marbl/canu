@@ -36,11 +36,39 @@
 #undef  LOG_GRAPH      //  Report the (forward) graph edges in the log file
 
 
-AssemblyGraph::AssemblyGraph(const char   *prefix,
-                             double        deviationGraph,
-                             double        deviationBubble,
-                             double        deviationRepeat,
-                             TigVector    &tigs) {
+void
+AssemblyGraph::buildReverseEdges(void) {
+
+  writeStatus("AssemblyGraph()-- building reverse edges.\n");
+
+  for (uint32 fi=1; fi<RI->numReads()+1; fi++)
+    _pReverse[fi].clear();
+
+  for (uint32 fi=1; fi<RI->numReads()+1; fi++) {
+    for (uint32 ff=0; ff<_pForward[fi].size(); ff++) {
+      BestPlacement &bp = _pForward[fi][ff];
+      BestReverse    br(fi, ff);
+
+      if (bp.bestC.b_iid != 0)
+        _pReverse[bp.bestC.b_iid].push_back(br);
+
+      if (bp.best5.b_iid != 0)
+        _pReverse[bp.best5.b_iid].push_back(br);
+
+      if (bp.best3.b_iid != 0)
+        _pReverse[bp.best3.b_iid].push_back(br);
+    }
+  }
+}
+
+
+
+void
+AssemblyGraph::buildGraph(const char   *UNUSED(prefix),
+                          double        UNUSED(deviationGraph),
+                          double        UNUSED(deviationBubble),
+                          double        deviationRepeat,
+                          TigVector    &tigs) {
   uint32  fiLimit    = RI->numReads();
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
@@ -275,6 +303,14 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
         bp.bestC       = BAToverlapInt();
       }
 
+      //  If we have a containment edge, delete the 5' and 3' edges.
+
+      if (bp.bestC.b_iid != 0) {
+        thickest5 = 0;   thickest5len = 0;   bp.best5 = BAToverlapInt();
+        thickest3 = 0;   thickest3len = 0;   bp.best3 = BAToverlapInt();
+      }
+
+
       //  Save the edge.
 
       bp.tigID     = placements[pp].tigID;
@@ -345,33 +381,220 @@ AssemblyGraph::AssemblyGraph(const char   *prefix,
     }  //  Over all placements
   }  //  Over all reads
 
+  buildReverseEdges();
 
-  //  Create the reverse links.  This can't be done in the parallel loop above without synchronization.
+  writeStatus("AssemblyGraph()-- build complete.\n");
+}
 
-  writeStatus("AssemblyGraph()-- building reverse edges.\n",
-              nToPlaceContained + nToPlace,
-              nToPlaceContained,
-              RI->numReads() - nToPlaceContained - nToPlace,
-              numThreads);
+
+
+
+
+
+void
+placeAsContained(TigVector     &tigs,
+                 uint32         fi,
+                 BestPlacement &bp) {
+  BestEdgeOverlap   edge(bp.bestC);
+  ufNode            read;
+
+  bp.tigID = Unitig::readIn(fi);
+
+  Unitig           *tig = tigs[bp.tigID];
+
+  tig->placeRead(read, fi, bp.bestC.AEndIs3prime(), &edge);
+
+  bp.tigID = Unitig::readIn(fi);
+
+  bp.placedBgn = read.position.bgn;
+  bp.placedEnd = read.position.end;
+
+  bp.olapBgn = INT32_MIN;
+  bp.olapEnd = INT32_MAX;
+
+  //placeRead_computePlacement();
+  //placeRead_computeQualityandCoverage();
+}
+
+
+void
+placeAsDovetail(TigVector     &tigs,
+                uint32         fi,
+                BestPlacement &bp) {
+  BestEdgeOverlap   edge5(bp.best5),  edge3(bp.best3);
+  ufNode            read5,            read3;
+
+  bp.tigID = Unitig::readIn(fi);    //  Easy!  The tig we're in is wherever fi is!
+
+  Unitig  *tig = tigs[bp.tigID];    //  Compute a placement based on the overlap to fi.
+
+  if ((bp.best5.b_iid > 0) && (bp.best3.b_iid > 0)) {
+    tig->placeRead(read5, fi, bp.best5.AEndIs3prime(), &edge5);
+    tig->placeRead(read3, fi, bp.best3.AEndIs3prime(), &edge3);
+
+    bp.placedBgn = (read5.position.bgn + read3.position.bgn) / 2;
+    bp.placedEnd = (read5.position.end + read3.position.end) / 2;
+  }
+
+  else if (bp.best5.b_iid > 0) {
+    tig->placeRead(read5, fi, bp.best5.AEndIs3prime(), &edge5);
+
+    bp.placedBgn = read5.position.bgn;
+    bp.placedEnd = read5.position.end;
+  }
+
+  else if (bp.best3.b_iid > 0) {
+    tig->placeRead(read3, fi, bp.best3.AEndIs3prime(), &edge3);
+
+    bp.placedBgn = read3.position.bgn;
+    bp.placedEnd = read3.position.end;
+  }
+
+  //  We don't know the overlapping region (without a lot of work) so make it invalid.
+
+  bp.olapBgn = INT32_MIN;
+  bp.olapEnd = INT32_MAX;
+}
+
+
+
+
+void
+AssemblyGraph::rebuildGraph(TigVector     &tigs) {
+
+  writeStatus("AssemblyGraph()-- rebuilding\n");
 
   for (uint32 fi=1; fi<RI->numReads()+1; fi++) {
+    uint32       ovlLen = 0;
+    BAToverlap  *ovl    = OC->getOverlaps(fi, AS_MAX_ERATE, ovlLen);
+
+    uint32       tT     = Unitig::readIn(fi);
+    Unitig      *tig    = tigs[tT];
+
     for (uint32 ff=0; ff<_pForward[fi].size(); ff++) {
-      BestPlacement &bp = _pForward[fi][ff];
-      BestReverse    br(fi, ff);
+      BestPlacement   &bp = _pForward[fi][ff];
 
-      if (bp.bestC.b_iid != 0)
-        _pReverse[bp.bestC.b_iid].push_back(br);
+      //  If the edge refers to the same tig as noted, and all overlaps are in the same tig,
+      //  the edge is assumed to be up to date.
 
-      if (bp.best5.b_iid != 0)
-        _pReverse[bp.best5.b_iid].push_back(br);
+      uint32  tC = (bp.bestC.b_iid > 0) ? Unitig::readIn(bp.bestC.b_iid) : tT;
+      uint32  t5 = (bp.best5.b_iid > 0) ? Unitig::readIn(bp.best5.b_iid) : tT;
+      uint32  t3 = (bp.best3.b_iid > 0) ? Unitig::readIn(bp.best3.b_iid) : tT;
 
-      if (bp.best3.b_iid != 0)
-        _pReverse[bp.best3.b_iid].push_back(br);
+      //if ((tT == tC) &&
+      //    (tT == t5) &&
+      //    (tT == t3))
+      //  nModified++;
+
+      writeLog("AssemblyGraph()-- rebuilding read %u edge %u with overlaps %u %u %u\n",
+               fi, ff, bp.bestC.b_iid, bp.best5.b_iid, bp.best3.b_iid);
+
+      //  If a containment relationship, place it using the contain.
+
+      if (bp.bestC.b_iid > 0) {
+        assert(bp.best5.b_iid == 0);
+        assert(bp.best3.b_iid == 0);
+
+        placeAsContained(tigs, fi, bp);  //  Updates _pForward[fi][ff] from the alias in bp
+      }
+
+      //  Otherwise, dovetails.  If both overlapping reads are in the same tig, place it and update
+      //  the placement.
+
+      else if (t5 == t3) {
+        placeAsDovetail(tigs, fi, bp);  //  Updates _pForward[fi][ff] from the alias in bp
+      }
+
+      //  Otherwise, yikes, our overlapping reads are in different tigs!  We need to make new
+      //  placements and delete the current one.
+
+      else {
+        BestPlacement   bp5 = bp;
+        BestPlacement   bp3 = bp;
+
+        bp5.best3 = BAToverlapInt();
+        bp3.best5 = BAToverlapInt();
+
+        placeAsDovetail(tigs, fi, bp5);
+        placeAsDovetail(tigs, fi, bp3);
+
+        //  Add the two placements to our list.  We let one placement overwrite the current
+        //  placement, move the placement after that to the end of the list, and overwrite
+        //  that placement with our other new one.
+
+        uint32  ll = _pForward[fi].size();
+
+        //  There's a nasty case when ff is the last currently on the list; there isn't an ff+1
+        //  element to move to the end of the list.  So, we add a new element to the list -
+        //  guaranteeing there is always an ff+1 element - then move, then replace.
+
+        _pForward[fi].push_back(BestPlacement());
+
+        _pForward[fi][ll] = _pForward[fi][ff+1];
+
+        _pForward[fi][ff]   = bp5;
+        _pForward[fi][ff+1] = bp3;
+
+        //  Skip the edge we just added.
+
+        ff++;
+      }
     }
   }
 
-  writeStatus("AssemblyGraph()-- complete.\n");
+  buildReverseEdges();
+
+  writeStatus("AssemblyGraph()-- rebuild complete.\n");
 }
+
+
+
+
+
+//  Filter edges that originate from the middle of a tig.
+//  Need to save interior edges as long as they are consistent with a boundary edge.
+
+void
+AssemblyGraph::filterEdges(TigVector     &tigs) {
+
+  writeStatus("AssemblyGraph()-- filtering edges\n");
+
+  for (uint32 fi=1; fi<RI->numReads()+1; fi++) {
+    if (_pForward[fi].size() == 0)
+      continue;
+
+    uint32       ovlLen =  0;
+    BAToverlap  *ovl    =  OC->getOverlaps(fi, AS_MAX_ERATE, ovlLen);
+
+    uint32       tT     =  Unitig::readIn(fi);
+    Unitig      *tig    =  tigs[tT];
+    ufNode      &read   =  tig->ufpath[Unitig::pathPosition(fi)];
+
+    for (uint32 ff=0; ff<_pForward[fi].size(); ff++) {
+      BestPlacement   &bp = _pForward[fi][ff];
+
+      if ((bp.isUnitig == true) || (bp.isContig == true))
+        continue;
+
+      if ((read.position.min() > 0) &&
+          (read.position.max() < tig->getLength())) {
+        _pForward[fi][ff].isRepeat = true;
+      }
+    }
+  }
+
+  writeStatus("AssemblyGraph()-- filtering complete\n");
+}
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -384,6 +607,9 @@ AssemblyGraph::reportGraph(const char *prefix, const char *label) {
  char   N[FILENAME_MAX];
   FILE *BEG = NULL;
 
+  bool  skipBubble = true;
+  bool  skipRepeat = true;
+
   writeStatus("AssemblyGraph()-- generating '%s.%s.edges.gfa'.\n", prefix, label);
 
   sprintf(N, "%s.%s.assembly.gfa", prefix, label);
@@ -392,7 +618,7 @@ AssemblyGraph::reportGraph(const char *prefix, const char *label) {
 
   if (BEG == NULL)
     return;
-     
+
   fprintf(BEG, "H\tVN:Z:bogart/edges\n");
 
   //  First, figure out what sequences are used.  A sequence is used if it has forward edges,
@@ -403,10 +629,15 @@ AssemblyGraph::reportGraph(const char *prefix, const char *label) {
   memset(used, 0, sizeof(uint32) * (RI->numReads() + 1));
 
   for (uint32 fi=1; fi<RI->numReads() + 1; fi++) {
-    if (_pForward[fi].size() > 0)
+    for (uint32 pp=0; pp<_pForward[fi].size(); pp++) {
+      if ((skipBubble == true) && (_pForward[fi][pp].isBubble == true))
+        continue;
+
+      if ((skipRepeat == true) && (_pForward[fi][pp].isRepeat == true))
+        continue;
+
       used[fi] = 1;
 
-    for (uint32 pp=0; pp<_pForward[fi].size(); pp++) {
       used[_pForward[fi][pp].bestC.b_iid] = 1;
       used[_pForward[fi][pp].best5.b_iid] = 1;
       used[_pForward[fi][pp].best3.b_iid] = 1;
@@ -554,3 +785,4 @@ AssemblyGraph::reportGraph(const char *prefix, const char *label) {
   writeStatus("AssemblyGraph()-- Unitig only edges:  %8"F_U64P" contained  %8"F_U64P" 5'  %8"F_U64P" 3'\n", nUtg[0], nUtg[1], nUtg[2]);
   writeStatus("AssemblyGraph()-- Intercontig edges:  %8"F_U64P" contained  %8"F_U64P" 5'  %8"F_U64P" 3' (in neither contig nor unitig)\n", nAsm[0], nAsm[1], nAsm[2]);
 }
+
