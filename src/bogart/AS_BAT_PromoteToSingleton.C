@@ -35,25 +35,26 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include "AS_global.H"
-#include "AS_BAT_ReadInfo.H"
-#include "AS_BAT_Unitig.H"
+#include "AS_BAT_Logging.H"
 
-//  If we are not reconstructing repeats, promote all the unplaced reads to new tigs.
-//  Oodles of possibilities here; promote everything to a singleton unitig, promote only
-//  the non-contained, then place contains, then promote what is left over, etc.
+#include "AS_BAT_Unitig.H"
+#include "AS_BAT_TigVector.H"
+
+#include "AS_BAT_ReadInfo.H"
+
 
 void
 promoteToSingleton(TigVector &tigs) {
+  uint32  nPromoted = 0;
 
   for (uint32 fi=1; fi<=RI->numReads(); fi++) {
-    if (Unitig::readIn(fi) != 0)
-      //  Placed already
+    if (Unitig::readIn(fi) != 0)  // Placed.
       continue;
 
-    if (RI->readLength(fi) == 0)
-      //  Deleted.
+    if (RI->readLength(fi) == 0)  //  Deleted.
       continue;
+
+    nPromoted++;
 
     Unitig *utg = tigs.newUnitig(false);
     ufNode  read;
@@ -68,4 +69,7 @@ promoteToSingleton(TigVector &tigs) {
 
     utg->addRead(read, 0, false);
   }
+
+  writeStatus("promoteToSingleton()-- Moved "F_U32" unplaced read%s to singleton tigs.\n",
+              nPromoted, (nPromoted == 1) ? "" : "s");
 }

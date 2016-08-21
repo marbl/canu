@@ -197,7 +197,12 @@ void splitDiscontinuous(TigVector &tigs, uint32 minOverlap) {
 
   delete [] splitReads;
 
-  if ((numSplit > 0) || (numCreated > 0))
-    writeLog("splitDiscontinuous()-- Tested "F_U32" tigs, split "F_U32" into "F_U32" new tigs.\n",
-             numTested, numSplit, numCreated);
+  if (numSplit == 0)
+    writeStatus("splitDiscontinuous()-- Tested "F_U32" tig%s, split none.\n",
+                numTested,  (numTested  == 1) ? "" : "s");
+  else
+    writeStatus("splitDiscontinuous()-- Tested "F_U32" tig%s, split "F_U32" tig%s into "F_U32" new tig%s.\n",
+                numTested,  (numTested  == 1) ? "" : "s",
+                numSplit,   (numSplit   == 1) ? "" : "s",
+                numCreated, (numCreated == 1) ? "" : "s");
 }
