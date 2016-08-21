@@ -1091,8 +1091,4 @@ markRepeatReads(TigVector    &tigs,
       tigs[ti] = NULL;
     }
   }
-
-  AG->rebuildGraph(tigs);
-
-  AG->filterEdges(tigs);
 }

@@ -502,6 +502,13 @@ main (int argc, char * argv []) {
   promoteToSingleton(contigs);
 
   writeStatus("\n");
+  writeStatus("==> CLEANUP GRAPH.\n");
+  writeStatus("\n");
+
+  AG->rebuildGraph(contigs);
+  AG->filterEdges(contigs);
+
+  writeStatus("\n");
   writeStatus("==> GENERATE OUTPUTS.\n");
   writeStatus("\n");
 
