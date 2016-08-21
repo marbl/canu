@@ -491,7 +491,7 @@ main (int argc, char * argv []) {
   setLogFile(prefix, "cleanupMistakes");
 
   splitDiscontinuous(contigs, minOverlap);
-  breakSingletonTigs(contigs);
+  promoteToSingleton(contigs);
 
   writeStatus("\n");
   writeStatus("==> CLEANUP GRAPH.\n");
