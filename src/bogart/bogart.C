@@ -491,15 +491,7 @@ main (int argc, char * argv []) {
   setLogFile(prefix, "cleanupMistakes");
 
   splitDiscontinuous(contigs, minOverlap);
-
   breakSingletonTigs(contigs);
-
-  //contigs.computeErrorProfiles(prefix, "final");
-  //contigs.reportErrorProfiles(prefix, "final");
-
-  //placeUnplacedUsingAllOverlaps(contigs, prefix);
-
-  promoteToSingleton(contigs);
 
   writeStatus("\n");
   writeStatus("==> CLEANUP GRAPH.\n");
