@@ -925,7 +925,7 @@ markRepeatReads(TigVector    &tigs,
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize = (tiLimit < 100000 * numThreads) ? numThreads : tiLimit / 99999;
 
-  writeLog("repeatDetect()-- working on "F_U32" tigs, with "F_U32" threads.\n", tiLimit, numThreads);
+  writeLog("repeatDetect()-- working on "F_U32" tigs, with "F_U32" thread%s.\n", tiLimit, numThreads, (numThreads == 1) ? "" : "s");
 
   vector<olapDat>      repeatOlaps;   //  Overlaps to reads promoted to tig coords
 

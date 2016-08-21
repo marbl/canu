@@ -139,7 +139,7 @@ TigVector::computeArrivalRate(const char *prefix, const char *label) {
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize = (tiLimit < 100000 * numThreads) ? numThreads : tiLimit / 99999;
 
-  writeStatus("computeArrivalRate()-- Computing arrival rates for %u tigs using %u threads.\n", tiLimit, numThreads);
+  writeStatus("computeArrivalRate()-- Computing arrival rates for %u tigs, with %u thread%s.\n", tiLimit, numThreads, (numThreads == 1) ? "" : "s");
 
   vector<int32>  hist[6];
 
@@ -178,7 +178,7 @@ TigVector::computeErrorProfiles(const char *prefix, const char *label) {
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize = (tiLimit < 100000 * numThreads) ? numThreads : tiLimit / 99999;
 
-  writeStatus("computeErrorProfiles()-- Computing error profiles for %u tigs using %u threads.\n", tiLimit, numThreads);
+  writeStatus("computeErrorProfiles()-- Computing error profiles for %u tigs, with %u thread%s.\n", tiLimit, numThreads, (numThreads == 1) ? "" : "s");
 
   //#pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 ti=0; ti<tiLimit; ti++) {

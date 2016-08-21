@@ -107,8 +107,8 @@ placeUnplacedUsingAllOverlaps(TigVector    &tigs,
         nToPlace++;
 
   writeStatus("\n");
-  writeStatus("placeContains()-- placing %u contained and %u unplaced reads, with %d threads.\n",
-              nToPlaceContained, nToPlace, numThreads);
+  writeStatus("placeContains()-- placing %u contained and %u unplaced reads, with %d thread%s.\n",
+              nToPlaceContained, nToPlace, numThreads, (numThreads == 1) ? "" : "s");
 
   //  Do the placing!
 

@@ -56,7 +56,7 @@ BestOverlapGraph::removeSuspicious(const char *UNUSED(prefix)) {
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
 
-  writeStatus("BestOverlapGraph()-- removing suspicious reads from graph, with %d threads.\n", numThreads);
+  writeStatus("BestOverlapGraph()-- removing suspicious reads from graph, with %d thread%s.\n", numThreads, (numThreads == 1) ? "" : "s");
 
 #pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 fi=1; fi <= fiLimit; fi++) {
@@ -202,7 +202,7 @@ BestOverlapGraph::removeLopsidedEdges(const char *UNUSED(prefix)) {
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
 
-  writeStatus("BestOverlapGraph()-- removing suspicious edges from graph, with %d threads.\n", numThreads);
+  writeStatus("BestOverlapGraph()-- removing suspicious edges from graph, with %d thread%s.\n", numThreads, (numThreads == 1) ? "" : "s");
 
 #pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 fi=1; fi <= fiLimit; fi++) {
@@ -347,7 +347,7 @@ BestOverlapGraph::findEdges(void) {
   memset(_bestA, 0, sizeof(BestOverlaps) * (fiLimit + 1));
   memset(_scorA, 0, sizeof(BestScores)   * (fiLimit + 1));
 
-  writeStatus("BestOverlapGraph()-- analyzing %d reads for best contains, with %d threads.\n", fiLimit, numThreads);
+  writeStatus("BestOverlapGraph()-- analyzing %d reads for best contains, with %d thread%s.\n", fiLimit, numThreads, (numThreads == 1) ? "" : "s");
 
 #pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 fi=1; fi <= fiLimit; fi++) {
@@ -358,7 +358,7 @@ BestOverlapGraph::findEdges(void) {
       scoreContainment(ovl[ii]);
   }
 
-  writeStatus("BestOverlapGraph()-- analyzing %d reads for best edges, with %d threads.\n", fiLimit, numThreads);
+  writeStatus("BestOverlapGraph()-- analyzing %d reads for best edges, with %d thread%s.\n", fiLimit, numThreads, (numThreads == 1) ? "" : "s");
 
 #pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 fi=1; fi <= fiLimit; fi++) {

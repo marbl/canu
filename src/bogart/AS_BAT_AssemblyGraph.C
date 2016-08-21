@@ -111,11 +111,11 @@ AssemblyGraph::buildGraph(const char   *UNUSED(prefix),
   _pForward = new vector<BestPlacement> [fiLimit + 1];
   _pReverse = new vector<BestReverse>   [fiLimit + 1];
 
-  writeStatus("AssemblyGraph()-- finding edges for %u reads (%u contained), ignoring %u unplaced reads, with %d threads.\n",
+  writeStatus("AssemblyGraph()-- finding edges for %u reads (%u contained), ignoring %u unplaced reads, with %d thread%s.\n",
               nToPlaceContained + nToPlace,
               nToPlaceContained,
               RI->numReads() - nToPlaceContained - nToPlace,
-              numThreads);
+              numThreads, (numThreads == 1) ? "" : "s");
 
   //  Do the placing!
 

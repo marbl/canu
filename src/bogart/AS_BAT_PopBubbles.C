@@ -85,7 +85,7 @@ findPotentialBubbles(TigVector       &tigs,
   uint32  tiBlockSize  = (tiLimit < 100000 * tiNumThreads) ? tiNumThreads : tiLimit / 99999;
 
   writeStatus("\n");
-  writeStatus("bubbleDetect()-- working on "F_U32" tigs, with "F_U32" threads.\n", tiLimit, tiNumThreads);
+  writeStatus("bubbleDetect()-- working on "F_U32" tigs, with "F_U32" thread%s.\n", tiLimit, tiNumThreads, (tiNumThreads == 1) ? "" : "s");
 
   for (uint32 ti=0; ti<tiLimit; ti++) {
     Unitig  *tig = tigs[ti];
