@@ -36,9 +36,10 @@ TigVector::TigVector() {
   _maxBlocks    = 1024;
   _blocks       = new Unitig ** [_maxBlocks];
   _blocks[0]    = new Unitig  * [_blockSize];
-  _blocks[0][0] = NULL;  //  No first unitig.
+  memset(_blocks[0], 0, sizeof(Unitig **) * _blockSize);
   _blockNext    = 1;
   _totalTigs    = 1;
+
 };
 
 
