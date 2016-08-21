@@ -246,16 +246,19 @@ Unitig::placeRead(ufNode          &read,      //  output placement
   read.position.bgn      = 0;
   read.position.end      = 0;
 
+  //  No best edge?  Hard to place without one.
+  assert(edge != NULL);
   if (edge == NULL)
-    //  No best edge?  Hard to place without one.
     return(false);
 
+  //  Empty best edge?  Still hard to place.
+  assert(edge->readId() != 0);
   if (edge->readId() == 0)
-    //  Empty best edge?  Still hard to place.
     return(false);
 
+  //  Edge not pointing to a read in this tig?
+  assert(readIn(edge->readId()) == id());
   if (readIn(edge->readId()) != id())
-    //  Edge not pointing to a read in this tig?
     return(false);
 
   //  Grab the index of the parent read.
