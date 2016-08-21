@@ -48,7 +48,6 @@ public:
     isUnitig    = false;
     isBubble    = false;
     isRepeat    = false;
-
   };
   ~BestPlacement() {
   };
@@ -58,8 +57,8 @@ public:
   int32             placedBgn;    //  Position in the tig.  Can extend negative.
   int32             placedEnd;    //
 
-  uint32            olapBgn;      //  Position in the tig covered by overlaps.
-  uint32            olapEnd;      //
+  int32             olapBgn;      //  Position in the tig covered by overlaps.
+  int32             olapEnd;      //
 
   bool              isContig;     //  This placement is in a contig
   bool              isUnitig;     //  This placement is in a unitig
@@ -125,7 +124,7 @@ public:
 
   void                      filterEdges(TigVector     &tigs);
 
-  void                      reportGraph(const char *prefix, const char *label);
+  void                      reportGraph(TigVector &tigs, const char *prefix, const char *label);
 
 
 
