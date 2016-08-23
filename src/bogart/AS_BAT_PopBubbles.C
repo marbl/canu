@@ -566,6 +566,10 @@ popBubbles(TigVector &tigs,
       }  //  Over all intervals for this target
     }  //  Over all targets
 
+    //  Done with the targetIntervals.  Clean up.
+    
+    for (map<uint32, intervalList<uint32> *>::iterator it=targetIntervals.begin(); it != targetIntervals.end(); ++it)
+      delete it->second;
 
     targetIntervals.clear();
 
@@ -846,6 +850,16 @@ popBubbles(TigVector &tigs,
       tigs[bubble->id()] = NULL;
       delete bubble;
     }
+
+    //  Clean up the targets list.
+
+    for (uint32 tt=0; tt<targets.size(); tt++) {
+      delete targets[tt];
+      targets[tt] = NULL;
+    }
+
+    targets.clear();
+
   }  //  Over all bubbles
 
   writeLog("\n");   //  Needed if no bubbles are popped.
