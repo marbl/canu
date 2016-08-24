@@ -34,6 +34,4 @@ Full list of parameters:
     ../<architecture>/bin/canu -options
 
 ## Citation:
-
- - Berlin K, Koren S, Chin CS, Drake PJ, Landolin JM, Phillippy AM [Assembling Large Genomes with Single-Molecule Sequencing and Locality Sensitive Hashing](http://www.nature.com/nbt/journal/v33/n6/abs/nbt.3238.html). Nature Biotechnology. (2015).
- - Stay tuned for a Canu-specific citation
+ - Koren S, Walenz BP, Berlin K, Miller JR, Phillippy AM. [Canu: scalable and accurate long-read assembly via adaptive k-mer weighting and repeat separation](http://dx.doi.org/10.1101/071282). bioRxiv. (2016).
