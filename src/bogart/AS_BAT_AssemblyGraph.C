@@ -154,7 +154,6 @@ AssemblyGraph::buildGraph(const char   *UNUSED(prefix),
 
       //  Ignore placements in singletons.
       if (tig->ufpath.size() <= 1) {
-#if 0
 #ifdef LOG_GRAPH
         writeLog("AG()-- read %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.4f SINGLETON\n",
                  fi, pp,
@@ -162,7 +161,6 @@ AssemblyGraph::buildGraph(const char   *UNUSED(prefix),
                  placements[pp].position.bgn, placements[pp].position.end,
                  placements[pp].verified.bgn, placements[pp].verified.end,
                  placements[pp].fCoverage, erate);
-#endif
 #endif
         continue;
       }
@@ -182,7 +180,6 @@ AssemblyGraph::buildGraph(const char   *UNUSED(prefix),
 
       //  Ignore placements that aren't overlaps (contained reads placed inside this read will do this).
       if ((is5 == false) && (is3 == false)) {
-#if 0
 #ifdef LOG_GRAPH
         writeLog("AG()-- read %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.4f SPANNED_REPEAT\n",
                  fi, pp,
@@ -190,7 +187,6 @@ AssemblyGraph::buildGraph(const char   *UNUSED(prefix),
                  placements[pp].position.bgn, placements[pp].position.end,
                  placements[pp].verified.bgn, placements[pp].verified.end,
                  placements[pp].fCoverage, erate);
-#endif
 #endif
         continue;
       }
@@ -232,7 +228,7 @@ AssemblyGraph::buildGraph(const char   *UNUSED(prefix),
 
       BestPlacement  bp;
 
-#if 0
+#ifdef LOG_GRAPH
       writeLog("AG()-- read %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.4f Fidx %6u Lidx %6u is5 %d is3 %d onLeft %d onRight %d  VALID_PLACEMENT\n",
                fi, pp,
                placements[pp].tigID,
@@ -368,26 +364,25 @@ AssemblyGraph::buildGraph(const char   *UNUSED(prefix),
       //  And now just log.
 
 #ifdef LOG_GRAPH
-      if (isTig == false)
-        if (thickestC != 0) {
-          writeLog("AG()-- read %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.4f CONTAINED %8d (%8d %8d)%s\n",
-                   fi, pp,
-                   placements[pp].tigID,
-                   placements[pp].position.bgn, placements[pp].position.end,
-                   placements[pp].verified.bgn, placements[pp].verified.end,
-                   placements[pp].fCoverage, erate,
-                   bp.bestC.b_iid, bp.best5.b_iid, bp.best3.b_iid,
-                   (isTig == true) ? " IN_UNITIG" : "");
-        } else {
-          writeLog("AG()-- read %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.4f DOVETAIL (%8d) %8d %8d%s\n",
-                   fi, pp,
-                   placements[pp].tigID,
-                   placements[pp].position.bgn, placements[pp].position.end,
-                   placements[pp].verified.bgn, placements[pp].verified.end,
-                   placements[pp].fCoverage, erate,
-                   bp.bestC.b_iid, bp.best5.b_iid, bp.best3.b_iid,
-                   (isTig == true) ? " IN_UNITIG" : "");
-        } 
+      if (thickestC != 0) {
+        writeLog("AG()-- read %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.4f CONTAINED %8d (%8d %8d)%s\n",
+                 fi, pp,
+                 placements[pp].tigID,
+                 placements[pp].position.bgn, placements[pp].position.end,
+                 placements[pp].verified.bgn, placements[pp].verified.end,
+                 placements[pp].fCoverage, erate,
+                 bp.bestC.b_iid, bp.best5.b_iid, bp.best3.b_iid,
+                 (isTig == true) ? " IN_UNITIG" : "");
+      } else {
+        writeLog("AG()-- read %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.4f DOVETAIL (%8d) %8d %8d%s\n",
+                 fi, pp,
+                 placements[pp].tigID,
+                 placements[pp].position.bgn, placements[pp].position.end,
+                 placements[pp].verified.bgn, placements[pp].verified.end,
+                 placements[pp].fCoverage, erate,
+                 bp.bestC.b_iid, bp.best5.b_iid, bp.best3.b_iid,
+                 (isTig == true) ? " IN_UNITIG" : "");
+      }
 #endif
     }  //  Over all placements
   }  //  Over all reads
