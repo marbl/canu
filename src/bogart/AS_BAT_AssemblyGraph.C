@@ -33,7 +33,10 @@
 #include "intervalList.H"
 #include "stddev.H"
 
-#undef  LOG_GRAPH      //  Report the (forward) graph edges in the log file
+#undef  FILTER_DENSE_BUBBLES_FROM_GRAPH
+#define FILTER_DENSE_BUBBLES_THRESHOLD    3   //  Retain bubbles if they have fewer than this number of edges to other tigs
+
+#undef  LOG_GRAPH
 
 
 void
@@ -629,45 +632,125 @@ AssemblyGraph::filterEdges(TigVector     &tigs) {
   uint64  nContig = 0;
   uint64  nBubble = 0;
   uint64  nRepeat = 0;
-  uint64  nFiltered = 0;
-  uint64  nRetained = 0;
+
+  uint64  nMiddleFiltered = 0, nMiddleReads = 0;
+  uint64  nRepeatFiltered = 0, nRepeatReads = 0;
+
+  uint64  nRepeatEdges = 0;
+  uint64  nBubbleEdges = 0;
 
   writeStatus("AssemblyGraph()-- filtering edges\n");
+
+  //  Filter edges that are from the middle of a tig.
 
   for (uint32 fi=1; fi<RI->numReads()+1; fi++) {
     if (_pForward[fi].size() == 0)
       continue;
 
-    uint32       ovlLen =  0;
-    BAToverlap  *ovl    =  OC->getOverlaps(fi, AS_MAX_ERATE, ovlLen);
+    uint32       tT     =  Unitig::readIn(fi);
+    Unitig      *tig    =  tigs[tT];
+    ufNode      &read   =  tig->ufpath[Unitig::pathPosition(fi)];
+
+    //  If the read is at the end of a tig, keep all the edges.
+
+    if ((read.position.min() == 0) ||
+        (read.position.max() == tig->getLength()))
+      continue;
+
+    //  Otherwise, mark each edge as repeat.
+
+    bool   hadMiddle = false;
+
+    for (uint32 ff=0; ff<_pForward[fi].size(); ff++) {
+      BestPlacement   &bp = _pForward[fi][ff];
+
+      if (bp.isUnitig == true)   { continue; }   //  Skip edges that are in tigs
+      if (bp.isContig == true)   { continue; }   //
+
+      nMiddleFiltered++;
+      bp.isRepeat = true;
+      hadMiddle   = true;
+    }
+
+    if (hadMiddle)
+      nMiddleReads++;
+  }
+
+  //  Filter edges that hit too many tigs
+
+  for (uint32 fi=1; fi<RI->numReads()+1; fi++) {
+    if (_pForward[fi].size() == 0)
+      continue;
 
     uint32       tT     =  Unitig::readIn(fi);
     Unitig      *tig    =  tigs[tT];
     ufNode      &read   =  tig->ufpath[Unitig::pathPosition(fi)];
+
+    set<uint32>  hits;
 
     for (uint32 ff=0; ff<_pForward[fi].size(); ff++) {
       BestPlacement   &bp = _pForward[fi][ff];
 
       assert(bp.isUnitig == false);
 
+      if (bp.isUnitig == true)   { continue; }   //  Skip edges that are in tigs
+      if (bp.isContig == true)   { continue; }   //
+      if (bp.isRepeat == true)   { continue; }   //  Skip edges that are already ignored
+
+      hits.insert(bp.tigID);
+    }
+
+    //  If only a few other tigs are involved, keep all.
+
+    if (hits.size() > 0)
+      writeLog("AG()-- read %u in tig %u has edges to %u tigs\n", fi, tT, hits.size());
+
+
+#ifdef FILTER_DENSE_BUBBLES_FROM_GRAPH
+    if (hits.size() <= FILTER_DENSE_BUBBLES_THRESHOLD)
+      continue;
+
+    //  Otherwise, mark all edges as repeat.
+
+    nRepeatReads++;
+
+    for (uint32 ff=0; ff<_pForward[fi].size(); ff++) {
+      BestPlacement   &bp = _pForward[fi][ff];
+
+      assert(bp.isUnitig == false);
+
+      if (bp.isUnitig == true)   { continue; }   //  Skip edges that are in tigs
+      if (bp.isContig == true)   { continue; }   //
+      if (bp.isRepeat == true)   { continue; }   //  Skip edges that are already ignored
+
+      nRepeatFiltered++;
+
+      bp.isRepeat = true;
+    }
+#endif
+  }
+
+  //  Generate statistics
+
+  for (uint32 fi=1; fi<RI->numReads()+1; fi++) {
+    for (uint32 ff=0; ff<_pForward[fi].size(); ff++) {
+      BestPlacement   &bp = _pForward[fi][ff];
+
       if (bp.isUnitig == true)   { nUnitig++;  continue; } 
       if (bp.isContig == true)   { nContig++;  continue; }
-      if (bp.isBubble == true)   { nBubble++;            }
-      if (bp.isRepeat == true)   { nRepeat++;            }
-
-      if ((read.position.min() > 0) &&
-          (read.position.max() < tig->getLength())) {
-        nFiltered++;
-        _pForward[fi][ff].isRepeat = true;
-      } else {
-        nRetained++;
-        _pForward[fi][ff].isRepeat = false;
-      }
+      if (bp.isRepeat == true)   { nRepeatEdges++;       }
+      if (bp.isRepeat == false)  { nBubbleEdges++;       }
     }
   }
 
-  writeStatus("AssemblyGraph()-- filtering complete.  "F_U64" unitig edges and "F_U64" contig edges.  "F_U64" bubble edges and "F_U64" repeat edges.  "F_U64" edges filtered and "F_U64" edges retained\n",
-              nUnitig, nContig, nBubble, nRepeat, nFiltered, nRetained);
+  //  Report
+
+  writeStatus("AssemblyGraph()-- "F_U64" contig edges and "F_U64" unitig edges.\n", nContig, nUnitig);
+  writeStatus("AssemblyGraph()-- "F_U64" bubble edges and "F_U64" repeat edges.\n", nBubble, nRepeat);
+  writeStatus("AssemblyGraph()-- "F_U64" middle contig edges filtered from "F_U64" reads.\n", nMiddleFiltered, nMiddleReads);
+  writeStatus("AssemblyGraph()-- "F_U64" repeat end edges filtered from "F_U64" reads.\n", nRepeatFiltered, nRepeatReads);
+  writeStatus("AssemblyGraph()-- "F_U64" repeat edges (not output).\n", nRepeatEdges);
+  writeStatus("AssemblyGraph()-- "F_U64" bubble edges.\n", nBubbleEdges);
 }
 
 
