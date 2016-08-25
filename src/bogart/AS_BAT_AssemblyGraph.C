@@ -423,6 +423,27 @@ placeAsContained(TigVector     &tigs,
 
 
 
+//  This test is correct, but it isn't used correctly.  When rebuilding the graph, we don't know if
+//  a read is fully covered.  If it isn't fully covered, it isn't 'inContig' even if the positions
+//  overlap.
+bool
+areReadsOverlapping(TigVector  &tigs,
+                    uint32      ai,
+                    uint32      bi) {
+  Unitig  *at = tigs[ Unitig::readIn(ai) ];
+  Unitig  *bt = tigs[ Unitig::readIn(bi) ];
+
+  if (at != bt)
+    return(false);
+
+  ufNode  &ar = at->ufpath[ Unitig::pathPosition(ai) ];
+  ufNode  &br = bt->ufpath[ Unitig::pathPosition(bi) ];
+
+  return((ar.position.min() < br.position.max()) &&
+         (br.position.min() < ar.position.max()));
+}
+
+
 
 void
 placeAsDovetail(TigVector     &tigs,
@@ -447,7 +468,14 @@ placeAsDovetail(TigVector     &tigs,
     bp.placedBgn = (read5.position.bgn + read3.position.bgn) / 2;
     bp.placedEnd = (read5.position.end + read3.position.end) / 2;
 
-    bp.isContig = (Unitig::readIn(fi) == Unitig::readIn(edge5.readId()));
+#if 0
+    bp.isContig  = (areReadsOverlapping(tigs, fi, bp.best5.b_iid) &&
+                    areReadsOverlapping(tigs, fi, bp.best3.b_iid));
+#else
+    if ((bp.isContig == true) &&              //  Remove the isContig mark if this read is now
+        (Unitig::readIn(fi) != bp.tigID))     //  in a different tig than the two edges (which is unlikely).
+      bp.isContig = false;
+#endif
   }
 
   else if (bp.best5.b_iid > 0) {
@@ -462,7 +490,13 @@ placeAsDovetail(TigVector     &tigs,
     bp.placedBgn = read5.position.bgn;
     bp.placedEnd = read5.position.end;
 
-    bp.isContig = (Unitig::readIn(fi) == Unitig::readIn(edge5.readId()));
+#if 0
+    bp.isContig = areReadsOverlapping(tigs, fi, bp.best5.b_iid);
+#else
+    if ((bp.isContig == true) &&              //  Remove the isContig mark if this read is now
+        (Unitig::readIn(fi) != bp.tigID))     //  in a different tig than the edge.
+      bp.isContig = false;
+#endif
   }
 
   else if (bp.best3.b_iid > 0) {
@@ -477,7 +511,13 @@ placeAsDovetail(TigVector     &tigs,
     bp.placedBgn = read3.position.bgn;
     bp.placedEnd = read3.position.end;
 
-    bp.isContig = (Unitig::readIn(fi) == Unitig::readIn(edge3.readId()));
+#if 0
+    bp.isContig  = areReadsOverlapping(tigs, fi, bp.best3.b_iid);
+#else
+    if ((bp.isContig == true) &&              //  Remove the isContig mark if this read is now
+        (Unitig::readIn(fi) != bp.tigID))     //  in a different tig than the edge.
+      bp.isContig = false;
+#endif
   }
 
   assert(tigs[bp.tigID] != NULL);
