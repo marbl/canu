@@ -281,7 +281,7 @@ AssemblyGraph::buildGraph(const char   *UNUSED(prefix),
           continue;
         }
 
-        else if (ovl[oo].AisContained() == true) {
+        else if ((ovl[oo].AisContained() == true) && (is5 == true) && (is3 == true)) {
           if (thickestCident < ovl[oo].evalue) {
             thickestC      = oo;
             thickestCident = ovl[oo].evalue;
@@ -289,7 +289,7 @@ AssemblyGraph::buildGraph(const char   *UNUSED(prefix),
           }
         }
 
-        else if (ovl[oo].AEndIs5prime() == true) {
+        else if ((ovl[oo].AEndIs5prime() == true) && (is5 == true)) {
           if (thickest5len < olapLen) {
             thickest5      = oo;
             thickest5len   = olapLen;
@@ -297,7 +297,7 @@ AssemblyGraph::buildGraph(const char   *UNUSED(prefix),
           }
         }
 
-        else if (ovl[oo].AEndIs3prime() == true) {
+        else if ((ovl[oo].AEndIs3prime() == true) && (is3 == true)) {
           if (thickest3len < olapLen) {
             thickest3      = oo;
             thickest3len   = olapLen;
