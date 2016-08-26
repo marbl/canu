@@ -1024,6 +1024,20 @@ sub checkParameters () {
     #  Check for inconsistent parameters
     #
 
+    #  Genome size isn't properly decoded until later, but we want to fail quickly.  So, just test if
+    #  a unitless number is supplied, and if that number is tiny.
+
+    {
+        my $gs = getGlobal("genomeSize");
+
+        if (($gs =~ m/^(\d+)$/) ||
+            ($gs =~ m/^(\d+\.\d+)$/)) {
+            if ($gs < 1000) {
+                addCommandLineError("ERROR:  Implausibly small genome size $gs.  Check units!\n");
+            }
+        }
+    }
+
     foreach my $var ("corOvlErrorRate", "obtOvlErrorRate", "utgOvlErrorRate", "corErrorRate", "cnsErrorRate", "obtErrorRate") {
         if (!defined(getGlobal($var))) {
             addCommandLineError("ERROR:  Invalid '$var' specified; must be set\n");
