@@ -240,19 +240,12 @@ main (int argc, char * argv []) {
     arg++;
   }
 
-  if (erateGraph < 0.0)
-    err.push_back(NULL);
-  if (erateMax < 0.0)
-    err.push_back(NULL);
-
-  if (prefix == NULL)
-    err.push_back(NULL);
-  if (gkpStorePath == NULL)
-    err.push_back(NULL);
-  if (ovlStoreUniqPath == NULL)
-    err.push_back(NULL);
-  if (tigStorePath == NULL)
-    err.push_back(NULL);
+  if (erateGraph        < 0.0)     err.push_back("Invalid overlap error threshold (-eg option); must be at least 0.0.\n");
+  if (erateMax          < 0.0)     err.push_back("Invalid overlap error threshold (-eM option); must be at least 0.0.\n");
+  if (prefix           == NULL)    err.push_back("No output prefix name (-o option) supplied.\n");
+  if (gkpStorePath     == NULL)    err.push_back("No gatekeeper store (-G option) supplied.\n");
+  if (ovlStoreUniqPath == NULL)    err.push_back("No overlap store (-O option) supplied.\n");
+  if (tigStorePath     == NULL)    err.push_back("No output tigStore (-T option) supplied.\n");
 
   if (err.size() > 0) {
     fprintf(stderr, "usage: %s -o outputName -O ovlStore -G gkpStore -T tigStore\n", argv[0]);
@@ -304,25 +297,8 @@ main (int argc, char * argv []) {
       fprintf(stderr, "               %s\n", logFileFlagNames[l]);
     fprintf(stderr, "\n");
 
-    if (erateGraph < 0.0)
-      fprintf(stderr, "Invalid overlap error threshold (-eg option); must be at least 0.0.\n");
-    if (erateMax < 0.0)
-      fprintf(stderr, "Invalid overlap error threshold (-eM option); must be at least 0.0.\n");
-
-    if (prefix == NULL)
-      fprintf(stderr, "No output prefix name (-o option) supplied.\n");
-
-    if (gkpStorePath == NULL)
-      fprintf(stderr, "No gatekeeper store (-G option) supplied.\n");
-
-    if (ovlStoreUniqPath == NULL)
-      fprintf(stderr, "No overlap store (-O option) supplied.\n");
-
     if ((ovlStoreUniqPath != NULL) && (ovlStoreUniqPath == ovlStoreReptPath))
       fprintf(stderr, "Too many overlap stores (-O option) supplied.\n");
-
-    if (tigStorePath == NULL)
-      fprintf(stderr, "No output tigStore (-T option) supplied.\n");
 
     for (uint32 ii=0; ii<err.size(); ii++)
       if (err[ii])
