@@ -65,8 +65,11 @@ off_t   AS_UTL_sizeOfFile(const char *path);
 off_t   AS_UTL_ftell(FILE *stream);
 void    AS_UTL_fseek(FILE *stream, off_t offset, int whence);
 
+
 //  Read a file-of-files into a vector
 void    AS_UTL_loadFileList(char *fileName, vector<char *> &fileList);
+
+
 
 class compressedFileReader {
 public:
@@ -83,6 +86,8 @@ private:
   bool   _pipe;
   bool   _stdi;
 };
+
+
 
 class compressedFileWriter {
 public:
