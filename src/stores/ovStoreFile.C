@@ -124,7 +124,7 @@ ovFile::ovFile(const char  *name,
 
 ovFile::~ovFile() {
 
-  flushOverlaps();
+  writeBuffer();
 
   delete    _reader;
   delete    _writer;
@@ -156,16 +156,15 @@ ovFile::~ovFile() {
 
 
 void
-ovFile::flushOverlaps(void) {
+ovFile::writeBuffer(void) {
 
-  if (_isOutput == false)
+  if (_isOutput == false)  //  Needed because it's called in the destructor.
     return;
 
   if (_bufferLen == 0)
     return;
 
-  AS_UTL_safeWrite(_file, _buffer, "ovFile::flushOverlaps", sizeof(uint32), _bufferLen);
-
+  AS_UTL_safeWrite(_file, _buffer, "ovFile::writeBuffer", sizeof(uint32), _bufferLen);
   _bufferLen = 0;
 }
 
@@ -176,10 +175,7 @@ ovFile::writeOverlap(ovOverlap *overlap) {
 
   assert(_isOutput == true);
 
-  if (_bufferLen >= _bufferMax) {
-    AS_UTL_safeWrite(_file, _buffer, "ovFile::writeOverlap", sizeof(uint32), _bufferLen);
-    _bufferLen = 0;
-  }
+  writeBuffer();
 
   if (_olapsPerRead) {
     uint32   newmax  = _olapsPerReadAlloc;
@@ -263,10 +259,7 @@ ovFile::writeOverlaps(ovOverlap *overlaps, uint64 overlapsLen) {
   //  Add all overlaps to the buffer.
 
   while (nWritten < overlapsLen) {
-    if (_bufferLen >= _bufferMax) {
-      AS_UTL_safeWrite(_file, _buffer, "ovFile::writeOverlap", sizeof(uint32), _bufferLen);
-      _bufferLen = 0;
-    }
+    writeBuffer();
 
     if (_olapsPerRead) {
       _olapsPerRead[overlaps[nWritten].a_iid]++;
@@ -312,15 +305,24 @@ ovFile::writeOverlaps(ovOverlap *overlaps, uint64 overlapsLen) {
 
 
 
+void
+ovFile::readBuffer(void) {
+
+  if (_bufferPos < _bufferLen)
+    return;
+
+  _bufferLen = AS_UTL_safeRead(_file, _buffer, "ovFile::readBuffer", sizeof(uint32), _bufferMax);
+  _bufferPos = 0;
+}
+
+
+
 bool
 ovFile::readOverlap(ovOverlap *overlap) {
 
   assert(_isOutput == false);
 
-  if (_bufferPos >= _bufferLen) {
-    _bufferLen = AS_UTL_safeRead(_file, _buffer, "ovFile::readOverlap", sizeof(uint32), _bufferMax);
-    _bufferPos = 0;
-  }
+  readBuffer();
 
   if (_bufferLen == 0)
     return(false);
@@ -372,10 +374,7 @@ ovFile::readOverlaps(ovOverlap *overlaps, uint64 overlapsLen) {
   assert(_isOutput == false);
 
   while (nLoaded < overlapsLen) {
-    if (_bufferPos >= _bufferLen) {
-      _bufferLen = AS_UTL_safeRead(_file, _buffer, "ovFile::readOverlaps", sizeof(uint32), _bufferMax);
-      _bufferPos = 0;
-    }
+    readBuffer();
 
     if (_bufferLen == 0)
       return(nLoaded);

@@ -356,11 +356,11 @@ public:
          uint32       bufferSize = 1 * 1024 * 1024);
   ~ovFile();
 
-  void    flushOverlaps(void);
-
+  void    writeBuffer(void);
   void    writeOverlap(ovOverlap *overlap);
   void    writeOverlaps(ovOverlap *overlaps, uint64 overlapLen);
 
+  void    readBuffer(void);
   bool    readOverlap(ovOverlap *overlap);
   uint64  readOverlaps(ovOverlap *overlaps, uint64 overlapMax);
 
