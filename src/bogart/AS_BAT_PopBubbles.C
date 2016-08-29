@@ -387,6 +387,7 @@ popBubbles(TigVector &tigs,
 
     Unitig  *bubble        = tigs[ti];
     uint32   bubbleLen     = bubble->getLength();
+    uint32   nReads        = bubble->ufpath.size();
 
     ufNode  &fRead         = bubble->ufpath.front();
     ufNode  &lRead         = bubble->ufpath.back();
@@ -587,7 +588,7 @@ popBubbles(TigVector &tigs,
     //  For each target location:
     //  If the placement is for this target, save it.
 
-    for (uint32 fi=0; fi<bubble->ufpath.size(); fi++) {
+    for (uint32 fi=0; fi<nReads; fi++) {
       uint32  readID  = bubble->ufpath[fi].ident;
 
       for (uint32 pp=0; pp<placed[readID].size(); pp++) {
@@ -659,7 +660,7 @@ popBubbles(TigVector &tigs,
 
     //  Make a set of the reads in the bubble.
 
-    for (uint32 fi=0; fi<bubble->ufpath.size(); fi++)
+    for (uint32 fi=0; fi<nReads; fi++)
       tigReads.insert(bubble->ufpath[fi].ident);
 
     //  Compare the bubble against each target.
@@ -725,7 +726,7 @@ popBubbles(TigVector &tigs,
 
       //  Decide if this is a bubble, orphan from construction, or repeat.
 
-      if (nt == bubble->ufpath.size()) {
+      if (nt == nReads) {
         nOrphan++;
         orphanTarget = tt;
       }
@@ -759,7 +760,7 @@ popBubbles(TigVector &tigs,
       }
 
       writeLog("tig %8u length %8u reads %6u - %s.\n",
-               bubble->id(), bubble->getLength(), bubble->ufpath.size(),
+               bubble->id(), bubble->getLength(), nReads,
                (nBubble == 1) ? "bubble" : "bubble-repeat");
       writeLog("\n");
 
@@ -770,11 +771,12 @@ popBubbles(TigVector &tigs,
     //  If a unique orphan placement, place it there.
 
     else if (nOrphan == 1) {
+      nUniqOrphan++;
       writeStatus("popBubbles()-- tig %8u ORPHAN -> tig %8u\n",
                   bubble->id(),
                   targets[bubbleTarget]->target->id());
 
-      writeLog("tig %8u length %8u reads %6u - orphan\n", bubble->id(), bubble->getLength(), bubble->ufpath.size());
+      writeLog("tig %8u length %8u reads %6u - orphan\n", bubble->id(), bubble->getLength(), nReads);
 
       for (uint32 op=0, tt=orphanTarget; op<targets[tt]->placed.size(); op++) {
         ufNode  frg;
@@ -805,13 +807,14 @@ popBubbles(TigVector &tigs,
     //  instead just place reads where they individually decide to go.
 
     else {
+      nReptBubble++;
       writeStatus("popBubbles()-- tig %8u ORPHAN -> multiple tigs\n",
                   bubble->id(),
                   targets[bubbleTarget]->target->id());
 
-      writeLog("tig %8u length %8u reads %6u - orphan with multiple placements\n", bubble->id(), bubble->getLength(), bubble->ufpath.size());
+      writeLog("tig %8u length %8u reads %6u - orphan with multiple placements\n", bubble->id(), bubble->getLength(), nReads);
 
-      for (uint32 fi=0; fi<bubble->ufpath.size(); fi++) {
+      for (uint32 fi=0; fi<nReads; fi++) {
         uint32  rr = bubble->ufpath[fi].ident;
         double  er = 1.00;
         uint32  bb = 0;
