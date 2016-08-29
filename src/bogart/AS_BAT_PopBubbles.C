@@ -402,30 +402,58 @@ popBubbles(TigVector &tigs,
 
     //  Scan the bubble, decide if there are _ANY_ read placements.  Log appropriately.
 
-    {
-      uint32   noFirst = (placed[fReadID].size() == 0);
-      uint32   noLast  = (placed[lReadID].size() == 0);
+    bool     failedToPlaceAnchor = false;
 
-      if ((noFirst == true) ||
-          (noLast  == true)) {
-        writeLog("potential bubble tig %8u (length %8u) - FAILED TO PLACE %s%s%s READ%s\n",
-                 bubble->id(), bubble->getLength(),
-                 (noFirst) ? "FIRST" : "",
-                 (noFirst && noLast) ? " and " : "",
-                 (noLast)  ? "LAST"  : "",
-                 (noFirst && noLast) ? "S" : "");
-        continue;
+    {
+      char     placedS[128];
+
+      char     placed0 = ((nReads > 0) && (placed[ bubble->ufpath[        0 ].ident ].size() > 0)) ? 't' : '-';
+      char     placed1 = ((nReads > 1) && (placed[ bubble->ufpath[        1 ].ident ].size() > 0)) ? 't' : '-';
+      char     placedb = ((nReads > 1) && (placed[ bubble->ufpath[ nReads-2 ].ident ].size() > 0)) ? 't' : '-';
+      char     placeda = ((nReads > 0) && (placed[ bubble->ufpath[ nReads-1 ].ident ].size() > 0)) ? 't' : '-';
+
+      uint32   placedN = 0;
+
+      if (nReads > 3)
+        for (uint32 fi=2; fi<nReads-2; fi++)
+          if (placed[bubble->ufpath[fi].ident].size() > 0)
+            placedN++;
+
+      switch (nReads) {
+        case 0:
+          assert(0);
+          break;
+
+        case 1:
+          sprintf(placedS, "%c", placed0);
+          break;
+
+        case 2:
+          sprintf(placedS, "%c%c", placed0, placeda);
+          break;
+
+        case 3:
+          sprintf(placedS, "%c%c%c", placed0, placed1, placeda);
+          break;
+
+        case 4:
+          sprintf(placedS, "%c%c%c%c", placed0, placed1, placedb, placeda);
+          break;
+
+        default:
+          sprintf(placedS, "%c%c[%u]%c%c",
+                  placed0, placed1, placedN, placedb, placeda);
+          break;
       }
 
-      uint32   placedReads = 0;
+      failedToPlaceAnchor = ((placed0 != 't') || (placeda != 't'));
 
-      for (uint32 fi=0; fi<bubble->ufpath.size(); fi++)
-        if (placed[bubble->ufpath[fi].ident].size() > 0)
-          placedReads++;
-
-      writeLog("potential bubble tig %8u - placed %u out of %u reads\n", ti, placedReads, bubble->ufpath.size());
+      writeLog("potential bubble tig %8u (reads %5u length %8u) - placed %s%s\n",
+               bubble->id(), nReads, bubbleLen, placedS, failedToPlaceAnchor ? " FAILED" : "");
     }
 
+    if (failedToPlaceAnchor)
+      continue;
 
 
     //  Split the placements into piles for each target and build an interval list for each target.
