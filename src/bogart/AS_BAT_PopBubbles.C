@@ -751,10 +751,12 @@ popBubbles(TigVector &tigs,
 
     else if (nOrphan == 0) {
       if (nBubble == 1) {
+        nUniqBubble++;
         writeStatus("popBubbles()-- tig %8u BUBBLE -> tig %8u\n",
                     bubble->id(),
                     targets[bubbleTarget]->target->id());
       } else {
+        nReptBubble++;
         writeStatus("popBubbles()-- tig %8u BUBBLE -> repeat\n",
                     bubble->id());
       }
@@ -866,6 +868,11 @@ popBubbles(TigVector &tigs,
   }  //  Over all bubbles
 
   writeLog("\n");   //  Needed if no bubbles are popped.
+
+  writeStatus("popBubbles()-- placed    %5u unique orphan tigs\n", nUniqOrphan);
+  writeStatus("popBubbles()-- shattered %5u repeat orphan tigs\n", nReptOrphan);
+  writeStatus("popBubbles()-- marked    %5u unique bubble tigs\n", nUniqBubble);
+  writeStatus("popBubbles()-- marked    %5u repeat bubble tigs\n", nReptBubble);
 
   delete [] placed;
 
