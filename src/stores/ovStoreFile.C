@@ -124,7 +124,7 @@ ovFile::ovFile(const char  *name,
 
 ovFile::~ovFile() {
 
-  writeBuffer();
+  writeBuffer(true);
 
   delete    _reader;
   delete    _writer;
@@ -156,11 +156,13 @@ ovFile::~ovFile() {
 
 
 void
-ovFile::writeBuffer(void) {
+ovFile::writeBuffer(bool force) {
 
   if (_isOutput == false)  //  Needed because it's called in the destructor.
     return;
 
+  if ((force == false) && (_bufferLen < _bufferMax))
+    return;
   if (_bufferLen == 0)
     return;
 

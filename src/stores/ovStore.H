@@ -356,7 +356,7 @@ public:
          uint32       bufferSize = 1 * 1024 * 1024);
   ~ovFile();
 
-  void    writeBuffer(void);
+  void    writeBuffer(bool force=false);
   void    writeOverlap(ovOverlap *overlap);
   void    writeOverlaps(ovOverlap *overlaps, uint64 overlapLen);
 
