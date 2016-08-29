@@ -284,7 +284,7 @@ findBubbleReadPlacements(TigVector       &tigs,
       if ((isEnd == false) &&
           (placements[pi].fCoverage < 0.99)) {
         if (logFileFlagSet(LOG_BUBBLE_DETAIL))
-          writeLog("tig %6u read %8u -> tig %6u %6u reads at %8u-%8u (cov %7.5f erate %6.4f) - PARTIALLY PLACED\n",
+          writeLog("tig %6u read %8u -> tig %6u %6u reads at %8u-%-8u (cov %7.5f erate %6.4f) - PARTIALLY PLACED\n",
                    rdAtigID, placements[pi].frgID, placements[pi].tigID, rdBtig->ufpath.size(), placements[pi].position.bgn, placements[pi].position.end, placements[pi].fCoverage, erate);
         continue;
       }
@@ -301,7 +301,7 @@ findBubbleReadPlacements(TigVector       &tigs,
 
       if (dontcare) {
         if (logFileFlagSet(LOG_BUBBLE_DETAIL))
-          writeLog("tig %6u read %8u -> tig %6u %6u reads at %8u-%8u (cov %7.5f erate %6.4f) - NOT CANDIDATE TIG\n",
+          writeLog("tig %6u read %8u -> tig %6u %6u reads at %8u-%-8u (cov %7.5f erate %6.4f) - NOT CANDIDATE TIG\n",
                    rdAtigID, placements[pi].frgID, placements[pi].tigID, rdBtig->ufpath.size(), placements[pi].position.bgn, placements[pi].position.end, placements[pi].fCoverage, erate);
         continue;
       }
@@ -310,7 +310,7 @@ findBubbleReadPlacements(TigVector       &tigs,
 
       if (rdBtig->overlapConsistentWithTig(deviationBubble, lo, hi, erate) < 0.5) {
         if (logFileFlagSet(LOG_BUBBLE_DETAIL))
-          writeLog("tig %6u read %8u -> tig %6u %6u reads at %8u-%8u (cov %7.5f erate %6.4f) - HIGH ERROR\n",
+          writeLog("tig %6u read %8u -> tig %6u %6u reads at %8u-%-8u (cov %7.5f erate %6.4f) - HIGH ERROR\n",
                    rdAtigID, placements[pi].frgID, placements[pi].tigID, rdBtig->ufpath.size(), placements[pi].position.bgn, placements[pi].position.end, placements[pi].fCoverage, erate);
         continue;
       }
@@ -318,7 +318,7 @@ findBubbleReadPlacements(TigVector       &tigs,
       //  Good placement!
 
       if (logFileFlagSet(LOG_BUBBLE_DETAIL))
-        writeLog("tig %6u read %8u -> tig %6u %6u reads at %8u-%8u (cov %7.5f erate %6.4f)\n",
+        writeLog("tig %6u read %8u -> tig %6u %6u reads at %8u-%-8u (cov %7.5f erate %6.4f)\n",
                  rdAtigID, placements[pi].frgID, placements[pi].tigID, rdBtig->ufpath.size(), placements[pi].position.bgn, placements[pi].position.end, placements[pi].fCoverage, erate);
 
       placed[fi].push_back(placements[pi]);
@@ -513,7 +513,7 @@ popBubbles(TigVector &tigs,
 
         if ((noFirst == true) ||
             (noLast  == true)) {
-          writeLog("potential bubble tig %8u (length %8u) - target %8u %8u-%8u (length %8u) - MISSING %s%s%s READ%s\n",
+          writeLog("potential bubble tig %8u (length %8u) - target %8u %8u-%-8u (length %8u) - MISSING %s%s%s READ%s\n",
                    bubble->id(), bubble->getLength(),
                    targetID, intBgn, intEnd, intEnd - intBgn,
                    (noFirst) ? "FIRST" : "",
@@ -523,7 +523,7 @@ popBubbles(TigVector &tigs,
           continue;
         }
 
-        writeLog("potential bubble tig %8u (length %8u) - target %8u %8u-%8u (length %8u) - %8u-%-8u %8u-%-8u\n",
+        writeLog("potential bubble tig %8u (length %8u) - target %8u %8u-%-8u (length %8u) - %8u-%-8u %8u-%-8u\n",
                  bubble->id(), bubble->getLength(),
                  targetID, intBgn, intEnd, intEnd - intBgn,
                  fPos.min(), fPos.max(),
@@ -629,7 +629,7 @@ popBubbles(TigVector &tigs,
 
           if (t->placed[aa].errors / t->placed[aa].aligned < t->placed[bb].errors / t->placed[bb].aligned) {
 #ifdef SHOW_MULTIPLE_PLACEMENTS
-            writeLog("duplicate read alignment for tig %u read %u - better %u-%u %.4f - worse %u-%u %.4f\n",
+            writeLog("duplicate read alignment for tig %u read %u - better %u-%-u %.4f - worse %u-%-u %.4f\n",
                      t->placed[aa].tigID, t->placed[aa].frgID,
                      t->placed[aa].position.bgn, t->placed[aa].position.end, t->placed[aa].errors / t->placed[aa].aligned,
                      t->placed[bb].position.bgn, t->placed[bb].position.end, t->placed[bb].errors / t->placed[bb].aligned);
@@ -637,7 +637,7 @@ popBubbles(TigVector &tigs,
             t->placed[bb] = overlapPlacement();
           } else {
 #ifdef SHOW_MULTIPLE_PLACEMENTS
-            writeLog("duplicate read alignment for tig %u read %u - better %u-%u %.4f - worse %u-%u %.4f\n",
+            writeLog("duplicate read alignment for tig %u read %u - better %u-%-u %.4f - worse %u-%-u %.4f\n",
                      t->placed[aa].tigID, t->placed[aa].frgID,
                      t->placed[bb].position.bgn, t->placed[bb].position.end, t->placed[bb].errors / t->placed[bb].aligned,
                      t->placed[aa].position.bgn, t->placed[aa].position.end, t->placed[aa].errors / t->placed[aa].aligned);
@@ -675,7 +675,7 @@ popBubbles(TigVector &tigs,
 
       for (uint32 op=0; op<targets[tt]->placed.size(); op++) {
         if (logFileFlagSet(LOG_BUBBLE_DETAIL))
-          writeLog("tig %8u length %9u -> target %8u piece %2u position %9u-%9u length %8u - read %7u at %9u-%9u\n",
+          writeLog("tig %8u length %9u -> target %8u piece %2u position %9u-%-9u length %8u - read %7u at %9u-%-9u\n",
                    bubble->id(), bubble->getLength(),
                    targets[tt]->target->id(), tt, targets[tt]->bgn, targets[tt]->end, targets[tt]->end - targets[tt]->bgn,
                    targets[tt]->placed[op].frgID,
@@ -695,29 +695,29 @@ popBubbles(TigVector &tigs,
       uint32  n3 = 0;
       uint32  nt = 0;
 
-      for (uint32 fi=0; fi<bubble->ufpath.size(); fi++)
+      for (uint32 fi=0; fi<nReads; fi++)
         if (tgtReads.count(bubble->ufpath[fi].ident) > 0)
           n5++;
         else
           break;
 
-      for (uint32 fi=bubble->ufpath.size(); fi-->0; )
+      for (uint32 fi=nReads; fi-->0; )
         if (tgtReads.count(bubble->ufpath[fi].ident) > 0)
           n3++;
         else
           break;
 
 
-      for (uint32 fi=0; fi<bubble->ufpath.size(); fi++)
+      for (uint32 fi=0; fi<nReads; fi++)
         if (tgtReads.count(bubble->ufpath[fi].ident) > 0)
           nt++;
 
 
       //  Report now, before we nuke targets[tt] for being not a bubble!
 
-      if ((nt == bubble->ufpath.size()) ||
+      if ((nt == nReads) ||
           ((n5 > 0) && (n3 > 0)))
-        writeLog("tig %8u length %9u -> target %8u piece %2u position %9u-%9u length %8u - expected %3"F_SIZE_TP" reads, had %3"F_SIZE_TP" reads.  n5=%3u n3=%3u nt=%3u\n",
+        writeLog("tig %8u length %9u -> target %8u piece %2u position %9u-%-9u length %8u - expected %3"F_SIZE_TP" reads, had %3"F_SIZE_TP" reads.  n5=%3u n3=%3u nt=%3u\n",
                  bubble->id(), bubble->getLength(),
                  targets[tt]->target->id(), tt, targets[tt]->bgn, targets[tt]->end, targets[tt]->end - targets[tt]->bgn,
                  tigReads.size(),
@@ -787,7 +787,7 @@ popBubbles(TigVector &tigs,
         frg.position.bgn = targets[tt]->placed[op].position.bgn;
         frg.position.end = targets[tt]->placed[op].position.end;
 
-        writeLog("move read %u from tig %u to tig %u %u-%u\n",
+        writeLog("move read %u from tig %u to tig %u %u-%-u\n",
                  frg.ident,
                  bubble->id(),
                  targets[tt]->target->id(), frg.position.bgn, frg.position.end);
@@ -837,7 +837,7 @@ popBubbles(TigVector &tigs,
 
         Unitig  *target  = tigs[placed[rr][bb].tigID];
 
-        writeLog("move read %u from tig %u to tig %u %u-%u\n",
+        writeLog("move read %u from tig %u to tig %u %u-%-u\n",
                  frg.ident,
                  bubble->id(),
                  target->id(), frg.position.bgn, frg.position.end);
