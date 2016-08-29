@@ -234,7 +234,7 @@ main(int argc, char **argv) {
     if (jobIndex == 0)
       fprintf(stderr, "ERROR: No job index (-job) supplied.\n");
     if (fileLimit > maxFiles)
-      fprintf(stderr, "ERROR: Too many jobs (-F); only "F_SIZE_T" supported on this architecture.\n", maxFiles);
+      fprintf(stderr, "ERROR: Too many jobs (-F); only "F_U32" supported on this architecture.\n", maxFiles);
 
     exit(1);
   }
