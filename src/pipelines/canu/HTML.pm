@@ -393,7 +393,7 @@ sub buildCorrectionHTML ($$$$$$) {
 
     simpleFigure($body,
                  "$wrk/2-correction/$asm.estimate.original-x-corrected",
-                 "correction.html.files/$asm.estimate.original-x-corrected",
+                 "$wrk.html.files/$asm.estimate.original-x-corrected",
                  "Scatter plot of the original read length (X axis) against the expected corrected read length (Y axis).\n" .
                  "Colors show a comparison of the simple filter (which doesn't use overlaps) to the expensive filter (which does).\n" .
                  "A large green triangle (false negatives) hints that there could be abnormally low quality regions in the reads.\n");
@@ -403,24 +403,24 @@ sub buildCorrectionHTML ($$$$$$) {
     #  Original vs expected shown above.
     simpleFigure($body,
                  "$wrk/2-correction/$asm.originalLength-vs-expectedLength",
-                 "correction.html.files/$asm.originalLength-vs-expectedLength",
+                 "$wrk.html.files/$asm.originalLength-vs-expectedLength",
                  "Scatter plot of original vs expected read length.  Shown in filter plot above.");
 
     simpleFigure($body,
                  "$wrk/2-correction/$asm.originalLength-vs-correctedLength",
-                 "correction.html.files/$asm.originalLength-vs-correctedLength",
+                 "$wrk.html.files/$asm.originalLength-vs-correctedLength",
                  "Scatter plot of original vs corrected read length.");
 
     simpleFigure($body,
                  "$wrk/2-correction/$asm.expectedLength-vs-correctedLength",
-                 "correction.html.files/$asm.expectedLength-vs-correctedLength",
+                 "$wrk.html.files/$asm.expectedLength-vs-correctedLength",
                  "Scatter plot of expected vs corrected read length.");
 
     #  Histogram - expected vs corrected lengths NEEDS TO SHOW NEGATIVES!?
 
     simpleFigure($body,
                  "$wrk/2-correction/$asm.length-difference-histograms",
-                 "correction.html.files/$asm.length-difference-histograms",
+                 "$wrk.html.files/$asm.length-difference-histograms",
                  "Histogram of the difference between the expected and corrected read lengths.\n" .
                  "Note that a negative difference means the corrected read is larger than expected.\n");
 
@@ -428,7 +428,7 @@ sub buildCorrectionHTML ($$$$$$) {
 
     simpleFigure($body,
                  "$wrk/2-correction/$asm.length-histograms",
-                 "correction.html.files/$asm.length-histograms",
+                 "$wrk.html.files/$asm.length-histograms",
                  "Histogram of original (red), expected (green) and actual corrected (blue) read lengths.\n");
 }
 
@@ -498,15 +498,15 @@ sub buildTrimmingHTML ($$$$$$) {
         push @$body, "<p>Stage not computed or results file removed ($wrk/3-overlapbasedtrimming/$asm.1.trimReads.stats).</p>\n";
     }
 
-    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.inputDeletedReads",    "trimming.html.files/$asm.1.trimReads.inputDeletedReads",    "");
-    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.inputNoTrimReads",     "trimming.html.files/$asm.1.trimReads.inputNoTrimReads",     "");
-    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.inputReads",           "trimming.html.files/$asm.1.trimReads.inputReads",           "");
-    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.outputDeletedReads",   "trimming.html.files/$asm.1.trimReads.outputDeletedReads",   "");
-    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.outputNoOvlReads",     "trimming.html.files/$asm.1.trimReads.outputNoOvlReads",     "");
-    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.outputTrimmedReads",   "trimming.html.files/$asm.1.trimReads.outputTrimmedReads",   "");
-    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.outputUnchangedReads", "trimming.html.files/$asm.1.trimReads.outputUnchangedReads", "");
-    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.trim3",                "trimming.html.files/$asm.1.trimReads.trim3",                "");
-    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.trim5",                "trimming.html.files/$asm.1.trimReads.trim5",                "");
+    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.inputDeletedReads",    "$wrk.html.files/$asm.1.trimReads.inputDeletedReads",    "");
+    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.inputNoTrimReads",     "$wrk.html.files/$asm.1.trimReads.inputNoTrimReads",     "");
+    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.inputReads",           "$wrk.html.files/$asm.1.trimReads.inputReads",           "");
+    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.outputDeletedReads",   "$wrk.html.files/$asm.1.trimReads.outputDeletedReads",   "");
+    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.outputNoOvlReads",     "$wrk.html.files/$asm.1.trimReads.outputNoOvlReads",     "");
+    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.outputTrimmedReads",   "$wrk.html.files/$asm.1.trimReads.outputTrimmedReads",   "");
+    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.outputUnchangedReads", "$wrk.html.files/$asm.1.trimReads.outputUnchangedReads", "");
+    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.trim3",                "$wrk.html.files/$asm.1.trimReads.trim3",                "");
+    simpleFigure($body, "$wrk/3-overlapbasedtrimming/$asm.1.trimReads.trim5",                "$wrk.html.files/$asm.1.trimReads.trim5",                "");
 
     push @$body, "<h2>Splitting</h2>\n";
     push @$body, "\n";
