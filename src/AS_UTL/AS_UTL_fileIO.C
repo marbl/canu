@@ -377,6 +377,26 @@ AS_UTL_loadFileList(char *fileName, vector<char *> &fileList) {
 
 
 
+cftType
+compressedFileType(char const *filename) {
+
+  if ((filename == NULL) || (filename[0] == 0) || (strcmp(filename, "-") == 0))
+    return(cftSTDIN);
+
+  int32  len = strlen(filename);
+
+  if      ((len > 3) && (strcasecmp(filename + len - 3, ".gz") == 0))
+    return(cftGZ);
+
+  else if ((len > 4) && (strcasecmp(filename + len - 4, ".bz2") == 0))
+    return(cftBZ2);
+
+  else if ((len > 3) && (strcasecmp(filename + len - 3, ".xz") == 0))
+    return(cftXZ);
+
+  else
+    return(cftNONE);
+}
 
 
 
@@ -388,41 +408,46 @@ compressedFileReader::compressedFileReader(const char *filename) {
   _pipe = false;
   _stdi = false;
 
-  if (filename != NULL)
-    len = strlen(filename);
+  cftType   ft = compressedFileType(filename);
 
-  if ((len > 0) && (strcmp(filename, "-") != 0) && (AS_UTL_fileExists(filename, FALSE, FALSE) == FALSE))
+  if ((ft != cftSTDIN) && (AS_UTL_fileExists(filename, FALSE, FALSE) == FALSE))
     fprintf(stderr, "ERROR:  Failed to open input file '%s': %s\n", filename, strerror(errno)), exit(1);
 
   errno = 0;
 
-  if        ((len > 3) && (strcasecmp(filename + len - 3, ".gz") == 0)) {
-    sprintf(cmd, "gzip -dc %s", filename);
-    _file = popen(cmd, "r");
-    _pipe = true;
+  switch (ft) {
+    case cftGZ:
+      sprintf(cmd, "gzip -dc %s", filename);
+      _file = popen(cmd, "r");
+      _pipe = true;
+      break;
 
-  } else if ((len > 4) && (strcasecmp(filename + len - 4, ".bz2") == 0)) {
-    sprintf(cmd, "bzip2 -dc %s", filename);
-    _file = popen(cmd, "r");
-    _pipe = true;
+    case cftBZ2:
+      sprintf(cmd, "bzip2 -dc %s", filename);
+      _file = popen(cmd, "r");
+      _pipe = true;
+      break;
 
-  } else if ((len > 3) && (strcasecmp(filename + len - 3, ".xz") == 0)) {
-    sprintf(cmd, "xz -dc %s", filename);
-    _file = popen(cmd, "r");
-    _pipe = true;
+    case cftXZ:
+      sprintf(cmd, "xz -dc %s", filename);
+      _file = popen(cmd, "r");
+      _pipe = true;
 
-    if (_file == NULL)    //  popen() returns NULL on error.  It does not reliably set errno.
-      fprintf(stderr, "ERROR:  Failed to open input file '%s': popen() returned NULL\n", filename), exit(1);
+      if (_file == NULL)    //  popen() returns NULL on error.  It does not reliably set errno.
+        fprintf(stderr, "ERROR:  Failed to open input file '%s': popen() returned NULL\n", filename), exit(1);
 
-    errno = 0;
+      errno = 0;
+      break;
 
-  } else if ((len == 0) || (strcmp(filename, "-") == 0)) {
-    _file = stdin;
-    _stdi = 1;
+    case cftSTDIN:
+      _file = stdin;
+      _stdi = 1;
+      break;
 
-  } else {
-    _file = fopen(filename, "r");
-    _pipe = false;
+    default:
+      _file = fopen(filename, "r");
+      _pipe = false;
+      break;
   }
 
   if (errno)
@@ -454,33 +479,38 @@ compressedFileWriter::compressedFileWriter(const char *filename, int32 level) {
   _pipe = false;
   _stdi = false;
 
-  if (filename != NULL)
-    len = strlen(filename);
+  cftType   ft = compressedFileType(filename);
 
   errno = 0;
 
-  if        ((len > 3) && (strcasecmp(filename + len - 3, ".gz") == 0)) {
-    sprintf(cmd, "gzip -%dc > %s", level, filename);
-    _file = popen(cmd, "w");
-    _pipe = true;
+  switch (ft) {
+    case cftGZ:
+      sprintf(cmd, "gzip -%dc > %s", level, filename);
+      _file = popen(cmd, "w");
+      _pipe = true;
+      break;
 
-  } else if ((len > 4) && (strcasecmp(filename + len - 4, ".bz2") == 0)) {
-    sprintf(cmd, "bzip2 -%dc > %s", level, filename);
-    _file = popen(cmd, "w");
-    _pipe = true;
+    case cftBZ2:
+      sprintf(cmd, "bzip2 -%dc > %s", level, filename);
+      _file = popen(cmd, "w");
+      _pipe = true;
+      break;
 
-  } else if ((len > 3) && (strcasecmp(filename + len - 3, ".xz") == 0)) {
-    sprintf(cmd, "xz -%dc > %s", level, filename);
-    _file = popen(cmd, "w");
-    _pipe = true;
+    case cftXZ:
+      sprintf(cmd, "xz -%dc > %s", level, filename);
+      _file = popen(cmd, "w");
+      _pipe = true;
+      break;
 
-  } else if ((len == 0) || (strcmp(filename, "-") == 0)) {
-    _file = stdout;
-    _stdi = 1;
+    case cftSTDIN:
+      _file = stdout;
+      _stdi = 1;
+      break;
 
-  } else {
-    _file = fopen(filename, "w");
-    _pipe = false;
+    default:
+      _file = fopen(filename, "w");
+      _pipe = false;
+      break;
   }
 
   if (errno)

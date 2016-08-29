@@ -71,6 +71,18 @@ void    AS_UTL_loadFileList(char *fileName, vector<char *> &fileList);
 
 
 
+enum cftType {
+  cftNONE  = 0,
+  cftGZ    = 1,
+  cftBZ2   = 2,
+  cftXZ    = 3,
+  cftSTDIN = 4
+};
+
+cftType  compressedFileType(char const *filename);
+
+
+
 class compressedFileReader {
 public:
   compressedFileReader(char const *filename);
