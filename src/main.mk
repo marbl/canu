@@ -61,6 +61,10 @@ SOURCES      := AS_global.C \
                 stores/tgTigSizeAnalysis.C \
                 stores/tgTigMultiAlignDisplay.C \
                 \
+                stores/libsnappy/snappy-sinksource.cc \
+                stores/libsnappy/snappy-stubs-internal.cc \
+                stores/libsnappy/snappy.cc \
+                \
                 meryl/libmeryl.C \
                 \
                 overlapInCore/overlapReadCache.C \
@@ -104,6 +108,7 @@ SOURCES      := AS_global.C \
 SRC_INCDIRS  := . \
                 AS_UTL \
                 stores \
+                stores/libsnappy \
                 alignment \
                 utgcns/libNDalign \
                 utgcns/libcns \

@@ -348,6 +348,8 @@ enum ovFileType {
 
 
 
+#define SNAPPY
+#undef  SNAPPY
 
 class ovFile {
 public:
@@ -377,6 +379,11 @@ private:
   uint32                  _bufferMax;    //  allocated size of the buffer
   uint32                 *_buffer;
 
+#ifdef SNAPPY
+  size_t                  _snappyLen;
+  char                   *_snappyBuffer;
+#endif
+
   uint32                  _olapsPerReadAlloc;
   uint32                  _olapsPerReadLast;
   uint32                 *_olapsPerRead;
@@ -384,6 +391,9 @@ private:
   bool                    _isOutput;     //  if true, we can writeOverlap()
   bool                    _isSeekable;   //  if true, we can seekOverlap()
   bool                    _isNormal;     //  if true, 3 words per overlap, else 4
+#ifdef SNAPPY
+  bool                    _useSnappy;    //  if true, compress with snappy before writing
+#endif
 
   compressedFileReader   *_reader;
   compressedFileWriter   *_writer;

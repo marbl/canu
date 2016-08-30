@@ -46,6 +46,9 @@
 
 #include "ovStore.H"
 
+#ifdef SNAPPY
+#include "snappy.h"
+#endif
 
 ovFile::ovFile(const char  *name,
                ovFileType   type,
@@ -65,6 +68,11 @@ ovFile::ovFile(const char  *name,
   _bufferPos  = (bufferSize / (lcm * sizeof(uint32))) * lcm;  //  Forces reload on next read
   _bufferMax  = (bufferSize / (lcm * sizeof(uint32))) * lcm;
   _buffer     = new uint32 [_bufferMax];
+
+#ifdef SNAPPY
+  _snappyLen    = 0;
+  _snappyBuffer = NULL;
+#endif
 
   assert(_bufferMax % ((sizeof(uint32) * 1) + (sizeof(ovOverlapDAT))) == 0);
   assert(_bufferMax % ((sizeof(uint32) * 2) + (sizeof(ovOverlapDAT))) == 0);
@@ -90,22 +98,45 @@ ovFile::ovFile(const char  *name,
   _isOutput   = false;
   _isSeekable = false;
   _isNormal   = (type == ovFileNormal) || (type == ovFileNormalWrite);
+#ifdef SNAPPY
+  _useSnappy  = false;
+#endif
 
   _reader     = NULL;
   _writer     = NULL;
 
-  //  Open a file for reading?
-  if ((type == ovFileNormal) || (type == ovFileFull)) {
+  //  Open store files for reading.  These generally cannot be compressed, but we pretend they can be.
+  if (type == ovFileNormal) {
     _reader      = new compressedFileReader(name);
     _file        = _reader->file();
     _isSeekable  = (_reader->isCompressed() == false);
   }
 
-  //  Open a file for writing?
+  //  Open dump files for reading.  These certainly can be compressed.
+  else if (type == ovFileFull) {
+    _reader      = new compressedFileReader(name);
+    _file        = _reader->file();
+    _isSeekable  = (_reader->isCompressed() == false);
+#ifdef SNAPPY
+    _useSnappy   = true;
+#endif
+  }
+
+  //  Open a store file for writing?
+  else if (type == ovFileNormalWrite) {
+    _writer      = new compressedFileWriter(name);
+    _file        = _writer->file();
+    _isOutput    = true;
+  }
+
+  //  Else, open a dump file for writing.  This catches two cases, one with counts and one without counts.
   else {
     _writer      = new compressedFileWriter(name);
     _file        = _writer->file();
     _isOutput    = true;
+#ifdef SNAPPY
+    _useSnappy   = true;
+#endif
   }
 
   //  Make a copy of the output name, and clean it up.  This is used as the base for
@@ -129,6 +160,10 @@ ovFile::~ovFile() {
   delete    _reader;
   delete    _writer;
   delete [] _buffer;
+
+#ifdef SNAPPY
+  delete [] _snappyBuffer;
+#endif
 
   if (_olapsPerRead) {
     char  name[FILENAME_MAX];
@@ -166,7 +201,34 @@ ovFile::writeBuffer(bool force) {
   if (_bufferLen == 0)
     return;
 
-  AS_UTL_safeWrite(_file, _buffer, "ovFile::writeBuffer", sizeof(uint32), _bufferLen);
+  //  If compressing, compress the block then write compressed length and the block.
+
+#ifdef SNAPPY
+  if (_useSnappy == true) {
+    size_t   bl = snappy::MaxCompressedLength(_bufferLen * sizeof(uint32));
+
+    if (_snappyLen < bl) {
+      delete [] _snappyBuffer;
+      _snappyLen    = bl;
+      _snappyBuffer = new char [_snappyLen];
+    }
+
+    snappy::RawCompress((const char *)_buffer, _bufferLen * sizeof(uint32), _snappyBuffer, &bl);
+
+    fprintf(stderr, "writeBuffer()-- "F_SIZE_T" bytes compressed to "F_SIZE_T" bytes.\n",
+            _bufferLen * sizeof(uint32), bl);
+
+    AS_UTL_safeWrite(_file, &bl,           "ovFile::writeBuffer::bl", sizeof(size_t), 1);
+    AS_UTL_safeWrite(_file, _snappyBuffer, "ovFile::writeBuffer::sb", sizeof(char),   bl);
+  }
+
+  //  Otherwise, just dump the block
+
+  else
+#endif
+    AS_UTL_safeWrite(_file, _buffer, "ovFile::writeBuffer", sizeof(uint32), _bufferLen);
+
+  //  Buffer written.  Clear it.
   _bufferLen = 0;
 }
 
@@ -313,8 +375,42 @@ ovFile::readBuffer(void) {
   if (_bufferPos < _bufferLen)
     return;
 
-  _bufferLen = AS_UTL_safeRead(_file, _buffer, "ovFile::readBuffer", sizeof(uint32), _bufferMax);
+  //  Need to load a new buffer.  Everyone resets bufferPos to the start.
+
   _bufferPos = 0;
+
+  //  If compressed, we need to decode the block.
+
+#ifdef SNAPPY
+  if (_useSnappy == true) {
+    size_t  cl  = 0;
+    size_t  clc = AS_UTL_safeRead(_file, &cl, "ovFile::readBuffer::cl", sizeof(size_t), 1);
+
+    if (_snappyLen < cl) {
+      delete [] _snappyBuffer;
+      _snappyLen    = cl;
+      _snappyBuffer = new char [cl];
+    }
+
+    size_t  sbc = AS_UTL_safeRead(_file, _snappyBuffer, "ovFile::readBuffer::sb", sizeof(char), cl);
+
+    if (sbc != cl)
+      fprintf(stderr, "ERROR: short read on file '%s': read "F_SIZE_T" bytes, expected "F_SIZE_T".\n",
+              _prefix, sbc, cl), exit(1);
+
+    size_t  ol = 0;
+
+    snappy::GetUncompressedLength(_snappyBuffer, cl, &ol);
+    snappy::RawUncompress(_snappyBuffer, cl, (char *)_buffer);
+
+    _bufferLen = ol / sizeof(uint32);
+  }
+
+  //  But if loading from 'normal' files, just load.  Easy peasy.
+
+  else
+#endif
+    _bufferLen = AS_UTL_safeRead(_file, _buffer, "ovFile::readBuffer", sizeof(uint32), _bufferMax);
 }
 
 
