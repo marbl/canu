@@ -95,6 +95,7 @@ SOURCES      := AS_global.C \
                 utgcns/libpbutgcns/Alignment.C	\
                 utgcns/libpbutgcns/AlnGraphBoost.C  \
                 utgcns/libNDFalcon/dw.C \
+                overlapInCore/libedlib/edlib.C \
                 \
                 falcon_sense/libfalcon/falcon.C \
                 falcon_sense/libfalcon/kmer_lookup.C
@@ -111,7 +112,8 @@ SRC_INCDIRS  := . \
                 meryl/libleaff \
                 overlapInCore \
                 overlapInCore/liboverlap \
-                falcon_sense/libfalcon
+                falcon_sense/libfalcon \
+                overlapInCore/libedlib
 
 SUBMAKEFILES := stores/gatekeeperCreate.mk \
                 stores/gatekeeperDumpFASTQ.mk \

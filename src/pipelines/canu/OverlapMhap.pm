@@ -143,9 +143,9 @@ sub mhapConfigure ($$$$) {
 
     # quick guess parameter adjustment for corrected reads, hack for now and should better take error rate into account
     if (($tag eq "obt") || ($tag eq "utg")) {
-       $numHashes     /= 4;
+       $numHashes     /= 2;
        $minNumMatches  = floor(1.5 * $minNumMatches);
-       $ordSketch      = floor($ordSketch / 2);
+       $ordSketch      = 500;
        $threshold      = 1-getGlobal("${tag}OvlErrorRate");
        $blockPerGb    *= 2;
     }
@@ -466,13 +466,16 @@ sub mhapConfigure ($$$$) {
         print F "  \$bin/overlapPair \\\n";
         print F "    -G $wrk/$asm.gkpStore \\\n";
         print F "    -O $path/results/\$qry.mhap.ovb.gz \\\n";
-        print F "    -o $path/results/\$qry.ovb.gz \\\n";
+        print F "    -o $path/results/\$qry.WORKING.ovb.gz \\\n";
         print F "    -partial \\\n"  if ($typ eq "partial");
+        print F "    -len "  , getGlobal("minOverlapLength"),  " \\\n";
         print F "    -erate ", getGlobal("corErrorRate"),    " \\\n"  if ($tag eq "cor");
         print F "    -erate ", getGlobal("obtOvlErrorRate"), " \\\n"  if ($tag eq "obt");
         print F "    -erate ", getGlobal("utgOvlErrorRate"), " \\\n"  if ($tag eq "utg");
         print F "    -memory " . getGlobal("${tag}mhapMemory") . " \\\n";
-        print F "    -t " . getGlobal("${tag}mhapThreads") . " \n";
+        print F "    -t " . getGlobal("${tag}mhapThreads") . " \\\n";
+        print F "  && \\\n";
+        print F "  mv -f $path/results/\$qry.WORKING.ovb.gz $path/results/\$qry.ovb.gz\n";
     } else {
         print F "  mv -f \"$path/results/\$qry.mhap.ovb.gz\" \"$path/results/\$qry.ovb.gz\"\n";
     }
