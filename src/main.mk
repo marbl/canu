@@ -46,6 +46,9 @@ SOURCES      := AS_global.C \
                 AS_UTL/timeAndSize.C \
                 AS_UTL/kMer.C \
                 \
+                falcon_sense/libfalcon/falcon.C \
+                falcon_sense/libfalcon/kmer_lookup.C \
+                \
                 stores/gkStore.C \
                 stores/gkStoreEncode.C \
                 \
@@ -72,6 +75,8 @@ SOURCES      := AS_global.C \
                 overlapInCore/liboverlap/prefixEditDistance-forward.C \
                 overlapInCore/liboverlap/prefixEditDistance-reverse.C \
                 \
+                overlapInCore/libedlib/edlib.C \
+                \
                 utgcns/libNDalign/NDalign.C \
                 \
                 utgcns/libNDalign/Binomial_Bound.C \
@@ -94,11 +99,7 @@ SOURCES      := AS_global.C \
                 utgcns/libcns/unitigConsensus.C \
                 utgcns/libpbutgcns/Alignment.C	\
                 utgcns/libpbutgcns/AlnGraphBoost.C  \
-                utgcns/libNDFalcon/dw.C \
-                overlapInCore/libedlib/edlib.C \
-                \
-                falcon_sense/libfalcon/falcon.C \
-                falcon_sense/libfalcon/kmer_lookup.C
+                utgcns/libNDFalcon/dw.C
 
 SRC_INCDIRS  := . \
                 AS_UTL \
@@ -111,9 +112,9 @@ SRC_INCDIRS  := . \
                 utgcns/libboost \
                 meryl/libleaff \
                 overlapInCore \
+                overlapInCore/libedlib \
                 overlapInCore/liboverlap \
-                falcon_sense/libfalcon \
-                overlapInCore/libedlib
+                falcon_sense/libfalcon
 
 SUBMAKEFILES := stores/gatekeeperCreate.mk \
                 stores/gatekeeperDumpFASTQ.mk \
