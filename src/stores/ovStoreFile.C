@@ -215,9 +215,6 @@ ovFile::writeBuffer(bool force) {
 
     snappy::RawCompress((const char *)_buffer, _bufferLen * sizeof(uint32), _snappyBuffer, &bl);
 
-    fprintf(stderr, "writeBuffer()-- "F_SIZE_T" bytes compressed to "F_SIZE_T" bytes.\n",
-            _bufferLen * sizeof(uint32), bl);
-
     AS_UTL_safeWrite(_file, &bl,           "ovFile::writeBuffer::bl", sizeof(size_t), 1);
     AS_UTL_safeWrite(_file, _snappyBuffer, "ovFile::writeBuffer::sb", sizeof(char),   bl);
   }
