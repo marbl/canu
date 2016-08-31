@@ -101,6 +101,15 @@ shell <string="/bin/sh">
 java <string="java">
   A path to a Java application launcher of at least version 1.8.
 
+gnuplot <string="gnuplot">
+  A path to the gnuplot graphing utility.
+
+gnuplotImageFormat <string="png">
+  The type of image to generate in gnuplot.  By default, canu will use png, svg or gif, in that order.
+
+gnuplotTested <boolean=false>
+  If set, skip the tests to determine if gnuplot will run, and to decide the image type to generate.  This is used when gnuplot fails to run, or isn't even installed, and allows canu to continue execution without generating graphs.
+
 Cleanup Options
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
