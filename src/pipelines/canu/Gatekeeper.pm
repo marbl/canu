@@ -365,30 +365,33 @@ sub gatekeeperGenerateReadLengthPlot ($$$) {
     my $tag    = shift @_;
     my $bin    = getBinDirectory();
 
-        open(F, "> $wrk/$asm.gkpStore/readlengths.gp") or caExit("can't open '$wrk/$asm.gkpStore/readlengths.gp' for writing: $!", undef);
-        print F "set title 'read length'\n";
-        print F "set xlabel 'read length, bin width = 250'\n";
-        print F "set ylabel 'number of reads'\n";
-        print F "\n";
-        print F "binwidth=250\n";
-        print F "set boxwidth binwidth\n";
-        print F "bin(x,width) = width*floor(x/width) + binwidth/2.0\n";
-        print F "\n";
-        print F "set terminal png size 1024,1024\n";
-        print F "set output '$wrk/$asm.gkpStore/readlengths.lg.png'\n";
-        print F "plot [] '$wrk/$asm.gkpStore/readlengths.txt' using (bin(\$1,binwidth)):(1.0) smooth freq with boxes title ''\n";
-        print F "\n";
-        print F "set terminal png size 256,256\n";
-        print F "set output '$wrk/$asm.gkpStore/readlengths.sm.png'\n";
-        print F "plot [] '$wrk/$asm.gkpStore/readlengths.txt' using (bin(\$1,binwidth)):(1.0) smooth freq with boxes title ''\n";
-        close(F);
+    my $gnuplot = getGlobal("gnuplot");
+    my $format  = getGlobal("gnuplotImageFormat");
 
-        if (runCommandSilently("$wrk/$asm.gkpStore", "gnuplot $wrk/$asm.gkpStore/readlengths.gp > /dev/null 2>&1", 0)) {
-            print STDERR "--\n";
-            print STDERR "-- WARNING: gnuplot failed; no plots will appear in HTML output.\n";
-            print STDERR "--\n";
-            print STDERR "----------------------------------------\n";
-        }
+    open(F, "> $wrk/$asm.gkpStore/readlengths.gp") or caExit("can't open '$wrk/$asm.gkpStore/readlengths.gp' for writing: $!", undef);
+    print F "set title 'read length'\n";
+    print F "set xlabel 'read length, bin width = 250'\n";
+    print F "set ylabel 'number of reads'\n";
+    print F "\n";
+    print F "binwidth=250\n";
+    print F "set boxwidth binwidth\n";
+    print F "bin(x,width) = width*floor(x/width) + binwidth/2.0\n";
+    print F "\n";
+    print F "set terminal $format size 1024,1024\n";
+    print F "set output '$wrk/$asm.gkpStore/readlengths.lg.$format'\n";
+    print F "plot [] '$wrk/$asm.gkpStore/readlengths.txt' using (bin(\$1,binwidth)):(1.0) smooth freq with boxes title ''\n";
+    print F "\n";
+    print F "set terminal $format size 256,256\n";
+    print F "set output '$wrk/$asm.gkpStore/readlengths.sm.$format'\n";
+    print F "plot [] '$wrk/$asm.gkpStore/readlengths.txt' using (bin(\$1,binwidth)):(1.0) smooth freq with boxes title ''\n";
+    close(F);
+
+    if (runCommandSilently("$wrk/$asm.gkpStore", "$gnuplot $wrk/$asm.gkpStore/readlengths.gp > /dev/null 2>&1", 0)) {
+        print STDERR "--\n";
+        print STDERR "-- WARNING: gnuplot failed; no plots will appear in HTML output.\n";
+        print STDERR "--\n";
+        print STDERR "----------------------------------------\n";
+    }
 }
 
 
@@ -462,7 +465,7 @@ sub gatekeeper ($$$@) {
     gatekeeperGenerateReadsList($wrk, $asm, $tag)                     if (! -e "$wrk/$asm.gkpStore/reads.txt");
     gatekeeperGenerateLibrariesList($wrk, $asm, $tag)                 if (! -e "$wrk/$asm.gkpStore/libraries.txt");
     gatekeeperGenerateReadLengths($wrk, $asm, $tag)                   if (! -e "$wrk/$asm.gkpStore/readlengths.txt");
-    gatekeeperGenerateReadLengthPlot($wrk, $asm, $tag)                if (! -e "$wrk/$asm.gkpStore/readlengths.png");
+    gatekeeperGenerateReadLengthPlot($wrk, $asm, $tag)                if (! -e "$wrk/$asm.gkpStore/readlengths.gp");
 
   finishStage:
     gatekeeperReportReadLengthHistogram($wrk, $asm, $tag);

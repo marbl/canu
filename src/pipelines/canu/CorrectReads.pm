@@ -660,25 +660,28 @@ sub expensiveFilter ($$) {
     #  Plot a scatter plot of the original vs the expected corrected read lengths.  Early versions
     #  also plotted the sorted length vs the other length, but those were not interesting.
 
-    if (! -e "$path/$asm.estimate.original-x-correctedLength.png") {
+    if (! -e "$path/$asm.estimate.original-x-correctedLength.gp") {
+        my $gnuplot = getGlobal("gnuplot");
+        my $format  = getGlobal("gnuplotImageFormat");
+
         open(F, "> $path/$asm.estimate.original-x-correctedLength.gp");
         print F "set title 'original length (x) vs corrected length (y)'\n";
         print F "set xlabel 'original read length'\n";
         print F "set ylabel 'corrected read length (expected)'\n";
         print F "set pointsize 0.25\n";
         print F "\n";
-        print F "set terminal png size 1024,1024\n";
-        print F "set output '$path/$asm.estimate.original-x-corrected.lg.png'\n";
+        print F "set terminal $format size 1024,1024\n";
+        print F "set output '$path/$asm.estimate.original-x-corrected.lg.$format'\n";
         print F "plot '$path/$asm.estimate.tn.log' using 2:4 title 'tn', \\\n";
         print F "     '$path/$asm.estimate.fn.log' using 2:4 title 'fn', \\\n";
         print F "     '$path/$asm.estimate.fp.log' using 2:4 title 'fp', \\\n";
         print F "     '$path/$asm.estimate.tp.log' using 2:4 title 'tp'\n";
-        print F "set terminal png size 256,256\n";
-        print F "set output '$path/$asm.estimate.original-x-corrected.sm.png'\n";
+        print F "set terminal $format size 256,256\n";
+        print F "set output '$path/$asm.estimate.original-x-corrected.sm.$format'\n";
         print F "replot\n";
         close(F);
 
-        if (runCommandSilently($path, "gnuplot < $path/$asm.estimate.original-x-correctedLength.gp > /dev/null 2>&1", 0)) {
+        if (runCommandSilently($path, "$gnuplot < $path/$asm.estimate.original-x-correctedLength.gp > /dev/null 2>&1", 0)) {
             print STDERR "--\n";
             print STDERR "-- WARNING: gnuplot failed; no plots will appear in HTML output.\n";
             print STDERR "--\n";
@@ -1118,6 +1121,9 @@ sub dumpCorrectedReads ($$) {
 
     #  Scatterplot of lengths.
 
+    my $gnuplot = getGlobal("gnuplot");
+    my $format  = getGlobal("gnuplotImageFormat");
+
     open(F, "> $wrk/2-correction/$asm.originalLength-vs-correctedLength.gp") or caExit("", undef);
     print F "\n";
     print F "set pointsize 0.25\n";
@@ -1126,37 +1132,37 @@ sub dumpCorrectedReads ($$) {
     print F "set xlabel 'original read length'\n";
     print F "set ylabel 'expected corrected read length'\n";
     print F "\n";
-    print F "set terminal png size 1024,1024\n";
-    print F "set output '$wrk/2-correction/$asm.originalLength-vs-expectedLength.lg.png'\n";
+    print F "set terminal $format size 1024,1024\n";
+    print F "set output '$wrk/2-correction/$asm.originalLength-vs-expectedLength.lg.$format'\n";
     print F "plot [0:$maxReadLen] [0:$maxReadLen] '$wrk/2-correction/$asm.original-expected-corrected-length.dat' using 2:3 title 'original (x) vs expected (y)'\n";
-    print F "set terminal png size 256,256\n";
-    print F "set output '$wrk/2-correction/$asm.originalLength-vs-expectedLength.sm.png'\n";
+    print F "set terminal $format size 256,256\n";
+    print F "set output '$wrk/2-correction/$asm.originalLength-vs-expectedLength.sm.$format'\n";
     print F "replot\n";
     print F "\n";
     print F "set title 'original read length vs sum of corrected read lengths'\n";
     print F "set xlabel 'original read length'\n";
     print F "set ylabel 'sum of corrected read lengths'\n";
     print F "\n";
-    print F "set terminal png size 1024,1024\n";
-    print F "set output '$wrk/2-correction/$asm.originalLength-vs-correctedLength.lg.png'\n";
+    print F "set terminal $format size 1024,1024\n";
+    print F "set output '$wrk/2-correction/$asm.originalLength-vs-correctedLength.lg.$format'\n";
     print F "plot [0:$maxReadLen] [0:$maxReadLen] '$wrk/2-correction/$asm.original-expected-corrected-length.dat' using 2:4 title 'original (x) vs corrected (y)'\n";
-    print F "set terminal png size 256,256\n";
-    print F "set output '$wrk/2-correction/$asm.originalLength-vs-correctedLength.sm.png'\n";
+    print F "set terminal $format size 256,256\n";
+    print F "set output '$wrk/2-correction/$asm.originalLength-vs-correctedLength.sm.$format'\n";
     print F "replot\n";
     print F "\n";
     print F "set title 'expected read length vs sum of corrected read lengths'\n";
     print F "set xlabel 'expected read length'\n";
     print F "set ylabel 'sum of corrected read lengths'\n";
     print F "\n";
-    print F "set terminal png size 1024,1024\n";
-    print F "set output '$wrk/2-correction/$asm.expectedLength-vs-correctedLength.lg.png'\n";
+    print F "set terminal $format size 1024,1024\n";
+    print F "set output '$wrk/2-correction/$asm.expectedLength-vs-correctedLength.lg.$format'\n";
     print F "plot [0:$maxReadLen] [0:$maxReadLen] '$wrk/2-correction/$asm.original-expected-corrected-length.dat' using 3:4 title 'expected (x) vs corrected (y)'\n";
-    print F "set terminal png size 256,256\n";
-    print F "set output '$wrk/2-correction/$asm.expectedLength-vs-correctedLength.sm.png'\n";
+    print F "set terminal $format size 256,256\n";
+    print F "set output '$wrk/2-correction/$asm.expectedLength-vs-correctedLength.sm.$format'\n";
     print F "replot\n";
     close(F);
 
-    if (runCommandSilently("$wrk/2-correction", "gnuplot $wrk/2-correction/$asm.originalLength-vs-correctedLength.gp > /dev/null 2>&1", 0)) {
+    if (runCommandSilently("$wrk/2-correction", "$gnuplot $wrk/2-correction/$asm.originalLength-vs-correctedLength.gp > /dev/null 2>&1", 0)) {
         print STDERR "--\n";
         print STDERR "-- WARNING: gnuplot failed; no plots will appear in HTML output.\n";
         print STDERR "--\n";
@@ -1176,28 +1182,28 @@ sub dumpCorrectedReads ($$) {
     print F "set boxwidth binwidth\n";
     print F "bin(x,width) = width*floor(x/width) + binwidth/2.0\n";
     print F "\n";
-    print F "set terminal png size 1024,1024\n";
-    print F "set output '$wrk/2-correction/$asm.length-histograms.lg.png'\n";
+    print F "set terminal $format size 1024,1024\n";
+    print F "set output '$wrk/2-correction/$asm.length-histograms.lg.$format'\n";
     print F "plot [1:$maxReadLen] [0:] \\\n";
     print F "  '$wrk/2-correction/$asm.original-expected-corrected-length.dat' using (bin(\$2,binwidth)):(1.0) smooth freq with boxes title 'original', \\\n";
     print F "  '$wrk/2-correction/$asm.original-expected-corrected-length.dat' using (bin(\$3,binwidth)):(1.0) smooth freq with boxes title 'expected', \\\n";
     print F "  '$wrk/2-correction/$asm.original-expected-corrected-length.dat' using (bin(\$4,binwidth)):(1.0) smooth freq with boxes title 'corrected'\n";
-    print F "set terminal png size 256,256\n";
-    print F "set output '$wrk/2-correction/$asm.length-histograms.sm.png'\n";
+    print F "set terminal $format size 256,256\n";
+    print F "set output '$wrk/2-correction/$asm.length-histograms.sm.$format'\n";
     print F "replot\n";
     print F "\n";
     print F "set xlabel 'difference between expected and corrected read length, bin width = 250, min=$minDiff, max=$maxDiff'\n";
     print F "\n";
-    print F "set terminal png size 1024,1024\n";
-    print F "set output '$wrk/2-correction/$asm.length-difference-histograms.lg.png'\n";
+    print F "set terminal $format size 1024,1024\n";
+    print F "set output '$wrk/2-correction/$asm.length-difference-histograms.lg.$format'\n";
     print F "plot [$minDiff:$maxDiff] [0:] \\\n";
     print F "  '$wrk/2-correction/$asm.original-expected-corrected-length.dat' using (bin(\$7,binwidth)):(1.0) smooth freq with boxes title 'expected - corrected'\n";
-    print F "set terminal png size 256,256\n";
-    print F "set output '$wrk/2-correction/$asm.length-difference-histograms.sm.png'\n";
+    print F "set terminal $format size 256,256\n";
+    print F "set output '$wrk/2-correction/$asm.length-difference-histograms.sm.$format'\n";
     print F "replot\n";
     close(F);
 
-    if (runCommandSilently("$wrk/2-correction", "gnuplot $wrk/2-correction/$asm.length-histograms.gp > /dev/null 2>&1", 0)) {
+    if (runCommandSilently("$wrk/2-correction", "$gnuplot $wrk/2-correction/$asm.length-histograms.gp > /dev/null 2>&1", 0)) {
         print STDERR "--\n";
         print STDERR "-- WARNING: gnuplot failed; no plots will appear in HTML output.\n";
         print STDERR "--\n";

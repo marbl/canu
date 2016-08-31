@@ -692,8 +692,8 @@ sub setDefaults () {
     $global{"gnuplot"}                     = "gnuplot";
     $synops{"gnuplot"}                     = "Path to the gnuplot executable";
 
-    $global{"gnuplotImageFormat"}          = "png";
-    $synops{"gnuplotImageFormat"}          = "Image format that gnuplot will generate, used in HTML reports.  Default: 'png'";
+    $global{"gnuplotImageFormat"}          = undef;
+    $synops{"gnuplotImageFormat"}          = "Image format that gnuplot will generate, used in HTML reports.  Default: based on gnuplot, 'png', 'svg' or 'gif'";
 
     $global{"gnuplotTested"}               = 0;
     $synops{"gnuplotTested"}               = "If set, skip the initial testing of gnuplot";
@@ -1000,6 +1000,111 @@ sub setDefaults () {
 
 
 
+sub gnuplotTest () {
+    my $gnuplot = getGlobal("gnuplot");
+    my $format  = getGlobal("gnuplotImageFormat");
+    my $version = undef;
+
+    #  Check for existence of gnuplot.
+
+    open(F, "$gnuplot -V |");
+    while (<F>) {
+        chomp;
+        $version = $_;
+        $version = $1  if ($version =~ m/^gnuplot\s+(.*)$/);
+    }
+    close(F);
+
+    if (!defined($version)) {
+        addCommandLineError("ERROR:  Failed to run gnuplot from '$gnuplot'.");
+        addCommandLineError("ERROR:  Set option gnuplot=<path-to-gnuplot> or gnuplotTested=true to skip this test and not generate plots.\n");
+        return;
+    }
+
+    #  Check for existence of a decent output format.
+
+    if (!defined($format)) {
+        my $havePNG = 0;
+        my $haveSVG = 0;
+        my $haveGIF = 0;
+
+        open(F, "$gnuplot -e 'set terminal' |");
+        while (<F>) {
+            s/^\s+//;
+            s/\s+$//;
+
+            my @t = split '\s+', $_;
+
+            $havePNG = 1  if ($t[0] eq 'png');
+            $haveSVG = 1  if ($t[0] eq 'svg');
+            $haveGIF = 1  if ($t[0] eq 'gif');
+        }
+        close(F);
+
+        $format = "gif"   if ($haveGIF);
+        $format = "svg"   if ($haveSVG);
+        $format = "png"   if ($havePNG);
+
+        setGlobal("gnuplotImageFormat", $format);
+    }
+
+    if (!defined($format)) {
+        addCommandLineError("ERROR:  Failed to detect a suitable output format for gnuplot.\n");
+        addCommandLineError("ERROR:  Looked for png, svg and gif, found none of them.\n");
+        addCommandLineError("Set option gnuplotImageFormat=<type>, or gnuplotTested=true to skip this test and not generate plots.\n");
+        return;
+    }
+
+    #  Test if we can actually make images.
+
+    open(F, "> /tmp/gnuplot-$$-test.gp");
+    print F "set title 'gnuplot test'\n";
+    print F "set xlabel 'X'\n";
+    print F "set xlabel 'Y'\n";
+    print F "\n";
+    print F "set terminal '$format' size 1024,1024\n";
+    print F "set output '/tmp/gnuplot-$$-test.1.$format'\n";
+    print F "\n";
+    print F "plot [-30:20] sin(x*20) * atan(x)\n\n";
+    print F "\n";
+    print F "set terminal '$format' size 256,256\n";
+    print F "set output '/tmp/gnuplot-$$-test.2.$format'\n";
+    print F "\n";
+    print F "bogus line\n";
+    close(F);
+
+    #  Dang, we don't have runCommandSilently here, so have to do it the hard way.
+
+    system("cd /tmp && $gnuplot /tmp/gnuplot-$$-test.gp > /tmp/gnuplot-$$-test.err 2>&1");
+
+    if ((! -e "/tmp/gnuplot-$$-test.1.$format") ||
+        (! -e "/tmp/gnuplot-$$-test.2.$format")) {
+        addCommandLineError("ERROR:  gnuplot failed to generate images.\n");
+
+        open(F, "< /tmp/gnuplot-$$-test.err");
+        while (<F>) {
+            chomp;
+            addCommandLineError("ERROR:  gnuplot reports:  $_\n");
+        }
+        close(F);
+
+        addCommandLineError("ERROR:  Set option gnuplotImageFormat=<type>, or gnuplotTested=true to skip this test and not generate plots.\n");
+        return;
+    }
+
+    #  Yay, gnuplot works!
+
+    print STDERR "-- Detected gnuplot version '$version' (from '$gnuplot') and image format '$format'.\n";
+    #addCommandLineOption("gnuplotTested=1");
+
+    unlink "/tmp/gnuplot-$$-test.gp";
+    unlink "/tmp/gnuplot-$$-test.err";
+    unlink "/tmp/gnuplot-$$-test.1.$format";
+    unlink "/tmp/gnuplot-$$-test.2.$format";
+}
+
+
+
 sub checkParameters () {
 
     #
@@ -1282,119 +1387,15 @@ sub checkParameters () {
     #
 
     if (getGlobal("gnuPlotTested") == 0) {
-        my $gnuplot = getGlobal("gnuplot");
-        my $format  = getGlobal("gnuplotImageFormat");
-        my $version = undef;
-
-        #  Check for existence of gnuplot.
-
-        open(F, "$gnuplot -V |");
-        while (<F>) {
-            chomp;
-            $version = $_;
-            $version = $1  if ($version =~ m/^gnuplot\s+(.*)$/);
-        }
-        close(F);
-
-        if (!defined($version)) {
-            addCommandLineError("ERROR:  Failed to run gnuplot from '$gnuplot'.");
-            addCommandLineError("ERROR:  gnuplot reported '$version'\n");
-            addCommandLineError("ERROR:  Set option gnuplot=<path-to-gnuplot> or gnuplotTested=true to skip this test and not generate plots.\n");
-        }
-
-        #  Check for existence of a decent output format.
-
-        else {
-            my $havePNG = 0;
-            my $haveSVG = 0;
-            my $haveGIF = 0;
-
-            open(F, "$gnuplot -e 'set terminal' |");
-            while (<F>) {
-                s/^\s+//;
-                s/\s+$//;
-
-                my @t = split '\s+', $_;
-
-                $havePNG = 1  if ($t[0] eq 'png');
-                $haveSVG = 1  if ($t[0] eq 'svg');
-                $haveGIF = 1  if ($t[0] eq 'gif');
-            }
-            close(F);
-
-            my $format;
-
-            $format = "gif"   if ($haveGIF);
-            $format = "svg"   if ($haveSVG);
-            $format = "png"   if ($havePNG);
-
-            setGlobal("gnuplotImageFormat", $format);
-
-            if (!defined($format)) {
-                addCommandLineError("ERROR:  Failed to detect a suitable output format for gnuplot.\n");
-                addCommandLineError("ERROR:  Looked for png, svg and gif, found none of them.\n");
-                addCommandLineError("Set option gnuplotImageFormat=<type>, or gnuplotTested=true to skip this test and not generate plots.\n");
-            }
-
-            #  Test if we can actually make images.
-
-            else {
-                open(F, "> /tmp/gnuplot-$$-test.gp");
-                print F "set title 'gnuplot test'\n";
-                print F "set xlabel 'X'\n";
-                print F "set xlabel 'Y'\n";
-                print F "\n";
-                print F "set terminal '$format' size 1024,1024\n";
-                print F "set output '/tmp/gnuplot-$$-test.1.$format'\n";
-                print F "\n";
-                print F "plot [-30:20] sin(x*20) * atan(x)\n\n";
-                print F "\n";
-                print F "set terminal '$format' size 256,256\n";
-                print F "set output '/tmp/gnuplot-$$-test.2.$format'\n";
-                print F "\n";
-                print F "bogus line\n";
-                close(F);
-
-                #  Dang, we don't have runCommandSilently here, so have to do it the hard way.
-
-                system("cd /tmp && $gnuplot /tmp/gnuplot-$$-test.gp > /tmp/gnuplot-$$-test.err 2>&1");
-
-                if ((! -e "/tmp/gnuplot-$$-test.1.$format") ||
-                    (! -e "/tmp/gnuplot-$$-test.2.$format")) {
-                    addCommandLineError("ERROR:  gnuplot failed to generate images.\n");
-
-                    open(F, "< /tmp/gnuplot-$$-test.err");
-                    while (<F>) {
-                        chomp;
-                        addCommandLineError("ERROR:  gnuplot reports:  $_\n");
-                    }
-                    close(F);
-
-                    addCommandLineError("ERROR:  Set option gnuplotImageFormat=<type>, or gnuplotTested=true to skip this test and not generate plots.\n");
-                }
-
-                #  Oh, I just loathe these cascaded if else if else if else if else structures.  But, gnuplot works.
-
-                else {
-                    print STDERR "-- Detected gnuplot version '$version' (from '$gnuplot') and image format '$format'.\n";
-                    #addCommandLineOption("gnuplotTested=1");
-                }
-
-                unlink "/tmp/gnuplot-$$-test.gp";
-                unlink "/tmp/gnuplot-$$-test.err";
-                unlink "/tmp/gnuplot-$$-test.1.$format";
-                unlink "/tmp/gnuplot-$$-test.2.$format";
-            }
-        }
+        gnuplotTest();
     }
-
 
     #
     #  Minimap, no valid identities, set legacy
     #
 
     if (getGlobal("corOverlapper") eq "minimap") {
-       setGlobalIfUndef("corLegacyFilter", 1);
+        setGlobalIfUndef("corLegacyFilter", 1);
     }
 
     #

@@ -109,14 +109,17 @@ sub plotHistogram ($$$$) {
     my $suffix = shift @_;
     my $size   = shift @_;
 
-    return  if (-e "$ofile.histogram.$suffix.png");
+    return  if (-e "$ofile.histogram.$suffix.gp");
+
+    my $gnuplot = getGlobal("gnuplot");
+    my $format  = getGlobal("gnuplotImageFormat");
 
     open(F, "> $ofile.histogram.$suffix.gp");
     print F "\n";
     print F "unset multiplot\n";
     print F "\n";
-    print F "set terminal png size $size,$size\n";
-    print F "set output '$ofile.histogram.$suffix.png'\n";
+    print F "set terminal $format size $size,$size\n";
+    print F "set output '$ofile.histogram.$suffix.$format'\n";
     print F "\n";
     print F "set multiplot\n";
     print F "\n";

@@ -58,23 +58,24 @@ sub simpleFigure ($$$$) {
     my $sImage = shift @_;
     my $dImage = shift @_;
     my $text   = shift @_;
+    my $format = getGlobal("gnuplotImageFormat");
 
     #  No image?  Note so in the html.
 
-    if ((! -e "$sImage.sm.png") && (! -e "$sImage.lg.png") &&
-        (! -e "$dImage.sm.png") && (! -e "$dImage.lg.png")) {
+    if ((! -e "$sImage.sm.$format") && (! -e "$sImage.lg.$format") &&
+        (! -e "$dImage.sm.$format") && (! -e "$dImage.lg.$format")) {
         push @$body, "<p>Image '$sImage' not found.</p>\n";
         return;
     }
 
     #  Copy the file to our files location.
 
-    copyFile("$sImage.lg.png", "$dImage.lg.png");
-    copyFile("$sImage.sm.png", "$dImage.sm.png");
+    copyFile("$sImage.lg.$format", "$dImage.lg.$format");
+    copyFile("$sImage.sm.$format", "$dImage.sm.$format");
 
     #  Empty image?  Note so in the html.
 
-    if ((-z "$dImage.sm.png") || (-z "$dImage.lg.png")) {
+    if ((-z "$dImage.sm.$format") || (-z "$dImage.lg.$format")) {
         push @$body, "<p>Image '$sImage' is empty.  Probably no data to display.</p>\n";
         return;
     }
@@ -82,7 +83,7 @@ sub simpleFigure ($$$$) {
     #  Otherwise, show it!
 
     push @$body, "<figure>\n";
-    push @$body, "<a href='$dImage.lg.png'><img src='$dImage.sm.png'></a>\n";
+    push @$body, "<a href='$dImage.lg.$format'><img src='$dImage.sm.$format'></a>\n";
     push @$body, "<figcaption>\n";
     push @$body, "$text\n";
     push @$body, "</figcaption>\n";
