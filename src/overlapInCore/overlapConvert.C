@@ -42,7 +42,7 @@ main(int argc, char **argv) {
   gkStore               *gkpStore = NULL;
 
   ovOverlapDisplayType   dt = ovOverlapAsCoords;
-
+  bool                   native = false;
   vector<char *>         files;
 
 
@@ -60,6 +60,9 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-raw") == 0) {
       dt = ovOverlapAsRaw;
+
+    } else if (strcmp(argv[arg], "-native") == 0) {
+      native = true;
 
     } else if (AS_UTL_fileExists(argv[arg])) {
       files.push_back(argv[arg]);
@@ -83,6 +86,9 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -coords        output coordiantes on reads\n");
     fprintf(stderr, "  -hangs         output hangs on reads\n");
     fprintf(stderr, "  -raw           output raw hangs on reads\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -native        input ovb file is NOT snappy compressed\n");
+    fprintf(stderr, "\n");
 
     if ((gkpStoreName == NULL) && (dt == ovOverlapAsCoords))
       fprintf(stderr, "ERROR:  -coords mode requires a gkpStore (-G)\n");
@@ -101,6 +107,9 @@ main(int argc, char **argv) {
   for (uint32 ff=0; ff<files.size(); ff++) {
     ovFile      *of = new ovFile(files[ff], ovFileFull);
     ovOverlap   ov(gkpStore);
+
+    if (native == true)
+      of->enableSnappy(false);
 
     while (of->readOverlap(&ov))
       fputs(ov.toString(ovStr, dt, true), stdout);

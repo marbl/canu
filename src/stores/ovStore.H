@@ -37,6 +37,8 @@
 #include "AS_global.H"
 #include "gkStore.H"
 
+#define SNAPPY
+
 //  Error rates are encoded as a 12-bit fixed-point value.  This gives us up to 40.95% error, with
 //  0.01% resolution.  Changing the number of bits WILL break the carefully structured
 //  ovOverlapDAT.
@@ -348,8 +350,6 @@ enum ovFileType {
 
 
 
-#define SNAPPY
-#undef  SNAPPY
 
 class ovFile {
 public:
@@ -372,6 +372,14 @@ public:
   uint64  recordSize(void) {
     return(sizeof(uint32) * ((_isNormal) ? 1 : 2) + sizeof(ovOverlapWORD) * ovOverlapNWORDS);
   };
+
+  //  For use in conversion, force snappy compression.  By default, it is ENABLED, and we cannot
+  //  read older ovb files.
+#ifdef SNAPPY
+  void    enableSnappy(bool enabled) {
+    _useSnappy = enabled;
+  };
+#endif
 
 private:
   uint32                  _bufferLen;    //  length of valid data in the buffer

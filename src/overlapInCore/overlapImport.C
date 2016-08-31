@@ -46,6 +46,7 @@ using namespace std;
 #define  TYPE_COORDS  'C'
 #define  TYPE_HANGS   'H'
 #define  TYPE_RAW     'R'
+#define  TYPE_OVB     'O'
 
 
 
@@ -58,6 +59,8 @@ main(int argc, char **argv) {
   char                  *ovlStoreName = NULL;
 
   char                   inType = TYPE_NONE;
+
+  bool                   native = false;
 
   vector<char *>         files;
 
@@ -88,6 +91,13 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-raw") == 0) {
       inType = TYPE_RAW;
 
+    } else if (strcmp(argv[arg], "-ovb") == 0) {
+      fprintf(stderr, "-ovb not implemented.\n"), exit(1);
+      inType = TYPE_OVB;
+
+    } else if (strcmp(argv[arg], "-native") == 0) {
+      native = true;
+
     } else if ((strcmp(argv[arg], "-") == 0) ||
                (AS_UTL_fileExists(argv[arg]))) {
       files.push_back(argv[arg]);
@@ -111,15 +121,18 @@ main(int argc, char **argv) {
     fprintf(stderr, "Required:\n");
     fprintf(stderr, "  -G name.gkpStore   path to valid gatekeeper store\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "Output options:\n");
+    fprintf(stderr, "Output Format:\n");
     fprintf(stderr, "  -o file.ovb        output file name\n");
     fprintf(stderr, "  -O name.ovlStore   output overlap store");
     fprintf(stderr, "\n");
-    fprintf(stderr, "Format options:\n");
+    fprintf(stderr, "Input Format:\n");
     fprintf(stderr, "  -legacy            'CA8 overlapStore -d' format\n");
     fprintf(stderr, "  -coords            'overlapConvert -coords' format (not implemented)\n");
     fprintf(stderr, "  -hangs             'overlapConvert -hangs' format (not implemented)\n");
     fprintf(stderr, "  -raw               'overlapConvert -raw' format\n");
+    fprintf(stderr, "  -ovb               'overlapInCore' format (not implemented)\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "-native              output ovb (-o) files will not be snappy compressed\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Input file can be stdin ('-') or a gz/bz2/xz compressed file.\n");
     fprintf(stderr, "\n");
@@ -141,6 +154,9 @@ main(int argc, char **argv) {
 
   ovFile       *of    = (ovlFileName  == NULL) ? NULL : new ovFile(ovlFileName, ovFileFullWrite);
   ovStore      *os    = (ovlStoreName == NULL) ? NULL : new ovStore(ovlStoreName, gkpStore, ovStoreWrite);
+
+  if (native == true)
+    of->enableSnappy(false);
 
   for (uint32 ff=0; ff<files.size(); ff++) {
     compressedFileReader   *in = new compressedFileReader(files[ff]);
