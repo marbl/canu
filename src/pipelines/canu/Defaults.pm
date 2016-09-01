@@ -1021,14 +1021,21 @@ sub gnuplotTest () {
         return;
     }
 
-    #  Check for existence of a decent output format.
+    #  Check for existence of a decent output format.  Need to redirect in /dev/null to make gnuplot
+    #  not use it's builtin pager.
 
     if (!defined($format)) {
         my $havePNG = 0;
         my $haveSVG = 0;
         my $haveGIF = 0;
 
-        open(F, "$gnuplot -e 'set terminal' |");
+        open(F, "> /tmp/gnuplot-$$-test.gp");
+        print F "set terminal\n";
+        close(F);
+
+        system("cd /tmp && $gnuplot < /dev/null /tmp/gnuplot-$$-test.gp > /tmp/gnuplot-$$-test.err 2>&1");
+
+        open(F, "< /tmp/gnuplot-$$-test.err");
         while (<F>) {
             s/^\s+//;
             s/\s+$//;
@@ -1046,6 +1053,9 @@ sub gnuplotTest () {
         $format = "png"   if ($havePNG);
 
         setGlobal("gnuplotImageFormat", $format);
+
+        unlink "/tmp/gnuplot-$$-test.gp";
+        unlink "/tmp/gnuplot-$$-test.err";
     }
 
     if (!defined($format)) {
@@ -1062,12 +1072,12 @@ sub gnuplotTest () {
     print F "set xlabel 'X'\n";
     print F "set xlabel 'Y'\n";
     print F "\n";
-    print F "set terminal '$format' size 1024,1024\n";
+    print F "set terminal $format size 1024,1024\n";
     print F "set output '/tmp/gnuplot-$$-test.1.$format'\n";
     print F "\n";
     print F "plot [-30:20] sin(x*20) * atan(x)\n\n";
     print F "\n";
-    print F "set terminal '$format' size 256,256\n";
+    print F "set terminal $format size 256,256\n";
     print F "set output '/tmp/gnuplot-$$-test.2.$format'\n";
     print F "\n";
     print F "bogus line\n";
@@ -1075,7 +1085,7 @@ sub gnuplotTest () {
 
     #  Dang, we don't have runCommandSilently here, so have to do it the hard way.
 
-    system("cd /tmp && $gnuplot /tmp/gnuplot-$$-test.gp > /tmp/gnuplot-$$-test.err 2>&1");
+    system("cd /tmp && $gnuplot < /dev/null /tmp/gnuplot-$$-test.gp > /tmp/gnuplot-$$-test.err 2>&1");
 
     if ((! -e "/tmp/gnuplot-$$-test.1.$format") ||
         (! -e "/tmp/gnuplot-$$-test.2.$format")) {

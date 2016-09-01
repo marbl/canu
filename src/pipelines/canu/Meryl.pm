@@ -166,7 +166,7 @@ sub plotHistogram ($$$$) {
     print F "plot [0:200] '$ofile.histogram' using 1:2 with lines title 'Histogram'\n";
     close(F);
 
-    if (runCommandSilently("$wrk/0-mercounts", "gnuplot $ofile.histogram.$suffix.gp > /dev/null 2>&1", 0)) {
+    if (runCommandSilently("$wrk/0-mercounts", "$gnuplot $ofile.histogram.$suffix.gp > /dev/null 2>&1", 0)) {
         print STDERR "--\n";
         print STDERR "-- WARNING: gnuplot failed; no plots will appear in HTML output.\n";
         print STDERR "--\n";

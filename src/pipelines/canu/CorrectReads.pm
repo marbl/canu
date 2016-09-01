@@ -681,7 +681,7 @@ sub expensiveFilter ($$) {
         print F "replot\n";
         close(F);
 
-        if (runCommandSilently($path, "$gnuplot < $path/$asm.estimate.original-x-correctedLength.gp > /dev/null 2>&1", 0)) {
+        if (runCommandSilently($path, "$gnuplot $path/$asm.estimate.original-x-correctedLength.gp > /dev/null 2>&1", 0)) {
             print STDERR "--\n";
             print STDERR "-- WARNING: gnuplot failed; no plots will appear in HTML output.\n";
             print STDERR "--\n";
