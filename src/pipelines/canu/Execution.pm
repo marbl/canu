@@ -575,6 +575,10 @@ sub getInstallDirectory () {
 #    Off grid - the job to run
 #    On grid  - an offset to add to SGE_TASK_ID or SLURM_ARRAY_TASK_ID to compute the job to run
 #
+#  PBSPro refuses to run an array job with one element.  They're submitted as a normal job.  Here,
+#  we check if it is running on the grid and if the task ID (aka, array ID) isn't set.  If so, we
+#  assume it is job 1.
+#
 sub getJobIDShellCode () {
     my $string;
     my $taskenv = getGlobal('gridEngineTaskID');
@@ -582,6 +586,9 @@ sub getJobIDShellCode () {
     $string .= "#  Discover the job ID to run, from either a grid environment variable and a\n";
     $string .= "#  command line offset, or directly from the command line.\n";
     $string .= "#\n";
+    $string .= "if [ x\$PBS_JOBID != x -a x\$$taskenv = x ]; then\n"   if (uc(getGlobal("gridEngine")) eq "PBSPRO");
+    $string .= "  \$$taskenv=1\n"                                      if (uc(getGlobal("gridEngine")) eq "PBSPRO");
+    $string .= "fi\n"                                                  if (uc(getGlobal("gridEngine")) eq "PBSPRO");
     $string .= "if [ x\$$taskenv = x -o x\$$taskenv = xundefined -o x\$$taskenv = x0 ]; then\n";
     $string .= "  baseid=\$1\n";
     $string .= "  offset=0\n";
@@ -761,7 +768,7 @@ sub makeUniqueJobName ($$) {
 
     #  First, find the list of all jobs that exist.
 
-    if (getGlobal("gridEngine") eq "SGE") {
+    if (uc(getGlobal("gridEngine")) eq "SGE") {
         open(F, "qstat -xml |");
         while (<F>) {
             $jobs{$1}++  if (m/^\s*<JB_name>(.*)<\/JB_name>$/);
@@ -769,10 +776,13 @@ sub makeUniqueJobName ($$) {
         close(F);
     }
 
-    if (getGlobal("gridEngine") eq "PBS") {
+    if (uc(getGlobal("gridEngine")) eq "PBS") {
     }
 
-    if (getGlobal("gridEngine") eq "LSF") {
+    if (uc(getGlobal("gridEngine")) eq "PBSPro") {
+    }
+
+    if (uc(getGlobal("gridEngine")) eq "LSF") {
     }
 
     #  If the jobName doesn't exist, we can use it.
@@ -897,7 +907,9 @@ sub submitScript ($$$) {
         my $hold = getGlobal("gridEngineHoldOption");
 
         # most grid engines don't understand job names to hold on, only IDs
-        if (uc(getGlobal("gridEngine")) eq "PBS" || uc(getGlobal("gridEngine")) eq "SLURM"){
+        if ((uc(getGlobal("gridEngine")) eq "PBS") ||
+            (uc(getGlobal("gridEngine")) eq "PBSPRO") ||
+            (uc(getGlobal("gridEngine")) eq "SLURM")){
            my $tcmd = getGlobal("gridEngineNameToJobIDCommand");
            $tcmd =~ s/WAIT_TAG/$jobToWaitOn/g;
            my $propJobCount = `$tcmd |wc -l`;
@@ -966,13 +978,22 @@ sub buildGridArray ($$$$) {
         $end -= $off;
     }
 
+    #  PBSPro requires array jobs to have bgn < end.  When $bgn == $end, we
+    #  just remove the array qualifier.
+
+    if (uc(getGlobal("gridEngine")) eq "PBSPRO") {
+        $opt = ""  if ($bgn == $end);
+    }
+
+    #  Further, PBS/Torque won't let scripts be passed options unless they
+    #  are prefixed with a -F....and PBSPro doesn't need this.
+
+    if (uc(getGlobal("gridEngine")) eq "PBS") {
+        $off = "-F \"$off\"";
+    }
+
     $opt =~ s/ARRAY_NAME/$name/g;        #  Replace ARRAY_NAME with 'job name'
     $opt =~ s/ARRAY_JOBS/$bgn-$end/g;    #  Replace ARRAY_JOBS with 'bgn-end'
-
-    # PBS/Torque won't let scripts be passed options unless they are prefixed with a -F
-    if (getGlobal("gridEngine") eq "PBS") {
-       $off="-F \"$off\"";
-    }
 
     return($opt, $off);
 }

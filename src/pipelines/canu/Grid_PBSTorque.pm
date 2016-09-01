@@ -71,8 +71,13 @@ sub detectPBSTorque () {
 
     my ($version, $isPro) = detectPBSVersion();
 
-    print STDERR "-- Detected PBS/Torque '$version' with 'pbsnodes' binary in $pbsnodes.\n";
-    setGlobal("gridEngine", "PBS");
+    if ($isPro == 0) {
+        print STDERR "-- Detected PBS/Torque '$version' with 'pbsnodes' binary in $pbsnodes.\n";
+        setGlobal("gridEngine", "PBS");
+    } else {
+        print STDERR "-- Detected PBSPro '$version' with 'pbsnodes' binary in $pbsnodes.\n";
+        setGlobal("gridEngine", "PBSPRO");
+    }
 }
 
 
@@ -148,14 +153,20 @@ sub configurePBSProNodes () {
 
 sub configurePBSTorque () {
 
-    return   if (uc(getGlobal("gridEngine")) ne "PBS");
+    return   if ((uc(getGlobal("gridEngine")) ne "PBS") &&
+                 (uc(getGlobal("gridEngine")) ne "PBSPRO"));
+
+    my $isPro = (uc(getGlobal("gridEngine")) eq "PBSPRO");
 
     setGlobalIfUndef("gridEngineSubmitCommand",              "qsub");
-    setGlobalIfUndef("gridEngineHoldOption",                 "-W depend=afteranyarray:WAIT_TAG");
+    setGlobalIfUndef("gridEngineHoldOption",                 "-W depend=afteranyarray:WAIT_TAG")   if ($isPro == 0);
+    setGlobalIfUndef("gridEngineHoldOption",                 "-W depend=afterany:WAIT_TAG")        if ($isPro == 1);
     setGlobalIfUndef("gridEngineHoldOptionNoArray",          "-W depend=afterany:WAIT_TAG");
     setGlobalIfUndef("gridEngineSyncOption",                 "");
-    setGlobalIfUndef("gridEngineNameOption",                 "-d `pwd` -N");
-    setGlobalIfUndef("gridEngineArrayOption",                "-t ARRAY_JOBS");
+    setGlobalIfUndef("gridEngineNameOption",                 "-d `pwd` -N")    if ($isPro == 0);
+    setGlobalIfUndef("gridEngineNameOption",                 "-N")             if ($isPro == 1);
+    setGlobalIfUndef("gridEngineArrayOption",                "-t ARRAY_JOBS")  if ($isPro == 0);
+    setGlobalIfUndef("gridEngineArrayOption",                "-J ARRAY_JOBS")  if ($isPro == 1);
     setGlobalIfUndef("gridEngineArrayName",                  "ARRAY_NAME");
     setGlobalIfUndef("gridEngineArrayMaxJobs",               65535);
     setGlobalIfUndef("gridEngineOutputOption",               "-j oe -o");
@@ -164,8 +175,10 @@ sub configurePBSTorque () {
     setGlobalIfUndef("gridEnginePropagateCommand",           "qalter -W depend=afterany:\"WAIT_TAG\"");
     setGlobalIfUndef("gridEngineNameToJobIDCommand",         "qstat -f |grep -F -B 1 WAIT_TAG | grep Id: | grep -F [] |awk '{print \$NF}'");
     setGlobalIfUndef("gridEngineNameToJobIDCommandNoArray",  "qstat -f |grep -F -B 1 WAIT_TAG | grep Id: |awk '{print \$NF}'");
-    setGlobalIfUndef("gridEngineTaskID",                     "PBS_ARRAYID");
-    setGlobalIfUndef("gridEngineArraySubmitID",              "\\\$PBS_ARRAYID");
+    setGlobalIfUndef("gridEngineTaskID",                     "PBS_ARRAYID")        if ($isPro == 0);
+    setGlobalIfUndef("gridEngineTaskID",                     "PBS_ARRAY_ID")       if ($isPro == 1);
+    setGlobalIfUndef("gridEngineArraySubmitID",              "\\\$PBS_ARRAYID")    if ($isPro == 0);
+    setGlobalIfUndef("gridEngineArraySubmitID",              "\\\$PBS_ARRAY_ID")   if ($isPro == 1);
     setGlobalIfUndef("gridEngineJobID",                      "PBS_JOBID");
 
     #  Build a list of the resources available in the grid.  This will contain a list with keys
@@ -173,13 +186,7 @@ sub configurePBSTorque () {
     #  to figure out what specific settings to use for each algorithm.
     #
     #  The list is saved in global{"availableHosts"}
-    #
 
-    my ($version, $isPro) = detectPBSVersion();
-
-    if ($isPro) {
-        configurePBSProNodes();
-    } else {
-        configurePBSTorqueNodes();
-    }
+    configurePBSTorqueNodes()   if ($isPro == 0);
+    configurePBSProNodes()      if ($isPro == 1);
 }
