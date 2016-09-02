@@ -175,10 +175,10 @@ sub configurePBSTorque () {
     setGlobalIfUndef("gridEnginePropagateCommand",           "qalter -W depend=afterany:\"WAIT_TAG\"");
     setGlobalIfUndef("gridEngineNameToJobIDCommand",         "qstat -f |grep -F -B 1 WAIT_TAG | grep Id: | grep -F [] |awk '{print \$NF}'");
     setGlobalIfUndef("gridEngineNameToJobIDCommandNoArray",  "qstat -f |grep -F -B 1 WAIT_TAG | grep Id: |awk '{print \$NF}'");
-    setGlobalIfUndef("gridEngineTaskID",                     "PBS_ARRAYID")        if ($isPro == 0);
-    setGlobalIfUndef("gridEngineTaskID",                     "PBS_ARRAY_ID")       if ($isPro == 1);
-    setGlobalIfUndef("gridEngineArraySubmitID",              "\\\$PBS_ARRAYID")    if ($isPro == 0);
-    setGlobalIfUndef("gridEngineArraySubmitID",              "\\\$PBS_ARRAY_ID")   if ($isPro == 1);
+    setGlobalIfUndef("gridEngineTaskID",                     "PBS_ARRAYID")           if ($isPro == 0);
+    setGlobalIfUndef("gridEngineTaskID",                     "PBS_ARRAY_INDEX")       if ($isPro == 1);
+    setGlobalIfUndef("gridEngineArraySubmitID",              "\\\$PBS_ARRAYID")       if ($isPro == 0);
+    setGlobalIfUndef("gridEngineArraySubmitID",              "\\\$PBS_ARRAY_INDEX")   if ($isPro == 1);
     setGlobalIfUndef("gridEngineJobID",                      "PBS_JOBID");
 
     #  Build a list of the resources available in the grid.  This will contain a list with keys
