@@ -164,7 +164,7 @@ sub overlapConfigure ($$$$) {
         print F "  mkdir $path/\$bat\n";
         print F "fi\n";
         print F "\n";
-        print F "if [ -e $path/\$job.ovb.gz ]; then\n";
+        print F "if [ -e $path/\$job.ovb ]; then\n";
         print F "  echo Job previously completed successfully.\n";
         print F "  exit\n";
         print F "fi\n";
@@ -182,13 +182,13 @@ sub overlapConfigure ($$$$) {
         print F "  --minlength ", getGlobal("minOverlapLength"), " \\\n";
         print F "  --minkmers \\\n" if (defined(getGlobal("${tag}OvlFilter")) && getGlobal("${tag}OvlFilter")==1);
         print F "  \$opt \\\n";
-        print F "  -o $path/\$job.ovb.WORKING.gz \\\n";
+        print F "  -o $path/\$job.ovb.WORKING \\\n";
         print F "  -s $path/\$job.stats \\\n";
         #print F "  -H $hashLibrary \\\n" if ($hashLibrary ne "0");
         #print F "  -R $refLibrary \\\n"  if ($refLibrary  ne "0");
         print F "  $wrk/$asm.gkpStore \\\n";
         print F "&& \\\n";
-        print F "mv $path/\$job.ovb.WORKING.gz $path/\$job.ovb.gz\n";
+        print F "mv $path/\$job.ovb.WORKING $path/\$job.ovb\n";
         print F "\n";
         print F "exit 0\n";
         close(F);

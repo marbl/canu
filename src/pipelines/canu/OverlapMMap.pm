@@ -259,7 +259,7 @@ sub mmapConfigure ($$$$) {
     print F "  exit 1\n";
     print F "fi\n";
     print F "\n";
-    print F "if [ -e $path/results/\$qry.ovb.gz ]; then\n";
+    print F "if [ -e $path/results/\$qry.ovb ]; then\n";
     print F "  echo Job previously completed successfully.\n";
     print F "  exit\n";
     print F "fi\n";
@@ -308,29 +308,29 @@ sub mmapConfigure ($$$$) {
     print F "\n";
 
     print F "if [   -e \"$path/results/\$qry.mmap\" -a \\\n";
-    print F "     ! -e \"$path/results/\$qry.ovb.gz\" ] ; then\n";
+    print F "     ! -e \"$path/results/\$qry.ovb\" ] ; then\n";
     print F "  \$bin/mmapConvert \\\n";
-    print F "    -o $path/results/\$qry.mmap.ovb.WORKING.gz \\\n";
+    print F "    -o $path/results/\$qry.mmap.ovb.WORKING \\\n";
     print F "    $path/results/\$qry.mmap \\\n";
     print F "  && \\\n";
-    print F "  mv $path/results/\$qry.mmap.ovb.WORKING.gz $path/results/\$qry.mmap.ovb.gz\n";
+    print F "  mv $path/results/\$qry.mmap.ovb.WORKING $path/results/\$qry.mmap.ovb\n";
     print F "fi\n";
     print F "\n";
 
     if (getGlobal('saveOverlaps') eq "0") {
         print F "if [   -e \"$path/results/\$qry.mmap\" -a \\\n";
-        print F "       -e \"$path/results/\$qry.mmap.ovb.gz\" ] ; then\n";
+        print F "       -e \"$path/results/\$qry.mmap.ovb\" ] ; then\n";
         print F "  rm -f $path/results/\$qry.mmap\n";
         print F "fi\n";
         print F "\n";
     }
 
-    print F "if [ -e \"$path/results/\$qry.mmap.ovb.gz\" ] ; then\n";
+    print F "if [ -e \"$path/results/\$qry.mmap.ovb\" ] ; then\n";
     if (getGlobal("${tag}ReAlign") eq "raw") {
         print F "  \$bin/overlapPair \\\n";
         print F "    -G $wrk/$asm.gkpStore \\\n";
-        print F "    -O $path/results/\$qry.mmap.ovb.gz \\\n";
-        print F "    -o $path/results/\$qry.ovb.gz \\\n";
+        print F "    -O $path/results/\$qry.mmap.ovb \\\n";
+        print F "    -o $path/results/\$qry.ovb \\\n";
         print F "    -partial \\\n"  if ($typ eq "partial");
         print F "    -erate ", getGlobal("corErrorRate"),    " \\\n"  if ($tag eq "cor");
         print F "    -erate ", getGlobal("obtOvlErrorRate"), " \\\n"  if ($tag eq "obt");
@@ -338,7 +338,7 @@ sub mmapConfigure ($$$$) {
         print F "    -memory " . getGlobal("${tag}mmapMemory") . " \\\n";
         print F "    -t " . getGlobal("${tag}mmapThreads") . " \n";
     } else {
-        print F "  mv -f \"$path/results/\$qry.mmap.ovb.gz\" \"$path/results/\$qry.ovb.gz\"\n";
+        print F "  mv -f \"$path/results/\$qry.mmap.ovb\" \"$path/results/\$qry.ovb\"\n";
     }
     print F "fi\n";
 

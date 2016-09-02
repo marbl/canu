@@ -404,7 +404,7 @@ sub mhapConfigure ($$$$) {
     print F "  exit 1\n";
     print F "fi\n";
     print F "\n";
-    print F "if [ -e $path/results/\$qry.ovb.gz ]; then\n";
+    print F "if [ -e $path/results/\$qry.ovb ]; then\n";
     print F "  echo Job previously completed successfully.\n";
     print F "  exit\n";
     print F "fi\n";
@@ -443,30 +443,30 @@ sub mhapConfigure ($$$$) {
     print F "\n";
 
     print F "if [   -e \"$path/results/\$qry.mhap\" -a \\\n";
-    print F "     ! -e \"$path/results/\$qry.ovb.gz\" ] ; then\n";
+    print F "     ! -e \"$path/results/\$qry.ovb\" ] ; then\n";
     print F "  \$bin/mhapConvert \\\n";
     print F "    \$cvt \\\n";
-    print F "    -o $path/results/\$qry.mhap.ovb.WORKING.gz \\\n";
+    print F "    -o $path/results/\$qry.mhap.ovb.WORKING \\\n";
     print F "    $path/results/\$qry.mhap \\\n";
     print F "  && \\\n";
-    print F "  mv $path/results/\$qry.mhap.ovb.WORKING.gz $path/results/\$qry.mhap.ovb.gz\n";
+    print F "  mv $path/results/\$qry.mhap.ovb.WORKING $path/results/\$qry.mhap.ovb\n";
     print F "fi\n";
     print F "\n";
 
     if (getGlobal('saveOverlaps') eq "0") {
         print F "if [   -e \"$path/results/\$qry.mhap\" -a \\\n";
-        print F "       -e \"$path/results/\$qry.mhap.ovb.gz\" ] ; then\n";
+        print F "       -e \"$path/results/\$qry.mhap.ovb\" ] ; then\n";
         print F "  rm -f $path/results/\$qry.mhap\n";
         print F "fi\n";
         print F "\n";
     }
 
-    print F "if [ -e \"$path/results/\$qry.mhap.ovb.gz\" ] ; then\n";
+    print F "if [ -e \"$path/results/\$qry.mhap.ovb\" ] ; then\n";
     if (getGlobal("${tag}ReAlign") eq "raw") {
         print F "  \$bin/overlapPair \\\n";
         print F "    -G $wrk/$asm.gkpStore \\\n";
-        print F "    -O $path/results/\$qry.mhap.ovb.gz \\\n";
-        print F "    -o $path/results/\$qry.WORKING.ovb.gz \\\n";
+        print F "    -O $path/results/\$qry.mhap.ovb \\\n";
+        print F "    -o $path/results/\$qry.WORKING.ovb \\\n";
         print F "    -partial \\\n"  if ($typ eq "partial");
         print F "    -len "  , getGlobal("minOverlapLength"),  " \\\n";
         print F "    -erate ", getGlobal("corErrorRate"),    " \\\n"  if ($tag eq "cor");
@@ -475,9 +475,9 @@ sub mhapConfigure ($$$$) {
         print F "    -memory " . getGlobal("${tag}mhapMemory") . " \\\n";
         print F "    -t " . getGlobal("${tag}mhapThreads") . " \\\n";
         print F "  && \\\n";
-        print F "  mv -f $path/results/\$qry.WORKING.ovb.gz $path/results/\$qry.ovb.gz\n";
+        print F "  mv -f $path/results/\$qry.WORKING.ovb $path/results/\$qry.ovb\n";
     } else {
-        print F "  mv -f \"$path/results/\$qry.mhap.ovb.gz\" \"$path/results/\$qry.ovb.gz\"\n";
+        print F "  mv -f \"$path/results/\$qry.mhap.ovb\" \"$path/results/\$qry.ovb\"\n";
     }
     print F "fi\n";
 
