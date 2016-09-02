@@ -168,7 +168,7 @@ sub configurePBSTorque () {
     setGlobalIfUndef("gridEngineArrayOption",                "-t ARRAY_JOBS")  if ($isPro == 0);
     setGlobalIfUndef("gridEngineArrayOption",                "-J ARRAY_JOBS")  if ($isPro == 1);
     setGlobalIfUndef("gridEngineArrayName",                  "ARRAY_NAME");
-    setGlobalIfUndef("gridEngineArrayMaxJobs",               65535);
+    setGlobalIfUndef("gridEngineArrayMaxJobs",               268435456);  #  Effectively unlimited.
     setGlobalIfUndef("gridEngineOutputOption",               "-j oe -o");
     setGlobalIfUndef("gridEngineThreadsOption",              "-l nodes=1:ppn=THREADS");
     setGlobalIfUndef("gridEngineMemoryOption",               "-l mem=MEMORY");

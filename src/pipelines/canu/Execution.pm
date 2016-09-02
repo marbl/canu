@@ -590,10 +590,10 @@ sub getJobIDShellCode () {
     $string .= "  \$$taskenv=1\n"                                      if (uc(getGlobal("gridEngine")) eq "PBSPRO");
     $string .= "fi\n"                                                  if (uc(getGlobal("gridEngine")) eq "PBSPRO");
     $string .= "if [ x\$$taskenv = x -o x\$$taskenv = xundefined -o x\$$taskenv = x0 ]; then\n";
-    $string .= "  baseid=\$1\n";
+    $string .= "  baseid=\$1\n";           #  Off grid
     $string .= "  offset=0\n";
     $string .= "else\n";
-    $string .= "  baseid=\$$taskenv\n";
+    $string .= "  baseid=\$$taskenv\n";    #  On Grid
     $string .= "  offset=\$1\n";
     $string .= "fi\n";
     $string .= "if [ x\$offset = x ]; then\n";
@@ -984,6 +984,7 @@ sub buildGridArray ($$$$) {
 
     if (uc(getGlobal("gridEngine")) eq "PBSPRO") {
         $opt = ""  if (($bgn == $end) && ($opt =~ m/ARRAY_JOBS/));
+        $off = "";
     }
 
     #  Further, PBS/Torque won't let scripts be passed options unless they
@@ -991,6 +992,7 @@ sub buildGridArray ($$$$) {
 
     if (uc(getGlobal("gridEngine")) eq "PBS") {
         $off = "-F \"$off\"";
+        $off = "";
     }
 
     $opt =~ s/ARRAY_NAME/$name/g;        #  Replace ARRAY_NAME with 'job name'
