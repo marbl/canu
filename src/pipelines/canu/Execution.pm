@@ -979,10 +979,11 @@ sub buildGridArray ($$$$) {
     }
 
     #  PBSPro requires array jobs to have bgn < end.  When $bgn == $end, we
-    #  just remove the array qualifier.
+    #  just remove the array qualifier.  But only if this option is setting
+    #  the number of jobs, not if it is setting the name.
 
     if (uc(getGlobal("gridEngine")) eq "PBSPRO") {
-        $opt = ""  if ($bgn == $end);
+        $opt = ""  if (($bgn == $end) && ($opt =~ m/ARRAY_JOBS/));
     }
 
     #  Further, PBS/Torque won't let scripts be passed options unless they
