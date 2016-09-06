@@ -226,6 +226,7 @@ sub mmapConfigure ($$$$) {
     print F "  -G $wrk/$asm.gkpStore \\\n";
     print F "  \$rge \\\n";
     print F "  -nolibname \\\n";
+    print F "  -noreadname \\\n";
     print F "  -fasta \\\n";
     print F "  -o $path/blocks/\$job \\\n";
     print F "|| \\\n";
