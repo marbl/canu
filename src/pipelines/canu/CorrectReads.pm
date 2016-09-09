@@ -730,7 +730,7 @@ sub buildCorrectionLayouts ($$) {
         $cmd  = "$bin/filterCorrectionOverlaps \\\n";
         $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
         $cmd .= "  -O $wrk/$asm.ovlStore \\\n";
-        $cmd .= "  -S $path/$asm.globalScores \\\n";
+        $cmd .= "  -S $path/$asm.globalScores.WORKING \\\n";
         $cmd .= "  -c $maxCov \\\n";
         $cmd .= "  -l $minLen \\\n";
         $cmd .= "  -e " . getGlobal("corMaxEvidenceErate")  . " \\\n"  if (defined(getGlobal("corMaxEvidenceErate")));
@@ -741,6 +741,7 @@ sub buildCorrectionLayouts ($$) {
             caExit("failed to globally filter overlaps for correction", "$path/$asm.globalScores.err");
         }
 
+        rename "$path/$asm.globalScores.WORKING", "$path/$asm.globalScores";
         unlink "$path/$asm.globalScores.err";
     }
 
