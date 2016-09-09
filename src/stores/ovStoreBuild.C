@@ -517,6 +517,10 @@ main(int argc, char **argv) {
   //  Dump the configuration if told to.
 
   if (configOut) {
+    char  F[FILENAME_MAX];
+
+    sprintf(F, "%s.WORKING", configOut);
+
     errno = 0;
     FILE *C = fopen(configOut, "w");
     if (errno)
@@ -526,6 +530,8 @@ main(int argc, char **argv) {
     AS_UTL_safeWrite(C,  iidToBucket, "iidToBucket", sizeof(uint32), maxIID);
 
     fclose(C);
+
+    rename(F, configOut);
 
     delete [] iidToBucket;
 
