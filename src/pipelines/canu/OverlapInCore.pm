@@ -78,11 +78,16 @@ sub overlapConfigure ($$$$) {
 
     make_path("$path") if (! -d "$path");
 
+    #  overlapInCorePartition internally uses 'WORKING' outputs, and renames to the final
+    #  version right before it exits.  All we need to do here is check for existence of
+    #  the output, and exit if the command fails.
+
     if (! -e "$path/$asm.partition.ovlopt") {
 
-        #  These used to be runCA options, but were removed in canu.  They were used mostly for illumina-pacbio correction,
-        #  but were also used (or could have been used) during the Salmon assembly when overlaps were computed differently
-        #  depending on the libraries involved (and was run manually).  These are left in for documentation.
+        #  These used to be runCA options, but were removed in canu.  They were used mostly for
+        #  illumina-pacbio correction, but were also used (or could have been used) during the
+        #  Salmon assembly when overlaps were computed differently depending on the libraries
+        #  involved (and was run manually).  These are left in for documentation.
         #
         #my $checkLibrary       = getGlobal("${tag}CheckLibrary");
         #my $hashLibrary        = getGlobal("${tag}HashLibrary");
@@ -127,8 +132,6 @@ sub overlapConfigure ($$$$) {
     close(BAT);
     close(JOB);
     close(OPT);
-
-    #getAllowedResources($tag, "ovl");
 
     if (! -e "$path/overlap.sh") {
         my $merSize      = getGlobal("${tag}OvlMerSize");
