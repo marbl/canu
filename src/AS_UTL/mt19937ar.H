@@ -54,6 +54,7 @@ public:
   //
   double  mtRandomGaussian(void);
 
+  double  mtRandomExponential(double lambda, double tau=1.0);
 
 private:
   uint32  mt[MT_N];  //  State vector array

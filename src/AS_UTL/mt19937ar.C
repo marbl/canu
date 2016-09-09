@@ -168,3 +168,11 @@ mtRandom::mtRandomGaussian(void) {
 
   return(y1);
 }
+
+
+//  Ganerate a number from an exponential distribution using Inverse Transform Sampling.
+//
+double
+mtRandom::mtRandomExponential(double mode, double lambda) {
+  return(mode - 1/lambda * log(mtRandomRealOpen()));
+}
