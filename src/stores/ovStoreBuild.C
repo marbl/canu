@@ -68,8 +68,23 @@ computeIIDperBucket(uint32          fileLimit,
                     uint64          maxMemory,
                     uint32          maxIID,
                     vector<char *> &fileList) {
-  uint32  *iidToBucket = new uint32 [maxIID];
-  uint32    maxFiles    = MIN(floor(sysconf(_SC_CHILD_MAX) / 2), sysconf(_SC_OPEN_MAX) - 16);
+  uint32  *iidToBucket   = new uint32 [maxIID];
+  int64    procMax       = sysconf(_SC_CHILD_MAX);
+  int64    openMax       = sysconf(_SC_OPEN_MAX);
+  int64    maxFiles      = 0;
+
+  //  As of late August 2016, the ovb files are not gzip compressed, and do not need to use an
+  //  external process to decompress.  The support for limiting by number of processes is left in -
+  //  but disabled - because it's really just these three lines here, and because the code still
+  //  supports gzip inputs.
+
+  if (openMax > 16)
+    openMax -= 16;
+
+  if (procMax > 8192)  //  Once saw a case where procMax was 18,446,744,073,709,551,615 (2^64-1)
+    procMax = 8192;    //  and openMax was 262,144.  It didn't end well.
+
+  maxFiles    = openMax;  //  MIN(procMax, openMax);    ENABLE THIS TO LIMIT PROCESSES TOO.
 
   //  If we're reading from stdin, not much we can do but divide the IIDs equally per file.  Note
   //  that the IIDs must be consecutive; the obvious, simple and clean division of 'mod' won't work.
@@ -224,10 +239,12 @@ computeIIDperBucket(uint32          fileLimit,
       fprintf(stderr, "ERROR:  Cannot sort %.2f million overlaps using %.2f GB memory; too few file handles available.\n",
               numOverlaps / 1000000.0,
               maxMemory / 1024.0 / 1024.0 / 1024.0);
+      fprintf(stderr, "ERROR:    minMemory      "F_U64"\n", minMemory);
+      fprintf(stderr, "ERROR:    maxMemory      "F_U64"\n", maxMemory);
       fprintf(stderr, "ERROR:    olapsPerBucket "F_U64"\n", olapsPerBucketMax);
       fprintf(stderr, "ERROR:    buckets        "F_U64"\n", numOverlaps / olapsPerBucketMax + 1);
-      fprintf(stderr, "ERROR:    SC_CHILD_MAX   "F_U64"\n", sysconf(_SC_CHILD_MAX));
-      fprintf(stderr, "ERROR:    SC_OPEN_MAX    "F_U64"\n", sysconf(_SC_OPEN_MAX));
+      fprintf(stderr, "ERROR:    SC_CHILD_MAX   "F_S64"\n", sysconf(_SC_CHILD_MAX));
+      fprintf(stderr, "ERROR:    SC_OPEN_MAX    "F_S64"\n", sysconf(_SC_OPEN_MAX));
       fprintf(stderr, "ERROR:  Increase memory size (in canu, ovsMemory; in ovStoreBuild, -M)\n");
       exit(1);
     }
