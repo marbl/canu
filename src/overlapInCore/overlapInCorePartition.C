@@ -344,6 +344,36 @@ partitionLength(gkStore      *gkp,
 
 
 
+FILE *
+openOutput(char *prefix, char *type) {
+  char  A[FILENAME_MAX];
+
+  sprintf(A, "%s.%s.WORKING", prefix, type);
+
+  errno = 0;
+
+  FILE *F = fopen(A, "w");
+
+  if (errno)
+    fprintf(stderr, "Failed to open '%s': %s\n", A, strerror(errno)), exit(1);
+
+  return(F);
+}
+
+
+
+void
+renameToFinal(char *prefix, char *type) {
+  char  A[FILENAME_MAX];
+  char  B[FILENAME_MAX];
+
+  sprintf(A, "%s.%s.WORKING", prefix, type);
+  sprintf(B, "%s.%s",         prefix, type);
+
+  rename(A, B);
+}
+
+
 
 int
 main(int argc, char **argv) {
@@ -449,22 +479,9 @@ main(int argc, char **argv) {
   if (invalidLibs > 0)
     fprintf(stderr, "ERROR: one of -H and/or -R are invalid.\n"), exit(1);
 
-  errno = 0;
-
-  sprintf(outputName, "%s.ovlbat", outputPrefix);
-  FILE *BAT = fopen(outputName, "w");
-  if (errno)
-    fprintf(stderr, "Failed to open '%s': %s\n", outputName, strerror(errno)), exit(1);
-
-  sprintf(outputName, "%s.ovljob", outputPrefix);
-  FILE *JOB = fopen(outputName, "w");
-  if (errno)
-    fprintf(stderr, "Failed to open '%s': %s\n", outputName, strerror(errno)), exit(1);
-
-  sprintf(outputName, "%s.ovlopt", outputPrefix);
-  FILE *OPT = fopen(outputName, "w");
-  if (errno)
-    fprintf(stderr, "Failed to open '%s': %s\n", outputName, strerror(errno)), exit(1);
+  FILE *BAT = openOutput(outputPrefix, "ovlbat");
+  FILE *JOB = openOutput(outputPrefix, "ovljob");
+  FILE *OPT = openOutput(outputPrefix, "ovlopt");
 
   if (ovlHashBlockLength == 0)
     partitionFrags(gkp, BAT, JOB, OPT, minOverlapLength, ovlHashBlockSize, ovlRefBlockLength, ovlRefBlockSize, libToHash, libToRef);
@@ -474,6 +491,10 @@ main(int argc, char **argv) {
   fclose(BAT);
   fclose(JOB);
   fclose(OPT);
+
+  renameToFinal(outputPrefix, "ovlbat");
+  renameToFinal(outputPrefix, "ovljob");
+  renameToFinal(outputPrefix, "ovlopt");
 
   gkp->gkStore_close();
 
