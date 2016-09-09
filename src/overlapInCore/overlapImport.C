@@ -36,6 +36,7 @@
 #include "ovStore.H"
 
 #include "splitToWords.H"
+#include "mt19937ar.H"
 
 #include <vector>
 
@@ -47,7 +48,7 @@ using namespace std;
 #define  TYPE_HANGS   'H'
 #define  TYPE_RAW     'R'
 #define  TYPE_OVB     'O'
-
+#define  TYPE_RANDOM  'r'
 
 
 int
@@ -59,6 +60,8 @@ main(int argc, char **argv) {
   char                  *ovlStoreName = NULL;
 
   char                   inType = TYPE_NONE;
+
+  uint64                 numRandom = 0;
 
   bool                   native = false;
 
@@ -94,6 +97,11 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-ovb") == 0) {
       fprintf(stderr, "-ovb not implemented.\n"), exit(1);
       inType = TYPE_OVB;
+
+    } else if (strcmp(argv[arg], "-random") == 0) {
+      inType    = TYPE_RANDOM;
+      numRandom = strtoull(argv[++arg], NULL, 10);
+      files.push_back(NULL);
 
     } else if (strcmp(argv[arg], "-native") == 0) {
       native = true;
@@ -131,6 +139,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -hangs             'overlapConvert -hangs' format (not implemented)\n");
     fprintf(stderr, "  -raw               'overlapConvert -raw' format\n");
     fprintf(stderr, "  -ovb               'overlapInCore' format (not implemented)\n");
+    fprintf(stderr, "  -random N          create N random overlaps, for store testing\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "-native              output ovb (-o) files will not be snappy compressed\n");
     fprintf(stderr, "\n");
@@ -141,6 +150,8 @@ main(int argc, char **argv) {
       fprintf(stderr, "ERROR: need to supply a gkpStore (-G).\n");
     if (inType == TYPE_NONE)
       fprintf(stderr, "ERROR: need to supply a format type (-legacy, -coords, -hangs, -raw).\n");
+    if (files.size() == 0)
+      fprintf(stderr, "ERROR: need to supply input files.\n");
 
     exit(1);
   }
@@ -157,6 +168,45 @@ main(int argc, char **argv) {
 
   if (native == true)
     of->enableSnappy(false);
+
+  //  Make random inputs first.
+
+  if (inType == TYPE_RANDOM) {
+    mtRandom  mt;
+
+    for (uint64 ii=0; ii<numRandom; ii++) {
+      uint32   aID      = floor(mt.mtRandomRealOpen() * gkpStore->gkStore_getNumReads());
+      uint32   bID      = floor(mt.mtRandomRealOpen() * gkpStore->gkStore_getNumReads());
+
+      uint32   aLen     = gkpStore->gkStore_getRead(aID)->gkRead_sequenceLength();
+      uint32   bLen     = gkpStore->gkStore_getRead(bID)->gkRead_sequenceLength();
+
+      bool     olapFlip = mt.mtRandom32() % 2;
+
+      //  We could be fancy and make actual overlaps that make sense, or punt and make overlaps that
+      //  are valid but nonsense.
+
+      ov.a_iid = aID;
+      ov.b_iid = bID;
+
+      ov.flipped(olapFlip);
+
+      ov.a_hang((int32)(mt.mtRandomRealOpen() * 2 * aLen - aLen));
+      ov.b_hang((int32)(mt.mtRandomRealOpen() * 2 * bLen - bLen));
+
+      ov.erate(mt.mtRandomRealOpen() * 0.1);
+
+      if (of)
+        of->writeOverlap(&ov);
+
+      if (os)
+        os->writeOverlap(&ov);
+    }
+
+    files.pop_back();
+  }
+
+  //  Now process any files.
 
   for (uint32 ff=0; ff<files.size(); ff++) {
     compressedFileReader   *in = new compressedFileReader(files[ff]);
