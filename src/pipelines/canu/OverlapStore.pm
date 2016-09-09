@@ -170,7 +170,9 @@ sub overlapStoreConfigure ($$$$) {
     system("mkdir -p $wrk/$asm.ovlStore.BUILDING/scripts")           if (! -d "$wrk/$asm.ovlStore.BUILDING/scripts");
     system("mkdir -p $wrk/$asm.ovlStore.BUILDING/logs")              if (! -d "$wrk/$asm.ovlStore.BUILDING/logs");
 
-    #  Run the normal store build, but just to get the partitioning.
+    #  Run the normal store build, but just to get the partitioning.  ovStoreBuild internally
+    #  writes to config.WORKING, then renames when it is finished.  No need for the script
+    #  to be overly careful about incomplete files.
 
     if (! -e "$wrk/$asm.ovlStore.BUILDING/scripts/0-config.sh") {
         open(F, "> $wrk/$asm.ovlStore.BUILDING/scripts/0-config.sh") or die;
