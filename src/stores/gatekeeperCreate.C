@@ -359,17 +359,6 @@ loadReads(gkStore    *gkpStore,
   fprintf(stderr, "\n");
   fprintf(stderr, "  Loading reads from '%s'\n", fileName);
 
-#if 0
-  fprintf(htmlLog, "<tr id='gkpload%u'><td colspan='2'>%s</td></tr>\n", gkpFileID, fileName);
-  fprintf(htmlLog, "<tr class='details'><td rowspan='9'>Parameters</td><td>preset=N/A</td></tr>\n");
-  fprintf(htmlLog, "<tr class='details'><td>defaultQV=%u</td></tr>\n",            gkpLibrary->gkLibrary_defaultQV());
-  fprintf(htmlLog, "<tr class='details'><td>isNonRandom=%s</td></tr>\n",          gkpLibrary->gkLibrary_isNonRandom()          ? "true" : "false");
-  fprintf(htmlLog, "<tr class='details'><td>removeDuplicateReads=%s</td></tr>\n", gkpLibrary->gkLibrary_removeDuplicateReads() ? "true" : "false");
-  fprintf(htmlLog, "<tr class='details'><td>finalTrim=%s</td></tr>\n",            gkpLibrary->gkLibrary_finalTrim()            ? "true" : "false");
-  fprintf(htmlLog, "<tr class='details'><td>removeSpurReads=%s</td></tr>\n",      gkpLibrary->gkLibrary_removeSpurReads()      ? "true" : "false");
-  fprintf(htmlLog, "<tr class='details'><td>removeChimericReads=%s</td></tr>\n",  gkpLibrary->gkLibrary_removeChimericReads()  ? "true" : "false");
-  fprintf(htmlLog, "<tr class='details'><td>checkForSubReads=%s</td></tr>\n",     gkpLibrary->gkLibrary_checkForSubReads()     ? "true" : "false");
-#else
   fprintf(htmlLog, "nam "F_U32" %s\n", gkpFileID, fileName);
 
   fprintf(htmlLog, "lib preset=N/A");
@@ -380,8 +369,6 @@ loadReads(gkStore    *gkpStore,
   fprintf(htmlLog,    " removeSpurReads=%s",      gkpLibrary->gkLibrary_removeSpurReads()      ? "true" : "false");
   fprintf(htmlLog,    " removeChimericReads=%s",  gkpLibrary->gkLibrary_removeChimericReads()  ? "true" : "false");
   fprintf(htmlLog,    " checkForSubReads=%s\n",   gkpLibrary->gkLibrary_checkForSubReads()     ? "true" : "false");
-#endif
-
 
   compressedFileReader *F = new compressedFileReader(fileName);
 
@@ -513,25 +500,12 @@ loadReads(gkStore    *gkpStore,
 
   //  Write status to HTML
 
-#if 0
-  fprintf(htmlLog, "<tr class='details'><td rowspan='2'>FASTA</td><td>"F_U32" reads ("F_U64" bp)</td></tr>\n", nLOADEDAlocal, bLOADEDAlocal);
-  fprintf(htmlLog, "<tr class='details'><td>"F_U32" reads ("F_U64" bp) were short and not loaded</td></tr>\n", nSKIPPEDAlocal, bSKIPPEDAlocal);
-
-  fprintf(htmlLog, "<tr class='details'><td rowspan='2'>FASTQ</td><td>"F_U32" reads ("F_U64" bp)</td></tr>\n", nLOADEDQlocal, bLOADEDQlocal);
-  fprintf(htmlLog, "<tr class='details'><td>"F_U32" reads ("F_U64" bp) were short and not loaded</td></tr>\n", nSKIPPEDQlocal, bSKIPPEDQlocal);
-
-  fprintf(htmlLog, "<tr><td colspan='2'>"F_U32" reads ("F_U64" bp) loaded, "F_U32" reads ("F_U64" bp) skipped, "F_U32" warnings</td></tr>\n",
-          nLOADEDAlocal + nLOADEDQlocal, bLOADEDAlocal + bLOADEDQlocal,
-          nSKIPPEDAlocal + nSKIPPEDQlocal, bSKIPPEDAlocal + bSKIPPEDQlocal,
-          nWARNSlocal);
-#else
   fprintf(htmlLog, "dat "F_U32" "F_U64" "F_U32" "F_U64" "F_U32" "F_U64" "F_U32" "F_U64" "F_U32"\n",
           nLOADEDAlocal, bLOADEDAlocal,
           nSKIPPEDAlocal, bSKIPPEDAlocal,
           nLOADEDQlocal, bLOADEDQlocal,
           nSKIPPEDQlocal, bSKIPPEDQlocal,
           nWARNSlocal);
-#endif
 
   //  Add the just loaded numbers to the global numbers
 
@@ -645,26 +619,6 @@ main(int argc, char **argv) {
   uint32  nSKIPPED = 0;
   uint64  bSKIPPED = 0;  //  Bases not loaded, too short
 
-#if 0
-  fprintf(htmlLog, "<!DOCTYPE html>\n");
-  fprintf(htmlLog, "<html>\n");
-  fprintf(htmlLog, "<head>\n");
-  fprintf(htmlLog, "<title>gatekeeper load statistics</title>\n");
-  fprintf(htmlLog, "<style type='text/css'>\n");
-  fprintf(htmlLog, "body       { font-family: Helvetica, Verdana, sans-serif; }\n");
-  fprintf(htmlLog, "h1, h2     { color: #ee3e80; }\n");
-  fprintf(htmlLog, "p          { color: #665544; }\n");
-  fprintf(htmlLog, "th, td     { border: 1px solid #111111; padding: 2px 2px 2px 2px; }\n");
-  fprintf(htmlLog, "td:hover   { background-color: #e4e4e4; }\n");
-  fprintf(htmlLog, "th:hover   { background-color: #d4d4d4; }\n");
-  fprintf(htmlLog, "tr.details { visibility: collapse; }\n");
-  fprintf(htmlLog, "</style>\n");
-  fprintf(htmlLog, "</head>\n");
-  fprintf(htmlLog, "<body>\n");
-  fprintf(htmlLog, "<h2>Input Files</h2>\n");
-  fprintf(htmlLog, "<table>\n");
-#endif
-
   for (; firstFileArg < argc; firstFileArg++) {
     fprintf(stderr, "\n");
     fprintf(stderr, "Starting file '%s'.\n", argv[firstFileArg]);
@@ -745,10 +699,6 @@ main(int argc, char **argv) {
     delete [] linekv;
   }
 
-#if 0
-  fprintf(htmlLog, "</table>\n");
-#endif
-
   gkpStore->gkStore_close();
 
   fclose(nameMap);
@@ -758,12 +708,6 @@ main(int argc, char **argv) {
   fprintf(stderr, "Finished with:\n");
   fprintf(stderr, "  "F_U32" warnings (bad base or qv, too short, too long)\n", nWARNS);
   fprintf(stderr, "\n");
-#if 0
-  fprintf(stderr, "Read from inputs:\n");
-  fprintf(stderr, "  "F_U64" bp.\n",    bLOADED);
-  fprintf(stderr, "  "F_U32" reads.\n", nLOADED);
-  fprintf(stderr, "\n");
-#endif
   fprintf(stderr, "Loaded into store:\n");
   fprintf(stderr, "  "F_U64" bp.\n",    bLOADED);
   fprintf(stderr, "  "F_U32" reads.\n", nLOADED);
@@ -773,49 +717,9 @@ main(int argc, char **argv) {
   fprintf(stderr, "  "F_U32" reads (%.4f%%).\n", nSKIPPED, 100.0 * nSKIPPED / (nSKIPPED + nLOADED));
   fprintf(stderr, "\n");
   fprintf(stderr, "\n");
-
-#if 0
-  fprintf(htmlLog, "\n");
-  fprintf(htmlLog, "<h2>Final Store</h2>\n");
-  fprintf(htmlLog, "<table>\n");
-  fprintf(htmlLog, "<tr><td colspan='2'>%s</td></tr>\n", gkpStoreName);
-  fprintf(htmlLog, "<tr><td>readsLoaded</td><td>"F_U32" reads ("F_U64" bp)</td></tr>\n", nLOADED, bLOADED);
-  fprintf(htmlLog, "<tr><td>readsSkipped</td><td>"F_U32" reads ("F_U64" bp) (read was too short)</td></tr>\n", nSKIPPED, bSKIPPED);
-  fprintf(htmlLog, "<tr><td>warnings</td><td>"F_U32" warnings (invalid base or quality value)</td></tr>\n", nWARNS);
-  fprintf(htmlLog, "</table>\n");
-  fprintf(htmlLog, "\n");
-
-  fprintf(htmlLog, "<script type='text/javascript'>\n");
-  fprintf(htmlLog, "var toggleOne = function() {\n");
-  fprintf(htmlLog, "  var table = this.closest('table');\n");
-  fprintf(htmlLog, "  var elts  = table.querySelectorAll('.details');\n");
-  fprintf(htmlLog, "\n");
-  fprintf(htmlLog, "  for (var i=0; i<elts.length; i++) {\n");
-  fprintf(htmlLog, "    if (!elts[i].enabled) {\n");
-  fprintf(htmlLog, "      elts[i].enabled = true;\n");
-  fprintf(htmlLog, "      elts[i].style.visibility = 'visible';\n");
-  fprintf(htmlLog, "    } else {\n");
-  fprintf(htmlLog, "      elts[i].enabled = false;\n");
-  fprintf(htmlLog, "      elts[i].style.visibility = 'collapse';\n");
-  fprintf(htmlLog, "    }\n");
-  fprintf(htmlLog, "  }\n");
-  fprintf(htmlLog, "}\n");
-  fprintf(htmlLog, "\n");
-  for (uint32 ii=0; ii<gkpFileID; ii++) {
-    fprintf(htmlLog, "document.getElementById('gkpload%u').onclick = toggleOne;\n", ii);
-    fprintf(htmlLog, "document.getElementById('gkpload%u').style   = 'cursor: pointer;';\n", ii);
-  }
-  fprintf(htmlLog, "</script>\n");
-  fprintf(htmlLog, "\n");
-  fprintf(htmlLog, "</body>\n");
-  fprintf(htmlLog, "</html>\n");
-#else
   fprintf(htmlLog, "sum "F_U32" "F_U64" "F_U32" "F_U64" "F_U32"\n", nLOADED, bLOADED, nSKIPPED, bSKIPPED, nWARNS);
-#endif
 
   fclose(htmlLog);
-
-
 
   if (nERROR > 0)
     fprintf(stderr, "gatekeeperCreate did NOT finish successfully; too many errors.\n");
