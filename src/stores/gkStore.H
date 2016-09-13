@@ -221,14 +221,6 @@ public:
     _blobLen   = 0;
     _blobMax   = 0;
     _blob      = NULL;
-
-    _pacbio._deletionQV     = NULL;
-    _pacbio._deletionTag    = NULL;
-    _pacbio._insertionQV    = NULL;
-    _pacbio._substitutionQV = NULL;
-    _pacbio._mergeQV        = NULL;
-
-    _nanopore._someQV       = NULL;
   };
 
   ~gkReadData() {
@@ -238,14 +230,6 @@ public:
     delete [] _qlt;
 
     delete [] _blob;
-
-    delete [] _pacbio._deletionQV;
-    delete [] _pacbio._deletionTag;
-    delete [] _pacbio._insertionQV;
-    delete [] _pacbio._substitutionQV;
-    delete [] _pacbio._mergeQV;
-
-    delete [] _nanopore._someQV;
   };
 
   gkRead  *gkReadData_getRead(void)         { return(_read); };
@@ -275,23 +259,6 @@ private:
   //  Used by the store for adding a read.
 
   void     gkReadData_encodeBlobChunk(char const *tag, uint32 len, void *dat);
-
-  //  Some reads have more data than others.  This used to be a union, but that
-  //  only complicated things with no clear beneift.  Yay, we saved a few bytes on
-  //  a structure that we have only a few copies in core at a time.
-
-  struct pacbio {
-    char          *_deletionQV;
-    char          *_deletionTag;
-    char          *_insertionQV;
-    char          *_substitutionQV;
-    char          *_mergeQV;
-  } _pacbio;
-
-  struct nanopore {
-    char          *_someQV;
-  } _nanopore;
-
 
   friend class gkRead;
   friend class gkStore;
@@ -337,11 +304,9 @@ private:
   bool        gkRead_decode4bit(uint8  *chunk, uint32 chunkLen, char *qlt, uint32 seqLen);
   bool        gkRead_decode5bit(uint8  *chunk, uint32 chunkLen, char *qlt, uint32 seqLen);
 
+  //  Called by gatekeeperCreate to add a new read to the store.
 public:
-  //  These are called by gatekeeperCreate.
   gkReadData *gkRead_encodeSeqQlt(char *H, char *S, char *Q, uint32 qv);
-  //gkReadData *gkRead_encodePacBio(char *H, char *S, char *Q);  //  Not implemented.
-  //gkReadData *gkRead_encodeMinION(char *H, char *S, char *Q);
 
 private:
   char       *gkRead_encodeSequence(char *sequence, char *encoded);

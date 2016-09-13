@@ -408,26 +408,6 @@ gkRead::gkRead_encodeSeqQlt(char *H, char *S, char *Q, uint32 qv) {
 
 
 
-#if 0
-//  Not implemented.
-gkReadData *
-gkRead::gkRead_encodePacBio(char *H, char *S, char *Q) {
-  gkReadData *rd = new gkReadData;
-
-  return(rd);
-}
-
-//  Not implemented.
-gkReadData *
-gkRead::gkRead_encodeMinION(char *H, char *S, char *Q) {
-  gkReadData *rd = new gkReadData;
-
-  return(rd);
-}
-#endif
-
-
-
 ////////////////////////////////////////
 //
 //  gkLibrary is lightweight, except for three functions that need to parse strings
