@@ -80,8 +80,6 @@ gkRead::gkRead_loadData(gkReadData *readData, void *blobs) {
 
   uint32  blobLen = *((uint32 *)blob + 1);
 
-  //fprintf(stderr, "BLOB len %u\n", blobLen);
-
   blob += 8;
 
   while ((blob[0] != 'S') ||
@@ -95,17 +93,6 @@ gkRead::gkRead_loadData(gkReadData *readData, void *blobs) {
     chunk[4] = 0;
 
     uint32   chunkLen = *((uint32 *)blob + 1);
-
-#if 1
-    // Fix for stores built between 9/3/15-9/7/15 when QVs were changed to uniform value but nothing was stored on disk
-    //    Loading from these stores lead to random uninitialized QVs
-    //    set all QVs to a default value
-    // Should be unnecessary after Dec 8, 2015 and can be removed
-    for (uint32 ii=0; ii<_seqLen; ii++)
-      readData->_qlt[ii] = 20;
-#endif
-
-    //fprintf(stderr, "%s len %u\n", chunk, chunkLen);
 
     if      (strncmp(chunk, "VERS", 4) == 0) {
     }
@@ -132,39 +119,6 @@ gkRead::gkRead_loadData(gkReadData *readData, void *blobs) {
       assert(_seqLen <= readData->_seqAlloc);
       memcpy(readData->_qlt, blob + 8, _seqLen);
       readData->_qlt[_seqLen] = 0;
-
-#if 1
-      //  Fix for older gkpStore that encoded QV's with offset '0'.  Wasn't RIFF format supposed to solve problems like this?
-      //    Old encoding is ASCII was from '0' = 48 to 'l' = 108.
-      //    New encoding is integer from 0 to 60.
-      //  So, if we see:
-      //    0-47,  we're new format.
-      //    48-60  we're either (but STRONGLY likely to be old).
-      //    61-108 we're old format.
-      //  Most reads are well below qv=40, so this will be easy.
-
-      bool  isOld = false;
-
-      for (uint32 ii=0; ii<_seqLen; ii++) {
-        if (readData->_qlt[ii] < 48) {
-          isOld = false;
-          break;
-        }
-
-        else if (readData->_qlt[ii] < 61) {
-          isOld = true;
-        }
-
-        else {
-          isOld = true;
-          break;
-        }
-      }
-
-      if (isOld)
-        for (uint32 ii=0; ii<_seqLen; ii++)
-          readData->_qlt[ii] -= '0';
-#endif
     }
 
     else if (strncmp(chunk, "2SEQ", 4) == 0) {
