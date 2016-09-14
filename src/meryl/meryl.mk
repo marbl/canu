@@ -12,7 +12,6 @@ TARGET   := meryl
 SOURCES  := meryl-args.C \
             meryl-binaryOp.C \
             meryl-build.C \
-            meryl-build-threads.C \
             meryl-dump.C \
             meryl-estimate.C \
             meryl-merge.C \

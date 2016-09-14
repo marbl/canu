@@ -514,8 +514,13 @@ merylArgs::merylArgs(int argc, char **argv) {
       fprintf(stderr, "WARNING: -threads has no effect with -countbatch, disabled.\n");
     if (mergeBatch)
       fprintf(stderr, "WARNING: -threads has no effect with -mergebatch, disabled.\n");
-    numThreads = 0;
+    numThreads = 1;
   }
+
+  if (numThreads == 0)
+    numThreads = omp_get_max_threads();
+
+  omp_set_num_threads(numThreads);
 
   //  SGE is not useful unless we are in batch mode.
   //

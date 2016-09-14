@@ -56,8 +56,6 @@
 #include "speedCounter.H"
 #include "timeAndSize.H"
 
-#include <pthread.h>
-
 #define PERSONALITY_MERGE         0xff
 
 #define PERSONALITY_MIN           0x01

@@ -729,10 +729,9 @@ build(merylArgs *args) {
 
   bool  doMerge = false;
 
-  if (args->configBatch) {
+  //  Write out our configuration and exit if we are -configbatch
 
-    //  Write out our configuration and exit if we are -configbatch
-    //
+  if (args->configBatch) {
     args->writeConfig();
 
     if (args->sgeJobName) {
@@ -744,45 +743,38 @@ build(merylArgs *args) {
         fprintf(stdout, "%s -countbatch "F_U64" -o %s\n", args->execName, s, args->outputFile);
       fprintf(stdout, "%s -mergebatch -o %s\n", args->execName, args->outputFile);
     }
-  } else   if (args->countBatch) {
+  }
 
-    //  Read back the configuration, run the segment and exit if we
-    //  are -countbatch
-    //
+  //  Read back the configuration, run the segment and exit if we are -countbatch
+
+  else if (args->countBatch) {
     merylArgs *savedArgs = new merylArgs(args->outputFile);
     savedArgs->beVerbose = args->beVerbose;
     runSegment(savedArgs, args->batchNumber);
     delete savedArgs;
-  } else if (args->mergeBatch) {
+  }
 
-    //  Check that all the files exist if we are -mergebatch and
-    //  continue with execution
-    //
-    //  MEMORY LEAK!  We should delete this at the end of the
-    //  function, but it's a pain, and who cares?
-    //
+  //  Check that all the files exist if we are -mergebatch and continue with execution
+  //
+  //  MEMORY LEAK!  We should delete this at the end of the function, but it's a pain, and who
+  //  cares?
+
+  else if (args->mergeBatch) {
     merylArgs *savedArgs = new merylArgs(args->outputFile);
     savedArgs->beVerbose = args->beVerbose;
 
     args = savedArgs;
 
     doMerge = true;
-  } else {
+  }
 
-    if (args->numThreads > 1)
+  //  Otherwise, compute batches.
 
-      //  Run, using threads.  There is a lot of baloney needed, so it's
-      //  all in a separate function.
-      //
-      runThreaded(args);
-    else
-      //  No special options given, do all the work here and now
-      //
-      for (uint64 s=0; s<args->segmentLimit; s++)
-        runSegment(args, s);
+  else {
+#pragma omp parallel for
+    for (uint64 s=0; s<args->segmentLimit; s++)
+      runSegment(args, s);
 
-    //  Either case, we want to merge now.
-    //
     doMerge = true;
   }
 
