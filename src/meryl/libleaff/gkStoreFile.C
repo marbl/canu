@@ -86,6 +86,7 @@ bool
 gkStoreFile::getSequence(uint32 iid,
                          char *&h, uint32 &hLen, uint32 &hMax,
                          char *&s, uint32 &sLen, uint32 &sMax) {
+
   if (iid > _numberOfSequences) {
     fprintf(stderr, "gkStoreFile::getSequence()-- iid %u exceeds number in store %u\n", iid, _numberOfSequences);
     return(false);
