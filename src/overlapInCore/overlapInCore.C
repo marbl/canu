@@ -136,8 +136,6 @@ uint64  SV1      = 666;
 uint64  SV2      = 666;
 uint64  SV3      = 666;
 
-pthread_mutex_t  Write_Proto_Mutex;
-
 ovFile  *Out_BOF = NULL;
 
 
@@ -168,14 +166,10 @@ Initialize_Work_Area(Work_Area_t *WA, int id, gkStore *gkpStore) {
 
   allocated += sizeof(ovOverlap) * WA->overlapsMax;
 
-  fprintf(stderr, "Initialize_Work_Area()-- new prefixEditDistance\n");
-
   WA->editDist = new prefixEditDistance(G.Doing_Partial_Overlaps, G.maxErate);
 
   WA->q_diff = new char [AS_MAX_READLEN];
   WA->distinct_olap = new Olap_Info_t [MAX_DISTINCT_OLAPS];
-
-  fprintf(stderr, "Initialize_Work_Area()-- done\n");
 }
 
 
@@ -196,27 +190,15 @@ Delete_Work_Area(Work_Area_t *WA) {
 int
 OverlapDriver(void) {
 
-  fprintf(stderr, "OverlapDriver()--\n");
-
-  pthread_t      *thread_id = new pthread_t   [G.Num_PThreads];
-  fprintf(stderr, "OverlapDriver()--  WA\n");
   Work_Area_t    *thread_wa = new Work_Area_t [G.Num_PThreads];
 
-  fprintf(stderr, "OverlapDriver()--  gkpStore\n");
   gkStore        *gkpStore  = gkStore::gkStore_open(G.Frag_Store_Path);
 
-  pthread_attr_t  attr;
+  fprintf(stderr, "Initializing %u work areas.\n", G.Num_PThreads);
 
-  pthread_attr_init(&attr);
-  pthread_attr_setstacksize(&attr, THREAD_STACKSIZE);
-  pthread_mutex_init(&Write_Proto_Mutex, NULL);
-
-  for (uint32 i=0;  i<G.Num_PThreads;  i++) {
-    fprintf(stderr, "OverlapDriver()--  Initialize_Work_Area %u\n", i);
+#pragma parallel for
+  for (uint32 i=0;  i<G.Num_PThreads;  i++)
     Initialize_Work_Area(thread_wa+i, i, gkpStore);
-  }
-
-  fprintf(stderr, "OverlapDriver()--  Initialized\n");
 
   //  Command line options are Lo_Hash_Frag and Hi_Hash_Frag
   //  Command line options are Lo_Old_Frag and Hi_Old_Frag
@@ -235,8 +217,6 @@ OverlapDriver(void) {
 
   //  Iterate over read blocks, build a hash table, then search in threads.
 
-  //fprintf(stderr, "OverlapDriver()--  Loop top\n");
-
   while (bgnHashID < G.endHashID) {
     if (endHashID > G.endHashID)
       endHashID = G.endHashID;
@@ -248,11 +228,7 @@ OverlapDriver(void) {
     //  Load as much as we can.  If we load less than expected, the endHashID is updated to reflect
     //  the last read loaded.
 
-    //fprintf(stderr, "OverlapDriver()--  Build_Hash_Index\n");
-
     endHashID = Build_Hash_Index(gkpStore, bgnHashID, endHashID);
-
-    //fprintf(stderr, "Index built.\n");
 
     //  Decide the range of reads to process.  No more than what is loaded in the table.
 
@@ -280,31 +256,19 @@ OverlapDriver(void) {
     fprintf(stderr, "Starting "F_U32"-"F_U32" with "F_U32" per thread\n", G.bgnRefID, G.endRefID, G.perThread);
     fprintf(stderr, "\n");
 
+    //  Initialize each thread, reset the current position.  curRefID and endRefID are updated, this
+    //  cannot be done in the parallel loop!
+
     for (uint32 i=0; i<G.Num_PThreads; i++) {
-
-      //  Initialize each thread, reset the current position.
-
       thread_wa[i].bgnID = G.curRefID;
       thread_wa[i].endID = thread_wa[i].bgnID + G.perThread - 1;
 
-      G.curRefID = thread_wa[i].endID + 1;
-
-      if (G.endRefID > G.endRefID)
-        G.endRefID = G.endRefID;
-
-      int status = pthread_create(thread_id+i, &attr, Process_Overlaps, thread_wa+i);
-
-      if (status != 0)
-        fprintf(stderr, "pthread_create error:  %s\n", strerror(status)), exit(1);
+      G.curRefID = thread_wa[i].endID + 1;  //  Global value updated!
     }
 
-    //  The master thread just sits here and waits.
-
-    for (uint32 i=0; i<G.Num_PThreads; i++) {
-      int status = pthread_join(thread_id[i], NULL);
-      if (status != 0)
-        fprintf(stderr, "pthread_join error: %s\n", strerror(status)), exit(1);
-    }
+#pragma omp parallel for
+    for (uint32 i=0; i<G.Num_PThreads; i++)
+      Process_Overlaps(thread_wa + i);
 
     //  Clear out the hash table.  This stuff is allocated in Build_Hash_Index
 
@@ -321,16 +285,12 @@ OverlapDriver(void) {
     endHashID = bgnHashID + G.Max_Hash_Strings - 1;  //  Inclusive!
   }
 
-  pthread_mutex_destroy(&Write_Proto_Mutex);
-  pthread_attr_destroy(&attr);
-
   gkpStore->gkStore_close();
 
   for (uint32 i=0;  i<G.Num_PThreads;  i++)
     Delete_Work_Area(thread_wa + i);
 
   delete [] thread_wa;
-  delete [] thread_id;
 
   return  0;
 }
@@ -544,9 +504,11 @@ main(int argc, char **argv) {
   fprintf(stderr, "Kmer Length           "F_U64"\n", G.Kmer_Len);
   fprintf(stderr, "Min Overlap Length    %d\n", G.Min_Olap_Len);
   fprintf(stderr, "Max Error Rate        %f\n", G.maxErate);
-  fprintf(stderr, "Min Kmer Matches      %d\n", G.Filter_By_Kmer_Count);
+  fprintf(stderr, "Min Kmer Matches      "F_U64"\n", G.Filter_By_Kmer_Count);
   fprintf(stderr, "\n");
   fprintf(stderr, "Num_PThreads          "F_U32"\n", G.Num_PThreads);
+
+  omp_set_num_threads(G.Num_PThreads);
 
   assert (8 * sizeof (uint64) > 2 * G.Kmer_Len);
 
@@ -627,6 +589,8 @@ main(int argc, char **argv) {
 
   if (stats != stderr)
     fclose(stats);
+
+  fprintf(stderr, "Bye.\n");
 
   return(0);
 }

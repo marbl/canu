@@ -65,7 +65,6 @@
  */
 
 #include "overlapInCore.H"
-#include <pthread.h>
 
 //  Output the overlap between strings  S_ID  and  T_ID  which
 //  have lengths  S_Len  and  T_Len , respectively.
@@ -227,19 +226,17 @@ Output_Overlap(uint32 S_ID, int S_Len, Direction_t S_Dir,
   else
     WA->Dovetail_Overlap_Ct ++;
 
+  //  Write overlaps if we've saved too many.
+  //  They're also written at the end of the thread.
 
+  if (WA->overlapsLen >= WA->overlapsMax)
+#pragma omp critical
+    {
+      for (int32 zz=0; zz<WA->overlapsLen; zz++)
+        Out_BOF->writeOverlap(WA->overlaps + zz);
 
-  //  We also flush the file at the end of a thread
-
-  if (WA->overlapsLen >= WA->overlapsMax) {
-    pthread_mutex_lock (& Write_Proto_Mutex);
-
-    for (int32 zz=0; zz<WA->overlapsLen; zz++)
-      Out_BOF->writeOverlap(WA->overlaps + zz);
-    WA->overlapsLen = 0;
-
-    pthread_mutex_unlock (& Write_Proto_Mutex);
-  }
+      WA->overlapsLen = 0;
+    }
 }
 
 
@@ -307,14 +304,11 @@ Output_Partial_Overlap(uint32 s_id,
   //  We also flush the file at the end of a thread
 
   if (WA->overlapsLen >= WA->overlapsMax) {
-    pthread_mutex_lock(&Write_Proto_Mutex);
-
+#pragma omp critical
     for (int32 zz=0; zz<WA->overlapsLen; zz++)
       Out_BOF->writeOverlap(WA->overlaps + zz);
 
     WA->overlapsLen = 0;
-
-    pthread_mutex_unlock(&Write_Proto_Mutex);
   }
 }
 

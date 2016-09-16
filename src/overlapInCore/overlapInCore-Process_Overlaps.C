@@ -66,7 +66,6 @@
 
 #include "overlapInCore.H"
 #include "AS_UTL_reverseComplement.H"
-#include <pthread.h>
 
 //  Find and output all overlaps between strings in store and those in the global hash table.
 //  This is the entry point for each compute thread.
@@ -141,35 +140,32 @@ Process_Overlaps(void *ptr){
             WA->overlapsLen,
             WA->Kmer_Hits_With_Olap_Ct, WA->Kmer_Hits_Without_Olap_Ct, WA->Kmer_Hits_Skipped_Ct);
 
-    pthread_mutex_lock(& Write_Proto_Mutex);
+    //  Flush any remaining overlaps and update statistics.
 
-    //  Flush any remaining overlaps.
+#pragma omp critical
+    {
+      for (int zz=0; zz<WA->overlapsLen; zz++)
+        Out_BOF->writeOverlap(WA->overlaps + zz);
 
-    for (int zz=0; zz<WA->overlapsLen; zz++)
-      Out_BOF->writeOverlap(WA->overlaps + zz);
-    WA->overlapsLen = 0;
+      WA->overlapsLen = 0;
 
-    //  Update stats
+      Total_Overlaps            += WA->Total_Overlaps;
+      Contained_Overlap_Ct      += WA->Contained_Overlap_Ct;
+      Dovetail_Overlap_Ct       += WA->Dovetail_Overlap_Ct;
 
-    Total_Overlaps            += WA->Total_Overlaps;
-    Contained_Overlap_Ct      += WA->Contained_Overlap_Ct;
-    Dovetail_Overlap_Ct       += WA->Dovetail_Overlap_Ct;
+      Kmer_Hits_Without_Olap_Ct += WA->Kmer_Hits_Without_Olap_Ct;
+      Kmer_Hits_With_Olap_Ct    += WA->Kmer_Hits_With_Olap_Ct;
+      Kmer_Hits_Skipped_Ct      += WA->Kmer_Hits_Skipped_Ct;
+      Multi_Overlap_Ct          += WA->Multi_Overlap_Ct;
 
-    Kmer_Hits_Without_Olap_Ct += WA->Kmer_Hits_Without_Olap_Ct;
-    Kmer_Hits_With_Olap_Ct    += WA->Kmer_Hits_With_Olap_Ct;
-    Kmer_Hits_Skipped_Ct      += WA->Kmer_Hits_Skipped_Ct;
-    Multi_Overlap_Ct          += WA->Multi_Overlap_Ct;
+      WA->bgnID = G.curRefID;
+      WA->endID = G.curRefID + G.perThread - 1;
 
-    WA->bgnID = G.curRefID;
-    WA->endID = G.curRefID + G.perThread - 1;
+      if (WA->endID > G.endRefID)
+        WA->endID = G.endRefID;
 
-    if (WA->endID > G.endRefID)
-      WA->endID = G.endRefID;
-
-    G.curRefID = WA->endID + 1;
-
-    pthread_mutex_unlock(& Write_Proto_Mutex);
-
+      G.curRefID = WA->endID + 1;
+    }
   }
 
   delete readData;

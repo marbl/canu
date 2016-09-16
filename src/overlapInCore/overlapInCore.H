@@ -67,8 +67,6 @@
 
 #include "prefixEditDistance.H"
 
-#include <pthread.h>
-
 
 #ifndef OVERLAPINCORE_H
 #define OVERLAPINCORE_H
@@ -539,8 +537,6 @@ extern uint64  SV2;
 extern uint64  SV3;
 
 extern ovFile  *Out_BOF;
-extern pthread_mutex_t  Frag_Store_Mutex;
-extern pthread_mutex_t  Write_Proto_Mutex;
 
 
 
