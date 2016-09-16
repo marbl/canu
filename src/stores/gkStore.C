@@ -41,19 +41,20 @@ gkStore *gkStore::_instance      = NULL;
 uint32   gkStore::_instanceCount = 0;
 
 
+//  Define this to use the original memory mapped file interface to the blobs data.
+#undef MMAP_BLOBS
 
-bool
-gkRead::gkRead_loadData(gkReadData *readData, void *blobs) {
+
+//  Lowest level function to load data into a read.
+//
+void
+gkRead::gkRead_loadData(gkReadData *readData, uint8 *blob) {
 
   readData->_read = this;
 
   //  The resize will only increase the space.  if the new is less than the max, it returns immediately.
 
   resizeArrayPair(readData->_seq, readData->_qlt, readData->_seqAlloc, readData->_seqAlloc, (uint32)_seqLen+1, resizeArray_doNothing);
-
-  //  Where, or where!, is the data?
-
-  uint64  offset = _mPtr;
 
   //  One might be tempted to set the readData blob to point to the blob data in the mmap,
   //  but doing so will cause it to be written out again.
@@ -62,16 +63,16 @@ gkRead::gkRead_loadData(gkReadData *readData, void *blobs) {
   readData->_blobMax = 0;
   readData->_blob    = NULL;
 
-  //  Instead, we'll use someting horribly similar.
+  //  Make sure that our blob is actually a blob.
 
-  uint8  *blob    = ((uint8 *)blobs) + offset;
   char    chunk[5];
 
   if ((blob[0] != 'B') && (blob[1] != 'L') && (blob[2] != 'O') && (blob[3] != 'B'))
-    fprintf(stderr, "Index error in read "F_U32" %c mPtr "F_U64" pID "F_U64" expected BLOB, got %c%c%c%c\n",
+    fprintf(stderr, "Index error in read "F_U32" %c mPtr "F_U64" pID "F_U64" expected BLOB, got %02x %02x %02x %02x '%c%c%c%c'\n",
             gkRead_readID(),
             '?', //(_numberOfPartitions == 0) ? 'm' : 'p',
             _mPtr, _pID,
+            blob[0], blob[1], blob[2], blob[3],
             blob[0], blob[1], blob[2], blob[3]);
   assert(blob[0] == 'B');
   assert(blob[1] == 'L');
@@ -145,15 +146,57 @@ gkRead::gkRead_loadData(gkReadData *readData, void *blobs) {
     }
 
     else {
-      fprintf(stderr, "gkRead::gkRead_loadData()--  unknown chunk type '%s' skipped\n", chunk);
+      fprintf(stderr, "gkRead::gkRead_loadDataFromBlob()--  unknown chunk type %02x %02x %02x %02x '%c%c%c%c' skipped\n",
+              chunk[0], chunk[1], chunk[2], chunk[3],
+              chunk[0], chunk[1], chunk[2], chunk[3]);
+      assert(0);
     }
 
     blob += 4 + 4 + chunkLen;
   }
+}
 
-  return(true);
-};
 
+
+void
+gkRead::gkRead_loadDataFromStream(gkReadData *readData, FILE *file) {
+  char    tag[5];
+  uint32  size;
+
+  //  Ideally, we'd do one read to get the whole blob.  Without knowing
+  //  the length, we're forced to do two.
+
+  AS_UTL_safeRead(file,  tag,  "gkStore::gkStore_loadDataFromFile::blob", sizeof(int8),   4);
+  AS_UTL_safeRead(file, &size, "gkStore::gkStore_loadDataFromFile::size", sizeof(uint32), 1);
+
+  uint8 *blob = new uint8 [8 + size];
+
+  memcpy(blob,    tag,  sizeof(uint8)  * 4);
+  memcpy(blob+4, &size, sizeof(uint32) * 1);
+
+  AS_UTL_safeRead(file, blob+8, "gkStore::gkStore_loadDataFromFile::blob", sizeof(char), size);
+
+  gkRead_loadData(readData, blob);
+
+  delete [] blob;
+}
+
+
+
+void
+gkRead::gkRead_loadDataFromMMap(gkReadData *readData, void *blobs) {
+  //fprintf(stderr, "gkRead::gkRead_loadDataFromMMap()-- read %lu position %lu\n", _readID, _mPtr);
+  gkRead_loadData(readData, ((uint8 *)blobs) + _mPtr);
+}
+
+
+
+void
+gkRead::gkRead_loadDataFromFile(gkReadData *readData, FILE *file) {
+  //fprintf(stderr, "gkRead::gkRead_loadDataFromFile()-- read %lu position %lu\n", _readID, _mPtr);
+  AS_UTL_fseek(file, _mPtr, SEEK_SET);
+  gkRead_loadDataFromStream(readData, file);
+}
 
 
 
@@ -199,26 +242,11 @@ gkStore::gkStore_loadReadFromStream(FILE *S, gkRead *read, gkReadData *readData)
 
   AS_UTL_safeRead(S, read, "gkStore::gkStore_loadReadFromStream::read", sizeof(gkRead), 1);
 
-  //  With some pain, we read the BLOB and its length, then allocate space for the blob
-  //  and finsh reading it.
+  //  Load the read data.
 
-  AS_UTL_safeRead(S,  tag,  "gkStore::gkStore_loadReadFromStream::blob", sizeof(int8),   4);
-  AS_UTL_safeRead(S, &size, "gkStore::gkStore_loadReadFromStream::size", sizeof(uint32), 1);
-
-  uint8 *blob = new uint8 [8 + size];
-
-  memcpy(blob,    tag,  sizeof(uint8)  * 4);
-  memcpy(blob+4, &size, sizeof(uint32) * 1);
-
-  AS_UTL_safeRead(S, blob+8, "gkStore::gkStore_loadReadFromStream::blob", sizeof(char), size);
-
-  //  Unpack the blob into a readData
-
-  read->_mPtr = 0;
-  read->gkRead_loadData(readData, blob);
-
-  //  And, that's it!  Sweet!
+  read->gkRead_loadDataFromStream(readData, S);
 }
+
 
 
 //  Dump the read metadata and read data to a stream.
@@ -638,6 +666,7 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
   _blobsMMap              = NULL;
   _blobs                  = NULL;
   _blobsFile              = NULL;
+  _blobsFiles             = NULL;
 
   _mode                   = mode;
 
@@ -670,8 +699,21 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
     _reads         = (gkRead *)_readsMMap->get(0);
 
     sprintf(name, "%s/blobs", _storePath);
+#ifdef MMAP_BLOBS
     _blobsMMap     = new memoryMappedFile (name, memoryMappedFile_readOnly);
     _blobs         = (void *)_blobsMMap->get(0);
+#else
+    _blobsFiles    = new FILE * [omp_get_max_threads()];
+
+    errno = 0;
+
+    for (uint32 ii=0; ii<omp_get_max_threads(); ii++)
+      _blobsFiles[ii] = fopen(name, "r");
+
+    if (errno)
+      fprintf(stderr, "Failed to open %u copies of the blobs file '%s' for reading: %s\n",
+              omp_get_max_threads(), name, strerror(errno)), exit(1);
+#endif
   }
 
   //
@@ -900,6 +942,12 @@ gkStore::~gkStore() {
   if (_blobsFile)
     fclose(_blobsFile);
 
+  for (uint32 ii=0; ii<omp_get_max_threads(); ii++)
+    if ((_blobsFiles) && (_blobsFiles[ii]))
+      fclose(_blobsFiles[ii]);
+
+  delete [] _blobsFiles;
+
   delete [] _readIDtoPartitionIdx;
   delete [] _readIDtoPartitionID;
   delete [] _readsPerPartition;
@@ -999,9 +1047,10 @@ gkStore::gkStore_addEmptyRead(gkLibrary *lib) {
 
 
 void
-gkRead::gkRead_copyDataToPartition(void *blobs, FILE **partfiles, uint64 *partfileslen, uint32 partID) {
-
-  //  Stash away the location of the partitioned data
+gkRead::gkRead_copyDataToPartition(void     *blobs,
+                                   FILE    **partfiles,
+                                   uint64   *partfileslen,
+                                   uint32    partID) {
 
   assert(partfileslen[partID] == AS_UTL_ftell(partfiles[partID]));
 
@@ -1029,8 +1078,63 @@ gkRead::gkRead_copyDataToPartition(void *blobs, FILE **partfiles, uint64 *partfi
   partfileslen[partID] += blobLen;
 
   assert(partfileslen[partID] == AS_UTL_ftell(partfiles[partID]));
-
 }
+
+
+
+void
+gkRead::gkRead_copyDataToPartition(FILE    **blobsFiles,
+                                   FILE    **partfiles,
+                                   uint64   *partfileslen,
+                                   uint32    partID) {
+
+  assert(partfileslen[partID] == AS_UTL_ftell(partfiles[partID]));
+
+  //  Load the blob from disk.
+
+  char    tag[5];
+  uint8  *blob;
+  uint32  blobLen;
+  FILE   *file    = blobsFiles[omp_get_thread_num()];
+
+  //  Ideally, we'd do one read to get the whole blob.  Without knowing
+  //  the length, we're forced to do two.
+
+  AS_UTL_safeRead(file,  tag,     "gkStore::gkStore_loadDataFromFile::tag",     sizeof(int8),   4);
+  AS_UTL_safeRead(file, &blobLen, "gkStore::gkStore_loadDataFromFile::blobLen", sizeof(uint32), 1);
+
+  blob = new uint8 [8 + blobLen];
+
+  memcpy(blob,    tag,     sizeof(uint8)  * 4);
+  memcpy(blob+4, &blobLen, sizeof(uint32) * 1);
+
+  AS_UTL_safeRead(file, blob+8, "gkStore::gkStore_loadDataFromFile::blob", sizeof(char), blobLen);
+
+  assert(blob[0] == 'B');
+  assert(blob[1] == 'L');
+  assert(blob[2] == 'O');
+  assert(blob[3] == 'B');
+
+  //  Write the blob to the partition, update the length of the partition
+
+  blobLen += 8;
+
+  AS_UTL_safeWrite(partfiles[partID], blob, "gkRead::gkRead_copyDataToPartition::blob", sizeof(char), blobLen);
+
+  delete [] blob;
+
+  //  Update the read to the new location of the blob in the partitioned data.
+
+  _mPtr = partfileslen[partID];
+  _pID  = partID;
+
+  //  And finalize by remembering the length.
+
+  partfileslen[partID] += blobLen;
+
+  assert(partfileslen[partID] == AS_UTL_ftell(partfiles[partID]));
+}
+
 
 
 void
@@ -1132,9 +1236,12 @@ gkStore::gkStore_buildPartitions(uint32 *partitionMap) {
     //  Make a copy of the read, then modify it for the partition, then write it to the partition.
     //  Without the copy, we'd need to update the master record too.
 
-    gkRead  partRead = _reads[fi];  //*gkStore_getRead(fi);
+    gkRead  partRead = _reads[fi];
 
-    partRead.gkRead_copyDataToPartition(_blobs, blobfiles, blobfileslen, pi);
+    if (_blobs)
+      partRead.gkRead_copyDataToPartition(_blobs, blobfiles, blobfileslen, pi);
+    if (_blobsFiles)
+      partRead.gkRead_copyDataToPartition(_blobsFiles, blobfiles, blobfileslen, pi);
 
 #if 0
     fprintf(stderr, "read "F_U32"="F_U32" len "F_U32" -- blob master "F_U64" -- to part "F_U32" new read id "F_U32" blob "F_U64"/"F_U64" -- at readIdx "F_U32"\n",

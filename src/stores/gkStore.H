@@ -290,8 +290,20 @@ public:
   uint64      gkRead_mPtr(void) { return(_mPtr); };  //  For debugging, in gatekeeperDumpMetatData
   uint64      gkRead_pID(void)  { return(_pID);  };
 
-public:
-  bool        gkRead_loadData(gkReadData *readData, void *blob);
+  //  Functions to load the read data from disk.
+  //
+  //  loadData()           -- lowest level, called by the other functions to decode the
+  //                          encoded data into the gkReadData structure.
+  //  loadDataFromStream() -- reads data from a FILE, does not position the stream
+  //  loadDataFromFile()   -- reads data from a FILE, positions the stream first
+  //  loadDataFromMMap()   -- reads data from a memory mapped file
+  //
+private:
+  void        gkRead_loadData          (gkReadData *readData, uint8 *blob);
+
+  void        gkRead_loadDataFromStream(gkReadData *readData, FILE *file);
+  void        gkRead_loadDataFromFile  (gkReadData *readData, FILE *file);
+  void        gkRead_loadDataFromMMap  (gkReadData *readData, void *blob);
 
 private:
   uint32      gkRead_encode2bit(uint8  *&chunk, char *seq, uint32 seqLen);
@@ -317,7 +329,8 @@ private:
 
 private:
   //  Used by the store to copy data to a partition
-  void     gkRead_copyDataToPartition(void *blobs, FILE **partfiles, uint64 *partfileslen, uint32 partID);
+  void     gkRead_copyDataToPartition(void  *blobs,      FILE **partfiles, uint64 *partfileslen, uint32 partID);
+  void     gkRead_copyDataToPartition(FILE **blobsFiles, FILE **partfiles, uint64 *partfileslen, uint32 partID);
 
 private:
 
@@ -398,7 +411,7 @@ private:
 
 typedef enum {
   gkStore_readOnly    = 0x00,  //  Open read only
-  gkStore_modify      = 0x01,  //  Open for modification
+  gkStore_modify      = 0x01,  //  Open for modification - never used, explicitly uses mmap file
   gkStore_extend      = 0x02,  //  Open for modification and appending new reads/libraries
   gkStore_infoOnly    = 0x03   //  Open read only, but only load the info on the store; no access to reads or libraries
 } gkStore_mode;
@@ -430,21 +443,17 @@ public:
   static
   gkStore     *gkStore_open(char const *path, gkStore_mode mode=gkStore_readOnly, uint32 partID=UINT32_MAX) {
 
+    //  If an instance exists, return it, otherwise, make a new one.
+
 #pragma omp critical
     {
-      //  If an instance exists, return it.
-
       if (_instance != NULL) {
         _instanceCount++;
-        //fprintf(stderr, "gkStore_open(%s), %u instances now\n", path, _instanceCount);
-      }
-
-      //  Otherwise, make a new one.
-
-      else {
+        //fprintf(stderr, "gkStore_open(%s) from thread %d, %u instances now\n", path, omp_get_thread_num(), _instanceCount);
+      } else {
         _instance      = new gkStore(path, mode, partID);
         _instanceCount = 1;
-        //fprintf(stderr, "gkStore_open(%s), first instance, create store\n", path);
+        //fprintf(stderr, "gkStore_open(%s) form thread %d, first instance, create store\n", path, omp_get_thread_num());
       }
     }
 
@@ -461,14 +470,15 @@ public:
       if (_instanceCount == 0) {
         delete _instance;
         _instance = NULL;
-        //fprintf(stderr, "gkStore_close(%s), no instances remain, delete store\n", _storeName, _instanceCount);
+        //fprintf(stderr, "gkStore_close(%s) from thread %d, no instances remain, delete store\n",
+        //        _storeName, omp_get_thread_num());
       }
 
       else {
-        //fprintf(stderr, "gkStore_close(%s), %u instances remain\n", _storeName, _instanceCount);
+        //fprintf(stderr, "gkStore_close(%s) from thread %d, %u instances remain\n",
+        //        _storeName, omp_get_thread_num(), _instanceCount);
       }
     }
-
   };
 
 
@@ -523,11 +533,16 @@ public:
   gkLibrary   *gkStore_addEmptyLibrary(char const *name);
   gkRead      *gkStore_addEmptyRead(gkLibrary *lib);
 
-  bool         gkStore_loadReadData(gkRead *read,   gkReadData *readData) {
-    return(read->gkRead_loadData(readData, _blobs));
+  void         gkStore_loadReadData(gkRead *read,   gkReadData *readData) {
+    //fprintf(stderr, "loadReadData()- read "F_U64" thread "F_S32" out of "F_S32"\n",
+    //        read->_readID, omp_get_thread_num(), omp_get_max_threads());
+    if (_blobs)
+      read->gkRead_loadDataFromMMap(readData, _blobs);
+    if (_blobsFiles)
+      read->gkRead_loadDataFromFile(readData, _blobsFiles[omp_get_thread_num()]);
   };
-  bool         gkStore_loadReadData(uint32  readID, gkReadData *readData) {
-    return(gkStore_getRead(readID)->gkRead_loadData(readData, _blobs));
+  void         gkStore_loadReadData(uint32  readID, gkReadData *readData) {
+    gkStore_loadReadData(gkStore_getRead(readID), readData);
   };
 
   void         gkStore_stashReadData(gkRead *read, gkReadData *data);
@@ -550,6 +565,9 @@ private:
 
   //  If these are memory mapped, then multiple processes on the same host can share the
   //  (read-only) data.
+  //
+  //  For blobs, we allow either using the mmap directly, or skipping the mmap and
+  //  using a buffer.
 
   memoryMappedFile    *_librariesMMap;
   uint32               _librariesAlloc;  //  If zero, the mmap is used.
@@ -560,8 +578,9 @@ private:
   gkRead              *_reads;
 
   memoryMappedFile    *_blobsMMap;       //  Either the full blobs, or the partitioned blobs.
-  void                *_blobs;
-  FILE                *_blobsFile;
+  void                *_blobs;           //  Pointer to the data in the blobsMMap.
+  FILE                *_blobsFile;       //  For constructing a store, data gets dumped here.
+  FILE               **_blobsFiles;      //  For loading reads directly, one per thread.
 
   //  If the store is openend partitioned, this data is loaded from disk
 
