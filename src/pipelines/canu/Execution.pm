@@ -587,7 +587,7 @@ sub getJobIDShellCode () {
     $string .= "#  command line offset, or directly from the command line.\n";
     $string .= "#\n";
     $string .= "if [ x\$PBS_JOBID != x -a x\$$taskenv = x ]; then\n"   if (uc(getGlobal("gridEngine")) eq "PBSPRO");
-    $string .= "  \$$taskenv=1\n"                                      if (uc(getGlobal("gridEngine")) eq "PBSPRO");
+    $string .= "  $taskenv=1\n"                                        if (uc(getGlobal("gridEngine")) eq "PBSPRO");
     $string .= "fi\n"                                                  if (uc(getGlobal("gridEngine")) eq "PBSPRO");
     $string .= "if [ x\$$taskenv = x -o x\$$taskenv = xundefined -o x\$$taskenv = x0 ]; then\n";
     $string .= "  baseid=\$1\n";           #  Off grid
