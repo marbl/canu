@@ -368,11 +368,12 @@ sub overlapErrorAdjustmentConfigure ($$) {
 
     #  Make an array of partitions, putting as many reads into each as will fit in the desired memory.
 
-    my @bgn;
-    my @end;
-    my $nj = 0;
+  tryOEAagain:
+    my @bgn;   undef @bgn;
+    my @end;   undef @end;
+    my @log;   undef @log;
 
-    #getAllowedResources("", "oea");
+    my $nj = 0;
 
     my $maxID    = getNumberOfReadsInStore($wrk, $asm);
     my $maxMem   = getGlobal("oeaMemory") * 1024 * 1024 * 1024;
@@ -381,14 +382,16 @@ sub overlapErrorAdjustmentConfigure ($$) {
 
     print STDERR "\n";
     print STDERR "Configure OEA for ", getGlobal("oeaMemory"), "gb memory with batches of at most ", ($maxReads > 0) ? $maxReads : "(unlimited)", " reads and ", ($maxBases > 0) ? $maxBases : "(unlimited)", " bases.\n";
-    print STDERR "\n";
 
     my $reads    = 0;
     my $bases    = 0;
     my $olaps    = 0;
 
-    my $coverage = getExpectedCoverage($wrk, $asm);
-    my $corrSize = (-s "$path/red.red");
+    my $coverage     = getExpectedCoverage($wrk, $asm);
+    my $corrSize     = (-s "$path/red.red");
+
+    my $smallJobs    = 0;
+    my $smallJobSize = 1024;
 
     push @bgn, 1;
 
@@ -416,7 +419,9 @@ sub overlapErrorAdjustmentConfigure ($$) {
             (($id == $maxID))) {
             push @end, $id;
 
-            printf(STDERR "OEA job %3u from read %9u to read %9u - %4.1f bases + %4.1f adjusts + %4.1f reads + %4.1f olaps + %4.1f fseq/rseq + %4.1f fadj/radj + %4.1f work + %4.1f misc = %5.1f MB\n",
+            $smallJobs++   if ($end[$nj] - $bgn[$nj] < $smallJobSize);
+
+            push @log, sprintf("OEA job %3u from read %9u to read %9u - %4.1f bases + %4.1f adjusts + %4.1f reads + %4.1f olaps + %4.1f fseq/rseq + %4.1f fadj/radj + %4.1f work + %4.1f misc = %5.1f MB\n",
                    $nj + 1, $bgn[$nj], $end[$nj],
                    $memBases / 1024 / 1024,
                    $memAdj1  / 1024 / 1024,
@@ -437,6 +442,31 @@ sub overlapErrorAdjustmentConfigure ($$) {
             push @bgn, $id + 1;  #  OEA expects inclusive ranges.
         }
     }
+
+    #  If too many small jobs, increase memory and try again.  We'll allow any size jobs as long as
+    #  there are 8 or less, but then demand there are at most 2 small jobs.
+
+    if (($nj > 8) && ($smallJobs >= 2)) {
+        my $curMem =            getGlobal("oeaMemory");
+        my $newMem = int(1000 * getGlobal("oeaMemory") * 1.25) / 1000;
+
+        print STDERR "  FAILED - configured $nj jobs, but $smallJobs jobs process $smallJobSize reads or less each.  Increasing memory from $curMem GB to $newMem GB.\n";
+
+        setGlobal("oeaMemory", $newMem);
+
+        goto tryOEAagain;
+    }
+
+    #  Report.
+
+    print STDERR "Configured $nj jobs.\n";
+    print STDERR "\n";
+
+    foreach my $l (@log) {
+        print STDERR $l;
+    }
+
+    print STDERR "\n";
 
     #  Dump a script
 
