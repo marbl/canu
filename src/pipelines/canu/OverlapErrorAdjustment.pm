@@ -261,7 +261,7 @@ sub readErrorDetectionCheck ($$) {
     my @failedJobs;
     my $failureMessage = "";
 
-    open(A, "< $path/red.sh") or caExit("can't open '$path/red.sh' for reading: $!\n", undef);
+    open(A, "< $path/red.sh") or caExit("can't open '$path/red.sh' for reading: $!", undef);
     while (<A>) {
         if (m/if.*jobid\s+=\s+(\d+)\s+.*then/) {
             my $ji = substr("0000" . $1, -4);
@@ -515,7 +515,7 @@ sub overlapErrorAdjustmentCheck ($$) {
     my @failedJobs;
     my $failureMessage = "";
 
-    open(A, "< $path/oea.sh") or caExit("can't open '$path/oea.sh' for reading: $!\n", undef);
+    open(A, "< $path/oea.sh") or caExit("can't open '$path/oea.sh' for reading: $!", undef);
     while (<A>) {
         if (m/if.*jobid\s+=\s+(\d+)\s+.*then/) {
             my $ji = substr("0000" . $1, -4);
