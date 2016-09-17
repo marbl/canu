@@ -442,7 +442,7 @@ ifeq (${MACHINETYPE}, amd64)
   CC       ?= gcc48
   CXX      ?= g++48
 
-  CXXFLAGS := -pthread -fPIC -Wall -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat -Wextra
+  CXXFLAGS := -pthread -fPIC -Wall -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat -Wextra -Wno-parentheses
   LDFLAGS  := -pthread -lm
 
   CXXFLAGS  += -fopenmp
