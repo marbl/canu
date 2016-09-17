@@ -196,7 +196,7 @@ OverlapDriver(void) {
 
   fprintf(stderr, "Initializing %u work areas.\n", G.Num_PThreads);
 
-#pragma parallel for
+#pragma omp parallel for
   for (uint32 i=0;  i<G.Num_PThreads;  i++)
     Initialize_Work_Area(thread_wa+i, i, gkpStore);
 
