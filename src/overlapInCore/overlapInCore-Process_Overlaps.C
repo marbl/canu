@@ -135,7 +135,7 @@ Process_Overlaps(void *ptr){
     //  Write out this block of overlaps, no need to keep them in core!
     //  While we have a mutex, also find the next block of things to process.
 
-    fprintf(stderr, "Thread %02u writes    reads "F_U32"-"F_U32" (%u overlaps %u/%u/%u kmer hits with/without overlap/skipped)\n",
+    fprintf(stderr, "Thread %02u writes    reads "F_U32"-"F_U32" ("F_U64" overlaps "F_U64"/"F_U64"/"F_U64" kmer hits with/without overlap/skipped)\n",
             WA->thread_id, WA->bgnID, WA->endID,
             WA->overlapsLen,
             WA->Kmer_Hits_With_Olap_Ct, WA->Kmer_Hits_Without_Olap_Ct, WA->Kmer_Hits_Skipped_Ct);

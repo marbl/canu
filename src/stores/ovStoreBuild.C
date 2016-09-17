@@ -193,7 +193,7 @@ computeIIDperBucket(uint32          fileLimit,
   //  values can break this - either too low memory or too high allowed open files (an OS limit).
 
   if (maxMemory > 0) {
-    fprintf(stderr, "Configuring for %.2f GB to %.2f GB memory and "F_U32" open files.\n",
+    fprintf(stderr, "Configuring for %.2f GB to %.2f GB memory and "F_S64" open files.\n",
             minMemory / 1024.0 / 1024.0 / 1024.0,
             maxMemory / 1024.0 / 1024.0 / 1024.0,
             maxFiles);
