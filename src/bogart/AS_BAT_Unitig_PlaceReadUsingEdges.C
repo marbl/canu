@@ -257,13 +257,13 @@ Unitig::placeRead(ufNode          &read,      //  output placement
     return(false);
 
   //  Edge not pointing to a read in this tig?
-  assert(readIn(edge->readId()) == id());
-  if (readIn(edge->readId()) != id())
+  assert(inUnitig(edge->readId()) == id());
+  if (inUnitig(edge->readId()) != id())
     return(false);
 
   //  Grab the index of the parent read.
 
-  uint32 bidx = pathPosition(edge->readId());
+  uint32 bidx = ufpathIdx(edge->readId());
   assert(edge->readId() == ufpath[bidx].ident);
 
   //  Now, just compute the placement and return success!

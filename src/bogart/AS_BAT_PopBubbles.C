@@ -117,7 +117,7 @@ findPotentialBubbles(TigVector       &tigs,
       set<uint32>  readOlapsTo;
 
       for (uint32 oi=0; oi<ovlLen; oi++) {
-        uint32  ovlTigID = Unitig::readIn(ovl[oi].b_iid);
+        uint32  ovlTigID = tigs.inUnitig(ovl[oi].b_iid);
         Unitig *ovlTig   = tigs[ovlTigID];
 
         //  Skip this overlap if it is to an unplaced read, to a singleton tig, to ourself,
@@ -226,7 +226,7 @@ findBubbleReadPlacements(TigVector       &tigs,
 
 #pragma omp parallel for schedule(dynamic, fiBlockSize)
   for (uint32 fi=0; fi<fiLimit; fi++) {
-    uint32     rdAtigID = Unitig::readIn(fi);
+    uint32     rdAtigID = tigs.inUnitig(fi);
 
     if ((rdAtigID == 0) ||                           //  Read not placed in a tig, ignore it.
         (OG->isContained(fi)) ||                     //  Read is contained, ignore it.
@@ -234,7 +234,7 @@ findBubbleReadPlacements(TigVector       &tigs,
       continue;
 
     Unitig     *rdAtig   = tigs[rdAtigID];
-    ufNode     *rdA      = &rdAtig->ufpath[ Unitig::pathPosition(fi) ];
+    ufNode     *rdA      = &rdAtig->ufpath[ tigs.ufpathIdx(fi) ];
     bool        rdAfwd   = (rdA->position.bgn < rdA->position.end);
     int32       rdAlo    = (rdAfwd) ? rdA->position.bgn : rdA->position.end;
     int32       rdAhi    = (rdAfwd) ? rdA->position.end : rdA->position.bgn;

@@ -30,32 +30,54 @@
 
 
 
-TigVector::TigVector() {
+TigVector::TigVector(uint32 nReads) {
+
+  //  The read-to-tig map
+
+  _inUnitig  = new uint32 [nReads + 1];
+  _ufpathIdx = new uint32 [nReads + 1];
+
+  for (uint32 ii=0; ii<nReads+1; ii++) {
+    _inUnitig[ii]   = 0;
+    _ufpathIdx[ii]  = UINT32_MAX;
+  }
+
+  //  The vector
+
   _blockSize    = 1048576;
+
   _numBlocks    = 1;
   _maxBlocks    = 1024;
   _blocks       = new Unitig ** [_maxBlocks];
   _blocks[0]    = new Unitig  * [_blockSize];
   memset(_blocks[0], 0, sizeof(Unitig **) * _blockSize);
   _blockNext    = 1;
-  _totalTigs    = 1;
 
+  _totalTigs    = 1;
 };
 
 
 
 TigVector::~TigVector() {
 
+  //  Delete the maps
+
+  delete [] _inUnitig;
+  delete [] _ufpathIdx;
+
   //  Delete the tigs.
+
   for (uint32 ii=0; ii<_numBlocks; ii++)
     for (uint32 jj=0; jj<_blockSize; jj++)
       delete _blocks[ii][jj];
 
   //  Delete the blocks.
+
   for (uint32 ii=0; ii<_numBlocks; ii++)
     delete [] _blocks[ii];
 
   //  And the block pointers.
+
   delete [] _blocks;
 };
 
@@ -63,7 +85,7 @@ TigVector::~TigVector() {
 
 Unitig *
 TigVector::newUnitig(bool verbose) {
-  Unitig *u = new Unitig();
+  Unitig *u = new Unitig(this);
 
 #pragma omp critical
   {

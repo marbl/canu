@@ -439,7 +439,7 @@ reportOverlaps(TigVector &tigs, const char *prefix, const char *name) {
       continue;
 
     uint32           rdAid   = fi;
-    uint32           tgAid   = Unitig::readIn(rdAid);
+    uint32           tgAid   = tigs.inUnitig(rdAid);
     Unitig          *tgA     = tigs[tgAid];
     uint32           tgAtype = getTigType(tgA);
 
@@ -448,13 +448,13 @@ reportOverlaps(TigVector &tigs, const char *prefix, const char *name) {
     if (OG->isContained(rdAid) == false) {
       BestEdgeOverlap *b5      = OG->getBestEdgeOverlap(fi, false);
       uint32           rd5id   = b5->readId();
-      uint32           tg5id   = Unitig::readIn(rd5id);
+      uint32           tg5id   = tigs.inUnitig(rd5id);
       Unitig          *tg5     = tigs[tg5id];
       uint32           tg5type = getTigType(tg5);
 
       BestEdgeOverlap *b3      = OG->getBestEdgeOverlap(fi, true);
       uint32           rd3id   = b3->readId();
-      uint32           tg3id   = Unitig::readIn(rd3id);
+      uint32           tg3id   = tigs.inUnitig(rd3id);
       Unitig          *tg3     = tigs[tg3id];
       uint32           tg3type = getTigType(tg3);
 
@@ -477,7 +477,7 @@ reportOverlaps(TigVector &tigs, const char *prefix, const char *name) {
       //  Otherwise, its in a tig, and we need to compare positions.
 
       else {
-        uint32           rdApos  = tigs[tgAid]->pathPosition(rdAid);
+        uint32           rdApos  = tigs[tgAid]->ufpathIdx(rdAid);
         ufNode          *rdA     = &tigs[tgAid]->ufpath[rdApos];
         bool             rdAfwd  = (rdA->position.bgn < rdA->position.end);
         int32            rdAlo   = (rdAfwd) ? rdA->position.bgn : rdA->position.end;
@@ -492,7 +492,7 @@ reportOverlaps(TigVector &tigs, const char *prefix, const char *name) {
           bb->doveUnsatDiff[tgAtype][tNOP]++;
 
         } else {
-          uint32     rd5pos   = tigs[tg5id]->pathPosition(rd5id);
+          uint32     rd5pos   = tigs[tg5id]->ufpathIdx(rd5id);
           ufNode    *rd5      = &tigs[tg5id]->ufpath[rd5pos];
           bool       rd5fwd   = (rd5->position.bgn < rd5->position.end);
           int32      rd5lo    = (rd5fwd) ? rd5->position.bgn : rd5->position.end;
@@ -513,7 +513,7 @@ reportOverlaps(TigVector &tigs, const char *prefix, const char *name) {
           bb->doveUnsatDiff[tgAtype][tNOP]++;
 
         } else {
-          uint32     rd3pos   = tigs[tg3id]->pathPosition(rd3id);
+          uint32     rd3pos   = tigs[tg3id]->ufpathIdx(rd3id);
           ufNode    *rd3      = &tigs[tg3id]->ufpath[rd3pos];
           bool       rd3fwd   = (rd3->position.bgn < rd3->position.end);
           int32      rd3lo    = (rd3fwd) ? rd3->position.bgn : rd3->position.end;
@@ -537,12 +537,12 @@ reportOverlaps(TigVector &tigs, const char *prefix, const char *name) {
 
     for (uint32 oi=0; oi<ovlLen; oi++) {
       uint32     rdAid     = ovl[oi].a_iid;
-      uint32     tgAid     = Unitig::readIn(rdAid);
+      uint32     tgAid     = tigs.inUnitig(rdAid);
       Unitig    *tgA       = tigs[tgAid];
       uint32     tgAtype   = getTigType(tgA);
 
       uint32     rdBid     = ovl[oi].b_iid;
-      uint32     tgBid     = Unitig::readIn(rdBid);
+      uint32     tgBid     = tigs.inUnitig(rdBid);
       Unitig    *tgB       = tigs[tgBid];
       uint32     tgBtype   = getTigType(tgB);
 
@@ -585,13 +585,13 @@ reportOverlaps(TigVector &tigs, const char *prefix, const char *name) {
 
       //  Else, possibly satisfied.  We need to check positions.
 
-      uint32     rdApos   = tigs[tgAid]->pathPosition(rdAid);
+      uint32     rdApos   = tigs[tgAid]->ufpathIdx(rdAid);
       ufNode    *rdA      = &tigs[tgAid]->ufpath[rdApos];
       bool       rdAfwd   = (rdA->position.bgn < rdA->position.end);
       int32      rdAlo    = (rdAfwd) ? rdA->position.bgn : rdA->position.end;
       int32      rdAhi    = (rdAfwd) ? rdA->position.end : rdA->position.bgn;
 
-      uint32     rdBpos   = tigs[tgBid]->pathPosition(rdBid);
+      uint32     rdBpos   = tigs[tgBid]->ufpathIdx(rdBid);
       ufNode    *rdB      = &tigs[tgBid]->ufpath[rdBpos];
       bool       rdBfwd   = (rdB->position.bgn < rdB->position.end);
       int32      rdBlo    = (rdBfwd) ? rdB->position.bgn : rdB->position.end;

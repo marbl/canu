@@ -44,7 +44,6 @@
 #include "AS_BAT_PopulateUnitig.H"
 
 
-
 void
 populateUnitig(Unitig           *unitig,
                BestEdgeOverlap  *bestnext) {
@@ -67,7 +66,7 @@ populateUnitig(Unitig           *unitig,
   //  construct a reverse-edge, and add the read.
 
   while ((bestnext->readId() != 0) &&
-         (Unitig::readIn(bestnext->readId()) == 0)) {
+         (unitig->inUnitig(bestnext->readId()) == 0)) {
     BestEdgeOverlap  bestprev;
 
     //  Reverse nextedge (points from the unitig to the next read to add) so that it points from
@@ -108,7 +107,7 @@ populateUnitig(Unitig           *unitig,
       writeLog("Stopped adding at read %u/%c' beacuse next best read %u/%c' is in unitig %u.  Added %u reads.\n",
                lastID, (last3p) ? '3' : '5',
                bestnext->readId(), bestnext->read3p() ? '3' : '5',
-               Unitig::readIn(bestnext->readId()),
+               unitig->inUnitig(bestnext->readId()),
                nAdded);
 }
 
@@ -119,8 +118,8 @@ void
 populateUnitig(TigVector &tigs,
                int32      fi) {
 
-  if ((RI->readLength(fi) == 0) ||  //  Skip deleted
-      (Unitig::readIn(fi) != 0) ||      //  Skip placed
+  if ((RI->readLength(fi) == 0) ||      //  Skip deleted
+      (tigs.inUnitig(fi) != 0) ||         //  Skip placed
       (OG->isContained(fi) == true))    //  Skip contained
     return;
 

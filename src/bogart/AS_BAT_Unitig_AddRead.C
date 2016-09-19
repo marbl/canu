@@ -53,8 +53,7 @@ Unitig::addRead(ufNode node, int offset, bool report) {
   assert(node.ident > 0);
 
   // keep track of the unitig a read is in
-  _inUnitig[node.ident]     = _id;
-  _pathPosition[node.ident] = ufpath.size();
+  _vector->registerRead(node.ident, _id, ufpath.size());
 
   // keep track of max position in unitig
   int32 frgEnd = MAX(node.position.bgn, node.position.end);
@@ -103,13 +102,13 @@ Unitig::bubbleSortLastRead(void) {
          (lastbgn < MIN(ufpath[previd].position.bgn, ufpath[previd].position.end))) {
     ufpath[lastid] = ufpath[previd];
 
-    _pathPosition[ufpath[lastid].ident] = lastid;
+    _ufpathIdx[ufpath[lastid].ident] = lastid;
 
     lastid--;
     previd--;
   }
 
-  _pathPosition[last.ident] = lastid;
+  _ufpathIdx[last.ident] = lastid;
 
   if (lastid < ufpath.size() - 1)
     ufpath[lastid] = last;

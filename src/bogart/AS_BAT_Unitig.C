@@ -43,10 +43,6 @@
 
 static std::map<uint32,int>* containPartialOrder;
 
-uint32* Unitig::_inUnitig     = NULL;
-uint32* Unitig::_pathPosition = NULL;
-
-
 #undef  SHOW_PROFILE_CONSTRUCTION
 #undef  SHOW_PROFILE_CONSTRUCTION_DETAILS
 
@@ -73,7 +69,7 @@ Unitig::reverseComplement(bool doSort) {
   }
 
   //  We've updated the positions of everything.  Now, sort or reverse the list, and rebuild the
-  //  pathPosition map.
+  //  ufpathIdx map.
 
   if (doSort) {
     sort();
@@ -81,7 +77,7 @@ Unitig::reverseComplement(bool doSort) {
     std::reverse(ufpath.begin(), ufpath.end());
 
     for (uint32 fi=0; fi<ufpath.size(); fi++)
-      _pathPosition[ufpath[fi].ident] = fi;
+      _vector->registerRead(ufpath[fi].ident, _id, fi);
   }
 }
 
@@ -187,14 +183,14 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
 
       //  Reads in different tigs?  Don't care about this overlap.
 
-      if (id() != Unitig::readIn(ovl[oi].b_iid)) {
+      if (id() != _vector->inUnitig(ovl[oi].b_iid)) {
         nDiffTig++;
         continue;
       }
 
       //  Reads in same tig but not overlapping?  Don't care about this overlap.
 
-      ufNode  *rdB    = &ufpath[ Unitig::pathPosition(ovl[oi].b_iid) ];
+      ufNode  *rdB    = &ufpath[ _vector->ufpathIdx(ovl[oi].b_iid) ];
       bool     rdBfwd = (rdB->position.bgn < rdB->position.end);
       int32    rdBlo  = (rdBfwd) ? rdB->position.bgn : rdB->position.end;
       int32    rdBhi  = (rdBfwd) ? rdB->position.end : rdB->position.bgn;

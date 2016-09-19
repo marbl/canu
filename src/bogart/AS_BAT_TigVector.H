@@ -32,7 +32,7 @@ class Unitig;
 
 class TigVector {
 public:
-  TigVector();
+  TigVector(uint32 nReads);
   ~TigVector();
 
   Unitig   *newUnitig(bool verbose);
@@ -46,15 +46,30 @@ public:
   void      computeErrorProfiles(const char *prefix, const char *label);
   void      reportErrorProfiles(const char *prefix, const char *label);
 
+  //  Mapping from read to position in a tig.
+public:
+  void      registerRead(uint32 readId, uint32 tigid=0, uint32 ufpathidx=UINT32_MAX) {
+    _inUnitig[readId]  = tigid;
+    _ufpathIdx[readId] = ufpathidx;
+  };
+
+  uint32    inUnitig(uint32 readId)         {  return(_inUnitig[readId]);   };
+  uint32    ufpathIdx(uint32 readId)        {  return(_ufpathIdx[readId]);  };
+
 private:
-  uint64              _blockSize;
+  uint32    *_inUnitig;      //  Maps a read iid to a unitig id.
+  uint32    *_ufpathIdx;     //  Maps a read iid to an index in ufpath
 
-  uint64              _numBlocks;
-  uint64              _maxBlocks;
-  Unitig           ***_blocks;
-  uint64              _blockNext;
+  //  The actual vector.
+private:
+  uint64     _blockSize;
 
-  uint64              _totalTigs;
+  uint64     _numBlocks;
+  uint64     _maxBlocks;
+  Unitig  ***_blocks;
+  uint64     _blockNext;
+
+  uint64     _totalTigs;
 };
 
 

@@ -317,7 +317,7 @@ annotateRepeatsOnRead(TigVector             &UNUSED(tigs),
       writeLog("annotateRepeatsOnRead()-- tig %u read #%u %u place %u reverse read %u in tig %u placed %d-%d olap %d-%d%s\n",
                tig->id(), ii, read->ident, rr,
                rID,
-               Unitig::readIn(rID),
+               tig->inUnitig(rID),
                fPlace.placedBgn, fPlace.placedEnd,
                fPlace.olapBgn,   fPlace.olapEnd,
                (fPlace.isUnitig) ? " IN_UNITIG" : "");
@@ -584,16 +584,16 @@ findConfusedEdges(TigVector            &tigs,
       if (b3->readId() == 0)
         b3use = false;
 
-      if ((b5use) && (Unitig::readIn(b5->readId()) != tig->id()))
+      if ((b5use) && (tig->inUnitig(b5->readId()) != tig->id()))
         b5use = false;
-      if ((b3use) && (Unitig::readIn(b3->readId()) != tig->id()))
+      if ((b3use) && (tig->inUnitig(b3->readId()) != tig->id()))
         b3use = false;
 
       //  The best edge read is in this tig.  If they don't overlap, again, nothing to compare
       //  against.
 
       if (b5use) {
-        ufNode     *rdB       = &tig->ufpath[Unitig::pathPosition(b5->readId())];
+        ufNode     *rdB       = &tig->ufpath[tig->ufpathIdx(b5->readId())];
         uint32      rdBid     = rdB->ident;
         bool        rdBfwd    = (rdB->position.bgn < rdB->position.end);
         int32       rdBlo     = (rdBfwd) ? rdB->position.bgn : rdB->position.end;
@@ -605,7 +605,7 @@ findConfusedEdges(TigVector            &tigs,
       }
 
       if (b3use) {
-        ufNode     *rdB       = &tig->ufpath[Unitig::pathPosition(b3->readId())];
+        ufNode     *rdB       = &tig->ufpath[tig->ufpathIdx(b3->readId())];
         uint32      rdBid     = rdB->ident;
         bool        rdBfwd    = (rdB->position.bgn < rdB->position.end);
         int32       rdBlo     = (rdBfwd) ? rdB->position.bgn : rdB->position.end;
@@ -689,7 +689,7 @@ findConfusedEdges(TigVector            &tigs,
 
       for (uint32 oo=0; oo<ovlLen; oo++) {
         uint32   rdBid    = ovl[oo].b_iid;
-        uint32   tgBid    = Unitig::readIn(rdBid);
+        uint32   tgBid    = tigs.inUnitig(rdBid);
 
         //  If the read is in a singleton, skip.  These are unassembled crud.
         if ((tgBid                         == 0) ||
@@ -732,7 +732,7 @@ findConfusedEdges(TigVector            &tigs,
           continue;
 
 
-        uint32   rdBpos   =  tigs[tgBid]->pathPosition(rdBid);
+        uint32   rdBpos   =  tigs[tgBid]->ufpathIdx(rdBid);
         ufNode  *rdB      = &tigs[tgBid]->ufpath[rdBpos];
 
         bool     rdBfwd   = (rdB->position.bgn < rdB->position.end);

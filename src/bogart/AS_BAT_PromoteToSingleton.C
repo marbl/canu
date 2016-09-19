@@ -48,7 +48,7 @@ promoteToSingleton(TigVector &tigs) {
   uint32  nPromoted = 0;
 
   for (uint32 fi=1; fi<=RI->numReads(); fi++) {
-    if (Unitig::readIn(fi) != 0)  // Placed.
+    if (tigs.inUnitig(fi) != 0)  // Placed.
       continue;
 
     if (RI->readLength(fi) == 0)  //  Deleted.

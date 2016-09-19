@@ -97,7 +97,7 @@ AssemblyGraph::buildGraph(const char   *UNUSED(prefix),
   uint32   nFailed           = 0;
 
   for (uint32 fid=1; fid<RI->numReads()+1; fid++) {
-    if (Unitig::readIn(fid) == 0)   //  Unplaced, don't care.  These didn't assemble, and aren't contained.
+    if (tigs.inUnitig(fid) == 0)   //  Unplaced, don't care.  These didn't assemble, and aren't contained.
       continue;
 
     if (OG->isContained(fid))
@@ -126,7 +126,7 @@ AssemblyGraph::buildGraph(const char   *UNUSED(prefix),
   for (uint32 fi=1; fi<RI->numReads()+1; fi++) {
     bool  enableLog = true;
 
-    uint32   fiTigID = Unitig::readIn(fi);
+    uint32   fiTigID = tigs.inUnitig(fi);
 
     if (fiTigID == 0)  //  Unplaced, don't care.
       continue;
@@ -134,7 +134,7 @@ AssemblyGraph::buildGraph(const char   *UNUSED(prefix),
     //  Grab a bit about this read.
 
     uint32   fiLen  = RI->readLength(fi);
-    ufNode  *fiRead = &tigs[fiTigID]->ufpath[ Unitig::pathPosition(fi) ];
+    ufNode  *fiRead = &tigs[fiTigID]->ufpath[ tigs.ufpathIdx(fi) ];
     uint32   fiMin  = fiRead->position.min();
     uint32   fiMax  = fiRead->position.max();
 
@@ -406,7 +406,7 @@ placeAsContained(TigVector     &tigs,
                  BestPlacement &bp) {
   BestEdgeOverlap   edge(bp.bestC);
   ufNode            read;
-  Unitig           *tig = tigs[ Unitig::readIn(edge.readId()) ];
+  Unitig           *tig = tigs[ tigs.inUnitig(edge.readId()) ];
 
   if (tig->placeRead(read, fi, bp.bestC.AEndIs3prime(), &edge) == false) {
     fprintf(stderr, "WARNING: placeAsContained failed for fi=%u\n", fi);
@@ -421,7 +421,7 @@ placeAsContained(TigVector     &tigs,
   bp.olapBgn = INT32_MIN;  //  We don't know the overlapping region (without a lot
   bp.olapEnd = INT32_MAX;  //  of work) so make it invalid.
 
-  bp.isContig = (Unitig::readIn(fi) == Unitig::readIn(edge.readId()));
+  bp.isContig = (tigs.inUnitig(fi) == tigs.inUnitig(edge.readId()));
 }
 
 
@@ -433,14 +433,14 @@ bool
 areReadsOverlapping(TigVector  &tigs,
                     uint32      ai,
                     uint32      bi) {
-  Unitig  *at = tigs[ Unitig::readIn(ai) ];
-  Unitig  *bt = tigs[ Unitig::readIn(bi) ];
+  Unitig  *at = tigs[ tigs.inUnitig(ai) ];
+  Unitig  *bt = tigs[ tigs.inUnitig(bi) ];
 
   if (at != bt)
     return(false);
 
-  ufNode  &ar = at->ufpath[ Unitig::pathPosition(ai) ];
-  ufNode  &br = bt->ufpath[ Unitig::pathPosition(bi) ];
+  ufNode  &ar = at->ufpath[ tigs.ufpathIdx(ai) ];
+  ufNode  &br = bt->ufpath[ tigs.ufpathIdx(bi) ];
 
   return((ar.position.min() < br.position.max()) &&
          (br.position.min() < ar.position.max()));
@@ -456,8 +456,8 @@ placeAsDovetail(TigVector     &tigs,
   ufNode            read5,            read3;
 
   if ((bp.best5.b_iid > 0) && (bp.best3.b_iid > 0)) {
-    Unitig  *tig5 = tigs[ Unitig::readIn(edge5.readId()) ];
-    Unitig  *tig3 = tigs[ Unitig::readIn(edge3.readId()) ];
+    Unitig  *tig5 = tigs[ tigs.inUnitig(edge5.readId()) ];
+    Unitig  *tig3 = tigs[ tigs.inUnitig(edge3.readId()) ];
 
     assert(tig5->id() == tig3->id());
 
@@ -476,13 +476,13 @@ placeAsDovetail(TigVector     &tigs,
                     areReadsOverlapping(tigs, fi, bp.best3.b_iid));
 #else
     if ((bp.isContig == true) &&              //  Remove the isContig mark if this read is now
-        (Unitig::readIn(fi) != bp.tigID))     //  in a different tig than the two edges (which is unlikely).
+        (tigs.inUnitig(fi) != bp.tigID))     //  in a different tig than the two edges (which is unlikely).
       bp.isContig = false;
 #endif
   }
 
   else if (bp.best5.b_iid > 0) {
-    Unitig  *tig5 = tigs[ Unitig::readIn(edge5.readId()) ];
+    Unitig  *tig5 = tigs[ tigs.inUnitig(edge5.readId()) ];
 
     if (tig5->placeRead(read5, fi, bp.best5.AEndIs3prime(), &edge5) == false) {
       fprintf(stderr, "WARNING: placeAsDovetail 5' failed for fi=%u\n", fi);
@@ -497,13 +497,13 @@ placeAsDovetail(TigVector     &tigs,
     bp.isContig = areReadsOverlapping(tigs, fi, bp.best5.b_iid);
 #else
     if ((bp.isContig == true) &&              //  Remove the isContig mark if this read is now
-        (Unitig::readIn(fi) != bp.tigID))     //  in a different tig than the edge.
+        (tigs.inUnitig(fi) != bp.tigID))     //  in a different tig than the edge.
       bp.isContig = false;
 #endif
   }
 
   else if (bp.best3.b_iid > 0) {
-    Unitig  *tig3 = tigs[ Unitig::readIn(edge3.readId()) ];
+    Unitig  *tig3 = tigs[ tigs.inUnitig(edge3.readId()) ];
 
     if (tig3->placeRead(read3, fi, bp.best3.AEndIs3prime(), &edge3) == false) {
       fprintf(stderr, "WARNING: placeAsDovetail 3' failed for fi=%u\n", fi);
@@ -518,7 +518,7 @@ placeAsDovetail(TigVector     &tigs,
     bp.isContig  = areReadsOverlapping(tigs, fi, bp.best3.b_iid);
 #else
     if ((bp.isContig == true) &&              //  Remove the isContig mark if this read is now
-        (Unitig::readIn(fi) != bp.tigID))     //  in a different tig than the edge.
+        (tigs.inUnitig(fi) != bp.tigID))     //  in a different tig than the edge.
       bp.isContig = false;
 #endif
   }
@@ -547,8 +547,8 @@ AssemblyGraph::rebuildGraph(TigVector     &tigs) {
 
       //  Figure out which tig each of our three overlaps is in.
 
-      uint32  t5 = (bp.best5.b_iid > 0) ? Unitig::readIn(bp.best5.b_iid) : UINT32_MAX;
-      uint32  t3 = (bp.best3.b_iid > 0) ? Unitig::readIn(bp.best3.b_iid) : UINT32_MAX;
+      uint32  t5 = (bp.best5.b_iid > 0) ? tigs.inUnitig(bp.best5.b_iid) : UINT32_MAX;
+      uint32  t3 = (bp.best3.b_iid > 0) ? tigs.inUnitig(bp.best3.b_iid) : UINT32_MAX;
 
       writeLog("AssemblyGraph()-- rebuilding read %u edge %u with overlaps %u %u %u\n",
                fi, ff, bp.bestC.b_iid, bp.best5.b_iid, bp.best3.b_iid);
@@ -647,9 +647,9 @@ AssemblyGraph::filterEdges(TigVector     &tigs) {
     if (_pForward[fi].size() == 0)
       continue;
 
-    uint32       tT     =  Unitig::readIn(fi);
+    uint32       tT     =  tigs.inUnitig(fi);
     Unitig      *tig    =  tigs[tT];
-    ufNode      &read   =  tig->ufpath[Unitig::pathPosition(fi)];
+    ufNode      &read   =  tig->ufpath[tigs.ufpathIdx(fi)];
 
     //  If the read is at the end of a tig, keep all the edges.
 
@@ -682,9 +682,9 @@ AssemblyGraph::filterEdges(TigVector     &tigs) {
     if (_pForward[fi].size() == 0)
       continue;
 
-    uint32       tT     =  Unitig::readIn(fi);
+    uint32       tT     =  tigs.inUnitig(fi);
     Unitig      *tig    =  tigs[tT];
-    ufNode      &read   =  tig->ufpath[Unitig::pathPosition(fi)];
+    ufNode      &read   =  tig->ufpath[tigs.ufpathIdx(fi)];
 
     set<uint32>  hits;
 
@@ -780,9 +780,9 @@ reportGraph_reportEdge(TigVector      &tigs,
   if ((tigs[pf.tigID] == NULL) || (tigs[pf.tigID]->_isUnassembled == true))
     return(false);
 
-  reportC = (Unitig::readIn(pf.bestC.b_iid) != 0) && (tigs[ Unitig::readIn(pf.bestC.b_iid) ]->_isUnassembled == false);
-  report5 = (Unitig::readIn(pf.best5.b_iid) != 0) && (tigs[ Unitig::readIn(pf.best5.b_iid) ]->_isUnassembled == false);
-  report3 = (Unitig::readIn(pf.best3.b_iid) != 0) && (tigs[ Unitig::readIn(pf.best3.b_iid) ]->_isUnassembled == false);
+  reportC = (tigs.inUnitig(pf.bestC.b_iid) != 0) && (tigs[ tigs.inUnitig(pf.bestC.b_iid) ]->_isUnassembled == false);
+  report5 = (tigs.inUnitig(pf.best5.b_iid) != 0) && (tigs[ tigs.inUnitig(pf.best5.b_iid) ]->_isUnassembled == false);
+  report3 = (tigs.inUnitig(pf.best3.b_iid) != 0) && (tigs[ tigs.inUnitig(pf.best3.b_iid) ]->_isUnassembled == false);
 
   if ((reportC == false) &&
       (report5 == false) &&
@@ -829,11 +829,11 @@ AssemblyGraph::reportGraph(TigVector &tigs, const char *prefix, const char *labe
       BestPlacement  &pf = _pForward[fi][pp];
       bool            reportC=false, report5=false, report3=false;
 
-      if ((Unitig::readIn(pf.bestC.b_iid) != 0) && (tigs[ Unitig::readIn(pf.bestC.b_iid) ]->_isUnassembled == true))
+      if ((tigs.inUnitig(pf.bestC.b_iid) != 0) && (tigs[ tigs.inUnitig(pf.bestC.b_iid) ]->_isUnassembled == true))
         nEdgeToUnasm++;
-      if ((Unitig::readIn(pf.best5.b_iid) != 0) && (tigs[ Unitig::readIn(pf.best5.b_iid) ]->_isUnassembled == true))
+      if ((tigs.inUnitig(pf.best5.b_iid) != 0) && (tigs[ tigs.inUnitig(pf.best5.b_iid) ]->_isUnassembled == true))
         nEdgeToUnasm++;
-      if ((Unitig::readIn(pf.best3.b_iid) != 0) && (tigs[ Unitig::readIn(pf.best3.b_iid) ]->_isUnassembled == true))
+      if ((tigs.inUnitig(pf.best3.b_iid) != 0) && (tigs[ tigs.inUnitig(pf.best3.b_iid) ]->_isUnassembled == true))
         nEdgeToUnasm++;
 
       if (reportGraph_reportEdge(tigs, pf, skipBubble, skipRepeat, reportC, report5, report3) == false)

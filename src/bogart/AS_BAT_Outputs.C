@@ -228,7 +228,7 @@ findUnusedEdges(TigVector     &tigs,
   bool        rdAfwd   =  rdA->isForward();
   int32       rdAlo    =  (rdAfwd) ? (rdA->position.bgn) : (rdA->position.end);
   int32       rdAhi    =  (rdAfwd) ? (rdA->position.end) : (rdA->position.bgn);
-  uint32      rdAtigID =  Unitig::readIn(rdAid);
+  uint32      rdAtigID =  tigs.inUnitig(rdAid);
   Unitig     *rdAtig   =  tigs[rdAtigID];
 
   uint32      ovlLen   = 0;
@@ -249,7 +249,7 @@ findUnusedEdges(TigVector     &tigs,
       continue;
 
     uint32    rdBid    = ovl[oi].b_iid;
-    uint32    rdBtigID = Unitig::readIn(rdBid);
+    uint32    rdBtigID = tigs.inUnitig(rdBid);
     Unitig   *rdBtig   = tigs[rdBtigID];
 
     if ((rdBtig == NULL) ||
@@ -261,7 +261,7 @@ findUnusedEdges(TigVector     &tigs,
         (edgeReads.count(rdBid) == 0))     //  not a read we can overlap to.
       continue;
 
-    ufNode   *rdB      = &rdBtig->ufpath[ Unitig::pathPosition(rdBid) ];
+    ufNode   *rdB      = &rdBtig->ufpath[ tigs.ufpathIdx(rdBid) ];
     bool      rdBfwd   =  rdB->isForward();
     int32     rdBlo    = (rdBfwd) ? (rdB->position.bgn) : (rdB->position.end);
     int32     rdBhi    = (rdBfwd) ? (rdB->position.end) : (rdB->position.bgn);
@@ -349,10 +349,10 @@ findUnusedEdges(TigVector     &tigs,
     uint32 oi = rawEdges[rrIdx].oi;
 
     uint32    rdBid    = ovl[oi].b_iid;
-    uint32    rdBtigID = Unitig::readIn(rdBid);
+    uint32    rdBtigID = tigs.inUnitig(rdBid);
     Unitig   *rdBtig   = tigs[rdBtigID];
 
-    ufNode   *rdB      = &rdBtig->ufpath[ Unitig::pathPosition(rdBid) ];
+    ufNode   *rdB      = &rdBtig->ufpath[ tigs.ufpathIdx(rdBid) ];
     bool      rdBfwd   =  rdB->isForward();
     int32     rdBlo    = (rdBfwd) ? (rdB->position.bgn) : (rdB->position.end);
     int32     rdBhi    = (rdBfwd) ? (rdB->position.end) : (rdB->position.bgn);

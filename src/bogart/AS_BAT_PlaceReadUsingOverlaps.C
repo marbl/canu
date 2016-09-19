@@ -59,7 +59,7 @@ placeRead_fromOverlaps(TigVector   &tigs,
   overlapPlacement *ovlPlace = new overlapPlacement[ovlLen];
 
   for (uint32 i=0; i<ovlLen; i++) {
-    int32             tigID = Unitig::readIn(ovl[i].b_iid);
+    int32             tigID = tigs.inUnitig(ovl[i].b_iid);
     Unitig           *tig   = tigs[tigID];
 
     assert(ovl[i].a_iid == fid);
@@ -212,7 +212,7 @@ placeRead_findFirstLastOverlapping(overlapPlacement &op,
   op.tigLidx = 0;
 
   for (uint32 oo=os; oo<oe; oo++) {
-    uint32   ord = Unitig::pathPosition(ovlPlace[oo].refID);
+    uint32   ord = tig->ufpathIdx(ovlPlace[oo].refID);
 
     op.tigFidx = min(ord, op.tigFidx);
     op.tigLidx = max(ord, op.tigLidx);

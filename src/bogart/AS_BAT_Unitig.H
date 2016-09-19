@@ -78,15 +78,6 @@ public:
 
   bool   operator<(SeqInterval const that) const {
     return(min() < that.min());
-#if 0
-    if (isReverse()) {
-      if (b.isReverse())  return end < that.end;
-      else                return end < that.bgn;
-    } else {
-      if (b.isReverse())  return bgn < that.end;
-      else                return bgn < that.bgn;
-    }
-#endif
   };
 
 
@@ -145,7 +136,8 @@ public:
 
 class Unitig {
 private:
-  Unitig() {
+  Unitig(TigVector *v) {
+    _vector        = v;
     _length        = 0;
     _id            = 0;
     _tigID         = 0;
@@ -166,7 +158,7 @@ public:
     std::sort(ufpath.begin(), ufpath.end());
 
     for (uint32 fi=0; fi<ufpath.size(); fi++)
-      _pathPosition[ufpath[fi].ident] = fi;
+      _vector->registerRead(ufpath[fi].ident, _id, fi);
   };
   //void   bubbleSortLastRead(void);
   void reverseComplement(bool doSort=true);
@@ -256,59 +248,35 @@ public:
     return(rd3);
   };
 
-
-  static void removeRead(int32 fid) {
-    _inUnitig[fid] = 0;
-    _pathPosition[fid] = ~0;
-  };
-
-  static uint32 readIn(uint32 readId) {
-    if ((_inUnitig == NULL) || (readId == 0))
-      return 0;
-    return _inUnitig[readId];
-  };
-
-  static uint32 pathPosition(uint32 readId) {
-    if ((_pathPosition == NULL) || (readId == 0))
-      return ~0;
-    return _pathPosition[readId];
-  };
-
-  static void resetReadUnitigMap(uint32 numReads) {
-    if (_inUnitig == NULL)
-      _inUnitig = new uint32[numReads+1];
-    memset(_inUnitig, 0, (numReads+1) * sizeof(uint32));
-
-    if (_pathPosition == NULL)
-      _pathPosition = new uint32[numReads+1];
-    memset(_pathPosition, 0, (numReads+1) * sizeof(uint32));
-  };
-
   // Public Member Variables
-  vector<ufNode>         ufpath;
-  vector<epValue>        errorProfile;
-  vector<uint32>         errorProfileIndex;
-
-private:
-  int32                 _length;
-  uint32                _id;
 public:
-  uint32                _tigID;
+  vector<ufNode>     ufpath;
+  vector<epValue>    errorProfile;
+  vector<uint32>     errorProfileIndex;
+
+public:
+  uint32             inUnitig(uint32 r)       { return(_vector->inUnitig(r)); };
+  uint32             ufpathIdx(uint32 r)      { return(_vector->ufpathIdx(r));  };
 
 private:
-  static uint32 *_inUnitig;      //  Maps a read iid to a unitig id.
-  static uint32 *_pathPosition;  //  Maps a read iid to an index in the dovetail path
+  TigVector        *_vector;   //  For updating the read map.
+
+private:
+  int32             _length;
+  uint32            _id;
+public:
+  uint32            _tigID;
 
 public:
   //  Classification.  The output is in three files: 'unassembled', 'bubbles', 'contigs' (defined as
   //  not unassembled and not bubble).
 
-  uint32         _isUnassembled;  //  Is a single read or a pseudo singleton
-  uint32         _isBubble;       //  Annotation: from a failed bubble pop
-  uint32         _isRepeat;       //  Annotation: from an identified repeat region
-  uint32         _isCircular;     //  Annotation: has overlap to self
+  uint32            _isUnassembled;  //  Is a single read or a pseudo singleton
+  uint32            _isBubble;       //  Annotation: from a failed bubble pop
+  uint32            _isRepeat;       //  Annotation: from an identified repeat region
+  uint32            _isCircular;     //  Annotation: has overlap to self
 
-  char            type(void) {
+  char   type(void) {
     if (_isUnassembled)  return('U');
     if (_isBubble)       return('B');
     if (_isRepeat)       return('R');

@@ -331,9 +331,6 @@ main (int argc, char * argv []) {
   ovStore          *ovlStoreUniq = new ovStore(ovlStoreUniqPath, gkpStore);
   ovStore          *ovlStoreRept = ovlStoreReptPath ? new ovStore(ovlStoreReptPath, gkpStore) : NULL;
 
-  TigVector         contigs;  //  Both initial greedy tigs and final contigs
-  TigVector         unitigs;  //  The 'final' contigs, split at every intersection in the graph
-
   writeStatus("\n");
   writeStatus("==> LOADING AND FILTERING OVERLAPS.\n");
   writeStatus("\n");
@@ -341,10 +338,6 @@ main (int argc, char * argv []) {
   setLogFile(prefix, "filterOverlaps");
 
   RI = new ReadInfo(gkpStore, prefix, minReadLen);
-
-  // Initialize where we've been to nowhere
-  Unitig::resetReadUnitigMap(RI->numReads());
-
   OC = new OverlapCache(ovlStoreUniq, ovlStoreRept, prefix, MAX(erateMax, erateGraph), minOverlap, ovlCacheMemory, ovlCacheLimit, onlySave, doSave);
   OG = new BestOverlapGraph(erateGraph, deviationGraph, prefix);
   CG = new ChunkGraph(prefix);
@@ -360,6 +353,9 @@ main (int argc, char * argv []) {
   //  only one needed, but occasionally (maybe) we miss reads, so we make an explicit pass
   //  through all reads and place whatever isn't already placed.
   //
+
+  TigVector         contigs(RI->numReads());  //  Both initial greedy tigs and final contigs
+  TigVector         unitigs(RI->numReads());  //  The 'final' contigs, split at every intersection in the graph
 
   writeStatus("\n");
   writeStatus("==> BUILDING GREEDY TIGS.\n");

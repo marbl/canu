@@ -65,10 +65,10 @@ breakSingletonTigs(TigVector &tigs) {
     if (utg->ufpath.size() > 1)
       continue;
 
-    tigs[ti] = NULL;                         //  Remove the tig from the list
-    utg->removeRead(utg->ufpath[0].ident);   //  Eject the read
-    delete utg;                              //  Reclaim space
-    removed++;                               //  Count
+    tigs[ti] = NULL;                           //  Remove the tig from the list
+    tigs.registerRead(utg->ufpath[0].ident);   //  Eject the read
+    delete utg;                                //  Reclaim space
+    removed++;                                 //  Count
   }
 
   writeStatus("breakSingletonTigs()-- Removed %u singleton tig%s; reads are now unplaced.\n",
@@ -100,7 +100,7 @@ placeUnplacedUsingAllOverlaps(TigVector    &tigs,
   uint32   nFailed           = 0;
 
   for (uint32 fid=1; fid<RI->numReads()+1; fid++)
-    if (Unitig::readIn(fid) == 0)    //  I'm NOT ambiguous!
+    if (tigs.inUnitig(fid) == 0)    //  I'm NOT ambiguous!
       if (OG->isContained(fid))
         nToPlaceContained++;
       else
@@ -116,7 +116,7 @@ placeUnplacedUsingAllOverlaps(TigVector    &tigs,
   for (uint32 fid=1; fid<RI->numReads()+1; fid++) {
     bool  enableLog = true;
 
-    if (Unitig::readIn(fid) > 0)
+    if (tigs.inUnitig(fid) > 0)
       continue;
 
     //  Place the read.
@@ -187,7 +187,7 @@ placeUnplacedUsingAllOverlaps(TigVector    &tigs,
     Unitig  *tig = NULL;
     ufNode   frg;
 
-    if (Unitig::readIn(fid) > 0)
+    if (tigs.inUnitig(fid) > 0)
       continue;
 
     //  If not placed, dump it in a new unitig.  Well, not anymore.  These reads were not placed in
