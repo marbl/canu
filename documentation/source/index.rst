@@ -46,6 +46,25 @@ Canu
 the PacBio RSII or Oxford Nanopore MinION). You can `download <http://github.com/marbl/canu/releases>`_ a release. If you encounter
 any issues, please report them using the `github issues <http://github.com/marbl/canu/issues>`_ page.
 
+Publication
+===========
+Koren S, Walenz BP, Berlin K, Miller JR, Phillippy AM. `Canu: scalable and accurate long-read assembly via adaptive k-mer weighting and repeat separation <http://biorxiv.org/content/early/2016/08/24/071282>`_. bioRxiv. (2016).
+
+Install
+=========
+The easiest way to get started is to download a `release <https://github.com/marbl/canu/releases>`_.
+
+Alternatively, you can also build the latest unreleased from github:
+
+::
+
+  git clone https://github.com/marbl/canu.git
+  cd canu/src
+  make -j <number of threads>
+
+Learn
+=========
+
 *  :ref:`Quick Start               <quickstart>` - no experience or data required, download and assemble *Escherichia coli* today!
 *  :ref:`FAQ                       <faq>` - Frequently asked questions
 *  :ref:`Canu tutorial             <tutorial>`   - a gentle introduction to the complexities of canu.
