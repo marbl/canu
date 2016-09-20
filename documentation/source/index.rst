@@ -43,8 +43,7 @@ Canu
 
 
 `Canu <http://github.com/marbl/canu>`_ is a fork of the Celera Assembler designed for high-noise single-molecule sequencing (such as
-the PacBio RSII or Oxford Nanopore MinION). You can `download <http://github.com/marbl/canu/releases>`_ a release. If you encounter
-any issues, please report them using the `github issues <http://github.com/marbl/canu/issues>`_ page.
+the PacBio RSII or Oxford Nanopore MinION). 
 
 Publication
 ===========
@@ -52,7 +51,8 @@ Koren S, Walenz BP, Berlin K, Miller JR, Phillippy AM. `Canu: scalable and accur
 
 Install
 =========
-The easiest way to get started is to download a `release <https://github.com/marbl/canu/releases>`_.
+The easiest way to get started is to download a `release <https://github.com/marbl/canu/releases>`_. If you encounter
+any issues, please report them using the `github issues <http://github.com/marbl/canu/issues>`_ page.
 
 Alternatively, you can also build the latest unreleased from github:
 
