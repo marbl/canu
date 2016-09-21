@@ -599,7 +599,7 @@ sub mhapPrecomputeCheck ($$$$) {
     print L @successJobs;
     close(L);
 
-    setGlobal("canuIteration", 0);
+    setGlobal("canuIteration", 1);
     emitStage($WRK, $asm, "$tag-mhapPrecomputeCheck");
     buildHTML($WRK, $asm, $tag);
     stopAfter("mhapPrecompute");
@@ -729,7 +729,7 @@ sub mhapCheck ($$$$) {
     print L @miscJobs;
     close(L);
 
-    setGlobal("canuIteration", 0);
+    setGlobal("canuIteration", 1);
     emitStage($WRK, $asm, "$tag-mhapCheck");
     buildHTML($WRK, $asm, $tag);
     stopAfter("mhapOverlap");

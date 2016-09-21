@@ -269,7 +269,7 @@ sub unitigCheck ($$) {
 
     reportUnitigSizes($wrk, $asm, 1, "after unitig construction");
 
-    setGlobal("canuIteration", 0);
+    setGlobal("canuIteration", 1);
     emitStage($WRK, $asm, "unitigCheck");
     buildHTML($WRK, $asm, "utg");
     stopAfter("unitigCheck");

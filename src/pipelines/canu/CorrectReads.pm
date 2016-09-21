@@ -863,7 +863,7 @@ sub generateCorrectedReads ($$) {
     print L @successJobs;
     close(L);
 
-    setGlobal("canuIteration", 0);
+    setGlobal("canuIteration", 1);
     emitStage($WRK, $asm, "cor-generateCorrectedReads");
     buildHTML($WRK, $asm, "cor");
     stopAfter("readCorrection");

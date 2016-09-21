@@ -317,7 +317,7 @@ sub readErrorDetectionCheck ($$) {
 
     concatOutput("$path/red.red", @successJobs);
 
-    setGlobal("canuIteration", 0);
+    setGlobal("canuIteration", 1);
     emitStage($WRK, $asm, "readErrorDetectionCheck");
     buildHTML($WRK, $asm, "utg");
     stopAfter("red");
@@ -600,7 +600,7 @@ sub overlapErrorAdjustmentCheck ($$) {
     }
     close(L);
 
-    setGlobal("canuIteration", 0);
+    setGlobal("canuIteration", 1);
     emitStage($WRK, $asm, "overlapErrorAdjustmentCheck");
     buildHTML($WRK, $asm, "utg");
     stopAfter("oea");

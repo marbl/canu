@@ -275,7 +275,7 @@ sub consensusCheck ($$) {
     print L @successJobs;
     close(L);
 
-    setGlobal("canuIteration", 0);
+    setGlobal("canuIteration", 1);
     emitStage($WRK, $asm, "consensusCheck");
     buildHTML($WRK, $asm, "utg");
     stopAfter("consensusCheck");

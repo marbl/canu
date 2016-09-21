@@ -459,7 +459,7 @@ sub mmapPrecomputeCheck ($$$$) {
     print L @successJobs;
     close(L);
 
-    setGlobal("canuIteration", 0);
+    setGlobal("canuIteration", 1);
     emitStage($WRK, $asm, "$tag-mmapPrecomputeCheck");
     buildHTML($WRK, $asm, $tag);
     stopAfter("mmapPrecompute");
@@ -585,7 +585,7 @@ sub mmapCheck ($$$$) {
     print L @miscJobs;
     close(L);
 
-    setGlobal("canuIteration", 0);
+    setGlobal("canuIteration", 1);
     emitStage($WRK, $asm, "$tag-mmapCheck");
     buildHTML($WRK, $asm, $tag);
     stopAfter("mmapOverlap");

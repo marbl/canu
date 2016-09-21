@@ -402,7 +402,7 @@ sub overlapCheck ($$$$) {
 
     reportOverlapStats($wrk, $asm, @statsJobs);
 
-    setGlobal("canuIteration", 0);
+    setGlobal("canuIteration", 1);
     emitStage($WRK, $asm, "$tag-overlapCheck");
     buildHTML($WRK, $asm, $tag);
     stopAfter("overlapper");

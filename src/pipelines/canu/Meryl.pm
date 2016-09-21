@@ -380,7 +380,7 @@ sub merylCheck ($$$) {
     rename("$ofile.FINISHED.mcdat", "$ofile.mcdat");
     rename("$ofile.FINISHED.mcidx", "$ofile.mcidx");
 
-    setGlobal("canuIteration", 0);
+    setGlobal("canuIteration", 1);
     emitStage($WRK, $asm, "merylCheck");
     buildHTML($WRK, $asm, $tag);
     stopAfter("merylCheck");

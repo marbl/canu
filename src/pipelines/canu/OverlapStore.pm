@@ -414,7 +414,7 @@ sub overlapStoreBucketizerCheck ($$$$) {
 
     touch("$wrk/$asm.ovlStore.BUILDING/1-bucketize.success");
 
-    setGlobal("canuIteration", 0);
+    setGlobal("canuIteration", 1);
     emitStage($WRK, $asm, "$tag-overlapStoreBucketizerCheck");
     buildHTML($WRK, $asm, $tag);
     stopAfter("overlapBucketizer");
@@ -518,7 +518,7 @@ sub overlapStoreSorterCheck ($$$$) {
 
     touch("$wrk/$asm.ovlStore.BUILDING/2-sorter.success");
 
-    setGlobal("canuIteration", 0);
+    setGlobal("canuIteration", 1);
     emitStage($WRK, $asm, "$tag-overlapStoreSorterCheck");
     buildHTML($WRK, $asm, $tag);
     stopAfter("overlapSorter");
