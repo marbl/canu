@@ -86,7 +86,7 @@ public:
   };
 
   uint32    readID;    //  readID we have an overlap from; Index into _pForward
-  uint32    placeID;   //  index into the vector for _pReverse[readID]
+  uint32    placeID;   //  index into the vector for _pForward[readID]
 };
 
 
