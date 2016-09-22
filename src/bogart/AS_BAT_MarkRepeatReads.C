@@ -92,8 +92,7 @@ olapDatByEviRid(const olapDat &A, const olapDat &B) {
 
 class breakPointCoords {
 public:
-  breakPointCoords(uint32 tigID, int32 bgn, int32 end, bool rpt=false) {
-    _tigID    = tigID;
+  breakPointCoords(int32 bgn, int32 end, bool rpt=false) {
     _bgn      = bgn;
     _end      = end;
     _isRepeat = rpt;
@@ -105,7 +104,6 @@ public:
     return(_bgn < that._bgn);
   };
 
-  uint32  _tigID;
   int32   _bgn;
   int32   _end;
   bool    _isRepeat;
@@ -176,15 +174,14 @@ findUnitigCoverage(Unitig               *tig,
 
 
 uint32
-splitTigs(TigVector                &tigs,
-          Unitig                   *tig,
-          vector<breakPointCoords> &BP,
-          Unitig                  **newTigs,
-          int32                    *lowCoord,
-          uint32                   *nRepeat,
-          uint32                   *nUnique,
-          bool                      doMove) {
-  uint32  nTigsCreated = 0;
+splitTig(TigVector                &tigs,
+         Unitig                   *tig,
+         vector<breakPointCoords> &BP,
+         Unitig                  **newTigs,
+         int32                    *lowCoord,
+         uint32                   *nRepeat,
+         uint32                   *nUnique,
+         bool                      doMove) {
 
   if (doMove == true) {
     memset(newTigs,  0, sizeof(Unitig *) * BP.size());
@@ -232,7 +229,7 @@ splitTigs(TigVector                &tigs,
     if (rid == UINT32_MAX) {
       fprintf(stderr, "Failed to place read %u at %d-%d\n", frg.ident, frgbgn, frgend);
       for (uint32 ii=0; ii<BP.size(); ii++)
-        fprintf(stderr, "Breakpoints %2u %8u-%8u repeat %u\n", ii, BP[ii]._bgn, BP[ii]._end, BP[ii]._isRepeat);
+        fprintf(stderr, "BP[%3u] at %8u-%8u repeat %u\n", ii, BP[ii]._bgn, BP[ii]._end, BP[ii]._isRepeat);
       flushLog();
     }
     assert(rid != UINT32_MAX);  //  We searched all the BP's, the read had better be placed!
@@ -263,6 +260,8 @@ splitTigs(TigVector                &tigs,
   }
 
   //  Return the number of tigs created.
+
+  uint32  nTigsCreated = 0;
 
   for (uint32 ii=0; ii<BP.size(); ii++)
     if (nRepeat[ii] + nUnique[ii] > 0)
@@ -1034,10 +1033,10 @@ markRepeatReads(TigVector    &tigs,
     vector<breakPointCoords>   BP;
 
     for (uint32 ii=0; ii<tigMarksR.numberOfIntervals(); ii++)
-      BP.push_back(breakPointCoords(ti, tigMarksR.lo(ii), tigMarksR.hi(ii), true));
+      BP.push_back(breakPointCoords(tigMarksR.lo(ii), tigMarksR.hi(ii), true));
 
     for (uint32 ii=0; ii<tigMarksU.numberOfIntervals(); ii++)
-      BP.push_back(breakPointCoords(ti, tigMarksU.lo(ii), tigMarksU.hi(ii), false));
+      BP.push_back(breakPointCoords(tigMarksU.lo(ii), tigMarksU.hi(ii), false));
 
     //  If there is only one BP, the tig is entirely resolved or entirely repeat.  Either case,
     //  there is nothing more for us to do.
@@ -1066,12 +1065,12 @@ markRepeatReads(TigVector    &tigs,
 
     //  First call, count the number of tigs we would create if we let it create them.
 
-    uint32  nTigs = splitTigs(tigs, tig, BP, newTigs, lowCoord, nRepeat, nUnique, false);
+    uint32  nTigs = splitTig(tigs, tig, BP, newTigs, lowCoord, nRepeat, nUnique, false);
 
     //  Second call, actually create the tigs, if anything would change.
 
     if (nTigs > 1)
-      splitTigs(tigs, tig, BP, newTigs, lowCoord, nRepeat, nUnique, true);
+      splitTig(tigs, tig, BP, newTigs, lowCoord, nRepeat, nUnique, true);
 
     //  Report the tigs created.
 
@@ -1087,8 +1086,8 @@ markRepeatReads(TigVector    &tigs,
     //  Remove the old unitig....if we made new ones.
 
     if (nTigs > 1) {
+      tigs[tig->id()] = NULL;
       delete tig;
-      tigs[ti] = NULL;
     }
   }
 }
