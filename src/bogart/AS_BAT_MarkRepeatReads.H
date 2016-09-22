@@ -26,6 +26,7 @@
 #ifndef INCLUDE_AS_BAT_MARKREPEATREADS
 #define INCLUDE_AS_BAT_MARKREPEATREADS
 
+#include "AS_BAT_TigVector.H"
 
 void
 markRepeatReads(TigVector    &tigs,
