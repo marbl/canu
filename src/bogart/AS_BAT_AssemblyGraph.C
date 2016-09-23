@@ -548,8 +548,8 @@ AssemblyGraph::rebuildGraph(TigVector     &tigs) {
       uint32  t5 = (bp.best5.b_iid > 0) ? tigs.inUnitig(bp.best5.b_iid) : UINT32_MAX;
       uint32  t3 = (bp.best3.b_iid > 0) ? tigs.inUnitig(bp.best3.b_iid) : UINT32_MAX;
 
-      writeLog("AssemblyGraph()-- rebuilding read %u edge %u with overlaps %u %u %u\n",
-               fi, ff, bp.bestC.b_iid, bp.best5.b_iid, bp.best3.b_iid);
+      //writeLog("AssemblyGraph()-- rebuilding read %u edge %u with overlaps %u %u %u\n",
+      //         fi, ff, bp.bestC.b_iid, bp.best5.b_iid, bp.best3.b_iid);
 
       //  If a containment relationship, place it using the contain and update the placement.
 
