@@ -135,8 +135,8 @@ AssemblyGraph::buildGraph(const char   *UNUSED(prefix),
 
     uint32   fiLen  = RI->readLength(fi);
     ufNode  *fiRead = &tigs[fiTigID]->ufpath[ tigs.ufpathIdx(fi) ];
-    uint32   fiMin  = fiRead->position.min();
-    uint32   fiMax  = fiRead->position.max();
+    int32    fiMin  = fiRead->position.min();
+    int32    fiMax  = fiRead->position.max();
 
     //  Find ALL potential placements, regardless of error rate.
 
@@ -168,12 +168,12 @@ AssemblyGraph::buildGraph(const char   *UNUSED(prefix),
         continue;
       }
 
-      uint32   utgmin  = placements[pp].position.min();  //  Placement in unitig.
-      uint32   utgmax  = placements[pp].position.max();
+      int32    utgmin  = placements[pp].position.min();  //  Placement in unitig.
+      int32    utgmax  = placements[pp].position.max();
       bool     utgfwd  = placements[pp].position.isForward();
 
-      uint32   ovlmin  = placements[pp].verified.min();  //  Placement in unitig, verified by overlaps.
-      uint32   ovlmax  = placements[pp].verified.max();
+      int32    ovlmin  = placements[pp].verified.min();  //  Placement in unitig, verified by overlaps.
+      int32    ovlmax  = placements[pp].verified.max();
 
       assert(placements[pp].covered.bgn < placements[pp].covered.end);     //  Coverage is always forward.
 
