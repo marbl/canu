@@ -846,7 +846,7 @@ static int obtainAlignmentTraceback(const int queryLength, const int targetLengt
     Word currM = alignData->Ms[c * maxNumBlocks + b]; // M of current block
     // True if block to left exists and is in band
     bool thereIsLeftBlock = c > 0 && b >= alignData->firstBlocks[c-1] && b <= alignData->lastBlocks[c-1];
-    Word lP, lM;
+    Word lP = 0, lM = 0;
     if (thereIsLeftBlock) {
         lP = alignData->Ps[(c - 1) * maxNumBlocks + b]; // P of block to the left
         lM = alignData->Ms[(c - 1) * maxNumBlocks + b]; // M of block to the left
