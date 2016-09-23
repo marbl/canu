@@ -266,9 +266,9 @@ AssemblyGraph::buildGraph(const char   *UNUSED(prefix),
       uint32       no  = 0;
       BAToverlap  *ovl = OC->getOverlaps(fi, AS_MAX_EVALUE, no);
 
-      uint32  thickestC = 0, thickestCident = 0;
-      uint32  thickest5 = 0, thickest5len   = 0;
-      uint32  thickest3 = 0, thickest3len   = 0;
+      uint32  thickestC = UINT32_MAX, thickestCident = 0;
+      uint32  thickest5 = UINT32_MAX, thickest5len   = 0;
+      uint32  thickest3 = UINT32_MAX, thickest3len   = 0;
 
       for (uint32 oo=0; oo<no; oo++) {
         if (tigReads.count(ovl[oo].b_iid) == 0)   //  Don't care about overlaps to reads not in the set.
@@ -308,16 +308,14 @@ AssemblyGraph::buildGraph(const char   *UNUSED(prefix),
       //  If we have both 5' and 3' edges, delete the containment edge.
 
       if ((bp.best5.b_iid != 0) && (bp.best3.b_iid != 0)) {
-        thickestC      = 0;
-        thickestCident = 0;
-        bp.bestC       = BAToverlapInt();
+        thickestC = UINT32_MAX;   thickestCident = 0;   bp.bestC = BAToverlapInt();
       }
 
       //  If we have a containment edge, delete the 5' and 3' edges.
 
       if (bp.bestC.b_iid != 0) {
-        thickest5 = 0;   thickest5len = 0;   bp.best5 = BAToverlapInt();
-        thickest3 = 0;   thickest3len = 0;   bp.best3 = BAToverlapInt();
+        thickest5 = UINT32_MAX;   thickest5len = 0;     bp.best5 = BAToverlapInt();
+        thickest3 = UINT32_MAX;   thickest3len = 0;     bp.best3 = BAToverlapInt();
       }
 
 
@@ -339,9 +337,9 @@ AssemblyGraph::buildGraph(const char   *UNUSED(prefix),
       //  If there are best edges off the 5' or 3' end, grab all the overlaps, find the particular
       //  overlap, and generate new BestEdgeOverlaps for them.
 
-      if ((thickestC == 0) &&
-          (thickest5 == 0) &&
-          (thickest3 == 0)) {
+      if ((thickestC == UINT32_MAX) &&
+          (thickest5 == UINT32_MAX) &&
+          (thickest3 == UINT32_MAX)) {
 #ifdef LOG_GRAPH
           writeLog("AG()-- read %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.4f NO_EDGES Fidx %6u Lidx %6u is5 %d is3 %d onLeft %d onRight %d\n",
                    fi, pp,
