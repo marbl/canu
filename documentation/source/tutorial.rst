@@ -28,7 +28,7 @@ The **canu** command is the 'executive' program that runs all modules of the ass
 each of the three top-level tasks (correction, trimming, unitig construction), each of which
 consists of many steps.  Canu ensures that input files for each step exist, that each step
 successfully finished, and that the output for each step exists.  It does minor bits of processing,
-such as reformatting files, but generally generally just executes other programs.
+such as reformatting files, but generally just executes other programs.
 
 ::
 
@@ -176,16 +176,19 @@ Execution Configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 There are two modes that canu runs in: locally, using just one machine, or grid-enabled, using
-multiple hosts managed by a grid engine.  At present, only Sun Grid Engine / Open Grid Engine /
-Univa Grid Engine / SGE / whatever it's called now, PBS, and Slurm support is available. LSF 
-support is also included but has limited testing. Section :ref:`grid-engine-config` has a few hints on how to set up a
-new grid engine.
+multiple hosts managed by a grid engine.  LSF, PBS/Torque, PBSPro, Sun Grid Engine (and
+derivations), and Slurm are supported, though LSF has has limited testing. Section
+:ref:`grid-engine-config` has a few hints on how to set up a new grid engine.
 
-To enable execution of the parallel steps on the grid, set ``useGrid=1``.  The canu pipeline will immediately submit itself to
-the grid, and run entirely under grid control. This is the default if a grid-engine is detected on your system. If you prefer to run locally, set ``useGrid=0``.
+By default, if a grid is detected the canu pipeline will immediately submit itself to the grid and
+run entirely under grid control.  If no grid is detected, or if option ``useGrid=false`` is set,
+canu will run on the local machine.
 
-In both cases, local or grid, Canu will auto-detect available resources and scale the jobs to run, based on the resources and genome size you're assembling. Thus, most users should be able to run the command without modifying the defaults. Some advanced options are outlined below. Each stage has the same five configuration options, and tags are used to specialize the option to a
-specific stage.  The options are:
+In both cases, Canu will auto-detect available resources and configure job sizes based on the
+resources and genome size you're assembling. Thus, most users should be able to run the command
+without modifying the defaults. Some advanced options are outlined below. Each stage has the same
+five configuration options, and tags are used to specialize the option to a specific stage.  The
+options are:
 
 useGrid<tag>=boolean
   Run this stage on the grid, usually in parallel.
@@ -234,8 +237,13 @@ Fraction Error  Percent Error
 .               .            
 ==============  =============
 
-Eventually, we want to have Canu take a single error rate, the error rate of a single input read,
-and derive all other rates from there.  This is the parameter ``errorRate``. Currently, the defaults are 0.025 for PacBio sequences and 0.05 for Oxford Nanpore sequences. Typically, you should not need to modify this setting. However, the error rate does affect runtime and lowering it can significantly speed up your assembly. Thus, for low coverage datasets (<=30X) we recommend increasing the error rate slightly (by 1%, so errorRate=0.035 or PacBio) and for high-coverage (>=60X) datasets, we recommend decreasing it (by 1%, so errorRate=0.015 for PacBio). 
+Eventually, we want to have Canu take a single error rate, the error rate of a single corrected read,
+and derive all other rates from there.  This is the parameter ``errorRate``. Currently, the defaults
+are 0.025 for PacBio sequences and 0.05 for Oxford Nanpore sequences. Typically, you should not need
+to modify this setting. However, the error rate does affect runtime and lowering it can
+significantly speed up your assembly. Thus, for low coverage datasets (<=30X) we recommend
+increasing the error rate slightly (by 1%, so errorRate=0.035 or PacBio) and for high-coverage
+(>=60X) datasets, we recommend decreasing it (by 1%, so errorRate=0.015 for PacBio).
 
 The following error rates are defined:
 
@@ -333,8 +341,8 @@ smaller of the forward and reverse-complemented kmer sequence.  Kmer ACTT, with 
 AAGT, has a canonical kmer AAGT.  Kmer CTTA, reverse-complement TAAG, has canonical kmer CTTA.
 
 A 'distinct' kmer is the kmer sequence with no count associated with it.  A 'total' kmer (for lack
-of a better term) is the kmer with its count.  The sequence CGTTTTTTTCGTCG has (forward) 12 'total' 4-mers
-and 7 'distinct' kmers.
+of a better term) is the kmer with its count.  The sequence TCGTTTTTTTCGTCG has 12 'total' 4-mers
+and 8 'distinct' kmers.
 
 ::
 
@@ -346,21 +354,21 @@ and 7 'distinct' kmers.
      TTTT         4 copy of distinct-4
       TTTT        4 copy of distinct-4
        TTTT       4 copy of distinct-4
-        TTTC      4 copy of distinct-4
-         TTCG     1 distinct-5
+        TTTC      1 distinct-5
+         TTCG     1 distinct-6
           TCGT    2 copy of distinct-1
-           CGTC   1 distinct-6
-            GTCG  1 distinct-7
+           CGTC   1 distinct-7
+            GTCG  1 distinct-8
 
 
 <tag>MerThreshold
   any kmer with count higher than N is not used
 <tag>MerDistinct
   pick a threshold so as to seed overlaps using this fraction of all distinct kmers in the input.  In the example above,
-  fraction 0.8572 of the k-mers (6/7) will be at or below threshold 2.
+  fraction 0.875 of the k-mers (7/8) will be at or below threshold 2.
 <tag>MerTotal
   pick a threshold so as to seed overlaps using this fraction of all kmers in the input.  In the example above,
-  fraction 0.6364 of the k-mers (7/11) will be at or below threshold 2.
+  fraction 0.667 of the k-mers (8/12) will be at or below threshold 2.
 <tag>FrequentMers
   don't compute frequent kmers, use those listed in this fasta file
 
