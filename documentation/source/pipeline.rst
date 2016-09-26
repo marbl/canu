@@ -4,31 +4,9 @@
 Canu Pipeline
 =============
 
-The canu pipeline is big and complicated and we haven't written it up yet.  Sorry.
+The pipeline is described in Koren S, Walenz BP, Berlin K, Miller JR, Phillippy AM. `Canu: scalable and accurate long-read assembly via adaptive k-mer weighting and repeat separation <http://biorxiv.org/content/early/2016/08/24/071282>`_. bioRxiv. (2016).
+Figure 1 of the paper shows the primary pipeline (below, top) and the supplement contains the sub-pipeline for building read and overlap databases (below, bottom).
 
+.. image:: canu-pipeline.*
 
-The basic flow is:
-
-- Gatekeeper
-- Meryl
-- Overlapper
-
-  + Read Correction
-  + Read Trimming
-
-    * Trimming
-    * Splitting
-
-  + Unitig Construction
-
-    * Overlap Error Adjustment
-    * Overlap Filtering (NOT IMPLEMENTED)
-    * Unitig
-    * Consensus
-    * Labeling
-    * Output
-
-Details:
-
-Meryl - counts kmers, generates a histogram txt file, and a histogram plot png
-
+.. image:: canu-overlaps.*
