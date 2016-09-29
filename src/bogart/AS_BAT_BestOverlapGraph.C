@@ -876,11 +876,14 @@ BestOverlapGraph::isOverlapBadQuality(BAToverlap& olap) {
   //if ((olap.a_iid == 97202) || (olap.a_iid == 30701))
   //  enableLog = true;
 
+  //  The overlap is bad if it involves deleted reads.  Shouldn't happen in a normal
+  //  assembly, but sometimes us users want to delete reads after overlaps are generated.
+
   if ((RI->readLength(olap.a_iid) == 0) ||
-      (RI->readLength(olap.b_iid) == 0))
-    //  The overlap is bad if it involves deleted reads.  Shouldn't happen in a normal
-    //  assembly, but sometimes us users want to delete reads after overlaps are generated.
+      (RI->readLength(olap.b_iid) == 0)) {
+    olap.filtered = true;
     return(true);
+  }
 
   //  The overlap is GOOD (false == not bad) if the error rate is below the allowed erate.
   //  Initially, this is just the erate passed in.  After the first rount of finding edges,
@@ -910,6 +913,7 @@ BestOverlapGraph::isOverlapBadQuality(BAToverlap& olap) {
              olap.b_hang,
              olap.erate());
 
+  olap.filtered = true;
   return(true);
 }
 
