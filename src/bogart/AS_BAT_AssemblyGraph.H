@@ -65,9 +65,9 @@ public:
   bool              isBubble;     //  This placement is to an unambiguous region in a contig
   bool              isRepeat;     //  This placement is to an ambiguous region in a contig that was split
 
-  BAToverlapInt     bestC;
-  BAToverlapInt     best5;        //  For space reasons, overlaps are stored in the
-  BAToverlapInt     best3;        //  internal format.  It's time inefficient though.
+  BAToverlap        bestC;
+  BAToverlap        best5;
+  BAToverlap        best3;
 };
 
 

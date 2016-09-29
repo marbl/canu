@@ -92,7 +92,7 @@ setParentAndHang(TigVector &tigs) {
     //  Otherwise, find the thickest overlap to any read already placed in the unitig.
 
     uint32         olapsLen = 0;
-    BAToverlap    *olaps = OC->getOverlaps(frg->ident, AS_MAX_EVALUE, olapsLen);
+    BAToverlap    *olaps = OC->getOverlaps(frg->ident, olapsLen);
 
     uint32         tt     = UINT32_MAX;
     uint32         ttLen  = 0;
@@ -153,14 +153,14 @@ setParentAndHang(TigVector &tigs) {
 
       //  If the overlap is worse than the one we already have, we don't care.
 
-      if ((l < ttLen) ||                  //  Too short
-          (ttErr < olaps[oo].erate)) {    //  Too noisy
+      if ((l < ttLen) ||                    //  Too short
+          (ttErr < olaps[oo].erate())) {    //  Too noisy
         continue;
       }
 
       tt    = oo;
       ttLen = l;
-      ttErr = olaps[oo].erate;
+      ttErr = olaps[oo].erate();
     }
 
     //  If no thickest overlap, we screwed up somewhere.  Complain and eject the read.

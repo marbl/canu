@@ -232,7 +232,7 @@ findUnusedEdges(TigVector     &tigs,
   Unitig     *rdAtig   =  tigs[rdAtigID];
 
   uint32      ovlLen   = 0;
-  BAToverlap *ovl      = OC->getOverlaps(rdA->ident, AS_MAX_ERATE, ovlLen);
+  BAToverlap *ovl      = OC->getOverlaps(rdA->ident, ovlLen);
 
   vector<rawEdge_t>   rawEdges;
 

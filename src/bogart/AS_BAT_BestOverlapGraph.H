@@ -89,7 +89,6 @@ class BestEdgeOverlap {
 public:
   BestEdgeOverlap()                          { clear();  };
   BestEdgeOverlap(BAToverlap const &ovl)     { set(ovl); };
-  BestEdgeOverlap(BAToverlapInt const &ovl)  { set(ovl); };
   ~BestEdgeOverlap()                         {           };
 
   void    clear(void) {
@@ -100,8 +99,7 @@ public:
     _evalue = 0;
   };
 
-  template<typename OO>                                  //  Expecting BAToverlap
-  void    set(OO const &olap) {                          //         or BAToverlapInt.
+  void    set(BAToverlap const &olap) {
     _id     = olap.b_iid;
     if (((olap.a_hang <= 0) && (olap.b_hang >= 0)) ||    //  If contained, _e3p just means
         ((olap.a_hang >= 0) && (olap.b_hang <= 0)))      //  the other read is flipped

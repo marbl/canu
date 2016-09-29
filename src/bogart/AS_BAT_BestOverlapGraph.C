@@ -61,7 +61,7 @@ BestOverlapGraph::removeSuspicious(const char *UNUSED(prefix)) {
 #pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 fi=1; fi <= fiLimit; fi++) {
     uint32               no  = 0;
-    BAToverlap          *ovl = OC->getOverlaps(fi, AS_MAX_EVALUE, no);
+    BAToverlap          *ovl = OC->getOverlaps(fi, no);
 
     bool                 verified = false;
     intervalList<int32>  IL;
@@ -352,7 +352,7 @@ BestOverlapGraph::findEdges(void) {
 #pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 fi=1; fi <= fiLimit; fi++) {
     uint32      no  = 0;
-    BAToverlap *ovl = OC->getOverlaps(fi, AS_MAX_EVALUE, no);
+    BAToverlap *ovl = OC->getOverlaps(fi, no);
 
     for (uint32 ii=0; ii<no; ii++)
       scoreContainment(ovl[ii]);
@@ -363,7 +363,7 @@ BestOverlapGraph::findEdges(void) {
 #pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 fi=1; fi <= fiLimit; fi++) {
     uint32      no  = 0;
-    BAToverlap *ovl = OC->getOverlaps(fi, AS_MAX_EVALUE, no);
+    BAToverlap *ovl = OC->getOverlaps(fi, no);
 
     //  Build edges out of spurs, but don't allow edges into them.  This should prevent them from
     //  being incorporated into a promiscuous unitig, but still let them be popped as bubbles (but
@@ -807,7 +807,7 @@ BestOverlapGraph::scoreEdge(const BAToverlap& olap) {
     //  Yuck.  Don't want to use this crud.
     if ((enableLog == true) && (logFileFlagSet(LOG_OVERLAP_SCORING)))
       writeLog("scoreEdge()-- OVERLAP BADQ:     %d %d %c  hangs "F_S32" "F_S32" err %.3f -- bad quality\n",
-               olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.erate);
+               olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.erate());
     return;
   }
 
@@ -815,7 +815,7 @@ BestOverlapGraph::scoreEdge(const BAToverlap& olap) {
     //  Whoops, don't want this overlap for this BOG
     if ((enableLog == true) && (logFileFlagSet(LOG_OVERLAP_SCORING)))
       writeLog("scoreEdge()-- OVERLAP RESTRICT: %d %d %c  hangs "F_S32" "F_S32" err %.3f -- restricted\n",
-               olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.erate);
+               olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.erate());
     return;
   }
 
@@ -823,7 +823,7 @@ BestOverlapGraph::scoreEdge(const BAToverlap& olap) {
     //  Whoops, don't want this overlap for this BOG
     if ((enableLog == true) && (logFileFlagSet(LOG_OVERLAP_SCORING)))
       writeLog("scoreEdge()-- OVERLAP SUSP:     %d %d %c  hangs "F_S32" "F_S32" err %.3f -- suspicious\n",
-               olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.erate);
+               olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.erate());
     return;
   }
 
@@ -832,7 +832,7 @@ BestOverlapGraph::scoreEdge(const BAToverlap& olap) {
     //  Skip containment overlaps.
     if ((enableLog == true) && (logFileFlagSet(LOG_OVERLAP_SCORING)))
       writeLog("scoreEdge()-- OVERLAP CONT:     %d %d %c  hangs "F_S32" "F_S32" err %.3f -- container read\n",
-               olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.erate);
+               olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.erate());
     return;
   }
 
@@ -840,7 +840,7 @@ BestOverlapGraph::scoreEdge(const BAToverlap& olap) {
     //  Skip overlaps to contained reads (allow scoring of best edges from contained reads).
     if ((enableLog == true) && (logFileFlagSet(LOG_OVERLAP_SCORING)))
       writeLog("scoreEdge()-- OVERLAP CONT:     %d %d %c  hangs "F_S32" "F_S32" err %.3f -- contained read\n",
-               olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.erate);
+               olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.erate());
     return;
   }
 
@@ -854,7 +854,7 @@ BestOverlapGraph::scoreEdge(const BAToverlap& olap) {
   if (newScr <= score) {
     if ((enableLog == true) && (logFileFlagSet(LOG_OVERLAP_SCORING)))
       writeLog("scoreEdge()-- OVERLAP GOOD:     %d %d %c  hangs "F_S32" "F_S32" err %.3f -- no better than best\n",
-               olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.erate);
+               olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.erate());
     return;
   }
 
@@ -864,7 +864,7 @@ BestOverlapGraph::scoreEdge(const BAToverlap& olap) {
 
   if ((enableLog == true) && (logFileFlagSet(LOG_OVERLAP_SCORING)))
     writeLog("scoreEdge()-- OVERLAP BEST:     %d %d %c  hangs "F_S32" "F_S32" err %.3f -- NOW BEST\n",
-             olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.erate);
+             olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.erate());
 }
 
 
@@ -886,14 +886,14 @@ BestOverlapGraph::isOverlapBadQuality(const BAToverlap& olap) {
   //  Initially, this is just the erate passed in.  After the first rount of finding edges,
   //  it is reset to the mean and stddev of selected best edges.
 
-  if (olap.erate <= _errorLimit) {
+  if (olap.erate() <= _errorLimit) {
     if ((enableLog == true) && (logFileFlagSet(LOG_OVERLAP_SCORING)))
       writeLog("isOverlapBadQuality()-- OVERLAP GOOD:     %d %d %c  hangs "F_S32" "F_S32" err %.3f\n",
                olap.a_iid, olap.b_iid,
                olap.flipped ? 'A' : 'N',
                olap.a_hang,
                olap.b_hang,
-               olap.erate);
+               olap.erate());
 
     return(false);
   }
@@ -908,7 +908,7 @@ BestOverlapGraph::isOverlapBadQuality(const BAToverlap& olap) {
              olap.flipped ? 'A' : 'N',
              olap.a_hang,
              olap.b_hang,
-             olap.erate);
+             olap.erate());
 
   return(true);
 }
@@ -970,8 +970,8 @@ BestOverlapGraph::scoreOverlap(const BAToverlap& olap) {
   //  Convert the length into an expected number of matches.
 
 #if 0
-  assert(olap.erate <= 1.0);
-  leng  -= leng * olap.erate;
+  assert(olap.erate() <= 1.0);
+  leng  -= leng * olap.erate();
 #endif
 
   //  And finally shift it to the correct place in the word.

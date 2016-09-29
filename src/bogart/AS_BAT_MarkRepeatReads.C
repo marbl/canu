@@ -684,7 +684,7 @@ findConfusedEdges(TigVector            &tigs,
       //  that are of comparable length and quality.
 
       uint32        ovlLen   = 0;
-      BAToverlap   *ovl      = OC->getOverlaps(rdAid, AS_MAX_ERATE, ovlLen);
+      BAToverlap   *ovl      = OC->getOverlaps(rdAid, ovlLen);
 
       for (uint32 oo=0; oo<ovlLen; oo++) {
         uint32   rdBid    = ovl[oo].b_iid;
@@ -747,7 +747,7 @@ findConfusedEdges(TigVector            &tigs,
           continue;
 
         uint32  len   = RI->overlapLength(rdAid, ovl[oo].b_iid, ovl[oo].a_hang, ovl[oo].b_hang);
-        double  score = len * (1 - ovl[oo].erate);
+        double  score = len * (1 - ovl[oo].erate());
 
         //  Compute percent difference.
 
@@ -764,7 +764,7 @@ findConfusedEdges(TigVector            &tigs,
                    tig->id(), rdAid, rdAlo, rdAhi,
                    rdBid,
                    b5->readId(), len5, b5->erate(), score5,
-                   len, ovl[oo].erate, score,
+                   len, ovl[oo].erate(), score,
                    ad5, pd5);
           continue;
         }
@@ -774,7 +774,7 @@ findConfusedEdges(TigVector            &tigs,
                    tig->id(), rdAid, rdAlo, rdAhi,
                    rdBid,
                    b3->readId(), len3, b3->erate(), score3,
-                   len, ovl[oo].erate, score,
+                   len, ovl[oo].erate(), score,
                    ad3, pd3);
           continue;
         }
@@ -786,7 +786,7 @@ findConfusedEdges(TigVector            &tigs,
                    tig->id(), rdAid, rdAlo, rdAhi,
                    rdBid,
                    b5->readId(), len5, b5->erate(), score5,
-                   len, ovl[oo].erate, score,
+                   len, ovl[oo].erate(), score,
                    ad5, pd5);
 
         if (ovl3 == true)
@@ -794,7 +794,7 @@ findConfusedEdges(TigVector            &tigs,
                    tig->id(), rdAid, rdAlo, rdAhi,
                    rdBid,
                    b3->readId(), len3, b3->erate(), score3,
-                   len, ovl[oo].erate, score,
+                   len, ovl[oo].erate(), score,
                    ad3, pd3);
 
         isConfused[ri]++;

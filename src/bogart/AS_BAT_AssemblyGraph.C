@@ -264,7 +264,7 @@ AssemblyGraph::buildGraph(const char   *UNUSED(prefix),
       //  the thickest overlap on the 5' or 3' end of the read.
 
       uint32       no  = 0;
-      BAToverlap  *ovl = OC->getOverlaps(fi, AS_MAX_EVALUE, no);
+      BAToverlap  *ovl = OC->getOverlaps(fi, no);
 
       uint32  thickestC = UINT32_MAX, thickestCident = 0;
       uint32  thickest5 = UINT32_MAX, thickest5len   = 0;
@@ -284,7 +284,7 @@ AssemblyGraph::buildGraph(const char   *UNUSED(prefix),
           if (thickestCident < ovl[oo].evalue) {
             thickestC      = oo;
             thickestCident = ovl[oo].evalue;
-            bp.bestC.set(ovl[oo]);
+            bp.bestC       = ovl[oo];
           }
         }
 
@@ -292,7 +292,7 @@ AssemblyGraph::buildGraph(const char   *UNUSED(prefix),
           if (thickest5len < olapLen) {
             thickest5      = oo;
             thickest5len   = olapLen;
-            bp.best5.set(ovl[oo]);
+            bp.best5       = ovl[oo];
           }
         }
 
@@ -300,7 +300,7 @@ AssemblyGraph::buildGraph(const char   *UNUSED(prefix),
           if (thickest3len < olapLen) {
             thickest3      = oo;
             thickest3len   = olapLen;
-            bp.best3.set(ovl[oo]);
+            bp.best3       = ovl[oo];
           }
         }
       }
@@ -308,14 +308,14 @@ AssemblyGraph::buildGraph(const char   *UNUSED(prefix),
       //  If we have both 5' and 3' edges, delete the containment edge.
 
       if ((bp.best5.b_iid != 0) && (bp.best3.b_iid != 0)) {
-        thickestC = UINT32_MAX;   thickestCident = 0;   bp.bestC = BAToverlapInt();
+        thickestC = UINT32_MAX;   thickestCident = 0;   bp.bestC = BAToverlap();
       }
 
       //  If we have a containment edge, delete the 5' and 3' edges.
 
       if (bp.bestC.b_iid != 0) {
-        thickest5 = UINT32_MAX;   thickest5len = 0;     bp.best5 = BAToverlapInt();
-        thickest3 = UINT32_MAX;   thickest3len = 0;     bp.best3 = BAToverlapInt();
+        thickest5 = UINT32_MAX;   thickest5len = 0;     bp.best5 = BAToverlap();
+        thickest3 = UINT32_MAX;   thickest3len = 0;     bp.best3 = BAToverlap();
       }
 
 
@@ -578,8 +578,8 @@ AssemblyGraph::rebuildGraph(TigVector     &tigs) {
         BestPlacement   bp5 = bp;
         BestPlacement   bp3 = bp;
 
-        bp5.best3 = BAToverlapInt();   //  Erase the 3' overlap
-        bp3.best5 = BAToverlapInt();   //  Erase the 5' overlap
+        bp5.best3 = BAToverlap();   //  Erase the 3' overlap
+        bp3.best5 = BAToverlap();   //  Erase the 5' overlap
 
         assert(bp5.best5.b_iid != 0);  //  Overlap must exist!
         assert(bp3.best3.b_iid != 0);  //  Overlap must exist!

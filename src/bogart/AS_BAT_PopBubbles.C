@@ -112,7 +112,7 @@ findPotentialBubbles(TigVector       &tigs,
       nonContainedReads++;
 
       uint32      ovlLen   = 0;
-      BAToverlap *ovl      = OC->getOverlaps(rid, AS_MAX_ERATE, ovlLen);
+      BAToverlap *ovl      = OC->getOverlaps(rid, ovlLen);
 
       set<uint32>  readOlapsTo;
 
@@ -242,7 +242,7 @@ findBubbleReadPlacements(TigVector       &tigs,
     bool        isEnd    = (fi == 0) || (fi == fiLimit-1);
 
     uint32      ovlLen   = 0;
-    BAToverlap *ovl      = OC->getOverlaps(rdA->ident, AS_MAX_ERATE, ovlLen);
+    BAToverlap *ovl      = OC->getOverlaps(rdA->ident, ovlLen);
 
     set<uint32> intersections;
 

@@ -97,7 +97,7 @@ placeRead_fromOverlaps(TigVector   &tigs,
     ovlPlace[i].covered.end  = (ovl[i].b_hang > 0) ? flen : ovl[i].b_hang + flen;   //  covered by the overlap.
     ovlPlace[i].clusterID    = 0;
     ovlPlace[i].fCoverage    = 0.0;
-    ovlPlace[i].errors       = olen * ovl[i].erate;
+    ovlPlace[i].errors       = olen * ovl[i].erate();
     ovlPlace[i].aligned      = ovlPlace[i].covered.end - ovlPlace[i].covered.bgn;
     ovlPlace[i].tigFidx      = UINT32_MAX;
     ovlPlace[i].tigLidx      = 0;
@@ -292,9 +292,9 @@ placeRead_computeQualityAndCoverage(overlapPlacement &op,
     int32   cend = (ovl[oo].b_hang > 0) ? flen : ovl[oo].b_hang + flen;   //  covered by the overlap.
 
     //writeLog("NEW %d %d - errors %f cov %d %d\n",
-    //         ovl[oo].a_iid, ovl[oo].b_iid, olen * ovl[oo].erate, cbgn, cend);
+    //         ovl[oo].a_iid, ovl[oo].b_iid, olen * ovl[oo].erate(), cbgn, cend);
 
-    op.errors   += olen * ovl[oo].erate;
+    op.errors   += olen * ovl[oo].erate();
     op.aligned  += cend - cbgn;
 
     op.covered.bgn = min(op.covered.bgn, cbgn);
@@ -462,7 +462,7 @@ placeReadUsingOverlaps(TigVector                &tigs,
   //  Grab overlaps we'll use to place this read.
 
   uint32                ovlLen = 0;
-  BAToverlap           *ovl    = OC->getOverlaps(fid, AS_MAX_ERATE, ovlLen);
+  BAToverlap           *ovl    = OC->getOverlaps(fid, ovlLen);
 
   //  Grab some work space, and clear the output.
 

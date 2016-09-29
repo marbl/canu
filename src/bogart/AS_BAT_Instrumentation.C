@@ -532,7 +532,7 @@ reportOverlaps(TigVector &tigs, const char *prefix, const char *name) {
     //  For all overlaps.
 
     uint32        ovlLen = 0;
-    BAToverlap   *ovl    = OC->getOverlaps(fi, AS_MAX_ERATE, ovlLen);
+    BAToverlap   *ovl    = OC->getOverlaps(fi, ovlLen);
 
 
     for (uint32 oi=0; oi<ovlLen; oi++) {

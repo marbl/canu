@@ -47,9 +47,6 @@
 #include "gkStore.H"
 #include "memoryMappedFile.H"
 
-class BAToverlapInt;
-class BAToverlap;
-
 //  CA8 used to re-encode the error rate into a smaller-precision number.  This was
 //  confusing and broken (it tried to use a log-based encoding to give more precision
 //  to the smaller values).  CA3g gives up and uses all 12 bits of precision.
@@ -58,18 +55,17 @@ class BAToverlap;
 //  storage.
 
 //  For storing overlaps in memory.  12 bytes per overlap.
-class BAToverlapInt {
+class BAToverlap {
 public:
-  BAToverlapInt() {
+  BAToverlap() {
     evalue   = 0;
     a_hang   = 0;
     b_hang   = 0;
     flipped  = 0;
+    filtered = 0;
     b_iid    = 0;
   };
-  ~BAToverlapInt() {};
-
-  void set(BAToverlap const &olap);
+  ~BAToverlap() {};
 
   //  Nasty bit of code duplication.
 
@@ -115,136 +111,30 @@ public:
            (AEndIs3prime() && (flipped == false)));   // <===          ---->
   };
 
-
+  double
+  erate(void) const {
+    return(AS_OVS_decodeEvalue(evalue));
+  }
 
   uint64      evalue    :AS_MAX_EVALUE_BITS;     //  12
   int64       a_hang    :AS_MAX_READLEN_BITS+1;  //  21+1
   int64       b_hang    :AS_MAX_READLEN_BITS+1;  //  21+1
   uint64      flipped   :1;                      //   1
-
-  uint32      b_iid;
-};
-
-#if (AS_MAX_EVALUE_BITS + (AS_MAX_READLEN_BITS + 1) + (AS_MAX_READLEN_BITS + 1) + 1 > 64)
-#error not enough bits to store overlaps.  decrease AS_MAX_EVALUE_BITS or AS_MAX_READLEN_BITS.
-#endif
-
-
-//  For working with overlaps, 32 bytes per overlap.  This data is copied
-//  from the overlap storage (from a BAToverlapInt) with the erate expanded,
-//  and a_iid added.
-
-class BAToverlap {
-public:
-  BAToverlap() {};
-  ~BAToverlap() {};
-
-  void set(uint32 aiid, BAToverlapInt const &olap);
-
-public:
-
-  //  Return which end of the read the overlap is on.  For 'Ais', the orientation
-  //  of B doesn't matter; likewise for 'Bis'.
-  //
-  //  If the overlap is a containment relationship, both Is5 and Is3 are false.
-  //
-  bool
-  isDovetail(void) const {
-    return(((a_hang < 0) && (b_hang < 0)) ||
-           ((a_hang > 0) && (b_hang > 0)));
-  };
-
-  bool
-  AEndIs5prime(void) const {                   //  -------->
-    return((a_hang < 0) && (b_hang < 0));      //        -------
-  };
-
-  bool
-  AEndIs3prime(void) const {                   //     -------->
-    return((a_hang > 0) && (b_hang > 0));      //  -------
-  };
-
-  bool
-  AisContainer(void) const {                   //  -------->
-    return((a_hang >= 0) && (b_hang <= 0));    //    ----
-  };
-
-  bool
-  AisContained(void) const {                   //    --->
-    return((a_hang <= 0) && (b_hang >= 0));    //  ---------
-  };
-
-  bool
-  BEndIs3prime(void) const {
-    assert(AisContainer() == false);  //  Function is not defined
-    assert(AisContained() == false);  //    for containments.
-    return((AEndIs5prime() && (flipped == false)) ||   // <===     ------>
-           (AEndIs3prime() && (flipped == true)));     //        ---->
-  };
-
-  bool
-  BEndIs5prime(void) const {
-    assert(AisContainer() == false);  //  Function is not defined
-    assert(AisContained() == false);  //    for containments.
-    return((AEndIs5prime() && (flipped == true)) ||   //          ------>
-           (AEndIs3prime() && (flipped == false)));   // <===          ---->
-  };
-
-
-public:
-  int32       a_hang;
-  int32       b_hang;
-
-  uint32      flipped;
-
-  uint32      evalue;    //  Encoded fraction error
-  double      erate;     //  Decoded fraction error
-
+  uint64      filtered  :1;                      //   1
   uint32      a_iid;
   uint32      b_iid;
 };
 
+#if (AS_MAX_EVALUE_BITS + (AS_MAX_READLEN_BITS + 1) + (AS_MAX_READLEN_BITS + 1) + 1 + 1> 64)
+#error not enough bits to store overlaps.  decrease AS_MAX_EVALUE_BITS or AS_MAX_READLEN_BITS.
+#endif
 
-inline
-bool
-BAToverlap_sortByErate(BAToverlap const &a, BAToverlap const &b) {
-  return(a.erate > b.erate);
-}
 
 
 inline
 bool
 BAToverlap_sortByEvalue(BAToverlap const &a, BAToverlap const &b) {
   return(a.evalue > b.evalue);
-}
-
-
-
-inline
-void
-BAToverlapInt::set(BAToverlap const &olap) {
-  evalue  = olap.evalue;
-  a_hang  = olap.a_hang;
-  b_hang  = olap.b_hang;
-  flipped = olap.flipped;
-  b_iid   = olap.b_iid;
-}
-
-
-
-inline
-void
-BAToverlap::set(uint32 aiid, BAToverlapInt const &olap) {
-  a_hang   = olap.a_hang;
-  b_hang   = olap.b_hang;
-
-  flipped  = olap.flipped;
-
-  evalue   = olap.evalue;
-  erate    = AS_OVS_decodeEvalue(olap.evalue);
-
-  a_iid    = aiid;
-  b_iid    = olap.b_iid;
 }
 
 
@@ -285,7 +175,10 @@ public:
 
   void         loadOverlaps(double erate, uint32 minOverlap, const char *prefix, bool onlySave, bool doSave);
 
-  BAToverlap  *getOverlaps(uint32 readIID, double maxErate, uint32 &numOverlaps);
+  BAToverlap  *getOverlaps(uint32 readIID, uint32 &numOverlaps) {
+    numOverlaps = _cacheLen[readIID];
+    return(_cachePtr[readIID]);
+  }
 
   void         removeWeakOverlaps(uint32 *minEvalue5p,
                                   uint32 *minEvalue3p);
@@ -302,13 +195,13 @@ private:
 
   uint32                  _storMax;  //  Size of the heap
   uint32                  _storLen;  //  Position we are at in this heap
-  BAToverlapInt          *_stor;     //  Pointer to the heap (probably the last thing on _heaps)
+  BAToverlap             *_stor;     //  Pointer to the heap (probably the last thing on _heaps)
 
-  vector<BAToverlapInt*>  _heaps;
+  vector<BAToverlap*>     _heaps;
 
   memoryMappedFile       *_cacheMMF;
 
-  BAToverlapInt         **_cachePtr; //  Mapping of read iid to overlaps stored in the heap
+  BAToverlap            **_cachePtr; //  Mapping of read iid to overlaps stored in the heap
   uint32                 *_cacheLen; //  Number of overlaps per read iid
 
   uint32                  _maxPer;   //  Maximum number of overlaps to load for a single read

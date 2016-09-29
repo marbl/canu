@@ -173,7 +173,7 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
     int32       rdAhi  = (rdAfwd) ? rdA->position.end : rdA->position.bgn;
 
     uint32      ovlLen =  0;
-    BAToverlap *ovl    =  OC->getOverlaps(rdA->ident, AS_MAX_ERATE, ovlLen);
+    BAToverlap *ovl    =  OC->getOverlaps(rdA->ident, ovlLen);
 
     uint32      nDiffTig  = 0;
     uint32      nDiffPos  = 0;
@@ -209,8 +209,8 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
 
       //  Now figure out what region is covered by the overlap, and save the open/close event.
 
-      olaps.push_back(epOlapDat(max(rdAlo, rdBlo), true,  ovl[oi].erate));
-      olaps.push_back(epOlapDat(min(rdAhi, rdBhi), false, ovl[oi].erate));
+      olaps.push_back(epOlapDat(max(rdAlo, rdBlo), true,  ovl[oi].erate()));
+      olaps.push_back(epOlapDat(min(rdAhi, rdBhi), false, ovl[oi].erate()));
     }
 
 #ifdef SHOW_PROFILE_CONSTRUCTION_DETAILS
@@ -271,7 +271,7 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
              oo, olaps[oo].pos,
              ee, errorProfile[ee].bgn,
              olaps.size(), errorProfile.size(),
-             olaps[oo].open, olaps[oo].erate);
+             olaps[oo].open, olaps[oo].erate());
 #endif
 
     assert(olaps[oo].pos == errorProfile[ee].bgn);
