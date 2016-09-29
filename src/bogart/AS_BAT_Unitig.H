@@ -255,8 +255,14 @@ public:
   vector<uint32>     errorProfileIndex;
 
 public:
-  uint32             inUnitig(uint32 r)       { return(_vector->inUnitig(r)); };
-  uint32             ufpathIdx(uint32 r)      { return(_vector->ufpathIdx(r));  };
+  //  r > 0 guards against calling these from Idx's, while r < size guards
+  //  against calling with Id's.
+  //
+  uint32   inUnitig(uint32 r)     { assert(r > 0);             return(_vector->inUnitig(r));   };
+  uint32   ufpathIdx(uint32 r)    { assert(r > 0);             return(_vector->ufpathIdx(r));  };
+
+  ufNode  *readFromId(uint32 r)   { assert(r > 0);             return(&ufpath[ ufpathIdx(r) ]);  };
+  ufNode  *readFromIdx(uint32 r)  { assert(r < ufpath.size()); return(&ufpath[ r ]);             };
 
 private:
   TigVector        *_vector;   //  For updating the read map.
