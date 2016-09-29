@@ -236,13 +236,13 @@ public:
   void      reportBestEdges(const char *prefix, const char *label);
 
 public:
-  bool     isOverlapBadQuality(const BAToverlap& olap);  //  Used in repeat detection
+  bool     isOverlapBadQuality(BAToverlap& olap);  //  Used in repeat detection
 private:
-  uint64   scoreOverlap(const BAToverlap& olap);
+  uint64   scoreOverlap(BAToverlap& olap);
 
 private:
-  void     scoreContainment(const BAToverlap& olap);
-  void     scoreEdge(const BAToverlap& olap);
+  void     scoreContainment(BAToverlap& olap);
+  void     scoreEdge(BAToverlap& olap);
 
 private:
   uint64  &best5score(uint32 id) {

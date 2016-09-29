@@ -770,7 +770,7 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
 
 
 void
-BestOverlapGraph::scoreContainment(const BAToverlap& olap) {
+BestOverlapGraph::scoreContainment(BAToverlap& olap) {
 
   if (isOverlapBadQuality(olap))
     //  Yuck.  Don't want to use this crud.
@@ -797,7 +797,7 @@ BestOverlapGraph::scoreContainment(const BAToverlap& olap) {
 
 
 void
-BestOverlapGraph::scoreEdge(const BAToverlap& olap) {
+BestOverlapGraph::scoreEdge(BAToverlap& olap) {
   bool   enableLog = false;  //  useful for reporting this stuff only for specific reads
 
   //if ((olap.a_iid == 97202) || (olap.a_iid == 30701))
@@ -870,7 +870,7 @@ BestOverlapGraph::scoreEdge(const BAToverlap& olap) {
 
 
 bool
-BestOverlapGraph::isOverlapBadQuality(const BAToverlap& olap) {
+BestOverlapGraph::isOverlapBadQuality(BAToverlap& olap) {
   bool   enableLog = false;  //  useful for reporting this stuff only for specific reads
 
   //if ((olap.a_iid == 97202) || (olap.a_iid == 30701))
@@ -937,7 +937,7 @@ BestOverlapGraph::isOverlapRestricted(const BAToverlap &olap) {
 
 
 uint64
-BestOverlapGraph::scoreOverlap(const BAToverlap& olap) {
+BestOverlapGraph::scoreOverlap(BAToverlap& olap) {
   uint64  leng = 0;
   uint64  rate = AS_MAX_EVALUE - olap.evalue;
 
