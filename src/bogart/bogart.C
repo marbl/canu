@@ -429,7 +429,7 @@ main (int argc, char * argv []) {
                                         deviationRepeat,
                                         contigs);
 
-  AG->reportGraph(contigs, prefix, "initial");
+  AG->reportReadGraph(contigs, prefix, "initial");
 
   //
   //  Detect and break repeats.  Annotate each read with overlaps to reads not overlapping in the tig,
@@ -487,7 +487,7 @@ main (int argc, char * argv []) {
   reportOverlaps(contigs, prefix, "final");
   reportTigs(contigs, prefix, "final", genomeSize);
 
-  AG->reportGraph(contigs, prefix, "final");
+  AG->reportReadGraph(contigs, prefix, "final");
 
   //
   //  Generate outputs.  The graph MUST come after output, because it needs

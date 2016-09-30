@@ -121,12 +121,8 @@ public:
                                        TigVector    &tigs);
 
   void                      rebuildGraph(TigVector     &tigs);
-
   void                      filterEdges(TigVector     &tigs);
-
-  void                      reportGraph(TigVector &tigs, const char *prefix, const char *label);
-
-
+  void                      reportReadGraph(TigVector &tigs, const char *prefix, const char *label);
 
 private:
   vector<BestPlacement>  *_pForward;   //  Where each read is placed in other tigs

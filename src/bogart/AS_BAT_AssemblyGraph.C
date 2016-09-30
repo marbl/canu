@@ -757,13 +757,13 @@ AssemblyGraph::filterEdges(TigVector     &tigs) {
 
 
 bool
-reportGraph_reportEdge(TigVector      &tigs,
-                       BestPlacement  &pf,
-                       bool            skipBubble,
-                       bool            skipRepeat,
-                       bool           &reportC,
-                       bool           &report5,
-                       bool           &report3) {
+reportReadGraph_reportEdge(TigVector      &tigs,
+                           BestPlacement  &pf,
+                           bool            skipBubble,
+                           bool            skipRepeat,
+                           bool           &reportC,
+                           bool           &report5,
+                           bool           &report3) {
   reportC = false;
   report5 = false;
   report3 = false;
@@ -794,7 +794,7 @@ reportGraph_reportEdge(TigVector      &tigs,
 //  SWIPED FROM BestOverlapGraph::reportBestEdges
 
 void
-AssemblyGraph::reportGraph(TigVector &tigs, const char *prefix, const char *label) {
+AssemblyGraph::reportReadGraph(TigVector &tigs, const char *prefix, const char *label) {
  char   N[FILENAME_MAX];
   FILE *BEG = NULL;
 
@@ -834,7 +834,7 @@ AssemblyGraph::reportGraph(TigVector &tigs, const char *prefix, const char *labe
       if ((tigs.inUnitig(pf.best3.b_iid) != 0) && (tigs[ tigs.inUnitig(pf.best3.b_iid) ]->_isUnassembled == true))
         nEdgeToUnasm++;
 
-      if (reportGraph_reportEdge(tigs, pf, skipBubble, skipRepeat, reportC, report5, report3) == false)
+      if (reportReadGraph_reportEdge(tigs, pf, skipBubble, skipRepeat, reportC, report5, report3) == false)
         continue;
 
       used[fi] = 1;
@@ -876,7 +876,7 @@ AssemblyGraph::reportGraph(TigVector &tigs, const char *prefix, const char *labe
       BestPlacement  &pf = _pForward[fi][pp];
       bool            reportC=false, report5=false, report3=false;
 
-      if (reportGraph_reportEdge(tigs, pf, skipBubble, skipRepeat, reportC, report5, report3) == false)
+      if (reportReadGraph_reportEdge(tigs, pf, skipBubble, skipRepeat, reportC, report5, report3) == false)
         continue;
 
       //  Some statistics - number of edges of each type (in a contig, in a unitig, in both (tig), in neither (asm))
