@@ -68,7 +68,6 @@ ReadInfo         *RI  = 0L;
 OverlapCache     *OC  = 0L;
 BestOverlapGraph *OG  = 0L;
 ChunkGraph       *CG  = 0L;
-AssemblyGraph    *AG  = 0L;
 
 int
 main (int argc, char * argv []) {
@@ -424,7 +423,12 @@ main (int argc, char * argv []) {
   contigs.computeErrorProfiles(prefix, "assemblyGraph");
   contigs.reportErrorProfiles(prefix, "assemblyGraph");
 
-  AG = new AssemblyGraph(prefix, deviationGraph, deviationBubble, deviationRepeat, contigs);
+  AssemblyGraph *AG = new AssemblyGraph(prefix,
+                                        deviationGraph,
+                                        deviationBubble,
+                                        deviationRepeat,
+                                        contigs);
+
   AG->reportGraph(contigs, prefix, "initial");
 
   //
@@ -440,7 +444,7 @@ main (int argc, char * argv []) {
 
   contigs.computeErrorProfiles(prefix, "repeats");
 
-  markRepeatReads(contigs, deviationRepeat, confusedAbsolute, confusedPercent);
+  markRepeatReads(AG, contigs, deviationRepeat, confusedAbsolute, confusedPercent);
 
   //checkUnitigMembership(contigs);
   reportOverlaps(contigs, prefix, "markRepeatReads");

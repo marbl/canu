@@ -135,6 +135,5 @@ private:
 
 
 
-extern AssemblyGraph *AG;
 
 #endif  //  INCLUDE_AS_BAT_ASSEMBLYGRAPH

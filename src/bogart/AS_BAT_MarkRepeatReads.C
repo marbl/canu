@@ -286,7 +286,8 @@ splitTig(TigVector                &tigs,
 
 
 void
-annotateRepeatsOnRead(TigVector             &UNUSED(tigs),
+annotateRepeatsOnRead(AssemblyGraph         *AG,
+                      TigVector             &UNUSED(tigs),
                       Unitig                *tig,
                       double                 UNUSED(deviationRepeat),
                       vector<olapDat>       &repeats) {
@@ -916,10 +917,11 @@ reportTigsCreated(Unitig                    *tig,
 
 
 void
-markRepeatReads(TigVector    &tigs,
-                double        deviationRepeat,
-                uint32        confusedAbsolute,
-                double        confusedPercent) {
+markRepeatReads(AssemblyGraph  *AG,
+                TigVector      &tigs,
+                double          deviationRepeat,
+                uint32          confusedAbsolute,
+                double          confusedPercent) {
   uint32  tiLimit = tigs.size();
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize = (tiLimit < 100000 * numThreads) ? numThreads : tiLimit / 99999;
@@ -955,7 +957,7 @@ markRepeatReads(TigVector    &tigs,
     uint32  numThreads = omp_get_max_threads();
     uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
 
-    annotateRepeatsOnRead(tigs, tig, deviationRepeat, repeatOlaps);
+    annotateRepeatsOnRead(AG, tigs, tig, deviationRepeat, repeatOlaps);
 
     writeLog("Annotated with %lu overlaps.\n", repeatOlaps.size());
 

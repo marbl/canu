@@ -29,10 +29,11 @@
 #include "AS_BAT_TigVector.H"
 
 void
-markRepeatReads(TigVector    &tigs,
-                double        deviationRepeat,
-                uint32        confusedAbsolute,
-                double        confusedPercent);
+markRepeatReads(AssemblyGraph  *AG,
+                TigVector      &tigs,
+                double          deviationRepeat,
+                uint32          confusedAbsolute,
+                double          confusedPercent);
 
 
 #endif  //  INCLUDE_AS_BAT_MARKREPEATREADS
