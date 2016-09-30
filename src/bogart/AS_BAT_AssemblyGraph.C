@@ -366,7 +366,7 @@ AssemblyGraph::buildGraph(const char   *UNUSED(prefix),
       //  And now just log.
 
 #ifdef LOG_GRAPH
-      if (thickestC != 0) {
+      if (thickestC != UINT32_MAX) {
         writeLog("AG()-- read %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.4f CONTAINED %8d (%8d %8d)%s\n",
                  fi, pp,
                  placements[pp].tigID,
