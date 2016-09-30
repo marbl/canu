@@ -68,7 +68,7 @@ sub outputLayout ($$) {
 
     $cmd  = "$bin/tgStoreDump \\\n";
     $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
-    $cmd .= "  -T $wrk/$asm.tigStore 2 \\\n";
+    $cmd .= "  -T $wrk/$asm.ctgStore 2 \\\n";
     $cmd .= "  -o $WRK/$asm \\\n";
     $cmd .= "  -layout \\\n";
     $cmd .= "> $WRK/$asm.layout.err 2>&1";
@@ -103,7 +103,7 @@ sub outputGraph ($$) {
     if (-e "$wrk/4-unitigger/$asm.unused.edges") {
         $cmd  = "$bin/buildGraph \\\n";
         $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
-        $cmd .= "  -T $wrk/$asm.tigStore 2 \\\n";
+        $cmd .= "  -T $wrk/$asm.ctgStore 2 \\\n";
         $cmd .= "  -E $wrk/4-unitigger/$asm.unused.edges \\\n";
         $cmd .= "  -o $WRK/$asm.gfa \\\n";
         $cmd .= "2>&1 > $WRK/$asm.gfa.err\n";
@@ -143,7 +143,7 @@ sub outputSequence ($$) {
     foreach my $tt ("unassembled", "bubbles", "contigs") {
         $cmd  = "$bin/tgStoreDump \\\n";
         $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
-        $cmd .= "  -T $wrk/$asm.tigStore 2 \\\n";
+        $cmd .= "  -T $wrk/$asm.ctgStore 2 \\\n";
         $cmd .= "  -consensus -$type \\\n";
         $cmd .= "  -$tt \\\n";
         $cmd .= "> $WRK/$asm.$tt.$type\n";

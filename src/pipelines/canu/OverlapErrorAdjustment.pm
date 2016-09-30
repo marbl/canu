@@ -101,7 +101,7 @@ sub readErrorDetectionConfigure ($$) {
     goto allDone   if (-e "$path/red.red");
 
     goto allDone   if (-e "$wrk/$asm.ovlStore/adjustedEvalues");
-    goto allDone   if (-d "$wrk/$asm.tigStore");
+    goto allDone   if (-d "$wrk/$asm.ctgStore");
 
     make_path("$path")  if (! -d "$path");
 
@@ -253,7 +253,7 @@ sub readErrorDetectionCheck ($$) {
     goto allDone   if (-e "$path/red.red");
 
     goto allDone   if (-e "$wrk/$asm.ovlStore/adjustedEvalues");
-    goto allDone   if (-d "$wrk/$asm.tigStore");
+    goto allDone   if (-d "$wrk/$asm.ctgStore");
 
     #  Figure out if all the tasks finished correctly.
 
@@ -342,7 +342,7 @@ sub overlapErrorAdjustmentConfigure ($$) {
     goto allDone   if (-e "$path/oea.sh");
 
     goto allDone   if (-e "$wrk/$asm.ovlStore/adjustedEvalues");
-    goto allDone   if (-d "$wrk/$asm.tigStore");
+    goto allDone   if (-d "$wrk/$asm.ctgStore");
 
     #  OEA uses 1 byte/base + 8 bytes/adjustment + 28 bytes/overlap.  We don't know the number of adjustments, but that's
     #  basically error rate.  No adjustment is output for mismatches.
@@ -625,7 +625,7 @@ sub updateOverlapStore ($$) {
     goto allDone   if (-e "$wrk/$asm.ovlStore/evalues");
 
     goto allDone   if (-e "$wrk/$asm.ovlStore/adjustedEvalues");
-    goto allDone   if (-d "$wrk/$asm.tigStore");
+    goto allDone   if (-d "$wrk/$asm.ctgStore");
 
     caExit("didn't find '$path/oea.files' to add to store, yet overlapper finished", undef)  if (! -e "$path/oea.files");
 

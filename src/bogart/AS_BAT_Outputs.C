@@ -99,8 +99,8 @@ unitigToTig(tgTig       *tig,
 
 void
 writeTigsToStore(TigVector     &tigs,
-                 char          *fileprefix,
-                 char          *tigStorePath,
+                 char          *filePrefix,
+                 char          *storeName,
                  uint32         frg_count_target,
                  bool           isFinal) {
   uint32      utg_count              = 0;
@@ -110,22 +110,23 @@ writeTigsToStore(TigVector     &tigs,
 
   // Open up the initial output file
 
-  sprintf(filename, "%s.iidmap", fileprefix);
+  sprintf(filename, "%s.iidmap", filePrefix);
   FILE *iidm = fopen(filename, "w");
   assert(NULL != iidm);
 
-  sprintf(filename, "%s.partitioning", fileprefix);
+  sprintf(filename, "%s.partitioning", filePrefix);
   FILE *part = fopen(filename, "w");
   assert(NULL != part);
 
-  sprintf(filename, "%s.partitioningInfo", fileprefix);
+  sprintf(filename, "%s.partitioningInfo", filePrefix);
   FILE *pari = fopen(filename, "w");
   assert(NULL != pari);
 
-  //  Step through all the tigs once to build the partition mapping and IID mapping.
-
-  tgStore     *tigStore = new tgStore(tigStorePath);
+  sprintf(filename, "%s.%sStore", filePrefix, storeName);
+  tgStore     *tigStore = new tgStore(filename);
   tgTig       *tig      = new tgTig;
+
+  //  Step through all the tigs once to build the partition mapping and IID mapping.
 
   for (uint32 tigID=0, ti=0; ti<tigs.size(); ti++) {
     Unitig  *utg = tigs[ti];

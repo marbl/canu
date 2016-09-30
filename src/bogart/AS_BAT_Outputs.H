@@ -44,8 +44,8 @@
 
 void
 writeTigsToStore(TigVector     &tigs,
-                 char          *fileprefix,
-                 char          *tigStorePath,
+                 char          *filePrefix,
+                 char          *storeName,
                  uint32         frg_count_target,
                  bool           isFinal);
 

@@ -334,11 +334,6 @@ reportTigs(TigVector &tigs, const char *prefix, const char *name, uint64 genomeS
 
   //  Dump to an intermediate store.
 
-  char tigStorePath[FILENAME_MAX];
-  sprintf(tigStorePath, "%s.tigStore", getLogFilePrefix());
-
-  fprintf(stderr, "Creating intermediate tigStore '%s'\n", tigStorePath);
-
   uint32  numReadsT  = 0;
   uint32  numReadsP  = 0;
   uint64  utgLen     = 0;
@@ -368,7 +363,7 @@ reportTigs(TigVector &tigs, const char *prefix, const char *name, uint64 genomeS
 
   setParentAndHang(tigs);
 
-  writeTigsToStore(tigs, tigStorePath, tigStorePath, numReadsP, false);
+  writeTigsToStore(tigs, getLogFilePrefix(), "tig", numReadsP, false);
 }
 
 

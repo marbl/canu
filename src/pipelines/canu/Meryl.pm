@@ -291,7 +291,7 @@ sub merylConfigure ($$$) {
 
     print F "#!" . getGlobal("shell") . "\n";
     print F "\n";
-    print F "if [ -e $wrk/$asm.tigStore/seqDB.v001.tig ] ; then\n";
+    print F "if [ -e $wrk/$asm.ctgStore/seqDB.v001.tig ] ; then\n";
     print F "  exit 0\n";
     print F "fi\n";
     print F "\n";

@@ -590,7 +590,7 @@ sub createOverlapStore ($$$$) {
 
     goto allDone   if (skipStage($WRK, $asm, "$tag-createOverlapStore") == 1);
     goto allDone   if (-d "$wrk/$asm.ovlStore");
-    goto allDone   if (-d "$wrk/$asm.tigStore");
+    goto allDone   if (-d "$wrk/$asm.ctgStore");
 
     #  Did we _really_ complete?
 

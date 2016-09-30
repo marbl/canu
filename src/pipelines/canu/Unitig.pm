@@ -82,12 +82,12 @@ sub reportUnitigSizes ($$$$) {
     my $gs        = getGlobal("genomeSize");
 
     my $V = substr("000000" . $version, -3);
-    my $N = "$wrk/$asm.tigStore/seqDB.v$V.sizes.txt";
+    my $N = "$wrk/$asm.ctgStore/seqDB.v$V.sizes.txt";
 
     if (! -e $N) {
         $cmd  = "$bin/tgStoreDump \\\n";
         $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
-        $cmd .= "  -T $wrk/$asm.tigStore $version \\\n";
+        $cmd .= "  -T $wrk/$asm.ctgStore $version \\\n";
         $cmd .= "  -sizes -s " . getGlobal("genomeSize") . " \\\n";
         $cmd .= "> $N";
 
@@ -148,7 +148,7 @@ sub unitig ($$) {
     my $asm     = shift @_;
 
     goto allDone    if (skipStage($wrk, $asm, "unitig") == 1);
-    goto allDone    if (-d "$wrk/$asm.tigStore");
+    goto allDone    if (-d "$wrk/$asm.ctgStore");
 
     make_path("$wrk/4-unitigger")  if (! -d "$wrk/4-unitigger");
 
@@ -166,7 +166,7 @@ sub unitig ($$) {
 
     print F "#!" . getGlobal("shell") . "\n";
     print F "\n";
-    print F "if [ -e $wrk/$asm.tigStore/seqDB.v001.tig ] ; then\n";
+    print F "if [ -e $wrk/$asm.ctgStore/seqDB.v001.tig ] ; then\n";
     print F "  exit 0\n";
     print F "fi\n";
     print F "\n";
@@ -177,7 +177,6 @@ sub unitig ($$) {
         print F "\$bin/bogart \\\n";
         print F " -G $wrk/$asm.gkpStore \\\n";
         print F " -O $wrk/$asm.ovlStore \\\n";
-        print F " -T $wrk/$asm.tigStore.WORKING \\\n";
         print F " -o $wrk/4-unitigger/$asm \\\n";
         print F " -B $perPart \\\n";
         print F " -gs "             . getGlobal("genomeSize")         . " \\\n";
@@ -195,7 +194,7 @@ sub unitig ($$) {
         print F " "                 . getGlobal("batOptions")         . " \\\n"   if (defined(getGlobal("batOptions")));
         print F " > $wrk/4-unitigger/unitigger.err 2>&1 \\\n";
         print F "&& \\\n";
-        print F "mv $wrk/$asm.tigStore.WORKING $wrk/$asm.tigStore.FINISHED\n";
+        print F "mv $wrk/4-unitigger/$asm.ctgStore $wrk/$asm.ctgStore.FINISHED\n";
     } else {
         caFailure("unknown unitigger '" . getGlobal("unitigger") . "'", undef);
     }
@@ -224,7 +223,7 @@ sub unitigCheck ($$) {
     my $path    = "$wrk/4-unitigger";
 
     goto allDone  if (skipStage($WRK, $asm, "unitigCheck", $attempt) == 1);
-    goto allDone  if (-e "$wrk/$asm.tigStore/seqDB.v001.tig");
+    goto allDone  if (-e "$wrk/$asm.ctgStore/seqDB.v001.tig");
 
     #  Since there is only one job, if we get here, we're not done.  Any other 'check' function
     #  shows how to process multiple jobs.  This only checks for the existence of either *.WORKING
@@ -232,7 +231,7 @@ sub unitigCheck ($$) {
 
     #  If 'FINISHED' exists, the job finished successfully.
 
-    if (! -e "$wrk/$asm.tigStore.FINISHED/seqDB.v001.tig") {
+    if (! -e "$wrk/$asm.ctgStore.FINISHED/seqDB.v001.tig") {
 
         #  If not the first attempt, report the jobs that failed, and that we're recomputing.
 
@@ -265,7 +264,7 @@ sub unitigCheck ($$) {
   finishStage:
     print STDERR "-- Unitigger finished successfully.\n";
 
-    rename "$wrk/$asm.tigStore.FINISHED", "$wrk/$asm.tigStore";
+    rename "$wrk/$asm.ctgStore.FINISHED", "$wrk/$asm.ctgStore";
 
     reportUnitigSizes($wrk, $asm, 1, "after unitig construction");
 

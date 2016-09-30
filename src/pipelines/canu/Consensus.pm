@@ -99,7 +99,7 @@ sub utgcns ($$$) {
     print F "\n";
     print F "\$bin/utgcns \\\n";
     print F "  -G $wrk/$asm.gkpStore \\\n";
-    print F "  -T $wrk/$asm.tigStore 1 \$jobid \\\n";
+    print F "  -T $wrk/$asm.ctgStore 1 \$jobid \\\n";
     print F "  -O $wrk/5-consensus/\$jobid.cns.WORKING \\\n";
     #print F "  -L $wrk/5-consensus/\$jobid.layout.WORKING \\\n";
     #print F "  -Q $wrk/5-consensus/\$jobid.fastq.WORKING \\\n";
@@ -132,20 +132,20 @@ sub consensusConfigure ($$) {
     my $path   = "$wrk/5-consensus";
 
     goto allDone   if (skipStage($WRK, $asm, "consensusConfigure") == 1);
-    goto allDone   if (-e "$wrk/$asm.tigStore/seqDB.v002.tig");
+    goto allDone   if (-e "$wrk/$asm.ctgStore/seqDB.v002.tig");
 
     make_path("$path")  if (! -d "$path");
 
-    #  If the gkpStore partitions are older than the tigStore unitig output, assume the unitigs have
+    #  If the gkpStore partitions are older than the ctgStore unitig output, assume the unitigs have
     #  changed and remove the gkpStore partition.  -M is (annoyingly) 'file age', so we need to
     #  rebuild if gkp is older (larger) than tig.
 
     if (-e "$wrk/$asm.gkpStore/partitions/map") {
         my $gkpTime = -M "$wrk/$asm.gkpStore/partitions/map";
-        my $tigTime = -M "$wrk/$asm.tigStore/seqDB.v001.tig";
+        my $tigTime = -M "$wrk/$asm.ctgStore/seqDB.v001.tig";
 
         if ($gkpTime > $tigTime) {
-            print STDERR "-- Partitioned gkpStore is older than tigs, rebuild partitioning (gkpStore $gkpTime days old; tigStore $tigTime days old).\n";
+            print STDERR "-- Partitioned gkpStore is older than tigs, rebuild partitioning (gkpStore $gkpTime days old; ctgStore $tigTime days old).\n";
 
             if (runCommandSilently($wrk, "rm -rf $wrk/$asm.gkpStore/partitions", 1)) {
                 caExit("failed to remove old partitions ($wrk/$asm.gkpStore/partitions), can't continue until these are removed", undef);
@@ -206,7 +206,7 @@ sub consensusCheck ($$) {
 
     goto allDone  if (skipStage($WRK, $asm, "consensusCheck", $attempt) == 1);
     goto allDone  if (-e "$path/cnsjob.files");
-    goto allDone  if (-e "$wrk/$asm.tigStore/seqDB.v002.tig");
+    goto allDone  if (-e "$wrk/$asm.ctgStore/seqDB.v002.tig");
 
     #  Figure out if all the tasks finished correctly.
 
@@ -295,7 +295,7 @@ sub consensusLoad ($$) {
     my $path    = "$wrk/5-consensus";
 
     goto allDone    if (skipStage($WRK, $asm, "consensusLoad") == 1);
-    goto allDone    if (-e "$wrk/$asm.tigStore/seqDB.v002.tig");
+    goto allDone    if (-e "$wrk/$asm.ctgStore/seqDB.v002.tig");
 
     #  Expects to have a cnsjob.files list of output files from the consensusCheck() function.
 
@@ -305,18 +305,18 @@ sub consensusLoad ($$) {
 
     $cmd  = "$bin/tgStoreLoad \\\n";
     $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
-    $cmd .= "  -T $wrk/$asm.tigStore 2 \\\n";
+    $cmd .= "  -T $wrk/$asm.ctgStore 2 \\\n";
     $cmd .= "  -L $path/cnsjob.files \\\n";
-    $cmd .= "> $path/cnsjobs.files.tigStoreLoad.err 2>&1";
+    $cmd .= "> $path/cnsjobs.files.ctgStoreLoad.err 2>&1";
 
     if (runCommand($path, $cmd)) {
-        caExit("failed to load unitig consensus into tigStore", "$path/cnsjobs.files.tigStoreLoad.err");
+        caExit("failed to load unitig consensus into ctgStore", "$path/cnsjobs.files.ctgStoreLoad.err");
     }
 
     #  Remvoe consensus outputs
 
     if (-e "$path/cnsjob.files") {
-        print STDERR "-- Purging consensus output after loading to tigStore.\n";
+        print STDERR "-- Purging consensus output after loading to ctgStore.\n";
 
         my $Ncns    = 0;
         my $Nfastq  = 0;
@@ -384,25 +384,25 @@ sub consensusAnalyze ($$) {
     my $path    = "$wrk/5-consensus";
 
     goto allDone   if (skipStage($WRK, $asm, "consensusAnalyze") == 1);
-    goto allDone   if (-e "$wrk/$asm.tigStore/status.coverageStat");
+    goto allDone   if (-e "$wrk/$asm.ctgStore/status.coverageStat");
 
     $cmd  = "$bin/tgStoreCoverageStat \\\n";
     $cmd .= "  -G       $wrk/$asm.gkpStore \\\n";
-    $cmd .= "  -T       $wrk/$asm.tigStore 2 \\\n";
+    $cmd .= "  -T       $wrk/$asm.ctgStore 2 \\\n";
     $cmd .= "  -s       " . getGlobal("genomeSize") . " \\\n";
-    $cmd .= "  -o       $wrk/$asm.tigStore.coverageStat \\\n";
-    $cmd .= "> $wrk/$asm.tigStore.coverageStat.err 2>&1";
+    $cmd .= "  -o       $wrk/$asm.ctgStore.coverageStat \\\n";
+    $cmd .= "> $wrk/$asm.ctgStore.coverageStat.err 2>&1";
 
     if (runCommand($path, $cmd)) {
-        caExit("failed to compute coverage statistics", "$wrk/$asm.tigStore.coverageStat.err");
+        caExit("failed to compute coverage statistics", "$wrk/$asm.ctgStore.coverageStat.err");
     }
 
-    unlink "$wrk/$asm.tigStore.coverageStat.err";
+    unlink "$wrk/$asm.ctgStore.coverageStat.err";
 
   finishStage:
     emitStage($WRK, $asm, "consensusAnalyze");
     buildHTML($WRK, $asm, "utg");
-    touch("$wrk/$asm.tigStore/status.coverageStat");
+    touch("$wrk/$asm.ctgStore/status.coverageStat");
     stopAfter("consensusAnalyze");
   allDone:
 }

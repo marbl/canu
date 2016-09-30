@@ -75,7 +75,6 @@ main (int argc, char * argv []) {
   char      *gkpStorePath            = NULL;
   char      *ovlStoreUniqPath        = NULL;
   char      *ovlStoreReptPath        = NULL;
-  char      *tigStorePath            = NULL;
 
   double    erateGraph               = 0.075;
   double    erateMax                 = 0.100;
@@ -133,9 +132,6 @@ main (int argc, char * argv []) {
 
     } else if (strcmp(argv[arg], "-gs") == 0) {
       genomeSize = strtoull(argv[++arg], NULL, 10);
-
-    } else if (strcmp(argv[arg], "-T") == 0) {
-      tigStorePath = argv[++arg];
 
     } else if (strcmp(argv[arg], "-unassembled") == 0) {
       fewReadsNumber  = atoi(argv[++arg]);
@@ -245,7 +241,6 @@ main (int argc, char * argv []) {
   if (prefix           == NULL)    err.push_back("No output prefix name (-o option) supplied.\n");
   if (gkpStorePath     == NULL)    err.push_back("No gatekeeper store (-G option) supplied.\n");
   if (ovlStoreUniqPath == NULL)    err.push_back("No overlap store (-O option) supplied.\n");
-  if (tigStorePath     == NULL)    err.push_back("No output tigStore (-T option) supplied.\n");
 
   if (err.size() > 0) {
     fprintf(stderr, "usage: %s -o outputName -O ovlStore -G gkpStore -T tigStore\n", argv[0]);
@@ -496,7 +491,7 @@ main (int argc, char * argv []) {
   //
 
   setParentAndHang(contigs);
-  writeTigsToStore(contigs, prefix, tigStorePath, read_count_target, true);
+  writeTigsToStore(contigs, prefix, "ctg", read_count_target, true);
 
   writeUnusedEdges(contigs, prefix);
 
