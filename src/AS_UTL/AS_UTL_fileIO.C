@@ -175,6 +175,24 @@ AS_UTL_mkdir(const char *dirname) {
 
 
 
+int
+AS_UTL_symlink(const char *pathToFile, const char *pathToLink) {
+
+  if (AS_UTL_fileExists(pathToFile, FALSE, FALSE) == 0)
+    fprintf(stderr, "AS_UTL_symlink()-- Original file '%s' doesn't exist, won't make a link to nothing.\n",
+            pathToFile), exit(1);
+
+  errno = 0;
+  symlink(pathToFile, pathToLink);
+  if (errno)
+    fprintf(stderr, "AS_UTL_symlink()-- Failed to make link '%s' pointing to file '%s': %s\n",
+            pathToLink, pathToFile, strerror(errno)), exit(1);
+
+  return(0);
+}
+
+
+
 //  Remove a file, or do nothing if the file doesn't exist.  Returns true if the file
 //  was deleted, false if the file never existsed.
 int
