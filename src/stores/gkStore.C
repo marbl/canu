@@ -1290,6 +1290,39 @@ gkStore::gkStore_buildPartitions(uint32 *partitionMap) {
 
 
 void
+gkStore::gkStore_clone(char *clonePath) {
+  char rPath[FILENAME_MAX];
+  char sPath[FILENAME_MAX];
+  char dPath[FILENAME_MAX];
+
+  AS_UTL_mkdir(clonePath);
+
+  errno = 0;
+  realpath(gkStore_path(), rPath);
+  if (errno)
+    fprintf(stderr, "gkStore::gkStore_clone()- failed to find path of '%s': %s\n",
+            gkStore_path(), strerror(errno)), exit(1);
+
+  sprintf(sPath, "%s/info",      rPath);
+  sprintf(dPath, "%s/info",      clonePath);
+  AS_UTL_symlink(sPath, dPath);
+
+  sprintf(sPath, "%s/libraries", rPath);
+  sprintf(dPath, "%s/libraries", clonePath);
+  AS_UTL_symlink(sPath, dPath);
+
+  sprintf(sPath, "%s/reads",     rPath);
+  sprintf(dPath, "%s/reads",     clonePath);
+  AS_UTL_symlink(sPath, dPath);
+
+  sprintf(sPath, "%s/blobs",     rPath);
+  sprintf(dPath, "%s/blobs",     clonePath);
+  AS_UTL_symlink(sPath, dPath);
+}
+
+
+
+void
 gkStore::gkStore_delete(void) {
   char path[FILENAME_MAX];
 
