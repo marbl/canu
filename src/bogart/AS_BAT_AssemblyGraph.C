@@ -37,6 +37,7 @@
 #define FILTER_DENSE_BUBBLES_THRESHOLD    3   //  Retain bubbles if they have fewer than this number of edges to other tigs
 
 #undef  LOG_GRAPH
+#undef  LOG_GRAPH_ALL
 
 
 void
@@ -183,7 +184,7 @@ AssemblyGraph::buildGraph(const char   *UNUSED(prefix),
 
       //  Ignore placements that aren't overlaps (contained reads placed inside this read will do this).
       if ((is5 == false) && (is3 == false)) {
-#ifdef LOG_GRAPH
+#ifdef LOG_GRAPH_ALL
         writeLog("AG()-- read %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.4f SPANNED_REPEAT\n",
                  fi, pp,
                  placements[pp].tigID,
@@ -215,7 +216,7 @@ AssemblyGraph::buildGraph(const char   *UNUSED(prefix),
 
       if ((isTig == false) &&
           (tig->overlapConsistentWithTig(deviationRepeat, ovlmin, ovlmax, erate) < REPEAT_FRACTION)) {
-#ifdef LOG_GRAPH
+#ifdef LOG_GRAPH_ALL
         if ((enableLog == true) && (logFileFlagSet(LOG_PLACE_UNPLACED)))
           writeLog("AG()-- read %8u placement %2u -> tig %7u placed %9d-%9d verified %9d-%9d cov %7.5f erate %6.4f HIGH_ERROR\n",
                    fi, pp,
