@@ -635,12 +635,14 @@ AssemblyGraph::filterEdges(TigVector     &tigs) {
   uint64  nMiddleFiltered = 0, nMiddleReads = 0;
   uint64  nRepeatFiltered = 0, nRepeatReads = 0;
 
+  uint64  nIntersecting = 0;
+
   uint64  nRepeatEdges = 0;
   uint64  nBubbleEdges = 0;
 
   writeStatus("AssemblyGraph()-- filtering edges\n");
 
-  //  Filter edges that are from the middle of a tig.
+  //  Mark edges that are from the interior of a tig as 'repeat'.
 
   for (uint32 fi=1; fi<RI->numReads()+1; fi++) {
     if (_pForward[fi].size() == 0)
@@ -650,23 +652,28 @@ AssemblyGraph::filterEdges(TigVector     &tigs) {
     Unitig      *tig    =  tigs[tT];
     ufNode      &read   =  tig->ufpath[tigs.ufpathIdx(fi)];
 
-    //  If the read is at the end of a tig, keep all the edges.
-
-    if ((read.position.min() == 0) ||
-        (read.position.max() == tig->getLength()))
-      continue;
-
-    //  Otherwise, mark each edge as repeat.
-
-    bool   hadMiddle = false;
+    bool         hadMiddle = false;
 
     for (uint32 ff=0; ff<_pForward[fi].size(); ff++) {
       BestPlacement   &bp = _pForward[fi][ff];
 
-      if (bp.isUnitig == true)   { continue; }   //  Skip edges that are in tigs
-      if (bp.isContig == true)   { continue; }   //
+      //  Edges forming the tig are not repeats.
+
+      if (bp.isUnitig == true)    continue;
+      if (bp.isContig == true)    continue;
+
+      //  Edges from the end of a tig are not repeats.
+
+      if (((read.position.min() == 0)                && (read.position.isForward()) && (bp.best5.b_iid  > 0) && (bp.best3.b_iid == 0)) ||
+          ((read.position.min() == 0)                && (read.position.isReverse()) && (bp.best5.b_iid == 0) && (bp.best3.b_iid  > 0)) ||
+          ((read.position.max() == tig->getLength()) && (read.position.isForward()) && (bp.best5.b_iid == 0) && (bp.best3.b_iid  > 0)) ||
+          ((read.position.max() == tig->getLength()) && (read.position.isReverse()) && (bp.best5.b_iid  > 0) && (bp.best3.b_iid == 0))) {
+        nIntersecting++;
+        continue;
+      }
 
       nMiddleFiltered++;
+
       bp.isRepeat = true;
       hadMiddle   = true;
     }
@@ -750,6 +757,7 @@ AssemblyGraph::filterEdges(TigVector     &tigs) {
   writeStatus("AssemblyGraph()-- "F_U64" repeat end edges filtered from "F_U64" reads.\n", nRepeatFiltered, nRepeatReads);
   writeStatus("AssemblyGraph()-- "F_U64" repeat edges (not output).\n", nRepeatEdges);
   writeStatus("AssemblyGraph()-- "F_U64" bubble edges.\n", nBubbleEdges);
+  writeStatus("AssemblyGraph()-- "F_U64" intersecting edges (from the end of a tig to somewhere else).\n", nIntersecting);
 }
 
 
