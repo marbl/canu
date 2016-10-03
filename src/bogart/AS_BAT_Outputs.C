@@ -51,84 +51,19 @@
 #include "tgStore.H"
 
 
-void
-unitigToTig(tgTig       *tig,
-            uint32       tigid,
-            Unitig      *utg) {
-
-  //  Initialize the output tig.
-
-  tig->clear();
-
-  tig->_tigID           = tigid;
-  utg->_tigID           = tigid;
-
-  tig->_coverageStat    = 1.0;  //  Default to just barely unique
-  tig->_microhetProb    = 1.0;  //  Default to 100% probability of unique
-
-  //  Set the class.
-
-  if      (utg->_isUnassembled == true)
-    tig->_class = tgTig_unassembled;
-
-  else if (utg->_isBubble == true)
-    tig->_class = tgTig_bubble;
-
-  else
-    tig->_class = tgTig_contig;
-
-  tig->_suggestRepeat   = (utg->_isRepeat   == true);
-  tig->_suggestCircular = (utg->_isCircular == true);
-
-  tig->_layoutLen       = utg->getLength();
-
-  //  Transfer reads from the bogart tig to the output tig.
-
-  resizeArray(tig->_children, tig->_childrenLen, tig->_childrenMax, utg->ufpath.size(), resizeArray_doNothing);
-
-  for (uint32 ti=0; ti<utg->ufpath.size(); ti++) {
-    ufNode        *frg   = &utg->ufpath[ti];
-
-    tig->addChild()->set(frg->ident,
-                         frg->parent, frg->ahang, frg->bhang,
-                         frg->position.bgn, frg->position.end);
-  }
-}
-
-
 
 void
 writeTigsToStore(TigVector     &tigs,
                  char          *filePrefix,
                  char          *storeName,
-                 uint32         frg_count_target,
                  bool           isFinal) {
-  uint32      utg_count              = 0;
-  uint32      frg_count              = 0;
-  uint32      prt_count              = 1;
   char        filename[FILENAME_MAX] = {0};
-
-  // Open up the initial output file
-
-  sprintf(filename, "%s.iidmap", filePrefix);
-  FILE *iidm = fopen(filename, "w");
-  assert(NULL != iidm);
-
-  sprintf(filename, "%s.partitioning", filePrefix);
-  FILE *part = fopen(filename, "w");
-  assert(NULL != part);
-
-  sprintf(filename, "%s.partitioningInfo", filePrefix);
-  FILE *pari = fopen(filename, "w");
-  assert(NULL != pari);
 
   sprintf(filename, "%s.%sStore", filePrefix, storeName);
   tgStore     *tigStore = new tgStore(filename);
   tgTig       *tig      = new tgTig;
 
-  //  Step through all the tigs once to build the partition mapping and IID mapping.
-
-  for (uint32 tigID=0, ti=0; ti<tigs.size(); ti++) {
+  for (uint32 ti=0; ti<tigs.size(); ti++) {
     Unitig  *utg = tigs[ti];
 
     if ((utg == NULL) || (utg->getNumReads() == 0))
@@ -136,372 +71,48 @@ writeTigsToStore(TigVector     &tigs,
 
     assert(utg->getLength() > 0);
 
-    //  Convert the bogart tig to a tgTig and save to the store.
+    //  Initialize the output tig.
 
-    unitigToTig(tig, (isFinal) ? tigID : ti, utg);
-    tigID++;
+    tig->clear();
 
-    tigStore->insertTig(tig, false);
+    tig->_tigID           = utg->id();
 
-    //  Increment the partition if the current one is too large.
+    tig->_coverageStat    = 1.0;  //  Default to just barely unique
+    tig->_microhetProb    = 1.0;  //  Default to 100% probability of unique
 
-    if ((frg_count + utg->getNumReads() >= frg_count_target) &&
-        (frg_count                      >  0)) {
-      fprintf(pari, "Partition %d has %d tigs and %d reads.\n",
-              prt_count, utg_count, frg_count);
+    //  Set the class.
 
-      prt_count++;
-      utg_count = 0;
-      frg_count = 0;
+    if      (utg->_isUnassembled == true)
+      tig->_class = tgTig_unassembled;
+
+    else if (utg->_isBubble == true)
+      tig->_class = tgTig_bubble;
+
+    else
+      tig->_class = tgTig_contig;
+
+    tig->_suggestRepeat   = (utg->_isRepeat   == true);
+    tig->_suggestCircular = (utg->_isCircular == true);
+
+    tig->_layoutLen       = utg->getLength();
+
+    //  Transfer reads from the bogart tig to the output tig.
+
+    resizeArray(tig->_children, tig->_childrenLen, tig->_childrenMax, utg->ufpath.size(), resizeArray_doNothing);
+
+    for (uint32 ti=0; ti<utg->ufpath.size(); ti++) {
+      ufNode        *frg   = &utg->ufpath[ti];
+
+      tig->addChild()->set(frg->ident,
+                           frg->parent, frg->ahang, frg->bhang,
+                           frg->position.bgn, frg->position.end);
     }
 
-    //  Note that the tig is included in this partition.
+    //  And write to the store
 
-    utg_count += 1;
-    frg_count += utg->getNumReads();
-
-    //  Map the tig to a partition, and log both the tig-to-partition map and the partition-to-read map.
-
-    fprintf(iidm, "bogart "F_U32" -> tig "F_U32" (in partition "F_U32" with "F_U32" reads)\n",
-            utg->id(),
-            utg->tigID(),
-            prt_count,
-            utg->getNumReads());
-
-    for (uint32 readIdx=0; readIdx<utg->getNumReads(); readIdx++)
-      fprintf(part, "%d\t%d\n", prt_count, utg->ufpath[readIdx].ident);
+    tigStore->insertTig(tig, false);
   }
-
-  fprintf(pari, "Partition %d has %d tigs and %d reads.\n",   //  Don't forget to log the last partition!
-          prt_count, utg_count, frg_count);
-
-  fclose(pari);
-  fclose(part);
-  fclose(iidm);
 
   delete    tig;
   delete    tigStore;
-}
-
-
-
-class  rawEdge_t {
-public:
-  rawEdge_t(uint32 o, uint32 t, int32 ab, int32 ae, int32 bb, int32 be) {
-    oi     = o;
-    tigID  = t;
-
-    Abgn   = ab;
-    Aend   = ae;
-
-    Bbgn   = bb;
-    Bend   = be;
-  };
-
-  uint32   oi;
-  int32    tigID;
-
-  int32    Abgn;  //  Overlapping read placement.
-  int32    Aend;
-
-  int32    Bbgn;  //  Parent placement.
-  int32    Bend;
-
-  bool  operator<(rawEdge_t const &that) const {
-    if (tigID != that.tigID)
-      return(tigID < that.tigID);
-
-    return(Abgn < that.Abgn);
-  }
-};
-
-
-
-void
-findUnusedEdges(TigVector     &tigs,
-                ufNode        *rdA,         //  Read we're finding edges for
-                bool           rdA3p,       //  Overlaps from the 3' end of the read
-                set<uint32>    edgeReads,
-                FILE          *EF) {
-
-  uint32      rdAid    =  rdA->ident;
-  uint32      rdAlen   =  RI->readLength(rdAid);
-  bool        rdAfwd   =  rdA->isForward();
-  int32       rdAlo    =  (rdAfwd) ? (rdA->position.bgn) : (rdA->position.end);
-  int32       rdAhi    =  (rdAfwd) ? (rdA->position.end) : (rdA->position.bgn);
-  uint32      rdAtigID =  tigs.inUnitig(rdAid);
-  Unitig     *rdAtig   =  tigs[rdAtigID];
-
-  uint32      ovlLen   = 0;
-  BAToverlap *ovl      = OC->getOverlaps(rdA->ident, ovlLen);
-
-  vector<rawEdge_t>   rawEdges;
-
-  //fprintf(stderr, "WORKING ON read rdA=%u 3p=%d\n", rdA->ident, rdA3p);
-
-  //  Over all overlaps for this read, find and report edges to 'edgeReads'.  Though
-  //  edgeReads should be just one read per tig end, the code below was originally written
-  //  to find all edges to all reads, then pick the longest for each cluster.
-
-  for (uint32 oi=0; oi<ovlLen; oi++) {
-    if ((ovl[oi].AisContainer()) ||          //  Not interested in container overlaps.
-        (ovl[oi].AisContained()) ||          //  Allow A-is-contained overlaps?  Should be OK, but only really care about dovetails.
-        (ovl[oi].AEndIs3prime() != rdA3p))   //  Overlap off the wrong end of A.
-      continue;
-
-    uint32    rdBid    = ovl[oi].b_iid;
-    uint32    rdBtigID = tigs.inUnitig(rdBid);
-    Unitig   *rdBtig   = tigs[rdBtigID];
-
-    if ((rdBtig == NULL) ||
-        (rdBtig->getNumReads() == 0) ||    //  Not interested in edges to singletons
-        (rdBtig->_isUnassembled == true))  //  Or other unassembled crap.  rdA filtered outside here.
-      continue;
-
-    if ((rdAtigID != rdBtigID) &&          //  Not to self (circular) and
-        (edgeReads.count(rdBid) == 0))     //  not a read we can overlap to.
-      continue;
-
-    ufNode   *rdB      = &rdBtig->ufpath[ tigs.ufpathIdx(rdBid) ];
-    bool      rdBfwd   =  rdB->isForward();
-    int32     rdBlo    = (rdBfwd) ? (rdB->position.bgn) : (rdB->position.end);
-    int32     rdBhi    = (rdBfwd) ? (rdB->position.end) : (rdB->position.bgn);
-
-    //  Exclude overlaps satisfied in the same tig.
-
-    if ((rdAtigID == rdBtigID) && (rdAlo < rdBhi) && (rdBlo < rdAhi))
-      continue;
-
-    //  Exclude overlaps that are higher than expected error.
-
-    ;
-
-    //  Compute the placement of rdA on rdBtig.
-
-    ufNode           placed;
-    BestEdgeOverlap  edge(ovl[oi]);
-
-    rdBtig->placeRead(placed,
-                      rdAid,
-                      rdA3p,
-                      &edge);
-
-    //writeLog("placed tig %u rdA %u %d-%d on tig %u %d-%d from rdB %u %d-%d oi %u\n",
-    //         rdAtigID, rdAid, rdAlo, rdAhi, rdBtigID, placed.position.bgn, placed.position.end, rdBid, rdBlo, rdBhi, oi);
-
-    //  Save the overlap.
-
-    rawEdges.push_back(rawEdge_t(oi, rdBtigID, placed.position.min(), placed.position.max(), rdBlo, rdBhi));
-  }
-
-  //  We've now got a pile of (unsorted) overlaps to reads in other tigs.  We need to pick one
-  //  overlap (the longest?) from each pile and output it.
-
-  sort(rawEdges.begin(), rawEdges.end());
-
-  //  We expect to have a pile of placements that are 'the same', generated by each one of the
-  //  overlapping reads in the target tig.  We need to group these placements together and pick
-  //  one exemplar overlap to output the edge for.
-  //
-  //  A complication is caused by large tandem repeats.  We can get two distinct placements that
-  //  overlap:
-  //
-  //     [rrrr][rrrr]
-  //     ---------------           (rdA aligning to the first and second repeat)
-  //           ----------------    (rdA aligning to only the second repeat)
-  //
-  //  These are just overlaps, and we don't know that the rest of rdA fails to align.
-  //
-  //  Overlaps are sorted by the start of rdA on rdBtig.  We'll use the simple and largely unvalidated
-  //  heuristic of any placement that starts within 500bp of the last is for the same placement.
-
-  for (uint32 ri=0, rj=0; ri<rawEdges.size(); ri = rj) {
-    for (rj=ri+1; ((rj < rawEdges.size()) &&
-                   (rawEdges[rj].tigID == rawEdges[ri].tigID) &&
-                   (rawEdges[rj-1].Abgn + 500 >= rawEdges[rj].Abgn)); )
-      rj++;
-
-    //  Scan overlaps from ri to rj, retain the thickest.
-
-    //fprintf(stderr, "Scan batch from ri=%u to rj=%u\n", ri, rj);
-
-    uint32   rrMax = 0;
-    int32    rrIdx = INT32_MAX;
-
-    for (uint32 rr=ri; rr<rj; rr++) {
-      int32  olapLen = 0;
-
-      if (rawEdges[rr].Abgn < rawEdges[rr].Bbgn) {
-        assert(rawEdges[rr].Bend >= rawEdges[rr].Abgn);
-        olapLen = rawEdges[rr].Bend - rawEdges[rr].Abgn;
-      } else {
-        assert(rawEdges[rr].Aend >= rawEdges[rr].Bbgn);
-        olapLen = rawEdges[rr].Aend - rawEdges[rr].Bbgn;
-      }
-
-      if (rrMax < olapLen) {
-        rrMax = olapLen;
-        rrIdx = rr;
-      }
-    }
-
-    //  Emit the edge.
-
-    uint32 oi = rawEdges[rrIdx].oi;
-
-    uint32    rdBid    = ovl[oi].b_iid;
-    uint32    rdBtigID = tigs.inUnitig(rdBid);
-    Unitig   *rdBtig   = tigs[rdBtigID];
-
-    ufNode   *rdB      = &rdBtig->ufpath[ tigs.ufpathIdx(rdBid) ];
-    bool      rdBfwd   =  rdB->isForward();
-    int32     rdBlo    = (rdBfwd) ? (rdB->position.bgn) : (rdB->position.end);
-    int32     rdBhi    = (rdBfwd) ? (rdB->position.end) : (rdB->position.bgn);
-
-    char  rdAEnd, rdBEnd;
-
-    if (ovl[oi].isDovetail()) {
-      rdAEnd = ovl[oi].AEndIs5prime() ? '5' : '3';
-      rdBEnd = ovl[oi].BEndIs5prime() ? '5' : '3';
-    } else {
-      rdAEnd = ovl[oi].AisContainer() ? 'C' : 'c';
-      rdBEnd = ovl[oi].AisContainer() ? 'c' : 'C';
-    }
-
-    char  ori = (ovl[oi].flipped) ? '<' : '>';
-
-    fprintf(EF, "tig %7u %c read %8u at %9u %-9u %8d %c %-8d tig %7u %c read %8u at %9u %-9u\n",
-            rdAtig->_tigID, rdAtig->type(), rdAid, rdA->position.bgn, rdA->position.end,
-            ovl[oi].a_hang, ori, ovl[oi].b_hang,
-            rdBtig->_tigID, rdBtig->type(), rdBid, rdB->position.bgn, rdB->position.end);
-  }
-}
-
-
-
-
-void
-writeUnusedEdges(TigVector     &tigs,
-                 char          *fileprefix) {
-  char        filename[FILENAME_MAX] = {0};
-
-  sprintf(filename, "%s.unused.edges", fileprefix);
-  FILE *EF = fopen(filename, "w");
-  if (errno)
-    fprintf(stderr, "Failed to create unused edge output '%s': %s\n", filename, strerror(errno)), exit(1);
-
-  //  Find reads we're allowed to find edges to.  We can pick either the outer-most non-contained reads,
-  //  or just the reads touching the edge of the tig.
-
-  set<uint32>  edgeReads;  //  Reads at the end of the tig
-  set<uint32>  nearReads;  //  Reads close to the end of the tig
-
-
-  //  Find the outer-most non-contained reads in each unitig.
-
-#if 0
-  for (uint32 ti=0; ti<tigs.size(); ti++) {
-    Unitig  *tig = tigs[ti];
-
-    if ((tig == NULL) ||
-        (tig->getNumReads() == 0) ||
-        (tig->_isUnassembled == true))
-      continue;
-
-    //  Find reads at the start of the tig
-
-    for (uint32 ct=0, fi=0; (ct < 5) && (fi < tig->ufpath.size()); fi++) {
-      ufNode  *frg = &tig->ufpath[fi];
-
-      if (OG->isContained(frg->ident) == false) {
-        if (ct == 0)
-          edgeReads5e.insert(frg->ident);
-        else
-          nearReads5m.insert(frg->ident);
-        ct++;
-      }
-    }
-
-    //  Find reads at the end of the tig
-
-    for (uint32 ct=0, fi=tig->ufpath.size(); (ct < 5) && (fi-- > 0); ) {
-      ufNode  *frg = &tig->ufpath[fi];
-
-      if (OG->isContained(frg->ident) == false) {
-        if (ct == 0)
-          edgeReads3e.insert(frg->ident);
-        else
-          nearReads3m.insert(frg->ident);
-        ct++;
-      }
-    }
-  }
-#endif
-
-  //  Find the reads at the ends of the tig.
-
-#if 1
-  for (uint32 ti=0; ti<tigs.size(); ti++) {
-    Unitig  *tig = tigs[ti];
-
-    if ((tig == NULL) ||
-        (tig->getNumReads() == 0) ||
-        (tig->_isUnassembled == true))
-      continue;
-
-    edgeReads.insert(tig->firstRead()->ident);
-    edgeReads.insert(tig->lastRead()->ident);
-  }
-#endif
-
-
-  //  Step through all the tigs, find all unused overlaps off the ends of the tig.
-
-
-  for (uint32 ti=0; ti<tigs.size(); ti++) {
-    Unitig  *tig = tigs[ti];
-
-    if ((tig == NULL) ||
-        (tig->getNumReads() == 0) ||
-        (tig->_isUnassembled == true))
-      continue;
-
-    assert(tig->getLength() > 0);
-
-    //  Find the first/last non-contained reads in the tig.
-
-#if 0
-    ufNode  *rd5 = &tig->ufpath.front();
-    ufNode  *rd3 = &tig->ufpath.back();
-
-    for (uint32 fi=1; (fi < tig->ufpath.size()) && (OG->isContained(rd5->ident) == true); fi++)
-      rd5 = &tig->ufpath[fi];
-
-    for (uint32 fi=tig->ufpath.size()-1; (fi-- > 0) && (OG->isContained(rd3->ident) == true); )
-      rd3 = &tig->ufpath[fi];
-
-    //  What to do if either of those reads are contained?  If so (then both will be contained; no
-    //  dovetail at all) we've swapped the meaning of 5' and 3'.
-
-    if ((OG->isContained(rd5) == true) || (OG->isContained(rd3) == true)) {
-      rd5 = &tig->ufpath.front();
-      rd3 = &tig->ufpath.back();
-    }
-#endif
-
-    //  Find the smallest/largest read position - the two reads that are at the end of the tig.
-
-#if 1
-    ufNode  *rd5 = tig->firstRead();
-    ufNode  *rd3 = tig->lastRead();
-#endif
-
-    //  Finally, we probably should be finding just the reads touching the ends of the unitig, not the
-    //  first/last non-contained read.
-
-    findUnusedEdges(tigs, rd5, rd5->isReverse(), edgeReads, EF);   //  First read, if reverse, find edges off 3' end
-    findUnusedEdges(tigs, rd3, rd3->isForward(), edgeReads, EF);   //  Last  read, if forward, find edges off 3' end
-  }
-
-  fclose(EF);
 }

@@ -60,8 +60,12 @@
 
 #include "AS_BAT_PromoteToSingleton.H"
 
+#include "AS_BAT_CreateUnitigs.H"
+
 #include "AS_BAT_SetParentAndHang.H"
 #include "AS_BAT_Outputs.H"
+
+#include "AS_BAT_TigGraph.H"
 
 
 ReadInfo         *RI  = 0L;
@@ -101,7 +105,6 @@ main (int argc, char * argv []) {
   bool      onlySave                 = false;
   bool      doSave                   = false;
 
-  int       read_count_target        = 0;
   char     *prefix                   = NULL;
 
   uint32    minReadLen               = 0;
@@ -112,10 +115,7 @@ main (int argc, char * argv []) {
   vector<char *>  err;
   int             arg = 1;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-B") == 0) {
-      read_count_target = atoi(argv[++arg]);
-
-    } else if (strcmp(argv[arg], "-o") == 0) {
+    if        (strcmp(argv[arg], "-o") == 0) {
       prefix = argv[++arg];
 
     } else if (strcmp(argv[arg], "-G") == 0) {
@@ -248,8 +248,6 @@ main (int argc, char * argv []) {
     fprintf(stderr, "  -G         Mandatory path to a gkpStore.\n");
     fprintf(stderr, "  -T         Mandatory path to a tigStore (can exist or not).\n");
     fprintf(stderr, "  -o prefix  Mandatory name for the output files\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -B b       Target number of reads per tigStore (consensus) partition\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Algorithm Options\n");
     fprintf(stderr, "\n");
@@ -495,9 +493,26 @@ main (int argc, char * argv []) {
   //
 
   setParentAndHang(contigs);
-  writeTigsToStore(contigs, prefix, "ctg", read_count_target, true);
+  writeTigsToStore(contigs, prefix, "ctg", true);
 
-  writeUnusedEdges(contigs, prefix);
+  //
+  //  Generate unitigs
+  //
+
+  writeStatus("\n");
+  writeStatus("==> GENERATE UNITIGS.\n");
+  writeStatus("\n");
+
+  setLogFile(prefix, "generateUnitigs");
+
+  createUnitigs(AG, contigs, unitigs);
+
+  splitDiscontinuous(unitigs, minOverlap);
+
+  setParentAndHang(unitigs);
+  writeTigsToStore(unitigs, prefix, "utg", true);
+
+  reportTigGraph(unitigs, prefix, "unitigs");
 
   //
   //  Tear down bogart.

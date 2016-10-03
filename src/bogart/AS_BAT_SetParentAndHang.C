@@ -167,7 +167,7 @@ setParentAndHang(TigVector &tigs) {
 
     if (tt == UINT32_MAX) {
       fprintf(stderr, "ERROR: read %u in tig %u has no overlap to any previous read, ejected.  %u overlaps total.  %u negative hang.  %u to read not in tig.  %u to read later in tig.  %u good overlaps.\n",
-              frg->ident, tig->tigID(), olapsLen, negHang, notPresent, notPlaced, goodOlap);
+              frg->ident, tig->id(), olapsLen, negHang, notPresent, notPlaced, goodOlap);
       continue;
     }
 

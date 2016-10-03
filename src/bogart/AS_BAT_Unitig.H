@@ -140,7 +140,6 @@ private:
     _vector        = v;
     _length        = 0;
     _id            = 0;
-    _tigID         = 0;
 
     _isUnassembled = false;
     _isBubble      = false;
@@ -168,7 +167,6 @@ public:
   // across the whole genome.
 
   uint32 id(void)                 { return(_id); };      //  ID internal to bogart
-  uint32 tigID(void)              { return(_tigID); };   //  ID in the output store
 
   int32  getLength(void)          { return(_length);       };
   uint32 getNumReads(void)        { return(ufpath.size()); };
@@ -270,8 +268,6 @@ private:
 private:
   int32             _length;
   uint32            _id;
-public:
-  uint32            _tigID;
 
 public:
   //  Classification.  The output is in three files: 'unassembled', 'bubbles', 'contigs' (defined as

@@ -332,38 +332,11 @@ reportTigs(TigVector &tigs, const char *prefix, const char *name, uint64 genomeS
   if (logFileFlagSet(LOG_INTERMEDIATE_TIGS) == 0)
     return;
 
-  //  Dump to an intermediate store.
-
-  uint32  numReadsT  = 0;
-  uint32  numReadsP  = 0;
-  uint64  utgLen     = 0;
-
-  //  Compute average reads per partition.
-
-  for (uint32  ti=0; ti<tigs.size(); ti++) {
-    Unitig  *utg = tigs[ti];
-
-    if (utg == NULL)
-      continue;
-
-    numReadsT += utg->ufpath.size();
-
-    if (utg->ufpath.size() > 2)
-      utgLen    += utg->getLength();
-  }
-
-  if      (utgLen < 16 * 1024 * 1024)
-    numReadsP = numReadsT / 7;
-  else if (utgLen < 64 * 1024 * 1024)
-    numReadsP = numReadsT / 63;
-  else
-    numReadsP = numReadsT / 127;
-
   //  Dump the tigs to an intermediate store.
 
   setParentAndHang(tigs);
 
-  writeTigsToStore(tigs, getLogFilePrefix(), "tig", numReadsP, false);
+  writeTigsToStore(tigs, getLogFilePrefix(), "tig", false);
 }
 
 

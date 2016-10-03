@@ -148,17 +148,13 @@ sub unitig ($$) {
     my $asm     = shift @_;
 
     goto allDone    if (skipStage($wrk, $asm, "unitig") == 1);
-    goto allDone    if (-d "$wrk/$asm.ctgStore");
+    goto allDone    if ((-d "$wrk/$asm.ctgStore") && (-d "$wrk/$asm.utgStore"));
 
     make_path("$wrk/4-unitigger")  if (! -d "$wrk/4-unitigger");
 
     #  How many reads per partition?  This will change - it'll move to be after unitigs are constructed.
 
-    my $perPart = int(getNumberOfReadsInStore($wrk, $asm) / getGlobal("cnsPartitions"));
-    my $minPart = getGlobal("cnsPartitionMin");
     my $overlapLength = getGlobal("minOverlapLength");
-
-    $perPart = ($perPart < $minPart) ? ($perPart) : ($minPart);
 
     #  Dump a script to run the unitigger.
 
@@ -166,7 +162,7 @@ sub unitig ($$) {
 
     print F "#!" . getGlobal("shell") . "\n";
     print F "\n";
-    print F "if [ -e $wrk/$asm.ctgStore/seqDB.v001.tig ] ; then\n";
+    print F "if [ -e $wrk/$asm.ctgStore/seqDB.v001.tig -a -e $wrk/$asm.utgStore/seqDB.v001.tig ] ; then\n";
     print F "  exit 0\n";
     print F "fi\n";
     print F "\n";
@@ -178,7 +174,6 @@ sub unitig ($$) {
         print F " -G $wrk/$asm.gkpStore \\\n";
         print F " -O $wrk/$asm.ovlStore \\\n";
         print F " -o $wrk/4-unitigger/$asm \\\n";
-        print F " -B $perPart \\\n";
         print F " -gs "             . getGlobal("genomeSize")         . " \\\n";
         print F " -eg "             . getGlobal("utgOvlErrorRate")    . " \\\n";
         print F " -eM "             . getGlobal("utgOvlErrorRate")    . " \\\n";
@@ -194,7 +189,9 @@ sub unitig ($$) {
         print F " "                 . getGlobal("batOptions")         . " \\\n"   if (defined(getGlobal("batOptions")));
         print F " > $wrk/4-unitigger/unitigger.err 2>&1 \\\n";
         print F "&& \\\n";
-        print F "mv $wrk/4-unitigger/$asm.ctgStore $wrk/$asm.ctgStore.FINISHED\n";
+        print F "mv $wrk/4-unitigger/$asm.ctgStore $wrk/$asm.ctgStore \\\n";
+        print F "&& \\\n";
+        print F "mv $wrk/4-unitigger/$asm.utgStore $wrk/$asm.utgStore\n";
     } else {
         caFailure("unknown unitigger '" . getGlobal("unitigger") . "'", undef);
     }
@@ -223,48 +220,40 @@ sub unitigCheck ($$) {
     my $path    = "$wrk/4-unitigger";
 
     goto allDone  if (skipStage($WRK, $asm, "unitigCheck", $attempt) == 1);
-    goto allDone  if (-e "$wrk/$asm.ctgStore/seqDB.v001.tig");
+    goto allDone  if ((-e "$wrk/$asm.ctgStore/seqDB.v001.tig") && (-e "$wrk/$asm.utgStore/seqDB.v001.tig"));
 
     #  Since there is only one job, if we get here, we're not done.  Any other 'check' function
-    #  shows how to process multiple jobs.  This only checks for the existence of either *.WORKING
-    #  (crashed or killed) or *.FINISHED (done).
+    #  shows how to process multiple jobs.  This only checks for the existence of the final outputs.
 
-    #  If 'FINISHED' exists, the job finished successfully.
+    #  If not the first attempt, report the jobs that failed, and that we're recomputing.
 
-    if (! -e "$wrk/$asm.ctgStore.FINISHED/seqDB.v001.tig") {
-
-        #  If not the first attempt, report the jobs that failed, and that we're recomputing.
-
-        if ($attempt > 1) {
-            print STDERR "--\n";
-            print STDERR "-- Unitigger failed.\n";
-            print STDERR "--\n";
-        }
-
-        #  If too many attempts, give up.
-
-        if ($attempt > getGlobal("canuIterationMax")) {
-            caExit("failed to generate unitigs.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
-        }
-
-        #  Otherwise, run some jobs.
-
-        print STDERR "-- Unitigger attempt $attempt begins.\n";
-
-        emitStage($WRK, $asm, "unitigCheck", $attempt);
-        buildHTML($WRK, $asm, "utg");
-
-        submitOrRunParallelJob($WRK, $asm, "bat", $path, "unitigger", (1));
-        return;
+    if ($attempt > 1) {
+        print STDERR "--\n";
+        print STDERR "-- Unitigger failed.\n";
+        print STDERR "--\n";
     }
+
+    #  If too many attempts, give up.
+
+    if ($attempt > getGlobal("canuIterationMax")) {
+        caExit("failed to generate unitigs.  Made " . ($attempt-1) . " attempts, jobs still failed", undef);
+    }
+
+    #  Otherwise, run some jobs.
+
+    print STDERR "-- Unitigger attempt $attempt begins.\n";
+
+    emitStage($WRK, $asm, "unitigCheck", $attempt);
+    buildHTML($WRK, $asm, "utg");
+
+    submitOrRunParallelJob($WRK, $asm, "bat", $path, "unitigger", (1));
+    return;
 
     #  If onGrid, the submitOrRun() has submitted parallel jobs to the grid, and resubmitted the
     #  executive.  #  The parallel version never gets here
 
   finishStage:
     print STDERR "-- Unitigger finished successfully.\n";
-
-    rename "$wrk/$asm.ctgStore.FINISHED", "$wrk/$asm.ctgStore";
 
     reportUnitigSizes($wrk, $asm, 1, "after unitig construction");
 

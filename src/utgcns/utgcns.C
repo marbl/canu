@@ -188,6 +188,11 @@ main (int argc, char **argv) {
     arg++;
   }
 
+  if ((gkpName == NULL) && (tigName != NULL)) {
+    gkpName = new char [FILENAME_MAX];
+    sprintf(gkpName, "%s/partitionedReads.gkpStore", tigName);
+  }
+
   if ((gkpName == NULL) && (inPackageName == NULL))
     err++;
 

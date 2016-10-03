@@ -44,7 +44,7 @@ require Exporter;
 
 use strict;
 
-use POSIX qw(UINT_MAX);
+use File::Copy;
 
 use canu::Defaults;
 use canu::Execution;
@@ -97,24 +97,30 @@ sub outputGraph ($$) {
     my $bin     = getBinDirectory();
     my $cmd;
 
+    my $type = "fasta";  #  Should probably be an option.
+
     goto allDone   if (skipStage($WRK, $asm, "outputGraph") == 1);
-    goto allDone   if (-e "$WRK/$asm.gfa");
+    goto allDone   if (-e "$WRK/$asm.unitigs.gfa");
 
-    if (-e "$wrk/4-unitigger/$asm.unused.edges") {
-        $cmd  = "$bin/buildGraph \\\n";
+    if ((! -e "$WRK/$asm.unitigs.gfa") &&
+        (  -e "$wrk/4-unitigger/$asm.unitigs.gfa")) {
+        copy("$wrk/4-unitigger/$asm.unitigs.gfa", "$WRK/$asm.unitigs.gfa");
+    }
+
+    if (! -e "#WRK/$asm.unitigs.$type") {
+        $cmd  = "$bin/tgStoreDump \\\n";
         $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
-        $cmd .= "  -T $wrk/$asm.ctgStore 2 \\\n";
-        $cmd .= "  -E $wrk/4-unitigger/$asm.unused.edges \\\n";
-        $cmd .= "  -o $WRK/$asm.gfa \\\n";
-        $cmd .= "2>&1 > $WRK/$asm.gfa.err\n";
+        $cmd .= "  -T $wrk/$asm.utgStore 2 \\\n";
+        $cmd .= "  -consensus -$type \\\n";
+        $cmd .= "  -contigs \\\n";
+        $cmd .= "> $WRK/$asm.unitigs.$type\n";
+        $cmd .= "2> $WRK/$asm.unitigs.err";
 
-        if (runCommand($wrk, $cmd)) {
-            caExit("failed to output consensus", "$WRK/$asm.gfa.err");
+        if (runCommand($WRK, $cmd)) {
+            caExit("failed to output consensus", "$WRK/$asm.unitigs.err");
         }
 
-        unlink "$WRK/$asm.gfa.err";
-    } else {
-        print STDERR "-- Unused best edges file missing, no graph output generated.\n";
+        unlink "$WRK/$asm.unitigs.err";
     }
 
   finishStage:
@@ -122,7 +128,7 @@ sub outputGraph ($$) {
     buildHTML($WRK, $asm, "utg");
 
   allDone:
-    print STDERR "-- Unitig graph saved in '$WRK/$asm.gfa'.\n";
+    print STDERR "-- Unitig graph saved in '$WRK/$asm.unitigs.gfa'.\n";
 }
 
 
