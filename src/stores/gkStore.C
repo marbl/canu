@@ -1052,7 +1052,8 @@ gkRead::gkRead_copyDataToPartition(void     *blobs,
                                    uint64   *partfileslen,
                                    uint32    partID) {
 
-  assert(partfileslen[partID] == AS_UTL_ftell(partfiles[partID]));
+  if (partID == UINT32_MAX)  //  If an invalid partition, don't do anything.
+    return;
 
   //  Figure out where the blob actually is, and make sure that it really is a blob
 
@@ -1063,6 +1064,10 @@ gkRead::gkRead_copyDataToPartition(void     *blobs,
   assert(blob[1] == 'L');
   assert(blob[2] == 'O');
   assert(blob[3] == 'B');
+
+  //  The partfile should be at what we think is the end.
+
+  assert(partfileslen[partID] == AS_UTL_ftell(partfiles[partID]));
 
   //  Write the blob to the partition, update the length of the partition
 
@@ -1088,8 +1093,6 @@ gkRead::gkRead_copyDataToPartition(FILE    **blobsFiles,
                                    uint64   *partfileslen,
                                    uint32    partID) {
 
-  assert(partfileslen[partID] == AS_UTL_ftell(partfiles[partID]));
-
   //  Load the blob from disk.
 
   char    tag[5];
@@ -1114,6 +1117,15 @@ gkRead::gkRead_copyDataToPartition(FILE    **blobsFiles,
   assert(blob[1] == 'L');
   assert(blob[2] == 'O');
   assert(blob[3] == 'B');
+
+  //  If an invalid partition, don't write the data.
+
+  if (partID == UINT32_MAX)
+    return;
+
+  //  The partfile should be at what we think is the end.
+
+  assert(partfileslen[partID] == AS_UTL_ftell(partfiles[partID]));
 
   //  Write the blob to the partition, update the length of the partition
 
@@ -1229,10 +1241,6 @@ gkStore::gkStore_buildPartitions(uint32 *partitionMap) {
 
     assert(pi != 0);  //  No zeroth partition, right?
 
-    if (pi == UINT32_MAX)
-      //  Deleted reads are not assigned a partition; skip them
-      continue;
-
     //  Make a copy of the read, then modify it for the partition, then write it to the partition.
     //  Without the copy, we'd need to update the master record too.
 
@@ -1243,18 +1251,32 @@ gkStore::gkStore_buildPartitions(uint32 *partitionMap) {
     if (_blobsFiles)
       partRead.gkRead_copyDataToPartition(_blobsFiles, blobfiles, blobfileslen, pi);
 
+    //  Because the blobsFiles copyDataToPartition variant is streaming through the file,
+    //  we need to let it load (and ignore) deleted reads.  After they're loaded (and ignored)
+    //  we can then skip it.
+
+    if (pi < UINT32_MAX) {
 #if 0
-    fprintf(stderr, "read "F_U32"="F_U32" len "F_U32" -- blob master "F_U64" -- to part "F_U32" new read id "F_U32" blob "F_U64"/"F_U64" -- at readIdx "F_U32"\n",
-            fi, _reads[fi].gkRead_readID(), _reads[fi].gkRead_sequenceLength(),
-            _reads[fi]._mPtr,
-            pi,
-            partRead.gkRead_readID(), partRead._pID, partRead._mPtr,
-            readfileslen[pi]);
+      fprintf(stderr, "read "F_U32"="F_U32" len "F_U32" -- blob master "F_U64" -- to part "F_U32" new read id "F_U32" blob "F_U64"/"F_U64" -- at readIdx "F_U32"\n",
+              fi, _reads[fi].gkRead_readID(), _reads[fi].gkRead_sequenceLength(),
+              _reads[fi]._mPtr,
+              pi,
+              partRead.gkRead_readID(), partRead._pID, partRead._mPtr,
+              readfileslen[pi]);
 #endif
 
-    AS_UTL_safeWrite(readfiles[pi], &partRead, "gkStore::gkStore_buildPartitions::read", sizeof(gkRead), 1);
+      AS_UTL_safeWrite(readfiles[pi], &partRead, "gkStore::gkStore_buildPartitions::read", sizeof(gkRead), 1);
 
-    readIDmap[fi] = readfileslen[pi]++;
+      readIDmap[fi] = readfileslen[pi]++;
+    }
+
+    else {
+#if 0
+      fprintf(stderr, "read "F_U32"="F_U32" len "F_U32" -- blob master "F_U64" -- DELETED\n",
+              fi, _reads[fi].gkRead_readID(), _reads[fi].gkRead_sequenceLength(),
+              _reads[fi]._mPtr);
+#endif
+    }
   }
 
   //  There isn't a zeroth read.
