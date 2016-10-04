@@ -157,13 +157,6 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
 
   vector<epOlapDat>  olaps;
 
-
-
-  //  Pick a set of reads to use.  We need full coverage in overlaps.
-
-
-
-
   // Scan overlaps to find those that we care about, and save their endpoints.
 
   for (uint32 fi=0; fi<ufpath.size(); fi++) {
@@ -175,53 +168,22 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
     uint32      ovlLen =  0;
     BAToverlap *ovl    =  OC->getOverlaps(rdA->ident, ovlLen);
 
-    uint32      nDiffTig  = 0;
-    uint32      nDiffPos  = 0;
-    uint32      nIsect    = 0;
-
     for (uint32 oi=0; oi<ovlLen; oi++) {
-
-      //  Reads in different tigs?  Don't care about this overlap.
-
-      if (id() != _vector->inUnitig(ovl[oi].b_iid)) {
-        nDiffTig++;
-        continue;
-      }
-
-      //  Reads in same tig but not overlapping?  Don't care about this overlap.
+      if (id() != _vector->inUnitig(ovl[oi].b_iid))    //  Reads in different tigs?
+        continue;                                      //  Don't care about this overlap.
 
       ufNode  *rdB    = &ufpath[ _vector->ufpathIdx(ovl[oi].b_iid) ];
       bool     rdBfwd = (rdB->position.bgn < rdB->position.end);
       int32    rdBlo  = (rdBfwd) ? rdB->position.bgn : rdB->position.end;
       int32    rdBhi  = (rdBfwd) ? rdB->position.end : rdB->position.bgn;
 
-      if ((rdAhi < rdBlo) || (rdBhi < rdAlo)) {
-        nDiffPos++;
-#ifdef SHOW_PROFILE_CONSTRUCTION_DETAILS
-        writeLog("errorProfile()-- diffPos rdA %u=%u %u-%u rdB %u=%u %u-%u\n",
-                 ovl[oi].a_iid, rdA->ident, rdAlo, rdAhi,
-                 ovl[oi].b_iid, rdB->ident, rdBlo, rdBhi);
-#endif
-        continue;
-      }
+      if ((rdAhi < rdBlo) || (rdBhi < rdAlo))                //  Reads in same tig but not overlapping?
+        continue;                                            //  Don't care about this overlap.
 
-      nIsect++;
-
-      //  Now figure out what region is covered by the overlap, and save the open/close event.
-
-      olaps.push_back(epOlapDat(max(rdAlo, rdBlo), true,  ovl[oi].erate()));
-      olaps.push_back(epOlapDat(min(rdAhi, rdBhi), false, ovl[oi].erate()));
+      olaps.push_back(epOlapDat(max(rdAlo, rdBlo), true,  ovl[oi].erate()));  //  Save an open event,
+      olaps.push_back(epOlapDat(min(rdAhi, rdBhi), false, ovl[oi].erate()));  //  and a close event.
     }
-
-#ifdef SHOW_PROFILE_CONSTRUCTION_DETAILS
-    writeLog("errorProfile()-- tig %u read %u with %u overlaps - diffTig %u diffPos %u intersect %u\n",
-             id(), rdA->ident, ovlLen, nDiffTig, nDiffPos, nIsect);
-#endif
   }
-
-#ifdef SHOW_PROFILE_CONSTRUCTION
-  writeLog("errorProfile()-- tig %u generated "F_SIZE_T" olaps.\n", id(), olaps.size());
-#endif
 
   //  Sort.
 
@@ -242,7 +204,7 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
     errorProfile.push_back(epValue(olaps[bb].pos, olaps[ii].pos));
 
 #ifdef SHOW_PROFILE_CONSTRUCTION_DETAILS
-    writeLog("errorProfile()-- tig %u make region bb=%u ii=%i - %u %u\n", id(), bb, ii, olaps[bb].pos, olaps[ii].pos);
+    writeLog("errorProfile()-- tig %u make region [%u-%u] @ %u-%u\n", id(), bb, ii, olaps[bb].pos, olaps[ii].pos);
 #endif
 
     bb = ii;
@@ -255,7 +217,7 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
 
 
 #ifdef SHOW_PROFILE_CONSTRUCTION
-  writeLog("errorProfile()-- tig %u generated "F_SIZE_T" profile regions.\n", id(), errorProfile.size());
+  writeLog("errorProfile()-- tig %u generated "F_SIZE_T" profile regions from "F_SIZE_T" overlaps.\n", id(), errorProfile.size(), olaps.size());
 #endif
 
   //  Walk both lists, adding positive erates and removing negative erates.
@@ -267,11 +229,22 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
       ee++;                                     //  By construction, this single step should be all we need.
 
 #ifdef SHOW_PROFILE_CONSTRUCTION_DETAILS
-    writeLog("errorProfile()-- oo=%u bgn=%u -- ee=%u bgn=%u -- olaps.size "F_SIZE_T" errorProfile.size "F_SIZE_T" -- insert %d erate %f\n",
+    writeLog("errorProfile()-- olap[%u] @ %u  ep[%u] @ %u  %s %f  %f +- %f size %u\n",
              oo, olaps[oo].pos,
              ee, errorProfile[ee].bgn,
-             olaps.size(), errorProfile.size(),
-             olaps[oo].open, olaps[oo].erate);
+             olaps[oo].open ? "I" : "R",
+             olaps[oo].erate,
+             curDev.mean(), curDev.variance(), curDev.size());
+
+    if ((olaps[oo].open == false) && (curDev.size() == 0)) {
+      for (uint32 fi=0; fi<ufpath.size(); fi++) {
+        ufNode  *frg = &ufpath[fi];
+        writeLog("read %6u %6u-%6u\n", frg->ident, frg->position.bgn, frg->position.end);
+      }
+
+      writeLog("errorProfile()-- remove from empty set?\n");
+      flushLog();
+    }
 #endif
 
     assert(olaps[oo].pos == errorProfile[ee].bgn);
