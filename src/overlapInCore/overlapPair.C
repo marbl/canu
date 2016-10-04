@@ -60,7 +60,7 @@
 #define BATCH_SIZE   1024 * 1024
 #define THREAD_SIZE  128
 
-#define MHAP_SLOP    500
+#define MHAP_SLOP    0
 //#define DEBUG 1
 
 
@@ -147,8 +147,6 @@ recomputeOverlaps(void *ptr) {
   //  WA->analyze = new analyzeAlignment();
 
   while (getRange(bgnID, endID)) {
-    //fprintf(stderr, "Thread %2u computes overlaps %7u - %7u\n", WA->threadID, bgnID, endID);
-
     double  startTime = getTime();
 
     for (uint32 oo=bgnID; oo<endID; oo++) {
@@ -172,7 +170,7 @@ recomputeOverlaps(void *ptr) {
       uint32  bID  = ovl->b_iid;
 
       //  Compute the overlap
-      if (ovl->a_bgn() - ovl->a_end() + 1 < minOverlapLength) { 
+      if (ovl->a_end() - ovl->a_bgn() + 1 < minOverlapLength && ovl->b_end() - ovl->b_bgn() + 1 < minOverlapLength) { 
          continue; 
       }
 
@@ -196,28 +194,51 @@ if (nTested % 1000 == 0) {
      bend = std::min((int32)rcache->getLength(bID), (int32)rcache->getLength(bID) - (int32)ovl->b_end() + MHAP_SLOP);
   }
 
-  int tolerance = -1;
-  EdlibAlignResult result = edlibAlign(rcache->getRead(aID)+astart, aend-astart, bRead+bstart, bend-bstart, edlibNewAlignConfig(tolerance, EDLIB_MODE_HW, EDLIB_TASK_LOC));
+  int tolerance =  (int)ceil((double)max(aend-astart, bend-bstart)*WA->maxErate);
+  EdlibAlignResult bQuery = edlibAlign(rcache->getRead(aID)+astart, aend-astart, bRead+bstart, bend-bstart, edlibNewAlignConfig(tolerance, EDLIB_MODE_HW, EDLIB_TASK_LOC));
+  EdlibAlignResult aQuery = edlibAlign(bRead+bstart, bend-bstart, rcache->getRead(aID)+astart, aend-astart, edlibNewAlignConfig(tolerance, EDLIB_MODE_HW, EDLIB_TASK_LOC));
+
   uint32 alignmentLength = 0;
   double dist = 0;
 
-  if (result.numLocations >= 1) {
-     ovl->dat.ovl.bhg5 = result.startLocations[0] + bstart;
-     ovl->dat.ovl.bhg3 = rcache->getLength(bID) - (result.endLocations[0] + bstart + 1);
-     alignmentLength = result.endLocations[0] - result.startLocations[0];
-     dist = result.editDistance;
-
-     // now run reversed to get the other sequence bounds
-     edlibFreeAlignResult(result);
-     result = edlibAlign(bRead+bstart, bend-bstart, rcache->getRead(aID)+astart, aend-astart, edlibNewAlignConfig(tolerance, EDLIB_MODE_HW, EDLIB_TASK_LOC));
-     if (result.numLocations >= 1) {
-        ovl->dat.ovl.ahg5 = result.startLocations[0] + astart;
-        // the aligner computes 0-based end positions so for matching ACGTA to ACTGTA positiosn are 0-4 so we need to adjust for that
-        ovl->dat.ovl.ahg3 = rcache->getLength(aID) - (result.endLocations[0] + astart + 1);
-        alignmentLength = max(alignmentLength, (uint32)(result.endLocations[0] - result.startLocations[0]));
-        dist = min(result.editDistance, (int)dist);
+#ifdef DEBUG
+fprintf(stderr, "Overlap between %d and %d found %d %d hits\n", aID, bID, bQuery.numLocations, aQuery.numLocations);
+#endif
+  if (aQuery.numLocations >= 1 || bQuery.numLocations >= 1) {
+     // if we couldn't find one of the options, try trimming and re-computing 
+     if (bQuery.numLocations == 0) {
+        ovl->dat.ovl.ahg5 = aQuery.startLocations[0] + astart;
+        ovl->dat.ovl.ahg3 = rcache->getLength(aID) - (aQuery.endLocations[0] + astart + 1);
+        alignmentLength = max(alignmentLength, (uint32)(aQuery.endLocations[0] - aQuery.startLocations[0]));
+        dist = min(aQuery.editDistance, (int)dist);
+        edlibFreeAlignResult(bQuery);
+        bQuery = edlibAlign(rcache->getRead(aID)+astart, aend-astart, bRead+bstart, bend-bstart, edlibNewAlignConfig(tolerance, EDLIB_MODE_HW, EDLIB_TASK_LOC));
      }
-     edlibFreeAlignResult(result);
+     if (aQuery.numLocations == 0) {
+        ovl->dat.ovl.bhg5 = bQuery.startLocations[0] + bstart;
+        ovl->dat.ovl.bhg3 = rcache->getLength(bID) - (bQuery.endLocations[0] + bstart + 1);
+        alignmentLength = bQuery.endLocations[0] - bQuery.startLocations[0];
+        dist = bQuery.editDistance;
+        edlibFreeAlignResult(aQuery);
+        aQuery = edlibAlign(bRead+bstart, bend-bstart, rcache->getRead(aID)+astart, aend-astart, edlibNewAlignConfig(tolerance, EDLIB_MODE_HW, EDLIB_TASK_LOC));
+     }
+
+     // now update the trim points based on where the overlapping broke
+     // the aligner computes 0-based end positions so for matching ACGTA to ACTGTA positiosn are 0-4 so we need to adjust for that
+     if (bQuery.numLocations >= 1) {
+        ovl->dat.ovl.bhg5 = bQuery.startLocations[0] + bstart;
+        ovl->dat.ovl.bhg3 = rcache->getLength(bID) - (bQuery.endLocations[0] + bstart + 1);
+        alignmentLength = bQuery.endLocations[0] - bQuery.startLocations[0];
+        dist = bQuery.editDistance;
+     }
+     if (aQuery.numLocations >= 1) {
+        ovl->dat.ovl.ahg5 = aQuery.startLocations[0] + astart;
+        ovl->dat.ovl.ahg3 = rcache->getLength(aID) - (aQuery.endLocations[0] + astart + 1);
+        alignmentLength = max(alignmentLength, (uint32)(aQuery.endLocations[0] - aQuery.startLocations[0]));
+        dist = min(aQuery.editDistance, (int)dist);
+     }
+     edlibFreeAlignResult(aQuery);
+     edlibFreeAlignResult(bQuery);
 
 #ifdef DEBUG
 fprintf(stderr, "Expected overlap between %d and %d from %d - %d and %d - %d found overlap from %d - %d and %d - %d length %d dist %f\n", aID, bID, astart, aend, bstart, bend, ovl->a_bgn(), ovl->a_end(), ovl->b_bgn(), ovl->b_end(), alignmentLength, dist);
@@ -225,27 +246,72 @@ fprintf(stderr, "Expected overlap between %d and %d from %d - %d and %d - %d fou
 
      bool changed = true;
      tolerance = (int)(alignmentLength * WA->maxErate) + 1;
+     EdlibAlignResult result;
 
      // extend to the ends if we are not looking for partial and we can, don't extend contains
-     // TODO: this is wrong, we should extend both ends at the same time not like this
      if (changed && WA->partialOverlaps == false && !ovl->overlapIsDovetail()) {
         bstart = ovl->flipped() ? rcache->getLength(bID) - ovl->b_bgn() : ovl->b_bgn();
         bend = ovl->flipped() ? rcache->getLength(bID) - ovl->b_end() : ovl->b_end();
         result = edlibAlign(rcache->getRead(aID)+ovl->a_bgn(), ovl->a_end()-ovl->a_bgn(), bRead+bstart, bend-bstart, edlibNewAlignConfig(tolerance, EDLIB_MODE_NW, EDLIB_TASK_LOC));
-        changed = false;
 
         if (result.numLocations >= 1) {
+#ifdef DEBUG
+fprintf(stderr, "Overlap %d %d (%d %d) invert %d is %d error and not dovetail with %d %d and %d %d\n", aID, bID, rcache->getLength(aID) , rcache->getLength(bID), ovl->flipped(), result.editDistance,  ovl->dat.ovl.ahg5,  ovl->dat.ovl.ahg3,  ovl->dat.ovl.bhg5,  ovl->dat.ovl.bhg3);
+#endif
            dist = result.editDistance;
-           // if we can extend to the end assuming all error, do so and compute the real alignment end-to-end
-           if (ovl->dat.ovl.ahg5 > 0 && ((double)(ovl->dat.ovl.ahg5 + dist) / ((double)(alignmentLength + ovl->dat.ovl.ahg5))) <= WA->maxErate) { ovl->dat.ovl.ahg5 = 0; changed = true; }
-           if (ovl->dat.ovl.ahg3 > 0 && ((double)(ovl->dat.ovl.ahg3 + dist) / ((double)(alignmentLength + ovl->dat.ovl.ahg3))) <= WA->maxErate) { ovl->dat.ovl.ahg3 = 0; changed = true; }
-
-           // now the bread
-           if (ovl->dat.ovl.bhg5 > 0 && ((double)(ovl->dat.ovl.bhg5 + dist) / ((double)(alignmentLength + ovl->dat.ovl.bhg5))) <= WA->maxErate) { ovl->dat.ovl.bhg5; changed = true; }
-           if (ovl->dat.ovl.bhg3 > 0 && ((double)(ovl->dat.ovl.bhg3 + dist) / ((double)(alignmentLength + ovl->dat.ovl.bhg3))) <= WA->maxErate) { ovl->dat.ovl.bhg3; changed = true; }
+           // check these cases one by one and extend both concordantly with each other
+           // first is a contained in b
+           if (rcache->getLength(aID) <= rcache->getLength(bID) && ovl->dat.ovl.ahg5 >= 0 && ovl->dat.ovl.ahg3 >= 0 && ovl->dat.ovl.bhg5 >= ovl->dat.ovl.ahg5 && ovl->dat.ovl.bhg3 >= ovl->dat.ovl.ahg3 && ((double)(ovl->dat.ovl.ahg5 + ovl->dat.ovl.ahg3 + dist) / ((double)(alignmentLength + ovl->dat.ovl.ahg5 + ovl->dat.ovl.ahg3))) <= WA->maxErate) {
+              ovl->dat.ovl.bhg5 = max(0, ovl->dat.ovl.bhg5 - ovl->dat.ovl.ahg5); ovl->dat.ovl.ahg5 = 0;
+              ovl->dat.ovl.bhg3 = max(0, ovl->dat.ovl.bhg3 - ovl->dat.ovl.ahg3); ovl->dat.ovl.ahg3 = 0;
+              changed = true;
+#ifdef DEBUG
+fprintf(stderr, "Overlap %d %d case 1 acontained\n", aID, bID);
+#endif
+           }
+           // second is b contained (both b hangs can be extended)
+           //
+           else if (rcache->getLength(aID) >= rcache->getLength(bID) && ovl->dat.ovl.bhg5 >= 0 && ovl->dat.ovl.bhg3 >= 0 && ovl->dat.ovl.ahg5 >= ovl->dat.ovl.bhg5 && ovl->dat.ovl.ahg3 >= ovl->dat.ovl.bhg3 && ((double)(ovl->dat.ovl.bhg5 + ovl->dat.ovl.bhg3 + dist) / ((double)(alignmentLength + ovl->dat.ovl.bhg5 + ovl->dat.ovl.bhg3))) <= WA->maxErate) {
+              ovl->dat.ovl.ahg5 = max(0, ovl->dat.ovl.ahg5 - ovl->dat.ovl.bhg5); ovl->dat.ovl.bhg5 = 0;
+              ovl->dat.ovl.ahg3 = max(0, ovl->dat.ovl.ahg3 - ovl->dat.ovl.bhg3); ovl->dat.ovl.bhg3 = 0;
+              changed = true;
+#ifdef DEBUG
+fprintf(stderr, "Overlap %d %d case 2 bconatined\n", aID, bID);
+#endif
+           }
+           // third is 5' dovetal  ---------->
+           //                          ---------->
+           //                          or
+           //                          <---------
+           //                         bhg5 here is always first overhang on b read
+           //
+           else if (ovl->dat.ovl.ahg3 <= ovl->dat.ovl.bhg3 && (ovl->dat.ovl.ahg3 >= 0 && ((double)(ovl->dat.ovl.ahg3 + dist) / ((double)(alignmentLength + ovl->dat.ovl.ahg3))) <= WA->maxErate) &&
+                   (ovl->dat.ovl.bhg5 >= 0 && ((double)(ovl->dat.ovl.bhg5 + dist) / ((double)(alignmentLength + ovl->dat.ovl.bhg5))) <= WA->maxErate)) {
+              ovl->dat.ovl.ahg5 = max(0, ovl->dat.ovl.ahg5 - ovl->dat.ovl.bhg5); ovl->dat.ovl.bhg5 = 0;
+              ovl->dat.ovl.bhg3 = max(0, ovl->dat.ovl.bhg3 - ovl->dat.ovl.ahg3); ovl->dat.ovl.ahg3 = 0;
+              changed = true;
+#ifdef DEBUG
+fprintf(stderr, "Overlap %d %d case 3 5' dovetail \n", aID, bID);
+#endif
+           }
+           //
+           // fourth is 3' dovetail    ---------->
+           //                     ---------->
+           //                     or
+           //                     <----------
+           //                     bhg5 is always first overhang on b read
+           else if (ovl->dat.ovl.ahg5 <= ovl->dat.ovl.bhg5 && (ovl->dat.ovl.ahg5 >= 0 && ((double)(ovl->dat.ovl.ahg5 + dist) / ((double)(alignmentLength + ovl->dat.ovl.ahg5))) <= WA->maxErate) &&
+                   (ovl->dat.ovl.bhg3 >= 0 && ((double)(ovl->dat.ovl.bhg3 + dist) / ((double)(alignmentLength + ovl->dat.ovl.bhg3))) <= WA->maxErate)) {
+              ovl->dat.ovl.bhg5 = max(0, ovl->dat.ovl.bhg5 - ovl->dat.ovl.ahg5); ovl->dat.ovl.ahg5 = 0;
+              ovl->dat.ovl.ahg3 = max(0, ovl->dat.ovl.ahg3 - ovl->dat.ovl.bhg3); ovl->dat.ovl.bhg3 = 0;
+              changed = true;
+#ifdef DEBUG
+fprintf(stderr, "Overlap %d %d case 4 3' dovetail \n", aID, bID);
+#endif
+           }
         }
-        edlibFreeAlignResult(result);
      }
+
 #ifdef DEBUG
 fprintf(stderr, "Recomputed overlap from %d to %d is %d - %d and %d - %d\n", aID, bID, ovl->a_bgn(), ovl->a_end(), (ovl->flipped() ? rcache->getLength(bID) - ovl->b_bgn() : ovl->b_bgn()), (ovl->flipped() ? rcache->getLength(bID) - ovl->b_end() : ovl->b_end()));
 #endif
@@ -267,7 +333,8 @@ fprintf(stderr, "Recomputed overlap from %d to %d is %d - %d and %d - %d\n", aID
 fprintf(stderr, "Done and error rate for this overlap between %d and %d is %d bp and %f errors is dovetail %d\n", aID, bID, alignmentLength, dist, ovl->overlapIsDovetail());
 #endif
   } else {
-     edlibFreeAlignResult(result);
+     edlibFreeAlignResult(aQuery);
+     edlibFreeAlignResult(bQuery);
   }
 
   if (alignmentLength >= minOverlapLength && (dist / (double) (alignmentLength)) <= WA->maxErate) {
