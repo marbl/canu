@@ -271,7 +271,7 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
              oo, olaps[oo].pos,
              ee, errorProfile[ee].bgn,
              olaps.size(), errorProfile.size(),
-             olaps[oo].open, olaps[oo].erate());
+             olaps[oo].open, olaps[oo].erate);
 #endif
 
     assert(olaps[oo].pos == errorProfile[ee].bgn);
