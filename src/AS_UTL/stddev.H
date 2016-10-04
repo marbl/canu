@@ -65,6 +65,9 @@ public:
     double s0 = _sn;
     uint32 n0 = _nn + 1;
 
+    if (_nn == 0x7fffffff)
+      fprintf(stderr, "ERROR: stdDev is full; can't insert() new value.\n"), exit(1);
+
     if (_nn & 0x80000000)
       fprintf(stderr, "ERROR: stdDev has been finalized; can't insert() new value.\n"), exit(1);
 
@@ -77,6 +80,9 @@ public:
     uint32 n0 = _nn - 1;
     double m0 = (n0 == 0) ? (0) : ((_nn * _mn - val) / n0);
     double s0 = _sn - (val - m0) * (val - _mn);
+
+    if (_nn == 0)
+      fprintf(stderr, "ERROR: stdDev has no data; can't remove() old value.\n"), exit(1);
 
     if (_nn & 0x80000000)
       fprintf(stderr, "ERROR: stdDev has been finalized; can't remove() old value.\n"), exit(1);
