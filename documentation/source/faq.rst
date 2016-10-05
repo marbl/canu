@@ -16,9 +16,10 @@ Canu FAQ
     What parameters should I use for my genome? Sequencing type?
     
 **A**:
-    By default, Canu is designed to be universal on a large range of PacBio (C2-P6-C4) and Oxford Nanopore (R6-R9) data. You can adjust parameters to increase efficiency for your datatype. For example, for higher coverage PacBio datasets, especially from inbred samples, you can decrease the error rate (``errorRate=0.013``). For recent Nanopore data (R9) 2D data, you can also decrease the default error rate (``errorRate=0.013``).
+    By default, Canu is designed to be universal on a large range of PacBio (C2-P6-C4) and Oxford Nanopore (R6-R9) data. You can adjust parameters to increase efficiency for your datatype:
     
-    With R7 1D sequencing data, multiple rounds of error correction are helpful. This should not be necessary for sequences over 85% identity. You can run just the correction from Canu with the options
+    **Nanopore R7 1D**
+       With R7 1D sequencing data, multiple rounds of error correction are helpful. Generally, this is true if you input data has lower identity than 80%. You can run just the correction from Canu with the options
     
     ::
     
@@ -28,8 +29,37 @@ Canu FAQ
     
     ::
     
-        -nanopore-corrected <your data> errorRate=0.1 utgGraphDeviation=50
+        -nanopore-corrected <your data> errorRate=0.1 utgGraphDeviation=50    
+     **Nanopore R7 2D**
+        ``errorRate=0.025``
+    **Nanopore R9 1D**
+        ``errorRate=0.025``
+    **Nanopore R9 2D**
+        ``errorRate=0.013``
+    **PacBio P6**
+        ``errorRate=0.013``
+    **PacBio Sequel** (based on *A. thaliana* `publically released  dataset <http://www.pacb.com/blog/sequel-system-data-release-arabidopsis-dataset-genome-assembly/>`_)
+        ``errorRate=0.013 corMhapSensitivity=normal``
+
+**Q**:
+    My assembly continuity is not good, how can I improve it?
     
+**A**:
+    The most important determinant for assembly quality is sequence length, followed by the repeat complexity/heterozygosity of your sample.  The first thing to check is the amount of corrected bases output by the correction step.  This is logged in the stdout of Canu or in canu-scripts/canu.*.out if you are running in a grid environment. For example on `a haploid H. sapiens <https://www.ncbi.nlm.nih.gov/Traces/study/?acc=SAMN02744161>`_ sample:
+    
+    ::
+    
+       -- BEGIN TRIMMING
+       --
+       ...
+       -- In gatekeeper store 'chm1/trimming/asm.gkpStore':
+       --   Found 5459105 reads.
+       --   Found 91697412754 bases (29.57 times coverage).
+       --
+       ...
+
+   Canu tries to correct the longest 40X of data. Some loss is normal but having output coverage below 20-25X is a sign that correction did not work well (assuming you have more input coverage than that). If that is the case, re-running with ``corMhapSensitivity=normal`` if you have >50X or ``corMhapSensitivity=high corMinCoverage=0`` otherwise can help. You can also increase the target coverage to correct ``corOutCoverage=100`` to get more correct sequences for assembly. If there are sufficient corrected reads, the poor assembly is likely due to either  repeats in the genome being greater than read lengths or a high heterozygosity in the sample. Stay tuned for mor information on tuning unitigging in those instances.
+
 **Q**:
     How do I run Canu on my SLURM/SGE/PBS/LSF/Torque system?
 
