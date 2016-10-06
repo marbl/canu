@@ -607,6 +607,16 @@ processArray(int argc, char **argv) {
       begPos = strtouint32(argv[++arg]);
       endPos = strtouint32(argv[++arg]);
 
+      if (endPos < begPos) {
+        uint32 t = begPos;
+
+        begPos = endPos;
+        endPos = t;
+
+        doReverse    = true;
+        doComplement = true;
+      }
+
     } else if (strcmp(argv[arg], "-ends") == 0) {
       endExtract = strtouint32(argv[++arg]);
 
