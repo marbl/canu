@@ -77,10 +77,10 @@ seqFactory::openFile(const char *name) {
       return(n);
   }
 
-  fprintf(stderr, "seqFactory::registerFile()--  Cannot determine type of file '%s'.  Tried:\n", name);
+  fprintf(stderr, "seqFactory::openFile()--  Cannot determine type of file '%s'.  Tried:\n", name);
 
   for (uint32 i=0; i<_filesNum; i++)
-    fprintf(stderr, "seqFactory::registerFile()--         '%s'\n", _files[i]->getFileTypeName());
+    fprintf(stderr, "seqFactory::openFile()--         '%s'\n", _files[i]->getFileTypeName());
 
   exit(1);
   return(n);
