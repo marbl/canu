@@ -220,6 +220,7 @@ sffFile::clear(void) {
 
   strcpy(_typename, "SFF");
 
+  _randomAccessSupported = true;
   _numberOfSequences = 0;
 
   _rb = 0L;

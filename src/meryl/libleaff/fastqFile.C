@@ -338,6 +338,7 @@ fastqFile::clear(void) {
 
   strcpy(_typename, "Fastq");
 
+  _randomAccessSupported = true;
   _numberOfSequences = 0;
 
   _rb                = 0L;

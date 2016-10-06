@@ -341,6 +341,7 @@ fastaFile::clear(void) {
 
   strcpy(_typename, "FastA");
 
+  _randomAccessSupported = true;
   _numberOfSequences = 0;
 
   _rb                = 0L;
