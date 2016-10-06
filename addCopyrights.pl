@@ -258,6 +258,8 @@ while (<FIN>) {
 
     next if ($file =~ m/libboost/);
 
+    next if ($file =~ m/qsort_mt.c$/);
+
     my $cb = "/";
     my $cc = "*";
     my $ce = "/";
