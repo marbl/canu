@@ -150,27 +150,36 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
 
   for (uint32 fi=0; fi<ufpath.size(); fi++) {
     ufNode     *rdA    = &ufpath[fi];
-    bool        rdAfwd = (rdA->position.bgn < rdA->position.end);
-    int32       rdAlo  = (rdAfwd) ? rdA->position.bgn : rdA->position.end;
-    int32       rdAhi  = (rdAfwd) ? rdA->position.end : rdA->position.bgn;
+    int32       rdAlo  = rdA->position.min();
+    int32       rdAhi  = rdA->position.max();
 
     uint32      ovlLen =  0;
     BAToverlap *ovl    =  OC->getOverlaps(rdA->ident, ovlLen);
 
     for (uint32 oi=0; oi<ovlLen; oi++) {
-      if (id() != _vector->inUnitig(ovl[oi].b_iid))    //  Reads in different tigs?
-        continue;                                      //  Don't care about this overlap.
-
-      ufNode  *rdB    = &ufpath[ _vector->ufpathIdx(ovl[oi].b_iid) ];
-      bool     rdBfwd = (rdB->position.bgn < rdB->position.end);
-      int32    rdBlo  = (rdBfwd) ? rdB->position.bgn : rdB->position.end;
-      int32    rdBhi  = (rdBfwd) ? rdB->position.end : rdB->position.bgn;
-
-      if ((rdAhi < rdBlo) || (rdBhi < rdAlo))                //  Reads in same tig but not overlapping?
+      if (id() != _vector->inUnitig(ovl[oi].b_iid))          //  Reads in different tigs?
         continue;                                            //  Don't care about this overlap.
 
-      olaps.push_back(epOlapDat(max(rdAlo, rdBlo), true,  ovl[oi].erate()));  //  Save an open event,
-      olaps.push_back(epOlapDat(min(rdAhi, rdBhi), false, ovl[oi].erate()));  //  and a close event.
+      ufNode  *rdB    = &ufpath[ _vector->ufpathIdx(ovl[oi].b_iid) ];
+
+      if (rdA->ident < rdB->ident)                           //  Only want to see one overlap
+        continue;                                            //  for each pair.
+
+      int32    rdBlo  = rdB->position.min();
+      int32    rdBhi  = rdB->position.max();
+
+      if ((rdAhi <= rdBlo) || (rdBhi <= rdAlo))              //  Reads in same tig but not overlapping?
+        continue;                                            //  Don't care about this overlap.
+
+      uint32 bgn = max(rdAlo, rdBlo);
+      uint32 end = min(rdAhi, rdBhi);
+
+#ifdef SHOW_PROFILE_CONSTRUCTION_DETAILS
+      writeLog("errorProfile()-- olap[%u] %u %u begin %u end %u\n", oi, rdA->ident, rdB->ident, bgn, end);
+#endif
+
+      olaps.push_back(epOlapDat(bgn, true,  ovl[oi].erate()));  //  Save an open event,
+      olaps.push_back(epOlapDat(end, false, ovl[oi].erate()));  //  and a close event.
     }
   }
 
