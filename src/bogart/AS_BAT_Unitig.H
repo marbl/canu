@@ -211,7 +211,6 @@ public:
                             const char *label,
                             vector<int32> *hist);
 
-  void   computeErrorProfileApproximate(const char *prefix, const char *label);
   void   computeErrorProfile(const char *prefix, const char *label);
   void   reportErrorProfile(const char *prefix, const char *label);
   void   clearErrorProfile(void)       { errorProfile.clear(); };

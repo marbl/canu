@@ -133,17 +133,6 @@ Unitig::computeArrivalRate(const char *UNUSED(prefix),
 
 
 
-
-
-
-#if 1
-void
-Unitig::computeErrorProfileApproximate(const char *UNUSED(prefix), const char *UNUSED(label)) {
-}
-#endif
-
-
-
 void
 Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label)) {
 
