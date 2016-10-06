@@ -44,9 +44,8 @@
 
 class breakPointEnd {
 public:
-  breakPointEnd(uint32 tigID, uint32 readID, uint32 pos, bool bgn) {
+  breakPointEnd(uint32 tigID, uint32 pos, bool bgn) {
     _tigID    = tigID;
-    _readID   = readID;
     _pos      = pos;
     _bgn      = bgn;
   };
@@ -61,7 +60,6 @@ public:
   };
 
   uint32  _tigID;
-  uint32  _readID;   //  Diagnostic
   uint32  _pos;
   bool    _bgn;
 };
@@ -245,21 +243,31 @@ createUnitigs(AssemblyGraph  *AG,
   writeLog("\n");
 
   for (uint32 ti=0; ti<contigs.size(); ti++) {
-    if (contigs[ti] == NULL)
+    Unitig    *tig = contigs[ti];
+
+    if (tig == NULL)
       continue;
  
-    if (contigs[ti]->_isUnassembled == true)    //  Edge is FROM an unassembled thing, ignore it.
+    if (tig->_isUnassembled == true)    //  Edge is FROM an unassembled thing, ignore it.
       continue;
 
-    uint32  fi = contigs[ti]->firstRead()->ident;
-    uint32  li = contigs[ti]->lastRead() ->ident;
+    uint32  fi = tig->firstRead()->ident;
+    uint32  li = tig->lastRead() ->ident;
+
+    //  Give this tig a bogus breakpoint, just to get it in the list.  If there are no break points,
+    //  it won't be split.  These also serve as sentinels during splitting.
+
+    breaks.push_back(breakPointEnd(ti, 0,                true));    //  Add one at the start of the tig
+    breaks.push_back(breakPointEnd(ti, tig->getLength(), false));   //  And one at the end
 
     //  Check the first read.
 
     if (AG->getForward(fi).size() + AG->getForward(li).size() > 0)
-      writeLog("createUnitigs()-- first read %lu edges - last read %lu edges\n",
-              AG->getForward(fi).size(),
-              AG->getForward(li).size());
+      writeLog("createUnitigs()-- tig %u len %u first read %u with %lu edges - last read %u with %lu edges\n",
+               ti, tig->getLength(),
+               fi, li,
+               AG->getForward(fi).size(),
+               AG->getForward(li).size());
 
     for (uint32 pp=0; pp<AG->getForward(fi).size(); pp++) {
       BestPlacement  &pf = AG->getForward(fi)[pp];
@@ -275,15 +283,15 @@ createUnitigs(AssemblyGraph  *AG,
         continue;
 
       BAToverlap     best  = (pf.best5.b_iid > 0) ? pf.best5 : pf.best3;
-      Unitig        *tig   = contigs[ contigs.inUnitig(best.b_iid) ];
-      ufNode        *read  = &tig->ufpath[ contigs.ufpathIdx(best.b_iid) ];
+      Unitig        *btig  = contigs[ contigs.inUnitig(best.b_iid) ];
+      ufNode        *read  = &btig->ufpath[ contigs.ufpathIdx(best.b_iid) ];
       bool           isL   = (read->position.isForward()) ? best.BEndIs5prime() : best.BEndIs3prime();
       uint32         coord = (isL == true) ? read->position.min() : read->position.max();
 
-      if (tig->_isUnassembled == true)    //  Edge is TO an unassembled thing, ignore it.
+      if (btig->_isUnassembled == true)    //  Edge is TO an unassembled thing, ignore it.
         continue;
 
-      breaks.push_back(breakPointEnd(pf.tigID, fi, coord, isL));
+      breaks.push_back(breakPointEnd(pf.tigID, coord, isL));
 
       writeLog("splitThinEdge()-- read %6u splits tig %5u at coordinate %8u via intersection with read %6u isL %u\n",
               fi, pf.tigID, coord, best.b_iid, isL);
@@ -305,15 +313,15 @@ createUnitigs(AssemblyGraph  *AG,
         continue;
 
       BAToverlap     best  = (pf.best5.b_iid > 0) ? pf.best5 : pf.best3;
-      Unitig        *tig   = contigs[ contigs.inUnitig(best.b_iid) ];
-      ufNode        *read  = &tig->ufpath[ contigs.ufpathIdx(best.b_iid) ];
+      Unitig        *btig  = contigs[ contigs.inUnitig(best.b_iid) ];
+      ufNode        *read  = &btig->ufpath[ contigs.ufpathIdx(best.b_iid) ];
       bool           isL   = (read->position.isForward()) ? best.BEndIs5prime() : best.BEndIs3prime();
       uint32         coord = (isL == true) ? read->position.min() : read->position.max();
 
-      if (tig->_isUnassembled == true)    //  Edge is TO an unassembled thing, ignore it.
+      if (btig->_isUnassembled == true)    //  Edge is TO an unassembled thing, ignore it.
         continue;
 
-      breaks.push_back(breakPointEnd(pf.tigID, li, coord, isL));
+      breaks.push_back(breakPointEnd(pf.tigID, coord, isL));
 
       writeLog("splitThinEdge()-- read %6u splits tig %5u at coordinate %8u via intersection with read %6u isL %u\n",
               li, pf.tigID, coord, best.b_iid, isL);
@@ -355,20 +363,15 @@ createUnitigs(AssemblyGraph  *AG,
 
     BP.clear();
 
-    BP.push_back(breakPointEnd(tig->id(), 0, 0, true));   //  Add one for the start of the tig
-
-    //writeLog("createUnitigs()-- Process BPs from ss=%u to ee=%u\n", ss, ee);
+    writeLog("createUnitigs()-- Process BPs from ss=%u to ee=%u\n", ss, ee);
 
     for (uint32 bb=ss; bb<ee; bb++) {
       //writeLog("createUnitigs()--   BP[%3u] pos %u bgn %c RAW\n", bb, breaks[bb]._pos, (breaks[bb]._bgn) ? 't' : 'f');
-      if ((BP.back()._pos != breaks[bb]._pos) ||
+       if ((BP.size() == 0) ||
+           (BP.back()._pos != breaks[bb]._pos) ||
           (BP.back()._bgn != breaks[bb]._bgn))
         BP.push_back(breaks[bb]);
     }
-
-    if ((BP.back()._pos != tig->getLength()) ||
-        (BP.back()._bgn != false))
-    BP.push_back(breakPointEnd(tig->id(), 0, tig->getLength(), false));   //  And one at the end
 
     writeLog("createUnitigs()-- tig %u found %u breakpoints (%u-%u)\n",
              tig->id(), BP.size(), ss, ee);
@@ -385,8 +388,12 @@ createUnitigs(AssemblyGraph  *AG,
       copyTig(unitigs, tig);
 
     if (nTigs > 1)
-      writeLog("createUnitigs()-- tig %u created %u new tigs\n",
+      writeLog("createUnitigs()-- tig %u created %u new tigs.\n",
                tig->id(), nTigs);
+    else
+      writeLog("createUnitigs()-- tig %u copied.\n",
+               tig->id(), nTigs);
+
 
     //reportTigsCreated(tig, BP, nTigs, newTigs, nMoved);
 
