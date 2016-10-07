@@ -60,7 +60,7 @@
 #define BATCH_SIZE   1024 * 1024
 #define THREAD_SIZE  128
 
-#define MHAP_SLOP    0
+#define MHAP_SLOP    500
 //#define DEBUG 1
 
 
@@ -182,58 +182,64 @@ if (nTested % 1000 == 0) {
               WA->threadID, bgnID, endID, deltaTime, (endID - bgnID) / deltaTime, nFailed, nPassed);
 }
 #endif
-  char *bRead = WA->readSeq;
-  int32 astart = std::max((int32)0, (int32)ovl->a_bgn() - MHAP_SLOP);
-  int32 aend = std::min((int32)rcache->getLength(aID), (int32)ovl->a_end() + MHAP_SLOP);
-  int32 bstart = std::max((int32)0, (int32)ovl->b_bgn() - MHAP_SLOP);
-  int32 bend = std::min((int32)rcache->getLength(bID), (int32)ovl->b_end() + MHAP_SLOP);
+  char *bRead          = WA->readSeq;
+  int32 astart         = (int32)ovl->a_bgn();
+  int32 aend           = (int32)ovl->a_end();
+  int32 astartExtended = max((int32)0, (int32)ovl->a_bgn() - MHAP_SLOP);
+  int32 aendExtended   = min((int32)rcache->getLength(aID), (int32)ovl->a_end() + MHAP_SLOP);
+  int32 bstart         = (int32)ovl->b_bgn();
+  int32 bend           = (int32)ovl->b_end();
+  int32 bstartExtended = max((int32)0, (int32)ovl->b_bgn() - MHAP_SLOP);
+  int32 bendExtended   = min((int32)rcache->getLength(bID), (int32)ovl->b_end() + MHAP_SLOP);
   strcpy(bRead, rcache->getRead(bID));
   if (ovl->flipped()) {
      reverseComplementSequence(bRead, rcache->getLength(bID));
-     bstart = std::max((int32)0, (int32)rcache->getLength(bID) - (int32)ovl->b_bgn() - MHAP_SLOP);
-     bend = std::min((int32)rcache->getLength(bID), (int32)rcache->getLength(bID) - (int32)ovl->b_end() + MHAP_SLOP);
+     bstart         = (int32)rcache->getLength(bID) - (int32)ovl->b_bgn();
+     bend           = (int32)rcache->getLength(bID) - (int32)ovl->b_end();
+     bstartExtended = max((int32)0, (int32)rcache->getLength(bID) - (int32)ovl->b_bgn() - MHAP_SLOP);
+     bendExtended   = min((int32)rcache->getLength(bID), (int32)rcache->getLength(bID) - (int32)ovl->b_end() + MHAP_SLOP);
   }
 
-  int tolerance =  (int)ceil((double)max(aend-astart, bend-bstart)*WA->maxErate);
-  EdlibAlignResult bQuery = edlibAlign(rcache->getRead(aID)+astart, aend-astart, bRead+bstart, bend-bstart, edlibNewAlignConfig(tolerance, EDLIB_MODE_HW, EDLIB_TASK_LOC));
-  EdlibAlignResult aQuery = edlibAlign(bRead+bstart, bend-bstart, rcache->getRead(aID)+astart, aend-astart, edlibNewAlignConfig(tolerance, EDLIB_MODE_HW, EDLIB_TASK_LOC));
+  int tolerance =  (int)ceil((double)max(aendExtended-astartExtended, bendExtended-bstartExtended)*WA->maxErate*1.1);
+  EdlibAlignResult bQuery = edlibAlign(rcache->getRead(aID)+astart, aend-astart, bRead+bstartExtended, bendExtended-bstartExtended, edlibNewAlignConfig(tolerance, EDLIB_MODE_HW, EDLIB_TASK_LOC));
+  EdlibAlignResult aQuery = edlibAlign(bRead+bstart, bend-bstart, rcache->getRead(aID)+astartExtended, aendExtended-astartExtended, edlibNewAlignConfig(tolerance, EDLIB_MODE_HW, EDLIB_TASK_LOC));
 
   uint32 alignmentLength = 0;
   double dist = 0;
 
 #ifdef DEBUG
-fprintf(stderr, "Overlap between %d and %d found %d %d hits\n", aID, bID, bQuery.numLocations, aQuery.numLocations);
+fprintf(stderr, "Overlap between %d and %d at %d found %d %d hits\n", aID, bID, tolerance, bQuery.numLocations, aQuery.numLocations);
 #endif
   if (aQuery.numLocations >= 1 || bQuery.numLocations >= 1) {
      // if we couldn't find one of the options, try trimming and re-computing 
      if (bQuery.numLocations == 0) {
-        ovl->dat.ovl.ahg5 = aQuery.startLocations[0] + astart;
-        ovl->dat.ovl.ahg3 = rcache->getLength(aID) - (aQuery.endLocations[0] + astart + 1);
+        ovl->dat.ovl.ahg5 = aQuery.startLocations[0] + astartExtended;
+        ovl->dat.ovl.ahg3 = rcache->getLength(aID) - (aQuery.endLocations[0] + astartExtended + 1);
         alignmentLength = max(alignmentLength, (uint32)(aQuery.endLocations[0] - aQuery.startLocations[0]));
         dist = min(aQuery.editDistance, (int)dist);
         edlibFreeAlignResult(bQuery);
-        bQuery = edlibAlign(rcache->getRead(aID)+astart, aend-astart, bRead+bstart, bend-bstart, edlibNewAlignConfig(tolerance, EDLIB_MODE_HW, EDLIB_TASK_LOC));
+        bQuery = edlibAlign(rcache->getRead(aID)+astart, aend-astart, bRead+bstartExtended, bendExtended-bstartExtended, edlibNewAlignConfig(tolerance, EDLIB_MODE_HW, EDLIB_TASK_LOC));
      }
      if (aQuery.numLocations == 0) {
-        ovl->dat.ovl.bhg5 = bQuery.startLocations[0] + bstart;
-        ovl->dat.ovl.bhg3 = rcache->getLength(bID) - (bQuery.endLocations[0] + bstart + 1);
+        ovl->dat.ovl.bhg5 = bQuery.startLocations[0] + bstartExtended;
+        ovl->dat.ovl.bhg3 = rcache->getLength(bID) - (bQuery.endLocations[0] + bstartExtended + 1);
         alignmentLength = bQuery.endLocations[0] - bQuery.startLocations[0];
         dist = bQuery.editDistance;
         edlibFreeAlignResult(aQuery);
-        aQuery = edlibAlign(bRead+bstart, bend-bstart, rcache->getRead(aID)+astart, aend-astart, edlibNewAlignConfig(tolerance, EDLIB_MODE_HW, EDLIB_TASK_LOC));
+        aQuery = edlibAlign(bRead+bstart, bend-bstart, rcache->getRead(aID)+astartExtended, aendExtended-astartExtended, edlibNewAlignConfig(tolerance, EDLIB_MODE_HW, EDLIB_TASK_LOC));
      }
 
      // now update the trim points based on where the overlapping broke
      // the aligner computes 0-based end positions so for matching ACGTA to ACTGTA positiosn are 0-4 so we need to adjust for that
      if (bQuery.numLocations >= 1) {
-        ovl->dat.ovl.bhg5 = bQuery.startLocations[0] + bstart;
-        ovl->dat.ovl.bhg3 = rcache->getLength(bID) - (bQuery.endLocations[0] + bstart + 1);
+        ovl->dat.ovl.bhg5 = bQuery.startLocations[0] + bstartExtended;
+        ovl->dat.ovl.bhg3 = rcache->getLength(bID) - (bQuery.endLocations[0] + bstartExtended + 1);
         alignmentLength = bQuery.endLocations[0] - bQuery.startLocations[0];
         dist = bQuery.editDistance;
      }
      if (aQuery.numLocations >= 1) {
-        ovl->dat.ovl.ahg5 = aQuery.startLocations[0] + astart;
-        ovl->dat.ovl.ahg3 = rcache->getLength(aID) - (aQuery.endLocations[0] + astart + 1);
+        ovl->dat.ovl.ahg5 = aQuery.startLocations[0] + astartExtended;
+        ovl->dat.ovl.ahg3 = rcache->getLength(aID) - (aQuery.endLocations[0] + astartExtended + 1);
         alignmentLength = max(alignmentLength, (uint32)(aQuery.endLocations[0] - aQuery.startLocations[0]));
         dist = min(aQuery.editDistance, (int)dist);
      }
@@ -252,63 +258,59 @@ fprintf(stderr, "Expected overlap between %d and %d from %d - %d and %d - %d fou
      if (changed && WA->partialOverlaps == false && !ovl->overlapIsDovetail()) {
         bstart = ovl->flipped() ? rcache->getLength(bID) - ovl->b_bgn() : ovl->b_bgn();
         bend = ovl->flipped() ? rcache->getLength(bID) - ovl->b_end() : ovl->b_end();
-        result = edlibAlign(rcache->getRead(aID)+ovl->a_bgn(), ovl->a_end()-ovl->a_bgn(), bRead+bstart, bend-bstart, edlibNewAlignConfig(tolerance, EDLIB_MODE_NW, EDLIB_TASK_LOC));
-
-        if (result.numLocations >= 1) {
 #ifdef DEBUG
-fprintf(stderr, "Overlap %d %d (%d %d) invert %d is %d error and not dovetail with %d %d and %d %d\n", aID, bID, rcache->getLength(aID) , rcache->getLength(bID), ovl->flipped(), result.editDistance,  ovl->dat.ovl.ahg5,  ovl->dat.ovl.ahg3,  ovl->dat.ovl.bhg5,  ovl->dat.ovl.bhg3);
+fprintf(stderr, "Overlap %d %d (%d %d) invert %d is %f error and not dovetail with %d %d and %d %d\n", aID, bID, rcache->getLength(aID) , rcache->getLength(bID), ovl->flipped(), dist/*result.editDistance*/,  ovl->dat.ovl.ahg5,  ovl->dat.ovl.ahg3,  ovl->dat.ovl.bhg5,  ovl->dat.ovl.bhg3);
 #endif
-           dist = result.editDistance;
-           // check these cases one by one and extend both concordantly with each other
-           // first is a contained in b
-           if (rcache->getLength(aID) <= rcache->getLength(bID) && ovl->dat.ovl.ahg5 >= 0 && ovl->dat.ovl.ahg3 >= 0 && ovl->dat.ovl.bhg5 >= ovl->dat.ovl.ahg5 && ovl->dat.ovl.bhg3 >= ovl->dat.ovl.ahg3 && ((double)(ovl->dat.ovl.ahg5 + ovl->dat.ovl.ahg3 + dist) / ((double)(alignmentLength + ovl->dat.ovl.ahg5 + ovl->dat.ovl.ahg3))) <= WA->maxErate) {
-              ovl->dat.ovl.bhg5 = max(0, ovl->dat.ovl.bhg5 - ovl->dat.ovl.ahg5); ovl->dat.ovl.ahg5 = 0;
-              ovl->dat.ovl.bhg3 = max(0, ovl->dat.ovl.bhg3 - ovl->dat.ovl.ahg3); ovl->dat.ovl.ahg3 = 0;
-              changed = true;
+        // dist = result.editDistance;
+        // check these cases one by one and extend both concordantly with each other
+        // first is a contained in b
+        if (rcache->getLength(aID) <= rcache->getLength(bID) && ovl->dat.ovl.ahg5 >= 0 && ovl->dat.ovl.ahg3 >= 0 && ovl->dat.ovl.bhg5 >= ovl->dat.ovl.ahg5 && ovl->dat.ovl.bhg3 >= ovl->dat.ovl.ahg3 && ((double)(ovl->dat.ovl.ahg5 + ovl->dat.ovl.ahg3 + dist) / ((double)(alignmentLength + ovl->dat.ovl.ahg5 + ovl->dat.ovl.ahg3))) <= WA->maxErate) {
+           ovl->dat.ovl.bhg5 = max(0, ovl->dat.ovl.bhg5 - ovl->dat.ovl.ahg5); ovl->dat.ovl.ahg5 = 0;
+           ovl->dat.ovl.bhg3 = max(0, ovl->dat.ovl.bhg3 - ovl->dat.ovl.ahg3); ovl->dat.ovl.ahg3 = 0;
+           changed = true;
 #ifdef DEBUG
 fprintf(stderr, "Overlap %d %d case 1 acontained\n", aID, bID);
 #endif
-           }
-           // second is b contained (both b hangs can be extended)
-           //
-           else if (rcache->getLength(aID) >= rcache->getLength(bID) && ovl->dat.ovl.bhg5 >= 0 && ovl->dat.ovl.bhg3 >= 0 && ovl->dat.ovl.ahg5 >= ovl->dat.ovl.bhg5 && ovl->dat.ovl.ahg3 >= ovl->dat.ovl.bhg3 && ((double)(ovl->dat.ovl.bhg5 + ovl->dat.ovl.bhg3 + dist) / ((double)(alignmentLength + ovl->dat.ovl.bhg5 + ovl->dat.ovl.bhg3))) <= WA->maxErate) {
-              ovl->dat.ovl.ahg5 = max(0, ovl->dat.ovl.ahg5 - ovl->dat.ovl.bhg5); ovl->dat.ovl.bhg5 = 0;
-              ovl->dat.ovl.ahg3 = max(0, ovl->dat.ovl.ahg3 - ovl->dat.ovl.bhg3); ovl->dat.ovl.bhg3 = 0;
-              changed = true;
+        }
+        // second is b contained (both b hangs can be extended)
+        //
+        else if (rcache->getLength(aID) >= rcache->getLength(bID) && ovl->dat.ovl.bhg5 >= 0 && ovl->dat.ovl.bhg3 >= 0 && ovl->dat.ovl.ahg5 >= ovl->dat.ovl.bhg5 && ovl->dat.ovl.ahg3 >= ovl->dat.ovl.bhg3 && ((double)(ovl->dat.ovl.bhg5 + ovl->dat.ovl.bhg3 + dist) / ((double)(alignmentLength + ovl->dat.ovl.bhg5 + ovl->dat.ovl.bhg3))) <= WA->maxErate) {
+           ovl->dat.ovl.ahg5 = max(0, ovl->dat.ovl.ahg5 - ovl->dat.ovl.bhg5); ovl->dat.ovl.bhg5 = 0;
+           ovl->dat.ovl.ahg3 = max(0, ovl->dat.ovl.ahg3 - ovl->dat.ovl.bhg3); ovl->dat.ovl.bhg3 = 0;
+           changed = true;
 #ifdef DEBUG
 fprintf(stderr, "Overlap %d %d case 2 bconatined\n", aID, bID);
 #endif
-           }
-           // third is 5' dovetal  ---------->
-           //                          ---------->
-           //                          or
-           //                          <---------
-           //                         bhg5 here is always first overhang on b read
-           //
-           else if (ovl->dat.ovl.ahg3 <= ovl->dat.ovl.bhg3 && (ovl->dat.ovl.ahg3 >= 0 && ((double)(ovl->dat.ovl.ahg3 + dist) / ((double)(alignmentLength + ovl->dat.ovl.ahg3))) <= WA->maxErate) &&
-                   (ovl->dat.ovl.bhg5 >= 0 && ((double)(ovl->dat.ovl.bhg5 + dist) / ((double)(alignmentLength + ovl->dat.ovl.bhg5))) <= WA->maxErate)) {
-              ovl->dat.ovl.ahg5 = max(0, ovl->dat.ovl.ahg5 - ovl->dat.ovl.bhg5); ovl->dat.ovl.bhg5 = 0;
-              ovl->dat.ovl.bhg3 = max(0, ovl->dat.ovl.bhg3 - ovl->dat.ovl.ahg3); ovl->dat.ovl.ahg3 = 0;
-              changed = true;
+        }
+        // third is 5' dovetal  ---------->
+        //                          ---------->
+        //                          or
+        //                          <---------
+        //                         bhg5 here is always first overhang on b read
+        //
+        else if (ovl->dat.ovl.ahg3 <= ovl->dat.ovl.bhg3 && (ovl->dat.ovl.ahg3 >= 0 && ((double)(ovl->dat.ovl.ahg3 + dist) / ((double)(alignmentLength + ovl->dat.ovl.ahg3))) <= WA->maxErate) &&
+                (ovl->dat.ovl.bhg5 >= 0 && ((double)(ovl->dat.ovl.bhg5 + dist) / ((double)(alignmentLength + ovl->dat.ovl.bhg5))) <= WA->maxErate)) {
+           ovl->dat.ovl.ahg5 = max(0, ovl->dat.ovl.ahg5 - ovl->dat.ovl.bhg5); ovl->dat.ovl.bhg5 = 0;
+           ovl->dat.ovl.bhg3 = max(0, ovl->dat.ovl.bhg3 - ovl->dat.ovl.ahg3); ovl->dat.ovl.ahg3 = 0;
+           changed = true;
 #ifdef DEBUG
 fprintf(stderr, "Overlap %d %d case 3 5' dovetail \n", aID, bID);
 #endif
-           }
-           //
-           // fourth is 3' dovetail    ---------->
-           //                     ---------->
-           //                     or
-           //                     <----------
-           //                     bhg5 is always first overhang on b read
-           else if (ovl->dat.ovl.ahg5 <= ovl->dat.ovl.bhg5 && (ovl->dat.ovl.ahg5 >= 0 && ((double)(ovl->dat.ovl.ahg5 + dist) / ((double)(alignmentLength + ovl->dat.ovl.ahg5))) <= WA->maxErate) &&
-                   (ovl->dat.ovl.bhg3 >= 0 && ((double)(ovl->dat.ovl.bhg3 + dist) / ((double)(alignmentLength + ovl->dat.ovl.bhg3))) <= WA->maxErate)) {
-              ovl->dat.ovl.bhg5 = max(0, ovl->dat.ovl.bhg5 - ovl->dat.ovl.ahg5); ovl->dat.ovl.ahg5 = 0;
-              ovl->dat.ovl.ahg3 = max(0, ovl->dat.ovl.ahg3 - ovl->dat.ovl.bhg3); ovl->dat.ovl.bhg3 = 0;
-              changed = true;
+        }
+        //
+        // fourth is 3' dovetail    ---------->
+        //                     ---------->
+        //                     or
+        //                     <----------
+        //                     bhg5 is always first overhang on b read
+        else if (ovl->dat.ovl.ahg5 <= ovl->dat.ovl.bhg5 && (ovl->dat.ovl.ahg5 >= 0 && ((double)(ovl->dat.ovl.ahg5 + dist) / ((double)(alignmentLength + ovl->dat.ovl.ahg5))) <= WA->maxErate) &&
+                (ovl->dat.ovl.bhg3 >= 0 && ((double)(ovl->dat.ovl.bhg3 + dist) / ((double)(alignmentLength + ovl->dat.ovl.bhg3))) <= WA->maxErate)) {
+           ovl->dat.ovl.bhg5 = max(0, ovl->dat.ovl.bhg5 - ovl->dat.ovl.ahg5); ovl->dat.ovl.ahg5 = 0;
+           ovl->dat.ovl.ahg3 = max(0, ovl->dat.ovl.ahg3 - ovl->dat.ovl.bhg3); ovl->dat.ovl.bhg3 = 0;
+           changed = true;
 #ifdef DEBUG
 fprintf(stderr, "Overlap %d %d case 4 3' dovetail \n", aID, bID);
 #endif
-           }
         }
      }
 
