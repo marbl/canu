@@ -486,12 +486,15 @@ sub expensiveFilter ($$) {
         $cmd .= "  -E " . getGlobal("corMaxEvidenceErate")  . " \\\n"  if (defined(getGlobal("corMaxEvidenceErate")));
         $cmd .= "  -C $maxCov \\\n"                                    if (defined($maxCov));
         $cmd .= "  -legacy \\\n"                                       if (defined(getGlobal("corLegacyFilter")));
-        $cmd .= "  -p $path/$asm.estimate";
+        $cmd .= "  -p $path/$asm.estimate.WORKING";
 
         if (runCommand($wrk, $cmd)) {
             rename "$path/$asm.estimate.log", "$path/$asm.estimate.log.FAILED";
             caExit("failed to generate estimated lengths of corrected reads", "$wrk/$asm.corStore.err");
         }
+        rename "$path/$asm.estimate.WORKING.filter.log", "$path/$asm.estimate";
+        rename "$path/$asm.estimate.WORKING.summary",    "$path/$asm.estimate.stats";
+        rename "$path/$asm.estimate.WORKING.log",        "$path/$asm.estimate.log";
     }
 
     if (runCommandSilently($path, "sort -T . -k4nr -k2nr < $path/$asm.estimate.log > $path/$asm.estimate.correctedLength.log", 1)) {
@@ -742,6 +745,8 @@ sub buildCorrectionLayouts ($$) {
         }
 
         rename "$path/$asm.globalScores.WORKING", "$path/$asm.globalScores";
+        rename "$path/$asm.globalScores.WORKING.stats", "$path/$asm.globalScores.stats";
+        rename "$path/$asm.globalScores.WORKING.log", "$path/$asm.globalScores.log";
         unlink "$path/$asm.globalScores.err";
     }
 
