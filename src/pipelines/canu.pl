@@ -165,7 +165,7 @@ while (scalar(@ARGV)) {
              ($arg eq "-nanopore-raw")     ||
              ($arg eq "-nanopore-corrected")) {
         if ($arg =~ m/pacbio/) {
-            setErrorRate(0.025);
+            setErrorRate(0.015);
             setGlobal("corErrorRate", "0.30");
         } elsif ($arg =~ m/nanopore/) {
             setErrorRate(0.048);
@@ -257,7 +257,7 @@ if (scalar(@inputFiles) == 0 && ! defined(getGlobal("errorRate"))) {
             $numNanoporeCorrected++   if (m/nanopore-corrected/);
         }
         if ($numPacBioRaw > 0 || $numPacBioCorrected > 0) {
-            setErrorRate(0.025);
+            setErrorRate(0.015);
             setGlobal("corErrorRate", "0.30");
             setGlobal("cnsMaxCoverage", 40);
         }
