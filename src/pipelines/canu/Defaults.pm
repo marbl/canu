@@ -629,7 +629,7 @@ sub setOverlapDefaults ($$$) {
 
     #  Mhap parameters.
 
-    $global{"${tag}MhapVersion"}              = "2.1";
+    $global{"${tag}MhapVersion"}              = "2.1.2";
     $synops{"${tag}MhapVersion"}              = "Version of the MHAP jar file to use";
 
     $global{"${tag}MhapFilterThreshold"}      = "0.000005";
