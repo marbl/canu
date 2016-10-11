@@ -45,7 +45,7 @@ sub detectPBSVersion () {
     my $isPro   = 0;
     my $version = "";
 
-    open(F, "pbsnodes --version |");
+    open(F, "pbsnodes --version 2>&1 |");
     while (<F>) {
         if (m/pbs_version\s+=\s+(.*)/) {
             $isPro   =  1;
