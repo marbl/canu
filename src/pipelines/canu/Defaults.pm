@@ -732,7 +732,7 @@ sub setDefaults () {
     $global{"utgRepeatDeviation"}          = 3;
     $synops{"utgRepeatDeviation"}          = "Overlaps this much above mean unitig error rate will not be used for repeat splitting (BOGART)";
 
-    $global{"utgRepeatConfusedBP"}         = 5000;
+    $global{"utgRepeatConfusedBP"}         = 2100;
     $synops{"utgRepeatConfusedBP"}           = "Repeats where the next best edge is at least this many bp shorter will not be split (BOGART)";
 
     $global{"corErrorRate"}                = undef;
