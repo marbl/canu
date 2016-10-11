@@ -279,6 +279,19 @@ $bin = getBinDirectory();
 
 printHelp();
 
+#  Now that we know the bin directory, print the version so those pesky users
+#  will (hopefully) include it when they paste in logs.
+
+printVersion($bin);
+
+#  Check java and gnuplot.
+
+checkJava();
+checkGnuplot();
+
+#  And one last chance to fail - because java and gnuplot both can set an error.
+
+printHelp();
 
 #  Detect grid support.  If 'gridEngine' isn't set, the execution methods submitScript() and
 #  submitOrRunParallelJob() will return without submitting, or run locally (respectively).  This

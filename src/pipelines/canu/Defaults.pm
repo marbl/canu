@@ -40,7 +40,7 @@ package canu::Defaults;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(getCommandLineOptions addCommandLineOption addCommandLineError writeLog caExit caFailure getNumberOfCPUs getPhysicalMemorySize getAllowedResources diskSpace printOptions printHelp setParametersFromFile setParametersFromCommandLine checkParameters getGlobal setGlobal setGlobalIfUndef showErrorRates setErrorRate setDefaults);
+@EXPORT = qw(getCommandLineOptions addCommandLineOption addCommandLineError writeLog caExit caFailure getNumberOfCPUs getPhysicalMemorySize getAllowedResources diskSpace printOptions printVersion printHelp setParametersFromFile setParametersFromCommandLine checkJava checkGnuplot checkParameters getGlobal setGlobal setGlobalIfUndef showErrorRates setErrorRate setDefaults);
 
 use strict;
 use Carp qw(cluck);
@@ -357,6 +357,22 @@ sub printOptions () {
         }
 
         print "$o$u\n";
+    }
+}
+
+
+sub printVersion ($) {
+    my $bin = shift @_;
+    my $version;
+
+    open(F, "$bin/gatekeeperCreate --version 2>&1 |");
+    while (<F>) {
+        $version = $_;  chomp $version;
+    }
+    close(F);
+
+    if (length($version) > 0) {
+        print "-- $version\n";
     }
 }
 
@@ -1000,7 +1016,54 @@ sub setDefaults () {
 
 
 
-sub gnuplotTest () {
+sub checkJava () {
+    return  if ((getGlobal("corOverlapper") ne "mhap") &&
+                (getGlobal("obtOverlapper") ne "mhap") &&
+                (getGlobal("utgOverlapper") ne "mhap"));
+
+    my $java       = getGlobal("java");
+    my $versionStr = "unknown";
+    my $version    = 0;
+
+    #  Argh, we can't use runCommand() here, because we're included in Execution.pm.  Try to check
+    #  it with -x.  Nope.  Fails if $java == "java".
+
+    #if (! -x $java) {
+    #    addCommandLineError("ERROR:  java executable '$java' not found or not executable\n");
+    #}
+
+    open(F, "$java -Xmx1g -showversion 2>&1 |");
+    while (<F>) {
+        #  First word is either "java" or "openjdk" or ...
+        if (m/^.*\s+version\s+\"(\d+.\d+)(.*)\".*$/) {
+            $versionStr = "$1$2";
+            $version    =  $1;
+        }
+    }
+    close(F);
+
+    if ($version < 1.8) {
+        addCommandLineError("ERROR:  mhap overlapper requires java version at least 1.8.0; you have $versionStr (from '$java').\n");
+        addCommandLineError("ERROR:  '$java -showversion' reports:\n");
+
+        open(F, "$java -showversion 2>&1 |");
+        while (<F>) {
+            chomp;
+            addCommandLineError("ERROR:    '$_'\n");
+        }
+        close(F);
+
+    } else {
+        print STDERR "-- Detected Java(TM) Runtime Environment '$versionStr' (from '$java').\n";
+    }
+}
+
+
+
+sub checkGnuplot () {
+
+    return  if (getGlobal("gnuPlotTested") == 1);
+
     my $gnuplot = getGlobal("gnuplot");
     my $format  = getGlobal("gnuplotImageFormat");
     my $version = undef;
@@ -1347,58 +1410,6 @@ sub checkParameters () {
 
     addCommandLineError("ERROR:  Required parameter 'errorRate' is not set\n")    if (! defined(getGlobal("errorRate")));
     addCommandLineError("ERROR:  Required parameter 'genomeSize' is not set\n")   if (! defined(getGlobal("genomeSize")));
-
-    #
-    #  Java?  Need JRE 1.8.
-    #
-
-    if ((getGlobal("corOverlapper") eq "mhap") ||
-        (getGlobal("obtOverlapper") eq "mhap") ||
-        (getGlobal("utgOverlapper") eq "mhap")) {
-        my $java       = getGlobal("java");
-        my $versionStr = "unknown";
-        my $version    = 0;
-
-        #  Argh, we can't use runCommand() here, because we're included in Execution.pm.  Try to check it with -x.
-        #  Nope.  Fails if $java == "java".
-
-        #if (! -x $java) {
-        #    addCommandLineError("ERROR:  java executable '$java' not found or not executable\n");
-        #}
-
-        open(F, "$java -Xmx1g -showversion 2>&1 |");
-        while (<F>) {
-            #  First word is either "java" or "openjdk" or ...
-            if (m/^.*\s+version\s+\"(\d+.\d+)(.*)\".*$/) {
-                $versionStr = "$1$2";
-                $version    =  $1;
-            }
-        }
-        close(F);
-
-        if ($version < 1.8) {
-            addCommandLineError("ERROR:  mhap overlapper requires java version at least 1.8.0; you have $versionStr (from '$java').\n");
-            addCommandLineError("ERROR:  '$java -showversion' reports:\n");
-
-            open(F, "$java -showversion 2>&1 |");
-            while (<F>) {
-                chomp;
-                addCommandLineError("ERROR:    '$_'\n");
-            }
-            close(F);
-
-        } else {
-            print STDERR "-- Detected Java(TM) Runtime Environment '$versionStr' (from '$java').\n";
-        }
-    }
-
-    #
-    #  Gnuplot?
-    #
-
-    if (getGlobal("gnuPlotTested") == 0) {
-        gnuplotTest();
-    }
 
     #
     #  Minimap, no valid identities, set legacy
