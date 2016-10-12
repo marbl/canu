@@ -138,10 +138,15 @@ reportTigGraph(TigVector &tigs, const char *prefix, const char *label) {
              ti, tigs[ti]->getLength(), tigs[ti]->ufpath.size(), tigs[ti]->firstRead()->ident, tigs[ti]->lastRead()->ident);
 #endif
 
-    saveTigEdges(tigs, tigs[ti]->firstRead()->ident, tigEdges);
+    uint32    fi = tigs[ti]->firstRead()->ident;
+    uint32    li = tigs[ti]->lastRead()->ident;
 
-    if (tigs[ti]->ufpath.size() > 1)
-      saveTigEdges(tigs, tigs[ti]->lastRead()->ident, tigEdges);
+    saveTigEdges(tigs, fi, tigEdges);   //  Save edges off the first read.
+
+    if (fi == li)
+      continue;
+
+    saveTigEdges(tigs, li, tigEdges);  //  And the last read, if different.
   }
 
   //  Now, report edges.  GFA wants edges in exactly this format:
