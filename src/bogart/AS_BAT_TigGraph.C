@@ -122,13 +122,17 @@ reportTigGraph(TigVector &tigs, const char *prefix, const char *label) {
   //  in our set is output.  By construction, only valid unitigs are in it.
 
   for (uint32 ti=1; ti<tigs.size(); ti++)
-    fprintf(BEG, "S\ttig%08u\t*\tLN:i:%u\n", ti, tigs[ti]->getLength());
+    if (tigs[ti] != NULL)
+      fprintf(BEG, "S\ttig%08u\t*\tLN:i:%u\n", ti, tigs[ti]->getLength());
 
   //  A list of the edges to output.  A list of <readID,readID> that we want to output.
 
   vector<BAToverlap>   tigEdges;
 
   for (uint32 ti=1; ti<tigs.size(); ti++) {
+    if (tigs[ti] == NULL)
+      continue;
+
 #ifdef SHOW_EDGES
     writeLog("reportTigGraph()-- tig %u len %u reads %u - firstRead %u lastRead %u\n",
              ti, tigs[ti]->getLength(), tigs[ti]->ufpath.size(), tigs[ti]->firstRead()->ident, tigs[ti]->lastRead()->ident);
