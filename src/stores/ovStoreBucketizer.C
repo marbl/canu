@@ -72,68 +72,6 @@ writeToFile(ovOverlap    *overlap,
 
 
 
-//  These are duplicated between ovStoreBucketizer and ovStoreBuild
-
-static
-void
-markOBT(gkStore *gkp, uint32 maxIID, char *skipRead) {
-  uint64  numMarked = 0;
-
-  if (skipRead == NULL)
-    return;
-
-  fprintf(stderr, "Marking fragments to skip overlap based trimming.\n");
-
-  for (uint64 iid=0; iid<maxIID; iid++) {
-    uint32     Lid = gkp->gkStore_getRead(iid)->gkRead_libraryID();
-    gkLibrary *L   = gkp->gkStore_getLibrary(Lid);
-
-    if (L == NULL)
-      continue;
-
-    if ((L->gkLibrary_removeDuplicateReads()     == false) &&
-        (L->gkLibrary_finalTrim()                != GK_FINALTRIM_LARGEST_COVERED) &&
-        (L->gkLibrary_removeSpurReads()          == false) &&
-        (L->gkLibrary_removeChimericReads()      == false)) {
-      numMarked++;
-      skipRead[iid] = true;
-    }
-  }
-
-  fprintf(stderr, "Marked "F_U64" fragments.\n", numMarked);
-}
-
-
-static
-void
-markDUP(gkStore *gkp, uint32 maxIID, char *skipRead) {
-  uint64  numMarked = 0;
-
-  if (skipRead == NULL)
-    return;
-
-  fprintf(stderr, "Marking fragments to skip deduplication.\n");
-
-  for (uint64 iid=0; iid<maxIID; iid++) {
-    uint32     Lid = gkp->gkStore_getRead(iid)->gkRead_libraryID();
-    gkLibrary *L   = gkp->gkStore_getLibrary(Lid);
-
-    if (L == NULL)
-      continue;
-
-    if (L->gkLibrary_removeDuplicateReads() == false) {
-      numMarked++;
-      skipRead[iid] = true;
-    }
-  }
-
-  fprintf(stderr, "Marked "F_U64" fragments.\n", numMarked);
-}
-
-
-
-
-
 int
 main(int argc, char **argv) {
   char           *ovlName      = NULL;
