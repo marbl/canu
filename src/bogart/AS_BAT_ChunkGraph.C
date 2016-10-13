@@ -233,7 +233,7 @@ ChunkGraph::countFullWidth(ReadEnd firstEnd) {
     currEnd = firstEnd;
     currIdx = firstIdx;
 
-    fprintf(_chunkLog, "path from %d,%d length %d:",
+    fprintf(_chunkLog, "path from %d,%d'(length=%d):",
             firstEnd.readId(),
             (firstEnd.read3p()) ? 3 : 5,
             _pathLen[firstIdx]);
@@ -245,7 +245,7 @@ ChunkGraph::countFullWidth(ReadEnd firstEnd) {
       if (currEnd == lastEnd)
         fprintf(_chunkLog, " LAST");
 
-      fprintf(_chunkLog, " %d,%d(%d)",
+      fprintf(_chunkLog, " %d,%d'(%d)",
               currEnd.readId(),
               (currEnd.read3p()) ? 3 : 5,
               _pathLen[currIdx]);
@@ -255,7 +255,7 @@ ChunkGraph::countFullWidth(ReadEnd firstEnd) {
     }
 
     if (seen.find(currEnd) != seen.end())
-      fprintf(_chunkLog, " CYCLE %d,%d(%d)",
+      fprintf(_chunkLog, " CYCLE %d,%d'(%d)",
               currEnd.readId(),
               (currEnd.read3p()) ? 3 : 5,
               _pathLen[currIdx]);
