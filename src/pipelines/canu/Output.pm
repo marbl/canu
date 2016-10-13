@@ -64,27 +64,45 @@ sub outputLayout ($$) {
     my $cmd;
 
     goto allDone   if (skipStage($WRK, $asm, "outputLayout") == 1);
-    goto allDone   if (-e "$WRK/$asm.layout");
+    goto allDone   if ((-e "$WRK/$asm.contigs.layout") && (-e "$WRK/$asm.unitigs.layout"));
 
-    $cmd  = "$bin/tgStoreDump \\\n";
-    $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
-    $cmd .= "  -T $wrk/$asm.ctgStore 2 \\\n";
-    $cmd .= "  -o $WRK/$asm \\\n";
-    $cmd .= "  -layout \\\n";
-    $cmd .= "> $WRK/$asm.layout.err 2>&1";
+    if (! -e "$WRK/$asm.contigs.layout") {
+        $cmd  = "$bin/tgStoreDump \\\n";
+        $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
+        $cmd .= "  -T $wrk/$asm.ctgStore 2 \\\n";
+        $cmd .= "  -o $WRK/$asm.contigs \\\n";
+        $cmd .= "  -layout \\\n";
+        $cmd .= "> $WRK/$asm.contigs.layout.err 2>&1";
 
-    if (runCommand($wrk, $cmd)) {
-        caExit("failed to output layouts", "$WRK/$asm.layout.err");
+        if (runCommand($wrk, $cmd)) {
+            caExit("failed to output contig layouts", "$WRK/$asm.contigs.layout.err");
+        }
+
+        unlink "$WRK/$asm.contigs.layout.err";
     }
 
-    unlink "$WRK/$asm.layout.err";
+    if (! -e "$WRK/$asm.unitigs.layout") {
+        $cmd  = "$bin/tgStoreDump \\\n";
+        $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
+        $cmd .= "  -T $wrk/$asm.utgStore 2 \\\n";
+        $cmd .= "  -o $WRK/$asm.unitigs \\\n";
+        $cmd .= "  -layout \\\n";
+        $cmd .= "> $WRK/$asm.unitigs.layout.err 2>&1";
+
+        if (runCommand($wrk, $cmd)) {
+            caExit("failed to output unitig layouts", "$WRK/$asm.unitigs.layout.err");
+        }
+
+        unlink "$WRK/$asm.unitigs.layout.err";
+    }
 
   finishStage:
     emitStage($WRK, $asm, "outputLayout");
     buildHTML($WRK, $asm, "utg");
 
   allDone:
-    print STDERR "-- Unitig layouts saved in '$WRK/$asm.layout'.\n";
+    print STDERR "-- Contig layouts saved in '$WRK/$asm.contigs.layout'.\n";
+    print STDERR "-- Unitig layouts saved in '$WRK/$asm.unitigs.layout'.\n";
 }
 
 
@@ -105,22 +123,6 @@ sub outputGraph ($$) {
     if ((! -e "$WRK/$asm.unitigs.gfa") &&
         (  -e "$wrk/4-unitigger/$asm.unitigs.gfa")) {
         copy("$wrk/4-unitigger/$asm.unitigs.gfa", "$WRK/$asm.unitigs.gfa");
-    }
-
-    if (! -e "#WRK/$asm.unitigs.$type") {
-        $cmd  = "$bin/tgStoreDump \\\n";
-        $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
-        $cmd .= "  -T $wrk/$asm.utgStore 2 \\\n";
-        $cmd .= "  -consensus -$type \\\n";
-        $cmd .= "  -contigs \\\n";
-        $cmd .= "> $WRK/$asm.unitigs.$type\n";
-        $cmd .= "2> $WRK/$asm.unitigs.err";
-
-        if (runCommand($WRK, $cmd)) {
-            caExit("failed to output consensus", "$WRK/$asm.unitigs.err");
-        }
-
-        unlink "$WRK/$asm.unitigs.err";
     }
 
   finishStage:
@@ -147,19 +149,37 @@ sub outputSequence ($$) {
     goto allDone   if (-e "$WRK/$asm.contigs.$type");
 
     foreach my $tt ("unassembled", "bubbles", "contigs") {
+        if (! -e "$WRK/$asm.$tt.$type") {
+            $cmd  = "$bin/tgStoreDump \\\n";
+            $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
+            $cmd .= "  -T $wrk/$asm.ctgStore 2 \\\n";
+            $cmd .= "  -consensus -$type \\\n";
+            $cmd .= "  -$tt \\\n";
+            $cmd .= "> $WRK/$asm.$tt.$type\n";
+            $cmd .= "2> $WRK/$asm.$tt.err";
+
+            if (runCommand($WRK, $cmd)) {
+                caExit("failed to output $tt consensus sequences", "$WRK/$asm.$tt.err");
+            }
+
+            unlink "$WRK/$asm.$tt.err";
+        }
+    }
+
+    if (! -e "$WRK/$asm.unitigs.$type") {
         $cmd  = "$bin/tgStoreDump \\\n";
         $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
         $cmd .= "  -T $wrk/$asm.ctgStore 2 \\\n";
         $cmd .= "  -consensus -$type \\\n";
-        $cmd .= "  -$tt \\\n";
-        $cmd .= "> $WRK/$asm.$tt.$type\n";
-        $cmd .= "2> $WRK/$asm.$tt.err";
+        $cmd .= "  -contigs \\\n";
+        $cmd .= "> $WRK/$asm.unitigs.$type\n";
+        $cmd .= "2> $WRK/$asm.unitigs.err";
 
         if (runCommand($WRK, $cmd)) {
-            caExit("failed to output consensus", "$WRK/$asm.$tt.err");
+            caExit("failed to output unitig consensus sequences", "$WRK/$asm.unitigs.err");
         }
 
-        unlink "$WRK/$asm.$tt.err";
+        unlink "$WRK/$asm.unitigs.err";
     }
 
   finishStage:
@@ -167,7 +187,11 @@ sub outputSequence ($$) {
     buildHTML($WRK, $asm, "utg");
 
   allDone:
-    print STDERR "-- Unitig sequences saved in '$WRK/$asm.*.$type'.\n";
+    print STDERR "-- Sequences saved:\n";
+    print STDERR "--   Contigs       -> '$WRK/$asm.contig.$type'\n";
+    print STDERR "--   Bubbles       -> '$WRK/$asm.bubble.$type'  (DEPRECATED)\n";
+    print STDERR "--   Unassembled   -> '$WRK/$asm.unassembled.$type'\n";
+    print STDERR "--   Unitigs       -> '$WRK/$asm.unitigs.$type'\n";
 }
 
 
