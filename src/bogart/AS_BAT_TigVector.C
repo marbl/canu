@@ -202,7 +202,7 @@ TigVector::computeErrorProfiles(const char *prefix, const char *label) {
 
   writeStatus("computeErrorProfiles()-- Computing error profiles for %u tigs, with %u thread%s.\n", tiLimit, numThreads, (numThreads == 1) ? "" : "s");
 
-  //#pragma omp parallel for schedule(dynamic, blockSize)
+#pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 ti=0; ti<tiLimit; ti++) {
     Unitig  *tig = operator[](ti);
 
