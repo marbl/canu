@@ -283,7 +283,7 @@ checkRead(AssemblyGraph *AG,
     //  With all that done, throw out the edge if rdB is internal to a tig and to either a different
     //  tig (and so a validated repeat) or to the same tig (and used to form the contig itself).
 
-    if ((pf.isRepeat == true) ||
+    if (/* (pf.isRepeat == true) ||*/
         (pf.isContig == true)) {
       writeLog("createUnitigs()-- read %6u edgeTo tig %5u at coordinate %8u via intersection with read %6u IS_%s\n",
                rdA->ident, tgB->id(), coord, rdB->ident, (pf.isContig == true) ? "CONTIG" : "REPEAT");

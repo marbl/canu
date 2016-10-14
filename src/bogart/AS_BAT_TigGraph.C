@@ -28,64 +28,203 @@
 #include "AS_BAT_AssemblyGraph.H"
 #include "AS_BAT_Logging.H"
 
+#include "AS_BAT_PlaceReadUsingOverlaps.H"
 
-#undef  SHOW_EDGES
-#undef  SHOW_EDGES_FILTERING
 
-//  Grab overlaps for the first read, save any that are to the end of some other tig and of decent quality.
+#define SHOW_EDGES
+
+
+class  grEdge {
+public:
+  grEdge() {
+    tigID    = 0;
+    bgn      = 0;
+    end      = 0;
+    extended = false;
+    deleted  = true;
+  };
+
+  grEdge(uint32 t, int32 b, int32 e) {
+    tigID    = t;
+    bgn      = b;
+    end      = e;
+    extended = false;
+    deleted  = false;
+  };
+
+  uint32  tigID;    //  Which tig we're placing this in
+  int32   bgn;
+  int32   end;
+
+  bool    extended;
+  bool    deleted;
+};
+
+
+
 void
-saveTigEdges(TigVector &tigs, uint32 fi, vector<BAToverlap> &tigEdges) {
-  uint32               no  = 0;
-  BAToverlap          *ovl = OC->getOverlaps(fi, no);
+emitEdges(TigVector &tigs,
+          Unitig    *tgA,
+          bool       isForward,
+          FILE      *BEG) {
+  vector<overlapPlacement>   placements;
+  vector<grEdge>             edges;
 
-  for (uint32 oo=0; oo<no; oo++) {
-    if (ovl[oo].filtered == true) {    //  Overlap is garbage.
-#ifdef SHOW_EDGES_FILTERING
-      writeLog("overlap A: %u tig %u  B: %u tig %u - is garbage.\n",
-               ovl[oo].a_iid, tigs.inUnitig(ovl[oo].a_iid),
-               ovl[oo].b_iid, tigs.inUnitig(ovl[oo].b_iid));
-#endif
+  //  Place the first read.
+
+  ufNode   *rdA = tgA->firstRead();
+
+  placeReadUsingOverlaps(tigs, NULL, rdA->ident, placements, placeRead_all);
+
+  //  Convert those placements into potential edges.
+
+  for (uint32 pp=0; pp<placements.size(); pp++) {
+    uint32   tid = placements[pp].tigID;
+    int32    bgn = placements[pp].verified.min();
+    int32    end = placements[pp].verified.max();
+
+    if ((tgA->id() == tid) &&              //  If placed in the same tig and
+        (bgn <= rdA->position.max()) &&    //  at the same location, skip it.
+        (rdA->position.min() <= end))
       continue;
-    }
 
-    if (ovl[oo].AisContainer() ||      //  Overlap can't be a graph edge.
-        ovl[oo].AisContained()) {
-#ifdef SHOW_EDGES_FILTERING
-      writeLog("overlap A: %u tig %u  B: %u tig %u - is containment.\n",
-               ovl[oo].a_iid, tigs.inUnitig(ovl[oo].a_iid),
-               ovl[oo].b_iid, tigs.inUnitig(ovl[oo].b_iid));
+#ifdef SHOW_EDGES
+    writeLog("emitEdges()-- tig %6u read %8u %8u-%-8u -> tig %6u %8u-%-8u\n",
+             tgA->id(), 
+             rdA->ident, rdA->position.min(), rdA->position.max(),
+             tid, bgn, end);
 #endif
-      continue;
-    }
 
-    assert(fi == ovl[oo].a_iid);
-
-    uint32  ai = tigs.inUnitig(ovl[oo].a_iid);
-    uint32  bi = tigs.inUnitig(ovl[oo].b_iid);
-
-    if ((ai == 0) || (bi == 0)) {      //  Overlap to something that isn't in a unitig.
-#ifdef SHOW_EDGES_FILTERING
-      writeLog("overlap A: %u tig %u  B: %u tig %u - is between non-tig things.\n",
-               ovl[oo].a_iid, tigs.inUnitig(ovl[oo].a_iid),
-               ovl[oo].b_iid, tigs.inUnitig(ovl[oo].b_iid));
-#endif
-      continue;
-    }
-
-    if ((tigs[bi]->firstRead()->ident != ovl[oo].b_iid) &&    //  Overlap isn't to the end of
-        (tigs[bi]->lastRead() ->ident != ovl[oo].b_iid)) {    //  some other tig.
-#ifdef SHOW_EDGES_FILTERING
-      writeLog("overlap A: %u tig %u  B: %u tig %u - is not to an end read.\n",
-               ovl[oo].a_iid, tigs.inUnitig(ovl[oo].a_iid),
-               ovl[oo].b_iid, tigs.inUnitig(ovl[oo].b_iid));
-#endif
-      continue;
-    }
-
-    //  Success!
-
-    tigEdges.push_back(ovl[oo]);
+    edges.push_back(grEdge(tid, bgn, end));
   }
+
+  //  Technically, we should run through the edges and emit those that are already satisfied.
+  //  But we can defer this until after the second read is processed.  Well, we could defer
+  //  until all reads are processed, but cleaning up the list makes us a little faster, and
+  //  also lets us short circuit when we run out of potential edges before we run out of reads
+  //  in the tig.
+
+  //  While there are still placements to process, march down the reads in this tig, adding to the
+  //  appropriate placement.
+
+  for (uint32 fi=1; (fi<tgA->ufpath.size()) && (edges.size() > 0); fi++) {
+    ufNode  *rdA = &tgA->ufpath[fi];
+
+    placeReadUsingOverlaps(tigs, NULL, rdA->ident, placements, placeRead_all);
+
+    //  Mark every edge as being not extended.
+
+    for (uint32 ee=0; ee<edges.size(); ee++)
+      edges[ee].extended = false;
+
+    //  Merge the new placements with the saved placements.
+
+    for (uint32 pp=0; pp<placements.size(); pp++) {
+      uint32   tid = placements[pp].tigID;
+      int32    bgn = placements[pp].verified.min();
+      int32    end = placements[pp].verified.max();
+
+      for (uint32 ee=0; ee<edges.size(); ee++) {
+        if (edges[ee].deleted == true)     //  Invalid or already finished edge.
+          continue;
+
+        if ((tid != edges[ee].tigID) ||    //  Wrong tig, keep looking.
+            (end < edges[ee].bgn) ||       //  No intersection, keep looking.
+            (edges[ee].end < bgn))
+          continue;
+
+        //  Otherwise, the right tig, and we intersect.  Extend the interval and mark it as extended.
+
+        //  We're trusting that we don't find some bizarre repeat that would let us match ABC in
+        //  tgA against CAB in the target tig.  If not, we'll need to keep count of which direction
+        //  we extend things in.
+
+        edges[ee].bgn      = min(edges[ee].bgn, bgn);
+        edges[ee].end      = max(edges[ee].end, end);
+        edges[ee].extended = true;
+      }
+    }
+
+    //  Emit edges that are complete and mark them as done.
+    //
+    //  A better idea is to see if this read is overlapping with the first/last read
+    //  in the other tig, and we're close enough to the end, instead of these silly 100bp thresholds.
+
+    for (uint32 ee=0; ee<edges.size(); ee++) {
+      if (edges[ee].bgn <= 100) {
+#ifdef SHOW_EDGES_VERBOSE
+        writeLog("emitEdges()-- tig %6u %s edgeTo tig %6u %s of length %6u\n",
+                 tgA->id(), isForward ? "<--" : "-->",
+                 edges[ee].tigID, "-->",
+                 edges[ee].end - edges[ee].bgn);
+#endif
+        fprintf(BEG, "L\ttig%08u\t%c\ttig%08u\t%c\t%uM\n",
+                tgA->id(), isForward ? '-' : '+',
+                edges[ee].tigID, '+',
+                edges[ee].end - edges[ee].bgn);
+        edges[ee].deleted = true;
+      }
+
+      if (edges[ee].end + 100 >= tigs[edges[ee].tigID]->getLength()) {
+#ifdef SHOW_EDGES_VERBOSE
+        writeLog("emitEdges()-- tig %6u %s edgeTo tig %6u %s of length %6u\n",
+                 tgA->id(), isForward ? "<--" : "-->",
+                 edges[ee].tigID, "<--",
+                 edges[ee].end - edges[ee].bgn);
+#endif
+        fprintf(BEG, "L\ttig%08u\t%c\ttig%08u\t%c\t%uM\n",
+                tgA->id(), isForward ? '-' : '+',
+                edges[ee].tigID, '-',
+                edges[ee].end - edges[ee].bgn);
+        edges[ee].deleted = true;
+      }
+    }
+
+    //  A bit of cleverness.  If we emit edges before dealing with deleted and non-extended edges, the first
+    //  time we hit this code we'll emit edges for both the first read and the second read.
+
+    for (uint32 ee=0; ee<edges.size(); ee++) {
+      if (edges[ee].extended == true)
+        continue;
+
+#ifdef SHOW_EDGES
+      writeLog("emitEdges()-- tig %6u %s edgeTo tig %6u %s [0 %u-%u %u] UNSATISFIED at read %u #%u\n",
+               tgA->id(), isForward ? "<--" : "-->",
+               edges[ee].tigID, "-->",
+               edges[ee].bgn, edges[ee].end, tigs[edges[ee].tigID]->getLength(),
+               rdA->ident, fi);
+#endif
+                 
+      edges[ee].deleted = true;
+    }
+
+    //  Compress the edges list (optional) to remove the deleted edges.
+
+    uint32 oo = 0;
+
+    for (uint32 ee=0; ee<edges.size(); ee++) {
+      if (edges[ee].deleted == false) {   //  Not deleted, so copy it to the output vector
+        if (ee != oo)                     //  at location oo.
+          edges[oo] = edges[ee];
+        oo++;
+      }
+    }
+
+    edges.resize(oo);   //  Reset the vector to size we ended up with.
+
+    //  And now place the next read in the source tig.
+  }
+
+  //  Any edges still on the list aren't edges, so we're all done without needing to check anything.
+
+#ifdef SHOW_EDGES
+  for (uint32 ee=0; ee<edges.size(); ee++)
+    if (edges[ee].extended == false)
+      writeLog("emitEdges()-- tig %6u %s edgeTo tig %6u %s [0 %u-%u %u] UNSATISFIED after all reads\n",
+               tgA->id(), isForward ? "<--" : "-->",
+               edges[ee].tigID, "-->",
+               edges[ee].bgn, edges[ee].end, tigs[edges[ee].tigID]->getLength());
+#endif
 }
 
 
@@ -99,12 +238,6 @@ reportTigGraph(TigVector &tigs, const char *prefix, const char *label) {
  char   N[FILENAME_MAX];
   FILE *BEG = NULL;
 
-  bool  skipBubble      = true;
-  bool  skipRepeat      = true;
-  bool  skipUnassembled = true;
-
-  uint64  nEdgeToUnasm = 0;
-
   writeStatus("AssemblyGraph()-- generating '%s.unitigs.gfa'.\n", prefix);
 
   sprintf(N, "%s.unitigs.gfa", prefix);
@@ -114,161 +247,37 @@ reportTigGraph(TigVector &tigs, const char *prefix, const char *label) {
   if (BEG == NULL)
     return;
 
-  //  Write a header.
+  //  Write a header.  You've gotta start somewhere!
 
   fprintf(BEG, "H\tVN:Z:bogart/edges\n");
 
   //  Then write the sequences used in the graph.  Unlike the read and contig graphs, every sequence
-  //  in our set is output.  By construction, only valid unitigs are in it.
+  //  in our set is output.  By construction, only valid unitigs are in it.  Though we occasionally
+  //  make a disconnected unitig and need to split it again.
 
   for (uint32 ti=1; ti<tigs.size(); ti++)
     if (tigs[ti] != NULL)
       fprintf(BEG, "S\ttig%08u\t*\tLN:i:%u\n", ti, tigs[ti]->getLength());
 
-  //  A list of the edges to output.  A list of <readID,readID> that we want to output.
-
-  vector<BAToverlap>   tigEdges;
+  //  Run through all the tigs, emitting edges for the first and last read.
 
   for (uint32 ti=1; ti<tigs.size(); ti++) {
-    if (tigs[ti] == NULL)
+    Unitig  *tgA = tigs[ti];
+
+    if (tgA == NULL)
       continue;
 
 #ifdef SHOW_EDGES
+    writeLog("\n");
     writeLog("reportTigGraph()-- tig %u len %u reads %u - firstRead %u lastRead %u\n",
-             ti, tigs[ti]->getLength(), tigs[ti]->ufpath.size(), tigs[ti]->firstRead()->ident, tigs[ti]->lastRead()->ident);
+             ti, tgA->getLength(), tgA->ufpath.size(), tgA->firstRead()->ident, tgA->lastRead()->ident);
 #endif
 
-    uint32    fi = tigs[ti]->firstRead()->ident;
-    uint32    li = tigs[ti]->lastRead()->ident;
+    emitEdges(tigs, tgA, true,  BEG);
 
-    saveTigEdges(tigs, fi, tigEdges);   //  Save edges off the first read.
-
-    if (fi == li)
-      continue;
-
-    saveTigEdges(tigs, li, tigEdges);  //  And the last read, if different.
-  }
-
-  //  Now, report edges.  GFA wants edges in exactly this format:
-  //
-  //       -------------
-  //             -------------
-  //
-  //  with read orientation given by +/-.  Conveniently, this is what we've saved (for the edges).
-
-  for (uint32 te=0; te<tigEdges.size(); te++) {
-    uint32          ra      = tigEdges[te].a_iid;
-    uint32          rb      = tigEdges[te].b_iid;
-    bool            flipped = tigEdges[te].flipped;
-
-    Unitig *tgA     = tigs[ tigs.inUnitig(ra) ];
-    Unitig *tgB     = tigs[ tigs.inUnitig(rb) ];
-
-    ufNode *rdA     = &tgA->ufpath[ tigs.ufpathIdx(ra) ];
-    ufNode *rdB     = &tgB->ufpath[ tigs.ufpathIdx(rb) ];
-
-    bool    rdAspan = ((rdA->position.min() == 0) && (rdA->position.max() == tgA->getLength())) ? true : false;
-    bool    rdBspan = ((rdB->position.min() == 0) && (rdB->position.max() == tgA->getLength())) ? true : false;
-
-    bool    rdAbgn  = (rdA->position.min() == 0) ? true : false;    //  Read at the begin or end of the tig?
-    bool    rdBbgn  = (rdB->position.min() == 0) ? true : false;
-
-    bool    rdAfwd  = rdA->position.isForward();                    //  Read forward or flipped in the tig?
-    bool    rdBfwd  = rdB->position.isForward();
-
-    bool    rdA3p  = tigEdges[te].AEndIs3prime();                   //  Overlap on the 5' or 3' end of the read?
-    bool    rdB3p  = tigEdges[te].BEndIs3prime();
-
-    //  GFA wants edges in normal form:      ---------
-    //                                            -----------
-    //
-    //  Our task here is to decide on an orientation for each read so that layout is formed.
-    //  Mostly, it's decided by which end of the tig the read is on.
-
-    bool    tgAfwd  = rdA->position.isForward();  //  Default to the single read case.
-    bool    tgBfwd  = rdB->position.isForward();
-    bool    invalid = false;
-
-    //  Transfer the overlap to the tig.  We check for invalid cases too.
-
-    //  If the read doesn't span the tig, decode the position and orientation
-    //  of the read and use that (and the overlap) to figure out orientation of the tig.
-
-    //  Some of these invalid orientations are from short unitigs with overlaps to
-    //  both the first and last read:
-    //
-    //  tigA--------------->                Whatever read is at the end of this tig
-    //      tigB-------------------->       has overlaps to both of these reads,
-    //          11111111111111>             but only the overlap to #1 is a valid
-    //                22222222222222>       graph edge.
-
-    if (rdAspan == false) {
-      if (rdAbgn == true) {
-        if ((rdAfwd == true)  && (rdA3p == true))    invalid = true;
-        if ((rdAfwd == true)  && (rdA3p == false))   tgAfwd  = false;
-        if ((rdAfwd == false) && (rdA3p == true))    tgAfwd  = false;
-        if ((rdAfwd == false) && (rdA3p == false))   invalid = true;
-      }
-
-      else {
-        if ((rdAfwd == true)  && (rdA3p == true))    tgAfwd  = true;
-        if ((rdAfwd == true)  && (rdA3p == false))   invalid = true;
-        if ((rdAfwd == false) && (rdA3p == true))    invalid = true;
-        if ((rdAfwd == false) && (rdA3p == false))   tgAfwd  = true;
-      }
-    }
-
-    //  Otherwise, the tig is the read, and it's easier (but the same idea).
-
-    else {
-      if ((rdAfwd == true)  && (rdA3p == true))    tgAfwd = true;
-      if ((rdAfwd == true)  && (rdA3p == false))   tgAfwd = false;
-      if ((rdAfwd == false) && (rdA3p == true))    tgAfwd = false;
-      if ((rdAfwd == false) && (rdA3p == false))   tgAfwd = true;
-    }
-
-    //  Do it all again, but negated, for tig B.
-
-    if (rdBspan == false) {
-      if (rdBbgn == true) {
-        if ((rdBfwd == true)  && (rdB3p == true))    invalid = true;
-        if ((rdBfwd == true)  && (rdB3p == false))   tgBfwd  = true;
-        if ((rdBfwd == false) && (rdB3p == true))    tgBfwd  = true;
-        if ((rdBfwd == false) && (rdB3p == false))   invalid = true;
-      }
-
-      else {
-        if ((rdBfwd == true)  && (rdB3p == true))    tgBfwd  = false;
-        if ((rdBfwd == true)  && (rdB3p == false))   invalid = true;
-        if ((rdBfwd == false) && (rdB3p == true))    invalid = true;
-        if ((rdBfwd == false) && (rdB3p == false))   tgBfwd  = false;
-      }
-    }
-    else {
-      if ((rdBfwd == true)  && (rdB3p == true))    tgBfwd = false;
-      if ((rdBfwd == true)  && (rdB3p == false))   tgBfwd = true;
-      if ((rdBfwd == false) && (rdB3p == true))    tgBfwd = true;
-      if ((rdBfwd == false) && (rdB3p == false))   tgBfwd = false;
-    }
-
-    //  If we assume that the edge is valid - that the resulting contig overlap makes sense - we just
-    //  need orient each tig based on which end the read is on.  Everything else should be constrained.
-
-    uint32  olapLen = RI->overlapLength(ra, rb, tigEdges[te].a_hang, tigEdges[te].b_hang);
-
-    if (invalid == false)
-      fprintf(BEG, "L\ttig%08u\t%c\ttig%08u\t%c\t%uM\n",
-              tgA->id(), (tgAfwd == true) ? '+' : '-',
-              tgB->id(), (tgBfwd == true) ? '+' : '-',
-              olapLen);
-
-#ifdef SHOW_EDGES
-    writeLog("edge read %6u %7u-%-7u (tig %7u len=%7u) -- read %7u %7u-%-7u (tig %7u len=%7u) -- olap rdA3p %d rdB3p %d len %7u -- %s\n",
-             ra, rdA->position.bgn, rdA->position.end, tgA->id(), tgA->getLength(),
-             rb, rdB->position.bgn, rdB->position.end, tgB->id(), tgB->getLength(),
-             rdA3p, rdB3p, olapLen,
-             (invalid == true) ? "BAD" : "");
-#endif
+    tgA->reverseComplement();
+    emitEdges(tigs, tgA, false, BEG);
+    tgA->reverseComplement();
   }
 
   fclose(BEG);
