@@ -226,6 +226,85 @@ splitTig(TigVector                &tigs,
 
 
 
+static
+void
+checkRead(AssemblyGraph *AG,
+          TigVector &contigs,
+          vector<breakPointEnd> &breaks,
+          Unitig  *tgA, ufNode *rdA,
+          bool isFirst) {
+
+  for (uint32 pp=0; pp<AG->getForward(rdA->ident).size(); pp++) {
+    BestPlacement  &pf = AG->getForward(rdA->ident)[pp];
+
+    //  If a contained edge, we cannot split the other tig; it is correct (this read is contained in the other read).
+
+    if (pf.bestC.b_iid > 0) {
+      writeLog("createUnitigs()-- read %6u edgeTo tig %5u read %6u position %d-%d CONTAINED\n",
+               rdA->ident, contigs.inUnitig(pf.bestC.b_iid), pf.bestC.b_iid, pf.placedBgn, pf.placedEnd);
+      continue;
+    }
+
+    //  Decide which overlap we want to be using, based on the orientation of the read in the tig,
+    //  and if it is the first or last read.
+    //
+    //           first == true                  first == false
+    //  best5    fwd   == true  --------->      fwd   == false  <---------    
+    //  best3    fwd   == false <----------     fwd   == true   --------->
+
+    BAToverlap     best = (isFirst == rdA->position.isForward()) ? pf.best5 : pf.best3;
+
+    //  If there is no overlap on the expected end, well, that's it, nothing we can do but give up.
+    //  Don't bother logging if it is the internal edge (which it shouldn't ever be, because those shouldn't
+    //  be in the graph, right?)
+
+    if (best.b_iid == 0) {
+      uint32  rdC = (isFirst == rdA->position.isForward()) ? pf.best3.b_iid : pf.best5.b_iid;   //  Grab the other edge
+      uint32  tgC = contigs.inUnitig(rdC);
+
+      if (tgC != tgA->id())
+        writeLog("createUnitigs()-- read %6u edgeTo tig %5u read %6u position %d-%d WRONG_END\n",
+                 rdA->ident, tgC, rdC, pf.placedBgn, pf.placedEnd);
+      continue;
+    }
+
+    //  Grab the tig and read we overlap to.
+
+    Unitig   *tgB  = contigs[ contigs.inUnitig(best.b_iid) ];
+    ufNode   *rdB = &tgB->ufpath[ contigs.ufpathIdx(best.b_iid) ];
+
+    //  And find the coordinate of the break based on the orientation of the rdB and the overlap.
+    //  isLow is true if the read is forward and the overlap is off of its 5' end, or
+    //                if the read is reverse and the overlap is off of its 3' end
+
+    bool      isLow = (rdB->position.isForward()) ? best.BEndIs5prime() : best.BEndIs3prime();
+    uint32    coord = (isLow == true) ? rdB->position.min() : rdB->position.max();
+
+    //  With all that done, throw out the edge if rdB is internal to a tig and to either a different
+    //  tig (and so a validated repeat) or to the same tig (and used to form the contig itself).
+
+    if ((pf.isRepeat == true) ||
+        (pf.isContig == true)) {
+      writeLog("createUnitigs()-- read %6u edgeTo tig %5u at coordinate %8u via intersection with read %6u IS_%s\n",
+               rdA->ident, tgB->id(), coord, rdB->ident, (pf.isContig == true) ? "CONTIG" : "REPEAT");
+      continue;
+    }
+
+    //  Also chuck it out if it is to garbage.
+
+    if (tgB->_isUnassembled == true) {
+      writeLog("createUnitigs()-- read %6u edgeTo tig %5u read %6u UNASSEMBLED\n",
+               rdA->ident, tgB->id(), rdB->ident);
+      continue;
+    }
+
+    //  If here, we're all golden!
+
+    writeLog("splitThinEdge()-- read %6u splits tig %5u at coordinate %8u via intersection with read %6u isLow %u\n",
+             rdA->ident, pf.tigID, coord, rdB->ident, isLow);
+    breaks.push_back(breakPointEnd(pf.tigID, coord, isLow));
+  }
+}
 
 
 
@@ -251,83 +330,26 @@ createUnitigs(AssemblyGraph  *AG,
     if (tig->_isUnassembled == true)    //  Edge is FROM an unassembled thing, ignore it.
       continue;
 
-    uint32  fi = tig->firstRead()->ident;
-    uint32  li = tig->lastRead() ->ident;
-
-    //  Give this tig a bogus breakpoint, just to get it in the list.  If there are no break points,
-    //  it won't be split.  These also serve as sentinels during splitting.
+    //  Give this tig a pair of bogus breakpoints at the ends, just to get it in the list.  If there
+    //  are no break points, it won't be split.  These also serve as sentinels during splitting.
 
     breaks.push_back(breakPointEnd(ti, 0,                true));    //  Add one at the start of the tig
     breaks.push_back(breakPointEnd(ti, tig->getLength(), false));   //  And one at the end
 
-    //  Check the first read.
+    //  Find break points in other tigs using the first and last reads.
 
-    if (AG->getForward(fi).size() + AG->getForward(li).size() > 0)
+    ufNode *fi = tig->firstRead();
+    ufNode *li = tig->lastRead();
+
+    if (AG->getForward(fi->ident).size() + AG->getForward(li->ident).size() > 0)
       writeLog("createUnitigs()-- tig %u len %u first read %u with %lu edges - last read %u with %lu edges\n",
                ti, tig->getLength(),
-               fi, li,
-               AG->getForward(fi).size(),
-               AG->getForward(li).size());
+               fi->ident, AG->getForward(fi->ident).size(),
+               li->ident, AG->getForward(li->ident).size());
 
-    for (uint32 pp=0; pp<AG->getForward(fi).size(); pp++) {
-      BestPlacement  &pf = AG->getForward(fi)[pp];
-
-      //writeLog("createUnitigs()-- read %u pp %u - edge to position %d-%d isContig %u isRepeat %u FIRST\n",
-      //        fi, pp, pf.placedBgn, pf.placedEnd, pf.isContig, pf.isRepeat);
-
-      if ((pf.isRepeat == true) ||   //  isRepeat means olap is on the same end as the tig, but to a diff tig.
-          (pf.isContig == true))     //  isContig means olap is on the same end as the tig, and to the same tig.
-        continue;
-
-      if (pf.bestC.b_iid > 0)        //  And if C, the read is fully contained in the other read, and can't break the tig.
-        continue;
-
-      BAToverlap     best  = (pf.best5.b_iid > 0) ? pf.best5 : pf.best3;
-      Unitig        *btig  = contigs[ contigs.inUnitig(best.b_iid) ];
-      ufNode        *read  = &btig->ufpath[ contigs.ufpathIdx(best.b_iid) ];
-      bool           isL   = (read->position.isForward()) ? best.BEndIs5prime() : best.BEndIs3prime();
-      uint32         coord = (isL == true) ? read->position.min() : read->position.max();
-
-      if (btig->_isUnassembled == true)    //  Edge is TO an unassembled thing, ignore it.
-        continue;
-
-      breaks.push_back(breakPointEnd(pf.tigID, coord, isL));
-
-      writeLog("splitThinEdge()-- read %6u splits tig %5u at coordinate %8u via intersection with read %6u isL %u\n",
-              fi, pf.tigID, coord, best.b_iid, isL);
-    }
-
-    //  Check the last read
-
-    for (uint32 pp=0; pp<AG->getForward(li).size(); pp++) {
-      BestPlacement  &pf = AG->getForward(li)[pp];
-
-      //writeLog("createUnitigs()-- read %u pp %u - edge to position %d-%d isContig %u isRepeat %u LAST\n",
-      //        li, pp, pf.placedBgn, pf.placedEnd, pf.isContig, pf.isRepeat);
-
-      if ((pf.isRepeat == true) ||
-          (pf.isContig == true))
-        continue;
-
-      if (pf.bestC.b_iid > 0)
-        continue;
-
-      BAToverlap     best  = (pf.best5.b_iid > 0) ? pf.best5 : pf.best3;
-      Unitig        *btig  = contigs[ contigs.inUnitig(best.b_iid) ];
-      ufNode        *read  = &btig->ufpath[ contigs.ufpathIdx(best.b_iid) ];
-      bool           isL   = (read->position.isForward()) ? best.BEndIs5prime() : best.BEndIs3prime();
-      uint32         coord = (isL == true) ? read->position.min() : read->position.max();
-
-      if (btig->_isUnassembled == true)    //  Edge is TO an unassembled thing, ignore it.
-        continue;
-
-      breaks.push_back(breakPointEnd(pf.tigID, coord, isL));
-
-      writeLog("splitThinEdge()-- read %6u splits tig %5u at coordinate %8u via intersection with read %6u isL %u\n",
-              li, pf.tigID, coord, best.b_iid, isL);
-    }
+    checkRead(AG, contigs, breaks, tig, fi, true);
+    checkRead(AG, contigs, breaks, tig, li, false);
   }
-
 
   //  The splitTigs function operates only on a single tig.  Sort the break points
   //  by tig id to find all the break points for each tig.
@@ -382,27 +404,15 @@ createUnitigs(AssemblyGraph  *AG,
 
     uint32  nTigs = splitTig(contigs, tig, BP, newTigs, lowCoord, nMoved, false);
 
-    if (nTigs > 1)
+    if (nTigs > 1) {
       splitTig(unitigs, tig, BP, newTigs, lowCoord, nMoved, true);
-    else
+      writeLog("createUnitigs()-- tig %u created %u new tigs.\n", tig->id(), nTigs);
+    }
+
+    else {
       copyTig(unitigs, tig);
-
-    if (nTigs > 1)
-      writeLog("createUnitigs()-- tig %u created %u new tigs.\n",
-               tig->id(), nTigs);
-    else
-      writeLog("createUnitigs()-- tig %u copied.\n",
-               tig->id(), nTigs);
-
-
-    //reportTigsCreated(tig, BP, nTigs, newTigs, nMoved);
-
-    //  Delete the old tig, if we didn't copy it to unitigs.
-    //
-    //if (nTigs > 1) {
-    //  contigs[tig->id()] = NULL;
-    //  delete tig;
-    //}
+      writeLog("createUnitigs()-- tig %u copied.\n", tig->id(), nTigs);
+    }
 
     ss = ee;   //  Reset for the next iteration.
   }
