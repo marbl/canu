@@ -163,7 +163,7 @@ sub gatekeeperCreateStore ($$$@) {
 
     if (-e "$wrk/$asm.gkpStore.ACCEPTED") {
         rename("$wrk/$asm.gkpStore.ACCEPTED",          "$wrk/$asm.gkpStore");
-        rename "$wrk/$asm.gkpStore.BUILDING.errorLog", "$wrk/$asm.gkpStore.errorLog";
+        rename("$wrk/$asm.gkpStore.BUILDING.err",      "$wrk/$asm.gkpStore.err");
         return;
     }
 
@@ -266,10 +266,8 @@ sub gatekeeperCreateStore ($$$@) {
 
         if ($nProblems > 0) {
             print STDERR "Gatekeeper detected problems in your input reads.  Please review the logging in files:\n";
-            print STDERR "  $wrk/$asm.gkpStore.BUILDING.err\n"        if (getGlobal("stopOnReadQuality") == 0);
-            print STDERR "  $wrk/$asm.gkpStore.BUILDING.errorLog\n"   if (getGlobal("stopOnReadQuality") == 0);
-            print STDERR "  $wrk/$asm.gkpStore.err\n"                 if (getGlobal("stopOnReadQuality") == 1);
-            print STDERR "  $wrk/$asm.gkpStore.errorLog\n"            if (getGlobal("stopOnReadQuality") == 1);
+            print STDERR "  $wrk/$asm.gkpStore.BUILDING.err\n";
+            print STDERR "  $wrk/$asm.gkpStore.BUILDING/errorLog\n";
 
             if (getGlobal("stopOnReadQuality")) {
                 print STDERR "If you wish to proceed, rename the store with the following commands and restart canu.\n";
@@ -288,7 +286,6 @@ sub gatekeeperCreateStore ($$$@) {
 
     rename "$wrk/$asm.gkpStore.BUILDING",             "$wrk/$asm.gkpStore";
     rename "$wrk/$asm.gkpStore.BUILDING.err",         "$wrk/$asm.gkpStore.err";
-    rename "$wrk/$asm.gkpStore.BUILDING.errorLog",    "$wrk/$asm.gkpStore.errorLog";
 }
 
 
