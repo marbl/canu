@@ -73,7 +73,7 @@ public:
 void
 copyTig(TigVector    &tigs,
         Unitig       *oldtig) {
-  Unitig  *newtig = tigs.newUnitig(true);
+  Unitig  *newtig = tigs.newUnitig(false);
 
   newtig->_isUnassembled = oldtig->_isUnassembled;
   newtig->_isBubble      = oldtig->_isBubble;
@@ -195,16 +195,16 @@ splitTig(TigVector                &tigs,
     //  Make a new tig, if needed
 
     if ((doMove == true) && (newTigs[finBP] == NULL)) {
-      writeLog("splitTig()-- Make new tig at read %u\n", read.ident);
+      writeLog("splitTig()-- new tig %u at read %u %u-%u\n", tigs.size(), read.ident, read.position.min(), read.position.max());
       lowCoord[finBP] = read.position.min();
-      newTigs[finBP]  = tigs.newUnitig(true);
+      newTigs[finBP]  = tigs.newUnitig(false);
     }
 
     //  Now move the read, or account for moving it.
 
     if (doMove) {
-      writeLog("splitTig()-- Move read %8u %8u-%-8u to piece %2u tig %6u\n",
-               read.ident, read.position.bgn, read.position.end, finBP, newTigs[finBP]->id());
+      //writeLog("splitTig()-- Move read %8u %8u-%-8u to piece %2u tig %6u\n",
+      //         read.ident, read.position.bgn, read.position.end, finBP, newTigs[finBP]->id());
       newTigs[finBP]->addRead(read, -lowCoord[finBP], false);
     }
     else {
@@ -319,7 +319,6 @@ createUnitigs(AssemblyGraph  *AG,
 
   writeLog("\n");
   writeLog("Finding breakpoints.\n");
-  writeLog("\n");
 
   for (uint32 ti=0; ti<contigs.size(); ti++) {
     Unitig    *tig = contigs[ti];
@@ -342,7 +341,7 @@ createUnitigs(AssemblyGraph  *AG,
     ufNode *li = tig->lastRead();
 
     if (AG->getForward(fi->ident).size() + AG->getForward(li->ident).size() > 0)
-      writeLog("createUnitigs()-- tig %u len %u first read %u with %lu edges - last read %u with %lu edges\n",
+      writeLog("\ncreateUnitigs()-- tig %u len %u first read %u with %lu edges - last read %u with %lu edges\n",
                ti, tig->getLength(),
                fi->ident, AG->getForward(fi->ident).size(),
                li->ident, AG->getForward(li->ident).size());
@@ -358,7 +357,6 @@ createUnitigs(AssemblyGraph  *AG,
 
   writeLog("\n");
   writeLog("createUnitigs()-- Found %u breakpoints.\n", breaks.size());
-  writeLog("\n");
 
   //  Allocate space for breaking tigs.  These are _vastly_ too big, but guaranteed.
 
@@ -385,20 +383,17 @@ createUnitigs(AssemblyGraph  *AG,
 
     BP.clear();
 
-    writeLog("createUnitigs()-- Process BPs from ss=%u to ee=%u\n", ss, ee);
-
-    for (uint32 bb=ss; bb<ee; bb++) {
-      //writeLog("createUnitigs()--   BP[%3u] pos %u bgn %c RAW\n", bb, breaks[bb]._pos, (breaks[bb]._bgn) ? 't' : 'f');
-       if ((BP.size() == 0) ||
-           (BP.back()._pos != breaks[bb]._pos) ||
+    for (uint32 bb=ss; bb<ee; bb++)
+      if ((BP.size() == 0) ||
+          (BP.back()._pos != breaks[bb]._pos) ||
           (BP.back()._bgn != breaks[bb]._bgn))
         BP.push_back(breaks[bb]);
-    }
 
-    writeLog("createUnitigs()-- tig %u found %u breakpoints (%u-%u)\n",
-             tig->id(), BP.size(), ss, ee);
-    for (uint32 bb=0; bb<BP.size(); bb++)
-      writeLog("createUnitigs()--   BP[%2u] pos %8u %c\n", bb, BP[bb]._pos, (BP[bb]._bgn) ? 't' : 'f');
+    writeLog("\n");
+
+    if (BP.size() > 2)
+      writeLog("createUnitigs()-- contig %u found %u breakpoint%s\n",
+               tig->id(), BP.size()-2, (BP.size()-2 != 1) ? "s" : "");
 
     //  Split the tig.  Copy it into the unitigs TigVector too.
 
@@ -406,12 +401,13 @@ createUnitigs(AssemblyGraph  *AG,
 
     if (nTigs > 1) {
       splitTig(unitigs, tig, BP, newTigs, lowCoord, nMoved, true);
-      writeLog("createUnitigs()-- tig %u created %u new tigs.\n", tig->id(), nTigs);
+      writeLog("createUnitigs()-- contig %u was split into %u unitigs, %u through %u.\n",
+               tig->id(), nTigs, unitigs.size() - nTigs, unitigs.size() - 1);
     }
 
     else {
       copyTig(unitigs, tig);
-      writeLog("createUnitigs()-- tig %u copied.\n", tig->id(), nTigs);
+      writeLog("createUnitigs()-- contig %u copied into unitig %u.\n", tig->id(), nTigs, unitigs.size() - 1);
     }
 
     ss = ee;   //  Reset for the next iteration.
