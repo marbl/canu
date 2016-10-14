@@ -663,10 +663,10 @@ sub setOverlapDefaults ($$$) {
     $global{"${tag}MhapBlockSize"}            = 3000;
     $synops{"${tag}MhapBlockSize"}            = "Number of reads per 1GB; memory * blockSize = the size of  block loaded into memory per job";
 
-    $global{"${tag}MhapMerSize"}              = ($tag eq "cor") ? 16 : 22;
+    $global{"${tag}MhapMerSize"}              = ($tag eq "cor") ? 16 : 16;
     $synops{"${tag}MhapMerSize"}              = "K-mer size for seeds in mhap";
 
-    $global{"${tag}MhapOrderedMerSize"}       = ($tag eq "cor") ? 12 : 22;
+    $global{"${tag}MhapOrderedMerSize"}       = ($tag eq "cor") ? 12 : 18;
     $synops{"${tag}MhapOrderedMerSize"}       = "K-mer size for second-stage filter in mhap";
 
     $global{"${tag}MhapSensitivity"}          = undef;
@@ -676,7 +676,7 @@ sub setOverlapDefaults ($$$) {
     $synops{"${tag}MMapBlockSize"}            = "Number of reads per 1GB; memory * blockSize = the size of  block loaded into memory per job";
 
     # minimap parameters.
-    $global{"${tag}MMapMerSize"}              = ($tag eq "cor") ? 15 : 22;
+    $global{"${tag}MMapMerSize"}              = ($tag eq "cor") ? 15 : 21;
     $synops{"${tag}MMapMerSize"}              = "K-mer size for seeds in minmap";
 
     # shared parameters for alignment-free overlappers

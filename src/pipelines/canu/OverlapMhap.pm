@@ -143,11 +143,10 @@ sub mhapConfigure ($$$$) {
 
     # quick guess parameter adjustment for corrected reads, hack for now and should better take error rate into account
     if (($tag eq "obt") || ($tag eq "utg")) {
-       $numHashes     /= 2;
-       $minNumMatches  = floor(1.5 * $minNumMatches);
-       $ordSketch      = 500;
+       $numHashes      = "128";
+       $minNumMatches  = 5;
+       $ordSketch      = 1000;
        $threshold      = 1-getGlobal("${tag}OvlErrorRate");
-       $blockPerGb    *= 2;
     }
 
     print STDERR "--\n";
