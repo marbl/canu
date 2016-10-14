@@ -293,6 +293,7 @@ sub mhapConfigure ($$$$) {
     #getAllowedResources($tag, "mhap");
 
     my $javaPath = getGlobal("java");
+    my $javaMemory = int(getGlobal("${tag}mhapMemory") * 1024 + 0.5);
 
     open(F, "> $path/precompute.sh") or caFailure("can't open '$path/precompute.sh' for writing: $!", undef);
 
@@ -349,7 +350,7 @@ sub mhapConfigure ($$$$) {
     print F "#  So mhap writes its output in the correct spot.\n";
     print F "cd $path/blocks\n";
     print F "\n";
-    print F "$javaPath -d64 -server -Xmx", getGlobal("${tag}mhapMemory"), "g \\\n";
+    print F "$javaPath -d64 -server -Xmx", $javaMemory, "m \\\n";
     print F "  -jar " . ($^O eq "cygwin" ? "\$(cygpath -w " : "") . "\$bin/mhap-" . getGlobal("${tag}MhapVersion") . ".jar " . ($^O eq "cygwin" ? ")" : "") . "\\\n";
     print F "  --repeat-weight 0.9 --repeat-idf-scale 10 -k $merSize \\\n";
     print F "  --supress-noise 2 \\\n"  if (defined(getGlobal("${tag}MhapFilterUnique")) && getGlobal("${tag}MhapFilterUnique") == 1);
@@ -420,7 +421,7 @@ sub mhapConfigure ($$$$) {
     print F getBinDirectoryShellCode();
     print F "\n";
     print F "if [ ! -e \"$path/results/\$qry.mhap\" ] ; then\n";
-    print F "  $javaPath -d64 -server -Xmx", getGlobal("${tag}mhapMemory"), "g \\\n";
+    print F "  $javaPath -d64 -server -Xmx", $javaMemory, "m \\\n";
     print F "    -jar " . ($^O eq "cygwin" ? "\$(cygpath -w " : "") . "\$bin/mhap-" . getGlobal("${tag}MhapVersion") . ".jar " . ($^O eq "cygwin" ? ")" : "") . "\\\n";
     print F "    --repeat-weight 0.9 --repeat-idf-scale 10 -k $merSize \\\n";
     print F "    --supress-noise 2 \\\n"  if (defined(getGlobal("${tag}MhapFilterUnique")) && getGlobal("${tag}MhapFilterUnique") == 1);
