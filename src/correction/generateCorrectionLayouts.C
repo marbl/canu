@@ -83,7 +83,7 @@ generateLayout(gkStore    *gkpStore,
   resizeArray(layout->_children, layout->_childrenLen, layout->_childrenMax, ovlLen, resizeArray_doNothing);
 
   if (flgFile)
-    fprintf(flgFile, "Generate layout for read "F_U32" length "F_U32" using up to "F_U32" overlaps.\n",
+    fprintf(flgFile, "Generate layout for read " F_U32 " length " F_U32 " using up to " F_U32 " overlaps.\n",
             layout->_tigID, layout->_layoutLen, ovlLen);
 
   for (uint32 oo=0; oo<ovlLen; oo++) {
@@ -121,7 +121,7 @@ generateLayout(gkStore    *gkpStore,
     if ((readScores != NULL) &&
         (ovlScore < readScores[ovl[oo].b_iid])) {
       if (flgFile)
-        fprintf(flgFile, "  filter read %9u at position %6u,%6u length %5lu erate %.3f - filtered by global filter (threshold "F_U64")\n",
+        fprintf(flgFile, "  filter read %9u at position %6u,%6u length %5lu erate %.3f - filtered by global filter (threshold " F_U64 ")\n",
                 ovl[oo].b_iid, ovl[oo].a_bgn(), ovl[oo].a_end(), ovlLength, ovl[oo].erate(), readScores[ovl[oo].b_iid]);
       continue;
     }
@@ -359,7 +359,7 @@ main(int argc, char **argv) {
   //  Threshold the range of reads to operate on.
 
   if (gkpStore->gkStore_getNumReads() < iidMin) {
-    fprintf(stderr, "ERROR: only "F_U32" reads in the store (IDs 0-"F_U32" inclusive); can't process requested range -b "F_U32" -e "F_U32"\n",
+    fprintf(stderr, "ERROR: only " F_U32 " reads in the store (IDs 0-" F_U32 " inclusive); can't process requested range -b " F_U32 " -e " F_U32 "\n",
             gkpStore->gkStore_getNumReads(),
             gkpStore->gkStore_getNumReads()-1,
             iidMin, iidMax);

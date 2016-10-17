@@ -172,7 +172,7 @@ main(int argc, char **argv) {
     if (jobIndex == 0)
       fprintf(stderr, "ERROR: No job index (-job) supplied.\n");
     if (fileLimit > maxFiles)
-      fprintf(stderr, "ERROR: Too many jobs (-F); only "F_U32" supported on this architecture.\n", maxFiles);
+      fprintf(stderr, "ERROR: Too many jobs (-F); only " F_U32 " supported on this architecture.\n", maxFiles);
 
     exit(1);
   }
@@ -223,7 +223,7 @@ main(int argc, char **argv) {
     AS_UTL_safeRead(C,  iidToBucket, "iidToBucket", sizeof(uint32), maxIID);
 
     if (maxIIDtest != maxIID)
-      fprintf(stderr, "ERROR: maxIID in store ("F_U32") differs from maxIID in config file ("F_U32").\n",
+      fprintf(stderr, "ERROR: maxIID in store (" F_U32 ") differs from maxIID in config file (" F_U32 ").\n",
               maxIID, maxIIDtest), exit(1);
   }
 
@@ -234,7 +234,7 @@ main(int argc, char **argv) {
   memset(sliceFile, 0, sizeof(ovFile *) * (fileLimit + 1));
   memset(sliceSize, 0, sizeof(uint64)   * (fileLimit + 1));
 
-  fprintf(stderr, "maxError fraction: %.3f percent: %.3f encoded: "F_U64"\n",
+  fprintf(stderr, "maxError fraction: %.3f percent: %.3f encoded: " F_U64 "\n",
           maxErrorRate, maxErrorRate * 100, maxError);
 
   fprintf(stderr, "Bucketizing %s\n", ovlInput);

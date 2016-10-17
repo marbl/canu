@@ -141,7 +141,7 @@ uint32
 fastqFile::getSequenceLength(uint32 iid) {
 
 #ifdef DEBUG
-  fprintf(stderr, "fastqFile::getSequenceLength()-- "F_U32"\n", iid);
+  fprintf(stderr, "fastqFile::getSequenceLength()-- " F_U32 "\n", iid);
 #endif
 
   return((iid < _numberOfSequences) ? _index[iid]._seqLength : 0);
@@ -155,11 +155,11 @@ fastqFile::getSequence(uint32 iid,
                        char *&s, uint32 &sLen, uint32 &sMax) {
 
 #ifdef DEBUG
-  fprintf(stderr, "fastqFile::getSequence(full)-- "F_U32"\n", iid);
+  fprintf(stderr, "fastqFile::getSequence(full)-- " F_U32 "\n", iid);
 #endif
 
   if (iid >= _header._numberOfSequences) {
-    fprintf(stderr, "fastqFile::getSequence(full)--  iid "F_U32" more than number of sequences "F_U32"\n",
+    fprintf(stderr, "fastqFile::getSequence(full)--  iid " F_U32 " more than number of sequences " F_U32 "\n",
       iid, _header._numberOfSequences);
     return(false);
   }
@@ -184,7 +184,7 @@ fastqFile::getSequence(uint32 iid,
   sLen = 0;
 
 #ifdef DEBUG
-  fprintf(stderr, "fastqFile::getSequence(full)-- seek to iid="F_U32" at pos="F_U32"\n",
+  fprintf(stderr, "fastqFile::getSequence(full)-- seek to iid=" F_U32 " at pos=" F_U32 "\n",
           iid, _index[iid]._seqPosition);
 #endif
   _rb->seek(_index[iid]._seqPosition);
@@ -271,13 +271,13 @@ fastqFile::getSequence(uint32 iid,
                        uint32 bgn, uint32 end, char *s) {
 
   if (iid >= _header._numberOfSequences) {
-    fprintf(stderr, "fastqFile::getSequence(part)--  iid "F_U32" more than number of sequences "F_U32"\n",
+    fprintf(stderr, "fastqFile::getSequence(part)--  iid " F_U32 " more than number of sequences " F_U32 "\n",
       iid, _header._numberOfSequences);
     return(false);
   }
 
 #ifdef DEBUG
-  fprintf(stderr, "fastqFile::getSequence(part)-- "F_U32"\n", iid);
+  fprintf(stderr, "fastqFile::getSequence(part)-- " F_U32 "\n", iid);
 #endif
 
   //  Unlike the fasta version of this, we know that all the sequence is on one line.  However, we
@@ -550,7 +550,7 @@ fastqFile::constructIndex(void) {
     //  Save to the index.
 
     if (indexLen >= indexMax) {
-      fprintf(stderr, "REALLOC len="F_U32" from "F_U32" to "F_U32"\n", indexLen, indexMax, indexMax * 2);
+      fprintf(stderr, "REALLOC len=" F_U32 " from " F_U32 " to " F_U32 "\n", indexLen, indexMax, indexMax * 2);
       indexMax *= 2;
       fastqFileIndex *et = new fastqFileIndex[indexMax];
       memcpy(et, _index, sizeof(fastqFileIndex) * indexLen);
@@ -564,7 +564,7 @@ fastqFile::constructIndex(void) {
 #if 0
     if ((indexLen * sizeof(fastqFileIndex) > 131000) &&
         (indexLen * sizeof(fastqFileIndex) < 131200))
-      fprintf(stderr, "INDEX pos="F_U64" iid="F_U32" len="F_U32" pos="F_U64"\n",
+      fprintf(stderr, "INDEX pos=" F_U64 " iid=" F_U32 " len=" F_U32 " pos=" F_U64 "\n",
               indexLen * sizeof(fastqFileIndex), indexLen, seqLen, seqStart);
 #endif
 

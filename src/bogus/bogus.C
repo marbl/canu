@@ -645,14 +645,14 @@ main(int argc, char **argv) {
       //assert(refcnt != 0);
 
       if ((refcnt > 0) && (minFrags <= refcnt) && (minLength <= refend - refbgn)) {
-        fprintf(intervalOutput, "%s\t%8"F_S64P"\t%8"F_S64P"\tREPT\t"F_S64"%s\n",
+        fprintf(intervalOutput, "%s\t%8" F_S64P "\t%8" F_S64P "\tREPT\t" F_S64 "%s\n",
                 refhdr, refbgn, refend, refcnt, (REPTvalid[ir]) ? "" : " weak");
 
         if (REPTvalid[ir])
-          fprintf(gffOutput, "%s\t.\tbogus_rept_interval\t"F_S64"\t"F_S64"\t.\t.\t.\tID=REPT%04d;fragCount="F_S64"\n",
+          fprintf(gffOutput, "%s\t.\tbogus_rept_interval\t" F_S64 "\t" F_S64 "\t.\t.\t.\tID=REPT%04d;fragCount=" F_S64 "\n",
                   refhdr, refbgn, refend, ir, refcnt);
         else
-          fprintf(gffOutput, "%s\t.\tbogus_weak_interval\t"F_S64"\t"F_S64"\t.\t.\t.\tParent=UNIQ%04d;fragCount="F_S64"\n",
+          fprintf(gffOutput, "%s\t.\tbogus_weak_interval\t" F_S64 "\t" F_S64 "\t.\t.\t.\tParent=UNIQ%04d;fragCount=" F_S64 "\n",
                   refhdr, refbgn, refend, REPTvalidParent[ir], refcnt);
       }
 
@@ -684,14 +684,14 @@ main(int argc, char **argv) {
       //assert(refcnt != 0);
 
       if ((refcnt > 0) && (minFrags <= refcnt) && (minLength <= refend - refbgn)) {
-        fprintf(intervalOutput, "%s\t%8"F_S64P"\t%8"F_S64P"\tUNIQ\t"F_S64"%s\n",
+        fprintf(intervalOutput, "%s\t%8" F_S64P "\t%8" F_S64P "\tUNIQ\t" F_S64 "%s\n",
                 refhdr, refbgn, refend, refcnt, (UNIQvalid[iu]) ? "" : " separation");
 
         if (UNIQvalid[iu])
-          fprintf(gffOutput, "%s\t.\tbogus_uniq_interval\t"F_S64"\t"F_S64"\t.\t.\t.\tID=UNIQ%04d;fragCount="F_S64"\n",
+          fprintf(gffOutput, "%s\t.\tbogus_uniq_interval\t" F_S64 "\t" F_S64 "\t.\t.\t.\tID=UNIQ%04d;fragCount=" F_S64 "\n",
                   refhdr, refbgn, refend, iu, refcnt);
         else
-          fprintf(gffOutput, "%s\t.\tbogus_sepr_interval\t"F_S64"\t"F_S64"\t.\t.\t.\tParent=REPT%04d;fragCount="F_S64"\n",
+          fprintf(gffOutput, "%s\t.\tbogus_sepr_interval\t" F_S64 "\t" F_S64 "\t.\t.\t.\tParent=REPT%04d;fragCount=" F_S64 "\n",
                   refhdr, refbgn, refend, UNIQvalidParent[iu], refcnt);
       }
 

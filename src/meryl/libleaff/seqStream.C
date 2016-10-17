@@ -44,7 +44,7 @@ seqStream::seqStream(const char *filename) {
   _idxLen            = _file->getNumberOfSequences();
   _idx               = new seqStreamIndex [_idxLen + 1];
 
-  //fprintf(stderr, "seqStream::seqStream()--  Allocating "F_U64"MB for seqStreamIndex on "F_U64" sequences.\n",
+  //fprintf(stderr, "seqStream::seqStream()--  Allocating " F_U64 "MB for seqStreamIndex on " F_U64 " sequences.\n",
   //        _idxLen * sizeof(seqStreamIndex) / 1024 / 1024, _idxLen);
 
   _seqNumOfPos       = 0L;
@@ -169,7 +169,7 @@ seqStream::tradeSpaceForTime(void) {
   uint32  i = 0;
   uint32  s = 0;
 
-  //fprintf(stderr, "Allocating "F_U32" uint32s for seqNumOfPos.\n", _lengthOfSequences);
+  //fprintf(stderr, "Allocating " F_U32 " uint32s for seqNumOfPos.\n", _lengthOfSequences);
 
   _seqNumOfPos = new uint32 [_lengthOfSequences];
 
@@ -232,12 +232,12 @@ seqStream::rewind(void){
   _streamPos  = _bgn;
   _bufferPos  = _bgn;
 
-  //fprintf(stderr, "seqStream::rewind()-- 1 currentIdx="F_U32" currentPos="F_U32" streamPos="F_U32" bufferPos="F_U32"\n",
+  //fprintf(stderr, "seqStream::rewind()-- 1 currentIdx=" F_U32 " currentPos=" F_U32 " streamPos=" F_U32 " bufferPos=" F_U32 "\n",
   //        _currentIdx, _currentPos, _streamPos, _bufferPos);
 
   fillBuffer();
 
-  //fprintf(stderr, "seqStream::rewind()-- 2 currentIdx="F_U32" currentPos="F_U32" streamPos="F_U32" bufferPos="F_U32"\n",
+  //fprintf(stderr, "seqStream::rewind()-- 2 currentIdx=" F_U32 " currentPos=" F_U32 " streamPos=" F_U32 " bufferPos=" F_U32 "\n",
   //        _currentIdx, _currentPos, _streamPos, _bufferPos);
 }
 
@@ -258,7 +258,7 @@ seqStream::setRange(uint64 bgn, uint64 end) {
     end = l;
 
   if ((bgn > l) || (end > l))
-    fprintf(stderr, "seqStream::setRange()-- ERROR: range ("F_U64","F_U64") too big; only "F_U64" positions.\n",
+    fprintf(stderr, "seqStream::setRange()-- ERROR: range (" F_U64 "," F_U64 ") too big; only " F_U64 " positions.\n",
             bgn, end, l), exit(1);
 
   _bgn = bgn;
@@ -290,7 +290,7 @@ seqStream::sequenceNumberOfPosition(uint64 p) {
   //  sequence that p is in.
 
   if (_lengthOfSequences <= p) {
-    fprintf(stderr, "seqStream::sequenceNumberOfPosition()-- WARNING: position p="F_U64" too big; only "F_U64" positions.\n",
+    fprintf(stderr, "seqStream::sequenceNumberOfPosition()-- WARNING: position p=" F_U64 " too big; only " F_U64 " positions.\n",
             p, _lengthOfSequences);
     return(s);
   }
@@ -354,7 +354,7 @@ seqStream::fillBuffer(void) {
 
   if (_currentPos < _idx[_currentIdx]._len) {
 #ifdef DEBUG
-    fprintf(stderr, "seqStream::fillBuffer()--  More Seq currentPos="F_U32" len="F_U32"\n", _currentPos, _idx[_currentIdx]._len);
+    fprintf(stderr, "seqStream::fillBuffer()--  More Seq currentPos=" F_U32 " len=" F_U32 "\n", _currentPos, _idx[_currentIdx]._len);
 #endif
     _bufferLen = MIN(_idx[_currentIdx]._len - _currentPos, _bufferMax);
 
@@ -362,7 +362,7 @@ seqStream::fillBuffer(void) {
                            _currentPos,
                            _currentPos + _bufferLen,
                            _buffer) == false)
-      fprintf(stderr, "seqStream::fillBuffer()-- Failed to getSequence(part) #1 iid="F_U32" bgn="F_U32" end="F_U32"\n",
+      fprintf(stderr, "seqStream::fillBuffer()-- Failed to getSequence(part) #1 iid=" F_U32 " bgn=" F_U32 " end=" F_U32 "\n",
               _idx[_currentIdx]._iid, _currentPos, _currentPos + _bufferLen), exit(1);
 
     return;
@@ -377,7 +377,7 @@ seqStream::fillBuffer(void) {
     _currentIdx++;
 
 #ifdef DEBUG
-  fprintf(stderr, "seqStream::fillBuffer()--  New Seq currentPos="F_U32" len="F_U32"\n", _currentPos, _idx[_currentIdx]._len);
+  fprintf(stderr, "seqStream::fillBuffer()--  New Seq currentPos=" F_U32 " len=" F_U32 "\n", _currentPos, _idx[_currentIdx]._len);
 #endif
 
   //  All done if there is no more sequence.
@@ -408,7 +408,7 @@ seqStream::fillBuffer(void) {
                          _currentPos,
                          _currentPos + bl,
                          _buffer + _bufferLen) == false)
-    fprintf(stderr, "seqStream::fillBuffer()-- Failed to getSequence(part) #2 iid="F_U32" bgn="F_U32" end="F_U32"\n",
+    fprintf(stderr, "seqStream::fillBuffer()-- Failed to getSequence(part) #2 iid=" F_U32 " bgn=" F_U32 " end=" F_U32 "\n",
             _idx[_currentIdx]._iid, _currentPos, _currentPos + bl), exit(1);
 
   _bufferLen += bl;

@@ -150,7 +150,7 @@ sweatShop::setThreadData(uint32 t, void *x) {
     _workerData = new sweatShopWorker [_numberOfWorkers];
 
   if (t >= _numberOfWorkers)
-    fprintf(stderr, "sweatShop::setThreadData()-- worker ID "F_U32" more than number of workers="F_U32"\n", t, _numberOfWorkers), exit(1);
+    fprintf(stderr, "sweatShop::setThreadData()-- worker ID " F_U32 " more than number of workers=" F_U32 "\n", t, _numberOfWorkers), exit(1);
 
   _workerData[t].threadUserData = x;
 }
@@ -346,7 +346,7 @@ sweatShop::writer(void) {
       naptime.tv_sec      = 0;
       naptime.tv_nsec     = 5000000ULL;
 
-      //fprintf(stderr, "Writer waits for slow thread at "F_U64".\n", _numberOutput);
+      //fprintf(stderr, "Writer waits for slow thread at " F_U64 ".\n", _numberOutput);
       nanosleep(&naptime, 0L);
     } else if (_writerP->_next == 0L) {
       //  Wait for the input.
@@ -354,7 +354,7 @@ sweatShop::writer(void) {
       naptime.tv_sec      = 0;
       naptime.tv_nsec     = 5000000ULL;
 
-      //fprintf(stderr, "Writer waits for all threads at "F_U64".\n", _numberOutput);
+      //fprintf(stderr, "Writer waits for all threads at " F_U64 ".\n", _numberOutput);
       nanosleep(&naptime, 0L);
     } else {
       (*_userWriter)(_globalUserData, _writerP->_user);
@@ -413,7 +413,7 @@ sweatShop::status(void) {
     cpuPerSec = _numberComputed / (thisTime - startTime);
 
     if (_showStatus) {
-      fprintf(stderr, " %6.1f/s - %8"F_U64P" loaded; %8"F_U64P" queued for compute; %08"F_U64P" finished; %8"F_U64P" written; %8"F_U64P" queued for output)\r",
+      fprintf(stderr, " %6.1f/s - %8" F_U64P " loaded; %8" F_U64P " queued for compute; %08" F_U64P " finished; %8" F_U64P " written; %8" F_U64P " queued for output)\r",
               cpuPerSec, _numberLoaded, deltaCPU, _numberComputed, _numberOutput, deltaOut);
       fflush(stderr);
     }
@@ -448,7 +448,7 @@ sweatShop::status(void) {
 
     cpuPerSec = _numberComputed / (thisTime - startTime);
 
-    fprintf(stderr, " %6.1f/s - %08"F_U64P" queued for compute; %08"F_U64P" finished; %08"F_U64P" queued for output)\n",
+    fprintf(stderr, " %6.1f/s - %08" F_U64P " queued for compute; %08" F_U64P " finished; %08" F_U64P " queued for output)\n",
             cpuPerSec, deltaCPU, _numberComputed, deltaOut);
   }
 
@@ -583,7 +583,7 @@ sweatShop::run(void *user, bool beVerbose) {
   for (uint32 i=0; i<_numberOfWorkers; i++) {
     err = pthread_create(&_workerData[i].threadID, &threadAttr, _sweatshop_workerThread, _workerData + i);
     if (err)
-      fprintf(stderr, "sweatShop::run()--  Failed to launch worker thread "F_U32": %s.\n", i, strerror(err)), exit(1);
+      fprintf(stderr, "sweatShop::run()--  Failed to launch worker thread " F_U32 ": %s.\n", i, strerror(err)), exit(1);
   }
 
   //  Now sit back and relax.
@@ -603,7 +603,7 @@ sweatShop::run(void *user, bool beVerbose) {
   for (uint32 i=0; i<_numberOfWorkers; i++) {
     err = pthread_join(_workerData[i].threadID, 0L);
     if (err)
-      fprintf(stderr, "sweatShop::run()--  Failed to join worker thread "F_U32": %s.\n", i, strerror(err)), exit(1);
+      fprintf(stderr, "sweatShop::run()--  Failed to join worker thread " F_U32 ": %s.\n", i, strerror(err)), exit(1);
   }
 
   //  Cleanup.

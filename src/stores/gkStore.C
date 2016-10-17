@@ -68,7 +68,7 @@ gkRead::gkRead_loadData(gkReadData *readData, uint8 *blob) {
   char    chunk[5];
 
   if ((blob[0] != 'B') && (blob[1] != 'L') && (blob[2] != 'O') && (blob[3] != 'B'))
-    fprintf(stderr, "Index error in read "F_U32" %c mPtr "F_U64" pID "F_U64" expected BLOB, got %02x %02x %02x %02x '%c%c%c%c'\n",
+    fprintf(stderr, "Index error in read " F_U32 " %c mPtr " F_U64 " pID " F_U64 " expected BLOB, got %02x %02x %02x %02x '%c%c%c%c'\n",
             gkRead_readID(),
             '?', //(_numberOfPartitions == 0) ? 'm' : 'p',
             _mPtr, _pID,
@@ -210,7 +210,7 @@ gkStore::gkStore_stashReadData(gkRead *read, gkReadData *data) {
   read->_mPtr = AS_UTL_ftell(_blobsFile);
   read->_pID  = _partitionID;                //  0 if not partitioned
 
-  //fprintf(stderr, "STASH read %u at position "F_SIZE_T"\n", read->gkRead_readID(), AS_UTL_ftell(_blobsFile));
+  //fprintf(stderr, "STASH read %u at position " F_SIZE_T "\n", read->gkRead_readID(), AS_UTL_ftell(_blobsFile));
 
   AS_UTL_safeWrite(_blobsFile,
                    data->_blob,
@@ -619,27 +619,27 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
   uint32  failed = 0;
 
   if (_info.gkLibrarySize      != sizeof(gkLibrary))
-    failed += fprintf(stderr, "ERROR:  gkLibrary size in store = "F_U32", differs from executable = "F_SIZE_T"\n",
+    failed += fprintf(stderr, "ERROR:  gkLibrary size in store = " F_U32 ", differs from executable = " F_SIZE_T "\n",
                       _info.gkLibrarySize, sizeof(gkLibrary));
 
   if (_info.gkReadSize         != sizeof(gkRead))
-    failed += fprintf(stderr, "ERROR:  gkRead size in store = "F_U32", differs from executable = "F_SIZE_T"\n",
+    failed += fprintf(stderr, "ERROR:  gkRead size in store = " F_U32 ", differs from executable = " F_SIZE_T "\n",
                       _info.gkReadSize, sizeof(gkRead));
 
   if (_info.gkMaxLibrariesBits != AS_MAX_LIBRARIES_BITS)
-    failed += fprintf(stderr, "ERROR:  AS_MAX_LIBRARIES_BITS in store = "F_U32", differs from executable = "F_U32"\n",
+    failed += fprintf(stderr, "ERROR:  AS_MAX_LIBRARIES_BITS in store = " F_U32 ", differs from executable = " F_U32 "\n",
                       _info.gkMaxLibrariesBits, AS_MAX_LIBRARIES_BITS);
 
   if (_info.gkLibraryNameSize  != LIBRARY_NAME_SIZE)
-    failed += fprintf(stderr, "ERROR:  LIBRARY_NAME_SIZE in store = "F_U32", differs from executable = "F_U32"\n",
+    failed += fprintf(stderr, "ERROR:  LIBRARY_NAME_SIZE in store = " F_U32 ", differs from executable = " F_U32 "\n",
                       _info.gkLibraryNameSize, LIBRARY_NAME_SIZE);
 
   if (_info.gkMaxReadBits      != AS_MAX_READS_BITS)
-    failed += fprintf(stderr, "ERROR:  AS_MAX_READS_BITS in store = "F_U32", differs from executable = "F_U32"\n",
+    failed += fprintf(stderr, "ERROR:  AS_MAX_READS_BITS in store = " F_U32 ", differs from executable = " F_U32 "\n",
                       _info.gkMaxReadBits, AS_MAX_READS_BITS);
 
   if (_info.gkMaxReadLenBits   != AS_MAX_READLEN_BITS)
-    failed += fprintf(stderr, "ERROR:  AS_MAX_READLEN_BITS in store = "F_U32", differs from executable = "F_U32"\n",
+    failed += fprintf(stderr, "ERROR:  AS_MAX_READLEN_BITS in store = " F_U32 ", differs from executable = " F_U32 "\n",
                       _info.gkMaxReadLenBits, AS_MAX_READLEN_BITS);
 
   if (failed)
@@ -830,17 +830,17 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
     sprintf(name, "%s/libraries", _storePath);
     _librariesMMap = new memoryMappedFile (name, memoryMappedFile_readOnly);
     _libraries     = (gkLibrary *)_librariesMMap->get(0);
-    //fprintf(stderr, " -- openend '%s' at "F_X64"\n", name, _libraries);
+    //fprintf(stderr, " -- openend '%s' at " F_X64 "\n", name, _libraries);
 
-    sprintf(name, "%s/partitions/reads.%04"F_U32P"", _storePath, partID);
+    sprintf(name, "%s/partitions/reads.%04" F_U32P, _storePath, partID);
     _readsMMap     = new memoryMappedFile (name, memoryMappedFile_readOnly);
     _reads         = (gkRead *)_readsMMap->get(0);
-    //fprintf(stderr, " -- openend '%s' at "F_X64"\n", name, _reads);
+    //fprintf(stderr, " -- openend '%s' at " F_X64 "\n", name, _reads);
 
-    sprintf(name, "%s/partitions/blobs.%04"F_U32P"", _storePath, partID);
+    sprintf(name, "%s/partitions/blobs.%04" F_U32P, _storePath, partID);
     _blobsMMap     = new memoryMappedFile (name, memoryMappedFile_readOnly);
     _blobs         = (void *)_blobsMMap->get(0);
-    //fprintf(stderr, " -- openend '%s' at "F_X64"\n", name, _blobs);
+    //fprintf(stderr, " -- openend '%s' at " F_X64 "\n", name, _blobs);
   }
 
   //  Info only, no access to reads or libraries.
@@ -1174,7 +1174,7 @@ gkStore::gkStore_buildPartitions(uint32 *partitionMap) {
       maxPartition = partitionMap[fi];
   }
 
-  fprintf(stderr, "Found "F_U32" unpartitioned reads and maximum partition of "F_U32"\n",
+  fprintf(stderr, "Found " F_U32 " unpartitioned reads and maximum partition of " F_U32 "\n",
           unPartitioned, maxPartition);
 
   //  Create the partitions by opening N copies of the data stores,
@@ -1257,7 +1257,7 @@ gkStore::gkStore_buildPartitions(uint32 *partitionMap) {
 
     if (pi < UINT32_MAX) {
 #if 0
-      fprintf(stderr, "read "F_U32"="F_U32" len "F_U32" -- blob master "F_U64" -- to part "F_U32" new read id "F_U32" blob "F_U64"/"F_U64" -- at readIdx "F_U32"\n",
+      fprintf(stderr, "read " F_U32 "=" F_U32 " len " F_U32 " -- blob master " F_U64 " -- to part " F_U32 " new read id " F_U32 " blob " F_U64 "/" F_U64 " -- at readIdx " F_U32 "\n",
               fi, _reads[fi].gkRead_readID(), _reads[fi].gkRead_sequenceLength(),
               _reads[fi]._mPtr,
               pi,
@@ -1272,7 +1272,7 @@ gkStore::gkStore_buildPartitions(uint32 *partitionMap) {
 
     else {
 #if 0
-      fprintf(stderr, "read "F_U32"="F_U32" len "F_U32" -- blob master "F_U64" -- DELETED\n",
+      fprintf(stderr, "read " F_U32 "=" F_U32 " len " F_U32 " -- blob master " F_U64 " -- DELETED\n",
               fi, _reads[fi].gkRead_readID(), _reads[fi].gkRead_sequenceLength(),
               _reads[fi]._mPtr);
 #endif
@@ -1291,7 +1291,7 @@ gkStore::gkStore_buildPartitions(uint32 *partitionMap) {
   fclose(rIDmF);
 
   for (uint32 i=1; i<=maxPartition; i++) {
-    fprintf(stderr, "partition "F_U32" has "F_U32" reads\n", i, readfileslen[i]);
+    fprintf(stderr, "partition " F_U32 " has " F_U32 " reads\n", i, readfileslen[i]);
 
     errno = 0;
 

@@ -56,7 +56,7 @@ Read_Frags(feParameters   *G,
   uint64  votesLength = 0;
   uint64  readsLoaded = 0;
 
-  fprintf(stderr, "Read_Frags()-- from "F_U32" through "F_U32"\n",
+  fprintf(stderr, "Read_Frags()-- from " F_U32 " through " F_U32 "\n",
           G->bgnID, G->endID);
 
   for (uint32 curID=G->bgnID; curID<=G->endID; curID++) {
@@ -118,6 +118,6 @@ Read_Frags(feParameters   *G,
 
   delete readData;
 
-  fprintf(stderr, "Read_Frags()-- from "F_U32" through "F_U32" -- loaded "F_U64" bases in "F_U64" reads.\n",
+  fprintf(stderr, "Read_Frags()-- from " F_U32 " through " F_U32 " -- loaded " F_U64 " bases in " F_U64 " reads.\n",
           G->bgnID, G->endID-1, basesLength, readsLoaded);
 }

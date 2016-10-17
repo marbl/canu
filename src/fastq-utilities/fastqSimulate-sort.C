@@ -128,7 +128,7 @@ readRead(FILE *inFile, uint32 &seq, uint32 &bgn, uint32 &end) {
 
   end = strtoul(a+p, NULL, 10);
 
-  //fprintf(stderr, "seq="F_U32" bgn="F_U32" end="F_U32" line %s",
+  //fprintf(stderr, "seq=" F_U32 " bgn=" F_U32 " end=" F_U32 " line %s",
   //        seq, bgn, end, a);
 
   char *retstr = new char [al + bl + cl + dl + 1];
@@ -249,7 +249,7 @@ main(int argc, char **argv) {
     reads.push_back(pr);
   }
 
-  fprintf(stderr, "Loaded "F_U64" mated reads.\n", reads.size());
+  fprintf(stderr, "Loaded " F_U64 " mated reads.\n", reads.size());
 
   sort(reads.begin(), reads.end());
 

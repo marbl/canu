@@ -60,11 +60,11 @@ public:
     if (F == NULL)
       return;
     if (chimer)
-      fprintf(F, F_IID"\t"F_U32"\t"F_U32"\tchimer\t"F_U32"\t"F_U32"%s\n",
+      fprintf(F, F_IID"\t" F_U32 "\t" F_U32 "\tchimer\t" F_U32 "\t" F_U32 "%s\n",
               readIID, clrBgn, clrEnd, chmBgn, chmEnd,
               (deleted) ? "\tdeleted" : "");
     else
-      fprintf(F, F_IID"\t"F_U32"\t"F_U32"%s\n",
+      fprintf(F, F_IID"\t" F_U32 "\t" F_U32 "%s\n",
               readIID, clrBgn, clrEnd,
               (deleted) ? "\tdeleted" : "");
   };

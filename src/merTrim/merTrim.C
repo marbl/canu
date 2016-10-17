@@ -180,10 +180,10 @@ public:
     gktCur = gktBgn;
 
     if (gktBgn > gktEnd)
-      fprintf(stderr, "ERROR: invalid range:  -b ("F_U32") >= -e ("F_U32").\n",
+      fprintf(stderr, "ERROR: invalid range:  -b (" F_U32 ") >= -e (" F_U32 ").\n",
               gktBgn, gktEnd), exit(1);
     if (gktEnd > gkRead->gkStore_getNumFragments())
-      fprintf(stderr, "ERROR: invalid range:  -e ("F_U32") > num frags ("F_U32").\n",
+      fprintf(stderr, "ERROR: invalid range:  -e (" F_U32 ") > num frags (" F_U32 ").\n",
               gktEnd, gkRead->gkStore_getNumFragments()), exit(1);
 
     errno = 0;
@@ -223,28 +223,28 @@ public:
       uint32  i  = 0;
       uint32  iX = 0;
 
-      //fprintf(stderr, "distinct: "F_U64"\n", MF->numberOfDistinctMers());
-      //fprintf(stderr, "unique:   "F_U64"\n", MF->numberOfUniqueMers());
-      //fprintf(stderr, "total:    "F_U64"\n", MF->numberOfTotalMers());
+      //fprintf(stderr, "distinct: " F_U64 "\n", MF->numberOfDistinctMers());
+      //fprintf(stderr, "unique:   " F_U64 "\n", MF->numberOfUniqueMers());
+      //fprintf(stderr, "total:    " F_U64 "\n", MF->numberOfTotalMers());
 
-      //fprintf(stderr, "Xcoverage zero 1 0 "F_U64"\n", MF->histogram(1));
+      //fprintf(stderr, "Xcoverage zero 1 0 " F_U64 "\n", MF->histogram(1));
 
       for (i=2; (i < MF->histogramLength()) && (MF->histogram(i-1) > MF->histogram(i)); i++)
-        //fprintf(stderr, "Xcoverage drop "F_U32" "F_U64" "F_U64"\n", i, MF->histogram(i-1), MF->histogram(i));
+        //fprintf(stderr, "Xcoverage drop " F_U32 " " F_U64 " " F_U64 "\n", i, MF->histogram(i-1), MF->histogram(i));
         ;
 
       iX = i - 1;
 
       for (; i < MF->histogramLength(); i++) {
         if (MF->histogram(iX) < MF->histogram(i)) {
-          //fprintf(stderr, "Xcoverage incr "F_U32" "F_U64" "F_U64"\n", i, MF->histogram(iX), MF->histogram(i));
+          //fprintf(stderr, "Xcoverage incr " F_U32 " " F_U64 " " F_U64 "\n", i, MF->histogram(iX), MF->histogram(i));
           iX = i;
         } else {
-          //fprintf(stderr, "Xcoverage drop "F_U32" "F_U64" "F_U64"\n", i, MF->histogram(iX), MF->histogram(i));
+          //fprintf(stderr, "Xcoverage drop " F_U32 " " F_U64 " " F_U64 "\n", i, MF->histogram(iX), MF->histogram(i));
         }
       }
 
-      fprintf(stderr, "Guessed X coverage is "F_U32"\n", iX);
+      fprintf(stderr, "Guessed X coverage is " F_U32 "\n", iX);
 
       delete MF;
 
@@ -257,7 +257,7 @@ public:
     if (minVerifiedFraction > 0)
       minVerified = (uint32)floor(minVerifiedFraction * actualCoverage);
 
-    fprintf(stderr, "Use minCorrect="F_U32" minVerified="F_U32"\n", minCorrect, minVerified);
+    fprintf(stderr, "Use minCorrect=" F_U32 " minVerified=" F_U32 "\n", minCorrect, minVerified);
 
     if (minCorrect < minVerified) {
       fprintf(stderr, "WARNING!\n");
@@ -1229,7 +1229,7 @@ mertrimComputation::scoreAdapter(void) {
     containsAdapterEnd = MAX(containsAdapterEnd, end + 1);
 
     if (VERBOSE > 1)
-      log.add("ADAPTER at "F_U32","F_U32" ["F_U32","F_U32"]\n",
+      log.add("ADAPTER at " F_U32 "," F_U32 " [" F_U32 "," F_U32 "]\n",
               bgn, end, containsAdapterBgn, containsAdapterEnd);
 
     for (uint32 a=bgn; a<=end; a++)
@@ -2155,7 +2155,7 @@ mertrimWriterFASTQ(mertrimGlobalData *g, mertrimComputation *s) {
   if (s->verifySeq) {
   }
 
-  fprintf(g->fqLog->file(), F_U32"\t"F_U32"\tchimer\t%c\t"F_U32"\t"F_U32"\tadapter\t%c\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t%s\t%s\n",
+  fprintf(g->fqLog->file(), F_U32"\t" F_U32 "\tchimer\t%c\t" F_U32 "\t" F_U32 "\tadapter\t%c\t" F_U32 "\t" F_U32 "\t" F_U32 "\t" F_U32 "\t%s\t%s\n",
           s->clrBgn,
           s->clrEnd,
           s->suspectedChimer ? 't' : 'f',

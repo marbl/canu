@@ -238,7 +238,7 @@ unstashContains(tgTig                *tig,
   }
 
   if (idmap.empty() == false)
-    fprintf(stderr, "Failed to unstash the contained reads.  Still have "F_SIZE_T" reads unplaced.\n",
+    fprintf(stderr, "Failed to unstash the contained reads.  Still have " F_SIZE_T " reads unplaced.\n",
             idmap.size());
   assert(idmap.empty() == true);
 

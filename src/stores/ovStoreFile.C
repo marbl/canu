@@ -184,7 +184,7 @@ ovFile::~ovFile() {
 
     delete [] _olapsPerRead;
 
-    //fprintf(stderr, "Wrote counts file '%s' for reads up to iid "F_U32"\n", name, _olapsPerReadLast);
+    //fprintf(stderr, "Wrote counts file '%s' for reads up to iid " F_U32 "\n", name, _olapsPerReadLast);
   }
 }
 
@@ -392,7 +392,7 @@ ovFile::readBuffer(void) {
     size_t  sbc = AS_UTL_safeRead(_file, _snappyBuffer, "ovFile::readBuffer::sb", sizeof(char), cl);
 
     if (sbc != cl)
-      fprintf(stderr, "ERROR: short read on file '%s': read "F_SIZE_T" bytes, expected "F_SIZE_T".\n",
+      fprintf(stderr, "ERROR: short read on file '%s': read " F_SIZE_T " bytes, expected " F_SIZE_T ".\n",
               _prefix, sbc, cl), exit(1);
 
     size_t  ol = 0;

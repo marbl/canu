@@ -91,7 +91,7 @@ Add_Extra_Hash_String(const char *s) {
     if (sub >= String_Start_Size) {
       uint64  n = max(sub * 1.1, String_Start_Size * 1.5);
 
-      //fprintf(stderr, "REALLOC String_Start from "F_U64" to "F_U64"\n", String_Start_Size, n);
+      //fprintf(stderr, "REALLOC String_Start from " F_U64 " to " F_U64 "\n", String_Start_Size, n);
       resizeArray(String_Start, String_Start_Size, String_Start_Size, n);
     }
 
@@ -105,7 +105,7 @@ Add_Extra_Hash_String(const char *s) {
   if (new_len >= Extra_Data_Len) {
     uint64  n = max(new_len * 1.1, Extra_Data_Len * 1.5);
 
-    //fprintf(stderr, "REALLOC basesData from "F_U64" to "F_U64"\n", Extra_Data_Len, n);
+    //fprintf(stderr, "REALLOC basesData from " F_U64 " to " F_U64 "\n", Extra_Data_Len, n);
     resizeArray(basesData, Extra_Data_Len, Extra_Data_Len, n);
   }
 
@@ -280,7 +280,7 @@ Mark_Skip_Kmers(void) {
     Hash_Mark_Empty (key, line);
   }
 
-  fprintf (stderr, "String_Ct = "F_U64"  Extra_String_Ct = "F_U64"  Extra_String_Subcount = "F_U64"\n",
+  fprintf (stderr, "String_Ct = " F_U64 "  Extra_String_Ct = " F_U64 "  Extra_String_Subcount = " F_U64 "\n",
            String_Ct, Extra_String_Ct, Extra_String_Subcount);
   fprintf (stderr, "Read %d kmers to mark to skip\n", ct / 2);
 }
@@ -445,7 +445,7 @@ Build_Hash_Index(gkStore *gkpStore, uint32 bgnID, uint32 endID) {
   uint64  total_len;
   uint64   hash_entry_limit;
 
-  fprintf(stderr, "Build_Hash_Index from "F_U32" to "F_U32"\n", bgnID, endID);
+  fprintf(stderr, "Build_Hash_Index from " F_U32 " to " F_U32 "\n", bgnID, endID);
 
   Hash_String_Num_Offset = bgnID;
   String_Ct              = 0;
@@ -474,10 +474,10 @@ Build_Hash_Index(gkStore *gkpStore, uint32 bgnID, uint32 endID) {
   hash_entry_limit = G.Max_Hash_Load * HASH_TABLE_SIZE * ENTRIES_PER_BUCKET;
 
 #if 0
-  fprintf(stderr, "HASH LOADING STARTED: fragID   %12"F_U64P"\n", first_frag_id);
-  fprintf(stderr, "HASH LOADING STARTED: strings  %12"F_U64P" out of %12"F_U64P" max.\n", String_Ct, G.Max_Hash_Strings);
-  fprintf(stderr, "HASH LOADING STARTED: length   %12"F_U64P" out of %12"F_U64P" max.\n", total_len, G.Max_Hash_Data_Len);
-  fprintf(stderr, "HASH LOADING STARTED: entries  %12"F_U64P" out of %12"F_U64P" max (load %.2f).\n", Hash_Entries, hash_entry_limit,
+  fprintf(stderr, "HASH LOADING STARTED: fragID   %12" F_U64P "\n", first_frag_id);
+  fprintf(stderr, "HASH LOADING STARTED: strings  %12" F_U64P " out of %12" F_U64P " max.\n", String_Ct, G.Max_Hash_Strings);
+  fprintf(stderr, "HASH LOADING STARTED: length   %12" F_U64P " out of %12" F_U64P " max.\n", total_len, G.Max_Hash_Data_Len);
+  fprintf(stderr, "HASH LOADING STARTED: entries  %12" F_U64P " out of %12" F_U64P " max (load %.2f).\n", Hash_Entries, hash_entry_limit,
          (100.0 * Hash_Entries) / (HASH_TABLE_SIZE * ENTRIES_PER_BUCKET));
 #endif
 
@@ -513,13 +513,13 @@ Build_Hash_Index(gkStore *gkpStore, uint32 bgnID, uint32 endID) {
     maxAlloc += read->gkRead_sequenceLength() + 1;
   }
 
-  fprintf(stderr, "Found "F_U32" reads with length "F_U64" to load; "F_U32" skipped by being too short; "F_U32" skipped per library restriction\n",
+  fprintf(stderr, "Found " F_U32 " reads with length " F_U64 " to load; " F_U32 " skipped by being too short; " F_U32 " skipped per library restriction\n",
           nLoadable, maxAlloc, nShort, nSkipped);
 
   //  This should be less than what the user requested on the command line
 
   if (maxAlloc >= G.Max_Hash_Data_Len + AS_MAX_READLEN)
-    fprintf(stderr, "maxAlloc = "F_U64" G.Max_Hash_Data_Len = "F_U64"  AS_MAX_READLEN = %u\n", maxAlloc, G.Max_Hash_Data_Len, AS_MAX_READLEN);
+    fprintf(stderr, "maxAlloc = " F_U64 " G.Max_Hash_Data_Len = " F_U64 "  AS_MAX_READLEN = %u\n", maxAlloc, G.Max_Hash_Data_Len, AS_MAX_READLEN);
   assert(maxAlloc < G.Max_Hash_Data_Len + AS_MAX_READLEN);
 
   //  Allocate space, then fill it.
@@ -599,7 +599,7 @@ Build_Hash_Index(gkStore *gkpStore, uint32 bgnID, uint32 endID) {
     //  This was computed ahead of time!
 
     if (total_len > maxAlloc)
-      fprintf(stderr, "total_len="F_U64"  len="F_U32"  maxAlloc="F_U64"\n", total_len, len, maxAlloc);
+      fprintf(stderr, "total_len=" F_U64 "  len=" F_U32 "  maxAlloc=" F_U64 "\n", total_len, len, maxAlloc);
     assert(total_len <= maxAlloc);
 
     //  What is Extra_Data_Len?  It's set to Data_Len if we would have reallocated here.
@@ -607,7 +607,7 @@ Build_Hash_Index(gkStore *gkpStore, uint32 bgnID, uint32 endID) {
     Put_String_In_Hash(curID, String_Ct);
 
     if ((String_Ct % 100000) == 0)
-      fprintf (stderr, "String_Ct:%12"F_U64P"/%12"F_U32P"  totalLen:%12"F_U64P"/%12"F_U64P"  Hash_Entries:%12"F_U64P"/%12"F_U64P"  Load: %.2f%%\n",
+      fprintf (stderr, "String_Ct:%12" F_U64P "/%12" F_U32P "  totalLen:%12" F_U64P "/%12" F_U64P "  Hash_Entries:%12" F_U64P "/%12" F_U64P "  Load: %.2f%%\n",
                String_Ct,    G.Max_Hash_Strings,
                total_len,    G.Max_Hash_Data_Len,
                Hash_Entries,
@@ -619,9 +619,9 @@ Build_Hash_Index(gkStore *gkpStore, uint32 bgnID, uint32 endID) {
 
   delete readData;
 
-  fprintf(stderr, "HASH LOADING STOPPED: strings  %12"F_U64P" out of %12"F_U32P" max.\n", String_Ct, G.Max_Hash_Strings);
-  fprintf(stderr, "HASH LOADING STOPPED: length   %12"F_U64P" out of %12"F_U64P" max.\n", total_len, G.Max_Hash_Data_Len);
-  fprintf(stderr, "HASH LOADING STOPPED: entries  %12"F_U64P" out of %12"F_U64P" max (load %.2f).\n", Hash_Entries, hash_entry_limit,
+  fprintf(stderr, "HASH LOADING STOPPED: strings  %12" F_U64P " out of %12" F_U32P " max.\n", String_Ct, G.Max_Hash_Strings);
+  fprintf(stderr, "HASH LOADING STOPPED: length   %12" F_U64P " out of %12" F_U64P " max.\n", total_len, G.Max_Hash_Data_Len);
+  fprintf(stderr, "HASH LOADING STOPPED: entries  %12" F_U64P " out of %12" F_U64P " max (load %.2f).\n", Hash_Entries, hash_entry_limit,
           100.0 * Hash_Entries / (HASH_TABLE_SIZE * ENTRIES_PER_BUCKET));
 
   if (String_Ct == 0) {
@@ -631,7 +631,7 @@ Build_Hash_Index(gkStore *gkpStore, uint32 bgnID, uint32 endID) {
 
   Used_Data_Len = total_len;
 
-  //fprintf(stderr, "Extra_Ref_Ct = "F_U64"  Max_Extra_Ref_Space = "F_U64"\n", Extra_Ref_Ct, Max_Extra_Ref_Space);
+  //fprintf(stderr, "Extra_Ref_Ct = " F_U64 "  Max_Extra_Ref_Space = " F_U64 "\n", Extra_Ref_Ct, Max_Extra_Ref_Space);
 
   if (Extra_Ref_Ct > Max_Extra_Ref_Space) {
     int32          newSize  = (Max_Extra_Ref_Space == 0) ? 16 * 1024 : Max_Extra_Ref_Space * 2;

@@ -70,6 +70,6 @@ promoteToSingleton(TigVector &tigs) {
     utg->addRead(read, 0, false);
   }
 
-  writeStatus("promoteToSingleton()-- Moved "F_U32" unplaced read%s to singleton tigs.\n",
+  writeStatus("promoteToSingleton()-- Moved " F_U32 " unplaced read%s to singleton tigs.\n",
               nPromoted, (nPromoted == 1) ? "" : "s");
 }

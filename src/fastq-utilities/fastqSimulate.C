@@ -997,7 +997,7 @@ main(int argc, char **argv) {
   //  when the end of genome is hit.  This is caught later in makeSequence() and the
   //  read is aborted.
 
-  fprintf(stderr, "seed = "F_U64"\n", seed);
+  fprintf(stderr, "seed = " F_U64 "\n", seed);
   srand48(seed);
 
   memset(revComp, '&', sizeof(char) * 256);
@@ -1204,10 +1204,10 @@ main(int argc, char **argv) {
 
   fprintf(stderr, "\n");
   fprintf(stderr, "Number of reads with:\n");
-  fprintf(stderr, " nNoChange = "F_U64"\n", nNoChange);
-  fprintf(stderr, " nMismatch = "F_U64"\n", nMismatch);
-  fprintf(stderr, " nInsert   = "F_U64"\n", nInsert);
-  fprintf(stderr, " nDelete   = "F_U64"\n", nDelete);
+  fprintf(stderr, " nNoChange = " F_U64 "\n", nNoChange);
+  fprintf(stderr, " nMismatch = " F_U64 "\n", nMismatch);
+  fprintf(stderr, " nInsert   = " F_U64 "\n", nInsert);
+  fprintf(stderr, " nDelete   = " F_U64 "\n", nDelete);
 
   exit(0);
 }

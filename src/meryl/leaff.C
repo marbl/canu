@@ -361,7 +361,7 @@ void
 printSequence(uint32 sid) {
   seqInCore *sic   = fasta->getSequenceInCore(sid);
   if (sic == 0L)
-    fprintf(stderr, "WARNING: Didn't find sequence with iid '"F_U32"'\n", sid);
+    fprintf(stderr, "WARNING: Didn't find sequence with iid '" F_U32 "'\n", sid);
   else
     printSequence(sic);
   delete sic;
@@ -450,7 +450,7 @@ processArray(int argc, char **argv) {
                 (argv[arg] == 0L) ? "(nullpointer)" : argv[arg]), exit(1);
 
       for (uint32 s=0; s<fasta->getNumberOfSequences(); s++)
-        fprintf(stdout, "G\tseq\t%s:"F_U32"\t"F_U32"\t%s\n",
+        fprintf(stdout, "G\tseq\t%s:" F_U32 "\t" F_U32 "\t%s\n",
                 argv[arg], s, fasta->getSequenceLength(s), ">unimplemented");
 
     } else if (strcmp(argv[arg], "-d") == 0) {
@@ -519,7 +519,7 @@ processArray(int argc, char **argv) {
           seq[p++] = bases[MT.mtRandom32() & 0x3];
         seq[p] = 0;
 
-        sprintf(def, "random%06"F_U32P, i);
+        sprintf(def, "random%06" F_U32P, i);
 
         printSequence(def, seq, 0, j);
       }
@@ -787,7 +787,7 @@ processFile(char  *filename) {
     errno = 0;
     len = fread(data+pos, 1, max - pos, F);
     if (errno)
-      fprintf(stderr, "Couldn't read "F_U64" bytes from '%s': %s\n",
+      fprintf(stderr, "Couldn't read " F_U64 " bytes from '%s': %s\n",
               (uint64)(max-pos), filename, strerror(errno)), exit(1);
 
     pos += len;

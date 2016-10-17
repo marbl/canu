@@ -303,7 +303,7 @@ main(int argc, char **argv) {
     endID = numReads;
 
   if (endID < bgnID)
-    fprintf(stderr, "No reads to dump; reversed ranges make no sense: bgn="F_U32" end="F_U32"??\n", bgnID, endID);
+    fprintf(stderr, "No reads to dump; reversed ranges make no sense: bgn=" F_U32 " end=" F_U32 "??\n", bgnID, endID);
 
 
 
@@ -402,22 +402,22 @@ main(int argc, char **argv) {
     if (dumpFASTA)  //  Dear GCC:  I'm NOT ambiguous
       if ((withReadName == true) && (name != NULL))
         AS_UTL_writeFastA(out[libID]->getFASTA(), seq, clen, 100,
-                        ">%s id="F_U32" clr="F_U32","F_U32"\n",
+                        ">%s id=" F_U32 " clr=" F_U32 "," F_U32 "\n",
                         name, rid, lclr, rclr);
       else
         AS_UTL_writeFastA(out[libID]->getFASTA(), seq, clen, 100,
-                          ">"F_U32" clr="F_U32","F_U32"\n",
+                          ">" F_U32 " clr=" F_U32 "," F_U32 "\n",
                           rid, lclr, rclr);
 
     if (dumpFASTQ)  //  Dear GCC:  I'm NOT ambiguous
       if ((withReadName == true) && (name != NULL))
         AS_UTL_writeFastQ(out[libID]->getFASTQ(), seq, clen, qlt, clen,
-                          "@%s id="F_U32" clr="F_U32","F_U32"\n",
+                          "@%s id=" F_U32 " clr=" F_U32 "," F_U32 "\n",
                           name,
                           rid, lclr, rclr);
       else
         AS_UTL_writeFastQ(out[libID]->getFASTQ(), seq, clen, qlt, clen,
-                          "@"F_U32" clr="F_U32","F_U32"\n",
+                          "@" F_U32 " clr=" F_U32 "," F_U32 "\n",
                           rid, lclr, rclr);
   }
 

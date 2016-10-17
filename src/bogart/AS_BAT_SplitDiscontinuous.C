@@ -49,7 +49,7 @@ makeNewUnitig(TigVector    &tigs,
   Unitig *dangler = tigs.newUnitig(false);
 
   if (logFileFlagSet(LOG_SPLIT_DISCONTINUOUS))
-    writeLog("splitDiscontinuous()--   new tig "F_U32" with "F_U32" reads (starting at read "F_U32").\n",
+    writeLog("splitDiscontinuous()--   new tig " F_U32 " with " F_U32 " reads (starting at read " F_U32 ").\n",
             dangler->id(), splitReadsLen, splitReads[0].ident);
 
   int splitOffset = -MIN(splitReads[0].position.bgn, splitReads[0].position.end);
@@ -95,7 +95,7 @@ void splitDiscontinuous(TigVector &tigs, uint32 minOverlap) {
     if (minPos == 0)
       continue;
 
-    writeLog("splitDiscontinuous()-- tig "F_U32" offset messed up; reset by "F_S32".\n", tig->id(), minPos);
+    writeLog("splitDiscontinuous()-- tig " F_U32 " offset messed up; reset by " F_S32 ".\n", tig->id(), minPos);
 
     for (uint32 fi=0; fi<tig->ufpath.size(); fi++) {
       ufNode  *frg = &tig->ufpath[fi];
@@ -148,7 +148,7 @@ void splitDiscontinuous(TigVector &tigs, uint32 minOverlap) {
     maxEnd        = 0;
 
     if (logFileFlagSet(LOG_SPLIT_DISCONTINUOUS))
-      writeLog("splitDiscontinuous()-- discontinuous tig "F_U32" with "F_SIZE_T" reads broken into:\n",
+      writeLog("splitDiscontinuous()-- discontinuous tig " F_U32 " with " F_SIZE_T " reads broken into:\n",
               tig->id(), tig->ufpath.size());
 
     for (uint32 fi=0; fi<tig->ufpath.size(); fi++) {
@@ -198,10 +198,10 @@ void splitDiscontinuous(TigVector &tigs, uint32 minOverlap) {
   delete [] splitReads;
 
   if (numSplit == 0)
-    writeStatus("splitDiscontinuous()-- Tested "F_U32" tig%s, split none.\n",
+    writeStatus("splitDiscontinuous()-- Tested " F_U32 " tig%s, split none.\n",
                 numTested,  (numTested  == 1) ? "" : "s");
   else
-    writeStatus("splitDiscontinuous()-- Tested "F_U32" tig%s, split "F_U32" tig%s into "F_U32" new tig%s.\n",
+    writeStatus("splitDiscontinuous()-- Tested " F_U32 " tig%s, split " F_U32 " tig%s into " F_U32 " new tig%s.\n",
                 numTested,  (numTested  == 1) ? "" : "s",
                 numSplit,   (numSplit   == 1) ? "" : "s",
                 numCreated, (numCreated == 1) ? "" : "s");

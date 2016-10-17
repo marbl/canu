@@ -133,26 +133,26 @@ main(int argc, char **argv) {
     if (AS_UTL_fileExists(name, FALSE, FALSE) == true)
       complete++;
     else
-      fprintf(stderr, "ERROR: Segment "F_U32" data not present  (%s)\n", i, name);
+      fprintf(stderr, "ERROR: Segment " F_U32 " data not present  (%s)\n", i, name);
 
     sprintf(name, "%s/%04d.info", ovlName, i);
     if (AS_UTL_fileExists(name, FALSE, FALSE) == true)
       complete++;
     else
-      fprintf(stderr, "ERROR: Segment "F_U32" info not present (%s)\n", i, name);
+      fprintf(stderr, "ERROR: Segment " F_U32 " info not present (%s)\n", i, name);
 
     sprintf(name, "%s/%04d.index", ovlName, i);
     if (AS_UTL_fileExists(name, FALSE, FALSE) == true)
       complete++;
     else
-      fprintf(stderr, "ERROR: Segment "F_U32" index not present (%s)\n", i, name);
+      fprintf(stderr, "ERROR: Segment " F_U32 " index not present (%s)\n", i, name);
 
     if (complete == 3)
       cntJob++;
   }
 
   if (cntJob != maxJob) {
-    fprintf(stderr, "ERROR: Expected "F_U32" segments, only found "F_U32".\n", maxJob, cntJob);
+    fprintf(stderr, "ERROR: Expected " F_U32 " segments, only found " F_U32 ".\n", maxJob, cntJob);
     exit(1);
   }
 

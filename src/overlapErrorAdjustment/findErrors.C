@@ -93,7 +93,7 @@ Extract_Needed_Frags(feParameters *G,
   assert(loID <= fi);
 
   fprintf(stderr, "\n");
-  fprintf(stderr, "Extract_Needed_Frags()--  Loading used reads between "F_U32" and "F_U32", at overlap "F_U64".\n", fi, hiID, lastOlap);
+  fprintf(stderr, "Extract_Needed_Frags()--  Loading used reads between " F_U32 " and " F_U32 ", at overlap " F_U64 ".\n", fi, hiID, lastOlap);
 
   while (fi <= hiID) {
     gkRead *read = gkpStore->gkStore_getRead(fi);
@@ -109,7 +109,7 @@ Extract_Needed_Frags(feParameters *G,
     fi = (lastOlap < G->olapsLen) ? G->olaps[lastOlap].b_iid : hiID + 1;
   }
 
-  fprintf(stderr, "Extract_Needed_Frags()--  Loading reads for overlaps "F_U64" to "F_U64" (reads "F_U32" bases "F_U64")\n", nextOlap, lastOlap, fl->readsLen, fl->basesLen);
+  fprintf(stderr, "Extract_Needed_Frags()--  Loading reads for overlaps " F_U64 " to " F_U64 " (reads " F_U32 " bases " F_U64 ")\n", nextOlap, lastOlap, fl->readsLen, fl->basesLen);
 
   //  Ensure there is space.
 
@@ -117,7 +117,7 @@ Extract_Needed_Frags(feParameters *G,
     delete [] fl->readIDs;
     delete [] fl->readBases;
 
-    //fprintf(stderr, "Extract_Needed_Frags()--  realloc reads from "F_U32" to "F_U32"\n", fl->readsMax, 12 * fl->readsLen / 10);
+    //fprintf(stderr, "Extract_Needed_Frags()--  realloc reads from " F_U32 " to " F_U32 "\n", fl->readsMax, 12 * fl->readsLen / 10);
 
     fl->readIDs   = new uint32 [12 * fl->readsLen / 10];
     fl->readBases = new char * [12 * fl->readsLen / 10];
@@ -128,7 +128,7 @@ Extract_Needed_Frags(feParameters *G,
   if (fl->basesMax < fl->basesLen) {
     delete [] fl->bases;
 
-    //fprintf(stderr, "Extract_Needed_Frags()--  realloc bases from "F_U64" to "F_U64"\n", fl->basesMax, 12 * fl->basesLen / 10);
+    //fprintf(stderr, "Extract_Needed_Frags()--  realloc bases from " F_U64 " to " F_U64 "\n", fl->basesMax, 12 * fl->basesLen / 10);
 
     fl->bases       = new char [12 * fl->basesLen / 10];
 
@@ -179,11 +179,11 @@ Extract_Needed_Frags(feParameters *G,
   fl->readsLen = ii;
 
   if (fl->readsLen > 0)
-    fprintf(stderr, "Extract_Needed_Frags()--  Loaded "F_U32" reads (%.4f%%).  Loaded IDs "F_U32" through "F_U32".\n",
+    fprintf(stderr, "Extract_Needed_Frags()--  Loaded " F_U32 " reads (%.4f%%).  Loaded IDs " F_U32 " through " F_U32 ".\n",
             fl->readsLen, 100.0 * fl->readsLen / (hiID - 1 - loID),
             fl->readIDs[0], fl->readIDs[fl->readsLen-1]);
   else
-    fprintf(stderr, "Extract_Needed_Frags()--  Loaded "F_U32" reads (%.4f%%).\n",
+    fprintf(stderr, "Extract_Needed_Frags()--  Loaded " F_U32 " reads (%.4f%%).\n",
             fl->readsLen, 100.0 * fl->readsLen / (hiID - 1 - loID));
 }
 
@@ -504,8 +504,8 @@ main(int argc, char **argv) {
   //  All done.  Sum up what we did.
 
   fprintf(stderr, "\n");
-  fprintf(stderr, "Passed overlaps = %10"F_U64P" %8.4f%%\n", passedOlaps, 100.0 * passedOlaps / (failedOlaps + passedOlaps));
-  fprintf(stderr, "Failed overlaps = %10"F_U64P" %8.4f%%\n", failedOlaps, 100.0 * failedOlaps / (failedOlaps + passedOlaps));
+  fprintf(stderr, "Passed overlaps = %10" F_U64P " %8.4f%%\n", passedOlaps, 100.0 * passedOlaps / (failedOlaps + passedOlaps));
+  fprintf(stderr, "Failed overlaps = %10" F_U64P " %8.4f%%\n", failedOlaps, 100.0 * failedOlaps / (failedOlaps + passedOlaps));
 
   //  Dump output.
 

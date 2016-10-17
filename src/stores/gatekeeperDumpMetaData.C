@@ -41,7 +41,7 @@ dumpLibs(gkStore *gkp, uint32 bgnID, uint32 endID) {
   for (uint32 lid=bgnID; lid<=endID; lid++) {
     gkLibrary  *library = gkp->gkStore_getLibrary(lid);
 
-    fprintf(stdout, F_U32"\t"F_U32"\t%s\t%s\t%s\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t%s\n",
+    fprintf(stdout, F_U32"\t" F_U32 "\t%s\t%s\t%s\t" F_U32 "\t" F_U32 "\t" F_U32 "\t" F_U32 "\t" F_U32 "\t%s\n",
             library->gkLibrary_libraryID(),
             library->gkLibrary_isNonRandom(),
             library->gkLibrary_readTypeString(),
@@ -68,12 +68,12 @@ dumpReads(gkStore *gkp, uint32 bgnID, uint32 endID, bool fullDump) {
       continue;
 
     if (fullDump == false)
-      fprintf(stdout, F_U32"\t"F_U32"\t"F_U32"\n",
+      fprintf(stdout, F_U32"\t" F_U32 "\t" F_U32 "\n",
               read->gkRead_readID(),
               read->gkRead_libraryID(),
               read->gkRead_sequenceLength());
     else
-      fprintf(stdout, F_U32"\t"F_U32"\t"F_U32"\t"F_U64"\t"F_U64"\n",
+      fprintf(stdout, F_U32"\t" F_U32 "\t" F_U32 "\t" F_U64 "\t" F_U64 "\n",
               read->gkRead_readID(),
               read->gkRead_libraryID(),
               read->gkRead_sequenceLength(),
@@ -147,7 +147,7 @@ dumpStats(gkStore *gkp, uint32 bgnID, uint32 endID) {
   //    length histogram plot
 
   for (uint32 l=0; l<gkp->gkStore_getNumLibraries() + 1; l++) {
-    fprintf(stdout, "library "F_U32"  reads "F_U32" bases: total "F_U64" ave "F_U64" min "F_U64" max "F_U64"\n",
+    fprintf(stdout, "library " F_U32 "  reads " F_U32 " bases: total " F_U64 " ave " F_U64 " min " F_U64 " max " F_U64 "\n",
             l, rs[l].numberOfReads(), rs[l].numberOfBases(), rs[l].numberOfBases() / rs[l].numberOfReads(), rs[l].minBases(), rs[l].maxBases());
   }
 }
@@ -256,7 +256,7 @@ main(int argc, char **argv) {
 
 
   if (endID < bgnID)
-    fprintf(stderr, "No objects to dump; reversed ranges make no sense: bgn="F_U32" end="F_U32"??\n", bgnID, endID);
+    fprintf(stderr, "No objects to dump; reversed ranges make no sense: bgn=" F_U32 " end=" F_U32 "??\n", bgnID, endID);
 
 
   if (wantLibs)

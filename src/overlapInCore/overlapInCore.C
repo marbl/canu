@@ -249,11 +249,11 @@ OverlapDriver(void) {
     fprintf(stderr, "\n");
     fprintf(stderr, "Range: %u-%u.  Store has %u reads.\n",
             G.bgnRefID, G.endRefID, gkpStore->gkStore_getNumReads());
-    fprintf(stderr, "Chunk: "F_U32" reads/thread -- (G.endRefID="F_U32" - G.bgnRefID="F_U32") / G.Num_PThreads="F_U32" / 8\n",
+    fprintf(stderr, "Chunk: " F_U32 " reads/thread -- (G.endRefID=" F_U32 " - G.bgnRefID=" F_U32 ") / G.Num_PThreads=" F_U32 " / 8\n",
             G.perThread, G.endRefID, G.bgnRefID, G.Num_PThreads);
 
     fprintf(stderr, "\n");
-    fprintf(stderr, "Starting "F_U32"-"F_U32" with "F_U32" per thread\n", G.bgnRefID, G.endRefID, G.perThread);
+    fprintf(stderr, "Starting " F_U32 "-" F_U32 " with " F_U32 " per thread\n", G.bgnRefID, G.endRefID, G.perThread);
     fprintf(stderr, "\n");
 
     //  Initialize each thread, reset the current position.  curRefID and endRefID are updated, this
@@ -423,7 +423,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "* No kmer length supplied; -k needed!\n"), err++;
 
   if (G.Max_Hash_Strings > MAX_STRING_NUM)
-    fprintf(stderr, "Too many strings (--hashstrings), must be less than "F_U64"\n", MAX_STRING_NUM), err++;
+    fprintf(stderr, "Too many strings (--hashstrings), must be less than " F_U64 "\n", MAX_STRING_NUM), err++;
 
   if (G.Outfile_Name == NULL)
     fprintf (stderr, "ERROR:  No output file name specified\n"), err++;
@@ -491,22 +491,22 @@ main(int argc, char **argv) {
   //  Log parameters.
 
   fprintf(stderr, "\n");
-  fprintf(stderr, "STRING_NUM_BITS       "F_U32"\n", STRING_NUM_BITS);
-  fprintf(stderr, "OFFSET_BITS           "F_U32"\n", OFFSET_BITS);
-  fprintf(stderr, "STRING_NUM_MASK       "F_U64"\n", STRING_NUM_MASK);
-  fprintf(stderr, "OFFSET_MASK           "F_U64"\n", OFFSET_MASK);
-  fprintf(stderr, "MAX_STRING_NUM        "F_U64"\n", MAX_STRING_NUM);
+  fprintf(stderr, "STRING_NUM_BITS       " F_U32 "\n", STRING_NUM_BITS);
+  fprintf(stderr, "OFFSET_BITS           " F_U32 "\n", OFFSET_BITS);
+  fprintf(stderr, "STRING_NUM_MASK       " F_U64 "\n", STRING_NUM_MASK);
+  fprintf(stderr, "OFFSET_MASK           " F_U64 "\n", OFFSET_MASK);
+  fprintf(stderr, "MAX_STRING_NUM        " F_U64 "\n", MAX_STRING_NUM);
   fprintf(stderr, "\n");
-  fprintf(stderr, "Hash_Mask_Bits        "F_U32"\n", G.Hash_Mask_Bits);
-  fprintf(stderr, "Max_Hash_Strings      "F_U32"\n", G.Max_Hash_Strings);
-  fprintf(stderr, "Max_Hash_Data_Len     "F_U64"\n", G.Max_Hash_Data_Len);
+  fprintf(stderr, "Hash_Mask_Bits        " F_U32 "\n", G.Hash_Mask_Bits);
+  fprintf(stderr, "Max_Hash_Strings      " F_U32 "\n", G.Max_Hash_Strings);
+  fprintf(stderr, "Max_Hash_Data_Len     " F_U64 "\n", G.Max_Hash_Data_Len);
   fprintf(stderr, "Max_Hash_Load         %f\n", G.Max_Hash_Load);
-  fprintf(stderr, "Kmer Length           "F_U64"\n", G.Kmer_Len);
+  fprintf(stderr, "Kmer Length           " F_U64 "\n", G.Kmer_Len);
   fprintf(stderr, "Min Overlap Length    %d\n", G.Min_Olap_Len);
   fprintf(stderr, "Max Error Rate        %f\n", G.maxErate);
-  fprintf(stderr, "Min Kmer Matches      "F_U64"\n", G.Filter_By_Kmer_Count);
+  fprintf(stderr, "Min Kmer Matches      " F_U64 "\n", G.Filter_By_Kmer_Count);
   fprintf(stderr, "\n");
-  fprintf(stderr, "Num_PThreads          "F_U32"\n", G.Num_PThreads);
+  fprintf(stderr, "Num_PThreads          " F_U32 "\n", G.Num_PThreads);
 
   omp_set_num_threads(G.Num_PThreads);
 
@@ -527,16 +527,16 @@ main(int argc, char **argv) {
   }
 
   fprintf(stderr, "\n");
-  fprintf(stderr, "HASH_TABLE_SIZE         "F_U32"\n",     HASH_TABLE_SIZE);
-  fprintf(stderr, "sizeof(Hash_Bucket_t)   "F_SIZE_T"\n",  sizeof(Hash_Bucket_t));
-  fprintf(stderr, "hash table size:        "F_SIZE_T" MB\n",  (HASH_TABLE_SIZE * sizeof(Hash_Bucket_t)) >> 20);
+  fprintf(stderr, "HASH_TABLE_SIZE         " F_U32 "\n",     HASH_TABLE_SIZE);
+  fprintf(stderr, "sizeof(Hash_Bucket_t)   " F_SIZE_T "\n",  sizeof(Hash_Bucket_t));
+  fprintf(stderr, "hash table size:        " F_SIZE_T " MB\n",  (HASH_TABLE_SIZE * sizeof(Hash_Bucket_t)) >> 20);
   fprintf(stderr, "\n");
 
   Hash_Table       = new Hash_Bucket_t [HASH_TABLE_SIZE];
 
-  fprintf(stderr, "check  "F_SIZE_T" MB\n", (HASH_TABLE_SIZE    * sizeof (Check_Vector_t) >> 20));
-  fprintf(stderr, "info   "F_SIZE_T" MB\n", (G.Max_Hash_Strings * sizeof (Hash_Frag_Info_t) >> 20));
-  fprintf(stderr, "start  "F_SIZE_T" MB\n", (G.Max_Hash_Strings * sizeof (int64) >> 20));
+  fprintf(stderr, "check  " F_SIZE_T " MB\n", (HASH_TABLE_SIZE    * sizeof (Check_Vector_t) >> 20));
+  fprintf(stderr, "info   " F_SIZE_T " MB\n", (G.Max_Hash_Strings * sizeof (Hash_Frag_Info_t) >> 20));
+  fprintf(stderr, "start  " F_SIZE_T " MB\n", (G.Max_Hash_Strings * sizeof (int64) >> 20));
   fprintf(stderr, "\n");
 
   Hash_Check_Array = new Check_Vector_t [HASH_TABLE_SIZE];
@@ -577,15 +577,15 @@ main(int argc, char **argv) {
     }
   }
 
-  fprintf(stats, " Kmer hits without olaps = "F_S64"\n", Kmer_Hits_Without_Olap_Ct);
-  fprintf(stats, "    Kmer hits with olaps = "F_S64"\n", Kmer_Hits_With_Olap_Ct);
-  //fprintf(stats, "      Kmer hits below %u = "F_S64"\n", G.Filter_By_Kmer_Count, Kmer_Hits_Skipped_Ct);
-  fprintf(stats, "  Multiple overlaps/pair = "F_S64"\n", Multi_Overlap_Ct);
-  fprintf(stats, " Total overlaps produced = "F_S64"\n", Total_Overlaps);
-  fprintf(stats, "      Contained overlaps = "F_S64"\n", Contained_Overlap_Ct);
-  fprintf(stats, "       Dovetail overlaps = "F_S64"\n", Dovetail_Overlap_Ct);
-  fprintf(stats, "Rejected by short window = "F_S64"\n", Bad_Short_Window_Ct);
-  fprintf(stats, " Rejected by long window = "F_S64"\n", Bad_Long_Window_Ct);
+  fprintf(stats, " Kmer hits without olaps = " F_S64 "\n", Kmer_Hits_Without_Olap_Ct);
+  fprintf(stats, "    Kmer hits with olaps = " F_S64 "\n", Kmer_Hits_With_Olap_Ct);
+  //fprintf(stats, "      Kmer hits below %u = " F_S64 "\n", G.Filter_By_Kmer_Count, Kmer_Hits_Skipped_Ct);
+  fprintf(stats, "  Multiple overlaps/pair = " F_S64 "\n", Multi_Overlap_Ct);
+  fprintf(stats, " Total overlaps produced = " F_S64 "\n", Total_Overlaps);
+  fprintf(stats, "      Contained overlaps = " F_S64 "\n", Contained_Overlap_Ct);
+  fprintf(stats, "       Dovetail overlaps = " F_S64 "\n", Dovetail_Overlap_Ct);
+  fprintf(stats, "Rejected by short window = " F_S64 "\n", Bad_Short_Window_Ct);
+  fprintf(stats, " Rejected by long window = " F_S64 "\n", Bad_Long_Window_Ct);
 
   if (stats != stderr)
     fclose(stats);

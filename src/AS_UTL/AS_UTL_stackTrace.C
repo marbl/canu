@@ -82,7 +82,7 @@ AS_UTL_envokeGDB(void) {
 
   //  Child
 
-  sprintf(cmd, "gdb -quiet -silent -p "F_U64" -batch -x commands", pid);
+  sprintf(cmd, "gdb -quiet -silent -p " F_U64 " -batch -x commands", pid);
   system(cmd);
   exit(0);
 #endif

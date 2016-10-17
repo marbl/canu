@@ -149,7 +149,7 @@ AS_configure(int argc, char **argv) {
 
   //  Construct a name for this log, and open it.  If we can't open it, just skip the log.
 
-  sprintf(N, "%s/"F_U64"_%s_"F_U64"_%s",
+  sprintf(N, "%s/" F_U64 "_%s_" F_U64 "_%s",
           D,
           (uint64)time(NULL),
           H,

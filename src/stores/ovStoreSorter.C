@@ -155,7 +155,7 @@ main(int argc, char **argv) {
     sprintf(name,"%s/%04d.ovs", storePath, fileID);
 
     if ((forceRun == false) && (AS_UTL_fileExists(name, FALSE, FALSE)))
-      fprintf(stderr, "Job "F_U32" is running or finished (remove '%s' or -force to try again).\n", fileID, name), exit(0);
+      fprintf(stderr, "Job " F_U32 " is running or finished (remove '%s' or -force to try again).\n", fileID, name), exit(0);
 
     errno = 0;
     FILE *F = fopen(name, "w");
@@ -201,11 +201,11 @@ main(int argc, char **argv) {
 
     if (nr != fileLimit + 1) {
       fprintf(stderr, "ERROR: short read on '%s'.\n", name);
-      fprintf(stderr, "ERROR: read "F_U64" sizes insteadof "F_U32".\n", nr, fileLimit + 1);
+      fprintf(stderr, "ERROR: read " F_U64 " sizes insteadof " F_U32 ".\n", nr, fileLimit + 1);
     }
     assert(nr == fileLimit + 1);
 
-    fprintf(stderr, "Found "F_U64" overlaps from '%s'.\n", sliceSizes[fileID], name);
+    fprintf(stderr, "Found " F_U64 " overlaps from '%s'.\n", sliceSizes[fileID], name);
 
     bucketSizes[i] = sliceSizes[fileID];
     totOvl        += sliceSizes[fileID];
@@ -215,7 +215,7 @@ main(int argc, char **argv) {
   sliceSizes = NULL;
 
   if (ovOverlapSortSize * totOvl > maxMemory) {
-    fprintf(stderr, "ERROR:  Overlaps need %.2f GB memory, but process limited (via -M) to "F_U64" GB.\n",
+    fprintf(stderr, "ERROR:  Overlaps need %.2f GB memory, but process limited (via -M) to " F_U64 " GB.\n",
             ovOverlapSortSize * totOvl / 1024.0 / 1024.0 / 1024.0, maxMemory >> 30);
 
     char name[FILENAME_MAX];
@@ -226,7 +226,7 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  fprintf(stderr, "Overlaps need %.2f GB memory, allowed to use up to (via -M) "F_U64" GB.\n",
+  fprintf(stderr, "Overlaps need %.2f GB memory, allowed to use up to (via -M) " F_U64 " GB.\n",
           ovOverlapSortSize * totOvl / 1024.0 / 1024.0 / 1024.0, maxMemory >> 30);
 
   ovOverlap *ovls = ovOverlap::allocateOverlaps(NULL, totOvl);
@@ -245,10 +245,10 @@ main(int argc, char **argv) {
       sprintf(name, "%s/bucket%04d/slice%03d", storePath, i, fileID);
 
     if (AS_UTL_fileExists(name, FALSE, FALSE) == false)
-      fprintf(stderr, "ERROR: "F_U64" overlaps claim to exist in bucket '%s', but file not found.\n",
+      fprintf(stderr, "ERROR: " F_U64 " overlaps claim to exist in bucket '%s', but file not found.\n",
               bucketSizes[i], name);
 
-    fprintf(stderr, "Loading "F_U64" overlaps from '%s'.\n", bucketSizes[i], name);
+    fprintf(stderr, "Loading " F_U64 " overlaps from '%s'.\n", bucketSizes[i], name);
 
     ovFile   *bof = new ovFile(name, ovFileFull);
     uint64    num = 0;
@@ -259,14 +259,14 @@ main(int argc, char **argv) {
     }
 
     if (num != bucketSizes[i])
-      fprintf(stderr, "ERROR: expected "F_U64" overlaps, found "F_U64" overlaps.\n", bucketSizes[i], num);
+      fprintf(stderr, "ERROR: expected " F_U64 " overlaps, found " F_U64 " overlaps.\n", bucketSizes[i], num);
     assert(num == bucketSizes[i]);
 
     delete bof;
   }
 
   if (ovlsLen != totOvl)
-    fprintf(stderr, "ERROR: read "F_U64" overlaps, expected "F_U64"\n", ovlsLen, totOvl);
+    fprintf(stderr, "ERROR: read " F_U64 " overlaps, expected " F_U64 "\n", ovlsLen, totOvl);
   assert(ovlsLen == totOvl);
 
   if (deleteIntermediateEarly) {

@@ -473,7 +473,7 @@ NDalign::findHits(void) {
 
     if ((apos - bpos < _minDiag) ||
         (apos - bpos > _maxDiag))
-      fprintf(stderr, "NDalign::findHits()-- kmer "F_X64" apos - bpos = %d  _minDiag = %d  _maxDiag = %d\n",
+      fprintf(stderr, "NDalign::findHits()-- kmer " F_X64 " apos - bpos = %d  _minDiag = %d  _maxDiag = %d\n",
               kmer, apos-bpos, _minDiag, _maxDiag);
     assert(apos - bpos >= _minDiag);  //  ...these too.
     assert(apos - bpos <= _maxDiag);

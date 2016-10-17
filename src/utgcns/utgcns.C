@@ -349,10 +349,10 @@ main (int argc, char **argv) {
 
   //  Report some sizes.
 
-  fprintf(stderr, "sizeof(abBead)     "F_SIZE_T"\n", sizeof(abBead));
-  fprintf(stderr, "sizeof(abColumn)   "F_SIZE_T"\n", sizeof(abColumn));
-  fprintf(stderr, "sizeof(abAbacus)   "F_SIZE_T"\n", sizeof(abAbacus));
-  fprintf(stderr, "sizeof(abSequence) "F_SIZE_T"\n", sizeof(abSequence));
+  fprintf(stderr, "sizeof(abBead)     " F_SIZE_T "\n", sizeof(abBead));
+  fprintf(stderr, "sizeof(abColumn)   " F_SIZE_T "\n", sizeof(abColumn));
+  fprintf(stderr, "sizeof(abAbacus)   " F_SIZE_T "\n", sizeof(abAbacus));
+  fprintf(stderr, "sizeof(abSequence) " F_SIZE_T "\n", sizeof(abSequence));
 
   //  Decide on what to compute.  Either all unitigs, or a single unitig, or a special case test.
 
@@ -372,12 +372,12 @@ main (int argc, char **argv) {
       e = utgEnd;
     }
 
-    fprintf(stderr, "-- Computing unitig consensus for b="F_U32" to e="F_U32" with errorRate %0.4f (max %0.4f) and minimum overlap "F_U32"\n",
+    fprintf(stderr, "-- Computing unitig consensus for b=" F_U32 " to e=" F_U32 " with errorRate %0.4f (max %0.4f) and minimum overlap " F_U32 "\n",
             b, e, errorRate, errorRateMax, minOverlap);
   }
 
   else {
-    fprintf(stderr, "-- Computing unitig consensus with errorRate %0.4f (max %0.4f) and minimum overlap "F_U32"\n",
+    fprintf(stderr, "-- Computing unitig consensus with errorRate %0.4f (max %0.4f) and minimum overlap " F_U32 "\n",
             errorRate, errorRateMax, minOverlap);
   }
 

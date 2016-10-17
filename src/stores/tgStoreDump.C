@@ -250,7 +250,7 @@ dumpStatus(gkStore *UNUSED(gkpStore), tgStore *tigStore) {
 
 void
 dumpTig(FILE *out, tgTig *tig, bool useGapped) {
-  fprintf(out, F_U32"\t"F_U32"\t%s\t%.2f\t%.2f\t%s\t%s\t%s\t"F_U32"\n",
+  fprintf(out, F_U32"\t" F_U32 "\t%s\t%.2f\t%.2f\t%s\t%s\t%s\t" F_U32 "\n",
           tig->tigID(),
           tig->length(useGapped),
           tig->coordinateType(useGapped),
@@ -266,7 +266,7 @@ dumpTig(FILE *out, tgTig *tig, bool useGapped) {
 
 void
 dumpRead(FILE *out, tgTig *tig, tgPosition *read, bool useGapped) {
-  fprintf(out, F_U32"\t"F_U32"\t%s\t"F_U32"\t"F_U32"\n",
+  fprintf(out, F_U32"\t" F_U32 "\t%s\t" F_U32 "\t" F_U32 "\n",
           read->ident(),
           tig->tigID(),
           tig->coordinateType(useGapped),
@@ -549,7 +549,7 @@ plotDepthHistogram(char *N, uint64 *cov, uint32 covMax) {
     fprintf(stderr, "Failed to open '%s' for writing: %s\n", N, strerror(errno));
 
   for (uint32 ii=minii; ii<=maxii; ii++)
-    fprintf(F, F_U32"\t"F_U64"\n", ii, cov[ii]);
+    fprintf(F, F_U32"\t" F_U64 "\n", ii, cov[ii]);
 
   fclose(F);
 }
@@ -1243,13 +1243,13 @@ main (int argc, char **argv) {
     filter.tigIDend = nTigs-1;
 
   if (nTigs <= filter.tigIDend) {
-    fprintf(stderr, "WARNING: adjusting tig ID range from "F_U32"-"F_U32" to "F_U32"-"F_U32" as there are only "F_U32" tigs in the store.\n",
+    fprintf(stderr, "WARNING: adjusting tig ID range from " F_U32 "-" F_U32 " to " F_U32 "-" F_U32 " as there are only " F_U32 " tigs in the store.\n",
             filter.tigIDbgn, filter.tigIDend, filter.tigIDbgn, nTigs-1, nTigs);
     filter.tigIDend = nTigs - 1;
   }
 
   if (filter.tigIDend < filter.tigIDbgn) {
-    fprintf(stderr, "WARNING: adjusting inverted tig ID range -t "F_U32"-"F_U32"\n",
+    fprintf(stderr, "WARNING: adjusting inverted tig ID range -t " F_U32 "-" F_U32 "\n",
             filter.tigIDbgn, filter.tigIDend);
     uint32 x = filter.tigIDend;
     filter.tigIDend = filter.tigIDbgn;
@@ -1257,7 +1257,7 @@ main (int argc, char **argv) {
   }
 
   if (nTigs <= filter.tigIDbgn)
-    fprintf(stderr, "ERROR: only "F_U32" tigs in the store (IDs 0-"F_U32" inclusive); can't dump requested range -t "F_U32"-"F_U32"\n",
+    fprintf(stderr, "ERROR: only " F_U32 " tigs in the store (IDs 0-" F_U32 " inclusive); can't dump requested range -t " F_U32 "-" F_U32 "\n",
             nTigs,
             nTigs-1,
             filter.tigIDbgn, filter.tigIDend), exit(1);

@@ -191,7 +191,7 @@ overlapReadCache::purgeReads(void) {
 
   while ((memoryLimit < memoryUsed) &&
          (maxAge > 1)) {
-    fprintf(stderr, "purgeReads()--  used "F_U64"MB limit "F_U64"MB -- purge age "F_U32"\n", memoryUsed >> 20, memoryLimit >> 20, maxAge);
+    fprintf(stderr, "purgeReads()--  used " F_U64 "MB limit " F_U64 "MB -- purge age " F_U32 "\n", memoryUsed >> 20, memoryLimit >> 20, maxAge);
 
     for (uint32 rr=0; rr<=nReads; rr++) {
       if (maxAge == readAge[rr]) {

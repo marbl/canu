@@ -222,7 +222,7 @@ main(int argc, char **argv) {
   if (idMax > gkp->gkStore_getNumReads())
     idMax = gkp->gkStore_getNumReads();
 
-  fprintf(stderr, "Processing from ID "F_U32" to "F_U32" out of "F_U32" reads, using errorRate = %.2f\n",
+  fprintf(stderr, "Processing from ID " F_U32 " to " F_U32 " out of " F_U32 " reads, using errorRate = %.2f\n",
           idMin,
           idMax,
           gkp->gkStore_getNumReads(),
@@ -412,55 +412,55 @@ main(int argc, char **argv) {
   //fprintf(staFile, "%7u    (use only overlaps longer than this)\n", minAlignLength);  //  NOT SUPPORTED!
   fprintf(staFile, "INPUT READS:\n");
   fprintf(staFile, "-----------\n");
-  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (reads processed)\n", readsIn.nReads, readsIn.nBases);
-  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (reads not processed, previously deleted)\n", deletedIn.nReads, deletedIn.nBases);
-  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (reads not processed, in a library where trimming isn't allowed)\n", noTrimIn.nReads, noTrimIn.nBases);
+  fprintf(staFile, "%6" F_U32P " reads %12" F_U64P " bases (reads processed)\n", readsIn.nReads, readsIn.nBases);
+  fprintf(staFile, "%6" F_U32P " reads %12" F_U64P " bases (reads not processed, previously deleted)\n", deletedIn.nReads, deletedIn.nBases);
+  fprintf(staFile, "%6" F_U32P " reads %12" F_U64P " bases (reads not processed, in a library where trimming isn't allowed)\n", noTrimIn.nReads, noTrimIn.nBases);
   fprintf(staFile, "\n");
   fprintf(staFile, "PROCESSED:\n");
   fprintf(staFile, "--------\n");
-  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (no overlaps)\n", noOverlaps.nReads, noOverlaps.nBases);
-  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (no coverage after adjusting for trimming done already)\n", noCoverage.nReads, noCoverage.nBases);
-  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (processed for chimera)\n",  readsProcChimera.nReads, readsProcChimera.nBases);
-  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (processed for spur)\n",     readsProcSpur.nReads,    readsProcSpur.nBases);
-  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (processed for subreads)\n", readsProcSubRead.nReads, readsProcSubRead.nBases);
+  fprintf(staFile, "%6" F_U32P " reads %12" F_U64P " bases (no overlaps)\n", noOverlaps.nReads, noOverlaps.nBases);
+  fprintf(staFile, "%6" F_U32P " reads %12" F_U64P " bases (no coverage after adjusting for trimming done already)\n", noCoverage.nReads, noCoverage.nBases);
+  fprintf(staFile, "%6" F_U32P " reads %12" F_U64P " bases (processed for chimera)\n",  readsProcChimera.nReads, readsProcChimera.nBases);
+  fprintf(staFile, "%6" F_U32P " reads %12" F_U64P " bases (processed for spur)\n",     readsProcSpur.nReads,    readsProcSpur.nBases);
+  fprintf(staFile, "%6" F_U32P " reads %12" F_U64P " bases (processed for subreads)\n", readsProcSubRead.nReads, readsProcSubRead.nBases);
   fprintf(staFile, "\n");
   fprintf(staFile, "READS WITH SIGNALS:\n");
   fprintf(staFile, "------------------\n");
-  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" signals (number of 5' spur signal)\n", readsBadSpur5.nReads,   readsBadSpur5.nBases);
-  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" signals (number of 3' spur signal)\n", readsBadSpur3.nReads,   readsBadSpur3.nBases);
-  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" signals (number of chimera signal)\n", readsBadChimera.nReads, readsBadChimera.nBases);
-  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" signals (number of subread signal)\n", readsBadSubread.nReads, readsBadSubread.nBases);
+  fprintf(staFile, "%6" F_U32P " reads %12" F_U64P " signals (number of 5' spur signal)\n", readsBadSpur5.nReads,   readsBadSpur5.nBases);
+  fprintf(staFile, "%6" F_U32P " reads %12" F_U64P " signals (number of 3' spur signal)\n", readsBadSpur3.nReads,   readsBadSpur3.nBases);
+  fprintf(staFile, "%6" F_U32P " reads %12" F_U64P " signals (number of chimera signal)\n", readsBadChimera.nReads, readsBadChimera.nBases);
+  fprintf(staFile, "%6" F_U32P " reads %12" F_U64P " signals (number of subread signal)\n", readsBadSubread.nReads, readsBadSubread.nBases);
   fprintf(staFile, "\n");
   fprintf(staFile, "SIGNALS:\n");
   fprintf(staFile, "-------\n");
-  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (size of 5' spur signal)\n", basesBadSpur5.nReads,   basesBadSpur5.nBases);
-  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (size of 3' spur signal)\n", basesBadSpur3.nReads,   basesBadSpur3.nBases);
-  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (size of chimera signal)\n", basesBadChimera.nReads, basesBadChimera.nBases);
-  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (size of subread signal)\n", basesBadSubread.nReads, basesBadSubread.nBases);
+  fprintf(staFile, "%6" F_U32P " reads %12" F_U64P " bases (size of 5' spur signal)\n", basesBadSpur5.nReads,   basesBadSpur5.nBases);
+  fprintf(staFile, "%6" F_U32P " reads %12" F_U64P " bases (size of 3' spur signal)\n", basesBadSpur3.nReads,   basesBadSpur3.nBases);
+  fprintf(staFile, "%6" F_U32P " reads %12" F_U64P " bases (size of chimera signal)\n", basesBadChimera.nReads, basesBadChimera.nBases);
+  fprintf(staFile, "%6" F_U32P " reads %12" F_U64P " bases (size of subread signal)\n", basesBadSubread.nReads, basesBadSubread.nBases);
   fprintf(staFile, "\n");
   fprintf(staFile, "TRIMMING:\n");
   fprintf(staFile, "--------\n");
-  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (trimmed from the 5' end of the read)\n", readsTrimmed5.nReads, readsTrimmed5.nBases);
-  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (trimmed from the 3' end of the read)\n", readsTrimmed3.nReads, readsTrimmed3.nBases);
+  fprintf(staFile, "%6" F_U32P " reads %12" F_U64P " bases (trimmed from the 5' end of the read)\n", readsTrimmed5.nReads, readsTrimmed5.nBases);
+  fprintf(staFile, "%6" F_U32P " reads %12" F_U64P " bases (trimmed from the 3' end of the read)\n", readsTrimmed3.nReads, readsTrimmed3.nBases);
 
 #if 0
   fprintf(staFile, "DELETED:\n");
   fprintf(staFile, "-------\n");
-  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (deleted because of both cimera and spur signals)\n", bothDeletedSmall.nReads, bothDeletedSmall.nBases);
-  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (deleted because of chimera signal)\n", chimeraDeletedSmall.nReads, chimeraDeletedSmall.nBases);
-  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (deleted because of spur signal)\n", spurDeletedSmall.nReads, spurDeletedSmall.nBases);
+  fprintf(staFile, "%6" F_U32P " reads %12" F_U64P " bases (deleted because of both cimera and spur signals)\n", bothDeletedSmall.nReads, bothDeletedSmall.nBases);
+  fprintf(staFile, "%6" F_U32P " reads %12" F_U64P " bases (deleted because of chimera signal)\n", chimeraDeletedSmall.nReads, chimeraDeletedSmall.nBases);
+  fprintf(staFile, "%6" F_U32P " reads %12" F_U64P " bases (deleted because of spur signal)\n", spurDeletedSmall.nReads, spurDeletedSmall.nBases);
   fprintf(staFile, "\n");
   fprintf(staFile, "SPUR TYPES:\n");
   fprintf(staFile, "----------\n");
-  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (normal spur detected)\n", spurDetectedNormal.nReads, spurDetectedNormal.nBases);
-  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (linker spur detected)\n", spurDetectedLinker.nReads, spurDetectedLinker.nBases);
+  fprintf(staFile, "%6" F_U32P " reads %12" F_U64P " bases (normal spur detected)\n", spurDetectedNormal.nReads, spurDetectedNormal.nBases);
+  fprintf(staFile, "%6" F_U32P " reads %12" F_U64P " bases (linker spur detected)\n", spurDetectedLinker.nReads, spurDetectedLinker.nBases);
   fprintf(staFile, "\n");
   fprintf(staFile, "CHIMERA TYPES:\n");
   fprintf(staFile, "-------------\n");
-  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (innie-pair chimera detected)\n", chimeraDetectedInnie.nReads, chimeraDetectedInnie.nBases);
-  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (overhanging chimera detected)\n", chimeraDetectedOverhang.nReads, chimeraDetectedOverhang.nBases);
-  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (gap chimera detected)\n", chimeraDetectedGap.nReads, chimeraDetectedGap.nBases);
-  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (linker chimera detected)\n", chimeraDetectedLinker.nReads, chimeraDetectedLinker.nBases);
+  fprintf(staFile, "%6" F_U32P " reads %12" F_U64P " bases (innie-pair chimera detected)\n", chimeraDetectedInnie.nReads, chimeraDetectedInnie.nBases);
+  fprintf(staFile, "%6" F_U32P " reads %12" F_U64P " bases (overhanging chimera detected)\n", chimeraDetectedOverhang.nReads, chimeraDetectedOverhang.nBases);
+  fprintf(staFile, "%6" F_U32P " reads %12" F_U64P " bases (gap chimera detected)\n", chimeraDetectedGap.nReads, chimeraDetectedGap.nBases);
+  fprintf(staFile, "%6" F_U32P " reads %12" F_U64P " bases (linker chimera detected)\n", chimeraDetectedLinker.nReads, chimeraDetectedLinker.nBases);
 #endif
 
   //  INPUT READS  = ACCEPTED + TRIMMED + DELETED

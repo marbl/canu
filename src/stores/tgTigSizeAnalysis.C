@@ -73,6 +73,7 @@ tgTigSizeAnalysis::evaluateTig(tgTig *tig, bool useGapped) {
     case tgTig_unassembled:   lenUnassembled.push_back(length);  break;
     case tgTig_bubble:        lenBubble.push_back(length);       break;
     case tgTig_contig:        lenContig.push_back(length);       break;
+    default:                                                     break;
   }
 }
 
@@ -112,7 +113,7 @@ tgTigSizeAnalysis::printSummary(FILE *out, char *description, vector<uint32> &da
     sum += data[i];
 
     while (siz * nnn / 100 < sum) {
-      fprintf(out, "%s ng%-3"F_U64P" %10"F_U32P" bp   lg%-3"F_U64P" %6"F_U64P"   sum %10"F_U64P" bp\n",
+      fprintf(out, "%s ng%-3" F_U64P " %10" F_U32P " bp   lg%-3" F_U64P " %6" F_U64P "   sum %10" F_U64P " bp\n",
               description,
               nnn, data[i],
               nnn, i+1,
@@ -122,9 +123,9 @@ tgTigSizeAnalysis::printSummary(FILE *out, char *description, vector<uint32> &da
     }
   }
 
-  fprintf(out, "%s sum %10"F_U64P" (genomeSize "F_U64")\n", description, tot, genomeSize);
-  fprintf(out, "%s num %10"F_U64P"\n", description, cnt);
-  fprintf(out, "%s ave %10"F_U64P"\n", description, tot / cnt);
+  fprintf(out, "%s sum %10" F_U64P " (genomeSize " F_U64 ")\n", description, tot, genomeSize);
+  fprintf(out, "%s num %10" F_U64P "\n", description, cnt);
+  fprintf(out, "%s ave %10" F_U64P "\n", description, tot / cnt);
 }
 
 

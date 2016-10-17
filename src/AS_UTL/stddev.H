@@ -520,7 +520,7 @@ public:
     fprintf(F, "#%s\tquantity\n", label);
 
     for (uint64 ii=0; ii <= _histogramMax; ii++)
-      fprintf(F, F_U64"\t"F_U64"\n", ii, _histogram[ii]);
+      fprintf(F, F_U64"\t" F_U64 "\n", ii, _histogram[ii]);
   };
 
 

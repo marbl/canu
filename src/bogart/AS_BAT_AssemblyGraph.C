@@ -751,13 +751,13 @@ AssemblyGraph::filterEdges(TigVector     &tigs) {
 
   //  Report
 
-  writeStatus("AssemblyGraph()-- "F_U64" contig edges and "F_U64" unitig edges.\n", nContig, nUnitig);
-  writeStatus("AssemblyGraph()-- "F_U64" bubble edges and "F_U64" repeat edges.\n", nBubble, nRepeat);
-  writeStatus("AssemblyGraph()-- "F_U64" middle contig edges filtered from "F_U64" reads.\n", nMiddleFiltered, nMiddleReads);
-  writeStatus("AssemblyGraph()-- "F_U64" repeat end edges filtered from "F_U64" reads.\n", nRepeatFiltered, nRepeatReads);
-  writeStatus("AssemblyGraph()-- "F_U64" repeat edges (not output).\n", nRepeatEdges);
-  writeStatus("AssemblyGraph()-- "F_U64" bubble edges.\n", nBubbleEdges);
-  writeStatus("AssemblyGraph()-- "F_U64" intersecting edges (from the end of a tig to somewhere else).\n", nIntersecting);
+  writeStatus("AssemblyGraph()-- " F_U64 " contig edges and " F_U64 " unitig edges.\n", nContig, nUnitig);
+  writeStatus("AssemblyGraph()-- " F_U64 " bubble edges and " F_U64 " repeat edges.\n", nBubble, nRepeat);
+  writeStatus("AssemblyGraph()-- " F_U64 " middle contig edges filtered from " F_U64 " reads.\n", nMiddleFiltered, nMiddleReads);
+  writeStatus("AssemblyGraph()-- " F_U64 " repeat end edges filtered from " F_U64 " reads.\n", nRepeatFiltered, nRepeatReads);
+  writeStatus("AssemblyGraph()-- " F_U64 " repeat edges (not output).\n", nRepeatEdges);
+  writeStatus("AssemblyGraph()-- " F_U64 " bubble edges.\n", nBubbleEdges);
+  writeStatus("AssemblyGraph()-- " F_U64 " intersecting edges (from the end of a tig to somewhere else).\n", nIntersecting);
 }
 
 
@@ -854,7 +854,7 @@ AssemblyGraph::reportReadGraph(TigVector &tigs, const char *prefix, const char *
     }
   }
 
-  writeStatus("AssemblyGraph()-- Found "F_U64" edges to unassembled contigs.\n", nEdgeToUnasm);
+  writeStatus("AssemblyGraph()-- Found " F_U64 " edges to unassembled contigs.\n", nEdgeToUnasm);
 
   //  Then write those sequences.
 
@@ -953,12 +953,12 @@ AssemblyGraph::reportReadGraph(TigVector &tigs, const char *prefix, const char *
 
   //  And report statistics.
 
-  writeStatus("AssemblyGraph()-- %8"F_U64P" bubble placements\n", nBubble);
-  writeStatus("AssemblyGraph()-- %8"F_U64P" repeat placements\n", nRepeat);
+  writeStatus("AssemblyGraph()-- %8" F_U64P " bubble placements\n", nBubble);
+  writeStatus("AssemblyGraph()-- %8" F_U64P " repeat placements\n", nRepeat);
   writeStatus("\n");
-  writeStatus("AssemblyGraph()-- Intratig edges:     %8"F_U64P" contained  %8"F_U64P" 5'  %8"F_U64P" 3' (in both contig and unitig)\n", nTig[0], nTig[1], nTig[2]);
-  writeStatus("AssemblyGraph()-- Contig only edges:  %8"F_U64P" contained  %8"F_U64P" 5'  %8"F_U64P" 3'\n", nCtg[0], nCtg[1], nCtg[2]);
-  writeStatus("AssemblyGraph()-- Unitig only edges:  %8"F_U64P" contained  %8"F_U64P" 5'  %8"F_U64P" 3'\n", nUtg[0], nUtg[1], nUtg[2]);
-  writeStatus("AssemblyGraph()-- Intercontig edges:  %8"F_U64P" contained  %8"F_U64P" 5'  %8"F_U64P" 3' (in neither contig nor unitig)\n", nAsm[0], nAsm[1], nAsm[2]);
+  writeStatus("AssemblyGraph()-- Intratig edges:     %8" F_U64P " contained  %8" F_U64P " 5'  %8" F_U64P " 3' (in both contig and unitig)\n", nTig[0], nTig[1], nTig[2]);
+  writeStatus("AssemblyGraph()-- Contig only edges:  %8" F_U64P " contained  %8" F_U64P " 5'  %8" F_U64P " 3'\n", nCtg[0], nCtg[1], nCtg[2]);
+  writeStatus("AssemblyGraph()-- Unitig only edges:  %8" F_U64P " contained  %8" F_U64P " 5'  %8" F_U64P " 3'\n", nUtg[0], nUtg[1], nUtg[2]);
+  writeStatus("AssemblyGraph()-- Intercontig edges:  %8" F_U64P " contained  %8" F_U64P " 5'  %8" F_U64P " 3' (in neither contig nor unitig)\n", nAsm[0], nAsm[1], nAsm[2]);
 }
 

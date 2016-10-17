@@ -86,7 +86,7 @@ findMode(char *name) {
     if (H[i] > H[mi])
       mi = i;
 
-  fprintf(stderr, "Mode of '%s' is "F_U32"\n", name, mi);
+  fprintf(stderr, "Mode of '%s' is " F_U32 "\n", name, mi);
 
   return(mi);
 }
@@ -149,9 +149,9 @@ compare(merylStreamReader *F,
       if (dumpFlag)
         if (Ftype == 0)
           if (Ctype == 1)
-            fprintf(dumpSCZF, ">"F_U32"\n%s\n", Ccnt, Cmer.merToString(merstring));
+            fprintf(dumpSCZF, ">" F_U32 "\n%s\n", Ccnt, Cmer.merToString(merstring));
           else
-            fprintf(dumpMCZF, ">"F_U32"\n%s\n", Ccnt, Cmer.merToString(merstring));
+            fprintf(dumpMCZF, ">" F_U32 "\n%s\n", Ccnt, Cmer.merToString(merstring));
     }
     return;
   }
@@ -168,9 +168,9 @@ compare(merylStreamReader *F,
       //  Again, save the mer since it's in contigs, but not fragments.
       if (dumpFlag)
         if (Ctype == 1)
-          fprintf(dumpSCZF, ">"F_U32"\n%s\n", Ccnt, Cmer.merToString(merstring));
+          fprintf(dumpSCZF, ">" F_U32 "\n%s\n", Ccnt, Cmer.merToString(merstring));
         else
-          fprintf(dumpMCZF, ">"F_U32"\n%s\n", Ccnt, Cmer.merToString(merstring));
+          fprintf(dumpMCZF, ">" F_U32 "\n%s\n", Ccnt, Cmer.merToString(merstring));
     }
 
     return;
@@ -187,12 +187,12 @@ compare(merylStreamReader *F,
   if (dumpFlag) {
     if (Ftype < Ctype)
       if (Ctype == 2)
-        fprintf(dumpMCSF, ">"F_U32"\n%s\n", Ccnt, Cmer.merToString(merstring));
+        fprintf(dumpMCSF, ">" F_U32 "\n%s\n", Ccnt, Cmer.merToString(merstring));
       else
-        fprintf(dumpMCMF, ">"F_U32"\n%s\n", Ccnt, Cmer.merToString(merstring));
+        fprintf(dumpMCMF, ">" F_U32 "\n%s\n", Ccnt, Cmer.merToString(merstring));
 
     if ((Ftype == 0) && (Ctype == 1))
-      fprintf(dumpSCZF, ">"F_U32"\n%s\n", Ccnt, Cmer.merToString(merstring));
+      fprintf(dumpSCZF, ">" F_U32 "\n%s\n", Ccnt, Cmer.merToString(merstring));
   }
 }
 
@@ -216,7 +216,7 @@ output(char              *title,
       default: fprintf(stdout, "?????????  ");  break;
     }
     for (uint32 j=0; j<5; j++)
-      fprintf(stdout, "%12"F_U32P, R[i][j]);
+      fprintf(stdout, "%12" F_U32P, R[i][j]);
     fprintf(stdout, "\n");
   }
 }
@@ -319,11 +319,11 @@ main(int argc, char **argv) {
 
   if (differ) {
     fprintf(stderr, "error:  mer size differ.\n");
-    fprintf(stderr, "        AF - "F_U32"\n", ms[0]);
-    fprintf(stderr, "        TF - "F_U32"\n", ms[1]);
-    fprintf(stderr, "        AC - "F_U32"\n", ms[2]);
-    fprintf(stderr, "        DC - "F_U32"\n", ms[3]);
-    fprintf(stderr, "        CO - "F_U32"\n", ms[4]);
+    fprintf(stderr, "        AF - " F_U32 "\n", ms[0]);
+    fprintf(stderr, "        TF - " F_U32 "\n", ms[1]);
+    fprintf(stderr, "        AC - " F_U32 "\n", ms[2]);
+    fprintf(stderr, "        DC - " F_U32 "\n", ms[3]);
+    fprintf(stderr, "        CO - " F_U32 "\n", ms[4]);
     exit(1);
   }
 

@@ -136,10 +136,10 @@ Unitig *&operator[](uint32 i) {
   if (((i    >= _totalTigs)) ||
       ((idx  >= _numBlocks)) ||
       (((pos >= _blockNext) && (idx >= _numBlocks - 1)))) {
-    writeStatus("TigVector::operator[]()--  i="F_U32" with totalTigs="F_U64"\n", i, _totalTigs);
-    writeStatus("TigVector::operator[]()--  blockSize="F_U64"\n", _blockSize);
-    writeStatus("TigVector::operator[]()--  idx="F_U32" numBlocks="F_U64"\n", idx, _numBlocks);
-    writeStatus("TigVector::operator[]()--  pos="F_U32" blockNext="F_U64"\n", pos, _blockNext);
+    writeStatus("TigVector::operator[]()--  i=" F_U32 " with totalTigs=" F_U64 "\n", i, _totalTigs);
+    writeStatus("TigVector::operator[]()--  blockSize=" F_U64 "\n", _blockSize);
+    writeStatus("TigVector::operator[]()--  idx=" F_U32 " numBlocks=" F_U64 "\n", idx, _numBlocks);
+    writeStatus("TigVector::operator[]()--  pos=" F_U32 " blockNext=" F_U64 "\n", pos, _blockNext);
   }
   assert(i    < _totalTigs);
   assert((idx < _numBlocks));

@@ -137,7 +137,7 @@ fastaStdin::getSequence(uint32 iid,
   bool  ret = true;
 
 #ifdef DEBUG
-  fprintf(stderr, "fastaStdin::getSequence(full)-- "F_U32"\n", iid);
+  fprintf(stderr, "fastaStdin::getSequence(full)-- " F_U32 "\n", iid);
 #endif
 
   if (iid == _nextIID)

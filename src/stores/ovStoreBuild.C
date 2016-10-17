@@ -173,7 +173,7 @@ computeIIDperBucket(uint32          fileLimit,
     exit(1);
   }
 
-  fprintf(stderr, "Found "F_U64" (%.2f million) overlaps.\n", numOverlaps, numOverlaps / 1000000.0);
+  fprintf(stderr, "Found " F_U64 " (%.2f million) overlaps.\n", numOverlaps, numOverlaps / 1000000.0);
 
   //  Partition the overlaps into buckets.
 
@@ -183,7 +183,7 @@ computeIIDperBucket(uint32          fileLimit,
   //  If a file limit, distribute the overlaps to equal sized files.
   if (fileLimit > 0) {
     olapsPerBucketMax = (uint64)ceil((double)numOverlaps / (double)fileLimit);
-    fprintf(stderr, "Will sort using "F_U32" files; "F_U64" (%.2f million) overlaps per bucket; %.2f GB memory per bucket\n",
+    fprintf(stderr, "Will sort using " F_U32 " files; " F_U64 " (%.2f million) overlaps per bucket; %.2f GB memory per bucket\n",
             fileLimit, olapsPerBucketMax, olapsPerBucketMax / 1000000.0, olapsPerBucketMax * GBperOlap);
   }
 
@@ -193,13 +193,13 @@ computeIIDperBucket(uint32          fileLimit,
   //  values can break this - either too low memory or too high allowed open files (an OS limit).
 
   if (maxMemory > 0) {
-    fprintf(stderr, "Configuring for %.2f GB to %.2f GB memory and "F_S64" open files.\n",
+    fprintf(stderr, "Configuring for %.2f GB to %.2f GB memory and " F_S64 " open files.\n",
             minMemory / 1024.0 / 1024.0 / 1024.0,
             maxMemory / 1024.0 / 1024.0 / 1024.0,
             maxFiles);
 
     if (minMemory < MEMORY_OVERHEAD + ovOverlapSortSize) {
-      fprintf(stderr, "Reset minMemory from "F_U64" to "F_U64"\n", minMemory, MEMORY_OVERHEAD + ovOverlapSortSize);
+      fprintf(stderr, "Reset minMemory from " F_U64 " to " F_U64 "\n", minMemory, MEMORY_OVERHEAD + ovOverlapSortSize);
       minMemory  = MEMORY_OVERHEAD + ovOverlapSortSize;
     }
 
@@ -215,7 +215,7 @@ computeIIDperBucket(uint32          fileLimit,
          ((useMemory <= maxMemory) && (numOverlaps / olapsPerBucketMax + 1 > maxFiles));
          useMemory += incr) {
       olapsPerBucketMax = (useMemory - MEMORY_OVERHEAD) / ovOverlapSortSize;
-      fprintf(stderr, "At memory %.3fGB, "F_U64" olaps per bucket, "F_U64" buckets (pass 1).\n",
+      fprintf(stderr, "At memory %.3fGB, " F_U64 " olaps per bucket, " F_U64 " buckets (pass 1).\n",
               useMemory / 1024.0 / 1024.0 / 1024.0, olapsPerBucketMax, numOverlaps / olapsPerBucketMax + 1);
     }
 
@@ -227,7 +227,7 @@ computeIIDperBucket(uint32          fileLimit,
            ((useMemory <= maxMemory) && (numOverlaps / olapsPerBucketMax + 1 > maxFiles / 2));
            useMemory += incr) {
         olapsPerBucketMax = (useMemory - MEMORY_OVERHEAD) / ovOverlapSortSize;
-        fprintf(stderr, "At memory %.3fGB, "F_U64" olaps per bucket, "F_U64" buckets (pass 2).\n",
+        fprintf(stderr, "At memory %.3fGB, " F_U64 " olaps per bucket, " F_U64 " buckets (pass 2).\n",
                 useMemory / 1024.0 / 1024.0 / 1024.0, olapsPerBucketMax, numOverlaps / olapsPerBucketMax + 1);
       }
     }
@@ -239,17 +239,17 @@ computeIIDperBucket(uint32          fileLimit,
       fprintf(stderr, "ERROR:  Cannot sort %.2f million overlaps using %.2f GB memory; too few file handles available.\n",
               numOverlaps / 1000000.0,
               maxMemory / 1024.0 / 1024.0 / 1024.0);
-      fprintf(stderr, "ERROR:    minMemory      "F_U64"\n", minMemory);
-      fprintf(stderr, "ERROR:    maxMemory      "F_U64"\n", maxMemory);
-      fprintf(stderr, "ERROR:    olapsPerBucket "F_U64"\n", olapsPerBucketMax);
-      fprintf(stderr, "ERROR:    buckets        "F_U64"\n", numOverlaps / olapsPerBucketMax + 1);
-      fprintf(stderr, "ERROR:    SC_CHILD_MAX   "F_S64"\n", sysconf(_SC_CHILD_MAX));
-      fprintf(stderr, "ERROR:    SC_OPEN_MAX    "F_S64"\n", sysconf(_SC_OPEN_MAX));
+      fprintf(stderr, "ERROR:    minMemory      " F_U64 "\n", minMemory);
+      fprintf(stderr, "ERROR:    maxMemory      " F_U64 "\n", maxMemory);
+      fprintf(stderr, "ERROR:    olapsPerBucket " F_U64 "\n", olapsPerBucketMax);
+      fprintf(stderr, "ERROR:    buckets        " F_U64 "\n", numOverlaps / olapsPerBucketMax + 1);
+      fprintf(stderr, "ERROR:    SC_CHILD_MAX   " F_S64 "\n", sysconf(_SC_CHILD_MAX));
+      fprintf(stderr, "ERROR:    SC_OPEN_MAX    " F_S64 "\n", sysconf(_SC_OPEN_MAX));
       fprintf(stderr, "ERROR:  Increase memory size (in canu, ovsMemory; in ovStoreBuild, -M)\n");
       exit(1);
     }
 
-    fprintf(stderr, "Will sort using "F_U64" files; "F_U64" (%.2f million) overlaps per bucket; %.2f GB memory per bucket\n",
+    fprintf(stderr, "Will sort using " F_U64 " files; " F_U64 " (%.2f million) overlaps per bucket; %.2f GB memory per bucket\n",
             numOverlaps / olapsPerBucketMax + 1,
             olapsPerBucketMax,
             olapsPerBucketMax / 1000000.0,
@@ -287,13 +287,13 @@ computeIIDperBucket(uint32          fileLimit,
       iidToBucket[ii]   = bucket;
 
       if (olaps >= olapsPerBucketMax) {
-        fprintf(stderr, "  bucket %3d has "F_U64" olaps.\n", bucket, olaps);
+        fprintf(stderr, "  bucket %3d has " F_U64 " olaps.\n", bucket, olaps);
         olaps = 0;
         bucket++;
       }
     }
 
-    fprintf(stderr, "  bucket %3d has "F_U64" olaps.\n", bucket, olaps);
+    fprintf(stderr, "  bucket %3d has " F_U64 " olaps.\n", bucket, olaps);
   }
 
   fprintf(stderr, "Will sort %.3f million overlaps per bucket, using %u buckets %.2f GB per bucket.\n",
@@ -434,9 +434,9 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -config out.dat       don't build a store, just dump a binary partitioning file for ovStoreBucketizer\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Sizes and Limits:\n");
-    fprintf(stderr, "  ovOverlapSortSize     "F_U64" bytes\n", ovOverlapSortSize);
-    fprintf(stderr, "  SC_CHILD_MAX          "F_U64" processes\n", sysconf(_SC_CHILD_MAX));
-    fprintf(stderr, "  SC_OPEN_MAX           "F_U64" files\n", sysconf(_SC_OPEN_MAX));
+    fprintf(stderr, "  ovOverlapSortSize     " F_U64 " bytes\n", ovOverlapSortSize);
+    fprintf(stderr, "  SC_CHILD_MAX          " F_U64 " processes\n", sysconf(_SC_CHILD_MAX));
+    fprintf(stderr, "  SC_OPEN_MAX           " F_U64 " files\n", sysconf(_SC_OPEN_MAX));
     fprintf(stderr, "\n");
 
     if (ovlName == NULL)
@@ -446,7 +446,7 @@ main(int argc, char **argv) {
     if (fileList.size() == 0)
       fprintf(stderr, "ERROR: No input overlap files (-L or last on the command line) supplied.\n");
     if (fileLimit > sysconf(_SC_OPEN_MAX) - 16)
-      fprintf(stderr, "ERROR: Too many jobs (-F); only "F_SIZE_T" supported on this architecture.\n", sysconf(_SC_OPEN_MAX) - 16);
+      fprintf(stderr, "ERROR: Too many jobs (-F); only " F_SIZE_T " supported on this architecture.\n", sysconf(_SC_OPEN_MAX) - 16);
     if (maxMemory < MEMORY_OVERHEAD)
       fprintf(stderr, "ERROR: Memory (-M) must be at least %.3f GB to account for overhead.\n", MEMORY_OVERHEAD / 1024.0 / 1024.0 / 1024.0);
 
@@ -481,7 +481,7 @@ main(int argc, char **argv) {
 
       fclose(fp);
 
-      fprintf(stderr, "loading evalues from '%s' -- ID range "F_U32"-"F_U32" with "F_U64" overlaps\n",
+      fprintf(stderr, "loading evalues from '%s' -- ID range " F_U32 "-" F_U32 " with " F_U64 " overlaps\n",
               fileList[i], bgnID, endID, len);
 
       ovs->addEvalues(bgnID, endID, evalues, len);
@@ -506,8 +506,8 @@ main(int argc, char **argv) {
 
   if (iidToBucket[maxIID-1] > maxFiles - 8) {
     fprintf(stderr, "ERROR:\n");
-    fprintf(stderr, "ERROR:  Operating system limit of "F_U32" open files.  The current -F/-M settings\n", maxFiles);
-    fprintf(stderr, "ERROR:  will need to create "F_U32" files to construct the store.\n", iidToBucket[maxIID-1]);
+    fprintf(stderr, "ERROR:  Operating system limit of " F_U32 " open files.  The current -F/-M settings\n", maxFiles);
+    fprintf(stderr, "ERROR:  will need to create " F_U32 " files to construct the store.\n", iidToBucket[maxIID-1]);
     fprintf(stderr, "ERROR:\n");
     exit(1);
   }
@@ -643,8 +643,8 @@ main(int argc, char **argv) {
           (overlapsort[numOvl].b_iid >= maxIID)) {
         char ovlstr[256];
 
-        fprintf(stderr, "Overlap has IDs out of range (maxIID "F_U64"), possibly corrupt input data.\n", maxIID);
-        fprintf(stderr, "  Aid "F_U32"  Bid "F_U32"\n",  overlapsort[numOvl].a_iid, overlapsort[numOvl].b_iid);
+        fprintf(stderr, "Overlap has IDs out of range (maxIID " F_U64 "), possibly corrupt input data.\n", maxIID);
+        fprintf(stderr, "  Aid " F_U32 "  Bid " F_U32 "\n",  overlapsort[numOvl].a_iid, overlapsort[numOvl].b_iid);
         exit(1);
       }
 

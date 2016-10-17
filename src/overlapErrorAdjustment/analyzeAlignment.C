@@ -292,7 +292,7 @@ analyzeAlignment::analyze(char  *aSeq, int32 aLen,  int32 aOffset,
 
 void
 analyzeAlignment::outputDetails(uint32 j) {
-  fprintf(stderr, "%3"F_U32P": %c  conf %3"F_U64P"  deletes %3"F_U64P" | subst %3"F_U64P" %3"F_U64P" %3"F_U64P" %3"F_U64P" | no_insert %3"F_U64P" insert %3"F_U64P" %3"F_U64P" %3"F_U64P" %3"F_U64P"\n",
+  fprintf(stderr, "%3" F_U32P ": %c  conf %3" F_U64P "  deletes %3" F_U64P " | subst %3" F_U64P " %3" F_U64P " %3" F_U64P " %3" F_U64P " | no_insert %3" F_U64P " insert %3" F_U64P " %3" F_U64P " %3" F_U64P " %3" F_U64P "\n",
           j,
           _seq[j],
           _vote[j].confirmed,
@@ -403,14 +403,14 @@ analyzeAlignment::generateCorrections(FILE *corFile) {
 
       //  (total > 1)
       if (total <= 1) {
-        fprintf(stderr, "FEW   total = "F_U64" <= 1\n", total);
+        fprintf(stderr, "FEW   total = " F_U64 " <= 1\n", total);
         skippedTooFew++;
         continue;
       }
 
       //  (2 * max > total)
       if (2 * max <= total) {
-        fprintf(stderr, "WEAK  2*max = "F_U64" <= total = "F_U64"\n", 2*max, total);
+        fprintf(stderr, "WEAK  2*max = " F_U64 " <= total = " F_U64 "\n", 2*max, total);
         skippedTooWeak++;
         continue;
       }
@@ -424,7 +424,7 @@ analyzeAlignment::generateCorrections(FILE *corFile) {
 
       //  ((haplo_ct < 2) || (Use_Haplo_Ct == false))
       if ((haplo_ct >= 2) && (Use_Haplo_Ct == true)) {
-        fprintf(stderr, "HAPLO haplo_ct="F_U64" >= 2 AND Use_Haplo_Ct = %s\n", haplo_ct, (Use_Haplo_Ct) ? "true" : "false");
+        fprintf(stderr, "HAPLO haplo_ct=" F_U64 " >= 2 AND Use_Haplo_Ct = %s\n", haplo_ct, (Use_Haplo_Ct) ? "true" : "false");
         skippedHaplo++;
         continue;
       }
@@ -433,7 +433,7 @@ analyzeAlignment::generateCorrections(FILE *corFile) {
       //   ((_vote[j].confirmed == 1) && (max > 6)))
       if ((_vote[j].confirmed > 0) &&
           ((_vote[j].confirmed != 1) || (max <= 6))) {
-        fprintf(stderr, "INDET confirmed = "F_U64" max = "F_U64"\n", _vote[j].confirmed, max);
+        fprintf(stderr, "INDET confirmed = " F_U64 " max = " F_U64 "\n", _vote[j].confirmed, max);
         skippedConfirmed++;
         continue;
       }
@@ -442,7 +442,7 @@ analyzeAlignment::generateCorrections(FILE *corFile) {
 
       substitutions++;
 
-      fprintf(stderr, "SUBSTITUTE position "F_U32" to %c\n", j, Matching_Char(vval));
+      fprintf(stderr, "SUBSTITUTE position " F_U32 " to %c\n", j, Matching_Char(vval));
 
       _cor[_corLen].type       = vval;
       _cor[_corLen].pos        = j;
@@ -485,26 +485,26 @@ analyzeAlignment::generateCorrections(FILE *corFile) {
                           _vote[j].t_insert);
 
       if (ins_total <= 1) {
-        fprintf(stderr, "FEW   ins_total = "F_U64" <= 1\n", ins_total);
+        fprintf(stderr, "FEW   ins_total = " F_U64 " <= 1\n", ins_total);
         skippedInsTotal++;
         continue;
       }
 
       if (2 * ins_max >= ins_total) {
-        fprintf(stderr, "WEAK  2*ins_max = "F_U64" <= ins_total = "F_U64"\n", 2*ins_max, ins_total);
+        fprintf(stderr, "WEAK  2*ins_max = " F_U64 " <= ins_total = " F_U64 "\n", 2*ins_max, ins_total);
         skippedInsMax++;
         continue;
       }
 
       if ((ins_haplo_ct >= 2) && (Use_Haplo_Ct == true)) {
-        fprintf(stderr, "HAPLO ins_haplo_ct="F_U64" >= 2 AND Use_Haplo_Ct = %s\n", ins_haplo_ct, (Use_Haplo_Ct) ? "true" : "false");
+        fprintf(stderr, "HAPLO ins_haplo_ct=" F_U64 " >= 2 AND Use_Haplo_Ct = %s\n", ins_haplo_ct, (Use_Haplo_Ct) ? "true" : "false");
         skippedInsHaplo++;
         continue;
       }
 
       if ((_vote[j].no_insert > 0) &&
           ((_vote[j].no_insert != 1) || (ins_max <= 6))) {
-        fprintf(stderr, "INDET no_insert = "F_U64" ins_max = "F_U64"\n", _vote[j].no_insert, ins_max);
+        fprintf(stderr, "INDET no_insert = " F_U64 " ins_max = " F_U64 "\n", _vote[j].no_insert, ins_max);
         skippedInsTooMany++;
         continue;
       }
@@ -513,7 +513,7 @@ analyzeAlignment::generateCorrections(FILE *corFile) {
 
       insertions++;
 
-      fprintf(stderr, "INSERT position "F_U32" to %c\n", j, Matching_Char(ins_vote));
+      fprintf(stderr, "INSERT position " F_U32 " to %c\n", j, Matching_Char(ins_vote));
 
       _cor[_corLen].type       = ins_vote;
       _cor[_corLen].pos        = j;
@@ -547,7 +547,7 @@ analyzeAlignment::generateCorrections(FILE *corFile) {
 
 
 #if 0
-  fprintf(stderr, "Corrected "F_U64" bases with "F_U64" substitutions, "F_U64" deletions and "F_U64" insertions.\n",
+  fprintf(stderr, "Corrected " F_U64 " bases with " F_U64 " substitutions, " F_U64 " deletions and " F_U64 " insertions.\n",
           G->basesLen,
           changes[A_SUBST] + changes[C_SUBST] + changes[G_SUBST] + changes[T_SUBST],
           changes[DELETE],

@@ -163,18 +163,18 @@ doStats(char *inName,
     totBases += ii;
 
     if ((totSeqs % 10000) == 0)
-      fprintf(stderr, "Reading "F_U64"\r", totSeqs);
+      fprintf(stderr, "Reading " F_U64 "\r", totSeqs);
   }
 
-  fprintf(stderr, "Read    "F_U64"\n", totSeqs);
+  fprintf(stderr, "Read    " F_U64 "\n", totSeqs);
 
   fprintf(stdout, "%s\n", inName);
   fprintf(stdout, "\n");
 
-  fprintf(stdout, "sequences\t"F_U64"\n", totSeqs);
-  fprintf(stdout, "bases\t"F_U64"\n",     totBases);
+  fprintf(stdout, "sequences\t" F_U64 "\n", totSeqs);
+  fprintf(stdout, "bases\t" F_U64 "\n",     totBases);
   fprintf(stdout, "\n");
-  fprintf(stdout, "average\t"F_U64"\n", totBases / totSeqs);
+  fprintf(stdout, "average\t" F_U64 "\n", totBases / totSeqs);
   fprintf(stdout, "\n");
 
   //sort(seqLen.begin(), seqLen.end());
@@ -196,7 +196,7 @@ doStats(char *inName,
     histogram[seqLen[ii]]++;
 
   for (uint32 ii=min; ii<=max; ii++)
-    fprintf(stdout, F_U32"\t"F_U64"\n", ii, histogram[ii]);
+    fprintf(stdout, F_U32"\t" F_U64 "\n", ii, histogram[ii]);
 
   delete [] histogram;
 
@@ -212,7 +212,7 @@ doStats(char *inName,
                               freq->mono[ii] * 100.0 / totBases));
   sort(output.begin(), output.end());
   for (uint32 ii=0; ii<output.size(); ii++)
-    fprintf(stdout, "%s\t"F_U64"\t%.4f%%\n", output[ii].label, output[ii].count, output[ii].freq);
+    fprintf(stdout, "%s\t" F_U64 "\t%.4f%%\n", output[ii].label, output[ii].count, output[ii].freq);
   output.clear();
 
   fprintf(stdout, "\n");
@@ -226,7 +226,7 @@ doStats(char *inName,
                                 freq->di[ii][jj] * 100.0 / totBases));
   sort(output.begin(), output.end());
   for (uint32 ii=0; ii<output.size(); ii++)
-    fprintf(stdout, "%s\t"F_U64"\t%.4f%%\n", output[ii].label, output[ii].count, output[ii].freq);
+    fprintf(stdout, "%s\t" F_U64 "\t%.4f%%\n", output[ii].label, output[ii].count, output[ii].freq);
   output.clear();
 
   fprintf(stdout, "\n");
@@ -241,7 +241,7 @@ doStats(char *inName,
                                   freq->tri[ii][jj][kk] * 100.0 / totBases));
   sort(output.begin(), output.end());
   for (uint32 ii=0; ii<output.size(); ii++)
-    fprintf(stdout, "%s\t"F_U64"\t%.4f%%\n", output[ii].label, output[ii].count, output[ii].freq);
+    fprintf(stdout, "%s\t" F_U64 "\t%.4f%%\n", output[ii].label, output[ii].count, output[ii].freq);
   output.clear();
 
   //fclose(O);

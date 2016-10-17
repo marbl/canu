@@ -228,7 +228,7 @@ writeLog(char const *fmt, ...) {
 
   if ((lf->name[0] != 0) &&
       (lf->length  > maxLength)) {
-    fprintf(lf->file, "logFile()--  size "F_U64" exceeds limit of "F_U64"; rotate to new file.\n",
+    fprintf(lf->file, "logFile()--  size " F_U64 " exceeds limit of " F_U64 "; rotate to new file.\n",
             lf->length, maxLength);
     lf->rotate();
   }

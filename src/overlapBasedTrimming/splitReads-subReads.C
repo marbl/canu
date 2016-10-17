@@ -287,7 +287,7 @@ detectSubReads(gkStore               *gkp,
         numSpan += (doCheckSubRead(gkp, w->adj[ii].a_iid)) ? 1 : 2;
 
     if (subreadFile)
-      fprintf(subreadFile, "AcheckSub region %u ("F_S32"-"F_S32") with %u hits %u bighits - span %u largePalindrome %s\n",
+      fprintf(subreadFile, "AcheckSub region %u (" F_S32 "-" F_S32 ") with %u hits %u bighits - span %u largePalindrome %s\n",
               w->adj[0].a_iid, BAD.lo(bb), BAD.hi(bb), BAD.count(bb), allHits,
               numSpan, largePalindrome ? "true" : "false");
 

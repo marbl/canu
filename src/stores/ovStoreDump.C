@@ -565,7 +565,7 @@ dumpPicture(ovStore  *ovlStore,
             uint32    qryID,
             char     *bestPrefix) {
 
-  //fprintf(stderr, "DUMPING PICTURE for ID "F_U32" in store %s (gkp %s)\n",
+  //fprintf(stderr, "DUMPING PICTURE for ID " F_U32 " in store %s (gkp %s)\n",
   //        qryID, ovlName, gkpName);
 
   uint32    Aid    = qryID;

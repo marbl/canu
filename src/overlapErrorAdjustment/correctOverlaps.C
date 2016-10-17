@@ -151,7 +151,7 @@ main(int argc, char **argv) {
 
   //  Load the reads for the overlaps we are going to be correcting, and apply corrections to them
 
-  fprintf(stderr, "Correcting reads "F_U32" to "F_U32".\n", G->bgnID, G->endID);
+  fprintf(stderr, "Correcting reads " F_U32 " to " F_U32 ".\n", G->bgnID, G->endID);
 
   Correct_Frags(G, gkpStore);
 
@@ -204,7 +204,7 @@ main(int argc, char **argv) {
     AS_UTL_safeWrite(fp, &G->endID,    "hiid", sizeof(int32),  1);
     AS_UTL_safeWrite(fp, &G->olapsLen, "num",  sizeof(uint64), 1);
 
-    fprintf(stderr, "--Allocate "F_U64" MB for output error rates.\n",
+    fprintf(stderr, "--Allocate " F_U64 " MB for output error rates.\n",
             (sizeof(uint16) * G->olapsLen) >> 20);
 
     uint16 *evalue = new uint16 [G->olapsLen];

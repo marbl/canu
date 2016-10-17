@@ -155,7 +155,7 @@ seqStore::getSequence(uint32 iid,
     loadIndex();
 
   if (iid >= _header._numberOfSequences) {
-    fprintf(stderr, "seqStore::getSequence(full)--  iid "F_U32" more than number of sequences "F_U32"\n",
+    fprintf(stderr, "seqStore::getSequence(full)--  iid " F_U32 " more than number of sequences " F_U32 "\n",
             iid, _header._numberOfSequences);
     return(false);
   }
@@ -223,13 +223,13 @@ seqStore::getSequence(uint32 iid,
     loadIndex();
 
   if (iid >= _header._numberOfSequences) {
-    fprintf(stderr, "seqStore::getSequence(part)--  iid "F_U32" more than number of sequences "F_U32"\n",
+    fprintf(stderr, "seqStore::getSequence(part)--  iid " F_U32 " more than number of sequences " F_U32 "\n",
             iid, _header._numberOfSequences);
     return(false);
   }
 
   if (bgn >= end) {
-    fprintf(stderr, "seqStore::getSequence(part)--  for iid "F_U32"; invalid bgn="F_U32" end="F_U32"; seqLen="F_U32"\n",
+    fprintf(stderr, "seqStore::getSequence(part)--  for iid " F_U32 "; invalid bgn=" F_U32 " end=" F_U32 "; seqLen=" F_U32 "\n",
             iid, bgn, end, _index[iid]._seqLength);
     return(false);
   }
@@ -346,9 +346,9 @@ seqStore::loadIndex(void) {
 
   fread(&_header,   sizeof(seqStoreHeader), 1, F);
 
-  //fprintf(stderr, "seqStore::seqStore()--  Allocating space for "F_U32" sequences ("F_U64"MB)\n", _header._numberOfSequences, _header._numberOfSequences * sizeof(seqStoreIndex) / 1024 / 1024);
-  //fprintf(stderr, "seqStore::seqStore()--  Allocating space for "F_U32" blocks    ("F_U64"MB)\n", _header._numberOfBlocks,    _header._numberOfBlocks    * sizeof(seqStoreBlock) / 1024 / 1024);
-  //fprintf(stderr, "seqStore::seqStore()--  Allocating space for "F_U32" labels    ("F_U64"MB)\n", _header._namesLength,       _header._namesLength       * sizeof(char)          / 1024 / 1024);
+  //fprintf(stderr, "seqStore::seqStore()--  Allocating space for " F_U32 " sequences (" F_U64 "MB)\n", _header._numberOfSequences, _header._numberOfSequences * sizeof(seqStoreIndex) / 1024 / 1024);
+  //fprintf(stderr, "seqStore::seqStore()--  Allocating space for " F_U32 " blocks    (" F_U64 "MB)\n", _header._numberOfBlocks,    _header._numberOfBlocks    * sizeof(seqStoreBlock) / 1024 / 1024);
+  //fprintf(stderr, "seqStore::seqStore()--  Allocating space for " F_U32 " labels    (" F_U64 "MB)\n", _header._namesLength,       _header._namesLength       * sizeof(char)          / 1024 / 1024);
 
   _index = new seqStoreIndex [_header._numberOfSequences];
   _block = new seqStoreBlock [_header._numberOfBlocks];
@@ -436,7 +436,7 @@ constructSeqStore(char *filename, seqCache *inputseq) {
           filename, inputseq->getSourceName(), inputseq->getFileTypeName());
 
   seqStoreHeader    HEAD;
-  memset(&HEAD, sizeof(seqStoreHeader), 0);
+  memset(&HEAD, 0, sizeof(seqStoreHeader));
 
   bitPackedFile    *DATA    = new bitPackedFile(filename, sizeof(seqStoreHeader), true);
 
@@ -490,13 +490,13 @@ constructSeqStore(char *filename, seqCache *inputseq) {
 
 #if SEQSTOREBLOCK_MAXPOS < uint64MASK(32)
       if (sic->sequenceLength() > SEQSTOREBLOCK_MAXPOS)
-        fprintf(stderr, "constructSeqStore()-- sequence %s too long, must be shorter than "F_U64" Gbp.\n",
+        fprintf(stderr, "constructSeqStore()-- sequence %s too long, must be shorter than " F_U64 " Gbp.\n",
                 sic->header(), SEQSTOREBLOCK_MAXPOS / 1024 / 1024 / 1024), exit(1);
 #endif
 
 #if SEQSTOREBLOCK_MAXIID < uint64MASK(32)
       if (sic->getIID() > SEQSTOREBLOCK_MAXPOS)
-        fprintf(stderr, "constructSeqStore()-- too many sequences, must be fewer than "F_U64".\n",
+        fprintf(stderr, "constructSeqStore()-- too many sequences, must be fewer than " F_U64 ".\n",
                 SEQSTOREBLOCK_MAXIID), exit(1);
 #endif
 
@@ -650,6 +650,6 @@ constructSeqStore(char *filename, seqCache *inputseq) {
 
   //  ESTmapper depends on this output.
 
-  fprintf(stderr, "constructSeqStore()-- seqStore '%s' constructed ("F_U32" sequences, "F_U64" ACGT letters, "F_U32" ACGT blocks, "F_U32" GAP blocks).\n",
+  fprintf(stderr, "constructSeqStore()-- seqStore '%s' constructed (" F_U32 " sequences, " F_U64 " ACGT letters, " F_U32 " ACGT blocks, " F_U32 " GAP blocks).\n",
           filename, HEAD._numberOfSequences, HEAD._numberOfACGT, HEAD._numberOfBlocksACGT, HEAD._numberOfBlocksGAP);
 }

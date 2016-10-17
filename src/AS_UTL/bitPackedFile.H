@@ -71,7 +71,7 @@ public:
   uint64     loadInCore(void);
 
   void       showStats(FILE *f) {
-    fprintf(f, "inside: "F_U64"  outside: "F_U64"\n", stat_seekInside, stat_seekOutside);
+    fprintf(f, "inside: " F_U64 "  outside: " F_U64 "\n", stat_seekInside, stat_seekOutside);
     fflush(f);
   };
 private:

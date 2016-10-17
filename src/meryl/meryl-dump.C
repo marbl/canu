@@ -59,7 +59,7 @@ dumpThreshold(merylArgs *args) {
 
   while (M->nextMer()) {
     if (M->theCount() >= args->numMersEstimated)
-      fprintf(stdout, ">"F_U64"\n%s\n",
+      fprintf(stdout, ">" F_U64 "\n%s\n",
               M->theCount(),
               M->theFMer().merToString(str));
   }
@@ -77,9 +77,9 @@ dumpPositions(merylArgs *args) {
     fprintf(stderr, "File '%s' contains no position information.\n", args->inputFile);
   } else {
     while (M->nextMer()) {
-      fprintf(stdout, ">"F_U64, M->theCount());
+      fprintf(stdout, ">" F_U64, M->theCount());
       for (uint32 i=0; i<M->theCount(); i++)
-        fprintf(stdout, " "F_U32, M->getPosition(i));
+        fprintf(stdout, " " F_U32, M->getPosition(i));
       fprintf(stdout, "\n%s\n", M->theFMer().merToString(str));
     }
   }
@@ -114,9 +114,9 @@ countUnique(merylArgs *args) {
   fprintf(stderr, "OK\n");
 #endif
 
-  fprintf(stdout, "Found "F_U64" mers.\n",          M->numberOfTotalMers());
-  fprintf(stdout, "Found "F_U64" distinct mers.\n", M->numberOfDistinctMers());
-  fprintf(stdout, "Found "F_U64" unique mers.\n",   M->numberOfUniqueMers());
+  fprintf(stdout, "Found " F_U64 " mers.\n",          M->numberOfTotalMers());
+  fprintf(stdout, "Found " F_U64 " distinct mers.\n", M->numberOfDistinctMers());
+  fprintf(stdout, "Found " F_U64 " unique mers.\n",   M->numberOfUniqueMers());
 
   delete M;
 }
@@ -129,11 +129,11 @@ plotHistogram(merylArgs *args) {
 
   merylStreamReader   *M = new merylStreamReader(args->inputFile);
 
-  fprintf(stderr, "Found "F_U64" mers.\n",          M->numberOfTotalMers());
-  fprintf(stderr, "Found "F_U64" distinct mers.\n", M->numberOfDistinctMers());
-  fprintf(stderr, "Found "F_U64" unique mers.\n",   M->numberOfUniqueMers());
+  fprintf(stderr, "Found " F_U64 " mers.\n",          M->numberOfTotalMers());
+  fprintf(stderr, "Found " F_U64 " distinct mers.\n", M->numberOfDistinctMers());
+  fprintf(stderr, "Found " F_U64 " unique mers.\n",   M->numberOfUniqueMers());
 
-  fprintf(stderr, "Largest mercount is "F_U64".\n",
+  fprintf(stderr, "Largest mercount is " F_U64 ".\n",
           M->histogramMaximumCount());
 
   for (uint32 i=1; i<M->histogramLength(); i++) {
@@ -143,7 +143,7 @@ plotHistogram(merylArgs *args) {
       distinct += hist;
       total    += hist * i;
 
-      fprintf(stdout, F_U32"\t"F_U64"\t%.4f\t%.4f\n",
+      fprintf(stdout, F_U32"\t" F_U64 "\t%.4f\t%.4f\n",
               i,
               hist,
               distinct / (double)M->numberOfDistinctMers(),
@@ -192,10 +192,10 @@ dumpDistanceBetweenMers(merylArgs *args) {
 
     for (uint32 d=0; d<maxd; d++)
       if (hist[d])
-        fprintf(stderr, F_U32"\t"F_U64"\n", d, hist[d]);
+        fprintf(stderr, F_U32"\t" F_U64 "\n", d, hist[d]);
 
     if (histHuge)
-      fprintf(stderr, "huge\t"F_U64"\n", histHuge);
+      fprintf(stderr, "huge\t" F_U64 "\n", histHuge);
   }
 
   delete [] hist;

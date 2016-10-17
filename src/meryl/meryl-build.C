@@ -193,10 +193,10 @@ submitCountBatches(merylArgs *args) {
   fclose(F);
 
   if (args->sgeBuildOpt)
-    sprintf(cmd, "qsub -t 1-"F_U64" -cwd -b n -j y -o %s-count-\\$TASK_ID.err %s -N mc%s %s-count.sh",
+    sprintf(cmd, "qsub -t 1-" F_U64 " -cwd -b n -j y -o %s-count-\\$TASK_ID.err %s -N mc%s %s-count.sh",
             args->segmentLimit, args->outputFile, args->sgeBuildOpt, args->sgeJobName, args->outputFile);
   else
-    sprintf(cmd, "qsub -t 1-"F_U64" -cwd -b n -j y -o %s-count-\\$TASK_ID.err -N mc%s %s-count.sh",
+    sprintf(cmd, "qsub -t 1-" F_U64 " -cwd -b n -j y -o %s-count-\\$TASK_ID.err -N mc%s %s-count.sh",
             args->segmentLimit, args->outputFile, args->sgeJobName, args->outputFile);
   fprintf(stderr, "%s\n", cmd);
   if (system(cmd))
@@ -335,28 +335,28 @@ prepareBatch(merylArgs *args) {
   args->merDataWidth       = args->merSize * 2 - args->numBuckets_log2;
 
   if (args->merDataWidth > SORTED_LIST_WIDTH * 64) {
-    fprintf(stderr, "  numMersActual      = "F_U64"\n", args->numMersActual);
-    fprintf(stderr, "  mersPerBatch       = "F_U64"\n", args->mersPerBatch);
-    fprintf(stderr, "  basesPerBatch      = "F_U64"\n", args->basesPerBatch);
-    fprintf(stderr, "  numBuckets         = "F_U64" ("F_U32" bits)\n", args->numBuckets, args->numBuckets_log2);
-    fprintf(stderr, "  bucketPointerWidth = "F_U32"\n", args->bucketPointerWidth);
-    fprintf(stderr, "  merDataWidth       = "F_U32"\n", args->merDataWidth);
+    fprintf(stderr, "  numMersActual      = " F_U64 "\n", args->numMersActual);
+    fprintf(stderr, "  mersPerBatch       = " F_U64 "\n", args->mersPerBatch);
+    fprintf(stderr, "  basesPerBatch      = " F_U64 "\n", args->basesPerBatch);
+    fprintf(stderr, "  numBuckets         = " F_U64 " (" F_U32 " bits)\n", args->numBuckets, args->numBuckets_log2);
+    fprintf(stderr, "  bucketPointerWidth = " F_U32 "\n", args->bucketPointerWidth);
+    fprintf(stderr, "  merDataWidth       = " F_U32 "\n", args->merDataWidth);
     fprintf(stderr, "Sorry!  merSize too big!  Increase KMER_WORDS in libbio.kmer.H\n");
     exit(1);
   }
 
   if (args->beVerbose) {
-    fprintf(stderr, "Computing "F_U64" segments using "F_U32" threads and "F_U64"MB memory ("F_U64"MB if in one batch).\n",
+    fprintf(stderr, "Computing " F_U64 " segments using " F_U32 " threads and " F_U64 "MB memory (" F_U64 "MB if in one batch).\n",
             args->segmentLimit, args->numThreads,
             estimateMemory(args->merSize, args->mersPerBatch, args->positionsEnabled) * args->numThreads,
             estimateMemory(args->merSize, args->numMersActual, args->positionsEnabled));
 
-    fprintf(stderr, "  numMersActual      = "F_U64"\n", args->numMersActual);
-    fprintf(stderr, "  mersPerBatch       = "F_U64"\n", args->mersPerBatch);
-    fprintf(stderr, "  basesPerBatch      = "F_U64"\n", args->basesPerBatch);
-    fprintf(stderr, "  numBuckets         = "F_U64" ("F_U32" bits)\n", args->numBuckets, args->numBuckets_log2);
-    fprintf(stderr, "  bucketPointerWidth = "F_U32"\n", args->bucketPointerWidth);
-    fprintf(stderr, "  merDataWidth       = "F_U32"\n", args->merDataWidth);
+    fprintf(stderr, "  numMersActual      = " F_U64 "\n", args->numMersActual);
+    fprintf(stderr, "  mersPerBatch       = " F_U64 "\n", args->mersPerBatch);
+    fprintf(stderr, "  basesPerBatch      = " F_U64 "\n", args->basesPerBatch);
+    fprintf(stderr, "  numBuckets         = " F_U64 " (" F_U32 " bits)\n", args->numBuckets, args->numBuckets_log2);
+    fprintf(stderr, "  bucketPointerWidth = " F_U32 "\n", args->bucketPointerWidth);
+    fprintf(stderr, "  merDataWidth       = " F_U32 "\n", args->merDataWidth);
   }
 }
 
@@ -379,17 +379,17 @@ runSegment(merylArgs *args, uint64 segment) {
   //  XXX:  This should check that the files are complete meryl files.
   //
   char *filename = new char [strlen(args->outputFile) + 17];
-  sprintf(filename, "%s.batch"F_U64".mcdat", args->outputFile, segment);
+  sprintf(filename, "%s.batch" F_U64 ".mcdat", args->outputFile, segment);
 
   if (AS_UTL_fileExists(filename)) {
     if (args->beVerbose)
-      fprintf(stderr, "Found result for batch "F_U64" in %s.\n", segment, filename);
+      fprintf(stderr, "Found result for batch " F_U64 " in %s.\n", segment, filename);
     delete [] filename;
     return;
   }
 
   if ((args->beVerbose) && (args->segmentLimit > 1))
-    fprintf(stderr, "Computing segment "F_U64" of "F_U64".\n", segment+1, args->segmentLimit);
+    fprintf(stderr, "Computing segment " F_U64 " of " F_U64 ".\n", segment+1, args->segmentLimit);
 
   delete [] filename;
 
@@ -397,12 +397,12 @@ runSegment(merylArgs *args, uint64 segment) {
   //  Allocate space for bucket pointers and (temporary) bucket sizes.
 
   if (args->beVerbose)
-    fprintf(stderr, " Allocating "F_U64"MB for bucket pointer table ("F_U32" bits wide).\n",
+    fprintf(stderr, " Allocating " F_U64 "MB for bucket pointer table (" F_U32 " bits wide).\n",
             (args->numBuckets * args->bucketPointerWidth + 128) >> 23, args->bucketPointerWidth);
   bucketPointers = new uint64 [(args->numBuckets * args->bucketPointerWidth + 128) >> 6];
 
   if (args->beVerbose)
-    fprintf(stderr, " Allocating "F_U64"MB for counting the size of each bucket.\n", args->numBuckets >> 18);
+    fprintf(stderr, " Allocating " F_U64 "MB for counting the size of each bucket.\n", args->numBuckets >> 18);
   bucketSizes = new uint32 [ args->numBuckets ];
   for (uint64 i=args->numBuckets; i--; )
     bucketSizes[i] = uint32ZERO;
@@ -483,7 +483,7 @@ runSegment(merylArgs *args, uint64 segment) {
   //  All done with the counting table, get rid of it.
 
   if (args->beVerbose)
-    fprintf(stderr, " Releasing "F_U64"MB from counting the size of each bucket.\n", args->numBuckets >> 18);
+    fprintf(stderr, " Releasing " F_U64 "MB from counting the size of each bucket.\n", args->numBuckets >> 18);
   delete [] bucketSizes;
 
 
@@ -492,7 +492,7 @@ runSegment(merylArgs *args, uint64 segment) {
   //  allocate full words.
 
   if (args->beVerbose)
-    fprintf(stderr, " Allocating "F_U64"MB for mer storage ("F_U32" bits wide).\n",
+    fprintf(stderr, " Allocating " F_U64 "MB for mer storage (" F_U32 " bits wide).\n",
             (args->basesPerBatch * args->merDataWidth + 64) >> 23, args->merDataWidth);
 
   for (uint64 mword=0, width=args->merDataWidth; width > 0; ) {
@@ -510,7 +510,7 @@ runSegment(merylArgs *args, uint64 segment) {
 
   if (args->positionsEnabled) {
     if (args->beVerbose)
-      fprintf(stderr, " Allocating "F_U64"MB for mer position storage.\n",
+      fprintf(stderr, " Allocating " F_U64 "MB for mer position storage.\n",
               (args->basesPerBatch * 32 + 32) >> 23);
     merPosnArray = new uint32 [ args->basesPerBatch + 1 ];
   }
@@ -568,7 +568,7 @@ runSegment(merylArgs *args, uint64 segment) {
   delete M;
 
   char *batchOutputFile = new char [strlen(args->outputFile) + 33];
-  sprintf(batchOutputFile, "%s.batch"F_U64, args->outputFile, segment);
+  sprintf(batchOutputFile, "%s.batch" F_U64, args->outputFile, segment);
 
   C = new speedCounter(" Writing output:           %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, args->beVerbose);
   W = new merylStreamWriter((args->segmentLimit == 1) ? args->outputFile : batchOutputFile,
@@ -588,20 +588,20 @@ runSegment(merylArgs *args, uint64 segment) {
     uint64 ed  = getDecodedValue(bucketPointers, bucketPos, args->bucketPointerWidth);
 
     if (ed < st) {
-      fprintf(stderr, "ERROR: In segment "F_U64"\n", segment);
-      fprintf(stderr, "ERROR: Bucket "F_U64" (out of "F_U64") ends before it starts!\n",
+      fprintf(stderr, "ERROR: In segment " F_U64 "\n", segment);
+      fprintf(stderr, "ERROR: Bucket " F_U64 " (out of " F_U64 ") ends before it starts!\n",
               bucket, args->numBuckets);
-      fprintf(stderr, "ERROR: start="F_U64"\n", st);
-      fprintf(stderr, "ERROR: end  ="F_U64"\n", ed);
+      fprintf(stderr, "ERROR: start=" F_U64 "\n", st);
+      fprintf(stderr, "ERROR: end  =" F_U64 "\n", ed);
     }
     assert(ed >= st);
 
     if ((ed - st) > (uint64ONE << 30)) {
-      fprintf(stderr, "ERROR: In segment "F_U64"\n", segment);
-      fprintf(stderr, "ERROR: Bucket "F_U64" (out of "F_U64") is HUGE!\n",
+      fprintf(stderr, "ERROR: In segment " F_U64 "\n", segment);
+      fprintf(stderr, "ERROR: Bucket " F_U64 " (out of " F_U64 ") is HUGE!\n",
               bucket, args->numBuckets);
-      fprintf(stderr, "ERROR: start="F_U64"\n", st);
-      fprintf(stderr, "ERROR: end  ="F_U64"\n", ed);
+      fprintf(stderr, "ERROR: start=" F_U64 "\n", st);
+      fprintf(stderr, "ERROR: end  =" F_U64 "\n", ed);
     }
 
     //  Nothing here?  Keep going.
@@ -703,7 +703,7 @@ runSegment(merylArgs *args, uint64 segment) {
   delete [] bucketPointers;
 
   if (args->beVerbose)
-    fprintf(stderr, "Segment "F_U64" finished.\n", segment);
+    fprintf(stderr, "Segment " F_U64 " finished.\n", segment);
 }
 
 
@@ -740,7 +740,7 @@ build(merylArgs *args) {
     } else {
       fprintf(stdout, "Batch prepared.  Please run:\n");
       for (uint64 s=0; s<args->segmentLimit; s++)
-        fprintf(stdout, "%s -countbatch "F_U64" -o %s\n", args->execName, s, args->outputFile);
+        fprintf(stdout, "%s -countbatch " F_U64 " -o %s\n", args->execName, s, args->outputFile);
       fprintf(stdout, "%s -mergebatch -o %s\n", args->execName, args->outputFile);
     }
   }
@@ -811,7 +811,7 @@ build(merylArgs *args) {
       argv[argc++] = "-s";
       arga[argc] = true;
       argv[argc] = new char [strlen(args->outputFile) + 33];
-      sprintf(argv[argc], "%s.batch"F_U32, args->outputFile, i);
+      sprintf(argv[argc], "%s.batch" F_U32, args->outputFile, i);
       argc++;
     }
 
@@ -835,11 +835,11 @@ build(merylArgs *args) {
     char *filename = new char [strlen(args->outputFile) + 17];
 
     for (uint32 i=0; i<args->segmentLimit; i++) {
-      sprintf(filename, "%s.batch"F_U32".mcidx", args->outputFile, i);
+      sprintf(filename, "%s.batch" F_U32 ".mcidx", args->outputFile, i);
       unlink(filename);
-      sprintf(filename, "%s.batch"F_U32".mcdat", args->outputFile, i);
+      sprintf(filename, "%s.batch" F_U32 ".mcdat", args->outputFile, i);
       unlink(filename);
-      sprintf(filename, "%s.batch"F_U32".mcpos", args->outputFile, i);
+      sprintf(filename, "%s.batch" F_U32 ".mcpos", args->outputFile, i);
       unlink(filename);
     }
 

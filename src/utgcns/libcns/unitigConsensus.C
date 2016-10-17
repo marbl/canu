@@ -287,17 +287,17 @@ unitigConsensus::generatePBDAG(tgTig                     *tig_,
     uint32       end      = utgpos[i].max();
 
     if (start > utg.seq.length()) {
-      fprintf(stderr, "WARNING: reset start  from "F_U32" to "F_U64"\n", start, utg.seq.length()-1);
+      fprintf(stderr, "WARNING: reset start  from " F_U32 " to " F_U64 "\n", start, utg.seq.length()-1);
       start = utg.seq.length() - 1;
     }
 
     if (end - start > readLen) {
-      fprintf(stderr, "WARNING: reset end    from "F_U32" to "F_U32"\n", end, start+readLen);
+      fprintf(stderr, "WARNING: reset end    from " F_U32 " to " F_U32 "\n", end, start+readLen);
       end = start + readLen;
     }
 
     if (end > utg.seq.length()) {
-      fprintf(stderr, "WARNING: truncate end from "F_U32" to "F_U64"\n", end, utg.seq.length()-1);
+      fprintf(stderr, "WARNING: truncate end from " F_U32 " to " F_U64 "\n", end, utg.seq.length()-1);
       end = utg.seq.length() - 1;
     }
 

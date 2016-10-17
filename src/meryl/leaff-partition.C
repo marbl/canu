@@ -85,14 +85,14 @@ outputPartition(seqCache *F,
   //
   for (uint32 i=0; i<n; i++)
     if (p[i].partition == 0)
-      fprintf(stderr, "ERROR: Failed to partition "F_U32"\n", i);
+      fprintf(stderr, "ERROR: Failed to partition " F_U32 "\n", i);
 
   if (prefix) {
 
     //  This rewrites the source fasta file into partitioned fasta files
     //
     for (uint32 o=1; o<=openP; o++) {
-      sprintf(filename, "%s-%03"F_U32P".fasta", prefix, o);
+      sprintf(filename, "%s-%03" F_U32P ".fasta", prefix, o);
 
       errno = 0;
       FILE *file = fopen(filename, "w");
@@ -107,7 +107,7 @@ outputPartition(seqCache *F,
           fprintf(file, "\n");
 
           if (S->sequenceLength() != p[i].length) {
-            fprintf(stderr, "Huh?  '%s' "F_U32" != "F_U32"\n", S->header(), S->sequenceLength(), p[i].length);
+            fprintf(stderr, "Huh?  '%s' " F_U32 " != " F_U32 "\n", S->header(), S->sequenceLength(), p[i].length);
           }
 
           delete S;
@@ -126,10 +126,10 @@ outputPartition(seqCache *F,
       for (uint32 i=0; i<n; i++)
         if (p[i].partition == o)
           sizeP += p[i].length;
-      fprintf(stdout, F_U32"]("F_U32")", o, sizeP);
+      fprintf(stdout, F_U32"](" F_U32 ")", o, sizeP);
       for (uint32 i=0; i<n; i++)
         if (p[i].partition == o)
-          fprintf(stdout, " "F_U32"("F_U32")", p[i].index, p[i].length);
+          fprintf(stdout, " " F_U32 "(" F_U32 ")", p[i].index, p[i].length);
       fprintf(stdout, "\n");
     }
 

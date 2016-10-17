@@ -51,7 +51,7 @@ operationCompress(char *tigName, int tigVers) {
       continue;
 
     if (tigStore->getVersion(ti) > tigVers) {
-      fprintf(stderr, "WARNING:  Attempt to move future unitig "F_U32" from version "F_U32" to previous version %d.\n",
+      fprintf(stderr, "WARNING:  Attempt to move future unitig " F_U32 " from version " F_U32 " to previous version %d.\n",
               ti, tigStore->getVersion(ti), tigVers);
       nErrors++;
     } else if (tigStore->getVersion(ti) < tigVers) {
@@ -61,7 +61,7 @@ operationCompress(char *tigName, int tigVers) {
 
   if (nErrors > 0) {
     fprintf(stderr, "Store can't be compressed; probably trying to compress to something that isn't the latest version.\n");
-    fprintf(stderr, "  "F_U32" tigs failed; "F_U32" compressable\n", nErrors, nCompress);
+    fprintf(stderr, "  " F_U32 " tigs failed; " F_U32 " compressable\n", nErrors, nCompress);
     delete tigStore;
     exit(1);
   }
@@ -75,7 +75,7 @@ operationCompress(char *tigName, int tigVers) {
   }
 
   if (nCompress > 0) {
-    fprintf(stderr, "Compressing "F_U32" tigs into version %d\n", nCompress, tigVers);
+    fprintf(stderr, "Compressing " F_U32 " tigs into version %d\n", nCompress, tigVers);
 
     for (uint32 ti=0; ti<tigStore->numTigs(); ti++) {
       if ((ti % 1000000) == 0)
@@ -102,7 +102,7 @@ operationCompress(char *tigName, int tigVers) {
 
   if (nCompress > 0) {
     for (uint32 version=1; version<tigVers; version++) {
-      fprintf(stderr, "Purge version "F_U32".\n", version);
+      fprintf(stderr, "Purge version " F_U32 ".\n", version);
       tigStore->purgeVersion(version);
     }
   }

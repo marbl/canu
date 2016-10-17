@@ -156,7 +156,7 @@ loadFASTA(char                 *L,
   //  Report errors.
 
   if (baseErrors > 0) {
-    fprintf(errorLog, "read '%s' has "F_U32" invalid base%s.  Converted to 'N'.\n",
+    fprintf(errorLog, "read '%s' has " F_U32 " invalid base%s.  Converted to 'N'.\n",
             H, baseErrors, (baseErrors > 1) ? "s" : "");
     nWARNS++;
   }
@@ -261,7 +261,7 @@ loadFASTQ(char                 *L,
   }
 
   if (baseErrors > 0) {
-        fprintf(errorLog, "read '%s' has "F_U32" invalid base%s.  Converted to 'N'.\n",
+        fprintf(errorLog, "read '%s' has " F_U32 " invalid base%s.  Converted to 'N'.\n",
                 L, baseErrors, (baseErrors > 1) ? "s" : "");
     nWARNS++;
   }
@@ -307,7 +307,7 @@ loadFASTQ(char                 *L,
   }
 
   if (QVerrors > 0) {
-    fprintf(errorLog, "read '%s' has "F_U32" invalid QV%s.  Converted to min or max value.\n",
+    fprintf(errorLog, "read '%s' has " F_U32 " invalid QV%s.  Converted to min or max value.\n",
             L, QVerrors, (QVerrors > 1) ? "s" : "");
     nWARNS++;
   }
@@ -359,7 +359,7 @@ loadReads(gkStore    *gkpStore,
   fprintf(stderr, "\n");
   fprintf(stderr, "  Loading reads from '%s'\n", fileName);
 
-  fprintf(htmlLog, "nam "F_U32" %s\n", gkpFileID, fileName);
+  fprintf(htmlLog, "nam " F_U32 " %s\n", gkpFileID, fileName);
 
   fprintf(htmlLog, "lib preset=N/A");
   fprintf(htmlLog,    " defaultQV=%u",            gkpLibrary->gkLibrary_defaultQV());
@@ -408,7 +408,7 @@ loadReads(gkStore    *gkpStore,
     }
 
     else {
-      fprintf(errorLog, "invalid read header '%.40s%s' in file '%s' at line "F_U64", skipping.\n",
+      fprintf(errorLog, "invalid read header '%.40s%s' in file '%s' at line " F_U64 ", skipping.\n",
               L, (strlen(L) > 80) ? "..." : "", fileName, lineNumber);
       L[0] = 0;
       nWARNSlocal++;
@@ -417,7 +417,7 @@ loadReads(gkStore    *gkpStore,
     //  If S[0] isn't nul, we loaded a sequence and need to store it.
 
     if (Slen < minReadLength) {
-      fprintf(errorLog, "read '%s' of length "F_U32" in file '%s' at line "F_U64" is too short, skipping.\n",
+      fprintf(errorLog, "read '%s' of length " F_U32 " in file '%s' at line " F_U64 " is too short, skipping.\n",
               H, Slen, fileName, lineNumber);
 
       if (isFASTA) {
@@ -475,32 +475,32 @@ loadReads(gkStore    *gkpStore,
 
   //  Write status to the screen
 
-  fprintf(stderr, "    Processed "F_U64" lines.\n", lineNumber);
+  fprintf(stderr, "    Processed " F_U64 " lines.\n", lineNumber);
 
-  fprintf(stderr, "    Loaded "F_U64" bp from:\n", bLOADEDAlocal + bLOADEDQlocal);
+  fprintf(stderr, "    Loaded " F_U64 " bp from:\n", bLOADEDAlocal + bLOADEDQlocal);
   if (nFASTAlocal > 0)
-    fprintf(stderr, "      "F_U32" FASTA format reads ("F_U64" bp).\n", nFASTAlocal, bLOADEDAlocal);
+    fprintf(stderr, "      " F_U32 " FASTA format reads (" F_U64 " bp).\n", nFASTAlocal, bLOADEDAlocal);
   if (nFASTQlocal > 0)
-    fprintf(stderr, "      "F_U32" FASTQ format reads ("F_U64" bp).\n", nFASTQlocal, bLOADEDQlocal);
+    fprintf(stderr, "      " F_U32 " FASTQ format reads (" F_U64 " bp).\n", nFASTQlocal, bLOADEDQlocal);
 
   if (nWARNSlocal > 0)
-    fprintf(stderr, "    WARNING: "F_U32" reads issued a warning.\n", nWARNSlocal);
+    fprintf(stderr, "    WARNING: " F_U32 " reads issued a warning.\n", nWARNSlocal);
 
   if (nSKIPPEDAlocal > 0)
-    fprintf(stderr, "    WARNING: "F_U32" reads (%0.4f%%) with "F_U64" bp (%0.4f%%) were too short (< "F_U32"bp) and were ignored.\n",
+    fprintf(stderr, "    WARNING: " F_U32 " reads (%0.4f%%) with " F_U64 " bp (%0.4f%%) were too short (< " F_U32 "bp) and were ignored.\n",
             nSKIPPEDAlocal, 100.0 * nSKIPPEDAlocal / (nSKIPPEDAlocal + nLOADEDAlocal),
             bSKIPPEDAlocal, 100.0 * bSKIPPEDAlocal / (bSKIPPEDAlocal + bLOADEDAlocal),
             minReadLength);
 
   if (nSKIPPEDQlocal > 0)
-    fprintf(stderr, "    WARNING: "F_U32" reads (%0.4f%%) with "F_U64" bp (%0.4f%%) were too short (< "F_U32"bp) and were ignored.\n",
+    fprintf(stderr, "    WARNING: " F_U32 " reads (%0.4f%%) with " F_U64 " bp (%0.4f%%) were too short (< " F_U32 "bp) and were ignored.\n",
             nSKIPPEDQlocal, 100.0 * nSKIPPEDQlocal / (nSKIPPEDQlocal + nLOADEDQlocal),
             bSKIPPEDQlocal, 100.0 * bSKIPPEDQlocal / (bSKIPPEDQlocal + bLOADEDQlocal),
             minReadLength);
 
   //  Write status to HTML
 
-  fprintf(htmlLog, "dat "F_U32" "F_U64" "F_U32" "F_U64" "F_U32" "F_U64" "F_U32" "F_U64" "F_U32"\n",
+  fprintf(htmlLog, "dat " F_U32 " " F_U64 " " F_U32 " " F_U64 " " F_U32 " " F_U64 " " F_U32 " " F_U64 " " F_U32 "\n",
           nLOADEDAlocal, bLOADEDAlocal,
           nSKIPPEDAlocal, bSKIPPEDAlocal,
           nLOADEDQlocal, bLOADEDQlocal,
@@ -706,18 +706,18 @@ main(int argc, char **argv) {
 
   fprintf(stderr, "\n");
   fprintf(stderr, "Finished with:\n");
-  fprintf(stderr, "  "F_U32" warnings (bad base or qv, too short, too long)\n", nWARNS);
+  fprintf(stderr, "  " F_U32 " warnings (bad base or qv, too short, too long)\n", nWARNS);
   fprintf(stderr, "\n");
   fprintf(stderr, "Loaded into store:\n");
-  fprintf(stderr, "  "F_U64" bp.\n",    bLOADED);
-  fprintf(stderr, "  "F_U32" reads.\n", nLOADED);
+  fprintf(stderr, "  " F_U64 " bp.\n",    bLOADED);
+  fprintf(stderr, "  " F_U32 " reads.\n", nLOADED);
   fprintf(stderr, "\n");
   fprintf(stderr, "Skipped (too short):\n");
-  fprintf(stderr, "  "F_U64" bp (%.4f%%).\n",    bSKIPPED, 100.0 * bSKIPPED / (bSKIPPED + bLOADED));
-  fprintf(stderr, "  "F_U32" reads (%.4f%%).\n", nSKIPPED, 100.0 * nSKIPPED / (nSKIPPED + nLOADED));
+  fprintf(stderr, "  " F_U64 " bp (%.4f%%).\n",    bSKIPPED, 100.0 * bSKIPPED / (bSKIPPED + bLOADED));
+  fprintf(stderr, "  " F_U32 " reads (%.4f%%).\n", nSKIPPED, 100.0 * nSKIPPED / (nSKIPPED + nLOADED));
   fprintf(stderr, "\n");
   fprintf(stderr, "\n");
-  fprintf(htmlLog, "sum "F_U32" "F_U64" "F_U32" "F_U64" "F_U32"\n", nLOADED, bLOADED, nSKIPPED, bSKIPPED, nWARNS);
+  fprintf(htmlLog, "sum " F_U32 " " F_U64 " " F_U32 " " F_U64 " " F_U32 "\n", nLOADED, bLOADED, nSKIPPED, bSKIPPED, nWARNS);
 
   fclose(htmlLog);
 

@@ -142,7 +142,7 @@ loadEdges(char *edgeName, vector<bestEdge> &edges, set<uint32> &vertices) {
     fgets(edgeLine, 1024, edgeFile);
   }
 
-  fprintf(stderr, "Loaded "F_SIZE_T" edges from '%s'.\n", edges.size(), edgeName);
+  fprintf(stderr, "Loaded " F_SIZE_T " edges from '%s'.\n", edges.size(), edgeName);
 }
 
 

@@ -315,7 +315,7 @@ main(int argc, char **argv) {
     if (Ai)  fclose(Ai);
     if (Bi)  fclose(Bi);
 
-    fprintf(stderr, "Found "F_U64" bases and "F_U64" reads in '%s'\n",
+    fprintf(stderr, "Found " F_U64 " bases and " F_U64 " reads in '%s'\n",
             totBasesInInput, totPairsInInput, path1);
 
     if (Ac != Bc) {
@@ -367,12 +367,12 @@ main(int argc, char **argv) {
   }
 
   if (totBasesInInput < nBasesToOutput)
-    fprintf(stderr, "ERROR: not enough reads, "F_U64" bp in input, "F_U64" needed for desired .....\n",
+    fprintf(stderr, "ERROR: not enough reads, " F_U64 " bp in input, " F_U64 " needed for desired .....\n",
             totBasesInInput, nBasesToOutput),
       exit(1);
 
   if (totPairsInInput < nPairsToOutput)
-    fprintf(stderr, "ERROR: not enough reads, "F_U64" %s in input, "F_U64" needed for desired ......\n",
+    fprintf(stderr, "ERROR: not enough reads, " F_U64 " %s in input, " F_U64 " needed for desired ......\n",
             totPairsInInput, (isMated) ? "pairs" : "reads", nPairsToOutput),
       exit(1);
 
@@ -471,12 +471,12 @@ main(int argc, char **argv) {
     sprintf(path2, "%s.%c.fastq", OUTNAME, (isMated == true) ? '2' : 'u');
 
   } else if (GENOMESIZE > 0) {
-    sprintf(path1, "%s.x=%07.3f.n=%09"F_U64P".%c.fastq", OUTNAME, (double)nBasesToOutput / GENOMESIZE, nPairsToOutput, (isMated == true) ? '1' : 'u');
-    sprintf(path2, "%s.x=%07.3f.n=%09"F_U64P".%c.fastq", OUTNAME, (double)nBasesToOutput / GENOMESIZE, nPairsToOutput, (isMated == true) ? '2' : 'u');
+    sprintf(path1, "%s.x=%07.3f.n=%09" F_U64P ".%c.fastq", OUTNAME, (double)nBasesToOutput / GENOMESIZE, nPairsToOutput, (isMated == true) ? '1' : 'u');
+    sprintf(path2, "%s.x=%07.3f.n=%09" F_U64P ".%c.fastq", OUTNAME, (double)nBasesToOutput / GENOMESIZE, nPairsToOutput, (isMated == true) ? '2' : 'u');
 
   } else {
-    sprintf(path1, "%s.x=UNKNOWN.n=%09"F_U64P".%c.fastq", OUTNAME, nPairsToOutput, (isMated == true) ? '1' : 'u');
-    sprintf(path2, "%s.x=UNKNOWN.n=%09"F_U64P".%c.fastq", OUTNAME, nPairsToOutput, (isMated == true) ? '2' : 'u');
+    sprintf(path1, "%s.x=UNKNOWN.n=%09" F_U64P ".%c.fastq", OUTNAME, nPairsToOutput, (isMated == true) ? '1' : 'u');
+    sprintf(path2, "%s.x=UNKNOWN.n=%09" F_U64P ".%c.fastq", OUTNAME, nPairsToOutput, (isMated == true) ? '2' : 'u');
   }
 
   errno = 0;
@@ -498,10 +498,10 @@ main(int argc, char **argv) {
   if (isMated == true) {
 
     if (nPairsToOutput > 0)
-      fprintf(stderr, "Extracting "F_U64" mate pairs into %s and %s\n",
+      fprintf(stderr, "Extracting " F_U64 " mate pairs into %s and %s\n",
               nPairsToOutput, path1, path2);
     else
-      fprintf(stderr, "Extracting "F_U64" bases of mate pairs into %s and %s\n",
+      fprintf(stderr, "Extracting " F_U64 " bases of mate pairs into %s and %s\n",
               nBasesToOutput, path1, path2);
 
     for (; Ar->read(Ai) && Br->read(Bi); i++) {
@@ -521,10 +521,10 @@ main(int argc, char **argv) {
   } else {
 
     if (nPairsToOutput > 0)
-      fprintf(stderr, "Extracting "F_U64" reads into %s\n",
+      fprintf(stderr, "Extracting " F_U64 " reads into %s\n",
               nPairsToOutput, path1);
     else
-      fprintf(stderr, "Extracting "F_U64" bases of reads into %s\n",
+      fprintf(stderr, "Extracting " F_U64 " bases of reads into %s\n",
               nBasesToOutput, path1);
 
     for (; Ar->read(Ai); i++) {
@@ -542,14 +542,14 @@ main(int argc, char **argv) {
   delete Br;
 
   if (i > totPairsInInput) {
-    fprintf(stderr, "WARNING:  There are "F_U64" %s in the input; you claimed there are "F_U64" (-t option) %s.\n",
+    fprintf(stderr, "WARNING:  There are " F_U64 " %s in the input; you claimed there are " F_U64 " (-t option) %s.\n",
             i,               (isMated) ? "mates" : "reads",
             totPairsInInput, (isMated) ? "mates" : "reads");
     fprintf(stderr, "WARNING:  Result is not a random sample of the input file.\n");
   }
 
   if (i < totPairsInInput) {
-    fprintf(stderr, "WARNING:  There are "F_U64" %s in the input; you claimed there are "F_U64" (-t option) %s.\n",
+    fprintf(stderr, "WARNING:  There are " F_U64 " %s in the input; you claimed there are " F_U64 " (-t option) %s.\n",
             i,               (isMated) ? "mates" : "reads",
             totPairsInInput, (isMated) ? "mates" : "reads");
     fprintf(stderr, "WARNING:  Result is only %f X coverage.\n", (double)s * READLENGTH / GENOMESIZE);

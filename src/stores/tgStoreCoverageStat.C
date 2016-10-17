@@ -213,8 +213,8 @@ getGlobalArrivalRate(tgStore         *tigStore,
 
   fprintf(outSTA, "BASED ON ALL UNITIGS:\n");
   fprintf(outSTA, "sumRho:                           %.0f\n", sumRho);
-  fprintf(outSTA, "totalRandomFrags:                 "F_U64"\n", totalRandom);
-  fprintf(outSTA, "Supplied genome size              "F_U64"\n", genomeSize);
+  fprintf(outSTA, "totalRandomFrags:                 " F_U64 "\n", totalRandom);
+  fprintf(outSTA, "Supplied genome size              " F_U64 "\n", genomeSize);
   fprintf(outSTA, "Computed genome size:             %.2f\n", totalRandom / globalRate);
   fprintf(outSTA, "Calculated Global Arrival rate:   %f\n", globalRate);
 

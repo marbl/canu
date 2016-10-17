@@ -78,9 +78,9 @@ main(int argc, char **argv) {
   uint64  total               = 0;
   uint32  Xcoverage           = 8;
 
-  fprintf(stderr, "distinct: "F_U64"\n", MF->numberOfDistinctMers());
-  fprintf(stderr, "unique:   "F_U64"\n", MF->numberOfUniqueMers());
-  fprintf(stderr, "total:    "F_U64"\n", MF->numberOfTotalMers());
+  fprintf(stderr, "distinct: " F_U64 "\n", MF->numberOfDistinctMers());
+  fprintf(stderr, "unique:   " F_U64 "\n", MF->numberOfUniqueMers());
+  fprintf(stderr, "total:    " F_U64 "\n", MF->numberOfTotalMers());
 
   //  Pass 0: try to deduce the X coverage we have.  The
   //  pattern we should see in mer counts is an initial spike
@@ -99,27 +99,27 @@ main(int argc, char **argv) {
   uint32  i  = 0;
   uint32  iX = 0;
 
-  fprintf(stderr, "distinct: "F_U64"\n", MF->numberOfDistinctMers());
-  fprintf(stderr, "unique:   "F_U64"\n", MF->numberOfUniqueMers());
-  fprintf(stderr, "total:    "F_U64"\n", MF->numberOfTotalMers());
+  fprintf(stderr, "distinct: " F_U64 "\n", MF->numberOfDistinctMers());
+  fprintf(stderr, "unique:   " F_U64 "\n", MF->numberOfUniqueMers());
+  fprintf(stderr, "total:    " F_U64 "\n", MF->numberOfTotalMers());
 
-  fprintf(stderr, "Xcoverage zero 1 0 "F_U64"\n", MF->histogram(1));
+  fprintf(stderr, "Xcoverage zero 1 0 " F_U64 "\n", MF->histogram(1));
 
   for (i=2; (i < MF->histogramLength()) && (MF->histogram(i-1) > MF->histogram(i)); i++)
-    fprintf(stderr, "Xcoverage drop "F_U32" "F_U64" "F_U64"\n", i, MF->histogram(i-1), MF->histogram(i));
+    fprintf(stderr, "Xcoverage drop " F_U32 " " F_U64 " " F_U64 "\n", i, MF->histogram(i-1), MF->histogram(i));
 
   iX = i - 1;
 
   for (; i < MF->histogramLength(); i++) {
     if (MF->histogram(iX) < MF->histogram(i)) {
-      fprintf(stderr, "Xcoverage incr "F_U32" "F_U64" "F_U64"\n", i, MF->histogram(iX), MF->histogram(i));
+      fprintf(stderr, "Xcoverage incr " F_U32 " " F_U64 " " F_U64 "\n", i, MF->histogram(iX), MF->histogram(i));
       iX = i;
     } else {
-      //fprintf(stderr, "Xcoverage drop "F_U32" "F_U64" "F_U64"\n", i, MF->histogram(iX), MF->histogram(i));
+      //fprintf(stderr, "Xcoverage drop " F_U32 " " F_U64 " " F_U64 "\n", i, MF->histogram(iX), MF->histogram(i));
     }
   }
 
-  fprintf(stderr, "Guessed X coverage is "F_U32"\n", iX);
+  fprintf(stderr, "Guessed X coverage is " F_U32 "\n", iX);
 
   Xcoverage = iX;
 
@@ -143,7 +143,7 @@ main(int argc, char **argv) {
       maxCount = i;
   }
 
-  fprintf(stderr, "Set maxCount to "F_U32", which will cover %.2f%% of distinct mers and %.2f%% of all mers.\n",
+  fprintf(stderr, "Set maxCount to " F_U32 ", which will cover %.2f%% of distinct mers and %.2f%% of all mers.\n",
           i, 100.0 * distinct / totalUsefulDistinct, 100.0 * total / totalUsefulAll);
 
 
@@ -174,7 +174,7 @@ main(int argc, char **argv) {
 
     maxCount = i;
 
-    fprintf(stderr, "Reset maxCount to "F_U32", which will cover %.2f%% of distinct mers and %.2f%% of all mers.\n",
+    fprintf(stderr, "Reset maxCount to " F_U32 ", which will cover %.2f%% of distinct mers and %.2f%% of all mers.\n",
             maxCount, 100.0 * distinct / totalUsefulDistinct, 100.0 * total / totalUsefulAll);
   }
 

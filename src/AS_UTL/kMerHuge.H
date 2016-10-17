@@ -260,7 +260,7 @@ public:
     val &= uint64MASK(numbits);
 
     if (wrd >= KMER_WORDS) {
-      fprintf(stderr, "kMer::setBits()-- ERROR: tried to set pos="F_U32" numbits="F_U32" larger than KMER_WORDS=%d\n",
+      fprintf(stderr, "kMer::setBits()-- ERROR: tried to set pos=" F_U32 " numbits=" F_U32 " larger than KMER_WORDS=%d\n",
               pos, numbits, KMER_WORDS), exit(1);
     }
 
@@ -274,7 +274,7 @@ public:
       MERWORD(wrd) |=  val << bit;
     } else {
       if (wrd+1 >= KMER_WORDS) {
-        fprintf(stderr, "kMer::setBits()-- ERROR: tried to set pos="F_U32" numbits="F_U32" larger than KMER_WORDS=%d\n",
+        fprintf(stderr, "kMer::setBits()-- ERROR: tried to set pos=" F_U32 " numbits=" F_U32 " larger than KMER_WORDS=%d\n",
                 pos, numbits, KMER_WORDS), exit(1);
       }
 
@@ -295,7 +295,7 @@ public:
     uint32  bit = pos  & 0x3f;
 
     if (wrd >= KMER_WORDS) {
-      fprintf(stderr, "kMer::getBits()-- ERROR: tried to get pos="F_U32" numbits="F_U32" larger than KMER_WORDS=%d\n",
+      fprintf(stderr, "kMer::getBits()-- ERROR: tried to get pos=" F_U32 " numbits=" F_U32 " larger than KMER_WORDS=%d\n",
               pos, numbits, KMER_WORDS), exit(1);
     }
 
@@ -303,7 +303,7 @@ public:
       val = MERWORD(wrd) >> bit;
     } else {
       if (wrd+1 >= KMER_WORDS) {
-        fprintf(stderr, "kMer::getBits()-- ERROR: tried to get pos="F_U32" numbits="F_U32" larger than KMER_WORDS=%d\n",
+        fprintf(stderr, "kMer::getBits()-- ERROR: tried to get pos=" F_U32 " numbits=" F_U32 " larger than KMER_WORDS=%d\n",
                 pos, numbits, KMER_WORDS), exit(1);
       }
 
@@ -395,7 +395,7 @@ kMerHuge::setMerSize(uint32 ms) {
   }
 
   if (_maskWord >= KMER_WORDS) {
-    fprintf(stderr, "kMer::setMerSize()-- ERROR!  Desired merSize of "F_U32" larger than\n", _merSize);
+    fprintf(stderr, "kMer::setMerSize()-- ERROR!  Desired merSize of " F_U32 " larger than\n", _merSize);
     fprintf(stderr, "                     available storage space (KMER_WORDS=%d, max merSize %d).\n", KMER_WORDS, KMER_WORDS*32);
     exit(1);
   }

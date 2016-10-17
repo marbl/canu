@@ -99,7 +99,7 @@ computeStuff(uint32 *V, uint32 N,
   }
 
   if (histogramBig) {
-    fprintf(stderr, "histogramBig: "F_U32"\n", histogramBig);
+    fprintf(stderr, "histogramBig: " F_U32 "\n", histogramBig);
     exit(1);
   }
 
@@ -197,7 +197,7 @@ void outputResult(AS_IID lastiid,
               if (E > N) { E = N; }
 
               computeStuff(V, N, i, E, &mode, &mean, &median);
-              fprintf(stdout, "%s\t"F_U32"\t"F_U32"\t"F_U32"\t%f\t"F_U32"\n", lastiid, i, E, mode, mean, median);
+              fprintf(stdout, "%s\t" F_U32 "\t" F_U32 "\t" F_U32 "\t%f\t" F_U32 "\n", lastiid, i, E, mode, mean, median);
             }
             safe_free(V);
           }

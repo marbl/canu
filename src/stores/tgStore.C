@@ -269,7 +269,7 @@ tgStore::writeTigToDisk(tgTig *tig, tgStoreEntry *te) {
   te->flushNeeded = 0;
   te->fileOffset  = AS_UTL_ftell(FP);
 
-  //fprintf(stderr, "tgStore::writeTigToDisk()-- write tig "F_S32" in store version "F_U64" at file position "F_U64"\n",
+  //fprintf(stderr, "tgStore::writeTigToDisk()-- write tig " F_S32 " in store version " F_U64 " at file position " F_U64 "\n",
   //        tig->_tigID, te->svID, te->fileOffset);
 
   tig->saveToStream(FP);
@@ -409,7 +409,7 @@ tgStore::loadTig(uint32 tigID) {
   bool              cantLoad = true;
 
   if (_tigLen <= tigID)
-    fprintf(stderr, "tgStore::loadTig()-- WARNING: invalid out-of-range tigID "F_S32", only "F_S32" ma in store; return NULL.\n",
+    fprintf(stderr, "tgStore::loadTig()-- WARNING: invalid out-of-range tigID " F_S32 ", only " F_S32 " ma in store; return NULL.\n",
             tigID, _tigLen);
   assert(tigID < _tigLen);
 
@@ -684,7 +684,7 @@ tgStore::loadMASR(tgStoreEntry* &R, uint32& L, uint32& M, uint32 V) {
 
   //  Check we're consistent.
   if (L < MASRtotalInFile)
-    fprintf(stderr, "tgStore::loadMASR()-- '%s' has more tigs ("F_U32") than expected ("F_U32").\n",
+    fprintf(stderr, "tgStore::loadMASR()-- '%s' has more tigs (" F_U32 ") than expected (" F_U32 ").\n",
             _name, MASRtotalInFile, L), exit(1);
 
   AS_UTL_safeRead(F,  R, "MASR", sizeof(tgStoreEntry), masrLen);

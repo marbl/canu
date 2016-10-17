@@ -78,7 +78,7 @@ readDepth(char *depthname, map<uint64,intervalList<uint32>*> &lowCoverage) {
     uint32  end = strtoul(W[3], 0L, 10);
 
     if (beg > end)
-      fprintf(stderr, "ERROR: l="F_U32" h="F_U32"\n", beg, end);
+      fprintf(stderr, "ERROR: l=" F_U32 " h=" F_U32 "\n", beg, end);
 
     if (ILs[uid] == 0L)
       ILs[uid] = new intervalList<uint32>;
@@ -90,7 +90,7 @@ readDepth(char *depthname, map<uint64,intervalList<uint32>*> &lowCoverage) {
   }
 
   fclose(F);
-  fprintf(stderr, " "F_U32" lines.\n", i);
+  fprintf(stderr, " " F_U32 " lines.\n", i);
 
   map<uint64,intervalList<uint32>*>::iterator    it = ILs.begin();
   map<uint64,intervalList<uint32>*>::iterator    ed = ILs.end();
@@ -135,7 +135,7 @@ readVariation(char *depthname, map<uint64,intervalList<uint32>*> &variation) {
   }
 
   fclose(F);
-  fprintf(stderr, " "F_U32" lines.\n", i);
+  fprintf(stderr, " " F_U32 " lines.\n", i);
 }
 
 
@@ -175,7 +175,7 @@ readBadMers(char *depthname, map<uint64,intervalList<uint32>*> &badMers) {
   }
 
   fclose(F);
-  fprintf(stderr, " "F_U32" lines.\n", i);
+  fprintf(stderr, " " F_U32 " lines.\n", i);
 }
 
 
@@ -275,7 +275,7 @@ main(int argc, char **argv) {
         //  We want to count the number of times a badmer region
         //  begins/ends in some depth.
 
-        //fprintf(stderr, "testing beg        "F_U32" "F_U32" -- "F_U32" "F_U32"\n",
+        //fprintf(stderr, "testing beg        " F_U32 " " F_U32 " -- " F_U32 " " F_U32 "\n",
         //        Ii->lo(ii), Ii->hi(ii), Id->lo(id), Id->hi(id));
 
         uint32  beg = 0;
@@ -285,7 +285,7 @@ main(int argc, char **argv) {
         while ((id < Id->numberOfIntervals()) &&
                (Id->hi(id) <= Ii->lo(ii))) {
           id++;
-          //fprintf(stderr, "testing beg (m)     "F_U32" "F_U32" -- "F_U32" "F_U32"\n",
+          //fprintf(stderr, "testing beg (m)     " F_U32 " " F_U32 " -- " F_U32 " " F_U32 "\n",
           //        Ii->lo(ii), Ii->hi(ii), Id->lo(id), Id->hi(id));
         }
         if (id < Id->numberOfIntervals()) {
@@ -296,23 +296,23 @@ main(int argc, char **argv) {
           if ((lo <= Ii->lo(ii)) && (Ii->lo(ii) < hi)) {
             beg = Id->depth(id);
           } else {
-            fprintf(stderr, "failed to find begin "F_U32" "F_U32" -- "F_U32" "F_U32" "F_U32"\n",
+            fprintf(stderr, "failed to find begin " F_U32 " " F_U32 " -- " F_U32 " " F_U32 " " F_U32 "\n",
                     Ii->lo(ii), Ii->hi(ii), Id->lo(id), Id->hi(id), Id->depth(id));
             if (id > 0)
-              fprintf(stderr, "                     "F_U32" "F_U32" -- "F_U32" "F_U32" "F_U32"\n",
+              fprintf(stderr, "                     " F_U32 " " F_U32 " -- " F_U32 " " F_U32 " " F_U32 "\n",
                       Ii->lo(ii), Ii->hi(ii), Id->lo(id-1), Id->hi(id-1), Id->depth(id-1));
             //exit(1);
           }
         }
 
-        //fprintf(stderr, "testing end        "F_U64" "F_U64" -- "F_U64" "F_U64"\n",
+        //fprintf(stderr, "testing end        " F_U64 " " F_U64 " -- " F_U64 " " F_U64 "\n",
         //        Ii->lo(ii), Ii->hi(ii), Id->lo(id), Id->hi(id));
 
         //  High points can be equal.
         while ((id < Id->numberOfIntervals()) &&
                (Id->hi(id) < Ii->hi(ii))) {
           id++;
-          //fprintf(stderr, "testing end (m)    "F_U64" "F_U64" -- "F_U64" "F_U64"\n",
+          //fprintf(stderr, "testing end (m)    " F_U64 " " F_U64 " -- " F_U64 " " F_U64 "\n",
           //        Ii->lo(ii), Ii->hi(ii), Id->lo(id), Id->hi(id));
         }
         if (id < Id->numberOfIntervals()) {
@@ -323,10 +323,10 @@ main(int argc, char **argv) {
           if ((lo < Ii->hi(ii)) && (Ii->hi(ii) <= hi)) {
             end = Id->depth(id);
           } else {
-            fprintf(stderr, "failed to find end "F_U32" "F_U32" -- "F_U32" "F_U32" "F_U32"\n",
+            fprintf(stderr, "failed to find end " F_U32 " " F_U32 " -- " F_U32 " " F_U32 " " F_U32 "\n",
                     Ii->lo(ii), Ii->hi(ii), Id->lo(id), Id->hi(id), Id->depth(id));
             if (id > 0)
-              fprintf(stderr, "                     "F_U32" "F_U32" -- "F_U32" "F_U32" "F_U32"\n",
+              fprintf(stderr, "                     " F_U32 " " F_U32 " -- " F_U32 " " F_U32 " " F_U32 "\n",
                       Ii->lo(ii), Ii->hi(ii), Id->lo(id-1), Id->hi(id-1), Id->depth(id-1));
             //exit(1);
           }
@@ -335,7 +335,7 @@ main(int argc, char **argv) {
         badBegDepth[beg]++;
         badEndDepth[end]++;
 
-        fprintf(stdout, F_U64"\t"F_U32"\t"F_U32"\tdepth="F_U32","F_U32"\n",
+        fprintf(stdout, F_U64"\t" F_U32 "\t" F_U32 "\tdepth=" F_U32 "," F_U32 "\n",
                 uid, Ii->lo(ii), Ii->hi(ii), beg, end);
 
         if ((beg < 32) && (end < 32))
@@ -351,11 +351,11 @@ main(int argc, char **argv) {
   uint32 bb = 0;
   uint32 be = 0;
   for (uint32 x=0; x<32; x++) {
-    fprintf(stdout, F_U32"\t"F_U32"\t"F_U32"\n", x, badBegDepth[x], badEndDepth[x]);
+    fprintf(stdout, F_U32"\t" F_U32 "\t" F_U32 "\n", x, badBegDepth[x], badEndDepth[x]);
     bb += badBegDepth[x];
     be += badEndDepth[x];
   }
-  fprintf(stdout, "total\t"F_U32"\t"F_U32"\n", bb, be);
+  fprintf(stdout, "total\t" F_U32 "\t" F_U32 "\n", bb, be);
 
   for (uint32 i=0; i<30; i++) {
     for (uint32 j=0; j<30; j++)

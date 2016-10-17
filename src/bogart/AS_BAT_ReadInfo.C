@@ -76,7 +76,7 @@ ReadInfo::ReadInfo(gkStore    *gkp,
   }
 
   if (minReadLen > 0)
-    writeStatus("ReadInfo()-- Using %d reads, ignoring %u reads less than "F_U32" bp long.\n",
+    writeStatus("ReadInfo()-- Using %d reads, ignoring %u reads less than " F_U32 " bp long.\n",
                 numLoaded, numSkipped, minReadLen);
   else
     writeStatus("ReadInfo()-- Using %d reads, no minimum read length used.\n",

@@ -141,7 +141,7 @@ fastqStdin::getSequence(uint32 iid,
   bool  ret = true;
 
 #ifdef DEBUG
-  fprintf(stderr, "fastqStdin::getSequence(full)-- "F_U32"\n", iid);
+  fprintf(stderr, "fastqStdin::getSequence(full)-- " F_U32 "\n", iid);
 #endif
 
   if (iid == _nextIID)
@@ -181,7 +181,7 @@ bool
 fastqStdin::getSequence(uint32 iid,
                         uint32 bgn, uint32 end, char *s) {
 
-  fprintf(stderr, "fastqStdin::getSequence(part)-- ERROR!  Used for random access on iid "F_U32" from position "F_U32"-"F_U32".\n", iid, bgn, end);
+  fprintf(stderr, "fastqStdin::getSequence(part)-- ERROR!  Used for random access on iid " F_U32 " from position " F_U32 "-" F_U32 ".\n", iid, bgn, end);
   assert(0);
   return(false);
 }

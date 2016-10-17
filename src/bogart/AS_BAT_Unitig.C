@@ -137,7 +137,7 @@ void
 Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label)) {
 
 #ifdef SHOW_PROFILE_CONSTRUCTION
-  writeLog("errorProfile()-- Find error profile for tig "F_U32" of length "F_U32" with "F_SIZE_T" reads.\n",
+  writeLog("errorProfile()-- Find error profile for tig " F_U32 " of length " F_U32 " with " F_SIZE_T " reads.\n",
           id(), getLength(), ufpath.size());
 #endif
 
@@ -215,7 +215,7 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
 
 
 #ifdef SHOW_PROFILE_CONSTRUCTION
-  writeLog("errorProfile()-- tig %u generated "F_SIZE_T" profile regions from "F_SIZE_T" overlaps.\n", id(), errorProfile.size(), olaps.size());
+  writeLog("errorProfile()-- tig %u generated " F_SIZE_T " profile regions from " F_SIZE_T " overlaps.\n", id(), errorProfile.size(), olaps.size());
 #endif
 
   //  Walk both lists, adding positive erates and removing negative erates.
@@ -309,7 +309,7 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
 
 
 
-  //writeLog("errorProfile()-- tig %u generated "F_SIZE_T" profile regions with "F_U64" overlap pieces.\n",
+  //writeLog("errorProfile()-- tig %u generated " F_SIZE_T " profile regions with " F_U64 " overlap pieces.\n",
   //         id(), errorProfile.size(), nPieces);
 }
 
@@ -363,7 +363,7 @@ Unitig::overlapConsistentWithTig(double deviations,
   uint32  pbi = bgn / 1000;
 
   if (errorProfileIndex.size() <= pbi)
-    fprintf(stderr, "errorProfileIndex.size() = "F_SIZE_T"\n", errorProfileIndex.size());
+    fprintf(stderr, "errorProfileIndex.size() = " F_SIZE_T "\n", errorProfileIndex.size());
   assert(pbi < errorProfileIndex.size());
 
   while ((0 < pbi) && (errorProfile[errorProfileIndex[pbi]].bgn > bgn)) {

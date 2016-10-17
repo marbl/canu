@@ -62,7 +62,7 @@ seqCache      *F     = 0L;
       char seq = S->sequence()[pos];
 
       if (nnn != V[seq]) {
-        fprintf(stdout, "%c "F_U32" "F_U32" "F_U32" "F_U32"\n",
+        fprintf(stdout, "%c " F_U32 " " F_U32 " " F_U32 " " F_U32 "\n",
                 begseq, s, begpos, pos, pos - begpos);
         nnn = V[seq];
         begpos = pos;
@@ -70,9 +70,9 @@ seqCache      *F     = 0L;
       }
     }
 
-    fprintf(stdout, "%c "F_U32" "F_U32" "F_U32" "F_U32"\n",
+    fprintf(stdout, "%c " F_U32 " " F_U32 " " F_U32 " " F_U32 "\n",
             begseq, s, begpos, pos, pos - begpos);
-    fprintf(stdout, ". "F_U32" "F_U32" "F_U32"\n", s, pos, 0);
+    fprintf(stdout, ". " F_U32 " " F_U32 " " F_U32 "\n", s, pos, 0);
 
     delete S;
   }

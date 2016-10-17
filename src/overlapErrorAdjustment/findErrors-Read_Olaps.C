@@ -37,7 +37,7 @@ Read_Olaps(feParameters *G, gkStore *gkpStore) {
 
   uint64 numolaps = ovs->numOverlapsInRange();
 
-  fprintf(stderr, "Read_Olaps()-- loading "F_U64" overlaps.\n",
+  fprintf(stderr, "Read_Olaps()-- loading " F_U64 " overlaps.\n",
           numolaps);
 
   G->olaps    = new Olap_Info_t [numolaps];

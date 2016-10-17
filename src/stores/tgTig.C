@@ -454,7 +454,7 @@ tgTig::dumpLayout(FILE *F) {
   if (_gappedLen > 0)
     assert(_gappedLen == _layoutLen);
 
-  fprintf(F, "tig "F_U32"\n", _tigID);
+  fprintf(F, "tig " F_U32 "\n", _tigID);
   fprintf(F, "len %d\n",      _layoutLen);
 
   //  Adjust QV's to Sanger encoding
@@ -485,7 +485,7 @@ tgTig::dumpLayout(FILE *F) {
   fprintf(F, "class           %s\n", toString(_class));
   fprintf(F, "suggestRepeat   %c\n", _suggestRepeat   ? 'T' : 'F');
   fprintf(F, "suggestCircular %c\n", _suggestCircular ? 'T' : 'F');
-  fprintf(F, "numChildren     "F_U32"\n", _childrenLen);
+  fprintf(F, "numChildren     " F_U32 "\n", _childrenLen);
 
   //  And the reads.
 
@@ -503,15 +503,15 @@ tgTig::dumpLayout(FILE *F) {
 
 
     if (imp->_isRead)
-      fprintf(F, "read   %9"F_U32P" anchor %9"F_U32P" hang %7"F_S32P" %7"F_S32P" position %9"F_U32P" %9"F_U32P"%s%s\n",
+      fprintf(F, "read   %9" F_U32P " anchor %9" F_U32P " hang %7" F_S32P " %7" F_S32P " position %9" F_U32P " %9" F_U32P "%s%s\n",
               imp->ident(), imp->anchor(), imp->aHang(), imp->bHang(), imp->bgn(), imp->end(), trimString, deltaString);
 
     if (imp->_isUnitig)
-      fprintf(F, "unitig %9"F_U32P" anchor %9"F_U32P" hang %7"F_S32P" %7"F_S32P" position %9"F_U32P" %9"F_U32P"%s%s\n",
+      fprintf(F, "unitig %9" F_U32P " anchor %9" F_U32P " hang %7" F_S32P " %7" F_S32P " position %9" F_U32P " %9" F_U32P "%s%s\n",
               imp->ident(), imp->anchor(), imp->aHang(), imp->bHang(), imp->bgn(), imp->end(), trimString, deltaString);
 
     if (imp->_isContig)
-      fprintf(F, "contig %9"F_U32P" anchor %9"F_U32P" hang %7"F_S32P" %7"F_S32P" position %9"F_U32P" %9"F_U32P"%s%s\n",
+      fprintf(F, "contig %9" F_U32P " anchor %9" F_U32P " hang %7" F_S32P " %7" F_S32P " position %9" F_U32P " %9" F_U32P "%s%s\n",
               imp->ident(), imp->anchor(), imp->aHang(), imp->bHang(), imp->bgn(), imp->end(), trimString, deltaString);
   }
 
@@ -578,7 +578,7 @@ tgTig::loadLayout(FILE *F) {
       else if (strcmp(W[1], "contig") == 0)
         _class = tgTig_contig;
       else
-        fprintf(stderr, "tgTig::loadLayout()-- '%s' line "F_U64" invalid: '%s'\n", W[0], LINEnum, LINE), exit(1);
+        fprintf(stderr, "tgTig::loadLayout()-- '%s' line " F_U64 " invalid: '%s'\n", W[0], LINEnum, LINE), exit(1);
 
     } else if (strcmp(W[0], "suggestRepeat") == 0) {
       _suggestRepeat = strtouint32(W[1]);
@@ -595,7 +595,7 @@ tgTig::loadLayout(FILE *F) {
                (strcmp(W[0], "contig") == 0)) {
 
       if (W.numWords() < 10)
-        fprintf(stderr, "tgTig::loadLayout()-- '%s' line "F_U64" invalid: '%s'\n", W[0], LINEnum, LINE), exit(1);
+        fprintf(stderr, "tgTig::loadLayout()-- '%s' line " F_U64 " invalid: '%s'\n", W[0], LINEnum, LINE), exit(1);
 
       if (nChildren >= _childrenLen) {
         resizeArray(_children, _childrenLen, _childrenMax, _childrenLen + 1, resizeArray_copyData);
@@ -664,7 +664,7 @@ void
 tgTig::dumpFASTA(FILE *F, bool useGapped) {
   AS_UTL_writeFastA(F,
                     bases(useGapped), length(useGapped), 100,
-                    ">tig%08u len="F_U32" reads="F_U32" covStat=%.2f gappedBases=%s class=%s suggestRepeat=%s suggestCircular=%s\n",
+                    ">tig%08u len=" F_U32 " reads=" F_U32 " covStat=%.2f gappedBases=%s class=%s suggestRepeat=%s suggestCircular=%s\n",
                     tigID(),
                     length(useGapped),
                     numberOfChildren(),
@@ -681,7 +681,7 @@ tgTig::dumpFASTQ(FILE *F, bool useGapped) {
   AS_UTL_writeFastQ(F,
                     bases(useGapped), length(useGapped),
                     quals(useGapped), length(useGapped),
-                    "@tig%08u len="F_U32" reads="F_U32" covStat=%.2f gappedBases=%s class=%s suggestRepeat=%s suggestCircular=%s\n",
+                    "@tig%08u len=" F_U32 " reads=" F_U32 " covStat=%.2f gappedBases=%s class=%s suggestRepeat=%s suggestCircular=%s\n",
                     tigID(),
                     length(useGapped),
                     numberOfChildren(),

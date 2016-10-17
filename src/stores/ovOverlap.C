@@ -40,7 +40,7 @@ ovOverlap::toString(char                  *str,
 
   switch (type) {
     case ovOverlapAsHangs:
-      sprintf(str, "%10"F_U32P" %10"F_U32P"  %c  %6"F_S32P" %6"F_U32P" %6"F_S32P"  %7.6f%s%s",
+      sprintf(str, "%10" F_U32P " %10" F_U32P "  %c  %6" F_S32P " %6" F_U32P " %6" F_S32P "  %7.6f%s%s",
               a_iid, b_iid,
               flipped() ? 'I' : 'N',
               a_hang(), span(), b_hang(),
@@ -50,7 +50,7 @@ ovOverlap::toString(char                  *str,
       break;
 
     case ovOverlapAsCoords:
-      sprintf(str, "%10"F_U32P" %10"F_U32P"  %c  %6"F_U32P"  %6"F_U32P" %6"F_U32P"  %6"F_U32P" %6"F_U32P"  %7.6f%s",
+      sprintf(str, "%10" F_U32P " %10" F_U32P "  %c  %6" F_U32P "  %6" F_U32P " %6" F_U32P "  %6" F_U32P " %6" F_U32P "  %7.6f%s",
               a_iid, b_iid,
               flipped() ? 'I' : 'N',
               span(),
@@ -61,7 +61,7 @@ ovOverlap::toString(char                  *str,
       break;
 
     case ovOverlapAsRaw:
-      sprintf(str, "%10"F_U32P" %10"F_U32P"  %c  %6"F_U32P"  %6"F_U64P" %6"F_U64P"  %6"F_U64P" %6"F_U64P"  %7.6f %s %s %s%s",
+      sprintf(str, "%10" F_U32P " %10" F_U32P "  %c  %6" F_U32P "  %6" F_U64P " %6" F_U64P "  %6" F_U64P " %6" F_U64P "  %7.6f %s %s %s%s",
               a_iid, b_iid,
               flipped() ? 'I' : 'N',
               span(),
@@ -75,7 +75,7 @@ ovOverlap::toString(char                  *str,
       break;
 
     case ovOverlapAsCompat:
-      sprintf(str, "%8"F_U32P" %8"F_U32P"  %c  %6d  %6d  %5.2f  %5.2f%s",
+      sprintf(str, "%8" F_U32P " %8" F_U32P "  %c  %6d  %6d  %5.2f  %5.2f%s",
               a_iid,
               b_iid,
               dat.ovl.flipped ? 'I' : 'N',
@@ -87,7 +87,7 @@ ovOverlap::toString(char                  *str,
     case ovOverlapAsPaf:
       // miniasm/map expects entries to be separated by tabs
       // no padding spaces on names we don't confuse read identifiers
-      sprintf(str, "%"F_U32P"\t%6"F_U32P"\t%6"F_U32P"\t%6"F_U32P"\t%c\t%"F_U32P"\t%6"F_U32P"\t%6"F_U32P"\t%6"F_U32P"\t%6"F_U32P"\t%6"F_U32P"\t%6"F_U32P" %s",
+      sprintf(str, "%" F_U32P "\t%6" F_U32P "\t%6" F_U32P "\t%6" F_U32P "\t%c\t%" F_U32P "\t%6" F_U32P "\t%6" F_U32P "\t%6" F_U32P "\t%6" F_U32P "\t%6" F_U32P "\t%6" F_U32P " %s",
               a_iid,
               (g->gkStore_getRead(a_iid)->gkRead_sequenceLength()), a_bgn(), a_end(),
               flipped() ? '-' : '+',

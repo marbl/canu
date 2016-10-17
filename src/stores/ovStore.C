@@ -129,7 +129,7 @@ ovStore::ovStore_read(void) {
   fclose(ovsinfo);
 
   if ((_info._ovsMagic != ovStoreMagic) && (_info._ovsMagic != ovStoreMagicIncomplete))
-    fprintf(stderr, "ERROR:  directory '%s' is not an overlapStore; magic number 0x%016"F_X64P" incorrect.\n",
+    fprintf(stderr, "ERROR:  directory '%s' is not an overlapStore; magic number 0x%016" F_X64P " incorrect.\n",
             _storePath, _info._ovsMagic), exit(1);
 
   if ((_info._ovsMagic != ovStoreMagic) && (_info._ovsMagic != ovStoreMagicIncomplete))
@@ -137,11 +137,11 @@ ovStore::ovStore_read(void) {
             _storePath), exit(1);
 
   if (_info._ovsVersion != ovStoreVersion)
-    fprintf(stderr, "ERROR:  overlapStore '%s' is version "F_U64"; this code supports only version "F_U64".\n",
+    fprintf(stderr, "ERROR:  overlapStore '%s' is version " F_U64 "; this code supports only version " F_U64 ".\n",
             _storePath, _info._ovsVersion, ovStoreVersion), exit(1);
 
   if (_info._maxReadLenInBits != AS_MAX_READLEN_BITS)
-    fprintf(stderr, "ERROR:  overlapStore '%s' is for AS_MAX_READLEN_BITS="F_U64"; this code supports only %d bits.\n",
+    fprintf(stderr, "ERROR:  overlapStore '%s' is for AS_MAX_READLEN_BITS=" F_U64 "; this code supports only %d bits.\n",
             _storePath, _info._maxReadLenInBits, AS_MAX_READLEN_BITS), exit(1);
 
   //  Load stats
@@ -264,13 +264,13 @@ ovStore::~ovStore() {
     fclose(ovsinfo);
 
     fprintf(stderr, "Closing the new store:\n");
-    fprintf(stderr, "  info._ovsMagic           = 0x%016"F_X64P"\n", _info._ovsMagic);
-    fprintf(stderr, "  info._ovsVersion         = "F_U64"\n", _info._ovsVersion);
-    fprintf(stderr, "  info._smallestIID        = "F_U64"\n", _info._smallestIID);
-    fprintf(stderr, "  info._largestIID         = "F_U64"\n", _info._largestIID);
-    fprintf(stderr, "  info._numOverlapsTotal   = "F_U64"\n", _info._numOverlapsTotal);
-    fprintf(stderr, "  info._highestFileIndex   = "F_U64"\n", _info._highestFileIndex);
-    fprintf(stderr, "  info._maxReadLenInBits   = "F_U64"\n", _info._maxReadLenInBits);
+    fprintf(stderr, "  info._ovsMagic           = 0x%016" F_X64P "\n", _info._ovsMagic);
+    fprintf(stderr, "  info._ovsVersion         = " F_U64 "\n", _info._ovsVersion);
+    fprintf(stderr, "  info._smallestIID        = " F_U64 "\n", _info._smallestIID);
+    fprintf(stderr, "  info._largestIID         = " F_U64 "\n", _info._largestIID);
+    fprintf(stderr, "  info._numOverlapsTotal   = " F_U64 "\n", _info._numOverlapsTotal);
+    fprintf(stderr, "  info._highestFileIndex   = " F_U64 "\n", _info._highestFileIndex);
+    fprintf(stderr, "  info._maxReadLenInBits   = " F_U64 "\n", _info._maxReadLenInBits);
   }
 
   if (_evaluesMap) {
@@ -639,8 +639,8 @@ ovStore::writeOverlap(ovOverlap *overlap) {
 
   if (_offt._a_iid > overlap->a_iid) {
     //  Woah!  The last overlap we saw is bigger than the one we have now?!
-    fprintf(stderr, "LAST:  a:"F_U32"\n", _offt._a_iid);
-    fprintf(stderr, "THIS:  a:"F_U32" b:"F_U32"\n", overlap->a_iid, overlap->b_iid);
+    fprintf(stderr, "LAST:  a:" F_U32 "\n", _offt._a_iid);
+    fprintf(stderr, "THIS:  a:" F_U32 " b:" F_U32 "\n", overlap->a_iid, overlap->b_iid);
   }
   assert(_offt._a_iid <= overlap->a_iid);
 
@@ -724,8 +724,8 @@ ovStore::writeOverlap(ovOverlap *overlap, uint32 maxOverlapsThisFile) {
   for (uint64 i=0; i < maxOverlapsThisFile; i++ ) {
     //  All overlaps will be sorted by a_iid
     if (_offt._a_iid > overlap[i].a_iid) {
-      fprintf(stderr, "LAST:  a:"F_U32"\n", _offt._a_iid);
-      fprintf(stderr, "THIS:  a:"F_U32" b:"F_U32"\n", overlap[i].a_iid, overlap[i].b_iid);
+      fprintf(stderr, "LAST:  a:" F_U32 "\n", _offt._a_iid);
+      fprintf(stderr, "THIS:  a:" F_U32 " b:" F_U32 "\n", overlap[i].a_iid, overlap[i].b_iid);
     }
 
     assert(_offt._a_iid <= overlap[i].a_iid);
@@ -841,7 +841,7 @@ ovStore::numOverlapsPerFrag(uint32 &firstFrag, uint32 &lastFrag) {
   uint64 act = AS_UTL_safeRead(_offtFile, offsets, "ovStore::numOverlapsInRange::offsets", sizeof(ovStoreOfft), len);
 
   if (len != act)
-    fprintf(stderr, "AS_OVS_numOverlapsPerFrag()-- short read on offsets!  Expected len="F_U64" read act="F_U64"\n", len, act), exit(1);
+    fprintf(stderr, "AS_OVS_numOverlapsPerFrag()-- short read on offsets!  Expected len=" F_U64 " read act=" F_U64 "\n", len, act), exit(1);
 
   for (uint64 i=0; i<len; i++)
     numolap[i] = offsets[i]._numOlaps;
@@ -882,7 +882,7 @@ ovStore::addEvalues(uint32 bgnID, uint32 endID, uint16 *evalues, uint64 evaluesL
 
   if ((AS_UTL_fileExists(name) == true) &&
       (AS_UTL_sizeOfFile(name) != (sizeof(uint16) * _info._numOverlapsTotal))) {
-    fprintf(stderr, "WARNING: existing evalues file is incorrect size: should be "F_U64" bytes, is "F_U64" bytes.  Removing.\n",
+    fprintf(stderr, "WARNING: existing evalues file is incorrect size: should be " F_U64 " bytes, is " F_U64 " bytes.  Removing.\n",
             (sizeof(uint16) * _info._numOverlapsTotal), AS_UTL_sizeOfFile(name));
     AS_UTL_unlink(name);
   }
@@ -890,7 +890,7 @@ ovStore::addEvalues(uint32 bgnID, uint32 endID, uint16 *evalues, uint64 evaluesL
   //  Make a new evalues file if one doesn't exist.
 
   if (AS_UTL_fileExists(name) == false) {
-    fprintf(stderr, "Creating evalues file for "F_U64" overlaps.\r", _info._numOverlapsTotal);
+    fprintf(stderr, "Creating evalues file for " F_U64 " overlaps.\r", _info._numOverlapsTotal);
 
     errno = 0;
     FILE *F = fopen(name, "w");
@@ -909,11 +909,11 @@ ovStore::addEvalues(uint32 bgnID, uint32 endID, uint16 *evalues, uint64 evaluesL
 
       Zn += S;
 
-      fprintf(stderr, "Creating evalues file for "F_U64" overlaps....%07.3f%%\r",
+      fprintf(stderr, "Creating evalues file for " F_U64 " overlaps....%07.3f%%\r",
               _info._numOverlapsTotal, 100.0 * Zn / _info._numOverlapsTotal);
     }
 
-    fprintf(stderr, "Creating evalues file for "F_U64" overlaps....%07.3f%%\n",
+    fprintf(stderr, "Creating evalues file for " F_U64 " overlaps....%07.3f%%\n",
             _info._numOverlapsTotal, 100.0 * Zn / _info._numOverlapsTotal);
 
     fclose(F);
@@ -998,14 +998,14 @@ writeOverlaps(char       *storePath,
 
   //  Dump the overlaps
 
-  fprintf(stderr, "Writing "F_U64" overlaps.\n", ovlsLen);
+  fprintf(stderr, "Writing " F_U64 " overlaps.\n", ovlsLen);
 
   for (uint64 i=0; i<ovlsLen; i++ ) {
     bof->writeOverlap(ovls + i);
 
     if (offt._a_iid > ovls[i].a_iid) {
-      fprintf(stderr, "LAST:  a:"F_U32"\n", offt._a_iid);
-      fprintf(stderr, "THIS:  a:"F_U32" b:"F_U32"\n", ovls[i].a_iid, ovls[i].b_iid);
+      fprintf(stderr, "LAST:  a:" F_U32 "\n", offt._a_iid);
+      fprintf(stderr, "THIS:  a:" F_U32 " b:" F_U32 "\n", ovls[i].a_iid, ovls[i].b_iid);
     }
     assert(offt._a_iid <= ovls[i].a_iid);
 
@@ -1093,9 +1093,9 @@ writeOverlaps(char       *storePath,
 
   fclose(F);
 
-  fprintf(stderr, "Wrote "F_U64" overlaps into '%s'\n", info._numOverlapsTotal, name);
-  fprintf(stderr, "  Smallest "F_U64"\n", info._smallestIID);
-  fprintf(stderr, "  Largest  "F_U64"\n", info._largestIID);
+  fprintf(stderr, "Wrote " F_U64 " overlaps into '%s'\n", info._numOverlapsTotal, name);
+  fprintf(stderr, "  Smallest " F_U64 "\n", info._smallestIID);
+  fprintf(stderr, "  Largest  " F_U64 "\n", info._largestIID);
 }
 
 
@@ -1150,16 +1150,16 @@ testIndex(char *ovlName,
       maxIID = O._a_iid;
 
     if (errorDecreased)
-      fprintf(stderr, "ERROR: index decreased from "F_U32" to "F_U32"\n", curIID, O._a_iid), nErrs++;
+      fprintf(stderr, "ERROR: index decreased from " F_U32 " to " F_U32 "\n", curIID, O._a_iid), nErrs++;
     else if (errorGap)
-      fprintf(stderr, "ERROR: gap between "F_U32" and "F_U32"\n", curIID, O._a_iid), nErrs++;
+      fprintf(stderr, "ERROR: gap between " F_U32 " and " F_U32 "\n", curIID, O._a_iid), nErrs++;
 
     if ((maxIncreases == true) && (errorGap == false)) {
       if (doFixes)
         AS_UTL_safeWrite(F, &O, "offset", sizeof(ovStoreOfft), 1);
 
     } else if (O._numOlaps > 0) {
-      fprintf(stderr, "ERROR: lost overlaps a_iid "F_U32" fileno "F_U32" offset "F_U32" numOlaps "F_U32"\n",
+      fprintf(stderr, "ERROR: lost overlaps a_iid " F_U32 " fileno " F_U32 " offset " F_U32 " numOlaps " F_U32 "\n",
               O._a_iid, O._fileno, O._offset, O._numOlaps);
     }
 
@@ -1253,7 +1253,7 @@ mergeInfoFiles(char       *storePath,
     assert(infopiece._smallestIID <= infopiece._largestIID);
 
     if (info._largestIID + 1 < infopiece._smallestIID)
-      fprintf(stderr, "  Adding empty records for fragments "F_U64" to "F_U64"\n",
+      fprintf(stderr, "  Adding empty records for fragments " F_U64 " to " F_U64 "\n",
               info._largestIID + 1, infopiece._smallestIID - 1);
 
     while (info._largestIID + 1 < infopiece._smallestIID) {
@@ -1286,7 +1286,7 @@ mergeInfoFiles(char       *storePath,
 
       if (recsLen > 0) {
         if (info._largestIID + 1 != recs[0]._a_iid)
-          fprintf(stderr, "ERROR: '%s' starts with iid "F_U32", but store only up to "F_U64"\n",
+          fprintf(stderr, "ERROR: '%s' starts with iid " F_U32 ", but store only up to " F_U64 "\n",
                   name, recs[0]._a_iid, info._largestIID);
         assert(info._largestIID + 1 == recs[0]._a_iid);
       }
@@ -1328,7 +1328,7 @@ mergeInfoFiles(char       *storePath,
 
     info._numOverlapsTotal += infopiece._numOverlapsTotal;
 
-    fprintf(stderr, "  Now finished with fragments "F_U64" to "F_U64" -- "F_U64" overlaps.\n",
+    fprintf(stderr, "  Now finished with fragments " F_U64 " to " F_U64 " -- " F_U64 " overlaps.\n",
             info._smallestIID, info._largestIID, info._numOverlapsTotal);
   }
 
@@ -1351,7 +1351,7 @@ mergeInfoFiles(char       *storePath,
   }
 
   fprintf(stderr, "\n");
-  fprintf(stderr, "Index finalized for reads "F_U64" to "F_U64" with "F_U64" overlaps.\n",
+  fprintf(stderr, "Index finalized for reads " F_U64 " to " F_U64 " with " F_U64 " overlaps.\n",
           info._smallestIID,
           info._largestIID,
           info._numOverlapsTotal);
@@ -1426,7 +1426,7 @@ ovStoreFilter::filterOverlap(ovOverlap       &foverlap,
       (foverlap.b_iid >= maxID)) {
     char ovlstr[256];
 
-    fprintf(stderr, "Overlap has IDs out of range (maxID "F_U32"), possibly corrupt input data.\n", maxID);
+    fprintf(stderr, "Overlap has IDs out of range (maxID " F_U32 "), possibly corrupt input data.\n", maxID);
     fprintf(stderr, "  coords -- %s\n", foverlap.toString(ovlstr, ovOverlapAsCoords, false));
     fprintf(stderr, "  hangs  -- %s\n", foverlap.toString(ovlstr, ovOverlapAsHangs, false));
     exit(1);
@@ -1561,19 +1561,19 @@ ovStoreFilter::filterOverlap(ovOverlap       &foverlap,
 void
 ovStoreFilter::reportFate(void) {
   fprintf(stderr, "overlap fate:\n");
-  fprintf(stderr, "%16"F_U64P" SAVE  - overlaps output (for unitigging)\n", saveUTG);
-  fprintf(stderr, "%16"F_U64P" SAVE  - overlaps output (for OBT)\n", saveOBT);
-  fprintf(stderr, "%16"F_U64P" SAVE  - overlaps output (for dedupe)\n", saveDUP);
+  fprintf(stderr, "%16" F_U64P " SAVE  - overlaps output (for unitigging)\n", saveUTG);
+  fprintf(stderr, "%16" F_U64P " SAVE  - overlaps output (for OBT)\n", saveOBT);
+  fprintf(stderr, "%16" F_U64P " SAVE  - overlaps output (for dedupe)\n", saveDUP);
   fprintf(stderr, "\n");
-  fprintf(stderr, "%16"F_U64P" ERATE - low quality, more than %.3f fraction error\n", skipERATE, AS_OVS_decodeEvalue(maxEvalue));
+  fprintf(stderr, "%16" F_U64P " ERATE - low quality, more than %.3f fraction error\n", skipERATE, AS_OVS_decodeEvalue(maxEvalue));
   fprintf(stderr, "\n");
-  fprintf(stderr, "%16"F_U64P" OBT   - not requested\n", skipOBT);
-  fprintf(stderr, "%16"F_U64P" OBT   - too similar\n", skipOBTbad);
-  fprintf(stderr, "%16"F_U64P" OBT   - too short\n", skipOBTshort);
+  fprintf(stderr, "%16" F_U64P " OBT   - not requested\n", skipOBT);
+  fprintf(stderr, "%16" F_U64P " OBT   - too similar\n", skipOBTbad);
+  fprintf(stderr, "%16" F_U64P " OBT   - too short\n", skipOBTshort);
   fprintf(stderr, "\n");
-  fprintf(stderr, "%16"F_U64P" DUP   - dedupe not requested\n", skipDUP);
-  fprintf(stderr, "%16"F_U64P" DUP   - different library\n", skipDUPlib);
-  fprintf(stderr, "%16"F_U64P" DUP   - obviously not duplicates\n", skipDUPdiff);
+  fprintf(stderr, "%16" F_U64P " DUP   - dedupe not requested\n", skipDUP);
+  fprintf(stderr, "%16" F_U64P " DUP   - different library\n", skipDUPlib);
+  fprintf(stderr, "%16" F_U64P " DUP   - obviously not duplicates\n", skipDUPdiff);
 }
 
 

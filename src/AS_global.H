@@ -165,27 +165,27 @@ typedef uint64_t uint64;
 #define F_STRI       "%*s"
 
 // Integers
-#define F_S16    "%"PRId16
-#define F_S16P      PRId16
-#define F_S16I  "%*"PRId16
-#define F_U16    "%"PRIu16
-#define F_U16P      PRIu16
-#define F_U16I  "%*"PRIu16
-#define F_S32    "%"PRId32
-#define F_S32P      PRId32
-#define F_S32I  "%*"PRId32
-#define F_U32    "%"PRIu32
-#define F_U32P      PRIu32
-#define F_U32I  "%*"PRIu32
-#define F_S64    "%"PRId64
-#define F_S64P      PRId64
-#define F_S64I  "%*"PRId64
-#define F_U64    "%"PRIu64
-#define F_U64P      PRIu64
-#define F_U64I  "%*"PRIu64
-#define F_X64 "%016"PRIx64
-#define F_X64P      PRIx64
-#define F_X64I  "%*"PRIx64
+#define F_S16    "%" PRId16
+#define F_S16P       PRId16
+#define F_S16I  "%*" PRId16
+#define F_U16    "%" PRIu16
+#define F_U16P       PRIu16
+#define F_U16I  "%*" PRIu16
+#define F_S32    "%" PRId32
+#define F_S32P       PRId32
+#define F_S32I  "%*" PRId32
+#define F_U32    "%" PRIu32
+#define F_U32P       PRIu32
+#define F_U32I  "%*" PRIu32
+#define F_S64    "%" PRId64
+#define F_S64P       PRId64
+#define F_S64I  "%*" PRId64
+#define F_U64    "%" PRIu64
+#define F_U64P       PRIu64
+#define F_U64I  "%*" PRIu64
+#define F_X64 "%016" PRIx64
+#define F_X64P       PRIx64
+#define F_X64I  "%*" PRIx64
 
 // Floating points
 #define F_F32         "%f"
@@ -204,25 +204,12 @@ typedef uint64_t uint64;
 #define F_OFF_TP    F_S64P
 #define F_OFF_TI    F_S64I
 
-typedef uintptr_t INTPTR;
-
-
-//  These are used to pad various structs to specific sizes
-#if ULONG_MAX == 0xffffffff
-#define TRUE32BIT
-#else
-#define TRUE64BIT
-#endif
 
 
 #if defined(_FILE_OFFSET_BITS) && (_FILE_OFFSET_BITS == 32)
 #error I do not support 32-bit off_t.
 #endif
 
-
-//  Enable troublesome asserts.  These typically have work arounds, and occasionally trigger.
-//  They're really only useful if the assembly can be debugged.
-#undef AGGRESSIVE_ASSERT
 
 
 //  perl's chomp is pretty nice

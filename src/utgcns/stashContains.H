@@ -76,14 +76,14 @@ public:
   };
 
   void   reportDetected(FILE *out, uint32 id) {
-    fprintf(out, "  unitig %d detected "F_S32" contains (%.2fx, %.2f%%) "F_S32" dovetail (%.2fx, %.2f%%)\n",
+    fprintf(out, "  unitig %d detected " F_S32 " contains (%.2fx, %.2f%%) " F_S32 " dovetail (%.2fx, %.2f%%)\n",
             id,
             numContains,  covContain,  percContain,
             numDovetails, covDovetail, percDovetail);
   };
 
   void   reportRemoved(FILE *out, uint32 id) {
-      fprintf(out, "    unitig %d removing "F_S32" (%.2fx) contained reads; processing only "F_S32" contained (%.2fx) and "F_S32" dovetail (%.2fx) reads\n",
+      fprintf(out, "    unitig %d removing " F_S32 " (%.2fx) contained reads; processing only " F_S32 " contained (%.2fx) and " F_S32 " dovetail (%.2fx) reads\n",
               id,
               numContainsRemoved, covContainsRemoved,
               numContainsSaved,   covContainsSaved,

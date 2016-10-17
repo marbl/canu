@@ -97,7 +97,7 @@ estimateNumMersInMemorySize(uint32 merSize,
   }
 
   if (beVerbose)
-    fprintf(stdout, "Can fit "F_U64" mers into table with prefix of "F_U64" bits, using %.3fMB (%.3fMB for positions)\n",
+    fprintf(stdout, "Can fit " F_U64 " mers into table with prefix of " F_U64 " bits, using %.3fMB (%.3fMB for positions)\n",
             maxN * numThreads,
             bestT,
             (((uint64ONE << bestT) * logBaseTwo64(maxN) + maxN * (2*merSize - bestT + posPerMer)) >> 3) * numThreads / 1048576.0,
@@ -167,7 +167,7 @@ optimalNumberOfBuckets(uint32 merSize,
   for (h=2; h<=hmax && h<2*merSize; h++) {
     s = (uint64ONE << h) * hwidth + numMers * (2 * merSize - h + posPerMer);
 
-    //fprintf(stderr, "optimalNumberOfBuckets()-- h="F_U64" s="F_U64"\n", h, s);
+    //fprintf(stderr, "optimalNumberOfBuckets()-- h=" F_U64 " s=" F_U64 "\n", h, s);
 
     if (s < opts) {
       opth = h;
@@ -205,6 +205,6 @@ estimate(merylArgs *args) {
   uint32 opth = optimalNumberOfBuckets(args->merSize, args->numMersEstimated, args->positionsEnabled);
   uint64 memu = ((uint64ONE << opth) * logBaseTwo64(args->numMersEstimated+1) + args->numMersEstimated * (2 * args->merSize - opth));
 
-  fprintf(stderr, F_U64" "F_U32"-mers can be computed using "F_U64"MB memory.\n",
+  fprintf(stderr, F_U64" " F_U32 "-mers can be computed using " F_U64 "MB memory.\n",
           args->numMersEstimated, args->merSize, memu >> 23);
 }

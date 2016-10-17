@@ -81,8 +81,8 @@ binaryOperations(merylArgs *args) {
   //
   if (A->merSize() != B->merSize()) {
     fprintf(stderr, "ERROR - mersizes are different!\n");
-    fprintf(stderr, "ERROR - mersize of '%s' is "F_U32"\n", args->mergeFiles[0], A->merSize());
-    fprintf(stderr, "ERROR - mersize of '%s' is "F_U32"\n", args->mergeFiles[1], B->merSize());
+    fprintf(stderr, "ERROR - mersize of '%s' is " F_U32 "\n", args->mergeFiles[0], A->merSize());
+    fprintf(stderr, "ERROR - mersize of '%s' is " F_U32 "\n", args->mergeFiles[1], B->merSize());
     exit(1);
   }
 

@@ -145,7 +145,7 @@ main(int argc, char **argv) {
   numMers = M->approximateNumberOfMers();
   delete M;
 
-  fprintf(stderr, "Guessing "F_U64" mers in input '%s'\n", numMers, inName);
+  fprintf(stderr, "Guessing " F_U64 " mers in input '%s'\n", numMers, inName);
 
   M = new merStream(new kMerBuilder(merSize, merCompression),
                     new seqStream(inName),
@@ -160,7 +160,7 @@ main(int argc, char **argv) {
     uint64  theMersMax = 2 * numMers;  //  for allowing both -f and -r
     uint32 *theMers    = new uint32 [theMersMax];
 
-    fprintf(stderr, "Allocating "F_U64"MB for mer storage.\n", numMers * sizeof(uint64) >> 20);
+    fprintf(stderr, "Allocating " F_U64 "MB for mer storage.\n", numMers * sizeof(uint64) >> 20);
 
     C = new speedCounter(" Filling mer list: %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, 1);
 
@@ -180,7 +180,7 @@ main(int argc, char **argv) {
     delete C;
     delete M;
 
-    fprintf(stderr, "Found "F_U64" mers in input '%s'\n", theMersLen, inName);
+    fprintf(stderr, "Found " F_U64 " mers in input '%s'\n", theMersLen, inName);
 
     if (theMersLen > theMersMax)
       fprintf(stderr, "ERROR:  too many mers in input!\n"), exit(1);
@@ -212,7 +212,7 @@ main(int argc, char **argv) {
     uint64  numCounts = ((uint64)1) << (2 * merSize);
     uint32 *theCounts = new uint32 [numCounts];
 
-    fprintf(stderr, "Allocating "F_U64"MB for count storage.\n", numCounts * sizeof(uint32) >> 20);
+    fprintf(stderr, "Allocating " F_U64 "MB for count storage.\n", numCounts * sizeof(uint32) >> 20);
 
     memset(theCounts, 0, sizeof(uint32) * numCounts);
 

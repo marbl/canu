@@ -57,9 +57,9 @@ mapDuplicates_Print(char *filea, seqInCore *sa,
                     char *fileb, seqInCore *sb) {
 
   if (strcmp(sa->sequence(), sb->sequence()) == 0)
-    fprintf(stdout, F_U32" <-> "F_U32"\n", sa->getIID(), sb->getIID());
+    fprintf(stdout, F_U32" <-> " F_U32 "\n", sa->getIID(), sb->getIID());
   else
-    fprintf(stderr, "COLLISION DETECTED BETWEEN %s:"F_U32" AND %s:"F_U32"!\nPLEASE REPORT THIS TO bri@walenz.org!\n",
+    fprintf(stderr, "COLLISION DETECTED BETWEEN %s:" F_U32 " AND %s:" F_U32 "!\nPLEASE REPORT THIS TO bri@walenz.org!\n",
             filea, sa->getIID(), fileb, sb->getIID());
 }
 
@@ -83,7 +83,7 @@ findDuplicates(char *filename) {
   for (uint32 idx=1; idx<numSeqs; idx++) {
     if (md5_compare(result+idx-1, result+idx) == 0) {
       if (result[idx-1].i == result[idx].i) {
-        fprintf(stderr, "Internal error: found two copies of the same sequence iid ("F_U32")!\n", result[idx].i);
+        fprintf(stderr, "Internal error: found two copies of the same sequence iid (" F_U32 ")!\n", result[idx].i);
         exit(1);
       }
 
@@ -91,11 +91,11 @@ findDuplicates(char *filename) {
       s2 = A->getSequenceInCore(result[idx].i);
 
       if (strcmp(s1->sequence(), s2->sequence()) == 0) {
-        fprintf(stdout, F_U32":%s\n"F_U32":%s\n\n",
+        fprintf(stdout, F_U32":%s\n" F_U32 ":%s\n\n",
                 result[idx-1].i, s1->header(),
                 result[idx  ].i, s2->header());
       } else {
-        fprintf(stderr, "COLLISION DETECTED BETWEEN IID "F_U32" AND "F_U32"!\nPLEASE REPORT THIS TO bri@walenz.org!\n",
+        fprintf(stderr, "COLLISION DETECTED BETWEEN IID " F_U32 " AND " F_U32 "!\nPLEASE REPORT THIS TO bri@walenz.org!\n",
                 result[idx-1].i, result[idx].i);
       }
 

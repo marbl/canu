@@ -49,7 +49,7 @@ void
 multipleOperations(merylArgs *args) {
 
   if (args->mergeFilesLen < 2) {
-    fprintf(stderr, "ERROR - must have at least two databases (you gave "F_U32")!\n", args->mergeFilesLen);
+    fprintf(stderr, "ERROR - must have at least two databases (you gave " F_U32 ")!\n", args->mergeFilesLen);
     exit(1);
   }
   if (args->outputFile == 0L) {

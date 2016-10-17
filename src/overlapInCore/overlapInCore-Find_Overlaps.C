@@ -237,15 +237,15 @@ Hash_Find(uint64 Key, int64 Sub, char * S, int64 * Where, int * hi_hits) {
         int  is_empty;
 
         H_Ref = Hash_Table [Sub].Entry [i];
-        //fprintf(stderr, "Href = Hash_Table %u Entry %u = "F_U64"\n", Sub, i, H_Ref);
+        //fprintf(stderr, "Href = Hash_Table %u Entry %u = " F_U64 "\n", Sub, i, H_Ref);
 
         is_empty = getStringRefEmpty(H_Ref);
         if (! getStringRefLast(H_Ref) && ! is_empty) {
           (* Where) = ((uint64)getStringRefStringNum(H_Ref) << OFFSET_BITS) + getStringRefOffset(H_Ref);
           H_Ref = Extra_Ref_Space [(* Where)];
-          //fprintf(stderr, "Href = Extra_Ref_Space "F_U64" = "F_U64"\n", *Where, H_Ref);
+          //fprintf(stderr, "Href = Extra_Ref_Space " F_U64 " = " F_U64 "\n", *Where, H_Ref);
         }
-        //fprintf(stderr, "Href = "F_U64"  Get String_Start[ "F_U64" ] + "F_U64"\n", getStringRefStringNum(H_Ref), getStringRefOffset(H_Ref));
+        //fprintf(stderr, "Href = " F_U64 "  Get String_Start[ " F_U64 " ] + " F_U64 "\n", getStringRefStringNum(H_Ref), getStringRefOffset(H_Ref));
         T = basesData + String_Start [getStringRefStringNum(H_Ref)] + getStringRefOffset(H_Ref);
         if (strncmp (S, T, G.Kmer_Len) == 0) {
           if (is_empty) {

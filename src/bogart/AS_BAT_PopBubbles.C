@@ -85,7 +85,7 @@ findPotentialBubbles(TigVector       &tigs,
   uint32  tiBlockSize  = (tiLimit < 100000 * tiNumThreads) ? tiNumThreads : tiLimit / 99999;
 
   writeStatus("\n");
-  writeStatus("bubbleDetect()-- working on "F_U32" tigs, with "F_U32" thread%s.\n", tiLimit, tiNumThreads, (tiNumThreads == 1) ? "" : "s");
+  writeStatus("bubbleDetect()-- working on " F_U32 " tigs, with " F_U32 " thread%s.\n", tiLimit, tiNumThreads, (tiNumThreads == 1) ? "" : "s");
 
   for (uint32 ti=0; ti<tiLimit; ti++) {
     Unitig  *tig = tigs[ti];
@@ -344,13 +344,13 @@ popBubbles(TigVector &tigs,
 
   findPotentialBubbles(tigs, potentialBubbles);
 
-  writeStatus("popBubbles()-- Found "F_SIZE_T" potential bubbles.\n", potentialBubbles.size());
+  writeStatus("popBubbles()-- Found " F_SIZE_T " potential bubbles.\n", potentialBubbles.size());
 
   //if (potentialBubbles.size() == 0)
   //  return;
 
   writeLog("\n");
-  writeLog("Found "F_SIZE_T" potential bubbles.\n", potentialBubbles.size());
+  writeLog("Found " F_SIZE_T " potential bubbles.\n", potentialBubbles.size());
   writeLog("\n");
 
   vector<overlapPlacement>   *placed = findBubbleReadPlacements(tigs, potentialBubbles, deviationBubble);
@@ -746,7 +746,7 @@ popBubbles(TigVector &tigs,
 
       if ((nt == nReads) ||
           ((n5 > 0) && (n3 > 0)))
-        writeLog("tig %8u length %9u -> target %8u piece %2u position %9u-%-9u length %8u - expected %3"F_SIZE_TP" reads, had %3"F_SIZE_TP" reads.  n5=%3u n3=%3u nt=%3u\n",
+        writeLog("tig %8u length %9u -> target %8u piece %2u position %9u-%-9u length %8u - expected %3" F_SIZE_TP " reads, had %3" F_SIZE_TP " reads.  n5=%3u n3=%3u nt=%3u\n",
                  bubble->id(), bubble->getLength(),
                  targets[tt]->target->id(), tt, targets[tt]->bgn, targets[tt]->end, targets[tt]->end - targets[tt]->bgn,
                  tigReads.size(),

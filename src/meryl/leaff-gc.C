@@ -98,7 +98,7 @@ computeGCcontent(char *filename) {
       ave1001 += g[i+500]  - ((i >  500) ? g[i-501]  : 0);
       ave2001 += g[i+1000] - ((i > 1000) ? g[i-1001] : 0);
 
-      fprintf(stdout, F_U32"\t"F_U32"\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\n",
+      fprintf(stdout, F_U32"\t" F_U32 "\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\n",
               i,
               s[i],
               ave3    / (double)((i >=   1)  ? 3    - ((i < genomeLength -   1) ? 0 : i +    2 - genomeLength) : i+2),

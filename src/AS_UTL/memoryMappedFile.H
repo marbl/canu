@@ -109,7 +109,7 @@ public:
                                                  : mmap(0L, _length, PROT_READ | PROT_WRITE, MAP_FILE | MAP_SHARED, fd, 0);
 
     if (errno)
-      fprintf(stderr, "memoryMappedFile()-- Couldn't mmap '%s' of length "F_SIZE_T": %s\n", _name, _length, strerror(errno)), exit(1);
+      fprintf(stderr, "memoryMappedFile()-- Couldn't mmap '%s' of length " F_SIZE_T ": %s\n", _name, _length, strerror(errno)), exit(1);
 
     close(fd);
 
@@ -135,7 +135,7 @@ public:
       length = _length - offset;
 
     if (offset + length > _length)
-      fprintf(stderr, "memoryMappedFile()-- Requested "F_SIZE_T" bytes at position "F_SIZE_T" in file '%s', but only "F_SIZE_T" bytes in file.\n",
+      fprintf(stderr, "memoryMappedFile()-- Requested " F_SIZE_T " bytes at position " F_SIZE_T " in file '%s', but only " F_SIZE_T " bytes in file.\n",
               length, offset, _name, _length), exit(1);
 
     _offset = offset + length;

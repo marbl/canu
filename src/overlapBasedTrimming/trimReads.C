@@ -259,7 +259,7 @@ main(int argc, char **argv) {
   if (idMax > gkp->gkStore_getNumReads())
     idMax = gkp->gkStore_getNumReads();
 
-  fprintf(stderr, "Processing from ID "F_U32" to "F_U32" out of "F_U32" reads.\n",
+  fprintf(stderr, "Processing from ID " F_U32 " to " F_U32 " out of " F_U32 " reads.\n",
           idMin,
           idMax,
           gkp->gkStore_getNumReads());
@@ -379,7 +379,7 @@ main(int argc, char **argv) {
       outClr->setend(id) = fend;
       outClr->setDeleted(id);  //  Gah, just obliterates the clear range.
 
-      fprintf(logFile, F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\tNOV%s\n",
+      fprintf(logFile, F_U32"\t" F_U32 "\t" F_U32 "\t" F_U32 "\t" F_U32 "\tNOV%s\n",
               id,
               ibgn, iend,
               fbgn, fend,
@@ -393,7 +393,7 @@ main(int argc, char **argv) {
       outClr->setend(id) = fend;
       outClr->setDeleted(id);  //  Gah, just obliterates the clear range.
 
-      fprintf(logFile, F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\tDEL%s\n",
+      fprintf(logFile, F_U32"\t" F_U32 "\t" F_U32 "\t" F_U32 "\t" F_U32 "\tDEL%s\n",
               id,
               ibgn, iend,
               fbgn, fend,
@@ -406,7 +406,7 @@ main(int argc, char **argv) {
              (iend == fend)) {
       noChangeOut += read->gkRead_sequenceLength();
 
-      fprintf(logFile, F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\tNOC%s\n",
+      fprintf(logFile, F_U32"\t" F_U32 "\t" F_U32 "\t" F_U32 "\t" F_U32 "\tNOC%s\n",
               id,
               ibgn, iend,
               fbgn, fend,
@@ -428,7 +428,7 @@ main(int argc, char **argv) {
       if (fbgn - ibgn > 0)   trim5 += fbgn - ibgn;
       if (iend - fend > 0)   trim3 += iend - fend;
 
-      fprintf(logFile, F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\tMOD%s\n",
+      fprintf(logFile, F_U32"\t" F_U32 "\t" F_U32 "\t" F_U32 "\t" F_U32 "\tMOD%s\n",
               id,
               ibgn, iend,
               fbgn, fend,
@@ -476,9 +476,9 @@ main(int argc, char **argv) {
 
   fprintf(staFile, "INPUT READS:\n");
   fprintf(staFile, "-----------\n");
-  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (reads processed)\n", readsIn.nReads,  readsIn.nBases);
-  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (reads not processed, previously deleted)\n", deletedIn.nReads, deletedIn.nBases);
-  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (reads not processed, in a library where trimming isn't allowed)\n", noTrimIn.nReads, noTrimIn.nBases);
+  fprintf(staFile, "%6" F_U32P " reads %12" F_U64P " bases (reads processed)\n", readsIn.nReads,  readsIn.nBases);
+  fprintf(staFile, "%6" F_U32P " reads %12" F_U64P " bases (reads not processed, previously deleted)\n", deletedIn.nReads, deletedIn.nBases);
+  fprintf(staFile, "%6" F_U32P " reads %12" F_U64P " bases (reads not processed, in a library where trimming isn't allowed)\n", noTrimIn.nReads, noTrimIn.nBases);
 
   readsIn  .generatePlots(outputPrefix, "inputReads",        250);
   deletedIn.generatePlots(outputPrefix, "inputDeletedReads", 250);
@@ -487,10 +487,10 @@ main(int argc, char **argv) {
   fprintf(staFile, "\n");
   fprintf(staFile, "OUTPUT READS:\n");
   fprintf(staFile, "------------\n");
-  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (trimmed reads output)\n", readsOut.nReads,    readsOut.nBases);
-  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (reads with no change, kept as is)\n", noChangeOut.nReads, noChangeOut.nBases);
-  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (reads with no overlaps, deleted)\n", noOvlOut.nReads,    noOvlOut.nBases);
-  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (reads with short trimmed length, deleted)\n", deletedOut.nReads,  deletedOut.nBases);
+  fprintf(staFile, "%6" F_U32P " reads %12" F_U64P " bases (trimmed reads output)\n", readsOut.nReads,    readsOut.nBases);
+  fprintf(staFile, "%6" F_U32P " reads %12" F_U64P " bases (reads with no change, kept as is)\n", noChangeOut.nReads, noChangeOut.nBases);
+  fprintf(staFile, "%6" F_U32P " reads %12" F_U64P " bases (reads with no overlaps, deleted)\n", noOvlOut.nReads,    noOvlOut.nBases);
+  fprintf(staFile, "%6" F_U32P " reads %12" F_U64P " bases (reads with short trimmed length, deleted)\n", deletedOut.nReads,  deletedOut.nBases);
 
   readsOut   .generatePlots(outputPrefix, "outputTrimmedReads",   250);
   noOvlOut   .generatePlots(outputPrefix, "outputNoOvlReads",     250);
@@ -500,8 +500,8 @@ main(int argc, char **argv) {
   fprintf(staFile, "\n");
   fprintf(staFile, "TRIMMING DETAILS:\n");
   fprintf(staFile, "----------------\n");
-  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (bases trimmed from the 5' end of a read)\n", trim5.nReads, trim5.nBases);
-  fprintf(staFile, "%6"F_U32P" reads %12"F_U64P" bases (bases trimmed from the 3' end of a read)\n", trim3.nReads, trim3.nBases);
+  fprintf(staFile, "%6" F_U32P " reads %12" F_U64P " bases (bases trimmed from the 5' end of a read)\n", trim5.nReads, trim5.nBases);
+  fprintf(staFile, "%6" F_U32P " reads %12" F_U64P " bases (bases trimmed from the 3' end of a read)\n", trim3.nReads, trim3.nBases);
 
   trim5.generatePlots(outputPrefix, "trim5", 25);
   trim3.generatePlots(outputPrefix, "trim3", 25);

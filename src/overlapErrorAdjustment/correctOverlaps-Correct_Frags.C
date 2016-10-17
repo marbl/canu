@@ -91,7 +91,7 @@ correctRead(uint32 curID,
 
     if ((i != C[Cpos].pos) &&
         (i != C[Cpos].pos + 1))
-      fprintf(stderr, "i="F_U32" Cpos="F_U64" C[Cpos].pos="F_U32"\n", i, Cpos, C[Cpos].pos);
+      fprintf(stderr, "i=" F_U32 " Cpos=" F_U64 " C[Cpos].pos=" F_U32 "\n", i, Cpos, C[Cpos].pos);
     assert((i == C[Cpos].pos) ||
            (i == C[Cpos].pos + 1));
 
@@ -215,7 +215,7 @@ Correct_Frags(coParameters *G,
   uint64     firstRecord   = 0;
   uint64     currentRecord = 0;
 
-  fprintf(stderr, "Reading "F_U64" corrections from '%s'.\n", Clen, G->correctionsName);
+  fprintf(stderr, "Reading " F_U64 " corrections from '%s'.\n", Clen, G->correctionsName);
 
   //  Count the number of bases, so we can do two gigantic allocations for bases and adjustments.
   //  Adjustments are always less than the number of corrections; we could also count exactly.
@@ -241,9 +241,9 @@ Correct_Frags(coParameters *G,
     }
   }
 
-  fprintf(stderr, "Correcting "F_U64" bases with "F_U64" indel adjustments.\n", G->basesLen, G->adjustsLen);
+  fprintf(stderr, "Correcting " F_U64 " bases with " F_U64 " indel adjustments.\n", G->basesLen, G->adjustsLen);
 
-  fprintf(stderr, "--Allocate "F_U64" + "F_U64" + "F_U64" MB for bases, adjusts and reads.\n",
+  fprintf(stderr, "--Allocate " F_U64 " + " F_U64 " + " F_U64 " MB for bases, adjusts and reads.\n",
           (sizeof(char) * G->basesLen) >> 20,
           (sizeof(Adjust_t) * G->adjustsLen) >> 20,
           (sizeof(Frag_Info_t) * (G->endID - G->bgnID + 1)) >> 20);
@@ -285,7 +285,7 @@ Correct_Frags(coParameters *G,
     //  We should be at the IDENT message.
 
     if (C[Cpos].type != IDENT) {
-      fprintf(stderr, "ERROR: didn't find IDENT at Cpos="F_U64" for read "F_U32"\n", Cpos, curID);
+      fprintf(stderr, "ERROR: didn't find IDENT at Cpos=" F_U64 " for read " F_U32 "\n", Cpos, curID);
       fprintf(stderr, "       C[Cpos] = keep_left=%u keep_right=%u type=%u pos=%u readID=%u\n",
               C[Cpos].keep_left,
               C[Cpos].keep_right,
@@ -324,7 +324,7 @@ Correct_Frags(coParameters *G,
   delete readData;
   delete Cfile;
 
-  fprintf(stderr, "Corrected "F_U64" bases with "F_U64" substitutions, "F_U64" deletions and "F_U64" insertions.\n",
+  fprintf(stderr, "Corrected " F_U64 " bases with " F_U64 " substitutions, " F_U64 " deletions and " F_U64 " insertions.\n",
           G->basesLen,
           changes[A_SUBST] + changes[C_SUBST] + changes[G_SUBST] + changes[T_SUBST],
           changes[DELETE],

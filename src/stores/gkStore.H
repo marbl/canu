@@ -372,18 +372,18 @@ public:
   };
 
   void      writeInfoAsText(FILE *F) {
-    fprintf(F, "gkMagic            = 0x"F_X64"\n", gkMagic);
-    fprintf(F, "gkVersion          = 0x"F_X64"\n", gkVersion);
+    fprintf(F, "gkMagic            = 0x" F_X64 "\n", gkMagic);
+    fprintf(F, "gkVersion          = 0x" F_X64 "\n", gkVersion);
     fprintf(F, "\n");
-    fprintf(F, "gkLibrarySize      = "F_U32"\n", gkLibrarySize);
-    fprintf(F, "gkReadSize         = "F_U32"\n", gkReadSize);
-    fprintf(F, "gkMaxLibrariesBits = "F_U32"\n", gkMaxLibrariesBits);
-    fprintf(F, "gkLibraryNameSize  = "F_U32"\n", gkLibraryNameSize);
-    fprintf(F, "gkMaxReadBits      = "F_U32"\n", gkMaxReadBits);
-    fprintf(F, "gkMaxReadLenBits   = "F_U32"\n", gkMaxReadLenBits);
+    fprintf(F, "gkLibrarySize      = " F_U32 "\n", gkLibrarySize);
+    fprintf(F, "gkReadSize         = " F_U32 "\n", gkReadSize);
+    fprintf(F, "gkMaxLibrariesBits = " F_U32 "\n", gkMaxLibrariesBits);
+    fprintf(F, "gkLibraryNameSize  = " F_U32 "\n", gkLibraryNameSize);
+    fprintf(F, "gkMaxReadBits      = " F_U32 "\n", gkMaxReadBits);
+    fprintf(F, "gkMaxReadLenBits   = " F_U32 "\n", gkMaxReadLenBits);
     fprintf(F, "\n");
-    fprintf(F, "numLibraries       = "F_U32"\n", numLibraries);
-    fprintf(F, "numReads           = "F_U32"\n", numReads);
+    fprintf(F, "numLibraries       = " F_U32 "\n", numLibraries);
+    fprintf(F, "numReads           = " F_U32 "\n", numReads);
   };
 
 private:
@@ -536,7 +536,7 @@ public:
   gkRead      *gkStore_addEmptyRead(gkLibrary *lib);
 
   void         gkStore_loadReadData(gkRead *read,   gkReadData *readData) {
-    //fprintf(stderr, "loadReadData()- read "F_U64" thread "F_S32" out of "F_S32"\n",
+    //fprintf(stderr, "loadReadData()- read " F_U64 " thread " F_S32 " out of " F_S32 "\n",
     //        read->_readID, omp_get_thread_num(), omp_get_max_threads());
     if (_blobs)
       read->gkRead_loadDataFromMMap(readData, _blobs);

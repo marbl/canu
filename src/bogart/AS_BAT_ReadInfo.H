@@ -83,9 +83,9 @@ public:
     }
 
     if ((aovl <= 0) || (bovl <= 0) || (aovl > alen) || (bovl > blen)) {
-      fprintf(stderr, "WARNING: bogus overlap found for A="F_U32" B="F_U32"\n", a_iid, b_iid);
-      fprintf(stderr, "WARNING:                     A len="F_S32" hang="F_S32" ovl="F_S32"\n", alen, a_hang, aovl);
-      fprintf(stderr, "WARNING:                     B len="F_S32" hang="F_S32" ovl="F_S32"\n", blen, b_hang, bovl);
+      fprintf(stderr, "WARNING: bogus overlap found for A=" F_U32 " B=" F_U32 "\n", a_iid, b_iid);
+      fprintf(stderr, "WARNING:                     A len=" F_S32 " hang=" F_S32 " ovl=" F_S32 "\n", alen, a_hang, aovl);
+      fprintf(stderr, "WARNING:                     B len=" F_S32 " hang=" F_S32 " ovl=" F_S32 "\n", blen, b_hang, bovl);
     }
 
     if (aovl < 0)     aovl = 0;

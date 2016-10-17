@@ -176,7 +176,7 @@ readBuffer::fillBuffer(void) {
   if (errno == EAGAIN)
     goto again;
   if (errno)
-    fprintf(stderr, "readBuffer::fillBuffer()-- only read "F_U64" bytes, couldn't read "F_U64" bytes from '%s': %s\n",
+    fprintf(stderr, "readBuffer::fillBuffer()-- only read " F_U64 " bytes, couldn't read " F_U64 " bytes from '%s': %s\n",
             _bufferLen, _bufferMax, _filename, strerror(errno)), exit(1);
 
   if (_bufferLen == 0)
@@ -209,7 +209,7 @@ readBuffer::seek(uint64 pos) {
     errno = 0;
     lseek(_file, pos, SEEK_SET);
     if (errno)
-      fprintf(stderr, "readBuffer()-- '%s' couldn't seek to position "F_U64": %s\n",
+      fprintf(stderr, "readBuffer()-- '%s' couldn't seek to position " F_U64 ": %s\n",
               _filename, pos, strerror(errno)), exit(1);
 
     _bufferLen = 0;
@@ -272,7 +272,7 @@ readBuffer::read(void *buf, uint64 len) {
     errno = 0;
     bAct = (uint64)::read(_file, bufchar + bCopied + bRead, len - bCopied - bRead);
     if (errno)
-      fprintf(stderr, "readBuffer()-- couldn't read "F_U64" bytes from '%s': n%s\n",
+      fprintf(stderr, "readBuffer()-- couldn't read " F_U64 " bytes from '%s': n%s\n",
               len, _filename, strerror(errno)), exit(1);
 
     //  If we hit EOF, return a short read
