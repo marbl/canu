@@ -57,20 +57,23 @@
 
 
 enum dumpOp {
-  OP_NONE           = 1,
-  OP_DUMP           = 2,
-  OP_DUMP_PICTURE   = 3
+  OP_NONE             = 1,
+  OP_DUMP             = 2,
+  OP_DUMP_PICTURE     = 3
 };
 
 
 enum dumpFlags {
-  NO_5p             = 1,
-  NO_3p             = 2,
-  NO_CONTAINED      = 4,
-  NO_CONTAINS       = 8,
+  NO_5p               = 1,
+  NO_3p               = 2,
+  NO_CONTAINED        = 4,
+  NO_CONTAINS         = 8,
   NO_CONTAINED_READS  = 16,
   NO_SUSPICIOUS_READS = 32,
-  NO_SINGLETON_READS  = 64
+  NO_SINGLETON_READS  = 64,
+  WITH_ERATE          = 128,
+  WITH_LENGTH         = 256,
+  ONE_SIDED           = 512
 };
 
 
@@ -233,7 +236,6 @@ dumpStore(ovStore *ovlStore,
           uint32   qryID,
           ovOverlapDisplayType    type,
           bool     beVerbose,
-          bool     oneSided,
           char    *bestPrefix) {
 
   ovOverlap     overlap(gkpStore);
@@ -251,24 +253,39 @@ dumpStore(ovStore *ovlStore,
   uint32   obtDumped       = 0;
   uint32   merDumped       = 0;
 
-  uint32  *counts          = (asCounts) ? new uint32 [endID - bgnID + 1] : NULL;
+  uint32  *counts          = NULL;
 
-  if (asCounts)
-    for (uint32 ii=bgnID; ii<=endID; ii++)
-      counts[ii - bgnID] = 0;
+  //  Set the range of the reads to dump early so that we can reset it later.
 
   ovlStore->setRange(bgnID, endID);
 
+  //  If we're dumping counts, and there are modifiers, we need to scan all overlaps
+
+  if ((asCounts) && (dumpType != 0)) {
+    counts = new uint32 [endID - bgnID + 1];
+
+    for (uint32 ii=bgnID; ii<=endID; ii++)
+      counts[ii - bgnID] = 0;
+  }
+
+  //  If we're dumping counts, and no modifiers, we can just ask the store for the counts
+  //  and set the range to null.
+
+  if ((asCounts) && (dumpType == 0)) {
+    counts = ovlStore->numOverlapsPerFrag(bgnID, endID);
+    ovlStore->setRange(1, 0);
+  }
+
   //  Length filtering is expensive to compute, need to load both reads to get their length.
   //
-  //if ((dumpLength > 0) && (dumpLength < overlapLength(overlap)))
+  //if ((dumpType & WITH_LENGTH) && (dumpLength < overlapLength(overlap)))
   //  continue;
 
   while (ovlStore->readOverlap(&overlap) == TRUE) {
     if ((qryID != 0) && (qryID != overlap.b_iid))
       continue;
 
-    if (overlap.evalue() > evalue) {
+    if ((dumpType & WITH_ERATE) && (overlap.evalue() > evalue)) {
       ovlTooHighError++;
       continue;
     }
@@ -296,7 +313,7 @@ dumpStore(ovStore *ovlStore,
       continue;
     }
 
-    if (oneSided == true && overlap.a_iid >= overlap.b_iid) {
+    if ((dumpType & ONE_SIDED) && (overlap.a_iid >= overlap.b_iid)) {
        ovlNotUnique++;
        continue;
     }
@@ -668,7 +685,6 @@ main(int argc, char **argv) {
   uint32          qryID       = 0;
 
   bool            beVerbose   = false;
-  bool            oneSided    = false;
 
   char           *bestPrefix  = NULL;
 
@@ -731,11 +747,15 @@ main(int argc, char **argv) {
       asCounts = true;
 
     //  standard bulk dump options
-    else if (strcmp(argv[arg], "-E") == 0)
+    else if (strcmp(argv[arg], "-E") == 0) {
       dumpERate = atof(argv[++arg]);
+      dumpType |= WITH_ERATE;
+    }
 
-    else if (strcmp(argv[arg], "-L") == 0)
+    else if (strcmp(argv[arg], "-L") == 0) {
       dumpLength = atoi(argv[++arg]);
+      dumpType |= WITH_LENGTH;
+    }
 
     else if (strcmp(argv[arg], "-d5") == 0)
       dumpType |= NO_5p;
@@ -753,7 +773,7 @@ main(int argc, char **argv) {
       beVerbose = true;
 
     else if (strcmp(argv[arg], "-unique") == 0)
-      oneSided = true;
+      dumpType |= ONE_SIDED;
 
     else if (strcmp(argv[arg], "-best") == 0)
       bestPrefix = argv[++arg];
@@ -837,7 +857,7 @@ main(int argc, char **argv) {
 
   switch (operation) {
     case OP_DUMP:
-      dumpStore(ovlStore, gkpStore, asBinary, asCounts, dumpERate, dumpLength, dumpType, bgnID, endID, qryID, type, beVerbose, oneSided, bestPrefix);
+      dumpStore(ovlStore, gkpStore, asBinary, asCounts, dumpERate, dumpLength, dumpType, bgnID, endID, qryID, type, beVerbose, bestPrefix);
       break;
     case OP_DUMP_PICTURE:
       for (qryID=bgnID; qryID <= endID; qryID++)
