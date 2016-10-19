@@ -95,6 +95,7 @@ My assembly continuity is not good, how can I improve it?
 What parameters can I tweak?
 -------------------------------------
     For all stages:
+
     - ``errorRate`` is the expected error rate in _corrected_ reads.  It is a meta-parameter that
       sets other parameters.  It has been obsolesced and will eventually be removed.
 
@@ -105,6 +106,7 @@ What parameters can I tweak?
       omitting valuable reads or missing true overlaps.
 
     For correction:
+
     - ``corOutCoverage`` controls how much coverage in corrected reads is generated.  The default is
       to target 40X, but, for various reasons, this results in 30X to 35X of reads being generated.
     - ``corMinCoverage``, loosely, controls the quality of the corrected reads.  It is the coverage
@@ -114,6 +116,7 @@ What parameters can I tweak?
       coverage: 0x coverage for less than 30X input coverage, and 4x coverage for more than that.
 
     For assembly:
+
     - ``utgOvlErrorRate`` is essientially a speed optimization.  Overlaps above this error rate are
       not computed.  Setting it too high generally just wastes compute time, while setting it too
       low will degrade assemblies by missing true overlaps between lower quality reads.
