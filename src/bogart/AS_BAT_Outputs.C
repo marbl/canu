@@ -85,8 +85,9 @@ writeTigsToStore(TigVector     &tigs,
     if      (utg->_isUnassembled == true)
       tig->_class = tgTig_unassembled;
 
-    else if (utg->_isBubble == true)
-      tig->_class = tgTig_bubble;
+    //  Disabled, because bogart is not finding most of the true bubbles.
+    //else if (utg->_isBubble == true)
+    //  tig->_class = tgTig_bubble;
 
     else
       tig->_class = tgTig_contig;
