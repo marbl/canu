@@ -252,15 +252,15 @@ sub buildMerylHTML ($$$$$$) {
         }
 
         elsif ((-e "$wrk/0-mercounts/$asm.ms$ms.ignore") && (-z "$wrk/0-mercounts/$asm.ms$ms.ignore")) {
-            push @$body, "Threshold zdero.  No mers reported.\n";
+            push @$body, "Threshold zero.  No mers reported.\n";
         }
 
         elsif ((-e "$wrk/0-mercounts/$asm.ms$ms.fasta")  && (-z "$wrk/0-mercounts/$asm.ms$ms.fasta")) {
-            push @$body, "Threshold zdero.  No mers reported.\n";
+            push @$body, "Threshold zero.  No mers reported.\n";
         }
 
         else {
-            push @$body, "Using frequent mers in <some path>\n";
+            push @$body, "Using user-supplied frequent mers.\n";
         }
     }
 }
