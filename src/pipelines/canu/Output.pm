@@ -169,7 +169,7 @@ sub outputSequence ($$) {
     if (! -e "$WRK/$asm.unitigs.$type") {
         $cmd  = "$bin/tgStoreDump \\\n";
         $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
-        $cmd .= "  -T $wrk/$asm.ctgStore 2 \\\n";
+        $cmd .= "  -T $wrk/$asm.utgStore 2 \\\n";
         $cmd .= "  -consensus -$type \\\n";
         $cmd .= "  -contigs \\\n";
         $cmd .= "> $WRK/$asm.unitigs.$type\n";
