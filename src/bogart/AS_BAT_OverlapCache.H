@@ -180,11 +180,6 @@ public:
     return(_cachePtr[readIID]);
   }
 
-  void         removeWeakOverlaps(uint32 *minEvalue5p,
-                                  uint32 *minEvalue3p);
-
-  //double       findErate(uint32 aIID, uint32 bIID);
-
 private:
   bool         load(const char *prefix, double erate);
   void         save(const char *prefix, double erate);
