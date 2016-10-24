@@ -310,7 +310,8 @@ computeIIDperBucket(uint32          fileLimit,
 
 static
 void
-writeToDumpFile(ovOverlap       *overlap,
+writeToDumpFile(gkStore          *gkp,
+                ovOverlap       *overlap,
                 ovFile          **dumpFile,
                 uint64           *dumpLength,
                 uint32           *iidToBucket,
@@ -323,7 +324,7 @@ writeToDumpFile(ovOverlap       *overlap,
     char name[FILENAME_MAX];
     sprintf(name, "%s/tmp.sort.%03d", ovlName, df);
     fprintf(stderr, "CREATE bucket '%s'\n", name);
-    dumpFile[df]   = new ovFile(name, ovFileFullWriteNoCounts);
+    dumpFile[df]   = new ovFile(gkp, name, ovFileFullWriteNoCounts);
     dumpLength[df] = 0;
   }
 
@@ -566,7 +567,7 @@ main(int argc, char **argv) {
 
     fprintf(stderr, "bucketizing %s\n", fileList[i]);
 
-    ovFile *inputFile = new ovFile(fileList[i], ovFileFull);
+    ovFile *inputFile = new ovFile(gkp, fileList[i], ovFileFull);
 
     while (inputFile->readOverlap(&foverlap)) {
       filter->filterOverlap(foverlap, roverlap);  //  The filter copies f into r
@@ -579,12 +580,12 @@ main(int argc, char **argv) {
       if ((foverlap.dat.ovl.forUTG == true) ||
           (foverlap.dat.ovl.forOBT == true) ||
           (foverlap.dat.ovl.forDUP == true))
-        writeToDumpFile(&foverlap, dumpFile, dumpLength, iidToBucket, ovlName);
+        writeToDumpFile(gkp, &foverlap, dumpFile, dumpLength, iidToBucket, ovlName);
 
       if ((roverlap.dat.ovl.forUTG == true) ||
           (roverlap.dat.ovl.forOBT == true) ||
           (roverlap.dat.ovl.forDUP == true))
-        writeToDumpFile(&roverlap, dumpFile, dumpLength, iidToBucket, ovlName);
+        writeToDumpFile(gkp, &roverlap, dumpFile, dumpLength, iidToBucket, ovlName);
     }
 
     delete inputFile;
@@ -630,7 +631,7 @@ main(int argc, char **argv) {
     sprintf(name, "%s/tmp.sort.%03d", ovlName, i);
     fprintf(stderr, "reading %s (%ld)\n", name, time(NULL) - beginTime);
 
-    bof = new ovFile(name, ovFileFull);
+    bof = new ovFile(gkp, name, ovFileFull);
 
     uint64 numOvl = 0;
     while (bof->readOverlap(overlapsort + numOvl)) {

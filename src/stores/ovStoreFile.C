@@ -50,9 +50,12 @@
 #include "snappy.h"
 #endif
 
-ovFile::ovFile(const char  *name,
+ovFile::ovFile(gkStore     *gkp,
+               const char  *name,
                ovFileType   type,
                uint32       bufferSize) {
+
+  _gkp       = gkp;
 
   //  We write two sizes of overlaps.  The 'normal' format doesn't contain the a_iid, while the
   //  'full' format does.  The buffer size must hold an integer number of overlaps, otherwise the

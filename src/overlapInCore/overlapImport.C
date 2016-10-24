@@ -163,7 +163,7 @@ main(int argc, char **argv) {
   splitToWords  W;
   ovOverlap    ov(gkpStore);
 
-  ovFile       *of    = (ovlFileName  == NULL) ? NULL : new ovFile(ovlFileName, ovFileFullWrite);
+  ovFile       *of    = (ovlFileName  == NULL) ? NULL : new ovFile(gkpStore, ovlFileName, ovFileFullWrite);
   ovStore      *os    = (ovlStoreName == NULL) ? NULL : new ovStore(ovlStoreName, gkpStore, ovStoreWrite);
 
   if (native == true)

@@ -496,8 +496,8 @@ main(int argc, char **argv) {
   } else {
     fprintf(stderr, "Reading overlaps from file '%s' and writing to '%s'\n",
             ovlName, outName);
-    ovlFile     = new ovFile(ovlName, ovFileFull);
-    ovlFileOut  = new ovFile(outName, ovFileFullWrite);
+    ovlFile     = new ovFile(gkpStore, ovlName, ovFileFull);
+    ovlFileOut  = new ovFile(gkpStore, outName, ovFileFullWrite);
   }
 
   workSpace        *WA  = new workSpace [numThreads];

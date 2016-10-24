@@ -47,7 +47,8 @@
 
 static
 void
-writeToFile(ovOverlap    *overlap,
+writeToFile(gkStore       *gkp,
+            ovOverlap    *overlap,
             ovFile       **sliceFile,
             uint32         sliceFileMax,
             uint64        *sliceSize,
@@ -62,7 +63,7 @@ writeToFile(ovOverlap    *overlap,
     char name[FILENAME_MAX];
 
     sprintf(name, "%s/create%04d/slice%03d%s", ovlName, jobIndex, df, (useGzip) ? ".gz" : "");
-    sliceFile[df] = new ovFile(name, ovFileFullWriteNoCounts);
+    sliceFile[df] = new ovFile(gkp, name, ovFileFullWriteNoCounts);
     sliceSize[df] = 0;
   }
 
@@ -242,7 +243,7 @@ main(int argc, char **argv) {
   ovStoreFilter *filter = new ovStoreFilter(gkp, maxError);
   ovOverlap      foverlap(gkp);
   ovOverlap      roverlap(gkp);
-  ovFile         *inputFile = new ovFile(ovlInput, ovFileFull);
+  ovFile         *inputFile = new ovFile(gkp, ovlInput, ovFileFull);
 
   //  Do bigger buffers increase performance?  Do small ones hurt?
   //AS_OVS_setBinaryOverlapFileBufferSize(2 * 1024 * 1024);
@@ -255,12 +256,12 @@ main(int argc, char **argv) {
     if ((foverlap.dat.ovl.forUTG == true) ||
         (foverlap.dat.ovl.forOBT == true) ||
         (foverlap.dat.ovl.forDUP == true))
-      writeToFile(&foverlap, sliceFile, fileLimit, sliceSize, iidToBucket, ovlName, jobIndex, useGzip);
+      writeToFile(gkp, &foverlap, sliceFile, fileLimit, sliceSize, iidToBucket, ovlName, jobIndex, useGzip);
 
     if ((roverlap.dat.ovl.forUTG == true) ||
         (roverlap.dat.ovl.forOBT == true) ||
         (roverlap.dat.ovl.forDUP == true))
-      writeToFile(&roverlap, sliceFile, fileLimit, sliceSize, iidToBucket, ovlName, jobIndex, useGzip);
+      writeToFile(gkp, &roverlap, sliceFile, fileLimit, sliceSize, iidToBucket, ovlName, jobIndex, useGzip);
   }
 
   delete inputFile;

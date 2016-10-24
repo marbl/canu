@@ -336,7 +336,7 @@ ovStore::readOverlap(ovOverlap *overlap) {
     _currentFileIndex++;
 
     sprintf(name, "%s/%04d", _storePath, _currentFileIndex);
-    _bof = new ovFile(name, ovFileNormal);
+    _bof = new ovFile(_gkp, name, ovFileNormal);
   }
 
   overlap->a_iid = _offt._a_iid;
@@ -421,7 +421,7 @@ ovStore::readOverlaps(ovOverlap *&overlaps, uint32 &maxOverlaps, bool restrictTo
         break;
 
       sprintf(name, "%s/%04d", _storePath, _currentFileIndex);
-      _bof = new ovFile(name, ovFileNormal);
+      _bof = new ovFile(_gkp, name, ovFileNormal);
     }
 
     //  If the currentFileIndex is invalid, we ran out of overlaps to load.  Don't save that
@@ -600,7 +600,7 @@ ovStore::setRange(uint32 firstIID, uint32 lastIID) {
   delete _bof;
 
   sprintf(name, "%s/%04d", _storePath, _currentFileIndex);
-  _bof = new ovFile(name, ovFileNormal);
+  _bof = new ovFile(_gkp, name, ovFileNormal);
 
   _bof->seekOverlap(_offt._offset);
 }
@@ -621,7 +621,7 @@ ovStore::resetRange(void) {
   delete _bof;
 
   sprintf(name, "%s/%04d", _storePath, _currentFileIndex);
-  _bof = new ovFile(name, ovFileNormal);
+  _bof = new ovFile(_gkp, name, ovFileNormal);
 
   _firstIIDrequested = _info._smallestIID;
   _lastIIDrequested  = _info._largestIID;
@@ -666,7 +666,7 @@ ovStore::writeOverlap(ovOverlap *overlap) {
     _currentFileIndex++;
 
     sprintf(name, "%s/%04d", _storePath, _currentFileIndex);
-    _bof = new ovFile(name, ovFileNormalWrite);
+    _bof = new ovFile(_gkp, name, ovFileNormalWrite);
   }
 
 
@@ -952,8 +952,9 @@ ovStore::addEvalues(uint32 bgnID, uint32 endID, uint16 *evalues, uint64 evaluesL
 //  For the parallel sort, write a block of sorted overlaps into a single file, with index and info.
 
 void
-writeOverlaps(char       *storePath,
-              ovOverlap *ovls,
+writeOverlaps(gkStore    *gkp,
+              char       *storePath,
+              ovOverlap  *ovls,
               uint64      ovlsLen,
               uint32      fileID) {
 
@@ -985,7 +986,7 @@ writeOverlaps(char       *storePath,
   //  Create the output file
 
   sprintf(name, "%s/%04d", storePath, fileID);
-  ovFile *bof = new ovFile(name, ovFileNormalWrite);
+  ovFile *bof = new ovFile(gkp, name, ovFileNormalWrite);
 
   //  Create the index file
 

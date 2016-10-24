@@ -105,7 +105,7 @@ main(int argc, char **argv) {
   char  *ovStr = new char [1024];
 
   for (uint32 ff=0; ff<files.size(); ff++) {
-    ovFile      *of = new ovFile(files[ff], ovFileFull);
+    ovFile      *of = new ovFile(gkpStore, files[ff], ovFileFull);
     ovOverlap   ov(gkpStore);
 
     if (native == true)

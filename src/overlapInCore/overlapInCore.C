@@ -194,6 +194,8 @@ OverlapDriver(void) {
 
   gkStore        *gkpStore  = gkStore::gkStore_open(G.Frag_Store_Path);
 
+  Out_BOF = new ovFile(gkpStore, G.Outfile_Name, ovFileFullWrite);
+
   fprintf(stderr, "Initializing %u work areas.\n", G.Num_PThreads);
 
 #pragma omp parallel for
@@ -284,6 +286,8 @@ OverlapDriver(void) {
     bgnHashID = endHashID + 1;
     endHashID = bgnHashID + G.Max_Hash_Strings - 1;  //  Inclusive!
   }
+
+  delete Out_BOF;
 
   gkpStore->gkStore_close();
 
@@ -478,8 +482,6 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  Out_BOF = new ovFile(G.Outfile_Name, ovFileFullWrite);
-
   //  We know enough now to set the hash function variables, and some other random variables.
 
   HSF1 = G.Kmer_Len - (G.Hash_Mask_Bits / 2);
@@ -563,8 +565,6 @@ main(int argc, char **argv) {
   delete [] String_Info;
   delete [] Hash_Check_Array;
   delete [] Hash_Table;
-
-  delete Out_BOF;
 
   FILE *stats = stderr;
 

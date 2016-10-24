@@ -117,8 +117,8 @@ main(int argc, char **argv) {
 
   if (err) {
     fprintf(stderr, "usage: %s ...\n", argv[0]);
-    fprintf(stderr, "  -O x.ovlStore    path to overlap store to build the final index for\n");
     fprintf(stderr, "  -G asm.gkpStore  path to gkpStore for this assembly\n");
+    fprintf(stderr, "  -O x.ovlStore    path to overlap store to build the final index for\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -F s             number of slices used in bucketizing/sorting\n");
     fprintf(stderr, "  -job j m         index of this overlap input file, and max number of files\n");
@@ -229,7 +229,8 @@ main(int argc, char **argv) {
   fprintf(stderr, "Overlaps need %.2f GB memory, allowed to use up to (via -M) " F_U64 " GB.\n",
           ovOverlapSortSize * totOvl / 1024.0 / 1024.0 / 1024.0, maxMemory >> 30);
 
-  ovOverlap *ovls = ovOverlap::allocateOverlaps(NULL, totOvl);
+  gkStore   *gkp  = gkStore::gkStore_open(gkpName);
+  ovOverlap *ovls = ovOverlap::allocateOverlaps(gkp, totOvl);
 
   //  Load all overlaps - we're guaranteed that either 'name.gz' or 'name' exists (we checked above)
   //  or funny business is happening with our files.
@@ -250,7 +251,7 @@ main(int argc, char **argv) {
 
     fprintf(stderr, "Loading " F_U64 " overlaps from '%s'.\n", bucketSizes[i], name);
 
-    ovFile   *bof = new ovFile(name, ovFileFull);
+    ovFile   *bof = new ovFile(gkp, name, ovFileFull);
     uint64    num = 0;
 
     while (bof->readOverlap(ovls + ovlsLen)) {
@@ -302,7 +303,7 @@ main(int argc, char **argv) {
   //  Output to store format
 
   fprintf(stderr, "Writing output.\n");
-  writeOverlaps(storePath, ovls, ovlsLen, fileID);
+  writeOverlaps(gkp, storePath, ovls, ovlsLen, fileID);
 
   //  Clean up.
 
@@ -334,6 +335,8 @@ main(int argc, char **argv) {
 
     unlink(name);
   }
+
+  gkp->gkStore_close();
 
   //  Success!
 

@@ -94,7 +94,7 @@ main(int argc, char **argv) {
   char        *ovStr = new char [1024];
 
   ovOverlap   ov(NULL);
-  ovFile      *of = new ovFile(outName, ovFileFullWrite);
+  ovFile      *of = new ovFile(NULL, outName, ovFileFullWrite);
 
   for (uint32 ff=0; ff<files.size(); ff++) {
     compressedFileReader  *in = new compressedFileReader(files[ff]);

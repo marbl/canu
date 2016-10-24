@@ -353,7 +353,8 @@ enum ovFileType {
 
 class ovFile {
 public:
-  ovFile(const char  *name,
+  ovFile(gkStore     *gkpName,
+         const char  *name,
          ovFileType   type = ovFileNormal,
          uint32       bufferSize = 1 * 1024 * 1024);
   ~ovFile();
@@ -382,6 +383,8 @@ public:
 #endif
 
 private:
+  gkStore                *_gkp;
+
   uint32                  _bufferLen;    //  length of valid data in the buffer
   uint32                  _bufferPos;    //  position the read is at in the buffer
   uint32                  _bufferMax;    //  allocated size of the buffer
@@ -428,8 +431,9 @@ private:
   friend class ovStore;
 
   friend
-  void       writeOverlaps(char       *storePath,
-                           ovOverlap *ovls,
+  void       writeOverlaps(gkStore    *gkp,
+                           char       *storePath,
+                           ovOverlap  *ovls,
                            uint64      ovlsLen,
                            uint32      fileID);
 
@@ -467,8 +471,9 @@ private:
 
   friend
   void
-  writeOverlaps(char       *storePath,
-                ovOverlap *ovls,
+  writeOverlaps(gkStore    *gkp,
+                char       *storePath,
+                ovOverlap  *ovls,
                 uint64      ovlsLen,
                 uint32      fileID);
 
@@ -540,8 +545,9 @@ public:
   //  'fileID.info' and 'fileID.index'
 
   friend
-  void         writeOverlaps(char       *storePath,
-                             ovOverlap *ovls,
+  void         writeOverlaps(gkStore    *gkp,
+                             char       *storePath,
+                             ovOverlap  *ovls,
                              uint64      ovlsLen,
                              uint32      fileID);
 
@@ -579,8 +585,9 @@ private:
 //  This should be part of ovStore, but when it is used, in ovStoreSorter, we don't
 //  have a store opened.
 void
-writeOverlaps(char       *storePath,
-              ovOverlap *ovls,
+writeOverlaps(gkStore    *gkp,
+              char       *storePath,
+              ovOverlap  *ovls,
               uint64      ovlsLen,
               uint32      fileID);
 
