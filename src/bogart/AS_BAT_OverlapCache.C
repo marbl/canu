@@ -732,7 +732,7 @@ OverlapCache::loadOverlaps(double erate, uint32 minOverlap, const char *prefix, 
 
 
 bool
-OverlapCache::load(const char *prefix, double erate) {
+OverlapCache::load(const char *prefix, double UNUSED(erate)) {
   char     name[FILENAME_MAX];
   FILE    *file;
   size_t   numRead;
@@ -876,7 +876,7 @@ OverlapCache::load(const char *prefix, double erate) {
 
 
 void
-OverlapCache::save(const char *prefix, double erate) {
+OverlapCache::save(const char *prefix, double UNUSED(erate)) {
   char  name[FILENAME_MAX];
   FILE *file;
 
