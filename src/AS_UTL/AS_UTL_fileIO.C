@@ -44,6 +44,32 @@
 //  and that we ended up at the expected location.
 #undef VERIFY_WRITE_POSITIONS
 
+
+
+
+//  Return the basename of a path -- that is, strip off any and all extensions.
+//  Anything after the first dot after the last slash is removed.
+//
+//  But if a directory, do nothing.
+
+void
+AS_UTL_findBaseFileName(char *basename, const char *filename) {
+
+  strcpy(basename, filename);
+
+  if (AS_UTL_fileExists(basename, true, false))
+    return;
+
+  char  *slash = strrchr(basename, '/');
+  char  *dot   = strchr((slash == NULL) ? basename : slash, '.');
+
+  if (dot)
+    *dot = 0;
+}
+
+
+
+
 //  Provides a safe and reliable mechanism for reading / writing
 //  binary data.
 //
