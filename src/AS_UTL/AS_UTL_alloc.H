@@ -35,6 +35,25 @@
 #define AS_UTL_ALLOC_H
 
 
+const uint32  resizeArray_doNothing = 0x00;
+const uint32  resizeArray_copyData  = 0x01;
+const uint32  resizeArray_clearNew  = 0x02;
+
+
+template<typename TT, typename LL>
+void
+allocateArray(TT*& array, LL arrayMax, uint32 op=resizeArray_clearNew) {
+
+  if (array != NULL)
+    delete [] array;
+
+  array = new TT [arrayMax];
+
+  if (op == resizeArray_clearNew)
+    memset(array, 0, sizeof(TT) * arrayMax);
+}
+
+
 template<typename TT, typename LL>
 void
 duplicateArray(TT*& to, LL &toLen, LL &toMax, TT *fr, LL frLen, LL UNUSED(frMax), bool forceAlloc=false) {
@@ -50,10 +69,6 @@ duplicateArray(TT*& to, LL &toLen, LL &toMax, TT *fr, LL frLen, LL UNUSED(frMax)
 
   memcpy(to, fr, sizeof(TT) * toLen);
 }
-
-const uint32  resizeArray_doNothing = 0x00;
-const uint32  resizeArray_copyData  = 0x01;
-const uint32  resizeArray_clearNew  = 0x02;
 
 
 template<typename TT, typename LL>
