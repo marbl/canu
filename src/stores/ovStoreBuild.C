@@ -209,6 +209,10 @@ computeIIDperBucket(uint32          fileLimit,
 
     uint64  useMemory = minMemory;
 
+    //  Compute the initial number of overlaps per bucket, based on the smallest memory allowed.
+
+    olapsPerBucketMax = (useMemory - MEMORY_OVERHEAD) / ovOverlapSortSize;
+
     //  Find the smallest memory size that uses fewer files than the OS allows.
 
     for (;
