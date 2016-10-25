@@ -474,7 +474,7 @@ ifeq (${MACHINETYPE}, amd64)
   #LDFLAGS   +=             -L/usr/local/lib -lunwind -lunwind-x86_64
 
   ifeq ($(BUILDDEBUG), 1)
-    CXXFLAGS  += -g
+    CXXFLAGS  += -g3
   else
     ifeq ($(BUILDPROFILE), 1)
       CXXFLAGS   += -g3 -O4 -funroll-loops -fexpensive-optimizations -finline-functions -fno-omit-frame-pointer
