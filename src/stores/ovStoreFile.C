@@ -50,12 +50,15 @@
 #include "snappy.h"
 #endif
 
+//  The histogram associated with this is written to files with any suffices stripped off.
+
 ovFile::ovFile(gkStore     *gkp,
                const char  *name,
                ovFileType   type,
                uint32       bufferSize) {
 
   _gkp       = gkp;
+  _histogram = new ovStoreHistogram(_gkp, type);
 
   //  We write two sizes of overlaps.  The 'normal' format doesn't contain the a_iid, while the
   //  'full' format does.  The buffer size must hold an integer number of overlaps, otherwise the
@@ -79,22 +82,6 @@ ovFile::ovFile(gkStore     *gkp,
 
   assert(_bufferMax % ((sizeof(uint32) * 1) + (sizeof(ovOverlapDAT))) == 0);
   assert(_bufferMax % ((sizeof(uint32) * 2) + (sizeof(ovOverlapDAT))) == 0);
-
-  //  When writing full overlaps, we also write the number of overlaps per read.  This is used to
-  //  build the store.  Overlaps in the store, normal format, don't need this extra data, as the
-  //  store itself knows how many overlaps per read.
-
-  _olapsPerReadAlloc = 0;
-  _olapsPerReadLast  = 0;
-  _olapsPerRead      = NULL;
-
-  if (type == ovFileFullWrite) {
-    _olapsPerReadAlloc = 128 * 1024;
-    _olapsPerReadLast  = 0;
-    _olapsPerRead      = new uint32 [_olapsPerReadAlloc];
-
-    memset(_olapsPerRead, 0, sizeof(uint32) * _olapsPerReadAlloc);
-  }
 
   //  Create the input/output buffers and files.
 
@@ -142,16 +129,7 @@ ovFile::ovFile(gkStore     *gkp,
 #endif
   }
 
-  //  Make a copy of the output name, and clean it up.  This is used as the base for
-  //  the counts output.  We just strip off all the dotted extensions in the filename.
-
-  strcpy(_prefix, name);
-
-  char  *slash = strrchr(_prefix, '/');
-  char  *dot   = strchr((slash == NULL) ? _prefix : slash, '.');
-
-  if (dot)
-    *dot = 0;
+  AS_UTL_findBaseFileName(_prefix, name);
 }
 
 
@@ -168,27 +146,9 @@ ovFile::~ovFile() {
   delete [] _snappyBuffer;
 #endif
 
-  if (_olapsPerRead) {
-    char  name[FILENAME_MAX];
+  _histogram->saveData(_prefix);
 
-    sprintf(name, "%s.counts", _prefix);
-
-    errno = 0;
-    _file = fopen(name, "w");
-    if (errno)
-      fprintf(stderr, "failed to open counts file '%s' for writing: %s\n", name, strerror(errno)), exit(1);
-
-    _olapsPerReadLast++;
-
-    AS_UTL_safeWrite(_file, &_olapsPerReadLast, "ovFile::olapsPerReadLast", sizeof(uint32), 1);
-    AS_UTL_safeWrite(_file,  _olapsPerRead,     "ovFile::olapsPerRead",     sizeof(uint32), _olapsPerReadLast);
-
-    fclose(_file);
-
-    delete [] _olapsPerRead;
-
-    //fprintf(stderr, "Wrote counts file '%s' for reads up to iid " F_U32 "\n", name, _olapsPerReadLast);
-  }
+  delete _histogram;
 }
 
 
@@ -241,23 +201,7 @@ ovFile::writeOverlap(ovOverlap *overlap) {
 
   writeBuffer();
 
-  if (_olapsPerRead) {
-    uint32   newmax  = _olapsPerReadAlloc;
-    uint32   newlast = _olapsPerReadLast;
-
-    newlast = max(newlast, overlap->a_iid);
-    newlast = max(newlast, overlap->b_iid);
-
-    while (newmax <= newlast)
-      newmax += newmax / 4;
-
-    resizeArray(_olapsPerRead, _olapsPerReadLast+1, _olapsPerReadAlloc, newmax, resizeArray_copyData | resizeArray_clearNew);
-
-    _olapsPerRead[overlap->a_iid]++;
-    _olapsPerRead[overlap->b_iid]++;
-
-    _olapsPerReadLast = newlast;
-  }
+  _histogram->addOverlap(overlap);
 
   if (_isNormal == false)
     _buffer[_bufferLen++] = overlap->a_iid;
@@ -301,34 +245,12 @@ ovFile::writeOverlaps(ovOverlap *overlaps, uint64 overlapsLen) {
 
   assert(_isOutput == true);
 
-  //  Resize the olapsPerRead array once per batch.
-
-  if (_olapsPerRead) {
-    uint32  newmax  = _olapsPerReadAlloc;
-    uint32  newlast = _olapsPerReadLast;
-
-    for (uint32 oo=0; oo<overlapsLen; oo++) {
-      newlast = max(newlast, overlaps[oo].a_iid);
-      newlast = max(newlast, overlaps[oo].b_iid);
-
-      while (newmax <= newlast)
-        newmax += newmax / 4;
-    }
-
-    resizeArray(_olapsPerRead, _olapsPerReadLast+1, _olapsPerReadAlloc, newmax, resizeArray_copyData | resizeArray_clearNew);
-
-    _olapsPerReadLast = newlast;
-  }
-
   //  Add all overlaps to the buffer.
 
   while (nWritten < overlapsLen) {
     writeBuffer();
 
-    if (_olapsPerRead) {
-      _olapsPerRead[overlaps[nWritten].a_iid]++;
-      _olapsPerRead[overlaps[nWritten].b_iid]++;
-    }
+    _histogram->addOverlap(overlaps + nWritten);
 
     if (_isNormal == false)
       _buffer[_bufferLen++] = overlaps[nWritten].a_iid;
@@ -532,3 +454,16 @@ ovFile::seekOverlap(off_t overlap) {
 
   _bufferPos = _bufferLen;  //  We probably need to reload the buffer.
 }
+
+
+
+
+void
+ovFile::collectHistogram(ovStoreHistogram *copy) {
+  copy->add(_histogram);
+
+  delete _histogram;
+
+  _histogram = new ovStoreHistogram;
+}
+

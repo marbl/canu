@@ -224,6 +224,8 @@ ovStore::ovStore(const char *path, gkStore *gkp, ovStoreType cType) {
   _lastIIDrequested       = _info._largestIID;
 
   _gkp = gkp;
+
+  _histogram = NULL;
 }
 
 
@@ -263,6 +265,10 @@ ovStore::~ovStore() {
 
     fclose(ovsinfo);
 
+    if (_histogram) {
+      _histogram->saveData(_storePath);
+    }
+
     fprintf(stderr, "Closing the new store:\n");
     fprintf(stderr, "  info._ovsMagic           = 0x%016" F_X64P "\n", _info._ovsMagic);
     fprintf(stderr, "  info._ovsVersion         = " F_U64 "\n", _info._ovsVersion);
@@ -273,30 +279,14 @@ ovStore::~ovStore() {
     fprintf(stderr, "  info._maxReadLenInBits   = " F_U64 "\n", _info._maxReadLenInBits);
   }
 
+  delete _histogram;
+
   if (_evaluesMap) {
     delete _evaluesMap;
 
     _evaluesMap = NULL;
     _evalues    = NULL;
   }
-
-#if 0
-  if (_statsUpdated) {
-    fprintf(stderr, "Writing new stats.\n");
-
-    char name [FILENAME_MAX];
-
-    sprintf(name, "%s/ost", _storePath);
-    errno = 0;
-    FILE *ost = fopen(name, "w");
-    if (errno)
-      fprintf(stderr, "failed to write overlap stats '%s': %s\n", name, strerror(errno)), exit(1);
-
-    AS_UTL_safeWrite(ost, &_stats, "AS_OVS_closeOverlapStore", sizeof(OverlapStoreStats), 1);
-
-    fclose(ost);
-  }
-#endif
 
   delete _bof;
 
@@ -654,6 +644,8 @@ ovStore::writeOverlap(ovOverlap *overlap) {
   //  too big, open a new file.
   //
   if ((_bof) && (_overlapsThisFile >= 1024 * 1024 * 1024 / _bof->recordSize())) {
+    _bof->collectHistogram(_histogram);
+
     delete _bof;
 
     _bof              = NULL;

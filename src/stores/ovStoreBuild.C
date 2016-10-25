@@ -117,61 +117,22 @@ computeIIDperBucket(uint32          fileLimit,
     return(iidToBucket);
   }
 
-  //  Otherwise, we have files, and should have counts.
+  //  Otherwise, we have files, and should have counts.  Load them!
 
-  uint32  *overlapsPerRead = new uint32 [maxIID];   //  Sum over all files.
+  ovStoreHistogram   *hist = new ovStoreHistogram();
+  uint32             *oPR = NULL;
 
-  memset(overlapsPerRead, 0, sizeof(uint32) * maxIID);
+  allocateArray(oPR, maxIID);
 
-  //  For each overlap file, find the counts file and merge into overlapsPerRead.
+  for (uint32 i=0; i<fileList.size(); i++)
+    hist->loadData(fileList[i]);
 
-  for (uint32 i=0; i<fileList.size(); i++) {
-    char  countsName[FILENAME_MAX];
+  uint64   numOverlaps = hist->getOverlapsPerRead(oPR, maxIID);
 
-    strcpy(countsName, fileList[i]);
+  delete hist;  hist = NULL;
 
-    char  *slash = strrchr(countsName, '/');
-    char  *dot   = strchr((slash == NULL) ? countsName : slash, '.');
-
-    if (dot)
-      *dot = 0;
-
-    strcat(countsName, ".counts");
-
-    errno = 0;
-    FILE *C = fopen(countsName, "r");
-    if (errno)
-      fprintf(stderr, "failed to open counts file '%s' for reading: %s\n", countsName, strerror(errno)), exit(1);
-
-    uint32   perLen = 0;
-    uint32  *per    = NULL;
-
-    AS_UTL_safeRead(C, &perLen,                    "perLen", sizeof(uint32), 1);
-    AS_UTL_safeRead(C,  per = new uint32 [perLen], "per",    sizeof(uint32), perLen);
-
-    fclose(C);
-
-    //fprintf(stderr, "Summing overlap counts for %u reads from '%s'.\n", perLen, countsName);
-
-    assert(perLen <= maxIID);
-
-    for (uint32 ii=0; ii<perLen; ii++)
-      overlapsPerRead[ii] += per[ii];
-
-    delete [] per;
-  }
-
-  //  How many overlaps?
-
-  uint64   numOverlaps = 0;
-
-  for (uint32 ii=0; ii<maxIID; ii++)
-    numOverlaps += overlapsPerRead[ii];
-
-  if (numOverlaps == 0) {
-    fprintf(stderr, "Found no overlaps to sort.\n");
-    exit(1);
-  }
+  if (numOverlaps == 0)
+    fprintf(stderr, "Found no overlaps to sort.\n"), exit(1);
 
   fprintf(stderr, "Found " F_U64 " (%.2f million) overlaps.\n", numOverlaps, numOverlaps / 1000000.0);
 
@@ -268,7 +229,7 @@ computeIIDperBucket(uint32          fileLimit,
     uint32  bucket = 1;
 
     for (uint32 ii=0; ii<maxIID; ii++) {
-      olaps            += overlapsPerRead[ii];
+      olaps            += oPR[ii];
       iidToBucket[ii]   = bucket;
 
       if (olaps >= olapsPerBucketMax) {
@@ -287,7 +248,7 @@ computeIIDperBucket(uint32          fileLimit,
     uint32  bucket = 1;
 
     for (uint32 ii=0; ii<maxIID; ii++) {
-      olaps            += overlapsPerRead[ii];
+      olaps            += oPR[ii];
       iidToBucket[ii]   = bucket;
 
       if (olaps >= olapsPerBucketMax) {
@@ -305,7 +266,7 @@ computeIIDperBucket(uint32          fileLimit,
           iidToBucket[maxIID-1],
           olapsPerBucketMax * GBperOlap + MEMORY_OVERHEAD / 1024.0 / 1024.0 / 1024.0);
 
-  delete [] overlapsPerRead;
+  delete hist;
 
   return(iidToBucket);
 }
@@ -657,7 +618,6 @@ main(int argc, char **argv) {
     }
 
     delete bof;
-
 
     assert(numOvl == dumpLength[i]);
     assert(numOvl <= dumpLengthMax);

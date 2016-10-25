@@ -41,6 +41,7 @@
 
 #include "ovOverlap.H"
 #include "ovStoreFile.H"
+#include "ovStoreHistogram.H"
 
 
 class ovStoreInfo {
@@ -183,6 +184,12 @@ public:
 
   void       addEvalues(uint32 bgnID, uint32 endID, uint16 *evalues, uint64 evaluesLen);
 
+  //  Return the statistics associated with this store
+
+  ovStoreHistogram  *getHistogram(void) {
+    return(new ovStoreHistogram(_gkp, _storePath));
+  };
+
 private:
   char               _storePath[FILENAME_MAX];
 
@@ -203,6 +210,8 @@ private:
   uint64             _overlapsThisFile;  //  Count of the number of overlaps written so far
   uint32             _currentFileIndex;
   ovFile            *_bof;
+
+  ovStoreHistogram  *_histogram;         //  When constructing a sequential store, collects all the stats from each file
 
   gkStore           *_gkp;
 };

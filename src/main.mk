@@ -56,6 +56,7 @@ SOURCES      := AS_global.C \
                 stores/ovOverlap.C \
                 stores/ovStore.C \
                 stores/ovStoreFile.C \
+                stores/ovStoreHistogram.C \
                 \
                 stores/tgStore.C \
                 stores/tgTig.C \

@@ -156,9 +156,23 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  //  Merge the stuff.
+  //  Merge the indices.
 
   mergeInfoFiles(ovlName, maxJob);
+
+  //  Merge the histograms.
+
+  ovStoreHistogram   *histogram = new ovStoreHistogram;
+
+  for (uint32 i=1; i<=maxJob; i++) {
+    sprintf(name, "%s/%04d", ovlName, i);
+
+    histogram->loadData(name);
+  }
+
+  histogram->saveData(ovlName);
+
+  delete histogram;
 
   //  Diagnostics.
 
@@ -179,11 +193,12 @@ main(int argc, char **argv) {
   fprintf(stderr, "\n");
   fprintf(stderr, "Removing intermediate files.\n");
 
-  //  Removing indices is easy, beacuse we know how many there are.
+  //  Removing indices and histogram data is easy, beacuse we know how many there are.
 
   for (uint32 i=1; i<=maxJob; i++) {
     sprintf(name, "%s/%04u.index", ovlName, i);   AS_UTL_unlink(name);
     sprintf(name, "%s/%04u.info",  ovlName, i);   AS_UTL_unlink(name);
+    sprintf(name, "%s/%04d",       ovlName, i);   histogram->removeData(name);
   }
 
   //  We don't know how many buckets there are, so we remove until we fail to find ten

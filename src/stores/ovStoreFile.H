@@ -32,6 +32,9 @@
 #include "ovOverlap.H"
 
 
+class ovStoreHistogram;
+
+
 //  The default, no flags, is to open for normal overlaps, read only.  Normal overlaps mean they
 //  have only the B id, i.e., they are in a fully built store.
 //
@@ -78,8 +81,12 @@ public:
   };
 #endif
 
+  //  Move the stats in our histogram to the one supplied, and remove our data
+  void    collectHistogram(ovStoreHistogram *copy);
+
 private:
   gkStore                *_gkp;
+  ovStoreHistogram       *_histogram;
 
   uint32                  _bufferLen;    //  length of valid data in the buffer
   uint32                  _bufferPos;    //  position the read is at in the buffer
@@ -90,10 +97,6 @@ private:
   size_t                  _snappyLen;
   char                   *_snappyBuffer;
 #endif
-
-  uint32                  _olapsPerReadAlloc;
-  uint32                  _olapsPerReadLast;
-  uint32                 *_olapsPerRead;
 
   bool                    _isOutput;     //  if true, we can writeOverlap()
   bool                    _isSeekable;   //  if true, we can seekOverlap()
