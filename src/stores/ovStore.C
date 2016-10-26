@@ -704,69 +704,6 @@ ovStore::writeOverlap(ovOverlap *overlap) {
 
 
 
-void
-ovStore::writeOverlap(ovOverlap *overlap, uint32 maxOverlapsThisFile) {
-  char            name[FILENAME_MAX];
-
-  assert(_isOutput == TRUE);
-
-  _currentFileIndex++;
-  _overlapsThisFile = 0;
-
-  for (uint64 i=0; i < maxOverlapsThisFile; i++ ) {
-    //  All overlaps will be sorted by a_iid
-    if (_offt._a_iid > overlap[i].a_iid) {
-      fprintf(stderr, "LAST:  a:" F_U32 "\n", _offt._a_iid);
-      fprintf(stderr, "THIS:  a:" F_U32 " b:" F_U32 "\n", overlap[i].a_iid, overlap[i].b_iid);
-    }
-
-    assert(_offt._a_iid <= overlap[i].a_iid);
-
-    if (_info._smallestIID > overlap[i].a_iid)
-      _info._smallestIID = overlap[i].a_iid;
-    if (_info._largestIID < overlap[i].a_iid)
-      _info._largestIID = overlap[i].a_iid;
-
-
-    //  Put the index to disk, filling any gaps
-    if ((_offt._numOlaps != 0) && (_offt._a_iid != overlap[i].a_iid)) {
-
-      while (_offm._a_iid < _offt._a_iid) {
-        _offm._fileno    = _offt._fileno;
-        _offm._offset    = _offt._offset;
-        _offm._overlapID = _offt._overlapID;  //  Not needed, but makes life easier
-
-        AS_UTL_safeWrite(_offtFile, &_offm, "AS_OVS_writeOverlapToStore offset", sizeof(ovStoreOfft), 1);
-
-        _offm._a_iid++;
-      }
-
-      _offm._a_iid++;  //  One more, since this iid is not missing -- we write it next!
-
-      AS_UTL_safeWrite(_offtFile, &_offt, "AS_OVS_writeOverlapToStore offset", sizeof(ovStoreOfft), 1);
-
-      _offt._numOlaps  = 0;    //  Reset; this new id has no overlaps yet.
-    }
-
-    //  Update the index if this is the first overlap for this a_iid
-    if (_offt._numOlaps == 0) {
-      _offt._a_iid     = overlap[i].a_iid;
-      _offt._fileno    = _currentFileIndex;
-      _offt._offset    = _overlapsThisFile;
-      _offt._overlapID = _info._numOverlapsTotal;
-    }
-
-    _offt._numOlaps++;
-    _info._numOverlapsTotal++;
-    _overlapsThisFile++;
-  }
-
-  fprintf(stderr,"Done building index for dumpfile %d.\n",_currentFileIndex);
-}
-
-
-
-
 uint64
 ovStore::numOverlapsInRange(void) {
   size_t                     originalposition = 0;

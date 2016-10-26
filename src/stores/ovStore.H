@@ -166,7 +166,6 @@ public:
   //  The (mostly) private interface for adding overlaps to a store.  Overlaps must be sorted already.
 
   void         writeOverlap(ovOverlap *olap);
-  void         writeOverlap(ovOverlap *overlap, uint32 maxOverlapsThisFile);
 
   //  Write a block of sorted overlaps to store file 'fileID', saving the info and index into
   //  'fileID.info' and 'fileID.index'
