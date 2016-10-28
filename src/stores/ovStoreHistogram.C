@@ -265,7 +265,6 @@ ovStoreHistogram::loadData(char *prefix) {
   createDataName(name, prefix, "counts");
 
   if (AS_UTL_fileExists(name, false, false) == true) {
-    fprintf(stderr, "LOAD from '%s'\n", name);
     errno = 0;
     FILE *F = fopen(name, "r");
     if (errno)
@@ -298,7 +297,6 @@ ovStoreHistogram::loadData(char *prefix) {
   createDataName(name, prefix, "evalueLen");
 
   if (AS_UTL_fileExists(name, false, false) == true) {
-    fprintf(stderr, "LOAD from '%s'\n", name);
     errno = 0;
     FILE *F = fopen(name, "r");
     if (errno)

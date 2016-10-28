@@ -420,8 +420,8 @@ outputOverlaps(gkStore           *gkpStore,
   //  Open the original and output stores.  We copy overlaps from the original to the copy, instead
   //  of recreating overlaps from our cache.  The cache doesn't have all the overlap information.
 
-  ovStore *inpStore = new ovStore(ovlStoreName, gkpStore);
-  ovStore *outStore = new ovStore(outputName,   gkpStore, ovStoreWrite);
+  ovStore        *inpStore = new ovStore(ovlStoreName, gkpStore);
+  ovStoreWriter  *outStore = new ovStoreWriter(outputName, gkpStore);
 
   uint64    numOvls = inpStore->numOverlapsInRange();
 

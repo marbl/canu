@@ -82,7 +82,7 @@ public:
 #endif
 
   //  Move the stats in our histogram to the one supplied, and remove our data
-  void    collectHistogram(ovStoreHistogram *copy);
+  void    transferHistogram(ovStoreHistogram *copy);
 
 private:
   gkStore                *_gkp;

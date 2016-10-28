@@ -459,7 +459,11 @@ ovFile::seekOverlap(off_t overlap) {
 
 
 void
-ovFile::collectHistogram(ovStoreHistogram *copy) {
+ovFile::transferHistogram(ovStoreHistogram *copy) {
+
+  if (copy == NULL)
+    return;
+
   copy->add(_histogram);
 
   delete _histogram;

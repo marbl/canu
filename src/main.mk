@@ -55,6 +55,8 @@ SOURCES      := AS_global.C \
                 \
                 stores/ovOverlap.C \
                 stores/ovStore.C \
+                stores/ovStoreWriter.C \
+                stores/ovStoreFilter.C \
                 stores/ovStoreFile.C \
                 stores/ovStoreHistogram.C \
                 \

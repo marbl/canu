@@ -266,8 +266,9 @@ main(int argc, char **argv) {
 
   delete inputFile;
 
-  filter->reportFate();
-  filter->resetCounters();
+#warning not reporting fate
+  //filter->reportFate();
+  //filter->resetCounters();
 
   delete filter;
 

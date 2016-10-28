@@ -477,14 +477,16 @@ main(int argc, char **argv) {
 
   gkStore          *gkpStore = gkStore::gkStore_open(gkpName);
 
-  ovStore          *ovlStore = NULL,  *ovlStoreOut = NULL;
-  ovFile           *ovlFile  = NULL,  *ovlFileOut  = NULL;
+  ovStore          *ovlStore = NULL;
+  ovStoreWriter    *outStore = NULL;
+  ovFile           *ovlFile  = NULL;
+  ovFile           *outFile  = NULL;
 
   if (AS_UTL_fileExists(ovlName, true)) {
     fprintf(stderr, "Reading overlaps from store '%s' and writing to '%s'\n",
             ovlName, outName);
-    ovlStore    = new ovStore(ovlName, gkpStore);
-    ovlStoreOut = new ovStore(outName, gkpStore, ovStoreWrite);
+    ovlStore = new ovStore(ovlName, gkpStore);
+    outStore = new ovStoreWriter(outName, gkpStore);
 
     if (bgnID < 1)
       bgnID = 1;
@@ -496,8 +498,8 @@ main(int argc, char **argv) {
   } else {
     fprintf(stderr, "Reading overlaps from file '%s' and writing to '%s'\n",
             ovlName, outName);
-    ovlFile     = new ovFile(gkpStore, ovlName, ovFileFull);
-    ovlFileOut  = new ovFile(gkpStore, outName, ovFileFullWrite);
+    ovlFile = new ovFile(gkpStore, ovlName, ovFileFull);
+    outFile = new ovFile(gkpStore, outName, ovFileFullWrite);
   }
 
   workSpace        *WA  = new workSpace [numThreads];
@@ -611,9 +613,9 @@ main(int argc, char **argv) {
 
     if (ovlStore)
       for (uint64 oo=0; oo<*overlapsLen; oo++)
-        ovlStoreOut->writeOverlap(overlaps + oo);
+        outStore->writeOverlap(overlaps + oo);
     if (ovlFile)
-      ovlFileOut->writeOverlaps(overlaps, *overlapsLen);
+      outFile->writeOverlaps(overlaps, *overlapsLen);
 
     //  Load more overlaps
 
@@ -649,10 +651,10 @@ main(int argc, char **argv) {
   gkpStore->gkStore_close();
 
   delete    ovlStore;
-  delete    ovlStoreOut;
+  delete    outStore;
 
   delete    ovlFile;
-  delete    ovlFileOut;
+  delete    outFile;
 
   delete [] overlapsA;
   delete [] overlapsB;

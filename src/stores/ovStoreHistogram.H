@@ -65,6 +65,7 @@ public:
 
   //  Remove data associated with some prefix.
 
+  static
   void      removeData(char *prefix);
 
   //  Add in the data from histogram 'input' to this histogram
