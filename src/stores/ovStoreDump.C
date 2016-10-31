@@ -255,10 +255,6 @@ dumpStore(ovStore                *ovlStore,
   uint32   merDumped       = 0;
 
   uint32  *counts            = NULL;
-  uint32 **erateLen          = NULL;
-  uint32   erateLenMaxEvalue = 0;
-  uint32   erateLenMaxLength = 0;
-
   ovStoreHistogram  *hist = NULL;
 
   //  Set the range of the reads to dump early so that we can reset it later.
