@@ -35,9 +35,11 @@
 #define AS_UTL_ALLOC_H
 
 
+
 const uint32  resizeArray_doNothing = 0x00;
 const uint32  resizeArray_copyData  = 0x01;
 const uint32  resizeArray_clearNew  = 0x02;
+
 
 
 template<typename TT, typename LL>
@@ -52,6 +54,7 @@ allocateArray(TT*& array, LL arrayMax, uint32 op=resizeArray_clearNew) {
   if (op == resizeArray_clearNew)
     memset(array, 0, sizeof(TT) * arrayMax);
 }
+
 
 
 template<typename TT, typename LL>
@@ -69,6 +72,7 @@ duplicateArray(TT*& to, LL &toLen, LL &toMax, TT *fr, LL frLen, LL UNUSED(frMax)
 
   memcpy(to, fr, sizeof(TT) * toLen);
 }
+
 
 
 template<typename TT, typename LL>
@@ -91,6 +95,7 @@ resizeArray(TT*& array, uint64 arrayLen, LL &arrayMax, uint64 newMax, uint32 op=
   if (op & resizeArray_clearNew)
     memset(array + arrayLen, 0, sizeof(TT) * (newMax - arrayLen));
 }
+
 
 
 template<typename T1, typename T2, typename LL>
@@ -123,6 +128,7 @@ resizeArrayPair(T1*& array1, T2*& array2, uint64 arrayLen, LL &arrayMax, LL newM
 }
 
 
+
 template<typename TT, typename LL>
 void
 increaseArray(TT*& array, uint64 arrayLen, LL &arrayMax, uint64 increment) {
@@ -139,6 +145,7 @@ increaseArray(TT*& array, uint64 arrayLen, LL &arrayMax, uint64 increment) {
 }
 
 
+
 template<typename T1, typename T2, typename LL>
 void
 increaseArrayPair(T1*& array1, T2*& array2, uint64 arrayLen, LL &arrayMax, uint64 increment) {
@@ -153,6 +160,7 @@ increaseArrayPair(T1*& array1, T2*& array2, uint64 arrayLen, LL &arrayMax, uint6
 
   resizeArrayPair(array1, array2, arrayLen, arrayMax, newMax, resizeArray_copyData);
 }
+
 
 
 #endif // AS_UTL_ALLOC_H
