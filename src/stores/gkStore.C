@@ -34,7 +34,6 @@
 #include "gkStore.H"
 
 #include "AS_UTL_fileIO.H"
-#include "AS_UTL_alloc.H"
 
 
 gkStore *gkStore::_instance      = NULL;
