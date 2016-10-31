@@ -34,6 +34,11 @@
 #ifndef AS_UTL_ALLOC_H
 #define AS_UTL_ALLOC_H
 
+#include "AS_global.H"
+
+
+uint64    getPhysicalMemorySize(void);
+
 
 
 const uint32  resizeArray_doNothing = 0x00;

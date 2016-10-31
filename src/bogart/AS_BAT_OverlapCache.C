@@ -55,55 +55,6 @@
 
 uint64  ovlCacheMagic = 0x65686361436c766fLLU;  //0102030405060708LLU;
 
-#if !defined(__CYGWIN__) && !defined(_WIN32)
-#include <sys/sysctl.h>
-#endif
-
-#ifdef HW_PHYSMEM
-
-uint64
-getMemorySize(void) {
-  uint64  physMemory = 0;
-
-  int     mib[2] = { CTL_HW, HW_PHYSMEM };
-  size_t  len    = sizeof(uint64);
-
-  errno = 0;
-
-  if (sysctl(mib, 2, &physMemory, &len, NULL, 0) != 0)
-    //  failed to get memory size, so what?
-    writeStatus("sysctl() failed to return CTL_HW, HW_PHYSMEM: %s\n", strerror(errno)), exit(1);
-
-  if (len != sizeof(uint64)) {
-#ifdef HW_MEMSIZE
-    mib[1] = HW_MEMSIZE;
-    len = sizeof(uint64);
-    if (sysctl(mib, 2, &physMemory, &len, NULL, 0) != 0 || len != sizeof(uint64))
-#endif
-      //  wasn't enough space, so what?
-      writeStatus("sysctl() failed to return CTL_HW, HW_PHYSMEM: %s\n", strerror(errno)), exit(1);
-  }
-
-  return(physMemory);
-}
-
-#else
-
-uint64
-getMemorySize(void) {
-  uint64  physPages  = sysconf(_SC_PHYS_PAGES);
-  uint64  pageSize   = sysconf(_SC_PAGESIZE);
-  uint64  physMemory = physPages * pageSize;
-
-  writeStatus("PHYS_PAGES = " F_U64 "\n", physPages);
-  writeStatus("PAGE_SIZE  = " F_U64 "\n", pageSize);
-  writeStatus("MEMORY     = " F_U64 "\n", physMemory);
-
-  return(physMemory);
-}
-
-#endif
-
 
 
 OverlapCache::OverlapCache(ovStore *ovlStoreUniq,
@@ -149,7 +100,7 @@ OverlapCache::OverlapCache(ovStore *ovlStoreUniq,
   writeStatus("\n");
 
   if (memlimit == UINT64_MAX) {
-    _memLimit = getMemorySize();
+    _memLimit = getPhysicalMemorySize();
     writeStatus("OverlapCache()-- limited to " F_U64 "MB memory (total physical memory).\n", _memLimit >> 20);
   } else if (memlimit > 0) {
     _memLimit = memlimit;
@@ -181,7 +132,7 @@ OverlapCache::OverlapCache(ovStore *ovlStoreUniq,
   uint64 memC3 = _threadMax * _thread[0]._batMax * sizeof(BAToverlap);
   uint64 memC4 = (RI->numReads() + 1) * sizeof(uint32);
 
-  uint64 memOS = (_memLimit == getMemorySize()) ? (0.1 * getMemorySize()) : 0.0;
+  uint64 memOS = (_memLimit == getPhysicalMemorySize()) ? (0.1 * getPhysicalMemorySize()) : 0.0;
 
   uint64 memTT = memFI + memBE + memUL + memUT + memID + memC1 + memC2 + memC3 + memC4 + memOS;
 
