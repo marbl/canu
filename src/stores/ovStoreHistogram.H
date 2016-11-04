@@ -42,17 +42,30 @@ public:
   ovStoreHistogram(gkStore *gkp, ovFileType type);   //  Used when writing ovFile
   ~ovStoreHistogram();
 
-  double    minErate(void);
-  double    maxErate(void);
+  double    minErate(void)             {  return(AS_OVS_decodeEvalue(0));           };
+  double    maxErate(void)             {  return(AS_OVS_decodeEvalue(_maxEvalue));  };
 
-  uint32    minEvalue(void);
-  uint32    maxEvalue(void);
+  uint32    minEvalue(void)            {  return(0);           };
+  uint32    maxEvalue(void)            {  return(_maxEvalue);  };
 
-  uint32    minOverlapLength(void);
-  uint32    maxOverlapLength(void);
+  uint32    numEvalueBuckets(void)     {  return(AS_MAX_EVALUE + 1);  };
+  uint32    numLengthBuckets(void)     {  return(_opelLen);           };
 
-  uint32    numOverlaps(uint32 id);
-  uint32    numOverlaps(uint32 evalue, uint32 length);
+  //uint32    minOverlapLength(void)     {  return(0);                  };
+  //uint32    maxOverlapLength(void)     {  return(_maxLength * _bpb);  };
+
+  uint32    evaluePerBucket(void)      {  return(_epb);  };
+  uint32    basesPerBucket(void)       {  return(_bpb);  };
+
+  uint32    numOverlaps(uint32 eb, uint32 lb) {
+    assert(eb < numEvalueBuckets());
+    assert(lb < numLengthBuckets());
+
+    return((_opel[eb] == NULL) ? 0 : _opel[eb][lb]);
+  };
+
+  //uint32    numOverlaps(uint32 id);
+  //uint32    numOverlaps(uint32 evalue, uint32 length);
 
   //  In an ovFile, add a single value to the histogram
 
