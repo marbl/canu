@@ -44,8 +44,9 @@ ReadInfo::ReadInfo(gkStore    *gkp,
                            const char *prefix,
                            uint32      minReadLen) {
 
-  _numLibraries = gkp->gkStore_getNumLibraries();
+  _numBases     = 0;
   _numReads     = gkp->gkStore_getNumReads();
+  _numLibraries = gkp->gkStore_getNumLibraries();
 
   _readLength    = new uint32 [_numReads + 1];
   _libIID        = new uint32 [_numReads + 1];
@@ -68,8 +69,9 @@ ReadInfo::ReadInfo(gkStore    *gkp,
       uint32 iid = read->gkRead_readID();
       uint32 lib = read->gkRead_libraryID();
 
-      _readLength[iid] = read->gkRead_sequenceLength();
-      _libIID[iid]     = lib;
+      _numBases        += read->gkRead_sequenceLength();
+      _readLength[iid]  = read->gkRead_sequenceLength();
+      _libIID[iid]      = lib;
 
       numLoaded++;
     }
