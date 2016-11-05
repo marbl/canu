@@ -56,8 +56,7 @@
 //
 int
 AS_configure(int argc, char **argv) {
-  char *p = NULL;
-  int   i, j;
+
 
 #ifdef X86_GCC_LINUX
   //  Set the x86 FPU control word to force double precision rounding
@@ -70,6 +69,7 @@ AS_configure(int argc, char **argv) {
 
   _FPU_SETCW( fpu_cw );
 #endif
+
 
 #ifdef _GLIBCXX_PARALLEL_SETTINGS_H
   __gnu_parallel::_Settings s = __gnu_parallel::_Settings::get();
@@ -92,15 +92,24 @@ AS_configure(int argc, char **argv) {
   __gnu_parallel::_Settings::set(s);
 #endif
 
+
+  //  Default to one thread.  This is mostly to disable the parallel sort,
+  //  which seems to have a few bugs left in it.  e.g., a crash when using 48
+  //  threads, but not when using 47, 49 or 64 threads.
+
+  omp_set_num_threads(1);
+
+
   //  Install a signal handler to catch seg faults and errors.
 
   AS_UTL_installCrashCatcher();
+
 
   //
   //  Et cetera.
   //
 
-  for (i=0; i<argc; i++) {
+  for (int32 i=0; i<argc; i++) {
     if (strcmp(argv[i], "--version") == 0) {
       fprintf(stderr, "Canu v%s.%s (+%s commits) r%s %s.\n",
               CANU_VERSION_MAJOR,
@@ -112,19 +121,18 @@ AS_configure(int argc, char **argv) {
     }
   }
 
+
   //
   //  Logging.
   //
 
-  p = getenv("CANU_DIRECTORY");
+  char *p = getenv("CANU_DIRECTORY");
   if (p == NULL)
     return(argc);
 
   char  D[FILENAME_MAX] = {0};
   char  N[FILENAME_MAX] = {0};
   char  H[1024]         = {0};  //  HOST_NAME_MAX?  Undefined.
-  char *E;
-  FILE *F;
 
   //  Make a directory for logs.  If an error, just return now, there's nothing we can log.
 
@@ -141,7 +149,7 @@ AS_configure(int argc, char **argv) {
 
   //  Our executable name is part of our unique filename too.
 
-  E = argv[0] + strlen(argv[0]) - 1;
+  char *E = argv[0] + strlen(argv[0]) - 1;
   while ((E != argv[0]) && (*E != '/'))
     E--;
   if (*E == '/')
@@ -157,7 +165,7 @@ AS_configure(int argc, char **argv) {
           E);
 
   errno = 0;
-  F = fopen(N, "w");
+  FILE *F = fopen(N, "w");
   if ((errno != 0) || (F == NULL))
     return(argc);
 
@@ -174,7 +182,7 @@ AS_configure(int argc, char **argv) {
   fprintf(F, "Command:\n");
   fprintf(F, "%s", argv[0]);
 
-  for (i=1; i<argc; i++)
+  for (int32 i=1; i<argc; i++)
     if (argv[i][0] == '-')
       fprintf(F, " \\\n  %s", argv[i]);
     else
