@@ -202,7 +202,7 @@ public:
     uint32          bgn;
     uint32          end;
 
-    stdDev<double>  dev;
+    stdDev<float>   dev;
   };
 
   static size_t epValueSize(void) { return(sizeof(epValue)); };

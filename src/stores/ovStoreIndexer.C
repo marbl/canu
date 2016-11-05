@@ -44,8 +44,8 @@
 
 int
 main(int argc, char **argv) {
-  char           *ovlName      = NULL;
-  uint32          maxJob       = 0;
+  char           *storePath    = NULL;
+  uint32          fileLimit    = 0;         //  Number of 'slices' from bucketizer
 
   bool            deleteIntermediates = true;
 
@@ -60,17 +60,17 @@ main(int argc, char **argv) {
   int arg=1;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-O") == 0) {
-      ovlName = argv[++arg];
+      storePath = argv[++arg];
 
     } else if (strcmp(argv[arg], "-F") == 0) {
-      maxJob = atoi(argv[++arg]);
+      fileLimit = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-f") == 0) {
       doFixes = true;
 
     } else if (strcmp(argv[arg], "-t") == 0) {
       doExplicitTest = true;
-      ovlName = argv[++arg];
+      storePath = argv[++arg];
 
     } else if (strcmp(argv[arg], "-nodelete") == 0) {
       deleteIntermediates = false;
@@ -81,9 +81,9 @@ main(int argc, char **argv) {
 
     arg++;
   }
-  if (ovlName == NULL)
+  if (storePath == NULL)
     err++;
-  if ((maxJob == 0) && (doExplicitTest == false))
+  if ((fileLimit == 0) && (doExplicitTest == false))
     err++;
 
   if (err) {
@@ -106,9 +106,9 @@ main(int argc, char **argv) {
     fprintf(stderr, "    DANGER    DO NOT USE     DO NOT USE     DO NOT USE    DANGER\n");
     fprintf(stderr, "\n");
 
-    if (ovlName == NULL)
+    if (storePath == NULL)
       fprintf(stderr, "ERROR: No overlap store (-O) supplied.\n");
-    if ((maxJob == 0) && (doExplicitTest == false))
+    if ((fileLimit == 0) && (doExplicitTest == false))
       fprintf(stderr, "ERROR: One of -F (number of slices) or -t (test a store) must be supplied.\n");
 
     exit(1);
@@ -116,54 +116,31 @@ main(int argc, char **argv) {
 
   //  Do the test, and maybe fix things up.
 
-  if (doExplicitTest == true) {
-    bool passed = testIndex(ovlName, doFixes);
+  //gkStore        *gkp    = gkStore::gkStore_open(gkpName);
+  ovStoreWriter  *writer = new ovStoreWriter(storePath, NULL, fileLimit, 0, 0);
 
-    exit((passed == true) ? 0 : 1);
+  if (doExplicitTest == true) {
+    bool  passed = writer->testIndex(doFixes);
+    if (passed == true)
+      fprintf(stderr, "Index looks correct.\n");
+    delete writer;
+    exit(passed == false);
   }
 
   //  Check that all segments are present.  Every segment should have an info file.
 
-  uint32  cntJob = 0;
+  writer->checkSortingIsComplete();
 
-  for (uint32 i=1; i<=maxJob; i++) {
-    uint32  complete = 0;
+  //  Merge the indices and histogram data.
 
-    sprintf(name, "%s/%04d", ovlName, i);
-    if (AS_UTL_fileExists(name, FALSE, FALSE) == true)
-      complete++;
-    else
-      fprintf(stderr, "ERROR: Segment " F_U32 " data not present  (%s)\n", i, name);
-
-    sprintf(name, "%s/%04d.info", ovlName, i);
-    if (AS_UTL_fileExists(name, FALSE, FALSE) == true)
-      complete++;
-    else
-      fprintf(stderr, "ERROR: Segment " F_U32 " info not present (%s)\n", i, name);
-
-    sprintf(name, "%s/%04d.index", ovlName, i);
-    if (AS_UTL_fileExists(name, FALSE, FALSE) == true)
-      complete++;
-    else
-      fprintf(stderr, "ERROR: Segment " F_U32 " index not present (%s)\n", i, name);
-
-    if (complete == 3)
-      cntJob++;
-  }
-
-  if (cntJob != maxJob) {
-    fprintf(stderr, "ERROR: Expected " F_U32 " segments, only found " F_U32 ".\n", maxJob, cntJob);
-    exit(1);
-  }
-
-  //  Merge the stuff.
-
-  mergeInfoFiles(ovlName, maxJob);
+  writer->mergeInfoFiles();
+  writer->mergeHistogram();
 
   //  Diagnostics.
 
-  if (testIndex(ovlName, false) == false) {
+  if (writer->testIndex(false) == false) {
     fprintf(stderr, "ERROR: index failed tests.\n");
+    delete writer;
     exit(1);
   }
 
@@ -179,32 +156,7 @@ main(int argc, char **argv) {
   fprintf(stderr, "\n");
   fprintf(stderr, "Removing intermediate files.\n");
 
-  //  Removing indices is easy, beacuse we know how many there are.
-
-  for (uint32 i=1; i<=maxJob; i++) {
-    sprintf(name, "%s/%04u.index", ovlName, i);   AS_UTL_unlink(name);
-    sprintf(name, "%s/%04u.info",  ovlName, i);   AS_UTL_unlink(name);
-  }
-
-  //  We don't know how many buckets there are, so we remove until we fail to find ten
-  //  buckets in a row.
-
-  for (uint32 missing=0, i=1; missing<10; i++) {
-    sprintf(name, "%s/bucket%04d", ovlName, i);
-
-    if (AS_UTL_fileExists(name, TRUE, FALSE) == FALSE) {
-      missing++;
-      continue;
-    }
-
-    missing = 0;
-
-    sprintf(name, "%s/bucket%04d/sliceSizes", ovlName, i);
-    AS_UTL_unlink(name);
-
-    sprintf(name, "%s/bucket%04d", ovlName, i);
-    rmdir(name);
-  }
+  writer->removeAllIntermediateFiles();
 
   fprintf(stderr, "Finished.\n");
 

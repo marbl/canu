@@ -56,6 +56,34 @@ using namespace std;
 #define ovOverlapSortSize  (sizeof(ovOverlap))
 
 
+
+void
+makeSentinel(char *storePath, uint32 fileID, bool forceRun) {
+  char name[FILENAME_MAX];
+
+  sprintf(name,"%s/%04d.ovs", storePath, fileID);
+
+  if ((forceRun == false) && (AS_UTL_fileExists(name, FALSE, FALSE)))
+    fprintf(stderr, "Job " F_U32 " is running or finished (remove '%s' or -force to try again).\n", fileID, name), exit(0);
+
+  errno = 0;
+  FILE *F = fopen(name, "w");
+  if (errno)
+    fprintf(stderr, "ERROR: Failed to open '%s' for writing: %s\n", name, strerror(errno)), exit(1);
+  fclose(F);
+}
+
+
+
+void
+removeSentinel(char *storePath, uint32 fileID) {
+  char name[FILENAME_MAX];
+  sprintf(name,"%s/%04d.ovs", storePath, fileID);
+  unlink(name);
+}
+
+
+
 int
 main(int argc, char **argv) {
   char           *storePath      = NULL;
@@ -71,6 +99,8 @@ main(int argc, char **argv) {
   bool            deleteIntermediateLate  = false;
 
   bool            forceRun = false;
+
+  char            name[FILENAME_MAX];
 
   argc = AS_configure(argc, argv);
 
@@ -150,191 +180,78 @@ main(int argc, char **argv) {
 
   //  Check if we're running or done (or crashed), then note that we're running.
 
-  {
-    char name[FILENAME_MAX];
-    sprintf(name,"%s/%04d.ovs", storePath, fileID);
+  makeSentinel(storePath, fileID, forceRun);
 
-    if ((forceRun == false) && (AS_UTL_fileExists(name, FALSE, FALSE)))
-      fprintf(stderr, "Job " F_U32 " is running or finished (remove '%s' or -force to try again).\n", fileID, name), exit(0);
+  //  Not done.  Let's go!
 
-    errno = 0;
-    FILE *F = fopen(name, "w");
-    if (errno)
-      fprintf(stderr, "ERROR: Failed to open '%s' for writing: %s\n", name, strerror(errno)), exit(1);
+  gkStore        *gkp    = gkStore::gkStore_open(gkpName);
+  ovStoreWriter  *writer = new ovStoreWriter(storePath, gkp, fileLimit, fileID, jobIdxMax);
 
-    fclose(F);
-  }
+  //  Get the number of overlaps in each bucket slice.
 
-  // Get sizes of each bucket, and the final merge
-
-  uint64   *sliceSizes    = new uint64 [fileLimit + 1];  //  For each overlap job, number of overlaps per bucket
-  uint64   *bucketSizes   = new uint64 [jobIdxMax + 1];  //  For each bucket we care about, number of overlaps
-
-  uint64    totOvl        = 0;
-  uint64    ovlsLen        = 0;
-
-  for (uint32 i=0; i<=jobIdxMax; i++) {
-    bucketSizes[i] = 0;
-
-    char namz[FILENAME_MAX];
-    char name[FILENAME_MAX];
-
-    sprintf(namz, "%s/bucket%04d/slice%03d.gz", storePath, i, fileID);
-    sprintf(name, "%s/bucket%04d/slice%03d",    storePath, i, fileID);
-
-    if ((AS_UTL_fileExists(namz, FALSE, FALSE) == false) &&
-        (AS_UTL_fileExists(name, FALSE, FALSE) == false))
-      //  If no file, there are no overlaps.  Skip loading the bucketSizes file.
-      //  We expect the gz version to exist (that's the default in bucketizer) more frequently, so
-      //  be sure to test for existence of that one first.
-      continue;
-
-    sprintf(name, "%s/bucket%04d/sliceSizes", storePath, i);
-
-    FILE *F = fopen(name, "r");
-    if (errno)
-      fprintf(stderr, "ERROR:  Failed to open %s: %s\n", name, strerror(errno)), exit(1);
-
-    uint64 nr = AS_UTL_safeRead(F, sliceSizes, "sliceSizes", sizeof(uint64), fileLimit + 1);
-
-    fclose(F);
-
-    if (nr != fileLimit + 1) {
-      fprintf(stderr, "ERROR: short read on '%s'.\n", name);
-      fprintf(stderr, "ERROR: read " F_U64 " sizes insteadof " F_U32 ".\n", nr, fileLimit + 1);
-    }
-    assert(nr == fileLimit + 1);
-
-    fprintf(stderr, "Found " F_U64 " overlaps from '%s'.\n", sliceSizes[fileID], name);
-
-    bucketSizes[i] = sliceSizes[fileID];
-    totOvl        += sliceSizes[fileID];
-  }
-
-  delete [] sliceSizes;
-  sliceSizes = NULL;
+  uint64 *bucketSizes = new uint64 [jobIdxMax + 1];
+  uint64  totOvl      = writer->loadBucketSizes(bucketSizes);
+  
+  //  Fail if we don't have enough memory to process.
 
   if (ovOverlapSortSize * totOvl > maxMemory) {
     fprintf(stderr, "ERROR:  Overlaps need %.2f GB memory, but process limited (via -M) to " F_U64 " GB.\n",
             ovOverlapSortSize * totOvl / 1024.0 / 1024.0 / 1024.0, maxMemory >> 30);
-
-    char name[FILENAME_MAX];
-    sprintf(name,"%s/%04d.ovs", storePath, fileID);
-
-    unlink(name);
-
+    removeSentinel(storePath, fileID);
     exit(1);
   }
+
+  //  Or report that we can process.
 
   fprintf(stderr, "Overlaps need %.2f GB memory, allowed to use up to (via -M) " F_U64 " GB.\n",
           ovOverlapSortSize * totOvl / 1024.0 / 1024.0 / 1024.0, maxMemory >> 30);
 
-  gkStore   *gkp  = gkStore::gkStore_open(gkpName);
-  ovOverlap *ovls = ovOverlap::allocateOverlaps(gkp, totOvl);
+  //  Load all overlaps - we're guaranteed that either 'name.gz' or 'name' exists (we checked when
+  //  we loaded bucket sizes) or funny business is happening with our files.
 
-  //  Load all overlaps - we're guaranteed that either 'name.gz' or 'name' exists (we checked above)
-  //  or funny business is happening with our files.
+  ovOverlap *ovls   = ovOverlap::allocateOverlaps(gkp, totOvl);
+  uint64    ovlsLen = 0;
 
-  for (uint32 i=0; i<=jobIdxMax; i++) {
-    if (bucketSizes[i] == 0)
-      continue;
+  for (uint32 i=0; i<=jobIdxMax; i++)
+    writer->loadOverlapsFromSlice(i, bucketSizes[i], ovls, ovlsLen);
 
-    char name[FILENAME_MAX];
-
-    sprintf(name, "%s/bucket%04d/slice%03d.gz", storePath, i, fileID);
-    if (AS_UTL_fileExists(name, FALSE, FALSE) == false)
-      sprintf(name, "%s/bucket%04d/slice%03d", storePath, i, fileID);
-
-    if (AS_UTL_fileExists(name, FALSE, FALSE) == false)
-      fprintf(stderr, "ERROR: " F_U64 " overlaps claim to exist in bucket '%s', but file not found.\n",
-              bucketSizes[i], name);
-
-    fprintf(stderr, "Loading " F_U64 " overlaps from '%s'.\n", bucketSizes[i], name);
-
-    ovFile   *bof = new ovFile(gkp, name, ovFileFull);
-    uint64    num = 0;
-
-    while (bof->readOverlap(ovls + ovlsLen)) {
-      ovlsLen++;
-      num++;
-    }
-
-    if (num != bucketSizes[i])
-      fprintf(stderr, "ERROR: expected " F_U64 " overlaps, found " F_U64 " overlaps.\n", bucketSizes[i], num);
-    assert(num == bucketSizes[i]);
-
-    delete bof;
-  }
+  //  Check that we found all the overlaps we were expecting.
 
   if (ovlsLen != totOvl)
     fprintf(stderr, "ERROR: read " F_U64 " overlaps, expected " F_U64 "\n", ovlsLen, totOvl);
   assert(ovlsLen == totOvl);
 
-  if (deleteIntermediateEarly) {
-    char name[FILENAME_MAX];
+  //  Clean up space if told to.
 
-    fprintf(stderr, "Removing inputs.\n");
-    for (uint32 i=0; i<=jobIdxMax; i++) {
-      if (bucketSizes[i] == 0)
-        continue;
+  if (deleteIntermediateEarly)
+    writer->removeOverlapSlice();
 
-      sprintf(name, "%s/bucket%04d/slice%03d.gz", storePath, i, fileID);
-      AS_UTL_unlink(name);
+  //  Sort the overlaps!  Finally!  The parallel STL sort is NOT inplace, and blows up our memory.
 
-      sprintf(name, "%s/bucket%04d/slice%03d", storePath, i, fileID);
-      AS_UTL_unlink(name);
-    }
-  }
-
-  //  Sort the overlaps - at least on FreeBSD 8.2 with gcc46, the parallel STL sort
-  //  algorithms are NOT inplace.  Restrict to sequential sorting.
-  //
-  //  This sort takes at most 2 minutes on 7gb of overlaps.
-  //
   fprintf(stderr, "Sorting.\n");
 
 #ifdef _GLIBCXX_PARALLEL
-  //  If we have the parallel STL, don't use it!  Sort is not inplace!
   __gnu_sequential::sort(ovls, ovls + ovlsLen);
 #else
   sort(ovls, ovls + ovlsLen);
 #endif
 
-  //  Output to store format
+  //  Output to the store.
 
   fprintf(stderr, "Writing output.\n");
-  writeOverlaps(gkp, storePath, ovls, ovlsLen, fileID);
 
-  //  Clean up.
+  writer->writeOverlaps(ovls, ovlsLen);
+
+  //  Clean up.  Delete inputs, remove the sentinel, release memory, etc.
 
   delete [] ovls;
 
-  if (deleteIntermediateLate) {
-    char name[FILENAME_MAX];
-
-    fprintf(stderr, "Removing inputs.\n");
-    for (uint32 i=0; i<=jobIdxMax; i++) {
-      if (bucketSizes[i] == 0)
-        continue;
-
-      sprintf(name, "%s/bucket%04d/slice%03d.gz", storePath, i, fileID);
-      AS_UTL_unlink(name);
-
-      sprintf(name, "%s/bucket%04d/slice%03d", storePath, i, fileID);
-      AS_UTL_unlink(name);
-    }
-  }
+  if (deleteIntermediateLate)
+    writer->removeOverlapSlice();
 
   delete [] bucketSizes;
 
-  //  Remove the sentinel to show we're done.  The output is in "%s/%04d".
-
-  {
-    char name[FILENAME_MAX];
-    sprintf(name,"%s/%04d.ovs", storePath, fileID);
-
-    unlink(name);
-  }
+  removeSentinel(storePath, fileID);
 
   gkp->gkStore_close();
 

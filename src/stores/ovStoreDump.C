@@ -224,19 +224,20 @@ bogartStatus::bogartStatus(const char *prefix, uint32 nReads) {
 //
 
 void
-dumpStore(ovStore *ovlStore,
-          gkStore *gkpStore,
-          bool     asBinary,
-          bool     asCounts,
-          double   dumpERate,
-          uint32   dumpLength,
-          uint32   dumpType,
-          uint32   bgnID,
-          uint32   endID,
-          uint32   qryID,
+dumpStore(ovStore                *ovlStore,
+          gkStore                *gkpStore,
+          bool                    asBinary,
+          bool                    asCounts,
+          bool                    asErateLen,
+          double                  dumpERate,
+          uint32                  dumpLength,
+          uint32                  dumpType,
+          uint32                  bgnID,
+          uint32                  endID,
+          uint32                  qryID,
           ovOverlapDisplayType    type,
-          bool     beVerbose,
-          char    *bestPrefix) {
+          bool                    beVerbose,
+          char                   *bestPrefix) {
 
   ovOverlap     overlap(gkpStore);
   uint64         evalue = AS_OVS_encodeEvalue(dumpERate);
@@ -253,7 +254,8 @@ dumpStore(ovStore *ovlStore,
   uint32   obtDumped       = 0;
   uint32   merDumped       = 0;
 
-  uint32  *counts          = NULL;
+  uint32  *counts            = NULL;
+  ovStoreHistogram  *hist = NULL;
 
   //  Set the range of the reads to dump early so that we can reset it later.
 
@@ -274,6 +276,18 @@ dumpStore(ovStore *ovlStore,
   if ((asCounts) && (dumpType == 0)) {
     counts = ovlStore->numOverlapsPerFrag(bgnID, endID);
     ovlStore->setRange(1, 0);
+  }
+
+  //  If we're dumping the erate-vs-length histogram, and no modifiers, grab it from the store and
+  //  set the range to null.  Otherwise, allocate a new one.
+
+  if ((asErateLen) && (dumpType == 0)) {
+    hist = ovlStore->getHistogram();
+    ovlStore->setRange(1, 0);
+  }
+
+  if ((asErateLen) && (dumpType > 0)) {
+    hist = new ovStoreHistogram(gkpStore, ovFileNormalWrite);
   }
 
   //  Length filtering is expensive to compute, need to load both reads to get their length.
@@ -325,8 +339,11 @@ dumpStore(ovStore *ovlStore,
     //    With both, 138 seconds.
     //    Without the puts(), 127 seconds.
 
-    if (asCounts)
+    if      (asCounts)
       counts[overlap.a_iid - bgnID]++;
+
+    else if (asErateLen)
+      hist->addOverlap(&overlap);
 
     else if (asBinary)
       AS_UTL_safeWrite(stdout, &overlap, "dumpStore", sizeof(ovOverlap), 1);
@@ -335,11 +352,17 @@ dumpStore(ovStore *ovlStore,
       fputs(overlap.toString(ovlString, type, true), stdout);
   }
 
-  if (asCounts)
+  if (asCounts) {
     for (uint32 ii=bgnID; ii<=endID; ii++)
       fprintf(stdout, "%u\t%u\n", ii, counts[ii - bgnID]);
+  }
+
+  if (asErateLen) {
+    hist->dumpEvalueLength(stdout);
+  }
 
   delete [] counts;
+  delete [] hist;
 
   if (beVerbose) {
     fprintf(stderr, "ovlTooHighError %u\n",  ovlTooHighError);
@@ -673,6 +696,7 @@ main(int argc, char **argv) {
 
   bool            asBinary    = false;
   bool            asCounts    = false;
+  bool            asErateLen  = false;
 
   double          dumpERate   = 1.0;
   uint32          dumpLength  = 0;
@@ -745,6 +769,9 @@ main(int argc, char **argv) {
 
     else if (strcmp(argv[arg], "-counts") == 0)
       asCounts = true;
+
+    else if (strcmp(argv[arg], "-eratelen") == 0)
+      asErateLen = true;
 
     //  standard bulk dump options
     else if (strcmp(argv[arg], "-E") == 0) {
@@ -819,6 +846,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -paf       dump overlaps in miniasm/minimap format\n");
     fprintf(stderr, "  -binary    dump overlap as raw binary data\n");
     fprintf(stderr, "  -counts    dump the number of overlaps per read\n");
+    fprintf(stderr, "  -eratelen  dump a heatmap of error-rate vs overlap-length\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  MODIFIERS (for -d and -p)\n");
     fprintf(stderr, "\n");
@@ -857,7 +885,16 @@ main(int argc, char **argv) {
 
   switch (operation) {
     case OP_DUMP:
-      dumpStore(ovlStore, gkpStore, asBinary, asCounts, dumpERate, dumpLength, dumpType, bgnID, endID, qryID, type, beVerbose, bestPrefix);
+      dumpStore(ovlStore,
+                gkpStore,
+                asBinary, asCounts, asErateLen,
+                dumpERate,
+                dumpLength,
+                dumpType,
+                bgnID, endID, qryID,
+                type,
+                beVerbose,
+                bestPrefix);
       break;
     case OP_DUMP_PICTURE:
       for (qryID=bgnID; qryID <= endID; qryID++)

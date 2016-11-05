@@ -10247,3 +10247,6 @@ D src/bogart/AS_BAT_Unitig_AddRead.C src/bogart/AS_BAT_Unitig_AddFrag.C
 D src/bogart/AS_BAT_Unitig_PlaceReadUsingEdges.C src/bogart/AS_BAT_Unitig_PlaceFragUsingEdges.C
 D src/stores/ovOverlap.H src/stores/ovStore.H
 D src/stores/ovStoreFile.H src/stores/ovStore.H
+D src/stores/ovStoreFilter.C src/stores/ovStore.C
+D src/stores/ovStoreFilter.H src/stores/ovStore.H
+D src/stores/ovStoreWriter.C src/stores/ovStore.C

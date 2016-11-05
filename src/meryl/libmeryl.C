@@ -43,10 +43,10 @@
  *  full conditions and disclaimers for each license.
  */
 
-#include "libmeryl.H"
-
+#include "AS_global.H"
 #include "AS_UTL_fileIO.H"
-#include "AS_UTL_alloc.H"
+
+#include "libmeryl.H"
 
 
 //  Version 3 ??

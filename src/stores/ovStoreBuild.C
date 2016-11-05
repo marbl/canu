@@ -61,6 +61,47 @@ using namespace std;
 //
 #define ovOverlapSortSize  (sizeof(ovOverlap))
 
+
+
+static
+void
+addEvalues(char *ovlName, vector<char *> &fileList) {
+  ovStore  *ovs = new ovStore(ovlName, NULL);
+
+  ovs->addEvalues(fileList);
+
+  delete ovs;
+
+  fprintf(stderr, "-  Evalues updated.\n");
+}
+
+
+
+void
+reportConfiguration(char *configOut, uint32 maxIID, uint32 *iidToBucket) {
+  char  F[FILENAME_MAX];
+
+  sprintf(F, "%s.WORKING", configOut);
+
+  errno = 0;
+  FILE *C = fopen(configOut, "w");
+  if (errno)
+    fprintf(stderr, "Failed to open config output file '%s': %s\n", configOut, strerror(errno)), exit(1);
+
+  AS_UTL_safeWrite(C, &maxIID,      "maxIID",      sizeof(uint32), 1);
+  AS_UTL_safeWrite(C,  iidToBucket, "iidToBucket", sizeof(uint32), maxIID);
+
+  fclose(C);
+
+  rename(F, configOut);
+
+  delete [] iidToBucket;
+
+  fprintf(stderr, "-  Saved configuration to '%s'.\n", configOut);
+}
+
+
+
 static
 uint32 *
 computeIIDperBucket(uint32          fileLimit,
@@ -117,61 +158,22 @@ computeIIDperBucket(uint32          fileLimit,
     return(iidToBucket);
   }
 
-  //  Otherwise, we have files, and should have counts.
+  //  Otherwise, we have files, and should have counts.  Load them!
 
-  uint32  *overlapsPerRead = new uint32 [maxIID];   //  Sum over all files.
+  ovStoreHistogram   *hist = new ovStoreHistogram();
+  uint32             *oPR = NULL;
 
-  memset(overlapsPerRead, 0, sizeof(uint32) * maxIID);
+  allocateArray(oPR, maxIID);
 
-  //  For each overlap file, find the counts file and merge into overlapsPerRead.
+  for (uint32 i=0; i<fileList.size(); i++)
+    hist->loadData(fileList[i]);
 
-  for (uint32 i=0; i<fileList.size(); i++) {
-    char  countsName[FILENAME_MAX];
+  uint64   numOverlaps = hist->getOverlapsPerRead(oPR, maxIID);
 
-    strcpy(countsName, fileList[i]);
+  delete hist;  hist = NULL;
 
-    char  *slash = strrchr(countsName, '/');
-    char  *dot   = strchr((slash == NULL) ? countsName : slash, '.');
-
-    if (dot)
-      *dot = 0;
-
-    strcat(countsName, ".counts");
-
-    errno = 0;
-    FILE *C = fopen(countsName, "r");
-    if (errno)
-      fprintf(stderr, "failed to open counts file '%s' for reading: %s\n", countsName, strerror(errno)), exit(1);
-
-    uint32   perLen = 0;
-    uint32  *per    = NULL;
-
-    AS_UTL_safeRead(C, &perLen,                    "perLen", sizeof(uint32), 1);
-    AS_UTL_safeRead(C,  per = new uint32 [perLen], "per",    sizeof(uint32), perLen);
-
-    fclose(C);
-
-    //fprintf(stderr, "Summing overlap counts for %u reads from '%s'.\n", perLen, countsName);
-
-    assert(perLen <= maxIID);
-
-    for (uint32 ii=0; ii<perLen; ii++)
-      overlapsPerRead[ii] += per[ii];
-
-    delete [] per;
-  }
-
-  //  How many overlaps?
-
-  uint64   numOverlaps = 0;
-
-  for (uint32 ii=0; ii<maxIID; ii++)
-    numOverlaps += overlapsPerRead[ii];
-
-  if (numOverlaps == 0) {
-    fprintf(stderr, "Found no overlaps to sort.\n");
-    exit(1);
-  }
+  if (numOverlaps == 0)
+    fprintf(stderr, "Found no overlaps to sort.\n"), exit(1);
 
   fprintf(stderr, "Found " F_U64 " (%.2f million) overlaps.\n", numOverlaps, numOverlaps / 1000000.0);
 
@@ -199,7 +201,7 @@ computeIIDperBucket(uint32          fileLimit,
             maxFiles);
 
     if (minMemory < MEMORY_OVERHEAD + ovOverlapSortSize) {
-      fprintf(stderr, "Reset minMemory from " F_U64 " to " F_U64 "\n", minMemory, MEMORY_OVERHEAD + ovOverlapSortSize);
+      fprintf(stderr, "Reset minMemory from " F_U64 " to " F_SIZE_T "\n", minMemory, MEMORY_OVERHEAD + ovOverlapSortSize);
       minMemory  = MEMORY_OVERHEAD + ovOverlapSortSize;
     }
 
@@ -247,8 +249,8 @@ computeIIDperBucket(uint32          fileLimit,
       fprintf(stderr, "ERROR:    maxMemory      " F_U64 "\n", maxMemory);
       fprintf(stderr, "ERROR:    olapsPerBucket " F_U64 "\n", olapsPerBucketMax);
       fprintf(stderr, "ERROR:    buckets        " F_U64 "\n", numOverlaps / olapsPerBucketMax + 1);
-      fprintf(stderr, "ERROR:    SC_CHILD_MAX   " F_S64 "\n", sysconf(_SC_CHILD_MAX));
-      fprintf(stderr, "ERROR:    SC_OPEN_MAX    " F_S64 "\n", sysconf(_SC_OPEN_MAX));
+      fprintf(stderr, "ERROR:    SC_CHILD_MAX   " F_S64 "\n", (int64)sysconf(_SC_CHILD_MAX));
+      fprintf(stderr, "ERROR:    SC_OPEN_MAX    " F_S64 "\n", (int64)sysconf(_SC_OPEN_MAX));
       fprintf(stderr, "ERROR:  Increase memory size (in canu, ovsMemory; in ovStoreBuild, -M)\n");
       exit(1);
     }
@@ -268,7 +270,7 @@ computeIIDperBucket(uint32          fileLimit,
     uint32  bucket = 1;
 
     for (uint32 ii=0; ii<maxIID; ii++) {
-      olaps            += overlapsPerRead[ii];
+      olaps            += oPR[ii];
       iidToBucket[ii]   = bucket;
 
       if (olaps >= olapsPerBucketMax) {
@@ -287,7 +289,7 @@ computeIIDperBucket(uint32          fileLimit,
     uint32  bucket = 1;
 
     for (uint32 ii=0; ii<maxIID; ii++) {
-      olaps            += overlapsPerRead[ii];
+      olaps            += oPR[ii];
       iidToBucket[ii]   = bucket;
 
       if (olaps >= olapsPerBucketMax) {
@@ -304,8 +306,9 @@ computeIIDperBucket(uint32          fileLimit,
           olapsPerBucketMax / 1000000.0,
           iidToBucket[maxIID-1],
           olapsPerBucketMax * GBperOlap + MEMORY_OVERHEAD / 1024.0 / 1024.0 / 1024.0);
+  fprintf(stderr, "\n");
 
-  delete [] overlapsPerRead;
+  delete hist;
 
   return(iidToBucket);
 }
@@ -327,7 +330,7 @@ writeToDumpFile(gkStore          *gkp,
   if (dumpFile[df] == NULL) {
     char name[FILENAME_MAX];
     sprintf(name, "%s/tmp.sort.%03d", ovlName, df);
-    fprintf(stderr, "CREATE bucket '%s'\n", name);
+    fprintf(stderr, "-- Create bucket '%s'\n", name);
     dumpFile[df]   = new ovFile(gkp, name, ovFileFullWriteNoCounts);
     dumpLength[df] = 0;
   }
@@ -439,9 +442,9 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -config out.dat       don't build a store, just dump a binary partitioning file for ovStoreBucketizer\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Sizes and Limits:\n");
-    fprintf(stderr, "  ovOverlapSortSize     " F_U64 " bytes\n", ovOverlapSortSize);
-    fprintf(stderr, "  SC_CHILD_MAX          " F_U64 " processes\n", sysconf(_SC_CHILD_MAX));
-    fprintf(stderr, "  SC_OPEN_MAX           " F_U64 " files\n", sysconf(_SC_OPEN_MAX));
+    fprintf(stderr, "  ovOverlapSortSize     " F_S32 " bytes\n",     (int32)ovOverlapSortSize);
+    fprintf(stderr, "  SC_CHILD_MAX          " F_S32 " processes\n", (int32)sysconf(_SC_CHILD_MAX));
+    fprintf(stderr, "  SC_OPEN_MAX           " F_S32 " files\n",     (int32)sysconf(_SC_OPEN_MAX));
     fprintf(stderr, "\n");
 
     if (ovlName == NULL)
@@ -458,53 +461,15 @@ main(int argc, char **argv) {
     exit(1);
   }
 
+  //  If only updating evalues, do it and quit.
 
-
-
-  if (eValues) {
-    ovStore  *ovs = new ovStore(ovlName, NULL);
-
-    for (uint32 i=0; i<fileList.size(); i++) {
-      errno = 0;
-      FILE  *fp = fopen(fileList[i], "r");
-      if (errno)
-        fprintf(stderr, "Failed to open evalues file '%s': %s\n", fileList[i], strerror(errno));
-
-      uint32        bgnID = 0;
-      uint32        endID = 0;
-      uint64        len   = 0;
-
-      fprintf(stderr, "loading evalues from '%s'\n", fileList[i]);
-
-      AS_UTL_safeRead(fp, &bgnID, "loid",   sizeof(uint32), 1);
-      AS_UTL_safeRead(fp, &endID, "hiid",   sizeof(uint32), 1);
-      AS_UTL_safeRead(fp, &len,   "len",    sizeof(uint64), 1);
-
-      uint16 *evalues = new uint16 [len];
-
-      AS_UTL_safeRead(fp, evalues, "evalues", sizeof(uint16), len);
-
-      fclose(fp);
-
-      fprintf(stderr, "loading evalues from '%s' -- ID range " F_U32 "-" F_U32 " with " F_U64 " overlaps\n",
-              fileList[i], bgnID, endID, len);
-
-      ovs->addEvalues(bgnID, endID, evalues, len);
-
-      delete [] evalues;
-    }
-
-    delete ovs;
-
-    exit(0);
-  }
-
-
+  if (eValues)
+    addEvalues(ovlName, fileList), exit(0);
 
   //  Open reads, figure out a partitioning scheme.
 
   gkStore  *gkp         = gkStore::gkStore_open(gkpName);
-  uint64    maxIID      = gkp->gkStore_getNumReads() + 1;
+  uint32    maxIID      = gkp->gkStore_getNumReads() + 1;
   uint32   *iidToBucket = computeIIDperBucket(fileLimit, minMemory, maxMemory, maxIID, fileList);
 
   uint32    maxFiles    = sysconf(_SC_OPEN_MAX);
@@ -517,50 +482,29 @@ main(int argc, char **argv) {
     exit(1);
   }
 
+  //  But if only asked to report the configuration, do it and quit.
 
-
-  //  Dump the configuration if told to.
-
-  if (configOut) {
-    char  F[FILENAME_MAX];
-
-    sprintf(F, "%s.WORKING", configOut);
-
-    errno = 0;
-    FILE *C = fopen(configOut, "w");
-    if (errno)
-      fprintf(stderr, "Failed to open config output file '%s': %s\n", configOut, strerror(errno)), exit(1);
-
-    AS_UTL_safeWrite(C, &maxIID,      "maxIID",      sizeof(uint32), 1);
-    AS_UTL_safeWrite(C,  iidToBucket, "iidToBucket", sizeof(uint32), maxIID);
-
-    fclose(C);
-
-    rename(F, configOut);
-
-    delete [] iidToBucket;
-
-    gkp->gkStore_close();
-
-    fprintf(stderr, "saved configuration to '%s'.\n", configOut);
-
-    exit(0);
-  }
-
-
+  if (configOut)
+    reportConfiguration(configOut, maxIID, iidToBucket), gkp->gkStore_close(), exit(0);
 
   //  Read the gkStore to determine which fragments we care about.
 
   ovStoreFilter *filter = new ovStoreFilter(gkp, maxError);
 
+  //
+
+  fprintf(stderr, "\n");
+  fprintf(stderr, "-- BUCKETIZING --\n");
+  fprintf(stderr, "\n");
+
   //  And load reads into the store!  We used to create the store before filtering, so it could fail
   //  quicker, but the filter should be much faster with the mmap()'d gkpStore in canu.
 
-  ovStore  *storeFile   = new ovStore(ovlName, gkp, ovStoreWrite);
+  ovStoreWriter  *store   = new ovStoreWriter(ovlName, gkp);
 
-  uint32    dumpFileMax  = iidToBucket[maxIID-1] + 1;
-  ovFile  **dumpFile     = new ovFile * [dumpFileMax];
-  uint64   *dumpLength   = new uint64   [dumpFileMax];
+  uint32          dumpFileMax  = iidToBucket[maxIID-1] + 1;
+  ovFile        **dumpFile     = new ovFile * [dumpFileMax];
+  uint64         *dumpLength   = new uint64   [dumpFileMax];
 
   memset(dumpFile,   0, sizeof(ovFile *) * dumpFileMax);
   memset(dumpLength, 0, sizeof(uint64)   * dumpFileMax);
@@ -569,7 +513,7 @@ main(int argc, char **argv) {
     ovOverlap    foverlap(gkp);
     ovOverlap    roverlap(gkp);
 
-    fprintf(stderr, "bucketizing %s\n", fileList[i]);
+    fprintf(stderr, "-  Bucketizing '%s'\n", fileList[i]);
 
     ovFile *inputFile = new ovFile(gkp, fileList[i], ovFileFull);
 
@@ -593,33 +537,50 @@ main(int argc, char **argv) {
     }
 
     delete inputFile;
-
-    //  AFTER EVERY FILE
-
-    filter->reportFate();
-    filter->resetCounters();
   }
-
-  delete filter;
 
   for (uint32 i=0; i<dumpFileMax; i++)
     delete dumpFile[i];
 
-  fprintf(stderr, "bucketizing DONE!\n");
+  //  Report the fate of filtering
+
+  fprintf(stderr, "-  Bucketizing finished:\n");
+
+  if (filter->savedDedupe() > 0) {
+    fprintf(stderr, "-- Saved      " F_U64 " dedupe overlaps\n", filter->savedDedupe());
+    fprintf(stderr, "-- Discarded  " F_U64 " don't care " F_U64 " different library " F_U64 " obviously not duplicates\n", filter->filteredNoDedupe(), filter->filteredNotDupe(), filter->filteredDiffLib());
+  }
+
+  if (filter->savedTrimming() > 0) {
+    fprintf(stderr, "-- Saved      " F_U64 " trimming overlaps\n", filter->savedTrimming());
+    fprintf(stderr, "-- Discarded  " F_U64 " don't care " F_U64 " too similar " F_U64 " too short\n", filter->filteredNoTrim(), filter->filteredBadTrim(), filter->filteredShortTrim());
+  }
+
+  if (filter->savedUnitigging() > 0) {
+    fprintf(stderr, "-- Saved      " F_U64 " unitigging overlaps\n", filter->savedUnitigging());
+  }
+
+  if (filter->filteredErate() > 0)
+    fprintf(stderr, "-- Discarded  " F_U64 " low quality, more than %.4f fraction error\n", filter->filteredErate(), maxError);
+
+  delete filter;
 
   //
   //  Read each bucket, sort it, and dump it to the store
   //
+
+  fprintf(stderr, "\n");
+  fprintf(stderr, "-- SORTING --\n");
+  fprintf(stderr, "\n");
 
   uint64 dumpLengthMax = 0;
   for (uint32 i=0; i<dumpFileMax; i++)
     if (dumpLengthMax < dumpLength[i])
       dumpLengthMax = dumpLength[i];
 
+  ovStoreHistogram   *histogram = new ovStoreHistogram;
 
   ovOverlap  *overlapsort = ovOverlap::allocateOverlaps(gkp, dumpLengthMax);
-
-  time_t  beginTime = time(NULL);
 
   for (uint32 i=0; i<dumpFileMax; i++) {
     char      name[FILENAME_MAX];
@@ -633,7 +594,7 @@ main(int argc, char **argv) {
     //  make sure the store is cross-platform compatible.
 
     sprintf(name, "%s/tmp.sort.%03d", ovlName, i);
-    fprintf(stderr, "reading %s (%ld)\n", name, time(NULL) - beginTime);
+    fprintf(stderr, "-  Loading '%s'\n", name);
 
     bof = new ovFile(gkp, name, ovFileFull);
 
@@ -648,7 +609,7 @@ main(int argc, char **argv) {
           (overlapsort[numOvl].b_iid >= maxIID)) {
         char ovlstr[256];
 
-        fprintf(stderr, "Overlap has IDs out of range (maxIID " F_U64 "), possibly corrupt input data.\n", maxIID);
+        fprintf(stderr, "Overlap has IDs out of range (maxIID " F_U32 "), possibly corrupt input data.\n", maxIID);
         fprintf(stderr, "  Aid " F_U32 "  Bid " F_U32 "\n",  overlapsort[numOvl].a_iid, overlapsort[numOvl].b_iid);
         exit(1);
       }
@@ -657,7 +618,6 @@ main(int argc, char **argv) {
     }
 
     delete bof;
-
 
     assert(numOvl == dumpLength[i]);
     assert(numOvl <= dumpLengthMax);
@@ -668,7 +628,7 @@ main(int argc, char **argv) {
 
     unlink(name);
 
-    fprintf(stderr, "sorting %s (%ld)\n", name, time(NULL) - beginTime);
+    fprintf(stderr, "-  Sorting\n");
 
 #ifdef _GLIBCXX_PARALLEL
     //  If we have the parallel STL, don't use it!  Sort is not inplace!
@@ -677,12 +637,17 @@ main(int argc, char **argv) {
     sort(overlapsort, overlapsort + dumpLength[i]);
 #endif
 
-    fprintf(stderr, "writing %s (%ld)\n", name, time(NULL) - beginTime);
+    fprintf(stderr, "-  Writing\n");
+
     for (uint64 x=0; x<dumpLength[i]; x++)
-      storeFile->writeOverlap(overlapsort + x);
+      store->writeOverlap(overlapsort + x);
   }
 
-  delete    storeFile;
+  fprintf(stderr, "\n");
+  fprintf(stderr, "-- FINISHING --\n");
+  fprintf(stderr, "\n");
+
+  delete    store;
   delete [] overlapsort;
 
   gkp->gkStore_close();

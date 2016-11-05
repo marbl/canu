@@ -53,6 +53,7 @@ public:
            (2 * sizeof(uint32) * _numLibraries));
   };
 
+  uint64  numBases(void)     { return(_numBases); };
   uint32  numReads(void)     { return(_numReads); };
   uint32  numLibraries(void) { return(_numLibraries); };
 
@@ -106,6 +107,7 @@ public:
   };
 
 private:
+  uint64   _numBases;
   uint32   _numReads;
   uint32   _numLibraries;
 

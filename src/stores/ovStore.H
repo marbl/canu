@@ -41,49 +41,146 @@
 
 #include "ovOverlap.H"
 #include "ovStoreFile.H"
+#include "ovStoreHistogram.H"
+
+
+
+const uint64 ovStoreVersion         = 2;
+const uint64 ovStoreMagic           = 0x53564f3a756e6163;   //  == "canu:OVS - store complete
+const uint64 ovStoreMagicIncomplete = 0x50564f3a756e6163;   //  == "canu:OVP - store under construction
 
 
 class ovStoreInfo {
+public:
+  ovStoreInfo() {
+    clear();
+  };
+
+  void     clear(void) {
+    _ovsMagic         = ovStoreMagicIncomplete;  //  Appropriate for a new store.
+    _ovsVersion       = ovStoreVersion;
+    _UNUSED           = 0;
+    _smallestIID      = UINT64_MAX;
+    _largestIID       = 0;
+    _numOverlapsTotal = 0;
+    _highestFileIndex = 0;
+    _maxReadLenInBits = AS_MAX_READLEN_BITS;
+  };
+
+  bool       load(const char *path, uint32 index=UINT32_MAX, bool temporary=false) {
+    char  name[FILENAME_MAX];
+
+    if (temporary == false)
+      sprintf(name, "%s/info", path);
+    else
+      sprintf(name, "%s/%04u.info", path, index);
+
+    if (AS_UTL_fileExists(name, false, false) == false) {
+      fprintf(stderr, "ERROR: directory '%s' is not an overlapStore; didn't find file '%s': %s\n",
+              path, name, strerror(errno));
+      return(false);
+    }
+
+    errno = 0;
+    FILE *ovsinfo = fopen(name, "r");
+    if (errno) {
+      fprintf(stderr, "ERROR: directory '%s' is not an overlapStore; failed to open '%s': %s\n",
+              path, name, strerror(errno));
+      return(false);
+    }
+
+    AS_UTL_safeRead(ovsinfo, this, "ovStore::ovStore::info", sizeof(ovStoreInfo), 1);
+
+    fclose(ovsinfo);
+
+    return(true);
+  };
+
+  bool       test(const char *path) {
+    char  name[FILENAME_MAX];
+
+    sprintf(name, "%s/info", path);
+
+    if (AS_UTL_fileExists(name, false, false) == false)
+      return(false);
+
+    errno = 0;
+    FILE *ovsinfo = fopen(name, "r");
+    if (errno)
+      fprintf(stderr, "ERROR: failed to load '%s'; can't check if this is a valid ovStore: %s\n",
+              name, strerror(errno)), exit(1);
+
+    AS_UTL_safeRead(ovsinfo, this, "ovStore::ovStore::info", sizeof(ovStoreInfo), 1);
+
+    return(checkMagic());
+  };
+
+  void       save(const char *path, uint32 index=UINT32_MAX, bool temporary=false) {
+    char  name[FILENAME_MAX];
+
+    if (temporary == false)
+      sprintf(name, "%s/info", path);
+    else
+      sprintf(name, "%s/%04u.info", path, index);
+
+    if (temporary == false) {
+      _ovsMagic         = ovStoreMagic;
+      _ovsVersion       = ovStoreVersion;
+      _highestFileIndex = index;
+    } else {
+    }
+
+    errno = 0;
+    FILE *ovsinfo = fopen(name, "w");
+    if (errno)
+      fprintf(stderr, "ERROR: failed to save '%s': %s\n", name, strerror(errno)), exit(1);
+
+    AS_UTL_safeWrite(ovsinfo, this, "ovStore::ovStore::saveinfo", sizeof(ovStoreInfo), 1);
+
+    fclose(ovsinfo);
+  };
+
+  void       addOverlap(uint32 id, uint32 nOverlaps=1) {
+    if (_smallestIID > id) _smallestIID = id;
+    if (_largestIID  < id) _largestIID  = id;
+
+    _numOverlapsTotal += nOverlaps;
+  };
+
+  bool       checkIncomplete(void)    { return(_ovsMagic         == ovStoreMagicIncomplete);  };
+  bool       checkMagic(void)         { return(_ovsMagic         == ovStoreMagic);            };
+  bool       checkVersion(void)       { return(_ovsVersion       == ovStoreVersion);          };
+  bool       checkSize(void)          { return(_maxReadLenInBits == AS_MAX_READLEN_BITS);     };
+
+  uint32     getVersion(void)         { return((uint32)_ovsVersion);          };
+  uint32     getCurrentVersion(void)  { return((uint32)ovStoreVersion);       };
+  uint32     getSize(void)            { return((uint32)_maxReadLenInBits);    };
+
+  uint64     numOverlaps(void)        { return(_numOverlapsTotal); };
+  uint32     smallestID(void)         { return(_smallestIID);      };
+  uint32     largestID(void)          { return(_largestIID);       };
+
+  uint32     lastFileIndex(void)      { return(_highestFileIndex); };
+
 private:
   uint64    _ovsMagic;
   uint64    _ovsVersion;
-  uint64    _UNUSED;
+  uint64    _UNUSED;              //  needed to keep the file layout the same
   uint64    _smallestIID;         //  smallest frag iid in the store
   uint64    _largestIID;          //  largest frag iid in the store
   uint64    _numOverlapsTotal;    //  number of overlaps in the store
   uint64    _highestFileIndex;
   uint64    _maxReadLenInBits;    //  length of a fragment
-
-  friend class ovStore;
-
-  friend
-  void       writeOverlaps(gkStore    *gkp,
-                           char       *storePath,
-                           ovOverlap  *ovls,
-                           uint64      ovlsLen,
-                           uint32      fileID);
-
-  friend
-  bool
-  testIndex(char     *storePath,
-            bool      doFixes);
-
-  friend
-  void
-  mergeInfoFiles(char       *storePath,
-                 uint32      nPieces);
 };
 
 
+
 class ovStoreOfft {
-private:
-  uint32    _a_iid;      //  read ID for this block of overlaps.
-
-  uint32    _fileno;     //  the file that contains this a_iid
-  uint32    _offset;     //  offset to the first overlap for this iid
-  uint32    _numOlaps;   //  number of overlaps for this iid
-
-  uint64    _overlapID;  //  overlapID for the first overlap in this block.  in memory, this is the id of the next overlap.
+public:
+  ovStoreOfft() {
+  };
+  ~ovStoreOfft() {
+  };
 
   void       clear(void) {
     _a_iid     = 0;
@@ -93,7 +190,17 @@ private:
     _overlapID = 0;
   };
 
+private:
+  uint32    _a_iid;      //  read ID for this block of overlaps.
+
+  uint32    _fileno;     //  the file that contains this a_iid
+  uint32    _offset;     //  offset to the first overlap for this iid
+  uint32    _numOlaps;   //  number of overlaps for this iid
+
+  uint64    _overlapID;  //  overlapID for the first overlap in this block.  in memory, this is the id of the next overlap.
+
   friend class ovStore;
+  friend class ovStoreWriter;
 
   friend
   void
@@ -115,22 +222,85 @@ private:
 };
 
 
-//  The default here is to open a read only store.
-//
-enum ovStoreType {
-  ovStoreReadOnly  = 0,
-  ovStoreWrite     = 1,  //  Open for write, fail if one exists already
-  ovStoreOverwrite = 2,  //  Open for write, and obliterate an existing store
+
+class ovStoreWriter {
+public:
+
+  //  The first constructor is used when constructing a store.
+  //  The second constructor is used by the parallel store builder, to write individual files.
+
+  ovStoreWriter(const char *path, gkStore *gkp);
+  ovStoreWriter(const char *path, gkStore *gkp, uint32 fileLimit, uint32 fileID, uint32 jobIdxMax);
+  ~ovStoreWriter();
+
+  //  Add a single overlap to the store.  The overlaps must be sorted by a_iid (then b_iid) already.
+
+  void         writeOverlap(ovOverlap *olap);
+
+  //  The parallel store build construction is a bit different.  writeOverlaps() will add a set of
+  //  sorted overlaps to store file 'fileID', writing individual 'info' and 'index' files.
+
+  //  For bucketizing
+
+  //void         
+
+  //  For sorting
+
+  //uint64       loadBucketSizes(uint64 *sliceSizes, uint64 *bucketSizes);
+  uint64       loadBucketSizes(uint64 *bucketSizes);
+  void         loadOverlapsFromSlice(uint32 slice, uint64 expectedLen, ovOverlap *ovls, uint64& ovlsLen);
+  void         writeOverlaps(ovOverlap *ovls, uint64 ovlsLen);
+  void         removeOverlapSlice(void);
+
+  //  Also in the parallel store build, merge the individual files, and test the final index.
+
+  void         mergeInfoFiles(void);
+  void         mergeHistogram(void);
+
+  bool         testIndex(bool doFixes);
+
+  //
+
+
+  //  For indexing and final cleanup
+
+  void         checkSortingIsComplete(void);
+  void         removeAllIntermediateFiles(void);
+
+ 
+
+private:
+  char               _storePath[FILENAME_MAX];
+
+  ovStoreInfo        _info;
+  gkStore           *_gkp;
+
+  FILE              *_offtFile;   //  For writing overlaps, a place to dump ovStoreOfft's.
+  ovStoreOfft        _offt;       //  For writing overlaps, the current ovStoreOfft.
+  ovStoreOfft        _offm;       //  For writing overlaps, an empty ovStoreOfft, for reads with no overlaps.
+
+  memoryMappedFile  *_evaluesMap;
+  uint16            *_evalues;
+
+  uint64             _overlapsThisFile;  //  Count of the number of overlaps written so far
+  uint64             _overlapsThisFileMax;
+  uint32             _currentFileIndex;
+  ovFile            *_bof;
+
+  ovStoreHistogram  *_histogram;         //  When constructing a sequential store, collects all the stats from each file
+
+  //  Parallel store support
+
+  uint32             _fileLimit;   //  number of slices used in bucketizing/sorting
+  uint32             _fileID;      //  index of the overlap file we're processing
+  uint32             _jobIdxMax;   //  total number of overlap files
 };
 
 
-class ovStore {
-private:
-  void       ovStore_read(void);
-  void       ovStore_write(void);
 
+class ovStore {
 public:
-  ovStore(const char *name, gkStore *gkp, ovStoreType cType=ovStoreReadOnly);
+  ovStore(const char *name, gkStore *gkp);
   ~ovStore();
 
   //  Read the next overlap from the store.  Return value is the number of overlaps read.
@@ -162,33 +332,23 @@ public:
   uint64       numOverlapsInRange(void);
   uint32 *     numOverlapsPerFrag(uint32 &firstFrag, uint32 &lastFrag);
 
-  //  The (mostly) private interface for adding overlaps to a store.  Overlaps must be sorted already.
-
-  void         writeOverlap(ovOverlap *olap);
-  void         writeOverlap(ovOverlap *overlap, uint32 maxOverlapsThisFile);
-
-  //  Write a block of sorted overlaps to store file 'fileID', saving the info and index into
-  //  'fileID.info' and 'fileID.index'
-
-  friend
-  void         writeOverlaps(gkStore    *gkp,
-                             char       *storePath,
-                             ovOverlap  *ovls,
-                             uint64      ovlsLen,
-                             uint32      fileID);
-
-
   //  Add new evalues for reads between bgnID and endID.  No checking of IDs is done, but the number
   //  of evalues must agree.
 
+  void       addEvalues(vector<char *> &fileList);
   void       addEvalues(uint32 bgnID, uint32 endID, uint16 *evalues, uint64 evaluesLen);
+
+  //  Return the statistics associated with this store
+
+  ovStoreHistogram  *getHistogram(void) {
+    return(new ovStoreHistogram(_gkp, _storePath));
+  };
 
 private:
   char               _storePath[FILENAME_MAX];
 
-  bool               _isOutput;
-
   ovStoreInfo        _info;
+  gkStore           *_gkp;
 
   uint32             _firstIIDrequested;
   uint32             _lastIIDrequested;
@@ -203,29 +363,7 @@ private:
   uint64             _overlapsThisFile;  //  Count of the number of overlaps written so far
   uint32             _currentFileIndex;
   ovFile            *_bof;
-
-  gkStore           *_gkp;
 };
-
-
-//  This should be part of ovStore, but when it is used, in ovStoreSorter, we don't
-//  have a store opened.
-void
-writeOverlaps(gkStore    *gkp,
-              char       *storePath,
-              ovOverlap  *ovls,
-              uint64      ovlsLen,
-              uint32      fileID);
-
-bool
-testIndex(char     *storePath,
-          bool      doFixes);
-
-void
-mergeInfoFiles(char       *storePath,
-               uint32      nPieces);
-
-
 
 
 
@@ -235,66 +373,28 @@ mergeInfoFiles(char       *storePath,
 
 class ovStoreFilter {
 public:
-  ovStoreFilter(gkStore *gkp_, double maxErate) {
-    gkp             = gkp_;
-
-    resetCounters();
-
-    maxID     = gkp->gkStore_getNumReads() + 1;
-    maxEvalue = AS_OVS_encodeEvalue(maxErate);
-
-    skipReadOBT     = new char [maxID];
-    skipReadDUP     = new char [maxID];
-
-    memset(skipReadOBT, 0, sizeof(char) * maxID);
-    memset(skipReadDUP, 0, sizeof(char) * maxID);
-
-
-    uint32  numSkipOBT = 0;
-    uint32  numSkipDUP = 0;
-
-    fprintf(stderr, "Marking fragments to skip overlap based trimming.\n");
-
-    fprintf(stderr, "LIB 1 - dup=%d trim=%d spur=%d chimera=%d subreads=%d\n",
-            gkp->gkStore_getLibrary(1)->gkLibrary_removeDuplicateReads(),
-            gkp->gkStore_getLibrary(1)->gkLibrary_finalTrim(),
-            gkp->gkStore_getLibrary(1)->gkLibrary_removeSpurReads(),
-            gkp->gkStore_getLibrary(1)->gkLibrary_removeChimericReads(),
-            gkp->gkStore_getLibrary(1)->gkLibrary_checkForSubReads());
-
-    for (uint64 iid=0; iid<maxID; iid++) {
-      uint32     Lid = gkp->gkStore_getRead(iid)->gkRead_libraryID();
-      gkLibrary *L   = gkp->gkStore_getLibrary(Lid);
-
-      if ((L->gkLibrary_removeDuplicateReads()     == false) &&
-          (L->gkLibrary_finalTrim()                == GK_FINALTRIM_NONE) &&
-          (L->gkLibrary_removeSpurReads()          == false) &&
-          (L->gkLibrary_removeChimericReads()      == false) &&
-          (L->gkLibrary_checkForSubReads()         == false)) {
-        numSkipOBT++;
-        skipReadOBT[iid] = true;
-      }
-
-      if (L->gkLibrary_removeDuplicateReads() == false) {
-        numSkipDUP++;
-        skipReadDUP[iid] = true;
-      }
-    }
-
-    fprintf(stderr, "Marked " F_U32 " reads so skip OBT, " F_U32 " reads to skip dedupe.\n", numSkipOBT, numSkipDUP);
-  };
-
-  ~ovStoreFilter() {
-    delete [] skipReadOBT;
-    delete [] skipReadDUP;
-  };
-
+  ovStoreFilter(gkStore *gkp_, double maxErate);
+  ~ovStoreFilter();
 
   void    filterOverlap(ovOverlap     &foverlap,
                         ovOverlap     &roverlap);
 
-  void    reportFate(void);
+  //void    reportFate(void);
   void    resetCounters(void);
+
+  uint64   savedUnitigging(void)    { return(saveUTG);      };
+  uint64   savedTrimming(void)      { return(saveOBT);      };
+  uint64   savedDedupe(void)        { return(saveDUP);      };
+
+  uint64   filteredErate(void)      { return(skipERATE);    };
+
+  uint64   filteredNoTrim(void)     { return(skipOBT);      };
+  uint64   filteredBadTrim(void)    { return(skipOBTbad);   }; 
+  uint64   filteredShortTrim(void)  { return(skipOBTshort); };
+
+  uint64   filteredNoDedupe(void)   { return(skipDUP);      };
+  uint64   filteredNotDupe(void)    { return(skipDUPdiff);  };
+  uint64   filteredDiffLib(void)    { return(skipDUPlib);   };
 
 public:
   gkStore *gkp;
@@ -316,12 +416,9 @@ public:
   uint64   skipDUPdiff;    //  Overlap isn't remotely similar
   uint64   skipDUPlib;
 
-  //  Not really stats, but global state for the filter.
-
-  char    *skipReadOBT;
+  char    *skipReadOBT;    //  State of the filter.
   char    *skipReadDUP;
 };
-
 
 
 #endif  //  AS_OVSTORE_H

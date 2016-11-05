@@ -86,7 +86,7 @@ Unitig::reverseComplement(bool doSort) {
 
 class epOlapDat {
 public:
-  epOlapDat(uint32 p, bool o, double e) {
+  epOlapDat(uint32 p, bool o, float e) {
     pos    = p;
     open   = o;
     erate  = e;
@@ -94,9 +94,9 @@ public:
 
   bool operator<(const epOlapDat &that)     const { return(pos < that.pos); };
 
-  uint32  pos;
-  bool    open;
-  double  erate;
+  uint32  pos   : 31;
+  bool    open  :  1;
+  float   erate;
 };
 
 
@@ -220,7 +220,7 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
 
   //  Walk both lists, adding positive erates and removing negative erates.
 
-  stdDev<double>  curDev;
+  stdDev<float>  curDev;
 
   for (uint32 oo=0, ee=0; oo<olaps.size(); oo++) {
     if (olaps[oo].pos != errorProfile[ee].bgn)  //  Move to the next profile if the pos is different.
@@ -279,9 +279,9 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
     else if (bi < errorProfile.size() - 2) {
       //writeLog("errorProfile()-- tig %u no overlap coverage %u-%u\n", id(), errorProfile[bi].bgn, errorProfile[bi].end);
 
-      errorProfile[bi].dev = stdDev<double>((errorProfile[bi-1].dev.mean()   + errorProfile[bi+1].dev.mean()) / 2,
-                                            (errorProfile[bi-1].dev.stddev() + errorProfile[bi+1].dev.stddev()) / 2,
-                                            1);
+      errorProfile[bi].dev = stdDev<float>((errorProfile[bi-1].dev.mean()   + errorProfile[bi+1].dev.mean()) / 2,
+                                           (errorProfile[bi-1].dev.stddev() + errorProfile[bi+1].dev.stddev()) / 2,
+                                           1);
     }
 
     //  Set the last two - the last real one and the terminator - to the previous one.

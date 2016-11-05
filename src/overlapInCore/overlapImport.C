@@ -159,12 +159,12 @@ main(int argc, char **argv) {
   if (gkpStoreName)
     gkpStore = gkStore::gkStore_open(gkpStoreName);
 
-  char         *S     = new char [1024];
-  splitToWords  W;
-  ovOverlap    ov(gkpStore);
+  char          *S     = new char [1024];
+  splitToWords   W;
+  ovOverlap     ov(gkpStore);
 
-  ovFile       *of    = (ovlFileName  == NULL) ? NULL : new ovFile(gkpStore, ovlFileName, ovFileFullWrite);
-  ovStore      *os    = (ovlStoreName == NULL) ? NULL : new ovStore(ovlStoreName, gkpStore, ovStoreWrite);
+  ovFile        *of = (ovlFileName  == NULL) ? NULL : new ovFile(gkpStore, ovlFileName, ovFileFullWrite);
+  ovStoreWriter *os = (ovlStoreName == NULL) ? NULL : new ovStoreWriter(ovlStoreName, gkpStore);
 
   if (native == true)
     of->enableSnappy(false);
