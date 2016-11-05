@@ -58,12 +58,16 @@
 class BAToverlap {
 public:
   BAToverlap() {
-    evalue   = 0;
-    a_hang   = 0;
-    b_hang   = 0;
-    flipped  = 0;
-    filtered = 0;
-    b_iid    = 0;
+    evalue    = 0;
+    a_hang    = 0;
+    b_hang    = 0;
+    flipped   = false;
+
+    filtered  = false;
+    symmetric = false;
+
+    a_iid     = 0;
+    b_iid     = 0;
   };
   ~BAToverlap() {};
 
@@ -116,16 +120,19 @@ public:
     return(AS_OVS_decodeEvalue(evalue));
   }
 
-  uint64      evalue    :AS_MAX_EVALUE_BITS;     //  12
-  int64       a_hang    :AS_MAX_READLEN_BITS+1;  //  21+1
-  int64       b_hang    :AS_MAX_READLEN_BITS+1;  //  21+1
-  uint64      flipped   :1;                      //   1
-  uint64      filtered  :1;                      //   1
+  uint64      evalue    : AS_MAX_EVALUE_BITS;     //  12
+  int64       a_hang    : AS_MAX_READLEN_BITS+1;  //  21+1
+  int64       b_hang    : AS_MAX_READLEN_BITS+1;  //  21+1
+  uint64      flipped   : 1;                      //   1
+
+  uint64      filtered  : 1;                      //   1
+  uint64      symmetric : 1;                      //   1    - twin overlap exists
+
   uint32      a_iid;
   uint32      b_iid;
 };
 
-#if (AS_MAX_EVALUE_BITS + (AS_MAX_READLEN_BITS + 1) + (AS_MAX_READLEN_BITS + 1) + 1 + 1> 64)
+#if (AS_MAX_EVALUE_BITS + (AS_MAX_READLEN_BITS + 1) + (AS_MAX_READLEN_BITS + 1) + 1 + 1 + 1 > 64)
 #error not enough bits to store overlaps.  decrease AS_MAX_EVALUE_BITS or AS_MAX_READLEN_BITS.
 #endif
 
@@ -157,58 +164,67 @@ public:
 
 class OverlapCache {
 public:
-  OverlapCache(ovStore *ovlStoreUniq,
+  OverlapCache(gkStore *gkp,
+               ovStore *ovlStoreUniq,
                ovStore *ovlStoreRept,
                const char *prefix,
                double maxErate,
                uint32 minOverlap,
                uint64 maxMemory,
-               uint32 maxOverlaps,
-               bool onlysave,
+               uint64 genomeSize,
                bool dosave);
   ~OverlapCache();
 
-  void         computeOverlapLimit(void);
+private:
+  uint32       findHighestOverlapCount(void);
+  void         allocateLoadingSpace(void);
 
   uint32       filterOverlaps(uint32 maxOVSerate, uint32 minOverlap, uint32 no);
   uint32       filterDuplicates(uint32 &no);
 
-  void         loadOverlaps(double erate, uint32 minOverlap, const char *prefix, bool onlySave, bool doSave);
+  void         computeOverlapLimit(void);
+  void         loadOverlaps(bool doSave);
+  void         symmetrizeOverlaps(void);
 
+public:
   BAToverlap  *getOverlaps(uint32 readIID, uint32 &numOverlaps) {
-    numOverlaps = _cacheLen[readIID];
-    return(_cachePtr[readIID]);
+    numOverlaps = _overlapLen[readIID];
+    return(_overlaps[readIID]);
   }
 
 private:
-  bool         load(const char *prefix, double erate);
-  void         save(const char *prefix, double erate);
+  bool         load(void);
+  void         save(void);
 
 private:
+  const char             *_prefix;
+
   uint64                  _memLimit;
   uint64                  _memUsed;
 
-  uint32                  _storMax;  //  Size of the heap
-  uint32                  _storLen;  //  Position we are at in this heap
-  BAToverlap             *_stor;     //  Pointer to the heap (probably the last thing on _heaps)
+  BAToverlap            **_overlaps;
+  uint32                 *_overlapLen;
+  uint32                 *_overlapMax;
 
-  vector<BAToverlap*>     _heaps;
+  uint32                  _maxEvalue;  //  Don't load overlaps with high error
+  uint32                  _minOverlap; //  Don't load overlaps that are short
 
-  memoryMappedFile       *_cacheMMF;
+  uint32                  _minPer;     //  Minimum number of overlaps to retain for a single read
+  uint32                  _maxPer;     //  Maximum number of overlaps to load for a single read
 
-  BAToverlap            **_cachePtr; //  Mapping of read iid to overlaps stored in the heap
-  uint32                 *_cacheLen; //  Number of overlaps per read iid
+  bool                    _checkSymmetry;
 
-  uint32                  _maxPer;   //  Maximum number of overlaps to load for a single read
-
-  uint32                  _ovsMax;   //  For loading overlaps
-  ovOverlap              *_ovs;      //
-  uint64                 *_ovsSco;   //  For scoring overlaps during the load
-  uint64                 *_ovsTmp;   //  For picking out a score threshold
+  uint32                  _ovsMax;     //  For loading overlaps
+  ovOverlap              *_ovs;        //
+  uint64                 *_ovsSco;     //  For scoring overlaps during the load
+  uint64                 *_ovsTmp;     //  For picking out a score threshold
 
   uint64                  _threadMax;
   OverlapCacheThreadData *_thread;
 
+  uint64                  _genomeSize;
+
+  gkStore                *_gkp;
   ovStore                *_ovlStoreUniq;  //  Pointers to input stores
   ovStore                *_ovlStoreRept;
 };

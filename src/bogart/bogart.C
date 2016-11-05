@@ -100,9 +100,7 @@ main (int argc, char * argv []) {
   int32     numThreads               = 0;
 
   uint64    ovlCacheMemory           = UINT64_MAX;
-  uint32    ovlCacheLimit            = UINT32_MAX;
 
-  bool      onlySave                 = false;
   bool      doSave                   = false;
 
   char     *prefix                   = NULL;
@@ -167,13 +165,6 @@ main (int argc, char * argv []) {
 
     } else if (strcmp(argv[arg], "-M") == 0) {
       ovlCacheMemory  = (uint64)(atof(argv[++arg]) * 1024 * 1024 * 1024);
-
-    } else if (strcmp(argv[arg], "-N") == 0) {
-      ovlCacheLimit   = atoi(argv[++arg]);
-
-    } else if (strcmp(argv[arg], "-create") == 0) {
-      onlySave = true;
-      doSave   = true;
 
     } else if (strcmp(argv[arg], "-save") == 0) {
       doSave = true;
@@ -276,9 +267,7 @@ main (int argc, char * argv []) {
     fprintf(stderr, "Overlap Storage\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "    -M gb    Use at most 'gb' gigabytes of memory for storing overlaps.\n");
-    fprintf(stderr, "    -N num   Load at most 'num' overlaps per read.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "    -create  Only create the overlap graph, save to disk and quit.\n");
     fprintf(stderr, "    -save    Save the overlap graph to disk, and continue.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Debugging and Logging\n");
@@ -330,7 +319,7 @@ main (int argc, char * argv []) {
   setLogFile(prefix, "filterOverlaps");
 
   RI = new ReadInfo(gkpStore, prefix, minReadLen);
-  OC = new OverlapCache(ovlStoreUniq, ovlStoreRept, prefix, MAX(erateMax, erateGraph), minOverlap, ovlCacheMemory, ovlCacheLimit, onlySave, doSave);
+  OC = new OverlapCache(gkpStore, ovlStoreUniq, ovlStoreRept, prefix, MAX(erateMax, erateGraph), minOverlap, ovlCacheMemory, genomeSize, doSave);
   OG = new BestOverlapGraph(erateGraph, deviationGraph, prefix);
   CG = new ChunkGraph(prefix);
 
