@@ -30,6 +30,14 @@ canuIterationMax <integer=2>
   Sometimes, jobs fail due to other jobs exhausting resources (memory), or by the node itself failing.  In this case, canu will launch the jobs
   again.  This parameter controls how many times it tries.
 
+onSuccess <string=unset>
+onFailure <string=unset>
+  On success or failure, execute the command supplied.  The command will execute in the <assembly-directory> (the -d option to canu) and will be supplied with the name of the assembly (the -p option to canu) as its first and only parameter.
+
+  The 'onSuccess' command will run when canu finishes an assembly.
+
+  The 'onFailure' command will run when canu terminates abnormally.  There are two exceptions: if a 'spec' file cannot be read, and if canu tries to access an invalid parameter.  The former will be reported as a command line error, and canu will never start.  The latter should never occur (and, in fact, has never occurred) except when developers are developing the software.
+
 
 Process Control
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

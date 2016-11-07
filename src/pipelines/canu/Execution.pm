@@ -55,11 +55,12 @@ package canu::Execution;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(stopBefore stopAfter skipStage emitStage touch getInstallDirectory getJobIDShellCode getLimitShellCode getBinDirectory getBinDirectoryShellCode submitScript submitOrRunParallelJob runCommand runCommandSilently findCommand findExecutable);
+@EXPORT = qw(stopBefore stopAfter skipStage emitStage touch getInstallDirectory getJobIDShellCode getLimitShellCode getBinDirectory getBinDirectoryShellCode submitScript submitOrRunParallelJob runCommand runCommandSilently findCommand findExecutable caExit caFailure);
 
 use strict;
 use Config;            #  for @signame
 use Cwd qw(getcwd);
+use Carp qw(cluck);
 
 use POSIX ":sys_wait_h";  #  For waitpid(..., &WNOHANG)
 use List::Util qw(min max);
@@ -1248,6 +1249,77 @@ sub findExecutable ($) {
 
     return(undef)  if ($path eq "");
     return($path);
+}
+
+
+#  Use caExit() for transient errors, like not opening files, processes that die, etc.
+sub caExit ($$) {
+    my  $wrk   = getGlobal("onExitDir");
+    my  $asm   = getGlobal("onExitNam");
+    my  $msg   = shift @_;
+    my  $log   = shift @_;
+
+    print STDERR "================================================================================\n";
+    print STDERR "Don't panic, but a mostly harmless error occurred and canu failed.\n";
+    print STDERR "\n";
+
+    #  Really should pass in $wrk
+    if (defined($log)) {
+        my  $df = diskSpace($log);
+
+        print STDERR "Disk space available:  $df GB\n";
+        print STDERR "\n";
+    }
+
+    if (-e $log) {
+        print STDERR "Last 50 lines of the relevant log file ($log):\n";
+        print STDERR "\n";
+        system("tail -n 50 $log");
+        print STDERR "\n";
+    }
+
+    print STDERR "canu failed with '$msg'.\n";
+    print STDERR "\n";
+
+    my $fail = getGlobal('onFailure');
+    if (defined($fail)) {
+        runCommandSilently($wrk, "$fail $asm", 0);
+    }
+
+    exit(1);
+}
+
+
+#  Use caFailure() for errors that definitely will require code changes to fix.
+sub caFailure ($$) {
+    my  $wrk   = getGlobal("onExitDir");
+    my  $asm   = getGlobal("onExitNam");
+    my  $msg   = shift @_;
+    my  $log   = shift @_;
+
+    print STDERR "================================================================================\n";
+    print STDERR "Please panic.  canu failed, and it shouldn't have.\n";
+    print STDERR "\n";
+    print STDERR "Stack trace:\n";
+    print STDERR "\n";
+    cluck;
+    print STDERR "\n";
+
+    if (-e $log) {
+        print STDERR "Last few lines of the relevant log file ($log):\n";
+        print STDERR "\n";
+        system("tail -n 50 $log");
+    }
+
+    print STDERR "\n";
+    print STDERR "canu failed with '$msg'.\n";
+
+    my $fail = getGlobal('onFailure');
+    if (defined($fail)) {
+        runCommandSilently($wrk, "$fail $asm", 0);
+    }
+
+    exit(1);
 }
 
 

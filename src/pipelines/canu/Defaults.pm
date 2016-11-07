@@ -40,7 +40,7 @@ package canu::Defaults;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(getCommandLineOptions addCommandLineOption addCommandLineError writeLog caExit caFailure getNumberOfCPUs getPhysicalMemorySize getAllowedResources diskSpace printOptions printVersion printHelp setParametersFromFile setParametersFromCommandLine checkJava checkGnuplot checkParameters getGlobal setGlobal setGlobalIfUndef showErrorRates setErrorRate setDefaults);
+@EXPORT = qw(getCommandLineOptions addCommandLineOption addCommandLineError writeLog getNumberOfCPUs getPhysicalMemorySize getAllowedResources diskSpace printOptions printVersion printHelp setParametersFromFile setParametersFromCommandLine checkJava checkGnuplot checkParameters getGlobal setGlobal setGlobalIfUndef showErrorRates setErrorRate setDefaults);
 
 use strict;
 use Carp qw(cluck);
@@ -56,15 +56,22 @@ my $specLog   = "";
 
 
 
-#  Return the second argument, unless the first argument is found in
-#  %global, in which case return that.
-#
 sub getGlobal ($) {
     my $var = shift @_;
 
     $var =~ tr/A-Z/a-z/;
 
-    caFailure("parameter '$var' is not known", undef) if (!exists($global{$var}));
+    #  We lost the use of caFailure in Defaults.pm (because it was moved to
+    #  Execution.pm so it can run stuff) here, so duplicate the functionality.
+    #  This should only trigger on static pipeline errors (i.e., no depending
+    #  on reads input) and so should never occur in the wild.
+
+    if (!exists($global{$var})) {
+        print STDERR "================================================================================\n";
+        print STDERR "Unknown parameter '$var' accessed.  Stack trace:\n";
+        cluck;
+        exit(1);
+    }
 
     return($global{$var});
 }
@@ -186,63 +193,6 @@ sub writeLog ($) {
     close(F);
 }
 
-
-
-#  Use caExit() for transient errors, like not opening files, processes that die, etc.
-sub caExit ($$) {
-    my  $msg   = shift @_;
-    my  $log   = shift @_;
-
-    print STDERR "================================================================================\n";
-    print STDERR "Don't panic, but a mostly harmless error occurred and canu failed.\n";
-    print STDERR "\n";
-
-    #  Really should pass in $wrk
-    if (defined($log)) {
-        my  $df = diskSpace($log);
-
-        print STDERR "Disk space available:  $df GB\n";
-        print STDERR "\n";
-    }
-
-    if (-e $log) {
-        print STDERR "Last 50 lines of the relevant log file ($log):\n";
-        print STDERR "\n";
-        system("tail -n 50 $log");
-        print STDERR "\n";
-    }
-
-    print STDERR "canu failed with '$msg'.\n";
-    print STDERR "\n";
-
-    exit(1);
-}
-
-
-#  Use caFailure() for errors that definitely will require code changes to fix.
-sub caFailure ($$) {
-    my  $msg   = shift @_;
-    my  $log   = shift @_;
-
-    print STDERR "================================================================================\n";
-    print STDERR "Please panic.  canu failed, and it shouldn't have.\n";
-    print STDERR "\n";
-    print STDERR "Stack trace:\n";
-    print STDERR "\n";
-    cluck;
-    print STDERR "\n";
-
-    if (-e $log) {
-        print STDERR "Last few lines of the relevant log file ($log):\n";
-        print STDERR "\n";
-        system("tail -n 50 $log");
-    }
-
-    print STDERR "\n";
-    print STDERR "canu failed with '$msg'.\n";
-
-    exit(1);
-}
 
 
 #
@@ -471,7 +421,10 @@ sub setParametersFromFile ($@) {
     $specLog .= "###\n";
     $specLog .= "\n";
 
-    open(F, "< $specFile") or caExit("can't open '$specFile' for reading: $!", undef);
+    #  We lost the use of caExit() here (moved to Execution.pm) and so can't call it.
+    #  Just die.
+
+    open(F, "< $specFile") or die("can't open '$specFile' for reading: $!\n");
 
     while (<F>) {
         $specLog .= $_;
@@ -714,7 +667,7 @@ sub setDefaults () {
     $global{"gnuplotTested"}               = 0;
     $synops{"gnuplotTested"}               = "If set, skip the initial testing of gnuplot";
 
-    #####  Cleanup options
+    #####  Cleanup and Termination options
 
     $global{"saveOverlaps"}                = 0;
     $synops{"saveOverlaps"}                = "Save intermediate overlap files, almost never a good idea";
@@ -724,6 +677,15 @@ sub setDefaults () {
 
     $global{"saveMerCounts"}               = 0;
     $synops{"saveMerCounts"}               = "Save full mer counting results, sometimes useful";
+
+    $global{"onSuccess"}                   = undef;
+    $synops{"onSuccess"}                   = "Full path to command to run on successful completion";
+
+    $global{"onFailure"}                   = undef;
+    $synops{"onFailure"}                   = "Full path to command to run on failure";
+
+    $global{"onExitDir"}                   = undef;   #  Copy of $wrk, for caExit() and caFailure() ONLY.
+    $global{"onExitNam"}                   = undef;   #  Copy of $asm, for caExit() and caFailure() ONLY.
 
     #####  Error Rates
 

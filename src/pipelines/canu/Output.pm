@@ -40,7 +40,7 @@ package canu::Output;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(outputLayout outputGraph outputSequence outputSummary);
+@EXPORT = qw(generateOutputs);
 
 use strict;
 
@@ -56,15 +56,18 @@ use canu::HTML;
 #  were written to the 9-terminator directory.
 
 
-sub outputLayout ($$) {
+sub generateOutputs ($$) {
     my $WRK     = shift @_;           #  Root work directory (the -d option to canu)
     my $wrk     = "$WRK/unitigging";  #  Local work directory
     my $asm     = shift @_;
     my $bin     = getBinDirectory();
     my $cmd;
 
-    goto allDone   if (skipStage($WRK, $asm, "outputLayout") == 1);
-    goto allDone   if ((-e "$WRK/$asm.contigs.layout") && (-e "$WRK/$asm.unitigs.layout"));
+    my $type    = "fasta";  #  Should probably be an option.
+
+    goto allDone   if (skipStage($WRK, $asm, "generateOutputs") == 1);
+
+    #  Layouts
 
     if (! -e "$WRK/$asm.contigs.layout") {
         $cmd  = "$bin/tgStoreDump \\\n";
@@ -96,57 +99,7 @@ sub outputLayout ($$) {
         unlink "$WRK/$asm.unitigs.layout.err";
     }
 
-  finishStage:
-    emitStage($WRK, $asm, "outputLayout");
-    buildHTML($WRK, $asm, "utg");
-
-  allDone:
-    print STDERR "-- Contig layouts saved in '$WRK/$asm.contigs.layout'.\n";
-    print STDERR "-- Unitig layouts saved in '$WRK/$asm.unitigs.layout'.\n";
-}
-
-
-
-
-sub outputGraph ($$) {
-    my $WRK     = shift @_;           #  Root work directory (the -d option to canu)
-    my $wrk     = "$WRK/unitigging";  #  Local work directory
-    my $asm     = shift @_;
-    my $bin     = getBinDirectory();
-    my $cmd;
-
-    my $type = "fasta";  #  Should probably be an option.
-
-    goto allDone   if (skipStage($WRK, $asm, "outputGraph") == 1);
-    goto allDone   if (-e "$WRK/$asm.unitigs.gfa");
-
-    if ((! -e "$WRK/$asm.unitigs.gfa") &&
-        (  -e "$wrk/4-unitigger/$asm.unitigs.gfa")) {
-        copy("$wrk/4-unitigger/$asm.unitigs.gfa", "$WRK/$asm.unitigs.gfa");
-    }
-
-  finishStage:
-    emitStage($WRK, $asm, "outputGraph");
-    buildHTML($WRK, $asm, "utg");
-
-  allDone:
-    print STDERR "-- Unitig graph saved in '$WRK/$asm.unitigs.gfa'.\n";
-}
-
-
-
-
-sub outputSequence ($$) {
-    my $WRK     = shift @_;           #  Root work directory (the -d option to canu)
-    my $wrk     = "$WRK/unitigging";  #  Local work directory
-    my $asm     = shift @_;
-    my $bin     = getBinDirectory();
-    my $cmd;
-
-    my $type = "fasta";  #  Should probably be an option.
-
-    goto allDone   if (skipStage($WRK, $asm, "outputSequence") == 1);
-    goto allDone   if (-e "$WRK/$asm.contigs.$type");
+    #  Sequences
 
     foreach my $tt ("unassembled", "bubbles", "contigs") {
         if (! -e "$WRK/$asm.$tt.$type") {
@@ -182,34 +135,49 @@ sub outputSequence ($$) {
         unlink "$WRK/$asm.unitigs.err";
     }
 
+    #  Graphs
+
+    if ((! -e "$WRK/$asm.unitigs.gfa") &&
+        (  -e "$wrk/4-unitigger/$asm.unitigs.gfa")) {
+        copy("$wrk/4-unitigger/$asm.unitigs.gfa", "$WRK/$asm.unitigs.gfa");
+    }
+
+    #  User-supplied termination command.
+
+    if (defined(getGlobal("onSuccess"))) {
+        print STDERR "-- Running user-supplied termination command.\n";
+        runCommand($WRK, getGlobal("onSuccess") . " $asm");
+    }
+
+
   finishStage:
-    emitStage($WRK, $asm, "outputSequence");
+    emitStage($WRK, $asm, "generateOutputs");
     buildHTML($WRK, $asm, "utg");
 
   allDone:
+    print STDERR "--\n";
+    print STDERR "-- Assembly finished.\n";
+    print STDERR "--\n";
+    print STDERR "-- Summary saved in '$WRK/unitigging.html'.\n";
+    print STDERR "--\n";
     print STDERR "-- Sequences saved:\n";
     print STDERR "--   Contigs       -> '$WRK/$asm.contig.$type'\n";
     print STDERR "--   Bubbles       -> '$WRK/$asm.bubble.$type'  (DEPRECATED)\n";
     print STDERR "--   Unassembled   -> '$WRK/$asm.unassembled.$type'\n";
     print STDERR "--   Unitigs       -> '$WRK/$asm.unitigs.$type'\n";
-}
-
-
-
-sub outputSummary ($$) {
-    my $WRK     = shift @_;           #  Root work directory (the -d option to canu)
-    my $wrk     = "$WRK/unitigging";  #  Local work directory
-    my $asm     = shift @_;
-    my $bin     = getBinDirectory();
-    my $cmd;
-
-    goto allDone   if (skipStage($WRK, $asm, "outputSummary") == 1);
-    goto allDone   if (-e "$WRK/unitiggging.html");
+    print STDERR "--\n";
+    print STDERR "-- Read layouts saved:\n";
+    print STDERR "--   Contigs       -> '$WRK/$asm.contigs.layout'.\n";
+    print STDERR "--   Unitigs       -> '$WRK/$asm.unitigs.layout'.\n";
+    print STDERR "--\n";
+    print STDERR "-- Graphs saved:\n";
+    print STDERR "--   Unitigs       -> '$WRK/$asm.unitigs.gfa'.\n";
+    print STDERR "--\n";
+    print STDERR "-- Bye.\n";
 
   finishStage:
-    emitStage($WRK, $asm, "outputSummary");
+    emitStage($WRK, $asm, "outputSequence");
     buildHTML($WRK, $asm, "utg");
 
   allDone:
-    print STDERR "-- Summary saved in '$WRK/unitigging.html'.\n";
 }

@@ -131,10 +131,12 @@ while (scalar(@ARGV)) {
         $wrk = shift @ARGV;
         $wrk = "$ENV{'PWD'}/$wrk" if ($wrk !~ m!^/!);
         addCommandLineOption("-d \"$wrk\"");
+        setGlobal("onExitDir", $wrk);
 
     } elsif ($arg eq "-p") {
         $asm = shift @ARGV;
         addCommandLineOption("-p \"$asm\"");
+        setGlobal("onExitNam", $asm);
 
     } elsif ($arg eq "-s") {
         my $spec = shift @ARGV;
@@ -543,10 +545,7 @@ if (setOptions($mode, "assemble") eq "assemble") {
     consensusLoad($wrk, $asm);
     consensusAnalyze($wrk, $asm);
 
-    outputGraph($wrk, $asm);
-    outputLayout($wrk, $asm);
-    outputSequence($wrk, $asm);
-    outputSummary($wrk, $asm);
+    generateOutputs($wrk, $asm);
 }
 
 exit(0);
