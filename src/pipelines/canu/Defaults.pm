@@ -432,24 +432,29 @@ sub setParametersFromFile ($@) {
         s/^\s+//;
         s/\s+$//;
 
-        next if (m/^\s*\#/);
-        next if (m/^\s*$/);
+        next if (m/^#/);
+        next if (length($_) eq 0);
 
-        if (-e $_) {
-            my $xx = $_;
-            $xx = "$ENV{'PWD'}/$xx" if ($xx !~ m!^/!);
-            if (-e $xx) {
-                push @fragFiles, $xx;
-            } else {
-                addCommandLineError("ERROR:  File not found '$_' after appending absolute path.\n");
-            }
-        } elsif (m/\s*(\w*)\s*=([^#]*)#*.*$/) {
+        #  File handling is also present in canu.pl around line 165.
+        if (m/^-(pacbio|nanopore)-(corrected|raw)\s+(.*)$/) {
+            my $arg  = "-$1-$2";
+            my $file = $3;
+
+            $file = "$ENV{'PWD'}/$file" if ($file !~ m!^/!);
+
+            push @fragFiles, "$arg\0$file";
+            addCommandLineOption("$arg \"$file\"");
+        }
+
+        elsif (m/\s*(\w*)\s*=([^#]*)#*.*$/) {
             my ($var, $val) = ($1, $2);
             $var =~ s/^\s+//; $var =~ s/\s+$//;
             $val =~ s/^\s+//; $val =~ s/\s+$//;
             undef $val if ($val eq "undef");
             setGlobal($var, $val);
-        } else {
+        }
+
+        else {
             addCommandLineError("ERROR:  File not found or unknown specFile option line '$_'.\n");
         }
     }

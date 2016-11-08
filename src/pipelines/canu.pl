@@ -162,24 +162,10 @@ while (scalar(@ARGV)) {
         $mode = $step = "trim-assemble";
         addCommandLineOption("-trim-assemble");
 
-    } elsif (($arg eq "-pacbio-raw")       ||
-             ($arg eq "-pacbio-corrected") ||
+    } elsif (($arg eq "-pacbio-raw")       ||    #  File handling is also present in
+             ($arg eq "-pacbio-corrected") ||    #  Defaults.pm around line 438
              ($arg eq "-nanopore-raw")     ||
              ($arg eq "-nanopore-corrected")) {
-        if ($arg =~ m/pacbio/) {
-            setErrorRate(0.015);
-            setGlobal("corErrorRate", "0.30");
-        } elsif ($arg =~ m/nanopore/) {
-            setErrorRate(0.048);
-            setGlobal("corErrorRate", "0.50");
-        }
-
-        $mode = "trim-assemble"  if (!defined($mode) && ($arg =~ m/corrected/));
-        $mode = "run"            if (!defined($mode) && ($arg =~ m/raw/));
-
-        $haveCorrected = 1       if ($arg =~ m/corrected/);
-        $haveRaw = 1             if ($arg =~ m/raw/);
-
         addCommandLineError("ERROR:  File '$ARGV[0]' not found.\n")   if (! -e $ARGV[0]);
 
         while (-e $ARGV[0]) {
@@ -202,10 +188,6 @@ while (scalar(@ARGV)) {
         addCommandLineError("ERROR:  Invalid command line option '$arg'.  Did you forget quotes around options with spaces?\n");
     }
 }
-
-#  Fail if both raw and corrected are supplied.
-
-addCommandLineError("ERROR:  Canu does not currently support mixing raw and corrected sequences.\n")   if ($haveRaw && $haveCorrected);
 
 #  Fail if some obvious things aren't set.
 
@@ -234,8 +216,33 @@ foreach my $specFile (@specFiles) {
 
 setParametersFromCommandLine(@specOpts);
 
-#  When resuming a run without input files, set the error rates based on library type in the gkpStore. If the user set error, do nothing
-# check if we have gkpStores but no input files and reset error rates based on gkpStore
+#  Set parameters based on file types supplied.
+
+foreach my $typefile (@inputFiles) {
+    my ($type, $file) = split '\0', $typefile;
+
+    $mode = "trim-assemble"             if (!defined($mode) && ($type =~ m/corrected/));
+    $mode = "run"                       if (!defined($mode) && ($type =~ m/raw/));
+
+    $haveCorrected = 1                  if ($type =~ m/corrected/);
+    $haveRaw = 1                        if ($type =~ m/raw/);
+    
+    setErrorRate(0.015)                 if ($type =~ m/pacbio/);
+    setGlobal("corErrorRate", "0.30")   if ($type =~ m/pacbio/);
+
+    setErrorRate(0.048)                 if ($type =~ m/nanopore/);
+    setGlobal("corErrorRate", "0.50")   if ($type =~ m/nanopore/);
+}
+
+#  Fail if both raw and corrected are supplied.
+
+addCommandLineError("ERROR:  Canu does not currently support mixing raw and corrected sequences.\n")   if ($haveRaw && $haveCorrected);
+
+#  When resuming a run without input files, set the error rates based on library type in the
+#  gkpStore.  If the user set the error rate already, do nothing.
+#
+#  Also, check if we have gkpStores but no input files and reset error rates based on gkpStore.
+
 if (scalar(@inputFiles) == 0 && ! defined(getGlobal("errorRate"))) {
     my $gkpStore = undef;
     $gkpStore = "$wrk/correction/$asm.gkpStore" if -e "$wrk/correction/$asm.gkpStore/libraries.txt";
