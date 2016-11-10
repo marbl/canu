@@ -602,15 +602,15 @@ ovStoreWriter::loadBucketSizes(uint64 *bucketSizes) {
   for (uint32 i=0; i<=_jobIdxMax; i++) {
     bucketSizes[i] = 0;
 
-    sprintf(namz, "%s/bucket%04d/slice%03d.gz", _storePath, i, _fileID);
     sprintf(name, "%s/bucket%04d/slice%03d",    _storePath, i, _fileID);
+    sprintf(namz, "%s/bucket%04d/slice%03d.gz", _storePath, i, _fileID);
 
     //  If no file, there are no overlaps.  Skip loading the bucketSizes file.
-    //  We expect the gz version to exist (that's the default in bucketizer) more frequently, so
-    //  be sure to test for existence of that one first.
+    //  With snappy compression, we expect the file to be not gzip compressed, but will happily
+    //  accept a gzipped file.
 
-    if ((AS_UTL_fileExists(namz, FALSE, FALSE) == false) &&
-        (AS_UTL_fileExists(name, FALSE, FALSE) == false))
+    if ((AS_UTL_fileExists(name, FALSE, FALSE) == false) &&
+        (AS_UTL_fileExists(namz, FALSE, FALSE) == false))
       continue;
 
     sprintf(name, "%s/bucket%04d/sliceSizes", _storePath, i);
@@ -649,13 +649,15 @@ ovStoreWriter::loadOverlapsFromSlice(uint32 slice, uint64 expectedLen, ovOverlap
   if (expectedLen == 0)
     return;
 
-  sprintf(name, "%s/bucket%04d/slice%03d.gz", _storePath, slice, _fileID);
-  if (AS_UTL_fileExists(name, FALSE, FALSE) == false)
-    sprintf(name, "%s/bucket%04d/slice%03d", _storePath, slice, _fileID);
+  sprintf(name, "%s/bucket%04d/slice%03d", _storePath, slice, _fileID);
 
-  if (AS_UTL_fileExists(name, FALSE, FALSE) == false)
-    fprintf(stderr, "ERROR: " F_U64 " overlaps claim to exist in bucket '%s', but file not found.\n",
-            expectedLen, name);
+  if (AS_UTL_fileExists(name, FALSE, FALSE) == false) {
+    sprintf(name, "%s/bucket%04d/slice%03d.gz", _storePath, slice, _fileID);
+
+    if (AS_UTL_fileExists(name, FALSE, FALSE) == false)
+      fprintf(stderr, "ERROR: " F_U64 " overlaps claim to exist in bucket '%s', but file not found.\n",
+              expectedLen, name);
+  }
 
   fprintf(stderr, "Loading " F_U64 " overlaps from '%s'.\n", expectedLen, name);
 
