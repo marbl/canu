@@ -88,7 +88,7 @@ main(int argc, char **argv) {
 
   char           *ovlInput     = NULL;
 
-  bool            useGzip      = true;
+  bool            useGzip      = false;
 
   argc = AS_configure(argc, argv);
 
@@ -117,8 +117,8 @@ main(int argc, char **argv) {
       maxErrorRate = atof(argv[++arg]);
       maxError     = AS_OVS_encodeEvalue(maxErrorRate);
 
-    } else if (strcmp(argv[arg], "-raw") == 0) {
-      useGzip = false;
+    } else if (strcmp(argv[arg], "-gzip") == 0) {
+      useGzip = true;
 
     } else {
       fprintf(stderr, "ERROR: unknown option '%s'\n", argv[arg]);
@@ -138,13 +138,13 @@ main(int argc, char **argv) {
     err++;
 
   if (err) {
-    fprintf(stderr, "usage: %s -O asm.ovlStore -G asm.gkpStore -i file.ovb.gz -job j [opts]\n", argv[0]);
+    fprintf(stderr, "usage: %s -O asm.ovlStore -G asm.gkpStore -i file.ovb -job j [opts]\n", argv[0]);
     fprintf(stderr, "  -O asm.ovlStore       path to store to create\n");
     fprintf(stderr, "  -G asm.gkpStore       path to gkpStore for this assembly\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -C config             path to previously created ovStoreBuild config data file\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -i file.ovb.gz        input overlaps\n");
+    fprintf(stderr, "  -i file.ovb[.gz]      input overlaps\n");
     fprintf(stderr, "  -job j                index of this overlap input file\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -F f                  use up to 'f' files for store creation\n");
@@ -154,7 +154,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -e e                  filter overlaps above e fraction error\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -raw                  write uncompressed buckets\n");
+    fprintf(stderr, "  -gzip                 compress buckets even more\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "    DANGER    DO NOT USE     DO NOT USE     DO NOT USE    DANGER\n");
     fprintf(stderr, "    DANGER                                                DANGER\n");
