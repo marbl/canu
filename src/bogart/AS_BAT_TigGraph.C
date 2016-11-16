@@ -31,7 +31,8 @@
 #include "AS_BAT_PlaceReadUsingOverlaps.H"
 
 
-#define SHOW_EDGES
+#undef  SHOW_EDGES
+#undef  SHOW_EDGES_VERBOSE
 
 
 class  grEdge {
@@ -72,7 +73,8 @@ emitEdges(TigVector &tigs,
 
   //  Place the first read.
 
-  ufNode   *rdA = tgA->firstRead();
+  ufNode   *rdA    = tgA->firstRead();
+  uint32    rdAlen = RI->readLength(rdA->ident);
 
   placeReadUsingOverlaps(tigs, NULL, rdA->ident, placements, placeRead_all);
 
@@ -108,14 +110,32 @@ emitEdges(TigVector &tigs,
     //  alignment is fully captured by only rd1, its 3' end will flop around, tgB will be fully covered,
     //  and the edge will be emitted.
 
-    if (((rdA->isForward()) && (placements[pp].covered.bgn > 0)) ||
-        ((rdA->isReverse()) && (placements[pp].covered.end < RI->readLength(rdA->ident)))) {
+    if (((rdA->isForward() == true) && (placements[pp].covered.bgn > 0)) ||
+        ((rdA->isReverse() == true) && (placements[pp].covered.end < rdAlen))) {
 #ifdef SHOW_EDGES
-      writeLog("emitEdges()-- edge --- - tig %6u read %8u %8u-%-8u placed bases %8u-%-8u in tig %6u %8u-%-8u - INCOMPLETELY PLACED\n",
+      writeLog("emitEdges()-- edge --- - tig %6u read %8u %8u-%-8u placed bases %8u-%-8u in tig %6u %8u-%-8u - INCOMPLETELY PLACED outside\n",
                tgA->id(),
                rdA->ident, rdA->position.bgn, rdA->position.end,
                placements[pp].covered.bgn, placements[pp].covered.end,
                tid, bgn, end);
+#endif
+      continue;
+    }
+
+    //  Now, if the placed read didn't get placed to it's other end, and it's placed in the middle
+    //  of the tig, reject the placement.
+
+    Unitig *tgB    = tigs[tid];
+    uint32  tgBlen = tigs[tid]->getLength();
+
+    if (((rdA->isForward() == true) && (placements[pp].covered.end < rdAlen) && (bgn > 100) && (end + 100 < tgBlen)) ||
+        ((rdA->isReverse() == true) && (placements[pp].covered.bgn > 0)      && (bgn > 100) && (end + 100 < tgBlen))) {
+#ifdef SHOW_EDGES
+      writeLog("emitEdges()-- edge --- - tig %6u read %8u %8u-%-8u placed bases %8u-%-8u in tig %6u %8u-%-8u - INCOMPLETELY PLACED inside\n",
+               tgA->id(),
+               rdA->ident, rdA->position.bgn, rdA->position.end,
+               placements[pp].covered.bgn, placements[pp].covered.end,
+               tid, bgn, end, tgBlen);
 #endif
       continue;
     }
@@ -141,7 +161,8 @@ emitEdges(TigVector &tigs,
   //  appropriate placement.
 
   for (uint32 fi=1; (fi<tgA->ufpath.size()) && (edges.size() > 0); fi++) {
-    ufNode  *rdA = &tgA->ufpath[fi];
+    ufNode  *rdA    = &tgA->ufpath[fi];
+    uint32   rdAlen = RI->readLength(rdA->ident);
 
     placeReadUsingOverlaps(tigs, NULL, rdA->ident, placements, placeRead_all);
 
@@ -156,6 +177,22 @@ emitEdges(TigVector &tigs,
       uint32   tid = placements[pp].tigID;
       int32    bgn = placements[pp].verified.min();
       int32    end = placements[pp].verified.max();
+
+      //  Accept the placement only if it is for the whole read, or if it is touching the end of the target tig.
+
+      Unitig *tgB    = tigs[tid];
+      uint32  tgBlen = tigs[tid]->getLength();
+
+      if (((placements[pp].covered.bgn > 0) ||
+           (placements[pp].covered.end < rdAlen)) &&
+          (bgn       > 100) &&
+          (end + 100 < tgBlen)) {
+#ifdef SHOW_EDGES
+        writeLog("emitEdges()-- read %5u incomplete placement covering %5u-%-5u in at %5u-%-5u in tig %4u\n",
+                 rdA->ident, placements[pp].covered.bgn, placements[pp].covered.end, bgn, end, tid);
+#endif
+        continue;
+      }
 
       for (uint32 ee=0; ee<edges.size(); ee++) {
         if (edges[ee].deleted == true)     //  Invalid or already finished edge.
@@ -173,7 +210,7 @@ emitEdges(TigVector &tigs,
         //  we extend things in.
 
 #ifdef SHOW_EDGES
-        writeLog("emitEdges()-- extend edge %u from %u-%u to %u-%u -- placed read %u at %u-%u in tig %u\n",
+        writeLog("emitEdges()-- edge %3u - extend from %5u-%-5u to %5u-%-5u -- placed read %5u at %5u-%-5u in tig %4u\n",
                  ee,
                  edges[ee].bgn, edges[ee].end,
                  min(edges[ee].bgn, bgn), max(edges[ee].end, end),
