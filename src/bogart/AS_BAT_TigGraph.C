@@ -89,9 +89,11 @@ emitEdges(TigVector &tigs,
       continue;
 
 #ifdef SHOW_EDGES
-    writeLog("emitEdges()-- tig %6u read %8u %8u-%-8u -> tig %6u %8u-%-8u\n",
-             tgA->id(), 
-             rdA->ident, rdA->position.min(), rdA->position.max(),
+    writeLog("emitEdges()-- edge %3u - tig %6u read %8u %8u-%-8u placed bases %8u-%-8u in tig %6u %8u-%-8u\n",
+             edges.size(),
+             tgA->id(),
+             rdA->ident, rdA->position.bgn, rdA->position.end,
+             placements[pp].covered.bgn, placements[pp].covered.end,
              tid, bgn, end);
 #endif
 
@@ -139,6 +141,14 @@ emitEdges(TigVector &tigs,
         //  tgA against CAB in the target tig.  If not, we'll need to keep count of which direction
         //  we extend things in.
 
+#ifdef SHOW_EDGES
+        writeLog("emitEdges()-- extend edge %u from %u-%u to %u-%u -- placed read %u at %u-%u in tig %u\n",
+                 ee,
+                 edges[ee].bgn, edges[ee].end,
+                 min(edges[ee].bgn, bgn), max(edges[ee].end, end),
+                 rdA->ident, bgn, end, tid);
+#endif
+
         edges[ee].bgn      = min(edges[ee].bgn, bgn);
         edges[ee].end      = max(edges[ee].end, end);
         edges[ee].extended = true;
@@ -153,10 +163,11 @@ emitEdges(TigVector &tigs,
     for (uint32 ee=0; ee<edges.size(); ee++) {
       if (edges[ee].bgn <= 100) {
 #ifdef SHOW_EDGES_VERBOSE
-        writeLog("emitEdges()-- tig %6u %s edgeTo tig %6u %s of length %6u\n",
+        writeLog("emitEdges()-- edge %3u - tig %6u %s edgeTo tig %6u %s of length %6u (%6u-%6u)\n",
+                 ee,
                  tgA->id(), isForward ? "<--" : "-->",
                  edges[ee].tigID, "-->",
-                 edges[ee].end - edges[ee].bgn);
+                 edges[ee].end - edges[ee].bgn, edges[ee].bgn, edges[ee].end);
 #endif
         fprintf(BEG, "L\ttig%08u\t%c\ttig%08u\t%c\t%uM\n",
                 tgA->id(), isForward ? '-' : '+',
@@ -167,10 +178,11 @@ emitEdges(TigVector &tigs,
 
       if (edges[ee].end + 100 >= tigs[edges[ee].tigID]->getLength()) {
 #ifdef SHOW_EDGES_VERBOSE
-        writeLog("emitEdges()-- tig %6u %s edgeTo tig %6u %s of length %6u\n",
+        writeLog("emitEdges()-- edge %3u - tig %6u %s edgeTo tig %6u %s of length %6u (%6u-%6u)\n",
+                 ee,
                  tgA->id(), isForward ? "<--" : "-->",
                  edges[ee].tigID, "<--",
-                 edges[ee].end - edges[ee].bgn);
+                 edges[ee].end - edges[ee].bgn, edges[ee].bgn, edges[ee].end);
 #endif
         fprintf(BEG, "L\ttig%08u\t%c\ttig%08u\t%c\t%uM\n",
                 tgA->id(), isForward ? '-' : '+',
@@ -267,17 +279,28 @@ reportTigGraph(TigVector &tigs, const char *prefix, const char *label) {
     if (tgA == NULL)
       continue;
 
+    //if (ti == 4)
+    //  logFileFlags |= LOG_PLACE_READ;
+
 #ifdef SHOW_EDGES
     writeLog("\n");
-    writeLog("reportTigGraph()-- tig %u len %u reads %u - firstRead %u lastRead %u\n",
-             ti, tgA->getLength(), tgA->ufpath.size(), tgA->firstRead()->ident, tgA->lastRead()->ident);
+    writeLog("reportTigGraph()-- tig %u len %u reads %u - firstRead %u\n",
+             ti, tgA->getLength(), tgA->ufpath.size(), tgA->firstRead()->ident);
 #endif
 
     emitEdges(tigs, tgA, true,  BEG);
 
+#ifdef SHOW_EDGES
+    writeLog("\n");
+    writeLog("reportTigGraph()-- tig %u len %u reads %u - lastRead %u\n",
+             ti, tgA->getLength(), tgA->ufpath.size(), tgA->lastRead()->ident);
+#endif
+
     tgA->reverseComplement();
     emitEdges(tigs, tgA, false, BEG);
     tgA->reverseComplement();
+
+    //logFileFlags &= ~LOG_PLACE_READ;
   }
 
   fclose(BEG);
