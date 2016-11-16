@@ -77,7 +77,7 @@ placeRead_fromOverlaps(TigVector   &tigs,
 
     if (tig->placeRead(read, fid, ovl[i].AEndIs3prime(), &edge) == false) {
       if (logFileFlagSet(LOG_PLACE_READ))
-        writeLog("pFUO()-- WARNING: Failed to place with overlap %u %u hangs %u %u flipped %u\n",
+        writeLog("pRUO()-- WARNING: Failed to place with overlap %u %u hangs %u %u flipped %u\n",
                  ovl[i].a_iid, ovl[i].b_iid, ovl[i].a_hang, ovl[i].b_hang, ovl[i].flipped);
       continue;
     }
@@ -123,12 +123,15 @@ placeRead_fromOverlaps(TigVector   &tigs,
     //  Report the placement.
 
     if (logFileFlagSet(LOG_PLACE_READ))
-      writeLog("pFUO()-- read %d in unitig %d at %d,%d (covered %d,%d) from overlap ident %d %d hang %d %d flipped %d%s\n",
+      writeLog("pRUO()-- read %6d in unitig %4d at %6d,%-6d (cov %5d,%5d) from overlap with %6d %6d:%-6d hang %6d %6d flipped %d%s\n",
                ovlPlace[i].frgID,
                ovlPlace[i].tigID,
                ovlPlace[i].position.bgn, ovlPlace[i].position.end,
                ovlPlace[i].covered.bgn, ovlPlace[i].covered.end,
-               ovl[i].a_iid, ovl[i].b_iid, ovl[i].a_hang, ovl[i].b_hang, ovl[i].flipped,
+               ovl[i].b_iid,
+               tig->readFromId(ovl[i].b_iid)->position.bgn,
+               tig->readFromId(ovl[i].b_iid)->position.end,
+               ovl[i].a_hang, ovl[i].b_hang, ovl[i].flipped,
                (ovlPlace[i].frgID == 0) ? " DISALLOWED" : "");
   }  //  Over all overlaps.
 
@@ -157,14 +160,14 @@ placeRead_assignEndPointsToCluster(uint32  bgn, uint32  end,
   endPoints.merge();
 
   if (logFileFlagSet(LOG_PLACE_READ)) {
-    writeLog("pFUO()-- Found %u bgn intervals: ", bgnPoints.numberOfIntervals());
+    writeLog("pRUO()-- Found %3u bgn intervals: ", bgnPoints.numberOfIntervals());
     for (uint32 r=0; r<bgnPoints.numberOfIntervals(); r++)
-      writeLog(" %u-%u", bgnPoints.lo(r), bgnPoints.hi(r));
+      writeLog(" %6u-%-6u", bgnPoints.lo(r), bgnPoints.hi(r));
     writeLog("\n");
 
-    writeLog("pFUO()-- Found %u end intervals: ", endPoints.numberOfIntervals());
+    writeLog("pRUO()-- Found %3u end intervals: ", endPoints.numberOfIntervals());
     for (uint32 r=0; r<endPoints.numberOfIntervals(); r++)
-      writeLog(" %u-%u", endPoints.lo(r), endPoints.hi(r));
+      writeLog(" %6u-%-6u", endPoints.lo(r), endPoints.hi(r));
     writeLog("\n");
   }
 }
@@ -218,7 +221,7 @@ placeRead_findFirstLastOverlapping(overlapPlacement &op,
     op.tigLidx = max(ord, op.tigLidx);
 
     //if (logFileFlagSet(LOG_PLACE_READ))
-    //  writeLog("pFUO()--     find range from os=%u to oe=%u  tig=%u  ord=%u  f=%u l=%u\n",
+    //  writeLog("pRUO()--     find range from os=%u to oe=%u  tig=%u  ord=%u  f=%u l=%u\n",
     //            os, oe, op.tigID, ord, op.tigFidx, op.tigLidx);
   }
 
@@ -227,7 +230,7 @@ placeRead_findFirstLastOverlapping(overlapPlacement &op,
   assert(op.tigFidx <= op.tigLidx);
 
   if (logFileFlagSet(LOG_PLACE_READ))
-    writeLog("pFUO()--   spans reads #%u (%u) to #%u (%u) in tig %u\n",
+    writeLog("pRUO()--   spans reads #%u (%u) to #%u (%u) in tig %u\n",
              op.tigFidx, tig->ufpath[op.tigFidx].ident,
              op.tigLidx, tig->ufpath[op.tigLidx].ident,
              op.tigID);
@@ -411,7 +414,7 @@ placeRead_computePlacement(overlapPlacement &op,
 
     if (tig->placeRead(read, op.frgID, ovl[oo].AEndIs3prime(), &edge) == false) {
       if (logFileFlagSet(LOG_PLACE_READ))
-        writeLog("pFUO()-- WARNING: Failed to place with overlap %u %u hangs %u %u flipped %u\n",
+        writeLog("pRUO()-- WARNING: Failed to place with overlap %u %u hangs %d %d flipped %u\n",
                  ovl[oo].a_iid, ovl[oo].b_iid, ovl[oo].a_hang, ovl[oo].b_hang, ovl[oo].flipped);
       continue;
     }
@@ -452,9 +455,9 @@ placeReadUsingOverlaps(TigVector                &tigs,
 
   if (logFileFlagSet(LOG_PLACE_READ))  //  Nope, not ambiguous.
     if (target)
-      writeLog("\npFUO()-- begin for read %d into target tig %d\n", fid, target->id());
+      writeLog("\npRUO()-- begin for read %d into target tig %d\n", fid, target->id());
     else
-      writeLog("\npFUO()-- begin for read %d into all tigs\n", fid);
+      writeLog("\npRUO()-- begin for read %d into all tigs\n", fid);
 
   assert(fid > 0);
   assert(fid <= RI->numReads());
@@ -523,7 +526,7 @@ placeReadUsingOverlaps(TigVector                &tigs,
       end++;
 
     if (logFileFlagSet(LOG_PLACE_READ))
-      writeLog("pFUO()-- Merging placements %u to %u to place the read.\n", bgn, end);
+      writeLog("pRUO()-- Merging placements %u to %u to place the read.\n", bgn, end);
 
     //  Build interval lists for the begin point and the end point.  Remember, this is all reads
     //  to a single unitig (the whole picture above), not just the overlapping read sets (left
@@ -570,7 +573,7 @@ placeReadUsingOverlaps(TigVector                &tigs,
       //  Make a new overlapPlacement from the first placement in this cluster.
 
       if (logFileFlagSet(LOG_PLACE_READ))
-        writeLog("pFUO()-- process clusterID %u\n", ovlPlace[os].clusterID);
+        writeLog("pRUO()-- process clusterID %u\n", ovlPlace[os].clusterID);
 
       overlapPlacement  op(fid, ovlPlace[os]);
 
@@ -659,7 +662,7 @@ placeReadUsingOverlaps(TigVector                &tigs,
 
 
       if (logFileFlagSet(LOG_PLACE_READ))
-        writeLog("pFUO()--   placements[%u] - PLACE READ %d in unitig %d at %d,%d (+- %.2f,%.2f) -- ovl %d,%d -- cov %d,%d %.2f -- errors %.2f aligned %d novl %d%s\n",
+        writeLog("pRUO()--   placements[%u] - PLACE READ %d in unitig %d at %d,%d (+- %.2f,%.2f) -- ovl %d,%d -- cov %d,%d %.2f -- errors %.2f aligned %d novl %d%s\n",
                  placements.size() - 1,
                  op.frgID, op.tigID,
                  op.position.bgn, op.position.end, 0.0, 0.0,
