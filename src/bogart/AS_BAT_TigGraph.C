@@ -77,6 +77,20 @@ emitEdges(TigVector &tigs,
   placeReadUsingOverlaps(tigs, NULL, rdA->ident, placements, placeRead_all);
 
   //  Convert those placements into potential edges.
+  //
+  //  Overview: from this first placement, we'll try to extend the tig-tig alignment to generate the
+  //  full edge.  In pictures:
+  //
+  //         <-----------------------------------------------  tgA
+  //     rd1 ------------>
+  //     rd2   -------------->
+  //     rd3            <----------------
+  //
+  //  -------------------------------->    tgB (we don't care about its reads)
+  //
+  //  We'll place rd1 in tgB, then place rd2 and extend the alignment, then rd3 and notice that
+  //  we've covered all of tgB, so an edge is emitted.  If, say, rd2 failed to align fully, we'd
+  //  still extend the alignment, and let the total failure of rd3 kill the edge.
 
   for (uint32 pp=0; pp<placements.size(); pp++) {
     uint32   tid = placements[pp].tigID;
@@ -87,6 +101,24 @@ emitEdges(TigVector &tigs,
         (bgn <= rdA->position.max()) &&    //  at the same location, skip it.
         (rdA->position.min() <= end))
       continue;
+
+    //  For this to be a valid starting edge, the read must be placed from it's beginning.  In the
+    //  picture above, rd1 must be placed fully to it's 5' end.  The 3' end can flop around; if the
+    //  tig-tig alignment isn't true, then rd2 will fail to align.  Note thhat if the tig-tig
+    //  alignment is fully captured by only rd1, its 3' end will flop around, tgB will be fully covered,
+    //  and the edge will be emitted.
+
+    if (((rdA->isForward()) && (placements[pp].covered.bgn > 0)) ||
+        ((rdA->isReverse()) && (placements[pp].covered.end < RI->readLength(rdA->ident)))) {
+#ifdef SHOW_EDGES
+      writeLog("emitEdges()-- edge --- - tig %6u read %8u %8u-%-8u placed bases %8u-%-8u in tig %6u %8u-%-8u - INCOMPLETELY PLACED\n",
+               tgA->id(),
+               rdA->ident, rdA->position.bgn, rdA->position.end,
+               placements[pp].covered.bgn, placements[pp].covered.end,
+               tid, bgn, end);
+#endif
+      continue;
+    }
 
 #ifdef SHOW_EDGES
     writeLog("emitEdges()-- edge %3u - tig %6u read %8u %8u-%-8u placed bases %8u-%-8u in tig %6u %8u-%-8u\n",
@@ -100,11 +132,10 @@ emitEdges(TigVector &tigs,
     edges.push_back(grEdge(tid, bgn, end));
   }
 
-  //  Technically, we should run through the edges and emit those that are already satisfied.
-  //  But we can defer this until after the second read is processed.  Well, we could defer
-  //  until all reads are processed, but cleaning up the list makes us a little faster, and
-  //  also lets us short circuit when we run out of potential edges before we run out of reads
-  //  in the tig.
+  //  Technically, we should run through the edges and emit those that are already satisfied.  But
+  //  we can defer this until after the second read is processed.  Heck, we could defer until all
+  //  reads are processed, but cleaning up the list makes us a little faster, and also lets us short
+  //  circuit when we run out of potential edges before we run out of reads in the tig.
 
   //  While there are still placements to process, march down the reads in this tig, adding to the
   //  appropriate placement.
