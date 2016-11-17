@@ -94,11 +94,9 @@ public:
 class AssemblyGraph {
 public:
   AssemblyGraph(const char   *prefix,
-                double        deviationGraph,
-                double        deviationBubble,
                 double        deviationRepeat,
                 TigVector    &tigs) {
-    buildGraph(prefix, deviationGraph, deviationBubble, deviationRepeat, tigs);
+    buildGraph(prefix, deviationRepeat, tigs);
   }
   
   ~AssemblyGraph() {
@@ -115,8 +113,6 @@ public:
 public:
   void                      buildReverseEdges(void);
   void                      buildGraph(const char   *prefix,
-                                       double        deviationGraph,
-                                       double        deviationBubble,
                                        double        deviationRepeat,
                                        TigVector    &tigs);
 

@@ -411,8 +411,6 @@ main (int argc, char * argv []) {
   contigs.reportErrorProfiles(prefix, "assemblyGraph");
 
   AssemblyGraph *AG = new AssemblyGraph(prefix,
-                                        deviationGraph,
-                                        deviationBubble,
                                         deviationRepeat,
                                         contigs);
 

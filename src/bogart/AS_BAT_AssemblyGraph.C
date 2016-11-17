@@ -80,8 +80,6 @@ AssemblyGraph::buildReverseEdges(void) {
 
 void
 AssemblyGraph::buildGraph(const char   *UNUSED(prefix),
-                          double        UNUSED(deviationGraph),
-                          double        UNUSED(deviationBubble),
                           double        deviationRepeat,
                           TigVector    &tigs) {
   uint32  fiLimit    = RI->numReads();
