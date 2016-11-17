@@ -123,7 +123,7 @@ placeRead_fromOverlaps(TigVector   &tigs,
     //  Report the placement.
 
     if (logFileFlagSet(LOG_PLACE_READ))
-      writeLog("pRUO()-- read %6d in unitig %4d at %6d,%-6d (cov %5d,%5d) from overlap with %6d %6d:%-6d hang %6d %6d flipped %d%s\n",
+      writeLog("pRUO()-- read %7d in unitig %5d at %8d,%-8d (cov %5d,%5d) from overlap with %7d %8d:%-8d hang %6d %6d flipped %d%s\n",
                ovlPlace[i].frgID,
                ovlPlace[i].tigID,
                ovlPlace[i].position.bgn, ovlPlace[i].position.end,
