@@ -45,17 +45,19 @@ public:
     deleted  = true;
   };
 
-  grEdge(uint32 t, int32 b, int32 e) {
+  grEdge(uint32 t, int32 b, int32 e, bool f) {
     tigID    = t;
     bgn      = b;
     end      = e;
+    fwd      = f;
     extended = false;
     deleted  = false;
   };
 
-  uint32  tigID;    //  Which tig we're placing this in
-  int32   bgn;
-  int32   end;
+  uint32  tigID;      //  Which tig we're placing this in
+  int32   bgn;        //  Location of overlap
+  int32   end;        //
+  bool    fwd;        //  Overlap indicates tgB is forward (tgA is defined to be forward)
 
   bool    extended;
   bool    deleted;
@@ -77,6 +79,11 @@ emitEdges(TigVector &tigs,
   uint32    rdAlen = RI->readLength(rdA->ident);
 
   placeReadUsingOverlaps(tigs, NULL, rdA->ident, placements, placeRead_all);
+
+  //
+  //  Somewhere we need to weed out the high error overlaps - Unitig::overlapConsistentWithTig() won't work
+  //  because we're at the end of the tig and can have 1x of coverage.
+  //
 
   //  Convert those placements into potential edges.
   //
@@ -141,15 +148,22 @@ emitEdges(TigVector &tigs,
     }
 
 #ifdef SHOW_EDGES
-    writeLog("emitEdges()-- edge %3u - tig %6u read %8u %8u-%-8u placed bases %8u-%-8u in tig %6u %8u-%-8u\n",
+    writeLog("emitEdges()-- edge %3u - tig %6u read %8u %8u-%-8u placed bases %8u-%-8u in tig %6u %8u-%-8u quality %f\n",
              edges.size(),
              tgA->id(),
              rdA->ident, rdA->position.bgn, rdA->position.end,
              placements[pp].covered.bgn, placements[pp].covered.end,
-             tid, bgn, end);
+             tid, bgn, end,
+             (double)placements[pp].errors / placements[pp].aligned);
 #endif
 
-    edges.push_back(grEdge(tid, bgn, end));
+    bool fwd = false;
+
+    if (((rdA->isForward() == true)  && (placements[pp].verified.isForward() == true)) ||
+        ((rdA->isForward() == false) && (placements[pp].verified.isForward() == false)))
+      fwd = true;
+
+    edges.push_back(grEdge(tid, bgn, end, fwd));
   }
 
   //  Technically, we should run through the edges and emit those that are already satisfied.  But
@@ -209,16 +223,50 @@ emitEdges(TigVector &tigs,
         //  tgA against CAB in the target tig.  If not, we'll need to keep count of which direction
         //  we extend things in.
 
+
+        //  Fail if most of the extension is to the wrong side.  We always move to higher
+        //  coordinates on tgA.  If tgB is forward, it should move to higher coordinates too.
+
+        int32  nbgn = min(edges[ee].bgn, bgn);
+        int32  nend = max(edges[ee].end, end);
+
+        if ((edges[ee].fwd == true) &&
+            (bgn - nbgn > nend - end)) {  //  If we decrease bgn more than we increased end, fail
+#ifdef SHOW_EDGES
+        writeLog("emitEdges()-- edge %3u - extend from %5u-%-5u to %5u-%-5u -- placed read %5u at %5u-%-5u in tig %4u - wrong direction\n",
+                 ee,
+                 edges[ee].bgn, edges[ee].end,
+                 nbgn, nend,
+                 rdA->ident, bgn, end, tid);
+#endif
+          continue;
+        }
+
+        //  The reverse case is a bit tricky since we're tracking min/max posiiton on tgB.
+        //  When we extend on tgA, we expect the bgn to decrease on tgB and the end to stay the same.
+
+        if ((edges[ee].fwd == false) &&
+            (nend - end > bgn - nbgn)) {  //  If we increase end more than we decreased bgn, fail
+#ifdef SHOW_EDGES
+          writeLog("emitEdges()-- edge %3u - extend from %5u-%-5u to %5u-%-5u -- placed read %5u at %5u-%-5u in tig %4u - wrong direction\n",
+                   ee,
+                   edges[ee].bgn, edges[ee].end,
+                   nbgn, nend,
+                   rdA->ident, bgn, end, tid);
+#endif
+          continue;
+        }
+
 #ifdef SHOW_EDGES
         writeLog("emitEdges()-- edge %3u - extend from %5u-%-5u to %5u-%-5u -- placed read %5u at %5u-%-5u in tig %4u\n",
                  ee,
                  edges[ee].bgn, edges[ee].end,
-                 min(edges[ee].bgn, bgn), max(edges[ee].end, end),
+                 nbgn, nend,
                  rdA->ident, bgn, end, tid);
 #endif
 
-        edges[ee].bgn      = min(edges[ee].bgn, bgn);
-        edges[ee].end      = max(edges[ee].end, end);
+        edges[ee].bgn      = nbgn;
+        edges[ee].end      = nend;
         edges[ee].extended = true;
       }
     }
@@ -229,7 +277,8 @@ emitEdges(TigVector &tigs,
     //  in the other tig, and we're close enough to the end, instead of these silly 100bp thresholds.
 
     for (uint32 ee=0; ee<edges.size(); ee++) {
-      if (edges[ee].bgn <= 100) {
+
+      if ((edges[ee].fwd == false) && (edges[ee].bgn <= 100)) {
 #ifdef SHOW_EDGES_VERBOSE
         writeLog("emitEdges()-- edge %3u - tig %6u %s edgeTo tig %6u %s of length %6u (%6u-%6u)\n",
                  ee,
@@ -244,7 +293,7 @@ emitEdges(TigVector &tigs,
         edges[ee].deleted = true;
       }
 
-      if (edges[ee].end + 100 >= tigs[edges[ee].tigID]->getLength()) {
+      if ((edges[ee].fwd == true) && (edges[ee].end + 100 >= tigs[edges[ee].tigID]->getLength())) {
 #ifdef SHOW_EDGES_VERBOSE
         writeLog("emitEdges()-- edge %3u - tig %6u %s edgeTo tig %6u %s of length %6u (%6u-%6u)\n",
                  ee,
@@ -317,6 +366,10 @@ void
 reportTigGraph(TigVector &tigs, const char *prefix, const char *label) {
  char   N[FILENAME_MAX];
   FILE *BEG = NULL;
+
+  writeLog("\n");
+  writeLog("----------------------------------------\n");
+  writeLog("Generating graph\n");
 
   writeStatus("AssemblyGraph()-- generating '%s.unitigs.gfa'.\n", prefix);
 
