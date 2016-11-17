@@ -81,7 +81,8 @@ AssemblyGraph::buildReverseEdges(void) {
 void
 AssemblyGraph::buildGraph(const char   *UNUSED(prefix),
                           double        deviationRepeat,
-                          TigVector    &tigs) {
+                          TigVector    &tigs,
+                          bool          tigEndsOnly) {
   uint32  fiLimit    = RI->numReads();
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
@@ -129,6 +130,14 @@ AssemblyGraph::buildGraph(const char   *UNUSED(prefix),
 
     if (fiTigID == 0)  //  Unplaced, don't care.
       continue;
+
+    if (tigEndsOnly == true) {
+      uint32 f = tigs[fiTigID]->firstRead()->ident;
+      uint32 l = tigs[fiTigID]->lastRead()->ident;
+
+      if ((f != fi) && (l != fi))    //  Not the first read and not the last read,
+        continue;                    //  Don't care.
+    }
 
     //  Grab a bit about this read.
 

@@ -95,8 +95,9 @@ class AssemblyGraph {
 public:
   AssemblyGraph(const char   *prefix,
                 double        deviationRepeat,
-                TigVector    &tigs) {
-    buildGraph(prefix, deviationRepeat, tigs);
+                TigVector    &tigs,
+                bool          tigEndsOnly = false) {
+    buildGraph(prefix, deviationRepeat, tigs, tigEndsOnly);
   }
   
   ~AssemblyGraph() {
@@ -114,7 +115,8 @@ public:
   void                      buildReverseEdges(void);
   void                      buildGraph(const char   *prefix,
                                        double        deviationRepeat,
-                                       TigVector    &tigs);
+                                       TigVector    &tigs,
+                                       bool          tigEndsOnly);
 
   void                      rebuildGraph(TigVector     &tigs);
   void                      filterEdges(TigVector     &tigs);

@@ -485,6 +485,10 @@ main (int argc, char * argv []) {
   //
   //  Generate unitigs
   //
+  //  We want to split the contigs at any potential bubble, so this needs to be
+  //  at least the 'bubble' deviation.  We don't really want to split at confirmed
+  //  repeats, but we have no way of telling repeat from bubble yet.
+  //
 
   writeStatus("\n");
   writeStatus("==> GENERATE UNITIGS.\n");
@@ -492,8 +496,15 @@ main (int argc, char * argv []) {
 
   setLogFile(prefix, "generateUnitigs");
 
-  createUnitigs(AG, contigs, unitigs);
+  AssemblyGraph  *EG = new AssemblyGraph(prefix,
+                                         deviationBubble,
+                                         contigs,
+                                         true);
 
+  createUnitigs(EG, contigs, unitigs);
+
+  delete EG;
+  
   splitDiscontinuous(unitigs, minOverlap);
 
   setParentAndHang(unitigs);
