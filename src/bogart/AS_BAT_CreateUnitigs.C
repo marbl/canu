@@ -315,10 +315,12 @@ createUnitigs(AssemblyGraph  *AG,
 
   vector<breakPointEnd>   breaks;
 
-  //  Check the reads at the end of every tig for intersections to other tigs.
+  //  Check the reads at the end of every tig for intersections to other tigs.  If the read has a
+  //  compatible overlap to the middle of some other tig, split the other tig into multiple unitigs.
 
   writeLog("\n");
-  writeLog("Finding breakpoints.\n");
+  writeLog("----------------------------------------\n");
+  writeLog("Finding contig-end to contig-middle intersections.\n");
 
   for (uint32 ti=0; ti<contigs.size(); ti++) {
     Unitig    *tig = contigs[ti];
