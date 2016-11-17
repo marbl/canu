@@ -391,7 +391,7 @@ main (int argc, char * argv []) {
   contigs.computeErrorProfiles(prefix, "unplaced");
   contigs.reportErrorProfiles(prefix, "unplaced");
 
-  popBubbles(contigs, deviationGraph);
+  popBubbles(contigs, deviationBubble);
 
   //checkUnitigMembership(contigs);
   reportOverlaps(contigs, prefix, "mergeOrphans");
