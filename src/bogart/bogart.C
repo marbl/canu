@@ -496,6 +496,9 @@ main (int argc, char * argv []) {
 
   setLogFile(prefix, "generateUnitigs");
 
+  contigs.computeErrorProfiles(prefix, "generateUnitigs");
+  contigs.reportErrorProfiles(prefix, "generateUnitigs");
+
   AssemblyGraph  *EG = new AssemblyGraph(prefix,
                                          deviationBubble,
                                          contigs,
