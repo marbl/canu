@@ -161,8 +161,8 @@ sub generateOutputs ($$) {
     print STDERR "-- Summary saved in '$WRK/unitigging.html'.\n";
     print STDERR "--\n";
     print STDERR "-- Sequences saved:\n";
-    print STDERR "--   Contigs       -> '$WRK/$asm.contig.$type'\n";
-    print STDERR "--   Bubbles       -> '$WRK/$asm.bubble.$type'  (DEPRECATED)\n";
+    print STDERR "--   Contigs       -> '$WRK/$asm.contigs.$type'\n";
+    print STDERR "--   Bubbles       -> '$WRK/$asm.bubbles.$type'  (DEPRECATED)\n";
     print STDERR "--   Unassembled   -> '$WRK/$asm.unassembled.$type'\n";
     print STDERR "--   Unitigs       -> '$WRK/$asm.unitigs.$type'\n";
     print STDERR "--\n";
