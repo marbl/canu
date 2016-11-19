@@ -204,18 +204,14 @@ gkRead::gkRead_loadDataFromFile(gkReadData *readData, FILE *file) {
 void
 gkStore::gkStore_stashReadData(gkRead *read, gkReadData *data) {
 
-  assert(_blobsFile != NULL);
+  assert(_blobsWriter != NULL);
 
-  read->_mPtr = AS_UTL_ftell(_blobsFile);
+  read->_mPtr = _blobsWriter->tell();
   read->_pID  = _partitionID;                //  0 if not partitioned
 
-  //fprintf(stderr, "STASH read %u at position " F_SIZE_T "\n", read->gkRead_readID(), AS_UTL_ftell(_blobsFile));
+  //fprintf(stderr, "STASH read %u at position " F_U64 " or length " F_U64 "\n", read->gkRead_readID(), read->_mPtr, data->_blobLen);
 
-  AS_UTL_safeWrite(_blobsFile,
-                   data->_blob,
-                   "gkStore_stashReadData::blob",
-                   sizeof(char),
-                   data->_blobLen);
+  _blobsWriter->write(data->_blob, data->_blobLen);
 }
 
 
@@ -664,7 +660,7 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
 
   _blobsMMap              = NULL;
   _blobs                  = NULL;
-  _blobsFile              = NULL;
+  _blobsWriter            = NULL;
   _blobsFiles             = NULL;
 
   _mode                   = mode;
@@ -783,11 +779,7 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
     _blobsMMap     = NULL;
     _blobs         = NULL;
 
-    errno = 0;
-    _blobsFile     = fopen(name, "a+");
-    if (errno)
-      fprintf(stderr, "gkStore()--  Failed to open blobs file '%s' for appending: %s\n",
-              name, strerror(errno)), exit(1);
+    _blobsWriter   = new writeBuffer(name, "a+");
   }
 
   //
@@ -938,8 +930,8 @@ gkStore::~gkStore() {
   if (_blobsMMap)
     delete _blobsMMap;
 
-  if (_blobsFile)
-    fclose(_blobsFile);
+  if (_blobsWriter)
+    delete _blobsWriter;
 
   for (uint32 ii=0; ii<omp_get_max_threads(); ii++)
     if ((_blobsFiles) && (_blobsFiles[ii]))

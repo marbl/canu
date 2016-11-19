@@ -32,6 +32,7 @@
 
 #include "AS_global.H"
 #include "memoryMappedFile.H"
+#include "writeBuffer.H"
 
 #include <vector>
 
@@ -581,7 +582,7 @@ private:
 
   memoryMappedFile    *_blobsMMap;       //  Either the full blobs, or the partitioned blobs.
   void                *_blobs;           //  Pointer to the data in the blobsMMap.
-  FILE                *_blobsFile;       //  For constructing a store, data gets dumped here.
+  writeBuffer         *_blobsWriter;     //  For constructing a store, data gets dumped here.
   FILE               **_blobsFiles;      //  For loading reads directly, one per thread.
 
   //  If the store is openend partitioned, this data is loaded from disk
