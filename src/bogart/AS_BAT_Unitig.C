@@ -363,7 +363,7 @@ Unitig::overlapConsistentWithTig(double deviations,
   uint32  pbi = bgn / 1000;
 
   if (errorProfileIndex.size() <= pbi)
-    fprintf(stderr, "errorProfileIndex.size() = " F_SIZE_T "\n", errorProfileIndex.size());
+    fprintf(stderr, "errorProfileIndex.size() = " F_SIZE_T " but pbi = " F_U32 "\n", errorProfileIndex.size(),pbi);
   assert(pbi < errorProfileIndex.size());
 
   while ((0 < pbi) && (errorProfile[errorProfileIndex[pbi]].bgn > bgn)) {
