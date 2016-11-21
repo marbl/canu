@@ -525,6 +525,7 @@ int
 main(int argc, char **argv) {
   char            *gkpStoreName      = NULL;
   char            *outPrefix         = NULL;
+  gkStore_mode     mode              = gkStore_create;
 
   uint32           minReadLength     = 0;
 
@@ -539,8 +540,13 @@ main(int argc, char **argv) {
   int arg = 1;
   int err = 0;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-o") == 0) {
-      gkpStoreName = argv[++arg];
+    if        (strcmp(argv[arg], "-o") == 0) {  //  This previously used gkStore_append here, but if
+      mode         = gkStore_create;            //  two instances of gatekeeperCreate were run in the
+      gkpStoreName = argv[++arg];               //  same directory, they would clobber each other,
+                                                //  generating a blobs file that is a mix of both.
+    } else if (strcmp(argv[arg], "-a") == 0) {  //  So now the -c will fail if any trace of a store
+      mode         = gkStore_extend;            //  exists in the output location, and -a will
+      gkpStoreName = argv[++arg];               //  blindly add reads to an existing set of files
 
     } else if (strcmp(argv[arg], "-minlength") == 0) {
       minReadLength = atoi(argv[++arg]);
@@ -568,6 +574,7 @@ main(int argc, char **argv) {
   if (err) {
     fprintf(stderr, "usage: %s [...] -o gkpStore\n", argv[0]);
     fprintf(stderr, "  -o gkpStore         create this gkpStore\n");
+    fprintf(stderr, "  -a gkpStore         append to this gkpStore\n");
     fprintf(stderr, "  \n");
     fprintf(stderr, "  -minlength L        discard reads shorter than L\n");
     fprintf(stderr, "  \n");
@@ -582,7 +589,7 @@ main(int argc, char **argv) {
   }
 
 
-  gkStore     *gkpStore     = gkStore::gkStore_open(gkpStoreName, gkStore_extend);
+  gkStore     *gkpStore     = gkStore::gkStore_open(gkpStoreName, mode);
   gkRead      *gkpRead      = NULL;
   gkLibrary   *gkpLibrary   = NULL;
   uint32       gkpFileID    = 0;      //  Used for HTML output, an ID for each file loaded.

@@ -598,9 +598,9 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
   strncpy(_storePath, path, FILENAME_MAX-1);
   strncpy(_storeName, path, FILENAME_MAX-1);  //  Broken.
 
-  sprintf(name, "%s/info", _storePath);
-
   //  If the info file exists, load it.
+
+  sprintf(name, "%s/info", _storePath);
 
   if (AS_UTL_fileExists(name, false, false) == true) {
     errno = 0;
@@ -647,6 +647,21 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
   assert(_info.gkLibraryNameSize  == LIBRARY_NAME_SIZE);
   assert(_info.gkMaxReadBits      == AS_MAX_READS_BITS);
   assert(_info.gkMaxReadLenBits   == AS_MAX_READLEN_BITS);
+
+  //  If creating, check that files don't exist already.
+
+  if (mode == gkStore_create) {
+    mode = gkStore_extend;
+
+    sprintf(name, "%s/blobs", _storePath);
+
+    if (AS_UTL_fileExists(name, false, false) == true) {
+      fprintf(stderr, "ERROR:  Can't create store '%s': %s store exists in same location.\n",
+              _storePath,
+              (_info.numReads > 0) ? "complete" : "partial");
+      exit(1);
+    }
+  }
 
   //  Clear ourself, to make valgrind happier.
 

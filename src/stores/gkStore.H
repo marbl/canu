@@ -413,8 +413,9 @@ private:
 typedef enum {
   gkStore_readOnly    = 0x00,  //  Open read only
   gkStore_modify      = 0x01,  //  Open for modification - never used, explicitly uses mmap file
-  gkStore_extend      = 0x02,  //  Open for modification and appending new reads/libraries
-  gkStore_infoOnly    = 0x03   //  Open read only, but only load the info on the store; no access to reads or libraries
+  gkStore_create      = 0x02,  //  Open for creating, will fail if files exist already
+  gkStore_extend      = 0x03,  //  Open for modification and appending new reads/libraries
+  gkStore_infoOnly    = 0x04   //  Open read only, but only load the info on the store; no access to reads or libraries
 } gkStore_mode;
 
 
@@ -425,6 +426,7 @@ toString(gkStore_mode m) {
   switch (m) {
     case gkStore_readOnly:     return("gkStore_readOnly");     break;
     case gkStore_modify:       return("gkStore_modify");       break;
+    case gkStore_create:       return("gkStore_create");       break;
     case gkStore_extend:       return("gkStore_extend");       break;
     case gkStore_infoOnly:     return("gkStore_infoOnly");     break;
   }
