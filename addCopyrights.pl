@@ -413,11 +413,16 @@ while (<FIN>) {
     close(F);
 
     if ($doForReal) {
+        my $perms = `stat -f %p $file`;  chomp $perms;  $perms = substr($perms, -3);
+
         rename "$file", "$file.ORIG";
 
         open(F, "> $file") or die "Failed to open '$file' for writing: $!\n";
         print F @lines;
         close(F);
+
+        system("chmod $perms $file");
+        
     } else {
         open(F, "> $file.MODIFIED") or die "Failed to open '$file.MODIFIED' for writing: $!\n";
         print F @lines;
