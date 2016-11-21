@@ -332,7 +332,7 @@ unitigConsensus::generatePBDAG(tgTig                     *tig_,
   fprintf(F, ">tig%d template\n%s\n", tig->tigID(), utg.seq.c_str());
   fclose(F);
 #endif
-      
+
   AlnGraphBoost ag(utg.seq);
 
   //  Compute alignments of each sequence in parallel
@@ -389,7 +389,7 @@ unitigConsensus::generatePBDAG(tgTig                     *tig_,
                                    bandTolerance,
                                    true,
                                    ndaln);
-      
+
     }
 
     double errorRateAln = (ndaln._size > 0) ? ((double)ndaln._dist / ndaln._size) : 1.0;

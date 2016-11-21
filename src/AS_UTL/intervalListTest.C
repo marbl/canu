@@ -41,7 +41,7 @@ typedef uint64_t uint64;
 
 #include "intervalList.H"
 
-//  g++ -o intervalListTest -I.. -I. intervalListTest.C 
+//  g++ -o intervalListTest -I.. -I. intervalListTest.C
 
 int
 main(int argc, char **argv) {

@@ -13,6 +13,10 @@
  *  Canu branched from Celera Assembler at its revision 4587.
  *  Canu branched from the kmer project at its revision 1994.
  *
+ *  This file is derived from:
+ *
+ *    src/stores/ovStore.H
+ *
  *  Modifications by:
  *
  *    Brian P. Walenz beginning on 2016-OCT-24

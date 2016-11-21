@@ -414,7 +414,7 @@ OverlapCache::filterDuplicates(uint32 &no) {
       continue;
 
     //  Found duplicate B IDs.  Drop one of them.
-    
+
     nFiltered++;
 
     //  If they're the same length, make the one with the higher evalue be length zero so it'll be
@@ -827,7 +827,7 @@ OverlapCache::symmetrizeOverlaps(void) {
     for (uint32 oo=0; oo<_overlapLen[rr]; oo++) {
       if (_overlaps[rr][oo].symmetric == true)
         continue;
-   
+
       uint32  rb = _overlaps[rr][oo].b_iid;
       uint32  nn = _overlapLen[rb]++;
 

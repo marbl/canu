@@ -15,7 +15,7 @@
  *
  *  Modifications by:
  *
- *    Brian P. Walenz beginning on 2016-APR-06
+ *    Brian P. Walenz beginning on 2016-AUG-09
  *      are a 'United States Government Work', and
  *      are released in the public domain
  *

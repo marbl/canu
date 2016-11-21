@@ -275,7 +275,7 @@ splitTig(TigVector                &tigs,
 
 //  Over all reads in tgA, return a vector of olapDat (tigBgn, tigEnd, eviRid)
 //  for all reads that overlap into this tig.
-//  
+//
 //  The current AssemblyGraph is backwards to what we need.  It has, for each read, the
 //  overlaps from that read that are compatible - but we need to the overlaps to each
 //  read that are compatible, and the two are not symmetric.  A can be compatible in tig 1,

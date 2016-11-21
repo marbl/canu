@@ -277,7 +277,7 @@ BestOverlapGraph::removeLopsidedEdges(const char *UNUSED(prefix)) {
 #pragma omp critical (suspInsert)
     {
       _suspicious.insert(fi);
-      
+
       if ((percDiff5 > 5.0) && (percDiff3 > 5.0))
         _n2EdgeIncompatible++;
       else

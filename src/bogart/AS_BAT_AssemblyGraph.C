@@ -576,7 +576,7 @@ AssemblyGraph::rebuildGraph(TigVector     &tigs) {
                (t5 == UINT32_MAX) ||   //  5' overlap isn't set
                (t3 == UINT32_MAX)) {   //  3' overlap isn't set
         nSame++;
-        placeAsDovetail(tigs, fi, bp); 
+        placeAsDovetail(tigs, fi, bp);
       }
 
       //  Otherwise, yikes, our overlapping reads are in different tigs!  We need to make new
@@ -749,7 +749,7 @@ AssemblyGraph::filterEdges(TigVector     &tigs) {
     for (uint32 ff=0; ff<_pForward[fi].size(); ff++) {
       BestPlacement   &bp = _pForward[fi][ff];
 
-      if (bp.isUnitig == true)   { nUnitig++;  continue; } 
+      if (bp.isUnitig == true)   { nUnitig++;  continue; }
       if (bp.isContig == true)   { nContig++;  continue; }
       if (bp.isRepeat == true)   { nRepeatEdges++;       }
       if (bp.isRepeat == false)  { nBubbleEdges++;       }

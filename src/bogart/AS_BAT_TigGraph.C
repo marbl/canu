@@ -329,7 +329,7 @@ emitEdges(TigVector &tigs,
                edges[ee].bgn, edges[ee].end, tigs[edges[ee].tigID]->getLength(),
                rdA->ident, fi);
 #endif
-                 
+
       edges[ee].deleted = true;
     }
 

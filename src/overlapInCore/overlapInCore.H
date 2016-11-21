@@ -488,7 +488,7 @@ public:
   uint32  perThread;        //  When processing, how many to do per block
 
   uint64  Kmer_Len;         //  -k
-  uint64  Filter_By_Kmer_Count; 
+  uint64  Filter_By_Kmer_Count;
   FILE   *Kmer_Skip_File;   //  -k
 
   //  Maximum number of overlaps for end of an old fragment against

@@ -69,7 +69,7 @@ sub uniqueKmerThreshold($$$$) {
     my $threshold = 0;
     my $kMer_loss = poisson_pdf($effective_coverage, 0);
 
-    return 1 if($kMer_loss > $loss); 
+    return 1 if($kMer_loss > $loss);
 
     my $keepTrying = 1;
     while($keepTrying)
@@ -119,7 +119,7 @@ sub runMHAP($$$$$$$$$$$$) {
 
     print STDERR "--\n";
     print STDERR "-- PARAMETERS: hashes=$numHashes, minMatches=$minNumMatches, threshold=$threshold\n";
-    print STDERR "--\n";   
+    print STDERR "--\n";
 
     my $cmd  = "$javaPath -d64 -server -Xmx4g -jar $bin/mhap-" . getGlobal("${tag}MhapVersion") . ".jar ";
     $cmd .= "  --no-self --repeat-weight 0.9 -k $merSize --num-hashes $numHashes --num-min-matches $minNumMatches --ordered-sketch-size $ordSketch --ordered-kmer-size $ordSketchMer  --threshold $threshold --filter-threshold $filterThreshold --num-threads " . getGlobal("${tag}mhapThreads");

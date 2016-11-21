@@ -99,7 +99,7 @@ public:
                 bool          tigEndsOnly = false) {
     buildGraph(prefix, deviationRepeat, tigs, tigEndsOnly);
   }
-  
+
   ~AssemblyGraph() {
     delete [] _pForward;
     delete [] _pReverse;

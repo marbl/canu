@@ -1,3 +1,32 @@
+
+/******************************************************************************
+ *
+ *  This file is part of canu, a software program that assembles whole-genome
+ *  sequencing reads into contigs.
+ *
+ *  This software is based on:
+ *    'Celera Assembler' (http://wgs-assembler.sourceforge.net)
+ *    the 'kmer package' (http://kmer.sourceforge.net)
+ *  both originally distributed by Applera Corporation under the GNU General
+ *  Public License, version 2.
+ *
+ *  Canu branched from Celera Assembler at its revision 4587.
+ *  Canu branched from the kmer project at its revision 1994.
+ *
+ *  Modifications by:
+ *
+ *    Sergey Koren beginning on 2016-AUG-30
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
+ *
+ *    Brian P. Walenz beginning on 2016-SEP-23
+ *      are a 'United States Government Work', and
+ *      are released in the public domain
+ *
+ *  File 'README.licenses' in the root directory of this distribution contains
+ *  full conditions and disclaimers for each license.
+ */
+
 /*
  * The MIT License (MIT)
  *
@@ -479,7 +508,7 @@ static int myersCalcEditDistanceSemiGlobal(Word* const Peq, const int W, const i
                                            int* bestScore_, int** positions_, int* numPositions_) {
     *positions_ = NULL;
     *numPositions_ = 0;
-    
+
     // firstBlock is 0-based index of first block in Ukkonen band.
     // lastBlock is 0-based index of last block in Ukkonen band.
     int firstBlock = 0;
@@ -492,11 +521,11 @@ static int myersCalcEditDistanceSemiGlobal(Word* const Peq, const int W, const i
     if (mode == EDLIB_MODE_HW) {
         k = min(queryLength, k);
     }
-    
+
     // Each STRONG_REDUCE_NUM column is reduced in more expensive way.
     // This gives speed up of about 2 times for small k.
     const int STRONG_REDUCE_NUM = 2048;
-    
+
     // Initialize P, M and score
     bl = blocks;
     for (int b = 0; b <= lastBlock; b++) {
@@ -581,7 +610,7 @@ static int myersCalcEditDistanceSemiGlobal(Word* const Peq, const int W, const i
         //------------------------- Update best score ----------------------//
         if (lastBlock == maxNumBlocks - 1) {
             int colScore = bl->score;
-            if (colScore <= k) { // Scores > k dont have correct values (so we cannot use them), but are certainly > k. 
+            if (colScore <= k) { // Scores > k dont have correct values (so we cannot use them), but are certainly > k.
                 // NOTE: Score that I find in column c is actually score from column c-W
                 if (bestScore == -1 || colScore <= bestScore) {
                     if (colScore != bestScore) {
@@ -706,7 +735,7 @@ static int myersCalcEditDistanceNW(Word* Peq, int W, int maxNumBlocks,
         k = min(k, bl->score
                 + max(targetLength - c - 1, queryLength - ((1 + lastBlock) * WORD_SIZE - 1) - 1)
                 + (lastBlock == maxNumBlocks - 1 ? W : 0));
-        
+
         //---------- Adjust number of blocks according to Ukkonen ----------//
         //--- Adjust last block ---//
         // If block is not beneath band, calculate next block. Only next because others are certainly beneath band.
@@ -726,7 +755,7 @@ static int myersCalcEditDistanceNW(Word* Peq, int W, int maxNumBlocks,
         // NOTICE: I added + W, and now it works! This has to be added because query is padded with W cells.
         while (lastBlock >= firstBlock
                && (bl->score >= k + WORD_SIZE
-                   || ((lastBlock + 1) * WORD_SIZE - 1 > 
+                   || ((lastBlock + 1) * WORD_SIZE - 1 >
                        k - bl->score + 2 * WORD_SIZE - 2 - targetLength + c + queryLength + W))) {
             lastBlock--; bl--;
         }
@@ -742,7 +771,7 @@ static int myersCalcEditDistanceNW(Word* Peq, int W, int maxNumBlocks,
         }
         //--------------------------/
 
-        
+
         // TODO: consider if this part is useful, it does not seem to help much
         if (c % STRONG_REDUCE_NUM == 0) { // Every some columns do more expensive but more efficient reduction
             while (lastBlock >= firstBlock) {
@@ -754,7 +783,7 @@ static int myersCalcEditDistanceNW(Word* Peq, int W, int maxNumBlocks,
                     // TODO: Does not work if do not put +1! Why???
                     if (scores[i] <= k && r <= k - scores[i] - targetLength + c + queryLength + W + 1) {
                         reduce = false;
-                        break; 
+                        break;
                     }
                     r--;
                 }

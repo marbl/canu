@@ -507,7 +507,7 @@ main (int argc, char * argv []) {
   createUnitigs(EG, contigs, unitigs);
 
   delete EG;
-  
+
   splitDiscontinuous(unitigs, minOverlap);
 
   setParentAndHang(unitigs);

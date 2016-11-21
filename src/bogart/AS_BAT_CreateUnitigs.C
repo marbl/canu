@@ -249,7 +249,7 @@ checkRead(AssemblyGraph *AG,
     //  and if it is the first or last read.
     //
     //           first == true                  first == false
-    //  best5    fwd   == true  --------->      fwd   == false  <---------    
+    //  best5    fwd   == true  --------->      fwd   == false  <---------
     //  best3    fwd   == false <----------     fwd   == true   --------->
 
     BAToverlap     best = (isFirst == rdA->position.isForward()) ? pf.best5 : pf.best3;
@@ -327,7 +327,7 @@ createUnitigs(AssemblyGraph  *AG,
 
     if (tig == NULL)
       continue;
- 
+
     if (tig->_isUnassembled == true)    //  Edge is FROM an unassembled thing, ignore it.
       continue;
 
@@ -372,7 +372,7 @@ createUnitigs(AssemblyGraph  *AG,
 
   uint32  ss = 0;
   uint32  ee = 0;
-  
+
   while (ss < breaks.size()) {
     Unitig  *tig = contigs[breaks[ss]._tigID];
 

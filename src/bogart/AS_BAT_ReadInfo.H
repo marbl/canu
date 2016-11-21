@@ -13,13 +13,9 @@
  *  Canu branched from Celera Assembler at its revision 4587.
  *  Canu branched from the kmer project at its revision 1994.
  *
- *  This file is derived from:
- *
- *    src/bogart/AS_BAT_Datatypes.H
- *
  *  Modifications by:
  *
- *    Brian P. Walenz beginning on 2016-APR-28
+ *    Brian P. Walenz beginning on 2016-AUG-12
  *      are a 'United States Government Work', and
  *      are released in the public domain
  *

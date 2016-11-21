@@ -242,7 +242,7 @@ public:
 
   //  For bucketizing
 
-  //void         
+  //void
 
   //  For sorting
 
@@ -267,7 +267,7 @@ public:
   void         checkSortingIsComplete(void);
   void         removeAllIntermediateFiles(void);
 
- 
+
 
 private:
   char               _storePath[FILENAME_MAX];
@@ -389,7 +389,7 @@ public:
   uint64   filteredErate(void)      { return(skipERATE);    };
 
   uint64   filteredNoTrim(void)     { return(skipOBT);      };
-  uint64   filteredBadTrim(void)    { return(skipOBTbad);   }; 
+  uint64   filteredBadTrim(void)    { return(skipOBTbad);   };
   uint64   filteredShortTrim(void)  { return(skipOBTshort); };
 
   uint64   filteredNoDedupe(void)   { return(skipDUP);      };

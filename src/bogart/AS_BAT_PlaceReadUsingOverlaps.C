@@ -15,19 +15,11 @@
  *
  *  This file is derived from:
  *
- *    src/AS_BAT/AS_BAT_PlaceFragUsingOverlaps.C
+ *    src/bogart/AS_BAT_PlaceFragUsingOverlaps.C
  *
  *  Modifications by:
  *
- *    Brian P. Walenz from 2010-NOV-23 to 2013-SEP-08
- *      are Copyright 2010-2013 J. Craig Venter Institute, and
- *      are subject to the GNU General Public License version 2
- *
- *    Brian P. Walenz from 2014-OCT-09 to 2015-AUG-05
- *      are Copyright 2014-2015 Battelle National Biodefense Institute, and
- *      are subject to the BSD 3-Clause License
- *
- *    Brian P. Walenz beginning on 2016-JAN-11
+ *    Brian P. Walenz beginning on 2016-AUG-12
  *      are a 'United States Government Work', and
  *      are released in the public domain
  *
@@ -326,7 +318,7 @@ placeRead_computeVerified(overlapPlacement &op, uint32 tigLen) {
     op.verified.end = op.position.bgn + op.covered.end;
 
     if (op.verified.end > op.position.end)   //  verified.bgn is always valid if covered.bgn > 0
-      op.verified.end = op.position.end;     //  
+      op.verified.end = op.position.end;     //
 
     if (op.verified.bgn < 0)
       op.verified.bgn = 0;

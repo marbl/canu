@@ -226,7 +226,7 @@ foreach my $typefile (@inputFiles) {
 
     $haveCorrected = 1                  if ($type =~ m/corrected/);
     $haveRaw = 1                        if ($type =~ m/raw/);
-    
+
     setErrorRate(0.015)                 if ($type =~ m/pacbio/);
     setGlobal("corErrorRate", "0.30")   if ($type =~ m/pacbio/);
 

@@ -191,7 +191,7 @@ main(int argc, char **argv) {
 
   uint64 *bucketSizes = new uint64 [jobIdxMax + 1];
   uint64  totOvl      = writer->loadBucketSizes(bucketSizes);
-  
+
   //  Fail if we don't have enough memory to process.
 
   if (ovOverlapSortSize * totOvl > maxMemory) {

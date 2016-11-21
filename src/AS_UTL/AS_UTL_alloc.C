@@ -31,7 +31,6 @@
  *  full conditions and disclaimers for each license.
  */
 
-
 #include "AS_UTL_alloc.H"
 
 

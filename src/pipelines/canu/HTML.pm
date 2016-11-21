@@ -742,7 +742,7 @@ sub buildUnitiggerHTML ($$$$$$) {
             $some   = $1   if (m/numAbove\s+=\s+(\d+)\s+reads/);
             $olaps  = $1   if (m/totalLoad\s+=\s+(\d+)\s+overlaps/);
 
-            
+
         }
         close(F);
 

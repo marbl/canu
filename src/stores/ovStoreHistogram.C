@@ -15,7 +15,7 @@
  *
  *  Modifications by:
  *
- *    Brian P. Walenz beginning on 2016-OCT-24
+ *    Brian P. Walenz beginning on 2016-OCT-25
  *      are a 'United States Government Work', and
  *      are released in the public domain
  *
@@ -278,7 +278,7 @@ ovStoreHistogram::loadData(char *prefix) {
       resizeArray(_opr, _oprLen, _oprMax, inLen + inLen/2, resizeArray_copyData | resizeArray_clearNew);
 
     if (_oprLen < inLen)                                                            //  Remember the new length
-      _oprLen = inLen;  
+      _oprLen = inLen;
 
     uint32 *in = new uint32 [inLen];                                                //  Allocate temp space for new values
 

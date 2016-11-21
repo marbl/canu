@@ -242,11 +242,11 @@ tgTig::computeCoverage(bool useGapped) {
 
     allL.add(bgn, end - bgn);
   }
-  
+
   intervalList<int32>   ID(allL);
 
   double  aveDepth    = 0;
-  
+
   for (uint32 ii=0; ii<ID.numberOfIntervals(); ii++)
     aveDepth += (ID.hi(ii) - ID.lo(ii) + 1) * ID.depth(ii);
 

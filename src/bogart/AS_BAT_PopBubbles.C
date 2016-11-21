@@ -472,7 +472,7 @@ popBubbles(TigVector &tigs,
 
       targetIntervals[tid]->add(bgn, bubbleLen);  //  Don't care if it goes off the high end of the tig.
     }
-    
+
     //  Add extended intervals for the last read.
 
     for (uint32 pp=0; pp<placed[lReadID].size(); pp++) {
@@ -504,7 +504,7 @@ popBubbles(TigVector &tigs,
       //  Merge.
 
       IL->merge();
-      
+
       //  Figure out if each interval has both the first and last read of some bubble, and if those
       //  are properly sized.
 
@@ -574,7 +574,7 @@ popBubbles(TigVector &tigs,
         bool  alignInnie = (alignFwd  && fPosFwd && !rPosFwd);
 
 
-        //if ((bubbleInnie  == true) && 
+        //if ((bubbleInnie  == true) &&
         //if ((bubbleOuttie == true) && ((alignFwd == true) || (fPosFwd == true) || (rPosFwd == false)));
         //if ((bubbleFwd    == true) && ((alignFwd == true) || (fPosFwd == true) || (rPosFwd == false)));
         //if ((bubbleRev    == true) && ((alignFwd == true) || (fPosFwd == true) || (rPosFwd == false)));
@@ -596,7 +596,7 @@ popBubbles(TigVector &tigs,
     }  //  Over all targets
 
     //  Done with the targetIntervals.  Clean up.
-    
+
     for (map<uint32, intervalList<uint32> *>::iterator it=targetIntervals.begin(); it != targetIntervals.end(); ++it)
       delete it->second;
 

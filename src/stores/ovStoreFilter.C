@@ -15,12 +15,11 @@
  *
  *  This file is derived from:
  *
- *    src/AS_OVS/AS_OVS_overlapStore.C
- *    src/AS_OVS/AS_OVS_overlapStore.c
+ *    src/stores/ovStore.C
  *
  *  Modifications by:
  *
- *    Brian P. Walenz beginning on 2016-OCT-26
+ *    Brian P. Walenz beginning on 2016-OCT-28
  *      are a 'United States Government Work', and
  *      are released in the public domain
  *

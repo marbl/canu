@@ -71,7 +71,7 @@ sub utgcns ($$$$) {
     print F "  exit 1\n";
     print F "fi\n";
     print F "\n";
-    print F "if [ \$jobid -le $ctgjobs ] ; then\n"; 
+    print F "if [ \$jobid -le $ctgjobs ] ; then\n";
     print F "  tag=\"ctg\"\n";
     print F "else\n";
     print F "  tag=\"utg\"\n";

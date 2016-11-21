@@ -263,6 +263,6 @@ ChunkGraph::countFullWidth(ReadEnd firstEnd) {
     fprintf(_chunkLog, "\n");
   }
 
-  
+
   return(_pathLen[firstIdx]);
 }

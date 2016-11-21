@@ -170,8 +170,8 @@ recomputeOverlaps(void *ptr) {
       uint32  bID  = ovl->b_iid;
 
       //  Compute the overlap
-      if (ovl->a_end() - ovl->a_bgn() + 1 < minOverlapLength && ovl->b_end() - ovl->b_bgn() + 1 < minOverlapLength) { 
-         continue; 
+      if (ovl->a_end() - ovl->a_bgn() + 1 < minOverlapLength && ovl->b_end() - ovl->b_bgn() + 1 < minOverlapLength) {
+         continue;
       }
 
 #ifdef DEBUG
@@ -211,7 +211,7 @@ if (nTested % 1000 == 0) {
 fprintf(stderr, "Overlap between %d and %d at %d found %d %d hits\n", aID, bID, tolerance, bQuery.numLocations, aQuery.numLocations);
 #endif
   if (aQuery.numLocations >= 1 || bQuery.numLocations >= 1) {
-     // if we couldn't find one of the options, try trimming and re-computing 
+     // if we couldn't find one of the options, try trimming and re-computing
      if (bQuery.numLocations == 0) {
         ovl->dat.ovl.ahg5 = aQuery.startLocations[0] + astartExtended;
         ovl->dat.ovl.ahg3 = rcache->getLength(aID) - (aQuery.endLocations[0] + astartExtended + 1);
@@ -318,14 +318,14 @@ fprintf(stderr, "Overlap %d %d case 4 3' dovetail \n", aID, bID);
 fprintf(stderr, "Recomputed overlap from %d to %d is %d - %d and %d - %d\n", aID, bID, ovl->a_bgn(), ovl->a_end(), (ovl->flipped() ? rcache->getLength(bID) - ovl->b_bgn() : ovl->b_bgn()), (ovl->flipped() ? rcache->getLength(bID) - ovl->b_end() : ovl->b_end()));
 #endif
      // now compute the final
-     if (changed) { 
+     if (changed) {
         bstart = ovl->flipped() ? rcache->getLength(bID) - ovl->b_bgn() : ovl->b_bgn();
         bend = ovl->flipped() ? rcache->getLength(bID) - ovl->b_end() : ovl->b_end();
         result = edlibAlign(rcache->getRead(aID)+ovl->a_bgn(), ovl->a_end()-ovl->a_bgn(), bRead+bstart, bend-bstart, edlibNewAlignConfig(tolerance, EDLIB_MODE_NW, EDLIB_TASK_LOC));
         if (result.numLocations >= 1) {
            dist = result.editDistance;
-           alignmentLength = ovl->a_end() - ovl->a_bgn(); 
-        } else { 
+           alignmentLength = ovl->a_end() - ovl->a_bgn();
+        } else {
            dist = ovl->a_end() - ovl->a_bgn();
            alignmentLength = 0;
         }
