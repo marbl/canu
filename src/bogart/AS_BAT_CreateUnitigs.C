@@ -280,11 +280,12 @@ checkRead(AssemblyGraph *AG,
     bool      isLow = (rdB->position.isForward()) ? best.BEndIs5prime() : best.BEndIs3prime();
     uint32    coord = (isLow == true) ? rdB->position.min() : rdB->position.max();
 
-    //  With all that done, throw out the edge if rdB is internal to a tig and to either a different
-    //  tig (and so a validated repeat) or to the same tig (and used to form the contig itself).
+    //  With all that done, throw out the edge if the overlap was used to form the contig itself.
+    //
+    //  We used to also throw out edges to validated repeats (pf.isRepeat == true), but those are
+    //  indistinguishable from bubbles.
 
-    if (/* (pf.isRepeat == true) ||*/
-        (pf.isContig == true)) {
+    if (pf.isContig == true) {
       writeLog("createUnitigs()-- read %6u edgeTo tig %5u at coordinate %8u via intersection with read %6u IS_%s\n",
                rdA->ident, tgB->id(), coord, rdB->ident, (pf.isContig == true) ? "CONTIG" : "REPEAT");
       continue;
