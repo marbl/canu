@@ -68,7 +68,7 @@ public:
 void
 emitEdges(TigVector &tigs,
           Unitig    *tgA,
-          bool       isForward,
+          bool       tgAflipped,
           FILE      *BEG) {
   vector<overlapPlacement>   placements;
   vector<grEdge>             edges;
@@ -277,18 +277,19 @@ emitEdges(TigVector &tigs,
     //  in the other tig, and we're close enough to the end, instead of these silly 100bp thresholds.
 
     for (uint32 ee=0; ee<edges.size(); ee++) {
+      bool  tgBflipped = (edges[ee].tigID == tgA->id()) && (tgAflipped);
 
       if ((edges[ee].fwd == false) && (edges[ee].bgn <= 100)) {
 #ifdef SHOW_EDGES_VERBOSE
         writeLog("emitEdges()-- edge %3u - tig %6u %s edgeTo tig %6u %s of length %6u (%6u-%6u)\n",
                  ee,
-                 tgA->id(), isForward ? "<--" : "-->",
-                 edges[ee].tigID, "-->",
+                 tgA->id(),       tgAflipped ? "<--" : "-->",
+                 edges[ee].tigID, tgBflipped ? "-->" : "<--",
                  edges[ee].end - edges[ee].bgn, edges[ee].bgn, edges[ee].end);
 #endif
         fprintf(BEG, "L\ttig%08u\t%c\ttig%08u\t%c\t%uM\n",
-                tgA->id(), isForward ? '-' : '+',
-                edges[ee].tigID, '+',
+                tgA->id(),       tgAflipped ? '-' : '+',
+                edges[ee].tigID, tgBflipped ? '+' : '-',
                 edges[ee].end - edges[ee].bgn);
         edges[ee].deleted = true;
       }
@@ -297,13 +298,13 @@ emitEdges(TigVector &tigs,
 #ifdef SHOW_EDGES_VERBOSE
         writeLog("emitEdges()-- edge %3u - tig %6u %s edgeTo tig %6u %s of length %6u (%6u-%6u)\n",
                  ee,
-                 tgA->id(), isForward ? "<--" : "-->",
-                 edges[ee].tigID, "<--",
+                 tgA->id(),       tgAflipped ? "<--" : "-->",
+                 edges[ee].tigID, tgBflipped ? "<--" : "-->",
                  edges[ee].end - edges[ee].bgn, edges[ee].bgn, edges[ee].end);
 #endif
-        fprintf(BEG, "L\ttig%08u\t%c\ttig%08u\t%c\t%uM\n",
-                tgA->id(), isForward ? '-' : '+',
-                edges[ee].tigID, '-',
+        fprintf(BEG, "L\ttig%08u\t%c\ttig%08u\t%c\t%uM\n",  //  is correct
+                tgA->id(),       tgAflipped ? '-' : '+',
+                edges[ee].tigID, tgBflipped ? '-' : '+',
                 edges[ee].end - edges[ee].bgn);
         edges[ee].deleted = true;
       }
@@ -313,13 +314,18 @@ emitEdges(TigVector &tigs,
     //  time we hit this code we'll emit edges for both the first read and the second read.
 
     for (uint32 ee=0; ee<edges.size(); ee++) {
+      bool  tgBflipped = (edges[ee].tigID == tgA->id()) && (tgAflipped);
+
+      if (edges[ee].fwd == false)
+        tgBflipped = !tgBflipped;
+
       if (edges[ee].extended == true)
         continue;
 
 #ifdef SHOW_EDGES
       writeLog("emitEdges()-- tig %6u %s edgeTo tig %6u %s [0 %u-%u %u] UNSATISFIED at read %u #%u\n",
-               tgA->id(), isForward ? "<--" : "-->",
-               edges[ee].tigID, "-->",
+               tgA->id(),       tgAflipped ? "<--" : "-->",
+               edges[ee].tigID, tgBflipped ? "<--" : "-->",
                edges[ee].bgn, edges[ee].end, tigs[edges[ee].tigID]->getLength(),
                rdA->ident, fi);
 #endif
@@ -347,12 +353,18 @@ emitEdges(TigVector &tigs,
   //  Any edges still on the list aren't edges, so we're all done without needing to check anything.
 
 #ifdef SHOW_EDGES
-  for (uint32 ee=0; ee<edges.size(); ee++)
+  for (uint32 ee=0; ee<edges.size(); ee++) {
+    bool  tgBflipped = (edges[ee].tigID == tgA->id()) && (tgBflipped);
+
+    if (edges[ee].fwd == false)
+      tgBflipped = !tgBflipped;
+
     if (edges[ee].extended == false)
       writeLog("emitEdges()-- tig %6u %s edgeTo tig %6u %s [0 %u-%u %u] UNSATISFIED after all reads\n",
-               tgA->id(), isForward ? "<--" : "-->",
-               edges[ee].tigID, "-->",
+               tgA->id(),       tgAflipped ? "<--" : "-->",
+               edges[ee].tigID, tgBflipped ? "<--" : "-->",
                edges[ee].bgn, edges[ee].end, tigs[edges[ee].tigID]->getLength());
+  }
 #endif
 }
 
@@ -409,7 +421,7 @@ reportTigGraph(TigVector &tigs, const char *prefix, const char *label) {
              ti, tgA->getLength(), tgA->ufpath.size(), tgA->firstRead()->ident);
 #endif
 
-    emitEdges(tigs, tgA, true,  BEG);
+    emitEdges(tigs, tgA, false, BEG);
 
 #ifdef SHOW_EDGES
     writeLog("\n");
@@ -418,7 +430,7 @@ reportTigGraph(TigVector &tigs, const char *prefix, const char *label) {
 #endif
 
     tgA->reverseComplement();
-    emitEdges(tigs, tgA, false, BEG);
+    emitEdges(tigs, tgA, true, BEG);
     tgA->reverseComplement();
 
     //logFileFlags &= ~LOG_PLACE_READ;
