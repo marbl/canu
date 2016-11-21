@@ -183,6 +183,17 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
     }
   }
 
+  //  Warn if no overlaps.
+
+  if (olaps.size() == 0) {
+    writeLog("WARNING:  tig %u length %u nReads %u has no overlaps.\n", id(), getLength(), ufpath.size());
+    for (uint32 fi=0; fi<ufpath.size(); fi++)
+      writeLog("WARNING:    read %7u %7u-%-7u\n",
+               ufpath[fi].ident,
+               ufpath[fi].position.bgn,
+               ufpath[fi].position.end);
+  }
+
   //  Sort.
 
   std::sort(olaps.begin(), olaps.end());
@@ -192,7 +203,10 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
   //  region.  And one more, for convenience, to hold the final 'close' values on intervals that
   //  extend to the end of the unitig.
 
-  if (olaps[0].pos != 0)
+  if (olaps.size() == 0)
+    errorProfile.push_back(epValue(0, getLength()));
+
+  if ((olaps.size() > 0) && (olaps[0].pos != 0))
     errorProfile.push_back(epValue(0, olaps[0].pos));
 
   for (uint32 bb=0, ii=1; ii<olaps.size(); ii++) {
@@ -208,7 +222,7 @@ Unitig::computeErrorProfile(const char *UNUSED(prefix), const char *UNUSED(label
     bb = ii;
   }
 
-  if (olaps[olaps.size()-1].pos != getLength())
+  if ((olaps.size() > 0) && (olaps[olaps.size()-1].pos != getLength()))
     errorProfile.push_back(epValue(olaps[olaps.size()-1].pos, getLength()));
 
   errorProfile.push_back(epValue(getLength(), getLength()+1));
