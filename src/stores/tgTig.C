@@ -345,7 +345,7 @@ tgTig::loadFromStreamOrLayout(FILE *F) {
   //  Decide if the file contains an ASCII layout or a binary stream.  It's probably rather fragile,
   //  testing if the first byte is 't' (from 'tig') or 'T' (from 'TIGR').
 
-  char ch = getc(F);
+  int ch = getc(F);
 
   ungetc(ch, F);
 
