@@ -362,7 +362,7 @@ dumpStore(ovStore                *ovlStore,
   }
 
   delete [] counts;
-  delete [] hist;
+  delete    hist;
 
   if (beVerbose) {
     fprintf(stderr, "ovlTooHighError %u\n",  ovlTooHighError);
