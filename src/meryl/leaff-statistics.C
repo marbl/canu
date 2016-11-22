@@ -131,7 +131,7 @@ stats(char *filename, uint64 refLen) {
 
   for (uint32 i=0, sum=0, n=1; (i < numSeq) && (n < 11); i++) {
     if ((sum <  sizeb[n]) && (sizeb[n] <= sum + Lb[i])) {
-      n50b[n]  = Ls[i];
+      n50b[n]  = Lb[i];
       l50b[n]  = i;
       n++;
     }
