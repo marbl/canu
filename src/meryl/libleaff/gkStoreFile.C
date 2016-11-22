@@ -33,6 +33,7 @@
 
 gkStoreFile::gkStoreFile() {
   clear();
+  gkp = NULL;
 }
 
 
