@@ -495,7 +495,10 @@ bitPackedFile::loadInCore(void) {
 
   flushDirty();
 
+  errno = 0;
   fstat(_file, &sb);
+  if (errno)
+    fprintf(stderr, "bitPackedFile::loadInCore() failed to fstat(): %s\n", strerror(errno)), exit(1);
 
   //  The extra 1024 words is to keep seek() from attempting to grab
   //  the next block (there isn't a next block, we've got it all!)
