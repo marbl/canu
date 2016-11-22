@@ -435,7 +435,7 @@ bitPackedFile::seekNormal(uint64 bitpos) {
   //  Flip all the words we just read, if needed
   //
   if (endianess_flipped)
-    for (uint32 i=0; i<wordsread; i++)
+    for (size_t i=0; i<wordsread; i++)
       _bfr[i] = uint64Swap(_bfr[i]);
 
   //  Clear any words that we didn't read (supposedly, because we hit
