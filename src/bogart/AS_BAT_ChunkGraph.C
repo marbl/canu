@@ -45,7 +45,7 @@
 ChunkGraph::ChunkGraph(const char *prefix) {
   char N[FILENAME_MAX];
 
-  sprintf(N, "%s.chunkGraph.log", prefix);
+  snprintf(N, FILENAME_MAX, "%s.chunkGraph.log", prefix);
 
   errno = 0;
   _chunkLog = (logFileFlagSet(LOG_CHUNK_GRAPH)) ? fopen(N, "w") : NULL;

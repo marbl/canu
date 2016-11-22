@@ -277,8 +277,8 @@ main(int argc, char **argv) {
 
     fprintf(stderr, "Counting the number of reads in the input.\n");
 
-    sprintf(path1, "%s.%c.fastq", INPNAME, (isMated == true) ? '1' : 'u');
-    sprintf(path2, "%s.%c.fastq", INPNAME, (isMated == true) ? '2' : 'u');
+    snprintf(path1, FILENAME_MAX, "%s.%c.fastq", INPNAME, (isMated == true) ? '1' : 'u');
+    snprintf(path2, FILENAME_MAX, "%s.%c.fastq", INPNAME, (isMated == true) ? '2' : 'u');
 
     errno = 0;
     Ai = fopen(path1, "r");
@@ -450,8 +450,8 @@ main(int argc, char **argv) {
   //  Do the output
   //
 
-  sprintf(path1, "%s.%c.fastq", INPNAME, (isMated == true) ? '1' : 'u');
-  sprintf(path2, "%s.%c.fastq", INPNAME, (isMated == true) ? '2' : 'u');
+  snprintf(path1, FILENAME_MAX, "%s.%c.fastq", INPNAME, (isMated == true) ? '1' : 'u');
+  snprintf(path2, FILENAME_MAX, "%s.%c.fastq", INPNAME, (isMated == true) ? '2' : 'u');
 
   errno = 0;
   Ai = fopen(path1, "r");
@@ -467,16 +467,16 @@ main(int argc, char **argv) {
 
 
   if (AUTONAME == false) {
-    sprintf(path1, "%s.%c.fastq", OUTNAME, (isMated == true) ? '1' : 'u');
-    sprintf(path2, "%s.%c.fastq", OUTNAME, (isMated == true) ? '2' : 'u');
+    snprintf(path1, FILENAME_MAX, "%s.%c.fastq", OUTNAME, (isMated == true) ? '1' : 'u');
+    snprintf(path2, FILENAME_MAX, "%s.%c.fastq", OUTNAME, (isMated == true) ? '2' : 'u');
 
   } else if (GENOMESIZE > 0) {
-    sprintf(path1, "%s.x=%07.3f.n=%09" F_U64P ".%c.fastq", OUTNAME, (double)nBasesToOutput / GENOMESIZE, nPairsToOutput, (isMated == true) ? '1' : 'u');
-    sprintf(path2, "%s.x=%07.3f.n=%09" F_U64P ".%c.fastq", OUTNAME, (double)nBasesToOutput / GENOMESIZE, nPairsToOutput, (isMated == true) ? '2' : 'u');
+    snprintf(path1, FILENAME_MAX, "%s.x=%07.3f.n=%09" F_U64P ".%c.fastq", OUTNAME, (double)nBasesToOutput / GENOMESIZE, nPairsToOutput, (isMated == true) ? '1' : 'u');
+    snprintf(path2, FILENAME_MAX, "%s.x=%07.3f.n=%09" F_U64P ".%c.fastq", OUTNAME, (double)nBasesToOutput / GENOMESIZE, nPairsToOutput, (isMated == true) ? '2' : 'u');
 
   } else {
-    sprintf(path1, "%s.x=UNKNOWN.n=%09" F_U64P ".%c.fastq", OUTNAME, nPairsToOutput, (isMated == true) ? '1' : 'u');
-    sprintf(path2, "%s.x=UNKNOWN.n=%09" F_U64P ".%c.fastq", OUTNAME, nPairsToOutput, (isMated == true) ? '2' : 'u');
+    snprintf(path1, FILENAME_MAX, "%s.x=UNKNOWN.n=%09" F_U64P ".%c.fastq", OUTNAME, nPairsToOutput, (isMated == true) ? '1' : 'u');
+    snprintf(path2, FILENAME_MAX, "%s.x=UNKNOWN.n=%09" F_U64P ".%c.fastq", OUTNAME, nPairsToOutput, (isMated == true) ? '2' : 'u');
   }
 
   errno = 0;

@@ -62,7 +62,7 @@ writeToFile(gkStore       *gkp,
   if (sliceFile[df] == NULL) {
     char name[FILENAME_MAX];
 
-    sprintf(name, "%s/create%04d/slice%03d%s", ovlName, jobIndex, df, (useGzip) ? ".gz" : "");
+    snprintf(name, FILENAME_MAX, "%s/create%04d/slice%03d%s", ovlName, jobIndex, df, (useGzip) ? ".gz" : "");
     sliceFile[df] = new ovFile(gkp, name, ovFileFullWriteNoCounts);
     sliceSize[df] = 0;
   }
@@ -188,7 +188,7 @@ main(int argc, char **argv) {
   {
     char name[FILENAME_MAX];
 
-    sprintf(name, "%s/create%04d", ovlName, jobIndex);
+    snprintf(name, FILENAME_MAX, "%s/create%04d", ovlName, jobIndex);
 
     if (AS_UTL_fileExists(name, TRUE, FALSE) == false)
       AS_UTL_mkdir(name);
@@ -200,7 +200,7 @@ main(int argc, char **argv) {
   {
     char name[FILENAME_MAX];
 
-    sprintf(name, "%s/bucket%04d/sliceSizes", ovlName, jobIndex);
+    snprintf(name, FILENAME_MAX, "%s/bucket%04d/sliceSizes", ovlName, jobIndex);
 
     if (AS_UTL_fileExists(name, FALSE, FALSE) == true)
       fprintf(stderr, "Job finished; file '%s' exists.\n", name), exit(0);
@@ -281,7 +281,7 @@ main(int argc, char **argv) {
     char name[FILENAME_MAX];
     char finl[FILENAME_MAX];
 
-    sprintf(name, "%s/create%04d/sliceSizes", ovlName, jobIndex);
+    snprintf(name, FILENAME_MAX, "%s/create%04d/sliceSizes", ovlName, jobIndex);
 
     FILE *F = fopen(name, "w");
     if (errno)
@@ -291,8 +291,8 @@ main(int argc, char **argv) {
 
     fclose(F);
 
-    sprintf(name, "%s/create%04d", ovlName, jobIndex);
-    sprintf(finl, "%s/bucket%04d", ovlName, jobIndex);
+    snprintf(name, FILENAME_MAX, "%s/create%04d", ovlName, jobIndex);
+    snprintf(finl, FILENAME_MAX, "%s/bucket%04d", ovlName, jobIndex);
 
     errno = 0;
     rename(name, finl);

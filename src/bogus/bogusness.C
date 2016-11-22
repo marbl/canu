@@ -385,14 +385,14 @@ main(int argc, char **argv) {
 
     errno = 0;
 
-    sprintf(outputName, "%s.bogusness", outputPrefix);
+    snprintf(outputName, FILENAME_MAX, "%s.bogusness", outputPrefix);
     resultsOutput = fopen(outputName, "w");
 
     if (errno)
       fprintf(stderr, "Failed to open '%s' for writing: %s\n",
               outputName, strerror(errno)), exit(1);
 
-    sprintf(outputName, "%s.gff3", outputPrefix);
+    snprintf(outputName, FILENAME_MAX, "%s.gff3", outputPrefix);
     gffOutput = fopen(outputName, "w");
 
     if (errno)

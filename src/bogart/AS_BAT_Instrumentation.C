@@ -128,7 +128,7 @@ classifyTigsAsUnassembled(TigVector    &tigs,
 
   char   N[FILENAME_MAX];
 
-  sprintf(N, "%s.unassembled", getLogFilePrefix());
+  snprintf(N, FILENAME_MAX, "%s.unassembled", getLogFilePrefix());
 
   errno = 0;
   FILE *F = fopen(N, "w");
@@ -315,7 +315,7 @@ reportTigs(TigVector &tigs, const char *prefix, const char *name, uint64 genomeS
 
   char   N[FILENAME_MAX];
 
-  sprintf(N, "%s.sizes", getLogFilePrefix());
+  snprintf(N, FILENAME_MAX, "%s.sizes", getLogFilePrefix());
 
   errno = 0;
   FILE *F = fopen(N, "w");
@@ -610,7 +610,7 @@ reportOverlaps(TigVector &tigs, const char *prefix, const char *name) {
 
   char   N[FILENAME_MAX];
 
-  sprintf(N, "%s.overlaps", getLogFilePrefix());
+  snprintf(N, FILENAME_MAX, "%s.overlaps", getLogFilePrefix());
 
   errno = 0;
   FILE *F = fopen(N, "w");

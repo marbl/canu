@@ -1039,31 +1039,31 @@ main(int argc, char **argv) {
   errno = 0;
 
   if ((seEnable == true) || (ccEnable == true)) {
-    sprintf(outputName, "%s.s.fastq", outputPrefix);
+    snprintf(outputName, FILENAME_MAX, "%s.s.fastq", outputPrefix);
     outputI = fopen(outputName, "w");
     if (errno)
       fprintf(stderr, "Failed to open output file '%s': %s\n", outputName, strerror(errno)), exit(1);
   }
 
   if ((seEnable == false) && (ccEnable == false)) {
-    sprintf(outputName, "%s.i.fastq", outputPrefix);
+    snprintf(outputName, FILENAME_MAX, "%s.i.fastq", outputPrefix);
     outputI = fopen(outputName, "w");
     if (errno)
       fprintf(stderr, "Failed to open output file '%s': %s\n", outputName, strerror(errno)), exit(1);
 
-    sprintf(outputName, "%s.c.fastq", outputPrefix);
+    snprintf(outputName, FILENAME_MAX, "%s.c.fastq", outputPrefix);
     outputC = fopen(outputName, "w");
     if (errno)
       fprintf(stderr, "Failed to open output file '%s': %s\n", outputName, strerror(errno)), exit(1);
   }
 
   if (peEnable || mpEnable) {
-    sprintf(outputName, "%s.1.fastq", outputPrefix);
+    snprintf(outputName, FILENAME_MAX, "%s.1.fastq", outputPrefix);
     output1 = fopen(outputName, "w");
     if (errno)
       fprintf(stderr, "Failed to open output file '%s': %s\n", outputName, strerror(errno)), exit(1);
 
-    sprintf(outputName, "%s.2.fastq", outputPrefix);
+    snprintf(outputName, FILENAME_MAX, "%s.2.fastq", outputPrefix);
     output2 = fopen(outputName, "w");
     if (errno)
       fprintf(stderr, "Failed to open output file '%s': %s\n", outputName, strerror(errno)), exit(1);

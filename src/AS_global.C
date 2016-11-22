@@ -136,7 +136,7 @@ AS_configure(int argc, char **argv) {
 
   //  Make a directory for logs.  If an error, just return now, there's nothing we can log.
 
-  sprintf(D, "%s/canu-logs", p);
+  snprintf(D, FILENAME_MAX, "%s/canu-logs", p);
 
   errno = 0;
   mkdir(D, S_IRWXU | S_IRWXG | S_IRWXO);
@@ -157,12 +157,12 @@ AS_configure(int argc, char **argv) {
 
   //  Construct a name for this log, and open it.  If we can't open it, just skip the log.
 
-  sprintf(N, "%s/" F_U64 "_%s_" F_U64 "_%s",
-          D,
-          (uint64)time(NULL),
-          H,
-          (uint64)getpid(),
-          E);
+  snprintf(N, FILENAME_MAX, "%s/" F_U64 "_%s_" F_U64 "_%s",
+           D,
+           (uint64)time(NULL),
+           H,
+           (uint64)getpid(),
+           E);
 
   errno = 0;
   FILE *F = fopen(N, "w");

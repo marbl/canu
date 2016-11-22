@@ -190,7 +190,7 @@ main (int argc, char **argv) {
 
   if ((gkpName == NULL) && (tigName != NULL)) {
     gkpName = new char [FILENAME_MAX];
-    sprintf(gkpName, "%s/partitionedReads.gkpStore", tigName);
+    snprintf(gkpName, FILENAME_MAX, "%s/partitionedReads.gkpStore", tigName);
   }
 
   if ((gkpName == NULL) && (inPackageName == NULL))

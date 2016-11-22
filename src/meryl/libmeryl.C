@@ -61,6 +61,7 @@ static char *PmagicV = "merylStreamPv04\n";
 static char *PmagicX = "merylStreamPvXX\n";
 
 merylStreamReader::merylStreamReader(const char *fn_, uint32 ms_) {
+  char inpath[FILENAME_MAX];
 
   if (fn_ == 0L) {
     fprintf(stderr, "ERROR - no counted database file specified.\n");
@@ -72,21 +73,18 @@ merylStreamReader::merylStreamReader(const char *fn_, uint32 ms_) {
 
   //  Open the files
   //
-  char *inpath = new char [strlen(_filename) + 8];
 
-  sprintf(inpath, "%s.mcidx", _filename);
+  snprintf(inpath, FILENAME_MAX, "%s.mcidx", _filename);
   _IDX = new bitPackedFile(inpath);
 
-  sprintf(inpath, "%s.mcdat", _filename);
+  snprintf(inpath, FILENAME_MAX, "%s.mcdat", _filename);
   _DAT = new bitPackedFile(inpath);
 
-  sprintf(inpath, "%s.mcpos", _filename);
+  snprintf(inpath, FILENAME_MAX, "%s.mcpos", _filename);
   if (AS_UTL_fileExists(inpath))
     _POS = new bitPackedFile(inpath);
   else
     _POS = 0L;
-
-  delete [] inpath;
 
   //  Verify that they are what they should be, and read in the header
   //
@@ -287,26 +285,23 @@ merylStreamWriter::merylStreamWriter(const char *fn_,
                                      uint32 merComp,
                                      uint32 prefixSize,
                                      bool   positionsEnabled) {
+  char outpath[FILENAME_MAX];
 
   memset(_filename, 0, sizeof(char) * FILENAME_MAX);
   strcpy(_filename, fn_);
 
-  char *outpath = new char [FILENAME_MAX];
-
-  sprintf(outpath, "%s.mcidx.creating", _filename);
+  snprintf(outpath, FILENAME_MAX, "%s.mcidx.creating", _filename);
   _IDX = new bitPackedFile(outpath, 0, true);
 
-  sprintf(outpath, "%s.mcdat.creating", _filename);
+  snprintf(outpath, FILENAME_MAX, "%s.mcdat.creating", _filename);
   _DAT = new bitPackedFile(outpath, 0, true);
 
   if (positionsEnabled) {
-    sprintf(outpath, "%s.mcpos.creating", _filename);
+    snprintf(outpath, FILENAME_MAX, "%s.mcpos.creating", _filename);
     _POS = new bitPackedFile(outpath, 0, true);
   } else {
     _POS = 0L;
   }
-
-  delete [] outpath;
 
   _idxIsPacked    = 1;
   _datIsPacked    = 1;
@@ -448,25 +443,22 @@ merylStreamWriter::~merylStreamWriter() {
 
   //  All done!  Rename our temporary outputs to final outputs.
 
-  char *outpath = new char [FILENAME_MAX];
-  char *finpath = new char [FILENAME_MAX];
+  char outpath[FILENAME_MAX];
+  char finpath[FILENAME_MAX];
 
-  sprintf(outpath, "%s.mcidx.creating", _filename);
-  sprintf(finpath, "%s.mcidx", _filename);
+  snprintf(outpath, FILENAME_MAX, "%s.mcidx.creating", _filename);
+  snprintf(finpath, FILENAME_MAX, "%s.mcidx", _filename);
   rename(outpath, finpath);
 
-  sprintf(outpath, "%s.mcdat.creating", _filename);
-  sprintf(finpath, "%s.mcdat", _filename);
+  snprintf(outpath, FILENAME_MAX, "%s.mcdat.creating", _filename);
+  snprintf(finpath, FILENAME_MAX, "%s.mcdat", _filename);
   rename(outpath, finpath);
 
   if (_POS) {
-    sprintf(outpath, "%s.mcpos.creating", _filename);
-    sprintf(finpath, "%s.mcpos", _filename);
+    snprintf(outpath, FILENAME_MAX, "%s.mcpos.creating", _filename);
+    snprintf(finpath, FILENAME_MAX, "%s.mcpos", _filename);
     rename(outpath, finpath);
   }
-
-  delete [] finpath;
-  delete [] outpath;
 }
 
 

@@ -59,7 +59,7 @@ writeTigsToStore(TigVector     &tigs,
                  bool           isFinal) {
   char        filename[FILENAME_MAX] = {0};
 
-  sprintf(filename, "%s.%sStore", filePrefix, storeName);
+  snprintf(filename, FILENAME_MAX, "%s.%sStore", filePrefix, storeName);
   tgStore     *tigStore = new tgStore(filename);
   tgTig       *tig      = new tgTig;
 

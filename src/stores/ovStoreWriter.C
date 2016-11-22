@@ -81,7 +81,7 @@ ovStoreWriter::ovStoreWriter(const char *path, gkStore *gkp) {
 
   //  Open the index file.
 
-  sprintf(name, "%s/index", _storePath);
+  snprintf(name, FILENAME_MAX, "%s/index", _storePath);
 
   errno = 0;
   _offtFile = fopen(name, "w");
@@ -184,7 +184,7 @@ ovStoreWriter::writeOverlap(ovOverlap *overlap) {
   if (_bof == NULL) {
     char  name[FILENAME_MAX];
 
-    sprintf(name, "%s/%04d", _storePath, ++_currentFileIndex);
+    snprintf(name, FILENAME_MAX, "%s/%04d", _storePath, ++_currentFileIndex);
 
     _bof                 = new ovFile(_gkp, name, ovFileNormalWrite);
     _overlapsThisFile    = 0;
@@ -257,12 +257,12 @@ ovStoreWriter::writeOverlaps(ovOverlap  *ovls,
 
   //  Create the output file
 
-  sprintf(name, "%s/%04d", _storePath, _fileID);
+  snprintf(name, FILENAME_MAX, "%s/%04d", _storePath, _fileID);
   ovFile *bof = new ovFile(_gkp, name, ovFileNormalWrite);
 
   //  Create the index file
 
-  sprintf(name,"%s/%04d.index", _storePath, _fileID);
+  snprintf(name, FILENAME_MAX, "%s/%04d.index", _storePath, _fileID);
 
   errno = 0;
   FILE *offtFile=fopen(name,"w");
@@ -361,7 +361,7 @@ ovStoreWriter::testIndex(bool doFixes) {
 
   //  Open the input index.
 
-  sprintf(name, "%s/index", _storePath);
+  snprintf(name, FILENAME_MAX, "%s/index", _storePath);
 
   errno = 0;
   I = fopen(name, "r");
@@ -371,7 +371,7 @@ ovStoreWriter::testIndex(bool doFixes) {
   //  If we're fixing, open the output index.
 
   if (doFixes) {
-    sprintf(name, "%s/index.fixed", _storePath);
+    snprintf(name, FILENAME_MAX, "%s/index.fixed", _storePath);
 
     errno = 0;
     F = fopen(name, "w");
@@ -448,7 +448,7 @@ ovStoreWriter::mergeInfoFiles(void) {
 
   char            name[FILENAME_MAX];
 
-  sprintf(name, "%s/index", _storePath);
+  snprintf(name, FILENAME_MAX, "%s/index", _storePath);
 
   errno = 0;
   FILE  *idx = fopen(name, "w");
@@ -495,7 +495,7 @@ ovStoreWriter::mergeInfoFiles(void) {
     //  or ending at such a fragment will fail.
 
     {
-      sprintf(name, "%s/%04d.index", _storePath, i);
+      snprintf(name, FILENAME_MAX, "%s/%04d.index", _storePath, i);
 
       errno = 0;
       FILE  *F = fopen(name, "r");
@@ -574,7 +574,7 @@ ovStoreWriter::mergeHistogram(void) {
   ovStoreHistogram  *histogram = new ovStoreHistogram;
 
   for (uint32 i=1; i<=_fileLimit; i++) {
-    sprintf(name, "%s/%04d", _storePath, i);
+    snprintf(name, FILENAME_MAX, "%s/%04d", _storePath, i);
 
     histogram->loadData(name);
   }
@@ -601,8 +601,8 @@ ovStoreWriter::loadBucketSizes(uint64 *bucketSizes) {
   for (uint32 i=0; i<=_jobIdxMax; i++) {
     bucketSizes[i] = 0;
 
-    sprintf(name, "%s/bucket%04d/slice%03d",    _storePath, i, _fileID);
-    sprintf(namz, "%s/bucket%04d/slice%03d.gz", _storePath, i, _fileID);
+    snprintf(name, FILENAME_MAX, "%s/bucket%04d/slice%03d",    _storePath, i, _fileID);
+    snprintf(namz, FILENAME_MAX, "%s/bucket%04d/slice%03d.gz", _storePath, i, _fileID);
 
     //  If no file, there are no overlaps.  Skip loading the bucketSizes file.
     //  With snappy compression, we expect the file to be not gzip compressed, but will happily
@@ -612,7 +612,7 @@ ovStoreWriter::loadBucketSizes(uint64 *bucketSizes) {
         (AS_UTL_fileExists(namz, FALSE, FALSE) == false))
       continue;
 
-    sprintf(name, "%s/bucket%04d/sliceSizes", _storePath, i);
+    snprintf(name, FILENAME_MAX, "%s/bucket%04d/sliceSizes", _storePath, i);
 
     FILE *F = fopen(name, "r");
     if (errno)
@@ -648,10 +648,10 @@ ovStoreWriter::loadOverlapsFromSlice(uint32 slice, uint64 expectedLen, ovOverlap
   if (expectedLen == 0)
     return;
 
-  sprintf(name, "%s/bucket%04d/slice%03d", _storePath, slice, _fileID);
+  snprintf(name, FILENAME_MAX, "%s/bucket%04d/slice%03d", _storePath, slice, _fileID);
 
   if (AS_UTL_fileExists(name, FALSE, FALSE) == false) {
-    sprintf(name, "%s/bucket%04d/slice%03d.gz", _storePath, slice, _fileID);
+    snprintf(name, FILENAME_MAX, "%s/bucket%04d/slice%03d.gz", _storePath, slice, _fileID);
 
     if (AS_UTL_fileExists(name, FALSE, FALSE) == false)
       fprintf(stderr, "ERROR: " F_U64 " overlaps claim to exist in bucket '%s', but file not found.\n",
@@ -682,8 +682,8 @@ ovStoreWriter::removeOverlapSlice(void) {
   char name[FILENAME_MAX];
 
   for (uint32 i=0; i<=_jobIdxMax; i++) {
-    sprintf(name, "%s/bucket%04d/slice%03d.gz", _storePath, i, _fileID);    AS_UTL_unlink(name);
-    sprintf(name, "%s/bucket%04d/slice%03d",    _storePath, i, _fileID);    AS_UTL_unlink(name);
+    snprintf(name, FILENAME_MAX, "%s/bucket%04d/slice%03d.gz", _storePath, i, _fileID);    AS_UTL_unlink(name);
+    snprintf(name, FILENAME_MAX, "%s/bucket%04d/slice%03d",    _storePath, i, _fileID);    AS_UTL_unlink(name);
   }
 }
 
@@ -698,9 +698,9 @@ ovStoreWriter::checkSortingIsComplete(void) {
   uint32  failedJobs = 0;
 
   for (uint32 i=1; i<=_fileLimit; i++) {
-    sprintf(nameD, "%s/%04d", _storePath, i);
-    sprintf(nameF, "%s/%04d.info", _storePath, i);
-    sprintf(nameI, "%s/%04d.index", _storePath, i);
+    snprintf(nameD, FILENAME_MAX, "%s/%04d", _storePath, i);
+    snprintf(nameF, FILENAME_MAX, "%s/%04d.info", _storePath, i);
+    snprintf(nameI, FILENAME_MAX, "%s/%04d.index", _storePath, i);
 
     bool existD = AS_UTL_fileExists(nameD, FALSE, FALSE);
     bool existF = AS_UTL_fileExists(nameF, FALSE, FALSE);
@@ -729,22 +729,22 @@ ovStoreWriter::removeAllIntermediateFiles(void) {
   //  Removing indices and histogram data is easy, beacuse we know how many there are.
 
   for (uint32 i=1; i<=_fileLimit; i++) {
-    sprintf(name, "%s/%04u.index", _storePath, i);    AS_UTL_unlink(name);
-    sprintf(name, "%s/%04u.info",  _storePath, i);    AS_UTL_unlink(name);
-    sprintf(name, "%s/%04d",       _storePath, i);    ovStoreHistogram::removeData(name);
+    snprintf(name, FILENAME_MAX, "%s/%04u.index", _storePath, i);    AS_UTL_unlink(name);
+    snprintf(name, FILENAME_MAX, "%s/%04u.info",  _storePath, i);    AS_UTL_unlink(name);
+    snprintf(name, FILENAME_MAX, "%s/%04d",       _storePath, i);    ovStoreHistogram::removeData(name);
   }
 
   //  We don't know how many buckets there are, so we remove until we fail to find ten
   //  buckets in a row.
 
   for (uint32 missing=0, i=1; missing<10; i++, missing++) {
-    sprintf(name, "%s/bucket%04d", _storePath, i);
+    snprintf(name, FILENAME_MAX, "%s/bucket%04d", _storePath, i);
 
     if (AS_UTL_fileExists(name, false, false) == false)
       continue;
 
-    sprintf(name, "%s/bucket%04d/sliceSizes", _storePath, i);    AS_UTL_unlink(name);
-    sprintf(name, "%s/bucket%04d",            _storePath, i);    rmdir(name);
+    snprintf(name, FILENAME_MAX, "%s/bucket%04d/sliceSizes", _storePath, i);    AS_UTL_unlink(name);
+    snprintf(name, FILENAME_MAX, "%s/bucket%04d",            _storePath, i);    rmdir(name);
 
     missing = 0;
   }

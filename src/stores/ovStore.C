@@ -104,7 +104,7 @@ ovStore::ovStore(const char *path, gkStore *gkp) {
 
   //  Open the index
 
-  sprintf(name, "%s/index", _storePath);
+  snprintf(name, FILENAME_MAX, "%s/index", _storePath);
 
   errno = 0;
   _offtFile = fopen(name, "r");
@@ -113,7 +113,7 @@ ovStore::ovStore(const char *path, gkStore *gkp) {
 
   //  Open and load erates
 
-  sprintf(name, "%s/evalues", _storePath);
+  snprintf(name, FILENAME_MAX, "%s/evalues", _storePath);
 
   if (AS_UTL_fileExists(name)) {
     _evaluesMap  = new memoryMappedFile(name, memoryMappedFile_readOnly);
@@ -173,7 +173,7 @@ ovStore::readOverlap(ovOverlap *overlap) {
 
     _currentFileIndex++;
 
-    sprintf(name, "%s/%04d", _storePath, _currentFileIndex);
+    snprintf(name, FILENAME_MAX, "%s/%04d", _storePath, _currentFileIndex);
     _bof = new ovFile(_gkp, name, ovFileNormal);
   }
 
@@ -256,7 +256,7 @@ ovStore::readOverlaps(ovOverlap *&overlaps, uint32 &maxOverlaps, bool restrictTo
         //  No more files, stop trying to load an overlap.
         break;
 
-      sprintf(name, "%s/%04d", _storePath, _currentFileIndex);
+      snprintf(name, FILENAME_MAX, "%s/%04d", _storePath, _currentFileIndex);
       _bof = new ovFile(_gkp, name, ovFileNormal);
     }
 
@@ -417,7 +417,7 @@ ovStore::setRange(uint32 firstIID, uint32 lastIID) {
 
   delete _bof;
 
-  sprintf(name, "%s/%04d", _storePath, _currentFileIndex);
+  snprintf(name, FILENAME_MAX, "%s/%04d", _storePath, _currentFileIndex);
   _bof = new ovFile(_gkp, name, ovFileNormal);
 
   _bof->seekOverlap(_offt._offset);
@@ -438,7 +438,7 @@ ovStore::resetRange(void) {
 
   delete _bof;
 
-  sprintf(name, "%s/%04d", _storePath, _currentFileIndex);
+  snprintf(name, FILENAME_MAX, "%s/%04d", _storePath, _currentFileIndex);
   _bof = new ovFile(_gkp, name, ovFileNormal);
 
   _firstIIDrequested = _info.smallestID();
@@ -565,7 +565,7 @@ void
 ovStore::addEvalues(uint32 bgnID, uint32 endID, uint16 *evalues, uint64 evaluesLen) {
 
   char  name[FILENAME_MAX];
-  sprintf(name, "%s/evalues", _storePath);
+  snprintf(name, FILENAME_MAX, "%s/evalues", _storePath);
 
   //  If we have an opened memory mapped file, and it isn't open for writing, close it.
 

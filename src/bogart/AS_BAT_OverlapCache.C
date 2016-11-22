@@ -877,7 +877,7 @@ OverlapCache::load(void) {
   FILE    *file;
   size_t   numRead;
 
-  sprintf(name, "%s.ovlCache", _prefix);
+  snprintf(name, FILENAME_MAX, "%s.ovlCache", _prefix);
   if (AS_UTL_fileExists(name, FALSE, FALSE) == false)
     return(false);
 
@@ -936,7 +936,7 @@ OverlapCache::save(void) {
   char  name[FILENAME_MAX];
   FILE *file;
 
-  sprintf(name, "%s.ovlCache", _prefix);
+  snprintf(name, FILENAME_MAX, "%s.ovlCache", _prefix);
 
   writeStatus("OverlapCache()-- Saving graph to '%s'.\n", name);
 

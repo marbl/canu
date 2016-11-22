@@ -540,11 +540,11 @@ merylArgs::merylArgs(int argc, char **argv) {
 
 
 merylArgs::merylArgs(const char *prefix) {
+  char filename[FILENAME_MAX];
 
   clear();
 
-  char *filename = new char [strlen(prefix) + 17];
-  sprintf(filename, "%s.merylArgs", prefix);
+  snprintf(filename, FILENAME_MAX, "%s.merylArgs", prefix);
 
   errno = 0;
   FILE *F = fopen(filename, "rb");
@@ -579,8 +579,6 @@ merylArgs::merylArgs(const char *prefix) {
     mergeFiles[i] = readString(F);
 
   fclose(F);
-
-  delete [] filename;
 }
 
 
@@ -601,10 +599,9 @@ merylArgs::~merylArgs() {
 
 bool
 merylArgs::writeConfig(void) {
-  char *filename;
+  char filename[FILENAME_MAX];
 
-  filename = new char [strlen(outputFile) + 17];
-  sprintf(filename, "%s.merylArgs", outputFile);
+  snprintf(filename, FILENAME_MAX, "%s.merylArgs", outputFile);
 
   errno = 0;
   FILE *F = fopen(filename, "wb");

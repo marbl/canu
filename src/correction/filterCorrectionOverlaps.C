@@ -164,8 +164,8 @@ main(int argc, char **argv) {
   uint64   *scores    = new uint64 [gkpStore->gkStore_getNumReads() + 1];
 
 
-  sprintf(logFileName, "%s.log", scoreFileName);
-  sprintf(statsFileName, "%s.stats", scoreFileName);
+  snprintf(logFileName, FILENAME_MAX, "%s.log", scoreFileName);
+  snprintf(statsFileName, FILENAME_MAX, "%s.stats", scoreFileName);
 
   errno = 0;
   FILE     *scoreFile   = (scoreFileName == NULL) ? NULL : fopen(scoreFileName, "w");

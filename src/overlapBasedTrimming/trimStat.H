@@ -48,7 +48,7 @@ public:
     char  N[FILENAME_MAX];
     FILE *F;
 
-    sprintf(N, "%s.%s.dat", outputPrefix, outputName);
+    snprintf(N, FILENAME_MAX, "%s.%s.dat", outputPrefix, outputName);
     F = fopen(N, "w");
     if (errno)
       fprintf(stderr, "Failed to open '%s' for writing: %s\n", N, strerror(errno)), exit(1);
@@ -56,7 +56,7 @@ public:
       fprintf(F, F_U32"\n", histo[ii]);
     fclose(F);
 
-    sprintf(N, "%s.%s.gp", outputPrefix, outputName);
+    snprintf(N, FILENAME_MAX, "%s.%s.gp", outputPrefix, outputName);
     F = fopen(N, "w");
     if (errno)
       fprintf(stderr, "Failed to open '%s' for writing: %s\n", N, strerror(errno)), exit(1);
@@ -77,7 +77,7 @@ public:
     fprintf(F, "replot\n");
     fclose(F);
 
-    sprintf(N, "gnuplot %s.%s.gp > /dev/null 2>&1", outputPrefix, outputName);
+    snprintf(N, FILENAME_MAX, "gnuplot %s.%s.gp > /dev/null 2>&1", outputPrefix, outputName);
 
     system(N);
   };

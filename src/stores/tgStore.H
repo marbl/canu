@@ -148,8 +148,8 @@ private:
 
   FILE                   *openDB(uint32 V);
 
-  char                    _path[FILENAME_MAX];     //  Path to the store.
-  char                    _name[FILENAME_MAX];     //  Name of the currently opened file, and other uses.
+  char                    _path[FILENAME_MAX+1];   //  Path to the store.
+  char                    _name[FILENAME_MAX+1];   //  Name of the currently opened file, and other uses.
 
   tgStoreType             _type;
 

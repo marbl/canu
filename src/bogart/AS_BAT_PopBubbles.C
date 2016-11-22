@@ -425,23 +425,23 @@ popBubbles(TigVector &tigs,
           break;
 
         case 1:
-          sprintf(placedS, "%c", placed0);
+          snprintf(placedS, 128, "%c", placed0);
           break;
 
         case 2:
-          sprintf(placedS, "%c%c", placed0, placeda);
+          snprintf(placedS, 128, "%c%c", placed0, placeda);
           break;
 
         case 3:
-          sprintf(placedS, "%c%c%c", placed0, placed1, placeda);
+          snprintf(placedS, 128, "%c%c%c", placed0, placed1, placeda);
           break;
 
         case 4:
-          sprintf(placedS, "%c%c%c%c", placed0, placed1, placedb, placeda);
+          snprintf(placedS, 128, "%c%c%c%c", placed0, placed1, placedb, placeda);
           break;
 
         default:
-          sprintf(placedS, "%c%c[%u]%c%c",
+          snprintf(placedS, 128, "%c%c[%u]%c%c",
                   placed0, placed1, placedN, placedb, placeda);
           break;
       }

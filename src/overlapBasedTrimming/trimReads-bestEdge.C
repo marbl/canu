@@ -330,9 +330,9 @@ bestEdge(ovOverlap  *ovl,
 
     FILE *F;
 
-    sprintf(D, "trim-%08d.dat", read->gkRead_readID());
-    sprintf(G, "trim-%08d.gp",  read->gkRead_readID());
-    sprintf(S, "gnuplot < trim-%08d.gp", read->gkRead_readID());
+    snprintf(D, FILENAME_MAX, "trim-%08d.dat", read->gkRead_readID());
+    snprintf(G, FILENAME_MAX, "trim-%08d.gp",  read->gkRead_readID());
+    snprintf(S, FILENAME_MAX, "gnuplot < trim-%08d.gp", read->gkRead_readID());
 
     F = fopen(D, "w");
     for (uint32 i=0; i<MAX(trim5.size(), trim3.size()); i++) {

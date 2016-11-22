@@ -125,17 +125,17 @@ bogartStatus::bogartStatus(const char *prefix, uint32 nReads) {
 
   errno = 0;
 
-  sprintf(N, "%s.edges", prefix);
+  snprintf(N, FILENAME_MAX, "%s.edges", prefix);
   FILE *E = fopen(N, "r");
   if (errno)
     fprintf(stderr, "Failed to open '%s' for reading: %s\n", N, strerror(errno)), exit(1);
 
-  sprintf(N, "%s.edges.suspicious", prefix);
+  snprintf(N, FILENAME_MAX, "%s.edges.suspicious", prefix);
   FILE *S = fopen(N, "r");
   if (errno)
     fprintf(stderr, "Failed to open '%s' for reading: %s\n", N, strerror(errno)), exit(1);
 
-  sprintf(N, "%s.singletons", prefix);
+  snprintf(N, FILENAME_MAX, "%s.singletons", prefix);
   FILE *G = fopen(N, "r");
   if (errno)
     fprintf(stderr, "Failed to open '%s' for reading: %s\n", N, strerror(errno)), exit(1);
@@ -334,7 +334,7 @@ dumpStore(ovStore                *ovlStore,
 
     ovlDumped++;
 
-    //  The toString() method is quite slow, all from sprintf().
+    //  The toString() method is quite slow, all from snprintf().
     //    Without both the puts() and AtoString(), a dump ran in 3 seconds.
     //    With both, 138 seconds.
     //    Without the puts(), 127 seconds.
@@ -529,7 +529,7 @@ dumpPicture(ovOverlap     *overlaps,
       char  str[256];
       int32 len;
 
-      sprintf(str, "+%d", ovlBgnHang);
+      snprintf(str, 256, "+%d", ovlBgnHang);
       len = strlen(str);
 
       for (int32 i=0; i<len; i++)
@@ -538,7 +538,7 @@ dumpPicture(ovOverlap     *overlaps,
 
     //  Append the end hang.
     if (ovlEndHang > 0) {
-      sprintf(ovl + ovlStrEnd, " +%d", ovlEndHang);
+      snprintf(ovl + ovlStrEnd, 256, " +%d", ovlEndHang);
     }
 
     //  Set flags for best edge and singleton/contained/suspicious.  Left in for when I get annoyed with the different lines.

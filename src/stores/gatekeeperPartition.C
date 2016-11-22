@@ -144,7 +144,7 @@ main(int argc, char **argv) {
 
     } else {
       char *s = new char [1024];
-      sprintf(s, "ERROR: unknown option '%s'\n", argv[arg]);
+      snprintf(s, 1024, "ERROR: unknown option '%s'\n", argv[arg]);
       err.push_back(s);
     }
 
@@ -178,7 +178,7 @@ main(int argc, char **argv) {
 
   //  Clone that store into the tigStore directory.
 
-  sprintf(gkpCloneName, "%s/partitionedReads.gkpStore", tigStoreName);
+  snprintf(gkpCloneName, FILENAME_MAX, "%s/partitionedReads.gkpStore", tigStoreName);
 
   gkpStore->gkStore_clone(gkpCloneName);
 

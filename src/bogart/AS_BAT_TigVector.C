@@ -181,7 +181,7 @@ TigVector::computeArrivalRate(const char *prefix, const char *label) {
   for (uint32 ii=1; ii<6; ii++) {
     char  N[FILENAME_MAX];
 
-    sprintf(N, "%s.arrivalRate.%u.dat", prefix, ii);
+    snprintf(N, FILENAME_MAX, "%s.arrivalRate.%u.dat", prefix, ii);
     FILE *F = fopen(N, "w");
     for (uint32 jj=0; jj<hist[ii].size(); jj++)
       fprintf(F, "%d\n", hist[ii][jj]);

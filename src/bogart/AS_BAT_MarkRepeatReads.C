@@ -161,7 +161,7 @@ findUnitigCoverage(Unitig               *tig,
 
 #ifdef DUMP_READ_COVERAGE
   char  fn[FILENAME_MAX];
-  sprintf(fn, "%08u.coverage", tig->id());
+  snprintf(fn, FILENAME_MAX, "%08u.coverage", tig->id());
   FILE *F = fopen(fn, "w");
 
   for (uint32 ii=0; ii<coverage.numberOfIntervals(); ii++)

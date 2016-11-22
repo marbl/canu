@@ -63,8 +63,8 @@ public:
       return;
     }
 
-    sprintf(prefix, "%s.%03u.%s",         prefix_, order_, label_);
-    sprintf(name,   "%s.%03u.%s.thr%03d", prefix_, order_, label_, tn_);
+    snprintf(prefix, FILENAME_MAX, "%s.%03u.%s",         prefix_, order_, label_);
+    snprintf(name, FILENAME_MAX,   "%s.%03u.%s.thr%03d", prefix_, order_, label_, tn_);
   };
 
   void  rotate(void) {
@@ -85,7 +85,7 @@ public:
     assert(file == NULL);
     assert(name[0] != 0);
 
-    sprintf(path, "%s.num%03d.log", name, part);
+    snprintf(path, FILENAME_MAX, "%s.num%03d.log", name, part);
 
     errno = 0;
     file = fopen(path, "w");

@@ -590,7 +590,7 @@ gkLibrary::gkLibrary_finalTrimString(void) {
 //  3)  No addition, no modification.              gkStore(path);
 //
 gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
-  char    name[FILENAME_MAX + 5];
+  char    name[FILENAME_MAX];
 
   memset(_storePath, 0, sizeof(char) * FILENAME_MAX);
   memset(_storeName, 0, sizeof(char) * FILENAME_MAX);
@@ -600,7 +600,7 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
 
   //  If the info file exists, load it.
 
-  sprintf(name, "%s/info", _storePath);
+  snprintf(name, FILENAME_MAX, "%s/info", _storePath);
 
   if (AS_UTL_fileExists(name, false, false) == true) {
     errno = 0;
@@ -653,7 +653,7 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
   if (mode == gkStore_create) {
     mode = gkStore_extend;
 
-    sprintf(name, "%s/blobs", _storePath);
+    snprintf(name, FILENAME_MAX, "%s/blobs", _storePath);
 
     if (AS_UTL_fileExists(name, false, false) == true) {
       fprintf(stderr, "ERROR:  Can't create store '%s': %s store exists in same location.\n",
@@ -700,15 +700,15 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
       exit(1);
     }
 
-    sprintf(name, "%s/libraries", _storePath);
+    snprintf(name, FILENAME_MAX, "%s/libraries", _storePath);
     _librariesMMap = new memoryMappedFile (name, memoryMappedFile_readOnly);
     _libraries     = (gkLibrary *)_librariesMMap->get(0);
 
-    sprintf(name, "%s/reads", _storePath);
+    snprintf(name, FILENAME_MAX, "%s/reads", _storePath);
     _readsMMap     = new memoryMappedFile (name, memoryMappedFile_readOnly);
     _reads         = (gkRead *)_readsMMap->get(0);
 
-    sprintf(name, "%s/blobs", _storePath);
+    snprintf(name, FILENAME_MAX, "%s/blobs", _storePath);
 #ifdef MMAP_BLOBS
     _blobsMMap     = new memoryMappedFile (name, memoryMappedFile_readOnly);
     _blobs         = (void *)_blobsMMap->get(0);
@@ -739,15 +739,15 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
       exit(1);
     }
 
-    sprintf(name, "%s/libraries", _storePath);
+    snprintf(name, FILENAME_MAX, "%s/libraries", _storePath);
     _librariesMMap = new memoryMappedFile (name, memoryMappedFile_readWrite);
     _libraries     = (gkLibrary *)_librariesMMap->get(0);
 
-    sprintf(name, "%s/reads", _storePath);
+    snprintf(name, FILENAME_MAX, "%s/reads", _storePath);
     _readsMMap     = new memoryMappedFile (name, memoryMappedFile_readWrite);
     _reads         = (gkRead *)_readsMMap->get(0);
 
-    sprintf(name, "%s/blobs", _storePath);
+    snprintf(name, FILENAME_MAX, "%s/blobs", _storePath);
     _blobsMMap     = new memoryMappedFile (name, memoryMappedFile_readWrite);
     _blobs         = (void *)_blobsMMap->get(0);
   }
@@ -766,7 +766,7 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
     _librariesAlloc = MAX(64, 2 * _info.numLibraries);
     _libraries      = new gkLibrary [_librariesAlloc];
 
-    sprintf(name, "%s/libraries", _storePath);
+    snprintf(name, FILENAME_MAX, "%s/libraries", _storePath);
     if (AS_UTL_fileExists(name, false, false) == true) {
       _librariesMMap  = new memoryMappedFile (name, memoryMappedFile_readOnly);
 
@@ -779,7 +779,7 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
     _readsAlloc     = MAX(128, 2 * _info.numReads);
     _reads          = new gkRead [_readsAlloc];
 
-    sprintf(name, "%s/reads", _storePath);
+    snprintf(name, FILENAME_MAX, "%s/reads", _storePath);
     if (AS_UTL_fileExists(name, false, false) == true) {
       _readsMMap      = new memoryMappedFile (name, memoryMappedFile_readOnly);
 
@@ -789,7 +789,7 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
       _readsMMap = NULL;
     }
 
-    sprintf(name, "%s/blobs", _storePath);
+    snprintf(name, FILENAME_MAX, "%s/blobs", _storePath);
 
     _blobsMMap     = NULL;
     _blobs         = NULL;
@@ -812,7 +812,7 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
     //  bytes for the full meta data.  Assuming 100x of 3kb read coverage on human, that's 100
     //  million reads, so 0.400 GB vs 2.4 GB.
 
-    sprintf(name, "%s/partitions/map", _storePath);
+    snprintf(name, FILENAME_MAX, "%s/partitions/map", _storePath);
 
     errno = 0;
     FILE *F = fopen(name, "r");
@@ -833,17 +833,17 @@ gkStore::gkStore(char const *path, gkStore_mode mode, uint32 partID) {
 
     fclose(F);
 
-    sprintf(name, "%s/libraries", _storePath);
+    snprintf(name, FILENAME_MAX, "%s/libraries", _storePath);
     _librariesMMap = new memoryMappedFile (name, memoryMappedFile_readOnly);
     _libraries     = (gkLibrary *)_librariesMMap->get(0);
     //fprintf(stderr, " -- openend '%s' at " F_X64 "\n", name, _libraries);
 
-    sprintf(name, "%s/partitions/reads.%04" F_U32P, _storePath, partID);
+    snprintf(name, FILENAME_MAX, "%s/partitions/reads.%04" F_U32P, _storePath, partID);
     _readsMMap     = new memoryMappedFile (name, memoryMappedFile_readOnly);
     _reads         = (gkRead *)_readsMMap->get(0);
     //fprintf(stderr, " -- openend '%s' at " F_X64 "\n", name, _reads);
 
-    sprintf(name, "%s/partitions/blobs.%04" F_U32P, _storePath, partID);
+    snprintf(name, FILENAME_MAX, "%s/partitions/blobs.%04" F_U32P, _storePath, partID);
     _blobsMMap     = new memoryMappedFile (name, memoryMappedFile_readOnly);
     _blobs         = (void *)_blobsMMap->get(0);
     //fprintf(stderr, " -- openend '%s' at " F_X64 "\n", name, _blobs);
@@ -881,7 +881,7 @@ gkStore::~gkStore() {
     delete _librariesMMap;
 
   } else if (_libraries) {
-    sprintf(N, "%s/libraries", gkStore_path());
+    snprintf(N, FILENAME_MAX, "%s/libraries", gkStore_path());
     errno = 0;
     F = fopen(N, "w");
     if (errno)
@@ -901,7 +901,7 @@ gkStore::~gkStore() {
     delete _readsMMap;
 
   } else if (_reads) {
-    sprintf(N, "%s/reads", gkStore_path());
+    snprintf(N, FILENAME_MAX, "%s/reads", gkStore_path());
     errno = 0;
     F = fopen(N, "w");
     if (errno)
@@ -918,7 +918,7 @@ gkStore::~gkStore() {
 
 
   if (needsInfoUpdate) {
-    sprintf(N, "%s/info", gkStore_path());
+    snprintf(N, FILENAME_MAX, "%s/info", gkStore_path());
     errno = 0;
     F = fopen(N, "w");
     if (errno)
@@ -929,7 +929,7 @@ gkStore::~gkStore() {
     fclose(F);
 
 
-    sprintf(N, "%s/info.txt", gkStore_path());
+    snprintf(N, FILENAME_MAX, "%s/info.txt", gkStore_path());
     errno = 0;
     F = fopen(N, "w");
     if (errno)
@@ -1194,7 +1194,7 @@ gkStore::gkStore_buildPartitions(uint32 *partitionMap) {
 
   //  Be nice and put all the partitions in a subdirectory.
 
-  sprintf(name,"%s/partitions", _storePath);
+  snprintf(name, FILENAME_MAX, "%s/partitions", _storePath);
 
   if (AS_UTL_fileExists(name, true, true) == false)
     AS_UTL_mkdir(name);
@@ -1207,7 +1207,7 @@ gkStore::gkStore_buildPartitions(uint32 *partitionMap) {
   readfileslen[0] = UINT32_MAX;
 
   for (uint32 i=1; i<=maxPartition; i++) {
-    sprintf(name,"%s/partitions/blobs.%04d", _storePath, i);
+    snprintf(name, FILENAME_MAX, "%s/partitions/blobs.%04d", _storePath, i);
 
     errno = 0;
     blobfiles[i]    = fopen(name, "w");
@@ -1217,7 +1217,7 @@ gkStore::gkStore_buildPartitions(uint32 *partitionMap) {
       fprintf(stderr, "gkStore::gkStore_buildPartitions()-- ERROR: failed to open partition %u file '%s' for write: %s\n",
               i, name, strerror(errno)), exit(1);
 
-    sprintf(name,"%s/partitions/reads.%04d", _storePath, i);
+    snprintf(name, FILENAME_MAX, "%s/partitions/reads.%04d", _storePath, i);
 
     errno = 0;
     readfiles[i]    = fopen(name, "w");
@@ -1230,7 +1230,7 @@ gkStore::gkStore_buildPartitions(uint32 *partitionMap) {
 
   //  Open the output partition map file -- we might as well fail early if we can't make it also.
 
-  sprintf(name,"%s/partitions/map", _storePath);
+  snprintf(name, FILENAME_MAX, "%s/partitions/map", _storePath);
 
   errno = 0;
   FILE *rIDmF = fopen(name, "w");
@@ -1331,20 +1331,20 @@ gkStore::gkStore_clone(char *clonePath) {
     fprintf(stderr, "gkStore::gkStore_clone()- failed to find path of '%s': %s\n",
             gkStore_path(), strerror(errno)), exit(1);
 
-  sprintf(sPath, "%s/info",      rPath);
-  sprintf(dPath, "%s/info",      clonePath);
+  snprintf(sPath, FILENAME_MAX, "%s/info",      rPath);
+  snprintf(dPath, FILENAME_MAX, "%s/info",      clonePath);
   AS_UTL_symlink(sPath, dPath);
 
-  sprintf(sPath, "%s/libraries", rPath);
-  sprintf(dPath, "%s/libraries", clonePath);
+  snprintf(sPath, FILENAME_MAX, "%s/libraries", rPath);
+  snprintf(dPath, FILENAME_MAX, "%s/libraries", clonePath);
   AS_UTL_symlink(sPath, dPath);
 
-  sprintf(sPath, "%s/reads",     rPath);
-  sprintf(dPath, "%s/reads",     clonePath);
+  snprintf(sPath, FILENAME_MAX, "%s/reads",     rPath);
+  snprintf(dPath, FILENAME_MAX, "%s/reads",     clonePath);
   AS_UTL_symlink(sPath, dPath);
 
-  sprintf(sPath, "%s/blobs",     rPath);
-  sprintf(dPath, "%s/blobs",     clonePath);
+  snprintf(sPath, FILENAME_MAX, "%s/blobs",     rPath);
+  snprintf(dPath, FILENAME_MAX, "%s/blobs",     clonePath);
   AS_UTL_symlink(sPath, dPath);
 }
 
@@ -1362,10 +1362,10 @@ gkStore::gkStore_delete(void) {
 
   gkStore_deletePartitions();
 
-  sprintf(path, "%s/info",      gkStore_path());  AS_UTL_unlink(path);
-  sprintf(path, "%s/libraries", gkStore_path());  AS_UTL_unlink(path);
-  sprintf(path, "%s/reads",     gkStore_path());  AS_UTL_unlink(path);
-  sprintf(path, "%s/blobs",     gkStore_path());  AS_UTL_unlink(path);
+  snprintf(path, FILENAME_MAX, "%s/info",      gkStore_path());  AS_UTL_unlink(path);
+  snprintf(path, FILENAME_MAX, "%s/libraries", gkStore_path());  AS_UTL_unlink(path);
+  snprintf(path, FILENAME_MAX, "%s/reads",     gkStore_path());  AS_UTL_unlink(path);
+  snprintf(path, FILENAME_MAX, "%s/blobs",     gkStore_path());  AS_UTL_unlink(path);
 
   AS_UTL_unlink(path);
 }
@@ -1376,7 +1376,7 @@ void
 gkStore::gkStore_deletePartitions(void) {
   char path[FILENAME_MAX];
 
-  sprintf(path, "%s/partitions/map", gkStore_path());
+  snprintf(path, FILENAME_MAX, "%s/partitions/map", gkStore_path());
 
   if (AS_UTL_fileExists(path, false, false) == false)
     return;
@@ -1396,8 +1396,8 @@ gkStore::gkStore_deletePartitions(void) {
   AS_UTL_unlink(path);
 
   for (uint32 ii=0; ii<_numberOfPartitions; ii++) {
-    sprintf(path, "%s/partitions/reads.%04u", gkStore_path(), ii+1);  AS_UTL_unlink(path);
-    sprintf(path, "%s/partitions/blobs.%04u", gkStore_path(), ii+1);  AS_UTL_unlink(path);
+    snprintf(path, FILENAME_MAX, "%s/partitions/reads.%04u", gkStore_path(), ii+1);  AS_UTL_unlink(path);
+    snprintf(path, FILENAME_MAX, "%s/partitions/blobs.%04u", gkStore_path(), ii+1);  AS_UTL_unlink(path);
   }
 }
 

@@ -348,7 +348,7 @@ FILE *
 openOutput(char *prefix, char *type) {
   char  A[FILENAME_MAX];
 
-  sprintf(A, "%s.%s.WORKING", prefix, type);
+  snprintf(A, FILENAME_MAX, "%s.%s.WORKING", prefix, type);
 
   errno = 0;
 
@@ -367,8 +367,8 @@ renameToFinal(char *prefix, char *type) {
   char  A[FILENAME_MAX];
   char  B[FILENAME_MAX];
 
-  sprintf(A, "%s.%s.WORKING", prefix, type);
-  sprintf(B, "%s.%s",         prefix, type);
+  snprintf(A, FILENAME_MAX, "%s.%s.WORKING", prefix, type);
+  snprintf(B, FILENAME_MAX, "%s.%s",         prefix, type);
 
   rename(A, B);
 }

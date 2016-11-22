@@ -471,7 +471,7 @@ Unitig::reportErrorProfile(const char *prefix, const char *label) {
   if (logFileFlagSet(LOG_ERROR_PROFILES) == false)
     return;
 
-  sprintf(N, "%s.%s.%08u.profile", prefix, label, id());
+  snprintf(N, FILENAME_MAX, "%s.%s.%08u.profile", prefix, label, id());
 
   F = fopen(N, "w");
 
@@ -487,7 +487,7 @@ Unitig::reportErrorProfile(const char *prefix, const char *label) {
   //  Reporting the index isn't generally useful, only for debugging.
 
 #if 0
-  sprintf(N, "%s.%s.%08u.profile.index", prefix, label, id());
+  snprintf(N, FILENAME_MAX, "%s.%s.%08u.profile.index", prefix, label, id());
 
   F = fopen(N, "w");
 

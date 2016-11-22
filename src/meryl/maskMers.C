@@ -309,7 +309,7 @@ computeDensity(merMaskedSequence *S, char *outputPrefix) {
     if (S->seqLen(s) == 0)
       continue;
 
-    sprintf(outputName, "%s.density.seq"uint32FMTW(02), outputPrefix, s);
+    snprintf(outputName, FILENAME_MAX, "%s.density.seq"uint32FMTW(02), outputPrefix, s);
     outputFile = fopen(outputName, "w");
 
     fprintf(stderr, "Starting '%s'\n", outputName);
@@ -387,10 +387,10 @@ computeMateRescue(merMaskedSequence *S, char *outputPrefix, mateRescueData *lib,
 
     fprintf(stderr, "Starting sequence "uint32FMT"\n", s);
 
-    sprintf(outputName, "%s.mateRescue.seq"uint32FMTW(02)".out", outputPrefix, s);
+    snprintf(outputName, FILENAME_MAX, "%s.mateRescue.seq"uint32FMTW(02)".out", outputPrefix, s);
     outputFile = fopen(outputName, "w");
 
-    sprintf(outputName, "%s.mateRescue.seq"uint32FMTW(02)".dat", outputPrefix, s);
+    snprintf(outputName, FILENAME_MAX, "%s.mateRescue.seq"uint32FMTW(02)".dat", outputPrefix, s);
     outputData = fopen(outputName, "w");
 
     double  numRR[MAX_COVERAGE] = {0};  //  num repeats rescued (expected) for [] X coverage

@@ -499,10 +499,10 @@ tgTig::dumpLayout(FILE *F) {
     deltaString[0] = 0;
 
     if (imp->_askip + imp->_bskip > 0)
-      sprintf(trimString,  " trim %6u %6u", imp->_askip, imp->_bskip);
+      snprintf(trimString,  128, " trim %6u %6u", imp->_askip, imp->_bskip);
 
     if (imp->_deltaLen > 0)
-      sprintf(deltaString, " delta %5u at %u", imp->_deltaLen, imp->_deltaOffset);
+      snprintf(deltaString, 128, " delta %5u at %u", imp->_deltaLen, imp->_deltaOffset);
 
 
     if (imp->_isRead)

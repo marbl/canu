@@ -385,7 +385,7 @@ reportTigGraph(TigVector &tigs, const char *prefix, const char *label) {
 
   writeStatus("AssemblyGraph()-- generating '%s.unitigs.gfa'.\n", prefix);
 
-  sprintf(N, "%s.unitigs.gfa", prefix);
+  snprintf(N, FILENAME_MAX, "%s.unitigs.gfa", prefix);
 
   BEG = fopen(N, "w");
 

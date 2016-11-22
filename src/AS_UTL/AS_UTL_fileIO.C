@@ -313,7 +313,7 @@ AS_UTL_sizeOfFile(const char *path) {
   if        (strcasecmp(path+strlen(path)-3, ".gz") == 0) {
     char   cmd[FILENAME_MAX], *p = cmd;
 
-    sprintf(cmd, "gzip -l %s", path);
+    snprintf(cmd, FILENAME_MAX, "gzip -l %s", path);
 
     FILE *F = popen(cmd, "r");
     fgets(cmd, FILENAME_MAX, F);    //   compressed uncompressed  ratio uncompressed_name
@@ -455,7 +455,7 @@ compressedFileType(char const *filename) {
 
 
 compressedFileReader::compressedFileReader(const char *filename) {
-  char    cmd[FILENAME_MAX * 2];
+  char    cmd[FILENAME_MAX];
   int32   len = 0;
 
   _file = NULL;
@@ -471,19 +471,19 @@ compressedFileReader::compressedFileReader(const char *filename) {
 
   switch (ft) {
     case cftGZ:
-      sprintf(cmd, "gzip -dc %s", filename);
+      snprintf(cmd, FILENAME_MAX, "gzip -dc %s", filename);
       _file = popen(cmd, "r");
       _pipe = true;
       break;
 
     case cftBZ2:
-      sprintf(cmd, "bzip2 -dc %s", filename);
+      snprintf(cmd, FILENAME_MAX, "bzip2 -dc %s", filename);
       _file = popen(cmd, "r");
       _pipe = true;
       break;
 
     case cftXZ:
-      sprintf(cmd, "xz -dc %s", filename);
+      snprintf(cmd, FILENAME_MAX, "xz -dc %s", filename);
       _file = popen(cmd, "r");
       _pipe = true;
 
@@ -526,7 +526,7 @@ compressedFileReader::~compressedFileReader() {
 
 
 compressedFileWriter::compressedFileWriter(const char *filename, int32 level) {
-  char   cmd[FILENAME_MAX * 2];
+  char   cmd[FILENAME_MAX];
   int32  len = 0;
 
   _file = NULL;
@@ -539,19 +539,19 @@ compressedFileWriter::compressedFileWriter(const char *filename, int32 level) {
 
   switch (ft) {
     case cftGZ:
-      sprintf(cmd, "gzip -%dc > %s", level, filename);
+      snprintf(cmd, FILENAME_MAX, "gzip -%dc > %s", level, filename);
       _file = popen(cmd, "w");
       _pipe = true;
       break;
 
     case cftBZ2:
-      sprintf(cmd, "bzip2 -%dc > %s", level, filename);
+      snprintf(cmd, FILENAME_MAX, "bzip2 -%dc > %s", level, filename);
       _file = popen(cmd, "w");
       _pipe = true;
       break;
 
     case cftXZ:
-      sprintf(cmd, "xz -%dc > %s", level, filename);
+      snprintf(cmd, FILENAME_MAX, "xz -%dc > %s", level, filename);
       _file = popen(cmd, "w");
       _pipe = true;
       break;

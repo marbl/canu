@@ -197,7 +197,7 @@ main (int argc, char * argv []) {
       }
       if (fnd == false) {
         char *s = new char [1024];
-        sprintf(s, "Unknown '-D' option '%s'.\n", argv[arg]);
+        snprintf(s, 1024, "Unknown '-D' option '%s'.\n", argv[arg]);
         err.push_back(s);
       }
 
@@ -213,13 +213,13 @@ main (int argc, char * argv []) {
       }
       if (fnd == false) {
         char *s = new char [1024];
-        sprintf(s, "Unknown '-d' option '%s'.\n", argv[arg]);
+        snprintf(s, 1024, "Unknown '-d' option '%s'.\n", argv[arg]);
         err.push_back(s);
       }
 
     } else {
       char *s = new char [1024];
-      sprintf(s, "Unknown option '%s'.\n", argv[arg]);
+      snprintf(s, 1024, "Unknown option '%s'.\n", argv[arg]);
       err.push_back(s);
     }
 

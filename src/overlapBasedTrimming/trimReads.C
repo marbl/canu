@@ -235,7 +235,7 @@ main(int argc, char **argv) {
 
 
   if (outputPrefix) {
-    sprintf(logName, "%s.log",   outputPrefix);
+    snprintf(logName, FILENAME_MAX, "%s.log",   outputPrefix);
 
     errno = 0;
     logFile = fopen(logName, "w");
@@ -455,7 +455,7 @@ main(int argc, char **argv) {
   //  Dump the statistics and plots
 
   if (outputPrefix) {
-    sprintf(sumName, "%s.stats", outputPrefix);
+    snprintf(sumName, FILENAME_MAX, "%s.stats", outputPrefix);
 
     errno = 0;
     staFile = fopen(sumName, "w");

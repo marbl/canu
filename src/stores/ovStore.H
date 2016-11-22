@@ -71,9 +71,9 @@ public:
     char  name[FILENAME_MAX];
 
     if (temporary == false)
-      sprintf(name, "%s/info", path);
+      snprintf(name, FILENAME_MAX, "%s/info", path);
     else
-      sprintf(name, "%s/%04u.info", path, index);
+      snprintf(name, FILENAME_MAX, "%s/%04u.info", path, index);
 
     if (AS_UTL_fileExists(name, false, false) == false) {
       fprintf(stderr, "ERROR: directory '%s' is not an overlapStore; didn't find file '%s': %s\n",
@@ -99,7 +99,7 @@ public:
   bool       test(const char *path) {
     char  name[FILENAME_MAX];
 
-    sprintf(name, "%s/info", path);
+    snprintf(name, FILENAME_MAX, "%s/info", path);
 
     if (AS_UTL_fileExists(name, false, false) == false)
       return(false);
@@ -119,9 +119,9 @@ public:
     char  name[FILENAME_MAX];
 
     if (temporary == false)
-      sprintf(name, "%s/info", path);
+      snprintf(name, FILENAME_MAX, "%s/info", path);
     else
-      sprintf(name, "%s/%04u.info", path, index);
+      snprintf(name, FILENAME_MAX, "%s/%04u.info", path, index);
 
     if (temporary == false) {
       _ovsMagic         = ovStoreMagic;

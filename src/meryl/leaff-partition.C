@@ -83,7 +83,7 @@ void
 outputPartition(seqCache *F,
                 char *prefix,
                 partition_s *p, uint32 openP, uint32 n) {
-  char  filename[1024];
+  char  filename[FILENAME_MAX];
 
   //  Check that everything has been partitioned
   //
@@ -96,7 +96,7 @@ outputPartition(seqCache *F,
     //  This rewrites the source fasta file into partitioned fasta files
     //
     for (uint32 o=1; o<=openP; o++) {
-      sprintf(filename, "%s-%03" F_U32P ".fasta", prefix, o);
+      snprintf(filename, FILENAME_MAX, "%s-%03" F_U32P ".fasta", prefix, o);
 
       errno = 0;
       FILE *file = fopen(filename, "w");

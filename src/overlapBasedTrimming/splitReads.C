@@ -195,13 +195,13 @@ main(int argc, char **argv) {
     outClr->copy(finClr);
 
 
-  sprintf(outputName, "%s.log",         outputPrefix);
+  snprintf(outputName, FILENAME_MAX, "%s.log",         outputPrefix);
   errno = 0;
   reportFile  = fopen(outputName, "w");
   if (errno)
     fprintf(stderr, "Failed to open '%s' for writing: %s\n", outputName, strerror(errno)), exit(1);
 
-  sprintf(outputName, "%s.subread.log", outputPrefix);
+  snprintf(outputName, FILENAME_MAX, "%s.subread.log", outputPrefix);
   errno = 0;
   subreadFile = fopen(outputName, "w");
   if (errno)
@@ -392,7 +392,7 @@ main(int argc, char **argv) {
   //  Write the summary
 
   if (outputPrefix) {
-    sprintf(outputName, "%s.stats", outputPrefix);
+    snprintf(outputName, FILENAME_MAX, "%s.stats", outputPrefix);
 
     errno = 0;
     staFile = fopen(outputName, "w");

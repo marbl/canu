@@ -474,13 +474,13 @@ main(int argc, char **argv) {
 
     errno = 0;
 
-    sprintf(outName, "%s.log", outPrefix);
+    snprintf(outName, FILENAME_MAX, "%s.log", outPrefix);
 
     outLOG = fopen(outName, "w");
     if (errno)
       fprintf(stderr, "Failed to open '%s': %s\n", outName, strerror(errno)), exit(1);
 
-    sprintf(outName, "%s.stats", outPrefix);
+    snprintf(outName, FILENAME_MAX, "%s.stats", outPrefix);
 
     outSTA = fopen(outName, "w");
     if (errno)

@@ -602,17 +602,17 @@ main(int argc, char **argv) {
 
   errno = 0;
 
-  sprintf(errorLogName, "%s/errorLog",    gkpStoreName);
+  snprintf(errorLogName, FILENAME_MAX, "%s/errorLog",    gkpStoreName);
   FILE    *errorLog = fopen(errorLogName, "w");
   if (errno)
     fprintf(stderr, "ERROR:  cannot open error file '%s': %s\n", errorLogName, strerror(errno)), exit(1);
 
-  sprintf(htmlLogName,   "%s/load.dat", gkpStoreName);
+  snprintf(htmlLogName, FILENAME_MAX,   "%s/load.dat", gkpStoreName);
   FILE    *htmlLog   = fopen(htmlLogName,   "w");
   if (errno)
     fprintf(stderr, "ERROR:  cannot open uid map file '%s': %s\n", htmlLogName, strerror(errno)), exit(1);
 
-  sprintf(nameMapName,   "%s/readNames.txt", gkpStoreName);
+  snprintf(nameMapName, FILENAME_MAX,   "%s/readNames.txt", gkpStoreName);
   FILE    *nameMap   = fopen(nameMapName,   "w");
   if (errno)
     fprintf(stderr, "ERROR:  cannot open uid map file '%s': %s\n", nameMapName, strerror(errno)), exit(1);

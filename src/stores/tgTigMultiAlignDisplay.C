@@ -302,8 +302,9 @@ tgTig::display(FILE     *F,
 
   fprintf(F, "<<< begin Contig %d >>>", tigID());
 
-  char *gruler = new char [displayWidth + 200];
-  char *uruler = new char [displayWidth + 200];
+  uint32  lruler = displayWidth + 200;
+  char   *gruler = new char [lruler];
+  char   *uruler = new char [lruler];
 
   int32 ungapped = 1;
   int32 tick     = 1;
@@ -325,10 +326,10 @@ tgTig::display(FILE     *F,
 
       for (uint32 rowind=0; rowind<rowlen; rowind++) {
         if (((window + 1 + rowind) % 25) == 0)
-          sprintf(gruler + rowind, "| GAP=%d", window + 1 + rowind);
+          snprintf(gruler + rowind, lruler, "| GAP=%d", window + 1 + rowind);
 
         if ((ungapped % 25) == 0)
-          sprintf(uruler + rowind, "| UNG=%d", ungapped);
+          snprintf(uruler + rowind, lruler, "| UNG=%d", ungapped);
 
         if (_gappedBases[window + rowind] != '-')
           ungapped++;

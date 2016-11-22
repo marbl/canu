@@ -401,9 +401,9 @@ main(int argc, char **argv) {
   //  Open logging and summary files
 
   if (outputPrefix) {
-    sprintf(logName, "%s.log",        outputPrefix);
-    sprintf(sumName, "%s.summary",    outputPrefix);
-    sprintf(flgName, "%s.filter.log", outputPrefix);
+    snprintf(logName, FILENAME_MAX, "%s.log",        outputPrefix);
+    snprintf(sumName, FILENAME_MAX, "%s.summary",    outputPrefix);
+    snprintf(flgName, FILENAME_MAX, "%s.filter.log", outputPrefix);
 
     errno = 0;
 

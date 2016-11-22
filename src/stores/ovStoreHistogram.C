@@ -184,7 +184,7 @@ void
 createDataName(char *name, char *prefix, char *suffix) {
 
   if (AS_UTL_fileExists(prefix, true, false)) {
-    sprintf(name, "%s/%s", prefix, suffix);
+    snprintf(name, FILENAME_MAX, "%s/%s", prefix, suffix);
   }
 
   else {

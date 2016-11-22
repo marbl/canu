@@ -278,10 +278,10 @@ printSequence(char        *def,
     char    d[1024];
     uint32  l = strlen(seq);
 
-    sprintf(d, "%s_5", def);
+    snprintf(d, 1024, "%s_5", def);
     printSequence(d, seq, 0, endExtract);
 
-    sprintf(d, "%s_3", def);
+    snprintf(d, 1024, "%s_3", def);
     printSequence(d, seq, l-endExtract, l);
 
     return;
@@ -519,7 +519,7 @@ processArray(int argc, char **argv) {
           seq[p++] = bases[MT.mtRandom32() & 0x3];
         seq[p] = 0;
 
-        sprintf(def, "random%06" F_U32P, i);
+        snprintf(def, 1024, "random%06" F_U32P, i);
 
         printSequence(def, seq, 0, j);
       }

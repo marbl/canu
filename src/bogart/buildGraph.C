@@ -196,7 +196,7 @@ main(int argc, char **argv) {
 
     } else {
       char *s = new char [1024];
-      sprintf(s, "Unknown option '%s'.\n", argv[arg]);
+      snprintf(s, 1024, "Unknown option '%s'.\n", argv[arg]);
       err.push_back(s);
     }
 
@@ -377,7 +377,7 @@ main(int argc, char **argv) {
     frLen -= (frBgn + frEnd);
     toLen -= (toBgn + toEnd);
 
-    sprintf(cigar, "%dM", (frLen + toLen) / 2);    //  Used to be 'm', Bandage complained about it not being 'M'.
+    snprintf(cigar, 1024 * 1024, "%dM", (frLen + toLen) / 2);    //  Used to be 'm', Bandage complained about it not being 'M'.
 
     //  The overlap should now have one of:
     //     frBgn == toEnd == 0 -- to has an overlap to fr

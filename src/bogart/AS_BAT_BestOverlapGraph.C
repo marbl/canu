@@ -296,7 +296,7 @@ BestOverlapGraph::removeSpurs(const char *prefix) {
 
   char    N[FILENAME_MAX];
 
-  sprintf(N, "%s.best.spurs", prefix);
+  snprintf(N, FILENAME_MAX, "%s.best.spurs", prefix);
 
   FILE   *F = fopen(N, "w");
   if (errno)
@@ -591,14 +591,14 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
   FILE *BS = NULL;
   FILE *SS = NULL;
 
-  sprintf(N, "%s.%s.edges",               prefix, label);   BE = fopen(N, "w");
-  sprintf(N, "%s.%s.singletons",          prefix, label);   BS = fopen(N, "w");
-  sprintf(N, "%s.%s.edges.suspicious",    prefix, label);   SS = fopen(N, "w");
+  snprintf(N, FILENAME_MAX, "%s.%s.edges",               prefix, label);   BE = fopen(N, "w");
+  snprintf(N, FILENAME_MAX, "%s.%s.singletons",          prefix, label);   BS = fopen(N, "w");
+  snprintf(N, FILENAME_MAX, "%s.%s.edges.suspicious",    prefix, label);   SS = fopen(N, "w");
 
-  sprintf(N, "%s.%s.contains.histogram",  prefix, label);   BCH = fopen(N, "w");
-  sprintf(N, "%s.%s.edges.histogram",     prefix, label);   BEH = fopen(N, "w");
+  snprintf(N, FILENAME_MAX, "%s.%s.contains.histogram",  prefix, label);   BCH = fopen(N, "w");
+  snprintf(N, FILENAME_MAX, "%s.%s.edges.histogram",     prefix, label);   BEH = fopen(N, "w");
 
-  sprintf(N, "%s.%s.edges.gfa",           prefix, label);   BEG = fopen(N, "w");
+  snprintf(N, FILENAME_MAX, "%s.%s.edges.gfa",           prefix, label);   BEG = fopen(N, "w");
 
   if ((BE) && (BS)) {
     fprintf(BE, "#readId\tlibId\tbest5iid\tbest5end\tbest3iid\tbest3end\teRate5\teRate3\tbest5len\tbest3len\n");

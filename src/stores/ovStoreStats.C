@@ -247,7 +247,7 @@ main(int argc, char **argv) {
   //  Open outputs.
 
   char N[FILENAME_MAX];
-  sprintf(N, "%s.per-read.log", outPrefix);
+  snprintf(N, FILENAME_MAX, "%s.per-read.log", outPrefix);
 
   FILE  *LOG = fopen(N, "w");
   if (errno)
@@ -580,7 +580,7 @@ main(int argc, char **argv) {
   LOG = stdout;
 
   if (toFile == true) {
-    sprintf(N, "%s.summary", outPrefix);
+    snprintf(N, FILENAME_MAX, "%s.summary", outPrefix);
 
     LOG = fopen(N, "w");
     if (errno)

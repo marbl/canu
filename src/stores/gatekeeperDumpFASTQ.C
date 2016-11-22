@@ -52,7 +52,7 @@ public:
     strcpy(_p, outPrefix);
 
     if (outSuffix[0])
-      sprintf(_s, ".%s", outSuffix);
+      snprintf(_s, FILENAME_MAX, ".%s", outSuffix);
     else
       _s[0] = 0;
 
@@ -83,12 +83,12 @@ public:
     char  N[FILENAME_MAX];
 
     if (_n[0])
-      sprintf(N, "%s.%s.fastq%s", _p, _n, _s);
+      snprintf(N, FILENAME_MAX, "%s.%s.fastq%s", _p, _n, _s);
     else
-      sprintf(N, "%s.fastq%s", _p, _s);
+      snprintf(N, FILENAME_MAX, "%s.fastq%s", _p, _s);
 
     if ((_p[0] == '-') && (_p[1] == 0)) {
-      sprintf(N, "(stdout)");
+      snprintf(N, FILENAME_MAX, "(stdout)");
       _FASTQ = stdout;
     }
 
@@ -113,12 +113,12 @@ public:
     char  N[FILENAME_MAX];
 
     if (_n[0])
-      sprintf(N, "%s.%s.fasta%s", _p, _n, _s);
+      snprintf(N, FILENAME_MAX, "%s.%s.fasta%s", _p, _n, _s);
     else
-      sprintf(N, "%s.fasta%s", _p, _s);
+      snprintf(N, FILENAME_MAX, "%s.fasta%s", _p, _s);
 
     if ((_p[0] == '-') && (_p[1] == 0)) {
-      sprintf(N, "(stdout)");
+      snprintf(N, FILENAME_MAX, "(stdout)");
       _FASTA = stdout;
     }
 

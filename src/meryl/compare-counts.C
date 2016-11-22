@@ -238,10 +238,10 @@ main(int argc, char **argv) {
 
   char  outputName[FILENAME_MAX];
 
-  sprintf(outputName, "%s.gp", outputPrefix);
+  snprintf(outputName, FILENAME_MAX, "%s.gp", outputPrefix);
   FILE *outputGP  = fopen(outputName, "w");
 
-  sprintf(outputName, "%s.dat", outputPrefix);
+  snprintf(outputName, FILENAME_MAX, "%s.dat", outputPrefix);
   FILE *outputDAT = fopen(outputName, "w");
 
   fprintf(outputGP, "set terminal png\n");
@@ -259,7 +259,7 @@ main(int argc, char **argv) {
 
   fclose(outputDAT);
 
-  sprintf(outputName, "gnuplot < %s.gp", outputPrefix);
+  snprintf(outputName, FILENAME_MAX, "gnuplot < %s.gp", outputPrefix);
   system(outputName);
 
   exit(0);

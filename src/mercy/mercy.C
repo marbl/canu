@@ -235,10 +235,10 @@ main(int argc, char **argv) {
   uint32              AFmode = 0;
   uint32              TFmode = 0;
 
-  char                dumpSCZFname[1024] = {0};  //  single contig, zero frags
-  char                dumpMCZFname[1024] = {0};  //  low contig, zero frags
-  char                dumpMCSFname[1024] = {0};  //  medium contig, low frags
-  char                dumpMCMFname[1024] = {0};  //  everything else, contig > frags
+  char                dumpSCZFname[FILENAME_MAX] = {0};  //  single contig, zero frags
+  char                dumpMCZFname[FILENAME_MAX] = {0};  //  low contig, zero frags
+  char                dumpMCSFname[FILENAME_MAX] = {0};  //  medium contig, low frags
+  char                dumpMCMFname[FILENAME_MAX] = {0};  //  everything else, contig > frags
 
   bool                beVerbose = false;
 
@@ -268,10 +268,10 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-dump") == 0) {
       arg++;
       dumpFlag = true;
-      sprintf(dumpSCZFname, "%s.0.singlecontig.zerofrag.fasta",       argv[arg]);
-      sprintf(dumpMCZFname, "%s.1.multiplecontig.zerofrag.fasta",     argv[arg]);
-      sprintf(dumpMCSFname, "%s.2.multiplecontig.lowfrag.fasta",      argv[arg]);
-      sprintf(dumpMCMFname, "%s.3.multiplecontig.multiplefrag.fasta", argv[arg]);
+      snprintf(dumpSCZFname, FILENAME_MAX, "%s.0.singlecontig.zerofrag.fasta",       argv[arg]);
+      snprintf(dumpMCZFname, FILENAME_MAX, "%s.1.multiplecontig.zerofrag.fasta",     argv[arg]);
+      snprintf(dumpMCSFname, FILENAME_MAX, "%s.2.multiplecontig.lowfrag.fasta",      argv[arg]);
+      snprintf(dumpMCMFname, FILENAME_MAX, "%s.3.multiplecontig.multiplefrag.fasta", argv[arg]);
     } else if (strcmp(argv[arg], "-v") == 0) {
       beVerbose = true;
     } else {

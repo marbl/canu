@@ -822,7 +822,7 @@ AssemblyGraph::reportReadGraph(TigVector &tigs, const char *prefix, const char *
 
   writeStatus("AssemblyGraph()-- generating '%s.%s.edges.gfa'.\n", prefix, label);
 
-  sprintf(N, "%s.%s.assembly.gfa", prefix, label);
+  snprintf(N, FILENAME_MAX, "%s.%s.assembly.gfa", prefix, label);
 
   BEG = fopen(N, "w");
 

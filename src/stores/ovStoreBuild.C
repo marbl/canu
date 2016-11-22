@@ -81,7 +81,7 @@ void
 reportConfiguration(char *configOut, uint32 maxIID, uint32 *iidToBucket) {
   char  F[FILENAME_MAX];
 
-  sprintf(F, "%s.WORKING", configOut);
+  snprintf(F, FILENAME_MAX, "%s.WORKING", configOut);
 
   errno = 0;
   FILE *C = fopen(configOut, "w");
@@ -329,7 +329,7 @@ writeToDumpFile(gkStore          *gkp,
 
   if (dumpFile[df] == NULL) {
     char name[FILENAME_MAX];
-    sprintf(name, "%s/tmp.sort.%03d", ovlName, df);
+    snprintf(name, FILENAME_MAX, "%s/tmp.sort.%03d", ovlName, df);
     fprintf(stderr, "-- Create bucket '%s'\n", name);
     dumpFile[df]   = new ovFile(gkp, name, ovFileFullWriteNoCounts);
     dumpLength[df] = 0;
@@ -593,7 +593,7 @@ main(int argc, char **argv) {
     //  directly....BUT....we can't do that because the AS_OVS interface is rearranging the data to
     //  make sure the store is cross-platform compatible.
 
-    sprintf(name, "%s/tmp.sort.%03d", ovlName, i);
+    snprintf(name, FILENAME_MAX, "%s/tmp.sort.%03d", ovlName, i);
     fprintf(stderr, "-  Loading '%s'\n", name);
 
     bof = new ovFile(gkp, name, ovFileFull);

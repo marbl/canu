@@ -354,9 +354,9 @@ dumpLayout(gkStore *UNUSED(gkpStore), tgStore *tigStore, tgFilter &filter, bool 
     char R[FILENAME_MAX];  int32 Rerr = 0;
     char L[FILENAME_MAX];  int32 Lerr = 0;
 
-    sprintf(T, "%s.layout.tigInfo",   outPrefix);
-    sprintf(R, "%s.layout.readToTig", outPrefix);
-    sprintf(L, "%s.layout",           outPrefix);
+    snprintf(T, FILENAME_MAX, "%s.layout.tigInfo",   outPrefix);
+    snprintf(R, FILENAME_MAX, "%s.layout.readToTig", outPrefix);
+    snprintf(L, FILENAME_MAX, "%s.layout",           outPrefix);
 
     errno = 0;
 
@@ -604,7 +604,7 @@ dumpDepthHistogram(gkStore *UNUSED(gkpStore), tgStore *tigStore, tgFilter &filte
     //  Maybe plot the histogram (and if so, clear it for the next tig).
 
     if (single == true) {
-      sprintf(N, "%s.tig%06d.depthHistogram", outPrefix, tig->tigID());
+      snprintf(N, FILENAME_MAX, "%s.tig%06d.depthHistogram", outPrefix, tig->tigID());
       plotDepthHistogram(N, cov, covMax);
 
       memset(cov, 0, sizeof(uint64) * covMax);  //  Slight optimization if we do this in plotDepthHistogram of just the set values.
@@ -616,7 +616,7 @@ dumpDepthHistogram(gkStore *UNUSED(gkpStore), tgStore *tigStore, tgFilter &filte
   }
 
   if (single == false) {
-    sprintf(N, "%s.depthHistogram", outPrefix);
+    snprintf(N, FILENAME_MAX, "%s.depthHistogram", outPrefix);
     plotDepthHistogram(N, cov, covMax);
   }
 
@@ -742,7 +742,7 @@ dumpCoverage(gkStore *UNUSED(gkpStore), tgStore *tigStore, tgFilter &filter, boo
     if (outPrefix) {
       char  outName[FILENAME_MAX];
 
-      sprintf(outName, "%s.tig%08u.depth", outPrefix, tig->tigID());
+      snprintf(outName, FILENAME_MAX, "%s.tig%08u.depth", outPrefix, tig->tigID());
 
       FILE *outFile = fopen(outName, "w");
       if (errno)
@@ -976,7 +976,7 @@ dumpOverlapHistogram(gkStore *UNUSED(gkpStore), tgStore *tigStore, tgFilter &fil
 
   char N[FILENAME_MAX];
 
-  sprintf(N, "%s.thickestOverlapHistogram", outPrefix);
+  snprintf(N, FILENAME_MAX, "%s.thickestOverlapHistogram", outPrefix);
 
   plotDepthHistogram(N, hist, histMax);
 

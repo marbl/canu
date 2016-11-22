@@ -208,7 +208,7 @@ public:
 
     char fqName[FILENAME_MAX];
 
-    sprintf(fqName, "%s.log", fqOutputPath);
+    snprintf(fqName, FILENAME_MAX, "%s.log", fqOutputPath);
 
     fqLog    = new compressedFileWriter(fqName);
   };
@@ -285,7 +285,7 @@ public:
     }
 
     char  cacheName[FILENAME_MAX];
-    sprintf(cacheName, "%s.merTrimDB", merCountsFile);
+    snprintf(cacheName, FILENAME_MAX, "%s.merTrimDB", merCountsFile);
 
     if (AS_UTL_fileExists(cacheName, FALSE, FALSE)) {
       fprintf(stderr, "loading genome mer database from cache '%s'.\n", cacheName);

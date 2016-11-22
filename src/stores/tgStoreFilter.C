@@ -256,7 +256,7 @@ main(int argc, char **argv) {
 
   errno = 0;
 
-  sprintf(outName, "%s.log", outPrefix);
+  snprintf(outName, FILENAME_MAX, "%s.log", outPrefix);
 
   outLOG = fopen(outName, "w");
   if (errno)
@@ -264,7 +264,7 @@ main(int argc, char **argv) {
 
   fprintf(outLOG, "tigID\trho\tcovStat\tarrDist\n");
 
-  sprintf(outName, "%s.stats", outPrefix);
+  snprintf(outName, FILENAME_MAX, "%s.stats", outPrefix);
 
   outSTA = fopen(outName, "w");
   if (errno)

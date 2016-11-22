@@ -69,7 +69,8 @@ tgStore::tgStore(const char *path_,
 
   _type = type_;
 
-  strcpy(_path, path_);
+  _path[FILENAME_MAX] = 0;
+  strncpy(_path, path_, FILENAME_MAX-1);
 
   _newTigs           = false;
 
@@ -191,9 +192,9 @@ tgStore::~tgStore() {
 void
 tgStore::purgeVersion(uint32 version) {
 
-  sprintf(_name, "%s/seqDB.v%03d.dat", _path, version);   AS_UTL_unlink(_name);
-  sprintf(_name, "%s/seqDB.v%03d.ctg", _path, version);   AS_UTL_unlink(_name);
-  sprintf(_name, "%s/seqDB.v%03d.utg", _path, version);   AS_UTL_unlink(_name);
+  snprintf(_name, FILENAME_MAX, "%s/seqDB.v%03d.dat", _path, version);   AS_UTL_unlink(_name);
+  snprintf(_name, FILENAME_MAX, "%s/seqDB.v%03d.ctg", _path, version);   AS_UTL_unlink(_name);
+  snprintf(_name, FILENAME_MAX, "%s/seqDB.v%03d.utg", _path, version);   AS_UTL_unlink(_name);
 }
 
 
@@ -596,7 +597,7 @@ tgStore::numTigsInMASRfile(char *name) {
 void
 tgStore::dumpMASR(tgStoreEntry* &R, uint32& L, uint32 V) {
 
-  sprintf(_name, "%s/seqDB.v%03d.tig", _path, V);
+  snprintf(_name, FILENAME_MAX, "%s/seqDB.v%03d.tig", _path, V);
 
   errno = 0;
   FILE *F = fopen(_name, "w");
@@ -631,7 +632,7 @@ tgStore::loadMASR(tgStoreEntry* &R, uint32& L, uint32& M, uint32 V) {
   //
   if (R == NULL) {
     for (int32 i=V; i>0; i--) {
-      sprintf(_name, "%s/seqDB.v%03d.tig", _path, i);
+      snprintf(_name, FILENAME_MAX, "%s/seqDB.v%03d.tig", _path, i);
       L = numTigsInMASRfile(_name);
       if (L > 0)
         break;
@@ -642,11 +643,11 @@ tgStore::loadMASR(tgStoreEntry* &R, uint32& L, uint32& M, uint32 V) {
     memset(R, 0, sizeof(tgStoreEntry) * M);
   }
 
-  sprintf(_name, "%s/seqDB.v%03d.tig", _path, V);
+  snprintf(_name, FILENAME_MAX, "%s/seqDB.v%03d.tig", _path, V);
 
   while ((AS_UTL_fileExists(_name) == false) && (V > 0))  {
     V--;
-    sprintf(_name, "%s/seqDB.v%03d.tig", _path, V);
+    snprintf(_name, FILENAME_MAX, "%s/seqDB.v%03d.tig", _path, V);
   }
 
   if (V == 0)
@@ -703,7 +704,7 @@ tgStore::openDB(uint32 version) {
 
   //  Load the data
 
-  sprintf(_name, "%s/seqDB.v%03d.dat", _path, version);
+  snprintf(_name, FILENAME_MAX, "%s/seqDB.v%03d.dat", _path, version);
 
   //  If version is the _currentVersion, open for writing if allowed.
   //

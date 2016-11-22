@@ -61,7 +61,7 @@ void
 makeSentinel(char *storePath, uint32 fileID, bool forceRun) {
   char name[FILENAME_MAX];
 
-  sprintf(name,"%s/%04d.ovs", storePath, fileID);
+  snprintf(name, FILENAME_MAX, "%s/%04d.ovs", storePath, fileID);
 
   if ((forceRun == false) && (AS_UTL_fileExists(name, FALSE, FALSE)))
     fprintf(stderr, "Job " F_U32 " is running or finished (remove '%s' or -force to try again).\n", fileID, name), exit(0);
@@ -78,7 +78,7 @@ makeSentinel(char *storePath, uint32 fileID, bool forceRun) {
 void
 removeSentinel(char *storePath, uint32 fileID) {
   char name[FILENAME_MAX];
-  sprintf(name,"%s/%04d.ovs", storePath, fileID);
+  snprintf(name, FILENAME_MAX, "%s/%04d.ovs", storePath, fileID);
   unlink(name);
 }
 

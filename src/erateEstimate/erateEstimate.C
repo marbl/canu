@@ -227,7 +227,7 @@ saveProfile(uint32             iid,
             uint32             iter,
             readErrorEstimate *readProfile) {
   char    N[FILENAME_MAX];
-  sprintf(N, "erate-%08u-%02u.dat", iid, iter);
+  snprintf(N, FILENAME_MAX, "erate-%08u-%02u.dat", iid, iter);
 
   FILE   *F = fopen(N, "w");
 

@@ -146,10 +146,10 @@ adjustHeap(sortedList_t *M, int64 i, int64 n) {
 void
 submitPrepareBatch(merylArgs *args) {
   FILE  *F;
-  char   nam[1024];
-  char   cmd[1024];
+  char   nam[FILENAME_MAX];
+  char   cmd[FILENAME_MAX];
 
-  sprintf(nam, "%s-prepare.sh", args->outputFile);
+  snprintf(nam, FILENAME_MAX, "%s-prepare.sh", args->outputFile);
 
   errno = 0;
   F = fopen(nam, "w");
@@ -162,10 +162,10 @@ submitPrepareBatch(merylArgs *args) {
   fclose(F);
 
   if (args->sgeMergeOpt)
-    sprintf(cmd, "qsub -cwd -b n -j y -o %s-prepare.err %s -N mp%s %s-prepare.sh",
+    snprintf(cmd, FILENAME_MAX, "qsub -cwd -b n -j y -o %s-prepare.err %s -N mp%s %s-prepare.sh",
             args->outputFile, args->sgeMergeOpt, args->sgeJobName, args->outputFile);
   else
-    sprintf(cmd, "qsub -cwd -b n -j y -o %s-prepare.err -N mp%s %s-prepare.sh",
+    snprintf(cmd, FILENAME_MAX, "qsub -cwd -b n -j y -o %s-prepare.err -N mp%s %s-prepare.sh",
             args->outputFile, args->sgeJobName, args->outputFile);
   fprintf(stderr, "%s\n", cmd);
   if (system(cmd))
@@ -176,10 +176,10 @@ submitPrepareBatch(merylArgs *args) {
 void
 submitCountBatches(merylArgs *args) {
   FILE  *F;
-  char   nam[1024];
-  char   cmd[1024];
+  char   nam[FILENAME_MAX];
+  char   cmd[FILENAME_MAX];
 
-  sprintf(nam, "%s-count.sh", args->outputFile);
+  snprintf(nam, FILENAME_MAX, "%s-count.sh", args->outputFile);
 
   errno = 0;
   F = fopen(nam, "w");
@@ -193,10 +193,10 @@ submitCountBatches(merylArgs *args) {
   fclose(F);
 
   if (args->sgeBuildOpt)
-    sprintf(cmd, "qsub -t 1-" F_U64 " -cwd -b n -j y -o %s-count-\\$TASK_ID.err %s -N mc%s %s-count.sh",
+    snprintf(cmd, FILENAME_MAX, "qsub -t 1-" F_U64 " -cwd -b n -j y -o %s-count-\\$TASK_ID.err %s -N mc%s %s-count.sh",
             args->segmentLimit, args->outputFile, args->sgeBuildOpt, args->sgeJobName, args->outputFile);
   else
-    sprintf(cmd, "qsub -t 1-" F_U64 " -cwd -b n -j y -o %s-count-\\$TASK_ID.err -N mc%s %s-count.sh",
+    snprintf(cmd, FILENAME_MAX, "qsub -t 1-" F_U64 " -cwd -b n -j y -o %s-count-\\$TASK_ID.err -N mc%s %s-count.sh",
             args->segmentLimit, args->outputFile, args->sgeJobName, args->outputFile);
   fprintf(stderr, "%s\n", cmd);
   if (system(cmd))
@@ -204,7 +204,7 @@ submitCountBatches(merylArgs *args) {
 
   //  submit the merge
 
-  sprintf(nam, "%s-merge.sh", args->outputFile);
+  snprintf(nam, FILENAME_MAX, "%s-merge.sh", args->outputFile);
 
   errno = 0;
   F = fopen(nam, "w");
@@ -217,10 +217,10 @@ submitCountBatches(merylArgs *args) {
   fclose(F);
 
   if (args->sgeMergeOpt)
-    sprintf(cmd, "qsub -hold_jid mc%s -cwd -b n -j y -o %s-merge.err %s -N mm%s %s-merge.sh",
+    snprintf(cmd, FILENAME_MAX, "qsub -hold_jid mc%s -cwd -b n -j y -o %s-merge.err %s -N mm%s %s-merge.sh",
             args->sgeJobName, args->outputFile, args->sgeMergeOpt, args->sgeJobName, args->outputFile);
   else
-    sprintf(cmd, "qsub -hold_jid mc%s -cwd -b n -j y -o %s-merge.err -N mm%s %s-merge.sh",
+    snprintf(cmd, FILENAME_MAX, "qsub -hold_jid mc%s -cwd -b n -j y -o %s-merge.err -N mm%s %s-merge.sh",
             args->sgeJobName, args->outputFile, args->sgeJobName, args->outputFile);
   fprintf(stderr, "%s\n", cmd);
   if (system(cmd))
@@ -378,8 +378,9 @@ runSegment(merylArgs *args, uint64 segment) {
   //  XXX:  This should be a command line option.
   //  XXX:  This should check that the files are complete meryl files.
   //
-  char *filename = new char [strlen(args->outputFile) + 17];
-  sprintf(filename, "%s.batch" F_U64 ".mcdat", args->outputFile, segment);
+  char filename[FILENAME_MAX];
+
+  snprintf(filename, FILENAME_MAX, "%s.batch" F_U64 ".mcdat", args->outputFile, segment);
 
   if (AS_UTL_fileExists(filename)) {
     if (args->beVerbose)
@@ -391,7 +392,6 @@ runSegment(merylArgs *args, uint64 segment) {
   if ((args->beVerbose) && (args->segmentLimit > 1))
     fprintf(stderr, "Computing segment " F_U64 " of " F_U64 ".\n", segment+1, args->segmentLimit);
 
-  delete [] filename;
 
 
   //  Allocate space for bucket pointers and (temporary) bucket sizes.
@@ -567,8 +567,8 @@ runSegment(merylArgs *args, uint64 segment) {
   delete C;
   delete M;
 
-  char *batchOutputFile = new char [strlen(args->outputFile) + 33];
-  sprintf(batchOutputFile, "%s.batch" F_U64, args->outputFile, segment);
+  char batchOutputFile[FILENAME_MAX];
+  snprintf(batchOutputFile, FILENAME_MAX, "%s.batch" F_U64, args->outputFile, segment);
 
   C = new speedCounter(" Writing output:           %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, args->beVerbose);
   W = new merylStreamWriter((args->segmentLimit == 1) ? args->outputFile : batchOutputFile,
@@ -693,8 +693,6 @@ runSegment(merylArgs *args, uint64 segment) {
   delete C;
   delete W;
 
-  delete [] batchOutputFile;
-
   for (uint32 x=0; x<SORTED_LIST_WIDTH; x++)
     delete [] merDataArray[x];
 
@@ -810,8 +808,8 @@ build(merylArgs *args) {
       arga[argc] = false;
       argv[argc++] = "-s";
       arga[argc] = true;
-      argv[argc] = new char [strlen(args->outputFile) + 33];
-      sprintf(argv[argc], "%s.batch" F_U32, args->outputFile, i);
+      argv[argc] = new char [FILENAME_MAX];
+      snprintf(argv[argc], FILENAME_MAX, "%s.batch" F_U32, args->outputFile, i);
       argc++;
     }
 
@@ -832,28 +830,25 @@ build(merylArgs *args) {
 
     //  Remove temporary files
     //
-    char *filename = new char [strlen(args->outputFile) + 17];
 
     for (uint32 i=0; i<args->segmentLimit; i++) {
-      sprintf(filename, "%s.batch" F_U32 ".mcidx", args->outputFile, i);
+      char filename[FILENAME_MAX];
+
+      snprintf(filename, FILENAME_MAX, "%s.batch" F_U32 ".mcidx", args->outputFile, i);
       unlink(filename);
-      sprintf(filename, "%s.batch" F_U32 ".mcdat", args->outputFile, i);
+      snprintf(filename, FILENAME_MAX, "%s.batch" F_U32 ".mcdat", args->outputFile, i);
       unlink(filename);
-      sprintf(filename, "%s.batch" F_U32 ".mcpos", args->outputFile, i);
+      snprintf(filename, FILENAME_MAX, "%s.batch" F_U32 ".mcpos", args->outputFile, i);
       unlink(filename);
     }
-
-    delete [] filename;
   }
 
   //  If we just merged, delete the merstream file
   //
   if (doMerge) {
-    char *filename = new char [strlen(args->outputFile) + 17];
+    char filename[FILENAME_MAX];
 
-    sprintf(filename, "%s.merStream", args->outputFile);
+    snprintf(filename, FILENAME_MAX, "%s.merStream", args->outputFile);
     unlink(filename);
-
-    delete [] filename;
   }
 }
