@@ -128,8 +128,12 @@ bitPackedFile::bitPackedFile(char const *name, uint64 offset, bool forceTruncate
   //  Move to the correct position in the file.
   //
   file_offset = offset;
-  if (file_offset > 0)
+  if (file_offset > 0) {
+    errno = 0;
     lseek(_file, file_offset, SEEK_SET);
+    if (errno)
+      fprintf(stderr, "bitPackedFile::bitPackedFile()-- '%s' failed to seed to position %llu: %s\n", _name, file_offset, strerror(errno)), exit(1);
+  }
 
   //  Deal with endianess.  We write out some bytes (or read back some bytes) to the start of
   //  the file, and then hide them from the user.
