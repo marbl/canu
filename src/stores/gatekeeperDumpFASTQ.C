@@ -382,7 +382,7 @@ main(int argc, char **argv) {
       for (uint32 i=lclr; i<rclr; i++)
         seq[i] += (seq[i] >= 'A') ? 0 : 'A' - 'a';
 
-      for (uint32 i=rclr; flen; i++)
+      for (uint32 i=rclr; i<flen; i++)
         seq[i] += (seq[i] >= 'A') ? 'a' - 'A' : 0;
 
       lclr = 0;
