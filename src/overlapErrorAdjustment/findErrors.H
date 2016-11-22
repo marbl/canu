@@ -380,8 +380,5 @@ public:
   //  This array [i] is the maximum number of errors allowed in a match between sequences of length
   //  i , which is i * MAXERROR_RATE .
   int  Error_Bound [AS_MAX_READLEN + 1];
-
-  // To make debugging printout come out together
-  pthread_mutex_t  Print_Mutex;
 };
 

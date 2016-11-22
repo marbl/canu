@@ -230,10 +230,6 @@ Threaded_Process_Stream(void *ptr) {
     }
   }
 
-  //pthread_mutex_lock(& Print_Mutex);
-  //fprintf(stderr, "Thread %d processed %d olaps\n", wa->thread_id, olap_ct);
-  //pthread_mutex_unlock(& Print_Mutex);
-
   pthread_exit(ptr);
 
   return(NULL);
@@ -257,8 +253,6 @@ Threaded_Stream_Old_Frags(feParameters *G,
                           uint64       &failedOlaps) {
 
   pthread_attr_t  attr;
-
-  pthread_mutex_init(&G->Print_Mutex, NULL);
 
   pthread_attr_init(&attr);
   pthread_attr_setstacksize(&attr, THREAD_STACKSIZE);
