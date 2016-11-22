@@ -191,7 +191,7 @@ Output_Overlap(uint32 S_ID, int S_Len, Direction_t S_Dir,
       ovs->dat.ovl.flipped  = true;
       break;
 
-    case 'A':
+    case 'A':  //  Never reached.
       ovs->a_hang(-bhg);
       ovs->b_hang(-ahg);
       ovs->dat.ovl.flipped  = false;
