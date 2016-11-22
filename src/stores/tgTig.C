@@ -535,8 +535,10 @@ tgTig::loadLayout(FILE *F) {
 
   fgets(LINE, LINEmax, F);  LINEnum++;
 
-  if (feof(F))
+  if (feof(F)) {
+    delete [] LINE;
     return(false);
+  }
 
   while (!feof(F)) {
     splitToWords  W(LINE);
