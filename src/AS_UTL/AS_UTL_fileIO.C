@@ -311,17 +311,27 @@ AS_UTL_sizeOfFile(const char *path) {
   //  bzipped files have no contents and we just guess.
 
   if        (strcasecmp(path+strlen(path)-3, ".gz") == 0) {
-    char   cmd[256];
-    FILE  *F;
+    char   cmd[FILENAME_MAX], *p = cmd;
 
     sprintf(cmd, "gzip -l %s", path);
-    F = popen(cmd, "r");
-    fscanf(F, " %*s %*s %*s %*s ");
-    fscanf(F, " %*d " F_OFF_T " %*s %*s ", &size);
+
+    FILE *F = popen(cmd, "r");
+    fgets(cmd, FILENAME_MAX, F);    //   compressed uncompressed  ratio uncompressed_name
+    fgets(cmd, FILENAME_MAX, F);    //     30264891     43640320  30.6% file
     pclose(F);
-  } else if (strcasecmp(path+strlen(path)-4, ".bz2") == 0) {
+
+    while (isspace(*p) == true)  p++;  //  Skip spaces at the start of the line
+    while (isspace(*p) == false) p++;  //  Skip the compressed size
+    while (isspace(*p) == true)  p++;  //  Skip spaces
+
+    size = strtoull(p, NULL, 10);      //  Retain the uncompresssed size
+  }
+
+  else if (strcasecmp(path+strlen(path)-4, ".bz2") == 0) {
     size = s.st_size * 14 / 10;
-  } else {
+  }
+
+  else {
     size = s.st_size;
   }
 
