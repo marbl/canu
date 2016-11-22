@@ -620,7 +620,7 @@ dumpDepthHistogram(gkStore *UNUSED(gkpStore), tgStore *tigStore, tgFilter &filte
     plotDepthHistogram(N, cov, covMax);
   }
 
-  delete cov;
+  delete [] cov;
 }
 
 
