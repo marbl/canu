@@ -58,6 +58,7 @@ fastqStdin::~fastqStdin() {
   delete    _rb;
   delete [] _header;
   delete [] _sequence;
+  delete [] _quality;
 }
 
 
@@ -210,6 +211,10 @@ fastqStdin::clear(void) {
   _sequence    = 0L;
   _sequenceLen = 0;
   _sequenceMax = 0;
+
+  _quality     = 0L;
+  _qualityLen  = 0;
+  _qualityMax  = 0;
 }
 
 
