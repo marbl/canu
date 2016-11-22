@@ -82,14 +82,15 @@ enum ShiftStatus {
 class abAbacusWork {
 public:
   abAbacusWork() {
-    start_column = NULL;
-    end_column   = NULL;
-    rows         = 0;
-    columns      = 0;
-    window_width = 0;
-    shift        = UNSHIFTED;
-    beads        = NULL;
-    calls        = NULL;
+    abacus_indices = NULL;
+    start_column   = NULL;
+    end_column     = NULL;
+    rows           = 0;
+    columns        = 0;
+    window_width   = 0;
+    shift          = UNSHIFTED;
+    beads          = NULL;
+    calls          = NULL;
   };
 
   abAbacusWork(abAbacus  *abacus,
