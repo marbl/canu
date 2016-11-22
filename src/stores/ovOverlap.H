@@ -158,6 +158,7 @@ enum ovOverlapDisplayType {
 class ovOverlap {
 private:
   ovOverlap() {
+    g = NULL;
     clear();
   };
 
@@ -282,6 +283,7 @@ public:
   void       swapIDs(ovOverlap const &orig);
 
   void       clear(void) {
+    //g        = NULL;    //  Explicitly DO NOT clear the pointer to gkpStore.
     dat.dat[0] = 0;
     dat.dat[1] = 0;
     dat.dat[2] = 0;
@@ -289,6 +291,8 @@ public:
     dat.dat[3] = 0;
     dat.dat[4] = 0;
 #endif
+    a_iid      = 0;
+    b_iid      = 0;
   };
 
   bool
