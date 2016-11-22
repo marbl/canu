@@ -760,7 +760,7 @@ findConfusedEdges(TigVector            &tigs,
 
         //  Skip if this overlap is vastly worse than the best.
 
-        if ((ovl5 == true) && ((ad5 >= confusedAbsolute) || (pd3 > confusedPercent))) {
+        if ((ovl5 == true) && ((ad5 >= confusedAbsolute) || (pd5 > confusedPercent))) {
           writeLog("tig %7u read %8u pos %7u-%-7u NOT confused by 5' edge to read %8u - best edge read %8u len %6u erate %.4f score %8.2f - alt edge len %6u erate %.4f score %8.2f - absdiff %8.2f percdiff %8.4f\n",
                    tig->id(), rdAid, rdAlo, rdAhi,
                    rdBid,
