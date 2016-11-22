@@ -53,6 +53,7 @@ public:
     readLen   = 0;
     bases     = NULL;
     quals     = NULL;
+    delta     = NULL;
     next      = NULL;
   };
 
