@@ -250,6 +250,9 @@ tgTig::computeCoverage(bool useGapped) {
   for (uint32 ii=0; ii<ID.numberOfIntervals(); ii++)
     aveDepth += (ID.hi(ii) - ID.lo(ii) + 1) * ID.depth(ii);
 
+  if (length(useGapped) == 0)
+    return(0);
+
   return(aveDepth / length(useGapped));
 }
 
