@@ -385,7 +385,6 @@ runSegment(merylArgs *args, uint64 segment) {
   if (AS_UTL_fileExists(filename)) {
     if (args->beVerbose)
       fprintf(stderr, "Found result for batch " F_U64 " in %s.\n", segment, filename);
-    delete [] filename;
     return;
   }
 
