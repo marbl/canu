@@ -106,6 +106,8 @@ public:
     memset(_libraryName, 0, sizeof(char) * LIBRARY_NAME_SIZE);
     strncpy(_libraryName, "UNDEFINED", LIBRARY_NAME_SIZE-1);
 
+    _libraryID = UINT32_MAX;
+
     gkLibrary_clearFeatures();
   };
 
