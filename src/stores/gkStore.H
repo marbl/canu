@@ -109,13 +109,6 @@ public:
     gkLibrary_clearFeatures();
   };
 
-  gkLibrary(char const *name) {
-    memset(_libraryName, 0, sizeof(char) * LIBRARY_NAME_SIZE);
-    strncpy(_libraryName, name, LIBRARY_NAME_SIZE-1);
-
-    gkLibrary_clearFeatures();
-  };
-
   ~gkLibrary() {
   };
 
