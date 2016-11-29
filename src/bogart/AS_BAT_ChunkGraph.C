@@ -96,7 +96,9 @@ ChunkGraph::ChunkGraph(const char *prefix) {
 
 ChunkGraph::ChunkGraph(set<uint32> *restrict) {
 
-  _maxRead = 0;
+  _chunkLog    = NULL;
+
+  _maxRead     = 0;
   _restrict    = restrict;
 
   for (set<uint32>::iterator it=_restrict->begin(); it != _restrict->end(); it++)
