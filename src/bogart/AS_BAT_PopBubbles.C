@@ -47,15 +47,11 @@ using namespace std;
 
 class candidatePop {
 public:
-  candidatePop() {
-  };
   candidatePop(Unitig *bubble_, Unitig *target_, uint32 bgn_, uint32 end_) {
     bubble = bubble_;
     target = target_;
     bgn    = bgn_;
     end    = end_;
-  };
-  ~candidatePop() {
   };
 
   Unitig  *bubble;
