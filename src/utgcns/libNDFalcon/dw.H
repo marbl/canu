@@ -124,8 +124,6 @@ public:
   int32_t		      _tgt_bgn;
   int32_t		      _tgt_end;
 
-  int32_t               _olapLen;
-
   char*		      _qry_aln_str;
   char*		      _tgt_aln_str;
 };
