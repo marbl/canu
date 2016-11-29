@@ -309,7 +309,7 @@ main(int argc, char **argv) {
 
   argc = AS_configure(argc, argv);
 
-  G.initialize();
+  G.initialize();  //  Probably redundant with the call in the constructor, but doesn't hurt.
 
   int err=0;
   int arg=1;

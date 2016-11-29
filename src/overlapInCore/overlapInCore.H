@@ -417,7 +417,9 @@ extern uint64  Dovetail_Overlap_Ct;
 
 class oicParameters {
 public:
-  oicParameters() {};
+  oicParameters() {
+    initialize();
+  };
   ~oicParameters() {};
 
   void   initialize(void) {
