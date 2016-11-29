@@ -200,7 +200,7 @@ public:
       else
         badCov += ID->hi(ii) - ID->lo(ii);
 
-    double fracGood = (goodCov) / (goodCov + badCov);
+    double fracGood = (double)(goodCov) / (goodCov + badCov);
 
     return((fracGood < minGoodCov) ||
            (maxGoodCov < fracGood));
