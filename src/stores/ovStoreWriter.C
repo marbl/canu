@@ -488,6 +488,8 @@ ovStoreWriter::mergeInfoFiles(void) {
       //offm._offset    = set below, where the recs are written to the master file
 
       AS_UTL_safeWrite(idx, &offm, "ovStore::mergeInfoFiles::offsets", sizeof(ovStoreOfft), 1);
+
+      info.addOverlap(offm._a_iid, 0);
     }
 
     //  Copy index elements for existing overlaps.  While copying, update the supposed position
