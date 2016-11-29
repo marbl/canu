@@ -141,7 +141,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -ovb               'overlapInCore' format (not implemented)\n");
     fprintf(stderr, "  -random N          create N random overlaps, for store testing\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "-native              output ovb (-o) files will not be snappy compressed\n");
+    fprintf(stderr, "  -native            output ovb (-o) files will not be snappy compressed\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Input file can be stdin ('-') or a gz/bz2/xz compressed file.\n");
     fprintf(stderr, "\n");
@@ -175,8 +175,17 @@ main(int argc, char **argv) {
     mtRandom  mt;
 
     for (uint64 ii=0; ii<numRandom; ii++) {
-      uint32   aID      = floor(mt.mtRandomRealOpen() * gkpStore->gkStore_getNumReads());
-      uint32   bID      = floor(mt.mtRandomRealOpen() * gkpStore->gkStore_getNumReads());
+      uint32   aID      = floor(mt.mtRandomRealOpen() * gkpStore->gkStore_getNumReads()) + 1;
+      uint32   bID      = floor(mt.mtRandomRealOpen() * gkpStore->gkStore_getNumReads()) + 1;
+
+#if 0
+      //  For testing when reads have no overlaps in store building.  Issue #302.
+      aID = aID & 0xfffffff0;
+      bID = bID & 0xfffffff0;
+
+      if (aID == 0)   aID = 1;
+      if (bID == 0)   bID = 1;
+#endif
 
       uint32   aLen     = gkpStore->gkStore_getRead(aID)->gkRead_sequenceLength();
       uint32   bLen     = gkpStore->gkStore_getRead(bID)->gkRead_sequenceLength();
@@ -193,6 +202,10 @@ main(int argc, char **argv) {
 
       ov.a_hang((int32)(mt.mtRandomRealOpen() * 2 * aLen - aLen));
       ov.b_hang((int32)(mt.mtRandomRealOpen() * 2 * bLen - bLen));
+
+      ov.dat.ovl.forOBT = false;
+      ov.dat.ovl.forDUP = false;
+      ov.dat.ovl.forUTG = true;
 
       ov.erate(mt.mtRandomRealOpen() * 0.1);
 
