@@ -122,6 +122,7 @@ main(int argc, char **argv) {
 
     } else {
       fprintf(stderr, "ERROR: unknown option '%s'\n", argv[arg]);
+      err++;
     }
 
     arg++;
