@@ -158,7 +158,14 @@ public:
 
 class Olap_Info_t {
 public:
-  Olap_Info_t() {};
+  Olap_Info_t() {
+    a_iid   = 0;
+    b_iid   = 0;
+    a_hang  = 0;
+    b_hang  = 0;
+    innie   = false;
+    normal  = false;
+  };
   ~Olap_Info_t() {};
 
   uint32      a_iid;
