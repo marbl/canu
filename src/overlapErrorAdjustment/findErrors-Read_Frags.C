@@ -78,7 +78,7 @@ Read_Frags(feParameters   *G,
           totAlloc >> 20,
           G->endID - G->bgnID + 1,
           basesLength,
-          (double)totAlloc / basesLength);
+          (basesLength > 0) ? ((double)totAlloc / basesLength) : 0.0);
 
   G->readBases = new char          [basesLength];
   G->readVotes = new Vote_Tally_t  [votesLength];             //  NO constructor, MUST INIT

@@ -227,6 +227,12 @@ partitionByBucket(char *prefix, uint64 partitionSize, char *filename) {
 
 void
 partitionBySegment(char *prefix, uint64 numSegments, char *filename) {
+
+  if (numSegments == 0) {
+    fprintf(stderr, "Number of segments to partition into must be larger than zero.\n");
+    exit(1);
+  }
+
   seqCache     *F = new seqCache(filename);
   uint32        n = F->getNumberOfSequences();
   partition_s  *p = new partition_s [n];

@@ -552,7 +552,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "WARNING:  There are " F_U64 " %s in the input; you claimed there are " F_U64 " (-t option) %s.\n",
             i,               (isMated) ? "mates" : "reads",
             totPairsInInput, (isMated) ? "mates" : "reads");
-    fprintf(stderr, "WARNING:  Result is only %f X coverage.\n", (double)s * READLENGTH / GENOMESIZE);
+    if (GENOMESIZE > 0)
+      fprintf(stderr, "WARNING:  Result is only %f X coverage.\n", (double)s * READLENGTH / GENOMESIZE);
   }
 
   return(0);

@@ -720,8 +720,8 @@ main(int argc, char **argv) {
   fprintf(stderr, "  " F_U32 " reads.\n", nLOADED);
   fprintf(stderr, "\n");
   fprintf(stderr, "Skipped (too short):\n");
-  fprintf(stderr, "  " F_U64 " bp (%.4f%%).\n",    bSKIPPED, 100.0 * bSKIPPED / (bSKIPPED + bLOADED));
-  fprintf(stderr, "  " F_U32 " reads (%.4f%%).\n", nSKIPPED, 100.0 * nSKIPPED / (nSKIPPED + nLOADED));
+  fprintf(stderr, "  " F_U64 " bp (%.4f%%).\n",    bSKIPPED, (bSKIPPED + bLOADED > 0) ? (100.0 * bSKIPPED / (bSKIPPED + bLOADED)) : 0);
+  fprintf(stderr, "  " F_U32 " reads (%.4f%%).\n", nSKIPPED, (nSKIPPED + nLOADED > 0) ? (100.0 * nSKIPPED / (nSKIPPED + nLOADED)) : 0);
   fprintf(stderr, "\n");
   fprintf(stderr, "\n");
   fprintf(htmlLog, "sum " F_U32 " " F_U64 " " F_U32 " " F_U64 " " F_U32 "\n", nLOADED, bLOADED, nSKIPPED, bSKIPPED, nWARNS);

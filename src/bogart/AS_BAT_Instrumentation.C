@@ -207,6 +207,8 @@ classifyTigsAsUnassembled(TigVector    &tigs,
       else
         basesHigh += ID.hi(ii) - ID.lo(ii) + 1;
 
+    assert(basesLow + basesHigh > 0);
+
     double  lowcov = (double)basesLow / (basesLow + basesHigh);
 
     if (lowcov >= lowcovFraction) {

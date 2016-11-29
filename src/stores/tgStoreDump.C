@@ -645,6 +645,11 @@ dumpCoverage(gkStore *UNUSED(gkpStore), tgStore *tigStore, tgFilter &filter, boo
       continue;
     }
 
+    if (tigLen == 0) {
+      tigStore->unloadTig(ti);
+      continue;
+    }
+
     //  Do something.
 
     intervalList<int32>  allL;

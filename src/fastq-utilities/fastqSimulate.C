@@ -1119,8 +1119,13 @@ main(int argc, char **argv) {
 
   assert(numSeq == seqStartPositions.size());
 
+
   fprintf(stderr, "Loaded %u sequences of length %d, with %u invalid bases fixed.\n",
           numSeq, seqLen - numSeq, nInvalid);
+
+  if ((numSeq == 0) || (seqLen == 0))
+    fprintf(stderr, "ERROR:  No sequences or bases loaded, can't simulate reads.\n"), exit(1);
+
 
   //
   //  If requested, compute the number of pairs to get a desired X of coverage

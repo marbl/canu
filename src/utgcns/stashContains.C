@@ -184,27 +184,26 @@ unstashContains(tgTig                *tig,
   if (saved == NULL)
     return;
 
-  uint32   oldMax = 0;
-  uint32   newMax = 0;
-
   //  For fragments not involved in the consensus computation, we'll scale their position linearly
   //  from the old max to the new max.
   //
   //  We probably should do an alignment to the consensus sequence to find the true location, but
   //  that's (a) expensive and (b) likely overkill for these unitigs.
 
-  //  Find the oldMax
+  uint32   oldMax = 0;
+  uint32   newMax = 0;
+  double   sf     = 1.0;
+
   for (uint32 fi=0, ci=0; fi<saved->childrenLen; fi++)
     if (oldMax < saved->children[fi].max())
       oldMax = saved->children[fi].max();
 
-  //  Find the newMax
-  //  We could have just done: newMax = tig->gappedLength();
   for (uint32 fi=0, ci=0; fi<tig->numberOfChildren(); fi++)
     if (newMax < tig->getChild(fi)->max())
       newMax = tig->getChild(fi)->max();
 
-  double sf = (double)newMax / oldMax;
+  if (oldMax > 0)
+    sf = (double)newMax / oldMax;
 
   //  First, we need a map from the child id to the location in the current tig
 

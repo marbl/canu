@@ -263,8 +263,9 @@ OverlapCache::computeOverlapLimit(void) {
     writeStatus("OverlapCache()-- ERROR: not enough memory to load overlaps!.\n"), exit(1);
 
   uint64  totalLoad  = 0;  //  Total overlaps we would load at this threshold
+  uint64  totalOlaps = _ovlStoreUniq->numOverlapsInRange();
 
-  uint32  numBelow   = 0;  //  Number below the threshold
+  uint32  numBelow   = 0;  //  Number of reads below the threshold
   uint32  numEqual   = 0;
   uint32  numAbove   = 0;  //  Number of reads above the threshold
 
@@ -354,7 +355,7 @@ OverlapCache::computeOverlapLimit(void) {
   writeStatus("OverlapCache()-- numBelow         = " F_U32 " reads (all overlaps loaded)\n", numBelow);
   writeStatus("OverlapCache()-- numEqual         = " F_U32 " reads (all overlaps loaded)\n", numEqual);
   writeStatus("OverlapCache()-- numAbove         = " F_U32 " reads (some overlaps loaded)\n", numAbove);
-  writeStatus("OverlapCache()-- totalLoad        = " F_U64 " overlaps (%6.2f%%)\n", totalLoad, 100.0 * totalLoad / _ovlStoreUniq->numOverlapsInRange());
+  writeStatus("OverlapCache()-- totalLoad        = " F_U64 " overlaps (%6.2f%%)\n", totalLoad, (totalOlaps > 0) ? (100.0 * totalLoad / totalOlaps) : 0.0);
   writeStatus("\n");
   writeStatus("OverlapCache()-- availForOverlaps = " F_U64 "MB\n", memAvail >> 20);
   writeStatus("OverlapCache()-- totalMemory      = " F_U64 "MB for organization\n", _memUsed >> 20);
@@ -547,6 +548,9 @@ OverlapCache::loadOverlaps(bool doSave) {
   uint64   numDups      = 0;
   uint32   numReads     = 0;
   uint64   numStore     = _ovlStoreUniq->numOverlapsInRange();
+
+  if (numStore == 0)
+    writeStatus("ERROR: No overlaps in overlap store?\n"), exit(1);
 
   //  Could probably easily extend to multiple stores.  Needs to interleave the two store
   //  loads, can't do one after the other as we require all overlaps for a single read
