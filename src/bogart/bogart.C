@@ -350,9 +350,7 @@ main (int argc, char * argv []) {
   delete CG;
   CG = NULL;
 
-  //  The overlap graph isn't used after this, except to decide if a read is contained.
-  //delete OG;
-  //OG = NULL;
+
 
   breakSingletonTigs(contigs);
 
@@ -474,6 +472,9 @@ main (int argc, char * argv []) {
 
   AG->reportReadGraph(contigs, prefix, "final");
 
+  delete AG;
+  AG = NULL;
+
   //
   //  Generate outputs.  The graph MUST come after output, because it needs
   //  the tigStore tigID.
@@ -519,7 +520,6 @@ main (int argc, char * argv []) {
   //  Tear down bogart.
   //
 
-  delete AG;
   delete CG;
   delete OG;
   delete OC;
