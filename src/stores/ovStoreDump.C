@@ -538,7 +538,7 @@ dumpPicture(ovOverlap     *overlaps,
 
     //  Append the end hang.
     if (ovlEndHang > 0) {
-      snprintf(ovl + ovlStrEnd, 256, " +%d", ovlEndHang);
+      snprintf(ovl + ovlStrEnd, 256 - ovlStrEnd, " +%d", ovlEndHang);
     }
 
     //  Set flags for best edge and singleton/contained/suspicious.  Left in for when I get annoyed with the different lines.
