@@ -99,8 +99,9 @@ main (int argc, char **argv) {
   string seed;
   char *A = new char[AS_MAX_READLEN * 2];
 
-  while (true) {
-    fgets(A, AS_MAX_READLEN * 2, stdin);
+  fgets(A, AS_MAX_READLEN * 2, stdin);
+
+  while (!feof(stdin)) {
     splitToWords W(A);
 
     if (W[0][0] == '+') {
@@ -128,6 +129,8 @@ main (int argc, char **argv) {
           seqs.push_back(string(W[1]));
        }
     }
+
+    fgets(A, AS_MAX_READLEN * 2, stdin);
   }
 
   delete[] A;
