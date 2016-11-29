@@ -229,6 +229,7 @@ public:
     deltaLen = 0;
 
     Edit_Array_Lazy = NULL;
+    Edit_Array_Max  = 0;
   };
 
   ~pedWorkArea_t() {
