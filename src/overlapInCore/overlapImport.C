@@ -166,7 +166,7 @@ main(int argc, char **argv) {
   ovFile        *of = (ovlFileName  == NULL) ? NULL : new ovFile(gkpStore, ovlFileName, ovFileFullWrite);
   ovStoreWriter *os = (ovlStoreName == NULL) ? NULL : new ovStoreWriter(ovlStoreName, gkpStore);
 
-  if (native == true)
+  if ((of) && (native == true))
     of->enableSnappy(false);
 
   //  Make random inputs first.
