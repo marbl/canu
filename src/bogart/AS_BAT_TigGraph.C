@@ -41,6 +41,7 @@ public:
     tigID    = 0;
     bgn      = 0;
     end      = 0;
+    fwd      = false;
     extended = false;
     deleted  = true;
   };
