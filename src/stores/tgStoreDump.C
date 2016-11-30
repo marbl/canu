@@ -784,6 +784,8 @@ dumpCoverage(gkStore *UNUSED(gkpStore), tgStore *tigStore, tgFilter &filter, boo
 
     tigStore->unloadTig(ti);
   }
+
+  delete [] cov;
 }
 
 
