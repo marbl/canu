@@ -235,34 +235,37 @@ ChunkGraph::countFullWidth(ReadEnd firstEnd) {
     currEnd = firstEnd;
     currIdx = firstIdx;
 
-    fprintf(_chunkLog, "path from %d,%d'(length=%d):",
-            firstEnd.readId(),
-            (firstEnd.read3p()) ? 3 : 5,
-            _pathLen[firstIdx]);
+    if (_chunkLog)
+      fprintf(_chunkLog, "path from %d,%d'(length=%d):",
+              firstEnd.readId(),
+              (firstEnd.read3p()) ? 3 : 5,
+              _pathLen[firstIdx]);
 
     while ((currEnd.readId() != 0) &&
            (seen.find(currEnd) == seen.end())) {
       seen.insert(currEnd);
 
-      if (currEnd == lastEnd)
+      if ((_chunkLog) && (currEnd == lastEnd))
         fprintf(_chunkLog, " LAST");
 
-      fprintf(_chunkLog, " %d,%d'(%d)",
-              currEnd.readId(),
-              (currEnd.read3p()) ? 3 : 5,
-              _pathLen[currIdx]);
+      if (_chunkLog)
+        fprintf(_chunkLog, " %d,%d'(%d)",
+                currEnd.readId(),
+                (currEnd.read3p()) ? 3 : 5,
+                _pathLen[currIdx]);
 
       currEnd = OG->followOverlap(currEnd);
       currIdx = getIndex(currEnd);
     }
 
-    if (seen.find(currEnd) != seen.end())
+    if ((_chunkLog) && (seen.find(currEnd) != seen.end()))
       fprintf(_chunkLog, " CYCLE %d,%d'(%d)",
               currEnd.readId(),
               (currEnd.read3p()) ? 3 : 5,
               _pathLen[currIdx]);
 
-    fprintf(_chunkLog, "\n");
+    if (_chunkLog)
+      fprintf(_chunkLog, "\n");
   }
 
 
