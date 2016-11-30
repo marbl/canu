@@ -357,6 +357,9 @@ Threaded_Stream_Old_Frags(feParameters *G,
     passedOlaps += thread_wa[i].passedOlaps;
     failedOlaps += thread_wa[i].failedOlaps;
   }
+
+  delete [] thread_id;
+  delete [] thread_wa;
 }
 
 
