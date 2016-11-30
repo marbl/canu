@@ -544,11 +544,11 @@ placeReadUsingOverlaps(TigVector                &tigs,
     //    A cluster extends from placements os to oe.
     //    Each cluster generates one placement.
 
-    for (uint32 os=bgn, oe=bgn; os<end; ) {
+    for (uint32 os=bgn, oe=bgn+1; os<end; ) {
 
       //  Find the end ovlPlace, oe, for this cluster, and do a quick check on orientation.
 
-      for (oe=os; (oe < end) && (ovlPlace[os].clusterID == ovlPlace[oe].clusterID); oe++) {
+      for (oe=os+1; (oe < end) && (ovlPlace[os].clusterID == ovlPlace[oe].clusterID); oe++) {
         assert(ovlPlace[os].tigID                == ovlPlace[oe].tigID);
         assert(ovlPlace[os].position.isReverse() == ovlPlace[oe].position.isReverse());
       }
@@ -665,12 +665,10 @@ placeReadUsingOverlaps(TigVector                &tigs,
                  (goodPlacement == false) ? " -- INVALID"  : "");
 
       os = oe;
-      oe = oe + 1;
     }  //  End of segregating overlaps by placement
 
     //  Move to the next block of overlaps.
     bgn = end;
-    end = end + 1;
   }
 
   delete [] ovlPlace;
