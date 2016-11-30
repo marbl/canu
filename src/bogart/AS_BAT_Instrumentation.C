@@ -226,6 +226,9 @@ classifyTigsAsUnassembled(TigVector    &tigs,
     bContig += utg->getLength();
   }
 
+  if (F)
+    fclose(F);
+
   writeStatus("classifyAsUnassembled()-- %6u tigs %11lu bases -- too few reads\n",        nTooFew,   bTooFew);
   writeStatus("classifyAsUnassembled()-- %6u tigs %11lu bases -- too short\n",            nShort,    bShort);
   writeStatus("classifyAsUnassembled()-- %6u tigs %11lu bases -- single spanning read\n", nSingle,   bSingle);
