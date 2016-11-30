@@ -246,6 +246,8 @@ partitionFrags(gkStore      *gkp,
 
     hashBeg = hashEnd + 1;
   }
+
+  delete [] readLen;
 }
 
 
@@ -343,6 +345,8 @@ partitionLength(gkStore      *gkp,
 
     hashBeg = hashEnd + 1;
   }
+
+  delete [] readLen;
 }
 
 
