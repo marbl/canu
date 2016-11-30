@@ -298,6 +298,7 @@ BestOverlapGraph::removeSpurs(const char *prefix) {
 
   snprintf(N, FILENAME_MAX, "%s.best.spurs", prefix);
 
+  errno = 0;
   FILE   *F = fopen(N, "w");
   if (errno)
     F = NULL;
