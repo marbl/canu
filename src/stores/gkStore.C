@@ -1124,8 +1124,6 @@ gkRead::gkRead_copyDataToPartition(FILE    **blobsFiles,
 
     AS_UTL_safeWrite(partfiles[partID], blob, "gkRead::gkRead_copyDataToPartition::blob", sizeof(char), blobLen);
 
-    delete [] blob;
-
     //  Update the read to the new location of the blob in the partitioned data.
 
     _mPtr = partfileslen[partID];
