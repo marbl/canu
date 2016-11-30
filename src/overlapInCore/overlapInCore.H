@@ -110,7 +110,7 @@
 #define  HASH_EXPANSION_FACTOR   1.4
 //  Hash table size is >= this times  MAX_HASH_STRINGS
 
-#define  HASH_MASK               ((1 << G.Hash_Mask_Bits) - 1)
+#define  HASH_MASK               (((uint64)1 << G.Hash_Mask_Bits) - 1)
 //  Extract right Hash_Mask_Bits bits of hash key
 
 #define  HASH_TABLE_SIZE         (1 + HASH_MASK)

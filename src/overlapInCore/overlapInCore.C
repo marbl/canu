@@ -529,16 +529,16 @@ main(int argc, char **argv) {
   }
 
   fprintf(stderr, "\n");
-  fprintf(stderr, "HASH_TABLE_SIZE         " F_U32 "\n",     HASH_TABLE_SIZE);
-  fprintf(stderr, "sizeof(Hash_Bucket_t)   " F_SIZE_T "\n",  sizeof(Hash_Bucket_t));
-  fprintf(stderr, "hash table size:        " F_SIZE_T " MB\n",  (HASH_TABLE_SIZE * sizeof(Hash_Bucket_t)) >> 20);
+  fprintf(stderr, "HASH_TABLE_SIZE         " F_U64 "\n",     HASH_TABLE_SIZE);
+  fprintf(stderr, "sizeof(Hash_Bucket_t)   " F_U64 "\n",  (uint64)sizeof(Hash_Bucket_t));
+  fprintf(stderr, "hash table size:        " F_U64 " MB\n",  (HASH_TABLE_SIZE * sizeof(Hash_Bucket_t)) >> 20);
   fprintf(stderr, "\n");
 
   Hash_Table       = new Hash_Bucket_t [HASH_TABLE_SIZE];
 
-  fprintf(stderr, "check  " F_SIZE_T " MB\n", (HASH_TABLE_SIZE    * sizeof (Check_Vector_t) >> 20));
-  fprintf(stderr, "info   " F_SIZE_T " MB\n", (G.Max_Hash_Strings * sizeof (Hash_Frag_Info_t) >> 20));
-  fprintf(stderr, "start  " F_SIZE_T " MB\n", (G.Max_Hash_Strings * sizeof (int64) >> 20));
+  fprintf(stderr, "check  " F_U64    " MB\n", ((HASH_TABLE_SIZE    * sizeof (Check_Vector_t))   >> 20));
+  fprintf(stderr, "info   " F_SIZE_T " MB\n", ((G.Max_Hash_Strings * sizeof (Hash_Frag_Info_t)) >> 20));
+  fprintf(stderr, "start  " F_SIZE_T " MB\n", ((G.Max_Hash_Strings * sizeof (int64))            >> 20));
   fprintf(stderr, "\n");
 
   Hash_Check_Array = new Check_Vector_t [HASH_TABLE_SIZE];

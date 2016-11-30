@@ -357,7 +357,7 @@ Hash_Insert(String_Ref_t Ref, uint64 Key, char * S) {
 //  global variables  basesData, String_Start, String_Info, ....
 static
 void
-Put_String_In_Hash(uint32 curID, uint32 i) {
+Put_String_In_Hash(uint32 UNUSED(curID), uint32 i) {
   String_Ref_t  ref = 0;
   int           skip_ct;
   uint64        key;
@@ -656,7 +656,7 @@ Build_Hash_Index(gkStore *gkpStore, uint32 bgnID, uint32 endID) {
 
   // Coalesce reference chain into adjacent entries in  Extra_Ref_Space
   Extra_Ref_Ct = 0;
-  for (int32 i = 0;  i < HASH_TABLE_SIZE;  i ++)
+  for (uint64 i = 0;  i < HASH_TABLE_SIZE;  i ++)
     for (int32 j = 0;  j < Hash_Table[i].Entry_Ct;  j ++) {
       ref = Hash_Table[i].Entry[j];
       if (! getStringRefLast(ref) && ! getStringRefEmpty(ref)) {
