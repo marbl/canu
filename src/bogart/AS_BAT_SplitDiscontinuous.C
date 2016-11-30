@@ -46,6 +46,12 @@ void
 makeNewUnitig(TigVector    &tigs,
               uint32        splitReadsLen,
               ufNode       *splitReads) {
+
+  if (splitReadsLen == 0) {
+    writeLog("splitDiscontinuous()-- WARNING: tried to make a new tig with no reads!\n");
+    return;
+  }
+
   Unitig *dangler = tigs.newUnitig(false);
 
   if (logFileFlagSet(LOG_SPLIT_DISCONTINUOUS))
