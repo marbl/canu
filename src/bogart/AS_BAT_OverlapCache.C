@@ -930,6 +930,8 @@ OverlapCache::load(void) {
     assert(_overlaps[rr][0].a_iid == rr);
   }
 
+  fclose(file);
+
   return(true);
 }
 
