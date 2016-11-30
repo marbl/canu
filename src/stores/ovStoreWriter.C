@@ -92,6 +92,10 @@ ovStoreWriter::ovStoreWriter(const char *path, gkStore *gkp) {
   _overlapsThisFileMax = 0;  //  1024 * 1024 * 1024 / _bof->recordSize();   --  needs a valid _bof, dang.
   _currentFileIndex    = 0;
   _bof                 = NULL;
+
+  _fileLimit           = 0;  //  Used in the parallel store, not here.
+  _fileID              = 0;
+  _jobIdxMax           = 0;
 }
 
 
