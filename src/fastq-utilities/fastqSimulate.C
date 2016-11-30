@@ -646,6 +646,12 @@ makeMP(char   *seq,
     //if ((np % 1000) == 0)
     //  fprintf(stderr, "%9d / %9d - %5.2f%%\r", np, numPairs, 100.0 * np / numPairs);
   }
+
+  delete [] s1;
+  delete [] q1;
+  delete [] s2;
+  delete [] q2;
+  delete [] sh;
 }
 
 
