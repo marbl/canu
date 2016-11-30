@@ -393,7 +393,7 @@ ovStore::setRange(uint32 firstIID, uint32 lastIID) {
   //  If our range is invalid (firstIID > lastIID) we keep going, and
   //  let readOverlap() deal with it.
 
-  AS_UTL_fseek(_offtFile, (size_t)firstIID * sizeof(ovStoreOfft), SEEK_SET);
+  AS_UTL_fseek(_offtFile, (off_t)firstIID * sizeof(ovStoreOfft), SEEK_SET);
 
   //  Unfortunately, we need to actually read the record to figure out
   //  where to position the overlap stream.  If the read fails, we
@@ -449,7 +449,7 @@ ovStore::resetRange(void) {
 
 uint64
 ovStore::numOverlapsInRange(void) {
-  size_t                     originalposition = 0;
+  off_t                      originalposition = 0;
   uint64                     i = 0;
   uint64                     len = 0;
   ovStoreOfft  *offsets = NULL;
@@ -460,7 +460,7 @@ ovStore::numOverlapsInRange(void) {
 
   originalposition = AS_UTL_ftell(_offtFile);
 
-  AS_UTL_fseek(_offtFile, (size_t)_firstIIDrequested * sizeof(ovStoreOfft), SEEK_SET);
+  AS_UTL_fseek(_offtFile, (off_t)_firstIIDrequested * sizeof(ovStoreOfft), SEEK_SET);
 
   //  Even if we're doing a whole human-size store, this allocation is
   //  (a) temporary and (b) only 512MB.  The only current consumer of
@@ -496,9 +496,9 @@ ovStore::numOverlapsPerFrag(uint32 &firstFrag, uint32 &lastFrag) {
   firstFrag = _firstIIDrequested;
   lastFrag  = _lastIIDrequested;
 
-  size_t originalPosition = AS_UTL_ftell(_offtFile);
+  off_t  originalPosition = AS_UTL_ftell(_offtFile);
 
-  AS_UTL_fseek(_offtFile, (size_t)_firstIIDrequested * sizeof(ovStoreOfft), SEEK_SET);
+  AS_UTL_fseek(_offtFile, (off_t)_firstIIDrequested * sizeof(ovStoreOfft), SEEK_SET);
 
   //  Even if we're doing a whole human-size store, this allocation is
   //  (a) temporary and (b) only 512MB.  The only current consumer of
