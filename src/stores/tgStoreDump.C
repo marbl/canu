@@ -776,7 +776,7 @@ dumpCoverage(gkStore *UNUSED(gkpStore), tgStore *tigStore, tgFilter &filter, boo
         fprintf(gnuPlot, "     %f title '' lt 0 lc 2, \\\n", aveDepth - sdeDepth);
         fprintf(gnuPlot, "     %f title '' lt 0 lc 2\n",     aveDepth + sdeDepth);
 
-        fclose(gnuPlot);
+        pclose(gnuPlot);
       }
     }
 
