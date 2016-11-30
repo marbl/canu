@@ -178,6 +178,7 @@ private:
 class ovStoreOfft {
 public:
   ovStoreOfft() {
+    clear();
   };
   ~ovStoreOfft() {
   };
