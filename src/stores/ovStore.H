@@ -226,49 +226,34 @@ private:
 
 class ovStoreWriter {
 public:
-
-  //  The first constructor is used when constructing a store.
-  //  The second constructor is used by the parallel store builder, to write individual files.
-
-  ovStoreWriter(const char *path, gkStore *gkp);
-  ovStoreWriter(const char *path, gkStore *gkp, uint32 fileLimit, uint32 fileID, uint32 jobIdxMax);
   ~ovStoreWriter();
 
-  //  Add a single overlap to the store.  The overlaps must be sorted by a_iid (then b_iid) already.
+  //  For sequential construction, there is only a constructor, destructor and writeOverlap().
+  //  Overlaps must be sorted by a_iid (then b_iid) already.
+
+  ovStoreWriter(const char *path, gkStore *gkp);
 
   void         writeOverlap(ovOverlap *olap);
 
-  //  The parallel store build construction is a bit different.  writeOverlaps() will add a set of
-  //  sorted overlaps to store file 'fileID', writing individual 'info' and 'index' files.
+  //  For parallel construction, usage is much more complicated.  The constructor
+  //  will write a single file of sorted overlaps, and each file has it's own metadata.
+  //  After all files are written, the metadata is merged into one file.
 
-  //  For bucketizing
+  ovStoreWriter(const char *path, gkStore *gkp, uint32 fileLimit, uint32 fileID, uint32 jobIdxMax);
 
-  //void
+  void         writeOverlaps(ovOverlap *ovls, uint64 ovlsLen);
 
-  //  For sorting
-
-  //uint64       loadBucketSizes(uint64 *sliceSizes, uint64 *bucketSizes);
   uint64       loadBucketSizes(uint64 *bucketSizes);
   void         loadOverlapsFromSlice(uint32 slice, uint64 expectedLen, ovOverlap *ovls, uint64& ovlsLen);
-  void         writeOverlaps(ovOverlap *ovls, uint64 ovlsLen);
   void         removeOverlapSlice(void);
-
-  //  Also in the parallel store build, merge the individual files, and test the final index.
 
   void         mergeInfoFiles(void);
   void         mergeHistogram(void);
 
   bool         testIndex(bool doFixes);
 
-  //
-
-
-  //  For indexing and final cleanup
-
   void         checkSortingIsComplete(void);
   void         removeAllIntermediateFiles(void);
-
-
 
 private:
   char               _storePath[FILENAME_MAX];
