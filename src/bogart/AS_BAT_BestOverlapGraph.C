@@ -592,16 +592,20 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
   FILE *BS = NULL;
   FILE *SS = NULL;
 
+  //  Open output files.
+
   snprintf(N, FILENAME_MAX, "%s.%s.edges",               prefix, label);   BE = fopen(N, "w");
   snprintf(N, FILENAME_MAX, "%s.%s.singletons",          prefix, label);   BS = fopen(N, "w");
   snprintf(N, FILENAME_MAX, "%s.%s.edges.suspicious",    prefix, label);   SS = fopen(N, "w");
 
+  snprintf(N, FILENAME_MAX, "%s.%s.edges.gfa",           prefix, label);   BEG = fopen(N, "w");
+
   snprintf(N, FILENAME_MAX, "%s.%s.contains.histogram",  prefix, label);   BCH = fopen(N, "w");
   snprintf(N, FILENAME_MAX, "%s.%s.edges.histogram",     prefix, label);   BEH = fopen(N, "w");
 
-  snprintf(N, FILENAME_MAX, "%s.%s.edges.gfa",           prefix, label);   BEG = fopen(N, "w");
+  //  Write best edges, singletons and suspicious edges.
 
-  if ((BE) && (BS)) {
+  if ((BE) && (BS) && (SS)) {
     fprintf(BE, "#readId\tlibId\tbest5iid\tbest5end\tbest3iid\tbest3end\teRate5\teRate3\tbest5len\tbest3len\n");
     fprintf(BS, "#readId\tlibId\n");
 
@@ -635,12 +639,9 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
                 isContained(id) ? "\tcontained" : "");
       }
     }
-
-    fclose(BE);
-    fclose(BS);
-    fclose(SS);
   }
 
+  //  Write best edge graph.
 
   if (BEG) {
     fprintf(BEG, "H\tVN:Z:bogart/edges\n");
@@ -720,10 +721,9 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
         }
       }
     }
-
-    fclose(BEG);
   }
 
+  //  Write error rate histograms of best edges and contains.
 
   if ((BCH) && (BEH)) {
     double *bc = new double [RI->numReads() + 1 + RI->numReads() + 1];
@@ -760,12 +760,20 @@ BestOverlapGraph::reportBestEdges(const char *prefix, const char *label) {
     for (uint32 ii=0; ii<bel; ii++)
       fprintf(BEH, "%f\n", be[ii]);
 
-    fclose(BCH);
-    fclose(BEH);
-
     delete [] bc;
     delete [] be;
   }
+
+  //  Close all the files.
+
+  if (BE)   fclose(BE);
+  if (BS)   fclose(BS);
+  if (SS)   fclose(SS);
+
+  if (BEG)   fclose(BEG);
+
+  if (BCH)   fclose(BCH);
+  if (BEH)   fclose(BEH);
 }
 
 
