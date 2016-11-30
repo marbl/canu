@@ -94,8 +94,8 @@ outputJob(FILE   *BAT,
 
 uint32 *
 loadReadLengths(gkStore *gkp,
-                    set<uint32> &libToHash, uint32 &hashMin, uint32 &hashMax,
-                    set<uint32> &libToRef,  uint32 &refMin,  uint32 &refMax) {
+                set<uint32> &libToHash, uint32 &hashMin, uint32 &hashMax,
+                set<uint32> &libToRef,  uint32 &refMin,  uint32 &refMax) {
   uint32     numReads = gkp->gkStore_getNumReads();
   uint32     numLibs  = gkp->gkStore_getNumLibraries();
   uint32    *readLen  = new uint32 [numReads + 1];
@@ -156,6 +156,9 @@ loadReadLengths(gkStore *gkp,
       fprintf(stderr, "Loading lengths at " F_U32 " out of " F_U32 ".  H: " F_U32 "," F_U32 "  R: " F_U32 "," F_U32 "\n",
               ii, numReads, hashMin, hashMax, refMin, refMax);
   }
+
+  delete [] doHash;
+  delete [] doRef;
 
   return(readLen);
 }
