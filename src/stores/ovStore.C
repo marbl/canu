@@ -612,10 +612,12 @@ ovStore::addEvalues(uint32 bgnID, uint32 endID, uint16 *evalues, uint64 evaluesL
               _info.numOverlaps(), 100.0 * Zn / _info.numOverlaps());
     }
 
-    fprintf(stderr, "Creating evalues file for " F_U64 " overlaps....%07.3f%%\n",
-            _info.numOverlaps(), 100.0 * Zn / _info.numOverlaps());
+    delete [] Z;
 
     fclose(F);
+
+    fprintf(stderr, "Creating evalues file for " F_U64 " overlaps....%07.3f%%\n",
+            _info.numOverlaps(), 100.0 * Zn / _info.numOverlaps());
   }
 
   //  Open the evalues file if it isn't already opened
