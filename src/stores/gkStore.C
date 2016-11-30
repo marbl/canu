@@ -973,12 +973,17 @@ gkStore::gkStore_addEmptyLibrary(char const *name) {
   if (_info.numLibraries == _librariesAlloc)
     increaseArray(_libraries, _info.numLibraries, _librariesAlloc, 128);
 
+  _libraries[_info.numLibraries] = gkLibrary();
+  _libraries[_info.numLibraries]._libraryID = _info.numLibraries;
+
   //  Bullet proof the library name - so we can make files with this prefix.
 
-  char    libname[LIBRARY_NAME_SIZE];
+  char   *libname    = _libraries[_info.numLibraries]._libraryName;
   uint32  libnamepos = 0;
   bool    modified   = false;
   bool    truncated  = false;
+
+  memset(libname, 0, sizeof(char) * LIBRARY_NAME_SIZE);
 
   for (char const *orig=name; *orig; orig++) {
     if        (*orig == '/') {
@@ -1001,23 +1006,6 @@ gkStore::gkStore_addEmptyLibrary(char const *name) {
       break;
     }
   }
-
-  libname[libnamepos] = 0;
-
-#if 0
-  if (modified || truncated)
-    fprintf(stderr, "gkStore_addEmptyLibrary()--  added library '%s' (original name '%s')\n",
-            libname, name);
-  else
-    fprintf(stderr, "gkStore_addEmptyLibrary()--  added library '%s'\n",
-            libname);
-#endif
-
-  _libraries[_info.numLibraries] = gkLibrary();
-
-  strncpy(_libraries[_info.numLibraries]._libraryName, libname, LIBRARY_NAME_SIZE-1);
-
-  _libraries[_info.numLibraries]._libraryID = _info.numLibraries;
 
   return(_libraries + _info.numLibraries);
 }
