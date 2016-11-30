@@ -1112,33 +1112,33 @@ gkRead::gkRead_copyDataToPartition(FILE    **blobsFiles,
   assert(blob[2] == 'O');
   assert(blob[3] == 'B');
 
-  //  If an invalid partition, don't write the data.
+  //  If a valid partition, write the data (we always have to read it though, so don't be all clever
+  //  and try to move this test backward).
 
-  if (partID == UINT32_MAX)
-    return;
+  if (partID != UINT32_MAX) {
+    assert(partfileslen[partID] == AS_UTL_ftell(partfiles[partID]));    //  The partfile should be at what we think is the end.
 
-  //  The partfile should be at what we think is the end.
+    //  Write the blob to the partition, update the length of the partition
 
-  assert(partfileslen[partID] == AS_UTL_ftell(partfiles[partID]));
+    blobLen += 8;
 
-  //  Write the blob to the partition, update the length of the partition
+    AS_UTL_safeWrite(partfiles[partID], blob, "gkRead::gkRead_copyDataToPartition::blob", sizeof(char), blobLen);
 
-  blobLen += 8;
+    delete [] blob;
 
-  AS_UTL_safeWrite(partfiles[partID], blob, "gkRead::gkRead_copyDataToPartition::blob", sizeof(char), blobLen);
+    //  Update the read to the new location of the blob in the partitioned data.
+
+    _mPtr = partfileslen[partID];
+    _pID  = partID;
+
+    //  And finalize by remembering the length.
+
+    partfileslen[partID] += blobLen;
+
+    assert(partfileslen[partID] == AS_UTL_ftell(partfiles[partID]));
+  }
 
   delete [] blob;
-
-  //  Update the read to the new location of the blob in the partitioned data.
-
-  _mPtr = partfileslen[partID];
-  _pID  = partID;
-
-  //  And finalize by remembering the length.
-
-  partfileslen[partID] += blobLen;
-
-  assert(partfileslen[partID] == AS_UTL_ftell(partfiles[partID]));
 }
 
 
