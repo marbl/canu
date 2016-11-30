@@ -232,7 +232,7 @@ saveProfile(uint32             iid,
   FILE   *F = fopen(N, "w");
 
   for (uint32 pp=0; pp<readProfile[iid].seqLen; pp++)
-    fprintf(F, "%u %7.4f\n", pp, AS_OVS_decodeEvalue(readProfile[iid].errorMeanS[pp]));
+    fprintf(F, "" F_U32 " %7.4f\n", pp, AS_OVS_decodeEvalue(readProfile[iid].errorMeanS[pp]));
 
   fclose(F);
 
@@ -297,7 +297,7 @@ recomputeErrorProfile(gkStore           *gkpStore,
   uint64      nDiscard     = 0;
   uint64      nRemain      = 0;
 
-  fprintf(stderr, "Processing from IID " F_U32 " to " F_U32 " out of " F_U32 " reads, iteration %u.\n",
+  fprintf(stderr, "Processing from IID " F_U32 " to " F_U32 " out of " F_U32 " reads, iteration " F_U32 ".\n",
           iidMin,
           iidMin + numIIDs,
           gkpStore->gkStore_getNumReads(),
@@ -375,7 +375,7 @@ recomputeErrorProfile(gkStore           *gkpStore,
     //  Keep users entertained.
 
     if ((iid % 1000) == 0)
-      fprintf(stderr, "IID %u\r", iid);
+      fprintf(stderr, "IID " F_U32 "\r", iid);
   }
 
   //  All new estimates are computed.  Convert the array of mean error per base into an array of
@@ -410,9 +410,9 @@ outputOverlaps(gkStore           *gkpStore,
                uint32             iidMin,
                uint32             numIIDs,
                char              *ovlStoreName,
-               uint64            *overlapIndex,
+               uint64            *UNUSED(overlapIndex),
                ESToverlap        *overlaps,
-               readErrorEstimate *readProfile,
+               readErrorEstimate *UNUSED(readProfile),
                char              *outputName) {
   uint64      nDiscarded   = 0;
   uint64      nRemain      = 0;
@@ -489,7 +489,7 @@ outputOverlaps(gkStore           *gkpStore,
     }
 
     if ((iid % 1000) == 0)
-      fprintf(stderr, "IID %u\r", iid);
+      fprintf(stderr, "IID " F_U32 "\r", iid);
   }
 #endif
 
@@ -617,8 +617,8 @@ main(int argc, char **argv) {
   fprintf(stderr, "  partNum = %9u\n", partNum);
   fprintf(stderr, "  partMax = %9u\n", partMax);
 
-  //fprintf(stderr, "ovOverlap %lu\n", sizeof(ovOverlap));
-  //fprintf(stderr, "ESToverlap %lu\n", sizeof(ESToverlap));
+  //fprintf(stderr, "ovOverlap " F_U64 "\n", sizeof(ovOverlap));
+  //fprintf(stderr, "ESToverlap " F_U64 "\n", sizeof(ESToverlap));
 
   //  Load read metadata, clear ranges, read lengths, and deleted status.
 
@@ -631,11 +631,11 @@ main(int argc, char **argv) {
     readProfileSize += readProfile[iid].initialize(gkpStore->gkStore_getRead(iid + iidMin));
 
     if ((iid % 10000) == 0)
-      fprintf(stderr, "  %u reads\r", iid);
+      fprintf(stderr, "  " F_U32 " reads\r", iid);
   }
 
-  fprintf(stderr, "  %u reads\n", numIIDs);
-  fprintf(stderr, "  %lu GB\n", readProfileSize >> 30);
+  fprintf(stderr, "  " F_U32 " reads\n", numIIDs);
+  fprintf(stderr, "  " F_U64 " GB\n", readProfileSize >> 30);
 
   //  Open overlap stores
 
@@ -665,10 +665,10 @@ main(int argc, char **argv) {
   //  Load overlaps.
 
   fprintf(stderr, "Loading overlaps\n");
-  fprintf(stderr, "  number   %lu overlaps\n",           numOvls);
-  fprintf(stderr, "  index    %lu GB\n",                 (sizeof(uint64)     * numIIDs) >> 30);
-  fprintf(stderr, "  overlaps %lu GB (previous size)\n", (sizeof(ovOverlap) * numOvls) >> 30);
-  fprintf(stderr, "  overlaps %lu GB\n",                 (sizeof(ESToverlap) * numOvls) >> 30);
+  fprintf(stderr, "  number   " F_U64 " overlaps\n",           numOvls);
+  fprintf(stderr, "  index    " F_U64 " GB\n",                 (sizeof(uint64)     * (uint64)numIIDs) >> 30);
+  fprintf(stderr, "  overlaps " F_U64 " GB (previous size)\n", (sizeof(ovOverlap)  *         numOvls) >> 30);
+  fprintf(stderr, "  overlaps " F_U64 " GB\n",                 (sizeof(ESToverlap) *         numOvls) >> 30);
 
   ESToverlap       *overlaps     = NULL;
   memoryMappedFile *overlapsMMF  = NULL;
@@ -702,7 +702,7 @@ main(int argc, char **argv) {
       if (ESTcache)
         fwrite(overlaps + no - nLoad, sizeof(ESToverlap), nLoad, ESTcache);
 
-      fprintf(stderr, "  loading overlaps: %lu out of %lu (%.4f%%)\r",
+      fprintf(stderr, "  loading overlaps: " F_U64 " out of " F_U64 " (%.4f%%)\r",
               no, numOvls, 100.0 * no / numOvls);
     }
 
@@ -712,7 +712,7 @@ main(int argc, char **argv) {
       fclose(ESTcache);
 
     fprintf(stderr, "\n");
-    fprintf(stderr, "  loaded and cached %lu overlaps.\n", numOvls);
+    fprintf(stderr, "  loaded and cached " F_U64 " overlaps.\n", numOvls);
   }
 
   delete ovlStore;
