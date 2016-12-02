@@ -137,6 +137,11 @@ sub generateOutputs ($$) {
 
     #  Graphs
 
+    if ((! -e "$WRK/$asm.contigs.gfa") &&
+        (  -e "$wrk/4-unitigger/$asm.contigs.gfa")) {
+        copy("$wrk/4-unitigger/$asm.contigs.gfa", "$WRK/$asm.contigs.gfa");
+    }
+
     if ((! -e "$WRK/$asm.unitigs.gfa") &&
         (  -e "$wrk/4-unitigger/$asm.unitigs.gfa")) {
         copy("$wrk/4-unitigger/$asm.unitigs.gfa", "$WRK/$asm.unitigs.gfa");
@@ -171,6 +176,7 @@ sub generateOutputs ($$) {
     print STDERR "--   Unitigs       -> '$WRK/$asm.unitigs.layout'.\n";
     print STDERR "--\n";
     print STDERR "-- Graphs saved:\n";
+    print STDERR "--   Contigs       -> '$WRK/$asm.contigs.gfa'.\n";
     print STDERR "--   Unitigs       -> '$WRK/$asm.unitigs.gfa'.\n";
     print STDERR "--\n";
     print STDERR "-- Bye.\n";

@@ -103,13 +103,19 @@ emitEdges(TigVector &tigs,
   //  still extend the alignment, and let the total failure of rd3 kill the edge.
 
   for (uint32 pp=0; pp<placements.size(); pp++) {
-    uint32   tid = placements[pp].tigID;
-    int32    bgn = placements[pp].verified.min();
-    int32    end = placements[pp].verified.max();
+    uint32  tgBid  = placements[pp].tigID;
+    Unitig *tgB    = tigs[tgBid];
+    uint32  tgBlen = tigs[tgBid]->getLength();
 
-    if ((tgA->id() == tid) &&              //  If placed in the same tig and
+    int32    bgn  = placements[pp].verified.min();
+    int32    end  = placements[pp].verified.max();
+
+    if ((tgA->id() == tgBid) &&            //  If placed in the same tig and
         (bgn <= rdA->position.max()) &&    //  at the same location, skip it.
         (rdA->position.min() <= end))
+      continue;
+
+    if (tgB->_isUnassembled == true)       //  Ignore placements to unassembled crud.
       continue;
 
     //  For this to be a valid starting edge, the read must be placed from it's beginning.  In the
@@ -125,16 +131,13 @@ emitEdges(TigVector &tigs,
                tgA->id(),
                rdA->ident, rdA->position.bgn, rdA->position.end,
                placements[pp].covered.bgn, placements[pp].covered.end,
-               tid, bgn, end);
+               tgBid, bgn, end);
 #endif
       continue;
     }
 
     //  Now, if the placed read didn't get placed to it's other end, and it's placed in the middle
     //  of the tig, reject the placement.
-
-    Unitig *tgB    = tigs[tid];
-    uint32  tgBlen = tigs[tid]->getLength();
 
     if (((rdA->isForward() == true) && (placements[pp].covered.end < rdAlen) && (bgn > 100) && (end + 100 < tgBlen)) ||
         ((rdA->isReverse() == true) && (placements[pp].covered.bgn > 0)      && (bgn > 100) && (end + 100 < tgBlen))) {
@@ -143,7 +146,7 @@ emitEdges(TigVector &tigs,
                tgA->id(),
                rdA->ident, rdA->position.bgn, rdA->position.end,
                placements[pp].covered.bgn, placements[pp].covered.end,
-               tid, bgn, end, tgBlen);
+               tgBid, bgn, end, tgBlen);
 #endif
       continue;
     }
@@ -154,7 +157,7 @@ emitEdges(TigVector &tigs,
              tgA->id(),
              rdA->ident, rdA->position.bgn, rdA->position.end,
              placements[pp].covered.bgn, placements[pp].covered.end,
-             tid, bgn, end,
+             tgBid, bgn, end,
              (double)placements[pp].errors / placements[pp].aligned);
 #endif
 
@@ -164,7 +167,7 @@ emitEdges(TigVector &tigs,
         ((rdA->isForward() == false) && (placements[pp].verified.isForward() == false)))
       fwd = true;
 
-    edges.push_back(grEdge(tid, bgn, end, fwd));
+    edges.push_back(grEdge(tgBid, bgn, end, fwd));
   }
 
   //  Technically, we should run through the edges and emit those that are already satisfied.  But
@@ -189,14 +192,19 @@ emitEdges(TigVector &tigs,
     //  Merge the new placements with the saved placements.
 
     for (uint32 pp=0; pp<placements.size(); pp++) {
-      uint32   tid = placements[pp].tigID;
-      int32    bgn = placements[pp].verified.min();
-      int32    end = placements[pp].verified.max();
+      uint32   tgBid  = placements[pp].tigID;
+      Unitig  *tgB    = tigs[tgBid];
+      uint32   tgBlen = tigs[tgBid]->getLength();
+      int32    bgn    = placements[pp].verified.min();
+      int32    end    = placements[pp].verified.max();
+
+      //  Ignore placements to unassembled crud.  Just an optimization.  We'd filter these out
+      //  when trying to associate it with an existing overlap.
+
+      if (tgB->_isUnassembled == true)
+        continue;
 
       //  Accept the placement only if it is for the whole read, or if it is touching the end of the target tig.
-
-      Unitig *tgB    = tigs[tid];
-      uint32  tgBlen = tigs[tid]->getLength();
 
       if (((placements[pp].covered.bgn > 0) ||
            (placements[pp].covered.end < rdAlen)) &&
@@ -204,7 +212,7 @@ emitEdges(TigVector &tigs,
           (end + 100 < tgBlen)) {
 #ifdef SHOW_EDGES
         writeLog("emitEdges()-- read %5u incomplete placement covering %5u-%-5u in at %5u-%-5u in tig %4u\n",
-                 rdA->ident, placements[pp].covered.bgn, placements[pp].covered.end, bgn, end, tid);
+                 rdA->ident, placements[pp].covered.bgn, placements[pp].covered.end, bgn, end, tgBid);
 #endif
         continue;
       }
@@ -213,7 +221,7 @@ emitEdges(TigVector &tigs,
         if (edges[ee].deleted == true)     //  Invalid or already finished edge.
           continue;
 
-        if ((tid != edges[ee].tigID) ||    //  Wrong tig, keep looking.
+        if ((tgBid != edges[ee].tigID) ||    //  Wrong tig, keep looking.
             (end < edges[ee].bgn) ||       //  No intersection, keep looking.
             (edges[ee].end < bgn))
           continue;
@@ -238,7 +246,7 @@ emitEdges(TigVector &tigs,
                  ee,
                  edges[ee].bgn, edges[ee].end,
                  nbgn, nend,
-                 rdA->ident, bgn, end, tid);
+                 rdA->ident, bgn, end, tgBid);
 #endif
           continue;
         }
@@ -253,7 +261,7 @@ emitEdges(TigVector &tigs,
                    ee,
                    edges[ee].bgn, edges[ee].end,
                    nbgn, nend,
-                   rdA->ident, bgn, end, tid);
+                   rdA->ident, bgn, end, tgBid);
 #endif
           continue;
         }
@@ -263,7 +271,7 @@ emitEdges(TigVector &tigs,
                  ee,
                  edges[ee].bgn, edges[ee].end,
                  nbgn, nend,
-                 rdA->ident, bgn, end, tid);
+                 rdA->ident, bgn, end, tgBid);
 #endif
 
         edges[ee].bgn      = nbgn;
@@ -384,9 +392,9 @@ reportTigGraph(TigVector &tigs, const char *prefix, const char *label) {
   writeLog("----------------------------------------\n");
   writeLog("Generating graph\n");
 
-  writeStatus("AssemblyGraph()-- generating '%s.unitigs.gfa'.\n", prefix);
+  writeStatus("AssemblyGraph()-- generating '%s.%s.gfa'.\n", prefix, label);
 
-  snprintf(N, FILENAME_MAX, "%s.unitigs.gfa", prefix);
+  snprintf(N, FILENAME_MAX, "%s.%s.gfa", prefix, label);
 
   BEG = fopen(N, "w");
 
@@ -402,7 +410,7 @@ reportTigGraph(TigVector &tigs, const char *prefix, const char *label) {
   //  make a disconnected unitig and need to split it again.
 
   for (uint32 ti=1; ti<tigs.size(); ti++)
-    if (tigs[ti] != NULL)
+    if ((tigs[ti] != NULL) && (tigs[ti]->_isUnassembled == false))
       fprintf(BEG, "S\ttig%08u\t*\tLN:i:%u\n", ti, tigs[ti]->getLength());
 
   //  Run through all the tigs, emitting edges for the first and last read.
@@ -410,7 +418,7 @@ reportTigGraph(TigVector &tigs, const char *prefix, const char *label) {
   for (uint32 ti=1; ti<tigs.size(); ti++) {
     Unitig  *tgA = tigs[ti];
 
-    if (tgA == NULL)
+    if ((tgA == NULL) || (tgA->_isUnassembled == true))
       continue;
 
     //if (ti == 4)

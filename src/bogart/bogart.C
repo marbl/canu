@@ -483,6 +483,8 @@ main (int argc, char * argv []) {
   setParentAndHang(contigs);
   writeTigsToStore(contigs, prefix, "ctg", true);
 
+  reportTigGraph(contigs, prefix, "contigs");
+
   //
   //  Generate unitigs
   //
