@@ -32,7 +32,7 @@
 #include "AS_BAT_Unitig.H"
 #include "AS_BAT_TigVector.H"
 
-
+#include "AS_BAT_CreateUnitigs.H"
 
 
 
@@ -195,7 +195,7 @@ splitTig(TigVector                &tigs,
     //  Make a new tig, if needed
 
     if ((doMove == true) && (newTigs[finBP] == NULL)) {
-      writeLog("splitTig()-- new tig %u at read %u %u-%u\n", tigs.size(), read.ident, read.position.min(), read.position.max());
+      writeLog("splitTig()-- new tig %u (id=%u) at read %u %u-%u\n", tigs.size(), finBP, read.ident, read.position.min(), read.position.max());
       lowCoord[finBP] = read.position.min();
       newTigs[finBP]  = tigs.newUnitig(false);
     }
@@ -313,7 +313,7 @@ void
 createUnitigs(AssemblyGraph   *AG,
               TigVector       &contigs,
               TigVector       &unitigs,
-              vector<uint32>  &unitigSource) {
+              vector<tigLoc>  &unitigSource) {
 
   vector<breakPointEnd>   breaks;
 
@@ -416,9 +416,22 @@ createUnitigs(AssemblyGraph   *AG,
 
     //  Remember where these unitigs came from.
 
-    for (uint32 tt=0; tt<nTigs; tt++)
-      unitigSource.push_back(tig->id());
+    unitigSource.resize(unitigs.size() + 1);
 
+    for (uint32 tt=0; tt<nTigs; tt++) {
+      if (newTigs[tt]) {
+        uint32  id = newTigs[tt]->id();
+
+        writeLog("createUnitigs()-- piece %3u -> tig %u from contig %u %u-%u\n",
+                 tt, id, tig->id(), lowCoord[tt], lowCoord[tt] + newTigs[tt]->getLength());
+
+        unitigSource[id].cID  = tig->id();
+        unitigSource[id].cBgn = lowCoord[tt];
+        unitigSource[id].cEnd = lowCoord[tt] + newTigs[tt]->getLength();
+        unitigSource[id].uID  = id;
+      }
+    }
+    
     //  Reset for the next iteration.
 
     ss = ee;

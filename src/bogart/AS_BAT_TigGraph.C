@@ -30,6 +30,7 @@
 
 #include "AS_BAT_PlaceReadUsingOverlaps.H"
 
+#include "AS_BAT_TigGraph.H"
 
 #undef  SHOW_EDGES
 #undef  SHOW_EDGES_VERBOSE
@@ -71,7 +72,7 @@ emitEdges(TigVector      &tigs,
           Unitig         *tgA,
           bool            tgAflipped,
           FILE           *BEG,
-          vector<uint32> &unitigSource) {
+          vector<tigLoc> &tigSource) {
   vector<overlapPlacement>   placements;
   vector<grEdge>             edges;
 
@@ -291,7 +292,7 @@ emitEdges(TigVector      &tigs,
 
       bool  sameContig = false;
 
-      if ((unitigSource.size() > 0) && (unitigSource[tgA->id()] == unitigSource[edges[ee].tigID]))
+      if ((tigSource.size() > 0) && (tigSource[tgA->id()].cID == tigSource[edges[ee].tigID].cID))
         sameContig = true;
 
       if ((edges[ee].fwd == false) && (edges[ee].bgn <= 100)) {
@@ -306,7 +307,7 @@ emitEdges(TigVector      &tigs,
                 tgA->id(),       tgAflipped ? '-' : '+',
                 edges[ee].tigID, tgBflipped ? '+' : '-',
                 edges[ee].end - edges[ee].bgn,
-                (sameContig == true) ? "\tcv:A:T" : "");
+                (sameContig == true) ? "\tcv:A:T" : "\tcv:A:F");
         edges[ee].deleted = true;
       }
 
@@ -322,7 +323,7 @@ emitEdges(TigVector      &tigs,
                 tgA->id(),       tgAflipped ? '-' : '+',
                 edges[ee].tigID, tgBflipped ? '-' : '+',
                 edges[ee].end - edges[ee].bgn,
-                (sameContig == true) ? "\tcv:A:T" : "");
+                (sameContig == true) ? "\tcv:A:T" : "\tcv:A:F");
         edges[ee].deleted = true;
       }
     }
@@ -392,7 +393,10 @@ emitEdges(TigVector      &tigs,
 //  the filtering for best edges.
 
 void
-reportTigGraph(TigVector &tigs, const char *prefix, const char *label, vector<uint32> &unitigSource) {
+reportTigGraph(TigVector &tigs,
+               vector<tigLoc> &tigSource,
+               const char *prefix,
+               const char *label) {
   char   N[FILENAME_MAX];
 
   writeLog("\n");
@@ -437,7 +441,7 @@ reportTigGraph(TigVector &tigs, const char *prefix, const char *label, vector<ui
              ti, tgA->getLength(), tgA->ufpath.size(), tgA->firstRead()->ident);
 #endif
 
-    emitEdges(tigs, tgA, false, BEG, unitigSource);
+    emitEdges(tigs, tgA, false, BEG, tigSource);
 
 #ifdef SHOW_EDGES
     writeLog("\n");
@@ -446,7 +450,7 @@ reportTigGraph(TigVector &tigs, const char *prefix, const char *label, vector<ui
 #endif
 
     tgA->reverseComplement();
-    emitEdges(tigs, tgA, true, BEG, unitigSource);
+    emitEdges(tigs, tgA, true, BEG, tigSource);
     tgA->reverseComplement();
 
     //logFileFlags &= ~LOG_PLACE_READ;

@@ -26,13 +26,36 @@
 #ifndef AS_BAT_CREATEUNITIGS_H
 #define AS_BAT_CREATEUNITIGS_H
 
+#include "AS_BAT_ReadInfo.H"
+#include "AS_BAT_OverlapCache.H"
+#include "AS_BAT_BestOverlapGraph.H"
+#include "AS_BAT_AssemblyGraph.H"
+#include "AS_BAT_Logging.H"
+
 #include "AS_BAT_TigVector.H"
 
 
+class tigLoc {
+public:
+  tigLoc() {
+    cID  = UINT32_MAX;
+    cBgn = 0;
+    cEnd = 0;
+    uID  = UINT32_MAX;
+  };
+
+  uint32   cID;
+  uint32   cBgn;
+  uint32   cEnd;
+  uint32   uID;    //  Debugging.
+};
+
+
+
 void
-createUnitigs(AssemblyGraph   *AG,
-              TigVector       &contigs,
-              TigVector       &unitigs,
-              vector<uint32>  &unitigSource);
+createUnitigs(AssemblyGraph    *AG,
+              TigVector        &contigs,
+              TigVector        &unitigs,
+              vector<tigLoc>   &unitigSource);
 
 #endif  //  AS_BAT_CREATEUNITIGS_H

@@ -40,23 +40,24 @@
 
 #include "AS_BAT_Unitig.H"
 
+#include "AS_BAT_SplitDiscontinuous.H"
 
 static
-void
+Unitig *
 makeNewUnitig(TigVector    &tigs,
               uint32        splitReadsLen,
               ufNode       *splitReads) {
 
   if (splitReadsLen == 0) {
     writeLog("splitDiscontinuous()-- WARNING: tried to make a new tig with no reads!\n");
-    return;
+    return(NULL);
   }
 
-  Unitig *dangler = tigs.newUnitig(false);
+  Unitig *newtig = tigs.newUnitig(false);
 
   if (logFileFlagSet(LOG_SPLIT_DISCONTINUOUS))
     writeLog("splitDiscontinuous()--   new tig " F_U32 " with " F_U32 " reads (starting at read " F_U32 ").\n",
-            dangler->id(), splitReadsLen, splitReads[0].ident);
+            newtig->id(), splitReadsLen, splitReads[0].ident);
 
   int splitOffset = -splitReads[0].position.min();
 
@@ -64,7 +65,9 @@ makeNewUnitig(TigVector    &tigs,
   splitReads[0].contained = 0;
 
   for (uint32 i=0; i<splitReadsLen; i++)
-    dangler->addRead(splitReads[i], splitOffset, false);  //logFileFlagSet(LOG_SPLIT_DISCONTINUOUS));
+    newtig->addRead(splitReads[i], splitOffset, false);  //logFileFlagSet(LOG_SPLIT_DISCONTINUOUS));
+
+  return(newtig);
 }
 
 
@@ -120,7 +123,7 @@ tigIsContiguous(Unitig *tig, uint32 minOverlap) {
 //  After splitting and ejecting some contains, check for discontinuous tigs.
 //
 void
-splitDiscontinuous(TigVector &tigs, uint32 minOverlap, vector<uint32> &unitigSource) {
+splitDiscontinuous(TigVector &tigs, uint32 minOverlap, vector<tigLoc> &tigSource) {
   uint32                numTested  = 0;
   uint32                numSplit   = 0;
   uint32                numCreated = 0;
@@ -182,16 +185,22 @@ splitDiscontinuous(TigVector &tigs, uint32 minOverlap, vector<uint32> &unitigSou
       //  place all reads in singleton tigs as contained reads again).
 
       numCreated++;
-      makeNewUnitig(tigs, splitReadsLen, splitReads);
+      Unitig *newtig = makeNewUnitig(tigs, splitReadsLen, splitReads);
 
       //  'tigs' can be reallocated, so grab the pointer again.
 
       tig = tigs[ti];
 
-      //  Keep tracking unitigSource.
+      //  Keep tracking tigSource.
 
-      if (tig->id() < unitigSource.size())
-        unitigSource.push_back(unitigSource[tig->id()]);
+      if ((tigSource.size() > 0) && (newtig)) {
+        tigSource.resize(newtig->id() + 1);
+
+        tigSource[newtig->id()].cID  = tig->id();
+        tigSource[newtig->id()].cBgn = tigSource[   tig->id()].cBgn + splitReads[0].position.min();
+        tigSource[newtig->id()].cEnd = tigSource[newtig->id()].cBgn + newtig->getLength();
+        tigSource[newtig->id()].uID  = newtig->id();
+      }
 
       //  Done with the split, save the current read.  This resets everything.
 
@@ -206,10 +215,16 @@ splitDiscontinuous(TigVector &tigs, uint32 minOverlap, vector<uint32> &unitigSou
 
     if (splitReadsLen != tig->ufpath.size()) {
       numCreated++;
-      makeNewUnitig(tigs, splitReadsLen, splitReads);
+      Unitig *newtig = makeNewUnitig(tigs, splitReadsLen, splitReads);
 
-      if (tig->id() < unitigSource.size())
-        unitigSource.push_back(unitigSource[tigs[ti]->id()]);
+      if ((tigSource.size() > 0) && (newtig)) {
+        tigSource.resize(newtig->id() + 1);
+
+        tigSource[newtig->id()].cID  = tig->id();
+        tigSource[newtig->id()].cBgn = tigSource[   tig->id()].cBgn + splitReads[0].position.min();
+        tigSource[newtig->id()].cEnd = tigSource[newtig->id()].cBgn + newtig->getLength();
+        tigSource[newtig->id()].uID  = newtig->id();
+      }
 
       delete tigs[ti];
       tigs[ti] = NULL;
@@ -232,7 +247,7 @@ splitDiscontinuous(TigVector &tigs, uint32 minOverlap, vector<uint32> &unitigSou
 
 void
 splitDiscontinuous(TigVector &tigs, uint32 minOverlap) {
-  vector<uint32>  nothingToSeeHere;
+  vector<tigLoc>  nothingToSeeHere;
 
   splitDiscontinuous(tigs, minOverlap, nothingToSeeHere);
 }

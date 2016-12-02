@@ -483,9 +483,9 @@ main (int argc, char * argv []) {
   setParentAndHang(contigs);
   writeTigsToStore(contigs, prefix, "ctg", true);
 
-  vector<uint32>  unitigSource;  //  Needed only to pass something to reportTigGraph.
+  vector<tigLoc>  unitigSource;  //  Needed only to pass something to reportTigGraph.
 
-  reportTigGraph(contigs, prefix, "contigs", unitigSource);
+  reportTigGraph(contigs, unitigSource, prefix, "contigs");
 
   //
   //  Generate unitigs
@@ -535,7 +535,7 @@ main (int argc, char * argv []) {
   setParentAndHang(unitigs);
   writeTigsToStore(unitigs, prefix, "utg", true);
 
-  reportTigGraph(unitigs, prefix, "unitigs", unitigSource);
+  reportTigGraph(unitigs, unitigSource, prefix, "unitigs");
 
   //
   //  Tear down bogart.

@@ -27,14 +27,17 @@
 #define INCLUDE_AS_BAT_TIGGRAPH
 
 #include "AS_global.H"
-//#include "AS_BAT_OverlapCache.H"
-//#include "AS_BAT_BestOverlapGraph.H"
+
 #include "AS_BAT_Unitig.H"
 #include "AS_BAT_TigVector.H"
 
+#include "AS_BAT_CreateUnitigs.H"
 
 void
-reportTigGraph(TigVector &tigs, const char *prefix, const char *label, vector<uint32> &unitigSource);
+reportTigGraph(TigVector      &tigs,
+               vector<tigLoc> &tigSource,
+               const char     *prefix,
+               const char     *label);
 
 
 #endif  //  INCLUDE_AS_BAT_ASSEMBLYGRAPH
