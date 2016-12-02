@@ -67,10 +67,11 @@ public:
 
 
 void
-emitEdges(TigVector &tigs,
-          Unitig    *tgA,
-          bool       tgAflipped,
-          FILE      *BEG) {
+emitEdges(TigVector      &tigs,
+          Unitig         *tgA,
+          bool            tgAflipped,
+          FILE           *BEG,
+          vector<uint32> &unitigSource) {
   vector<overlapPlacement>   placements;
   vector<grEdge>             edges;
 
@@ -288,6 +289,11 @@ emitEdges(TigVector &tigs,
     for (uint32 ee=0; ee<edges.size(); ee++) {
       bool  tgBflipped = (edges[ee].tigID == tgA->id()) && (tgAflipped);
 
+      bool  sameContig = false;
+
+      if ((unitigSource.size() > 0) && (unitigSource[tgA->id()] == unitigSource[edges[ee].tigID]))
+        sameContig = true;
+
       if ((edges[ee].fwd == false) && (edges[ee].bgn <= 100)) {
 #ifdef SHOW_EDGES_VERBOSE
         writeLog("emitEdges()-- edge %3u - tig %6u %s edgeTo tig %6u %s of length %6u (%6u-%6u)\n",
@@ -296,10 +302,11 @@ emitEdges(TigVector &tigs,
                  edges[ee].tigID, tgBflipped ? "-->" : "<--",
                  edges[ee].end - edges[ee].bgn, edges[ee].bgn, edges[ee].end);
 #endif
-        fprintf(BEG, "L\ttig%08u\t%c\ttig%08u\t%c\t%uM\n",
+        fprintf(BEG, "L\ttig%08u\t%c\ttig%08u\t%c\t%uM%s\n",
                 tgA->id(),       tgAflipped ? '-' : '+',
                 edges[ee].tigID, tgBflipped ? '+' : '-',
-                edges[ee].end - edges[ee].bgn);
+                edges[ee].end - edges[ee].bgn,
+                (sameContig == true) ? "\tcv:A:T" : "");
         edges[ee].deleted = true;
       }
 
@@ -311,10 +318,11 @@ emitEdges(TigVector &tigs,
                  edges[ee].tigID, tgBflipped ? "<--" : "-->",
                  edges[ee].end - edges[ee].bgn, edges[ee].bgn, edges[ee].end);
 #endif
-        fprintf(BEG, "L\ttig%08u\t%c\ttig%08u\t%c\t%uM\n",  //  is correct
+        fprintf(BEG, "L\ttig%08u\t%c\ttig%08u\t%c\t%uM%s\n",
                 tgA->id(),       tgAflipped ? '-' : '+',
                 edges[ee].tigID, tgBflipped ? '-' : '+',
-                edges[ee].end - edges[ee].bgn);
+                edges[ee].end - edges[ee].bgn,
+                (sameContig == true) ? "\tcv:A:T" : "");
         edges[ee].deleted = true;
       }
     }
@@ -384,9 +392,8 @@ emitEdges(TigVector &tigs,
 //  the filtering for best edges.
 
 void
-reportTigGraph(TigVector &tigs, const char *prefix, const char *label) {
- char   N[FILENAME_MAX];
-  FILE *BEG = NULL;
+reportTigGraph(TigVector &tigs, const char *prefix, const char *label, vector<uint32> &unitigSource) {
+  char   N[FILENAME_MAX];
 
   writeLog("\n");
   writeLog("----------------------------------------\n");
@@ -396,7 +403,7 @@ reportTigGraph(TigVector &tigs, const char *prefix, const char *label) {
 
   snprintf(N, FILENAME_MAX, "%s.%s.gfa", prefix, label);
 
-  BEG = fopen(N, "w");
+  FILE *BEG = fopen(N, "w");
 
   if (BEG == NULL)
     return;
@@ -430,7 +437,7 @@ reportTigGraph(TigVector &tigs, const char *prefix, const char *label) {
              ti, tgA->getLength(), tgA->ufpath.size(), tgA->firstRead()->ident);
 #endif
 
-    emitEdges(tigs, tgA, false, BEG);
+    emitEdges(tigs, tgA, false, BEG, unitigSource);
 
 #ifdef SHOW_EDGES
     writeLog("\n");
@@ -439,7 +446,7 @@ reportTigGraph(TigVector &tigs, const char *prefix, const char *label) {
 #endif
 
     tgA->reverseComplement();
-    emitEdges(tigs, tgA, true, BEG);
+    emitEdges(tigs, tgA, true, BEG, unitigSource);
     tgA->reverseComplement();
 
     //logFileFlags &= ~LOG_PLACE_READ;

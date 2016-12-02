@@ -483,7 +483,9 @@ main (int argc, char * argv []) {
   setParentAndHang(contigs);
   writeTigsToStore(contigs, prefix, "ctg", true);
 
-  reportTigGraph(contigs, prefix, "contigs");
+  vector<uint32>  unitigSource;  //  Needed only to pass something to reportTigGraph.
+
+  reportTigGraph(contigs, prefix, "contigs", unitigSource);
 
   //
   //  Generate unitigs
@@ -507,16 +509,33 @@ main (int argc, char * argv []) {
                                          contigs,
                                          true);
 
-  createUnitigs(EG, contigs, unitigs);
+
+  //
+  //  We want some way of tracking unitigs that came from the same contig.  Ideally,
+  //  we'd be able to emit only the edges that would join unitigs into the original
+  //  contig, but it's complicated by containments.  For example:
+  //
+  //    [----------------------------------]   CONTIG
+  //    -------------                          UNITIG
+  //              --------------------------   UNITIG
+  //                         -------           UNITIG
+  //
+  //  So, instead, we just remember the set of unitigs that were created from each
+  //  contig, and assume that any edge between those unitigs represents the contig.
+  //  Which it totally doesn't -- any repeat in the contig collapses -- but is a
+  //  good first attempt.
+  //
+
+  createUnitigs(EG, contigs, unitigs, unitigSource);
 
   delete EG;
 
-  splitDiscontinuous(unitigs, minOverlap);
+  splitDiscontinuous(unitigs, minOverlap, unitigSource);
 
   setParentAndHang(unitigs);
   writeTigsToStore(unitigs, prefix, "utg", true);
 
-  reportTigGraph(unitigs, prefix, "unitigs");
+  reportTigGraph(unitigs, prefix, "unitigs", unitigSource);
 
   //
   //  Tear down bogart.

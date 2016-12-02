@@ -34,7 +34,7 @@
 
 
 void
-reportTigGraph(TigVector &tigs, const char *prefix, const char *label);
+reportTigGraph(TigVector &tigs, const char *prefix, const char *label, vector<uint32> &unitigSource);
 
 
 #endif  //  INCLUDE_AS_BAT_ASSEMBLYGRAPH

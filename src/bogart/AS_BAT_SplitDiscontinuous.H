@@ -38,6 +38,7 @@
 #ifndef INCLUDE_AS_BAT_SPLITDISCONTINUOUS
 #define INCLUDE_AS_BAT_SPLITDISCONTINUOUS
 
+void splitDiscontinuous(TigVector &tigs, uint32 minOverlap, vector<uint32> &unitigSource);
 void splitDiscontinuous(TigVector &tigs, uint32 minOverlap);
 
 #endif  //  INCLUDE_AS_BAT_SPLITDISCONTINUOUS

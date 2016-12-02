@@ -310,9 +310,10 @@ checkRead(AssemblyGraph *AG,
 
 
 void
-createUnitigs(AssemblyGraph  *AG,
-              TigVector      &contigs,
-              TigVector      &unitigs) {
+createUnitigs(AssemblyGraph   *AG,
+              TigVector       &contigs,
+              TigVector       &unitigs,
+              vector<uint32>  &unitigSource) {
 
   vector<breakPointEnd>   breaks;
 
@@ -413,7 +414,14 @@ createUnitigs(AssemblyGraph  *AG,
       writeLog("createUnitigs()-- contig %u copied into unitig %u.\n", tig->id(), nTigs, unitigs.size() - 1);
     }
 
-    ss = ee;   //  Reset for the next iteration.
+    //  Remember where these unitigs came from.
+
+    for (uint32 tt=0; tt<nTigs; tt++)
+      unitigSource.push_back(tig->id());
+
+    //  Reset for the next iteration.
+
+    ss = ee;
   }
 
   //  Cleanup.

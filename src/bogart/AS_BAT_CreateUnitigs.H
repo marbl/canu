@@ -28,9 +28,11 @@
 
 #include "AS_BAT_TigVector.H"
 
+
 void
-createUnitigs(AssemblyGraph  *AG,
-              TigVector      &contigs,
-              TigVector      &unitigs);
+createUnitigs(AssemblyGraph   *AG,
+              TigVector       &contigs,
+              TigVector       &unitigs,
+              vector<uint32>  &unitigSource);
 
 #endif  //  AS_BAT_CREATEUNITIGS_H
