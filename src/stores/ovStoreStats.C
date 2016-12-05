@@ -34,6 +34,7 @@
 
 #include "stddev.H"
 #include "intervalList.H"
+#include "speedCounter.H"
 
 
 #define OVL_5                 0x01
@@ -65,6 +66,7 @@ main(int argc, char **argv) {
   double          expectedStdDev =  7.0;
 
   bool            toFile         = true;
+  bool            beVerbose      = false;
 
   argc = AS_configure(argc, argv);
 
@@ -90,6 +92,9 @@ main(int argc, char **argv) {
 
     else if (strcmp(argv[arg], "-c") == 0)
       toFile = false;
+
+    else if (strcmp(argv[arg], "-v") == 0)
+      beVerbose = true;
 
 
     else if (strcmp(argv[arg], "-b") == 0)
@@ -153,6 +158,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -C mean stddev           Expect coverage at mean +- stddev\n");
     fprintf(stderr, "  -c                       Write stats to stdout, not to a file\n");
+    fprintf(stderr, "  -v                       Report processing speed to stderr\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Outputs:\n");
     fprintf(stderr, "\n");
@@ -259,6 +265,8 @@ main(int argc, char **argv) {
 
   uint32                 overlapsLen = 0;
   ovOverlap             *overlaps    = ovOverlap::allocateOverlaps(gkpStore, overlapsMax);
+
+  speedCounter           C("  %9.0f reads (%6.1f reads/sec)\r", 1, 100, beVerbose);
 
   overlapsLen = ovlStore->readOverlaps(overlaps, overlapsMax);
 
@@ -528,6 +536,8 @@ main(int argc, char **argv) {
     }
 
     //  Done.  Read more data.
+
+    C.tick();
 
     overlapsLen = ovlStore->readOverlaps(overlaps, overlapsMax);
   }
