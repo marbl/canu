@@ -677,7 +677,9 @@ sub createOverlapStore ($$$$) {
     #  Now all done!
 
   finishStage:
-    generateOverlapStoreStats($wrk, $asm);
+    if ($tag eq "utg") {
+        generateOverlapStoreStats($wrk, $asm);
+    }
 
     if (-e "$wrk/$asm.ovlStore.summary") {
         print STDERR "--\n";
@@ -691,7 +693,7 @@ sub createOverlapStore ($$$$) {
         close(F);
 
     } else {
-        print STDERR "-- Overlap store '$wrk/$asm.ovlStore' statistics not available.\n";
+        print STDERR "-- Overlap store '$wrk/$asm.ovlStore' statistics not available (skipped in correction and trimming stages).\n";
     }
 
     emitStage($WRK, $asm, "$tag-createOverlapStore");
