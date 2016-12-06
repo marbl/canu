@@ -145,6 +145,7 @@ SUBMAKEFILES := stores/gatekeeperCreate.mk \
                 meryl/libleaff.mk \
                 meryl/leaff.mk \
                 meryl/meryl.mk \
+                meryl/maskMers.mk \
                 meryl/simple.mk \
                 meryl/estimate-mer-threshold.mk \
                 \
