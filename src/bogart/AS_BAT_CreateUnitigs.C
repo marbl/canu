@@ -70,7 +70,7 @@ public:
 
 
 
-void
+Unitig *
 copyTig(TigVector    &tigs,
         Unitig       *oldtig) {
   Unitig  *newtig = tigs.newUnitig(false);
@@ -82,6 +82,8 @@ copyTig(TigVector    &tigs,
 
   for (uint32 fi=0; fi<oldtig->ufpath.size(); fi++)
     newtig->addRead(oldtig->ufpath[fi], 0, false);
+
+  return(newtig);
 }
 
 
@@ -310,6 +312,36 @@ checkRead(AssemblyGraph *AG,
 
 
 void
+stripNonBackboneFromStart(TigVector &unitigs, Unitig *tig, bool isFirst) {
+  vector<ufNode>   ufpath;
+  uint32           ii = 0;
+
+  while (RI->isBackbone(tig->ufpath[ii].ident) == false) { //  Find the first backbone read,
+    unitigs.registerRead(tig->ufpath[ii].ident);
+    writeLog("WARNING: unitig %u %s read %u is not backbone, removing.\n",
+             tig->id(),
+             isFirst ? "first" : "last ",
+             tig->ufpath[ii].ident);
+    ii++;
+  }
+
+  while (ii < tig->ufpath.size()) {               //  and copy to a new vector.
+    ufpath.push_back(tig->ufpath[ii]);
+    writeLog("SAVE     unitig %u %s read %u IS     backbone.\n",
+             tig->id(),
+             isFirst ? "first" : "last ",
+             tig->ufpath[ii].ident);
+    ii++;
+  }
+
+  tig->ufpath.swap(ufpath);                       //  assign the new vector to the tig
+  tig->cleanUp();                                 //  adjust zero, find new length
+  tig->reverseComplement();                       //  rebuild the idx mappings, and reverse for the next phase
+}
+
+
+
+void
 createUnitigs(AssemblyGraph   *AG,
               TigVector       &contigs,
               TigVector       &unitigs,
@@ -405,13 +437,13 @@ createUnitigs(AssemblyGraph   *AG,
 
     if (nTigs > 1) {
       splitTig(unitigs, tig, BP, newTigs, lowCoord, nMoved, true);
-      writeLog("createUnitigs()-- contig %u was split into %u unitigs, %u through %u.\n",
-               tig->id(), nTigs, unitigs.size() - nTigs, unitigs.size() - 1);
+      writeLog("createUnitigs()-- contig %u was split into %u unitigs, %u through %u.\n",  //  Can't use newTigs, because
+               tig->id(), nTigs, unitigs.size() - nTigs, unitigs.size() - 1);              //  there are holes in it
     }
 
     else {
-      copyTig(unitigs, tig);
-      writeLog("createUnitigs()-- contig %u copied into unitig %u.\n", tig->id(), nTigs, unitigs.size() - 1);
+      newTigs[0] = copyTig(unitigs, tig);
+      writeLog("createUnitigs()-- contig %u copied into unitig %u.\n", tig->id(), newTigs[0]->id());
     }
 
     //  Remember where these unitigs came from.
@@ -435,6 +467,42 @@ createUnitigs(AssemblyGraph   *AG,
     //  Reset for the next iteration.
 
     ss = ee;
+  }
+
+  //  Remove non-backbone reads from the ends of unitigs.  These confound graph building because
+  //  they can be missing overlaps.
+  //
+  //  If the last read in the tig is not a backbone read, we can remove it and all reads that come
+  //  after it (because those reads are contained).
+
+  for (uint32 ti=0; ti<unitigs.size(); ti++) {
+    Unitig    *tig = unitigs[ti];
+
+    if (tig == NULL)
+      continue;
+
+    //  First, check if we have any backbone reads.  If we have none, leave it as is.
+
+    uint32  bbReads = 0;
+    uint32  nbReads = 0;
+
+    for (uint32 li=0; li<tig->ufpath.size(); li++) {
+      if (RI->isBackbone(tig->ufpath[li].ident) == true)
+        bbReads++;
+      else
+        nbReads++;
+    }
+
+    if (bbReads == 0)
+      continue;
+
+    //  Now remove non-backbone reads from the start of the tig.
+
+    writeLog("unitig %u with %u reads, %u backbone and %u unplaced.\n",
+             tig->id(), tig->ufpath.size(), bbReads, nbReads);
+
+    stripNonBackboneFromStart(unitigs, tig, true);
+    stripNonBackboneFromStart(unitigs, tig, false);
   }
 
   //  Cleanup.
