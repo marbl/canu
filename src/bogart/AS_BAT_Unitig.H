@@ -162,6 +162,8 @@ public:
   //void   bubbleSortLastRead(void);
   void reverseComplement(bool doSort=true);
 
+  void cleanUp(void);
+
   // getNumRandomRead() is a placeholder, random reads should not
   // contain guides, or other reads that are not randomly sampled
   // across the whole genome.

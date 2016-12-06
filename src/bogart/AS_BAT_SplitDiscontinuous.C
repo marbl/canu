@@ -72,33 +72,6 @@ makeNewUnitig(TigVector    &tigs,
 
 
 
-//  Ensure that the children are sorted by begin position, and that unitigs start at position zero.
-//
-static
-void
-cleanUpUnitig(Unitig *tig) {
-
-  if (tig == NULL)
-    return;
-
-  if (tig->ufpath.size() > 1)
-    tig->sort();
-
-  int32   minPos = tig->ufpath[0].position.min();
-
-  if (minPos == 0)
-    return;
-
-  writeLog("splitDiscontinuous()-- tig " F_U32 " offset messed up; reset by " F_S32 ".\n", tig->id(), minPos);
-
-  for (uint32 fi=0; fi<tig->ufpath.size(); fi++) {
-    tig->ufpath[fi].position.bgn -= minPos;
-    tig->ufpath[fi].position.end -= minPos;
-  }
-}
-
-
-
 //  Tests if the tig is contiguous.
 //
 bool
@@ -131,7 +104,8 @@ splitDiscontinuous(TigVector &tigs, uint32 minOverlap, vector<tigLoc> &tigSource
   //  Sort and make sure the tigs start at zero.  Shouldn't be here.
 
   for (uint32 ti=0; ti<tigs.size(); ti++)
-    cleanUpUnitig(tigs[ti]);
+    if (tigs[ti])
+      tigs[ti]->cleanUp();
 
   //  Allocate space for the largest number of reads.
 

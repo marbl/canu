@@ -83,6 +83,33 @@ Unitig::reverseComplement(bool doSort) {
 
 
 
+//  Ensure that the children are sorted by begin position, and that unitigs start at position zero.
+
+void
+Unitig::cleanUp(void) {
+
+  if (ufpath.size() > 1)
+    sort();
+
+  int32   minPos = ufpath[0].position.min();
+
+  if (minPos == 0)
+    return;
+
+  for (uint32 fi=0; fi<ufpath.size(); fi++) {
+    ufpath[fi].position.bgn -= minPos;
+    ufpath[fi].position.end -= minPos;
+  }
+
+  _length = 0;
+
+  for (uint32 fi=0; fi<ufpath.size(); fi++) {         //  Could use position.max(), but since
+    _length = max(_length, ufpath[fi].position.bgn);   //  it too calls max(), there's no win
+    _length = max(_length, ufpath[fi].position.end);
+  }
+}
+
+
 
 class epOlapDat {
 public:
