@@ -187,21 +187,17 @@ placeUnplacedUsingAllOverlaps(TigVector    &tigs,
     Unitig  *tig = NULL;
     ufNode   frg;
 
-    if (tigs.inUnitig(fid) > 0)
+    if (tigs.inUnitig(fid) > 0)  //  Already placed, just skip it.
       continue;
 
-    //  If not placed, dump it in a new unitig.  Well, not anymore.  These reads were not placed in
-    //  any tig initially, were not allowed to seed a tig, and now, could find no place to go.
-    //  They're garbage.  Plus, it screws up the logging above because we don't know the new tig ID
-    //  until now.
+    //  If not placed, it's garbage.  These reads were not placed in any tig initially, were not
+    //  allowed to seed a tig, and now, could find no place to go.  They're garbage.
 
     if (placedTig[fid] == 0) {
       if (OG->isContained(fid))
         nFailedContained++;
       else
         nFailed++;
-
-      //tig = tigs.newUnitig(false);
     }
 
     //  Otherwise, it was placed somewhere, grab the tig.
@@ -227,6 +223,13 @@ placeUnplacedUsingAllOverlaps(TigVector    &tigs,
 
       tig->addRead(frg, 0, false);
     }
+
+    //  Update status.
+
+    if (tig)
+      RI->setUnplaced(fid);
+    else
+      RI->setLeftover(fid);
   }
 
   //  Cleanup.

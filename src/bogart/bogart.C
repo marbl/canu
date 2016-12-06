@@ -350,12 +350,20 @@ main (int argc, char * argv []) {
   delete CG;
   CG = NULL;
 
-
-
   breakSingletonTigs(contigs);
 
   reportOverlaps(contigs, prefix, "buildGreedy");
   reportTigs(contigs, prefix, "buildGreedy", genomeSize);
+
+  //
+  //  For future use, remember the reads in contigs.  When we make unitigs, we'll
+  //  require that every unitig end with one of these reads -- this will let
+  //  us reconstruct contigs from the unitigs.
+  //
+
+  for (uint32 fid=1; fid<RI->numReads()+1; fid++)    //  This really should be incorporated
+    if (contigs.inUnitig(fid) != 0)                  //  into populateUnitig()
+      RI->setBackbone(fid);
 
   //
   //  Place contained reads.
@@ -485,6 +493,8 @@ main (int argc, char * argv []) {
 
   vector<tigLoc>  unitigSource;  //  Needed only to pass something to reportTigGraph.
 
+  setLogFile(prefix, "tigGraph");
+
   reportTigGraph(contigs, unitigSource, prefix, "contigs");
 
   //
@@ -534,6 +544,8 @@ main (int argc, char * argv []) {
 
   setParentAndHang(unitigs);
   writeTigsToStore(unitigs, prefix, "utg", true);
+
+  setLogFile(prefix, "tigGraph");
 
   reportTigGraph(unitigs, unitigSource, prefix, "unitigs");
 
