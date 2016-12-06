@@ -115,15 +115,16 @@ placeRead_fromOverlaps(TigVector   &tigs,
     //  Report the placement.
 
     if (logFileFlagSet(LOG_PLACE_READ))
-      writeLog("pRUO()-- read %7d in unitig %5d at %8d,%-8d (cov %5d,%5d) from overlap with %7d %8d:%-8d hang %6d %6d flipped %d%s\n",
+      writeLog("pRUO()-- read %7d (%5d,%5d) in unitig %5d at %8d,%-8d via read %7d at %8d:%-8d hang %6d %6d %s%s\n",
                ovlPlace[i].frgID,
+               ovlPlace[i].covered.bgn, ovlPlace[i].covered.end,
                ovlPlace[i].tigID,
                ovlPlace[i].position.bgn, ovlPlace[i].position.end,
-               ovlPlace[i].covered.bgn, ovlPlace[i].covered.end,
                ovl[i].b_iid,
                tig->readFromId(ovl[i].b_iid)->position.bgn,
                tig->readFromId(ovl[i].b_iid)->position.end,
-               ovl[i].a_hang, ovl[i].b_hang, ovl[i].flipped,
+               ovl[i].a_hang, ovl[i].b_hang,
+               (ovl[i].flipped == true) ? "<--" : "-->",
                (ovlPlace[i].frgID == 0) ? " DISALLOWED" : "");
   }  //  Over all overlaps.
 
@@ -152,14 +153,15 @@ placeRead_assignEndPointsToCluster(uint32  bgn, uint32  end,
   endPoints.merge();
 
   if (logFileFlagSet(LOG_PLACE_READ)) {
-    writeLog("pRUO()-- Found %3u bgn intervals: ", bgnPoints.numberOfIntervals());
+    writeLog("pRUO()-- Using windowSlop %d\n", windowSlop);
+    writeLog("pRUO()-- Found %3u bgn interval%s", bgnPoints.numberOfIntervals(), bgnPoints.numberOfIntervals() == 1 ? ":  " : "s: ");
     for (uint32 r=0; r<bgnPoints.numberOfIntervals(); r++)
-      writeLog(" %6u-%-6u", bgnPoints.lo(r), bgnPoints.hi(r));
+      writeLog(" %6d:%-6d", bgnPoints.lo(r), bgnPoints.hi(r));
     writeLog("\n");
 
-    writeLog("pRUO()-- Found %3u end intervals: ", endPoints.numberOfIntervals());
+    writeLog("pRUO()-- Found %3u end interval%s", endPoints.numberOfIntervals(), endPoints.numberOfIntervals() == 1 ? ":  " : "s: ");
     for (uint32 r=0; r<endPoints.numberOfIntervals(); r++)
-      writeLog(" %6u-%-6u", endPoints.lo(r), endPoints.hi(r));
+      writeLog(" %6d:%-6d", endPoints.lo(r), endPoints.hi(r));
     writeLog("\n");
   }
 }
@@ -218,7 +220,7 @@ placeRead_findFirstLastOverlapping(overlapPlacement &op,
   }
 
   if (op.tigFidx > op.tigLidx)
-    writeStatus("Invalid placement indices: tigFidx %u tigLidx %u\n", op.tigFidx, op.tigLidx);
+    writeStatus("pRUO()-- Invalid placement indices: tigFidx %u tigLidx %u\n", op.tigFidx, op.tigLidx);
   assert(op.tigFidx <= op.tigLidx);
 
   if (logFileFlagSet(LOG_PLACE_READ))
@@ -242,8 +244,12 @@ placeRead_computeQualityAndCoverage(overlapPlacement &op,
 
   for (uint32 oo=os; oo<oe; oo++) {
     if ((ovlPlace[oo].position.bgn == 0) &&
-        (ovlPlace[oo].position.end == 0))
+        (ovlPlace[oo].position.end == 0)) {
+      if (logFileFlagSet(LOG_PLACE_READ))
+        writeLog("OLD place=%3d  read %8d ref read %8d - covered %5d:%-5d with %6.1f errors - DELETED\n",
+                 op.frgID, ovlPlace[oo].refID, ovlPlace[oo].covered.bgn, ovlPlace[oo].covered.end, ovlPlace[oo].errors);
       continue;
+    }
 
     op.errors      += ovlPlace[oo].errors;
     op.aligned     += ovlPlace[oo].aligned;
@@ -251,8 +257,9 @@ placeRead_computeQualityAndCoverage(overlapPlacement &op,
     op.covered.bgn  = min(op.covered.bgn, ovlPlace[oo].covered.bgn);
     op.covered.end  = max(op.covered.end, ovlPlace[oo].covered.end);
 
-    //writeLog("OLD %d %d - errors %f cov %d %d\n",
-    //         op.frgID, ovlPlace[oo].refID, ovlPlace[oo].errors, ovlPlace[oo].covered.bgn, ovlPlace[oo].covered.end);
+    //if (logFileFlagSet(LOG_PLACE_READ))
+    //  writeLog("OLD place=%3d  read %8d ref read %8d - covered %5d:%-5d with %6.1f errors\n",
+    //           oo, op.frgID, ovlPlace[oo].refID, ovlPlace[oo].covered.bgn, ovlPlace[oo].covered.end, ovlPlace[oo].errors);
   }
 
   op.fCoverage = (op.covered.end - op.covered.bgn) / (double)RI->readLength(op.frgID);
@@ -286,8 +293,9 @@ placeRead_computeQualityAndCoverage(overlapPlacement &op,
     int32   cbgn = (ovl[oo].a_hang < 0) ?    0 : ovl[oo].a_hang;          //  The portion of the read
     int32   cend = (ovl[oo].b_hang > 0) ? flen : ovl[oo].b_hang + flen;   //  covered by the overlap.
 
-    //writeLog("NEW %d %d - errors %f cov %d %d\n",
-    //         ovl[oo].a_iid, ovl[oo].b_iid, olen * ovl[oo].erate(), cbgn, cend);
+    //if (logFileFlagSet(LOG_PLACE_READ))
+    //  writeLog("NEW place=%3d  read %8d ref read %8d - covered %5d:%-d with %f errors\n",
+    //           op.frgID, ovlPlace[oo].refID, cbgn, cend, olen * ovl[oo].erate());
 
     op.errors   += olen * ovl[oo].erate();
     op.aligned  += cend - cbgn;
@@ -442,7 +450,7 @@ placeReadUsingOverlaps(TigVector                &tigs,
                        vector<overlapPlacement> &placements,
                        uint32                    flags) {
 
-  //if (fid == 328)
+  //if ((fid == 232074) || (fid == 72374) || (fid == 482602))
   //  logFileFlags |= LOG_PLACE_READ;
 
   if (logFileFlagSet(LOG_PLACE_READ))  //  Nope, not ambiguous.
@@ -518,7 +526,7 @@ placeReadUsingOverlaps(TigVector                &tigs,
       end++;
 
     if (logFileFlagSet(LOG_PLACE_READ))
-      writeLog("pRUO()-- Merging placements %u to %u to place the read.\n", bgn, end);
+      writeLog("\nplaceReadUsingOverlaps()-- Merging placements %u to %u to place the read.\n", bgn, end);
 
     //  Build interval lists for the begin point and the end point.  Remember, this is all reads
     //  to a single unitig (the whole picture above), not just the overlapping read sets (left
@@ -654,13 +662,13 @@ placeReadUsingOverlaps(TigVector                &tigs,
 
 
       if (logFileFlagSet(LOG_PLACE_READ))
-        writeLog("pRUO()--   placements[%u] - PLACE READ %d in unitig %d at %d,%d (+- %.2f,%.2f) -- ovl %d,%d -- cov %d,%d %.2f -- errors %.2f aligned %d novl %d%s\n",
+        writeLog("pRUO()--   placements[%u] - PLACE READ %d in tig %d at %d,%d -- verified %d,%d -- covered %d,%d %4.1f%% -- errors %.2f aligned %d novl %d%s\n",
                  placements.size() - 1,
                  op.frgID, op.tigID,
-                 op.position.bgn, op.position.end, 0.0, 0.0,
+                 op.position.bgn, op.position.end,
                  op.verified.bgn, op.verified.end,
                  op.covered.bgn, op.covered.end,
-                 op.fCoverage,
+                 op.fCoverage * 100.0,
                  op.errors, op.aligned, oe - os,
                  (goodPlacement == false) ? " -- INVALID"  : "");
 
@@ -673,7 +681,7 @@ placeReadUsingOverlaps(TigVector                &tigs,
 
   delete [] ovlPlace;
 
-  //if (fid == 328)
+  //if ((fid == 232074) || (fid == 72374) || (fid == 482602))
   //  logFileFlags &= ~LOG_PLACE_READ;
 
   return(true);
