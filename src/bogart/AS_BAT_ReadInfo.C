@@ -29,19 +29,22 @@
 
 
 ReadInfo::ReadInfo(gkStore    *gkp,
-                           const char *prefix,
-                           uint32      minReadLen) {
+                   const char *prefix,
+                   uint32      minReadLen) {
 
   _numBases     = 0;
   _numReads     = gkp->gkStore_getNumReads();
   _numLibraries = gkp->gkStore_getNumLibraries();
 
-  _readLength    = new uint32 [_numReads + 1];
-  _libIID        = new uint32 [_numReads + 1];
+  _readStatus    = new ReadStatus [_numReads + 1];
 
   for (uint32 i=0; i<_numReads + 1; i++) {
-    _readLength[i] = 0;
-    _libIID[i] = 0;
+    _readStatus[i].readLength = 0;
+    _readStatus[i].libraryID  = 0;
+    _readStatus[i].isBackbone = false;
+    _readStatus[i].isUnplaced = false;
+    _readStatus[i].isLeftover = false;
+    _readStatus[i].unused     = 0;
   }
 
   uint32 numSkipped = 0;
@@ -49,20 +52,20 @@ ReadInfo::ReadInfo(gkStore    *gkp,
 
   for (uint32 fi=1; fi<=_numReads; fi++) {
     gkRead  *read = gkp->gkStore_getRead(fi);
+    uint32   iid  = read->gkRead_readID();
+    uint32   len  = read->gkRead_sequenceLength();
 
-    if (read->gkRead_sequenceLength() < minReadLen) {
+    if (len < minReadLen) {
       numSkipped++;
-
-    } else {
-      uint32 iid = read->gkRead_readID();
-      uint32 lib = read->gkRead_libraryID();
-
-      _numBases        += read->gkRead_sequenceLength();
-      _readLength[iid]  = read->gkRead_sequenceLength();
-      _libIID[iid]      = lib;
-
-      numLoaded++;
+      continue;
     }
+
+    _numBases += len;
+
+    _readStatus[iid].readLength = len;
+    _readStatus[iid].libraryID  = read->gkRead_libraryID();
+
+    numLoaded++;
   }
 
   if (minReadLen > 0)
@@ -76,6 +79,5 @@ ReadInfo::ReadInfo(gkStore    *gkp,
 
 
 ReadInfo::~ReadInfo() {
-  delete [] _readLength;
-  delete [] _libIID;
+  delete [] _readStatus;
 }

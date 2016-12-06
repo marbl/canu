@@ -38,23 +38,34 @@
 
 
 
+struct ReadStatus {
+  uint32  readLength   : AS_MAX_READLEN_BITS;
+  uint32  libraryID    : AS_MAX_LIBRARIES_BITS;
+
+  uint32  isBackbone   : 1;    //  Used to construct initial contig
+  uint32  isUnplaced   : 1;    //  Placed in initial contig using overlaps
+  uint32  isLeftover   : 1;    //  Not placed
+
+  uint32  unused     : (32 - AS_MAX_READLEN_BITS - AS_MAX_LIBRARIES_BITS - 3);
+};
+
+
+
 class ReadInfo {
 public:
   ReadInfo(gkStore *gkp, const char *prefix, uint32 minReadLen);
   ~ReadInfo();
 
   uint64  memoryUsage(void) {
-    return((3 * sizeof(uint32) * _numReads) +
-           (2 * sizeof(double) * _numLibraries) +
-           (2 * sizeof(uint32) * _numLibraries));
+    return(sizeof(uint64) + sizeof(uint32) + sizeof(uint32) + sizeof(uint32) * _numReads);
   };
 
   uint64  numBases(void)     { return(_numBases); };
   uint32  numReads(void)     { return(_numReads); };
   uint32  numLibraries(void) { return(_numLibraries); };
 
-  uint32  readLength(uint32 iid)     { return(_readLength[iid]); };
-  uint32  libraryIID(uint32 iid)     { return(_libIID[iid]);  };
+  uint32  readLength(uint32 iid)     { return(_readStatus[iid].readLength); };
+  uint32  libraryIID(uint32 iid)     { return(_readStatus[iid].libraryID);  };
 
   uint32  overlapLength(uint32 a_iid, uint32 b_iid, int32 a_hang, int32 b_hang) {
     int32  alen = readLength(a_iid);
@@ -102,13 +113,20 @@ public:
     return(aovl);
   };
 
-private:
-  uint64   _numBases;
-  uint32   _numReads;
-  uint32   _numLibraries;
+  void          setBackbone(uint32 fi)   {  _readStatus[fi].isBackbone = true;  };
+  void          setUnplaced(uint32 fi)   {  _readStatus[fi].isUnplaced = true;  };
+  void          setLeftover(uint32 fi)   {  _readStatus[fi].isLeftover = true;  };
 
-  uint32  *_readLength;
-  uint32  *_libIID;
+  bool          isBackbone(uint32 fi)    {  return(_readStatus[fi].isBackbone);  };
+  bool          isUnplaced(uint32 fi)    {  return(_readStatus[fi].isUnplaced);  };
+  bool          isLeftover(uint32 fi)    {  return(_readStatus[fi].isLeftover);  };
+
+private:
+  uint64       _numBases;
+  uint32       _numReads;
+  uint32       _numLibraries;
+
+  ReadStatus  *_readStatus;
 };
 
 
