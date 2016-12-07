@@ -16,11 +16,11 @@ SOURCES  := bogart.C \
             AS_BAT_Instrumentation.C \
             AS_BAT_Logging.C \
             AS_BAT_MarkRepeatReads.C \
+            AS_BAT_MergeOrphans.C \
             AS_BAT_Outputs.C \
             AS_BAT_OverlapCache.C \
             AS_BAT_PlaceContains.C \
             AS_BAT_PlaceReadUsingOverlaps.C \
-            AS_BAT_PopBubbles.C \
             AS_BAT_PopulateUnitig.C \
             AS_BAT_PromoteToSingleton.C \
             AS_BAT_ReadInfo.C \

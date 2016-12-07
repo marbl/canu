@@ -11105,3 +11105,5 @@ A src/pipelines/canu/ErrorEstimate.pm nihh20160518Sergey Koren
 A addCopyrights-BuildData.pl nihh20160518Brian P. Walenz
 A addCopyrights.dat nihh20160518Brian P. Walenz
 A addCopyrights.pl nihh20160518Brian P. Walenz
+D src/bogart/AS_BAT_MergeOrphans.C src/bogart/AS_BAT_PopBubbles.C
+D src/bogart/AS_BAT_MergeOrphans.H src/bogart/AS_BAT_PopBubbles.H

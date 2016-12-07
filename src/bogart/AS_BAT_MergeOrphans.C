@@ -13,9 +13,13 @@
  *  Canu branched from Celera Assembler at its revision 4587.
  *  Canu branched from the kmer project at its revision 1994.
  *
+ *  This file is derived from:
+ *
+ *    src/bogart/AS_BAT_PopBubbles.C
+ *
  *  Modifications by:
  *
- *    Brian P. Walenz beginning on 2016-MAR-11
+ *    Brian P. Walenz beginning on 2016-DEC-07
  *      are a 'United States Government Work', and
  *      are released in the public domain
  *
@@ -32,6 +36,8 @@
 #include "AS_BAT_PlaceReadUsingOverlaps.H"
 
 #include "AS_BAT_Instrumentation.H"
+
+#include "AS_BAT_MergeOrphans.H"
 
 #include "intervalList.H"
 
@@ -333,14 +339,14 @@ findBubbleReadPlacements(TigVector       &tigs,
 //  A and B are considering merging in unitig C.
 
 void
-popBubbles(TigVector &tigs,
-           double     deviationBubble) {
+mergeOrphans(TigVector &tigs,
+             double     deviationBubble) {
 
   BubTargetList   potentialBubbles;
 
   findPotentialBubbles(tigs, potentialBubbles);
 
-  writeStatus("popBubbles()-- Found " F_SIZE_T " potential bubbles.\n", potentialBubbles.size());
+  writeStatus("mergeOrphans()-- Found " F_SIZE_T " potential bubbles.\n", potentialBubbles.size());
 
   //if (potentialBubbles.size() == 0)
   //  return;
@@ -776,12 +782,12 @@ popBubbles(TigVector &tigs,
     else if (nOrphan == 0) {
       if (nBubble == 1) {
         nUniqBubble++;
-        writeStatus("popBubbles()-- tig %8u BUBBLE -> tig %8u\n",
+        writeStatus("mergeOrphans()-- tig %8u BUBBLE -> tig %8u\n",
                     bubble->id(),
                     targets[bubbleTarget]->target->id());
       } else {
         nReptBubble++;
-        writeStatus("popBubbles()-- tig %8u BUBBLE -> repeat\n",
+        writeStatus("mergeOrphans()-- tig %8u BUBBLE -> repeat\n",
                     bubble->id());
       }
 
@@ -798,7 +804,7 @@ popBubbles(TigVector &tigs,
 
     else if (nOrphan == 1) {
       nUniqOrphan++;
-      writeStatus("popBubbles()-- tig %8u ORPHAN -> tig %8u\n",
+      writeStatus("mergeOrphans()-- tig %8u ORPHAN -> tig %8u\n",
                   bubble->id(),
                   targets[bubbleTarget]->target->id());
 
@@ -834,7 +840,7 @@ popBubbles(TigVector &tigs,
 
     else {
       nReptBubble++;
-      writeStatus("popBubbles()-- tig %8u ORPHAN -> multiple tigs\n",
+      writeStatus("mergeOrphans()-- tig %8u ORPHAN -> multiple tigs\n",
                   bubble->id(),
                   targets[bubbleTarget]->target->id());
 
@@ -893,10 +899,10 @@ popBubbles(TigVector &tigs,
 
   writeLog("\n");   //  Needed if no bubbles are popped.
 
-  writeStatus("popBubbles()-- placed    %5u unique orphan tigs\n", nUniqOrphan);
-  writeStatus("popBubbles()-- shattered %5u repeat orphan tigs\n", nReptOrphan);
-  writeStatus("popBubbles()-- marked    %5u unique bubble tigs\n", nUniqBubble);
-  writeStatus("popBubbles()-- marked    %5u repeat bubble tigs\n", nReptBubble);
+  writeStatus("mergeOrphans()-- placed    %5u unique orphan tigs\n", nUniqOrphan);
+  writeStatus("mergeOrphans()-- shattered %5u repeat orphan tigs\n", nReptOrphan);
+  writeStatus("mergeOrphans()-- marked    %5u unique bubble tigs\n", nUniqBubble);
+  writeStatus("mergeOrphans()-- marked    %5u repeat bubble tigs\n", nReptBubble);
 
   delete [] placed;
 

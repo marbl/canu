@@ -9,7 +9,6 @@ my @dateStrings = ( "???", "JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG
 #
 my $doForReal = 1;
 
-
 #
 #  The change data 'addCopyrights.dat' contains lines of two types:
 #
@@ -215,20 +214,21 @@ my %derived;
 
 
 #  Process each file.
-
-open(FIN, "find kmer src -type f -print |") or die "Failed to launch 'find'\n";
 #open(OUT, "> addCopyrights.dat.new") or die "Failed to open 'addCopyrights.dat.new' for writing: $!\n";
 
-while (<FIN>) {
-    chomp;
+my @filesToProcess = @ARGV;
 
-    my $file = $_;
+if (scalar(@filesToProcess) == 0) {
+    open(FIN, "find kmer src -type f -print |") or die "Failed to launch 'find'\n";
+    while (<FIN>) {
+        chomp;
+        s/^\.\/(.*)$//;  #  Remove leading ./ added by find.
+        push @filesToProcess, $_;
+    }
+    close(FIN);
+}
 
-    $file = $1  if ($_ =~ m/^\.\/(.*)$/);  #  Remove leading ./ added by find.
-
-    my @lines;
-
-
+foreach my $file (@filesToProcess) {
     next if ($file =~ m/\.mk$/);
     next if ($file =~ m/Makefile/);
 
@@ -342,11 +342,10 @@ while (<FIN>) {
         push    @DElist, " $cc\n";
     }
 
-    if ($file =~ m/\.pl$/) {
-        push @lines, "#!/usr/bin/env perl\n";
-    }
-    
 
+    my @lines;
+
+    push @lines, "#!/usr/bin/env perl\n"  if ($file =~ m/\.pl$/);
     push @lines, "\n";
     push @lines, "$cb" . $cc x 78 . "\n"; 
     push @lines, " $cc\n";

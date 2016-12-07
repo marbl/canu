@@ -23,16 +23,16 @@
  *  full conditions and disclaimers for each license.
  */
 
-#ifndef INCLUDE_AS_BAT_BUBBLEPOPPING
-#define INCLUDE_AS_BAT_BUBBLEPOPPING
+#ifndef INCLUDE_AS_BAT_MERGEORPHANS
+#define INCLUDE_AS_BAT_MERGEORPHANS
 
 #include "AS_global.H"
 #include "AS_BAT_BestOverlapGraph.H"
 #include "AS_BAT_Unitig.H"
 
 void
-popBubbles(TigVector &tigs,
-           double     deviationBubble);
+mergeOrphans(TigVector &tigs,
+             double     deviationBubble);
 
 
-#endif  //  INCLUDE_AS_BAT_BUBBLEPOPPING
+#endif  //  INCLUDE_AS_BAT_MERGEORPHANS

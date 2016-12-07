@@ -53,7 +53,7 @@
 #include "AS_BAT_Instrumentation.H"
 #include "AS_BAT_PlaceContains.H"
 
-#include "AS_BAT_PopBubbles.H"
+#include "AS_BAT_MergeOrphans.H"
 #include "AS_BAT_MarkRepeatReads.H"
 
 #include "AS_BAT_SplitDiscontinuous.H"
@@ -397,7 +397,7 @@ main (int argc, char * argv []) {
   contigs.computeErrorProfiles(prefix, "unplaced");
   contigs.reportErrorProfiles(prefix, "unplaced");
 
-  popBubbles(contigs, deviationBubble);
+  mergeOrphans(contigs, deviationBubble);
 
   //checkUnitigMembership(contigs);
   reportOverlaps(contigs, prefix, "mergeOrphans");
