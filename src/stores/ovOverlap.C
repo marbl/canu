@@ -147,5 +147,7 @@ ovOverlap::swapIDs(ovOverlap const &orig) {
 
   //  Whatever alignment orientation was in the original, it is opposite now.
 
+#ifndef DO_NOT_STORE_ALIGN_PTR
   dat.ovl.alignSwapped = ! orig.dat.ovl.alignSwapped;
+#endif
 }

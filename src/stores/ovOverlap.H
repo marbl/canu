@@ -49,15 +49,17 @@
 //  The old implementation allowed up to 20-bit reads, and used 3 32-bit words.  No alignment was
 //  stored.
 //
-//  The new implementation uses either 5 (for EXACTLY 16-bit reads) or 6 32-bit words.  It uses 2
-//  32-bit words for storing a pointer to the alignments.
-//
-//  Note that the 5-word version must use uint32, and the 6-word version must use uint64.
-//  Note that the 5-word version needs to split out the alignPos into two words.
+//  The new implementation uses either 3 32-bit words (for EXACTLY 16-bit reads), 2 64-bit words
+//  (for up to 21-bit reads) or 6 32-bit words.  It can optionally use 64 bits for storing a pointer
+//  to the alignments, though this is not actually implemented.
+
+#define DO_NOT_STORE_ALIGN_PTR
+
 
 #if AS_MAX_READLEN_BITS < 17
 
-#define        ovOverlapNWORDS  5
+#define        ovOverlapNWORDS  3
+#define        ovOverlapWORDSZ  32
 typedef uint32 ovOverlapWORD;
 #define        F_OV   F_U32
 #define        F_OVP  F_U32P
@@ -78,15 +80,20 @@ public:
   ovOverlapWORD  forDUP         : 1;                     //  1
   ovOverlapWORD  forUTG         : 1;                     //  1
 
+#ifndef DO_NOT_STORE_ALIGN_PTR
+#undef  ovOverlapNWORDS
+#define ovOverlapNWORDS 5
   ovOverlapWORD  alignSwapped   : 1;                     //  Our IDs are opposite those in the alignment
   ovOverlapWORD  alignFile      : 19;                    //  Which file of overlap alignments
   ovOverlapWORD  alignPosHi     : 12;                    //  Position in that file (high-order bits)
   ovOverlapWORD  alignPosLo     : 32;                    //  Position in that file (low-order bits)
+#endif
 };
 
 #elif AS_MAX_READLEN_BITS < 22
 
-#define        ovOverlapNWORDS  3
+#define        ovOverlapNWORDS  2
+#define        ovOverlapWORDSZ  64
 typedef uint64 ovOverlapWORD;
 #define        F_OV   F_U64
 #define        F_OVP  F_U64P
@@ -107,14 +114,19 @@ public:
   ovOverlapWORD  span           : AS_MAX_READLEN_BITS;   //  17-21
   ovOverlapWORD  extra2         : 64 - 3 * AS_MAX_READLEN_BITS;  //  Between 13 and 1
 
+#ifndef DO_NOT_STORE_ALIGN_PTR
+#undef  ovOverlapNWORDS
+#define ovOverlapNWORDS 3
   ovOverlapWORD  alignSwapped   : 1;                     //  Our IDs are opposite those in the alignment
   ovOverlapWORD  alignFile      : 19;                    //  Which file of overlap alignments
   ovOverlapWORD  alignPos       : 44;                    //  Position in that file
+#endif
 };
 
 #else
 
-#define        ovOverlapNWORDS  8
+#define        ovOverlapNWORDS  6
+#define        ovOverlapWORDSZ  32
 typedef uint32 ovOverlapWORD;
 #define        F_OV   F_U32
 #define        F_OVP  F_U32P
@@ -134,10 +146,14 @@ public:
   ovOverlapWORD  forUTG         : 1;                     //  1
   ovOverlapWORD  extra          : 32 - AS_MAX_EVALUE_BITS - 1 - 1 - 1 - 1;  //  Between 15 and 7
 
+#ifndef DO_NOT_STORE_ALIGN_PTR
+#undef  ovOverlapNWORDS
+#define ovOverlapNWORDS 8
   ovOverlapWORD  alignSwapped   : 1;                     //  Our IDs are opposite those in the alignment
   ovOverlapWORD  alignFile      : 19;                    //  Which file of overlap alignments
   ovOverlapWORD  alignPosHi     : 12;                    //  Position in that file (high-order bits)
   ovOverlapWORD  alignPosLo     : 32;                    //  Position in that file (low-order bits)
+#endif
 };
 
 #endif
@@ -284,13 +300,10 @@ public:
 
   void       clear(void) {
     //g        = NULL;    //  Explicitly DO NOT clear the pointer to gkpStore.
-    dat.dat[0] = 0;
-    dat.dat[1] = 0;
-    dat.dat[2] = 0;
-#if (ovOverlapNWORDS == 5)
-    dat.dat[3] = 0;
-    dat.dat[4] = 0;
-#endif
+
+    for (uint32 ii=0; ii<ovOverlapNWORDS; ii++)
+      dat.dat[ii] = 0;
+
     a_iid      = 0;
     b_iid      = 0;
   };
