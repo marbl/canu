@@ -458,8 +458,8 @@ dumpPicture(ovOverlap     *overlaps,
 
     //  For the A read, find the points in our string representation where the overlap ends.
 
-    uint32 ovlStrBgn = ovlBgnA * 100 / frgLenA + MHS;
-    uint32 ovlStrEnd = ovlEndA * 100 / frgLenA + MHS;
+    uint32 ovlStrBgn = (int32)floor(ovlBgnA * 100.0 / frgLenA + MHS);
+    uint32 ovlStrEnd = (int32)ceil (ovlEndA * 100.0 / frgLenA + MHS);
 
     //  Fill the string representation with spaces, then fill the string with dashes where the read
     //  is, add an arrow, and terminate the string.
