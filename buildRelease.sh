@@ -24,8 +24,8 @@ echo >> canu-$version/linux.sh  yum install -y git
 echo >> canu-$version/linux.sh  cd /build/canu-$version/src
 echo >> canu-$version/linux.sh  gmake -j 12 \> ../Linux-amd64.out 2\>\&1
 echo >> canu-$version/linux.sh  cd ../..
-echo >> canu-$version/linux.sh  tar -cf canu-$version.Darwin-amd64.tar canu-$version/Darwin-amd64
-echo >> canu-$version/linux.sh  tar -cf canu-$version.Linux-amd64.tar  canu-$version/Linux-amd64
+echo >> canu-$version/linux.sh  tar -cf canu-$version/README* canu-$version.Darwin-amd64.tar canu-$version/Darwin-amd64
+echo >> canu-$version/linux.sh  tar -cf canu-$version/README* canu-$version.Linux-amd64.tar  canu-$version/Linux-amd64
 
 chmod 755 canu-$version/linux.sh
 
