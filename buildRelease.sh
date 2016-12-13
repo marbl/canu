@@ -31,6 +31,8 @@ chmod 755 canu-$version/linux.sh
 
 docker run -v `pwd`:/build -t -i --rm phusion/holy-build-box-64:latest /hbb_exe/activate-exec bash /build/canu-$version/linux.sh
 
+rm -rf canu-$version/*-amd64/obj
+
 xz -9v canu-$version.Darwin-amd64.tar
 xz -9v canu-$version.Linux-amd64.tar
 
