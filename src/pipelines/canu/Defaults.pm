@@ -131,7 +131,7 @@ sub setGlobal ($$) {
     return  if ($set > 0);
 
     if ($var eq "errorrate") {
-        setErrorRate($val);
+        setErrorRate($val, 1);
         return;
     }
 
@@ -533,11 +533,16 @@ sub showErrorRates ($) {
 #    trimming   errorRate = 0.009  obtOvlErrorRate = 0.06  obtErrorRate = 0.035
 #    assembly   errorRate = 0.009  utgOvlErrorRate = 0.06  bogart 0.035
 #
-sub setErrorRate ($@) {
+sub setErrorRate ($$) {
     my $er      = shift @_;
-    my $verbose = shift @_;
+    my $force   = shift @_;
 
-    print STDERR "-- Set errorRate to $er (verbose='$verbose')\n"  if (defined($verbose));
+    if (($force == 0) && (defined($global{"errorrate"}))) {
+        #print STDERR "-- Can't change error rate from ", getGlobal('errorRate'), " to $er - not allowed.\n";
+        return;
+    }
+
+    #print STDERR "-- Set errorRate to $er\n";
 
     #  Can NOT call setGlobal() for this, because it calls setErrorRate()!.
     $global{"errorrate"} = $er;
@@ -551,7 +556,7 @@ sub setErrorRate ($@) {
     #setGlobal("corErrorRate",       $er * 10);  #  Erorr rate used for raw sequence alignment/consensus
     setGlobal("cnsErrorRate",       $er * 3);
 
-    showErrorRates("--  ")  if (defined($verbose));
+    #showErrorRates("--  ");
 }
 
 

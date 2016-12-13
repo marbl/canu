@@ -252,7 +252,7 @@ sub estimateCorrectedError ($$$) {
     } else {
        print STDERR "-- Estimated error rate: " . ($errorRate * 100) . "%.\n";
     }
-    setErrorRate($errorRate);
+    setErrorRate($errorRate, 1);
     showErrorRates("--  ");
     print STDERR "-- \n";
 }

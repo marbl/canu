@@ -227,10 +227,10 @@ foreach my $typefile (@inputFiles) {
     $haveCorrected = 1                  if ($type =~ m/corrected/);
     $haveRaw = 1                        if ($type =~ m/raw/);
 
-    setErrorRate(0.015)                 if ($type =~ m/pacbio/);
+    setErrorRate(0.015, 0)              if ($type =~ m/pacbio/);
     setGlobal("corErrorRate", "0.30")   if ($type =~ m/pacbio/);
 
-    setErrorRate(0.048)                 if ($type =~ m/nanopore/);
+    setErrorRate(0.048, 0)              if ($type =~ m/nanopore/);
     setGlobal("corErrorRate", "0.50")   if ($type =~ m/nanopore/);
 }
 
@@ -251,7 +251,7 @@ if (scalar(@inputFiles) == 0 && ! defined(getGlobal("errorRate"))) {
 
     # set to the default if we can't find anything
     if (!defined($gkpStore)) {
-        setErrorRate(0.01);
+        setErrorRate(0.01, 0);
     } else {
         my $numPacBioRaw         = 0;
         my $numPacBioCorrected   = 0;
@@ -266,12 +266,12 @@ if (scalar(@inputFiles) == 0 && ! defined(getGlobal("errorRate"))) {
             $numNanoporeCorrected++   if (m/nanopore-corrected/);
         }
         if ($numPacBioRaw > 0 || $numPacBioCorrected > 0) {
-            setErrorRate(0.015);
+            setErrorRate(0.015, 0);
             setGlobal("corErrorRate", "0.30");
             setGlobal("cnsMaxCoverage", 40);
         }
         if ($numNanoporeRaw > 0 || $numNanoporeCorrected > 0) {
-            setErrorRate(0.048);
+            setErrorRate(0.048, 0);
             setGlobal("corErrorRate", "0.50");
             setGlobal("cnsMaxCoverage", 40);
         }
