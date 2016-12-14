@@ -577,6 +577,9 @@ sub submitScript ($$$) {
     print F "\n";
     print F getBinDirectoryShellCode();
     print F "\n";
+    print F "rm -f canu.out\n";
+    print F "ln -s canu-scripts/canu.$idx.out canu.out\n";
+    print F "\n";
     print F "/usr/bin/env perl \\\n";
     print F "\$bin/canu " . getCommandLineOptions() . " canuIteration=$iteration\n";
     close(F);
