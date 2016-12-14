@@ -711,6 +711,26 @@ build(merylArgs *args) {
   if (!args->countBatch && !args->mergeBatch)
     prepareBatch(args);
 
+  //  Since we write no output until after all the work is done, check that
+  //  we can actually make output files before starting the work.
+
+  char N[FILENAME_MAX];
+
+  sprintf(N, "%s.existenceTest", args->outputFile);
+
+  if (AS_UTL_fileExists(args->outputFile, true) == true)
+    fprintf(stderr, "ERROR: output prefix -o cannot be a directory.\n"), exit(1);
+
+  if (AS_UTL_fileExists(N) == false) {
+    errno = 0;
+    FILE *F = fopen(N, "w");
+    if (errno)
+      fprintf(stderr, "ERROR: can't make outputs with prefix '%s': %s\n", args->outputFile, strerror(errno)), exit(1);
+
+    AS_UTL_unlink(N);
+  }
+
+
   //  Three choices:
   //
   //    threaded -- start threads, launch pieces in each thread.  This
