@@ -101,7 +101,7 @@ sub generateOutputs ($$) {
 
     #  Sequences
 
-    foreach my $tt ("unassembled", "bubbles", "contigs") {
+    foreach my $tt ("unassembled", "contigs") {
         if (! -e "$WRK/$asm.$tt.$type") {
             $cmd  = "$bin/tgStoreDump \\\n";
             $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
@@ -167,7 +167,6 @@ sub generateOutputs ($$) {
     print STDERR "--\n";
     print STDERR "-- Sequences saved:\n";
     print STDERR "--   Contigs       -> '$WRK/$asm.contigs.$type'\n";
-    print STDERR "--   Bubbles       -> '$WRK/$asm.bubbles.$type'  (DEPRECATED)\n";
     print STDERR "--   Unassembled   -> '$WRK/$asm.unassembled.$type'\n";
     print STDERR "--   Unitigs       -> '$WRK/$asm.unitigs.$type'\n";
     print STDERR "--\n";
