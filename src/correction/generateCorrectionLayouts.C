@@ -41,6 +41,7 @@
 #include "stashContains.H"
 
 #include "splitToWords.H"
+#include "intervalList.H"
 
 #include <set>
 
@@ -57,7 +58,7 @@ using namespace std;
 tgTig *
 generateLayout(gkStore    *gkpStore,
                uint64     *readScores,
-	       bool	   legacyScore,
+               bool        legacyScore,
                uint32      minEvidenceLength,
                double      maxEvidenceErate,
                double      maxEvidenceCoverage,
@@ -93,9 +94,10 @@ generateLayout(gkStore    *gkpStore,
                           ovl[oo].b_end() - ovl[oo].b_bgn() :
                           ovl[oo].b_bgn() - ovl[oo].b_end());
     uint64   ovlScore  = 100 * ovlLength * (1 - ovl[oo].erate());
+
     if (legacyScore) {
-       ovlScore  = ovlLength << AS_MAX_EVALUE_BITS;
-       ovlScore |= (AS_MAX_EVALUE - ovl[oo].evalue());
+      ovlScore  = ovlLength << AS_MAX_EVALUE_BITS;
+      ovlScore |= (AS_MAX_EVALUE - ovl[oo].evalue());
     }
 
     if (ovlLength > AS_MAX_READLEN) {
@@ -222,7 +224,7 @@ main(int argc, char **argv) {
   FILE             *flgFile = 0L;
 
   uint32            minEvidenceOverlap  = 40;
-  uint32            minEvidenceCoverage = 1;
+  uint32            minEvidenceCoverage = 4;
 
   uint32            iidMin       = 0;
   uint32            iidMax       = UINT32_MAX;
@@ -236,7 +238,7 @@ main(int argc, char **argv) {
   uint32            minCorLength        = 0;
 
   bool              filterCorLength     = false;
-  bool		    legacyScore	        = false;
+  bool              legacyScore         = false;
 
   argc = AS_configure(argc, argv);
 
@@ -263,7 +265,6 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-p") == 0) {  //  Output prefix, just logging and summary
       outputPrefix = argv[++arg];
 
-
     } else if (strcmp(argv[arg], "-b") == 0) {  //  Begin read range
       iidMin  = atoi(argv[++arg]);
 
@@ -273,16 +274,17 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-rl") == 0) {  //  List of reads to correct, will also apply -b/-e range
       readListName = argv[++arg];
 
-
     } else if (strcmp(argv[arg], "-L") == 0) {  //  Minimum length of evidence overlap
       minEvidenceLength  = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-E") == 0) {  //  Max error rate of evidence overlap
       maxEvidenceErate = atof(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-c") == 0) {  //  Min coverage of evidence reads to consider the read corrected
+      minEvidenceCoverage = atof(argv[++arg]);
+
     } else if (strcmp(argv[arg], "-C") == 0) {  //  Max coverage of evidence reads to emit.
       maxEvidenceCoverage = atof(argv[++arg]);
-
 
     } else if (strcmp(argv[arg], "-M") == 0) {  //  Minimum length of a corrected read
       minCorLength = atoi(argv[++arg]);
@@ -319,7 +321,9 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -rl file      \n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -L  length    minimum length of evidence overlaps\n");
-    fprintf(stderr, "  -E  erate     maxerror rate of evidence overlaps\n");
+    fprintf(stderr, "  -E  erate     maximum error rate of evidence overlaps\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -c  coverage  minimum coverage needed in evidence reads\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -C  coverage  maximum coverage of evidence reads to emit\n");
     fprintf(stderr, "  -M  length    minimum length of a corrected read\n");
@@ -465,24 +469,33 @@ main(int argc, char **argv) {
       skipIt = true;
     }
 
-    //  Possibly filter by the length of the corrected read.
+    //  Possibly filter by the length of the corrected read, taking into account depth of coverage.
 
-    uint32  minPos = UINT32_MAX;
-    uint32  maxPos = 0;
-    uint32  corLen = 0;
+    intervalList<int32>   coverage;
 
     for (uint32 ii=0; ii<layout->numberOfChildren(); ii++) {
       tgPosition *pos = layout->getChild(ii);
 
-      if (pos->_min < minPos)
-        minPos = pos->_min;
-
-      if (maxPos < pos->_max)
-        maxPos = pos->_max;
+      coverage.add(pos->_min, pos->_max - pos->_min);
     }
 
-    if (minPos != UINT32_MAX)
-      corLen = maxPos - minPos;
+    intervalList<int32>   depth(coverage);
+
+    int32    bgn       = INT32_MAX;
+    int32    corLen    = 0;
+
+    for (uint32 dd=0; dd<depth.numberOfIntervals(); dd++) {
+      if (depth.depth(dd) < minEvidenceCoverage) {
+        bgn = INT32_MAX;
+        continue;
+      }
+
+      if (bgn == INT32_MAX)
+        bgn = depth.lo(dd);
+
+      if (corLen < depth.hi(dd) - bgn)
+        corLen = depth.hi(dd) - bgn;
+    }
 
     if (corLen < minCorLength) {
       strcat(skipMsg, "\tcorrection_too_short");

@@ -475,6 +475,7 @@ sub expensiveFilter ($$) {
     my $cmd;
     my $path = "$wrk/2-correction";
 
+    my $minCov = getGlobal("corMinCoverage");
     my $maxCov = getCorCov($wrk, $asm, "Local");
 
     if (! -e "$path/$asm.estimate.log") {
@@ -486,6 +487,7 @@ sub expensiveFilter ($$) {
         $cmd .= "  -S $path/$asm.globalScores \\\n"                    if (-e "$path/$asm.globalScores");
         $cmd .= "  -L " . getGlobal("corMinEvidenceLength") . " \\\n"  if (defined(getGlobal("corMinEvidenceLength")));
         $cmd .= "  -E " . getGlobal("corMaxEvidenceErate")  . " \\\n"  if (defined(getGlobal("corMaxEvidenceErate")));
+        $cmd .= "  -c $minCov \\\n"                                    if (defined($minCov));
         $cmd .= "  -C $maxCov \\\n"                                    if (defined($maxCov));
         $cmd .= "  -legacy \\\n"                                       if (defined(getGlobal("corLegacyFilter")));
         $cmd .= "  -p $path/$asm.estimate.WORKING";
