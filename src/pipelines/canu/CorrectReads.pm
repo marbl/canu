@@ -478,6 +478,8 @@ sub expensiveFilter ($$) {
     my $maxCov = getCorCov($wrk, $asm, "Local");
 
     if (! -e "$path/$asm.estimate.log") {
+        print STDERR "-- Computing expected corrected read lengths '$path/$asm.estimate.log'.\n";
+
         $cmd  = "$bin/generateCorrectionLayouts \\\n";
         $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
         $cmd .= "  -O $wrk/$asm.ovlStore \\\n";
@@ -495,14 +497,25 @@ sub expensiveFilter ($$) {
         rename "$path/$asm.estimate.WORKING.filter.log", "$path/$asm.estimate";
         rename "$path/$asm.estimate.WORKING.summary",    "$path/$asm.estimate.stats";
         rename "$path/$asm.estimate.WORKING.log",        "$path/$asm.estimate.log";
+
+        unlink "$path/$asm.estimate.correctedLength.log";
+        unlink "$path/$asm.estimate.originalLength.log";
+    } else {
+        print STDERR "-- Expected corrected read lengths found in '$path/$asm.estimate.log'.\n";
     }
 
-    if (runCommandSilently($path, "sort -T . -k4nr -k2nr < $path/$asm.estimate.log > $path/$asm.estimate.correctedLength.log", 1)) {
-        caExit("failed to sort by corrected read length", undef);
+    if (! -e "$path/$asm.estimate.correctedLength.log") {
+        print STDERR "-- Sorting reads by expected corrected length.\n";
+        if (runCommandSilently($path, "sort -T . -k4nr -k2nr < $path/$asm.estimate.log > $path/$asm.estimate.correctedLength.log", 1)) {
+            caExit("failed to sort by corrected read length", undef);
+        }
     }
 
-    if (runCommandSilently($path, "sort -T . -k2nr -k4nr < $path/$asm.estimate.log > $path/$asm.estimate.originalLength.log",  1)) {
-        caExit("failed to sort by original read length", undef);
+    if (! -e "$path/$asm.estimate.originalLength.log") {
+        print STDERR "-- Sorting reads by uncorrected length.\n";
+        if (runCommandSilently($path, "sort -T . -k2nr -k4nr < $path/$asm.estimate.log > $path/$asm.estimate.originalLength.log",  1)) {
+            caExit("failed to sort by original read length", undef);
+        }
     }
 
     my $totRawLengthIn    = 0;  #  Bases in raw reads we correct
@@ -528,6 +541,8 @@ sub expensiveFilter ($$) {
 
     #  Filter!
 
+    print STDERR "-- Loading expected corrected read lengths.\n";
+
     open(F, "< $path/$asm.estimate.originalLength.log");
     while (<F>) {
         my @v = split '\s+', $_;
@@ -536,6 +551,8 @@ sub expensiveFilter ($$) {
         $corReadLen{$v[0]} = $v[3];
     }
     close(F);
+
+    print STDERR "-- Picking longest corrected reads.\n";
 
     open(F, "< $path/$asm.estimate.originalLength.log");
     while (<F>) {
@@ -556,6 +573,8 @@ sub expensiveFilter ($$) {
             last;
         }
     }
+
+    print STDERR "-- Writing longest corrected reads to '$path/$asm.readsToCorrect'.\n";
 
     open(F, "< $path/$asm.estimate.correctedLength.log");
     open(O, "| sort -T . -k1n > $path/$asm.readsToCorrect.WORKING") or caExit("can't open sort -k1n > '$path/$asm.readsToCorrect.WORKING' for writing: $!\n", undef);
@@ -585,8 +604,9 @@ sub expensiveFilter ($$) {
 
     rename "$path/$asm.readsToCorrect.WORKING", "$path/$asm.readsToCorrect";
 
-
     #  Generate true/false positive/negative lists.
+
+    print STDERR "-- Summarizing filter.\n";
 
     open(F, "< $path/$asm.estimate.correctedLength.log") or die;
 
@@ -727,6 +747,8 @@ sub buildCorrectionLayouts ($$) {
     #  'global' overlap filtering.
 
     if (! -e "$path/$asm.globalScores") {
+        print STDERR "-- Computing global filter scores '$path/$asm.globalScores'.\n";
+
         my $maxCov = getCorCov($wrk, $asm, "Global");
         my $minLen = (defined(getGlobal("corMinEvidenceLength"))) ? getGlobal("corMinEvidenceLength") : 0;
 
@@ -748,6 +770,8 @@ sub buildCorrectionLayouts ($$) {
         rename "$path/$asm.globalScores.WORKING.stats", "$path/$asm.globalScores.stats";
         rename "$path/$asm.globalScores.WORKING.log", "$path/$asm.globalScores.log";
         unlink "$path/$asm.globalScores.err";
+    } else {
+        print STDERR "-- Global filter scores found in '$path/$asm.globalScores'.\n";
     }
 
     #  For 'quick' filtering, but more reads to correct, sort the reads by length, and correct the
