@@ -530,9 +530,17 @@ sub expensiveFilter ($$) {
 
     #  Lists of reads to correct if we use the raw length or the corrected length as a filter.
 
-    my %rawReads;
-    my %corReads;
-    my %corReadLen;
+    my $nReads      = getNumberOfReadsInStore($wrk, $asm);
+
+    my @rawReads;
+    my @corReads;
+    my @corReadLen;
+
+    for (my $ii=0; $ii<=$nReads; $ii++) {
+        $rawReads[$ii]   = undef;
+        $corReads[$ii]   = undef;
+        $corReadLen[$ii] = undef;
+    }
 
     #  The expected length of the corrected reads, based on the filter
 
@@ -548,7 +556,7 @@ sub expensiveFilter ($$) {
         my @v = split '\s+', $_;
         next if ($v[0] eq "read");
 
-        $corReadLen{$v[0]} = $v[3];
+        $corReadLen[int($v[0])] = int($v[3]);
     }
     close(F);
 
@@ -564,7 +572,7 @@ sub expensiveFilter ($$) {
 
         #print O "$v[0]\t$v[1]\t$v[3]\n";
 
-        $rawReads{$v[0]} = 1;
+        $rawReads[int($v[0])] = 1;
 
         push @corLengthRawFilter, $v[3];
 
@@ -590,7 +598,7 @@ sub expensiveFilter ($$) {
 
         print O "$v[0]\t$v[1]\t$v[3]\n";
 
-        $corReads{$v[0]} = 1;
+        $corReads[int($v[0])] = 1;
 
         push @corLengthCorFilter, $v[3];
 
@@ -624,14 +632,16 @@ sub expensiveFilter ($$) {
         my @v = split '\s+', $_;
         next if ($v[0] eq "read");
 
-        my $er = exists($rawReads{$v[0]});
-        my $ec = exists($corReads{$v[0]});
+        my $er = defined($rawReads[int($v[0])]);
+        my $ec = defined($corReads[int($v[0])]);
 
-        if (($er == 0) && ($ec == 0)) {  print TN $_;  $tnReads++;  $tnBasesR += $v[1];  $tnBasesC += $corReadLen{$v[0]};  }  #  True negative, yay!
-        if (($er == 0) && ($ec == 1)) {  print FN $_;  $fnReads++;  $fnBasesR += $v[1];  $fnBasesC += $corReadLen{$v[0]};  }  #  False negative.  Bad.
-        if (($er == 1) && ($ec == 0)) {  print FP $_;  $fpReads++;  $fpBasesR += $v[1];  $fpBasesC += $corReadLen{$v[0]};  }  #  False positive.  Bad.
-        if (($er == 1) && ($ec == 1)) {  print TP $_;  $tpReads++;  $tpBasesR += $v[1];  $tpBasesC += $corReadLen{$v[0]};  }  #  True positive, yay!
+        if (($er == 0) && ($ec == 0)) {  print TN $_;  $tnReads++;  $tnBasesR += $v[1];  $tnBasesC += $corReadLen[$v[0]];  }  #  True negative, yay!
+        if (($er == 0) && ($ec == 1)) {  print FN $_;  $fnReads++;  $fnBasesR += $v[1];  $fnBasesC += $corReadLen[$v[0]];  }  #  False negative.  Bad.
+        if (($er == 1) && ($ec == 0)) {  print FP $_;  $fpReads++;  $fpBasesR += $v[1];  $fpBasesC += $corReadLen[$v[0]];  }  #  False positive.  Bad.
+        if (($er == 1) && ($ec == 1)) {  print TP $_;  $tpReads++;  $tpBasesR += $v[1];  $tpBasesC += $corReadLen[$v[0]];  }  #  True positive, yay!
     }
+
+    undef @corReadLen;
 
     close(TP);
     close(FP);
@@ -657,10 +667,24 @@ sub expensiveFilter ($$) {
     my ($rawFilterMean, $rawFilterN50) = lengthStats(@corLengthRawFilter);
     my ($corFilterMean, $corFilterN50) = lengthStats(@corLengthCorFilter);
 
+    undef @corLengthRawFilter;
+    undef @corLengthCorFilter;
+
+    my $nCorReads = 0;
+    my $nRawReads = 0;
+
+    for (my $ii=0; $ii<=$nReads; $ii++) {
+        $nCorReads++  if (defined($corReads[$ii]));
+        $nRawReads++  if (defined($rawReads[$ii]));
+    }
+
+    undef @corReads;
+    undef @rawReads;
+
     open(F, "> $path/$asm.readsToCorrect.summary") or caExit("can't open '$path/$asm.readsToCorrect.summary' for writing: $!\n", undef);
     print F "Corrected read length filter:\n";
     print F "\n";
-    print F "  nReads  ", scalar(keys %corReads), "\n";
+    print F "  nReads  $nCorReads\n";
     print F "  nBases  $totCorLengthIn (input bases)\n";
     print F "  nBases  $totCorLengthOut (corrected bases)\n";
     print F "  Mean    $corFilterMean\n";
@@ -668,7 +692,7 @@ sub expensiveFilter ($$) {
     print F "\n";
     print F "Raw read length filter:\n";
     print F "\n";
-    print F "  nReads  ", scalar(keys %rawReads), "\n";
+    print F "  nReads  $nRawReads\n";
     print F "  nBases  $totRawLengthIn (input bases)\n";
     print F "  nBases  $totRawLengthOut (corrected bases)\n";
     print F "  Mean    $rawFilterMean\n";
