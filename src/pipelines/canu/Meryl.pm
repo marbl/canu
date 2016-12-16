@@ -430,8 +430,11 @@ sub merylProcess ($$$) {
 
     if ($merThresh eq "auto") {
         if (! -e "$ofile.estMerThresh.out") {
+            my $coverage = getGenomeCoverage($wrk, $asm, undef);
+
             $cmd  = "$bin/estimate-mer-threshold ";
             $cmd .= " -m $ofile ";
+            $cmd .= " -c $coverage ";
             $cmd .= " > $ofile.estMerThresh.out ";
             $cmd .= "2> $ofile.estMerThresh.err";
 
@@ -443,7 +446,7 @@ sub merylProcess ($$$) {
 
         open(F, "< $ofile.estMerThresh.out") or caFailure("failed to read estimated mer threshold from '$ofile.estMerThresh.out'", undef);
         $merThresh = <F>;
-        $merThresh = int($merThresh * $merScale);
+        $merThresh = int($merThresh * $merScale) + 1;
         close(F);
     }
 

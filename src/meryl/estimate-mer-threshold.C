@@ -38,15 +38,117 @@
 #include "AS_global.H"
 #include "libmeryl.H"
 
+#include "splitToWords.H"
+
+//  Try to deduce the X coverage we have.  The pattern we should see in mer counts is an initial
+//  spike for unique mers (these contain errors), then a drop into a valley, and a bump at the X
+//  coverage.
+//
+//  .
+//  .      ...
+//  ..  ..........
+//  .................
+//
+double
+guessCoverage(uint32 *hist, uint32 histLen) {
+  uint32  i = 2;
+
+  while ((i < histLen) && (hist[i-1] > hist[i]))
+    i++;
+
+  uint32  iX = i - 1;
+
+  while (i < histLen) {
+    if (hist[iX] < hist[i])
+      iX = i;
+    i++;
+  }
+
+  fprintf(stderr, "Guessed X coverage is " F_U32 "\n", iX);
+
+  return(iX);
+}
+
+
+
+void
+loadHistogram(merylStreamReader *MF,
+              uint64 &nDistinct,
+              uint64 &nUnique,
+              uint64 &nTotal,
+              uint32 &histLen, uint32* &hist) {
+
+  nDistinct = MF->numberOfDistinctMers();
+  nUnique   = MF->numberOfUniqueMers();
+  nTotal    = MF->numberOfTotalMers();
+
+  histLen   = MF->histogramLength();
+  hist      = new uint32 [histLen];
+
+  for (uint32 hh=0; hh<histLen; hh++)
+    hist[hh] = MF->histogram(hh);
+}
+
+
+
+void
+loadHistogram(FILE *HF,
+              uint64 &nDistinct,
+              uint64 &nUnique,
+              uint64 &nTotal,
+              uint32 &histLen, uint32* &hist) {
+  char    L[1024];
+  uint32  histMax;
+
+  nDistinct = 0;
+  nUnique   = 0;
+  nTotal    = 0;
+
+  histLen   = 0;
+  histMax   = 1048576;
+  hist      = new uint32 [histMax];
+
+  memset(hist, 0, sizeof(uint32) * histMax);
+
+  fgets(L, 1024, HF);
+
+  while (!feof(HF)) {
+    splitToWords  W(L);
+
+    uint32  h = W(0);
+    uint32  c = W(1);
+
+    while (h >= histMax)
+      resizeArray(hist, histLen, histMax, histMax * 2, resizeArray_copyData | resizeArray_clearNew);
+
+    hist[h] = c;
+
+    histLen = (histLen < h) ? h : histLen;
+
+    fgets(L, 1024, HF);
+  }
+
+  histLen++;
+
+  nUnique = hist[1];
+
+  for (uint32 hh=0; hh<histLen; hh++) {
+    nDistinct += hist[hh];
+    nTotal    += hist[hh] * hh;
+  }
+}
+
+
+
 
 int
 main(int argc, char **argv) {
   char              *gkpPath = 0L;
   char              *merCountsFile = 0L;
+  char              *histogramFile = 0L;
 
-  merylStreamReader *MF  = 0L;
-
-  uint32             maxCount = 0;
+  double             expectedCoverage = 0;
+  double             guessedCoverage = 0;
 
   argc = AS_configure(argc, argv);
 
@@ -56,127 +158,159 @@ main(int argc, char **argv) {
     if        (strcmp(argv[arg], "-m") == 0) {
       merCountsFile = argv[++arg];
 
+    } else if (strcmp(argv[arg], "-h") == 0) {
+      histogramFile = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-c") == 0) {
+      expectedCoverage = atof(argv[++arg]);
+
     } else {
       fprintf(stderr, "unknown option '%s'\n", argv[arg]);
       err++;
     }
     arg++;
   }
-  if ((merCountsFile == 0L) || (err)) {
-    fprintf(stderr, "usage: %s -m mercounts\n", argv[0]);
-    fprintf(stderr, "  -m mercounts    file of mercounts\n");
+  if (((merCountsFile == NULL) && (histogramFile == NULL)) || (err)) {
+    fprintf(stderr, "usage: %s [-c coverage] [-m mercounts] [-h histogram]\n", argv[0]);
+    fprintf(stderr, "INPUTS: (exactly one)\n");
+    fprintf(stderr, "  -m mercounts    file of mercounts from meryl\n");
+    fprintf(stderr, "  -h histogram    histogram from meryl\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "OPTIONS:\n");
+    fprintf(stderr, "  -c coverage     expected coverage of reads\n");
     exit(1);
   }
 
-  MF = new merylStreamReader(merCountsFile);
+  uint64  nDistinct = 0;
+  uint64  nUnique   = 0;
+  uint64  nTotal    = 0;
+
+  uint32   histLen  = 0;
+  uint32  *hist     = NULL;
+
+  if (merCountsFile) {
+    merylStreamReader *MF = new merylStreamReader(merCountsFile);
+    loadHistogram(MF, nDistinct, nUnique, nTotal, histLen, hist);
+    delete MF;
+  }
+
+  if (histogramFile) {
+    FILE *HF = fopen(histogramFile, "r");
+    loadHistogram(HF, nDistinct, nUnique, nTotal, histLen, hist);
+    fclose(HF);
+  }
 
   //  Examine the counts, pick a reasonable upper limit.
 
-  uint64  totalUsefulDistinct = MF->numberOfDistinctMers() - MF->numberOfUniqueMers();
-  uint64  totalUsefulAll      = MF->numberOfTotalMers()    - MF->numberOfUniqueMers();
-  uint64  distinct            = 0;
-  uint64  total               = 0;
-  uint32  Xcoverage           = 8;
+  fprintf(stderr, "RAW MER COUNTS:\n");
+  fprintf(stderr, "  distinct: %12" F_U64P " (different kmer sequences)\n", nDistinct);
+  fprintf(stderr, "  unique:   %12" F_U64P " (single-copy kmers)\n",        nUnique);
+  fprintf(stderr, "  total:    %12" F_U64P " (kmers in sequences)\n",       nTotal);
+  fprintf(stderr, "\n");
 
-  fprintf(stderr, "distinct: " F_U64 "\n", MF->numberOfDistinctMers());
-  fprintf(stderr, "unique:   " F_U64 "\n", MF->numberOfUniqueMers());
-  fprintf(stderr, "total:    " F_U64 "\n", MF->numberOfTotalMers());
+  guessedCoverage = (expectedCoverage > 0) ? expectedCoverage : guessCoverage(hist, histLen);
 
-  //  Pass 0: try to deduce the X coverage we have.  The
-  //  pattern we should see in mer counts is an initial spike
-  //  for unique mers (these contain errors), then a drop into
-  //  a valley, and a bump at the X coverage.
-  //
-  //  .
-  //  .      ...
-  //  ..  ..........
-  //  .................
-  //
-  //  If this pattern is not found, we fallback to the default
-  //  guess of 8x coverage.
-  //
 
-  uint32  i  = 0;
-  uint32  iX = 0;
-
-  fprintf(stderr, "distinct: " F_U64 "\n", MF->numberOfDistinctMers());
-  fprintf(stderr, "unique:   " F_U64 "\n", MF->numberOfUniqueMers());
-  fprintf(stderr, "total:    " F_U64 "\n", MF->numberOfTotalMers());
-
-  fprintf(stderr, "Xcoverage zero 1 0 " F_U64 "\n", MF->histogram(1));
-
-  for (i=2; (i < MF->histogramLength()) && (MF->histogram(i-1) > MF->histogram(i)); i++)
-    fprintf(stderr, "Xcoverage drop " F_U32 " " F_U64 " " F_U64 "\n", i, MF->histogram(i-1), MF->histogram(i));
-
-  iX = i - 1;
-
-  for (; i < MF->histogramLength(); i++) {
-    if (MF->histogram(iX) < MF->histogram(i)) {
-      fprintf(stderr, "Xcoverage incr " F_U32 " " F_U64 " " F_U64 "\n", i, MF->histogram(iX), MF->histogram(i));
-      iX = i;
-    } else {
-      //fprintf(stderr, "Xcoverage drop " F_U32 " " F_U64 " " F_U64 "\n", i, MF->histogram(iX), MF->histogram(i));
-    }
-  }
-
-  fprintf(stderr, "Guessed X coverage is " F_U32 "\n", iX);
-
-  Xcoverage = iX;
 
   //  Pass 1: look for a reasonable limit, using %distinct and %total.
   //
-  for (i=2; (i < MF->histogramLength()) && (maxCount == 0); i++) {
-    distinct += MF->histogram(i);
-    total    += MF->histogram(i) * i;
+  uint64  totalUsefulDistinct = nDistinct - nUnique;
+  uint64  totalUsefulAll      = nTotal    - nUnique;
+  uint64  distinct            = 0;
+  uint64  total               = 0;
 
-    //  If we cover 99% of all the distinct mers, that's reasonable.
-    //
-    if ((distinct / (double)totalUsefulDistinct) > 0.99)
-      maxCount = i;
+  uint32  maxCount = 0;
+  uint32  extCount = 0;
 
-    //  If we're a somewhat high count, and we're covering 2/3
-    //  of the total mers, assume that there are lots of
-    //  errors (or polymorphism) that are preventing us from
-    //  covering many distinct mers.
-    //
-    if ((i > 25 * Xcoverage) && ((total / (double)totalUsefulAll) > (2.0 / 3.0)))
-      maxCount = i;
-  }
+  uint32  kk = 2;
 
-  fprintf(stderr, "Set maxCount to " F_U32 ", which will cover %.2f%% of distinct mers and %.2f%% of all mers.\n",
-          i, 100.0 * distinct / totalUsefulDistinct, 100.0 * total / totalUsefulAll);
-
-
-  //  Pass 2: if the limit is relatively small compared to our
-  //  guessed Xcoverage, and %total is high, keep going to
-  //  close 75% of the gap in total coverage.  So if the TC is
-  //  90%, we'd keep going until TC is 97.5%.
+  //  If we cover 99% of all the distinct mers, that's reasonable.
   //
-  //  If we're WAY low compared to X coverage, close the gap
-  //  too, but not as much.  This only happens if we're
-  //  covering 99% of the distinct, so we're already in good
-  //  shape.  The genome doesn't appear to be very repetitive.
+  //  If we're a somewhat high count, and we're covering 2/3 of the total mers, assume that there
+  //  are lots of errors (or polymorphism) that are preventing us from covering many distinct mers.
   //
-  if (((maxCount <  5 * Xcoverage)) ||
-      ((maxCount < 50 * Xcoverage) && (total / (double)totalUsefulAll > 0.90))) {
-    double  closeAmount = 0.75;
 
-    if (total / (double)totalUsefulAll <= 0.90)
-      closeAmount = 0.5;
+  for (; kk < histLen; kk++) {
+    distinct += hist[kk];
+    total    += hist[kk] * kk;
 
-    //  No, really.  This is just 0.75 * (1-TC) + TC
-    double  desiredTC = closeAmount + (1 - closeAmount) * total / (double)totalUsefulAll;
-
-    for (; (i < MF->histogramLength()) && (total / (double)totalUsefulAll < desiredTC); i++) {
-      distinct += MF->histogram(i);
-      total    += MF->histogram(i) * i;
+    if (((distinct / (double)totalUsefulDistinct) > 0.9975) ||
+        (((total   / (double)totalUsefulAll)      > 0.6667) && (kk > 50 * guessedCoverage))) {
+      maxCount = kk;
+      break;
     }
-
-    maxCount = i;
-
-    fprintf(stderr, "Reset maxCount to " F_U32 ", which will cover %.2f%% of distinct mers and %.2f%% of all mers.\n",
-            maxCount, 100.0 * distinct / totalUsefulDistinct, 100.0 * total / totalUsefulAll);
   }
+
+  fprintf(stderr, "Set maxCount to " F_U32 " (" F_U32 " kmers), which will cover %.2f%% of distinct mers and %.2f%% of all mers.\n",
+          maxCount,
+          hist[maxCount],
+          100.0 * distinct / totalUsefulDistinct,
+          100.0 * total    / totalUsefulAll);
+
+  //  Compute an average number of kmers around this count.
+
+  int32  min = (maxCount - 25 < 2)       ? 2       : maxCount - 25;
+  int32  max = (maxCount + 25 > histLen) ? histLen : maxCount + 26;
+  int64  avg = 0;
+  int64  tot = 0;
+
+  for (int32 ii=min; ii<max; ii++) {
+    avg += ii * hist[ii];
+    tot += ii * hist[ii];
+  }
+
+  avg /= 51;
+
+  fprintf(stderr, "Average number of kmers between count " F_S32 " and " F_S32 " is " F_S64 "\n", min, max, avg);
+
+  //  Scan forward until we find a big gap in kmers.  This lets us ignore wildly over represented
+  //  kmers in small assemblies.
+
+  while (max < histLen) {
+    if (tot == 0)
+      break;
+
+    tot -= min * hist[min];  //  Subtract out the last min, move ahead one.
+    tot += max * hist[max];  //  Add in the next max, move ahead one.
+
+    min++;
+    max++;
+  }
+
+  uint32  limit;
+
+  if (tot > 0) {
+    limit = histLen;
+    fprintf(stderr, "No break in kmer coverage found.\n");
+  } else {
+    limit = min;
+    fprintf(stderr, "Found break in kmer coverage at %d\n", limit);
+  }
+
+  //  Scan forward until we see a 10x increase in the number of kmers, OR, until we cover 90% of the sequence and are at sufficient coverage.
+
+  for (; kk < limit; kk++) {
+    if (avg * 10 < kk * hist[kk])
+      break;
+
+    if (((double)total / totalUsefulAll >= 0.9) && (kk > 50 * guessedCoverage))
+      break;
+
+    distinct += hist[kk];
+    total    += hist[kk] * kk;
+
+    if (hist[kk] > 0)
+      extCount = kk;
+  }
+
+  if (extCount > 0)
+    maxCount = extCount;
+
+  fprintf(stderr, "Set maxCount to " F_U32 " (" F_U32 " kmers), which will cover %.2f%% of distinct mers and %.2f%% of all mers.\n",
+          maxCount,
+          hist[maxCount],
+          100.0 * distinct / totalUsefulDistinct,
+          100.0 * total    / totalUsefulAll);
 
   fprintf(stdout, F_U32"\n", maxCount);
 
