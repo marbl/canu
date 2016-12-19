@@ -129,12 +129,8 @@ tgStore::tgStore(const char *path_,
       break;
 
     case tgStoreReadOnly:
-      if (_tigLen == 0) {
-        fprintf(stderr, "tgStore::tgStore()-- ERROR, didn't find any tigs in the store.\n");
-        fprintf(stderr, "tgStore::tgStore()--        asked for store '%s', correct?\n", _path);
-        fprintf(stderr, "tgStore::tgStore()--        asked for version '%d', correct?\n", _originalVersion);
-        exit(1);
-      }
+      if (_tigLen == 0)
+        fprintf(stderr, "tgStore::tgStore()-- WARNING:  no tigs in store '%s' version '%d'.\n", _path, _originalVersion);
       break;
 
     case tgStoreWrite:
