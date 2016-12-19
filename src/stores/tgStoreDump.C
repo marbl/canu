@@ -1249,7 +1249,7 @@ main (int argc, char **argv) {
   if (filter.tigIDend == UINT32_MAX)
     filter.tigIDend = nTigs-1;
 
-  if (nTigs <= filter.tigIDend) {
+  if ((nTigs > 0) && (nTigs <= filter.tigIDend)) {
     fprintf(stderr, "WARNING: adjusting tig ID range from " F_U32 "-" F_U32 " to " F_U32 "-" F_U32 " as there are only " F_U32 " tigs in the store.\n",
             filter.tigIDbgn, filter.tigIDend, filter.tigIDbgn, nTigs-1, nTigs);
     filter.tigIDend = nTigs - 1;
@@ -1263,7 +1263,7 @@ main (int argc, char **argv) {
     filter.tigIDbgn = x;
   }
 
-  if (nTigs <= filter.tigIDbgn)
+  if ((nTigs > 0) && (nTigs <= filter.tigIDbgn))
     fprintf(stderr, "ERROR: only " F_U32 " tigs in the store (IDs 0-" F_U32 " inclusive); can't dump requested range -t " F_U32 "-" F_U32 "\n",
             nTigs,
             nTigs-1,
