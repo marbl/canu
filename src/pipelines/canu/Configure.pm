@@ -39,7 +39,7 @@ use Carp qw(cluck);
 use Sys::Hostname;
 
 use canu::Defaults;
-
+use canu::Execution;
 
 #  This is called to expand parameter ranges for memory and thread parameters.
 #  Examples of valid ranges:
