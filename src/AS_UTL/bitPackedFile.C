@@ -132,7 +132,7 @@ bitPackedFile::bitPackedFile(char const *name, uint64 offset, bool forceTruncate
     errno = 0;
     lseek(_file, file_offset, SEEK_SET);
     if (errno)
-      fprintf(stderr, "bitPackedFile::bitPackedFile()-- '%s' failed to seed to position %llu: %s\n", _name, file_offset, strerror(errno)), exit(1);
+      fprintf(stderr, "bitPackedFile::bitPackedFile()-- '%s' failed to seed to position " F_U64 ": %s\n", _name, file_offset, strerror(errno)), exit(1);
   }
 
   //  Deal with endianess.  We write out some bytes (or read back some bytes) to the start of
