@@ -83,16 +83,17 @@ operationBuild(char   *buildName,
 
 int
 main (int argc, char **argv) {
-  char            *gkpName   = NULL;
-  char            *tigName   = NULL;
-  int32            tigVers   = -1;
+  char            *gkpName       = NULL;
+  char            *tigName       = NULL;
+  int32            tigVers       = -1;
   vector<char *>   tigInputs;
-  tgStoreType      tigType   = tgStoreModify;
+  char            *tigInputsFile = NULL;
+  tgStoreType      tigType       = tgStoreModify;
 
   argc = AS_configure(argc, argv);
 
-  int arg=1;
-  int err=0;
+  vector<char *>  err;
+  int             arg = 1;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-G") == 0) {
       gkpName = argv[++arg];
@@ -102,7 +103,8 @@ main (int argc, char **argv) {
       tigVers = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-L") == 0) {
-      AS_UTL_loadFileList(argv[++arg], tigInputs);
+      tigInputsFile = argv[++arg];
+      AS_UTL_loadFileList(tigInputsFile, tigInputs);
 
     } else if (strcmp(argv[arg], "-n") == 0) {
       tigType = tgStoreReadOnly;
@@ -111,19 +113,29 @@ main (int argc, char **argv) {
       tigInputs.push_back(argv[arg]);
 
     } else {
-      fprintf(stderr, "%s: unknown option '%s'\n", argv[0], argv[arg]);
-      err++;
+      char *s = new char [1024];
+      snprintf(s, 1024, "ERROR:  Unknown option '%s'.\n", argv[arg]);
+      err.push_back(s);
     }
 
     arg++;
   }
-  if ((err) || (gkpName == NULL) || (tigName == NULL) || (tigInputs.size() == 0)) {
+
+  if (gkpName == NULL)
+    err.push_back("ERROR:  no gatekeeper store (-G) supplied.\n");
+  if (tigName == NULL)
+    err.push_back("ERROR:  no tig store (-T) supplied.\n");
+  if ((tigInputs.size() == 0) && (tigInputsFile == NULL))
+    err.push_back("ERROR:  no input tigs supplied on command line and no -L file supplied.\n");
+
+  if (err.size() > 0) {
     fprintf(stderr, "usage: %s -G <gkpStore> -T <tigStore> <v> [input.cns]\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "  -G <gkpStore>         Path to the gatekeeper store\n");
     fprintf(stderr, "  -T <tigStore> <v>     Path to the tigStore and version to add tigs to\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -L <file-of-files>    Load the tig(s) from files listed in 'file-of-files'\n");
+    fprintf(stderr, "                        (WARNING: program will succeed if this file is empty)\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -n                    Don't replace, just report what would have happened\n");
     fprintf(stderr, "\n");
@@ -140,12 +152,9 @@ main (int argc, char **argv) {
     fprintf(stderr, "  To delete a tig, remove all children, and set the number of them to zero.\n");
     fprintf(stderr, "\n");
 
-    if (gkpName == NULL)
-      fprintf(stderr, "ERROR:  no gatekeeper store (-G) supplied.\n");
-    if (tigName == NULL)
-      fprintf(stderr, "ERROR:  no tig store (-T) supplied.\n");
-    if (tigInputs.size() == 0)
-      fprintf(stderr, "ERROR:  no input tigs (-R) supplied.\n");
+    for (uint32 ii=0; ii<err.size(); ii++)
+      if (err[ii])
+        fputs(err[ii], stderr);
 
     exit(1);
   }
