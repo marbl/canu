@@ -163,78 +163,65 @@ AS_UTL_safeRead(FILE *file, void *buffer, const char *desc, size_t size, size_t 
 
 
 
-//  Ensure that directory 'dirname' exists.  Returns true if the
-//  directory needed to be created, false if it already exists.
-int
+//  Ensure that directory 'dirname' exists.
+void
 AS_UTL_mkdir(const char *dirname) {
   struct stat  st;
 
-  errno = 0;
-
   //  Stat the file.  Don't fail if the file doesn't exist though.
 
-  if ((stat(dirname, &st) != 0) && (errno != ENOENT)) {
-    fprintf(stderr, "AS_UTL_mkdir()--  Couldn't stat '%s': %s\n", dirname, strerror(errno));
-    exit(1);
-  }
+  errno = 0;
+  if ((stat(dirname, &st) != 0) && (errno != ENOENT))
+    fprintf(stderr, "AS_UTL_mkdir()--  Couldn't stat '%s': %s\n", dirname, strerror(errno)), exit(1);
 
-  //  If file doesn't exist, make the directory, and fail horribly, or return success.
+  //  If file doesn't exist, make the directory.  Fail horribly if it can't be made..
+  //  Or, fail horribly if the 'directory' is a file instead.
 
-  if (errno == ENOENT) {
-    if (mkdir(dirname, S_IRWXU | S_IRWXG | S_IRWXO) != 0) {
-      fprintf(stderr, "AS_UTL_mkdir()--  Couldn't create directory '%s': %s\n", dirname, strerror(errno));
-      exit(1);
-    }
+  if ((errno == ENOENT) && (mkdir(dirname, S_IRWXU | S_IRWXG | S_IRWXO) != 0))
+    fprintf(stderr, "AS_UTL_mkdir()--  Couldn't create directory '%s': %s\n", dirname, strerror(errno)), exit(1);
 
-    return(1);
-  }
-
-  //  The file exists.  Return that it already exists, or that it's a file and fail horribly.
-
-  if (S_ISDIR(st.st_mode))
-    return(0);
-
-  fprintf(stderr, "AS_UTL_mkdir()--  ERROR!  '%s' is a file, and not a directory.\n", dirname);
-  exit(1);
-  return(1);
+  if ((errno != ENOENT) && (S_ISDIR(st.st_mode) == false))
+    fprintf(stderr, "AS_UTL_mkdir()--  ERROR!  '%s' is a file, and not a directory.\n", dirname), exit(1);
 }
 
 
 
-int
+void
 AS_UTL_symlink(const char *pathToFile, const char *pathToLink) {
 
-  if (AS_UTL_fileExists(pathToFile, FALSE, FALSE) == 0)
+  //  Fail horribly if the file doesn't exist.
+
+  if (AS_UTL_fileExists(pathToFile, FALSE, FALSE) == false)
     fprintf(stderr, "AS_UTL_symlink()-- Original file '%s' doesn't exist, won't make a link to nothing.\n",
             pathToFile), exit(1);
+
+  //  Succeed silently if the link already exists.
+
+  if (AS_UTL_fileExists(pathToLink, FALSE, FALSE) == true)
+    return;
+
+  //  Nope?  Make the link.
 
   errno = 0;
   symlink(pathToFile, pathToLink);
   if (errno)
     fprintf(stderr, "AS_UTL_symlink()-- Failed to make link '%s' pointing to file '%s': %s\n",
             pathToLink, pathToFile, strerror(errno)), exit(1);
-
-  return(0);
 }
 
 
 
-//  Remove a file, or do nothing if the file doesn't exist.  Returns true if the file
-//  was deleted, false if the file never existsed.
-int
+//  Remove a file, or do nothing if the file doesn't exist.
+void
 AS_UTL_unlink(const char *filename) {
 
-  if (AS_UTL_fileExists(filename, FALSE, FALSE) == 0)
-    return(0);
+  if (AS_UTL_fileExists(filename, FALSE, FALSE) == false)
+    return;
 
   errno = 0;
   unlink(filename);
-  if (errno) {
-    fprintf(stderr, "AS_UTL_unlink()--  Failed to remove file '%s': %s\n", filename, strerror(errno));
-    exit(1);
-  }
-
-  return(1);
+  if (errno)
+    fprintf(stderr, "AS_UTL_unlink()--  Failed to remove file '%s': %s\n", filename, strerror(errno)), exit(1);
 }
 
 

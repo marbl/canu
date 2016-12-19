@@ -58,11 +58,11 @@ void    AS_UTL_findBaseFileName(char *basename, const char *filename);
 void    AS_UTL_safeWrite(FILE *file, const void *buffer, const char *desc, size_t size, size_t nobj);
 size_t  AS_UTL_safeRead (FILE *file, void *buffer,       const char *desc, size_t size, size_t nobj);
 
-int     AS_UTL_mkdir(const char *dirname);
+void    AS_UTL_mkdir(const char *dirname);
 
-int     AS_UTL_symlink(const char *pathToFile, const char *pathToLink);
+void    AS_UTL_symlink(const char *pathToFile, const char *pathToLink);
 
-int     AS_UTL_unlink(const char *filename);
+void    AS_UTL_unlink(const char *filename);
 
 int     AS_UTL_fileExists(const char *path, int directory=false, int readwrite=false);
 off_t   AS_UTL_sizeOfFile(const char *path);
