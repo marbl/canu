@@ -36,15 +36,34 @@ perl $bins/sanity.pl submit   $date       #  Submit the next iteration.
 
 #  Run small stuff daily.
 
-perl $bins/sanity.pl assemble $date $spec/small1.spec
-perl $bins/sanity.pl assemble $date $spec/small2.spec
-perl $bins/sanity.pl assemble $date $spec/small3.spec
-perl $bins/sanity.pl assemble $date $spec/small4.spec
+for ss in small.bibersteinia_trehalosi.pacbio.h5-1000 \
+          small.bibersteinia_trehalosi.pacbio.h5-5000 \
+          small.bibersteinia_trehalosi.pacbio.sra-1000 \
+          small.escherichia_coli_k12.pacbio.p6 \
+          small.escherichia_coli_ne92.pacbio.p4 \
+          small.escherichia_coli_ne92.pacbio.p5 \
+          small.escherichia_coli_o157_h7_str_f8092b.pacbio.p4c2.average \
+          small.escherichia_coli_o157_h7_str_f8092b.pacbio.p4c2.long \
+          small.francisella_tularensis.pacbio ; do
+  perl $bins/sanity.pl assemble $date $spec/$ss.spec
+done
+
+for ss in small.escherichia_coli_k12.nanopore.all.2d \
+          small.escherichia_coli_k12.nanopore.map006-1.2d \
+          small.escherichia_coli_k12.nanopore.map006-2.2d \
+          small.escherichia_coli_k12.nanopore.map006-pcr-1.2d \
+          small.escherichia_coli_k12.nanopore.map006-pcr-2.2d \
+          small.escherichia_coli_k12.nanopore.r9.SpotOn.1d ; do
+  perl $bins/sanity.pl assemble $date $spec/$ss.spec
+done
 
 #  Run big stuff weekly.
 
-#if [ `date +%u` = 6] ; then
-#    sh sanity-weekly-dros.sh  $date
-#    sh sanity-weekly-moore.sh $date
-#fi
+if [ `date +%u` = 6 ] ; then
+  for ss in medium.arabidopsis_thaliana.pacbio.p4c2 \
+            medium.arabidopsis_thaliana.pacbio.p5c3 \
+            medium.drosophila_melanogaster.pacbio.p5c3 ; do
+    perl $bins/sanity.pl assemble $date $spec/$ss.spec
+  done
+fi
 
