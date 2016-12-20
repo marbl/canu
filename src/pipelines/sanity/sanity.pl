@@ -82,12 +82,6 @@ elsif (-d "/assembly/NIGHTLY/") {
     $gitrepo = "/assembly/NIGHTLY/canu";
 }
 
-elsif (-d "/work/NIGHTLY/") {
-    $site    = "BPWI";
-    $wrkdir  = "/work/NIGHTLY";
-    $gitrepo = "/work/NIGHTLY/canu";
-}
-
 else {
     die "Unknown site configuration.\n";
 }
