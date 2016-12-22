@@ -38,7 +38,7 @@ perl $bins/sanity.pl submit   $date       #  Submit the next iteration.
 
 for ss in small.bibersteinia_trehalosi.pacbio.h5-1000 \
           small.bibersteinia_trehalosi.pacbio.h5-5000 \
-          small.bibersteinia_trehalosi.pacbio.sra-1000 \
+          small.bibersteinia_trehalosi.pacbio.sra-3000 \
           small.escherichia_coli_k12.pacbio.p6 \
           small.escherichia_coli_ne92.pacbio.p4 \
           small.escherichia_coli_ne92.pacbio.p5 \

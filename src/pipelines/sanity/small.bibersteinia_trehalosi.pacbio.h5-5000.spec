@@ -27,5 +27,4 @@ mhapSensitivity=high
 -pacbio-raw /data/reads/bibersteinia_trehalosi_USDA-ARS-USMARC-192-p4c2/SRR849084_m110925_151024_42130_c100170532555600000315046410191136_s1_p0.fastq.xz
 -pacbio-raw /data/reads/bibersteinia_trehalosi_USDA-ARS-USMARC-192-p4c2/SRR849085_m110925_164348_42130_c100170532555600000315046410191137_s1_p0.fastq.xz
 
-onSuccess=/work/canu/src/pipelines/sanity/success.b_tre.sh
-
+onSuccess=/work/canu/src/pipelines/sanity/success.bibersteinia_trehalosi.sh
