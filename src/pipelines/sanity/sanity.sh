@@ -45,9 +45,9 @@ for ss in small.bibersteinia_trehalosi.pacbio.h5-1000 \
           small.escherichia_coli_o157_h7_str_f8092b.pacbio.p4c2.average \
           small.escherichia_coli_o157_h7_str_f8092b.pacbio.p4c2.long \
           small.francisella_tularensis.pacbio \
-          small.saccharomyces_cerevisiae_glbrcy22-3.pacbio.spec \
-          small.saccharomyces_cerevisiae_glbrcy22-3.pacbio.sra.spec \
-          small.saccharomyces_cerevisiae_s288c.pacbio.spec
+          small.saccharomyces_cerevisiae_glbrcy22-3.pacbio \
+          small.saccharomyces_cerevisiae_glbrcy22-3.pacbio.sra \
+          small.saccharomyces_cerevisiae_s288c.pacbio
   do
   perl $bins/sanity.pl assemble $date $spec/$ss.spec
 done
