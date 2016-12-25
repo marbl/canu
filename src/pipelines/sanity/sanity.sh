@@ -44,7 +44,11 @@ for ss in small.bibersteinia_trehalosi.pacbio.h5-1000 \
           small.escherichia_coli_ne92.pacbio.p5 \
           small.escherichia_coli_o157_h7_str_f8092b.pacbio.p4c2.average \
           small.escherichia_coli_o157_h7_str_f8092b.pacbio.p4c2.long \
-          small.francisella_tularensis.pacbio ; do
+          small.francisella_tularensis.pacbio \
+          small.saccharomyces_cerevisiae_glbrcy22-3.pacbio.spec \
+          small.saccharomyces_cerevisiae_glbrcy22-3.pacbio.sra.spec \
+          small.saccharomyces_cerevisiae_s288c.pacbio.spec
+  do
   perl $bins/sanity.pl assemble $date $spec/$ss.spec
 done
 
@@ -53,7 +57,8 @@ for ss in small.escherichia_coli_k12.nanopore.all.2d \
           small.escherichia_coli_k12.nanopore.map006-2.2d \
           small.escherichia_coli_k12.nanopore.map006-pcr-1.2d \
           small.escherichia_coli_k12.nanopore.map006-pcr-2.2d \
-          small.escherichia_coli_k12.nanopore.r9.SpotOn.1d ; do
+          small.escherichia_coli_k12.nanopore.r9.SpotOn.1d
+  do
   perl $bins/sanity.pl assemble $date $spec/$ss.spec
 done
 
@@ -62,7 +67,8 @@ done
 if [ `date +%u` = 6 ] ; then
   for ss in medium.arabidopsis_thaliana.pacbio.p4c2 \
             medium.arabidopsis_thaliana.pacbio.p5c3 \
-            medium.drosophila_melanogaster.pacbio.p5c3 ; do
+            medium.drosophila_melanogaster.pacbio.p5c3
+    do
     perl $bins/sanity.pl assemble $date $spec/$ss.spec
   done
 fi
