@@ -443,7 +443,6 @@ sub setParametersFromFile ($@) {
             $file = "$ENV{'PWD'}/$file" if ($file !~ m!^/!);
 
             push @fragFiles, "$arg\0$file";
-            addCommandLineOption("$arg \"$file\"");
         }
 
         elsif (m/\s*(\w*)\s*=([^#]*)#*.*$/) {
