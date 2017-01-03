@@ -442,7 +442,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -config out.dat       don't build a store, just dump a binary partitioning file for ovStoreBucketizer\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Sizes and Limits:\n");
-    fprintf(stderr, "  ovOverlapSortSize     " F_S32 " bytes\n",     (int32)ovOverlapSortSize);
+    fprintf(stderr, "  ovOverlap             " F_S32 " words of " F_S32 " bits each.\n", (int32)ovOverlapNWORDS, (int32)ovOverlapWORDSZ);
+    fprintf(stderr, "  ovOverlapSortSize     " F_S32 " bits\n",      (int32)ovOverlapSortSize * 8);
     fprintf(stderr, "  SC_CHILD_MAX          " F_S32 " processes\n", (int32)sysconf(_SC_CHILD_MAX));
     fprintf(stderr, "  SC_OPEN_MAX           " F_S32 " files\n",     (int32)sysconf(_SC_OPEN_MAX));
     fprintf(stderr, "\n");
