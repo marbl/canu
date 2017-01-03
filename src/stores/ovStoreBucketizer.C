@@ -250,7 +250,7 @@ main(int argc, char **argv) {
   //AS_OVS_setBinaryOverlapFileBufferSize(2 * 1024 * 1024);
 
   while (inputFile->readOverlap(&foverlap)) {
-    filter->filterOverlap(foverlap, roverlap);  //  The filter copies f into r
+    filter->filterOverlap(foverlap, roverlap);  //  The filter copies f into r, and checks IDs
 
     //  If all are skipped, don't bother writing the overlap.
 
