@@ -38,36 +38,23 @@
 
 ovStoreFilter::ovStoreFilter(gkStore *gkp_, double maxErate) {
   gkp             = gkp_;
+  maxID           = gkp->gkStore_getNumReads() + 1;
+  maxEvalue       = AS_OVS_encodeEvalue(maxErate);
 
   resetCounters();
-
-  maxID     = gkp->gkStore_getNumReads() + 1;
-  maxEvalue = AS_OVS_encodeEvalue(maxErate);
 
   skipReadOBT     = new char [maxID];
   skipReadDUP     = new char [maxID];
 
-  memset(skipReadOBT, 0, sizeof(char) * maxID);
-  memset(skipReadDUP, 0, sizeof(char) * maxID);
-
-
   uint32  numSkipOBT = 0;
   uint32  numSkipDUP = 0;
-
-#if 0
-  fprintf(stderr, "Marking fragments to skip overlap based trimming.\n");
-
-  fprintf(stderr, "LIB 1 - dup=%d trim=%d spur=%d chimera=%d subreads=%d\n",
-          gkp->gkStore_getLibrary(1)->gkLibrary_removeDuplicateReads(),
-          gkp->gkStore_getLibrary(1)->gkLibrary_finalTrim(),
-          gkp->gkStore_getLibrary(1)->gkLibrary_removeSpurReads(),
-          gkp->gkStore_getLibrary(1)->gkLibrary_removeChimericReads(),
-          gkp->gkStore_getLibrary(1)->gkLibrary_checkForSubReads());
-#endif
 
   for (uint64 iid=0; iid<maxID; iid++) {
     uint32     Lid = gkp->gkStore_getRead(iid)->gkRead_libraryID();
     gkLibrary *L   = gkp->gkStore_getLibrary(Lid);
+
+    skipReadOBT[iid] = false;
+    skipReadDUP[iid] = false;
 
     if ((L->gkLibrary_removeDuplicateReads()     == false) &&
         (L->gkLibrary_finalTrim()                == GK_FINALTRIM_NONE) &&
