@@ -108,14 +108,14 @@ generateLayout(gkStore    *gkpStore,
 
     if (ovl[oo].erate() > maxEvidenceErate) {
       if (flgFile)
-        fprintf(flgFile, "  filter read %9u at position %6u,%6u length %5lu erate %.3f - low quality (threshold %.2f)\n",
+        fprintf(flgFile, "  filter read %9u at position %6u,%6u length %5llu erate %.3f - low quality (threshold %.2f)\n",
                 ovl[oo].b_iid, ovl[oo].a_bgn(), ovl[oo].a_end(), ovlLength, ovl[oo].erate(), maxEvidenceErate);
       continue;
     }
 
     if (ovl[oo].a_end() - ovl[oo].a_bgn() < minEvidenceLength) {
       if (flgFile)
-        fprintf(flgFile, "  filter read %9u at position %6u,%6u length %5lu erate %.3f - too short (threshold %u)\n",
+        fprintf(flgFile, "  filter read %9u at position %6u,%6u length %5llu erate %.3f - too short (threshold %u)\n",
                 ovl[oo].b_iid, ovl[oo].a_bgn(), ovl[oo].a_end(), ovlLength, ovl[oo].erate(), minEvidenceLength);
       continue;
     }
@@ -123,20 +123,20 @@ generateLayout(gkStore    *gkpStore,
     if ((readScores != NULL) &&
         (ovlScore < readScores[ovl[oo].b_iid])) {
       if (flgFile)
-        fprintf(flgFile, "  filter read %9u at position %6u,%6u length %5lu erate %.3f - filtered by global filter (threshold " F_U64 ")\n",
+        fprintf(flgFile, "  filter read %9u at position %6u,%6u length %5llu erate %.3f - filtered by global filter (threshold " F_U64 ")\n",
                 ovl[oo].b_iid, ovl[oo].a_bgn(), ovl[oo].a_end(), ovlLength, ovl[oo].erate(), readScores[ovl[oo].b_iid]);
       continue;
     }
 
     if (children.find(ovl[oo].b_iid) != children.end()) {
       if (flgFile)
-        fprintf(flgFile, "  filter read %9u at position %6u,%6u length %5lu erate %.3f - duplicate\n",
+        fprintf(flgFile, "  filter read %9u at position %6u,%6u length %5llu erate %.3f - duplicate\n",
                 ovl[oo].b_iid, ovl[oo].a_bgn(), ovl[oo].a_end(), ovlLength, ovl[oo].erate());
       continue;
     }
 
     if (flgFile)
-      fprintf(flgFile, "  allow  read %9u at position %6u,%6u length %5lu erate %.3f\n",
+      fprintf(flgFile, "  allow  read %9u at position %6u,%6u length %5llu erate %.3f\n",
               ovl[oo].b_iid, ovl[oo].a_bgn(), ovl[oo].a_end(), ovlLength, ovl[oo].erate());
 
     tgPosition   *pos = layout->addChild();
