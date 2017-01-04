@@ -314,18 +314,12 @@ public:
     if (a_iid      > that.a_iid)       return(false);
     if (b_iid      < that.b_iid)       return(true);
     if (b_iid      > that.b_iid)       return(false);
-    if (dat.dat[0] < that.dat.dat[0])  return(true);
-    if (dat.dat[0] > that.dat.dat[0])  return(false);
-    if (dat.dat[1] < that.dat.dat[1])  return(true);
-    if (dat.dat[1] > that.dat.dat[1])  return(false);
-    if (dat.dat[2] < that.dat.dat[2])  return(true);
-    if (dat.dat[2] > that.dat.dat[2])  return(false);
-#if (ovOverlapNWORDS == 5)
-    if (dat.dat[3] < that.dat.dat[3])  return(true);
-    if (dat.dat[3] > that.dat.dat[3])  return(false);
-    if (dat.dat[4] < that.dat.dat[4])  return(true);
-    if (dat.dat[4] > that.dat.dat[4])  return(false);
-#endif
+
+    for (uint32 ii=0; ii<ovOverlapNWORDS; ii++) {
+      if (dat.dat[ii] < that.dat.dat[ii])  return(true);
+      if (dat.dat[ii] > that.dat.dat[ii])  return(false);
+    }
+
     return(false);
   };
 

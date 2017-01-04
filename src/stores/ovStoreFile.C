@@ -208,46 +208,16 @@ ovFile::writeOverlap(ovOverlap *overlap) {
 
   _buffer[_bufferLen++] = overlap->b_iid;
 
-#if   (ovOverlapWORDSZ == 32) && (ovOverlapNWORDS == 3)
-  _buffer[_bufferLen++] = overlap->dat.dat[0];
-  _buffer[_bufferLen++] = overlap->dat.dat[1];
-  _buffer[_bufferLen++] = overlap->dat.dat[2];
-#elif (ovOverlapWORDSZ == 32) && (ovOverlapNWORDS == 5)
-  _buffer[_bufferLen++] = overlap->dat.dat[0];
-  _buffer[_bufferLen++] = overlap->dat.dat[1];
-  _buffer[_bufferLen++] = overlap->dat.dat[2];
-  _buffer[_bufferLen++] = overlap->dat.dat[3];
-  _buffer[_bufferLen++] = overlap->dat.dat[4];
-#elif (ovOverlapWORDSZ == 32) && (ovOverlapNWORDS == 6)
-  _buffer[_bufferLen++] = overlap->dat.dat[0];
-  _buffer[_bufferLen++] = overlap->dat.dat[1];
-  _buffer[_bufferLen++] = overlap->dat.dat[2];
-  _buffer[_bufferLen++] = overlap->dat.dat[3];
-  _buffer[_bufferLen++] = overlap->dat.dat[4];
-  _buffer[_bufferLen++] = overlap->dat.dat[5];
-#elif (ovOverlapWORDSZ == 32) && (ovOverlapNWORDS == 8)
-  _buffer[_bufferLen++] = overlap->dat.dat[0];
-  _buffer[_bufferLen++] = overlap->dat.dat[1];
-  _buffer[_bufferLen++] = overlap->dat.dat[2];
-  _buffer[_bufferLen++] = overlap->dat.dat[3];
-  _buffer[_bufferLen++] = overlap->dat.dat[4];
-  _buffer[_bufferLen++] = overlap->dat.dat[5];
-  _buffer[_bufferLen++] = overlap->dat.dat[6];
-  _buffer[_bufferLen++] = overlap->dat.dat[7];
-#elif (ovOverlapWORDSZ == 64) && (ovOverlapNWORDS == 2)
-  _buffer[_bufferLen++] = (overlap->dat.dat[0] >> 32) & 0xffffffff;
-  _buffer[_bufferLen++] = (overlap->dat.dat[0] >>  0) & 0xffffffff;
-  _buffer[_bufferLen++] = (overlap->dat.dat[1] >> 32) & 0xffffffff;
-  _buffer[_bufferLen++] = (overlap->dat.dat[1] >>  0) & 0xffffffff;
-#elif (ovOverlapWORDSZ == 64) && (ovOverlapNWORDS == 3)
-  _buffer[_bufferLen++] = (overlap->dat.dat[0] >> 32) & 0xffffffff;
-  _buffer[_bufferLen++] = (overlap->dat.dat[0] >>  0) & 0xffffffff;
-  _buffer[_bufferLen++] = (overlap->dat.dat[1] >> 32) & 0xffffffff;
-  _buffer[_bufferLen++] = (overlap->dat.dat[1] >>  0) & 0xffffffff;
-  _buffer[_bufferLen++] = (overlap->dat.dat[2] >> 32) & 0xffffffff;
-  _buffer[_bufferLen++] = (overlap->dat.dat[2] >>  0) & 0xffffffff;
-#else
-#error unknown ovOverlapNWORDS
+#if (ovOverlapWORDSZ == 32)
+  for (uint32 ii=0; ii<ovOverlapNWORDS; ii++)
+    _buffer[_bufferLen++] = overlap->dat.dat[ii];
+#endif
+
+#if (ovOverlapWORDSZ == 64)
+  for (uint32 ii=0; ii<ovOverlapNWORDS; ii++) {
+    _buffer[_bufferLen++] = (overlap->dat.dat[ii] >> 32) & 0xffffffff;
+    _buffer[_bufferLen++] = (overlap->dat.dat[ii])       & 0xffffffff;
+  }
 #endif
 
   assert(_bufferLen <= _bufferMax);
@@ -273,46 +243,16 @@ ovFile::writeOverlaps(ovOverlap *overlaps, uint64 overlapsLen) {
 
     _buffer[_bufferLen++] = overlaps[nWritten].b_iid;
 
-#if   (ovOverlapWORDSZ == 32) && (ovOverlapNWORDS == 3)
-  _buffer[_bufferLen++] = overlaps[nWritten].dat.dat[0];
-  _buffer[_bufferLen++] = overlaps[nWritten].dat.dat[1];
-  _buffer[_bufferLen++] = overlaps[nWritten].dat.dat[2];
-#elif (ovOverlapWORDSZ == 32) && (ovOverlapNWORDS == 5)
-  _buffer[_bufferLen++] = overlaps[nWritten].dat.dat[0];
-  _buffer[_bufferLen++] = overlaps[nWritten].dat.dat[1];
-  _buffer[_bufferLen++] = overlaps[nWritten].dat.dat[2];
-  _buffer[_bufferLen++] = overlaps[nWritten].dat.dat[3];
-  _buffer[_bufferLen++] = overlaps[nWritten].dat.dat[4];
-#elif (ovOverlapWORDSZ == 32) && (ovOverlapNWORDS == 6)
-  _buffer[_bufferLen++] = overlaps[nWritten].dat.dat[0];
-  _buffer[_bufferLen++] = overlaps[nWritten].dat.dat[1];
-  _buffer[_bufferLen++] = overlaps[nWritten].dat.dat[2];
-  _buffer[_bufferLen++] = overlaps[nWritten].dat.dat[3];
-  _buffer[_bufferLen++] = overlaps[nWritten].dat.dat[4];
-  _buffer[_bufferLen++] = overlaps[nWritten].dat.dat[5];
-#elif (ovOverlapWORDSZ == 32) && (ovOverlapNWORDS == 8)
-  _buffer[_bufferLen++] = overlaps[nWritten].dat.dat[0];
-  _buffer[_bufferLen++] = overlaps[nWritten].dat.dat[1];
-  _buffer[_bufferLen++] = overlaps[nWritten].dat.dat[2];
-  _buffer[_bufferLen++] = overlaps[nWritten].dat.dat[3];
-  _buffer[_bufferLen++] = overlaps[nWritten].dat.dat[4];
-  _buffer[_bufferLen++] = overlaps[nWritten].dat.dat[5];
-  _buffer[_bufferLen++] = overlaps[nWritten].dat.dat[6];
-  _buffer[_bufferLen++] = overlaps[nWritten].dat.dat[7];
-#elif (ovOverlapWORDSZ == 64) && (ovOverlapNWORDS == 2)
-  _buffer[_bufferLen++] = (overlaps[nWritten].dat.dat[0] >> 32) & 0xffffffff;
-  _buffer[_bufferLen++] = (overlaps[nWritten].dat.dat[0] >>  0) & 0xffffffff;
-  _buffer[_bufferLen++] = (overlaps[nWritten].dat.dat[1] >> 32) & 0xffffffff;
-  _buffer[_bufferLen++] = (overlaps[nWritten].dat.dat[1] >>  0) & 0xffffffff;
-#elif (ovOverlapWORDSZ == 64) && (ovOverlapNWORDS == 3)
-  _buffer[_bufferLen++] = (overlaps[nWritten].dat.dat[0] >> 32) & 0xffffffff;
-  _buffer[_bufferLen++] = (overlaps[nWritten].dat.dat[0] >>  0) & 0xffffffff;
-  _buffer[_bufferLen++] = (overlaps[nWritten].dat.dat[1] >> 32) & 0xffffffff;
-  _buffer[_bufferLen++] = (overlaps[nWritten].dat.dat[1] >>  0) & 0xffffffff;
-  _buffer[_bufferLen++] = (overlaps[nWritten].dat.dat[2] >> 32) & 0xffffffff;
-  _buffer[_bufferLen++] = (overlaps[nWritten].dat.dat[2] >>  0) & 0xffffffff;
-#else
-#error unknown ovOverlapNWORDS
+#if (ovOverlapWORDSZ == 32)
+    for (uint32 ii=0; ii<ovOverlapNWORDS; ii++)
+      _buffer[_bufferLen++] = overlaps[nWritten].dat.dat[ii];
+#endif
+
+#if (ovOverlapWORDSZ == 64)
+    for (uint32 ii=0; ii<ovOverlapNWORDS; ii++) {
+      _buffer[_bufferLen++] = (overlaps[nWritten].dat.dat[ii] >> 32) & 0xffffffff;
+      _buffer[_bufferLen++] = (overlaps[nWritten].dat.dat[ii])       & 0xffffffff;
+    }
 #endif
 
     nWritten++;
@@ -386,46 +326,17 @@ ovFile::readOverlap(ovOverlap *overlap) {
 
   overlap->b_iid      = _buffer[_bufferPos++];
 
-#if   (ovOverlapWORDSZ == 32) && (ovOverlapNWORDS == 3)
-  overlap->dat.dat[0] = _buffer[_bufferPos++];
-  overlap->dat.dat[1] = _buffer[_bufferPos++];
-  overlap->dat.dat[2] = _buffer[_bufferPos++];
-#elif (ovOverlapWORDSZ == 32) && (ovOverlapNWORDS == 5)
-  overlap->dat.dat[0] = _buffer[_bufferPos++];
-  overlap->dat.dat[1] = _buffer[_bufferPos++];
-  overlap->dat.dat[2] = _buffer[_bufferPos++];
-  overlap->dat.dat[3] = _buffer[_bufferPos++];
-  overlap->dat.dat[4] = _buffer[_bufferPos++];
-#elif (ovOverlapWORDSZ == 32) && (ovOverlapNWORDS == 6)
-  overlap->dat.dat[0] = _buffer[_bufferPos++];
-  overlap->dat.dat[1] = _buffer[_bufferPos++];
-  overlap->dat.dat[2] = _buffer[_bufferPos++];
-  overlap->dat.dat[3] = _buffer[_bufferPos++];
-  overlap->dat.dat[4] = _buffer[_bufferPos++];
-  overlap->dat.dat[5] = _buffer[_bufferPos++];
-#elif (ovOverlapWORDSZ == 32) && (ovOverlapNWORDS == 8)
-  overlap->dat.dat[0] = _buffer[_bufferPos++];
-  overlap->dat.dat[1] = _buffer[_bufferPos++];
-  overlap->dat.dat[2] = _buffer[_bufferPos++];
-  overlap->dat.dat[3] = _buffer[_bufferPos++];
-  overlap->dat.dat[4] = _buffer[_bufferPos++];
-  overlap->dat.dat[5] = _buffer[_bufferPos++];
-  overlap->dat.dat[6] = _buffer[_bufferPos++];
-  overlap->dat.dat[7] = _buffer[_bufferPos++];
-#elif (ovOverlapWORDSZ == 64) && (ovOverlapNWORDS == 2)
-  overlap->dat.dat[0]  = _buffer[_bufferPos++];  overlap->dat.dat[0] <<= 32;
-  overlap->dat.dat[0] |= _buffer[_bufferPos++];
-  overlap->dat.dat[1]  = _buffer[_bufferPos++];  overlap->dat.dat[1] <<= 32;
-  overlap->dat.dat[1] |= _buffer[_bufferPos++];
-#elif (ovOverlapWORDSZ == 64) && (ovOverlapNWORDS == 3)
-  overlap->dat.dat[0]  = _buffer[_bufferPos++];  overlap->dat.dat[0] <<= 32;
-  overlap->dat.dat[0] |= _buffer[_bufferPos++];
-  overlap->dat.dat[1]  = _buffer[_bufferPos++];  overlap->dat.dat[1] <<= 32;
-  overlap->dat.dat[1] |= _buffer[_bufferPos++];
-  overlap->dat.dat[2]  = _buffer[_bufferPos++];  overlap->dat.dat[2] <<= 32;
-  overlap->dat.dat[2] |= _buffer[_bufferPos++];
-#else
-#error unknown ovOverlapNWORDS
+#if (ovOverlapWORDSZ == 32)
+  for (uint32 ii=0; ii<ovOverlapNWORDS; ii++)
+    overlap->dat.dat[ii] = _buffer[_bufferPos++];
+#endif
+
+#if (ovOverlapWORDSZ == 64)
+  for (uint32 ii=0; ii<ovOverlapNWORDS; ii++) {
+    overlap->dat.dat[ii]   = _buffer[_bufferPos++];
+    overlap->dat.dat[ii] <<= 32;
+    overlap->dat.dat[ii]  |= _buffer[_bufferPos++];
+  }
 #endif
 
   assert(_bufferPos <= _bufferLen);
@@ -454,46 +365,17 @@ ovFile::readOverlaps(ovOverlap *overlaps, uint64 overlapsLen) {
 
     overlaps[nLoaded].b_iid      = _buffer[_bufferPos++];
 
-#if   (ovOverlapWORDSZ == 32) && (ovOverlapNWORDS == 3)
-    overlaps[nLoaded].dat.dat[0] = _buffer[_bufferPos++];
-    overlaps[nLoaded].dat.dat[1] = _buffer[_bufferPos++];
-    overlaps[nLoaded].dat.dat[2] = _buffer[_bufferPos++];
-#elif (ovOverlapWORDSZ == 32) && (ovOverlapNWORDS == 5)
-    overlaps[nLoaded].dat.dat[0] = _buffer[_bufferPos++];
-    overlaps[nLoaded].dat.dat[1] = _buffer[_bufferPos++];
-    overlaps[nLoaded].dat.dat[2] = _buffer[_bufferPos++];
-    overlaps[nLoaded].dat.dat[3] = _buffer[_bufferPos++];
-    overlaps[nLoaded].dat.dat[4] = _buffer[_bufferPos++];
-#elif (ovOverlapWORDSZ == 32) && (ovOverlapNWORDS == 6)
-    overlaps[nLoaded].dat.dat[0] = _buffer[_bufferPos++];
-    overlaps[nLoaded].dat.dat[1] = _buffer[_bufferPos++];
-    overlaps[nLoaded].dat.dat[2] = _buffer[_bufferPos++];
-    overlaps[nLoaded].dat.dat[3] = _buffer[_bufferPos++];
-    overlaps[nLoaded].dat.dat[4] = _buffer[_bufferPos++];
-    overlaps[nLoaded].dat.dat[5] = _buffer[_bufferPos++];
-#elif (ovOverlapWORDSZ == 32) && (ovOverlapNWORDS == 8)
-    overlaps[nLoaded].dat.dat[0] = _buffer[_bufferPos++];
-    overlaps[nLoaded].dat.dat[1] = _buffer[_bufferPos++];
-    overlaps[nLoaded].dat.dat[2] = _buffer[_bufferPos++];
-    overlaps[nLoaded].dat.dat[3] = _buffer[_bufferPos++];
-    overlaps[nLoaded].dat.dat[4] = _buffer[_bufferPos++];
-    overlaps[nLoaded].dat.dat[5] = _buffer[_bufferPos++];
-    overlaps[nLoaded].dat.dat[6] = _buffer[_bufferPos++];
-    overlaps[nLoaded].dat.dat[7] = _buffer[_bufferPos++];
-#elif (ovOverlapWORDSZ == 64) && (ovOverlapNWORDS == 2)
-    overlaps[nLoaded].dat.dat[0]  = _buffer[_bufferPos++];  overlaps[nLoaded].dat.dat[0] <<= 32;
-    overlaps[nLoaded].dat.dat[0] |= _buffer[_bufferPos++];
-    overlaps[nLoaded].dat.dat[1]  = _buffer[_bufferPos++];  overlaps[nLoaded].dat.dat[1] <<= 32;
-    overlaps[nLoaded].dat.dat[1] |= _buffer[_bufferPos++];
-#elif (ovOverlapWORDSZ == 64) && (ovOverlapNWORDS == 3)
-    overlaps[nLoaded].dat.dat[0]  = _buffer[_bufferPos++];  overlaps[nLoaded].dat.dat[0] <<= 32;
-    overlaps[nLoaded].dat.dat[0] |= _buffer[_bufferPos++];
-    overlaps[nLoaded].dat.dat[1]  = _buffer[_bufferPos++];  overlaps[nLoaded].dat.dat[1] <<= 32;
-    overlaps[nLoaded].dat.dat[1] |= _buffer[_bufferPos++];
-    overlaps[nLoaded].dat.dat[2]  = _buffer[_bufferPos++];  overlaps[nLoaded].dat.dat[2] <<= 32;
-    overlaps[nLoaded].dat.dat[2] |= _buffer[_bufferPos++];
-#else
-#error unknown ovOverlapNWORDS
+#if (ovOverlapWORDSZ == 32)
+  for (uint32 ii=0; ii<ovOverlapNWORDS; ii++)
+    overlaps[nLoaded].dat.dat[ii] = _buffer[_bufferPos++];
+#endif
+
+#if (ovOverlapWORDSZ == 64)
+  for (uint32 ii=0; ii<ovOverlapNWORDS; ii++) {
+    overlaps[nLoaded].dat.dat[ii]   = _buffer[_bufferPos++];
+    overlaps[nLoaded].dat.dat[ii] <<= 32;
+    overlaps[nLoaded].dat.dat[ii]  |= _buffer[_bufferPos++];
+  }
 #endif
 
     nLoaded++;

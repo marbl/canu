@@ -118,17 +118,8 @@ ovOverlap::swapIDs(ovOverlap const &orig) {
 
   //  Copy the overlap as is, then fix it for the ID swap.
 
-#if (ovOverlapNWORDS == 5)
-  dat.dat[0] = orig.dat.dat[0];
-  dat.dat[1] = orig.dat.dat[1];
-  dat.dat[2] = orig.dat.dat[2];
-  dat.dat[3] = orig.dat.dat[3];
-  dat.dat[4] = orig.dat.dat[4];
-#else
-  dat.dat[0] = orig.dat.dat[0];
-  dat.dat[1] = orig.dat.dat[1];
-  dat.dat[2] = orig.dat.dat[2];
-#endif
+  for (uint32 ii=0; ii<ovOverlapNWORDS; ii++)
+    dat.dat[ii] = orig.dat.dat[ii];
 
   //  Swap the A and B hangs.  If the overlap is flipped, we also need to reverse 5' and 3' hangs to
   //  make the now-A read forward oriented.
