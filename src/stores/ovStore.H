@@ -362,11 +362,10 @@ public:
   ovStoreFilter(gkStore *gkp_, double maxErate);
   ~ovStoreFilter();
 
-  void    filterOverlap(ovOverlap     &foverlap,
-                        ovOverlap     &roverlap);
+  void     filterOverlap(ovOverlap     &foverlap,
+                         ovOverlap     &roverlap);
 
-  //void    reportFate(void);
-  void    resetCounters(void);
+  void     resetCounters(void);
 
   uint64   savedUnitigging(void)    { return(saveUTG);      };
   uint64   savedTrimming(void)      { return(saveOBT);      };
