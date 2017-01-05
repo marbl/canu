@@ -327,7 +327,7 @@ sub assemble (@) {
 
         print STDERR "cd $wrkdir/$thisdate \\\n";
         print STDERR "&& \\\n";
-        print STDERR "$wrkdir/$thisdate/canu/$syst-$arch/bin/canu -p $n -d $n -s $s";
+        print STDERR "$wrkdir/$thisdate/canu/$syst-$arch/bin/canu -p $n -d $n -s $s\n";
 
         system("cd $wrkdir/$thisdate && $wrkdir/$thisdate/canu/$syst-$arch/bin/canu -p $n -d $n -s $s");
     }
