@@ -118,6 +118,36 @@ gnuplotImageFormat <string="png">
 gnuplotTested <boolean=false>
   If set, skip the tests to determine if gnuplot will run, and to decide the image type to generate.  This is used when gnuplot fails to run, or isn't even installed, and allows canu to continue execution without generating graphs.
 
+
+File Staging
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The correction stage of Canu requires random access to all the reads.  Performance is greatly
+improved if the gkpStore database of reads is copied locally to each node that computes
+corrected read consensus sequences.  Staging occurs only if `stageDirectory` is defined,
+and if jobs run under grid control.  If `gridEngineStageOption` is left undefined,
+no resources will be requested for staging the data.
+
+stageDirectory <string=undefined>
+  A path to a directory local to each compute node.  The directory should use an environment
+  variable specific to the grid engine to ensure that it is unique to each task.
+
+  For example, in Sun Grid Engine, `/scratch/$JOB_ID-$SGE_TASK_ID` will use both the numeric
+  job ID and the numeric task ID.  In SLURM, `/scratch/$SLRUM_JOBID` accomplishes the same.
+
+  If specified on the command line, be sure to escape the dollar sign, otherwise the shell will try
+  to expand it before Canu sees the option: `stageDirectory=/scratch/\$JOB_ID-\$SGE_TASK_ID`.
+
+  If specified in a specFile, do not escape the dollar signs.
+
+gridEngineStageOption <string=undefined>
+  This string is passed to the job submission command, and is expected to request
+  local disk space on each node.  It is highly grid specific.  The string `DISK_SPACE`
+  will be replaced with the amount of disk space needed, in gigabytes.
+
+  On SLURM, an example is `--gres=lscratch:DISK_SPACE`
+
+
 Cleanup Options
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

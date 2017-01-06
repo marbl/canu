@@ -238,8 +238,31 @@ sub buildCorrectionLayouts_direct ($$) {
     print F "  mkdir -p \"$path/correction_outputs\"\n";
     print F "fi\n";
     print F "\n";
-
     print F getBinDirectoryShellCode();
+    print F "\n";
+
+    print F "gkpStore=\"$wrk/$asm.gkpStore\"\n";
+    print F "\n";
+
+    my $stageDir = getGlobal("stageDirectory");
+
+    if (defined($stageDir)) {
+        print F "if [ ! -d $stageDir ] ; then\n";
+        print F "  mkdir -p $stageDir\n";
+        print F "fi\n";
+        print F "\n";
+        print F "mkdir -p $stageDir/$asm.gkpStore\n";
+        print F "\n";
+        print F "echo Start copy at `date`\n";
+        print F "cp -p \$gkpStore/info      $stageDir/$asm.gkpStore/info\n";
+        print F "cp -p \$gkpStore/libraries $stageDir/$asm.gkpStore/libraries\n";
+        print F "cp -p \$gkpStore/reads     $stageDir/$asm.gkpStore/reads\n";
+        print F "cp -p \$gkpStore/blobs     $stageDir/$asm.gkpStore/blobs\n";
+        print F "echo Finished   at `date`\n";
+        print F "\n";
+        print F "gkpStore=\"$stageDir/$asm.gkpStore\"\n";
+        print F "\n";
+    }
 
     my $erate  = getCorErrorRate($wrk, $asm);
     my $minidt = 1 - $erate;
@@ -252,7 +275,7 @@ sub buildCorrectionLayouts_direct ($$) {
         print F "\$bin/utgcns \\\n";
         print F "  -u \$bgn-\$end \\\n";
         print F "  -e $erate \\\n";
-        print F "  -G $wrk/$asm.gkpStore \\\n";
+        print F "  -G \$gkpStore \\\n";
         print F "  -T $wrk/$asm.corStore 1 . \\\n";
         print F "  -O $path/correction_outputs/\$jobid.cns.WORKING \\\n";
         print F "  -L $path/correction_outputs/\$jobid.layout.WORKING \\\n";
@@ -282,6 +305,15 @@ sub buildCorrectionLayouts_direct ($$) {
         print F "&& \\\n";
         print F "mv $path/correction_outputs/\$jobid.fasta.WORKING $path/correction_outputs/\$jobid.fasta \\\n";
     }
+
+    if (defined($stageDir)) {
+        print F "\n";
+        print F "rm -rf $stageDir/$asm.gkpStore\n";   #  Prevent accidents of 'rm -rf /' if stageDir = "/".
+        print F "rmdir  $stageDir\n";
+    }
+
+    print F "\n";
+    print F "exit 0\n";
 
     close(F);
 
@@ -358,6 +390,29 @@ sub buildCorrectionLayouts_piped ($$) {
     print F getBinDirectoryShellCode();
     print F "\n";
 
+    print F "gkpStore=\"$wrk/$asm.gkpStore\"\n";
+    print F "\n";
+
+    my $stageDir = getGlobal("stageDirectory");
+
+    if (defined($stageDir)) {
+        print F "if [ ! -d $stageDir ] ; then\n";
+        print F "  mkdir -p $stageDir\n";
+        print F "fi\n";
+        print F "\n";
+        print F "mkdir -p $stageDir/$asm.gkpStore\n";
+        print F "\n";
+        print F "echo Start copy at `date`\n";
+        print F "cp -p \$gkpStore/info      $stageDir/$asm.gkpStore/info\n";
+        print F "cp -p \$gkpStore/libraries $stageDir/$asm.gkpStore/libraries\n";
+        print F "cp -p \$gkpStore/reads     $stageDir/$asm.gkpStore/reads\n";
+        print F "cp -p \$gkpStore/blobs     $stageDir/$asm.gkpStore/blobs\n";
+        print F "echo Finished   at `date`\n";
+        print F "\n";
+        print F "gkpStore=\"$stageDir/$asm.gkpStore\"\n";
+        print F "\n";
+    }
+
     my $maxCov   = getCorCov($wrk, $asm, "Local");
 
     my $erate    = getCorErrorRate($wrk, $asm);
@@ -371,7 +426,7 @@ sub buildCorrectionLayouts_piped ($$) {
     print F "( \\\n";
     print F "\$bin/generateCorrectionLayouts -b \$bgn -e \$end \\\n";
     print F "  -rl $path/$asm.readsToCorrect \\\n"                 if (-e "$path/$asm.readsToCorrect");
-    print F "  -G $wrk/$asm.gkpStore \\\n";
+    print F "  -G \$gkpStore \\\n";
     print F "  -O $wrk/$asm.ovlStore \\\n";
     print F "  -S $path/$asm.globalScores \\\n"                    if (-e "$path/$asm.globalScores");
     print F "  -L " . getGlobal("corMinEvidenceLength") . " \\\n"  if (defined(getGlobal("corMinEvidenceLength")));
@@ -400,6 +455,13 @@ sub buildCorrectionLayouts_piped ($$) {
     print F "  echo Read layout generation failed.\n";
     print F "  mv $path/correction_outputs/\$jobid.fasta $path/correction_outputs/\$jobid.fasta.INCOMPLETE\n";
     print F "fi\n";
+
+    if (defined($stageDir)) {
+        print F "\n";
+        print F "rm -rf $stageDir/$asm.gkpStore\n";   #  Prevent accidents of 'rm -rf /' if stageDir = "/".
+        print F "rmdir  $stageDir\n";
+    }
+
     print F "\n";
     print F "exit 0\n";
 
@@ -860,6 +922,22 @@ sub generateCorrectedReads ($$) {
 
     goto allDone   if (skipStage($WRK, $asm, "cor-generateCorrectedReads", $attempt) == 1);
     goto allDone   if (sequenceFileExists("$WRK/$asm.correctedReads"));
+
+    #  Compute the size of gkpStore for staging
+
+    {
+        my $size = 0;
+
+        $size += -s "$wrk/$asm.gkpStore/info";
+        $size += -s "$wrk/$asm.gkpStore/libraries";
+        $size += -s "$wrk/$asm.gkpStore/reads";
+        $size += -s "$wrk/$asm.gkpStore/blobs";
+
+        $size = int($size / 1024 / 1024 / 1024 + 1.5);
+
+        setGlobal("corStageSpace", $size);
+    }
+
 
     #  Figure out if all the tasks finished correctly.
 

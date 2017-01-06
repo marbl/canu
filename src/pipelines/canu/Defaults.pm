@@ -390,7 +390,7 @@ sub makeAbsolute ($) {
         $val =~ s/\\\$/\$/g;
         $val =~ s/\$/\\\$/g;
 
-        addCommandLineOption("\"$var=$val\"");
+        addCommandLineOption("'$var=$val'");
     }
 }
 
@@ -503,6 +503,9 @@ sub setExecDefaults ($$) {
 
     $global{"${tag}Threads"}       = undef;
     $synops{"${tag}Threads"}       = "Number of threads to use for $name jobs";
+
+    $global{"${tag}StageSpace"}    = undef;
+    $synops{"${tag}StageSpace"}    = "Amount of local disk space needed to stage data for $name jobs";
 
     $global{"${tag}Concurrency"}   = undef;
     $synops{"${tag}Concurrency"}   = "If grid not enabled, number of $name jobs to run at the same time; default is n_proc / n_threads";
@@ -676,6 +679,9 @@ sub setDefaults () {
     $global{"gnuplotTested"}               = 0;
     $synops{"gnuplotTested"}               = "If set, skip the initial testing of gnuplot";
 
+    $global{"stageDirectory"}              = undef;
+    $synops{"stageDirectory"}              = "If set, copy heavily used data to this node-local location";
+
     #####  Cleanup and Termination options
 
     $global{"saveOverlaps"}                = 0;
@@ -777,6 +783,7 @@ sub setDefaults () {
     $global{"gridEngineMemoryUnits"}                = undef;
     $global{"gridEngineNameToJobIDCommand"}         = undef;
     $global{"gridEngineNameToJobIDCommandNoArray"}  = undef;
+    $global{"gridEngineStageOption"}                = undef;
     $global{"gridEngineTaskID"}                     = undef;
     $global{"gridEngineArraySubmitID"}              = undef;
     $global{"gridEngineJobID"}                      = undef;
