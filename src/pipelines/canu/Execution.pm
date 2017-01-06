@@ -734,6 +734,20 @@ sub buildOutputName ($$$) {
 }
 
 
+sub buildStageOption ($$) {
+    my $t = shift @_;
+    my $d = shift @_;
+    my $r;
+
+    if ($t eq "cor") {
+        $r =  getGlobal("gridEngineStageOption");
+        $r =~ s/DISK_SPACE/${d}/g;
+    }
+
+    return($r);
+}
+
+
 sub buildMemoryOption ($$) {
     my $m = shift @_;
     my $t = shift @_;
@@ -779,13 +793,14 @@ sub buildThreadOption ($) {
 }
 
 
-sub buildGridJob ($$$$$$$$) {
+sub buildGridJob ($$$$$$$$$) {
     my $asm     = shift @_;
     my $jobType = shift @_;
     my $path    = shift @_;
     my $script  = shift @_;
     my $mem     = shift @_;
     my $thr     = shift @_;
+    my $dsk     = shift @_;
     my $bgnJob  = shift @_;
     my $endJob  = shift @_;
 
@@ -813,24 +828,27 @@ sub buildGridJob ($$$$$$$$) {
     my $outputOption           = getGlobal("gridEngineOutputOption");
     my $outName                = buildOutputName($path, $script, getGlobal("gridEngineArraySubmitID"));
 
+    my $globalOptions          = getGlobal("gridOptions");
+    my $jobOptions             = getGlobal("gridOptions$jobType");
+    my $stageOption            = buildStageOption($jobType, $dsk);
     my $memOption              = buildMemoryOption($mem, $thr);
     my $thrOption              = buildThreadOption($thr);
 
-    my $gridOpts;
+    my $opts;
 
-    $gridOpts  = getGlobal("gridOptions")          if (defined(getGlobal("gridOptions")));
-    $gridOpts .= " "                               if (defined($gridOpts));
-    $gridOpts .= getGlobal("gridOptions$jobType")  if (defined(getGlobal("gridOptions$jobType")));
-    $gridOpts .= " "                               if (defined($gridOpts));
-    $gridOpts .= $memOption                        if (defined($memOption));
-    $gridOpts .= " "                               if (defined($gridOpts));
-    $gridOpts .= $thrOption                        if (defined($thrOption));
+    $opts  = "$globalOptions "  if (defined($globalOptions));
+    $opts .= "$jobOptions "     if (defined($jobOptions));
+    $opts .= "$stageOption "    if (defined($stageOption));
+    $opts .= "$memOption "      if (defined($memOption));
+    $opts .= "$thrOption "      if (defined($thrOption));
+
+    $opts =~ s/\s+$//;
 
     #  Build the command line.
 
     my $cmd;
     $cmd  = "  $submitCommand \\\n";
-    $cmd .= "    $gridOpts \\\n"  if (defined($gridOpts));
+    $cmd .= "    $opts \\\n"  if (defined($opts));
     $cmd .= "    $nameOption \"$jobName\" \\\n";
     $cmd .= "    $arrayOpt \\\n";
     $cmd .= "    $outputOption $outName \\\n";
@@ -956,6 +974,7 @@ sub submitOrRunParallelJob ($$$$$@) {
 
     my $mem          = getGlobal("${jobType}Memory");
     my $thr          = getGlobal("${jobType}Threads");
+    my $dsk          = getGlobal("${jobType}StageSpace");
 
     my @jobs         = convertToJobRange(@_);
 
@@ -1008,7 +1027,7 @@ sub submitOrRunParallelJob ($$$$$@) {
         my $jobName;
 
         foreach my $j (@jobs) {
-            ($cmd, $jobName) = buildGridJob($asm, $jobType, $path, $script, $mem, $thr, $j, undef);
+            ($cmd, $jobName) = buildGridJob($asm, $jobType, $path, $script, $mem, $thr, $dsk, $j, undef);
 
             runCommand($path, $cmd) and caFailure("Failed to submit batch jobs", undef);
         }
@@ -1031,7 +1050,7 @@ sub submitOrRunParallelJob ($$$$$@) {
         print STDERR "\n";
 
         foreach my $j (@jobs) {
-            my ($cmd, $jobName) = buildGridJob($asm, $jobType, $path, $script, $mem, $thr, $j, undef);
+            my ($cmd, $jobName) = buildGridJob($asm, $jobType, $path, $script, $mem, $thr, $dsk, $j, undef);
 
             print $cmd;
         }
