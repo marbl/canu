@@ -253,7 +253,7 @@ void
 makeSE(char   *seq,
        int32   seqLen,
        FILE   *outputI,
-       FILE   *outputC,
+       FILE   *UNUSED(outputC),
        int32   readLen,
        int32   numReads) {
   char   *s1 = new char [readLen + 1];
@@ -660,7 +660,7 @@ void
 makeCC(char   *seq,
        int32   seqLen,
        FILE   *outputI,
-       FILE   *outputC,
+       FILE   *UNUSED(outputC),
        int32   readLen,
        int32   numReads,
        int32   ccJunkSize,
