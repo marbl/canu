@@ -390,7 +390,7 @@ sub makeAbsolute ($) {
         $val =~ s/\\\$/\$/g;
         $val =~ s/\$/\\\$/g;
 
-        addCommandLineOption("\"$var=$val\"");
+        addCommandLineOption("'$var=$val'");
     }
 }
 

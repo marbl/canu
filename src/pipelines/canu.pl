@@ -130,12 +130,12 @@ while (scalar(@ARGV)) {
     if      ($arg =~ m/^-d/) {
         $wrk = shift @ARGV;
         $wrk = "$ENV{'PWD'}/$wrk" if ($wrk !~ m!^/!);
-        addCommandLineOption("-d \"$wrk\"");
+        addCommandLineOption("-d '$wrk'");
         setGlobal("onExitDir", $wrk);
 
     } elsif ($arg eq "-p") {
         $asm = shift @ARGV;
-        addCommandLineOption("-p \"$asm\"");
+        addCommandLineOption("-p '$asm'");
         setGlobal("onExitNam", $asm);
 
     } elsif ($arg eq "-s") {
@@ -144,7 +144,7 @@ while (scalar(@ARGV)) {
 
         push @specFiles, $spec;
 
-        addCommandLineOption("-s \"$spec\"");
+        addCommandLineOption("-s '$spec'");
 
     } elsif ($arg eq "-correct") {
         $mode = $step = "correct";
@@ -174,7 +174,7 @@ while (scalar(@ARGV)) {
             $file = "$ENV{'PWD'}/$file"  if ($file !~ m!^/!);
 
             push @inputFiles, "$arg\0$file";
-            addCommandLineOption("$arg \"$file\"");
+            addCommandLineOption("$arg '$file'");
         }
 
     } elsif (-e $arg) {
@@ -182,7 +182,7 @@ while (scalar(@ARGV)) {
 
     } elsif ($arg =~ m/=/) {
         push @specOpts, $arg;
-        addCommandLineOption("\"$arg\"");
+        addCommandLineOption("'$arg'");
 
     } else {
         addCommandLineError("ERROR:  Invalid command line option '$arg'.  Did you forget quotes around options with spaces?\n");
