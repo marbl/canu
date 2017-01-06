@@ -261,6 +261,7 @@ typedef enum {
     char* edlibAlignmentToCigar(unsigned char* alignment, int alignmentLength,
                                 EdlibCigarFormat cigarFormat);
 
+    void edlibAlignmentToStrings(const unsigned char* alignment, int alignmentLength, int tgtStart, int tgtEnd, int qryStart, int qryEnd, const char *tgt, const char *qry, char *tgt_aln_str, char *qry_aln_str);
 
 
 #ifdef __cplusplus

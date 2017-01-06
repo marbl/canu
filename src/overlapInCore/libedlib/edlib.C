@@ -320,6 +320,28 @@ char* edlibAlignmentToCigar(unsigned char* alignment, int alignmentLength,
     return cigar_;
 }
 
+void edlibAlignmentToStrings(const unsigned char* alignment, int alignmentLength, int tgtStart, int tgtEnd, int qryStart, int qryEnd, const char *tgt, const char *qry, char *tgt_aln_str, char *qry_aln_str) {
+   for (int a = 0, qryPos=qryStart, tgtPos=tgtStart; a < alignmentLength; a++) {
+      assert(qryPos <= qryEnd && tgtPos <= tgtEnd);
+      if (alignment[a] == EDLIB_EDOP_MATCH || alignment[a] == EDLIB_EDOP_MISMATCH) {  // match or mismatch
+         qry_aln_str[a] = qry[qryPos];
+         tgt_aln_str[a] = tgt[tgtPos];
+         qryPos++;
+         tgtPos++;
+      } else if (alignment[a] == EDLIB_EDOP_INSERT) { // insertion in target
+         tgt_aln_str[a] = '-';
+         qry_aln_str[a] = qry[qryPos];
+         qryPos++;
+      } else if (alignment[a] == EDLIB_EDOP_DELETE) { // insertion in query
+         tgt_aln_str[a] = tgt[tgtPos];
+         qry_aln_str[a] = '-';
+         tgtPos++;
+      }
+   }
+   qry_aln_str[alignmentLength] = tgt_aln_str[alignmentLength] = '\0';
+   assert(strlen(qry_aln_str) == alignmentLength && strlen(tgt_aln_str) == alignmentLength);
+}
+
 /**
  * Build Peq table for given query and alphabet.
  * Peq is table of dimensions alphabetLength+1 x maxNumBlocks.

@@ -48,7 +48,6 @@ SOURCES      := AS_global.C \
                 AS_UTL/kMer.C \
                 \
                 falcon_sense/libfalcon/falcon.C \
-                falcon_sense/libfalcon/kmer_lookup.C \
                 \
                 stores/gkStore.C \
                 stores/gkStoreEncode.C \

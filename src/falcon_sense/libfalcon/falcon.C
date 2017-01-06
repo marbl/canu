@@ -79,6 +79,7 @@
  */
 
 #include "falcon.H"
+#include "edlib.H"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -89,12 +90,14 @@
 
 namespace FConsensus {
 
+#undef DEBUG
+
 typedef struct {
     seq_coor_t t_pos;
-    uint8 delta;
+    uint16 delta;
     char q_base;
     seq_coor_t p_t_pos;   // the tag position of the previous base
-    uint8 p_delta; // the tag delta of the previous base
+    uint16 p_delta; // the tag delta of the previous base
     char p_q_base;        // the previous base
     uint32 q_id;
 } align_tag_t;
@@ -109,13 +112,13 @@ typedef struct {
     uint16 size;
     uint16 n_link;
     seq_coor_t * p_t_pos;   // the tag position of the previous base
-    uint8 * p_delta; // the tag delta of the previous base
+    uint16 * p_delta; // the tag delta of the previous base
     char * p_q_base;        // the previous base
     uint16 * link_count;
     uint16 count;
     seq_coor_t best_p_t_pos;
-    uint8 best_p_delta;
-    uint8 best_p_q_base; // encoded base
+    uint16 best_p_delta;
+    uint16 best_p_q_base; // encoded base
     double score;
 } align_tag_col_t;
 
@@ -124,8 +127,8 @@ typedef struct {
 } msa_base_group_t;
 
 typedef struct {
-    uint8 size;
-    uint8 max_delta;
+    uint16 size;
+    uint16 max_delta;
     msa_base_group_t * delta;
 } msa_delta_group_t;
 
@@ -136,7 +139,7 @@ align_tags_t * get_align_tags( char * aln_q_seq,
                                seq_coor_t aln_seq_len,
                                aln_range * range,
                                uint32 q_id,
-                               seq_coor_t t_offset) {
+                               seq_coor_t t_offset, int a_len, int b_len) {
     char p_q_base;
     align_tags_t * tags;
     seq_coor_t i, j, jj, k, p_j, p_jj;
@@ -160,10 +163,13 @@ align_tags_t * get_align_tags( char * aln_q_seq,
             j ++;
             jj = 0;
         }
-        //printf("t %d %d %d %c %c\n", q_id, j, jj, aln_t_seq[k], aln_q_seq[k]);
+        assert (i >= 0 && i < a_len && j >=0 && j < b_len);
+        #ifdef DEBUG
+        fprintf(stderr, "t %d %d %d %c %c\n", q_id, j, jj, aln_t_seq[k], aln_q_seq[k]);
+        #endif
 
 
-        if ( j + t_offset >= 0 && jj < uint8MAX && p_jj < uint8MAX) {
+        if ( j + t_offset >= 0 && jj < uint16MAX && p_jj < uint16MAX) {
             (tags->align_tags[k]).t_pos = j + t_offset;
             (tags->align_tags[k]).delta = jj;
             (tags->align_tags[k]).p_t_pos = p_j + t_offset;
@@ -181,7 +187,7 @@ align_tags_t * get_align_tags( char * aln_q_seq,
     //k = aln_seq_len;
     tags->len = k;
     (tags->align_tags[k]).t_pos = uint32MAX;
-    (tags->align_tags[k]).delta = uint8MAX;
+    (tags->align_tags[k]).delta = uint16MAX;
     (tags->align_tags[k]).q_base = '.';
     (tags->align_tags[k]).q_id = uint32MAX;
     return tags;
@@ -195,14 +201,14 @@ void free_align_tags( align_tags_t * tags) {
 
 void allocate_aln_col( align_tag_col_t * col) {
     col->p_t_pos = ( seq_coor_t * ) calloc(col->size, sizeof( seq_coor_t ));
-    col->p_delta = ( uint8 * ) calloc(col->size, sizeof( uint8 ));
+    col->p_delta = ( uint16 * ) calloc(col->size, sizeof( uint16 ));
     col->p_q_base = ( char * )calloc(col->size, sizeof( char ));
     col->link_count = ( uint16 * ) calloc(col->size, sizeof( uint16 ));
 }
 
 void realloc_aln_col( align_tag_col_t * col ) {
     col->p_t_pos = (seq_coor_t *) realloc( col->p_t_pos, (col->size) * sizeof( seq_coor_t ));
-    col->p_delta = ( uint8 *)  realloc( col->p_delta, (col->size) * sizeof( uint8 ));
+    col->p_delta = ( uint16 *)  realloc( col->p_delta, (col->size) * sizeof( uint16 ));
     col->p_q_base = (char *) realloc( col->p_q_base, (col->size) * sizeof( char ));
     col->link_count = ( uint16 *) realloc( col->link_count, (col->size) * sizeof( uint16 ));
 }
@@ -255,7 +261,7 @@ void free_delta_group( msa_delta_group_t * g) {
     free(g->delta);
 }
 
-void update_col( align_tag_col_t * col, seq_coor_t p_t_pos, uint8 p_delta, char p_q_base) {
+void update_col( align_tag_col_t * col, seq_coor_t p_t_pos, uint16 p_delta, char p_q_base) {
     int updated = 0;
     int kk;
     col->count += 1;
@@ -318,9 +324,9 @@ void clean_msa_working_space( msa_pos_t * msa_array, uint32 max_t_len) {
                 */
                 col->n_link = 0;
                 col->count = 0;
-                col->best_p_t_pos = 0;
-                col->best_p_delta = 0;
-                col->best_p_q_base = 0;
+                col->best_p_t_pos = -1;
+                col->best_p_delta = -1;
+                col->best_p_q_base = -1;
                 col->score = 0;
             }
         }
@@ -340,7 +346,6 @@ consensus_data * get_cns_from_align_tags( align_tags_t ** tag_seqs,
     seq_coor_t t_pos = 0;
     seq_coor_t t_count = 0;
     uint32 * coverage;
-    uint32 * local_nbase;
 
     consensus_data * consensus;
     align_tag_t * c_tag;
@@ -364,7 +369,6 @@ consensus_data * get_cns_from_align_tags( align_tags_t ** tag_seqs,
     }
 
     coverage = (uint32 *)calloc( t_len, sizeof(uint32) );
-    local_nbase = (uint32 *)calloc( t_len, sizeof(uint32) );
 
 #ifndef STATIC_ALLOCATE
 
@@ -382,6 +386,7 @@ consensus_data * get_cns_from_align_tags( align_tags_t ** tag_seqs,
 
     if ( msa_array == NULL) {
         msa_array = get_msa_working_sapce( max_len );
+        clean_msa_working_space(msa_array, max_len);
     }
 
     assert(t_len < max_len);
@@ -390,7 +395,9 @@ consensus_data * get_cns_from_align_tags( align_tags_t ** tag_seqs,
 
 
     // loop through every alignment
-    //printf("XX %d\n", n_tag_seqs);
+    #ifdef DEBUG
+    fprintf(stderr, "XX %d\n", n_tag_seqs);
+    #endif
     for (i = 0; i < n_tag_seqs; i++) {
 
         // for each alignment position, insert the alignment tag to msa_array
@@ -402,8 +409,13 @@ consensus_data * get_cns_from_align_tags( align_tags_t ** tag_seqs,
                 t_pos = c_tag->t_pos;
                 coverage[ t_pos ] ++;
             }
+            #ifdef DEBUG
+            fprintf(stderr, "Processing position %d in sequence %d (in msa it is column %d with cov %d) with delta %d and current size is %d\n", j, i, t_pos, coverage[t_pos], delta, msa_array[t_pos]->size);
+            #endif
+
             // Assume t_pos was set on earlier iteration.
             // (Otherwise, use its initial value, which might be an error. ~cd)
+            assert(delta < uint16MAX);
             if (delta > msa_array[t_pos]->max_delta) {
                 msa_array[t_pos]->max_delta = delta;
                 if (msa_array[t_pos]->max_delta + 4 > msa_array[t_pos]->size ) {
@@ -421,8 +433,11 @@ consensus_data * get_cns_from_align_tags( align_tags_t ** tag_seqs,
                 default : base = 4; break;
             }
             // Note: On bad input, base may be -1.
+            assert(c_tag->p_t_pos >= 0 || j == 0);
             update_col( &(msa_array[t_pos]->delta[delta].base[base]), c_tag->p_t_pos, c_tag->p_delta, c_tag->p_q_base);
-            local_nbase[ t_pos ] ++;
+            #ifdef DEBUG
+            fprintf(stderr, "Updating column from seq %d at position %d in column %d base pos %d base %d to be %c and max is %d\n", i, j, t_pos, base, c_tag->p_t_pos, c_tag->p_q_base, msa_array[t_pos]->max_delta);
+            #endif
         }
     }
 
@@ -448,7 +463,9 @@ consensus_data * get_cns_from_align_tags( align_tags_t ** tag_seqs,
         g_best_score = -1;
 
         for (i = 0; i < t_len; i++) {  //loop through every template base
-            //printf("max delta: %d %d\n", i, msa_array[i]->max_delta);
+            #ifdef DEBUG
+            fprintf(stderr, "max delta: %d %d\n", i, msa_array[i]->max_delta);
+            #endif
             for (j = 0; j <= msa_array[i]->max_delta; j++) { // loop through every delta position
                 for (kk = 0; kk < 5; kk++) {  // loop through diff bases of the same delta posiiton
                     /*
@@ -465,6 +482,10 @@ consensus_data * get_cns_from_align_tags( align_tags_t ** tag_seqs,
                     best_i = -1;
                     best_j = -1;
                     best_b = -1;
+
+                    #ifdef DEBUG
+                    fprintf(stderr, "Processing consensus template %d which as %d delta and on base %d i pulled up col %d with %d links and best %d %d %d\n", i, j, kk, aln_col, aln_col->n_link, aln_col->best_p_t_pos, aln_col->best_p_delta, aln_col->best_p_q_base);
+                    #endif
 
                     for (ck = 0; ck < aln_col->n_link; ck++) { // loop through differnt link to previous column
                         int pi;
@@ -498,14 +519,14 @@ consensus_data * get_cns_from_align_tags( align_tags_t ** tag_seqs,
                             best_ck = ck;
                             // best_mark = '*';
                         }
-                        /*
-                        printf("X %d %d %d %c %d %d %d %c %d %lf %c\n", coverage[i], i, j, base, aln_col->count,
+                        #ifdef DEBUG 
+                        fprintf(stderr, "X %d %d %d %d %d %d %c %d %lf\n", coverage[i], i, j, aln_col->count,
                                                               aln_col->p_t_pos[ck],
                                                               aln_col->p_delta[ck],
                                                               aln_col->p_q_base[ck],
                                                               aln_col->link_count[ck],
-                                                              score, best_mark);
-                        */
+                                                              score);
+                        #endif
                     }
                     aln_col->score = best_score;
                     if (best_score > g_best_score) {
@@ -513,7 +534,9 @@ consensus_data * get_cns_from_align_tags( align_tags_t ** tag_seqs,
                         g_best_aln_col = aln_col;
                         g_best_ck = best_ck;
                         g_best_t_pos = i;
-                        //printf("GB %d %d %d %d\n", i, j, ck, g_best_aln_col);
+                        #ifdef DEBUG
+                        fprintf(stderr, "GB %d %d %d %d\n", i, j, ck, g_best_aln_col);
+                        #endif
                     }
                 }
             }
@@ -569,7 +592,9 @@ consensus_data * get_cns_from_align_tags( align_tags_t ** tag_seqs,
         if (bb != '-') {
             cns_str[index] = bb;
             eqv[index] = (int) score0 - (int) g_best_aln_col->score;
-            //printf("C %d %d %c %lf %d %d\n", i, index, bb, g_best_aln_col->score, coverage[i], eqv[index] );
+            #ifdef DEBUG
+            fprintf(stderr, "C %d %d %c %lf %d %d\n", i, index, bb, g_best_aln_col->score, coverage[i], eqv[index] );
+            #endif
             index ++;
         }
     }
@@ -600,7 +625,6 @@ consensus_data * get_cns_from_align_tags( align_tags_t ** tag_seqs,
 #endif
 
     free(coverage);
-    free(local_nbase);
     return consensus;
 }
 
@@ -609,9 +633,6 @@ consensus_data * generate_consensus( vector<string> input_seq,
                            uint32 K,
                            double min_idt, uint32 min_len, uint32 max_len) {
     uint32 seq_count;
-    kmer_lookup * lk_ptr;
-    seq_array sa_ptr;
-    seq_addr_array sda_ptr;
     align_tags_t ** tags_list;
     consensus_data * consensus;
     double max_diff;
@@ -621,60 +642,61 @@ consensus_data * generate_consensus( vector<string> input_seq,
     fflush(stdout);
 
     tags_list = (align_tags_t **)calloc( seq_count, sizeof(align_tags_t*) );
-    lk_ptr = allocate_kmer_lookup( 1 << (K * 2) );
-    sa_ptr = allocate_seq( (seq_coor_t) input_seq[0].length() );
-    sda_ptr = allocate_seq_addr( (seq_coor_t) input_seq[0].length() );
-    add_sequence( 0, K, input_seq[0].c_str(), input_seq[0].length(), sda_ptr, sa_ptr, lk_ptr);
-
 #pragma omp parallel for schedule(dynamic)
     for (uint32 j=0; j < seq_count; j++) {
-#define MAX_UNMASKED_LENGTH 500000
-#define MAX_KMER_REPEAT     1000
-        if (input_seq[j].length() > MAX_UNMASKED_LENGTH) {
-            mask_k_mer(1 << (K*2), lk_ptr, MAX_KMER_REPEAT);
-        }
-        kmer_match *kmer_match_ptr = find_kmer_pos_for_seq(input_seq[j].c_str(), input_seq[j].length(), K, sda_ptr, lk_ptr);
-#define INDEL_ALLOWENCE_0 6
+       int tolerance =  (int)ceil((double)min(input_seq[j].length(), input_seq[0].length())*max_diff*1.1);
+       EdlibAlignResult align = edlibAlign(input_seq[j].c_str(), input_seq[j].size()-1, input_seq[0].c_str(), input_seq[0].size()-1, edlibNewAlignConfig(tolerance, EDLIB_MODE_HW, EDLIB_TASK_PATH));
+       if (align.numLocations >= 1 && align.endLocations[0] - align.startLocations[0] > min_len && ((float)align.editDistance / (align.endLocations[0]-align.startLocations[0]) < max_diff)) {
+          aln_range arange;
+          arange.s1 = 0;
+          arange.e1 = input_seq[j].length()-1;
+          arange.s2 = align.startLocations[0];
+          arange.e2 = align.endLocations[0];
+          #ifdef DEBUG
+          fprintf(stderr, "Found alignment for seq %d from %d - %d to %d - %d the dist  %d length %d\n", j, arange.s1, arange.e1, arange.s2, arange.e2, align.editDistance, align.alignmentLength);
+          #endif
 
-        aln_range *arange = find_best_aln_range(kmer_match_ptr, K, K * INDEL_ALLOWENCE_0, 5);  // narrow band to avoid aligning through big indels
+          // convert edlib to expected
+          char *tgt_aln_str = (char *)calloc( align.alignmentLength+1, sizeof(char) );
+          char *qry_aln_str = (char *)calloc( align.alignmentLength+1, sizeof(char) );
+          edlibAlignmentToStrings(align.alignment, align.alignmentLength, arange.s2, arange.e2+1, arange.s1, arange.e1, input_seq[0].c_str(), input_seq[j].c_str(), tgt_aln_str, qry_aln_str);
 
-        //fprintf(stderr, "1:read %d %ld %ld %ld %ld\n", j, arange->s1, arange->e1, arange->s2, arange->e2);
+          // strip leading/trailing gaps on target
+          uint32_t first_pos = 0;
+          for (int i = 0; i < align.alignmentLength; i++) {
+             if (tgt_aln_str[i] != '-') {
+                first_pos=i;
+                break;
+             }
+          }
+          uint32_t last_pos = align.alignmentLength;
+          for (int i = align.alignmentLength-1; i >= 0; i--) {
+             if (tgt_aln_str[i] != '-') {
+                last_pos=i+1;
+                break;
+             }
+          }
+          arange.s1+= first_pos;
+          arange.e1-= (align.alignmentLength-last_pos);
+          arange.e2++;
+          qry_aln_str[last_pos]='\0';
+          tgt_aln_str[last_pos]='\0';
 
-        //arange = find_best_aln_range2(kmer_match_ptr, K, K * INDEL_ALLOWENCE_0, 5);  // narrow band to avoid aligning through big indels
+          #ifdef DEBUG
+          fprintf(stderr, "Final positions to be %d %d for str %d and %d %d for str %d adjst %d %d %d\n", arange.s1, arange.e1, input_seq[j].length(), arange.s2, arange.e2, input_seq[0].length(), first_pos, last_pos, last_pos-first_pos);
+          fprintf(stderr, "Tgt string is %s %d\n", tgt_aln_str+first_pos, strlen(tgt_aln_str+first_pos));
+          fprintf(stderr, "Qry string is %s %d\n", qry_aln_str+first_pos, strlen(qry_aln_str+first_pos));
+          #endif
+          assert(arange.s1 >= 0 && arange.s2 >= 0 && arange.e1 <= input_seq[j].length() && arange.e2 <= input_seq[0].length());
+          tags_list[j] = get_align_tags(qry_aln_str+first_pos, tgt_aln_str+first_pos, last_pos-first_pos, &arange, j, 0, input_seq[j].length(), input_seq[0].length());
+          free(tgt_aln_str);
+          free(qry_aln_str);
+       }
+       edlibFreeAlignResult(align);
 
-        //printf("2:%ld %ld %ld %ld\n\n", arange->s1, arange->e1, arange->s2, arange->e2);
-
-#define INDEL_ALLOWENCE_1 0.10
-        if (arange->e1 - arange->s1 < 100 || arange->e2 - arange->s2 < 100 ||
-            abs( (arange->e1 - arange->s1 ) - (arange->e2 - arange->s2) ) >
-                   (int) (0.5 * INDEL_ALLOWENCE_1 * (arange->e1 - arange->s1 + arange->e2 - arange->s2))) {
-            free_kmer_match( kmer_match_ptr);
-            free_aln_range(arange);
-            continue;
-        }
-
-
-#define INDEL_ALLOWENCE_2 150
-        NDalignment::NDalignResult aln;
-        align(input_seq[j].c_str()+arange->s1, arange->e1 - arange->s1 ,
-                    input_seq[0].c_str()+arange->s2, arange->e2 - arange->s2 ,
-                    INDEL_ALLOWENCE_2, 1, aln);
-        if (aln._size > min_len && ((double) aln._dist / (double) aln._size) < max_diff) {
-            tags_list[j] = get_align_tags( aln._qry_aln_str,
-                                                           aln._tgt_aln_str,
-                                                           aln._size,
-                                                           arange, j,
-                                                           0);
-           //fprintf(stderr, "Aligned seq %d  to positions %d - %d and %d - %d with %d diffs size %d\n", j, aln._qry_bgn, aln._qry_end, aln._tgt_bgn, aln._tgt_end, aln._dist, aln._size);
-        }
-        free_aln_range(arange);
-        free_kmer_match( kmer_match_ptr);
     }
 
     consensus = get_cns_from_align_tags( tags_list, seq_count, input_seq[0].length(), min_cov, max_len);
-    free_seq_addr_array(sda_ptr);
-    free_seq_array(sa_ptr);
-    free_kmer_lookup(lk_ptr);
     for (int j=0; j < seq_count; j++)
         if (tags_list[j] != NULL)
            free_align_tags(tags_list[j]);

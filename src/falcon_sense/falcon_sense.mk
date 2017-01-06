@@ -10,7 +10,7 @@ endif
 TARGET   := falcon_sense
 SOURCES  := falcon_sense.C
 
-SRC_INCDIRS  := .. ../AS_UTL ../stores ../utgcns/libNDFalcon libfalcon
+SRC_INCDIRS  := .. ../AS_UTL ../stores ../overlapInCore/libedlib libfalcon
 
 TGT_LDFLAGS := -L${TARGET_DIR}
 TGT_LDLIBS  := -lcanu
