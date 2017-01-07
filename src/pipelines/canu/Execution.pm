@@ -998,7 +998,11 @@ sub submitOrRunParallelJob ($$$$$@) {
 
                 if (uc(getGlobal("gridEngine")) eq "SGE") {
                     #  Your job 148364 ("canu_asm") has been submitted
-                    if (m/Your\sjob\s\d\s/) {
+                    if (m/Your\sjob\s(\d+)\s/) {
+                        $jobName = $1;
+                    }
+                    #  Your job-array 148678.1500-1534:1 ("canu_asm") has been submitted
+                    if (m/Your\sjob-array\s(\d+).\d+-\d+:\d\s/) {
                         $jobName = $1;
                     }
                 }
@@ -1030,7 +1034,7 @@ sub submitOrRunParallelJob ($$$$$@) {
             }
             close(F);
 
-            print STDERR "-- Submitted array job '$jobName' from '$cmd.sh'\n";
+            print STDERR "-- '$cmd.sh' -> job $jobName tasks $j.\n";
 
             push @jobsSubmitted, $jobName;
         }
@@ -1075,17 +1079,18 @@ sub submitOrRunParallelJob ($$$$$@) {
         (getGlobal("useGrid$jobType") eq "1") &&
         (! exists($ENV{getGlobal("gridEngineJobID")}))) {
         print STDERR "\n";
-        print STDERR "Please submit the following jobs to the grid for execution using $mem gigabytes memory and $thr threads:\n";
+        print STDERR "Please run the following commands to submit jobs to the grid for execution using $mem gigabytes memory and $thr threads:\n";
         print STDERR "\n";
 
         foreach my $j (@jobs) {
             my ($cmd, $jobName) = buildGridJob($asm, $jobType, $path, $script, $mem, $thr, $dsk, $j, undef);
 
-            print $cmd;
+            print "  $cmd.sh\n";
         }
 
         print STDERR "\n";
         print STDERR "When all jobs complete, restart canu as before.\n";
+        print STDERR "\n";
 
         exit(0);
     }
