@@ -65,9 +65,6 @@ sub configureSGE () {
     close(F);
 
     setGlobalIfUndef("gridEngineSubmitCommand",              "qsub");
-    setGlobalIfUndef("gridEngineHoldOption",                 "-hold_jid \"WAIT_TAG\"");
-    setGlobalIfUndef("gridEngineHoldOptionNoArray",          undef);
-    setGlobalIfUndef("gridEngineSyncOption",                 "-sync y");
     setGlobalIfUndef("gridEngineNameOption",                 "-cwd -N");
     setGlobalIfUndef("gridEngineArrayOption",                "-t ARRAY_JOBS");
     setGlobalIfUndef("gridEngineArrayName",                  "ARRAY_NAME");

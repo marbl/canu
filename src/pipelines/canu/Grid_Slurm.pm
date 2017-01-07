@@ -76,9 +76,6 @@ sub configureSlurm () {
     close(F);
 
     setGlobalIfUndef("gridEngineSubmitCommand",              "sbatch");
-    setGlobalIfUndef("gridEngineHoldOption",                 "--depend=afterany:WAIT_TAG");
-    setGlobalIfUndef("gridEngineHoldOptionNoArray",          "--depend=afterany:WAIT_TAG");
-    setGlobalIfUndef("gridEngineSyncOption",                 "");                                          ## TODO: SLURM may not support w/out wrapper; See LSF bsub manpage to compare
     setGlobalIfUndef("gridEngineNameOption",                 "-D `pwd` -J");
     setGlobalIfUndef("gridEngineArrayOption",                "-a ARRAY_JOBS");
     setGlobalIfUndef("gridEngineArrayName",                  "ARRAY_NAME");

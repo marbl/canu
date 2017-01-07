@@ -58,9 +58,6 @@ sub configureLSF () {
     return   if (uc(getGlobal("gridEngine")) ne "LSF");
 
     setGlobalIfUndef("gridEngineSubmitCommand",              "bsub");
-    setGlobalIfUndef("gridEngineHoldOption",                 "-w \"ended\(\"WAIT_TAG\"\)\"");
-    setGlobalIfUndef("gridEngineHoldOptionNoArray",          "-w \"done\(\"WAIT_TAG\"\)\"");
-    setGlobalIfUndef("gridEngineSyncOption",                 "-K");
     setGlobalIfUndef("gridEngineNameOption",                 "-J");
     setGlobalIfUndef("gridEngineArrayOption",                "");
     setGlobalIfUndef("gridEngineArrayName",                  "ARRAY_NAME\[ARRAY_JOBS\]");

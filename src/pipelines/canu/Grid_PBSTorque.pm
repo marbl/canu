@@ -159,10 +159,6 @@ sub configurePBSTorque () {
     my $isPro = (uc(getGlobal("gridEngine")) eq "PBSPRO");
 
     setGlobalIfUndef("gridEngineSubmitCommand",              "qsub");
-    setGlobalIfUndef("gridEngineHoldOption",                 "-W depend=afteranyarray:WAIT_TAG")   if ($isPro == 0);
-    setGlobalIfUndef("gridEngineHoldOption",                 "-W depend=afterany:WAIT_TAG")        if ($isPro == 1);
-    setGlobalIfUndef("gridEngineHoldOptionNoArray",          "-W depend=afterany:WAIT_TAG");
-    setGlobalIfUndef("gridEngineSyncOption",                 "");
     setGlobalIfUndef("gridEngineNameOption",                 "-d `pwd` -N")    if ($isPro == 0);
     setGlobalIfUndef("gridEngineNameOption",                 "-N")             if ($isPro == 1);
     setGlobalIfUndef("gridEngineArrayOption",                "-t ARRAY_JOBS")  if ($isPro == 0);

@@ -769,9 +769,6 @@ sub setDefaults () {
 
     $global{"gridEngine"}                           = undef;
     $global{"gridEngineSubmitCommand"}              = undef;
-    $global{"gridEngineHoldOption"}                 = undef;
-    $global{"gridEngineHoldOptionNoArray"}          = undef;
-    $global{"gridEngineSyncOption"}                 = undef;
     $global{"gridEngineNameOption"}                 = undef;
     $global{"gridEngineArrayOption"}                = undef;
     $global{"gridEngineArrayName"}                  = undef;

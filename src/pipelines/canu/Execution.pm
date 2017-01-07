@@ -529,19 +529,19 @@ sub makeUniqueJobName ($$) {
 sub submitScript ($$$) {
     my $wrk         = shift @_;
     my $asm         = shift @_;
-    my $jobToWaitOn = shift @_;
+    my $jobHold     = shift @_;
 
     return   if (getGlobal("useGrid")       ne "1");      #  If not requested to run on the grid,
     return   if (getGlobal("gridEngine")    eq undef);    #  or can't run on the grid, don't run on the grid.
 
-    #  If no job to wait on, and we are already on the grid, do NOT resubmit ourself.
+    #  If no job hold, and we are already on the grid, do NOT resubmit ourself.
     #
     #  When the user launches canu on the head node, a call to submitScript() is made to launch canu
     #  under grid control.  That results in a restart of canu, and another call to submitScript(),
     #  but this time, the envorinment variable is set, we we can skip the resubmission, and continue
     #  with canu execution.
 
-    return   if (($jobToWaitOn eq undef) && (exists($ENV{getGlobal("gridEngineJobID")})));
+    return   if (($jobHold eq undef) && (exists($ENV{getGlobal("gridEngineJobID")})));
 
     #  Find the next available output file.
 
@@ -607,7 +607,9 @@ sub submitScript ($$$) {
     $memOption = buildMemoryOption($mem, 1);
     $thrOption = buildThreadOption($thr);
 
-    $gridOpts  = $memOption                           if (defined($memOption));
+    $gridOpts  = $jobHold;
+    $gridOpts .= " "                                  if (defined($gridOpts));
+    $gridOpts .= $memOption                           if (defined($memOption));
     $gridOpts .= " "                                  if (defined($gridOpts));
     $gridOpts .= $thrOption                           if (defined($thrOption));
     $gridOpts .= " "                                  if (defined($gridOpts));
@@ -615,54 +617,11 @@ sub submitScript ($$$) {
     $gridOpts .= " "                                  if (defined($gridOpts));
     $gridOpts .= getGlobal("gridOptionsExecutive")    if (defined(getGlobal("gridOptionsExecutive")));
 
-    #  If the jobToWaitOn is defined, make the script wait for that to complete.  LSF might need to
-    #  query jobs in the queue and figure out the job ID (or IDs) for the jobToWaitOn.  Reading LSF
-    #  docs online (for bsub.1) claim that we can still use jobToWaitOn.
-
-    if (defined($jobToWaitOn)) {
-        my $hold = getGlobal("gridEngineHoldOption");
-
-        # most grid engines don't understand job names to hold on, only IDs
-        if ((uc(getGlobal("gridEngine")) eq "PBS") ||
-            (uc(getGlobal("gridEngine")) eq "PBSPRO") ||
-            (uc(getGlobal("gridEngine")) eq "SLURM")){
-           my $tcmd = getGlobal("gridEngineNameToJobIDCommand");
-           $tcmd =~ s/WAIT_TAG/$jobToWaitOn/g;
-           my $propJobCount = `$tcmd |wc -l`;
-           chomp $propJobCount;
-           if ($propJobCount == 0) {
-              $tcmd = getGlobal("gridEngineNameToJobIDCommandNoArray");
-              $tcmd =~ s/WAIT_TAG/$jobToWaitOn/g;
-              $hold = getGlobal("gridEngineHoldOptionNoArray");
-              $propJobCount = `$tcmd |wc -l`;
-           }
-           if ($propJobCount != 1) {
-              print STDERR "Warning: multiple IDs for job $jobToWaitOn got $propJobCount and should have been 1.\n";
-           }
-           my $jobID = undef;
-           open(F,  "$tcmd |awk '{print \$1}' |");
-           while (<F>) {
-              chomp $_;
-              if (defined($jobID)) {
-                 $jobID = "$jobID:$_";
-              } else {
-                 $jobID = $_;
-              }
-           }
-           close(F);
-           $hold =~ s/WAIT_TAG/$jobID/g;
-        } else {
-           $hold =~ s/WAIT_TAG/$jobToWaitOn/;
-        }
-        $gridOpts .= " " . $hold;
-    }
-
-
     my $submitCommand        = getGlobal("gridEngineSubmitCommand");
     my $nameOption           = getGlobal("gridEngineNameOption");
     my $outputOption         = getGlobal("gridEngineOutputOption");
 
-    my $qcmd = "$submitCommand $gridOpts $nameOption \"$jobName\" $outputOption $output $script";
+    my $qcmd = "$submitCommand $gridOpts $nameOption '$jobName' $outputOption $output $script";
 
     runCommand($wrk, $qcmd) and caFailure("Failed to submit script", undef);
 
@@ -844,25 +803,26 @@ sub buildGridJob ($$$$$$$$$) {
 
     $opts =~ s/\s+$//;
 
-    #  Build the command line.
+    #  Build and save the command line.  Return the command PREFIX (we'll be adding .sh and .out as
+    #  appropriate), and the job name it will be submitted with (which isn't expected to be used).
 
     my $cmd;
-    $cmd  = "  $submitCommand \\\n";
-    $cmd .= "    $opts \\\n"  if (defined($opts));
-    $cmd .= "    $nameOption \"$jobName\" \\\n";
-    $cmd .= "    $arrayOpt \\\n";
-    $cmd .= "    $outputOption $outName \\\n";
-    $cmd .= "    $path/$script.sh $arrayOff\n";
-
-    #  Save it, just because.
 
     open(F, "> $path/$script.jobSubmit.sh") or die;
-    print F $cmd;
+    print F "#!/bin/sh\n";
+    print F "\n";
+    print F "$submitCommand \\\n";
+    print F "  $opts \\\n"  if (defined($opts));
+    print F "  $nameOption \"$jobName\" \\\n";
+    print F "  $arrayOpt \\\n";
+    print F "  $outputOption $outName \\\n";
+    print F "  $path/$script.sh $arrayOff \\\n";
+    print F "> $path/$script.jobSubmit.out 2>&1\n";
     close(F);
 
-    #  Return the command and the job name it will be submitted with.
+    chmod 0755, "$path/$script.jobSubmit.sh";
 
-    return($cmd, $jobName);
+    return("$path/$script.jobSubmit", $jobName);
 }
 
 
@@ -1023,16 +983,85 @@ sub submitOrRunParallelJob ($$$$$@) {
         (getGlobal("useGrid") eq "1") &&
         (getGlobal("useGrid$jobType") eq "1") &&
         (exists($ENV{getGlobal("gridEngineJobID")}))) {
-        my $cmd;
-        my $jobName;
+        my @jobsSubmitted;
+
+        print STDERR "--\n";
 
         foreach my $j (@jobs) {
-            ($cmd, $jobName) = buildGridJob($asm, $jobType, $path, $script, $mem, $thr, $dsk, $j, undef);
+            my ($cmd, $jobName) = buildGridJob($asm, $jobType, $path, $script, $mem, $thr, $dsk, $j, undef);
 
-            runCommand($path, $cmd) and caFailure("Failed to submit batch jobs", undef);
+            runCommandSilently($path, "$cmd.sh", 0) and caFailure("Failed to submit batch jobs", undef);
+
+            open(F, "< $cmd.out");
+            while (<F>) {
+                chomp;
+
+                if (uc(getGlobal("gridEngine")) eq "SGE") {
+                    #  Your job 148364 ("canu_asm") has been submitted
+                    if (m/Your\sjob\s\d\s/) {
+                        $jobName = $1;
+                    }
+                }
+
+                if (uc(getGlobal("gridEngine")) eq "LSF") {
+                    #  Job <759810> is submitted to queue <14>.
+                    if (m/Job\s<\d+>\sis/) {
+                        $jobName = "ended($1)";
+                    }
+                }
+
+                if (uc(getGlobal("gridEngine")) eq "PBS") {
+                    #  123456.qm2
+                    $jobName = $_;
+                }
+
+                if (uc(getGlobal("gridEngine")) eq "PBSPRO") {
+                    #  ??
+                    $jobName = $_;
+                }
+
+                if (uc(getGlobal("gridEngine")) eq "SLURM") {
+                    if (m/Submitted\sbatch\sjob\s(\d+)/) {
+                        $jobName = $1;
+                    } else {
+                        $jobName = $_;
+                    }
+                }
+            }
+            close(F);
+
+            print STDERR "-- Submitted array job '$jobName' from '$cmd.sh'\n";
+
+            push @jobsSubmitted, $jobName;
         }
 
-        submitScript($wrk, $asm, $jobName);
+        print STDERR "--\n";
+
+        #  All jobs submitted.  Make an option to hold the executive on those jobs.
+
+        my $jobHold;
+
+        if (uc(getGlobal("gridEngine")) eq "SGE") {
+            $jobHold = "-hold_jid " . join ",", @jobsSubmitted;
+        }
+
+        if (uc(getGlobal("gridEngine")) eq "LSF") {
+            $jobHold = "-w " . join "&&", @jobsSubmitted;
+        }
+
+        if (uc(getGlobal("gridEngine")) eq "PBS") {
+            $jobHold = "-W depend=afteranyarray:" . join ":", @jobsSubmitted;
+        }
+
+        if (uc(getGlobal("gridEngine")) eq "PBSPRO") {
+            $jobHold = "-W depend=afterany:" . join ":", @jobsSubmitted;
+        }
+
+        if (uc(getGlobal("gridEngine")) eq "SLURM") {
+            $jobHold = "--depend=afterany:" . join ":", @jobsSubmitted;
+        }
+
+        submitScript($wrk, $asm, $jobHold);
 
         #  submitScript() should never return.  If it does, then a parallel step was attempted too many time.
 
