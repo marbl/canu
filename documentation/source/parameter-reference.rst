@@ -10,8 +10,6 @@ To get the most up-to-date options, run
 
 The default values below will vary based on the input data type and genome size.
 
-.. _genomeSize:
-
 Global Options
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -20,8 +18,14 @@ The catch all category.
 errorRate <float=0.01>
   The expected error rate, as fraction error, in the corrected reads, set by default based on data type, typically not changed by the user.
 
-genomeSize <float=unset>
-  An estimate of the size of the genome.  Common suffices are allowed, for example, 3.7m or 2.8g. Required.
+.. _genomeSize:
+
+genomeSize <float=unset> *required*
+  An estimate of the size of the genome.  Common suffices are allowed, for example, 3.7m or 2.8g.
+
+  The genome size estimate is used to decide how many reads to correct (via the corOutCoverage_
+  parameter) and how sensitive the mhap overlapper should be (via the mhapSensitivity_
+  parameter). It also impacts some logging, in particular, reports of NG50 sizes.
 
 canuIteration <internal parameter, do not use>
   Which parallel iteration is being attempted.
@@ -31,12 +35,19 @@ canuIterationMax <integer=2>
   again.  This parameter controls how many times it tries.
 
 onSuccess <string=unset>
+  Execute the command supplied when Canu successfully completes an assembly.  The command will
+  execute in the <assembly-directory> (the -d option to canu) and will be supplied with the name of
+  the assembly (the -p option to canu) as its first and only parameter.
+
 onFailure <string=unset>
-  On success or failure, execute the command supplied.  The command will execute in the <assembly-directory> (the -d option to canu) and will be supplied with the name of the assembly (the -p option to canu) as its first and only parameter.
+  Execute the command supplied when Canu terminates abnormally.  The command will execute in the
+  <assembly-directory> (the -d option to canu) and will be supplied with the name of the assembly
+  (the -p option to canu) as its first and only parameter.
 
-  The 'onSuccess' command will run when canu finishes an assembly.
-
-  The 'onFailure' command will run when canu terminates abnormally.  There are two exceptions: if a 'spec' file cannot be read, and if canu tries to access an invalid parameter.  The former will be reported as a command line error, and canu will never start.  The latter should never occur (and, in fact, has never occurred) except when developers are developing the software.
+  There are two exceptions when the command is not executed: if a 'spec' file cannot be read, or if
+  canu tries to access an invalid parameter.  The former will be reported as a command line error,
+  and canu will never start.  The latter should never occur except when developers are developing
+  the software.
 
 
 Process Control
@@ -235,8 +246,12 @@ Overlapper Configuration, mhap Algorithm
   Compute actual alignments from mhap overlaps; 'raw' from mhap output;
   uses either obtErrorRate or ovlErrorRate, depending on which overlaps are computed)
 
+.. _mhapSensitivity:
+
 {prefix}MhapSensitivity <string="normal">
-  Coarse sensitivity level: 'normal' or 'high' or 'fast'.
+  Coarse sensitivity level: 'low', 'normal' or 'high'.  Based on read coverage (which is impacted by
+  genomeSize), 'low' sensitivity is used if coverage is more than 60; 'normal' is used if coverage
+  is between 60 and 30, and 'high' is used for coverages less than 30.
 
 Overlapper Configuration, mhap Algorithm
 ----------------------------------------
@@ -541,6 +556,7 @@ cnsMaxCoverage
 cnsErrorRate
   Possibly unused.
 
+.. _correction:
 
 Read Correction
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -580,6 +596,8 @@ corMaxEvidenceCoverageGlobal <string="1.0x">
   Limit reads used for correction to supporting at most this coverage; default: 1.0 * estimated coverage
 corMaxEvidenceCoverageLocal <string="2.0x">
   Limit reads being corrected to at most this much evidence coverage; default: 10 * estimated coverage
+
+.. _corOutCoverage:
 
 corOutCoverage <integer=40>
   Only correct the longest reads up to this coverage; default 40
