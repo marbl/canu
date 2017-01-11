@@ -42,9 +42,8 @@ using namespace std;
 
 int
 main(int argc, char **argv) {
-  bool            asCoords = true;
-
   char           *outName     = NULL;
+  char           *gkpName     = NULL;
 
   uint32          baseIDhash  = 0;
   uint32          numIDhash   = 0;
@@ -66,6 +65,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-q") == 0) {
       baseIDquery = atoi(argv[++arg]) - 1;
 
+    } else if (strcmp(argv[arg], "-G") == 0) {
+      gkpName = argv[++arg];
+
     } else if (AS_UTL_fileExists(argv[arg])) {
       files.push_back(argv[arg]);
 
@@ -77,7 +79,7 @@ main(int argc, char **argv) {
     arg++;
   }
 
-  if ((err) || (files.size() == 0)) {
+  if ((err) || (gkpName == NULL) || (outName == NULL) || (files.size() == 0)) {
     fprintf(stderr, "usage: %s [options] file.mhap[.gz]\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "  Converts mhap native output to ovb\n");
@@ -89,6 +91,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -q id          base id of query reads\n");
     fprintf(stderr, "                   (mhap output IDs 'num+1' and higher)\n");
 
+    if (gkpName == NULL)
+      fprintf(stderr, "ERROR:  no gkpStore (-G) supplied\n");
     if (files.size() == 0)
       fprintf(stderr, "ERROR:  no overlap files supplied\n");
 
@@ -97,7 +101,8 @@ main(int argc, char **argv) {
 
   char        *ovStr = new char [1024];
 
-  ovOverlap   ov(NULL);
+  gkStore    *gkpStore = gkStore::gkStore_open(gkpName);
+  ovOverlap   ov(gkpStore);
   ovFile      *of = new ovFile(NULL, outName, ovFileFullWrite);
 
   for (uint32 ff=0; ff<files.size(); ff++) {
@@ -144,6 +149,24 @@ main(int argc, char **argv) {
 
       ov.erate(atof(W[2]));
 
+      //  Check the overlap - the hangs must be less than the read length.
+
+      uint32  alen = gkpStore->gkStore_getRead(ov.a_iid)->gkRead_sequenceLength();
+      uint32  blen = gkpStore->gkStore_getRead(ov.b_iid)->gkRead_sequenceLength();
+
+      if ((alen < ov.dat.ovl.ahg5 + ov.dat.ovl.ahg3) ||
+          (blen < ov.dat.ovl.bhg5 + ov.dat.ovl.bhg3)) {
+        fprintf(stderr, "INVALID OVERLAP %8u (len %6d) %8u (len %6d) hangs %6lu %6lu - %6lu %6lu flip %lu\n",
+                ov.a_iid, alen,
+                ov.b_iid, blen,
+                ov.dat.ovl.ahg5, ov.dat.ovl.ahg3,
+                ov.dat.ovl.bhg5, ov.dat.ovl.bhg3,
+                ov.dat.ovl.flipped);
+        exit(1);
+      }
+
+      //  Overlap looks good, write it!
+
       of->writeOverlap(&ov);
     }
 
@@ -154,6 +177,8 @@ main(int argc, char **argv) {
 
   delete    of;
   delete [] ovStr;
+
+  gkpStore->gkStore_close();
 
   exit(0);
 }

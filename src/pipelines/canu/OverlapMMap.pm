@@ -311,6 +311,7 @@ sub mmapConfigure ($$$$) {
     print F "if [   -e \"$path/results/\$qry.mmap\" -a \\\n";
     print F "     ! -e \"$path/results/\$qry.ovb\" ] ; then\n";
     print F "  \$bin/mmapConvert \\\n";
+    print F "    -G $wrk/$asm.gkpStore \\\n";
     print F "    -o $path/results/\$qry.mmap.ovb.WORKING \\\n";
     print F "    $path/results/\$qry.mmap \\\n";
     print F "  && \\\n";

@@ -445,6 +445,7 @@ sub mhapConfigure ($$$$) {
     print F "if [   -e \"$path/results/\$qry.mhap\" -a \\\n";
     print F "     ! -e \"$path/results/\$qry.ovb\" ] ; then\n";
     print F "  \$bin/mhapConvert \\\n";
+    print F "    -G $wrk/$asm.gkpStore \\\n";
     print F "    \$cvt \\\n";
     print F "    -o $path/results/\$qry.mhap.ovb.WORKING \\\n";
     print F "    $path/results/\$qry.mhap \\\n";
