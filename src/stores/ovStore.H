@@ -327,7 +327,7 @@ public:
   //  Return the statistics associated with this store
 
   ovStoreHistogram  *getHistogram(void) {
-    return(new ovStoreHistogram(_gkp, _storePath));
+    return(new ovStoreHistogram(_storePath));
   };
 
 private:

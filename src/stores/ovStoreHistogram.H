@@ -38,7 +38,7 @@
 class ovStoreHistogram {
 public:
   ovStoreHistogram();                                //  Used when loading data, user must loadData() later
-  ovStoreHistogram(gkStore *gkp, char *path);        //  Used when loading data, calls loadData() for you
+  ovStoreHistogram(char *path);                      //  Used when loading data, calls loadData() for you
   ovStoreHistogram(gkStore *gkp, ovFileType type);   //  Used when writing ovFile
   ~ovStoreHistogram();
 

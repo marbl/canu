@@ -46,8 +46,7 @@ ovStoreHistogram::ovStoreHistogram() {
 }
 
 
-
-ovStoreHistogram::ovStoreHistogram(gkStore *gkp, char *path) {
+ovStoreHistogram::ovStoreHistogram(char *path) {
 
   _gkp = NULL;
 
