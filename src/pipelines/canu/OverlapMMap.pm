@@ -174,7 +174,7 @@ sub mmapConfigure ($$$$) {
                 for (my $qid=$qbgn; $qid <= $qend; $qid++) {
                     my $qry = substr("000000" . $qid, -6);             #  Name for the query block
 
-                    symlink("$path/blocks/$qry.fasta", "$path/queries/$job/$qry.fasta");
+                    symlink("$path/blocks/$qry.input.fasta", "$path/queries/$job/$qry.input.fasta");
                 }
 
             } else {
@@ -215,7 +215,7 @@ sub mmapConfigure ($$$$) {
     print F "  mkdir $path/blocks\n";
     print F "fi\n";
     print F "\n";
-    print F "if [ -e $path/blocks/\$job.fasta ]; then\n";
+    print F "if [ -e $path/blocks/\$job.input.fasta ]; then\n";
     print F "  echo Job previously completed successfully.\n";
     print F "  exit\n";
     print F "fi\n";
@@ -230,7 +230,7 @@ sub mmapConfigure ($$$$) {
     print F "  -fasta \\\n";
     print F "  -o $path/blocks/\$job \\\n";
     print F "|| \\\n";
-    print F "mv -f $path/blocks/\$job.fasta $path/blocks/\$job.fasta.FAILED\n";
+    print F "mv -f $path/blocks/\$job.input.fasta $path/blocks/\$job.input.fasta.FAILED\n";
     print F "\n";
     print F "\n";
     print F "exit 0\n";
@@ -286,21 +286,21 @@ sub mmapConfigure ($$$$) {
     print F "     -L100 \\\n";
     print F "     -m0  \\\n";
     print F "    -t ", getGlobal("${tag}mmapThreads"), " \\\n";
-    print F "    $path/blocks/\$blk.fasta \\\n";
-    print F "    $path/blocks/\$blk.fasta \\\n";
+    print F "    $path/blocks/\$blk.input.fasta \\\n";
+    print F "    $path/blocks/\$blk.input.fasta \\\n";
     print F "  > $path/results/\$qry.mmap.WORKING \n";
     print F " \n";
     print F "fi\n";
     print F "\n";
 
-    print F "for file in `ls $path/queries/\$qry/*.fasta`; do\n";
+    print F "for file in `ls $path/queries/\$qry/*.input.fasta`; do\n";
     print F "  \$bin/minimap \\\n";
     print F "    -k $merSize \\\n";
     print F "    -Sw5 \\\n";
     print F "     -L100 \\\n";
     print F "     -m0  \\\n";
     print F "    -t ", getGlobal("${tag}mmapThreads"), " \\\n";
-    print F "    $path/blocks/\$blk.fasta \\\n";
+    print F "    $path/blocks/\$blk.input.fasta \\\n";
     print F "    \$file \\\n";
     print F "  >> $path/results/\$qry.mmap.WORKING \n";
     print F "done\n";
@@ -411,10 +411,10 @@ sub mmapPrecomputeCheck ($$$$) {
     open(F, "< $path/precompute.sh") or caFailure("can't open '$path/precompute.sh' for reading: $!", undef);
     while (<F>) {
         if (m/^\s+job=\"(\d+)\"$/) {
-            if (-e "$path/blocks/$1.fasta") {
-                push @successJobs, "$path/blocks/$1.fasta\n";
+            if (-e "$path/blocks/$1.input.fasta") {
+                push @successJobs, "$path/blocks/$1.input.fasta\n";
             } else {
-                $failureMessage .= "--   job $path/blocks/$1.fasta FAILED.\n";
+                $failureMessage .= "--   job $path/blocks/$1.input.fasta FAILED.\n";
                 push @failedJobs, $currentJobID;
             }
 

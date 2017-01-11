@@ -323,8 +323,8 @@ sub mhapConfigure ($$$$) {
     print F "fi\n";
     print F "\n";
     print F "#  If the fasta exists, our job failed, and we should try again.\n";
-    print F "if [ -e \"$path/blocks/\$job.fasta\" ] ; then\n";
-    print F "  rm -f $path/blocks/\$job.dat\n";
+    print F "if [ -e \"$path/blocks/\$job.input.fasta\" ] ; then\n";
+    print F "  rm -f $path/blocks/\$job.input.dat\n";
     print F "fi\n";
     print F "\n";
     print F getBinDirectoryShellCode();
@@ -334,12 +334,12 @@ sub mhapConfigure ($$$$) {
     print F "  \$rge \\\n";
     print F "  -nolibname \\\n";
     print F "  -fasta \\\n";
-    print F "  -o $path/blocks/\$job \\\n";
+    print F "  -o $path/blocks/\$job.input \\\n";
     print F "|| \\\n";
-    print F "mv -f $path/blocks/\$job.fasta $path/blocks/\$job.fasta.FAILED\n";
+    print F "mv -f $path/blocks/\$job.input.fasta $path/blocks/\$job.input.fasta.FAILED\n";
     print F "\n";
     print F "\n";
-    print F "if [ ! -e \"$path/blocks/\$job.fasta\" ] ; then\n";
+    print F "if [ ! -e \"$path/blocks/\$job.input.fasta\" ] ; then\n";
     print F "  echo Failed to extract fasta.\n";
     print F "  exit 1\n";
     print F "fi\n";
@@ -363,10 +363,10 @@ sub mhapConfigure ($$$$) {
     print F "  --num-threads ", getGlobal("${tag}mhapThreads"), " \\\n";
     print F " " . getGlobal("${tag}MhapOptions")         . " \\\n"   if (defined(getGlobal("${tag}MhapOptions")));
     print F "  -f " . ($^O eq "cygwin" ? "\$(cygpath -w " : "") . "$wrk/0-mercounts/$asm.ms$merSize.frequentMers.ignore.gz" . ($^O eq "cygwin" ? ") " : "") . "\\\n"   if (-e "$wrk/0-mercounts/$asm.ms$merSize.frequentMers.ignore.gz");
-    print F "  -p " . ($^O eq "cygwin" ? "\$(cygpath -w " : "") . "$path/blocks/\$job.fasta" .  ($^O eq "cygwin" ? ") " : "") . "\\\n";
+    print F "  -p " . ($^O eq "cygwin" ? "\$(cygpath -w " : "") . "$path/blocks/\$job.input.fasta" .  ($^O eq "cygwin" ? ") " : "") . "\\\n";
     print F "  -q " . ($^O eq "cygwin" ? "\$(cygpath -w " : "") . "$path/blocks" .($^O eq "cygwin" ? ") " : "") . "\\\n";
-    print F "|| \\\n";
-    print F "mv -f $path/blocks/\$job.dat $path/blocks/\$job.dat.FAILED\n";
+    print F "&& \\\n";
+    print F "mv -f $path/blocks/\$job.input.dat $path/blocks/\$job.dat\n";
     print F "\n";
     print F "if [ ! -e \"$path/blocks/\$job.dat\" ] ; then\n";
     print F "  echo Mhap failed.\n";
@@ -374,7 +374,7 @@ sub mhapConfigure ($$$$) {
     print F "fi\n";
     print F "\n";
     print F "#  Clean up, remove the fasta input\n";
-    print F "rm -f $path/blocks/\$job.fasta\n";
+    print F "rm -f $path/blocks/\$job.input.fasta\n";
     print F "\n";
     print F "exit 0\n";
 
