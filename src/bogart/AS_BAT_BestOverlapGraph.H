@@ -187,9 +187,13 @@ private:
   void   removeContainedDovetails(void);
 
 public:
-  BestOverlapGraph(double      erateGraph,
-                   double      deviationGraph,
-                   const char *prefix);
+  BestOverlapGraph(double        erateGraph,
+                   double        deviationGraph,
+                   const char   *prefix,
+                   bool          filterSuspicious,
+                   bool          filterHighError,
+                   bool          filterLopsided,
+                   bool          filterSpur);
 
   ~BestOverlapGraph() {
     delete [] _bestA;

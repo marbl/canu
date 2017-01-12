@@ -82,6 +82,11 @@ main (int argc, char * argv []) {
   double    erateGraph               = 0.075;
   double    erateMax                 = 0.100;
 
+  bool      filterSuspicious         = true;
+  bool      filterHighError          = true;
+  bool      filterLopsided           = true;
+  bool      filterSpur               = true;
+
   uint64    genomeSize               = 0;
 
   uint32    fewReadsNumber           = 2;      //  Parameters for labeling of unassembled; also set in pipelines/canu/Defaults.pm
@@ -162,6 +167,13 @@ main (int argc, char * argv []) {
       deviationBubble = atof(argv[++arg]);
     } else if (strcmp(argv[arg], "-dr") == 0) {  //  Deviations, repeat
       deviationRepeat = atof(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-nofilter") == 0) {
+      ++arg;
+      filterSuspicious = ((arg >= argc) || (strcasestr(argv[arg], "suspicious") == NULL));
+      filterHighError  = ((arg >= argc) || (strcasestr(argv[arg], "higherror")  == NULL));
+      filterLopsided   = ((arg >= argc) || (strcasestr(argv[arg], "lopsided")   == NULL));
+      filterSpur       = ((arg >= argc) || (strcasestr(argv[arg], "spur")       == NULL));
 
     } else if (strcmp(argv[arg], "-M") == 0) {
       ovlCacheMemory  = (uint64)(atof(argv[++arg]) * 1024 * 1024 * 1024);
@@ -320,7 +332,7 @@ main (int argc, char * argv []) {
 
   RI = new ReadInfo(gkpStore, prefix, minReadLen);
   OC = new OverlapCache(gkpStore, ovlStoreUniq, ovlStoreRept, prefix, MAX(erateMax, erateGraph), minOverlap, ovlCacheMemory, genomeSize, doSave);
-  OG = new BestOverlapGraph(erateGraph, deviationGraph, prefix);
+  OG = new BestOverlapGraph(erateGraph, deviationGraph, prefix, filterSuspicious, filterHighError, filterLopsided, filterSpur);
   CG = new ChunkGraph(prefix);
 
   delete ovlStoreUniq;  ovlStoreUniq = NULL;

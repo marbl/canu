@@ -56,8 +56,6 @@ BestOverlapGraph::removeSuspicious(const char *UNUSED(prefix)) {
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
 
-  writeStatus("BestOverlapGraph()-- removing suspicious reads from graph, with %d thread%s.\n", numThreads, (numThreads == 1) ? "" : "s");
-
 #pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 fi=1; fi <= fiLimit; fi++) {
     uint32               no  = 0;
@@ -118,8 +116,6 @@ BestOverlapGraph::removeHighErrorBestEdges(void) {
   uint32  fiLimit    = RI->numReads();
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
-
-  writeStatus("BestOverlapGraph()-- analyzing best edges to find useful edge error rate\n");
 
   stdDev<double>  edgeStats;
 
@@ -201,8 +197,6 @@ BestOverlapGraph::removeLopsidedEdges(const char *UNUSED(prefix)) {
   uint32  fiLimit    = RI->numReads();
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
-
-  writeStatus("BestOverlapGraph()-- removing suspicious edges from graph, with %d thread%s.\n", numThreads, (numThreads == 1) ? "" : "s");
 
 #pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 fi=1; fi <= fiLimit; fi++) {
@@ -303,8 +297,6 @@ BestOverlapGraph::removeSpurs(const char *prefix) {
   if (errno)
     F = NULL;
 
-  writeStatus("BestOverlapGraph()-- detecting spur reads.\n");
-
   _spur.clear();
 
   for (uint32 fi=1; fi <= fiLimit; fi++) {
@@ -348,8 +340,6 @@ BestOverlapGraph::findEdges(void) {
   memset(_bestA, 0, sizeof(BestOverlaps) * (fiLimit + 1));
   memset(_scorA, 0, sizeof(BestScores)   * (fiLimit + 1));
 
-  writeStatus("BestOverlapGraph()-- analyzing %d reads for best contains, with %d thread%s.\n", fiLimit, numThreads, (numThreads == 1) ? "" : "s");
-
 #pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 fi=1; fi <= fiLimit; fi++) {
     uint32      no  = 0;
@@ -358,8 +348,6 @@ BestOverlapGraph::findEdges(void) {
     for (uint32 ii=0; ii<no; ii++)
       scoreContainment(ovl[ii]);
   }
-
-  writeStatus("BestOverlapGraph()-- analyzing %d reads for best edges, with %d thread%s.\n", fiLimit, numThreads, (numThreads == 1) ? "" : "s");
 
 #pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 fi=1; fi <= fiLimit; fi++) {
@@ -382,8 +370,6 @@ void
 BestOverlapGraph::removeContainedDovetails(void) {
   uint32  fiLimit    = RI->numReads();
 
-  writeStatus("BestOverlapGraph()-- removing best edges for contained reads.\n");
-
   for (uint32 fi=1; fi <= fiLimit; fi++) {
     if (isContained(fi) == true) {
       getBestEdgeOverlap(fi, false)->clear();
@@ -396,7 +382,11 @@ BestOverlapGraph::removeContainedDovetails(void) {
 
 BestOverlapGraph::BestOverlapGraph(double        erateGraph,
                                    double        deviationGraph,
-                                   const char   *prefix) {
+                                   const char   *prefix,
+                                   bool          filterSuspicious,
+                                   bool          filterHighError,
+                                   bool          filterLopsided,
+                                   bool          filterSpur) {
 
   writeStatus("\n");
   writeStatus("BestOverlapGraph()-- allocating best edges (" F_SIZE_T "MB)\n",
@@ -432,21 +422,36 @@ BestOverlapGraph::BestOverlapGraph(double        erateGraph,
 
   //  Find initial edges, only so we can report initial statistics on the graph
 
+  writeStatus("\n");
+  writeStatus("BestOverlapGraph()-- finding initial best edges.\n");
+
   findEdges();
   reportEdgeStatistics(prefix, "INITIAL");
 
   //  Mark reads as suspicious if they are not fully covered by overlaps.
 
-  removeSuspicious(prefix);
-  findEdges();
+  writeStatus("\n");
+  writeStatus("BestOverlapGraph()-- %sfiltering suspicious reads.\n",
+              (filterSuspicious == true) ? "" : "NOT ");
+
+  if (filterSuspicious) {
+    removeSuspicious(prefix);
+    findEdges();
+  }
 
   if (logFileFlagSet(LOG_ALL_BEST_EDGES))
     reportBestEdges(prefix, "best.0.initial");
 
   //  Analyze the current best edges to set a cutoff on overlap quality used for graph building.
 
-  removeHighErrorBestEdges();
-  findEdges();
+  writeStatus("\n");
+  writeStatus("BestOverlapGraph()-- %sfiltering high error edges.\n",
+              (filterHighError == true) ? "" : "NOT ");
+
+  if (filterHighError) {
+    removeHighErrorBestEdges();
+    findEdges();
+  }
 
   if (logFileFlagSet(LOG_ALL_BEST_EDGES))
     reportBestEdges(prefix, "best.1.filtered");
@@ -458,22 +463,37 @@ BestOverlapGraph::BestOverlapGraph(double        erateGraph,
   //
   //  This must come before removeSpurs().
 
-  removeLopsidedEdges(prefix);
-  findEdges();
+  writeStatus("\n");
+  writeStatus("BestOverlapGraph()-- %sfiltering reads with lopsided best edges.\n",
+              (filterLopsided == true) ? "" : "NOT ");
+
+  if (filterLopsided) {
+    removeLopsidedEdges(prefix);
+    findEdges();
+  }
 
   if (logFileFlagSet(LOG_ALL_BEST_EDGES))
     reportBestEdges(prefix, "best.2.cleaned");
 
   //  Mark reads as spurs, so we don't find best edges to them.
 
-  removeSpurs(prefix);
-  findEdges();
+  writeStatus("\n");
+  writeStatus("BestOverlapGraph()-- %sfiltering spur reads.\n",
+              (filterSpur == true) ? "" : "NOT ");
+
+  if (filterSpur) {
+    removeSpurs(prefix);
+    findEdges();
+  }
 
   reportBestEdges(prefix, logFileFlagSet(LOG_ALL_BEST_EDGES) ? "best.3.final" : "best");
 
   //  One more pass, to find any ambiguous best edges.
 
   //  Cleanup the contained reads.  Why?
+
+  writeStatus("\n");
+  writeStatus("BestOverlapGraph()-- removing best edges for contained reads.\n");
 
   removeContainedDovetails();
 
