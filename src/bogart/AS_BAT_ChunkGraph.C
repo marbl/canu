@@ -147,12 +147,18 @@ ChunkGraph::countFullWidth(ReadEnd firstEnd) {
 
   assert(firstIdx < _maxRead * 2 + 2);
 
-  if (_pathLen[firstIdx] > 0)
+  if (_pathLen[firstIdx] > 0) {
+    if (_chunkLog)
+      fprintf(_chunkLog, "path from %d,%d'(length=%d)\n",
+              firstEnd.readId(),
+              (firstEnd.read3p()) ? 3 : 5,
+              _pathLen[firstIdx]);
     return _pathLen[firstIdx];
+  }
 
   uint32                length = 0;
-  std::set<ReadEnd> seen;
-  ReadEnd           lastEnd = firstEnd;
+  std::set<ReadEnd>     seen;
+  ReadEnd               lastEnd = firstEnd;
   uint64                lastIdx = firstIdx;
 
   //  Until we run off the chain, or we hit a read with a known length, compute the length FROM
@@ -205,13 +211,13 @@ ChunkGraph::countFullWidth(ReadEnd firstEnd) {
   }
 
   //  Our return value is now whatever count we're at.
-  uint32 lengthMax = length;
+  uint32      lengthMax = length;
 
   //  Traverse again, converting "path length from the start" into "path length from the end".  Any
   //  cycle has had its length set correctly already, and we stop at either the start of the cycle,
   //  or at the start of any existing path.
   //
-  ReadEnd currEnd = firstEnd;
+  ReadEnd     currEnd = firstEnd;
   uint64      currIdx = firstIdx;
 
   while (currEnd != lastEnd) {
