@@ -842,7 +842,7 @@ unitigConsensus::computePositionFromAlignment(void) {
 
   if (foundAlign == false) {
 
-    if (oaPartial == false)
+    if (oaPartial == NULL)
       oaPartial = new NDalign(pedLocal, errorRate, 17);  //  partial allowed!
 
     oaPartial->initialize(0, abacus->bases(), abacus->numberOfColumns(), 0, abacus->numberOfColumns(),
@@ -1115,7 +1115,7 @@ unitigConsensus::alignFragment(bool forceAlignment) {
 
   //  Create new aligner object.  'Global' in this case just means to not stop early, not a true global alignment.
 
-  if (oaFull == false)
+  if (oaFull == NULL)
     oaFull = new NDalign(pedGlobal, errorRate, 17);
 
   oaFull->initialize(0, aseq, cnsEnd  - cnsBgn,   0, cnsEnd  - cnsBgn,
