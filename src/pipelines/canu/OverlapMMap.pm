@@ -46,7 +46,7 @@ use canu::HTML;
 #  Map long reads to long reads with minimap.
 
 sub mmapConfigure ($$$$) {
-    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
+    my $WRK     = shift @_;  #  Root work directory
     my $wrk     = $WRK;      #  Local work directory
     my $asm     = shift @_;
     my $tag     = shift @_;
@@ -384,7 +384,7 @@ sub mmapConfigure ($$$$) {
 
 
 sub mmapPrecomputeCheck ($$$$) {
-    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
+    my $WRK     = shift @_;  #  Root work directory
     my $wrk     = $WRK;      #  Local work directory
     my $asm     = shift @_;
     my $tag     = shift @_;
@@ -470,7 +470,7 @@ sub mmapPrecomputeCheck ($$$$) {
 
 
 sub mmapCheck ($$$$) {
-    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
+    my $WRK     = shift @_;  #  Root work directory
     my $wrk     = $WRK;      #  Local work directory
     my $asm     = shift @_;
     my $tag     = shift @_;

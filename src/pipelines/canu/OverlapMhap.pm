@@ -61,7 +61,7 @@ use canu::HTML;
 
 
 sub mhapConfigure ($$$$) {
-    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
+    my $WRK     = shift @_;  #  Root work directory
     my $wrk     = $WRK;      #  Local work directory
     my $asm     = shift @_;
     my $tag     = shift @_;
@@ -524,7 +524,7 @@ sub mhapConfigure ($$$$) {
 
 
 sub mhapPrecomputeCheck ($$$$) {
-    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
+    my $WRK     = shift @_;  #  Root work directory
     my $wrk     = $WRK;      #  Local work directory
     my $asm     = shift @_;
     my $tag     = shift @_;
@@ -614,7 +614,7 @@ sub mhapPrecomputeCheck ($$$$) {
 
 
 sub mhapCheck ($$$$) {
-    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
+    my $WRK     = shift @_;  #  Root work directory
     my $wrk     = $WRK;      #  Local work directory
     my $asm     = shift @_;
     my $tag     = shift @_;

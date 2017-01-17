@@ -52,7 +52,7 @@ use canu::HTML;
 
 
 sub overlapConfigure ($$$$) {
-    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
+    my $WRK     = shift @_;  #  Root work directory
     my $wrk     = $WRK;      #  Local work directory
     my $asm     = shift @_;
     my $tag     = shift @_;
@@ -302,7 +302,7 @@ sub reportOverlapStats ($$@) {
 #  complain, but don't help the user fix things.
 #
 sub overlapCheck ($$$$) {
-    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
+    my $WRK     = shift @_;  #  Root work directory
     my $wrk     = $WRK;      #  Local work directory
     my $asm     = shift @_;
     my $tag     = shift @_;

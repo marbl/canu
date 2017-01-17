@@ -177,7 +177,7 @@ sub plotHistogram ($$$$) {
 
 
 sub merylParameters ($$$) {
-    my $WRK    = shift @_;  #  Root work directory (the -d option to canu)
+    my $WRK    = shift @_;  #  Root work directory
     ## $wrk    = $WRK;      #  Local work directory
     my $asm    = shift @_;
     my $tag    = shift @_;
@@ -250,7 +250,7 @@ sub merylParameters ($$$) {
 
 
 sub merylConfigure ($$$) {
-    my $WRK    = shift @_;  #  Root work directory (the -d option to canu)
+    my $WRK    = shift @_;  #  Root work directory
     ## $wrk    = $WRK;      #  Local work directory
     my $asm    = shift @_;
     my $tag    = shift @_;
@@ -325,7 +325,7 @@ sub merylConfigure ($$$) {
 
 
 sub merylCheck ($$$) {
-    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
+    my $WRK     = shift @_;  #  Root work directory
     ## $wrk     = $WRK;      #  Local work directory
     my $asm     = shift @_;
     my $tag     = shift @_;
@@ -391,7 +391,7 @@ sub merylCheck ($$$) {
 
 
 sub merylProcess ($$$) {
-    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
+    my $WRK     = shift @_;  #  Root work directory
     ## $wrk     = $WRK;      #  Local work directory
     my $asm     = shift @_;
     my $tag     = shift @_;

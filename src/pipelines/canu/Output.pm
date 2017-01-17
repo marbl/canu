@@ -57,7 +57,7 @@ use canu::HTML;
 
 
 sub generateOutputs ($$) {
-    my $WRK     = shift @_;           #  Root work directory (the -d option to canu)
+    my $WRK     = shift @_;           #  Root work directory
     my $wrk     = "$WRK/unitigging";  #  Local work directory
     my $asm     = shift @_;
     my $bin     = getBinDirectory();

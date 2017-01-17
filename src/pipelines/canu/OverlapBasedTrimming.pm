@@ -48,7 +48,7 @@ use canu::HTML;
 
 
 sub trimReads ($$) {
-    my $WRK    = shift @_;         #  Root work directory (the -d option to canu)
+    my $WRK    = shift @_;         #  Root work directory
     my $wrk    = "$WRK/trimming";  #  Local work directory
     my $asm    = shift @_;
     my $bin    = getBinDirectory();
@@ -108,7 +108,7 @@ sub trimReads ($$) {
 
 
 sub splitReads ($$) {
-    my $WRK    = shift @_;         #  Root work directory (the -d option to canu)
+    my $WRK    = shift @_;         #  Root work directory
     my $wrk    = "$WRK/trimming";  #  Local work directory
     my $asm    = shift @_;
     my $bin    = getBinDirectory();
@@ -168,7 +168,7 @@ sub splitReads ($$) {
 
 
 sub dumpReads ($$) {
-    my $WRK    = shift @_;         #  Root work directory (the -d option to canu)
+    my $WRK    = shift @_;         #  Root work directory
     my $wrk    = "$WRK/trimming";  #  Local work directory
     my $asm    = shift @_;
     my $bin    = getBinDirectory();

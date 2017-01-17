@@ -59,7 +59,7 @@ use canu::HTML;
 
 
 sub createOverlapStoreSequential ($$$$) {
-    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
+    my $WRK     = shift @_;  #  Root work directory
     my $wrk     = $WRK;      #  Local work directory
     my $asm     = shift @_;
     my $tag     = shift @_;
@@ -147,7 +147,7 @@ sub getNumOlapsAndSlices ($$) {
 
 
 sub overlapStoreConfigure ($$$$) {
-    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
+    my $WRK     = shift @_;  #  Root work directory
     my $wrk     = $WRK;      #  Local work directory
     my $asm     = shift @_;
     my $tag     = shift @_;
@@ -332,7 +332,7 @@ sub overlapStoreConfigure ($$$$) {
 
 
 sub overlapStoreBucketizerCheck ($$$$) {
-    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
+    my $WRK     = shift @_;  #  Root work directory
     my $wrk     = $WRK;      #  Local work directory
     my $asm     = shift @_;
     my $tag     = shift @_;
@@ -427,7 +427,7 @@ sub overlapStoreBucketizerCheck ($$$$) {
 
 
 sub overlapStoreSorterCheck ($$$$) {
-    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
+    my $WRK     = shift @_;  #  Root work directory
     my $wrk     = $WRK;      #  Local work directory
     my $asm     = shift @_;
     my $tag     = shift @_;
@@ -530,7 +530,7 @@ sub overlapStoreSorterCheck ($$$$) {
 
 
 sub createOverlapStoreParallel ($$$$) {
-    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
+    my $WRK     = shift @_;  #  Root work directory
     my $wrk     = $WRK;      #  Local work directory
     my $asm     = shift @_;
     my $tag     = shift @_;
@@ -553,7 +553,7 @@ sub createOverlapStoreParallel ($$$$) {
 
 
 sub generateOverlapStoreStats ($$) {
-    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
+    my $WRK     = shift @_;  #  Root work directory
     my $wrk     = $WRK;      #  Local work directory
     my $asm     = shift @_;
 
@@ -576,7 +576,7 @@ sub generateOverlapStoreStats ($$) {
 
 
 sub createOverlapStore ($$$$) {
-    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
+    my $WRK     = shift @_;  #  Root work directory
     my $wrk     = $WRK;      #  Local work directory
     my $asm     = shift @_;
     my $tag     = shift @_;

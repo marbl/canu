@@ -129,7 +129,7 @@ sub runMHAP($$$$$$$$$$$$) {
 
 
 sub estimateRawError($$$$) {
-    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
+    my $WRK     = shift @_;  #  Root work directory
     my $wrk     = $WRK;      #  Local work directory
     my $asm     = shift @_;
     my $tag     = shift @_;
@@ -185,7 +185,7 @@ sub estimateRawError($$$$) {
 #  Compute resulting distribution and estimate error rate
 
 sub estimateCorrectedError ($$$) {
-    my $WRK     = shift @_;  #  Root work directory (the -d option to canu)
+    my $WRK     = shift @_;  #  Root work directory
     my $wrk     = $WRK;      #  Local work directory
     my $asm     = shift @_;
     my $tag     = shift @_;

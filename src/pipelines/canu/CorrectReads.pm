@@ -804,7 +804,7 @@ sub expensiveFilter ($$) {
 
 
 sub buildCorrectionLayouts ($$) {
-    my $WRK     = shift @_;           #  Root work directory (the -d option to canu)
+    my $WRK     = shift @_;           #  Root work directory
     my $wrk     = "$WRK/correction";  #  Local work directory
     my $asm     = shift @_;
     my $bin     = getBinDirectory();
@@ -912,7 +912,7 @@ sub buildCorrectionLayouts ($$) {
 
 
 sub generateCorrectedReads ($$) {
-    my $WRK     = shift @_;           #  Root work directory (the -d option to canu)
+    my $WRK     = shift @_;           #  Root work directory
     my $wrk     = "$WRK/correction";  #  Local work directory
     my $asm     = shift @_;
     my $attempt = getGlobal("canuIteration");
@@ -1007,7 +1007,7 @@ sub generateCorrectedReads ($$) {
 
 
 sub dumpCorrectedReads ($$) {
-    my $WRK     = shift @_;           #  Root work directory (the -d option to canu)
+    my $WRK     = shift @_;           #  Root work directory
     my $wrk     = "$WRK/correction";  #  Local work directory
     my $asm     = shift @_;
     my $bin     = getBinDirectory();

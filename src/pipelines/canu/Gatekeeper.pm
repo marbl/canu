@@ -432,7 +432,7 @@ sub gatekeeperReportReadLengthHistogram ($$$) {
 
 
 sub gatekeeper ($$$@) {
-    my $WRK    = shift @_;  #  Root work directory (the -d option to canu)
+    my $WRK    = shift @_;  #  Root work directory
     my $wrk    = $WRK;      #  Local work directory
     my $asm    = shift @_;
     my $tag    = shift @_;

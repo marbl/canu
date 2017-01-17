@@ -89,7 +89,7 @@ sub concatOutput ($@) {
 
 
 sub readErrorDetectionConfigure ($$) {
-    my $WRK     = shift @_;           #  Root work directory (the -d option to canu)
+    my $WRK     = shift @_;           #  Root work directory
     my $wrk     = "$WRK/unitigging";  #  Local work directory
     my $asm     = shift @_;
     my $bin     = getBinDirectory();
@@ -242,7 +242,7 @@ sub readErrorDetectionConfigure ($$) {
 
 
 sub readErrorDetectionCheck ($$) {
-    my $WRK     = shift @_;           #  Root work directory (the -d option to canu)
+    my $WRK     = shift @_;           #  Root work directory
     my $wrk     = "$WRK/unitigging";  #  Local work directory
     my $asm     = shift @_;
     my $attempt = getGlobal("canuIteration");
@@ -330,7 +330,7 @@ sub readErrorDetectionCheck ($$) {
 
 
 sub overlapErrorAdjustmentConfigure ($$) {
-    my $WRK     = shift @_;           #  Root work directory (the -d option to canu)
+    my $WRK     = shift @_;           #  Root work directory
     my $wrk     = "$WRK/unitigging";  #  Local work directory
     my $asm     = shift @_;
     my $bin     = getBinDirectory();
@@ -521,7 +521,7 @@ sub overlapErrorAdjustmentConfigure ($$) {
 
 
 sub overlapErrorAdjustmentCheck ($$) {
-    my $WRK     = shift @_;           #  Root work directory (the -d option to canu)
+    my $WRK     = shift @_;           #  Root work directory
     my $wrk     = "$WRK/unitigging";  #  Local work directory
     my $asm     = shift @_;
     my $attempt = getGlobal("canuIteration");
@@ -612,7 +612,7 @@ sub overlapErrorAdjustmentCheck ($$) {
 
 
 sub updateOverlapStore ($$) {
-    my $WRK     = shift @_;           #  Root work directory (the -d option to canu)
+    my $WRK     = shift @_;           #  Root work directory
     my $wrk     = "$WRK/unitigging";  #  Local work directory
     my $asm     = shift @_;
     my $bin     = getBinDirectory();

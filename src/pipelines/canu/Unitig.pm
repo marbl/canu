@@ -143,7 +143,7 @@ sub reportUnitigSizes ($$$$) {
 
 
 sub unitig ($$) {
-    my $WRK     = shift @_;           #  Root work directory (the -d option to canu)
+    my $WRK     = shift @_;           #  Root work directory
     my $wrk     = "$WRK/unitigging";  #  Local work directory
     my $asm     = shift @_;
 
