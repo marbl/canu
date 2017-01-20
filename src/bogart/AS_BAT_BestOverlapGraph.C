@@ -213,6 +213,30 @@ BestOverlapGraph::removeLopsidedEdges(const char *UNUSED(prefix)) {
          (this3->readId() == 0)))
       continue;
 
+    //  If there is a huge difference in error rates between the two best overlaps, that's a little
+    //  suspicious.  This kind-of worked, but it is very sensitive to the 'limit', and was only
+    //  tested on one bacteria.  It will also do very bad things in metagenomics.
+
+#if 0
+    double  this5erate  = this5->erate();
+    double  this3erate  = this3->erate();
+
+    double  limit       = 0.01;
+
+    if (fabs(this5erate - this3erate) > limit) {
+#pragma omp critical (suspInsert)
+      {
+        _suspicious.insert(fi);
+
+        writeStatus("Incompatible error rates on best edges for read %u -- %.4f %.4f.\n", fi, this5erate, this3erate);
+
+#warning NOT COUNTING ERATE DIFFS
+        //_ERateIncompatible++;
+      }
+      continue;
+    }
+#endif
+
     //  Find the overlap for this5 and this3.
 
     int32   this5ovlLen = RI->overlapLength(fi, this5->readId(), this5->ahang(), this5->bhang());
