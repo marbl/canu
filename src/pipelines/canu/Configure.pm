@@ -149,11 +149,12 @@ sub expandRange ($$) {
 #  the rest of canu - in particular, the part that runs the jobs - use the correct value.  Without
 #  resetting, I'd be making code changes all over the place to support the values returned.
 
-sub getAllowedResources ($$$$) {
+sub getAllowedResources ($$$$@) {
     my $tag  = shift @_;  #  Variant, e.g., "cor", "utg"
     my $alg  = shift @_;  #  Algorithm, e.g., "mhap", "ovl"
     my $err  = shift @_;  #  Report of things we can't run.
     my $all  = shift @_;  #  Report of things we can run.
+    my $dbg  = shift @_;  #  Optional, report debugging stuff
 
     #  If no grid, or grid not enabled, everything falls under 'lcoal'.
 
@@ -174,6 +175,13 @@ sub getAllowedResources ($$$$) {
 
     #  If the maximum limits aren't set, default to 'unlimited' (for the grid; we'll effectively filter
     #  by the number of jobs we can fit on the hosts) or to the current hardware limits.
+
+    if ($dbg) {
+        print STDERR "--\n";
+        print STDERR "-- DEBUG\n";
+        print STDERR "-- DEBUG  Limited to $maxMemory GB memory via maxMemory option\n"   if (defined($maxMemory));
+        print STDERR "-- DEBUG  Limited to $maxThreads threads via maxThreads option\n"   if (defined($maxThreads));
+    }
 
     $maxMemory  = (($class eq "grid") ? 1024 * 1024 : getPhysicalMemorySize())  if (!defined($maxMemory));    #  1 PB memory!
     $maxThreads = (($class eq "grid") ? 1024        : getNumberOfCPUs())        if (!defined($maxThreads));   #  1 k  cores!
@@ -207,6 +215,15 @@ sub getAllowedResources ($$$$) {
         push @gridNum, 1;
     }
 
+    if ($dbg) {
+        print STDERR "-- DEBUG\n";
+        print STDERR "-- DEBUG Have ", scalar(@gridCor), " configurations:\n";
+        for (my $ii=0; $ii<scalar(@gridCor); $ii++) {
+            print STDERR "-- DEBUG   class$ii - $gridNum[$ii] machines with $gridCor[$ii] cores with $gridMem[$ii]GB memory each.\n";
+        }
+        print STDERR "-- DEBUG\n";
+    }
+
     #  The task usually has multiple choices, and we have a little optimization problem to solve.  For each
     #  pair of memory/threads, compute three things:
     #    a) how many processes we can get running
@@ -217,39 +234,6 @@ sub getAllowedResources ($$$$) {
 
     my @taskMemory  = expandRange("${tag}${alg}Memory",  $taskMemory);
     my @taskThreads = expandRange("${tag}${alg}Threads", $taskThreads);
-
-    #  Filter out task settings that can't be run based on the gridMemory/gridThreads or masterMemory/masterThreads setting.
-    #  (actually, this just reports those that would be filtered; the actual filtering is inline in the algorithm)
-
-    my $ignoreM;
-    my $ignoreT;
-
-    foreach my $m (@taskMemory) {
-        $m = adjustMemoryValue($m);
-    }
-
-    foreach my $m (@taskMemory) {
-        next  if ($m <= $maxMemory);
-        $ignoreM .= ","  if (defined($ignoreM));
-        $ignoreM .= "${m}g";
-    }
-    foreach my $t (@taskThreads) {
-        next  if ($t <= $maxThreads);
-        $ignoreT .= ","  if (defined($ignoreT));
-        $ignoreT .= "$t";
-    }
-
-    #  Too verbose with long value lists
-    #
-    #if      (defined($ignoreM) && defined($ignoreT)) {
-    #    $err .= "-- Can't use ${tag}${alg}Memory=$ignoreM and ${tag}${alg}Threads=$ignoreT because of maxMemory=${maxMemory}g and maxThreads=$maxThreads limits.\n";
-    #
-    #} elsif (defined($ignoreM)) {
-    #    $err .= "-- Can't use ${tag}${alg}Memory=$ignoreM because of maxMemory=${maxMemory}g limit.\n";
-    #
-    #} elsif (defined($ignoreT)) {
-    #    $err .= "-- Can't use ${tag}${alg}Threads=$ignoreT because of maxThreads=$maxThreads limit.\n";
-    #}
 
     #  Find task memory/thread settings that will maximize the number of cores running.  This used
     #  to also compute best as 'cores * memory' but that is better handled by ordering the task
@@ -263,7 +247,9 @@ sub getAllowedResources ($$$$) {
 
     foreach my $m (@taskMemory) {
         foreach my $t (@taskThreads) {
-
+            #if ($dbg && (($m > $maxMemory) || ($t > $maxThreads))) {
+            #    print STDERR "-- DEBUG Tested $tag$alg requesting $t cores and ${m}GB memory - rejected: limited to ${maxMemory}GB and $maxThreads cores.\n";
+            #}
             next  if ($m > $maxMemory);   #  Bail if either of the suggest settings are
             next  if ($t > $maxThreads);  #  larger than the maximum allowed.
 
@@ -287,9 +273,17 @@ sub getAllowedResources ($$$$) {
 
                 my $np = ($np_cpu < $np_mem) ? $np_cpu : $np_mem;
 
+                if ($dbg) {
+                    print STDERR "-- DEBUG  for $t threads and $m memory - class$ii can support $np_cpu jobs(cores) and $np_mem jobs(memory), so $np jobs.\n";
+                }
+
                 $processes += $np;
                 $cores     += $np * $t;
                 $memory    += $np * $m;
+            }
+
+            if ($dbg) {
+                print STDERR "-- DEBUG Tested $tag$alg requesting $t cores and ${m}GB memory and found $cores could be used.\n";
             }
 
             #  If no cores, then all machines were too small.
@@ -307,6 +301,8 @@ sub getAllowedResources ($$$$) {
     }
 
     if (!defined($bestCoresM)) {
+        getAllowedResources($tag, $alg, $err, $all, 1)  if (!defined($dbg));
+
         print STDERR "--\n";
         print STDERR "-- Task $tag$alg can't run on any available machines.\n";
         print STDERR "-- It is requesting ", getGlobal("${tag}${alg}Memory"), " GB memory and ", getGlobal("${tag}${alg}Threads"), " threads.\n";
