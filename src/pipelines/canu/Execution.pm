@@ -1009,7 +1009,7 @@ sub submitOrRunParallelJob ($$$$$@) {
 
                 if (uc(getGlobal("gridEngine")) eq "LSF") {
                     #  Job <759810> is submitted to queue <14>.
-                    if (m/Job\s<\d+>\sis/) {
+                    if (m/Job\s<(\d+)>\sis/) {
                         $jobName = "ended($1)";
                     }
                 }
@@ -1050,7 +1050,7 @@ sub submitOrRunParallelJob ($$$$$@) {
         }
 
         if (uc(getGlobal("gridEngine")) eq "LSF") {
-            $jobHold = "-w " . join "&&", @jobsSubmitted;
+            $jobHold = "-w \"" . join "&&", @jobsSubmitted . "\"";
         }
 
         if (uc(getGlobal("gridEngine")) eq "PBS") {
