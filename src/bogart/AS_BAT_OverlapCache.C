@@ -418,8 +418,7 @@ OverlapCache::filterDuplicates(uint32 &no) {
 
     nFiltered++;
 
-    //  If they're the same length, make the one with the higher evalue be length zero so it'll be
-    //  the shortest.
+    //  Drop the shorter overlap, or the one with the higher erate.
 
     uint32  iilen = RI->overlapLength(_ovs[ii].a_iid, _ovs[ii].b_iid, _ovs[ii].a_hang(), _ovs[ii].b_hang());
     uint32  jjlen = RI->overlapLength(_ovs[jj].a_iid, _ovs[jj].b_iid, _ovs[jj].a_hang(), _ovs[jj].b_hang());
@@ -431,47 +430,60 @@ OverlapCache::filterDuplicates(uint32 &no) {
         iilen = 0;
     }
 
-    //  Drop the shorter overlap by forcing its erate to the maximum.
-
     if (iilen < jjlen)
-      _ovs[ii].evalue(AS_MAX_EVALUE);
+      _ovs[ii].a_iid = _ovs[ii].b_iid = 0;
     else
-      _ovs[jj].evalue(AS_MAX_EVALUE);
+      _ovs[jj].a_iid = _ovs[jj].b_iid = 0;
   }
 
-  //  Now that all have been filtered, squeeze out the filtered overlaps.  We used to just copy the
-  //  last element over any deleted ones, leaving the list unsorted, but we're now (Nov 2016) binary
-  //  searching on it, so can't do that.
+  //  If nothing was filtered, return.
 
-  if (nFiltered > 0) {
-    //  Needs to have it's own log.  Lots of stuff here.
-    //writeLog("OverlapCache()-- read %u filtered %u overlaps to the same read pair\n", _ovs[0].a_iid, nFiltered);
+  if (nFiltered == 0)
+    return(0);
 
-    for (uint32 ii=0, jj=0; jj<no; ) {
-      if (_ovs[jj].evalue() == AS_MAX_EVALUE) {
-        jj++;
-        continue;
-      }
+  //  Squeeze out the filtered overlaps.  We used to just copy the last element over any deleted
+  //  ones, leaving the list unsorted, but we're now (Nov 2016) binary searching on it, so can't do
+  //  that.
 
-      if (ii != jj) {
-        _ovs[ii] = _ovs[jj];
-        _ovs[jj].clear();
-      }
+  //  Needs to have it's own log.  Lots of stuff here.
+  //writeLog("OverlapCache()-- read %u filtered %u overlaps to the same read pair\n", _ovs[0].a_iid, nFiltered);
 
-      ii++;
+  for (uint32 ii=0, jj=0; jj<no; ) {
+    if (_ovs[jj].a_iid == 0) {
       jj++;
+      continue;
     }
 
-    no -= nFiltered;
+    if (ii != jj)
+      _ovs[ii] = _ovs[jj];
 
-    for (uint32 jj=0; jj<no; jj++) {
-      assert(_ovs[jj].a_iid    != 0);
-      assert(_ovs[jj].b_iid    != 0);
-      assert(_ovs[jj].evalue() != AS_MAX_EVALUE);
-    }
+    ii++;
+    jj++;
   }
 
-  return(nFiltered);
+  no -= nFiltered;
+
+  //  Check for errors.
+
+  bool  errors = false;
+
+  for (uint32 jj=0; jj<no; jj++)
+    if ((_ovs[jj].a_iid == 0) || (_ovs[jj].b_iid == 0))
+      errors = true;
+
+  if (errors == false)
+    return(nFiltered);
+
+  writeLog("ERROR: filtered overlap found in saved list for read %u.  Filtered %u overlaps.\n", _ovs[0].a_iid, nFiltered);
+
+  for (uint32 jj=0; jj<no + nFiltered; jj++)
+    writeLog("OVERLAP  %8d %8d  hangs %5d %5d  erate %.4f\n",
+             _ovs[jj].a_iid, _ovs[jj].b_iid, _ovs[jj].a_hang(), _ovs[jj].b_hang(), _ovs[jj].erate());
+
+  flushLog();
+
+  assert(errors == false);
+  return(0);
 }
 
 
