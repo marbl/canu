@@ -33,7 +33,7 @@ require Exporter;
 use strict;
 use POSIX qw(floor);
 
-use File::Path qw(make_path remove_tree);
+use File::Path 2.08 qw(make_path remove_tree);
 
 use canu::Defaults;
 use canu::Execution;

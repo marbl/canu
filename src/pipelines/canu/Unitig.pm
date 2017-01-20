@@ -44,7 +44,7 @@ require Exporter;
 
 use strict;
 
-use File::Path qw(make_path remove_tree);
+use File::Path 2.08 qw(make_path remove_tree);
 use POSIX qw(ceil);
 
 use canu::Defaults;

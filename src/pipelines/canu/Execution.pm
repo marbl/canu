@@ -64,7 +64,7 @@ use Carp qw(cluck);
 
 use POSIX ":sys_wait_h";  #  For waitpid(..., &WNOHANG)
 use List::Util qw(min max);
-use File::Path qw(make_path remove_tree);
+use File::Path 2.08 qw(make_path remove_tree);
 use File::Spec;
 
 use canu::Defaults;

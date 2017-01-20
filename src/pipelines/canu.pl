@@ -45,7 +45,7 @@ use lib "$FindBin::RealBin/lib";
 use lib "$FindBin::RealBin/lib/canu/lib/perl5";
 use lib "$FindBin::RealBin/lib/canu/lib64/perl5";
 
-use File::Path qw(make_path remove_tree);
+use File::Path 2.08 qw(make_path remove_tree);
 
 use Carp;
 
