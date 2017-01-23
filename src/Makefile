@@ -434,7 +434,7 @@ ifeq (${MACHINETYPE}, amd64)
   CXX      ?= g++48
 
   CXXFLAGS  += -I/usr/local/include -D_GLIBCXX_PARALLEL -pthread -fopenmp -fPIC
-  LDFLAGS   += -L/usr/local/lib     -D_GLIBCXX_PARALLEL -pthread -fopenmp -rpath /usr/local/lib/gcc48 -lm
+  LDFLAGS   += -L/usr/local/lib     -D_GLIBCXX_PARALLEL -pthread -fopenmp -rpath /usr/local/lib/gcc48 -lm -lexecinfo
 
   CXXFLAGS  += -Wall -Wextra -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat -Wno-parentheses
 
@@ -449,8 +449,18 @@ ifeq (${MACHINETYPE}, amd64)
   #  callgrind
   #CXXFLAGS  += -g3 -Wa,--gstabs -save-temps
 
+  #  Backtraces with libunwind.  Not informative on FreeBSD.
   #CXXFLAGS  += -DLIBUNWIND -I/usr/local/include
-  #LDFLAGS   +=             -L/usr/local/lib -lunwind -lunwind-x86_64
+  #LDFLAGS   +=             -L/usr/local/lib
+  #LDLIBS    += -lunwind -lunwind-x86_64
+
+  #  Backtraces with libbacktrace.  Doesn't show the full trace on FreeBSD.
+  #CXXFLAGS  += -DLIBBACKTRACE -I/work/backtrace/libbacktrace
+  #LDFLAGS   +=                -L/work/backtrace/libbacktrace -lbacktrace
+  #LDLIBS    += -lbacktrace
+
+  #  No backtrace support.
+  #CXXFLAGS   += -DNOBACKTRACE
 
   ifeq ($(BUILDOPTIMIZED), 1)
   else
