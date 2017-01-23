@@ -97,7 +97,7 @@ define ADD_TARGET_RULE
         $${TARGET_DIR}/${1}: $${${1}_OBJS} $${${1}_PREREQS}
 	    @mkdir -p $$(dir $$@)
 	    $$(strip $${${1}_LINKER} -o $$@ $${LDFLAGS} $${${1}_LDFLAGS} \
-	        $${${1}_OBJS} $${LDLIBS} $${${1}_LDLIBS})
+	        $${${1}_OBJS} $${${1}_LDLIBS} $${LDLIBS})
 	    $${${1}_POSTMAKE}
     endif
     endif
