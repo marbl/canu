@@ -1050,7 +1050,7 @@ sub submitOrRunParallelJob ($$$$$@) {
         }
 
         if (uc(getGlobal("gridEngine")) eq "LSF") {
-            $jobHold = "-w \"" . join "&&", @jobsSubmitted . "\"";
+            $jobHold = "-w \"" . (join "&&", @jobsSubmitted) . "\"";
         }
 
         if (uc(getGlobal("gridEngine")) eq "PBS") {
