@@ -585,7 +585,7 @@ sub setOverlapDefaults ($$$) {
     $global{"${tag}MhapVersion"}              = "2.1.2";
     $synops{"${tag}MhapVersion"}              = "Version of the MHAP jar file to use";
 
-    $global{"${tag}MhapFilterThreshold"}      = "0.000005";
+    $global{"${tag}MhapFilterThreshold"}      = "0.000005";   #  Needs to be a string, else it is printed as 5e-06.
     $synops{"${tag}MhapFilterThreshold"}      = "Value between 0 and 1. kmers which comprise more than this percentage of the input are downweighted";
 
     $global{"${tag}MhapFilterUnique"}         = undef;
