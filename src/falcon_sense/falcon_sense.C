@@ -107,11 +107,28 @@ main (int argc, char **argv) {
     if (W[0][0] == '+') {
        uint32 splitSeqID = 0;
        FConsensus::consensus_data *consensus_data_ptr = FConsensus::generate_consensus( seqs, min_cov, K, min_idy, min_ovl_len, max_read_len );
+       
+#ifdef TRACK_POSITIONS
+       //const std::string& sequenceToCorrect = seqs.at(0);
+       char * originalStringPointer = consensus_data_ptr->sequence;
+#endif
+
        char * split = strtok(consensus_data_ptr->sequence, "acgt");
        while (split != NULL) {
           if (strlen(split) > min_len) {
              AS_UTL_writeFastA(stdout, split, strlen(split), 60, ">%s_%d\n", seed.c_str(), splitSeqID);
              splitSeqID++;
+
+#ifdef TRACK_POSITIONS
+			 int distance_from_beginning = split - originalStringPointer;
+             std::vector<int> relevantOriginalPositions(consensus_data_ptr->originalPos.begin() + distance_from_beginning, consensus_data_ptr->originalPos.begin() + distance_from_beginning + strlen(split));
+			 int firstRelevantPosition = relevantOriginalPositions.front();		
+			 int lastRelevantPosition = relevantOriginalPositions.back();
+			 
+			 std::string relevantOriginalTemplate = seqs.at(0).substr(firstRelevantPosition, lastRelevantPosition - firstRelevantPosition + 1);
+
+		     // store relevantOriginalTemplate along with corrected read - not implemented
+#endif
           }
           split = strtok(NULL, "acgt");
        }

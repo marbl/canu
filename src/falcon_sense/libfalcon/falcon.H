@@ -114,6 +114,9 @@ typedef struct {
 typedef struct {
     char * sequence;
     int32 * eqv;
+#ifdef TRACK_POSITIONS
+    vector<int> originalPos;  //  For tracking original read positions in the corrected read
+#endif
 } consensus_data;
 
 

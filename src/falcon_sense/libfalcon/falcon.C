@@ -88,6 +88,8 @@
 #include <assert.h>
 #include <stdint.h>
 
+#include <algorithm>
+
 namespace FConsensus {
 
 #undef DEBUG
@@ -557,12 +559,18 @@ consensus_data * get_cns_from_align_tags( align_tags_t ** tag_seqs,
     consensus->eqv = (int32 *)calloc( t_len * 2 + 1, sizeof(int32) );
     cns_str = consensus->sequence;
     eqv =  consensus->eqv;
+#ifdef TRACK_POSITIONS
+    consensus->originalPos.reserve(t_len * 2 + 1); // This is an over-generous pre-allocation
+#endif
 
     index = 0;
     ck = g_best_ck;
     i = g_best_t_pos;
 
     while (1) {
+#ifdef TRACK_POSITIONS
+        int originalI = i;
+#endif
         if (coverage[i] > min_cov) {
             switch (ck) {
                 case 0: bb = 'A'; break;
@@ -596,10 +604,18 @@ consensus_data * get_cns_from_align_tags( align_tags_t ** tag_seqs,
             fprintf(stderr, "C %d %d %c %lf %d %d\n", i, index, bb, g_best_aln_col->score, coverage[i], eqv[index] );
             #endif
             index ++;
+
+#ifdef TRACK_POSITIONS
+            consensus->originalPos.push_back(originalI);
+#endif
         }
     }
 
     // reverse the sequence
+#ifdef TRACK_POSITIONS
+    std::reverse(consensus->originalPos.begin(), consensus->originalPos.end());
+#endif
+
     for (i = 0; i < index/2; i++) {
         cns_str[i] = cns_str[i] ^ cns_str[index-i-1];
         cns_str[index-i-1] = cns_str[i] ^ cns_str[index-i-1];
