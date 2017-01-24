@@ -291,8 +291,7 @@ sub buildCorrectionLayouts_direct ($$) {
 
     if (getGlobal("corConsensus") eq "falcon") {
         print F "\n";
-        print F getGlobal("falconSense") . " \\\n"  if ( defined(getGlobal("falconSense")));
-        print F "\$bin/falcon_sense \\\n"           if (!defined(getGlobal("falconSense")));
+        print F "\$bin/falcon_sense \\\n";
         print F "  --min_idt $minidt \\\n";
         print F "  --min_len " . getGlobal("minReadLength") . "\\\n";
         print F "  --max_read_len " . 2 * getMaxReadInStore($wrk, $asm) . "\\\n";
@@ -438,8 +437,7 @@ sub buildCorrectionLayouts_piped ($$) {
     print F "  touch $path/correction_outputs/\$jobid.dump.success \\\n";
     print F ") \\\n";
     print F "| \\\n";
-    print F getGlobal("falconSense") . " \\\n"  if ( defined(getGlobal("falconSense")));
-    print F "\$bin/falcon_sense \\\n"           if (!defined(getGlobal("falconSense")));
+    print F "\$bin/falcon_sense \\\n";
     print F "  --min_idt $minidt \\\n";
     print F "  --min_len " . getGlobal("minReadLength") . "\\\n";
     print F "  --max_read_len " . 2 * getMaxReadInStore($wrk, $asm) . "\\\n";

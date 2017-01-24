@@ -931,9 +931,6 @@ sub setDefaults () {
     $global{"corConsensus"}                = "falconpipe";
     $synops{"corConsensus"}                = "Which consensus algorithm to use; only 'falcon' and 'falconpipe' are supported; default 'falconpipe'";
 
-    $global{"falconSense"}                 = undef;
-    $synops{"falconSense"}                 = "Path to fc_consensus.py or falcon_sense.bin";
-
     $global{"corLegacyFilter"}             = undef;
     $synops{"corLegacyFilter"}             = "Expert option: global filter, length * identity (default) or length with  broken by identity (if on)";
 
@@ -1365,17 +1362,6 @@ sub checkParameters () {
 
     if (getGlobal("corOverlapper") eq "minimap") {
         setGlobalIfUndef("corLegacyFilter", 1);
-    }
-
-    #
-    #  Falcon?  Need to find it.
-    #
-
-    if ((getGlobal("corConsensus") eq "falcon") ||
-        (getGlobal("corConsensus") eq "falconpipe")) {
-        my $falcon = getGlobal("falconSense");
-
-        addCommandLineError("ERROR:  Didn't find falcon program with option falconSense='$falcon'")   if ((defined($falcon)) && (! -e $falcon));
     }
 }
 

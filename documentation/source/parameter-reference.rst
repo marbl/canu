@@ -613,9 +613,6 @@ corOutCoverage <integer=40>
 corFilter <string="expensive">
   Method to filter short reads from correction; 'quick' or 'expensive' or 'none'
 
-falconSense
-  Path to fc_consensus.py or falcon_sense.bin
-
 Output Filtering
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
