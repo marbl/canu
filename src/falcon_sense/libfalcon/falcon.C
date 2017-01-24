@@ -94,6 +94,17 @@ namespace FConsensus {
 
 #undef DEBUG
 
+
+typedef int32_t seq_coor_t;
+
+typedef struct {
+    seq_coor_t s1;
+    seq_coor_t e1;
+    seq_coor_t s2;
+    seq_coor_t e2;
+    long int score;
+} aln_range;
+
 typedef struct {
     seq_coor_t t_pos;
     uint16 delta;
@@ -336,8 +347,8 @@ void clean_msa_working_space( msa_pos_t * msa_array, uint32 max_t_len) {
     }
 }
 
-#define STATIC_ALLOCATE
-//#undef STATIC_ALLOCATE
+
+
 
 consensus_data * get_cns_from_align_tags( align_tags_t ** tag_seqs,
                                           uint32 n_tag_seqs,
@@ -372,29 +383,12 @@ consensus_data * get_cns_from_align_tags( align_tags_t ** tag_seqs,
 
     coverage = (uint32 *)calloc( t_len, sizeof(uint32) );
 
-#ifndef STATIC_ALLOCATE
-
-    msa_array = (msa_pos_t *)calloc(t_len, sizeof(msa_pos_t));
-
-    for (i = 0; i < t_len; i++) {
-        msa_array[i] = (msa_delta_group_t *)calloc(1, sizeof(msa_delta_group_t));
-        msa_array[i]->size = 8;
-        allocate_delta_group(msa_array[i]);
-    }
-
-#endif
-
-#ifdef STATIC_ALLOCATE
-
     if ( msa_array == NULL) {
         msa_array = get_msa_working_sapce( max_len );
         clean_msa_working_space(msa_array, max_len);
     }
 
     assert(t_len < max_len);
-
-#endif
-
 
     // loop through every alignment
     #ifdef DEBUG
@@ -627,18 +621,8 @@ consensus_data * get_cns_from_align_tags( align_tags_t ** tag_seqs,
 
     cns_str[index] = 0;
     //printf("%s\n", cns_str);
-#ifndef STATIC_ALLOCATE
-    for (i = 0; i < t_len; i++) {
-        free_delta_group(msa_array[i]);
-        free(msa_array[i]);
-    }
 
-    free(msa_array);
-#endif
-
-#ifdef STATIC_ALLOCATE
     clean_msa_working_space(msa_array, t_len+1);
-#endif
 
     free(coverage);
     return consensus;

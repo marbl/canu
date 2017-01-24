@@ -87,29 +87,6 @@
 using namespace std;
 
 namespace FConsensus {
-typedef int32_t seq_coor_t;
-
-typedef unsigned char base;
-typedef base * seq_array;
-typedef seq_coor_t seq_addr;
-typedef seq_addr * seq_addr_array;
-
-
-typedef struct {
-    seq_coor_t count;
-    seq_coor_t * query_pos;
-    seq_coor_t * target_pos;
-} kmer_match;
-
-
-typedef struct {
-    seq_coor_t s1;
-    seq_coor_t e1;
-    seq_coor_t s2;
-    seq_coor_t e2;
-    long int score;
-} aln_range;
-
 
 typedef struct {
     char * sequence;
@@ -119,14 +96,6 @@ typedef struct {
 #endif
 } consensus_data;
 
-
-seq_array allocate_seq(seq_coor_t);
-void init_seq_array( seq_array, seq_coor_t);
-void free_seq_array(seq_array);
-
-seq_addr_array allocate_seq_addr(seq_coor_t size);
-
-void free_seq_addr_array(seq_addr_array);
 
 consensus_data * generate_consensus( vector<string> input_seq,
                            uint32 min_cov,
