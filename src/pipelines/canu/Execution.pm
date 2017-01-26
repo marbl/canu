@@ -787,19 +787,19 @@ sub buildGridJob ($$$$$$$$$) {
     my $outputOption           = getGlobal("gridEngineOutputOption");
     my $outName                = buildOutputName($path, $script, getGlobal("gridEngineArraySubmitID"));
 
-    my $globalOptions          = getGlobal("gridOptions");
-    my $jobOptions             = getGlobal("gridOptions$jobType");
     my $stageOption            = buildStageOption($jobType, $dsk);
     my $memOption              = buildMemoryOption($mem, $thr);
     my $thrOption              = buildThreadOption($thr);
+    my $globalOptions          = getGlobal("gridOptions");
+    my $jobOptions             = getGlobal("gridOptions$jobType");
 
     my $opts;
 
-    $opts  = "$globalOptions "  if (defined($globalOptions));
-    $opts .= "$jobOptions "     if (defined($jobOptions));
     $opts .= "$stageOption "    if (defined($stageOption));
     $opts .= "$memOption "      if (defined($memOption));
     $opts .= "$thrOption "      if (defined($thrOption));
+    $opts  = "$globalOptions "  if (defined($globalOptions));
+    $opts .= "$jobOptions "     if (defined($jobOptions));
 
     $opts =~ s/\s+$//;
 
