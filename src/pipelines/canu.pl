@@ -98,6 +98,10 @@ my $asm = undef;              #  Name of our assembly.
 #  Check for the presence of a -options switch BEFORE we do any work.
 #  This lets us print the default values of options.
 
+if (scalar(@ARGV) == 0) {
+    printHelp(1);
+}
+
 foreach my $arg (@ARGV) {
     if (($arg eq "-options") ||
         ($arg eq "-defaults")) {

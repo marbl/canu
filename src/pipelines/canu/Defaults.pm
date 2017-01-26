@@ -327,9 +327,10 @@ sub printVersion ($) {
 }
 
 
-sub printHelp () {
+sub printHelp (@) {
+    my $force = shift @_;
 
-    return   if (!exists($global{'errors'}));
+    return   if (!defined($force) && !exists($global{'errors'}));
 
     print "\n";
     print "usage: canu [-correct | -trim | -assemble | -trim-assemble] \\\n";
@@ -371,8 +372,11 @@ sub printHelp () {
     print "\n";
     print "Complete documentation at http://canu.readthedocs.org/en/latest/\n";
     print "\n";
-    print "$global{'errors'}";
-    print "\n";
+
+    if (defined($global{'errors'})) {
+        print "$global{'errors'}";
+        print "\n";
+    }
 
     exit(1);
 }
