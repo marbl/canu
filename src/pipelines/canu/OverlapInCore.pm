@@ -70,7 +70,7 @@ sub overlapConfigure ($$$$) {
     caFailure("invalid type '$type'", undef)  if (($type ne "partial") && ($type ne "normal"));
 
     goto allDone   if (skipStage($WRK, $asm, "$tag-overlapConfigure") == 1);
-    goto allDone   if (-e "$path/$asm.partition.ovlopt");
+    goto allDone   if (-e "$path/overlap.sh") && (-e "$path/$asm.partition.ovlbat") && (-e "$path/$asm.partition.ovljob") && (-e "$path/$asm.partition.ovlopt");
     goto allDone   if (-e "$path/ovljob.files");
     goto allDone   if (-e "$wrk/$asm.ovlStore");
 
@@ -86,7 +86,9 @@ sub overlapConfigure ($$$$) {
     #  version right before it exits.  All we need to do here is check for existence of
     #  the output, and exit if the command fails.
 
-    if (! -e "$path/$asm.partition.ovlopt") {
+    if ((! -e "$path/$asm.partition.ovlbat") ||
+        (! -e "$path/$asm.partition.ovljob") ||
+        (! -e "$path/$asm.partition.ovlopt")) {
 
         #  These used to be runCA options, but were removed in canu.  They were used mostly for
         #  illumina-pacbio correction, but were also used (or could have been used) during the
@@ -123,6 +125,8 @@ sub overlapConfigure ($$$$) {
         if (runCommand($wrk, $cmd)) {
             caExit("failed partition for overlapper", undef);
         }
+
+        unlink "$path/overlap.sh";
     }
 
     open(BAT, "< $path/$asm.partition.ovlbat") or caExit("can't open '$path/$asm.partition.ovlbat' for reading: $!", undef);
@@ -207,16 +211,14 @@ sub overlapConfigure ($$$$) {
     my $batchName = $bat[$jobs-1];  chomp $batchName;
     my $jobName   = $job[$jobs-1];  chomp $jobName;
 
-    if (-e "$path/overlap.sh") {
-        my $numJobs = 0;
-        open(F, "< $path/overlap.sh") or caExit("can't open '$path/overlap.sh' for reading: $!", undef);
-        while (<F>) {
-            $numJobs++  if (m/^\s+job=/);
-        }
-        close(F);
-        print STDERR "--\n";
-        print STDERR "-- Configured $numJobs overlapInCore jobs.\n";
+    my $numJobs = 0;
+    open(F, "< $path/overlap.sh") or caExit("can't open '$path/overlap.sh' for reading: $!", undef);
+    while (<F>) {
+        $numJobs++  if (m/^\s+job=/);
     }
+    close(F);
+    print STDERR "--\n";
+    print STDERR "-- Configured $numJobs overlapInCore jobs.\n";
 
   finishStage:
     emitStage($WRK, $asm, "$tag-overlapConfigure");
