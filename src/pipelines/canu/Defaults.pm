@@ -650,7 +650,7 @@ sub setOverlapDefaults ($$$) {
 
     # shared parameters for alignment-free overlappers
     $global{"${tag}ReAlign"}                  = undef;
-    $synops{"${tag}ReAlign"}              = "Compute actual alignments from overlaps; 'raw' from output, 'final' from overlap store; uses either obtErrorRate or ovlErrorRate, depending on which overlaps are computed";
+    $synops{"${tag}ReAlign"}                  = "Compute actual alignments from overlaps; 'raw' from output, 'final' from overlap store; uses corErrorRate, obtOvlErrorRate or utgOvlErrorRate, depending on which overlaps are computed";
 }
 
 
