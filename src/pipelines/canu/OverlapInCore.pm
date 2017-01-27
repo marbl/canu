@@ -75,9 +75,9 @@ sub overlapConfigure ($$$$) {
     goto allDone   if (-e "$wrk/$asm.ovlStore");
 
     print STDERR "--\n";
-    print STDERR "-- OVERLAPPER (normal) (correction) erate=", getGlobal("${tag}OvlErrorRate"), "\n"  if ($tag eq "cor");
-    print STDERR "-- OVERLAPPER (normal) (trimming) erate=", getGlobal("${tag}OvlErrorRate"), "\n"    if ($tag eq "obt");
-    print STDERR "-- OVERLAPPER (normal) (assembly) erate=", getGlobal("${tag}OvlErrorRate"), "\n"    if ($tag eq "utg");
+    print STDERR "-- OVERLAPPER (normal) (correction) erate=", getGlobal("corOvlErrorRate"), "\n"  if ($tag eq "cor");
+    print STDERR "-- OVERLAPPER (normal) (trimming) erate=",   getGlobal("obtOvlErrorRate"), "\n"    if ($tag eq "obt");
+    print STDERR "-- OVERLAPPER (normal) (assembly) erate=",   getGlobal("utgOvlErrorRate"), "\n"    if ($tag eq "utg");
     print STDERR "--\n";
 
     make_path("$path") if (! -d "$path");
@@ -189,7 +189,9 @@ sub overlapConfigure ($$$$) {
         print F "  -k $wrk/0-mercounts/$asm.ms$merSize.frequentMers.fasta \\\n";
         print F "  --hashbits $hashBits \\\n";
         print F "  --hashload $hashLoad \\\n";
-        print F "  --maxerate  ", getGlobal("${tag}OvlErrorRate"), " \\\n";
+        print F "  --maxerate  ", getGlobal("corOvlErrorRate"), " \\\n"  if ($tag eq "cor");   #  Explicitly using proper name for grepability.
+        print F "  --maxerate  ", getGlobal("obtOvlErrorRate"), " \\\n"  if ($tag eq "obt");
+        print F "  --maxerate  ", getGlobal("utgOvlErrorRate"), " \\\n"  if ($tag eq "utg");
         print F "  --minlength ", getGlobal("minOverlapLength"), " \\\n";
         print F "  --minkmers \\\n" if (defined(getGlobal("${tag}OvlFilter")) && getGlobal("${tag}OvlFilter")==1);
         print F "  \$opt \\\n";
