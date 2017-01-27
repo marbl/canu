@@ -334,7 +334,7 @@ sub mmapConfigure ($$$$) {
         print F "    -O $path/results/\$qry.mmap.ovb \\\n";
         print F "    -o $path/results/\$qry.ovb \\\n";
         print F "    -partial \\\n"  if ($typ eq "partial");
-        print F "    -erate ", getGlobal("corErrorRate"),    " \\\n"  if ($tag eq "cor");
+        print F "    -erate ", getGlobal("corOvlErrorRate"), " \\\n"  if ($tag eq "cor");
         print F "    -erate ", getGlobal("obtOvlErrorRate"), " \\\n"  if ($tag eq "obt");
         print F "    -erate ", getGlobal("utgOvlErrorRate"), " \\\n"  if ($tag eq "utg");
         print F "    -memory " . getGlobal("${tag}mmapMemory") . " \\\n";
