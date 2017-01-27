@@ -40,7 +40,7 @@ package canu::Defaults;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(getCommandLineOptions addCommandLineOption addCommandLineError writeLog getNumberOfCPUs getPhysicalMemorySize getAllowedResources diskSpace printOptions printVersion printHelp setParametersFromFile setParametersFromCommandLine checkJava checkGnuplot checkParameters getGlobal setGlobal setGlobalIfUndef showErrorRates setErrorRate setDefaults);
+@EXPORT = qw(getCommandLineOptions addCommandLineOption addCommandLineError writeLog getNumberOfCPUs getPhysicalMemorySize getAllowedResources diskSpace printOptions printVersion printHelp setParametersFromFile setParametersFromCommandLine checkJava checkGnuplot checkParameters getGlobal setGlobal setGlobalIfUndef setDefaults);
 
 use strict;
 use Carp qw(cluck);
@@ -128,12 +128,34 @@ sub setGlobal ($$) {
         $set += setGlobalSpecialization($val, ("cor${opt}", "obt${opt}", "utg${opt}"))  if ($var eq "${opt}");
     }
 
-    return  if ($set > 0);
+    #  Handle the two error rate aliases.  Note 'errorRateUsed' must be lowercase.  setGlobal/getGlobal do that for us.
 
     if ($var eq "errorrate") {
-        setErrorRate($val, 1);
+        $var = "correctederrorrate";
+        $val = 3 * $val;
+
+        $global{"errorrateused"}  = "--\n";
+        $global{"errorrateused"} .= "-- WARNING: Obsolete 'errorRate' used, replace with 'correctedErrorRate', set to three times the value.\n";
+        $global{"errorrateused"} .= "-- WARNING: errorRate was the expected error rate in a single corrected read; correctedErrorRate is the\n";
+        $global{"errorrateused"} .= "-- WARNING: allowed difference in an alignment of two corrected reads.\n";
+    }
+
+    if ($var eq "rawerrorrate") {
+        setGlobalIfUndef("corOvlErrorRate", $val);
+        setGlobalIfUndef("corErrorRate",    $val);
         return;
     }
+
+    if ($var eq "correctederrorrate") {
+        setGlobalIfUndef("obtOvlErrorRate", $val);
+        setGlobalIfUndef("obtErrorRate",    $val);
+        setGlobalIfUndef("utgOvlErrorRate", $val);
+        setGlobalIfUndef("utgErrorRate",    $val);
+        setGlobalIfUndef("cnsErrorRate",    $val);
+        return;
+    }
+
+    return  if ($set > 0);
 
     #  If we got a parameter we don't understand, we should be parsing command line options or
     #  reading spec files, and we can let the usual error handling handle it.
@@ -330,7 +352,7 @@ sub printVersion ($) {
 sub printHelp (@) {
     my $force = shift @_;
 
-    return   if (!defined($force) && !exists($global{'errors'}));
+    return   if (!defined($force) && !defined($global{"errors"}));
 
     print "\n";
     print "usage: canu [-correct | -trim | -assemble | -trim-assemble] \\\n";
@@ -338,7 +360,6 @@ sub printHelp (@) {
     print "             -p <assembly-prefix> \\\n";
     print "             -d <assembly-directory> \\\n";
     print "             genomeSize=<number>[g|m|k] \\\n";
-    print "             errorRate=0.X \\\n";
     print "            [other-options] \\\n";
     print "            [-pacbio-raw | -pacbio-corrected | -nanopore-raw | -nanopore-corrected] *fastq\n";
     print "\n";
@@ -355,9 +376,6 @@ sub printHelp (@) {
     print "  The genome size is your best guess of the genome size of what is being assembled.\n";
     print "  It is used mostly to compute coverage in reads.  Fractional values are allowed: '4.7m'\n";
     print "  is the same as '4700k' and '4700000'\n";
-    print "\n";
-    print "  The errorRate is not used correctly (we're working on it).  Don't set it\n";
-    print "  If you want to change the defaults, use the various utg*ErrorRate options.\n";
     print "\n";
     print "  A full list of options can be printed with '-options'.  All options\n";
     print "  can be supplied in an optional sepc file.\n";
@@ -517,56 +535,6 @@ sub setExecDefaults ($$) {
 
 
 
-sub showErrorRates ($) {
-    my $prefix = shift @_;
-
-    print STDERR "${prefix}\n";
-    print STDERR "${prefix}genomeSize          -- ", getGlobal("genomeSize"), "\n";
-    print STDERR "${prefix}errorRate           -- ", getGlobal("errorRate"), "\n";
-    print STDERR "${prefix}\n";
-    print STDERR "${prefix}corOvlErrorRate     -- ", getGlobal("corOvlErrorRate"), "\n";
-    print STDERR "${prefix}obtOvlErrorRate     -- ", getGlobal("obtOvlErrorRate"), "\n";
-    print STDERR "${prefix}utgOvlErrorRate     -- ", getGlobal("utgOvlErrorRate"), "\n";
-    print STDERR "${prefix}\n";
-    print STDERR "${prefix}obtErrorRate        -- ", getGlobal("obtErrorRate"), "\n";
-    print STDERR "${prefix}\n";
-    #print STDERR "${prefix}corErrorRate        -- ", getGlobal("corErrorRate"), "\n";
-    print STDERR "${prefix}cnsErrorRate        -- ", getGlobal("cnsErrorRate"), "\n";
-}
-
-
-#  Defaults are set for yeast:
-#    trimming   errorRate = 0.009  obtOvlErrorRate = 0.06  obtErrorRate = 0.035
-#    assembly   errorRate = 0.009  utgOvlErrorRate = 0.06  bogart 0.035
-#
-sub setErrorRate ($$) {
-    my $er      = shift @_;
-    my $force   = shift @_;
-
-    if (($force == 0) && (defined($global{"errorrate"}))) {
-        #print STDERR "-- Can't change error rate from ", getGlobal('errorRate'), " to $er - not allowed.\n";
-        return;
-    }
-
-    #print STDERR "-- Set errorRate to $er\n";
-
-    #  Can NOT call setGlobal() for this, because it calls setErrorRate()!.
-    $global{"errorrate"} = $er;
-    setGlobal("corOvlErrorRate",    $er * 3);  #  Not used, except for realigning
-    setGlobal("obtOvlErrorRate",    $er * 3);  #  Generally must be smaller than utgGraphErrorRate
-    setGlobal("utgOvlErrorRate",    $er * 3);
-
-    setGlobal("obtErrorRate",       $er * 3);
-
-    #  Removed, is usually set in CorrectReads, can be set from command line directly.
-    #setGlobal("corErrorRate",       $er * 10);  #  Erorr rate used for raw sequence alignment/consensus
-    setGlobal("cnsErrorRate",       $er * 3);
-
-    #showErrorRates("--  ");
-}
-
-
-
 sub setOverlapDefaults ($$$) {
     my $tag     = shift @_;  #  If 'cor', some parameters are loosened for raw pacbio reads
     my $name    = shift @_;
@@ -657,6 +625,11 @@ sub setOverlapDefaults ($$$) {
 
 sub setDefaults () {
 
+    #####  Internal stuff
+
+    $global{"errors"}                      = undef;   #  Command line errors
+    $global{"errorRateUsed"}               = undef;   #  A warning if obsolete 'errorRate' parameter is used.  This lets us print the error in a useful place, instead of at the very start of the output.
+
     #####  General Configuration Options (aka miscellany)
 
     $global{"canuIteration"}               = 1;  #  See documentation in Execution.pm
@@ -708,9 +681,6 @@ sub setDefaults () {
 
     #####  Error Rates
 
-    $global{"errorRate"}                   = undef;
-    $synops{"errorRate"}                   = "The expected error rate in the corrected reads, typically set based on sequencing type. Set to 0 to try to estimate dynamically. (EXPERIMENTAL)";
-
     $global{"corOvlErrorRate"}             = undef;
     $synops{"corOvlErrorRate"}             = "Overlaps above this error rate are not computed";
 
@@ -720,17 +690,17 @@ sub setDefaults () {
     $global{"utgOvlErrorRate"}             = undef;
     $synops{"utgOvlErrorRate"}             = "Overlaps at or below this error rate are used to trim reads";
 
-    #$global{"utgErrorRate"}                = undef;
-    #$synops{"utgErrorRate"}                = "Overlaps at or below this error rate are used to construct unitigs (BOG and UTG)";
+    $global{"utgErrorRate"}                = undef;
+    $synops{"utgErrorRate"}                = "Overlaps at or below this error rate are used to construct contigs";
 
     $global{"utgGraphDeviation"}           = 6;
-    $synops{"utgGraphDeviation"}           = "Overlaps this much above median will not be used for initial graph construction (BOGART)";
+    $synops{"utgGraphDeviation"}           = "Overlaps this much above median will not be used for initial graph construction";
 
     $global{"utgRepeatDeviation"}          = 3;
-    $synops{"utgRepeatDeviation"}          = "Overlaps this much above mean unitig error rate will not be used for repeat splitting (BOGART)";
+    $synops{"utgRepeatDeviation"}          = "Overlaps this much above mean unitig error rate will not be used for repeat splitting";
 
     $global{"utgRepeatConfusedBP"}         = 2100;
-    $synops{"utgRepeatConfusedBP"}           = "Repeats where the next best edge is at least this many bp shorter will not be split (BOGART)";
+    $synops{"utgRepeatConfusedBP"}           = "Repeats where the next best edge is at least this many bp shorter will not be split";
 
     $global{"corErrorRate"}                = undef;
     $synops{"corErrorRate"}                = "Only use raw alignments below this error rate to construct corrected reads";
@@ -1204,7 +1174,7 @@ sub checkParameters () {
         }
     }
 
-    foreach my $var ("corOvlErrorRate", "obtOvlErrorRate", "utgOvlErrorRate", "corErrorRate", "cnsErrorRate", "obtErrorRate") {
+    foreach my $var ("corOvlErrorRate", "obtOvlErrorRate", "utgOvlErrorRate", "corErrorRate", "obtErrorRate", "utgErrorRate", "cnsErrorRate") {
         if (!defined(getGlobal($var))) {
             addCommandLineError("ERROR:  Invalid '$var' specified; must be set\n");
         }
@@ -1387,7 +1357,6 @@ sub checkParameters () {
         addCommandLineError($failureString)   if ($ok == 0);
     }
 
-    addCommandLineError("ERROR:  Required parameter 'errorRate' is not set\n")    if (! defined(getGlobal("errorRate")));
     addCommandLineError("ERROR:  Required parameter 'genomeSize' is not set\n")   if (! defined(getGlobal("genomeSize")));
 
     #
@@ -1408,19 +1377,6 @@ sub checkParameters () {
 
         addCommandLineError("ERROR:  Didn't find falcon program with option falconSense='$falcon'")   if ((defined($falcon)) && (! -e $falcon));
     }
-
-    #
-    #  Set default error rates based on the per-read error rate.
-    #
-
-    setGlobalIfUndef("corOvlErrorRate",      3.0 * getGlobal("errorRate"));
-    setGlobalIfUndef("obtOvlErrorRate",      3.0 * getGlobal("errorRate"));
-    setGlobalIfUndef("utgOvlErrorRate",      3.0 * getGlobal("errorRate"));
-
-    setGlobalIfUndef("ovlErrorRate",         2.5 * getGlobal("errorRate"));
-
-    setGlobalIfUndef("corsErrorRate",        10.0 * getGlobal("errorRate"));
-    setGlobalIfUndef("cnsErrorRate",         2.5 * getGlobal("errorRate"));
 }
 
 

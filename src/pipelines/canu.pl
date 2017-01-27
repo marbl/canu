@@ -222,20 +222,20 @@ setParametersFromCommandLine(@specOpts);
 
 #  Set parameters based on file types supplied.
 
+my $setUpForPacBio   = 0;
+my $setUpForNanopore = 0;
+
 foreach my $typefile (@inputFiles) {
     my ($type, $file) = split '\0', $typefile;
 
-    $mode = "trim-assemble"             if (!defined($mode) && ($type =~ m/corrected/));
-    $mode = "run"                       if (!defined($mode) && ($type =~ m/raw/));
+    $mode = "trim-assemble"  if (!defined($mode) && ($type =~ m/corrected/));
+    $mode = "run"            if (!defined($mode) && ($type =~ m/raw/));
 
-    $haveCorrected = 1                  if ($type =~ m/corrected/);
-    $haveRaw = 1                        if ($type =~ m/raw/);
+    $haveCorrected = 1       if ($type =~ m/corrected/);
+    $haveRaw = 1             if ($type =~ m/raw/);
 
-    setErrorRate(0.015, 0)              if ($type =~ m/pacbio/);
-    setGlobal("corErrorRate", "0.30")   if ($type =~ m/pacbio/);
-
-    setErrorRate(0.048, 0)              if ($type =~ m/nanopore/);
-    setGlobal("corErrorRate", "0.50")   if ($type =~ m/nanopore/);
+    $setUpForPacBio++        if ($type =~ m/pacbio/);
+    $setUpForNanopore++      if ($type =~ m/nanopore/);
 }
 
 #  Fail if both raw and corrected are supplied.
@@ -243,43 +243,52 @@ foreach my $typefile (@inputFiles) {
 addCommandLineError("ERROR:  Canu does not currently support mixing raw and corrected sequences.\n")   if ($haveRaw && $haveCorrected);
 
 #  When resuming a run without input files, set the error rates based on library type in the
-#  gkpStore.  If the user set the error rate already, do nothing.
-#
-#  Also, check if we have gkpStores but no input files and reset error rates based on gkpStore.
+#  gkpStore.
 
-if (scalar(@inputFiles) == 0 && ! defined(getGlobal("errorRate"))) {
+if (scalar(@inputFiles) == 0) {
     my $gkpStore = undef;
-    $gkpStore = "$wrk/correction/$asm.gkpStore" if -e "$wrk/correction/$asm.gkpStore/libraries.txt";
-    $gkpStore = "$wrk/trimming/$asm.gkpStore"   if -e "$wrk/trimming/$asm.gkpStore/libraries.txt";
-    $gkpStore = "$wrk/unitigging/$asm.gkpStore" if -e "$wrk/unitigging/$asm.gkpStore/libraries.txt";
 
-    # set to the default if we can't find anything
-    if (!defined($gkpStore)) {
-        setErrorRate(0.01, 0);
-    } else {
-        my $numPacBioRaw         = 0;
-        my $numPacBioCorrected   = 0;
-        my $numNanoporeRaw       = 0;
-        my $numNanoporeCorrected = 0;
+    $gkpStore = "$wrk/correction/$asm.gkpStore"   if (-e "$wrk/correction/$asm.gkpStore/libraries.txt");
+    $gkpStore = "$wrk/trimming/$asm.gkpStore"     if (-e "$wrk/trimming/$asm.gkpStore/libraries.txt");
+    $gkpStore = "$wrk/unitigging/$asm.gkpStore"   if (-e "$wrk/unitigging/$asm.gkpStore/libraries.txt");
 
-        open(L, "< $gkpStore/libraries.txt") or caExit("can't open '$gkpStore/libraries.txt' for reading: $!", undef);
-        while (<L>) {
-            $numPacBioRaw++           if (m/pacbio-raw/);
-            $numPacBioCorrected++     if (m/pacbio-corrected/);
-            $numNanoporeRaw++         if (m/nanopore-raw/);
-            $numNanoporeCorrected++   if (m/nanopore-corrected/);
-        }
-        if ($numPacBioRaw > 0 || $numPacBioCorrected > 0) {
-            setErrorRate(0.015, 0);
-            setGlobal("corErrorRate", "0.30");
-            setGlobal("cnsMaxCoverage", 40);
-        }
-        if ($numNanoporeRaw > 0 || $numNanoporeCorrected > 0) {
-            setErrorRate(0.048, 0);
-            setGlobal("corErrorRate", "0.50");
-            setGlobal("cnsMaxCoverage", 40);
-        }
+    caExit("ERROR:  no reads supplied, and can't find any library information in gkpStore", undef)   if (!defined($gkpStore));
+
+    my $numPacBioRaw         = 0;
+    my $numPacBioCorrected   = 0;
+    my $numNanoporeRaw       = 0;
+    my $numNanoporeCorrected = 0;
+
+    open(L, "< $gkpStore/libraries.txt") or caExit("can't open '$gkpStore/libraries.txt' for reading: $!", undef);
+    while (<L>) {
+        $numPacBioRaw++           if (m/pacbio-raw/);
+        $numPacBioCorrected++     if (m/pacbio-corrected/);
+        $numNanoporeRaw++         if (m/nanopore-raw/);
+        $numNanoporeCorrected++   if (m/nanopore-corrected/);
     }
+
+    $setUpForPacBio++      if ($numPacBioRaw   + $numPacBioCorrected   > 0);
+    $setUpForNanopore++    if ($numNanoporeRaw + $numNanoporeCorrected > 0);
+}
+
+#  Now set error rates (if not set already) based on the dominant read type.
+
+if ($setUpForNanopore > 0) {
+    setGlobalIfUndef("corOvlErrorRate",  0.144);
+    setGlobalIfUndef("obtOvlErrorRate",  0.144);
+    setGlobalIfUndef("utgOvlErrorRate",  0.144);
+    setGlobalIfUndef("corErrorRate",     0.500);
+    setGlobalIfUndef("obtErrorRate",     0.144);
+    setGlobalIfUndef("utgErrorRate",     0.144);
+    setGlobalIfUndef("cnsErrorRate",     0.144);
+} else {
+    setGlobalIfUndef("corOvlErrorRate",  0.045);
+    setGlobalIfUndef("obtOvlErrorRate",  0.045);
+    setGlobalIfUndef("utgOvlErrorRate",  0.045);
+    setGlobalIfUndef("corErrorRate",     0.300);
+    setGlobalIfUndef("obtErrorRate",     0.045);
+    setGlobalIfUndef("utgErrorRate",     0.045);
+    setGlobalIfUndef("cnsErrorRate",     0.045);
 }
 
 #  Finish setting parameters, then reset the bin directory using pathMap.
@@ -343,6 +352,28 @@ configureRemote();
 #  Based on genomeSize, configure the execution of every component.  This needs to be done AFTER the grid is setup!
 
 configureAssembler();
+
+#  And, finally, report the critical parameters.
+
+printf STDERR "--\n";
+print  STDERR "-- Parameters:\n";
+printf STDERR "--\n";
+printf STDERR "--  genomeSize        %s\n", getGlobal("genomeSize");
+printf STDERR "--\n";
+printf STDERR "--  Overlap Generation Limits:\n";
+printf STDERR "--    corOvlErrorRate %6.4f (%6.2f%%)\n", getGlobal("corOvlErrorRate"), getGlobal("corOvlErrorRate") * 100.0;
+printf STDERR "--    obtOvlErrorRate %6.4f (%6.2f%%)\n", getGlobal("obtOvlErrorRate"), getGlobal("obtOvlErrorRate") * 100.0;
+printf STDERR "--    utgOvlErrorRate %6.4f (%6.2f%%)\n", getGlobal("utgOvlErrorRate"), getGlobal("utgOvlErrorRate") * 100.0;
+printf STDERR "--\n";
+printf STDERR "--  Overlap Processing Limits:\n";
+printf STDERR "--    corErrorRate    %6.4f (%6.2f%%)\n", getGlobal("corErrorRate"), getGlobal("corErrorRate") * 100.0;
+printf STDERR "--    obtErrorRate    %6.4f (%6.2f%%)\n", getGlobal("obtErrorRate"), getGlobal("obtErrorRate") * 100.0;
+printf STDERR "--    utgErrorRate    %6.4f (%6.2f%%)\n", getGlobal("utgErrorRate"), getGlobal("utgErrorRate") * 100.0;
+printf STDERR "--    cnsErrorRate    %6.4f (%6.2f%%)\n", getGlobal("cnsErrorRate"), getGlobal("cnsErrorRate") * 100.0;
+
+if (defined(getGlobal('errorRateUsed'))) {
+    print STDERR getGlobal('errorRateUsed');
+}
 
 #  Fail immediately if we run the script on the grid, and the gkpStore directory doesn't exist and
 #  we have no input files.  Without this check we'd fail only after being scheduled on the grid.
@@ -458,11 +489,6 @@ if (getGlobal("canuIteration") > 0) {
     print STDERR "--\n";
     print STDERR "-- This is canu parallel iteration #" . getGlobal("canuIteration") . ", out of a maximum of " . getGlobal("canuIterationMax") . " attempts.\n";
 }
-
-print STDERR "--\n";
-print STDERR "-- Final error rates before starting pipeline:\n";
-
-showErrorRates("--   ");
 
 if (setOptions($mode, "correct") eq "correct") {
     print STDERR "--\n";

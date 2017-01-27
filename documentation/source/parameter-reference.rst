@@ -15,8 +15,13 @@ Global Options
 
 The catch all category.
 
-errorRate <float=0.01>
-  The expected error rate, as fraction error, in the corrected reads, set by default based on data type, typically not changed by the user.
+rawErrorRate <float=0.01>
+  The allowed difference, as fraction error, in an alignment of two uncorrected ("raw") reads.  Set by default based on data type, typically not changed by the user.
+  Sets ``corOvlErrorRate`` and ``corErrorRate``.
+
+correctedErrorRate <float=0.01>
+  The allowed difference, as fraction error, in an alignemnt of two corrected reads.  Set by default based on data type.  Changed by the user to account for divergence in the sample.
+  Sets ``obtOvlErrorRate``, ``obtErrorRate``, ``utgOvlErrorRate``, ``utgErrorRate``, and ``cnsErrorRate``.
 
 .. _genomeSize:
 
@@ -301,7 +306,7 @@ Overlap Based Trimming
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 obtErrorRate <float=unset>
-  Stringency of overlaps to use for trimming
+  Stringency of overlaps to use for trimming.
 
 trimReadsOverlap <integer=1>
   Minimum overlap between evidence to make contiguous trim.
@@ -533,6 +538,9 @@ Unitigger
 unitigger <string="bogart">
   Which unitig construction algorithm to use.  Only "bogart" is supported.
 
+utgErrorRate <float=unset>
+  Stringency of overlaps used for constructing contigs.
+
 batOptions <unset>
   Advanced options to bogart
 
@@ -554,7 +562,7 @@ cnsMaxCoverage
   Limit unitig consensus to at most this coverage.
  
 cnsErrorRate
-  Possibly unused.
+  Stringency of read-to-read alignments used for computing consensus sequences.
 
 .. _correction:
 

@@ -139,13 +139,13 @@ And finally, assemble the output of trimming, twice::
  canu -assemble \
    -p ecoli -d ecoli-erate-0.013 \
    genomeSize=4.8m \
-   errorRate=0.013 \
+   correctedErrorRate=0.039 \
    -pacbio-corrected ecoli/trimming/ecoli.trimmedReads.fasta.gz
 
  canu -assemble \
    -p ecoli -d ecoli-erate-0.025 \
    genomeSize=4.8m \
-   errorRate=0.025 \
+   correctedErrorRate=0.075 \
    -pacbio-corrected ecoli/trimming/ecoli.trimmedReads.fasta.gz
 
 The directory layout for correction and trimming is exactly the same as when we ran all tasks in the same command.
@@ -205,12 +205,12 @@ or use the following curl command:
 
  curl -L -o yeast.20x.fastq.gz http://gembox.cbcb.umd.edu/mhap/raw/yeast_filtered.20x.fastq.gz
 
-and run the assembler adding sensitive parameters (**errorRate=0.035**)::
+and run the assembler adding sensitive parameters (**correctedErrorRate=0.105**)::
 
  canu \
   -p asm -d yeast \
   genomeSize=12.1m \
-  errorRate=0.035 \
+  correctedErrorRate=0.105 \
   -pacbio-raw yeast.20x.fastq.gz
   
 

@@ -175,8 +175,8 @@ sub unitig ($$) {
         print F " -O $wrk/$asm.ovlStore \\\n";
         print F " -o $wrk/4-unitigger/$asm \\\n";
         print F " -gs "             . getGlobal("genomeSize")         . " \\\n";
-        print F " -eg "             . getGlobal("utgOvlErrorRate")    . " \\\n";
-        print F " -eM "             . getGlobal("utgOvlErrorRate")    . " \\\n";
+        print F " -eg "             . getGlobal("utgErrorRate")       . " \\\n";
+        print F " -eM "             . getGlobal("utgErrorRate")       . " \\\n";
         print F " -el "             . $overlapLength                  . " \\\n";
         print F " -dg "             . getGlobal("utgGraphDeviation")  . " \\\n";
         print F " -db "             . getGlobal("utgGraphDeviation")  . " \\\n";
