@@ -191,6 +191,13 @@ sub estimateCorrectedError ($$$) {
     my $tag     = shift @_;
     my $bin     = getBinDirectory();
 
+    #  DISABLED 2016 JAN 27 when 'errorRate' was replaced with 'correctedErrorRate'.
+    #
+    #  A new option needs to be added to enable this explicitly.
+    #  This doesn't work on grid either (the set error rates are lost on the next restart).
+
+    return;
+
     $wrk = "$wrk/correction";
 
     my $path = "$wrk/3-estimator";
