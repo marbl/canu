@@ -259,6 +259,17 @@ main (int argc, char * argv []) {
     fprintf(stderr, "  -RL len    Force reads below 'len' bases to be singletons.\n");
     fprintf(stderr, "               This WILL cause CGW to fail; diagnostic only.\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "  -nofilter [suspicious],[higherror],[lopsided],[spur]\n");
+    fprintf(stderr, "             Disable filtering of:\n");
+    fprintf(stderr, "               suspicious - reads that have a suspicious lack of overlaps\n");
+    fprintf(stderr, "               higherror  - overlaps that have error rates well outside the observed\n");
+    fprintf(stderr, "               lopsided   - reads that have unusually asymmetric best overlaps\n");
+    fprintf(stderr, "               spur       - reads that have no overlaps on one end\n");
+    fprintf(stderr, "             The value supplied to -nofilter must be one word, order and punctuation\n");
+    fprintf(stderr, "             do not matter.  The following examples behave the same:\n");
+    fprintf(stderr, "                '-nofilter suspicious,higherror'\n");
+    fprintf(stderr, "                '-nofilter suspicious-and-higherror'\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "  -threads N Use N compute threads during repeat detection.\n");
     fprintf(stderr, "               0 - use OpenMP default (default)\n");
     fprintf(stderr, "               1 - use one thread\n");
