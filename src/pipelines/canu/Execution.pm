@@ -795,10 +795,10 @@ sub buildGridJob ($$$$$$$$$) {
 
     my $opts;
 
-    $opts .= "$stageOption "    if (defined($stageOption));
+    $opts  = "$stageOption "    if (defined($stageOption));
     $opts .= "$memOption "      if (defined($memOption));
     $opts .= "$thrOption "      if (defined($thrOption));
-    $opts  = "$globalOptions "  if (defined($globalOptions));
+    $opts .= "$globalOptions "  if (defined($globalOptions));
     $opts .= "$jobOptions "     if (defined($jobOptions));
 
     $opts =~ s/\s+$//;
