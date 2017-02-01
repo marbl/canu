@@ -15,13 +15,35 @@ Global Options
 
 The catch all category.
 
-rawErrorRate <float=0.01>
-  The allowed difference, as fraction error, in an alignment of two uncorrected ("raw") reads.  Set by default based on data type, typically not changed by the user.
-  Sets ``corOvlErrorRate`` and ``corErrorRate``.
+.. _errorRate:
 
-correctedErrorRate <float=0.01>
-  The allowed difference, as fraction error, in an alignemnt of two corrected reads.  Set by default based on data type.  Changed by the user to account for divergence in the sample.
-  Sets ``obtOvlErrorRate``, ``obtErrorRate``, ``utgOvlErrorRate``, ``utgErrorRate``, and ``cnsErrorRate``.
+errorRate <float=unset> (OBSOLETE)
+  This parameter was removed on January 27th, 2016, and is valid only in Canu 1.4 or earlier.
+  Canu currently still accepts the :ref:`errorRate <errorRate>` parameter, but its use is strongly discouraged.
+
+  The expected error in a single corrected read.  The seven error rates were then set to three times
+  this value (except for :ref:`corErrorRate <corErrorRate>`).
+
+.. _rawErrorRate:
+
+rawErrorRate <float=unset>
+  The allowed difference in an overlap between two uncorrected reads, expressed as fraction error.
+  Sets :ref:`corOvlErrorRate` and :ref:`corErrorRate`.  The `rawErrorRate` typically does not need
+  to be modified.  It might need to be increased if very early reads are being assembled.  The
+  default is 0.300 For PacBio reads, and 0.500 for Nanopore reads.
+
+.. _correctedErrorRate:
+
+correctedErrorRate <float=unset>
+  The allowed difference in an overlap between two corrected reads, expressed as fraction error.  Sets :ref:`obtOvlErrorRate`, :ref:`utgOvlErrorRate`, :ref:`obtErrorRate`, :ref:`utgErrorRate`, and :ref:`cnsErrorRate`.
+  The `correctedErrorRate` can be adjusted to account for the quality of read correction, for the amount of divergence in the sample being
+  assembled, and for the amount of sequence being assembled.  The default is 0.045 for PacBio reads, and 0.144 for Nanopore reads.
+
+  For low coverage datasets (less than 30X), we recommend increasing `correctedErrorRate` slightly, by 1% or so.
+
+  For high-coverage datasets (more than 60X), we recommend decreasing `correctedErrorRate` slighly, by 1% or so.
+
+  Raising the `correctedErrorRate` will increase run time.  Likewise, decreasing `correctedErrorRate` will decrease run time, at the risk of missing overlaps and fracturing the assembly.
 
 .. _genomeSize:
 
@@ -205,8 +227,17 @@ algorithm.
 Overlapper Configuration, ovl Algorithm
 ---------------------------------------
 
+.. _corOvlErrorRate:
+.. _obtOvlErrorRate:
+.. _utgOvlErrorRate:
+.. _ovlErrorRate:
+
 {prefix}OvlErrorRate <float=unset>
   Overlaps above this error rate are not computed.
+  * `corOvlErrorRate` applies to overlaps generated for correcting reads;
+  * `obtOvlErrorRate` applied to overlaps generated for trimming reads;
+  * `utgOvlErrorRate` applies to overlaps generated for assembling reads.
+  These limits apply to the 'ovl' overlap algorithm and when alignments are computed for mhap overlaps with :ref:`mhapReAlign <mhapReAlign>`.
 
 {prefix}OvlFrequentMers <string=undefined>
   Do not seed overlaps with these kmers (fasta format).
@@ -247,6 +278,8 @@ Overlapper Configuration, mhap Algorithm
 {prefix}MhapMerSize <integer=unset>
   K-mer size for seeds in mhap.
 
+.. _mhapReAlign:
+
 {prefix}ReAlign <boolean=false>
   Compute actual alignments from mhap overlaps; 'raw' from mhap output;
   uses either obtErrorRate or ovlErrorRate, depending on which overlaps are computed)
@@ -266,10 +299,6 @@ Overlapper Configuration, mhap Algorithm
 
 {prefix}MMapMerSize <integer=unset>
   K-mer size for seeds in minimap.
-
-{prefix}ReAlign <boolean=false>
-  Compute actual alignments from minimap overlaps; 'raw' from mhap output;
-  uses either obtErrorRate or ovlErrorRate, depending on which overlaps are computed)
 
 Overlap Store
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -305,8 +334,10 @@ merylThreads <integer=unset>
 Overlap Based Trimming
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. _obtErrorRate:
+
 obtErrorRate <float=unset>
-  Stringency of overlaps to use for trimming.
+  Stringency of overlaps to use for trimming reads.
 
 trimReadsOverlap <integer=1>
   Minimum overlap between evidence to make contiguous trim.
@@ -538,8 +569,10 @@ Unitigger
 unitigger <string="bogart">
   Which unitig construction algorithm to use.  Only "bogart" is supported.
 
+.. _utgErrorRate:
+
 utgErrorRate <float=unset>
-  Stringency of overlaps used for constructing contigs.
+  Stringency of overlaps used for constructing contigs.  The `bogart` algorithm uses the distribution of overlap error rates to filter high error overlaps; `bogart` will never see overlaps with error higher than this parameter.
 
 batOptions <unset>
   Advanced options to bogart
@@ -561,29 +594,35 @@ cnsPartitionMin
 cnsMaxCoverage
   Limit unitig consensus to at most this coverage.
  
+.. _cnsErrorRate:
+
 cnsErrorRate
-  Stringency of read-to-read alignments used for computing consensus sequences.
+  Inform the consensus genration algorithm of the amount of difference it should expect in a
+  read-to-read alignment.  Typically set to :ref:`utgOvlErrorRate <utgOvlErrorRate>`.  If set too
+  high, reads could be placed in an incorrect location, leading to errors in the consensus sequence.
+  If set too low, reads could be omitted from the consensus graph (or multialignment, depending on
+  algorithm), resulting in truncated consensus sequences.
 
 .. _correction:
 
 Read Correction
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The first step in Canu is to find high-error overlaps and generate corrected sequences for subsequent assembly. This is currently the fastest step in Canu. By default, only the longest 40X of data (based on the specified genome size) is used for correction. Typically, some reads are trimmed during correction due to being chimeric or having erroneous sequence, resulting in a loss of 20-25% (30X output). You can force correction to be non-lossy by setting 
+The first step in Canu is to find high-error overlaps and generate corrected sequences for
+subsequent assembly. This is currently the fastest step in Canu. By default, only the longest 40X of
+data (based on the specified genome size) is used for correction. Typically, some reads are trimmed
+during correction due to being chimeric or having erroneous sequence, resulting in a loss of 20-25%
+(30X output). You can force correction to be non-lossy by setting `corMinCoverage=0`, in which case
+the corrected reads output will be the same length as the input data, keeping any high-error
+unsupported bases. Canu will trim these in downstream steps before assembly.
 
-::
+If you have a dataset with uneven coverage or small plasmids, correcting the longest 40X may not
+give you sufficient coverage of your genome/plasmid. In these cases, you can set
+`corOutCoverage=999`, or any value greater than your total input coverage which will correct and
+assemble all input data, at the expense of runtime.
 
-   corMinCoverage=0
-
-In which case the corrected reads output will be the same length as the input data, keeping any high-error unsupported bases. Canu will trim these in downstream steps before assembly.
-
-If you have a dataset with uneven coverage or small plasmids, correcting the longest 40X may not give you sufficient coverage of your genome/plasmid. In these cases, you can set 
-
-::
-
-   corOutCoverage=400
-
-Or any large value greater than your total input coverage which will correct and assemble all input data, at the expense of runtime.
+corErrorRate <integer=unset>
+  Do not use overlaps with error rate higher than this (estimated error rate for `mhap` and `minimap` overlaps).
 
 corConsensus <string="falconpipe">
   Which algorithm to use for computing read consensus sequences.  Only 'falcon' and 'falconpipe' are supported.
