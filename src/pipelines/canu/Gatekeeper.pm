@@ -242,8 +242,6 @@ sub gatekeeperCreateStore ($$$@) {
     $cmd .= "  $wrk/$asm.gkpStore.gkp \\\n";
     $cmd .= "> $wrk/$asm.gkpStore.BUILDING.err 2>&1";
 
-    stopBefore("gatekeeper", $cmd);
-
     #  A little funny business to make gatekeeper not fail on read quality issues.
     #  A return code of 0 is total success.
     #  A return code of 1 means it found errors in the inputs, but finished.
@@ -469,7 +467,7 @@ sub gatekeeper ($$$@) {
 
     emitStage($WRK, $asm, "$tag-gatekeeper");
     buildHTML($WRK, $asm, $tag);
-    stopAfter("gatekeeper");
 
   allDone:
+    stopAfter("gatekeeper");
 }

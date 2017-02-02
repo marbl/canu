@@ -75,8 +75,6 @@ sub trimReads ($$) {
     $cmd .= "  -o  $path/$asm.1.trimReads \\\n";
     $cmd .= ">     $path/$asm.1.trimReads.err 2>&1";
 
-    stopBefore("trimReads", $cmd);
-
     if (runCommand($path, $cmd)) {
         caFailure("trimReads failed", "$path/$asm.1.trimReads.err");
     }
@@ -134,8 +132,6 @@ sub splitReads ($$) {
     $cmd .= "  -minlength " . getGlobal("minReadLength") . " \\\n";
     $cmd .= "  -o  $path/$asm.2.splitReads \\\n";
     $cmd .= ">     $path/$asm.2.splitReads.err 2>&1";
-
-    stopBefore("splitReads", $cmd);
 
     if (runCommand($path, $cmd)) {
         caFailure("splitReads failed", "$path/$asm.2.splitReads.err");
@@ -209,4 +205,6 @@ sub dumpReads ($$) {
   allDone:
     print STDERR "--\n";
     print STDERR "-- Trimmed reads saved in '$WRK/$asm.trimmedReads.fasta.gz'\n";
+
+    stopAfter("readTrimming");
 }

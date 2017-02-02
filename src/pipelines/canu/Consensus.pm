@@ -147,8 +147,6 @@ sub partitionReads ($$$) {
     $cmd .= "  -p " . getGlobal("cnsPartitions")   . " \\\n"   if (defined(getGlobal("cnsPartitions")));
     $cmd .= "> $wrk/$asm.${tag}Store/partitionedReads.err 2>&1";
 
-    stopBefore("consensusConfigure", $cmd);
-
     if (runCommand("$wrk", $cmd)) {
         caExit("failed to partition the reads", "$wrk/$asm.${tag}Store/partitionedReads.err");
     }
@@ -221,10 +219,11 @@ sub consensusConfigure ($$) {
   finishStage:
     emitStage($WRK, $asm, "consensusConfigure");
     buildHTML($WRK, $asm, "utg");
-    stopAfter("consensusConfigure");
 
   allDone:
     print STDERR "-- Configured $ctgjobs contig and $utgjobs unitig consensus jobs.\n";
+
+    stopAfter("consensusConfigure");
 }
 
 
@@ -330,7 +329,6 @@ sub consensusCheck ($$) {
     setGlobal("canuIteration", 1);
     emitStage($WRK, $asm, "consensusCheck");
     buildHTML($WRK, $asm, "utg");
-    stopAfter("consensusCheck");
 
   allDone:
 }
@@ -446,7 +444,6 @@ sub consensusLoad ($$) {
   finishStage:
     emitStage($WRK, $asm, "consensusLoad");
     buildHTML($WRK, $asm, "utg");
-    stopAfter("consensusLoad");
   allDone:
     reportUnitigSizes($wrk, $asm, 2, "after consenss generation");
 }
@@ -482,6 +479,6 @@ sub consensusAnalyze ($$) {
     emitStage($WRK, $asm, "consensusAnalyze");
     buildHTML($WRK, $asm, "utg");
     touch("$wrk/$asm.ctgStore/status.coverageStat");
-    stopAfter("consensusAnalyze");
   allDone:
+    stopAfter("consensus");
 }

@@ -324,9 +324,9 @@ sub overlapStoreConfigure ($$$$) {
   finishStage:
     emitStage($WRK, $asm, "$tag-overlapStoreConfigure");
     buildHTML($WRK, $asm, $tag);
-    stopAfter("overlapStoreConfigure");
 
   allDone:
+    stopAfter("overlapStoreConfigure");
 }
 
 
@@ -417,7 +417,6 @@ sub overlapStoreBucketizerCheck ($$$$) {
     setGlobal("canuIteration", 1);
     emitStage($WRK, $asm, "$tag-overlapStoreBucketizerCheck");
     buildHTML($WRK, $asm, $tag);
-    stopAfter("overlapBucketizer");
 
   allDone:
 }
@@ -521,7 +520,6 @@ sub overlapStoreSorterCheck ($$$$) {
     setGlobal("canuIteration", 1);
     emitStage($WRK, $asm, "$tag-overlapStoreSorterCheck");
     buildHTML($WRK, $asm, $tag);
-    stopAfter("overlapSorter");
 
   allDone:
 }
@@ -698,7 +696,7 @@ sub createOverlapStore ($$$$) {
 
     emitStage($WRK, $asm, "$tag-createOverlapStore");
     buildHTML($WRK, $asm, $tag);
-    stopAfter("overlapStore");
 
   allDone:
+    stopAfter("overlapStore");
 }

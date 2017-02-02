@@ -85,46 +85,22 @@ showNext <boolean=false>
   command, for example, checking the output of the previous command or preparing inputs for the
   next command, is still performed.
 
-stopBefore <string=undefined>
-  Stop processing just before this stage would execute.  The stage is configured, and the
-  command logged to the standard output, before stopping.  For grid-based stages, e.g., overlapper,
-  the grid submit command is reported.
-
-  If the stage has finished successfully, it will not stop.
-
-  Only one stage may be supplied to stopBefore.
-
-  Valid stages to stopBefore are:
-    - gatekeeper
-    - meryl
-    - overlap
-    - correction
-    - overlapErrorAdjustment
-    - trimReads
-    - splitReads
-    - unitig
-    - consensusConfigure
-    - consensus
-    - output
-
-  The default value is 'undef'.
-
 stopAfter <string=undefined>
-  Stop processing after this stage completes.
+  If set, Canu will stop processing after a specific stage in the pipeline finishes.
 
-  The stage will typically stop BEFORE a summary of its processing is reported in the canu chatter.
+  Valid values for ``stopAfter`` are:
 
-  Valid stages top stopAfter are:
-    - gatekeeper
-    - meryl
-    - overlapConfigure
-    - overlap
-    - correction
-    - unitig
-    - consensusConfigure
-    - consensus
-    - consensusLoad
-    - consensusFilter
+   - ``gatekeeper`` - stops after the reads are loaded into the assembler read database.
+   - ``meryl`` - stops after frequent kmers are tabulated.
+   - ``overlapConfigure`` - stops after overlap jobs are configured.
+   - ``overlap`` - stops after overlaps are generated, before they are loaded into the overlap database.
+   - ``overlapStoreConfigure`` - stops after the ``ovsMethod=parallel`` jobs are configured; has no impact for ``ovsMethod=sequential``.
+   - ``overlapStore`` - stops after overlaps are loaded into the overlap database.
+   - ``readCorrection`` - stops after corrected reads are generated.
+   - ``readTrimming`` - stops after trimmed reads are generated.
+   - ``unitig`` - stops after unitigs and contigs are created.
+   - ``consensusConfigure`` - stops after consensus jobs are configured.
+   - ``consensus`` - stops after consensus sequences are loaded into the databases.
 
 
 General Options

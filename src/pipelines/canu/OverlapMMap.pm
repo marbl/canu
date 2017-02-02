@@ -377,9 +377,9 @@ sub mmapConfigure ($$$$) {
   finishStage:
     emitStage($WRK, $asm, "$tag-mmapConfigure");
     buildHTML($WRK, $asm, $tag);
-    stopAfter("mmapConfigure");
 
   allDone:
+    stopAfter("overlapConfigure");
 }
 
 
@@ -463,7 +463,6 @@ sub mmapPrecomputeCheck ($$$$) {
     setGlobal("canuIteration", 1);
     emitStage($WRK, $asm, "$tag-mmapPrecomputeCheck");
     buildHTML($WRK, $asm, $tag);
-    stopAfter("mmapPrecompute");
 
   allDone:
 }
@@ -589,8 +588,8 @@ sub mmapCheck ($$$$) {
     setGlobal("canuIteration", 1);
     emitStage($WRK, $asm, "$tag-mmapCheck");
     buildHTML($WRK, $asm, $tag);
-    stopAfter("mmapOverlap");
 
   allDone:
+    stopAfter("overlap");
 }
 

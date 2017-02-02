@@ -225,9 +225,9 @@ sub overlapConfigure ($$$$) {
   finishStage:
     emitStage($WRK, $asm, "$tag-overlapConfigure");
     buildHTML($WRK, $asm, $tag);
-    stopAfter("overlapConfigure");
 
   allDone:
+    stopAfter("overlapConfigure");
 }
 
 
@@ -413,8 +413,8 @@ sub overlapCheck ($$$$) {
     setGlobal("canuIteration", 1);
     emitStage($WRK, $asm, "$tag-overlapCheck");
     buildHTML($WRK, $asm, $tag);
-    stopAfter("overlapper");
 
   allDone:
+    stopAfter("overlap");
 }
 

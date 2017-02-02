@@ -515,9 +515,9 @@ sub mhapConfigure ($$$$) {
   finishStage:
     emitStage($WRK, $asm, "$tag-mhapConfigure");
     buildHTML($WRK, $asm, $tag);
-    stopAfter("mhapConfigure");
 
   allDone:
+    stopAfter("overlapConfigure");
 }
 
 
@@ -603,7 +603,6 @@ sub mhapPrecomputeCheck ($$$$) {
     setGlobal("canuIteration", 1);
     emitStage($WRK, $asm, "$tag-mhapPrecomputeCheck");
     buildHTML($WRK, $asm, $tag);
-    stopAfter("mhapPrecompute");
 
   allDone:
 }
@@ -733,8 +732,8 @@ sub mhapCheck ($$$$) {
     setGlobal("canuIteration", 1);
     emitStage($WRK, $asm, "$tag-mhapCheck");
     buildHTML($WRK, $asm, $tag);
-    stopAfter("mhapOverlap");
 
   allDone:
+    stopAfter("overlap");
 }
 

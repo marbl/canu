@@ -55,7 +55,7 @@ package canu::Execution;
 require Exporter;
 
 @ISA    = qw(Exporter);
-@EXPORT = qw(stopBefore stopAfter skipStage emitStage touch getInstallDirectory getJobIDShellCode getLimitShellCode getBinDirectory getBinDirectoryShellCode submitScript submitOrRunParallelJob runCommand runCommandSilently findCommand findExecutable caExit caFailure);
+@EXPORT = qw(stopAfter skipStage emitStage touch getInstallDirectory getJobIDShellCode getLimitShellCode getBinDirectory getBinDirectoryShellCode submitScript submitOrRunParallelJob runCommand runCommandSilently findCommand findExecutable caExit caFailure);
 
 use strict;
 use Config;            #  for @signame
@@ -219,23 +219,6 @@ sub touch ($@) {
 #
 #  State management
 #
-
-sub stopBefore ($$) {
-    my $stopBefore = shift @_;
-    my $cmd        = shift @_;
-
-    $stopBefore =~ tr/A-Z/a-z/;
-
-    if ((defined($stopBefore)) &&
-        (defined(getGlobal("stopBefore"))) &&
-        (getGlobal("stopBefore") eq $stopBefore)) {
-        print STDERR "\n";
-        print STDERR "Stop requested before '$stopBefore'.\n";
-        print STDERR "\n";
-        print STDERR "Command:\n  $cmd\n" if (defined($cmd));
-        exit(0);
-    }
-}
 
 sub stopAfter ($) {
     my $stopAfter = shift @_;
@@ -947,10 +930,6 @@ sub submitOrRunParallelJob ($$$$$@) {
     #my $t = localtime();
     #print STDERR "----------------------------------------GRIDSTART $t\n";
     #print STDERR "$path/$script.sh with $mem gigabytes memory and $thr threads.\n";
-
-    #  Check stopping rules.
-
-    stopBefore($jobType, "$path/$script.sh");
 
     #  Break infinite loops.  If the grid jobs keep failing, give up after a few attempts.
     #

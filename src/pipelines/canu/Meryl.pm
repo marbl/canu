@@ -298,7 +298,6 @@ sub merylConfigure ($$$) {
   finishStage:
     emitStage($WRK, $asm, "merylConfigure");
     buildHTML($WRK, $asm, $tag);
-    stopAfter("merylConfigure");
 
   allDone:
 }
@@ -364,7 +363,6 @@ sub merylCheck ($$$) {
     setGlobal("canuIteration", 1);
     emitStage($WRK, $asm, "merylCheck");
     buildHTML($WRK, $asm, $tag);
-    stopAfter("merylCheck");
 
   allDone:
 }
@@ -589,7 +587,7 @@ sub merylProcess ($$$) {
 
     emitStage($WRK, $asm, "$tag-meryl");
     buildHTML($WRK, $asm, $tag);
-    stopAfter("meryl");
 
   allDone:
+    stopAfter("meryl");
 }

@@ -320,7 +320,6 @@ sub readErrorDetectionCheck ($$) {
     setGlobal("canuIteration", 1);
     emitStage($WRK, $asm, "readErrorDetectionCheck");
     buildHTML($WRK, $asm, "utg");
-    stopAfter("red");
 
   allDone:
 }
@@ -603,7 +602,6 @@ sub overlapErrorAdjustmentCheck ($$) {
     setGlobal("canuIteration", 1);
     emitStage($WRK, $asm, "overlapErrorAdjustmentCheck");
     buildHTML($WRK, $asm, "utg");
-    stopAfter("oea");
 
   allDone:
 }

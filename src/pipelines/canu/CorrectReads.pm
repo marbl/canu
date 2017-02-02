@@ -997,7 +997,6 @@ sub generateCorrectedReads ($$) {
     setGlobal("canuIteration", 1);
     emitStage($WRK, $asm, "cor-generateCorrectedReads");
     buildHTML($WRK, $asm, "cor");
-    stopAfter("readCorrection");
 
   allDone:
 }
@@ -1404,4 +1403,6 @@ sub dumpCorrectedReads ($$) {
   allDone:
     print STDERR "--\n";
     print STDERR "-- Corrected reads saved in '", sequenceFileExists("$WRK/$asm.correctedReads"), "'.\n";
+
+    stopAfter("readCorrection");
 }

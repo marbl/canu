@@ -731,9 +731,6 @@ sub setDefaults () {
     $global{"stopOnReadQuality"}           = 1;
     $synops{"stopOnReadQuality"}           = "Stop if a significant portion of the input data is too short or has quality value or base composition errors";
 
-    $global{"stopBefore"}                  = undef;
-    $synops{"stopBefore"}                  = "Tell canu when to halt execution";
-
     $global{"stopAfter"}                   = undef;
     $synops{"stopAfter"}                   = "Tell canu when to halt execution";
 
@@ -1150,7 +1147,6 @@ sub checkParameters () {
     fixCase("corFilter");
 
     fixCase("unitigger");
-    fixCase("stopBefore");
     fixCase("stopAfter");
 
     #
@@ -1296,34 +1292,6 @@ sub checkParameters () {
         addCommandLineError("ERROR:  Invalid 'useGrid' specified (" . getGlobal("useGrid") . "); must be 'true', 'false' or 'remote'\n");
     }
 
-    if (defined(getGlobal("stopBefore"))) {
-        my $ok = 0;
-        my $st = getGlobal("stopBefore");
-        $st =~ tr/A-Z/a-z/;
-
-        my $failureString = "ERROR:  Invalid stopBefore specified (" . getGlobal("stopBefore") . "); must be one of:\n";
-
-        my @stopBefore = ("gatekeeper",
-                          "meryl",
-                          "trimReads",
-                          "splitReads",
-                          "red", "oea",
-                          "unitig",
-                          "consensusConfigure",
-                          "cns");
-
-        foreach my $sb (@stopBefore) {
-            $failureString .= "ERROR:      '$sb'\n";
-            $sb =~ tr/A-Z/a-z/;
-            if ($st eq $sb) {
-                $ok++;
-                setGlobal('stopBefore', $st);
-            }
-        }
-
-        addCommandLineError($failureString)   if ($ok == 0);
-    }
-
     if (defined(getGlobal("stopAfter"))) {
         my $ok = 0;
         my $st = getGlobal("stopAfter");
@@ -1333,14 +1301,17 @@ sub checkParameters () {
 
         my @stopAfter = ("gatekeeper",
                          "meryl",
-                         "mhapConfigure",
+                         "overlapConfigure",
+                         "overlap",
                          "overlapStoreConfigure",
                          "overlapStore",
+                         "readCorrection",
+                         "readTrimming",
                          "unitig",
                          "consensusConfigure",
                          "consensusCheck",
                          "consensusLoad",
-                         "consensusFilter");
+                         "consensusAnalyze");
 
         foreach my $sa (@stopAfter) {
             $failureString .= "ERROR:      '$sa'\n";

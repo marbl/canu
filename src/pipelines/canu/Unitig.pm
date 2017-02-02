@@ -204,7 +204,6 @@ sub unitig ($$) {
   finishStage:
     emitStage($WRK, $asm, "unitig");
     buildHTML($WRK, $asm, "utg");
-    stopAfter("unitig");
 
   allDone:
 }
@@ -260,7 +259,7 @@ sub unitigCheck ($$) {
     setGlobal("canuIteration", 1);
     emitStage($WRK, $asm, "unitigCheck");
     buildHTML($WRK, $asm, "utg");
-    stopAfter("unitigCheck");
 
   allDone:
+    stopAfter("unitig");
 }
